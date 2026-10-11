@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import {
   PULSO_PUCP_COLORS,
   SUGERIDAS_PALETAS,
@@ -7,6 +7,8 @@ import {
 import {
   CheckCircle2,
   Layers,
+  Link2,
+  Link2Off,
   ListChecks,
   Paintbrush,
   Palette,
@@ -22,8 +24,18 @@ import {
   PaletaSugeridaEntry,
 } from "../../api/client";
 import { usePlanStore } from "./store";
+import {
+  clavesHuerfanas,
+  coloresPorEtiqueta,
+  etiquetaEquivalente,
+  firmaOpciones,
+  listasQueUsan,
+  resolverPaleta,
+  type ResolucionPaleta,
+} from "./paletasResolver";
 import { LoadingBlock, ErrorBlock, EmptyState, SectionEyebrow } from "../../components/States";
 import "./v2/styles/paletas-suite.css";
+import "./paletasHuerfanas.css";
 
 // Editor de paletas de colores por `list_name` del XLSForm. Cada fila
 // de la tabla es un value-label; el analista le asigna un color. Las
@@ -38,8 +50,29 @@ import "./v2/styles/paletas-suite.css";
 //     para listas ordinales (satisfaccion, acuerdo, etc.).
 //   - Botón "Vaciar paleta" quita los colores de esa lista.
 
-function opcionesKey(choices: Array<{ name: string; label: string }>) {
-  return choices.map((item) => `${item.name}::${item.label}`).join("|");
+// ADR 0097: dos listas son «idénticas» si tienen el mismo CONJUNTO de etiquetas normalizadas (sin caja, tildes ni
+// espacios repetidos), que es la misma firma con la que el motor reparte una paleta. Antes se comparaba `name::label`
+// exacto y una mayúscula o un código distinto partía el grupo.
+function opcionesKey(choices: ReadonlyArray<{ label: string }>) {
+  return firmaOpciones(choices.map((item) => item.label));
+}
+
+/** Rótulo corto de dónde toma sus colores una lista (fila del listado). */
+function rotuloOrigen(r: ResolucionPaleta | null): string {
+  if (!r) return "Base";
+  if (r.origen === "propia") return "Propia";
+  if (r.origen === "vinculo") return "Vínculo";
+  return "Opciones";
+}
+
+/** Frase completa de dónde toma sus colores una lista (detalle). */
+function fraseOrigen(r: ResolucionPaleta | null, listName: string): string {
+  if (!r) return "Sin paleta: usa la del recetario.";
+  if (r.origen === "propia") {
+    return r.clave === listName ? "Toma sus colores de su paleta propia." : `Toma sus colores de su paleta propia («${r.clave}»).`;
+  }
+  if (r.origen === "vinculo") return `Toma sus colores del vínculo con «${r.clave}».`;
+  return `Toma sus colores por sus opciones: coinciden con «${r.clave}».`;
 }
 
 // B38/G-7: preferencia reversible de "agrupar listas idénticas". Persistida
@@ -93,6 +126,8 @@ export function PaletasEditor() {
   const paletas = usePlanStore((s) => s.paletas);
   const setColorEnPaleta = usePlanStore((s) => s.setColorEnPaleta);
   const removeColoresDePaleta = usePlanStore((s) => s.removeColoresDePaleta);
+  const paletasVinculos = usePlanStore((s) => s.paletasVinculos);
+  const setPaletaVinculo = usePlanStore((s) => s.setPaletaVinculo);
 
   const [listasSugeridas, setListasSugeridas] = useState<PaletaSugeridaEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -167,6 +202,22 @@ export function PaletasEditor() {
     ).length,
     [listasSugeridas, paletas],
   );
+  // Nombres de lista del instrumento (únicos: en multibase varias escalas comparten nombre) y paletas que no son de
+  // ninguno: las de un perfil o de otro proyecto, que antes quedaban invisibles (ADR 0097).
+  const listNames = useMemo(
+    () => Array.from(new Set(listasSugeridas.map((l) => l.list_name))),
+    [listasSugeridas],
+  );
+  const huerfanas = useMemo(() => clavesHuerfanas(paletas, listNames), [paletas, listNames]);
+  const huerfanasFiltradas = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? huerfanas.filter((clave) => clave.toLowerCase().includes(q)) : huerfanas;
+  }, [huerfanas, query]);
+  const resoluciones = useMemo(() => {
+    const out = new Map<string, ResolucionPaleta | null>();
+    listasSugeridas.forEach((l) => out.set(escalaIdDe(l), resolverPaleta(l, paletas, paletasVinculos)));
+    return out;
+  }, [listasSugeridas, paletas, paletasVinculos]);
   const gruposCompatibles = useMemo(
     () => Array.from(listaFirmas.values()).filter((count) => count > 1).length,
     [listaFirmas],
@@ -195,12 +246,17 @@ export function PaletasEditor() {
   ) {
     if (!activaData) return;
     const colors = invertir ? [...paleta].reverse() : paleta;
+    // El color se decide sobre el ORDEN de la lista activa y se reparte a las del grupo por etiqueta normalizada: con
+    // la firma por conjunto (ADR 0097) otra lista del grupo puede traer las mismas opciones en otro orden o con otra
+    // caja, y repartir por posición le daba a «Muy de acuerdo» el color de «Nada de acuerdo».
+    const porEtiqueta: Record<string, string> = {};
+    activaData.choices.forEach((c, i) => { porEtiqueta[c.label] = colors[i % colors.length]; });
     // Se escribe etiqueta por etiqueta —que MERGEA— en vez de reemplazar el
     // mapa entero: bajo un mismo `list_name` puede vivir otra escala de otra
     // base, y reemplazar le borraba los colores sin avisar.
     listasDestino.forEach((lista) => {
-      lista.choices.forEach((c, i) => {
-        setColorEnPaleta(lista.list_name, c.label, colors[i % colors.length]);
+      coloresPorEtiqueta(porEtiqueta, lista.choices).forEach(({ label, color }) => {
+        setColorEnPaleta(lista.list_name, label, color);
       });
     });
   }
@@ -209,7 +265,10 @@ export function PaletasEditor() {
   // respetar la agrupación — antes solo las sugeridas aplicaban al grupo y
   // el mapa por-etiqueta rompía la consistencia silenciosamente.
   function setColorEnGrupo(label: string, color: string) {
-    listasDestino.forEach((lista) => setColorEnPaleta(lista.list_name, label, color));
+    listasDestino.forEach((lista) => {
+      const propia = etiquetaEquivalente(lista, label);
+      if (propia) setColorEnPaleta(lista.list_name, propia, color);
+    });
   }
 
   function vaciarPaletaGrupo() {
@@ -238,6 +297,8 @@ export function PaletasEditor() {
   }
 
   const paletaActiva = (activaData && paletas[activaData.list_name]) || {};
+  const resolucionActiva = activaData ? (resoluciones.get(escalaIdDe(activaData)) ?? null) : null;
+  const vinculoActivo = activaData ? paletasVinculos[activaData.list_name] : undefined;
   const coloresActivos = activaData
     ? compactColors(activaData.choices.map((choice) => paletaActiva[choice.label]))
     : [];
@@ -302,7 +363,11 @@ export function PaletasEditor() {
             // como personalizada sería mentir.
             const tienePaleta = l.choices.some((choice) => !!paletas[l.list_name]?.[choice.label]);
             const firmasSimilares = listaFirmas.get(opcionesKey(l.choices)) ?? 1;
-            const coloresFila = compactColors(l.choices.map((choice) => paletas[l.list_name]?.[choice.label])).slice(0, 7);
+            // La tira muestra los colores con los que la lista SALE, vengan de su paleta, de un vínculo o de sus opciones.
+            const resolucion = resoluciones.get(escalaId) ?? null;
+            const coloresFila = (resolucion
+              ? coloresPorEtiqueta(paletas[resolucion.clave] ?? {}, l.choices).map((x) => x.color)
+              : []).slice(0, 7);
             return (
               <button
                 key={escalaId}
@@ -311,6 +376,7 @@ export function PaletasEditor() {
                 className="pulso-gv2-paleta-row"
                 data-active={active ? "true" : "false"}
                 data-has-palette={tienePaleta ? "true" : "false"}
+                data-origen={resolucion?.origen ?? "recetario"}
               >
                 <span className="pulso-gv2-paleta-row-copy">
                   <code>{l.list_name}</code>
@@ -324,7 +390,7 @@ export function PaletasEditor() {
                         : ""}
                   </small>
                 </span>
-                <span className="pulso-gv2-paleta-row-visual" title={tienePaleta ? "Paleta personalizada" : "Base predeterminada sin cambios"}>
+                <span className="pulso-gv2-paleta-row-visual" title={fraseOrigen(resolucion, l.list_name)}>
                   <span className="pulso-gv2-paleta-row-strip" data-empty={coloresFila.length === 0 ? "true" : "false"}>
                     {coloresFila.length > 0
                       ? coloresFila.map((color, index) => (
@@ -339,12 +405,21 @@ export function PaletasEditor() {
                       )}
                   </span>
                   <span className="pulso-gv2-paleta-row-state">
-                    {tienePaleta ? "Personal" : "Base"}
+                    {rotuloOrigen(resolucion)}
                   </span>
                 </span>
               </button>
             );
           })}
+          <PaletasHuerfanas
+            claves={huerfanasFiltradas}
+            total={huerfanas.length}
+            paletas={paletas}
+            vinculos={paletasVinculos}
+            listas={listasSugeridas}
+            listNames={listNames}
+            onVincular={setPaletaVinculo}
+          />
         </div>
       </div>
 
@@ -368,6 +443,21 @@ export function PaletasEditor() {
                   </h3>
                   <p>
                     La base predeterminada no marca cambios. Personaliza solo las categorías que necesitan un color fijo en reportes, slides y dashboards.
+                  </p>
+                  <p className="pulso-gv2-paleta-origen" data-origen={resolucionActiva?.origen ?? "recetario"}>
+                    <span>{fraseOrigen(resolucionActiva, activaData.list_name)}</span>
+                    {vinculoActivo && (
+                      <button
+                        type="button"
+                        className="pulso-gv2-paleta-origen-quitar"
+                        onClick={() => setPaletaVinculo(activaData.list_name, null)}
+                        title={resolucionActiva?.origen === "propia"
+                          ? `Su paleta propia manda; el vínculo con «${vinculoActivo}» no se usa.`
+                          : undefined}
+                      >
+                        <Link2Off size={12} aria-hidden="true" /> Quitar vínculo con «{vinculoActivo}»
+                      </button>
+                    )}
                   </p>
                   <div className="pulso-gv2-paleta-hero-chips">
                     <span><Palette size={12} /> {activaData.choices.length} categorías</span>
@@ -569,6 +659,114 @@ export function PaletasEditor() {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Paletas «sin lista en este instrumento» (ADR 0097): vienen de un perfil o de otro proyecto y ninguna lista las usa
+ * por su nombre. Se muestran con sus colores, con qué listas las toman (vínculo u opciones) y con «Vincular a…», que
+ * escribe `paletas_vinculos[list_name] = clave` en un paso deshacible. El vacío vive dentro del grupo (C3).
+ */
+export function PaletasHuerfanas({
+  claves,
+  total,
+  paletas,
+  vinculos,
+  listas,
+  listNames,
+  onVincular,
+}: {
+  claves: string[];
+  total: number;
+  paletas: Record<string, Record<string, string>>;
+  vinculos: Record<string, string>;
+  listas: PaletaSugeridaEntry[];
+  listNames: string[];
+  onVincular: (listName: string, clave: string | null) => void;
+}) {
+  const tituloId = useId();
+  return (
+    <section
+      className="pulso-gv2-paletas-huerfanas"
+      aria-labelledby={tituloId}
+      data-qa-geometry-group="graficos/paletas-huerfanas"
+      data-qa-geometry-contract="equal"
+    >
+      <h4 id={tituloId} className="pulso-gv2-paletas-huerfanas-titulo">
+        Sin lista en este instrumento
+        <small>{total}</small>
+      </h4>
+      {claves.length === 0 ? (
+        <p className="pulso-gv2-paletas-huerfanas-vacio" data-qa-geometry-capacity="owned">
+          {total === 0
+            ? "Todas las paletas guardadas son de listas de este instrumento."
+            : "Ninguna paleta sin lista coincide con la búsqueda."}
+        </p>
+      ) : claves.map((clave) => {
+        const paleta = paletas[clave] ?? {};
+        const colores = Object.values(paleta).filter((c) => typeof c === "string" && c.trim() !== "");
+        const usos = listasQueUsan(clave, listas, paletas, vinculos);
+        const vinculadas = listNames.filter((ln) => vinculos[ln] === clave);
+        const porOpciones = Array.from(new Set(usos.filter((u) => u.origen === "firma").map((u) => u.lista.list_name)));
+        const disponibles = listNames.filter((ln) => vinculos[ln] !== clave);
+        const selectId = `${tituloId}-${clave}`;
+        return (
+          <article key={clave} className="pulso-gv2-paleta-huerfana" data-qa-geometry-member>
+            <header className="pulso-gv2-paleta-huerfana-cabeza">
+              <code title={clave}>{clave}</code>
+              <small>{colores.length} {colores.length === 1 ? "color" : "colores"}</small>
+            </header>
+            <span className="pulso-gv2-paleta-row-strip" aria-hidden="true">
+              {colores.slice(0, 8).map((color, index) => (
+                <span key={`${clave}-${index}`} style={{ background: color }} />
+              ))}
+            </span>
+            {porOpciones.length > 0 && (
+              <small className="pulso-gv2-paleta-huerfana-uso" title={porOpciones.join(", ")}>
+                Por sus opciones: {porOpciones.join(", ")}
+              </small>
+            )}
+            {vinculadas.length > 0 && (
+              <ul className="pulso-gv2-paleta-huerfana-vinculos" aria-label={`Listas vinculadas a ${clave}`}>
+                {vinculadas.map((ln) => (
+                  <li key={ln}>
+                    <Link2 size={11} aria-hidden="true" />
+                    <code title={ln}>{ln}</code>
+                    <button
+                      type="button"
+                      className="pulso-gv2-paleta-huerfana-quitar"
+                      onClick={() => onVincular(ln, null)}
+                      aria-label={`Quitar vínculo de ${ln} con ${clave}`}
+                    >
+                      <Link2Off size={11} aria-hidden="true" /> Quitar vínculo
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {disponibles.length > 0 && (
+              <label className="pulso-gv2-paleta-huerfana-vincular" htmlFor={selectId}>
+                <span className="pulso-sr-only">Vincular {clave} a una lista</span>
+                <select
+                  id={selectId}
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) onVincular(e.target.value, clave);
+                  }}
+                >
+                  <option value="">Vincular a…</option>
+                  {disponibles.map((ln) => (
+                    <option key={ln} value={ln}>
+                      {ln}{vinculos[ln] ? ` (hoy con «${vinculos[ln]}»)` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </article>
+        );
+      })}
+    </section>
   );
 }
 

@@ -45,7 +45,7 @@ export const GRAFICOS_JSON_SECTIONS: readonly SeccionJson[] = [
   { id: "w_presets", label: "Estilo para Word", help: "Formato de gráficos y tablas." },
   { id: "documento_word", label: "Documento Word", help: "Portada, apertura, redondeo y contacto." },
   { id: "estilo_cliente", label: "Estilo del cliente", help: "Logos y letra; un logo sólo se aplica si ya está en el proyecto." },
-  { id: "paletas", label: "Colores", help: "Paletas de respuestas y categorías." },
+  { id: "paletas", label: "Colores", help: "Paletas de respuestas y categorías, con sus vínculos a listas." },
   { id: "iconos", label: "Íconos", help: "Recursos para láminas de población." },
   { id: "overrides_reusables", label: "Estilos reutilizables", help: "Ajustes guardados para varios gráficos." },
   { id: "scope_rules", label: "Reglas por caso", help: "Ajustes por lista, gráfico o slide." },
@@ -170,7 +170,12 @@ export function pickGraficosConfigSections(
   if (sections.w_presets) out.w_presets = cfg.w_presets;
   if (sections.documento_word) out.documento_word = cfg.documento_word;
   if (sections.estilo_cliente) out.estilo_cliente = estiloClienteDecisiones(cfg.estilo_cliente, opciones.estiloClienteDefaults);
-  if (sections.paletas) out.paletas = cfg.paletas;
+  if (sections.paletas) {
+    out.paletas = cfg.paletas;
+    // ADR 0097: los vínculos `lista → paleta` son parte de la sección Colores; sin ellos una paleta de otro proyecto
+    // llegaría huérfana. Sólo decisiones (el normalizador ya los dejó así).
+    out.paletas_vinculos = isRecord(cfg.paletas_vinculos) ? cfg.paletas_vinculos : {};
+  }
   if (sections.iconos) out.iconos = cfg.iconos;
   if (sections.overrides_reusables) out.overrides_reusables = cfg.overrides_reusables;
   if (sections.scope_rules) out.scope_rules = cfg.scope_rules;
