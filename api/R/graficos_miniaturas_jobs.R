@@ -54,7 +54,9 @@
   if (is.null(meta)) return(FALSE)
   if (!isTRUE(opts$render_slide_preview)) return(TRUE)
   rid <- .mini_renderer_id()
-  if (is.na(rid)) return(TRUE)
+  # Sin renderer no hay raster que servir: un raster ausente no se cachea y se reintenta (contrato §4,
+  # docs/qa/contrato-miniaturas-preview-f6-2026-10-11.md). El reintento vuelve a hit en el PPTX; sólo falta la imagen.
+  if (is.na(rid)) return(FALSE)
   e <- .mini_entrada(raiz, ctx$hash)
   m <- if (isTRUE(opts$preview_partes)) 6L else c(1L, 6L)
   any(file.exists(file.path(e$dir, sprintf("raster_%s_%d_%s.rds", opts$preview_quality %||% "quick", m, rid))))
