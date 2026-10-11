@@ -1072,6 +1072,9 @@
   base$original_data_ext <- data_meta$ext
   base$data_file_id <- data_meta$file_id
   base$data_ext <- data_meta$ext
+  # El XLSX escrito ya salió normalizado con los mapas de la revisión: «Ver base»
+  # y la reapertura no deben volver a aplicarlos (`.carga_codigos_ya_aplicados`).
+  base$choice_codes_applied_data_file_id <- data_meta$file_id
   base$n_filas <- as.integer(nrow(rp_data))
   base$n_columnas <- as.integer(ncol(rp_data))
   base$source_kind <- "surveymonkey_sav_bundle"
