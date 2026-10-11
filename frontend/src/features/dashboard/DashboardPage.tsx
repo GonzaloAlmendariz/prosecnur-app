@@ -36,6 +36,14 @@ type DashboardVisibleTab = typeof DASHBOARD_PESTANAS[number] & {
   reason: string | null;
 };
 
+/**
+ * Paletas y Personalizar pueden abrirse desde un ítem del menú «Más acciones»
+ * de la barra de mando, que se desmonta al abrir el diálogo. Ahí el foco de
+ * vuelta cae en el disparador del menú, no en `body`.
+ */
+const DISPARADOR_MAS_ACCIONES =
+  '.dashboard-scope [data-zone="acciones"] button[aria-label^="Más acciones"]';
+
 // Página principal del Dashboard.
 // Jerarquía:
 //   ┌─────────────────────────────────────────────┐
@@ -364,8 +372,18 @@ export default function DashboardPage({
         </>
       )}
 
-      {palettesOpen && <DashboardPalettesDialog onClose={() => setPalettesOpen(false)} />}
-      {customizeOpen && <DashboardCustomizeDialog onClose={() => setCustomizeOpen(false)} />}
+      {palettesOpen && (
+        <DashboardPalettesDialog
+          onClose={() => setPalettesOpen(false)}
+          returnFocusTo={DISPARADOR_MAS_ACCIONES}
+        />
+      )}
+      {customizeOpen && (
+        <DashboardCustomizeDialog
+          onClose={() => setCustomizeOpen(false)}
+          returnFocusTo={DISPARADOR_MAS_ACCIONES}
+        />
+      )}
       {publishOpen && (
         <DashboardPublishDialog
           defaultTitle={config.titulo || "pulso-dashboard"}

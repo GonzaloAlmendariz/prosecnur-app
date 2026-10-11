@@ -1600,12 +1600,13 @@
   width: 100%;
 }
 
-/* Paletas por lista. */
+/* Paletas por lista. El alto lo da el Dialog (`alto="fijo"`): el layout
+   llena el cuerpo y cada columna es su propio dueño de scroll — la lista a la
+   izquierda, el detalle (cabecera + presets + tabla) a la derecha. */
 .dashboard-scope .dash-palette-layout {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
-  height: min(620px, calc(100vh - 138px));
-  min-height: 460px;
+  min-height: 0;
 }
 .dashboard-scope .dash-palette-list {
   border-right: 1px solid var(--dash-borde);
@@ -1697,6 +1698,7 @@
 .dashboard-scope .dash-palette-main-head {
   align-items: center;
   display: flex;
+  flex: 0 0 auto;
   gap: 10px;
 }
 .dashboard-scope .dash-palette-icon {
@@ -1729,6 +1731,7 @@
   border: 1px solid var(--dash-borde);
   border-radius: 8px;
   display: flex;
+  flex: 0 0 auto;
   flex-wrap: wrap;
   gap: 7px;
   padding: 10px;
@@ -1781,26 +1784,34 @@
   height: 14px;
   width: 9px;
 }
+/* La tabla no se encoge (flex: 0 0 auto): su dueño de scroll es
+   .dash-palette-main, no ella. Con `overflow: hidden` y encogible, a 1024x600
+   recortaba las últimas filas sin que nada las alcanzara (C4). `clip` solo
+   redondea las esquinas; no crea un segundo dueño de scroll. */
 .dashboard-scope .dash-palette-table {
   border: 1px solid var(--dash-borde);
   border-radius: 8px;
-  overflow: hidden;
+  flex: 0 0 auto;
+  overflow: clip;
 }
 .dashboard-scope .dash-palette-row {
   align-items: center;
   border-bottom: 1px solid var(--dash-borde);
   display: grid;
   gap: 10px;
-  grid-template-columns: 72px minmax(0, 1fr) 48px 120px;
+  grid-template-columns: minmax(88px, 18%) minmax(0, 1fr) 48px 120px;
   padding: 7px 9px;
 }
 .dashboard-scope .dash-palette-row:last-child {
   border-bottom: 0;
 }
+/* El nombre de la opción se parte en vez de invadir la etiqueta vecina. */
 .dashboard-scope .dash-palette-row code {
   color: var(--dash-texto-suave);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .dashboard-scope .dash-palette-row span {
   color: var(--dash-texto);
@@ -2327,6 +2338,9 @@
   .dashboard-scope .dash-source-grid,
   .dashboard-scope .dash-palette-layout {
     grid-template-columns: 1fr;
+  }
+  .dashboard-scope .dash-palette-layout {
+    grid-template-rows: auto minmax(0, 1fr);
   }
   .dashboard-scope .dash-palette-list {
     border-bottom: 1px solid var(--dash-borde);
