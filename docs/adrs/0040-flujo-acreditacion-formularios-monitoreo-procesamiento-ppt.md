@@ -4,6 +4,8 @@ Estado: Aceptado
 
 Fecha: 2026-07-20
 
+Enmendado por: ADR 0096 (§6 firma de escala por `.escala_firma`; §6.1 la derivación del plan sugerido del compartido sale de la matriz y no de la base activa)
+
 ## Contexto
 
 Los estudios de acreditacion pueden tener varios instrumentos paralelos —por
