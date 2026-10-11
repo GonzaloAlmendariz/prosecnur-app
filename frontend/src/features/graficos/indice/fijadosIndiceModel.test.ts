@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Slide } from "../../../api/graficos";
-import { ARGS_FIJADOS_INDICE, indicePorRutaAnterior, lineasFijadasIndice, valorGuardado } from "./fijadosIndice";
+import { ARGS_FIJADOS_INDICE, indicePorRutaAnterior, lineasFijadasIndice, valorGuardado } from "./fijadosIndiceModel";
 import { leerIndice, serializarIndice } from "./modeloIndice";
 
 const indice = (payload: Record<string, unknown>): Slide => ({ id: "ix", tipo: "p_slide_indice", payload: { secciones: "Perfil\nResultados", ...payload } });

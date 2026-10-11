@@ -15,7 +15,7 @@ import {
   tituloDeFigura,
   tituloWordPorDefecto,
   type TituloDeFigura,
-} from "./enElWord";
+} from "./enElWordModel";
 import "./tarjetaGrafico.css";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef; argsDelRegistro: readonly ArgMetadata[] };

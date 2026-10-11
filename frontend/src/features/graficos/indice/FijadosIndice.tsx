@@ -1,11 +1,11 @@
 // Candado «Lo fija el recetario» del índice en Inspector › Contenido (decisión 32, A10 W-B). Mismo patrón que
 // `LineaFijadaRecetario`: rótulo, lo que sale y por qué, sin control editable; si el proyecto guarda otro valor, la nota
-// lo dice sin borrarlo. La lógica vive en `fijadosIndice.ts`.
+// lo dice sin borrarlo. La lógica vive en `fijadosIndiceModel.ts`.
 
 import { useId } from "react";
 import { Lock } from "../../../vendor/lucide-react";
 import type { ArgMetadata, Slide } from "../../../api/graficos";
-import { lineasFijadasIndice, type LineaFijadaIndice } from "./fijadosIndice";
+import { lineasFijadasIndice, type LineaFijadaIndice } from "./fijadosIndiceModel";
 import "./fijadosIndice.css";
 
 export function FijadosIndice({ slide, args }: { slide: Slide; args: readonly ArgMetadata[] }) {

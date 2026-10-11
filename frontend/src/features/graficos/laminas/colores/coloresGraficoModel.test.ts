@@ -9,7 +9,7 @@ import {
   normalizarHex,
   patchColor,
   temasDeSerie,
-} from "./coloresGrafico";
+} from "./coloresGraficoModel";
 
 const REG_SERIE = [{ name: "vars", tipo_input: "variable" }, { name: "colores_series", tipo_input: "series_colors" }];
 const [AZUL, VERDE, AMARILLO, NARANJA, CORAL] = PALETA_RECETARIO.map((c) => c.hex);

@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { usePlanStore } from "../store";
-import { ayudaOtros, CHIP_OTROS, ROTULO_OTROS } from "./interruptorOtros";
+import { ayudaOtros, CHIP_OTROS, ROTULO_OTROS } from "./interruptorOtrosModel";
 import { objetivoDeReenfoque, type ElementoEnfocable } from "./tecladoVistaGeneral";
 
 // Contrato A5 2b (W1): el interruptor de «Otros» de la barra de Vista general y el arreglo F1-bis del foco.

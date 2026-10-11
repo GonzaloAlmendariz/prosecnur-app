@@ -3,7 +3,7 @@
 
 import { useId, useMemo } from "react";
 import { useVariables } from "../../useVariables";
-import { parseBaseLabels, patchNombreDeBase } from "./nombresPorBase";
+import { parseBaseLabels, patchNombreDeBase } from "./nombresPorBaseModel";
 import "./datosBase.css";
 
 type Props = {

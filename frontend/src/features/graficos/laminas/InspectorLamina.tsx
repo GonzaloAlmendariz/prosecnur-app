@@ -10,7 +10,7 @@ import { GlidingTabList } from "../../../components/GlidingTabList";
 import { Switch } from "../../../components/Switch";
 import { EditorIndice } from "../indice/EditorIndice";
 import { FijadosIndice } from "../indice/FijadosIndice";
-import { ARGS_FIJADOS_INDICE } from "../indice/fijadosIndice";
+import { ARGS_FIJADOS_INDICE } from "../indice/fijadosIndiceModel";
 import { useVariables } from "../useVariables";
 import { ContenidoEspecialLamina } from "./contenidoEspecial/ContenidoEspecialLamina";
 import { contenidoEspecialDe, esArgEspecial, tituloPorDefecto } from "./contenidoEspecial/modeloContenidoEspecial";
