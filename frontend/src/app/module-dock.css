@@ -1,0 +1,142 @@
+/*
+ * Dock de módulos del header — lo que añadió L35 (remasterización 2026-10-10
+ * §5.1). La base del dock y del tile sigue en theme.css (congelado a
+ * crecimiento); aquí vive solo lo nuevo:
+ *
+ * - el dock mide lo que sus tiles: ningún tope de ancho (el `min(328px, 32vw)`
+ *   dejaba escapar «Agregar» con los ocho módulos) y no encoge por debajo de
+ *   su contenido; el reparto en «Más módulos» lo decide `moduleDockModel.ts`;
+ * - el tile activo lleva su nombre visible;
+ * - la burbuja de los demás aparece por hover Y por foco de teclado;
+ * - el disparador y el panel de «Más módulos».
+ */
+
+.pulso-module-switcher {
+  flex-shrink: 0;
+}
+
+.pulso-module-dock {
+  flex-shrink: 0;
+  max-width: none;
+}
+
+/* Tile activo: ícono + nombre. Es el «dónde estás» y nunca se recoge. */
+.pulso-module-dock-item > .pulso-module-tile.is-current {
+  width: auto;
+  flex: 0 0 auto;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 0 11px 0 5px;
+}
+
+.pulso-module-tile-name {
+  max-width: 132px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+/* Burbuja por foco de teclado, no solo por hover (theme.css la limita a
+ * punteros finos). Sin `title`: el nombre accesible es el `aria-label`. */
+.pulso-module-tile:focus-visible .pulso-module-tile-label {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+
+/* «Más módulos»: mismo tile que «Agregar» pero sólido, para no confundirlos. */
+.pulso-module-tile-more {
+  padding: 0;
+  font: inherit;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.pulso-module-tile-more .pulso-module-tile-icon {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-module-tile-more[data-state-open="true"] {
+  color: var(--pulso-primary);
+  border-color: var(--pulso-primary-border);
+}
+
+.pulso-module-tile-more[data-state-open="true"] .pulso-module-tile-label {
+  opacity: 0;
+}
+
+.pulso-module-dock-more {
+  z-index: 90;
+  width: max-content;
+  min-width: 200px;
+  max-width: min(280px, calc(100vw - 24px));
+  padding: 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-popover);
+}
+
+/* El foco cae en el contenido del popover al abrirlo con teclado: nada del anillo
+   por defecto del navegador; por teclado se ve el contorno de la casa. */
+.pulso-module-dock-more:focus {
+  outline: none;
+}
+
+.pulso-module-dock-more:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: 2px;
+}
+
+.pulso-module-dock-more-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-module-dock-more-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  padding: 4px 10px 4px 5px;
+  border-radius: 9px;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  text-decoration: none;
+  outline: none;
+  transition: background var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-module-dock-more-link:hover {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-module-dock-more-link:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: -2px;
+}
+
+.pulso-module-dock-more-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  color: var(--module-accent, var(--pulso-primary));
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-module-dock-more-link {
+    transition: none;
+  }
+}
