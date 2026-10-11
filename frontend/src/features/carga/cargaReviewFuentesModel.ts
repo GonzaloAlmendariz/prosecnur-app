@@ -74,14 +74,21 @@ function hallazgoDeFuente(fuente: CargaReviewFuente, index: number): CargaReview
 
   const nFuente = fuente.sin_par_fuente.length;
   const nBase = fuente.sin_par_base.length;
+  const nAmbiguas = fuente.ambiguas.length;
   const nOpciones = fuente.n_opciones_sin_par;
   const titulo = coinciden ? `${nombre} · ${coinciden} emparejadas` : nombre;
 
   // Lo que se perdió o quedó vacío va en el detalle, una línea por cosa.
-  if (nFuente || nBase || nOpciones) {
+  if (nFuente || nBase || nAmbiguas || nOpciones || fuente.consentimiento_sin_par) {
     const lineas: CargaReviewHallazgoLinea[] = [];
     if (nFuente) lineas.push(lineaDeNombres(fuente.sin_par_fuente, "No entraron: "));
     if (nBase) lineas.push(lineaDeNombres(fuente.sin_par_base, "Sin respuesta en esta fuente: "));
+    // Misma pregunta y escala repetidas un número distinto de veces: emparejar
+    // por orden de aparición podría cruzarlas, así que quedan vacías.
+    if (nAmbiguas) lineas.push(lineaDeNombres(fuente.ambiguas, "Ambiguas, sin emparejar: "));
+    if (fuente.consentimiento_sin_par) {
+      lineas.push({ texto: "Su pregunta de consentimiento no calza con la de la base: sus respuestas completas entraron." });
+    }
     if (nOpciones) {
       lineas.push({
         texto: `${nOpciones} ${plural(nOpciones, "respuesta quedó vacía", "respuestas quedaron vacías")} por una opción que no existe en la lista.`,

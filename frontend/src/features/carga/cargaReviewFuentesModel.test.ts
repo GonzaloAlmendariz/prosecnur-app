@@ -15,6 +15,9 @@ function fuente(partial: Partial<CargaReviewFuente>): CargaReviewFuente {
     n_opciones_sin_par: 0,
     excluida: false,
     n_filas_excluidas: 0,
+    ambiguas: [],
+    consentimiento_sin_par: false,
+    n_excluidas_consentimiento: 0,
     ...partial,
   };
 }
@@ -54,6 +57,9 @@ describe("normalizeCargaReviewFuentes", () => {
       n_opciones_sin_par: 0,
       excluida: false,
       n_filas_excluidas: 0,
+      ambiguas: [],
+      consentimiento_sin_par: false,
+      n_excluidas_consentimiento: 0,
     });
   });
 });
@@ -127,5 +133,16 @@ describe("cargaReviewFuentesHallazgos", () => {
     expect(h.tono).toBe("incompatible");
     expect(h.titulo).toBe("Docentes · no entró a la base");
     expect(h.lineas[0].texto).toBe("Solo coinciden 28 de 73 preguntas con la base. 48 respuestas quedaron fuera.");
+  });
+
+  it("las ambiguas y el consentimiento sin par se dicen en el detalle", () => {
+    const [h] = cargaReviewFuentesHallazgos({
+      fuentes: [fuente({ ambiguas: [q("Servicio de salud", "p19_1")], consentimiento_sin_par: true })],
+    });
+    expect(h.tono).toBe("pending");
+    expect(h.lineas.map((l) => l.texto)).toEqual([
+      "Ambiguas, sin emparejar: Servicio de salud",
+      "Su pregunta de consentimiento no calza con la de la base: sus respuestas completas entraron.",
+    ]);
   });
 });
