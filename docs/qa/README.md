@@ -199,6 +199,7 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Contrato — miniaturas en lote y vista previa asíncrona](contrato-miniaturas-preview-f6-2026-10-11.md): A4, caché por huella y jobs.
 - [Contrato A6 — Word y Estilo del cliente](contrato-word-estilo-f6-2026-10-11.md): guardar decisiones, no defaults (ADR 0094).
 - [Contrato A7 — Informe compartido y multibase en Láminas](contrato-consolidado-laminas-f6-2026-10-11.md): huecos H1–H9 y decisiones D1–D4.
+- [Contrato A5 rebanada 2b — Vista general](contrato-vista-general-2b-f6-2026-10-11.md): «Otros» automáticos, índice, «Armar desde…» y E2.
 
 ## Reemplazados
 
