@@ -91,8 +91,8 @@ describe("PestanaEstiloInforme · markup", () => {
     for (const grupo of ["f6-estilo-informe-secciones", "f6-estilo-informe-texto-base"]) {
       expect(html).toContain(`data-qa-geometry-group="graficos/${grupo}"`);
     }
-    // Cinco secciones: texto de la base, cálculos, línea visual, paletas, Word.
-    expect(html.match(/class="pulso-f6-informe-seccion"/g)).toHaveLength(5);
+    // Cuatro secciones: texto de la base, cálculos, línea visual y paletas (el Word tiene su pestaña).
+    expect(html.match(/class="pulso-f6-informe-seccion"/g)).toHaveLength(4);
   });
 
   it("mientras carga el catálogo o los defaults, la readiness queda en false", () => {
@@ -118,12 +118,11 @@ describe("PestanaEstiloInforme · markup", () => {
   });
 
 
-  it("en el informe compartido sigue habilitada; sólo la opción del Word queda deshabilitada con su motivo", () => {
+  it("en el informe compartido sigue habilitada", () => {
     const html = pintar("?pestana=estilo-informe&scope=consolidado");
     expect(html).toContain('data-scope="consolidated"');
     expect(html).toContain("cambian su PPT consolidado y no se copian a ninguna base");
-    expect(html).toContain(MOTIVO_WORD_EN_COMPARTIDO);
-    expect(html.match(/<input[^>]*type="checkbox"[^>]*disabled=""/g)).toHaveLength(1);
+    expect(html).not.toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""/);
     expect(html).toMatch(/<select id="f6-informe-met-barras_apiladas"(?![^>]*disabled)/);
     expect(html).toContain("Aplicar a todos");
   });

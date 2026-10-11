@@ -43,7 +43,6 @@ import { SeccionCalculos, type AccionesCalculos } from "./SeccionCalculos";
 import { SeccionLineaVisual } from "./SeccionLineaVisual";
 import { SeccionPaletas } from "./SeccionPaletas";
 import { SeccionTextoBase } from "./SeccionTextoBase";
-import { SeccionWordRecetario } from "./SeccionWordRecetario";
 // Los sellos «Del recetario»/«Propio» y «Modificado» son los de «Estilo del cliente»: se reusa su hoja, no se copian.
 import "../estilo/estilo.css";
 import "./estiloInforme.css";
@@ -127,13 +126,6 @@ export default function PestanaEstiloInforme() {
           <SeccionCalculos filas={filas} nota={nota} acciones={acciones} estado={estadoCalculos} />
           <SeccionLineaVisual aplicada={lineaVisualAplicada(scopeRules)} />
           <SeccionPaletas listasConColor={listasConColor(paletas)} />
-          <SeccionWordRecetario
-            opcion={opcionWord}
-            bloques={bloques}
-            motivoNoEditable={disponibilidad.motivoWord}
-            onOpcion={(activa) => setWPresets(conOcultarEtiqueta(usePlanStore.getState().wPresets, referenciaWord, activa))}
-            estado={estadoCatalogo}
-          />
         </div>
       </div>
     </div>
