@@ -5851,7 +5851,9 @@ mount_monitoreo <- function(pr) {
 	          # dashboards se construyen lazy en el primer GET de cada scope
 	          # (ver monitoreo_sync_apply_deferred en monitoreo_sync_incremental.R).
 	          monitoreo_sync_apply_deferred(j$sid, j$result_data, sync_mode = sync_mode, report = complete_report)
-	        }
+	        },
+	        # Cancelado, error del worker o kill: on_complete no corre y los tokens no pueden quedar en jobs/inputs (ADR 0005).
+	        on_cleanup = function(j) job_unlink_inputs(c(connection_tokens_path, sources_path, cfg_path))
       )
       list(ok = TRUE, job_id = job_id, kind = "monitoreo.sync")
     })) |>
