@@ -1,3 +1,5 @@
+import { normalizeEstiloCliente } from "./graficosEstilo";
+
 type Dict = Record<string, unknown>;
 
 const DEFAULT_DEBUG_PH = { activo: false, color: "#FF00FF", lwd: 0.6 };
@@ -113,6 +115,9 @@ const KNOWN_KEYS = new Set([
   // las descartaba al hidratar y sólo las salvaba el backend (`.graficos_conservar_campos_backend`).
   "documento_word",
   "documentoWord",
+  // A6 R3: el estilo del cliente (logos y letra) es campo de primera clase por la misma razón.
+  "estilo_cliente",
+  "estiloCliente",
   "_unknown",
 ]);
 
@@ -312,6 +317,7 @@ export function normalizeGraficosConfig(input: unknown, options: { includeLegacy
     pick(unknownLeido, "equivalencias_revision", ["equivalenciasRevision"]);
   const autoOtrosSlides = pick(source, "auto_otros_slides", ["autoOtrosSlides"]) ?? otrosDelPlan;
   const documentoWord = pick(source, "documento_word", ["documentoWord"]);
+  const estiloCliente = pick(source, "estilo_cliente", ["estiloCliente"]);
 
   const config: Dict = {
     version: "graficos/4",
@@ -321,6 +327,8 @@ export function normalizeGraficosConfig(input: unknown, options: { includeLegacy
     // Siempre presente (aunque sea `{}`): una clave ausente hace que el backend conserve lo guardado, y `{}` es lo que
     // dice «volver al default» (contrato A6 §3, vitest 4).
     documento_word: normalizeDocumentoWord(documentoWord),
+    // Igual: `{}` vuelve al recetario y la clave ausente conservaría lo guardado (contrato A6 §1, vitest 4 y 9).
+    estilo_cliente: normalizeEstiloCliente(estiloCliente),
     selected_slide_id: typeof selectedSlideId === "string" ? selectedSlideId : null,
     paletas: isObj(paletas) ? paletas : {},
     iconos: Array.isArray(iconos) ? iconos : [],

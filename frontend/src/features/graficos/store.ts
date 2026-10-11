@@ -8,6 +8,7 @@ import {
   type DocumentoWordOpciones,
 } from "../../api/graficosConfigNormalizer";
 import type { GraficosConfigDefaults } from "../../api/graficosConfigDefaults";
+import { normalizeEstiloCliente, type EstiloCliente } from "../../api/graficosEstilo";
 
 // Store del plan de gráficos. Sigue el mismo patrón que el store de
 // Analítica: hidrata desde backend al montar, marca `dirty` con cada
@@ -75,6 +76,8 @@ export type GraficosConfig = {
   w_presets: Record<string, Record<string, unknown>>;
   /** ADR 0094: opciones del documento Word (portada, apertura, …); sólo lo que el usuario decidió. */
   documento_word?: DocumentoWordOpciones;
+  /** A6 R3: estilo del cliente (ámbito, logos, letra). Sólo las decisiones cuentan como «Propio». */
+  estilo_cliente?: EstiloCliente;
   selected_slide_id: string | null;
 
   // Bloque 2: configuración global de estilo
@@ -110,6 +113,7 @@ type Snapshot = {
   presets: Record<string, Record<string, unknown>>;
   wPresets: Record<string, Record<string, unknown>>;
   documentoWord: DocumentoWordOpciones;
+  estiloCliente: EstiloCliente;
   paletas: Record<string, PaletaPorLista>;
   iconos: IconoConfig[];
   overridesReusables: OverrideReusable[];
@@ -132,6 +136,7 @@ type PlanStore = {
   presets: Record<string, Record<string, unknown>>;
   wPresets: Record<string, Record<string, unknown>>;
   documentoWord: DocumentoWordOpciones;
+  estiloCliente: EstiloCliente;
   selectedSlideId: string | null;
   paletas: Record<string, PaletaPorLista>;
   iconos: IconoConfig[];
@@ -180,6 +185,12 @@ type PlanStore = {
    */
   configDefaults: GraficosConfigDefaults | null;
   setConfigDefaults: (defaults: GraficosConfigDefaults | null) => void;
+  /**
+   * `defaults.estilo_cliente` del GET (recetario + perfil + ámbito por defecto). Como `configDefaults`: ni se persiste
+   * ni se historiza; `null` hasta que la pestaña Estilo del cliente los pide, y entonces se compara contra el recetario.
+   */
+  estiloClienteDefaults: EstiloCliente | null;
+  setEstiloClienteDefaults: (defaults: EstiloCliente | null) => void;
   dirty: boolean;
 
   // --- Undo/redo ---
@@ -207,6 +218,8 @@ type PlanStore = {
   setPresets: (presets: Record<string, Record<string, unknown>>) => void;
   setWPresets: (wPresets: Record<string, Record<string, unknown>>) => void;
   setDocumentoWord: (documentoWord: DocumentoWordOpciones) => void;
+  /** Reemplaza el estilo del cliente (un paso deshacible). Las funciones de cambio viven en `estilo/modeloEstilo.ts`. */
+  setEstiloCliente: (estiloCliente: EstiloCliente) => void;
   applyPptStyleProfile: (profile: PptStyleProfileMeta) => void;
   // Merge granular de args en el preset `tipo`. Si `patch[arg] === null`
   // (o undefined después de merge), borra ese arg para que el backend
@@ -367,6 +380,7 @@ function snapshotFromState(state: PlanStore): Snapshot {
     presets: state.presets,
     wPresets: state.wPresets,
     documentoWord: state.documentoWord,
+    estiloCliente: state.estiloCliente,
     paletas: state.paletas,
     iconos: state.iconos,
     overridesReusables: state.overridesReusables,
@@ -479,6 +493,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   presets: {},
   wPresets: createDefaultWordPresets(),
   documentoWord: {},
+  estiloCliente: {},
   selectedSlideId: null,
   paletas: {},
   iconos: [],
@@ -513,6 +528,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setHydrationRetrying: (retrying) => set({ hydrationRetrying: retrying }),
   configDefaults: null,
   setConfigDefaults: (configDefaults) => set({ configDefaults }),
+  estiloClienteDefaults: null,
+  setEstiloClienteDefaults: (estiloClienteDefaults) => set({ estiloClienteDefaults }),
   dirty: false,
 
   past: [],
@@ -555,6 +572,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     presets: cfg.presets ?? {},
     wPresets: normalizeWordPresets(cfg.w_presets),
     documentoWord: normalizeDocumentoWord(cfg.documento_word),
+    estiloCliente: normalizeEstiloCliente(cfg.estilo_cliente),
     selectedSlideId: cfg.selected_slide_id ?? null,
     paletas: cfg.paletas ?? {},
     iconos: cfg.iconos ?? [],
@@ -687,6 +705,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setPresets: (presets) => set((state) => dirty(state, { presets })),
   setWPresets: (wPresets) => set((state) => dirty(state, { wPresets })),
   setDocumentoWord: (documentoWord) => set((state) => dirty(state, { documentoWord: normalizeDocumentoWord(documentoWord) })),
+  setEstiloCliente: (estiloCliente) => set((state) => dirty(state, { estiloCliente: normalizeEstiloCliente(estiloCliente) })),
 
   applyPptStyleProfile: (profile) => set((state) => dirty(state, estiloDePerfil(state, profile))),
 
@@ -744,6 +763,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
     plan: { slides: [] }, selectedSlideId: null, presets: {}, wPresets: createDefaultWordPresets(),
     // `{}` y no `undefined`: la clave debe viajar para que el backend borre lo guardado (contrato A6, vitest 4).
     documentoWord: {},
+    // Igual con el estilo del cliente: `{}` lo devuelve al recetario; el ámbito queda como estaba en el backend.
+    estiloCliente: {},
     paletas: {}, iconos: [], overridesReusables: [],
     debugPh: DEFAULT_DEBUG_PH,
     scopeRules: {},

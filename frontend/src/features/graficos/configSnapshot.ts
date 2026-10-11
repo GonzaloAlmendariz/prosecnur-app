@@ -5,6 +5,7 @@ import {
   normalizeGraficosConfig,
   normalizeWordPresets,
 } from "../../api/graficosConfigNormalizer";
+import { normalizeEstiloCliente } from "../../api/graficosEstilo";
 import type { GraficosConfig } from "./store";
 import { DEFAULT_CANVAS_VIEWPORT, DEFAULT_DEBUG_PH, usePlanStore } from "./store";
 import { persistWithSlideCompositionAck } from "./slideCompositionPersistence";
@@ -32,7 +33,7 @@ type PlanStoreState = ReturnType<typeof usePlanStore.getState>;
 
 /** Campos del store que forman la config persistida. */
 export type GraficosConfigSource = Pick<PlanStoreState,
-  | "plan" | "presets" | "wPresets" | "documentoWord" | "selectedSlideId" | "paletas" | "iconos"
+  | "plan" | "presets" | "wPresets" | "documentoWord" | "estiloCliente" | "selectedSlideId" | "paletas" | "iconos"
   | "overridesReusables" | "debugPh" | "viewMode" | "inspectorTab" | "density" | "canvasViewport"
   | "equivalenciasRevision" | "autoOtrosSlides" | "scopeRules">;
 
@@ -48,6 +49,7 @@ export function buildGraficosConfig(state: GraficosConfigSource): GraficosConfig
     presets: state.presets,
     w_presets: state.wPresets,
     documento_word: state.documentoWord,
+    estilo_cliente: state.estiloCliente,
     selected_slide_id: state.selectedSlideId,
     paletas: state.paletas,
     iconos: state.iconos,
@@ -83,6 +85,7 @@ export function graficosConfigSource(cfg: GraficosConfig): GraficosConfigSource 
     presets: cfg.presets ?? {},
     wPresets: normalizeWordPresets(cfg.w_presets),
     documentoWord: normalizeDocumentoWord(cfg.documento_word),
+    estiloCliente: normalizeEstiloCliente(cfg.estilo_cliente),
     selectedSlideId: cfg.selected_slide_id ?? null,
     paletas: cfg.paletas ?? {},
     iconos: cfg.iconos ?? [],

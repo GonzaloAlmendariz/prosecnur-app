@@ -1,0 +1,95 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { StateCreator } from "zustand";
+import { normalizeEstiloOpciones } from "../../../api/graficosEstilo";
+import { usePlanStore, type GraficosConfig } from "../store";
+import { useEstiloUi } from "./estiloUiStore";
+
+// Pestaña «Estilo del cliente»: lo que el markup promete (C1, vacío propio, readiness, subida por teclado, sellos) sin
+// levantar la pila. `useEffect` no corre en el render estático: las opciones se ponen a mano.
+
+// zustand pinta el render de servidor con `getInitialState`: se apunta al estado vivo para ver lo que el test prepara.
+vi.mock("zustand", async (importOriginal) => {
+  const real = await importOriginal<typeof import("zustand")>();
+  const create = <T,>(init: StateCreator<T, [], []>) => {
+    const api = real.createStore<T>()(init);
+    api.getInitialState = api.getState;
+    return Object.assign(<U,>(selector: (s: T) => U) => real.useStore(api, selector), api);
+  };
+  return { ...real, create };
+});
+vi.mock("../../../lib/SessionContext", () => ({ useSession: () => ({ state: { analitica_prep_ok: true } }) }));
+vi.stubGlobal("localStorage", { getItem: () => "sid-test", setItem: () => undefined, removeItem: () => undefined });
+const { default: PestanaEstilo } = await import("./PestanaEstilo");
+
+function pintar(search = "?pestana=estilo") {
+  return renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/graficos${search}`] }, createElement(PestanaEstilo)));
+}
+
+const OPCIONES = normalizeEstiloOpciones({
+  roles: [{ id: "cifras", word: { grafico_cifra: 9.5 } }],
+  logos: [{ lugar: "portada_izquierda", logo: "pucp", nombre: "PUCP" }],
+});
+
+beforeEach(() => {
+  usePlanStore.getState().hydrate({
+    version: "graficos/4", plan: { slides: [] }, presets: {}, w_presets: {}, selected_slide_id: null,
+    paletas: {}, iconos: [], overrides_reusables: [], debug_ph: { activo: false, color: "#FF00FF", lwd: 0.6 },
+    estilo_cliente: {
+      version: 1, ambito: "proyecto",
+      logos: { contraportada: { file_id: "f-acnur", nombre: "ACNUR" } },
+      letra: { paso: "estandar", roles: { cifras: "grande" } },
+    },
+  } as GraficosConfig);
+  usePlanStore.getState().setEstiloClienteDefaults({ version: 1, ambito: "proyecto", logos: {}, letra: { paso: "estandar", roles: {} } });
+  useEstiloUi.getState().setOpciones(OPCIONES);
+});
+
+describe("PestanaEstilo · markup", () => {
+  it("declara su superficie, sus grupos y un solo dueño de desplazamiento", () => {
+    const html = pintar();
+    expect(html).toContain('data-audit-ready="graficos-estilo"');
+    expect(html).toContain('data-qa-surface="graficos/f6-estilo"');
+    expect(html.match(/data-qa-scroll-owner=/g)).toHaveLength(1);
+    for (const grupo of ["f6-estilo-secciones", "f6-estilo-ambitos", "f6-estilo-logos", "f6-estilo-pasos", "f6-estilo-roles", "f6-estilo-paginas"]) {
+      expect(html).toContain(`data-qa-geometry-group="graficos/${grupo}"`);
+    }
+    // Tres lugares de logo, cinco roles: marcos pares.
+    expect(html.match(/class="pulso-f6-estilo-logo"/g)).toHaveLength(3);
+    expect(html.match(/class="pulso-f6-estilo-rol"/g)).toHaveLength(5);
+  });
+
+  it("sin opciones todavía, la readiness queda en false", () => {
+    useEstiloUi.getState().setOpciones(null);
+    expect(pintar()).toContain('data-audit-ready="false"');
+  });
+
+  it("sellos: Propio donde hay decisión, Del recetario en lo demás, y «Modificado» por sección", () => {
+    const html = pintar();
+    expect(html.match(/is-propio/g)).toHaveLength(2); // contraportada + rol cifras
+    expect(html).toContain("Del recetario");
+    expect(html.match(/pulso-f6-estilo-modificado/g)).toHaveLength(2);
+    expect(html).toContain("El recetario pone el logo de <strong>PUCP</strong>");
+    expect(html).toContain("11,5 pt = 9,5 + 2");
+  });
+
+  it("la subida es un botón real y el selector de archivos sólo pide PNG", () => {
+    const html = pintar();
+    expect(html.match(/<button[^>]*>(?:(?!<\/button>).)*Subir PNG/g)?.length).toBe(2);
+    expect(html).toContain("Reemplazar PNG");
+    expect(html).toContain('accept="image/png,.png"');
+    expect(html).toContain('aria-label="Volver al logo del recetario en contraportada"');
+    expect(html).toContain('type="radio" name="f6-estilo-ambito"');
+    expect(html).toContain("Hoy se aplica al Word");
+  });
+
+  it("en el informe compartido no ofrece ajustes y dice por qué", () => {
+    const html = pintar("?pestana=estilo&scope=consolidado");
+    expect(html).toContain("pulso-f6-estilo-no-disponible");
+    expect(html).toContain('role="status"');
+    expect(html).toContain('data-audit-ready="graficos-estilo"');
+    expect(html).not.toContain("Subir PNG");
+  });
+});

@@ -19,6 +19,7 @@ import {
   ListOrdered,
   ListTree,
   Network,
+  Palette,
   PieChart,
   PlugZap,
   Scale,
@@ -132,10 +133,12 @@ export const PROCESAMIENTO_PESTANAS = {
   ],
   // F6 (remasterización del editor de Gráficos): «Láminas» es el editor nuevo y la pestaña por defecto; «Vista general»
   // (F6.3) ordena el informe por capítulos; «Editor anterior» conserva el editor de siempre mientras F6 se completa por
-  // partes. Word y Estilo del cliente entran aquí cuando existan, no antes.
+  // partes. «Estilo del cliente» (F6.4) va tras Vista general; Word entra aquí cuando exista, no antes.
   graficos: [
     pestana("graficos", "laminas", "Láminas", "La lámina tal como sale, con su estructura y ajustes", LayoutTemplate),
     pestana("graficos", "vista-general", "Vista general", "El informe por capítulos, para ordenarlo de un vistazo", LayoutGrid),
+    // F6.4 (A6 R3): logos y tamaño de letra del cliente, guardados como decisiones sobre el recetario (ADR 0094).
+    pestana("graficos", "estilo", "Estilo del cliente", "Logos y tamaño de letra del cliente, sobre el recetario", Palette),
     pestana("graficos", "clasico", "Editor anterior", "El editor de siempre, mientras se completa el nuevo", History),
   ],
 } as const satisfies Record<ProcesamientoSeccionId, readonly PestanaProcesamiento[]>;

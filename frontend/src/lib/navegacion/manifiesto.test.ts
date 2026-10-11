@@ -149,8 +149,10 @@ describe("manifiesto de navegación", () => {
       nodoPorClave("calc-muestra/opinion-universitaria/aulas/aulas-relato"),
     ).not.toBeNull();
     // F6.3 (2026-10-11): Gráficos gana «Vista general» (`vista-general`). 28 → 29.
-    expect(procesamiento).toHaveLength(29);
+    // F6.4 (A6 R3, 2026-10-11): Gráficos gana «Estilo del cliente» (`estilo`). 29 → 30.
+    expect(procesamiento).toHaveLength(30);
     expect(nodoPorClave("procesamiento/graficos/vista-general")).not.toBeNull();
+    expect(nodoPorClave("procesamiento/graficos/estilo")).not.toBeNull();
     expect(dashboard).toHaveLength(4);
   });
 
