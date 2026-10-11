@@ -117,3 +117,40 @@ toca), dentro del bloque con rollback:
   Equivalencias») con enlace a `/procesamiento?seccion=carga&pestana=equivalencias`; `legacy_positional`
   pide regenerar la base desde SurveyMonkey. Componentes nuevos en archivo propio (BasesPanel supera 1000
   líneas).
+
+## Contrato congelado del ítem 15 — ver cómo se emparejó cada pregunta (2026-10-11)
+
+Pedido de Gonzalo: «las variables y sus etiquetas tienen que estar clarísimas, mostradas de forma
+didáctica», y no encontraba la matriz de equivalencias (la pestaña solo existe con dos o más bases
+separadas, ADR 0062).
+
+**Persistencia** — cada fuente de `sm_alineacion_fuentes` guarda además `pares: [{base, fuente,
+etiqueta, seccion}]` (pregunta emparejada; sin `_other`). Bases anteriores sin `pares` no se
+reconstruyen: el detalle dice que hay que volver a traer respuestas.
+
+**Endpoint** — `GET /api/carga/fuentes/emparejamiento?base_nombre=` (router nuevo, montado en
+`plumber_app.R`):
+
+```
+{ base_nombre, equivalencias: { disponible, motivo },
+  fuentes: [{ survey_id, titulo, estado: "incorporada" | "excluida",
+              n_emparejadas, n_preguntas_base, n_filas_incorporadas, n_filas_excluidas,
+              detalle_disponible,
+              filas: [{ seccion, etiqueta, variable_base, variable_fuente,
+                        estado: "emparejada" | "otro_nombre" | "no_entro" | "sin_respuesta" | "ambigua" }] }] }
+```
+
+Filas en el orden del instrumento de la base; las preguntas que solo existen en la fuente
+(`no_entro`) al final, con `seccion = "Solo en la fuente"`. `equivalencias.disponible` sale del
+mismo predicado de ADR 0061 que usa la pestaña (fuente única; el front deja de duplicarlo).
+
+**UI** — Carga › Revisión: cada tarjeta de fuente ofrece «Ver preguntas», que abre un panel lateral
+direccionable (`panel=emparejamiento`, `foco=<survey_id>`, `usePanelDireccionable`):
+
+- encabezado «Cómo se emparejaron las preguntas de <fuente>» y una línea que explica la regla en
+  llano (por su texto y su escala, la misma regla que Equivalencias);
+- cifras: emparejadas, en otro nombre, no entraron, sin respuesta, ambiguas;
+- filtro «Solo diferencias / Todas» (por defecto diferencias si las hay);
+- tabla agrupada por sección: Pregunta (texto completo) · En la base · En <fuente> · Estado
+  (insignia con ícono y texto, nunca solo color);
+- pie: qué es Equivalencias y enlace cuando está disponible; si no, por qué no aparece.
