@@ -369,7 +369,7 @@ describe("manifiesto primario de navegación", () => {
       "auditoria",
       "aulas-rerandomizacion",
     ]);
-    expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(28);
+    expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(29);
     expect(DASHBOARD_PESTANAS).toHaveLength(4);
 
     for (const [seccion, pestanas] of Object.entries(
