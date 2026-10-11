@@ -124,7 +124,7 @@ datos; `motivo` = arreglo (siempre arreglo, vacío si todos dibujan) con:
 | `variable_fuera_de_base` | Al reconstruir: alguna ref del gráfico no está en los datos de su base (`.graficos_consolidado_ref_context`) |
 | `variable_fuera_de_base` (filtro) | Al reconstruir: un `filtro` sobre una columna que no está en la base (`pulso_filter_missing_column` de `.apply_named_filters`; el motor la vuelve 0 filas con un warning) |
 | `n0` | Al reconstruir: los `filtros` del gráfico dejan 0 filas, filtrando con `.apply_named_filters` (el mismo filtro del motor) |
-| `sin_respuestas_validas` | El motor dibujó «Sin datos para mostrar» por el embudo `.blank_canvas` (reporte_plan_ppt.R), que señala `pulso_grafico_sin_datos`: variable toda NA, filtro con casos pero NA en la variable, `excluir_opciones` que cubre todo, pesos en 0, o `.tab_freq` que falló y devolvió NULL |
+| `sin_respuestas_validas` | El motor dibujó «Sin datos para mostrar» por el embudo `.blank_canvas` (reporte_plan_ppt.R), que señala `pulso_grafico_sin_datos`: variable toda NA, filtro con casos pero NA en la variable, `excluir_opciones` que cubre todo, pesos en 0, o filtros que dejan 0 filas (`.tab_freq` devuelve NULL sólo en ese caso; los errores de `freq_table_spss` se propagan y degradan por `pulso_slide_render_error` → `degradado`). Se cuenta **una vez por gráfico**: las señales de los bloques de una multilista se silencian y sólo cuenta si TODOS sus bloques quedaron vacíos (`.plan_con_sin_datos_por_grafico`, reporte_plan_condiciones.R) |
 | `degradado` | El motor señaló `pulso_lamina_degradada` (reporte_plan_condiciones.R) sin diagnóstico previo |
 
 Las degradaciones se cuentan por la condición `pulso_lamina_degradada` (`motivo`: `error_render`, `render_nulo`,
@@ -190,7 +190,8 @@ proceso, así que reiniciar el backend la vacía; para invalidar en caliente se 
 - Un raster incompleto (renderer ausente, timeout, una parte nula) **no se guarda**: se reintenta en el pedido siguiente.
 - Errores no se cachean.
 - **Invalidación**: por construcción (otra huella = otra entrada). Poda LRU a 400 entradas por sesión (mtime del directorio,
-  tocado en cada uso). El índice `graficos_preview_cache` (llave → `file_id`) se acota a 512 entradas y se descarta al
+  tocado en cada uso; opción `pulso.miniaturas_cache_max`), al final de cada vista previa síncrona, de cada job y del lote
+  servido entero desde caché. El índice `graficos_preview_cache` (llave → `file_id`) se acota a 512 entradas y se descarta al
   guardar el `.pulso`; al cerrar la sesión se va con su directorio.
 
 ## 5. Jobs (`jobs-asincronos`)
@@ -235,10 +236,10 @@ R 4.3.3, 4 núcleos, LibreOffice 24.2 + pdftools. Pedido igual al de `usePreview
 | `/preview-slide` de una lámina ya miniaturizada (hit PPTX + raster) | — | 1,05 s |
 | `/preview-slide-job`: POST (respuesta) | — | 1,28 s |
 | `/preview-slide-job`: hasta `done` (incluye arranque del worker con load_all) | — | 26,0 s |
-| `GET /api/system/health` mientras corre el job | (bloqueado durante el render síncrono) | máx 0,049 s, mediana 0,007 s |
+| `GET /api/system/health` mientras corre el job | (bloqueado durante el render síncrono) | mediana 0,006 s; picos de 0,92–0,97 s (verificación independiente de 8804e22) |
 | `/miniaturas` POST, 67 láminas (3 ya en caché por las vistas previas) | — | 1,78 s |
 | Lote de 64 láminas frías hasta `done` | — | 444,9 s (6,64 s/lámina) |
-| `GET /api/system/health` durante el lote | — | máx 0,055 s, mediana 0,005 s |
+| `GET /api/system/health` durante el lote | — | mediana 0,006 s; picos de 0,92–0,97 s (verificación independiente); plumber responde, no queda bloqueado minutos |
 | `GET /miniaturas/<lote>` a medias (a los 20 s: 4 ok, 63 pendientes) | — | 0,16 s |
 | Segundo lote idéntico (67 en caché, job nace `done`) | — | 2,43 s |
 

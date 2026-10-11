@@ -240,6 +240,7 @@
     registro$job_id <- NA_character_
     .mini_lotes[[lote_id]] <- registro
     job_id <- job_submit_completed(sid, kind, result_data = publicar(sid, lote_id, items_listos))
+    .mini_cache_podar(raiz)
   } else {
     sin_fuentes <- function(ctx) ctx[setdiff(names(ctx), c("data_sources", "inst_sources"))]
     entrada <- list(

@@ -537,9 +537,11 @@
        slide_previews = raster$slide_previews, cache = list(pptx = pptx$cache, raster = raster$cache))
 }
 
-#' Poda la caché a las `max` entradas usadas más recientemente
+#' Poda la caché a las `max` entradas usadas más recientemente (opción `pulso.miniaturas_cache_max`, 400 por defecto; fuera
+#' del prefijo `prosecnur.*` para no entrar en la huella)
 #' @keywords internal
-.mini_cache_podar <- function(raiz, max = 400L) {
+.mini_cache_podar <- function(raiz, max = getOption("pulso.miniaturas_cache_max", 400L)) {
+  max <- as.integer(max)
   dirs <- list.dirs(raiz, full.names = TRUE, recursive = FALSE)
   if (length(dirs) <= max) return(invisible(0L))
   mt <- file.info(dirs)$mtime
