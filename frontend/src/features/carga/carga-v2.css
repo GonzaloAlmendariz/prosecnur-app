@@ -73,33 +73,6 @@
     0 6px 14px color-mix(in srgb, var(--module-accent, var(--pulso-module-processing)) 18%, transparent);
 }
 
-.pulso-carga-readiness-card.is-ready {
-  border-color: color-mix(in srgb, var(--pulso-success-border) 72%, var(--pulso-border));
-  background: color-mix(in srgb, var(--pulso-success-bg) 82%, #ffffff);
-  color: var(--pulso-success-fg);
-}
-
-.pulso-carga-readiness-card.is-warning {
-  border-color: color-mix(in srgb, var(--pulso-warn-border) 72%, var(--pulso-border));
-  background: color-mix(in srgb, var(--pulso-warn-bg) 76%, #ffffff);
-  color: var(--pulso-warn-fg);
-}
-
-.pulso-carga-study-loading-map svg {
-  color: var(--pulso-module-processing, var(--pulso-primary));
-}
-
-.pulso-carga-study-loading-map small {
-  overflow: hidden;
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
 .pulso-multibase-toggle {
   margin-bottom: 18px;
   display: flex;
@@ -3109,25 +3082,6 @@
 
 /* ── 4) Estados semánticos: readiness + progreso ───────────────────────── */
 
-.pulso-carga-frame .pulso-carga-readiness-card {
-  border-radius: 12px;
-  transition:
-    border-color var(--motion-dur-fast) ease,
-    background var(--motion-dur-fast) ease;
-}
-
-.pulso-carga-frame .pulso-carga-readiness-card.is-ready {
-  border-color: var(--pulso-success-border);
-  background: color-mix(in srgb, var(--pulso-success-bg) 62%, #fff);
-  color: var(--pulso-success-fg);
-}
-
-.pulso-carga-frame .pulso-carga-readiness-card.is-warning {
-  border-color: var(--pulso-warn-border);
-  background: color-mix(in srgb, var(--pulso-warn-bg) 62%, #fff);
-  color: var(--pulso-warn-fg);
-}
-
 .pulso-carga-frame .pulso-carga-progress-steps li.is-ready .pulso-carga-progress-node {
   border-color: var(--pulso-success-border);
   background: var(--pulso-success-bg);
@@ -4126,10 +4080,6 @@
   scrollbar-gutter: auto;
 }
 
-:root[data-pulso-layout-mode="short"] .pulso-carga-frame .pulso-carga-workbench--multibase {
-  flex: 0 0 auto;
-}
-
 :root[data-pulso-layout-mode="short"] .pulso-carga-frame .pulso-carga-content--framed {
   grid-template-rows: auto auto;
 }
@@ -4150,10 +4100,6 @@
     min-height: 0;
     overflow: visible;
     scrollbar-gutter: auto;
-  }
-
-  .pulso-carga-frame .pulso-carga-workbench--multibase {
-    flex: 0 0 auto;
   }
 
   .pulso-carga-frame .pulso-carga-content--framed {
@@ -4251,21 +4197,6 @@
 
 .pulso-carga-view-tab.is-pending {
   --carga-view-state: var(--pulso-text-faint);
-}
-
-.pulso-carga-readiness-main p {
-  max-width: 42ch;
-  margin: 4px 0 0;
-  color: var(--pulso-text-soft);
-  font-size: 11.5px;
-  line-height: 1.35;
-}
-
-.pulso-carga-study-loading p {
-  margin: 3px 0 0;
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  line-height: 1.34;
 }
 
 .pulso-sm-multibase-trigger:hover:not(:disabled) {
