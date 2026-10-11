@@ -4,16 +4,23 @@
 
 .WORD_CHART_PRESETS_DEFAULT_PULSO <- list(
   barras_apiladas = list(
-    mostrar_barra_extra      = FALSE,
-    barra_extra_preset       = "ninguno",
+    # El recetario manda: toda escala apilada del Word del recetario lleva su columna Top Two Box (figuras 13, 44, 45 y
+    # 47 de docs/qa/motor-ppt-2026-10-06/4-recetario/propuesta-word.docx; `g_apilada(ttb = TRUE)` de
+    # recetario_word_graficos.R). Antes el Word la apagaba de fábrica (B54/W-5). La columna sólo se dibuja con las
+    # categorías declaradas (`.box_decidir`), y un informe que la apaga la sigue teniendo apagada en el Word
+    # (`.word_patch_respetar_apagado`). Espejo en DEFAULT_WORD_PRESETS (frontend/src/api/graficosConfigNormalizer.ts).
+    mostrar_barra_extra      = TRUE,
+    barra_extra_preset       = "top2box",
     prefijo_barra_extra      = "",
     titulo_barra_extra       = "",
 
+    # Con la columna encendida, el lienzo clásico le da 0.16 de 6.1in (~1in), la partición que ya usaba un pedido
+    # explícito (`.word_conservar_barra_extra_pedida`).
     canvas_w_etiquetas       = 0.18,
     canvas_w_buf_etq_bars    = 0,
-    canvas_w_bars            = 0.82,
-    canvas_w_buf_bars_extra  = 0,
-    canvas_w_extra           = 0,
+    canvas_w_bars            = 0.64,
+    canvas_w_buf_bars_extra  = 0.02,
+    canvas_w_extra           = 0.16,
 
     canvas_h_toprow_in       = 0,
     canvas_h_legend_in       = 0.42,
@@ -100,6 +107,21 @@
   }
 
   out
+}
+
+#' El Word no enciende la columna extra que el informe apagó
+#'
+#' Desde que el Word lleva de fábrica el Top Two Box del recetario, su patch la encendería también donde el preset del
+#' informe la apagó (`mostrar_barra_extra = FALSE` o `barra_extra_preset = "ninguno"` en las barras apiladas, cuyo
+#' suelo de fábrica es `TRUE`/`"top2box"`). Ese apagado es una decisión del analista y el Word la respeta: se quitan
+#' del patch las claves que encienden la columna; la tipografía y el resto del patch siguen.
+#' @keywords internal
+.word_patch_respetar_apagado <- function(patch, ppt_args, tipo = "barras_apiladas") {
+  if (!is.list(patch) || !identical(tipo, "barras_apiladas") || !is.list(ppt_args)) return(patch)
+  preset <- trimws(as.character(ppt_args$barra_extra_preset %||% "")[1])
+  apagado <- isFALSE(ppt_args$mostrar_barra_extra) || identical(preset, "ninguno")
+  if (!apagado || !isTRUE(patch$mostrar_barra_extra)) return(patch)
+  patch[setdiff(names(patch), c("mostrar_barra_extra", "barra_extra_preset"))]
 }
 
 #' @title Definir presets para Word (imagen + estilos de párrafo)
@@ -206,6 +228,7 @@ w_presets <- function(
       # declara; solo re-escala el resto (tipografia, alturas, leyenda).
       if (nm %in% c("barras_apiladas", "multi_apiladas")) {
         patch <- .word_patch_conservar_barra_extra(patch, presets_ppt[[nm]]$args, tipo = nm)
+        patch <- .word_patch_respetar_apagado(patch, presets_ppt[[nm]]$args, tipo = nm)
       }
       presets_ppt[[nm]]$args <- utils::modifyList(
         presets_ppt[[nm]]$args %||% list(),

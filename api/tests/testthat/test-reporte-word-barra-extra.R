@@ -1,12 +1,13 @@
 source("setup-load-all.R")
 
-# B54/W-5: el chart_preset Word default apaga la columna extra
-# (mostrar_barra_extra=FALSE + canvas_w_extra=0) porque la marca N implicita
-# del preset editorial PPT no aporta en el lienzo de 6.1in. Pero cuando la
-# columna fue PEDIDA — override de lamina con barra_extra_preset/titulo, o
-# preset del usuario con barra_extra_preset explicito — el default Word no
-# puede pisar el pedido: Word solo re-escala su geometria. La no pedida
-# sigue apagada, y un mostrar_barra_extra=FALSE explicito sigue mandando.
+# B54/W-5: cuando la columna extra fue PEDIDA — override de lamina con
+# barra_extra_preset/titulo, o preset del usuario con barra_extra_preset
+# explicito — el default Word no puede pisar el pedido: Word solo re-escala su
+# geometria, y un mostrar_barra_extra=FALSE explicito sigue mandando.
+# Desde F6 (F-d, pendiente de motor) el default Word ya no la apaga: el
+# recetario Word dibuja el Top Two Box en toda escala apilada (propuesta-word.docx,
+# figuras 13, 44, 45 y 47), y el default es el del recetario
+# (test-reporte-word-defaults-espejo.R).
 
 .we_inst_likert <- function() {
   list(
@@ -80,28 +81,40 @@ test_that("un preset PPT con barra_extra_preset explicito sobrevive al patch Wor
   expect_lte(args$size_leyenda, 10)
   expect_lte(args$size_barra_extra, 10)
 
-  # Sin pedido de preset: el default Word la apaga como siempre (W-1/B52).
+  # Sin pedido de preset: el default Word es el del recetario, con su columna Top Two Box y ancho para ella.
   base <- .apply_word_chart_presets(do.call(p_presets, .PRESETS_DEFAULT_PULSO), w_presets())
   args_base <- base$barras_apiladas$args
-  expect_false(isTRUE(args_base$mostrar_barra_extra))
-  expect_identical(args_base$barra_extra_preset, "ninguno")
-  expect_equal(args_base$canvas_w_extra, 0)
+  expect_true(isTRUE(args_base$mostrar_barra_extra))
+  expect_identical(args_base$barra_extra_preset, "top2box")
+  expect_gt(args_base$canvas_w_extra, 0)
 })
 
-test_that("heredar el defecto de fabrica NO cuenta como pedirlo en Word", {
+test_that("heredar el defecto de fabrica NO cuenta como pedirlo en Word: manda el default Word", {
   # Regresion de `8e783a95`: al volverse `top2box` defecto global, todo preset
-  # lo traia y Word dejo de poder aplicar su piso —el que existe porque el
-  # lienzo de 6,1" no da para esa columna—. El resultado era una columna
-  # Top 2 Box en TODO informe Word, contra el contrato B54/W-5.
+  # lo traia y Word no distinguia un pedido de una herencia. Con la herencia
+  # manda el patch Word —su geometria del lienzo de 6,1"—, que desde F6 trae
+  # la columna Top Two Box del recetario con su ancho propio.
   suelo <- .PRESETS_DEFAULT_PULSO$barras_apiladas$barra_extra_preset
   expect_identical(suelo, "top2box")   # si esto cambia, el resto de este test también
 
   presets_ppt <- do.call(p_presets, .PRESETS_DEFAULT_PULSO)
   presets_ppt$barras_apiladas$args$barra_extra_preset <- suelo
+  presets_ppt$barras_apiladas$args$canvas_w_extra <- 0.30   # geometria PPT heredada: el Word la recalibra
 
   args <- .apply_word_chart_presets(presets_ppt, w_presets())$barras_apiladas$args
-  expect_false(isTRUE(args$mostrar_barra_extra))
-  expect_identical(args$barra_extra_preset, "ninguno")
+  expect_true(isTRUE(args$mostrar_barra_extra))
+  expect_identical(args$barra_extra_preset, "top2box")
+  expect_equal(args$canvas_w_extra, .WORD_CHART_PRESETS_DEFAULT_PULSO$barras_apiladas$canvas_w_extra)
+})
+
+test_that("el Word no enciende la columna que el informe apagó", {
+  for (apagar in list(list(mostrar_barra_extra = FALSE), list(barra_extra_preset = "ninguno"))) {
+    presets_ppt <- do.call(p_presets, .PRESETS_DEFAULT_PULSO)
+    presets_ppt$barras_apiladas$args <- utils::modifyList(presets_ppt$barras_apiladas$args, apagar)
+    args <- .apply_word_chart_presets(presets_ppt, w_presets())$barras_apiladas$args
+    expect_false(isTRUE(args$mostrar_barra_extra) && identical(args$barra_extra_preset, "top2box"))
+    expect_lte(args$size_leyenda, 10)   # el resto del patch Word sí re-escala
+  }
 })
 
 test_that("el plot_word de una apilada con top2box pedido muestra la columna extra", {
