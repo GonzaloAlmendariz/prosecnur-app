@@ -15,6 +15,7 @@ import {
   Images,
   ListTree,
   Loader2,
+  Plus,
   RefreshCw,
   SlidersHorizontal,
 } from "../../../vendor/lucide-react";
@@ -71,6 +72,8 @@ type Props = {
   onRanura: (k: number | null) => void;
   /** Doble clic en una ranura: abre «¿Qué gráfico?» para ella. */
   onCambiarGrafico: (k: number) => void;
+  /** «+ Lámina»: abre «¿Qué lámina?» para insertar una nueva después de ésta. */
+  onInsertarLamina: () => void;
   /** Formas y ranuras del estándar de la vista previa (K11, `normalizePreviewFormas`); sin ellas las guías lo dicen. */
   formas?: PreviewFormas | null;
 };
@@ -84,7 +87,7 @@ const ZOOMS: { valor: ZoomVisor; label: string; factor: number }[] = [
 ];
 
 export function VisorLamina({
-  slide, verComoQueda, onAlternarComoQueda, onTexto,
+  slide, verComoQueda, onAlternarComoQueda, onTexto, onInsertarLamina,
   lamina, total, vista, prepOk, parte, onParte, onIr, motorNativoApagado, onAbrirAjustes, ajustesAbiertos, onVerAvisos, ajustesRef, estructuraAbierta, onAlternarEstructura, tira,
   ranuras, ranuraActiva, nombreRanura, onRanura, onCambiarGrafico, formas = null,
 }: Props) {
@@ -145,6 +148,10 @@ export function VisorLamina({
         </button>
         <button type="button" className="pulso-f6-icono-boton" aria-label="Lámina siguiente" disabled={lamina.posicion >= total} onClick={() => onIr(lamina.posicion + 1)}>
           <ChevronRight size={16} aria-hidden="true" />
+        </button>
+        <button type="button" className="pulso-f6-boton is-primario" onClick={onInsertarLamina} title="Insertar una lámina nueva después de ésta">
+          <Plus size={14} aria-hidden="true" />
+          Lámina
         </button>
         <IconoTipo clase="lamina" tipo={lamina.tipo} size={16} titulo={lamina.tipoLabel} className="pulso-f6-visor-tipo" />
         <p className="pulso-f6-visor-pos" aria-live="polite">
