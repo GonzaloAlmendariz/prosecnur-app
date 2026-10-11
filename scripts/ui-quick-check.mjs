@@ -895,6 +895,37 @@ function routeUrl(base, route, project = "") {
   return url.toString();
 }
 
+// Niveles de la dirección v3 que viajan en la query (`lib/navegacion/direccion.ts`).
+const NIVELES_EN_QUERY = ["modo", "seccion", "pestana", "panel"];
+
+/**
+ * Compara la ruta pedida con la URL en la que quedó la página. Devuelve el
+ * motivo del desvío, o `null` si la captura corresponde a lo pedido.
+ *
+ * Un nivel pedido que falta en la URL final NO cuenta: el serializador omite
+ * la sección implícita en el pathname (`/graficos` no lleva `seccion=`). Sólo
+ * cuenta un pathname distinto o un nivel reescrito a otro valor.
+ */
+export function desvioDeRuta(route, finalUrl) {
+  const pedida = new URL(route, "http://qa.local");
+  const final = new URL(finalUrl, "http://qa.local");
+  const normalizar = (p) => p.replace(/\/+$/, "") || "/";
+  if (normalizar(pedida.pathname) !== normalizar(final.pathname)) {
+    const pista = normalizar(pedida.pathname) === "/procesamiento"
+      ? " `/procesamiento` es una entrada que redirige a la fase accionable e ignora la query; pide la sección por su pathname (`/graficos?pestana=…`) o usa --ir."
+      : "";
+    return `el pathname cambió (${pedida.pathname} → ${final.pathname}).${pista}`;
+  }
+  for (const nivel of NIVELES_EN_QUERY) {
+    const esperado = pedida.searchParams.get(nivel);
+    const obtenido = final.searchParams.get(nivel);
+    if (esperado && obtenido && esperado !== obtenido) {
+      return `${nivel}=${esperado} terminó como ${nivel}=${obtenido}.`;
+    }
+  }
+  return null;
+}
+
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -1252,6 +1283,25 @@ async function runCaptures(opts, stack) {
             postClickWaitSelectorMatched = false;
           });
         }
+        // Dónde se aterrizó de verdad. `/procesamiento?seccion=graficos`
+        // redirige a la fase accionable —Validación, en acrconta— y suelta la
+        // query: la corrida midió Validación › Explorar y la aprobó como si
+        // fuera Gráficos. Con `--ir` la URL final es la de la última dirección.
+        const finalUrl = page.url();
+        const readinessMarca = finalReadiness?.marca ?? null;
+        const routeDeviation = opts.direcciones.length ? null : desvioDeRuta(route, finalUrl);
+        if (routeDeviation) {
+          console.warn(
+            `[ui-quick-check] AVISO: se pidió "${route}" y se capturó ${new URL(finalUrl).pathname}${new URL(finalUrl).search}`
+            + ` (readiness=${readinessMarca ?? "?"}): ${routeDeviation}`,
+          );
+        }
+        if (!postClickWaitSelectorMatched) {
+          console.warn(
+            `[ui-quick-check] AVISO: "${opts.postClickWaitSelector}" nunca apareció en "${route}"`
+            + ` @ ${viewportName(viewport)} (readiness=${readinessMarca ?? "?"}, url=${finalUrl}).`,
+          );
+        }
 
         const shotBase = `${opts.name}-${safeSlug(route)}-${viewportName(viewport)}-${opts.layoutPreset}`;
         const screenshot = path.join(opts.out, `${shotBase}.png`);
@@ -1283,6 +1333,9 @@ async function runCaptures(opts, stack) {
           resourceErrors,
           waitSelectorMatched,
           postClickWaitSelectorMatched,
+          finalUrl,
+          readinessMarca,
+          routeDeviation,
           ...dom,
         });
         await page.close();
@@ -2428,7 +2481,7 @@ export async function barrerPopovers(page, { timeoutMs }) {
   return auditorias;
 }
 
-function summarize(results, opts) {
+export function summarize(results, opts) {
   // Los desbordes hallados dentro de un popover son desbordes de la app: entran
   // al mismo contador que los de la vista en reposo para que `--fail-on-issues`
   // no distinga entre lo que se ve solo y lo que hay que abrir.
@@ -2483,7 +2536,13 @@ function summarize(results, opts) {
   buscarDesplazamiento(results);
   const projectMisses = results.filter((item) => item.projectLoaded === false);
   const waitSelectorMisses = results.filter((item) => item.waitSelectorMatched === false);
+  // Un selector post-click que nunca aparece dice que se midió otra pantalla
+  // —o la correcta sin la superficie que se venía a ver—. Va en su propio
+  // contador para que el resumen diga CUÁL de las dos esperas falló.
   const postClickWaitSelectorMisses = results.filter((item) => item.postClickWaitSelectorMatched === false);
+  // Aviso, no fallo: hay redirecciones legítimas. Pero se imprime con la
+  // readiness final para que se vea qué pantalla se midió en realidad.
+  const routeDeviations = results.filter((item) => item.routeDeviation);
   return {
     captures: results.length,
     screenshots: results.map((item) => item.screenshot),
@@ -2513,7 +2572,15 @@ function summarize(results, opts) {
     apiErrors: apiErrors.length,
     resourceErrors: resourceErrors.length,
     projectMisses: projectMisses.length,
-    waitSelectorMisses: waitSelectorMisses.length + postClickWaitSelectorMisses.length,
+    waitSelectorMisses: waitSelectorMisses.length,
+    postClickWaitSelectorMisses: postClickWaitSelectorMisses.length,
+    routeDeviations: routeDeviations.length,
+    routeDeviationDetalle: routeDeviations.slice(0, 5).map((item) => ({
+      route: item.route,
+      finalUrl: item.finalUrl,
+      readiness: item.readinessMarca,
+      motivo: item.routeDeviation,
+    })),
     ok: visualIssues.length === 0 &&
       scrollJails.length === 0 &&
       derrames.length === 0 &&
@@ -2627,7 +2694,10 @@ async function main() {
     for (const o of summary.solapeDetalle || []) {
       console.log(`[ui-quick-check] solape ${o.interseccion}: ${o.a?.selector || o.a?.tag || "?"} × ${o.b?.selector || o.b?.tag || "?"}`);
     }
-    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} popovers=${summary.popovers} popoverIssues=${summary.popoverIssues} scrollJails=${summary.scrollJails} desplazamientoH=${summary.desplazamientoH} derrames=${summary.derrames} solapes=${summary.solapes} desbordes=${summary.desbordes} geometryGroups=${summary.geometryGroups} geometryIssues=${summary.geometryIssues} geometryCoverageMisses=${summary.geometryCoverageMisses} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses}`);
+    for (const d of summary.routeDeviationDetalle || []) {
+      console.log(`[ui-quick-check] ruta desviada: ${d.route} → ${d.finalUrl} (readiness=${d.readiness ?? "?"}) ${d.motivo}`);
+    }
+    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} popovers=${summary.popovers} popoverIssues=${summary.popoverIssues} scrollJails=${summary.scrollJails} desplazamientoH=${summary.desplazamientoH} derrames=${summary.derrames} solapes=${summary.solapes} desbordes=${summary.desbordes} geometryGroups=${summary.geometryGroups} geometryIssues=${summary.geometryIssues} geometryCoverageMisses=${summary.geometryCoverageMisses} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses} postClickWaitSelectorMisses=${summary.postClickWaitSelectorMisses} routeDeviations=${summary.routeDeviations}`);
     if (!summary.ok && opts.failOnIssues) process.exitCode = 1;
   } finally {
     await cleanup();

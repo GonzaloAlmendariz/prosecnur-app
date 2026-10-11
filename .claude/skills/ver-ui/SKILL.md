@@ -118,6 +118,33 @@ node scripts/ui-quick-check.mjs \
   --fail-on-issues
 ```
 
+### Paneles y foco: van en `--route`, no en `--ir`
+
+`--ir` sólo acepta claves del manifiesto, que llegan hasta la pestaña
+(`procesamiento/graficos/laminas`). Los paneles no son nodos: su clave sería
+`procesamiento/graficos/laminas#guias` y `ir()` no la resuelve, por eso
+`--ir procesamiento/graficos/laminas/guias` responde que la dirección no existe.
+Panel y foco se piden en la query de `--route`, con el pathname de la sección:
+
+```bash
+node scripts/ui-quick-check.mjs \
+  --project /ruta/copia.pulso \
+  --route "/graficos?pestana=laminas&foco=s-equiv-10&panel=guias" \
+  --post-click-wait-selector ".pulso-f6-guias-panel" \
+  --require-geometry --fail-on-issues
+```
+
+Los ids de panel válidos son los de `PANELES_POR_MODULO` en
+`frontend/src/lib/navegacion/manifiesto.ts`; `window.__pulsoNav.paneles()`
+lista los declarados y los montados.
+
+**No uses `/procesamiento?seccion=…`.** `/procesamiento` es una entrada que
+redirige a la fase accionable del estudio (Carga, Validación…) y descarta la
+query: la corrida mide otra pantalla. El runner avisa `ruta desviada` con la
+readiness final, y un `--post-click-wait-selector` que nunca aparece cuenta en
+`postClickWaitSelectorMisses` y deja `ok=false`. Pasa siempre ese selector
+cuando vengas a ver un panel: es lo único que prueba que se abrió.
+
 Para matriz por estudio:
 
 ```bash
