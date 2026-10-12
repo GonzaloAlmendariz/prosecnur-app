@@ -17,6 +17,9 @@ loop indefinido «casos+arte» (encargo en el scratchpad de la sesión). Sólo G
 | I5 | «Voy a índice, la ventana para poner el subcapítulo no se ve muy profesional y me pide poner enters en vez de una UI profesional» | `indice/EditorIndice.tsx` (subcapítulos) | ☐ |
 | I6 | «En estilo del informe me pides ponerlo de forma técnica con "Base: %s" cuando eso es algo que el usuario no técnico jamás va a poder hacer» | `estiloInforme/SeccionTextoBase.tsx`, `modeloEstiloInforme.ts` (`formato`, `sufijo_auto`) | ☐ |
 | I7 | «Toda la UI que nos permite escoger las paletas se ve bastante mal, choca, contenedores poco profesionales y necesita una forma mucho más inteligente» | `estiloInforme/SeccionPaletas.tsx` (`PaletasEditor` del editor anterior) → rediseño P1–P8 en Identidad | ☐ |
+| I9 | «Algunas subpestañas agrupan varias cosas que, si nos ponemos a pensar cada una, podría tener una visión más pulcra, limpia y completa como subpestañas independientes» | Identidad y Estilo del informe (secciones apiladas en una sola página) | ☐ propuesta enviada |
+| I10 | «No sé por qué tenemos subpestaña para PowerPoint porque es básicamente un menú para configurar por tipos de gráficos cuando se supone que eso debería estar en los compositores» | `powerpoint/PestanaPowerPoint.tsx` → tarjeta del gráfico en Láminas | ☐ propuesta enviada |
+| I11 | «Estas 4 subpestañas del compositor aún no definen bien, de forma inteligente y bien repartida, qué hace cada una» (Contenido, Composición, Gráficos, Estado; además «Título del slide», «disclaimer») | `laminas/InspectorLamina.tsx` | ☐ propuesta enviada |
 | I8 | (ya acordado) «Cálculos y cifras está bien» | `estiloInforme/SeccionCalculos.tsx` | ☑ sin cambios |
 
 ## Lo acordado que condiciona estos ítems
