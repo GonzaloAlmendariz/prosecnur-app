@@ -28,7 +28,7 @@ const REGISTRO: Record<string, { args: ArgMetadata[] }> = {
   p_mapa_resultado_distrital: { args: [a("min_n", "number", { default: 1 }), a("cortes", "codigos_list")] },
 };
 
-vi.mock("react-router-dom", () => ({ useLocation: () => ({ search: "" }) }));
+vi.mock("react-router-dom", () => ({ useLocation: () => ({ search: "", pathname: "/graficos" }), useNavigate: () => () => undefined }));
 vi.mock("../store", () => ({ usePlanStore: (sel: (s: { updateSlotArgs: () => void }) => unknown) => sel({ updateSlotArgs: () => undefined }) }));
 vi.mock("./laminasStore", () => ({ useLaminasUi: (sel: (s: { setEditorAmplio: () => void }) => unknown) => sel({ setEditorAmplio: () => undefined }) }));
 vi.mock("../useGraficosRegistry", () => ({ useGraficosRegistry: () => ({ graficadoresById: REGISTRO }) }));
