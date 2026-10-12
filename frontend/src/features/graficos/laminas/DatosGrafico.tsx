@@ -6,7 +6,8 @@
 
 import { useId } from "react";
 import { useLocation } from "react-router-dom";
-import { Filter, HelpCircle, Rows3 } from "../../../vendor/lucide-react";
+import { Filter, Rows3 } from "../../../vendor/lucide-react";
+import { AyudaGlobo } from "./AyudaGlobo";
 import type { GraficadorRef } from "../../../api/graficos";
 import { Switch } from "../../../components/Switch";
 import { usePlanStore } from "../store";
@@ -109,12 +110,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
 const ORDEN_ANTERIOR = new Set(["orden_barras", "ordenar_categorias"]);
 
 function Ayuda({ rotulo, detalle }: { rotulo: string; detalle: string }) {
-  if (!detalle) return null;
-  return (
-    <span className="pulso-f6-dato-ayuda-icono" title={detalle} aria-label={`${rotulo}: ${detalle}`} role="img">
-      <HelpCircle size={13} aria-hidden="true" />
-    </span>
-  );
+  return <AyudaGlobo rotulo={rotulo} detalle={detalle} />;
 }
 
 function Fila({ campo, valor, onCambio }: { campo: CampoDato; valor: unknown; onCambio: (v: unknown) => void }) {

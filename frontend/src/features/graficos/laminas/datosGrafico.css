@@ -37,10 +37,68 @@
   overflow-wrap: anywhere;
 }
 
-.pulso-f6-dato-ayuda-icono {
+.pulso-f6-ayuda {
+  position: relative;
   display: inline-grid;
+}
+
+.pulso-f6-ayuda-boton {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
   color: var(--pulso-text-faint);
   cursor: help;
+  transition: color 140ms ease, background 140ms ease;
+}
+
+.pulso-f6-ayuda-boton:hover,
+.pulso-f6-ayuda-boton:focus-visible,
+.pulso-f6-ayuda.is-abierta .pulso-f6-ayuda-boton {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-primary);
+  outline: none;
+}
+
+.pulso-f6-ayuda-globo {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: -8px;
+  z-index: 30;
+  width: max-content;
+  max-width: 260px;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.45;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-2px);
+  transition: opacity 120ms ease, transform 120ms ease, visibility 0s linear 120ms;
+  pointer-events: none;
+}
+
+.pulso-f6-ayuda:hover .pulso-f6-ayuda-globo,
+.pulso-f6-ayuda:focus-within .pulso-f6-ayuda-globo,
+.pulso-f6-ayuda.is-abierta .pulso-f6-ayuda-globo {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-ayuda-globo { transition: none; }
 }
 
 .pulso-f6-dato-ayuda {
