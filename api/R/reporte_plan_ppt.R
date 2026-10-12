@@ -178,7 +178,7 @@ reporte_ppt_plan <- function(
   # -----------------------
   # 0.1) Presets (tu contrato)
   # -----------------------
-  presets <- presets %||% list(); .op_casos <- .casos_junto_fijar(presets); on.exit(options(.op_casos), add = TRUE)   # graficos_casos_junto.R
+  presets <- presets %||% list(); .op_casos <- .casos_junto_fijar(presets); .op_casos <- c(.op_casos, .base_sufijos_fijar(presets)); on.exit(options(.op_casos), add = TRUE)   # graficos_casos_junto.R
   if (!is.null(presets$dim_radar_tabla)) {
     warning(
       "`presets$dim_radar_tabla` fue retirado del flujo PPT y sera ignorado. Use `dim_radar` o `dim_heatmap`.",
@@ -3128,7 +3128,7 @@ reporte_ppt_plan <- function(
     .fmt_base_part <- function(n_txt, src) {
       src <- trimws(as.character(src %||% "")[1])
       if (!nzchar(src) || identical(src, "default")) return(n_txt)
-      paste(n_txt, src)
+      paste(n_txt, .base_sufijo_de_fuente(src))   # graficos_base_por_base.R
     }
 
     ctxs <- lapply(refs, .resolve_ref, arg_name = "var")

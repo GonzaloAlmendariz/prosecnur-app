@@ -279,3 +279,16 @@ describe("escribe donde ya escribe el Estilo global: el store del plan y su auto
     expect(buildGraficosConfigFromStore().presets).toEqual({ base: { size_titulo: 18 } });
   });
 });
+
+describe("palabra por base (varias bases)", () => {
+  it("guarda sólo las decisiones: vacía o igual al nombre de la base, se borra", async () => {
+    const { conSufijoDeBase, leerSufijosPorBase } = await import("./sufijoPorBase");
+    let p: MapaPresets = { base: { formato: "Base: %s" } };
+    p = conSufijoDeBase(p, "estudiantes", " alumnos ");
+    expect(leerSufijosPorBase(p)).toEqual({ estudiantes: "alumnos" });
+    p = conSufijoDeBase(p, "docentes", "docentes");
+    expect(leerSufijosPorBase(p)).toEqual({ estudiantes: "alumnos" });
+    p = conSufijoDeBase(p, "estudiantes", "");
+    expect(p).toEqual({ base: { formato: "Base: %s" } });
+  });
+});
