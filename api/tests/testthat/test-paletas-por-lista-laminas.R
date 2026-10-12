@@ -37,7 +37,7 @@ skip_if_not_installed("officer"); skip_if_not_installed("rvg")
 
 test_that("sin colores en la espec, las láminas categóricas y circulares salen byte a byte como antes (golden)", {
   # Huellas del XML medidas con el código anterior al ADR 0097 (commit 4330de9): un cambio aquí es un cambio visible.
-  e3 <- preparar_categorica(c("Quinto", "Sexto", "Séptimo"), c(.32, .28, .40), c("32%", "28%", "40%"), c(32, 28, 40))
+  e3 <- preparar_categorica(c("Quinto", "Sexto", "Séptimo"), c(.32, .28, .40), c("32%", "28%", "40%"), c(32, 28, 40), resaltar = TRUE)   # golden con realce
   e2 <- preparar_categorica(c("Sí", "No"), c(.62, .38), c("62%", "38%"), c(62, 38))
   pie3 <- attr(suppressWarnings(graficar_pie(data.frame(c = c("Sí", "No", "NS"), p = c(.6, .33, .07), n = c(60, 33, 7)), "c", "p", var_n = "n", tipo_pie = "pie")), "pulso_espec")
   dona2 <- attr(suppressWarnings(graficar_pie(data.frame(c = c("Sí", "No"), p = c(133, 39) / 172, n = c(133, 39)), "c", "p", var_n = "n", tipo_pie = "donut")), "pulso_espec")

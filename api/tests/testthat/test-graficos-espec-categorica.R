@@ -6,7 +6,7 @@ test_that("las residuales van al final, los ceros no se dibujan y la cifra es la
   expect_identical(e$rotulos, c("Alimentos", "Salud", "Otros", "No sabe"))
   expect_identical(e$cifras, c("40%", "20%", "6%", "3%"))
   expect_identical(e$version, "categorica/1")
-  expect_true(e$realce)
+  expect_false(e$realce)   # todas las barras en un color: resaltar la mayor es opción del gráfico (Gonzalo, 2026-10-11)
 })
 
 test_that("con dos categorías o un empate en el máximo no hay realce", {

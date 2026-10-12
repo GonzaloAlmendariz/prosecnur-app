@@ -194,9 +194,10 @@ test_that("una escala con Top Two Box y dos categorías en cero no se dibuja com
 })
 
 test_that("el realce exige un máximo único en la cifra rotulada", {
-  e <- preparar_categorica(c("a", "b", "c", "d"), c(.1204, .1196, .05, .03), c("12%", "12%", "5%", "3%"))
+  e <- preparar_categorica(c("a", "b", "c", "d"), c(.1204, .1196, .05, .03), c("12%", "12%", "5%", "3%"), resaltar = TRUE)
   expect_false(e$realce)
-  expect_true(preparar_categorica(c("a", "b", "c"), c(.5, .3, .2), c("50%", "30%", "20%"))$realce)
+  expect_true(preparar_categorica(c("a", "b", "c"), c(.5, .3, .2), c("50%", "30%", "20%"), resaltar = TRUE)$realce)
+  expect_false(preparar_categorica(c("a", "b", "c"), c(.5, .3, .2), c("50%", "30%", "20%"))$realce)   # por defecto, un color
 })
 
 test_that("en la dicotomía de un panel los rótulos van sin frecuencia, como la cuarta celda de la lámina 160", {

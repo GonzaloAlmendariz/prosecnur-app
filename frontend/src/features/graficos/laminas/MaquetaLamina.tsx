@@ -15,7 +15,7 @@ import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import { useVariables } from "../useVariables";
 import type { LaminaEnEstructura } from "./modeloEstructura";
-import { baseAutomatica, ranurasDeMaqueta } from "./modeloMaqueta";
+import { baseAutomatica, COLOR_MAYOR, COLOR_RESTO, COLOR_SEGUNDA, ranurasDeMaqueta } from "./modeloMaqueta";
 import { varianteDe } from "./selectores/tiposLamina";
 import { camposTextoDe, type CampoTextoLamina } from "./ZonasTextoLamina";
 import "./maquetaLamina.css";
@@ -97,7 +97,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
               {r.preguntas.map((q, j) => (
                 <span key={j} className="pulso-f6-maqueta-pregunta-caja">
                   <span className="pulso-f6-maqueta-pregunta-item">{q.titulo}</span>
-                  <EscalaMaqueta opciones={q.opciones} />
+                  {r.pinta === "categorias" ? <EscalaMaqueta opciones={q.opciones} /> : <UnColorMaqueta opciones={q.opciones} resalta={r.resaltaMayor} />}
                 </span>
               ))}
             </span>
@@ -131,7 +131,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
 
       {campos.has("base") && (
         <button type="button" className="pulso-f6-maqueta-zona pulso-f6-maqueta-pie" onClick={() => onTexto("base")} aria-label="Editar base">
-          {baseEscrita || baseAuto || "Base del gráfico"}
+          {baseEscrita || baseAuto || (slots.length > 1 ? "Cada gráfico lleva su base debajo" : "Base del gráfico")}
         </button>
       )}
     </div>
@@ -149,6 +149,34 @@ function EscalaMaqueta({ opciones }: { opciones: readonly { rotulo: string; colo
           {o.rotulo}
         </span>
       ))}
+    </span>
+  );
+}
+
+const RESIDUAL = /no sabe|no responde|no responder|sin inf|prefiero no|ns\/nr/i;
+
+/**
+ * Barras de un solo color, como saldrán: dos opciones van en azul y celeste (dicotomía); más opciones, todas en el azul
+ * institucional, o con la más alta resaltada si el gráfico lo pide.
+ */
+function UnColorMaqueta({ opciones, resalta }: { opciones: readonly { rotulo: string }[]; resalta: boolean }) {
+  const sustantivas = opciones.filter((o) => !RESIDUAL.test(o.rotulo));
+  if (sustantivas.length === 2) {
+    return <EscalaMaqueta opciones={[{ rotulo: sustantivas[0].rotulo, color: COLOR_MAYOR }, { rotulo: sustantivas[1].rotulo, color: COLOR_SEGUNDA }]} />;
+  }
+  return (
+    <span className="pulso-f6-maqueta-unicolor">
+      {opciones.length > 0 && <span className="pulso-f6-maqueta-opciones-texto">{opciones.map((o) => o.rotulo).join(", ")}</span>}
+      <span className="pulso-f6-maqueta-escala">
+        {resalta ? (
+          <>
+            <span className="pulso-f6-maqueta-opcion"><i style={{ background: COLOR_MAYOR }} />La más alta</span>
+            <span className="pulso-f6-maqueta-opcion"><i style={{ background: COLOR_RESTO }} />Las demás</span>
+          </>
+        ) : (
+          <span className="pulso-f6-maqueta-opcion"><i style={{ background: COLOR_MAYOR }} />Todas las barras</span>
+        )}
+      </span>
     </span>
   );
 }

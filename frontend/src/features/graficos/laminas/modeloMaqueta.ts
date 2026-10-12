@@ -26,6 +26,11 @@ export type RanuraMaqueta = {
   preguntas: PreguntaMaqueta[];
   /** true: todas las preguntas usan la misma escala (y por eso la misma paleta). */
   mismaEscala: boolean;
+  /** «categorias»: cada opción con su color (apiladas, tortas); «uno»: barras de un solo color con la mayor resaltada,
+   *  salvo que la lista tenga paleta propia (entonces se pinta con ella). */
+  pinta: "categorias" | "uno";
+  /** Sólo con «uno»: la barra más alta va en otro tono (opción del gráfico `resaltar_mayor`). */
+  resaltaMayor: boolean;
   /** Bases (actores) que cruza, sólo cuando son más de una. */
   bases: string[];
   /** Columnas encendidas en el gráfico: Top Two Box y, a su lado, Bottom Two Box. */
@@ -33,6 +38,15 @@ export type RanuraMaqueta = {
 };
 
 type Presets = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+
+/** Los gráficos que pintan cada categoría con su color (los demás son de un solo color, como el recetario). */
+export const GRAFICOS_POR_CATEGORIA: ReadonlySet<string> = new Set(["p_barras_apiladas", "p_barras_multiapiladas", "p_pie", "p_donut", "p_barras_divergentes"]);
+
+/** Colores del recetario: barras de un solo color en azul institucional; con «resaltar la mayor», las demás en gris
+ *  azulado; dos opciones (dicotomía) en azul y celeste (`.std_paleta("dicotomica")`). */
+export const COLOR_MAYOR = "#081F5C";
+export const COLOR_RESTO = "#8A93A8";
+export const COLOR_SEGUNDA = "#9DC3E6";
 
 export type OpcionMaqueta = { rotulo: string; color: string | null };
 export type PreguntaMaqueta = { titulo: string; opciones: OpcionMaqueta[] };
@@ -138,6 +152,9 @@ export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variabl
         masPreguntas: Math.max(0, grupos.length - 1),
         preguntas,
         mismaEscala: firmas.size <= 1,
+        pinta: GRAFICOS_POR_CATEGORIA.has(ref?.graficador ?? "") || preguntas.some((q) => q.opciones.some((o) => o.color)) ? "categorias" : "uno",
+        resaltaMayor: ((args as Record<string, unknown>).overrides as Record<string, unknown> | undefined)?.resaltar_mayor === true
+          || (args as Record<string, unknown>).resaltar_mayor === true,
         bases: bases.length > 1 ? bases.map(nombreBase) : [],
         twoBox: twoBoxDeGrafico(ref?.graficador ?? null, args as Record<string, unknown>, presets),
       };
@@ -161,7 +178,7 @@ export function baseAutomatica(
   formato = "Base: %s",
 ): string | null {
   const graficos = (SLIDE_GRAF_SLOTS[slide.tipo] ?? []).map((sl) => (slide.payload as Record<string, unknown>)[sl]).filter(Boolean);
-  if (graficos.length !== 1) return null;
+  if (graficos.length !== 1) return null;   // con varios gráficos, cada uno lleva su base debajo
   const args = ((graficos[0] as GraficadorRef).args ?? {}) as Record<string, unknown>;
   const refs = gruposDe(args)[0]?.refs ?? [];
   const partes: string[] = [];

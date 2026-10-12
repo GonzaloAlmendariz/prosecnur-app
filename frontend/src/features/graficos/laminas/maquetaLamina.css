@@ -315,3 +315,15 @@
   border: 1.5px dashed var(--pulso-border-strong);
   background: transparent;
 }
+
+.pulso-f6-maqueta-unicolor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+}
+
+.pulso-f6-maqueta-opciones-texto {
+  color: var(--pulso-text-soft);
+  font-size: 0.9em;
+  line-height: 1.35;
+}

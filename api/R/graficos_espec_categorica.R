@@ -31,7 +31,7 @@
 #'   (`.paleta_en_espec()`, ADR 0097); sin ella la lámina es monocroma, como el recetario.
 #' @keywords internal
 preparar_categorica <- function(rotulos, valores, cifras, n = NULL, residuales_al_final = TRUE, sin_ceros = TRUE,
-                                n_casos = NULL, n_base_casos = NULL, casos = NA) {
+                                n_casos = NULL, n_base_casos = NULL, casos = NA, resaltar = FALSE) {
   rotulos <- trimws(gsub("\\s*\n\\s*", " ", as.character(rotulos)))
   valores <- suppressWarnings(as.numeric(valores)); valores[!is.finite(valores)] <- 0
   cifras <- as.character(cifras)
@@ -54,7 +54,8 @@ preparar_categorica <- function(rotulos, valores, cifras, n = NULL, residuales_a
        n_base_casos = suppressWarnings(as.numeric(n_base_casos %||% NA_real_)[1]),
        casos_mostrar = as.logical(casos %||% NA)[1],   # decisión propia del gráfico sobre los casos (NA: el ajuste del informe)
        # El máximo se decide sobre lo que se lee: dos categorías que rotulan 12 % empatan aunque una valga 0.1204.
-       realce = length(largo) > 2L && sum(abs(largo - max(largo)) < 1e-9) == 1L)
+       # Todas las barras van en un color; resaltar la mayor es una opción del gráfico (`resaltar_mayor`), no la regla.
+       realce = isTRUE(resaltar) && length(largo) > 2L && sum(abs(largo - max(largo)) < 1e-9) == 1L)
 }
 
 # ---- casos sin ponderar (contrato base-sin-ponderar F6, I1) ------------------
