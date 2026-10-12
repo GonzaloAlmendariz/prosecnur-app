@@ -65,6 +65,7 @@ describe("Colores de las respuestas", () => {
     expect(esRespuestaResidual("No sabe / No responde")).toBe(true);
     expect(esRespuestaResidual("Otro (especifique)")).toBe(true);
     expect(esRespuestaResidual("No")).toBe(false);
+    expect(esRespuestaResidual("SIN INF")).toBe(true);
     const combos = combinacionesPara(acuerdo.choices.map((c) => c.label));
     expect(combos.length).toBeGreaterThan(0);
     for (const c of combos) {
@@ -80,5 +81,83 @@ describe("Colores de las respuestas", () => {
     expect(grupoCoincide(g, "DESACUERDO")).toBe(true);
     expect(grupoCoincide(g, "docentes")).toBe(true);
     expect(grupoCoincide(g, "egresados")).toBe(false);
+  });
+});
+
+describe("paletas con nombre", () => {
+  const listas = [sino("lst_p1", ["p1"]), sino("lst_p2", ["p2"]), { ...sino("lst_p3", ["p3"]), choices: [{ name: "1", label: "Sí" }, { name: "2", label: "No" }, { name: "9", label: "No sabe" }] }];
+  const base = { paletas: { lst_p1: { "Sí": "#081F5C", No: "#CA5651" } }, vinculos: {} };
+  const filasDe = async (m: { paletas: Record<string, Record<string, string>>; vinculos: Record<string, string> }) => {
+    const { filasDePaletas } = await import("./modeloPaletasConNombre");
+    return filasDePaletas(gruposDeRespuestas(listas, m.paletas, m.vinculos, new Map()), listas, m.paletas, m.vinculos);
+  };
+
+  it("sin nombre, cada grupo es una fila con nombre automático", async () => {
+    const filas = await filasDe(base);
+    expect(filas.map((f) => [f.nombre, f.clave])).toEqual([["Sí / No", null], ["Sí / No", null]]);
+  });
+
+  it("nombrar crea la paleta, vincula sus listas y conserva los colores", async () => {
+    const { conNombre } = await import("./modeloPaletasConNombre");
+    const [sn] = (await filasDe(base)).filter((f) => f.opciones.length === 2);
+    const m = conNombre(sn, "Aceptación", listas, base);
+    expect(m.paletas).toEqual({ "Aceptación": { "Sí": "#081F5C", No: "#CA5651" } });
+    expect(m.vinculos).toEqual({ lst_p1: "Aceptación", lst_p2: "Aceptación" });
+    const filas = await filasDe(m);
+    expect(filas[0]).toMatchObject({ nombre: "Aceptación", clave: "Aceptación", faltan: 0 });
+    // Renombrar mueve la paleta y sus vínculos.
+    const r = conNombre(filas[0], "Acepta", listas, m);
+    expect(Object.keys(r.paletas)).toEqual(["Acepta"]);
+    expect(new Set(Object.values(r.vinculos))).toEqual(new Set(["Acepta"]));
+  });
+
+  it("agrupar junta grupos con respuestas en común bajo una paleta, y separar devuelve los colores", async () => {
+    const { conAgrupado, conNombre, conSeparado, respuestasEnComun } = await import("./modeloPaletasConNombre");
+    const filas = await filasDe(base);
+    const sn = filas.find((f) => f.opciones.length === 2)!;
+    const conNs = filas.find((f) => f.opciones.length === 3)!;
+    expect(respuestasEnComun(conNs, sn)).toBe(2);
+    const nombrada = conNombre(sn, "Aceptación", listas, base);
+    const destino = (await filasDe(nombrada)).find((f) => f.clave)!;
+    const junta = conAgrupado(conNs, destino, listas, nombrada);
+    expect(junta.vinculos).toEqual({ lst_p1: "Aceptación", lst_p2: "Aceptación", lst_p3: "Aceptación" });
+    const [unica] = (await filasDe(junta)).filter((f) => f.clave);
+    expect(unica.grupos).toHaveLength(2);
+    expect(unica.opciones).toEqual(["Sí", "No", "No sabe"]);
+    expect(unica.faltan).toBe(1);
+    const sep = conSeparado(unica, unica.grupos.find((g) => g.opciones.length === 3)!, listas, junta);
+    expect(sep.vinculos).toEqual({ lst_p1: "Aceptación", lst_p2: "Aceptación" });
+    expect(sep.paletas.lst_p3).toEqual({ "Sí": "#081F5C", No: "#CA5651" });
+  });
+
+  it("no acepta un nombre vacío, el de una lista ni uno repetido", async () => {
+    const { errorNombre } = await import("./modeloPaletasConNombre");
+    const filas = await filasDe(base);
+    expect(errorNombre(" ", filas, listas, filas[0])).toMatch(/Escribe/);
+    expect(errorNombre("lst_p2", filas, listas, filas[0])).toMatch(/lista/);
+    expect(errorNombre("Aceptación", filas, listas, filas[0])).toBeNull();
+  });
+});
+
+describe("paletas con nombre en varias bases", () => {
+  it("una lista cuyo nombre aloja otra escala en otra base no se vincula: no arrastra preguntas ajenas", async () => {
+    const { conNombre, filasDePaletas, conColoresDeFila } = await import("./modeloPaletasConNombre");
+    const listas: ListaRespuestas[] = [
+      sino("lst_p1", ["docentes$p1"], ["docentes"]),
+      sino("lst_p6", ["docentes$p6"], ["docentes"]),
+      { list_name: "lst_p6", choices: [{ name: "1", label: "Primaria" }, { name: "2", label: "Secundaria" }], variables: ["administrativos$p6"], fuentes: ["administrativos"] },
+    ];
+    const filas0 = filasDePaletas(gruposDeRespuestas(listas, {}, {}, new Map()), listas, {}, {});
+    const sn = filas0.find((f) => f.opciones.includes("Sí"))!;
+    const m = conNombre(sn, "Aceptación", listas, { paletas: {}, vinculos: {} });
+    expect(m.vinculos).toEqual({ lst_p1: "Aceptación" });
+    const filas = filasDePaletas(gruposDeRespuestas(listas, m.paletas, m.vinculos, new Map()), listas, m.paletas, m.vinculos);
+    const nombrada = filas.find((f) => f.clave)!;
+    expect(nombrada.preguntas.map((p) => p.ref)).toEqual(["docentes$p1", "docentes$p6"]);
+    expect(filas.find((f) => f.opciones.includes("Primaria"))!.clave).toBeNull();
+    // Pintar la paleta llega también a la lista compartida, en su propia paleta y sin tocar la otra escala.
+    const p = conColoresDeFila(nombrada, { "Sí": "#081F5C" }, listas, m.paletas);
+    expect(p["Aceptación"]).toEqual({ "Sí": "#081F5C" });
+    expect(p.lst_p6).toEqual({ "Sí": "#081F5C" });
   });
 });
