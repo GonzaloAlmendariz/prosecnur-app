@@ -1978,6 +1978,11 @@ mount_carga <- function(pr) {
       .carga_platform_endpoint(sid, "surveymonkey_import_separate", parsed)
     })) |>
 
+    # Vista previa de «Agregar otra fuente»: qué preguntas calzan, cuáles trae de más y cuáles faltan. No escribe nada.
+    plumber::pr_post("/api/carga/platform/surveymonkey/add-source/preview", wrap_endpoint(function(req, res, ...) {
+      .carga_sm_vista_previa_fuente(session_header(req), .carga_parse_json_body(req))
+    })) |>
+
     # «Agregar otra fuente a esta base»: el mismo actor por otra vía (carga_sm_agregar_fuente.R).
     plumber::pr_post("/api/carga/platform/surveymonkey/add-source", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)

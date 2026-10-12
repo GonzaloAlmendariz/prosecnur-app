@@ -47,7 +47,7 @@ import {
   downloadUrl,
   uploadKindForDataFile,
 } from "../../api/client";
-import { apiCargaAgregarFuenteSm, apiCargaImportKoboSeparadaAsync, apiCargaImportSurveyMonkeySeparadaAsync } from "../../api/xlsformEditor";
+import { apiCargaAgregarFuenteSm, apiCargaImportKoboSeparadaAsync, apiCargaImportSurveyMonkeySeparadaAsync, apiCargaVistaPreviaFuenteSm, type VistaPreviaFuente } from "../../api/xlsformEditor";
 import { nombreCortoDeEncuesta, nombreLibreDeBase } from "./importSeparadoModel";
 import { BasesDelEstudio } from "./fuentes/BasesDelEstudio";
 import { NuevaBaseArchivos } from "./fuentes/NuevaBaseArchivos";
@@ -260,6 +260,8 @@ export default function CargaPage() {
   const [platformProvider, setPlatformProvider] = useState<CargaPlatformProvider>("surveymonkey");
   // «Agregar otra fuente a esta base» (F2): mientras está puesto, el import del catálogo se suma a esa base.
   const [fuenteDestino, setFuenteDestino] = useState<{ base: string; canal: string } | null>(null);
+  // Antes de unir se muestra qué calza, qué trae de más y qué le falta; se une al confirmar.
+  const [vistaPreviaFuente, setVistaPreviaFuente] = useState<{ surveyId: string; datos: VistaPreviaFuente } | null>(null);
   const [connections, setConnections] = useState<ConnectionTokenState[]>([]);
   const [connectionsLoading, setConnectionsLoading] = useState(false);
   const [platformQuery, setPlatformQuery] = useState("");
@@ -462,6 +464,18 @@ export default function CargaPage() {
           return;
         }
         if (fuenteDestino) {
+          const pedido = {
+            base_name: fuenteDestino.base,
+            survey_id: survey.id,
+            title: survey.title,
+            source_channel: fuenteDestino.canal.trim(),
+            connection_profile_id: activeSmProfile?.id || "",
+          };
+          if (vistaPreviaFuente?.surveyId !== survey.id) {
+            setBusy(`Comparando las preguntas de ${survey.title} con «${fuenteDestino.base}»…`);
+            setVistaPreviaFuente({ surveyId: survey.id, datos: await apiCargaVistaPreviaFuenteSm(pedido) });
+            return;
+          }
           setBusy(`Uniendo ${survey.title} a la base «${fuenteDestino.base}»…`);
           const r = await apiCargaAgregarFuenteSm({
             base_name: fuenteDestino.base,
@@ -471,7 +485,9 @@ export default function CargaPage() {
             connection_profile_id: activeSmProfile?.id || "",
           });
           await onEstudioChanged(r.estudio);
-          setPlatformMessage(`«${r.base_name}» ahora une ${r.n_fuentes} fuentes, con ${r.n_filas} respuestas.`);
+          const extra = r.agregadas.length ? ` Se sumaron ${r.agregadas.length === 1 ? "la pregunta" : "las preguntas"} ${r.agregadas.map((a) => `«${a.etiqueta}»`).join(", ")}.` : "";
+          setPlatformMessage(`«${r.base_name}» ahora une ${r.n_fuentes} fuentes: ${r.n_nuevas} respuestas nuevas, ${r.n_filas} en total.${extra}`);
+          setVistaPreviaFuente(null);
           setFuenteDestino(null);
           return;
         }
@@ -1439,7 +1455,11 @@ export default function CargaPage() {
                     if (o === "surveymonkey" || o === "kobo") { setPlatformProvider(o); setSourceMode("platform"); }
                     else setSourceMode(o === "archivos" ? "files" : "monitoring");
                   }}
-                  onDestinoFuente={(d) => { setFuenteDestino(d); if (d) { setPlatformProvider("surveymonkey"); setSourceMode("platform"); } }}
+                  onDestinoFuente={(d) => { setFuenteDestino(d); setVistaPreviaFuente(null); if (d) { setPlatformProvider("surveymonkey"); setSourceMode("platform"); } }}
+                  vistaPreviaFuente={vistaPreviaFuente?.datos ?? null}
+                  onConfirmarFuente={() => void onPlatformImport()}
+                  onDescartarVistaPrevia={() => setVistaPreviaFuente(null)}
+                  ocupado={!!busy}
                   renderCatalogo={() => platformPanel}
                   renderOrigen={(o) => (o === "surveymonkey" || o === "kobo" ? platformPanel : o === "monitoreo" ? monitoringSourcePanel : (
                     <NuevaBaseArchivos estudio={estudio} onCambio={onEstudioChanged} />

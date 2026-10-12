@@ -20,51 +20,66 @@ test_that("la misma encuesta por el mismo canal no se suma dos veces; por otro c
   expect_length(.carga_sm_fuentes_con_nueva(previas, list(survey_id = "222", channel = "")), 2L)
 })
 
-test_that("agregar una fuente: importa ambas en una temporal, pasa los archivos a la base original y quita la temporal", {
-  bases <- list(estudiantes = base_sm())
-  pasos <- character()
-  recibido <- list()
+sv_af <- function(type, name, label) data.frame(type = type, name = name, `label::es` = label, check.names = FALSE,
+                                                 stringsAsFactors = FALSE)
+modelo_af <- function(survey) list(survey = survey, choices = data.frame(list_name = character(), name = character(),
+                                   `label::es` = character(), check.names = FALSE), settings = data.frame(form_title = "x"))
+
+# Sesión real con la base «estudiantes» (formulario p1 Edad, p2 Comentario; 2 respuestas por QR).
+sesion_con_base_af <- function() {
+  sid <- session_create()
+  xls <- tempfile(fileext = ".xlsx"); dat <- tempfile(fileext = ".xlsx")
+  .sm_mb_write_xlsform_model(modelo_af(sv_af(c("integer", "text"), c("p1", "p2"), c("Edad", "Comentario"))), xls)
+  openxlsx::write.xlsx(data.frame(p1 = c("20", "22"), p2 = c("a", "b")), dat)
+  xm <- save_upload(sid, "xlsform", "f.xlsx", readBin(xls, "raw", n = file.info(xls)$size))
+  dm <- save_upload(sid, "data", "d.xlsx", readBin(dat, "raw", n = file.info(dat)$size))
+  inst <- reporte_instrumento(xm$path)
+  estudio_add_base(sid, "estudiantes", xm$file_id, dm$file_id, "xlsx",
+                   reporte_data(data.frame(p1 = c("20", "22"), p2 = c("a", "b")), instrumento = inst), inst, 2L, 2L,
+                   extra_meta = list(source_kind = "surveymonkey", survey_id = "111", source_channel = "QR en aula"))
+  sid
+}
+
+test_that("agregar por correo una encuesta con una pregunta de más: la base la suma y conserva sus filas", {
+  sid <- sesion_con_base_af()
+  # La encuesta por correo agrega «Código de estudiante» (p3) y pone Edad en otro orden.
+  fuente <- modelo_af(sv_af(c("text", "integer", "text"), c("p1", "p2", "p3"), c("Comentario", "Edad", "Código de estudiante")))
   local_mocked_bindings(
-    estudio_list_bases = function(sid) bases,
     .connections_token_require = function(...) "tok",
-    sm_multibase_import = function(sid, specs, token, canonical_file_id, base_name) {
-      pasos <<- c(pasos, "importar")
-      recibido$specs <<- specs
-      recibido$canonical <<- canonical_file_id
-      bases[[base_name]] <<- list(nombre = base_name, xlsform_file_id = "xls-nuevo", data_file_id = "data-nueva")
-      list(base = list(nombre = base_name), n_filas = 350L, n_columnas = 99L, audit = list(ok = TRUE))
-    },
-    session_get = function(sid, ...) list(estudio = list(bases = bases), rp_data_sources = list(), rp_inst_sources = list()),
-    estudio_replace_base_files = function(sid, nombre, xlsform_file_id, data_file_id, ...) {
-      pasos <<- c(pasos, paste("reemplazar", nombre, xlsform_file_id, data_file_id))
-    },
-    estudio_remove_base = function(sid, nombre) { pasos <<- c(pasos, paste("quitar", nombre)); bases[[nombre]] <<- NULL },
-    .carga_sm_guardar_fuentes = function(sid, base, fuentes) { pasos <<- c(pasos, paste("guardar", base, length(fuentes))) },
-    .estudio_payload = function(sid) list(n_bases = length(bases))
+    sm_api_fetch_survey_details = function(id, token, ...) list(id = id, title = "Arte - Estudiantes (correo)"),
+    .sm_mb_inst_generado = function(details, ...) { p <- tempfile(fileext = ".xlsx"); .sm_mb_write_xlsform_model(fuente, p); reporte_instrumento(path = p) },
+    sm_api_xlsform = function(details, ...) fuente,
+    .carga_platform_fetch_sm_bulk = function(...) list(data = list()),
+    # Lo que devuelve la codificación alineada: columnas ya en el espacio de la base.
+    .sm_mb_codificar_fuente = function(...) data.frame(p1 = c("30", "31", "32"), p2 = c("x", "y", "z"), p3 = c("A1", "A2", "A3"))
   )
-  r <- .carga_sm_agregar_fuente("s1", list(base_name = "estudiantes", survey_id = "222", title = "Arte - Estudiantes (correo)",
-                                          source_channel = "correo"))
-  expect_identical(pasos, c("importar", "reemplazar estudiantes xls-nuevo data-nueva",
-                            "quitar estudiantes_fuentes_nuevas", "guardar estudiantes 2"))
-  expect_identical(vapply(recibido$specs, `[[`, "", "survey_id"), c("111", "222"))
-  expect_identical(recibido$canonical, "xls-orig") # el formulario de la base manda
+  previa <- .carga_sm_vista_previa_fuente(sid, list(base_name = "estudiantes", survey_id = "222", source_channel = "correo"))
+  expect_identical(vapply(previa$extra, `[[`, "", "etiqueta"), "Código de estudiante")
+  expect_identical(previa$n_emparejadas, 2L)
+
+  r <- .carga_sm_agregar_fuente(sid, list(base_name = "estudiantes", survey_id = "222", source_channel = "correo"))
   expect_identical(r$base_name, "estudiantes")
-  expect_identical(r$n_filas, 350L)
-  expect_identical(r$estudio$n_bases, 1L)
+  expect_identical(r$n_filas, 5L)
+  expect_identical(r$n_nuevas, 3L)
+  expect_identical(r$agregadas[[1]]$etiqueta, "Código de estudiante")
+  base <- estudio_list_bases(sid)$estudiantes
+  datos <- .sm_mb_read_base_original_data(sid, base)
+  expect_identical(as.character(datos$p3), c(NA, NA, "A1", "A2", "A3")) # vacía en las filas del QR
+  expect_true("p3" %in% reporte_instrumento(get_file(sid, base$xlsform_file_id)$path)$survey$name)
+  expect_length(base$surveymonkey_source_spec$sources, 2L)
+  expect_identical(names(estudio_list_bases(sid)), "estudiantes") # sin bases temporales
 })
 
-test_that("si la auditoría falla, la base original no se toca", {
-  bases <- list(estudiantes = base_sm())
-  tocada <- FALSE
+test_that("una encuesta que casi no comparte preguntas no se une: es otro cuestionario", {
+  sid <- sesion_con_base_af()
+  otra <- modelo_af(sv_af(c("text", "text"), c("p1", "p2"), c("Sede", "Turno")))
   local_mocked_bindings(
-    estudio_list_bases = function(sid) bases,
     .connections_token_require = function(...) "tok",
-    sm_multibase_import = function(...) stop_api(409, "E_SM_MULTIBASE_BLOCKED", "Hay diferencias bloqueantes antes de importar."),
-    estudio_replace_base_files = function(...) tocada <<- TRUE,
-    estudio_remove_base = function(...) tocada <<- TRUE
+    sm_api_fetch_survey_details = function(id, token, ...) list(id = id, title = "Otra"),
+    .sm_mb_inst_generado = function(details, ...) { p <- tempfile(fileext = ".xlsx"); .sm_mb_write_xlsform_model(otra, p); reporte_instrumento(path = p) }
   )
-  expect_error(.carga_sm_agregar_fuente("s1", list(base_name = "estudiantes", survey_id = "222")), class = "api_error")
-  expect_false(tocada)
+  expect_error(.carga_sm_vista_previa_fuente(sid, list(base_name = "estudiantes", survey_id = "333")), class = "api_error")
+  expect_length(estudio_list_bases(sid)$estudiantes$surveymonkey_source_spec$sources, 0L)
 })
 
 test_that("las fuentes guardadas se leen en el resumen que publica la base (surveymonkey_sources)", {

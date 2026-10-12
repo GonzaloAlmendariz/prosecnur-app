@@ -116,3 +116,24 @@ Medido con los datos reales (2026-10-11), juntando la versión telefónica a la 
   del refresh. Si la lista no trae etiquetas, o ninguna es afirmativa, cae al código «1» y lo declara en el
   filtro de respuestas (`consent_yes_criterio = "respaldo_codigo_1"`, `consent_yes_motivo`). El rechazo
   (`rejection_values`) no cambia (checklist, ítem 14).
+
+## Enmienda 2026-10-11: agregar una fuente declara sus preguntas nuevas
+
+Contexto (Gonzalo, Carga › Fuentes): «a veces puede pasar que la fuente secundaria tenga una base de datos de
+respuestas ligeramente diferente, por ejemplo cuando a una base complementaria le agregan una variable adicional de
+identificación que la anterior base no requería porque era un recopilador por correo».
+
+Decisión. Cuando el usuario **agrega** una encuesta a una base («Agregar otra fuente a esta base»,
+`api/R/carga_sm_agregar_fuente.R`), las preguntas de esa encuesta sin par en la base no se descartan: antes de unirla,
+el formulario de la base se extiende con ellas (`api/R/carga_sm_fuente_extra.R`, `.carga_sm_form_con_extra`), con sus
+opciones y su «Otro», y con un nombre que no pisa ninguna variable existente. La alineación por clave las encuentra
+entonces en la base: llevan su respuesta en las filas de esa fuente y quedan vacías en las de las demás. Antes de unir,
+la tarjeta muestra qué calza, qué trae de más y qué le falta, y se une sólo al confirmar.
+
+La regla 3 sigue rigiendo para el refresh de rutina: lo que no está en la base no entra. Lo que cambia es que agregar
+una fuente es una decisión explícita y declara sus preguntas nuevas en la base. La cobertura mínima (punto 4) también
+rige al agregar: por debajo del 80 % la encuesta es otro cuestionario y se pide agregarla como base aparte
+(`E_FUENTE_OTRO_INSTRUMENTO`).
+
+Tests: `test-carga-sm-fuente-extra.R` (incluye que la alineación empareja la pregunta extra tras extender el
+formulario) y `test-carga-sm-agregar-fuente.R` (sesión real: la base suma la pregunta, conserva su nombre y sus filas).

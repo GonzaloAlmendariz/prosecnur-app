@@ -5,6 +5,7 @@
 
 import { useState, type ReactNode } from "react";
 import { apiEstudioGet, apiEstudioRemoveBase, apiEstudioRenameBase, type EstudioBase, type EstudioPayload } from "../../../api/estudio";
+import type { VistaPreviaFuente } from "../../../api/xlsformEditor";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ClipboardCheck, CloudDownload, Database, GitMerge, Pencil, Plus, Trash2, Upload, X } from "../../../vendor/lucide-react";
 import "./basesDelEstudio.css";
@@ -97,6 +98,10 @@ export function BasesDelEstudio({
   renderOrigen,
   onDestinoFuente,
   renderCatalogo,
+  vistaPreviaFuente = null,
+  onConfirmarFuente,
+  onDescartarVistaPrevia,
+  ocupado: ocupadoPagina = false,
 }: {
   estudio: EstudioPayload;
   onCambio: (payload: EstudioPayload) => Promise<void> | void;
@@ -107,6 +112,11 @@ export function BasesDelEstudio({
   /** «Agregar otra fuente a esta base»: la página dirige el próximo import del catálogo a esa base con ese canal. */
   onDestinoFuente?: (destino: { base: string; canal: string } | null) => void;
   renderCatalogo?: () => ReactNode;
+  /** Lo que pasaría al unir la encuesta elegida; se une al confirmar. */
+  vistaPreviaFuente?: VistaPreviaFuente | null;
+  onConfirmarFuente?: () => void;
+  onDescartarVistaPrevia?: () => void;
+  ocupado?: boolean;
 }) {
   const bases = basesVisibles(estudio);
   const [agregando, setAgregandoEstado] = useState<OrigenNuevaBase | null>(bases.length ? null : "surveymonkey");
@@ -164,7 +174,30 @@ export function BasesDelEstudio({
             <input value={otraFuente.canal} onChange={(e) => setOtraFuente({ ...otraFuente, canal: e.target.value })} placeholder="Por ejemplo, correo" />
             <small>Así se distingue en la base de dónde vino cada respuesta.</small>
           </label>
-          <div className="pulso-bde-agregar-cuerpo">{renderCatalogo()}</div>
+          {vistaPreviaFuente ? (
+            <div className="pulso-bde-previa" role="status">
+              <strong>«{vistaPreviaFuente.titulo}» y «{vistaPreviaFuente.base_name}»</strong>
+              <p>Calzan {vistaPreviaFuente.n_emparejadas} de las {vistaPreviaFuente.n_preguntas_base} preguntas de la base.</p>
+              {vistaPreviaFuente.extra.length ? (
+                <div>
+                  <span className="pulso-bde-previa-rotulo">Trae de más (se suman a la base; quedan vacías en las respuestas anteriores)</span>
+                  <ul>{vistaPreviaFuente.extra.map((x) => <li key={x.variable}>{x.etiqueta || x.variable}</li>)}</ul>
+                </div>
+              ) : null}
+              {vistaPreviaFuente.faltan.length ? (
+                <div>
+                  <span className="pulso-bde-previa-rotulo">No las pregunta (quedan vacías en sus respuestas)</span>
+                  <ul>{vistaPreviaFuente.faltan.map((x) => <li key={x.variable}>{x.etiqueta || x.variable}</li>)}</ul>
+                </div>
+              ) : null}
+              <div className="pulso-bde-acciones">
+                <PulsoButton variant="primary" size="sm" disabled={ocupadoPagina} onClick={onConfirmarFuente}><GitMerge size={14} aria-hidden="true" />Unir a «{vistaPreviaFuente.base_name}»</PulsoButton>
+                <PulsoButton variant="ghost" size="sm" onClick={onDescartarVistaPrevia}>Elegir otra encuesta</PulsoButton>
+              </div>
+            </div>
+          ) : (
+            <div className="pulso-bde-agregar-cuerpo">{renderCatalogo()}</div>
+          )}
         </div>
       ) : null}
       {agregando ? (
