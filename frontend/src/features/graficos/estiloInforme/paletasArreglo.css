@@ -1,0 +1,16 @@
+/* El selector de color de cada categoría (PaletasEditor, hoja editor-v2.css congelada) era un <input type="color"> de
+   0×0 px, sin pointer-events y posicionado contra un ancestro lejano: en Estilo del informe quedaba ~2000 px por debajo de
+   su botón y el clic no abría nada. Aquí el input cubre su botón y recibe el clic directamente. */
+.pulso-f6-informe .pulso-gv2-paleta-color-cell {
+  position: relative;
+}
+
+.pulso-f6-informe .pulso-gv2-paleta-native-color {
+  inset: 7px 10px;
+  width: auto;
+  height: auto;
+  min-width: 78px;
+  min-height: 28px;
+  cursor: pointer;
+  pointer-events: auto;
+}

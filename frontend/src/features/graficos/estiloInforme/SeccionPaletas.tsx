@@ -6,6 +6,7 @@ import { useId } from "react";
 import { PaletasEditor } from "../PaletasEditor";
 import { SelloProcedencia } from "../estilo/SelloProcedencia";
 import { CabeceraSeccion } from "./CabeceraSeccion";
+import "./paletasArreglo.css";
 
 export function SeccionPaletas({ listasConColor }: { listasConColor: number }) {
   const tituloId = useId();
