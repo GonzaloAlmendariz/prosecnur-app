@@ -1,5 +1,6 @@
-// Un lugar del documento donde va un logo (portada izquierda, portada derecha, contraportada). Marco fijo (C2): la vista
-// previa ocupa siempre la misma caja, con el logo propio o el aviso de cuál pone el recetario (C3, vacío propio).
+// Un lugar del documento donde va un logo (portada izquierda, portada derecha, contraportada). Arriba, una miniatura de
+// esa página con el logo donde de verdad sale —el propio o, si no hay, el de por defecto (PUCP o PULSO PUCP)—; debajo,
+// qué es y qué se puede hacer. Marco fijo (C2): la miniatura mide siempre lo mismo.
 // La subida es un botón real que abre el selector de archivos: llega con Tab y se activa con Enter o espacio.
 
 import { useRef, type ChangeEvent, type KeyboardEvent } from "react";
@@ -8,6 +9,16 @@ import type { EstiloLogoRef, EstiloLugarLogo, EstiloOpcionLogo } from "../../../
 import { ImagePlus, RotateCcw } from "../../../vendor/lucide-react";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ETIQUETA_LUGAR, type Procedencia } from "./modeloEstilo";
+
+/** Dónde sale cada logo, en palabras del documento. */
+const DONDE: Record<EstiloLugarLogo, string> = {
+  portada_izquierda: "Arriba a la izquierda de la portada, en el PPT y en el Word.",
+  portada_derecha: "Arriba a la derecha de la portada, en el PPT y en el Word.",
+  contraportada: "Al centro de la última página.",
+};
+
+/** Los logos por defecto, servidos por la app (copias de api/inst/estandar/logos). */
+const IMAGEN_POR_DEFECTO: Record<string, string> = { pucp: "/logos-estandar/pucp.png", pulso: "/logos-estandar/pulso.png" };
 import { SelloProcedencia } from "./SelloProcedencia";
 
 export function TarjetaLogo({
@@ -36,6 +47,7 @@ export function TarjetaLogo({
   const idTitulo = `f6-estilo-logo-${lugar}`;
   const idError = `f6-estilo-logo-${lugar}-error`;
   const propio = procedencia === "propio" && logo;
+  const imagenPorDefecto = recetario?.logo ? IMAGEN_POR_DEFECTO[recetario.logo] : undefined;
 
   const alElegir = (event: ChangeEvent<HTMLInputElement>) => {
     const archivo = event.target.files?.[0];
@@ -50,19 +62,25 @@ export function TarjetaLogo({
 
   return (
     <article className="pulso-f6-estilo-logo" aria-labelledby={idTitulo} data-qa-geometry-member>
+      <div className="pulso-f6-estilo-logo-escena" data-qa-geometry-capacity="owned">
+        <div className={`pulso-f6-estilo-logo-pagina is-${lugar === "contraportada" ? "contraportada" : "portada"}`}>
+          <span className={`pulso-f6-estilo-logo-sitio is-${lugar}`}>
+            {propio ? (
+              <img src={downloadUrl(logo.file_id)} alt={`Logo ${logo.nombre ?? "propio"} en ${titulo.toLowerCase()}`} />
+            ) : imagenPorDefecto ? (
+              <img src={imagenPorDefecto} alt={`Logo por defecto en ${titulo.toLowerCase()}: ${recetario?.nombre ?? ""}`} />
+            ) : null}
+          </span>
+        </div>
+      </div>
+      <div className="pulso-f6-estilo-logo-cuerpo">
       <header className="pulso-f6-estilo-logo-cabecera">
         <h4 id={idTitulo}>{titulo}</h4>
         <SelloProcedencia procedencia={procedencia} />
       </header>
-      <div className="pulso-f6-estilo-logo-vista" data-qa-geometry-capacity="owned">
-        {propio ? (
-          <img src={downloadUrl(logo.file_id)} alt={`Logo ${logo.nombre ?? "propio"} en ${titulo.toLowerCase()}`} />
-        ) : (
-          <p className="pulso-f6-estilo-logo-vacio">
-            {recetario?.nombre ? <>Por defecto: <strong>{recetario.nombre}</strong>.</> : "Por defecto lleva el logo de la plantilla."}
-          </p>
-        )}
-      </div>
+      <p className="pulso-f6-estilo-logo-donde">
+        {DONDE[lugar]}{!propio && recetario?.nombre ? <> Ahora: <strong>{recetario.nombre}</strong>.</> : null}
+      </p>
       {propio ? (
         <label className="pulso-f6-estilo-campo">
           <span>Nombre</span>
@@ -101,11 +119,12 @@ export function TarjetaLogo({
         {propio ? (
           <PulsoButton variant="ghost" size="sm" onClick={onQuitar} aria-label={`Volver al logo por defecto en ${titulo.toLowerCase()}`}>
             <RotateCcw size={14} aria-hidden="true" />
-            Volver al recetario
+            Usar el de por defecto
           </PulsoButton>
         ) : null}
       </div>
       {error ? <p id={idError} className="pulso-f6-estilo-error" role="alert">{error}</p> : null}
+      </div>
     </article>
   );
 }

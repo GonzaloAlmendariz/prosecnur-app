@@ -37,7 +37,7 @@ export function SeccionAmbito({
             <span className="pulso-f6-estilo-opcion-texto">
               <strong>
                 {ETIQUETA_AMBITO[id].titulo}
-                {ambitoDefault === id ? <span className="pulso-f6-estilo-por-defecto"> · por defecto</span> : null}
+                {ambitoDefault === id ? <span className="pulso-f6-estilo-por-defecto">Por defecto</span> : null}
               </strong>
               <span id={`f6-estilo-ambito-${id}`}>{ETIQUETA_AMBITO[id].explicacion}</span>
             </span>

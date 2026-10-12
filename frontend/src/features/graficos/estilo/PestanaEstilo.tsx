@@ -166,7 +166,7 @@ export default function PestanaEstilo() {
                   </PulsoButton>
                 ) : null}
               </header>
-              <p className="pulso-f6-estilo-ayuda">Sólo PNG, hasta 5 MB. Si un lugar no tiene logo propio, el Word usa el de por defecto.</p>
+              <p className="pulso-f6-estilo-ayuda">El logo de cada lugar de la portada y la contraportada. Si no subes uno, va el de por defecto. Sólo PNG, hasta 5 MB.</p>
               <div className="pulso-f6-estilo-logos" data-qa-geometry-group="graficos/f6-estilo-logos" data-qa-geometry-contract="equal">
                 {ESTILO_LUGARES_LOGO.map((lugar) => (
                   <TarjetaLogo

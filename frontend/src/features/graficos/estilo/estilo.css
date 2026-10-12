@@ -246,8 +246,14 @@
 }
 
 .pulso-f6-estilo-por-defecto {
-  font-weight: var(--pulso-weight-regular);
-  color: var(--pulso-text-faint);
+  margin-left: var(--pulso-space-2);
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
+  vertical-align: 1px;
 }
 
 .pulso-f6-estilo-volver {
@@ -258,62 +264,99 @@
 
 .pulso-f6-estilo-logos {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: var(--pulso-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: var(--pulso-space-4);
 }
 
+/* Cada lugar: una miniatura de la página con el logo donde de verdad sale, y debajo qué es y qué se puede hacer. */
 .pulso-f6-estilo-logo {
-  display: grid;
-  grid-template-rows: auto 104px minmax(56px, auto) auto;
-  gap: var(--pulso-space-2);
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  padding: var(--pulso-space-3);
+  overflow: hidden;
   border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius);
+  border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-f6-estilo-logo-escena {
+  padding: var(--pulso-space-4);
+  background: color-mix(in srgb, var(--pulso-surface-2) 70%, var(--pulso-surface));
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-f6-estilo-logo-pagina {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  box-shadow: 0 0 0 1px var(--pulso-border), var(--pulso-shadow-low);
+  overflow: hidden;
+}
+
+/* Rasgos de la página (título y líneas), en gris para que el logo sea lo único con color. */
+.pulso-f6-estilo-logo-pagina::before,
+.pulso-f6-estilo-logo-pagina::after {
+  content: "";
+  position: absolute;
+  left: 12%;
+  height: 6%;
+  border-radius: 999px;
+  background: var(--pulso-border);
+}
+
+.pulso-f6-estilo-logo-pagina::before { top: 46%; width: 56%; height: 8%; background: var(--pulso-border-strong); }
+.pulso-f6-estilo-logo-pagina::after { top: 60%; width: 38%; }
+.pulso-f6-estilo-logo-pagina.is-contraportada::before { left: 30%; top: 70%; width: 40%; height: 5%; }
+.pulso-f6-estilo-logo-pagina.is-contraportada::after { display: none; }
+
+.pulso-f6-estilo-logo-sitio {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 30%;
+  height: 24%;
+  padding: 2%;
+  border-radius: 4px;
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: 2px;
+  background: var(--pulso-surface);
+}
+
+.pulso-f6-estilo-logo-sitio img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.pulso-f6-estilo-logo-sitio.is-portada_izquierda { top: 8%; left: 6%; }
+.pulso-f6-estilo-logo-sitio.is-portada_derecha { top: 8%; right: 6%; }
+.pulso-f6-estilo-logo-sitio.is-contraportada { top: 26%; left: 30%; width: 40%; height: 34%; }
+
+.pulso-f6-estilo-logo-cuerpo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
 }
 
 .pulso-f6-estilo-logo-cabecera {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--pulso-space-2);
-  min-width: 0;
 }
 
 .pulso-f6-estilo-logo-cabecera h4 {
   margin: 0;
-  font-size: 13px;
-  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
 }
 
-.pulso-f6-estilo-logo-vista {
-  display: grid;
-  place-items: center;
-  min-height: 0;
-  padding: var(--pulso-space-2);
-  border: 1px dashed var(--pulso-border-strong);
-  border-radius: var(--pulso-radius);
-  background: var(--pulso-surface-2);
-  overflow: hidden;
-}
-
-.pulso-f6-estilo-logo-vista img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.pulso-f6-estilo-logo-vacio {
-  margin: 0;
+.pulso-f6-estilo-logo-donde {
+  margin: -6px 0 0;
+  color: var(--pulso-text-muted);
   font-size: 12px;
-  line-height: 1.4;
-  text-align: center;
-  color: var(--pulso-text-soft);
+  line-height: 1.45;
 }
 
 .pulso-f6-estilo-campo {
@@ -340,7 +383,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--pulso-space-2);
-  align-self: end;
+  margin-top: auto;
 }
 
 /* --- Roles de letra --------------------------------------------------------------------------------------------- */
