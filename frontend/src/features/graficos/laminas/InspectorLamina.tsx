@@ -290,19 +290,14 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
           return (
             <li key={slot} className={`pulso-f6-ranura${abierta ? " is-abierta" : ""}`}>
               <div className="pulso-f6-ranura-fila">
-                <button
-                  type="button"
-                  className="pulso-f6-ranura-cabeza"
-                  aria-expanded={abierta}
-                  onClick={() => onRanura(k)}
-                >
-                  <ChevronRight size={14} aria-hidden="true" className="pulso-f6-ranura-chevron" />
+                {/* El selector de arriba ya dice qué gráfico es: la cabecera sólo dice su tipo (y dónde va, si hay varios). */}
+                <div className="pulso-f6-ranura-cabeza" aria-label={rotulo}>
                   {tecnico && <IconoTipo clase="grafico" tipo={tecnico} size={20} />}
                   <span className="pulso-f6-ranura-texto">
-                    <strong>{rotulo}</strong>
-                    <span>{nombre}</span>
+                    <strong>{nombre}</strong>
+                    {slots.length > 1 && <span>{nombreSlot(slot, slidesById[slide.tipo])}</span>}
                   </span>
-                </button>
+                </div>
                 {abierta && (
                   <button
                     type="button"
