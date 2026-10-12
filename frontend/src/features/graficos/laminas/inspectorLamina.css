@@ -422,3 +422,37 @@ textarea.pulso-f6-input {
   border-top: 1px solid var(--pulso-border);
   min-width: 0;
 }
+
+/* Selector de gráfico de la pestaña «Gráfico»: uno a la vez. */
+.pulso-f6-selector-grafico {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-f6-selector-grafico-opcion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pulso-f6-selector-grafico-opcion.is-activa {
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-inspector-apartado {
+  margin-top: var(--pulso-space-4);
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
