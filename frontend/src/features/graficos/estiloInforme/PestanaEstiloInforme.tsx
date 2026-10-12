@@ -41,15 +41,24 @@ import {
 } from "./modeloEstiloInforme";
 import { SeccionCalculos, type AccionesCalculos } from "./SeccionCalculos";
 import { SeccionLineaVisual } from "./SeccionLineaVisual";
-import { SeccionPaletas } from "./SeccionPaletas";
 import { SeccionTextoBase } from "./SeccionTextoBase";
 import { SeccionCasos } from "./SeccionCasos";
+import { Subpestanas, useSubpestana, type Subpestana } from "../subpestanas/Subpestanas";
 import { conCasosJunto, leerCasosJunto } from "./casosJunto";
 // Los sellos «Del recetario»/«Propio» y «Modificado» son los de «Estilo del cliente»: se reusa su hoja, no se copian.
 import "../estilo/estilo.css";
 import "./estiloInforme.css";
 
+type SubInforme = "base" | "calculos" | "casos" | "linea";
+const SUB_INFORME: readonly Subpestana<SubInforme>[] = [
+  { key: "base", label: "Base y notas" },
+  { key: "calculos", label: "Cálculos" },
+  { key: "casos", label: "Casos" },
+  { key: "linea", label: "Línea visual" },
+];
+
 export default function PestanaEstiloInforme() {
+  const [sub, setSub] = useSubpestana(SUB_INFORME);
   const location = useLocation();
   const scope = useGraficosReportScope(location.search);
   const disponibilidad = disponibilidadInforme(scope);
@@ -112,6 +121,7 @@ export default function PestanaEstiloInforme() {
       <header className="pulso-f6-informe-barra">
         <h2 className="pulso-f6-informe-titulo">Estilo del informe</h2>
         <p className="pulso-f6-informe-ayuda" role="note">{disponibilidad.ambito}</p>
+        <Subpestanas opciones={SUB_INFORME} actual={sub} onCambiar={setSub} etiqueta="Estilo del informe" />
       </header>
       <div className="pulso-f6-informe-cuerpo" data-qa-scroll-owner="estilo-informe">
         <div
@@ -119,16 +129,17 @@ export default function PestanaEstiloInforme() {
           data-qa-geometry-group="graficos/f6-estilo-informe-secciones"
           data-qa-geometry-contract="intrinsic"
         >
+          {sub === "base" && (
           <SeccionTextoBase
             texto={texto}
             onCambiar={(arg, valor) => cambiarPresets((p) => conArg(p, PRESET_BASE, arg, valor, defaultBase(arg)))}
             onVolver={(arg) => cambiarPresets((p) => sinArgs(p, PRESET_BASE, [arg]))}
             onVolverTodo={() => cambiarPresets((p) => sinArgs(p, PRESET_BASE, [ARG_FORMATO, ARG_SUFIJO]))}
           />
-          <SeccionCalculos filas={filas} nota={nota} acciones={acciones} estado={estadoCalculos} />
-          <SeccionCasos casos={leerCasosJunto(presets)} onCambiar={(c) => cambiarPresets((p) => conCasosJunto(p, c))} />
-          <SeccionLineaVisual aplicada={lineaVisualAplicada(scopeRules)} />
-          <SeccionPaletas listasConColor={listasConColor(paletas)} />
+          )}
+          {sub === "calculos" && <SeccionCalculos filas={filas} nota={nota} acciones={acciones} estado={estadoCalculos} />}
+          {sub === "casos" && <SeccionCasos casos={leerCasosJunto(presets)} onCambiar={(c) => cambiarPresets((p) => conCasosJunto(p, c))} />}
+          {sub === "linea" && <SeccionLineaVisual aplicada={lineaVisualAplicada(scopeRules)} />}
         </div>
       </div>
     </div>

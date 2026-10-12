@@ -44,9 +44,11 @@ import {
 import { SeccionAmbito } from "./SeccionAmbito";
 import { SeccionLetra } from "./SeccionLetra";
 import { IconosEditor } from "../IconosEditor";
+import { SeccionPaletas } from "../estiloInforme/SeccionPaletas";
+import { listasConColor } from "../estiloInforme/modeloEstiloInforme";
+import { Subpestanas, useSubpestana, type Subpestana } from "../subpestanas/Subpestanas";
 import { MarcaModificado } from "./SelloProcedencia";
 import { TarjetaLogo } from "./TarjetaLogo";
-import { VistaPreviaWord } from "./VistaPreviaWord";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { RotateCcw } from "../../../vendor/lucide-react";
 import "./estilo.css";
@@ -55,7 +57,17 @@ function mensajeDe(error: unknown, porDefecto: string): string {
   return error instanceof Error && error.message ? error.message : porDefecto;
 }
 
+type SubIdentidad = "logos" | "letra" | "iconos" | "colores";
+const SUB_IDENTIDAD: readonly Subpestana<SubIdentidad>[] = [
+  { key: "logos", label: "Logos" },
+  { key: "letra", label: "Letra" },
+  { key: "iconos", label: "Íconos" },
+  { key: "colores", label: "Colores de las respuestas" },
+];
+
 export default function PestanaEstilo() {
+  const [sub, setSub] = useSubpestana(SUB_IDENTIDAD);
+  const paletasProyecto = usePlanStore((s) => s.paletas);
   const location = useLocation();
   const scope = useGraficosReportScope(location.search);
   const motivoNoDisponible = motivoEstiloNoDisponible(scope);
@@ -132,14 +144,13 @@ export default function PestanaEstilo() {
     <div className="pulso-f6-estilo" data-audit-ready={listo ? "graficos-estilo" : "false"} data-qa-surface="graficos/f6-estilo">
       <header className="pulso-f6-estilo-barra">
         <h2 className="pulso-f6-estilo-titulo">Identidad</h2>
-        <p className="pulso-f6-estilo-ayuda">
-          Hoy se aplica al Word. El PPT tomará los logos más adelante, desde su plantilla.
-        </p>
+        <Subpestanas opciones={SUB_IDENTIDAD} actual={sub} onCambiar={setSub} etiqueta="Identidad" />
       </header>
       <div className="pulso-f6-estilo-cuerpo" data-qa-scroll-owner="estilo">
         <div className="pulso-f6-estilo-columnas">
           <div className="pulso-f6-estilo-secciones" data-qa-geometry-group="graficos/f6-estilo-secciones" data-qa-geometry-contract="intrinsic">
             {opcionesError ? <p className="pulso-f6-estilo-error" role="alert">{opcionesError}</p> : null}
+            {sub === "logos" && (<>
             <SeccionAmbito
               ambito={ambito}
               ambitoDefault={ref.ambito}
@@ -175,8 +186,9 @@ export default function PestanaEstilo() {
                 ))}
               </div>
             </section>
+            </>)}
 
-            <SeccionLetra
+            {sub === "letra" && <SeccionLetra
               paso={paso}
               procedenciaPaso={procedenciaPaso(decisiones)}
               pasoRol={(rol) => pasoEfectivoRol(estilo, ref, rol)}
@@ -189,17 +201,17 @@ export default function PestanaEstilo() {
               onRol={(rol, p) => cambiar((e) => conRol(e, rol, p))}
               onSinRol={(rol) => cambiar((e) => sinRol(e, rol))}
               onSinLetra={() => cambiar(sinLetra)}
-            />
+            />}
 
-            {/* Los íconos del cliente (láminas de objetivo y de población) se suben aquí; antes sólo en el editor anterior. */}
-            <section className="pulso-f6-estilo-seccion" aria-labelledby="f6-estilo-iconos-titulo" data-qa-geometry-member>
-              <h3 id="f6-estilo-iconos-titulo" className="pulso-f6-subtitulo">Íconos</h3>
-              <IconosEditor />
-            </section>
+            {/* Los íconos del cliente (lámina de objetivo y capítulos) se suben aquí; la población no lleva ícono. */}
+            {sub === "iconos" && (
+              <section className="pulso-f6-estilo-seccion" aria-labelledby="f6-estilo-iconos-titulo" data-qa-geometry-member>
+                <h3 id="f6-estilo-iconos-titulo" className="pulso-f6-subtitulo">Íconos</h3>
+                <IconosEditor />
+              </section>
+            )}
+            {sub === "colores" && <SeccionPaletas listasConColor={listasConColor(paletasProyecto)} />}
           </div>
-          <aside className="pulso-f6-estilo-lateral" aria-label="Vista previa del estilo">
-            <VistaPreviaWord prepOk={prepOk} />
-          </aside>
         </div>
       </div>
     </div>
