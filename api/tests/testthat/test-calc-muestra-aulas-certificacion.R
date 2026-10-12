@@ -332,3 +332,12 @@ test_that("aplanar la tasa habria dado otra respuesta: el fixture lo separa", {
   plana <- .cert_sexo_filas(.cert_sexo_seleccion(con_tasa = FALSE))
   expect_false(isTRUE(all.equal(por_aula$M$esperadas, plana$M$esperadas)))
 })
+
+test_that("un padrón con «Mujer»/«Hombre» suma aula por aula igual que con F/M", {
+  sel <- .cert_sexo_seleccion(con_tasa = TRUE)
+  sel$selection$sex_top_1 <- c("Mujer", "Mujer", "Hombre", "Hombre")
+  sx <- .cert_sexo_filas(sel)
+  expect_identical(sx$F$metodo, "suma_esperadas")
+  expect_equal(sx$F$esperadas, 16)
+  expect_equal(sx$M$esperadas, 40)
+})
