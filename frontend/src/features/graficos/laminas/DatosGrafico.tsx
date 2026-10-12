@@ -28,6 +28,7 @@ import { useSession } from "../../../lib/SessionContext";
 import { OrdenCategoriasGrafico } from "./OrdenCategoriasGrafico";
 import { TwoBoxGrafico } from "./tarjetaGrafico/TwoBoxGrafico";
 import { CasosGrafico } from "./CasosGrafico";
+import { AjustesDelTipo } from "./AjustesDelTipo";
 import { ResaltarGrafico } from "./ResaltarGrafico";
 import { EnElWord } from "./tarjetaGrafico/EnElWord";
 import { ColoresGrafico } from "./colores/ColoresGrafico";
@@ -98,6 +99,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       <ResaltarGrafico slideId={slideId} slot={slot} valor={valor} />
       <CasosGrafico slideId={slideId} slot={slot} valor={valor} />
       <EnElWord slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
+      <AjustesDelTipo valor={valor} />
     </div>
   );
 }

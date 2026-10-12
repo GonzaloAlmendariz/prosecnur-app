@@ -46,7 +46,6 @@ const VistaGeneral = lazyWithReload(() => import("./vistaGeneral/VistaGeneral"),
 const PestanaEstilo = lazyWithReload(() => import("./estilo/PestanaEstilo"), "graficos-estilo");
 const PestanaEstiloInforme = lazyWithReload(() => import("./estiloInforme/PestanaEstiloInforme"), "graficos-estilo-informe");
 const PestanaWord = lazyWithReload(() => import("./word/PestanaWord"), "graficos-word");
-const PestanaPowerPoint = lazyWithReload(() => import("./powerpoint/PestanaPowerPoint"), "graficos-powerpoint");
 
 type ExportResult = {
   ok: true; file_id: string; filename?: string; size: number; n_slides: number;
@@ -454,8 +453,6 @@ export default function GraficosPage() {
                     ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el estilo del cliente…" /></div>}><PestanaEstilo /></Suspense>
                   : pestana === "estilo-informe"
                     ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el estilo del informe…" /></div>}><PestanaEstiloInforme /></Suspense>
-                  : pestana === "powerpoint"
-                    ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el PowerPoint…" /></div>}><PestanaPowerPoint /></Suspense>
                   : pestana === "word"
                     ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el Word…" /></div>}><PestanaWord /></Suspense>
                   : <LaminasWorkbench />}
