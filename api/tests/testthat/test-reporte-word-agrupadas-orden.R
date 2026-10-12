@@ -1,3 +1,6 @@
+# Estas pruebas miran orden y forma, no los casos: «Casos junto al porcentaje» en «nunca» (sus fixtures tienen base chica).
+withr::local_options(prosecnur.casos_junto = list(cuando = "nunca"))
+
 # Orden del Word para las agrupadas de una serie y la dicotomía (N8.7): `.word_grafico` despacha la espec categórica a
 # `.word_g_barras` / `.word_g_sino`, que la dibujan de arriba hacia abajo (o de izquierda a derecha). La espec se lee en
 # el orden visual del ggplot de la ruta anterior (paridad, con `invertir_barras` TRUE o FALSE), así que el Word también:

@@ -1,3 +1,6 @@
+# Estas pruebas miran orden y forma, no los casos: «Casos junto al porcentaje» en «nunca» (sus fixtures tienen base chica).
+withr::local_options(prosecnur.casos_junto = list(cuando = "nunca"))
+
 # ADR 0093 (N3) — la pregunta categórica sale en columnas como la lámina 68 del recetario.
 
 test_that("las columnas ocupan la geometría del recetario y miden la cifra rotulada", {

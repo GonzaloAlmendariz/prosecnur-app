@@ -1,3 +1,6 @@
+# Estas pruebas miran orden y forma, no los casos: «Casos junto al porcentaje» en «nunca» (sus fixtures tienen base chica).
+withr::local_options(prosecnur.casos_junto = list(cuando = "nunca"))
+
 # Orden de las barras agrupadas en el motor nativo (ADR 0093): paridad con la ruta ggplot. La lámina nativa dibuja de
 # arriba hacia abajo (o de izquierda a derecha) en el orden en que se LEE el ggplot del mismo elemento, con
 # `invertir_barras` TRUE o FALSE. Antes la espec tomaba los niveles del factor tal cual y, con el preset de la casa
