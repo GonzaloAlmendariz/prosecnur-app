@@ -114,7 +114,9 @@ describe("PestanaEstiloInforme · markup", () => {
     expect(html.match(/pulso-f6-estilo-sello is-propio/g)).toHaveLength(3);   // sin la sección de colores
     expect(html).toContain("Por defecto");
     expect(html).toContain("Base: 120 docentes");
-    expect(html).toContain('aria-label="Volver al valor por defecto en sufijo del conteo"');
+    expect(html).toContain("Empieza con");
+    expect(html).not.toContain("%s");
+    expect(html).toContain('aria-label="Volver al valor por defecto en después del número"');
     expect(html).toContain('aria-label="Volver al valor por defecto en Barras apiladas"');
   });
 
