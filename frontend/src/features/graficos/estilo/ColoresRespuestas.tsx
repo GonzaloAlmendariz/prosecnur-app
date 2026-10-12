@@ -279,7 +279,7 @@ export function ColoresRespuestas() {
       {filas.length ? (
         <>
           <div className="pulso-cr-herramientas">
-            <div className="pulso-cr-filtros" role="tablist" aria-label="Mostrar">
+            <div className="pulso-cr-filtros" role="tablist" aria-label="Mostrar" data-gliding-opt-out="Es un filtro de la lista de paletas (todas, faltan colores, listas), no el recorrido del módulo: un control segmentado con su conteo en cada opción, que marca la activa con su propio fondo.">
               {FILTROS.map((f) => (
                 <button key={f.id} type="button" role="tab" aria-selected={filtro === f.id} className={filtro === f.id ? "pulso-cr-filtro is-activo" : "pulso-cr-filtro"} onClick={() => setFiltro(f.id)}>
                   {f.rotulo}<span className="pulso-cr-filtro-n">{f.n}</span>
