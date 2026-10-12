@@ -169,3 +169,26 @@ describe("paletas con nombre en varias bases", () => {
     expect(p.lst_p6).toEqual({ "Sí": "#081F5C" });
   });
 });
+
+describe("la paleta desde la tarjeta del gráfico", () => {
+  it("encuentra la paleta de una pregunta y pasa sólo su grupo a otra paleta con nombre", async () => {
+    const { conGrupoEnPaleta, conNombre, filasDePaletas, paletaDeLaPregunta } = await import("./modeloPaletasConNombre");
+    const listas: ListaRespuestas[] = [
+      sino("lst_p1", ["p1"]),
+      { ...sino("lst_p3", ["p3"]), choices: [{ name: "1", label: "Sí" }, { name: "2", label: "No" }, { name: "9", label: "No sabe" }] },
+    ];
+    const filasDe = (m: { paletas: Record<string, Record<string, string>>; vinculos: Record<string, string> }) =>
+      filasDePaletas(gruposDeRespuestas(listas, m.paletas, m.vinculos, new Map()), listas, m.paletas, m.vinculos);
+    const inicio = { paletas: { lst_p1: { "Sí": "#081F5C", No: "#CA5651" } }, vinculos: {} };
+    const sn = filasDe(inicio).find((f) => f.opciones.length === 2)!;
+    const m = conNombre(sn, "Aceptación", listas, inicio);
+    const filas = filasDe(m);
+    expect(paletaDeLaPregunta(filas, "estudiantes$p1")).toBeNull();
+    const hallada = paletaDeLaPregunta(filas, "p3")!;
+    expect(hallada.fila.clave).toBeNull();
+    const destino = filas.find((f) => f.clave === "Aceptación")!;
+    const r = conGrupoEnPaleta(hallada.fila, hallada.grupo, destino, listas, m);
+    expect(r.vinculos).toEqual({ lst_p1: "Aceptación", lst_p3: "Aceptación" });
+    expect(paletaDeLaPregunta(filasDe(r), "p3")!.fila.clave).toBe("Aceptación");
+  });
+});

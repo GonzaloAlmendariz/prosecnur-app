@@ -3,21 +3,19 @@
 // mismas respuestas; ese nombre es el que se elige luego desde la tarjeta de un gráfico. Se pinta con combinaciones y
 // muestras de la marca; el código de color queda como «Otro color». Lo que se elige aquí es lo que pintan PPT y Word.
 
-import { useEffect, useId, useMemo, useState } from "react";
-import { apiGraficosPaletasSugeridas, type PaletaSugeridaEntry } from "../../../api/client";
+import { useId, useMemo, useState } from "react";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
 import { Check, ChevronDown, Palette, Search } from "../../../vendor/lucide-react";
 import { usePlanStore } from "../store";
-import { useVariables } from "../useVariables";
-import { combinacionesPara, gruposDeRespuestas, grupoCoincide, MUESTRAS_MARCA, textoSobre, type ListaRespuestas } from "./modeloColoresRespuestas";
+import { usePaletasRespuestas } from "./usePaletasRespuestas";
+import { combinacionesPara, grupoCoincide, MUESTRAS_MARCA, textoSobre } from "./modeloColoresRespuestas";
 import {
   conAgrupado,
   conColoresDeFila,
   conNombre,
   conSeparado,
   errorNombre,
-  filasDePaletas,
   respuestasEnComun,
   type FilaPaleta,
 } from "./modeloPaletasConNombre";
@@ -25,11 +23,6 @@ import "./coloresRespuestas.css";
 
 type Filtro = "todos" | "faltan" | "listos";
 type Mapas = { paletas: Record<string, Record<string, string>>; vinculos: Record<string, string> };
-
-function normalizarListas(raw: PaletaSugeridaEntry[]): ListaRespuestas[] {
-  const arr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : typeof v === "string" ? [v] : []);
-  return raw.map((l) => ({ list_name: l.list_name, choices: Array.isArray(l.choices) ? l.choices : [], fuentes: arr(l.fuentes), variables: arr(l.variables) }));
-}
 
 const lleno = (f: FilaPaleta) => f.faltan === 0;
 
@@ -250,36 +243,11 @@ export function ColoresRespuestas() {
   const vinculos = usePlanStore((s) => s.paletasVinculos);
   const setPaletas = usePlanStore((s) => s.setPaletas);
   const setPaletasYVinculos = usePlanStore((s) => s.setPaletasYVinculos);
-  const { variables } = useVariables();
-  const [listas, setListas] = useState<ListaRespuestas[] | null>(null);
-  const [error, setError] = useState("");
+  const { listas, filas, error } = usePaletasRespuestas();
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [consulta, setConsulta] = useState("");
   const [abierto, setAbierto] = useState<string | null>(null);
   const tituloId = useId();
-
-  useEffect(() => {
-    let vivo = true;
-    apiGraficosPaletasSugeridas()
-      .then((r) => { if (vivo) setListas(normalizarListas(r.listas ?? [])); })
-      .catch((e: unknown) => { if (vivo) setError(e instanceof Error ? e.message : "No se pudieron leer las respuestas del instrumento."); });
-    return () => { vivo = false; };
-  }, []);
-
-  const etiquetas = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const v of variables) {
-      if (!v.label) continue;
-      m.set(`${v.source}$${v.name}`, v.label);
-      if (!m.has(v.name)) m.set(v.name, v.label);
-    }
-    return m;
-  }, [variables]);
-
-  const filas = useMemo(() => {
-    if (!listas) return [];
-    return filasDePaletas(gruposDeRespuestas(listas, paletas, vinculos, etiquetas), listas, paletas, vinculos);
-  }, [listas, paletas, vinculos, etiquetas]);
 
   const faltan = filas.filter((f) => !lleno(f)).length;
   const coincide = (f: FilaPaleta) => !consulta.trim() || f.nombre.toLowerCase().includes(consulta.trim().toLowerCase()) || f.grupos.some((g) => grupoCoincide(g, consulta));

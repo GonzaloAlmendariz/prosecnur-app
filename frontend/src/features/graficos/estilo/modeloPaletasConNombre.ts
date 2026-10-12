@@ -208,3 +208,34 @@ function nombreLibre(base: string, listas: readonly ListaRespuestas[], paletas: 
   for (let i = 2; usados.has(n) || n in paletas; i += 1) n = `${base} (${i})`;
   return n;
 }
+
+/** La fila y el grupo de una pregunta (`base$var` o `var`), para la tarjeta del gráfico. */
+export function paletaDeLaPregunta(filas: readonly FilaPaleta[], ref: string): { fila: FilaPaleta; grupo: GrupoRespuestas } | null {
+  const nombre = ref.split("$").pop() ?? ref;
+  for (const fila of filas) {
+    for (const grupo of fila.grupos) {
+      if (grupo.preguntas.some((p) => p.ref === ref)) return { fila, grupo };
+    }
+  }
+  // Sin base en la referencia (informe de una base): basta el nombre de la pregunta.
+  if (ref.includes("$")) return null;
+  for (const fila of filas) {
+    for (const grupo of fila.grupos) {
+      if (grupo.preguntas.some((p) => (p.ref.split("$").pop() ?? p.ref) === nombre)) return { fila, grupo };
+    }
+  }
+  return null;
+}
+
+/**
+ * Pasa SÓLO el grupo de una pregunta a la paleta `destino` (elegida desde la tarjeta de un gráfico). Si el grupo estaba
+ * dentro de otra paleta con nombre, primero se separa de ella; las demás preguntas de esa paleta no cambian.
+ */
+export function conGrupoEnPaleta(fila: FilaPaleta, grupo: GrupoRespuestas, destino: FilaPaleta, listas: readonly ListaRespuestas[], mapas: Mapas): Mapas {
+  if (fila.clave && fila.clave === destino.clave) return mapas;
+  const colores: Record<string, string> = {};
+  for (const o of grupo.opciones) if (fila.colores[o]) colores[o] = fila.colores[o];
+  const base = fila.clave ? conSeparado(fila, grupo, listas, mapas) : mapas;
+  const origen: FilaPaleta = { ...fila, id: `grupo:${grupo.id}`, clave: null, grupos: [grupo], opciones: [...grupo.opciones], colores, preguntas: [...grupo.preguntas], bases: [...grupo.bases], faltan: 0 };
+  return conAgrupado(origen, destino, listas, base);
+}
