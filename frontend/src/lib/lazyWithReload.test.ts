@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { isDynamicImportLoadError } from "./lazyWithReload";
+import { isDynamicImportLoadError, moduloConComponente } from "./lazyWithReload";
 
 describe("isDynamicImportLoadError", () => {
   test("detects Vite dynamic import failures", () => {
@@ -19,5 +19,25 @@ describe("isDynamicImportLoadError", () => {
 
   test("ignores unrelated runtime errors", () => {
     expect(isDynamicImportLoadError(new Error("Cannot read properties of null"))).toBe(false);
+  });
+});
+
+describe("moduloConComponente", () => {
+  test("un módulo servido vacío es un fallo de carga que nombra el módulo, no un #306", () => {
+    let error: unknown;
+    try {
+      moduloConComponente({}, "GraficosPage");
+    } catch (e) {
+      error = e;
+    }
+    expect(String(error)).toContain("GraficosPage");
+    expect(isDynamicImportLoadError(error)).toBe(true);
+  });
+
+  test("deja pasar un componente función o un lazy/memo (objeto)", () => {
+    const fn = () => null;
+    expect(moduloConComponente({ default: fn }, "X").default).toBe(fn);
+    const memo = { $$typeof: Symbol.for("react.memo") };
+    expect(moduloConComponente({ default: memo }, "X").default).toBe(memo);
   });
 });
