@@ -73,7 +73,8 @@ describe("PestanaEstilo · markup", () => {
     expect(html.match(/is-propio/g)).toHaveLength(2); // contraportada + rol cifras
     expect(html).toContain("Por defecto");
     expect(html.match(/pulso-f6-estilo-modificado/g)).toHaveLength(2);
-    expect(html).toContain("Por defecto: <strong>PUCP</strong>");
+    expect(html).toContain("Ahora: <strong>PUCP</strong>");
+    expect(html).toContain('src="/logos-estandar/pucp.png"');
     expect(html).toContain("11,5 pt = 9,5 + 2");
   });
 
