@@ -145,8 +145,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            gcab \
             imagemagick \
             librsvg2-bin \
+            msitools \
             nsis \
             rsync \
             unzip
