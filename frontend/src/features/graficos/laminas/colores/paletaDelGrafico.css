@@ -1,0 +1,71 @@
+/* «Colores» en la tarjeta del gráfico (P6): la misma barra que Identidad › Colores de las respuestas, en un contenedor
+   propio dentro de la tarjeta. Sólo tokens existentes. */
+
+.pulso-pg-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+}
+
+.pulso-pg-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-pg-nombre {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-pg-aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 10px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 12.5px;
+}
+
+.pulso-pg-elegir {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.pulso-pg-elegir select {
+  min-width: 0;
+  height: var(--pulso-control-height-sm);
+  padding: 0 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.pulso-pg-enlace {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pulso-primary);
+  font: inherit;
+  font-weight: var(--pulso-weight-medium);
+  cursor: pointer;
+}
+
+.pulso-pg-enlace:hover { text-decoration: underline; }

@@ -32,6 +32,7 @@ import { AjustesDelTipo } from "./AjustesDelTipo";
 import { ResaltarGrafico } from "./ResaltarGrafico";
 import { EnElWord } from "./tarjetaGrafico/EnElWord";
 import { ColoresGrafico } from "./colores/ColoresGrafico";
+import { PaletaDelGrafico } from "./colores/PaletaDelGrafico";
 import { NombresPorBase } from "./datosBase/NombresPorBase";
 import { NotaBaseCompartido } from "./datosBase/NotaBaseCompartido";
 import { faltaBaseEnCompartido } from "./datosBase/baseEnCompartido";
@@ -95,6 +96,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         </div>
       )}
       <ColoresGrafico slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
+      <PaletaDelGrafico valor={valor} />
       <TwoBoxGrafico slideId={slideId} slot={slot} valor={valor} onAbrirBloques={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })} />
       <ResaltarGrafico slideId={slideId} slot={slot} valor={valor} />
       <CasosGrafico slideId={slideId} slot={slot} valor={valor} />
