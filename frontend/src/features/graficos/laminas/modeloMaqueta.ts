@@ -7,6 +7,7 @@ import { cleanInferredVariableTitle } from "../slideAutoTitle";
 import { SLIDE_GRAF_SLOTS } from "../store";
 import { parseVarRef } from "../useVariables";
 import { formaTwoBox, leerTwoBox } from "./tarjetaGrafico/twoBox";
+import { firmaOpciones, resolverPaleta, type MapaPaletas, type VinculosPaletas } from "../paletasResolver";
 
 type VarLike = VarInfo & { source?: string };
 
@@ -21,6 +22,10 @@ export type RanuraMaqueta = {
   pregunta: string | null;
   /** Cuántas preguntas más muestra el gráfico además de la primera. */
   masPreguntas: number;
+  /** Cada pregunta (bloque) del gráfico con su escala y los colores que le tocan. */
+  preguntas: PreguntaMaqueta[];
+  /** true: todas las preguntas usan la misma escala (y por eso la misma paleta). */
+  mismaEscala: boolean;
   /** Bases (actores) que cruza, sólo cuando son más de una. */
   bases: string[];
   /** Columnas encendidas en el gráfico: Top Two Box y, a su lado, Bottom Two Box. */
@@ -28,6 +33,22 @@ export type RanuraMaqueta = {
 };
 
 type Presets = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+
+export type OpcionMaqueta = { rotulo: string; color: string | null };
+export type PreguntaMaqueta = { titulo: string; opciones: OpcionMaqueta[] };
+export type ColoresMaqueta = { paletas: MapaPaletas; vinculos?: VinculosPaletas };
+
+/** La escala de una pregunta (las opciones de su lista) con el color que le da la paleta de esa lista, si tiene. */
+function escalaDe(info: VarLike | undefined, colores: ColoresMaqueta | undefined): OpcionMaqueta[] {
+  const choices = info?.choices ?? [];
+  if (!choices.length) return [];
+  const res = colores && info?.list_name ? resolverPaleta({ list_name: info.list_name, choices }, colores.paletas, colores.vinculos) : null;
+  const pal = res ? (colores?.paletas[res.clave] as Record<string, unknown> | undefined) : undefined;
+  return choices.map((c) => {
+    const v = pal?.[c.label];
+    return { rotulo: c.label, color: typeof v === "string" && v.trim() ? v.trim() : null };
+  });
+}
 
 /** Las columnas Two Box encendidas en el gráfico. Sin categorías elegidas el motor la omite, pero la tarjeta ya lo avisa:
  *  la maqueta la muestra en cuanto se enciende, para que el cambio se vea. */
@@ -80,7 +101,7 @@ function gruposDe(args: Record<string, unknown>): Grupo[] {
   return [...porNombre.values()].map((rs) => ({ titulo: null, refs: rs }));
 }
 
-export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variables: readonly VarLike[], presets: Presets = {}): RanuraMaqueta[] {
+export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variables: readonly VarLike[], presets: Presets = {}, colores?: ColoresMaqueta): RanuraMaqueta[] {
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
   const comp = composicionDe(slide.tipo, slots);
   if (comp.fuente === "estructura") return [];
@@ -98,6 +119,16 @@ export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variabl
         ? variables.find((v) => v.name === primera.name && (!primera.source || !v.source || v.source === primera.source))
         : undefined;
       const pregunta = grupos[0]?.titulo ?? (primera ? cleanInferredVariableTitle(info?.label) ?? primera.name : null);
+      const buscar = (ref: string) => {
+        const pr = parseVarRef(ref);
+        return variables.find((v) => v.name === pr.name && (!pr.source || !v.source || v.source === pr.source));
+      };
+      const preguntas: PreguntaMaqueta[] = grupos.map((g) => {
+        const iv = g.refs[0] ? buscar(g.refs[0]) : undefined;
+        const titulo = g.titulo ?? cleanInferredVariableTitle(iv?.label) ?? (g.refs[0] ? parseVarRef(g.refs[0]).name : "");
+        return { titulo, opciones: escalaDe(iv, colores) };
+      });
+      const firmas = new Set(preguntas.map((q) => firmaOpciones(q.opciones.map((o) => o.rotulo))).filter(Boolean));
       return {
         k: numeroDeRanura(slots, r.slot),
         slot: r.slot,
@@ -105,6 +136,8 @@ export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variabl
         graficador: ref?.graficador ?? null,
         pregunta,
         masPreguntas: Math.max(0, grupos.length - 1),
+        preguntas,
+        mismaEscala: firmas.size <= 1,
         bases: bases.length > 1 ? bases.map(nombreBase) : [],
         twoBox: twoBoxDeGrafico(ref?.graficador ?? null, args as Record<string, unknown>, presets),
       };
