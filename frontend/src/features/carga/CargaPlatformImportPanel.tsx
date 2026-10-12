@@ -6,18 +6,24 @@ export function CargaPlatformImportPanel({
   strategy,
   single,
   plannedInputCount,
+  basesCreadas = 0,
   onUseManual,
   children,
 }: {
   strategy: MultiBaseStrategy;
   single: boolean;
   plannedInputCount: number;
+  /** «Bases separadas»: cuántas bases ya existen, para decir cuántas faltan. */
+  basesCreadas?: number;
   onUseManual?: () => void;
   children?: ReactNode;
 }) {
   const separatePlan = strategy === "separate" && plannedInputCount > 1;
+  const faltan = Math.max(0, plannedInputCount - basesCreadas);
   const destination = separatePlan
-    ? `${plannedInputCount} destinos separados planificados`
+    ? faltan > 0
+      ? `Cada encuesta entra como una base nueva: van ${basesCreadas} de ${plannedInputCount}`
+      : `Las ${plannedInputCount} bases ya están creadas`
     : single
     ? "Destino: base del estudio"
     : strategy === "integrated"
@@ -26,7 +32,7 @@ export function CargaPlatformImportPanel({
         ? `Destino: ${plannedInputCount} bases independientes`
         : "Destino: una base separada por entrada";
   const detail = separatePlan
-    ? `${plannedInputCount} slots disponibles en Manual. Cada destino necesita su propio formulario y sus respuestas para evitar sobrescrituras.`
+    ? "Elige una encuesta e impórtala; su formulario y sus respuestas quedan en su propia base, con el nombre del actor (por ejemplo «docentes»)."
     : "El catálogo se consulta únicamente al pulsar su botón de actualización.";
 
   return (
@@ -42,10 +48,10 @@ export function CargaPlatformImportPanel({
           <small>{detail}</small>
         </span>
         {separatePlan && onUseManual ? (
-          <button type="button" onClick={onUseManual}>Ir a Manual</button>
+          <button type="button" onClick={onUseManual}>Subir archivos</button>
         ) : null}
       </div>
-      {separatePlan ? null : children}
+      {children}
     </section>
   );
 }

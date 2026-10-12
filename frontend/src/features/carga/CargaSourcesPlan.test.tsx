@@ -66,7 +66,7 @@ describe("estrategia de Plan dentro de Fuentes", () => {
       "plannedInputCount={plannedInputCount}",
     );
     expect(platformSource).toContain("plannedInputCount");
-    expect(platformSource).toMatch(/entradas|destinos|cupos|capacidad/iu);
+    expect(platformSource).toMatch(/entradas|destinos|cupos|capacidad|base nueva/iu);
   });
 
   it("usa el plan de entradas para capacidad integrada e independiente", () => {
@@ -85,17 +85,17 @@ describe("estrategia de Plan dentro de Fuentes", () => {
     );
   });
 
-  it("declara N destinos separados y bloquea el importador single de Plataforma", () => {
-    const start = pageSource.indexOf(
-      '{sourceMode === "platform" && sourceStrategy === "separate"',
-    );
+  it("en «Bases separadas» Plataforma muestra el catálogo y cada import entra como una base nueva", () => {
+    // Antes Plataforma bloqueaba este caso y mandaba a Manual (sólo archivos): no había cómo traer las encuestas de
+    // SurveyMonkey de un estudio de acreditación (Arte y Diseño, 2026-10-11). Ahora el catálogo se muestra y el import
+    // va por `import-separate` con un nombre corto por actor.
+    const start = pageSource.indexOf('{sourceMode === "platform" && sourceStrategy === "separate"');
     const end = pageSource.indexOf('{(sourceMode === "files"', start);
-
     expect(start).toBeGreaterThan(-1);
-    expect(end).toBeGreaterThan(start);
     const separatePlatform = pageSource.slice(start, end);
     expect(separatePlatform).toContain("plannedInputCount");
-    expect(separatePlatform).toMatch(/entradas|destinos|slots|cupos/iu);
-    expect(separatePlatform).not.toContain("<PlatformImportPanel");
+    expect(separatePlatform).toContain("{platformPanel}");
+    expect(pageSource).toContain("apiCargaImportSurveyMonkeySeparadaAsync(");
+    expect(pageSource).toMatch(/sourceStrategy === "separate"\) \{\s*const baseName = nombreLibreDeBase\(nombreCortoDeEncuesta/);
   });
 });
