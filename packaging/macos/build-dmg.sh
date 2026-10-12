@@ -179,7 +179,9 @@ build_for_arch() {
   # 5d. correr electron-builder. --publish=never genera el dmg + latest-mac.yml
   # localmente sin subir nada; el `gh release create` aparte se encarga de eso.
   echo "[Prosecnur] Corriendo electron-builder --mac --$arch_eb..."
-  (cd "$ROOT/desktop" && pnpm exec electron-builder --mac --"$arch_eb" --publish=never)
+  # `dmg` en la CLI: el target de la config declara arm64 y x64, y con él `--arm64` empaquetaba también x64, cuyo
+  # LibreOffice todavía no está en el staging (afterPack lo exige). Con el target en la CLI manda su arquitectura.
+  (cd "$ROOT/desktop" && pnpm exec electron-builder --mac dmg --"$arch_eb" --publish=never)
 
   # ~800MB por arch: no se acumulan los dos stagings en disco.
   rm -rf "$PREVIEW_STAGE_DIR"
