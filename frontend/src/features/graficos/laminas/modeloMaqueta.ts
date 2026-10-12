@@ -143,3 +143,35 @@ export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variabl
       };
     });
 }
+
+
+/** «52 docentes, 172 estudiantes y 15 administrativos»: la enumeración que el motor usa en la base. */
+function enumerar(partes: string[]): string {
+  return partes.length <= 1 ? partes.join("") : `${partes.slice(0, -1).join(", ")} y ${partes[partes.length - 1]}`;
+}
+
+/**
+ * La base que el motor escribirá al pie si nadie la cambia: quiénes respondieron la (primera) pregunta del gráfico, por
+ * base, con el formato del informe («Base: %s»). `null` si no se puede saber desde aquí (sin conteos o varios gráficos,
+ * donde cada uno lleva la suya debajo).
+ */
+export function baseAutomatica(
+  slide: Pick<Slide, "tipo" | "payload">,
+  variables: readonly VarLike[],
+  formato = "Base: %s",
+): string | null {
+  const graficos = (SLIDE_GRAF_SLOTS[slide.tipo] ?? []).map((sl) => (slide.payload as Record<string, unknown>)[sl]).filter(Boolean);
+  if (graficos.length !== 1) return null;
+  const args = ((graficos[0] as GraficadorRef).args ?? {}) as Record<string, unknown>;
+  const refs = gruposDe(args)[0]?.refs ?? [];
+  const partes: string[] = [];
+  for (const ref of refs) {
+    const pr = parseVarRef(ref);
+    const v = variables.find((x) => x.name === pr.name && (!pr.source || !x.source || x.source === pr.source));
+    const n = (v as { n_non_empty?: number } | undefined)?.n_non_empty;
+    if (typeof n !== "number" || !Number.isFinite(n)) return null;
+    partes.push(pr.source ? `${n} ${pr.source.replace(/[_-]+/g, " ")}` : `${n} respuestas`);
+  }
+  if (!partes.length) return null;
+  return formato.includes("%s") ? formato.replace("%s", enumerar(partes)) : `Base: ${enumerar(partes)}`;
+}

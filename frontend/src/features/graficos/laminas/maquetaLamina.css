@@ -179,8 +179,12 @@
   position: absolute;
   left: 3.1%;
   bottom: 4%;
-  color: var(--pulso-text-faint);
+  max-width: 80%;
+  overflow: hidden;
+  color: var(--pulso-text-muted);
   font-size: 1.05em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* Sobre la imagen: capas que cubren la hoja entera; sólo sus botones reciben el clic, para no taparse entre sí. */
@@ -261,15 +265,20 @@
 .pulso-f6-maqueta-preguntas {
   display: flex;
   flex-direction: column;
-  gap: 0.5em;
-  margin: 0;
-  padding-left: 1.4em;
-  font-size: 1.25em;
+  gap: 0.7em;
+  width: 100%;
+  font-size: 1.2em;
 }
 
-.pulso-f6-maqueta-preguntas li::marker {
-  color: var(--module-accent);
-  font-weight: var(--pulso-weight-semibold);
+/* Una pregunta, sus categorías y sus colores, en su propia caja. */
+.pulso-f6-maqueta-pregunta-caja {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45em;
+  padding: 0.75em 0.95em;
+  border: 1px solid var(--pulso-border);
+  border-radius: calc(var(--pulso-radius) * 0.75);
+  background: var(--pulso-surface);
 }
 
 .pulso-f6-maqueta-pregunta-item {
@@ -285,9 +294,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.35em 0.9em;
-  margin-top: 0.2em;
   color: var(--pulso-text-soft);
-  font-size: 1.05em;
+  font-size: 0.9em;
 }
 
 .pulso-f6-maqueta-opcion {

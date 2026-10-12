@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Slide } from "../../../api/graficos";
-import { ranurasDeMaqueta } from "./modeloMaqueta";
+import { baseAutomatica, ranurasDeMaqueta } from "./modeloMaqueta";
 
 const slide = (grafico: unknown) => ({ tipo: "p_slide_1_grafico", payload: { titulo: "T", grafico } }) as unknown as Slide;
 
@@ -49,5 +49,17 @@ describe("maqueta: qué muestra cada ranura", () => {
     expect(dist.preguntas[0]).toEqual({ titulo: "¿Conoce?", opciones: [{ rotulo: "Sí", color: "#081F5C" }, { rotulo: "No", color: null }] });
     const [igual] = ranurasDeMaqueta(graf(["p11", "p11"]), vars, {});
     expect(igual.mismaEscala).toBe(true);
+  });
+
+  it("el pie dice la base que armará el motor, por base y con el formato del informe", () => {
+    const vars = [
+      { name: "p11", source: "docentes", label: "x", n_non_empty: 52 },
+      { name: "p9", source: "estudiantes", label: "x", n_non_empty: 172 },
+      { name: "p8", source: "administrativos", label: "x", n_non_empty: 15 },
+    ] as never[];
+    const s1 = slide({ graficador: "p_barras_multiapiladas", args: { modo: "multilista", bloques: [{ vars: { t: ["docentes$p11", "estudiantes$p9", "administrativos$p8"] } }] } });
+    expect(baseAutomatica(s1, vars)).toBe("Base: 52 docentes, 172 estudiantes y 15 administrativos");
+    expect(baseAutomatica(s1, vars, "N = %s")).toBe("N = 52 docentes, 172 estudiantes y 15 administrativos");
+    expect(baseAutomatica(slide({ graficador: "p_barras_categoricas", args: { var: "egresados$p1" } }), vars)).toBeNull();   // sin conteo: no se inventa
   });
 });

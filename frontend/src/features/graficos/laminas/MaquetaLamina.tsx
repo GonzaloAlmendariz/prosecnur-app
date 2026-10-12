@@ -15,7 +15,7 @@ import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import { useVariables } from "../useVariables";
 import type { LaminaEnEstructura } from "./modeloEstructura";
-import { ranurasDeMaqueta } from "./modeloMaqueta";
+import { baseAutomatica, ranurasDeMaqueta } from "./modeloMaqueta";
 import { varianteDe } from "./selectores/tiposLamina";
 import { camposTextoDe, type CampoTextoLamina } from "./ZonasTextoLamina";
 import "./maquetaLamina.css";
@@ -39,6 +39,10 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
   const vinculos = usePlanStore((s) => s.paletasVinculos);
   const ranuras = useMemo(() => ranurasDeMaqueta(slide, variables, presets, { paletas, vinculos }), [slide, variables, presets, paletas, vinculos]);
   const antetitulo = lamina.antetituloHeredado;
+  // El pie dice lo que saldrá: la base escrita por el usuario o, si no hay, la que arma el motor.
+  const baseEscrita = typeof (slide.payload as Record<string, unknown>).base === "string" ? ((slide.payload as Record<string, unknown>).base as string).trim() : "";
+  const formatoBase = typeof (presets.base as Record<string, unknown> | undefined)?.formato === "string" ? ((presets.base as Record<string, unknown>).formato as string) : undefined;
+  const baseAuto = useMemo(() => baseAutomatica(slide, variables, formatoBase), [slide, variables, formatoBase]);
   const campos = camposTextoDe(slide.tipo, slidesById[slide.tipo]?.args, !estructura);
 
   if (estructura) {
@@ -89,23 +93,14 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
             </span>
             )}
             {r.graficador && !r.pregunta && <span className="pulso-f6-maqueta-falta">Falta elegir la pregunta</span>}
-            {r.preguntas.length > 1 && (
-              <span className="pulso-f6-maqueta-resumen">
-                {r.preguntas.length} preguntas, {r.mismaEscala ? "misma escala y mismos colores" : "cada una con su escala"}
-              </span>
-            )}
-            {r.preguntas.length === 1 && <span className="pulso-f6-maqueta-pregunta">{r.preguntas[0].titulo}</span>}
-            {r.preguntas.length > 1 && (
-              <ol className="pulso-f6-maqueta-preguntas">
-                {r.preguntas.map((q, j) => (
-                  <li key={j}>
-                    <span className="pulso-f6-maqueta-pregunta-item">{q.titulo}</span>
-                    {!r.mismaEscala && <EscalaMaqueta opciones={q.opciones} />}
-                  </li>
-                ))}
-              </ol>
-            )}
-            {(r.preguntas.length === 1 || r.mismaEscala) && r.preguntas[0] && <EscalaMaqueta opciones={r.preguntas[0].opciones} />}
+            <span className="pulso-f6-maqueta-preguntas">
+              {r.preguntas.map((q, j) => (
+                <span key={j} className="pulso-f6-maqueta-pregunta-caja">
+                  <span className="pulso-f6-maqueta-pregunta-item">{q.titulo}</span>
+                  <EscalaMaqueta opciones={q.opciones} />
+                </span>
+              ))}
+            </span>
             {r.bases.length > 0 && (
               <span className="pulso-f6-maqueta-bases">
                 {r.bases.map((b) => <span key={b} className="pulso-f6-maqueta-base">{b}</span>)}
@@ -136,7 +131,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
 
       {campos.has("base") && (
         <button type="button" className="pulso-f6-maqueta-zona pulso-f6-maqueta-pie" onClick={() => onTexto("base")} aria-label="Editar base">
-          Base y nota al pie
+          {baseEscrita || baseAuto || "Base del gráfico"}
         </button>
       )}
     </div>
