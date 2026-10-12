@@ -265,11 +265,11 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
   return (
     <div className="pulso-f6-pila" data-qa-geometry-group="graficos/f6-graficos" data-qa-geometry-contract="intrinsic">
       {slots.length > 1 && (
-        <div className="pulso-f6-selector-grafico" role="tablist" aria-label="Gráfico de la lámina">
+        <div className="pulso-f6-selector-grafico" role="tablist" aria-label="Gráfico de la lámina" data-gliding-opt-out="Elige cuál de los gráficos de la lámina se edita (1 a 4 chips con el ícono de su tipo); no es el recorrido del módulo y la opción activa se marca con su propio fondo.">
           {slots.map((slot, i) => {
             const v = payload[slot] as GraficadorRef | undefined;
             return (
-              <button key={slot} type="button" role="tab" aria-selected={activo === i + 1}
+              <button key={slot} type="button" role="tab" aria-selected={activo === i + 1} data-gliding-opt-out="Chip del selector de gráfico de la lámina; ver su tablist."
                 className={`pulso-f6-selector-grafico-opcion${activo === i + 1 ? " is-activa" : ""}`} onClick={() => onRanura(i + 1)}>
                 {v?.graficador ? <IconoTipo clase="grafico" tipo={v.graficador} size={16} /> : null}
                 Gráfico {i + 1}
