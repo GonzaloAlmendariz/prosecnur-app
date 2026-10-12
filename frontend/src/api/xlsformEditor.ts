@@ -1260,6 +1260,17 @@ export async function apiCargaImportSurveyMonkeyAsync(payload: CargaImportSurvey
   );
 }
 
+/** «Bases separadas»: la encuesta entra como una base NUEVA con `base_name` (carga_platform_separate.R); job async. */
+export async function apiCargaImportSurveyMonkeySeparadaAsync(payload: CargaImportSurveyMonkeyPayload & { base_name: string }) {
+  return handle<AsyncJobStart>(
+    await apiFetch("/api/carga/platform/surveymonkey/import-separate", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ...payload, async: true }),
+    }),
+  );
+}
+
 export async function apiCargaImportKobo(
   payload: CargaImportKoboPayload,
 ): Promise<CargaPlatformImportResult> {

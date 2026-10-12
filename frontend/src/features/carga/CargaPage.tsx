@@ -47,6 +47,8 @@ import {
   downloadUrl,
   uploadKindForDataFile,
 } from "../../api/client";
+import { apiCargaImportSurveyMonkeySeparadaAsync } from "../../api/xlsformEditor";
+import { nombreCortoDeEncuesta, nombreLibreDeBase } from "./importSeparadoModel";
 import { useSession } from "../../lib/SessionContext";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
 import "./carga-v2.css";
@@ -453,6 +455,26 @@ export default function CargaPage() {
         const survey = smSurveys.find((item) => item.id === selectedSurveyId);
         if (!survey) {
           setPlatformError("Selecciona una encuesta SurveyMonkey.");
+          return;
+        }
+        // «Bases separadas»: la encuesta entra como una base NUEVA con nombre corto («docentes»), sin tocar las demás.
+        if (topologyResolution.mode === "multi" && sourceStrategy === "separate") {
+          const baseName = nombreLibreDeBase(nombreCortoDeEncuesta(survey.nickname || survey.title), Object.keys(estudio?.bases ?? {}));
+          setBusy(`Importando ${survey.title} como la base «${baseName}»…`);
+          const startSep = await apiCargaImportSurveyMonkeySeparadaAsync({
+            survey_id: survey.id,
+            title: survey.title,
+            connection_profile_id: activeSmProfile?.id || "",
+            source_alias: survey.nickname || survey.title,
+            response_statuses: includePartials ? ["completed", "partial"] : ["completed"],
+            keep_missing_status: false,
+            base_name: baseName,
+          });
+          const sep = await esperarResultadoImport<{ ok: boolean; base_name: string; n_filas: number; estudio: EstudioPayload }>(startSep.job_id, {
+            onProgress: (p) => setBusy(textoDeProgresoImport(`Importando ${survey.title}`, p)),
+          });
+          await onEstudioChanged(sep.estudio);
+          setPlatformMessage(`${survey.title} quedó como la base «${sep.base_name}» con ${sep.n_filas} respuestas.`);
           return;
         }
         setBusy(`Importando ${survey.title} desde SurveyMonkey…`);
@@ -1124,6 +1146,53 @@ export default function CargaPage() {
     setMonitoringReviewed(reviewed);
   }
 
+  // El catálogo de plataforma, igual en base única y en «Bases separadas» (allí cada import es una base nueva).
+  const platformPanel = (
+    <PlatformImportPanel
+              provider={platformProvider}
+              onProviderChange={(provider) => {
+                setPlatformProvider(provider);
+                setPlatformError("");
+                setPlatformMessage("");
+              }}
+              connectionsLoading={connectionsLoading}
+              smConnection={smConnection}
+              koboConnection={koboConnection}
+              smProfiles={smProfiles}
+              koboProfiles={koboProfiles}
+              selectedSmProfileId={activeSmProfile?.id || ""}
+              selectedKoboProfileId={activeKoboProfile?.id || ""}
+              onSmProfileChange={(profileId) => {
+                setSelectedSmProfileId(profileId);
+                setSmSurveys([]);
+                setSelectedSurveyId("");
+              }}
+              onKoboProfileChange={(profileId) => {
+                setSelectedKoboProfileId(profileId);
+                setKoboAssets([]);
+                setSelectedAssetUid("");
+              }}
+              query={platformQuery}
+              onQueryChange={setPlatformQuery}
+              catalogLoading={catalogLoading}
+              onLoadCatalog={(force) => void loadPlatformCatalog(force)}
+              smSurveys={smSurveys}
+              koboAssets={koboAssets}
+              selectedSurveyId={selectedSurveyId}
+              selectedAssetUid={selectedAssetUid}
+              onSurveySelect={setSelectedSurveyId}
+              onAssetSelect={setSelectedAssetUid}
+              includePartials={includePartials}
+              onIncludePartialsChange={setIncludePartials}
+              busy={!!busy}
+              error={platformError}
+              message={platformMessage}
+              detectedKoboSource={detectedKoboSource}
+              onImportDetectedKoboSource={() => void onImportDetectedKoboSource()}
+              onImport={() => void onPlatformImport()}
+            />
+  );
+
   const sourcePlan = (
     <CargaSourcesPlan
       strategy={sourceStrategy}
@@ -1333,8 +1402,11 @@ export default function CargaPage() {
                     strategy={sourceStrategy}
                     single={false}
                     plannedInputCount={plannedInputCount}
+                    basesCreadas={estudio?.n_bases ?? 0}
                     onUseManual={() => setSourceMode("files")}
-                  />
+                  >
+                    {platformPanel}
+                  </CargaPlatformImportPanel>
                 </div>
               ) : null}
               {(sourceMode === "files" || (sourceMode === "platform" && sourceStrategy !== "separate")) ? (
@@ -1571,49 +1643,7 @@ export default function CargaPage() {
               plannedInputCount={plannedInputCount}
               onUseManual={() => setSourceMode("files")}
             >
-            <PlatformImportPanel
-              provider={platformProvider}
-              onProviderChange={(provider) => {
-                setPlatformProvider(provider);
-                setPlatformError("");
-                setPlatformMessage("");
-              }}
-              connectionsLoading={connectionsLoading}
-              smConnection={smConnection}
-              koboConnection={koboConnection}
-              smProfiles={smProfiles}
-              koboProfiles={koboProfiles}
-              selectedSmProfileId={activeSmProfile?.id || ""}
-              selectedKoboProfileId={activeKoboProfile?.id || ""}
-              onSmProfileChange={(profileId) => {
-                setSelectedSmProfileId(profileId);
-                setSmSurveys([]);
-                setSelectedSurveyId("");
-              }}
-              onKoboProfileChange={(profileId) => {
-                setSelectedKoboProfileId(profileId);
-                setKoboAssets([]);
-                setSelectedAssetUid("");
-              }}
-              query={platformQuery}
-              onQueryChange={setPlatformQuery}
-              catalogLoading={catalogLoading}
-              onLoadCatalog={(force) => void loadPlatformCatalog(force)}
-              smSurveys={smSurveys}
-              koboAssets={koboAssets}
-              selectedSurveyId={selectedSurveyId}
-              selectedAssetUid={selectedAssetUid}
-              onSurveySelect={setSelectedSurveyId}
-              onAssetSelect={setSelectedAssetUid}
-              includePartials={includePartials}
-              onIncludePartialsChange={setIncludePartials}
-              busy={!!busy}
-              error={platformError}
-              message={platformMessage}
-              detectedKoboSource={detectedKoboSource}
-              onImportDetectedKoboSource={() => void onImportDetectedKoboSource()}
-              onImport={() => void onPlatformImport()}
-            />
+            {platformPanel}
             </CargaPlatformImportPanel>
           )}
 
