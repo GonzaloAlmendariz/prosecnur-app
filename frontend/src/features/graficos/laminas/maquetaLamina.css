@@ -166,6 +166,18 @@
   gap: 0.4em;
 }
 
+.pulso-f6-maqueta-bases.is-pregunta {
+  gap: 0.3em;
+}
+
+.pulso-f6-maqueta-bases.is-pregunta .pulso-f6-maqueta-base {
+  padding: 0.1em 0.6em;
+  border-color: var(--pulso-module-processing-border);
+  background: var(--pulso-module-processing-soft);
+  color: var(--pulso-text);
+  font-size: 0.95em;
+}
+
 .pulso-f6-maqueta-base {
   padding: 0.2em 0.7em;
   border: 1px solid var(--pulso-border);
