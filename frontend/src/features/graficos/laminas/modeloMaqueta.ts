@@ -50,7 +50,7 @@ export const COLOR_SEGUNDA = "#9DC3E6";
 
 export type OpcionMaqueta = { rotulo: string; color: string | null };
 /** `ttb`: la columna Top Two Box de ESA pregunta (en multi-apiladas cada bloque decide la suya). */
-export type PreguntaMaqueta = { titulo: string; opciones: OpcionMaqueta[]; ttb: boolean };
+export type PreguntaMaqueta = { titulo: string; opciones: OpcionMaqueta[]; ttb: boolean; /** Bases (actores) de ESTA pregunta, legibles; vacío en un informe de una base. */ bases: string[] };
 export type ColoresMaqueta = { paletas: MapaPaletas; vinculos?: VinculosPaletas };
 
 /** La escala de una pregunta (las opciones de su lista) con el color que le da la paleta de esa lista, si tiene. */
@@ -151,7 +151,8 @@ export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variabl
       const preguntas: PreguntaMaqueta[] = grupos.map((g) => {
         const iv = g.refs[0] ? buscar(g.refs[0]) : undefined;
         const titulo = g.titulo ?? cleanInferredVariableTitle(iv?.label) ?? (g.refs[0] ? parseVarRef(g.refs[0]).name : "");
-        return { titulo, opciones: escalaDe(iv, colores), ttb: g.ttb ?? twoBox.ttb };
+        const basesQ = [...new Set(g.refs.map((x) => parseVarRef(x).source).filter((x): x is string => !!x))];
+        return { titulo, opciones: escalaDe(iv, colores), ttb: g.ttb ?? twoBox.ttb, bases: bases.length > 1 ? basesQ.map(nombreBase) : [] };
       });
       const firmas = new Set(preguntas.map((q) => firmaOpciones(q.opciones.map((o) => o.rotulo))).filter(Boolean));
       return {

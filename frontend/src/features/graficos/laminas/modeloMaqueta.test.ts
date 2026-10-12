@@ -27,6 +27,20 @@ describe("maqueta: qué muestra cada ranura", () => {
     expect(r.twoBox.ttb).toBe(true);
   });
 
+  it("cada pregunta dice de qué bases viene: dos preguntas pueden cruzar actores distintos", () => {
+    const vars = [
+      { name: "p9", source: "docentes", label: "¿Conoce?", list_name: "sn", choices: [] },
+      { name: "p9", source: "estudiantes", label: "¿Conoce?", list_name: "sn", choices: [] },
+      { name: "p20", source: "egresados", label: "¿Recomendaría?", list_name: "sn", choices: [] },
+    ] as never[];
+    const s = slide({ graficador: "p_barras_multiapiladas", args: { modo: "multilista", bloques: [
+      { vars: { t: ["docentes$p9", "estudiantes$p9"] } },
+      { vars: { t: ["egresados$p20"] } },
+    ] } });
+    const [r] = ranurasDeMaqueta(s, vars);
+    expect(r.preguntas.map((q) => q.bases)).toEqual([["Docentes", "Estudiantes"], ["Egresados"]]);
+  });
+
   it("una sola base no se lista, y la pregunta sale de la etiqueta de la variable", () => {
     const [r] = ranurasDeMaqueta(slide({ graficador: "p_barras_categoricas", args: { var: "estudiantes$p1" } }),
       [{ name: "p1", label: "Sexo (Recodificada)", source: "estudiantes" } as never]);
@@ -60,7 +74,7 @@ describe("maqueta: qué muestra cada ranura", () => {
     const graf = (b: string[]) => slide({ graficador: "p_barras_multiapiladas", args: { modo: "multilista", bloques: b.map((v) => ({ vars: { t: [`docentes$${v}`] } })) } });
     const [dist] = ranurasDeMaqueta(graf(["p11", "p12"]), vars, {}, { paletas: { sn: { "Sí": "#081F5C" } } });
     expect(dist.mismaEscala).toBe(false);
-    expect(dist.preguntas[0]).toEqual({ titulo: "¿Conoce?", opciones: [{ rotulo: "Sí", color: "#081F5C" }, { rotulo: "No", color: null }], ttb: false });
+    expect(dist.preguntas[0]).toEqual({ titulo: "¿Conoce?", opciones: [{ rotulo: "Sí", color: "#081F5C" }, { rotulo: "No", color: null }], ttb: false, bases: [] });
     const [igual] = ranurasDeMaqueta(graf(["p11", "p11"]), vars, {});
     expect(igual.mismaEscala).toBe(true);
   });

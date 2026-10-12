@@ -106,11 +106,16 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
               {r.preguntas.map((q, j) => (
                 <span key={j} className="pulso-f6-maqueta-pregunta-caja">
                   <span className="pulso-f6-maqueta-pregunta-item">{q.titulo}</span>
+                  {q.bases.length > 0 && (
+                    <span className="pulso-f6-maqueta-bases is-pregunta" aria-label={`Bases: ${q.bases.join(", ")}`}>
+                      {q.bases.map((b) => <span key={b} className="pulso-f6-maqueta-base">{b}</span>)}
+                    </span>
+                  )}
                   {r.pinta === "categorias" ? <EscalaMaqueta opciones={q.opciones} /> : <UnColorMaqueta opciones={q.opciones} resalta={r.resaltaMayor} />}
                 </span>
               ))}
             </span>
-            {r.bases.length > 0 && (
+            {r.bases.length > 0 && r.preguntas.every((q) => q.bases.length === 0) && (
               <span className="pulso-f6-maqueta-bases">
                 {r.bases.map((b) => <span key={b} className="pulso-f6-maqueta-base">{b}</span>)}
               </span>
