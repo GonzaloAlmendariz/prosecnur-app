@@ -286,6 +286,8 @@
 .lam_laminas_multilista <- function(doc, ml, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
                                     layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
+  # Un título de más de tres líneas baja la zona de datos antes de planear las partes (lamina_titulo_alto.R).
+  .lam_con_titulo(c(titulo, .particion_titulo_cont(titulo)), {
   items <- .lam_multilista_items(ml)
   compartida <- .lam_multilista_leyenda_compartida(lapply(items, `[[`, "espec"))
   partes <- .lam_multilista_planear(items, compartida)
@@ -300,6 +302,7 @@
     doc <- por_lamina(doc)
   }
   list(doc = doc, partes = length(partes))
+  })
 }
 
 #' La rama `slide_1` de una multilista, en nativo: la base y la nota como la escala simple

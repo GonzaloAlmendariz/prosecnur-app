@@ -47,6 +47,8 @@
   # El documento officer se modifica en sitio: un folio perezoso (`length(doc) + 1L`) se evaluaría después del
   # primer add_slide y saldría corrido. Se fuerza antes de tocar el documento (verificador de N1).
   force(folio)
+  # Un título de más de tres líneas baja la zona de datos antes de planear las partes (lamina_titulo_alto.R).
+  .lam_con_titulo(c(titulo, .particion_titulo_cont(titulo)), {
   premisas <- .lam_escala_premisas(espec)
   # Con fila Total o Bottom Two Box el recetario compone filas bajo cada pregunta (lámina 77); se parte por
   # bloques y, si hace falta, por filas repitiendo la Total (verificador de N2).
@@ -64,6 +66,7 @@
     doc <- por_lamina(doc)
   }
   list(doc = doc, partes = length(partes))
+  })
 }
 
 #' Antetítulo de cada lámina del plan: la sección vigente, o el que declare la lámina
