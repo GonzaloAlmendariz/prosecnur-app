@@ -549,6 +549,13 @@ after(async () => {
   }
 });
 
+// El editor anterior de Gráficos (pestaña «clasico», su shell .pulso-gv2-shell, la línea de tiempo y «Agregar slide»)
+// se retiró el 2026-10-11 (d5aa22564): sus dos bibliotecas ya no se montan en ninguna vista. Láminas usa sus propios
+// selectores de lámina y de gráfico, cubiertos por las pruebas del feature (frontend/src/features/graficos/laminas).
+// Estas pruebas de montaje quedan sin superficie que recorrer; se conservan saltadas hasta decidir si las bibliotecas
+// vuelven a montarse o se borran junto con su código.
+const RETIRADO_EDITOR_ANTERIOR = "el editor anterior de Gráficos se retiró (d5aa22564): sus bibliotecas ya no se montan";
+
 test("fixture v1 conserva procedencia acnur_acg sin datos de cliente", () => {
   assert.equal(fixture.schema, "prosecnur.qa.graficos_libraries_fixture.v1");
   assert.equal(fixture.source.reference_project, "acnur_acg");
@@ -560,7 +567,7 @@ test("fixture v1 conserva procedencia acnur_acg sin datos de cliente", () => {
   assert.deepEqual(fixtureSanitizationViolations(fixture), []);
 });
 
-test("1440: teclado, búsqueda, insertar-y-seguir, trap, Escape y reemplazo montados", async () => {
+test("1440: teclado, búsqueda, insertar-y-seguir, trap, Escape y reemplazo montados", { skip: RETIRADO_EDITOR_ANTERIOR }, async () => {
   await runFixtureContext(VIEWPORT_LARGE, {}, async (page) => {
     await openEditor(page);
     const timelineSlides = page.locator(
@@ -701,7 +708,7 @@ test("1440: teclado, búsqueda, insertar-y-seguir, trap, Escape y reemplazo mont
   });
 });
 
-test("1024: ambos diálogos abren y guards separan futuro, dimensiones y disponibilidad", async () => {
+test("1024: ambos diálogos abren y guards separan futuro, dimensiones y disponibilidad", { skip: RETIRADO_EDITOR_ANTERIOR }, async () => {
   await runFixtureContext(VIEWPORT_COMPACT, { includeFutureSlide: true }, async (page) => {
     await openEditor(page);
     const { root, trigger } = await openSlidesFromTrigger(page);
@@ -756,7 +763,7 @@ test("1024: ambos diálogos abren y guards separan futuro, dimensiones y disponi
   });
 });
 
-test("loading/error/empty/no-results montan una sola live-region en ambas bibliotecas", async () => {
+test("loading/error/empty/no-results montan una sola live-region en ambas bibliotecas", { skip: RETIRADO_EDITOR_ANTERIOR }, async () => {
   const cases = [
     { library: "slides", viewport: VIEWPORT_LARGE, root: SLIDE_ROOT, frame: SLIDE_FRAME, search: "Buscar modelo de slide", panel: "biblioteca-slides", readyCount: 20 },
     { library: "graficadores", viewport: VIEWPORT_COMPACT, root: GRAF_ROOT, frame: GRAF_FRAME, search: "Buscar graficador", panel: "biblioteca-graficadores", readyCount: 19 },
@@ -926,7 +933,7 @@ async function runLateSessionAResponse() {
   });
 }
 
-test("A→B falla cerrado con órdenes diferidos y una respuesta A tardía", async () => {
+test("A→B falla cerrado con órdenes diferidos y una respuesta A tardía", { skip: RETIRADO_EDITOR_ANTERIOR }, async () => {
   await runCrossSessionOrder(VIEWPORT_LARGE, "state-before-registry");
   await runCrossSessionOrder(VIEWPORT_COMPACT, "registry-before-state");
   await runLateSessionAResponse();
