@@ -47,7 +47,7 @@ import {
   downloadUrl,
   uploadKindForDataFile,
 } from "../../api/client";
-import { apiCargaImportKoboSeparadaAsync, apiCargaImportSurveyMonkeySeparadaAsync } from "../../api/xlsformEditor";
+import { apiCargaAgregarFuenteSm, apiCargaImportKoboSeparadaAsync, apiCargaImportSurveyMonkeySeparadaAsync } from "../../api/xlsformEditor";
 import { nombreCortoDeEncuesta, nombreLibreDeBase } from "./importSeparadoModel";
 import { BasesDelEstudio } from "./fuentes/BasesDelEstudio";
 import { NuevaBaseArchivos } from "./fuentes/NuevaBaseArchivos";
@@ -258,6 +258,8 @@ export default function CargaPage() {
   const monitoringReviewActionLabel = "Revisar Monitoreo";
   const [selectedCargaBase, setSelectedCargaBase] = useState("");
   const [platformProvider, setPlatformProvider] = useState<CargaPlatformProvider>("surveymonkey");
+  // «Agregar otra fuente a esta base» (F2): mientras está puesto, el import del catálogo se suma a esa base.
+  const [fuenteDestino, setFuenteDestino] = useState<{ base: string; canal: string } | null>(null);
   const [connections, setConnections] = useState<ConnectionTokenState[]>([]);
   const [connectionsLoading, setConnectionsLoading] = useState(false);
   const [platformQuery, setPlatformQuery] = useState("");
@@ -457,6 +459,20 @@ export default function CargaPage() {
         const survey = smSurveys.find((item) => item.id === selectedSurveyId);
         if (!survey) {
           setPlatformError("Selecciona una encuesta SurveyMonkey.");
+          return;
+        }
+        if (fuenteDestino) {
+          setBusy(`Uniendo ${survey.title} a la base «${fuenteDestino.base}»…`);
+          const r = await apiCargaAgregarFuenteSm({
+            base_name: fuenteDestino.base,
+            survey_id: survey.id,
+            title: survey.title,
+            source_channel: fuenteDestino.canal.trim(),
+            connection_profile_id: activeSmProfile?.id || "",
+          });
+          await onEstudioChanged(r.estudio);
+          setPlatformMessage(`«${r.base_name}» ahora une ${r.n_fuentes} fuentes, con ${r.n_filas} respuestas.`);
+          setFuenteDestino(null);
           return;
         }
         // «Bases separadas»: la encuesta entra como una base NUEVA con nombre corto («docentes»), sin tocar las demás.
@@ -1423,6 +1439,8 @@ export default function CargaPage() {
                     if (o === "surveymonkey" || o === "kobo") { setPlatformProvider(o); setSourceMode("platform"); }
                     else setSourceMode(o === "archivos" ? "files" : "monitoring");
                   }}
+                  onDestinoFuente={(d) => { setFuenteDestino(d); if (d) { setPlatformProvider("surveymonkey"); setSourceMode("platform"); } }}
+                  renderCatalogo={() => platformPanel}
                   renderOrigen={(o) => (o === "surveymonkey" || o === "kobo" ? platformPanel : o === "monitoreo" ? monitoringSourcePanel : (
                     <NuevaBaseArchivos estudio={estudio} onCambio={onEstudioChanged} />
                   ))}

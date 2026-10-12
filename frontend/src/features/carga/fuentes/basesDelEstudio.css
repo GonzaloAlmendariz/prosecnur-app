@@ -274,3 +274,16 @@
 .pulso-bde-archivo:hover { border-color: var(--pulso-primary-border); }
 .pulso-bde-archivo.is-listo { border-style: solid; border-color: var(--pulso-success-border); background: var(--pulso-success-bg); }
 .pulso-bde-archivo:focus-within { box-shadow: 0 0 0 3px var(--pulso-primary-ring); }
+
+.pulso-bde-fuentes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.pulso-bde-fuentes li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }

@@ -1978,6 +1978,13 @@ mount_carga <- function(pr) {
       .carga_platform_endpoint(sid, "surveymonkey_import_separate", parsed)
     })) |>
 
+    # «Agregar otra fuente a esta base»: el mismo actor por otra vía (carga_sm_agregar_fuente.R).
+    plumber::pr_post("/api/carga/platform/surveymonkey/add-source", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      parsed <- .carga_parse_json_body(req)
+      .carga_platform_endpoint(sid, "surveymonkey_add_source", parsed)
+    })) |>
+
     plumber::pr_get("/api/carga/platform/kobo/detected-source", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       .carga_kobo_detected_source(sid)
