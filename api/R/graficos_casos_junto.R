@@ -100,3 +100,14 @@
     siempre = "Junto a cada porcentaje va el número de personas entre paréntesis.",
     sprintf("Con menos de %d casos, junto al porcentaje va el número de personas entre paréntesis.", as.integer(r$umbral)))
 }
+
+#' Quita del preset de un tipo de gráfico la decisión sobre los casos (`mostrar_n_en_etiquetas`)
+#'
+#' Los proyectos guardaron el valor por defecto de antes en sus presets (FALSE en barras agrupadas, TRUE en tortas), y ese
+#' valor guardado no es una decisión del usuario: si quedara, ganaría al ajuste «Casos junto al porcentaje» del informe.
+#' Lo que sí manda es lo que pida el gráfico en sus overrides.
+#' @keywords internal
+.casos_junto_sin_preset <- function(preset_args) {
+  if (is.list(preset_args)) preset_args$mostrar_n_en_etiquetas <- NULL
+  preset_args
+}

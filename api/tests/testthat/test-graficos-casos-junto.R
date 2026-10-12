@@ -75,3 +75,8 @@ test_that("el «Cómo leer» del Word dice el umbral elegido, o nada con «nunca
   withr::local_options(prosecnur.casos_junto = list(cuando = "nunca"))
   expect_null(.casos_junto_frase_larga()); expect_null(.casos_junto_frase_corta())
 })
+
+test_that("el preset guardado de un tipo no decide los casos: lo hace el ajuste del informe", {
+  expect_null(.casos_junto_sin_preset(list(mostrar_n_en_etiquetas = FALSE, x = 1))$mostrar_n_en_etiquetas)
+  expect_identical(.casos_junto_sin_preset(list(x = 1)), list(x = 1))
+})
