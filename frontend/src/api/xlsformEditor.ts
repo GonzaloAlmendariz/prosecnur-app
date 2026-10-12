@@ -1284,8 +1284,29 @@ export async function apiCargaImportKoboSeparadaAsync(payload: CargaImportKoboPa
 
 /** «Agregar otra fuente a esta base»: suma una encuesta SurveyMonkey a una base existente (mismo actor, otra vía). */
 export async function apiCargaAgregarFuenteSm(payload: { base_name: string; survey_id: string; title?: string; source_channel?: string; connection_profile_id?: string }) {
-  return handle<{ ok: true; base_name: string; n_filas: number; n_fuentes: number; estudio: EstudioPayload }>(
+  return handle<{ ok: true; base_name: string; n_filas: number; n_nuevas: number; n_fuentes: number; agregadas: Array<{ fuente: string; base: string; etiqueta: string }>; estudio: EstudioPayload }>(
     await apiFetch("/api/carga/platform/surveymonkey/add-source", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export type VistaPreviaFuente = {
+  ok: true;
+  base_name: string;
+  titulo: string;
+  n_emparejadas: number;
+  n_preguntas_base: number;
+  extra: Array<{ variable: string; etiqueta: string }>;
+  faltan: Array<{ variable: string; etiqueta: string }>;
+};
+
+/** Qué pasaría al unir una encuesta a una base: preguntas que calzan, que trae de más y que le faltan. No escribe. */
+export async function apiCargaVistaPreviaFuenteSm(payload: { base_name: string; survey_id: string; title?: string; source_channel?: string; connection_profile_id?: string }) {
+  return handle<VistaPreviaFuente>(
+    await apiFetch("/api/carga/platform/surveymonkey/add-source/preview", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),

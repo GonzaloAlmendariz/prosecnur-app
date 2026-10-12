@@ -406,6 +406,7 @@ errores_registrados <- function() {
     "E_FORM_NOT_FOUND",                                      "router_xlsform_editor.R",           "404",
     "E_FORMATO_EXPORT",                                      "router_carga.R",                    "400",
     "E_FORMATO_INVALIDO",                                    "router_hojas_ruta.R",               "400",
+    "E_FUENTE_OTRO_INSTRUMENTO",                             "carga_sm_agregar_fuente.R",         "409",
     "E_FUENTE_REPETIDA",                                     "carga_sm_agregar_fuente.R",         "409",
     "E_DRIVE_FICHAS",                                         "collection_drive.R",                "409",
     "E_DRIVE_SCOPE",                                          "collection_drive.R",                "409",
