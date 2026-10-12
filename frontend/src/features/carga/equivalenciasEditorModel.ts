@@ -658,3 +658,10 @@ export function resumenEditor(filas: readonly FilaEditor[]): ResumenEditor {
     conDiapositiva: confirmadas.filter((f) => (f.diapositiva ?? "").trim()).length,
   };
 }
+
+/** Cómo se lee la sección de una diapositiva: «Pag2» es el nombre interno de la página en SurveyMonkey. */
+export function seccionLegible(seccion: string | null | undefined): string {
+  const s = (seccion ?? "").trim();
+  const m = /^pag(?:ina|e)?\s*_?(\d+)$/i.exec(s);
+  return m ? `Página ${Number(m[1])} del formulario` : s;
+}

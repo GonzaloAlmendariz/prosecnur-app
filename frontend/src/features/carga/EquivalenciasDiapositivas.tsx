@@ -20,7 +20,7 @@ import { useEffect, useState } from "react";
 import { Check, Info, Layers, Plus, Sparkles, Trash2 } from "../../vendor/lucide-react";
 import type { VariableDeBase } from "../../api/equivalencias";
 import type { CampoFila, CatalogoEscalas, FilaEditor, DiapositivaEditor } from "./equivalenciasEditorModel";
-import { escalaDeFila, resumenEscala } from "./equivalenciasEditorModel";
+import { escalaDeFila, resumenEscala, seccionLegible } from "./equivalenciasEditorModel";
 import { EscalaChip } from "./EscalaChip";
 import { BloqueGrafico, type EstiloRadar } from "./BloqueGrafico";
 
@@ -398,7 +398,7 @@ export function EquivalenciasDiapositivas({
                     onCambiar={(v) => onEditarDiapositiva(diapo.clave, "enunciado", v)}
                   />
                 )}
-                {diapo.seccion && <span className="pulso-equiv-seccion">{diapo.seccion}</span>}
+                {diapo.seccion && <span className="pulso-equiv-seccion">{seccionLegible(diapo.seccion)}</span>}
               </div>
 
               <div className="pulso-equiv-diapositiva-meta">
