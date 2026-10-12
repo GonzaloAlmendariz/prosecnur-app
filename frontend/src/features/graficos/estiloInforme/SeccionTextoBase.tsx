@@ -7,6 +7,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { RotateCcw } from "../../../vendor/lucide-react";
 import { SelloProcedencia } from "../estilo/SelloProcedencia";
 import { CabeceraSeccion } from "./CabeceraSeccion";
+import { SufijosPorBase } from "./SufijosPorBase";
 import { formatoDesdePartes, N_EJEMPLO, partesFormato, type CampoBase, type TextoBase } from "./modeloEstiloInforme";
 
 function CampoTexto({
@@ -69,8 +70,15 @@ export function SeccionTextoBase({
   onCambiar,
   onVolver,
   onVolverTodo,
+  bases = [],
+  sufijosPorBase = {},
+  onSufijoDeBase,
 }: {
   texto: TextoBase;
+  /** Bases del informe; con más de una, cada base lleva su palabra después del número. */
+  bases?: readonly string[];
+  sufijosPorBase?: Record<string, string>;
+  onSufijoDeBase?: (base: string, palabra: string) => void;
   onCambiar: (arg: string, valor: string) => void;
   onVolver: (arg: string) => void;
   onVolverTodo: () => void;
@@ -82,7 +90,7 @@ export function SeccionTextoBase({
       <CabeceraSeccion
         id={tituloId}
         titulo="Texto de la base"
-        modificado={texto.modificado}
+        modificado={texto.modificado || Object.keys(sufijosPorBase).length > 0}
         etiquetaVolver="Volver al texto de la base por defecto"
         onVolver={onVolverTodo}
       />
@@ -99,7 +107,10 @@ export function SeccionTextoBase({
           onCambiar={(v) => onCambiar(texto.formato.arg, formatoDesdePartes({ ...partes, inicio: v }))}
           onVolver={() => onVolver(texto.formato.arg)}
         />
-        <CampoTexto
+        {bases.length > 1 && onSufijoDeBase ? (
+          <SufijosPorBase bases={bases} sufijos={sufijosPorBase} formato={texto.formato.valor} onCambiar={onSufijoDeBase} />
+        ) : (
+          <CampoTexto
           key={`sufijo:${texto.sufijo.valor}`}
           campo={texto.sufijo}
           etiqueta="Después del número"
@@ -108,12 +119,15 @@ export function SeccionTextoBase({
           porDefecto={texto.sufijo.porDefecto}
           onCambiar={(v) => onCambiar(texto.sufijo.arg, v)}
           onVolver={() => onVolver(texto.sufijo.arg)}
-        />
+          />
+        )}
       </div>
-      <p className="pulso-f6-informe-ejemplo">
-        <span className="pulso-f6-informe-ejemplo-rotulo">Con {N_EJEMPLO} casos se lee:</span>{" "}
-        <output className="pulso-f6-informe-ejemplo-texto">{texto.ejemplo}</output>
-      </p>
+      {bases.length > 1 ? null : (
+        <p className="pulso-f6-informe-ejemplo">
+          <span className="pulso-f6-informe-ejemplo-rotulo">Con {N_EJEMPLO} casos se lee:</span>{" "}
+          <output className="pulso-f6-informe-ejemplo-texto">{texto.ejemplo}</output>
+        </p>
+      )}
     </section>
   );
 }

@@ -45,6 +45,8 @@ import { SeccionTextoBase } from "./SeccionTextoBase";
 import { SeccionCasos } from "./SeccionCasos";
 import { Subpestanas, useSubpestana, type Subpestana } from "../subpestanas/Subpestanas";
 import { conCasosJunto, leerCasosJunto } from "./casosJunto";
+import { ARG_SUFIJO_POR_BASE, conSufijoDeBase, leerSufijosPorBase } from "./sufijoPorBase";
+import { useVariables } from "../useVariables";
 // Los sellos «Del recetario»/«Propio» y «Modificado» son los de «Estilo del cliente»: se reusa su hoja, no se copian.
 import "../estilo/estilo.css";
 import "./estiloInforme.css";
@@ -67,6 +69,8 @@ export default function PestanaEstiloInforme() {
   const { presets: defaults, loading: cargandoDefaults } = usePresetsDefaults();
   const presets = usePlanStore((s) => s.presets);
   const setPresets = usePlanStore((s) => s.setPresets);
+  const { sources: fuentes, multi } = useVariables();
+  const bases = multi ? fuentes.map((f) => f.name) : [];
   const wPresets = usePlanStore((s) => s.wPresets);
   const setWPresets = usePlanStore((s) => s.setWPresets);
   const configDefaults = usePlanStore((s) => s.configDefaults);
@@ -134,7 +138,10 @@ export default function PestanaEstiloInforme() {
             texto={texto}
             onCambiar={(arg, valor) => cambiarPresets((p) => conArg(p, PRESET_BASE, arg, valor, defaultBase(arg)))}
             onVolver={(arg) => cambiarPresets((p) => sinArgs(p, PRESET_BASE, [arg]))}
-            onVolverTodo={() => cambiarPresets((p) => sinArgs(p, PRESET_BASE, [ARG_FORMATO, ARG_SUFIJO]))}
+            onVolverTodo={() => cambiarPresets((p) => sinArgs(p, PRESET_BASE, [ARG_FORMATO, ARG_SUFIJO, ARG_SUFIJO_POR_BASE]))}
+            bases={bases}
+            sufijosPorBase={leerSufijosPorBase(presets)}
+            onSufijoDeBase={(base, palabra) => cambiarPresets((p) => conSufijoDeBase(p, base, palabra))}
           />
           )}
           {sub === "calculos" && <SeccionCalculos filas={filas} nota={nota} acciones={acciones} estado={estadoCalculos} />}

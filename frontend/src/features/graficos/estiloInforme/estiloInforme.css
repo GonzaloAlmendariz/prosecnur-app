@@ -325,3 +325,30 @@
     transition: none !important;
   }
 }
+
+/* Texto de la base con varias bases: una fila por base, con su ejemplo al lado. */
+.pulso-f6-sufijos-base {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.pulso-f6-sufijo-base {
+  display: grid;
+  grid-template-columns: minmax(96px, 140px) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.pulso-f6-sufijo-base-nombre {
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+.pulso-f6-sufijo-base-ejemplo {
+  color: var(--pulso-text-soft);
+  font-size: 0.9em;
+}
+@media (max-width: 720px) {
+  .pulso-f6-sufijo-base { grid-template-columns: 1fr; gap: 4px; }
+}
