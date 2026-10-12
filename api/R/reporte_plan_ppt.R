@@ -3946,7 +3946,7 @@ reporte_ppt_plan <- function(
       list()
     )
 
-    args <- list(el = el, preset_args = preset_args)
+    args <- list(el = el, preset_args = .casos_junto_sin_preset(preset_args))   # los casos los decide el ajuste del informe o el gráfico
     out <- tryCatch(.call_keep_formals(fn, args), error = identity)
 
     if (inherits(out, "error")) {
@@ -5546,7 +5546,7 @@ reporte_ppt_plan <- function(
       cols_porcentaje     = "pct",
       etiquetas_series    = etiquetas_series,
       cols_n              = cols_n,
-      mostrar_n_en_etiquetas = FALSE,
+      mostrar_n_en_etiquetas = NA,   # lo decide «Casos junto al porcentaje» (o el gráfico)
       colores_series      = colores_series,
       colores_categorias  = colores_categorias,
       mostrar_ceros       = mostrar_ceros,
