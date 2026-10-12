@@ -4,6 +4,7 @@ import {
   combinacionesPara,
   conColoresDelGrupo,
   esRespuestaResidual,
+  textoSobre,
   estadoGrupo,
   grupoCoincide,
   gruposDeRespuestas,
@@ -73,6 +74,13 @@ describe("Colores de las respuestas", () => {
       expect(Object.keys(c.colores)).toHaveLength(5);
       expect(c.nombre).not.toMatch(/Pulso/);
     }
+  });
+
+  it("el rótulo sobre un color oscuro va claro y sobre uno claro, oscuro", () => {
+    expect(textoSobre("#081F5C")).toBe("claro");
+    expect(textoSobre("#9DC3E6")).toBe("oscuro");
+    expect(textoSobre("#EFD25E")).toBe("oscuro");
+    expect(textoSobre(undefined)).toBe("oscuro");
   });
 
   it("busca por opción, pregunta o base sin importar tildes", () => {

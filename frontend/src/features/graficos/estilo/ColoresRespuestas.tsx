@@ -10,7 +10,7 @@ import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States
 import { Check, ChevronDown, Palette, Search } from "../../../vendor/lucide-react";
 import { usePlanStore } from "../store";
 import { useVariables } from "../useVariables";
-import { combinacionesPara, gruposDeRespuestas, grupoCoincide, MUESTRAS_MARCA, type ListaRespuestas } from "./modeloColoresRespuestas";
+import { combinacionesPara, gruposDeRespuestas, grupoCoincide, MUESTRAS_MARCA, textoSobre, type ListaRespuestas } from "./modeloColoresRespuestas";
 import {
   conAgrupado,
   conColoresDeFila,
@@ -41,13 +41,6 @@ function Estado({ fila }: { fila: FilaPaleta }) {
   if (lleno(fila)) return <span className="pulso-cr-estado is-completo"><Check size={12} aria-hidden="true" />Lista</span>;
   if (fila.faltan < fila.opciones.length) return <span className="pulso-cr-estado is-faltan">Faltan {fila.faltan} {fila.faltan === 1 ? "color" : "colores"}</span>;
   return <span className="pulso-cr-estado is-vacio">Sin colores</span>;
-}
-
-function resumen(f: FilaPaleta): string {
-  const p = f.preguntas.length;
-  const preguntas = p === 1 ? "1 pregunta" : `${p} preguntas`;
-  if (f.bases.length > 1) return `${preguntas} en ${f.bases.length} bases`;
-  return f.bases.length === 1 ? `${preguntas} de ${f.bases[0]}` : preguntas;
 }
 
 function CampoNombre({ fila, error, onGuardar }: { fila: FilaPaleta; error: (n: string) => string | null; onGuardar: (n: string) => void }) {
@@ -181,22 +174,37 @@ function FilaColores(props: {
   return (
     <article className={abierta ? "pulso-cr-fila is-abierta" : "pulso-cr-fila"} data-qa-geometry-member>
       <button type="button" className="pulso-cr-fila-cabecera" aria-expanded={abierta} aria-controls={cuerpoId} onClick={props.onAbrir}>
-        <span className="pulso-cr-muestrario" aria-hidden="true">
-          {fila.opciones.map((o) => <span key={o} className={fila.colores[o] ? undefined : "is-vacio"} style={fila.colores[o] ? { background: fila.colores[o] } : undefined} />)}
-        </span>
-        <span className="pulso-cr-fila-titulo">
+        <span className="pulso-cr-identidad">
           <span className="pulso-cr-fila-nombre">
             {fila.nombre}
             {fila.clave ? <span className="pulso-cr-sello">Paleta con nombre</span> : null}
           </span>
-          <span className="pulso-cr-fila-resumen">{resumen(fila)}{fila.grupos.length > 1 ? `, ${fila.grupos.length} grupos de respuestas` : ""}</span>
+          <span className="pulso-cr-fila-resumen">
+            {fila.preguntas.length === 1 ? "1 pregunta" : `${fila.preguntas.length} preguntas`}
+            {fila.bases.length > 1 ? ` en ${fila.bases.length} bases` : fila.bases.length === 1 ? ` de ${fila.bases[0]}` : ""}
+          </span>
+          {fila.grupos.length > 1 ? <span className="pulso-cr-fila-resumen">Reúne {fila.grupos.length} grupos de respuestas</span> : null}
         </span>
-        <Estado fila={fila} />
-        <ChevronDown size={18} aria-hidden="true" className="pulso-cr-chevron" />
+        <span className="pulso-cr-vista">
+          <span className="pulso-cr-barra" aria-label={`Respuestas: ${fila.opciones.join(", ")}`}>
+            {fila.opciones.map((o) => (
+              <span
+                key={o}
+                className={`pulso-cr-segmento is-${fila.colores[o] ? textoSobre(fila.colores[o]) : "vacio"}`}
+                style={fila.colores[o] ? { background: fila.colores[o] } : undefined}
+                title={fila.colores[o] ? o : `${o}: sin color`}
+              >
+                <span className="pulso-cr-segmento-texto">{o}</span>
+              </span>
+            ))}
+          </span>
+          {fila.preguntas[0] ? <span className="pulso-cr-ejemplo">{fila.preguntas[0].texto}</span> : null}
+        </span>
+        <span className="pulso-cr-lado">
+          <Estado fila={fila} />
+          <ChevronDown size={18} aria-hidden="true" className="pulso-cr-chevron" />
+        </span>
       </button>
-      <ul className="pulso-cr-chips" aria-label="Respuestas">
-        {fila.opciones.map((o) => <li key={o} className="pulso-cr-chip"><Punto color={fila.colores[o]} />{o}</li>)}
-      </ul>
       {abierta ? (
         <div id={cuerpoId} className="pulso-cr-editor">
           <div className="pulso-cr-editor-col">

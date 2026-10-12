@@ -162,3 +162,13 @@ export function grupoCoincide(g: GrupoRespuestas, consulta: string): boolean {
   if (!q) return true;
   return [...g.opciones, ...g.preguntas.map((p) => p.texto), ...g.bases].some((t) => normalizarEtiquetaPaleta(t).includes(q));
 }
+
+/** Si el texto sobre un color va claro u oscuro (luminancia relativa, como la que usa el motor para las etiquetas). */
+export function textoSobre(hex: string | undefined): "claro" | "oscuro" {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex ?? "");
+  if (!m) return "oscuro";
+  const n = parseInt(m[1], 16);
+  const lin = (c: number) => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  const l = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+  return l < 0.4 ? "claro" : "oscuro";
+}
