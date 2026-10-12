@@ -52,11 +52,11 @@
 #' `idx` son las categorías que quedaron; la base es `n_base_casos` o, sin ella, la suma de los casos de todas. Una cifra
 #' que ya trae su paréntesis (`mostrar_n_en_etiquetas`) no se toca.
 #' @keywords internal
-.casos_junto_cifras <- function(cifras, n_casos, n_base_casos = NULL, idx = seq_along(cifras)) {
+.casos_junto_cifras <- function(cifras, n_casos, n_base_casos = NULL, idx = seq_along(cifras), propio = NA) {
   base <- suppressWarnings(as.numeric(n_base_casos %||% NA_real_)[1])
   if (!is.finite(base)) base <- sum(suppressWarnings(as.numeric(n_casos)), na.rm = TRUE)
   out <- as.character(cifras[idx])
-  if (!.casos_junto_muestra(base)) return(out)
+  if (!.casos_junto_decidir(propio, base)) return(out)
   n <- suppressWarnings(as.numeric(n_casos[idx]))
   pon <- is.finite(n) & !grepl("\\(", out)
   out[pon] <- sprintf("%s (%d)", out[pon], as.integer(round(n[pon])))

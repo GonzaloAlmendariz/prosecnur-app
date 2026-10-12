@@ -27,6 +27,7 @@ import { aplicaOrden, varCalificada } from "./ordenCategorias";
 import { useSession } from "../../../lib/SessionContext";
 import { OrdenCategoriasGrafico } from "./OrdenCategoriasGrafico";
 import { TwoBoxGrafico } from "./tarjetaGrafico/TwoBoxGrafico";
+import { CasosGrafico } from "./CasosGrafico";
 import { EnElWord } from "./tarjetaGrafico/EnElWord";
 import { ColoresGrafico } from "./colores/ColoresGrafico";
 import { NombresPorBase } from "./datosBase/NombresPorBase";
@@ -93,6 +94,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       )}
       <ColoresGrafico slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
       <TwoBoxGrafico slideId={slideId} slot={slot} valor={valor} onAbrirBloques={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })} />
+      <CasosGrafico slideId={slideId} slot={slot} valor={valor} />
       <EnElWord slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
     </div>
   );
