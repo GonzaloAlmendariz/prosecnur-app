@@ -129,14 +129,14 @@
   doc <- fig(doc, "Cifras pequeñas en distintas posiciones de la barra", .word_g_escala(esp, envolver = 16), base = "Base: 120 casos de ejemplo. Cifras ficticias. Fuente: PULSO PUCP 2026.")
 
   doc <- sec(doc, "Bases chicas e información faltante")
-  doc <- .word_lista(doc, c("Cuando un grupo tiene menos de 30 personas, junto al porcentaje va el número de casos, por ejemplo «12 de 15». Con tan pocos casos, una persona mueve varios puntos y no se comparan los grupos con pruebas de significancia.",
+  doc <- .word_lista(doc, c(.casos_junto_frase_larga(),   # sigue «Casos junto al porcentaje» (graficos_casos_junto.R)
                             "«Sin información» reúne a quienes no respondieron o respondieron «No sabe». Va al final de la barra, en gris, y cuenta en la base: así se ve cuántos no pudieron opinar.",
                             "Cada gráfico dice su base debajo. Si una pregunta sólo se hizo a una parte, la base lo indica, por ejemplo «Base: 20 estudiantes que respondieron Sí en la pregunta anterior»."))
   doc <- .word_recuadro(doc, "Cómo leer este informe", c(
     "Los porcentajes se calculan sobre quienes respondieron cada pregunta. La base va debajo de cada gráfico.",
     if (isTRUE(ponderada)) .WORD_COMO_LEER_PONDERADA,
     "Top Two Box es la suma de las dos respuestas de acuerdo de la escala.",
-    "Con menos de 30 casos, junto al porcentaje va el número de personas entre paréntesis.",
+    .casos_junto_frase_corta(),
     if (identical(redondeo, "resto_mayor")) "Las cifras se redondean al entero con el método del resto mayor, de modo que cada barra suma 100%."
     else if (identical(redondeo, "ambos")) "Unos gráficos redondean cada cifra por separado (una barra puede sumar 99% o 101%) y otros con el método del resto mayor (cada barra suma 100%)."
     else "Las cifras se redondean al entero por separado (desde 0.5 sube), así que una barra puede sumar 99% o 101%."))

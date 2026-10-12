@@ -65,3 +65,13 @@ test_that("Word: la dicotomía no repite el «(n)» y sigue el ajuste", {
   expect_true("27%" %in% l)          # la cifra grande sin su paréntesis
   expect_false("27% (4)" %in% l)
 })
+
+test_that("el «Cómo leer» del Word dice el umbral elegido, o nada con «nunca»", {
+  expect_match(.casos_junto_frase_corta(), "menos de 30 casos")
+  withr::local_options(prosecnur.casos_junto = list(cuando = "menos", umbral = 20))
+  expect_match(.casos_junto_frase_larga(), "menos de 20 personas")
+  withr::local_options(prosecnur.casos_junto = list(cuando = "siempre"))
+  expect_match(.casos_junto_frase_corta(), "Junto a cada porcentaje")
+  withr::local_options(prosecnur.casos_junto = list(cuando = "nunca"))
+  expect_null(.casos_junto_frase_larga()); expect_null(.casos_junto_frase_corta())
+})

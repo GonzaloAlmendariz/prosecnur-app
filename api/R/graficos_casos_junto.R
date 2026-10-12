@@ -78,3 +78,25 @@
   if (length(propio) && !is.na(propio[1])) return(isTRUE(propio[1]))
   .casos_junto_muestra(n_base)
 }
+
+#' Lo que el «Cómo leer» del Word dice de los casos, según el ajuste vigente (NULL con «nunca»: no se menciona)
+#' @keywords internal
+.casos_junto_frase_larga <- function() {
+  r <- .casos_junto_vigente()
+  switch(r$cuando,
+    nunca = NULL,
+    siempre = "Junto a cada porcentaje va el número de casos, por ejemplo «43% (12)»; en la columna Top Two Box, «12 de 15».",
+    sprintf(paste("Cuando un grupo tiene menos de %d personas, junto al porcentaje va el número de casos, por ejemplo «43%% (12)»",
+                  "o, en la columna Top Two Box, «12 de 15». Con tan pocos casos, una persona mueve varios puntos y no se comparan",
+                  "los grupos con pruebas de significancia."), as.integer(r$umbral)))
+}
+
+#' @rdname dot-casos_junto_frase_larga
+#' @keywords internal
+.casos_junto_frase_corta <- function() {
+  r <- .casos_junto_vigente()
+  switch(r$cuando,
+    nunca = NULL,
+    siempre = "Junto a cada porcentaje va el número de personas entre paréntesis.",
+    sprintf("Con menos de %d casos, junto al porcentaje va el número de personas entre paréntesis.", as.integer(r$umbral)))
+}
