@@ -529,6 +529,28 @@ test_that("sin enunciado titula la seccion, no el primer tema", {
                "¿Conoce la misión?")
 })
 
+test_that("una página interna de SurveyMonkey no titula; una diapositiva de un tema lleva su etiqueta", {
+  # Arte y Diseño 2026-10-11: «Agrupar» dejaba la sección «Pag2», «Pag3»… y el mazo salía con 17 láminas así tituladas.
+  sid <- .gpe_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  # Varios temas sin enunciado y con sección técnica: sin título (la Revisión lo pide), no «Pag6».
+  .gpe_declarar(sid, list(
+    list(etiqueta_estandar = "A", diapositiva = "1", seccion = "Pag6",
+         variables = list(docentes = "p13_1", estudiantes = "p11_1")),
+    list(etiqueta_estandar = "B", diapositiva = "1", seccion = "Pag6",
+         variables = list(docentes = "p14_1", estudiantes = "p12_1"))
+  ))
+  expect_equal(.graficos_plan_desde_equivalencias(sid)$plan$slides[[1]]$payload$titulo, "")
+  # Un tema: su etiqueta estándar nombra la lámina.
+  .gpe_declarar(sid, list(
+    list(etiqueta_estandar = "¿Conoce la misión?", diapositiva = "1", seccion = "Pag4",
+         variables = list(docentes = "p13_1", estudiantes = "p11_1"))
+  ))
+  expect_equal(.graficos_plan_desde_equivalencias(sid)$plan$slides[[1]]$payload$titulo, "¿Conoce la misión?")
+  expect_true(.equiv_seccion_es_pagina_tecnica("Página 3"))
+  expect_false(.equiv_seccion_es_pagina_tecnica("1.1 Institucionales"))
+})
+
 test_that("con un solo publico el eje Y lleva la etiqueta declarada", {
   # Un estudio que renombra sus temas —«Estados Financieros» en vez del enunciado
   # entero— perdia el nombre corto justo en la forma donde el eje ES el nombre.

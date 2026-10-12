@@ -164,3 +164,13 @@ describe("agruparPorBateria", () => {
     expect(out[1].diapositiva).toBe("8");
   });
 });
+
+describe("sección legible", () => {
+  it("«Pag2» de SurveyMonkey se lee como página del formulario; una sección real queda igual", async () => {
+    const { seccionLegible } = await import("./equivalenciasEditorModel");
+    expect(seccionLegible("Pag2")).toBe("Página 2 del formulario");
+    expect(seccionLegible("pag 12")).toBe("Página 12 del formulario");
+    expect(seccionLegible("Características institucionales")).toBe("Características institucionales");
+    expect(seccionLegible(null)).toBe("");
+  });
+});

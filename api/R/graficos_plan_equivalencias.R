@@ -460,11 +460,19 @@
     if (!nzchar(enunciado)) {
       for (f in filas) {
         sec <- trimws(as.character(f$seccion %||% ""))
-        if (nzchar(sec)) {
+        # «Pag2» es el nombre interno de la página en SurveyMonkey, no una sección: como título dejaba el mazo de
+        # Arte y Diseño con 17 láminas «Pag2», «Pag3»… (2026-10-11).
+        if (nzchar(sec) && !.equiv_seccion_es_pagina_tecnica(sec)) {
           enunciado <- sec
           break
         }
       }
+    }
+    # Una diapositiva de UN tema se titula con su etiqueta estándar: ahí la etiqueta sí nombra la lámina. Con varios
+    # temas no (titularía la lámina con su primer tema, que es lo que el ADR 0064 corrigió): queda vacía y la
+    # Revisión la pide.
+    if (!nzchar(enunciado) && length(filas) == 1L) {
+      enunciado <- trimws(as.character(filas[[1]]$etiqueta_estandar %||% ""))
     }
 
     slides[[length(slides) + 1L]] <- list(
@@ -538,4 +546,11 @@
     coverage = list(),
     warnings = character(0)
   )
+}
+
+
+#' ¿Es el nombre interno de una página de SurveyMonkey («Pag2», «Página 3», «page_4») y no una sección real?
+#' @keywords internal
+.equiv_seccion_es_pagina_tecnica <- function(x) {
+  grepl("^(pag|pagina|página|page)\\s*_?[0-9]+$", trimws(tolower(as.character(x %||% ""))))
 }
