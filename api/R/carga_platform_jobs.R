@@ -37,6 +37,7 @@
 .CARGA_PLATFORM_JOB_ACTIONS <- c(
   "surveymonkey_import",
   "surveymonkey_import_separate",
+  "surveymonkey_add_source",
   "kobo_import",
   "kobo_import_independent",
   "kobo_import_separate",
@@ -142,6 +143,7 @@
     kobo_import = .carga_import_kobo(sid, parsed),
     kobo_import_independent = .carga_import_kobo_independent(sid, parsed),
     surveymonkey_import_separate = .carga_import_surveymonkey_separate(sid, parsed),
+    surveymonkey_add_source = .carga_sm_agregar_fuente(sid, parsed),
     kobo_import_separate = .carga_import_kobo_separate(sid, parsed),
     kobo_refresh_independent = .carga_refresh_kobo_independent(sid, parsed),
     sm_multibase_import = {

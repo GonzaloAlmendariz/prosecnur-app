@@ -1282,6 +1282,17 @@ export async function apiCargaImportKoboSeparadaAsync(payload: CargaImportKoboPa
   );
 }
 
+/** «Agregar otra fuente a esta base»: suma una encuesta SurveyMonkey a una base existente (mismo actor, otra vía). */
+export async function apiCargaAgregarFuenteSm(payload: { base_name: string; survey_id: string; title?: string; source_channel?: string; connection_profile_id?: string }) {
+  return handle<{ ok: true; base_name: string; n_filas: number; n_fuentes: number; estudio: EstudioPayload }>(
+    await apiFetch("/api/carga/platform/surveymonkey/add-source", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
 export async function apiCargaImportKobo(
   payload: CargaImportKoboPayload,
 ): Promise<CargaPlatformImportResult> {
