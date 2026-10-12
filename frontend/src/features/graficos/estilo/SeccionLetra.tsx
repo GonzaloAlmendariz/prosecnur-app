@@ -111,7 +111,13 @@ export function SeccionLetra({
               </select>
               <p className="pulso-f6-estilo-rol-tamanos" aria-label={`Tamaños en el Word de ${ETIQUETA_ROL[rol].toLowerCase()}`}>
                 {tamanos.length > 0
-                  ? tamanos.map((t) => <span key={t.token}><span className="pulso-f6-estilo-token">{t.etiqueta}</span> {t.texto}</span>)
+                  ? tamanos.map((t) => (
+                      // Muestra a su tamaño real (1 pt = 4/3 px), para comparar Estándar, Grande y Muy grande a ojo.
+                      <span key={t.token} className="pulso-f6-estilo-muestra-letra">
+                        <span className="pulso-f6-estilo-muestra-texto" style={{ fontSize: `${Math.round(t.final * 4 / 3 * 10) / 10}px` }}>{t.etiqueta}</span>
+                        <small>{t.texto}</small>
+                      </span>
+                    ))
                   : <span className="pulso-f6-estilo-tenue">{opciones ? "Sin tamaños declarados en el Word." : "Cargando los tamaños…"}</span>}
               </p>
             </li>

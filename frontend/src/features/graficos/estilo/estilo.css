@@ -409,10 +409,11 @@
   grid-template-columns: minmax(160px, 220px) minmax(150px, 200px) minmax(0, 1fr);
   align-items: center;
   gap: var(--pulso-space-2) var(--pulso-space-3);
-  min-height: 52px;
-  padding: var(--pulso-space-2) var(--pulso-space-3);
+  min-height: 64px;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
   border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
 }
 
 @media (max-width: 1180px) {
@@ -456,7 +457,8 @@
 .pulso-f6-estilo-rol-tamanos {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--pulso-space-1) var(--pulso-space-3);
+  align-items: flex-end;
+  gap: var(--pulso-space-2) var(--pulso-space-5);
   margin: 0;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -465,6 +467,26 @@
 
 .pulso-f6-estilo-token {
   color: var(--pulso-text-faint);
+}
+
+/* Cada tamaño del rol, escrito a su tamaño real con el número debajo. */
+.pulso-f6-estilo-muestra-letra {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-f6-estilo-muestra-texto {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.pulso-f6-estilo-muestra-letra small {
+  color: var(--pulso-text-muted);
+  font-size: 11px;
 }
 
 /* --- Vista previa del Word ------------------------------------------------------------------------------------- */
