@@ -560,3 +560,26 @@ test_that("el grafico y el corte no se arrastran a la diapositiva siguiente", {
   expect_equal(vapply(equiv$filas, function(f) f$seccion, character(1)),
                rep("3.2 Perfil", 4))
 })
+
+test_that("las propuestas salen en el orden del cuestionario, sin el «Otro» ni el consentimiento", {
+  # Arte y Diseño 2026-10-11: salían p7, p3, p2, p8, p3_other…, con el consentimiento («¿desea continuar…?») como
+  # tema. El mazo que se arma desde aquí heredaba ese desorden.
+  base <- function(nombres, etiquetas, tipos) list(
+    survey = data.frame(type = tipos, name = nombres, label = etiquetas, section = "Pag1", stringsAsFactors = FALSE),
+    choices = data.frame(list_name = c("sn", "sn", "c", "c"), name = c("1", "2", "1", "2"),
+                         label = c("Sí", "No", "A", "B"), stringsAsFactors = FALSE))
+  tipos <- c("select_one sn", "select_one c", "text", "select_one sn", "select_one sn")
+  inst <- list(
+    docentes = base(c("p1", "p2", "p2_other", "p3", "p4"),
+                    c("Hecha esta aclaración, ¿acepta participar de la encuesta?", "Canal", "Otro", "¿Conoce la misión?", "¿Sabe dónde consultarla?"),
+                    tipos),
+    estudiantes = base(c("p1", "p2", "p2_other", "p3", "p4"),
+                       c("Hecha esta aclaración, ¿acepta participar de la encuesta?", "Canal", "Otro", "¿Conoce la misión?", "¿Sabe dónde consultarla?"),
+                       tipos)
+  )
+  sug <- .equiv_sugerir(inst)
+  doc <- vapply(sug, function(f) f$variables$docentes, character(1))
+  expect_false("p2_other" %in% doc)
+  expect_false("p1" %in% doc) # el consentimiento
+  expect_identical(doc, c("p2", "p3", "p4"))
+})
