@@ -7,7 +7,7 @@ import { useVariables, type VarWithSource } from "./useVariables";
 import { evaluateScaleCompat, multiApiladasScaleGroups, type ScaleVar } from "./multiApiladasScale";
 import { formatNumericRange, hasMeaningfulValue, validateNumericArgValue } from "./numericArgValidation";
 import { isDerivedReportVariableRef } from "./derivedReportVariables";
-import { nombreTipoLamina, rotuloLamina } from "./rotuloLamina";
+import { nombreTipoLamina, rotuloLamina, tituloDeLamina } from "./rotuloLamina";
 
 // Validador del plan 100% client-side: deriva warnings/errores de lo
 // que ya vive en el store + registry + variables del instrumento. Sin
@@ -30,6 +30,10 @@ import { nombreTipoLamina, rotuloLamina } from "./rotuloLamina";
 //   - "paleta-monocromatica": una paleta tiene muchos colores con hue
 //     muy parecido — dificulta distinguir categorías en un apilado.
 //   - "plan-vacio": el plan no tiene slides.
+//   - "titulo-vacio": lámina sin título cuyo gráfico junta varias preguntas.
+//     El PowerPoint la titula con su primera pregunta, que nombra sólo uno
+//     de sus temas (ADR 0064: el mazo de equivalencias la deja vacía para
+//     que la Revisión la pida; hasta 2026-10-12 nadie la pedía).
 //   - "scale-mismatch": un multi-apiladas apila preguntas de escalas
 //     distintas. Es ERROR y no warning porque el renderer no lo salva: la
 //     lámina sale degradada a "Sin datos" con el título de la primera
@@ -48,7 +52,8 @@ export type ValidationIssue = {
     | "icon-unknown"
     | "paleta-monocromatica"
     | "numeric-invalid"
-    | "scale-mismatch";
+    | "scale-mismatch"
+    | "titulo-vacio";
   message: string;
   slideId?: string;       // para poder saltar al slide afectado
   slotName?: string;
@@ -187,6 +192,24 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
             slideId: slide.id,
             slotName: slot,
           });
+        });
+      }
+    }
+
+    // Sin título y con un gráfico de varias preguntas: el PowerPoint la titularía con la primera.
+    if (!tituloDeLamina(slide.payload)) {
+      const temas = Math.max(0, ...slideMeta.slots.map((slot) => {
+        const vars = ((slide.payload as Record<string, unknown>)[slot] as GraficadorRef | null | undefined)?.args?.vars;
+        // Las láminas de equivalencias traen `vars` por tema ({ tema_1: [...], tema_2: [...] }): cada clave es un tema.
+        if (Array.isArray(vars)) return vars.length;
+        return vars && typeof vars === "object" ? Object.keys(vars).length : 0;
+      }));
+      if (temas > 1) {
+        issues.push({
+          severity: "warning",
+          code: "titulo-vacio",
+          message: `${lamina}: no tiene título. El PowerPoint la titularía con su primera pregunta, que nombra sólo uno de sus ${temas} temas; escríbele uno.`,
+          slideId: slide.id,
         });
       }
     }
