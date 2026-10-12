@@ -38,6 +38,9 @@ import { ContextTabRail } from "../../components/ContextTabRail";
 import { LaminasWorkbench } from "./laminas/LaminasWorkbench";
 import { BarraLaminas } from "./laminas/BarraLaminas";
 import { lazyWithReload } from "../../lib/lazyWithReload";
+// Estilos de piezas que siguen vivas (selector de variables, campos del registro, colores…) y que vivían con el editor
+// anterior: al retirarlo (d5aa22564) dejaron de cargarse. Se cargan aquí, como cuando el editor estaba montado.
+import "./v2/styles/editor-v2.css";
 import "./graficosPestanas.css";
 import { resolverPestanaGraficos, PESTANAS_GRAFICOS, type GraficosTabId } from "./pestanaGraficos";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
