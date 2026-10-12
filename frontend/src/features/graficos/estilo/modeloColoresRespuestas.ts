@@ -29,8 +29,10 @@ export type GrupoRespuestas = {
   listas: string[];
   preguntas: PreguntaDelGrupo[];
   bases: string[];
-  /** Color de cada opción (por su etiqueta en `opciones`); ausente = sin color. */
+  /** Color de cada opción cuando TODAS las listas del grupo lo tienen; ausente = a alguna le falta. */
   colores: Record<string, string>;
+  /** El color que la opción ya tiene en alguna lista del grupo: lo primero que se usa para completar. */
+  enAlguna: Record<string, string>;
   faltan: number;
 };
 
@@ -58,13 +60,14 @@ export function gruposDeRespuestas(
   etiquetasPregunta: ReadonlyMap<string, string>,
 ): GrupoRespuestas[] {
   const porFirma = new Map<string, GrupoRespuestas>();
+  const coloresPorLista: { g: GrupoRespuestas; deLista: Record<string, string> }[] = [];
   for (const lista of listas) {
     const opciones = lista.choices.map((c) => c.label).filter((l) => l.trim() !== "");
     const id = firmaOpciones(opciones);
     if (!id) continue;
     let g = porFirma.get(id);
     if (!g) {
-      g = { id, opciones, listas: [], preguntas: [], bases: [], colores: {}, faltan: 0 };
+      g = { id, opciones, listas: [], preguntas: [], bases: [], colores: {}, enAlguna: {}, faltan: 0 };
       porFirma.set(id, g);
     }
     if (!g.listas.includes(lista.list_name)) g.listas.push(lista.list_name);
@@ -75,11 +78,23 @@ export function gruposDeRespuestas(
       if (!g.preguntas.some((p) => p.ref === ref)) g.preguntas.push(textoPregunta(ref, etiquetasPregunta));
     }
     const r = resolverPaleta(lista, paletas, vinculos);
-    if (!r) continue;
-    for (const { label, color } of coloresPorEtiqueta(paletas[r.clave] ?? {}, lista.choices)) {
-      const propia = g.opciones.find((o) => normalizarEtiquetaPaleta(o) === normalizarEtiquetaPaleta(label));
-      if (propia && !g.colores[propia]) g.colores[propia] = color;
+    const deLista: Record<string, string> = {};
+    if (r) {
+      for (const { label, color } of coloresPorEtiqueta(paletas[r.clave] ?? {}, lista.choices)) {
+        const propia = g.opciones.find((o) => normalizarEtiquetaPaleta(o) === normalizarEtiquetaPaleta(label));
+        if (propia) deLista[propia] = color;
+      }
     }
+    for (const [o, c] of Object.entries(deLista)) g.enAlguna[o] ??= c;
+    coloresPorLista.push({ g, deLista });
+  }
+  // El motor resuelve lista por lista: una opción cuenta como pintada sólo si lo está en TODAS las listas del grupo.
+  const falta = new Set<string>();
+  for (const { g, deLista } of coloresPorLista) {
+    for (const o of g.opciones) if (!deLista[o]) falta.add(`${g.id}\u0000${o}`);
+  }
+  for (const { g, deLista } of coloresPorLista) {
+    for (const o of g.opciones) if (deLista[o] && !falta.has(`${g.id}\u0000${o}`)) g.colores[o] ??= deLista[o];
   }
   // Una lista que ninguna pregunta usa no pinta nada; se omite cuando el instrumento sí dice qué preguntas usan cada
   // lista (un backend viejo no lo manda y ahí se muestran todas).

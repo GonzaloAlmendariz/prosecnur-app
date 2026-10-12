@@ -11,7 +11,7 @@ import {
   type MapaPaletas,
   type VinculosPaletas,
 } from "../paletasResolver";
-import { conColoresDelGrupo, esRespuestaResidual, type GrupoRespuestas, type ListaRespuestas, type PreguntaDelGrupo } from "./modeloColoresRespuestas";
+import { combinacionesPara, conColoresDelGrupo, esRespuestaResidual, type GrupoRespuestas, type ListaRespuestas, type PreguntaDelGrupo } from "./modeloColoresRespuestas";
 
 export type FilaPaleta = {
   id: string;
@@ -238,4 +238,20 @@ export function conGrupoEnPaleta(fila: FilaPaleta, grupo: GrupoRespuestas, desti
   const base = fila.clave ? conSeparado(fila, grupo, listas, mapas) : mapas;
   const origen: FilaPaleta = { ...fila, id: `grupo:${grupo.id}`, clave: null, grupos: [grupo], opciones: [...grupo.opciones], colores, preguntas: [...grupo.preguntas], bases: [...grupo.bases], faltan: 0 };
   return conAgrupado(origen, destino, listas, base);
+}
+
+/**
+ * Los colores con que se completa lo que le falta a una paleta: primero el que esa respuesta ya tiene en otra lista del
+ * mismo grupo (para no cambiar lo que ya se ve en otros gráficos), y si no hay, el de la primera combinación de la marca.
+ */
+export function coloresParaCompletar(fila: FilaPaleta): Record<string, string> {
+  const sugerida = combinacionesPara(fila.opciones)[0]?.colores ?? {};
+  const out: Record<string, string> = {};
+  for (const o of fila.opciones) {
+    if (fila.colores[o]) continue;
+    const ya = fila.grupos.map((g) => g.enAlguna[o]).find(Boolean);
+    const c = ya ?? sugerida[o];
+    if (c) out[o] = c;
+  }
+  return out;
 }

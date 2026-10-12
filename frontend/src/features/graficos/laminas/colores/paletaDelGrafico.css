@@ -69,3 +69,39 @@
 }
 
 .pulso-pg-enlace:hover { text-decoration: underline; }
+
+.pulso-pg-barra {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.pulso-pg-barra span { flex: 1; }
+
+.pulso-pg-barra span.is-vacio {
+  background: repeating-linear-gradient(135deg, var(--pulso-surface-2) 0 4px, var(--pulso-border) 4px 5px);
+}
+
+.pulso-pg-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+}
+
+.pulso-pg-leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pulso-pg-sin {
+  color: var(--pulso-warn-fg);
+  font-size: 11px;
+}

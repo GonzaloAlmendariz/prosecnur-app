@@ -10,27 +10,37 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import { conNivel } from "../../../../lib/navegacion/direccion";
 import { searchConNivel } from "../../../../lib/navegacion/useDireccion";
 import { useSession } from "../../../../lib/SessionContext";
-import { combinacionesPara, textoSobre } from "../../estilo/modeloColoresRespuestas";
-import { conColoresDeFila, conGrupoEnPaleta, paletaDeLaPregunta, type FilaPaleta } from "../../estilo/modeloPaletasConNombre";
+import { coloresParaCompletar, conColoresDeFila, conGrupoEnPaleta, paletaDeLaPregunta, type FilaPaleta } from "../../estilo/modeloPaletasConNombre";
+import type { GrupoRespuestas } from "../../estilo/modeloColoresRespuestas";
 import { usePaletasRespuestas } from "../../estilo/usePaletasRespuestas";
 import { useGraficosReportScope } from "../../reportScope";
 import { usePlanStore } from "../../store";
-import { GRAFICOS_POR_CATEGORIA } from "../modeloMaqueta";
+import { GRAFICOS_POR_CATEGORIA, preguntasDelGrafico } from "../modeloMaqueta";
 import { varCalificada } from "../ordenCategorias";
 import "../../estilo/coloresRespuestas.css";
 import "./paletaDelGrafico.css";
 
 type Props = { valor: GraficadorRef };
 
+/** En la tarjeta (angosta) la barra va sin texto y las respuestas en una leyenda debajo, enteras. */
 function Barra({ fila }: { fila: FilaPaleta }) {
   return (
-    <span className="pulso-cr-barra" aria-label={`Respuestas: ${fila.opciones.join(", ")}`}>
-      {fila.opciones.map((o) => (
-        <span key={o} className={`pulso-cr-segmento is-${fila.colores[o] ? textoSobre(fila.colores[o]) : "vacio"}`} style={fila.colores[o] ? { background: fila.colores[o] } : undefined} title={fila.colores[o] ? o : `${o}: sin color`}>
-          <span className="pulso-cr-segmento-texto">{o}</span>
-        </span>
-      ))}
-    </span>
+    <>
+      <span className="pulso-pg-barra" aria-hidden="true">
+        {fila.opciones.map((o) => (
+          <span key={o} className={fila.colores[o] ? undefined : "is-vacio"} style={fila.colores[o] ? { background: fila.colores[o] } : undefined} />
+        ))}
+      </span>
+      <ul className="pulso-pg-leyenda" aria-label="Respuestas y sus colores">
+        {fila.opciones.map((o) => (
+          <li key={o} className={fila.colores[o] ? undefined : "is-falta"}>
+            <span className={fila.colores[o] ? "pulso-cr-punto" : "pulso-cr-punto is-vacio"} style={fila.colores[o] ? { background: fila.colores[o] } : undefined} aria-hidden="true" />
+            {o}
+            {fila.colores[o] ? null : <span className="pulso-pg-sin">sin color</span>}
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 
@@ -47,60 +57,63 @@ export function PaletaDelGrafico({ valor }: Props) {
   const { listas, filas } = usePaletasRespuestas();
 
   const args = (valor.args ?? {}) as Record<string, unknown>;
-  const variable = typeof args.var === "string" ? args.var : Array.isArray(args.vars) && typeof args.vars[0] === "string" ? args.vars[0] : "";
-  if (!variable || !listas) return null;
-  const hallada = paletaDeLaPregunta(filas, varCalificada(variable, baseActiva, scope)) ?? paletaDeLaPregunta(filas, variable);
-  if (!hallada) return null;
-  const { fila, grupo } = hallada;
+  if (!listas) return null;
+  // Todas las preguntas del gráfico (también los bloques de multi-apiladas); una paleta por juego de respuestas.
+  const halladas: { fila: FilaPaleta; grupo: GrupoRespuestas }[] = [];
+  for (const pregunta of preguntasDelGrafico(args)) {
+    const h = paletaDeLaPregunta(filas, varCalificada(pregunta, baseActiva, scope)) ?? paletaDeLaPregunta(filas, pregunta);
+    if (h && !halladas.some((x) => x.fila.id === h.fila.id)) halladas.push(h);
+  }
   // Sólo los gráficos que pintan cada respuesta, o los que ya tienen colores elegidos para ellas.
-  if (!GRAFICOS_POR_CATEGORIA.has(valor.graficador) && fila.faltan === fila.opciones.length) return null;
+  const visibles = halladas.filter((h) => GRAFICOS_POR_CATEGORIA.has(valor.graficador) || h.fila.faltan < h.fila.opciones.length);
+  if (!visibles.length) return null;
 
   const nombradas = filas.filter((f) => f.clave);
-  const otras = fila.preguntas.length - 1;
   const irAIdentidad = () =>
     navigate({ pathname: loc.pathname, search: conNivel(conNivel(searchConNivel(loc.search, "pestana", "estilo"), "foco", "colores"), "panel", null) });
-  const elegir = (clave: string) => {
+  const elegir = ({ fila, grupo }: { fila: FilaPaleta; grupo: GrupoRespuestas }, clave: string) => {
     const destino = nombradas.find((f) => f.clave === clave);
     if (!destino) return;
     const m = conGrupoEnPaleta(fila, grupo, destino, listas, { paletas, vinculos });
     setPaletasYVinculos(m.paletas, m.vinculos);
   };
-  const completar = () => {
-    const sugerida = combinacionesPara(fila.opciones)[0];
-    if (!sugerida) return;
-    const faltantes = Object.fromEntries(fila.opciones.filter((o) => !fila.colores[o]).map((o) => [o, sugerida.colores[o]]));
-    setPaletas(conColoresDeFila(fila, faltantes, listas, paletas));
-  };
+  const completar = (fila: FilaPaleta) => setPaletas(conColoresDeFila(fila, coloresParaCompletar(fila), listas, paletas));
 
   return (
     <div className="pulso-f6-dato is-apilado pulso-pg" role="group" aria-labelledby={`${id}-rot`} data-qa="paleta-del-grafico">
       <span id={`${id}-rot`} className="pulso-f6-dato-rotulo">Colores</span>
-      <div className="pulso-pg-cuerpo">
-        <div className="pulso-pg-cabecera">
-          <span className="pulso-pg-nombre">{fila.nombre}</span>
-          {fila.clave ? <span className="pulso-cr-sello">Paleta con nombre</span> : null}
-        </div>
-        <Barra fila={fila} />
-        {fila.faltan > 0 ? (
-          <div className="pulso-pg-aviso" role="status">
-            <span>{fila.faltan === 1 ? "Falta el color de una respuesta." : `Faltan los colores de ${fila.faltan} respuestas.`}</span>
-            <PulsoButton variant="secondary" size="sm" onClick={completar}>Completar con la marca</PulsoButton>
+      {visibles.map((h) => {
+        const { fila } = h;
+        const otras = fila.preguntas.length - 1;
+        return (
+          <div key={fila.id} className="pulso-pg-cuerpo">
+            <div className="pulso-pg-cabecera">
+              <span className="pulso-pg-nombre">{fila.nombre}</span>
+              {fila.clave ? <span className="pulso-cr-sello">Paleta con nombre</span> : null}
+            </div>
+            <Barra fila={fila} />
+            {fila.faltan > 0 ? (
+              <div className="pulso-pg-aviso" role="status">
+                <span>{fila.faltan === 1 ? "Falta el color de una respuesta." : `Faltan los colores de ${fila.faltan} respuestas.`}</span>
+                <PulsoButton variant="secondary" size="sm" onClick={() => completar(fila)}>Completar con la marca</PulsoButton>
+              </div>
+            ) : null}
+            {nombradas.length ? (
+              <label className="pulso-pg-elegir">
+                <span>Usar la paleta</span>
+                <select value={fila.clave ?? ""} onChange={(e) => elegir(h, e.target.value)}>
+                  {fila.clave ? null : <option value="">Elegir una paleta con nombre</option>}
+                  {nombradas.map((f) => <option key={f.id} value={f.clave ?? ""}>{f.nombre}</option>)}
+                </select>
+              </label>
+            ) : null}
+            <p className="pulso-f6-dato-ayuda">
+              {otras > 0 ? `Estos colores también pintan otras ${otras} ${otras === 1 ? "pregunta" : "preguntas"} con las mismas respuestas.` : "Estos colores son los de esta pregunta."}{" "}
+              <button type="button" className="pulso-pg-enlace" onClick={irAIdentidad}>Editar colores</button>
+            </p>
           </div>
-        ) : null}
-        {nombradas.length ? (
-          <label className="pulso-pg-elegir">
-            <span>Usar la paleta</span>
-            <select value={fila.clave ?? ""} onChange={(e) => elegir(e.target.value)}>
-              {fila.clave ? null : <option value="">Elegir una paleta con nombre</option>}
-              {nombradas.map((f) => <option key={f.id} value={f.clave ?? ""}>{f.nombre}</option>)}
-            </select>
-          </label>
-        ) : null}
-        <p className="pulso-f6-dato-ayuda">
-          {otras > 0 ? `Estos colores también pintan otras ${otras} ${otras === 1 ? "pregunta" : "preguntas"} con las mismas respuestas.` : "Estos colores son los de esta pregunta."}{" "}
-          <button type="button" className="pulso-pg-enlace" onClick={irAIdentidad}>Editar colores</button>
-        </p>
-      </div>
+        );
+      })}
     </div>
   );
 }

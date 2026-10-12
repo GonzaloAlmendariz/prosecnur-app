@@ -44,11 +44,23 @@ describe("Colores de las respuestas", () => {
     expect(grupos.map((g) => g.listas)).toEqual([["lst_p1"]]);
   });
 
-  it("lee el color vigente, también el que llega por otra lista igual, y cuenta lo que falta", () => {
-    const grupos = gruposDeRespuestas([sino("lst_p1", []), sino("lst_p2", [])], { lst_p2: { "Sí": "#081F5C" } }, {}, new Map());
-    expect(grupos[0].colores).toEqual({ "Sí": "#081F5C" });
-    expect(grupos[0].faltan).toBe(1);
-    expect(estadoGrupo(grupos[0])).toBe("incompleto");
+  it("una respuesta cuenta como pintada sólo si lo está en todas las listas del grupo (el motor resuelve lista por lista)", async () => {
+    // Caso real (acrconta, lámina 13): lst_p10 tiene paleta propia con sólo «Sí»; el motor la usa tal cual y su «No»
+    // sale sin el color elegido, aunque lst_p9 —mismas respuestas— tenga los dos.
+    const listas = [sino("lst_p9", ["p9"]), sino("lst_p10", ["p10"])];
+    const paletas = { lst_p9: { "Sí": "#081F5C", No: "#9DC3E6" }, lst_p10: { "Sí": "#081F5C" } };
+    const [g] = gruposDeRespuestas(listas, paletas, {}, new Map());
+    expect(g.colores).toEqual({ "Sí": "#081F5C" });
+    expect(g.faltan).toBe(1);
+    expect(estadoGrupo(g)).toBe("incompleto");
+    expect(g.enAlguna).toEqual({ "Sí": "#081F5C", No: "#9DC3E6" });
+    // Completar reutiliza el celeste que «No» ya tiene en lst_p9, no el rojo de la combinación de la marca.
+    const { coloresParaCompletar, conColoresDeFila, filasDePaletas } = await import("./modeloPaletasConNombre");
+    const [fila] = filasDePaletas([g], listas, paletas, {});
+    expect(coloresParaCompletar(fila)).toEqual({ No: "#9DC3E6" });
+    const p = conColoresDeFila(fila, coloresParaCompletar(fila), listas, paletas);
+    expect(p.lst_p10).toEqual({ "Sí": "#081F5C", No: "#9DC3E6" });
+    expect(gruposDeRespuestas(listas, p, {}, new Map())[0].faltan).toBe(0);
   });
 
   it("pinta todas las listas del grupo, cada una con su forma de escribir la opción, en un mapa nuevo", () => {
