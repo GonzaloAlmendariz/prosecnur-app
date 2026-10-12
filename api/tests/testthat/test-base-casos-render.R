@@ -55,6 +55,8 @@ test_that(".espec_casos es el lector único: n_casos, o n si la especificación 
 })
 
 test_that("test 14: .espec_n_base lee n_base_casos y sólo sin ella reconstruye por la mediana", {
+  # El rótulo «Sí (12)» depende de «Casos junto al porcentaje»: este test lo fija en «siempre».
+  withr::local_options(prosecnur.casos_junto = list(cuando = "siempre"))
   # Selección múltiple ponderada: las proporciones suman > 1 y son ponderadas; los casos no.
   e <- preparar_categorica(c("A", "B", "C"), valores = c(0.62, 0.55, 0.31), cifras = c("62%", "55%", "31%"),
                            n = c(34.1, 30.25, 17.05), n_casos = c(15, 14, 9), n_base_casos = 30)
@@ -124,12 +126,13 @@ test_that("test 17 (D-a): la fila Total es opcional y apagada; una base pesa por
 })
 
 test_that("categóricas: el % sigue ponderado y la frecuencia escrita va en casos", {
+  withr::local_options(prosecnur.casos_junto = list(cuando = "siempre"))
   d <- data.frame(categoria = c("Masculino", "Femenino"), n = c(74.25, 20), n_casos = c(33, 20),
                   pct = c(74.25, 20) / 94.25, stringsAsFactors = FALSE)
   p <- graficar_barras_categoricas(d, "categoria", var_valor = "pct", var_n = "n", var_pct = "pct", modo_valor = "valor",
                                    formato_valor = "porcentaje_n", var_n_casos = "n_casos")
   espec <- attr(p, "pulso_espec")
-  expect_identical(espec$cifras[[1]], "79%")
+  expect_identical(espec$cifras[[1]], "79% (33)")   # «Casos junto al porcentaje» en «siempre»: % ponderado, casos sin ponderar
   expect_equal(espec$n, c(74.25, 20)); expect_equal(espec$n_casos, c(33, 20))
   expect_identical(.lam_dicotomia_datos(espec)$n, c(33, 20))   # «Masculino (33)»
   expect_true(any(grepl("(33)", attr(p, "pulso_barras_categoricas_data")$label, fixed = TRUE)))
