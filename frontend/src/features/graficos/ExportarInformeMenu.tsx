@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2, ChevronDown, Database, Download, FileText, Loader2 } from "../../vendor/lucide-react";
 import { apiSaveFileAs, downloadUrl } from "../../api/client";
 import { useProjectShell } from "../project/ProjectShell";
+import { ColoresPendientesAviso, useColoresPendientes } from "./estilo/ColoresPendientesAviso";
 
 export type ExportarInformeMenuProps = {
   onExportPpt: () => void;
@@ -36,6 +37,9 @@ export function ExportarInformeMenu({
   const { project } = useProjectShell();
   const [saveStatus, setSaveStatus] = useState("");
   const generatedReports = Number(Boolean(pptFileId)) + Number(Boolean(!isSharedReport && docxFileId));
+  // P8: un gráfico que pinta cada respuesta con su color no se exporta con respuestas sin color.
+  const { pendientes: coloresPendientes, completar: completarColores } = useColoresPendientes();
+  const puedeGenerar = canExportFinal && coloresPendientes.length === 0;
 
   useEffect(() => {
     if (!exportMenuOpen) return;
@@ -139,6 +143,7 @@ export function ExportarInformeMenu({
                       Revisa el estado del plan antes de generar archivos.
                     </div>
                   )}
+                  <ColoresPendientesAviso pendientes={coloresPendientes} onCompletar={completarColores} onVer={() => setExportMenuOpen(false)} />
 
                   <div className="pulso-gv2-export-menu-actions">
                     <button
@@ -147,7 +152,7 @@ export function ExportarInformeMenu({
                         setExportMenuOpen(false);
                         onExportPpt();
                       }}
-                      disabled={!canExportFinal || exportBusy}
+                      disabled={!puedeGenerar || exportBusy}
                     >
                       <span className="pulso-gv2-export-menu-action-icon" aria-hidden="true">
                         {exportJobKind === "ppt" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
@@ -163,7 +168,7 @@ export function ExportarInformeMenu({
                         setExportMenuOpen(false);
                         onExportWord();
                       }}
-                      disabled={!canExportFinal || exportBusy}
+                      disabled={!puedeGenerar || exportBusy}
                     >
                       <span className="pulso-gv2-export-menu-action-icon" aria-hidden="true">
                         {exportJobKind === "word" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
