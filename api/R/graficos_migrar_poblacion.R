@@ -64,8 +64,8 @@
   s$tipo <- destino
   s$payload <- nuevo
   list(slide = s, migrada = TRUE, titulo = .graficos_poblacion_rotulo(payload$titulo),
-       aviso = sprintf(paste("La lámina %s, %s, era «%s», que ya no está en el recetario: pasa a «%s» con %s, su título y la",
-                             "base de cada gráfico. El ícono del centro se quita."),
+       aviso = sprintf(paste("La lámina %s, %s, usaba el diseño antiguo «%s»: ahora es «%s», con %s, su título y la",
+                             "base de cada gráfico. Ya no lleva el ícono del centro."),
                        if (is.na(posicion)) "?" else as.character(posicion), .graficos_poblacion_rotulo(payload$titulo),
                        .SLIDES_META[[tipo]]$titulo_humano, .SLIDES_META[[destino]]$titulo_humano,
                        if (graficos == 1L) "su gráfico" else sprintf("sus %d gráficos", graficos)))
@@ -110,8 +110,8 @@
 #' @keywords internal
 .graficos_avisos_migracion_resumen <- function(avisos, titulos) {
   if (length(avisos) <= 2L) return(avisos)
-  sprintf(paste("%d láminas usaban un tipo de población que ya no está en el recetario y pasan a su tipo vigente con sus",
-                "gráficos, su título y la base de cada gráfico; el ícono del centro se quita. Láminas: %s."),
+  sprintf(paste("%d láminas de población usaban un diseño antiguo y pasan al actual con sus gráficos, su título y la",
+                "base de cada gráfico; ya no llevan el ícono del centro. Láminas: %s."),
           length(avisos), paste(titulos, collapse = ", "))
 }
 

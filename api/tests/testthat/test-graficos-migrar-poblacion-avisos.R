@@ -37,7 +37,7 @@ test_that("la migración no escribe al stderr: devuelve sus avisos con el plan, 
   expect_length(av, 2L)
   expect_match(av[2], "lámina 3", fixed = TRUE)
   expect_match(av[2], "«PERFIL DEL DOCENTE»", fixed = TRUE)
-  expect_match(av[2], "ya no está en el recetario", fixed = TRUE)
+  expect_match(av[2], "diseño antiguo", fixed = TRUE)
   expect_match(av[2], "«Cuatro gráficos»", fixed = TRUE)
   expect_match(av[2], "4 gráficos", fixed = TRUE)
   # Sin ids internos en lo que lee el usuario.
@@ -105,7 +105,7 @@ test_that("/ppt y /word: el resultado del job trae el aviso de migración una ve
     )
     out <- captura$on_complete(list(sid = "sid-mpa", id = "job-mpa", result_path = tempfile(), result_data = list(n_slides = 3L)))
     av <- as.character(unclass(out$avisos))
-    expect_identical(sum(grepl("ya no está en el recetario", av, fixed = TRUE)), 2L, label = path)
+    expect_identical(sum(grepl("diseño antiguo", av, fixed = TRUE)), 2L, label = path)
     expect_true("El eje se achicó a 9,5 pt para que quepa." %in% av, label = path)
   }
 })
@@ -124,7 +124,7 @@ test_that("GET config: avisa una vez, persiste la migración y marca el proyecto
   expect_length(r1$sellos, 0L)
   av <- as.character(unclass(r1$valor$avisos))
   expect_length(av, 2L)
-  expect_true(all(grepl("ya no está en el recetario", av, fixed = TRUE)))
+  expect_true(all(grepl("diseño antiguo", av, fixed = TRUE)))
   expect_identical(.mpa_tipos(r1$valor$config$plan), c("p_slide_portada", "p_slide_2_graficos", "p_slide_4_graficos"))
   # Persistida en la sesión (lo que el .pulso guarda) y marcada como cambio.
   s <- session_get(sid)
@@ -225,5 +225,5 @@ test_that("/ppt-all por el router: migra y guarda la config de cada base y el jo
   cfgs <- session_get(sid)$graficos_config_por_base
   for (b in c("egresados", "docentes")) expect_identical(.mpa_tipos(cfgs[[b]]$plan), c("p_slide_portada", "p_slide_2_graficos", "p_slide_4_graficos"))
   av <- as.character(unclass(captura$on_complete(list(sid = sid, id = "job-all", result_path = tempfile(), result_data = list(bases = list())))$avisos))
-  expect_identical(sum(grepl("ya no está en el recetario", av, fixed = TRUE)), 4L)
+  expect_identical(sum(grepl("diseño antiguo", av, fixed = TRUE)), 4L)
 })
