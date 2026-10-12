@@ -52,7 +52,7 @@
   border-radius: 999px;
   background: transparent;
   color: var(--pulso-text-faint);
-  cursor: help;
+  cursor: pointer;
   transition: color 140ms ease, background 140ms ease;
 }
 
@@ -88,8 +88,6 @@
   pointer-events: none;
 }
 
-.pulso-f6-ayuda:hover .pulso-f6-ayuda-globo,
-.pulso-f6-ayuda:focus-within .pulso-f6-ayuda-globo,
 .pulso-f6-ayuda.is-abierta .pulso-f6-ayuda-globo {
   opacity: 1;
   visibility: visible;
