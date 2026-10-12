@@ -59,6 +59,8 @@ export function CargaSourcesPlan({
         </span>
       </div>
 
+      {/* Propuesta F: con «Bases separadas» el número no se fija; las bases se agregan en la lista de abajo. */}
+      {!single && strategy === "separate" ? null : (<>
       <label className="pulso-carga-sources-plan-count">
         <span>Entradas previstas</span>
         <input
@@ -80,6 +82,7 @@ export function CargaSourcesPlan({
           <small>{materializedInputCount}/{single ? 1 : plannedInputCount} entradas materializadas</small>
         </span>
       </div>
+      </>)}
     </section>
   );
 }
