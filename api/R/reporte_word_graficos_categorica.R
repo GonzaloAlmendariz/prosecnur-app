@@ -72,12 +72,15 @@
 .word_g_sino <- function(espec) {
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
   p1 <- espec$largos[1] * 100; rot <- espec$rotulos[1:2]
-  n <- .espec_casos(espec)[1:2]; et <- ifelse(is.finite(n), sprintf("%s (%s)", rot, format(n, big.mark = ",", trim = TRUE)), rot)
+  # Las mismas piezas que la lámina: el «(n)» va en el rótulo sólo si lo pide el gráfico o «Casos junto al porcentaje», y
+  # nunca dos veces (la cifra va sin su paréntesis).
+  dd <- .lam_dicotomia_datos(espec); cif <- dd$cifras[1:2]; n <- if (is.null(dd$n)) c(NA, NA) else dd$n[1:2]
+  et <- ifelse(is.finite(n), sprintf("%s (%s)", rot, format(n, big.mark = ",", trim = TRUE)), rot)
   d <- data.frame(x0 = c(0, p1), x1 = c(p1, 100), k = factor(rot, levels = rot))
   g <- ggplot2::ggplot(d) + ggplot2::geom_rect(ggplot2::aes(xmin = .data$x0, xmax = .data$x1, ymin = 0, ymax = 1, fill = .data$k)) +
     ggplot2::scale_fill_manual(values = stats::setNames(as.vector(.word_colores_de_espec(espec, rot, c(T$navy, T$celeste))), rot)) +
-    ggplot2::annotate("text", x = 0, y = 2.0, label = espec$cifras[1], hjust = 0, size = .word_pt(22), fontface = "bold", colour = T$navy, family = "Arial") +
-    ggplot2::annotate("text", x = 100, y = 2.0, label = espec$cifras[2], hjust = 1, size = .word_pt(22), fontface = "bold", colour = T$medio, family = "Arial") +
+    ggplot2::annotate("text", x = 0, y = 2.0, label = cif[1], hjust = 0, size = .word_pt(22), fontface = "bold", colour = T$navy, family = "Arial") +
+    ggplot2::annotate("text", x = 100, y = 2.0, label = cif[2], hjust = 1, size = .word_pt(22), fontface = "bold", colour = T$medio, family = "Arial") +
     ggplot2::annotate("text", x = 0, y = 1.3, label = et[1], hjust = 0, size = .word_pt(9), colour = navy, family = "Arial") +
     ggplot2::annotate("text", x = 100, y = 1.3, label = et[2], hjust = 1, size = .word_pt(9), colour = navy, family = "Arial") +
     ggplot2::scale_x_continuous(limits = c(0, 100), expand = c(0.01, 0)) + ggplot2::scale_y_continuous(limits = c(-0.1, 2.6)) +

@@ -72,6 +72,13 @@
   Ci <- espec$cifras[orden, , drop = FALSE]; Dw <- espec$dibujar[orden, , drop = FALSE]
   cat <- espec$categorias; k <- nrow(cat); nf <- nrow(F)
   rot_fila <- ifelse(is.na(F$rotulo) | !nzchar(F$rotulo), "", F$rotulo)
+  # «Casos junto al porcentaje»: el Word no lleva «N respuestas» por fila como la lámina; si el ajuste lo pide, el grupo
+  # dice sus casos en el rótulo («Administrativos (14)»).
+  nf_casos <- suppressWarnings(as.numeric(.espec_casos(F)))
+  if (.casos_junto_muestra(.espec_casos(espec$filas), espec$casos_junto) && any(is.finite(nf_casos))) {
+    con <- nzchar(rot_fila) & is.finite(nf_casos)
+    rot_fila[con] <- sprintf("%s (%d)", rot_fila[con], as.integer(round(nf_casos[con])))
+  }
   lbw <- vapply(rot_fila, function(r) paste(strwrap(r, width = envolver), collapse = "\n"), "", USE.NAMES = FALSE)
   hay_chicas <- any(A * 100 > 0 & A * 100 < .WORD_ESCALA_CABE_PCT & Dw)
   nl <- vapply(strsplit(lbw, "\n"), function(x) max(1L, length(x)), 1L)
