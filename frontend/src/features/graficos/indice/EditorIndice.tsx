@@ -31,6 +31,7 @@ import {
 } from "./modeloIndice";
 import { useIconosRecetario } from "./useIconosRecetario";
 import "./editorIndice.css";
+import { SubcapitulosEditor } from "./SubcapitulosEditor";
 
 export function EditorIndice({ slide }: { slide: Slide }) {
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
@@ -217,16 +218,12 @@ export function EditorIndiceVista({ indice, estructura, onAplicar: aplicar, onAb
                       <Trash2 size={14} aria-hidden="true" />
                     </button>
                   </div>
-                  <label className="pulso-f6-indice-subs">
-                    <span>Subcapítulos, uno por línea</span>
-                    <textarea
-                      className="pulso-f6-input"
-                      rows={Math.min(6, Math.max(2, c.subcapitulos.length + 1))}
-                      aria-label={`Subcapítulos del capítulo ${i + 1}, uno por línea`}
-                      value={c.subcapitulos.join("\n")}
-                      onChange={(e) => aplicar(conCapitulo(indice, i, { subcapitulos: e.target.value.split("\n") }))}
-                    />
-                  </label>
+                  <SubcapitulosEditor
+                    numeroCapitulo={i + 1}
+                    nombreCapitulo={nombre}
+                    subcapitulos={c.subcapitulos}
+                    onCambiar={(subs) => aplicar(conCapitulo(indice, i, { subcapitulos: subs }))}
+                  />
                 </li>
               );
             })}

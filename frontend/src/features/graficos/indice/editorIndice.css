@@ -344,3 +344,42 @@
 .pulso-f6-variantes-fuera {
   grid-column: 1 / -1;
 }
+
+/* Subcapítulos (SubcapitulosEditor.tsx): una fila por subcapítulo con su número. */
+.pulso-f6-subcaps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  grid-column: 1 / -1;
+  padding-left: var(--pulso-space-4);
+}
+
+.pulso-f6-subcaps-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-subcaps-fila {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 4px;
+}
+
+.pulso-f6-subcaps-num {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-subcaps-agregar {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
