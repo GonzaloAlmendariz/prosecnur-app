@@ -727,6 +727,7 @@ test_that("barras agrupadas Word conservan opciones sin casos", {
     mostrar_ceros = TRUE,
     umbral_barra = 0,
     mostrar_barra_extra = FALSE,
+    mostrar_n_en_etiquetas = FALSE,   # mira el «0%», no los casos (N = 4 es base chica)
     usar_canvas = FALSE,
     exportar = "rplot"
   )

@@ -381,7 +381,7 @@ graficar_barras_agrupadas <- function(
     cols_porcentaje,
     etiquetas_series,
     cols_n                    = NULL,
-    mostrar_n_en_etiquetas    = FALSE,
+    mostrar_n_en_etiquetas    = NA,   # NA: lo decide «Casos junto al porcentaje» del informe
     escala_valor              = c("proporcion_1", "proporcion_100"),
     orientacion               = c("horizontal", "vertical"),
     colores_series            = NULL,
@@ -816,6 +816,8 @@ graficar_barras_agrupadas <- function(
   df_long$.valor_plot[is.na(df_long$.valor_plot) | !is.finite(df_long$.valor_plot)] <- 0
   df_long$.valor_plot <- pmax(0, df_long$.valor_plot)
 
+  # Sin decisión del gráfico (NA) decide «Casos junto al porcentaje» con la base de cada grupo (graficos_casos_junto.R).
+  mostrar_n_en_etiquetas <- .casos_junto_decidir(mostrar_n_en_etiquetas, suppressWarnings(as.numeric(df[[var_n]])))
   if (!is.null(cols_n_map)) {
     n_long <- do.call(rbind, lapply(cols_porcentaje, function(col_pct) {
       data.frame(
