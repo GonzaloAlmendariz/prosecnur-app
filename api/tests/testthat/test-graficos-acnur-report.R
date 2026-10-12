@@ -172,6 +172,8 @@ source("setup-load-all.R")
 }
 
 test_that("ACNUR puede mostrar una barra minima para un cero sin cambiar su etiqueta", {
+  # Compara el porcentaje solo: «Casos junto al porcentaje» en «nunca».
+  withr::local_options(prosecnur.casos_junto = list(cuando = "nunca"))
   data <- data.frame(
     categoria = c("Sin casos", "Con casos"),
     N = c(10, 10),
