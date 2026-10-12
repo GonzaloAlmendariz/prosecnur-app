@@ -13,7 +13,18 @@ const DYNAMIC_IMPORT_ERROR_PATTERNS = [
   /error loading dynamically imported module/i,
   /Loading chunk \d+ failed/i,
   /ChunkLoadError/i,
+  /llegó sin componente/i,
 ];
+
+// Un archivo del build servido vacío (iCloud lo había desalojado, o una copia a
+// medias) no hace fallar el import: resuelve a un módulo sin `default` y React
+// cae en el error #306, que no dice qué archivo faltó. Se trata como un fallo de
+// carga: una recarga y, si persiste, un error que nombra el módulo.
+export function moduloConComponente<M extends { default?: unknown }>(mod: M | null | undefined, moduleId: string): M {
+  const componente = mod?.default;
+  if (typeof componente === "function" || (typeof componente === "object" && componente !== null)) return mod as M;
+  throw new Error(`El módulo ${moduleId} llegó sin componente: el archivo del build está vacío o incompleto.`);
+}
 
 export function isDynamicImportLoadError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error ?? "");
@@ -26,7 +37,7 @@ export function lazyWithReload<Props>(
 ): LazyExoticComponent<ComponentType<Props>> {
   return lazy(async () => {
     try {
-      const mod = await importer();
+      const mod = moduloConComponente(await importer(), moduleId);
       clearReloadMarker(moduleId);
       return mod;
     } catch (error) {
