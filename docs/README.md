@@ -164,6 +164,8 @@ arquitectura canónica.
 - [Checklist de `respondent_id` y decimales de Frecuencias](qa/checklist-respondent-id-decimales-2026-08-14.md):
   las tres barreras que dejaban el identificador de caso fuera de la BBDD y
   hasta dónde se decidió llevar la metadata de SurveyMonkey.
+- [Checklist de Identidad, Estilo del informe, índice y paletas de Gráficos](qa/checklist-graficos-identidad-estilo-2026-10-11.md):
+  comentarios del 2026-10-11 sobre Identidad, texto de la base, subcapítulos del índice y paletas.
 - [Checklist de códigos de respuesta en imports SurveyMonkey por API](qa/checklist-codificacion-sm-2026-10-11.md):
   por qué los mapas del editor invertían categorías al importar por API y cómo el
   instrumento adopta el orden del editor antes de codificar.
