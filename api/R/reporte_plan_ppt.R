@@ -5768,7 +5768,7 @@ reporte_ppt_plan <- function(
       nota_pie       = .format_n_caption(sum(df_long$n_casos, na.rm = TRUE))
     )
 
-    preset_args <- preset_args %||% list()
+    preset_args <- preset_args %||% list(); preset_args$mostrar_n_en_etiquetas <- NULL   # lo decide «Casos junto al porcentaje» (o el gráfico)
     args <- .merge_args(.plan_args_casos(base_args), preset_args, overrides)
 
     fun  <- graficar_pie

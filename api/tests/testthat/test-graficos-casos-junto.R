@@ -42,3 +42,14 @@ test_that("dicotomía: el «(n)» del rótulo obedece el ajuste (antes iba siemp
   withr::local_options(prosecnur.casos_junto = list(cuando = "siempre"))
   expect_equal(.lam_dicotomia_datos(e)$n, c(56, 122))
 })
+
+test_that("tortas: el «(n)» sigue el ajuste salvo que el gráfico lo pida o lo quite", {
+  expect_false(.casos_junto_decidir(NA, 178))
+  expect_true(.casos_junto_decidir(NA, 15))
+  expect_true(.casos_junto_decidir(TRUE, 178))
+  withr::local_options(prosecnur.casos_junto = list(cuando = "siempre"))
+  expect_true(.casos_junto_decidir(NULL, 178))
+  expect_false(.casos_junto_decidir(FALSE, 15))
+  # El preset de la casa ya no fuerza «(n)» en tortas.
+  expect_true(is.na(.PRESETS_DEFAULT_PULSO$pie$mostrar_n_en_etiquetas %||% NA))
+})

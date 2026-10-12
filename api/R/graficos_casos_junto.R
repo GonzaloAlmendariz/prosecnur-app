@@ -71,3 +71,10 @@
   if (is.null(declarado)) return(list())
   options(prosecnur.casos_junto = .casos_junto_normalizar(declarado))
 }
+
+#' Decisión de un gráfico con argumento propio: TRUE/FALSE manda; NULL o NA deja que decida el ajuste del informe
+#' @keywords internal
+.casos_junto_decidir <- function(propio, n_base) {
+  if (length(propio) && !is.na(propio[1])) return(isTRUE(propio[1]))
+  .casos_junto_muestra(n_base)
+}

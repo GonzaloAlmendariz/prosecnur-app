@@ -4138,7 +4138,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     tipo_pie                 = "pie",
 
     mostrar_etiquetas_pct    = TRUE,
-    mostrar_n_en_etiquetas   = TRUE,
+    mostrar_n_en_etiquetas   = NA,   # según «Casos junto al porcentaje» del informe (antes TRUE: «(n)» siempre)
     size_etiquetas_pct       = 5,
     color_etiquetas_pct      = "white",
     etiquetas_negrita        = TRUE,
