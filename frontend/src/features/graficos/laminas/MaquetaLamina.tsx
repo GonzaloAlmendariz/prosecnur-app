@@ -8,6 +8,8 @@ import type { Slide } from "../../../api/graficos";
 import { ComposicionLamina } from "../iconos/ComposicionLamina";
 import { composicionDe } from "../iconos/composicion";
 import { GlifoGrafico } from "../iconos/GlifoGrafico";
+import { DibujoBloques } from "./DibujoBloques";
+
 import { IconoTipo } from "../iconos/IconoTipo";
 import { Plus } from "../../../vendor/lucide-react";
 import { graficadorDisplayName } from "../graficadorDisplay";
@@ -19,6 +21,9 @@ import { baseAutomatica, COLOR_MAYOR, COLOR_RESTO, COLOR_SEGUNDA, ranurasDeMaque
 import { varianteDe } from "./selectores/tiposLamina";
 import { camposTextoDe, type CampoTextoLamina } from "./ZonasTextoLamina";
 import "./maquetaLamina.css";
+
+/** Barras apiladas: la maqueta las dibuja pregunta por pregunta, con sus colores y su Top Two Box. */
+const BARRAS_POR_BLOQUE: ReadonlySet<string> = new Set(["p_barras_apiladas", "p_barras_multiapiladas"]);
 
 type Props = {
   slide: Slide;
@@ -81,7 +86,11 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
         const activa = r.k !== null && r.k === ranuraActiva;
         const contenido = (
           <>
-            {r.graficador && <GlifoGrafico tipo={r.graficador} className="pulso-f6-maqueta-glifo" opciones={r.twoBox} />}
+            {r.graficador && (BARRAS_POR_BLOQUE.has(r.graficador) && r.preguntas.length ? (
+              <DibujoBloques preguntas={r.preguntas} className="pulso-f6-maqueta-glifo" />
+            ) : (
+              <GlifoGrafico tipo={r.graficador} className="pulso-f6-maqueta-glifo" opciones={r.twoBox} colores={r.pinta === "categorias" ? r.preguntas[0]?.opciones.map((o) => o.color) : undefined} />
+            ))}
             <span className="pulso-f6-maqueta-info">
             {r.k !== null && !r.graficador ? (
               <span className="pulso-f6-maqueta-elegir"><Plus size={16} aria-hidden="true" /> Elegir gráfico</span>

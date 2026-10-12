@@ -25,13 +25,14 @@
   overflow: visible;
 }
 
-.pulso-glifo__p { fill: var(--glifo-principal); }
-.pulso-glifo__a { fill: var(--glifo-apoyo); }
-.pulso-glifo__e1 { fill: var(--glifo-principal); }
-.pulso-glifo__e2 { fill: color-mix(in srgb, var(--glifo-principal) 68%, var(--glifo-papel)); }
-.pulso-glifo__e3 { fill: color-mix(in srgb, var(--glifo-principal) 42%, var(--glifo-papel)); }
-.pulso-glifo__e4 { fill: color-mix(in srgb, var(--glifo-principal) 22%, var(--glifo-papel)); }
-.pulso-glifo__n { fill: var(--glifo-neutro); }
+.pulso-glifo__p { fill: var(--glifo-c1, var(--glifo-principal)); }
+.pulso-glifo__a { fill: var(--glifo-c2, var(--glifo-apoyo)); }
+/* --glifo-c1…c5: los colores reales de las respuestas cuando la maqueta los conoce (GlifoGrafico `colores`). */
+.pulso-glifo__e1 { fill: var(--glifo-c1, var(--glifo-principal)); }
+.pulso-glifo__e2 { fill: var(--glifo-c2, color-mix(in srgb, var(--glifo-principal) 68%, var(--glifo-papel))); }
+.pulso-glifo__e3 { fill: var(--glifo-c3, color-mix(in srgb, var(--glifo-principal) 42%, var(--glifo-papel))); }
+.pulso-glifo__e4 { fill: var(--glifo-c4, color-mix(in srgb, var(--glifo-principal) 22%, var(--glifo-papel))); }
+.pulso-glifo__n { fill: var(--glifo-c5, var(--glifo-neutro)); }
 .pulso-glifo__v { fill: var(--glifo-verde); }
 
 .pulso-glifo__trazo-p { stroke: var(--glifo-principal); }

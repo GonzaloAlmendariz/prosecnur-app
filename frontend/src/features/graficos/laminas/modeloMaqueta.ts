@@ -49,7 +49,8 @@ export const COLOR_RESTO = "#8A93A8";
 export const COLOR_SEGUNDA = "#9DC3E6";
 
 export type OpcionMaqueta = { rotulo: string; color: string | null };
-export type PreguntaMaqueta = { titulo: string; opciones: OpcionMaqueta[] };
+/** `ttb`: la columna Top Two Box de ESA pregunta (en multi-apiladas cada bloque decide la suya). */
+export type PreguntaMaqueta = { titulo: string; opciones: OpcionMaqueta[]; ttb: boolean };
 export type ColoresMaqueta = { paletas: MapaPaletas; vinculos?: VinculosPaletas };
 
 /** La escala de una pregunta (las opciones de su lista) con el color que le da la paleta de esa lista, si tiene. */
@@ -91,13 +92,22 @@ export function nombreBase(source: string): string {
   return t ? t[0].toLocaleUpperCase("es") + t.slice(1) : source;
 }
 
-type Grupo = { titulo: string | null; refs: string[] };
+type Grupo = { titulo: string | null; refs: string[]; ttb?: boolean };
+
+/** Todas las preguntas (`var` o `base$var`) que dibuja un gráfico, en el orden en que salen. */
+export function preguntasDelGrafico(args: Record<string, unknown>): string[] {
+  return gruposDe(args).flatMap((g) => g.refs);
+}
 
 /** Las preguntas de un gráfico: por bloque (multilista) y por tema (`vars` como objeto, con su `titulos_grupo`); una
  *  lista plana es una pregunta por variable. Las variables equivalentes entre bases de un mismo tema son UNA pregunta. */
 function gruposDe(args: Record<string, unknown>): Grupo[] {
   if (Array.isArray(args.bloques)) {
-    return args.bloques.flatMap((b) => (b && typeof b === "object" ? gruposDe(b as Record<string, unknown>) : []));
+    return args.bloques.flatMap((b) => {
+      if (!b || typeof b !== "object") return [];
+      const ttb = (b as Record<string, unknown>).top2box === true;
+      return gruposDe(b as Record<string, unknown>).map((g) => ({ ...g, ttb }));
+    });
   }
   const titulos = (args.titulos_grupo && typeof args.titulos_grupo === "object" ? args.titulos_grupo : {}) as Record<string, unknown>;
   if (args.vars && typeof args.vars === "object" && !Array.isArray(args.vars)) {
@@ -137,10 +147,11 @@ export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variabl
         const pr = parseVarRef(ref);
         return variables.find((v) => v.name === pr.name && (!pr.source || !v.source || v.source === pr.source));
       };
+      const twoBox = twoBoxDeGrafico(ref?.graficador ?? null, args as Record<string, unknown>, presets);
       const preguntas: PreguntaMaqueta[] = grupos.map((g) => {
         const iv = g.refs[0] ? buscar(g.refs[0]) : undefined;
         const titulo = g.titulo ?? cleanInferredVariableTitle(iv?.label) ?? (g.refs[0] ? parseVarRef(g.refs[0]).name : "");
-        return { titulo, opciones: escalaDe(iv, colores) };
+        return { titulo, opciones: escalaDe(iv, colores), ttb: g.ttb ?? twoBox.ttb };
       });
       const firmas = new Set(preguntas.map((q) => firmaOpciones(q.opciones.map((o) => o.rotulo))).filter(Boolean));
       return {
@@ -156,7 +167,7 @@ export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variabl
         resaltaMayor: ((args as Record<string, unknown>).overrides as Record<string, unknown> | undefined)?.resaltar_mayor === true
           || (args as Record<string, unknown>).resaltar_mayor === true,
         bases: bases.length > 1 ? bases.map(nombreBase) : [],
-        twoBox: twoBoxDeGrafico(ref?.graficador ?? null, args as Record<string, unknown>, presets),
+        twoBox,
       };
     });
 }

@@ -2,7 +2,7 @@
 // (glifoGrafico.css), para las tarjetas y el detalle del selector «¿Qué gráfico?» y para las ranuras de
 // `ComposicionLamina`. No es una captura ni un ícono agrandado: los íconos de 16–24 px viven en IconoTipo.
 
-import { useId } from "react";
+import { useId, type CSSProperties } from "react";
 import { dibujoGlifo, GLIFO, type OpcionesGlifo } from "./glifosGrafico";
 import "./glifoGrafico.css";
 
@@ -21,15 +21,18 @@ export type GlifoGraficoProps = {
   className?: string;
   /** Lo que el dibujo refleja del gráfico real (columnas Top/Bottom Two Box). */
   opciones?: OpcionesGlifo;
+  /** Colores reales de las respuestas, en orden: el dibujo los usa en vez de los tonos genéricos. */
+  colores?: readonly (string | null)[];
 };
 
-export function GlifoGrafico({ tipo, titulo, className, opciones }: GlifoGraficoProps): JSX.Element {
+export function GlifoGrafico({ tipo, titulo, className, opciones, colores }: GlifoGraficoProps): JSX.Element {
   const idTitulo = useId();
   return (
     <svg
       viewBox={`0 0 ${GLIFO.w} ${GLIFO.h}`}
       className={["pulso-glifo", className].filter(Boolean).join(" ")}
       data-glifo-tipo={tipo}
+      style={colores?.some(Boolean) ? (Object.fromEntries(colores.slice(0, 5).flatMap((c, i) => (c ? [[`--glifo-c${i + 1}`, c]] : []))) as CSSProperties) : undefined}
       data-glifo-desconocido={dibujoGlifo(tipo) ? undefined : "true"}
       role={titulo ? "img" : undefined}
       aria-labelledby={titulo ? idTitulo : undefined}
