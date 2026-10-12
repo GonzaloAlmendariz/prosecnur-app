@@ -79,7 +79,7 @@ test_that("en la ruta real p_barras_agrupadas de una serie sale nativa en barras
                choices = data.frame(list_name = "gas", name = niveles, label = niveles, stringsAsFactors = FALSE), orders_list = NULL)
   # Con la inversión del preset de la casa: el ggplot se lee de mayor a menor con la residual abajo y la nativa lo sigue
   # (sin ella, coord_flip pone el primer nivel abajo y la nativa también; paridad, F6.1 decide).
-  plan <- list(b = p_slide_1_grafico(grafico = p_barras_agrupadas("p1", overrides = list(invertir_barras = TRUE)), titulo = "Gasto"))
+  plan <- list(b = p_slide_1_grafico(grafico = p_barras_agrupadas("p1", overrides = list(invertir_barras = TRUE, resaltar_mayor = TRUE)), titulo = "Gasto"))
   out <- tempfile(fileext = ".pptx")
   suppressMessages(suppressWarnings(reporte_ppt_plan(data = dat, instrumento = inst, plan = plan, path_ppt = out, mensajes_progreso = FALSE)))
   xml <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
