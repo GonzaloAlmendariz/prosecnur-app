@@ -1271,6 +1271,17 @@ export async function apiCargaImportSurveyMonkeySeparadaAsync(payload: CargaImpo
   );
 }
 
+/** «Bases separadas» con Kobo: el proyecto entra como base NUEVA con `base_name` (carga_platform_separate.R); job async. */
+export async function apiCargaImportKoboSeparadaAsync(payload: CargaImportKoboPayload & { base_name: string }) {
+  return handle<AsyncJobStart>(
+    await apiFetch("/api/carga/platform/kobo/import-separate", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ...payload, async: true }),
+    }),
+  );
+}
+
 export async function apiCargaImportKobo(
   payload: CargaImportKoboPayload,
 ): Promise<CargaPlatformImportResult> {

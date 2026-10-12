@@ -47,8 +47,10 @@ import {
   downloadUrl,
   uploadKindForDataFile,
 } from "../../api/client";
-import { apiCargaImportSurveyMonkeySeparadaAsync } from "../../api/xlsformEditor";
+import { apiCargaImportKoboSeparadaAsync, apiCargaImportSurveyMonkeySeparadaAsync } from "../../api/xlsformEditor";
 import { nombreCortoDeEncuesta, nombreLibreDeBase } from "./importSeparadoModel";
+import { BasesDelEstudio } from "./fuentes/BasesDelEstudio";
+import { NuevaBaseArchivos } from "./fuentes/NuevaBaseArchivos";
 import { useSession } from "../../lib/SessionContext";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
 import "./carga-v2.css";
@@ -500,6 +502,23 @@ export default function CargaPage() {
           return;
         }
         const baseUrl = activeKoboProfile?.base_url || koboConnection?.active_profile_base_url || "https://kf.kobotoolbox.org";
+        if (topologyResolution.mode === "multi" && sourceStrategy === "separate") {
+          const baseName = nombreLibreDeBase(nombreCortoDeEncuesta(asset.name), Object.keys(estudio?.bases ?? {}));
+          setBusy(`Importando ${asset.name} como la base «${baseName}»…`);
+          const startSep = await apiCargaImportKoboSeparadaAsync({
+            asset_uid: asset.uid,
+            title: asset.name,
+            base_url: baseUrl,
+            connection_profile_id: activeKoboProfile?.id || "",
+            base_name: baseName,
+          });
+          const sep = await esperarResultadoImport<{ ok: boolean; base_name: string; n_filas: number; estudio: EstudioPayload }>(startSep.job_id, {
+            onProgress: (p) => setBusy(textoDeProgresoImport(`Importando ${asset.name}`, p)),
+          });
+          await onEstudioChanged(sep.estudio);
+          setPlatformMessage(`${asset.name} quedó como la base «${sep.base_name}» con ${sep.n_filas} respuestas.`);
+          return;
+        }
         setBusy(`Importando ${asset.name} desde KoboToolbox…`);
         const start = await apiCargaImportKoboAsync({
           asset_uid: asset.uid,
@@ -1394,6 +1413,22 @@ export default function CargaPage() {
             ) : activeCargaTab === "fuentes" ? (
               <div className="pulso-carga-surface pulso-carga-sources" data-carga-surface="sources">
               {sourcePlan}
+              {/* Propuesta F (Gonzalo, 2026-10-11): con «Bases separadas», Fuentes es la lista de bases, sin número fijo;
+                  «Agregar base» pregunta el origen y cada import entra como una base nueva. */}
+              {sourceStrategy === "separate" && estudio ? (
+                <BasesDelEstudio
+                  estudio={estudio}
+                  onCambio={onEstudioChanged}
+                  onOrigen={(o) => {
+                    if (o === "surveymonkey" || o === "kobo") { setPlatformProvider(o); setSourceMode("platform"); }
+                    else setSourceMode(o === "archivos" ? "files" : "monitoring");
+                  }}
+                  renderOrigen={(o) => (o === "surveymonkey" || o === "kobo" ? platformPanel : o === "monitoreo" ? monitoringSourcePanel : (
+                    <NuevaBaseArchivos estudio={estudio} onCambio={onEstudioChanged} />
+                  ))}
+                />
+              ) : (
+                <>
               {sourceOriginTabs}
               {sourceMode === "monitoring" ? monitoringSourcePanel : null}
               {sourceMode === "platform" && sourceStrategy === "separate" ? (
@@ -1429,6 +1464,8 @@ export default function CargaPage() {
                   }}
                 />
               ) : null}
+                </>
+              )}
               </div>
             ) : activeCargaTab === "revision" ? (
               <>
