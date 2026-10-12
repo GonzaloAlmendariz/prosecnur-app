@@ -33,6 +33,7 @@ import {
 } from "./armarDesde/aplicarPlanSugerido";
 import { enfocarSinDesplazar } from "./laminas/enfocarSinDesplazar";
 import "./armarDesde/armarDesde.css";
+import { contenidoPropuesto, textoFueraDelMazo, tituloPropuesto } from "./armarDesde/vistaPreviaPropuesta";
 
 function newSlideId(prefix = "sug") {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -397,21 +398,7 @@ export function SuggestedPlanButton() {
 
             {profileId === "equivalencias" && (result?.fuera?.length ?? 0) > 0 && (
               <div className="pulso-gv2-suggest-option-text">
-                <small>{(() => {
-                  const fuera = result?.fuera ?? [];
-                  const porMotivo = fuera.reduce<Record<string, number>>((acc, f) => {
-                    acc[f.motivo] = (acc[f.motivo] ?? 0) + 1;
-                    return acc;
-                  }, {});
-                  const texto: Record<string, string> = {
-                    sin_diapositiva: "sin diapositiva asignada",
-                    escala_divergente: "con escalas distintas entre públicos",
-                    sin_variables: "sin variables",
-                  };
-                  return `Fuera del mazo: ${Object.entries(porMotivo)
-                    .map(([m, n]) => `${n} ${texto[m] ?? m}`)
-                    .join(" · ")}.`;
-                })()}</small>
+                <small>{textoFueraDelMazo(result?.fuera ?? [])}</small>
               </div>
             )}
 
@@ -504,16 +491,19 @@ export function SuggestedPlanButton() {
               <div className="pulso-gv2-suggest-kpis">
                 <div>
                   <strong>{result.plan.slides.length}</strong>
-                  <span>slides propuestos</span>
+                  <span>{result.plan.slides.length === 1 ? "lámina propuesta" : "láminas propuestas"}</span>
                 </div>
+                {/* El mazo de equivalencias no mide cobertura de variables: «0/0 graficables» decía que no había nada. */}
+                {profileId !== "equivalencias" && (<>
                 <div>
                   <strong>{summary?.included_graphable ?? 0}/{summary?.graphable_variables ?? 0}</strong>
                   <span>graficables cubiertas</span>
                 </div>
                 <div>
                   <strong>{summary?.covered_by_recod ?? 0}</strong>
-                  <span>cubiertas por recod</span>
+                  <span>cubiertas por recodificación</span>
                 </div>
+                </>)}
               </div>
 
               {result.warnings?.length ? (
@@ -591,13 +581,13 @@ export function SuggestedPlanButton() {
               <div className="pulso-gv2-suggest-preview">
                 {(result.plan.slides ?? []).slice(0, 10).map((slide, index) => (
                   <div key={`${slide.id}-${index}`}>
-                    <strong>{index + 1}. {normalizeAcnurVisibleText(String(slide.payload?.titulo || slide.tipo))}</strong>
-                    <span>{slide.tipo}</span>
+                    <strong>{index + 1}. {normalizeAcnurVisibleText(tituloPropuesto(slide.payload?.titulo, profileId === "equivalencias"))}</strong>
+                    <span>{contenidoPropuesto(slide.tipo)}</span>
                   </div>
                 ))}
                 {result.plan.slides.length > 10 && (
                   <div className="pulso-gv2-suggest-more">
-                    +{result.plan.slides.length - 10} slides más
+                    +{result.plan.slides.length - 10} láminas más
                   </div>
                 )}
               </div>
