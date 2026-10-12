@@ -1,0 +1,30 @@
+/* Subpestañas de Identidad y Estilo del informe: una tira de pestañas bajo el título de la página. */
+.pulso-f6-subpestanas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  margin-top: var(--pulso-space-2);
+}
+
+.pulso-f6-subpestana {
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.pulso-f6-subpestana.is-activa {
+  border-color: var(--module-accent-border);
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+}
+
+.pulso-f6-subpestana:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: 2px;
+}

@@ -24,8 +24,10 @@ vi.mock("../../../lib/SessionContext", () => ({ useSession: () => ({ state: { an
 vi.stubGlobal("localStorage", { getItem: () => "sid-test", setItem: () => undefined, removeItem: () => undefined });
 const { default: PestanaEstilo } = await import("./PestanaEstilo");
 
+// Las secciones viven en subpestañas (I9): el markup de la pestaña es el de sus subpestañas juntas.
 function pintar(search = "?pestana=estilo") {
-  return renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/graficos${search}`] }, createElement(PestanaEstilo)));
+  return ["logos", "letra", "iconos"].map((foco) =>
+    renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/graficos${search}&foco=${foco}`] }, createElement(PestanaEstilo)))).join("\n");
 }
 
 const OPCIONES = normalizeEstiloOpciones({
@@ -52,8 +54,8 @@ describe("PestanaEstilo · markup", () => {
     const html = pintar();
     expect(html).toContain('data-audit-ready="graficos-estilo"');
     expect(html).toContain('data-qa-surface="graficos/f6-estilo"');
-    expect(html.match(/data-qa-scroll-owner=/g)).toHaveLength(1);
-    for (const grupo of ["f6-estilo-secciones", "f6-estilo-ambitos", "f6-estilo-logos", "f6-estilo-pasos", "f6-estilo-roles", "f6-estilo-paginas"]) {
+    expect(html.match(/data-qa-scroll-owner=/g)).toHaveLength(3);   // uno por subpestaña dibujada
+    for (const grupo of ["f6-estilo-secciones", "f6-estilo-ambitos", "f6-estilo-logos", "f6-estilo-pasos", "f6-estilo-roles"]) {
       expect(html).toContain(`data-qa-geometry-group="graficos/${grupo}"`);
     }
     // Tres lugares de logo, cinco roles: marcos pares.
@@ -82,7 +84,6 @@ describe("PestanaEstilo · markup", () => {
     expect(html).toContain('accept="image/png,.png"');
     expect(html).toContain('aria-label="Volver al logo por defecto en contraportada"');
     expect(html).toContain('type="radio" name="f6-estilo-ambito"');
-    expect(html).toContain("Hoy se aplica al Word");
   });
 
   it("en el informe compartido no ofrece ajustes y dice por qué", () => {

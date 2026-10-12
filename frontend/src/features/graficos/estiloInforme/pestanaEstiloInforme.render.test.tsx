@@ -64,8 +64,10 @@ vi.mock("../usePptStyleProfiles", () => ({
 vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => undefined, removeItem: () => undefined });
 const { default: PestanaEstiloInforme } = await import("./PestanaEstiloInforme");
 
+// Las secciones viven en subpestañas (I9): el markup de la pestaña es el de sus cuatro subpestañas juntas.
 function pintar(search = "?pestana=estilo-informe") {
-  return renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/graficos${search}`] }, createElement(PestanaEstiloInforme)));
+  return ["base", "calculos", "casos", "linea"].map((foco) =>
+    renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/graficos${search}&foco=${foco}`] }, createElement(PestanaEstiloInforme)))).join("\n");
 }
 
 beforeEach(() => {
@@ -87,12 +89,12 @@ describe("PestanaEstiloInforme · markup", () => {
     const html = pintar();
     expect(html).toContain('data-audit-ready="graficos-estilo-informe"');
     expect(html).toContain('data-qa-surface="graficos/f6-estilo-informe"');
-    expect(html.match(/data-qa-scroll-owner=/g)).toHaveLength(1);
+    expect(html.match(/data-qa-scroll-owner=/g)).toHaveLength(4);   // uno por subpestaña dibujada
     for (const grupo of ["f6-estilo-informe-secciones", "f6-estilo-informe-texto-base"]) {
       expect(html).toContain(`data-qa-geometry-group="graficos/${grupo}"`);
     }
     // Cinco secciones: texto de la base, cálculos, casos junto al porcentaje, línea visual y paletas.
-    expect(html.match(/class="pulso-f6-informe-seccion"/g)).toHaveLength(5);
+    expect(html.match(/class="pulso-f6-informe-seccion"/g)).toHaveLength(4);   // los colores pasaron a Identidad
   });
 
   it("mientras carga el catálogo o los defaults, la readiness queda en false", () => {
@@ -109,12 +111,11 @@ describe("PestanaEstiloInforme · markup", () => {
   it("sellos «Propio» donde hay decisión y «Del recetario» en lo demás", () => {
     const html = pintar();
     // Sufijo propio, método de apiladas propio, línea visual aplicada, paletas con color.
-    expect(html.match(/pulso-f6-estilo-sello is-propio/g)).toHaveLength(4);
+    expect(html.match(/pulso-f6-estilo-sello is-propio/g)).toHaveLength(3);   // sin la sección de colores
     expect(html).toContain("Por defecto");
     expect(html).toContain("Base: 120 docentes");
     expect(html).toContain('aria-label="Volver al valor por defecto en sufijo del conteo"');
     expect(html).toContain('aria-label="Volver al valor por defecto en Barras apiladas"');
-    expect(html).toContain("1 lista con colores propios");
   });
 
 
