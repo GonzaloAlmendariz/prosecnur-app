@@ -250,3 +250,60 @@
   font-size: 1.25em;
   font-weight: var(--pulso-weight-semibold);
 }
+
+/* Varias preguntas en un gráfico: cuántas, si comparten escala, y la escala con sus colores reales. */
+.pulso-f6-maqueta-resumen {
+  color: var(--pulso-text-muted);
+  font-size: 1.15em;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-maqueta-preguntas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  margin: 0;
+  padding-left: 1.4em;
+  font-size: 1.25em;
+}
+
+.pulso-f6-maqueta-preguntas li::marker {
+  color: var(--module-accent);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-maqueta-pregunta-item {
+  display: -webkit-box;
+  overflow: hidden;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.pulso-f6-maqueta-escala {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35em 0.9em;
+  margin-top: 0.2em;
+  color: var(--pulso-text-soft);
+  font-size: 1.05em;
+}
+
+.pulso-f6-maqueta-opcion {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.pulso-f6-maqueta-opcion i {
+  flex: none;
+  width: 0.95em;
+  height: 0.95em;
+  border-radius: 0.2em;
+}
+
+.pulso-f6-maqueta-opcion i.is-sin-color {
+  border: 1.5px dashed var(--pulso-border-strong);
+  background: transparent;
+}

@@ -35,7 +35,9 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
   const estructura = composicionDe(slide.tipo, slots).fuente === "estructura";
   const presets = usePlanStore((s) => s.presets);
-  const ranuras = useMemo(() => ranurasDeMaqueta(slide, variables, presets), [slide, variables, presets]);
+  const paletas = usePlanStore((s) => s.paletas);
+  const vinculos = usePlanStore((s) => s.paletasVinculos);
+  const ranuras = useMemo(() => ranurasDeMaqueta(slide, variables, presets, { paletas, vinculos }), [slide, variables, presets, paletas, vinculos]);
   const antetitulo = lamina.antetituloHeredado;
   const campos = camposTextoDe(slide.tipo, slidesById[slide.tipo]?.args, !estructura);
 
@@ -87,12 +89,23 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
             </span>
             )}
             {r.graficador && !r.pregunta && <span className="pulso-f6-maqueta-falta">Falta elegir la pregunta</span>}
-            {r.pregunta && (
-              <span className="pulso-f6-maqueta-pregunta">
-                {r.pregunta}
-                {r.masPreguntas > 0 && <span className="pulso-f6-maqueta-mas"> y {r.masPreguntas} más</span>}
+            {r.preguntas.length > 1 && (
+              <span className="pulso-f6-maqueta-resumen">
+                {r.preguntas.length} preguntas, {r.mismaEscala ? "misma escala y mismos colores" : "cada una con su escala"}
               </span>
             )}
+            {r.preguntas.length === 1 && <span className="pulso-f6-maqueta-pregunta">{r.preguntas[0].titulo}</span>}
+            {r.preguntas.length > 1 && (
+              <ol className="pulso-f6-maqueta-preguntas">
+                {r.preguntas.map((q, j) => (
+                  <li key={j}>
+                    <span className="pulso-f6-maqueta-pregunta-item">{q.titulo}</span>
+                    {!r.mismaEscala && <EscalaMaqueta opciones={q.opciones} />}
+                  </li>
+                ))}
+              </ol>
+            )}
+            {(r.preguntas.length === 1 || r.mismaEscala) && r.preguntas[0] && <EscalaMaqueta opciones={r.preguntas[0].opciones} />}
             {r.bases.length > 0 && (
               <span className="pulso-f6-maqueta-bases">
                 {r.bases.map((b) => <span key={b} className="pulso-f6-maqueta-base">{b}</span>)}
@@ -127,5 +140,20 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
         </button>
       )}
     </div>
+  );
+}
+
+/** La escala de una pregunta con los colores que le tocan; una opción sin color se marca, para que se note que falta. */
+function EscalaMaqueta({ opciones }: { opciones: readonly { rotulo: string; color: string | null }[] }) {
+  if (!opciones.length) return null;
+  return (
+    <span className="pulso-f6-maqueta-escala">
+      {opciones.map((o) => (
+        <span key={o.rotulo} className="pulso-f6-maqueta-opcion" title={o.color ? o.rotulo : `${o.rotulo}: sin color definido`}>
+          <i className={o.color ? undefined : "is-sin-color"} style={o.color ? { background: o.color } : undefined} />
+          {o.rotulo}
+        </span>
+      ))}
+    </span>
   );
 }
