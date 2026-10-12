@@ -116,7 +116,7 @@ graficar_pie <- function(
     # ETIQUETAS (%)
     # ==========================
     mostrar_etiquetas_pct = TRUE,
-    mostrar_n_en_etiquetas = FALSE,
+    mostrar_n_en_etiquetas = NA,   # NA: lo decide «Casos junto al porcentaje» del informe
     size_etiquetas_pct    = 3.2,
     color_etiquetas_pct   = "#FFFFFF",
     etiquetas_negrita     = FALSE,
@@ -396,7 +396,9 @@ graficar_pie <- function(
       y_mid   = (.data$ymin + .data$ymax) / 2
     )
 
-  if (isTRUE(mostrar_n_en_etiquetas) && any(is.finite(df$n_casos))) {
+  # Sin decisión del gráfico (NULL/NA) lo decide «Casos junto al porcentaje» del informe (graficos_casos_junto.R).
+  n_en_etiqueta <- .casos_junto_decidir(mostrar_n_en_etiquetas, sum(df$n_casos, na.rm = TRUE))
+  if (n_en_etiqueta && any(is.finite(df$n_casos))) {
     n_txt <- .fmt_n(df$n_casos)
     has_n_txt <- nzchar(n_txt)
     df$pct_txt[has_n_txt] <- paste0(df$pct_txt[has_n_txt], " (", n_txt[has_n_txt], ")")
