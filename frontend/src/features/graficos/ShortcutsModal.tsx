@@ -50,7 +50,6 @@ export function atajosDePestana(pestana: GraficosTabId, mod: string): Atajo[] {
     case "estilo":
     case "estilo-informe":
     case "word":
-    case "powerpoint":
       return [...deshacer, AYUDA];
   }
 }

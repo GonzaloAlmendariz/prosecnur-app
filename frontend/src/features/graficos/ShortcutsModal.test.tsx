@@ -28,7 +28,7 @@ describe("atajosDePestana", () => {
   });
 
   it("todas las pestañas ofrecen deshacer y la ayuda", () => {
-    for (const p of ["laminas", "vista-general", "estilo", "estilo-informe", "powerpoint", "word"] as const) {
+    for (const p of ["laminas", "vista-general", "estilo", "estilo-informe", "word"] as const) {
       expect(teclas(p)).toEqual(expect.arrayContaining(["Ctrl+Z", "?"]));
     }
   });

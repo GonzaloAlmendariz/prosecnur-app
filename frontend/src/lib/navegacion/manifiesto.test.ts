@@ -151,8 +151,8 @@ describe("manifiesto de navegación", () => {
     // F6.3 (2026-10-11): Gráficos gana «Vista general» (`vista-general`). 28 → 29.
     // F6.4 (A6 R3, 2026-10-11): Gráficos gana «Estilo del cliente» (`estilo`). 29 → 30.
     // A10 W-E (2026-10-11): Gráficos gana «Estilo del informe» (`estilo-informe`). 30 → 31.
-    // Retiro del Editor anterior (2026-10-11): sale «clasico» y entran «PowerPoint» y «Word». 31 → 32.
-    expect(procesamiento).toHaveLength(32);
+    // Retiro del Editor anterior (2026-10-11): sale «clasico» y entra «Word» (y «PowerPoint» pasó a la tarjeta del gráfico). 31.
+    expect(procesamiento).toHaveLength(31);
     expect(nodoPorClave("procesamiento/graficos/word")).not.toBeNull();
     expect(nodoPorClave("procesamiento/graficos/clasico")).toBeNull();
     expect(nodoPorClave("procesamiento/graficos/vista-general")).not.toBeNull();
