@@ -29,12 +29,21 @@ import { useLaminasUi, type SeccionInspector } from "./laminasStore";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import "./inspectorLamina.css";
 
+// Tres pestañas con una sola función cada una (Gonzalo, I11): la lámina (tipo, composición y textos), un gráfico a la vez
+// y la revisión de cómo sale. «composicion» sigue siendo una clave válida (direcciones viejas) y abre «Lámina».
 const SECCIONES: { key: SeccionInspector; label: string }[] = [
-  { key: "contenido", label: "Contenido" },
-  { key: "composicion", label: "Composición" },
-  { key: "graficos", label: "Gráficos" },
-  { key: "estado", label: "Estado" },
+  { key: "contenido", label: "Lámina" },
+  { key: "graficos", label: "Gráfico" },
+  { key: "estado", label: "Revisión" },
 ];
+
+/** Rótulos y ayudas de los textos de la lámina, en el idioma del usuario (el registro trae «slide» y «disclaimer»). */
+const TEXTOS_CAMPO: Record<string, { label: string; descripcion: string }> = {
+  titulo: { label: "Título", descripcion: "Va arriba de la lámina." },
+  subtitulo: { label: "Subtítulo", descripcion: "Línea bajo el título." },
+  base: { label: "Base", descripcion: "Vacía, sale la base automática." },
+  pie: { label: "Nota al pie", descripcion: "Fuente u otra aclaración al pie de la lámina." },
+};
 
 // Los capítulos e íconos tienen su editor; los ajustes del dibujo de los focos, su candado (decisión 32).
 const ARGS_DEL_INDICE = new Set<string>(["secciones", "subtemas", "subindices", "iconos_focos", ...ARGS_FIJADOS_INDICE]);
@@ -90,7 +99,7 @@ export function InspectorLamina({
         </button>
       </header>
 
-      <GlidingTabList activeKey={seccion} className="pulso-f6-inspector-tabs" role="tablist" aria-label="Secciones de la lámina">
+      <GlidingTabList activeKey={seccion === "composicion" ? "contenido" : seccion} className="pulso-f6-inspector-tabs" role="tablist" aria-label="Secciones de la lámina">
         {SECCIONES.map(({ key, label }) => (
           <button
             key={key}
@@ -98,14 +107,13 @@ export function InspectorLamina({
             type="button"
             role="tab"
             data-gliding-key={key}
-            aria-selected={seccion === key}
+            aria-selected={seccion === key || (key === "contenido" && seccion === "composicion")}
             aria-controls={panelId(key)}
             tabIndex={seccion === key ? 0 : -1}
-            className={`pulso-f6-inspector-tab${seccion === key ? " is-activa" : ""}`}
+            className={`pulso-f6-inspector-tab${seccion === key || (key === "contenido" && seccion === "composicion") ? " is-activa" : ""}`}
             onClick={() => setSeccion(key)}
           >
             {label}
-            {key === "graficos" && slots.length > 0 && <span className="pulso-f6-cuenta">{slots.length}</span>}
             {key === "estado" && (estado === "ruta_anterior" || avisos > 0) && (
               <span className="pulso-f6-marca-aviso" aria-label={estado === "ruta_anterior" ? "sale como imagen" : `${avisos} avisos`} />
             )}
@@ -120,8 +128,13 @@ export function InspectorLamina({
         aria-labelledby={tabId(seccion)}
         tabIndex={0}
       >
-        {seccion === "contenido" && <SeccionContenido slide={slide} lamina={lamina} />}
-        {seccion === "composicion" && <SeccionComposicion slide={slide} lamina={lamina} ranura={ranura} onCambiarLamina={onCambiarLamina} />}
+        {(seccion === "contenido" || seccion === "composicion") && (
+          <>
+            <SeccionContenido slide={slide} lamina={lamina} />
+            <h3 className="pulso-f6-subtitulo pulso-f6-inspector-apartado">Composición</h3>
+            <SeccionComposicion slide={slide} lamina={lamina} ranura={ranura} onCambiarLamina={onCambiarLamina} />
+          </>
+        )}
         {seccion === "graficos" && (
           <SeccionGraficos slide={slide} slots={slots} ranura={ranura} onRanura={onRanura} onCambiarGrafico={onCambiarGrafico} />
         )}
@@ -182,7 +195,7 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
       {contenido.campos.map((c) => (
         <CampoTexto
           key={c.name}
-          campo={c}
+          campo={{ ...c, ...(TEXTOS_CAMPO[c.name] ?? {}) }}
           valor={typeof payload[c.name] === "string" ? (payload[c.name] as string) : ""}
           placeholder={c.name === "titulo" ? titulo.placeholder : ""}
           ayuda={c.name === "titulo" ? titulo.ayuda : null}
@@ -247,17 +260,33 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
     );
   }
   const payload = slide.payload as Record<string, unknown>;
+  // Un gráfico a la vez: el elegido en la maqueta o con el selector; los demás no se apilan debajo.
+  const activo = ranura !== null && ranura >= 1 && ranura <= slots.length ? ranura : 1;
   return (
     <div className="pulso-f6-pila" data-qa-geometry-group="graficos/f6-graficos" data-qa-geometry-contract="intrinsic">
+      {slots.length > 1 && (
+        <div className="pulso-f6-selector-grafico" role="tablist" aria-label="Gráfico de la lámina">
+          {slots.map((slot, i) => {
+            const v = payload[slot] as GraficadorRef | undefined;
+            return (
+              <button key={slot} type="button" role="tab" aria-selected={activo === i + 1}
+                className={`pulso-f6-selector-grafico-opcion${activo === i + 1 ? " is-activa" : ""}`} onClick={() => onRanura(i + 1)}>
+                {v?.graficador ? <IconoTipo clase="grafico" tipo={v.graficador} size={16} /> : null}
+                Gráfico {i + 1}
+              </button>
+            );
+          })}
+        </div>
+      )}
       <ul className="pulso-f6-ranuras" data-qa-geometry-group="graficos/f6-ranuras" data-qa-geometry-contract="intrinsic">
         {slots.map((slot, i) => {
           const k = i + 1;
+          if (k !== activo) return null;
           const valor = payload[slot] as GraficadorRef | undefined;
           const tecnico = valor?.graficador ?? "";
           const nombre = tecnico ? graficadorDisplayName(tecnico, graficadoresById[tecnico]) : "Sin gráfico";
-          const variable = firstVariableRefFromGraph(valor);
-          const abierta = ranura === k || (slots.length === 1 && ranura === null);
-          const rotulo = `Gráfico ${k}${slots.length > 1 ? ` · ${nombreSlot(slot, slidesById[slide.tipo])}` : ""}`;
+          const abierta = true;
+          const rotulo = `Gráfico ${k}${slots.length > 1 ? `, ${nombreSlot(slot, slidesById[slide.tipo]).toLowerCase()}` : ""}`;
           return (
             <li key={slot} className={`pulso-f6-ranura${abierta ? " is-abierta" : ""}`}>
               <div className="pulso-f6-ranura-fila">
@@ -265,13 +294,13 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
                   type="button"
                   className="pulso-f6-ranura-cabeza"
                   aria-expanded={abierta}
-                  onClick={() => onRanura(abierta && slots.length > 1 ? null : k)}
+                  onClick={() => onRanura(k)}
                 >
                   <ChevronRight size={14} aria-hidden="true" className="pulso-f6-ranura-chevron" />
                   {tecnico && <IconoTipo clase="grafico" tipo={tecnico} size={20} />}
                   <span className="pulso-f6-ranura-texto">
                     <strong>{rotulo}</strong>
-                    <span>{nombre}{variable ? ` · ${variable}` : ""}</span>
+                    <span>{nombre}</span>
                   </span>
                 </button>
                 {abierta && (
@@ -297,13 +326,6 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
           );
         })}
       </ul>
-      <p className="pulso-f6-pendiente">
-        <History size={14} aria-hidden="true" />
-        <span>
-          Los logos y la letra del Word de todo el informe se fijan en la pestaña{" "}
-          <button type="button" className="pulso-f6-texto-boton" onClick={() => irA("pestana", "estilo")}>Identidad</button>.
-        </span>
-      </p>
     </div>
   );
 }

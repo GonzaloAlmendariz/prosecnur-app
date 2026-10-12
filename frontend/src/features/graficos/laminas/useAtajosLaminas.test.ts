@@ -237,9 +237,4 @@ describe("C32/O3: los textos de Láminas no mandan al Editor anterior", () => {
     }
   });
 
-  it("el estilo Word del informe lleva a la pestaña «Identidad»", () => {
-    const fuente = sinComentarios("./InspectorLamina.tsx");
-    expect(fuente).toMatch(/irA\("pestana", "estilo"\)/);
-    expect(fuente).toMatch(/>Identidad</);
-  });
 });
