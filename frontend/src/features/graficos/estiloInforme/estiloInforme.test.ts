@@ -18,6 +18,8 @@ import {
   defaultDeArg,
   ejemploTextoBase,
   errorFormato,
+  formatoDesdePartes,
+  partesFormato,
   filasCalculos,
   lineaVisualAplicada,
   listasConColor,
@@ -128,6 +130,20 @@ describe("texto de la base (C48)", () => {
     expect(errorFormato("%s y %s")).toMatch(/una sola vez/);
     expect(errorFormato("%s al 5%")).toMatch(/% suelto/);
     expect(errorFormato("%d casos %s")).toMatch(/% suelto/);
+  });
+
+  it("I6: el texto de la base se arma sin escribir %s y vuelve igual al motor", () => {
+    expect(partesFormato("Base: %s")).toEqual({ inicio: "Base:", fin: "" });
+    expect(partesFormato("%s (100%%)")).toEqual({ inicio: "", fin: " (100%)" });
+    expect(partesFormato("Base:")).toEqual({ inicio: "Base:", fin: "" }); // inválido: se lee el de siempre
+    expect(formatoDesdePartes({ inicio: "Total encuestados:", fin: "" })).toBe("Total encuestados: %s");
+    expect(formatoDesdePartes({ inicio: "  ", fin: "" })).toBe("%s");
+    // Un % que escribe el usuario no rompe el motor: sale escapado y el formato sigue siendo válido.
+    const conPorcentaje = formatoDesdePartes({ inicio: "Base 100%", fin: " (100%)" });
+    expect(conPorcentaje).toBe("Base 100%% %s (100%%)");
+    expect(errorFormato(conPorcentaje)).toBeNull();
+    expect(partesFormato(conPorcentaje)).toEqual({ inicio: "Base 100%", fin: " (100%)" });
+    expect(ejemploTextoBase(formatoDesdePartes({ inicio: "Base:", fin: "" }), "estudiantes", 172)).toBe("Base: 172 estudiantes");
   });
 
   it("el ejemplo pone conteo y sufijo en el %s", () => {

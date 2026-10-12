@@ -126,6 +126,25 @@ export function ejemploTextoBase(formato: string, sufijo: string, n: number = N_
   return formato.replace(/%%/g, "\u0000").replace("%s", conteo).replace(/\u0000/g, "%");
 }
 
+/**
+ * I6: el usuario nunca escribe `%s`. El formato se parte en lo que va antes y después del conteo, y se vuelve a armar
+ * escapando cualquier `%` que escriba. Un formato que el motor no podría componer se lee como el por defecto.
+ */
+export type PartesFormato = { inicio: string; fin: string };
+
+export function partesFormato(formato: string): PartesFormato {
+  if (errorFormato(formato)) return { inicio: "Base:", fin: "" };
+  const [antes, despues = ""] = formato.split("%s");
+  const literal = (t: string) => t.replace(/%%/g, "%");
+  return { inicio: literal(antes).trimEnd(), fin: literal(despues) };
+}
+
+export function formatoDesdePartes({ inicio, fin }: PartesFormato): string {
+  const escapar = (t: string) => t.replace(/%/g, "%%");
+  const antes = inicio.trim();
+  return `${antes ? `${escapar(antes)} ` : ""}%s${escapar(fin)}`;
+}
+
 function texto(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
