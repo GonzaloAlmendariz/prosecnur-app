@@ -35,7 +35,7 @@ export type GrupoRespuestas = {
 };
 
 /** Respuestas que no son una opción sustantiva: van en gris para no competir con las demás. */
-const RESIDUAL = /^(no sabe|no responde|no precisa|no aplica|no corresponde|ns\s*\/?\s*nr|prefiero no|sin informaci[oó]n|otros?\b|otras?\b|ninguna de las anteriores)/;
+const RESIDUAL = /^(no sabe|no responde|no precisa|no aplica|no corresponde|ns\s*\/?\s*nr|prefiero no|sin inf|otros?\b|otras?\b|ninguna de las anteriores)/;
 
 export function esRespuestaResidual(etiqueta: string): boolean {
   return RESIDUAL.test(normalizarEtiquetaPaleta(etiqueta).replace(/^\(|\)$/g, ""));

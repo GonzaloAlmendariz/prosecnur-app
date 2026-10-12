@@ -245,6 +245,8 @@ type PlanStore = {
   setPaleta: (listName: string, paleta: PaletaPorLista) => void;
   /** Reemplaza el mapa de paletas entero en un solo paso deshacible (Colores de las respuestas pinta un grupo de listas a la vez). */
   setPaletas: (paletas: Record<string, PaletaPorLista>) => void;
+  /** Paletas y vínculos juntos en un solo paso deshacible (nombrar o agrupar paletas en Colores de las respuestas). */
+  setPaletasYVinculos: (paletas: Record<string, PaletaPorLista>, vinculos: Record<string, string>) => void;
   setColorEnPaleta: (listName: string, label: string, hex: string) => void;
   removePaleta: (listName: string) => void;
   removeColoresDePaleta: (listName: string, labels: string[]) => void;
@@ -793,6 +795,9 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   setPaletas: (paletas) =>
     set((state) => (paletas === state.paletas ? state : dirty(state, { paletas }))),
+
+  setPaletasYVinculos: (paletas, vinculos) =>
+    set((state) => dirty(state, { paletas, paletasVinculos: vinculos })),
 
   setColorEnPaleta: (listName, label, hex) =>
     set((state) => {
