@@ -204,7 +204,7 @@ export default function PestanaEstilo() {
             {/* Los íconos del cliente (lámina de objetivo y capítulos) se suben aquí; la población no lleva ícono. */}
             {sub === "iconos" && (
               <section className="pulso-f6-estilo-seccion" aria-labelledby="f6-estilo-iconos-titulo" data-qa-geometry-member>
-                <h3 id="f6-estilo-iconos-titulo" className="pulso-f6-subtitulo">Íconos</h3>
+                <h3 id="f6-estilo-iconos-titulo" className="pulso-sr-only">Íconos</h3>
                 <IconosEditor />
               </section>
             )}

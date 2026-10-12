@@ -1,13 +1,13 @@
 import { useRef, useState } from "react";
-import { Upload, Trash2, Pencil, Check, ImageOff, Images, CheckCircle2, Sparkles } from "lucide-react";
+import { Upload, Trash2, Pencil, Check, ImageOff, Images, CheckCircle2 } from "lucide-react";
 import { apiGraficosIconoUpload, downloadUrl } from "../../api/client";
 import { usePlanStore, IconoConfig } from "./store";
 import { EmptyState, ErrorBlock } from "../../components/States";
 
 // Editor de biblioteca de iconos PNG. Los iconos son parte esencial de
-// los slides de población (p_slide_*_poblacion): aparecen centrados o
-// junto al texto en p_slide_objetivo_icono. El analista los sube acá y
-// los selecciona después desde el editor de cada slide.
+// la lámina de objetivo (p_slide_objetivo_icono) y los capítulos. La
+// población no lleva ícono (decisión de Gonzalo). Se suben aquí y se eligen
+// después desde la tarjeta de cada lámina.
 //
 // Flujo de upload:
 //   - Usuario arrastra un PNG o clickea el área → FileReader lo lee a base64
@@ -26,7 +26,6 @@ export function IconosEditor() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [dragOver, setDragOver] = useState(false);
-  const lastIcon = iconos[iconos.length - 1];
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -58,29 +57,24 @@ export function IconosEditor() {
 
   return (
     <div className="pulso-gv2-iconos-editor">
-      <section className="pulso-gv2-iconos-hero" aria-label="Biblioteca de iconos para slides">
+      <section className="pulso-gv2-iconos-hero" aria-label="Íconos propios">
         <div className="pulso-gv2-iconos-hero-main">
           <span className="pulso-gv2-iconos-hero-mark" aria-hidden="true">
             <Images size={18} />
           </span>
           <div className="pulso-gv2-iconos-hero-copy">
-            <span>Biblioteca de assets</span>
-            <strong>Iconos para slides de población</strong>
-            <small>PNGs transparentes para objetivos, públicos, cobertura y láminas con apoyo visual.</small>
+            <strong>Íconos propios</strong>
+            <small>Imágenes PNG con fondo transparente para la lámina de objetivo y las de capítulo.</small>
           </div>
         </div>
         <div className="pulso-gv2-iconos-hero-stats" aria-label="Estado de la biblioteca">
           <span>
             <strong>{iconos.length}</strong>
-            <small>{iconos.length === 1 ? "icono" : "iconos"}</small>
+            <small>{iconos.length === 1 ? "ícono" : "íconos"}</small>
           </span>
           <span>
             <strong>PNG</strong>
             <small>transparente</small>
-          </span>
-          <span>
-            <strong>{lastIcon ? "Listo" : "Base"}</strong>
-            <small>{lastIcon ? lastIcon.nombre : "sin assets"}</small>
           </span>
         </div>
       </section>
@@ -114,12 +108,8 @@ export function IconosEditor() {
             <Upload size={20} />
           </span>
           <span className="pulso-gv2-iconos-drop-copy">
-            <strong>{uploading ? "Subiendo assets..." : "Arrastra PNGs o selecciona archivos"}</strong>
-            <small>Usa fondo transparente, borde limpio y aproximadamente 500 x 500 px.</small>
-          </span>
-          <span className="pulso-gv2-iconos-drop-pill">
-            <Sparkles size={12} />
-            Reutilizable
+            <strong>{uploading ? "Subiendo…" : "Arrastra tus PNG aquí o elige archivos"}</strong>
+            <small>Con fondo transparente, bordes limpios y unos 500 × 500 px.</small>
           </span>
         <input
           ref={fileInputRef}
@@ -131,10 +121,10 @@ export function IconosEditor() {
         />
         </label>
 
-        <aside className="pulso-gv2-iconos-guidance" aria-label="Guía de calidad de iconos">
-          <span><CheckCircle2 size={13} /> Transparencia real</span>
+        <aside className="pulso-gv2-iconos-guidance" aria-label="Cómo debe ser un buen ícono">
+          <span><CheckCircle2 size={13} /> Fondo transparente</span>
           <span><CheckCircle2 size={13} /> Contraste sobre fondo claro</span>
-          <span><CheckCircle2 size={13} /> Silueta legible a 32 px</span>
+          <span><CheckCircle2 size={13} /> Se entiende aunque sea pequeño</span>
         </aside>
       </div>
 
@@ -145,11 +135,11 @@ export function IconosEditor() {
         <EmptyState
           variant="inline"
           icon={<ImageOff size={18} />}
-          title="Sin iconos"
-          hint="Los PNGs que subas aparecerán acá para reutilizar en cualquier slide de población."
+          title="Aún no hay íconos"
+          hint="Los que subas aparecerán aquí y podrás usarlos en cualquier lámina de objetivo o de capítulo."
         />
       ) : (
-        <div className="pulso-gv2-iconos-grid" aria-label="Iconos cargados">
+        <div className="pulso-gv2-iconos-grid" aria-label="Íconos subidos">
           {iconos.map((ico) => (
             <IconoCard
               key={ico.id}

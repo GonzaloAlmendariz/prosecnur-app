@@ -22,6 +22,13 @@ describe("contenido especial (C38)", () => {
     expect(e.iconos.map((a) => a.name)).toEqual(["icono"]);
   });
 
+  it("una lámina de población no ofrece ícono aunque el registro declare el campo", () => {
+    const args = [arg("titulo", "string"), arg("icono", "icono")];
+    expect(contenidoEspecialDe(args, "p_slide_1_poblacion").iconos).toEqual([]);
+    expect(contenidoEspecialDe(args, "p_slide_3_poblacion_mapa").iconos).toEqual([]);
+    expect(contenidoEspecialDe(args, "p_slide_objetivo_icono").iconos.map((a) => a.name)).toEqual(["icono"]);
+  });
+
   it("el ícono guardado se resuelve contra los subidos y uno que ya no está se conserva", () => {
     const iconos = [{ id: "a", nombre: "Persona", file_id: "f1" }];
     expect(iconoElegido(null, iconos)).toEqual({ estado: "ninguno" });

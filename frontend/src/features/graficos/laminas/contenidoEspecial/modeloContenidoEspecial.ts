@@ -23,8 +23,15 @@ export function esArgEspecial(a: Pick<ArgMetadata, "name" | "tipo_input">): bool
 export type ContenidoEspecial = { filas: ArgMetadata[]; iconos: ArgMetadata[] };
 
 /** Los argumentos de la lámina que se editan con su editor propio, en el orden del registro. */
-export function contenidoEspecialDe(args: readonly ArgMetadata[]): ContenidoEspecial {
-  return { filas: args.filter(esArgFilas), iconos: args.filter((a) => !esArgFilas(a) && esArgIcono(a)) };
+/** Las láminas de población no llevan ícono (Gonzalo: «ya quedamos en que población no lleva ícono»), aunque el
+ *  registro todavía declare el campo; el motor lo quita al abrir el plan. */
+export function esLaminaPoblacion(tipo: string | undefined): boolean {
+  return typeof tipo === "string" && /_poblacion(_|$)/.test(tipo);
+}
+
+export function contenidoEspecialDe(args: readonly ArgMetadata[], tipo?: string): ContenidoEspecial {
+  const iconos = esLaminaPoblacion(tipo) ? [] : args.filter((a) => !esArgFilas(a) && esArgIcono(a));
+  return { filas: args.filter(esArgFilas), iconos };
 }
 
 export type TituloPorDefecto = {
