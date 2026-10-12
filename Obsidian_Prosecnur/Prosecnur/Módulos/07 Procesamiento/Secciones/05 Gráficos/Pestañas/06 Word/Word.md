@@ -3,26 +3,30 @@ tipo: pestana
 padres: ["[[Gráficos]]"]
 orden: 5
 documentacion: parcial
-ruta_app: "/graficos?pestana=clasico"
-nodo: "procesamiento/graficos/clasico"
+ruta_app: "/graficos?pestana=word"
+nodo: "procesamiento/graficos/word"
 verificado_contra: ""
 tags:
   - Pestaña
 fuentes:
   - "frontend/src/lib/navegacion/catalogos/procesamiento.ts"
   - "frontend/src/features/graficos/GraficosPage.tsx"
-  - "frontend/src/features/graficos/v2/shell/EditorShell.tsx"
+  - "frontend/src/features/graficos/word/PestanaWord.tsx"
 ---
 
-# Editor anterior de gráficos
+# Word
 
-> En la UI: **Editor anterior**. El editor de gráficos de siempre, que se conserva mientras se completa el nuevo.
+> En la UI: **Word**. Cómo sale el informe en Word: el documento completo con portada, índices, «Cómo leer», capítulos y contraportada.
 
 ## Objetivo
 
-Mantener accesible lo que «Láminas» todavía no cubre (compartir, vaciar, estilo del cliente, entre otros) sin perder el trabajo: abre en la misma lámina seleccionada en Láminas.
+Reunir en un solo lugar lo que sólo afecta al Word, separado de Identidad (logos, letra, íconos y colores, que valen para el PowerPoint y el Word).
 
 ## Cómo se usa
 
-1. Se llega desde la pestaña o desde los accesos de Láminas que apuntan aquí.
-2. Es el editor descrito en la nota de la sección [[Gráficos]]: plan de láminas, lienzo, inspector y barra con exportación.
+1. Se llega desde el rail de Gráficos, después de «Estilo del informe».
+2. Los ajustes del documento se ven con su vista previa; la exportación se hace desde «Exportar ▾» en Láminas.
+
+## Historia
+
+Reemplaza en el rail al «Editor anterior», que se retiró el 2026-10-11 cuando Láminas cubrió lo que faltaba.
