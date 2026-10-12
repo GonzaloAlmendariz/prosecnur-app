@@ -683,9 +683,18 @@
   if (length(bases) < 2L) return(list())
 
   por_clave <- list()
+  # Posición de cada variable en SU cuestionario: las propuestas salen en el orden del cuestionario, que es el orden
+  # en que se arma el mazo (Gonzalo 2026-10-11: «dejémoslo muy coherente para que funcione bien con gráficos»).
+  posicion <- list()
   for (b in bases) {
     claves <- .equiv_claves_de_base(inst_por_base[[b]])
-    for (nombre in names(claves)) {
+    # No son temas que se comparen ni se grafiquen: el «Otro (especifique)» viaja con su pregunta y el
+    # consentimiento sólo decide qué respuestas entran.
+    excluir <- names(claves)[grepl("_other$", names(claves)) & sub("_other$", "", names(claves)) %in% names(claves)]
+    consentimiento <- if (exists(".sm_mb_consent_var", mode = "function")) .sm_mb_consent_var(inst_por_base[[b]]) else ""
+    if (nzchar(consentimiento)) excluir <- c(excluir, consentimiento)
+    posicion[[b]] <- stats::setNames(seq_along(claves), names(claves))
+    for (nombre in setdiff(names(claves), excluir)) {
       k <- claves[[nombre]]$clave
       entrada <- por_clave[[k]] %||% list(variables = list(),
                                           etiqueta = claves[[nombre]]$etiqueta,
@@ -725,15 +734,19 @@
       sugerida = TRUE
     )
   }
-  # Primero lo que cubre mas publicos: es donde una confirmacion rinde mas.
-  orden <- order(-vapply(out, function(x) x$cantidad, integer(1)),
-                 vapply(out, function(x) {
-                   # Las que quedaron sin etiqueta se ordenan por su primera
-                   # variable, para que las tres de una bateria salgan juntas.
-                   e <- x$etiqueta_estandar
-                   if (nzchar(e)) e else paste0("~", unlist(x$variables)[1])
-                 }, character(1)))
-  out[orden]
+  if (!length(out)) return(out)
+  # En el orden del cuestionario de referencia —la base que más propuestas comparte—; lo que esa base no tiene va
+  # después, en el orden de la primera base que lo pregunta. Antes iba primero lo que cubría más públicos, y el mazo
+  # que se arma desde aquí salía con las preguntas desordenadas.
+  cuenta <- vapply(bases, function(b) sum(vapply(out, function(x) !is.null(x$variables[[b]]), logical(1))), integer(1))
+  ref <- bases[which.max(cuenta)]
+  pos_en <- function(x, b) { v <- x$variables[[b]]; if (is.null(v)) NA_integer_ else unname(posicion[[b]][[v]] %||% NA_integer_) }
+  en_ref <- vapply(out, function(x) pos_en(x, ref), integer(1))
+  en_otra <- vapply(out, function(x) {
+    for (b in bases) { p <- pos_en(x, b); if (!is.na(p)) return(p) }
+    NA_integer_
+  }, integer(1))
+  out[order(is.na(en_ref), en_ref, en_otra)]
 }
 
 
