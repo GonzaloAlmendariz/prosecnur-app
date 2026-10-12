@@ -130,7 +130,9 @@
     sexo <- .pulso_sexo_fm(filas[[lado]])
     n <- suppressWarnings(as.numeric(filas[[col_n]]))
     n[!is.finite(n)] <- 0
-    for (sx in c("F", "M")) acc[[sx]] <- acc[[sx]] + sum(n[sexo == sx])
+    # Un lado vacío («sex_top_2» sin segundo sexo) da NA en `sexo`: sin excluirlo, `n[NA]` volvía NA toda la suma y
+    # la celda de sexo salía sin esperadas.
+    for (sx in c("F", "M")) acc[[sx]] <- acc[[sx]] + sum(n[!is.na(sexo) & sexo == sx])
   }
   acc
 }
@@ -166,10 +168,14 @@
   for (lado in c("sex_top_1", "sex_top_2")) {
     col_n <- paste0(lado, "_n")
     if (!lado %in% names(filas) || !col_n %in% names(filas)) next
-    sexo <- toupper(as.character(filas[[lado]]))
+    # Mismo lector que los elegibles: «Mujer»/«Hombre» cuentan, y un lado vacío no vuelve NA la suma.
+    sexo <- .pulso_sexo_fm(filas[[lado]])
     n <- suppressWarnings(as.numeric(filas[[col_n]]))
     n[!is.finite(n)] <- 0
-    for (sx in c("F", "M")) acc[[sx]] <- acc[[sx]] + sum(n[sexo == sx] * tasa[sexo == sx])
+    for (sx in c("F", "M")) {
+      sel <- !is.na(sexo) & sexo == sx
+      acc[[sx]] <- acc[[sx]] + sum(n[sel] * tasa[sel])
+    }
   }
   acc
 }
