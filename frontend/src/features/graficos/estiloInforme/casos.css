@@ -1,0 +1,44 @@
+/* Sección «Casos junto al porcentaje» de Estilo del informe (SeccionCasos.tsx). */
+
+.pulso-f6-informe-casos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-f6-casos-opcion {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pulso-f6-casos-opcion.is-activa {
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-casos-opcion:has(input:focus-visible) {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: 2px;
+}
+
+.pulso-f6-informe-umbral {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-text-muted);
+  font-size: 13px;
+}
+
+.pulso-f6-informe-umbral .pulso-f6-input {
+  width: 64px;
+}

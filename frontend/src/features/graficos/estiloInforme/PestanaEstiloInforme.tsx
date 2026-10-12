@@ -43,6 +43,8 @@ import { SeccionCalculos, type AccionesCalculos } from "./SeccionCalculos";
 import { SeccionLineaVisual } from "./SeccionLineaVisual";
 import { SeccionPaletas } from "./SeccionPaletas";
 import { SeccionTextoBase } from "./SeccionTextoBase";
+import { SeccionCasos } from "./SeccionCasos";
+import { conCasosJunto, leerCasosJunto } from "./casosJunto";
 // Los sellos «Del recetario»/«Propio» y «Modificado» son los de «Estilo del cliente»: se reusa su hoja, no se copian.
 import "../estilo/estilo.css";
 import "./estiloInforme.css";
@@ -124,6 +126,7 @@ export default function PestanaEstiloInforme() {
             onVolverTodo={() => cambiarPresets((p) => sinArgs(p, PRESET_BASE, [ARG_FORMATO, ARG_SUFIJO]))}
           />
           <SeccionCalculos filas={filas} nota={nota} acciones={acciones} estado={estadoCalculos} />
+          <SeccionCasos casos={leerCasosJunto(presets)} onCambiar={(c) => cambiarPresets((p) => conCasosJunto(p, c))} />
           <SeccionLineaVisual aplicada={lineaVisualAplicada(scopeRules)} />
           <SeccionPaletas listasConColor={listasConColor(paletas)} />
         </div>

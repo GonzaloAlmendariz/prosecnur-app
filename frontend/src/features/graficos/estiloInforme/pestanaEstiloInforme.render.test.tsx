@@ -91,8 +91,8 @@ describe("PestanaEstiloInforme · markup", () => {
     for (const grupo of ["f6-estilo-informe-secciones", "f6-estilo-informe-texto-base"]) {
       expect(html).toContain(`data-qa-geometry-group="graficos/${grupo}"`);
     }
-    // Cuatro secciones: texto de la base, cálculos, línea visual y paletas (el Word tiene su pestaña).
-    expect(html.match(/class="pulso-f6-informe-seccion"/g)).toHaveLength(4);
+    // Cinco secciones: texto de la base, cálculos, casos junto al porcentaje, línea visual y paletas.
+    expect(html.match(/class="pulso-f6-informe-seccion"/g)).toHaveLength(5);
   });
 
   it("mientras carga el catálogo o los defaults, la readiness queda en false", () => {
