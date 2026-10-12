@@ -53,3 +53,15 @@ test_that("tortas: el «(n)» sigue el ajuste salvo que el gráfico lo pida o lo
   # El preset de la casa ya no fuerza «(n)» en tortas.
   expect_true(is.na(.PRESETS_DEFAULT_PULSO$pie$mostrar_n_en_etiquetas %||% NA))
 })
+
+test_that("Word: la dicotomía no repite el «(n)» y sigue el ajuste", {
+  txt <- function(g) unlist(lapply(g$layers, function(l) l$aes_params$label %||% l$computed_geom_params$label %||% NULL))
+  etq <- function(g) vapply(Filter(function(l) !is.null(l$aes_params$label), g$layers), function(l) as.character(l$aes_params$label), "")
+  grande <- preparar_categorica(c("Masculino", "Femenino"), c(.44, .56), c("44%", "56%"), n = c(79, 99), n_base_casos = 178)
+  expect_false(any(grepl("\\(", etq(.word_g_sino(grande)))))
+  chica <- preparar_categorica(c("Masculino", "Femenino"), c(.27, .73), c("27%", "73%"), n = c(4, 11), n_base_casos = 15)
+  l <- etq(.word_g_sino(chica))
+  expect_true("Masculino (4)" %in% l)
+  expect_true("27%" %in% l)          # la cifra grande sin su paréntesis
+  expect_false("27% (4)" %in% l)
+})

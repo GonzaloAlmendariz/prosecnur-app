@@ -24,7 +24,8 @@
   # Dona y leyenda se centran JUNTAS en el ancho de la página («la leyenda no usa todo el espacio y no está centrada»).
   tl <- 9.5; panel <- alto - 0.5; leg <- max(nchar(rot)) * tl * 0.55 / 72 + 0.4
   m <- max(0.1, (.std_word("pagina", "ancho_util") - panel - leg - 0.35) / 2)
-  et <- ifelse(v >= 6 & !(dona & v == max(v)), espec$cifras, "")         # en la dona la mayor ya está al centro
+  cif <- .casos_junto_cifras(espec$cifras, .espec_casos(espec), .espec_total_casos(espec))   # «Casos junto al porcentaje»
+  et <- ifelse(v >= 6 & !(dona & v == max(v)), cif, "")         # en la dona la mayor ya está al centro
   d <- data.frame(k = factor(rot, levels = rot), v = v, et = et)
   g <- ggplot2::ggplot(d, ggplot2::aes(x = if (dona) 2 else 1, y = .data$v, fill = .data$k)) +
     ggplot2::geom_col(width = 1, colour = "#FFFFFF") + ggplot2::coord_polar(theta = "y", direction = -1) +

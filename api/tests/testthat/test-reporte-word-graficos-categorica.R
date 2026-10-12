@@ -17,6 +17,7 @@ test_that("las barras Word leen la espec: residual al final en gris, la mayor en
 })
 
 test_that("la dicotomía escribe las dos cifras grandes y sus rótulos con la base", {
+  withr::local_options(prosecnur.casos_junto = list(cuando = "siempre"))   # base 178: el «(n)» del rótulo es el modo «siempre»
   e <- preparar_categorica(c("Sí", "No"), c(.31, .69), c("31%", "69%"), n = c(56, 122))
   tx <- .wc_textos(.word_g_sino(e))
   expect_true(all(c("31%", "69%", "Sí (56)", "No (122)") %in% tx))
