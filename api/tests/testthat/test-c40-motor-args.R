@@ -104,6 +104,8 @@ test_that("decimales_promedio de la tarjeta llega a «Media N» de la lámina na
 # ---- 2 y 3. Otros en barras agrupadas ---------------------------------------------------------------------------------
 
 test_that("max_categorias y etiqueta_otros de la tarjeta recortan la espec nativa de agrupadas", {
+  # Las cifras se comparan sin el número de casos («Casos junto al porcentaje» en «nunca»).
+  withr::local_options(prosecnur.casos_junto = list(cuando = "nunca"))
   sin <- .cm_espec(.cm_slot("p_barras_agrupadas", var = "m"))
   expect_length(sin$rotulos, 6L)                                       # sin preset ni arg: las seis opciones
   e <- .cm_espec(.cm_slot("p_barras_agrupadas", var = "m", max_categorias = 3, etiqueta_otros = "Resto"))
