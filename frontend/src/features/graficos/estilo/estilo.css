@@ -70,16 +70,7 @@
   align-items: start;
 }
 
-@media (min-width: 1280px) {
-  .pulso-f6-estilo-columnas {
-    grid-template-columns: minmax(0, 1fr) 320px;
-  }
-
-  .pulso-f6-estilo-lateral {
-    position: sticky;
-    top: 0;
-  }
-}
+/* Una sola columna: la vista previa de Word que ocupaba la segunda pasó a la pestaña Word (I1). */
 
 .pulso-f6-estilo-secciones {
   display: flex;

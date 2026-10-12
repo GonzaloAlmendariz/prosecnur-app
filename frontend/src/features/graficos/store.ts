@@ -243,6 +243,8 @@ type PlanStore = {
 
   // --- Setters de configuración global (Bloque 2) ---
   setPaleta: (listName: string, paleta: PaletaPorLista) => void;
+  /** Reemplaza el mapa de paletas entero en un solo paso deshacible (Colores de las respuestas pinta un grupo de listas a la vez). */
+  setPaletas: (paletas: Record<string, PaletaPorLista>) => void;
   setColorEnPaleta: (listName: string, label: string, hex: string) => void;
   removePaleta: (listName: string) => void;
   removeColoresDePaleta: (listName: string, labels: string[]) => void;
@@ -788,6 +790,9 @@ export const usePlanStore = create<PlanStore>((set) => ({
     set((state) => dirty(state, {
       paletas: { ...state.paletas, [listName]: paleta },
     })),
+
+  setPaletas: (paletas) =>
+    set((state) => (paletas === state.paletas ? state : dirty(state, { paletas }))),
 
   setColorEnPaleta: (listName, label, hex) =>
     set((state) => {

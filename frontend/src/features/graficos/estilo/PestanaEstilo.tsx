@@ -44,8 +44,7 @@ import {
 import { SeccionAmbito } from "./SeccionAmbito";
 import { SeccionLetra } from "./SeccionLetra";
 import { IconosEditor } from "../IconosEditor";
-import { SeccionPaletas } from "../estiloInforme/SeccionPaletas";
-import { listasConColor } from "../estiloInforme/modeloEstiloInforme";
+import { ColoresRespuestas } from "./ColoresRespuestas";
 import { Subpestanas, useSubpestana, type Subpestana } from "../subpestanas/Subpestanas";
 import { MarcaModificado } from "./SelloProcedencia";
 import { TarjetaLogo } from "./TarjetaLogo";
@@ -67,7 +66,6 @@ const SUB_IDENTIDAD: readonly Subpestana<SubIdentidad>[] = [
 
 export default function PestanaEstilo() {
   const [sub, setSub] = useSubpestana(SUB_IDENTIDAD);
-  const paletasProyecto = usePlanStore((s) => s.paletas);
   const location = useLocation();
   const scope = useGraficosReportScope(location.search);
   const motivoNoDisponible = motivoEstiloNoDisponible(scope);
@@ -210,7 +208,7 @@ export default function PestanaEstilo() {
                 <IconosEditor />
               </section>
             )}
-            {sub === "colores" && <SeccionPaletas listasConColor={listasConColor(paletasProyecto)} />}
+            {sub === "colores" && <ColoresRespuestas />}
           </div>
         </div>
       </div>
