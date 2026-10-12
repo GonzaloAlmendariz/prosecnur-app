@@ -38,6 +38,20 @@ describe("maqueta: qué muestra cada ranura", () => {
     expect(r).toMatchObject({ graficador: null, pregunta: null, bases: [] });
   });
 
+  it("dos bloques: cada uno con su propio Top Two Box (uno encendido y el otro no)", () => {
+    const vars = [
+      { name: "p11", source: "docentes", label: "¿Conoce?", list_name: "sn", choices: [{ name: "1", label: "Sí" }, { name: "2", label: "No" }] },
+      { name: "p12", source: "docentes", label: "Definidos", list_name: "ac", choices: [{ name: "1", label: "De acuerdo" }, { name: "2", label: "En desacuerdo" }] },
+    ] as never[];
+    const s = slide({ graficador: "p_barras_multiapiladas", args: { modo: "multilista", bloques: [
+      { vars: { t: ["docentes$p11"] } },
+      { vars: { t: ["docentes$p12"] }, top2box: true, top2box_labels: ["De acuerdo"] },
+    ] } });
+    const [r] = ranurasDeMaqueta(s, vars);
+    expect(r.preguntas.map((q) => [q.titulo, q.ttb])).toEqual([["¿Conoce?", false], ["Definidos", true]]);
+    expect(r.twoBox.ttb).toBe(true);
+  });
+
   it("cada pregunta trae su escala con los colores de su lista y se dice si comparten escala", () => {
     const vars = [
       { name: "p11", source: "docentes", label: "¿Conoce?", list_name: "sn", choices: [{ name: "1", label: "Sí" }, { name: "2", label: "No" }] },
@@ -46,7 +60,7 @@ describe("maqueta: qué muestra cada ranura", () => {
     const graf = (b: string[]) => slide({ graficador: "p_barras_multiapiladas", args: { modo: "multilista", bloques: b.map((v) => ({ vars: { t: [`docentes$${v}`] } })) } });
     const [dist] = ranurasDeMaqueta(graf(["p11", "p12"]), vars, {}, { paletas: { sn: { "Sí": "#081F5C" } } });
     expect(dist.mismaEscala).toBe(false);
-    expect(dist.preguntas[0]).toEqual({ titulo: "¿Conoce?", opciones: [{ rotulo: "Sí", color: "#081F5C" }, { rotulo: "No", color: null }] });
+    expect(dist.preguntas[0]).toEqual({ titulo: "¿Conoce?", opciones: [{ rotulo: "Sí", color: "#081F5C" }, { rotulo: "No", color: null }], ttb: false });
     const [igual] = ranurasDeMaqueta(graf(["p11", "p11"]), vars, {});
     expect(igual.mismaEscala).toBe(true);
   });
