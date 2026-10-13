@@ -14,6 +14,7 @@ const MAP: Record<string, string | null> = {
   p_barras_apiladas:           "barras_apiladas",
   p_barras_agrupadas:          "barras_agrupadas",
   p_barras_categoricas:         "barras_categoricas",
+  p_dicotomica:                 "barras_categoricas",
   p_barras_multiapiladas:      "multi_apiladas",
   p_nube_palabras:              "nube_palabras",
   p_mapa_cobertura_territorial: null,

@@ -208,6 +208,12 @@
       "en_selector": true
     },
     {
+      "name": "p_dicotomica",
+      "familia_editor": "categorias",
+      "salida": "nativa",
+      "en_selector": true
+    },
+    {
       "name": "p_barras_categoricas",
       "familia_editor": "categorias",
       "salida": "nativa",

@@ -11,6 +11,7 @@ const GRAFICADOR_LABELS: Record<string, string> = {
   p_barras_multiapiladas: "Barras multiapiladas",
   p_pie: "Circular",
   p_donut: "Donut",
+  p_dicotomica: "Dicotómica",
   p_numerico: "Indicador numérico",
   p_boxplot: "Boxplot",
   p_media_rango: "Media y rango",
