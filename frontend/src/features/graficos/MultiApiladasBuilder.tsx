@@ -1180,7 +1180,7 @@ function refsForIntent(args: Record<string, unknown>): string[] {
 }
 
 function buildSummary(intent: Intent, args: Record<string, unknown>, refs: string[], variables: VarWithSource[], multi: boolean): string[] {
-  const intentLabel = INTENTS.find((i) => i.key === intent)?.title ?? "Multi-apiladas";
+  const intentLabel = INTENTS.find((i) => i.key === intent)?.title ?? "Multiapiladas";
   const sources = new Set(refs.map((r) => findVar(r, variables, multi)?.source).filter(Boolean));
   const rows = estimateRows(intent, args, variables, multi);
   const scale = scaleSummary(refs, variables, multi);

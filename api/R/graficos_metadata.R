@@ -1227,12 +1227,12 @@
       # C40: formal de `p_barras_apiladas()`; mismo default que el preset `barras_apiladas`.
       list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
            default = FALSE,
-           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %. Las respuestas especiales (90–99, sin información) sin casos nunca se muestran.")
+           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %.")
     ), .args_graf_comunes())
   ),
 
   p_barras_multiapiladas = list(
-    titulo_humano = "Multi-apiladas",
+    titulo_humano = "Multiapiladas",
     descripcion   = "Varias barras apiladas en un solo gráfico. Perfecto para comparar preguntas con la misma escala de respuesta.",
     icono_ui      = "Rows3",
     categoria     = "distribution",
@@ -1278,7 +1278,7 @@
       # C40: formal de `p_barras_multiapiladas()`; en «Combinar bloques» cada bloque lo hereda. Default = preset `multi_apiladas`.
       list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
            default = FALSE,
-           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %. Las respuestas especiales (90–99, sin información) sin casos nunca se muestran.")
+           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %.")
     ), .args_graf_comunes())
   ),
 
@@ -2564,7 +2564,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   ),
 
   multi_apiladas = list(
-    titulo_humano = "Multi-apiladas",
+    titulo_humano = "Multiapiladas",
     descripcion   = "Varias barras apiladas en un solo gráfico (preguntas con misma escala). Hereda muchos args de 'Barras apiladas' por similitud visual.",
     icono_ui      = "Rows3",
     args = list(
