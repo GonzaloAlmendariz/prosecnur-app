@@ -344,12 +344,6 @@ const REAL_TABSETS: readonly TabsetCase[] = [
     relationStem: "pulso-gv2-inspector",
   },
   {
-    name: "B04 EstiloGlobalDialog",
-    file: "features/graficos/v2/shell/EstiloGlobalDialog.tsx",
-    rootMarker: 'className="pulso-gv2-estilo-tabs"',
-    relationStem: "pulso-gv2-estilo",
-  },
-  {
     name: "B05 GlobalSettingsDialog",
     file: "features/home/GlobalSettingsDialog.tsx",
     rootMarker: 'className="home-settings-nav"',
