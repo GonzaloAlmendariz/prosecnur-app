@@ -6,11 +6,11 @@ Lo cierra sólo el usuario. Se dibuja entero cada vez que se menciona.
 
 | # | Indicación (textual o resumida fiel) | Dónde vive | Estado |
 |---|---|---|---|
-| 1 | «Qué pasa si avanzamos la limpieza al 90 % … y procedimos con la codificación … cuando queramos cerrar la limpieza quitando una variable o imputando manualmente, qué pasa con la codificación» | Definición D1 y D3 · ADR 0100 · `api/R/limpieza_decision_engine.R:18-55` | ◐ conducta actual medida, falta ADR |
-| 2 | «La limpieza se hizo a parte en un script en R donde se quitaron casos de burla o variables meta … el instrumento y la base limpia ya no coinciden, ¿en qué afecta al Procesamiento?» | Definición D2 y D4 · ADR 0100 · `api/R/session_store.R:1053-1070` | ◐ conducta actual medida, falta ADR |
+| 1 | «Qué pasa si avanzamos la limpieza al 90 % … y procedimos con la codificación … cuando queramos cerrar la limpieza quitando una variable o imputando manualmente, qué pasa con la codificación» | Definición D1 y D3 · ADR 0100 · `api/R/limpieza_decision_engine.R:18-55` | ☑ conducta medida y definida en el ADR 0100 (D1, D3) |
+| 2 | «La limpieza se hizo a parte en un script en R donde se quitaron casos de burla o variables meta … el instrumento y la base limpia ya no coinciden, ¿en qué afecta al Procesamiento?» | Definición D2 y D4 · ADR 0100 · `api/R/session_store.R:1053-1070` | ☑ conducta medida y definida en el ADR 0100 (D2, D4) |
 | 3 | «Definirlo es sumamente importante» | `docs/adrs/0100-la-base-limpiada-fuera-entra-declarada-y-la-codificacion-depende-del-texto.md` | ◐ Propuesto, falta ratificación |
 | 4 | «Revisar la codificación de aquí …/2026_PUCP_HSyVbG/Procesamiento» | Hallazgos abajo · correcciones las hace el equipo en su .pulso | ☑ revisada (2026-10-13) · ☑ aplicación verificada en copia |
-| 5 | «Hazlo así» (aprobar la definición D1–D4 y avanzar las piezas que faltan) | Piezas P1–P3 abajo | ☐ |
+| 5 | «Hazlo así» (aprobar la definición D1–D4 y avanzar las piezas que faltan) | Piezas P1–P3 abajo | ◐ P1, P2 y P3 construidas y verificadas (verificador: aceptado con pendientes); faltan las decisiones de Gonzalo: ratificar el ADR y categorías en la ficha |
 
 ## Definición aprobada («Hazlo así», 2026-10-13)
 
@@ -55,12 +55,12 @@ Lo cierra sólo el usuario. Se dibuja entero cada vez que se menciona.
   - Un texto sin código se queda en 88 sin aviso (P4 «Hombre» → `P4_recod` 88).
   - El código 11 «Observaciones» de P66 sí entra a la base como categoría.
 
-## Piezas que faltan
+## Piezas
 
 | # | Pieza | Dónde vivirá | Estado |
 |---|---|---|---|
-| P1 | Aviso al aplicar: textos sin código y preguntas del catálogo sin su variable | Codificación: `api/R/codificacion_omitidas.R` y respuesta de `/aplicar` (`omitidas`, `textos_sin_codigo`) | ◐ backend hecho y verificado sobre la copia de HSyVBG sin `P66_otro` (omitidas P29_10 «sin_modo» y P66 «sin_columna_texto»; sin código P4 1, P55 1, P60 2). Falta mostrarlo en la UI (coordinar con la sesión de entregables) |
-| P2 | Base de partida declarada con su lista de exclusiones externas | `api/R/carga_origen_externo.R`, `router_origen_externo.R` (GET y POST `/api/carga/origen-externo`) | ◐ motor y endpoint ☑ (489eabecb, 86db03199): sobre la copia de HSyVBG declara 3 327 → 9 (3 críticas, 6 ambiguas) → 3 318 sin avisos y sobrevive a guardar y reabrir el .pulso. Ficha del universo ☑ con el total (`.validacion_upstream_universe` y el informe metodológico: «de N encuestas recibidas se retiraron k»). Falta: categorías en la ficha (espera la decisión de Gonzalo), la página PDF del informe y la pantalla de Carga |
+| P1 | Aviso al aplicar: textos sin código y preguntas del catálogo sin su variable | Codificación: `api/R/codificacion_omitidas.R` y respuesta de `/aplicar` (`omitidas`, `textos_sin_codigo`) | ☑ backend (ba2c0afed, 72341b1e8, 66092f0e4, 0180e46f7) y pantalla Adaptar (161bfefde, 9f1305538, aec82a61a, 3116c8554); QA visual: pasa, C1–C5 conformes |
+| P2 | Base de partida declarada con su lista de exclusiones externas | `api/R/carga_origen_externo.R`, `router_origen_externo.R` (GET y POST `/api/carga/origen-externo`) | ◐ motor, endpoint, ficha (total) y pantalla de Carga ☑ (489eabecb, 86db03199, 69f53e176, 8512c2025, f8bc82876, 99e23257d, 7fca20ca1); QA visual pasa. Falta: categorías en la ficha (decisión de Gonzalo) y propagar a las hijas en bases con repeat |
 | P3 | Variables marcadas «no van al cliente», excluidas al exportar | Ya existe: `variables_excluidas` de la config de Analítica (codebook, cruces, frecuencias, bases SAV/CSV/XLSX y SPSS en `router_analitica.R`) | ☑ sin código nuevo: el script deja de borrar las variables meta y se declaran ahí |
 
 ## Hallazgos de la codificación HSyVbG (para el equipo)
@@ -120,9 +120,21 @@ ambiguos), o sólo el total excluido?
   `pulso:session-changed`, `CodificacionPage` cambia el subárbol por un
   `LoadingBlock` y `AdaptarPane` se monta de nuevo sin su estado (el aviso duró
   unos 25 s). Ya ocurría antes del aviso: también se perdían `sin_recodificar`
-  y las descargas. En arreglo: los avisos pasan a un store del feature, uno por base.
+  y las descargas. ☑ Resuelto en 9f1305538 (store por sesión y base) y aec82a61a (el aviso vuelve a la vista una vez).
 - **El plan de adaptación no ve las columnas que faltan.** Con la base sin
   `P66_otro`, el plan dice «1 pregunta quedará fuera» (sólo P29_10) y
   `/aplicar` omite 2. `.compute_plan_adaptacion()` (`router_codificacion.R`)
-  no comprueba si la columna de texto está en la base. Pendiente: que el plan
-  use `.codif_omitidas()` para que los dos números sean el mismo.
+  no comprobaba si la columna de texto está en la base. ☑ Resuelto en 66092f0e4 y 0180e46f7: plan y aviso usan la misma regla y el mismo texto.
+
+## Cierre del verificador (2026-10-13)
+
+Aceptado con pendientes. Gates: codificación R 320/0, carga R 664/0, tsc 0,
+gate-front codificación 407/407 y carga 690/690, `sync-agentic-os --audit`
+sin hallazgos. Pendientes que dejó y cómo quedaron:
+
+- Checklist desactualizado: ☑ este documento.
+- Diagnóstico de omitidas que fallaba en silencio: ☑ ahora va a stderr y la
+  respuesta de `/aplicar` lo declara en `avisos_incompletos`. Falta que la
+  pantalla lo muestre.
+- Ida y vuelta del `.pulso` sin test automático: ☑ test en
+  `test-carga-origen-externo.R` (guarda, reabre y sigue vigente).
