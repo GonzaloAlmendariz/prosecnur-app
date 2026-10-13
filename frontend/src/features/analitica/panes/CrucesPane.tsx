@@ -13,6 +13,7 @@ import { VariableSelect } from "../VariableSelect";
 import { Section, GenerateFooter } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
 import { useSession } from "../../../lib/SessionContext";
+import { NotasPieEditor } from "./NotasPieEditor";
 
 // CrucesPane — configuración mínima.
 // 1. Variables a cruzar (con posibilidad de excluir categorías específicas).
@@ -76,6 +77,11 @@ export function CrucesPane() {
     0,
     variables.filter((v) => !!v.categorica || numericas.includes(v.name)).length - nVars,
   );
+  const variablesConTabla = useMemo(
+    () => variables.filter((v) => !!v.categorica || numericas.includes(v.name)),
+    [variables, numericas],
+  );
+  const crucesVarNames = useMemo(() => cruces.cruces_vars.map((cv) => cv.name), [cruces.cruces_vars]);
   const modoLabel = cruces.modo === "dimensiones" ? "Dimensiones" : "Estándar";
 
   // Orden de las FILAS de cada tabla de cruce (espejo del de Frecuencias, pero
@@ -260,6 +266,8 @@ export function CrucesPane() {
             </div>
           </label>
         </Section>
+
+        <NotasPieEditor variante="cruces" variables={variablesConTabla} crucesVars={crucesVarNames} />
 
         <GenerateFooter
           label="Generar cruces"
