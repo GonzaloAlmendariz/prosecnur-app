@@ -218,9 +218,9 @@ diferentes».
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| U1 | Explicar qué es armonizar, en palabras simples y con un ejemplo, donde aparece (Equivalencias, editor de armonización, chip «Armonizada», pestaña Comparativos) | frontend carga + analítica | en curso |
-| U2 | Funcionar con más de 3 bases: tabla de equivalencias, orden de la serie, editor de armonización, rótulos y tarjetas de Comparativos (probar con 4 y con 7 bases) | frontend | en curso |
-| U3 | Bases con nombres que no son años (docentes, estudiantes…): rótulos por defecto, textos que no digan «año» si no lo son, encabezado «Año» del XLSX | frontend + motor (`reporte_comparativo.R`) | en curso |
-| U4 | Tarjetas de Comparativos más legibles con 74 preguntas (jerarquía, búsqueda o filtro por sección) | frontend analítica | en curso |
-| U5 | No hay lugar visible para ver ni editar `variables_excluidas` (DefinicionGlobal no está montado). Analítica › Datos dice «265/265 incluidas» con 2 excluidas | frontend analítica | pendiente: propuesta a Gonzalo |
-| U6 | El Codebook muestra «Excluidas 0» unos 15 s con la readiness ya en verde y luego pasa a 2 | frontend analítica | pendiente |
+| U1 | Explicar qué es armonizar, en palabras simples y con un ejemplo, donde aparece (Equivalencias, editor de armonización, chip «Armonizada», pestaña Comparativos) | frontend carga + analítica | hecho y verificado (cb1a1ea90) |
+| U2 | Funcionar con más de 3 bases: tabla de equivalencias, orden de la serie, editor de armonización, rótulos y tarjetas de Comparativos (probar con 4 y con 7 bases) | frontend | hecho y verificado (cb1a1ea90) |
+| U3 | Bases con nombres que no son años (docentes, estudiantes…): rótulos por defecto, textos que no digan «año» si no lo son, encabezado «Año» del XLSX | frontend + motor (`reporte_comparativo.R`) | hecho y verificado (cb1a1ea90, 8732b5428) |
+| U4 | Tarjetas de Comparativos más legibles con 74 preguntas (jerarquía, búsqueda o filtro por sección) | frontend analítica | hecho y verificado (cb1a1ea90) |
+| U5 | No hay lugar visible para ver ni editar `variables_excluidas` (DefinicionGlobal no está montado). Analítica › Datos dice «265/265 incluidas» con 2 excluidas | frontend analítica | hecho y verificado (644c39c44) |
+| U6 | El Codebook muestra «Excluidas 0» unos 15 s con la readiness ya en verde y luego pasa a 2 | frontend analítica | hecho y verificado (644c39c44) |
