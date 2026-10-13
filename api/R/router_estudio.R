@@ -1741,6 +1741,28 @@ mount_estudio <- function(pr) {
         max_bases = .ESTUDIO_MAX_BASES
       )
     })) |>
+    # Base desde un .sav sin XLSForm: el instrumento se sintetiza de las
+    # etiquetas del .sav (carga_sav_sin_xlsform.R). Body: {data_file_id, nombre}.
+    plumber::pr_post("/api/estudio/base-sav", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      if (is.null(session_get(sid, required = FALSE))) stop_api(404, "E_NO_SESSION", "Sin sesión.")
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      out <- carga_sav_registrar_base(sid, parsed$data_file_id, parsed$nombre)
+      list(
+        ok              = TRUE,
+        base            = .estudio_base_payload(out$base_meta, session_get(sid, required = FALSE)),
+        xlsform_file_id = out$xlsform_file_id,
+        sintesis        = out$sintesis,
+        n_bases         = length(estudio_list_bases(sid)),
+        max_bases       = .ESTUDIO_MAX_BASES
+      )
+    })) |>
     plumber::pr_delete("/api/estudio/base/<nombre>", wrap_endpoint(function(req, res, nombre) {
       sid <- session_header(req)
       if (is.null(session_get(sid, required = FALSE))) stop_api(404, "E_NO_SESSION", "Sin sesión.")

@@ -7,9 +7,11 @@
 #   - Preview: calcula pesos + diagnosticos + comparacion de margenes sobre la
 #     base real, sin persistir, para la UI.
 #
-# Config esperada en analitica_config$ponderacion:
+# Config esperada en analitica_config$ponderacion (o por base, en
+# analitica_config_por_base[[base]]$ponderacion):
 #   { enabled, design:{var, pop_sizes:{cat:n}}, rake:{margins:[{var, targets:{cat:p}}]},
 #     trim:{cap} }
+#   { enabled, modo:"columna", peso_columna:"factor_ponderacion" }
 # =============================================================================
 
 .analitica_ponderacion_scalar <- function(x, default = NULL) {
@@ -92,6 +94,10 @@
     data
   }
 
+  if (identical(.analitica_ponderacion_modo(pond), "columna")) {
+    return(.analitica_ponderacion_apply_columna(data, pond))
+  }
+
   norm <- .analitica_ponderacion_normalize(pond)
   if (!isTRUE(norm$enabled) || (is.null(norm$design) && is.null(norm$rake))) {
     return(fallback("configuración incompleta (sin diseño ni márgenes utilizables)"))
@@ -120,6 +126,68 @@
   data
 }
 
+# Modo de ponderacion: "calibracion" (diseno/raking, el historico) o "columna"
+# (el peso ya viene en una columna de la base, p. ej. `factor_ponderacion` de un
+# .sav de medicion anterior). Sin `modo` es calibracion: contrato de siempre.
+.analitica_ponderacion_modo <- function(pond) {
+  modo <- tolower(as.character(.analitica_ponderacion_scalar((pond %||% list())$modo, "")))
+  if (identical(modo, "columna")) "columna" else "calibracion"
+}
+
+# Modo "columna": `peso` es la columna declarada, convertida a numero. NA y no
+# finitos van a 0, igual que get_pesos/.peso_vec: un caso sin peso no cuenta.
+# A diferencia de la calibracion, aqui NO hay fallback silencioso: una columna
+# declarada que no existe es un error de configuracion que el analista debe ver.
+.analitica_ponderacion_apply_columna <- function(data, pond) {
+  col <- trimws(as.character(.analitica_ponderacion_scalar(pond$peso_columna, "")))
+  if (is.na(col) || !nzchar(col)) {
+    stop_api(400, "E_PONDERACION_COLUMNA_SIN_NOMBRE",
+             "La ponderación por columna necesita 'peso_columna'.")
+  }
+  if (!col %in% names(data)) {
+    stop_api(422, "E_PONDERACION_COLUMNA_INEXISTENTE",
+             sprintf("La columna de peso '%s' no existe en la base.", col),
+             details = list(peso_columna = col))
+  }
+  w <- suppressWarnings(as.numeric(unclass(data[[col]])))
+  w[is.na(w) | !is.finite(w)] <- 0
+  data[["peso"]] <- w
+  attr(data, "ponderacion_estado") <- reporte_ponderacion_estado(
+    "aplicada",
+    diagnostics = .ponderacion_diagnostics(w),
+    modo = "columna",
+    peso_columna = col
+  )
+  data
+}
+
+# Config de ponderacion que corresponde a UNA base:
+#   1. la activa (en topologias por base) usa la `cfg` que recibio la corrida,
+#      que ya es la suya y puede traer overrides de la peticion;
+#   2. una base con `ponderacion` propia en analitica_config_por_base la usa;
+#   3. en topologias por base (ADR 0061) una base sin ponderacion propia queda
+#      SIN ponderar: no hereda la de la activa;
+#   4. si no, la `cfg` de la corrida, como siempre.
+# La regla 2 mira la clave `ponderacion` y no solo la entrada: Revision de carga
+# y Equivalencias crean entradas por base (desde el default, sin `ponderacion`)
+# tambien en estudios integrados, y esas no deben apagar la ponderacion global.
+.analitica_ponderacion_cfg_base <- function(sid, base, cfg) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(cfg)
+  activa <- as.character(.analitica_scoped_base(sid) %||% "")
+  if (nzchar(activa) && identical(activa, base)) return(cfg)
+  cfg_bases <- s$analitica_config_por_base %||% list()
+  propia <- (cfg_bases[[base]] %||% list())$ponderacion
+  por_base <- .analitica_config_es_por_base(sid)
+  # El peso por base rige sólo si alguna base declaró el suyo. Un estudio por base
+  # que nunca lo hizo conserva la herencia de la corrida, como antes del modo columna.
+  hay_propias <- any(vapply(cfg_bases, function(x) is.list(x) && !is.null(x$ponderacion), logical(1)))
+  if (is.null(propia) && (!por_base || !hay_propias)) return(cfg)
+  out <- cfg %||% list()
+  out["ponderacion"] <- list(propia)
+  out
+}
+
 # Aplica ponderacion respetando la unidad de calibracion. Las bases hijas repeat
 # no se recalibran a grano de instancia: heredan el peso ya calculado en la madre
 # mediante la misma llave relacional usada por validacion y analitica.
@@ -139,7 +207,9 @@
 
   # Bases normales y madres: contrato legacy, calculado sobre sus propias filas.
   for (nombre in setdiff(names(data_sources), child_names)) {
-    data_sources[[nombre]] <- .analitica_ponderacion_apply(data_sources[[nombre]], cfg)
+    data_sources[[nombre]] <- .analitica_ponderacion_apply(
+      data_sources[[nombre]], .analitica_ponderacion_cfg_base(sid, nombre, cfg)
+    )
   }
 
   designs <- list()
