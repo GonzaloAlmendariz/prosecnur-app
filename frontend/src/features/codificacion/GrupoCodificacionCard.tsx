@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import { Grupo, RespuestaUnica } from "../../api/client";
 import { displayCodificacionValueLabel } from "./codificacionLabels";
 import { grupoAccentColor } from "./codificacionGrupoColor";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 // Classic Levenshtein edit distance (iterative, O(n*m) space O(n)).
 function levenshtein(a: string, b: string): number {
@@ -163,7 +164,7 @@ export function GrupoCodificacionCard({
           <span>
             <strong>{grupo.respuestas.length}</strong> {grupo.respuestas.length === 1 ? "respuesta" : "respuestas"}
             {" · "}
-            <strong>{total}</strong> {total === 1 ? "caso" : "casos"}
+            <strong>{formatoConteo(total)}</strong> {total === 1 ? "caso" : "casos"}
           </span>
           {active && <span className="pulso-cv2-grupo-active-flag">Activo</span>}
         </div>
@@ -179,7 +180,8 @@ export function GrupoCodificacionCard({
           </span>
         </div>
       ) : (
-        <div className="pulso-cv2-chips">
+        // C1: chips de respuesta, cada uno de su ancho.
+        <div className="pulso-cv2-chips" data-qa-geometry-group="codificacion/grupo-chips" data-qa-geometry-contract="intrinsic">
           {grupo.respuestas.map((t, idx) => {
             const r = respByNorm.get(t);
             const formatted = displayCodificacionValueLabel(r?.texto ?? t, r?.label);

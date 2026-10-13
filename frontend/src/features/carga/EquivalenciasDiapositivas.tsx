@@ -17,7 +17,9 @@
 // aquí sólo hay render y eventos.
 
 import { useEffect, useState } from "react";
-import { Check, Info, Layers, Plus, Sparkles, Trash2 } from "../../vendor/lucide-react";
+import { ArrowRightLeft, Check, Info, Layers, Plus, Sparkles, Trash2 } from "../../vendor/lucide-react";
+import { PulsoButton } from "../../components/PulsoButton";
+import { formatoConteoDe } from "../../lib/formatoNumero";
 import type { VariableDeBase } from "../../api/equivalencias";
 import type { CampoFila, CatalogoEscalas, FilaEditor, DiapositivaEditor } from "./equivalenciasEditorModel";
 import { escalaDeFila, resumenEscala, seccionLegible } from "./equivalenciasEditorModel";
@@ -128,6 +130,103 @@ function CampoEditable({
         }
       }}
     />
+  );
+}
+
+/**
+ * Mover un tema a otra diapositiva (M2). Es una ACCIÓN, así que en reposo es un
+ * botón con ícono y nombre accesible —antes era la palabra «mover» en gris, que
+ * se leía como un dato—. Al pulsarlo pide el destino en un campo.
+ */
+function MoverTema({ etiqueta, onMover }: { etiqueta: string; onMover: (destino: string) => void }) {
+  const [editando, setEditando] = useState(false);
+  const [destino, setDestino] = useState("");
+
+  if (!editando) {
+    return (
+      <button
+        type="button"
+        className="pulso-icon"
+        title="Mover a otra diapositiva"
+        aria-label={etiqueta}
+        onClick={() => setEditando(true)}
+      >
+        <ArrowRightLeft size={12} aria-hidden="true" />
+      </button>
+    );
+  }
+
+  const cerrar = () => {
+    setEditando(false);
+    setDestino("");
+  };
+
+  return (
+    <input
+      autoFocus
+      className="pulso-equiv-mover"
+      value={destino}
+      placeholder="Diapositiva"
+      aria-label={`${etiqueta}: escribe la diapositiva de destino`}
+      onChange={(e) => setDestino(e.target.value)}
+      onBlur={() => {
+        const limpio = destino.trim();
+        if (limpio) onMover(limpio);
+        cerrar();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.key === "Escape") cerrar();
+      }}
+    />
+  );
+}
+
+/**
+ * Enunciado de una diapositiva (M8). Escrito, se lee como el título de la
+ * tarjeta y se edita con un clic. Vacío, es un campo con su propia etiqueta: un
+ * texto gris suelto en el lugar del título se leía como el título mismo.
+ */
+function CampoEnunciado({
+  clave,
+  valor,
+  onCambiar,
+}: {
+  clave: string;
+  valor: string;
+  onCambiar: (v: string) => void;
+}) {
+  const [borrador, setBorrador] = useState(valor);
+  useEffect(() => setBorrador(valor), [valor]);
+
+  if (valor) {
+    return (
+      <CampoEditable
+        className="pulso-equiv-enunciado"
+        valor={valor}
+        vacio=""
+        etiqueta={`Enunciado de la diapositiva ${clave} — será su título`}
+        onCambiar={onCambiar}
+      />
+    );
+  }
+
+  return (
+    <label className="pulso-equiv-enunciado-campo">
+      <span>Enunciado</span>
+      <input
+        value={borrador}
+        placeholder="Título que llevará la diapositiva en el mazo"
+        onChange={(e) => setBorrador(e.target.value)}
+        onBlur={() => {
+          if (borrador.trim() !== valor) onCambiar(borrador.trim());
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+          if (e.key === "Escape") setBorrador(valor);
+        }}
+      />
+    </label>
   );
 }
 
@@ -292,7 +391,8 @@ export function EquivalenciasDiapositivas({
                           .join(" ") || undefined
                       }
                     >
-                      <td>
+                      <td title={esc.rota ? "Escalas distintas entre bases" : undefined}>
+                        {esc.rota && <span className="pulso-sr-only">Escalas distintas entre bases.</span>}
                         <div className="pulso-equiv-celda-etiqueta">
                           {fila.sugerida && (
                             <span
@@ -312,9 +412,14 @@ export function EquivalenciasDiapositivas({
                               onEditarFila(fila.id, "etiqueta_estandar", e.target.value)
                             }
                           />
-                          {onArmonizar && <ArmonizacionIndicador fila={fila} serie={serie} onAbrir={onArmonizar} />}
                         </div>
                       </td>
+
+                      {onArmonizar && (
+                        <td className="pulso-equiv-col-estado">
+                          <ArmonizacionIndicador fila={fila} serie={serie} onAbrir={onArmonizar} />
+                        </td>
+                      )}
 
                       {bases.map((base) => (
                         <td key={base}>
@@ -350,17 +455,10 @@ export function EquivalenciasDiapositivas({
                           )}
                           {/* Mover es una ACCION, no un dato: la diapositiva ya
                               está en la esquina de la tarjeta y repetirla en
-                              cada fila no decía nada. El campo arranca vacío y
-                              pide el destino. */}
-                          <CampoEditable
-                            className="pulso-equiv-mover"
-                            valor=""
-                            vacio="mover"
+                              cada fila no decía nada. */}
+                          <MoverTema
                             etiqueta={`Mover ${fila.etiqueta_estandar || "el tema"} a otra diapositiva`}
-                            onCambiar={(v) => {
-                              const destino = v.trim();
-                              if (destino) onEditarFila(fila.id, "diapositiva", destino);
-                            }}
+                            onMover={(destino) => onEditarFila(fila.id, "diapositiva", destino)}
                           />
                           <button
                             type="button"
@@ -390,23 +488,20 @@ export function EquivalenciasDiapositivas({
             <header className="pulso-equiv-diapositiva-head" data-qa-geometry-member>
               <div className="pulso-equiv-diapositiva-id">
                 <Layers size={14} aria-hidden="true" />
-                <span>{sinDiapositiva ? "Sin diapositiva" : diapo.clave}</span>
+                <span>{sinDiapositiva ? "Sin diapositiva" : `Diapositiva ${diapo.clave}`}</span>
               </div>
 
               <div className="pulso-equiv-diapositiva-texto">
                 {sinDiapositiva ? (
-                  // C5: el vacío de este grupo dice qué es y qué falta, en vez de
-                  // parecer una diapositiva más que salió mal.
+                  // C5 y M8: informativo, no un problema. Para comparar no hace
+                  // falta diapositiva; sólo decide qué entra al mazo.
                   <p className="pulso-equiv-diapositiva-nota">
-                    Estos temas están declarados pero no van a ninguna diapositiva, así que
-                    no entran al mazo. Escríbeles una diapositiva para agruparlos.
+                    Se comparan igual en Analítica. Para que entren al mazo, asígnales una diapositiva.
                   </p>
                 ) : (
-                  <CampoEditable
-                    className="pulso-equiv-enunciado"
+                  <CampoEnunciado
+                    clave={diapo.clave}
                     valor={diapo.enunciado}
-                    vacio="Añadir enunciado"
-                    etiqueta={`Enunciado de la diapositiva ${diapo.clave} — será su título`}
                     onCambiar={(v) => onEditarDiapositiva(diapo.clave, "enunciado", v)}
                   />
                 )}
@@ -419,7 +514,7 @@ export function EquivalenciasDiapositivas({
                     con categorías distintas, y anunciar «la escala de la
                     diapositiva» era decir la de uno y callar la del otro. */}
                 <span className="pulso-equiv-chip-n">
-                  {diapo.filas.length} {diapo.filas.length === 1 ? "tema" : "temas"}
+                  {formatoConteoDe(diapo.filas.length, "tema")}
                 </span>
               </div>
             </header>
@@ -484,11 +579,21 @@ export function EquivalenciasDiapositivas({
                 cuenta, así que las columnas de un bloque no caían donde las del
                 bloque de arriba. Con una sola tabla hay un único modelo de
                 columnas y todo queda alineado. */}
+            {/* M8: el filete izquierdo tiene leyenda. Sin ella convivía con el
+                chip «Armonizada» sin que nada dijera qué significaba. */}
+            {diapo.filas.some((f) => escalaDeFila(f, catalogo).rota) && (
+              <p className="pulso-equiv-leyenda">
+                <span className="pulso-equiv-leyenda-filete" aria-hidden="true" />
+                Filete a la izquierda: el tema no usa la misma escala en todas las bases.
+              </p>
+            )}
+
             <MarcoTabla nBases={bases.length}>
             <table className="pulso-equiv-diapositiva-tabla">
               <thead>
                 <tr>
                   <th scope="col" className="pulso-equiv-col-etiqueta">Tema</th>
+                  {onArmonizar && <th scope="col" className="pulso-equiv-col-estado">Armonización</th>}
                   {bases.map((base) => (
                     <th key={base} scope="col">{base}</th>
                   ))}
@@ -512,7 +617,7 @@ export function EquivalenciasDiapositivas({
                     key={`bloque-${bi}`}
                   >
                     <tr className="pulso-equiv-bloque-head">
-                      <td colSpan={bases.length + 3}>
+                      <td colSpan={bases.length + (onArmonizar ? 4 : 3)}>
                         <EscalaChip
                           texto={resumenEscala(bloque.opciones)}
                           opciones={bloque.opciones}
@@ -544,14 +649,16 @@ export function EquivalenciasDiapositivas({
             </table>
             </MarcoTabla>
 
-            <button
-              type="button"
+            {/* M3: «añadir» con una sola forma en Carga y Codificación. */}
+            <PulsoButton
+              variant="secondary"
+              size="sm"
               className="pulso-equiv-add-tema"
               onClick={() => onAgregarTema(diapo.clave)}
             >
               <Plus size={13} aria-hidden="true" />
               Añadir tema a esta diapositiva
-            </button>
+            </PulsoButton>
           </section>
         );
       })}

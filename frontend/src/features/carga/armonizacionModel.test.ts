@@ -22,6 +22,7 @@ import {
   ordenEfectivo,
   reducirArmonizacion,
   resumenMapa,
+  resumenOrdenSerie,
   textoResumenMapa,
   validarArmonizacion,
 } from "./armonizacionModel";
@@ -354,5 +355,17 @@ describe("normalizadores de la frontera", () => {
     expect(imp.advertencias[0].tipo).toBe("otro");
     expect(imp.advertencias[0].tipo_crudo).toBe("nuevo_tipo");
     expect(imp.resumen.por_base.a).toEqual({ anio: "2024", n_variables: 5, n_pendientes: 0, n_codigos_inexistentes: 0 });
+  });
+});
+
+describe("resumenOrdenSerie (M7)", () => {
+  test("con pocas bases las nombra todas", () => {
+    expect(resumenOrdenSerie(["b2024", "b2025", "b2026"])).toBe("b2024 → b2025 → b2026");
+  });
+
+  test("con muchas nombra las primeras y la última y cuenta el resto", () => {
+    const siete = ["b2024", "b2025", "b2026", "egresados", "docentes", "administrativos", "posgrado"];
+    expect(resumenOrdenSerie(siete)).toBe("b2024 → b2025 → b2026 → … (3 más) → posgrado");
+    expect(resumenOrdenSerie(siete, 2)).toBe("b2024 → … (5 más) → posgrado");
   });
 });

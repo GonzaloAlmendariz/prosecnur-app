@@ -46,6 +46,22 @@ export function CargaSourcesPlan({
     ? { label: "Una base", detail: "Un formulario y un conjunto de respuestas." }
     : STRATEGY_COPY[strategy];
 
+  // B2: con «Bases separadas» el plan no fija número ni resultado; lo único que
+  // dice es la estrategia, y eso es un metadato de la lista de bases, no un
+  // segundo banner sobre el contenido.
+  if (!single && strategy === "separate") {
+    return (
+      <p className="pulso-carga-sources-plan-meta" aria-label="Plan operativo de Fuentes">
+        <StrategyIcon size={13} aria-hidden="true" />
+        <strong>{copy.label}</strong>
+        <span>{copy.detail}</span>
+        <span className="pulso-carga-sources-plan-meta-origen">
+          <Lock size={11} aria-hidden="true" /> Definido en Plan
+        </span>
+      </p>
+    );
+  }
+
   return (
     <section className="pulso-carga-sources-plan" aria-label="Plan operativo de Fuentes">
       <div className="pulso-carga-sources-plan-strategy" role="status">

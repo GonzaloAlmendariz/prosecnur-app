@@ -39,6 +39,13 @@ export const PANEL_ARMONIZACION: PanelDeclarado = {
   clase: "sideover",
 };
 
+/** Editar el orden de la serie de mediciones (M7: la vista lo resume en una línea). */
+export const PANEL_ORDEN_SERIE: PanelDeclarado = {
+  id: "orden-serie",
+  label: "Orden de la serie",
+  clase: "sideover",
+};
+
 /** Importar la matriz de correspondencias por bloques del proyecto. */
 export const PANEL_IMPORTAR_BLOQUES: PanelDeclarado = {
   id: "importar-bloques",
@@ -482,6 +489,18 @@ export function ordenEfectivo(periodos: readonly string[], bases: readonly strin
   const set = new Set(bases);
   const declarados = periodos.filter((p, i) => set.has(p) && periodos.indexOf(p) === i);
   return [...declarados, ...bases.filter((b) => !declarados.includes(b))];
+}
+
+/**
+ * Resumen de una línea del orden de la serie: «b2024 → b2025 → … → posgrado».
+ * Con pocas bases se nombran todas; con más, las primeras y la última, y el
+ * resto se cuenta. La misma forma con 3 bases que con 20.
+ */
+export function resumenOrdenSerie(orden: readonly string[], maxVisibles = 4): string {
+  if (orden.length <= maxVisibles) return orden.join(" → ");
+  const cabeza = orden.slice(0, Math.max(1, maxVisibles - 1));
+  const ocultas = orden.length - cabeza.length - 1;
+  return `${cabeza.join(" → ")} → … (${ocultas} más) → ${orden[orden.length - 1]}`;
 }
 
 export function moverEnLista<T>(lista: readonly T[], i: number, delta: -1 | 1): T[] {

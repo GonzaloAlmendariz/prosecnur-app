@@ -18,13 +18,22 @@ export function anchoColumnaPublico(): string {
   return `${ANCHO_COLUMNA_BASE_PX}px`;
 }
 
-/** Ancho mínimo de la Lista: etiqueta, diapositiva, las N bases, cobertura y acciones. */
+/**
+ * Ancho fijo de la columna de estado de armonización (M9). El chip vivía dentro
+ * de la celda del tema y, como su texto cambia de largo («Armonizada», «Sin
+ * armonizar»), el campo del tema terminaba en una x distinta en cada fila. En
+ * columna propia y de ancho fijo, todos los campos terminan en el mismo borde.
+ */
+export const ANCHO_COLUMNA_ESTADO_PX = 160;
+
+/** Ancho mínimo de la Lista: etiqueta, estado, diapositiva, las N bases, cobertura y acciones. */
 export function anchoMinimoLista(nBases: number): number {
   const etiqueta = 260;
   const diapositiva = 84;
   const cobertura = 72;
   const acciones = 72;
-  return etiqueta + diapositiva + Math.max(0, nBases) * ANCHO_COLUMNA_BASE_PX + cobertura + acciones;
+  return etiqueta + ANCHO_COLUMNA_ESTADO_PX + diapositiva
+    + Math.max(0, nBases) * ANCHO_COLUMNA_BASE_PX + cobertura + acciones;
 }
 
 export type CoberturaDeBases = {

@@ -9,6 +9,9 @@ import { RespuestasCodificador } from "./RespuestasCodificador";
 import { IntegerCodificador } from "./IntegerCodificador";
 import { AgruparCategoriasCodificador, ModoSelectOneTabs } from "./AgruparCategoriasCodificador";
 import { textoPlano } from "../../lib/textoPlano";
+import { sinEnfasis } from "../../lib/enfasisTexto";
+import { TextoConEnfasis } from "../../lib/TextoConEnfasis";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 const TIPO_STYLE: Record<string, { bg: string; fg: string; border: string; label: string }> = {
   select_multiple: { bg: "var(--tipo-sm-bg)", fg: "var(--tipo-sm-fg)", border: "var(--tipo-sm-border)", label: "Múltiple" },
@@ -56,7 +59,7 @@ export default function PreguntaDetalle() {
     // Sin PageFrame el `main` del shell no desplaza (es viewport) y un
     // codificador alto quedaba atrapado. El cuerpo del marco es el dueño del scroll.
     <PageFrame
-      title={pregunta.parent_label || pregunta.parent}
+      title={sinEnfasis(pregunta.parent_label) || pregunta.parent}
       headerMode="sr-only"
       layout="document"
       scrollOwner="body"
@@ -90,7 +93,7 @@ export default function PreguntaDetalle() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <h2 style={{ margin: 0, fontSize: 16, lineHeight: 1.3, fontWeight: 700 }}>
-              {pregunta.parent_label}
+              <TextoConEnfasis texto={pregunta.parent_label} />
             </h2>
             <code
               title={`ID del formulario: ${pregunta.parent}`}
@@ -150,8 +153,8 @@ export default function PreguntaDetalle() {
       ) : (
         <Panel eyebrow={arq.replace("-", " ")} title="Esta vista llega en la próxima sub-parte">
           <div style={{ fontSize: 13, color: "var(--pulso-text-soft)", lineHeight: 1.6 }}>
-            Esta pregunta tiene <strong>{pregunta.n_respuestas}</strong> respuestas
-            ({<strong>{pregunta.n_unicas}</strong>} únicas) en la columna <code style={{ fontFamily: "monospace" }}>{pregunta.col_efectiva}</code>.
+            Esta pregunta tiene <strong>{formatoConteo(pregunta.n_respuestas)}</strong> respuestas
+            ({<strong>{formatoConteo(pregunta.n_unicas)}</strong>} únicas) en la columna <code style={{ fontFamily: "monospace" }}>{pregunta.col_efectiva}</code>.
             <br /><br />
             {arq === "pareja-sm" && "Las preguntas de opción múltiple tienen su propia vista de codificación por opciones (próximo commit)."}
             {arq === "no-aplica" && "Esta pregunta está desactivada."}

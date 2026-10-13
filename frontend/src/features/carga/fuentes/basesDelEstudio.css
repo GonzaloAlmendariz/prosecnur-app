@@ -213,7 +213,10 @@
   transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
-.pulso-bde-origen-opcion span { display: flex; flex-direction: column; }
+/* El botón hereda `white-space: nowrap` de la regla global y la ayuda se
+   recortaba en columnas angostas (1024 px, cinco orígenes): aquí envuelve. */
+.pulso-bde-origen-opcion { min-width: 0; white-space: normal; justify-content: flex-start; }
+.pulso-bde-origen-opcion span { display: flex; flex-direction: column; min-width: 0; }
 .pulso-bde-origen-opcion strong { color: var(--pulso-text); font-size: 13px; }
 .pulso-bde-origen-opcion small { font-size: 11.5px; }
 .pulso-bde-origen-opcion:hover { border-color: var(--pulso-border-strong); }

@@ -22,6 +22,29 @@
   color: var(--module-accent);
 }
 
+/* B2: tile de ícono, el mismo material que la marca de las tarjetas de base. */
+.pulso-base-sav-marca {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--pulso-module-processing-soft);
+  color: var(--pulso-module-processing);
+}
+
+.pulso-base-sav-head {
+  align-items: center;
+}
+
+/* Dentro de «Agregar base» el marco lo pone el bloque que lo contiene. */
+.pulso-base-sav.is-embebido {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
 .pulso-base-sav-head h3 {
   margin: 0;
   font-size: 14px;
