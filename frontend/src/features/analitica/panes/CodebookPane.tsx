@@ -5,6 +5,11 @@ import { useAnaliticaStore } from "../store";
 import { Section, GenerateFooter, PaneGroup } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
 import { useSession } from "../../../lib/SessionContext";
+import { Link, useLocation } from "react-router-dom";
+import { searchConPanel } from "../../../lib/navegacion/paneles";
+import { PANEL_VARIABLES_EXCLUIDAS } from "../panelesAnalitica";
+import "../variablesExcluidas.css";
+import "./CodebookPane.css";
 
 // CodebookPane. La inclusión/exclusión y los labels confirmados viven en
 // Datos / Revisión de data. Este panel genera el diccionario y el XLSForm
@@ -16,7 +21,11 @@ export function CodebookPane() {
   const setCodebook = useAnaliticaStore((s) => s.setCodebook);
   const colorRecods = useAnaliticaStore((s) => s.config.color_recodificaciones);
   const setColorRecodificaciones = useAnaliticaStore((s) => s.setColorRecodificaciones);
-  const excluidasCount = useAnaliticaStore((s) => s.config.variables_excluidas.length);
+  // AnaliticaPage no monta las pestañas hasta hidratar la config, así que este
+  // conteo ya es el de la base activa y no el default vacío (U6).
+  const excluidasCount = useAnaliticaStore((s) => new Set(s.config.variables_excluidas).size);
+  const location = useLocation();
+  const hrefExcluidas = { pathname: location.pathname, search: searchConPanel(location.search, PANEL_VARIABLES_EXCLUIDAS) };
   const run = useReporteRun();
   const runPdf = useReporteRun();
   const { state } = useSession();
@@ -56,7 +65,12 @@ export function CodebookPane() {
 
   return (
     <Panel className="analitica-codebook-panel">
-      <div className="analitica-report-shell analitica-codebook-workbench">
+      {/* C1: barra, avisos y secciones del libro son bloques independientes. */}
+      <div
+        className="analitica-report-shell analitica-codebook-workbench"
+        data-qa-geometry-group="analitica/codebook-workbench"
+        data-qa-geometry-contract="intrinsic"
+      >
         <div className="analitica-codebook-docbar">
           <span className="analitica-codebook-docbar-icon" aria-hidden="true">
             <BookOpen size={16} />
@@ -77,7 +91,17 @@ export function CodebookPane() {
             </span>
             <span>
               Excluidas
-              <strong>{excluidasCount}</strong>
+              <strong>
+                <Link
+                  to={hrefExcluidas}
+                  replace
+                  className="pulso-excluidas-enlace"
+                  aria-haspopup="dialog"
+                  aria-label={`${excluidasCount} ${excluidasCount === 1 ? "variable excluida" : "variables excluidas"}: ver y editar`}
+                >
+                  {excluidasCount}
+                </Link>
+              </strong>
             </span>
           </div>
         </div>
@@ -141,13 +165,20 @@ export function CodebookPane() {
 
         {excluidasCount > 0 && (
           <div className="analitica-codebook-note">
-            Este reporte omite <strong>{excluidasCount}</strong> {excluidasCount === 1 ? "variable excluida" : "variables excluidas"} globalmente. Edita esa selección en <strong>Datos / Revisión de data</strong>.
+            {/* Un bloque y no texto suelto: así la línea entera es el contenido
+                medido y la nota no declara capacidad que no tiene (C3). */}
+            <div>
+              Este reporte omite <strong>{excluidasCount}</strong> {excluidasCount === 1 ? "variable excluida" : "variables excluidas"}.{" "}
+              <Link to={hrefExcluidas} replace className="pulso-excluidas-enlace" aria-haspopup="dialog">
+                Ver y editar las excluidas
+              </Link>
+            </div>
           </div>
         )}
 
         <PaneGroup
           label="Libro de códigos"
-          hint="El diccionario del estudio — en Excel para análisis o en PDF para leer e imprimir."
+          hint="El diccionario del estudio, en Excel para análisis o en PDF para leer e imprimir."
         >
           <Section
             title={

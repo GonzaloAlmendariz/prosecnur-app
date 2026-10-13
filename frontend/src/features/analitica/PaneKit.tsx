@@ -22,7 +22,15 @@ export function PaneGroup({ label, hint, children }: { label: string; hint?: str
         <span className="analitica-pane-group-label">{label}</span>
         {hint && <span className="analitica-pane-group-hint">{hint}</span>}
       </header>
-      <div className="analitica-pane-group-body">{children}</div>
+      {/* C1: los bloques de un grupo (formatos de salida, opciones) son
+          secciones independientes, cada una con su alto propio. */}
+      <div
+        className="analitica-pane-group-body"
+        data-qa-geometry-group="analitica/pane-group"
+        data-qa-geometry-contract="intrinsic"
+      >
+        {children}
+      </div>
     </section>
   );
 }

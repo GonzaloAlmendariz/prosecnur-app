@@ -334,6 +334,8 @@ function SeccionRow({
 // ---- Variables excluidas block --------------------------------------------
 
 function VariablesExcluidasBlock({ variables }: { variables: VariableInstrumento[] }) {
+  const excluidas = useAnaliticaStore((s) => s.config.variables_excluidas);
+  const setExcluidas = useAnaliticaStore((s) => s.setVariablesExcluidas);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
       <div>
@@ -344,7 +346,7 @@ function VariablesExcluidasBlock({ variables }: { variables: VariableInstrumento
           Variables que <strong>no aparecen</strong> en los entregables de análisis. Las bases exportadas conservan las respuestas abiertas y columnas originales necesarias.
         </div>
       </div>
-      <VariablesExcluidas variables={variables} />
+      <VariablesExcluidas variables={variables} excluidas={excluidas} onCambiar={setExcluidas} />
     </div>
   );
 }

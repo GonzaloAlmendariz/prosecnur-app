@@ -1,0 +1,12 @@
+/* Datos › Revisión de etiquetas: reglas nuevas fuera de theme.css (congelado).
+ *
+ * C4: el nombre de una sección es dato operativo y puede ser largo (lo trae el
+ * grupo del XLSForm). El botón que lo lleva era `inline-flex` sin tope de ancho
+ * y empujaba el texto fuera de su caja a 1024 px; ahora envuelve dentro.
+ */
+.pulso-data-review-section-title {
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
