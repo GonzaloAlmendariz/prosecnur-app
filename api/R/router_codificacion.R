@@ -1948,11 +1948,15 @@ isTRUE_vec <- function(x) {
       n_respuestas_afectadas = as.integer(n_resp_afect),
       codigos_nuevos = codigos_nuevos,
       codigos_reutilizados = codigos_reuso,
-      bridge_soportado = (tipo == "select_one" && modo_so == "hijo") ||
-                         (tipo == "select_one" && modo_so == "padre") ||
-                         (tipo == "integer") ||
-                         (tipo == "select_multiple" && nzchar(text_col)) ||
-                         (tipo == "text")
+      # ADR 0100: además del tipo, la columna tiene que estar en la base; si
+      # no, `/aplicar` la omite y el plan tiene que decir lo mismo.
+      bridge_soportado = ((tipo == "select_one" && modo_so == "hijo") ||
+                          (tipo == "select_one" && modo_so == "padre") ||
+                          (tipo == "integer") ||
+                          (tipo == "select_multiple" && nzchar(text_col)) ||
+                          (tipo == "text")) &&
+                         !nzchar(.codif_columna_faltante(r, names(data_df))$motivo),
+      motivo_omision = .codif_columna_faltante(r, names(data_df))$mensaje
     )
   }
 

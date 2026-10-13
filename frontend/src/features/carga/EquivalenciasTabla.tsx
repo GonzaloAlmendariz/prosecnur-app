@@ -9,6 +9,7 @@
 import { Check, Plus, Sparkles, Trash2 } from "../../vendor/lucide-react";
 import type { VariableDeBase } from "../../api/equivalencias";
 import type { FilaEditor } from "./equivalenciasEditorModel";
+import { ArmonizacionIndicador } from "./ArmonizacionFilaEditor";
 
 export type EquivalenciasTablaProps = {
   bases: string[];
@@ -19,6 +20,8 @@ export type EquivalenciasTablaProps = {
   onQuitar: (filaId: string) => void;
   onConfirmar: (filaId: string) => void;
   onAgregarFila: () => void;
+  /** Abre el editor de armonización con el `foco` de la fila. Sin él, no hay indicador. */
+  onArmonizar?: (foco: string) => void;
 };
 
 /**
@@ -47,6 +50,7 @@ export function EquivalenciasTabla({
   onQuitar,
   onConfirmar,
   onAgregarFila,
+  onArmonizar,
 }: EquivalenciasTablaProps) {
   return (
     <div className="pulso-equiv-tabla-wrap">
@@ -95,6 +99,7 @@ export function EquivalenciasTabla({
                     aria-label={`Etiqueta estándar de la fila ${fila.id}`}
                     onChange={(e) => onEditar(fila.id, "etiqueta_estandar", e.target.value)}
                   />
+                  {onArmonizar && <ArmonizacionIndicador fila={fila} onAbrir={onArmonizar} />}
                 </div>
               </td>
               <td>

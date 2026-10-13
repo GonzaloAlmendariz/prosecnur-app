@@ -98,3 +98,16 @@ test_that("una agrupación cuya madre ya no está en la base se declara omitida"
   expect_match(out[[1]]$mensaje, "«P5»", fixed = TRUE)
   expect_identical(.codif_agrupaciones_omitidas(list(), "P5"), list())
 })
+
+test_that("el plan y /aplicar usan la misma regla de columna faltante", {
+  rows <- .omit_rows()
+  sm <- rows[[2]]  # P66, SM con text_col P66_otro
+  expect_identical(.codif_columna_faltante(sm, c("P66", "P66_otro"))$motivo, "")
+  falta <- .codif_columna_faltante(sm, "P66")
+  expect_identical(falta$motivo, "sin_columna_texto")
+  expect_match(falta$mensaje, "P66_otro", fixed = TRUE)
+  so <- rows[[3]]  # P4 padre
+  expect_identical(.codif_columna_faltante(so, "P4_otro")$motivo, "sin_columna_padre")
+  txt <- rows[[4]]  # P30_otro sin text_col
+  expect_identical(.codif_columna_faltante(txt, character(0))$motivo, "sin_columna_texto")
+})

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, CheckCircle2, HelpCircle, Info, Landmark, Plus, Scale,
   SlidersHorizontal, X,
-} from "lucide-react";
+} from "../../../vendor/lucide-react";
 import {
   apiAnaliticaColumnValues, apiAnaliticaPonderacionPreview, apiAnaliticaVariables,
   PonderPreview, ValorColumna, VariableInstrumento,
@@ -10,6 +10,9 @@ import {
 import { Panel } from "../../../components/Panel";
 import { PonderMargin, useAnaliticaStore } from "../store";
 import { VariableSelect } from "../VariableSelect";
+import { useSession } from "../../../lib/SessionContext";
+import { PesoPorColumna } from "./PesoPorColumna";
+import "./PonderacionPane.css";
 
 // PonderacionPane — pondera los reportes (frecuencias, cruces, dimensiones)
 // para que representen a la población. Flujo guiado: guía de decisión →
@@ -27,6 +30,8 @@ export function PonderacionPane() {
   const upsertMargin = useAnaliticaStore((s) => s.upsertPonderMargin);
   const removeMargin = useAnaliticaStore((s) => s.removePonderMargin);
 
+  const porColumna = pond.modo === "columna";
+  const baseActiva = useSession().state?.active_base ?? null;
   const margins = pond.rake?.margins ?? [];
   const designOn = !!pond.design;
   const cap = pond.trim?.cap ?? 0;
@@ -61,7 +66,9 @@ export function PonderacionPane() {
 
   // Preview con debounce ante cualquier cambio de la config de ponderación.
   useEffect(() => {
-    if (!pond.enabled) { setPreview(null); return; }
+    // El preview del backend calcula calibración: con el peso tomado de una
+    // columna no hay nada que previsualizar y sus cifras serían de otro método.
+    if (!pond.enabled || porColumna) { setPreview(null); return; }
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
       try { setPreview(await apiAnaliticaPonderacionPreview(pond)); }
@@ -115,6 +122,17 @@ export function PonderacionPane() {
         </div>
 
         {pond.enabled && (
+          <PesoPorColumna
+            modo={porColumna ? "columna" : "calibracion"}
+            pesoColumna={pond.peso_columna ?? ""}
+            variables={variables}
+            baseActiva={baseActiva}
+            onModo={(modo) => setPonderacion(modo === "columna" ? { modo } : { modo: undefined, peso_columna: undefined })}
+            onColumna={(peso_columna) => setPonderacion({ modo: "columna", peso_columna })}
+          />
+        )}
+
+        {pond.enabled && !porColumna && (
           <>
             {/* Paso 1 — Método */}
             <StepLabel n={1} text="¿Qué quieres corregir?" />
