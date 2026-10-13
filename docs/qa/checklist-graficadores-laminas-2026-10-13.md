@@ -5,7 +5,7 @@ Referencia visual de cada estándar: `docs/qa/motor-ppt-2026-10-06/4-recetario/r
 
 | # | Indicación (textual o casi) | Dónde vive | Estado |
 |---|---|---|---|
-| G1 | Portada: «la fecha no es un botón clickeable que me lleva a poder editarlo», como sí lo es el «Texto descriptivo» | Pestaña Láminas: zonas clickeables de la maqueta (`laminas/ZonasTextoLamina.tsx`, `laminas/RanurasSobreLamina.tsx`); rótulos en `laminas/selectores/etiquetas.ts` (`fecha: "Fecha"`) | ☐ |
+| G1 | Portada: «la fecha no es un botón clickeable que me lleva a poder editarlo», como sí lo es el «Texto descriptivo» | Pestaña Láminas: zonas clickeables de la maqueta (`laminas/ZonasTextoLamina.tsx`, `laminas/RanurasSobreLamina.tsx`); rótulos en `laminas/selectores/etiquetas.ts` (`fecha: "Fecha"`) | ◐ hecho 8f7ef1bc8 (zonas Subtítulo, Título, Texto descriptivo y Fecha en maqueta y «Ver cómo queda», 3 composiciones), falta tu revisión |
 | G2 | Índice: elegida una ilustración remasterizada, «Ver cómo queda» previsualiza con los focos de la versión antigua | Vista previa de la lámina (`laminas/usePreviewLamina.ts` → backend `graficos_preview_lamina.R`) contra el render del índice (`reporte_plan_ppt.R`, `indice/`) | ☐ |
 | G3 | Índice: ofrece antetítulo y no debería llevarlo | Campos de texto por tipo de lámina (`laminas/contenidoLamina.ts`, `ZonasTextoLamina.tsx`) | ☐ |
 | G4 | Objetivo: vuelve a pedir antetítulo; no debe haber | Igual que G3 | ☐ |
@@ -21,4 +21,6 @@ Referencia visual de cada estándar: `docs/qa/motor-ppt-2026-10-06/4-recetario/r
 
 ## Aprendido al investigar
 
-- (vacío al abrir)
+- G1: la portada no tenía NINGUNA zona de texto sobre la lámina salvo el título (`camposTextoDe` devuelve vacío para las láminas de estructura). Las zonas nuevas usan la geometría de `.lam_laminas_portada` por composición (`zonasPortada`).
+- Visto al hacer G1: el panel Contenido de la PORTADA también ofrece «Antetítulo» (campo `antetitulo` en el inspector). Misma familia que G3/G4: se resuelve junto con ellos.
+- Visto: el selector de composición muestra «Lámina 24 / Lámina 25» (número del recetario) como detalle; es jerga interna → candidato G13.
