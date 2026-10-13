@@ -1802,7 +1802,7 @@ isTRUE_vec <- function(x) {
     n_codigos_nuevos = 0L, n_codigos_reutilizados = 0L
   )
   if (is.null(draft)) {
-    return(list(ok = TRUE, preguntas = list(), totales = empty_totales))
+    return(.codif_plan_con_agrupaciones(sid, list(ok = TRUE, preguntas = list(), totales = empty_totales)))
   }
 
   data_df <- codif_data_cached(sid)
@@ -1956,7 +1956,7 @@ isTRUE_vec <- function(x) {
     )
   }
 
-  list(
+  .codif_plan_con_agrupaciones(sid, list(
     ok = TRUE,
     preguntas = preguntas,
     totales = list(
@@ -1965,7 +1965,22 @@ isTRUE_vec <- function(x) {
       n_codigos_nuevos = as.integer(tot_codigos_nuevos),
       n_codigos_reutilizados = as.integer(tot_codigos_reuso)
     )
-  )
+  ), data_df = data_df)
+}
+
+# Suma al plan las agrupaciones de categorías (ítem 1f). Cada una crea una
+# variable nueva con códigos nuevos; ninguna reutiliza códigos.
+.codif_plan_con_agrupaciones <- function(sid, plan, data_df = NULL) {
+  if (is.null(data_df)) data_df <- tryCatch(codif_data_cached(sid), error = function(e) NULL)
+  inst <- tryCatch(codif_inst_cached(sid), error = function(e) NULL)
+  items <- .codif_agrupar_plan_items(sid, data_df = data_df, inst = inst)
+  if (!length(items)) return(plan)
+  plan$preguntas <- c(plan$preguntas, items)
+  n_cod <- sum(vapply(items, function(it) it$n_codigos_nuevos, integer(1)))
+  plan$totales$n_preguntas <- as.integer(plan$totales$n_preguntas + length(items))
+  plan$totales$n_variables_nuevas <- as.integer(plan$totales$n_variables_nuevas + length(items))
+  plan$totales$n_codigos_nuevos <- as.integer(plan$totales$n_codigos_nuevos + n_cod)
+  plan
 }
 
 .codif_apply_has_user_state <- function(sid, source = NULL) {
@@ -1978,7 +1993,9 @@ isTRUE_vec <- function(x) {
   }, logical(1)))
   has_responses <- is.list(st$respuestas_recod) && length(st$respuestas_recod) > 0L
   has_marked <- is.list(st$marcadas) && any(vapply(st$marcadas, isTRUE, logical(1)))
-  isTRUE(has_groups || has_responses || has_marked || !is.null(st$plantilla_codigos_file_id))
+  has_agrupaciones <- is.list(st$agrupaciones) && length(st$agrupaciones) > 0L
+  isTRUE(has_groups || has_responses || has_marked || has_agrupaciones ||
+         !is.null(st$plantilla_codigos_file_id))
 }
 
 .codif_with_base_active <- function(sid, base_name = NULL, expr) {
@@ -2103,7 +2120,8 @@ isTRUE_vec <- function(x) {
 .codif_apply_job_runner <- function(xls_path, data_path, codes_path, fam_path,
                                     data_out, inst_out, sm_vars,
                                     so_parent_vars, so_child_vars, int_vars,
-                                    text_vars, progress_path = NULL) {
+                                    text_vars, agrupaciones = list(),
+                                    progress_path = NULL) {
   report <- if (exists("job_progress_writer", mode = "function")) {
     job_progress_writer(progress_path)
   } else {
@@ -2120,7 +2138,8 @@ isTRUE_vec <- function(x) {
     text_vars        = text_vars,
     int_vars         = int_vars,
     out_path         = data_out,
-    path_familias    = fam_path
+    path_familias    = fam_path,
+    agrupaciones     = agrupaciones
   )
   report("adapt", percent = 62, message = "Adaptando instrumento...")
   ppra_adaptar_instrumento(
@@ -2132,7 +2151,8 @@ isTRUE_vec <- function(x) {
     so_parent_vars       = so_parent_vars,
     so_child_vars        = so_child_vars,
     text_vars            = text_vars,
-    integer_vars         = int_vars
+    integer_vars         = int_vars,
+    agrupaciones         = agrupaciones
   )
   report("export", percent = 94, message = "Guardando archivos adaptados...")
   list(data_out = data_out, inst_out = inst_out)
@@ -2247,7 +2267,8 @@ attr(.codif_apply_job_runner, "prosecnur_job_function_name") <- ".codif_apply_jo
         so_parent_vars = so_parent_vars,
         so_child_vars = so_child_vars,
         text_vars = text_vars,
-        int_vars = int_vars
+        int_vars = int_vars,
+        agrupaciones = codif_agrupaciones_para_aplicar(sid, target_base)
       ),
       on_complete = function(j) {
         .codif_apply_complete(j$sid, target_base, j$result_data)
@@ -3070,6 +3091,24 @@ mount_codificacion <- function(pr) {
       codif_set(sid, "plantilla_codigos_file_id", file_id)
       list(ok = TRUE, original_name = meta$original_name, size = meta$size)
     })) |>
+    plumber::pr_get("/api/codificacion/agrupacion", wrap_endpoint(function(req, res, parent = NULL, base = NULL) {
+      # Agrupar categorías de una variable codificada (ítem 1f): spec guardada,
+      # códigos con su n y textos de «Otro». Lógica en codificacion_agrupar.R.
+      sid <- session_header(req)
+      codif_agrupacion_get(sid, parent, base = base)
+    })) |>
+    plumber::pr_post("/api/codificacion/agrupacion", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      parsed <- .mark_utf8(parsed)
+      codif_agrupacion_set(sid, parsed$parent, parsed$spec, base = parsed$base)
+    })) |>
     plumber::pr_get("/api/codificacion/plan-adaptacion", wrap_endpoint(function(req, res) {
       # Resumen pre-adaptación: qué preguntas van a entrar, cuántas
       # variables nuevas se crean, cuántos códigos nuevos y reutilizados,
@@ -3230,7 +3269,8 @@ mount_codificacion <- function(pr) {
           so_parent_vars = so_parent_vars,
           so_child_vars = so_child_vars,
           text_vars = text_vars,
-          int_vars = int_vars
+          int_vars = int_vars,
+          agrupaciones = codif_agrupaciones_para_aplicar(sid, target_base)
         ),
         on_complete = function(j) {
           .codif_apply_complete(j$sid, target_base, j$result_data)

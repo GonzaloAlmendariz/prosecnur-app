@@ -1357,6 +1357,9 @@
   draft <- (codif_state$familias_draft %||% list())$rows %||% list()
   groups_map <- codif_state$grupos_recod %||% list()
   if (!length(draft)) return(list())
+  # `<parent>_recod` que produce una agrupación de categorías (ítem 1f) no es
+  # del modo padre: repararla con el catálogo original la pisaría al abrir.
+  agrupacion_targets <- .codif_agrupar_targets_base(codif_state)
   out <- list()
   for (row in draft) {
     tipo <- tolower(trimws(as.character(row$tipo %||% "")))
@@ -1366,6 +1369,7 @@
     if (!nzchar(parent)) parent <- as.character(row$parent %||% "")
     text_col <- as.character(row$text_col %||% "")
     if (!nzchar(parent)) next
+    if (paste0(parent, "_recod") %in% agrupacion_targets) next
     groups <- groups_map[[parent]] %||%
       groups_map[[as.character(row$parent %||% "")]] %||%
       groups_map[[text_col]] %||%

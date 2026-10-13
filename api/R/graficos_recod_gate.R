@@ -89,8 +89,13 @@
 #                    Valor list() = materializada pero sin categorías comparables
 #                    (p.ej. columna en data sin choices en el instrumento).
 #   parent_labels  : named list parent -> etiqueta legible (fallback: el propio nombre).
-graficos_recod_gate_evaluate <- function(catalog, materialized = list(), parent_labels = list()) {
+#   targets        : named list clave de catálogo -> variable que la materializa,
+#                    para recods cuyo nombre no es `<clave>_recod` (agrupaciones
+#                    de categorías, ítem 1f). Sin entrada vale `<clave>_recod`.
+graficos_recod_gate_evaluate <- function(catalog, materialized = list(), parent_labels = list(),
+                                         targets = list()) {
   catalog <- catalog %||% list()
+  targets <- targets %||% list()
   materialized <- materialized %||% list()
   parent_labels <- parent_labels %||% list()
 
@@ -104,7 +109,7 @@ graficos_recod_gate_evaluate <- function(catalog, materialized = list(), parent_
     cats <- .graficos_recod_group_categories(catalog[[parent]])
     if (!length(cats)) next # entrada de catálogo vacía (aún sin grupos): se ignora.
     catalog_parents <- c(catalog_parents, parent)
-    recod_var <- paste0(parent, "_recod")
+    recod_var <- .graficos_scalar_chr(targets[[parent]], paste0(parent, "_recod"))
     label <- .graficos_scalar_chr(parent_labels[[parent]], parent)
     if (!nzchar(label)) label <- parent
 
@@ -133,9 +138,10 @@ graficos_recod_gate_evaluate <- function(catalog, materialized = list(), parent_
   # Es informativo (una recod aplicada por fuera del catálogo actual). NO se
   # adjunta a `warnings` para no inundar proyectos con recods legacy aplicadas
   # antes de que existiera el catálogo; queda en la lista estructurada.
+  target_vars <- unlist(targets[intersect(names(targets), catalog_parents)], use.names = FALSE)
   for (recod_var in names(materialized)) {
     parent <- sub("_recod$", "", recod_var)
-    if (!(parent %in% catalog_parents)) orphan <- c(orphan, recod_var)
+    if (!(parent %in% catalog_parents) && !(recod_var %in% target_vars)) orphan <- c(orphan, recod_var)
   }
 
   list(
@@ -150,7 +156,7 @@ graficos_recod_gate_evaluate <- function(catalog, materialized = list(), parent_
 
 # Extrae, de un instrumento (survey + choices en memoria), el mapa de
 # `<var>_recod` -> categorías materializadas list(code, label).
-.graficos_recod_materialized_from_inst <- function(inst) {
+.graficos_recod_materialized_from_inst <- function(inst, extra_names = character(0)) {
   if (is.null(inst) || !is.list(inst)) return(list())
   survey <- inst$survey %||% NULL
   choices <- inst$choices %||% NULL
@@ -159,7 +165,8 @@ graficos_recod_gate_evaluate <- function(catalog, materialized = list(), parent_
   out <- list()
   for (i in seq_len(nrow(survey))) {
     nm <- names_vec[i]
-    if (is.na(nm) || !nzchar(nm) || !grepl("_recod$", nm, ignore.case = TRUE)) next
+    if (is.na(nm) || !nzchar(nm)) next
+    if (!grepl("_recod$", nm, ignore.case = TRUE) && !(nm %in% extra_names)) next
     list_name <- .graficos_list_name_for_row(survey, i)
     items <- .graficos_choices_for_list(choices, list_name)$items %||% list()
     cats <- lapply(items, function(it) list(code = it$name, label = it$label))
@@ -198,6 +205,21 @@ graficos_recod_gate_evaluate <- function(catalog, materialized = list(), parent_
 
     # Catálogo unificado por parent (cualquier base con grupos no vacíos aporta).
     catalog <- list()
+    # Agrupaciones de categorías: la clave del catálogo es su variable nueva
+    # (puede no terminar en `_recod` y no debe pisar la codificación del padre).
+    targets <- list()
+    agr_parent <- list()
+    for (base in names(cbb)) {
+      for (sp in (cbb[[base]] %||% list())$agrupaciones %||% list()) {
+        tgt <- .graficos_scalar_chr((sp %||% list())$target, "")
+        if (!nzchar(tgt) || !is.null(catalog[[tgt]])) next
+        catalog[[tgt]] <- lapply(sp$categorias %||% list(), function(c) {
+          list(codigo = c$codigo, etiqueta = c$etiqueta)
+        })
+        targets[[tgt]] <- tgt
+        agr_parent[[tgt]] <- .graficos_scalar_chr(sp$parent, tgt)
+      }
+    }
     for (base in names(cbb)) {
       gr <- (cbb[[base]] %||% list())$grupos_recod %||% list()
       if (!is.list(gr) || !length(gr)) next
@@ -220,13 +242,14 @@ graficos_recod_gate_evaluate <- function(catalog, materialized = list(), parent_
     parent_labels <- list()
     for (base in names(inst_sources)) {
       inst <- inst_sources[[base]]
-      m <- .graficos_recod_materialized_from_inst(inst)
+      m <- .graficos_recod_materialized_from_inst(inst, extra_names = names(targets))
       for (k in names(m)) if (is.null(materialized[[k]])) materialized[[k]] <- m[[k]]
       survey <- (inst %||% list())$survey %||% NULL
       for (parent in names(catalog)) {
         if (is.null(parent_labels[[parent]])) {
-          lbl <- .graficos_recod_survey_label(survey, parent)
-          if (nzchar(lbl) && !identical(lbl, parent)) parent_labels[[parent]] <- lbl
+          origen <- agr_parent[[parent]] %||% parent
+          lbl <- .graficos_recod_survey_label(survey, origen)
+          if (nzchar(lbl) && !identical(lbl, origen)) parent_labels[[parent]] <- lbl
         }
       }
     }
@@ -235,10 +258,13 @@ graficos_recod_gate_evaluate <- function(catalog, materialized = list(), parent_
     for (base in names(data_sources)) {
       df <- data_sources[[base]]
       if (!is.data.frame(df)) next
-      cols <- grep("_recod$", names(df), value = TRUE, ignore.case = TRUE)
+      cols <- unique(c(
+        grep("_recod$", names(df), value = TRUE, ignore.case = TRUE),
+        intersect(names(targets), names(df))
+      ))
       for (col in cols) if (is.null(materialized[[col]])) materialized[[col]] <- list()
     }
 
-    graficos_recod_gate_evaluate(catalog, materialized, parent_labels)
+    graficos_recod_gate_evaluate(catalog, materialized, parent_labels, targets = targets)
   }, error = function(e) empty)
 }
