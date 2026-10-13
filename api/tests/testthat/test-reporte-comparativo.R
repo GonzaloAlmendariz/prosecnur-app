@@ -282,7 +282,13 @@ test_that("R4b condiciones: pie de calibración fallida, N ponderado sólo si al
   datos$b2025$v25 <- 99
   g <- .rc_generar(datos = datos)
   d <- .rc_celdas(g$simple)
-  expect_true("n.a.: no aplica, 2025 sin respuestas válidas (208 casos No sé / No responde)." %in% d[[1]])
+  # Los especiales se nombran con su etiqueta en el instrumento de esa base.
+  expect_true("n.a.: no aplica, 2025 sin respuestas válidas (208 casos Opción 99)." %in% d[[1]])
+  expect_false(any(grepl("No sé / No responde", d[[1]], fixed = TRUE)))
+  sm <- list(b2025 = list(n_especial_sin_mapa = 5, etiquetas_especiales = list("No sabe", "No responde")),
+             b2026 = list(n_especial_sin_mapa = 1, codigos_especiales = list("98")))
+  expect_identical(.comparativo_linea_na_simple(c("b2025", "b2026"), sm, rot),
+                   "n.a.: no aplica, 2025 sin respuestas válidas (5 casos No sabe y No responde) y 2026 sin respuestas válidas (1 caso 98).")
   expect_identical(unname(unlist(d[6, 4:5])), rep("n.a.", 2))
 })
 
@@ -431,4 +437,12 @@ test_that("serie de públicos: con rótulos que no son años y 4 mediciones, enc
   # Con rótulos de año la unidad sigue siendo «Año».
   expect_identical(.comparativo_unidad(c(a = "2024", b = "2025", c = "2026", d = "2027"))$titulo, "Año")
   expect_identical(.comparativo_unidad(c(a = "2024", b = "egresados"))$titulo, "Medición")
+})
+
+test_that("letras de columna: siguen con AA, AB… pasada la 26.ª categoría", {
+  l <- .comparativo_letras(30)
+  expect_length(l, 30L)
+  expect_identical(l[c(1, 26, 27, 28, 30)], c("A", "Z", "AA", "AB", "AD"))
+  expect_false(anyNA(l))
+  expect_identical(.comparativo_letras(0), character(0))
 })

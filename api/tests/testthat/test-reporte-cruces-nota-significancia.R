@@ -53,3 +53,11 @@ test_that("la nota de significancia de cruces sale con la redacción de la maque
   expect_false(grepl("·|—|;", nota))
   expect_false(grepl("\\b(segun|correccion|multiples|categoria|proporcion)\\b", nota, perl = TRUE))
 })
+
+test_that("las letras de significancia siguen con AA, AB… pasadas las 26 columnas", {
+  n <- matrix(c(900, rep(100, 29)), nrow = 1)
+  r <- comparar_columnas_sig(n, rep(1000, 30))
+  letras <- strsplit(trimws(r$letras[1, 1]), " ")[[1]]
+  expect_true(all(c("Z", "AA", "AD") %in% letras))
+  expect_false(any(is.na(letras)) || any(letras == "NA"))
+})

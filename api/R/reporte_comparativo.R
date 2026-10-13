@@ -166,6 +166,56 @@
 
 .comparativo_es_sin_variable <- function(pp) identical((pp %||% list())$motivo, "sin_variable")
 
+# Letras de columna para la prueba de proporciones: A…Z, AA, AB…, como las
+# columnas de Excel. `LETTERS` se acaba en la 26.ª categoría.
+.comparativo_letras <- function(n) {
+  n <- as.integer(n)
+  if (is.na(n) || n <= 0L) return(character(0))
+  openxlsx::int2col(seq_len(n))
+}
+
+.COMPARATIVO_HOJA_OMITIDAS <- "Preguntas omitidas"
+
+.comparativo_motivo_corto <- function(m) {
+  switch(m %||% "", mapa_roto = "Mapa roto", select_multiple = "Opción múltiple",
+         sin_variable = "Sin variable en la matriz", m %||% "")
+}
+
+#' Hoja «Preguntas omitidas»: cada pregunta o variable de cruce que salió del
+#' comparativo, con su motivo. Sólo se escribe si hay alguna. Devuelve el
+#' resumen de omitidas para el manifest.
+#' @noRd
+.comparativo_hoja_omitidas <- function(wb, omitidas, rotulos) {
+  if (!length(omitidas)) return(list())
+  hoja <- .COMPARATIVO_HOJA_OMITIDAS
+  pulso_xlsx_new_sheet(wb, hoja)
+  st <- .comparativo_estilos()
+  unidad <- .comparativo_unidad(rotulos)
+  enc <- c("Pregunta", "Uso", "Motivo", unidad$titulo, "Detalle")
+  openxlsx::setColWidths(wb, hoja, cols = 1:5, widths = c(48, 16, 22, 14, 80))
+  fila <- .comparativo_titulo(wb, hoja, st, 1L, "Preguntas omitidas del comparativo", 5L)
+  for (k in seq_along(enc)) .comparativo_put(wb, hoja, fila, k, enc[k], st$header)
+  out <- list()
+  for (i in seq_along(omitidas)) {
+    o <- omitidas[[i]]
+    r <- fila + i
+    sfx <- if (i %% 2L == 0L) "_z" else ""
+    base <- if (length(o$base)) o$base else ""
+    detalle <- .armz_motivo_omision(o, rotulos)
+    vals <- c(o$titulo %||% o$fila, if (identical(o$tipo, "cruce")) "Variable de cruce" else "Pregunta",
+              .comparativo_motivo_corto(o$motivo),
+              if (nzchar(base) && base %in% names(rotulos)) rotulos[[base]] else base, detalle)
+    for (k in seq_along(vals)) .comparativo_put(wb, hoja, r, k, vals[k], st[[paste0("c_txt", sfx)]])
+    openxlsx::setRowHeights(wb, hoja, rows = r,
+                            heights = max(15, .calc_row_height(detalle, col_width = 80, font_size = 10)))
+    out[[i]] <- list(fila = o$fila, titulo = o$titulo %||% o$fila, tipo = o$tipo %||% "pregunta",
+                     motivo = o$motivo %||% "sin_variable", base = if (nzchar(base)) base else NULL,
+                     codigos = o$codigos %||% list(), detalle = detalle)
+  }
+  pulso_xlsx_box(wb, hoja, fila, fila + length(omitidas), 1L, 5L)
+  out
+}
+
 .comparativo_sheet_setup <- function(wb, hoja) {
   pulso_xlsx_new_sheet(wb, hoja)
   openxlsx::pageSetup(wb, hoja, orientation = "landscape", fitToWidth = TRUE, fitToHeight = FALSE)
@@ -215,13 +265,19 @@
   } else ""
 }
 
-# «n.a.: no aplica, 2025 sin respuestas válidas (3 casos No sé / No responde).»
+# «n.a.: no aplica, 2025 sin respuestas válidas (3 casos No sabe y No responde).»
+# Los especiales se nombran con la etiqueta que traen en el instrumento de
+# ESA base (o su código si no la tienen), no con un rótulo fijo.
 .comparativo_linea_na_simple <- function(na_periodos, sin_mapa, rotulos) {
   if (!length(na_periodos)) return(character(0))
   partes <- vapply(na_periodos, function(b) {
-    n <- as.numeric((sin_mapa[[b]] %||% list())$n_especial_sin_mapa %||% 0)
+    sm <- sin_mapa[[b]] %||% list()
+    n <- as.numeric(sm$n_especial_sin_mapa %||% 0)
+    etq <- as.character(unlist(sm$etiquetas_especiales %||% sm$codigos_especiales %||% list()))
+    etq <- etq[!is.na(etq) & nzchar(etq)]
     paste0(rotulos[[b]], " sin respuestas válidas",
-           if (n > 0) paste0(" (", .armz_casos(n), " No sé / No responde)") else "")
+           if (n > 0) paste0(" (", .armz_casos(n),
+                             if (length(etq)) paste0(" ", .notas_pie_unir_es(etq)) else "", ")") else "")
   }, character(1))
   paste0(.COMPARATIVO_NA, ": no aplica, ", .notas_pie_unir_es(unname(partes)), ".")
 }
@@ -445,8 +501,9 @@ reporte_comparativo_simple <- function(modelo, path, rotulos, notas = NULL, extr
       no_ofrecidas = .comparativo_resumen_no_ofrecidas(q, periodos),
       sin_mapa = .comparativo_resumen_sin_mapa(q, periodos))
   }
+  omitidas <- .comparativo_hoja_omitidas(wb, modelo$omitidas, rotulos[periodos])
   .comparativo_guardar(wb, path)
-  list(hoja = hoja, n_preguntas = length(modelo$preguntas), preguntas = resumen)
+  list(hoja = hoja, n_preguntas = length(modelo$preguntas), preguntas = resumen, omitidas = omitidas)
 }
 
 # ---- Comparativo de cruces --------------------------------------------------------
@@ -674,7 +731,7 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
         x <- cruces[[j]]; c0 <- inicio_sig[j]
         openxlsx::writeData(wb, hoja, x$etiqueta, startRow = sg, startCol = c0)
         if (ncat[j] > 1L) openxlsx::mergeCells(wb, hoja, rows = sg, cols = c0:(c0 + ncat[j] - 1L))
-        hdr <- paste0(x$escala$etiquetas, " (", LETTERS[seq_len(ncat[j])], ")")
+        hdr <- paste0(x$escala$etiquetas, " (", .comparativo_letras(ncat[j]), ")")
         openxlsx::writeData(wb, hoja, t(hdr), startRow = sc, startCol = c0, colNames = FALSE)
       }
       openxlsx::setRowHeights(wb, hoja, rows = sc, heights = 58)
@@ -733,8 +790,9 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
       sin_mapa = .comparativo_resumen_sin_mapa(q, periodos)
     )
   }
+  omitidas <- .comparativo_hoja_omitidas(wb, modelo$omitidas, rotulos[periodos])
   .comparativo_guardar(wb, path)
-  list(hoja = hoja, n_preguntas = length(modelo$preguntas), preguntas = resumen)
+  list(hoja = hoja, n_preguntas = length(modelo$preguntas), preguntas = resumen, omitidas = omitidas)
 }
 
 # ---- Manifest ---------------------------------------------------------------
@@ -756,6 +814,7 @@ reporte_comparativo_manifest <- function(path_json, tipo, path_xlsx, filename, p
       base = b, rotulo = unname(rotulos[[b]]),
       ponderacion = ponderacion[[b]] %||% list(pondera = FALSE, estado = "sin_ponderar"))),
     preguntas = resumen$preguntas,
+    omitidas = resumen$omitidas %||% list(),
     avisos = resumen$avisos %||% list()
   )
   jsonlite::write_json(man, path_json, auto_unbox = TRUE, pretty = TRUE, null = "null")

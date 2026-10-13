@@ -31,6 +31,12 @@
 # `select_multiple` no se armoniza con un mapa de códigos: 409
 # `E_ARMONIZADA_SELECT_MULTIPLE`.
 #
+# UNA FILA DEFECTUOSA NO TUMBA EL LIBRO. Si se piden varias preguntas (o
+# varios cruces) y una tiene el mapa roto o es de opción múltiple, esa fila se
+# omite y queda declarada: aviso `pregunta_omitida` / `cruce_omitido` con su
+# `motivo`, hoja «Preguntas omitidas» en el libro y `omitidas` en el manifest.
+# Con una sola fila pedida, o si todas son defectuosas, se mantiene el 409.
+#
 # MARCAS.
 #   «n.c.» la fila no es comparable en ese período (sin entrada en `por_base`
 #          o `comparable = false`). Vale para la pregunta y para cada cruce.
@@ -57,6 +63,9 @@
 #' Rótulo de cada período: el parámetro manda, si no el año del nombre de base
 #' cuando ese año no se repite en la serie, y si no el nombre de base.
 #' @noRd
+# El año se reconoce sólo como 19xx o 20xx dentro del nombre de base, a
+# propósito: otro número de cuatro cifras en el nombre (un código de base, un
+# correlativo «ola_0007») no es un año y no debe rotular la medición.
 .armz_rotulos <- function(periodos, rotulos = NULL) {
   periodos <- as.character(periodos)
   out <- stats::setNames(periodos, periodos)
@@ -227,7 +236,8 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
   # sale del libro y queda en `omitidas` para el aviso `pregunta_omitida`.
   sin_ninguna <- vapply(preguntas, function(d) !isTRUE(d$con_variable), logical(1))
   omitidas <- lapply(preguntas[sin_ninguna], function(d) list(
-    fila = d$etiqueta, titulo = d$titulo, claves = d$claves))
+    tipo = "pregunta", fila = d$etiqueta, titulo = d$titulo, claves = d$claves,
+    motivo = "sin_variable"))
   preguntas <- preguntas[!sin_ninguna]
   if (length(filas) && !length(preguntas)) {
     stop_api(409, "E_ARMONIZADA_SIN_FILAS",
@@ -235,51 +245,99 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
              list(omitidas = lapply(omitidas, `[[`, "fila")))
   }
 
-  sin_mapa <- list()
-  partes <- list()
-  for (b in periodos) {
+  ok_q <- .armz_columnas_lista(preguntas, datos, periodos, insts, "pregunta", length(filas))
+  ok_x <- .armz_columnas_lista(xs, datos, periodos, insts, "cruce", length(cruces))
+  omitidas <- c(omitidas, ok_q$omitidas, ok_x$omitidas)
+  cols <- c(ok_q$cols, ok_x$cols)
+
+  partes <- lapply(periodos, function(b) {
     df <- datos[[b]]
-    n <- nrow(df)
-    out <- data.frame(periodo = rep(b, n), peso = get_pesos(df, "peso"),
+    out <- data.frame(periodo = rep(b, nrow(df)), peso = get_pesos(df, "peso"),
                       stringsAsFactors = FALSE)
-    for (d in c(preguntas, xs)) {
-      spec <- .equiv_armon_spec(d$fila, b)
-      if (!is.null(spec) && .armz_es_select_multiple(insts[[b]], df, spec$parent)) {
-        stop_api(409, "E_ARMONIZADA_SELECT_MULTIPLE", sprintf(
-          "«%s» es de opción múltiple en la base «%s» (variable «%s»). El comparativo armoniza preguntas de una sola respuesta: compara cada opción como su propia fila.",
-          d$titulo, b, spec$parent), list(fila = d$etiqueta, base = b, variable = spec$parent))
-      }
-      v <- equiv_armonizar_base(df, d$fila, b)
-      if (is.null(v)) {
-        out[[d$key]] <- rep(NA_character_, n)
-        next
-      }
-      v <- as.character(v)
-      sm <- .armz_sin_mapa(.codif_agrupar_codigo_chr(df[[spec$parent]]), v,
-                           cubiertos = .armz_codigos_cubiertos(d$fila, d$escala$codigos),
-                           etiquetas = .armz_etiquetas_var(insts[[b]], spec$parent))
-      if (!any(!is.na(v)) && sm$n_sin_mapa > 0) {
-        stop_api(409, "E_ARMONIZADA_MAPA_ROTO", sprintf(
-          "Ningún caso de la base «%s» cae en la escala de «%s», aunque «%s» trae %d respuestas (códigos %s). Revisa el mapa de esa base en la matriz de equivalencias.",
-          b, d$titulo, spec$parent, as.integer(sm$n_sin_mapa),
-          paste(unlist(sm$codigos_sin_mapa), collapse = ", ")),
-          list(fila = d$etiqueta, base = b, variable = spec$parent,
-               codigos = sm$codigos_sin_mapa))
-      }
-      if (is.null(sin_mapa[[d$key]])) sin_mapa[[d$key]] <- list()
-      sin_mapa[[d$key]][[b]] <- sm
-      out[[d$key]] <- v
-    }
-    partes[[b]] <- out
-  }
-  data <- do.call(rbind, unname(partes))
+    for (k in names(cols)) out[[k]] <- cols[[k]]$v[[b]]
+    out
+  })
+  data <- do.call(rbind, partes)
   if (is.null(data)) data <- data.frame(periodo = character(0), peso = numeric(0))
   agregar_sm <- function(lista) lapply(lista, function(d) {
-    d$sin_mapa <- sin_mapa[[d$key]] %||% list()
+    d$sin_mapa <- cols[[d$key]]$sm %||% list()
     d
   })
-  list(periodos = periodos, data = data, preguntas = agregar_sm(preguntas), cruces = agregar_sm(xs),
-       omitidas = omitidas)
+  list(periodos = periodos, data = data, preguntas = agregar_sm(ok_q$lista),
+       cruces = agregar_sm(ok_x$lista), omitidas = omitidas)
+}
+
+# Columna armonizada de UNA fila en cada período y sus casos sin mapa. Corta
+# con 409 si la fila es de opción múltiple o su mapa no deja ningún caso.
+.armz_columnas_fila <- function(d, datos, periodos, insts) {
+  v_por <- list()
+  sm_por <- list()
+  for (b in periodos) {
+    df <- datos[[b]]
+    spec <- .equiv_armon_spec(d$fila, b)
+    if (!is.null(spec) && .armz_es_select_multiple(insts[[b]], df, spec$parent)) {
+      stop_api(409, "E_ARMONIZADA_SELECT_MULTIPLE", sprintf(
+        "«%s» es de opción múltiple en la base «%s» (variable «%s»). El comparativo armoniza preguntas de una sola respuesta: compara cada opción como su propia fila.",
+        d$titulo, b, spec$parent), list(fila = d$etiqueta, base = b, variable = spec$parent))
+    }
+    v <- equiv_armonizar_base(df, d$fila, b)
+    if (is.null(v)) {
+      v_por[[b]] <- rep(NA_character_, nrow(df))
+      next
+    }
+    v <- as.character(v)
+    sm <- .armz_sin_mapa(.codif_agrupar_codigo_chr(df[[spec$parent]]), v,
+                         cubiertos = .armz_codigos_cubiertos(d$fila, d$escala$codigos),
+                         etiquetas = .armz_etiquetas_var(insts[[b]], spec$parent))
+    if (!any(!is.na(v)) && sm$n_sin_mapa > 0) {
+      stop_api(409, "E_ARMONIZADA_MAPA_ROTO", sprintf(
+        "Ningún caso de la base «%s» cae en la escala de «%s», aunque «%s» trae %d respuestas (códigos %s). Revisa el mapa de esa base en la matriz de equivalencias.",
+        b, d$titulo, spec$parent, as.integer(sm$n_sin_mapa),
+        paste(unlist(sm$codigos_sin_mapa), collapse = ", ")),
+        list(fila = d$etiqueta, base = b, variable = spec$parent,
+             codigos = sm$codigos_sin_mapa))
+    }
+    sm_por[[b]] <- sm
+    v_por[[b]] <- v
+  }
+  list(v = v_por, sm = sm_por)
+}
+
+# Errores de UNA fila que no invalidan a las demás: la fila se omite.
+.ARMZ_DEFECTOS_OMITIBLES <- c(E_ARMONIZADA_MAPA_ROTO = "mapa_roto",
+                              E_ARMONIZADA_SELECT_MULTIPLE = "select_multiple")
+
+#' Columnas de una lista de filas (preguntas o cruces). Una fila defectuosa
+#' (mapa roto, opción múltiple) se omite y queda declarada en `omitidas`
+#' cuando se pidió más de una fila y al menos otra sale. Si se pidió una sola,
+#' o todas son defectuosas, se mantiene el 409 de la primera.
+#' @return list(lista = descriptores que salen, cols = {key: list(v, sm)},
+#'   omitidas = [{tipo, fila, titulo, claves, motivo, codigo_error, base, variable,
+#'   codigos, detalle}]).
+#' @noRd
+.armz_columnas_lista <- function(lista, datos, periodos, insts, tipo, n_pedidas) {
+  cols <- list()
+  errores <- list()
+  omitidas <- list()
+  quedan <- list()
+  for (d in lista) {
+    r <- tryCatch(.armz_columnas_fila(d, datos, periodos, insts), api_error = function(e) e)
+    if (!inherits(r, "api_error")) {
+      cols[[d$key]] <- r
+      quedan[[length(quedan) + 1L]] <- d
+      next
+    }
+    if (!r$code %in% names(.ARMZ_DEFECTOS_OMITIBLES)) stop(r)
+    errores[[length(errores) + 1L]] <- r
+    det <- r$details %||% list()
+    omitidas[[length(omitidas) + 1L]] <- list(
+      tipo = tipo, fila = d$etiqueta, titulo = d$titulo, claves = d$claves,
+      motivo = unname(.ARMZ_DEFECTOS_OMITIBLES[[r$code]]), codigo_error = r$code,
+      base = det$base, variable = det$variable, codigos = det$codigos,
+      detalle = conditionMessage(r))
+  }
+  if (length(errores) && (n_pedidas <= 1L || !length(quedan))) stop(errores[[1]])
+  list(lista = quedan, cols = cols, omitidas = omitidas)
 }
 
 # ---- Cálculo ----------------------------------------------------------------
@@ -318,7 +376,8 @@ armonizada_modelo_frecuencias <- function(ap) {
     q$fila <- NULL
     c(q, list(periodos = por_periodo))
   })
-  list(periodos = ap$periodos, preguntas = preguntas, ponderacion = ap$ponderacion)
+  list(periodos = ap$periodos, preguntas = preguntas, ponderacion = ap$ponderacion,
+       omitidas = ap$omitidas %||% list())
 }
 
 # Letras de una variable de cruce dentro de UN período. Usa la prueba de
@@ -375,7 +434,7 @@ armonizada_modelo_cruces <- function(ap, alpha = 0.05) {
     c(q, list(periodos = por_periodo))
   })
   list(periodos = ap$periodos, cruces = cruces_meta, preguntas = preguntas,
-       ponderacion = ap$ponderacion)
+       ponderacion = ap$ponderacion, omitidas = ap$omitidas %||% list())
 }
 
 # ---- Avisos -------------------------------------------------------------------
@@ -387,8 +446,9 @@ armonizada_modelo_cruces <- function(ap, alpha = 0.05) {
 #' correspondencia en la escala, suma de pesos que se aparta del número de
 #' casos en más de 2 %, notas por pregunta que no casan con ninguna fila,
 #' períodos sin variable declarada (`sin_variable`, uno por fila y base) y
-#' preguntas omitidas por no tener variable en ninguna medición
-#' (`pregunta_omitida`).
+#' preguntas y cruces omitidos (`pregunta_omitida`, `cruce_omitido`, con
+#' `motivo` sin_variable, mapa_roto o select_multiple, y `base`/`codigos`
+#' cuando el defecto es de una base).
 #' @return Lista de list(tipo, base?, fila?, mensaje).
 #' @keywords internal
 armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pregunta = NULL) {
@@ -432,9 +492,14 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
     }
   }
   for (o in ap$omitidas %||% list()) {
-    out[[length(out) + 1L]] <- list(tipo = "pregunta_omitida", fila = o$fila, mensaje = sprintf(
-      "«%s» no tiene variable declarada en la matriz para ninguna medición de la serie y no se incluyó en el comparativo.",
-      o$titulo))
+    av <- list(tipo = if (identical(o$tipo, "cruce")) "cruce_omitido" else "pregunta_omitida",
+               fila = o$fila, motivo = o$motivo %||% "sin_variable")
+    if (length(o$base)) av$base <- o$base
+    if (length(o$codigos)) av$codigos <- o$codigos
+    av$mensaje <- sprintf("«%s» no se incluyó en el comparativo%s. %s", o$titulo,
+                          if (identical(o$tipo, "cruce")) " como variable de cruce" else "",
+                          .armz_motivo_omision(o, rotulos))
+    out[[length(out) + 1L]] <- av
   }
   claves <- unique(unlist(lapply(ap$preguntas, `[[`, "claves")))
   for (k in setdiff(names(notas_pregunta %||% list()), claves)) {
@@ -442,6 +507,24 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
       "La nota de «%s» no corresponde a ninguna pregunta del comparativo y no se imprimió.", k))
   }
   out
+}
+
+# Por qué una fila salió del comparativo, en una frase. La usan el aviso y la
+# hoja «Preguntas omitidas» del libro.
+.armz_motivo_omision <- function(o, rotulos = NULL) {
+  rot <- function(b) {
+    r <- if (!is.null(rotulos) && length(b) && b %in% names(rotulos)) rotulos[[b]] else b
+    as.character(r %||% "")
+  }
+  cods <- paste(unlist(o$codigos %||% list()), collapse = ", ")
+  switch(o$motivo %||% "sin_variable",
+    mapa_roto = sprintf(
+      "Ningún caso de %s cae en la escala%s. Revisa el mapa de esa base en la matriz de equivalencias.",
+      rot(o$base), if (nzchar(cods)) paste0(" (códigos ", cods, ")") else ""),
+    select_multiple = sprintf(
+      "Es de opción múltiple en %s%s. El comparativo armoniza preguntas de una sola respuesta.",
+      rot(o$base), if (length(o$variable)) paste0(" (variable «", o$variable, "»)") else ""),
+    "No tiene variable declarada en la matriz para ninguna medición de la serie.")
 }
 
 .armz_capital <- function(x) paste0(toupper(substr(x, 1, 1)), substr(x, 2, nchar(x)))
