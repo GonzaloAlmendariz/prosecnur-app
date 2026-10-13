@@ -311,3 +311,12 @@ describe("6a · tipo_rango «custom»", () => {
     expect(orden?.opciones.map((o) => o.value)).toEqual(["custom"]);
   });
 });
+
+describe("«Ancho de los temas» (G15)", () => {
+  const ancho = a("ancho_tema", "choice", { default: "auto", choices: [{ value: "auto", label: "Automático" }, { value: "ancho", label: "Más ancho" }, { value: "angosto", label: "Más angosto" }] } as Extra);
+  it("sale en las multiapiladas, con sus tres pasos, y en ningún otro tipo", () => {
+    const campos = camposDeDatos([ancho], {}, "p_barras_multiapiladas");
+    expect(campos.map((c) => [c.rotulo, c.control])).toEqual([["Ancho de los temas", "opciones"]]);
+    expect(nombres([ancho], {}, "p_barras_apiladas")).toEqual([]);
+  });
+});

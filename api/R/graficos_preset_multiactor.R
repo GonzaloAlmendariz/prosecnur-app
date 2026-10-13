@@ -116,3 +116,18 @@
   if (!is.finite(base) || is.na(base) || base <= 0) base <- 40
   max(10, floor(base * (0.36 + (w - 0.13) * 0.857)))
 }
+
+
+# G15 (Gonzalo, 2026-10-13): «Ancho de los temas» por lámina. Tres pasos en vez de proporciones: «auto» deja el
+# reparto del estilo del informe; los otros fijan la columna del tema. Con «ancho» y la barra extra, las barras se
+# quedan con el 48 %, sobre el piso de `.MULTIACTOR_W_BARS_MIN`.
+.MULTIACTOR_ANCHO_TEMA <- c(auto = NA_real_, ancho = 0.28, angosto = 0.14)
+
+#' Args del preset multiactor para una lámina: los del informe con el ancho del tema que pidió esa lámina.
+.multiactor_preset_de <- function(presets, el) {
+  args <- presets$multi_apiladas_multiactor$args %||% list()
+  pedido <- el$overrides$ancho_tema %||% el$ancho_tema
+  w <- if (is.character(pedido) && length(pedido) == 1L) unname(.MULTIACTOR_ANCHO_TEMA[pedido]) else NA_real_
+  if (length(w) == 1L && is.finite(w)) args$canvas_w_grupo <- w
+  args
+}
