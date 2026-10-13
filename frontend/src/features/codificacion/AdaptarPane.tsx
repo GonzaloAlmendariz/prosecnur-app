@@ -60,6 +60,11 @@ export function AdaptarPane({ base, onBackToCodificar, onBackToMatrices }: Props
     <section
       className="pulso-codificacion-adaptar"
       data-audit-ready="codificacion-adaptar"
+      // C1: sus hijos (paneles de confirmación y resultado, avisos del plan y de
+      // lo no recodificado) son secciones independientes, no pares. La QA del
+      // 2026-10-13 los marcó como colecciones sin declarar.
+      data-qa-geometry-group="codificacion/adaptar-secciones"
+      data-qa-geometry-contract="intrinsic"
     >
       {/* Tras una aplicación con avisos: lo dice arriba y lleva al aviso. */}
       <AdaptarAplicacionResumen clave={clave} />
