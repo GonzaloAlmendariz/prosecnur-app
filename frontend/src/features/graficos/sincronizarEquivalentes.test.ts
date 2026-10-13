@@ -91,3 +91,11 @@ describe("sincronizarEquivalentes", () => {
     expect(out.conservadas).toBe(2);
   });
 });
+
+describe("las láminas hechas a mano intercaladas en el bloque (G15, Arte)", () => {
+  it("se quedan en su sitio: cada derivada se reemplaza en el suyo", () => {
+    const actual = plan(derivada("g"), manual("objetivo"), manual("ttb"), manual("indice"), derivada("a"), derivada("b"));
+    const out = sincronizarEquivalentes(actual, [derivada("s-equiv-1"), derivada("s-equiv-2"), derivada("s-equiv-3"), derivada("s-equiv-4")]);
+    expect(out.plan.slides.map((s) => s.id)).toEqual(["s-equiv-1", "objetivo", "ttb", "indice", "s-equiv-2", "s-equiv-3", "s-equiv-4"]);
+  });
+});

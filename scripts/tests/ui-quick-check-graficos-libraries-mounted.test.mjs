@@ -354,7 +354,7 @@ async function openEditor(page, search = "") {
 }
 
 async function openSlidesFromTrigger(page) {
-  const trigger = page.getByRole("button", { name: "Agregar slide" });
+  const trigger = page.getByRole("button", { name: "Agregar lámina" });
   await trigger.waitFor({ state: "visible", timeout: READY_TIMEOUT_MS });
   await trigger.click();
   const root = page.locator(SLIDE_ROOT);
@@ -363,7 +363,7 @@ async function openSlidesFromTrigger(page) {
 }
 
 async function openSlidesFromShortcut(page) {
-  const trigger = page.getByRole("button", { name: "Agregar slide" });
+  const trigger = page.getByRole("button", { name: "Agregar lámina" });
   await trigger.waitFor({ state: "visible", timeout: READY_TIMEOUT_MS });
   await trigger.focus();
   assert.equal(await trigger.evaluate((node) => node === document.activeElement), true);

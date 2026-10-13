@@ -105,7 +105,7 @@
   cambios <- unique(cambios)
   if (isTRUE(avisar) && length(cambios)) {
     .pulso_aviso(
-      "El estilo guardado en el proyecto se ajustó al estándar de los recetarios: ",
+      "El estilo guardado en el proyecto se ajustó al estándar: ",
       paste(cambios, collapse = ", "), "."
     )
   }

@@ -192,15 +192,29 @@ export function baseAutomatica(
   const graficos = (SLIDE_GRAF_SLOTS[slide.tipo] ?? []).map((sl) => (slide.payload as Record<string, unknown>)[sl]).filter(Boolean);
   if (graficos.length !== 1) return null;   // con varios gráficos, cada uno lleva su base debajo
   const args = ((graficos[0] as GraficadorRef).args ?? {}) as Record<string, unknown>;
-  const refs = gruposDe(args)[0]?.refs ?? [];
-  const partes: string[] = [];
+  // Todos los públicos de la lámina, no sólo los de la primera pregunta: con temas de públicos distintos (Arte, lámina 10:
+  // docentes y administrativos en el primero, docentes y estudiantes en el resto) el pie decía otra cosa que los chips y
+  // que el motor, que escribe la unión. Por público, el mayor n de sus preguntas.
+  const refs = gruposDe(args).flatMap((g) => g.refs);
+  const porPublico = new Map<string, number>();
   for (const ref of refs) {
     const pr = parseVarRef(ref);
     const v = variables.find((x) => x.name === pr.name && (!pr.source || !x.source || x.source === pr.source));
     const n = (v as { n_non_empty?: number } | undefined)?.n_non_empty;
     if (typeof n !== "number" || !Number.isFinite(n)) return null;
-    partes.push(pr.source ? `${n} ${pr.source.replace(/[_-]+/g, " ")}` : `${n} respuestas`);
+    const clave = pr.source ?? "";
+    porPublico.set(clave, Math.max(porPublico.get(clave) ?? 0, n));
   }
+  // En el orden de las bases del estudio, como lo escribe el motor (lámina 13 de Arte decía «docentes, estudiantes,
+  // administrativos» porque seguía la aparición de las preguntas y el PPT salía «docentes, administrativos y estudiantes»).
+  const posicion = (fuente: string) => { const i = variables.findIndex((x) => x.source === fuente); return i < 0 ? Number.MAX_SAFE_INTEGER : i; };
+  const partes = [...porPublico].sort(([a], [b]) => posicion(a) - posicion(b))
+    .map(([fuente, n]) => (fuente ? `${n} ${fuente.replace(/[_-]+/g, " ")}` : `${n} respuestas`));
   if (!partes.length) return null;
   return formato.includes("%s") ? formato.replace("%s", enumerar(partes)) : `Base: ${enumerar(partes)}`;
+}
+
+/** Una línea por pregunta con la escala una sola vez: con muchas preguntas, o desde dos que comparten escala. */
+export function usaFilasCompactas(nPreguntas: number, mismaEscala: boolean): boolean {
+  return nPreguntas > 3 || (nPreguntas >= 2 && mismaEscala);
 }

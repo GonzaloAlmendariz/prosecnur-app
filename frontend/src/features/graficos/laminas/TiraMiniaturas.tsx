@@ -92,7 +92,7 @@ export function TiraMiniaturas({ estructura, posicionActiva, onIr }: Props) {
                       type="button"
                       className={`pulso-f6-miniatura is-${vista}${activa ? " is-activa" : ""}`}
                       aria-current={activa ? "true" : undefined}
-                      aria-label={`Lámina ${l.posicion}: ${l.titulo}${rotuloEstado(vista)}${parcial ? ` · ${parcial}${motivo}` : ""}`}
+                      aria-label={`Lámina ${l.posicion}: ${l.titulo}${rotuloEstado(vista)}${vista === "error" && entrada?.error ? `: ${entrada.error}` : ""}${parcial ? ` · ${parcial}${motivo}` : ""}`}
                       title={vista === "error" && entrada?.error ? entrada.error : parcial ? `${parcial}${motivo}` : undefined}
                       data-miniatura={l.posicion}
                       data-miniatura-estado={entrada?.estado ?? "sin_lote"}

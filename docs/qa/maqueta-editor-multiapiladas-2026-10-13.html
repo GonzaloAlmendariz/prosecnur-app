@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editor de multiapiladas</title>
+<style>
+  :root { --navy:#081F5C; --texto:#1F2937; --suave:#5A6480; --tenue:#8A93A8; --borde:#D8DEE8; --fondo:#F4F6F9; --panel:#FFFFFF;
+          --acento:#1F7A6D; --acento-suave:#E3F2EF; --aviso:#9A5B00; --aviso-suave:#FFF4E0; --coral:#CA5651; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 13px/1.45 -apple-system, "Segoe UI", Arial, sans-serif; color: var(--texto); background: var(--fondo); padding: 24px 16px; }
+  .marco { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+  @media (max-width: 900px) { .marco { grid-template-columns: 1fr; } }
+  h1 { font-size: 15px; margin: 0 0 4px; } .nota { color: var(--suave); margin: 0 0 16px; }
+  .col h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--suave); margin: 0 0 8px; }
+  .panel { background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; overflow: hidden; }
+  .cab { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--borde); }
+  .cab strong { font-size: 14px; } .btn { border: 1px solid var(--borde); background: #fff; border-radius: 6px; padding: 4px 10px; font: inherit; }
+  .btn.prim { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .cuerpo { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+  .rot { font-size: 11px; font-weight: 600; color: var(--suave); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+  .seg { display: flex; flex-wrap: wrap; gap: 4px; background: var(--fondo); padding: 3px; border-radius: 8px; }
+  .seg span { padding: 5px 10px; border-radius: 6px; color: var(--suave); }
+  .seg span.on { background: #fff; color: var(--navy); font-weight: 600; box-shadow: 0 0 0 1px var(--borde); }
+  .desc { color: var(--suave); margin-top: 6px; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  th { text-align: left; font-size: 11px; color: var(--suave); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--borde); }
+  th small { display: block; font-weight: 400; color: var(--tenue); }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--borde); vertical-align: top; }
+  td.tema input { width: 100%; border: 1px solid var(--borde); border-radius: 6px; padding: 5px 7px; font: inherit; font-weight: 600; color: var(--navy); }
+  .celda { border: 1px solid var(--borde); border-radius: 6px; padding: 4px 7px; background: #fff; }
+  .celda b { display: block; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .celda code { font-size: 10px; color: var(--tenue); }
+  .celda.vacia { color: var(--tenue); border-style: dashed; justify-content: center; }
+  .celda.aviso { border-color: var(--aviso); background: var(--aviso-suave); }
+  .acc { white-space: nowrap; color: var(--tenue); text-align: right; }
+  .temas { display: flex; flex-direction: column; gap: 8px; }
+  .publicos { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--suave); font-size: 11px; }
+  .tarjeta { border: 1px solid var(--borde); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 5px; }
+  .fila-tema { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; align-items: center; }
+  .fila-tema input { width: 100%; border: 1px solid var(--borde); border-radius: 6px; padding: 5px 7px; font: inherit; font-weight: 600; color: var(--navy); }
+  .linea { display: grid; grid-template-columns: 104px minmax(0,1fr); gap: 8px; align-items: center; }
+  .pub { color: var(--suave); font-size: 12px; }
+  .celda { display: flex; justify-content: space-between; gap: 8px; }
+  .celda b { white-space: normal; }
+  .estado { display: flex; flex-wrap: wrap; gap: 8px 16px; color: var(--suave); }
+  .ok { color: var(--acento); font-weight: 600; } .warn { color: var(--aviso); font-weight: 600; }
+  .agregar { color: var(--navy); font-weight: 600; }
+  .viejo { display: grid; gap: 6px; }
+  .viejo .t { border: 1px solid var(--borde); border-radius: 8px; padding: 8px; background: #fff; }
+  .chip { display: inline-block; border: 1px solid var(--borde); border-radius: 5px; padding: 1px 6px; margin: 2px 2px 0 0; font-size: 11px; }
+  .chip code { color: var(--tenue); }
+  .tachado { position: relative; } .tachado::after { content: attr(data-x); position: absolute; right: 8px; top: 8px; color: var(--coral); font-size: 11px; font-weight: 600; }
+  ul.cambios { margin: 0; padding-left: 18px; } ul.cambios li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<div class="marco">
+  <div class="col" style="grid-column: 1 / -1">
+    <h1>Editor de multiapiladas — propuesta (G12, parte 2)</h1>
+    <p class="nota">Datos reales de Arte y Diseño (lámina 9, «Comparar públicos por tema»). A la izquierda, lo que se ve hoy; a la derecha, la propuesta.</p>
+  </div>
+
+  <div class="col">
+    <h2>Hoy</h2>
+    <div class="panel">
+      <div class="cab"><strong>Bloques del gráfico</strong><span class="btn">Listo</span></div>
+      <div class="cuerpo">
+        <div class="viejo tachado" data-x="1 · cinco tarjetas grandes cada vez">
+          <div class="t"><b>Comparar preguntas</b><br><span class="desc">Varias preguntas con la misma escala…</span></div>
+          <div class="t"><b>Abrir una pregunta por grupos</b><br><span class="desc">Una pregunta dividida por región…</span></div>
+          <div class="t">… y tres más</div>
+        </div>
+        <div class="tachado" data-x="5 · chips técnicos"><span class="chip">9 filas estimadas</span><span class="chip">3 fuentes</span><span class="chip">Estudio multibase</span></div>
+        <div class="viejo">
+          <div class="t tachado" data-x="2 · 3 · 4">
+            <div class="rot">Clave · Identificador del tema</div><span class="chip">tema_1</span> &nbsp; Título visible: Servicio de salud<br>
+            <span class="chip">Servicio de salud <code>docentes$p12_1</code> ↑ ↓ 🗑</span>
+            <span class="chip">Servicio de salud <code>administrativos$p10_1</code> ↑ ↓ 🗑</span>
+            <span class="chip">Servicio de salud <code>estudiantes$p11_1</code> ↑ ↓ 🗑</span>
+            <div class="desc">Respondientes… Docentes 116 · Administrativos 89 · Estudiantes 289<br>Agregar pregunta · 201 disponibles<br>Estas preguntas comparten escala…</div>
+          </div>
+          <div class="t">… lo mismo, repetido, en cada tema</div>
+        </div>
+        <div class="tachado" data-x="6 · repite la pestaña Gráfico">
+          <div class="rot">Ajustes del bloque</div>Mostrar Top 2 · Ancho etiquetas (caracteres) · Categorías del Top Two Box
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <h2>Propuesta</h2>
+    <div class="panel">
+      <div class="cab"><strong>Preguntas del gráfico</strong><span class="btn prim">Listo</span></div>
+      <div class="cuerpo">
+        <div>
+          <div class="rot">Qué compara</div>
+          <div class="seg"><span>Preguntas</span><span>Una pregunta por grupos</span><span>Preguntas por grupos</span><span class="on">Públicos por tema</span><span>Bloques</span></div>
+          <div class="desc">Un tema por tarjeta y, en cada una, la pregunta equivalente de cada público.</div>
+        </div>
+
+        <div class="temas">
+          <div class="publicos"><span>Docentes · 116</span><span>Administrativos · 89</span><span>Estudiantes · 289</span></div>
+          <div class="tarjeta">
+            <div class="fila-tema"><input value="Servicio de salud"><span class="acc">↑ ↓ ✕</span></div>
+            <div class="linea"><span class="pub">Docentes</span><span class="celda"><b>Servicio de salud</b><code>p12_1</code></span></div>
+            <div class="linea"><span class="pub">Administrativos</span><span class="celda"><b>Servicio de salud</b><code>p10_1</code></span></div>
+            <div class="linea"><span class="pub">Estudiantes</span><span class="celda"><b>Servicio de salud</b><code>p11_1</code></span></div>
+          </div>
+          <div class="tarjeta">
+            <div class="fila-tema"><input value="Bienestar psicológico"><span class="acc">↑ ↓ ✕</span></div>
+            <div class="linea"><span class="pub">Docentes</span><span class="celda"><b>Servicio de Bienestar Psicológico</b><code>p12_2</code></span></div>
+            <div class="linea"><span class="pub">Administrativos</span><span class="celda"><b>Servicio de Bienestar Psicológico</b><code>p10_2</code></span></div>
+            <div class="linea"><span class="pub">Estudiantes</span><span class="celda"><b>Servicio de Bienestar Psicológico</b><code>p11_2</code></span></div>
+          </div>
+          <div class="tarjeta">
+            <div class="fila-tema"><input value="Actividades culturales"><span class="acc">↑ ↓ ✕</span></div>
+            <div class="linea"><span class="pub">Docentes</span><span class="celda"><b>Con la oferta de actividades culturales de la Universidad</b><code>p12_3</code></span></div>
+            <div class="linea"><span class="pub">Administrativos</span><span class="celda vacia">+ Elegir pregunta</span></div>
+            <div class="linea"><span class="pub">Estudiantes</span><span class="celda aviso"><b>Con la oferta de actividades culturales de la Universidad</b><code>p11_3 · otra escala</code></span></div>
+          </div>
+        </div>
+        <div class="agregar">+ Agregar tema</div>
+
+        <div class="estado">
+          <span class="ok">✓ Misma escala: Muy insatisfecho … Muy satisfecho</span>
+          <span>3 temas × 3 públicos · 9 filas</span>
+          <span class="warn">1 pregunta con otra escala (Actividades culturales · Estudiantes)</span>
+        </div>
+      </div>
+    </div>
+    <p class="nota" style="margin-top:12px">El Top Two Box, el ancho de los temas y los colores siguen en la pestaña Gráfico: no se repiten aquí.</p>
+  </div>
+
+  <div class="col" style="grid-column: 1 / -1">
+    <h2>Qué cambia</h2>
+    <ul class="cambios">
+      <li><b>Qué compara</b> pasa de cinco tarjetas grandes a una fila de opciones con una línea de descripción. Cambiar de lectura sigue conservando las preguntas.</li>
+      <li><b>Públicos por tema</b>: una tarjeta por tema con su nombre y una línea por público. Cada línea muestra la pregunta por su etiqueta (la de Procesamiento) y el código pequeño; una vacía se completa ahí mismo; una pregunta con otra escala se marca en su línea. Cabe en el ancho del panel lateral.</li>
+      <li>Sin <b>«Clave / Identificador del tema»</b>: el identificador interno se genera solo. El nombre del tema es lo único que se escribe.</li>
+      <li>Respondientes, escala y conteo de filas se dicen <b>una vez</b>, abajo, y sólo se avisa lo que está mal.</li>
+      <li>Sin <b>«Síntesis»</b> ni <b>«Revisar selección»</b>: el estado está siempre a la vista.</li>
+      <li>Sin <b>«Ajustes del bloque»</b> duplicados: Top Two Box, ancho y colores viven en la pestaña Gráfico.</li>
+      <li>Las demás lecturas usan el mismo lenguaje: <b>Preguntas</b> = lista de filas con su etiqueta; <b>por grupos</b> = pregunta(s) + «Dividir por»; <b>Bloques</b> = una tarjeta por bloque con la misma tabla o lista adentro.</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

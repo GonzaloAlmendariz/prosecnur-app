@@ -94,6 +94,10 @@
   # escala demasiado corta no hay nada que declarar, y avisar por cada pregunta
   # Si/No del mazo solo tapa los avisos que si sirven.
   if (length(cols_porcentaje) < minimo) return(no("escala_corta"))
+  # Una lista sin orden (género, carrera) no tiene «dos mejores»: el estilo del informe enciende el box para todo el
+  # mazo y aquí no hay nada que declarar, igual que con la escala corta. La pestaña Gráfico tampoco ofrece el box en
+  # esas preguntas, así que avisar «elígelas en la pestaña Gráfico» mandaba a un control que no existe (loop UI R8).
+  if (!.goc_pistas_orden(unname(etiquetas_grupos[cols_porcentaje]))) return(no("sin_orden"))
   no("sin_declaracion")
 }
 

@@ -264,7 +264,7 @@ export function PanelBasePane() {
         </div>
 
         {loading ? (
-          <LoadingBlock label="Buscando identificador y mediciones..." />
+          <LoadingBlock label="Buscando identificador y mediciones…" />
         ) : error ? (
           <Alert kind="error">{error}</Alert>
         ) : !info?.available ? (

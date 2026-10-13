@@ -17,9 +17,10 @@ import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import { useVariables } from "../useVariables";
 import type { LaminaEnEstructura } from "./modeloEstructura";
-import { baseAutomatica, COLOR_MAYOR, COLOR_RESTO, COLOR_SEGUNDA, ranurasDeMaqueta } from "./modeloMaqueta";
+import { baseAutomatica, COLOR_MAYOR, COLOR_RESTO, COLOR_SEGUNDA, ranurasDeMaqueta, usaFilasCompactas } from "./modeloMaqueta";
 import { varianteDe } from "./selectores/tiposLamina";
 import { camposTextoDe, ZonasTextoLamina, zonasPortada, type CampoTextoLamina } from "./ZonasTextoLamina";
+import { tituloQueSale } from "./tituloQueSale";
 import "./maquetaLamina.css";
 
 /** Barras apiladas: la maqueta las dibuja pregunta por pregunta, con sus colores y su Top Two Box. */
@@ -33,6 +34,11 @@ type Props = {
   onCambiar: (k: number) => void;
   onTexto: (campo: CampoTextoLamina) => void;
 };
+
+/** Cuántas preguntas caben en una línea cada una, según el alto relativo de la ranura en la lámina. */
+function maxCompactas(alto: number): number {
+  return alto >= 0.6 ? 7 : alto >= 0.35 ? 4 : 2;
+}
 
 export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar, onTexto }: Props) {
   const { variables } = useVariables();
@@ -49,6 +55,9 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
   const formatoBase = typeof (presets.base as Record<string, unknown> | undefined)?.formato === "string" ? ((presets.base as Record<string, unknown>).formato as string) : undefined;
   const baseAuto = useMemo(() => baseAutomatica(slide, variables, formatoBase), [slide, variables, formatoBase]);
   const campos = camposTextoDe(slide.tipo, slidesById[slide.tipo]?.args, !estructura);
+  // El título que va a salir: el escrito o el de la pregunta del gráfico. Una lámina sin ninguno (varios temas sin
+  // enunciado) mostraba el nombre de su tipo, «Un gráfico», como si fuera su título; ahora se ve vacía, como el aviso pide.
+  const tituloVisible = tituloQueSale(slide, variables, lamina.tipoLabel) || <span className="is-vacio">Sin título</span>;
 
   if (estructura) {
     // Portada, índice, separadores: su dibujo de estructura; el título sigue siendo editable con un clic.
@@ -76,10 +85,10 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
         )}
         {campos.has("titulo") ? (
           <button type="button" className="pulso-f6-maqueta-zona pulso-f6-maqueta-titulo" onClick={() => onTexto("titulo")} aria-label="Editar título">
-            {lamina.titulo}
+            {tituloVisible}
           </button>
         ) : (
-          <span className="pulso-f6-maqueta-titulo">{lamina.titulo}</span>
+          <span className="pulso-f6-maqueta-titulo">{tituloVisible}</span>
         )}
       </div>
 
@@ -104,6 +113,23 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
             </span>
             )}
             {r.graficador && !r.pregunta && <span className="pulso-f6-maqueta-falta">Falta elegir la pregunta</span>}
+            {/* Con cuatro preguntas o más —o desde dos con la misma escala—, una línea por pregunta y la escala una vez: las
+                cajas completas repiten la leyenda, no caben en la zona de datos y la ranura las recortaba arriba y abajo
+                (Gonzalo, 2026-10-13, láminas 10 y 12 de Arte). */}
+            {usaFilasCompactas(r.preguntas.length, r.mismaEscala) ? (
+              <span className="pulso-f6-maqueta-preguntas is-compacta">
+                {r.preguntas.slice(0, maxCompactas(r.rect.h)).map((q, j) => (
+                  <span key={j} className="pulso-f6-maqueta-pregunta-fila">
+                    <span className="pulso-f6-maqueta-pregunta-linea">{q.titulo}</span>
+                    {q.bases.length > 0 && <span className="pulso-f6-maqueta-pregunta-publicos">{q.bases.join(" · ")}</span>}
+                  </span>
+                ))}
+                {r.preguntas.length > maxCompactas(r.rect.h) && (
+                  <span className="pulso-f6-maqueta-mas">y {r.preguntas.length - maxCompactas(r.rect.h)} preguntas más</span>
+                )}
+                {r.mismaEscala && r.preguntas[0] && (r.pinta === "categorias" ? <EscalaMaqueta opciones={r.preguntas[0].opciones} /> : <UnColorMaqueta opciones={r.preguntas[0].opciones} resalta={r.resaltaMayor} />)}
+              </span>
+            ) : (
             <span className="pulso-f6-maqueta-preguntas">
               {r.preguntas.map((q, j) => (
                 <span key={j} className="pulso-f6-maqueta-pregunta-caja">
@@ -117,6 +143,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
                 </span>
               ))}
             </span>
+            )}
             {r.bases.length > 0 && r.preguntas.every((q) => q.bases.length === 0) && (
               <span className="pulso-f6-maqueta-bases">
                 {r.bases.map((b) => <span key={b} className="pulso-f6-maqueta-base">{b}</span>)}

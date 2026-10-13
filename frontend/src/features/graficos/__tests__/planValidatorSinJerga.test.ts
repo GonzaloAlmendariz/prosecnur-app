@@ -131,11 +131,11 @@ describe("textos reescritos del validador", () => {
 
   test("variable perdida y variable sin base", () => {
     expect(porCodigo("var-unknown")).toEqual([
-      "Lámina 2 · “Satisfacción con el curso” (Dos gráficos), espacio «Gráfico derecho»: la variable «p999» no está en el instrumento. ¿La renombraste o la borraste?",
+      "Lámina 2 · “Satisfacción con el curso” (Dos gráficos), espacio «Gráfico derecho»: la pregunta «p999» no está en el instrumento. ¿La renombraste o la borraste?",
     ]);
     expect(porCodigo("var-sin-base")).toEqual([
-      "Lámina 5 · “Turno” (Un gráfico), espacio «Gráfico»: la variable «p7» no dice de qué base es. Está en la base «docentes»; vuelve a elegirla para dejarlo escrito.",
-      "Lámina 5 · “Turno” (Un gráfico), espacio «Gráfico»: la variable «sexo» existe en las bases «docentes» y «estudiantes». Elige de cuál es: el gráfico no puede resolverla solo.",
+      "Lámina 5 · “Turno” (Un gráfico), espacio «Gráfico»: la pregunta «p7» no dice de qué base es. Está en la base «docentes»; vuelve a elegirla para dejarlo escrito.",
+      "Lámina 5 · “Turno” (Un gráfico), espacio «Gráfico»: la pregunta «sexo» existe en las bases «docentes» y «estudiantes». Elige de cuál es: el gráfico no puede resolverla solo.",
     ]);
   });
 
@@ -148,7 +148,7 @@ describe("textos reescritos del validador", () => {
     expect(porCodigo("numeric-invalid")).toEqual([
       "Lámina 2 · “Satisfacción con el curso” (Dos gráficos), espacio «Gráfico derecho»: el ajuste «Ancho de barra» tiene un valor inválido («9»); debe ser menor o igual a 1. Rango permitido: 0 a 1.",
       "Ajustes por defecto de «Barras simples»: el ajuste «Ancho de barra» tiene un valor inválido («-3»); debe ser mayor o igual a 0. Rango permitido: 0 a 1.",
-      "Modo «Compacto»: el ajuste «Ancho de barra» tiene un valor inválido («x»); debe ser un número válido. Rango permitido: 0 a 1.",
+      "Estilo guardado «Compacto»: el ajuste «Ancho de barra» tiene un valor inválido («x»); debe ser un número válido. Rango permitido: 0 a 1.",
       "Ajustes de Word de «Barras simples»: el ajuste «Ancho de barra» tiene un valor inválido («50»); debe ser menor o igual a 1. Rango permitido: 0 a 1.",
     ]);
   });

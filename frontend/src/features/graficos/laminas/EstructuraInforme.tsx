@@ -193,14 +193,16 @@ function FilaLamina({ lamina, activa, sangria, resumen, validacion, onSelecciona
   // El conteo de gráficos sólo aparece cuando dice algo: ranuras vacías.
   const detalle = lamina.ranuras > 0 && lamina.ranurasLlenas < lamina.ranuras
     ? `${lamina.tipoLabel} · ${lamina.ranurasLlenas} de ${lamina.ranuras} con gráfico`
-    : lamina.tipoLabel;
+    : lamina.ranuras === 0 && lamina.titulo === lamina.tipoLabel
+      ? "Estructura del informe"   // sin título propio, el tipo ya es el título: no se repite debajo
+      : lamina.tipoLabel;
   return (
     <li>
       <button
         type="button"
         className={`pulso-f6-lamina is-sangria-${sangria}${activa ? " is-activa" : ""}`}
         aria-current={activa ? "true" : undefined}
-        aria-label={`Lámina ${lamina.posicion}: ${lamina.titulo}. ${detalle}. ${punto.texto}`}
+        aria-label={`Lámina ${lamina.posicion}: ${lamina.titulo.replace(/[.\s]+$/, "")}. ${detalle}. ${punto.texto}`}
         data-foco-lamina={lamina.posicion}
         onClick={() => onSeleccionar(lamina.posicion)}
       >

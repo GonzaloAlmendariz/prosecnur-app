@@ -2,6 +2,7 @@
 // etiqueta del eje), que antes sólo vivían en «Configuración global» del editor anterior. Los ajustes que no se pueden
 // cambiar no se muestran. En el informe compartido el Word no sale: se dice por qué.
 
+import { useOptionalSession } from "../../../lib/SessionContext";
 import { useLocation } from "react-router-dom";
 import { disponibilidadInforme } from "../estiloInforme/disponibilidadInforme";
 import { useGraficosReportScope } from "../reportScope";
@@ -12,7 +13,8 @@ import "../estiloInforme/estiloInforme.css";
 export default function PestanaWord() {
   const { search } = useLocation();
   const scope = useGraficosReportScope(search);
-  const disponibilidad = disponibilidadInforme(scope);
+  const sesion = useOptionalSession();
+  const disponibilidad = disponibilidadInforme(scope, sesion?.state?.estudio_processing_mode === "independent_siblings");
 
   return (
     <div className="pulso-f6-informe" data-audit-ready="graficos-word" data-qa-surface="graficos/f6-word" data-scope={scope}>

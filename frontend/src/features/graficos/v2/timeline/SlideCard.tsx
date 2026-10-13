@@ -154,7 +154,7 @@ export function SlideCard({ slide, index, active, issues, variables }: SlideCard
           type="button"
           className="pulso-icon"
           onClick={() => duplicateSlide(slide.id)}
-          aria-label="Duplicar slide"
+          aria-label="Duplicar lámina"
         >
           <Copy size={11} />
         </button>
@@ -162,7 +162,7 @@ export function SlideCard({ slide, index, active, issues, variables }: SlideCard
           type="button"
           className="pulso-icon pulso-icon-danger"
           onClick={() => removeSlide(slide.id)}
-          aria-label="Eliminar slide"
+          aria-label="Eliminar lámina"
         >
           <X size={12} />
         </button>

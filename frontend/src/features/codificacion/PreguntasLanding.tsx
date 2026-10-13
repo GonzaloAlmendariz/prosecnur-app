@@ -703,7 +703,7 @@ function isPaired(p: PreguntaAbierta): boolean {
 // FilterChip local reemplazado por `components/FilterChip.tsx` —
 // unificado con otros usos cross-fase.
 
-// Search bar consistente con el resto del app (ej. TimelinePanel).
+// Search bar consistente con el resto de la app.
 // Icon lupa a la izquierda, clear button a la derecha cuando hay query,
 // focus ring primary soft.
 function SearchBar({

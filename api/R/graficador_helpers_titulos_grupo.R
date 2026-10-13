@@ -305,10 +305,9 @@
   # bloque prueba sus candidatos. Habra que memoizar tambien la cuenta de lineas
   # por `(texto, pt)`.
   .pulso_aviso(sprintf(
+    # G15 (2026-10-13): «Configuración global > Estilo > Multi-apiladas» ya no existe; se dice lo que sí se puede hacer.
     paste0("Enunciado recortado a %d línea(s): «%s». El bloque tiene %d fila(s) ",
-           "y el texto necesita %d líneas. Ensancha «Columna de grupo» en ",
-           "Configuración global > Estilo > Multi-apiladas —aplica a TODAS las ",
-           "multi-apiladas— o acorta el enunciado."),
+           "y el texto necesita %d líneas. Acórtalo en Bloques, en la pestaña Gráfico de la lámina."),
     cupo, entero, n_filas, length(strsplit(titulo, "\n", fixed = TRUE)[[1]])
   ))
 

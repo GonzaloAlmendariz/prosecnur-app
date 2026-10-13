@@ -104,7 +104,7 @@ export function InspectorV2() {
           ) : (
             <EmptyState
               icon={<LayoutPanelTop size={22} />}
-              title="Sin slide seleccionado"
+              title="Ninguna lámina elegida"
               hint="Selecciona un slide del timeline para editar contenido, datos y estilo."
             />
           )}
@@ -158,7 +158,7 @@ export function InspectorV2() {
             )}
           </div>
 
-          <GlidingTabList activeKey={inspectorTab} className="pulso-gv2-inspector-tabs" role="tablist" aria-label="Configuración del slide">
+          <GlidingTabList activeKey={inspectorTab} className="pulso-gv2-inspector-tabs" role="tablist" aria-label="Configuración de la lámina">
             {TABS.map(({ key, label, Icon }) => {
               const count = tabArgCounts[key];
               const issueN = issuesByTab[key];
@@ -220,7 +220,7 @@ export function InspectorV2() {
         id={`pulso-gv2-inspector-panel-${activeTab.key}`}
         aria-labelledby={`pulso-gv2-inspector-tab-${activeTab.key}`}
       >
-        {loading && <LoadingBlock variant="inline" label="Cargando opciones del slide…" />}
+        {loading && <LoadingBlock variant="inline" label="Cargando opciones de la lámina…" />}
 
         {/* Tab Contenido: solo args de textos */}
         {activeTab.key === "content" && slide.tipo === "p_slide_indice" && (
@@ -281,7 +281,7 @@ function EmptyPlanStart({
   onAddSlide: (tipo: SlideType) => void;
 }) {
   return (
-    <section className="pulso-gv2-start-surface" aria-label="Plan de reporte sin slides">
+    <section className="pulso-gv2-start-surface" aria-label="Informe sin láminas">
       <div className="pulso-gv2-start-copy">
         <span className="pulso-gv2-start-eyebrow">Inicio del plan</span>
         <h2>Elige el primer modelo</h2>
@@ -300,7 +300,7 @@ function EmptyPlanStart({
         </div>
         <div
           className="pulso-gv2-start-actions"
-          aria-label="Crear primer slide"
+          aria-label="Crear la primera lámina"
           data-qa-geometry-group="graficos/inicio-modelos"
           data-qa-geometry-contract="equal"
         >
@@ -389,7 +389,7 @@ function ContentTabBody({ slide, args, updatePayload, variables, autoTitle }: {
       <EmptyState
         variant="inline"
         icon={<FileText size={18} />}
-        title="Este slide no tiene textos editables"
+        title="Esta lámina no tiene textos editables"
         hint="Algunos slides como índice o gráficos puros no requieren textos manuales."
       />
     );
@@ -478,7 +478,7 @@ function DataTabBody({ slide, args, updatePayload, variables, slotNames, grafica
         <EmptyState
           variant="inline"
           icon={<Database size={18} />}
-          title="Este slide no tiene datos editables"
+          title="Esta lámina no tiene datos editables"
           hint="Slides como portada o tabla técnica solo configuran textos."
         />
       )}

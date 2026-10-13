@@ -29,10 +29,17 @@ import { useSession } from "../../lib/SessionContext";
 import { processingBaseScopePresentation } from "../procesamiento/baseScopeModel";
 import { blockFromArgs, carryCruce, carryVars } from "./multiApiladasCarry";
 import VariableRespondentSummary from "./VariableRespondentSummaryView";
+import { QueCompara } from "./multiapiladas/QueCompara";
+import { TemasPorPublico } from "./multiapiladas/TemasPorPublico";
+import { EstadoMultiapiladas } from "./multiapiladas/EstadoMultiapiladas";
+import { guardarLectura, recuperarLectura } from "./multiapiladas/memoriaLecturas";
+import "./multiapiladas/multiapiladas.css";
 
 type Props = {
   graf: GraficadorRef;
   onArgs: (patch: Record<string, unknown>) => void;
+  /** Lámina y ranura: con ella cada lectura recuerda lo que tenía al cambiar a otra (memoriaLecturas.ts). */
+  memoriaKey?: string;
 };
 
 type Intent = "comparar" | "pregunta_grupos" | "preguntas_grupos" | "publicos_tema" | "combinar";
@@ -65,6 +72,8 @@ const BLOQUE_SIN_GRUPOS: ReadonlySet<Intent> = new Set<Intent>(["comparar", "pub
 const INTENTS: {
   key: Intent;
   title: string;
+  /** El rótulo en «Qué compara» (G12 parte 2). */
+  corto: string;
   description: string;
   example: string;
   Icon: typeof GitCompare;
@@ -73,27 +82,31 @@ const INTENTS: {
   {
     key: "comparar",
     title: "Comparar preguntas",
+    corto: "Preguntas",
     description: "Varias preguntas con la misma escala, una fila por pregunta.",
-    example: "Satisfaccion, claridad y confianza en una sola lectura.",
+    example: "Satisfacción, claridad y confianza en una sola lectura.",
     Icon: GitCompare,
   },
   {
     key: "pregunta_grupos",
     title: "Abrir una pregunta por grupos",
-    description: "Una pregunta dividida por region, sexo, sede u otro grupo.",
-    example: "Satisfaccion por region.",
+    corto: "Una pregunta por grupos",
+    description: "Una pregunta dividida por región, sexo, sede u otro grupo.",
+    example: "Satisfacción por región.",
     Icon: Split,
   },
   {
     key: "preguntas_grupos",
     title: "Abrir preguntas por grupos",
+    corto: "Preguntas por grupos",
     description: "Varias preguntas, cada una abierta por el mismo grupo.",
     example: "Tres indicadores por tipo de usuario.",
     Icon: Layers3,
   },
   {
     key: "publicos_tema",
-    title: "Comparar publicos por tema",
+    title: "Comparar públicos por tema",
+    corto: "Públicos por tema",
     description: "Temas comparados entre fuentes o bases del estudio.",
     example: "Docentes, estudiantes y administrativos frente al mismo tema.",
     Icon: UsersRound,
@@ -102,13 +115,14 @@ const INTENTS: {
   {
     key: "combinar",
     title: "Combinar bloques",
+    corto: "Bloques",
     description: "Varios bloques verticales, incluso con escalas distintas.",
     example: "Un bloque Likert y otro Sí/No en la misma lamina.",
     Icon: Rows3,
   },
 ];
 
-export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
+export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props) {
   const { variables, multi, sources, loading } = useVariables();
   // Un estudio de bases hermanas expone una sola fuente mientras editas por
   // base: el modo multi-fuente existe, pero vive en el informe compartido.
@@ -121,28 +135,32 @@ export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
   const multiSourceHint = sharedReportAvailable
     ? "Disponible en el informe compartido."
     : "Requiere un estudio con varias bases.";
-  const [reviewRequested, setReviewRequested] = useState(false);
   const args = graf.args ?? {};
   const intent = detectIntent(args);
   const refs = refsForIntent(args);
   const issues = validateArgs(args, variables, multi);
   const scale = scaleSummary(refs, variables, multi);
-  const summary = buildSummary(intent, args, refs, variables, multi);
-  const hasErrors = issues.some((i) => i.kind === "error");
 
   function commitArgs(patch: Record<string, unknown>) {
     onArgs(mergeMultiApiladasArgsPatch(args, patch));
   }
 
   // Cambiar de intención NO debe costar la selección. El constructor invita
-  // a probar lecturas ("Elige como quieres leer los datos"), y hasta esta
+  // a probar lecturas ("Elige cómo quieres leer los datos"), y hasta esta
   // unidad explorar salía caro: pasar a Combinar bloques vaciaba `vars` y
   // volver dejaba "Ninguna pregunta seleccionada", sin aviso y sin que el
   // deshacer del editor lo recuperara. Ahora las preguntas viajan entre
   // modos, incluso a través de la ida y vuelta por bloques.
   function setIntent(next: Intent) {
     if (next === "publicos_tema" && (!multi || sources.length < 2)) return;
-    setReviewRequested(false);
+    if (next === intent) return;
+    // «El cambiar entre uno y otro destruye todo lo avanzado» (Gonzalo, 2026-10-13): la lectura que se deja queda
+    // guardada y, si la siguiente ya se usó en esta lámina, vuelve tal como estaba.
+    if (memoriaKey) {
+      guardarLectura(memoriaKey, intent, args);
+      const previa = recuperarLectura(memoriaKey, next);
+      if (previa) { commitArgs(previa); return; }
+    }
     const carriedVars = carryVars(args);
     const carriedCruce = carryCruce(args);
     if (next === "comparar") {
@@ -203,56 +221,22 @@ export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
   }
 
   if (loading) {
-    return <div style={hintStyle}>Cargando variables del estudio...</div>;
+    return <div style={hintStyle}>Cargando variables del estudio…</div>;
   }
 
   return (
     <div className="pulso-gv2-multi-builder">
-      <section className="pulso-gv2-multi-panel">
-        <div className="pulso-gv2-multi-head">
-          <div>
-            <div style={eyebrowStyle}>Constructor de multi-apiladas</div>
-            <div style={{ fontSize: 13, color: "var(--pulso-text)", lineHeight: 1.45 }}>
-              Elige como quieres leer los datos y completa solo los campos que necesita esa lectura.
-            </div>
-          </div>
-          <StatusPill
-            tone={reviewRequested ? (hasErrors ? "error" : "ok") : "idle"}
-            onClick={() => setReviewRequested(true)}
-          >
-            {reviewRequested ? (hasErrors ? "Revisar datos" : "Todo listo") : "Revisar seleccion"}
-          </StatusPill>
-        </div>
-
-        <div className="pulso-gv2-multi-intents">
-          {INTENTS.map((item) => {
-            const active = item.key === intent;
-            const disabled = item.requiresMulti && (!multi || sources.length < 2);
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => setIntent(item.key)}
-                disabled={disabled}
-                className={`pulso-gv2-multi-intent ${active ? "is-active" : ""}`}
-                aria-pressed={active}
-                aria-label={`${item.title}. ${disabled ? "Requiere que el estudio tenga varias bases cargadas." : item.description}`}
-              >
-                <span className="pulso-gv2-multi-intent-title">
-                  <item.Icon size={14} />
-                  <strong>{item.title}</strong>
-                </span>
-                <span className="pulso-gv2-multi-intent-desc">
-                  {disabled ? multiSourceHint : item.description}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <SummaryPanel summary={summary} scale={scale} multi={multi} />
-      {reviewRequested && <IssuesPanel issues={issues} />}
+      {/* G12 parte 2 (maqueta aprobada): una fila de opciones en vez de cinco tarjetas; el estado va al pie. */}
+      <QueCompara
+        activa={intent}
+        onElegir={(k) => setIntent(k as Intent)}
+        opciones={INTENTS.map((item) => ({
+          key: item.key,
+          titulo: item.corto,
+          descripcion: item.description,
+          deshabilitada: item.requiresMulti && (!multi || sources.length < 2) ? multiSourceHint : null,
+        }))}
+      />
 
       {intent === "comparar" && (
         <CompareQuestions args={args} onArgs={commitArgs} variables={variables} multi={multi} />
@@ -264,11 +248,12 @@ export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
         <QuestionsByGroups args={args} onArgs={commitArgs} variables={variables} multi={multi} />
       )}
       {intent === "publicos_tema" && (
-        <PublicsByTopic args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} multiSourceHint={multiSourceHint} />
+        <PublicsByTopic args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} multiSourceHint={multiSourceHint} publicos={sources.map((src) => src.name)} />
       )}
       {intent === "combinar" && (
-        <MultiListBlocks args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} multiSourceHint={multiSourceHint} />
+        <MultiListBlocks args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} multiSourceHint={multiSourceHint} publicos={sources.map((src) => src.name)} />
       )}
+      <EstadoMultiapiladas escala={refs.length ? scale : null} filas={estimateRows(intent, args, variables, multi)} problemas={issues} />
     </div>
   );
 }
@@ -283,8 +268,6 @@ function CompareQuestions({ args, onArgs, variables, multi }: BuilderSectionProp
         variables={variables}
         multi={multi}
       />
-      <ScaleInline refs={vars} variables={variables} multi={multi} />
-      <SettingsPanel args={args} onArgs={onArgs} refs={vars} variables={variables} multi={multi} />
     </BuilderSection>
   );
 }
@@ -297,11 +280,9 @@ function QuestionByGroups({ args, onArgs, variables, multi }: BuilderSectionProp
       <FieldLabel label="Pregunta principal" help="Sus opciones se convierten en segmentos apilados.">
         <SingleVarSelect value={varRef} onChange={(v) => onArgs({ modo: "cruce", var: v })} variables={variables} multi={multi} />
       </FieldLabel>
-      <FieldLabel label="Grupo para abrir" help="Cada valor de esta variable sera una fila del grafico.">
+      <FieldLabel label="Grupo para abrir" help="Cada respuesta de esta pregunta será una fila del gráfico.">
         <SingleVarSelect value={cruce} onChange={(v) => onArgs({ modo: "cruce", cruces: v })} variables={variables} multi={multi} />
       </FieldLabel>
-      <ScaleInline refs={varRef ? [varRef] : []} variables={variables} multi={multi} />
-      <SettingsPanel args={args} onArgs={onArgs} refs={varRef ? [varRef] : []} variables={variables} multi={multi} />
     </BuilderSection>
   );
 }
@@ -311,7 +292,7 @@ function QuestionsByGroups({ args, onArgs, variables, multi }: BuilderSectionPro
   const cruce = typeof args.cruces === "string" ? args.cruces : "";
   const titles = titlesFromValue(args.titulos_grupo);
   return (
-    <BuilderSection title="Preguntas y grupo comun" hint="Cada pregunta queda como bloque, y dentro se muestran los valores del grupo.">
+    <BuilderSection title="Preguntas y grupo común" hint="Cada pregunta queda como bloque, y dentro se muestran los valores del grupo.">
       <MultiVarPicker
         value={vars}
         onChange={(next) => onArgs({ modo: "var_cruce", vars: next })}
@@ -328,32 +309,31 @@ function QuestionsByGroups({ args, onArgs, variables, multi }: BuilderSectionPro
         multi={multi}
         onChange={(next) => onArgs({ titulos_grupo: next })}
       />
-      <ScaleInline refs={vars} variables={variables} multi={multi} />
-      <SettingsPanel args={args} onArgs={onArgs} refs={vars} variables={variables} multi={multi} />
     </BuilderSection>
   );
 }
 
-function PublicsByTopic({ args, onArgs, variables, multi, sourceCount, multiSourceHint }: BuilderSectionProps & { sourceCount: number; multiSourceHint: string }) {
+function PublicsByTopic({ args, onArgs, variables, multi, sourceCount, multiSourceHint, publicos }: BuilderSectionProps & { sourceCount: number; multiSourceHint: string; publicos: string[] }) {
   const topics = topicsFromArgs(args.vars, args.titulos_grupo);
   if (!multi || sourceCount < 2) {
     return <RequirementPanel title="Esta lectura compara fuentes" text={multiSourceHint} />;
   }
+  // G12 parte 2: una tarjeta por tema y una línea por público; la clave del tema se genera sola (`tema_n`).
   return (
-    <BuilderSection title="Temas y publicos" hint="Cada tema agrupa variables equivalentes de distintas fuentes. No se usa variable de cruce.">
-      <TopicBlocksEditor
-        topics={topics.length ? topics : [newTopic(1)]}
-        variables={variables}
-        multi={multi}
-        onChange={(next) => onArgs({ modo: "var_cruce", vars: topicsToVars(next), titulos_grupo: topicsToTitles(next), cruces: null })}
-      />
-      <ScaleInline refs={topics.flatMap((t) => t.vars)} variables={variables} multi={multi} />
-      <SettingsPanel args={args} onArgs={onArgs} refs={topics.flatMap((t) => t.vars)} variables={variables} multi={multi} />
-    </BuilderSection>
+    <TemasPorPublico
+      temas={topics}
+      publicos={publicos}
+      variables={variables}
+      nuevoTema={newTopic}
+      onChange={(next) => {
+        const conClave = next.map((t, i) => ({ ...t, key: t.key || `tema_${i + 1}` }));
+        onArgs({ modo: "var_cruce", vars: topicsToVars(conClave), titulos_grupo: topicsToTitles(conClave), cruces: null });
+      }}
+    />
   );
 }
 
-function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSourceHint }: BuilderSectionProps & { sourceCount: number; multiSourceHint: string }) {
+function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSourceHint, publicos }: BuilderSectionProps & { sourceCount: number; multiSourceHint: string; publicos: string[] }) {
   const blocks = asBlocks(args.bloques);
   const normalized = blocks.length ? blocks : [{ modo: "var", vars: [] }];
 
@@ -362,7 +342,7 @@ function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSou
   }
 
   return (
-    <BuilderSection title="Bloques verticales" hint="Cada bloque puede tener su propia escala. No se permite anidar otro Combinar bloques.">
+    <BuilderSection title="Bloques verticales" hint="Cada bloque puede tener su propia escala. Un bloque no puede contener otros bloques.">
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {normalized.map((block, index) => (
           <BlockEditor
@@ -373,6 +353,7 @@ function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSou
             multi={multi}
             sourceCount={sourceCount}
             multiSourceHint={multiSourceHint}
+            publicos={publicos}
             onChange={(patch) => {
               const next = normalized.map((b, i) => (
                 i === index ? mergeMultiApiladasArgsPatch(b, patch) : b
@@ -408,6 +389,7 @@ function BlockEditor({
   multi,
   sourceCount,
   multiSourceHint,
+  publicos,
   onChange,
   onRemove,
   onMove,
@@ -418,6 +400,7 @@ function BlockEditor({
   multi: boolean;
   sourceCount: number;
   multiSourceHint: string;
+  publicos: string[];
   onChange: (patch: MultiBlock) => void;
   onRemove: () => void;
   onMove: (direction: "up" | "down") => void;
@@ -465,7 +448,7 @@ function BlockEditor({
                   ...(disabled ? blockIntentButtonDisabledStyle : {}),
                 }}
               >
-                {item.title}
+                {item.corto}
               </button>
             );
           })}
@@ -476,13 +459,13 @@ function BlockEditor({
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px", gap: 8 }}>
-        <FieldLabel label="Titulo del bloque" compact>
+        <FieldLabel label="Título del bloque" compact>
           <input value={title} onChange={(e) => onChange({ titulo: e.target.value })} style={inputStyle} />
         </FieldLabel>
-        <FieldLabel label="Subtitulo" compact>
+        <FieldLabel label="Subtítulo" compact>
           <input value={subtitle} onChange={(e) => onChange({ subtitulo: e.target.value })} style={inputStyle} />
         </FieldLabel>
-        <FieldLabel label="Altura" compact help="Opcional. Peso relativo del bloque dentro de la composicion.">
+        <FieldLabel label="Altura" compact help="Opcional. Cuánto alto ocupa este bloque frente a los demás.">
           <input
             type="number"
             min={0.1}
@@ -529,11 +512,15 @@ function BlockEditor({
         (!multi || sourceCount < 2) ? (
           <RequirementPanel title="Este bloque compara fuentes" text={multiSourceHint} />
         ) : (
-          <TopicBlocksEditor
-            topics={topicsFromArgs(block.vars, block.titulos_grupo)}
+          <TemasPorPublico
+            temas={topicsFromArgs(block.vars, block.titulos_grupo)}
+            publicos={publicos}
             variables={variables}
-            multi={multi}
-            onChange={(next) => onChange({ modo: "var_cruce", vars: topicsToVars(next), titulos_grupo: topicsToTitles(next), cruces: null })}
+            nuevoTema={newTopic}
+            onChange={(next) => {
+              const conClave = next.map((t, i) => ({ ...t, key: t.key || `tema_${i + 1}` }));
+              onChange({ modo: "var_cruce", vars: topicsToVars(conClave), titulos_grupo: topicsToTitles(conClave), cruces: null });
+            }}
           />
         )
       )}
@@ -646,7 +633,7 @@ function SingleVarSelect({
       value={value}
       variables={variables}
       multi={multi}
-      placeholder="Selecciona variable"
+      placeholder="Elegir pregunta…"
       emptyHint={`${variables.length} disponible${variables.length === 1 ? "" : "s"}`}
       allowEmpty
       onPick={onChange}
@@ -771,7 +758,7 @@ function VariableChoicePopover({
         </span>
         <span className="pulso-gv2-variable-trigger-copy">
           <strong>{selected ? selected.label : placeholder}</strong>
-          <small>{selected ? displayRef(value ?? "", multi) : emptyHint}</small>
+          <small>{selected ? parseVarRef(value ?? "").name : emptyHint}</small>
         </span>
         {selected && multi && (
           <span className="pulso-gv2-variable-trigger-source">{selected.source}</span>
@@ -804,7 +791,7 @@ function VariableChoicePopover({
               ref={searchRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por pregunta, codigo, base o lista..."
+              placeholder="Buscar por pregunta, código, base o lista…"
               aria-label="Buscar variable"
             />
             {query && (
@@ -883,71 +870,6 @@ function VariableChoicePopover({
   );
 }
 
-function TopicBlocksEditor({
-  topics,
-  variables,
-  multi,
-  onChange,
-}: {
-  topics: TopicBlock[];
-  variables: VarWithSource[];
-  multi: boolean;
-  onChange: (next: TopicBlock[]) => void;
-}) {
-  const normalized = topics.length ? topics : [newTopic(1)];
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {normalized.map((topic, index) => (
-        <div key={topic.key || index} style={blockStyle}>
-          <div style={{ display: "grid", gridTemplateColumns: "130px minmax(0, 1fr) 34px", gap: 8, alignItems: "end" }}>
-            <FieldLabel label="Clave" compact help="Identificador del tema.">
-              <input
-                value={topic.key}
-                onChange={(e) => {
-                  const key = slugKey(e.target.value) || `tema_${index + 1}`;
-                  onChange(normalized.map((t, i) => i === index ? { ...t, key } : t));
-                }}
-                style={inputStyle}
-              />
-            </FieldLabel>
-            <FieldLabel label="Titulo visible" compact>
-              <input
-                value={topic.title}
-                onChange={(e) => onChange(normalized.map((t, i) => i === index ? { ...t, title: e.target.value } : t))}
-                style={inputStyle}
-              />
-            </FieldLabel>
-            <button type="button" className="pulso-icon pulso-icon-danger" onClick={() => onChange(normalized.filter((_, i) => i !== index))} aria-label="Eliminar tema">
-              <Trash2 size={12} />
-            </button>
-          </div>
-          <MultiVarPicker
-            value={topic.vars}
-            onChange={(vars) => onChange(normalized.map((t, i) => {
-              if (i !== index) return t;
-              // El título del tema es la columna izquierda del gráfico. Con
-              // el default "Tema 1" la lámina salía rotulada así; la etiqueta
-              // de la primera pregunta es el nombre que el analista habría
-              // escrito, y sigue siendo editable.
-              const title = isDefaultTopicTitle(t.title, index)
-                ? (findVar(vars[0] ?? "", variables, multi)?.label ?? t.title)
-                : t.title;
-              return { ...t, vars, title };
-            }))}
-            variables={variables}
-            multi={multi}
-            compact
-          />
-          <ScaleInline refs={topic.vars} variables={variables} multi={multi} />
-        </div>
-      ))}
-      <button type="button" style={secondaryButtonStyle} onClick={() => onChange([...normalized, newTopic(normalized.length + 1)])}>
-        <Plus size={12} /> Agregar tema
-      </button>
-    </div>
-  );
-}
-
 function TitlesEditor({
   keys,
   titles,
@@ -964,12 +886,12 @@ function TitlesEditor({
   if (!keys.length) return null;
   return (
     <details style={{ border: "1px solid var(--pulso-border)", borderRadius: 7, padding: "7px 9px", background: "var(--pulso-surface)" }}>
-      <summary style={{ cursor: "pointer", fontSize: 11, fontWeight: 700 }}>Titulos de bloque</summary>
+      <summary style={{ cursor: "pointer", fontSize: 11, fontWeight: 700 }}>Títulos de los bloques</summary>
       <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 8 }}>
         {keys.map((key) => {
           const info = findVar(key, variables, multi);
           return (
-            <FieldLabel key={key} label={displayRef(key, multi)} compact help={info?.label}>
+            <FieldLabel key={key} label={info?.label ?? displayRef(key, multi)} compact help={displayRef(key, multi)}>
               <input
                 value={titles[key] ?? ""}
                 placeholder={info?.label ?? key}
@@ -986,44 +908,6 @@ function TitlesEditor({
 
 type Top2BoxScope = { refs: string[]; variables: VarWithSource[]; multi: boolean };
 
-function SettingsPanel({ args, onArgs, refs, variables, multi }: { args: Record<string, unknown>; onArgs: (patch: Record<string, unknown>) => void } & Top2BoxScope) {
-  const labels = asStringArray(args.top2box_labels);
-  const categorias = categoriasDeEscala(refs, (ref) => findVar(ref, variables, multi));
-  const overrides = asRecord(args.overrides);
-  return (
-    <details style={detailsStyle}>
-      <summary style={summaryStyle}>Ajustes del bloque</summary>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
-        <label style={toggleStyle}>
-          <input
-            type="checkbox"
-            checked={!!args.top2box}
-            onChange={(e) => onArgs({ top2box: e.target.checked })}
-          />
-          Mostrar Top 2
-        </label>
-        <FieldLabel label="Ancho etiquetas" compact help="Caracteres por linea en las etiquetas de la izquierda.">
-          <input
-            type="number"
-            min={10}
-            value={args.wrap_y === undefined || args.wrap_y === null ? 50 : Number(args.wrap_y)}
-            onChange={(e) => {
-              const wrap = Number(e.target.value);
-              onArgs({ wrap_y: wrap, overrides: { ...overrides, ancho_max_eje_y: wrap } });
-            }}
-            style={inputStyle}
-          />
-        </FieldLabel>
-        <div style={{ gridColumn: "1 / -1" }}>
-          <FieldLabel label="Categorías del Top Two Box" compact help="Las dos categorías de la escala que suman el Top Two Box. Sin ellas, el gráfico no lleva esa columna.">
-            <Top2BoxSelector categorias={categorias} seleccion={labels} onChange={(next) => onArgs({ top2box_labels: next })} />
-          </FieldLabel>
-        </div>
-      </div>
-    </details>
-  );
-}
-
 function BlockSettings({ block, onChange, refs, variables, multi }: { block: MultiBlock; onChange: (patch: MultiBlock) => void } & Top2BoxScope) {
   const labels = asStringArray(block.top2box_labels);
   const categorias = categoriasDeEscala(refs, (ref) => findVar(ref, variables, multi));
@@ -1037,7 +921,7 @@ function BlockSettings({ block, onChange, refs, variables, multi }: { block: Mul
             checked={!!block.top2box}
             onChange={(e) => onChange({ top2box: e.target.checked })}
           />
-          Mostrar Top 2
+          Columna Top Two Box
         </label>
         <div style={{ gridColumn: "1 / -1" }}>
           <FieldLabel label="Categorías del Top Two Box" compact>
@@ -1056,35 +940,6 @@ function ScaleInline({ refs, variables, multi }: { refs: string[]; variables: Va
     <div style={{ ...inlineStatusStyle, borderColor: toneColor(scale.tone), color: toneColor(scale.tone) }}>
       {scale.tone === "ok" ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
       <span>{scale.message}</span>
-    </div>
-  );
-}
-
-function SummaryPanel({ summary, scale, multi }: { summary: string[]; scale: ScaleResult; multi: boolean }) {
-  return (
-    <section style={{ ...panelStyle, padding: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
-        <CheckCircle2 size={14} color={toneColor(scale.tone)} />
-        <strong style={{ fontSize: 12 }}>Sintesis</strong>
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {summary.map((item) => <span key={item} style={summaryChipStyle}>{item}</span>)}
-        <span style={summaryChipStyle}>{multi ? "Estudio multibase" : "Una base activa"}</span>
-      </div>
-    </section>
-  );
-}
-
-function IssuesPanel({ issues }: { issues: ValidationIssue[] }) {
-  if (!issues.length) return null;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-      {issues.map((issue, i) => (
-        <div key={`${issue.message}-${i}`} style={{ ...inlineStatusStyle, borderColor: toneColor(issue.kind), color: toneColor(issue.kind) }}>
-          <AlertCircle size={13} />
-          <span>{issue.message}</span>
-        </div>
-      ))}
     </div>
   );
 }
@@ -1136,16 +991,16 @@ export function validateArgs(args: Record<string, unknown>, variables: VarWithSo
   }
   if (intent === "preguntas_grupos") {
     if (asStringArray(args.vars).length === 0) issues.push({ kind: "error", message: "Selecciona las preguntas a abrir." });
-    if (!args.cruces) issues.push({ kind: "error", message: "Selecciona el grupo comun." });
+    if (!args.cruces) issues.push({ kind: "error", message: "Selecciona el grupo común." });
   }
   if (intent === "publicos_tema") {
-    if (!multi) issues.push({ kind: "error", message: "Comparar publicos por tema requiere un estudio multibase." });
+    if (!multi) issues.push({ kind: "error", message: "Comparar públicos por tema requiere un estudio multibase." });
     const topics = topicsFromArgs(args.vars, args.titulos_grupo);
     if (!topics.length) issues.push({ kind: "error", message: "Agrega al menos un tema." });
     topics.forEach((t) => {
       if (!t.vars.length) issues.push({ kind: "error", message: `El tema "${t.title || t.key}" no tiene variables.` });
     });
-    if (args.cruces) issues.push({ kind: "warning", message: "En comparacion de publicos no se usa cruce; cada fila ya es una fuente." });
+    if (args.cruces) issues.push({ kind: "warning", message: "En comparación de públicos no se usa cruce; cada fila ya es una fuente." });
   }
   if (intent === "combinar") {
     const blocks = asBlocks(args.bloques);
@@ -1177,20 +1032,6 @@ function refsForIntent(args: Record<string, unknown>): string[] {
     });
   }
   return [];
-}
-
-function buildSummary(intent: Intent, args: Record<string, unknown>, refs: string[], variables: VarWithSource[], multi: boolean): string[] {
-  const intentLabel = INTENTS.find((i) => i.key === intent)?.title ?? "Multi-apiladas";
-  const sources = new Set(refs.map((r) => findVar(r, variables, multi)?.source).filter(Boolean));
-  const rows = estimateRows(intent, args, variables, multi);
-  const scale = scaleSummary(refs, variables, multi);
-  return [
-    intentLabel,
-    rows ? `${rows} fila${rows === 1 ? "" : "s"} estimada${rows === 1 ? "" : "s"}` : "Filas por armar",
-    scale.label,
-    sources.size ? `${sources.size} fuente${sources.size === 1 ? "" : "s"}` : "Fuentes por detectar",
-    args.top2box ? "Top 2 activo" : "Top 2 opcional",
-  ];
 }
 
 function estimateRows(intent: Intent, args: Record<string, unknown>, variables: VarWithSource[], multi: boolean): number {
@@ -1310,16 +1151,18 @@ function slugKey(text: string): string {
   return text.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
+/** El código de la pregunta y, con varias bases, su base legible («p28 · Docentes»), nunca la referencia cruda `docentes$p28`. */
 function displayRef(ref: string, multi: boolean): string {
-  if (multi) return ref;
-  return parseVarRef(ref).name;
+  const { source, name } = parseVarRef(ref);
+  if (!multi || !source) return name;
+  return `${name} · ${source.charAt(0).toUpperCase()}${source.slice(1).replace(/_/g, " ")}`;
 }
 
 function friendlyVarType(tipo: string) {
   const normalized = (tipo ?? "").toLowerCase();
   if (!normalized) return "tipo no definido";
-  if (normalized.includes("select_one")) return "seleccion unica";
-  if (normalized.includes("select_multiple")) return "seleccion multiple";
+  if (normalized.includes("select_one")) return "selección única";
+  if (normalized.includes("select_multiple")) return "selección múltiple";
   if (normalized.includes("integer")) return "entero";
   if (normalized.includes("decimal")) return "decimal";
   if (normalized.includes("text")) return "texto";
@@ -1453,15 +1296,6 @@ const hintStyle: React.CSSProperties = {
   fontStyle: "italic",
 };
 
-const eyebrowStyle: React.CSSProperties = {
-  fontSize: 10,
-  fontWeight: 800,
-  textTransform: "uppercase",
-  letterSpacing: 0.5,
-  color: "var(--pulso-primary)",
-  marginBottom: 4,
-};
-
 const inlineStatusStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -1493,41 +1327,5 @@ const toggleStyle: React.CSSProperties = {
   fontSize: 12,
   fontWeight: 600,
 };
-
-const summaryChipStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  border: "1px solid var(--pulso-border)",
-  background: "var(--pulso-surface)",
-  borderRadius: 999,
-  padding: "3px 8px",
-  fontSize: 11,
-  color: "var(--pulso-text)",
-};
-
-function StatusPill({ tone, children, onClick }: { tone: Tone; children: React.ReactNode; onClick?: () => void }) {
-  const style: React.CSSProperties = {
-    border: `1px solid ${toneColor(tone)}`,
-    color: toneColor(tone),
-    borderRadius: 999,
-    padding: "3px 8px",
-    fontSize: 10,
-    fontWeight: 800,
-    whiteSpace: "nowrap",
-    background: "white",
-  };
-  if (onClick) {
-    return (
-      <button type="button" onClick={onClick} style={{ ...style, cursor: "pointer" }}>
-        {children}
-      </button>
-    );
-  }
-  return (
-    <span style={style}>
-      {children}
-    </span>
-  );
-}
 
 export { isDefaultTopicTitle as _isDefaultTopicTitle };

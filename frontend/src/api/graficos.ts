@@ -133,6 +133,7 @@ export type GraficadorBlueprintKind =
   | "bars-diverging"
   | "comparison-dots"
   | "dumbbell"
+  | "quadrant"
   | "lollipop"
   | "line-series"
   | "radar"

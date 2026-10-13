@@ -25,11 +25,15 @@
 #' @keywords internal
 .espec_radar <- function(df_plot, r_lim, pal = NULL, digits = 0L, encabezado = NULL, con_tabla = TRUE, nota = NULL) {
   ejes <- levels(df_plot$.eje); grupos <- levels(df_plot$.grupo)
-  V <- matrix(0, length(ejes), length(grupos), dimnames = list(ejes, grupos))
+  V <- matrix(NA_real_, length(ejes), length(grupos), dimnames = list(ejes, grupos))
   V[cbind(match(as.character(df_plot$.eje), ejes), match(as.character(df_plot$.grupo), grupos))] <- as.numeric(df_plot$.valor)
-  V[!is.finite(V)] <- 0
+  # Un público sin casos (0/0, NA) no es un 0 %: se omite entero y, si sólo le falta un eje, la cifra dice «—»
+  # (G11, Arte 2026-10-13: «Otro (especifique)» salía con 0 % en toda la tabla).
+  con_casos <- colSums(is.finite(V)) > 0
+  if (any(con_casos) && !all(con_casos)) { V <- V[, con_casos, drop = FALSE]; grupos <- grupos[con_casos] }
+  sin_dato <- !is.finite(V); V[sin_dato] <- 0
   digits <- suppressWarnings(as.integer(digits)); if (!is.finite(digits) || digits < 0L) digits <- 0L
-  cifras <- V; cifras[] <- .pulso_fmt_pct_half_up(as.numeric(V), digits)
+  cifras <- V; cifras[] <- .pulso_fmt_pct_half_up(as.numeric(V), digits); cifras[sin_dato] <- "—"
   lo <- round(100 * (r_lim[1] %||% 0)); rango <- 100 - lo
   paso <- if (rango <= 30) 5 else if (rango <= 60) 10 else 20
   base_pal <- .std_paleta("actores")

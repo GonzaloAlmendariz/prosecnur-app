@@ -1,0 +1,23 @@
+/* G12 parte 2: editor de multiapiladas (maqueta aprobada 2026-10-13). Intrínseco: crece con sus temas. Sólo tokens. */
+.pulso-mapi-quecompara { display: flex; flex-direction: column; gap: var(--pulso-space-1); }
+.pulso-mapi-rotulo { font-size: 11px; font-weight: var(--pulso-weight-semibold); color: var(--pulso-text-soft); text-transform: uppercase; letter-spacing: .05em; }
+.pulso-mapi-segmentos { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px; border-radius: var(--pulso-radius); background: var(--pulso-surface-3); }
+.pulso-mapi-segmento { border: 0; background: transparent; border-radius: calc(var(--pulso-radius) - 3px); padding: 4px 9px; color: var(--pulso-text-soft); cursor: pointer; font: inherit; }
+.pulso-mapi-segmento[aria-pressed="true"] { background: var(--pulso-surface); color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); box-shadow: 0 0 0 1px var(--pulso-border); }
+.pulso-mapi-segmento:disabled { opacity: .5; cursor: not-allowed; }
+.pulso-mapi-desc { margin: 0; color: var(--pulso-text-soft); }
+.pulso-mapi-temas { display: flex; flex-direction: column; gap: var(--pulso-space-2); min-width: 0; }
+.pulso-mapi-publicos { margin: 0; color: var(--pulso-text-soft); font-size: 12px; white-space: pre-wrap; }
+.pulso-mapi-tarjeta { border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-card); padding: var(--pulso-space-2); display: flex; flex-direction: column; gap: var(--pulso-space-1); background: var(--pulso-surface); }
+.pulso-mapi-tema { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--pulso-space-1); align-items: center; }
+.pulso-mapi-acciones { display: inline-flex; gap: 2px; }
+.pulso-mapi-linea { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: var(--pulso-space-1); align-items: start; }
+.pulso-mapi-pub { color: var(--pulso-text-soft); padding-top: 6px; font-size: 12px; overflow-wrap: anywhere; }
+.pulso-mapi-pregunta { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pulso-mapi-linea.is-aviso .pulso-mapi-pregunta { outline: 1px solid var(--pulso-warn-border); outline-offset: 2px; border-radius: var(--pulso-radius); background: var(--pulso-warn-bg); }
+.pulso-mapi-aviso { color: var(--pulso-warn-fg); font-size: 12px; }
+.pulso-mapi-agregar { align-self: flex-start; }
+.pulso-mapi-estado { display: flex; flex-wrap: wrap; gap: var(--pulso-space-1) var(--pulso-space-3); color: var(--pulso-text-soft); padding-top: var(--pulso-space-2); border-top: 1px solid var(--pulso-border); }
+.pulso-mapi-estado .is-ok { color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
+.pulso-mapi-estado .is-aviso { color: var(--pulso-warn-fg); font-weight: var(--pulso-weight-semibold); }
+.pulso-mapi-estado .is-error { color: var(--pulso-warn-fg); font-weight: var(--pulso-weight-semibold); }
