@@ -2,7 +2,7 @@
 // Extraído de client.ts (split por dominio, 2026-07). Los consumidores
 // importan del barrel ./client; este módulo no cambia el contrato.
 
-import { apiFetch, handle, headers } from "./core";
+import { ApiError, apiFetch, handle, headers } from "./core";
 
 // ---------- Validación ----------
 // Los bindings v1 (apiValidacionBuildPlan, apiValidacionExportPlan,
@@ -454,4 +454,228 @@ export async function apiCodifPlantillaCodigosSubir(file_id: string) {
       body: JSON.stringify({ file_id }),
     })
   );
+}
+
+// ---------- Codificación: agrupar categorías (ítem 1f) ----------
+//
+// Una select_one cuyas categorías se juntan en una variable NUEVA (`target`).
+// El backend sugiere `<parent>_recod` si está libre y `<parent>_agrup` si un
+// catálogo de «Otro» ya lo reserva. La original no cambia. El backend guarda la
+// spec por base y la aplica en «Adaptar». Contrato en
+// `api/R/codificacion_agrupar.R` (forma de cable `.codif_agrupar_spec_wire`).
+
+export type AgrupacionRango = { min: number | null; max: number | null };
+
+export type AgrupacionCategoria = {
+  codigo: string;
+  etiqueta: string;
+  codigos: string[];
+  rango: AgrupacionRango | null;
+  otros_textos: string[];
+  otros_numerico: boolean;
+  otros_resto: boolean;
+  resto: boolean;
+};
+
+export type AgrupacionSpec = {
+  parent: string;
+  target: string;
+  text_col: string | null;
+  codigo_otro: string | null;
+  categorias: AgrupacionCategoria[];
+};
+
+export type AgrupacionCodigoOriginal = { codigo: string; etiqueta: string; n: number };
+export type AgrupacionTextoOtro = { texto: string; n: number };
+
+export type AgrupacionResponse = {
+  base: string;
+  parent: string;
+  parent_label: string;
+  spec: AgrupacionSpec | null;
+  target_sugerido: string;
+  text_col_sugerida: string | null;
+  nombres_ocupados: string[];
+  codigos: AgrupacionCodigoOriginal[];
+  textos_otro: AgrupacionTextoOtro[];
+};
+
+export type AgrupacionVistaPrevia = {
+  categorias: AgrupacionCodigoOriginal[];
+  n_sin_categoria: number;
+};
+
+export type AgrupacionGuardadaResponse = {
+  base: string;
+  parent: string;
+  spec: AgrupacionSpec | null;
+  vista_previa: AgrupacionVistaPrevia | null;
+};
+
+/** 409 E_CODIF_AGRUPACION_TARGET_OCUPADO: el nombre ya lo reserva otra codificación. */
+export class AgrupacionTargetOcupadoError extends ApiError {
+  readonly target: string;
+  readonly sugerido: string;
+  constructor(message: string, target: string, sugerido: string) {
+    super("E_CODIF_AGRUPACION_TARGET_OCUPADO", message);
+    this.target = target;
+    this.sugerido = sugerido;
+  }
+}
+
+function isRecord(x: unknown): x is Record<string, unknown> {
+  return typeof x === "object" && x !== null && !Array.isArray(x);
+}
+
+function aTexto(x: unknown, fallback = ""): string {
+  if (typeof x === "string") return x;
+  if (typeof x === "number" && Number.isFinite(x)) return String(x);
+  return fallback;
+}
+
+function aTextoONulo(x: unknown): string | null {
+  const s = aTexto(x).trim();
+  return s ? s : null;
+}
+
+function aNumeroONulo(x: unknown): number | null {
+  if (typeof x === "number") return Number.isFinite(x) ? x : null;
+  if (typeof x === "string" && x.trim() !== "") {
+    const n = Number(x);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function aEntero(x: unknown): number {
+  const n = aNumeroONulo(x);
+  return n == null ? 0 : Math.max(0, Math.round(n));
+}
+
+// El serializador unboxed manda un vector de largo 1 como escalar y uno vacío
+// como `{}` o `[]`. Se normaliza siempre a arreglo de textos no vacíos.
+function aListaTextos(x: unknown): string[] {
+  const arr = Array.isArray(x) ? x : x == null || isRecord(x) ? [] : [x];
+  return arr.map((v) => aTexto(v).trim()).filter((v) => v !== "");
+}
+
+function aLista(x: unknown): unknown[] {
+  if (Array.isArray(x)) return x;
+  if (isRecord(x) && Object.keys(x).length > 0) return [x];
+  return [];
+}
+
+function normalizarRango(x: unknown): AgrupacionRango | null {
+  if (!isRecord(x)) return null;
+  const min = aNumeroONulo(x.min);
+  const max = aNumeroONulo(x.max);
+  if (min == null && max == null) return null;
+  return { min, max };
+}
+
+function normalizarCategoria(x: unknown): AgrupacionCategoria | null {
+  if (!isRecord(x)) return null;
+  const codigo = aTexto(x.codigo).trim();
+  if (!codigo) return null;
+  return {
+    codigo,
+    etiqueta: aTexto(x.etiqueta, codigo),
+    codigos: aListaTextos(x.codigos),
+    rango: normalizarRango(x.rango),
+    otros_textos: aListaTextos(x.otros_textos),
+    otros_numerico: x.otros_numerico === true,
+    otros_resto: x.otros_resto === true,
+    resto: x.resto === true,
+  };
+}
+
+export function normalizeAgrupacionSpec(x: unknown, parent: string): AgrupacionSpec | null {
+  if (!isRecord(x) || Object.keys(x).length === 0) return null;
+  return {
+    parent: aTexto(x.parent, parent) || parent,
+    target: aTexto(x.target).trim(),
+    text_col: aTextoONulo(x.text_col),
+    codigo_otro: aTextoONulo(x.codigo_otro),
+    categorias: aLista(x.categorias)
+      .map(normalizarCategoria)
+      .filter((c): c is AgrupacionCategoria => c !== null),
+  };
+}
+
+function normalizarCodigos(x: unknown): AgrupacionCodigoOriginal[] {
+  return aLista(x).flatMap((v) => {
+    if (!isRecord(v)) return [];
+    const codigo = aTexto(v.codigo).trim();
+    if (!codigo) return [];
+    return [{ codigo, etiqueta: aTexto(v.etiqueta, codigo) || codigo, n: aEntero(v.n) }];
+  });
+}
+
+export function normalizeAgrupacionResponse(x: unknown, parent: string): AgrupacionResponse {
+  const r = isRecord(x) ? x : {};
+  const p = aTexto(r.parent, parent) || parent;
+  return {
+    base: aTexto(r.base, "default") || "default",
+    parent: p,
+    parent_label: aTexto(r.parent_label, p) || p,
+    spec: normalizeAgrupacionSpec(r.spec, p),
+    target_sugerido: aTexto(r.target_sugerido).trim() || `${p}_agrup`,
+    text_col_sugerida: aTextoONulo(r.text_col_sugerida),
+    nombres_ocupados: aListaTextos(r.nombres_ocupados),
+    codigos: normalizarCodigos(r.codigos),
+    textos_otro: aLista(r.textos_otro).flatMap((v) => {
+      if (!isRecord(v)) return [];
+      const texto = aTexto(v.texto).trim();
+      return texto ? [{ texto, n: aEntero(v.n) }] : [];
+    }),
+  };
+}
+
+export function normalizeAgrupacionGuardada(x: unknown, parent: string): AgrupacionGuardadaResponse {
+  const r = isRecord(x) ? x : {};
+  const p = aTexto(r.parent, parent) || parent;
+  const vp = isRecord(r.vista_previa) ? r.vista_previa : null;
+  return {
+    base: aTexto(r.base, "default") || "default",
+    parent: p,
+    spec: normalizeAgrupacionSpec(r.spec, p),
+    vista_previa: vp
+      ? { categorias: normalizarCodigos(vp.categorias), n_sin_categoria: aEntero(vp.n_sin_categoria) }
+      : null,
+  };
+}
+
+export async function apiCodifAgrupacionGet(parent: string, base?: string) {
+  const q = new URLSearchParams({ parent });
+  if (base) q.set("base", base);
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/codificacion/agrupacion?${q.toString()}`, { headers: headers() })
+  );
+  return normalizeAgrupacionResponse(raw, parent);
+}
+
+/** Guarda la spec (o la borra con `spec = null`) y devuelve la vista previa. */
+export async function apiCodifAgrupacionSet(parent: string, spec: AgrupacionSpec | null, base?: string) {
+  const res = await apiFetch("/api/codificacion/agrupacion", {
+    method: "POST",
+    headers: headers({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ parent, spec, ...(base ? { base } : {}) }),
+  });
+  if (res.status === 409) {
+    // `handle` no expone `details`; el sugerido se lee aquí antes de delegar.
+    const body: unknown = await res.clone().json().catch(() => null);
+    const err = isRecord(body) && isRecord(body.error) ? body.error : null;
+    if (err && err.code === "E_CODIF_AGRUPACION_TARGET_OCUPADO") {
+      const det = isRecord(err.details) ? err.details : {};
+      const sugerido = aTexto(det.sugerido).trim()
+        || (aTexto(err.message).match(/«([^»]+)»\.?\s*$/)?.[1] ?? "");
+      throw new AgrupacionTargetOcupadoError(
+        aTexto(err.message, "El nombre de la variable nueva ya está ocupado."),
+        aTexto(det.target, spec?.target ?? ""),
+        sugerido,
+      );
+    }
+  }
+  const raw = await handle<unknown>(res);
+  return normalizeAgrupacionGuardada(raw, parent);
 }
