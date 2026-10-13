@@ -336,7 +336,7 @@
     {
       "name": "p_dim_radar",
       "familia_editor": "dimensiones",
-      "salida": "ruta_anterior",
+      "salida": "nativa",
       "en_selector": true
     },
     {
