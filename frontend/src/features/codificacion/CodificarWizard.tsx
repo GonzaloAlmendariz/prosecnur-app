@@ -9,6 +9,7 @@ import {
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { RespuestasCodificador } from "./RespuestasCodificador";
 import { IntegerCodificador } from "./IntegerCodificador";
+import { ModoSelectOneTabs } from "./AgruparCategoriasCodificador";
 
 type Props = {
   onBackToOrganizar: () => void;
@@ -317,7 +318,16 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
       {codificableInline ? (
         arq === "auto"
           ? <IntegerCodificador key={p.parent} parent={p.parent} />
-          : <RespuestasCodificador key={p.parent} parent={p.parent} />
+          : arq === "pareja-so" || arq === "config-so"
+            // Una select_one ofrece además agrupar sus categorías (ítem 1f).
+            ? (
+              <ModoSelectOneTabs
+                key={p.parent}
+                parent={p.parent}
+                codificarRespuestas={<RespuestasCodificador parent={p.parent} />}
+              />
+            )
+            : <RespuestasCodificador key={p.parent} parent={p.parent} />
       ) : (
         <div
           data-audit-ready="codificacion-codificar"

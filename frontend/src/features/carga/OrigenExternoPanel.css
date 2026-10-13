@@ -1,0 +1,340 @@
+/* Depuración hecha fuera (ADR 0100, P2). Tarjeta hermana del universo de
+   análisis en Carga › Revisión: mismo material, mismo encabezado. */
+
+.pulso-origen-externo {
+  min-width: 0;
+  height: max-content;
+  overflow: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: 14px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-origen-externo.is-otra_base {
+  border-color: var(--pulso-warn-border);
+}
+
+.pulso-origen-externo-head {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  background: color-mix(in srgb, var(--pulso-surface-2) 72%, var(--pulso-surface));
+}
+
+.pulso-origen-externo-icono {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+
+.pulso-origen-externo-titulo {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-origen-externo-titulo strong {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.pulso-origen-externo-titulo strong span,
+.pulso-origen-externo-titulo small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-origen-externo-estado {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-heavy);
+  white-space: nowrap;
+}
+
+.pulso-origen-externo-estado.is-vigente {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-origen-externo-estado.is-otra_base {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-origen-externo-cuerpo {
+  display: grid;
+  gap: 12px;
+  padding: 13px;
+  border-top: 1px solid var(--pulso-border);
+}
+
+/* C2/C3: la zona de resultado conserva su marco con o sin declaración; el
+   vacío vive dentro de ella, con su borde. */
+.pulso-origen-externo-resultado {
+  min-width: 0;
+  min-height: 84px;
+  display: grid;
+  align-content: center;
+  padding: 11px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-surface-2) 55%, var(--pulso-surface));
+}
+
+.pulso-origen-externo-nota {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.pulso-origen-externo-vacio {
+  display: grid;
+  gap: 4px;
+  max-width: 72ch;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.pulso-origen-externo-vacio strong {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-origen-externo-error {
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: 9px;
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 11px;
+}
+
+.pulso-origen-externo-declarada {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.pulso-origen-externo-otra-base,
+.pulso-origen-externo-avisos li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 9px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.pulso-origen-externo-otra-base svg,
+.pulso-origen-externo-avisos li svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* La cadena «Recibidas → retiradas fuera → cargadas»: tres tramos pares. */
+.pulso-origen-externo-tramos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-origen-externo-tramos li {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+}
+
+.pulso-origen-externo-flecha {
+  position: absolute;
+  top: 50%;
+  left: -18px;
+  color: var(--pulso-text-soft);
+  transform: translateY(-50%);
+}
+
+.pulso-origen-externo-rotulo {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-origen-externo-valor {
+  color: var(--pulso-text);
+  font-size: 18px;
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-origen-externo-tramos li.is-retiradas .pulso-origen-externo-valor {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-origen-externo-tramos small {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+}
+
+.pulso-origen-externo-categorias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.pulso-origen-externo-categorias div {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  font-size: 11px;
+}
+
+.pulso-origen-externo-categorias dt {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-origen-externo-categorias dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-origen-externo-procedencia {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.pulso-origen-externo-avisos {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-origen-externo-form {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.pulso-origen-externo-form-titulo {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-origen-externo-form fieldset {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(140px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pulso-origen-externo-campo {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-origen-externo-campo input {
+  min-width: 0;
+  min-height: 30px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-regular);
+}
+
+.pulso-origen-externo-campo input[aria-invalid="true"] {
+  border-color: var(--pulso-danger-border);
+}
+
+.pulso-origen-externo-campo small {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-regular);
+}
+
+.pulso-origen-externo-campo input:focus-visible {
+  outline: 2px solid var(--pulso-focus-ring);
+  outline-offset: 1px;
+}
+
+.pulso-origen-externo-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.pulso-origen-externo-pendiente {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+@media (max-width: 1180px) {
+  .pulso-origen-externo-form fieldset {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .pulso-origen-externo-tramos,
+  .pulso-origen-externo-form fieldset {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-origen-externo-flecha {
+    display: none;
+  }
+}
