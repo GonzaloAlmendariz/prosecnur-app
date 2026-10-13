@@ -98,7 +98,8 @@ const OTROS_POR_TOP_K = { siActivo: undefined, cuando: conTopK };
 /** Orden de aparición = orden de las claves. */
 const LISTA_BLANCA: Record<string, Entrada> = {
   var: { rotulo: "Pregunta" },
-  modo: { rotulo: "Modo" },
+  // En multiapiladas el modo se elige en «Bloques» (G12/U2, 2026-10-13): una fila «Modo» aparte era un segundo camino.
+  modo: { rotulo: "Modo", excepto: ["p_barras_multiapiladas"] },
   // Mapa de cobertura territorial: la lámina nativa lee los cuatro (p_mapa_cobertura_territorial, graficador_mapa_cobertura.R).
   scope: { rotulo: "Alcance", soloEn: ["p_mapa_cobertura_territorial"] },
   ubigeo: {
