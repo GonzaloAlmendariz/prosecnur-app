@@ -285,7 +285,7 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
   const { irA } = useSeccion("procesamiento");
   if (slots.length === 0) {
     return (
-      <p className="pulso-f6-vacio-col">Esta lámina no lleva gráficos: su contenido se edita en Contenido.</p>
+      <p className="pulso-f6-vacio-col">Esta lámina no lleva gráficos: su contenido se edita en la pestaña Lámina.</p>
     );
   }
   const payload = slide.payload as Record<string, unknown>;
