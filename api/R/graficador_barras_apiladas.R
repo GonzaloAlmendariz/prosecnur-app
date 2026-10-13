@@ -2654,9 +2654,8 @@ graficar_barras_apiladas <- function(
       # son.
       if (identical(.box_dec$motivo, "sin_declaracion")) {
         .pulso_aviso(.aviso_en_lamina(sprintf(
-          paste0("la columna «%s» se omite: no hay categorías declaradas. Decláralas ",
-                 "por nombre en Configuración global > Estilo > Multi-apiladas; el ",
-                 "motor ya no las deduce del orden de la escala."),
+          paste0("la columna «%s» se omite: no hay categorías declaradas. Elígelas en la ",
+                 "pestaña Gráfico de la lámina; el motor ya no las deduce del orden de la escala."),
           c(top2box = "Top Two Box", top3box = "Top Three Box", bottom2box = "Bottom Two Box")[[barra_extra_preset]]
         )))
       }
