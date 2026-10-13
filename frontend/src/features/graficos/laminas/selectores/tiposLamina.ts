@@ -134,12 +134,18 @@ export const VARIANTES_LAMINA: Partial<Record<SlideType, VariantesTipo>> = {
   },
   // lamina_identidad.R `.lam_secciones_numeradas`: `meta.nivel = "subcapitulo"`; sin él, capítulo.
   p_slide_seccion: {
+    // G8 (2026-10-13): las siete versiones del recetario (52–57). El valor junta nivel y versión: `conVariante` escribe
+    // `meta.nivel` y `meta.variante` (lamina_seccion_variantes.R).
     donde: { en: "meta", clave: "nivel" },
-    label: "Nivel del separador",
+    label: "Separador",
     defecto: "capitulo",
     opciones: [
-      { valor: "capitulo", label: "Capítulo", detalle: "Abre un capítulo numerado" },
-      { valor: "subcapitulo", label: "Subcapítulo", detalle: "Numerado dentro de su capítulo" },
+      { valor: "capitulo", label: "Capítulo con rótulo", detalle: "«Capítulo 2» sobre un filete; el título manda" },
+      { valor: "capitulo:numero", label: "Capítulo con número", detalle: "El número grande en coral, con un filete" },
+      { valor: "capitulo:fondo", label: "Capítulo con número de fondo", detalle: "El número detrás, como marca de agua" },
+      { valor: "subcapitulo", label: "Subcapítulo sobrio", detalle: "Número y título en una línea" },
+      { valor: "subcapitulo:barra", label: "Subcapítulo con barra", detalle: "Junto a una barra coral" },
+      { valor: "subcapitulo:banda", label: "Subcapítulo en banda", detalle: "Una banda clara a lo ancho" },
     ],
   },
   // graficos_metadata.R `p_slide_cierre$args$variante` y lamina_identidad.R `.lam_cierre_variante` (61–65).
@@ -200,6 +206,11 @@ export function varianteDe(slide: Pick<Slide, "tipo" | "payload">, defectoEfecti
   const v = VARIANTES_LAMINA[slide.tipo];
   if (!v) return null;
   if (slide.tipo === "p_slide_indice") return composicionIndiceEfectiva(slide);
+  if (slide.tipo === "p_slide_seccion") {
+    const meta = leerSlideMeta(slide);
+    const compuesto = `${meta.nivel === "subcapitulo" ? "subcapitulo" : "capitulo"}${meta.variante ? `:${meta.variante}` : ""}`;
+    return v.opciones.some((o) => o.valor === compuesto) ? compuesto : meta.nivel === "subcapitulo" ? "subcapitulo" : "capitulo";
+  }
   const valor = v.donde.en === "meta"
     ? leerSlideMeta(slide)[v.donde.clave]
     : (slide.payload as Record<string, unknown>)[v.donde.clave];
@@ -215,6 +226,10 @@ export function conVariante(slide: Pick<Slide, "tipo" | "payload">, valor: strin
   const v = VARIANTES_LAMINA[slide.tipo];
   if (!v) return { ...slide.payload };
   if (v.donde.en === "payload") return { ...slide.payload, [v.donde.clave]: valor };
+  if (slide.tipo === "p_slide_seccion") {
+    const [nivel, variante] = valor.split(":");
+    return conSlideMeta(slide, { nivel: nivel === "subcapitulo" ? "subcapitulo" : undefined, variante: variante || undefined }).payload;
+  }
   const cambio: Partial<SlideMeta> = { [v.donde.clave]: valor === defectoDe(slide, v, defectoEfectivo) ? undefined : valor };
   return conSlideMeta(slide, cambio).payload;
 }

@@ -127,8 +127,31 @@ function Indice({ composicion }: { composicion: string }) {
   );
 }
 
-function Separador({ nivel }: { nivel: string }) {
+// G8: las seis versiones del recetario (52–57). `nivel` llega compuesto («subcapitulo:banda», «capitulo:numero»).
+function Separador({ nivel: compuesto }: { nivel: string }) {
+  const [nivel, version] = compuesto.split(":");
   if (nivel === "subcapitulo") {
+    if (version === "barra") {
+      return (
+        <>
+          <Caja x={0.49} y={2.85} w={0.08} h={1.35} c="titulo" rx={0.02} />
+          <Renglon x={0.75} y={2.85} w={4.2} h={0.13} />
+          <Renglon x={0.75} y={3.2} w={6.8} h={0.42} c="tinta" />
+          <Renglon x={0.75} y={3.85} w={4.2} h={0.17} />
+        </>
+      );
+    }
+    if (version === "banda") {
+      return (
+        <>
+          <Caja x={0} y={2.55} w={13.333} h={1.75} c="banda-clara" rx={0} />
+          <Renglon x={0.6} y={3.15} w={1.1} h={0.42} c="tinta" />
+          <Caja x={1.95} y={3.0} w={0.05} h={0.9} c="titulo" rx={0.02} />
+          <Renglon x={2.2} y={3.05} w={5.6} h={0.4} c="tinta" />
+          <Renglon x={2.2} y={3.65} w={3.4} h={0.15} />
+        </>
+      );
+    }
     return (
       <>
         <Renglon x={0.495} y={2.75} w={4.2} h={0.13} />
@@ -138,10 +161,37 @@ function Separador({ nivel }: { nivel: string }) {
       </>
     );
   }
-  return (
+  const ilustracion = (
     <>
       <path d="M13.333 0V7.5H8.6C9.6 5.6 10.4 3.4 13.333 0Z" className="pulso-composicion__ilustracion" />
       <path d="M13.333 2.8V7.5H10.6C11.2 6 12.1 4.4 13.333 2.8Z" className="pulso-composicion__acento is-suave" />
+    </>
+  );
+  if (version === "numero") {
+    return (
+      <>
+        {ilustracion}
+        <Caja x={1} y={2.5} w={1.1} h={1.5} c="titulo" rx={0.08} />
+        <Caja x={2.35} y={2.6} w={0.06} h={1.2} c="titulo" rx={0.02} />
+        <Renglon x={2.65} y={2.7} w={5.2} h={0.45} c="tinta" />
+        <Renglon x={2.65} y={3.35} w={3.6} h={0.18} />
+      </>
+    );
+  }
+  if (version === "fondo") {
+    return (
+      <>
+        {ilustracion}
+        <Caja x={6.4} y={2.2} w={1.9} h={2.4} c="banda-clara" rx={0.1} />
+        <Renglon x={1} y={2.55} w={1.7} h={0.17} c="titulo" />
+        <Renglon x={1} y={3.0} w={5.4} h={0.5} c="tinta" />
+        <Renglon x={1} y={3.75} w={4.0} h={0.2} />
+      </>
+    );
+  }
+  return (
+    <>
+      {ilustracion}
       <Renglon x={1} y={2.55} w={1.7} h={0.17} c="titulo" />
       <Caja x={1} y={2.9} w={0.7} h={0.05} c="titulo" rx={0.02} />
       <Renglon x={1} y={3.2} w={6.4} h={0.52} c="tinta" />
