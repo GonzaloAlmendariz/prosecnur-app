@@ -34,3 +34,18 @@ test_that("panel (27) y dimensiones (28) dibujan lo suyo con sus actores", {
   expect_identical(.ov_txt(lam[[2]], "objetivo:actores_rotulo"), "a partir de la opinión de")
   expect_identical(.ov_txt(lam[[2]], "objetivo:actor"), actores)
 })
+
+test_that("cada actor puede llevar el ícono que elige el analista; vacío o desconocido, el automático", {
+  # Gonzalo (2026-10-13): «¿por qué no me deja escoger el ícono para cada uno?». `actores_iconos` va alineado con
+  # `actores`; una fila vacía se descarta con su ícono, para que el resto no se corra de lugar.
+  a <- .lam_objetivo_args(list(actores = c("Estudiantes", "", "Docentes", "Egresados"),
+                               actores_iconos = c("book-open", "camera", "", "no-existe")))
+  expect_identical(a$actores, c("Estudiantes", "Docentes", "Egresados"))
+  expect_identical(a$iconos, c("book-open", "", "no-existe"))
+  expect_identical(.lam_icono_actor("Estudiantes", "book-open"), "book-open")
+  expect_identical(.lam_icono_actor("Docentes", ""), .lam_icono_actor("Docentes"))
+  expect_identical(.lam_icono_actor("Egresados", "no-existe"), .lam_icono_actor("Egresados"))
+  # Sin `actores_iconos` (proyectos guardados antes): todos automáticos.
+  expect_identical(.lam_objetivo_args(list(actores = c("A", "B")))$iconos, c("", ""))
+  expect_identical(.lam_objetivo_args(c("A", "B"))$iconos, c("", ""))
+})
