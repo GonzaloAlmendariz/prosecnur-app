@@ -23,6 +23,7 @@ import {
 } from "./comparativosModel";
 import type { NombreDeSerie } from "../../carga/nombreDeSerie";
 import { rotuloDeMatriz } from "../../../lib/rotuloDeMatriz";
+import { PulsoButton } from "../../../components/PulsoButton";
 
 export type ComparativosListaProps = {
   id: string;
@@ -109,15 +110,16 @@ export function ComparativosLista({
           {contadorElegidas(filas, elegidas)}
         </span>
         {!buscando && grupos.length > 1 ? (
-          <button
-            type="button"
-            className="pulso-ghost"
+          <PulsoButton
+            variant="ghost"
+            size="sm"
+            className="pulso-comparativos-desplegar"
             onClick={() =>
               setAbiertas(abiertas.size === grupos.length ? new Set() : new Set(grupos.map((g) => g.clave)))
             }
           >
             {abiertas.size === grupos.length ? "Plegar secciones" : "Desplegar secciones"}
-          </button>
+          </PulsoButton>
         ) : null}
       </div>
 

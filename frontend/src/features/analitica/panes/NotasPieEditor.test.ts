@@ -17,6 +17,9 @@ import {
   coerceNotasTexto,
   coerceUmbral,
   DEFAULT_NOTAS_PIE,
+  filasDeNotas,
+  notasFueraDeOpciones,
+  resumenNotasComparativo,
   normalizeNotasPie,
   notasDeCruceHuerfanas,
   notasDeCruceVisibles,
@@ -209,5 +212,70 @@ describe("NotasPieEditor: render", () => {
     expect(html.indexOf("<code>sexo</code>")).toBeLessThan(html.indexOf("<code>nacimiento</code>"));
     expect(html).toContain("<code>viejo</code>");
     expect(html).not.toContain("Sin variables de cruce");
+  });
+});
+
+describe("notas por pregunta: patrón único", () => {
+  test("filas: sólo las notas con texto y después las pendientes, sin repetir", () => {
+    expect(filasDeNotas({ a: "x", b: "  ", c: "y" }, ["d", "a"])).toEqual(["a", "c", "d"]);
+    expect(filasDeNotas({}, [])).toEqual([]);
+  });
+
+  test("separa las notas de preguntas no ofrecidas sin borrarlas", () => {
+    const r = notasFueraDeOpciones({ "1": "uno", "2": "", "9": "fuera" }, [{ clave: "1" }, { clave: "2" }]);
+    expect(r.visibles).toEqual({ "1": "uno" });
+    expect(r.fuera).toBe(1);
+  });
+
+  test("resumen del comparativo cuenta generales por línea y notas de preguntas elegidas", () => {
+    expect(resumenNotasComparativo({}, "", [])).toBe("Sin notas");
+    expect(resumenNotasComparativo({ "1": "a", "7": "b" }, "uno\n\ndos", [{ clave: "1" }])).toBe(
+      "2 notas generales, 1 nota por pregunta",
+    );
+  });
+});
+
+describe("NotasPieEditor: Comparativos", () => {
+  const preguntas = Array.from({ length: 72 }, (_, i) => ({ clave: String(i), etiqueta: `Pregunta ${i}` }));
+  const base = {
+    variante: "comparativo" as const,
+    preguntas,
+    notasPregunta: {},
+    notasGenerales: "",
+    onNota: () => {},
+    onGenerales: () => {},
+  };
+
+  test("plegado: el mismo encabezado que Frecuencias y Cruces, con resumen", () => {
+    const html = renderToStaticMarkup(createElement(NotasPieEditor, base));
+    expect(html).toContain('aria-label="Notas al pie"');
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain("Sin notas");
+  });
+
+  test("abierto con 72 preguntas: vacío y «Añadir nota para una pregunta», sin un campo por pregunta", () => {
+    const html = renderToStaticMarkup(createElement(NotasPieEditor, { ...base, defaultOpen: true }));
+    expect(html).toContain('data-qa-geometry-group="analitica-notas-pie-comparativo"');
+    expect(html).toContain("Notas generales");
+    expect(html).toContain("Ninguna pregunta lleva nota propia");
+    expect(html).toContain("Añadir nota para una pregunta");
+    expect(html.match(/<input/g) ?? []).toHaveLength(0);
+    expect(html).not.toContain("Fuente");
+    expect(html).not.toContain("Base por defecto");
+  });
+
+  test("abierto con notas: sólo las filas con texto, por etiqueta, y aviso de las no elegidas", () => {
+    const html = renderToStaticMarkup(createElement(NotasPieEditor, {
+      ...base,
+      notasPregunta: { "3": "Cambió el filtro.", "99": "huérfana" },
+      notasGenerales: "Fuente: Pulso",
+      defaultOpen: true,
+    }));
+    expect(html.match(/<input/g) ?? []).toHaveLength(1);
+    expect(html).toContain('value="Cambió el filtro."');
+    expect(html).toContain("Pregunta 3");
+    expect(html).not.toContain("<code>3</code>");
+    expect(html).toContain("Una nota queda guardada para una pregunta que no está elegida");
+    expect(html).toContain('aria-label="Quitar la nota de Pregunta 3"');
   });
 });

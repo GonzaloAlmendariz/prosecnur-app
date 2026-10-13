@@ -664,3 +664,20 @@ export function formatoBytes(n: number): string {
   if (n >= 1024) return `${Math.round(n / 1024)} KB`;
   return `${n} B`;
 }
+
+// ---- Notas por pregunta ------------------------------------------------------
+
+/**
+ * Preguntas que pueden llevar nota propia en el comparativo: las elegidas, con
+ * la etiqueta legible de la matriz. Se ofrecen al selector «Añadir nota para
+ * una pregunta» del editor único de notas al pie.
+ */
+export function opcionesDeNotaComparativo(
+  filas: readonly FilaArmonizada[],
+  elegidas: readonly string[],
+): Array<{ clave: string; etiqueta: string }> {
+  const set = new Set(elegidas);
+  return filas
+    .filter((f) => f.seleccionable && set.has(f.clave))
+    .map((f) => ({ clave: f.clave, etiqueta: rotuloDeMatriz(f.etiqueta) }));
+}
