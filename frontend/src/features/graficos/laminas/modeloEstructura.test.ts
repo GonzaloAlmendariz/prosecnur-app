@@ -130,3 +130,11 @@ describe("los resultados detrás de una Apertura reabierta (G15/U11, regresión)
     expect(est.nodos[3].clase === "bloque" && est.nodos[3].laminas.map((l) => l.id)).toEqual(["a", "b"]);
   });
 });
+
+describe("un solo título por lámina en la tira, el visor y la Estructura (G15/U13)", () => {
+  it("la lámina de gráfico sin título escrito lleva el que va a salir; la de estructura conserva su tipo", () => {
+    const est = construirEstructura([s("g", "p_slide_1_grafico"), s("t", "p_slide_top_two_box")], () => "¿Conoce la misión?");
+    expect(est.laminas.map((l) => l.titulo)).toEqual(["¿Conoce la misión?", "Explicación Top Two Box"]);
+    expect(construirEstructura([s("g", "p_slide_1_grafico")], () => "").laminas[0].titulo).toBe("Sin título");
+  });
+});

@@ -15,9 +15,6 @@ import {
 import { ETIQUETA_ESTADO } from "./estadoLamina";
 import { useLaminasUi, type ResumenLamina } from "./laminasStore";
 import { ID_BUSQUEDA_ESTRUCTURA } from "./useAtajosLaminas";
-import { SLIDE_LABELS, usePlanStore } from "../store";
-import { useVariables } from "../useVariables";
-import { tituloQueSale } from "./tituloQueSale";
 import "./estructuraInforme.css";
 
 export type MarcaValidacion = "error" | "warning";
@@ -51,10 +48,6 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
   }, [posicionActiva]);
 
   const nodos = useMemo(() => filtrarEstructura(estructura, consulta), [estructura, consulta]);
-  // El título que va a salir (el de la maqueta), no el nombre del tipo cuando la lámina no tiene uno escrito.
-  const slides = usePlanStore((s) => s.plan.slides);
-  const { variables } = useVariables();
-  const titulos = useMemo(() => new Map(slides.map((sl) => [sl.id, tituloQueSale(sl, variables, SLIDE_LABELS[sl.tipo] ?? sl.tipo)])), [slides, variables]);
   const plegables = useMemo(() => estructura.nodos.map((n) => n.id), [estructura]);
   const todoCerrado = plegables.length > 0 && plegables.every((id) => cerrados[id]);
   const buscando = consulta.trim() !== "";
@@ -62,7 +55,7 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
   const fila = (l: LaminaEnEstructura, sangria: 0 | 1 | 2) => (
     <FilaLamina
       key={l.id}
-      lamina={l.ranuras > 0 ? { ...l, titulo: titulos.get(l.id) || "Sin título" } : l}
+      lamina={l}
       activa={l.posicion === posicionActiva}
       sangria={sangria}
       resumen={resumenes[l.id]}

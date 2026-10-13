@@ -59,7 +59,10 @@ const APERTURA: ReadonlySet<SlideType> = new Set<SlideType>(["p_slide_portada", 
 
 const texto = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
-function aLamina(slide: Slide, posicion: number, antetitulo: string | null): LaminaEnEstructura {
+/** El título que va a salir cuando la lámina de gráfico no tiene uno escrito (G15/U13: la tira y el visor decían «Un gráfico»). */
+export type TituloDeLamina = (slide: Slide, tipoLabel: string) => string;
+
+function aLamina(slide: Slide, posicion: number, antetitulo: string | null, tituloDe?: TituloDeLamina): LaminaEnEstructura {
   const payload = (slide.payload ?? {}) as Record<string, unknown>;
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
   const llenas = slots.filter((s) => {
@@ -72,7 +75,7 @@ function aLamina(slide: Slide, posicion: number, antetitulo: string | null): Lam
     id: slide.id,
     posicion,
     tipo: slide.tipo,
-    titulo: texto(payload.titulo) || tipoLabel,
+    titulo: texto(payload.titulo) || (tituloDe && slots.length > 0 ? tituloDe(slide, tipoLabel) || "Sin título" : tipoLabel),
     tipoLabel,
     ranuras: slots.length,
     ranurasLlenas: llenas,
@@ -98,7 +101,7 @@ const TITULO_BLOQUE: Record<ClaseBloque, string> = {
  * bloque «Cómo leer» o el «Cierre», que siguen abiertos hasta el próximo separador. Sólo antes de todo lo demás hay
  * Apertura; una lámina de cierre corta el capítulo vigente.
  */
-export function construirEstructura(slides: readonly Slide[]): EstructuraInforme {
+export function construirEstructura(slides: readonly Slide[], tituloDe?: TituloDeLamina): EstructuraInforme {
   const nodos: NodoEstructura[] = [];
   const laminas: LaminaEnEstructura[] = [];
   let bloque: { clase: ClaseBloque; nodo: Bloque } | null = null;
@@ -125,7 +128,7 @@ export function construirEstructura(slides: readonly Slide[]): EstructuraInforme
     if (slide.tipo === "p_slide_seccion") {
       const t = texto((slide.payload as Record<string, unknown>)?.titulo);
       if (t) antetitulo = t;
-      const lam = aLamina(slide, posicion, antetitulo);
+      const lam = aLamina(slide, posicion, antetitulo, tituloDe);
       laminas.push(lam);
       if (esSubcapitulo(slide) && capitulo) {
         const cap: Extract<NodoEstructura, { clase: "capitulo" }> = capitulo;
@@ -147,7 +150,7 @@ export function construirEstructura(slides: readonly Slide[]): EstructuraInforme
       return;
     }
 
-    const lam = aLamina(slide, posicion, antetitulo);
+    const lam = aLamina(slide, posicion, antetitulo, tituloDe);
     laminas.push(lam);
     if (slide.tipo === "p_slide_cierre") {
       enBloque("cierre").laminas.push(lam);
