@@ -299,7 +299,7 @@ function WordSourceRail({
 }) {
   const inheritedCount = Math.max(0, editableArgCount - selectedPatchCount);
   return (
-    <div className="pulso-gv2-word-source-rail" aria-label="Origen de valores del preset Word">
+    <div className="pulso-gv2-word-source-rail" aria-label="De dónde salen los valores del estilo Word">
       <span className="is-ppt">
         <CheckCircle2 size={12} />
         <strong>Punto de partida</strong>

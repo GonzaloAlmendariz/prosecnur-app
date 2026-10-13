@@ -138,7 +138,7 @@ export default function GraficosPage() {
   }, [isSharedReport, loadSharedPreflight, state?.session_id]);
   // Siembra del informe compartido: si el borrador nunca se guardó y el plan
   // está vacío, el lienzo aterriza con las diapositivas que el preflight propuso en
-  // vez del estado "Sin slides aún" que contradecía al menú del conjunto.
+  // vez del estado "Sin láminas aún" que contradecía al menú del conjunto.
   useEffect(() => {
     const suggested = sharedPreflight?.plan;
     const suggestedSlides = Array.isArray(suggested?.slides) ? suggested.slides : [];

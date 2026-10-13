@@ -357,7 +357,7 @@ export function SlidePicker({
                 variant="icon"
                 size="lg"
                 className="pulso-slide-library-close"
-                aria-label="Cerrar biblioteca de slides"
+                aria-label="Cerrar biblioteca de láminas"
               >
                 <X size={17} aria-hidden="true" />
               </PulsoButton>
@@ -435,7 +435,7 @@ export function SlidePicker({
                     insertSlide(selectedModel);
                   }}
                   placeholder="Buscar por nombre, uso o contenido…"
-                  aria-label="Buscar modelo de slide"
+                  aria-label="Buscar modelo de lámina"
                 />
                 {selectedModel && (
                   <span className="pulso-slide-library-search-key" aria-hidden="true">
@@ -939,7 +939,7 @@ export function SlidePickerTrigger({
       onClick={onOpen}
     >
       <Plus size={14} aria-hidden="true" />
-      <span>Agregar slide</span>
+      <span>Agregar lámina</span>
     </PulsoButton>
   );
 }

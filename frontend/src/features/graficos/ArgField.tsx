@@ -3262,7 +3262,7 @@ function ColorField({
             onClick={() => commit(null)}
             className="pulso-icon pulso-gv2-color-clear"
             aria-label="Borrar color (heredar)"
-            title="Borrar (hereda del preset padre)"
+            title="Borrar (vuelve al estilo general)"
           >
             <XIcon size={11} />
           </button>

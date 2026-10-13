@@ -42,7 +42,7 @@ export function PptStyleProfilesPanel() {
         <span className="pulso-gv2-ppt-style-intro-icon"><Palette size={14} /></span>
         <div>
           <strong>Líneas visuales</strong>
-          <span>Aplica color, portada, bases PPT y estilos guardados sin mover slides ni variables.</span>
+          <span>Aplica color, portada, bases PPT y estilos guardados sin mover láminas ni preguntas.</span>
         </div>
         <span className={`pulso-gv2-ppt-style-session ${appliedProfile ? "is-applied" : "is-base"}`}>
           {appliedProfile ? <Check size={12} /> : <Layers3 size={12} />}
@@ -83,7 +83,7 @@ export function PptStyleProfilesPanel() {
               <div className="pulso-gv2-ppt-style-card-meta">
                 <span>{colorCount} color{colorCount === 1 ? "" : "es"}</span>
                 <span>{impact}</span>
-                <span>No mueve slides</span>
+                <span>No mueve láminas</span>
               </div>
 
               <button
