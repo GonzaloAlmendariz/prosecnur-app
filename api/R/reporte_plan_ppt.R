@@ -5354,7 +5354,7 @@ reporte_ppt_plan <- function(
         args$mostrar_barra_extra <- isTRUE(show_extra)
       }
 
-      args <- .merge_args(args, overrides)
+      args <- .merge_args(args, .multiactor_overrides_de(overrides))
       args <- .reservar_pie_para_base_slide(args, min_in = .PLAN_RESERVA_PIE_MULTI_IN, word_render = isTRUE(el$.word_render))
       args$usar_canvas <- TRUE
       fun  <- graficar_barras_apiladas

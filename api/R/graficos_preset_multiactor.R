@@ -124,10 +124,24 @@
 .MULTIACTOR_ANCHO_TEMA <- c(auto = NA_real_, ancho = 0.28, angosto = 0.14)
 
 #' Args del preset multiactor para una lámina: los del informe con el ancho del tema que pidió esa lámina.
+#' Un ancho de tema propio de la lámina (las de la matriz traen `canvas_w_grupo = 0.22`) es el punto de partida en
+#' «Automático»: así las barras se calculan con el mismo ancho que dibuja el tema.
 .multiactor_preset_de <- function(presets, el) {
   args <- presets$multi_apiladas_multiactor$args %||% list()
+  propio <- suppressWarnings(as.numeric(el$overrides$canvas_w_grupo %||% NA)[1])
+  if (is.finite(propio)) args$canvas_w_grupo <- propio
   pedido <- el$overrides$ancho_tema %||% el$ancho_tema
   w <- if (is.character(pedido) && length(pedido) == 1L) unname(.MULTIACTOR_ANCHO_TEMA[pedido]) else NA_real_
   if (length(w) == 1L && is.finite(w)) args$canvas_w_grupo <- w
   args
+}
+
+#' Los ajustes de la lámina que se aplican al final: con «Más ancho» o «Más angosto» el ancho de tema propio ya se
+#' resolvió en el reparto y no puede volver a pisarlo (las láminas de la matriz traen 0.22 fijo).
+.multiactor_overrides_de <- function(overrides) {
+  pedido <- overrides$ancho_tema
+  if (is.character(pedido) && length(pedido) == 1L && is.finite(unname(.MULTIACTOR_ANCHO_TEMA[pedido]) %||% NA_real_)) {
+    overrides$canvas_w_grupo <- NULL
+  }
+  overrides
 }
