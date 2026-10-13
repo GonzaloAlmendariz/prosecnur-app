@@ -34,6 +34,13 @@
 # MARCAS.
 #   «n.c.» la fila no es comparable en ese período (sin entrada en `por_base`
 #          o `comparable = false`). Vale para la pregunta y para cada cruce.
+#          También cuando la base está declarada comparable pero la fila no
+#          tiene variable en ella (p. ej. «(pendiente)» en la matriz
+#          importada): `motivo = "sin_variable"`, con su propia nota de pie y
+#          un aviso `sin_variable`. Si ninguna medición de la serie tiene
+#          variable para una pregunta, la pregunta se omite del libro y queda
+#          un aviso `pregunta_omitida`. El comparativo no corta por eso: el
+#          409 `E_EQUIV_ARMONIZACION_SIN_VARIABLE` es del preview de R3.
 #   «n.a.» una categoría de cruce ofrecida que no tiene casos en ese período,
 #          o una pregunta sin ninguna respuesta sustantiva (N == 0).
 #   «—»    la categoría de la escala no tiene ningún código de origen en el
@@ -47,14 +54,19 @@
 
 # ---- Períodos y rótulos -------------------------------------------------------
 
-#' Rótulo de cada período: el parámetro manda, si no el año del nombre de base.
+#' Rótulo de cada período: el parámetro manda, si no el año del nombre de base
+#' cuando ese año no se repite en la serie, y si no el nombre de base.
 #' @noRd
 .armz_rotulos <- function(periodos, rotulos = NULL) {
   periodos <- as.character(periodos)
   out <- stats::setNames(periodos, periodos)
   anio <- regmatches(periodos, regexpr("(19|20)[0-9]{2}", periodos))
   con_anio <- grepl("(19|20)[0-9]{2}", periodos)
+  # El año sólo rotula si identifica al período: dos bases del mismo año
+  # («docentes_2024», «egresados_2024») conservan su nombre de base.
   out[con_anio] <- anio
+  repetido <- con_anio & (out %in% out[con_anio][duplicated(out[con_anio])])
+  out[repetido] <- periodos[repetido]
   if (is.null(rotulos) || !length(rotulos)) return(out)
   nms <- names(rotulos)
   vals <- vapply(seq_along(rotulos), function(i) .armz_txt(rotulos[i]), character(1))
@@ -87,6 +99,24 @@
 
 .armz_nota_base <- function(fila, base) {
   .armz_txt((((fila$armonizacion %||% list())$por_base %||% list())[[base]] %||% list())$nota)
+}
+
+# Variable de la fila en una base ("" si la matriz no la declara).
+.armz_variable <- function(fila, base) {
+  .equiv_armon_chr((fila$variables %||% list())[[base]], "")
+}
+
+# La base está declarada comparable para la fila pero la fila no tiene
+# variable en ella: se marca «n.c.» con motivo propio, no se corta.
+.armz_sin_variable <- function(fila, base) {
+  entrada <- (((fila$armonizacion %||% list())$por_base %||% list())[[base]])
+  !is.null(entrada) && isTRUE(entrada$comparable) && !nzchar(.armz_variable(fila, base))
+}
+
+# Estado «n.c.» de un período con su motivo.
+.armz_nc <- function(d, b) {
+  list(estado = "n.c.",
+       motivo = if (isTRUE(d$sin_variable[[b]])) "sin_variable" else "no_comparable")
 }
 
 # Categorías de la escala sin ningún código de origen en el mapa de la base.
@@ -177,17 +207,33 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
                          as.character(unlist(f$variables %||% list(), use.names = FALSE))))
       escala <- .armz_escala(f)
       no_of <- lapply(periodos, function(b) .armz_no_ofrecidas(f, b, escala$codigos))
+      sin_var <- vapply(periodos, function(b) .armz_sin_variable(f, b), logical(1))
+      con_var <- vapply(periodos, function(b) nzchar(.armz_variable(f, b)), logical(1))
       list(key = paste0(prefijo, i), fila = f, titulo = .armz_titulo_fila(f),
            claves = claves[nzchar(claves)],
            etiqueta = .armz_txt(f$etiqueta_estandar) %||% "",
            seccion = .armz_txt(f$seccion), escala = escala,
            comparable = stats::setNames(comp, periodos),
+           sin_variable = stats::setNames(sin_var, periodos),
+           con_variable = any(con_var),
            notas = stats::setNames(notas, periodos),
            no_ofrecidas = stats::setNames(no_of, periodos))
     })
   }
   preguntas <- describir(filas, "q")
   xs <- describir(cruces, "x")
+
+  # Una pregunta sin variable en NINGUNA medición no tiene nada que imprimir:
+  # sale del libro y queda en `omitidas` para el aviso `pregunta_omitida`.
+  sin_ninguna <- vapply(preguntas, function(d) !isTRUE(d$con_variable), logical(1))
+  omitidas <- lapply(preguntas[sin_ninguna], function(d) list(
+    fila = d$etiqueta, titulo = d$titulo, claves = d$claves))
+  preguntas <- preguntas[!sin_ninguna]
+  if (length(filas) && !length(preguntas)) {
+    stop_api(409, "E_ARMONIZADA_SIN_FILAS",
+             "Ninguna de las preguntas elegidas tiene variable declarada en la matriz para alguna medición de la serie.",
+             list(omitidas = lapply(omitidas, `[[`, "fila")))
+  }
 
   sin_mapa <- list()
   partes <- list()
@@ -232,7 +278,8 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
     d$sin_mapa <- sin_mapa[[d$key]] %||% list()
     d
   })
-  list(periodos = periodos, data = data, preguntas = agregar_sm(preguntas), cruces = agregar_sm(xs))
+  list(periodos = periodos, data = data, preguntas = agregar_sm(preguntas), cruces = agregar_sm(xs),
+       omitidas = omitidas)
 }
 
 # ---- Cálculo ----------------------------------------------------------------
@@ -248,8 +295,8 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
 
 .armz_meta <- function(d) {
   list(key = d$key, etiqueta = d$etiqueta, escala = d$escala, claves = d$claves,
-       comparable = d$comparable, notas = d$notas, no_ofrecidas = d$no_ofrecidas,
-       sin_mapa = d$sin_mapa)
+       comparable = d$comparable, sin_variable = d$sin_variable, notas = d$notas,
+       no_ofrecidas = d$no_ofrecidas, sin_mapa = d$sin_mapa)
 }
 
 #' Modelo del comparativo simple: por pregunta y período, N y % ponderados.
@@ -259,7 +306,7 @@ armonizada_modelo_frecuencias <- function(ap) {
   d <- ap$data
   preguntas <- lapply(ap$preguntas, function(q) {
     por_periodo <- lapply(ap$periodos, function(b) {
-      if (!isTRUE(q$comparable[[b]])) return(list(estado = "n.c."))
+      if (!isTRUE(q$comparable[[b]])) return(.armz_nc(q, b))
       sel <- d$periodo == b
       ct <- .armz_conteo(q$escala$codigos, d[[q$key]][sel], d$peso[sel])
       pct <- if (ct$N > 0) ct$n / ct$N else rep(NA_real_, length(ct$n))
@@ -295,13 +342,13 @@ armonizada_modelo_cruces <- function(ap, alpha = 0.05) {
   cruces_meta <- lapply(ap$cruces, .armz_meta)
   preguntas <- lapply(ap$preguntas, function(q) {
     por_periodo <- lapply(ap$periodos, function(b) {
-      if (!isTRUE(q$comparable[[b]])) return(list(estado = "n.c."))
+      if (!isTRUE(q$comparable[[b]])) return(.armz_nc(q, b))
       sel <- d$periodo == b
       xq <- d[[q$key]][sel]
       w <- d$peso[sel]
       total <- .armz_conteo(q$escala$codigos, xq, w)
       por_cruce <- lapply(cruces_meta, function(x) {
-        if (!isTRUE(x$comparable[[b]])) return(list(estado = "n.c."))
+        if (!isTRUE(x$comparable[[b]])) return(.armz_nc(x, b))
         xc <- d[[x$key]][sel]
         cats <- x$escala$codigos
         n_mat <- matrix(0, nrow = length(q$escala$codigos), ncol = length(cats),
@@ -338,11 +385,15 @@ armonizada_modelo_cruces <- function(ap, alpha = 0.05) {
 
 #' Avisos del comparativo para el resumen del job: casos sustantivos sin
 #' correspondencia en la escala, suma de pesos que se aparta del número de
-#' casos en más de 2 % y notas por pregunta que no casan con ninguna fila.
+#' casos en más de 2 %, notas por pregunta que no casan con ninguna fila,
+#' períodos sin variable declarada (`sin_variable`, uno por fila y base) y
+#' preguntas omitidas por no tener variable en ninguna medición
+#' (`pregunta_omitida`).
 #' @return Lista de list(tipo, base?, fila?, mensaje).
 #' @keywords internal
 armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pregunta = NULL) {
   out <- list()
+  unidad <- .comparativo_unidad(rotulos[ap$periodos])
   for (b in ap$periodos) {
     p <- (ap$ponderacion %||% list())[[b]]
     if (is.null(p)) next
@@ -357,9 +408,9 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
     r <- suppressWarnings(as.numeric(p$razon_suma_n))
     if (isTRUE(p$pondera) && length(r) == 1L && is.finite(r) && abs(r - 1) > 0.02) {
       out[[length(out) + 1L]] <- list(tipo = "suma_pesos", base = b, mensaje = sprintf(
-        "En %s los pesos suman %s con %s casos (%s%%). Los N ponderados de ese año no son conteos de casos.",
+        "En %s los pesos suman %s con %s casos (%s%%). Los N ponderados de %s no son conteos de casos.",
         rotulos[[b]], .armz_fmt_n(p$suma_pesos), .armz_fmt_n(p$n),
-        sprintf("%+.1f", 100 * (r - 1))))
+        sprintf("%+.1f", 100 * (r - 1)), unidad$ese))
     }
   }
   for (d in c(ap$preguntas, ap$cruces)) {
@@ -373,6 +424,18 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
       }
     }
   }
+  for (d in c(ap$preguntas, ap$cruces)) {
+    for (b in ap$periodos[vapply(ap$periodos, function(b) isTRUE(d$sin_variable[[b]]), logical(1))]) {
+      out[[length(out) + 1L]] <- list(tipo = "sin_variable", base = b, fila = d$etiqueta, mensaje = sprintf(
+        "«%s» no tiene variable declarada en la matriz para %s. %s sale como n.c.",
+        d$titulo, rotulos[[b]], .armz_capital(unidad$ese)))
+    }
+  }
+  for (o in ap$omitidas %||% list()) {
+    out[[length(out) + 1L]] <- list(tipo = "pregunta_omitida", fila = o$fila, mensaje = sprintf(
+      "«%s» no tiene variable declarada en la matriz para ninguna medición de la serie y no se incluyó en el comparativo.",
+      o$titulo))
+  }
   claves <- unique(unlist(lapply(ap$preguntas, `[[`, "claves")))
   for (k in setdiff(names(notas_pregunta %||% list()), claves)) {
     out[[length(out) + 1L]] <- list(tipo = "nota_sin_pregunta", fila = k, mensaje = sprintf(
@@ -380,6 +443,8 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
   }
   out
 }
+
+.armz_capital <- function(x) paste0(toupper(substr(x, 1, 1)), substr(x, 2, nchar(x)))
 
 .armz_casos <- function(n) sprintf("%s %s", .armz_fmt_n(n), if (n == 1) "caso" else "casos")
 
