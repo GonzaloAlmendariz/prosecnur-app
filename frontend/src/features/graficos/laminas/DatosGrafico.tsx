@@ -23,6 +23,7 @@ import {
   type CampoDato,
 } from "./argsDatosGrafico";
 import { useLaminasUi } from "./laminasStore";
+import { publicosDistintos } from "./argsDatosGrafico";
 import { useGraficosReportScope } from "../reportScope";
 import { aplicaOrden, varCalificada } from "./ordenCategorias";
 import { useSession } from "../../../lib/SessionContext";
@@ -62,7 +63,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   // Las láminas de equivalencias traen `vars` por tema ({ tema_1: [docentes$p1, estudiantes$p1], … }): se cuentan los temas.
   const varsPorTema = !Array.isArray(args.vars) && args.vars && typeof args.vars === "object" ? (args.vars as Record<string, unknown>) : null;
   const nVars = Array.isArray(args.vars) ? args.vars.length : varsPorTema ? Object.keys(varsPorTema).length : 0;
-  const nPublicos = varsPorTema ? Math.max(0, ...Object.values(varsPorTema).map((v) => (Array.isArray(v) ? v.length : 0))) : 0;
+  // Los públicos distintos de la lámina, no el máximo por tema: en la lámina 10 de Arte cada tema tiene dos, pero entre
+  // todos son tres (docentes, administrativos y estudiantes), como dice la base (loop UI).
+  const nPublicos = varsPorTema ? publicosDistintos(varsPorTema) : 0;
   const filtros = Array.isArray(args.filtros) ? args.filtros.length : 0;
   const admiteFiltros = (meta?.args ?? []).some((a) => a.name === "filtros");
 

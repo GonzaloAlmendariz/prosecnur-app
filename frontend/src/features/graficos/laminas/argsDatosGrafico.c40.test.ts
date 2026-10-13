@@ -335,3 +335,11 @@ describe("«Ranking de palabras» (G11)", () => {
     expect(nombres([rk], {}, "p_barras_apiladas")).toEqual([]);
   });
 });
+
+describe("cuántos públicos tiene una lámina por temas (loop UI, Arte lámina 10)", () => {
+  it("cuenta los públicos distintos de todos los temas, no el máximo por tema", async () => {
+    const { publicosDistintos } = await import("./argsDatosGrafico");
+    expect(publicosDistintos({ t1: ["docentes$a", "administrativos$a"], t2: ["docentes$b", "estudiantes$b"] })).toBe(3);
+    expect(publicosDistintos({ t1: ["docentes$a", "estudiantes$a"] })).toBe(2);
+  });
+});
