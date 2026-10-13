@@ -69,3 +69,47 @@ Lo cierra sólo el usuario. Se dibuja entero cada vez que se menciona.
 2. Preguntas paralelas con códigos distintos: P23/P52, P26/P55, P29_10_otro/P58_10_otro, P29_11_otro/P58_11_otro, P30_otro/P59_otro.
 3. Asignaciones dudosas: «a el programa de violencia de genero de la universidad» → Representante estudiantil (P29_10_otro); P66 código 11 «Observaciones» con 7 no respuestas; P58_11_otro 88 «Ninguno» con sólo «.»; «safica» → Bisexual (P4); «transmasculino» → Género no binario (P3).
 4. Menores: 4 casos sin código (P4 «hombre», P55 «cristalito» por emoji distinto, P60 «.» ×2); P60 con dos textos en dos códigos; P8 código «1» vacío y años ≤2017 como «Otro»; etiqueta «Pansexual /Queer».
+
+## Diseño de P2 — base de partida declarada (2026-10-13, sin código todavía)
+
+**Qué ya existe y se reusa.** La ficha del universo declara cuántas encuestas
+se recibieron y cuántas quedaron. Desde el ADR 0076 lee el linaje de Limpieza
+en `estudio$bases[[b]]$limpieza` (`n_casos_antes`, `n_casos_despues`) con
+`.validacion_universe_cleaning()` (`api/R/router_validacion.R:~79`), y saca
+**sólo el agregado**: los identificadores y motivos son material interno.
+
+**Qué falta.** Cuando la depuración se hizo en un script, la base llega ya
+recortada y la ficha arranca en 3 318 como si se hubieran recibido 3 318.
+
+**Propuesta.**
+
+1. Un bloque nuevo `estudio$bases[[b]]$origen_externo`, hermano de `limpieza`:
+   `script` (nombre o ruta declarada), `version` (texto libre o hash),
+   `n_recibidas`, `n_entregadas` (= filas de la base cargada), `exclusiones`
+   (lista de `_uuid`, `motivo`, `categoria`), `data_file_id` (la base a la que
+   se refiere) y `declarado_at`.
+2. Se declara subiendo junto a la base un xlsx o csv de exclusiones con
+   columnas `_uuid` y `motivo` (y `categoria` opcional, por ejemplo «crítico» o
+   «ambiguo»). Es un endpoint nuevo de Carga en archivo propio
+   (`carga_origen_externo.R`), registrado en `plumber_app.R`.
+3. Al declararlo se comprueban dos cosas y se dicen, no se callan:
+   - Ningún `_uuid` excluido está en la base cargada. Si alguno está, el
+     script no hizo lo que dice la lista.
+   - `n_recibidas = n_entregadas + exclusiones`. Si no cuadra, se publica la
+     diferencia.
+4. La ficha del universo gana un tramo antes de los de siempre:
+   «Recibidas 3 327 → depuración externa −9 → 3 318 → limpieza en la app …».
+   Igual que hoy, sólo el agregado y los motivos agrupados por `categoria`
+   (3 críticos y 6 ambiguos), nunca los `_uuid`.
+5. Si la data de la base cambia (`data_file_id` distinto del declarado), el
+   bloque no se borra en silencio: pasa a «declarado para otra base», como el
+   estado «rige pero ya no puede explicarse» de `PromocionBase`, hasta que se
+   vuelva a declarar.
+
+**Caso HSyVBG.** Recibidas 3 327 efectivas de Monitoreo, 9 exclusiones
+(3 críticos y 6 ambiguos, lista ya conocida con sus `_uuid`), entregadas
+3 318. Los 11 casos de observación menor se mantienen y no entran a la lista.
+
+**Pregunta para Gonzalo antes de construir.** ¿La ficha técnica del cliente
+debe mostrar el tramo de depuración externa con sus categorías (críticos y
+ambiguos), o sólo el total excluido?
