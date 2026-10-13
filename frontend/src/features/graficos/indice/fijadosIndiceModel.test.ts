@@ -10,7 +10,7 @@ describe("ajustes de los focos del índice fijados por el recetario (decisión 3
   it("los cuatro se muestran siempre, con candado, aunque el plan no guarde nada", () => {
     const ls = lineasFijadasIndice(indice({}));
     expect(ls.map((l) => l.arg)).toEqual([...ARGS_FIJADOS_INDICE]);
-    expect(ls.every((l) => l.motivo.startsWith("Lo fija el recetario"))).toBe(true);
+    expect(ls.every((l) => l.motivo.startsWith("Fijo por diseño"))).toBe(true);
     expect(ls.every((l) => l.nota === null)).toBe(true);
   });
 

@@ -50,7 +50,7 @@ export function SeccionLetra({
         {modificada ? (
           <PulsoButton variant="ghost" size="sm" onClick={onSinLetra} aria-label="Volver al tamaño de letra por defecto">
             <RotateCcw size={14} aria-hidden="true" />
-            Volver al recetario
+            Restablecer
           </PulsoButton>
         ) : null}
       </header>
@@ -79,7 +79,7 @@ export function SeccionLetra({
       {procedenciaPaso === "propio" ? (
         <PulsoButton variant="ghost" size="sm" className="pulso-f6-estilo-volver" onClick={onSinPaso}>
           <RotateCcw size={14} aria-hidden="true" />
-          Tamaño general del recetario
+          Tamaño general por defecto
         </PulsoButton>
       ) : null}
 
