@@ -1676,11 +1676,11 @@
   # =========================================================================
   p_dumbbell = list(
     titulo_humano = "Brecha entre dos grupos",
-    descripcion   = "Compara dos fuentes con select_one plano independiente, filtros y peso activos, y firma E1 común: brecha = primera − segunda; la primera es el grupo principal (en antes/después, la medición más reciente).",
+    descripcion   = "Un punto por grupo y la distancia entre ambos, tema por tema: dos grupos de una base (mujeres y hombres) o dos bases con preguntas equivalentes (docentes y estudiantes). La brecha es el primero menos el segundo.",
     icono_ui      = "MoveHorizontal",
     categoria     = "comparison",
     blueprint     = "dumbbell",
-    requisito     = "Todos los temas deben declarar la misma pareja ordenada y completa de dos fuentes distintas, o —con «Comparar dos grupos de»— una pregunta por tema de la misma base que el cruce.",
+    requisito     = "Entre dos grupos: una pregunta que define los grupos y, por tema, una pregunta de esa misma base. Entre dos bases: cada tema con su pregunta en las dos bases, desde la matriz de equivalencias.",
     args = c(list(
       # G17 (Gonzalo, 2026-10-13): la brecha también entre dos grupos de una base (lámina 250 del diseño).
       list(name = "cruce", label = "Comparar dos grupos de", tipo_input = "variable_opt", grupo = "datos",
@@ -1688,18 +1688,18 @@
       list(name = "grupos", label = "Grupos que se comparan", tipo_input = "codigos_list", grupo = "datos",
            descripcion = "Los dos códigos del cruce, en orden: la brecha es el primero menos el segundo."),
       list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
-           descripcion = "Códigos de una firma E1 común sobre select_one plano independiente; aplica filtros y peso activo en cada fuente."),
+           descripcion = "Las respuestas que suman el porcentaje de cada punto (ej. Satisfecho y Muy satisfecho). Se calcula con los filtros y la ponderación activos."),
       list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos"),
       list(name = "orden", label = "Orden de las filas", tipo_input = "choice", grupo = "estilo",
            default = "brecha",
            choices = list(
              list(value = "brecha", label = "Por brecha", hint = "La lectura de ranking: la diferencia mayor, con su signo, arriba."),
-             list(value = "valor", label = "Por valor de la primera base"),
+             list(value = "valor", label = "Por valor del primer grupo"),
              list(value = "declarado", label = "Orden declarado")
            )),
       list(name = "mostrar_brecha", label = "Mostrar la brecha", tipo_input = "bool", grupo = "valores",
            default = TRUE,
-           descripcion = "Escribe al margen la primera fuente menos la segunda (+6 pts si la primera está 6 puntos arriba). En antes/después declara primero la medición más reciente."),
+           descripcion = "Escribe al margen el primer grupo menos el segundo (+6 pts si el primero está 6 puntos arriba). En antes y después, pon primero la medición más reciente."),
       list(name = "umbral_brecha_pct", label = "Umbral de brecha (pp)", tipo_input = "number", grupo = "valores",
            default = 0, min = 0, max = 50, step = 1, unidad = "pp",
            descripcion = "Sólo se rotulan las brechas de al menos este tamaño."),
