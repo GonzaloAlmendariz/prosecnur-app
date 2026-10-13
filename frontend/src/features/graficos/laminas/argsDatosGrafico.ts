@@ -167,6 +167,8 @@ const LISTA_BLANCA: Record<string, Entrada> = {
     ayuda: AYUDA_CEROS,
     soloEn: ["p_barras_apiladas", "p_barras_multiapiladas"],
   },
+  // G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos. Lo dibuja la lámina que compara públicos.
+  ancho_tema: { rotulo: "Ancho de los temas", ayuda: "Cuenta cuando la lámina compara públicos.", soloEn: ["p_barras_multiapiladas"] },
   excluir_opciones: { rotulo: "Excluir respuestas", ayuda: "Códigos separados por comas (p. ej. 88, 99)." },
   excluir_grupos: { rotulo: "Excluir grupos", ayuda: "Códigos separados por comas." },
   // Tabla (5a, ruta anterior): formales de p_tabla (p_radar_split.R); `sm_omit_na = TRUE` sin default en el registro.

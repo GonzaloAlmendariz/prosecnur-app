@@ -5039,7 +5039,7 @@ reporte_ppt_plan <- function(
             # el enunciado no cambió ni una línea.
             group_title <- stringr::str_wrap(group_title, width = .multiactor_wrap_tema(
               .reporte_plan_multiactor_canvas_defaults(
-                TRUE, (presets$multi_apiladas_multiactor$args %||% list())
+                TRUE, .multiactor_preset_de(presets, el)
               )$canvas_w_grupo,
               wrap_y_eff))
           }
@@ -5348,7 +5348,7 @@ reporte_ppt_plan <- function(
           args,
           .reporte_plan_multiactor_canvas_defaults(
             isTRUE(show_extra),
-            preset_args = (presets$multi_apiladas_multiactor$args %||% list())
+            preset_args = .multiactor_preset_de(presets, el)
           )
         )
         args$mostrar_barra_extra <- isTRUE(show_extra)

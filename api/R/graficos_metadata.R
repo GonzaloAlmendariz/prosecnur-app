@@ -1278,7 +1278,15 @@
       # C40: formal de `p_barras_multiapiladas()`; en «Combinar bloques» cada bloque lo hereda. Default = preset `multi_apiladas`.
       list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
            default = FALSE,
-           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %.")
+           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %."),
+      # G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos y no en proporciones. Sólo lo usa la
+      # lámina que compara públicos; «Automático» es el reparto del estilo del informe.
+      list(name = "ancho_tema", label = "Ancho de los temas", tipo_input = "choice", grupo = "valores", default = "auto",
+           choices = list(
+             list(value = "auto", label = "Automático"),
+             list(value = "ancho", label = "Más ancho"),
+             list(value = "angosto", label = "Más angosto")),
+           descripcion = "La columna donde va el enunciado de cada tema. Más ancho: menos líneas por tema y barras más cortas.")
     ), .args_graf_comunes())
   ),
 

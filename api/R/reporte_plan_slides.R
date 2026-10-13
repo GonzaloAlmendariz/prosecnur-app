@@ -2119,7 +2119,8 @@ p_barras_multiapiladas <- function(
     overrides = list(),
     base = list(),
     filtros = list(),
-    mostrar_categorias_en_cero = NULL
+    mostrar_categorias_en_cero = NULL,
+    ancho_tema = NULL
 ) {
   .ppt_as_chr_vec <- function(x, keep_names = FALSE) {
     if (is.null(x)) return(NULL)
@@ -2214,6 +2215,7 @@ p_barras_multiapiladas <- function(
   filtros <- .ppt_norm_filters(filtros)
   # C40: en multilista cada bloque hereda estos overrides (y puede pisarlos con los suyos).
   overrides <- .ppt_slot_override(overrides, "mostrar_categorias_en_cero", mostrar_categorias_en_cero, "bool")
+  overrides <- .ppt_slot_override(overrides, "ancho_tema", ancho_tema, "opcion", opciones = names(.MULTIACTOR_ANCHO_TEMA))
 
   if (identical(modo, "multilista")) {
     if (!is.list(bloques) || !length(bloques)) {
