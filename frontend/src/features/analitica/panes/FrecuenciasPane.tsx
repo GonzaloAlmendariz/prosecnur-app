@@ -10,6 +10,7 @@ import { useAnaliticaStore } from "../store";
 import { VariableSelect } from "../VariableSelect";
 import { Section, GenerateFooter } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
+import { NotasPieEditor } from "./NotasPieEditor";
 
 // FrecuenciasPane — configuración específica del reporte de frecuencias.
 // Las secciones del instrumento y las variables excluidas globalmente
@@ -71,6 +72,10 @@ export function FrecuenciasPane() {
     { k: "asc", label: "Menos frecuentes", hint: "Útil para detectar minorías", icon: <ArrowUp01 size={13} /> },
     { k: "original", label: "Instrumento", hint: "Respeta el orden del XLSForm", icon: <ListOrdered size={13} /> },
   ] as const;
+  const variablesConTabla = useMemo(
+    () => variables.filter((v) => !variablesExcluidas.has(v.name) && (!!v.categorica || numericas.includes(v.name))),
+    [variables, variablesExcluidas, numericas],
+  );
   const ordenActual = ordenOptions.find((o) => o.k === frec.orden) ?? ordenOptions[0];
 
   return (
@@ -210,6 +215,8 @@ export function FrecuenciasPane() {
             </div>
           </div>
         </Section>
+
+        <NotasPieEditor variante="frecuencias" variables={variablesConTabla} />
 
         <GenerateFooter
           label="Generar frecuencias"
