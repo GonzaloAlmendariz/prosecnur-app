@@ -210,6 +210,7 @@ describe("OrigenExternoVista", () => {
     expect(html).toContain("<dt>No va al cliente</dt><dd>1</dd>");
     expect(html).toContain("<dt>Otra</dt><dd>1</dd>");
     expect(html).toContain("No salen en los entregables: start, p40.");
+    expect(html).toContain('href="/analitica?pestana=datos&amp;panel=excluidas&amp;foco=');
     expect(html).toContain('data-aviso="variable_presente"');
     expect(html).toContain("p12 sí está en la base; no se declaró como retirada.");
     expect(html).not.toContain("carga-origen-externo-tramos");

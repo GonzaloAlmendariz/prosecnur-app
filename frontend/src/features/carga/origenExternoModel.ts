@@ -200,3 +200,15 @@ export function variablesExcluidasDeLaDeclaracion(datos: OrigenExterno): string[
     .map((v) => v.variable);
   return Array.from(new Set([...delBloque, ...datos.variables_excluidas_agregadas]));
 }
+
+/**
+ * Dónde se ven y editan las variables excluidas: el panel lateral de Analítica
+ * (`panelesAnalitica.ts`, id `excluidas`). Con `foco` en la base declarada, el
+ * panel avisa si no es la activa en vez de cambiarla solo.
+ */
+export function hrefVariablesExcluidas(baseNombre?: string | null): string {
+  const params = new URLSearchParams({ pestana: "datos", panel: "excluidas" });
+  const base = (baseNombre ?? "").trim();
+  if (base) params.set("foco", base);
+  return `/analitica?${params.toString()}`;
+}
