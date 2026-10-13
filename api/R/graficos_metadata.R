@@ -2271,25 +2271,25 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Tamaño del título del gráfico, en puntos (14 por defecto). El título de la lámina se ajusta en la plantilla."),
       list(name = "size_titulo_slide", label = "Tamaño título PPT",      tipo_input = "number", grupo = "estilo",
            default = 24,
-           descripcion = "Tamaño del título de una lámina PPT estructural (pt)."),
+           descripcion = "Tamaño del título en portadas, separadores y láminas de texto, en puntos."),
       list(name = "size_subtitulo",    label = "Tamaño del subtítulo",   tipo_input = "number", grupo = "estilo",
            default = 14),
       list(name = "size_subtitulo_slide", label = "Tamaño subtítulo PPT", tipo_input = "number", grupo = "estilo",
            default = 16,
-           descripcion = "Tamaño del subtítulo de una lámina PPT estructural (pt)."),
+           descripcion = "Tamaño del subtítulo en portadas, separadores y láminas de texto, en puntos."),
       list(name = "size_cuerpo_slide", label = "Tamaño cuerpo PPT",      tipo_input = "number", grupo = "estilo",
            default = 14,
-           descripcion = "Tamaño del cuerpo de texto en láminas PPT estructurales (pt)."),
+           descripcion = "Tamaño del texto en portadas, separadores y láminas de texto, en puntos."),
       list(name = "size_leyenda",      label = "Tamaño de la leyenda",   tipo_input = "number", grupo = "estilo",
            default = 10.5),
       list(name = "size_ejes",         label = "Tamaño de los ejes",     tipo_input = "number", grupo = "estilo",
            default = 10.5,
-           descripcion = "Tamaño de las etiquetas de los ejes X e Y (pt)."),
+           descripcion = "Tamaño de las etiquetas de los ejes, en puntos."),
       list(name = "size_nota_pie",     label = "Tamaño de la nota al pie", tipo_input = "number", grupo = "estilo",
            default = 10),
       list(name = "size_texto_barras", label = "Tamaño del texto de barras", tipo_input = "number", grupo = "estilo",
            default = 4.2,
-           descripcion = "Tamaño de los valores numéricos que se escriben DENTRO de las barras (ej. los %). Nota: en ggplot/cowplot no es pt exacto, son unidades relativas."),
+           descripcion = "Tamaño de las cifras escritas dentro de las barras (ej. los %). Es un tamaño relativo, no puntos exactos."),
 
       # --- Colores de texto ----------------------------------------------
       # Dos títulos, dos colores. El de LÁMINA (y con él los separadores de
@@ -2416,7 +2416,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Agrega la frecuencia entre paréntesis junto al porcentaje, por ejemplo 9% (16)."),
       list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "color", grupo = "estilo",
            default = "white",
-           descripcion = "Color del texto del porcentaje dentro de cada segmento. 'white' o un hex."),
+           descripcion = "Color del porcentaje escrito dentro de cada segmento."),
       list(name = "color_texto_barras_fuera", label = "Color texto fuera de barras", tipo_input = "color", grupo = "estilo",
            default = "#081F5C",
            descripcion = "Color alternativo para etiquetas desplazadas. En apiladas Pulso los porcentajes pequeños se conservan dentro del ancho total de la barra."),
@@ -2476,7 +2476,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "wrap_y",               label = "Wrap eje Y (alternativo)", tipo_input = "number", grupo = "filtro",
            descripcion = "Alias alternativo para ancho_max_eje_y, por compatibilidad."),
       list(name = "invertir_barras",      label = "Invertir orden de las barras", tipo_input = "bool",   grupo = "datos",
-           descripcion = "Si es TRUE, las barras se muestran en orden inverso (la primera abajo, la última arriba)."),
+           descripcion = "Invierte el orden de las barras: la primera abajo y la última arriba."),
 
       # --- Leyenda --------------------------------------------------------
       list(name = "leyenda_posicion",     label = "Posición de la leyenda", tipo_input = "choice", grupo = "estilo",
@@ -2558,13 +2558,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            default = 0.9,
            descripcion = "Solo si modo=auto. Fracción del alto_por_categoria que ocupa la barra (0.9 = barras casi pegadas, 0.6 = más separadas)."),
 
-      # --- Avanzado -------------------------------------------------------
-      list(name = "exportar",             label = "Modo de export",        tipo_input = "choice", grupo = "avanzado",
-           default = "rplot",
-           choices = list(
-             list(value = "rplot",  label = "R plot (default)"),
-             list(value = "image",  label = "Imagen PNG")
-           )),
+      # «Modo de export» (rplot/image) se retiró de la UI: el backend fuerza la salida y «image» ni existía en el
+      # graficador. Una opción que no hace nada no se muestra (loop UI R6, 2026-10-13).
 
       list(name = "metodo_redondeo", label = "Método de redondeo", tipo_input = "choice", grupo = "valores",
            default = "estandar",
@@ -3555,7 +3550,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Muestra los valores en cada círculo (ej. 20, 40, 60...)."),
       list(name = "mostrar_radios",       label = "Mostrar radios",        tipo_input = "bool",   grupo = "estilo", default = FALSE),
       list(name = "rellenar_poligono",    label = "Rellenar polígono",     tipo_input = "bool",   grupo = "estilo", default = FALSE,
-           descripcion = "Si es TRUE, el área dentro del polígono se colorea."),
+           descripcion = "Colorea el área dentro del polígono."),
       list(name = "radar_scale",          label = "Escala del radar",      tipo_input = "number", grupo = "estilo", default = 0.85,
            descripcion = "Fracción del espacio disponible que ocupa el radar (0.85 deja ~15% para respirar)."),
 
@@ -3616,7 +3611,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "tabla_firstcol_frac",  label = "Fracción 1ra columna",   tipo_input = "number", grupo = "tabla",
            descripcion = "Fracción del ancho de la tabla que ocupa la primera columna (0.4 = 40%)."),
       list(name = "tabla_auto_fit",       label = "Auto-ajustar tamaños",   tipo_input = "bool",   grupo = "tabla", default = FALSE,
-           descripcion = "Si es TRUE, intenta ajustar los tamaños automáticamente para que quepa todo."),
+           descripcion = "Ajusta los tamaños para que quepa todo."),
       list(name = "tabla_height_frac",    label = "Fracción de altura",     tipo_input = "number", grupo = "tabla",
            descripcion = "Fracción del alto disponible que ocupa la tabla (0.72 = 72%)."),
 
