@@ -111,3 +111,12 @@ test_that("el plan y /aplicar usan la misma regla de columna faltante", {
   txt <- rows[[4]]  # P30_otro sin text_col
   expect_identical(.codif_columna_faltante(txt, character(0))$motivo, "sin_columna_texto")
 })
+
+test_that("el plan da a P29_10 el mismo motivo que el aviso de /aplicar", {
+  rows <- .omit_rows()
+  plan <- .codif_motivo_plan(rows[[1]], c("P29_10"))
+  aviso <- .codif_omitidas("P29_10", .omit_grupos(), rows, c("P29_10"))[[1]]
+  expect_identical(plan$motivo, "sin_modo")
+  expect_identical(plan$mensaje, aviso$mensaje)
+  expect_identical(.codif_motivo_plan(rows[[3]], c("P4", "P4_otro"))$motivo, "")
+})

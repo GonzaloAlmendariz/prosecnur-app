@@ -188,3 +188,29 @@
   }
   list(motivo = "", mensaje = "")
 }
+
+#' El motivo por el que el plan deja fuera una pregunta, con el texto del aviso.
+#'
+#' La re-QA (2026-10-13) vio P29_10 con «ajuste no reconocido» en el plan y
+#' «no se declaró si el texto se integra…» en el aviso de `/aplicar`: dos textos
+#' para la misma omisión. Aquí el plan toma el mismo orden de decisión que
+#' `.codif_omitidas()`: tipo, modo, columna.
+#'
+#' @return `list(motivo, mensaje)`; vacíos si la pregunta se aplica.
+#' @keywords internal
+.codif_motivo_plan <- function(row, data_cols) {
+  tipo <- as.character(row$tipo %||% "")
+  modo_so <- as.character(row$modo_so %||% "")
+  text_col <- as.character(row$text_col %||% "")
+  if (!tipo %in% c("text", "select_one", "select_multiple", "integer")) {
+    return(list(motivo = "tipo_no_soportado",
+                mensaje = .codif_omitida_texto("tipo_no_soportado", if (nzchar(tipo)) tipo else "sin tipo")))
+  }
+  if (identical(tipo, "select_one") && !modo_so %in% c("padre", "hijo")) {
+    return(list(motivo = "sin_modo", mensaje = .codif_omitida_texto("sin_modo")))
+  }
+  if (identical(tipo, "select_multiple") && !nzchar(text_col)) {
+    return(list(motivo = "sin_columna_texto", mensaje = .codif_omitida_texto("sin_columna_texto", "(sin declarar)")))
+  }
+  .codif_columna_faltante(row, data_cols)
+}
