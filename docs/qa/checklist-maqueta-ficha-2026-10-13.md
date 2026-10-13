@@ -15,8 +15,8 @@ Sólo Gonzalo da por terminado un ítem.
 | 7 | Retiro de lo que la ficha reemplaza (`DibujoBloques`, columna de info, `usaFilasCompactas`) y su CSS | `laminas/` | hecho, por verificar por Gonzalo |
 | 8 | Láminas de estructura con el dibujo de la galería (portada, índice, separador, objetivo ×3, cómo leer, redondeo, ficha técnica, texto, cierre) | `iconos/dibujosEstructura.tsx` / nuevo | pendiente (siguiente tanda) |
 | 9 | Dibujos por tipo que reflejan sus ajustes (promedio, top N, neutro y saldo, con tabla, por grupo…) | `glifosGrafico.tsx` / nuevo | pendiente (siguiente tanda) |
-| 10 | Ícono propio de la Matriz FODA dimensional (hoy cae en el marco genérico) | `iconos/iconosGrafico.tsx` | pendiente (hallazgo) |
-| 11 | M10: «Respuestas por público» como ajuste (motor + pestaña Gráfico + ficha) | `api/R/lamina_escala.R`, `argsDatosGrafico.ts` | pendiente (siguiente tanda) |
+| 10 | Ícono propio de la Matriz FODA dimensional (hoy cae en el marco genérico) | `iconos/iconosGrafico.tsx` | no aplica: la FODA está retirada a propósito (`GRAFICOS_RETIRADOS`; la reemplazó la Matriz de cuadrantes, G16); sólo se dibuja en planes viejos y su marco genérico lo exige `iconosTipo.contract.test.ts` |
+| 11 | M10: «Respuestas por público» como ajuste (motor + pestaña Gráfico + ficha) | `p_barras_apiladas()`/`p_barras_multiapiladas()` → `graficar_barras_apiladas(mostrar_respuestas)` → `espec$mostrar_respuestas` → `lamina_escala.R` (3 sitios); `graficos_metadata.R`, `argsDatosGrafico.ts`, `fichaModelo.ts` | hecho, por verificar por Gonzalo |
 
 ## Notas
 

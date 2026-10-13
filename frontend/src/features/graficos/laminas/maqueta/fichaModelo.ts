@@ -137,6 +137,8 @@ export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null): Fich
   if (cruce) ajustes.push(`Por grupos: ${cruce}`);
   const eje = ejeDe(r.args);
   if (eje >= 0.3) ajustes.push("Temas anchos");
+  const ov = (r.args.overrides && typeof r.args.overrides === "object" ? r.args.overrides : {}) as Record<string, unknown>;
+  if (publicos.length && (r.args.mostrar_respuestas === false || ov.mostrar_respuestas === false)) ajustes.push("Sin respuestas por público");
   const lectura = r.graficador === "p_barras_multiapiladas" ? lecturaMulti(r.args) : null;
   // Dicotómica: dos respuestas y, a lo más, una residual («No sabe»). Género, con «Prefiero no responder» y «Otro», no lo es.
   const unica = escalas.size === 1 ? [...escalas.values()][0].opciones : [];

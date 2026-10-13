@@ -1169,6 +1169,9 @@ graficar_barras_apiladas <- function(
     # conservando la suma 100 %. Es el ESCAPE de la regla de abajo: apagado
     # —el default— un segmento que redondea a 0 % no se dibuja.
     mostrar_categorias_en_cero = FALSE,
+    # «N respuestas» junto a cada público en la lámina nativa (M10 de la maqueta; Gonzalo, 2026-10-13). Encendido por
+    # defecto, como siempre salió; apagado, el público se queda y su conteo no.
+    mostrar_respuestas    = TRUE,
     piso_categoria_cero   = .BARRAS_PISO_CERO,
     # `estandar` (cada cifra se redondea sola, el 0,5 sube) o `reparto` (resto
     # mayor, las cifras suman exactamente 100 %). Ver `.pulso_pct_metodo()`.
@@ -2871,6 +2874,7 @@ graficar_barras_apiladas <- function(
     message("[espec escala] ", conditionMessage(e))
     NULL
   })
+  if (!is.null(espec_escala)) espec_escala$mostrar_respuestas <- !identical(mostrar_respuestas, FALSE)
   if (isTRUE(mostrar_barra_extra) && barra_extra_preset %in% c("top2box", "top3box", "bottom2box") &&
       !is.null(espec_escala$box$unidades)) {
     i_esp <- match(cat_lvls, espec_escala$filas$id)

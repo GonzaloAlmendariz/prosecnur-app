@@ -2039,12 +2039,14 @@ p_barras_categoricas <- function(
 #' @param mostrar_categorias_en_cero Si `TRUE`, dibuja las opciones sustantivas
 #'   sin casos; las especiales (90-99, SIN INF) ausentes nunca (C40 D2). `NULL`
 #'   hereda el preset.
+#' @param mostrar_respuestas Si `FALSE`, la lámina no escribe «N respuestas» junto a cada público (el público se
+#'   queda). `NULL` hereda (encendido).
 #' @examples
 #' p_barras_apiladas("p102", filtros = list(region = "Lima"))
 #' @family reporte
 #' @export
 p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), excluir_opciones = NULL,
-                              mostrar_categorias_en_cero = NULL) {
+                              mostrar_categorias_en_cero = NULL, mostrar_respuestas = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -2064,6 +2066,7 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
   filtros <- .ppt_norm_filters(filtros)
   excluir_opciones <- .ppt_norm_chr_vec_arg(excluir_opciones, "excluir_opciones")
   overrides <- .ppt_slot_override(overrides, "mostrar_categorias_en_cero", mostrar_categorias_en_cero, "bool")
+  overrides <- .ppt_slot_override(overrides, "mostrar_respuestas", mostrar_respuestas, "bool")
 
   el <- list(
     .element_type = "barras_apiladas",
@@ -2120,7 +2123,8 @@ p_barras_multiapiladas <- function(
     base = list(),
     filtros = list(),
     mostrar_categorias_en_cero = NULL,
-    ancho_tema = NULL
+    ancho_tema = NULL,
+    mostrar_respuestas = NULL
 ) {
   .ppt_as_chr_vec <- function(x, keep_names = FALSE) {
     if (is.null(x)) return(NULL)
@@ -2216,6 +2220,7 @@ p_barras_multiapiladas <- function(
   # C40: en multilista cada bloque hereda estos overrides (y puede pisarlos con los suyos).
   overrides <- .ppt_slot_override(overrides, "mostrar_categorias_en_cero", mostrar_categorias_en_cero, "bool")
   overrides <- .ppt_slot_override(overrides, "ancho_tema", ancho_tema, "opcion", opciones = names(.MULTIACTOR_ANCHO_TEMA))
+  overrides <- .ppt_slot_override(overrides, "mostrar_respuestas", mostrar_respuestas, "bool")
 
   if (identical(modo, "multilista")) {
     if (!is.list(bloques) || !length(bloques)) {
