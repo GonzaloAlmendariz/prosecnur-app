@@ -113,3 +113,16 @@ recortada y la ficha arranca en 3 318 como si se hubieran recibido 3 318.
 **Pregunta para Gonzalo antes de construir.** ¿La ficha técnica del cliente
 debe mostrar el tramo de depuración externa con sus categorías (críticos y
 ambiguos), o sólo el total excluido?
+
+## Hallazgos abiertos de la QA visual (2026-10-13)
+
+- **P1, C5: el aviso de omitidas se perdía al terminar el job.** Al llegar
+  `pulso:session-changed`, `CodificacionPage` cambia el subárbol por un
+  `LoadingBlock` y `AdaptarPane` se monta de nuevo sin su estado (el aviso duró
+  unos 25 s). Ya ocurría antes del aviso: también se perdían `sin_recodificar`
+  y las descargas. En arreglo: los avisos pasan a un store del feature, uno por base.
+- **El plan de adaptación no ve las columnas que faltan.** Con la base sin
+  `P66_otro`, el plan dice «1 pregunta quedará fuera» (sólo P29_10) y
+  `/aplicar` omite 2. `.compute_plan_adaptacion()` (`router_codificacion.R`)
+  no comprueba si la columna de texto está en la base. Pendiente: que el plan
+  use `.codif_omitidas()` para que los dos números sean el mismo.
