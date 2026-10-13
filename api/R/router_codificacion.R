@@ -3291,25 +3291,34 @@ mount_codificacion <- function(pr) {
       codif_set(sid, "ultimo_aplicar_sin_recodificar", sin_recod)
       # ADR 0100, P1: lo que el puente omitió (con su motivo) y los textos que
       # quedaron sin código. Igual que `sin_recodificar`, informa y no bloquea:
-      # si el diagnóstico falla, el aplicar sigue y la lista sale vacía.
+      # si el diagnóstico falla, el aplicar sigue. Pero NO en silencio —una lista
+      # vacía por error se leería como «no se omitió nada»—: el fallo va a stderr
+      # y la respuesta lo declara en `avisos_incompletos`.
+      diag_fallos <- character(0)
+      diag_fallo <- function(que) function(e) {
+        diag_fallos <<- c(diag_fallos, que)
+        message(sprintf("[prosecnur-app] /aplicar: no se pudo diagnosticar %s: %s", que, conditionMessage(e)))
+        list()
+      }
       omitidas <- tryCatch(
         c(
           .codif_omitidas(bridge$skipped, grupos_map, draft$rows, names(data_adapt_df)),
           .codif_agrupaciones_omitidas(
             codif_agrupaciones_para_aplicar(sid, target_base), names(data_adapt_df))
         ),
-        error = function(e) list()
+        error = diag_fallo("las preguntas omitidas")
       )
       textos_sin_codigo <- tryCatch(
         .codif_textos_sin_codigo(bridge$patched, grupos_map, draft$rows, data_adapt_df),
-        error = function(e) list()
+        error = diag_fallo("los textos sin código")
       )
 
       list(
         ok = TRUE, job_id = job_id, kind = "codificacion.aplicar",
         sin_recodificar = sin_recod,
         omitidas = omitidas,
-        textos_sin_codigo = textos_sin_codigo
+        textos_sin_codigo = textos_sin_codigo,
+        avisos_incompletos = as.list(diag_fallos)
       )
     }))
 }
