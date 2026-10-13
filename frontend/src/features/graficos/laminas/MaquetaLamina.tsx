@@ -17,7 +17,7 @@ import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import { useVariables } from "../useVariables";
 import type { LaminaEnEstructura } from "./modeloEstructura";
-import { baseAutomatica, COLOR_MAYOR, COLOR_RESTO, COLOR_SEGUNDA, ranurasDeMaqueta } from "./modeloMaqueta";
+import { baseAutomatica, COLOR_MAYOR, COLOR_RESTO, COLOR_SEGUNDA, ranurasDeMaqueta, usaFilasCompactas } from "./modeloMaqueta";
 import { varianteDe } from "./selectores/tiposLamina";
 import { camposTextoDe, ZonasTextoLamina, zonasPortada, type CampoTextoLamina } from "./ZonasTextoLamina";
 import { tituloQueSale } from "./tituloQueSale";
@@ -113,9 +113,10 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
             </span>
             )}
             {r.graficador && !r.pregunta && <span className="pulso-f6-maqueta-falta">Falta elegir la pregunta</span>}
-            {/* Con cuatro preguntas o más, una línea por pregunta y la escala una vez: las cajas completas no caben en la
-                zona de datos y la ranura las recortaba arriba y abajo (Gonzalo, 2026-10-13, lámina 10 de Arte). */}
-            {r.preguntas.length > 3 ? (
+            {/* Con cuatro preguntas o más —o desde dos con la misma escala—, una línea por pregunta y la escala una vez: las
+                cajas completas repiten la leyenda, no caben en la zona de datos y la ranura las recortaba arriba y abajo
+                (Gonzalo, 2026-10-13, láminas 10 y 12 de Arte). */}
+            {usaFilasCompactas(r.preguntas.length, r.mismaEscala) ? (
               <span className="pulso-f6-maqueta-preguntas is-compacta">
                 {r.preguntas.slice(0, maxCompactas(r.rect.h)).map((q, j) => (
                   <span key={j} className="pulso-f6-maqueta-pregunta-fila">
