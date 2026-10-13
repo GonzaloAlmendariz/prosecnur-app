@@ -295,7 +295,7 @@ describe("importar por bloques", () => {
 
   test("rechaza un mapa vacío o con una base repetida", () => {
     expect(mapaPeriodosValido({ "2024": "" }).ok).toBe(false);
-    expect(mapaPeriodosValido({ "2024": "a", "2025": "a" }).motivo).toBe("Dos años apuntan a la misma base.");
+    expect(mapaPeriodosValido({ "2024": "a", "2025": "a" }).motivo).toBe("Dos columnas apuntan a la misma base.");
     expect(mapaPeriodosValido({ "2024": "a", "2025": "" }).ok).toBe(true);
   });
 

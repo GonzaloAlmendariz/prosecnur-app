@@ -1,0 +1,57 @@
+/* Chip con controles (ChipConControles.tsx). Radios concéntricos: el chip es
+ * píldora y sus controles son círculos inscritos con la misma holgura en los
+ * cuatro lados. Un solo token de radio por nivel: `--pulso-radius-chip`. */
+.pulso-chip-controles {
+  --pulso-chip-alto: var(--pulso-control-height-sm);
+  --pulso-chip-holgura: calc(var(--pulso-space-1) / 2);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-chip-holgura);
+  height: var(--pulso-chip-alto);
+  padding: var(--pulso-chip-holgura) var(--pulso-chip-holgura) var(--pulso-chip-holgura) var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+}
+
+.pulso-chip-control {
+  /* Diámetro = alto del chip − 2 bordes − 2 holguras: el círculo toca la
+   * curva interior del chip a la misma distancia en todo su contorno. */
+  --pulso-chip-control-diametro: calc(
+    var(--pulso-chip-alto, var(--pulso-control-height-sm)) - 2px
+      - 2 * var(--pulso-chip-holgura, calc(var(--pulso-space-1) / 2))
+  );
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--pulso-chip-control-diametro);
+  height: var(--pulso-chip-control-diametro);
+  min-width: var(--pulso-chip-control-diametro);
+  min-height: var(--pulso-chip-control-diametro);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  box-shadow: none;
+  color: var(--module-accent, var(--pulso-primary));
+  line-height: 0;
+}
+
+.pulso-chip-control:hover:not(:disabled) {
+  border-color: var(--module-accent-border, var(--pulso-primary-border));
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  box-shadow: none;
+  transform: none;
+}
+
+.pulso-chip-control:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: 1px;
+}
+
+.pulso-chip-control:disabled {
+  color: var(--pulso-text-faint);
+}

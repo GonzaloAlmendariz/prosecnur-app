@@ -849,7 +849,9 @@ export default function CargaPage() {
       : Number(hasXlsform || hasData);
   // Conteo de la equivalencia declarada, para que la pestaña diga si hay trabajo
   // hecho sin obligar a abrirla.
-  const [equivalenciasFilas, setEquivalenciasFilas] = useState(0);
+  // `null` hasta que Equivalencias la lee; así la pestaña dice «Revisando…» y
+  // no un «Pendiente» que todavía no sabe.
+  const [equivalenciasFilas, setEquivalenciasFilas] = useState<number | "error" | null>(null);
   const reviewHasIssues = Boolean(cargaReview && (
     !cargaReview.compatibility.ok
     || cargaReview.choice_mapping.pending
@@ -889,6 +891,7 @@ export default function CargaPage() {
       basesPrimarias: topologyBases.length,
     }),
     equivalenciasDeclaradas: equivalenciasFilas,
+    equivalenciasLeyendo: cargaDireccion.pestana === "equivalencias" && equivalenciasFilas === null,
     // Solo mientras se mira Revisión: en otras pestañas no se lee y la marca
     // se quedaría en «Revisando…» para siempre.
     revisionLeyendo: cargaDireccion.pestana === "revision" && !revisionEstado.datosLeidos,

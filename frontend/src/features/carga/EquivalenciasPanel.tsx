@@ -16,7 +16,6 @@ import {
   CheckCheck,
   CheckCircle2,
   Download,
-  GitCompare,
   Layers,
   Save,
   Sparkles,
@@ -39,6 +38,7 @@ import { ArmonizacionPeriodos } from "./ArmonizacionPeriodos";
 import { ImportarBloquesBoton, ImportarBloquesDialog } from "./ImportarBloquesDialog";
 import { EquivalenciasTabla } from "./EquivalenciasTabla";
 import { EquivalenciasDiapositivas } from "./EquivalenciasDiapositivas";
+import { EquivalenciasEsqueleto, EquivalenciasTitulo } from "./EquivalenciasEsqueleto";
 import {
   aFilasEditor,
   agruparEnDiapositivas,
@@ -61,14 +61,16 @@ import {
 import { apiUpload } from "../../api/estudio";
 import { downloadUrl } from "../../api/core";
 import "./EquivalenciasPanel.css";
+import { PulsoButton } from "../../components/PulsoButton";
 
 export type EquivalenciasPanelProps = {
   /**
    * Reporta cuántas preguntas hay declaradas, no cuántas veces se importó. El
    * chip de la pestaña decía «1 pregunta emparejada» tras subir una matriz de
-   * 300 filas porque contaba importaciones.
+   * 300 filas porque contaba importaciones. `"error"`: no se pudo leer, y la
+   * pestaña no debe seguir diciendo «Revisando…» ni afirmar «Pendiente».
    */
-  onDeclaradas?: (n: number) => void;
+  onDeclaradas?: (n: number | "error") => void;
 };
 
 function resumenAplicacion(imp: EquivalenciasImportacion): {
@@ -215,6 +217,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      onDeclaradas?.("error");
     } finally {
       setCargando(false);
     }
@@ -326,18 +329,38 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
     [filas],
   );
 
-  if (cargando && !estado) {
+  // Las columnas siguen la serie declarada (2024, 2025, 2026), no el orden en
+  // que se cargaron las bases.
+  const bases = ordenarBasesPorSerie(estado?.bases ?? [], estado?.armonizacion_periodos);
+
+  // Overlays direccionables: van en portal, fuera de la geometría de la
+  // superficie. Se montan también durante la lectura, para que un enlace a
+  // `panel=armonizacion` muestre su propio estado de carga desde el principio.
+  const overlays = (
+    <>
+      <ArmonizacionFilaEditor
+        estado={estado}
+        cargandoEstado={cargando}
+        variablesPorBase={variablesPorBase}
+        onGuardado={onArmonizacionGuardada}
+      />
+      <ImportarBloquesDialog bases={bases} onAplicado={onBloquesAplicados} />
+    </>
+  );
+
+  // P-A8: la lectura inicial trae la declaración Y el catálogo de variables.
+  // Hasta que llegan las dos, la superficie es su esqueleto y su readiness es
+  // `false`: antes la tabla se pintaba sin catálogo y se daba por lista.
+  if (cargando) {
     return (
-      <section className="pulso-equiv" aria-label="Equivalencias entre bases">
-        <p className="pulso-equiv-cargando">Revisando la declaración del estudio…</p>
-      </section>
+      <>
+        <EquivalenciasEsqueleto />
+        {overlays}
+      </>
     );
   }
 
   const declarada = Boolean(estado?.declarada);
-  // Las columnas siguen la serie declarada (2024, 2025, 2026), no el orden en
-  // que se cargaron las bases.
-  const bases = ordenarBasesPorSerie(estado?.bases ?? [], estado?.armonizacion_periodos);
   const desfasadas = estado?.desfasadas ?? [];
 
   // C1: seccion independiente, no una coleccion de pares. Su alto es intrinseco
@@ -355,72 +378,50 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
     <section
       className="pulso-equiv"
       aria-label="Equivalencias entre bases"
+      // Terminal: la lectura terminó, con datos, vacía o con error a la vista.
+      data-audit-ready="true"
       data-qa-geometry-group="carga-equivalencias"
       data-qa-geometry-contract="intrinsic"
     >
       {/* C1: los miembros son la cabecera y el cuerpo. El aviso y el error son
           estado transitorio de la última acción, no secciones de la superficie. */}
       <header className="pulso-equiv-head" data-qa-geometry-member>
-        <div className="pulso-equiv-title">
-          <GitCompare size={18} aria-hidden="true" />
-          <div>
-            <strong>La misma pregunta en cada base</strong>
-            <small>
-              Cada base nombra sus variables a su manera. Aquí declaras cuál es la misma
-              pregunta en cada una y, si sus respuestas usan códigos distintos, las armonizas.
-            </small>
-            {/* U1: «armonizar» se explica donde aparece, con un ejemplo y no con
-                una definición. Plegado por defecto: quien ya lo sabe no lo relee. */}
-            <details className="pulso-equiv-que-es">
-              <summary>¿Qué es armonizar?</summary>
-              <p>
-                Es poner las respuestas de todas las bases en una misma escala. Por ejemplo, una
-                base codifica «No sabe» como 0 y otra como 99. Armonizar es declarar que las dos son
-                la misma respuesta, para que la comparación cuente lo mismo.
-              </p>
-              <p>
-                Se hace pregunta por pregunta desde la marca «Sin armonizar» o «Armonizada» que
-                acompaña a cada tema. Solo las preguntas armonizadas entran a los comparativos de
-                Analítica.
-              </p>
-            </details>
-          </div>
-        </div>
+        <EquivalenciasTitulo />
         <div className="pulso-equiv-actions">
-          <button
-            type="button"
-            className="pulso-secondary pulso-equiv-btn"
+          <PulsoButton
+            variant="secondary"
+            className="pulso-equiv-btn"
             onClick={() => void onGenerar()}
             disabled={ocupado !== ""}
           >
             <Download size={14} aria-hidden="true" />
             {declarada ? "Descargar plantilla actual" : "Generar plantilla"}
-          </button>
-          <button
-            type="button"
-            className="pulso-secondary pulso-equiv-btn"
+          </PulsoButton>
+          <PulsoButton
+            variant="secondary"
+            className="pulso-equiv-btn"
             onClick={() => void onSugerir()}
             disabled={ocupado !== ""}
             title="Propone emparejamientos por etiqueta, escala y orden. No se guardan sin confirmar."
           >
             <Sparkles size={14} aria-hidden="true" />
             Proponer emparejados
-          </button>
+          </PulsoButton>
           {/* Un `button` real y no un `label` vestido de botón: el label no
               recibía el estilo de sus hermanos (16px/400, sin borde, 18 px de
               alto). El botón es el control —nombre, foco visible y Enter/Espacio
               nativos— y abre el selector de archivo, que queda fuera del orden
               de tabulación para no duplicar la parada. */}
-          <button
-            type="button"
-            className="pulso-secondary pulso-equiv-btn"
+          <PulsoButton
+            variant="secondary"
+            className="pulso-equiv-btn"
             onClick={() => archivoRef.current?.click()}
             disabled={ocupado !== ""}
             aria-controls="pulso-equiv-archivo"
           >
             <Upload size={14} aria-hidden="true" />
             Subir matriz
-          </button>
+          </PulsoButton>
           <ImportarBloquesBoton disabled={ocupado !== ""} />
           <input
             ref={archivoRef}
@@ -547,15 +548,15 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                   + (resumen.sinEtiqueta ? ` · ${resumen.sinEtiqueta} sin etiqueta` : "")
                   + (resumen.conDiapositiva ? ` · ${resumen.conDiapositiva} con diapositiva` : "")}
               </span>
-              <button
-                type="button"
-                className="pulso-primary pulso-equiv-btn"
+              <PulsoButton
+                variant="primary"
+                className="pulso-equiv-btn"
                 onClick={() => void onGuardar()}
                 disabled={ocupado !== "" || !sucio}
               >
                 <Save size={14} aria-hidden="true" />
                 {sucio ? "Guardar cambios" : "Sin cambios"}
-              </button>
+              </PulsoButton>
             </div>
           </>
         ) : !declarada ? (
@@ -630,15 +631,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
         )}
       </div>
 
-      {/* Overlays direccionables: van en portal, fuera de la geometría de la
-          superficie. */}
-      <ArmonizacionFilaEditor
-        estado={estado}
-        cargandoEstado={cargando}
-        variablesPorBase={variablesPorBase}
-        onGuardado={onArmonizacionGuardada}
-      />
-      <ImportarBloquesDialog bases={bases} onAplicado={onBloquesAplicados} />
+      {overlays}
     </section>
   );
 }

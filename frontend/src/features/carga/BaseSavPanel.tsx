@@ -15,6 +15,7 @@ import {
   type BaseSavRegistrada,
 } from "../../api/estudio";
 import "./BaseSavPanel.css";
+import { PulsoButton } from "../../components/PulsoButton";
 
 export type BaseSavPanelProps = {
   /** Se llama tras registrar la base: Carga refresca el estudio. */
@@ -80,15 +81,15 @@ export function BaseSavPanel({ onRegistrada, disabled }: BaseSavPanelProps) {
       </header>
 
       <div className="pulso-base-sav-form" data-qa-geometry-member>
-        <button
-          type="button"
-          className="pulso-secondary pulso-base-sav-btn"
+        <PulsoButton
+          variant="secondary"
+          className="pulso-base-sav-btn"
           onClick={() => archivoRef.current?.click()}
           disabled={disabled || subiendo}
         >
           <Upload size={14} aria-hidden="true" />
           {archivo ? archivo.name : "Elegir archivo .sav"}
-        </button>
+        </PulsoButton>
         <input
           ref={archivoRef}
           className="pulso-base-sav-archivo"
@@ -118,14 +119,14 @@ export function BaseSavPanel({ onRegistrada, disabled }: BaseSavPanelProps) {
             onChange={(e) => setNombre(e.target.value)}
           />
         </label>
-        <button
-          type="button"
-          className="pulso-primary pulso-base-sav-btn"
+        <PulsoButton
+          variant="primary"
+          className="pulso-base-sav-btn"
           disabled={disabled || subiendo || !archivo || !nombre.trim()}
           onClick={() => void registrar()}
         >
           {subiendo ? "Registrando…" : "Registrar base"}
-        </button>
+        </PulsoButton>
       </div>
 
       {estado.tipo === "error" && (
