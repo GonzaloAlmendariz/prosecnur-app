@@ -79,3 +79,12 @@ test_that("sin declaracion no se dibuja, y el motivo dice si hay algo que hacer"
   expect_identical(.box_decidir(NULL, eg, c("pct_1", "pct_2"), 3L)$motivo, "escala_corta")
   expect_false(.box_decidir(NULL, .eg, .cp, 3L)$dibujar)
 })
+
+test_that("una lista sin orden no pide declarar el box: no hay «dos mejores» en género", {
+  eg <- c(pct_1 = "Masculino", pct_2 = "Femenino", pct_3 = "Prefiero no decirlo")
+  d <- .box_decidir(NULL, eg, names(eg), 3L)
+  expect_false(d$dibujar)
+  expect_identical(d$motivo, "sin_orden")
+  # Una escala sigue pidiendo la declaración.
+  expect_identical(.box_decidir(NULL, .eg, .cp, 3L)$motivo, "sin_declaracion")
+})
