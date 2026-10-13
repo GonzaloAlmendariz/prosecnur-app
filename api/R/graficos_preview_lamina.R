@@ -286,6 +286,30 @@
   slide
 }
 
+#' El índice de la vista previa con los capítulos del plan, si no declara los suyos (G2, Gonzalo 2026-10-13)
+#'
+#' En el export, un índice sin `secciones` ni `subindices` lista los capítulos del informe
+#' (`.lam_indice_capitulos_del_plan`). La vista previa arma un mini-plan de una sola lámina, sin separadores: el índice
+#' quedaba sin capítulos, no cabía en el nativo y salía la lámina antigua de cinco focos, aunque se hubiera elegido una
+#' ilustración del recetario. Aquí se le escriben los capítulos que el export encontraría.
+#' @param plan_slides Láminas del plan guardado, en el formato del editor.
+#' @keywords internal
+.preview_con_capitulos <- function(slide, plan_slides) {
+  if (!identical(as.character(slide$tipo %||% "")[1], "p_slide_indice")) return(slide)
+  p <- slide$payload %||% list()
+  lleno <- function(x) any(nzchar(trimws(as.character(unlist(x %||% character(0))))))
+  if (lleno(p$secciones) || lleno(p$subindices)) return(slide)
+  caps <- vapply(plan_slides %||% list(), function(x) {
+    if (!identical(as.character(x$tipo %||% "")[1], "p_slide_seccion")) return(NA_character_)
+    if (identical(((x$payload %||% list())$meta %||% list())$nivel, "subcapitulo")) return(NA_character_)
+    trimws(as.character((x$payload %||% list())$titulo %||% "")[1])
+  }, character(1))
+  caps <- caps[!is.na(caps) & nzchar(caps)]
+  if (!length(caps)) return(slide)
+  slide$payload$secciones <- paste(caps, collapse = "\n")
+  slide
+}
+
 #' Folio que la lámina lleva en el informe (K2, plan F6 §5.8)
 #'
 #' El mini-plan de la vista previa tiene una sola lámina y el motor la numeraba «1». El folio es su lugar en el plan
