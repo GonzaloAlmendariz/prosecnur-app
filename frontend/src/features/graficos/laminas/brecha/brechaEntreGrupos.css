@@ -13,3 +13,8 @@
 .pulso-f6-brecha-corte { border: 0; margin: 0; padding: 0; min-width: 0; }
 .pulso-f6-brecha-opcion { display: flex; gap: var(--pulso-space-1); align-items: center; color: var(--pulso-text); }
 .pulso-f6-dato-ayuda.is-aviso { color: var(--pulso-warn-fg); }
+/* G16: la tarjeta de la matriz de cuadrantes reutiliza esta hoja. */
+.pulso-f6-matriz-tema { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--pulso-space-1); align-items: center;
+  padding-bottom: var(--pulso-space-1); border-bottom: 1px solid var(--pulso-border); }
+.pulso-f6-matriz-tema .pulso-f6-dato-control { grid-column: 1 / -1; }
+.pulso-f6-matriz-cuadrante { display: flex; flex-direction: column; gap: 2px; }

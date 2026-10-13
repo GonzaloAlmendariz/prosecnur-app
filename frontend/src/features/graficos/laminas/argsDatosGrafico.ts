@@ -172,6 +172,13 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   },
   // G11 (2026-10-13): la nube con su ranking de las diez palabras más dichas (lámina 101 del diseño), o sola.
   mostrar_ranking: { rotulo: "Ranking de palabras", soloEn: ["p_nube_palabras"] },
+  // G16: la matriz de cuadrantes; los temas, sus respuestas y los nombres de los cuadrantes van en su tarjeta (MatrizCuadrantes).
+  eje_x: { rotulo: "Nombre del eje horizontal", placeholder: "Satisfacción", soloEn: ["p_matriz_cuadrantes"] },
+  eje_y: { rotulo: "Nombre del eje vertical", placeholder: "Importancia", soloEn: ["p_matriz_cuadrantes"] },
+  linea: { rotulo: "Dónde cortan las líneas", soloEn: ["p_matriz_cuadrantes"] },
+  linea_x: { rotulo: "Corte horizontal (%)", soloEn: ["p_matriz_cuadrantes"], cuando: (v) => v.linea === "valor" },
+  linea_y: { rotulo: "Corte vertical (%)", soloEn: ["p_matriz_cuadrantes"], cuando: (v) => v.linea === "valor" },
+  destacado: { rotulo: "Cuadrante destacado", ayuda: "Lleva fondo y, a la derecha, la lista de lo que cae en él.", soloEn: ["p_matriz_cuadrantes"] },
   // G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos. Lo dibuja la lámina que compara públicos.
   ancho_tema: { rotulo: "Ancho de los temas", ayuda: "Cuenta cuando la lámina compara públicos.", soloEn: ["p_barras_multiapiladas"] },
   excluir_opciones: { rotulo: "Excluir respuestas", ayuda: "Códigos separados por comas (p. ej. 88, 99)." },
