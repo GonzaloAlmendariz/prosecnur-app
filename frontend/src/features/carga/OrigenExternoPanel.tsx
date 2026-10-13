@@ -217,7 +217,7 @@ export function OrigenExternoVista({
               <input
                 type="text"
                 autoComplete="off"
-                placeholder="limpieza_hostigamiento.R"
+                placeholder="limpieza.R"
                 value={borrador.script}
                 onChange={(event) => onBorrador({ script: event.target.value })}
               />
