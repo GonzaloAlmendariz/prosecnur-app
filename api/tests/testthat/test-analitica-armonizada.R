@@ -750,3 +750,93 @@ test_that("sin variable: el preview de R3 sigue cortando con E_EQUIV_ARMONIZACIO
   expect_equal(e$code, "E_EQUIV_ARMONIZACION_SIN_VARIABLE")
   expect_equal(e$status, 409)
 })
+
+# ---- Una fila defectuosa no tumba el libro ----------------------------------------
+
+.az_romper_mapa <- function(sid) {
+  eq <- session_get(sid)$equivalencias_publicos
+  eq$filas[[1]]$armonizacion$por_base$b2025$mapa <- list(`1` = "1", `2` = "2")  # códigos de otro año
+  session_set(sid, "equivalencias_publicos", eq)
+  invisible(sid)
+}
+
+test_that("omitidas: con varias preguntas, la de mapa roto se omite y queda declarada en aviso, libro y manifest", {
+  sid <- .az_romper_mapa(.az_setup())
+  ap <- .armz_preparar(sid, list(notas = .az_notas()))
+  expect_identical(vapply(ap$preguntas, `[[`, "", "etiqueta"), c("Denunció", "Lugar de nacimiento"))
+  expect_length(ap$omitidas, 1L)
+  o <- ap$omitidas[[1]]
+  expect_identical(o[c("tipo", "fila", "motivo", "base")],
+                   list(tipo = "pregunta", fila = "Violencia alguna vez", motivo = "mapa_roto", base = "b2025"))
+  expect_setequal(unlist(o$codigos), c("10", "20", "30"))
+  av <- Filter(function(a) identical(a$tipo, "pregunta_omitida"), armonizada_avisos(ap))
+  expect_length(av, 1L)
+  expect_identical(av[[1]]$motivo, "mapa_roto")
+  expect_identical(av[[1]]$base, "b2025")
+  expect_match(av[[1]]$mensaje, "no se incluyó en el comparativo", fixed = TRUE)
+  expect_match(av[[1]]$mensaje, "Ningún caso de 2025 cae en la escala", fixed = TRUE)
+
+  r <- .az_llamar(sid, "/api/analitica/armonizada/frecuencias", list())
+  expect_identical(r$status, 200L)
+  expect_identical(r$public$resumen$n_preguntas, 2L)
+  expect_identical(r$public$resumen$omitidas[[1]]$motivo, "mapa_roto")
+  files <- session_get(sid)$files
+  path <- files[[r$public$file_id]]$path
+  expect_identical(openxlsx::getSheetNames(path), c("Comparativo", "Preguntas omitidas"))
+  om <- openxlsx::read.xlsx(path, sheet = "Preguntas omitidas", colNames = FALSE, skipEmptyRows = FALSE)
+  expect_identical(unname(unlist(om[2, 1:4])), c("Pregunta", "Uso", "Motivo", "Año"))
+  expect_identical(unname(unlist(om[3, 1:4])),
+                   c("¿Alguna vez en la vida has experimentado violencia basada en género?",
+                     "Pregunta", "Mapa roto", "2025"))
+  man <- jsonlite::fromJSON(files[[r$public$artifacts[[2]]$file_id]]$path, simplifyVector = FALSE)
+  expect_identical(man$omitidas[[1]]$motivo, "mapa_roto")
+  expect_identical(man$omitidas[[1]]$base, "b2025")
+  expect_true("pregunta_omitida" %in% vapply(man$avisos, `[[`, "", "tipo"))
+})
+
+test_that("omitidas: sin defectos el libro no lleva la hoja de omitidas", {
+  sid <- .az_setup()
+  r <- .az_llamar(sid, "/api/analitica/armonizada/frecuencias", list())
+  path <- session_get(sid)$files[[r$public$file_id]]$path
+  expect_identical(openxlsx::getSheetNames(path), "Comparativo")
+  expect_length(r$public$resumen$omitidas, 0L)
+})
+
+test_that("omitidas: con una sola pregunta pedida el mapa roto sigue siendo 409", {
+  sid <- .az_romper_mapa(.az_setup())
+  e <- tryCatch(.armz_preparar(sid, list(), filas_refs = list("VBG-01")), api_error = function(e) e)
+  expect_equal(e$code, "E_ARMONIZADA_MAPA_ROTO")
+  expect_equal(e$status, 409)
+  r <- .az_llamar(sid, "/api/analitica/armonizada/frecuencias", list(filas = list("VBG-01")))
+  expect_identical(r$status, 409L)
+})
+
+test_that("omitidas: opción múltiple se omite entre varias, y si todas son defectuosas sigue el 409", {
+  sid <- .az_setup(sm = list(b2025 = "v25"))
+  ap <- .armz_preparar(sid, list(), filas_refs = list("VBG-01", "DEN-01"))
+  expect_identical(vapply(ap$preguntas, `[[`, "", "etiqueta"), "Denunció")
+  expect_identical(ap$omitidas[[1]]$motivo, "select_multiple")
+  expect_identical(ap$omitidas[[1]]$variable, "v25")
+
+  sid2 <- .az_setup(sm = list(b2024 = c("v24", "den24")))
+  e <- tryCatch(.armz_preparar(sid2, list(), filas_refs = list("VBG-01", "DEN-01")), api_error = function(e) e)
+  expect_equal(e$code, "E_ARMONIZADA_SELECT_MULTIPLE")
+  expect_equal(e$status, 409)
+})
+
+test_that("omitidas: una variable de cruce defectuosa se omite con aviso si hay otro cruce, sola es 409", {
+  sid <- .az_setup(sm = list(b2024 = "lug24"))
+  ap <- .armz_preparar(sid, list(), filas_refs = list("VBG-01"), cruces_refs = list("S-05", "DEN-01"))
+  expect_identical(vapply(ap$cruces, `[[`, "", "etiqueta"), "Denunció")
+  expect_identical(ap$omitidas[[1]][c("tipo", "fila", "motivo")],
+                   list(tipo = "cruce", fila = "Lugar de nacimiento", motivo = "select_multiple"))
+  av <- Filter(function(a) identical(a$tipo, "cruce_omitido"), armonizada_avisos(ap))
+  expect_length(av, 1L)
+  expect_match(av[[1]]$mensaje, "como variable de cruce", fixed = TRUE)
+  m <- armonizada_modelo_cruces(ap)
+  expect_identical(names(m$preguntas[[1]]$periodos$b2024$cruces), "x2")
+
+  e <- tryCatch(.armz_preparar(sid, list(), filas_refs = list("VBG-01"), cruces_refs = list("S-05")),
+                api_error = function(e) e)
+  expect_equal(e$code, "E_ARMONIZADA_SELECT_MULTIPLE")
+})
