@@ -344,8 +344,36 @@
     base <- if (length(bases)) paste(bases, collapse = ". ") else NULL
   }
   enc <- .lam_mixta_encabezados(especs, els, titulo_de_var)
+  # G9 (Gonzalo, 2026-10-13): si todos los gráficos son del mismo público con el mismo n, el n de cada panel repite lo
+  # que ya dice la base de la lámina; basta con la de la esquina del documento.
+  # Si el analista ocultó la base de la lámina, cada panel conserva la suya: sin ella no quedaría ninguna.
+  if (!isTRUE((slide$meta %||% list())$suppress_base_placeholder) && .lam_mixta_publico_comun(especs, els)) {
+    enc$publicos <- lapply(enc$publicos, function(x) NULL)
+    if (is.null(base)) {
+      notas <- unique(unlist(c(lapply(els, function(el) texto(el$overrides$nota_pie %||% NULL)), lapply(especs, function(e) texto(e$nota)))))
+      if (length(notas) == 1L) base <- notas
+    }
+  }
   .lam_laminas_mixta(doc, especs, tipo, enc$preguntas, enc$publicos, titulo = texto(slots$title %||% slide$title) %||% "",
                      ante = texto((slide$meta %||% list())$antetitulo), base = base, folio = length(doc) + 1L)$doc
+}
+
+#' ¿Todos los gráficos de la lámina son del mismo público con el mismo n? (dos o más, sin contar las cifras sueltas)
+#'
+#' El público sale de la base de la referencia (`docentes$p3`); en un estudio de una base no hay prefijo y todos
+#' comparten la misma.
+#' @keywords internal
+.lam_mixta_publico_comun <- function(especs, els = NULL) {
+  graficos <- which(!vapply(especs, .lam_es_cifra, TRUE))
+  if (length(graficos) < 2L) return(FALSE)
+  ns <- vapply(especs[graficos], function(e) suppressWarnings(as.numeric(.espec_n_base(e))), 0)
+  if (any(!is.finite(ns)) || length(unique(round(ns))) != 1L) return(FALSE)
+  fuente <- function(el) {
+    ref <- as.character(unlist(el$var %||% el$vars %||% ""))[1]
+    if (is.na(ref) || !grepl("$", ref, fixed = TRUE)) "" else sub("\\$.*$", "", ref)
+  }
+  fuentes <- vapply(els[graficos[graficos <= length(els)]], fuente, "")
+  length(unique(fuentes)) <= 1L
 }
 
 #' Bases de los gráficos de una lámina, sin repetir la misma
