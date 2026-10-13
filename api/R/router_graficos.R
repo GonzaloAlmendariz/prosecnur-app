@@ -916,7 +916,12 @@
 }
 
 .graficos_export_filename <- function(sid, label, ext) {
-  active <- .graficos_active_base_name(sid)
+  # D6 (mazo de Arte y Diseño, 2026-10-12): el informe conjunto de tres bases se llamaba «…_docentes_reporte…» porque la
+  # base activa —que en multibase sólo califica las refs peladas— entraba al nombre. Sólo un informe POR BASE
+  # (hermanas independientes) lleva su base en el nombre.
+  siblings <- exists("estudio_is_independent_siblings", mode = "function") &&
+    isTRUE(tryCatch(estudio_is_independent_siblings(sid), error = function(e) FALSE))
+  active <- if (siblings) .graficos_active_base_name(sid) else ""
   if (nzchar(active)) .export_filename(sid, label, ext, base = active) else .export_filename(sid, label, ext)
 }
 
