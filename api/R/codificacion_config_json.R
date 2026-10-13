@@ -367,7 +367,8 @@ CODIF_CONFIG_SCHEMA_VERSION <- "prosecnur.coding_config.v1"
   length((st$familias_draft %||% list())$rows %||% list()) > 0L ||
     length(st$grupos_recod %||% list()) > 0L ||
     length(st$marcadas %||% list()) > 0L ||
-    length(st$respuestas_recod %||% list()) > 0L
+    length(st$respuestas_recod %||% list()) > 0L ||
+    length(st$agrupaciones %||% list()) > 0L
 }
 
 .codif_config_export_sources <- function(sid) {
@@ -404,6 +405,9 @@ codif_config_export <- function(sid) {
     processing_mode = .codif_config_processing_mode(sid),
     suggested_filename = .codif_config_filename(sid),
     variables = variables,
+    # Agrupaciones de categorías (ítem 1f): campo aditivo, el schema v1 lo
+    # ignora al importar en versiones anteriores.
+    agrupaciones = codif_agrupaciones_export(sid, sources),
     metadata = list(
       source = "prosecnur",
       notes = "",
@@ -722,6 +726,7 @@ codif_config_preview_import <- function(sid, bundle, file_name = "") {
       bases = as.list(.codif_config_base_names(sid))
     ),
     items = items,
+    agrupaciones = codif_agrupaciones_preview(sid, bundle),
     summary = .codif_config_preview_summary(items),
     requires_confirmation = TRUE
   )
@@ -882,9 +887,11 @@ codif_config_preview_import <- function(sid, bundle, file_name = "") {
 
 codif_config_apply_import <- function(sid, bundle, selections = list(), file_name = "") {
   preview <- codif_config_preview_import(sid, bundle, file_name)
-  if (is.null(selections) || !is.list(selections) || !length(selections)) {
+  sin_seleccion <- is.null(selections) || !is.list(selections) || !length(selections)
+  if (sin_seleccion && !length(bundle$agrupaciones %||% list())) {
     stop_api(400, "E_CODIF_CONFIG_NO_SELECTION", "Selecciona al menos una variable compatible para importar.")
   }
+  if (sin_seleccion) selections <- list()
   imported <- list()
   skipped <- list()
   versioned <- list()
@@ -907,6 +914,9 @@ codif_config_apply_import <- function(sid, bundle, selections = list(), file_nam
     else if (identical(result, "versioned")) versioned[[length(versioned) + 1L]] <- item
     else skipped[[length(skipped) + 1L]] <- match_id
   }
+  # Las agrupaciones se importan después de las variables: así su validación
+  # ve los catálogos recién importados que reservan `<parent>_recod`.
+  agrupaciones <- codif_agrupaciones_import(sid, bundle)
   audit <- list(
     event = "coding_config_import",
     imported_at = .codif_config_now(),
@@ -924,7 +934,10 @@ codif_config_apply_import <- function(sid, bundle, selections = list(), file_nam
     versioned = versioned,
     skipped = skipped,
     audit = audit,
+    agrupaciones = agrupaciones,
     summary = list(
+      agrupaciones_importadas = as.integer(length(agrupaciones$importadas)),
+      agrupaciones_omitidas = as.integer(length(agrupaciones$omitidas)),
       variables_imported = as.integer(length(imported)),
       variables_versioned = as.integer(length(versioned)),
       variables_skipped = as.integer(length(skipped)),

@@ -1166,6 +1166,8 @@ ppra_export_preserving_sheets <- function(path_datos, out_path,
 #' - **SO-hijo**: `<parent>_<alias>_recod` (azul).
 #' - **TEXT**: `<var>_recod` desde grupos de texto abierto independiente.
 #' - **INTEGER**: `<var>_recod` desde plantilla (morado).
+#' - **AGRUPACIONES**: `target` desde `agrupaciones` (specs de
+#'   `codificacion_agrupar.R`), sin tocar la variable original (morado).
 #' Escribe en la **hoja correcta** (main o repeat) e **inserta al lado del parent**.
 #' Exporta un XLSX preservando **todas las hojas** del archivo de datos.
 #' @family codificacion
@@ -1179,7 +1181,8 @@ ppra_adaptar_data <- function(path_instrumento,
                               text_vars      = character(0),
                               int_vars       = character(0),
                               out_path       = NULL,
-                              path_familias  = NULL){
+                              path_familias  = NULL,
+                              agrupaciones   = list()){
 
   stopifnot(file.exists(path_instrumento), file.exists(path_datos), file.exists(path_plantilla))
 
@@ -1288,6 +1291,21 @@ ppra_adaptar_data <- function(path_instrumento,
       if (!is.null(res$repeat_sheet)) {
         add_rep_update(res$repeat_sheet, res$repeat_df, res$repeat_cols_to_color, kind = "int")
       }
+    }
+  }
+
+  # ---- AGRUPACIONES (códigos existentes -> categorías nuevas, ítem 1f)
+  # La original no se toca: `ppra_agrupar_en_hoja()` escribe `target` aparte.
+  for (sp in agrupaciones %||% list()) {
+    where <- locate_var_sheet(sp$parent, path_datos, path_familias)
+    if (identical(where$source, "main")) {
+      if (!(sp$parent %in% names(df))) next
+      df <- ppra_agrupar_en_hoja(df, sp)
+      int_cols_to_color <- c(int_cols_to_color, sp$target)
+    } else {
+      df_rep <- rep_updates[[where$sheet]]$df %||% read_sheet_ci(path_datos, where$sheet)
+      if (!(sp$parent %in% names(df_rep))) next
+      add_rep_update(where$sheet, ppra_agrupar_en_hoja(df_rep, sp), sp$target, kind = "int")
     }
   }
 
