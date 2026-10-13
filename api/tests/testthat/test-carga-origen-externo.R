@@ -99,3 +99,64 @@ test_that("declarar sobre una sesión guarda el bloque y la respuesta no lleva i
   s <- session_get(sid); s$estudio$bases$default$data_file_id <- "otra"; .session_env[[sid]] <- s
   expect_identical(origen_externo_consultar(sid, "default")$estado, "otra_base")
 })
+
+# --- la ficha del universo ------------------------------------------------------
+
+.oe_sesion_con_base <- function(meta) {
+  sid <- session_create()
+  s <- session_get(sid)
+  s$estudio <- list(bases = list(default = meta), active_base = "default")
+  .session_env[[sid]] <- s
+  sid
+}
+
+.oe_bloque <- function(fid = "f1", entregadas = 3318L) {
+  ex <- data.frame(id = sprintf("x%d", 1:9), motivo = "sospechosa",
+                   categoria = rep(c("crítico", "ambiguo"), c(3, 6)), stringsAsFactors = FALSE)
+  origen_externo_construir(ex, sprintf("b%d", seq_len(entregadas)), n_recibidas = 3327L,
+                           data_file_id = fid)$bloque
+}
+
+test_that("con sólo depuración externa la ficha existe y declara recibidas y retiradas fuera", {
+  sid <- .oe_sesion_con_base(list(nombre = "default", data_file_id = "f1", origen_externo = .oe_bloque()))
+  on.exit(session_delete(sid), add = TRUE)
+  u <- .validacion_upstream_universe(sid, "default")
+  expect_true(isTRUE(u$external_applied))
+  expect_identical(u$received_external, 3327L)
+  expect_identical(u$excluded_external, 9L)
+  # `total` sigue siendo lo que la app recibió: el script de replicación lo
+  # compara contra la base cargada.
+  expect_identical(u$total, 3318L)
+  expect_identical(u$included, 3318L)
+  expect_match(paste(.vmr_universe_preparation_sentences(u), collapse = " "),
+               "de 3327 encuestas recibidas se retiraron 9", fixed = TRUE)
+})
+
+test_that("el tramo externo se encadena con la limpieza de la app cuando empalma", {
+  meta <- list(nombre = "default", data_file_id = "f1", origen_externo = .oe_bloque(),
+               limpieza = list(enabled = TRUE, n_casos_antes = 3318L, n_casos_despues = 3300L))
+  sid <- .oe_sesion_con_base(meta)
+  on.exit(session_delete(sid), add = TRUE)
+  u <- .validacion_upstream_universe(sid, "default")
+  expect_true(isTRUE(u$external_applied))
+  expect_true(isTRUE(u$cleaning_applied))
+  expect_identical(c(u$total, u$included, u$excluded_cleaning), c(3318L, 3300L, 18L))
+})
+
+test_that("si no empalma o la base se recargó, el tramo externo no se inventa", {
+  meta <- list(nombre = "default", data_file_id = "f1", origen_externo = .oe_bloque(),
+               limpieza = list(enabled = TRUE, n_casos_antes = 3000L, n_casos_despues = 2990L))
+  sid <- .oe_sesion_con_base(meta)
+  on.exit(session_delete(sid), add = TRUE)
+  expect_null(.validacion_upstream_universe(sid, "default")$external_applied)
+
+  sid2 <- .oe_sesion_con_base(list(nombre = "default", data_file_id = "otra", origen_externo = .oe_bloque()))
+  on.exit(session_delete(sid2), add = TRUE)
+  expect_null(.validacion_upstream_universe(sid2, "default"))
+})
+
+test_that("con depuración externa las dos «recibidas» no se llaman igual", {
+  u <- list(external_applied = TRUE, total = 3318L)
+  expect_identical(.vmr_universe_rotulo_total(u), "encuestas cargadas a la plataforma")
+  expect_identical(.vmr_universe_rotulo_total(list(total = 3318L)), "encuestas recibidas")
+})

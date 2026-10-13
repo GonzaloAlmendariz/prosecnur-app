@@ -85,6 +85,33 @@
   list(antes = antes, despues = despues, excluidas = antes - despues)
 }
 
+# ADR 0100, P2: la depuración hecha FUERA de la app, antes de cargar la base
+# (`bases[[x]]$origen_externo`, carga_origen_externo.R). Se encadena como un
+# tramo previo al filtro y a la limpieza, y igual que ellos sólo aporta el
+# agregado. Si la declaración habla de otra base (se recargó), no se usa.
+.validacion_universe_external <- function(base_meta) {
+  base_meta <- base_meta %||% list()
+  bloque <- base_meta$origen_externo
+  if (!identical(.origen_externo_estado(bloque, base_meta$data_file_id), "vigente")) return(NULL)
+  r <- .origen_externo_resumen(bloque)
+  if (is.null(r) || is.na(r$recibidas) || is.na(r$entregadas) || r$excluidas <= 0L) return(NULL)
+  r
+}
+
+# El tramo externo sólo se cuelga si empalma: lo que el script entregó tiene que
+# ser lo que la cadena de la app recibió. `total` NO se toca —el script de
+# replicación compara contra la base cargada, que no trae las excluidas fuera—;
+# las recibidas antes del script viajan aparte.
+.validacion_universe_con_externo <- function(universe, external) {
+  if (is.null(universe) || is.null(external)) return(universe)
+  if (!identical(as.integer(universe$total %||% NA_integer_), external$entregadas)) return(universe)
+  universe$external_applied <- TRUE
+  universe$received_external <- external$recibidas
+  universe$excluded_external <- external$excluidas
+  universe$external_por_categoria <- external$por_categoria
+  universe
+}
+
 # El informe metodológico es el único consumidor que necesita los
 # identificadores del universo final: son los que hacen ejecutable el
 # `prepare_validation_universe()` de su script cuando la merma vino de la
@@ -114,23 +141,26 @@
   base_meta <- ((s$estudio %||% list())$bases %||% list())[[resolved]] %||% list()
   filter <- base_meta$universe_filter %||% NULL
   cleaning <- .validacion_universe_cleaning(base_meta)
+  external <- .validacion_universe_external(base_meta)
   if (is.null(filter) || !isTRUE(filter$enabled)) {
     # Sin filtro de pruebas la ficha igual existe si la base se depuró: es el
     # caso corriente de un estudio que no separa pruebas y sí excluye casos en
-    # el control de calidad.
-    if (is.null(cleaning)) return(NULL)
-    return(list(
+    # el control de calidad. Y existe también si sólo hubo depuración externa
+    # (ADR 0100): la base llega recortada y la ficha tiene que decirlo.
+    if (is.null(cleaning) && is.null(external)) return(NULL)
+    n_base <- if (!is.null(cleaning)) cleaning$antes else external$entregadas
+    return(.validacion_universe_con_externo(list(
       applied = FALSE,
-      cleaning_applied = TRUE,
-      total = cleaning$antes,
-      included = cleaning$despues,
-      excluded_cleaning = cleaning$excluidas,
+      cleaning_applied = !is.null(cleaning),
+      total = n_base,
+      included = if (!is.null(cleaning)) cleaning$despues else n_base,
+      excluded_cleaning = if (!is.null(cleaning)) cleaning$excluidas else 0L,
       excluded_test = 0L,
       excluded_unclassified = 0L,
       corrected = 0L,
       correction_changes = 0L,
       excluded_rules = 0L
-    ))
+    ), external))
   }
   audit <- filter$audit %||% list()
   universe <- list(
@@ -162,7 +192,7 @@
     universe$excluded_cleaning <- cleaning$excluidas
     universe$included <- cleaning$despues
   }
-  universe
+  .validacion_universe_con_externo(universe, external)
 }
 
 .validacion_sync_shared_logic_if_needed <- function(sid, base_nombre = NULL) {
