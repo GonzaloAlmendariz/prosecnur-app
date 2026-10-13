@@ -36,3 +36,12 @@ test_that("la tabla cabe hasta seis públicos; con siete va por la ruta anterior
   expect_true(.lam_tabla_cabe(e(6L)))
   expect_false(.lam_tabla_cabe(e(7L)))
 })
+
+test_that("las preguntas y las dos categorías llegan como arreglo JSON del editor (lista sin nombres) y se aceptan", {
+  # Con datos reales de Arte la tabla abortaba con «cuando `vars` es lista, debe ser una lista nombrada».
+  el <- p_tabla(modo = "box", vars = list("docentes$p12_1", "docentes$p12_2"), box_labels = list("Satisfecho", "Muy satisfecho"))
+  expect_identical(el$vars, c("docentes$p12_1", "docentes$p12_2"))
+  expect_identical(el$box_labels, c("Satisfecho", "Muy satisfecho"))
+  bloques <- p_tabla(modo = "box", vars = list(a = c("x", "y")), box_labels = c("1", "2"))   # la forma por bloques sigue igual
+  expect_identical(names(bloques$vars), "a")
+})
