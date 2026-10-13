@@ -36,6 +36,7 @@ import { ColoresGrafico } from "./colores/ColoresGrafico";
 import { PaletaDelGrafico } from "./colores/PaletaDelGrafico";
 import { NombresPorBase } from "./datosBase/NombresPorBase";
 import { BrechaEntreGrupos } from "./brecha/BrechaEntreGrupos";
+import { MatrizCuadrantes } from "./matriz/MatrizCuadrantes";
 import { NotaBaseCompartido } from "./datosBase/NotaBaseCompartido";
 import { faltaBaseEnCompartido } from "./datosBase/baseEnCompartido";
 import "./datosGrafico.css";
@@ -81,6 +82,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         </div>
       )}
       {valor.graficador === "p_dumbbell" && <BrechaEntreGrupos args={args} onCambio={set} />}
+      {valor.graficador === "p_matriz_cuadrantes" && <MatrizCuadrantes args={args} onCambio={set} />}
       {campos.map((c) => (
         <Fila key={c.arg.name} campo={c} valor={args[c.arg.name]} onCambio={(v) => set({ [c.arg.name]: v })} />
       ))}
