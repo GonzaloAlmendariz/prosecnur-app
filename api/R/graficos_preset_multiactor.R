@@ -77,7 +77,7 @@
     .pulso_aviso(sprintf(
       # G15 (2026-10-13): el aviso mandaba a «Configuración global > Multi-apiladas multiactor», que ya no existe en Láminas.
       paste0("El reparto de ancho guardado para las láminas que comparan públicos deja %.0f%% para las barras ",
-             "y el mínimo es %.0f%%: la lámina usa el reparto del recetario."),
+             "y el mínimo es %.0f%%: la lámina usa el reparto por defecto."),
       w_bars * 100, .MULTIACTOR_W_BARS_MIN * 100
     ))
     return(.multiactor_canvas_resolver(list(), show_extra = show_extra))

@@ -55,12 +55,12 @@
 .word_escala_fijados <- function() {
   ap <- .std_word("figura", "alto_apilada")
   navy <- .std_word("colores", "titulos")
-  marco <- " Si el gráfico cae al marco (sin espec del recetario o si su dibujo falla), este ajuste sí aplica."
+  marco <- " Si el gráfico cae al marco (si el tipo no tiene diseño propio o su dibujo falla), este ajuste sí aplica."
   e <- function(arg, detalle, valor = NULL, unidad = NULL) {
     x <- list(arg = arg)
     if (!is.null(valor)) x$valor <- valor
     if (!is.null(unidad)) x$unidad <- unidad
-    x$motivo <- paste0("Lo fija el recetario en el Word: ", detalle, ".", marco)
+    x$motivo <- paste0("Fijo por diseño en el Word: ", detalle, ".", marco)
     x$aplica_si_marco <- TRUE
     x
   }
@@ -92,15 +92,15 @@
     e("size_barra_extra", "la cifra del Top Two Box sale a ese tamaño", pt("box_cifra"), "pt"),
     e("size_titulo_extra", "el rótulo del Top Two Box sale a ese tamaño", pt("box_rotulo"), "pt"),
     e("color_barra_extra", "la cifra del Top Two Box va siempre en verde", .std_color("verde_top_two_box")),
-    e("titulo_barra_extra", "el rótulo de la columna es el del recetario (Top Two Box, Top Three Box o Bottom Two Box)"),
+    e("titulo_barra_extra", "el rótulo de la columna es el estándar (Top Two Box, Top Three Box o Bottom Two Box)"),
     e("prefijo_barra_extra", "la cifra del box va sin prefijo"),
     e("barra_extra_semaforo", "la cifra del Top Two Box no usa semáforo", FALSE),
     e("barra_extra_umbral_alto", "sin semáforo en el Word, el umbral verde no tiene efecto"),
     e("barra_extra_umbral_medio", "sin semáforo en el Word, el umbral ámbar no tiene efecto"),
     # Geometría
     e("grosor_barras", "la barra ocupa esa fracción de su fila", ap$grosor_fraccion %||% 0.58, "proporción"),
-    e("grosor_modo", "el grosor es el fijo del recetario"),
-    e("grosor_barras_mult", "el grosor es el fijo del recetario"),
+    e("grosor_modo", "el grosor es el fijo del estándar"),
+    e("grosor_barras_mult", "el grosor es el fijo del estándar"),
     e("alto_por_categoria", paste0("cada fila suma esa altura a una base de ", ap$base, " in"), ap$por_fila, "pulgadas")
   )
 }

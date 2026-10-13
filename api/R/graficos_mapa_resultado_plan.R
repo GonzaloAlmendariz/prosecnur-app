@@ -160,7 +160,7 @@ graficar_mapa_resultado_distrital <- function(espec) {
   if (length(espec$sin_casar)) message("[PULSO-AVISO] Mapa por distrito: no se ubicaron en la cartografía de Lima: ", paste(espec$sin_casar, collapse = ", "), ".")
   if (length(espec$pocos_casos)) message("[PULSO-AVISO] Mapa por distrito: con menos de ", el$min_n, " casos válidos van como «Sin encuestas»: ",
                                           paste(espec$pocos_casos, collapse = ", "), ".")
-  if (!is.null(espec) && !.lam_mapa_resultado_cabe(espec)) message("[PULSO-AVISO] Mapa por distrito: el ranking no cabe en la lámina del recetario ",
+  if (!is.null(espec) && !.lam_mapa_resultado_cabe(espec)) message("[PULSO-AVISO] Mapa por distrito: el ranking no cabe en la lámina ",
                                                                    "(nombres de distrito demasiado largos); sale el mapa con su leyenda, sin las cifras.")
   graficar_mapa_resultado_distrital(espec)
 }

@@ -976,7 +976,7 @@
   # ADR 0093 (N7): el cierre del recetario, láminas 61 a 65. Sin slots: el logo es de la plantilla y el contacto, texto.
   p_slide_cierre = list(
     titulo_humano = "Cierre",
-    descripcion   = "Contraportada del informe: el logo institucional centrado y el contacto, en una de las cinco composiciones del recetario.",
+    descripcion   = "Contraportada del informe: el logo institucional centrado y el contacto, en una de sus cinco composiciones.",
     icono_ui      = "BookMarked",
     categoria     = "estructural",
     render_key    = "cierre",
@@ -1021,7 +1021,7 @@
 # Las cuatro opciones de `tipo_rango` de `graficar_media_rango()`, compartidas por el graficador y el preset (C40).
 # `custom` usa `probs_rango` (sin él, 25 y 75: el mismo dibujo que el 50 % central).
 .MEDIA_RANGO_TIPOS_RANGO <- list(
-  list(value = "minmax",  label = "Mínimo a máximo", hint = "Lo que dibuja el recetario."),
+  list(value = "minmax",  label = "Mínimo a máximo", hint = "Lo que se dibuja por defecto."),
   list(value = "iqr",     label = "50 % central (P25–P75)"),
   list(value = "p10_p90", label = "Percentiles 10 a 90"),
   list(value = "custom",  label = "Percentiles a medida", hint = "Los fija «probs_rango»; sin ellos, P25–P75.")
@@ -1654,7 +1654,7 @@
       list(name = "unidad", label = "Unidad", tipo_input = "string", grupo = "textos",
            descripcion = "Para mediana o media («años»)."),
       list(name = "icono", label = "Ícono", tipo_input = "string", grupo = "estilo",
-           descripcion = "Nombre de un ícono de la biblioteca del recetario (opcional).")
+           descripcion = "Nombre de un ícono de la biblioteca de íconos (opcional).")
     # Una cifra no lleva título: lo que la nombra es su rótulo. El `titulo` común no lo recibe p_cifra() ni
     # graficar_cifra(), así que ofrecerlo era un control que se movía sin efecto.
     ), Filter(function(a) !identical(a$name, "titulo"), .args_graf_comunes()))
@@ -1811,7 +1811,7 @@
            default = 0,
            min = 0, max = 99,
            depende = list(arg = "modo", valores = list("publicos")),
-           descripcion = "Piso del eje radial. Con 0 es automático, como en el recetario: si los valores son altos, el eje arranca en el múltiplo de 5 bajo el más bajo y los anillos se rotulan, para que el acercamiento se vea. Un valor mayor fija el piso; si deja fuera un dato, baja solo hasta el valor más bajo en vez de recortarlo al centro."),
+           descripcion = "Piso del eje radial. Con 0 es automático, como en el estándar: si los valores son altos, el eje arranca en el múltiplo de 5 bajo el más bajo y los anillos se rotulan, para que el acercamiento se vea. Un valor mayor fija el piso; si deja fuera un dato, baja solo hasta el valor más bajo en vez de recortarlo al centro."),
       list(name = "mostrar_tabla", label = "Tabla al costado", tipo_input = "bool", grupo = "datos",
            default = TRUE,
            depende = list(arg = "modo", valores = list("publicos")),
@@ -2030,7 +2030,7 @@
       list(name = "config_criterios", label = "Criterios", tipo_input = "criteria_config", grupo = "datos",
            descripcion = "Agrupa variables en criterios para construir el heatmap."),
       list(name = "cruce", label = "Comparar por", tipo_input = "variable_opt", grupo = "datos",
-           descripcion = "Opcional. Una columna por público (Total y cada grupo), como en la lámina 93 del recetario."),
+           descripcion = "Opcional. Una columna por público (Total y cada grupo)."),
       list(name = "metrica", label = "Métrica", tipo_input = "choice", grupo = "datos", default = "top_two_box",
            choices = list(
              list(value = "top_two_box", label = "Top Two Box", hint = "Porcentaje en las dos categorías más altas de la escala."),
@@ -2053,7 +2053,7 @@
   p_dicotomica = list("categorias", "nativa", condicion = "Sólo con dos opciones; con más, sale como barras categóricas."),
   p_barras_apiladas = list("escalas", "nativa"),
   p_barras_multiapiladas = list("escalas", "nativa", condicion = "Los bloques que no caben se reparten en láminas «(cont.)»."),
-  p_nube_palabras = list("texto", "marco", motivo = "No hay pieza del recetario para la nube: la lámina es la del recetario y la nube va dibujada adentro."),
+  p_nube_palabras = list("texto", "marco", motivo = "No hay pieza propia para la nube: va dibujada dentro de una lámina estándar."),
   p_mapa_cobertura_territorial = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
   p_pie = list("categorias", "nativa", condicion = "Sólo con dos o tres porciones; con más, sale por la ruta anterior."),
   p_donut = list("categorias", "nativa", condicion = "Sólo con dos porciones y sus frecuencias; si no, sale por la ruta anterior."),
@@ -2067,15 +2067,15 @@
   p_cifra = list("numeros", "nativa", condicion = "Va en las ranuras de cifra; en una ranura de gráfico sale por la ruta anterior."),
   p_dumbbell = list("comparar", "nativa"),
   p_lollipop = list("categorias", "nativa"),
-  p_serie_temporal = list("comparar", "nativa", condicion = "Con dos mediciones; con tres o más va en el marco del recetario con el dibujo adentro."),
+  p_serie_temporal = list("comparar", "nativa", condicion = "Con dos mediciones; con tres o más va dibujada dentro de una lámina estándar."),
   p_radar = list("comparar", "nativa", condicion = "Si los ejes o la tabla no caben, sale por la ruta anterior."),
   p_tabla = list("comparar", "ruta_anterior", motivo = "La lámina va por la ruta anterior; la tabla sí sale como tabla editable de PowerPoint."),
-  p_dim_radar = list("dimensiones", "ruta_anterior", motivo = "No hay pieza del recetario para el radar de dimensiones."),
+  p_dim_radar = list("dimensiones", "ruta_anterior", motivo = "No hay pieza propia para el radar de dimensiones."),
   p_dim_heatmap = list("dimensiones", "nativa", condicion = "Con brechas declaradas sale por la ruta anterior."),
   p_dim_comparativo_radarbar = list("dimensiones", "nativa", condicion = "Con brechas o con la columna Total sale por la ruta anterior."),
   # Fuera del selector (Gonzalo, 2026-10-10: «sí, sácalo»): no está en el recetario. Sigue registrado y renderizable
   # para los planes que ya lo usan.
-  p_dim_foda = list("dimensiones", "ruta_anterior", motivo = "No hay pieza del recetario para la matriz FODA.", en_selector = FALSE),
+  p_dim_foda = list("dimensiones", "ruta_anterior", motivo = "No hay pieza propia para la matriz FODA.", en_selector = FALSE),
   p_dim_heatmap_criterios = list("dimensiones", "nativa", condicion = "Si no cabe en la lámina, sale por la ruta anterior.")
 )
 stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
@@ -2396,13 +2396,13 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Si está activo, las etiquetas de segmentos muy chicos se desplazan horizontalmente para no superponerse."),
       list(name = "etiquetas_arriba_si_no_caben", label = "Etiquetas arriba si no caben", tipo_input = "bool", grupo = "filtro",
            default = TRUE,
-           descripcion = "Lo fija el estándar de los recetarios (ADR 0092): si un porcentaje no entra en su segmento, sube encima de la barra con una línea guía. En el estilo común se impone; sólo se puede apagar lámina por lámina."),
+           descripcion = "Lo fija el estándar: si un porcentaje no entra en su segmento, sube encima de la barra con una línea guía. En el estilo común se impone; sólo se puede apagar lámina por lámina."),
       list(name = "etiquetas_arriba_offset", label = "Separación etiquetas superiores", tipo_input = "number", grupo = "filtro",
            descripcion = "Separación vertical entre la barra y los porcentajes superiores."),
       list(name = "color_conectores_etiquetas", label = "Color conectores etiquetas", tipo_input = "choice", grupo = "estilo",
            default = "tenue",
            choices = list(
-             list(value = "tenue", label = "Gris tenue (recetario)"),
+             list(value = "tenue", label = "Gris tenue (por defecto)"),
              list(value = "segmento", label = "Color del segmento"),
              list(value = "azul_pulso", label = "Azul Pulso")
            ),
@@ -2604,7 +2604,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "color_conectores_etiquetas", label = "Color conectores etiquetas", tipo_input = "choice", grupo = "estilo",
            default = "tenue",
            choices = list(
-             list(value = "tenue", label = "Gris tenue (recetario)"),
+             list(value = "tenue", label = "Gris tenue (por defecto)"),
              list(value = "segmento", label = "Color del segmento"),
              list(value = "azul_pulso", label = "Azul Pulso")
            )),
@@ -2955,7 +2955,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "max_palabras", label = "Máximo de palabras", tipo_input = "number", grupo = "filtro", default = 40),
       list(name = "min_chars", label = "Mínimo de caracteres", tipo_input = "number", grupo = "filtro", default = 3),
       list(name = "colores_palabras", label = "Colores de palabras", tipo_input = "series_colors", grupo = "estilo",
-           descripcion = "Paleta cíclica para colorear los términos. Vacía, la nube usa el degradado de azul por menciones del recetario."),
+           descripcion = "Paleta cíclica para colorear los términos. Vacía, la nube usa el degradado de azul por menciones."),
       list(name = "size_titulo", label = "Tamaño título", tipo_input = "number", grupo = "estilo", default = 16),
       list(name = "size_subtitulo", label = "Tamaño subtítulo", tipo_input = "number", grupo = "estilo", default = 12),
       list(name = "size_nota_pie", label = "Tamaño nota al pie", tipo_input = "number", grupo = "estilo", default = 10)
@@ -4841,7 +4841,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     ),
     color_conectores_etiquetas = list(
       label = "Color de la línea guía",
-      descripcion = "Por defecto, el gris tenue del recetario; también puede usar el color del segmento o el azul Pulso.",
+      descripcion = "Por defecto, el gris tenue; también puede usar el color del segmento o el azul Pulso.",
       efecto = "Solo afecta las líneas que conectan porcentajes superiores con la barra."
     ),
     posicion_conector_etiquetas = list(

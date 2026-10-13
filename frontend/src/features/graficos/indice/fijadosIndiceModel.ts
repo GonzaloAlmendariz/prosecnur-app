@@ -93,7 +93,7 @@ export function lineasFijadasIndice(slide: Pick<Slide, "payload">, args: readonl
         arg, rotulo,
         valor: oculta ? "No: la lista sale sin íconos" : "Sí: cada capítulo con el ícono elegido arriba",
         sinEfecto: false,
-        motivo: "Lo fija el recetario: el ícono de cada capítulo se elige arriba, uno por uno («Sin ícono» quita el de un capítulo).",
+        motivo: "Fijo por diseño: el ícono de cada capítulo se elige arriba, uno por uno («Sin ícono» quita el de un capítulo).",
         nota: oculta
           ? "El proyecto guarda «no mostrar íconos»: el motor lo respeta y quita todos los íconos de la lista, aunque elijas uno arriba."
           : null,
@@ -101,10 +101,10 @@ export function lineasFijadasIndice(slide: Pick<Slide, "payload">, args: readonl
     }
 
     const motivo = arg === "redibujar_focos"
-      ? "Lo fija el recetario: la lista del índice se dibuja entera desde su composición; no hay focos de la plantilla que redibujar."
+      ? "Fijo por diseño: la lista del índice se dibuja entera desde su composición; no hay focos de la plantilla que redibujar."
       : arg === "iconos_focos_fill"
-        ? "Lo fija el recetario: el color y el tamaño de cada ícono los pone la composición del índice."
-        : "Lo fija el recetario: cada ícono va junto a su capítulo en la lista; no hay un círculo aparte que mover.";
+        ? "Fijo por diseño: el color y el tamaño de cada ícono los pone la composición del índice."
+        : "Fijo por diseño: cada ícono va junto a su capítulo en la lista; no hay un círculo aparte que mover.";
     return {
       arg, rotulo,
       valor: "No se aplica en esta lámina",

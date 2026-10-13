@@ -162,7 +162,7 @@ export default function PestanaEstilo() {
                 {logosModificados(decisiones) ? (
                   <PulsoButton variant="ghost" size="sm" onClick={() => cambiar(sinLogos)} aria-label="Volver a los logos por defecto">
                     <RotateCcw size={14} aria-hidden="true" />
-                    Volver al recetario
+                    Restablecer
                   </PulsoButton>
                 ) : null}
               </header>

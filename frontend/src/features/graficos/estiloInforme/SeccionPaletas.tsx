@@ -29,7 +29,7 @@ export function SeccionPaletas({ listasConColor }: { listasConColor: number }) {
         )}
       />
       <p className="pulso-f6-informe-ayuda">
-        Una lista sin colores usa la paleta del recetario. Para devolver una lista al recetario, vacía su paleta.
+        Una lista sin colores usa la paleta por defecto; para volver a ella, vacía su paleta.
       </p>
       <div className="pulso-f6-informe-incrustado pulso-f6-informe-paletas">
         <PaletasEditor />
