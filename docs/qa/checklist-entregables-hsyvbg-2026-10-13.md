@@ -236,20 +236,23 @@ Hallazgos de la auditoría (qa-visual-desktop, evidencia en scratchpad/polishqa/
 
 | # | Hallazgo | Estado |
 |---|---|---|
-| P-A1 | Cruces: «Notas al pie» aplastada a 2 px, no se puede abrir (flex-shrink en el workbench) | en curso |
-| P-A2 | Frecuencias: «Notas al pie» abierta se recorta; encabezado salta a centrado | en curso |
-| P-A3 | «Notas al pie» con dos implementaciones; en Comparativos un campo por pregunta (72 inputs) | en curso |
-| P-A4 | Resultado del comparativo: 73 avisos ámbar sueltos; agrupar por tipo y separar severidad | en curso |
-| P-A5 | Tres recetas de botón primario (teal píldora, teal 8 px, navy) | en curso |
-| P-A6 | Paneles en portal pierden el tono del módulo (navy en vez de teal) | en curso |
-| P-A7 | Importar por bloques dice «año» aunque las bases no sean años | en curso |
-| P-A8 | Equivalencias publica readiness lista antes de cargar; carga como texto suelto | en curso |
-| P-A10 | Radios no concéntricos: píldora con botones internos de esquinas casi rectas («Orden de la serie»), detectado por Gonzalo; regla general radio interno = externo − padding con tokens | en curso |
-| P-A9 | Cruces describe la significancia como «chi² al 5 %, asterisco» y el motor usa letras con z y Bonferroni | en curso |
-| P-M1…M14 | Medias: cifras, botones secundarios, «añadir», vacíos, formato de números, orden de bases en Fuentes, orden de la serie compacto, Equivalencias mezcla mazo y comparación, anchos de tabla, explicación larga del editor, Datos «Detectando…» pegado y «sin guardar» al entrar, «Definición global» desactualizado, Codificación sin elipsis y con markdown crudo, tres patrones de guardado | pendiente (siguiente tanda) |
-| P-B1…B7 | Bajas: foco visible en título, panel .sav, rótulos repetidos, «Ninguna» repetido, tarjetas de opción, estilos en línea, pendientes no verificables | pendiente |
+| P-A1 | Cruces: «Notas al pie» aplastada a 2 px, no se puede abrir (flex-shrink en el workbench) | hecho (49fe9e213) |
+| P-A2 | Frecuencias: «Notas al pie» abierta se recorta; encabezado salta a centrado | hecho (49fe9e213) |
+| P-A3 | «Notas al pie» con dos implementaciones; en Comparativos un campo por pregunta (72 inputs) | hecho (49fe9e213) |
+| P-A4 | Resultado del comparativo: 73 avisos ámbar sueltos; agrupar por tipo y separar severidad | hecho (49fe9e213) |
+| P-A5 | Tres recetas de botón primario (teal píldora, teal 8 px, navy) | hecho (49fe9e213, d2fdf563b) |
+| P-A6 | Paneles en portal pierden el tono del módulo (navy en vez de teal) | hecho (d2fdf563b) |
+| P-A7 | Importar por bloques dice «año» aunque las bases no sean años | hecho (d2fdf563b) |
+| P-A8 | Equivalencias publica readiness lista antes de cargar; carga como texto suelto | hecho (d2fdf563b) |
+| P-A10 | Radios no concéntricos: píldora con botones internos de esquinas casi rectas («Orden de la serie»), detectado por Gonzalo; regla general radio interno = externo − padding con tokens | hecho (d2fdf563b) |
+| P-A9 | Cruces describe la significancia como «chi² al 5 %, asterisco» y el motor usa letras con z y Bonferroni | hecho (49fe9e213) |
+| P-M1…M14 | Medias: cifras, botones secundarios, «añadir», vacíos, formato de números, orden de bases en Fuentes, orden de la serie compacto, Equivalencias mezcla mazo y comparación, anchos de tabla, explicación larga del editor, Datos «Detectando…» pegado y «sin guardar» al entrar, «Definición global» desactualizado, Codificación sin elipsis y con markdown crudo, tres patrones de guardado | en curso (dos agentes: Analítica y Carga/Codificación) |
+| P-B1…B7 | Bajas: foco visible en título, panel .sav, rótulos repetidos, «Ninguna» repetido, tarjetas de opción, estilos en línea, pendientes no verificables | en curso |
 
 Regla de cierre (Gonzalo, 2026-10-13): «cierra todo lo pendiente hasta finalizarlo, pero no
 abras más campos a menos que sean graves». Se terminan P-A, P-M y P-B. Un hallazgo nuevo
 solo se abre si rompe un entregable, pierde datos o deja algo inalcanzable; lo demás se
 anota y no se trabaja.
+
+| P-G1 | Contrato ModuleChrome «suprime hover» en rojo por AgruparCategoriasCodificador.css (23ba9d819) | en curso (grave: contrato en rojo) |
+| P-C1 | Brecha de capacidad: Importar por bloques solo lee columnas con encabezado de año (`.equiv_bloques_encabezado`); la UI lo avisa y deriva a «Subir matriz» | anotado, no se trabaja (no es grave) |
