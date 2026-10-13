@@ -202,7 +202,7 @@ function FilaLamina({ lamina, activa, sangria, resumen, validacion, onSelecciona
         type="button"
         className={`pulso-f6-lamina is-sangria-${sangria}${activa ? " is-activa" : ""}`}
         aria-current={activa ? "true" : undefined}
-        aria-label={`Lámina ${lamina.posicion}: ${lamina.titulo}. ${detalle}. ${punto.texto}`}
+        aria-label={`Lámina ${lamina.posicion}: ${lamina.titulo.replace(/[.\s]+$/, "")}. ${detalle}. ${punto.texto}`}
         data-foco-lamina={lamina.posicion}
         onClick={() => onSeleccionar(lamina.posicion)}
       >

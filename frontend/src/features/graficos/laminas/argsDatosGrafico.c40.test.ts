@@ -315,10 +315,16 @@ describe("6a · tipo_rango «custom»", () => {
 
 describe("«Ancho de los temas» (G15)", () => {
   const ancho = a("ancho_tema", "choice", { default: "auto", choices: [{ value: "auto", label: "Automático" }, { value: "ancho", label: "Más ancho" }, { value: "angosto", label: "Más angosto" }] } as Extra);
-  it("sale en las multiapiladas, con sus tres pasos, y en ningún otro tipo", () => {
-    const campos = camposDeDatos([ancho], {}, "p_barras_multiapiladas");
+  const publicos = { modo: "var_cruce", vars: { tema_1: ["docentes$p1", "estudiantes$p1"] } };
+  it("sale en las multiapiladas que comparan públicos, con sus tres pasos, y en ningún otro tipo", () => {
+    const campos = camposDeDatos([ancho], publicos, "p_barras_multiapiladas");
     expect(campos.map((c) => [c.rotulo, c.control])).toEqual([["Ancho de los temas", "opciones"]]);
-    expect(nombres([ancho], {}, "p_barras_apiladas")).toEqual([]);
+    expect(nombres([ancho], publicos, "p_barras_apiladas")).toEqual([]);
+  });
+  it("con un solo público no se ofrece: no hace nada (lámina 13 de Arte)", () => {
+    expect(nombres([ancho], { modo: "var_cruce", vars: { tema_1: ["docentes$p1"] } }, "p_barras_multiapiladas")).toEqual([]);
+    expect(nombres([ancho], { modo: "var", vars: ["docentes$p1", "docentes$p2"] }, "p_barras_multiapiladas")).toEqual([]);
+    expect(nombres([ancho], { modo: "multilista", bloques: [{ vars: { t: ["docentes$a", "egresados$a"] } }] }, "p_barras_multiapiladas")).toEqual(["ancho_tema"]);
   });
 });
 
