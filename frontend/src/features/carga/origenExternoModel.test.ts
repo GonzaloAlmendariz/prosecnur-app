@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { OrigenExterno } from "../../api/cargaOrigenExterno";
 import {
+  variablesExcluidasDeLaDeclaracion,
   BORRADOR_VACIO,
   borradorDesde,
   cadenaOrigenEnLlano,
@@ -128,5 +129,19 @@ describe("origenExternoModel", () => {
     expect(rotuloEstado("otra_base")).toBe("Otra base");
     expect(rotuloEstado("")).toBe("Sin declarar");
     expect(procedenciaScript(DECLARADA)).toBe("limpieza.R · versión v3");
+  });
+});
+
+describe("variablesExcluidasDeLaDeclaracion (QA 2026-10-13)", () => {
+  it("sale del bloque guardado, así sigue al recargar", () => {
+    const datos = {
+      variables_excluidas_agregadas: [],
+      bloque: { variables_retiradas: [
+        { variable: "start", tipo: "start", motivo: "metadato" },
+        { variable: "P9", tipo: "text", motivo: "otra" },
+        { variable: "nota", tipo: "text", motivo: "no_va_al_cliente" },
+      ] },
+    } as unknown as Parameters<typeof variablesExcluidasDeLaDeclaracion>[0];
+    expect(variablesExcluidasDeLaDeclaracion(datos)).toEqual(["start", "nota"]);
   });
 });

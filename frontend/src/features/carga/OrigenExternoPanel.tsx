@@ -25,6 +25,7 @@ import {
   rotuloEstado,
   totalVariablesRetiradas,
   tramosOrigen,
+  variablesExcluidasDeLaDeclaracion,
   type OrigenExternoBorrador,
 } from "./origenExternoModel";
 import "./OrigenExternoPanel.css";
@@ -318,8 +319,8 @@ function VariablesFaltantes({ carga, motivos, onMotivo }: VariablesFaltantesProp
         {faltantes.length === 1
           ? "Falta 1 variable del instrumento en la base."
           : `Faltan ${formatoEntero(faltantes.length)} variables del instrumento en la base.`}{" "}
-        Las que marques como Metadato o No va al cliente se excluyen de los entregables
-        (Analítica › Variables excluidas).
+        Las que marques como Metadato o No va al cliente no salen en los entregables: bases,
+        codebook, frecuencias y cruces.
       </p>
       <ul
         className="pulso-origen-externo-variables"
@@ -331,7 +332,7 @@ function VariablesFaltantes({ carga, motivos, onMotivo }: VariablesFaltantesProp
           <li key={faltante.variable} data-qa-geometry-member="">
             <span className="pulso-origen-externo-variable">
               <code title={faltante.variable}>{faltante.variable}</code>
-              {faltante.tipo && <small>{faltante.tipo}</small>}
+              {faltante.tipo && faltante.tipo !== faltante.variable && <small>{faltante.tipo}</small>}
             </span>
             <select
               aria-label={`Motivo de ${faltante.variable}`}
@@ -362,7 +363,9 @@ function OrigenExternoResultado({ datos }: { datos: OrigenExterno }) {
   const categorias = datos.resumen?.por_categoria ?? [];
   const nVariables = totalVariablesRetiradas(datos);
   const desglose = desgloseVariables(datos);
-  const excluidas = datos.variables_excluidas_agregadas;
+  // Lo excluido se lee del bloque guardado, no sólo de la respuesta del POST:
+  // así sigue a la vista al recargar (QA 2026-10-13, C5).
+  const excluidas = variablesExcluidasDeLaDeclaracion(datos);
   return (
     <div className="pulso-origen-externo-declarada">
       {datos.estado === "otra_base" && (
@@ -415,7 +418,7 @@ function OrigenExternoResultado({ datos }: { datos: OrigenExterno }) {
           )}
           {excluidas.length > 0 && (
             <p className="pulso-origen-externo-excluidas">
-              Se excluyeron de los entregables: {excluidas.join(", ")}.
+              No salen en los entregables: {excluidas.join(", ")}.
             </p>
           )}
         </div>
