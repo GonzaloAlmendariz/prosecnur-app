@@ -26,8 +26,10 @@
 
 .COMPARATIVO_NA <- "n.a."
 .COMPARATIVO_NC <- "n.c."
-.COMPARATIVO_NO_OFRECIDA <- "\u2014"
-.COMPARATIVO_LINEA_NO_OFRECIDA <- "\u2014: la opción no se ofrecía ese año."
+# Gonzalo, 2026-10-13: «Déjalo con n.a. como en la maqueta». La opción no ofrecida se marca
+# igual que la maqueta; el manifest conserva la distinción (no_ofrecidas).
+.COMPARATIVO_NO_OFRECIDA <- "n.a."
+.COMPARATIVO_LINEA_NO_OFRECIDA <- "n.a.: no aplica, la opción no se ofrecía ese año."
 
 # Estilos del comparativo: los de cruces del tema más las tres variantes que
 # la maqueta pide (marca gris en cursiva, % a dos decimales, total en negrita).
@@ -510,7 +512,7 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
             sprintf("La pregunta no es comparable en %s", rotulos[[b]]))
           next
         }
-        # La respuesta no se ofrecía ese año: toda su fila del año va en «—».
+        # La respuesta no se ofrecía ese año: toda su fila del año va en «n.a.».
         fila_no_ofrecida <- !es_total && q$escala$codigos[i] %in% (pp$no_ofrecidas %||% character(0))
         if (fila_no_ofrecida) hay_no_ofrecida <- TRUE
         if (fila_no_ofrecida) marca(3L, .COMPARATIVO_NO_OFRECIDA) else
