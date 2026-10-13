@@ -72,7 +72,8 @@ export const AYUDA_CORTES_CHIP = "Dos valores que separan rojo, ámbar y verde. 
 export const GRAFICADORES_NO_NATIVOS: ReadonlySet<string> = new Set([
   // p_puntos_comparativos salió el 2026-10-13 (G11): ya sale como el ranking con puntos. p_dim_radar también: con tres
   // ejes o más ya salía nativo y el registro decía lo contrario (test-dim-radar-nativo.R).
-  "p_nube_palabras", "p_tabla", "p_dim_foda",
+  // p_nube_palabras también (G11): sale con el ranking nativo de la lámina 101.
+  "p_tabla", "p_dim_foda",
 ]);
 const TABLA = ["p_tabla"];
 const FODA = ["p_dim_foda"];
@@ -168,6 +169,8 @@ const LISTA_BLANCA: Record<string, Entrada> = {
     ayuda: AYUDA_CEROS,
     soloEn: ["p_barras_apiladas", "p_barras_multiapiladas"],
   },
+  // G11 (2026-10-13): la nube con su ranking de las diez palabras más dichas (lámina 101 del diseño), o sola.
+  mostrar_ranking: { rotulo: "Ranking de palabras", soloEn: ["p_nube_palabras"] },
   // G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos. Lo dibuja la lámina que compara públicos.
   ancho_tema: { rotulo: "Ancho de los temas", ayuda: "Cuenta cuando la lámina compara públicos.", soloEn: ["p_barras_multiapiladas"] },
   excluir_opciones: { rotulo: "Excluir respuestas", ayuda: "Códigos separados por comas (p. ej. 88, 99)." },

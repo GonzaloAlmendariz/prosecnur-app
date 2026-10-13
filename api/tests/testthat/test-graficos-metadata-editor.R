@@ -25,8 +25,9 @@ test_that("lo que hoy no tiene pieza del recetario no se anuncia nativo", {
   no_nativos <- names(m)[!vapply(m, `[[`, logical(1), "salida_nativa")]
   # G11 (2026-10-13): los puntos comparativos salen como el ranking con puntos (lámina 72), y el radar por dimensiones
   # ya salía nativo con tres ejes o más: lo declarado decía lo contrario (test-dim-radar-nativo.R).
-  expect_setequal(no_nativos, c("p_nube_palabras", "p_tabla", "p_dim_foda"))
-  expect_identical(m$p_nube_palabras$salida, "marco")
+  expect_setequal(no_nativos, c("p_tabla", "p_dim_foda"))   # G11: la nube sale con su ranking nativo (lámina 101)
+  expect_identical(m$p_nube_palabras$salida, "nativa")
+  expect_match(m$p_nube_palabras$salida_condicion, "Sin el ranking", fixed = TRUE)
   expect_identical(m$p_dim_heatmap_criterios$salida, "nativa")          # la 93 ya es nativa (test-lamina-criterios.R)
 })
 
@@ -100,7 +101,7 @@ test_that("la salida declarada coincide con cómo sale la lámina en el motor re
   for (nm in names(casos)) {
     expect_identical(estado[[nm]], .GRAFICADORES_META[[nm]]$salida, info = sprintf("%s salió «%s»", nm, estado[[nm]]))
   }
-  expect_identical(estado[["p_nube_palabras"]], "marco")
+  expect_identical(estado[["p_nube_palabras"]], "nativa")                 # con su ranking (lámina 101)
 })
 
 test_that("con «Dividir por» la agrupada sale por la ruta anterior, como dice su condición", {

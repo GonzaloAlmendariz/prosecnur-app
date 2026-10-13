@@ -48,7 +48,7 @@ export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [
   { name: "p_barras_categoricas", familia_editor: "categorias", salida: "nativa", en_selector: true },
   { name: "p_barras_apiladas", familia_editor: "escalas", salida: "nativa", en_selector: true },
   { name: "p_barras_multiapiladas", familia_editor: "escalas", salida: "nativa", en_selector: true },
-  { name: "p_nube_palabras", familia_editor: "texto", salida: "marco", en_selector: true },
+  { name: "p_nube_palabras", familia_editor: "texto", salida: "nativa", en_selector: true },
   { name: "p_mapa_cobertura_territorial", familia_editor: "territorio", salida: "nativa", en_selector: true },
   { name: "p_pie", familia_editor: "categorias", salida: "nativa", en_selector: true },
   { name: "p_donut", familia_editor: "categorias", salida: "nativa", en_selector: true },

@@ -2531,7 +2531,8 @@ p_nube_palabras <- function(
     min_chars = NULL,
     overrides = list(),
     base = list(),
-    filtros = list()
+    filtros = list(),
+    mostrar_ranking = NULL
 ) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
@@ -2555,6 +2556,7 @@ p_nube_palabras <- function(
 
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  overrides <- .ppt_slot_override(overrides, "mostrar_ranking", mostrar_ranking, "bool")
   if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)
 

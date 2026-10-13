@@ -320,3 +320,11 @@ describe("«Ancho de los temas» (G15)", () => {
     expect(nombres([ancho], {}, "p_barras_apiladas")).toEqual([]);
   });
 });
+
+describe("«Ranking de palabras» (G11)", () => {
+  it("sale en la nube y en ningún otro tipo", () => {
+    const rk = a("mostrar_ranking", "bool", { default: true } as Extra);
+    expect(camposDeDatos([rk], {}, "p_nube_palabras").map((c) => [c.rotulo, c.control])).toEqual([["Ranking de palabras", "interruptor"]]);
+    expect(nombres([rk], {}, "p_barras_apiladas")).toEqual([]);
+  });
+});
