@@ -224,3 +224,10 @@ diferentes».
 | U4 | Tarjetas de Comparativos más legibles con 74 preguntas (jerarquía, búsqueda o filtro por sección) | frontend analítica | hecho y verificado (cb1a1ea90) |
 | U5 | No hay lugar visible para ver ni editar `variables_excluidas` (DefinicionGlobal no está montado). Analítica › Datos dice «265/265 incluidas» con 2 excluidas | frontend analítica | hecho y verificado (644c39c44) |
 | U6 | El Codebook muestra «Excluidas 0» unos 15 s con la readiness ya en verde y luego pasa a 2 | frontend analítica | hecho y verificado (644c39c44) |
+
+## Ronda de pulido visual (pedido de Gonzalo, 2026-10-13)
+
+Textual: «Sigue puliendo para que se vea aún mejor». Principio: soluciones generales.
+Paso 1: auditoría visual independiente (qa-visual-desktop) de las superficies nuevas en
+3 casos (3 bases con años, 4 con nombres, 7 mezcladas). Paso 2: implementar por
+prioridad. Paso 3: QA y commit. Los hallazgos se listan aquí como P-1, P-2… al llegar.
