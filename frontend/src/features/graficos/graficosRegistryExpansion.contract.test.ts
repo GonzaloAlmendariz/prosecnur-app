@@ -301,15 +301,8 @@ describe("contrato sucesor del registry de Gráficos", () => {
     expect(consultationBlock).toContain("{consultationReason}");
   });
 
-  it("mantiene el CTA semánticamente deshabilitado y enlaza preview al metadata real", () => {
+  it("mantiene el CTA semánticamente deshabilitado y el preset_key manda sobre el mapa", () => {
     const pickerSource = fs.readFileSync(path.join(featureDir, "GraficadorPicker.tsx"), "utf8");
-    const previewSource = fs.readFileSync(path.join(featureDir, "SlidePreview.tsx"), "utf8");
-    const formSource = fs.readFileSync(path.join(featureDir, "GraficadorForm.tsx"), "utf8");
-    const slotSource = fs.readFileSync(path.join(featureDir, "GraficadorSlot.tsx"), "utf8");
-    const styleSource = fs.readFileSync(
-      path.join(featureDir, "v2/inspector/StylePanel.tsx"),
-      "utf8",
-    );
 
     expect(pickerSource).toContain("disabled={!canInsert}");
     expect(pickerSource).toContain('comparison: { label: "Comparación", hint: "Grupos, series y tablas", Icon: Radar },');
@@ -317,15 +310,6 @@ describe("contrato sucesor del registry de Gráficos", () => {
     expect(pickerSource).toContain("Inserción no disponible aquí");
     expect(pickerSource).not.toMatch(
       /Se genera desde equivalencias|Añádelo desde la matriz|Abre la matriz/,
-    );
-    expect(previewSource).toContain("graficadoresById[v.graficador]");
-    expect(previewSource).toContain("metadata?.preset_key");
-    expect(previewSource).not.toMatch(/p_dumbbell|p_serie_temporal/);
-    expect(formSource).toContain("graficadorToPresetType(graf.graficador, meta?.preset_key)");
-    expect(slotSource).toContain("presetKey={meta?.preset_key}");
-    expect(slotSource).toContain("graficadorToPresetType(value.graficador, presetKey)");
-    expect(styleSource).toMatch(
-      /graficadorToPresetType\(\s*graf,\s*graficadoresById\[graf\]\?\.preset_key,\s*\)/,
     );
     expect(graficadorToPresetType("p_barras_agrupadas", "")).toBeNull();
     expect(graficadorToPresetType("p_barras_agrupadas", "histograma")).toBe("histograma");

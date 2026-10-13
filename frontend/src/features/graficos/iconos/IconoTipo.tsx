@@ -41,8 +41,7 @@ function cuerpo(clase: ClaseIcono, tipo: string, ranuraActiva: number | undefine
 }
 
 /**
- * Lienzo a cualquier tamaño. Lo usan `IconoTipo` y los envoltorios heredados (`SlideTypeIcon`,
- * `GraficadorTypeIcon`), que todavía piden 12 px en el editor v2.
+ * Lienzo a cualquier tamaño. Lo usan `IconoTipo` y el envoltorio heredado `SlideTypeIcon`, que todavía pide 12 px.
  */
 export function SvgIconoTipo({ clase, tipo, px, titulo, ranuraActiva, className }: Omit<IconoTipoProps, "size"> & {
   px: number;

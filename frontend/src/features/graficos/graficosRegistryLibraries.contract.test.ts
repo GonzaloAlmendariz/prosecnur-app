@@ -6,7 +6,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type {
   GraficosSlideLayoutMatrix,
-  Slide,
   SlideMetadata,
 } from "../../api/client";
 import {
@@ -17,13 +16,11 @@ import { canInsertGraficador } from "./GraficadorPicker";
 import { slideAcceptsGraphSlot } from "./GraficosLibrariesHost";
 import { normalizeGraficosRegistry } from "./metadataSanitizers";
 import { enSelector } from "./enSelector";
-import { SlideLayoutViewer } from "./SlidePreview";
 import { resolveSlideCompositionMap } from "./slideCompositionModel";
 import {
   buildSlideLibraryModel,
   isInsertableSlideType,
 } from "./v2/timeline/SlidePicker";
-import { CATEGORY_LABEL, categoryOf } from "./v2/timeline/categoryOf";
 import {
   resolveSlidePickerBlueprint,
   SlidePickerBlueprint,
@@ -258,35 +255,6 @@ describe("bibliotecas gobernadas por el registry L6", () => {
     }
   });
 
-  it("ejecuta categoryOf sobre los 20 SlideType con taxonomía y labels cerrados", () => {
-    const classified = EXPECTED_SLIDES.map(([name, , , expectedCategory]) => [
-      name,
-      categoryOf(name),
-      expectedCategory,
-    ] as const);
-
-    expect(classified.map(([name, actualCategory]) => [name, actualCategory])).toEqual(
-      classified.map(([name, , expectedCategory]) => [name, expectedCategory]),
-    );
-    expect(histogram(classified.map(([, actualCategory]) => actualCategory))).toEqual({
-      estructural: 7,
-      "1g": 4,
-      "2g": 4,
-      grid: 1,
-      poblacion: 4,
-    });
-    expect(CATEGORY_LABEL).toEqual({
-      estructural: "Estructural",
-      "1g": "1 gráfico",
-      "2g": "2 gráficos",
-      grid: "Grid 4",
-      poblacion: "Población",
-    });
-    const labels = Object.values(CATEGORY_LABEL);
-    expect(labels.every((label) => label.trim().length > 0)).toBe(true);
-    expect(new Set(labels).size).toBe(labels.length);
-  });
-
   it("cubre 19/19 labels, taxonomía y blueprints de graficadores", () => {
     const registry = matrixRegistry();
     const rows = registry.graficadores.map((graf) => [
@@ -345,7 +313,7 @@ describe("bibliotecas gobernadas por el registry L6", () => {
     });
   });
 
-  it("serializa las mismas regions v2 en card, hero y SlidePreview para 20/20", () => {
+  it("serializa las mismas regions v2 en card y hero para 20/20", () => {
     const registry = matrixRegistry();
     const matrix = compositionMatrix(registry.slides);
     const resolutions = resolveSlideCompositionMap(registry.slides, matrix);
@@ -359,13 +327,6 @@ describe("bibliotecas gobernadas por el registry L6", () => {
       }
       const composition = resolution.composition;
       const blueprint = resolveSlidePickerBlueprint(metadata);
-      const slide: Slide = {
-        id: `fixture-${metadata.name}`,
-        tipo: metadata.name,
-        payload: Object.fromEntries(
-          composition.regions.map((region) => [region.payload_key, region.payload_key]),
-        ),
-      };
       const card = renderToStaticMarkup(createElement(SlidePickerBlueprint, {
         blueprint,
         composition,
@@ -378,25 +339,16 @@ describe("bibliotecas gobernadas por el registry L6", () => {
         iconoUi: metadata.icono_ui,
         size: "hero",
       }));
-      const preview = renderToStaticMarkup(createElement(SlideLayoutViewer, {
-        slide,
-        composition,
-        userPresets: {},
-        presetsDefaults: {},
-      }));
-      const signatures = [card, hero, preview].map((markup) => (
+      const signatures = [card, hero].map((markup) => (
         markupAttribute(markup, "data-composition-regions")
       ));
 
       expect(signatures[0]).toBeTruthy();
       expect(new Set(signatures).size).toBe(1);
-      expect([card, hero, preview].map((markup) => (
+      expect([card, hero].map((markup) => (
         markup.match(/data-region-key=/g)?.length ?? 0
-      ))).toEqual(Array(3).fill(composition.regions.length));
+      ))).toEqual(Array(2).fill(composition.regions.length));
       expect(markupAttribute(card, "data-composition-fingerprint")).toBe(
-        matrix.template.fingerprint,
-      );
-      expect(markupAttribute(preview, "data-composition-fingerprint")).toBe(
         matrix.template.fingerprint,
       );
     }
@@ -472,7 +424,6 @@ describe("bibliotecas gobernadas por el registry L6", () => {
   it("no conserva catálogos ni resolvers basados en el nombre dentro de las bibliotecas", () => {
     const slidePicker = read("v2/timeline/SlidePicker.tsx");
     const slideBlueprint = read("v2/timeline/SlidePickerBlueprint.tsx");
-    const slidePreview = read("SlidePreview.tsx");
     const compositionHook = read("useSlideCompositions.ts");
     const grafPicker = read("GraficadorPicker.tsx");
     const grafBlueprint = read("GraficadorBlueprint.tsx");
@@ -481,14 +432,9 @@ describe("bibliotecas gobernadas por el registry L6", () => {
     expect(slidePicker).not.toMatch(/CANONICAL_TYPES|categoryOf|slidesById|availableTypes/);
     expect(slideBlueprint).not.toMatch(/p_slide_|fallbackSlots|const BLUEPRINTS|typeName|tipo=/);
     expect(slidePicker.match(/useSlideCompositions\(/g)).toHaveLength(1);
-    expect(slidePreview.match(/useSlideCompositions\(/g)).toHaveLength(1);
     expect(slidePicker).toContain("usePlanStore(slideCompositionRevision)");
-    expect(slidePreview).toContain("usePlanStore(slideCompositionRevision)");
     expect(slidePicker).toContain("useGraficosReportScope(location.search)");
     expect(slidePicker.match(/scope:\s*reportScope/g)).toHaveLength(1);
-    expect(slidePreview.match(/scope:\s*reportScope/g)).toHaveLength(1);
-    expect(slidePreview).not.toContain("apiGraficosSlideLayoutPreview");
-    expect(slidePreview).not.toMatch(/placeholder\.key\s*===|const friendly:/);
     expect(compositionHook).not.toMatch(/acnur_16_9|template_path/);
     expect(compositionHook).not.toContain("cache_revision");
     expect(grafPicker).not.toMatch(/graficadorFamily|switch\s*\(graf\.name\)/);

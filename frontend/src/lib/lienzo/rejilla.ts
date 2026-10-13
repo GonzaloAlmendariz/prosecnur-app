@@ -1,6 +1,6 @@
 // Rejilla y guías de alineación de un lienzo (ADR 0047).
 //
-// Destilado del snap de `graficos/v2/canvas/planAutoLayout.ts`. Puro.
+// Destilado del snap del antiguo lienzo del plan de Gráficos (`planAutoLayout`, ya retirado). Puro.
 
 export const GRILLA_POR_DEFECTO = 16;
 

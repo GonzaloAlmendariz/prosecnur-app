@@ -1,7 +1,7 @@
 // Nombres que los selectores muestran: de la lámina, de sus ranuras y de lo que hay en cada una.
 
 import type { GraficadorMetadata, GraficadorRef, SlideMetadata, SlideType } from "../../../../api/graficos";
-import { getSlotLabel } from "../../GraficadorSlot";
+import { getSlotLabel } from "../../slotLabels";
 import { graficadorDisplayName, humanizeIdentifier } from "../../graficadorDisplay";
 import { RANURAS_ESTANDAR } from "../../iconos/ranurasEstandar.generated";
 import { firstVariableRefFromGraph } from "../../slideAutoTitle";
