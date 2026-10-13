@@ -1,5 +1,8 @@
 // Ronda de claridad (U1-U3): explicar «armonizar», aguantar N bases con
 // cualquier nombre y nombrar la serie con una sola regla.
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 import type { Armonizacion } from "../../api/equivalencias";
 import { estadoArmonizacion, estadoDeBase, explicacionArmonizacion } from "./armonizacionModel";
@@ -77,5 +80,32 @@ describe("tablas con N bases", () => {
     expect(cob.texto).toBe("3 de 7");
     expect(cob.detalle).toBe("Está en a, c, g. Falta en b, d, e, f.");
     expect(coberturaDeBases(["a", "b"], { a: "p", b: "q" }).detalle).toBe("Está en todas las bases.");
+  });
+});
+
+describe("Importar por bloques no supone que la serie sea de años (P-A7)", () => {
+  const fuente = readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "ImportarBloquesDialog.tsx"), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "");
+
+  test("el copy nombra la serie con nombreDeSerie y habla de columnas", () => {
+    expect(fuente).toMatch(/nombreDeSerieDeBases\(bases\)/);
+    expect(fuente).toContain("una columna por {serie.singular}");
+    expect(fuente).toContain("Columnas y bases");
+    expect(fuente).toContain("No importar esta columna");
+  });
+
+  test("«año» sólo aparece para decir la capacidad real del lector", () => {
+    // Las únicas menciones legítimas: el encabezado de año que el lector exige,
+    // el aviso cuando las bases no son años y la columna «Año» de una serie de años.
+    const permitidas = [
+      /encabezadas por un año/g,
+      /no se nombran por año/g,
+      /serieDeAnios \? "Año" : "Columna"/g,
+      /serie\.singular === "año"/g,
+    ];
+    let resto = fuente;
+    for (const re of permitidas) resto = resto.replace(re, "");
+    expect(resto.match(/\b[Aa]ños?\b/g) ?? []).toEqual([]);
   });
 });

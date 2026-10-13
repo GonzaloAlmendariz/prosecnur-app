@@ -13,7 +13,9 @@ import {
   type EquivalenciasImportacion,
 } from "../../api/equivalencias";
 import { mismoOrden, moverEnLista, ordenEfectivo } from "./armonizacionModel";
+import { CLASE_CHIP_CON_CONTROLES, ChipControl } from "../../components/ChipConControles";
 import "./ArmonizacionFilaEditor.css";
+import { PulsoButton } from "../../components/PulsoButton";
 
 export type ArmonizacionPeriodosProps = {
   estado: EquivalenciasEstado;
@@ -56,44 +58,46 @@ export function ArmonizacionPeriodos({ estado, onGuardado }: ArmonizacionPeriodo
         <ListOrdered size={13} aria-hidden="true" />
         Orden de la serie
       </span>
-      <ol className="pulso-armon-periodos-lista">
+      {/* C1: una colección de chips del mismo tipo, cada uno de su ancho (el
+          nombre de la base manda); todos con el mismo alto por el primitivo. */}
+      <ol
+        className="pulso-armon-periodos-lista"
+        data-qa-geometry-group="carga-orden-serie"
+        data-qa-geometry-contract="intrinsic"
+      >
         {orden.map((base, i) => (
-          <li key={base}>
+          <li key={base} className={CLASE_CHIP_CON_CONTROLES} data-qa-geometry-member>
             <span className="pulso-armon-periodos-pos" aria-hidden="true">{i + 1}</span>
             <span className="pulso-armon-periodos-base">{base}</span>
-            <button
-              type="button"
-              className="pulso-icon"
+            <ChipControl
               aria-label={`Mover ${base} antes`}
               disabled={i === 0 || guardando}
               onClick={() => mover(i, -1)}
             >
               <ArrowUp size={12} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="pulso-icon"
+            </ChipControl>
+            <ChipControl
               aria-label={`Mover ${base} después`}
               disabled={i === orden.length - 1 || guardando}
               onClick={() => mover(i, 1)}
             >
               <ArrowDown size={12} aria-hidden="true" />
-            </button>
+            </ChipControl>
           </li>
         ))}
       </ol>
       {!declarado && (
         <span className="pulso-armon-periodos-nota">Sin declarar. Se usa el orden de las bases.</span>
       )}
-      <button
-        type="button"
-        className="pulso-secondary pulso-armon-btn"
+      <PulsoButton
+        variant="secondary"
+        className="pulso-armon-btn"
         disabled={guardando || !cambiado}
         onClick={() => void guardar()}
       >
         <Save size={13} aria-hidden="true" />
         {guardando ? "Guardando…" : declarado ? "Guardar orden" : "Declarar este orden"}
-      </button>
+      </PulsoButton>
       {error && <span className="pulso-armon-error" role="alert">{error}</span>}
     </div>
   );

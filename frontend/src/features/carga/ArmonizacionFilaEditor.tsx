@@ -61,6 +61,7 @@ import {
 } from "./armonizacionModel";
 import { nombreDeSerieDeBases, type NombreDeSerie } from "./nombreDeSerie";
 import "./ArmonizacionFilaEditor.css";
+import { PulsoButton } from "../../components/PulsoButton";
 
 // ---- Indicador por fila -----------------------------------------------------
 
@@ -448,28 +449,28 @@ function EditorFila({
           ) : null}
         </div>
         {fila.armonizacion && (
-          <button
-            type="button"
-            className="pulso-secondary pulso-armon-btn"
+          <PulsoButton
+            variant="secondary"
+            className="pulso-armon-btn"
             disabled={guardando}
             onClick={() => void guardar(true)}
           >
             <Trash2 size={14} aria-hidden="true" />
             Quitar armonización
-          </button>
+          </PulsoButton>
         )}
-        <button type="button" className="pulso-secondary pulso-armon-btn" onClick={onCerrar}>
+        <PulsoButton variant="secondary" className="pulso-armon-btn" onClick={onCerrar}>
           Cerrar
-        </button>
-        <button
-          type="button"
-          className="pulso-primary pulso-armon-btn"
+        </PulsoButton>
+        <PulsoButton
+          variant="primary"
+          className="pulso-armon-btn"
           disabled={guardando || !sucio || errores.length > 0}
           onClick={() => void guardar(false)}
         >
           <Save size={14} aria-hidden="true" />
           {guardando ? "Guardando…" : "Guardar armonización"}
-        </button>
+        </PulsoButton>
       </footer>
     </div>
   );
@@ -551,14 +552,14 @@ function EscalaComun({
             La lista de respuestas con la que se compara esta pregunta en {serie.todas}.
           </p>
         </div>
-        <button
-          type="button"
-          className="pulso-secondary pulso-armon-btn"
+        <PulsoButton
+          variant="secondary"
+          className="pulso-armon-btn"
           onClick={() => despachar({ tipo: "agregar" })}
         >
           <Plus size={14} aria-hidden="true" />
           Agregar categoría
-        </button>
+        </PulsoButton>
       </div>
       {borrador.escala.length === 0 ? (
         // C3: el vacío es de esta sección y dice cómo se llena.
@@ -696,14 +697,14 @@ function MapaDeBase({
             Sin declarar. Una base no se presume comparable: elige una opción para que entre a la serie.
           </p>
           {escala.length === 0 && opciones.length > 0 && (
-            <button
-              type="button"
-              className="pulso-secondary pulso-armon-btn"
+            <PulsoButton
+              variant="secondary"
+              className="pulso-armon-btn"
               onClick={() => despachar({ tipo: "sembrar", opciones })}
             >
               <Plus size={14} aria-hidden="true" />
               Usar esta lista como escala
-            </button>
+            </PulsoButton>
           )}
         </div>
       )}
@@ -712,19 +713,22 @@ function MapaDeBase({
         <>
           <div className="pulso-armon-base-acciones">
             {escala.length === 0 && opciones.length > 0 && (
-              <button
-                type="button"
-                className="pulso-secondary pulso-armon-btn"
+              <PulsoButton
+                variant="secondary"
+                className="pulso-armon-btn"
                 onClick={() => despachar({ tipo: "sembrar", opciones })}
               >
                 <Plus size={14} aria-hidden="true" />
                 Usar esta lista como escala
-              </button>
+              </PulsoButton>
             )}
+            {/* Secundario siempre (P-A5): el único primario del panel es
+                «Guardar armonización». La etiqueta distinta ya la anuncia el
+                resumen de al lado, con texto y no con el peso del botón. */}
             {escala.length > 0 && opciones.length > 0 && (
-              <button
-                type="button"
-                className={`${resumen.etiquetaDistinta > 0 ? "pulso-primary" : "pulso-secondary"} pulso-armon-btn`}
+              <PulsoButton
+                variant="secondary"
+                className="pulso-armon-btn"
                 title={explicito
                   ? "Lleva cada código a la categoría de la escala con la misma etiqueta. No toca lo ya asignado."
                   : "Reemplaza la correspondencia por número con un mapa explícito: cada código va a la categoría con su misma etiqueta y lo que no casa queda sin mapa."}
@@ -732,7 +736,7 @@ function MapaDeBase({
               >
                 <Wand2 size={14} aria-hidden="true" />
                 {explicito ? "Emparejar por etiqueta" : "Convertir en mapa por etiqueta"}
-              </button>
+              </PulsoButton>
             )}
             <span
               className={`pulso-armon-base-resumen${resumen.etiquetaDistinta > 0 || resumen.sinMapa > 0 ? " is-aviso" : ""}`}

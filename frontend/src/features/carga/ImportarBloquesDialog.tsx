@@ -1,9 +1,14 @@
 // Importar la matriz de correspondencias por bloques (contrato E4-E7, R3).
 //
 // La matriz que el equipo escribe para una serie de mediciones es un documento
-// por BLOQUES con un año por columna. El diálogo la sube, ata cada año a una
-// base del estudio, muestra qué entraría y qué advierte el motor, y sólo
+// por BLOQUES con una columna por medición. El diálogo la sube, ata cada columna
+// a una base del estudio, muestra qué entraría y qué advierte el motor, y sólo
 // entonces aplica. Direccionable con `?panel=importar-bloques`.
+//
+// Capacidad del lector (P-A7): hoy el motor sólo reconoce columnas cuyo
+// encabezado es un año (`.equiv_bloques_encabezado`, 19xx/20xx). Una serie de
+// públicos o sedes no se esconde detrás de un copy neutro: se dice, y se ofrece
+// la vía que sí la acepta («Subir matriz»).
 //
 // La lógica vive en `armonizacionModel`; aquí sólo hay render y eventos.
 
@@ -24,6 +29,8 @@ import {
   mapaPeriodosParaEnviar,
   mapaPeriodosValido,
 } from "./armonizacionModel";
+import { nombreDeSerieDeBases } from "./nombreDeSerie";
+import { PulsoButton } from "../../components/PulsoButton";
 import "./ImportarBloquesDialog.css";
 
 type Paso =
@@ -47,16 +54,16 @@ export type ImportarBloquesDialogProps = {
 export function ImportarBloquesBoton({ disabled }: { disabled?: boolean }) {
   const panel = usePanelDireccionable(PANEL_IMPORTAR_BLOQUES);
   return (
-    <button
-      type="button"
-      className="pulso-secondary pulso-equiv-btn"
+    <PulsoButton
+      variant="secondary"
+      className="pulso-equiv-btn"
       onClick={panel.abrir}
       disabled={disabled}
       aria-haspopup="dialog"
     >
       <FileSpreadsheet size={14} aria-hidden="true" />
       Importar por bloques
-    </button>
+    </PulsoButton>
   );
 }
 
@@ -86,7 +93,10 @@ export function ImportarBloquesDialog({ bases, onAplicado }: ImportarBloquesDial
       const subido = await apiUpload(file, "equivalencias");
       const anios = bases.length ? await detectarAniosBloques(subido.file_id, bases[0], hoja || undefined) : [];
       if (anios.length === 0) {
-        setError("La hoja no trae columnas de año. Revisa que sea la matriz de correspondencias por bloques.");
+        setError(
+          "La fila de títulos no trae columnas encabezadas por un año (2024, 2025…), que es lo que "
+            + "el lector reconoce hoy. Revisa que sea la matriz de correspondencias por bloques.",
+        );
         return;
       }
       setPaso({
@@ -128,6 +138,9 @@ export function ImportarBloquesDialog({ bases, onAplicado }: ImportarBloquesDial
   };
 
   const validez = paso.tipo === "archivo" ? null : mapaPeriodosValido(paso.mapa);
+  // Cómo se llaman las mediciones del estudio: «años» sólo si todas sus bases lo son.
+  const serie = nombreDeSerieDeBases(bases);
+  const serieDeAnios = serie.singular === "año";
 
   return (
     <Dialog.Root open={panel.abierto} onOpenChange={(abierto) => { if (!abierto) cerrar(); }}>
@@ -149,13 +162,14 @@ export function ImportarBloquesDialog({ bases, onAplicado }: ImportarBloquesDial
               </Dialog.Close>
             </div>
             <Dialog.Description id="pulso-bloques-descripcion" className="pulso-bloques-regla">
-              La matriz del proyecto lleva un bloque por pregunta y un año por columna. Cada año se
-              ata a una base del estudio, y los códigos se validan contra el instrumento de esa base.
+              La matriz del proyecto lleva un bloque por pregunta y una columna por {serie.singular}.
+              Cada columna se ata a una base del estudio, y los códigos se validan contra el
+              instrumento de esa base.
             </Dialog.Description>
             <ol className="pulso-bloques-pasos" aria-label="Pasos">
               {(["archivo", "mapear", "vista"] as const).map((p, i) => (
                 <li key={p} aria-current={paso.tipo === p ? "step" : undefined}>
-                  {i + 1}. {p === "archivo" ? "Archivo" : p === "mapear" ? "Años y bases" : "Revisión"}
+                  {i + 1}. {p === "archivo" ? "Archivo" : p === "mapear" ? "Columnas y bases" : "Revisión"}
                 </li>
               ))}
             </ol>
@@ -184,15 +198,24 @@ export function ImportarBloquesDialog({ bases, onAplicado }: ImportarBloquesDial
                 <p className="pulso-bloques-nota">
                   Déjala vacía si la hoja se llama «Matriz de correspondencias».
                 </p>
-                <button
-                  type="button"
-                  className="pulso-primary pulso-equiv-btn"
+                {!serieDeAnios && (
+                  // Brecha de capacidad, dicha y no escondida: el lector sólo
+                  // reconoce columnas encabezadas por un año.
+                  <p className="pulso-bloques-nota is-aviso">
+                    Las bases de este estudio no se nombran por año, y este lector sólo reconoce
+                    columnas encabezadas por un año (2024, 2025…). Si tu matriz nombra sus
+                    columnas de otra forma, súbela con «Subir matriz».
+                  </p>
+                )}
+                <PulsoButton
+                  variant="primary"
+                  className="pulso-equiv-btn"
                   disabled={ocupado !== ""}
                   onClick={() => archivoRef.current?.click()}
                 >
                   <Upload size={14} aria-hidden="true" />
                   {ocupado === "subir" ? "Leyendo la matriz…" : "Elegir archivo .xlsx"}
-                </button>
+                </PulsoButton>
                 <input
                   ref={archivoRef}
                   className="pulso-equiv-archivo"
@@ -211,11 +234,11 @@ export function ImportarBloquesDialog({ bases, onAplicado }: ImportarBloquesDial
 
             {paso.tipo !== "archivo" && (
               <section className="pulso-bloques-seccion" data-qa-geometry-member>
-                <h3>Años de {paso.nombre}</h3>
+                <h3>Columnas de {paso.nombre}</h3>
                 <table className="pulso-bloques-tabla">
                   <thead>
                     <tr>
-                      <th scope="col">Año en la matriz</th>
+                      <th scope="col">Columna en la matriz</th>
                       <th scope="col">Base del estudio</th>
                     </tr>
                   </thead>
@@ -227,12 +250,12 @@ export function ImportarBloquesDialog({ bases, onAplicado }: ImportarBloquesDial
                           <select
                             value={paso.mapa[anio] ?? ""}
                             disabled={paso.tipo === "vista" || ocupado !== ""}
-                            aria-label={`Base para ${anio}`}
+                            aria-label={`Base para la columna ${anio}`}
                             onChange={(e) =>
                               setPaso({ ...paso, mapa: { ...paso.mapa, [anio]: e.target.value } })
                             }
                           >
-                            <option value="">No importar este año</option>
+                            <option value="">No importar esta columna</option>
                             {bases.map((b) => (
                               <option key={b} value={b}>{b}</option>
                             ))}
@@ -246,46 +269,46 @@ export function ImportarBloquesDialog({ bases, onAplicado }: ImportarBloquesDial
               </section>
             )}
 
-            {paso.tipo === "vista" && <VistaPrevia resultado={paso.resultado} />}
+            {paso.tipo === "vista" && <VistaPrevia resultado={paso.resultado} serieDeAnios={serieDeAnios} />}
           </div>
 
           <footer className="pulso-bloques-pie">
             {paso.tipo === "mapear" && (
               <>
-                <button type="button" className="pulso-secondary pulso-equiv-btn" onClick={reiniciar} disabled={ocupado !== ""}>
+                <PulsoButton variant="secondary" className="pulso-equiv-btn" onClick={reiniciar} disabled={ocupado !== ""}>
                   <ArrowLeft size={14} aria-hidden="true" />
                   Otro archivo
-                </button>
-                <button
-                  type="button"
-                  className="pulso-primary pulso-equiv-btn"
+                </PulsoButton>
+                <PulsoButton
+                  variant="primary"
+                  className="pulso-equiv-btn"
                   disabled={ocupado !== "" || !validez?.ok}
                   onClick={() => void correr("previsualizar")}
                 >
                   {ocupado === "previsualizar" ? "Revisando…" : "Previsualizar"}
-                </button>
+                </PulsoButton>
               </>
             )}
             {paso.tipo === "vista" && (
               <>
-                <button
-                  type="button"
-                  className="pulso-secondary pulso-equiv-btn"
+                <PulsoButton
+                  variant="secondary"
+                  className="pulso-equiv-btn"
                   disabled={ocupado !== ""}
                   onClick={() => setPaso({ tipo: "mapear", fileId: paso.fileId, nombre: paso.nombre, anios: paso.anios, mapa: paso.mapa })}
                 >
                   <ArrowLeft size={14} aria-hidden="true" />
-                  Cambiar años
-                </button>
-                <button
-                  type="button"
-                  className="pulso-primary pulso-equiv-btn"
+                  Cambiar columnas
+                </PulsoButton>
+                <PulsoButton
+                  variant="primary"
+                  className="pulso-equiv-btn"
                   disabled={ocupado !== "" || paso.resultado.filas_importadas.length === 0}
                   onClick={() => void correr("aplicar")}
                 >
                   <Check size={14} aria-hidden="true" />
                   {ocupado === "aplicar" ? "Aplicando…" : `Aplicar ${paso.resultado.resumen.n_filas} filas`}
-                </button>
+                </PulsoButton>
               </>
             )}
           </footer>
@@ -295,7 +318,7 @@ export function ImportarBloquesDialog({ bases, onAplicado }: ImportarBloquesDial
   );
 }
 
-function VistaPrevia({ resultado }: { resultado: ImportacionBloques }) {
+function VistaPrevia({ resultado, serieDeAnios }: { resultado: ImportacionBloques; serieDeAnios: boolean }) {
   const r = resultado.resumen;
   const grupos = agruparAdvertencias(resultado.advertencias);
   const cifras: [string, number][] = [
@@ -324,7 +347,7 @@ function VistaPrevia({ resultado }: { resultado: ImportacionBloques }) {
             <thead>
               <tr>
                 <th scope="col">Base</th>
-                <th scope="col">Año</th>
+                <th scope="col">{serieDeAnios ? "Año" : "Columna"}</th>
                 <th scope="col" className="is-num">Variables</th>
                 <th scope="col" className="is-num">Pendientes</th>
                 <th scope="col" className="is-num">Códigos que la lista no tiene</th>

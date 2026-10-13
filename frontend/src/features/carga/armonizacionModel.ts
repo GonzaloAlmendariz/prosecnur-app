@@ -553,9 +553,9 @@ export function mapaPeriodosInicial(
 
 export function mapaPeriodosValido(mapa: Record<string, string>): { ok: boolean; motivo: string } {
   const asignadas = Object.values(mapa).filter(Boolean);
-  if (asignadas.length === 0) return { ok: false, motivo: "Asigna al menos un año a una base." };
+  if (asignadas.length === 0) return { ok: false, motivo: "Asigna al menos una columna a una base." };
   if (new Set(asignadas).size !== asignadas.length) {
-    return { ok: false, motivo: "Dos años apuntan a la misma base." };
+    return { ok: false, motivo: "Dos columnas apuntan a la misma base." };
   }
   return { ok: true, motivo: "" };
 }

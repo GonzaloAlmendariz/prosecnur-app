@@ -28,7 +28,7 @@
   display: flex;
   align-items: flex-start;
   gap: var(--pulso-space-2);
-  color: var(--pulso-module-processing);
+  color: var(--module-accent);
   min-width: 0;
 }
 
@@ -205,12 +205,6 @@
   margin: 0;
   font-size: 12px;
   color: var(--pulso-text-faint);
-}
-
-.pulso-equiv-cargando {
-  margin: 0;
-  font-size: 13px;
-  color: var(--pulso-text-soft);
 }
 
 /* --- Tabla del editor (ADR 0062, enmienda) --------------------------------
@@ -397,8 +391,8 @@ button.pulso-equiv-input-diapo:hover,
 }
 
 .pulso-equiv-vistas button.is-active {
-  border-color: var(--pulso-module-processing);
-  color: var(--pulso-module-processing);
+  border-color: var(--module-accent);
+  color: var(--module-accent);
   background: var(--pulso-surface-2);
 }
 
@@ -453,7 +447,7 @@ button.pulso-equiv-input-diapo:hover,
   padding: 3px 8px;
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
-  color: var(--pulso-module-processing);
+  color: var(--module-accent);
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -504,7 +498,7 @@ button.pulso-equiv-input-diapo:hover,
 }
 
 .pulso-equiv-enunciado.is-vacio:hover {
-  color: var(--pulso-module-processing);
+  color: var(--module-accent);
 }
 
 .pulso-equiv-seccion,
@@ -543,8 +537,8 @@ button.pulso-equiv-input-diapo:hover,
 
 button.pulso-equiv-chip-escala:hover,
 .pulso-equiv-chip-escala.is-abierto {
-  border-color: var(--pulso-module-processing);
-  color: var(--pulso-module-processing);
+  border-color: var(--module-accent);
+  color: var(--module-accent);
 }
 
 .pulso-equiv-chip-escala.is-abierto svg { transform: rotate(180deg); }
@@ -680,7 +674,7 @@ button.pulso-equiv-chip-escala:hover,
 .pulso-equiv-aviso-caja > svg {
   flex-shrink: 0;
   margin-top: 2px;
-  color: var(--pulso-module-processing);
+  color: var(--module-accent);
 }
 
 .pulso-equiv-avisos li {
@@ -829,8 +823,8 @@ button.pulso-equiv-chip-escala:hover,
 }
 
 .pulso-equiv-add-tema:hover {
-  border-color: var(--pulso-module-processing);
-  color: var(--pulso-module-processing);
+  border-color: var(--module-accent);
+  color: var(--module-accent);
 }
 
 /* Acciones que operan sobre todo el editor —agrupar, confirmar en bloque—. Viven
@@ -852,11 +846,11 @@ button.pulso-equiv-chip-escala:hover,
 }
 
 .pulso-equiv-accion-masiva:hover {
-  border-color: var(--pulso-module-processing);
-  color: var(--pulso-module-processing);
+  border-color: var(--module-accent);
+  color: var(--module-accent);
 }
 
-.pulso-equiv-accion-masiva svg { color: var(--pulso-module-processing); }
+.pulso-equiv-accion-masiva svg { color: var(--module-accent); }
 
 /* La celda de variable en modo busqueda. Escribes y el navegador filtra por
    codigo o por etiqueta contra el `datalist` de SU base: el mismo gesto que el
@@ -867,7 +861,7 @@ button.pulso-equiv-chip-escala:hover,
   width: 100%;
   min-width: 0;
   padding: 2px 6px;
-  border: 1px solid var(--pulso-module-processing);
+  border: 1px solid var(--module-accent);
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
   color: var(--pulso-text);
@@ -908,7 +902,7 @@ tbody.pulso-equiv-bloque.is-partido td {
 }
 
 tbody.pulso-equiv-bloque.is-partido td:first-child {
-  border-left: 4px solid var(--pulso-module-processing);
+  border-left: 4px solid var(--module-accent);
   padding-left: var(--pulso-space-3);
 }
 
@@ -995,8 +989,8 @@ tbody.pulso-equiv-bloque.is-partido tr:last-child td {
 
 button.pulso-equiv-mover:hover,
 .pulso-equiv-mover:focus {
-  border-color: var(--pulso-module-processing);
-  color: var(--pulso-module-processing);
+  border-color: var(--module-accent);
+  color: var(--module-accent);
 }
 
 /* --- Grafico y corte del bloque (ADR 0064) --------------------------------
@@ -1037,7 +1031,7 @@ button.pulso-equiv-mover:hover,
 
 .pulso-equiv-grafico-switch button.is-active {
   background: var(--pulso-surface-2);
-  color: var(--pulso-module-processing);
+  color: var(--module-accent);
 }
 
 /* El corte son casillas sobre las opciones REALES del bloque. Una regla fija
@@ -1073,8 +1067,8 @@ button.pulso-equiv-mover:hover,
 .pulso-equiv-corte-op:hover { border-color: var(--pulso-border-strong); }
 
 .pulso-equiv-corte-op.is-on {
-  border-color: var(--pulso-module-processing);
-  background: var(--pulso-module-processing);
+  border-color: var(--module-accent);
+  background: var(--module-accent);
   color: var(--pulso-surface);
   font-weight: 600;
 }
@@ -1125,7 +1119,7 @@ button.pulso-equiv-mover:hover,
   color: var(--pulso-text-soft);
   background: var(--pulso-surface);
   border: 1px solid var(--pulso-border);
-  border-radius: 999px;
+  border-radius: var(--pulso-radius-chip);
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
@@ -1172,12 +1166,12 @@ button.pulso-equiv-mover:hover,
   width: fit-content;
   cursor: pointer;
   border-radius: var(--pulso-radius-chip);
-  color: var(--pulso-module-processing);
+  color: var(--module-accent);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-equiv-que-es > summary:focus-visible {
-  outline: 2px solid var(--pulso-module-processing);
+  outline: 2px solid var(--module-accent);
   outline-offset: 2px;
 }
 
@@ -1229,7 +1223,7 @@ button.pulso-equiv-mover:hover,
 }
 
 .pulso-equiv-hscroll.is-desborda:focus-visible {
-  outline: 2px solid var(--pulso-module-processing);
+  outline: 2px solid var(--module-accent);
   outline-offset: 2px;
 }
 

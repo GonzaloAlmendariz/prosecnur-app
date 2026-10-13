@@ -1,0 +1,92 @@
+/* Esqueleto de Equivalencias mientras lee la declaración (P-A8).
+   Misma forma que la superficie cargada: orden de la serie, cabecera de la
+   tabla y filas. Solo tokens; el brillo usa el acento del módulo. */
+
+.pulso-equiv-esq {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-equiv-esq-brillo {
+  display: block;
+  height: 12px;
+  border-radius: var(--pulso-radius-chip);
+  background:
+    linear-gradient(
+      90deg,
+      var(--pulso-surface-3),
+      color-mix(in srgb, var(--module-accent-soft) 70%, var(--pulso-surface-3)),
+      var(--pulso-surface-3)
+    );
+  background-size: 200% 100%;
+  animation: pulso-shimmer 2.2s linear infinite;
+}
+
+.pulso-equiv-esq-boton {
+  width: 132px;
+  height: var(--pulso-control-height-md);
+  border-radius: 8px;
+}
+
+/* La barra del orden de la serie: misma caja que `.pulso-armon-periodos`. */
+.pulso-equiv-esq-serie {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  min-height: 44px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-equiv-esq-rotulo {
+  width: 120px;
+}
+
+.pulso-equiv-esq-chip {
+  width: 108px;
+  height: var(--pulso-control-height-sm);
+}
+
+.pulso-equiv-esq-tabla {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tema ancho, una columna por base y la cobertura «k de N», como la tabla real. */
+.pulso-equiv-esq-fila {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) repeat(3, minmax(72px, 132px)) 64px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-height: 33px;
+  padding-inline: var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-equiv-esq-fila.is-cabecera {
+  min-height: 24px;
+}
+
+.pulso-equiv-esq-fila.is-cabecera .pulso-equiv-esq-brillo {
+  height: 8px;
+  width: 56%;
+}
+
+.pulso-equiv-esq-brillo.is-tema {
+  height: 22px;
+  border-radius: 8px;
+}
+
+.pulso-equiv-esq-brillo.is-corto {
+  width: 70%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-equiv-esq-brillo {
+    animation: none;
+  }
+}

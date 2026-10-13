@@ -14,6 +14,7 @@ import { CoberturaBases } from "./CoberturaBases";
 import { nombreDeSerieDeBases } from "./nombreDeSerie";
 import { anchoColumnaPublico, anchoMinimoLista } from "./equivalenciasAnchos";
 import { useDesbordeHorizontal } from "./useDesbordeHorizontal";
+import { PulsoButton } from "../../components/PulsoButton";
 
 export type EquivalenciasTablaProps = {
   bases: string[];
@@ -170,10 +171,10 @@ export function EquivalenciasTabla({
       </table>
       </div>
 
-      <button type="button" className="pulso-secondary pulso-equiv-btn" onClick={onAgregarFila}>
+      <PulsoButton variant="secondary" className="pulso-equiv-btn" onClick={onAgregarFila}>
         <Plus size={14} aria-hidden="true" />
         Añadir pregunta
-      </button>
+      </PulsoButton>
     </div>
   );
 }
