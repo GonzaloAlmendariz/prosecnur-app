@@ -1024,7 +1024,7 @@
   list(value = "minmax",  label = "Mínimo a máximo", hint = "Lo que se dibuja por defecto."),
   list(value = "iqr",     label = "50 % central (P25–P75)"),
   list(value = "p10_p90", label = "Percentiles 10 a 90"),
-  list(value = "custom",  label = "Percentiles a medida", hint = "Los fija «probs_rango»; sin ellos, P25–P75.")
+  list(value = "custom",  label = "Percentiles a medida", hint = "Con los percentiles guardados en el informe; sin ellos, P25–P75.")
 )
 
 .GRAFICADORES_META <- list(
@@ -1178,7 +1178,7 @@
              list(value = "ninguna", label = "Sin cambios"),
              list(value = "mayuscula_inicial", label = "Mayúscula inicial")
            )),
-      list(name = "ancho_max_eje_x", label = "Wrap de etiquetas", tipo_input = "number", grupo = "espacio",
+      list(name = "ancho_max_eje_x", label = "Caracteres por línea en las etiquetas", tipo_input = "number", grupo = "espacio",
            descripcion = "Caracteres por línea antes de partir la etiqueta de una categoría. Menos caracteres = más líneas y barras más separadas.",
            default = 18, min = 6, max = 40, step = 1),
       list(name = "grosor_barras", label = "Grosor de barras", tipo_input = "number", grupo = "espacio",
@@ -2254,7 +2254,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "font_family",       label = "Fuente",                 tipo_input = "string", grupo = "textos",
            default = "Arial",
            descripcion = "Familia tipográfica usada por todos los gráficos (ej. 'Arial', 'Helvetica', 'Open Sans', 'Roboto')."),
-      list(name = "font_family_ppt",   label = "Fuente (solo PPT)",      tipo_input = "string", grupo = "textos",
+      list(name = "font_family_ppt",   label = "Tipografía (sólo PowerPoint)",      tipo_input = "string", grupo = "textos",
            descripcion = "Tipografía sólo para PowerPoint. Vacío, usa la general. Sirve cuando la general no está instalada en las computadoras donde se abre el PPT."),
       list(name = "formato",           label = "Formato del texto base", tipo_input = "string", grupo = "textos",
            default = "Base: %s",
@@ -2269,15 +2269,15 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "size_titulo",       label = "Tamaño del título",      tipo_input = "number", grupo = "estilo",
            default = 14,
            descripcion = "Tamaño del título del gráfico, en puntos (14 por defecto). El título de la lámina se ajusta en la plantilla."),
-      list(name = "size_titulo_slide", label = "Tamaño título PPT",      tipo_input = "number", grupo = "estilo",
+      list(name = "size_titulo_slide", label = "Tamaño del título (láminas de texto)",      tipo_input = "number", grupo = "estilo",
            default = 24,
            descripcion = "Tamaño del título en portadas, separadores y láminas de texto, en puntos."),
       list(name = "size_subtitulo",    label = "Tamaño del subtítulo",   tipo_input = "number", grupo = "estilo",
            default = 14),
-      list(name = "size_subtitulo_slide", label = "Tamaño subtítulo PPT", tipo_input = "number", grupo = "estilo",
+      list(name = "size_subtitulo_slide", label = "Tamaño del subtítulo (láminas de texto)", tipo_input = "number", grupo = "estilo",
            default = 16,
            descripcion = "Tamaño del subtítulo en portadas, separadores y láminas de texto, en puntos."),
-      list(name = "size_cuerpo_slide", label = "Tamaño cuerpo PPT",      tipo_input = "number", grupo = "estilo",
+      list(name = "size_cuerpo_slide", label = "Tamaño del texto (láminas de texto)",      tipo_input = "number", grupo = "estilo",
            default = 14,
            descripcion = "Tamaño del texto en portadas, separadores y láminas de texto, en puntos."),
       list(name = "size_leyenda",      label = "Tamaño de la leyenda",   tipo_input = "number", grupo = "estilo",
@@ -2473,8 +2473,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "filtro",
            default = 15,
            descripcion = "Máximo de caracteres por línea en las etiquetas del eje Y antes de romper. Valores 10-80 según cuánto espacio tengas."),
-      list(name = "wrap_y",               label = "Wrap eje Y (alternativo)", tipo_input = "number", grupo = "filtro",
-           descripcion = "Alias alternativo para ancho_max_eje_y, por compatibilidad."),
+      list(name = "wrap_y",               label = "Caracteres por línea en el eje vertical (alternativo)", tipo_input = "number", grupo = "filtro",
+           descripcion = "Lo mismo que «Ancho de texto de etiquetas»; se conserva para informes antiguos."),
       list(name = "invertir_barras",      label = "Invertir orden de las barras", tipo_input = "bool",   grupo = "datos",
            descripcion = "Invierte el orden de las barras: la primera abajo y la última arriba."),
 
@@ -2516,31 +2516,31 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "canvas_w_extra",         label = "Ancho columna extra",    tipo_input = "number", grupo = "canvas",
            default = 0.12,
            descripcion = "Fracción del ancho para la columna de la barra extra (Top2Box, N, etc.)."),
-      list(name = "canvas_h_toprow_in",     label = "Alto zona superior (in)", tipo_input = "number", grupo = "canvas",
+      list(name = "canvas_h_toprow_in",     label = "Alto de la zona superior (pulg.)", tipo_input = "number", grupo = "canvas",
            default = 0.10,
            descripcion = "Espacio en blanco sobre el gráfico, en pulgadas."),
-      list(name = "canvas_h_header_in",     label = "Alto del header (in)",   tipo_input = "number", grupo = "canvas",
+      list(name = "canvas_h_header_in",     label = "Alto del encabezado (pulg.)",   tipo_input = "number", grupo = "canvas",
            default = 0.15,
            descripcion = "Altura en pulgadas de la zona del título. Si el título no entra, aumenta este valor."),
       list(name = "encabezado_desplazamiento_in", label = "Mover encabezado", tipo_input = "number", grupo = "canvas",
            descripcion = "Desplazamiento vertical fino del bloque de título/subtítulo."),
       list(name = "encabezado_separacion_in", label = "Separación título-subtítulo", tipo_input = "number", grupo = "canvas",
            descripcion = "Distancia vertical entre el título del gráfico y su subtítulo."),
-      list(name = "canvas_h_legend_in",     label = "Alto de la leyenda (in)", tipo_input = "number", grupo = "canvas",
+      list(name = "canvas_h_legend_in",     label = "Alto de la leyenda (pulg.)", tipo_input = "number", grupo = "canvas",
            default = 0.15),
       list(name = "leyenda_desplazamiento_in", label = "Mover leyenda", tipo_input = "number", grupo = "canvas",
            descripcion = "Desplazamiento vertical fino de la leyenda dentro del gráfico."),
-      list(name = "canvas_h_caption_in",    label = "Alto del pie de página (in)", tipo_input = "number", grupo = "canvas",
+      list(name = "canvas_h_caption_in",    label = "Alto del pie de página (pulg.)", tipo_input = "number", grupo = "canvas",
            default = 0.20),
-      list(name = "canvas_h_panel_in",      label = "Alto fijo del panel (in)", tipo_input = "number", grupo = "canvas",
+      list(name = "canvas_h_panel_in",      label = "Alto fijo del panel (pulg.)", tipo_input = "number", grupo = "canvas",
            descripcion = "Si se define, fuerza el alto interno del panel de barras. Útil para compactar gráficos de pocas filas."),
       list(name = "canvas_min_filas",       label = "Filas virtuales mínimas", tipo_input = "number", grupo = "canvas",
            default = 1,
            descripcion = "Mínimo de filas virtuales usadas para calcular separación vertical. 1 compacta gráficos con una barra."),
-      list(name = "canvas_pad_bars_y_in",   label = "Padding vertical barras (in)", tipo_input = "number", grupo = "canvas",
+      list(name = "canvas_pad_bars_y_in",   label = "Margen vertical de las barras (pulg.)", tipo_input = "number", grupo = "canvas",
            default = 0.08,
            descripcion = "Espacio interno superior e inferior alrededor del área de barras."),
-      list(name = "alto_por_categoria",     label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas",
+      list(name = "alto_por_categoria",     label = "Alto por categoría (pulg.)", tipo_input = "number", grupo = "canvas",
            default = 0.36,
            descripcion = "Altura en pulgadas que ocupa cada fila (categoría). Más = barras más gruesas."),
 
@@ -2548,15 +2548,15 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "grosor_modo",          label = "Modo de grosor",        tipo_input = "choice", grupo = "avanzado",
            default = "auto",
            choices = list(
-             list(value = "auto",   label = "Automático",   hint = "Se calcula según alto_por_categoria."),
-             list(value = "manual", label = "Manual",        hint = "Usa grosor_barras tal cual.")
+             list(value = "auto",   label = "Automático",   hint = "Se calcula según el alto por categoría."),
+             list(value = "manual", label = "Manual",        hint = "Usa el grosor de las barras tal cual.")
            )),
       list(name = "grosor_barras",        label = "Grosor de las barras",  tipo_input = "number", grupo = "avanzado",
            default = 0.6,
-           descripcion = "Solo si modo=manual. Valor entre 0 y 1."),
-      list(name = "grosor_barras_mult",   label = "Multiplicador grosor (modo auto)", tipo_input = "number", grupo = "avanzado",
+           descripcion = "Sólo en modo manual. Valor entre 0 y 1."),
+      list(name = "grosor_barras_mult",   label = "Grosor relativo (automático)", tipo_input = "number", grupo = "avanzado",
            default = 0.9,
-           descripcion = "Solo si modo=auto. Fracción del alto_por_categoria que ocupa la barra (0.9 = barras casi pegadas, 0.6 = más separadas)."),
+           descripcion = "Sólo en modo automático. Parte del alto por categoría que ocupa la barra (0.9 = barras casi pegadas, 0.6 = más separadas)."),
 
       # «Modo de export» (rplot/image) se retiró de la UI: el backend fuerza la salida y «image» ni existía en el
       # graficador. Una opción que no hace nada no se muestra (loop UI R6, 2026-10-13).
@@ -2716,7 +2716,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "filtro"),
       list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "datos",
            descripcion = "Da la vuelta al orden de las filas. Útil cuando el instrumento las declara al revés de como se leen."),
-      list(name = "alto_por_categoria",   label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas"),
+      list(name = "alto_por_categoria",   label = "Alto por categoría (pulg.)", tipo_input = "number", grupo = "canvas"),
 
       # --- Leyenda --------------------------------------------------------
       list(name = "leyenda_posicion",     label = "Posición de la leyenda", tipo_input = "choice", grupo = "estilo",
@@ -2750,17 +2750,17 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "canvas_w_bars",          label = "Ancho zona de barras",   tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_w_buf_bars_extra",label = "Espacio barras→columna extra", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_w_extra",         label = "Ancho columna extra",    tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_toprow_in",     label = "Alto zona superior (in)", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_header_in",     label = "Alto del header (in)",   tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_toprow_in",     label = "Alto de la zona superior (pulg.)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_header_in",     label = "Alto del encabezado (pulg.)",   tipo_input = "number", grupo = "canvas"),
       list(name = "encabezado_desplazamiento_in", label = "Mover encabezado", tipo_input = "number", grupo = "canvas"),
       list(name = "encabezado_separacion_in", label = "Separación título-subtítulo", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_legend_in",     label = "Alto de la leyenda (in)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_legend_in",     label = "Alto de la leyenda (pulg.)", tipo_input = "number", grupo = "canvas"),
       list(name = "leyenda_desplazamiento_in", label = "Mover leyenda", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_caption_in",    label = "Alto del pie (in)",      tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_panel_in",      label = "Alto fijo del panel (in)", tipo_input = "number", grupo = "canvas",
+      list(name = "canvas_h_caption_in",    label = "Alto del pie (pulg.)",      tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_panel_in",      label = "Alto fijo del panel (pulg.)", tipo_input = "number", grupo = "canvas",
            descripcion = "Fija el alto del área de barras en vez de dejar que se derive de las filas. Vacío = automático."),
       list(name = "canvas_min_filas",       label = "Filas virtuales mínimas", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_pad_bars_y_in",   label = "Padding vertical barras (in)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_pad_bars_y_in",   label = "Margen vertical de las barras (pulg.)", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_gap_grupos",      label = "Separación entre bloques", tipo_input = "number", grupo = "canvas",
            descripcion = "Espacio vertical extra entre bloques temáticos, como fracción del alto de una fila."),
 
@@ -2771,7 +2771,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
              list(value = "manual", label = "Manual")
            )),
       list(name = "grosor_barras",        label = "Grosor de las barras", tipo_input = "number", grupo = "canvas"),
-      list(name = "grosor_barras_mult",   label = "Multiplicador grosor (modo auto)", tipo_input = "number", grupo = "canvas"),
+      list(name = "grosor_barras_mult",   label = "Grosor relativo (automático)", tipo_input = "number", grupo = "canvas"),
 
       list(name = "metodo_redondeo", label = "Método de redondeo", tipo_input = "choice", grupo = "valores",
            default = "estandar",
@@ -2882,7 +2882,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            max = 1.60,
            step = 0.05,
            descripcion = "Separación vertical entre líneas cuando una etiqueta de categoría se envuelve en varias filas."),
-      list(name = "wrap_y",               label = "Wrap eje Y",            tipo_input = "number", grupo = "filtro"),
+      list(name = "wrap_y",               label = "Caracteres por línea en el eje vertical",            tipo_input = "number", grupo = "filtro"),
 
       # --- Canvas ---------------------------------------------------------
       list(name = "canvas_w_etiquetas",     label = "Ancho columna etiquetas", tipo_input = "number", grupo = "canvas", default = 0.22),
@@ -2890,15 +2890,15 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "canvas_w_bars",          label = "Ancho zona de barras",   tipo_input = "number", grupo = "canvas", default = 0.58),
       list(name = "canvas_w_buf_bars_extra",label = "Espacio barras→extra",   tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_w_extra",         label = "Ancho columna extra",    tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_toprow_in",     label = "Alto zona superior (in)", tipo_input = "number", grupo = "canvas", default = 0.10),
-      list(name = "canvas_h_header_in",     label = "Alto del header (in)",   tipo_input = "number", grupo = "canvas", default = 0.70),
+      list(name = "canvas_h_toprow_in",     label = "Alto de la zona superior (pulg.)", tipo_input = "number", grupo = "canvas", default = 0.10),
+      list(name = "canvas_h_header_in",     label = "Alto del encabezado (pulg.)",   tipo_input = "number", grupo = "canvas", default = 0.70),
       list(name = "encabezado_desplazamiento_in", label = "Mover encabezado", tipo_input = "number", grupo = "canvas"),
       list(name = "encabezado_separacion_in", label = "Separación título-subtítulo", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_legend_in",     label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_h_legend_in",     label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas", default = 0),
       list(name = "leyenda_desplazamiento_in", label = "Mover leyenda", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_caption_in",    label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_h_caption_in",    label = "Alto del pie (pulg.)",          tipo_input = "number", grupo = "canvas", default = 0),
       list(name = "canvas_min_filas",        label = "Filas mínimas para grosor", tipo_input = "number", grupo = "canvas", default = 8),
-      list(name = "alto_por_categoria",     label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas", default = 0.48)
+      list(name = "alto_por_categoria",     label = "Alto por categoría (pulg.)", tipo_input = "number", grupo = "canvas", default = 0.48)
     )
   ),
 
@@ -2971,7 +2971,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 
       list(name = "grosor_barras", label = "Grosor de barras", tipo_input = "number", grupo = "espacio",
            default = 0.76, min = 0.25, max = 0.95, step = 0.01),
-      list(name = "ancho_max_eje_x", label = "Wrap de etiquetas", tipo_input = "number", grupo = "espacio",
+      list(name = "ancho_max_eje_x", label = "Caracteres por línea en las etiquetas", tipo_input = "number", grupo = "espacio",
            default = 18, min = 6, max = 40, step = 1),
       list(name = "limite_y", label = "Límite del eje Y", tipo_input = "number", grupo = "espacio",
            descripcion = "Vacío = automático."),
@@ -3064,10 +3064,10 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            )),
 
       # --- Canvas ---------------------------------------------------------
-      list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas", default = 0.12),
-      list(name = "canvas_h_legend",      label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0.10),
-      list(name = "canvas_h_caption",     label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0),
-      list(name = "canvas_pad_top",       label = "Padding superior (in)",  tipo_input = "number", grupo = "canvas", default = 0.01),
+      list(name = "canvas_h_title",       label = "Alto de la zona del título (pulg.)",  tipo_input = "number", grupo = "canvas", default = 0.12),
+      list(name = "canvas_h_legend",      label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas", default = 0.10),
+      list(name = "canvas_h_caption",     label = "Alto del pie (pulg.)",          tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_pad_top",       label = "Margen superior (pulg.)",  tipo_input = "number", grupo = "canvas", default = 0.01),
 
       # --- Textos --------------------------------------------------------
       list(name = "nota_pie",             label = "Nota al pie (fijo)",    tipo_input = "string", grupo = "textos",
@@ -3181,7 +3181,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 
       list(name = "ancho_barras", label = "Ancho de barras", tipo_input = "number", grupo = "espacio", default = 0.78),
       list(name = "mostrar_eje_y", label = "Mostrar eje Y", tipo_input = "bool", grupo = "estilo", default = TRUE),
-      list(name = "wrap_eje_x", label = "Wrap de intervalos", tipo_input = "number", grupo = "espacio", default = 14),
+      list(name = "wrap_eje_x", label = "Caracteres por línea en los intervalos", tipo_input = "number", grupo = "espacio", default = 14),
       list(name = "canvas_h_title", label = "Alto de encabezado", tipo_input = "number", grupo = "espacio", default = 0.12),
       list(name = "canvas_h_legend", label = "Alto de leyenda", tipo_input = "number", grupo = "espacio", default = 0.12),
       list(name = "canvas_h_caption", label = "Alto de pie", tipo_input = "number", grupo = "espacio", default = 0.04)
@@ -3262,17 +3262,17 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Las etiquetas en el orden exacto que quieres. Los modos automáticos dependen de los datos, así que la leyenda cambia de orden entre láminas; éste no."),
 
       # --- Canvas --------------------------------------------------------
-      list(name = "canvas_h_title",         label = "Alto zona título (in)", tipo_input = "number", grupo = "canvas", default = 0.08),
-      list(name = "canvas_h_caption",       label = "Alto zona pie (in)",    tipo_input = "number", grupo = "canvas", default = 0),
-      list(name = "canvas_h_legend_bottom", label = "Alto leyenda inferior (in)", tipo_input = "number", grupo = "canvas", default = 0.14),
+      list(name = "canvas_h_title",         label = "Alto de la zona del título (pulg.)", tipo_input = "number", grupo = "canvas", default = 0.08),
+      list(name = "canvas_h_caption",       label = "Alto de la zona del pie (pulg.)",    tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_h_legend_bottom", label = "Alto de la leyenda inferior (pulg.)", tipo_input = "number", grupo = "canvas", default = 0.14),
       list(name = "canvas_w_legend_right",  label = "Ancho leyenda derecha", tipo_input = "number", grupo = "canvas",
            descripcion = "Fracción del ancho reservada cuando la leyenda va a la derecha. Ej. 0.30 = 30% para la leyenda."),
-      list(name = "canvas_pad_top",         label = "Padding superior (in)", tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_pad_top",         label = "Margen superior (pulg.)", tipo_input = "number", grupo = "canvas", default = 0),
 
       # --- Debug ---------------------------------------------------------
       # Era `debug_lw`, que `graficar_pie()` no acepta: el motor lo descartaba en
       # silencio y el control no hacia nada. El arg real es `debug_ph_lwd`.
-      list(name = "debug_ph_lwd",         label = "Grosor línea debug",    tipo_input = "number", grupo = "avanzado", default = 1),
+      list(name = "debug_ph_lwd",         label = "Grosor de las guías",    tipo_input = "number", grupo = "avanzado", default = 1),
 
       list(name = "decimales_pct", label = "Decimales", tipo_input = "number", grupo = "valores",
            default = 0, min = 0, max = 2, step = 1,
@@ -3337,8 +3337,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "tamano_key_cm",        label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo"),
       list(name = "espaciado_vertical_cm",label = "Espaciado vertical leyenda (cm)", tipo_input = "number", grupo = "estilo"),
       list(name = "ncol_leyenda_bajo",    label = "Columnas leyenda (abajo)", tipo_input = "number", grupo = "estilo"),
-      list(name = "canvas_h_title",       label = "Alto zona título (in)", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_legend_bottom", label = "Alto leyenda inferior (in)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_title",       label = "Alto de la zona del título (pulg.)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_legend_bottom", label = "Alto de la leyenda inferior (pulg.)", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_w_legend_right",label = "Ancho leyenda derecha", tipo_input = "number", grupo = "canvas"),
 
       list(name = "decimales_pct", label = "Decimales", tipo_input = "number", grupo = "valores",
@@ -3543,7 +3543,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
              list(value = "proporcion_100", label = "Porcentaje (0 a 100)", hint = "Los valores van de 0 a 100: 85 es el 85 %.")
            )),
       list(name = "limites",              label = "Límites del radar",     tipo_input = "codigos_list", grupo = "filtro",
-           descripcion = "Mínimo y máximo, separados por coma. Ej: 0, 1 o 0, 100. Si vacío, se deduce de escala_valor."),
+           descripcion = "Mínimo y máximo, separados por coma. Ej: 0, 1 o 0, 100. Vacío, se deduce de la escala de valores."),
       list(name = "cortes_grilla",        label = "Cortes de la grilla",   tipo_input = "number", grupo = "estilo", default = 6,
            descripcion = "Número de círculos concéntricos dentro del radar."),
       list(name = "mostrar_niveles",      label = "Mostrar etiquetas de grilla", tipo_input = "bool", grupo = "estilo", default = FALSE,
@@ -3600,7 +3600,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "tabla_line_lwd",       label = "Grosor de líneas",       tipo_input = "number", grupo = "tabla"),
 
       # --- Tabla: tamaños y padding --------------------------------------
-      list(name = "tabla_padding_mm",     label = "Padding interno (mm)",   tipo_input = "number", grupo = "tabla", default = 10),
+      list(name = "tabla_padding_mm",     label = "Margen interno (mm)",   tipo_input = "number", grupo = "tabla", default = 10),
       list(name = "tabla_header_size",    label = "Tamaño texto header",    tipo_input = "number", grupo = "tabla", default = 8),
       list(name = "tabla_body_size",      label = "Tamaño texto body",      tipo_input = "number", grupo = "tabla", default = 7),
       list(name = "tabla_firstcol_size",  label = "Tamaño texto 1ra columna", tipo_input = "number", grupo = "tabla"),
@@ -3616,14 +3616,14 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Fracción del alto disponible que ocupa la tabla (0.72 = 72%)."),
 
       # --- Tabla: placeholder ppt ----------------------------------------
-      list(name = "tabla_ph_ancho",       label = "Ancho placeholder PPT",  tipo_input = "number", grupo = "canvas", default = 0.46),
+      list(name = "tabla_ph_ancho",       label = "Ancho del espacio en PowerPoint",  tipo_input = "number", grupo = "canvas", default = 0.46),
       list(name = "tabla_ph_gap",         label = "Gap placeholder-radar",  tipo_input = "number", grupo = "canvas", default = 0.01),
       list(name = "tabla_ph_margin_top",  label = "Margen superior PH",     tipo_input = "number", grupo = "canvas", default = 0.001),
       list(name = "tabla_ph_margin_bot",  label = "Margen inferior PH",     tipo_input = "number", grupo = "canvas", default = 0.001),
 
       # --- Canvas --------------------------------------------------------
-      list(name = "canvas_h_header_in",   label = "Alto header (in)",       tipo_input = "number", grupo = "canvas", default = 0.45),
-      list(name = "canvas_h_legend_in",   label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0.22)
+      list(name = "canvas_h_header_in",   label = "Alto del encabezado (pulg.)",       tipo_input = "number", grupo = "canvas", default = 0.45),
+      list(name = "canvas_h_legend_in",   label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas", default = 0.22)
     )
   ),
 
@@ -3656,9 +3656,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Decimales de la media que se muestra en el chip de cada categoría."),
 
       # --- Canvas --------------------------------------------------------
-      list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_legend",      label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_pad_top",       label = "Padding superior (in)",  tipo_input = "number", grupo = "canvas")
+      list(name = "canvas_h_title",       label = "Alto de la zona del título (pulg.)",  tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_legend",      label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_pad_top",       label = "Margen superior (pulg.)",  tipo_input = "number", grupo = "canvas")
     )
   ),
 
@@ -3688,9 +3688,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            default = TRUE,
            descripcion = "Añade una línea o texto con el promedio global como referencia visual."),
       list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo"),
-      list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_legend",      label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_pad_top",       label = "Padding superior (in)",  tipo_input = "number", grupo = "canvas")
+      list(name = "canvas_h_title",       label = "Alto de la zona del título (pulg.)",  tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_legend",      label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_pad_top",       label = "Margen superior (pulg.)",  tipo_input = "number", grupo = "canvas")
     )
   ),
 
@@ -3709,9 +3709,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo", default = 0),
       list(name = "size_ejes",            label = "Tamaño ejes",           tipo_input = "number", grupo = "estilo", default = 10),
       list(name = "size_texto_celdas",    label = "Tamaño texto de celdas", tipo_input = "number", grupo = "estilo", default = 10),
-      list(name = "canvas_h_title",       label = "Alto zona título (in)", tipo_input = "number", grupo = "canvas", default = 0.13),
-      list(name = "canvas_h_legend",      label = "Alto leyenda (in)",     tipo_input = "number", grupo = "canvas", default = 0.09),
-      list(name = "canvas_h_caption",     label = "Alto pie (in)",         tipo_input = "number", grupo = "canvas", default = 0.06)
+      list(name = "canvas_h_title",       label = "Alto de la zona del título (pulg.)", tipo_input = "number", grupo = "canvas", default = 0.13),
+      list(name = "canvas_h_legend",      label = "Alto de la leyenda (pulg.)",     tipo_input = "number", grupo = "canvas", default = 0.09),
+      list(name = "canvas_h_caption",     label = "Alto del pie (pulg.)",         tipo_input = "number", grupo = "canvas", default = 0.06)
     )
   ),
 
@@ -3761,9 +3761,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "legend_n_por_fila",    label = "Items por fila leyenda", tipo_input = "number", grupo = "estilo", default = 4),
       list(name = "legend_key_cm",        label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo", default = 0.45),
       list(name = "legend_espaciado",     label = "Espaciado leyenda",      tipo_input = "number", grupo = "estilo", default = 12),
-      list(name = "canvas_h_header_in",   label = "Alto header (in)",       tipo_input = "number", grupo = "canvas", default = 0.58),
-      list(name = "canvas_h_legend_in",   label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0.20),
-      list(name = "canvas_h_caption_in",  label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0.08)
+      list(name = "canvas_h_header_in",   label = "Alto del encabezado (pulg.)",       tipo_input = "number", grupo = "canvas", default = 0.58),
+      list(name = "canvas_h_legend_in",   label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas", default = 0.20),
+      list(name = "canvas_h_caption_in",  label = "Alto del pie (pulg.)",          tipo_input = "number", grupo = "canvas", default = 0.08)
     )
   ),
 
@@ -3779,9 +3779,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       # --- Negritas -------------------------------------------------------
       .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie")),
 
-      list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas", default = 0),
-      list(name = "canvas_h_legend",      label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0.09),
-      list(name = "canvas_h_caption",     label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0.06)
+      list(name = "canvas_h_title",       label = "Alto de la zona del título (pulg.)",  tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_h_legend",      label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas", default = 0.09),
+      list(name = "canvas_h_caption",     label = "Alto del pie (pulg.)",          tipo_input = "number", grupo = "canvas", default = 0.06)
     )
   )
 )
