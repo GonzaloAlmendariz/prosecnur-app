@@ -484,7 +484,7 @@ function UnknownGraficadorState({
             <IconModes size={12} /> Preview exacta
           </span>
         </div>
-        <div className="pulso-gv2-unknown-graf-meta" aria-label="Estado del slot">
+        <div className="pulso-gv2-unknown-graf-meta" aria-label="Estado del gráfico">
           <span data-tone="safe">
             <IconSuccess size={12} /> Plan intacto
           </span>

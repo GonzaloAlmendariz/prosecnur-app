@@ -776,8 +776,8 @@ function clampDebugBorderWidth(value: number): number {
 }
 
 const CONSTRUCTOR_VIEW_MODES = [
-  { key: "timeline" as const, label: "Timeline", Icon: GanttChart, hint: "Vista lineal para ordenar slides" },
-  { key: "canvas" as const, label: "Canvas", Icon: LayoutGrid, hint: "Grilla para reordenar en bloque" },
+  { key: "timeline" as const, label: "Secuencia", Icon: GanttChart, hint: "Las láminas en orden, una tras otra" },
+  { key: "canvas" as const, label: "Grilla", Icon: LayoutGrid, hint: "Todas las láminas a la vista, para reordenar en bloque" },
 ];
 
 function ConstructorViewControls({ issueCount }: { issueCount: number }) {
