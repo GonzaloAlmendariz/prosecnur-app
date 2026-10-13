@@ -262,7 +262,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
     <section
       ref={previewRootRef}
       className={`pulso-slide-preview ${compact ? "is-compact" : ""}`}
-      aria-label="Preview del slide seleccionado"
+      aria-label="Vista previa de la lámina elegida"
     >
       <header className="pulso-slide-preview-head">
         {!compact && (

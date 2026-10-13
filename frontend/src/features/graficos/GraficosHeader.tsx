@@ -556,7 +556,7 @@ export function GraficosHeader({
             className={`pulso-gv2-estilo-trigger pulso-gv2-pill-button ${estiloOpen ? "is-open" : ""}`}
             aria-haspopup="dialog"
             aria-expanded={estiloOpen}
-            title="Configurar bases visuales, color, íconos y estilos guardados para todos los slides"
+            title="Configurar bases visuales, color, íconos y estilos guardados para todas las láminas"
           >
             <span className="pulso-gv2-estilo-trigger-icon" aria-hidden="true">
               <Settings2 size={13} />
@@ -733,7 +733,7 @@ function PlanSnapshotBadge({
       >
         <FileText size={13} />
         <strong>{nSlides}</strong>
-        <span>slides</span>
+        <span>láminas</span>
       </button>
 
       {open && (
@@ -918,14 +918,14 @@ export function DebugPhToggle({ etiqueta = "Guías" }: { etiqueta?: string } = {
         <div
           className="pulso-gv2-debug-border-popover"
           role="dialog"
-          aria-label="Guías de layout"
+          aria-label="Guías de composición"
         >
           <div className="pulso-gv2-debug-border-popover-head">
             <span className="pulso-gv2-debug-border-popover-icon" aria-hidden="true">
               <PanelTopDashed size={15} />
             </span>
             <div className="pulso-gv2-debug-border-popover-title">
-              <strong>Guías de layout</strong>
+              <strong>Guías de composición</strong>
               <span>{active ? "Visibles en el preview" : "Ocultas en el preview"}</span>
             </div>
             <button

@@ -100,8 +100,8 @@ export default function TimelinePanel() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar slide…"
-            aria-label="Buscar slide por título o tipo"
+            placeholder="Buscar lámina…"
+            aria-label="Buscar lámina por título o tipo"
             style={{
               width: "100%", fontSize: 12,
               padding: "6px 8px 6px 26px",
@@ -135,7 +135,7 @@ export default function TimelinePanel() {
           <EmptyState
             variant="inline"
             icon={<LayoutPanelTop size={16} />}
-            title="Sin slides aún"
+            title="Sin láminas aún"
             hint="Agrega un slide desde la sección de abajo."
           />
         )}
@@ -201,7 +201,7 @@ export default function TimelinePanel() {
       </div>
 
       <div style={{ borderTop: "1px solid var(--pulso-border)", paddingTop: 10 }}>
-        <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Agregar slide</div>
+        <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Agregar lámina</div>
         {SLIDE_GROUPS.map((g) => (
           <details key={g.label} open style={{ marginBottom: 8 }}>
             <summary style={{ fontSize: 11, cursor: "pointer", color: "var(--pulso-text-soft)", fontWeight: 600, letterSpacing: 0.4, textTransform: "uppercase" }}>{g.label}</summary>
