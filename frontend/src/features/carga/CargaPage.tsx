@@ -68,6 +68,7 @@ import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 import { repeatContextFromBase } from "../../lib/rosterExplorer";
 import { defaultEsquemaBase } from "./esquemaBaseModel";
 import { CargaUniverseFilter } from "./CargaUniverseFilter";
+import { OrigenExternoPanel } from "./OrigenExternoPanel";
 import { ProcessingIntakePanel } from "./ProcessingIntakePanel";
 import { AcreditacionBatchPanel } from "./AcreditacionBatchPanel";
 import { CargaPlanOverview } from "./CargaPlanOverview";
@@ -1555,6 +1556,9 @@ export default function CargaPage() {
                     }}
                   />
                 )}
+                {selectedCargaBase && (
+                  <OrigenExternoPanel baseNombre={selectedCargaBase} disabled={!!busy} />
+                )}
                 </div>
                 <CargaReviewSummary
                   instrumentBaseCount={multiBaseInstrumentCount}
@@ -1914,6 +1918,7 @@ export default function CargaPage() {
                   }}
                 />
               )}
+              {hasData && !pendingChoiceMapping && <OrigenExternoPanel disabled={!!busy} />}
               <CargaReviewSummary
                 instrumentBaseCount={Number(hasXlsform)}
                 dataBaseCount={Number(hasData)}
