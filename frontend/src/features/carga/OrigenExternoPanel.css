@@ -1,4 +1,4 @@
-/* Depuración hecha fuera (ADR 0100, P2). Tarjeta hermana del universo de
+/* Base preparada fuera de la plataforma (ADR 0100, P2 y P2b). Tarjeta hermana del universo de
    análisis en Carga › Revisión: mismo material, mismo encabezado. */
 
 .pulso-origen-externo {
@@ -265,7 +265,37 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
-.pulso-origen-externo-form fieldset {
+/* Dos partes independientes (contrato intrinsic): cada una mide lo suyo y la
+   página es la dueña del scroll; la lista de variables no se encierra. */
+.pulso-origen-externo-partes {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.pulso-origen-externo-parte {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+
+.pulso-origen-externo-parte legend {
+  padding: 0 4px;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-origen-externo-parte legend span {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.pulso-origen-externo-campos {
   min-width: 0;
   display: grid;
   grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(140px, 1fr));
@@ -273,9 +303,99 @@
      estiraba los otros tres a su alto y les dejaba 22 px vacíos (QA 2026-10-13). */
   align-items: start;
   gap: 10px;
+}
+
+.pulso-origen-externo-explica,
+.pulso-origen-externo-completa {
+  margin: 0;
+  max-width: 90ch;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.pulso-origen-externo-completa {
+  color: var(--pulso-text);
+}
+
+/* C2: la lista se reparte en columnas y crece con la página (0, 1, pocos o
+   30 variables mantienen el mismo marco por fila). */
+.pulso-origen-externo-variables {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 6px 10px;
   margin: 0;
   padding: 0;
-  border: 0;
+  list-style: none;
+}
+
+.pulso-origen-externo-variables li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(128px, 150px);
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px 5px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+}
+
+.pulso-origen-externo-variable {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.pulso-origen-externo-variable code {
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-origen-externo-variable small {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+}
+
+.pulso-origen-externo-variables select {
+  min-width: 0;
+  min-height: 28px;
+  font-size: 11.5px;
+}
+
+.pulso-origen-externo-variables select:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+.pulso-origen-externo-vars-resultado {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-origen-externo-declarada > .pulso-origen-externo-vars-resultado:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.pulso-origen-externo-vars-total {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.pulso-origen-externo-excluidas {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 .pulso-origen-externo-campo {
@@ -344,14 +464,14 @@
 }
 
 @media (max-width: 1180px) {
-  .pulso-origen-externo-form fieldset {
+  .pulso-origen-externo-campos {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 720px) {
   .pulso-origen-externo-tramos,
-  .pulso-origen-externo-form fieldset {
+  .pulso-origen-externo-campos {
     grid-template-columns: minmax(0, 1fr);
   }
 
