@@ -373,10 +373,11 @@ pfila <- function(b, v, actor, ttb21 = NULL) list(actor = actor, f = fr(b, v), t
 prem <- function(...) { fl <- list(...); list(texto = fl[[1]]$f$pregunta, filas = fl) }
 
 doc <- read_pptx("api/inst/plantillas/plantilla_16_9.pptx")
-if (Sys.getenv("SOLO") %in% c("indices", "objetivo", "rescatables")) {   # sólo las propuestas, para elegir (propuestas_indice.R, propuestas_objetivo.R)
+if (Sys.getenv("SOLO") %in% c("indices", "objetivo", "rescatables", "cuadrantes")) {   # sólo las propuestas, para elegir (propuestas_indice.R, propuestas_objetivo.R)
   source(c(indices = "docs/qa/motor-ppt-2026-10-06/herramientas/propuestas_indice.R",
            objetivo = "docs/qa/motor-ppt-2026-10-06/herramientas/propuestas_objetivo.R",
-           rescatables = "docs/qa/motor-ppt-2026-10-06/herramientas/propuestas_rescatables.R")[[Sys.getenv("SOLO")]], local = TRUE)
+           rescatables = "docs/qa/motor-ppt-2026-10-06/herramientas/propuestas_rescatables.R",
+           cuadrantes = "docs/qa/motor-ppt-2026-10-06/herramientas/propuestas_cuadrantes.R")[[Sys.getenv("SOLO")]], local = TRUE)
   crudo <- tempfile(fileext = ".pptx"); print(doc, target = crudo)
   if (system2("python3", c(shQuote("docs/qa/motor-ppt-2026-10-06/herramientas/sanear_ph.py"), shQuote(crudo), shQuote(Sys.getenv("SALIDA"))), stdout = FALSE) != 0) stop("sanear_ph.py falló")
   cat("OK propuestas", Sys.getenv("SOLO"), ESTILO, "\n"); quit(save = "no")
