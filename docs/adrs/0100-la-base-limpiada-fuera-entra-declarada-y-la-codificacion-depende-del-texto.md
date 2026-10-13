@@ -62,8 +62,9 @@ parte: **lo que deja de aplicarse no lo dice nadie**, y la base que vino de fuer
   codificación y a regenerar los insumos; el catálogo nunca se pierde. Al aplicar, el producto **dice** lo que
   quedó fuera: las preguntas del catálogo que se omitieron y por qué, y los textos nuevos que quedaron sin
   código.
-- **D4. Las variables meta no se borran de la base de trabajo.** Se marcan como «no van al cliente» y se
-  quitan sólo al exportar la base de entrega. Validación y Monitoreo las siguen teniendo.
+- **D4. Las variables meta no se borran de la base de trabajo.** Se declaran en `variables_excluidas` de la
+  config de Analítica, que ya las quita de todos los insumos del cliente (bases, codebook, frecuencias, cruces y
+  SPSS). Validación y Monitoreo las siguen teniendo.
 
 ## Implementación
 
