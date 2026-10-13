@@ -355,6 +355,12 @@ button.pulso-equiv-input-diapo:hover,
   color: var(--pulso-text-faint);
 }
 
+/* M14: chip de estado a la izquierda, resumen al medio, Guardar a la derecha. */
+.pulso-equiv-pie-resumen {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 /* --- Vista por diapositiva (ADR 0064) ------------------------------------------
    La declaracion se lee agrupada por la diapositiva del informe, que es la unidad
    que el analista decide y la que Graficos convierte en diapositiva. La escala
@@ -380,7 +386,8 @@ button.pulso-equiv-input-diapo:hover,
   font-size: 12px;
 }
 
-.pulso-equiv-vistas button {
+/* Solo el selector de vista; las acciones masivas son PulsoButton (M2). */
+.pulso-equiv-vistas button:not(.pulso-button) {
   padding: 3px 10px;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
@@ -424,11 +431,16 @@ button.pulso-equiv-input-diapo:hover,
      construcción —el Tema absorbe el sobrante y encoge con elipsis—. */
 }
 
-/* Lo que no tiene diapositiva no es una diapositiva mas: es trabajo pendiente, y se
-   distingue sin depender solo del color. */
+/* Lo que no tiene diapositiva no es una diapositiva mas, pero tampoco un problema
+   (M8): para comparar no hace falta. Se distingue por el fondo y por su rotulo
+   neutro, sin el borde punteado que lo leia como trabajo pendiente. */
 .pulso-equiv-diapositiva.is-pendiente {
-  border-style: dashed;
   background: var(--pulso-surface-2);
+}
+
+.pulso-equiv-diapositiva.is-pendiente .pulso-equiv-diapositiva-id {
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
 }
 
 .pulso-equiv-diapositiva-head {
@@ -499,6 +511,53 @@ button.pulso-equiv-input-diapo:hover,
 
 .pulso-equiv-enunciado.is-vacio:hover {
   color: var(--module-accent);
+}
+
+/* M8: el enunciado vacio es un campo con su propia etiqueta, no un texto gris
+   en el lugar del titulo. */
+.pulso-equiv-enunciado-campo {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding-left: 6px;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-equiv-enunciado-campo > span {
+  flex: 0 0 auto;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-equiv-enunciado-campo > input {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 48ch;
+  min-height: var(--pulso-control-height-sm);
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 12px;
+}
+
+.pulso-equiv-leyenda {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+/* La misma marca que pinta la fila (`tr.is-escala-rota`), en miniatura. */
+.pulso-equiv-leyenda-filete {
+  flex: 0 0 auto;
+  width: 2px;
+  height: 14px;
+  background: var(--pulso-border-strong);
 }
 
 .pulso-equiv-seccion,
@@ -711,8 +770,24 @@ button.pulso-equiv-chip-escala:hover,
 .pulso-equiv-diapositiva-tabla th:not(.pulso-equiv-col-etiqueta),
 .pulso-equiv-diapositiva-tabla td:not(:first-child) {
   text-align: center;
-  padding-left: var(--pulso-space-3);
-  padding-right: var(--pulso-space-3);
+  padding-left: var(--pulso-space-2);
+  padding-right: var(--pulso-space-2);
+}
+
+/* M9: el estado de armonizacion es una columna propia de ancho minimo comun.
+   Dentro de la celda del tema, el ancho variable del chip hacia que el campo
+   terminara en una x distinta en cada fila. */
+.pulso-equiv-diapositiva-tabla .pulso-equiv-col-estado,
+.pulso-equiv-tabla .pulso-equiv-col-estado {
+  text-align: left;
+}
+
+.pulso-equiv-diapositiva-tabla th.pulso-equiv-col-estado {
+  min-width: 7.5rem;
+}
+
+.pulso-equiv-col-estado .pulso-armon-chip {
+  align-self: auto;
 }
 
 /* Ancho mínimo común por base, el mismo con cualquier N: el contenido es un
@@ -809,22 +884,9 @@ button.pulso-equiv-chip-escala:hover,
 
 .pulso-equiv-col-cob { width: 58px; }
 
+/* M3: es un PulsoButton secundario; aqui solo se ubica. */
 .pulso-equiv-add-tema {
   align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border: 1px dashed var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: transparent;
-  color: var(--pulso-text-faint);
-  font-size: 11px;
-}
-
-.pulso-equiv-add-tema:hover {
-  border-color: var(--module-accent);
-  color: var(--module-accent);
 }
 
 /* Acciones que operan sobre todo el editor —agrupar, confirmar en bloque—. Viven
@@ -832,25 +894,10 @@ button.pulso-equiv-chip-escala:hover,
    superficie y por donde entran los datos; esto opera sobre lo que ya esta
    dentro, y mezclarlas hacia leer «Subir matriz» y «Confirmar 58 propuestas»
    como acciones del mismo rango. */
+/* Acciones masivas: PulsoButton secundario (M2); aquí sólo el espacio. */
 .pulso-equiv-accion-masiva {
-  display: inline-flex;
-  align-items: center;
   gap: 5px;
-  padding: 3px 10px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  font-weight: 600;
 }
-
-.pulso-equiv-accion-masiva:hover {
-  border-color: var(--module-accent);
-  color: var(--module-accent);
-}
-
-.pulso-equiv-accion-masiva svg { color: var(--module-accent); }
 
 /* La celda de variable en modo busqueda. Escribes y el navegador filtra por
    codigo o por etiqueta contra el `datalist` de SU base: el mismo gesto que el
@@ -975,22 +1022,13 @@ tbody.pulso-equiv-bloque.is-partido tr:last-child td {
 /* Mover es una accion, no un dato: la diapositiva ya esta en la esquina de la
    tarjeta y repetirla en cada fila no decia nada. Arranca vacia y solo pide el
    destino. */
-.pulso-equiv-mover {
-  width: auto;
-  min-width: 44px;
+/* El campo de destino que abre el boton de mover (M2). */
+.pulso-equiv-diapositiva-tabla input.pulso-equiv-mover {
+  width: 9ch;
+  min-width: 0;
   padding: 1px 6px;
-  border: 1px solid transparent;
-  border-radius: var(--pulso-radius-chip);
-  background: transparent;
-  color: var(--pulso-text-faint);
-  font-size: 11px;
-  text-align: center;
-}
-
-button.pulso-equiv-mover:hover,
-.pulso-equiv-mover:focus {
   border-color: var(--module-accent);
-  color: var(--module-accent);
+  font-size: 11px;
 }
 
 /* --- Grafico y corte del bloque (ADR 0064) --------------------------------
@@ -1265,14 +1303,16 @@ button.pulso-equiv-mover:hover,
 
 /* «3 de 7»: la misma forma con cualquier cantidad de bases. Lo parcial se
    marca en peso y color, y el detalle va en el `title`. */
+/* M9: la cobertura completa no se atenua —se leia deshabilitada—; la parcial
+   se marca con el color semantico de advertencia ademas del peso. */
 .pulso-equiv-cobertura {
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
   white-space: nowrap;
 }
 
 .pulso-equiv-cobertura.is-parcial {
-  color: var(--pulso-text);
+  color: var(--pulso-warn-fg);
   font-weight: var(--pulso-weight-semibold);
 }

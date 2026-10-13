@@ -50,6 +50,10 @@ export default function CodificacionPage() {
   function goStep(next: Step) {
     const sp = new URLSearchParams(location.search);
     sp.delete("step");
+    // Cambiar de pestaña descarta sus niveles hijos: la pregunta en foco y el
+    // panel abierto pertenecen a la pestaña que se deja.
+    sp.delete(PARAMS_DIRECCION.foco);
+    sp.delete(PARAMS_DIRECCION.panel);
     if (next === "organizar") sp.delete(PARAMS_DIRECCION.pestana);
     else sp.set(PARAMS_DIRECCION.pestana, next);
     navigate({ pathname: "/codificacion", search: sp.toString() ? `?${sp}` : "" });

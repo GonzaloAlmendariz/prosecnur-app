@@ -1788,6 +1788,18 @@ button.pulso-ghost-nav:disabled {
   box-shadow: 0 7px 18px rgba(0, 36, 87, 0.1);
 }
 
+/* M13: el rótulo de la tarjeta corta en dos líneas con «…». La tarjeta es un
+   `button` y `white-space` se hereda: la regla global de botón (`nowrap`) lo
+   dejaba en una sola línea recortada a secas, sin elipsis. El texto entero va
+   en el `title` de la tarjeta. */
+.pulso-codificacion-sidebar-question .pulso-codificacion-sidebar-question-label {
+  white-space: normal;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  text-overflow: ellipsis;
+  max-height: none;
+}
+
 .pulso-codificacion-loading-copy h3 {
   margin: 0;
   color: var(--pulso-text);
@@ -1809,4 +1821,12 @@ button.pulso-ghost-nav:disabled {
 .pulso-codificacion-loading-line.is-soft {
   width: 78%;
   opacity: 0.62;
+}
+
+/* Piel del interruptor de la casa (`components/Switch`) en Codificación: sólo
+ * tokens, con el acento de Procesamiento. «Incluir en codificación» queda
+ * puesto en la pregunta, así que es un interruptor y no una casilla. */
+.pulso-codificacion-switch {
+  --pulso-switch-accent: var(--module-accent, var(--pulso-module-processing, var(--pulso-primary)));
+  --pulso-switch-accent-ring: color-mix(in srgb, var(--pulso-switch-accent) 18%, transparent);
 }

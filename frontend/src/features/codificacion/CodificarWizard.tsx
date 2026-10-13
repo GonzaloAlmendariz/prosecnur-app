@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CheckCircle2, Circle, ClipboardList, Clock } from "lucide-react";
 import {
   apiCodifPreguntasAbiertas,
@@ -6,11 +7,18 @@ import {
   PreguntaAbierta,
   PreguntaStatus,
 } from "../../api/client";
-import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
+import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { RespuestasCodificador } from "./RespuestasCodificador";
 import { IntegerCodificador } from "./IntegerCodificador";
 import { ModoSelectOneTabs } from "./AgruparCategoriasCodificador";
 import { textoPlano } from "../../lib/textoPlano";
+import { sinEnfasis } from "../../lib/enfasisTexto";
+import { TextoConEnfasis } from "../../lib/TextoConEnfasis";
+import { conNivel } from "../../lib/navegacion/direccion";
+import { useDireccion } from "../../lib/navegacion/useDireccion";
+import { formatoConteo } from "../../lib/formatoNumero";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { PulsoButton } from "../../components/PulsoButton";
 
 type Props = {
   onBackToOrganizar: () => void;
@@ -31,6 +39,7 @@ function tipoStyleForPregunta(p: PreguntaAbierta, arq = arquetipoOf(p)): TipoSty
   return TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
 }
 
+/** Rótulo de la pregunta con su énfasis markdown del formulario (`*…*`) intacto. */
 function questionLabel(p: PreguntaAbierta): string {
   const label = (p.parent_label ?? "").trim();
   if (label && label !== p.parent) return label;
@@ -39,19 +48,27 @@ function questionLabel(p: PreguntaAbierta): string {
 
 function compactQuestionLabel(p?: PreguntaAbierta): string {
   if (!p) return "";
-  const label = questionLabel(p);
+  const label = sinEnfasis(questionLabel(p));
   return label.length > 54 ? `${label.slice(0, 51)}...` : label;
-}
-
-function sidebarQuestionLabel(label: string): string {
-  const clean = label.replace(/\s+/g, " ").trim();
-  return clean.length > 118 ? `${clean.slice(0, 115)}...` : clean;
 }
 
 export function CodificarWizard({ onBackToOrganizar }: Props) {
   const [data, setData] = useState<PreguntaAbierta[] | null>(null);
   const [error, setError] = useState<string>("");
-  const [activeParent, setActiveParent] = useState<string | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  // La pregunta elegida es el `foco` de la dirección: la vista se puede enlazar
+  // y el QA la abre con `?foco=<pregunta>`. Sin foco (o con uno que no está
+  // marcado) se muestra la primera, sin escribir nada en la URL.
+  const foco = useDireccion()?.foco ?? null;
+  const setActiveParent = useCallback(
+    (parent: string) =>
+      navigate(
+        { pathname: location.pathname, search: conNivel(location.search, "foco", parent) },
+        { replace: true },
+      ),
+    [location.pathname, location.search, navigate],
+  );
 
   useEffect(() => {
     (async () => {
@@ -71,12 +88,7 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
       .sort((a, b) => (a.q_order ?? 999999) - (b.q_order ?? 999999));
   }, [data]);
 
-  // Auto-pick first marked if none selected
-  useEffect(() => {
-    if (!activeParent && marcadas.length > 0) {
-      setActiveParent(marcadas[0].parent);
-    }
-  }, [marcadas, activeParent]);
+  const activeParent = marcadas.some((p) => p.parent === foco) ? foco : marcadas[0]?.parent ?? null;
 
   const activeIdx = activeParent ? marcadas.findIndex((p) => p.parent === activeParent) : -1;
   const activePregunta = activeIdx >= 0 ? marcadas[activeIdx] : null;
@@ -95,22 +107,15 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
     return (
       <>
         <span data-audit-ready="codificacion-codificar" hidden />
-        <EmptyState
-          icon={<ClipboardList size={22} />}
-          title="No hay preguntas marcadas para codificar"
-          hint="Vuelve al paso 1 · Organizar y marca las preguntas que quieres codificar (o empareja las SO/SM con sus 'Otros, especifique')."
-          cta={
-            <button
-              type="button"
-              className="pulso-primary"
-              onClick={onBackToOrganizar}
-              style={{
-                fontSize: 12, padding: "7px 14px",
-                display: "inline-flex", alignItems: "center", gap: 6,
-              }}
-            >
-              <ArrowLeft size={13} /> Volver a organizar
-            </button>
+        <EstadoVacio
+          tamano="normal"
+          icono={<ClipboardList size={18} />}
+          titulo="No hay preguntas marcadas para codificar"
+          descripcion="Márcalas en Organizar, o empareja las de opción con su «Otros, especifique»."
+          accion={
+            <PulsoButton variant="secondary" size="sm" onClick={onBackToOrganizar}>
+              <ArrowLeft size={13} aria-hidden="true" /> Volver a organizar
+            </PulsoButton>
           }
         />
       </>
@@ -167,10 +172,11 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
             nextLabel={compactQuestionLabel(marcadas[activeIdx + 1])}
           />
         ) : (
-          <EmptyState
-            icon={<ClipboardList size={20} />}
-            title="Selecciona una pregunta"
-            hint="Elige una pregunta del listado de la izquierda para empezar a codificar."
+          <EstadoVacio
+            tamano="normal"
+            icono={<ClipboardList size={18} />}
+            titulo="Selecciona una pregunta"
+            descripcion="Elige una pregunta del listado de la izquierda para empezar a codificar."
           />
         )}
       </main>
@@ -188,7 +194,8 @@ function SidebarItem({ p, active, onClick }: { p: PreguntaAbierta; active: boole
       type="button"
       onClick={onClick}
       className={`pulso-codificacion-sidebar-question${active ? " is-active" : ""}`}
-      title={`${label} (${p.parent})`}
+      title={`${sinEnfasis(label)} (${p.parent})`}
+      aria-current={active ? "true" : undefined}
     >
       <span className="pulso-codificacion-sidebar-question-accent" style={{ background: ts.border }} />
       <div className="pulso-codificacion-sidebar-question-copy">
@@ -205,7 +212,7 @@ function SidebarItem({ p, active, onClick }: { p: PreguntaAbierta; active: boole
           </span>
         </span>
         <span className="pulso-codificacion-sidebar-question-label">
-          {sidebarQuestionLabel(label)}
+          <TextoConEnfasis texto={label} />
         </span>
       </div>
     </button>
@@ -282,7 +289,7 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
             </span>
           </div>
           <h2 className="pulso-codificacion-coder-title">
-            {label}
+            <TextoConEnfasis texto={label} />
           </h2>
           {textoPlano(p.section_label) && (
             <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 4 }}>
@@ -335,8 +342,8 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
           style={{ padding: 18, background: "white", border: "1px solid var(--pulso-border)", borderRadius: 8 }}
         >
           <div style={{ fontSize: 13, color: "var(--pulso-text-soft)", lineHeight: 1.6 }}>
-            Esta pregunta tiene <strong>{p.n_respuestas}</strong> respuestas
-            ({<strong>{p.n_unicas}</strong>} únicas) en la columna <code style={{ fontFamily: "monospace" }}>{p.col_efectiva}</code>.
+            Esta pregunta tiene <strong>{formatoConteo(p.n_respuestas)}</strong> respuestas
+            ({<strong>{formatoConteo(p.n_unicas)}</strong>} únicas) en la columna <code style={{ fontFamily: "monospace" }}>{p.col_efectiva}</code>.
             <br /><br />
             {arq === "no-aplica" && "Esta pregunta está desactivada."}
           </div>

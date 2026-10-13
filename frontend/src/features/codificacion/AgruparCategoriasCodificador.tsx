@@ -16,8 +16,9 @@ import {
 } from "../../api/codificacion";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import { PulsoButton } from "../../components/PulsoButton";
+import { Switch } from "../../components/Switch";
 import { SaveStatusIndicator, type SaveState } from "../../components/SaveStatusIndicator";
-import { EmptyState, ErrorBlock, LoadingBlock } from "../../components/States";
+import { ErrorBlock, LoadingBlock } from "../../components/States";
 import {
   borradorDesdeRespuesta,
   categoriaDeCodigo,
@@ -31,6 +32,8 @@ import {
   type CategoriaBorrador,
 } from "./agruparCategoriasModel";
 import "./AgruparCategoriasCodificador.css";
+import { formatoConteo } from "../../lib/formatoNumero";
+import { EstadoVacio } from "../../components/EstadoVacio";
 
 // ---------- Pestañas del detalle de una select_one ----------
 
@@ -65,6 +68,9 @@ export function ModoSelectOneTabs({ parent, codificarRespuestas }: { parent: str
             aria-controls={`${idBase}-panel`}
             tabIndex={modo === m.id ? 0 : -1}
             data-gliding-key={m.id}
+            data-nav-item=""
+            data-nav-shape="pill"
+            data-nav-state={modo === m.id ? "selected" : undefined}
             className={modo === m.id ? "is-active" : ""}
             onClick={() => setModo(m.id)}
           >
@@ -98,9 +104,8 @@ const REMOTO_INICIAL: Remoto = {
 
 const BORRADOR_VACIO: BorradorAgrupacion = { target: "", textCol: null, codigoOtro: null, categorias: [], siguienteId: 1 };
 
-function n(x: number): string {
-  return x.toLocaleString("es-PE");
-}
+/** Conteos con el formateador compartido (M5): misma forma en toda la app. */
+const n = formatoConteo;
 
 function nombreCategoria(c: CategoriaBorrador): string {
   const et = c.etiqueta.trim();
@@ -262,11 +267,11 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
           </div>
           <div className="pulso-agrupar-lista" data-qa-geometry-capacity="owned">
             {borrador.categorias.length === 0 ? (
-              <EmptyState
-                variant="inline"
-                icon={<Combine size={18} />}
-                title="Aún no hay categorías"
-                hint="Agrega las categorías de la variable nueva y luego asigna a cada una sus códigos originales."
+              <EstadoVacio
+                tamano="compacto"
+                icono={<Combine size={15} />}
+                titulo="Aún no hay categorías"
+                descripcion="Agrega las categorías de la variable nueva y luego asigna a cada una sus códigos originales."
               />
             ) : (
               <ol
@@ -299,11 +304,11 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
           <h3 id={`agrupar-${parent}-orig`} className="pulso-agrupar-titulo">Códigos originales</h3>
           <div className="pulso-agrupar-lista" data-qa-geometry-capacity="owned">
             {datos.codigos.length === 0 ? (
-              <EmptyState
-                variant="inline"
-                icon={<Inbox size={18} />}
-                title="Sin códigos en la base"
-                hint={`La columna ${parent} no trae valores ni opciones en el formulario.`}
+              <EstadoVacio
+                tamano="compacto"
+                icono={<Inbox size={15} />}
+                titulo="Sin códigos en la base"
+                descripcion={`La columna ${parent} no trae valores ni opciones en el formulario.`}
               />
             ) : (
               <table className="pulso-agrupar-tabla">
@@ -375,11 +380,11 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
             <p className="pulso-agrupar-nota">Los textos se leen de la columna {borrador.textCol}.</p>
             <div className="pulso-agrupar-lista" data-qa-geometry-capacity="owned">
               {datos.textos_otro.length === 0 ? (
-                <EmptyState
-                  variant="inline"
-                  icon={<Inbox size={18} />}
-                  title="Nadie escribió en «Otro»"
-                  hint={`La columna ${borrador.textCol ?? ""} no trae textos en esta base.`}
+                <EstadoVacio
+                  tamano="compacto"
+                  icono={<Inbox size={15} />}
+                  titulo="Nadie escribió en «Otro»"
+                  descripcion={`La columna ${borrador.textCol ?? ""} no trae textos en esta base.`}
                 />
               ) : (
                 <table className="pulso-agrupar-tabla">
@@ -439,11 +444,11 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
             ) : remoto.vistaPrevia && !sucio ? (
               <VistaPrevia vp={remoto.vistaPrevia} target={target} />
             ) : (
-              <EmptyState
-                variant="inline"
-                icon={<ListChecks size={18} />}
-                title={sucio ? "Guarda para ver cuántos casos caen en cada categoría" : "Agrupación guardada"}
-                hint={sucio ? undefined : "Vuelve a guardar para recalcular los casos por categoría."}
+              <EstadoVacio
+                tamano="compacto"
+                icono={<ListChecks size={15} />}
+                titulo={sucio ? "Guarda para ver cuántos casos caen en cada categoría" : "Agrupación guardada"}
+                descripcion={sucio ? undefined : "Vuelve a guardar para recalcular los casos por categoría."}
               />
             )}
           </div>
@@ -571,21 +576,26 @@ function CategoriaFila({ c, primera, ultima, abierta, hayTexto, onAlternar, disp
               Deja un extremo vacío para un rango abierto. Un rango abierto no recoge los códigos 80 a 99 ni el código de «Otro».
             </p>
           </fieldset>
+          {/* Reglas que quedan puestas en la categoría: interruptores, no
+              casillas (la casilla es para marcar elementos de una lista). */}
           <label className="pulso-agrupar-check">
-            <input type="checkbox" checked={c.resto}
-              onChange={(e) => dispatch({ tipo: "resto", id: c.id, activo: e.target.checked })} />
+            <Switch className="pulso-codificacion-switch" checked={c.resto}
+              ariaLabel="Recoge el resto de códigos sin asignar"
+              onToggle={() => dispatch({ tipo: "resto", id: c.id, activo: !c.resto })} />
             Recoge el resto de códigos sin asignar
           </label>
           {hayTexto && (
             <>
               <label className="pulso-agrupar-check">
-                <input type="checkbox" checked={c.otrosNumerico}
-                  onChange={(e) => dispatch({ tipo: "editar", id: c.id, cambios: { otrosNumerico: e.target.checked } })} />
+                <Switch className="pulso-codificacion-switch" checked={c.otrosNumerico}
+                  ariaLabel="Recoge los años escritos en «Otro» que caen en su rango"
+                  onToggle={() => dispatch({ tipo: "editar", id: c.id, cambios: { otrosNumerico: !c.otrosNumerico } })} />
                 Recoge los años escritos en «Otro» que caen en su rango
               </label>
               <label className="pulso-agrupar-check">
-                <input type="checkbox" checked={c.otrosResto}
-                  onChange={(e) => dispatch({ tipo: "otrosResto", id: c.id, activo: e.target.checked })} />
+                <Switch className="pulso-codificacion-switch" checked={c.otrosResto}
+                  ariaLabel="Recoge el resto de textos escritos en «Otro»"
+                  onToggle={() => dispatch({ tipo: "otrosResto", id: c.id, activo: !c.otrosResto })} />
                 Recoge el resto de textos escritos en «Otro»
               </label>
             </>

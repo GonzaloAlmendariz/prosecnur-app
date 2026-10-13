@@ -67,6 +67,7 @@ import type {
 import { ErrorBlock } from "../../components/States";
 import { RepeatBadge } from "../../components/RepeatBadge";
 import { GlidingTabList } from "../../components/GlidingTabList";
+import { Switch } from "../../components/Switch";
 import { isRepeatChildBase } from "../../lib/repeatIdentity";
 import { esperarResultadoImport, textoDeProgresoImport } from "./importEnSegundoPlano";
 import { IntegratedInstrumentsWizard } from "./IntegratedInstrumentsWizard";
@@ -2467,20 +2468,22 @@ function SmDecisionCaseAudit({
         </em>
       </summary>
       <div className="pulso-sm-case-filters">
-        <label className={`pulso-sm-filter-toggle${observedOnly ? " is-active" : ""}`}>
-          <input
-            type="checkbox"
+        <label className="pulso-sm-filter-toggle">
+          <Switch
+            className="pulso-carga-switch"
             checked={observedOnly}
-            onChange={(event) => setObservedOnly(event.target.checked)}
+            onToggle={() => setObservedOnly(!observedOnly)}
+            ariaLabel="Mostrar solo casos observados"
           />
           <span>Solo observados</span>
           <small>{observedTotal}</small>
         </label>
-        <label className={`pulso-sm-filter-toggle${nearCompleteOnly ? " is-active" : ""}`}>
-          <input
-            type="checkbox"
+        <label className="pulso-sm-filter-toggle">
+          <Switch
+            className="pulso-carga-switch"
             checked={nearCompleteOnly}
-            onChange={(event) => setNearCompleteOnly(event.target.checked)}
+            onToggle={() => setNearCompleteOnly(!nearCompleteOnly)}
+            ariaLabel="Mostrar solo respuestas casi completas"
           />
           <span>Casi completas</span>
           <small>{nearCompleteTotal}</small>
@@ -2911,11 +2914,12 @@ function SmDecisionSuite({
                   </select>
                 </label>
                 <label className="is-check">
-                  <input
-                    type="checkbox"
+                  <Switch
+                    className="pulso-carga-switch"
                     checked={policy.include_partials === true}
                     disabled={disabled || !!busy}
-                    onChange={(event) => updatePolicy({ include_partials: event.target.checked })}
+                    onToggle={() => updatePolicy({ include_partials: policy.include_partials !== true })}
+                    ariaLabel="Rescatar parciales con avance suficiente"
                   />
                   <span>Rescatar parciales con avance suficiente</span>
                 </label>
@@ -2966,11 +2970,12 @@ function SmDecisionSuite({
                   </select>
                 </label>
                 <label className="is-check">
-                  <input
-                    type="checkbox"
+                  <Switch
+                    className="pulso-carga-switch"
                     checked={policy.include_duplicates !== false}
                     disabled={disabled || !!busy}
-                    onChange={(event) => updatePolicy({ include_duplicates: event.target.checked })}
+                    onToggle={() => updatePolicy({ include_duplicates: policy.include_duplicates === false })}
+                    ariaLabel="Permitir repetidos en la base"
                   />
                   <span>Permitir repetidos en la base</span>
                 </label>
@@ -2999,11 +3004,12 @@ function SmDecisionSuite({
                   />
                 </label>
                 <label className="is-check">
-                  <input
-                    type="checkbox"
+                  <Switch
+                    className="pulso-carga-switch"
                     checked={policy.include_rejections === true}
                     disabled={disabled || !!busy}
-                    onChange={(event) => updatePolicy({ include_rejections: event.target.checked })}
+                    onToggle={() => updatePolicy({ include_rejections: policy.include_rejections !== true })}
+                    ariaLabel="Permitir rechazos en la base"
                   />
                   <span>Permitir rechazos en la base</span>
                 </label>

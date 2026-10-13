@@ -36,6 +36,9 @@ import {
   type VariableDeBase,
 } from "../../api/equivalencias";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
+import { usePlegadoRecordado } from "../../lib/plegadoRecordado";
+import { formatoConteo } from "../../lib/formatoNumero";
+import { SaveStatusIndicator, type SaveState } from "../../components/SaveStatusIndicator";
 import { conNivel } from "../../lib/navegacion/direccion";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
 import {
@@ -360,6 +363,12 @@ function EditorFila({
 
   const errores = validarArmonizacion(borrador);
   const cargando = Object.values(cargas).some((c) => c.tipo === "cargando");
+  const [comoAbierto, setComoAbierto] = usePlegadoRecordado("armonizacion-como", false);
+  const [guardadoAhora, setGuardadoAhora] = useState(false);
+  const estadoGuardado: SaveState = guardando ? "saving"
+    : error ? "error"
+    : sucio ? "dirty"
+    : guardadoAhora ? "saved" : "idle";
 
   const guardar = async (borrar: boolean) => {
     setGuardando(true);
@@ -374,6 +383,7 @@ function EditorFila({
           : `Armonización de «${fila.etiqueta_estandar}» guardada.`,
       );
       setSucio(false);
+      setGuardadoAhora(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -395,13 +405,25 @@ function EditorFila({
             <X size={16} aria-hidden="true" />
           </Dialog.Close>
         </div>
+        {/* M10: una línea y el detalle plegable. El párrafo completo ocupaba el
+            27 % del alto a 1024x600 y se repetía en cada apertura; quien ya lo
+            leyó lo pliega una vez y queda plegado. */}
         <p className="pulso-armon-regla">
-          Armonizar es decir qué respuesta de cada base es la misma, para que la tabla compare lo mismo
-          en {serie.todas}. Primero arma la escala común, que es la lista de respuestas con la que se
-          compara. Después, en cada base, elige en «Destino en la escala» a qué respuesta de esa lista
-          corresponde cada código. Guíate por el texto de la respuesta y no por el número, porque el mismo
-          código puede significar otra cosa en otra base.
+          Indica qué respuesta de cada base es la misma, para comparar lo mismo en {serie.todas}.
         </p>
+        <details
+          className="pulso-armon-como"
+          open={comoAbierto}
+          onToggle={(e) => setComoAbierto(e.currentTarget.open)}
+        >
+          <summary>Cómo armonizar</summary>
+          <p className="pulso-armon-regla">
+            Primero arma la escala común, que es la lista de respuestas con la que se compara. Después,
+            en cada base, elige en «Destino en la escala» a qué respuesta de esa lista corresponde cada
+            código. Guíate por el texto de la respuesta y no por el número, porque el mismo código puede
+            significar otra cosa en otra base.
+          </p>
+        </details>
       </header>
 
       {/* C4: un único dueño de scroll. Cabecera y pie quedan fuera de él. */}
@@ -439,13 +461,14 @@ function EditorFila({
       </div>
 
       <footer className="pulso-armon-pie">
+        {/* M14: el mismo patrón de guardado que Equivalencias y Agrupar
+            categorías: chip de estado y botón con verbo fijo. */}
         <div className="pulso-armon-pie-estado" aria-live="polite">
+          <SaveStatusIndicator state={estadoGuardado} variant="badge" />
           {error ? (
             <span className="pulso-armon-error" role="alert">{error}</span>
           ) : errores.length > 0 ? (
             <span className="pulso-armon-error">{errores[0]}</span>
-          ) : sucio ? (
-            <span>Hay cambios sin guardar.</span>
           ) : null}
         </div>
         {fila.armonizacion && (
@@ -782,7 +805,7 @@ function MapaDeBase({
                       <td className="pulso-armon-codigo">{f.codigo}</td>
                       <td>{f.etiqueta ?? <span className="pulso-armon-tenue">sin etiqueta</span>}</td>
                       <td className="is-num">
-                        {f.n === null ? <span className="pulso-armon-tenue">sin conteo</span> : f.n}
+                        {f.n === null ? <span className="pulso-armon-tenue">sin conteo</span> : formatoConteo(f.n)}
                       </td>
                       <td>
                         <select

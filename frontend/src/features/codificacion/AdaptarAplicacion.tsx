@@ -14,6 +14,7 @@ import {
   useAplicarAvisosStore,
 } from "./aplicarAvisosStore";
 import "./AdaptarAplicacion.css";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 // La mitad de Adaptar que sobrevive al remontaje: el botón que lanza
 // `/aplicar`, el progreso del job, lo que no se aplicó, lo que se entrega sin
@@ -209,7 +210,7 @@ export function AdaptarAplicacionVista({
                     <>— decidido: {v.motivo}</>
                   ) : (
                     <>
-                      — {v.n_respuestas} {v.n_respuestas === 1 ? "respuesta" : "respuestas"} sin
+                      — {formatoConteo(v.n_respuestas)} {v.n_respuestas === 1 ? "respuesta" : "respuestas"} sin
                       categorizar
                     </>
                   )}

@@ -200,6 +200,10 @@
 
 .pulso-armon-pie-estado {
   flex: 1 1 200px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
   min-width: 0;
   font-size: 12px;
   color: var(--pulso-text-soft);
@@ -431,7 +435,8 @@
 .pulso-armon-periodos {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
   gap: var(--pulso-space-2) var(--pulso-space-3);
   padding: var(--pulso-space-2) var(--pulso-space-3);
   border: 1px solid var(--pulso-border);
@@ -441,6 +446,7 @@
 }
 
 .pulso-armon-periodos-titulo {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: var(--pulso-space-1);
@@ -471,7 +477,50 @@
 }
 
 .pulso-armon-periodos-nota {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--pulso-text-soft);
+}
+
+/* M7: el orden en una línea. El resumen ya cuenta las bases que no nombra, así
+   que la elipsis sólo actúa si ni siquiera eso cabe; el orden entero va en el
+   `title` y en el sideover. */
+.pulso-armon-periodos-resumen {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-armon-periodos-editar {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+/* En el sideover la lista es una columna: cada base una fila del mismo ancho,
+   y se recorre con el scroll del cuerpo con cualquier N. */
+.pulso-armon-periodos-lista.is-vertical {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.pulso-armon-periodos-lista.is-vertical > li {
+  width: 100%;
+}
+
+.pulso-armon-periodos-lista.is-vertical .pulso-armon-periodos-base {
+  flex: 1 1 auto;
+}
+
+.pulso-armon.is-angosto {
+  width: min(440px, calc(100vw - var(--pulso-space-9)));
 }
 
 /* «Etiqueta distinta»: el código tiene destino pero su etiqueta no es la de la
@@ -600,4 +649,30 @@
 /* El ancla deja el encabezado bajo el índice pegado, no tapado por él. */
 .pulso-armon-cuerpo h3[id] {
   scroll-margin-top: 72px;
+}
+
+/* M10: «Cómo armonizar» plegable; recuerda cómo lo dejó el usuario. */
+.pulso-armon-como > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--module-accent);
+}
+
+.pulso-armon-como > summary:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+  border-radius: var(--pulso-radius-chip);
+}
+
+.pulso-armon-como[open] > summary {
+  margin-bottom: var(--pulso-space-1);
+}
+
+/* En el sideover angosto el estado comparte línea con los botones. */
+.pulso-armon.is-angosto .pulso-armon-pie-estado {
+  flex-basis: auto;
 }

@@ -421,7 +421,6 @@
 .pulso-sm-decision-suite > summary:focus-visible,
 .pulso-sm-case-action:focus-visible,
 .pulso-sm-decision-actions button:focus-visible,
-.pulso-sm-filter-toggle:focus-within,
 .pulso-sm-collector-picks-grid label:focus-within {
   outline: 2px solid transparent;
   box-shadow: 0 0 0 3px var(--sm-decision-ring);
@@ -3980,75 +3979,21 @@
   color: var(--pulso-danger-fg);
 }
 
+/* Interruptor de la casa (`components/Switch`) con el acento de Procesamiento:
+ * la piel sólo redefine los tokens `--pulso-switch-*`; la geometría vive en
+ * `.pulso-switch` (theme.css). Un ajuste que queda puesto es un interruptor,
+ * no una casilla (dictado 2026-09-04). */
+.pulso-carga-switch {
+  --pulso-switch-accent: var(--module-accent, var(--pulso-module-processing, var(--pulso-primary)));
+  --pulso-switch-accent-ring: color-mix(in srgb, var(--pulso-switch-accent) 18%, transparent);
+}
+
 .pulso-carga-universe-switch {
-  position: relative;
   width: fit-content;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
-}
-
-.pulso-carga-universe-switch input {
-  position: absolute;
-  z-index: 1;
-  left: 0;
-  width: 44px;
-  height: 24px;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-/* Pista al switch maestro 44×24 (`.pulso-switch`, theme.css). */
-.pulso-carga-universe-switch > span {
-  width: 44px;
-  height: 24px;
-  padding: 2px;
-  border-radius: var(--pulso-radius-chip);
-  border: 1px solid var(--pulso-switch-border);
-  background: var(--pulso-switch-track);
-  box-shadow: var(--pulso-switch-track-shadow);
-  flex-shrink: 0;
-  transition:
-    transform var(--motion-dur-press) var(--motion-ease-out),
-    background var(--motion-dur-fast) ease,
-    border-color var(--motion-dur-fast) ease,
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
-}
-
-.pulso-carga-universe-switch > span::after {
-  content: "";
-  display: block;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: var(--pulso-switch-knob-shadow);
-  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
-}
-
-.pulso-carga-universe-switch input:checked + span {
-  border-color: color-mix(in srgb, var(--pulso-primary) 84%, #fff 16%);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--pulso-primary) 88%, #fff 12%), var(--pulso-primary));
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.2),
-    0 1px 2px rgba(0, 36, 87, 0.12);
-}
-
-.pulso-carga-universe-switch input:checked + span::after {
-  transform: translateX(20px);
-}
-
-.pulso-carga-universe-switch:active > span {
-  transform: scale(0.97);
-}
-
-.pulso-carga-universe-switch input:focus-visible + span {
-  box-shadow:
-    var(--pulso-switch-track-shadow),
-    0 0 0 4px var(--pulso-primary-ring);
 }
 
 .pulso-carga-universe-switch b {
@@ -5270,16 +5215,14 @@
   box-shadow: 0 0 0 3px var(--sm-decision-ring);
 }
 
+/* Ajuste de política = interruptor; sin ficha alrededor (la perilla ya es el
+ * estado). Conserva la altura para alinear con los selects de la fila. */
 .pulso-sm-decision-controls .is-check {
   min-height: 34px;
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--pulso-surface-2) 70%, #fff);
-}
-
-.pulso-sm-decision-controls .is-check input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--sm-decision-accent);
+  padding-inline: 0;
+  border-color: transparent;
+  background: transparent;
+  cursor: pointer;
 }
 
 .pulso-sm-decision-impact {
@@ -5299,31 +5242,14 @@
   color: var(--sm-decision-accent);
 }
 
+/* Los filtros de casos son interruptores: el estado lo dice la perilla, así
+ * que el rótulo ya no se viste de ficha. */
 .pulso-sm-case-filters label {
   min-height: 34px;
-  padding: 6px 9px;
-  border-radius: 9px;
-  background: #fff;
-  transition:
-    transform var(--motion-dur-press) var(--motion-ease-out),
-    border-color var(--motion-dur-fast) ease,
-    background var(--motion-dur-fast) ease,
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
-}
-
-.pulso-sm-case-filters label:active {
-  transform: scale(0.98);
-}
-
-.pulso-sm-case-filters label input {
-  width: var(--pulso-control-check-size);
-  height: var(--pulso-control-check-size);
-  accent-color: var(--sm-decision-accent);
-}
-
-.pulso-sm-case-filters label.is-active {
-  border-color: color-mix(in srgb, var(--sm-decision-accent) 36%, var(--pulso-border));
-  background: color-mix(in srgb, var(--sm-decision-accent-soft) 54%, #fff);
+  padding: 0 4px;
+  border-color: transparent;
+  background: transparent;
+  cursor: pointer;
 }
 
 .pulso-sm-case-filters label small {
@@ -7618,24 +7544,13 @@
   justify-self: start;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   min-height: 28px;
-  padding: 4px 8px;
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 88%, #fff);
-  border-radius: var(--pulso-radius-chip);
-  background: #fff;
   color: var(--pulso-text);
   font-size: 11px;
   font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
-}
-
-.pulso-platform-check input {
-  width: 15px;
-  height: 15px;
-  margin: 0;
-  accent-color: var(--pulso-primary);
+  cursor: pointer;
 }
 
 .pulso-platform-alert {

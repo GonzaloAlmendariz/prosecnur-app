@@ -12,7 +12,7 @@ import type { FilaEditor } from "./equivalenciasEditorModel";
 import { ArmonizacionIndicador } from "./ArmonizacionFilaEditor";
 import { CoberturaBases } from "./CoberturaBases";
 import { nombreDeSerieDeBases } from "./nombreDeSerie";
-import { anchoColumnaPublico, anchoMinimoLista } from "./equivalenciasAnchos";
+import { ANCHO_COLUMNA_ESTADO_PX, anchoColumnaPublico, anchoMinimoLista } from "./equivalenciasAnchos";
 import { useDesbordeHorizontal } from "./useDesbordeHorizontal";
 import { PulsoButton } from "../../components/PulsoButton";
 
@@ -66,6 +66,7 @@ export function EquivalenciasTabla({
       <table className="pulso-equiv-tabla" style={{ minWidth: `${minimo}px` }}>
         <colgroup>
           <col />
+          {onArmonizar && <col style={{ width: `${ANCHO_COLUMNA_ESTADO_PX}px` }} />}
           <col className="pulso-equiv-col-diapo" />
           {bases.map((base) => (
             <col key={base} style={{ width: anchoColumnaPublico() }} />
@@ -76,6 +77,7 @@ export function EquivalenciasTabla({
         <thead>
           <tr>
             <th scope="col" className="pulso-equiv-col-etiqueta">Etiqueta estándar</th>
+            {onArmonizar && <th scope="col" className="pulso-equiv-col-estado">Armonización</th>}
             <th scope="col" className="pulso-equiv-col-diapo">Diapositiva</th>
             {bases.map((base) => (
               <th key={base} scope="col">{base}</th>
@@ -105,9 +107,13 @@ export function EquivalenciasTabla({
                     aria-label={`Etiqueta estándar de la fila ${fila.id}`}
                     onChange={(e) => onEditar(fila.id, "etiqueta_estandar", e.target.value)}
                   />
-                  {onArmonizar && <ArmonizacionIndicador fila={fila} serie={serie} onAbrir={onArmonizar} />}
                 </div>
               </td>
+              {onArmonizar && (
+                <td className="pulso-equiv-col-estado">
+                  <ArmonizacionIndicador fila={fila} serie={serie} onAbrir={onArmonizar} />
+                </td>
+              )}
               <td>
                 <input
                   className="pulso-equiv-input-diapo"
