@@ -528,6 +528,8 @@ test_that("R4b-8 y contrato HTTP: notas libres en el body, avisos y casos sin ma
   expect_identical(man$preguntas[[1]]$sin_mapa[[1]]$n_sin_mapa, 2L)
   expect_identical(man$preguntas[[1]]$sin_mapa[[2]]$n_especial_sin_mapa, 3L)
   expect_identical(man$periodos[[1]]$ponderacion$metodo, "columna")
+  expect_identical(man$preguntas[[1]]$sin_mapa[[2]]$codigos_especiales, list("99"))
+  expect_identical(man$preguntas[[1]]$sin_mapa[[2]]$etiquetas_especiales, list("Opción 99"))
   expect_true(length(man$avisos) >= 2L)
 
   celdas <- openxlsx::read.xlsx(files[[pub$file_id]]$path, colNames = FALSE, skipEmptyRows = FALSE)[[1]]
@@ -579,6 +581,16 @@ test_that("C1: «sin ponderar» declarado con columna peso avisa peso_ignorado e
   session_set(sid, "equivalencias_publicos", eq)
   sid
 }
+
+test_that("manifest de cruces: no_ofrecidas_cruce por variable de cruce y año", {
+  sid <- .az_setup()
+  r <- .az_llamar(sid, "/api/analitica/armonizada/cruces", list(filas = list("VBG-01"), cruces = list("S-05")))
+  expect_identical(r$public$resumen$preguntas[[1]]$no_ofrecidas_cruce,
+                   list(`Lugar de nacimiento` = list(b2024 = list("3"))))
+  man <- jsonlite::fromJSON(session_get(sid)$files[[r$public$artifacts[[2]]$file_id]]$path, simplifyVector = FALSE)
+  expect_identical(man$preguntas[[1]]$no_ofrecidas_cruce$`Lugar de nacimiento`$b2024, list("3"))
+  expect_identical(man$preguntas[[1]]$sin_mapa[[2]]$codigos_especiales, list("99"))
+})
 
 test_that("C2: un especial que otra base mapea y aquí queda sin mapa cuenta como sin correspondencia", {
   sid <- .az_setup_99_cubierto()
