@@ -3,10 +3,9 @@ import { AlertTriangle } from "lucide-react";
 import { splitErrorDetail } from "./errorPresentation";
 import "./states.css";
 
-// Componentes de estado compartidos entre los editores de Configuración
-// global. Antes vivían inline en cada editor (PaletasEditor, IconosEditor,
-// OverridesEditor, DefaultsModal) con copias divergentes — extraerlos acá
-// unifica el look y facilita ajustes globales.
+// Componentes de estado compartidos entre editores. Antes vivían inline en
+// cada editor con copias divergentes — extraerlos acá unifica el look y
+// facilita ajustes globales.
 //
 // Estilos en states.css. Los min-height de LoadingBlock siguen inline
 // porque son prop (minHeight) con default por variante.

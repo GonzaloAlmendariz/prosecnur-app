@@ -273,7 +273,7 @@ type PlanStore = {
   setCanvasViewport: (vp: CanvasViewport) => void;
 
   // Reordenar a una posición arbitraria (drag&drop). Diferente de moveSlide
-  // (que solo hace ±1). Usado por TimelinePanelV2 con @dnd-kit.
+  // (que solo hace ±1).
   moveSlideTo: (id: string, newIndex: number) => void;
 };
 

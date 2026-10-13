@@ -428,8 +428,6 @@ const jsonIoStyles: Record<string, CSSProperties> = {
 // - Badge "Autoguardado" con estado (guardando / guardado / sin conexión).
 // - Botones Export / Import del plan como JSON.
 // - Botón Reset (con confirmación).
-// - Botones para abrir los modales de presets PPT / Word (quedan aquí
-//   hasta que en el Bloque 2 se muevan al bloque "Configuración global").
 // - Botones de exportación .pptx / .docx con JobProgress delegado al padre.
 //
 // El componente NO hace el autosave — eso lo hace `useGraficosAutosave`
