@@ -12,7 +12,9 @@ import {
   type PlanJson,
   type Slide,
 } from "../../api/client";
-import { usePlanStore } from "./store";
+import { SLIDE_LABELS, usePlanStore } from "./store";
+import { useVariables } from "./useVariables";
+import { tituloQueSale } from "./laminas/tituloQueSale";
 import { buildGraficosConfigFromStore } from "./configSnapshot";
 import { usePptStyleProfiles } from "./usePptStyleProfiles";
 import { useGraficosRegistry } from "./useGraficosRegistry";
@@ -147,13 +149,18 @@ export function SuggestedPlanButton() {
     projectShell?.project.status.path,
   ].filter(Boolean).join(" ");
 
+  // Un estudio cuyo plan ya salió de la matriz abre en «Equivalencias»: abrir en «Automático» calculaba sola otra
+  // propuesta, ajena a la matriz (Gonzalo, 2026-10-13: «esto se activa solo sin pedirlo», 59 láminas «Sin título» en Arte).
+  const equivalenciasRevision = usePlanStore((s) => s.equivalenciasRevision);
+  const { variables } = useVariables();
+  const conMatriz = Boolean(equivalenciasRevision) || currentPlan.slides.some(esEquivalente);
   useEffect(() => {
     const isAcnur = /\b(?:ACNUR|UNHCR)\b/i.test(projectIdentity);
-    setProfileId(isAcnur ? "acnur_kobo_cruncher_plus" : "auto");
+    setProfileId(isAcnur ? "acnur_kobo_cruncher_plus" : conMatriz ? "equivalencias" : "auto");
     setAcnurMode("general");
     setComparisonMode("none");
     setResult(null);
-  }, [projectIdentity]);
+  }, [projectIdentity, conMatriz]);
 
   const cerrarPanel = panel.cerrar;
   const cerrar = useRef(cerrarPanel);
@@ -581,7 +588,7 @@ export function SuggestedPlanButton() {
               <div className="pulso-gv2-suggest-preview">
                 {(result.plan.slides ?? []).slice(0, 10).map((slide, index) => (
                   <div key={`${slide.id}-${index}`}>
-                    <strong>{index + 1}. {normalizeAcnurVisibleText(tituloPropuesto(slide.payload?.titulo, profileId === "equivalencias"))}</strong>
+                    <strong>{index + 1}. {normalizeAcnurVisibleText(tituloPropuesto(slide.payload?.titulo, profileId === "equivalencias", tituloQueSale(slide, variables, SLIDE_LABELS[slide.tipo] ?? slide.tipo)))}</strong>
                     <span>{contenidoPropuesto(slide.tipo)}</span>
                   </div>
                 ))}

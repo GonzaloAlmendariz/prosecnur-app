@@ -32,11 +32,14 @@ import VariableRespondentSummary from "./VariableRespondentSummaryView";
 import { QueCompara } from "./multiapiladas/QueCompara";
 import { TemasPorPublico } from "./multiapiladas/TemasPorPublico";
 import { EstadoMultiapiladas } from "./multiapiladas/EstadoMultiapiladas";
+import { guardarLectura, recuperarLectura } from "./multiapiladas/memoriaLecturas";
 import "./multiapiladas/multiapiladas.css";
 
 type Props = {
   graf: GraficadorRef;
   onArgs: (patch: Record<string, unknown>) => void;
+  /** Lámina y ranura: con ella cada lectura recuerda lo que tenía al cambiar a otra (memoriaLecturas.ts). */
+  memoriaKey?: string;
 };
 
 type Intent = "comparar" | "pregunta_grupos" | "preguntas_grupos" | "publicos_tema" | "combinar";
@@ -119,7 +122,7 @@ const INTENTS: {
   },
 ];
 
-export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
+export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props) {
   const { variables, multi, sources, loading } = useVariables();
   // Un estudio de bases hermanas expone una sola fuente mientras editas por
   // base: el modo multi-fuente existe, pero vive en el informe compartido.
@@ -150,6 +153,14 @@ export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
   // modos, incluso a través de la ida y vuelta por bloques.
   function setIntent(next: Intent) {
     if (next === "publicos_tema" && (!multi || sources.length < 2)) return;
+    if (next === intent) return;
+    // «El cambiar entre uno y otro destruye todo lo avanzado» (Gonzalo, 2026-10-13): la lectura que se deja queda
+    // guardada y, si la siguiente ya se usó en esta lámina, vuelve tal como estaba.
+    if (memoriaKey) {
+      guardarLectura(memoriaKey, intent, args);
+      const previa = recuperarLectura(memoriaKey, next);
+      if (previa) { commitArgs(previa); return; }
+    }
     const carriedVars = carryVars(args);
     const carriedCruce = carryCruce(args);
     if (next === "comparar") {
