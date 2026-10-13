@@ -1956,7 +1956,7 @@ isTRUE_vec <- function(x) {
                           (tipo == "select_multiple" && nzchar(text_col)) ||
                           (tipo == "text")) &&
                          !nzchar(.codif_columna_faltante(r, names(data_df))$motivo),
-      motivo_omision = .codif_columna_faltante(r, names(data_df))$mensaje
+      motivo_omision = .codif_motivo_plan(r, names(data_df))$mensaje
     )
   }
 
