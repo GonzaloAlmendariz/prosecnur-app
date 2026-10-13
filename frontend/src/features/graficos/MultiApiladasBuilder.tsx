@@ -280,7 +280,7 @@ function QuestionByGroups({ args, onArgs, variables, multi }: BuilderSectionProp
       <FieldLabel label="Pregunta principal" help="Sus opciones se convierten en segmentos apilados.">
         <SingleVarSelect value={varRef} onChange={(v) => onArgs({ modo: "cruce", var: v })} variables={variables} multi={multi} />
       </FieldLabel>
-      <FieldLabel label="Grupo para abrir" help="Cada valor de esta variable será una fila del gráfico.">
+      <FieldLabel label="Grupo para abrir" help="Cada respuesta de esta pregunta será una fila del gráfico.">
         <SingleVarSelect value={cruce} onChange={(v) => onArgs({ modo: "cruce", cruces: v })} variables={variables} multi={multi} />
       </FieldLabel>
     </BuilderSection>
@@ -342,7 +342,7 @@ function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSou
   }
 
   return (
-    <BuilderSection title="Bloques verticales" hint="Cada bloque puede tener su propia escala. No se permite anidar otro Combinar bloques.">
+    <BuilderSection title="Bloques verticales" hint="Cada bloque puede tener su propia escala. Un bloque no puede contener otros bloques.">
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {normalized.map((block, index) => (
           <BlockEditor
@@ -448,7 +448,7 @@ function BlockEditor({
                   ...(disabled ? blockIntentButtonDisabledStyle : {}),
                 }}
               >
-                {item.title}
+                {item.corto}
               </button>
             );
           })}
@@ -462,10 +462,10 @@ function BlockEditor({
         <FieldLabel label="Título del bloque" compact>
           <input value={title} onChange={(e) => onChange({ titulo: e.target.value })} style={inputStyle} />
         </FieldLabel>
-        <FieldLabel label="Subtitulo" compact>
+        <FieldLabel label="Subtítulo" compact>
           <input value={subtitle} onChange={(e) => onChange({ subtitulo: e.target.value })} style={inputStyle} />
         </FieldLabel>
-        <FieldLabel label="Altura" compact help="Opcional. Peso relativo del bloque dentro de la composicion.">
+        <FieldLabel label="Altura" compact help="Opcional. Cuánto alto ocupa este bloque frente a los demás.">
           <input
             type="number"
             min={0.1}
@@ -633,7 +633,7 @@ function SingleVarSelect({
       value={value}
       variables={variables}
       multi={multi}
-      placeholder="Selecciona variable"
+      placeholder="Elegir pregunta…"
       emptyHint={`${variables.length} disponible${variables.length === 1 ? "" : "s"}`}
       allowEmpty
       onPick={onChange}
@@ -758,7 +758,7 @@ function VariableChoicePopover({
         </span>
         <span className="pulso-gv2-variable-trigger-copy">
           <strong>{selected ? selected.label : placeholder}</strong>
-          <small>{selected ? displayRef(value ?? "", multi) : emptyHint}</small>
+          <small>{selected ? parseVarRef(value ?? "").name : emptyHint}</small>
         </span>
         {selected && multi && (
           <span className="pulso-gv2-variable-trigger-source">{selected.source}</span>
@@ -1151,9 +1151,11 @@ function slugKey(text: string): string {
   return text.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
+/** El código de la pregunta y, con varias bases, su base legible («p28 · Docentes»), nunca la referencia cruda `docentes$p28`. */
 function displayRef(ref: string, multi: boolean): string {
-  if (multi) return ref;
-  return parseVarRef(ref).name;
+  const { source, name } = parseVarRef(ref);
+  if (!multi || !source) return name;
+  return `${name} · ${source.charAt(0).toUpperCase()}${source.slice(1).replace(/_/g, " ")}`;
 }
 
 function friendlyVarType(tipo: string) {

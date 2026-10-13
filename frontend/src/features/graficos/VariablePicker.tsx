@@ -215,7 +215,7 @@ export default function VariablePicker({
           <small>
             {selectedVar
               ? selectedCode
-              : `${eligible.length} variable${eligible.length === 1 ? "" : "s"} disponible${eligible.length === 1 ? "" : "s"}`}
+              : `${eligible.length} pregunta${eligible.length === 1 ? "" : "s"} disponible${eligible.length === 1 ? "" : "s"}`}
           </small>
         </span>
         {refSinBase ? (
@@ -289,7 +289,7 @@ export default function VariablePicker({
             )}
           </div>
 
-          <div className="pulso-gv2-variable-list" role="listbox" aria-label="Variables disponibles">
+          <div className="pulso-gv2-variable-list" role="listbox" aria-label="Preguntas disponibles">
             {allowEmpty && (
               <button
                 type="button"
