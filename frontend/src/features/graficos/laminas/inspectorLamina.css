@@ -466,7 +466,7 @@ textarea.pulso-f6-input {
   margin: var(--pulso-space-2) var(--pulso-space-3) 0;
   padding: var(--pulso-space-2) var(--pulso-space-3);
   border: 1px solid var(--pulso-warn-border);
-  border-radius: var(--pulso-radius-chip);
+  border-radius: var(--pulso-radius);   /* bloque de texto de varias líneas: radio de caja, no de píldora */
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
   font-size: 12px;

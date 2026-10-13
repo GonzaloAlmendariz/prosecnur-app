@@ -22110,6 +22110,15 @@
   cursor: pointer;
 }
 
+/* Con «Quitar variable», el disparador le deja su sitio: antes la X caía sobre el rótulo de la base («docentes»). */
+.pulso-gv2-variable-picker.has-clear .pulso-gv2-variable-trigger {
+  padding-right: 38px;
+}
+
+.pulso-gv2-variable-picker.has-clear .pulso-gv2-variable-clear {
+  right: 8px;
+}
+
 .pulso-gv2-variable-clear:hover {
   border-color: var(--pulso-border);
   background: var(--pulso-surface-2);

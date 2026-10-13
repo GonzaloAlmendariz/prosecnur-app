@@ -12,6 +12,8 @@ type Props = {
   placeholder?: string;
   filter?: (tipo: string) => boolean;
   allowEmpty?: boolean;
+  /** Sin el rótulo de la base en el disparador: donde la fila ya dice de qué público es (tarjetas por público). */
+  ocultarBase?: boolean;
 };
 
 // VariablePicker multi-base (v0.2+).
@@ -29,7 +31,7 @@ type Props = {
 // el analista lo guardó conscientemente así).
 
 export default function VariablePicker({
-  value, onChange, placeholder = "Selecciona variable…", filter, allowEmpty = false,
+  value, onChange, placeholder = "Selecciona variable…", filter, allowEmpty = false, ocultarBase = false,
 }: Props) {
   const { sources, multi, loading, error } = useVariables();
   const [open, setOpen] = useState(false);
@@ -197,7 +199,7 @@ export default function VariablePicker({
   }
 
   return (
-    <div className="pulso-gv2-variable-picker" ref={rootRef}>
+    <div className={`pulso-gv2-variable-picker${allowEmpty && selectedVar ? " has-clear" : ""}`} ref={rootRef}>
       <button
         type="button"
         className={`pulso-gv2-variable-trigger ${selectedVar ? "has-value" : ""}`}
@@ -220,7 +222,7 @@ export default function VariablePicker({
           <span className="pulso-gv2-variable-trigger-source is-sin-base" title="Esta variable no dice de qué base es; vuelve a elegirla.">
             falta la base
           </span>
-        ) : selectedVar && selectedSourceLabel ? (
+        ) : selectedVar && selectedSourceLabel && !ocultarBase ? (
           <span className="pulso-gv2-variable-trigger-source">{selectedSourceLabel}</span>
         ) : null}
         <ChevronDown size={14} className="pulso-gv2-variable-trigger-chevron" />
