@@ -142,7 +142,7 @@ export function TimelinePanelV2() {
       )}
 
       <div className="pulso-gv2-timeline-title-row">
-        <span>Timeline</span>
+        <span>Láminas</span>
         {slides.length > 0 && (
           <span className="pulso-gv2-timeline-count">
             {filtered.length === slides.length

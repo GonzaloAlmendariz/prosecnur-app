@@ -518,7 +518,7 @@ function CanvasEmptyStart({
         </div>
 
         <div className="pulso-gv2-canvas-empty-copy">
-          <span className="pulso-gv2-canvas-empty-eyebrow">Canvas</span>
+          <span className="pulso-gv2-canvas-empty-eyebrow">Informe</span>
           <h2>Organiza el plan visualmente</h2>
           <p>
             Crea el primer bloque y el lienzo dibujará la grilla de slides por secciones.
