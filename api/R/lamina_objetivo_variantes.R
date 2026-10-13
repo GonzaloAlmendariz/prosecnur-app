@@ -11,10 +11,22 @@
 #' @keywords internal
 .lam_objetivo_args <- function(x) {
   limpio <- function(v) { v <- as.character(unlist(v %||% character(0))); v[!is.na(v) & nzchar(trimws(v))] }
-  if (is.list(x) && !is.null(names(x))) {
-    return(list(actores = limpio(x$actores), variante = .lam_objetivo_variante(x$variante), dimensiones = limpio(x$dimensiones)))
+  # `actores_iconos` va alineado con `actores` («» = automático); una fila vacía se descarta junto con su ícono.
+  con_iconos <- function(actores, iconos) {
+    actores <- as.character(unlist(actores %||% character(0)))
+    iconos <- as.character(unlist(iconos %||% character(0)))
+    iconos <- c(iconos, rep("", max(0L, length(actores) - length(iconos))))[seq_along(actores)]
+    iconos[is.na(iconos)] <- ""
+    vale <- !is.na(actores) & nzchar(trimws(actores))
+    list(actores = actores[vale], iconos = trimws(iconos[vale]))
   }
-  list(actores = limpio(x), variante = "clasica", dimensiones = character(0))
+  if (is.list(x) && !is.null(names(x))) {
+    ai <- con_iconos(x$actores, x$actores_iconos)
+    return(list(actores = ai$actores, iconos = ai$iconos, variante = .lam_objetivo_variante(x$variante),
+                dimensiones = limpio(x$dimensiones)))
+  }
+  ai <- con_iconos(x, NULL)
+  list(actores = ai$actores, iconos = ai$iconos, variante = "clasica", dimensiones = character(0))
 }
 
 #' Variante del objetivo: «clasica» (26, por defecto), «panel» (27) o «dimensiones» (28)
@@ -27,10 +39,10 @@
 
 #' Un actor con su ícono en un círculo azul (fila o grilla del objetivo)
 #' @keywords internal
-.lam_objetivo_actor <- function(lz, iconos, actor, x, y, d, centrado = FALSE, w_rotulo = 1.97, size = 13) {
+.lam_objetivo_actor <- function(lz, iconos, actor, x, y, d, centrado = FALSE, w_rotulo = 1.97, size = 13, icono = "") {
   .lam_caja(lz, x, y, d, d, .std_color("azul"), geom = "ellipse", nombre = "objetivo:actor_fondo")
   di <- d * 0.52
-  iconos[[length(iconos) + 1L]] <- list(n = .lam_icono_actor(actor), color = "blanco", x = x + (d - di) / 2, y = y + (d - di) / 2, d = di)
+  iconos[[length(iconos) + 1L]] <- list(n = .lam_icono_actor(actor, icono), color = "blanco", x = x + (d - di) / 2, y = y + (d - di) / 2, d = di)
   if (centrado) .lam_txt(lz, actor, x + d / 2 - w_rotulo / 2, y + d + 0.08, w_rotulo, 0.5, size, .std_color("azul"), bold = TRUE, align = "center", nombre = "objetivo:actor")
   else .lam_txt(lz, actor, x + d + 0.1, y + (d - 0.42) / 2, w_rotulo, 0.42, size, .std_color("azul"), bold = TRUE, nombre = "objetivo:actor")
   iconos
@@ -53,7 +65,7 @@
       .lam_txt(lz, "Actores consultados", 5.0, 4.45, 8.02, 0.32, 12, suave, bold = TRUE, nombre = "objetivo:actores_rotulo")
       for (k in seq_along(a$actores)) {
         fila <- (k - 1L) %/% 3L; col <- (k - 1L) %% 3L
-        iconos <- .lam_objetivo_actor(lz, iconos, a$actores[k], 5.0 + col * 2.675, 4.95 + fila * 0.9, 0.58)
+        iconos <- .lam_objetivo_actor(lz, iconos, a$actores[k], 5.0 + col * 2.675, 4.95 + fila * 0.9, 0.58, icono = a$iconos[k])
       }
     }
   } else {
@@ -74,7 +86,8 @@
       n <- length(a$actores); wc <- 12.52 / n
       for (k in seq_len(n)) {
         xc <- 0.49 + (k - 0.5) * wc
-        iconos <- .lam_objetivo_actor(lz, iconos, a$actores[k], xc - 0.36, 4.45, 0.72, centrado = TRUE, w_rotulo = min(2.09, wc))
+        iconos <- .lam_objetivo_actor(lz, iconos, a$actores[k], xc - 0.36, 4.45, 0.72, centrado = TRUE, w_rotulo = min(2.09, wc),
+                                      icono = a$iconos[k])
       }
     }
   }

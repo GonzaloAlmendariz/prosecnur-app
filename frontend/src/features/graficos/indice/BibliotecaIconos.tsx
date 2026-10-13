@@ -5,7 +5,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Ban, Loader2, RefreshCw, Search, Sparkles, X } from "../../../vendor/lucide-react";
-import { apiGraficosElegirIconos, type EleccionIcono } from "../../../api/graficosRecursos";
+import { apiGraficosElegirIconos, type ContextoIcono, type EleccionIcono } from "../../../api/graficosRecursos";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { PANEL_ICONOS } from "../panelesGraficos";
@@ -55,7 +55,25 @@ export function BibliotecaIconos({ indice, onElegir }: Props) {
   );
 }
 
-function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerrar, onUsar }: {
+/** Lo que el diálogo dice de lo que se está eligiendo: un capítulo del índice (por defecto) o un actor del objetivo. */
+export type TextosBiblioteca = {
+  antetitulo: string;
+  tituloDialogo: string;
+  sinTitulo: string;
+  autoGeneral: string;
+  /** Sin él, no se ofrece «Sin ícono» (un actor siempre sale con el suyo). */
+  sinIcono?: string;
+};
+
+const TEXTOS_CAPITULO = (numero: number): TextosBiblioteca => ({
+  antetitulo: "Índice",
+  tituloDialogo: `Ícono del capítulo ${numero}`,
+  sinTitulo: "Capítulo sin título",
+  autoGeneral: "El motor lo elige por el título del capítulo.",
+  sinIcono: "El capítulo sale sólo con su número y su título.",
+});
+
+export function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerrar, onUsar, contexto = "capitulo", textos }: {
   panelProps: { "data-pulso-panel": string };
   numero: number;
   titulo: string;
@@ -63,7 +81,10 @@ function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerrar, onU
   actual: string | null;
   onCerrar: () => void;
   onUsar: (icono: string) => void;
+  contexto?: ContextoIcono;
+  textos?: TextosBiblioteca;
 }) {
+  const t = textos ?? TEXTOS_CAPITULO(numero);
   const id = useId();
   const buscarRef = useRef<HTMLInputElement>(null);
   const anclaRef = useRef<HTMLDivElement>(null);
@@ -72,7 +93,7 @@ function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerrar, onU
   const [eleccion, setEleccion] = useState(inicial);
   const [consulta, setConsulta] = useState("");
   const iconos = useIconosRecetario({ nombres: [], todos: true });
-  const auto = useEleccionAutomatica(titulo);
+  const auto = useEleccionAutomatica(titulo, contexto);
   const filtrados = useMemo(() => {
     const q = consulta.trim().toLowerCase().replace(/\s+/g, "-");
     return (iconos.nombres ?? []).filter((n) => !q || n.includes(q));
@@ -90,12 +111,12 @@ function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerrar, onU
     >
       <header className="pulso-f6-selector-cabecera">
         <div className="pulso-f6-selector-titulos" ref={anclaRef} tabIndex={-1}>
-          <span className="pulso-f6-selector-antetitulo">Índice</span>
+          <span className="pulso-f6-selector-antetitulo">{t.antetitulo}</span>
           <Dialog.Title className="pulso-f6-selector-titulo">
-            {actual === null ? "Íconos del índice" : `Ícono del capítulo ${numero}`}
+            {actual === null ? "Íconos del índice" : t.tituloDialogo}
           </Dialog.Title>
           <Dialog.Description className="pulso-f6-selector-descripcion">
-            {actual === null ? "El índice no tiene capítulos: añade uno para elegir su ícono." : titulo ? `«${titulo}»` : "Capítulo sin título"}
+            {actual === null ? "El índice no tiene capítulos: añade uno para elegir su ícono." : titulo ? `«${titulo}»` : t.sinTitulo}
           </Dialog.Description>
         </div>
         <Dialog.Close className="pulso-f6-icono-boton pulso-f6-selector-cerrar" aria-label="Cerrar sin cambiar">
@@ -119,7 +140,7 @@ function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerrar, onU
         </div>
 
         <fieldset className="pulso-f6-iconos-opciones" disabled={actual === null} data-qa-geometry-member data-qa-scroll-owner="f6-iconos-indice">
-          <legend className="pulso-sr-only">Ícono del capítulo {numero}</legend>
+          <legend className="pulso-sr-only">{t.tituloDialogo}</legend>
           <div className="pulso-f6-iconos-especiales">
             <label className="pulso-f6-icono-opcion is-especial">
               <input type="radio" className="pulso-f6-radio-oculto" name={`${id}-icono`} checked={eleccion === ICONO_AUTOMATICO}
@@ -131,18 +152,20 @@ function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerrar, onU
               </span>
               <span className="pulso-f6-icono-texto">
                 <strong>Automático</strong>
-                <small>{auto ? `El motor elige «${rotuloIcono(auto.icono)}»${auto.motivo ? `: ${auto.motivo}` : ""}` : "El motor lo elige por el título del capítulo."}</small>
+                <small>{auto ? `El motor elige «${rotuloIcono(auto.icono)}»${auto.motivo ? `: ${auto.motivo}` : ""}` : t.autoGeneral}</small>
               </span>
             </label>
-            <label className="pulso-f6-icono-opcion is-especial">
-              <input type="radio" className="pulso-f6-radio-oculto" name={`${id}-icono`} checked={eleccion === SIN_ICONO}
-                onChange={() => setEleccion(SIN_ICONO)} />
-              <span className="pulso-f6-icono-muestra"><Ban size={18} aria-hidden="true" /></span>
-              <span className="pulso-f6-icono-texto">
-                <strong>Sin ícono</strong>
-                <small>El capítulo sale sólo con su número y su título.</small>
-              </span>
-            </label>
+            {t.sinIcono && (
+              <label className="pulso-f6-icono-opcion is-especial">
+                <input type="radio" className="pulso-f6-radio-oculto" name={`${id}-icono`} checked={eleccion === SIN_ICONO}
+                  onChange={() => setEleccion(SIN_ICONO)} />
+                <span className="pulso-f6-icono-muestra"><Ban size={18} aria-hidden="true" /></span>
+                <span className="pulso-f6-icono-texto">
+                  <strong>Sin ícono</strong>
+                  <small>{t.sinIcono}</small>
+                </span>
+              </label>
+            )}
             {desconocido && (
               <label className="pulso-f6-icono-opcion is-especial">
                 <input type="radio" className="pulso-f6-radio-oculto" name={`${id}-icono`} checked={eleccion === inicial}
@@ -204,15 +227,15 @@ function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerrar, onU
 }
 
 /** Lo que el motor elegiría para el título (`/iconos-recetario/elegir`); `null` mientras no se sabe o si falla. */
-function useEleccionAutomatica(titulo: string): EleccionIcono | null {
+function useEleccionAutomatica(titulo: string, contexto: ContextoIcono): EleccionIcono | null {
   const [eleccion, setEleccion] = useState<{ titulo: string; e: EleccionIcono } | null>(null);
   useEffect(() => {
     if (!titulo) return;
     let vivo = true;
-    apiGraficosElegirIconos("capitulo", [titulo])
+    apiGraficosElegirIconos(contexto, [titulo])
       .then((r) => { if (vivo && r[0]) setEleccion({ titulo, e: r[0] }); })
       .catch(() => { /* Sin la elección del motor, «Automático» se explica por su regla general. */ });
     return () => { vivo = false; };
-  }, [titulo]);
+  }, [titulo, contexto]);
   return eleccion && eleccion.titulo === titulo ? eleccion.e : null;
 }

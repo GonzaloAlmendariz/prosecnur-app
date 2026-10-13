@@ -49,6 +49,13 @@ export const PANEL_ICONOS: PanelDeclarado = {
   clase: "dialogo",
 };
 
+/** Biblioteca de íconos de un actor consultado de la lámina de objetivo (Gonzalo, 2026-10-13). */
+export const PANEL_ICONO_ACTOR: PanelDeclarado = {
+  id: "icono-actor",
+  label: "Ícono del actor",
+  clase: "dialogo",
+};
+
 /** Plan portátil (C11) desde el menú ⋯ de Láminas: exportar, inspeccionar y aplicar el paquete (decisión 10). */
 export const PANEL_PLAN_PORTATIL: PanelDeclarado = {
   id: "plan-portatil",
@@ -74,6 +81,7 @@ export const PANELES_GRAFICOS = [
   PANEL_GUIAS_LAMINA,
   PANEL_ARMAR_DESDE,
   PANEL_ICONOS,
+  PANEL_ICONO_ACTOR,
   PANEL_PLAN_PORTATIL,
   PANEL_SECCIONES_JSON,
 ] as const satisfies readonly PanelDeclarado[];
