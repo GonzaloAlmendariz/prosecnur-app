@@ -34,10 +34,10 @@ const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hi
   {
     key: "word",
     label: "Base Word",
-    eyebrow: "Hereda de PPT",
+    eyebrow: "Parte de la Base PPT",
     Icon: FileText,
-    hint: "Ajustes globales para gráficos del reporte Word",
-    summary: "Mantén Word alineado al PPT y ajusta solo lo que necesite otra lectura.",
+    hint: "Cómo se ven los gráficos en el Word",
+    summary: "El Word parte de la Base PPT; cambia sólo lo que en Word deba verse distinto.",
   },
   {
     key: "calculos",
@@ -45,7 +45,7 @@ const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hi
     eyebrow: "Cifras",
     Icon: Calculator,
     hint: "Cómo se redondean los porcentajes y con cuántos decimales",
-    summary: "La única pestaña que no es estética: decide las cifras de todo el mazo.",
+    summary: "La única pestaña que no es estética: decide las cifras de todo el informe.",
   },
   {
     key: "paletas",
@@ -60,15 +60,15 @@ const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hi
     label: "Líneas visuales",
     eyebrow: "Identidad",
     Icon: Layers3,
-    hint: "Identidades completas (ACNUR, institucional) aplicables al plan",
-    summary: "Aplica una identidad completa —color, portada y bases PPT— solo cuando la necesites.",
+    hint: "Identidades completas (ACNUR, institucional) para todo el informe",
+    summary: "Aplica de una vez el color, la portada y la Base PPT de una identidad.",
   },
   {
     key: "iconos",
     label: "Íconos",
     eyebrow: "Recursos",
     Icon: ImageIcon,
-    hint: "PNGs subidos para slides de población",
+    hint: "Imágenes subidas para las láminas de población",
     summary: "Administra recursos visuales usados en láminas de población.",
   },
   {
@@ -84,8 +84,8 @@ const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hi
     label: "Contenido",
     eyebrow: "Qué entra",
     Icon: ListPlus,
-    hint: "Láminas que el reporte agrega además de las del plan",
-    summary: "Decide qué diapositivas extra acompañan a tus gráficos al exportar.",
+    hint: "Láminas que el informe agrega además de las tuyas",
+    summary: "Decide qué láminas extra acompañan a tus gráficos al exportar.",
   },
 ];
 
@@ -95,7 +95,7 @@ const STYLE_FLOW: Array<{
   detail: string;
 }> = [
   { key: "base", label: "Valor por defecto", detail: "No marca cambios" },
-  { key: "mode", label: "Estilo guardado", detail: "Reusable" },
+  { key: "mode", label: "Estilo guardado", detail: "Se reutiliza" },
   { key: "manual", label: "Ajustes adicionales", detail: "Solo el gráfico activo" },
 ];
 
