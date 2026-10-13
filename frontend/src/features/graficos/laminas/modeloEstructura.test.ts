@@ -116,7 +116,7 @@ describe("resultados sin separador detrás de «Cómo leer» (G13 b)", () => {
 
 describe("una lámina de apertura detrás de «Cómo leer» (G15/U11)", () => {
   it("no queda dentro de «Cómo leer»: abre su bloque de apertura, contiguo", () => {
-    const est = construirEstructura([s("g", "p_slide_1_grafico"), s("t", "p_slide_top_two_box"), s("i", "p_slide_indice"), s("r", "p_slide_redondeo")]);
+    const est = construirEstructura([s("g", "p_slide_portada"), s("t", "p_slide_top_two_box"), s("i", "p_slide_indice"), s("r", "p_slide_redondeo")]);
     expect(est.nodos.map((n) => n.titulo)).toEqual(["Apertura", "Cómo leer este informe", "Apertura", "Cómo leer este informe"]);
     expect(est.nodos[1].clase === "bloque" && est.nodos[1].laminas.map((l) => l.id)).toEqual(["t"]);
     expect(est.nodos[2].clase === "bloque" && est.nodos[2].laminas.map((l) => l.id)).toEqual(["i"]);
@@ -125,7 +125,7 @@ describe("una lámina de apertura detrás de «Cómo leer» (G15/U11)", () => {
 
 describe("los resultados detrás de una Apertura reabierta (G15/U11, regresión)", () => {
   it("van a «Sin capítulo», no a la Apertura del índice", () => {
-    const est = construirEstructura([s("g", "p_slide_1_grafico"), s("t", "p_slide_top_two_box"), s("i", "p_slide_indice"), s("a", "p_slide_1_grafico"), s("b", "p_slide_2_graficos")]);
+    const est = construirEstructura([s("g", "p_slide_portada"), s("t", "p_slide_top_two_box"), s("i", "p_slide_indice"), s("a", "p_slide_1_grafico"), s("b", "p_slide_2_graficos")]);
     expect(est.nodos.map((n) => n.titulo)).toEqual(["Apertura", "Cómo leer este informe", "Apertura", "Sin capítulo"]);
     expect(est.nodos[3].clase === "bloque" && est.nodos[3].laminas.map((l) => l.id)).toEqual(["a", "b"]);
   });
@@ -136,5 +136,12 @@ describe("un solo título por lámina en la tira, el visor y la Estructura (G15/
     const est = construirEstructura([s("g", "p_slide_1_grafico"), s("t", "p_slide_top_two_box")], () => "¿Conoce la misión?");
     expect(est.laminas.map((l) => l.titulo)).toEqual(["¿Conoce la misión?", "Explicación Top Two Box"]);
     expect(construirEstructura([s("g", "p_slide_1_grafico")], () => "").laminas[0].titulo).toBe("Sin título");
+  });
+});
+
+describe("un gráfico de resultados nunca es Apertura (D7)", () => {
+  it("antes del objetivo va a «Sin capítulo»; el objetivo sigue en Apertura", () => {
+    const est = construirEstructura([s("g", "p_slide_1_grafico"), s("o", "p_slide_objetivo_icono")]);
+    expect(est.nodos.map((n) => n.titulo)).toEqual(["Sin capítulo", "Apertura"]);
   });
 });
