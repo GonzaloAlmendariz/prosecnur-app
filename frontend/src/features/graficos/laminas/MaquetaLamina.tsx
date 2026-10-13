@@ -20,8 +20,7 @@ import type { LaminaEnEstructura } from "./modeloEstructura";
 import { baseAutomatica, COLOR_MAYOR, COLOR_RESTO, COLOR_SEGUNDA, ranurasDeMaqueta } from "./modeloMaqueta";
 import { varianteDe } from "./selectores/tiposLamina";
 import { camposTextoDe, ZonasTextoLamina, zonasPortada, type CampoTextoLamina } from "./ZonasTextoLamina";
-import { tituloDeLamina } from "../rotuloLamina";
-import { tituloPorDefecto } from "./contenidoEspecial/modeloContenidoEspecial";
+import { tituloQueSale } from "./tituloQueSale";
 import "./maquetaLamina.css";
 
 /** Barras apiladas: la maqueta las dibuja pregunta por pregunta, con sus colores y su Top Two Box. */
@@ -53,10 +52,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
   const campos = camposTextoDe(slide.tipo, slidesById[slide.tipo]?.args, !estructura);
   // El título que va a salir: el escrito o el de la pregunta del gráfico. Una lámina sin ninguno (varios temas sin
   // enunciado) mostraba el nombre de su tipo, «Un gráfico», como si fuera su título; ahora se ve vacía, como el aviso pide.
-  const tituloEscrito = tituloDeLamina(slide.payload);
-  const tituloInferido = tituloPorDefecto(slide, variables, lamina.tipoLabel).placeholder;
-  const tituloQueSale = tituloEscrito || (tituloInferido !== lamina.tipoLabel ? tituloInferido : "");
-  const tituloVisible = tituloQueSale || <span className="is-vacio">Sin título</span>;
+  const tituloVisible = tituloQueSale(slide, variables, lamina.tipoLabel) || <span className="is-vacio">Sin título</span>;
 
   if (estructura) {
     // Portada, índice, separadores: su dibujo de estructura; el título sigue siendo editable con un clic.
