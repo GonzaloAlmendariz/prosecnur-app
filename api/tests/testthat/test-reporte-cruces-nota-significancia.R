@@ -1,4 +1,4 @@
-test_that("la nota de significancia de cruces sale con tildes y sin punto medio", {
+test_that("la nota de significancia de cruces sale con la redacción de la maqueta, tildes y sin punto medio", {
   skip_if_not_installed("readxl")
 
   set.seed(1)
@@ -36,15 +36,20 @@ test_that("la nota de significancia de cruces sale con tildes y sin punto medio"
 
   raw <- readxl::read_excel(out, col_names = FALSE)
   vals <- as.character(unlist(raw, use.names = FALSE))
-  nota <- vals[!is.na(vals) & grepl("Las letras indican", vals, fixed = TRUE)]
+  nota <- vals[!is.na(vals) & grepl("Las letras comparan", vals, fixed = TRUE)]
 
   expect_length(nota, 1L)
-  expect_match(nota, "cuya proporción es significativamente mayor", fixed = TRUE)
-  expect_match(nota, "según pruebas z", fixed = TRUE)
-  expect_match(nota, "corrección de Bonferroni", fixed = TRUE)
-  expect_match(nota, "comparaciones múltiples", fixed = TRUE)
-  expect_match(nota, "«.a» indica categoría excluida", fixed = TRUE)
-  expect_match(nota, "Sexo: (A) Mujer, (B) Hombre", fixed = TRUE)
-  expect_false(grepl("·", nota, fixed = TRUE))
+  # Redacción de la maqueta HSyVBG 2026 (checklist 1e): sin «Letras por
+  # estrato» ni «Fuente», alpha con punto decimal.
+  expect_identical(nota, paste0(
+    "Las letras comparan las columnas de una misma variable de cruce. Una letra en una celda ",
+    "indica que esa proporción es significativamente mayor que la de la columna identificada ",
+    "con esa letra (prueba z de diferencia de proporciones con corrección de Bonferroni, ",
+    "nivel de significancia de 0.05). «.a» indica una columna excluida de la comparación ",
+    "porque su proporción es 0 % o 100 %."
+  ))
+  expect_false(grepl("Letras por estrato", nota, fixed = TRUE))
+  expect_false(grepl("Fuente", nota, fixed = TRUE))
+  expect_false(grepl("·|—|;", nota))
   expect_false(grepl("\\b(segun|correccion|multiples|categoria|proporcion)\\b", nota, perl = TRUE))
 })

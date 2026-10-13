@@ -1297,7 +1297,8 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
                            codigos_solo_si_presentes = NULL,
                            incluir_titulo = TRUE,
                            incluir_porcentajes = TRUE,
-                           orden = "original") {
+                           orden = "original",
+                           base_texto = "") {
 
   st <- mk_styles_spss()
   fila <- start_row
@@ -1422,6 +1423,13 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
 
   openxlsx::writeData(wb, sheet, paste0("Fuente: ", fuente), startRow = fila, startCol = start_col, colNames = FALSE)
   openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
+  # Línea «Base: …» (config notas), solo si la pregunta tiene base.
+  base_texto <- .notas_pie_texto(base_texto)
+  if (nzchar(base_texto)) {
+    fila <- fila + 1
+    openxlsx::writeData(wb, sheet, paste0("Base: ", base_texto), startRow = fila, startCol = start_col, colNames = FALSE)
+    openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
+  }
 
   openxlsx::setColWidths(wb, sheet, cols = start_col,     widths = 55)
   openxlsx::setColWidths(wb, sheet, cols = start_col + 1, widths = 14)
@@ -1436,7 +1444,8 @@ write_one_numeric <- function(wb, sheet, data, var, dic_vars,
                               start_row = 1, start_col = 1,
                               fuente = "Pulso PUCP",
                               orders_list = NULL,
-                              incluir_titulo = TRUE) {
+                              incluir_titulo = TRUE,
+                              base_texto = "") {
 
   st <- mk_styles_spss()
   fila <- start_row
@@ -1513,6 +1522,13 @@ write_one_numeric <- function(wb, sheet, data, var, dic_vars,
   openxlsx::writeData(wb, sheet, paste0("Fuente: ", fuente), startRow = fila, startCol = start_col, colNames = FALSE)
   openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
   openxlsx::mergeCells(wb, sheet, rows = fila, cols = start_col:(start_col + 1))
+  base_texto <- .notas_pie_texto(base_texto)
+  if (nzchar(base_texto)) {
+    fila <- fila + 1
+    openxlsx::writeData(wb, sheet, paste0("Base: ", base_texto), startRow = fila, startCol = start_col, colNames = FALSE)
+    openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
+    openxlsx::mergeCells(wb, sheet, rows = fila, cols = start_col:(start_col + 1))
+  }
 
   openxlsx::setColWidths(wb, sheet, cols = start_col,     widths = 55)
   openxlsx::setColWidths(wb, sheet, cols = start_col + 1, widths = 18)
@@ -1550,7 +1566,8 @@ exportar_frecuencias_spss <- function(
     incluir_secciones = TRUE,
     incluir_porcentajes = TRUE,
     ordinal_lists = character(),
-    ficha_tecnica = NULL
+    ficha_tecnica = NULL,
+    notas = NULL
 ){
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete 'openxlsx' es necesario para `exportar_frecuencias_spss()`. ",
@@ -1560,6 +1577,9 @@ exportar_frecuencias_spss <- function(
   orden <- match.arg(orden)
   ordinal_lists <- as.character(ordinal_lists %||% character())
   numericas <- if (is.null(numericas)) character(0) else as.character(numericas)
+  # Notas al pie (reporte_notas_pie.R): fuente y base por pregunta.
+  notas <- .notas_pie_normalizar(notas, fuente_defecto = fuente)
+  fuente <- notas$fuente
 
   wb <- openxlsx::createWorkbook()
   sheet <- "Frecuencias"
@@ -1605,7 +1625,8 @@ exportar_frecuencias_spss <- function(
           start_col = 1,
           fuente = fuente,
           orders_list = orders_list,
-          incluir_titulo = incluir_titulos
+          incluir_titulo = incluir_titulos,
+          base_texto = .notas_pie_base(notas, v)
         )
         next
       }
@@ -1657,7 +1678,8 @@ exportar_frecuencias_spss <- function(
         codigos_solo_si_presentes = codigos_solo_si_presentes,
         incluir_titulo = incluir_titulos,
         incluir_porcentajes = incluir_porcentajes,
-        orden = orden_v
+        orden = orden_v,
+        base_texto = .notas_pie_base(notas, v)
       )
     }
 
@@ -1716,7 +1738,8 @@ reporte_frecuencias <- function(data,
                                 incluir_secciones = TRUE,
                                 incluir_porcentajes = TRUE,
                                 ordinal_lists = character(),
-                                ficha_tecnica = NULL) {
+                                ficha_tecnica = NULL,
+                                notas = NULL) {
 
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete 'openxlsx' es necesario para `reporte_frecuencias()`. ",
@@ -1814,7 +1837,8 @@ reporte_frecuencias <- function(data,
     incluir_secciones = incluir_secciones,
     incluir_porcentajes = incluir_porcentajes,
     ordinal_lists   = ordinal_lists,
-    ficha_tecnica = ficha_tecnica
+    ficha_tecnica = ficha_tecnica,
+    notas         = notas
   )
 
   invisible(normalizePath(path_xlsx, winslash = "/"))

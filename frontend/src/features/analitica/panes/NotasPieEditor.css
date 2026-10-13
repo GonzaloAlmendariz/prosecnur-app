@@ -1,0 +1,122 @@
+/* Notas al pie (Frecuencias y Cruces). Reusa el plegable de PaneKit; aquí
+   solo el interior: campos, listas de notas y umbral. */
+
+.analitica-notas-pie-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+}
+
+.analitica-notas-pie-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+.analitica-notas-pie-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+}
+
+.analitica-notas-pie-field small,
+.analitica-notas-pie-group-head small,
+.analitica-notas-pie-hint {
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.analitica-notas-pie-group {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.analitica-notas-pie-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+}
+
+.analitica-notas-pie-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+}
+
+.analitica-notas-pie-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(120px, 0.9fr) minmax(0, 2fr);
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.analitica-notas-pie-row.has-action {
+  grid-template-columns: minmax(120px, 0.9fr) minmax(0, 2fr) auto;
+}
+
+.analitica-notas-pie-row input {
+  min-width: 0;
+  width: 100%;
+}
+
+.analitica-notas-pie-row-var {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  cursor: text;
+}
+
+.analitica-notas-pie-row-var code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-primary);
+}
+
+.analitica-notas-pie-row-var span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.analitica-notas-pie-hint {
+  margin: 0;
+}
+
+.analitica-notas-pie-umbral {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.analitica-notas-pie-umbral input {
+  width: 96px;
+}
+
+@media (max-width: 720px) {
+  .analitica-notas-pie-row,
+  .analitica-notas-pie-row.has-action {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .analitica-notas-pie-row-var {
+    grid-column: 1 / -1;
+  }
+}

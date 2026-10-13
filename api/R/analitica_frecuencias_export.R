@@ -31,6 +31,9 @@
   numericas_arg <- .analitica_declared_numericas(cfg, override_frecuencias = TRUE)
   codes_codebook <- .as_int_vec((cfg$codebook %||% list())$codigos_solo_si_presentes)
   excluidas <- .as_chr_vec(cfg$variables_excluidas)
+  # Notas al pie (fuente y base por pregunta). Sin bloque `notas` queda
+  # «Fuente: Pulso PUCP», como siempre.
+  notas <- .notas_pie_normalizar(cfg$notas)
 
   function(rp_data, rp_inst, out_path) {
     reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
@@ -71,6 +74,8 @@
       codigos_solo_si_presentes = if (length(codes_codebook) > 0L) codes_codebook else NULL,
       numericas = if (length(numericas_arg) > 0L) numericas_arg else NULL,
       ordinal_lists = ordinal_lists,
+      fuente = notas$fuente,
+      notas = notas,
       ficha_tecnica = list(
         cfg = cfg,
         instrumento = rp_inst,

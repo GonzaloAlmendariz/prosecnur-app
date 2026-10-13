@@ -1042,9 +1042,17 @@ exportar_cruces_multi <- function(data,
                                   orden            = "original",
                                   ordinal_lists    = character(),
                                   repeat_design    = NULL,
-                                  ficha_tecnica = NULL) {
+                                  ficha_tecnica = NULL,
+                                  notas         = NULL) {
 
   numericas <- if (is.null(numericas)) character(0) else as.character(numericas)
+  # Notas al pie (reporte_notas_pie.R). Sin `notas` el pie es «Fuente: X».
+  notas <- .notas_pie_normalizar(notas, fuente_defecto = fuente)
+  fuente <- notas$fuente
+  # Columna de peso que no existe: get_pesos() devuelve 1 y denominador_validos
+  # entrega los casos válidos SIN ponderar con la misma máscara.
+  col_sin_peso <- ".pulso_sin_peso"
+  while (col_sin_peso %in% names(data)) col_sin_peso <- paste0(col_sin_peso, "_")
   ordinal_lists <- as.character(ordinal_lists %||% character())
   orden <- as.character(orden %||% "original")
   if (!orden %in% c("desc", "asc", "original")) orden <- "original"
@@ -1331,7 +1339,7 @@ exportar_cruces_multi <- function(data,
         estr_labels <- .strip_prefijo_subindice(estr_labels, s_lbl)
 
         # Guardar ya limpio
-        estratos_totales[[s]] <- list(codes = estr_codes, labels = estr_labels)
+        estratos_totales[[s]] <- list(codes = estr_codes, labels = estr_labels, s_lbl = s_lbl)
 
         # Valores reales en la data para el estrato
         v_estr <- as.character(data[[s]])
@@ -1364,6 +1372,17 @@ exportar_cruces_multi <- function(data,
             weight_col = weight_col
           )
 
+          N_sin_peso <- if (isTRUE(notas$base_reducida$activo)) {
+            denominador_validos(
+              data       = data,
+              var        = var,
+              codes      = codes_row,
+              tp         = tp,
+              mask       = mask_s,
+              weight_col = col_sin_peso
+            )
+          } else NA_real_
+
           pct <- if (N > 0) n_vec / N else rep(NA_real_, length(n_vec))
           nm_n   <- paste0(s, "__", make.names(estr_labels[j]), "__n")
           nm_pct <- paste0(s, "__", make.names(estr_labels[j]), "__pct")
@@ -1372,7 +1391,7 @@ exportar_cruces_multi <- function(data,
             !!nm_n   := as.numeric(n_vec),
             !!nm_pct := as.numeric(pct)
           )
-          list(df = dfb, N = N)
+          list(df = dfb, N = N, N_sin_peso = N_sin_peso)
         })
 
         cols_df    <- dplyr::bind_cols(lapply(bloques, `[[`, "df"))
@@ -1384,6 +1403,7 @@ exportar_cruces_multi <- function(data,
             denom_map[[names(cols_df)[idx_n_cols[k]]]] <- Ns[k]
           }
         }
+        estratos_totales[[s]]$n_sin_peso <- vapply(bloques, `[[`, numeric(1), "N_sin_peso")
 
         cuerpo <- dplyr::bind_cols(cuerpo, cols_df)
       }
@@ -1523,18 +1543,12 @@ exportar_cruces_multi <- function(data,
       fila <- fila + nfil
 
       # ---------- pie de tabla ----------
-      pie_txt <- sprintf("Fuente: %s", fuente)
-      openxlsx::writeData(wb, hoja, pie_txt, startRow = fila, startCol = 1)
-      openxlsx::addStyle(wb, hoja, st$note, rows = fila, cols = 1, gridExpand = TRUE)
-      openxlsx::mergeCells(wb, hoja, rows = fila, cols = 1:ncol_tbl)
-
-      openxlsx::addStyle(
-        wb, hoja, st$footer_top,
-        rows = fila, cols = 1:ncol_tbl,
-        gridExpand = TRUE, stack = TRUE
+      # Primera línea «Fuente: X[. Base: Y. Porcentajes por columna.]»; debajo,
+      # las notas por variable de cruce y el aviso de bases reducidas.
+      fila <- .cruces_escribir_pie(
+        wb = wb, hoja = hoja, st = st, fila = fila, ncol_tbl = ncol_tbl,
+        lineas = .cruces_lineas_pie(notas, var, CRUZAR_CON, estratos_totales)
       )
-
-      fila <- fila + 1
 
       # ---------- tabla de significancia (letras) ----------
       if (isTRUE(show_sig) && length(estratos_totales)) {
@@ -1696,31 +1710,17 @@ exportar_cruces_multi <- function(data,
           razones_repeat <- if (is.list(repeat_design)) {
             unique(Filter(nzchar, vapply(bloques_sig, function(bl) as.character(bl$reason %||% ""), character(1))))
           } else character(0)
-          metodo_sig <- if (is.list(repeat_design) && all(metodos_repeat == "cluster_robust")) {
-            paste0("según contrastes cluster-robust por persona con corrección de Bonferroni ",
-                   "para comparaciones múltiples (α = ", alpha, "). ")
+          pie_sig <- if (is.list(repeat_design) && all(metodos_repeat == "cluster_robust")) {
+            .notas_pie_significancia("cluster", alpha)
           } else if (is.list(repeat_design)) {
             if (!length(razones_repeat)) razones_repeat <- "diseño repeat insuficiente"
             paste0(
               "No se ejecuta inferencia ni se asignan letras: ",
-              paste(razones_repeat, collapse = " "), ". "
+              paste(razones_repeat, collapse = " "), "."
             )
           } else {
-            paste0("según pruebas z de diferencia de proporciones con corrección de Bonferroni ",
-                   "para comparaciones múltiples (α = ", alpha, "). ")
+            .notas_pie_significancia("z", alpha)
           }
-          pie_sig <- paste0(
-            "Las letras indican columnas cuya proporción es significativamente mayor ",
-            "que la proporción de la columna marcada por esa letra, ", metodo_sig,
-            if (!is.list(repeat_design) || all(metodos_repeat == "cluster_robust")) {
-              "«.a» indica categoría excluida del contraste (proporciones 0 o 1).\n"
-            } else {
-              "\n"
-            },
-            "Letras por estrato: ",
-            paste(letras_map_text, collapse = "  |  "),
-            "\nFuente: ", fuente
-          )
 
           # Cierra el cuadro de la sub-tabla BAJO la ultima categoria (no bajo la nota),
           # con separadores entre grupos de cruce.
@@ -3082,12 +3082,7 @@ exportar_dimensiones_multi <- function(data,
         openxlsx::addStyle(wb, hoja_tb, st$table_end, rows = sig_fin, cols = 1:ncols_sig, gridExpand = TRUE, stack = TRUE)
         fila_excel <- sig_fin + 1L
 
-        pie_sig <- paste0(
-          "Las letras indican columnas cuya media es significativamente mayor que la media de la columna identificada con esa letra, ",
-          "según pruebas t de Welch con corrección de Bonferroni (α = ", alpha, "). ",
-          "Letras por estrato: ", paste(letras_map_text, collapse = "  |  "), ". ",
-          "Fuente: ", fuente
-        )
+        pie_sig <- .notas_pie_significancia("welch", alpha)
         openxlsx::writeData(wb, hoja_tb, pie_sig, startRow = fila_excel, startCol = 1, colNames = FALSE)
         openxlsx::mergeCells(wb, hoja_tb, rows = fila_excel, cols = 1:ncols_tbl)
         openxlsx::addStyle(wb, hoja_tb, st$note, rows = fila_excel, cols = 1:ncols_tbl, gridExpand = TRUE, stack = TRUE)
@@ -3749,12 +3744,7 @@ exportar_dimensiones_multi <- function(data,
 
         fila_excel <- sig_fin + 1L
 
-        pie_sig <- paste0(
-          "Las letras indican columnas cuya media es significativamente mayor que la media de la columna identificada con esa letra, ",
-          "según pruebas t de Welch con corrección de Bonferroni (α = ", alpha, "). ",
-          "Letras por estrato: ", paste(letras_map_text, collapse = "  |  "), ". ",
-          "Fuente: ", fuente
-        )
+        pie_sig <- .notas_pie_significancia("welch", alpha)
         openxlsx::writeData(wb, hoja_tb, pie_sig, startRow = fila_excel, startCol = 1, colNames = FALSE)
         openxlsx::mergeCells(wb, hoja_tb, rows = fila_excel, cols = 1:ncols_tbl)
         openxlsx::addStyle(wb, hoja_tb, st$note, rows = fila_excel, cols = 1:ncols_tbl, gridExpand = TRUE, stack = TRUE)
@@ -3976,7 +3966,8 @@ reporte_cruces <- function(
     brecha_cortes = c(0, 30),
     tablas           = NULL,
     repeat_design    = attr(data, "repeat_design", exact = TRUE),
-    ficha_tecnica    = NULL
+    ficha_tecnica    = NULL,
+    notas            = NULL
 ) {
   modo <- match.arg(modo)
   estilo_metodologia <- match.arg(estilo_metodologia)
@@ -4112,6 +4103,7 @@ reporte_cruces <- function(
     orden                     = orden,
     ordinal_lists             = ordinal_lists,
     repeat_design             = repeat_design,
-    ficha_tecnica             = ficha_tecnica
+    ficha_tecnica             = ficha_tecnica,
+    notas                     = notas
   )
 }
