@@ -135,15 +135,15 @@ export function WordPresetsEditor() {
           <FileText size={15} />
         </span>
         <span className="pulso-gv2-word-overview-copy">
-          <strong>Biblioteca visual Word</strong>
+          <strong>Cada gráfico en el Word</strong>
           <span>
             {editablePresets.length} tipos · {wordTunedCount === 0
-              ? "todos heredan PPT"
-              : `${wordTunedCount} con ajustes Word`}
+              ? "todos como en el PowerPoint"
+              : `${wordTunedCount} con ajustes propios en el Word`}
           </span>
         </span>
         <span className={`pulso-gv2-word-overview-current ${hasSelectedChanges ? "is-custom" : "is-inherited"}`}>
-          {hasSelectedChanges ? `${selectedPatchCount} ajuste${selectedPatchCount === 1 ? "" : "s"} Word` : "Hereda PPT"}
+          {hasSelectedChanges ? `${selectedPatchCount} ajuste${selectedPatchCount === 1 ? "" : "s"} propio${selectedPatchCount === 1 ? "" : "s"}` : "Como en el PowerPoint"}
         </span>
       </div>
 

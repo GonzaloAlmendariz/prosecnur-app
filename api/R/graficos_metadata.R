@@ -2541,7 +2541,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   # detrás. Si el resto baja del piso, el motor avisa y vuelve al reparto de
   # fábrica en lugar de dibujar una lámina ilegible.
   multi_apiladas_multiactor = list(
-    titulo_humano = "Multi-apiladas multiactor",
+    titulo_humano = "Multiapiladas que comparan públicos",
     descripcion   = "Reparto de ancho de las láminas que comparan varios públicos sobre la misma escala: el tema, el nombre del actor y la barra extra. Las barras se quedan con el resto.",
     icono_ui      = "Columns3",
     args = list(
