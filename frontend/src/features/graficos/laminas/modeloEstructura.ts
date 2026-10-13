@@ -81,8 +81,10 @@ function aLamina(slide: Slide, posicion: number, antetitulo: string | null): Lam
 const esSubcapitulo = (slide: Slide) => leerSlideMeta(slide).nivel === "subcapitulo";
 
 type Bloque = Extract<NodoEstructura, { clase: "bloque" }>;
-type ClaseBloque = "apertura" | "como-leer" | "cierre";
-const TITULO_BLOQUE: Record<ClaseBloque, string> = { apertura: "Apertura", "como-leer": "Cómo leer este informe", cierre: "Cierre" };
+type ClaseBloque = "apertura" | "como-leer" | "sin-capitulo" | "cierre";
+const TITULO_BLOQUE: Record<ClaseBloque, string> = {
+  apertura: "Apertura", "como-leer": "Cómo leer este informe", "sin-capitulo": "Sin capítulo", cierre: "Cierre",
+};
 
 /**
  * El árbol del informe a partir de las láminas del plan, en su orden.
@@ -101,7 +103,7 @@ export function construirEstructura(slides: readonly Slide[]): EstructuraInforme
   let capitulo: Extract<NodoEstructura, { clase: "capitulo" }> | null = null;
   let sub: SubcapituloEstructura | null = null;
   let nCap = 0;
-  const vecesBloque: Record<ClaseBloque, number> = { apertura: 0, "como-leer": 0, cierre: 0 };
+  const vecesBloque: Record<ClaseBloque, number> = { apertura: 0, "como-leer": 0, "sin-capitulo": 0, cierre: 0 };
   let antetitulo: string | null = null;
 
   const abrirBloque = (clase: ClaseBloque): Bloque => {
@@ -157,6 +159,12 @@ export function construirEstructura(slides: readonly Slide[]): EstructuraInforme
       return;
     }
     const abierto = bloque as { clase: ClaseBloque; nodo: Bloque } | null;
+    // Una lámina de gráficos detrás de «Cómo leer» y sin separador no es de «Cómo leer»: en el mazo de Arte y Diseño
+    // (2026-10-13) las 17 láminas de resultados quedaban colgadas de ese bloque. Van a «Sin capítulo», contiguas.
+    if (abierto && abierto.clase === "como-leer" && !COMO_LEER.has(slide.tipo) && (SLIDE_GRAF_SLOTS[slide.tipo] ?? []).length > 0) {
+      enBloque("sin-capitulo").laminas.push(lam);
+      return;
+    }
     if (abierto && abierto.clase !== "apertura") { abierto.nodo.laminas.push(lam); return; }
     enBloque(COMO_LEER.has(slide.tipo) ? "como-leer" : "apertura").laminas.push(lam);
   });

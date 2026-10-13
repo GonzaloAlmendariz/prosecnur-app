@@ -69,9 +69,12 @@ describe("construirEstructura", () => {
       ? n.laminas.map((l) => l.id)
       : [n.separador.id, ...n.laminas.map((l) => l.id), ...n.subcapitulos.flatMap((x) => [x.separador.id, ...x.laminas.map((l) => l.id)])]);
     expect(recorrido).toEqual(movido.map((x) => x.id));
-    expect(est.nodos.map((n) => n.titulo)).toEqual(["Apertura", "Cómo leer este informe", "Perfil", "Cuerpo académico", "Cierre"]);
+    // La lámina de gráficos «e» detrás de «Cómo leer» y sin separador va a «Sin capítulo» (G13 b, 2026-10-13).
+    expect(est.nodos.map((n) => n.titulo)).toEqual(["Apertura", "Cómo leer este informe", "Sin capítulo", "Perfil", "Cuerpo académico", "Cierre"]);
     const comoLeer = est.nodos[1];
-    expect(comoLeer.clase === "bloque" && comoLeer.laminas.map((l) => l.id)).toEqual(["c", "e"]);
+    expect(comoLeer.clase === "bloque" && comoLeer.laminas.map((l) => l.id)).toEqual(["c"]);
+    const sinCapitulo = est.nodos[2];
+    expect(sinCapitulo.clase === "bloque" && sinCapitulo.laminas.map((l) => l.id)).toEqual(["e"]);
   });
 
   it("un cierre a mitad del plan corta el capítulo y no se lleva láminas de otro lado", () => {
@@ -99,5 +102,14 @@ describe("filtrarEstructura", () => {
   it("un capítulo que coincide trae todas sus láminas", () => {
     const r = filtrarEstructura(e, "academico");
     expect(r[0].clase === "capitulo" && r[0].laminas.map((l) => l.id)).toEqual(["i"]);
+  });
+});
+
+describe("resultados sin separador detrás de «Cómo leer» (G13 b)", () => {
+  it("no quedan colgados de «Cómo leer»; el redondeo que sigue al Top Two Box sí", () => {
+    const est = construirEstructura([s("a", "p_slide_portada"), s("t", "p_slide_top_two_box"), s("r", "p_slide_redondeo"), s("g1", "p_slide_1_grafico"), s("g2", "p_slide_1_grafico")]);
+    expect(est.nodos.map((n) => n.titulo)).toEqual(["Apertura", "Cómo leer este informe", "Sin capítulo"]);
+    expect(est.nodos[1].clase === "bloque" && est.nodos[1].laminas.map((l) => l.id)).toEqual(["t", "r"]);
+    expect(est.nodos[2].clase === "bloque" && est.nodos[2].laminas.map((l) => l.id)).toEqual(["g1", "g2"]);
   });
 });
