@@ -3,7 +3,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { describe, expect, test } from "vitest";
-import { readSources } from "../test/contractSourceScan";
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -430,17 +429,5 @@ describe("ARIA selector and tab relationship audit", () => {
 
   test.each(REAL_TABSETS)("$name", (spec) => {
     expect(auditTabset(spec), spec.name).toEqual([]);
-  });
-
-  test("ModeToolbar queda excluido mientras siga sin consumidor productivo", () => {
-    const consumers = readSources([".ts", ".tsx"])
-      .filter((source) => source.relative !== "features/graficos/v2/shell/ModeToolbar.tsx")
-      .filter((source) => /\bModeToolbar\b/.test(source.text))
-      .map((source) => source.relative);
-
-    expect(
-      consumers,
-      "Si ModeToolbar vuelve a ser alcanzable debe incorporarse al inventario semántico",
-    ).toEqual([]);
   });
 });

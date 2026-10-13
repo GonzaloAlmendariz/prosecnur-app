@@ -1929,7 +1929,6 @@ function refineContext(
       DimensionesPane: "Dimensiones",
       DimensionesWizard: "Dimensiones",
       EnumeradoresPane: "Enumeradores (declarada inactiva)",
-      TimelinePanel: "Timeline",
       TimelinePanelV2: "Timeline",
       PlanCanvas: "Canvas",
       InspectorV2: "Inspector",
