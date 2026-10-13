@@ -622,3 +622,285 @@ export async function apiAnaliticaBasesMetadata() {
     await apiFetch("/api/analitica/bases/metadata", { headers: headers() })
   );
 }
+
+// ---- Comparativos armonizados (contrato E4-E7, R4) --------------------------
+//
+// La serie de mediciones armonizada en Carga › Equivalencias se tabula como un
+// comparativo simple (frecuencias por período) o de cruces. Los dos endpoints
+// devuelven un job: el resultado trae el XLSX, su manifest y un resumen que la
+// pestaña Comparativos muestra tal cual (avisos y casos sin mapa por pregunta).
+
+export type ComparativoTipo = "frecuencias" | "cruces";
+
+/** Índice 0-based de la fila en la matriz, su id o su etiqueta estándar. */
+export type ComparativoRefFila = number | string;
+
+export type ComparativoBody = {
+  filas?: ComparativoRefFila[];
+  cruces?: ComparativoRefFila[];
+  rotulos_periodos?: Record<string, string>;
+  notas_pregunta?: Record<string, string>;
+  notas_generales?: string[];
+};
+
+export type ComparativoPeriodo = { base: string; rotulo: string };
+
+export type ComparativoInicio = JobStart & { periodos: ComparativoPeriodo[] };
+
+export type ComparativoArtefacto = {
+  file_id: string;
+  filename: string;
+  role: "deliverable" | "manifest" | "otro";
+  size: number;
+  sha256: string;
+  mime: string;
+};
+
+export type ComparativoSinMapa = {
+  base: string;
+  n_sin_mapa: number;
+  n_especial_sin_mapa: number;
+  codigos_sin_mapa: string[];
+  /** Códigos especiales (80-99) sin destino en la escala y sus etiquetas, en el mismo orden. */
+  codigos_especiales: string[];
+  etiquetas_especiales: string[];
+};
+
+/** Una casilla «n.a.»: el período y, en el de cruces, la categoría de cruce sin casos. */
+export type ComparativoNa = { periodo: string; cruce?: string; categoria?: string };
+
+export type ComparativoPregunta = {
+  titulo: string;
+  /**
+   * Dónde la pregunta no es comparable. En el simple son nombres de base; en el
+   * de cruces, las frases del pie («Sexo no es comparable en 2024»).
+   */
+  n_c: string[];
+  /** Casillas sin casos. En el simple sólo traen el período. */
+  n_a: ComparativoNa[];
+  /** Columnas de cruce con base reducida (sólo el de cruces). */
+  n_reducidas: number | null;
+  sin_mapa: ComparativoSinMapa[];
+  /** `base -> códigos de la escala que esa medición no ofrecía`. */
+  no_ofrecidas: Record<string, string[]>;
+  /**
+   * `cruce -> base -> códigos` de las variables de cruce. `null` cuando el
+   * backend no lo reporta: entonces no se puede afirmar que no haya.
+   */
+  no_ofrecidas_cruce: Record<string, Record<string, string[]>> | null;
+};
+
+export type ComparativoAvisoTipo =
+  | "ponderacion"
+  | "suma_pesos"
+  | "sin_mapa"
+  | "nota_sin_pregunta"
+  | "peso_ignorado"
+  | "otro";
+
+export type ComparativoAviso = {
+  tipo: ComparativoAvisoTipo;
+  tipoOriginal: string;
+  base?: string;
+  fila?: string;
+  mensaje: string;
+};
+
+export type ComparativoResultado = {
+  file_id: string;
+  filename: string;
+  size: number;
+  sha256: string;
+  artifacts: ComparativoArtefacto[];
+  periodos: ComparativoPeriodo[];
+  resumen: {
+    hoja: string;
+    n_preguntas: number;
+    preguntas: ComparativoPregunta[];
+    avisos: ComparativoAviso[];
+    /** Estado de la ponderación por medición. Sólo se lee `peso_ignorado`. */
+    ponderacion: Record<string, { peso_ignorado: boolean }>;
+  };
+};
+
+function cmpObjeto(x: unknown): x is Record<string, unknown> {
+  return typeof x === "object" && x !== null && !Array.isArray(x);
+}
+
+function cmpTexto(x: unknown): string {
+  if (Array.isArray(x)) return x.length ? cmpTexto(x[0]) : "";
+  if (typeof x === "string") return x;
+  if (typeof x === "number" && Number.isFinite(x)) return String(x);
+  return "";
+}
+
+function cmpNumero(x: unknown): number {
+  const v = Array.isArray(x) ? x[0] : x;
+  const n = typeof v === "number" ? v : Number(cmpTexto(v));
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** R manda una lista vacía como `{}` y un vector de uno como escalar. */
+function cmpLista(x: unknown): unknown[] {
+  if (Array.isArray(x)) return x;
+  if (x === null || x === undefined || cmpObjeto(x)) return [];
+  return [x];
+}
+
+function cmpTextos(x: unknown): string[] {
+  return cmpLista(x).map(cmpTexto).map((t) => t.trim()).filter(Boolean);
+}
+
+function cmpPeriodos(x: unknown): ComparativoPeriodo[] {
+  return cmpLista(x).flatMap((p) => {
+    if (!cmpObjeto(p)) return [];
+    const base = cmpTexto(p.base).trim();
+    if (!base) return [];
+    return [{ base, rotulo: cmpTexto(p.rotulo).trim() || base }];
+  });
+}
+
+const AVISO_TIPOS: readonly ComparativoAvisoTipo[] = [
+  "ponderacion",
+  "suma_pesos",
+  "sin_mapa",
+  "nota_sin_pregunta",
+  "peso_ignorado",
+];
+
+export function normalizarComparativoResultado(raw: unknown): ComparativoResultado {
+  const r = cmpObjeto(raw) ? raw : {};
+  const artifacts = cmpLista(r.artifacts).flatMap((a): ComparativoArtefacto[] => {
+    if (!cmpObjeto(a)) return [];
+    const file_id = cmpTexto(a.file_id).trim();
+    if (!file_id) return [];
+    const role = cmpTexto(a.role);
+    return [{
+      file_id,
+      filename: cmpTexto(a.filename) || file_id,
+      role: role === "deliverable" || role === "manifest" ? role : "otro",
+      size: cmpNumero(a.size),
+      sha256: cmpTexto(a.sha256),
+      mime: cmpTexto(a.mime),
+    }];
+  });
+  const resumen = cmpObjeto(r.resumen) ? r.resumen : {};
+  const preguntas = cmpLista(resumen.preguntas).flatMap((p): ComparativoPregunta[] => {
+    if (!cmpObjeto(p)) return [];
+    const sin_mapa = cmpLista(p.sin_mapa).flatMap((s): ComparativoSinMapa[] => {
+      if (!cmpObjeto(s)) return [];
+      const base = cmpTexto(s.base).trim();
+      if (!base) return [];
+      return [{
+        base,
+        n_sin_mapa: cmpNumero(s.n_sin_mapa),
+        n_especial_sin_mapa: cmpNumero(s.n_especial_sin_mapa),
+        codigos_sin_mapa: cmpTextos(s.codigos_sin_mapa),
+        codigos_especiales: cmpTextos(s.codigos_especiales),
+        etiquetas_especiales: cmpLista(s.etiquetas_especiales).map((e) => cmpTexto(e).trim()),
+      }];
+    });
+    const no_ofrecidas: Record<string, string[]> = {};
+    if (cmpObjeto(p.no_ofrecidas)) {
+      for (const [base, cods] of Object.entries(p.no_ofrecidas)) {
+        const lista = cmpTextos(cods);
+        if (base && lista.length) no_ofrecidas[base] = lista;
+      }
+    }
+    const n_a = cmpLista(p.n_a).flatMap((item): ComparativoNa[] => {
+      if (cmpObjeto(item)) {
+        const periodo = cmpTexto(item.periodo).trim();
+        if (!periodo) return [];
+        const cruce = cmpTexto(item.cruce).trim();
+        const categoria = cmpTexto(item.categoria).trim();
+        return [{ periodo, ...(cruce ? { cruce } : {}), ...(categoria ? { categoria } : {}) }];
+      }
+      const periodo = cmpTexto(item).trim();
+      return periodo ? [{ periodo }] : [];
+    });
+    let no_ofrecidas_cruce: Record<string, Record<string, string[]>> | null = null;
+    if (p.no_ofrecidas_cruce !== undefined && p.no_ofrecidas_cruce !== null) {
+      no_ofrecidas_cruce = {};
+      if (cmpObjeto(p.no_ofrecidas_cruce)) {
+        for (const [cruce, porBase] of Object.entries(p.no_ofrecidas_cruce)) {
+          if (!cruce || !cmpObjeto(porBase)) continue;
+          const bases: Record<string, string[]> = {};
+          for (const [base, cods] of Object.entries(porBase)) {
+            const lista = cmpTextos(cods);
+            if (base && lista.length) bases[base] = lista;
+          }
+          if (Object.keys(bases).length) no_ofrecidas_cruce[cruce] = bases;
+        }
+      }
+    }
+    return [{
+      titulo: cmpTexto(p.titulo).trim() || "Pregunta sin título",
+      no_ofrecidas_cruce,
+      n_c: cmpTextos(p.n_c),
+      n_a,
+      n_reducidas: p.n_reducidas === undefined || p.n_reducidas === null ? null : cmpNumero(p.n_reducidas),
+      sin_mapa,
+      no_ofrecidas,
+    }];
+  });
+  const avisos = cmpLista(resumen.avisos).flatMap((a): ComparativoAviso[] => {
+    if (!cmpObjeto(a)) return [];
+    const mensaje = cmpTexto(a.mensaje).trim();
+    if (!mensaje) return [];
+    const tipoOriginal = cmpTexto(a.tipo).trim();
+    const tipo = (AVISO_TIPOS as readonly string[]).includes(tipoOriginal)
+      ? tipoOriginal as ComparativoAvisoTipo
+      : "otro";
+    const base = cmpTexto(a.base).trim();
+    const fila = cmpTexto(a.fila).trim();
+    return [{ tipo, tipoOriginal, mensaje, ...(base ? { base } : {}), ...(fila ? { fila } : {}) }];
+  });
+  const ponderacion: Record<string, { peso_ignorado: boolean }> = {};
+  if (cmpObjeto(resumen.ponderacion)) {
+    for (const [base, estado] of Object.entries(resumen.ponderacion)) {
+      if (!base || !cmpObjeto(estado)) continue;
+      const crudo = Array.isArray(estado.peso_ignorado) ? estado.peso_ignorado[0] : estado.peso_ignorado;
+      ponderacion[base] = { peso_ignorado: crudo === true };
+    }
+  }
+  const principal = artifacts.find((a) => a.role === "deliverable");
+  return {
+    file_id: cmpTexto(r.file_id).trim() || principal?.file_id || "",
+    filename: cmpTexto(r.filename).trim() || principal?.filename || "comparativo.xlsx",
+    size: cmpNumero(r.size),
+    sha256: cmpTexto(r.sha256),
+    artifacts,
+    periodos: cmpPeriodos(r.periodos),
+    resumen: {
+      hoja: cmpTexto(resumen.hoja),
+      n_preguntas: cmpNumero(resumen.n_preguntas) || preguntas.length,
+      preguntas,
+      avisos,
+      ponderacion,
+    },
+  };
+}
+
+async function iniciarComparativo(tipo: ComparativoTipo, body: ComparativoBody): Promise<ComparativoInicio> {
+  const out = await handle<Record<string, unknown>>(
+    await apiFetch(`/api/analitica/armonizada/${tipo}`, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body),
+    }),
+  );
+  return {
+    ok: true,
+    job_id: cmpTexto(out.job_id),
+    kind: cmpTexto(out.kind),
+    periodos: cmpPeriodos(out.periodos),
+  };
+}
+
+export async function apiAnaliticaComparativoFrecuencias(body: ComparativoBody = {}) {
+  return iniciarComparativo("frecuencias", body);
+}
+
+export async function apiAnaliticaComparativoCruces(body: ComparativoBody) {
+  return iniciarComparativo("cruces", body);
+}

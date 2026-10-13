@@ -136,3 +136,10 @@
   outline-offset: 2px;
   border-radius: 2px;
 }
+
+/* ADR 0100: el diagnóstico falló y las listas pueden estar incompletas. */
+.pulso-codif-omitidas-incompleto-nota {
+  margin: 4px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}

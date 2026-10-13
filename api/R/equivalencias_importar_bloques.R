@@ -183,6 +183,69 @@
   !is.na(v) & v >= 80 & v < 100
 }
 
+# «Otro», «Otros», «Otra», «Otro (especifique)»: la categoría residual. No es
+# un año aunque su código no sea especial (S-08 real: «Otros [10]»).
+.equiv_bloques_es_residual <- function(x) {
+  r <- .equiv_norm_col(x)
+  r %in% c("otro", "otros", "otra") | startsWith(r, "otro")
+}
+
+.equiv_bloques_es_anio <- function(x) grepl("^(19|20)[0-9]{2}$", trimws(as.character(x)))
+
+# ¿Todas las categorías no especiales del bloque son años de 4 dígitos? Mira
+# las etiquetas por base («2023 [5]»), que son las que el cuestionario
+# ofrecía. Si una categoría no trae etiqueta en ninguna base, su rótulo de
+# fila. No cuentan las especiales 80-99 ni la residual («Otros [10]»): ni una
+# ni otra es una cohorte. Hacen falta dos categorías.
+.equiv_bloques_es_cohorte <- function(cats) {
+  sust <- Filter(function(c) {
+    if (all(vapply(unlist(c$codigos), .equiv_bloques_es_especial, logical(1)))) return(FALSE)
+    etqs <- c(c$etiqueta, unlist(c$etiquetas, use.names = FALSE))
+    !any(.equiv_bloques_es_residual(etqs[nzchar(trimws(etqs))]))
+  }, cats)
+  if (length(sust) < 2L) return(FALSE)
+  all(vapply(sust, function(c) {
+    etqs <- unlist(c$etiquetas, use.names = FALSE)
+    etqs <- etqs[nzchar(trimws(etqs))]
+    if (!length(etqs)) etqs <- c$etiqueta
+    length(etqs) > 0L && all(.equiv_bloques_es_anio(etqs))
+  }, logical(1)))
+}
+
+# En un bloque de cohorte, ¿la base guarda el año COMO código (2017…2025)
+# mientras la matriz nombra posiciones (1..n)? Entonces el mapa por código de
+# la matriz no casa con ningún dato de esa base. Devuelve los años-código de la
+# base, o NULL si no aplica. Basta con que la mayoría de opciones sean años:
+# la lista real trae además «Otro [88]» y un «Selecciona una respuesta [0]».
+.equiv_bloques_codigos_anio <- function(variable, codigos_matriz, inst) {
+  if (is.null(variable) || !nzchar(variable) || is.null(inst)) return(NULL)
+  opciones <- .equiv_escala_opciones(inst, variable)
+  if (!length(opciones)) return(NULL)
+  cods <- vapply(opciones, function(o) .codif_agrupar_codigo_chr(o$codigo), character(1))
+  anios <- cods[.equiv_bloques_es_anio(cods)]
+  if (length(anios) < 2L || length(anios) * 2L <= length(cods)) return(NULL)
+  if (any(.equiv_bloques_es_anio(codigos_matriz))) return(NULL)
+  sort(as.integer(anios))
+}
+
+# Enunciado de la fila: el de la base mapeada más reciente que lo trae; si
+# ninguna, el primero no vacío de la hoja. Sin marcas de la matriz.
+.equiv_bloques_enunciado <- function(enunciados, anios_mapeados) {
+  limpiar <- function(x) {
+    x <- gsub("≈", " ", .equiv_bloques_txt(x))
+    x <- gsub("\\[[A-ZÁÉÍÓÚÑ ]+\\]", " ", x, perl = TRUE)
+    trimws(gsub("\\s+", " ", x))
+  }
+  orden <- c(rev(sort(anios_mapeados)), names(enunciados))
+  for (a in unique(orden)) {
+    x <- enunciados[[a]] %||% ""
+    if (.equiv_bloques_es_ausente(x)) next
+    x <- limpiar(x)
+    if (nzchar(x)) return(x)
+  }
+  ""
+}
+
 # Un bloque -> fila de la matriz + advertencias. `periodos` es el mapa_periodos
 # ya validado (año -> base) y `inst_por_base` los instrumentos de la sesión.
 .equiv_bloques_a_fila <- function(bloque, periodos, inst_por_base) {
@@ -236,6 +299,28 @@
     if (!length(codigos)) next
     cats[[length(cats) + 1L]] <- list(etiqueta = gsub("\\s+", " ", c$etiqueta),
                                       codigos = codigos, etiquetas = etiquetas)
+  }
+
+  # Año de ingreso, años de estudio y similares (R4b, punto 6): si las
+  # categorías con código del bloque son años de calendario, el mismo rótulo
+  # no es la misma cohorte en otra medición («2023» es primer año en 2024 y
+  # segundo en 2025). Ese bloque se armoniza por base y A MANO, relativo al año
+  # de medición (primer año, segundo año…), con el mapa de cada base declarado
+  # en la matriz de la app. El importador no lo infiere: sólo avisa. Las
+  # categorías cuyos códigos son todos especiales 80-99 («Otro», «No responde»)
+  # no cuentan para decidir.
+  if (.equiv_bloques_es_cohorte(cats)) {
+    avisar("", "cohorte_por_etiqueta", sprintf(
+      "Las categorías de «%s» son años de calendario: el mismo año no es la misma cohorte en otra medición. Declara el mapa de cada base a mano, relativo al año de medición.",
+      bloque$nombre))
+    for (b in bases) {
+      cods_m <- unlist(lapply(cats, function(c) c$codigos[[b]]), use.names = FALSE)
+      anios <- .equiv_bloques_codigos_anio(variables[[b]], cods_m, inst_por_base[[b]])
+      if (is.null(anios)) next
+      avisar(b, "cohorte_codigo_anio", sprintf(
+        "La base «%s» guarda el año como código (%d…%d); la matriz usa posiciones. Declara el mapa de esta fila a mano.",
+        b, min(anios), max(anios)))
+    }
   }
 
   armonizacion <- NULL
@@ -315,7 +400,9 @@
     seccion = bloque$eje,
     etiqueta_estandar = bloque$nombre,
     variables = variables,
-    diapositiva = "", enunciado = "", grafico = "", corte = "", estilo = "",
+    diapositiva = "",
+    enunciado = .equiv_bloques_enunciado(bloque$enunciado, names(periodos)),
+    grafico = "", corte = "", estilo = "",
     cantidad = length(variables)
   )
   if (!is.null(armonizacion)) fila$armonizacion <- armonizacion
@@ -343,7 +430,10 @@
     if (is.na(i)) {
       avisar("codigo_inexistente", sprintf(
         "«%s [%s]» no existe en «%s» de la base «%s».", etiquetas[[cd]], cd, variable, base))
-    } else if (!identical(.normalize_text(etiquetas[[cd]]), .normalize_text(etqs[i]))) {
+    } else if (nzchar(trimws(etiquetas[[cd]] %||% "")) &&
+               !identical(.normalize_text(etiquetas[[cd]]), .normalize_text(etqs[i]))) {
+      # Una celda sólo «[2]» (escala 1-5 con los extremos rotulados) no dice
+      # ninguna etiqueta: no hay con qué comparar.
       avisar("etiqueta_distinta", sprintf(
         "[%s] dice «%s» en la matriz y «%s» en la base «%s».", cd, etiquetas[[cd]], etqs[i], base))
     }
@@ -460,6 +550,7 @@
     prev$cantidad <- length(vars)
     prev$id <- f$id
     if (!nzchar(.equiv_armon_chr(prev$seccion, ""))) prev$seccion <- f$seccion
+    if (!nzchar(.equiv_armon_chr(prev$enunciado, ""))) prev$enunciado <- f$enunciado %||% ""
     if (!is.null(f$armonizacion)) {
       arm <- prev$armonizacion
       if (is.null(arm)) {

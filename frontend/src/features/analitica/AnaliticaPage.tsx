@@ -33,6 +33,8 @@ import { MultibaseTablasPane } from "./panes/MultibaseTablasPane";
 import { PanelBasePane } from "./panes/PanelBasePane";
 import { FichaTecnicaPane } from "./panes/FichaTecnicaPane";
 import { PonderacionPane } from "./panes/PonderacionPane";
+import { ComparativosPane } from "./panes/ComparativosPane";
+import { comparativosDisponibles } from "./panes/comparativosModel";
 import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
 import { ProcessingReleasePanel } from "./ProcessingReleasePanel";
@@ -73,6 +75,7 @@ export default function AnaliticaPage() {
   const reportes = pestanasAnaliticaDisponibles({
     multibaseDisponible: Boolean(state?.analitica_multibase_available),
     basesHermanasIndependientes: independentSiblings,
+    comparativosDisponibles: comparativosDisponibles(state?.n_bases),
   });
 
   // Preparar auto-on-mount. Antes era un paso manual; ahora se ejecuta
@@ -247,6 +250,7 @@ export default function AnaliticaPage() {
                     {active === "ponderacion"  && <PonderacionPane />}
                     {active === "frecuencias"  && <FrecuenciasPane />}
                     {active === "multibase"    && <MultibaseTablasPane />}
+                    {active === "comparativos" && <ComparativosPane />}
                     {active === "panel"        && <PanelBasePane />}
                     {active === "ficha"        && <FichaTecnicaPane />}
                     {active === "cruces"       && <CrucesPane />}

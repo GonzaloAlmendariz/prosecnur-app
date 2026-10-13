@@ -89,7 +89,7 @@ describe("catálogos canónicos de pestañas", () => {
   });
 
   it("fija las 28 pestañas de Procesamiento con su orden y copy", () => {
-    expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(31); // F6.4 «Estilo del cliente» 29 → 30; A10 W-E «Estilo del informe» 30 → 31.
+    expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(32); // F6.4 «Estilo del cliente» 29 → 30; A10 W-E «Estilo del informe» 30 → 31; E4-E7 R4 «Comparativos» 31 → 32.
     expect(firma(PROCESAMIENTO_PESTANAS.carga)).toEqual([
       "plan:Plan",
       "fuentes:Fuentes",
@@ -119,6 +119,8 @@ describe("catálogos canónicos de pestañas", () => {
       "ponderacion:Ponderación",
       "frecuencias:Frecuencias",
       "multibase:Tablas multibase",
+      // Contrato E4-E7, R4: condicional, sólo con dos o más bases.
+      "comparativos:Comparativos",
       "panel:Base panel",
       "ficha:Ficha técnica",
       "cruces:Cruces",
@@ -218,19 +220,37 @@ describe("catálogos canónicos de pestañas", () => {
       PROCESAMIENTO_PESTANAS.analitica
         .filter((tab) => tab.disponibilidad === "condicional")
         .map((tab) => tab.id),
-    ).toEqual(["multibase"]);
+    ).toEqual(["multibase", "comparativos"]);
     expect(
       pestanasAnaliticaDisponibles({
         multibaseDisponible: true,
         basesHermanasIndependientes: false,
+        comparativosDisponibles: true,
       }),
-    ).toHaveLength(12);
+    ).toHaveLength(13);
     expect(
       pestanasAnaliticaDisponibles({
         multibaseDisponible: false,
         basesHermanasIndependientes: false,
+        comparativosDisponibles: true,
       }).some((tab) => tab.id === "multibase"),
     ).toBe(false);
+    // Contrato E4-E7, R4: Comparativos tiene su propio predicado (dos o más
+    // bases) y no depende del de Tablas multibase, ni al revés.
+    expect(
+      pestanasAnaliticaDisponibles({
+        multibaseDisponible: true,
+        basesHermanasIndependientes: false,
+        comparativosDisponibles: false,
+      }).map((tab) => tab.id),
+    ).not.toContain("comparativos");
+    expect(
+      pestanasAnaliticaDisponibles({
+        multibaseDisponible: false,
+        basesHermanasIndependientes: true,
+        comparativosDisponibles: true,
+      }).map((tab) => tab.id),
+    ).toContain("comparativos");
 
     // ADR 0062: Equivalencias es la unica condicional de Carga y solo aparece
     // con bases que no comparten instrumento. Sin ese filtro, un estudio de una
@@ -250,6 +270,7 @@ describe("catálogos canónicos de pestañas", () => {
       pestanasAnaliticaDisponibles({
         multibaseDisponible: true,
         basesHermanasIndependientes: true,
+        comparativosDisponibles: false,
       }).some((tab) => tab.id === "multibase"),
     ).toBe(false);
   });

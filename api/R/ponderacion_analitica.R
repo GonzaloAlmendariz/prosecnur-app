@@ -149,7 +149,10 @@
              sprintf("La columna de peso '%s' no existe en la base.", col),
              details = list(peso_columna = col))
   }
-  w <- suppressWarnings(as.numeric(unclass(data[[col]])))
+  x <- data[[col]]
+  # Un factor guarda niveles: el peso es su rótulo, no el código interno del nivel.
+  if (is.factor(x)) x <- as.character(x)
+  w <- suppressWarnings(as.numeric(unclass(x)))
   w[is.na(w) | !is.finite(w)] <- 0
   data[["peso"]] <- w
   attr(data, "ponderacion_estado") <- reporte_ponderacion_estado(

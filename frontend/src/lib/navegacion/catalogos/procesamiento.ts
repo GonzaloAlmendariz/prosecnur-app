@@ -125,6 +125,12 @@ export const PROCESAMIENTO_PESTANAS = {
     pestana("analitica", "ponderacion", "Ponderación", "Representar a la población", Scale),
     pestana("analitica", "frecuencias", "Frecuencias", "Distribución de respuestas", BarChart2),
     pestana("analitica", "multibase", "Tablas multibase", "Comparación entre bases", GitBranch, { disponibilidad: "condicional" }),
+    // Contrato E4-E7, R4: la serie de mediciones armonizada en Carga › Equivalencias. Sólo en estudios con dos o
+    // más bases. La pestaña lee la matriz aparte del `preparar`, así que publica su propia readiness.
+    pestana("analitica", "comparativos", "Comparativos", "La serie de mediciones armonizada", GitCompare, {
+      disponibilidad: "condicional",
+      readinessPropia: true,
+    }),
     pestana("analitica", "panel", "Base panel", "Personas y mediciones", GitMerge),
     pestana("analitica", "ficha", "Ficha técnica", "Metodología e informe", FileText),
     pestana("analitica", "cruces", "Cruces", "Comparaciones 2D", Grid3X3),
@@ -152,17 +158,26 @@ export type CodificacionTabId = typeof PROCESAMIENTO_PESTANAS.codificacion[numbe
 export type AnaliticaTabId = typeof PROCESAMIENTO_PESTANAS.analitica[number]["key"];
 export type GraficosTabId = typeof PROCESAMIENTO_PESTANAS.graficos[number]["key"];
 
+/**
+ * Cada pestaña condicional de Analítica tiene su propio predicado. Tablas
+ * multibase necesita la base integrada con llave de origen. Comparativos
+ * necesita una serie (dos o más bases): la falta de preguntas armonizadas no la
+ * oculta, la explica en su propio vacío (C3), porque ahí se dice qué hacer.
+ */
 export function pestanasAnaliticaDisponibles({
   multibaseDisponible,
   basesHermanasIndependientes,
+  comparativosDisponibles,
 }: {
   multibaseDisponible: boolean;
   basesHermanasIndependientes: boolean;
+  comparativosDisponibles: boolean;
 }) {
-  return PROCESAMIENTO_PESTANAS.analitica.filter((tab) =>
-    tab.disponibilidad !== "condicional"
-      || (multibaseDisponible && !basesHermanasIndependientes),
-  );
+  return PROCESAMIENTO_PESTANAS.analitica.filter((tab) => {
+    if (tab.disponibilidad !== "condicional") return true;
+    if (tab.id === "comparativos") return comparativosDisponibles;
+    return multibaseDisponible && !basesHermanasIndependientes;
+  });
 }
 
 /**

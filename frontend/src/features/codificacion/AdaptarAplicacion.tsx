@@ -1,13 +1,15 @@
+import { useEffect, useRef } from "react";
 import { ArrowLeft, CheckCircle2, Download, FileSpreadsheet, Loader2, Play } from "lucide-react";
 import { apiCodifAplicar, AplicarResult, downloadUrl } from "../../api/client";
 import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
 import { Panel } from "../../components/Panel";
 import { useSession } from "../../lib/SessionContext";
-import { AplicarOmitidasAviso } from "./AplicarOmitidasAviso";
+import { AplicarOmitidasAviso, irAlAviso } from "./AplicarOmitidasAviso";
 import {
   type AplicarEntrada,
   aplicarCodificacion,
+  contarAvisos,
   selectAplicarEntrada,
   useAplicarAvisosStore,
 } from "./aplicarAvisosStore";
@@ -28,6 +30,21 @@ type Props = {
 };
 
 const TEXTO_APLICANDO = "Revisando el catálogo contra la base; puede tardar un par de minutos.";
+const TEXTO_CORRIENDO = "La adaptación está corriendo; el avance se muestra abajo.";
+export const ID_ESTADO_ADAPTAR = "codificacion-adaptar-estado";
+
+type Enfocable = { focus: (opciones?: FocusOptions) => void };
+
+/**
+ * Pulsar «Adaptar». El botón se deshabilita en cuanto el store marca
+ * `aplicando` y un control deshabilitado suelta el foco a BODY; por eso el foco
+ * pasa antes a la región de estado (estable, `tabIndex=-1`), que es la que
+ * cuenta qué está pasando.
+ */
+export function pulsarAdaptar(estado: Enfocable | null, adaptar: () => void): void {
+  estado?.focus({ preventScroll: true });
+  adaptar();
+}
 
 export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBackToMatrices }: Props) {
   const { refresh } = useSession();
@@ -36,6 +53,14 @@ export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBack
   const fallar = useAplicarAvisosStore((s) => s.fallar);
   const cancelar = useAplicarAvisosStore((s) => s.cancelar);
   const marcarEnfocado = useAplicarAvisosStore((s) => s.marcarEnfocado);
+  const alMontar = useAplicarAvisosStore((s) => s.alMontar);
+
+  // El fin del job dispara `pulso:session-changed` y la página remonta este
+  // panel con el scroll en 0. El primer montaje con el job terminado consume
+  // el pedido de revelar del store y el aviso vuelve a la vista; los demás no.
+  useEffect(() => {
+    alMontar(clave);
+  }, [alMontar, clave]);
 
   return (
     <AdaptarAplicacionVista
@@ -81,6 +106,7 @@ export function AdaptarAplicacionVista({
   onEnfocado,
 }: VistaProps) {
   const { aplicando, jobId, avisos, sinRecodificar, salida, error, enfocarPendiente } = entrada;
+  const estadoRef = useRef<HTMLSpanElement>(null);
 
   const motivoDeshabilitado = aplicando
     ? "La codificación se está aplicando."
@@ -102,13 +128,20 @@ export function AdaptarAplicacionVista({
           </button>
           <div style={{ flex: 1 }} />
           {/* Región viva siempre montada: el lector anuncia el cambio de texto. */}
-          <span className="pulso-codif-adaptar-estado" role="status" aria-live="polite">
-            {aplicando ? TEXTO_APLICANDO : ""}
+          <span
+            ref={estadoRef}
+            id={ID_ESTADO_ADAPTAR}
+            className="pulso-codif-adaptar-estado"
+            role="status"
+            aria-live="polite"
+            tabIndex={-1}
+          >
+            {aplicando ? TEXTO_APLICANDO : jobId ? TEXTO_CORRIENDO : ""}
           </span>
           <button
             type="button"
             className="pulso-primary"
-            onClick={onAdaptar}
+            onClick={() => pulsarAdaptar(estadoRef.current, onAdaptar)}
             disabled={aplicando || !!jobId || nPreguntas === 0}
             aria-busy={aplicando || undefined}
             aria-describedby={motivoDeshabilitado ? "codificacion-adaptar-disabled-reason" : undefined}
@@ -150,6 +183,7 @@ export function AdaptarAplicacionVista({
       <AplicarOmitidasAviso
         omitidas={avisos.omitidas}
         textosSinCodigo={avisos.textos_sin_codigo}
+        incompletos={avisos.avisos_incompletos}
         enfocar={enfocarPendiente}
         onEnfocado={onEnfocado}
       />
@@ -209,5 +243,36 @@ export function AdaptarAplicacionVista({
         </Panel>
       )}
     </>
+  );
+}
+
+/**
+ * Línea de arriba de Adaptar: la aplicación terminó y dejó avisos que viven al
+ * pie, varias pantallas más abajo. Sin avisos o sin job terminado no pinta.
+ */
+export function AdaptarAplicacionResumen({ clave }: { clave: string }) {
+  const entrada = useAplicarAvisosStore(selectAplicarEntrada(clave));
+  return <AdaptarAplicacionResumenVista entrada={entrada} onVerAvisos={() => irAlAviso(document)} />;
+}
+
+export function AdaptarAplicacionResumenVista({
+  entrada,
+  onVerAvisos,
+}: {
+  entrada: AplicarEntrada;
+  onVerAvisos: () => void;
+}) {
+  const n = contarAvisos(entrada.avisos);
+  if (!entrada.salida || n === 0) return null;
+  return (
+    <p className="pulso-codif-adaptar-resumen" data-testid="codificacion-adaptar-resumen">
+      <CheckCircle2 size={14} aria-hidden="true" className="pulso-codif-adaptar-resumen-icono" />
+      <span>
+        La adaptación terminó con {n === 1 ? "1 aviso" : `${n} avisos`}.
+      </span>
+      <button type="button" className="pulso-codif-adaptar-resumen-enlace" onClick={onVerAvisos}>
+        Ver {n === 1 ? "el aviso" : "los avisos"}
+      </button>
+    </p>
   );
 }

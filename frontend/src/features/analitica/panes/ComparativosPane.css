@@ -1,0 +1,486 @@
+/* Pestaña Comparativos de Analítica (contrato E4-E7, R4). Sólo tokens `--pulso-*`.
+ * C4: sin scroll propio. El dueño del scroll es el panel de Analítica
+ * (`scrollOwner="panels"`), así que las listas y la tabla crecen en alto
+ * intrínseco y sólo la tabla de resultados tiene desplazamiento horizontal. */
+
+.pulso-comparativos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+}
+
+/* Cifras de la serie: cuatro pares del mismo rol, mismo marco (C2). */
+.pulso-comparativos-cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.pulso-comparativos-cifra {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.pulso-comparativos-cifra dt {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-cifra dd {
+  margin: 0;
+  font-size: 18px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+/* Secciones independientes: altura intrínseca, se apilan tras el gutter (C3). */
+.pulso-comparativos-secciones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-comparativos-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  margin: 0;
+  min-width: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+
+.pulso-comparativos-bloque-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--pulso-space-3);
+  row-gap: 2px;
+}
+
+.pulso-comparativos-bloque-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-comparativos-bloque-head p {
+  flex: 1 1 280px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+/* Rótulos: una caja por medición, todas del mismo ancho (C2). */
+.pulso-comparativos-rotulos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--pulso-space-2);
+}
+
+.pulso-comparativos-rotulo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pulso-comparativos-rotulo-base {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-rotulo input,
+.pulso-comparativos-campo input,
+.pulso-comparativos-campo textarea {
+  width: 100%;
+  min-width: 0;
+  font-size: 13px;
+}
+
+/* Listas de filas armonizadas. */
+.pulso-comparativos-lista-acciones {
+  display: inline-flex;
+  gap: var(--pulso-space-2);
+  margin-left: auto;
+}
+
+.pulso-comparativos-filas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  /* Contrato intrinsic: cada fila hugs su contenido, sin estirarse a la vecina. */
+  align-items: start;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-comparativos-filas > li {
+  display: flex;
+  min-width: 0;
+}
+
+.pulso-comparativos-fila {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.pulso-comparativos-fila:hover {
+  border-color: var(--pulso-primary-border);
+}
+
+.pulso-comparativos-fila:focus-within {
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-comparativos-fila.is-on {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+}
+
+.pulso-comparativos-fila.is-off {
+  border-style: dashed;
+  background: var(--pulso-surface-2);
+  cursor: not-allowed;
+}
+
+.pulso-comparativos-fila.is-off:hover {
+  border-color: var(--pulso-border);
+}
+
+.pulso-comparativos-fila.is-off strong {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-fila-marca.is-off {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  white-space: normal;
+}
+
+.pulso-comparativos-fila input {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.pulso-comparativos-fila-copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-comparativos-fila-copy strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-comparativos-fila-copy small {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-fila-marca {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 1px 8px;
+  border: 1px solid var(--pulso-info-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* Notas: plegable nativo, cerrado sólo cuenta el summary (C4). No es flex: el
+ * slot oculto de un <details> flex sigue sumando su gap y deja capacidad muerta. */
+.pulso-comparativos-notas {
+  display: block;
+}
+
+.pulso-comparativos-notas[open] > .pulso-comparativos-notas-cuerpo {
+  margin-top: var(--pulso-space-3);
+}
+
+.pulso-comparativos-notas > summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-3);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-comparativos-notas > summary small {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-regular);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-notas > summary:focus-visible {
+  outline: none;
+  border-radius: var(--pulso-radius-chip);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-comparativos-notas-cuerpo,
+.pulso-comparativos-notas-preguntas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-comparativos-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-nota-vacia {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+/* Generar. */
+.pulso-comparativos-generar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-comparativos-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-comparativos-botones button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pulso-comparativos-bloqueo {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-comparativos-enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-primary);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  text-decoration: none;
+}
+
+.pulso-comparativos-enlace:hover {
+  background: var(--pulso-primary-soft);
+}
+
+.pulso-comparativos-enlace:focus-visible,
+.pulso-comparativos-manifest:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* Resultado. */
+.pulso-comparativos-resultado {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-success-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+
+.pulso-comparativos-descargas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-comparativos-descargas .analitica-download-pill small {
+  font-weight: var(--pulso-weight-regular);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-manifest {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.pulso-comparativos-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-comparativos-avisos li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.pulso-comparativos-avisos svg {
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+.pulso-comparativos-aviso-tipo {
+  flex: 0 0 auto;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-comparativos-aviso-texto {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pulso-comparativos-aviso-accion {
+  flex: 0 0 auto;
+  color: var(--pulso-primary);
+  font-weight: var(--pulso-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pulso-comparativos-aviso-accion:focus-visible {
+  outline: none;
+  border-radius: var(--pulso-radius-chip);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-comparativos-sin-avisos {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-success-fg);
+}
+
+/* La tabla es el único dueño de desplazamiento horizontal de la pestaña. */
+.pulso-comparativos-tabla-marco {
+  overflow-x: auto;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+}
+
+.pulso-comparativos-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.pulso-comparativos-tabla th,
+.pulso-comparativos-tabla td {
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.pulso-comparativos-tabla thead th {
+  background: var(--pulso-surface-2);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.pulso-comparativos-tabla tbody th {
+  min-width: 220px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+}
+
+.pulso-comparativos-tabla tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.pulso-comparativos-tabla td {
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-comparativos-reducidas {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-regular);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-celda-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-comparativos-fila {
+    transition: none;
+  }
+}

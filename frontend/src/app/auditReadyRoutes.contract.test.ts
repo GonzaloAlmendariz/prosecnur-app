@@ -458,6 +458,16 @@ describe("audit-ready route root contract", () => {
       terminalReadinessCount("features/analitica/panes/OrdenCategoriasPane.tsx", "analitica-orden"),
       "The owning pane must mark both settled branches: loaded and error",
     ).toBe(2);
+    // Contrato E4-E7, R4: Comparativos lee la matriz de equivalencias aparte y
+    // marca sus tres estados terminales: cargada, sin serie que comparar y error.
+    expect(
+      terminalReadinessKeys(["features/analitica/panes/ComparativosPane.tsx"], "analitica-"),
+      "Comparativos publishes an exact semantic key",
+    ).toEqual(["analitica-comparativos"]);
+    expect(
+      terminalReadinessCount("features/analitica/panes/ComparativosPane.tsx", "analitica-comparativos"),
+      "Comparativos marks loaded, empty and error",
+    ).toBe(3);
   });
 
   test("Bitácora publishes an exact semantic key for each guarded tab", () => {
