@@ -60,7 +60,7 @@ Lo cierra sólo el usuario. Se dibuja entero cada vez que se menciona.
 | # | Pieza | Dónde vivirá | Estado |
 |---|---|---|---|
 | P1 | Aviso al aplicar: textos sin código y preguntas del catálogo sin su variable | Codificación: `api/R/codificacion_omitidas.R` y respuesta de `/aplicar` (`omitidas`, `textos_sin_codigo`) | ◐ backend hecho y verificado sobre la copia de HSyVBG sin `P66_otro` (omitidas P29_10 «sin_modo» y P66 «sin_columna_texto»; sin código P4 1, P55 1, P60 2). Falta mostrarlo en la UI (coordinar con la sesión de entregables) |
-| P2 | Base de partida declarada con su lista de exclusiones externas | Carga / linaje | ☐ |
+| P2 | Base de partida declarada con su lista de exclusiones externas | `api/R/carga_origen_externo.R`, `router_origen_externo.R` (GET y POST `/api/carga/origen-externo`) | ◐ motor y endpoint ☑ (489eabecb, 86db03199): sobre la copia de HSyVBG declara 3 327 → 9 (3 críticas, 6 ambiguas) → 3 318 sin avisos y sobrevive a guardar y reabrir el .pulso. Falta: la ficha del universo (espera la decisión de Gonzalo, categorías o sólo total) y la pantalla de Carga |
 | P3 | Variables marcadas «no van al cliente», excluidas al exportar | Ya existe: `variables_excluidas` de la config de Analítica (codebook, cruces, frecuencias, bases SAV/CSV/XLSX y SPSS en `router_analitica.R`) | ☑ sin código nuevo: el script deja de borrar las variables meta y se declaran ahí |
 
 ## Hallazgos de la codificación HSyVbG (para el equipo)
