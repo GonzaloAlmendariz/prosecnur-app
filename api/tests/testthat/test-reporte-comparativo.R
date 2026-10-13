@@ -55,7 +55,7 @@ for (.rc_e in parse(test_path("test-analitica-armonizada.R"), encoding = "UTF-8"
 # Notas al pie: sin raya, punto medio ni punto y coma. La marca «—» de opción
 # no ofrecida es la única raya permitida, y sólo como marca al inicio.
 .rc_notas_limpias <- function(notas) {
-  notas <- sub("^—: ", "", notas)
+  notas <- sub("^n\\.a\\.: ", "", notas)
   expect_false(any(grepl("[;·—–]", notas)), info = paste(notas, collapse = " | "))
 }
 
@@ -97,7 +97,7 @@ test_that("comparativo simple: geometría, formatos, n.c., «—» y pie como la
   expect_true("ITALIC" %in% toupper(est$fontDecoration))
   expect_identical(toupper(unname(unlist(est$fontColour))[1]), "FF6B7280")
   expect_identical(d[21, 1], "No recuerda")
-  expect_identical(unname(unlist(d[21, 2:3])), rep("—", 2))
+  expect_identical(unname(unlist(d[21, 2:3])), rep("n.a.", 2))
   est <- .rc_estilo(wb, "Comparativo", 21, 2)
   expect_true("ITALIC" %in% toupper(est$fontDecoration))
   expect_equal(as.numeric(d[21, 6]), 0)
@@ -106,7 +106,7 @@ test_that("comparativo simple: geometría, formatos, n.c., «—» y pie como la
   expect_equal(as.numeric(d[22, 2]), g$mf$preguntas[[2]]$periodos$b2024$N)  # el total no se marca
   expect_identical(d[24, 1], "Base: quienes experimentaron al menos una situación.")
   expect_identical(d[27, 1], "n.c.: no comparable por diferencias en la redacción de la pregunta entre mediciones.")
-  expect_identical(d[28, 1], "—: la opción no se ofrecía ese año.")
+  expect_identical(d[28, 1], "n.a.: no aplica, la opción no se ofrecía ese año.")
 
   notas <- unlist(d[grepl("^(Fuente|Base|Ponderación|La columna|n\\.c\\.|n\\.a\\.|—:|[0-9])", d[[1]]), 1])
   .rc_notas_limpias(notas)
@@ -139,8 +139,8 @@ test_that("comparativo de cruces: Respuesta x año, «—», letras dentro del a
   expect_identical(d[16, 1], "Total")
 
   # «—»: «Fuera del país» no se ofrecía en 2024 (marca estructural, no n.a.).
-  expect_identical(unname(unlist(d[c(7, 10, 13, 16), 9])), rep("—", 4))
-  expect_identical(unname(unlist(d[c(7, 16), 10])), rep("—", 2))
+  expect_identical(unname(unlist(d[c(7, 10, 13, 16), 9])), rep("n.a.", 4))
+  expect_identical(unname(unlist(d[c(7, 16), 10])), rep("n.a.", 2))
   est <- .rc_estilo(wb, "Comparativo cruces", 7, 9)
   expect_true("ITALIC" %in% toupper(est$fontDecoration))
   # Un cero observado en una columna ofrecida sigue siendo 0.
@@ -158,7 +158,7 @@ test_that("comparativo de cruces: Respuesta x año, «—», letras dentro del a
                                    "Porcentajes por columna dentro de cada año."))
   expect_identical(d[20, 1], "Ponderación: 2024 por factor_ponderacion. 2025 por w25. 2026 sin ponderar.")
   expect_identical(d[21, 1], "Lugar de nacimiento: «Lima Metropolitana y Callao» incluye el Callao.")
-  expect_identical(d[22, 1], paste("—: la opción no se ofrecía ese año.",
+  expect_identical(d[22, 1], paste("n.a.: no aplica, la opción no se ofrecía ese año.",
                                    "El cuestionario de 2024 no incluía la opción «Fuera del país»."))
   expect_identical(d[23, 1], "2 casos de 2024 sin correspondencia en la escala.")
   # Especiales del cruce: fuera de toda columna pero dentro del Total.
@@ -176,7 +176,7 @@ test_that("comparativo de cruces: Respuesta x año, «—», letras dentro del a
   letras_xlsx <- unname(unlist(d[31, 3:5]))
   letras_xlsx[is.na(letras_xlsx)] <- ""
   expect_identical(letras_xlsx, unname(c25$letras[1, ]))
-  expect_identical(d[30, 5], "—")
+  expect_identical(d[30, 5], "n.a.")
   expect_identical(d[39, 1], paste0(.notas_pie_significancia("z", 0.05),
                                     " Las comparaciones se hacen dentro de cada año.",
                                     " Las letras usan el N ponderado, sin corrección por efecto de diseño."))
@@ -190,7 +190,7 @@ test_that("comparativo de cruces: Respuesta x año, «—», letras dentro del a
   expect_identical(d[fila25, 2], "2025")
   expect_identical(unname(unlist(d[fila25, 3:10])), rep("n.c.", 8))
   fila_nr <- which(d[[1]] == "No recuerda")[1]
-  expect_identical(unname(unlist(d[fila_nr, 3:10])), rep("—", 8))
+  expect_identical(unname(unlist(d[fila_nr, 3:10])), rep("n.a.", 8))
   expect_true(any(d[[1]] == "n.c.: no comparable por diferencias en la redacción de la pregunta entre mediciones.",
                   na.rm = TRUE))
 
@@ -206,7 +206,7 @@ test_that("cruces: una columna ofrecida sin casos es n.a., no «—»", {
   g <- .rc_generar(datos = datos)
   d <- .rc_celdas(g$cruces)
   expect_identical(unname(unlist(d[c(8, 11, 14, 17), 9])), rep("n.a.", 4))
-  expect_identical(unname(unlist(d[c(7, 10), 9])), rep("—", 2))
+  expect_identical(unname(unlist(d[c(7, 10), 9])), rep("n.a.", 2))
   expect_true(any(grepl("^n\\.a\\.: no aplica\\. «Fuera del país» \\(Lugar de nacimiento\\) no tiene casos en 2025\\.$",
                         d[[1]])))
 })
@@ -226,7 +226,7 @@ test_that("notas libres: la de la pregunta y las generales tras un renglón en b
   dc <- .rc_celdas(g$cruces)
   fila <- which(dc[[1]] == "En cada medición la pregunta se refiere al año de esa encuesta.")
   expect_length(fila, 1L)
-  expect_identical(dc[fila - 2L, 1], "—: la opción no se ofrecía ese año. El cuestionario de 2024 no incluía la opción «Fuera del país».")
+  expect_identical(dc[fila - 2L, 1], "n.a.: no aplica, la opción no se ofrecía ese año. El cuestionario de 2024 no incluía la opción «Fuera del país».")
 })
 
 test_that("bases reducidas: una línea agrupada por columna con sus años", {
