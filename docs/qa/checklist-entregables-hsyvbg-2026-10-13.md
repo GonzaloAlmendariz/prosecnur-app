@@ -248,3 +248,8 @@ Hallazgos de la auditoría (qa-visual-desktop, evidencia en scratchpad/polishqa/
 | P-A9 | Cruces describe la significancia como «chi² al 5 %, asterisco» y el motor usa letras con z y Bonferroni | en curso |
 | P-M1…M14 | Medias: cifras, botones secundarios, «añadir», vacíos, formato de números, orden de bases en Fuentes, orden de la serie compacto, Equivalencias mezcla mazo y comparación, anchos de tabla, explicación larga del editor, Datos «Detectando…» pegado y «sin guardar» al entrar, «Definición global» desactualizado, Codificación sin elipsis y con markdown crudo, tres patrones de guardado | pendiente (siguiente tanda) |
 | P-B1…B7 | Bajas: foco visible en título, panel .sav, rótulos repetidos, «Ninguna» repetido, tarjetas de opción, estilos en línea, pendientes no verificables | pendiente |
+
+Regla de cierre (Gonzalo, 2026-10-13): «cierra todo lo pendiente hasta finalizarlo, pero no
+abras más campos a menos que sean graves». Se terminan P-A, P-M y P-B. Un hallazgo nuevo
+solo se abre si rompe un entregable, pierde datos o deja algo inalcanzable; lo demás se
+anota y no se trabaja.
