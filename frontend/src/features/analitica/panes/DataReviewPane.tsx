@@ -10,6 +10,8 @@ import { Panel } from "../../../components/Panel";
 import { ErrorBlock, LoadingBlock } from "../../../components/States";
 import { describirCobertura, padresConDummies } from "../coberturaVariable";
 import { useAnaliticaStore, type SeccionConfig } from "../store";
+import { AvisosEtiqueta } from "./revisionEtiquetas/AvisosEtiqueta";
+import { opcionesEquivalentes, problemasDeEtiqueta, type ProblemaEtiqueta } from "./revisionEtiquetas/detectorEtiquetas";
 
 export function dataReviewHasEditableOptions(variable: Pick<DataReviewVariable, "tipo_xlsform" | "opciones">) {
   const tipo = (variable.tipo_xlsform ?? "").trim().toLowerCase();
@@ -633,6 +635,15 @@ function DataReviewSection({
             return draftOption !== baselineOption || baselineOption !== originalOption;
           });
           const hasEdits = draftLabel !== baselineLabel || baselineLabel !== originalLabel || Boolean(hasOptionDraftChanges);
+          // G18: detalles de redacción de las opciones, contados también con el panel cerrado para que no se escondan.
+          const etiquetaOpcion = (option: (typeof variable.opciones)[number]) =>
+            draftValueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
+          const equivalentes = canEditOptions
+            ? opcionesEquivalentes(variable.opciones.map((o) => ({ code: o.code, label: etiquetaOpcion(o) })))
+            : new Map<string, ProblemaEtiqueta>();
+          const conDetalles = canEditOptions
+            ? variable.opciones.filter((o) => problemasDeEtiqueta(etiquetaOpcion(o), { esOpcion: true }).length > 0 || equivalentes.has(o.code)).length
+            : 0;
           return (
             <div
               key={variable.name}
@@ -690,6 +701,7 @@ function DataReviewSection({
                     className={`pulso-data-review-input${draftLabel.trim() ? "" : " is-empty"}`}
                     aria-label={`Etiqueta de ${variable.name}`}
                   />
+                  <AvisosEtiqueta problemas={problemasDeEtiqueta(draftLabel)} onAplicar={(t) => onSetVariableLabel(variable.name, t)} />
                 </label>
                 <button
                   type="button"
@@ -717,6 +729,7 @@ function DataReviewSection({
                     </span>
                     <span className="pulso-data-review-options-summary">
                       {variable.opciones.length} código{variable.opciones.length === 1 ? "" : "s"}
+                      {conDetalles > 0 ? ` · ${conDetalles} con detalles de redacción` : ""}
                     </span>
                     <ChevronDown size={15} className="pulso-data-review-options-chevron" />
                   </button>
@@ -729,7 +742,8 @@ function DataReviewSection({
                       </div>
                       <div className="pulso-data-review-option-list">
                         {variable.opciones.map((option) => {
-                          const optionDraft = draftValueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
+                          const optionDraft = etiquetaOpcion(option);
+                          const avisos = [...problemasDeEtiqueta(optionDraft, { esOpcion: true }), ...(equivalentes.get(option.code) ? [equivalentes.get(option.code)!] : [])];
                           return (
                             <div
                               key={`${variable.name}-${option.code}`}
@@ -748,6 +762,7 @@ function DataReviewSection({
                               <span className="pulso-data-review-option-count">
                                 n={option.count}
                               </span>
+                              <AvisosEtiqueta problemas={avisos} onAplicar={(t) => onSetValueLabel(variable.name, option.code, t)} />
                             </div>
                           );
                         })}
