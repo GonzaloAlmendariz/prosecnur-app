@@ -83,6 +83,6 @@ describe("WordPresetsEditor con word_fijado", () => {
     conDecisiones({ decimales: 2 });
     const html = renderToStaticMarkup(createElement(WordPresetsEditor));
     expect(html).toContain("1 ajuste propio");   // G15 (2026-10-13): antes «1 ajuste Word»
-    expect(html).toContain("Volver a heredar PPT");
+    expect(html).toContain("Volver a como en el PowerPoint");   // G15: antes «Volver a heredar PPT»
   });
 });
