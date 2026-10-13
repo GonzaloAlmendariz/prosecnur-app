@@ -116,8 +116,8 @@ export const VARIANTES_LAMINA: Partial<Record<SlideType, VariantesTipo>> = {
     defecto: "centrada",
     opciones: [
       { valor: "centrada", label: "Centrada", detalle: undefined },
-      { valor: "izquierda", label: "Alineada a la izquierda", detalle: "Lámina 24" },
-      { valor: "banda", label: "Banda al pie", detalle: "Lámina 25" },
+      { valor: "izquierda", label: "Alineada a la izquierda", detalle: "Una línea coral separa el título del encargo" },
+      { valor: "banda", label: "Banda al pie", detalle: "El encargo y la fecha en una banda azul" },
     ],
   },
   // lamina_identidad.R `.lam_laminas_indice`: «arcos» (31, por defecto), «facetas», «circulos», «bloques».
@@ -155,10 +155,10 @@ export const VARIANTES_LAMINA: Partial<Record<SlideType, VariantesTipo>> = {
     defecto: "contraportada",
     opciones: [
       { valor: "contraportada", label: "Contacto al pie", detalle: undefined },
-      { valor: "banda_azul", label: "Banda azul al pie", detalle: "Lámina 61" },
-      { valor: "banda_clara", label: "Banda clara al pie", detalle: "Lámina 62" },
-      { valor: "contacto", label: "Contacto bajo el logo", detalle: "Lámina 63" },
-      { valor: "tres_columnas", label: "Contacto en tres columnas", detalle: "Lámina 64" },
+      { valor: "banda_azul", label: "Banda azul al pie", detalle: "El contacto en blanco sobre azul" },
+      { valor: "banda_clara", label: "Banda clara al pie", detalle: "El contacto en una banda blanca con filete azul" },
+      { valor: "contacto", label: "Contacto bajo el logo", detalle: "Una fila de contacto bajo el logo" },
+      { valor: "tres_columnas", label: "Contacto en tres columnas", detalle: "Cada dato de contacto en su columna, con su ícono" },
     ],
   },
 };
