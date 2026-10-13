@@ -52,7 +52,11 @@ test_that("la lámina de población sólo lleva la base que declaró el analista
                        c = p_slide_4_graficos_poblacion(e[[1]], e[[2]], e[[3]], e[[4]], titulo = "Oculta", base = "Base: 120 autoridades",
                                                         meta = list(suppress_base_placeholder = TRUE))))
   base_de <- function(x) paste(xml2::xml_text(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='Base lamina']]")), collapse = "")
-  expect_identical(base_de(lam[[1]]), "")
+  # G9 (2026-10-13): los cuatro paneles son del mismo público con el mismo n, así que su «120 respuestas» pasa a la
+  # esquina de la lámina en vez de repetirse en cada panel.
+  expect_identical(base_de(lam[[1]]), "Base: 120 respuestas")
   expect_identical(base_de(lam[[2]]), "Base: 120 autoridades")
+  # Con la base oculta a propósito, la lámina no la escribe y cada panel conserva la suya.
   expect_identical(base_de(lam[[3]]), "")
+  expect_gt(length(xml2::xml_find_all(lam[[3]], "//p:sp[p:nvSpPr/p:cNvPr[@name='panel:base']]")), 0L)
 })
