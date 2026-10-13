@@ -541,8 +541,15 @@ p_dumbbell <- function(vars,
                        overrides = list(),
                        base = list(),
                        filtros = list(),
-                       etiqueta_brecha = NULL) {
+                       etiqueta_brecha = NULL,
+                       cruce = NULL,
+                       grupos = NULL) {
   orden <- match.arg(orden)
+  # G17: con `cruce` y `grupos` la brecha es entre dos grupos de una misma base (graficos_dumbbell_grupos.R).
+  if (!is.null(cruce) && nzchar(trimws(as.character(cruce)[1]))) {
+    return(.p_dumbbell_grupos(vars, corte, corte_etiqueta, orden, mostrar_brecha, umbral_brecha_pct, titulo,
+                              overrides, base, filtros, etiqueta_brecha, cruce, grupos))
+  }
   if (!is.list(vars) || !length(vars)) {
     .plan_spec_abort("p_dumbbell(): `vars` debe ser una lista nombrada no vacia.")
   }
@@ -612,14 +619,15 @@ p_dumbbell <- function(vars,
   if (!length(data_sources) || !length(inst_sources)) {
     stop("dumbbell: el render no expone las fuentes del estudio.", call. = FALSE)
   }
-  datos <- .radar_mb_datos(
-    el$vars,
-    el$corte,
-    list(data_sources = data_sources, inst_sources = inst_sources),
-    filtros = el$filtros %||% list()
-  )
-  fuentes <- .ola4_fuentes_de_refs(el$vars[[1]], "dumbbell", names(el$vars)[[1]])
-  .ola4_validar_matriz_multibase(datos, names(el$vars), fuentes, "dumbbell")
+  sources <- list(data_sources = data_sources, inst_sources = inst_sources)
+  if (!is.null(el$cruce)) {
+    temas <- .dumbbell_grupos_temas(el$vars, sources)
+    datos <- .dumbbell_grupos_datos(temas, el$corte, el$cruce, el$grupos, sources, filtros = el$filtros %||% list())
+  } else {
+    datos <- .radar_mb_datos(el$vars, el$corte, sources, filtros = el$filtros %||% list())
+    fuentes <- .ola4_fuentes_de_refs(el$vars[[1]], "dumbbell", names(el$vars)[[1]])
+    .ola4_validar_matriz_multibase(datos, names(el$vars), fuentes, "dumbbell")
+  }
 
   base_preset <- if (length(preset_args)) preset_args else .ola4_preset("dumbbell")
   args_usuario <- utils::modifyList(as.list(base_preset %||% list()),
