@@ -30,11 +30,13 @@
       # Sin capítulo antes, el subcapítulo se numera solo («1», no «0.1»; verificador de N7).
       num <- if (is.na(cap_numero)) as.character(n_sub) else paste0(cap_numero, ".", n_sub)
       list(nivel = "subcapitulo", numero = as.character(meta$numero %||% num),
-           capitulo = cap_titulo, capitulo_numero = cap_numero, rotulo = as.character(meta$rotulo %||% "Capítulo")[1])
+           capitulo = cap_titulo, capitulo_numero = cap_numero, rotulo = as.character(meta$rotulo %||% "Capítulo")[1],
+           variante = .lam_seccion_variante(meta$variante, "subcapitulo"))
     } else {
       n_cap <<- n_cap + 1L; n_sub <<- 0L
       cap_numero <<- as.character(meta$numero %||% n_cap)[1]; cap_titulo <<- titulo
-      list(nivel = "capitulo", numero = cap_numero, rotulo = as.character(meta$rotulo %||% "Capítulo")[1])
+      list(nivel = "capitulo", numero = cap_numero, rotulo = as.character(meta$rotulo %||% "Capítulo")[1],
+           variante = .lam_seccion_variante(meta$variante, "capitulo"))
     }
   })
 }
@@ -54,6 +56,11 @@
   if (identical(info$nivel, "subcapitulo")) {
     doc <- officer::add_slide(doc, layout = layout_subcapitulo, master = master)
     xt <- .std_geom("margen_izq"); fin <- .std_geom("ancho") - .std_geom("margen_der")
+    if (!identical(info$variante %||% "sobria", "sobria")) {
+      .lam_subcapitulo_variante(lz, info, titulo, sub)
+      doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:seccion")
+      return(list(doc = por_lamina(doc), partes = 1L))
+    }
     if (!is.na(info$capitulo %||% NA)) {
       ruta <- toupper(paste0(info$rotulo, " ", info$capitulo_numero, ": ", info$capitulo))
       .lam_txt(lz, ruta, xt, 2.75, 9, 0.3, 11, suave, bold = TRUE, nombre = "seccion:ruta")
@@ -64,6 +71,11 @@
     if (!is.null(sub)) .lam_txt(lz, sub, xt, 3.72, 10, 0.4, 15, suave, nombre = "seccion:subtitulo")
   } else {
     doc <- officer::add_slide(doc, layout = layout_capitulo, master = master)
+    if (!identical(info$variante %||% "rotulo", "rotulo")) {
+      .lam_capitulo_variante(lz, info, titulo, sub)
+      doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:seccion")
+      return(list(doc = por_lamina(doc), partes = 1L))
+    }
     .lam_txt(lz, toupper(paste(info$rotulo, info$numero)), 2.5, 3.85, 6, 0.36, 15, coral, bold = TRUE, nombre = "seccion:rotulo")
     .lam_caja(lz, 2.6, 4.27, 1.1, 0.04, coral, nombre = "seccion:filete")
     h <- max(0.75, .lam_alto_tinta(titulo, 9.8, 36, TRUE))                    # un título de dos líneas empuja al subtítulo
