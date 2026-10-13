@@ -3,9 +3,11 @@ import { NavLink, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { apiCodifPreguntasAbiertas, arquetipoOf, PreguntaAbierta } from "../../api/client";
 import { Panel } from "../../components/Panel";
+import { PageFrame } from "../../components/PageFrame";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { RespuestasCodificador } from "./RespuestasCodificador";
 import { IntegerCodificador } from "./IntegerCodificador";
+import { AgruparCategoriasCodificador, ModoSelectOneTabs } from "./AgruparCategoriasCodificador";
 
 const TIPO_STYLE: Record<string, { bg: string; fg: string; border: string; label: string }> = {
   select_multiple: { bg: "var(--tipo-sm-bg)", fg: "var(--tipo-sm-fg)", border: "var(--tipo-sm-border)", label: "Múltiple" },
@@ -50,7 +52,16 @@ export default function PreguntaDetalle() {
     (arq === "pareja-so" && (pregunta.modo_so === "hijo" || pregunta.modo_so === "padre"));
 
   return (
-    <section>
+    // Sin PageFrame el `main` del shell no desplaza (es viewport) y un
+    // codificador alto quedaba atrapado. El cuerpo del marco es el dueño del scroll.
+    <PageFrame
+      title={pregunta.parent_label || pregunta.parent}
+      headerMode="sr-only"
+      layout="document"
+      scrollOwner="body"
+      bodyMode="scroll"
+      density="compact"
+    >
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <NavLink
           to="/codificacion"
@@ -114,12 +125,26 @@ export default function PreguntaDetalle() {
       {codificableInline ? (
         <Panel
           eyebrow="Codificador"
-          title="Agrupa respuestas y asigna códigos"
-          hint={`Marca las respuestas que pertenecen a un mismo concepto, agrúpalas y asígnales un código + etiqueta. Las respuestas con texto idéntico (tras normalizar acentos y mayúsculas) ya están agrupadas automáticamente. La columna que leemos es ${pregunta.col_efectiva}.`}
+          title={arq === "pareja-so" ? "Codifica respuestas o agrupa categorías" : "Agrupa respuestas y asigna códigos"}
+          hint={arq === "pareja-so"
+            ? `«Codificar respuestas» asigna códigos a los textos de la columna ${pregunta.col_efectiva}. «Agrupar categorías» junta categorías de ${pregunta.parent} en una variable nueva.`
+            : `Marca las respuestas que pertenecen a un mismo concepto, agrúpalas y asígnales un código + etiqueta. Las respuestas con texto idéntico (tras normalizar acentos y mayúsculas) ya están agrupadas automáticamente. La columna que leemos es ${pregunta.col_efectiva}.`}
         >
           {arq === "auto"
             ? <IntegerCodificador parent={pregunta.parent} />
-            : <RespuestasCodificador parent={pregunta.parent} />}
+            : arq === "pareja-so"
+              ? (
+                <ModoSelectOneTabs
+                  parent={pregunta.parent}
+                  codificarRespuestas={<RespuestasCodificador parent={pregunta.parent} />}
+                />
+              )
+              : <RespuestasCodificador parent={pregunta.parent} />}
+        </Panel>
+      ) : arq === "config-so" || arq === "pareja-so" ? (
+        // Una select_one sin modo decidido igual puede agrupar sus categorías (ítem 1f).
+        <Panel eyebrow="Agrupar categorías" title="Junta categorías en una variable nueva">
+          <AgruparCategoriasCodificador parent={pregunta.parent} />
         </Panel>
       ) : (
         <Panel eyebrow={arq.replace("-", " ")} title="Esta vista llega en la próxima sub-parte">
@@ -128,8 +153,6 @@ export default function PreguntaDetalle() {
             ({<strong>{pregunta.n_unicas}</strong>} únicas) en la columna <code style={{ fontFamily: "monospace" }}>{pregunta.col_efectiva}</code>.
             <br /><br />
             {arq === "pareja-sm" && "Las preguntas de opción múltiple tienen su propia vista de codificación por opciones (próximo commit)."}
-            {(arq === "pareja-so" && !pregunta.modo_so) && "Falta decidir modo padre/hijo. Vuelve al listado para emparejar con su 'Otros, especifique'."}
-            {arq === "config-so" && "Configura esta pregunta desde el listado principal."}
             {arq === "no-aplica" && "Esta pregunta está desactivada."}
           </div>
           {pregunta.preview && pregunta.preview.length > 0 && (
@@ -142,6 +165,6 @@ export default function PreguntaDetalle() {
           )}
         </Panel>
       )}
-    </section>
+    </PageFrame>
   );
 }

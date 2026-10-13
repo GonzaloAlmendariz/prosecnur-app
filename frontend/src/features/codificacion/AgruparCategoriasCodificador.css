@@ -1,0 +1,363 @@
+/* «Agrupar categorías» (ítem 1f). Sólo tokens --pulso-*. Dueño de overflow:
+ * `.pulso-agrupar` dentro del wizard (marco de alto fijo). En la ruta de
+ * detalle la página es la que desplaza y `.pulso-agrupar` crece con su contenido. */
+
+.pulso-agrupar-modos {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-agrupar-modos > [role="tabpanel"] {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.pulso-agrupar-modos-tabs {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: var(--pulso-space-1);
+  padding: var(--pulso-space-1);
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-agrupar-modos-tabs [role="tab"] {
+  min-height: var(--pulso-control-height-sm);
+  padding: 0 var(--pulso-space-4);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.pulso-agrupar-modos-tabs [role="tab"]:hover:not([aria-selected="true"]) {
+  background: var(--pulso-nav-hover-bg);
+  color: var(--pulso-text);
+}
+
+.pulso-agrupar-modos-tabs [role="tab"]:focus-visible,
+.pulso-agrupar-cat-toggle:focus-visible {
+  outline: 2px solid var(--pulso-primary-ring);
+  outline-offset: 2px;
+}
+
+.pulso-agrupar {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  gap: var(--pulso-space-4);
+  padding-bottom: var(--pulso-space-4);
+}
+
+.pulso-agrupar-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-agrupar-toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+.pulso-agrupar-toolbar svg,
+.pulso-agrupar-seccion-head svg {
+  margin-right: var(--pulso-space-1);
+  vertical-align: -2px;
+}
+
+.pulso-agrupar-aviso {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 13px;
+}
+
+.pulso-agrupar-aviso > span {
+  flex: 1 1 240px;
+}
+
+/* Dos columnas: lo que se define (nombre y categorías) a la izquierda y lo que
+ * se asigna y se obtiene (códigos, textos, resultado) a la derecha. Bajo
+ * ~900 px se apilan en ese mismo orden. */
+.pulso-agrupar-secciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  align-items: start;
+  gap: var(--pulso-space-4);
+}
+
+.pulso-agrupar-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+}
+
+.pulso-agrupar-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.pulso-agrupar-seccion-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-agrupar-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-agrupar-lista {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.pulso-agrupar-campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-agrupar-campo > span {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-agrupar-campo input,
+.pulso-agrupar-campo select,
+.pulso-agrupar-tabla select {
+  min-height: var(--pulso-control-height-sm);
+  min-width: 0;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.pulso-agrupar-campo input[aria-invalid="true"] {
+  border-color: var(--pulso-warn-border);
+}
+
+.pulso-agrupar-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pulso-agrupar-nota.is-warn,
+.pulso-agrupar-destino.is-warn {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-agrupar-cats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-agrupar-cat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-agrupar-cat-fila {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-agrupar-cat-acciones {
+  display: inline-flex;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-agrupar-cat-toggle {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--pulso-space-1);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-primary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.pulso-agrupar-cat-marcas {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-regular);
+}
+
+.pulso-agrupar-cat-avanzadas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding-top: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-agrupar-rango {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pulso-agrupar-rango legend {
+  margin-bottom: var(--pulso-space-1);
+  padding: 0;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-agrupar-rango .pulso-agrupar-nota {
+  grid-column: 1 / -1;
+}
+
+.pulso-agrupar-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text);
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.pulso-agrupar-check input {
+  margin: 2px 0 0;
+  accent-color: var(--pulso-primary);
+}
+
+.pulso-agrupar-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.pulso-agrupar-tabla caption {
+  padding-bottom: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  text-align: left;
+}
+
+.pulso-agrupar-tabla th {
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border-strong);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.pulso-agrupar-tabla td {
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text);
+  vertical-align: middle;
+}
+
+.pulso-agrupar-tabla .is-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-agrupar-tabla td select {
+  width: 100%;
+  max-width: 240px;
+}
+
+.pulso-agrupar-tabla tr.is-warn td {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-agrupar-destino {
+  display: block;
+  margin-top: 2px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.pulso-agrupar-errores {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding-left: var(--pulso-space-5);
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pulso-agrupar-vista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+@media (max-width: 720px) {
+  .pulso-agrupar-cat-fila {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+
+  .pulso-agrupar-cat-acciones {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+}
