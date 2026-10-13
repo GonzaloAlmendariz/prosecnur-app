@@ -13,6 +13,7 @@
  * guarda sin que nadie la confirme.
  */
 
+import { rotuloDeMatriz } from "../../lib/rotuloDeMatriz";
 import type { EquivalenciaFila, OpcionDeEscala, VariableDeBase } from "../../api/equivalencias";
 
 export type FilaEditor = EquivalenciaFila & {
@@ -683,7 +684,7 @@ export function resumenEditor(filas: readonly FilaEditor[]): ResumenEditor {
 export function seccionLegible(seccion: string | null | undefined): string {
   const s = (seccion ?? "").trim();
   const m = /^pag(?:ina|e)?\s*_?(\d+)$/i.exec(s);
-  return m ? `Página ${Number(m[1])} del formulario` : s;
+  return m ? `Página ${Number(m[1])} del formulario` : rotuloDeMatriz(s);
 }
 
 /**

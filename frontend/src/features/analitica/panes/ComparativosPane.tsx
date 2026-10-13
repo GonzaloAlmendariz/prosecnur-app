@@ -18,10 +18,11 @@ import {
   GitCompare,
   Loader2,
   Play,
-} from "lucide-react";
+} from "../../../vendor/lucide-react";
 import {
   apiAnaliticaComparativoCruces,
   type ComparativoAviso,
+  type ComparativoOmitida,
   apiAnaliticaComparativoFrecuencias,
   normalizarComparativoResultado,
   type ComparativoResultado,
@@ -35,6 +36,12 @@ import {
   DIRECCION_EQUIVALENCIAS,
   accionParaAviso,
   accionParaError,
+  avisosGenerales,
+  celdaSinVariable,
+  detalleDeOmitida,
+  direccionDeOmitida,
+  omitidasDe,
+  textoMotivoOmision,
   bloqueoDeGeneracion,
   comparativosReducer,
   construirBody,
@@ -50,9 +57,10 @@ import {
   periodosDeSerie,
   preguntasEfectivas,
   cantidad,
-  detalleCobertura,
   rotuloDe,
   rotuloPorDefecto,
+  rotulosPorDefecto,
+  rotulosRepetidos,
   totalSinMapa,
   type CeldaResumen,
   type ComparativosUi,
@@ -60,6 +68,9 @@ import {
   type FilaArmonizada,
   type MotivoVacio,
 } from "./comparativosModel";
+import { ComparativosLista } from "./ComparativosLista";
+import { rotuloDeMatriz } from "../../../lib/rotuloDeMatriz";
+import { mayuscula, nombreDeSerie, type NombreDeSerie } from "../../carga/nombreDeSerie";
 import "./ComparativosPane.css";
 
 type Carga =
@@ -70,14 +81,14 @@ type Carga =
 const COPY_VACIO: Record<MotivoVacio, { titulo: string; pista: string }> = {
   "sin-equivalencias": {
     titulo: "Aún no hay matriz de equivalencias",
-    pista: "Declara en Carga, pestaña Equivalencias, qué variable es la misma pregunta en cada medición y armoniza sus escalas. Después vuelve aquí para generar el comparativo.",
+    pista: "Declara en Carga, pestaña Equivalencias, qué variable es la misma pregunta en cada base y armoniza sus respuestas. Después vuelve aquí para generar el comparativo.",
   },
   "sin-armonizadas": {
     titulo: "Ninguna pregunta está armonizada",
-    pista: "La matriz existe pero ninguna fila declara una escala común. Abre una fila en Carga, pestaña Equivalencias, y armonízala entre mediciones.",
+    pista: "La matriz existe pero ninguna fila declara una escala común. Abre una fila en Carga, pestaña Equivalencias, y armonízala entre bases.",
   },
   "sin-serie": {
-    titulo: "La serie tiene menos de dos mediciones",
+    titulo: "La serie tiene menos de dos bases",
     pista: "Un comparativo necesita al menos dos bases en el orden de la serie. Revísalo en Carga, pestaña Equivalencias.",
   },
 };
@@ -143,6 +154,9 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
   const [ui, dispatch] = useReducer(comparativosReducer, undefined, () => estadoInicial(filas, periodos));
 
   const ocupado = ui.enviando !== null || ui.job !== null;
+  // Una sola decisión de cómo se nombra la serie, con los rótulos que vienen de
+  // los datos: «años» si todos lo son, «mediciones» si no.
+  const serie = nombreDeSerie(periodos.map((p) => (ui.rotulos[p] ?? "").trim() || p));
 
   async function generar(tipo: ComparativoTipo) {
     if (bloqueoDeGeneracion(ui, tipo) || ocupado) return;
@@ -171,12 +185,14 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
 
   return (
     <div className="pulso-comparativos analitica-report-shell" data-audit-ready="analitica-comparativos">
+      <Presentacion serie={serie} />
+
       <dl
         className="pulso-comparativos-cifras"
         data-qa-geometry-group="comparativos-cifras"
         data-qa-geometry-contract="equal"
       >
-        <Cifra etiqueta="Mediciones" valor={periodos.length} />
+        <Cifra etiqueta={mayuscula(serie.plural)} valor={periodos.length} />
         <Cifra etiqueta="Preguntas armonizadas" valor={filas.length} />
         <Cifra etiqueta="Preguntas elegidas" valor={preguntasEfectivas(ui, "frecuencias").length} />
         <Cifra etiqueta="Variables de cruce" valor={ui.cruces.length} />
@@ -187,19 +203,21 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
         data-qa-geometry-group="comparativos-secciones"
         data-qa-geometry-contract="intrinsic"
       >
-        <RotulosPeriodos periodos={periodos} ui={ui} onCambio={(base, valor) => dispatch({ tipo: "rotulo", base, valor })} />
+        <RotulosPeriodos periodos={periodos} ui={ui} serie={serie} onCambio={(base, valor) => dispatch({ tipo: "rotulo", base, valor })} />
 
-        <ListaDeFilas
+        <ComparativosLista
           id="comparativos-preguntas"
           titulo="Preguntas del comparativo"
-          ayuda="Cada pregunta elegida sale como una tabla con una columna por medición. En el comparativo de cruces se omiten las que también son cruce."
+          ayuda={`Cada pregunta elegida sale como una tabla con una columna por ${serie.singular}. En el comparativo de cruces se omiten las que también son variable de cruce.`}
           filas={filas}
           elegidas={ui.preguntas}
           marcadas={ui.cruces}
-          marca="También es cruce"
-          totalPeriodos={periodos.length}
+          marca="También es variable de cruce"
+          periodos={periodos}
           rotulos={ui.rotulos}
+          serie={serie}
           onAlternar={(clave) => dispatch({ tipo: "alternar-pregunta", clave })}
+          onElegirVarias={(claves, valor) => dispatch({ tipo: "elegir-preguntas", claves, valor })}
           acciones={(
             <div className="pulso-comparativos-lista-acciones">
               <button type="button" className="pulso-ghost" onClick={() => dispatch({ tipo: "todas-las-preguntas", claves: filas.filter((f) => f.seleccionable).map((f) => f.clave) })}>
@@ -212,16 +230,17 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
           )}
         />
 
-        <ListaDeFilas
+        <ComparativosLista
           id="comparativos-cruces"
           titulo="Variables de cruce"
-          ayuda="Sólo para el comparativo de cruces. Una variable de cruce no se tabula como pregunta en ese archivo."
+          ayuda="Sólo para el comparativo de cruces. Cada pregunta se abre por las respuestas de la variable de cruce, y esa variable no se tabula como pregunta en ese archivo."
           filas={filas}
           elegidas={ui.cruces}
           marcadas={[]}
           marca=""
-          totalPeriodos={periodos.length}
+          periodos={periodos}
           rotulos={ui.rotulos}
+          serie={serie}
           onAlternar={(clave) => dispatch({ tipo: "alternar-cruce", clave })}
         />
 
@@ -279,116 +298,88 @@ function Cifra({ etiqueta, valor }: { etiqueta: string; valor: number }) {
   );
 }
 
-function RotulosPeriodos({
-  periodos,
-  ui,
-  onCambio,
-}: {
-  periodos: string[];
-  ui: ComparativosUi;
-  onCambio: (base: string, valor: string) => void;
-}) {
+/**
+ * Qué produce la pestaña y qué entra en ella. Sin esto, «Comparativos» y
+ * «Preguntas armonizadas» no decían qué es armonizar ni por qué falta una
+ * pregunta que sí está en la matriz.
+ */
+function Presentacion({ serie }: { serie: NombreDeSerie }) {
   return (
-    <section className="pulso-comparativos-bloque" aria-labelledby="comparativos-rotulos-titulo" data-qa-geometry-member>
-      <header className="pulso-comparativos-bloque-head">
-        <h3 id="comparativos-rotulos-titulo">Rótulos de las mediciones</h3>
-        <p>Así se titula cada columna del comparativo, en el orden de la serie.</p>
-      </header>
-      <div
-        className="pulso-comparativos-rotulos"
-        data-qa-geometry-group="comparativos-rotulos"
-        data-qa-geometry-contract="equal"
-      >
-        {periodos.map((base) => (
-          <label key={base} className="pulso-comparativos-rotulo" data-qa-geometry-member>
-            <span className="pulso-comparativos-rotulo-base" title={base}>{base}</span>
-            <input
-              type="text"
-              value={ui.rotulos[base] ?? ""}
-              placeholder={rotuloPorDefecto(base)}
-              onChange={(e) => onCambio(base, e.target.value)}
-              aria-label={`Rótulo de la medición ${base}`}
-            />
-          </label>
-        ))}
+    <section className="pulso-comparativos-presentacion" aria-labelledby="comparativos-presentacion-titulo">
+      <GitCompare size={18} aria-hidden="true" />
+      <div>
+        <h2 id="comparativos-presentacion-titulo">Comparar una pregunta entre {serie.plural}</h2>
+        <p>
+          Un comparativo pone cada pregunta lado a lado en {serie.todas}, con una columna por {serie.singular},
+          y se descarga como Excel. El simple da la frecuencia de cada respuesta. El de cruces la abre además
+          por una variable de cruce.
+        </p>
+        <p>
+          Solo entran las preguntas armonizadas, es decir, las que tienen sus respuestas puestas en una misma
+          escala en todas las bases. Si falta una, armonízala en Equivalencias.
+        </p>
       </div>
+      <Link className="pulso-comparativos-enlace" to={DIRECCION_EQUIVALENCIAS}>
+        Ir a Equivalencias <ArrowRight size={14} aria-hidden="true" />
+      </Link>
     </section>
   );
 }
 
-function ListaDeFilas({
-  id,
-  titulo,
-  ayuda,
-  filas,
-  elegidas,
-  marcadas,
-  marca,
-  totalPeriodos,
-  rotulos,
-  onAlternar,
-  acciones,
+function RotulosPeriodos({
+  periodos,
+  ui,
+  serie,
+  onCambio,
 }: {
-  id: string;
-  titulo: string;
-  ayuda: string;
-  filas: FilaArmonizada[];
-  elegidas: string[];
-  /** Filas que llevan una marca informativa, sin cambiar su selección. */
-  marcadas: string[];
-  marca: string;
-  totalPeriodos: number;
-  rotulos: Record<string, string>;
-  onAlternar: (clave: string) => void;
-  acciones?: JSX.Element;
+  periodos: string[];
+  ui: ComparativosUi;
+  serie: NombreDeSerie;
+  onCambio: (base: string, valor: string) => void;
 }) {
+  const porDefecto = rotulosPorDefecto(periodos);
+  const repetidos = rotulosRepetidos(ui.rotulos, periodos);
   return (
-    <fieldset className="pulso-comparativos-bloque pulso-comparativos-lista" data-qa-geometry-member>
-      <legend className="pulso-sr-only">{titulo}</legend>
+    <section className="pulso-comparativos-bloque" aria-labelledby="comparativos-rotulos-titulo" data-qa-geometry-member>
       <header className="pulso-comparativos-bloque-head">
-        <h3 id={`${id}-titulo`} aria-hidden="true">{titulo}</h3>
-        <p>{ayuda}</p>
-        {acciones}
+        <h3 id="comparativos-rotulos-titulo">Rótulos de {serie.articulo} {serie.plural}</h3>
+        <p>
+          Así se titula cada columna del comparativo, en el orden de la serie. Si el nombre de la base
+          trae un año, se propone el año. Si no, se propone el nombre de la base.
+        </p>
       </header>
-      <ul
-        className="pulso-comparativos-filas"
-        // Intrínseco: cada fila mide lo que su enunciado necesita. Igualar los
-        // marcos obligaría a recortar el enunciado, que es lo que se elige.
-        data-qa-geometry-group={`${id}-filas`}
-        data-qa-geometry-contract="intrinsic"
+      <ol
+        className="pulso-comparativos-rotulos"
+        data-qa-geometry-group="comparativos-rotulos"
+        data-qa-geometry-contract="equal"
       >
-        {filas.map((fila) => {
-          const conMarca = Boolean(marca) && marcadas.includes(fila.clave);
-          const marcada = fila.seleccionable && elegidas.includes(fila.clave);
-          return (
-            <li key={fila.clave} data-qa-geometry-member>
-              <label
-                className={`pulso-comparativos-fila${marcada ? " is-on" : ""}${fila.seleccionable ? "" : " is-off"}`}
-              >
-                <input
-                  type="checkbox"
-                  checked={marcada}
-                  disabled={!fila.seleccionable}
-                  onChange={() => onAlternar(fila.clave)}
-                />
-                <span className="pulso-comparativos-fila-copy">
-                  <strong>{fila.etiqueta}</strong>
-                  <small>
-                    {fila.seccion ? `${fila.seccion}, ` : ""}
-                    {detalleCobertura(fila, totalPeriodos, rotulos)}
-                  </small>
-                  {!fila.seleccionable ? (
-                    <span className="pulso-comparativos-fila-marca is-off">No es comparable en ninguna medición</span>
-                  ) : conMarca ? (
-                    <span className="pulso-comparativos-fila-marca">{marca}</span>
-                  ) : null}
-                </span>
-              </label>
-            </li>
-          );
-        })}
-      </ul>
-    </fieldset>
+        {periodos.map((base, i) => (
+          <li key={base} data-qa-geometry-member>
+            <label className="pulso-comparativos-rotulo">
+              <span className="pulso-comparativos-rotulo-base" title={base}>
+                <span className="pulso-comparativos-rotulo-pos" aria-hidden="true">{i + 1}</span>
+                {base}
+              </span>
+              <input
+                type="text"
+                value={ui.rotulos[base] ?? ""}
+                placeholder={porDefecto[base] ?? rotuloPorDefecto(base)}
+                onChange={(e) => onCambio(base, e.target.value)}
+                aria-label={`Rótulo de la columna ${i + 1}, base ${base}`}
+              />
+            </label>
+          </li>
+        ))}
+      </ol>
+      {repetidos.length ? (
+        <p className="pulso-comparativos-rotulos-aviso" role="status">
+          <AlertTriangle size={13} aria-hidden="true" />
+          {repetidos.length === 1
+            ? `«${repetidos[0]}» titula a más de una columna. Cambia uno de los rótulos para que las columnas se distingan.`
+            : `${repetidos.map((r) => `«${r}»`).join(", ")} titulan a más de una columna. Cambia los rótulos para que las columnas se distingan.`}
+        </p>
+      ) : null}
+    </section>
   );
 }
 
@@ -424,7 +415,7 @@ function Notas({
           <div className="pulso-comparativos-notas-preguntas">
             {filas.map((fila) => (
               <label key={fila.clave} className="pulso-comparativos-campo">
-                <span>Nota de {fila.etiqueta}</span>
+                <span>Nota de {rotuloDeMatriz(fila.etiqueta)}</span>
                 <input
                   type="text"
                   value={ui.notasPregunta[fila.clave] ?? ""}
@@ -488,7 +479,7 @@ function Resultado({ tipo, datos }: { tipo: ComparativoTipo; datos: ComparativoR
           {tipo === "cruces" ? "Comparativo de cruces generado" : "Comparativo simple generado"}
         </h3>
         <p>
-          {cantidad(datos.resumen.n_preguntas, "pregunta", "preguntas")} en {cantidad(datos.periodos.length, "medición", "mediciones")}
+          {cantidad(datos.resumen.n_preguntas, "pregunta", "preguntas")} en {cantidad(datos.periodos.length, nombreDeSerie(datos.periodos.map((p) => p.rotulo)).singular, nombreDeSerie(datos.periodos.map((p) => p.rotulo)).plural)}
           {datos.periodos.length ? ` (${datos.periodos.map((p) => p.rotulo).join(", ")})` : ""}
         </p>
       </header>
@@ -507,14 +498,16 @@ function Resultado({ tipo, datos }: { tipo: ComparativoTipo; datos: ComparativoR
         ) : null}
       </div>
 
-      {datos.resumen.avisos.length ? (
+      <PreguntasOmitidas omitidas={omitidasDe(datos.resumen)} periodos={datos.periodos} />
+
+      {avisosGenerales(datos.resumen.avisos).length ? (
         <ul className="pulso-comparativos-avisos" aria-label="Avisos del comparativo">
-          {datos.resumen.avisos.map((aviso, i) => (
+          {avisosGenerales(datos.resumen.avisos).map((aviso, i) => (
             <AvisoFila key={`${aviso.tipoOriginal}-${i}`} aviso={aviso} />
           ))}
         </ul>
       ) : (
-        <p className="pulso-comparativos-sin-avisos">El motor no reportó avisos para este comparativo.</p>
+        <p className="pulso-comparativos-sin-avisos">El motor no reportó otros avisos para este comparativo.</p>
       )}
 
       <div className="pulso-comparativos-tabla-marco">
@@ -525,6 +518,7 @@ function Resultado({ tipo, datos }: { tipo: ComparativoTipo; datos: ComparativoR
               <th scope="col">Pregunta</th>
               <th scope="col" title="Dónde la pregunta no es comparable">n.c.</th>
               <th scope="col" title="Casillas sin casos o sin respuesta sustantiva">n.a.</th>
+              <th scope="col" title="Mediciones donde la pregunta no tiene variable. Salen como n.c.">Sin variable</th>
               <th scope="col">Sin mapa</th>
               <th scope="col">No ofrecidas</th>
             </tr>
@@ -547,6 +541,7 @@ function Resultado({ tipo, datos }: { tipo: ComparativoTipo; datos: ComparativoR
                   </th>
                   <td><ListaCelda items={p.n_c.map((x) => rotuloDe(x, datos.periodos))} vacio="Ninguna" /></td>
                   <td><CeldaCubierta celda={na} /></td>
+                  <td><ListaCelda items={celdaSinVariable(p, datos.periodos)} vacio="Ninguna" /></td>
                   <td>
                     {sinMapa ? (
                       <ul className="pulso-comparativos-celda-lista">
@@ -576,6 +571,65 @@ function Resultado({ tipo, datos }: { tipo: ComparativoTipo; datos: ComparativoR
           </tbody>
         </table>
       </div>
+    </section>
+  );
+}
+
+/**
+ * Lo que quedó fuera del comparativo y por qué. Va destacado y antes de los
+ * demás avisos: una pregunta omitida no es una nota al margen, es una tabla que
+ * el usuario esperaba y no está en el archivo.
+ */
+function PreguntasOmitidas({
+  omitidas,
+  periodos,
+}: {
+  omitidas: ComparativoOmitida[];
+  periodos: ComparativoResultado["periodos"];
+}) {
+  if (!omitidas.length) return null;
+  return (
+    <section className="pulso-comparativos-omitidas" aria-labelledby="comparativos-omitidas-titulo">
+      <header>
+        <AlertTriangle size={15} aria-hidden="true" />
+        <h4 id="comparativos-omitidas-titulo">
+          {omitidas.length === 1 ? "1 fila quedó fuera del comparativo" : `${omitidas.length} filas quedaron fuera del comparativo`}
+        </h4>
+        <p>
+          {omitidas.length === 1
+            ? "No tiene tabla en el archivo. El libro la lista en la hoja «Preguntas omitidas»."
+            : "No tienen tabla en el archivo. El libro las lista en la hoja «Preguntas omitidas»."}
+        </p>
+      </header>
+      <ul
+        className="pulso-comparativos-omitidas-lista"
+        // Intrínseco: cada omisión mide lo que su detalle necesita.
+        data-qa-geometry-group="comparativos-omitidas"
+        data-qa-geometry-contract="intrinsic"
+      >
+        {omitidas.map((o, i) => (
+          <li key={`${o.fila}-${o.base}-${i}`} data-qa-geometry-member>
+            <div className="pulso-comparativos-omitida-cabeza">
+              <strong>{rotuloDeMatriz(o.titulo)}</strong>
+              <span className="pulso-comparativos-omitida-tipo">
+                {o.tipo === "cruce" ? "Variable de cruce" : "Pregunta"}
+              </span>
+            </div>
+            <p className="pulso-comparativos-omitida-motivo">
+              {textoMotivoOmision(o.motivo, o.ausentes)}
+              {o.base ? `. Base afectada: ${rotuloDe(o.base, periodos)}.` : "."}
+            </p>
+            {/* Un solo párrafo de detalle: el del motor ya nombra los códigos
+                cuando los hay, y repetirlos aparte decía lo mismo dos veces. */}
+            {detalleDeOmitida(o, periodos) ? (
+              <p className="pulso-comparativos-omitida-detalle">{detalleDeOmitida(o, periodos)}</p>
+            ) : null}
+            <Link className="pulso-comparativos-aviso-accion" to={direccionDeOmitida(o)}>
+              Revisar en Equivalencias
+            </Link>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

@@ -366,9 +366,24 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
           <div>
             <strong>La misma pregunta en cada base</strong>
             <small>
-              Cada base nombra sus variables distinto. Declarar la equivalencia es lo
-              que permite compararlas sin emparejar a mano.
+              Cada base nombra sus variables a su manera. Aquí declaras cuál es la misma
+              pregunta en cada una y, si sus respuestas usan códigos distintos, las armonizas.
             </small>
+            {/* U1: «armonizar» se explica donde aparece, con un ejemplo y no con
+                una definición. Plegado por defecto: quien ya lo sabe no lo relee. */}
+            <details className="pulso-equiv-que-es">
+              <summary>¿Qué es armonizar?</summary>
+              <p>
+                Es poner las respuestas de todas las bases en una misma escala. Por ejemplo, una
+                base codifica «No sabe» como 0 y otra como 99. Armonizar es declarar que las dos son
+                la misma respuesta, para que la comparación cuente lo mismo.
+              </p>
+              <p>
+                Se hace pregunta por pregunta desde la marca «Sin armonizar» o «Armonizada» que
+                acompaña a cada tema. Solo las preguntas armonizadas entran a los comparativos de
+                Analítica.
+              </p>
+            </details>
           </div>
         </div>
         <div className="pulso-equiv-actions">

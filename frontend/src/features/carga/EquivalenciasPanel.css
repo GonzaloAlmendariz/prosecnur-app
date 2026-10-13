@@ -721,8 +721,10 @@ button.pulso-equiv-chip-escala:hover,
   padding-right: var(--pulso-space-3);
 }
 
+/* Ancho mínimo común por base, el mismo con cualquier N: el contenido es un
+   código corto y lo que no cabe se desplaza en el marco de la tabla. */
 .pulso-equiv-diapositiva-tabla th:not(.pulso-equiv-col-etiqueta) {
-  min-width: 92px;
+  min-width: 76px;
 }
 
 /* La ultima columna pega con el borde de la tarjeta, no con la penultima. */
@@ -812,25 +814,6 @@ button.pulso-equiv-chip-escala:hover,
 .pulso-equiv-var.is-vacia { color: var(--pulso-text-faint); }
 
 .pulso-equiv-col-cob { width: 58px; }
-
-/* Puntos en posicion fija por publico: «3/4» dice cuantos faltan y nunca cual. */
-.pulso-equiv-dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.pulso-equiv-dots i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
-
-.pulso-equiv-dots i.is-on { background: var(--pulso-module-processing); }
-.pulso-equiv-dots i.is-off {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--pulso-border-strong);
-}
 
 .pulso-equiv-add-tema {
   align-self: flex-start;
@@ -1173,4 +1156,129 @@ button.pulso-equiv-mover:hover,
   .pulso-equiv-title small {
     display: none;
   }
+}
+
+/* --- «¿Qué es armonizar?» (U1) ------------------------------------------------
+   Plegable nativo: cerrado sólo cuenta el `summary` (C4) y quien ya sabe qué es
+   no relee la explicación en cada visita. */
+.pulso-equiv-que-es {
+  margin-top: 2px;
+  max-width: 72ch;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-equiv-que-es > summary {
+  width: fit-content;
+  cursor: pointer;
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-module-processing);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-equiv-que-es > summary:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 2px;
+}
+
+.pulso-equiv-que-es[open] {
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-equiv-que-es p {
+  margin: var(--pulso-space-1) 0 0;
+  line-height: 1.5;
+  color: var(--pulso-text);
+}
+
+/* --- Series de N bases (U2) ----------------------------------------------------
+   El marco de cada tabla sólo es dueño de desplazamiento horizontal cuando la
+   tabla no cabe (lo mide `useDesbordeHorizontal`). Mientras cabe no tiene
+   overflow y la cabecera sigue pegada al dueño de scroll de Carga. Cuando
+   desborda, la columna del tema queda fija a la izquierda para no perder de
+   qué fila se trata al desplazarse. */
+.pulso-equiv-hscroll {
+  /* Posicionado: los `pulso-sr-only` absolutos de las celdas (la cobertura
+     «k de N» de la última columna) toman este marco como bloque contenedor y
+     quedan recortados con la tabla. Sin esto escapaban al de `.pulso-equiv` y
+     ensanchaban la pestaña 430 px aunque la tabla ya se desplazaba. */
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* La cadena hasta el marco no puede crecer con la tabla: un ítem de grilla o
+   flex con `min-width: auto` toma el ancho mínimo de su contenido, y con siete
+   bases toda la pestaña se ensanchaba a 1400 px (cabecera y orden de la serie
+   cortados) en vez de desplazarse sólo la tabla. */
+.pulso-equiv,
+.pulso-equiv-cuerpo,
+.pulso-equiv-diapositivas {
+  min-width: 0;
+}
+
+
+/* Sin `border-radius`: en un scroller compuesto Chromium recorta las esquinas
+   con una máscara, y con la columna fija pintaba la tabla a medias, con un
+   corte en diagonal (medido en la captura con siete bases). */
+.pulso-equiv-hscroll.is-desborda {
+  overflow-x: auto;
+}
+
+.pulso-equiv-hscroll.is-desborda:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 2px;
+}
+
+.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla th:first-child,
+.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla td:first-child,
+.pulso-equiv-hscroll.is-desborda .pulso-equiv-diapositiva-tabla th:first-child,
+.pulso-equiv-hscroll.is-desborda .pulso-equiv-diapositiva-tabla tr:not(.pulso-equiv-bloque-head) > td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--pulso-surface);
+  box-shadow: inset -1px 0 0 var(--pulso-border);
+}
+
+/* Dentro de un marco que se desplaza en horizontal la cabecera ya no puede
+   pegarse al dueño de scroll de Carga: su `top` (el alto de la barra de
+   vistas) la empujaba hacia abajo DENTRO del marco y tapaba la primera fila.
+   Ahí la cabecera queda en su sitio; sólo la columna del tema se fija. */
+.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla thead th,
+.pulso-equiv-hscroll.is-desborda .pulso-equiv-diapositiva-tabla thead th {
+  top: auto;
+}
+
+.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla thead th:first-child,
+.pulso-equiv-hscroll.is-desborda .pulso-equiv-diapositiva-tabla thead th:first-child {
+  z-index: 3;
+}
+
+.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla tr.is-sugerida td:first-child,
+.pulso-equiv-hscroll.is-desborda .pulso-equiv-diapositiva-tabla tr.is-sugerida td:first-child {
+  background: var(--pulso-info-bg);
+}
+
+/* Al desplazarse, el tema conserva un ancho legible en vez de encogerse a
+   los chips: es la columna que dice de qué fila se trata. */
+.pulso-equiv-diapositiva-tabla th.pulso-equiv-col-etiqueta {
+  min-width: 320px;
+}
+
+/* «3 de 7»: la misma forma con cualquier cantidad de bases. Lo parcial se
+   marca en peso y color, y el detalle va en el `title`. */
+.pulso-equiv-cobertura {
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
+
+.pulso-equiv-cobertura.is-parcial {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
 }
