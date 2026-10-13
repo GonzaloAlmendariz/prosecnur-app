@@ -3289,7 +3289,11 @@ mount_codificacion <- function(pr) {
       # quedaron sin código. Igual que `sin_recodificar`, informa y no bloquea:
       # si el diagnóstico falla, el aplicar sigue y la lista sale vacía.
       omitidas <- tryCatch(
-        .codif_omitidas(bridge$skipped, grupos_map, draft$rows, names(data_adapt_df)),
+        c(
+          .codif_omitidas(bridge$skipped, grupos_map, draft$rows, names(data_adapt_df)),
+          .codif_agrupaciones_omitidas(
+            codif_agrupaciones_para_aplicar(sid, target_base), names(data_adapt_df))
+        ),
         error = function(e) list()
       )
       textos_sin_codigo <- tryCatch(
