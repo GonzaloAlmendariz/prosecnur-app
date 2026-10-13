@@ -111,7 +111,10 @@ function CajasDeEscala({ slideId, slot, valor, composicion }: Omit<Props, "onAbr
   // Una pregunta cuyas respuestas no van de menos a más (género, carrera) no lleva Top ni Bottom Two Box: la sección no se
   // ofrece; si quedó encendida de antes, se muestra sólo para decir por qué y poder apagarla (loop UI, Arte lámina 1).
   const noOrdenada = cats.fase === "lista" && !cats.datos.ordinal;
-  if (noOrdenada && !estado.top.activa && !estado.bottom.activa) return null;
+  // Encendido por el estilo del informe (no por esta lámina) en una pregunta que no es escala: el motor no lo dibuja y
+  // pedir «apágalo» en cada Sí/No es ruido (láminas 5–7 de Arte). Sólo si esta lámina lo encendió se dice y se deja apagar.
+  const encendidoAqui = args.top2box === true || args.columna_bottom2box === true;
+  if (noOrdenada && !encendidoAqui) return null;
 
   const escala = (caja: Caja, nombre: "Top Two Box" | "Bottom Two Box", clave: "top" | "bottom") => {
     if (!pregunta) return <p className="pulso-f6-twobox-estado">Elige la pregunta para declarar su {nombre}.</p>;
