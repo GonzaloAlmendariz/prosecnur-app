@@ -39,8 +39,6 @@ export function NotasPieEditor({ variante, variables, crucesVars = [], defaultOp
     <section
       className="analitica-collapsible analitica-notas-pie"
       aria-label="Notas al pie"
-      data-qa-geometry-group={`analitica-notas-pie-${variante}`}
-      data-qa-geometry-contract="intrinsic"
     >
       <button
         type="button"
@@ -57,7 +55,12 @@ export function NotasPieEditor({ variante, variables, crucesVars = [], defaultOp
       </button>
 
       {open && (
-        <div id={bodyId} className="analitica-collapsible-body analitica-notas-pie-body">
+        <div
+          id={bodyId}
+          className="analitica-collapsible-body analitica-notas-pie-body"
+          data-qa-geometry-group={`analitica-notas-pie-${variante}`}
+          data-qa-geometry-contract="intrinsic"
+        >
           <div className="analitica-notas-pie-fields">
             <label className="analitica-notas-pie-field" data-qa-geometry-member="true">
               <span className="pulso-section-eyebrow">Fuente</span>

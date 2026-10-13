@@ -150,11 +150,10 @@ describe("store: bloque notas", () => {
 describe("NotasPieEditor: render", () => {
   beforeEach(resetStore);
 
-  test("Frecuencias: plegado, declarado y con resumen", () => {
+  test("Frecuencias: plegado con resumen, sin geometría propia (sólo el botón estándar)", () => {
     const html = renderToStaticMarkup(createElement(NotasPieEditor, { variante: "frecuencias", variables: [] }));
     expect(html).toContain('aria-label="Notas al pie"');
-    expect(html).toContain('data-qa-geometry-group="analitica-notas-pie-frecuencias"');
-    expect(html).toContain('data-qa-geometry-contract="intrinsic"');
+    expect(html).not.toContain("data-qa-geometry-group");
     expect(html).toContain('aria-expanded="false"');
     expect(html).toContain("Fuente: Pulso PUCP");
     expect(html).not.toContain("Base por defecto");
@@ -165,7 +164,6 @@ describe("NotasPieEditor: render", () => {
     const html = renderToStaticMarkup(
       createElement(NotasPieEditor, { variante: "cruces", variables: [], crucesVars: ["sexo"] }),
     );
-    expect(html).toContain('data-qa-geometry-group="analitica-notas-pie-cruces"');
     expect(html).toContain("aviso bajo 25 casos");
   });
 
@@ -174,6 +172,8 @@ describe("NotasPieEditor: render", () => {
       createElement(NotasPieEditor, { variante: "frecuencias", variables: [], defaultOpen: true }),
     );
     expect(html).toContain('aria-expanded="true"');
+    expect(html).toContain('data-qa-geometry-group="analitica-notas-pie-frecuencias"');
+    expect(html).toContain('data-qa-geometry-contract="intrinsic"');
     expect(html).toContain('placeholder="Pulso PUCP 2026."');
     expect(html).toContain('placeholder="total de encuestados."');
     expect(html).toContain("Todas usan la base por defecto");
@@ -186,6 +186,7 @@ describe("NotasPieEditor: render", () => {
       createElement(NotasPieEditor, { variante: "cruces", variables: [], crucesVars: [], defaultOpen: true }),
     );
     expect(html).toContain("Sin variables de cruce");
+    expect(html).toContain('data-qa-geometry-group="analitica-notas-pie-cruces"');
     expect(html).toContain('data-qa-geometry-capacity="owned"');
     expect(html).toContain("Avisar base reducida");
   });
