@@ -182,3 +182,22 @@ como R4b, antes de dar los comparativos por buenos:
 
 Datos medidos: 2024 n = 2 267, suma de pesos 2 267,97, deff 1,03. 2025 n = 2 471, suma
 2 500, deff 1,001.
+
+## E8: prueba de punta a punta con los datos reales (2026-10-13)
+
+Motor vía `load_all` sobre copias: .pulso 2026 (3 318 casos, sin peso), .sav 2024
+(2 267, factor_ponderacion, suma 2 267,97) y .sav 2025 (2 471, suma 2 500), matriz real
+importada (100 bloques, 78 filas, 73 con armonización). PV-01 (P11/P11/P12) y S-05 lugar
+de nacimiento completadas a mano.
+
+- **Cifras 2024 y 2025 idénticas a la maqueta** (diferencias de 1e-11 a 1e-13), en el
+  simple y en cruces, incluidas las letras. 2026 sin peso: Sí 919 (27,70 %), No 2 160
+  (65,10 %), No sé 239 (7,20 %).
+- Defectos del importador encontrados (en corrección): falsos positivos de
+  `etiqueta_distinta` con celdas «[n]» sin rótulo, detector de cohorte que no salta con
+  «Otros [10]» y años guardados como código en 2025, enunciado descartado, numeración del
+  eje en el título de sección.
+- Configuración pendiente del proyecto: 94 variables 2026 «(pendiente)» en la matriz,
+  S-05 sin códigos, notas al pie (fuente 2026, base) sin configurar.
+- Decisión pendiente de Gonzalo: «—» (opción no ofrecida) frente a «n.a.» de la maqueta
+  para «Fuera del país» en 2024.
