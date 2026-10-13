@@ -167,7 +167,8 @@ origen_externo_construir <- function(exclusiones, ids_base, n_recibidas = NA_int
     recibidas = as.integer(bloque$n_recibidas %||% NA_integer_),
     excluidas = as.integer(bloque$n_excluidas %||% 0L),
     entregadas = as.integer(bloque$n_entregadas %||% NA_integer_),
-    por_categoria = lapply(names(por_cat), function(k) list(categoria = k, n = as.integer(por_cat[[k]])))
+    por_categoria = lapply(names(por_cat), function(k) list(categoria = k, n = as.integer(por_cat[[k]]))),
+    variables_retiradas = .origen_externo_resumen_variables(bloque$variables_retiradas)
   )
 }
 
@@ -183,41 +184,158 @@ origen_externo_construir <- function(exclusiones, ids_base, n_recibidas = NA_int
   as.data.frame(.read_data_any_path(meta$path, ext), stringsAsFactors = FALSE, check.names = FALSE)
 }
 
-#' Declara de dónde viene la base: lista de exclusiones del script y recibidas.
+# El `survey` del instrumento de ESA base (no el de la activa), por el lector y
+# el cache que ya usa la vista de esquema de Carga. Sin XLSForm: E_NO_XLSFORM.
+.origen_externo_survey <- function(sid, nombre) {
+  (.carga_inst_estructura_por_base(sid, nombre) %||% list())$survey
+}
+
+# Las faltantes se calculan siempre, haya declaración o no. Una base sin
+# instrumento, con un XLSForm que el lector no abre o sin archivo de data no
+# tiene contra qué compararse: la consulta responde una lista vacía en vez de
+# tumbar el panel (el POST sí falla) y deja la causa en stderr.
+.origen_externo_faltantes_consulta <- function(sid, nombre, meta) {
+  tryCatch({
+    columnas <- names(.origen_externo_leer_archivo(session_get(sid), meta$data_file_id, "la base"))
+    origen_externo_variables_faltantes(.origen_externo_survey(sid, nombre), columnas)
+  }, error = function(e) {
+    message(sprintf("[origen_externo] faltantes de «%s» sin calcular: %s", nombre, conditionMessage(e)))
+    list()
+  })
+}
+
+.origen_externo_tiene_casos <- function(bloque) {
+  if (!is.list(bloque) || !isTRUE(bloque$enabled)) return(FALSE)
+  if (!is.null(bloque$casos_declarados)) return(isTRUE(bloque$casos_declarados))
+  length(bloque$exclusiones %||% list()) > 0L  # bloque anterior a P2b
+}
+
+# Declarar sólo variables no borra la lista de casos que ya regía para esta base
+# (ni al revés): cada parte del panel se declara por su lado.
+.origen_externo_bloque_sin_lista <- function(previo, n_entregadas, script, version, data_file_id) {
+  b <- if (.origen_externo_tiene_casos(previo)) previo else list(
+    n_recibidas = NA_integer_, n_recibidas_deducida = FALSE,
+    n_entregadas = as.integer(n_entregadas), n_excluidas = 0L, exclusiones = list()
+  )
+  b$enabled <- TRUE
+  b$casos_declarados <- .origen_externo_tiene_casos(previo)
+  b$script <- .origen_externo_chr(script)
+  if (!nzchar(b$script)) b$script <- .origen_externo_chr((previo %||% list())$script)
+  b$version <- .origen_externo_chr(version)
+  if (!nzchar(b$version)) b$version <- .origen_externo_chr((previo %||% list())$version)
+  b$data_file_id <- .origen_externo_chr(data_file_id)
+  b$declarado_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  b
+}
+
+# `variables_excluidas` de la config de Analítica DE ESA BASE: por base si el
+# estudio scopea la config (ADR 0061) o la base ya tiene la suya; si no, la
+# global, que es la que esa base lee. Devuelve la sesión mutada y las agregadas.
+.origen_externo_analitica_excluir <- function(sid, s, nombre, retiradas) {
+  configs <- s$analitica_config_por_base
+  propia <- is.list(configs) && !is.null(configs[[nombre]])
+  por_base <- propia || .analitica_config_es_por_base(sid)
+  cfg <- if (por_base && !propia && identical(.analitica_scoped_base(sid), nombre)) {
+    .analitica_config_get(sid, s)  # conserva la herencia de la base activa
+  } else {
+    .analitica_cfg_para_base(sid, nombre, s) %||% .analitica_default_config()
+  }
+  out <- .origen_externo_excluidas_con_retiradas(cfg, retiradas)
+  if (!length(out$agregadas)) return(list(s = s, agregadas = character(0)))
+  if (por_base) {
+    if (!is.list(configs)) configs <- list()
+    configs[[nombre]] <- out$cfg
+    s$analitica_config_por_base <- configs
+  } else {
+    s$analitica_config <- out$cfg
+  }
+  list(s = s, agregadas = out$agregadas)
+}
+
+.origen_externo_variables_motivo <- function(x) {
+  if (is.null(x) || !length(x)) return(list())
+  x <- as.list(x)
+  nombres <- trimws(names(x) %||% rep("", length(x)))
+  x <- x[nzchar(nombres)]
+  names(x) <- nombres[nzchar(nombres)]
+  x
+}
+
+#' Declara de dónde viene la base: casos retirados, variables retiradas o ambos.
 #'
 #' @param sid sesión. @param base_nombre base (vacío = la activa).
-#' @param file_id archivo xlsx o csv ya subido con la lista de exclusiones.
+#' @param file_id archivo xlsx o csv ya subido con la lista de exclusiones
+#'   (opcional desde P2b).
 #' @param n_recibidas,script,version ver `origen_externo_construir()`.
-#' @return `list(base, estado, bloque, avisos, resumen)`.
+#' @param variables_motivo lista `variable -> motivo` ("metadato",
+#'   "no_va_al_cliente", "otra"). Con algo dentro se registran TODAS las
+#'   variables faltantes; las no nombradas llevan el motivo sugerido u "otra".
+#' @return la consulta más `avisos` y `variables_excluidas_agregadas`.
 #' @keywords internal
 origen_externo_declarar <- function(sid, base_nombre = NULL, file_id = "",
-                                    n_recibidas = NA_integer_, script = "", version = "") {
+                                    n_recibidas = NA_integer_, script = "", version = "",
+                                    variables_motivo = NULL) {
   s <- session_get(sid)
   nombre <- .resolve_base_nombre(s, base_nombre)
   meta <- s$estudio$bases[[nombre]]
   if (is.null(meta)) stop_api(404, "E_BASE_NOT_FOUND", sprintf("No existe la base «%s».", nombre))
-  base_df <- .origen_externo_leer_archivo(s, meta$data_file_id, "la base")
-  col_id <- .origen_externo_col_id(names(base_df))
-  if (is.na(col_id)) {
+  fid <- .origen_externo_chr(file_id)
+  vm <- .origen_externo_variables_motivo(variables_motivo)
+  if (!nzchar(fid) && !length(vm)) {
     stop_api(400, "E_BAD_REQUEST", paste0(
-      "La base no trae una columna de identificador de encuesta (",
-      paste(.origen_externo_id_candidatas(), collapse = ", "), "): no hay contra qué cruzar la lista."))
+      "Declara la lista de casos retirados ('file_id') o las variables retiradas ",
+      "('variables_motivo'): sin ninguna de las dos no hay nada que declarar."))
   }
-  exclusiones <- .origen_externo_normalizar_exclusiones(
-    .origen_externo_leer_archivo(s, file_id, "exclusiones"))
-  out <- origen_externo_construir(
-    exclusiones, base_df[[col_id]], n_recibidas = n_recibidas,
-    script = script, version = version, data_file_id = meta$data_file_id
-  )
-  meta$origen_externo <- out$bloque
+  base_df <- .origen_externo_leer_archivo(s, meta$data_file_id, "la base")
+  # Se lee antes de mutar: el lector cachea el instrumento en la sesión.
+  survey <- if (length(vm)) .origen_externo_survey(sid, nombre) else NULL
+  s <- session_get(sid)
+  previo <- meta$origen_externo
+  previo_vigente <- identical(.origen_externo_estado(previo, meta$data_file_id), "vigente")
+  avisos <- list()
+
+  if (nzchar(fid)) {
+    col_id <- .origen_externo_col_id(names(base_df))
+    if (is.na(col_id)) {
+      stop_api(400, "E_BAD_REQUEST", paste0(
+        "La base no trae una columna de identificador de encuesta (",
+        paste(.origen_externo_id_candidatas(), collapse = ", "), "): no hay contra qué cruzar la lista."))
+    }
+    exclusiones <- .origen_externo_normalizar_exclusiones(
+      .origen_externo_leer_archivo(s, fid, "exclusiones"))
+    out <- origen_externo_construir(
+      exclusiones, base_df[[col_id]], n_recibidas = n_recibidas,
+      script = script, version = version, data_file_id = meta$data_file_id
+    )
+    bloque <- out$bloque
+    bloque$casos_declarados <- TRUE
+    avisos <- out$avisos
+  } else {
+    bloque <- .origen_externo_bloque_sin_lista(
+      if (previo_vigente) previo else NULL, nrow(base_df), script, version, meta$data_file_id)
+  }
+
+  if (length(vm)) {
+    faltantes <- origen_externo_variables_faltantes(survey, names(base_df))
+    v <- origen_externo_variables_retiradas(faltantes, names(base_df), vm)
+    bloque$variables_retiradas <- v$retiradas
+    avisos <- c(avisos, v$avisos)
+  } else {
+    bloque$variables_retiradas <- if (previo_vigente) previo$variables_retiradas %||% list() else list()
+  }
+  bloque$n_variables_retiradas <- length(bloque$variables_retiradas)
+
+  meta$origen_externo <- bloque
   s$estudio$bases[[nombre]] <- meta
-  s <- .mark_project_dirty(s)
+  analitica <- .origen_externo_analitica_excluir(sid, s, nombre, bloque$variables_retiradas)
+  s <- .mark_project_dirty(analitica$s)
   .session_env[[sid]] <- s
-  list(base = nombre, estado = "vigente", bloque = .origen_externo_sin_ids(out$bloque),
-       avisos = out$avisos, resumen = .origen_externo_resumen(out$bloque))
+  c(origen_externo_consultar(sid, nombre),
+    list(avisos = avisos, variables_excluidas_agregadas = as.list(analitica$agregadas)))
 }
 
-#' Estado de la declaración de una base, sin identificadores.
+#' Estado de la declaración de una base, sin identificadores, y las variables
+#' del instrumento que la base no trae (siempre, haya declaración o no).
 #' @keywords internal
 origen_externo_consultar <- function(sid, base_nombre = NULL) {
   s <- session_get(sid)
@@ -225,7 +343,8 @@ origen_externo_consultar <- function(sid, base_nombre = NULL) {
   meta <- s$estudio$bases[[nombre]] %||% list()
   bloque <- meta$origen_externo
   list(base = nombre, estado = .origen_externo_estado(bloque, meta$data_file_id),
-       bloque = .origen_externo_sin_ids(bloque), resumen = .origen_externo_resumen(bloque))
+       bloque = .origen_externo_sin_ids(bloque), resumen = .origen_externo_resumen(bloque),
+       variables_faltantes = .origen_externo_faltantes_consulta(sid, nombre, meta))
 }
 
 # La respuesta HTTP no lleva los identificadores: viven en el .pulso, como las
