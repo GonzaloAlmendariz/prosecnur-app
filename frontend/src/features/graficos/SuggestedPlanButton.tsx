@@ -385,7 +385,7 @@ export function SuggestedPlanButton() {
                   setProfileId("equivalencias");
                   setResult(null);
                 }}
-                title="Arma el mazo con las diapositivas declaradas en Carga → Equivalencias"
+                title="Arma el informe con las diapositivas de la matriz de Carga → Equivalencias"
               >
                 <GitMerge size={13} /> Equivalencias
               </button>
@@ -397,8 +397,8 @@ export function SuggestedPlanButton() {
               <div className="pulso-gv2-suggest-option-text">
                 <small>
                   {result?.declarada === false
-                    ? "Este estudio todavía no declara equivalencias. Decláralas en Carga → Equivalencias para poder derivar el mazo."
-                    : "Una diapositiva por cada una declarada en la matriz, con su enunciado como título y una barra por público. Las preguntas sin diapositiva asignada no entran."}
+                    ? "Este estudio todavía no tiene equivalencias. Complétalas en Carga → Equivalencias para armar el informe desde ellas."
+                    : "Una lámina por cada diapositiva de la matriz, con su enunciado como título y una barra por público. Las preguntas sin diapositiva asignada no entran."}
                 </small>
               </div>
             )}
@@ -524,7 +524,7 @@ export function SuggestedPlanButton() {
                   <div className="pulso-gv2-suggest-inputs-head">
                     <div>
                       <strong>Datos que usará el informe</strong>
-                      <span>Revise estos datos antes de aplicar el plan.</span>
+                      <span>Revisa estos datos antes de aplicar el plan.</span>
                     </div>
                     <button type="button" onClick={downloadRecipe}>
                       <Download size={12} /> Descargar guía
