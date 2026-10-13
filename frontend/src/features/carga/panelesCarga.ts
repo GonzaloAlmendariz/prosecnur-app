@@ -1,4 +1,5 @@
 import type { PanelDeclarado } from "../../lib/navegacion/paneles";
+import { PANEL_ARMONIZACION, PANEL_IMPORTAR_BLOQUES } from "./armonizacionModel";
 
 /**
  * Carga › Revisión: cómo se emparejó cada pregunta de una fuente de la base
@@ -13,4 +14,6 @@ export const PANEL_EMPAREJAMIENTO_FUENTE: PanelDeclarado = {
 
 export const PANELES_CARGA = [
   PANEL_EMPAREJAMIENTO_FUENTE,
+  PANEL_ARMONIZACION,
+  PANEL_IMPORTAR_BLOQUES,
 ] as const satisfies readonly PanelDeclarado[];

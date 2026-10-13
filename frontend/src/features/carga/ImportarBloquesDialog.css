@@ -1,0 +1,315 @@
+/* Importar la matriz por bloques (contrato E4-E7, R3).
+ *
+ * Sólo tokens `--pulso-*`. Diálogo centrado en portal al `body`.
+ *
+ * Geometría (Contrato de Superficie):
+ * - C2: ancho fijo por viewport y alto tope de la ventana; 0 o 300 advertencias
+ *   no lo mueven. La variación se resuelve dentro del cuerpo.
+ * - C4: un único dueño de scroll, `.pulso-bloques-cuerpo`; cabecera y pie fijos.
+ */
+
+.pulso-bloques-velo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--pulso-z-modal);
+  background: color-mix(in srgb, var(--pulso-text) 30%, transparent);
+}
+
+.pulso-bloques {
+  position: fixed;
+  z-index: var(--pulso-z-modal);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(760px, calc(100vw - var(--pulso-space-6)));
+  max-height: calc(100vh - var(--pulso-space-6));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-high);
+  color: var(--pulso-text);
+}
+
+.pulso-bloques:focus {
+  outline: none;
+}
+
+.pulso-bloques-cabecera {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-5) var(--pulso-space-6) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-bloques-titular {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-bloques-titulo {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-bloques-cerrar {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.pulso-bloques-cerrar:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.pulso-bloques-cerrar:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 2px;
+}
+
+.pulso-bloques-regla {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-bloques-pasos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-bloques-pasos li[aria-current="step"] {
+  color: var(--pulso-module-processing);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-bloques-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-4) var(--pulso-space-6);
+}
+
+.pulso-bloques-pie {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-6);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-bloques-pie:empty {
+  display: none;
+}
+
+.pulso-bloques-seccion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-bloques-seccion h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-bloques-campo {
+  display: grid;
+  grid-template-columns: auto minmax(0, 320px);
+  align-items: center;
+  gap: var(--pulso-space-2);
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-bloques-campo input {
+  height: 30px;
+  font-size: 13px;
+}
+
+.pulso-bloques-nota {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-bloques-nota.is-aviso {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-bloques-error {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 12.5px;
+}
+
+.pulso-bloques-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.pulso-bloques-tabla th {
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+  text-align: left;
+}
+
+.pulso-bloques-tabla td {
+  padding: var(--pulso-space-1) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-bloques-tabla .is-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-bloques-tabla td.is-aviso {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-bloques-tabla select {
+  width: 100%;
+  max-width: 320px;
+  height: 28px;
+  font-size: 12.5px;
+}
+
+.pulso-bloques-cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--pulso-space-2);
+  width: 100%;
+  margin: 0;
+}
+
+.pulso-bloques-cifras div {
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-bloques-cifras dt {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-bloques-cifras dd {
+  margin: 0;
+  font-size: 18px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-bloques-grupos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  width: 100%;
+}
+
+.pulso-bloques-grupo {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+}
+
+.pulso-bloques-grupo summary {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--pulso-text);
+}
+
+.pulso-bloques-grupo summary svg {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-bloques-grupo summary:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: -2px;
+}
+
+.pulso-bloques-grupo-n {
+  margin-left: auto;
+  padding: 0 var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-bloques-grupo ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0 var(--pulso-space-3) var(--pulso-space-3);
+  list-style: none;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-bloques-grupo li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  overflow-wrap: anywhere;
+}
+
+.pulso-bloques-grupo li strong {
+  color: var(--pulso-text);
+}
+
+.pulso-bloques-base {
+  padding: 0 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  font-size: 11px;
+}

@@ -31,8 +31,12 @@ import {
   importarEquivalencias,
   type EquivalenciasEstado,
   type EquivalenciasImportacion,
+  type ImportacionBloques,
   type VariableDeBase,
 } from "../../api/equivalencias";
+import { ArmonizacionFilaEditor, useAbrirArmonizacion } from "./ArmonizacionFilaEditor";
+import { ArmonizacionPeriodos } from "./ArmonizacionPeriodos";
+import { ImportarBloquesBoton, ImportarBloquesDialog } from "./ImportarBloquesDialog";
 import { EquivalenciasTabla } from "./EquivalenciasTabla";
 import { EquivalenciasDiapositivas } from "./EquivalenciasDiapositivas";
 import {
@@ -146,6 +150,52 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
     });
     setSucio(true);
   }, []);
+
+  const abrirArmonizacion = useAbrirArmonizacion();
+
+  // Guardar una armonización (o el orden de la serie) reescribe la declaración
+  // del servidor con sus filas tal como estaban guardadas. Si el editor tiene
+  // cambios pendientes en otras filas no se pisan: sólo se trae la armonización
+  // de cada fila guardada, por su posición.
+  const onArmonizacionGuardada = useCallback(
+    (out: EquivalenciasImportacion, mensaje: string) => {
+      setEstado(out.estado);
+      const guardadas = out.estado.filas ?? [];
+      if (!sucio) {
+        setFilas(aFilasEditor(guardadas));
+      } else {
+        setFilas((prev) =>
+          prev.map((f) => {
+            if (typeof f.indice_declarado !== "number") return f;
+            const arm = guardadas[f.indice_declarado]?.armonizacion;
+            const { armonizacion: _previa, ...resto } = f;
+            return arm ? { ...resto, armonizacion: arm } : resto;
+          }),
+        );
+      }
+      onDeclaradas?.(out.estado.n_filas ?? 0);
+      setError("");
+      setAviso(mensaje);
+    },
+    [onDeclaradas, sucio],
+  );
+
+  const onBloquesAplicados = useCallback(
+    (res: ImportacionBloques) => {
+      if (!res.estado) return;
+      setEstado(res.estado);
+      setFilas(aFilasEditor(res.estado.filas ?? []));
+      setSucio(false);
+      onDeclaradas?.(res.estado.n_filas ?? 0);
+      setError("");
+      const r = res.resumen;
+      setAviso(
+        `Matriz por bloques aplicada: ${r.nuevas} filas nuevas y ${r.actualizadas} actualizadas`
+          + (r.n_con_armonizacion ? `, ${r.n_con_armonizacion} con armonización.` : "."),
+      );
+    },
+    [onDeclaradas],
+  );
 
   const refrescar = useCallback(async () => {
     setCargando(true);
@@ -353,6 +403,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
             <Upload size={14} aria-hidden="true" />
             Subir matriz
           </button>
+          <ImportarBloquesBoton disabled={ocupado !== ""} />
           <input
             ref={archivoRef}
             id="pulso-equiv-archivo"
@@ -388,6 +439,9 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
       >
         {filas.length > 0 ? (
           <>
+            {estado && declarada && bases.length > 1 && (
+              <ArmonizacionPeriodos estado={estado} onGuardado={onArmonizacionGuardada} />
+            )}
             <div ref={barraRef} className="pulso-equiv-vistas" role="group" aria-label="Forma de ver la declaración">
               <button
                 type="button"
@@ -448,6 +502,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                 onAsignar={(id, base, v) => { setFilas((p) => asignarVariable(p, id, base, v)); setSucio(true); }}
                 onQuitar={(id) => { setFilas((p) => quitarFila(p, id)); setSucio(true); }}
                 onConfirmar={(id) => { setFilas((p) => confirmarFila(p, id)); setSucio(true); }}
+                onArmonizar={bases.length > 1 ? abrirArmonizacion : undefined}
                 onAgregarTema={(clave) => {
                   const diapo = diapositivas.find((l) => l.clave === clave);
                   setFilas((p) => [...p, filaVacia(diapo?.seccion ?? "", clave, diapo?.enunciado ?? "")]);
@@ -463,6 +518,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                 onEditar={(id, campo, v) => { setFilas((p) => editarCampo(p, id, campo, v)); setSucio(true); }}
                 onQuitar={(id) => { setFilas((p) => quitarFila(p, id)); setSucio(true); }}
                 onConfirmar={(id) => { setFilas((p) => confirmarFila(p, id)); setSucio(true); }}
+                onArmonizar={bases.length > 1 ? abrirArmonizacion : undefined}
                 onAgregarFila={() => { setFilas((p) => [...p, filaVacia()]); setSucio(true); }}
               />
             )}
@@ -555,6 +611,16 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
           </>
         )}
       </div>
+
+      {/* Overlays direccionables: van en portal, fuera de la geometría de la
+          superficie. */}
+      <ArmonizacionFilaEditor
+        estado={estado}
+        cargandoEstado={cargando}
+        variablesPorBase={variablesPorBase}
+        onGuardado={onArmonizacionGuardada}
+      />
+      <ImportarBloquesDialog bases={bases} onAplicado={onBloquesAplicados} />
     </section>
   );
 }

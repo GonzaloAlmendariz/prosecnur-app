@@ -158,3 +158,33 @@
   }
   out
 }
+
+#' ¿Le falta a esta pregunta la columna que su catálogo necesita?
+#'
+#' El plan de adaptación decidía «se aplica» mirando sólo el tipo y el modo, y
+#' `/aplicar` omitía además las preguntas cuya columna no está en la base: con
+#' HSyVBG sin `P66_otro` el plan decía 1 omitida y la aplicación omitía 2. Una
+#' sola regla para los dos, la misma de `.codif_omitidas()`.
+#'
+#' @param row fila de `familias_draft`.
+#' @param data_cols nombres de columna de la base.
+#' @return `list(motivo, mensaje)` con motivo vacío si no falta nada.
+#' @keywords internal
+.codif_columna_faltante <- function(row, data_cols) {
+  data_cols <- as.character(data_cols %||% character(0))
+  tipo <- as.character(row$tipo %||% "")
+  text_col <- as.character(row$text_col %||% "")
+  parent_col <- as.character(row$parent_col %||% "")
+  parent <- as.character(row$parent %||% "")
+  pc <- if (nzchar(parent_col)) parent_col else parent
+  if (nzchar(text_col) && !text_col %in% data_cols) {
+    return(list(motivo = "sin_columna_texto", mensaje = .codif_omitida_texto("sin_columna_texto", text_col)))
+  }
+  if (identical(tipo, "text") && !nzchar(text_col) && nzchar(parent) && !parent %in% data_cols) {
+    return(list(motivo = "sin_columna_texto", mensaje = .codif_omitida_texto("sin_columna_texto", parent)))
+  }
+  if (!identical(tipo, "text") && nzchar(pc) && !pc %in% data_cols) {
+    return(list(motivo = "sin_columna_padre", mensaje = .codif_omitida_texto("sin_columna_padre", pc)))
+  }
+  list(motivo = "", mensaje = "")
+}

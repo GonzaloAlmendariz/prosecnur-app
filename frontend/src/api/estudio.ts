@@ -374,6 +374,59 @@ export async function apiEstudioAddBase(payload: {
   );
 }
 
+/** Lo que el backend sintetizó como instrumento desde las etiquetas del .sav. */
+export type BaseSavSintesis = {
+  n_variables: number;
+  n_select_one: number;
+  n_listas: number;
+  n_opciones: number;
+};
+
+export type BaseSavRegistrada = {
+  ok: true;
+  base: EstudioBase;
+  xlsform_file_id: string;
+  sintesis: BaseSavSintesis;
+  n_bases: number;
+  max_bases: number;
+};
+
+function enteroSeguro(x: unknown): number {
+  const v = Array.isArray(x) ? x[0] : x;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? Math.trunc(n) : 0;
+}
+
+/**
+ * Registra una base que sólo existe como .sav, sin XLSForm (contrato E4-E7,
+ * R1). El instrumento se sintetiza desde las etiquetas de variable y de valor.
+ * `data_file_id` sale de `apiUpload(file, "sav")`.
+ */
+export async function apiEstudioAddBaseSav(payload: {
+  data_file_id: string;
+  nombre: string;
+}): Promise<BaseSavRegistrada> {
+  const raw = await handle<BaseSavRegistrada>(
+    await apiFetch("/api/estudio/base-sav", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+  const s: Partial<Record<keyof BaseSavSintesis, unknown>> = raw.sintesis ?? {};
+  return {
+    ...raw,
+    sintesis: {
+      n_variables: enteroSeguro(s.n_variables),
+      n_select_one: enteroSeguro(s.n_select_one),
+      n_listas: enteroSeguro(s.n_listas),
+      n_opciones: enteroSeguro(s.n_opciones),
+    },
+    n_bases: enteroSeguro(raw.n_bases),
+    max_bases: enteroSeguro(raw.max_bases),
+  };
+}
+
 export async function apiEstudioRemoveBase(nombre: string) {
   return handle<{ ok: true; n_bases: number }>(
     await apiFetch(`/api/estudio/base/${encodeURIComponent(nombre)}`, {
