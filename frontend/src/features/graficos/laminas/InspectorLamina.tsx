@@ -46,6 +46,11 @@ const TEXTOS_CAMPO: Record<string, { label: string; descripcion: string }> = {
   pie: { label: "Nota al pie", descripcion: "Fuente u otra aclaración al pie de la lámina." },
 };
 
+// El objetivo dice su rótulo junto a la diana, no arriba de la lámina (`.lam_laminas_objetivo`, lamina_identidad.R).
+const TEXTOS_OBJETIVO: Record<string, { label: string; descripcion: string }> = {
+  titulo: { label: "Rótulo", descripcion: "Va junto a la diana." },
+};
+
 // Los capítulos e íconos tienen su editor; los ajustes del dibujo de los focos, su candado (decisión 32).
 const ARGS_DEL_INDICE = new Set<string>(["secciones", "subtemas", "subindices", "iconos_focos", ...ARGS_FIJADOS_INDICE]);
 
@@ -202,7 +207,7 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
       {contenido.campos.map((c) => (
         <CampoTexto
           key={c.name}
-          campo={{ ...c, ...(TEXTOS_CAMPO[c.name] ?? {}) }}
+          campo={{ ...c, ...((slide.tipo === "p_slide_objetivo_icono" ? TEXTOS_OBJETIVO[c.name] : null) ?? TEXTOS_CAMPO[c.name] ?? {}) }}
           valor={typeof payload[c.name] === "string" ? (payload[c.name] as string) : ""}
           placeholder={c.name === "titulo" ? titulo.placeholder : ""}
           ayuda={c.name === "titulo" ? titulo.ayuda : null}

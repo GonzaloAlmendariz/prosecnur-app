@@ -367,6 +367,12 @@
   if ("icono" %in% names(payload)) {
     payload$icono <- .graficos_rebuild_icon(payload$icono, icon_registry = icon_registry)
   }
+  # G5 (Gonzalo, 2026-10-13): el objetivo lleva SIEMPRE la diana con la flecha del recetario; no se elige. Antes, sin
+  # ícono elegido, salía el integrado de personas con un aviso de «necesita un ícono».
+  if (identical(tipo, "p_slide_objetivo_icono")) {
+    diana <- .lam_icono_ruta("diana-flecha", "coral")
+    if (!is.null(diana)) payload$icono <- .graficos_rebuild_icon(diana)
+  }
 
   if (.graficos_fn_requires_icon(fn) && is.null(payload$icono)) {
     # El constructor exige el argumento, así que hay que darle algo; lo que no

@@ -443,7 +443,7 @@
 
   p_slide_objetivo_icono = list(
     titulo_humano = "Objetivo con ícono",
-    descripcion   = "Bloque de texto con un ícono grande al costado. Útil para enunciar objetivos o hallazgos clave.",
+    descripcion   = "El objetivo del estudio con la diana del recetario y, si se declaran, los actores consultados.",
     icono_ui      = "Target",
     categoria     = "estructural",
     render_key    = "objetivo_icono",
@@ -456,12 +456,10 @@
       icono = list(role = "icon", label = "Ícono")
     ),
     args = list(
-      list(name = "icono",  label = "Ícono",      tipo_input = "icono",    grupo = "textos",
-           descripcion = "PNG decorativo que aparece al lado del texto. Debes haberlo subido antes en 'Iconos'."),
-      list(name = "texto",  label = "Contenido",  tipo_input = "textarea", grupo = "textos",
-           descripcion = "El mensaje principal del slide. Párrafo corto, 2-4 líneas."),
-      list(name = "titulo", label = "Título (banda lateral)", tipo_input = "string", grupo = "textos",
-           descripcion = "Se muestra en la banda vertical angosta del costado izquierdo del layout, no como encabezado horizontal. Conviene una sola palabra corta (ej. 'Objetivo').")
+      list(name = "texto",  label = "Objetivo",   tipo_input = "textarea", grupo = "textos",
+           descripcion = "El objetivo del estudio, en hasta cinco líneas. Los temas entre **dobles asteriscos** salen en negrita."),
+      list(name = "titulo", label = "Rótulo", tipo_input = "string", grupo = "textos",
+           descripcion = "Va junto a la diana. Vacío, sale «Objetivo del estudio».")
     )
   ),
 

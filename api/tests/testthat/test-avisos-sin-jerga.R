@@ -94,14 +94,16 @@ test_that("el ícono que perdió su PNG se nombra como en el catálogo, no por s
   expect_length(.jerga_en(av), 0L)
 })
 
-test_that("la lámina que exige ícono se nombra por su tipo visible, no por la función", {
+test_that("el objetivo lleva siempre la diana del recetario, sin aviso y aunque se haya elegido otro ícono (G5)", {
   fn <- p_slide_objetivo_icono
-  av <- .avisos_de(.aviso_con_lamina(2, "Objetivo", .graficos_normalize_payload_icon(list(texto = "x"), fn, "p_slide_objetivo_icono")))
-  expect_match(av, "^Lámina 2 · “Objetivo”: necesita un ícono")
-  expect_length(.jerga_en(av), 0L)
-  sin <- .avisos_de(.graficos_normalize_payload_icon(list(texto = "x"), fn, "p_slide_objetivo_icono"))
-  expect_true(grepl("«Objetivo con ícono»", sin, fixed = TRUE))
-  expect_false(grepl("p_slide_objetivo_icono", sin, fixed = TRUE))
+  sin_icono <- .graficos_normalize_payload_icon(list(texto = "x"), fn, "p_slide_objetivo_icono")
+  expect_length(.avisos_de(.graficos_normalize_payload_icon(list(texto = "x"), fn, "p_slide_objetivo_icono")), 0L)
+  expect_s3_class(sin_icono$icono, "ppt_element")
+  usados <- character(0)
+  real <- .graficos_rebuild_icon
+  local_mocked_bindings(.graficos_rebuild_icon = function(x, ...) { usados <<- c(usados, as.character(x)[1]); real(x, ...) })
+  .graficos_normalize_payload_icon(list(texto = "x", icono = "builtin:users"), fn, "p_slide_objetivo_icono")
+  expect_match(usados[length(usados)], "diana-flecha\\.png$")
 })
 
 test_that("el validador del plan rotula por número y título, y nombra el espacio vacío", {

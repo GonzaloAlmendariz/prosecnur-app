@@ -59,7 +59,7 @@ test_that("slides de poblacion avisan y siguen cuando el icono no existe", {
   expect_false(any(grepl("icono-borrado", avisos, fixed = TRUE)))
 })
 
-test_that("slides que requieren icono caen al integrado con aviso accionable", {
+test_that("el objetivo sin ícono elegido exporta con la diana del recetario y sin aviso (G5, 2026-10-13)", {
   slide <- list(
     tipo = "p_slide_objetivo_icono",
     payload = list(
@@ -71,7 +71,7 @@ test_that("slides que requieren icono caen al integrado con aviso accionable", {
   out <- NULL
   avisos <- .iconos_export_avisos(out <- .graficos_rebuild_slide_json(slide))
   expect_false(is.null(out))
-  expect_true(any(grepl("Configuración global > Íconos", avisos, fixed = TRUE)))
+  expect_false(any(grepl("Configuración global > Íconos", avisos, fixed = TRUE)))
 })
 
 test_that("slides de poblacion convierten iconos del catalogo a ppt_element", {

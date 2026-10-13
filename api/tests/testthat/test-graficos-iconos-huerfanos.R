@@ -47,7 +47,7 @@ test_that("el aviso nombra el icono que falta por su nombre del catálogo, nunca
   expect_false(any(grepl("318ecf24", sin_nombre, fixed = TRUE)))
 })
 
-test_that("una lamina que EXIGE icono cae al integrado y no aborta", {
+test_that("una lamina que EXIGE icono no aborta: el objetivo lleva la diana del recetario sin aviso", {
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("grid")
   # `p_slide_objetivo_icono` declara `icono` sin default: el constructor lo
@@ -63,7 +63,9 @@ test_that("una lamina que EXIGE icono cae al integrado y no aborta", {
       list(icono = NULL), fn, "p_slide_objetivo_icono", icon_registry = list()
     )
   )
-  expect_true(any(grepl("se usó el integrado", avisos)))
+  # G5 (Gonzalo, 2026-10-13): el objetivo no elige ícono, siempre la diana con flecha. Ya no cae al integrado de
+  # personas ni avisa.
+  expect_false(any(grepl("se usó el integrado", avisos)))
   expect_false(is.null(payload$icono))
 })
 
