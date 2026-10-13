@@ -174,7 +174,7 @@ describe("NotasPieEditor: render", () => {
     expect(html).toContain('aria-expanded="true"');
     expect(html).toContain('data-qa-geometry-group="analitica-notas-pie-frecuencias"');
     expect(html).toContain('data-qa-geometry-contract="intrinsic"');
-    expect(html).toContain('placeholder="Pulso PUCP 2026."');
+    expect(html).toContain('placeholder="Nombre de la institución y año del estudio"');
     expect(html).toContain('placeholder="total de encuestados."');
     expect(html).toContain("Todas usan la base por defecto");
     expect(html).not.toContain("Nota por variable de cruce");

@@ -113,7 +113,7 @@ export function BaseSavPanel({ onRegistrada, disabled }: BaseSavPanelProps) {
           <span>Nombre de la base</span>
           <input
             value={nombre}
-            placeholder="por ejemplo medicion_2024"
+            placeholder="Nombre de la base"
             disabled={disabled || subiendo}
             onChange={(e) => setNombre(e.target.value)}
           />

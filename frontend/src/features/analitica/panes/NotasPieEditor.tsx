@@ -67,7 +67,7 @@ export function NotasPieEditor({ variante, variables, crucesVars = [], defaultOp
               <input
                 type="text"
                 value={notas.fuente}
-                placeholder="Pulso PUCP 2026."
+                placeholder="Nombre de la institución y año del estudio"
                 onChange={(e) => setNotas({ fuente: e.target.value })}
               />
               <small>Se imprime como «Fuente: …».</small>
