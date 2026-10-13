@@ -78,6 +78,15 @@ export const GRAFICADORES_NO_NATIVOS: ReadonlySet<string> = new Set([
 const TABLA = ["p_tabla"];
 const FODA = ["p_dim_foda"];
 
+/**
+ * Públicos distintos de una lámina por temas (`{ tema: [base$var, …] }`): no el máximo por tema. En la lámina 10 de Arte
+ * cada tema tiene dos, pero entre todos son tres, como dice la base.
+ */
+export function publicosDistintos(varsPorTema: Readonly<Record<string, unknown>>): number {
+  const base = (r: unknown) => (typeof r === "string" && r.includes("$") ? r.slice(0, r.indexOf("$")) : String(r));
+  return new Set(Object.values(varsPorTema).flatMap((v) => (Array.isArray(v) ? v : [])).map(base)).size;
+}
+
 /** ¿La multiapilada compara públicos? Algún tema (o tema de un bloque) con preguntas de dos bases o más. */
 export function comparaPublicos(valores: Valores): boolean {
   const base = (r: unknown) => (typeof r === "string" && r.includes("$") ? r.slice(0, r.indexOf("$")) : null);
