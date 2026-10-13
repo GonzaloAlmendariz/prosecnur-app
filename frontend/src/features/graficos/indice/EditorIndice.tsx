@@ -167,7 +167,9 @@ export function EditorIndiceVista({ indice, estructura, onAplicar: aplicar, onAb
 
       {n === 0 ? (
         <p className="pulso-f6-indice-vacio">
-          Sin capítulos propios: el índice sale con los capítulos del informe. Tómalos para editarlos.
+          {capitulosInforme > 0
+            ? "Sin capítulos propios: el índice sale con los capítulos del informe. Tómalos para editarlos."
+            : "Ni el índice ni el informe tienen capítulos todavía: agrega separadores de capítulo al informe o escribe aquí los del índice."}
         </p>
       ) : (
         <>
