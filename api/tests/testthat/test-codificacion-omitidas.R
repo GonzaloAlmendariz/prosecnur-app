@@ -84,3 +84,17 @@ test_that("una pregunta con todo codificado no aparece", {
   data_df <- data.frame(P4_otro = c("pansexual", "asexual"), stringsAsFactors = FALSE)
   expect_identical(.codif_textos_sin_codigo("P4", .omit_grupos(), .omit_rows(), data_df), list())
 })
+
+test_that("una agrupación cuya madre ya no está en la base se declara omitida", {
+  specs <- list(
+    list(parent = "P8", target = "P8_agr", categorias = list(list(codigo = "1"))),
+    list(parent = "P5", target = "P5_agr", categorias = list(list(codigo = "1")))
+  )
+  out <- .codif_agrupaciones_omitidas(specs, c("P8", "P8_otro"))
+  expect_length(out, 1L)
+  expect_identical(out[[1]]$pregunta, "P5")
+  expect_identical(out[[1]]$motivo, "sin_variable_madre")
+  expect_identical(out[[1]]$variable_nueva, "P5_agr")
+  expect_match(out[[1]]$mensaje, "«P5»", fixed = TRUE)
+  expect_identical(.codif_agrupaciones_omitidas(list(), "P5"), list())
+})

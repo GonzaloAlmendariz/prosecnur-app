@@ -24,6 +24,7 @@
   sin_columna_texto = "La columna de texto «%s» no está en la base.",
   sin_columna_padre = "La variable «%s» no está en la base.",
   tipo_no_soportado = "Codificación no aplica este tipo de pregunta (%s).",
+  sin_variable_madre = "La agrupación no se aplica: la variable madre «%s» no está en la base.",
   no_se_pudo_aplicar = "El catálogo no se pudo volcar a la plantilla."
 )
 
@@ -124,6 +125,35 @@
       casos = as.integer(sum(sueltos)),
       textos = as.integer(length(unique(norm[sueltos]))),
       ejemplos = as.list(utils::head(unicos, max_ejemplos))
+    )
+  }
+  out
+}
+
+#' Agrupaciones que no se aplicarán porque su variable madre no está en la base.
+#'
+#' Las agrupaciones («Agrupar categorías», `codificacion_agrupar.R`) no pasan
+#' por `.bridge_grupos_to_plantilla()`: se aplican en `ppra_adaptar_data()`.
+#' Guardarlas exige que la madre exista, pero una base recargada después (el
+#' script en R que quitó una variable, ADR 0100) puede dejarla sin madre, y
+#' entonces la variable nueva no se crea. Se declara igual que una omitida del
+#' catálogo, para que `/aplicar` publique una sola lista.
+#'
+#' @param specs salida de `codif_agrupaciones_para_aplicar()`.
+#' @param data_cols nombres de columna de la base que se aplicó.
+#' @return lista de `list(pregunta, motivo, mensaje, variable_nueva)`.
+#' @keywords internal
+.codif_agrupaciones_omitidas <- function(specs, data_cols) {
+  data_cols <- as.character(data_cols %||% character(0))
+  out <- list()
+  for (sp in (specs %||% list())) {
+    parent <- as.character(sp$parent %||% "")[1]
+    if (is.na(parent) || !nzchar(parent) || parent %in% data_cols) next
+    out[[length(out) + 1L]] <- list(
+      pregunta = parent,
+      motivo = "sin_variable_madre",
+      mensaje = .codif_omitida_texto("sin_variable_madre", parent),
+      variable_nueva = as.character(sp$target %||% "")[1]
     )
   }
   out
