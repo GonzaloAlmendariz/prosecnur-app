@@ -430,7 +430,7 @@ graficar_puntos_comparativos <- function(
   df$.hjust <- ifelse(df$.valor >= 82, 1.18, -0.18)
   face <- .graficos_face_de(textos_negrita)
 
-  ggplot2::ggplot(df, ggplot2::aes(x = .data$.valor, y = .data$.grupo)) +
+  g <- ggplot2::ggplot(df, ggplot2::aes(x = .data$.valor, y = .data$.grupo)) +
     ggplot2::geom_point(colour = color_punto, size = size_punto) +
     ggplot2::geom_text(
       ggplot2::aes(label = .data$.etiqueta, hjust = .data$.hjust),
@@ -480,4 +480,15 @@ graficar_puntos_comparativos <- function(
       },
       plot.margin = ggplot2::margin(10, 48, 8, 12)
     )
+  # G11 (Gonzalo, 2026-10-13: «aún hay gráficos sin motor, como el de puntos comparativos»): la especificación del ranking
+  # con puntos del recetario (lámina 72, forma «lollipop»), para que la lámina salga con piezas editables. Un punto por
+  # grupo en el orden dado; un grupo en 0 % se conserva.
+  attr(g, "pulso_espec") <- tryCatch({
+    e <- preparar_categorica(as.character(df$.grupo), df$.valor / 100, .pulso_fmt_pct_half_up(df$.valor, decimales, escala = 1),
+                             residuales_al_final = FALSE, sin_ceros = FALSE)
+    e$nota <- nota_pie
+    e$forma <- "lollipop"
+    e
+  }, error = function(e) NULL)
+  g
 }

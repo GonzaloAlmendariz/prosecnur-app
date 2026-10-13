@@ -57,7 +57,7 @@ export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [
   { name: "p_boxplot", familia_editor: "numeros", salida: "nativa", en_selector: true },
   { name: "p_media_rango", familia_editor: "numeros", salida: "nativa", en_selector: true },
   { name: "p_barras_divergentes", familia_editor: "escalas", salida: "nativa", en_selector: true },
-  { name: "p_puntos_comparativos", familia_editor: "comparar", salida: "ruta_anterior", en_selector: true },
+  { name: "p_puntos_comparativos", familia_editor: "comparar", salida: "nativa", en_selector: true },
   { name: "p_mapa_resultado_distrital", familia_editor: "territorio", salida: "nativa", en_selector: true },
   { name: "p_cifra", familia_editor: "numeros", salida: "nativa", en_selector: true },
   { name: "p_dumbbell", familia_editor: "comparar", salida: "nativa", en_selector: true },

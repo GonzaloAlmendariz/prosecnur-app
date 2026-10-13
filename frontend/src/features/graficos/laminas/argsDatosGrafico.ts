@@ -70,7 +70,8 @@ export const AYUDA_CORTES_CHIP = "Dos valores que separan rojo, ámbar y verde. 
  * catálogo generado (api/inst/catalogos/graficos_tipos.json). Cuando uno gane versión nativa, sale de aquí.
  */
 export const GRAFICADORES_NO_NATIVOS: ReadonlySet<string> = new Set([
-  "p_nube_palabras", "p_puntos_comparativos", "p_tabla", "p_dim_radar", "p_dim_foda",
+  // p_puntos_comparativos salió el 2026-10-13 (G11): ya sale como el ranking con puntos del recetario.
+  "p_nube_palabras", "p_tabla", "p_dim_radar", "p_dim_foda",
 ]);
 const TABLA = ["p_tabla"];
 const FODA = ["p_dim_foda"];
