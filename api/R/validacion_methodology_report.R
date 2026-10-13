@@ -597,7 +597,8 @@
 # ADR 0076. Antes dependía sólo de `applied` y un estudio que no separa pruebas
 # salía con la sección entera vacía aunque hubiera excluido casos.
 .vmr_universe_declares_counts <- function(universe) {
-  isTRUE(universe$applied) || isTRUE(universe$territorial) || isTRUE(universe$cleaning_applied)
+  isTRUE(universe$applied) || isTRUE(universe$territorial) || isTRUE(universe$cleaning_applied) ||
+    isTRUE(universe$external_applied)
 }
 
 .vmr_universe_rejection_count <- function(universe) {
@@ -663,7 +664,17 @@
       if (excluded_cleaning == 1L) " encuesta en la limpieza y validación de la base." else " encuestas en la limpieza y validación de la base."
     )
   } else character(0)
-  c(correction_lines, filter_line, exclusion_lines, cleaning_line)
+  # ADR 0100: la depuración hecha fuera de la plataforma, antes de cargar la
+  # base. Va primero porque ocurrió primero, y sólo con su agregado.
+  excluded_external <- .vmr_universe_count(universe$excluded_external, 0L)
+  external_line <- if (isTRUE(universe$external_applied) && excluded_external > 0L) {
+    paste0(
+      "Antes de cargarse a la plataforma, la base se depuró con un procedimiento externo: de ",
+      .vmr_universe_count(universe$received_external, 0L), " encuestas recibidas se retir",
+      if (excluded_external == 1L) "ó " else "aron ", excluded_external, "."
+    )
+  } else character(0)
+  c(external_line, correction_lines, filter_line, exclusion_lines, cleaning_line)
 }
 
 # Cuando la merma no vino de un filtro sobre una variable sino de la depuración,
@@ -803,6 +814,9 @@
   universe$excluded_rules <- .vmr_universe_count(universe$excluded_rules, 0L)
   universe$excluded_cleaning <- .vmr_universe_count(universe$excluded_cleaning, 0L)
   universe$cleaning_applied <- isTRUE(universe$cleaning_applied)
+  universe$external_applied <- isTRUE(universe$external_applied)
+  universe$excluded_external <- .vmr_universe_count(universe$excluded_external, 0L)
+  universe$received_external <- .vmr_universe_count(universe$received_external, 0L)
   universe$excluded_rejections <- .vmr_universe_rejection_count(universe)
   # El universo puede tener DOS etapas y hay que emitir las dos. El filtro de
   # pruebas es una condición sobre una variable; la depuración es una lista de
@@ -1961,6 +1975,7 @@ validation_methodology_report_r <- function(model, path) {
     # recibidas / exclusiones / incluidas, que es lo que el cliente necesita ver.
     universe_summary <- c(
       universe_summary,
+      if (isTRUE(universe$external_applied)) paste0("# Depuración externa previa a la carga: ", .vmr_script_count(universe$excluded_external, "0"), " retiradas de ", .vmr_script_count(universe$received_external)) else NULL,
       paste0("# Encuestas recibidas: ", .vmr_script_count(universe$total)),
       if (isTRUE(universe$applied)) paste0("# Encuestas reclasificadas de prueba a real: ", .vmr_script_count(universe$corrected, "0")) else NULL,
       if (isTRUE(universe$applied)) paste0("# Pruebas retiradas: ", .vmr_script_count(universe$excluded_test, "0")) else NULL,
