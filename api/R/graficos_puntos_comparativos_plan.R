@@ -226,5 +226,13 @@ p_puntos_comparativos <- function(
   )
   out <- do.call(graficar_puntos_comparativos, args)
   attr(out, "pulso_puntos_comparativos_datos") <- datos
+  # G11: en la lámina nativa el encabezado del eje dice qué porcentaje es (recetario 87: «% que responde Sí»), no el de
+  # una selección múltiple, que es lo que la lámina deducía de unos porcentajes que suman más de 100.
+  e <- attr(out, "pulso_espec")
+  if (!is.null(e)) {
+    corte <- trimws(as.character(etiqueta_corte %||% "")[1])
+    e$encabezado <- if (!is.na(corte) && nzchar(corte)) paste0("% que responde ", corte) else "% que responde el corte"
+    attr(out, "pulso_espec") <- e
+  }
   out
 }

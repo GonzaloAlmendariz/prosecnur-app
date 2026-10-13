@@ -2062,7 +2062,7 @@
   p_boxplot = list("numeros", "nativa"),
   p_media_rango = list("numeros", "nativa"),
   p_barras_divergentes = list("escalas", "nativa"),
-  p_puntos_comparativos = list("comparar", "ruta_anterior", motivo = "No hay pieza del recetario para los puntos comparativos."),
+  p_puntos_comparativos = list("comparar", "nativa", condicion = "Sale como el ranking con puntos del recetario; si los rótulos no caben, por la ruta anterior."),
   p_mapa_resultado_distrital = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
   p_cifra = list("numeros", "nativa", condicion = "Va en las ranuras de cifra; en una ranura de gráfico sale por la ruta anterior."),
   p_dumbbell = list("comparar", "nativa"),

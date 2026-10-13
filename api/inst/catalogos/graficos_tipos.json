@@ -288,7 +288,7 @@
     {
       "name": "p_puntos_comparativos",
       "familia_editor": "comparar",
-      "salida": "ruta_anterior",
+      "salida": "nativa",
       "en_selector": true
     },
     {
