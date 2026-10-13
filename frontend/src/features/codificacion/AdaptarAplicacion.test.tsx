@@ -14,8 +14,11 @@ vi.stubGlobal("localStorage", {
   removeItem: () => {},
 });
 
-const { AdaptarAplicacionVista } = await import("./AdaptarAplicacion");
-const { aplicarCodificacion, claveAplicar, selectAplicarEntrada, useAplicarAvisosStore } = await import(
+const { AdaptarAplicacionResumenVista, AdaptarAplicacionVista, ID_ESTADO_ADAPTAR, pulsarAdaptar } = await import(
+  "./AdaptarAplicacion"
+);
+const { ID_AVISO_APLICAR, irAlAviso, revelarAviso } = await import("./AplicarOmitidasAviso");
+const { aplicarCodificacion, claveAplicar, selectAplicarEntrada, tieneAvisos, useAplicarAvisosStore } = await import(
   "./aplicarAvisosStore"
 );
 
@@ -74,7 +77,9 @@ describe("AdaptarAplicacionVista", () => {
     expect(boton(html)).not.toMatch(/\sdisabled=""/);
     expect(boton(html)).toContain("Confirmar y adaptar respuestas");
     expect(html).not.toContain('data-testid="codificacion-aplicar-omitidas"');
-    expect(html).toMatch(/<span class="pulso-codif-adaptar-estado" role="status" aria-live="polite"><\/span>/);
+    expect(html).toMatch(
+      /<span id="codificacion-adaptar-estado" class="pulso-codif-adaptar-estado" role="status" aria-live="polite" tabindex="-1"><\/span>/,
+    );
   });
 
   it("el botón se deshabilita y anuncia que trabaja mientras espera el POST", async () => {
@@ -85,7 +90,7 @@ describe("AdaptarAplicacionVista", () => {
     expect(boton(durante)).toMatch(/\sdisabled=""/);
     expect(boton(durante)).toContain('aria-busy="true"');
     expect(boton(durante)).toContain("Aplicando…");
-    expect(durante).toMatch(/role="status" aria-live="polite">[^<]+<\/span>/);
+    expect(durante).toMatch(/role="status" aria-live="polite" tabindex="-1">[^<]+<\/span>/);
     expect(durante).toContain("La codificación se está aplicando.");
 
     resolver(respuesta);
@@ -120,5 +125,146 @@ describe("AdaptarAplicacionVista", () => {
     expect(html).not.toContain('data-testid="codificacion-aplicar-omitidas"');
     expect(html).not.toContain('data-testid="codificacion-sin-recodificar"');
     expect(boton(html)).not.toMatch(/\sdisabled=""/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Re-QA C4: el remontaje del fin del job dejaba el aviso en y≈4735 con el
+// scroll en 0 y el foco en BODY. Sin jsdom, un «montaje» es lo que hacen sus
+// dos efectos, en el orden real: AdaptarAplicacion llama `alMontar` y el aviso
+// revela si la entrada pide enfocar. Los objetivos son dobles que cuentan.
+
+type Dobles = { scroll: ScrollIntoViewOptions[]; foco: (FocusOptions | undefined)[] };
+const dobles = (): Dobles => ({ scroll: [], foco: [] });
+
+function efectoDelAviso(clave: string, d: Dobles) {
+  const e = selectAplicarEntrada(clave)(useAplicarAvisosStore.getState());
+  if (!e.enfocarPendiente || !tieneAvisos(e.avisos)) return;
+  revelarAviso(
+    { scrollIntoView: (o) => d.scroll.push(o) },
+    { focus: (o) => d.foco.push(o) },
+  );
+  useAplicarAvisosStore.getState().marcarEnfocado(clave);
+}
+
+function montaje(clave: string, d: Dobles) {
+  useAplicarAvisosStore.getState().alMontar(clave);
+  efectoDelAviso(clave, d);
+}
+
+describe("el aviso vuelve a la vista tras el remontaje del fin del job", () => {
+  beforeEach(() => useAplicarAvisosStore.getState().reset());
+
+  it("la marca hace scroll y foco una sola vez, en el primer montaje posterior al job", async () => {
+    await aplicarCodificacion(A, async () => respuesta);
+    // 1. Llega la respuesta: la instancia viva lo lleva a la vista.
+    const alResponder = dobles();
+    efectoDelAviso(A, alResponder);
+    expect(alResponder.scroll).toHaveLength(1);
+
+    // Un remontaje con el job todavía corriendo no mueve nada.
+    const duranteJob = dobles();
+    montaje(A, duranteJob);
+    expect(duranteJob).toEqual(dobles());
+
+    // 2. Termina el job y la página remonta el panel: vuelve a la vista.
+    useAplicarAvisosStore.getState().terminar(A, { data: "f1", inst: "f2" });
+    const remontaje = dobles();
+    montaje(A, remontaje);
+    expect(remontaje.scroll).toEqual([{ block: "nearest" }]);
+    expect(remontaje.foco).toEqual([{ preventScroll: true }]);
+    // Y el remontaje pinta el aviso con su título enfocable por programa.
+    expect(montar(A)).toMatch(/<section[^>]*id="codificacion-aplicar-omitidas"/);
+
+    // 3. Un montaje posterior (volver a la pestaña) ya no lo mueve.
+    const despues = dobles();
+    montaje(A, despues);
+    montaje(A, despues);
+    expect(despues).toEqual(dobles());
+  });
+
+  it("un montaje sin marca no mueve scroll ni foco", async () => {
+    // Sin aplicación.
+    const vacio = dobles();
+    montaje(A, vacio);
+    expect(vacio).toEqual(dobles());
+
+    // Aplicación sin avisos, job terminado.
+    await aplicarCodificacion(A, async () => ({ ...respuesta, omitidas: [], textos_sin_codigo: [] }));
+    useAplicarAvisosStore.getState().terminar(A, { data: "f1", inst: "f2" });
+    const sinAvisos = dobles();
+    montaje(A, sinAvisos);
+    expect(sinAvisos).toEqual(dobles());
+
+    // Job que falla o se cancela: no hay remontaje que reparar; la marca cae.
+    for (const fin of ["fallar", "cancelar"] as const) {
+      await aplicarCodificacion(B, async () => respuesta);
+      efectoDelAviso(B, dobles());
+      if (fin === "fallar") useAplicarAvisosStore.getState().fallar(B, "E_JOB");
+      else useAplicarAvisosStore.getState().cancelar(B);
+      const tras = dobles();
+      montaje(B, tras);
+      expect(tras).toEqual(dobles());
+    }
+  });
+
+  it("«Ver los avisos» de arriba aparece al terminar con avisos y lleva al aviso", async () => {
+    const vista = (clave: string) =>
+      renderToStaticMarkup(
+        <AdaptarAplicacionResumenVista
+          entrada={selectAplicarEntrada(clave)(useAplicarAvisosStore.getState())}
+          onVerAvisos={nada}
+        />,
+      );
+    await aplicarCodificacion(A, async () => respuesta);
+    // Con el job corriendo todavía no hay nada que resumir.
+    expect(vista(A)).toBe("");
+    useAplicarAvisosStore.getState().terminar(A, { data: "f1", inst: "f2" });
+    const html = vista(A);
+    expect(html).toContain('data-testid="codificacion-adaptar-resumen"');
+    expect(html).toContain("La adaptación terminó con 1 aviso.");
+    expect(html).toMatch(/<button type="button"[^>]*>Ver el aviso<\/button>/);
+
+    const d = dobles();
+    const titulo = { focus: (o?: FocusOptions) => d.foco.push(o) };
+    const seccion = {
+      scrollIntoView: (o: ScrollIntoViewOptions) => d.scroll.push(o),
+      querySelector: () => titulo,
+    };
+    const doc = {
+      getElementById: (id: string) => (id === ID_AVISO_APLICAR ? seccion : null),
+    } as unknown as Pick<Document, "getElementById">;
+    expect(irAlAviso(doc)).toBe(true);
+    expect(d.scroll).toEqual([{ block: "nearest" }]);
+    expect(d.foco).toEqual([{ preventScroll: true }]);
+  });
+});
+
+describe("el foco durante el POST de /aplicar", () => {
+  beforeEach(() => useAplicarAvisosStore.getState().reset());
+
+  it("pasa a la región de estado antes de que el botón se deshabilite: no cae a BODY", () => {
+    // Doble del documento: un botón que se deshabilita suelta el foco a BODY.
+    const body = { nombre: "BODY" };
+    const boton = { nombre: "Adaptar" };
+    const region = { nombre: ID_ESTADO_ADAPTAR, focus: () => { doc.activeElement = region; } };
+    const doc: { activeElement: object } = { activeElement: boton };
+    const adaptar = () => {
+      if (doc.activeElement === boton) doc.activeElement = body;
+    };
+    pulsarAdaptar(region, adaptar);
+    expect(doc.activeElement).toBe(region);
+  });
+
+  it("la región que recibe el foco es enfocable por programa y no queda vacía mientras trabaja", async () => {
+    let resolver: (r: CodifAplicarRespuesta) => void = () => {};
+    const enCurso = aplicarCodificacion(A, () => new Promise((r) => { resolver = r; }));
+    const estado = (html: string) =>
+      html.match(/<span id="codificacion-adaptar-estado"[^>]*tabindex="-1">([^<]*)<\/span>/)?.[1] ?? null;
+    expect(estado(montar(A))).toContain("Revisando el catálogo");
+    resolver({ ...respuesta, omitidas: [], textos_sin_codigo: [] });
+    await enCurso;
+    // Sin avisos el foco sigue ahí durante el job: tiene que decir algo.
+    expect(estado(montar(A))).toBe("La adaptación está corriendo; el avance se muestra abajo.");
   });
 });

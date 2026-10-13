@@ -17,13 +17,39 @@ type Props = {
   textosSinCodigo: CodifTextosSinCodigo[];
   /**
    * El aviso viene de una aplicación recién hecha: llevarlo a la vista y mover
-   * el foco a su título (C4: con omitidas quedaba bajo el pliegue). Al
-   * remontar llega en `false` y no toca scroll ni foco.
+   * el foco a su título (C4: con omitidas quedaba bajo el pliegue). Lo pide
+   * el store dos veces como máximo: al llegar la respuesta y en el remontaje
+   * que sigue al fin del job. Cualquier otro montaje llega en `false`.
    */
   enfocar?: boolean;
   /** Se llama una vez llevado a la vista, para consumir el pedido. */
   onEnfocado?: () => void;
 };
+
+/** Ancla del aviso, para que «Ver avisos» lo encuentre desde arriba. */
+export const ID_AVISO_APLICAR = "codificacion-aplicar-omitidas";
+
+type Desplazable = { scrollIntoView: (opciones: ScrollIntoViewOptions) => void };
+type Enfocable = { focus: (opciones?: FocusOptions) => void };
+
+/**
+ * Lleva el aviso a la vista (lo mínimo, `nearest`) y pone el foco en su
+ * título sin un segundo salto. Pura sobre sus dos objetivos: testeable sin DOM.
+ */
+export function revelarAviso(seccion: Desplazable | null, titulo: Enfocable | null): boolean {
+  if (!seccion) return false;
+  seccion.scrollIntoView({ block: "nearest" });
+  // El scroll ya lo hizo scrollIntoView; el foco no debe volver a saltar.
+  titulo?.focus({ preventScroll: true });
+  return true;
+}
+
+/** Busca el aviso montado y lo revela; para el enlace «Ver avisos». */
+export function irAlAviso(doc: Pick<Document, "getElementById">): boolean {
+  const seccion = doc.getElementById(ID_AVISO_APLICAR);
+  const titulo = seccion?.querySelector<HTMLElement>(".pulso-codif-omitidas-titulo[tabindex='-1']") ?? null;
+  return revelarAviso(seccion, titulo);
+}
 
 function plural(n: number, uno: string, varios: string): string {
   return `${n} ${n === 1 ? uno : varios}`;
@@ -36,9 +62,7 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, enfocar = fals
 
   useEffect(() => {
     if (!enfocar || !hayAlgo) return;
-    seccionRef.current?.scrollIntoView({ block: "nearest" });
-    // El scroll ya lo hizo scrollIntoView; el foco no debe volver a saltar.
-    tituloRef.current?.focus({ preventScroll: true });
+    revelarAviso(seccionRef.current, tituloRef.current);
     onEnfocado?.();
   }, [enfocar, hayAlgo, onEnfocado]);
 
@@ -47,6 +71,7 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, enfocar = fals
   return (
     <section
       ref={seccionRef}
+      id={ID_AVISO_APLICAR}
       className="pulso-codif-omitidas"
       aria-label="Lo que la adaptación no aplicó"
       data-testid="codificacion-aplicar-omitidas"
