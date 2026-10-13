@@ -8,6 +8,8 @@ import { evaluateScaleCompat, multiApiladasScaleGroups, type ScaleVar } from "./
 import { formatNumericRange, hasMeaningfulValue, validateNumericArgValue } from "./numericArgValidation";
 import { isDerivedReportVariableRef } from "./derivedReportVariables";
 import { nombreTipoLamina, rotuloLamina, tituloDeLamina } from "./rotuloLamina";
+import { tituloQueSale } from "./laminas/tituloQueSale";
+import { citaCorta, notasEnTitulo } from "./laminas/notaEnTitulo";
 
 // Validador del plan 100% client-side: deriva warnings/errores de lo
 // que ya vive en el store + registry + variables del instrumento. Sin
@@ -53,7 +55,8 @@ export type ValidationIssue = {
     | "paleta-monocromatica"
     | "numeric-invalid"
     | "scale-mismatch"
-    | "titulo-vacio";
+    | "titulo-vacio"
+    | "titulo-con-nota";
   message: string;
   slideId?: string;       // para poder saltar al slide afectado
   slotName?: string;
@@ -209,6 +212,23 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
           severity: "warning",
           code: "titulo-vacio",
           message: `${lamina}: no tiene título. El PowerPoint la titularía con su primera pregunta, que nombra sólo uno de sus ${temas} temas; escríbele uno.`,
+          slideId: slide.id,
+        });
+      }
+    }
+
+    // D4: el título que va a salir trae una nota entre corchetes o una etiqueta HTML. No se quita sola: se avisa con el
+    // fragmento exacto y el analista decide (Gonzalo, 2026-10-13).
+    {
+      const sale = tituloQueSale(slide, variables, nombreTipoLamina(slide.tipo));
+      const notas = notasEnTitulo(sale);
+      if (notas.length) {
+        const escrito = !!tituloDeLamina(slide.payload);
+        issues.push({
+          severity: "warning",
+          code: "titulo-con-nota",
+          message: `${lamina}: el título lleva «${citaCorta(notas[0])}»${notas.length > 1 ? ` y ${notas.length - 1} nota${notas.length > 2 ? "s" : ""} más` : ""}. `
+            + (escrito ? "Si no debe salir en la lámina, quítala del título." : "Viene del texto de la pregunta; si no debe salir, escribe el título de la lámina."),
           slideId: slide.id,
         });
       }
