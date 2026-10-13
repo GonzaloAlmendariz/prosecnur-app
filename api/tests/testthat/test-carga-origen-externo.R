@@ -68,3 +68,34 @@ test_that("el resumen para la ficha lleva totales y categorías, nunca identific
   expect_identical(por[["crítico"]], 1L)
   expect_false(any(grepl("\"a\"|\"b\"", deparse(r))))
 })
+
+test_that("declarar sobre una sesión guarda el bloque y la respuesta no lleva identificadores", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  dir <- tempfile("oe_"); dir.create(dir)
+  base_path <- file.path(dir, "base.csv")
+  utils::write.csv(data.frame(`_uuid` = c("d", "e"), P1 = c(1, 2), check.names = FALSE),
+                   base_path, row.names = FALSE)
+  lista_path <- file.path(dir, "lista.csv")
+  utils::write.csv(.oe_lista(), lista_path, row.names = FALSE, fileEncoding = "UTF-8")
+  s <- session_get(sid)
+  s$files <- list(
+    fbase = list(file_id = "fbase", path = base_path, ext = "csv"),
+    flista = list(file_id = "flista", path = lista_path, ext = "csv")
+  )
+  s$estudio <- list(bases = list(default = list(nombre = "default", data_file_id = "fbase")),
+                    active_base = "default")
+  .session_env[[sid]] <- s
+
+  out <- origen_externo_declarar(sid, "default", file_id = "flista", n_recibidas = 5L,
+                                 script = "limpieza.R")
+  expect_identical(out$estado, "vigente")
+  expect_identical(out$resumen$recibidas, 5L)
+  expect_null(out$bloque$exclusiones)
+  guardado <- session_get(sid)$estudio$bases$default$origen_externo
+  expect_length(guardado$exclusiones, 3L)
+
+  # Recargar la base deja la declaración «para otra base», no la borra.
+  s <- session_get(sid); s$estudio$bases$default$data_file_id <- "otra"; .session_env[[sid]] <- s
+  expect_identical(origen_externo_consultar(sid, "default")$estado, "otra_base")
+})
