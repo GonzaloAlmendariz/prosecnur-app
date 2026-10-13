@@ -130,3 +130,23 @@ de equivalencias (ADR 0062), no en un script. Cuatro rebanadas, cada una con su 
   armonizan con agrupaciones 1f por base. Endpoints `POST /api/analitica/armonizada/
   frecuencias` y `/cruces` (jobs). Pestaña en Analítica. Notas al pie con el bloque
   `notas` de 1a-1d.
+
+## Matriz del proyecto: `Matriz_HSyVbG_PUCP_2022-2026.xlsx` (revisada 2026-10-13)
+
+Ruta: `01_Estudios/2026_PUCP_HSyVbG/Procesamiento/`. Hoja «Matriz de correspondencias»:
+100 bloques (28 plenamente comparables, 62 parcialmente, 10 no comparables). Cada bloque:
+fila con ID (S-04, T-01, A-03, con sufijo -HS/-VB) y nivel de comparabilidad, luego
+«N.º de pregunta», «Enunciado», «Variable en la base de datos» y una fila por categoría
+armonizada con «etiqueta [código]» por año; «—» = no existe ese año. Regla de la guía:
+recodificar por etiqueta, nunca por código ni posición (casos A-03/A-04, RC-01…RC-04,
+RI-03, CO-01, CO-03, AP-10, AP-11, A-01, A-02).
+
+- Es la fuente natural de R3: un importador de este formato llena `variables`,
+  `armonizacion.escala`, `por_base[*].mapa` (desde «[código]») y `comparable`/`nota`.
+  Se importa a la matriz de la app y desde ahí se edita.
+- La columna 2026 sale del cuestionario, no de la base: 94 de 100 bloques tienen
+  «(pendiente)» en «Variable en la base de datos». Hay que llenarla con la base 2026
+  (renumeración P9 a P66 conocida).
+- **Error encontrado:** S-05 Lugar de nacimiento dice que 2025 no tenía «Fuera del país».
+  La base 2025 sí lo tiene: P5 código 27 «Fuera del país», 37 casos. Solo 2024 no lo
+  tenía. Corregir antes de importar (y avisar: la matriz la compartió Nadia, OIGD).
