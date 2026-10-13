@@ -329,6 +329,15 @@ export type PonderMargin = {
 };
 export type PonderacionConfig = {
   enabled: boolean;
+  /**
+   * Cómo se obtiene el peso (contrato E4-E7, R2). Ausente es `calibracion`
+   * (diseño y márgenes, el contrato de siempre). `columna` toma el peso de una
+   * columna que la base ya trae, como `factor_ponderacion` de un .sav anterior.
+   * Vive en la config de la base activa: cada base declara el suyo.
+   */
+  modo?: "calibracion" | "columna";
+  /** Columna de la base que es el peso, sólo con `modo: "columna"`. */
+  peso_columna?: string;
   design?: { var: string; pop_sizes: Record<string, number> } | null;
   rake: { margins: PonderMargin[] };
   trim?: { cap: number } | null;

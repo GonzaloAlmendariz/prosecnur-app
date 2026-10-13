@@ -92,6 +92,7 @@ import {
 } from "./CargaWorkspaceNavigation";
 import { CargaWorkspaceHeader } from "./CargaWorkspaceHeader";
 import { EquivalenciasPanel } from "./EquivalenciasPanel";
+import { BaseSavPanel } from "./BaseSavPanel";
 import { CargaSourcesPlan } from "./CargaSourcesPlan";
 import {
   CargaMonitoringDiscovery,
@@ -1505,6 +1506,17 @@ export default function CargaPage() {
               ) : null}
                 </>
               )}
+              {/* Una base .sav sin XLSForm (series de años anteriores) entra en cualquier estudio, también con «Bases separadas». */}
+              {estudio ? (
+                <BaseSavPanel
+                  disabled={!!busy}
+                  onRegistrada={() => {
+                    void apiEstudioGet()
+                      .then(onEstudioChanged)
+                      .catch((reason: Error) => setError(reason.message));
+                  }}
+                />
+              ) : null}
               </div>
             ) : activeCargaTab === "revision" ? (
               <>
