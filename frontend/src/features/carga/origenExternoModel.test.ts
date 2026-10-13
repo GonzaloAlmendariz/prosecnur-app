@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import type { OrigenExterno } from "../../api/cargaOrigenExterno";
 import {
   BORRADOR_VACIO,
+  borradorDesde,
   cadenaOrigenEnLlano,
+  desgloseVariables,
+  fraseVariablesRetiradas,
+  motivosElegidos,
+  motivosIniciales,
+  muestraCadenaCasos,
   leerRecibidas,
   motivoNoDeclarable,
   procedenciaScript,
@@ -23,9 +29,43 @@ const DECLARADA: OrigenExterno = {
     data_file_id: "abc",
     declarado_at: "2026-10-13T15:00:00Z",
     enabled: true,
+    variables_retiradas: [],
+    n_variables_retiradas: 0,
   },
-  resumen: { recibidas: 3327, excluidas: 9, entregadas: 3318, por_categoria: [] },
+  resumen: {
+    recibidas: 3327,
+    excluidas: 9,
+    entregadas: 3318,
+    por_categoria: [],
+    variables_retiradas: { total: 0, por_motivo: [] },
+  },
+  variables_faltantes: [],
   avisos: [],
+  variables_excluidas_agregadas: [],
+};
+
+const SOLO_VARIABLES: OrigenExterno = {
+  ...DECLARADA,
+  bloque: {
+    ...DECLARADA.bloque!,
+    n_recibidas: 3318,
+    n_entregadas: 3318,
+    n_excluidas: 0,
+    variables_retiradas: [{ variable: "p40", tipo: "text", motivo: "no_va_al_cliente" }],
+    n_variables_retiradas: 1,
+  },
+  resumen: {
+    recibidas: 3318,
+    excluidas: 0,
+    entregadas: 3318,
+    por_categoria: [],
+    variables_retiradas: { total: 1, por_motivo: [{ motivo: "no_va_al_cliente", n: 1 }] },
+  },
+  variables_faltantes: [
+    { variable: "start", tipo: "start", motivo_sugerido: "metadato" },
+    { variable: "p40", tipo: "text", motivo_sugerido: "" },
+    { variable: "p41", tipo: "integer", motivo_sugerido: "" },
+  ],
 };
 
 function archivo(nombre: string): File {
@@ -43,11 +83,29 @@ describe("origenExternoModel", () => {
     expect(leerRecibidas("tres mil").ok).toBe(false);
   });
 
-  it("dice qué falta para declarar", () => {
-    expect(motivoNoDeclarable(BORRADOR_VACIO)).toMatch(/lista de exclusiones/u);
+  it("dice qué falta para declarar: basta una de las dos partes", () => {
+    expect(motivoNoDeclarable(BORRADOR_VACIO)).toMatch(/^No hay nada que declarar/u);
+    expect(motivoNoDeclarable({ ...BORRADOR_VACIO, motivos: { p40: "" } })).toMatch(/^No hay nada que declarar/u);
     expect(motivoNoDeclarable({ ...BORRADOR_VACIO, archivo: archivo("lista.pdf") })).toMatch(/xlsx o un csv/u);
     expect(motivoNoDeclarable({ ...BORRADOR_VACIO, archivo: archivo("lista.csv"), recibidas: "3.5" })).toMatch(/entero/u);
     expect(motivoNoDeclarable({ ...BORRADOR_VACIO, archivo: archivo("lista.xlsx") })).toBe("");
+    expect(motivoNoDeclarable({ ...BORRADOR_VACIO, motivos: { start: "metadato" } })).toBe("");
+  });
+
+  it("precarga el motivo declarado, si no el sugerido, y envía sólo los elegidos", () => {
+    expect(motivosIniciales(SOLO_VARIABLES)).toEqual({ start: "metadato", p40: "no_va_al_cliente", p41: "" });
+    expect(borradorDesde(SOLO_VARIABLES).archivo).toBeNull();
+    expect(motivosElegidos({ start: "metadato", p40: "", p41: "otra" })).toEqual({ start: "metadato", p41: "otra" });
+  });
+
+  it("variables retiradas: frase, desglose y si la cadena de casos aplica", () => {
+    expect(fraseVariablesRetiradas(1)).toBe("1 variable retirada");
+    expect(fraseVariablesRetiradas(30)).toBe("30 variables retiradas");
+    expect(desgloseVariables(SOLO_VARIABLES)).toEqual([
+      { motivo: "no_va_al_cliente", rotulo: "No va al cliente", valor: "1" },
+    ]);
+    expect(muestraCadenaCasos(SOLO_VARIABLES)).toBe(false);
+    expect(muestraCadenaCasos(DECLARADA)).toBe(true);
   });
 
   it("arma la cadena recibidas → retiradas fuera → cargadas", () => {
