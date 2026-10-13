@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { CheckCircle2, ChevronDown, Database, Eye, EyeOff, FolderSearch, RefreshCw, RotateCcw, Tags } from "lucide-react";
 import {
   apiAnaliticaDataReview,
@@ -10,6 +11,12 @@ import { Panel } from "../../../components/Panel";
 import { ErrorBlock, LoadingBlock } from "../../../components/States";
 import { describirCobertura, padresConDummies } from "../coberturaVariable";
 import { useAnaliticaStore, type SeccionConfig } from "../store";
+import { searchConPanel } from "../../../lib/navegacion/paneles";
+import { PANEL_VARIABLES_EXCLUIDAS } from "../panelesAnalitica";
+import { conteoExclusion, rotuloExcluidas, rotuloIncluidas } from "../variablesExcluidasModel";
+import "../variablesExcluidas.css";
+import "./DataReviewPane.css";
+import { textoPlano } from "../../../lib/textoPlano";
 
 export function dataReviewHasEditableOptions(variable: Pick<DataReviewVariable, "tipo_xlsform" | "opciones">) {
   const tipo = (variable.tipo_xlsform ?? "").trim().toLowerCase();
@@ -165,6 +172,7 @@ export function DataReviewPane() {
   const setDatosVariableLabel = useAnaliticaStore((s) => s.setDatosVariableLabel);
   const setDatosValueLabel = useAnaliticaStore((s) => s.setDatosValueLabel);
   const clearDatosVariable = useAnaliticaStore((s) => s.clearDatosVariable);
+  const location = useLocation();
 
   async function load() {
     setLoading(true);
@@ -263,8 +271,9 @@ export function DataReviewPane() {
     () => dataReviewDraftStatus(variables, currentDraft, baselineDraft),
     [variables, currentDraft, baselineDraft],
   );
-  const includedCount = variables.filter((v) => !excluded.has(v.name)).length;
-  const excludedCount = Math.max(variables.length - includedCount, 0);
+  // Excluidas sobre la lista de la config, no sobre las columnas presentes: una
+  // variable retirada de la base sigue excluida aunque aquí no tenga fila (U5).
+  const conteo = conteoExclusion(variables, config.variables_excluidas);
   const editedCount = useMemo(() => {
     const varCount = Object.keys(config.datos.variable_labels ?? {}).length;
     const valueCount = Object.values(config.datos.value_labels ?? {}).reduce(
@@ -375,7 +384,11 @@ export function DataReviewPane() {
 
   return (
     <Panel className="pulso-data-review-panel">
-      <div className="pulso-data-review-workbench">
+      {/* La pestaña Datos no tiene readiness propia: la del tabpanel se publica
+          al hidratar la config, antes de que llegue la revisión. Este `false`
+          anidado retiene la vista mientras carga (E15/AD6); el error es
+          terminal y publica `true`. */}
+      <div className="pulso-data-review-workbench" data-audit-ready={loading ? "false" : "true"}>
         <div className="pulso-data-review-docbar">
           <span className="pulso-data-review-docbar-icon" aria-hidden="true">
             <Database size={16} />
@@ -390,9 +403,19 @@ export function DataReviewPane() {
             role="toolbar"
             aria-label="Comandos de revisión de datos"
           >
-            <span className="pulso-data-review-command-chip">{includedCount}/{variables.length} incluidas</span>
-            {excludedCount > 0 ? (
-              <span className="pulso-data-review-command-chip">{excludedCount} excluida{excludedCount === 1 ? "" : "s"} · autoguardadas</span>
+            {!loading && !error ? (
+              <>
+                <span className="pulso-data-review-command-chip">{rotuloIncluidas(conteo.incluidas)}</span>
+                <Link
+                  to={{ pathname: location.pathname, search: searchConPanel(location.search, PANEL_VARIABLES_EXCLUIDAS) }}
+                  replace
+                  className="pulso-data-review-command-chip pulso-excluidas-enlace"
+                  aria-haspopup="dialog"
+                  title="Ver y editar las variables que no salen en los entregables"
+                >
+                  {rotuloExcluidas(conteo.excluidas)}
+                </Link>
+              </>
             ) : null}
             <span className="pulso-data-review-command-chip">{editedCount} etiqueta{editedCount === 1 ? "" : "s"} editada{editedCount === 1 ? "" : "s"}</span>
             {draftStatus.pendingCount > 0 ? (
@@ -569,7 +592,7 @@ function DataReviewSection({
                 title={group.synthetic ? "Sección detectada desde la variable; usa Detectar estructura para administrarla." : "Renombrar sección"}
               >
                 {group.hidden ? <EyeOff size={13} /> : <Eye size={13} />}
-                {group.name}
+                {textoPlano(group.name)}
               </button>
             )}
             {group.manual ? <span className="pulso-data-review-pill">editada</span> : null}

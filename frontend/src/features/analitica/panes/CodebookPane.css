@@ -1,0 +1,12 @@
+/* Libro de códigos: reglas nuevas fuera de theme.css (congelado).
+ *
+ * C4: en la mesa de Analítica cada pestaña es dueña de su scroll (patrón de
+ * Datos y Bases: `.pulso-data-review-panel`, `.analitica-bases-panel`). El
+ * libro de códigos no lo declaraba y a 1024x600 su contenido (682 px) se
+ * derramaba fuera del panel de 420 px: los botones de generar quedaban fuera
+ * de la caja.
+ */
+.analitica-codebook-panel {
+  overflow: auto;
+  overscroll-behavior: contain;
+}

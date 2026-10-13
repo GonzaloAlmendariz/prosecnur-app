@@ -1,116 +1,170 @@
-import { useState } from "react";
-import { EyeOff, Plus, X } from "lucide-react";
-import { VariableInstrumento } from "../../api/client";
-import { useAnaliticaStore } from "./store";
-import { VariableSelect } from "./VariableSelect";
+import { useId, useState } from "react";
+import { EyeOff, Plus, Search, Undo2 } from "../../vendor/lucide-react";
+import {
+  ROTULO_MOTIVO_EXCLUSION,
+  conVariable,
+  filasExcluidas,
+  rotuloExcluidas,
+  rotuloIncluidas,
+  sinVariable,
+  variablesIncluidas,
+  type MotivoExclusion,
+  type VariableElegible,
+} from "./variablesExcluidasModel";
+import "./variablesExcluidas.css";
 
-// Bucket global de variables que se excluyen de los entregables de
-// análisis. Las bases exportadas conservan todas sus columnas. El contenedor padre (DefinicionGlobal) provee el
-// colapsable; acá mostramos directamente chips + botones. Eso evita
-// que el dropdown del VariableSelect quede clippeado por un ancestro
-// con overflow:hidden.
+// Cuerpo del panel «Variables excluidas» (U5). Lo monta
+// `PanelVariablesExcluidas`, que pone el marco, la dirección y los datos.
+//
+// Antes era una fila de chips y un selector dentro de «Definición global», que
+// dejó de montarse en 0.2.7 cuando Datos pasó a decidir la inclusión con una
+// casilla por variable. Esa casilla solo existe para las columnas presentes:
+// una variable excluida que no está en los datos —la retira una base preparada
+// fuera (ADR 0100)— quedaba excluida sin ningún lugar donde verla.
+//
+// Presentacional: recibe la lista y avisa cada cambio. Quien lo monta la lee y
+// la escribe en el store, y el autosave de Analítica la persiste en la config
+// de la base activa.
 
-export function VariablesExcluidas({ variables }: { variables: VariableInstrumento[] }) {
-  const excluidas = useAnaliticaStore((s) => s.config.variables_excluidas);
-  const numericasGlobal = useAnaliticaStore((s) => s.config.numericas);
-  const numericasFrecuencias = useAnaliticaStore((s) => s.config.frecuencias.numericas_override);
-  const toggleVariableExcluida = useAnaliticaStore((s) => s.toggleVariableExcluida);
-  const setExcluidas = useAnaliticaStore((s) => s.setVariablesExcluidas);
+const EMPTY_MOTIVOS: ReadonlyMap<string, MotivoExclusion> = new Map();
 
-  const [adding, setAdding] = useState(false);
-  const [pending, setPending] = useState("");
+export function VariablesExcluidas({
+  variables,
+  excluidas,
+  onCambiar,
+  motivos = EMPTY_MOTIVOS,
+}: {
+  variables: readonly VariableElegible[];
+  excluidas: readonly string[];
+  onCambiar: (excluidas: string[]) => void;
+  motivos?: ReadonlyMap<string, MotivoExclusion>;
+}) {
+  const setExcluidas = onCambiar;
+  const [busqueda, setBusqueda] = useState("");
+  const idBusqueda = useId();
+  const idExcluidas = useId();
+  const idIncluidas = useId();
 
-  function commit() {
-    if (pending && !excluidas.includes(pending)) toggleVariableExcluida(pending);
-    setPending("");
-    setAdding(false);
-  }
-
-  const numericas = numericasFrecuencias ?? numericasGlobal;
-  const disponibles = variables.filter((v) => {
-    if (excluidas.includes(v.name)) return false;
-    return !!v.categorica || numericas.includes(v.name);
-  });
+  const filas = filasExcluidas(excluidas, variables, motivos, busqueda);
+  const incluidas = variablesIncluidas(variables, excluidas, busqueda);
+  const totalIncluidas = variablesIncluidas(variables, excluidas).length;
+  const totalExcluidas = new Set(excluidas).size;
+  const filtrando = busqueda.trim() !== "";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {excluidas.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-          {excluidas.map((v) => {
-            const meta = variables.find((x) => x.name === v);
-            return (
-              <span
-                key={v}
-                title={meta?.label || v}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "3px 5px 3px 10px", borderRadius: 999,
-                  background: "var(--pulso-surface-2)",
-                  border: "1px solid var(--pulso-border)",
-                  fontSize: 11, fontFamily: "monospace", color: "var(--pulso-text-soft)",
-                  lineHeight: 1.2,
-                }}
-              >
-                <EyeOff size={11} />
-                {v}
+    <div
+      className="pulso-excluidas-contenido"
+      data-qa-geometry-group="analitica/excluidas-bloques"
+      data-qa-geometry-contract="intrinsic"
+    >
+      <div className="pulso-excluidas-buscador" role="search">
+        <label htmlFor={idBusqueda} className="pulso-excluidas-buscador-rotulo">
+          Buscar variable
+        </label>
+        <div className="pulso-excluidas-buscador-campo">
+          <Search size={14} aria-hidden="true" />
+          <input
+            id={idBusqueda}
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Nombre o etiqueta"
+            autoComplete="off"
+          />
+        </div>
+      </div>
+
+      <section className="pulso-excluidas-bloque" aria-labelledby={idExcluidas}>
+        <header className="pulso-excluidas-bloque-cabecera">
+          <h3 id={idExcluidas}>
+            <EyeOff size={14} aria-hidden="true" />
+            Excluidas
+          </h3>
+          <span className="pulso-excluidas-cuenta" aria-live="polite">
+            {filtrando ? `${filas.length} de ${totalExcluidas}` : rotuloExcluidas(totalExcluidas)}
+          </span>
+        </header>
+        {filas.length === 0 ? (
+          <p className="pulso-excluidas-vacio">
+            {totalExcluidas === 0
+              ? "Ninguna variable excluida: todas salen en los entregables."
+              : "Ninguna excluida coincide con la búsqueda."}
+          </p>
+        ) : (
+          <ul className="pulso-excluidas-lista" data-qa-geometry-group="analitica/excluidas-lista" data-qa-geometry-contract="intrinsic">
+            {filas.map((fila) => (
+              <li key={fila.name} className="pulso-excluidas-fila is-excluida">
+                <div className="pulso-excluidas-fila-texto">
+                  <code>{fila.name}</code>
+                  {fila.label ? <span className="pulso-excluidas-fila-etiqueta">{fila.label}</span> : null}
+                  {fila.motivo || !fila.enLosDatos ? (
+                    <span className="pulso-excluidas-fila-marcas">
+                      {fila.motivo ? (
+                        <span
+                          className="pulso-excluidas-marca is-motivo"
+                          title={`Declarado en Carga, origen de la base ${fila.motivo.base}`}
+                        >
+                          {ROTULO_MOTIVO_EXCLUSION[fila.motivo.motivo]}
+                        </span>
+                      ) : null}
+                      {!fila.enLosDatos ? (
+                        <span className="pulso-excluidas-marca">No está en los datos</span>
+                      ) : null}
+                    </span>
+                  ) : null}
+                </div>
                 <button
                   type="button"
-                  onClick={() => toggleVariableExcluida(v)}
-                  className="pulso-icon"
-                  aria-label={`Quitar ${v} de las variables excluidas`}
-                  style={{ minWidth: 20, minHeight: 20 }}
+                  className="pulso-ghost pulso-excluidas-accion"
+                  onClick={() => setExcluidas(sinVariable(excluidas, fila.name))}
+                  aria-label={`Volver a incluir ${fila.name}`}
                 >
-                  <X size={11} />
+                  <Undo2 size={13} aria-hidden="true" />
+                  Incluir
                 </button>
-              </span>
-            );
-          })}
-        </div>
-      )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-      {adding ? (
-        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 240 }}>
-            <VariableSelect
-              variables={disponibles}
-              value={pending}
-              onChange={setPending}
-              placeholder="Seleccionar variable a excluir…"
-            />
-          </div>
-          <button
-            type="button"
-            className="pulso-primary"
-            onClick={commit}
-            disabled={!pending}
-            style={{ fontSize: 12, padding: "6px 14px" }}
-          >
-            Excluir
-          </button>
-          <button
-            type="button"
-            onClick={() => { setAdding(false); setPending(""); }}
-            style={{ fontSize: 12, padding: "6px 10px" }}
-          >
-            Cancelar
-          </button>
-        </div>
-      ) : (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}
-          >
-            <Plus size={12} /> Excluir una variable
-          </button>
-          {excluidas.length > 0 && (
-            <button type="button" onClick={() => setExcluidas([])} style={{ fontSize: 12 }}>
-              Quitar todas
-            </button>
-          )}
-        </div>
-      )}
+      <section className="pulso-excluidas-bloque" aria-labelledby={idIncluidas}>
+        <header className="pulso-excluidas-bloque-cabecera">
+          <h3 id={idIncluidas}>Incluidas</h3>
+          <span className="pulso-excluidas-cuenta" aria-live="polite">
+            {filtrando ? `${incluidas.length} de ${totalIncluidas}` : rotuloIncluidas(totalIncluidas)}
+          </span>
+        </header>
+        {incluidas.length === 0 ? (
+          <p className="pulso-excluidas-vacio">
+            {totalIncluidas === 0
+              ? "No quedan variables incluidas en esta base."
+              : "Ninguna incluida coincide con la búsqueda."}
+          </p>
+        ) : (
+          <ul className="pulso-excluidas-lista" data-qa-geometry-group="analitica/incluidas-lista" data-qa-geometry-contract="intrinsic">
+            {incluidas.map((variable) => (
+              <li key={variable.name} className="pulso-excluidas-fila">
+                <div className="pulso-excluidas-fila-texto">
+                  <code>{variable.name}</code>
+                  {variable.label ? (
+                    <span className="pulso-excluidas-fila-etiqueta">{variable.label}</span>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  className="pulso-ghost pulso-excluidas-accion"
+                  onClick={() => setExcluidas(conVariable(excluidas, variable.name))}
+                  aria-label={`Excluir ${variable.name}`}
+                >
+                  <Plus size={13} aria-hidden="true" />
+                  Excluir
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
