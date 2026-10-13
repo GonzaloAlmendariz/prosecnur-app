@@ -98,3 +98,35 @@ Reglas de render:
 - Panel (`analitica_panel.R`) y tablas multibase (`analitica_multibase.R`) siguen con «Fuente: Pulso PUCP» fijo. Entra con E5.
 - Sin test de router para la invalidación por `notas`. Un proyecto viejo se invalida una vez al primer guardado.
 - Código muerto: `.notas_pie_lineas_frecuencias` y `letras_map_text` en `reporte_cruces.R`.
+
+## Contrato E4-E7: armonizar mediciones en la app (congelado 2026-10-13)
+
+Ruta elegida por Gonzalo: «hazlo así en la app». La armonización vive en la matriz
+de equivalencias (ADR 0062), no en un script. Cuatro rebanadas, cada una con su test:
+
+- **R1 · Base .sav sin XLSForm.** `POST /api/estudio/base-sav {data_file_id, nombre}`
+  sintetiza survey/choices desde las etiquetas del .sav (`.panel_infer_type`,
+  `.panel_choice_rows_from_labels`, `.bases_label_pairs`), lo guarda como archivo
+  `xlsform` y registra la base con `estudio_add_base`. Archivo nuevo
+  `api/R/carga_sav_sin_xlsform.R`. Debe sobrevivir a guardar y reabrir el .pulso.
+- **R2 · Peso por columna y por base.** En `analitica_config_por_base[[b]]$ponderacion`:
+  `{"enabled": true, "modo": "columna", "peso_columna": "factor_ponderacion"}`. Dentro
+  de `.analitica_ponderacion_apply`: `data$peso <- as.numeric(data[[peso_columna]])`.
+  `.analitica_ponderacion_apply_sources` resuelve la config de CADA base
+  (`.analitica_cfg_para_base`). Sello «columna» en `reporte_ponderacion_sello.R`.
+  2026 queda `enabled: false`.
+- **R3 · Armonización en la fila de la matriz.** Campo opcional:
+  `"armonizacion": {"escala": [{"codigo","etiqueta"}], "por_base": {"<base>":
+  {"comparable": bool, "nota"?: str, "mapa": {"<cód base>": "<cód armonizado>"}}}}`.
+  Mapa vacío es identidad. Se aplica con `codif_agrupar_df` (los 80-99 sin mapear quedan
+  NA). Tocar `.equiv_guardar_declaracion` (hoy descarta campos desconocidos),
+  `.equiv_importar_desde_file` (conservar por `variables`), `.equiv_declaracion_revision`.
+  Orden de períodos a nivel de estudio: `"armonizacion_periodos": ["2024","2025","2026"]`.
+  UI: `ArmonizacionFilaEditor.tsx` en `features/carga` reutilizando `agruparCategoriasModel`.
+- **R4 · Entregables.** `api/R/analitica_armonizada.R`: apila las bases con columna
+  `periodo` y aplica mapas. Writer comparativo simple (períodos en columnas, N y %, sin
+  Total combinado, «n.c.») y comparativo de cruces (Respuesta × período en filas, letras
+  con `comparar_columnas_sig` dentro de cada período, «n.a.»). Las variables de cruce se
+  armonizan con agrupaciones 1f por base. Endpoints `POST /api/analitica/armonizada/
+  frecuencias` y `/cruces` (jobs). Pestaña en Analítica. Notas al pie con el bloque
+  `notas` de 1a-1d.
