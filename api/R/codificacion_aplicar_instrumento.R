@@ -794,6 +794,9 @@
 #'   proporciona, se usa para recuperar etiquetas de códigos nuevos en
 #'   \code{select_multiple}, \code{select_one} e \code{integer}, sin requerir
 #'   columnas \code{*_recod_label} en la data.
+#' @param agrupaciones Lista de specs de agrupación (\code{codificacion_agrupar.R});
+#'   cada una agrega una \code{select_one} \code{target} con lista
+#'   \code{lst_<target>} sin copiar el catálogo original.
 #' @param sm_vars Vector de nombres de variables \code{select_multiple} (padres)
 #'   para las que se creará \code{<parent>_recod} como \code{select_multiple}.
 #' @param so_parent_vars Vector de nombres de variables \code{select_one} (padres)
@@ -835,7 +838,8 @@ ppra_adaptar_instrumento <- function(path_instrumento_in,
                                      integer_vars   = character(0),
                                      choices_order  = c("original_first","by_first_seen","alphabetical"),
                                      paint = TRUE,
-                                     path_plantilla = NULL){
+                                     path_plantilla = NULL,
+                                     agrupaciones = list()){
 
   choices_order <- match.arg(choices_order)
   stopifnot(file.exists(path_instrumento_in))
@@ -1176,6 +1180,18 @@ ppra_adaptar_instrumento <- function(path_instrumento_in,
       new_names_int  <- c(new_names_int,  res$new_name)
       new_lists_int  <- c(new_lists_int,  res$list_name)
     }
+  }
+
+  # =======================
+  # 6) AGRUPACIONES: select_one nueva con lista propia `lst_<target>`
+  # =======================
+  if (length(agrupaciones)) {
+    res_agr <- .ppra_agrupar_instrumento(survey, choices, agrupaciones,
+                                         lab_col_s, lab_col_c, choices_order)
+    survey  <- res_agr$survey
+    choices <- res_agr$choices
+    new_names_int <- c(new_names_int, res_agr$new_names)
+    new_lists_int <- c(new_lists_int, res_agr$new_lists)
   }
 
   choices <- .reorder_choices_by_anchor(choices, survey)
