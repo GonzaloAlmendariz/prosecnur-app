@@ -35,7 +35,7 @@
   # «Fuente: Pulso PUCP», como siempre.
   notas <- .notas_pie_normalizar(cfg$notas)
 
-  function(rp_data, rp_inst, out_path) {
+  function(rp_data, rp_inst, out_path, base = NULL) {
     reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
     rp_data <- reviewed$data
     rp_inst <- reviewed$inst
@@ -43,8 +43,11 @@
     # Fuerzan "original" por variable ordinal.
     ordinal_lists <- .orden_categorias_ordinal_set(rp_inst, cfg)
     # Ponderacion: adjunta `peso` (si esta activa) antes de excluir columnas, para
-    # que las variables de calibracion sigan presentes.
-    rp_data <- .analitica_ponderacion_apply(rp_data, cfg)
+    # que las variables de calibracion sigan presentes. Con `base` se pondera con
+    # la config de ESA base: una hermana sin ponderacion propia no hereda la de
+    # la activa (contrato E4-E7, R2).
+    cfg_pond <- if (is.null(base)) cfg else .analitica_ponderacion_cfg_base(sid, base, cfg)
+    rp_data <- .analitica_ponderacion_apply(rp_data, cfg_pond)
     data_out <- .excluir_cols(rp_data, excluidas)
     # Secciones: usa las del config si las hay; sino, detecta automáticamente las
     # del instrumento de ESTA base.

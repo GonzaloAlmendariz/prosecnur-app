@@ -271,6 +271,11 @@ errores_registrados <- function() {
     "E_BASE_NOT_FOUND",                                      "session_store.R",                   "404",
     "E_BASE_REQUIRED",                                       "carga_review.R",                    "400",
     "E_BASE_SIN_ENCUESTA",                                   "carga_sm_agregar_fuente.R",         "409",
+    # Base .sav sin XLSForm (contrato E4-E7, R1) y peso por columna (R2).
+    "E_BASE_SAV_NO_SAV",                                     "carga_sav_sin_xlsform.R",           "400",
+    "E_BASE_SAV_SIN_VARIABLES",                              "carga_sav_sin_xlsform.R",           "422",
+    "E_PONDERACION_COLUMNA_SIN_NOMBRE",                      "ponderacion_analitica.R",           "400",
+    "E_PONDERACION_COLUMNA_INEXISTENTE",                     "ponderacion_analitica.R",           "422",
     "E_BASE_REQUERIDA",                                      "carga_estructura_base.R",           "400",
     "E_BLOCK_MAP_SOURCE",                                    "hojas_ruta_engine.R",               "indirecto",
     "E_CALC_DEFF_RANGO",                                     "helpers_calc_comunes.R",            "400",
