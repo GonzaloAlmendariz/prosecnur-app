@@ -313,7 +313,7 @@ export function EquivalenciasDiapositivas({
                           className="pulso-equiv-dots"
                           title={bases
                             .filter((b) => fila.variables[b])
-                            .join(" · ") || "ningún público"}
+                            .join(" · ") || "ninguna base"}
                         >
                           {bases.map((b) => (
                             <i
@@ -323,7 +323,7 @@ export function EquivalenciasDiapositivas({
                             />
                           ))}
                           <span className="pulso-sr-only">
-                            {bases.filter((b) => fila.variables[b]).length} de {bases.length} públicos
+                            {bases.filter((b) => fila.variables[b]).length} de {bases.length} bases
                           </span>
                         </span>
                       </td>
@@ -443,7 +443,7 @@ export function EquivalenciasDiapositivas({
                     <Info size={13} aria-hidden="true" />
                     <span>
                       Otros {diapo.temasEscalaRota.length - MAX_AVISOS_TEMA} temas de esta
-                      diapositiva tampoco comparten escala entre públicos.
+                      diapositiva tampoco comparten escala entre bases.
                     </span>
                   </p>
                 )}
@@ -484,7 +484,7 @@ export function EquivalenciasDiapositivas({
                   {bases.map((base) => (
                     <th key={base} scope="col">{base}</th>
                   ))}
-                  <th scope="col" className="pulso-equiv-col-cob">Públicos</th>
+                  <th scope="col" className="pulso-equiv-col-cob">Bases</th>
                   <th scope="col"><span className="pulso-sr-only">Acciones</span></th>
                 </tr>
               </thead>

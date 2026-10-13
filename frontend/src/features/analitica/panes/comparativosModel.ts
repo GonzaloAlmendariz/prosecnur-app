@@ -32,6 +32,8 @@ export type FilaArmonizada = {
   seccion: string;
   /** Mediciones de la serie en las que la fila es comparable. */
   basesComparables: string[];
+  /** Mediciones de la serie en las que la fila no declara variable. */
+  basesSinVariable: string[];
   nCategorias: number;
   /** Comparable en al menos una medición de la serie. Si no, no se ofrece. */
   seleccionable: boolean;
@@ -54,15 +56,20 @@ export function filasArmonizadas(estado: EquivalenciasEstado | null): FilaArmoni
       etiqueta,
       seccion: fila.seccion.trim(),
       basesComparables: [],
+      basesSinVariable: [],
       nCategorias: arm.escala.length,
       seleccionable: false,
     });
     const ultima = out[out.length - 1];
     // Una base sin entrada en `por_base` es «n.c.» (contrato E4-E7). Sólo cuentan
-    // las mediciones de la serie: una base fuera de ella no se tabula.
+    // las mediciones de la serie: una base fuera de ella no se tabula. Tampoco
+    // cuenta una base sin variable declarada: no hay columna que tabular y el
+    // motor la publica como «n.c.» aunque su armonización diga comparable.
+    const conVariable = (base: string) => (fila.variables?.[base] ?? "").trim() !== "";
     ultima.basesComparables = Object.entries(arm.por_base)
-      .filter(([base, entrada]) => entrada.comparable && (serie.length === 0 || serie.includes(base)))
+      .filter(([base, entrada]) => entrada.comparable && conVariable(base) && (serie.length === 0 || serie.includes(base)))
       .map(([base]) => base);
+    ultima.basesSinVariable = (serie.length ? serie : Object.keys(arm.por_base)).filter((base) => !conVariable(base));
     ultima.seleccionable = ultima.basesComparables.length > 0;
   });
   return out;
@@ -379,6 +386,28 @@ export function describirNa(na: ComparativoNa, periodos: ComparativoResultado["p
 
 export function rotuloDe(base: string, periodos: ComparativoResultado["periodos"]): string {
   return periodos.find((p) => p.base === base)?.rotulo ?? base;
+}
+
+/** Lo que la tarjeta dice de la cobertura de la fila en la serie. */
+export function detalleCobertura(
+  fila: Pick<FilaArmonizada, "basesComparables" | "basesSinVariable" | "nCategorias">,
+  totalPeriodos: number,
+  rotulos: Record<string, string>,
+): string {
+  const partes = [
+    `comparable en ${fila.basesComparables.length} de ${cantidad(totalPeriodos, "medición", "mediciones")}`,
+    cantidad(fila.nCategorias, "categoría", "categorías"),
+  ];
+  if (fila.basesSinVariable.length) {
+    const anios = fila.basesSinVariable.map((b) => (rotulos[b] ?? "").trim() || rotuloPorDefecto(b));
+    partes.push(`sin variable en ${unirLista(anios)}`);
+  }
+  return partes.join(", ");
+}
+
+function unirLista(items: string[]): string {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} y ${items[items.length - 1]}`;
 }
 
 export function cantidad(n: number, singular: string, plural: string): string {

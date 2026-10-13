@@ -8,6 +8,7 @@ import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { RespuestasCodificador } from "./RespuestasCodificador";
 import { IntegerCodificador } from "./IntegerCodificador";
 import { AgruparCategoriasCodificador, ModoSelectOneTabs } from "./AgruparCategoriasCodificador";
+import { textoPlano } from "../../lib/textoPlano";
 
 const TIPO_STYLE: Record<string, { bg: string; fg: string; border: string; label: string }> = {
   select_multiple: { bg: "var(--tipo-sm-bg)", fg: "var(--tipo-sm-fg)", border: "var(--tipo-sm-border)", label: "Múltiple" },
@@ -114,9 +115,9 @@ export default function PreguntaDetalle() {
               {pregunta.modo_so === "padre" && " · padre"}
             </span>
           </div>
-          {pregunta.section_label && (
+          {textoPlano(pregunta.section_label) && (
             <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 4 }}>
-              {pregunta.section_label}
+              {textoPlano(pregunta.section_label)}
             </div>
           )}
         </div>

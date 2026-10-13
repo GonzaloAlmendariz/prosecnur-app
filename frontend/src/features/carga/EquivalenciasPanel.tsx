@@ -53,6 +53,7 @@ import {
   filaVacia,
   filasParaGuardar,
   incorporarSugerencias,
+  ordenarBasesPorSerie,
   quitarFila,
   resumenEditor,
   type FilaEditor,
@@ -263,7 +264,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
         setAviso(
           conservadas > 0
             ? `${aplicadas} etiquetas aplicadas. ${conservadas} se conservaron porque ya estaban editadas a mano.`
-            : `${aplicadas} etiquetas aplicadas en ${imp.estado.bases.length} públicos.`,
+            : `${aplicadas} etiquetas aplicadas en ${imp.estado.bases.length} bases.`,
         );
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -327,14 +328,16 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
 
   if (cargando && !estado) {
     return (
-      <section className="pulso-equiv" aria-label="Equivalencias entre públicos">
+      <section className="pulso-equiv" aria-label="Equivalencias entre bases">
         <p className="pulso-equiv-cargando">Revisando la declaración del estudio…</p>
       </section>
     );
   }
 
   const declarada = Boolean(estado?.declarada);
-  const bases = estado?.bases ?? [];
+  // Las columnas siguen la serie declarada (2024, 2025, 2026), no el orden en
+  // que se cargaron las bases.
+  const bases = ordenarBasesPorSerie(estado?.bases ?? [], estado?.armonizacion_periodos);
   const desfasadas = estado?.desfasadas ?? [];
 
   // C1: seccion independiente, no una coleccion de pares. Su alto es intrinseco
@@ -351,7 +354,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
   return (
     <section
       className="pulso-equiv"
-      aria-label="Equivalencias entre públicos"
+      aria-label="Equivalencias entre bases"
       data-qa-geometry-group="carga-equivalencias"
       data-qa-geometry-contract="intrinsic"
     >
@@ -361,10 +364,10 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
         <div className="pulso-equiv-title">
           <GitCompare size={18} aria-hidden="true" />
           <div>
-            <strong>La misma pregunta en cada público</strong>
+            <strong>La misma pregunta en cada base</strong>
             <small>
-              Cada público nombra sus variables distinto. Declarar la equivalencia es lo
-              que permite compararlos sin emparejar a mano.
+              Cada base nombra sus variables distinto. Declarar la equivalencia es lo
+              que permite compararlas sin emparejar a mano.
             </small>
           </div>
         </div>
@@ -468,7 +471,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                   type="button"
                   className="pulso-equiv-accion-masiva"
                   onClick={onAgrupar}
-                  title="Agrupa por la batería del formulario: los temas cuyas variables comparten raíz en algún público van a la misma diapositiva."
+                  title="Agrupa por la batería del formulario: los temas cuyas variables comparten raíz en alguna base van a la misma diapositiva."
                 >
                   <Layers size={13} aria-hidden="true" />
                   Agrupar {sinDiapositiva} sin diapositiva
@@ -548,18 +551,18 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
               <strong>Este estudio todavía no declara equivalencias.</strong>
             </p>
             <p>
-              Genera la plantilla: sale con las variables y etiquetas de cada público ya
+              Genera la plantilla: sale con las variables y etiquetas de cada base ya
               puestas. Empareja las filas que son la misma pregunta, escribe su etiqueta
               estándar y súbela.
             </p>
             <p className="pulso-equiv-vacio-nota">
-              Sin esto, comparar dos públicos exige recordar qué variable corresponde a
+              Sin esto, comparar dos bases exige recordar qué variable corresponde a
               cuál en cada uno.
             </p>
           </div>
         ) : (
           <>
-            <ul className="pulso-equiv-resumen" aria-label="Cobertura por público">
+            <ul className="pulso-equiv-resumen" aria-label="Cobertura por base">
               {bases.map((base) => {
                 const cob = estado?.cobertura?.[base];
                 const huerfanas = cob?.huerfanas ?? [];

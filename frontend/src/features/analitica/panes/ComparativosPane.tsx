@@ -50,6 +50,7 @@ import {
   periodosDeSerie,
   preguntasEfectivas,
   cantidad,
+  detalleCobertura,
   rotuloDe,
   rotuloPorDefecto,
   totalSinMapa,
@@ -197,6 +198,7 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
           marcadas={ui.cruces}
           marca="También es cruce"
           totalPeriodos={periodos.length}
+          rotulos={ui.rotulos}
           onAlternar={(clave) => dispatch({ tipo: "alternar-pregunta", clave })}
           acciones={(
             <div className="pulso-comparativos-lista-acciones">
@@ -219,6 +221,7 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
           marcadas={[]}
           marca=""
           totalPeriodos={periodos.length}
+          rotulos={ui.rotulos}
           onAlternar={(clave) => dispatch({ tipo: "alternar-cruce", clave })}
         />
 
@@ -322,6 +325,7 @@ function ListaDeFilas({
   marcadas,
   marca,
   totalPeriodos,
+  rotulos,
   onAlternar,
   acciones,
 }: {
@@ -334,6 +338,7 @@ function ListaDeFilas({
   marcadas: string[];
   marca: string;
   totalPeriodos: number;
+  rotulos: Record<string, string>;
   onAlternar: (clave: string) => void;
   acciones?: JSX.Element;
 }) {
@@ -370,7 +375,7 @@ function ListaDeFilas({
                   <strong>{fila.etiqueta}</strong>
                   <small>
                     {fila.seccion ? `${fila.seccion}, ` : ""}
-                    comparable en {fila.basesComparables.length} de {cantidad(totalPeriodos, "medición", "mediciones")}, {cantidad(fila.nCategorias, "categoría", "categorías")}
+                    {detalleCobertura(fila, totalPeriodos, rotulos)}
                   </small>
                   {!fila.seleccionable ? (
                     <span className="pulso-comparativos-fila-marca is-off">No es comparable en ninguna medición</span>

@@ -10,6 +10,7 @@ import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { RespuestasCodificador } from "./RespuestasCodificador";
 import { IntegerCodificador } from "./IntegerCodificador";
 import { ModoSelectOneTabs } from "./AgruparCategoriasCodificador";
+import { textoPlano } from "../../lib/textoPlano";
 
 type Props = {
   onBackToOrganizar: () => void;
@@ -283,9 +284,9 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
           <h2 className="pulso-codificacion-coder-title">
             {label}
           </h2>
-          {p.section_label && (
+          {textoPlano(p.section_label) && (
             <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 4 }}>
-              {p.section_label}
+              {textoPlano(p.section_label)}
             </div>
           )}
         </div>
