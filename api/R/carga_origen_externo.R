@@ -17,6 +17,15 @@
 
 .ORIGEN_EXTERNO_ID_CANDIDATAS <- c("_uuid", "uuid", "meta_instance_id", "instanceid", "_id")
 
+# Un CSV leído con `check.names` convierte `_uuid` en `X_uuid`: la columna es la
+# misma y no puede quedar sin encontrarse por eso.
+.origen_externo_col_id <- function(nombres) {
+  clave <- sub("^x(?=_)", "", tolower(trimws(as.character(nombres))), perl = TRUE)
+  i <- match(.ORIGEN_EXTERNO_ID_CANDIDATAS, clave)
+  i <- i[!is.na(i)]
+  if (length(i)) i[[1]] else NA_integer_
+}
+
 .origen_externo_chr <- function(x, default = "") {
   x <- as.character(x %||% default)
   if (!length(x) || is.na(x[[1]])) return(default)
@@ -36,8 +45,7 @@
     stop_api(400, "E_BAD_FILE", "La lista de exclusiones está vacía.")
   }
   nombres <- tolower(trimws(names(df)))
-  col_id <- match(.ORIGEN_EXTERNO_ID_CANDIDATAS, nombres)
-  col_id <- col_id[!is.na(col_id)][1]
+  col_id <- .origen_externo_col_id(names(df))
   if (is.na(col_id)) {
     stop_api(400, "E_BAD_FILE", paste0(
       "La lista de exclusiones necesita una columna con el identificador de la encuesta (",
@@ -156,4 +164,69 @@ origen_externo_construir <- function(exclusiones, ids_base, n_recibidas = NA_int
     entregadas = as.integer(bloque$n_entregadas %||% NA_integer_),
     por_categoria = lapply(names(por_cat), function(k) list(categoria = k, n = as.integer(por_cat[[k]])))
   )
+}
+
+# --- con sesión ---------------------------------------------------------------
+
+.origen_externo_leer_archivo <- function(s, file_id, que) {
+  fid <- .origen_externo_chr(file_id)
+  meta <- (s$files %||% list())[[fid]]
+  if (!nzchar(fid) || is.null(meta) || !file.exists(meta$path %||% "")) {
+    stop_api(404, "E_FILE_NOT_FOUND", sprintf("No se encontró el archivo de %s.", que))
+  }
+  ext <- tolower(.origen_externo_chr(meta$ext, tools::file_ext(meta$path)))
+  as.data.frame(.read_data_any_path(meta$path, ext), stringsAsFactors = FALSE, check.names = FALSE)
+}
+
+#' Declara de dónde viene la base: lista de exclusiones del script y recibidas.
+#'
+#' @param sid sesión. @param base_nombre base (vacío = la activa).
+#' @param file_id archivo xlsx o csv ya subido con la lista de exclusiones.
+#' @param n_recibidas,script,version ver `origen_externo_construir()`.
+#' @return `list(base, estado, bloque, avisos, resumen)`.
+#' @keywords internal
+origen_externo_declarar <- function(sid, base_nombre = NULL, file_id = "",
+                                    n_recibidas = NA_integer_, script = "", version = "") {
+  s <- session_get(sid)
+  nombre <- .resolve_base_nombre(s, base_nombre)
+  meta <- s$estudio$bases[[nombre]]
+  if (is.null(meta)) stop_api(404, "E_BASE_NOT_FOUND", sprintf("No existe la base «%s».", nombre))
+  base_df <- .origen_externo_leer_archivo(s, meta$data_file_id, "la base")
+  col_id <- .origen_externo_col_id(names(base_df))
+  if (is.na(col_id)) {
+    stop_api(400, "E_BAD_REQUEST", paste0(
+      "La base no trae una columna de identificador de encuesta (",
+      paste(.ORIGEN_EXTERNO_ID_CANDIDATAS, collapse = ", "), "): no hay contra qué cruzar la lista."))
+  }
+  exclusiones <- .origen_externo_normalizar_exclusiones(
+    .origen_externo_leer_archivo(s, file_id, "exclusiones"))
+  out <- origen_externo_construir(
+    exclusiones, base_df[[col_id]], n_recibidas = n_recibidas,
+    script = script, version = version, data_file_id = meta$data_file_id
+  )
+  meta$origen_externo <- out$bloque
+  s$estudio$bases[[nombre]] <- meta
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  list(base = nombre, estado = "vigente", bloque = .origen_externo_sin_ids(out$bloque),
+       avisos = out$avisos, resumen = .origen_externo_resumen(out$bloque))
+}
+
+#' Estado de la declaración de una base, sin identificadores.
+#' @keywords internal
+origen_externo_consultar <- function(sid, base_nombre = NULL) {
+  s <- session_get(sid)
+  nombre <- .resolve_base_nombre(s, base_nombre)
+  meta <- s$estudio$bases[[nombre]] %||% list()
+  bloque <- meta$origen_externo
+  list(base = nombre, estado = .origen_externo_estado(bloque, meta$data_file_id),
+       bloque = .origen_externo_sin_ids(bloque), resumen = .origen_externo_resumen(bloque))
+}
+
+# La respuesta HTTP no lleva los identificadores: viven en el .pulso, como las
+# decisiones de Limpieza, y sólo se cuentan.
+.origen_externo_sin_ids <- function(bloque) {
+  if (!is.list(bloque) || !length(bloque)) return(NULL)
+  bloque$exclusiones <- NULL
+  bloque
 }
