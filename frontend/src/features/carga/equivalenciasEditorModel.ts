@@ -18,6 +18,17 @@ import type { EquivalenciaFila, OpcionDeEscala, VariableDeBase } from "../../api
 export type FilaEditor = EquivalenciaFila & {
   /** Identidad estable de la fila mientras se edita; no viaja al backend. */
   id: string;
+  /**
+   * `id` del bloque en la matriz del proyecto (contrato E4-E7). Vive aparte
+   * porque `id` es la identidad local; al guardar vuelve a viajar como `id`,
+   * que es por donde la importación de bloques casa sin duplicar.
+   */
+  id_declarado?: string;
+  /**
+   * Posición de la fila en la declaración GUARDADA. Es lo que el preview de la
+   * armonización acepta como referencia; una fila nueva no la tiene todavía.
+   */
+  indice_declarado?: number;
 };
 
 let contador = 0;
@@ -39,7 +50,15 @@ export function filaVacia(seccion = "", diapositiva = "", enunciado = ""): FilaE
 }
 
 export function aFilasEditor(filas: readonly EquivalenciaFila[]): FilaEditor[] {
-  return filas.map((f) => ({ ...f, id: nuevaFilaId() }));
+  return filas.map((f, i) => {
+    const { id: idDeclarado, ...resto } = f;
+    return {
+      ...resto,
+      id: nuevaFilaId(),
+      ...(idDeclarado ? { id_declarado: idDeclarado } : {}),
+      indice_declarado: i,
+    };
+  });
 }
 
 /**
@@ -191,8 +210,9 @@ export function confirmarTodas(filas: readonly FilaEditor[]): FilaEditor[] {
 export function filasParaGuardar(filas: readonly FilaEditor[]): EquivalenciaFila[] {
   return filas
     .filter((fila) => Object.keys(fila.variables).length > 0)
-    .map(({ id: _id, ...resto }) => ({
+    .map(({ id: _id, id_declarado, indice_declarado: _indice, ...resto }) => ({
       ...resto,
+      ...(id_declarado ? { id: id_declarado } : {}),
       cantidad: Object.keys(resto.variables).length,
     }));
 }

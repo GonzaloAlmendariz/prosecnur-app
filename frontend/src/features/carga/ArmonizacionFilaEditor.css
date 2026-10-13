@@ -1,0 +1,512 @@
+/* Armonización entre mediciones (contrato E4-E7, R3).
+ *
+ * Sólo tokens `--pulso-*`. El sideover va en portal al `body`, fuera del frame
+ * de Procesamiento: el acento del módulo se declara aquí y no se da por heredado.
+ *
+ * Geometría (Contrato de Superficie):
+ * - C2: el sideover mide el alto de la ventana y un ancho fijo por viewport; 2 o
+ *   40 códigos por base no lo mueven. La variación se resuelve dentro.
+ * - C4: un único dueño de scroll, `.pulso-armon-cuerpo`. Cabecera y pie quedan
+ *   fuera de él, así Guardar siempre está a la vista.
+ */
+
+/* --- Chip de la fila en la tabla ----------------------------------------- */
+
+.pulso-armon-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 1px 7px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.5;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pulso-armon-chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pulso-armon-chip.is-armonizada {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-armon-chip.is-no_comparable {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-armon-chip:hover:not(:disabled) {
+  border-color: var(--pulso-module-processing-border);
+}
+
+.pulso-armon-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pulso-armon-chip:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 2px;
+}
+
+/* --- Sideover ------------------------------------------------------------ */
+
+.pulso-armon-velo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--pulso-z-modal);
+  background: color-mix(in srgb, var(--pulso-text) 30%, transparent);
+}
+
+.pulso-armon {
+  --module-accent: var(--pulso-module-processing);
+  --module-accent-soft: var(--pulso-module-processing-soft);
+  position: fixed;
+  z-index: var(--pulso-z-modal);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(880px, calc(100vw - var(--pulso-space-9)));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--pulso-surface);
+  border-left: 1px solid var(--pulso-border-strong);
+  box-shadow: var(--pulso-shadow-high);
+  color: var(--pulso-text);
+  animation: pulso-armon-entrada 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.pulso-armon:focus {
+  outline: none;
+}
+
+@keyframes pulso-armon-entrada {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-armon {
+    animation: none;
+  }
+}
+
+.pulso-armon-marco {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.pulso-armon-cabecera {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-5) var(--pulso-space-6) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-armon-titular {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-armon-eyebrow {
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.02em;
+  color: var(--pulso-module-processing);
+}
+
+.pulso-armon-titulo {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.25;
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.pulso-armon-cerrar {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.pulso-armon-cerrar:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.pulso-armon-cerrar:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 2px;
+}
+
+.pulso-armon-regla {
+  margin: 0;
+  max-width: 72ch;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-armon-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-4) var(--pulso-space-6) var(--pulso-space-6);
+}
+
+.pulso-armon-pie {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-6);
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.pulso-armon-pie-estado {
+  flex: 1 1 200px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-armon-error {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-armon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+/* --- Secciones ----------------------------------------------------------- */
+
+.pulso-armon-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+
+.pulso-armon-base.is-no-comparable {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-armon-seccion-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.pulso-armon-seccion-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-armon-seccion-head h3 small {
+  margin-left: var(--pulso-space-1);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-armon-vacio,
+.pulso-armon-nota,
+.pulso-armon-aviso {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-armon-aviso {
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-armon-tenue {
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+}
+
+/* --- Escala común -------------------------------------------------------- */
+
+.pulso-armon-escala {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-armon-escala li {
+  display: grid;
+  grid-template-columns: 22px 84px minmax(0, 1fr) repeat(3, auto);
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-armon-escala-pos {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint);
+  text-align: right;
+}
+
+.pulso-armon-escala input {
+  min-width: 0;
+  height: 30px;
+  font-size: 13px;
+}
+
+/* --- Mapa por base ------------------------------------------------------- */
+
+.pulso-armon-comparable {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  font-size: 12.5px;
+}
+
+.pulso-armon-comparable label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  cursor: pointer;
+}
+
+.pulso-armon-nota-campo {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--pulso-space-2);
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-armon-nota-campo input {
+  min-width: 0;
+  height: 30px;
+  font-size: 13px;
+}
+
+.pulso-armon-base-acciones {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.pulso-armon-base-resumen {
+  flex: 1 1 240px;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-armon-tabla-wrap {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+}
+
+.pulso-armon-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12.5px;
+}
+
+.pulso-armon-tabla th:nth-child(1) {
+  width: 72px;
+}
+
+.pulso-armon-tabla th:nth-child(3) {
+  width: 84px;
+}
+
+.pulso-armon-tabla th:nth-child(4) {
+  width: 38%;
+}
+
+.pulso-armon-tabla th {
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+  text-align: left;
+}
+
+.pulso-armon-tabla td {
+  padding: var(--pulso-space-1) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.pulso-armon-tabla tr:last-child td {
+  border-bottom: 0;
+}
+
+.pulso-armon-tabla .is-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-armon-codigo {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-armon-tabla select {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  font-size: 12.5px;
+}
+
+/* «Sin mapa» resaltado: borde de aviso a la izquierda y fondo, nunca sólo color. */
+.pulso-armon-tabla tr.is-sin-mapa td {
+  background: var(--pulso-warn-bg);
+}
+
+.pulso-armon-tabla tr.is-sin-mapa td:first-child {
+  box-shadow: inset 3px 0 0 var(--pulso-warn-border);
+}
+
+.pulso-armon-tabla tr.is-sin-mapa select {
+  border-color: var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* --- Orden de la serie (ArmonizacionPeriodos) ---------------------------- */
+
+.pulso-armon-periodos {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  font-size: 12px;
+}
+
+.pulso-armon-periodos-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-module-processing);
+}
+
+.pulso-armon-periodos-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-armon-periodos-lista li {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 2px 1px var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+}
+
+.pulso-armon-periodos-pos {
+  margin-right: 2px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-armon-periodos-base {
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.pulso-armon-periodos-nota {
+  color: var(--pulso-text-soft);
+}
+
+/* «Etiqueta distinta»: el código tiene destino pero su etiqueta no es la de la
+ * categoría. Texto, borde punteado y fondo, nunca sólo color. */
+.pulso-armon-tabla tr.is-etiqueta-distinta td:first-child {
+  box-shadow: inset 3px 0 0 var(--pulso-warn-fg);
+}
+
+.pulso-armon-tabla tr.is-etiqueta-distinta select {
+  border-style: dashed;
+  border-color: var(--pulso-warn-fg);
+}
+
+.pulso-armon-etiqueta-distinta {
+  display: inline-block;
+  margin-top: 3px;
+  padding: 0 6px;
+  border: 1px dashed var(--pulso-warn-fg);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.5;
+}
+
+.pulso-armon-base-resumen.is-aviso {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}

@@ -1,0 +1,13 @@
+/* Ponderación: dueño de scroll (No Scroll Jail).
+ *
+ * Analítica monta sus panes con `scrollOwner="panels"`: cada panel es dueño de
+ * su scroll. Ponderación no lo era, y con la ponderación activa a 1024x600 su
+ * contenido (575 px) quedaba recortado en una caja de 418 sin forma de
+ * alcanzarlo. Mismo patrón que `.analitica-dimensiones-panel`.
+ */
+.pulso-analitica-frame .analitica-ponderacion-panel {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}

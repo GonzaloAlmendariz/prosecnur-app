@@ -23,6 +23,7 @@ import type { CampoFila, CatalogoEscalas, FilaEditor, DiapositivaEditor } from "
 import { escalaDeFila, resumenEscala, seccionLegible } from "./equivalenciasEditorModel";
 import { EscalaChip } from "./EscalaChip";
 import { BloqueGrafico, type EstiloRadar } from "./BloqueGrafico";
+import { ArmonizacionIndicador } from "./ArmonizacionFilaEditor";
 
 export type EquivalenciasDiapositivasProps = {
   bases: string[];
@@ -39,6 +40,8 @@ export type EquivalenciasDiapositivasProps = {
   onQuitar: (filaId: string) => void;
   onConfirmar: (filaId: string) => void;
   onAgregarTema: (clave: string) => void;
+  /** Abre el editor de armonización con el `foco` de la fila. Sin él, no hay indicador. */
+  onArmonizar?: (foco: string) => void;
 };
 
 /**
@@ -233,6 +236,7 @@ export function EquivalenciasDiapositivas({
   onQuitar,
   onConfirmar,
   onAgregarTema,
+  onArmonizar,
 }: EquivalenciasDiapositivasProps) {
   const [editando, setEditando] = useState<{ filaId: string; base: string } | null>(null);
 
@@ -283,6 +287,7 @@ export function EquivalenciasDiapositivas({
                               onEditarFila(fila.id, "etiqueta_estandar", e.target.value)
                             }
                           />
+                          {onArmonizar && <ArmonizacionIndicador fila={fila} onAbrir={onArmonizar} />}
                         </div>
                       </td>
 
