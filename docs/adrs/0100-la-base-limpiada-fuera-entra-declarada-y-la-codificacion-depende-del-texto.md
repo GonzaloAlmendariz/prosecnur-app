@@ -79,5 +79,12 @@ parte: **lo que deja de aplicarse no lo dice nadie**, y la base que vino de fuer
 - Reabrir la limpieza deja de ser una decisión con miedo: su costo es volver a aplicar.
 - Quitar una variable de la base deja de ser una forma silenciosa de perder un catálogo de codificación.
 - La base que vino de un script deja de ser una caja negra en la ficha técnica.
+- **No es una decisión de HSyVBG.** HSyVBG la motivó y sirvió de banco de prueba, pero nada de la lógica
+  conoce sus preguntas: las omitidas salen del catálogo de cada estudio; la lista de exclusiones acepta el
+  identificador de Kobo (`_uuid`), de SurveyMonkey (`respondent_id`, `response_id`) o el código PULSO —la
+  misma lista que usa Codificación, `.codif_key_candidates`—; las categorías de exclusión son texto libre del
+  estudio, no un vocabulario fijo.
+- **Límite: bases con repeat.** La declaración se hace sobre una base y no se propaga de la madre a sus
+  hijas. Un estudio con repeats que depure fuera debe declarar cada base, o queda pendiente propagarla.
 - Lo que no cubre: no se reproduce dentro de Prosecnur lo que hizo el script. Si una decisión del script
   cambia, se cambia en el script y se recarga la base (D1).

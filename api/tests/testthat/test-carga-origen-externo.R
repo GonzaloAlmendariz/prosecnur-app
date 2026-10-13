@@ -160,3 +160,11 @@ test_that("con depuración externa las dos «recibidas» no se llaman igual", {
   expect_identical(.vmr_universe_rotulo_total(u), "encuestas cargadas a la plataforma")
   expect_identical(.vmr_universe_rotulo_total(list(total = 3318L)), "encuestas recibidas")
 })
+
+test_that("una base de SurveyMonkey o con código PULSO también se puede declarar", {
+  sm <- data.frame(respondent_id = c("r1", "r2"), motivo = "x", stringsAsFactors = FALSE)
+  expect_identical(.origen_externo_normalizar_exclusiones(sm)$id, c("r1", "r2"))
+  expect_false(is.na(.origen_externo_col_id(c("P1", "response_id"))))
+  expect_false(is.na(.origen_externo_col_id(c("P1", "Código pulso"))))
+  expect_true(is.na(.origen_externo_col_id(c("P1", "P2"))))
+})
