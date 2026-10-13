@@ -8,15 +8,23 @@ la ruta recomendada («hazlo así»): primero el punto 1, luego 2 y 3.
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| 1a | Texto de fuente configurable («Fuente: Pulso PUCP 2026.») en frecuencias y cruces | motor (`reporte_notas_pie.R`, `reporte_frecuencias.R`, `reporte_cruces.R`), config `notas.fuente`, UI Analítica | hecho y verificado (commit 1435d38c6), falta QA visual de la sección |
-| 1b | Línea «Base: …» por pregunta, con un texto por defecto | motor + config `notas.base_defecto`, `notas.base_por_pregunta` + UI | hecho y verificado (commit 1435d38c6), falta QA visual de la sección |
-| 1c | Notas por variable de cruce (lugar de nacimiento, discapacidad con cita de P10) | motor (cruces) + config `notas.por_cruce` + UI | hecho y verificado (commit 1435d38c6), falta QA visual de la sección |
-| 1d | Aviso automático de base reducida (casos sin ponderar bajo un umbral) | motor (cruces) + config `notas.base_reducida` + UI | hecho y verificado (commit 1435d38c6), falta QA visual de la sección |
-| 1e | Nota de significancia con la redacción de la maqueta (sin «Letras por estrato» ni «Fuente») | motor (`reporte_cruces.R`) | hecho y verificado (commit 1435d38c6), falta QA visual de la sección |
-| 1f | «Agrupar categorías» en Codificación que cree `<var>_recod` (orientación, lugar de nacimiento, año de ingreso con «Otro») | Codificación (motor + UI) | diseño listo (ver abajo), espera la oleada 2 |
-| 2 | Base armonizada 2024-2026: año, peso por año (1 en 2026), 7 cruces armonizados, mapa de preguntas y códigos, tabla de comparabilidad (n.c./n.a.) | script del proyecto (parte de `segmentos_cruce_2024_2025.R`) + matriz de equivalencias | pendiente |
-| 3a | Writer «comparativo simple»: años en columnas, sin Total combinado, «n.c.» por año | motor, archivo nuevo | pendiente |
-| 3b | Writer «comparativo de cruces»: Respuesta × Año en filas, letras dentro de cada año, «n.a.» | motor, archivo nuevo | pendiente |
+| 1a | Fuente configurable («Fuente: Pulso PUCP 2026.») | motor + config `notas.fuente` + Analítica | hecho y verificado (1435d38c6) |
+| 1b | Línea «Base: …» por pregunta, con texto por defecto | motor + config + Analítica | hecho y verificado (1435d38c6) |
+| 1c | Notas por variable de cruce | motor (cruces) + Analítica | hecho y verificado (1435d38c6) |
+| 1d | Aviso automático de base reducida | motor (cruces) + Analítica | hecho y verificado (1435d38c6) |
+| 1e | Nota de significancia con la redacción de la maqueta | motor | hecho y verificado (1435d38c6, 41d6c7f78) |
+| 1f | «Agrupar categorías» en Codificación, crea `<var>_recod` o `<var>_agrup` | Codificación (motor + UI) | hecho y verificado (ecba8c17c, 23ba9d819) |
+| 2 | Armonización en la app: base .sav sin XLSForm (R1), peso por columna y por base (R2), armonización en la matriz de equivalencias e importador de bloques (R3) | Carga, Ponderación, Equivalencias | hecho y verificado (55ba17126, d316123ee, d9cac8fdf, 95899f3cf) |
+| 3a | Comparativo simple (años en columnas, sin Total combinado, n.c., n.a.) | motor + pestaña «Comparativos» | hecho y verificado (10f2ab416, 7b79bf9ba, 9bb20d390, 72434515b) |
+| 3b | Comparativo de cruces (Respuesta × Año, letras por año, n.a.) | motor + pestaña «Comparativos» | hecho y verificado (10f2ab416, 7b79bf9ba, 57b36023a, 72434515b) |
+| E8 | Prueba de punta a punta con las bases reales 2024-2026 | proyecto (copia) | hecha: cifras 2024 y 2025 idénticas a la maqueta |
+| P1 | Completar en la matriz las 94 variables 2026 «(pendiente)» y corregir sus errores (ver Observaciones_Matriz) | proyecto | pendiente (equipo del proyecto) |
+| P2 | Armonizar a mano S-05 lugar de nacimiento y los cruces (agrupar por base) | proyecto | pendiente (equipo del proyecto) |
+| P3 | Configurar notas al pie del proyecto (fuente 2026, base, notas de cruce) | proyecto | pendiente (equipo del proyecto) |
+| m1 | Subtabla de letras puede partirse entre páginas al imprimir | motor | pendiente menor |
+| m2 | Rótulos de pregunta en Carga › Revisión salen con nombre técnico cuando el XLSForm solo trae `label::<idioma>` | lector XLSForm | bloqueado: decisión con nucleo-metodologico (afecta validación y codificación) |
+| m3 | Panel y tablas multibase sin notas al pie configurables | motor | pendiente menor |
+| m4 | `importar-bloques` sin modo «detectar años»; preview de ponderación ignora modo columna | motor | pendiente menor |
 
 ## Contrato congelado para 1a–1e
 
