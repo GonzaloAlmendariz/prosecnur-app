@@ -89,7 +89,7 @@ export default function VariablePicker({
     if (open) requestAnimationFrame(() => searchRef.current?.focus());
   }, [open]);
 
-  if (loading) return <span className="pulso-gv2-variable-status">Cargando variables...</span>;
+  if (loading) return <span className="pulso-gv2-variable-status">Cargando variables…</span>;
   if (error) {
     const isSessionLost = error.includes("E_NO_SESSION");
     return (
@@ -279,7 +279,7 @@ export default function VariablePicker({
               ref={searchRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por código, pregunta, sección o lista..."
+              placeholder="Buscar por código, pregunta, sección o lista…"
               aria-label="Buscar variable"
             />
             {query && (

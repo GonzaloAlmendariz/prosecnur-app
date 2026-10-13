@@ -221,7 +221,7 @@ export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props
   }
 
   if (loading) {
-    return <div style={hintStyle}>Cargando variables del estudio...</div>;
+    return <div style={hintStyle}>Cargando variables del estudio…</div>;
   }
 
   return (
@@ -791,7 +791,7 @@ function VariableChoicePopover({
               ref={searchRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por pregunta, codigo, base o lista..."
+              placeholder="Buscar por pregunta, código, base o lista…"
               aria-label="Buscar variable"
             />
             {query && (
