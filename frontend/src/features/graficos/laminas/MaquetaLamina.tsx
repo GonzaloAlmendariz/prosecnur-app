@@ -19,7 +19,7 @@ import { useVariables } from "../useVariables";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { baseAutomatica, COLOR_MAYOR, COLOR_RESTO, COLOR_SEGUNDA, ranurasDeMaqueta } from "./modeloMaqueta";
 import { varianteDe } from "./selectores/tiposLamina";
-import { camposTextoDe, type CampoTextoLamina } from "./ZonasTextoLamina";
+import { camposTextoDe, ZonasTextoLamina, zonasPortada, type CampoTextoLamina } from "./ZonasTextoLamina";
 import "./maquetaLamina.css";
 
 /** Barras apiladas: la maqueta las dibuja pregunta por pregunta, con sus colores y su Top Two Box. */
@@ -55,7 +55,9 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
     return (
       <div className="pulso-f6-maqueta is-estructura" data-maqueta-tipo={slide.tipo}>
         <ComposicionLamina tipo={slide.tipo} slots={slots} variante={varianteDe(slide)} />
-        {campos.has("titulo") && (
+        {zonasPortada(slide.tipo, varianteDe(slide)) ? (
+          <ZonasTextoLamina onTexto={onTexto} campos={campos} zonas={zonasPortada(slide.tipo, varianteDe(slide)) ?? undefined} />
+        ) : campos.has("titulo") && (
           <button type="button" className="pulso-f6-maqueta-zona pulso-f6-maqueta-titulo-estructura" onClick={() => onTexto("titulo")} aria-label="Editar título">
             <span className="pulso-f6-maqueta-titulo">{lamina.titulo}</span>
           </button>
