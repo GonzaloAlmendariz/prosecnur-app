@@ -209,3 +209,16 @@ de nacimiento completadas a mano.
   S-05 sin códigos, notas al pie (fuente 2026, base) sin configurar.
 - Decisión pendiente de Gonzalo: «—» (opción no ofrecida) frente a «n.a.» de la maqueta
   para «Fuera del país» en 2024.
+
+## Ronda de claridad de la UI (pedido de Gonzalo, 2026-10-13)
+
+Textual: «Debe seguir mejorando, además no especificas qué es armonizar, debe estar claro
+y recuerda que las columnas pueden ser más de 3 o puede haber bases con nombres
+diferentes».
+
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| U1 | Explicar qué es armonizar, en palabras simples y con un ejemplo, donde aparece (Equivalencias, editor de armonización, chip «Armonizada», pestaña Comparativos) | frontend carga + analítica | en curso |
+| U2 | Funcionar con más de 3 bases: tabla de equivalencias, orden de la serie, editor de armonización, rótulos y tarjetas de Comparativos (probar con 4 y con 7 bases) | frontend | en curso |
+| U3 | Bases con nombres que no son años (docentes, estudiantes…): rótulos por defecto, textos que no digan «año» si no lo son, encabezado «Año» del XLSX | frontend + motor (`reporte_comparativo.R`) | en curso |
+| U4 | Tarjetas de Comparativos más legibles con 74 preguntas (jerarquía, búsqueda o filtro por sección) | frontend analítica | en curso |
