@@ -23,3 +23,13 @@ export function antetituloDelTipo(tipo: string): AntetituloDelTipo {
   const fijo = FIJO[tipo];
   return fijo ? { modo: "fijo", texto: fijo } : { modo: "editable" };
 }
+
+// G7 (Gonzalo, 2026-10-13): «la lámina de explicación del top 2 box no debería pedirte cambios en el título o en lo que
+// está escrito porque es una lámina estándar que siempre sale de una forma». El motor conserva sus variantes para
+// quien arme el plan por código; Láminas no las ofrece.
+const LAMINAS_FIJAS = new Set(["p_slide_top_two_box"]);
+
+/** ¿La lámina sale siempre igual (sin textos ni ejemplo que editar)? */
+export function esLaminaFija(tipo: string): boolean {
+  return LAMINAS_FIJAS.has(tipo);
+}
