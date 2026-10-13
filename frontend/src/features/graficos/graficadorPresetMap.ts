@@ -27,6 +27,7 @@ const MAP: Record<string, string | null> = {
   p_barras_divergentes:         "barras_divergentes",
   p_puntos_comparativos:        "puntos_comparativos",
   p_dumbbell:                   "dumbbell",
+  p_matriz_cuadrantes:          null,
   p_lollipop:                   "lollipop",
   p_serie_temporal:             "serie_temporal",
   // p_radar y p_tabla son wrappers de p_radar_tabla; comparten el mismo

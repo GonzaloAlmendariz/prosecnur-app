@@ -1711,6 +1711,33 @@
   ),
 
   # =========================================================================
+  # MATRIZ DE CUADRANTES (G16, lámina 91 del recetario)
+  # =========================================================================
+  # Las preguntas de cada tema (`temas`: tema -> c(pregunta horizontal, pregunta vertical)) se eligen en su propia
+  # tarjeta, como las de la brecha: no son un control de una línea.
+  p_matriz_cuadrantes = list(
+    titulo_humano = "Matriz de cuadrantes",
+    descripcion   = "Cada tema es un punto con dos medidas que el estudio ya tiene —por ejemplo satisfacción e importancia, o docentes y estudiantes—; las líneas lo reparten en cuatro cuadrantes con nombre.",
+    icono_ui      = "Grid2x2",
+    categoria     = "comparison",
+    blueprint     = "quadrant",
+    args = c(list(
+      list(name = "corte_x", label = "Respuestas que suman el eje horizontal", tipo_input = "codigos_list", grupo = "datos"),
+      list(name = "corte_y", label = "Respuestas que suman el eje vertical", tipo_input = "codigos_list", grupo = "datos"),
+      list(name = "eje_x", label = "Nombre del eje horizontal", tipo_input = "string", grupo = "textos", placeholder = "Satisfacción"),
+      list(name = "eje_y", label = "Nombre del eje vertical", tipo_input = "string", grupo = "textos", placeholder = "Importancia"),
+      list(name = "linea", label = "Dónde cortan las líneas", tipo_input = "choice", grupo = "valores", default = "promedio",
+           choices = list(list(value = "promedio", label = "En el promedio de cada eje"), list(value = "valor", label = "En un valor"))),
+      list(name = "linea_x", label = "Corte horizontal (%)", tipo_input = "number", grupo = "valores", min = 0, max = 100, step = 1),
+      list(name = "linea_y", label = "Corte vertical (%)", tipo_input = "number", grupo = "valores", min = 0, max = 100, step = 1),
+      list(name = "destacado", label = "Cuadrante destacado", tipo_input = "choice", grupo = "valores", default = "arriba_izq",
+           choices = list(list(value = "arriba_izq", label = "Arriba a la izquierda"), list(value = "arriba_der", label = "Arriba a la derecha"),
+                          list(value = "abajo_izq", label = "Abajo a la izquierda"), list(value = "abajo_der", label = "Abajo a la derecha"),
+                          list(value = "ninguno", label = "Ninguno")))
+    ), .args_graf_comunes())
+  ),
+
+  # =========================================================================
   # LOLLIPOP (ranking)
   # =========================================================================
   p_lollipop = list(
@@ -2082,6 +2109,7 @@
   p_mapa_resultado_distrital = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
   p_cifra = list("numeros", "nativa", condicion = "Va en las ranuras de cifra; en una ranura de gráfico sale por la ruta anterior."),
   p_dumbbell = list("comparar", "nativa"),
+  p_matriz_cuadrantes = list("comparar", "nativa", condicion = "Con más de 20 temas va como dibujo de respaldo."),   # G16: lámina 91
   p_lollipop = list("categorias", "nativa"),
   p_serie_temporal = list("comparar", "nativa", condicion = "Con dos mediciones; con tres o más va dibujada dentro de una lámina estándar."),
   p_radar = list("comparar", "nativa", condicion = "Si los ejes o la tabla no caben, sale por la ruta anterior."),
