@@ -122,3 +122,11 @@ describe("una lámina de apertura detrás de «Cómo leer» (G15/U11)", () => {
     expect(est.nodos[2].clase === "bloque" && est.nodos[2].laminas.map((l) => l.id)).toEqual(["i"]);
   });
 });
+
+describe("los resultados detrás de una Apertura reabierta (G15/U11, regresión)", () => {
+  it("van a «Sin capítulo», no a la Apertura del índice", () => {
+    const est = construirEstructura([s("g", "p_slide_1_grafico"), s("t", "p_slide_top_two_box"), s("i", "p_slide_indice"), s("a", "p_slide_1_grafico"), s("b", "p_slide_2_graficos")]);
+    expect(est.nodos.map((n) => n.titulo)).toEqual(["Apertura", "Cómo leer este informe", "Apertura", "Sin capítulo"]);
+    expect(est.nodos[3].clase === "bloque" && est.nodos[3].laminas.map((l) => l.id)).toEqual(["a", "b"]);
+  });
+});
