@@ -973,3 +973,28 @@ test_that("variable ausente: el preview de R3 sigue cortando con E_EQUIV_ARMONIZ
   expect_equal(e$code, "E_EQUIV_ARMONIZACION_VARIABLE_AUSENTE")
   expect_equal(e$status, 409)
 })
+
+test_that("variable ausente: excluida en Analítica con la columna presente también sale n.c. (pregunta y cruce)", {
+  # Las columnas siguen en los datos: la exclusión manda igual que en las tablas anuales.
+  sid <- .az_setup(por_base = .az_por_base_excluidas(list(b2025 = c("v25", "lug25"))))
+  expect_true(all(c("v25", "lug25") %in% names(.armz_fuentes(sid, "b2025", list())$datos$b2025)))
+  ap <- .armz_preparar(sid, list(), filas_refs = list("VBG-01"), cruces_refs = list("S-05"))
+  expect_length(ap$omitidas, 0L)
+  m <- armonizada_modelo_cruces(ap)
+  p25 <- m$preguntas[[1]]$periodos$b2025
+  expect_identical(p25[c("estado", "motivo", "causa", "variable")],
+                   list(estado = "n.c.", motivo = "variable_ausente", causa = "excluida", variable = "v25"))
+  expect_identical(m$preguntas[[1]]$periodos$b2024$cruces$x1$estado, "ok")
+  av <- Filter(function(a) identical(a$tipo, "variable_ausente"), armonizada_avisos(ap))
+  expect_identical(lapply(av, function(a) a[c("base", "fila", "variable", "motivo")]),
+                   list(list(base = "b2025", fila = "Violencia alguna vez", variable = "v25", motivo = "excluida"),
+                        list(base = "b2025", fila = "Lugar de nacimiento", variable = "lug25", motivo = "excluida")))
+
+  # Con la pregunta comparable en 2025, el cruce excluido deja su columna en n.c.
+  sid2 <- .az_setup(por_base = .az_por_base_excluidas(list(b2025 = "lug25")))
+  ap2 <- .armz_preparar(sid2, list(), filas_refs = list("VBG-01"), cruces_refs = list("S-05"))
+  x25 <- armonizada_modelo_cruces(ap2)$preguntas[[1]]$periodos$b2025
+  expect_identical(x25$estado, "ok")
+  expect_identical(x25$cruces$x1[c("estado", "motivo", "causa")],
+                   list(estado = "n.c.", motivo = "variable_ausente", causa = "excluida"))
+})
