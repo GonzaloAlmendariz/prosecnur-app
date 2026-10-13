@@ -52,6 +52,8 @@
   azul <- .std_color("azul"); coral <- .std_color("coral"); suave <- .std_color("texto_suave")
   titulo <- as.character(titulo %||% "")[1]
   sub <- if (is.null(subtitulo) || !nzchar(trimws(as.character(subtitulo)[1]))) NULL else trimws(as.character(subtitulo)[1])
+  # G8, subcapítulo 4 del recetario (lámina 58): sin lámina propia; `.lam_antetitulos` lo anuncia en la siguiente.
+  if (identical(info$variante, "sin_lamina")) return(list(doc = doc, partes = 0L))
   lz <- .lam_lienzo()
   if (identical(info$nivel, "subcapitulo")) {
     doc <- officer::add_slide(doc, layout = layout_subcapitulo, master = master)
@@ -92,6 +94,7 @@
 .lam_seccion_cabe <- function(titulo, info) {
   titulo <- as.character(titulo %||% "")[1]
   if (!nzchar(trimws(titulo)) || is.null(info)) return(FALSE)
+  if (identical(info$variante, "sin_lamina")) return(TRUE)   # no dibuja lámina: lo anuncia el antetítulo de la siguiente
   if (identical(info$nivel, "subcapitulo")) {
     fin <- .std_geom("ancho") - .std_geom("margen_der"); xt <- .std_geom("margen_izq")
     return(.lam_ancho_tinta(titulo, 30, TRUE) <= fin - xt - .lam_ancho_tinta(info$numero, 30, TRUE) - 0.4)

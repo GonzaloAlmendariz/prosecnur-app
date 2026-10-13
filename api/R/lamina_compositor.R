@@ -15,7 +15,8 @@
   lz <- .lam_lienzo()
   .lam_caja(lz, ml0, yt - 0.12, 0.05, if (is.null(sub)) 0.72 else 0.98, .std_color("azul"), nombre = "titulo:barra")
   if (!is.null(ante) && nzchar(ante)) {
-    .lam_txt(lz, toupper(ante), ml, yt - 0.17, 9, 0.26, .std_pt("antetitulo"), .std_color("texto_suave"), bold = TRUE, nombre = "Antetitulo lamina")
+    color_ante <- if (.lam_ante_es_subcapitulo(ante)) .std_color("coral") else .std_color("texto_suave")   # G8: subcapítulo sin lámina
+    .lam_txt(lz, toupper(ante), ml, yt - 0.17, 9, 0.26, .std_pt("antetitulo"), color_ante, bold = TRUE, nombre = "Antetitulo lamina")
   }
   .lam_txt(lz, titulo, ml, yt + 0.06, 10.4, 0.5, .std_pt("titulo"), .std_color("coral"), bold = TRUE, nombre = "Titulo lamina")
   if (!is.null(sub) && nzchar(sub)) .lam_txt(lz, sub, ml, yt + 0.55, 10.4, 0.32, 12.5, .std_color("texto_suave"), nombre = "Subtitulo lamina")
@@ -77,13 +78,21 @@
 #' @return Vector de caracteres del largo del plan (`NA` donde no hay).
 #' @keywords internal
 .lam_antetitulos <- function(plan) {
-  vigente <- NA_character_
-  vapply(plan, function(slide) {
+  vigente <- NA_character_; anuncio <- NULL
+  secciones <- .lam_secciones_numeradas(plan)
+  vapply(seq_along(plan), function(k) {
+    slide <- plan[[k]]
     if (identical(slide$.slide_type, "section")) {
       t <- slide$slots$title %||% slide$title %||% NA_character_
       vigente <<- as.character(t)[1]
+      # Subcapítulo sin lámina (G8, recetario 58): su primera lámina lo anuncia con «n.m  Título».
+      info <- secciones[[k]]
+      anuncio <<- if (identical(info$variante, "sin_lamina")) paste0(info$numero, "  ", vigente) else NULL
+      return(as.character((slide$meta %||% list())$antetitulo %||% vigente)[1])
     }
-    as.character((slide$meta %||% list())$antetitulo %||% vigente)[1]
+    propio <- (slide$meta %||% list())$antetitulo
+    if (is.null(propio) && !is.null(anuncio)) { a <- anuncio; anuncio <<- NULL; return(a) }
+    as.character(propio %||% vigente)[1]
   }, character(1))
 }
 

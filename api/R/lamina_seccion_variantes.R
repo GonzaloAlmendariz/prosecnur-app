@@ -2,8 +2,9 @@
 # por qué el separador de sección no te muestra todas las versiones del recetario»).
 #
 # Recetario moderno, láminas 52–57: capítulo A «número» (52), B «rótulo» (53, la que ya dibujaba `.lam_laminas_seccion`)
-# y C «número de fondo» (54); subcapítulo 1 «sobria» (55, la de siempre), 2 «barra lateral» (56) y 3 «banda clara»
-# (57). La geometría es la del recetario, medida sobre recetario-moderna.pptx.
+# y C «número de fondo» (54); subcapítulo 1 «sobria» (55, la de siempre), 2 «barra lateral» (56), 3 «banda clara»
+# (57) y 4 «sin lámina» (58): no se dibuja; la primera lámina del subcapítulo lleva «2.1  Título» en coral como
+# antetítulo (`.lam_antetitulos` y `.lam_ante_es_subcapitulo`). La geometría es la del recetario, medida sobre recetario-moderna.pptx.
 
 #' Variante del separador por nivel; lo que no se reconoce cae en la de siempre
 #' @keywords internal
@@ -14,7 +15,8 @@
   if (nivel == "capitulo") {
     if (v %in% c("numero", "a")) "numero" else if (v %in% c("fondo", "numero_fondo", "c")) "fondo" else "rotulo"
   } else {
-    if (v %in% c("barra", "barra_lateral", "2")) "barra" else if (v %in% c("banda", "banda_clara", "3")) "banda" else "sobria"
+    if (v %in% c("barra", "barra_lateral", "2")) "barra" else if (v %in% c("banda", "banda_clara", "3")) "banda"
+    else if (v %in% c("sin_lamina", "4")) "sin_lamina" else "sobria"
   }
 }
 
@@ -62,4 +64,11 @@
     if (!is.null(pie)) .lam_txt(lz, pie, 2.15, 3.55, 9, 0.4, 14, suave, nombre = "seccion:subtitulo")
   }
   invisible(lz)
+}
+
+#' ¿El antetítulo anuncia un subcapítulo sin lámina? («2.1  Misión y propósitos»: número, dos espacios y título)
+#' @keywords internal
+.lam_ante_es_subcapitulo <- function(ante) {
+  a <- as.character(ante %||% "")[1]
+  !is.na(a) && grepl("^[0-9]+(\\.[0-9]+)+  \\S", a)
 }

@@ -134,7 +134,7 @@ export const VARIANTES_LAMINA: Partial<Record<SlideType, VariantesTipo>> = {
   },
   // lamina_identidad.R `.lam_secciones_numeradas`: `meta.nivel = "subcapitulo"`; sin él, capítulo.
   p_slide_seccion: {
-    // G8 (2026-10-13): las siete versiones del recetario (52–57). El valor junta nivel y versión: `conVariante` escribe
+    // G8 (2026-10-13): las siete versiones del recetario (52–58). El valor junta nivel y versión: `conVariante` escribe
     // `meta.nivel` y `meta.variante` (lamina_seccion_variantes.R).
     donde: { en: "meta", clave: "nivel" },
     label: "Separador",
@@ -146,6 +146,7 @@ export const VARIANTES_LAMINA: Partial<Record<SlideType, VariantesTipo>> = {
       { valor: "subcapitulo", label: "Subcapítulo sobrio", detalle: "Número y título en una línea" },
       { valor: "subcapitulo:barra", label: "Subcapítulo con barra", detalle: "Junto a una barra coral" },
       { valor: "subcapitulo:banda", label: "Subcapítulo en banda", detalle: "Una banda clara a lo ancho" },
+      { valor: "subcapitulo:sin_lamina", label: "Subcapítulo sin lámina", detalle: "Lo anuncia en coral el antetítulo de su primera lámina" },
     ],
   },
   // graficos_metadata.R `p_slide_cierre$args$variante` y lamina_identidad.R `.lam_cierre_variante` (61–65).

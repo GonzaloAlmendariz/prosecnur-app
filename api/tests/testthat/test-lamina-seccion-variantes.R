@@ -47,3 +47,18 @@ test_that("cada versión del separador dibuja lo suyo", {
   expect_false(.sv_hay(lam[[5]], "seccion:banda"))
   expect_true(.sv_hay(lam[[5]], "seccion:ruta"))
 })
+
+test_that("subcapítulo sin lámina: no agrega lámina y la siguiente lo anuncia en coral (recetario 58)", {
+  expect_identical(.lam_seccion_variante("sin_lamina", "subcapitulo"), "sin_lamina")
+  plan <- list(p_slide_seccion("Características institucionales"),
+               p_slide_seccion("Misión y propósitos", meta = list(nivel = "subcapitulo", variante = "sin_lamina")),
+               p_slide_texto("Conocimiento de la misión", texto = "a"),
+               p_slide_texto("Otra", texto = "b"))
+  ante <- .lam_antetitulos(plan)
+  expect_identical(ante[[3]], "1.1  Misión y propósitos")
+  expect_identical(ante[[4]], "Misión y propósitos")
+  expect_true(.lam_ante_es_subcapitulo(ante[[3]]))
+  expect_false(.lam_ante_es_subcapitulo(ante[[4]]))
+  lam <- .sv_mazo(plan)
+  expect_length(lam, 3L)   # capítulo + dos láminas: el subcapítulo no tiene lámina propia
+})
