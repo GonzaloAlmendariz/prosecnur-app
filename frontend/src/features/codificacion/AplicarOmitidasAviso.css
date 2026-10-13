@@ -123,3 +123,16 @@
   border-style: dashed;
   background: transparent;
 }
+
+/* El título recibe el foco al aparecer tras una aplicación recién hecha
+ * (tabIndex=-1): sin anillo al enfocarse por programa, con anillo si se llega
+ * por teclado. */
+.pulso-codif-omitidas-titulo:focus {
+  outline: none;
+}
+
+.pulso-codif-omitidas-titulo:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}

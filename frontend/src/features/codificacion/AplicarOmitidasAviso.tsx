@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { AlertTriangle, Tags } from "lucide-react";
 import type { CodifOmitida, CodifTextosSinCodigo } from "../../api/codificacion";
 import "./AplicarOmitidasAviso.css";
@@ -14,17 +15,38 @@ import "./AplicarOmitidasAviso.css";
 type Props = {
   omitidas: CodifOmitida[];
   textosSinCodigo: CodifTextosSinCodigo[];
+  /**
+   * El aviso viene de una aplicación recién hecha: llevarlo a la vista y mover
+   * el foco a su título (C4: con omitidas quedaba bajo el pliegue). Al
+   * remontar llega en `false` y no toca scroll ni foco.
+   */
+  enfocar?: boolean;
+  /** Se llama una vez llevado a la vista, para consumir el pedido. */
+  onEnfocado?: () => void;
 };
 
 function plural(n: number, uno: string, varios: string): string {
   return `${n} ${n === 1 ? uno : varios}`;
 }
 
-export function AplicarOmitidasAviso({ omitidas, textosSinCodigo }: Props) {
-  if (omitidas.length === 0 && textosSinCodigo.length === 0) return null;
+export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, enfocar = false, onEnfocado }: Props) {
+  const seccionRef = useRef<HTMLElement>(null);
+  const tituloRef = useRef<HTMLElement>(null);
+  const hayAlgo = omitidas.length > 0 || textosSinCodigo.length > 0;
+
+  useEffect(() => {
+    if (!enfocar || !hayAlgo) return;
+    seccionRef.current?.scrollIntoView({ block: "nearest" });
+    // El scroll ya lo hizo scrollIntoView; el foco no debe volver a saltar.
+    tituloRef.current?.focus({ preventScroll: true });
+    onEnfocado?.();
+  }, [enfocar, hayAlgo, onEnfocado]);
+
+  if (!hayAlgo) return null;
 
   return (
     <section
+      ref={seccionRef}
       className="pulso-codif-omitidas"
       aria-label="Lo que la adaptación no aplicó"
       data-testid="codificacion-aplicar-omitidas"
@@ -34,7 +56,7 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo }: Props) {
           <div className="pulso-codif-omitidas-cabecera">
             <AlertTriangle size={16} aria-hidden="true" className="pulso-codif-omitidas-icono" />
             <div>
-              <strong>
+              <strong ref={tituloRef} tabIndex={-1} className="pulso-codif-omitidas-titulo">
                 {omitidas.length === 1
                   ? "1 pregunta del catálogo no se aplicó"
                   : `${omitidas.length} preguntas del catálogo no se aplicaron`}
@@ -74,7 +96,11 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo }: Props) {
           <div className="pulso-codif-omitidas-cabecera">
             <Tags size={16} aria-hidden="true" className="pulso-codif-omitidas-icono" />
             <div>
-              <strong>
+              <strong
+                ref={omitidas.length === 0 ? tituloRef : undefined}
+                tabIndex={omitidas.length === 0 ? -1 : undefined}
+                className="pulso-codif-omitidas-titulo"
+              >
                 {textosSinCodigo.length === 1
                   ? "1 pregunta tiene textos sin código"
                   : `${textosSinCodigo.length} preguntas tienen textos sin código`}

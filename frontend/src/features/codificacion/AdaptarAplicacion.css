@@ -1,0 +1,35 @@
+/* Estado del POST de `/aplicar` en la barra de acciones de Adaptar.
+ * Sólo tokens --pulso-*. La región viva queda montada siempre para que el
+ * lector anuncie el cambio; vacía sale del flujo del flex (no suma un gap)
+ * sin salir del árbol de accesibilidad. */
+
+.pulso-codif-adaptar-estado {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.pulso-codif-adaptar-estado:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.pulso-codif-adaptar-giro {
+  animation: pulso-codif-adaptar-giro 0.9s linear infinite;
+}
+
+@keyframes pulso-codif-adaptar-giro {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-codif-adaptar-giro {
+    animation: none;
+  }
+}
