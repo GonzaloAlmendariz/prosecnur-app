@@ -149,6 +149,9 @@
 .graficos_preview_lamina_ctx <- function(comun, slide, folio_pedido = NULL) {
   # El mini-plan no tiene el separador vigente: sin esto la lámina salía sin antetítulo (F6.0b.2, inventario parte C).
   slide <- .preview_con_antetitulo(slide, comun$plan_slides)
+  # G2: un índice sin capítulos escritos los toma de los separadores del plan; el mini-plan no los tiene y caía a la
+  # lámina antigua de cinco focos, distinta de la que exporta.
+  slide <- .preview_con_capitulos(slide, comun$plan_slides)
   # K2: el folio real de la lámina en el plan (o el que mande el cliente); el mini-plan la numeraba «1».
   folio <- .preview_folio(comun$plan_slides, slide$id, folio_pedido)
   avisos_previos <- character(0)
