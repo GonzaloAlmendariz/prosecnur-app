@@ -35,6 +35,7 @@ import { EnElWord } from "./tarjetaGrafico/EnElWord";
 import { ColoresGrafico } from "./colores/ColoresGrafico";
 import { PaletaDelGrafico } from "./colores/PaletaDelGrafico";
 import { NombresPorBase } from "./datosBase/NombresPorBase";
+import { BrechaEntreGrupos } from "./brecha/BrechaEntreGrupos";
 import { NotaBaseCompartido } from "./datosBase/NotaBaseCompartido";
 import { faltaBaseEnCompartido } from "./datosBase/baseEnCompartido";
 import "./datosGrafico.css";
@@ -79,6 +80,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
           </button>
         </div>
       )}
+      {valor.graficador === "p_dumbbell" && <BrechaEntreGrupos args={args} onCambio={set} />}
       {campos.map((c) => (
         <Fila key={c.arg.name} campo={c} valor={args[c.arg.name]} onCambio={(v) => set({ [c.arg.name]: v })} />
       ))}

@@ -1,0 +1,15 @@
+/* G17: tarjeta de la brecha entre dos grupos. Intrínseca: crece con sus preguntas; nada se recorta. Sólo tokens. */
+.pulso-f6-brecha { display: flex; flex-direction: column; min-width: 0; }
+.pulso-f6-brecha-modo { display: flex; flex-wrap: wrap; gap: var(--pulso-space-1); }
+.pulso-f6-brecha-modo .pulso-f6-boton[aria-pressed="true"] {
+  background: var(--pulso-module-processing-soft);
+  border-color: var(--pulso-module-processing-border);
+  color: var(--pulso-text);
+}
+.pulso-f6-brecha-grupos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--pulso-space-1); }
+.pulso-f6-brecha-preguntas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--pulso-space-1); }
+.pulso-f6-brecha-pregunta { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--pulso-space-1); align-items: center; }
+.pulso-f6-brecha-pregunta .pulso-f6-dato-ayuda { grid-column: 1 / -1; }
+.pulso-f6-brecha-corte { border: 0; margin: 0; padding: 0; min-width: 0; }
+.pulso-f6-brecha-opcion { display: flex; gap: var(--pulso-space-1); align-items: center; color: var(--pulso-text); }
+.pulso-f6-dato-ayuda.is-aviso { color: var(--pulso-warn-fg); }

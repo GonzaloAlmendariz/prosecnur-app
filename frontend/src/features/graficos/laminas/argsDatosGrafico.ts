@@ -114,8 +114,9 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // G12 (2026-10-13): en multiapiladas el grupo se elige dentro de su modo («Una pregunta por grupos»…); un «Dividir por»
   // suelto en la tarjeta era un segundo camino a lo mismo.
   cruces: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie.", excepto: ["p_barras_multiapiladas"] },
-  cruce: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie.", excepto: ["p_barras_multiapiladas"] },
-  corte: { rotulo: "Corte" },
+  // G17: en la brecha el cruce, los grupos y el corte se eligen en su propia tarjeta (BrechaEntreGrupos).
+  cruce: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie.", excepto: ["p_barras_multiapiladas", "p_dumbbell"] },
+  corte: { rotulo: "Corte", excepto: ["p_dumbbell"] },
   corte_etiqueta: { rotulo: "Rótulo del corte" },
   // C44: el radar «entre públicos» rotula cada columna de su tabla con el nombre técnico de la base.
   tabla_encabezados: { rotulo: "Nombre de cada público", ayuda: "Vacío conserva el nombre de la base.", estricto: true },

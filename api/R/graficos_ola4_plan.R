@@ -546,7 +546,7 @@ p_dumbbell <- function(vars,
                        grupos = NULL) {
   orden <- match.arg(orden)
   # G17: con `cruce` y `grupos` la brecha es entre dos grupos de una misma base (graficos_dumbbell_grupos.R).
-  if (!is.null(cruce) && nzchar(trimws(as.character(cruce)[1]))) {
+  if (!is.null(cruce)) {
     return(.p_dumbbell_grupos(vars, corte, corte_etiqueta, orden, mostrar_brecha, umbral_brecha_pct, titulo,
                               overrides, base, filtros, etiqueta_brecha, cruce, grupos))
   }

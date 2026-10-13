@@ -83,6 +83,7 @@
 #' @keywords internal
 .p_dumbbell_grupos <- function(vars, corte, corte_etiqueta, orden, mostrar_brecha, umbral_brecha_pct, titulo,
                                overrides, base, filtros, etiqueta_brecha, cruce, grupos) {
+  if (!nzchar(trimws(as.character(cruce)[1] %||% ""))) .plan_spec_abort("p_dumbbell(): elige la pregunta que define los grupos.")
   refs <- if (is.list(vars)) vapply(vars, function(x) as.character(unlist(x))[1], character(1)) else as.character(vars)
   if (!length(refs) || any(is.na(refs) | !nzchar(trimws(refs)))) {
     .plan_spec_abort("p_dumbbell(): con `cruce`, `vars` debe traer al menos una pregunta.")
