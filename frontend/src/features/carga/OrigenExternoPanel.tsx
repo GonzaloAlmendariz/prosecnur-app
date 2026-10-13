@@ -8,6 +8,7 @@ import {
   type OrigenExterno,
   type OrigenExternoMotivoVariable,
 } from "../../api/cargaOrigenExterno";
+import { Link, useInRouterContext } from "react-router-dom";
 import { PulsoButton } from "../../components/PulsoButton";
 import {
   BORRADOR_VACIO,
@@ -25,6 +26,7 @@ import {
   rotuloEstado,
   totalVariablesRetiradas,
   tramosOrigen,
+  hrefVariablesExcluidas,
   variablesExcluidasDeLaDeclaracion,
   type OrigenExternoBorrador,
 } from "./origenExternoModel";
@@ -418,7 +420,8 @@ function OrigenExternoResultado({ datos }: { datos: OrigenExterno }) {
           )}
           {excluidas.length > 0 && (
             <p className="pulso-origen-externo-excluidas">
-              No salen en los entregables: {excluidas.join(", ")}.
+              No salen en los entregables: {excluidas.join(", ")}.{" "}
+              <EnlaceExcluidas href={hrefVariablesExcluidas(datos.base)} />
             </p>
           )}
         </div>
@@ -431,4 +434,12 @@ function OrigenExternoResultado({ datos }: { datos: OrigenExterno }) {
       )}
     </div>
   );
+}
+
+// Navegación de la SPA cuando hay router; fuera de él (render estático de los
+// tests) un enlace normal, igual que ArmonizacionFilaEditor.
+function EnlaceExcluidas({ href }: { href: string }) {
+  const enRouter = useInRouterContext();
+  const texto = "Ver las variables excluidas";
+  return enRouter ? <Link to={href}>{texto}</Link> : <a href={href}>{texto}</a>;
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { OrigenExterno } from "../../api/cargaOrigenExterno";
+import { parsearDireccionDesdeHref } from "../../lib/navegacion/direccion";
 import {
+  hrefVariablesExcluidas,
   variablesExcluidasDeLaDeclaracion,
   BORRADOR_VACIO,
   borradorDesde,
@@ -143,5 +145,17 @@ describe("variablesExcluidasDeLaDeclaracion (QA 2026-10-13)", () => {
       ] },
     } as unknown as Parameters<typeof variablesExcluidasDeLaDeclaracion>[0];
     expect(variablesExcluidasDeLaDeclaracion(datos)).toEqual(["start", "nota"]);
+  });
+});
+
+describe("hrefVariablesExcluidas", () => {
+  it("es una dirección canónica de Analítica con el panel y la base en foco", () => {
+    const href = hrefVariablesExcluidas("default");
+    expect(href).toBe("/analitica?pestana=datos&panel=excluidas&foco=default");
+    const dir = parsearDireccionDesdeHref(href);
+    expect(dir?.panel).toBe("excluidas");
+    expect(dir?.pestana).toBe("datos");
+    expect(dir?.foco).toBe("default");
+    expect(hrefVariablesExcluidas(null)).toBe("/analitica?pestana=datos&panel=excluidas");
   });
 });
