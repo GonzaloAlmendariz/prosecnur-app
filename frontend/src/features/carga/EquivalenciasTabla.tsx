@@ -10,6 +10,10 @@ import { Check, Plus, Sparkles, Trash2 } from "../../vendor/lucide-react";
 import type { VariableDeBase } from "../../api/equivalencias";
 import type { FilaEditor } from "./equivalenciasEditorModel";
 import { ArmonizacionIndicador } from "./ArmonizacionFilaEditor";
+import { CoberturaBases } from "./CoberturaBases";
+import { nombreDeSerieDeBases } from "./nombreDeSerie";
+import { anchoColumnaPublico, anchoMinimoLista } from "./equivalenciasAnchos";
+import { useDesbordeHorizontal } from "./useDesbordeHorizontal";
 
 export type EquivalenciasTablaProps = {
   bases: string[];
@@ -23,17 +27,6 @@ export type EquivalenciasTablaProps = {
   /** Abre el editor de armonización con el `foco` de la fila. Sin él, no hay indicador. */
   onArmonizar?: (foco: string) => void;
 };
-
-/**
- * Ancho de cada columna de público, en % de la tabla. Entre todas no pasan de
- * ~42 %: el resto es de la etiqueta estándar, que es el campo que se escribe.
- * Antes la etiqueta medía 260 px fijos y cada público 362–370 a 1710 px, y la
- * etiqueta —el único texto largo de la fila— salía cortada sin aviso.
- */
-export function anchoColumnaPublico(nBases: number): string {
-  const n = Math.max(1, nBases);
-  return `${Math.min(14, 42 / n).toFixed(2)}%`;
-}
 
 function textoVariable(opciones: readonly VariableDeBase[], valor: string): string {
   if (!valor) return "";
@@ -52,17 +45,29 @@ export function EquivalenciasTabla({
   onAgregarFila,
   onArmonizar,
 }: EquivalenciasTablaProps) {
+  const [marcoRef, desborda] = useDesbordeHorizontal();
+  const serie = nombreDeSerieDeBases(bases);
+  const minimo = anchoMinimoLista(bases.length);
   return (
     <div className="pulso-equiv-tabla-wrap">
       {/* `table-layout: fixed` con columnas declaradas: el reparto lo decide el
-          rol de cada columna y no el texto más largo que traiga una fila, y la
-          tabla nunca empuja la página en horizontal. */}
-      <table className="pulso-equiv-tabla">
+          rol de cada columna y no el texto más largo que traiga una fila. La tabla
+          tiene un ancho mínimo que crece con las bases y, si no cabe, el marco
+          se vuelve el dueño del desplazamiento horizontal con la etiqueta fija. */}
+      <div
+        ref={marcoRef}
+        className={desborda ? "pulso-equiv-hscroll is-desborda" : "pulso-equiv-hscroll"}
+        data-scroll-axis={desborda ? "x" : undefined}
+        role={desborda ? "region" : undefined}
+        aria-label={desborda ? `Lista de equivalencias, ${bases.length} bases, desplázate a la derecha para ver todas` : undefined}
+        tabIndex={desborda ? 0 : undefined}
+      >
+      <table className="pulso-equiv-tabla" style={{ minWidth: `${minimo}px` }}>
         <colgroup>
           <col />
           <col className="pulso-equiv-col-diapo" />
           {bases.map((base) => (
-            <col key={base} style={{ width: anchoColumnaPublico(bases.length) }} />
+            <col key={base} style={{ width: anchoColumnaPublico() }} />
           ))}
           <col className="pulso-equiv-col-n" />
           <col className="pulso-equiv-col-acciones" />
@@ -99,7 +104,7 @@ export function EquivalenciasTabla({
                     aria-label={`Etiqueta estándar de la fila ${fila.id}`}
                     onChange={(e) => onEditar(fila.id, "etiqueta_estandar", e.target.value)}
                   />
-                  {onArmonizar && <ArmonizacionIndicador fila={fila} onAbrir={onArmonizar} />}
+                  {onArmonizar && <ArmonizacionIndicador fila={fila} serie={serie} onAbrir={onArmonizar} />}
                 </div>
               </td>
               <td>
@@ -133,7 +138,7 @@ export function EquivalenciasTabla({
                 );
               })}
               <td className="pulso-equiv-col-n">
-                {Object.keys(fila.variables).length}/{bases.length}
+                <CoberturaBases bases={bases} variables={fila.variables} />
               </td>
               <td>
                 <div className="pulso-equiv-acciones-fila">
@@ -163,6 +168,7 @@ export function EquivalenciasTabla({
           ))}
         </tbody>
       </table>
+      </div>
 
       <button type="button" className="pulso-secondary pulso-equiv-btn" onClick={onAgregarFila}>
         <Plus size={14} aria-hidden="true" />

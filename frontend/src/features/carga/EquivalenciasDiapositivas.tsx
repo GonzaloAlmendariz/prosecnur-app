@@ -24,6 +24,9 @@ import { escalaDeFila, resumenEscala, seccionLegible } from "./equivalenciasEdit
 import { EscalaChip } from "./EscalaChip";
 import { BloqueGrafico, type EstiloRadar } from "./BloqueGrafico";
 import { ArmonizacionIndicador } from "./ArmonizacionFilaEditor";
+import { CoberturaBases } from "./CoberturaBases";
+import { nombreDeSerieDeBases } from "./nombreDeSerie";
+import { useDesbordeHorizontal } from "./useDesbordeHorizontal";
 
 export type EquivalenciasDiapositivasProps = {
   bases: string[];
@@ -223,6 +226,27 @@ function CeldaVariable({
   );
 }
 
+/**
+ * Marco de la tabla de una tarjeta. Sólo se vuelve dueño del desplazamiento
+ * horizontal cuando la tabla no cabe. Mientras cabe no tiene scroll y la cabecera sigue pegándose al dueño de scroll de Carga.
+ */
+function MarcoTabla({ nBases, children }: { nBases: number; children: JSX.Element }) {
+  const [ref, desborda] = useDesbordeHorizontal();
+  return (
+    <div
+      ref={ref}
+      className={desborda ? "pulso-equiv-hscroll is-desborda" : "pulso-equiv-hscroll"}
+      data-qa-geometry-member
+      data-scroll-axis={desborda ? "x" : undefined}
+      role={desborda ? "region" : undefined}
+      aria-label={desborda ? `Temas de la diapositiva, ${nBases} bases, desplázate a la derecha para ver todas` : undefined}
+      tabIndex={desborda ? 0 : undefined}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function EquivalenciasDiapositivas({
   bases,
   diapositivas,
@@ -239,6 +263,7 @@ export function EquivalenciasDiapositivas({
   onArmonizar,
 }: EquivalenciasDiapositivasProps) {
   const [editando, setEditando] = useState<{ filaId: string; base: string } | null>(null);
+  const serie = nombreDeSerieDeBases(bases);
 
   return (
     <div className="pulso-equiv-diapositivas">
@@ -287,7 +312,7 @@ export function EquivalenciasDiapositivas({
                               onEditarFila(fila.id, "etiqueta_estandar", e.target.value)
                             }
                           />
-                          {onArmonizar && <ArmonizacionIndicador fila={fila} onAbrir={onArmonizar} />}
+                          {onArmonizar && <ArmonizacionIndicador fila={fila} serie={serie} onAbrir={onArmonizar} />}
                         </div>
                       </td>
 
@@ -307,25 +332,7 @@ export function EquivalenciasDiapositivas({
                       ))}
 
                       <td className="pulso-equiv-col-cob">
-                        {/* Puntos y no un cociente: «3/4» dice cuántos faltan y nunca
-                            cuál. La posición fija del punto responde eso de un vistazo. */}
-                        <span
-                          className="pulso-equiv-dots"
-                          title={bases
-                            .filter((b) => fila.variables[b])
-                            .join(" · ") || "ninguna base"}
-                        >
-                          {bases.map((b) => (
-                            <i
-                              key={b}
-                              className={fila.variables[b] ? "is-on" : "is-off"}
-                              aria-hidden="true"
-                            />
-                          ))}
-                          <span className="pulso-sr-only">
-                            {bases.filter((b) => fila.variables[b]).length} de {bases.length} bases
-                          </span>
-                        </span>
+                        <CoberturaBases bases={bases} variables={fila.variables} />
                       </td>
 
                       <td>
@@ -477,7 +484,8 @@ export function EquivalenciasDiapositivas({
                 cuenta, así que las columnas de un bloque no caían donde las del
                 bloque de arriba. Con una sola tabla hay un único modelo de
                 columnas y todo queda alineado. */}
-            <table className="pulso-equiv-diapositiva-tabla" data-qa-geometry-member>
+            <MarcoTabla nBases={bases.length}>
+            <table className="pulso-equiv-diapositiva-tabla">
               <thead>
                 <tr>
                   <th scope="col" className="pulso-equiv-col-etiqueta">Tema</th>
@@ -534,6 +542,7 @@ export function EquivalenciasDiapositivas({
                 ))
               )}
             </table>
+            </MarcoTabla>
 
             <button
               type="button"

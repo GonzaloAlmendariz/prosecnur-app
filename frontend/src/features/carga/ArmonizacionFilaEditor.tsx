@@ -43,11 +43,14 @@ import {
   aArmonizacion,
   borradorDesde,
   estadoArmonizacion,
+  estadoDeBase,
+  explicacionArmonizacion,
   filasConArmonizacion,
   filasDeMapa,
   focoDeFila,
   indiceDeFoco,
   mapaExplicito,
+  TEXTO_ESTADO_BASE,
   ordenEfectivo,
   reducirArmonizacion,
   resumenMapa,
@@ -56,6 +59,7 @@ import {
   type BorradorArmonizacion,
   type EntradaBorrador,
 } from "./armonizacionModel";
+import { nombreDeSerieDeBases, type NombreDeSerie } from "./nombreDeSerie";
 import "./ArmonizacionFilaEditor.css";
 
 // ---- Indicador por fila -----------------------------------------------------
@@ -66,8 +70,11 @@ import "./ArmonizacionFilaEditor.css";
  */
 export function ArmonizacionIndicador({
   fila,
+  serie,
   onAbrir,
 }: {
+  /** Cómo se nombra la serie («años» o «mediciones»), decidido por `nombreDeSerie`. */
+  serie: NombreDeSerie;
   fila: Pick<EquivalenciaFila, "armonizacion" | "variables" | "etiqueta_estandar"> & {
     id_declarado?: string;
     indice_declarado?: number;
@@ -83,8 +90,13 @@ export function ArmonizacionIndicador({
       className={`pulso-armon-chip is-${estado.tipo}`}
       disabled={!foco}
       data-armon-abrir={foco ?? undefined}
-      title={foco ? `Armonizar ${nombre} entre mediciones` : "Guarda la fila para poder armonizarla"}
-      aria-label={`${estado.texto}. Armonizar ${nombre}`}
+      // El `title` explica el estado en palabras llanas y es también la
+      // descripción accesible: el lector anuncia primero el nombre y después
+      // qué significa «Armonizada» o «No comparable en …».
+      title={foco
+        ? explicacionArmonizacion(estado, serie)
+        : "Guarda la fila para poder armonizarla."}
+      aria-label={`${estado.texto}. Abrir la armonización de ${nombre}`}
       onClick={() => foco && onAbrir(foco)}
     >
       {estado.tipo === "armonizada" ? (
@@ -194,7 +206,9 @@ function PanelConDireccion({ estado, cargandoEstado, variablesPorBase, onGuardad
             <div className="pulso-armon-marco">
               <header className="pulso-armon-cabecera">
                 <div className="pulso-armon-titular">
-                  <Dialog.Title className="pulso-armon-titulo">Armonizar entre mediciones</Dialog.Title>
+                  <Dialog.Title className="pulso-armon-titulo">
+                    Armonizar entre {nombreDeSerieDeBases(bases).plural}
+                  </Dialog.Title>
                   <Dialog.Close className="pulso-armon-cerrar" aria-label="Cerrar">
                     <X size={16} aria-hidden="true" />
                   </Dialog.Close>
@@ -283,6 +297,7 @@ function EditorFila({
   onGuardado: (out: EquivalenciasImportacion, mensaje: string) => void;
   onCerrar: () => void;
 }) {
+  const serie = nombreDeSerieDeBases(bases);
   const conVariable = bases.filter((b) => fila.variables[b]);
   const sinVariable = bases.filter((b) => !fila.variables[b]);
   const [borrador, despachar] = useReducer(
@@ -370,7 +385,7 @@ function EditorFila({
       <header className="pulso-armon-cabecera">
         <div className="pulso-armon-titular">
           <div>
-            <p className="pulso-armon-eyebrow">Armonizar entre mediciones</p>
+            <p className="pulso-armon-eyebrow">Armonizar entre {serie.plural}</p>
             <Dialog.Title className="pulso-armon-titulo">
               {fila.etiqueta_estandar || "Pregunta sin etiqueta"}
             </Dialog.Title>
@@ -380,9 +395,11 @@ function EditorFila({
           </Dialog.Close>
         </div>
         <p className="pulso-armon-regla">
-          Declara una escala común y, en cada base, a qué categoría de esa escala cae cada código.
-          Empareja por etiqueta y no por número: el mismo código puede significar otra cosa en otra
-          medición.
+          Armonizar es decir qué respuesta de cada base es la misma, para que la tabla compare lo mismo
+          en {serie.todas}. Primero arma la escala común, que es la lista de respuestas con la que se
+          compara. Después, en cada base, elige en «Destino en la escala» a qué respuesta de esa lista
+          corresponde cada código. Guíate por el texto de la respuesta y no por el número, porque el mismo
+          código puede significar otra cosa en otra base.
         </p>
       </header>
 
@@ -392,11 +409,14 @@ function EditorFila({
         data-qa-geometry-group="carga-armonizacion"
         data-qa-geometry-contract="intrinsic"
       >
-        <EscalaComun borrador={borrador} despachar={despacharSucio} />
+        {conVariable.length > 1 && <IndiceDeBases bases={conVariable} borrador={borrador} />}
+
+        <EscalaComun borrador={borrador} serie={serie} despachar={despacharSucio} />
 
         {conVariable.map((base) => (
           <MapaDeBase
             key={base}
+            anclaId={anclaDeBase(base)}
             base={base}
             variable={fila.variables[base] ?? ""}
             entrada={borrador.porBase[base]}
@@ -455,19 +475,82 @@ function EditorFila({
   );
 }
 
+// ---- Índice de bases ----------------------------------------------------------
+
+/** Id del encabezado de una base en el editor. Sólo letras, números y guiones. */
+function anclaDeBase(base: string): string {
+  return `pulso-armon-base-${base.replace(/[^A-Za-z0-9_-]/g, "_")}`;
+}
+
+/**
+ * Los mapas de las bases se apilan bajo la escala y, con muchas, la última
+ * queda a varias pantallas. El índice dice el estado de cada base y salta a su
+ * sección. Se muestra igual con dos bases que con veinte: envuelve. Son anclas dentro del panel, no navegación: no cambian
+ * la dirección.
+ */
+function IndiceDeBases({ bases, borrador }: { bases: string[]; borrador: BorradorArmonizacion }) {
+  const ir = (id: string) => {
+    const destino = document.getElementById(id);
+    if (!destino) return;
+    const reducido = typeof window.matchMedia === "function"
+      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    destino.scrollIntoView({ block: "start", behavior: reducido ? "auto" : "smooth" });
+    destino.focus({ preventScroll: true });
+  };
+  return (
+    <nav className="pulso-armon-indice" aria-label="Ir a una base de esta pregunta">
+      <span className="pulso-armon-indice-titulo">{bases.length} bases</span>
+      <ul>
+        <li>
+          <button type="button" onClick={() => ir("pulso-armon-escala")}>Escala común</button>
+        </li>
+        {bases.map((base) => {
+          const estado = estadoDeBase(borrador.porBase[base]);
+          return (
+            <li key={base}>
+              <button
+                type="button"
+                className={`is-${estado}`}
+                onClick={() => ir(anclaDeBase(base))}
+                aria-label={`${base}, ${TEXTO_ESTADO_BASE[estado]}`}
+              >
+                {estado === "comparable" ? (
+                  <CheckCircle2 size={11} aria-hidden="true" />
+                ) : estado === "no-comparable" ? (
+                  <CircleSlash2 size={11} aria-hidden="true" />
+                ) : (
+                  <GitCompareArrows size={11} aria-hidden="true" />
+                )}
+                <span>{base}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
 // ---- Escala común -------------------------------------------------------------
 
 function EscalaComun({
   borrador,
+  serie,
   despachar,
 }: {
   borrador: BorradorArmonizacion;
+  serie: NombreDeSerie;
   despachar: (a: Parameters<typeof reducirArmonizacion>[1]) => void;
 }) {
   return (
     <section className="pulso-armon-seccion" aria-labelledby="pulso-armon-escala" data-qa-geometry-member>
       <div className="pulso-armon-seccion-head">
-        <h3 id="pulso-armon-escala">Escala común</h3>
+        <div className="pulso-armon-seccion-titulo">
+          <h3 id="pulso-armon-escala" tabIndex={-1}>Escala común</h3>
+          <p className="pulso-armon-ayuda">
+            La lista de respuestas con la que se compara esta pregunta en {serie.todas}.
+          </p>
+        </div>
         <button
           type="button"
           className="pulso-secondary pulso-armon-btn"
@@ -537,6 +620,7 @@ function EscalaComun({
 // ---- Mapa de una base -----------------------------------------------------------
 
 function MapaDeBase({
+  anclaId,
   base,
   variable,
   entrada,
@@ -546,6 +630,7 @@ function MapaDeBase({
   sucio,
   despachar,
 }: {
+  anclaId: string;
   base: string;
   codigos: CodigoBase[];
   variable: string;
@@ -571,7 +656,7 @@ function MapaDeBase({
       data-qa-geometry-member
     >
       <div className="pulso-armon-seccion-head">
-        <h3>
+        <h3 id={anclaId} tabIndex={-1}>
           {base} <small>variable {variable}</small>
         </h3>
         <div className="pulso-armon-comparable" role="radiogroup" aria-label={`¿${base} es comparable?`}>
@@ -676,7 +761,12 @@ function MapaDeBase({
                     <th scope="col">Código</th>
                     <th scope="col">Etiqueta en {base}</th>
                     <th scope="col" className="is-num">Casos</th>
-                    <th scope="col">Destino en la escala</th>
+                    <th
+                      scope="col"
+                      title="A qué respuesta de la escala común corresponde este código de la base. Sin mapa, el código no entra a la comparación."
+                    >
+                      Destino en la escala
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

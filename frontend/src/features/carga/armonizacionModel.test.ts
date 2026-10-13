@@ -45,14 +45,15 @@ describe("estadoArmonizacion", () => {
 
   test("nombra la base no comparable y sólo las que tienen variable", () => {
     const e = estadoArmonizacion({ armonizacion: ARM, variables: { b2024: "p5", b2025: "p6" } });
-    expect(e).toMatchObject({ tipo: "no_comparable", texto: "No comparable en b2025" });
+    // El chip dice cuántas, las bases van en `bases` (y en el title).
+    expect(e).toMatchObject({ tipo: "no_comparable", texto: "No comparable en 1 base", bases: ["b2025"] });
     const sinLaDe2025 = estadoArmonizacion({ armonizacion: ARM, variables: { b2024: "p5" } });
     expect(sinLaDe2025.texto).toBe("Armonizada");
   });
 
   test("una base con variable y sin entrada no se presume comparable", () => {
     const e = estadoArmonizacion({ armonizacion: ARM, variables: { b2024: "p5", b2026: "p4" } });
-    expect(e.texto).toBe("No comparable en b2026");
+    expect(e).toMatchObject({ texto: "No comparable en 1 base", bases: ["b2026"] });
   });
 });
 

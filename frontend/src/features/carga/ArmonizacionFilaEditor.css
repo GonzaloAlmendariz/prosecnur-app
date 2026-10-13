@@ -510,3 +510,102 @@
   color: var(--pulso-warn-fg);
   font-weight: var(--pulso-weight-semibold);
 }
+
+/* --- Ayudas e índice del editor ------------------------------------------ */
+
+.pulso-armon-seccion-titulo {
+  display: flex;
+  flex: 1 1 260px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-armon-ayuda {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-armon-seccion-head h3:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 2px;
+  border-radius: var(--pulso-radius-chip);
+}
+
+/* Índice de bases: con cuatro o más, los mapas quedan a varias pantallas de la
+ * escala. Se pega arriba del dueño de scroll del panel (`.pulso-armon-cuerpo`)
+ * y envuelve en vez de recortar los nombres. Va sobre el padding del cuerpo
+ * para que las secciones no asomen por los lados al pasar debajo. */
+.pulso-armon-indice {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  margin: calc(-1 * var(--pulso-space-4)) calc(-1 * var(--pulso-space-6)) 0;
+  padding: var(--pulso-space-2) var(--pulso-space-6);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  font-size: 12px;
+}
+
+.pulso-armon-indice-titulo {
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-armon-indice ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-armon-indice button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 11.5px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+
+.pulso-armon-indice button.is-comparable {
+  border-color: var(--pulso-success-border);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-armon-indice button.is-no-comparable {
+  border-color: var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-armon-indice button.is-sin-declarar {
+  border-style: dashed;
+}
+
+.pulso-armon-indice button:hover {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-armon-indice button:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 2px;
+}
+
+/* El ancla deja el encabezado bajo el índice pegado, no tapado por él. */
+.pulso-armon-cuerpo h3[id] {
+  scroll-margin-top: 72px;
+}
