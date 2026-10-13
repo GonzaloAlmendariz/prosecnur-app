@@ -232,6 +232,7 @@
   cb <- .lam_escala_columnas_box(espec); wcol <- cb$ancho_col; dx_btb <- L$ancho_barra - cb$ancho_barra
   ley <- espec$leyenda; labels <- espec$categorias$rotulo[ley]; cols <- espec$categorias$color[ley]
   respuestas <- function(n) paste(format(as.integer(n), big.mark = ","), "respuestas")
+  con_n <- !identical(espec$mostrar_respuestas, FALSE)   # M10: «Respuestas por público»
   y0 <- y0 %||% (Y_DATOS + 0.1); y1 <- y1 %||% (Y_LEY - 0.15)
 
   # Con Bottom Two Box la afirmación sola no encabeza: si es corta va en filas (lámina 97, `.lam_escala_modo_filas`) y
@@ -244,7 +245,7 @@
     .lam_txt(lz, p$texto, L$x_premisa, yt, wt, ht, 20, azul, bold = TRUE, nombre = "pregunta")
     yb <- yt + ht + 1.15; xb <- L$x_premisa + 1.75; wb <- L$x_top_two_box - dx_btb - xb - 0.25
     if (nzchar(fl$actor)) .lam_txt(lz, fl$actor, L$x_premisa, yb + g / 2 - 0.18, 1.6, 0.3, .std_pt("actor"), azul, bold = TRUE, nombre = "actor")
-    .lam_txt(lz, respuestas(fl$valid), L$x_premisa, yb + g / 2 + 0.08, 1.7, 0.26, .std_pt("n"), .std_color("texto_tenue"), nombre = "respuestas")
+    if (con_n) .lam_txt(lz, respuestas(fl$valid), L$x_premisa, yb + g / 2 + 0.08, 1.7, 0.26, .std_pt("n"), .std_color("texto_tenue"), nombre = "respuestas")
     .lam_barra_apilada(lz, xb, yb, wb, .lam_escala_seg(espec, fl$i), g)
     for (cc in cb$cols) {
       .lam_txt(lz, cc$rotulo, cc$x - 0.1, yb - 0.45, wcol + 0.1, 0.26, .std_pt("rotulo_top_two_box"), cc$color, bold = TRUE, align = "center",
@@ -299,8 +300,8 @@
       yb <- yf + (fila - g) / 2 + 0.06
       if (nzchar(fl$actor)) {
         .lam_txt(lz, fl$actor, L$x_actor, yb + g / 2 - 0.25, L$ancho_actor, 0.3, .std_pt("actor"), azul, bold = TRUE, align = "right", nombre = "actor")
-        .lam_txt(lz, respuestas(fl$valid), L$x_actor - 0.4, yb + g / 2, L$ancho_actor + 0.4, 0.26, .std_pt("n"), .std_color("texto_tenue"),
-                 align = "right", nombre = "respuestas")
+        if (con_n) .lam_txt(lz, respuestas(fl$valid), L$x_actor - 0.4, yb + g / 2, L$ancho_actor + 0.4, 0.26, .std_pt("n"), .std_color("texto_tenue"),
+                            align = "right", nombre = "respuestas")
       }
       .lam_barra_apilada(lz, L$x_barra, yb, WB, .lam_escala_seg(espec, fl$i), g)
       for (cc in cb$cols) .lam_etiqueta_box(lz, espec, cc$x, yb, g, fl$i, con_n = hay_chica, caja = cc$caja, color = cc$color,
@@ -334,7 +335,7 @@
   chica <- any(vapply(filas, function(i) .lam_tiene_peq(.lam_escala_seg(espec, i), wb), TRUE))
   fila <- max(fila %||% 0, g + (if (chica) .std_geom("aire_cifra_chica") else 0.2))
   base_chica <- .lam_base_chica(espec)   # la especificación entera: todas las filas dicen «x de y» (estándar `base_chica`)
-  con_respuestas <- isTRUE(espec$filas_respuestas)
+  con_respuestas <- isTRUE(espec$filas_respuestas) && !identical(espec$mostrar_respuestas, FALSE)
   yh <- y
   if (!is.null(pregunta) && nzchar(pregunta)) {
     # La caja crece con las líneas de la pregunta; la letra no encoge.

@@ -1227,7 +1227,11 @@
       # C40: formal de `p_barras_apiladas()`; mismo default que el preset `barras_apiladas`.
       list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
            default = FALSE,
-           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %.")
+           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %."),
+      # M10 de la maqueta (Gonzalo, 2026-10-13): «poder mostrar o quitar el número de respuestas por actor».
+      list(name = "mostrar_respuestas", label = "Respuestas por público", tipo_input = "bool", grupo = "valores",
+           default = TRUE,
+           descripcion = "Escribe «116 respuestas» bajo el nombre de cada público. Apagado, el público se queda y su conteo no.")
     ), .args_graf_comunes())
   ),
 
@@ -1279,6 +1283,10 @@
       list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
            default = FALSE,
            descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %."),
+      # M10 de la maqueta (Gonzalo, 2026-10-13): «poder mostrar o quitar el número de respuestas por actor».
+      list(name = "mostrar_respuestas", label = "Respuestas por público", tipo_input = "bool", grupo = "valores",
+           default = TRUE,
+           descripcion = "Escribe «116 respuestas» bajo el nombre de cada público. Apagado, el público se queda y su conteo no."),
       # G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos y no en proporciones. Sólo lo usa la
       # lámina que compara públicos; «Automático» es el reparto del estilo del informe.
       list(name = "ancho_tema", label = "Ancho de los temas", tipo_input = "choice", grupo = "valores", default = "auto",
