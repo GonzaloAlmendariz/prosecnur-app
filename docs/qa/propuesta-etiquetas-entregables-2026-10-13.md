@@ -45,3 +45,12 @@ la redacción de la narrativa es del equipo.
 `surveymonkey_api.R:1495` y `surveymonkey_multibase.R:22` (quitan HTML del texto de SurveyMonkey al importar);
 `equivalencias_importar_bloques.R:236` (borra marcas en mayúsculas entre corchetes); `router_codificacion.R:410`,
 `interactivo_relacion.R:306`. Decide Gonzalo si pasan a aviso.
+
+## Decisión (2026-10-13)
+
+Gonzalo: «Tienes mi aprobación, aunque recuerdo que en procesamiento había una forma de hacerlo en analítica, pero haz lo
+que consideres más robusto». La forma existe: **Analítica › Revisión de datos** guarda etiquetas curadas de pregunta y de
+opción (`analitica_config$datos$variable_labels` / `value_labels`) y Gráficos ya las aplica con el mismo cuerpo
+(`.analitica_apply_label_overrides`, router_graficos.R ~652). Se construyó ahí, sin tabla nueva (3b888c809):
+`frontend/src/features/analitica/panes/revisionEtiquetas/` (detector puro + avisos bajo cada etiqueta, con «Corregir»
+cuando la corrección es mecánica). La palabra partida («RE ACREDITACIÓN») y las tildes no se detectan: no hay regla segura.
