@@ -1602,15 +1602,15 @@
     blueprint     = "comparison-dots",
     args = c(list(
       list(name = "var", label = "Indicador", tipo_input = "variable", grupo = "datos",
-           descripcion = "Pregunta select_one plana sobre la que se calcula el porcentaje."),
+           descripcion = "Pregunta de una sola respuesta sobre la que se calcula el porcentaje."),
       list(name = "cruces", label = "Comparar por", tipo_input = "variable", grupo = "datos",
-           descripcion = "Pregunta select_one plana que define entre 2 y 12 grupos observados."),
-      list(name = "corte", label = "Códigos objetivo", tipo_input = "codigos_list", grupo = "datos",
-           descripcion = "Uno o más códigos conocidos que forman el numerador del indicador."),
+           descripcion = "Pregunta de una sola respuesta que define los grupos (entre 2 y 12)."),
+      list(name = "corte", label = "Respuestas que suman", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Las respuestas que forman el porcentaje (ej. Satisfecho y Muy satisfecho)."),
       list(name = "excluir_opciones", label = "Excluir del denominador", tipo_input = "codigos_list", grupo = "filtro",
-           descripcion = "Retira códigos o etiquetas antes de calcular el denominador; no puede solaparse con los códigos objetivo del corte."),
+           descripcion = "Respuestas que no cuentan en el total (ej. No sabe); no pueden ser también respuestas que suman."),
       list(name = "orden_grupos", label = "Orden completo de grupos", tipo_input = "codigos_list", grupo = "estilo",
-           descripcion = "Opcional. Debe ser una permutación exacta de todos los grupos observados; vacío conserva el orden del instrumento.")
+           descripcion = "Opcional. Todos los grupos, en el orden en que deben salir; vacío conserva el orden del cuestionario.")
     ), .args_graf_comunes())
   ),
 
@@ -1623,11 +1623,11 @@
     blueprint     = "territory-map",
     args = c(list(
       list(name = "var", label = "Indicador", tipo_input = "variable", grupo = "datos",
-           descripcion = "Pregunta select_one sobre la que se calcula el porcentaje de cada distrito."),
+           descripcion = "Pregunta de una sola respuesta sobre la que se calcula el porcentaje de cada distrito."),
       list(name = "cruces", label = "Distrito", tipo_input = "variable", grupo = "datos",
-           descripcion = "Pregunta select_one con el distrito del encuestado: códigos UBIGEO o nombres de distrito."),
-      list(name = "corte", label = "Códigos objetivo", tipo_input = "codigos_list", grupo = "datos",
-           descripcion = "Códigos que forman el numerador (por ejemplo, satisfecho y muy satisfecho)."),
+           descripcion = "Pregunta con el distrito del encuestado: códigos UBIGEO o nombres de distrito."),
+      list(name = "corte", label = "Respuestas que suman", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Las respuestas que forman el porcentaje (ej. Satisfecho y Muy satisfecho)."),
       list(name = "excluir_opciones", label = "Excluir del denominador", tipo_input = "codigos_list", grupo = "filtro"),
       list(name = "min_n", label = "Casos mínimos por distrito", tipo_input = "number", grupo = "filtro", default = 1, min = 1, step = 1,
            descripcion = "Con menos casos válidos el distrito va como «Sin encuestas» y se avisa."),
@@ -1728,8 +1728,8 @@
       list(name = "eje_y", label = "Nombre del eje vertical", tipo_input = "string", grupo = "textos", placeholder = "Importancia"),
       list(name = "linea", label = "Dónde cortan las líneas", tipo_input = "choice", grupo = "valores", default = "promedio",
            choices = list(list(value = "promedio", label = "En el promedio de cada eje"), list(value = "valor", label = "En un valor"))),
-      list(name = "linea_x", label = "Corte horizontal (%)", tipo_input = "number", grupo = "valores", min = 0, max = 100, step = 1),
-      list(name = "linea_y", label = "Corte vertical (%)", tipo_input = "number", grupo = "valores", min = 0, max = 100, step = 1),
+      list(name = "linea_x", label = "Línea del eje horizontal (%)", tipo_input = "number", grupo = "valores", min = 0, max = 100, step = 1),
+      list(name = "linea_y", label = "Línea del eje vertical (%)", tipo_input = "number", grupo = "valores", min = 0, max = 100, step = 1),
       list(name = "destacado", label = "Cuadrante destacado", tipo_input = "choice", grupo = "valores", default = "arriba_izq",
            choices = list(list(value = "arriba_izq", label = "Arriba a la izquierda"), list(value = "arriba_der", label = "Arriba a la derecha"),
                           list(value = "abajo_izq", label = "Abajo a la izquierda"), list(value = "abajo_der", label = "Abajo a la derecha"),
@@ -1748,7 +1748,7 @@
     blueprint     = "lollipop",
     args = c(list(
       list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos",
-           descripcion = "Pregunta select_one plana, de diseño independiente, cuyas opciones se ordenan como ranking."),
+           descripcion = "Pregunta de una sola respuesta cuyas opciones se ordenan de más a menos mencionada."),
       list(name = "excluir_opciones", label = "Excluir del denominador", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Retira estas categorías antes de calcular porcentajes; sí cambia el denominador."),
       list(name = "orden", label = "Orden", tipo_input = "choice", grupo = "estilo",
@@ -1769,14 +1769,14 @@
 
   p_serie_temporal = list(
     titulo_humano = "Serie temporal",
-    descripcion   = "Evolución completa de select_one plano independiente con filtros y peso activos y firma E1 común; no puentea periodos ausentes.",
+    descripcion   = "Un indicador a lo largo de varias mediciones, una base por periodo. Un periodo sin datos queda como hueco: la línea no lo salta.",
     icono_ui      = "TrendingUp",
     categoria     = "comparison",
     blueprint     = "line-series",
-    requisito     = "Cada tema necesita la secuencia completa de fuentes; no se inventan ni se puentean periodos ausentes.",
+    requisito     = "Cada tema necesita su pregunta en todas las mediciones; un periodo sin datos no se inventa.",
     args = c(list(
       list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
-           descripcion = "Códigos de una firma E1 común sobre select_one plano independiente; aplica filtros y peso activo por periodo."),
+           descripcion = "Las respuestas que suman el porcentaje de cada periodo. Se calcula con los filtros y la ponderación activos."),
       list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos",
            descripcion = "Se muestra como subtítulo. Ej. «% de acuerdo o total acuerdo»."),
       list(name = "orden_periodos", label = "Orden completo de periodos", tipo_input = "codigos_list", grupo = "datos",
