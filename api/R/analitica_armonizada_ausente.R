@@ -3,8 +3,8 @@
 #
 # Una fila de la matriz puede declarar para una base una variable que no
 # llega a los datos de Analítica de esa base: porque Analítica la excluye
-# (`variables_excluidas` de la config de ESA base) o porque la base no la
-# trae. El comparativo no corta por eso: la medición sale «n.c.» con
+# (`variables_excluidas` de la config de ESA base, aunque la columna siga en
+# los datos) o porque la base no la trae. El comparativo no corta por eso: la medición sale «n.c.» con
 # `motivo = "variable_ausente"` y `causa` («excluida» o «no_esta_en_la_base»),
 # con su propia nota de pie y un aviso `variable_ausente`. Si ninguna medición
 # de la fila queda con variable, la fila se omite (`pregunta_omitida` o
@@ -16,17 +16,23 @@
 .ARMZ_CAUSAS_AUSENTE <- c("excluida", "no_esta_en_la_base")
 
 #' Por qué la variable de una fila no está en los datos de una base.
-#' @return "" si la base no declara la fila (o la variable está), si no
-#'   "excluida" o "no_esta_en_la_base".
+#'
+#' Una variable de `variables_excluidas` de esa base es «excluida» AUNQUE su
+#' columna siga en los datos: el comparativo es un entregable y respeta las
+#' exclusiones de Analítica igual que las tablas anuales (`.excluir_cols`,
+#' por nombre exacto). Vale para preguntas y cruces.
+#' @return "" si la base no declara la fila (o la variable está y no está
+#'   excluida), si no "excluida" o "no_esta_en_la_base".
 #' @noRd
 .armz_ausencia <- function(fila, base, df, inst, excluidas = character(0)) {
   spec <- .equiv_armon_spec(fila, base)
   if (is.null(spec) || !is.data.frame(df)) return("")
   var <- spec$parent
+  if (var %in% as.character(excluidas %||% character(0))) return("excluida")
   if (var %in% names(df)) return("")
   # Las dummies de una opción múltiple no son ausencia: las rechaza su 409.
   if (.armz_es_select_multiple(inst, df, var)) return("")
-  if (var %in% as.character(excluidas %||% character(0))) "excluida" else "no_esta_en_la_base"
+  "no_esta_en_la_base"
 }
 
 # Las bases de una fila donde su variable falta, con su causa.
