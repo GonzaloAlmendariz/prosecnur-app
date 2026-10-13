@@ -195,7 +195,7 @@ export default function GraficosPage() {
         if (!readiness?.ready) {
           setError({
             message: "El informe compartido todavía no está listo para exportarse.",
-            hint: "Puedes seguir configurando sus diapositivas. Completa y aprueba cada base en Analítica, luego vuelve a comprobar.",
+            hint: "Puedes seguir configurando sus láminas. Completa y aprueba cada base en Analítica, luego vuelve a comprobar.",
           });
           return;
         }
@@ -282,7 +282,7 @@ export default function GraficosPage() {
 
           {isSharedReport && seededSlideCount > 0 && !dirty && (
             <Alert kind="info">
-              {seededSlideCount} diapositivas compuestas desde {sharedPreflight?.source_order.length ?? 0} bases
+              {seededSlideCount} láminas compuestas desde {sharedPreflight?.source_order.length ?? 0} bases
               aprobadas. Todavía no se guardan: quedan fijadas al editar o exportar.
             </Alert>
           )}

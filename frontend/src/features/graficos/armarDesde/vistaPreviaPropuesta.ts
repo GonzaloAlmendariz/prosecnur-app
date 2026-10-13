@@ -5,7 +5,7 @@ import type { SlideType } from "../../../api/graficos";
 import { rotuloRanuras } from "../laminas/selectores/tiposLamina";
 
 const MOTIVOS_FUERA: Record<string, [string, string]> = {
-  sin_diapositiva: ["tema sin diapositiva asignada", "temas sin diapositiva asignada"],
+  sin_diapositiva: ["tema sin lámina asignada", "temas sin lámina asignada"],
   escala_divergente: ["tema con escalas distintas entre públicos", "temas con escalas distintas entre públicos"],
   sin_variables: ["tema sin variables", "temas sin variables"],
   no_graficable: ["pregunta numérica, que necesita tramos", "preguntas numéricas, que necesitan tramos"],
@@ -13,7 +13,7 @@ const MOTIVOS_FUERA: Record<string, [string, string]> = {
   release_no_aprobada: ["tema de una base sin aprobar", "temas de bases sin aprobar"],
 };
 
-/** «Fuera del mazo: 1 pregunta numérica, que necesita tramos; 2 temas sin diapositiva asignada.» */
+/** «Fuera del informe: 1 pregunta numérica, que necesita tramos; 2 temas sin diapositiva asignada.» */
 export function textoFueraDelMazo(fuera: readonly { motivo: string }[]): string {
   const porMotivo = new Map<string, number>();
   for (const f of fuera) porMotivo.set(f.motivo, (porMotivo.get(f.motivo) ?? 0) + 1);
@@ -21,7 +21,7 @@ export function textoFueraDelMazo(fuera: readonly { motivo: string }[]): string 
     const [uno, varios] = MOTIVOS_FUERA[motivo] ?? ["tema que no entra", "temas que no entran"];
     return `${n} ${n === 1 ? uno : varios}`;
   });
-  return partes.length ? `Fuera del mazo: ${partes.join("; ")}.` : "";
+  return partes.length ? `Fuera del informe: ${partes.join("; ")}.` : "";
 }
 
 /** El título de la lámina, o qué falta para tenerlo; nunca su tipo interno. */
