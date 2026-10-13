@@ -166,6 +166,18 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
       </>
     );
   },
+  // Matriz de cuadrantes (p91): el cuadrante destacado con fondo, las dos líneas de corte y los puntos.
+  p_matriz_cuadrantes: () => {
+    const puntos: ReadonlyArray<readonly [number, number, boolean]> = [[40, 30, true], [55, 40, true], [110, 26, false], [128, 52, false],
+      [70, 74, false], [118, 80, false], [46, 84, false]];
+    return (
+      <>
+        <rect x={20} y={14} width={68} height={42} rx={2} className="pulso-glifo__area-a" />
+        <Trazo d="M88 14V100M20 56H156" ancho={1.5} t="n" />
+        {puntos.map(([x, y, d]) => <Punto key={`${x}-${y}`} cx={x} cy={y} r={4} t={d ? "a" : "p"} />)}
+      </>
+    );
+  },
   // Brecha entre dos públicos (p88).
   p_dumbbell: () => {
     const pares: ReadonlyArray<readonly [number, number]> = [[60, 128], [72, 118], [54, 100], [86, 136]];

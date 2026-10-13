@@ -88,7 +88,9 @@
   position: absolute;
   display: flex;
   flex-direction: row-reverse;
-  align-items: center;
+  /* `safe`: si el contenido es más alto que la ranura, se alinea arriba en vez de cortarse por los dos lados (el rótulo
+     del tipo quedaba bajo el borde superior; Gonzalo, 2026-10-13). */
+  align-items: safe center;
   justify-content: flex-end;
   gap: 2.4em;
   margin: 0;
@@ -338,4 +340,39 @@
   color: var(--pulso-text-soft);
   font-size: 0.9em;
   line-height: 1.35;
+}
+
+/* Cuatro preguntas o más: una línea por pregunta con sus públicos; la escala, una vez. Cabe en la zona de datos sin que la
+   ranura recorte arriba y abajo (lámina 10 de Arte, 2026-10-13). */
+.pulso-f6-maqueta-preguntas.is-compacta {
+  gap: 0.35em;
+}
+
+.pulso-f6-maqueta-pregunta-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.8em;
+  align-items: baseline;
+  padding: 0.3em 0;
+  border-bottom: 1px solid var(--pulso-border);
+  min-width: 0;
+}
+
+.pulso-f6-maqueta-pregunta-linea {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: var(--pulso-weight-semibold);
+  min-width: 0;
+}
+
+.pulso-f6-maqueta-pregunta-publicos {
+  color: var(--pulso-text-soft);
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.pulso-f6-maqueta-mas {
+  color: var(--pulso-text-soft);
+  font-size: 0.9em;
 }

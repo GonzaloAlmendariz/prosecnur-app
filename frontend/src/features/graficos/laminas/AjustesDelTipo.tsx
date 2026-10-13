@@ -39,12 +39,13 @@ export function AjustesDelTipo({ valor }: { valor: GraficadorRef }) {
       accion: { label: "Deshacer", onSelect: () => undo() },
     });
   };
+  // Sin ajustes propios no hay nada que compartir: el botón no se ofrece (loop UI: «que sus opciones tengan sentido»).
+  if (n === 0) return null;
   return (
     <div className="pulso-f6-dato" data-qa="ajustes-del-tipo">
       <span className="pulso-f6-dato-rotulo">Para todos los gráficos de {nombre}</span>
-      <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" disabled={n === 0} onClick={aplicar}
-        title={n === 0 ? "Este gráfico no tiene ajustes propios que compartir" : undefined}>
-        Usar estos ajustes
+      <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={aplicar}>
+        Usar {n === 1 ? "su ajuste" : `sus ${n} ajustes`}
       </button>
     </div>
   );

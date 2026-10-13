@@ -71,7 +71,7 @@ export default function VarsListPicker({ value, onChange }: Props) {
   const visibleOptions = options.slice(0, 160);
   const selectedVars = vals.map((ref) => selectedInfo(ref, variables, multi));
 
-  if (loading) return <span className="pulso-gv2-variable-status">Cargando variables...</span>;
+  if (loading) return <span className="pulso-gv2-variable-status">Cargando variables…</span>;
 
   function toggleOpen() {
     if (open) {
@@ -175,7 +175,7 @@ export default function VarsListPicker({ value, onChange }: Props) {
               ref={searchRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por código, pregunta, sección o lista..."
+              placeholder="Buscar por código, pregunta, sección o lista…"
               aria-label="Buscar variable para agregar"
             />
             {query && (

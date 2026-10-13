@@ -2359,7 +2359,7 @@
     .pulso_aviso(sprintf(
       paste0("%d ícono(s) del proyecto no traían su PNG y se retiraron del catálogo. ",
              "Las láminas que los usaban se generan sin ícono; vuelve a subirlos ",
-             "en Configuración global > Íconos."),
+             "en Identidad > Íconos."),
       podados
     ))
   }

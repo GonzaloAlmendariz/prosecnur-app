@@ -134,7 +134,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
       setAviso(
         nuevas > 0
           ? `${nuevas} temas agrupados por batería del formulario. Revisa las tarjetas —las baterías largas suelen partirse en varias— y guarda cuando estén bien.`
-          : "Todos los temas ya tienen diapositiva.",
+          : "Todos los temas ya tienen lámina.",
       );
       return next;
     });
@@ -468,7 +468,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                 aria-pressed={vista === "diapositivas"}
                 onClick={() => setVista("diapositivas")}
               >
-                Por diapositiva
+                Por lámina
               </button>
               <button
                 type="button"
@@ -487,7 +487,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                   type="button"
                   className="pulso-equiv-accion-masiva"
                   onClick={onAgrupar}
-                  title="Agrupa por la batería del formulario: los temas cuyas variables comparten raíz en alguna base van a la misma diapositiva."
+                  title="Agrupa por la batería del formulario: los temas cuyas variables comparten raíz en alguna base van a la misma lámina."
                 >
                   <Layers size={13} aria-hidden="true" />
                   Agrupar {sinDiapositiva} sin diapositiva
@@ -504,7 +504,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                 </button>
               )}
               <span className="pulso-equiv-vistas-nota">
-                {diapositivas.filter((l) => l.clave !== "").length} diapositivas · {filas.length} temas
+                {diapositivas.filter((l) => l.clave !== "").length} láminas · {filas.length} temas
               </span>
             </div>
 
@@ -546,7 +546,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                 {`${resumen.confirmadas} confirmadas`
                   + (resumen.sugeridas ? ` · ${resumen.sugeridas} propuestas sin confirmar` : "")
                   + (resumen.sinEtiqueta ? ` · ${resumen.sinEtiqueta} sin etiqueta` : "")
-                  + (resumen.conDiapositiva ? ` · ${resumen.conDiapositiva} con diapositiva` : "")}
+                  + (resumen.conDiapositiva ? ` · ${resumen.conDiapositiva} con lámina` : "")}
               </span>
               <PulsoButton
                 variant="primary"

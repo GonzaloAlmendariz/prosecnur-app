@@ -40,7 +40,7 @@ export function LineaFijadaRecetario({
         <span id={labelId} className="pulso-gv2-field-title">{rotuloDeArg(fijado.arg, meta)}</span>
         <span className="pulso-gv2-fijado-sello">
           <Lock size={11} aria-hidden="true" />
-          Lo fija el recetario
+          Fijo por diseño
         </span>
       </span>
       <span className={`pulso-gv2-fijado-valor ${sinEfecto ? "is-sin-efecto" : ""}`}>
@@ -78,7 +78,7 @@ export function GrupoFijadosRecetario({
             <Lock size={12} />
           </span>
           <span className="pulso-gv2-arg-group-copy">
-            <h4 id={tituloId} className="pulso-gv2-arg-group-label">Lo fija el recetario</h4>
+            <h4 id={tituloId} className="pulso-gv2-arg-group-label">Fijo por diseño</h4>
             <span className="pulso-gv2-arg-group-description">
               Ajustes que el Word dibuja siempre igual en este tipo de gráfico.
             </span>

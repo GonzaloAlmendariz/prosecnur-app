@@ -30,7 +30,7 @@ export function CabeceraSeccion({
       {modificado && onVolver ? (
         <PulsoButton variant="ghost" size="sm" onClick={onVolver} aria-label={etiquetaVolver ?? "Volver al valor por defecto"}>
           <RotateCcw size={14} aria-hidden="true" />
-          Volver al recetario
+          Restablecer
         </PulsoButton>
       ) : null}
     </header>

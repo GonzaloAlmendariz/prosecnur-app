@@ -8,6 +8,7 @@
 //
 // Un solo dueño de desplazamiento (C4, No Scroll Jail): el cuerpo.
 
+import { useOptionalSession } from "../../../lib/SessionContext";
 import { useCallback, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { resolveWordPresetsDefaults } from "../../../api/graficosConfigDefaults";
@@ -63,7 +64,8 @@ export default function PestanaEstiloInforme() {
   const [sub, setSub] = useSubpestana(SUB_INFORME);
   const location = useLocation();
   const scope = useGraficosReportScope(location.search);
-  const disponibilidad = disponibilidadInforme(scope);
+  const sesion = useOptionalSession();
+  const disponibilidad = disponibilidadInforme(scope, sesion?.state?.estudio_processing_mode === "independent_siblings");
 
   const { presets: catalogo, presetsByName, loading: cargandoCatalogo, error: errorCatalogo } = usePresetsMetadata();
   const { presets: defaults, loading: cargandoDefaults } = usePresetsDefaults();

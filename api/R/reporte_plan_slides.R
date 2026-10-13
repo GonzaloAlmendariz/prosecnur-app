@@ -2119,7 +2119,8 @@ p_barras_multiapiladas <- function(
     overrides = list(),
     base = list(),
     filtros = list(),
-    mostrar_categorias_en_cero = NULL
+    mostrar_categorias_en_cero = NULL,
+    ancho_tema = NULL
 ) {
   .ppt_as_chr_vec <- function(x, keep_names = FALSE) {
     if (is.null(x)) return(NULL)
@@ -2214,6 +2215,7 @@ p_barras_multiapiladas <- function(
   filtros <- .ppt_norm_filters(filtros)
   # C40: en multilista cada bloque hereda estos overrides (y puede pisarlos con los suyos).
   overrides <- .ppt_slot_override(overrides, "mostrar_categorias_en_cero", mostrar_categorias_en_cero, "bool")
+  overrides <- .ppt_slot_override(overrides, "ancho_tema", ancho_tema, "opcion", opciones = names(.MULTIACTOR_ANCHO_TEMA))
 
   if (identical(modo, "multilista")) {
     if (!is.list(bloques) || !length(bloques)) {
@@ -2529,7 +2531,8 @@ p_nube_palabras <- function(
     min_chars = NULL,
     overrides = list(),
     base = list(),
-    filtros = list()
+    filtros = list(),
+    mostrar_ranking = NULL
 ) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
@@ -2553,6 +2556,7 @@ p_nube_palabras <- function(
 
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  overrides <- .ppt_slot_override(overrides, "mostrar_ranking", mostrar_ranking, "bool")
   if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)
 
@@ -2994,6 +2998,12 @@ p_radar_tabla <- function(
   }
 
   if (identical(modo, "box")) {
+    # El editor manda las preguntas como arreglo JSON, que llega como lista SIN nombres de textos sueltos: es la forma
+    # plana, no bloques (G11, 2026-10-13: la tabla de Arte abortaba con «debe ser una lista nombrada»).
+    if (is.list(vars) && length(vars) && is.null(names(vars)) &&
+        all(vapply(vars, function(x) is.character(x) && length(x) == 1L, logical(1)))) {
+      vars <- unlist(vars, use.names = FALSE)
+    }
     if (is.character(vars)) {
       if (length(vars) < 1L) {
         .plan_spec_abort("p_radar_tabla(modo='box'): `vars` debe ser character() con >=1 variable.")
@@ -3028,6 +3038,9 @@ p_radar_tabla <- function(
 
     if (!is.null(var)) .plan_spec_abort("p_radar_tabla(modo='box'): no usar `var`.")
 
+    if (is.list(box_labels) && all(vapply(box_labels, function(x) is.character(x) && length(x) == 1L, logical(1)))) {
+      box_labels <- unlist(box_labels, use.names = FALSE)   # arreglo JSON del editor (G11)
+    }
     if (!is.character(box_labels) || length(box_labels) != 2L) {
       .plan_spec_abort("p_radar_tabla(modo='box'): `box_labels` debe ser character(2).")
     }

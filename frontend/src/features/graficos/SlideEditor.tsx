@@ -73,7 +73,7 @@ export default function SlideEditor() {
       <div style={{ flex: 1, padding: "18px 22px" }}>
         <EmptyState
           icon={<LayoutPanelTop size={22} />}
-          title="Sin slide seleccionado"
+          title="Ninguna lámina elegida"
           hint="Selecciona uno del timeline de la izquierda o agrega un slide nuevo para empezar a editar."
         />
       </div>
@@ -114,7 +114,7 @@ export default function SlideEditor() {
         )}
       </header>
 
-      {loading && <LoadingBlock variant="inline" label="Cargando opciones del slide…" />}
+      {loading && <LoadingBlock variant="inline" label="Cargando opciones de la lámina…" />}
 
       {/* Builder jerárquico del índice (B47/G-5) */}
       {esIndice && slide && <IndiceBuilder slide={slide} />}

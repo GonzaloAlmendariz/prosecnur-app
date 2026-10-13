@@ -16,7 +16,7 @@ export function FijadosIndice({ slide, args }: { slide: Slide; args: readonly Ar
       data-qa-geometry-group="graficos/f6-indice-fijados" data-qa-geometry-contract="intrinsic">
       <h3 id={idTitulo} className="pulso-f6-subtitulo">
         <Lock size={13} aria-hidden="true" />
-        Lo fija el recetario
+        Fijo por diseño
       </h3>
       {lineas.map((l) => <LineaFijada key={l.arg} linea={l} />)}
     </section>

@@ -461,7 +461,7 @@
   podados <- unique(podados)
   if (length(podados)) {
     .pulso_aviso(sprintf(paste0("El proyecto no traía el PNG de %d logo(s) del cliente (%s) y se retiraron del estilo: ",
-                                "el Word usa el logo del recetario. Vuelve a subirlos en Estilo del cliente > Logos."),
+                                "el Word usa el logo por defecto. Vuelve a subirlos en Estilo del cliente > Logos."),
                          length(podados), paste(podados, collapse = ", ")))
   }
   s

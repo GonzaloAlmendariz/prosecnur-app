@@ -108,6 +108,13 @@ function CajasDeEscala({ slideId, slot, valor, composicion }: Omit<Props, "onAbr
 
   const cambiar = (c: CambioTwoBox) => updateSlotArgs(slideId, slot, patchTwoBox(valor.graficador, args, presets, c, composicion));
   const categorias = cats.fase === "lista" ? categoriasElegibles(cats.datos.categorias, args.excluir_opciones) : [];
+  // Una pregunta cuyas respuestas no van de menos a más (género, carrera) no lleva Top ni Bottom Two Box: la sección no se
+  // ofrece; si quedó encendida de antes, se muestra sólo para decir por qué y poder apagarla (loop UI, Arte lámina 1).
+  const noOrdenada = cats.fase === "lista" && !cats.datos.ordinal;
+  // Encendido por el estilo del informe (no por esta lámina) en una pregunta que no es escala: el motor no lo dibuja y
+  // pedir «apágalo» en cada Sí/No es ruido (láminas 5–7 de Arte). Sólo si esta lámina lo encendió se dice y se deja apagar.
+  const encendidoAqui = args.top2box === true || args.columna_bottom2box === true;
+  if (noOrdenada && !encendidoAqui) return null;
 
   const escala = (caja: Caja, nombre: "Top Two Box" | "Bottom Two Box", clave: "top" | "bottom") => {
     if (!pregunta) return <p className="pulso-f6-twobox-estado">Elige la pregunta para declarar su {nombre}.</p>;
@@ -127,6 +134,9 @@ function CajasDeEscala({ slideId, slot, valor, composicion }: Omit<Props, "onAbr
           </button>
         </p>
       );
+    }
+    if (noOrdenada) {
+      return <p className="pulso-f6-twobox-estado">Sus respuestas no van de menos a más: no hay {nombre} que sumar. Apágalo.</p>;
     }
     if (cats.fase === "sin_lista" || !categorias.length) {
       return <p className="pulso-f6-twobox-estado">La pregunta no tiene una escala con categorías: no hay {nombre} que sumar.</p>;

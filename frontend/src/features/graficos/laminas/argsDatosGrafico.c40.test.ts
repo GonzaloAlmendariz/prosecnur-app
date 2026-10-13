@@ -95,7 +95,8 @@ describe("C40 · ASIGNAR", () => {
     expect(campo(lollipop, {}, "p_lollipop", "top_n")?.rotulo).toBe("Máximo de categorías");
   });
   it("dumbbell: orden y la brecha, con su guarda a la vista", () => {
-    expect(nombres(dumbbell, {}, "p_dumbbell")).toEqual(["corte", "corte_etiqueta", "orden", "mostrar_brecha", "etiqueta_brecha"]);
+    // G17: el corte se marca en la tarjeta de la brecha (BrechaEntreGrupos), con las respuestas de la escala.
+    expect(nombres(dumbbell, {}, "p_dumbbell")).toEqual(["corte_etiqueta", "orden", "mostrar_brecha", "etiqueta_brecha"]);
     expect(campo(dumbbell, {}, "p_dumbbell", "mostrar_brecha")?.ayuda).toBe(AYUDA_BRECHA);
   });
   it("dumbbell: la unidad de la brecha sólo con la brecha encendida (default TRUE) y con «pts» a la vista", () => {
@@ -261,12 +262,12 @@ describe("5a · graficadores no nativos", () => {
   });
   const tablaReal = [a("modo", "choice"), a("var", "variable_opt", { depende: { arg: "modo", valores: ["sm"] } }), a("cruce", "variable_opt"),
     a("top_n", "number"), a("sm_omit_codes", "codigos_list"), a("sm_omit_na", "bool"), a("umbral_rojo_pct", "number", { default: 60 })];
-  it("tabla: «Omitir sin respuesta» encendido sin guardar (formal TRUE) y el umbral rojo; top_n y sm_omit_codes siguen fuera (D1)", () => {
-    expect(nombres(tablaReal, { modo: "sm" }, "p_tabla")).toEqual(["var", "modo", "cruce", "sm_omit_na", "umbral_rojo_pct"]);
+  it("tabla: «Omitir sin respuesta» encendido sin guardar (formal TRUE); el umbral rojo se retira con la tabla nativa (G11); top_n y sm_omit_codes siguen fuera (D1)", () => {
+    expect(nombres(tablaReal, { modo: "sm" }, "p_tabla")).toEqual(["var", "modo", "cruce", "sm_omit_na"]);
     const omitir = campo(tablaReal, {}, "p_tabla", "sm_omit_na");
     expect(omitir && interruptorEncendido(omitir.arg, undefined)).toBe(true);
     expect(omitir && interruptorEncendido(omitir.arg, false)).toBe(false);
-    expect(campo(tablaReal, {}, "p_tabla", "umbral_rojo_pct")?.arg.default).toBe(60);
+    expect(campo(tablaReal, {}, "p_tabla", "umbral_rojo_pct")).toBeUndefined();   // la tabla del diseño no pinta en rojo
     expect(nombres(tablaReal, { modo: "sm" }, "p_radar")).not.toContain("sm_omit_na");
   });
   const DISPOSICION = [{ value: "matriz", label: "Matriz 2×2" }, { value: "dispersion", label: "Dispersión" }];
@@ -309,5 +310,36 @@ describe("6a · tipo_rango «custom»", () => {
   it("otro select no pierde opciones", () => {
     const orden = campo([a("orden", "choice", { choices: [{ value: "custom", label: "x" }] })], {}, "p_lollipop", "orden");
     expect(orden?.opciones.map((o) => o.value)).toEqual(["custom"]);
+  });
+});
+
+describe("«Ancho de los temas» (G15)", () => {
+  const ancho = a("ancho_tema", "choice", { default: "auto", choices: [{ value: "auto", label: "Automático" }, { value: "ancho", label: "Más ancho" }, { value: "angosto", label: "Más angosto" }] } as Extra);
+  const publicos = { modo: "var_cruce", vars: { tema_1: ["docentes$p1", "estudiantes$p1"] } };
+  it("sale en las multiapiladas que comparan públicos, con sus tres pasos, y en ningún otro tipo", () => {
+    const campos = camposDeDatos([ancho], publicos, "p_barras_multiapiladas");
+    expect(campos.map((c) => [c.rotulo, c.control])).toEqual([["Ancho de los temas", "opciones"]]);
+    expect(nombres([ancho], publicos, "p_barras_apiladas")).toEqual([]);
+  });
+  it("con un solo público no se ofrece: no hace nada (lámina 13 de Arte)", () => {
+    expect(nombres([ancho], { modo: "var_cruce", vars: { tema_1: ["docentes$p1"] } }, "p_barras_multiapiladas")).toEqual([]);
+    expect(nombres([ancho], { modo: "var", vars: ["docentes$p1", "docentes$p2"] }, "p_barras_multiapiladas")).toEqual([]);
+    expect(nombres([ancho], { modo: "multilista", bloques: [{ vars: { t: ["docentes$a", "egresados$a"] } }] }, "p_barras_multiapiladas")).toEqual(["ancho_tema"]);
+  });
+});
+
+describe("«Ranking de palabras» (G11)", () => {
+  it("sale en la nube y en ningún otro tipo", () => {
+    const rk = a("mostrar_ranking", "bool", { default: true } as Extra);
+    expect(camposDeDatos([rk], {}, "p_nube_palabras").map((c) => [c.rotulo, c.control])).toEqual([["Ranking de palabras", "interruptor"]]);
+    expect(nombres([rk], {}, "p_barras_apiladas")).toEqual([]);
+  });
+});
+
+describe("cuántos públicos tiene una lámina por temas (loop UI, Arte lámina 10)", () => {
+  it("cuenta los públicos distintos de todos los temas, no el máximo por tema", async () => {
+    const { publicosDistintos } = await import("./argsDatosGrafico");
+    expect(publicosDistintos({ t1: ["docentes$a", "administrativos$a"], t2: ["docentes$b", "estudiantes$b"] })).toBe(3);
+    expect(publicosDistintos({ t1: ["docentes$a", "estudiantes$a"] })).toBe(2);
   });
 });

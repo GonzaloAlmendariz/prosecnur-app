@@ -16,6 +16,8 @@ export type SlideMeta = {
   iconos?: string[];
   /** Objetivo: actores consultados. */
   actores?: string[];
+  /** Objetivo: ícono de cada actor, alineado con `actores` («» = el que el motor elige por el nombre). */
+  actores_iconos?: string[];
   /** Objetivo «dimensiones» (recetario 28): las tarjetas de «Conocer la percepción sobre», hasta cuatro. */
   dimensiones?: string[];
   /** Antetítulo propio; sin él la lámina hereda el del separador vigente. */

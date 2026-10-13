@@ -33,7 +33,7 @@ test_that("el payload publica word_fijado en las apiladas y size_leyenda vale 8"
     expect_identical(por$size_leyenda$valor, 8)
     expect_identical(por$size_leyenda$unidad, "pt")
     for (x in f) {
-      expect_match(x$motivo, "^Lo fija el recetario en el Word", info = x$arg)
+      expect_match(x$motivo, "^Fijo por diseño en el Word", info = x$arg)
       expect_match(x$motivo, "cae al marco", info = x$arg)
       expect_true(isTRUE(x$aplica_si_marco), info = x$arg)
     }

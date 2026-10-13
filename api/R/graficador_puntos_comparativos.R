@@ -484,7 +484,10 @@ graficar_puntos_comparativos <- function(
   # con puntos del recetario (lámina 72, forma «lollipop»), para que la lámina salga con piezas editables. Un punto por
   # grupo en el orden dado; un grupo en 0 % se conserva.
   attr(g, "pulso_espec") <- tryCatch({
-    e <- preparar_categorica(as.character(df$.grupo), df$.valor / 100, .pulso_fmt_pct_half_up(df$.valor, decimales, escala = 1),
+    # G11: cada público dice su n, como en la imagen; sin él, la nota define una «n» que no se ve. Va con el nombre y no
+    # junto a la cifra: la columna de rótulos tiene ancho y el hueco de la cifra está medido para «98%».
+    e <- preparar_categorica(paste0(as.character(df$.grupo), " (n = ", df$.n, ")"), df$.valor / 100,
+                             .pulso_fmt_pct_half_up(df$.valor, decimales, escala = 1),
                              residuales_al_final = FALSE, sin_ceros = FALSE)
     e$nota <- nota_pie
     e$forma <- "lollipop"

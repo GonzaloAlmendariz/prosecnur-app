@@ -3,9 +3,9 @@ import { contenidoPropuesto, textoFueraDelMazo, tituloPropuesto } from "./vistaP
 
 describe("vista previa de Armar desde", () => {
   test("los motivos de lo que queda fuera se dicen en palabras, con su número", () => {
-    expect(textoFueraDelMazo([{ motivo: "no_graficable" }])).toBe("Fuera del mazo: 1 pregunta numérica, que necesita tramos.");
+    expect(textoFueraDelMazo([{ motivo: "no_graficable" }])).toBe("Fuera del informe: 1 pregunta numérica, que necesita tramos.");
     const texto = textoFueraDelMazo([{ motivo: "sin_diapositiva" }, { motivo: "sin_diapositiva" }, { motivo: "raro" }]);
-    expect(texto).toBe("Fuera del mazo: 2 temas sin diapositiva asignada; 1 tema que no entra.");
+    expect(texto).toBe("Fuera del informe: 2 temas sin lámina asignada; 1 tema que no entra.");
     expect(texto).not.toMatch(/_/);
     expect(textoFueraDelMazo([])).toBe("");
   });
@@ -19,5 +19,13 @@ describe("vista previa de Armar desde", () => {
   test("bajo el título va lo que lleva la lámina, no su tipo", () => {
     expect(contenidoPropuesto("p_slide_1_grafico")).toBe("1 gráfico");
     expect(contenidoPropuesto("p_slide_1_grafico")).not.toContain("p_slide");
+  });
+});
+
+describe("sin título escrito, la vista previa dice el que va a salir (Gonzalo, 2026-10-13)", () => {
+  test("usa el título inferido de la pregunta antes que «Sin título»", () => {
+    expect(tituloPropuesto("", false, "¿Conoce la misión de la PUCP?")).toBe("¿Conoce la misión de la PUCP?");
+    expect(tituloPropuesto("", false, "")).toBe("Sin título");
+    expect(tituloPropuesto("Escrito", false, "Inferido")).toBe("Escrito");
   });
 });

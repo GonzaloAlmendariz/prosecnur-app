@@ -48,7 +48,7 @@ export function ListaColores({ rotulo, filas, onElegir }: ListaProps) {
             ))}
           </ul>
           <span className="pulso-f6-dato-ayuda">
-            Cambia la línea en la lámina y en el Word. Las series sin color propio toman, en orden, los colores libres del recetario.
+            Cambia la línea en la lámina y en el Word. Las series sin color propio toman, en orden, los colores libres de la paleta por defecto.
           </span>
         </>
       )}

@@ -131,3 +131,17 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Actores consultados y dimensiones del objetivo: una fila por elemento, como la ficha técnica (Gonzalo, 2026-10-13). */
+.pulso-f6-fila-actor,
+.pulso-f6-fila-dimension {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-fila-dimension {
+  grid-template-columns: minmax(0, 1fr) auto;
+}

@@ -2057,7 +2057,7 @@
               id = .graficos_plan_slide_id("auto"),
               tipo = "p_slide_1_grafico_narrativo",
               payload = list(
-                titulo = section,
+                titulo = .graficos_titulo_de_seccion(section),
                 texto = "",
                 grafico = list(
                   graficador = "p_barras_multiapiladas",
@@ -2137,13 +2137,13 @@
         if (identical(profile_id, "acnur_kobo_cruncher_plus")) {
           .graficos_pack_acnur_graphs(
             simple,
-            section_title = if (identical(section, "Variables sugeridas")) "" else section,
+            section_title = .graficos_titulo_de_seccion(section),
             base_label = .graficos_scalar_chr(src$base_label, "")
           )
         } else {
           .graficos_pack_simple_graphs(
             simple,
-            section_title = if (identical(section, "Variables sugeridas")) "" else section,
+            section_title = .graficos_titulo_de_seccion(section),
             base_label = .graficos_scalar_chr(src$base_label, "")
           )
         }
@@ -2197,4 +2197,11 @@
   )
   if (!is.null(report_inputs)) response$report_inputs <- report_inputs
   response
+}
+
+
+# G15 (2026-10-13): «Variables sugeridas» es la clave interna de las preguntas sin sección confiable (SurveyMonkey).
+# Nunca es un título: en Arte titulaba cada batería multiapilada del plan automático.
+.graficos_titulo_de_seccion <- function(section) {
+  if (identical(section, "Variables sugeridas")) "" else section
 }

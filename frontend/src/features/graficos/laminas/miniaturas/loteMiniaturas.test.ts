@@ -108,9 +108,19 @@ describe("fusionarLote", () => {
   });
 
   it("al terminar, lo que siga pendiente queda como error reintentable", () => {
-    const r = fusionarLote(base, lote("cancelled", [ok("a"), { slide_id: "b", estado: "pendiente" }]), vigente, src);
+    const r = fusionarLote(base, lote("done", [ok("a"), { slide_id: "b", estado: "pendiente" }]), vigente, src);
     expect(r.b).toMatchObject({ estado: "error", error: MENSAJE_INTERRUMPIDA });
     expect(r.c).toMatchObject({ estado: "error", error: MENSAJE_INTERRUMPIDA });
+  });
+
+  // Loop UI (Gonzalo, 2026-10-13, captura con toda la tira en «No se pudo dibujar»): el lote de 20 se canceló con las 20
+  // pendientes y todas pasaron a error. Nadie intentó dibujarlas: vuelven a pedirse, no se anuncian como fallidas.
+  it("si el lote se cancela, lo pendiente vuelve a pedirse: no se pudo dibujar es falso", () => {
+    const r = fusionarLote(base, lote("cancelled", [ok("a"), { slide_id: "b", estado: "pendiente" }]), vigente, src);
+    expect(r.a).toMatchObject({ estado: "ok" });
+    expect(r.b).toBeUndefined();
+    expect(r.c).toBeUndefined();
+    expect(planPedido([L("a"), L("b"), L("c")], r, { lotesCorriendo: 0 })).toEqual({ laminas: [L("b"), L("c")], reemplazar: true });
   });
 
   it("sin cambios devuelve el mismo objeto (la tira no re-renderiza en cada poll)", () => {
