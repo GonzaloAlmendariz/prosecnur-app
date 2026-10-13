@@ -1925,7 +1925,7 @@
   cursor: not-allowed;
 }
 
-.pulso-data-review-card.is-section-hidden .pulso-data-review-include input {
+.pulso-data-review-card.is-section-hidden .pulso-data-review-include .pulso-switch {
   cursor: not-allowed;
 }
 
@@ -1937,16 +1937,13 @@
   cursor: default;
 }
 
-.pulso-data-review-include:hover {
-  border-color: var(--pulso-primary-border);
-  box-shadow: 0 0 0 3px var(--pulso-primary-ring);
-}
-
-.pulso-data-review-include input {
-  width: var(--pulso-control-check-size);
-  height: var(--pulso-control-check-size);
-  margin: 0;
-  cursor: pointer;
+/* «Incluir» es un ajuste que queda puesto: interruptor con su rótulo al lado,
+   sin caja alrededor (la caja era la piel de la antigua casilla). */
+.pulso-data-review-row .pulso-data-review-include,
+.pulso-data-review-row .pulso-data-review-include:hover {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
 }
 
 .pulso-data-review-variable-code {
