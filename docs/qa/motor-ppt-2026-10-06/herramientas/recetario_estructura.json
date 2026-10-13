@@ -103,9 +103,10 @@
     {
      "n": "2.4",
      "titulo": "Comparaciones y series",
-     "sub": "Puntos, brechas y mediciones en el tiempo",
+     "sub": "Puntos, brechas, cuadrantes y mediciones en el tiempo",
      "laminas": [
-      "m3c:1-4"
+      "m3c:1-4",
+      "m3c:7"
      ]
     },
     {

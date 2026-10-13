@@ -56,4 +56,3 @@ for (i in seq_len(nrow(pr))) {
 }
 zona("lectura: lo que cae en Prioridad", xr, yt, wr, hy)
 pie(doc, "Base: 289 estudiantes. Cada punto es un tema con sus dos medidas; las líneas cortan en el promedio de cada eje")
-dibujar_guias(doc)
