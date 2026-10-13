@@ -36,7 +36,7 @@ function Barra({ fila }: { fila: FilaPaleta }) {
           <li key={o} className={fila.colores[o] ? undefined : "is-falta"}>
             <span className={fila.colores[o] ? "pulso-cr-punto" : "pulso-cr-punto is-vacio"} style={fila.colores[o] ? { background: fila.colores[o] } : undefined} aria-hidden="true" />
             {o}
-            {fila.colores[o] ? null : <span className="pulso-pg-sin">sin color</span>}
+            {fila.colores[o] ? null : <span className="pulso-pg-sin">por defecto</span>}
           </li>
         ))}
       </ul>
@@ -94,8 +94,9 @@ export function PaletaDelGrafico({ valor }: Props) {
             <Barra fila={fila} />
             {fila.faltan > 0 ? (
               <div className="pulso-pg-aviso" role="status">
-                <span>{fila.faltan === 1 ? "Falta el color de una respuesta." : `Faltan los colores de ${fila.faltan} respuestas.`}</span>
-                <PulsoButton variant="secondary" size="sm" onClick={() => completar(fila)}>Completar con la marca</PulsoButton>
+                {/* La paleta no las nombra, pero la lámina no sale sin color: el motor les pone los de fábrica del gráfico (loop UI). */}
+                <span>{fila.faltan === 1 ? "Esta respuesta sale con el color por defecto del gráfico." : `Estas ${fila.faltan} respuestas salen con los colores por defecto del gráfico.`}</span>
+                <PulsoButton variant="secondary" size="sm" onClick={() => completar(fila)}>Fijar los de la marca</PulsoButton>
               </div>
             ) : null}
             {nombradas.length ? (
