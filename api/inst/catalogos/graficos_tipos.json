@@ -234,7 +234,7 @@
     {
       "name": "p_nube_palabras",
       "familia_editor": "texto",
-      "salida": "marco",
+      "salida": "nativa",
       "en_selector": true
     },
     {

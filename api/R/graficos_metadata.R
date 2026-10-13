@@ -1304,7 +1304,10 @@
       list(name = "max_palabras", label = "Máximo de palabras", tipo_input = "number", grupo = "filtro",
            default = 40),
       list(name = "min_chars", label = "Mínimo de caracteres", tipo_input = "number", grupo = "filtro",
-           default = 3)
+           default = 3),
+      # G11 (2026-10-13): la lámina 101 del diseño pone junto a la nube las diez palabras más dichas con su conteo.
+      list(name = "mostrar_ranking", label = "Ranking de palabras", tipo_input = "bool", grupo = "valores", default = TRUE,
+           descripcion = "Junto a la nube, las diez palabras más mencionadas con su número de menciones.")
     ), .args_graf_comunes())
   ),
 
@@ -2061,7 +2064,7 @@
   p_dicotomica = list("categorias", "nativa", condicion = "Sólo con dos opciones; con más, sale como barras categóricas."),
   p_barras_apiladas = list("escalas", "nativa"),
   p_barras_multiapiladas = list("escalas", "nativa", condicion = "Los bloques que no caben se reparten en láminas «(cont.)»."),
-  p_nube_palabras = list("texto", "marco", motivo = "No hay pieza propia para la nube: va dibujada dentro de una lámina estándar."),
+  p_nube_palabras = list("texto", "nativa", condicion = "Sin el ranking de palabras, la nube va sola, dibujada dentro de una lámina estándar."),   # G11: lámina 101 del diseño
   p_mapa_cobertura_territorial = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
   p_pie = list("categorias", "nativa", condicion = "Sólo con dos o tres porciones; con más, sale por la ruta anterior."),
   p_donut = list("categorias", "nativa", condicion = "Sólo con dos porciones y sus frecuencias; si no, sale por la ruta anterior."),
