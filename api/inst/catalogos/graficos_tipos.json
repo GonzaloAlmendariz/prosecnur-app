@@ -330,7 +330,7 @@
     {
       "name": "p_tabla",
       "familia_editor": "comparar",
-      "salida": "ruta_anterior",
+      "salida": "nativa",
       "en_selector": true
     },
     {

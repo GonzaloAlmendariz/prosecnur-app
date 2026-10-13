@@ -2080,7 +2080,7 @@
   p_lollipop = list("categorias", "nativa"),
   p_serie_temporal = list("comparar", "nativa", condicion = "Con dos mediciones; con tres o más va dibujada dentro de una lámina estándar."),
   p_radar = list("comparar", "nativa", condicion = "Si los ejes o la tabla no caben, sale por la ruta anterior."),
-  p_tabla = list("comparar", "ruta_anterior", motivo = "La lámina va por la ruta anterior; la tabla sí sale como tabla editable de PowerPoint."),
+  p_tabla = list("comparar", "nativa", condicion = "Con más de seis públicos, o filas que no caben en la lámina, va por la ruta anterior."),   # G11: láminas 197/225 del diseño
   p_dim_radar = list("dimensiones", "nativa", condicion = "Con menos de tres ejes sale como barras, por la ruta anterior."),   # G11: ya salía nativo (medido 2026-10-13)
   p_dim_heatmap = list("dimensiones", "nativa", condicion = "Con brechas declaradas sale por la ruta anterior."),
   p_dim_comparativo_radarbar = list("dimensiones", "nativa", condicion = "Con brechas o con la columna Total sale por la ruta anterior."),

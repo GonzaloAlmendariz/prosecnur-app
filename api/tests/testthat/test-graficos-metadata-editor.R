@@ -25,7 +25,7 @@ test_that("lo que hoy no tiene pieza del recetario no se anuncia nativo", {
   no_nativos <- names(m)[!vapply(m, `[[`, logical(1), "salida_nativa")]
   # G11 (2026-10-13): los puntos comparativos salen como el ranking con puntos (lámina 72), y el radar por dimensiones
   # ya salía nativo con tres ejes o más: lo declarado decía lo contrario (test-dim-radar-nativo.R).
-  expect_setequal(no_nativos, c("p_tabla", "p_dim_foda"))   # G11: la nube sale con su ranking nativo (lámina 101)
+  expect_setequal(no_nativos, "p_dim_foda")   # G11: la nube sale con su ranking (lámina 101) y la tabla como la del diseño
   expect_identical(m$p_nube_palabras$salida, "nativa")
   expect_match(m$p_nube_palabras$salida_condicion, "Sin el ranking", fixed = TRUE)
   expect_identical(m$p_dim_heatmap_criterios$salida, "nativa")          # la 93 ya es nativa (test-lamina-criterios.R)
@@ -86,7 +86,7 @@ test_that("la salida declarada coincide con cómo sale la lámina en el motor re
     p_lollipop = p_lollipop("cat"),
     p_nube_palabras = p_nube_palabras("txt"),
     p_puntos_comparativos = p_puntos_comparativos("e", cruces = "g", corte = c("3", "4")),
-    p_tabla = p_tabla(modo = "box", vars = c("e", "e2"), box_labels = c("3", "4"))
+    p_tabla = p_tabla(modo = "box", vars = c("e", "e2"), box_labels = c("3", "4"))   # dos filas: antes salía «Sin datos» (exigía 3 ejes)
   )
   slides <- lapply(names(casos), function(nm) p_slide_1_grafico(casos[[nm]], titulo = nm))
   out <- tempfile(fileext = ".pptx")

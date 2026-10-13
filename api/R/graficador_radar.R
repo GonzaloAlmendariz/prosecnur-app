@@ -760,7 +760,9 @@ graficar_radar <- function(
   ejes   <- unique(df0$.eje)
   grupos <- unique(df0$.grupo)
 
-  if (length(ejes) < 3) stop("Radar requiere al menos 3 ejes.", call. = FALSE)
+  # Sólo el radar necesita tres ejes; la tabla sola (`p_tabla`, radar escondido) se arma con uno o dos (G11, 2026-10-13).
+  if (length(ejes) < 3 && !isTRUE(ocultar_radar)) stop("Radar requiere al menos 3 ejes.", call. = FALSE)
+  if (length(ejes) < 1) stop("La tabla requiere al menos una fila.", call. = FALSE)
   if (length(grupos) < 1) stop("Radar requiere al menos 1 grupo.", call. = FALSE)
 
   # La linea se acota si las series se pisan. Con tres publicos cuyos valores
@@ -965,9 +967,12 @@ graficar_radar <- function(
   # ADR 0093 (N6): lo que afirma el radar, para la lámina 90 del recetario. El «Top 2 Box» de fábrica no nombra la
   # columna de los ejes de la tabla; ahí va «Indicador». Sin radar (`p_tabla` lo esconde con `radar_scale = 0`) no hay
   # espec: la lámina 90 dibujaría un radar que el analista quitó.
-  espec_radar <- if (isTRUE(ocultar_radar)) NULL else tryCatch(.espec_radar(df_plot, r_lim, pal, digits = tabla_digits,
+  espec_radar <- tryCatch(.espec_radar(df_plot, r_lim, pal, digits = tabla_digits,
                                        encabezado = if (identical(titulo_tabla, "Top 2 Box")) NULL else titulo_tabla,
                                        con_tabla = mostrar_tabla_derecha, nota = nota_pie), error = function(e) NULL)
+  # G11 (2026-10-13): sin radar (`p_tabla`) la misma cuenta sale como la tabla del diseño (láminas 197/225), en piezas
+  # editables, en vez de la ruta anterior.
+  if (isTRUE(ocultar_radar) && !is.null(espec_radar)) { espec_radar$tipo <- "tabla"; espec_radar$version <- "tabla/1" }
 
   # ---------------------------------------------------------------------------
   # 5) Plot (base)
