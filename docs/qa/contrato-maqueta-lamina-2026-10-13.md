@@ -3,41 +3,49 @@
 Fecha: 2026-10-13 · Pedido de Gonzalo: «las maquetas tienen que ser mucho más robustas a distintas situaciones… no hay
 probado y testeado maquetas para todos los tipos de gráficos que se vean elegantes, sean robustas a diferentes
 situaciones y configuraciones».
-Estado: **propuesta, pendiente de aprobación**. Galería que lo pone en práctica:
+Estado: **propuesta, pendiente de aprobación** (rehecha el mismo día: de réplica del PPT a ficha visual). Galería que lo pone en práctica:
 `docs/qa/maqueta-galeria-maquetas-2026-10-13.html`.
 
 ## Qué es la maqueta
 
-La maqueta es **la lámina en miniatura**: el analista la mira para saber cómo saldrá el PowerPoint sin exportar. No es
-un ícono del tipo de gráfico ni una ficha con datos de la lámina. Si la maqueta y el PPT no coinciden, el defecto está
-en la maqueta.
+La maqueta es **la ficha visual de la lámina**: informa su naturaleza de un vistazo —qué composición tiene, qué tipo de
+gráfico va en cada ranura, qué preguntas, qué públicos o actores intervienen, con qué escala y con qué ajustes— en una
+forma creativa y elegante. **No imita el PPT**: lo que sólo el render puede decir (cifras, texto exacto, posiciones
+finas) está en «Ver cómo queda».
 
-Hoy no cumple eso. El dibujo es una plantilla fija de 160 × 100 (4 barras siempre), la leyenda va como texto en una
-columna aparte, el Top Two Box se dibuja como cajas verdes (en el PPT son cifras), no hay columna de la pregunta ni
-nombres de los públicos, y la ranura no centra su contenido. Sólo las multiapiladas tienen un dibujo propio; los demás
-tipos muestran el glifo genérico del selector.
+Gonzalo (2026-10-13), sobre la maqueta de hoy: «no busca imitar por completo a la versión renderizada, sino que es útil
+para el propósito de informar la naturaleza de la lámina: te dice qué tipo de gráfico es, te pone la leyenda en un
+contenedor elegante, te indica qué actores intervienen… es una forma creativa y elegante de informarte acerca de esa
+diapositiva sin atiborrarte de información poco relevante que ya puedes tener cuando renderices la lámina».
+
+Lo que hoy falla no es ese enfoque, es su ejecución: el contenido no se centra ni se alinea, el dibujo es una plantilla
+fija (4 barras siempre) que no refleja la configuración, sólo las multiapiladas tienen dibujo propio, y en situaciones
+distintas (dos bloques con escalas distintas, ranuras chicas, eje ancho) no se adapta.
 
 ## Cláusulas
 
 Cada cláusula se cita por su código (`M3 en lámina 12`), como las del Contrato de Superficie.
 
-### M1 · La anatomía es la del PPT
+### M1 · Informa la naturaleza, no imita
 
-La maqueta dibuja las mismas piezas, en el mismo lugar, que el motor (`api/R/lamina_escala.R`,
-`lamina_multilista.R`, `lamina_paneles.R`):
+Cada ranura con gráfico es una **ficha** con, en este orden de importancia:
 
-| Pieza | Dónde va | Qué lleva |
+| Pieza | Qué dice | Forma |
 |---|---|---|
-| Título | arriba a la izquierda, en coral, con el filete azul a su izquierda | el título real, recortado con «…» si no cabe en dos líneas |
-| Logo | arriba a la derecha | la marca del informe |
-| Columna de la pregunta | a la izquierda de las barras, centrada en vertical sobre las filas de su tema | la pregunta del tema |
-| Nombre del público | antes de cada barra, alineado a la derecha | «Docentes» y, debajo, «116 respuestas» |
-| Barras | el centro, con una marca donde irá la cifra cuando el segmento la admite | los colores de la paleta asignada, fieles, hasta 10 distintos; sin paleta asignada, grises de oscuro a claro |
-| Top Two Box | columna a la derecha, encabezado «Top Two Box» | una **marca de cifra en verde** por fila, no cajas |
-| Separador | entre temas | línea punteada a todo el ancho del gráfico |
-| Leyenda | **centrada bajo las barras** (no bajo toda la ranura) | una compartida si todos los bloques usan la misma escala; si no, una bajo cada bloque |
-| Base | abajo a la izquierda | el mismo texto que escribirá el motor |
-| Número | abajo a la derecha | el folio |
+| Tipo | qué gráfico es | su ícono y su nombre («Multiapiladas», «Brecha entre dos grupos») |
+| Dibujo | la forma del gráfico **con su configuración** | glifo sin textos: tantas barras como saldrán, agrupadas por tema, separadas por bloque, con la columna Top Two Box si está encendida |
+| Preguntas | qué se grafica | la pregunta o «Tema · pregunta», recortada; con muchas, la primera y «y N más» |
+| Públicos o actores | quién respondió | chips con su nombre |
+| Leyenda | la escala | un contenedor elegante con las respuestas y sus colores; con escalas distintas, una por bloque |
+| Ajustes | lo que cambia la lámina | chips: «Top Two Box», «Sale en 2 láminas», «2 bloques», «Por grupos: Sexo» |
+
+No lleva cifras, ni el texto exacto del PPT, ni posiciones finas.
+
+### M2 · Las proporciones de la composición son las reales
+
+Cada ficha ocupa la ranura que tendrá su gráfico en la lámina de 13,333 × 7,5 in (`RANURAS_ESTANDAR`): dos gráficos
+lado a lado se ven lado a lado, el de apoyo se ve chico. Dentro de la ficha, el dibujo refleja la forma (filas, bloques,
+columnas) sin pretender la escala exacta.
 
 ### M1b · Los colores son los asignados
 
@@ -48,14 +56,6 @@ sin reinterpretarlo; hasta 10 respuestas con color propio. Una respuesta sin col
 de oscuro a claro según su posición, y no en un color genérico: el gris dice «aún no tiene color» y no promete uno que
 el PPT no usará.
 
-### M2 · Las proporciones son las reales
-
-- **Filas:** tantas barras como saldrán (temas × públicos o preguntas), no un número fijo.
-- **Ancho de la columna de la pregunta** («Ancho de los temas»): el que tenga la lámina; si cambia, la maqueta cambia.
-- **Ranura:** el gráfico ocupa la ranura de su composición, en pulgadas de la lámina de 13,333 × 7,5
-  (`RANURAS_ESTANDAR`); un gráfico de apoyo de 3,7 in se dibuja a ese tamaño, no estirado.
-- **Alto de barra:** el de una lámina real (como mucho 0,3 in); con pocas filas, sobra aire alrededor y no se engordan.
-
 ### M3 · El contenido se centra en su ranura
 
 El bloque de barras + leyenda se centra en vertical dentro de la ranura, y la leyenda se centra respecto a las barras.
@@ -63,9 +63,10 @@ Nada queda pegado a un borde por defecto.
 
 ### M4 · Se degrada, no se rompe
 
-A menor espacio, la maqueta sacrifica en este orden: las marcas de cifra de los segmentos chicos → «N respuestas» → la
-leyenda en dos líneas → los textos se recortan con «…» → los textos pasan a trazos grises. **Nunca** se encima un
-texto sobre otro, se sale de la ranura ni se recorta a medias (la lección de C2 en lámina 12).
+A menor ranura, la ficha sacrifica en este orden: la lista de preguntas pasa a la primera y «y N más» → los chips de
+públicos pasan a un conteo («3 públicos») → la leyenda pasa a una tira de colores sin nombres → los chips de ajustes se
+van → quedan el ícono, el nombre del tipo y el dibujo. **Nunca** se encima un texto sobre otro, se sale de la ranura ni
+se recorta a medias.
 
 ### M5 · Cada configuración se ve
 

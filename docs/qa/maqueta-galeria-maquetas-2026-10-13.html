@@ -35,7 +35,11 @@
   .controles button { font: inherit; font-size: 12.5px; border: 1px solid var(--borde); background: #fff; border-radius: 6px; padding: 3px 10px; cursor: pointer; }
   .vivo { max-width: 760px; }
   /* M8: los cambios se ven cambiar. Las piezas conservan su identidad entre estados y transitan su geometría. */
-  .vivo svg * { transition: x 220ms cubic-bezier(.2,.8,.2,1), y 220ms cubic-bezier(.2,.8,.2,1), width 220ms cubic-bezier(.2,.8,.2,1), height 220ms cubic-bezier(.2,.8,.2,1), opacity 180ms ease-out, fill 180ms ease-out; }
+  /* Curva de salida fuerte (arranca rápido y se posa suave): se siente responsiva sin rebotar. 240 ms para la geometría,
+     160 ms para el fundido de textos; los textos entran con un desfase de 40 ms para que primero se mueva la forma. */
+  .vivo svg rect[data-k] { transition: x 240ms cubic-bezier(.23,1,.32,1), y 240ms cubic-bezier(.23,1,.32,1), width 240ms cubic-bezier(.23,1,.32,1), height 240ms cubic-bezier(.23,1,.32,1), fill 200ms ease-out; }
+  .vivo svg .entra { opacity: 0; }
+  .vivo svg .entra.visible { opacity: 1; transition: opacity 160ms ease-out 40ms; }
   @media (prefers-reduced-motion: reduce) { .vivo svg * { transition: none; } }
   ul.cambios { margin: 0; padding-left: 18px; max-width: 900px; } ul.cambios li { margin: 3px 0; }
 </style>
@@ -43,10 +47,11 @@
 <body>
 <main>
   <h1>Galería de maquetas — propuesta</h1>
-  <p class="nota">Cada caso dibuja la lámina en miniatura con el contrato <code>docs/qa/contrato-maqueta-lamina-2026-10-13.md</code>:
-    la misma anatomía que el PPT de Arte y Diseño (pregunta a la izquierda, público con sus respuestas, barras, Top Two Box
-    en cifras verdes, leyenda centrada bajo las barras, base abajo), en las pulgadas reales de cada ranura. Las cifras no
-    se inventan: se marca dónde irán.</p>
+  <p class="nota">Cada caso dibuja la <b>ficha visual</b> de la lámina con el contrato
+    <code>docs/qa/contrato-maqueta-lamina-2026-10-13.md</code>: no imita el PPT, informa su naturaleza. Cada ranura dice qué
+    gráfico es, lleva un dibujo que refleja su configuración (filas reales, bloques, ancho de los temas, Top Two Box),
+    sus preguntas, sus públicos, la leyenda en su contenedor y sus ajustes. Las ranuras tienen el tamaño real de la
+    composición; lo que sólo el render sabe (cifras, texto exacto) queda en «Ver cómo queda».</p>
 
   <h2>Hoy y la propuesta</h2>
   <div class="comparar">
@@ -54,8 +59,9 @@
       <figcaption>Hoy (lámina 19 de Arte): plantilla fija de 4 barras, cajas verdes de Top Two Box, la leyenda como texto en
         una columna aparte, contenido pegado a la izquierda y aire sin usar.</figcaption></figure>
     <figure><svg class="lamina" id="propuesta" viewBox="0 0 13.333 7.5"></svg>
-      <figcaption>Propuesta: 2 filas reales (docentes y estudiantes), la pregunta en su columna, Top Two Box en cifras,
-        leyenda centrada bajo las barras, todo centrado en la ranura.</figcaption></figure>
+      <figcaption>Propuesta: la misma idea de ficha, ordenada y centrada. Tipo, pregunta, públicos, leyenda en su contenedor
+        y ajustes a la izquierda; a la derecha el dibujo con las 2 filas reales, la columna de la pregunta y la del Top Two
+        Box.</figcaption></figure>
   </div>
 
   <h2>En vivo: los cambios se ven cambiar (M8)</h2>
@@ -68,7 +74,13 @@
   </div>
   <div class="vivo"><svg class="lamina" id="vivo" viewBox="0 0 13.333 7.5"></svg></div>
 
-  <h2>Multiapiladas</h2>
+  <h2>Cobertura</h2>
+  <p class="nota" id="cobertura"></p>
+  <h2>Los 28 tipos de gráfico</h2>
+  <div class="rejilla" id="g-graficos"></div>
+  <h2>Los 33 tipos de lámina</h2>
+  <div class="rejilla" id="g-laminas"></div>
+  <h2>Multiapiladas en detalle</h2>
   <div class="rejilla" id="g-multi"></div>
   <h2>Composiciones</h2>
   <div class="rejilla" id="g-comp"></div>
@@ -344,7 +356,7 @@ function brecha(svg, r, g) {
     y += paso;
   });
   const cx = (x0 + x1) / 2; const yy = y + .3;
-  [["#081F5C", g.grupos[0]], ["#C8463F", g.grupos[1]]].forEach(([c, l], i) => {
+  if (!SIN_LEYENDA) [["#081F5C", g.grupos[0]], ["#C8463F", g.grupos[1]]].forEach(([c, l], i) => {
     const x = cx + (i ? .2 : -.2 - ancho(l, fs * .92) - .2);
     el("circle", { cx: x + .07, cy: yy - fs * .3, r: .07, fill: c }, svg);
     el("text", { x: x + .2, y: yy, "font-size": fs * .92, fill: C.texto, texto: l }, svg);
@@ -378,7 +390,7 @@ function radar(svg, r, g) {
   g.ejes.forEach((e, i) => { const [x, y] = pt(i, 1.18); el("text", { x, y: y + fs * .35, "font-size": fs * .85, fill: C.texto, "text-anchor": "middle", texto: recortar(e, 1.5, fs * .85) }, svg); });
   [[C.navy, .8], [C.coral, .62]].forEach(([c, k], s) => el("polygon", { points: g.ejes.map((_, i) => pt(i, k * (.7 + .3 * Math.abs(Math.sin(i * 1.3 + s)))).join(",")).join(" "), fill: c, "fill-opacity": .14, stroke: c, "stroke-width": .03 }, svg));
   const yy = cy + R + fs * 1.6 + leyH;
-  g.series.forEach((l, i) => { const x = cx + (i ? .25 : -.25 - ancho(l, fs * .92) - .25); el("rect", { x, y: yy - fs * .75, width: fs * .9, height: fs * .9, fill: i ? C.coral : C.navy }, svg); el("text", { x: x + fs * .9 + .06, y: yy, "font-size": fs * .92, fill: C.texto, texto: l }, svg); });
+  if (!SIN_LEYENDA) g.series.forEach((l, i) => { const x = cx + (i ? .25 : -.25 - ancho(l, fs * .92) - .25); el("rect", { x, y: yy - fs * .75, width: fs * .9, height: fs * .9, fill: i ? C.coral : C.navy }, svg); el("text", { x: x + fs * .9 + .06, y: yy, "font-size": fs * .92, fill: C.texto, texto: l }, svg); });
 }
 
 // ── Cifras en banda, texto, vacíos ──
@@ -503,10 +515,18 @@ const DIBUJOS = { apiladas, barrasCategoria, brecha, cuadrantes, radar, cifras, 
 function lamina(svg, lam, clave) {
   while (svg.firstChild) svg.removeChild(svg.firstChild);
   if (lam.estructura) { ESTRUCTURA[lam.estructura](svg, lam); return; }
-  cromo(svg, lam);
-  let partes = lam.partes ?? 1;
-  lam.ranuras.forEach((rn, i) => { const res = DIBUJOS[rn.dibujo](svg, rn, rn.g, `${clave ?? ""}${i}-`); partes = Math.max(partes, res?.partes ?? 1); });
-  if (partes > 1) avisoPartes(svg, partes);
+  if (lam.composicion) { composicion(svg, lam.composicion); return; }
+  cromoFicha(svg, lam);
+  lam.ranuras.forEach((rn, i) => {
+    if (["texto", "cifras", "vacia", "sinPregunta"].includes(rn.dibujo)) DIBUJOS[rn.dibujo](svg, rn, rn.g);
+    else ficha(svg, lam.partes && rn.dibujo === "apiladas" ? { ...rn, info: undefined, g: { ...rn.g, _partes: lam.partes } } : rn, `${clave ?? ""}${i}-`);
+  });
+}
+// La lámina alrededor de las fichas: sólo lo que el analista edita aquí (título) y la base que saldrá; sin logo ni folio.
+function cromoFicha(svg, lam) {
+  el("rect", { x: 0, y: 0, width: 13.333, height: 7.5, fill: "#fff" }, svg);
+  textoMultilinea(svg, lam.titulo || "Sin título", .5, .78, 12.3, .4, { maxLineas: 2, bold: true, fill: lam.titulo ? C.navy : C.tenue });
+  if (lam.base) el("text", { x: .5, y: 7.1, "font-size": .19, fill: C.suave, texto: recortar(lam.base, 12.3, .19) }, svg);
 }
 
 // ───────────────────────── Datos de ejemplo (Arte y Diseño) ─────────────────────────
@@ -603,6 +623,436 @@ const CASOS = {
   ],
 };
 
+
+// ═════════════════════ Cobertura completa: los 28 gráficos y las 33 láminas del motor ═════════════════════
+// Gonzalo (2026-10-13): «puede ser algo más abstracta en algunos casos, pero debe mostrar de forma adecuada todos los
+// tipos de láminas, gráficos y configuraciones importantes». Los dibujos de abajo son abstractos donde la forma basta;
+// cada uno refleja las configuraciones que cambian lo que se ve.
+const RANURAS = {"p_slide_1_grafico":{"nombre":"Un gráfico","ranuras":[{"tipo":"grafico","x":0.495,"y":1.65,"w":12.523,"h":4.6}]},"p_slide_1_grafico_narrativo":{"nombre":"Un gráfico con narrativa","ranuras":[{"tipo":"texto","x":0.495,"y":1.65,"w":12.523,"h":0.8},{"tipo":"grafico","x":0.495,"y":2.6,"w":12.523,"h":3.7}]},"p_slide_grafico_texto_derecha":{"nombre":"Gráfico con texto a la derecha","ranuras":[{"tipo":"grafico","x":0.495,"y":1.65,"w":8.6,"h":4.6},{"tipo":"texto","x":9.55,"y":2.45,"w":3.468,"h":3.4}]},"p_slide_grafico_texto_izquierda":{"nombre":"Gráfico con texto a la izquierda","ranuras":[{"tipo":"texto","x":0.495,"y":2.05,"w":3.45,"h":3.4},{"tipo":"grafico","x":4.55,"y":1.75,"w":8.4,"h":4.5}]},"p_slide_texto":{"nombre":"Texto","ranuras":[{"tipo":"texto","x":0.495,"y":1.65,"w":12.523,"h":4.6}]},"p_slide_2_graficos":{"nombre":"Dos gráficos","ranuras":[{"tipo":"grafico","x":0.495,"y":1.65,"w":6.012,"h":4.6},{"tipo":"grafico","x":7.007,"y":1.65,"w":6.012,"h":4.6}]},"p_slide_2_graficos_narrativo":{"nombre":"Dos gráficos con narrativa","ranuras":[{"tipo":"texto","x":0.495,"y":1.65,"w":12.523,"h":0.8},{"tipo":"grafico","x":0.495,"y":2.6,"w":6.012,"h":3.7},{"tipo":"grafico","x":7.007,"y":2.6,"w":6.012,"h":3.7}]},"p_slide_2_graficos_texto_izquierda":{"nombre":"Dos gráficos con texto a la izquierda","ranuras":[{"tipo":"texto","x":0.495,"y":2.05,"w":3.45,"h":3.6},{"tipo":"grafico","x":4.55,"y":1.7,"w":8.468,"h":1.6},{"tipo":"grafico","x":4.55,"y":3.7,"w":8.468,"h":2.55}]},"p_slide_2_graficos_texto_derecha":{"nombre":"Dos gráficos con texto a la derecha","ranuras":[{"tipo":"grafico","x":0.495,"y":1.7,"w":8.6,"h":1.9},{"tipo":"grafico","x":0.495,"y":3.8,"w":8.6,"h":2.45},{"tipo":"texto","x":9.55,"y":2.05,"w":3.468,"h":3.4}]},"p_slide_2_graficos_vertical":{"nombre":"Dos gráficos apilados","ranuras":[{"tipo":"grafico","x":0.495,"y":1.65,"w":12.523,"h":2.2},{"tipo":"grafico","x":0.495,"y":4.05,"w":12.523,"h":2.2}]},"p_slide_2_graficos_asimetrico":{"nombre":"Gráfico principal y de apoyo","ranuras":[{"tipo":"grafico","x":0.495,"y":1.6,"w":8.4,"h":4.65},{"tipo":"grafico","x":9.35,"y":1.6,"w":3.668,"h":4.65}]},"p_slide_3_graficos_2mas1":{"nombre":"Tres gráficos, dos apilados y uno alto","ranuras":[{"tipo":"grafico","x":0.495,"y":1.65,"w":6.012,"h":2.2},{"tipo":"grafico","x":0.495,"y":4.05,"w":6.012,"h":2.2},{"tipo":"grafico","x":7.007,"y":1.65,"w":6.012,"h":4.6}]},"p_slide_3_graficos_1mas2":{"nombre":"Tres gráficos, uno alto y dos apilados","ranuras":[{"tipo":"grafico","x":0.495,"y":1.65,"w":6.012,"h":4.6},{"tipo":"grafico","x":7.007,"y":1.65,"w":6.012,"h":1.65},{"tipo":"grafico","x":7.007,"y":3.7,"w":6.012,"h":2.55}]},"p_slide_3_graficos_1arriba":{"nombre":"Tres gráficos, uno ancho arriba","ranuras":[{"tipo":"grafico","x":0.495,"y":1.6,"w":12.523,"h":2.25},{"tipo":"grafico","x":0.495,"y":4.2,"w":6.012,"h":2.05},{"tipo":"grafico","x":7.007,"y":4.2,"w":6.012,"h":2.05}]},"p_slide_3_graficos_fila":{"nombre":"Tres gráficos en fila","ranuras":[{"tipo":"grafico","x":0.495,"y":1.65,"w":3.841,"h":4.6},{"tipo":"grafico","x":4.836,"y":1.65,"w":3.841,"h":4.6},{"tipo":"grafico","x":9.177,"y":1.65,"w":3.841,"h":4.6}]},"p_slide_3_graficos_poblacion_tira":{"nombre":"Tres gráficos en tira","ranuras":[{"tipo":"grafico","x":0.495,"y":1.65,"w":12.523,"h":1.18},{"tipo":"grafico","x":0.495,"y":3.33,"w":12.523,"h":1.18},{"tipo":"grafico","x":0.495,"y":5.01,"w":12.523,"h":1.24}]},"p_slide_3_graficos_poblacion_corona":{"nombre":"Tres gráficos en corona","ranuras":[{"tipo":"grafico","x":0.495,"y":1.65,"w":5.862,"h":2.15},{"tipo":"grafico","x":7.157,"y":1.65,"w":5.862,"h":2.15},{"tipo":"grafico","x":0.495,"y":4.2,"w":12.523,"h":2.17}]},"p_slide_4_graficos":{"nombre":"Cuatro gráficos","ranuras":[{"tipo":"grafico","x":0.495,"y":1.65,"w":6.012,"h":2.31},{"tipo":"grafico","x":7.007,"y":1.65,"w":6.012,"h":2.31},{"tipo":"grafico","x":0.495,"y":4.36,"w":6.012,"h":1.89},{"tipo":"grafico","x":7.007,"y":4.36,"w":6.012,"h":1.89}]},"p_slide_5_graficos_poblacion":{"nombre":"Cinco gráficos","ranuras":[{"tipo":"grafico","x":0.495,"y":1.65,"w":3.908,"h":2.285},{"tipo":"grafico","x":4.803,"y":1.65,"w":3.908,"h":2.285},{"tipo":"grafico","x":9.11,"y":1.65,"w":3.908,"h":2.285},{"tipo":"grafico","x":0.495,"y":4.335,"w":5.862,"h":1.915},{"tipo":"grafico","x":7.157,"y":4.335,"w":5.862,"h":1.915}]},"p_slide_6_graficos_poblacion":{"nombre":"Seis gráficos","ranuras":[{"tipo":"grafico","x":0.495,"y":1.65,"w":3.908,"h":2.2},{"tipo":"grafico","x":4.803,"y":1.65,"w":3.908,"h":2.2},{"tipo":"grafico","x":9.11,"y":1.65,"w":3.908,"h":2.2},{"tipo":"grafico","x":0.495,"y":4.5,"w":3.908,"h":1.75},{"tipo":"grafico","x":4.803,"y":4.5,"w":3.908,"h":1.75},{"tipo":"grafico","x":9.11,"y":4.5,"w":3.908,"h":1.75}]},"p_slide_3_graficos_poblacion_cifras":{"nombre":"Cifras en columna lateral","ranuras":[{"tipo":"cifras","x":0.495,"y":1.65,"w":3,"h":4.6},{"tipo":"grafico","x":3.945,"y":1.65,"w":4.312,"h":1.75},{"tipo":"grafico","x":3.945,"y":3.75,"w":4.312,"h":2.5},{"tipo":"grafico","x":8.706,"y":1.65,"w":4.312,"h":4.6}]},"p_slide_cifras_y_graficos":{"nombre":"Cifras en banda superior","ranuras":[{"tipo":"cifras","x":0.495,"y":1.65,"w":12.523,"h":1.2},{"tipo":"grafico","x":0.495,"y":3.25,"w":6.012,"h":3},{"tipo":"grafico","x":7.007,"y":3.25,"w":6.012,"h":3}]}};
+const DERIVADA = { p_slide_2_graficos_poblacion: "p_slide_2_graficos", p_slide_3_graficos_poblacion: "p_slide_3_graficos_2mas1", p_slide_4_graficos_poblacion: "p_slide_4_graficos" };
+const CON_POBLACION = new Set(["p_slide_3_graficos_poblacion_tira", "p_slide_3_graficos_poblacion_corona", "p_slide_3_graficos_poblacion_cifras", "p_slide_5_graficos_poblacion", "p_slide_6_graficos_poblacion", ...Object.keys(DERIVADA)]);
+const PAL = ["#081F5C", "#C8463F", "#5B8DD6", "#E8A33D", "#70AD47", "#9B8BD6", "#4FB3A9", "#B0B6C3"];
+const tamR = (r) => Math.min(tam(r.w), Math.max(.12, r.h * .075));
+const marca = (svg, x, y, fs, fill = C.marcaOscura) => el("rect", { x, y: y - fs * .22, width: fs * 1.5, height: fs * .44, rx: fs * .22, fill }, svg);
+// En la ficha, la leyenda va en su contenedor: el dibujo no pinta la suya (`SIN_LEYENDA` durante `dibujoDe`).
+let SIN_LEYENDA = false;
+function leyendaSimple(svg, items, cx, y, fs, r) {
+  if (SIN_LEYENDA) return 0;
+  const ley = { filas: [[]], alto: 0 }; let w = 0;
+  for (const [l, c] of items) { const it = { l, c, w: fs * .9 + .06 + ancho(l, fs) + fs * 1.4 }; if (w + it.w > r.w && ley.filas[ley.filas.length - 1].length) { ley.filas.push([]); w = 0; } ley.filas[ley.filas.length - 1].push(it); w += it.w; }
+  dibujarLeyenda(svg, ley, cx, y, fs, [r.x, r.x + r.w]);
+  return ley.filas.length * fs * 1.6;
+}
+const semilla = (i, k = 1) => (Math.sin(i * 12.9898 + k * 78.233) * 43758.5453) % 1;
+const v01 = (i, k) => Math.abs(semilla(i, k));
+
+const G = {
+  // Barras agrupadas: una barra por grupo del cruce en cada categoría; la significancia, con su marca.
+  agrupadas(svg, r, g) {
+    const fs = tamR(r); const cats = g.cats, grupos = g.grupos; const lab = Math.max(.8, r.w * .22); const leyH = fs * 2.2;
+    const paso = (r.h - leyH) / cats.length; const bh = Math.min(.18, paso * .7 / grupos.length);
+    cats.forEach((c, i) => {
+      const y = r.y + i * paso + (paso - bh * grupos.length) / 2;
+      textoMultilinea(svg, c, r.x, 0, lab - .1, fs * .9, { maxLineas: 1, anchor: "end", centrarEn: y + bh * grupos.length / 2 });
+      grupos.forEach((_, k) => { const w = (r.w - lab - .6) * (.25 + .65 * v01(i, k)); el("rect", { x: r.x + lab, y: y + k * bh, width: w, height: bh * .86, fill: PAL[k] }, svg); if (g.significancia && k === 0 && i % 2 === 0) el("text", { x: r.x + lab + w + .06, y: y + bh * .8, "font-size": fs * .8, fill: C.coral, texto: "▲" }, svg); });
+    });
+    leyendaSimple(svg, grupos.map((l, k) => [l, PAL[k]]), r.x + r.w / 2, r.y + r.h - fs * .5, fs * .9, r);
+  },
+  // Barras por categoría: ranking en un color o con colores por categoría; promedio como línea.
+  categoricas(svg, r, g) {
+    barrasCategoria(svg, { ...r, h: r.h - (g.promedio ? .1 : 0) }, { categorias: g.cats, resaltar: g.resaltar });
+    if (g.colores) [...svg.querySelectorAll("rect")].slice(-g.cats.length * 2).filter((e, i) => i % 2 === 0).forEach((e, i) => e.setAttribute("fill", PAL[i % PAL.length]));
+    if (g.promedio) { const x = r.x + Math.max(.9, r.w * .26) + (r.w - Math.max(.9, r.w * .26) - .7) * .55; el("line", { x1: x, x2: x, y1: r.y + .05, y2: r.y + r.h - .05, stroke: C.coral, "stroke-width": .02, "stroke-dasharray": ".07 .05" }, svg); el("text", { x: x + .06, y: r.y + .2, "font-size": tamR(r) * .85, fill: C.coral, texto: "Promedio" }, svg); }
+  },
+  // Nube de palabras, con su ranking al lado si se pide.
+  nube(svg, r, g) {
+    const fs = tamR(r); const ancho2 = g.ranking ? r.w * .58 : r.w; const pal = ["servicio", "atención", "biblioteca", "horarios", "docentes", "trámites", "espacios", "cafetería", "wifi", "talleres", "laboratorio", "becas"];
+    let x = r.x + .1, y = r.y + r.h * .3;
+    pal.forEach((p, i) => { const f = fs * (2.4 - i * .14); const w = ancho(p, f, true); if (x + w > r.x + ancho2) { x = r.x + .1 + (i % 3) * .3; y += f * 1.5; } if (y < r.y + r.h - .1) el("text", { x, y, "font-size": f, "font-weight": 700, fill: i < 3 ? C.navy : i < 7 ? "#5B6E9C" : "#9AA6C2", texto: p }, svg); x += w + f * .5; });
+    if (g.ranking) { const x0 = r.x + ancho2 + .2; pal.slice(0, 6).forEach((p, i) => { const yy = r.y + .3 + i * Math.min(.5, (r.h - .4) / 6); el("text", { x: x0, y: yy + fs * .35, "font-size": fs * .85, fill: C.texto, texto: p }, svg); el("rect", { x: x0 + 1.2, y: yy, width: (r.w - ancho2 - 1.6) * (1 - i * .14), height: fs * .5, fill: C.navy }, svg); }); }
+  },
+  // Mapa de cobertura: territorio con zonas cubiertas y puntos de manzana.
+  mapaCobertura(svg, r, g) {
+    // Retícula de zonas con borde orgánico: cubiertas en azul, pendientes en gris claro; las manzanas visitadas, puntos.
+    const fs = tamR(r); const cols = 9, rows = 6; const mw = Math.min(r.w * .7, (r.h - fs * 2.5) * 1.5); const cw = mw / cols, ch = (r.h - fs * 2.5) / rows; const x0 = r.x + (r.w - mw) / 2;
+    for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+      const d = Math.hypot((i - cols / 2 + .5) / cols, (j - rows / 2 + .5) / rows); if (d > .5 + .08 * v01(i * 9 + j, 4)) continue;
+      const cubierta = v01(i * 9 + j, 8) < .62;
+      el("rect", { x: x0 + i * cw, y: r.y + j * ch, width: cw - .03, height: ch - .03, rx: .05, fill: cubierta ? "#5B8DD6" : "#E4E8EF" }, svg);
+      if (g.manzanas && cubierta) el("circle", { cx: x0 + i * cw + cw * (.3 + .4 * v01(i, j)), cy: r.y + j * ch + ch * (.3 + .4 * v01(j, i)), r: .035, fill: "#fff" }, svg);
+    }
+    leyendaSimple(svg, [["Zona cubierta", "#5B8DD6"], ["Pendiente", "#E4E8EF"]], r.x + r.w / 2, r.y + r.h - fs * .3, fs * .9, r);
+  },
+  // Torta y dona: las k mayores y «Otros».
+  torta(svg, r, g) {
+    const fs = tamR(r); const R = Math.min(r.h - fs * 3, r.w * .45) / 2; const cx = r.x + r.w * .32, cy = r.y + r.h / 2; const ps = [.38, .24, .16, .12, .1].slice(0, g.k + 1); let a0 = -Math.PI / 2;
+    ps.forEach((p, i) => { const a1 = a0 + p * 6.283; const big = p > .5 ? 1 : 0; el("path", { d: `M ${cx} ${cy} L ${cx + R * Math.cos(a0)} ${cy + R * Math.sin(a0)} A ${R} ${R} 0 ${big} 1 ${cx + R * Math.cos(a1)} ${cy + R * Math.sin(a1)} Z`, fill: i === g.k ? "#B0B6C3" : PAL[i], stroke: "#fff", "stroke-width": .02 }, svg); a0 = a1; });
+    if (g.dona) el("circle", { cx, cy, r: R * .55, fill: "#fff" }, svg);
+    ["Biblioteca", "Laboratorios", "Cafetería", "Deportes"].slice(0, g.k).concat(["Otros"]).forEach((l, i) => { const y = r.y + r.h / 2 - (g.k + 1) * fs * .8 + i * fs * 1.6; el("rect", { x: r.x + r.w * .62, y: y - fs * .8, width: fs * .9, height: fs * .9, fill: i === g.k ? "#B0B6C3" : PAL[i] }, svg); el("text", { x: r.x + r.w * .62 + fs * 1.3, y, "font-size": fs * .9, fill: C.texto, texto: l }, svg); marca(svg, r.x + r.w * .9, y - fs * .3, fs); });
+  },
+  // Indicador numérico: la cifra grande y, con cruce, una barra por grupo.
+  numerico(svg, r, g) {
+    const fs = tamR(r); const cx = r.x + (g.cruce ? r.w * .25 : r.w / 2), cy = r.y + r.h / 2;
+    el("rect", { x: cx - .9, y: cy - .45, width: 1.8, height: .7, rx: .1, fill: C.navy }, svg);
+    el("text", { x: cx, y: cy + .6, "font-size": fs, fill: C.suave, "text-anchor": "middle", texto: "Promedio de edad" }, svg);
+    if (g.cruce) ["Docentes", "Administrativos", "Estudiantes"].forEach((l, i) => { const y = r.y + r.h * .25 + i * r.h * .22; el("text", { x: r.x + r.w * .62, y: y + fs * .35, "font-size": fs * .9, fill: C.texto, "text-anchor": "end", texto: l }, svg); el("rect", { x: r.x + r.w * .64, y: y - fs * .3, width: r.w * .3 * (.5 + .4 * v01(i, 2)), height: fs * .7, fill: PAL[2] }, svg); });
+  },
+  // Histograma: barras contiguas; con grupo, dos series superpuestas.
+  histograma(svg, r, g) {
+    const n = 10, bw = (r.w - .4) / n; const base = r.y + r.h - .3;
+    for (let i = 0; i < n; i++) { const h = (r.h - .6) * Math.exp(-((i - 4) ** 2) / 8); el("rect", { x: r.x + .2 + i * bw, y: base - h, width: bw - .02, height: h, fill: C.navy, "fill-opacity": g.grupo ? .55 : 1 }, svg); if (g.grupo) { const h2 = (r.h - .6) * Math.exp(-((i - 6) ** 2) / 6) * .8; el("rect", { x: r.x + .2 + i * bw, y: base - h2, width: bw - .02, height: h2, fill: C.coral, "fill-opacity": .55 }, svg); } }
+    el("line", { x1: r.x + .2, x2: r.x + r.w - .2, y1: base, y2: base, stroke: C.tenue, "stroke-width": .015 }, svg);
+  },
+  // Box plot: una caja por grupo.
+  boxplot(svg, r, g) {
+    const fs = tamR(r); const gs = g.grupos; const lab = r.w * .22; const paso = (r.h - .3) / gs.length;
+    gs.forEach((l, i) => { const y = r.y + .15 + i * paso + paso / 2; const a = r.x + lab + (r.w - lab - .4) * (.15 + .2 * v01(i, 1)), b = a + (r.w - lab) * (.25 + .15 * v01(i, 2)); textoMultilinea(svg, l, r.x, 0, lab - .1, fs * .9, { maxLineas: 1, anchor: "end", centrarEn: y });
+      el("line", { x1: a - .5, x2: b + .5, y1: y, y2: y, stroke: C.tenue, "stroke-width": .02 }, svg); el("rect", { x: a, y: y - paso * .25, width: b - a, height: paso * .5, fill: "#DCE6F5", stroke: C.navy, "stroke-width": .02 }, svg); el("line", { x1: (a + b) / 2, x2: (a + b) / 2, y1: y - paso * .25, y2: y + paso * .25, stroke: C.navy, "stroke-width": .03 }, svg); });
+  },
+  // Media y rango: el promedio y su rango por grupo, con su chip.
+  mediaRango(svg, r, g) {
+    const fs = tamR(r); const gs = g.grupos; const lab = r.w * .22; const paso = (r.h - .3) / gs.length;
+    gs.forEach((l, i) => { const y = r.y + .15 + i * paso + paso / 2; const a = r.x + lab + (r.w - lab - 1) * .1, b = r.x + r.w - 1.1 - (r.w * .2 * v01(i, 3)), m = a + (b - a) * (.4 + .2 * v01(i, 4)); textoMultilinea(svg, l, r.x, 0, lab - .1, fs * .9, { maxLineas: 1, anchor: "end", centrarEn: y });
+      el("line", { x1: a, x2: b, y1: y, y2: y, stroke: "#9DC3E6", "stroke-width": .08, "stroke-linecap": "round" }, svg); el("circle", { cx: m, cy: y, r: .1, fill: C.navy }, svg); el("rect", { x: r.x + r.w - .9, y: y - fs * .4, width: .7, height: fs * .8, rx: fs * .4, fill: "#E6EEF9" }, svg); });
+  },
+  // Barras divergentes: lo negativo a la izquierda del centro, lo positivo a la derecha; neutro y saldo opcionales.
+  divergentes(svg, r, g) {
+    const fs = tamR(r); const lab = r.w * .24; const sal = g.saldo ? .8 : 0; const cx = r.x + lab + (r.w - lab - sal) / 2; const half = (r.w - lab - sal) / 2 - .1; const n = 4; const paso = (r.h - fs * 2.5) / n;
+    for (let i = 0; i < n; i++) { const y = r.y + i * paso + paso * .2, h = paso * .6; textoMultilinea(svg, ["La biblioteca", "Los laboratorios", "La cafetería", "Los trámites"][i], r.x, 0, lab - .1, fs * .9, { maxLineas: 1, anchor: "end", centrarEn: y + h / 2 });
+      const neg = half * (.2 + .35 * v01(i, 1)), pos = half * (.35 + .5 * v01(i, 2)), neu = g.neutro ? half * .18 : 0;
+      el("rect", { x: cx - neu / 2 - neg, y, width: neg * .45, height: h, fill: "#F4B183" }, svg); el("rect", { x: cx - neu / 2 - neg * .55, y, width: neg * .55, height: h, fill: "#FFD966" }, svg);
+      if (neu) el("rect", { x: cx - neu / 2, y, width: neu, height: h, fill: "#D9D9D9" }, svg);
+      el("rect", { x: cx + neu / 2, y, width: pos * .6, height: h, fill: "#A9D18E" }, svg); el("rect", { x: cx + neu / 2 + pos * .6, y, width: pos * .4, height: h, fill: "#70AD47" }, svg);
+      if (g.saldo) marca(svg, r.x + r.w - sal + .1, y + h / 2, fs, C.ttb); }
+    el("line", { x1: cx, x2: cx, y1: r.y, y2: r.y + n * paso, stroke: C.texto, "stroke-width": .015 }, svg);
+    leyendaSimple(svg, ESCALAS.acuerdo.slice(0, 4).concat(g.neutro ? [["Ni de acuerdo ni en desacuerdo", "#D9D9D9"]] : []), cx, r.y + r.h - fs * .4, fs * .85, r);
+  },
+  // Puntos comparativos: un indicador, un punto por grupo sobre la misma escala.
+  puntos(svg, r, g) {
+    const fs = tamR(r); const gs = g.grupos; const lab = r.w * .22; const x0 = r.x + lab, x1 = r.x + r.w - .4; const paso = (r.h - .5) / gs.length;
+    gs.forEach((l, i) => { const y = r.y + .2 + i * paso + paso / 2; textoMultilinea(svg, l, r.x, 0, lab - .1, fs * .9, { maxLineas: 1, anchor: "end", centrarEn: y }); el("line", { x1: x0, x2: x1, y1: y, y2: y, stroke: C.linea, "stroke-width": .012 }, svg); const x = x0 + (x1 - x0) * (.35 + .5 * v01(i, 7)); el("circle", { cx: x, cy: y, r: .1, fill: PAL[i % PAL.length] }, svg); marca(svg, x + .14, y, fs); });
+  },
+  // Mapa por distrito: distritos en clases de color y el ranking al lado.
+  mapaDistrital(svg, r, g) {
+    const fs = tamR(r); const mw = r.w * .55; const cols = 7, rows = 6, cw = mw / cols, ch = (r.h - .2) / rows; const tonos = ["#DCE6F5", "#9DC3E6", "#5B8DD6", "#081F5C"];
+    for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) { if (v01(i * 7 + j, 9) < .25) continue; el("rect", { x: r.x + i * cw, y: r.y + .1 + j * ch, width: cw - .03, height: ch - .03, rx: .04, fill: tonos[Math.floor(v01(i * 7 + j, 10) * 4)] }, svg); }
+    ["Miraflores", "San Isidro", "Surco", "La Molina", "Lince", "Jesús María"].forEach((d, i) => { const y = r.y + .3 + i * Math.min(.5, (r.h - .4) / 6); el("text", { x: r.x + mw + .3, y: y + fs * .35, "font-size": fs * .85, fill: C.texto, texto: d }, svg); el("rect", { x: r.x + mw + 1.6, y, width: (r.w - mw - 2) * (1 - i * .12), height: fs * .5, fill: tonos[3 - Math.floor(i / 2)] }, svg); });
+  },
+  // Cifra destacada con su ícono.
+  cifra(svg, r, g) {
+    // La cifra es la protagonista: crece con la ranura (ícono, cifra y frase en proporción al lado menor).
+    const u = Math.min(r.h / 3.2, r.w / 6); const fs = Math.max(tamR(r), u * .22); const cx = r.x + r.w / 2, cy = r.y + r.h / 2 - u * .2;
+    el("circle", { cx: cx - u * 1.55, cy, r: u * .62, fill: C.navy }, svg); persona(svg, cx - u * 1.55, cy - u * .4, u * .8, "#fff");
+    el("rect", { x: cx - u * .7, y: cy - u * .55, width: u * 2.4, height: u * .85, rx: u * .1, fill: C.coral }, svg);
+    el("text", { x: cx - u * .7, y: cy + u * .75, "font-size": fs, fill: C.suave, texto: recortar("de los estudiantes usa la biblioteca", r.w * .55, fs) }, svg);
+  },
+  // Ranking (lollipop): tallo fino y punto; la primera resaltada; recorte «N de M».
+  lollipop(svg, r, g) {
+    const fs = tamR(r); const cats = g.cats.slice(0, g.top ?? g.cats.length); const lab = Math.max(.9, r.w * .26); const paso = (r.h - (g.top ? .4 : .1)) / cats.length;
+    cats.forEach((c, i) => { const y = r.y + i * paso + paso / 2; const w = (r.w - lab - .7) * (1 - i * .1); textoMultilinea(svg, c, r.x, 0, lab - .1, fs * .9, { maxLineas: 1, anchor: "end", centrarEn: y }); el("line", { x1: r.x + lab, x2: r.x + lab + w, y1: y, y2: y, stroke: i === 0 && g.resaltar ? C.coral : C.navy, "stroke-width": .025 }, svg); el("circle", { cx: r.x + lab + w, cy: y, r: .09, fill: i === 0 && g.resaltar ? C.coral : C.navy }, svg); marca(svg, r.x + lab + w + .15, y, fs); });
+    if (g.top) el("text", { x: r.x + r.w - .1, y: r.y + r.h - .05, "font-size": fs * .8, fill: C.suave, "text-anchor": "end", texto: `${g.top} de ${g.cats.length} categorías` }, svg);
+  },
+  // Serie temporal: una línea por indicador a lo largo de las mediciones; el último punto destacado.
+  serie(svg, r, g) {
+    const fs = tamR(r); const per = g.periodos; const x0 = r.x + .4, x1 = r.x + r.w - .4, y0 = r.y + .2, y1 = r.y + r.h - fs * 3;
+    el("line", { x1: x0, x2: x1, y1, y2: y1, stroke: C.tenue, "stroke-width": .015 }, svg);
+    per.forEach((p, i) => el("text", { x: x0 + (x1 - x0) * i / (per.length - 1), y: y1 + fs * 1.3, "font-size": fs * .85, fill: C.suave, "text-anchor": "middle", texto: p }, svg));
+    g.series.forEach((sname, k) => { const pts = per.map((_, i) => [x0 + (x1 - x0) * i / (per.length - 1), y0 + (y1 - y0) * (.2 + .5 * v01(i + k * 3, 11))]); el("polyline", { points: pts.map((p) => p.join(",")).join(" "), fill: "none", stroke: PAL[k], "stroke-width": .035 }, svg); pts.forEach(([x, y], i) => { if (g.puntos || i === pts.length - 1) el("circle", { cx: x, cy: y, r: i === pts.length - 1 && g.destacar ? .1 : .06, fill: PAL[k] }, svg); if (g.valores) marca(svg, x - fs * .75, y - fs * .6, fs); }); });
+    leyendaSimple(svg, g.series.map((l, k) => [l, PAL[k]]), r.x + r.w / 2, r.y + r.h - fs * .3, fs * .85, r);
+  },
+  // Tabla: encabezado en azul y filas.
+  tabla(svg, r, g) {
+    const fs = tamR(r); const cols = g.cols, rows = g.filas; const cw = (r.w - r.w * .3) / (cols.length); const rh = Math.min(.45, (r.h - .1) / (rows + 1));
+    el("rect", { x: r.x, y: r.y, width: r.w, height: rh, fill: C.navy }, svg);
+    cols.forEach((c, i) => el("text", { x: r.x + r.w * .3 + cw * i + cw / 2, y: r.y + rh * .65, "font-size": fs * .85, fill: "#fff", "font-weight": 700, "text-anchor": "middle", texto: recortar(c, cw - .05, fs * .85, true) }, svg));
+    for (let j = 0; j < rows; j++) { const y = r.y + rh * (j + 1); if (j % 2) el("rect", { x: r.x, y, width: r.w, height: rh, fill: "#F3F5F9" }, svg); el("rect", { x: r.x + .1, y: y + rh * .4, width: r.w * .22, height: rh * .22, rx: .03, fill: C.trazo }, svg); cols.forEach((_, i) => marca(svg, r.x + r.w * .3 + cw * i + cw / 2 - fs * .75, y + rh / 2, fs)); }
+  },
+  // Radar con su tabla al lado (opción «mostrar tabla»).
+  radarTabla(svg, r, g) {
+    radar(svg, g.tabla ? { ...r, w: r.w * .55 } : r, g);
+    if (g.tabla) G.tabla(svg, { x: r.x + r.w * .58, y: r.y + .4, w: r.w * .42, h: r.h - .8 }, { cols: g.series, filas: g.ejes.length });
+  },
+  // Heatmap de dimensiones: dimensiones × grupos en tonos; brechas al margen si se piden.
+  heatmap(svg, r, g) {
+    const fs = tamR(r); const filas = g.filas, cols = g.cols; const lab = r.w * .26; const extra = g.brechas ? .8 : 0; const cw = (r.w - lab - extra) / cols.length, rh = Math.min(.5, (r.h - .4) / filas.length);
+    const verdes = ["#E8F3E0", "#C5E0B4", "#A9D18E", "#70AD47", "#3E8E2F"];
+    cols.forEach((c, i) => el("text", { x: r.x + lab + cw * i + cw / 2, y: r.y + .2, "font-size": fs * .85, "font-weight": 700, fill: C.navy, "text-anchor": "middle", texto: recortar(c, cw, fs * .85, true) }, svg));
+    filas.forEach((f, j) => { const y = r.y + .35 + j * rh; textoMultilinea(svg, f, r.x, 0, lab - .1, fs * .85, { maxLineas: 1, anchor: "end", centrarEn: y + rh / 2 }); cols.forEach((_, i) => { el("rect", { x: r.x + lab + cw * i, y, width: cw - .03, height: rh - .03, fill: g.semaforo ? ["#E57373", "#FFD966", "#70AD47"][Math.floor(v01(i + j * 5, 13) * 3)] : verdes[Math.floor(v01(i + j * 5, 12) * 5)] }, svg); marca(svg, r.x + lab + cw * i + cw / 2 - fs * .75, y + rh / 2, fs, C.marca); }); if (g.brechas) marca(svg, r.x + r.w - extra + .15, y + rh / 2, fs, C.coral); });
+  },
+  // Radar + barras comparativo.
+  radarBarras(svg, r, g) {
+    radar(svg, { ...r, w: r.w * .5 }, g);
+    const x0 = r.x + r.w * .55, fs = tamR(r); g.ejes.forEach((e, i) => { const y = r.y + .3 + i * (r.h - .6) / g.ejes.length; el("text", { x: x0, y: y + fs * .35, "font-size": fs * .85, fill: C.texto, texto: recortar(e, 1.4, fs * .85) }, svg); [C.navy, C.coral].forEach((c, k) => el("rect", { x: x0 + 1.5, y: y - fs * .3 + k * fs * .45, width: (r.w * .45 - 1.8) * (.4 + .5 * v01(i, k + 20)), height: fs * .38, fill: c }, svg)); });
+  },
+  // Matriz FODA dimensional: cuatro cuadrantes con sus listas.
+  foda(svg, r, g) {
+    const fs = tamR(r); const w = r.w / 2 - .05, h = r.h / 2 - .05; const t = [["Fortalezas", "#70AD47"], ["Oportunidades", "#5B8DD6"], ["Debilidades", "#E8A33D"], ["Amenazas", "#C8463F"]];
+    t.forEach(([n, c], i) => { const x = r.x + (i % 2) * (w + .1), y = r.y + Math.floor(i / 2) * (h + .1); el("rect", { x, y, width: w, height: h, rx: .08, fill: c, "fill-opacity": .12 }, svg); el("text", { x: x + .15, y: y + fs * 1.4, "font-size": fs, "font-weight": 700, fill: c, texto: n }, svg); for (let k = 0; k < 3; k++) el("rect", { x: x + .15, y: y + fs * 2.2 + k * fs * 1.2, width: w * (.7 - k * .12), height: fs * .4, rx: fs * .2, fill: C.trazo }, svg); });
+  },
+};
+// Adaptadores para las ranuras de las composiciones (gráfico genérico según su orden).
+const ROTACION = [
+  { dibujo: "apiladas", g: { eje: .22, bloques: [{ escala: "acuerdo", ttb: true, temas: [{ pregunta: "Las aulas son adecuadas", filas: [D, E] }] }] } },
+  { dibujo: "barrasCategoria", tipo: "Barras categóricas", g: { categorias: ["Biblioteca", "Laboratorios", "Cafetería", "Deportes"], resaltar: true }, info: { preguntas: ["Servicio más usado"] } },
+  { dibujo: "apiladas", g: { eje: .22, bloques: [{ escala: "sino", ttb: false, temas: [{ pregunta: "¿Conoce la misión?", filas: [D, E] }] }] } },
+  { dibujo: "__fn", fn: (s, r, g) => G.torta(s, r, g), tipo: "Dona", g: { k: 3, dona: true }, info: { preguntas: ["Servicio más usado"], leyendas: [{ items: [["Biblioteca", PAL[0]], ["Laboratorios", PAL[1]], ["Cafetería", PAL[2]], ["Otros", "#B0B6C3"]] }] } },
+  { dibujo: "__fn", fn: (s, r, g) => G.lollipop(s, r, g), tipo: "Ranking (lollipop)", g: { cats: ["Biblioteca", "Talleres", "Cafetería", "Deportes"], resaltar: true }, info: { preguntas: ["Servicios más mencionados"] } },
+  { dibujo: "__fn", fn: (s, r, g) => G.numerico(s, r, g), tipo: "Indicador numérico", g: {}, info: { preguntas: ["Edad"] } },
+];
+function composicion(svg, tipo) {
+  const base = RANURAS[tipo] ? tipo : DERIVADA[tipo];
+  const nombre = (RANURAS[tipo] ?? RANURAS[base]).nombre;
+  cromoFicha(svg, { titulo: nombre, base: "Base: 116 docentes y 289 estudiantes" });
+  if (CON_POBLACION.has(tipo)) { el("circle", { cx: 12.5, cy: .65, r: .3, fill: C.coral }, svg); persona(svg, 12.5, .4, .45, "#fff"); }
+  let k = 0;
+  for (const rn of RANURAS[base].ranuras) {
+    if (rn.tipo === "texto") texto(svg, rn);
+    else if (rn.tipo === "cifras") cifras(svg, rn, ["Satisfacción general", "Recomendaría", "Conoce la misión"].slice(0, Math.max(1, Math.round(rn.w / 3))));
+    else { ficha(svg, { ...ROTACION[k % ROTACION.length], x: rn.x, y: rn.y, w: rn.w, h: rn.h }, `c${k}-`); k++; }
+  }
+}
+// Estructura que faltaba: redondeo, texto, cierre y las dos variantes del objetivo.
+Object.assign(ESTRUCTURA, {
+  redondeo(svg) {
+    cromo(svg, { titulo: "Cómo se redondean las cifras" });
+    el("text", { x: .5, y: .38, "font-size": .15, fill: C.suave, texto: "CÓMO LEER ESTE INFORME" }, svg);
+    lineas("Las cifras se redondean al entero. Cuando las categorías deben sumar 100 %, el resto se reparte entre las de mayor decimal.", 11.5, .24, 2).forEach((l, i) => el("text", { x: .9, y: 1.95 + i * .36, "font-size": .24, fill: C.texto, texto: l }, svg));
+    ["", "Muy insatisfecho", "Insatisfecho", "Satisfecho", "Muy satisfecho", "Total"].forEach((h, i) => { if (i) el("text", { x: 2.6 + i * 1.7, y: 3.3, "font-size": .17, "font-weight": 700, fill: C.navy, "text-anchor": "middle", texto: h }, svg); });
+    ["Cifra exacta", "Redondeo estándar", "Reparto a 100 %"].forEach((f, j) => { const y = 3.75 + j * .55; el("text", { x: .9, y: y + .06, "font-size": .19, "font-weight": 700, fill: C.texto, texto: f }, svg); for (let i = 1; i <= 5; i++) { el("rect", { x: 2.6 + i * 1.7 - .35, y: y - .15, width: .7, height: .26, rx: .13, fill: j === 1 && i === 5 ? C.coral : C.trazo }, svg); } });
+  },
+  texto(svg) { cromo(svg, { titulo: "Conclusiones" }); texto(svg, { x: .9, y: 1.7, w: 11.5, h: 4.6 }); },
+  cierre(svg) {
+    el("rect", { x: 0, y: 0, width: 13.333, height: 7.5, fill: C.navy }, svg);
+    el("text", { x: 6.667, y: 3.5, "font-size": .7, "font-weight": 700, fill: "#fff", "text-anchor": "middle", texto: "Gracias" }, svg);
+    el("rect", { x: 6.0, y: 3.85, width: 1.33, height: .05, fill: C.coral }, svg);
+    el("text", { x: 6.667, y: 4.4, "font-size": .22, fill: "#AFC0E8", "text-anchor": "middle", texto: "pulso@pucp.edu.pe · pulso.pucp.edu.pe" }, svg);
+  },
+  objetivoPanel(svg, lam) {
+    el("rect", { x: 0, y: 0, width: 13.333, height: 7.5, fill: "#fff" }, svg);
+    el("rect", { x: 0, y: 0, width: 4.4, height: 7.5, fill: C.navy }, svg);
+    el("circle", { cx: 2.2, cy: 2.6, r: .65, fill: C.coral }, svg); [.42, .26, .1].forEach((rr, i) => el("circle", { cx: 2.2, cy: 2.6, r: rr, fill: i % 2 ? C.coral : "#fff" }, svg));
+    el("text", { x: 2.2, y: 3.9, "font-size": .32, "font-weight": 700, fill: "#fff", "text-anchor": "middle", texto: "Objetivo del estudio" }, svg);
+    lineas(lam.texto, 7.8, .26, 4).forEach((l, i) => el("text", { x: 5.0, y: 1.9 + i * .42, "font-size": .26, fill: C.texto, texto: l }, svg));
+    lam.actores.forEach((a, i) => { const cx = 5.6 + (i % 3) * 2.6, cy = 4.6 + Math.floor(i / 3) * 1.1; el("circle", { cx, cy, r: .3, fill: C.navy }, svg); persona(svg, cx, cy - .2, .38, "#fff"); el("text", { x: cx + .45, y: cy + .08, "font-size": .2, "font-weight": 700, fill: C.navy, texto: a }, svg); });
+    logos(svg);
+  },
+  objetivoDimensiones(svg, lam) {
+    cromo(svg, { titulo: "Objetivo del estudio" });
+    el("text", { x: .5, y: 1.85, "font-size": .22, fill: C.suave, texto: "Conocer la percepción sobre" }, svg);
+    lam.dimensiones.forEach((d, i) => { const w = 12.33 / lam.dimensiones.length; const x = .5 + i * w; el("rect", { x: x + .05, y: 2.1, width: w - .2, height: 1.4, rx: .12, fill: "#EEF2FA" }, svg); lineas(d, w - .5, .22, 3, true).forEach((l, k) => el("text", { x: x + .25, y: 2.55 + k * .3, "font-size": .22, "font-weight": 700, fill: C.navy, texto: l }, svg)); });
+    el("text", { x: .5, y: 4.3, "font-size": .19, "font-weight": 700, fill: C.suave, texto: "Actores consultados" }, svg);
+    const w = 12.33 / lam.actores.length; lam.actores.forEach((a, i) => { const cx = .5 + w * i + w / 2; el("circle", { cx, cy: 5.05, r: .33, fill: C.navy }, svg); persona(svg, cx, 4.82, .42, "#fff"); el("text", { x: cx, y: 5.72, "font-size": .2, "font-weight": 700, fill: C.navy, "text-anchor": "middle", texto: a }, svg); });
+  },
+});
+
+const UN = (dibujo, g) => ({ titulo: "", base: "Base: 289 estudiantes", ranuras: [{ ...R1, dibujo, g }] });
+const SIMPLE = (fn, g) => ({ ...R1, dibujo: "__fn", fn, g });
+DIBUJOS.__fn = (svg, r) => r.fn(svg, r, r.g);
+const GRUPOS3 = ["Docentes", "Administrativos", "Estudiantes"];
+const CATS = ["Biblioteca", "Laboratorios de cómputo", "Cafetería", "Servicios deportivos", "Bienestar psicológico", "Talleres"];
+const conTitulo = (t, r) => ({ titulo: t, base: "Base: 289 estudiantes", ranuras: [r] });
+CASOS.graficos = [
+  ["p_barras_agrupadas", "Barras agrupadas", "Una barra por grupo del cruce; la significancia marcada.", conTitulo("Servicios usados por público", SIMPLE(G.agrupadas, { cats: CATS.slice(0, 5), grupos: GRUPOS3, significancia: true }))],
+  ["p_dicotomica", "Dicotómica", "Sí / No en dos colores.", conTitulo("¿Conoce el plan de estudios?", { ...R1, dibujo: "apiladas", g: { eje: .22, bloques: [{ escala: "sino", ttb: false, temas: [{ pregunta: "¿Conoce el plan de estudios?", filas: [D, A, E] }] }] } })],
+  ["p_barras_categoricas", "Barras categóricas · promedio y colores por categoría", "Ranking con la línea del promedio y un color por categoría.", conTitulo("Servicios más usados", SIMPLE(G.categoricas, { cats: CATS, promedio: true, colores: true }))],
+  ["p_barras_apiladas", "Barras apiladas · cruce", "Una pregunta abierta por los grupos del cruce, con Top Two Box.", conTitulo("Satisfacción por ciclo", { ...R1, dibujo: "apiladas", g: { eje: .2, bloques: [{ escala: "satisf", ttb: true, temas: [{ pregunta: "Satisfacción con la enseñanza", filas: [{ nombre: "Ciclos 1–4", n: 98 }, { nombre: "Ciclos 5–8", n: 121 }, { nombre: "Ciclos 9–10", n: 70 }] }] }] } })],
+  ["p_barras_multiapiladas", "Multiapiladas", "Ver la sección de multiapiladas: sus cinco modos y configuraciones.", conTitulo("Servicio de salud", { ...R1, dibujo: "apiladas", g: { eje: .2, bloques: [{ escala: "satisf", ttb: true, temas: [{ pregunta: "Servicio de salud", filas: [D, A, E] }] }] } })],
+  ["p_nube_palabras", "Nube de palabras · con ranking", "Las palabras más frecuentes y su ranking al lado.", conTitulo("¿Qué mejorarías?", SIMPLE(G.nube, { ranking: true }))],
+  ["p_mapa_cobertura_territorial", "Mapa de cobertura · con manzanas", "Zonas cubiertas y manzanas visitadas.", conTitulo("Cobertura del trabajo de campo", SIMPLE(G.mapaCobertura, { manzanas: true }))],
+  ["p_pie", "Torta · 3 mayores + Otros", "Las k mayores y el resto en «Otros», en gris.", conTitulo("Servicio más usado", SIMPLE(G.torta, { k: 3 }))],
+  ["p_donut", "Dona · 4 mayores + Otros", "Como la torta, con el centro libre.", conTitulo("Servicio más usado", SIMPLE(G.torta, { k: 4, dona: true }))],
+  ["p_numerico", "Indicador numérico · con cruce", "La cifra y su valor por grupo.", conTitulo("Edad promedio", SIMPLE(G.numerico, { cruce: true }))],
+  ["p_histograma", "Histograma · por grupo", "Dos distribuciones superpuestas.", conTitulo("Horas de estudio semanales", SIMPLE(G.histograma, { grupo: true }))],
+  ["p_boxplot", "Box plot", "Una caja por grupo.", conTitulo("Horas de estudio por público", SIMPLE(G.boxplot, { grupos: GRUPOS3 }))],
+  ["p_media_rango", "Media y rango", "El promedio y su rango por grupo, con su chip.", conTitulo("Nota promedio por ciclo", SIMPLE(G.mediaRango, { grupos: ["Ciclos 1–4", "Ciclos 5–8", "Ciclos 9–10"] }))],
+  ["p_barras_divergentes", "Barras divergentes · neutro y saldo", "Lo negativo a la izquierda, lo positivo a la derecha, el neutro al centro y el saldo al margen.", conTitulo("Evaluación de servicios", SIMPLE(G.divergentes, { neutro: true, saldo: true }))],
+  ["p_puntos_comparativos", "Puntos comparativos", "Un indicador, un punto por grupo.", conTitulo("% satisfecho por facultad", SIMPLE(G.puntos, { grupos: ["Arte", "Diseño", "Escultura", "Grabado", "Pintura"] }))],
+  ["p_mapa_resultado_distrital", "Mapa por distrito", "Distritos en clases y su ranking.", conTitulo("% satisfecho por distrito", SIMPLE(G.mapaDistrital, {}))],
+  ["p_cifra", "Cifra destacada", "Una cifra grande con su ícono y su frase.", conTitulo("Uso de la biblioteca", SIMPLE(G.cifra, {}))],
+  ["p_dumbbell", "Brecha entre dos grupos", "Ver «Otros tipos»: punto por grupo y la brecha al margen.", conTitulo("Brecha entre mujeres y hombres", { ...R1, dibujo: "brecha", g: { grupos: ["Mujeres", "Hombres"], temas: ["Servicio de salud", "Bienestar", "Cultura", "Deportes"] } })],
+  ["p_matriz_cuadrantes", "Matriz de cuadrantes", "Cuadrante destacado y temas con su nombre.", conTitulo("Satisfacción e importancia", { ...R1, dibujo: "cuadrantes", g: { ejeX: "Satisfacción", ejeY: "Importancia", puntos: ["Biblioteca", "Laboratorios", "Cafetería", "Deportes", "Salud"] } })],
+  ["p_lollipop", "Ranking (lollipop) · top 5 de 8", "Tallo y punto, la primera resaltada, y el recorte declarado.", conTitulo("Servicios más mencionados", SIMPLE(G.lollipop, { cats: [...CATS, "Becas", "Movilidad"], top: 5, resaltar: true }))],
+  ["p_serie_temporal", "Serie temporal · valores y último destacado", "Una línea por indicador; el último punto destacado.", conTitulo("Evolución de la satisfacción", SIMPLE(G.serie, { periodos: ["2021", "2022", "2023", "2024", "2025"], series: ["Docentes", "Estudiantes"], valores: true, destacar: true, puntos: true }))],
+  ["p_radar", "Radar · con tabla", "Dos públicos por dimensión y la tabla de valores al lado.", conTitulo("Perfil por dimensión", SIMPLE(G.radarTabla, { ejes: ["Gestión", "Docencia", "Investigación", "Infraestructura", "Bienestar"], series: ["Docentes", "Estudiantes"], tabla: true }))],
+  ["p_tabla", "Tabla", "Encabezado y filas, con las cifras marcadas.", conTitulo("Resumen por público", SIMPLE(G.tabla, { cols: GRUPOS3, filas: 6 }))],
+  ["p_dim_radar", "Radar por dimensiones", "Las dimensiones calculadas en Analítica.", conTitulo("Dimensiones por público", { ...R1, dibujo: "radar", g: { ejes: ["Propósitos", "Gestión", "Docencia", "Servicios", "Recursos", "Vinculación"], series: ["Docentes", "Estudiantes"] } })],
+  ["p_dim_heatmap", "Heatmap de dimensiones · con brechas", "Dimensiones × públicos en tonos; las brechas al margen.", conTitulo("Dimensiones por público", SIMPLE(G.heatmap, { filas: ["Propósitos", "Gestión", "Docencia", "Servicios", "Recursos"], cols: GRUPOS3, brechas: true }))],
+  ["p_dim_comparativo_radarbar", "Radar + barras comparativo", "El radar y las mismas dimensiones en barras.", conTitulo("Dimensiones: docentes y estudiantes", SIMPLE(G.radarBarras, { ejes: ["Propósitos", "Gestión", "Docencia", "Servicios", "Recursos"], series: ["Docentes", "Estudiantes"] }))],
+  ["p_dim_foda", "Matriz FODA dimensional", "Cuatro cuadrantes con lo que cae en cada uno.", conTitulo("FODA de la Facultad", SIMPLE(G.foda, {}))],
+  ["p_dim_heatmap_criterios", "Heatmap por criterios", "Criterios en semáforo por grupo.", conTitulo("Criterios de acreditación", SIMPLE(G.heatmap, { filas: ["Criterio 1", "Criterio 2", "Criterio 3", "Criterio 4", "Criterio 5", "Criterio 6"], cols: GRUPOS3, semaforo: true }))],
+].map(([id, t, p, lam]) => { lam.ranuras[0].tipo ??= t.split(" · ")[0]; if (lam.ranuras[0].dibujo !== "apiladas") lam.ranuras[0].info ??= { preguntas: [lam.titulo], ajustes: t.includes(" · ") ? t.split(" · ")[1].split(/ y |, /).map((x) => x[0].toUpperCase() + x.slice(1)) : [] }; return { n: id.replace("p_", ""), t, p, m: ["M6"], lam }; });
+
+const ESTRUCTURALES = { p_slide_portada: "portada", p_slide_indice: "indice", p_slide_top_two_box: "comoLeer", p_slide_redondeo: "redondeo", p_slide_seccion: "separador", p_slide_texto: "texto", p_slide_tabla_tecnica: "ficha", p_slide_cierre: "cierre" };
+const TIPOS_LAMINA = [["p_slide_portada", "Portada"], ["p_slide_indice", "Índice"], ["p_slide_top_two_box", "Explicación Top Two Box"], ["p_slide_redondeo", "Explicación del redondeo"], ["p_slide_seccion", "Separador de sección"], ["p_slide_objetivo_icono", "Objetivo con ícono"], ["p_slide_texto", "Bloque de texto"], ["p_slide_tabla_tecnica", "Tabla técnica"], ["p_slide_1_grafico", "Un gráfico"], ["p_slide_1_grafico_narrativo", "Un gráfico + narrativa"], ["p_slide_grafico_texto_derecha", "Gráfico + texto a la derecha"], ["p_slide_grafico_texto_izquierda", "Gráfico + texto a la izquierda"], ["p_slide_2_graficos", "Dos gráficos"], ["p_slide_2_graficos_narrativo", "Dos gráficos + narrativa"], ["p_slide_2_graficos_texto_izquierda", "Dos gráficos + texto izquierda"], ["p_slide_2_graficos_texto_derecha", "Dos gráficos + texto derecha"], ["p_slide_4_graficos", "Cuatro gráficos"], ["p_slide_2_graficos_poblacion", "Dos gráficos + ícono (población)"], ["p_slide_3_graficos_poblacion_tira", "Tres franjas + ícono (población)"], ["p_slide_3_graficos_poblacion_corona", "Tres gráficos alrededor del ícono"], ["p_slide_3_graficos_poblacion_cifras", "Tres gráficos + cifras + ícono"], ["p_slide_cifras_y_graficos", "Banda de cifras + dos gráficos"], ["p_slide_3_graficos_2mas1", "Tres gráficos: dos apilados + uno alto"], ["p_slide_3_graficos_1mas2", "Tres gráficos: uno alto + dos apilados"], ["p_slide_3_graficos_fila", "Tres gráficos en fila"], ["p_slide_3_graficos_1arriba", "Tres gráficos: uno ancho arriba"], ["p_slide_2_graficos_vertical", "Dos gráficos apilados"], ["p_slide_2_graficos_asimetrico", "Dos gráficos: principal y apoyo"], ["p_slide_3_graficos_poblacion", "Tres gráficos + ícono (población)"], ["p_slide_4_graficos_poblacion", "Cuatro gráficos + ícono (población)"], ["p_slide_5_graficos_poblacion", "Cinco gráficos + ícono"], ["p_slide_6_graficos_poblacion", "Seis gráficos + ícono"], ["p_slide_cierre", "Cierre"]];
+CASOS.laminas = TIPOS_LAMINA.flatMap(([id, nombre]) => {
+  if (id === "p_slide_objetivo_icono") return [
+    { n: "objetivo", t: "Objetivo con ícono · objetivo y actores", p: "La diana, el objetivo y los actores en fila.", m: ["M6"], lam: { estructura: "objetivo", texto: "Conocer la percepción de docentes, estudiantes y administrativos sobre la Facultad.", actores: ["Docentes", "Estudiantes", "Administrativos"] } },
+    { n: "objetivo", t: "Objetivo con ícono · panel lateral", p: "La diana en un panel azul; el objetivo y los actores al lado.", m: ["M6"], lam: { estructura: "objetivoPanel", texto: "Conocer la percepción de docentes, estudiantes y administrativos sobre la Facultad.", actores: ["Docentes", "Estudiantes", "Administrativos", "Egresados"] } },
+    { n: "objetivo", t: "Objetivo con ícono · dimensiones y actores", p: "Lo que se evalúa en tarjetas y, debajo, quiénes opinan.", m: ["M6"], lam: { estructura: "objetivoDimensiones", dimensiones: ["Los propósitos de la carrera", "La gestión académica", "Los servicios", "La infraestructura"], actores: ["Docentes", "Estudiantes", "Administrativos"] } },
+  ];
+  if (ESTRUCTURALES[id]) {
+    const est = ESTRUCTURALES[id];
+    const extra = est === "portada" ? { titulo: "Estudio de opinión sobre el servicio educativo de la Facultad de Arte y Diseño", subtitulo: "Por encargo de la Facultad de Arte y Diseño PUCP", fecha: "Octubre de 2026" }
+      : est === "indice" ? { capitulos: ["Objetivo del estudio", "Ficha técnica", "Perfil del encuestado", "Resultados", "Conclusiones"] }
+      : est === "separador" ? { numero: "03", titulo: "Resultados", subtitulo: "Gestión, docencia y servicios" } : {};
+    return [{ n: id.replace("p_slide_", ""), t: nombre, p: "Lámina de estructura con la anatomía del recetario.", m: ["M6"], lam: { estructura: est, ...extra } }];
+  }
+  return [{ n: id.replace("p_slide_", ""), t: nombre, p: CON_POBLACION.has(id) ? "Con el ícono del público en la cabecera; cada ranura a su tamaño real." : "Cada ranura a su tamaño real, con un gráfico distinto en cada una.", m: ["M2"], lam: { composicion: id } }];
+});
+
+
+// ═════════════════════ Modo ficha (M1 rehecha: informa la naturaleza, no imita) ═════════════════════
+// Gonzalo (2026-10-13): la maqueta «no busca imitar por completo a la versión renderizada sino que es útil para el
+// propósito de informar la naturaleza de la lámina». Cada ranura con gráfico es una ficha: tipo, dibujo sin textos que
+// refleja la configuración, preguntas, públicos, leyenda en su contenedor y ajustes.
+const F = { fondo: "#F7F9FD", borde: "#D6E2EE", chipPub: ["#E3F2EF", "#1F5F55"], chipAjuste: ["#EEF2FA", "#2B3A67"], chipAviso: ["#FFF4E0", "#9A5B00"] };
+const NOMBRE_DIBUJO = { apiladas: "Multiapiladas", barrasCategoria: "Barras categóricas", brecha: "Brecha entre dos grupos", cuadrantes: "Matriz de cuadrantes", radar: "Radar" };
+
+// Dibujo de apiladas/multiapiladas sin textos: filas reales por tema, la columna de la pregunta a su ancho (`eje`),
+// separador por bloque y la columna Top Two Box. Las barras llevan clave para transitar (M8).
+function glifoApiladas(svg, r, g0, clave = "") {
+  const { g } = primeraParte(g0);
+  const algunTtb = g.bloques.some((b) => b.ttb);
+  const filas = g.bloques.reduce((a, b) => a + b.temas.reduce((x, t) => x + t.filas.length, 0), 0);
+  const huecos = g.bloques.reduce((a, b) => a + b.temas.length - 1, 0) * .5 + (g.bloques.length - 1) * 1.1;
+  const paso = Math.min(.8, r.h / (filas + huecos)); const barH = Math.min(.5, paso * .64);
+  const temaW = g.mostrarPregunta === false ? 0 : r.w * Math.min(.45, (g.eje ?? .22) * 1.1);
+  const ttbW = algunTtb ? Math.max(.35, r.w * .09) : 0;
+  const x0 = r.x + temaW + (temaW ? .12 : 0), w = r.w - (x0 - r.x) - ttbW - (ttbW ? .1 : 0);
+  let y = r.y + (r.h - paso * (filas + huecos)) / 2; let sem = 1;
+  g.bloques.forEach((b, bi) => {
+    if (bi) { y += paso * .55; el("line", { x1: r.x, x2: r.x + r.w, y1: y, y2: y, stroke: C.tenue, "stroke-width": .015, "stroke-dasharray": ".06 .05" }, svg); y += paso * .55; }
+    b.temas.forEach((t, ti) => {
+      if (ti) y += paso * .5;
+      const yt = y;
+      t.filas.forEach((_, fi) => {
+        const yb = y + (paso - barH) / 2; let x = x0;
+        proporciones(b.escala, sem++).forEach((p, k) => { const ww = p * w; el("rect", { x, y: yb, width: Math.max(.005, ww - .015), height: barH, rx: .02, fill: colorDe(b.escala, k), "data-k": `${clave}${bi}-${ti}-${fi}-${k}` }, svg); x += ww; });
+        if (b.ttb) el("rect", { x: x0 + w + .1 + ttbW * .15, y: yb + barH * .2, width: ttbW * .7, height: barH * .6, rx: barH * .3, fill: C.ttb, "data-k": `${clave}${bi}-${ti}-${fi}-t` }, svg);
+        y += paso;
+      });
+      if (temaW) el("rect", { x: r.x, y: (yt + y) / 2 - paso * .12, width: temaW * .85, height: paso * .24, rx: paso * .12, fill: C.trazo, "data-k": `${clave}${bi}-${ti}-q` }, svg);
+    });
+  });
+}
+
+// Lo que la ficha dice de una ranura.
+function infoDe(rn) {
+  if (rn.dibujo === "apiladas") {
+    const g = rn.g; const { partes } = primeraParte(g);
+    const preguntas = [...new Set(g.bloques.flatMap((b) => b.temas.map((t) => t.pregunta)).filter(Boolean))];
+    const publicos = [...new Set(g.bloques.flatMap((b) => b.temas.flatMap((t) => t.filas.map((f) => f.nombre))).filter(Boolean))];
+    const escalas = [...new Set(g.bloques.map((b) => b.escala))];
+    const leyendas = escalas.map((e) => ({ titulo: escalas.length > 1 ? g.bloques.find((b) => b.escala === e).titulo : null, items: ESCALAS[e].map(([l], k) => [l, colorDe(e, k)]) }));
+    const ajustes = [];
+    if (g.bloques.some((b) => b.ttb)) ajustes.push(g.bloques.every((b) => b.ttb) ? "Top Two Box" : "Top Two Box en un bloque");
+    if (g.bloques.length > 1) ajustes.push(`${g.bloques.length} bloques`);
+    if (g.mostrarN === false) ajustes.push("Sin respuestas por público");
+    if ((g.eje ?? .22) >= .3) ajustes.push("Temas anchos");
+    const nPartes = Math.max(partes, g._partes ?? 1);
+    const avisos = nPartes > 1 ? [`Sale en ${nPartes} láminas`] : [];
+    const tipo = rn.tipo ?? (escalas.length === 1 && escalas[0] === "sino" ? "Dicotómica" : g.modo ?? "Multiapiladas");
+    return { tipo, preguntas, publicos, leyendas, ajustes, avisos };
+  }
+  const i = rn.info ?? {};
+  const g = rn.g ?? {};
+  // Si los grupos son filas sin color propio (box plot, media y rango), van como chips; una leyenda de colores
+  // prometería colores que el dibujo no usa.
+  if (rn.fn === G.boxplot || rn.fn === G.mediaRango) return { tipo: rn.tipo ?? "Gráfico", preguntas: i.preguntas ?? [], publicos: g.grupos, leyendas: [], ajustes: i.ajustes ?? [], avisos: [] };
+  if (rn.fn === G.divergentes) return { tipo: rn.tipo ?? "Barras divergentes", preguntas: i.preguntas ?? [], publicos: [], leyendas: [{ items: ESCALAS.acuerdo.slice(0, 4).map(([l], k) => [l, colorDe("acuerdo", k)]).concat(g.neutro ? [["Neutro", "#D9D9D9"]] : []) }], ajustes: i.ajustes ?? [], avisos: [] };
+  const series = g.grupos ?? g.series;
+  return { tipo: rn.tipo ?? NOMBRE_DIBUJO[rn.dibujo] ?? "Gráfico", preguntas: i.preguntas ?? [], publicos: i.publicos ?? [], leyendas: i.leyendas ?? (series ? [{ items: series.map((l, k) => [l, rn.dibujo === "brecha" ? [C.navy, C.coral][k] : PAL[k % PAL.length]]) }] : []), ajustes: i.ajustes ?? [], avisos: i.avisos ?? [] };
+}
+
+// Chips en filas que caben; devuelve el alto. `dibujar=false` sólo mide.
+function chips(svg, items, x, y, maxW, fs, [fondo, tinta], dibujar = true) {
+  let cx = x, cy = y; const h = fs * 1.55, gap = fs * .4;
+  for (const t of items) { const tt = recortar(t, maxW - fs, fs * .9); const w = ancho(tt, fs * .9) + fs * 1.1; if (cx > x && cx + w > x + maxW) { cx = x; cy += h + gap; } if (dibujar) { el("rect", { x: cx, y: cy, width: w, height: h, rx: h / 2, fill: fondo }, svg); el("text", { x: cx + fs * .55, y: cy + h * .68, "font-size": fs * .9, fill: tinta, "font-weight": 600, texto: tt }, svg); } cx += w + gap; }
+  return items.length ? cy - y + h : 0;
+}
+// Leyenda en su contenedor: título opcional y muestras con nombre; en modo «tira», sólo los colores.
+function contenedorLeyenda(svg, ley, x, y, maxW, fs, tira, dibujar = true) {
+  if (tira) { if (dibujar) { const w = Math.min(maxW, ley.items.length * fs * 1.6); ley.items.forEach(([, c], k) => el("rect", { x: x + k * (w / ley.items.length), y, width: w / ley.items.length - .02, height: fs * .7, rx: .02, fill: c }, svg)); } return fs * .7; }
+  const pad = fs * .55; let cx = x + pad, cy = y + pad + (ley.titulo ? fs * 1.3 : 0); const lh = fs * 1.45;
+  const pos = [];
+  for (const [l, c] of ley.items) { const tt = recortar(l, maxW - pad * 2 - fs * 1.2, fs * .88); const w = fs * .8 + .06 + ancho(tt, fs * .88) + fs * .9; if (cx > x + pad && cx + w > x + maxW - pad) { cx = x + pad; cy += lh; } pos.push([cx, cy, tt, c]); cx += w; }
+  const h = cy - y + lh + pad * .6;
+  if (dibujar) {
+    el("rect", { x, y, width: maxW, height: h, rx: fs * .45, fill: "#fff", stroke: F.borde, "stroke-width": .015 }, svg);
+    if (ley.titulo) el("text", { x: x + pad, y: y + pad + fs * .85, "font-size": fs * .85, "font-weight": 700, fill: C.suave, texto: recortar(ley.titulo, maxW - pad * 2, fs * .85, true) }, svg);
+    for (const [px, py, tt, c] of pos) { el("rect", { x: px, y: py + lh * .2, width: fs * .8, height: fs * .8, rx: fs * .18, fill: c }, svg); el("text", { x: px + fs * .8 + .06, y: py + lh * .72, "font-size": fs * .88, fill: C.texto, texto: tt }, svg); }
+  }
+  return h;
+}
+
+function ficha(svg, rn, clave = "") {
+  const r = { x: rn.x, y: rn.y, w: rn.w, h: rn.h }; const info = infoDe(rn);
+  // Letra de la ficha: nunca menos de 0,19 in (a ~500 px de maqueta, unos 7 px): en ranuras chicas manda M4 (recortar
+  // antes), no achicar hasta lo ilegible.
+  const fs = Math.max(.19, Math.min(.24, Math.min(r.w * .034, r.h * .06)));
+  el("rect", { x: r.x, y: r.y, width: r.w, height: r.h, rx: .14, fill: F.fondo, stroke: F.borde, "stroke-width": .018 }, svg);
+  const pad = Math.min(.3, r.w * .05); const ix = r.x + pad, iw = r.w - pad * 2, iy = r.y + pad, ih = r.h - pad * 2;
+  const tam2 = r.w >= 5.5 && r.h >= 2.8 ? "grande" : r.w >= 3.3 && r.h >= 2 ? "mediana" : "chica";
+  const horizontal = tam2 === "grande" && r.w / r.h >= 1.55;
+  const colW = horizontal ? Math.min(5.4, iw * .46) : iw;
+  // Bloque de información medido para centrarlo (M3) y degradarlo (M4).
+  const preguntas = info.preguntas.length > 2 || tam2 !== "grande" ? info.preguntas.slice(0, 1) : info.preguntas;
+  const masPreg = info.preguntas.length - preguntas.length;
+  const publicos = tam2 === "chica" ? [] : tam2 === "mediana" && info.publicos.length > 3 ? [`${info.publicos.length} públicos`] : info.publicos;
+  const tira = tam2 === "chica";
+  const ajustes = tam2 === "chica" ? [] : info.ajustes;
+  const pieza = (dibujar, x, y0) => {
+    let y = y0;
+    // Tipo: ícono y nombre.
+    if (dibujar) { el("rect", { x, y, width: fs * 1.3, height: fs * 1.3, rx: fs * .3, fill: "#E6ECF7" }, svg); el("rect", { x: x + fs * .3, y: y + fs * .35, width: fs * .7, height: fs * .14, fill: C.navy }, svg); el("rect", { x: x + fs * .3, y: y + fs * .6, width: fs * .5, height: fs * .14, fill: C.navy }, svg); el("rect", { x: x + fs * .3, y: y + fs * .85, width: fs * .6, height: fs * .14, fill: C.navy }, svg); el("text", { x: x + fs * 1.7, y: y + fs * .98, "font-size": fs, "font-weight": 700, fill: C.navy, texto: recortar(info.tipo, colW - fs * 1.8, fs, true) }, svg); }
+    y += fs * 1.3 + fs * .55;
+    if (tam2 !== "chica") for (const q of preguntas) { const ls = lineas(q, colW, fs * .95, 2, true); if (dibujar) ls.forEach((l, k) => el("text", { x, y: y + fs * .95 + k * fs * 1.2, "font-size": fs * .95, "font-weight": 700, fill: C.texto, texto: l }, svg)); y += ls.length * fs * 1.2 + fs * .25; }
+    if (tam2 !== "chica" && masPreg > 0) { if (dibujar) el("text", { x, y: y + fs * .85, "font-size": fs * .85, fill: C.suave, texto: `y ${masPreg} ${masPreg === 1 ? "pregunta" : "preguntas"} más` }, svg); y += fs * 1.2; }
+    if (publicos.length) { y += fs * .2; y += chips(svg, publicos, x, y, colW, fs, F.chipPub, dibujar) + fs * .45; }
+    for (const ley of info.leyendas) { y += contenedorLeyenda(svg, ley, x, y, colW, fs, tira, dibujar) + fs * .45; }
+    const ch = ajustes.map((a) => a).concat(info.avisos);
+    if (ch.length) { const hA = chips(svg, ajustes, x, y, colW, fs, F.chipAjuste, dibujar); const hB = chips(svg, info.avisos, x, y + (hA ? hA + fs * .4 : 0), colW, fs, F.chipAviso, dibujar); y += hA + (hA && hB ? fs * .4 : 0) + hB; }
+    return y - y0;
+  };
+  if (horizontal) {
+    const h = Math.min(ih, pieza(false, ix, 0));
+    pieza(true, ix, iy + (ih - h) / 2);
+    const gx = ix + colW + pad, gw = r.x + r.w - pad - gx, gh = Math.min(ih, gw * .62);
+    dibujoDe(svg, rn, { x: gx, y: iy + (ih - gh) / 2, w: gw, h: gh }, clave);
+  } else {
+    const cab = fs * 1.85;
+    const hPie = pieza(false, ix, 0) - cab;
+    const gh = Math.max(.5, Math.min(ih * .62, ih - cab - hPie - fs * .6));
+    const total = Math.min(ih, cab + gh + fs * .6 + hPie);
+    const y0 = iy + (ih - total) / 2;
+    dibujoDe(svg, rn, { x: ix, y: y0 + cab, w: iw, h: gh }, clave);
+    piezaPartida(svg, info, { x: ix, yCab: y0, yPie: y0 + cab + gh + fs * .6, colW, fs, preguntas, masPreg, publicos, tira, ajustes });
+  }
+}
+
+// Variante vertical: la cabecera (tipo) sobre el dibujo y la información debajo.
+function piezaPartida(svg, info, o) {
+  const { x, colW, fs } = o;
+  el("rect", { x, y: o.yCab, width: fs * 1.3, height: fs * 1.3, rx: fs * .3, fill: "#E6ECF7" }, svg);
+  [[.35, .7], [.6, .5], [.85, .6]].forEach(([dy, w]) => el("rect", { x: x + fs * .3, y: o.yCab + fs * dy, width: fs * w, height: fs * .14, fill: C.navy }, svg));
+  el("text", { x: x + fs * 1.7, y: o.yCab + fs * .98, "font-size": fs, "font-weight": 700, fill: C.navy, texto: recortar(info.tipo, colW - fs * 1.8, fs, true) }, svg);
+  let y = o.yPie;
+  if (!o.tira) for (const q of o.preguntas) { el("text", { x, y: y + fs * .9, "font-size": fs * .9, "font-weight": 700, fill: C.texto, texto: recortar(q, colW, fs * .9, true) }, svg); y += fs * 1.25; }
+  if (!o.tira && o.masPreg > 0) { el("text", { x, y: y + fs * .8, "font-size": fs * .8, fill: C.suave, texto: `y ${o.masPreg} más` }, svg); y += fs * 1.1; }
+  if (o.publicos.length) y += chips(svg, o.publicos, x, y, colW, fs * .9, F.chipPub) + fs * .4;
+  for (const ley of info.leyendas) y += contenedorLeyenda(svg, ley, x, y, colW, fs * .9, o.tira) + fs * .4;
+  const hA = chips(svg, o.ajustes, x, y, colW, fs * .9, F.chipAjuste); chips(svg, info.avisos, x, y + (hA ? hA + fs * .4 : 0), colW, fs * .9, F.chipAviso);
+}
+
+// El dibujo de la ficha: para apiladas, su glifo; para los demás, su dibujo sin textos (la información va en la ficha).
+function dibujoDe(svg, rn, rect, clave) {
+  const g = el("g", {}, svg);
+  if (rn.dibujo === "apiladas") { glifoApiladas(g, rect, rn.g, clave); return; }
+  SIN_LEYENDA = true;
+  try { if (rn.dibujo === "__fn") rn.fn(g, rect, rn.g); else DIBUJOS[rn.dibujo](g, rect, rn.g); } finally { SIN_LEYENDA = false; }
+  for (const t of g.querySelectorAll("text")) t.remove();
+}
+
 // ───────────────────────── Render de la galería ─────────────────────────
 for (const [grupo, casos] of Object.entries(CASOS)) {
   const cont = document.getElementById("g-" + grupo);
@@ -616,6 +1066,8 @@ for (const [grupo, casos] of Object.entries(CASOS)) {
     lamina(svg, c.lam, c.n);
   }
 }
+
+document.getElementById("cobertura").innerHTML = `<b>${CASOS.graficos.length} de 28</b> tipos de gráfico y <b>${new Set(CASOS.laminas.map((c) => c.t.split(" · ")[0])).size} de 33</b> tipos de lámina tienen su maqueta (el objetivo, con sus tres composiciones). Las configuraciones que cambian lo que se ve están en el nombre de cada caso. Los dibujos menos frecuentes son abstractos: muestran la forma y las opciones, no el detalle.`;
 
 // Hoy (réplica de la maqueta actual de la lámina 19) y la propuesta
 (function hoy() {
@@ -664,9 +1116,13 @@ function renderVivo() {
     if (v) { for (const p of ["x", "y", "width", "height"]) v.style[p] = r.style[p]; r.replaceWith(v); viejas.delete(r.getAttribute("data-k")); }
     else if (!primera) { crecen.push([r, r.style.width]); r.style.width = "0px"; }
   }
+  // Lo que no es barra (textos, leyenda, marcas) entra con un fundido corto: no salta de un estado a otro.
+  if (!primera) for (const e of nuevo.querySelectorAll("text, rect:not([data-k]), line, circle")) e.classList.add("entra");
   while (svg.firstChild) svg.removeChild(svg.firstChild);
   while (nuevo.firstChild) svg.appendChild(nuevo.firstChild);
-  if (crecen.length) { void svg.getBoundingClientRect(); for (const [r, w] of crecen) r.style.width = w; }
+  void svg.getBoundingClientRect();
+  for (const [r, w] of crecen) r.style.width = w;
+  for (const e of svg.querySelectorAll(".entra")) e.classList.add("visible");
 }
 document.getElementById("c-ttb").onchange = (e) => { vivo.ttb = e.target.checked; renderVivo(); };
 document.getElementById("c-eje").oninput = (e) => { vivo.eje = +e.target.value; renderVivo(); };
