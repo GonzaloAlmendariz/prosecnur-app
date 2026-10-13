@@ -19,10 +19,10 @@ export default function VariableRespondentSummary({ refs, variables, multi }: Pr
   return (
     <section
       aria-live="polite"
-      aria-label="Respondientes de las variables seleccionadas"
+      aria-label="Quiénes respondieron estas preguntas"
       style={containerStyle}
     >
-      <strong style={headingStyle}>Respondientes de las variables seleccionadas</strong>
+      <strong style={headingStyle}>Quiénes respondieron estas preguntas</strong>
       <div role="list" style={listStyle}>
         {summary.groups.map((group) => {
           const displaySource = formatRespondentSourceLabel(group.source);
@@ -40,7 +40,7 @@ export default function VariableRespondentSummary({ refs, variables, multi }: Pr
           );
         })}
       </div>
-      <small style={noteStyle}>Disponibilidad antes de filtros y exclusiones del gráfico.</small>
+      <small style={noteStyle}>Antes de los filtros y exclusiones del gráfico.</small>
     </section>
   );
 }
