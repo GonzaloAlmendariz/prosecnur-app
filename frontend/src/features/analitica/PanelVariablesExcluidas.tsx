@@ -17,10 +17,12 @@ import { apiAnaliticaDataReview } from "../../api/client";
 import { getOrigenExterno, type OrigenExterno } from "../../api/cargaOrigenExterno";
 import { apiEstudioActiveBaseSet, apiEstudioGet, type EstudioPayload } from "../../api/estudio";
 import { PulsoButton } from "../../components/PulsoButton";
+import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { ErrorBlock, LoadingBlock } from "../../components/States";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
 import { useSession } from "../../lib/SessionContext";
+import { useEstadoGuardadoAnalitica } from "./estadoGuardado";
 import { PANEL_VARIABLES_EXCLUIDAS } from "./panelesAnalitica";
 import { useAnaliticaStore } from "./store";
 import { VariablesExcluidas } from "./VariablesExcluidas";
@@ -58,6 +60,9 @@ export function PanelVariablesExcluidas() {
   const [carga, setCarga] = useState<Carga>({ tipo: "cargando" });
   const [cambiandoBase, setCambiandoBase] = useState(false);
   const contenido = useRef<HTMLDivElement | null>(null);
+  // Un patrón de guardado (P-M14): el chip dice Sin cambios / Cambios sin
+  // guardar / Guardado en vez de la frase «Los cambios se guardan solos».
+  const estadoGuardado = useEstadoGuardadoAnalitica();
 
   const activa = state?.active_base ?? null;
   const porBase = configAnaliticaPorBase({
@@ -156,7 +161,10 @@ export function PanelVariablesExcluidas() {
                 <Dialog.Title asChild>
                   <h2 tabIndex={-1} data-excluidas-titulo="">Variables excluidas</h2>
                 </Dialog.Title>
-                {alcance ? <p className="pulso-excluidas-alcance">{alcance}</p> : null}
+                <div className="pulso-excluidas-subtitulo">
+                  {alcance ? <p className="pulso-excluidas-alcance">{alcance}</p> : null}
+                  <SaveStatusIndicator state={estadoGuardado} variant="badge" />
+                </div>
               </div>
               <Dialog.Close asChild>
                 <button type="button" className="pulso-excluidas-cerrar" aria-label="Cerrar variables excluidas">
@@ -168,7 +176,7 @@ export function PanelVariablesExcluidas() {
               <p className="pulso-excluidas-regla">
                 Una variable excluida no sale en ningún entregable de Analítica (bases exportadas,
                 libro de códigos, tablas y cruces) ni en los comparativos. No se borra de los
-                datos: puedes volver a incluirla cuando quieras. Los cambios se guardan solos.
+                datos: puedes volver a incluirla cuando quieras.
               </p>
             </Dialog.Description>
             {otraBase ? (

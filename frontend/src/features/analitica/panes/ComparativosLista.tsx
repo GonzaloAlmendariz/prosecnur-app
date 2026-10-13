@@ -9,7 +9,7 @@
 // La lógica (agrupar, filtrar, contar, cobertura) vive en `comparativosModel`.
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, ChevronRight, CircleSlash2, Minus, Search } from "../../../vendor/lucide-react";
+import { Check, ChevronDown, ChevronRight, CircleSlash2, Minus, Search, SearchX } from "../../../vendor/lucide-react";
 import {
   TEXTO_COBERTURA,
   agruparPorSeccion,
@@ -23,6 +23,7 @@ import {
 } from "./comparativosModel";
 import type { NombreDeSerie } from "../../carga/nombreDeSerie";
 import { rotuloDeMatriz } from "../../../lib/rotuloDeMatriz";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PulsoButton } from "../../../components/PulsoButton";
 
 export type ComparativosListaProps = {
@@ -114,6 +115,10 @@ export function ComparativosLista({
             variant="ghost"
             size="sm"
             className="pulso-comparativos-desplegar"
+            aria-expanded={abiertas.size === grupos.length}
+            // Hay dos listas con este botón en la vista: el nombre accesible
+            // dice de cuál es (P-B3).
+            aria-label={`${abiertas.size === grupos.length ? "Plegar secciones" : "Desplegar secciones"} de ${titulo.toLowerCase()}`}
             onClick={() =>
               setAbiertas(abiertas.size === grupos.length ? new Set() : new Set(grupos.map((g) => g.clave)))
             }
@@ -134,9 +139,16 @@ export function ComparativosLista({
 
       {visibles.length === 0 ? (
         // C3: el vacío de la búsqueda vive dentro de la lista y dice cómo salir.
-        <p className="pulso-comparativos-sin-coincidencias">
-          Ninguna pregunta coincide con «{consulta.trim()}». Prueba con otra palabra o borra la búsqueda.
-        </p>
+        <EstadoVacio
+          icono={<SearchX size={15} />}
+          titulo={`Ninguna pregunta coincide con «${consulta.trim()}»`}
+          descripcion="Prueba con otra palabra o borra la búsqueda."
+          accion={(
+            <PulsoButton variant="secondary" size="sm" onClick={() => setConsulta("")}>
+              Borrar búsqueda
+            </PulsoButton>
+          )}
+        />
       ) : (
         <div
           className="pulso-comparativos-grupos"

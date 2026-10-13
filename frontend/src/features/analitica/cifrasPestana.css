@@ -1,0 +1,89 @@
+/* Cifras de pestaña de Analítica (CifrasPestana.tsx).
+ *
+ * Es la receta de los chips con etiqueta que ya usaban Frecuencias, Cruces,
+ * Ponderación y el Libro de códigos (`.analitica-*-docbar-stats` en el
+ * shell de Procesamiento), escrita una vez y con tokens. El acento sale del
+ * módulo; los tonos de estado usan los semánticos, que no se remapean.
+ */
+
+.analitica-cifras {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.analitica-cifra {
+  --analitica-cifra-acento: var(--module-accent, var(--pulso-primary));
+  /* Alto por relleno y no por min-height: un mínimo dejaba 3.5 px de
+   * capacidad interior sin dueño bajo cada cifra (C3). 7 + 11 + 7 + bordes
+   * da los mismos 26 px del chip de siempre. */
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 8px;
+  border: 1px solid color-mix(in srgb, var(--analitica-cifra-acento) 22%, var(--pulso-border));
+  border-radius: var(--pulso-radius-chip);
+  background: color-mix(in srgb, var(--pulso-surface) 86%, transparent);
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.analitica-cifra-etiqueta {
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.analitica-cifra-valor {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.analitica-cifra[data-tono="acento"] .analitica-cifra-valor {
+  color: var(--analitica-cifra-acento);
+}
+
+.analitica-cifra[data-tono="alerta"] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.analitica-cifra[data-tono="alerta"] .analitica-cifra-valor,
+.analitica-cifra[data-tono="alerta"] .analitica-cifra-etiqueta {
+  color: var(--pulso-warn-fg);
+}
+
+.analitica-cifra[data-tono="peligro"] {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+}
+
+.analitica-cifra[data-tono="peligro"] .analitica-cifra-valor,
+.analitica-cifra[data-tono="peligro"] .analitica-cifra-etiqueta {
+  color: var(--pulso-danger-fg);
+}
+
+/* Un valor enlazado (abre un panel) se lee como enlace sin cambiar el chip. */
+.analitica-cifra-valor a {
+  color: var(--analitica-cifra-acento);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.analitica-cifra-valor a:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--analitica-cifra-acento) 40%, transparent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}

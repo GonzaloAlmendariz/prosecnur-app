@@ -19,6 +19,7 @@ import type {
   ComparativoTipo,
 } from "../../../api/analitica";
 import type { EquivalenciasEstado } from "../../../api/equivalencias";
+import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import { serializarDireccion } from "../../../lib/navegacion/direccion";
 import { rotuloPorDefecto } from "../../carga/nombreDeSerie";
 import { rotuloDeMatriz } from "../../../lib/rotuloDeMatriz";
@@ -630,7 +631,7 @@ export function filtrarFilas(filas: readonly FilaArmonizada[], consulta: string)
 export function contadorElegidas(filas: readonly FilaArmonizada[], elegidas: readonly string[]): string {
   const seleccionables = filas.filter((f) => f.seleccionable);
   const n = seleccionables.filter((f) => elegidas.includes(f.clave)).length;
-  return `${n} ${n === 1 ? "elegida" : "elegidas"} de ${seleccionables.length}`;
+  return `${formatoConteo(n)} ${n === 1 ? "elegida" : "elegidas"} de ${formatoConteo(seleccionables.length)}`;
 }
 
 /** Lo que la tarjeta dice de la cobertura de la fila en la serie. */
@@ -656,7 +657,7 @@ function unirLista(items: string[]): string {
 }
 
 export function cantidad(n: number, singular: string, plural: string): string {
-  return `${n} ${n === 1 ? singular : plural}`;
+  return formatoConteoDe(n, singular, plural);
 }
 
 export function formatoBytes(n: number): string {

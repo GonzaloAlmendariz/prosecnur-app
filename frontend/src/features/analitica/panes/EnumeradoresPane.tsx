@@ -21,6 +21,7 @@ import {
 import { VariableSelect } from "../VariableSelect";
 import { Section, GenerateFooter } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
+import { InterruptorOpcion } from "../InterruptorOpcion";
 
 // EnumeradoresPane — rediseñado.
 // Flujo:
@@ -235,16 +236,13 @@ export function EnumeradoresPane() {
             </label>
           </div>
           {modo !== "ninguna" && (
-            <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, cursor: "pointer", marginTop: 10 }}>
-              <input
-                type="checkbox"
-                checked={enumer.mostrar_vacias}
-                onChange={(e) => setEnumer({ mostrar_vacias: e.target.checked })}
-              />
-              <span style={{ color: "var(--pulso-text-soft)" }}>
-                Mostrar modalidades sin encuestas en el reporte
-              </span>
-            </label>
+            <InterruptorOpcion
+              variante="linea"
+              className="analitica-enumeradores-vacias"
+              checked={enumer.mostrar_vacias}
+              onToggle={() => setEnumer({ mostrar_vacias: !enumer.mostrar_vacias })}
+              titulo="Mostrar modalidades sin encuestas en el reporte"
+            />
           )}
         </Section>
 

@@ -1,4 +1,5 @@
 import type { DataReviewVariable } from "../../api/client";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 // Vara V4: el motor de `data-review` entrega `n_missing` por variable y la
 // tarjeta sólo leía `n_non_missing`. «1241 con dato» no dice de cuántos, y
@@ -56,15 +57,15 @@ export function describirCobertura(
   if (conDato === 0) {
     return {
       estado: "vacia",
-      texto: `0 de ${filas} con dato`,
+      texto: `0 de ${formatoConteo(filas)} con dato`,
       aviso: {
         etiqueta: "sin ningún dato",
-        detalle: `Su columna llegó en la base pero las ${filas} filas están vacías. Incluirla no aporta nada al reporte.`,
+        detalle: `Su columna llegó en la base pero las ${formatoConteo(filas)} filas están vacías. Incluirla no aporta nada al reporte.`,
       },
     };
   }
 
-  return { estado: "normal", texto: `${conDato} de ${filas} con dato`, aviso: null };
+  return { estado: "normal", texto: `${formatoConteo(conDato)} de ${formatoConteo(filas)} con dato`, aviso: null };
 }
 
 /** Nombres de variable cuyo contenido llega repartido en columnas dummy. */

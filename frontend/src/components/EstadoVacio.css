@@ -1,0 +1,116 @@
+/* ============================================================================
+   EstadoVacio — receta única de vacío (EstadoVacio.tsx)
+   ----------------------------------------------------------------------------
+   Dos tamaños y nada más. El acento sale del módulo (`--module-accent`) con el
+   primario como respaldo, así que dentro de un portal que no herede el tono
+   cae al primario global en vez de a un literal. Radios concéntricos: el
+   tile interior (8) es el radio de la caja (10) menos su holgura visual.
+   ============================================================================ */
+
+.pulso-estado-vacio {
+  --estado-vacio-acento: var(--module-accent, var(--pulso-primary));
+  box-sizing: border-box;
+  border: 1px dashed color-mix(in srgb, var(--estado-vacio-acento) 22%, var(--pulso-border));
+  border-radius: var(--pulso-radius);
+  background: color-mix(in srgb, var(--pulso-surface-2) 70%, var(--pulso-surface));
+  color: var(--pulso-text-soft);
+  animation: pulso-estado-vacio-in var(--motion-dur-base) var(--motion-ease-out) both;
+}
+
+.pulso-estado-vacio--compacto {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  text-align: left;
+}
+
+.pulso-estado-vacio--normal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-6) var(--pulso-space-5);
+  text-align: center;
+}
+
+.pulso-estado-vacio-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--estado-vacio-acento) 24%, var(--pulso-border));
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--estado-vacio-acento);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-estado-vacio--compacto .pulso-estado-vacio-icono {
+  width: 28px;
+  height: 28px;
+}
+
+.pulso-estado-vacio--normal .pulso-estado-vacio-icono {
+  width: 36px;
+  height: 36px;
+}
+
+.pulso-estado-vacio-texto {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-estado-vacio-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+}
+
+.pulso-estado-vacio--normal .pulso-estado-vacio-titulo {
+  font-size: 13px;
+}
+
+.pulso-estado-vacio-descripcion {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-regular);
+  line-height: 1.4;
+}
+
+.pulso-estado-vacio--normal .pulso-estado-vacio-descripcion {
+  max-width: 44ch;
+}
+
+.pulso-estado-vacio-accion {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-estado-vacio--normal .pulso-estado-vacio-accion {
+  margin-top: var(--pulso-space-1);
+}
+
+@keyframes pulso-estado-vacio-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-estado-vacio {
+    animation: none;
+  }
+}

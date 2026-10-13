@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowDown01, ArrowUp01, CheckCircle2, Filter, GitBranch, Grid3x3, Info, Layers, ListOrdered, Plus, Sigma, X } from "lucide-react";
+import { AlertTriangle, ArrowDown01, ArrowUp01, Filter, GitBranch, Grid3x3, Info, Layers, ListOrdered, Plus, X } from "lucide-react";
 import {
   apiAnaliticaColumnValues,
   apiAnaliticaCruces,
@@ -7,7 +7,12 @@ import {
   ValorColumna,
   VariableInstrumento,
 } from "../../../api/client";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 import { Panel } from "../../../components/Panel";
+import { PulsoButton } from "../../../components/PulsoButton";
+import { formatoConteo } from "../../../lib/formatoNumero";
+import { CifrasPestana } from "../CifrasPestana";
+import { InterruptorOpcion } from "../InterruptorOpcion";
 import { CruceVarConfig, useAnaliticaStore } from "../store";
 import { VariableSelect } from "../VariableSelect";
 import { Section, GenerateFooter } from "../PaneKit";
@@ -113,20 +118,14 @@ export function CrucesPane() {
             <strong>Cruces</strong>
             <small>Comparaciones 2D con totales y significancia opcional.</small>
           </div>
-          <div className="analitica-cruces-docbar-stats" aria-label="Estado del reporte de cruces">
-            <span>
-              Cruces
-              <strong>{nVars} {nVars === 1 ? "variable" : "variables"}</strong>
-            </span>
-            <span>
-              Contra
-              <strong>{nResto} variables</strong>
-            </span>
-            <span>
-              Modo
-              <strong>{modoLabel}</strong>
-            </span>
-          </div>
+          <CifrasPestana
+            ariaLabel="Estado del reporte de cruces"
+            cifras={[
+              { etiqueta: "Cruces", valor: `${formatoConteo(nVars)} ${nVars === 1 ? "variable" : "variables"}` },
+              { etiqueta: "Contra", valor: `${formatoConteo(nResto)} ${nResto === 1 ? "variable" : "variables"}` },
+              { etiqueta: "Modo", valor: modoLabel },
+            ]}
+          />
         </div>
 
         <div className="analitica-report-note">
@@ -151,7 +150,7 @@ export function CrucesPane() {
           />
           {nVars > 0 && (
             <div className="analitica-cruces-summary">
-              El reporte generará <strong>{nVars}</strong> {nVars === 1 ? "bloque de tablas" : "bloques de tablas"} cruzando cada variable seleccionada contra las otras <strong>{nResto}</strong> variables del instrumento.
+              El reporte generará <strong>{formatoConteo(nVars)}</strong> {nVars === 1 ? "bloque de tablas" : "bloques de tablas"} cruzando cada variable seleccionada contra las otras <strong>{formatoConteo(nResto)}</strong> variables del instrumento.
             </div>
           )}
         </Section>
@@ -217,59 +216,32 @@ export function CrucesPane() {
           subtitle="Controla si el archivo incluye celdas separadoras de sección. El título de cada variable se conserva siempre al inicio de su tabla."
         >
           <div className="analitica-control-grid">
-            <label className={`analitica-control-card ${cruces.incluir_secciones ? "is-active" : ""}`}>
-              <input
-                type="checkbox"
-                checked={cruces.incluir_secciones}
-                onChange={(e) => setCruces({ incluir_secciones: e.target.checked })}
-              />
-              <span className="analitica-control-icon">
-                {cruces.incluir_secciones ? <CheckCircle2 size={15} /> : <Layers size={15} />}
-              </span>
-              <span>
-                <span className="analitica-control-title">Mostrar nombres de sección</span>
-                <span className="analitica-control-copy">
-                  Agrega una celda separadora antes de las tablas de cada sección.
-                </span>
-              </span>
-            </label>
-
-            <div className="analitica-control-card">
-              <span className="analitica-control-icon"><Grid3x3 size={15} /></span>
-              <span>
-                <span className="analitica-control-title">Títulos de variables fijos</span>
-                <span className="analitica-control-copy">
-                  La pregunta o etiqueta de la variable permanece encima de cada tabla de cruce.
-                </span>
-              </span>
-            </div>
+            <InterruptorOpcion
+              checked={cruces.incluir_secciones}
+              onToggle={() => setCruces({ incluir_secciones: !cruces.incluir_secciones })}
+              titulo="Mostrar nombres de sección"
+              descripcion="Agrega una celda separadora antes de las tablas de cada sección."
+            />
           </div>
+          {/* Lo que no es una opción no lleva forma de opción (P-B5). */}
+          <p className="analitica-presentation-hint analitica-presentation-note">
+            <Grid3x3 size={13} aria-hidden="true" />
+            <span>
+              <strong>Títulos fijos:</strong> la pregunta o etiqueta de la variable permanece encima de cada tabla de cruce.
+            </span>
+          </p>
         </Section>
 
         <Section
           title="Significancia estadística"
           subtitle={subtituloSignificancia()}
         >
-          <label
-            className={`analitica-control-card ${cruces.show_sig ? "is-active" : ""}`}
-          >
-            <input
-              type="checkbox"
-              checked={cruces.show_sig}
-              onChange={(e) => setCruces({ show_sig: e.target.checked })}
-            />
-            <span className="analitica-control-icon">
-              {cruces.show_sig ? <CheckCircle2 size={15} /> : <Sigma size={15} />}
-            </span>
-            <div className="analitica-control-stack">
-              <span className="analitica-control-title">
-                Mostrar diferencias significativas
-              </span>
-              <span className="analitica-control-copy">
-                {detalleSignificancia(cruces.modo, ALFA_CRUCES)}
-              </span>
-            </div>
-          </label>
+          <InterruptorOpcion
+            checked={cruces.show_sig}
+            onToggle={() => setCruces({ show_sig: !cruces.show_sig })}
+            titulo="Mostrar diferencias significativas"
+            descripcion={detalleSignificancia(cruces.modo, ALFA_CRUCES)}
+          />
         </Section>
 
         <NotasPieEditor variante="cruces" variables={variablesConTabla} crucesVars={crucesVarNames} />
@@ -320,13 +292,11 @@ function VariableChips({
   return (
     <div className="analitica-variable-picker">
       {selected.length === 0 && !adding && (
-        <div className="analitica-empty">
-          <span className="analitica-empty-icon" aria-hidden="true">
-            <GitBranch size={15} />
-          </span>
-          <strong>Sin variables de cruce</strong>
-          <small>El primer bloque se crea con una variable de columna.</small>
-        </div>
+        <EstadoVacio
+          icono={<GitBranch size={15} />}
+          titulo="Sin variables de cruce"
+          descripcion="El primer bloque se crea con una variable de columna."
+        />
       )}
       {selected.length > 0 && (
         <div className="analitica-variable-list">
@@ -385,17 +355,14 @@ function VariableChips({
               placeholder="Seleccionar variable a cruzar…"
             />
           </div>
-          <button type="button" className="pulso-primary" onClick={commit} disabled={!pendingVar}>Añadir</button>
-          <button type="button" className="pulso-secondary" onClick={() => { setAdding(false); setPendingVar(""); }}>Cancelar</button>
+          <PulsoButton variant="primary" onClick={commit} disabled={!pendingVar}>Añadir</PulsoButton>
+          <PulsoButton variant="secondary" onClick={() => { setAdding(false); setPendingVar(""); }}>Cancelar</PulsoButton>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          className="analitica-add-inline"
-        >
-          <Plus size={12} /> Añadir variable
-        </button>
+        <PulsoButton variant="secondary" className="analitica-add-button" onClick={() => setAdding(true)}>
+          <Plus size={13} aria-hidden="true" />
+          Añadir variable
+        </PulsoButton>
       )}
     </div>
   );
@@ -499,7 +466,7 @@ function ExclusionEditor({
 
       {excluidas.length > 0 && (
         <div className="analitica-exclusion-actions">
-          <button type="button" onClick={() => onChange([])} className="pulso-secondary">Quitar todas las exclusiones</button>
+          <PulsoButton variant="secondary" size="sm" onClick={() => onChange([])}>Quitar todas las exclusiones</PulsoButton>
         </div>
       )}
     </div>

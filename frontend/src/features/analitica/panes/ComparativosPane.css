@@ -10,37 +10,6 @@
   min-width: 0;
 }
 
-/* Cifras de la serie: cuatro pares del mismo rol, mismo marco (C2). */
-.pulso-comparativos-cifras {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--pulso-space-2);
-  margin: 0;
-}
-
-.pulso-comparativos-cifra {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--pulso-space-2) var(--pulso-space-3);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface);
-}
-
-.pulso-comparativos-cifra dt {
-  font-size: 11.5px;
-  color: var(--pulso-text-soft);
-}
-
-.pulso-comparativos-cifra dd {
-  margin: 0;
-  font-size: 18px;
-  font-weight: var(--pulso-weight-semibold);
-  font-variant-numeric: tabular-nums;
-  color: var(--pulso-text);
-}
-
 /* Secciones independientes: altura intrínseca, se apilan tras el gutter (C3). */
 .pulso-comparativos-secciones {
   display: flex;
@@ -296,14 +265,6 @@
   color: var(--pulso-warn-fg);
 }
 
-.pulso-comparativos-sin-coincidencias {
-  margin: 0;
-  padding: var(--pulso-space-3);
-  border: 1px dashed var(--pulso-border);
-  border-radius: var(--pulso-radius-card);
-  font-size: 12.5px;
-  color: var(--pulso-text-soft);
-}
 
 /* Secciones plegables: altura intrínseca, cada una tras el gutter (C3). */
 .pulso-comparativos-grupos {
@@ -890,4 +851,9 @@
 .pulso-comparativos-grupo-casilla {
   flex: 0 0 auto;
   margin: 0;
+}
+
+/* Celda sin nada que listar (P-B4): «—» atenuado, como en Equivalencias. */
+.pulso-comparativos-nada {
+  color: var(--pulso-text-faint);
 }

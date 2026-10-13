@@ -1,6 +1,8 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, ChevronDown, FileText, GitBranch, Plus, X } from "lucide-react";
+import { ChevronDown, FileText, GitBranch, Plus, X } from "lucide-react";
 import type { VariableInstrumento } from "../../../api/client";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { InterruptorOpcion } from "../InterruptorOpcion";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { useAnaliticaStore } from "../store";
 import { VariableSelect } from "../VariableSelect";
@@ -295,13 +297,11 @@ function NotasPorPregunta({
         <small>{textos.ayuda}</small>
       </div>
       {filas.length === 0 && !adding && (
-        <div className="analitica-empty" data-qa-geometry-capacity="owned">
-          <span className="analitica-empty-icon" aria-hidden="true">
-            <FileText size={15} />
-          </span>
-          <strong>{textos.vacioTitulo}</strong>
-          <small>{textos.vacioPista}</small>
-        </div>
+        <EstadoVacio
+          icono={<FileText size={15} />}
+          titulo={textos.vacioTitulo}
+          descripcion={textos.vacioPista}
+        />
       )}
       {filas.length > 0 && (
         <ul className="analitica-notas-pie-list">
@@ -342,9 +342,10 @@ function NotasPorPregunta({
           </PulsoButton>
         </div>
       ) : (
-        <button type="button" className="analitica-add-inline" onClick={() => setAdding(true)} disabled={opciones.length === 0}>
-          <Plus size={12} /> {textos.anadir}
-        </button>
+        <PulsoButton variant="secondary" className="analitica-add-button" onClick={() => setAdding(true)} disabled={opciones.length === 0}>
+          <Plus size={13} aria-hidden="true" />
+          {textos.anadir}
+        </PulsoButton>
       )}
       {pie}
     </div>
@@ -375,13 +376,11 @@ function NotasPorCruce({
         <small>Va debajo de cada tabla, en el orden de las columnas.</small>
       </div>
       {filas.length === 0 ? (
-        <div className="analitica-empty" data-qa-geometry-capacity="owned">
-          <span className="analitica-empty-icon" aria-hidden="true">
-            <GitBranch size={15} />
-          </span>
-          <strong>Sin variables de cruce</strong>
-          <small>Agrega una en Variables a cruzar para anotarla.</small>
-        </div>
+        <EstadoVacio
+          icono={<GitBranch size={15} />}
+          titulo="Sin variables de cruce"
+          descripcion="Agrega una en Variables a cruzar para anotarla."
+        />
       ) : (
         <ul className="analitica-notas-pie-list">
           {filas.map(({ variable, texto }) => (
@@ -480,18 +479,12 @@ function BaseReducida({
 
   return (
     <div className="analitica-notas-pie-group" data-qa-geometry-member="true">
-      <label className={`analitica-control-card ${activo ? "is-active" : ""}`}>
-        <input type="checkbox" checked={activo} onChange={(e) => onChange({ activo: e.target.checked })} />
-        <span className="analitica-control-icon">
-          {activo ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
-        </span>
-        <span className="analitica-control-stack">
-          <span className="analitica-control-title">Avisar base reducida</span>
-          <span className="analitica-control-copy">
-            Nombra las columnas con menos casos válidos sin ponderar que el umbral.
-          </span>
-        </span>
-      </label>
+      <InterruptorOpcion
+        checked={activo}
+        onToggle={() => onChange({ activo: !activo })}
+        titulo="Avisar base reducida"
+        descripcion="Nombra las columnas con menos casos válidos sin ponderar que el umbral."
+      />
       <div className="analitica-notas-pie-umbral">
         <label htmlFor={umbralId}>Umbral de casos</label>
         <input
