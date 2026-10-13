@@ -3,6 +3,7 @@
 // no construye se declara como tal («todavía no está en Láminas»), sin mandar al Editor anterior (C32/O3).
 // «Cambiar» (cabecera y Composición) abre «¿Qué lámina?»; «Cambiar» de una ranura, «¿Qué gráfico?» (F6.2).
 
+import { antetituloDelTipo } from "./antetituloDelTipo";
 import { useId, useMemo } from "react";
 import { ChevronRight, History, Lock, X } from "../../../vendor/lucide-react";
 import type { GraficadorRef, Slide } from "../../../api/graficos";
@@ -165,10 +166,11 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
   // C35: sin título escrito sale el nombre de la pregunta del gráfico, como en el editor anterior y en el motor.
   const titulo = tituloPorDefecto(slide, variables, lamina.tipoLabel);
   const idAnte = useId();
+  const ante = antetituloDelTipo(slide.tipo);
 
   return (
     <div className="pulso-f6-pila" data-qa-geometry-group="graficos/f6-contenido-campos" data-qa-geometry-contract="intrinsic">
-      {slide.tipo !== "p_slide_seccion" ? (
+      {ante.modo === "editable" ? (
         <div className="pulso-f6-campo">
           <label htmlFor={idAnte}>Antetítulo</label>
           <input
@@ -185,12 +187,17 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
               : "Ningún separador lo precede: sin texto, la lámina sale sin antetítulo."}
           </span>
         </div>
-      ) : (
+      ) : ante.modo === "capitulo" ? (
         <p className="pulso-f6-candado">
           <Lock size={14} aria-hidden="true" />
           Este separador abre un capítulo: su título es el antetítulo de las láminas que le siguen.
         </p>
-      )}
+      ) : ante.modo === "fijo" ? (
+        <p className="pulso-f6-candado">
+          <Lock size={14} aria-hidden="true" />
+          Antetítulo fijo del estándar: «{ante.texto}».
+        </p>
+      ) : null}
 
       {contenido.campos.map((c) => (
         <CampoTexto
