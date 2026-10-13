@@ -3,9 +3,9 @@ import { contenidoPropuesto, textoFueraDelMazo, tituloPropuesto } from "./vistaP
 
 describe("vista previa de Armar desde", () => {
   test("los motivos de lo que queda fuera se dicen en palabras, con su número", () => {
-    expect(textoFueraDelMazo([{ motivo: "no_graficable" }])).toBe("Fuera del mazo: 1 pregunta numérica, que necesita tramos.");
+    expect(textoFueraDelMazo([{ motivo: "no_graficable" }])).toBe("Fuera del informe: 1 pregunta numérica, que necesita tramos.");
     const texto = textoFueraDelMazo([{ motivo: "sin_diapositiva" }, { motivo: "sin_diapositiva" }, { motivo: "raro" }]);
-    expect(texto).toBe("Fuera del mazo: 2 temas sin diapositiva asignada; 1 tema que no entra.");
+    expect(texto).toBe("Fuera del informe: 2 temas sin lámina asignada; 1 tema que no entra.");
     expect(texto).not.toMatch(/_/);
     expect(textoFueraDelMazo([])).toBe("");
   });

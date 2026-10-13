@@ -349,7 +349,7 @@ export function EquivalenciasDiapositivas({
                             className="pulso-equiv-mover"
                             valor=""
                             vacio="mover"
-                            etiqueta={`Mover ${fila.etiqueta_estandar || "el tema"} a otra diapositiva`}
+                            etiqueta={`Mover ${fila.etiqueta_estandar || "el tema"} a otra lámina`}
                             onCambiar={(v) => {
                               const destino = v.trim();
                               if (destino) onEditarFila(fila.id, "diapositiva", destino);
@@ -376,14 +376,14 @@ export function EquivalenciasDiapositivas({
             className={sinDiapositiva ? "pulso-equiv-diapositiva is-pendiente" : "pulso-equiv-diapositiva"}
             data-qa-geometry-group="carga-equivalencias-diapositiva"
             data-qa-geometry-contract="intrinsic"
-            aria-label={sinDiapositiva ? "Temas sin diapositiva" : `Diapositiva ${diapo.clave}`}
+            aria-label={sinDiapositiva ? "Temas sin lámina" : `Lámina ${diapo.clave}`}
           >
             {/* C1: miembros = cabecera, avisos y tabla. «Añadir tema» es una
                 acción al pie, no una sección de la tarjeta. */}
             <header className="pulso-equiv-diapositiva-head" data-qa-geometry-member>
               <div className="pulso-equiv-diapositiva-id">
                 <Layers size={14} aria-hidden="true" />
-                <span>{sinDiapositiva ? "Sin diapositiva" : diapo.clave}</span>
+                <span>{sinDiapositiva ? "Sin lámina" : diapo.clave}</span>
               </div>
 
               <div className="pulso-equiv-diapositiva-texto">
@@ -391,15 +391,15 @@ export function EquivalenciasDiapositivas({
                   // C5: el vacío de este grupo dice qué es y qué falta, en vez de
                   // parecer una diapositiva más que salió mal.
                   <p className="pulso-equiv-diapositiva-nota">
-                    Estos temas están declarados pero no van a ninguna diapositiva, así que
-                    no entran al mazo. Escríbeles una diapositiva para agruparlos.
+                    Estos temas están declarados pero no van a ninguna lámina, así que
+                    no entran al informe. Escríbeles una lámina para agruparlos.
                   </p>
                 ) : (
                   <CampoEditable
                     className="pulso-equiv-enunciado"
                     valor={diapo.enunciado}
                     vacio="Añadir enunciado"
-                    etiqueta={`Enunciado de la diapositiva ${diapo.clave} — será su título`}
+                    etiqueta={`Enunciado de la lámina ${diapo.clave} — será su título`}
                     onCambiar={(v) => onEditarDiapositiva(diapo.clave, "enunciado", v)}
                   />
                 )}
@@ -510,8 +510,8 @@ export function EquivalenciasDiapositivas({
                           opciones={bloque.opciones}
                           contexto={
                             diapo.bloques.length > 1
-                              ? `el bloque ${bi + 1} de la diapositiva ${diapo.clave}`
-                              : `la diapositiva ${diapo.clave}`
+                              ? `el bloque ${bi + 1} de la lámina ${diapo.clave}`
+                              : `la lámina ${diapo.clave}`
                           }
                         />
                         {diapo.bloques.length > 1 && (

@@ -6956,7 +6956,7 @@ reporte_ppt_plan <- function(
   # hasta ser ilegible, y la unica salida es una lamina de mas.
   plan <- .plan_particionar_escalas(.plan_orden_categorias(plan, instrument_sources, presets, default_source), .slide_plot_elements)  # D8
 
-  if (!length(plan)) .plan_input_abort("No hay diapositivas...")
+  if (!length(plan)) .plan_input_abort("El informe no tiene láminas.")
 
   # ---------------------------------------------------------------------------
   # 7) Abrir plantilla / doc (solo si exporta)

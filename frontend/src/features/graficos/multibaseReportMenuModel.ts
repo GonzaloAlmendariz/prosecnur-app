@@ -37,8 +37,8 @@ export function multibaseReportMenuPresentation(
   const pendingBases = sharedReportPendingRequirements(preflight).length;
   const detail = ready
     ? comparisons > 0
-      ? `${preflight?.releases.length ?? 0} bases · ${preflight?.n_slides ?? 0} diapositivas · ${comparisons} comparaciones`
-      : `${preflight?.releases.length ?? 0} bases · ${preflight?.n_slides ?? 0} diapositivas; sin preguntas comparables detectadas`
+      ? `${preflight?.releases.length ?? 0} bases · ${preflight?.n_slides ?? 0} láminas · ${comparisons} comparaciones`
+      : `${preflight?.releases.length ?? 0} bases · ${preflight?.n_slides ?? 0} láminas; sin preguntas comparables detectadas`
     : status === "blocked"
       ? pendingBases > 0
         ? `${pendingBases} ${pendingBases === 1 ? "base requiere" : "bases requieren"} revisión para el PPT conjunto`

@@ -298,8 +298,8 @@ export function SuggestedPlanButton() {
     (result?.fuente === "equivalencias" || result?.contiene_equivalencias === true)
     && (result?.plan.slides.some(esEquivalente) ?? false);
   const ayudaSincronizar = derivadasEnPlan > 0
-    ? `Reemplaza las ${derivadasEnPlan} diapositivas que salieron de la matriz y deja el resto del mazo intacto.`
-    : "Añade las diapositivas de la matriz como un bloque propio, que podrás actualizar sin tocar el resto.";
+    ? `Reemplaza las ${derivadasEnPlan} láminas que salieron de la matriz y deja el resto del informe intacto.`
+    : "Añade las láminas de la matriz como un bloque propio, que podrás actualizar sin tocar el resto.";
 
   function downloadRecipe() {
     if (!result?.report_inputs) return;
@@ -385,7 +385,7 @@ export function SuggestedPlanButton() {
                   setProfileId("equivalencias");
                   setResult(null);
                 }}
-                title="Arma el informe con las diapositivas de la matriz de Carga → Equivalencias"
+                title="Arma el informe con las láminas de la matriz de Carga → Equivalencias"
               >
                 <GitMerge size={13} /> Equivalencias
               </button>
@@ -398,7 +398,7 @@ export function SuggestedPlanButton() {
                 <small>
                   {result?.declarada === false
                     ? "Este estudio todavía no tiene equivalencias. Complétalas en Carga → Equivalencias para armar el informe desde ellas."
-                    : "Una lámina por cada diapositiva de la matriz, con su enunciado como título y una barra por público. Las preguntas sin diapositiva asignada no entran."}
+                    : "Una lámina por cada una de la matriz, con su enunciado como título y una barra por público. Las preguntas sin lámina asignada no entran."}
                 </small>
               </div>
             )}
@@ -621,7 +621,7 @@ export function SuggestedPlanButton() {
                     hacer y competiría con los otros dos por atención. */}
                 {puedeSincronizar && (
                   <button type="button" onClick={sincronizarPlan} title={ayudaSincronizar}>
-                    <RefreshCw size={12} /> Actualizar diapositivas equivalentes
+                    <RefreshCw size={12} /> Actualizar láminas equivalentes
                   </button>
                 )}
                 <button type="button" onClick={cerrarDevolviendoFoco}>
