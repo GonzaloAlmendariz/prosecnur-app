@@ -123,6 +123,8 @@
   if (identical(espec$tipo, "mapa")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_mapa_cabe(espec)))
   # N6: radar con tabla (lámina 90), si cabe.
   if (identical(espec$tipo, "radar")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_radar_cabe(espec)))
+  # G16: la matriz de cuadrantes (lámina 91), si cabe.
+  if (identical(espec$tipo, "cuadrantes")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_cuadrantes_cabe(espec)))
   # G11: la tabla sin radar (`p_tabla`, láminas 197/225), si cabe.
   if (identical(espec$tipo, "tabla")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_tabla_cabe(espec)))
   # N6: torta y dona (láminas 69 y 70), si caben.
@@ -246,6 +248,11 @@
     return(.lam_laminas_mapa(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                              base = .lam_unir_base(texto(base), texto(pie)), folio = length(doc) + 1L, sub = texto(subtitulo),
                              layout = layout, master = master, por_lamina = por_lamina)$doc)
+  }
+  if (identical(espec$tipo, "cuadrantes")) {
+    return(.lam_laminas_cuadrantes(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
+                                   base = .lam_unir_base(texto(base), texto(pie)), folio = length(doc) + 1L, sub = texto(subtitulo),
+                                   layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "tabla")) {
     return(.lam_laminas_tabla(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),

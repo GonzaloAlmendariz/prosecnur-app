@@ -310,6 +310,12 @@
       "en_selector": true
     },
     {
+      "name": "p_matriz_cuadrantes",
+      "familia_editor": "comparar",
+      "salida": "nativa",
+      "en_selector": true
+    },
+    {
       "name": "p_lollipop",
       "familia_editor": "categorias",
       "salida": "nativa",

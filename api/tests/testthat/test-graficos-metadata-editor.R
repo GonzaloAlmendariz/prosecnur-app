@@ -7,9 +7,9 @@ source("setup-load-all.R")
 
 .FAMILIAS_F6 <- c("categorias", "escalas", "numeros", "comparar", "dimensiones", "territorio", "texto")
 
-test_that("los 27 graficadores declaran familia del editor y salida, con motivo cuando no es nativa", {
+test_that("los 28 graficadores declaran familia del editor y salida, con motivo cuando no es nativa", {
   m <- .GRAFICADORES_META
-  expect_length(m, 27L)
+  expect_length(m, 28L)
   for (nm in names(m)) {
     expect_true(m[[nm]]$familia_editor %in% .FAMILIAS_F6, info = nm)
     expect_true(is.logical(m[[nm]]$salida_nativa) && length(m[[nm]]$salida_nativa) == 1L && !is.na(m[[nm]]$salida_nativa), info = nm)
