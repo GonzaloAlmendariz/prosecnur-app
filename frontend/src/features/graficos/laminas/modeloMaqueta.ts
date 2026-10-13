@@ -213,3 +213,8 @@ export function baseAutomatica(
   if (!partes.length) return null;
   return formato.includes("%s") ? formato.replace("%s", enumerar(partes)) : `Base: ${enumerar(partes)}`;
 }
+
+/** Una línea por pregunta con la escala una sola vez: con muchas preguntas, o desde dos que comparten escala. */
+export function usaFilasCompactas(nPreguntas: number, mismaEscala: boolean): boolean {
+  return nPreguntas > 3 || (nPreguntas >= 2 && mismaEscala);
+}
