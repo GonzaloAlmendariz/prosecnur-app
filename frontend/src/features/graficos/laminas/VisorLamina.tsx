@@ -23,7 +23,8 @@ import { downloadUrl } from "../../../api/core";
 import { IconoTipo } from "../iconos/IconoTipo";
 import type { PreviewFormas, Slide } from "../../../api/graficos";
 import { MaquetaLamina } from "./MaquetaLamina";
-import { camposTextoDe, ZonasTextoLamina, type CampoTextoLamina } from "./ZonasTextoLamina";
+import { varianteDe } from "./selectores/tiposLamina";
+import { camposTextoDe, ZonasTextoLamina, zonasPortada, type CampoTextoLamina } from "./ZonasTextoLamina";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import { composicionDe } from "../iconos/composicion";
 import { SLIDE_GRAF_SLOTS } from "../store";
@@ -268,7 +269,7 @@ export function VisorLamina({
           ) : (
             <MaquetaLamina slide={slide} lamina={lamina} ranuraActiva={ranuraActiva} onRanura={onRanura} onCambiar={onCambiarGrafico} onTexto={onTexto} />
           )}
-          {src && <ZonasTextoLamina onTexto={onTexto} campos={camposTexto} />}
+          {src && <ZonasTextoLamina onTexto={onTexto} campos={camposTexto} zonas={zonasPortada(slide.tipo, varianteDe(slide)) ?? undefined} />}
           {src && <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} onCambiar={onCambiarGrafico} />}
           {/* Las guías son del visor: nunca entran al entregable (D17). Sólo sobre el dibujo real del motor. */}
           {real && !cargando && <GuiasSobreLamina modelo={guias} resaltada={resaltada} hojaRef={hojaRef} />}
