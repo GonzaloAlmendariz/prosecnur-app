@@ -29,7 +29,7 @@ const variables: VarWithSource[] = [
 const slides: Slide[] = [
   { id: "slide_portada_0001", tipo: "p_slide_portada", payload: { titulo: "Informe" } },
   { id: ID_LARGO, tipo: "p_slide_2_graficos", payload: { titulo: "Satisfacción con el curso", izquierda: null, derecha: { graficador: "p_barras_simples", args: { var: "p999", ancho_barra: 9 } } } },
-  { id: ID_ICONO, tipo: "p_slide_objetivo_icono", payload: { titulo: "", icono: "icono_borrado_ab12" } },
+  { id: ID_ICONO, tipo: "p_slide_3_graficos_poblacion_corona", payload: { titulo: "", icono: "icono_borrado_ab12" } },
   { id: ID_ESCALA, tipo: "p_slide_1_grafico", payload: { titulo: { text: "Escalas (cont.)" }, grafico: { graficador: "p_barras_multiapiladas", args: { vars: ["docentes$p1", "docentes$p2"] } } } },
   { id: "slide_sinbase_99", tipo: "p_slide_1_grafico", payload: { titulo: "Turno", grafico: { graficador: "p_barras_simples", args: { var: "p7", cruce: "sexo" } } } },
 ];
@@ -48,7 +48,8 @@ function entrada(parcial: Partial<EntradaValidarPlan> = {}): EntradaValidarPlan 
         { name: "izquierda", role: "chart", label: "Gráfico izquierdo" } as NonNullable<SlideMetadata["slot_specs"]>[number],
         { name: "derecha", role: "chart", label: "Gráfico derecho" } as NonNullable<SlideMetadata["slot_specs"]>[number],
       ]),
-      p_slide_objetivo_icono: meta("Objetivo con icono", ["icono"]),
+      // El objetivo ya no elige ícono (G5, siempre la diana): el ícono perdido se prueba en una lámina de población.
+      p_slide_3_graficos_poblacion_corona: meta("Tres gráficos alrededor del ícono", ["icono"]),
       p_slide_1_grafico: meta("Un gráfico", ["grafico"]),
     },
     graficadoresById: {
@@ -125,7 +126,7 @@ describe("textos reescritos del validador", () => {
   });
 
   test("ícono que ya no está: lámina sin título, tipo con tilde y tuteo", () => {
-    expect(porCodigo("icon-unknown")).toEqual(["Lámina 3 (Objetivo con ícono): el ícono elegido ya no está en el catálogo. Sube uno nuevo o elige otro."]);
+    expect(porCodigo("icon-unknown")).toEqual(["Lámina 3 (Tres gráficos alrededor del ícono): el ícono elegido ya no está en el catálogo. Sube uno nuevo o elige otro."]);
   });
 
   test("variable perdida y variable sin base", () => {

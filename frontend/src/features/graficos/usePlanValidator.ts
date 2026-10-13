@@ -215,7 +215,8 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
     }
 
     // Slot `icono` si el slide lo acepta
-    if (slideMeta.slots.includes("icono")) {
+    // El objetivo lleva siempre la diana del recetario (G5): un ícono viejo en su payload ya no se usa.
+    if (slideMeta.slots.includes("icono") && slide.tipo !== "p_slide_objetivo_icono") {
       const iconRef = (slide.payload as Record<string, unknown>).icono as string | null | undefined;
       if (iconRef && !iconIds.has(iconRef)) {
         issues.push({

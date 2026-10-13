@@ -56,3 +56,11 @@ describe("título por defecto (C35)", () => {
       .toBe("Satisfacción con el servicio");
   });
 });
+
+describe("objetivo (G5/G6)", () => {
+  it("vacío, su rótulo es el del motor: «Objetivo del estudio»", () => {
+    const slide = { id: "o", tipo: "p_slide_objetivo_icono", payload: { titulo: "", texto: "" } } as Slide;
+    expect(tituloPorDefecto(slide, [], "Objetivo con ícono")).toEqual({ placeholder: "Objetivo del estudio", ayuda: "Vacío, sale «Objetivo del estudio»." });
+  });
+
+});
