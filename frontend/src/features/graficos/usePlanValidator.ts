@@ -259,7 +259,7 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
 
   for (const override of overridesReusables) {
     issues.push(...checkNumericArgs(override.args, presetsByName[override.tipo_preset]?.args ?? [], {
-      scope: `Modo «${override.nombre}»`,
+      scope: `Estilo guardado «${override.nombre}»`,
     }));
   }
 
@@ -343,20 +343,20 @@ export function avisoDeVariableNoResuelta(
     return {
       severity: "error",
       code: "var-sin-base",
-      detalle: `la variable «${varName}» no dice de qué base es. Está en ${listarBases(basesDondeExiste)}; vuelve a elegirla para dejarlo escrito.`,
+      detalle: `la pregunta «${varName}» no dice de qué base es. Está en ${listarBases(basesDondeExiste)}; vuelve a elegirla para dejarlo escrito.`,
     };
   }
   if (basesDondeExiste.length > 1) {
     return {
       severity: "error",
       code: "var-sin-base",
-      detalle: `la variable «${varName}» existe en ${listarBases(basesDondeExiste)}. Elige de cuál es: el gráfico no puede resolverla solo.`,
+      detalle: `la pregunta «${varName}» existe en ${listarBases(basesDondeExiste)}. Elige de cuál es: el gráfico no puede resolverla solo.`,
     };
   }
   return {
     severity: "warning",
     code: "var-unknown",
-    detalle: `la variable «${varName}» no está en el instrumento. ¿La renombraste o la borraste?`,
+    detalle: `la pregunta «${varName}» no está en el instrumento. ¿La renombraste o la borraste?`,
   };
 }
 

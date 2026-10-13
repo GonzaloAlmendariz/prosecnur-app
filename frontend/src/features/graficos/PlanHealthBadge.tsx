@@ -46,12 +46,12 @@ export function PlanHealthBadge() {
     ? `${errors.length} error${errors.length === 1 ? "" : "es"}`
     : warnings.length > 0
       ? `${warnings.length} aviso${warnings.length === 1 ? "" : "s"}`
-      : "Plan listo";
+      : "Informe listo";
   const headline = errors.length > 0
     ? "Exportación bloqueada"
     : warnings.length > 0
-      ? "Plan con avisos"
-      : "Plan listo";
+      ? "Informe con avisos"
+      : "Informe listo";
   const detail = errors.length > 0
     ? "Corrige las láminas señaladas antes de generar el PowerPoint o el Word."
     : warnings.length > 0
@@ -63,10 +63,10 @@ export function PlanHealthBadge() {
       ? `${total} temas`
       : label;
   const triggerTitle = !canExport
-    ? "El plan tiene errores que impiden exportar"
+    ? "El informe tiene errores que impiden exportar"
     : warnings.length > 0
-      ? "Validación del plan: se puede exportar, con avisos"
-      : "Validación del plan: listo para exportar";
+      ? "Revisión del informe: se puede exportar, con avisos"
+      : "Revisión del informe: listo para exportar";
 
   function handleJumpTo(issue: ValidationIssue) {
     if (issue.slideId) {
