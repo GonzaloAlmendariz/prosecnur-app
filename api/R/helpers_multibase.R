@@ -86,7 +86,14 @@ run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
     # veces el mismo reporte dentro de la sesión.
     path <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), fname))
 
-    fn(ds[[nombre]], is_[[nombre]], path)
+    # Un render que declara un cuarto argumento recibe el nombre de la base:
+    # lo necesita para resolver la config que es SUYA (p. ej. su ponderación)
+    # en vez de la de la base activa. Los de tres argumentos no cambian.
+    if (length(formals(fn)) >= 4L) {
+      fn(ds[[nombre]], is_[[nombre]], path, nombre)
+    } else {
+      fn(ds[[nombre]], is_[[nombre]], path)
+    }
 
     if (!file.exists(path)) {
       stop_api(500, "E_REPORTE_FAILED",
