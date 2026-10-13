@@ -485,7 +485,9 @@
   ml <- .std_geom("margen_izq"); W <- .std_geom("ancho"); ac <- W - ml - .std_geom("margen_der")
   azul <- .std_color("azul"); coral <- .std_color("coral")
   titulo <- as.character(titulo %||% "")[1]; if (is.na(titulo) || !nzchar(trimws(titulo))) titulo <- "Objetivo del estudio"
-  actores <- as.character(actores %||% character(0)); actores <- actores[nzchar(trimws(actores))]
+  a <- .lam_objetivo_args(actores)   # `actores` puede ser la `meta` de la lámina (variante, dimensiones, actores)
+  if (!identical(a$variante, "clasica")) return(.lam_objetivo_variante_dibujar(doc, texto, titulo, a, layout, master, por_lamina))
+  actores <- a$actores
   doc <- officer::add_slide(doc, layout = layout, master = master)
   lz <- .lam_lienzo(); iconos <- list(list(n = "diana-flecha", x = ml + 0.62 * 0.24, y = 1.25 + 0.62 * 0.24))
   .lam_caja(lz, ml, 1.25, 0.62, 0.62, coral, geom = "ellipse", nombre = "objetivo:icono_fondo")
@@ -515,8 +517,16 @@
 #' objetivos específicos en párrafos pisaba el filete (verificador de N7)— y hasta seis actores con nombre de dos líneas
 #' @keywords internal
 .lam_objetivo_cabe <- function(texto, actores = NULL) {
+  a <- .lam_objetivo_args(actores); actores <- a$actores
+  if (identical(a$variante, "dimensiones")) {   # 28: no lleva el párrafo; cuatro tarjetas y hasta seis actores en fila
+    return(length(a$dimensiones) >= 1L && length(a$dimensiones) <= 4L && length(actores) <= 6L &&
+             all(.lam_alto_tinta(a$dimensiones, 2.49, 14, TRUE) <= 0.6))   # dos líneas, como «Los propósitos de la carrera» en la 28
+  }
   t <- gsub("**", "", as.character(texto %||% "")[1], fixed = TRUE)
   if (is.na(t) || !nzchar(trimws(t))) return(FALSE)
+  if (identical(a$variante, "panel")) {   # 27: el párrafo en 8 in a 20 pt y hasta seis actores en dos filas de tres
+    return(.lam_alto_tinta(t, 8.0, 20, FALSE) <= 2.6 && length(actores) <= 6L)
+  }
   ac <- .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der")
   parrafos <- strsplit(t, "\n")[[1]]; parrafos <- if (length(parrafos)) parrafos else t
   lineas <- sum(vapply(parrafos, function(p) max(1, ceiling(.lam_ancho_tinta(p, 22, TRUE) / (ac - 0.1))), 0))

@@ -7753,8 +7753,8 @@ reporte_ppt_plan <- function(
         render_meta[[length(render_meta) + 1]] <- list(kind = "text", title = as.character(title_slide %||% "")[1], text = as.character(unlist(txt %||% "")))   # el Word lo escribe como texto; el ícono es del PPT (N8.15)
       }
 
-      if (!isTRUE(solo_lista) && !identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_plantilla_estandar(opened_template_path) && .lam_objetivo_cabe(txt, (slide$meta %||% list())$actores)) doc <- .lam_laminas_objetivo(doc, txt, title_slide, (slide$meta %||% list())$actores, PPT_CONTRACT$slide_1$layout, master, .add_partner_footer_logo)$doc
-      if (!isTRUE(solo_lista) && (identical((slide$meta %||% list())$motor_nativo, FALSE) || !.lam_plantilla_estandar(opened_template_path) || !.lam_objetivo_cabe(txt, (slide$meta %||% list())$actores))) {
+      if (!isTRUE(solo_lista) && !identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_plantilla_estandar(opened_template_path) && .lam_objetivo_cabe(txt, slide$meta %||% list())) doc <- .lam_laminas_objetivo(doc, txt, title_slide, slide$meta %||% list(), PPT_CONTRACT$slide_1$layout, master, .add_partner_footer_logo)$doc
+      if (!isTRUE(solo_lista) && (identical((slide$meta %||% list())$motor_nativo, FALSE) || !.lam_plantilla_estandar(opened_template_path) || !.lam_objetivo_cabe(txt, slide$meta %||% list()))) {
         doc <- .add_slide_strict(doc, contract$layout)
 
         if (!is.null(title_slide) && nzchar(trimws(as.character(title_slide)[1]))) {

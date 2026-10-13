@@ -263,7 +263,36 @@ function Cierre({ variante }: { variante: string }) {
   );
 }
 
-function Objetivo() {
+// G6: las tres versiones del recetario (26 clásica, 27 panel, 28 dimensiones).
+function Objetivo({ variante }: { variante: string }) {
+  if (variante === "panel") {
+    return (
+      <>
+        <Caja x={0} y={0} w={4.4} h={7.5} c="banda" rx={0} />
+        <circle cx={1.35} cy={2.3} r={0.6} className="pulso-composicion__papel-claro" />
+        <Renglon x={0.75} y={3.3} w={2.8} h={0.35} c="papel-claro" />
+        <Caja x={0.75} y={4.6} w={0.9} h={0.06} c="titulo" rx={0.02} />
+        {[1.7, 2.15, 2.6, 3.05].map((y, i) => <Renglon key={y} x={5} y={y} w={[7.6, 7.2, 7.8, 5][i]} h={0.15} c="tinta" />)}
+        {[0, 1, 2, 3, 4, 5].map((k) => <circle key={k} cx={5.3 + (k % 3) * 2.675} cy={5.25 + Math.floor(k / 3) * 0.9} r={0.29} className="pulso-composicion__acento" />)}
+      </>
+    );
+  }
+  if (variante === "dimensiones") {
+    return (
+      <>
+        <circle cx={0.8} cy={0.93} r={0.31} className="pulso-composicion__acento" />
+        <Renglon x={1.29} y={0.82} w={3} h={0.2} c="titulo" />
+        {[0, 1, 2, 3].map((k) => (
+          <g key={k}>
+            <Caja x={0.49 + k * 3.19} y={2.1} w={2.94} h={1.35} c="papel-claro" rx={0.04} />
+            <Caja x={0.49 + k * 3.19} y={2.1} w={2.94} h={0.06} c="tinta" rx={0} />
+            <Renglon x={0.74 + k * 3.19} y={2.9} w={2} h={0.15} c="tinta" />
+          </g>
+        ))}
+        {[0, 1, 2, 3, 4, 5].map((k) => <circle key={k} cx={1.53 + k * 2.09} cy={4.81} r={0.36} className="pulso-composicion__acento" />)}
+      </>
+    );
+  }
   return (
     <>
       <Cabecera />
@@ -343,7 +372,7 @@ const DIBUJOS: Readonly<Record<string, (variante: string | null) => JSX.Element>
   p_slide_indice: (v) => <Indice composicion={v ?? "arcos"} />,
   p_slide_seccion: (v) => <Separador nivel={v ?? "capitulo"} />,
   p_slide_cierre: (v) => <Cierre variante={v ?? "contraportada"} />,
-  p_slide_objetivo_icono: () => <Objetivo />,
+  p_slide_objetivo_icono: (v) => <Objetivo variante={v ?? "clasica"} />,
   p_slide_tabla_tecnica: () => <FichaTecnica />,
   p_slide_top_two_box: () => <TopTwoBox />,
   p_slide_redondeo: () => <Redondeo />,
