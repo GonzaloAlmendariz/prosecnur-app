@@ -150,3 +150,35 @@ RI-03, CO-01, CO-03, AP-10, AP-11, A-01, A-02).
 - **Error encontrado:** S-05 Lugar de nacimiento dice que 2025 no tenía «Fuera del país».
   La base 2025 sí lo tiene: P5 código 27 «Fuera del país», 37 casos. Solo 2024 no lo
   tenía. Corregir antes de importar (y avisar: la matriz la compartió Nadia, OIGD).
+
+## R4b: correcciones metodológicas al comparativo (revisor-metodologico, 2026-10-13: RECHAZADO)
+
+Backend de R4 commiteado en 10f2ab416 (verificador APROBADO en contrato y formato). El
+revisor metodológico lo rechazó por cifras que pueden salir mal sin aviso. Pendiente
+como R4b, antes de dar los comparativos por buenos:
+
+1. **Misma fuente que Analítica.** `.armz_preparar` lee `rp_data_sources`
+   (`.equiv_armon_datos_base`). Debe usar la ruta de Analítica (`.load_rp_sources` +
+   `.analitica_apply_data_review` por base, fuente «adaptados» con `_recod`/`_agrup`).
+   Invariante: N sin ponderar del comparativo = denominador de la tabla anual del mismo
+   año y variable cuando el mapa es total. Sin esto un cruce `P8_agrup` falla.
+2. **Ponderación declarada por base.** Una columna `peso` sin declaración no debe
+   ponderar el comparativo: 409 `E_ARMONIZADA_PESO_NO_DECLARADO` o modo explícito. El pie
+   dice cómo se ponderó cada año.
+3. **Casos sin mapa visibles.** `n_sin_mapa` (sustantivos) y `n_especial_sin_mapa` por
+   pregunta y año en el manifest; con sustantivos sin mapa, aviso o error.
+4. **Categoría no ofrecida ese año** (sin origen en el mapa): marca estructural distinta
+   de «0 %» (por acordar con la maqueta, p. ej. «—») y nota al pie.
+5. **«n.a.» separado de defectos.** N==0 con valores no NA en la original es mapa roto
+   (409), no «n.a.». Rechazar variables `select_multiple`.
+6. **Año de ingreso / años de estudio** se armoniza relativo al año de medición, con mapa
+   por base declarado a mano. El importador avisa si las etiquetas de un bloque son años.
+7. Menores: `N_sin_peso` debe contar `w > 0`; probar `haven_labelled` y factor;
+   verificar `sum(w)/n` (2025 suma 2 500 con n = 2 471, +1,2 %) y declarar «N ponderado,
+   sin corrección por efecto de diseño» en el pie.
+8. Notas de la maqueta que el esquema no expresa: nota libre por pregunta («En cada
+   medición la pregunta se refiere al año…») y nota de segmentos; redacción agrupada de
+   bases reducidas; saltos de página para no partir tablas.
+
+Datos medidos: 2024 n = 2 267, suma de pesos 2 267,97, deff 1,03. 2025 n = 2 471, suma
+2 500, deff 1,001.
