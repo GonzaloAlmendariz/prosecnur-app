@@ -204,6 +204,140 @@ export type CodifSinRecodificar = {
   deliberado: boolean;
 };
 
+// ---------- Lo que `/aplicar` no aplicó (ADR 0100, P1) ----------
+//
+// Si a la base le falta la columna de texto de una pregunta codificada, su
+// catálogo no se aplica; y un texto que no está en ningún grupo se queda sin
+// código. Las dos cosas las calcula `api/R/codificacion_omitidas.R`; aquí se
+// normalizan a la defensiva porque R entrega escalares como vectores de largo
+// uno y una lista de largo uno puede llegar desenrollada.
+
+export type CodifOmitidaMotivo =
+  | "sin_grupos"
+  | "sin_fila"
+  | "sin_modo"
+  | "sin_columna_texto"
+  | "sin_columna_padre"
+  | "tipo_no_soportado"
+  | "sin_variable_madre"
+  | "no_se_pudo_aplicar";
+
+/** Una pregunta del catálogo que `/aplicar` no aplicó, con su causa en llano. */
+export type CodifOmitida = {
+  pregunta: string;
+  motivo: CodifOmitidaMotivo;
+  mensaje: string;
+  /** Sólo en agrupaciones: la variable que no se creó. */
+  variable_nueva: string | null;
+};
+
+/** Textos de una pregunta aplicada que no están en ningún grupo. */
+export type CodifTextosSinCodigo = {
+  pregunta: string;
+  columna: string;
+  casos: number;
+  textos: number;
+  ejemplos: string[];
+};
+
+export type CodifAplicarAvisos = {
+  omitidas: CodifOmitida[];
+  textos_sin_codigo: CodifTextosSinCodigo[];
+};
+
+const CODIF_OMITIDA_MOTIVOS: readonly CodifOmitidaMotivo[] = [
+  "sin_grupos",
+  "sin_fila",
+  "sin_modo",
+  "sin_columna_texto",
+  "sin_columna_padre",
+  "tipo_no_soportado",
+  "sin_variable_madre",
+  "no_se_pudo_aplicar",
+];
+
+export const CODIF_MAX_EJEMPLOS_SIN_CODIGO = 5;
+
+function codifRegistro(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function codifEscalar(value: unknown): unknown {
+  return Array.isArray(value) && value.length === 1 ? value[0] : value;
+}
+
+function codifTexto(value: unknown): string {
+  const v = codifEscalar(value);
+  if (typeof v === "string") return v.trim();
+  if (typeof v === "number" && Number.isFinite(v)) return String(v);
+  return "";
+}
+
+function codifEntero(value: unknown): number {
+  const v = codifEscalar(value);
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : NaN;
+  return Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0;
+}
+
+/** Una lista de largo uno puede llegar desenrollada como un único objeto o escalar. */
+function codifLista(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (value === null || value === undefined) return [];
+  if (typeof value === "object" && !Object.keys(value).length) return [];
+  return [value];
+}
+
+function normalizarOmitida(raw: unknown): CodifOmitida | null {
+  const r = codifRegistro(raw);
+  const pregunta = codifTexto(r.pregunta);
+  if (!pregunta) return null;
+  const motivoCrudo = codifTexto(r.motivo);
+  const motivo = (CODIF_OMITIDA_MOTIVOS as readonly string[]).includes(motivoCrudo)
+    ? (motivoCrudo as CodifOmitidaMotivo)
+    : "no_se_pudo_aplicar";
+  return {
+    pregunta,
+    motivo,
+    // El backend siempre explica la causa; sin mensaje, al menos no se calla.
+    mensaje: codifTexto(r.mensaje) || "El catálogo no se pudo aplicar.",
+    variable_nueva: codifTexto(r.variable_nueva) || null,
+  };
+}
+
+function normalizarTextosSinCodigo(raw: unknown): CodifTextosSinCodigo | null {
+  const r = codifRegistro(raw);
+  const pregunta = codifTexto(r.pregunta);
+  const casos = codifEntero(r.casos);
+  if (!pregunta || casos <= 0) return null;
+  const ejemplos = codifLista(r.ejemplos)
+    .map(codifTexto)
+    .filter((e) => e.length > 0)
+    .slice(0, CODIF_MAX_EJEMPLOS_SIN_CODIGO);
+  return {
+    pregunta,
+    columna: codifTexto(r.columna),
+    casos,
+    // Con casos > 0 hay al menos un texto, y nunca menos que los ejemplos.
+    textos: Math.max(codifEntero(r.textos), ejemplos.length, 1),
+    ejemplos,
+  };
+}
+
+/** Lee `omitidas` y `textos_sin_codigo` de la respuesta de `/aplicar`. */
+export function normalizeCodifAplicarAvisos(raw: unknown): CodifAplicarAvisos {
+  const root = codifRegistro(raw);
+  return {
+    omitidas: codifLista(root.omitidas)
+      .map(normalizarOmitida)
+      .filter((o): o is CodifOmitida => o !== null),
+    textos_sin_codigo: codifLista(root.textos_sin_codigo)
+      .map(normalizarTextosSinCodigo)
+      .filter((t): t is CodifTextosSinCodigo => t !== null),
+  };
+}
+
 export async function apiCodifMarcar(parent: string, marcada: boolean) {
   return handle<{ ok: true; parent: string; marcada: boolean }>(
     await apiFetch("/api/codificacion/marcar", {
