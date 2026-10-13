@@ -196,8 +196,8 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   eje_x: { rotulo: "Nombre del eje horizontal", placeholder: "Satisfacción", soloEn: ["p_matriz_cuadrantes"] },
   eje_y: { rotulo: "Nombre del eje vertical", placeholder: "Importancia", soloEn: ["p_matriz_cuadrantes"] },
   linea: { rotulo: "Dónde cortan las líneas", soloEn: ["p_matriz_cuadrantes"] },
-  linea_x: { rotulo: "Corte horizontal (%)", soloEn: ["p_matriz_cuadrantes"], cuando: (v) => v.linea === "valor" },
-  linea_y: { rotulo: "Corte vertical (%)", soloEn: ["p_matriz_cuadrantes"], cuando: (v) => v.linea === "valor" },
+  linea_x: { rotulo: "Línea del eje horizontal (%)", soloEn: ["p_matriz_cuadrantes"], cuando: (v) => v.linea === "valor" },
+  linea_y: { rotulo: "Línea del eje vertical (%)", soloEn: ["p_matriz_cuadrantes"], cuando: (v) => v.linea === "valor" },
   destacado: { rotulo: "Cuadrante destacado", ayuda: "Lleva fondo y, a la derecha, la lista de lo que cae en él.", soloEn: ["p_matriz_cuadrantes"] },
   // G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos. Lo dibuja la lámina que compara públicos.
   // Sólo donde hace algo: la lámina que compara públicos (Gonzalo, 2026-10-13: «que sus opciones tengan sentido»).
