@@ -15,13 +15,18 @@
 # - `n_recibidas = n_entregadas + excluidas`: si no cuadra, se publica la
 #   diferencia en vez de redondearla.
 
-.ORIGEN_EXTERNO_ID_CANDIDATAS <- c("_uuid", "uuid", "meta_instance_id", "instanceid", "_id")
+# Los identificadores de encuesta que acepta la app, la MISMA lista que usa
+# Codificación (`.codif_key_candidates`): Kobo (`_uuid`), SurveyMonkey
+# (`respondent_id`, `response_id`) y el código PULSO. Era sólo la de Kobo y una
+# base de SurveyMonkey no podía declararse. Función y no constante: el archivo
+# se carga antes que router_codificacion.R.
+.origen_externo_id_candidatas <- function() .codif_key_candidates
 
 # Un CSV leído con `check.names` convierte `_uuid` en `X_uuid`: la columna es la
 # misma y no puede quedar sin encontrarse por eso.
 .origen_externo_col_id <- function(nombres) {
   clave <- sub("^x(?=_)", "", tolower(trimws(as.character(nombres))), perl = TRUE)
-  i <- match(.ORIGEN_EXTERNO_ID_CANDIDATAS, clave)
+  i <- match(tolower(.origen_externo_id_candidatas()), clave)
   i <- i[!is.na(i)]
   if (length(i)) i[[1]] else NA_integer_
 }
@@ -49,7 +54,7 @@
   if (is.na(col_id)) {
     stop_api(400, "E_BAD_FILE", paste0(
       "La lista de exclusiones necesita una columna con el identificador de la encuesta (",
-      paste(.ORIGEN_EXTERNO_ID_CANDIDATAS, collapse = ", "), ")."))
+      paste(.origen_externo_id_candidatas(), collapse = ", "), ")."))
   }
   col_motivo <- match("motivo", nombres)
   col_categoria <- match("categoria", sub("í", "i", nombres, fixed = TRUE))
@@ -196,7 +201,7 @@ origen_externo_declarar <- function(sid, base_nombre = NULL, file_id = "",
   if (is.na(col_id)) {
     stop_api(400, "E_BAD_REQUEST", paste0(
       "La base no trae una columna de identificador de encuesta (",
-      paste(.ORIGEN_EXTERNO_ID_CANDIDATAS, collapse = ", "), "): no hay contra qué cruzar la lista."))
+      paste(.origen_externo_id_candidatas(), collapse = ", "), "): no hay contra qué cruzar la lista."))
   }
   exclusiones <- .origen_externo_normalizar_exclusiones(
     .origen_externo_leer_archivo(s, file_id, "exclusiones"))

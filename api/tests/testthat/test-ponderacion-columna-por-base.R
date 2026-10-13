@@ -200,3 +200,9 @@ test_that("Frecuencias multibase: «b» y «c» no heredan el peso de «a» (ren
   expect_equal(leer("b"), c(Si = 2, No = 1, Total = 3))   # casos, sin heredar
   expect_equal(leer("c"), c(Si = 2, No = 1, Total = 3))
 })
+
+test_that("una columna de peso tipo factor usa sus valores, no los códigos de nivel", {
+  d <- data.frame(p1 = c(1, 2, 1), fp = factor(c("2.5", "0.5", "1")))
+  out <- .analitica_ponderacion_apply(d, .pcb_pond_col("fp"))
+  expect_equal(out$peso, c(2.5, 0.5, 1))
+})

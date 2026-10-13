@@ -99,3 +99,14 @@ describe("AplicarOmitidasAviso", () => {
     expect((html.match(/data-qa-geometry-contract="intrinsic"/g) ?? []).length).toBe(2);
   });
 });
+
+describe("AplicarOmitidasAviso con el diagnóstico incompleto (ADR 0100)", () => {
+  it("si el backend no pudo revisar, lo dice aunque las listas vengan vacías", () => {
+    const html = renderToStaticMarkup(
+      <AplicarOmitidasAviso omitidas={[]} textosSinCodigo={[]} incompletos={["las preguntas omitidas"]} />,
+    );
+    expect(html).toContain("codificacion-aplicar-incompleto");
+    expect(html).toContain("No se pudo revisar las preguntas omitidas");
+    expect(html).toContain('role="alert"');
+  });
+});

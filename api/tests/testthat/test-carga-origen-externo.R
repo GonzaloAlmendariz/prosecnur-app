@@ -160,3 +160,41 @@ test_that("con depuración externa las dos «recibidas» no se llaman igual", {
   expect_identical(.vmr_universe_rotulo_total(u), "encuestas cargadas a la plataforma")
   expect_identical(.vmr_universe_rotulo_total(list(total = 3318L)), "encuestas recibidas")
 })
+
+test_that("una base de SurveyMonkey o con código PULSO también se puede declarar", {
+  sm <- data.frame(respondent_id = c("r1", "r2"), motivo = "x", stringsAsFactors = FALSE)
+  expect_identical(.origen_externo_normalizar_exclusiones(sm)$id, c("r1", "r2"))
+  expect_false(is.na(.origen_externo_col_id(c("P1", "response_id"))))
+  expect_false(is.na(.origen_externo_col_id(c("P1", "Código pulso"))))
+  expect_true(is.na(.origen_externo_col_id(c("P1", "P2"))))
+})
+
+test_that("la declaración sobrevive a guardar y reabrir el .pulso (y sigue vigente)", {
+  bytes_xlsx <- function(df) {
+    p <- tempfile(fileext = ".xlsx"); openxlsx::write.xlsx(df, p)
+    on.exit(unlink(p)); readBin(p, "raw", file.info(p)$size)
+  }
+  sid <- session_create()
+  inst <- save_upload(sid, "xlsform", "inst.xlsx", bytes_xlsx(data.frame(type = "text", name = "p1")))
+  dat <- save_upload(sid, "data", "base.xlsx", bytes_xlsx(data.frame(`_uuid` = c("d", "e"), check.names = FALSE)))
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  ex <- .origen_externo_normalizar_exclusiones(.oe_lista())
+  s$estudio$bases[["default"]] <- list(
+    nombre = "default", xlsform_file_id = inst$file_id, data_file_id = dat$file_id, data_ext = "xlsx",
+    origen_externo = origen_externo_construir(ex, c("d", "e"), n_recibidas = 5L,
+                                              data_file_id = dat$file_id)$bloque
+  )
+  .session_env[[sid]] <- s
+  tmp <- tempfile(fileext = ".pulso")
+  on.exit({ unlink(tmp, force = TRUE); session_delete(sid) }, add = TRUE)
+
+  expect_true(build_pulso(sid, tmp, project_name = "Origen externo")$ok)
+  res <- load_pulso(tmp)
+  on.exit(session_delete(res$session_id), add = TRUE)
+
+  r <- origen_externo_consultar(res$session_id, "default")
+  expect_identical(r$estado, "vigente")
+  expect_identical(c(r$resumen$recibidas, r$resumen$excluidas, r$resumen$entregadas), c(5L, 3L, 2L))
+  expect_length(session_get(res$session_id)$estudio$bases$default$origen_externo$exclusiones, 3L)
+})

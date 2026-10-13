@@ -1130,6 +1130,7 @@ export async function apiCodifAplicar(): Promise<CodifAplicarRespuesta> {
     sin_recodificar?: CodifSinRecodificar[];
     omitidas?: unknown;
     textos_sin_codigo?: unknown;
+    avisos_incompletos?: unknown;
   }>(
     await apiFetch("/api/codificacion/aplicar", { method: "POST", headers: headers() })
   );
@@ -1141,6 +1142,7 @@ export async function apiCodifAplicar(): Promise<CodifAplicarRespuesta> {
     sin_recodificar: raw.sin_recodificar,
     omitidas: avisos.omitidas,
     textos_sin_codigo: avisos.textos_sin_codigo,
+    avisos_incompletos: avisos.avisos_incompletos,
   };
 }
 

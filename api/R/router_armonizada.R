@@ -7,12 +7,21 @@
 # armonizar, fila inexistente, variable ausente, columna de peso inexistente)
 # salen síncronos, antes del job.
 #
-#   POST /api/analitica/armonizada/frecuencias {filas?, rotulos_periodos?}
-#   POST /api/analitica/armonizada/cruces      {filas?, cruces, rotulos_periodos?}
+#   POST /api/analitica/armonizada/frecuencias {filas?, rotulos_periodos?,
+#        notas_pregunta?, notas_generales?}
+#   POST /api/analitica/armonizada/cruces      {filas?, cruces, rotulos_periodos?,
+#        notas_pregunta?, notas_generales?}
 #
-# Respuesta: {ok, job_id, kind}. El resultado del job (GET /api/jobs/<id>)
+# `notas_pregunta` es {<id|etiqueta|variable de la fila>: "texto"} y se imprime
+# bajo el pie de esa pregunta. `notas_generales` es ["texto", ...] y se imprime
+# bajo el pie de todas. Errores de dominio R4b (409): E_ARMONIZADA_PESO_NO_DECLARADO,
+# E_ARMONIZADA_MAPA_ROTO, E_ARMONIZADA_SELECT_MULTIPLE. Notas mal formadas: 400
+# E_ARMONIZADA_NOTAS_INVALIDAS.
+#
+# Respuesta: {ok, job_id, kind, periodos}. El resultado del job (GET /api/jobs/<id>)
 # trae {ok, file_id, filename, size, sha256, artifacts[deliverable, manifest],
-# periodos, resumen}.
+# periodos, resumen}. `resumen.preguntas[*].sin_mapa` y `resumen.avisos`
+# declaran los casos sin correspondencia y las sumas de pesos desviadas.
 
 #' Worker del job: modelo + writer + manifest.
 #'
@@ -28,12 +37,14 @@ armonizada_job_worker <- function(input_path, result_path, progress_path = NULL)
     modelo <- armonizada_modelo_cruces(inp$ap, alpha = inp$alpha)
     report("writing", percent = 70, message = "Escribiendo el comparativo de cruces...")
     reporte_comparativo_cruces(modelo, result_path, inp$rotulos, notas = inp$notas,
-                               alpha = inp$alpha, show_sig = inp$show_sig)
+                               alpha = inp$alpha, show_sig = inp$show_sig, extras = inp$extras)
   } else {
     modelo <- armonizada_modelo_frecuencias(inp$ap)
     report("writing", percent = 70, message = "Escribiendo el comparativo simple...")
-    reporte_comparativo_simple(modelo, result_path, inp$rotulos, notas = inp$notas)
+    reporte_comparativo_simple(modelo, result_path, inp$rotulos, notas = inp$notas,
+                               extras = inp$extras)
   }
+  resumen$avisos <- armonizada_avisos(inp$ap, inp$rotulos, (inp$extras %||% list())$notas_pregunta)
   manifest_path <- paste0(result_path, ".manifest.json")
   reporte_comparativo_manifest(manifest_path, inp$tipo, result_path, inp$filename,
                                inp$ap$periodos, inp$rotulos, inp$ap$ponderacion, resumen)
@@ -61,6 +72,24 @@ attr(armonizada_job_worker, "prosecnur_job_function_name") <- "armonizada_job_wo
   list(meta = meta, artifacts = list(artefacto(meta, "deliverable"), artefacto(man, "manifest")))
 }
 
+# Notas libres del body: {clave: texto} y [texto]. Sin cadenas vacías.
+.armonizada_extras <- function(body) {
+  np <- body$notas_pregunta %||% list()
+  ng <- body$notas_generales %||% list()
+  es_texto <- function(x) is.character(x) && length(x) == 1L && !is.na(x)
+  if (!is.list(np) || (length(np) && (is.null(names(np)) || any(!nzchar(names(np))))) ||
+      !all(vapply(np, es_texto, logical(1)))) {
+    stop_api(400, "E_ARMONIZADA_NOTAS_INVALIDAS",
+             "'notas_pregunta' debe ser un objeto {pregunta: texto}.")
+  }
+  if (!(is.list(ng) || is.character(ng)) || !all(vapply(as.list(ng), es_texto, logical(1)))) {
+    stop_api(400, "E_ARMONIZADA_NOTAS_INVALIDAS", "'notas_generales' debe ser una lista de textos.")
+  }
+  np <- np[nzchar(trimws(unlist(np)))]
+  ng <- unlist(ng, use.names = FALSE)
+  list(notas_pregunta = lapply(np, trimws), notas_generales = trimws(ng[nzchar(trimws(ng))]))
+}
+
 .armonizada_submit <- function(sid, tipo, body) {
   cfg <- .analitica_get_config(sid)
   cc <- cfg$cruces %||% list()
@@ -69,6 +98,7 @@ attr(armonizada_job_worker, "prosecnur_job_function_name") <- "armonizada_job_wo
     stop_api(400, "E_ARMONIZADA_SIN_CRUCES",
              "Elige al menos una variable de cruce armonizada.")
   }
+  extras <- .armonizada_extras(body)
   ap <- .armz_preparar(sid, cfg, filas_refs = body$filas,
                        cruces_refs = if (identical(tipo, "cruces")) cruces_refs else NULL)
   rotulos <- .armz_rotulos(ap$periodos, body$rotulos_periodos)
@@ -78,7 +108,7 @@ attr(armonizada_job_worker, "prosecnur_job_function_name") <- "armonizada_job_wo
   filename <- .export_filename(sid, kind, "xlsx")
   input_path <- job_save_rds(sid, paste0("armonizada_", tipo), list(
     tipo = tipo, ap = ap, rotulos = rotulos, notas = cfg$notas, alpha = alpha,
-    show_sig = isTRUE(cc$show_sig %||% TRUE), filename = filename
+    show_sig = isTRUE(cc$show_sig %||% TRUE), filename = filename, extras = extras
   ))
   periodos_out <- lapply(ap$periodos, function(b) list(base = b, rotulo = unname(rotulos[[b]])))
   job_kind <- paste0("analitica.armonizada.", tipo)
