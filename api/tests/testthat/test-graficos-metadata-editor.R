@@ -23,8 +23,9 @@ test_that("los 27 graficadores declaran familia del editor y salida, con motivo 
 test_that("lo que hoy no tiene pieza del recetario no se anuncia nativo", {
   m <- .GRAFICADORES_META
   no_nativos <- names(m)[!vapply(m, `[[`, logical(1), "salida_nativa")]
-  # G11 (2026-10-13): los puntos comparativos salen como el ranking con puntos del recetario (lámina 72).
-  expect_setequal(no_nativos, c("p_nube_palabras", "p_tabla", "p_dim_radar", "p_dim_foda"))
+  # G11 (2026-10-13): los puntos comparativos salen como el ranking con puntos (lámina 72), y el radar por dimensiones
+  # ya salía nativo con tres ejes o más: lo declarado decía lo contrario (test-dim-radar-nativo.R).
+  expect_setequal(no_nativos, c("p_nube_palabras", "p_tabla", "p_dim_foda"))
   expect_identical(m$p_nube_palabras$salida, "marco")
   expect_identical(m$p_dim_heatmap_criterios$salida, "nativa")          # la 93 ya es nativa (test-lamina-criterios.R)
 })
