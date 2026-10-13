@@ -229,6 +229,12 @@ errores_registrados <- function() {
     "E_ANALITICA_NO_PREP",                                   "router_analitica.R",                "409",
     "E_ANALITICA_PANEL_SOURCE_MISSING",                      "analitica_panel.R",                 "409",
     "E_ANALITICA_SOURCE_MISSING",                            "router_analitica.R",                "409",
+    # Comparativos armonizados de una serie de mediciones (contrato E4-E7, R4).
+    "E_ARMONIZADA_PERIODOS",                                 "analitica_armonizada.R",            "409",
+    "E_ARMONIZADA_SIN_CRUCES",                               "router_armonizada.R",               "400",
+    "E_ARMONIZADA_SIN_FILAS",                                "analitica_armonizada.R",            "409",
+    "E_ARMONIZADA_SIN_MATRIZ",                               "analitica_armonizada.R",            "409",
+    "E_ARMONIZADA_SIN_RESULTADO",                            "router_armonizada.R",               "500",
     "E_AULAS_AGENDA",                                        "router_monitoreo.R",                "400",
     "E_AULAS_IMPORT",                                        "router_monitoreo.R",                "400",
     "E_AULAS_REEMPLAZO",                                     "router_monitoreo.R",                "400",

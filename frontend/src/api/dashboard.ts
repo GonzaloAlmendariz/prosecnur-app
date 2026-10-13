@@ -3,7 +3,8 @@
 // importan del barrel ./client; este módulo no cambia el contrato.
 
 import { apiFetch, downloadFailedMessage, handle, headers } from "./core";
-import type { CodifSinRecodificar } from "./codificacion";
+import type { CodifAplicarAvisos, CodifSinRecodificar } from "./codificacion";
+import { normalizeCodifAplicarAvisos } from "./codificacion";
 
 // ---- Dimensiones (tab Analítica → Dimensiones) ---------------------------
 
@@ -1109,18 +1110,38 @@ export type AplicarResult = {
   instrumento_adaptado: { file_id: string; size: number };
 };
 
-export async function apiCodifAplicar() {
+export type CodifAplicarRespuesta = CodifAplicarAvisos & {
+  ok: true;
+  job_id: string;
+  kind: string;
+  sin_recodificar?: CodifSinRecodificar[];
+};
+
+export async function apiCodifAplicar(): Promise<CodifAplicarRespuesta> {
   // `sin_recodificar` (ADR 0078, invariante 5): qué variables se entregan sin
   // recodificar, separando la decisión deliberada del olvido. Informa, no
   // bloquea — un gate acá se satisfaría desmarcando todo.
-  return handle<{
+  // `omitidas` y `textos_sin_codigo` (ADR 0100, P1): lo que el catálogo no
+  // alcanzó a aplicar. Llegan de R y se normalizan a la defensiva.
+  const raw = await handle<{
     ok: true;
     job_id: string;
     kind: string;
     sin_recodificar?: CodifSinRecodificar[];
+    omitidas?: unknown;
+    textos_sin_codigo?: unknown;
   }>(
     await apiFetch("/api/codificacion/aplicar", { method: "POST", headers: headers() })
   );
+  const avisos = normalizeCodifAplicarAvisos(raw);
+  return {
+    ok: raw.ok,
+    job_id: raw.job_id,
+    kind: raw.kind,
+    sin_recodificar: raw.sin_recodificar,
+    omitidas: avisos.omitidas,
+    textos_sin_codigo: avisos.textos_sin_codigo,
+  };
 }
 
 // ---- Plan de adaptación (paso 3) ------------------------------------------
