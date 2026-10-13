@@ -1680,8 +1680,13 @@
     icono_ui      = "MoveHorizontal",
     categoria     = "comparison",
     blueprint     = "dumbbell",
-    requisito     = "Todos los temas deben declarar la misma pareja ordenada y completa de dos fuentes distintas.",
+    requisito     = "Todos los temas deben declarar la misma pareja ordenada y completa de dos fuentes distintas, o —con «Comparar dos grupos de»— una pregunta por tema de la misma base que el cruce.",
     args = c(list(
+      # G17 (Gonzalo, 2026-10-13): la brecha también entre dos grupos de una base (lámina 250 del diseño).
+      list(name = "cruce", label = "Comparar dos grupos de", tipo_input = "variable_opt", grupo = "datos",
+           descripcion = "Pregunta que define los grupos (ej. sexo, condición). Vacía, compara dos bases."),
+      list(name = "grupos", label = "Grupos que se comparan", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Los dos códigos del cruce, en orden: la brecha es el primero menos el segundo."),
       list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
            descripcion = "Códigos de una firma E1 común sobre select_one plano independiente; aplica filtros y peso activo en cada fuente."),
       list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos"),
