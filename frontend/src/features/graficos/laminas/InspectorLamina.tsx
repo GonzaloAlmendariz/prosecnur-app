@@ -5,10 +5,9 @@
 
 import { antetituloDelTipo, esLaminaFija } from "./antetituloDelTipo";
 import { useId, useMemo } from "react";
-import { ChevronRight, History, Lock, X } from "../../../vendor/lucide-react";
+import { AlertTriangle, History, Lock, X } from "../../../vendor/lucide-react";
 import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { GlidingTabList } from "../../../components/GlidingTabList";
-import { Switch } from "../../../components/Switch";
 import { EditorIndice } from "../indice/EditorIndice";
 import { ARGS_FIJADOS_INDICE } from "../indice/fijadosIndiceModel";
 import { useVariables } from "../useVariables";
@@ -20,23 +19,28 @@ import { nombreSlot } from "./selectores/etiquetas";
 import { graficadorDisplayName } from "../graficadorDisplay";
 import { conSlideMeta, leerSlideMeta } from "../slideMeta";
 import { IconoTipo } from "../iconos/IconoTipo";
-import { firstVariableRefFromGraph } from "../slideAutoTitle";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
 import { useGraficosRegistry } from "../useGraficosRegistry";
+import { usePlanValidator } from "../usePlanValidator";
 import { contenidoDeLamina } from "./contenidoLamina";
-import { ETIQUETA_ESTADO, estadoDeLamina, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
+import { estadoDeLamina, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { useLaminasUi, type SeccionInspector } from "./laminasStore";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import "./inspectorLamina.css";
 
-// Tres pestañas con una sola función cada una (Gonzalo, I11): la lámina (tipo, composición y textos), un gráfico a la vez
-// y la revisión de cómo sale. «composicion» sigue siendo una clave válida (direcciones viejas) y abre «Lámina».
+// G14 (Gonzalo, 2026-10-13): dos pestañas, cada una con una función: «Lámina» (qué es, su composición y sus textos en el
+// orden en que salen) y «Gráfico» (un gráfico a la vez). La lámina de estructura no tiene «Gráfico». «Revisión» se quitó
+// («no entiendo el propósito»): los avisos de la lámina van en una franja arriba y «sale como imagen» dentro de «Gráfico».
+// «composicion» y «estado» siguen siendo claves válidas de direcciones viejas: abren «Lámina» y «Gráfico».
 const SECCIONES: { key: SeccionInspector; label: string }[] = [
   { key: "contenido", label: "Lámina" },
   { key: "graficos", label: "Gráfico" },
-  { key: "estado", label: "Revisión" },
 ];
+
+/** Orden de los textos en la lámina: arriba hacia abajo. Los demás campos van después, en el orden del registro. */
+const ORDEN_TEXTOS = ["titulo", "subtitulo", "texto", "fecha", "subtexto", "base", "nota", "pie"];
+const ordenTexto = (n: string) => { const i = ORDEN_TEXTOS.indexOf(n); return i < 0 ? ORDEN_TEXTOS.length : i; };
 
 /** Rótulos y ayudas de los textos de la lámina, en el idioma del usuario (el registro trae «slide» y «disclaimer»). */
 const TEXTOS_CAMPO: Record<string, { label: string; descripcion: string }> = {
@@ -73,12 +77,14 @@ type Props = {
 export function InspectorLamina({
   slide, lamina, ranura, onRanura, visor, onCerrar, onCambiarLamina, onCambiarGrafico,
 }: Props) {
-  const seccion = useLaminasUi((s) => s.seccionInspector);
+  const seccionGuardada = useLaminasUi((s) => s.seccionInspector);
   const setSeccion = useLaminasUi((s) => s.setSeccionInspector);
   const baseId = useId();
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
-  const estado = visor ? estadoDeLamina(visor) : null;
-  const avisos = visor?.avisos.length ?? 0;
+  const conGraficos = slots.length > 0;
+  const seccion: SeccionInspector = conGraficos && (seccionGuardada === "graficos" || seccionGuardada === "estado") ? "graficos" : "contenido";
+  const { issues } = usePlanValidator();
+  const avisos = [...issues.filter((i) => i.slideId === slide.id).map((i) => i.message), ...(visor?.avisos ?? [])];
 
   const tabId = (k: SeccionInspector) => `${baseId}-tab-${k}`;
   const panelId = (k: SeccionInspector) => `${baseId}-panel-${k}`;
@@ -90,12 +96,8 @@ export function InspectorLamina({
           <IconoTipo clase="lamina" tipo={slide.tipo} size={24} className="pulso-icono-tipo--acento" />
         </span>
         <span className="pulso-f6-inspector-tipo-texto">
-          <strong id="pulso-f6-inspector-titulo">{lamina.tipoLabel}</strong>
-          <span>
-            {slots.length > 0
-              ? `${slots.length} ${slots.length === 1 ? "gráfico" : "gráficos"} · lámina ${lamina.posicion}`
-              : `Lámina ${lamina.posicion}`}
-          </span>
+          <strong id="pulso-f6-inspector-titulo">Lámina {lamina.posicion} · {lamina.tipoLabel}</strong>
+          <span>{conGraficos ? (lamina.antetituloHeredado ? `Capítulo: ${lamina.antetituloHeredado}` : "Sin capítulo") : "Estructura del informe"}</span>
         </span>
         <button type="button" className="pulso-f6-boton pulso-f6-inspector-cambiar" onClick={onCambiarLamina} aria-label={`Cambiar el tipo de la lámina ${lamina.posicion}`}>
           Cambiar
@@ -105,46 +107,54 @@ export function InspectorLamina({
         </button>
       </header>
 
-      <GlidingTabList activeKey={seccion === "composicion" ? "contenido" : seccion} className="pulso-f6-inspector-tabs" role="tablist" aria-label="Secciones de la lámina">
-        {SECCIONES.map(({ key, label }) => (
-          <button
-            key={key}
-            id={tabId(key)}
-            type="button"
-            role="tab"
-            data-gliding-key={key}
-            aria-selected={seccion === key || (key === "contenido" && seccion === "composicion")}
-            aria-controls={panelId(key)}
-            tabIndex={seccion === key ? 0 : -1}
-            className={`pulso-f6-inspector-tab${seccion === key || (key === "contenido" && seccion === "composicion") ? " is-activa" : ""}`}
-            onClick={() => setSeccion(key)}
-          >
-            {label}
-            {key === "estado" && (estado === "ruta_anterior" || avisos > 0) && (
-              <span className="pulso-f6-marca-aviso" aria-label={estado === "ruta_anterior" ? "sale como imagen" : `${avisos} avisos`} />
-            )}
-          </button>
-        ))}
-      </GlidingTabList>
+      {avisos.length > 0 && (
+        <div className="pulso-f6-inspector-avisos" role="status" aria-label={`${avisos.length} ${avisos.length === 1 ? "aviso" : "avisos"} en esta lámina`}>
+          <AlertTriangle size={14} aria-hidden="true" />
+          <ul>{avisos.map((a) => <li key={a}>{a}</li>)}</ul>
+        </div>
+      )}
+
+      {conGraficos && (
+        <GlidingTabList activeKey={seccion} className="pulso-f6-inspector-tabs" role="tablist" aria-label="Secciones de la lámina">
+          {SECCIONES.map(({ key, label }) => (
+            <button
+              key={key}
+              id={tabId(key)}
+              type="button"
+              role="tab"
+              data-gliding-key={key}
+              aria-selected={seccion === key}
+              aria-controls={panelId(key)}
+              tabIndex={seccion === key ? 0 : -1}
+              className={`pulso-f6-inspector-tab${seccion === key ? " is-activa" : ""}`}
+              onClick={() => setSeccion(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </GlidingTabList>
+      )}
 
       <div
         className="pulso-f6-inspector-cuerpo"
-        role="tabpanel"
+        role={conGraficos ? "tabpanel" : undefined}
         id={panelId(seccion)}
-        aria-labelledby={tabId(seccion)}
+        aria-labelledby={conGraficos ? tabId(seccion) : undefined}
         tabIndex={0}
       >
-        {(seccion === "contenido" || seccion === "composicion") && (
+        {seccion === "contenido" && (
           <>
-            <SeccionContenido slide={slide} lamina={lamina} />
-            <h3 className="pulso-f6-subtitulo pulso-f6-inspector-apartado">Composición</h3>
             <SeccionComposicion slide={slide} lamina={lamina} ranura={ranura} onCambiarLamina={onCambiarLamina} />
+            <h3 className="pulso-f6-subtitulo pulso-f6-inspector-apartado">Textos, en el orden en que salen</h3>
+            <SeccionContenido slide={slide} lamina={lamina} />
           </>
         )}
         {seccion === "graficos" && (
-          <SeccionGraficos slide={slide} slots={slots} ranura={ranura} onRanura={onRanura} onCambiarGrafico={onCambiarGrafico} />
+          <>
+            <SalidaDelGrafico slide={slide} visor={visor} />
+            <SeccionGraficos slide={slide} slots={slots} ranura={ranura} onRanura={onRanura} onCambiarGrafico={onCambiarGrafico} />
+          </>
         )}
-        {seccion === "estado" && <SeccionEstado slide={slide} visor={visor} />}
       </div>
     </aside>
   );
@@ -211,7 +221,7 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
         </p>
       )}
 
-      {!esLaminaFija(slide.tipo) && contenido.campos.map((c) => (
+      {!esLaminaFija(slide.tipo) && [...contenido.campos].sort((a, b) => ordenTexto(a.name) - ordenTexto(b.name)).map((c) => (
         <CampoTexto
           key={c.name}
           campo={{ ...c, ...((slide.tipo === "p_slide_objetivo_icono" ? TEXTOS_OBJETIVO[c.name] : null) ?? TEXTOS_CAMPO[c.name] ?? {}) }}
@@ -344,51 +354,36 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
   );
 }
 
-function SeccionEstado({ slide, visor }: { slide: Slide; visor: LaminaVisor | null }) {
+/**
+ * Sólo cuando el gráfico NO sale editable: dice por qué y, si fue una elección guardada en un plan viejo
+ * (`meta.motor_nativo = FALSE`), ofrece volver al editable. Ya no se ofrece pasar a imagen (G14: «el motor ya lo hace mejor»).
+ */
+function SalidaDelGrafico({ slide, visor }: { slide: Slide; visor: LaminaVisor | null }) {
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
   const apagado = leerSlideMeta(slide).motor_nativo === false;
   const estado = visor ? estadoDeLamina(visor) : null;
-  const idRuta = useId();
+  if (!apagado && estado !== "ruta_anterior" && !(visor && visor.partes.length > 1)) return null;
   return (
-    <div className="pulso-f6-pila" data-qa-geometry-group="graficos/f6-estado" data-qa-geometry-contract="intrinsic">
-      {estado === "ruta_anterior" && (
+    <div className="pulso-f6-pila" data-qa-geometry-group="graficos/f6-salida" data-qa-geometry-contract="intrinsic">
+      {(estado === "ruta_anterior" || apagado) && (
         <div className="pulso-f6-tarjeta is-ruta">
           <div>
             <strong>Sale como imagen</strong>
-            <p>{motivoDeEstado(estado, apagado, (visor?.avisos.length ?? 0) > 0)}</p>
+            <p>{motivoDeEstado(estado ?? "ruta_anterior", apagado, (visor?.avisos.length ?? 0) > 0)}</p>
+            {apagado && (
+              <button type="button" className="pulso-f6-boton"
+                onClick={() => updatePayload(slide.id, { meta: conSlideMeta(slide, { motor_nativo: undefined }).payload.meta })}>
+                Volver a editable
+              </button>
+            )}
           </div>
         </div>
       )}
       {visor && visor.partes.length > 1 && (
-        <ul className="pulso-f6-lista-partes">
-          {visor.partes.map((p) => (
-            <li key={p.indice}>
-              Parte {p.indice}{p.continuacion ? " (cont.)" : ""}: {p.estado ? ETIQUETA_ESTADO[p.estado] : "sin dato"}
-            </li>
-          ))}
-        </ul>
+        <p className="pulso-f6-ayuda">
+          Sale en {visor.partes.length} láminas: {visor.partes.map((p) => `${p.indice}${p.continuacion ? " (cont.)" : ""}`).join(", ")}.
+        </p>
       )}
-      <section aria-label="Avisos">
-        <h3 className="pulso-f6-subtitulo">Avisos</h3>
-        {visor && visor.avisos.length > 0 ? (
-          <ul className="pulso-f6-avisos">
-            {visor.avisos.map((a) => <li key={a}>{a}</li>)}
-          </ul>
-        ) : (
-          <p className="pulso-f6-ayuda">{visor ? "Sin avisos." : "Aparecen al generar la vista."}</p>
-        )}
-      </section>
-      <div className="pulso-f6-fila-switch">
-        <span id={idRuta}>
-          <strong>Insertar el gráfico como imagen</strong>
-          <span className="pulso-f6-ayuda">Deja de ser editable en PowerPoint.</span>
-        </span>
-        <Switch
-          checked={apagado}
-          ariaLabel="Insertar el gráfico como imagen en esta lámina"
-          onToggle={() => updatePayload(slide.id, { meta: conSlideMeta(slide, { motor_nativo: apagado ? undefined : false }).payload.meta })}
-        />
-      </div>
     </div>
   );
 }
