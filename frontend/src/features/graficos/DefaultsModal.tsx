@@ -351,7 +351,7 @@ function OverridesDefaultsEditor() {
   }, [backendOverrides]);
 
   if (loadingBackend || loadingCatalog) {
-    return <LoadingBlock label="Cargando estilos guardados iniciales..." />;
+    return <LoadingBlock label="Cargando estilos guardados iniciales…" />;
   }
 
   const selected = draft.find((o) => o.id === selectedId);

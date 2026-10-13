@@ -46,7 +46,7 @@ export function analiticaFuenteGuidance({
   codificadaDisponible: boolean;
   usandoAdaptados: boolean;
 }) {
-  if (prepBusy) return "Preparando datos...";
+  if (prepBusy) return "Preparando datos…";
   if (prepError) return `Error preparando: ${prepError}`;
   if (!codificadaDisponible) {
     return "Trabaja con la base cargada. La fuente codificada aparecerá cuando termines Codificación.";
@@ -241,7 +241,7 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
             onImport={ioImport}
             filenamePrefix="prosecnur_analitica"
             exportLabel="Guardar plantilla"
-            importLabel="Aplicar plantilla..."
+            importLabel="Aplicar plantilla…"
             exportTitle="Guarda una plantilla JSON de Analítica. No incluye respuestas ni bases."
             importTitle="Aplica una plantilla JSON de Analítica sin reemplazar las respuestas del proyecto."
             exportSuccessLabel="Plantilla guardada"
@@ -338,7 +338,7 @@ function AnaliticaTemplateMenu({
     }
   }
 
-  const busyLabel = busy === "export" ? "Guardando..." : busy === "import" ? "Aplicando..." : "Plantilla";
+  const busyLabel = busy === "export" ? "Guardando…" : busy === "import" ? "Aplicando…" : "Plantilla";
 
   return (
     <div className="pulso-analitica-template-menu" ref={rootRef}>
@@ -374,7 +374,7 @@ function AnaliticaTemplateMenu({
           >
             <Upload size={13} />
             <span>
-              <strong>Aplicar plantilla...</strong>
+              <strong>Aplicar plantilla…</strong>
               <small>Actualiza solo la configuración.</small>
             </span>
           </button>

@@ -366,7 +366,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
             ) : layoutLoading ? (
               <div className="pulso-slide-preview-placeholder">
                 <Loader2 size={18} className="pulso-spin" />
-                <span>Cargando distribución de referencia...</span>
+                <span>Cargando distribución de referencia…</span>
               </div>
             ) : hasEffectiveComposition && composition ? (
               <SlideLayoutViewer
