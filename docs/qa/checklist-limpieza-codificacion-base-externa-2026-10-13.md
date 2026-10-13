@@ -138,3 +138,18 @@ sin hallazgos. Pendientes que dejó y cómo quedaron:
   pantalla lo muestre.
 - Ida y vuelta del `.pulso` sin test automático: ☑ test en
   `test-carga-origen-externo.R` (guarda, reabre y sigue vigente).
+
+## P2b — la base preparada fuera difiere en casos y en variables (Enmienda 1, 2026-10-13)
+
+Pedido de Gonzalo: «no siempre van a ser casos de burla […] una base con x menos casos o una base con menos
+variables […] una metavariable como inicio de la encuesta que de cara al cliente no es útil».
+
+| # | Pieza | Estado |
+|---|---|---|
+| P2b.1 | Detectar solas las variables del instrumento que no llegan en la base; metadatos marcados solos | ☑ c874192f0 (HSyVBG: `start`, `end`) |
+| P2b.2 | Declarar sólo variables, sólo casos o ambos; motivo de casos en texto libre | ☑ c874192f0, 5e2633dd4 |
+| P2b.3 | Las de motivo Metadato o No va al cliente se suman a `variables_excluidas` de Analítica | ☑ c874192f0 |
+| P2b.4 | Ficha e informe: «se retiraron k variables del instrumento (m metadatos)» | ☑ c874192f0 (la frase verificada; el PDF no se renderizó: el proyecto no tiene plan de validación) |
+| P2b.5 | Panel «Base preparada fuera de la plataforma» con dos partes | ☑ 5e2633dd4, 9251b0b3d; QA visual pasa con observaciones, corregidas |
+| P2b.6 | Analítica no tiene un lugar visible para ver o editar `variables_excluidas` | ◐ avisado a la sesión de entregables (es su área) |
+| P2b.7 | La pregunta que falta se sigue recreando vacía en la base de trabajo (backfill); ahora queda declarada y fuera de los entregables | ◐ aceptado: Validación y Codificación la necesitan como columna |
