@@ -2191,19 +2191,19 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     "var_or_vars"
   }
   requirement_label <- if (identical(name, "p_puntos_comparativos")) {
-    "Selecciona indicador, agrupación y uno o más códigos objetivo de la base activa."
+    "Elige la pregunta, la que define los grupos y las respuestas que suman, de la base activa."
   } else if (identical(name, "p_dumbbell")) {
     "Elige la pregunta que define los dos grupos, los grupos y las preguntas; entre dos bases sale de la matriz de equivalencias."
   } else if (identical(name, "p_mapa_resultado_distrital")) {
-    "Selecciona indicador, la pregunta con el distrito y uno o más códigos objetivo de la base activa."
+    "Elige la pregunta, la del distrito y las respuestas que suman, de la base activa."
   } else {
     switch(
       capability_key,
-      dimensions = "Requiere dimensiones calculadas en Analítica.",
-      territorial_coverage = "Requiere cobertura disponible en Hojas de Ruta y Monitoreo territorial.",
-      equivalences_exactly_two = "Requiere un plan compatible que ya declare equivalencias entre exactamente dos bases; esta biblioteca aún no puede crearlo.",
-      equivalences_temporal = "Requiere un plan compatible que ya declare equivalencias entre bases ordenadas por momento; esta biblioteca aún no puede crearlo.",
-      "Selecciona una o varias variables de la base activa."
+      dimensions = "Necesita dimensiones calculadas en Analítica.",
+      territorial_coverage = "Necesita la cobertura de Hojas de ruta y de Monitoreo territorial.",
+      equivalences_exactly_two = "Sale de la matriz de equivalencias, con cada tema en exactamente dos bases; no se arma desde aquí.",
+      equivalences_temporal = "Sale de la matriz de equivalencias, con una base por medición y en orden; no se arma desde aquí.",
+      "Elige una o varias preguntas de la base activa."
     )
   }
 
