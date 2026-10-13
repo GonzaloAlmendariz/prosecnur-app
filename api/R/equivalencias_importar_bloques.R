@@ -183,6 +183,22 @@
   !is.na(v) & v >= 80 & v < 100
 }
 
+# ¿Todas las categorías no especiales del bloque son años de 4 dígitos? Mira
+# las etiquetas por base («2023 [5]»), que son las que el cuestionario
+# ofrecía. Si una categoría no trae etiqueta en ninguna base, su rótulo de
+# fila. Hacen falta dos categorías.
+.equiv_bloques_es_cohorte <- function(cats) {
+  es_anio <- function(x) grepl("^(19|20)[0-9]{2}$", trimws(as.character(x)))
+  sust <- Filter(function(c) !all(vapply(unlist(c$codigos), .equiv_bloques_es_especial, logical(1))), cats)
+  if (length(sust) < 2L) return(FALSE)
+  all(vapply(sust, function(c) {
+    etqs <- unlist(c$etiquetas, use.names = FALSE)
+    etqs <- etqs[nzchar(trimws(etqs))]
+    if (!length(etqs)) etqs <- c$etiqueta
+    length(etqs) > 0L && all(es_anio(etqs))
+  }, logical(1)))
+}
+
 # Un bloque -> fila de la matriz + advertencias. `periodos` es el mapa_periodos
 # ya validado (año -> base) y `inst_por_base` los instrumentos de la sesión.
 .equiv_bloques_a_fila <- function(bloque, periodos, inst_por_base) {
@@ -236,6 +252,20 @@
     if (!length(codigos)) next
     cats[[length(cats) + 1L]] <- list(etiqueta = gsub("\\s+", " ", c$etiqueta),
                                       codigos = codigos, etiquetas = etiquetas)
+  }
+
+  # Año de ingreso, años de estudio y similares (R4b, punto 6): si las
+  # categorías con código del bloque son años de calendario, el mismo rótulo
+  # no es la misma cohorte en otra medición («2023» es primer año en 2024 y
+  # segundo en 2025). Ese bloque se armoniza por base y A MANO, relativo al año
+  # de medición (primer año, segundo año…), con el mapa de cada base declarado
+  # en la matriz de la app. El importador no lo infiere: sólo avisa. Las
+  # categorías cuyos códigos son todos especiales 80-99 («Otro», «No responde»)
+  # no cuentan para decidir.
+  if (.equiv_bloques_es_cohorte(cats)) {
+    avisar("", "cohorte_por_etiqueta", sprintf(
+      "Las categorías de «%s» son años de calendario: el mismo año no es la misma cohorte en otra medición. Declara el mapa de cada base a mano, relativo al año de medición.",
+      bloque$nombre))
   }
 
   armonizacion <- NULL

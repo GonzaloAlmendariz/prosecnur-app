@@ -340,3 +340,30 @@ test_that("la no respuesta codificada como especial en alguna base conserva un c
   expect_equal(arm$por_base$b24$mapa[["99"]], "99")
   expect_setequal(setdiff(codigos, "99"), c("1", "2"))
 })
+
+test_that("un bloque cuyas categorías son años avisa que la cohorte se armoniza a mano (R4b, punto 6)", {
+  m <- rbind(
+    c("ID", "Eje / Sección", "Elemento / categoría armonizada", "2024", "2025",
+      "Nivel de comparabilidad", "Observación (base de la comparabilidad)"),
+    c("S-08", "2. Sociodemográficas", "Año de ingreso", "", "", "Parcialmente comparable", ""),
+    c("", "", "Variable en la base de datos", "a24", "a25", "", ""),
+    # El rótulo de fila ya es relativo, pero las opciones ofrecidas eran años.
+    c("", "", "Primer año", "2024 [1]", "2025 [1]", "", ""),
+    c("", "", "Segundo año", "2023 [2]", "2024 [2]", "", ""),
+    c("", "", "Tercer año", "2022 [3]", "2023 [3]", "", ""),
+    c("", "", "Otro", "Otro [88]", "Otro [88]", "", ""),
+    # Bloque de control: etiquetas que no son años.
+    c("S-09", "2. Sociodemográficas", "Sexo", "", "", "Plenamente comparable", ""),
+    c("", "", "Variable en la base de datos", "s24", "s25", "", ""),
+    c("", "", "Mujer", "Mujer [1]", "Mujer [1]", "", ""),
+    c("", "", "Hombre", "Hombre [2]", "Hombre [2]", "", "")
+  )
+  out <- .equiv_bloques_importar_matriz(m, list("2024" = "b24", "2025" = "b25"),
+                                        list(b24 = NULL, b25 = NULL))
+  adv <- Filter(function(a) identical(a$tipo, "cohorte_por_etiqueta"), out$advertencias)
+  expect_length(adv, 1L)
+  expect_identical(adv[[1]]$id, "S-08")
+  expect_match(adv[[1]]$mensaje, "relativo al año de medición", fixed = TRUE)
+  # El importador no infiere el mapa relativo: deja el de los códigos.
+  expect_equal(out$filas[[1]]$armonizacion$por_base$b25$mapa[["1"]], "1")
+})
