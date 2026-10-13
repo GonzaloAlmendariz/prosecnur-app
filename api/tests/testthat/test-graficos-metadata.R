@@ -332,13 +332,11 @@ test_that("registry G2-L1: los 27 graficadores publican contrato operativo cerra
     )
   }, logical(1))))
 
-  expect_identical(by_name$p_dumbbell$authoring_mode, "generated")
+  # G17 (2026-10-13): la brecha se arma en la tarjeta (dos grupos de una base); entre dos bases sale de la matriz.
+  expect_identical(by_name$p_dumbbell$authoring_mode, "direct")
   expect_identical(by_name$p_dumbbell$data_requirement, "named_vars")
-  expect_identical(by_name$p_dumbbell$capability_key, "equivalences_exactly_two")
-  expect_identical(
-    by_name$p_dumbbell$requirement_label,
-    "Requiere un plan compatible que ya declare equivalencias entre exactamente dos bases; esta biblioteca aún no puede crearlo."
-  )
+  expect_identical(by_name$p_dumbbell$capability_key, "")
+  expect_match(by_name$p_dumbbell$requirement_label, "define los dos grupos", fixed = TRUE)
   expect_identical(by_name$p_serie_temporal$authoring_mode, "generated")
   expect_identical(by_name$p_serie_temporal$data_requirement, "named_vars")
   expect_identical(by_name$p_serie_temporal$capability_key, "equivalences_temporal")

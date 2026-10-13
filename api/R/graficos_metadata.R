@@ -1675,7 +1675,7 @@
   # DUMBBELL (brecha entre dos bases)
   # =========================================================================
   p_dumbbell = list(
-    titulo_humano = "Brecha entre dos bases",
+    titulo_humano = "Brecha entre dos grupos",
     descripcion   = "Compara dos fuentes con select_one plano independiente, filtros y peso activos, y firma E1 común: brecha = primera − segunda; la primera es el grupo principal (en antes/después, la medición más reciente).",
     icono_ui      = "MoveHorizontal",
     categoria     = "comparison",
@@ -2140,8 +2140,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 )
 
 .graf_operational_contract <- function(name, meta) {
+  # G17 (2026-10-13): la brecha ya se arma en la tarjeta (dos grupos de una base); entre dos bases sigue saliendo de la
+  # matriz de equivalencias, que es lo que dice su requisito.
   generated <- c(
-    p_dumbbell = "equivalences_exactly_two",
     p_serie_temporal = "equivalences_temporal"
   )
   capability_key <- if (name %in% names(generated)) unname(generated[[name]]) else ""
@@ -2150,7 +2151,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     capability_key <- "territorial_coverage"
   }
 
-  data_requirement <- if (name %in% c("p_puntos_comparativos", "p_mapa_resultado_distrital")) {
+  data_requirement <- if (identical(name, "p_dumbbell")) {
+    "named_vars"
+  } else if (name %in% c("p_puntos_comparativos", "p_mapa_resultado_distrital")) {
     "var_cruces_corte"
   } else if (name %in% names(generated)) {
     "named_vars"
@@ -2161,6 +2164,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   }
   requirement_label <- if (identical(name, "p_puntos_comparativos")) {
     "Selecciona indicador, agrupación y uno o más códigos objetivo de la base activa."
+  } else if (identical(name, "p_dumbbell")) {
+    "Elige la pregunta que define los dos grupos, los grupos y las preguntas; entre dos bases sale de la matriz de equivalencias."
   } else if (identical(name, "p_mapa_resultado_distrital")) {
     "Selecciona indicador, la pregunta con el distrito y uno o más códigos objetivo de la base activa."
   } else {
@@ -3393,7 +3398,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   ),
 
   dumbbell = list(
-    titulo_humano = "Brecha entre dos bases",
+    titulo_humano = "Brecha entre dos grupos",
     descripcion   = "Estilo global del dumbbell: tamaño de punto, grosor del segmento, cifras y leyenda.",
     icono_ui      = "MoveHorizontal",
     args = list(
