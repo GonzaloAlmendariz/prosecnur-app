@@ -171,6 +171,10 @@ export function construirEstructura(slides: readonly Slide[]): EstructuraInforme
       enBloque("sin-capitulo").laminas.push(lam);
       return;
     }
+    // Una Apertura reabierta detrás de «Cómo leer» (U11) no se traga los resultados que siguen: van a «Sin capítulo».
+    const graficoTrasApertura = abierto?.clase === "apertura" && vecesBloque["como-leer"] > 0 && !APERTURA.has(slide.tipo)
+      && !COMO_LEER.has(slide.tipo) && (SLIDE_GRAF_SLOTS[slide.tipo] ?? []).length > 0;
+    if (graficoTrasApertura) { enBloque("sin-capitulo").laminas.push(lam); return; }
     if (abierto && abierto.clase !== "apertura") { abierto.nodo.laminas.push(lam); return; }
     enBloque(COMO_LEER.has(slide.tipo) ? "como-leer" : "apertura").laminas.push(lam);
   });
