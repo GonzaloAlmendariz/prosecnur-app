@@ -385,7 +385,7 @@ export function DataReviewPane() {
           <div className="pulso-data-review-docbar-copy">
             <span>Producto de datos</span>
             <strong>Revisión de etiquetas</strong>
-            <small>Variables, secciones y labels que alimentan todos los reportes.</small>
+            <small>Variables, secciones y etiquetas que usan todos los informes.</small>
           </div>
           <div
             className="pulso-data-review-command"
@@ -427,7 +427,7 @@ export function DataReviewPane() {
           </div>
         </div>
 
-        {loading ? <LoadingBlock minHeight={280} label="Cargando revisión de datos..." /> : null}
+        {loading ? <LoadingBlock minHeight={280} label="Cargando revisión de datos…" /> : null}
         {error ? <ErrorBlock label="No se pudo cargar la revisión" detail={error} /> : null}
         {sectionError ? <ErrorBlock label="No se pudo detectar la estructura" detail={sectionError} /> : null}
         {draftError ? <ErrorBlock label="No se pueden confirmar cambios" detail={draftError} /> : null}
@@ -451,7 +451,7 @@ export function DataReviewPane() {
                   title="Vuelve a leer la estructura del instrumento y conserva renombres manuales cuando sea posible."
                 >
                   {sectionBusy ? <RefreshCw size={12} className="pulso-spin" /> : <FolderSearch size={12} />}
-                  {sectionBusy ? "Detectando..." : "Detectar estructura"}
+                  {sectionBusy ? "Detectando…" : "Detectar estructura"}
                 </button>
               </div>
             </div>
@@ -575,7 +575,7 @@ function DataReviewSection({
               </button>
             )}
             {group.manual ? <span className="pulso-data-review-pill">editada</span> : null}
-            {group.synthetic ? <span className="pulso-data-review-pill">sin estructura XLSForm</span> : null}
+            {group.synthetic ? <span className="pulso-data-review-pill">sin secciones del formulario</span> : null}
           </div>
           <div className="pulso-data-review-section-meta">
             {includedInSection}/{group.variables.length} incluidas · {group.hidden ? "sección oculta en agrupadores" : "sección visible en agrupadores"}
