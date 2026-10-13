@@ -11,10 +11,19 @@ export type Opcion = { codigo: string; etiqueta: string };
 const texto = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 const lista = (v: unknown): string[] => (Array.isArray(v) ? v.map(texto).filter(Boolean) : texto(v) ? [texto(v)] : []);
 
-/** ¿La brecha compara dos grupos de una base (con cruce) o dos bases (la forma de equivalencias)? */
+/**
+ * ¿La brecha compara dos grupos de una base (con cruce) o dos bases (la forma de equivalencias)? Una brecha recién
+ * elegida, sin cruce ni preguntas por base, arranca en «dos grupos»: entre dos bases sólo hay algo que mostrar cuando
+ * la matriz de equivalencias ya puso sus preguntas (loop UI R4).
+ */
 export function esEntreGrupos(args: Args): boolean {
-  return "cruce" in args && args.cruce !== undefined && args.cruce !== null;
+  if (args.cruce === null) return false;
+  if (typeof args.cruce === "string") return true;
+  return !tienePreguntasPorBase(args.vars);
 }
+
+const tienePreguntasPorBase = (v: unknown): boolean =>
+  !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v as object).length > 0;
 
 /** Las preguntas de la brecha entre grupos: una ref por tema, en orden. */
 export function preguntasDe(args: Args): string[] {

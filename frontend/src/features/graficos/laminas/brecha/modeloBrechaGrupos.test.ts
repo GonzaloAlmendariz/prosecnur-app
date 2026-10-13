@@ -10,6 +10,13 @@ const vars = [v("docentes", "p3", [["1", "Masculino"], ["2", "Femenino"]]), v("d
   v("docentes", "p12_2"), v("estudiantes", "p12_1")];
 
 describe("la brecha entre dos grupos de una base (G17)", () => {
+  it("una brecha recién elegida arranca en dos grupos; con preguntas por base o vuelta a bases, en dos bases", () => {
+    expect(esEntreGrupos({})).toBe(true);
+    expect(esEntreGrupos({ vars: [] })).toBe(true);
+    expect(esEntreGrupos({ vars: { tema_1: ["docentes$p12_1", "estudiantes$p12_1"] } })).toBe(false);
+    expect(esEntreGrupos({ ...aEntreBases() })).toBe(false);
+  });
+
   it("pasar a grupos deja cruce vacío y pide, en orden, cruce, grupos, preguntas e indicador", () => {
     let a: Record<string, unknown> = { vars: { tema_1: ["docentes$p12_1", "estudiantes$p12_1"] }, corte: "4,5" };
     expect(esEntreGrupos(a)).toBe(false);
