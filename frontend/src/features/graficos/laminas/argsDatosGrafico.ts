@@ -29,6 +29,8 @@ type Entrada = {
   estricto?: boolean;
   /** Sólo en estos graficadores: el mismo nombre significa otra cosa (o no tiene efecto nativo) en los demás. */
   soloEn?: readonly string[];
+  /** Nunca en estos graficadores: ahí el arg se elige dentro de otro control. */
+  excepto?: readonly string[];
   /** Condición extra sobre los valores actuales (p. ej. cuántas mediciones tiene la serie). */
   cuando?: (valores: Valores) => boolean;
   /** Guarda propia de un graficador: reemplaza `siActivo` y `cuando` ahí (el mismo arg se activa con otro control). */
@@ -105,8 +107,10 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   },
   unit: { rotulo: "Unidad", soloEn: ["p_mapa_cobertura_territorial"] },
   coverage_mode: { rotulo: "Cobertura", soloEn: ["p_mapa_cobertura_territorial"] },
-  cruces: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie." },
-  cruce: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie." },
+  // G12 (2026-10-13): en multiapiladas el grupo se elige dentro de su modo («Una pregunta por grupos»…); un «Dividir por»
+  // suelto en la tarjeta era un segundo camino a lo mismo.
+  cruces: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie.", excepto: ["p_barras_multiapiladas"] },
+  cruce: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie.", excepto: ["p_barras_multiapiladas"] },
   corte: { rotulo: "Corte" },
   corte_etiqueta: { rotulo: "Rótulo del corte" },
   // C44: el radar «entre públicos» rotula cada columna de su tabla con el nombre técnico de la base.
@@ -261,6 +265,7 @@ export function camposDeDatos(args: readonly ArgMetadata[], valores: Valores, gr
     const arg = porNombre.get(name);
     if (!arg || esRetirado(name, graficador)) continue;
     if (e.soloEn && !(graficador && e.soloEn.includes(graficador))) continue;
+    if (e.excepto && graficador && e.excepto.includes(graficador)) continue;
     const control = e.control ?? CONTROL_POR_TIPO[arg.tipo_input];
     if (!control) continue;
     const guarda = (graficador && e.porGraficador?.[graficador]) || e;
