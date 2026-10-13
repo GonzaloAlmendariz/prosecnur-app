@@ -29,7 +29,10 @@ import {
 } from "../../../api/analitica";
 import { downloadUrl } from "../../../api/core";
 import { getEquivalencias, type EquivalenciasEstado } from "../../../api/equivalencias";
-import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { ErrorBlock, LoadingBlock } from "../../../components/States";
+import { formatoConteo } from "../../../lib/formatoNumero";
+import { CifrasPestana } from "../CifrasPestana";
 import { JobProgress } from "../../../components/JobProgress";
 import {
   DIRECCION_EQUIVALENCIAS,
@@ -132,13 +135,14 @@ export function ComparativosPane() {
         data-qa-geometry-group="comparativos-vacio"
         data-qa-geometry-contract="intrinsic"
       >
-        <EmptyState
-          icon={<GitCompare size={20} />}
-          title={COPY_VACIO[motivo].titulo}
-          hint={COPY_VACIO[motivo].pista}
-          cta={(
+        <EstadoVacio
+          tamano="normal"
+          icono={<GitCompare size={18} />}
+          titulo={COPY_VACIO[motivo].titulo}
+          descripcion={COPY_VACIO[motivo].pista}
+          accion={(
             <Link className="pulso-comparativos-enlace" to={DIRECCION_EQUIVALENCIAS}>
-              Ir a Equivalencias <ArrowRight size={14} />
+              Ir a Equivalencias <ArrowRight size={14} aria-hidden="true" />
             </Link>
           )}
         />
@@ -189,16 +193,17 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
     <div className="pulso-comparativos analitica-report-shell" data-audit-ready="analitica-comparativos">
       <Presentacion serie={serie} />
 
-      <dl
-        className="pulso-comparativos-cifras"
-        data-qa-geometry-group="comparativos-cifras"
-        data-qa-geometry-contract="equal"
-      >
-        <Cifra etiqueta={mayuscula(serie.plural)} valor={periodos.length} />
-        <Cifra etiqueta="Preguntas armonizadas" valor={filas.length} />
-        <Cifra etiqueta="Preguntas elegidas" valor={preguntasEfectivas(ui, "frecuencias").length} />
-        <Cifra etiqueta="Variables de cruce" valor={ui.cruces.length} />
-      </dl>
+      {/* Una sola primitiva de cifras por pestaña (P-M1): las tarjetas KPI
+          quedan para los homepages. */}
+      <CifrasPestana
+        ariaLabel="Cifras del comparativo"
+        cifras={[
+          { clave: "serie", etiqueta: mayuscula(serie.plural), valor: formatoConteo(periodos.length) },
+          { clave: "armonizadas", etiqueta: "Preguntas armonizadas", valor: formatoConteo(filas.length) },
+          { clave: "elegidas", etiqueta: "Preguntas elegidas", valor: formatoConteo(preguntasEfectivas(ui, "frecuencias").length) },
+          { clave: "cruce", etiqueta: "Variables de cruce", valor: formatoConteo(ui.cruces.length) },
+        ]}
+      />
 
       <div
         className="pulso-comparativos-secciones"
@@ -293,15 +298,6 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
   );
 }
 
-function Cifra({ etiqueta, valor }: { etiqueta: string; valor: number }) {
-  return (
-    <div className="pulso-comparativos-cifra" data-qa-geometry-member>
-      <dt>{etiqueta}</dt>
-      <dd>{valor}</dd>
-    </div>
-  );
-}
-
 /**
  * Qué produce la pestaña y qué entra en ella. Sin esto, «Comparativos» y
  * «Preguntas armonizadas» no decían qué es armonizar ni por qué falta una
@@ -357,23 +353,31 @@ function RotulosPeriodos({
         data-qa-geometry-group="comparativos-rotulos"
         data-qa-geometry-contract="equal"
       >
-        {periodos.map((base, i) => (
+        {periodos.map((base, i) => {
+          // El nombre de la base solo se repite encima si dice algo distinto
+          // de lo que ya muestra el campo (P-B3): con bases nombradas, el
+          // rótulo propuesto ES el nombre y salía dos veces.
+          const propuesto = porDefecto[base] ?? rotuloPorDefecto(base);
+          const valor = (ui.rotulos[base] ?? "").trim() || propuesto;
+          const mostrarBase = valor !== base;
+          return (
           <li key={base} data-qa-geometry-member>
             <label className="pulso-comparativos-rotulo">
               <span className="pulso-comparativos-rotulo-base" title={base}>
                 <span className="pulso-comparativos-rotulo-pos" aria-hidden="true">{i + 1}</span>
-                {base}
+                {mostrarBase ? base : null}
               </span>
               <input
                 type="text"
                 value={ui.rotulos[base] ?? ""}
-                placeholder={porDefecto[base] ?? rotuloPorDefecto(base)}
+                placeholder={propuesto}
                 onChange={(e) => onCambio(base, e.target.value)}
                 aria-label={`Rótulo de la columna ${i + 1}, base ${base}`}
               />
             </label>
           </li>
-        ))}
+          );
+        })}
       </ol>
       {repetidos.length ? (
         <p className="pulso-comparativos-rotulos-aviso" role="status">
@@ -486,9 +490,9 @@ function Resultado({ tipo, datos }: { tipo: ComparativoTipo; datos: ComparativoR
                       </small>
                     ) : null}
                   </th>
-                  <td><ListaCelda items={p.n_c.map((x) => rotuloDe(x, datos.periodos))} vacio="Ninguna" /></td>
+                  <td><ListaCelda items={p.n_c.map((x) => rotuloDe(x, datos.periodos))} /></td>
                   <td><CeldaCubierta celda={na} /></td>
-                  <td><ListaCelda items={celdaSinVariable(p, datos.periodos)} vacio="Ninguna" /></td>
+                  <td><ListaCelda items={celdaSinVariable(p, datos.periodos)} /></td>
                   <td>
                     {sinMapa ? (
                       <ul className="pulso-comparativos-celda-lista">
@@ -499,7 +503,7 @@ function Resultado({ tipo, datos }: { tipo: ComparativoTipo; datos: ComparativoR
                           </li>
                         ))}
                       </ul>
-                    ) : "0"}
+                    ) : <CeldaNada />}
                     {especiales.length ? (
                       <ul className="pulso-comparativos-celda-lista pulso-comparativos-especiales">
                         {especiales.map((s) => (
@@ -581,8 +585,22 @@ function PreguntasOmitidas({
   );
 }
 
-function ListaCelda({ items, vacio }: { items: string[]; vacio: string }) {
-  if (!items.length) return <>{vacio}</>;
+/**
+ * Celda sin nada que listar: «—» atenuado, el mismo que usa Equivalencias
+ * (P-B4). Antes se repetía «Ninguna» en todas las filas y «0» en Sin mapa.
+ * El lector de pantalla oye «Ninguna».
+ */
+function CeldaNada() {
+  return (
+    <span className="pulso-comparativos-nada">
+      <span aria-hidden="true">—</span>
+      <span className="pulso-sr-only">Ninguna</span>
+    </span>
+  );
+}
+
+function ListaCelda({ items }: { items: string[] }) {
+  if (!items.length) return <CeldaNada />;
   return (
     <ul className="pulso-comparativos-celda-lista">
       {items.map((item, i) => <li key={`${item}-${i}`}>{item}</li>)}
@@ -591,16 +609,19 @@ function ListaCelda({ items, vacio }: { items: string[]; vacio: string }) {
 }
 
 /**
- * Celda que sólo dice «Ninguna» si el resumen cubre el caso. Si no lo cubre,
- * «—»: el comparativo puede tenerlas y el resumen no las reporta.
+ * Celda que sólo dice «ninguna» («—») si el resumen cubre el caso. Si no lo
+ * cubre lo dice con palabras: el comparativo puede tenerlas y el resumen no
+ * las reporta, y eso no es lo mismo que «ninguna».
  */
 function CeldaCubierta({ celda }: { celda: CeldaResumen }) {
   if (!celda.items.length) {
-    return celda.cubierto ? <>Ninguna</> : <span title="El resumen no lo reporta para este comparativo">—</span>;
+    return celda.cubierto
+      ? <CeldaNada />
+      : <span className="pulso-comparativos-nada" title="El resumen no lo reporta para este comparativo">sin dato</span>;
   }
   return (
     <>
-      <ListaCelda items={celda.items} vacio="Ninguna" />
+      <ListaCelda items={celda.items} />
       {celda.cubierto ? null : <small className="pulso-comparativos-reducidas">Puede haber más en las variables de cruce</small>}
     </>
   );

@@ -190,7 +190,9 @@ describe("NotasPieEditor: render", () => {
     );
     expect(html).toContain("Sin variables de cruce");
     expect(html).toContain('data-qa-geometry-group="analitica-notas-pie-cruces"');
-    expect(html).toContain('data-qa-geometry-capacity="owned"');
+    // El vacío es el componente compartido (P-M4): alto intrínseco, sin
+    // capacidad reservada que declarar.
+    expect(html).toContain('data-estado-vacio="compacto"');
     expect(html).toContain("Avisar base reducida");
   });
 

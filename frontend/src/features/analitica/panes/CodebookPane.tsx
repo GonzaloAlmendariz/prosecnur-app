@@ -1,6 +1,9 @@
-import { BookOpen, CheckCircle2, Download, FileSpreadsheet, FileText, Info, Palette } from "lucide-react";
+import { BookOpen, CheckCircle2, Download, FileSpreadsheet, FileText, Info } from "lucide-react";
 import { apiAnaliticaCodebook, apiAnaliticaConfigPut, downloadUrl, type MultiBaseResult } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
+import { formatoConteo } from "../../../lib/formatoNumero";
+import { CifrasPestana } from "../CifrasPestana";
+import { InterruptorOpcion } from "../InterruptorOpcion";
 import { useAnaliticaStore } from "../store";
 import { Section, GenerateFooter, PaneGroup } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
@@ -80,30 +83,27 @@ export function CodebookPane() {
             <strong>Libro de códigos</strong>
             <small>Diccionario sincronizado con etiquetas confirmadas y XLSForm final.</small>
           </div>
-          <div className="analitica-codebook-docbar-stats" aria-label="Estado del libro de códigos">
-            <span>
-              Fuente
-              <strong>{fuenteLabel}</strong>
-            </span>
-            <span>
-              Códigos
-              <strong>{codes.length}/5 activos</strong>
-            </span>
-            <span>
-              Excluidas
-              <strong>
-                <Link
-                  to={hrefExcluidas}
-                  replace
-                  className="pulso-excluidas-enlace"
-                  aria-haspopup="dialog"
-                  aria-label={`${excluidasCount} ${excluidasCount === 1 ? "variable excluida" : "variables excluidas"}: ver y editar`}
-                >
-                  {excluidasCount}
-                </Link>
-              </strong>
-            </span>
-          </div>
+          <CifrasPestana
+            ariaLabel="Estado del libro de códigos"
+            cifras={[
+              { etiqueta: "Fuente", valor: fuenteLabel },
+              { etiqueta: "Códigos", valor: `${codes.length}/5 activos` },
+              {
+                etiqueta: "Excluidas",
+                valor: (
+                  <Link
+                    to={hrefExcluidas}
+                    replace
+                    className="pulso-excluidas-enlace"
+                    aria-haspopup="dialog"
+                    aria-label={`${formatoConteo(excluidasCount)} ${excluidasCount === 1 ? "variable excluida" : "variables excluidas"}: ver y editar`}
+                  >
+                    {formatoConteo(excluidasCount)}
+                  </Link>
+                ),
+              },
+            ]}
+          />
         </div>
 
         <div className="analitica-codebook-info">
@@ -144,22 +144,12 @@ export function CodebookPane() {
           </>}
         >
           <div className="analitica-control-grid">
-            <label className={`analitica-control-card ${colorRecods ? "is-active" : ""}`}>
-              <input
-                type="checkbox"
-                checked={colorRecods}
-                onChange={(e) => setColorRecodificaciones(e.target.checked)}
-              />
-              <span className="analitica-control-icon">
-                {colorRecods ? <CheckCircle2 size={15} /> : <Palette size={15} />}
-              </span>
-              <span>
-                <span className="analitica-control-title">Resaltar recodificaciones con color</span>
-                <span className="analitica-control-copy">
-                  Pinta las variables recodificadas con un color de fondo en el instrumento, la base de datos y el libro de códigos.
-                </span>
-              </span>
-            </label>
+            <InterruptorOpcion
+              checked={colorRecods}
+              onToggle={() => setColorRecodificaciones(!colorRecods)}
+              titulo="Resaltar recodificaciones con color"
+              descripcion="Pinta las variables recodificadas con un color de fondo en el instrumento, la base de datos y el libro de códigos."
+            />
           </div>
         </Section>
 

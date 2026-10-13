@@ -39,7 +39,9 @@ describe("VariablesExcluidas", () => {
 
   it("sin excluidas contiene su vacío y no inventa motivos", () => {
     const html = renderToStaticMarkup(<VariablesExcluidas variables={VARIABLES} excluidas={[]} onCambiar={vi.fn()} />);
-    expect(html).toContain("Ninguna variable excluida: todas salen en los entregables.");
+    expect(html).toContain("Ninguna variable excluida");
+    expect(html).toContain("Todas salen en los entregables.");
+    expect(html).toContain('data-estado-vacio="compacto"');
     expect(html).not.toContain("pulso-excluidas-marca");
   });
 });

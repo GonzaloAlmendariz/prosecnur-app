@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { CheckCircle2, GitBranch, Info, Percent, Rows3, Table2 } from "lucide-react";
+import { GitBranch, Info, Percent, Rows3, Table2 } from "lucide-react";
 import {
   AnaliticaMultibaseKey,
   apiAnaliticaMultibaseInfo,
   apiAnaliticaMultibaseTablas,
 } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
+import { InterruptorOpcion } from "../InterruptorOpcion";
 import { Switch } from "../../../components/Switch";
 import { useAnaliticaStore } from "../store";
 import { Section, GenerateFooter } from "../PaneKit";
@@ -138,20 +139,13 @@ export function MultibaseTablasPane() {
             ))}
           </div>
           <div className="analitica-control-grid analitica-control-grid--compact">
-            <label className={`analitica-control-card analitica-option-card ${frec.mostrar_todo ? "is-active" : ""}`}>
-              <input
-                type="checkbox"
-                checked={frec.mostrar_todo}
-                onChange={(e) => setFrecuencias({ mostrar_todo: e.target.checked })}
-              />
-              <span className="analitica-control-icon">
-                {frec.mostrar_todo ? <CheckCircle2 size={15} /> : <Rows3 size={15} />}
-              </span>
-              <span>
-                <span className="analitica-control-title">Mostrar catálogo completo</span>
-                <span className="analitica-control-copy">Incluye categorías definidas aunque no tengan casos.</span>
-              </span>
-            </label>
+            <InterruptorOpcion
+              className="analitica-option-card"
+              checked={frec.mostrar_todo}
+              onToggle={() => setFrecuencias({ mostrar_todo: !frec.mostrar_todo })}
+              titulo="Mostrar catálogo completo"
+              descripcion="Incluye categorías definidas aunque no tengan casos."
+            />
             <div className="analitica-control-card">
               <span className="analitica-control-icon"><Rows3 size={15} /></span>
               <span>

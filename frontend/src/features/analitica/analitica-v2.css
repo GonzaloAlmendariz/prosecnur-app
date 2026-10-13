@@ -1116,8 +1116,7 @@
 .pulso-analitica-frame button.pulso-primary,
 .pulso-analitica-frame button.pulso-secondary,
 .pulso-analitica-frame .analitica-dimensiones-footer button,
-.pulso-analitica-frame .analitica-dimensiones-wizard-footer button,
-.pulso-analitica-frame .analitica-generate-footer button {
+.pulso-analitica-frame .analitica-dimensiones-wizard-footer button {
   min-height: 32px;
   border-radius: 999px;
   font-weight: var(--pulso-weight-semibold);
@@ -2916,4 +2915,144 @@
 .pulso-analitica-panel-copy p {
   font-size: 11px;
   font-weight: var(--pulso-weight-semibold);
+}
+
+/* ── 10. Ronda de pulido (P-A5, P-M3, P-M12, P-B5) ─────────────────────── */
+
+/* «Añadir…» es un PulsoButton secundario con `Plus`; dentro de una columna
+ * flex no se estira a todo el ancho. */
+.analitica-add-button {
+  align-self: flex-start;
+}
+
+/* Pie de generación: pista del botón deshabilitado, aviso de guardado del
+ * archivo y descargas por base, antes con estilos en línea. */
+.analitica-generate-hint {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-style: italic;
+}
+
+.analitica-generate-save {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-success-fg);
+  font-size: 11px;
+}
+
+.analitica-generate-save.is-error {
+  color: var(--pulso-danger-fg);
+}
+
+.analitica-per-base-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.analitica-per-base-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  padding: 3px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.analitica-per-base-chip.is-link {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-medium);
+  text-decoration: none;
+}
+
+.analitica-per-base-chip.is-skipped {
+  border-style: dashed;
+  font-style: italic;
+}
+
+/* Un texto que remite a otra pestaña lleva su enlace (P-M12). */
+.analitica-enlace-pestana {
+  color: inherit;
+  font-weight: var(--pulso-weight-bold);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.analitica-enlace-pestana:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--pulso-primary) 40%, transparent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Lo informativo que antes tenía forma de opción (P-B5): una nota con ícono. */
+.pulso-analitica-frame .analitica-presentation-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.pulso-analitica-frame .analitica-presentation-note svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--pulso-primary);
+}
+
+/* Una tarjeta con casilla no repite su estado en un tile con ícono (P-B5):
+ * la casilla ya dice si está activa. Regla general para toda tarjeta de
+ * opción con casilla; las que no son control (un botón de modo) conservan
+ * su ícono. */
+label.analitica-control-card > input[type="checkbox"] ~ .analitica-control-icon {
+  display: none;
+}
+
+/* Opciones que quedan puestas: interruptor con el tono del módulo (piel por
+ * tokens del Switch, sin reimplementarlo) y el texto al lado. */
+.analitica-interruptor {
+  --pulso-switch-w: 34px;
+  --pulso-switch-h: 20px;
+  --pulso-switch-knob-size: 14px;
+  --pulso-switch-accent: var(--module-accent, var(--pulso-primary));
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.analitica-interruptor-opcion {
+  align-items: flex-start;
+}
+
+.analitica-interruptor-texto {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.analitica-interruptor-linea {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.analitica-interruptor-linea .analitica-control-title {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.analitica-interruptor-opcion.is-disabled,
+.analitica-interruptor-linea.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.analitica-enumeradores-vacias {
+  margin-top: 10px;
+}
+
+.pulso-analitica-frame .analitica-control-grid + .analitica-presentation-note {
+  margin-top: var(--pulso-space-2);
 }

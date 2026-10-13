@@ -13,6 +13,7 @@
 //   de origen externo de Carga) y ninguno cuando no lo sabe;
 // - qué filas muestra el panel según el buscador.
 
+import { formatoConteo } from "../../lib/formatoNumero";
 import type {
   OrigenExterno,
   OrigenExternoMotivoVariable,
@@ -68,11 +69,11 @@ export function conteoExclusion(
 }
 
 export function rotuloIncluidas(n: number): string {
-  return `${n} incluida${n === 1 ? "" : "s"}`;
+  return `${formatoConteo(n)} incluida${n === 1 ? "" : "s"}`;
 }
 
 export function rotuloExcluidas(n: number): string {
-  return `${n} excluida${n === 1 ? "" : "s"}`;
+  return `${formatoConteo(n)} excluida${n === 1 ? "" : "s"}`;
 }
 
 /**

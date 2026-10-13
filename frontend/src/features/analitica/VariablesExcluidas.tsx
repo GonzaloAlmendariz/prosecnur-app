@@ -1,6 +1,8 @@
 import { useId, useState } from "react";
-import { EyeOff, Plus, Search, Undo2 } from "../../vendor/lucide-react";
+import { Eye, EyeOff, Search, SearchX, Undo2 } from "../../vendor/lucide-react";
+import { EstadoVacio } from "../../components/EstadoVacio";
 import { PulsoButton } from "../../components/PulsoButton";
+import { formatoConteo } from "../../lib/formatoNumero";
 import {
   ROTULO_MOTIVO_EXCLUSION,
   conVariable,
@@ -82,15 +84,22 @@ export function VariablesExcluidas({
             Excluidas
           </h3>
           <span className="pulso-excluidas-cuenta" aria-live="polite">
-            {filtrando ? `${filas.length} de ${totalExcluidas}` : rotuloExcluidas(totalExcluidas)}
+            {filtrando ? `${formatoConteo(filas.length)} de ${formatoConteo(totalExcluidas)}` : rotuloExcluidas(totalExcluidas)}
           </span>
         </header>
         {filas.length === 0 ? (
-          <p className="pulso-excluidas-vacio">
-            {totalExcluidas === 0
-              ? "Ninguna variable excluida: todas salen en los entregables."
-              : "Ninguna excluida coincide con la búsqueda."}
-          </p>
+          totalExcluidas === 0 ? (
+            <EstadoVacio
+              icono={<Eye size={15} />}
+              titulo="Ninguna variable excluida"
+              descripcion="Todas salen en los entregables."
+            />
+          ) : (
+            <EstadoVacio
+              icono={<SearchX size={15} />}
+              titulo="Ninguna excluida coincide con la búsqueda"
+            />
+          )
         ) : (
           <ul className="pulso-excluidas-lista" data-qa-geometry-group="analitica/excluidas-lista" data-qa-geometry-contract="intrinsic">
             {filas.map((fila) => (
@@ -134,15 +143,22 @@ export function VariablesExcluidas({
         <header className="pulso-excluidas-bloque-cabecera">
           <h3 id={idIncluidas}>Incluidas</h3>
           <span className="pulso-excluidas-cuenta" aria-live="polite">
-            {filtrando ? `${incluidas.length} de ${totalIncluidas}` : rotuloIncluidas(totalIncluidas)}
+            {filtrando ? `${formatoConteo(incluidas.length)} de ${formatoConteo(totalIncluidas)}` : rotuloIncluidas(totalIncluidas)}
           </span>
         </header>
         {incluidas.length === 0 ? (
-          <p className="pulso-excluidas-vacio">
-            {totalIncluidas === 0
-              ? "No quedan variables incluidas en esta base."
-              : "Ninguna incluida coincide con la búsqueda."}
-          </p>
+          totalIncluidas === 0 ? (
+            <EstadoVacio
+              icono={<EyeOff size={15} />}
+              titulo="No quedan variables incluidas en esta base"
+              descripcion="Vuelve a incluir alguna desde la lista de excluidas."
+            />
+          ) : (
+            <EstadoVacio
+              icono={<SearchX size={15} />}
+              titulo="Ninguna incluida coincide con la búsqueda"
+            />
+          )
         ) : (
           <ul className="pulso-excluidas-lista" data-qa-geometry-group="analitica/incluidas-lista" data-qa-geometry-contract="intrinsic">
             {incluidas.map((variable) => (
@@ -160,7 +176,8 @@ export function VariablesExcluidas({
                   onClick={() => setExcluidas(conVariable(excluidas, variable.name))}
                   aria-label={`Excluir ${variable.name}`}
                 >
-                  <Plus size={13} aria-hidden="true" />
+                  {/* Excluir quita la variable de los entregables: no lleva «+» (P-M3). */}
+                  <EyeOff size={13} aria-hidden="true" />
                   Excluir
                 </PulsoButton>
               </li>

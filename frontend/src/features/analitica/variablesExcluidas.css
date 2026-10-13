@@ -94,20 +94,19 @@
 
 .pulso-excluidas-titular h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 17px;
   line-height: 1.25;
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
-.pulso-excluidas-titular h2:focus {
-  outline: none;
-}
-
+/* El título recibe el foco al abrir el panel (lo hace el diálogo, no el
+ * usuario): es un destino de foco post-navegación con `tabindex=-1`, fuera
+ * del orden de tabulación, y no lleva anillo (P-B1), igual que el editor de
+ * armonización. Los controles del panel conservan el suyo. */
+.pulso-excluidas-titular h2:focus,
 .pulso-excluidas-titular h2:focus-visible {
-  outline: 2px solid var(--pulso-module-processing);
-  outline-offset: 3px;
-  border-radius: 4px;
+  outline: none;
 }
 
 .pulso-excluidas-alcance {
@@ -258,15 +257,6 @@
   white-space: nowrap;
 }
 
-.pulso-excluidas-vacio {
-  margin: 0;
-  padding: var(--pulso-space-3);
-  border: 1px dashed var(--pulso-border);
-  border-radius: var(--pulso-radius);
-  background: var(--pulso-surface-2);
-  font-size: 13px;
-  color: var(--pulso-text-soft);
-}
 
 .pulso-excluidas-lista {
   list-style: none;
@@ -304,7 +294,7 @@
 
 .pulso-excluidas-fila-texto code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   overflow-wrap: anywhere;
@@ -312,7 +302,7 @@
 
 .pulso-excluidas-fila-etiqueta {
   min-width: 0;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.35;
   color: var(--pulso-text-soft);
   overflow-wrap: anywhere;
@@ -380,4 +370,17 @@
   .pulso-excluidas {
     animation: none;
   }
+}
+
+/* Alcance y estado de guardado en una línea bajo el título (P-M14). */
+.pulso-excluidas-subtitulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  margin-top: var(--pulso-space-1);
+}
+
+.pulso-excluidas-subtitulo .pulso-excluidas-alcance {
+  margin: 0;
 }
