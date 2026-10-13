@@ -120,6 +120,17 @@ export const VARIANTES_LAMINA: Partial<Record<SlideType, VariantesTipo>> = {
       { valor: "banda", label: "Banda al pie", detalle: "El encargo y la fecha en una banda azul" },
     ],
   },
+  // G6: lamina_objetivo_variantes.R — «clasica» (26, por defecto), «panel» (27), «dimensiones» (28).
+  p_slide_objetivo_icono: {
+    donde: { en: "meta", clave: "variante" },
+    label: "Composición del objetivo",
+    defecto: "clasica",
+    opciones: [
+      { valor: "clasica", label: "Objetivo y actores", detalle: "El objetivo arriba y los actores en una fila" },
+      { valor: "panel", label: "Panel lateral", detalle: "La diana en un panel azul; el objetivo y los actores al lado" },
+      { valor: "dimensiones", label: "Dimensiones y actores", detalle: "Lo que se evalúa en tarjetas y, debajo, quiénes opinan" },
+    ],
+  },
   // lamina_identidad.R `.lam_laminas_indice`: «arcos» (31, por defecto), «facetas», «circulos», «bloques».
   p_slide_indice: {
     donde: { en: "meta", clave: "composicion" },

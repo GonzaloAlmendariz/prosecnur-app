@@ -10,8 +10,22 @@ import { actoresDesdeTexto, textoDeActores } from "./modeloActoresObjetivo";
 export function ActoresObjetivo({ slide }: { slide: Slide }) {
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
   const id = useId();
-  const actores = leerSlideMeta(slide).actores;
+  const idDim = useId();
+  const meta = leerSlideMeta(slide);
+  const actores = meta.actores;
   return (
+    <>
+    {meta.variante === "dimensiones" && (
+      // G6: la composición «Dimensiones y actores» (recetario 28) muestra lo que se evalúa en tarjetas.
+      <div className="pulso-f6-campo">
+        <label htmlFor={idDim}>Dimensiones</label>
+        <textarea id={idDim} data-campo="dimensiones" className="pulso-f6-input" rows={4} value={textoDeActores(meta.dimensiones)}
+          placeholder={"Los propósitos de la carrera\nEl perfil de egreso"}
+          aria-describedby={`${idDim}-ayuda`}
+          onChange={(e) => updatePayload(slide.id, { meta: conSlideMeta(slide, { dimensiones: actoresDesdeTexto(e.target.value) }).payload.meta })} />
+        <span id={`${idDim}-ayuda`} className="pulso-f6-ayuda">Una por línea, hasta cuatro: van en tarjetas bajo «Conocer la percepción sobre».</span>
+      </div>
+    )}
     <div className="pulso-f6-campo">
       <label htmlFor={id}>Actores consultados</label>
       <textarea id={id} data-campo="actores" className="pulso-f6-input" rows={4} value={textoDeActores(actores)}
@@ -20,5 +34,6 @@ export function ActoresObjetivo({ slide }: { slide: Slide }) {
         onChange={(e) => updatePayload(slide.id, { meta: conSlideMeta(slide, { actores: actoresDesdeTexto(e.target.value) }).payload.meta })} />
       <span id={`${id}-ayuda`} className="pulso-f6-ayuda">Uno por línea, hasta seis. Cada uno sale con su ícono bajo el objetivo; vacío, la lámina va sin actores.</span>
     </div>
+    </>
   );
 }
