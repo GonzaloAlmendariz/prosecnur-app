@@ -8,11 +8,11 @@ la ruta recomendada («hazlo así»): primero el punto 1, luego 2 y 3.
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| 1a | Texto de fuente configurable («Fuente: Pulso PUCP 2026.») en frecuencias y cruces | motor (`reporte_notas_pie.R`, `reporte_frecuencias.R`, `reporte_cruces.R`), config `notas.fuente`, UI Analítica | en curso |
-| 1b | Línea «Base: …» por pregunta, con un texto por defecto | motor + config `notas.base_defecto`, `notas.base_por_pregunta` + UI | en curso |
-| 1c | Notas por variable de cruce (lugar de nacimiento, discapacidad con cita de P10) | motor (cruces) + config `notas.por_cruce` + UI | en curso |
-| 1d | Aviso automático de base reducida (casos sin ponderar bajo un umbral) | motor (cruces) + config `notas.base_reducida` + UI | en curso |
-| 1e | Nota de significancia con la redacción de la maqueta (sin «Letras por estrato» ni «Fuente») | motor (`reporte_cruces.R`) | en curso |
+| 1a | Texto de fuente configurable («Fuente: Pulso PUCP 2026.») en frecuencias y cruces | motor (`reporte_notas_pie.R`, `reporte_frecuencias.R`, `reporte_cruces.R`), config `notas.fuente`, UI Analítica | hecho y verificado (commit 1435d38c6), falta QA visual de la sección |
+| 1b | Línea «Base: …» por pregunta, con un texto por defecto | motor + config `notas.base_defecto`, `notas.base_por_pregunta` + UI | hecho y verificado (commit 1435d38c6), falta QA visual de la sección |
+| 1c | Notas por variable de cruce (lugar de nacimiento, discapacidad con cita de P10) | motor (cruces) + config `notas.por_cruce` + UI | hecho y verificado (commit 1435d38c6), falta QA visual de la sección |
+| 1d | Aviso automático de base reducida (casos sin ponderar bajo un umbral) | motor (cruces) + config `notas.base_reducida` + UI | hecho y verificado (commit 1435d38c6), falta QA visual de la sección |
+| 1e | Nota de significancia con la redacción de la maqueta (sin «Letras por estrato» ni «Fuente») | motor (`reporte_cruces.R`) | hecho y verificado (commit 1435d38c6), falta QA visual de la sección |
 | 1f | «Agrupar categorías» en Codificación que cree `<var>_recod` (orientación, lugar de nacimiento, año de ingreso con «Otro») | Codificación (motor + UI) | diseño listo (ver abajo), espera la oleada 2 |
 | 2 | Base armonizada 2024-2026: año, peso por año (1 en 2026), 7 cruces armonizados, mapa de preguntas y códigos, tabla de comparabilidad (n.c./n.a.) | script del proyecto (parte de `segmentos_cruce_2024_2025.R`) + matriz de equivalencias | pendiente |
 | 3a | Writer «comparativo simple»: años en columnas, sin Total combinado, «n.c.» por año | motor, archivo nuevo | pendiente |
@@ -91,3 +91,10 @@ Reglas de render:
   un código «1» vacío que sobra). P5 no tiene. Ese catálogo reserva `<var>_recod`, así
   que la agrupación de 1f usa otro nombre (`<var>_agrup`).
 - Pendiente de Gonzalo: cómo conviven Limpieza hecha fuera y Codificación ya hecha.
+
+## Pendientes menores de 1a–1e (verificador, 2026-10-13)
+
+- QA visual de «Notas al pie» en Frecuencias y Cruces (plegada y abierta, 1440x1000 y 1024x600).
+- Panel (`analitica_panel.R`) y tablas multibase (`analitica_multibase.R`) siguen con «Fuente: Pulso PUCP» fijo. Entra con E5.
+- Sin test de router para la invalidación por `notas`. Un proyecto viejo se invalida una vez al primer guardado.
+- Código muerto: `.notas_pie_lineas_frecuencias` y `letras_map_text` en `reporte_cruces.R`.
