@@ -29,7 +29,22 @@
 # Gonzalo, 2026-10-13: «Déjalo con n.a. como en la maqueta». La opción no ofrecida se marca
 # igual que la maqueta; el manifest conserva la distinción (no_ofrecidas).
 .COMPARATIVO_NO_OFRECIDA <- "n.a."
-.COMPARATIVO_LINEA_NO_OFRECIDA <- "n.a.: no aplica, la opción no se ofrecía ese año."
+
+# Unidad de la serie: «Año» sólo si TODOS los rótulos de período son años de
+# cuatro dígitos. Una serie de públicos («docentes», «egresados») o con rótulos
+# libres es de «Medición», en el encabezado y en el pie.
+.comparativo_unidad <- function(rotulos) {
+  r <- trimws(as.character(unlist(rotulos, use.names = FALSE)))
+  if (length(r) && all(grepl("^[0-9]{4}$", r))) {
+    list(titulo = "Año", nombre = "año", ese = "ese año", cada = "cada año")
+  } else {
+    list(titulo = "Medición", nombre = "medición", ese = "esa medición", cada = "cada medición")
+  }
+}
+
+.comparativo_linea_no_ofrecida_base <- function(rotulos) {
+  paste0("n.a.: no aplica, la opción no se ofrecía ", .comparativo_unidad(rotulos)$ese, ".")
+}
 
 # Estilos del comparativo: los de cruces del tema más las tres variantes que
 # la maqueta pide (marca gris en cursiva, % a dos decimales, total en negrita).
@@ -127,6 +142,29 @@
          paste(vapply(partes, .notas_pie_cerrar, character(1)), collapse = " "))
 }
 
+# «n.c.: 2026 sin variable declarada en la matriz.» Un período que la matriz
+# declara comparable pero sin variable para la fila. `items` son
+# list(periodo, elemento): elemento "" es la pregunta, si no la etiqueta del
+# cruce. Los años con los mismos elementos se agrupan en una frase.
+.comparativo_linea_sin_variable <- function(items, periodos, rotulos) {
+  if (!length(items)) return("")
+  per <- vapply(items, `[[`, character(1), "periodo")
+  ele <- vapply(items, function(it) as.character(it$elemento %||% ""), character(1))
+  anios <- periodos[periodos %in% per]
+  clave <- vapply(anios, function(b) {
+    e <- unique(ele[per == b])
+    if (all(nzchar(e))) paste(e, collapse = "\001") else ""
+  }, character(1))
+  frases <- vapply(unique(clave), function(k) {
+    quienes <- if (nzchar(k)) strsplit(k, "\001", fixed = TRUE)[[1]] else character(0)
+    paste0(.notas_pie_unir_es(unname(rotulos[anios[clave == k]])),
+           " sin variable declarada en la matriz",
+           if (length(quienes)) paste0(" para ", .notas_pie_unir_es(quienes)) else "", ".")
+  }, character(1))
+  paste0(.COMPARATIVO_NC, ": ", paste(unname(frases), collapse = " "))
+}
+
+.comparativo_es_sin_variable <- function(pp) identical((pp %||% list())$motivo, "sin_variable")
 
 .comparativo_sheet_setup <- function(wb, hoja) {
   pulso_xlsx_new_sheet(wb, hoja)
@@ -205,9 +243,9 @@
   paste(frases, collapse = " ")
 }
 
-.comparativo_linea_no_ofrecida <- function(notas_decl = character(0)) {
+.comparativo_linea_no_ofrecida <- function(notas_decl = character(0), rotulos = NULL) {
   notas_decl <- unique(notas_decl[nzchar(notas_decl)])
-  paste(c(.COMPARATIVO_LINEA_NO_OFRECIDA, vapply(notas_decl, .notas_pie_cerrar, character(1))),
+  paste(c(.comparativo_linea_no_ofrecida_base(rotulos), vapply(notas_decl, .notas_pie_cerrar, character(1))),
         collapse = " ")
 }
 
@@ -385,20 +423,25 @@ reporte_comparativo_simple <- function(modelo, path, rotulos, notas = NULL, extr
     pulso_xlsx_box(wb, hoja, h1, fila - 1L, 1L, ncol, sep_cols = seps)
 
     nc_periodos <- unique(nc_periodos); na_periodos <- unique(na_periodos)
+    sv_periodos <- nc_periodos[vapply(nc_periodos, function(b) .comparativo_es_sin_variable(q$periodos[[b]]), logical(1))]
+    nc_decl <- setdiff(nc_periodos, sv_periodos)
     base <- .comparativo_base(notas, q$claves)
     lineas <- c(
       paste0("Fuente: ", .notas_pie_cerrar(notas_n$fuente)),
       if (nzchar(base)) paste0("Base: ", .notas_pie_cerrar(base)) else character(0),
       linea_pond,
       .comparativo_linea_n_ponderado(modelo$ponderacion),
-      if (length(nc_periodos)) .comparativo_linea_nc(unname(q$notas[nc_periodos])) else character(0),
-      if (hay_no_ofrecida) .COMPARATIVO_LINEA_NO_OFRECIDA else character(0),
+      if (length(nc_decl)) .comparativo_linea_nc(unname(q$notas[nc_decl])) else character(0),
+      .comparativo_linea_sin_variable(lapply(sv_periodos, function(b) list(periodo = b, elemento = "")),
+                                      periodos, rotulos),
+      if (hay_no_ofrecida) .comparativo_linea_no_ofrecida_base(rotulos[periodos]) else character(0),
       .comparativo_linea_na_simple(na_periodos, q$sin_mapa, rotulos),
       .comparativo_linea_sin_mapa(q$sin_mapa, periodos, rotulos)
     )
     fila <- .comparativo_pie(wb, hoja, st, fila, lineas, .comparativo_extras(extras, q$claves), ncol) + 1L
     resumen[[length(resumen) + 1L]] <- list(
       titulo = q$titulo, n_c = as.list(nc_periodos), n_a = as.list(na_periodos),
+      sin_variable = as.list(sv_periodos),
       no_ofrecidas = .comparativo_resumen_no_ofrecidas(q, periodos),
       sin_mapa = .comparativo_resumen_sin_mapa(q, periodos))
   }
@@ -450,7 +493,10 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
   ncol <- 4L + 2L * sum(ncat)
   nsig <- 2L + sum(ncat)
   openxlsx::setColWidths(wb, hoja, cols = 1, widths = 30)
-  openxlsx::setColWidths(wb, hoja, cols = 2, widths = 8)
+  unidad <- .comparativo_unidad(rotulos[periodos])
+  # La columna del período cabe su rótulo más largo («egresados», «Medición»).
+  openxlsx::setColWidths(wb, hoja, cols = 2, widths = max(8, 2 + max(nchar(c(
+    unidad$titulo, unname(unlist(rotulos[periodos])))))))
   openxlsx::setColWidths(wb, hoja, cols = 3:ncol, widths = 13.5)
   openxlsx::freezePane(wb, hoja, firstActiveCol = 3)
 
@@ -478,7 +524,7 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
     }
     openxlsx::mergeCells(wb, hoja, rows = rg, cols = 1:4)
     .comparativo_put(wb, hoja, rn, 1, "Respuesta", st$header_A)
-    .comparativo_put(wb, hoja, rn, 2, "Año", st$header)
+    .comparativo_put(wb, hoja, rn, 2, unidad$titulo, st$header)
     openxlsx::writeData(wb, hoja, "Total", startRow = rc, startCol = 3)
     openxlsx::mergeCells(wb, hoja, rows = rc, cols = 3:4)
     openxlsx::writeData(wb, hoja, t(c("n", "%")), startRow = rn, startCol = 3, colNames = FALSE)
@@ -498,6 +544,7 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
 
     etiquetas <- c(q$escala$etiquetas, "Total")
     nc_partes <- character(0)
+    sv_items <- list()
     na_items <- list()
     no_of_notas <- character(0)
     hay_no_ofrecida <- FALSE
@@ -528,8 +575,12 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
         }
         if (!identical(pp$estado, "ok")) {
           for (col in seq(3L, ncol - 1L, by = 2L)) marca(col, .COMPARATIVO_NC)
-          if (i == 1L) nc_partes <- c(nc_partes, if (nzchar(q$notas[[b]])) q$notas[[b]] else
-            sprintf("La pregunta no es comparable en %s", rotulos[[b]]))
+          if (i == 1L && .comparativo_es_sin_variable(pp)) {
+            sv_items[[length(sv_items) + 1L]] <- list(periodo = b, elemento = "")
+          } else if (i == 1L) {
+            nc_partes <- c(nc_partes, if (nzchar(q$notas[[b]])) q$notas[[b]] else
+              sprintf("La pregunta no es comparable en %s", rotulos[[b]]))
+          }
           next
         }
         # La respuesta no se ofrecía ese año: toda su fila del año va en «n.a.».
@@ -570,7 +621,9 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
             }
             celda(ck, if (es_total) NA_real_ else unname(pc$n_mat[i, kk]), Nk)
           }
-          if (i == 1L && !identical(pc$estado, "ok")) {
+          if (i == 1L && .comparativo_es_sin_variable(pc)) {
+            sv_items[[length(sv_items) + 1L]] <- list(periodo = b, elemento = x$etiqueta)
+          } else if (i == 1L && !identical(pc$estado, "ok")) {
             nc_partes <- c(nc_partes, if (nzchar(x$notas[[b]])) paste0(x$etiqueta, ": ", x$notas[[b]]) else
               sprintf("%s no es comparable en %s", x$etiqueta, rotulos[[b]]))
           }
@@ -590,20 +643,21 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
     base <- .comparativo_base(notas, q$claves)
     linea1 <- paste0("Fuente: ", .notas_pie_cerrar(notas_n$fuente),
                      if (nzchar(base)) paste0(" Base: ", .notas_pie_cerrar(base)) else "",
-                     " Porcentajes por columna dentro de cada año.")
+                     " Porcentajes por columna dentro de ", unidad$cada, ".")
     linea_na <- .comparativo_linea_na(na_items, rotulos)
     linea_red <- if (isTRUE(notas_n$base_reducida$activo)) {
       .comparativo_linea_reducidas(reducidas, notas_n$base_reducida$umbral, rotulos,
                                    con_cruce = length(cruces) > 1L)
     } else ""
     linea_nc <- if (length(nc_partes)) .comparativo_linea_nc(nc_partes) else ""
-    linea_no_of <- if (hay_no_ofrecida) .comparativo_linea_no_ofrecida(no_of_notas) else ""
+    linea_sv <- .comparativo_linea_sin_variable(sv_items, periodos, rotulos)
+    linea_no_of <- if (hay_no_ofrecida) .comparativo_linea_no_ofrecida(no_of_notas, rotulos[periodos]) else ""
     lineas_sm <- c(.comparativo_linea_sin_mapa(q$sin_mapa, periodos, rotulos),
                    vapply(cruces, function(x) .comparativo_linea_sin_mapa(
                      x$sin_mapa, periodos, rotulos, prefijo = paste0(x$etiqueta, ": ")), character(1)),
                    vapply(cruces, .comparativo_linea_especiales_cruce, character(1),
                           periodos = periodos, rotulos = rotulos))
-    lineas <- c(linea1, linea_pond, .comparativo_por_cruce(notas, cruces), linea_nc, linea_no_of,
+    lineas <- c(linea1, linea_pond, .comparativo_por_cruce(notas, cruces), linea_nc, linea_sv, linea_no_of,
                 linea_na, lineas_sm, linea_red)
     libres <- .comparativo_extras(extras, q$claves)
     fila <- .comparativo_pie(wb, hoja, st, fila, lineas, if (isTRUE(show_sig) && length(cruces)) character(0) else libres,
@@ -615,7 +669,7 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
       for (r in c(sg, sc)) openxlsx::addStyle(wb, hoja, st$header, rows = r, cols = 1:nsig, gridExpand = TRUE)
       openxlsx::mergeCells(wb, hoja, rows = sg, cols = 1:2)
       .comparativo_put(wb, hoja, sc, 1, "Respuesta", st$header_A)
-      .comparativo_put(wb, hoja, sc, 2, "Año", st$header)
+      .comparativo_put(wb, hoja, sc, 2, unidad$titulo, st$header)
       for (j in seq_along(cruces)) {
         x <- cruces[[j]]; c0 <- inicio_sig[j]
         openxlsx::writeData(wb, hoja, x$etiqueta, startRow = sg, startCol = c0)
@@ -660,16 +714,18 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
         fila <- r_fin + 1L
       }
       pulso_xlsx_box(wb, hoja, sg, fila - 1L, 1L, nsig, sep_cols = c(3L, inicio_sig))
-      sig <- paste0(.notas_pie_significancia("z", alpha), " Las comparaciones se hacen dentro de cada año.",
+      sig <- paste0(.notas_pie_significancia("z", alpha), " Las comparaciones se hacen dentro de ", unidad$cada, ".",
                     " Las letras usan el N ponderado, sin corrección por efecto de diseño.")
       # El pie de la subtabla va al ancho de la tabla principal, como en la
       # maqueta: a su propio ancho la nota de significancia ocupa cuatro renglones.
-      fila <- .comparativo_pie(wb, hoja, st, fila, c(sig, linea_nc, linea_no_of, linea_na), libres, ncol) + 1L
+      fila <- .comparativo_pie(wb, hoja, st, fila, c(sig, linea_nc, linea_sv, linea_no_of, linea_na), libres, ncol) + 1L
     }
     fila <- fila + 1L
     resumen[[length(resumen) + 1L]] <- list(
       titulo = q$titulo,
       n_c = as.list(unique(nc_partes)),
+      sin_variable = lapply(sv_items, function(it) list(
+        base = it$periodo, fila = if (nzchar(it$elemento)) it$elemento else q$etiqueta)),
       n_a = lapply(na_items, function(it) it[c("periodo", "cruce", "categoria")]),
       n_reducidas = length(Filter(function(r) r$n > 0 && r$n < notas_n$base_reducida$umbral, reducidas)),
       no_ofrecidas = .comparativo_resumen_no_ofrecidas(q, periodos),

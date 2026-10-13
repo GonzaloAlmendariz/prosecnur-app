@@ -332,3 +332,103 @@ test_that("resumen: sin_mapa trae los códigos especiales y sus etiquetas", {
   sm24 <- Filter(function(x) identical(x$base, "b2024"), g$rcz$preguntas[[1]]$sin_mapa)[[1]]
   expect_identical(sm24$codigos_especiales, list())
 })
+
+test_that("sin variable: pie «n.c.» propio, agrupado por año, en el simple y en cruces", {
+  sid <- .az_setup()
+  s <- session_get(sid)
+  for (i in seq_along(s$equivalencias_publicos$filas)) {
+    id <- s$equivalencias_publicos$filas[[i]]$id
+    if (id %in% c("VBG-01", "DEN-01")) {
+      s$equivalencias_publicos$filas[[i]]$variables$b2026 <- ""
+      if (identical(id, "VBG-01")) s$equivalencias_publicos$filas[[i]]$variables$b2025 <- ""
+    }
+    if (identical(id, "S-05")) s$equivalencias_publicos$filas[[i]]$variables$b2024 <- ""
+  }
+  .session_env[[sid]] <- s
+  cfg <- list(notas = .az_notas())
+  dir <- withr::local_tempdir()
+  rot <- .armz_rotulos(c("b2024", "b2025", "b2026"))
+
+  ap <- .armz_preparar(sid, cfg, filas_refs = list("VBG-01", "DEN-01"))
+  rs <- reporte_comparativo_simple(armonizada_modelo_frecuencias(ap), file.path(dir, "s.xlsx"), rot, cfg$notas)
+  d <- .rc_celdas(file.path(dir, "s.xlsx"))[[1]]
+  # VBG-01 sin variable en 2025 y 2026: una sola frase con los dos años.
+  expect_identical(sum(d == "n.c.: 2025 y 2026 sin variable declarada en la matriz.", na.rm = TRUE), 1L)
+  # DEN-01: su n.c. declarado de 2025 conserva su nota y 2026 va aparte.
+  expect_true("n.c.: no comparable por diferencias en la redacción de la pregunta entre mediciones." %in% d)
+  expect_identical(sum(d == "n.c.: 2026 sin variable declarada en la matriz.", na.rm = TRUE), 1L)
+  expect_identical(rs$preguntas[[1]]$sin_variable, list("b2025", "b2026"))
+  expect_identical(rs$preguntas[[2]]$sin_variable, list("b2026"))
+  expect_identical(rs$preguntas[[2]]$n_c, list("b2025", "b2026"))
+  .rc_notas_limpias(d[grepl("^n\\.c\\.", d)])
+
+  ap_c <- .armz_preparar(sid, cfg, filas_refs = list("DEN-01"), cruces_refs = list("S-05"))
+  path <- file.path(dir, "c.xlsx")
+  rc <- reporte_comparativo_cruces(armonizada_modelo_cruces(ap_c), path, rot, cfg$notas)
+  dc <- .rc_celdas(path)
+  # Fila 2024 de la primera respuesta: Total con datos, las 3 columnas de S-05 en n.c.
+  r24 <- which(dc[[2]] == "2024")[1]
+  expect_false(identical(dc[r24, 3], "n.c."))
+  expect_identical(unname(unlist(dc[r24, 5:10])), rep("n.c.", 6))
+  pie <- dc[[1]]
+  expect_true(paste("n.c.: 2024 sin variable declarada en la matriz para Lugar de nacimiento.",
+                    "2026 sin variable declarada en la matriz.") %in% pie)
+  expect_false(any(grepl("no es comparable en", pie)))
+  expect_identical(rc$preguntas[[1]]$sin_variable,
+                   list(list(base = "b2024", fila = "Lugar de nacimiento"),
+                        list(base = "b2026", fila = "Denunció")))
+  .rc_notas_limpias(pie[grepl("^n\\.c\\.", pie)])
+})
+
+test_that("serie de públicos: con rótulos que no son años y 4 mediciones, encabezado y pie dicen «Medición»", {
+  nuevos <- c(b2024 = "docentes", b2025 = "egresados", b2026 = "alumnos", b2027 = "jefes")
+  d0 <- .az_datos()
+  datos <- stats::setNames(list(d0$b2024, d0$b2025, d0$b2026, d0$b2026), unname(nuevos))
+  renombrar <- function(x) stats::setNames(x[names(nuevos)[names(nuevos) %in% names(x)]],
+                                           nuevos[names(nuevos) %in% names(x)])
+  pond <- list(ponderacion = list(enabled = FALSE))
+  sid <- .az_setup(datos = datos, por_base = list(
+    docentes = list(ponderacion = list(enabled = TRUE, modo = "columna", peso_columna = "factor_ponderacion")),
+    egresados = list(ponderacion = list(enabled = TRUE, modo = "columna", peso_columna = "w25")),
+    alumnos = pond, jefes = pond))
+  s <- session_get(sid)
+  s$equivalencias_publicos$filas <- lapply(s$equivalencias_publicos$filas, function(f) {
+    f$variables$b2027 <- f$variables$b2026
+    f$armonizacion$por_base$b2027 <- f$armonizacion$por_base$b2026
+    f$variables <- renombrar(f$variables)
+    f$armonizacion$por_base <- renombrar(f$armonizacion$por_base)
+    f
+  })
+  s$equivalencias_publicos$armonizacion_periodos <- unname(nuevos)
+  .session_env[[sid]] <- s
+
+  cfg <- list(notas = .az_notas())
+  dir <- withr::local_tempdir()
+  ap <- .armz_preparar(sid, cfg, filas_refs = list("VBG-01", "DEN-01"), cruces_refs = list("S-05"))
+  expect_identical(ap$periodos, unname(nuevos))
+  rot <- .armz_rotulos(ap$periodos)
+  expect_identical(unname(rot), unname(nuevos))
+  path <- file.path(dir, "c.xlsx")
+  reporte_comparativo_cruces(armonizada_modelo_cruces(ap), path, rot, cfg$notas)
+  dc <- .rc_celdas(path)
+  # Encabezado de la tabla principal y de la de letras.
+  expect_identical(sum(dc[[2]] == "Medición", na.rm = TRUE), 4L)  # 2 preguntas x 2 tablas
+  expect_false(any(dc[[2]] == "Año", na.rm = TRUE))
+  expect_true(all(unname(nuevos) %in% dc[[2]]))
+  pie <- dc[[1]][!is.na(dc[[1]])]
+  expect_true(any(grepl("Porcentajes por columna dentro de cada medición.", pie, fixed = TRUE)))
+  expect_true(any(grepl("Las comparaciones se hacen dentro de cada medición.", pie, fixed = TRUE)))
+  expect_true(any(grepl("no se ofrecía esa medición.", pie, fixed = TRUE)))
+  todo <- unlist(dc, use.names = FALSE)
+  expect_false(any(grepl("\\baño\\b", todo[!is.na(todo)], ignore.case = TRUE, perl = TRUE)))
+
+  ps <- file.path(dir, "s.xlsx")
+  reporte_comparativo_simple(armonizada_modelo_frecuencias(ap), ps, rot, cfg$notas)
+  ds <- unlist(.rc_celdas(ps), use.names = FALSE)
+  expect_true("n.a.: no aplica, la opción no se ofrecía esa medición." %in% ds)
+  expect_false(any(grepl("\\baño\\b", ds[!is.na(ds)], ignore.case = TRUE, perl = TRUE)))
+
+  # Con rótulos de año la unidad sigue siendo «Año».
+  expect_identical(.comparativo_unidad(c(a = "2024", b = "2025", c = "2026", d = "2027"))$titulo, "Año")
+  expect_identical(.comparativo_unidad(c(a = "2024", b = "egresados"))$titulo, "Medición")
+})
