@@ -178,7 +178,8 @@
 
 .comparativo_motivo_corto <- function(m) {
   switch(m %||% "", mapa_roto = "Mapa roto", select_multiple = "Opción múltiple",
-         sin_variable = "Sin variable en la matriz", m %||% "")
+         sin_variable = "Sin variable en la matriz",
+         variable_ausente = "Variable ausente en los datos", m %||% "")
 }
 
 #' Hoja «Preguntas omitidas»: cada pregunta o variable de cruce que salió del
@@ -480,7 +481,9 @@ reporte_comparativo_simple <- function(modelo, path, rotulos, notas = NULL, extr
 
     nc_periodos <- unique(nc_periodos); na_periodos <- unique(na_periodos)
     sv_periodos <- nc_periodos[vapply(nc_periodos, function(b) .comparativo_es_sin_variable(q$periodos[[b]]), logical(1))]
-    nc_decl <- setdiff(nc_periodos, sv_periodos)
+    va_periodos <- nc_periodos[vapply(nc_periodos, function(b) .comparativo_es_variable_ausente(q$periodos[[b]]), logical(1))]
+    va_items <- lapply(va_periodos, function(b) .comparativo_item_ausente(q$periodos[[b]], b))
+    nc_decl <- setdiff(nc_periodos, c(sv_periodos, va_periodos))
     base <- .comparativo_base(notas, q$claves)
     lineas <- c(
       paste0("Fuente: ", .notas_pie_cerrar(notas_n$fuente)),
@@ -490,6 +493,7 @@ reporte_comparativo_simple <- function(modelo, path, rotulos, notas = NULL, extr
       if (length(nc_decl)) .comparativo_linea_nc(unname(q$notas[nc_decl])) else character(0),
       .comparativo_linea_sin_variable(lapply(sv_periodos, function(b) list(periodo = b, elemento = "")),
                                       periodos, rotulos),
+      .comparativo_linea_variable_ausente(va_items, periodos, rotulos),
       if (hay_no_ofrecida) .comparativo_linea_no_ofrecida_base(rotulos[periodos]) else character(0),
       .comparativo_linea_na_simple(na_periodos, q$sin_mapa, rotulos),
       .comparativo_linea_sin_mapa(q$sin_mapa, periodos, rotulos)
@@ -498,6 +502,7 @@ reporte_comparativo_simple <- function(modelo, path, rotulos, notas = NULL, extr
     resumen[[length(resumen) + 1L]] <- list(
       titulo = q$titulo, n_c = as.list(nc_periodos), n_a = as.list(na_periodos),
       sin_variable = as.list(sv_periodos),
+      variable_ausente = .comparativo_resumen_ausente(va_items, q$etiqueta),
       no_ofrecidas = .comparativo_resumen_no_ofrecidas(q, periodos),
       sin_mapa = .comparativo_resumen_sin_mapa(q, periodos))
   }
@@ -602,6 +607,7 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
     etiquetas <- c(q$escala$etiquetas, "Total")
     nc_partes <- character(0)
     sv_items <- list()
+    va_items <- list()
     na_items <- list()
     no_of_notas <- character(0)
     hay_no_ofrecida <- FALSE
@@ -634,6 +640,8 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
           for (col in seq(3L, ncol - 1L, by = 2L)) marca(col, .COMPARATIVO_NC)
           if (i == 1L && .comparativo_es_sin_variable(pp)) {
             sv_items[[length(sv_items) + 1L]] <- list(periodo = b, elemento = "")
+          } else if (i == 1L && .comparativo_es_variable_ausente(pp)) {
+            va_items[[length(va_items) + 1L]] <- .comparativo_item_ausente(pp, b)
           } else if (i == 1L) {
             nc_partes <- c(nc_partes, if (nzchar(q$notas[[b]])) q$notas[[b]] else
               sprintf("La pregunta no es comparable en %s", rotulos[[b]]))
@@ -680,6 +688,8 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
           }
           if (i == 1L && .comparativo_es_sin_variable(pc)) {
             sv_items[[length(sv_items) + 1L]] <- list(periodo = b, elemento = x$etiqueta)
+          } else if (i == 1L && .comparativo_es_variable_ausente(pc)) {
+            va_items[[length(va_items) + 1L]] <- .comparativo_item_ausente(pc, b, x$etiqueta)
           } else if (i == 1L && !identical(pc$estado, "ok")) {
             nc_partes <- c(nc_partes, if (nzchar(x$notas[[b]])) paste0(x$etiqueta, ": ", x$notas[[b]]) else
               sprintf("%s no es comparable en %s", x$etiqueta, rotulos[[b]]))
@@ -708,13 +718,14 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
     } else ""
     linea_nc <- if (length(nc_partes)) .comparativo_linea_nc(nc_partes) else ""
     linea_sv <- .comparativo_linea_sin_variable(sv_items, periodos, rotulos)
+    linea_va <- .comparativo_linea_variable_ausente(va_items, periodos, rotulos)
     linea_no_of <- if (hay_no_ofrecida) .comparativo_linea_no_ofrecida(no_of_notas, rotulos[periodos]) else ""
     lineas_sm <- c(.comparativo_linea_sin_mapa(q$sin_mapa, periodos, rotulos),
                    vapply(cruces, function(x) .comparativo_linea_sin_mapa(
                      x$sin_mapa, periodos, rotulos, prefijo = paste0(x$etiqueta, ": ")), character(1)),
                    vapply(cruces, .comparativo_linea_especiales_cruce, character(1),
                           periodos = periodos, rotulos = rotulos))
-    lineas <- c(linea1, linea_pond, .comparativo_por_cruce(notas, cruces), linea_nc, linea_sv, linea_no_of,
+    lineas <- c(linea1, linea_pond, .comparativo_por_cruce(notas, cruces), linea_nc, linea_sv, linea_va, linea_no_of,
                 linea_na, lineas_sm, linea_red)
     libres <- .comparativo_extras(extras, q$claves)
     fila <- .comparativo_pie(wb, hoja, st, fila, lineas, if (isTRUE(show_sig) && length(cruces)) character(0) else libres,
@@ -775,7 +786,7 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
                     " Las letras usan el N ponderado, sin corrección por efecto de diseño.")
       # El pie de la subtabla va al ancho de la tabla principal, como en la
       # maqueta: a su propio ancho la nota de significancia ocupa cuatro renglones.
-      fila <- .comparativo_pie(wb, hoja, st, fila, c(sig, linea_nc, linea_sv, linea_no_of, linea_na), libres, ncol) + 1L
+      fila <- .comparativo_pie(wb, hoja, st, fila, c(sig, linea_nc, linea_sv, linea_va, linea_no_of, linea_na), libres, ncol) + 1L
     }
     fila <- fila + 1L
     resumen[[length(resumen) + 1L]] <- list(
@@ -783,6 +794,7 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
       n_c = as.list(unique(nc_partes)),
       sin_variable = lapply(sv_items, function(it) list(
         base = it$periodo, fila = if (nzchar(it$elemento)) it$elemento else q$etiqueta)),
+      variable_ausente = .comparativo_resumen_ausente(va_items, q$etiqueta),
       n_a = lapply(na_items, function(it) it[c("periodo", "cruce", "categoria")]),
       n_reducidas = length(Filter(function(r) r$n > 0 && r$n < notas_n$base_reducida$umbral, reducidas)),
       no_ofrecidas = .comparativo_resumen_no_ofrecidas(q, periodos),
