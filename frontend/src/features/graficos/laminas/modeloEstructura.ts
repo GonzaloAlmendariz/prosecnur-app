@@ -166,7 +166,7 @@ export function construirEstructura(slides: readonly Slide[], tituloDe?: TituloD
     const abierto = bloque as { clase: ClaseBloque; nodo: Bloque } | null;
     // Una lámina de gráficos detrás de «Cómo leer» y sin separador no es de «Cómo leer»: en el mazo de Arte y Diseño
     // (2026-10-13) las 17 láminas de resultados quedaban colgadas de ese bloque. Van a «Sin capítulo», contiguas.
-    if (abierto && abierto.clase === "como-leer" && APERTURA.has(slide.tipo)) {
+    if (abierto && (abierto.clase === "como-leer" || abierto.clase === "sin-capitulo") && APERTURA.has(slide.tipo)) {
       enBloque("apertura").laminas.push(lam);
       return;
     }
@@ -174,10 +174,10 @@ export function construirEstructura(slides: readonly Slide[], tituloDe?: TituloD
       enBloque("sin-capitulo").laminas.push(lam);
       return;
     }
-    // Una Apertura reabierta detrás de «Cómo leer» (U11) no se traga los resultados que siguen: van a «Sin capítulo».
-    const graficoTrasApertura = abierto?.clase === "apertura" && vecesBloque["como-leer"] > 0 && !APERTURA.has(slide.tipo)
-      && !COMO_LEER.has(slide.tipo) && (SLIDE_GRAF_SLOTS[slide.tipo] ?? []).length > 0;
-    if (graficoTrasApertura) { enBloque("sin-capitulo").laminas.push(lam); return; }
+    // Un gráfico de resultados nunca es Apertura (D7, Arte 2026-10-13: «¿Cuál es su género?» antes del objetivo quedaba en
+    // «Apertura»; y U11: la Apertura reabierta tras «Cómo leer» se tragaba los resultados). Sin capítulo va a «Sin capítulo».
+    const esResultado = !APERTURA.has(slide.tipo) && !COMO_LEER.has(slide.tipo) && (SLIDE_GRAF_SLOTS[slide.tipo] ?? []).length > 0;
+    if (esResultado && (!abierto || abierto.clase === "apertura")) { enBloque("sin-capitulo").laminas.push(lam); return; }
     if (abierto && abierto.clase !== "apertura") { abierto.nodo.laminas.push(lam); return; }
     enBloque(COMO_LEER.has(slide.tipo) ? "como-leer" : "apertura").laminas.push(lam);
   });
