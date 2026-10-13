@@ -72,8 +72,8 @@ export const AYUDA_CORTES_CHIP = "Dos valores que separan rojo, ámbar y verde. 
 export const GRAFICADORES_NO_NATIVOS: ReadonlySet<string> = new Set([
   // p_puntos_comparativos salió el 2026-10-13 (G11): ya sale como el ranking con puntos. p_dim_radar también: con tres
   // ejes o más ya salía nativo y el registro decía lo contrario (test-dim-radar-nativo.R).
-  // p_nube_palabras también (G11): sale con el ranking nativo de la lámina 101.
-  "p_tabla", "p_dim_foda",
+  // p_nube_palabras también (G11): sale con el ranking nativo de la lámina 101; y p_tabla, como la tabla del diseño.
+  "p_dim_foda",
 ]);
 const TABLA = ["p_tabla"];
 const FODA = ["p_dim_foda"];
@@ -222,9 +222,16 @@ const RETIRADO_EN: Readonly<Record<string, ReadonlySet<string>>> = {
   p_dim_comparativo_radarbar: new Set(["incluir_total"]),
 };
 
+/** Args retirados en general que en un graficador nativo siguen teniendo efecto: cambian los datos, no el dibujo. */
+const VIGENTE_EN: Readonly<Record<string, ReadonlySet<string>>> = {
+  // G11: «Omitir sin respuesta» cambia las filas de la tabla, que ahora sale nativa.
+  p_tabla: new Set(["sm_omit_na"]),
+};
+
 export function esRetirado(name: string, graficador?: string): boolean {
   // 5a: en un graficador no nativo lo retirado sigue teniendo efecto (lo dibuja ggplot).
   if (graficador && GRAFICADORES_NO_NATIVOS.has(graficador)) return false;
+  if (graficador && VIGENTE_EN[graficador]?.has(name)) return false;
   if (RETIRADOS.has(name) || RETIRADO_PREFIJO.some((p) => name.startsWith(p))) return true;
   return !!graficador && !!RETIRADO_EN[graficador]?.has(name);
 }

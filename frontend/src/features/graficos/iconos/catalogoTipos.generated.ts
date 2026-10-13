@@ -64,7 +64,7 @@ export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [
   { name: "p_lollipop", familia_editor: "categorias", salida: "nativa", en_selector: true },
   { name: "p_serie_temporal", familia_editor: "comparar", salida: "nativa", en_selector: true },
   { name: "p_radar", familia_editor: "comparar", salida: "nativa", en_selector: true },
-  { name: "p_tabla", familia_editor: "comparar", salida: "ruta_anterior", en_selector: true },
+  { name: "p_tabla", familia_editor: "comparar", salida: "nativa", en_selector: true },
   { name: "p_dim_radar", familia_editor: "dimensiones", salida: "nativa", en_selector: true },
   { name: "p_dim_heatmap", familia_editor: "dimensiones", salida: "nativa", en_selector: true },
   { name: "p_dim_comparativo_radarbar", familia_editor: "dimensiones", salida: "nativa", en_selector: true },

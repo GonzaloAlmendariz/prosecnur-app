@@ -91,7 +91,7 @@
 
 #' La tabla del recetario (`tabla_ttb`): encabezado azul con filete, primera columna en negrita y cebra
 #' @keywords internal
-.lam_tabla_ttb <- function(doc, d, x, y, ws, rowh, rowh_cuerpo = rowh) {
+.lam_tabla_ttb <- function(doc, d, x, y, ws, rowh, rowh_cuerpo = rowh, nombre = NULL) {
   azul <- .std_color("azul"); fuente <- .std_pt("fuente")
   ft <- flextable::flextable(d)
   ft <- flextable::font(ft, fontname = fuente, part = "all")
@@ -105,8 +105,10 @@
   ft <- flextable::padding(ft, padding = 6, part = "all"); ft <- flextable::width(ft, width = ws)
   ft <- flextable::height(ft, height = rowh, part = "header"); ft <- flextable::height(ft, height = rowh_cuerpo, part = "body")
   ft <- flextable::hrule(ft, rule = "exact", part = "header"); ft <- flextable::hrule(ft, rule = "exact", part = "body")
-  officer::ph_with(doc, ft, location = officer::ph_location(left = x, top = y, width = sum(ws),
-                                                         height = if (identical(rowh_cuerpo, rowh)) rowh * (nrow(d) + 1) else rowh + rowh_cuerpo * nrow(d)))
+  loc <- officer::ph_location(left = x, top = y, width = sum(ws),
+                              height = if (identical(rowh_cuerpo, rowh)) rowh * (nrow(d) + 1) else rowh + rowh_cuerpo * nrow(d))
+  if (!is.null(nombre)) loc$ph_label <- nombre   # la tabla sola (lámina 197/225) se nombra como pieza del motor
+  officer::ph_with(doc, ft, location = loc)
 }
 
 #' Lámina del radar con tabla (90)

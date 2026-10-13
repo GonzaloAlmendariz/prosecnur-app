@@ -29,7 +29,7 @@ describe("familias", () => {
 
   it("la salida sale del catálogo", () => {
     expect(salidaDe("p_puntos_comparativos")).toBe("nativa");   // G11: ya sale como el ranking con puntos
-    expect(salidaDe("p_tabla")).toBe("ruta_anterior");
+    expect(salidaDe("p_tabla")).toBe("nativa");   // G11: la tabla del diseño (láminas 197/225)
     expect(salidaDe("p_nube_palabras")).toBe("nativa");   // G11: con su ranking de palabras (lámina 101)
     expect(salidaDe("p_barras_categoricas")).toBe("nativa");
   });

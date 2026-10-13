@@ -261,12 +261,12 @@ describe("5a · graficadores no nativos", () => {
   });
   const tablaReal = [a("modo", "choice"), a("var", "variable_opt", { depende: { arg: "modo", valores: ["sm"] } }), a("cruce", "variable_opt"),
     a("top_n", "number"), a("sm_omit_codes", "codigos_list"), a("sm_omit_na", "bool"), a("umbral_rojo_pct", "number", { default: 60 })];
-  it("tabla: «Omitir sin respuesta» encendido sin guardar (formal TRUE) y el umbral rojo; top_n y sm_omit_codes siguen fuera (D1)", () => {
-    expect(nombres(tablaReal, { modo: "sm" }, "p_tabla")).toEqual(["var", "modo", "cruce", "sm_omit_na", "umbral_rojo_pct"]);
+  it("tabla: «Omitir sin respuesta» encendido sin guardar (formal TRUE); el umbral rojo se retira con la tabla nativa (G11); top_n y sm_omit_codes siguen fuera (D1)", () => {
+    expect(nombres(tablaReal, { modo: "sm" }, "p_tabla")).toEqual(["var", "modo", "cruce", "sm_omit_na"]);
     const omitir = campo(tablaReal, {}, "p_tabla", "sm_omit_na");
     expect(omitir && interruptorEncendido(omitir.arg, undefined)).toBe(true);
     expect(omitir && interruptorEncendido(omitir.arg, false)).toBe(false);
-    expect(campo(tablaReal, {}, "p_tabla", "umbral_rojo_pct")?.arg.default).toBe(60);
+    expect(campo(tablaReal, {}, "p_tabla", "umbral_rojo_pct")).toBeUndefined();   // la tabla del diseño no pinta en rojo
     expect(nombres(tablaReal, { modo: "sm" }, "p_radar")).not.toContain("sm_omit_na");
   });
   const DISPOSICION = [{ value: "matriz", label: "Matriz 2×2" }, { value: "dispersion", label: "Dispersión" }];
