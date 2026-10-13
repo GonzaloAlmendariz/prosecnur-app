@@ -18,6 +18,56 @@
   clip: rect(0, 0, 0, 0);
 }
 
+.pulso-codif-adaptar-estado:focus {
+  outline: none;
+}
+
+.pulso-codif-adaptar-estado:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Línea de arriba tras una aplicación con avisos: una fila, sin caja propia,
+ * envuelve en vez de recortar en 1024. */
+.pulso-codif-adaptar-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.pulso-codif-adaptar-resumen-icono {
+  flex: none;
+  color: var(--pulso-success-fg);
+}
+
+.pulso-codif-adaptar-resumen-enlace {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pulso-primary);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.pulso-codif-adaptar-resumen-enlace:hover {
+  text-decoration-thickness: 2px;
+}
+
+.pulso-codif-adaptar-resumen-enlace:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 .pulso-codif-adaptar-giro {
   animation: pulso-codif-adaptar-giro 0.9s linear infinite;
 }

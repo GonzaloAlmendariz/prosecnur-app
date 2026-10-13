@@ -34,6 +34,15 @@ export type AplicarEntrada = {
    * Se consume una sola vez: remontar no vuelve a mover scroll ni foco.
    */
   enfocarPendiente: boolean;
+  /**
+   * Segundo pedido de llevar el aviso a la vista, para después del job. Se arma
+   * al llegar la respuesta con avisos y lo consume `alMontar` en el primer
+   * montaje con el job terminado: ese montaje es el remontaje que provoca el
+   * propio `pulso:session-changed` del fin del job, que deja el scroll en 0 y
+   * el foco en BODY. Un job que falla o se cancela lo desarma (no hay
+   * remontaje que reparar) y un montaje con el job corriendo no lo toca.
+   */
+  revelarTrasJob: boolean;
 };
 
 export const APLICAR_ENTRADA_VACIA: AplicarEntrada = Object.freeze({
@@ -44,6 +53,7 @@ export const APLICAR_ENTRADA_VACIA: AplicarEntrada = Object.freeze({
   salida: null,
   error: "",
   enfocarPendiente: false,
+  revelarTrasJob: false,
 }) as AplicarEntrada;
 
 export function claveAplicar(sessionId: string, base: string | null | undefined): string {
@@ -65,6 +75,12 @@ type AplicarAvisosState = {
   terminar: (clave: string, salida: AplicarSalida) => void;
   cancelar: (clave: string) => void;
   marcarEnfocado: (clave: string) => void;
+  /**
+   * Montaje de la vista de Adaptar: si el job ya terminó y quedó armado el
+   * pedido de revelar, lo convierte en `enfocarPendiente` y lo desarma. Una
+   * sola vez; los montajes siguientes no mueven nada.
+   */
+  alMontar: (clave: string) => void;
   reset: () => void;
 };
 
@@ -96,21 +112,45 @@ export const useAplicarAvisosStore = create<AplicarAvisosState>((set) => ({
           avisos,
           sinRecodificar: r.sin_recodificar ?? [],
           enfocarPendiente: tieneAvisos(avisos),
+          revelarTrasJob: tieneAvisos(avisos),
         }),
       };
     }),
   fallar: (clave, mensaje) =>
     set((s) => ({
-      porBase: actualizar(s.porBase, clave, { aplicando: false, jobId: null, error: mensaje }),
+      porBase: actualizar(s.porBase, clave, {
+        aplicando: false,
+        jobId: null,
+        error: mensaje,
+        revelarTrasJob: false,
+      }),
     })),
   terminar: (clave, salida) =>
     set((s) => ({ porBase: actualizar(s.porBase, clave, { jobId: null, salida }) })),
   cancelar: (clave) =>
-    set((s) => ({ porBase: actualizar(s.porBase, clave, { jobId: null }) })),
+    set((s) => ({ porBase: actualizar(s.porBase, clave, { jobId: null, revelarTrasJob: false }) })),
   marcarEnfocado: (clave) =>
     set((s) => ({ porBase: actualizar(s.porBase, clave, { enfocarPendiente: false }) })),
+  alMontar: (clave) =>
+    set((s) => {
+      const e = s.porBase[clave];
+      if (!e || !debeRevelarAlMontar(e)) return s;
+      return {
+        porBase: actualizar(s.porBase, clave, { enfocarPendiente: true, revelarTrasJob: false }),
+      };
+    }),
   reset: () => set({ porBase: {} }),
 }));
+
+/** Job terminado con éxito (hay descargas, nada corriendo) y pedido armado. */
+export function debeRevelarAlMontar(e: AplicarEntrada): boolean {
+  return e.revelarTrasJob && e.jobId === null && e.salida !== null && tieneAvisos(e.avisos);
+}
+
+/** Cuántos avisos de ADR 0100 dejó la aplicación (preguntas, no filas). */
+export function contarAvisos(avisos: CodifAplicarAvisos): number {
+  return avisos.omitidas.length + avisos.textos_sin_codigo.length;
+}
 
 export function selectAplicarEntrada(clave: string) {
   return (s: AplicarAvisosState): AplicarEntrada => s.porBase[clave] ?? APLICAR_ENTRADA_VACIA;

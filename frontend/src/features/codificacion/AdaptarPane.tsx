@@ -5,7 +5,7 @@ import { Alert } from "../../components/Alert";
 import { Panel } from "../../components/Panel";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { useSession } from "../../lib/SessionContext";
-import { AdaptarAplicacion } from "./AdaptarAplicacion";
+import { AdaptarAplicacion, AdaptarAplicacionResumen } from "./AdaptarAplicacion";
 import { claveAplicar } from "./aplicarAvisosStore";
 import { motivoNoSoportado } from "./planAdaptacionModel";
 
@@ -61,6 +61,9 @@ export function AdaptarPane({ base, onBackToCodificar, onBackToMatrices }: Props
       className="pulso-codificacion-adaptar"
       data-audit-ready="codificacion-adaptar"
     >
+      {/* Tras una aplicación con avisos: lo dice arriba y lleva al aviso. */}
+      <AdaptarAplicacionResumen clave={clave} />
+
       {/* Header con totales */}
       <div className="pulso-codificacion-adaptar-stats">
         <Stat label="Preguntas" value={t.n_preguntas} />
