@@ -78,7 +78,7 @@
   args <- list(
     titulo = list(name = "titulo",   label = "Título del slide", tipo_input = "string",   grupo = "textos"),
     icono = list(name = "icono",    label = "Ícono",            tipo_input = "icono",    grupo = "textos",
-         descripcion = "PNG central del slide, elegido desde los iconos subidos en Configuración global > Iconos."),
+         descripcion = "PNG central del slide, elegido desde los iconos subidos en Identidad > Íconos."),
     base = list(name = "base",     label = "Base",             tipo_input = "string",   grupo = "textos",
          descripcion = "Nota al pie con la base real. Vacío = automática."),
     pie = list(name = "pie",      label = "Pie",              tipo_input = "textarea", grupo = "textos"),

@@ -75,9 +75,9 @@
 
   if (w_bars < .MULTIACTOR_W_BARS_MIN) {
     .pulso_aviso(sprintf(
-      paste0("El reparto de ancho de la lámina multiactor deja %.0f%% para las barras y el ",
-             "mínimo es %.0f%%: se vuelve al reparto de fábrica. Baja el ancho del tema o ",
-             "el del eje en Configuración global > Multi-apiladas multiactor."),
+      # G15 (2026-10-13): el aviso mandaba a «Configuración global > Multi-apiladas multiactor», que ya no existe en Láminas.
+      paste0("El reparto de ancho guardado para las láminas que comparan públicos deja %.0f%% para las barras ",
+             "y el mínimo es %.0f%%: la lámina usa el reparto del recetario."),
       w_bars * 100, .MULTIACTOR_W_BARS_MIN * 100
     ))
     return(.multiactor_canvas_resolver(list(), show_extra = show_extra))

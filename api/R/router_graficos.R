@@ -347,8 +347,8 @@
     nombre <- .aviso_nombre_icono(ref, icon_registry)
     .aviso_detalle("ícono no disponible: ref=", ref, " ruta=", path)   # al `.err` del job; el aviso no lleva el id
     .pulso_aviso(.aviso_en_lamina(
-      sprintf("su ícono%s ya no está en el catálogo de íconos y sale sin él. Vuelve a subirlo en Configuración global > Íconos si lo necesitas.", nombre),
-      sin_contexto = sprintf("Un ícono%s elegido para una lámina ya no está en el catálogo de íconos y esa lámina sale sin él. Vuelve a subirlo en Configuración global > Íconos si lo necesitas.", nombre)
+      sprintf("su ícono%s ya no está en el catálogo de íconos y sale sin él. Vuelve a subirlo en Identidad > Íconos si lo necesitas.", nombre),
+      sin_contexto = sprintf("Un ícono%s elegido para una lámina ya no está en el catálogo de íconos y esa lámina sale sin él. Vuelve a subirlo en Identidad > Íconos si lo necesitas.", nombre)
     ))
     return(NULL)
   }
@@ -384,8 +384,8 @@
     # tener razón. Ahora la UI la tiene.
     .aviso_detalle("ícono requerido ausente en ", tipo, "; se usa builtin:users")
     .pulso_aviso(.aviso_en_lamina(
-      "necesita un ícono y no había ninguno disponible: se usó el integrado. Elige un PNG en Configuración global > Íconos.",
-      sin_contexto = sprintf("Una lámina «%s» necesita un ícono y no había ninguno disponible: se usó el integrado. Elige un PNG en Configuración global > Íconos.", .aviso_tipo_lamina(tipo))
+      "necesita un ícono y no había ninguno disponible: se usó el integrado. Elige un PNG en Identidad > Íconos.",
+      sin_contexto = sprintf("Una lámina «%s» necesita un ícono y no había ninguno disponible: se usó el integrado. Elige un PNG en Identidad > Íconos.", .aviso_tipo_lamina(tipo))
     ))
     payload$icono <- tryCatch(
       p_ggplot_raw(.graficos_builtin_icon_plot("builtin:users")),
@@ -394,7 +394,7 @@
     if (is.null(payload$icono)) {
       stop(
         sprintf(
-          "La lámina «%s» requiere un ícono. Elige un PNG en Configuración global > Íconos.",
+          "La lámina «%s» requiere un ícono. Elige un PNG en Identidad > Íconos.",
           .aviso_tipo_lamina(tipo)
         ),
         call. = FALSE
