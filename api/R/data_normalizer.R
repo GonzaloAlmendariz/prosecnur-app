@@ -748,7 +748,17 @@
   survey_names[!is_matrix_child]
 }
 
-.dn_expected_data_names <- function(instrumento) {
+# Tipos de metadato del XLSForm: la plataforma los llena sola, no son preguntas.
+.DN_TIPOS_METADATO <- c(
+  "start", "end", "today", "deviceid", "subscriberid", "phonenumber",
+  "simserial", "username", "audit"
+)
+
+# `con_metadatos = TRUE` cuenta también los metadatos del XLSForm (`start`,
+# `end`, `deviceid`…) y los `calculate`: los usa la declaración de variables
+# retiradas fuera de la plataforma (ADR 0100, P2b), donde un `start` que no
+# llegó es una variable que falta. El backfill los sigue saltando.
+.dn_expected_data_names <- function(instrumento, con_metadatos = FALSE) {
   survey <- instrumento$survey
   if (is.null(survey) || !nrow(survey) || !"name" %in% names(survey)) {
     return(character(0))
@@ -756,11 +766,10 @@
   type_raw <- .dn_survey_type_raw(survey)
   type_base <- .dn_survey_type_base(survey)
   names_raw <- .dn_survey_names(survey)
-  skip_types <- c(
-    "begin_group", "end_group", "begin_repeat", "end_repeat",
-    "note", "calculate", "start", "end", "today", "deviceid",
-    "subscriberid", "phonenumber", "simserial", "username", "audit"
-  )
+  skip_types <- c("begin_group", "end_group", "begin_repeat", "end_repeat", "note")
+  if (!isTRUE(con_metadatos)) {
+    skip_types <- c(skip_types, "calculate", .DN_TIPOS_METADATO)
+  }
   # Dos patrones de Kobo que NO producen columnas en la base ancha aplanada:
   #
   # 1. Preguntas anidadas dentro de un `begin_repeat`: Kobo devuelve el repeat

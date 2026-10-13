@@ -598,7 +598,7 @@
 # salía con la sección entera vacía aunque hubiera excluido casos.
 .vmr_universe_declares_counts <- function(universe) {
   isTRUE(universe$applied) || isTRUE(universe$territorial) || isTRUE(universe$cleaning_applied) ||
-    isTRUE(universe$external_applied)
+    isTRUE(universe$external_applied) || .vmr_universe_count(universe$variables_retiradas_external, 0L) > 0L
 }
 
 # Con depuración externa (ADR 0100) hay DOS «recibidas»: las que recibió el
@@ -622,6 +622,28 @@
   audit_ids <- vapply(audits, function(item) .vmr_text(item$id %||% ""), character(1))
   rule_ids <- vapply(rules[rejection_ids], `[[`, character(1), "id")
   sum(audit_counts[audit_ids %in% rule_ids])
+}
+
+# ADR 0100, P2b: variables del instrumento que no llegaron en la base. Sólo el
+# agregado por motivo, como el tramo de casos.
+.vmr_universe_variables_line <- function(universe) {
+  k <- .vmr_universe_count(universe$variables_retiradas_external, 0L)
+  if (k <= 0L) return(character(0))
+  n_por <- function(m) {
+    hit <- Filter(function(x) identical(as.character(x$motivo %||% ""), m),
+                  universe$variables_retiradas_external_por_motivo %||% list())
+    if (length(hit)) .vmr_universe_count(hit[[1]]$n, 0L) else 0L
+  }
+  partes <- c(
+    if (n_por("metadato") > 0L) paste0(n_por("metadato"), if (n_por("metadato") == 1L) " metadato" else " metadatos", " de la plataforma"),
+    if (n_por("no_va_al_cliente") > 0L) paste0(n_por("no_va_al_cliente"), " de uso interno"),
+    if (n_por("otra") > 0L) paste0(n_por("otra"), " por otros motivos")
+  )
+  paste0(
+    "Antes de cargarse a la plataforma se retir", if (k == 1L) "ó " else "aron ", k,
+    if (k == 1L) " variable del instrumento" else " variables del instrumento",
+    if (length(partes)) paste0(" (", paste(partes, collapse = ", "), ")") else "", "."
+  )
 }
 
 .vmr_universe_preparation_sentences <- function(universe) {
@@ -682,7 +704,8 @@
       if (excluded_external == 1L) "ó " else "aron ", excluded_external, "."
     )
   } else character(0)
-  c(external_line, correction_lines, filter_line, exclusion_lines, cleaning_line)
+  c(external_line, .vmr_universe_variables_line(universe), correction_lines, filter_line,
+    exclusion_lines, cleaning_line)
 }
 
 # Cuando la merma no vino de un filtro sobre una variable sino de la depuración,
@@ -825,6 +848,7 @@
   universe$external_applied <- isTRUE(universe$external_applied)
   universe$excluded_external <- .vmr_universe_count(universe$excluded_external, 0L)
   universe$received_external <- .vmr_universe_count(universe$received_external, 0L)
+  universe$variables_retiradas_external <- .vmr_universe_count(universe$variables_retiradas_external, 0L)
   universe$excluded_rejections <- .vmr_universe_rejection_count(universe)
   # El universo puede tener DOS etapas y hay que emitir las dos. El filtro de
   # pruebas es una condición sobre una variable; la depuración es una lista de
@@ -1984,6 +2008,7 @@ validation_methodology_report_r <- function(model, path) {
     universe_summary <- c(
       universe_summary,
       if (isTRUE(universe$external_applied)) paste0("# Depuración externa previa a la carga: ", .vmr_script_count(universe$excluded_external, "0"), " retiradas de ", .vmr_script_count(universe$received_external)) else NULL,
+      if (.vmr_universe_count(universe$variables_retiradas_external, 0L) > 0L) paste0("# Variables del instrumento retiradas antes de la carga: ", .vmr_script_count(universe$variables_retiradas_external, "0")) else NULL,
       paste0(if (isTRUE(universe$external_applied)) "# Encuestas cargadas a la plataforma: " else "# Encuestas recibidas: ", .vmr_script_count(universe$total)),
       if (isTRUE(universe$applied)) paste0("# Encuestas reclasificadas de prueba a real: ", .vmr_script_count(universe$corrected, "0")) else NULL,
       if (isTRUE(universe$applied)) paste0("# Pruebas retiradas: ", .vmr_script_count(universe$excluded_test, "0")) else NULL,
