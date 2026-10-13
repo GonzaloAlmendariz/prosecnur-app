@@ -74,14 +74,14 @@ const INTENTS: {
     key: "comparar",
     title: "Comparar preguntas",
     description: "Varias preguntas con la misma escala, una fila por pregunta.",
-    example: "Satisfaccion, claridad y confianza en una sola lectura.",
+    example: "Satisfacción, claridad y confianza en una sola lectura.",
     Icon: GitCompare,
   },
   {
     key: "pregunta_grupos",
     title: "Abrir una pregunta por grupos",
-    description: "Una pregunta dividida por region, sexo, sede u otro grupo.",
-    example: "Satisfaccion por region.",
+    description: "Una pregunta dividida por región, sexo, sede u otro grupo.",
+    example: "Satisfacción por región.",
     Icon: Split,
   },
   {
@@ -93,7 +93,7 @@ const INTENTS: {
   },
   {
     key: "publicos_tema",
-    title: "Comparar publicos por tema",
+    title: "Comparar públicos por tema",
     description: "Temas comparados entre fuentes o bases del estudio.",
     example: "Docentes, estudiantes y administrativos frente al mismo tema.",
     Icon: UsersRound,
@@ -135,7 +135,7 @@ export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
   }
 
   // Cambiar de intención NO debe costar la selección. El constructor invita
-  // a probar lecturas ("Elige como quieres leer los datos"), y hasta esta
+  // a probar lecturas ("Elige cómo quieres leer los datos"), y hasta esta
   // unidad explorar salía caro: pasar a Combinar bloques vaciaba `vars` y
   // volver dejaba "Ninguna pregunta seleccionada", sin aviso y sin que el
   // deshacer del editor lo recuperara. Ahora las preguntas viajan entre
@@ -211,16 +211,16 @@ export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
       <section className="pulso-gv2-multi-panel">
         <div className="pulso-gv2-multi-head">
           <div>
-            <div style={eyebrowStyle}>Constructor de multi-apiladas</div>
+            <div style={eyebrowStyle}>Multiapiladas</div>
             <div style={{ fontSize: 13, color: "var(--pulso-text)", lineHeight: 1.45 }}>
-              Elige como quieres leer los datos y completa solo los campos que necesita esa lectura.
+              Elige cómo quieres leer los datos y completa sólo los campos que necesita esa lectura.
             </div>
           </div>
           <StatusPill
             tone={reviewRequested ? (hasErrors ? "error" : "ok") : "idle"}
             onClick={() => setReviewRequested(true)}
           >
-            {reviewRequested ? (hasErrors ? "Revisar datos" : "Todo listo") : "Revisar seleccion"}
+            {reviewRequested ? (hasErrors ? "Revisar datos" : "Todo listo") : "Revisar selección"}
           </StatusPill>
         </div>
 
@@ -297,7 +297,7 @@ function QuestionByGroups({ args, onArgs, variables, multi }: BuilderSectionProp
       <FieldLabel label="Pregunta principal" help="Sus opciones se convierten en segmentos apilados.">
         <SingleVarSelect value={varRef} onChange={(v) => onArgs({ modo: "cruce", var: v })} variables={variables} multi={multi} />
       </FieldLabel>
-      <FieldLabel label="Grupo para abrir" help="Cada valor de esta variable sera una fila del grafico.">
+      <FieldLabel label="Grupo para abrir" help="Cada valor de esta variable será una fila del gráfico.">
         <SingleVarSelect value={cruce} onChange={(v) => onArgs({ modo: "cruce", cruces: v })} variables={variables} multi={multi} />
       </FieldLabel>
       <ScaleInline refs={varRef ? [varRef] : []} variables={variables} multi={multi} />
@@ -311,7 +311,7 @@ function QuestionsByGroups({ args, onArgs, variables, multi }: BuilderSectionPro
   const cruce = typeof args.cruces === "string" ? args.cruces : "";
   const titles = titlesFromValue(args.titulos_grupo);
   return (
-    <BuilderSection title="Preguntas y grupo comun" hint="Cada pregunta queda como bloque, y dentro se muestran los valores del grupo.">
+    <BuilderSection title="Preguntas y grupo común" hint="Cada pregunta queda como bloque, y dentro se muestran los valores del grupo.">
       <MultiVarPicker
         value={vars}
         onChange={(next) => onArgs({ modo: "var_cruce", vars: next })}
@@ -340,7 +340,7 @@ function PublicsByTopic({ args, onArgs, variables, multi, sourceCount, multiSour
     return <RequirementPanel title="Esta lectura compara fuentes" text={multiSourceHint} />;
   }
   return (
-    <BuilderSection title="Temas y publicos" hint="Cada tema agrupa variables equivalentes de distintas fuentes. No se usa variable de cruce.">
+    <BuilderSection title="Temas y públicos" hint="Cada tema agrupa variables equivalentes de distintas fuentes. No se usa variable de cruce.">
       <TopicBlocksEditor
         topics={topics.length ? topics : [newTopic(1)]}
         variables={variables}
@@ -476,7 +476,7 @@ function BlockEditor({
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px", gap: 8 }}>
-        <FieldLabel label="Titulo del bloque" compact>
+        <FieldLabel label="Título del bloque" compact>
           <input value={title} onChange={(e) => onChange({ titulo: e.target.value })} style={inputStyle} />
         </FieldLabel>
         <FieldLabel label="Subtitulo" compact>
@@ -910,7 +910,7 @@ function TopicBlocksEditor({
                 style={inputStyle}
               />
             </FieldLabel>
-            <FieldLabel label="Titulo visible" compact>
+            <FieldLabel label="Título visible" compact>
               <input
                 value={topic.title}
                 onChange={(e) => onChange(normalized.map((t, i) => i === index ? { ...t, title: e.target.value } : t))}
@@ -1065,7 +1065,7 @@ function SummaryPanel({ summary, scale, multi }: { summary: string[]; scale: Sca
     <section style={{ ...panelStyle, padding: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
         <CheckCircle2 size={14} color={toneColor(scale.tone)} />
-        <strong style={{ fontSize: 12 }}>Sintesis</strong>
+        <strong style={{ fontSize: 12 }}>Síntesis</strong>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {summary.map((item) => <span key={item} style={summaryChipStyle}>{item}</span>)}
@@ -1136,16 +1136,16 @@ export function validateArgs(args: Record<string, unknown>, variables: VarWithSo
   }
   if (intent === "preguntas_grupos") {
     if (asStringArray(args.vars).length === 0) issues.push({ kind: "error", message: "Selecciona las preguntas a abrir." });
-    if (!args.cruces) issues.push({ kind: "error", message: "Selecciona el grupo comun." });
+    if (!args.cruces) issues.push({ kind: "error", message: "Selecciona el grupo común." });
   }
   if (intent === "publicos_tema") {
-    if (!multi) issues.push({ kind: "error", message: "Comparar publicos por tema requiere un estudio multibase." });
+    if (!multi) issues.push({ kind: "error", message: "Comparar públicos por tema requiere un estudio multibase." });
     const topics = topicsFromArgs(args.vars, args.titulos_grupo);
     if (!topics.length) issues.push({ kind: "error", message: "Agrega al menos un tema." });
     topics.forEach((t) => {
       if (!t.vars.length) issues.push({ kind: "error", message: `El tema "${t.title || t.key}" no tiene variables.` });
     });
-    if (args.cruces) issues.push({ kind: "warning", message: "En comparacion de publicos no se usa cruce; cada fila ya es una fuente." });
+    if (args.cruces) issues.push({ kind: "warning", message: "En comparación de públicos no se usa cruce; cada fila ya es una fuente." });
   }
   if (intent === "combinar") {
     const blocks = asBlocks(args.bloques);
@@ -1189,7 +1189,7 @@ function buildSummary(intent: Intent, args: Record<string, unknown>, refs: strin
     rows ? `${rows} fila${rows === 1 ? "" : "s"} estimada${rows === 1 ? "" : "s"}` : "Filas por armar",
     scale.label,
     sources.size ? `${sources.size} fuente${sources.size === 1 ? "" : "s"}` : "Fuentes por detectar",
-    args.top2box ? "Top 2 activo" : "Top 2 opcional",
+    args.top2box ? "Top Two Box activo" : "Top Two Box opcional",
   ];
 }
 
@@ -1318,8 +1318,8 @@ function displayRef(ref: string, multi: boolean): string {
 function friendlyVarType(tipo: string) {
   const normalized = (tipo ?? "").toLowerCase();
   if (!normalized) return "tipo no definido";
-  if (normalized.includes("select_one")) return "seleccion unica";
-  if (normalized.includes("select_multiple")) return "seleccion multiple";
+  if (normalized.includes("select_one")) return "selección única";
+  if (normalized.includes("select_multiple")) return "selección múltiple";
   if (normalized.includes("integer")) return "entero";
   if (normalized.includes("decimal")) return "decimal";
   if (normalized.includes("text")) return "texto";
