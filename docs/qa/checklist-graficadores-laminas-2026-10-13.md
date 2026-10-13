@@ -17,7 +17,7 @@ Referencia visual de cada estándar: `docs/qa/motor-ppt-2026-10-06/4-recetario/r
 | G10 | Falta el graficador apilado dicotómico del recetario, con las cifras de los polos más grandes | Catálogo de graficadores + motor nativo (`lamina_escala.R` / nuevo) contra el recetario | ☐ |
 | G11 | Aún hay gráficos sin motor nativo, p. ej. «puntos comparativos» | `.lam_compositor_aplica` (`lamina_compositor.R`) y catálogo | ☐ |
 | G12 | Multiapiladas: «Bloques del gráfico» es poco intuitivo y trae un «Dividir por» además de los modos; definir coherencia y no permitir multiapiladas que además se divida por otra variable | Tarjeta del gráfico (`laminas/tarjetaGrafico/`, `DatosGrafico.tsx`) y args de `p_barras_multiapiladas` | ◐ parte 1 3ac196c57: sin «Dividir por» suelto en la tarjeta de multiapiladas; los bloques de «Combinar bloques» sólo «Comparar preguntas» o «Públicos por tema» (uno viejo con grupos avisa). Falta rediseñar «Bloques del gráfico» para que sea intuitivo (necesita tu visto bueno de diseño) |
-| G13 | «Entre otros»: lo que aparezca al recorrer estos tipos se agrega aquí con su número | — | ☐ abierto: (a) «Lámina 24/25» en el selector de composición de la portada; (b) ◐ hecho: las láminas de gráficos tras «Cómo leer» sin separador van a «Sin capítulo» (sólo afectaba a la Estructura; el PPT toma los capítulos de los separadores) |
+| G13 | «Entre otros»: lo que aparezca al recorrer estos tipos se agrega aquí con su número | — | ☐ abierto: (a) ◐ hecho ba24bbfa6: portada y cierre se describen por lo que muestran (antes «Lámina 24/25/61–64»); (b) ◐ hecho: las láminas de gráficos tras «Cómo leer» sin separador van a «Sin capítulo» (sólo afectaba a la Estructura; el PPT toma los capítulos de los separadores) |
 
 ## Aprendido al investigar
 
