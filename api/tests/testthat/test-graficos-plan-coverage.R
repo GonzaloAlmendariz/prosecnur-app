@@ -837,3 +837,17 @@ test_that("el filtro de identificadores no alcanza a las preguntas cerradas", {
   expect_false(consent$graphable)
   expect_identical(consent$reason, "metadato/control operativo del formulario")
 })
+
+test_that("el plan automático no titula ninguna lámina con el rótulo interno «Variables sugeridas» (G15)", {
+  # Sin secciones confiables (SurveyMonkey), las baterías ordinales salían tituladas «Variables sugeridas» en Arte.
+  sid <- .graficos_acreditacion_multibase_test_session()
+  on.exit(session_delete(sid), add = TRUE)
+  suggested <- .graficos_suggested_plan(sid, config = list())
+  tipos <- vapply(suggested$plan$slides, function(s) .graficos_scalar_chr(s$tipo, ""), character(1))
+  titles <- vapply(suggested$plan$slides, function(s) .graficos_scalar_chr(((s %||% list())$payload %||% list())$titulo, ""), character(1))
+  expect_true("p_slide_1_grafico_narrativo" %in% tipos)
+  expect_false("Variables sugeridas" %in% titles)
+  # El fixture trae secciones confiables: la clave interna se prueba en el helper que usan los tres sitios del plan.
+  expect_identical(.graficos_titulo_de_seccion("Variables sugeridas"), "")
+  expect_identical(.graficos_titulo_de_seccion("Docencia"), "Docencia")
+})
