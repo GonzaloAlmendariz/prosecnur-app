@@ -96,6 +96,31 @@
   NA_character_
 }
 
+# Vector (largo nrow) con el texto que nombra a cada fila del survey, para
+# rotular grupos. Orden: la columna elegida por `.pick_label_col`, `label` a
+# secas, una `label::<lang>` (p. ej. `label::Spanish (es)`), cualquier
+# `label::*`; si no hay ninguna, NA. No cambia `meta$label_col_survey`.
+.xls_group_label_source <- function(survey_raw, survey_label_col, lang = "es") {
+  n <- nrow(survey_raw)
+  cols <- names(survey_raw)
+  pick <- NULL
+  if (!is.null(survey_label_col) && !is.na(survey_label_col) && survey_label_col %in% cols) {
+    pick <- survey_label_col
+  } else if ("label" %in% cols) {
+    pick <- "label"
+  } else {
+    lang_cols <- cols[startsWith(tolower(cols), "label::")]
+    lang_rx <- tolower(as.character(lang %||% "")[1])
+    hit <- if (length(lang_cols) && !is.na(lang_rx) && nzchar(lang_rx)) {
+      lang_cols[grepl(sprintf("(::%s$)|(\\(%s\\))", lang_rx, lang_rx), tolower(lang_cols))]
+    } else character(0)
+    pick <- c(hit, lang_cols)[1]
+    if (is.na(pick)) pick <- NULL
+  }
+  if (is.null(pick)) return(rep(NA_character_, n))
+  as.character(survey_raw[[pick]])
+}
+
 .parse_type_scalar <- function(type) {
   type <- .trim(type)
   if (!nzchar(type)) return(list(base = "", list_name = "", dyn_ref = ""))
@@ -579,7 +604,11 @@ leer_xlsform_limpieza <- function(path,
     )
 
   survey$group_name  <- ""
-  survey$group_label <- if (!is.null(survey_label_col) && survey_label_col %in% names(survey_raw)) survey_raw[[survey_label_col]] else survey_raw[["label"]]
+  # Fuente del rótulo de grupo: siempre un vector de largo nrow. Un XLSForm con
+  # solo `label::<idioma>` dejaba esto en NULL y la asignación por fila de abajo
+  # rompía el reciclado de tibble (500 en /api/carga/instrumento/estructura).
+  group_label_src <- .xls_group_label_source(survey_raw, survey_label_col, lang)
+  survey$group_label <- group_label_src
 
   # ---- pila de grupos y detalle
   grp_stack <- list()
@@ -595,6 +624,7 @@ leer_xlsform_limpieza <- function(path,
       lb <- survey_raw[[survey_label_col]][i]
     }
     if ((is.na(lb) || !nzchar(lb)) && "label" %in% names(survey_raw)) lb <- survey_raw[["label"]][i]
+    if (is.na(lb) || !nzchar(lb)) lb <- group_label_src[i]
 
     if (tb %in% c("begin_group","begin_repeat")) {
       depth <- depth + 1L
