@@ -71,7 +71,7 @@ parte: **lo que deja de aplicarse no lo dice nadie**, y la base que vino de fuer
 |---|---|---|---|
 | P1 | `/aplicar` devuelve y la pantalla muestra las preguntas omitidas (`$skipped` con su motivo) y los textos sin código por pregunta | Codificación | La sesión de entregables HSyVBG edita `router_codificacion.R` y `codificacion_aplicar_data.R`: la lógica nueva va en archivo propio y se avisa antes de tocar el handler |
 | P2 | Declarar en la base su origen externo con la lista de exclusiones y la versión del script; la ficha técnica lo lee | Carga / linaje de la base | — |
-| P3 | Marca «no va al cliente» por variable; la exportación de la base de entrega la respeta | Analítica / export | La sesión de entregables edita Analítica |
+| P3 | Ya existe: `variables_excluidas` de la config de Analítica | `router_analitica.R` la aplica al codebook (~3935), cruces (~4317), bases SAV (~4622), CSV (~4707) y XLSX (~4805), sintaxis SPSS (~4887) y frecuencias (`analitica_frecuencias_export.R:~33`) | Sin código nuevo: la decisión D4 se cumple declarando ahí las variables meta en vez de borrarlas en el script |
 
 ## Consecuencias
 

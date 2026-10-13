@@ -61,7 +61,7 @@ Lo cierra sólo el usuario. Se dibuja entero cada vez que se menciona.
 |---|---|---|---|
 | P1 | Aviso al aplicar: textos sin código y preguntas del catálogo sin su variable | Codificación: `api/R/codificacion_omitidas.R` y respuesta de `/aplicar` (`omitidas`, `textos_sin_codigo`) | ◐ backend hecho y verificado sobre la copia de HSyVBG sin `P66_otro` (omitidas P29_10 «sin_modo» y P66 «sin_columna_texto»; sin código P4 1, P55 1, P60 2). Falta mostrarlo en la UI (coordinar con la sesión de entregables) |
 | P2 | Base de partida declarada con su lista de exclusiones externas | Carga / linaje | ☐ |
-| P3 | Variables marcadas «no van al cliente», excluidas al exportar | Analítica / export de base | ☐ |
+| P3 | Variables marcadas «no van al cliente», excluidas al exportar | Ya existe: `variables_excluidas` de la config de Analítica (codebook, cruces, frecuencias, bases SAV/CSV/XLSX y SPSS en `router_analitica.R`) | ☑ sin código nuevo: el script deja de borrar las variables meta y se declaran ahí |
 
 ## Hallazgos de la codificación HSyVbG (para el equipo)
 
