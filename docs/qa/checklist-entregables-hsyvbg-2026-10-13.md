@@ -244,6 +244,7 @@ Hallazgos de la auditoría (qa-visual-desktop, evidencia en scratchpad/polishqa/
 | P-A6 | Paneles en portal pierden el tono del módulo (navy en vez de teal) | en curso |
 | P-A7 | Importar por bloques dice «año» aunque las bases no sean años | en curso |
 | P-A8 | Equivalencias publica readiness lista antes de cargar; carga como texto suelto | en curso |
+| P-A10 | Radios no concéntricos: píldora con botones internos de esquinas casi rectas («Orden de la serie»), detectado por Gonzalo; regla general radio interno = externo − padding con tokens | en curso |
 | P-A9 | Cruces describe la significancia como «chi² al 5 %, asterisco» y el motor usa letras con z y Bonferroni | en curso |
 | P-M1…M14 | Medias: cifras, botones secundarios, «añadir», vacíos, formato de números, orden de bases en Fuentes, orden de la serie compacto, Equivalencias mezcla mazo y comparación, anchos de tabla, explicación larga del editor, Datos «Detectando…» pegado y «sin guardar» al entrar, «Definición global» desactualizado, Codificación sin elipsis y con markdown crudo, tres patrones de guardado | pendiente (siguiente tanda) |
 | P-B1…B7 | Bajas: foco visible en título, panel .sav, rótulos repetidos, «Ninguna» repetido, tarjetas de opción, estilos en línea, pendientes no verificables | pendiente |
