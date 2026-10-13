@@ -191,7 +191,7 @@ export function WordPresetsEditor() {
                   {p.titulo_humano}
                 </span>
                 <span className={`pulso-gv2-word-preset-state ${modified ? "is-custom" : "is-inherited"}`}>
-                  {modified ? "Word" : "Hereda"}
+                  {modified ? "Propio" : "Como el PPT"}
                 </span>
               </button>
             );
@@ -214,12 +214,12 @@ export function WordPresetsEditor() {
                 {hasSelectedChanges && (
                   <span className="pulso-gv2-word-status">
                     <CheckCircle2 size={11} />
-                    Ajuste Word
+                    Con ajustes propios
                   </span>
                 )}
               </div>
               <p>
-                Parte del valor por defecto del PPT y guarda solo las diferencias necesarias para una lectura cómoda en Word.
+                Sale como en el PowerPoint, salvo lo que cambies aquí para leerlo cómodo en el Word.
               </p>
             </div>
             {hasSelectedChanges && (
@@ -229,7 +229,7 @@ export function WordPresetsEditor() {
                 className="pulso-gv2-word-reset"
               >
                 <RotateCcw size={11} />
-                Volver a heredar PPT
+                Volver a como en el PowerPoint
               </button>
             )}
           </header>
@@ -302,19 +302,19 @@ function WordSourceRail({
     <div className="pulso-gv2-word-source-rail" aria-label="Origen de valores del preset Word">
       <span className="is-ppt">
         <CheckCircle2 size={12} />
-        <strong>Valor por defecto</strong>
-        <b>PPT heredado</b>
+        <strong>Punto de partida</strong>
+        <b>Como en el PowerPoint</b>
       </span>
       <span className={hasChanges ? "is-word" : "is-inherited"}>
         <Circle size={8} fill={hasChanges ? "currentColor" : "transparent"} />
-        <strong>{hasChanges ? "Ajustes Word" : "Sin ajustes extra"}</strong>
+        <strong>{hasChanges ? "Ajustes propios del Word" : "Sin ajustes propios"}</strong>
         <b>
           {hasChanges
             ? `${selectedPatchCount} ajuste${selectedPatchCount === 1 ? "" : "s"}`
-            : `${inheritedCount} heredado${inheritedCount === 1 ? "" : "s"}`}
+            : `${inheritedCount} como en el PowerPoint`}
         </b>
       </span>
-      <span className="is-model" title={`Tipo interno: ${metaName}`}>
+      <span className="is-model">
         <SlidersHorizontal size={12} />
         <strong>Tipo de gráfico</strong>
         <b>{metaLabel}</b>
