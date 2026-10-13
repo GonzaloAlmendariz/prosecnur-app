@@ -188,3 +188,15 @@ export function procedenciaScript(datos: OrigenExterno): string {
   const partes = [bloque.script, bloque.version ? `versión ${bloque.version}` : ""].filter(Boolean);
   return partes.join(" · ");
 }
+
+/**
+ * Las variables retiradas que no salen en los entregables: las del bloque
+ * guardado con motivo Metadato o No va al cliente, más las que el último POST
+ * agregó. Leerlas sólo del POST las hacía desaparecer al recargar.
+ */
+export function variablesExcluidasDeLaDeclaracion(datos: OrigenExterno): string[] {
+  const delBloque = (datos.bloque?.variables_retiradas ?? [])
+    .filter((v) => v.motivo === "metadato" || v.motivo === "no_va_al_cliente")
+    .map((v) => v.variable);
+  return Array.from(new Set([...delBloque, ...datos.variables_excluidas_agregadas]));
+}

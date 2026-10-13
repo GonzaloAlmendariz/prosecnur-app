@@ -171,9 +171,11 @@ describe("OrigenExternoVista", () => {
     expect(html).toContain('data-qa-geometry-contract="intrinsic"');
     expect(html).toContain('data-qa-geometry-group="carga-origen-externo-variables"');
     expect(html).toContain("Faltan 2 variables del instrumento en la base.");
-    expect(html).toContain("se excluyen de los entregables");
-    expect(html).toContain("(Analítica › Variables excluidas)");
-    expect(html).toContain("<code title=\"start\">start</code><small>start</small>");
+    expect(html).toContain("no salen en los entregables");
+    expect(html).toContain("no salen en los entregables: bases,");
+    // El tipo no se repite cuando es igual al nombre (QA 2026-10-13: «start / start»).
+    expect(html).toContain("<code title=\"start\">start</code></span>");
+    expect(html).toContain("<code title=\"p40\">p40</code><small>text</small>");
     expect(html).toContain('aria-label="Motivo de start"');
     // start viene con la sugerencia; p40 queda sin elegir.
     expect(html).toMatch(/aria-label="Motivo de start"[^]*?<option value="metadato" selected="">Metadato<\/option>/u);
@@ -207,7 +209,7 @@ describe("OrigenExternoVista", () => {
     expect(html).toContain("<dt>Metadato</dt><dd>1</dd>");
     expect(html).toContain("<dt>No va al cliente</dt><dd>1</dd>");
     expect(html).toContain("<dt>Otra</dt><dd>1</dd>");
-    expect(html).toContain("Se excluyeron de los entregables: start, p40.");
+    expect(html).toContain("No salen en los entregables: start, p40.");
     expect(html).toContain('data-aviso="variable_presente"');
     expect(html).toContain("p12 sí está en la base; no se declaró como retirada.");
     expect(html).not.toContain("carga-origen-externo-tramos");
