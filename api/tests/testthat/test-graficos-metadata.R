@@ -344,7 +344,7 @@ test_that("registry G2-L1: los 28 graficadores publican contrato operativo cerra
   expect_identical(by_name$p_serie_temporal$capability_key, "equivalences_temporal")
   expect_identical(
     by_name$p_serie_temporal$requirement_label,
-    "Requiere un plan compatible que ya declare equivalencias entre bases ordenadas por momento; esta biblioteca aún no puede crearlo."
+    "Sale de la matriz de equivalencias, con una base por medición y en orden; no se arma desde aquí."
   )
   generated_labels <- vapply(
     by_name[c("p_dumbbell", "p_serie_temporal")],
