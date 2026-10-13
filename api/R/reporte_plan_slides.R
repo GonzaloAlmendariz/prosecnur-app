@@ -2998,6 +2998,12 @@ p_radar_tabla <- function(
   }
 
   if (identical(modo, "box")) {
+    # El editor manda las preguntas como arreglo JSON, que llega como lista SIN nombres de textos sueltos: es la forma
+    # plana, no bloques (G11, 2026-10-13: la tabla de Arte abortaba con «debe ser una lista nombrada»).
+    if (is.list(vars) && length(vars) && is.null(names(vars)) &&
+        all(vapply(vars, function(x) is.character(x) && length(x) == 1L, logical(1)))) {
+      vars <- unlist(vars, use.names = FALSE)
+    }
     if (is.character(vars)) {
       if (length(vars) < 1L) {
         .plan_spec_abort("p_radar_tabla(modo='box'): `vars` debe ser character() con >=1 variable.")
@@ -3032,6 +3038,9 @@ p_radar_tabla <- function(
 
     if (!is.null(var)) .plan_spec_abort("p_radar_tabla(modo='box'): no usar `var`.")
 
+    if (is.list(box_labels) && all(vapply(box_labels, function(x) is.character(x) && length(x) == 1L, logical(1)))) {
+      box_labels <- unlist(box_labels, use.names = FALSE)   # arreglo JSON del editor (G11)
+    }
     if (!is.character(box_labels) || length(box_labels) != 2L) {
       .plan_spec_abort("p_radar_tabla(modo='box'): `box_labels` debe ser character(2).")
     }
