@@ -58,6 +58,10 @@ type MultiBlock = {
   overrides?: unknown;
 };
 
+// G12 (Gonzalo, 2026-10-13): un bloque de «Combinar bloques» no se divide además por una variable —una multiapilada
+// en bloques y cada bloque partido por grupos es demasiado desagregada—. Un bloque viejo que ya lo hace se conserva y avisa.
+const BLOQUE_SIN_GRUPOS: ReadonlySet<Intent> = new Set<Intent>(["comparar", "publicos_tema"]);
+
 const INTENTS: {
   key: Intent;
   title: string;
@@ -445,7 +449,7 @@ function BlockEditor({
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <strong style={{ fontSize: 12 }}>Bloque {index + 1}</strong>
         <div style={blockIntentSwitcherStyle} aria-label="Tipo de bloque">
-          {INTENTS.filter((item) => item.key !== "combinar").map((item) => {
+          {INTENTS.filter((item) => BLOQUE_SIN_GRUPOS.has(item.key) || item.key === blockIntent).map((item) => {
             const active = item.key === blockIntent;
             const disabled = item.requiresMulti && (!multi || sourceCount < 2);
             return (
@@ -1115,7 +1119,7 @@ function detectBlockIntent(block: MultiBlock): Intent {
   return "comparar";
 }
 
-function validateArgs(args: Record<string, unknown>, variables: VarWithSource[], multi: boolean): ValidationIssue[] {
+export function validateArgs(args: Record<string, unknown>, variables: VarWithSource[], multi: boolean): ValidationIssue[] {
   const intent = detectIntent(args);
   const issues: ValidationIssue[] = [];
   const refs = refsForIntent(args);
@@ -1148,6 +1152,9 @@ function validateArgs(args: Record<string, unknown>, variables: VarWithSource[],
     if (!blocks.length) issues.push({ kind: "error", message: "Agrega al menos un bloque." });
     blocks.forEach((block, i) => {
       if (block.modo === "multilista") issues.push({ kind: "error", message: `El bloque ${i + 1} no puede ser otro Combinar bloques.` });
+      if (!BLOQUE_SIN_GRUPOS.has(detectBlockIntent(block))) {
+        issues.push({ kind: "warning", message: `El bloque ${i + 1} se divide por grupos: dentro de Combinar bloques queda demasiado desagregado. Hazlo un gráfico propio con «Una pregunta por grupos».` });
+      }
       if (detectBlockIntent(block) === "publicos_tema" && !multi) {
         issues.push({ kind: "error", message: `El bloque ${i + 1} compara fuentes y requiere varias bases.` });
       }
