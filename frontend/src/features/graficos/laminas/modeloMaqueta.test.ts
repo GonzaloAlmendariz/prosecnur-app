@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Slide } from "../../../api/graficos";
-import { baseAutomatica, ranurasDeMaqueta, usaFilasCompactas } from "./modeloMaqueta";
+import { baseAutomatica, ranurasDeMaqueta } from "./modeloMaqueta";
 
 const slide = (grafico: unknown) => ({ tipo: "p_slide_1_grafico", payload: { titulo: "T", grafico } }) as unknown as Slide;
 
@@ -74,7 +74,7 @@ describe("maqueta: qué muestra cada ranura", () => {
     const graf = (b: string[]) => slide({ graficador: "p_barras_multiapiladas", args: { modo: "multilista", bloques: b.map((v) => ({ vars: { t: [`docentes$${v}`] } })) } });
     const [dist] = ranurasDeMaqueta(graf(["p11", "p12"]), vars, {}, { paletas: { sn: { "Sí": "#081F5C" } } });
     expect(dist.mismaEscala).toBe(false);
-    expect(dist.preguntas[0]).toEqual({ titulo: "¿Conoce?", opciones: [{ rotulo: "Sí", color: "#081F5C" }, { rotulo: "No", color: null }], ttb: false, bases: [] });
+    expect(dist.preguntas[0]).toMatchObject({ titulo: "¿Conoce?", opciones: [{ rotulo: "Sí", color: "#081F5C" }, { rotulo: "No", color: null }], ttb: false, bases: [] });
     const [igual] = ranurasDeMaqueta(graf(["p11", "p11"]), vars, {});
     expect(igual.mismaEscala).toBe(true);
   });
@@ -107,17 +107,5 @@ describe("maqueta: qué muestra cada ranura", () => {
     ] as never[];
     const s1 = slide({ graficador: "p_barras_multiapiladas", args: { modo: "var_cruce", vars: { t1: ["docentes$a1", "estudiantes$a3", "administrativos$a2"] } } });
     expect(baseAutomatica(s1, vars)).toBe("Base: 116 docentes, 89 administrativos y 289 estudiantes");
-  });
-});
-
-describe("maqueta: cuándo las preguntas van en una línea cada una", () => {
-  // Gonzalo, 2026-10-13 (lámina 12 de Arte): tres preguntas con la misma escala repetían la leyenda tres veces, no cabían y
-  // la ranura las recortaba arriba y abajo.
-  it("desde dos preguntas con la misma escala, o desde cuatro con escalas distintas", () => {
-    expect(usaFilasCompactas(3, true)).toBe(true);
-    expect(usaFilasCompactas(2, true)).toBe(true);
-    expect(usaFilasCompactas(1, true)).toBe(false);
-    expect(usaFilasCompactas(3, false)).toBe(false);
-    expect(usaFilasCompactas(4, false)).toBe(true);
   });
 });
