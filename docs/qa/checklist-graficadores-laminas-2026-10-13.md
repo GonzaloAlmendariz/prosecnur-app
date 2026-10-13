@@ -7,8 +7,8 @@ Referencia visual de cada estándar: `docs/qa/motor-ppt-2026-10-06/4-recetario/r
 |---|---|---|---|
 | G1 | Portada: «la fecha no es un botón clickeable que me lleva a poder editarlo», como sí lo es el «Texto descriptivo» | Pestaña Láminas: zonas clickeables de la maqueta (`laminas/ZonasTextoLamina.tsx`, `laminas/RanurasSobreLamina.tsx`); rótulos en `laminas/selectores/etiquetas.ts` (`fecha: "Fecha"`) | ◐ hecho 8f7ef1bc8 (zonas Subtítulo, Título, Texto descriptivo y Fecha en maqueta y «Ver cómo queda», 3 composiciones), falta tu revisión |
 | G2 | Índice: elegida una ilustración remasterizada, «Ver cómo queda» previsualiza con los focos de la versión antigua | Vista previa de la lámina (`laminas/usePreviewLamina.ts` → backend `graficos_preview_lamina.R`) contra el render del índice (`reporte_plan_ppt.R`, `indice/`) | ☐ |
-| G3 | Índice: ofrece antetítulo y no debería llevarlo | Campos de texto por tipo de lámina (`laminas/contenidoLamina.ts`, `ZonasTextoLamina.tsx`) | ☐ |
-| G4 | Objetivo: vuelve a pedir antetítulo; no debe haber | Igual que G3 | ☐ |
+| G3 | Índice: ofrece antetítulo y no debería llevarlo | Campos de texto por tipo de lámina (`laminas/contenidoLamina.ts`, `ZonasTextoLamina.tsx`) | ◐ hecho a9c45c779 (sin campo en índice, objetivo, portada y cierre), falta tu revisión |
+| G4 | Objetivo: vuelve a pedir antetítulo; no debe haber | Igual que G3 | ◐ hecho a9c45c779, falta tu revisión |
 | G5 | Objetivo: no se escoge ícono; siempre el del tiro al blanco con la flecha | Ranura `icono` de `p_slide_objetivo_icono` (registro de tipos, `iconos/`, `lamina_identidad.R`) | ☐ |
 | G6 | Objetivo: falta el catálogo de variantes del recetario (cada una resalta algo distinto; una admitía perfiles o actores) | Recetario (láminas de objetivo) contra `laminas/selectores/tiposLamina.ts` (`VARIANTES_LAMINA`) y `lamina_identidad.R` | ☐ |
 | G7 | Lámina de explicación del Top 2 Box: no debe pedir cambios de título ni de texto; es estándar y siempre sale igual | Campos editables del tipo (como G3) y su render | ☐ |
@@ -24,3 +24,5 @@ Referencia visual de cada estándar: `docs/qa/motor-ppt-2026-10-06/4-recetario/r
 - G1: la portada no tenía NINGUNA zona de texto sobre la lámina salvo el título (`camposTextoDe` devuelve vacío para las láminas de estructura). Las zonas nuevas usan la geometría de `.lam_laminas_portada` por composición (`zonasPortada`).
 - Visto al hacer G1: el panel Contenido de la PORTADA también ofrece «Antetítulo» (campo `antetitulo` en el inspector). Misma familia que G3/G4: se resuelve junto con ellos.
 - Visto: el selector de composición muestra «Lámina 24 / Lámina 25» (número del recetario) como detalle; es jerga interna → candidato G13.
+- G3/G4: el motor ya no dibujaba antetítulo en índice, objetivo ni portada; el inspector lo ofrecía a todo tipo salvo el separador. Regla por tipo en `laminas/antetituloDelTipo.ts`. Top Two Box y redondeo llevan fijo «Cómo leer este informe»; ficha técnica, «Metodología» (se muestran con candado).
+- G5/G6 pista: `.lam_laminas_objetivo` (lamina_identidad.R:468) YA dibuja siempre la diana con flecha y acepta `meta$actores` (actores consultados con su ícono). Falta en la UI: quitar la elección de ícono y exponer actores; comparar variantes con el recetario.
