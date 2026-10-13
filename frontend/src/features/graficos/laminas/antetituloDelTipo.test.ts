@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { antetituloDelTipo } from "./antetituloDelTipo";
+import { antetituloDelTipo, esLaminaFija } from "./antetituloDelTipo";
 
 // G3/G4 (Gonzalo, 2026-10-13): el índice y el objetivo pedían antetítulo; el motor no lo dibuja en ellos ni en la
 // portada, y las láminas de ayuda llevan el suyo fijo.
@@ -17,5 +17,13 @@ describe("antetítulo por tipo de lámina", () => {
   test("el separador abre capítulo y una lámina de gráficos lo deja editar", () => {
     expect(antetituloDelTipo("p_slide_seccion")).toEqual({ modo: "capitulo" });
     expect(antetituloDelTipo("p_slide_1_grafico")).toEqual({ modo: "editable" });
+  });
+});
+
+describe("lámina fija (G7)", () => {
+  test("la explicación del Top Two Box no se edita; las demás sí", () => {
+    expect(esLaminaFija("p_slide_top_two_box")).toBe(true);
+    expect(esLaminaFija("p_slide_redondeo")).toBe(false);
+    expect(esLaminaFija("p_slide_1_grafico")).toBe(false);
   });
 });

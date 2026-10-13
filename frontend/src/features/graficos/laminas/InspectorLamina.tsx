@@ -3,7 +3,7 @@
 // no construye se declara como tal («todavía no está en Láminas»), sin mandar al Editor anterior (C32/O3).
 // «Cambiar» (cabecera y Composición) abre «¿Qué lámina?»; «Cambiar» de una ranura, «¿Qué gráfico?» (F6.2).
 
-import { antetituloDelTipo } from "./antetituloDelTipo";
+import { antetituloDelTipo, esLaminaFija } from "./antetituloDelTipo";
 import { useId, useMemo } from "react";
 import { ChevronRight, History, Lock, X } from "../../../vendor/lucide-react";
 import type { GraficadorRef, Slide } from "../../../api/graficos";
@@ -204,7 +204,14 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
         </p>
       ) : null}
 
-      {contenido.campos.map((c) => (
+      {esLaminaFija(slide.tipo) && (
+        <p className="pulso-f6-candado">
+          <Lock size={14} aria-hidden="true" />
+          Lámina estándar del recetario: su título, su texto y su ejemplo salen siempre iguales.
+        </p>
+      )}
+
+      {!esLaminaFija(slide.tipo) && contenido.campos.map((c) => (
         <CampoTexto
           key={c.name}
           campo={{ ...c, ...((slide.tipo === "p_slide_objetivo_icono" ? TEXTOS_OBJETIVO[c.name] : null) ?? TEXTOS_CAMPO[c.name] ?? {}) }}
@@ -219,7 +226,7 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
 
       {esIndice && <EditorIndice slide={slide} />}
 
-      {contenido.pendientes.length > 0 && (
+      {!esLaminaFija(slide.tipo) && contenido.pendientes.length > 0 && (
         <p className="pulso-f6-pendiente">
           <History size={14} aria-hidden="true" />
           <span>
