@@ -25,9 +25,12 @@ export function textoFueraDelMazo(fuera: readonly { motivo: string }[]): string 
 }
 
 /** El título de la lámina, o qué falta para tenerlo; nunca su tipo interno. */
-export function tituloPropuesto(titulo: unknown, equivalencias: boolean): string {
+export function tituloPropuesto(titulo: unknown, equivalencias: boolean, queSale = ""): string {
   const t = typeof titulo === "string" ? titulo.trim() : "";
   if (t) return t;
+  // Sin título escrito, el PowerPoint titula con la pregunta: la vista previa dice ese mismo título (como la tira y la
+  // Estructura), no «Sin título» 59 veces.
+  if (queSale.trim()) return queSale.trim();
   return equivalencias ? "Sin título: escribe su enunciado en Carga › Equivalencias" : "Sin título";
 }
 
