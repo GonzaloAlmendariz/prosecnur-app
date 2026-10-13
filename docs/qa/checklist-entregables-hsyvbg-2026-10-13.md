@@ -231,3 +231,19 @@ Textual: «Sigue puliendo para que se vea aún mejor». Principio: soluciones ge
 Paso 1: auditoría visual independiente (qa-visual-desktop) de las superficies nuevas en
 3 casos (3 bases con años, 4 con nombres, 7 mezcladas). Paso 2: implementar por
 prioridad. Paso 3: QA y commit. Los hallazgos se listan aquí como P-1, P-2… al llegar.
+
+Hallazgos de la auditoría (qa-visual-desktop, evidencia en scratchpad/polishqa/):
+
+| # | Hallazgo | Estado |
+|---|---|---|
+| P-A1 | Cruces: «Notas al pie» aplastada a 2 px, no se puede abrir (flex-shrink en el workbench) | en curso |
+| P-A2 | Frecuencias: «Notas al pie» abierta se recorta; encabezado salta a centrado | en curso |
+| P-A3 | «Notas al pie» con dos implementaciones; en Comparativos un campo por pregunta (72 inputs) | en curso |
+| P-A4 | Resultado del comparativo: 73 avisos ámbar sueltos; agrupar por tipo y separar severidad | en curso |
+| P-A5 | Tres recetas de botón primario (teal píldora, teal 8 px, navy) | en curso |
+| P-A6 | Paneles en portal pierden el tono del módulo (navy en vez de teal) | en curso |
+| P-A7 | Importar por bloques dice «año» aunque las bases no sean años | en curso |
+| P-A8 | Equivalencias publica readiness lista antes de cargar; carga como texto suelto | en curso |
+| P-A9 | Cruces describe la significancia como «chi² al 5 %, asterisco» y el motor usa letras con z y Bonferroni | en curso |
+| P-M1…M14 | Medias: cifras, botones secundarios, «añadir», vacíos, formato de números, orden de bases en Fuentes, orden de la serie compacto, Equivalencias mezcla mazo y comparación, anchos de tabla, explicación larga del editor, Datos «Detectando…» pegado y «sin guardar» al entrar, «Definición global» desactualizado, Codificación sin elipsis y con markdown crudo, tres patrones de guardado | pendiente (siguiente tanda) |
+| P-B1…B7 | Bajas: foco visible en título, panel .sav, rótulos repetidos, «Ninguna» repetido, tarjetas de opción, estilos en línea, pendientes no verificables | pendiente |
