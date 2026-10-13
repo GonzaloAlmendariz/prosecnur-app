@@ -86,23 +86,16 @@
 
 .pulso-f6-maqueta-ranura {
   position: absolute;
-  display: flex;
-  flex-direction: row-reverse;
-  /* `safe`: si el contenido es más alto que la ranura, se alinea arriba en vez de cortarse por los dos lados (el rótulo
-     del tipo quedaba bajo el borde superior; Gonzalo, 2026-10-13). */
-  align-items: safe center;
-  justify-content: flex-end;
-  gap: 2.4em;
+  display: block;
   margin: 0;
-  padding: 1.2em 1.6em;
+  /* La ficha (FichaRanura) dibuja su contenido en SVG; la ranura es el botón: borde, estados y foco. */
+  padding: 0;
   overflow: hidden;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
   font: inherit;
-  text-align: left;
-  white-space: normal;
   cursor: pointer;
   transition: border-color var(--motion-dur-press) var(--motion-ease-out), box-shadow var(--motion-dur-press) var(--motion-ease-out);
 }
@@ -125,68 +118,6 @@
 
 .pulso-f6-maqueta-ranura.is-cifra {
   cursor: default;
-}
-
-.pulso-f6-maqueta-tipo {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5em;
-  color: var(--pulso-text-muted);
-  font-size: 1.1em;
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.pulso-f6-maqueta-num {
-  display: inline-grid;
-  place-items: center;
-  min-width: 1.6em;
-  height: 1.6em;
-  border-radius: 999px;
-  background: var(--module-accent-soft);
-  color: var(--module-accent);
-  font-size: 0.9em;
-}
-
-.pulso-f6-maqueta-pregunta {
-  display: -webkit-box;
-  overflow: hidden;
-  font-size: 1.45em;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.3;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-
-.pulso-f6-maqueta-mas {
-  color: var(--pulso-text-muted);
-  font-weight: 400;
-}
-
-.pulso-f6-maqueta-bases {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4em;
-}
-
-.pulso-f6-maqueta-bases.is-pregunta {
-  gap: 0.3em;
-}
-
-.pulso-f6-maqueta-bases.is-pregunta .pulso-f6-maqueta-base {
-  padding: 0.1em 0.6em;
-  border-color: var(--pulso-module-processing-border);
-  background: var(--pulso-module-processing-soft);
-  color: var(--pulso-text);
-  font-size: 0.95em;
-}
-
-.pulso-f6-maqueta-base {
-  padding: 0.2em 0.7em;
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  font-size: 1.05em;
 }
 
 .pulso-f6-maqueta-pie {
@@ -214,165 +145,43 @@
   pointer-events: auto;
 }
 
-.pulso-f6-maqueta-info {
-  display: flex;
-  flex: 1 1 0;
-  min-width: 0;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.6em;
-}
-
 /* El glifo del tipo de gráfico, como ilustración de la ranura: dice de un vistazo qué forma tendrá. */
-.pulso-f6-maqueta-glifo {
-  flex: 0 0 38%;
-  max-height: 88%;
-  color: var(--module-accent);
-  opacity: 0.85;
-}
-
-.pulso-f6-maqueta-ranura.is-angosta {
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: 1em;
-}
-
-.pulso-f6-maqueta-ranura.is-angosta .pulso-f6-maqueta-glifo {
-  flex: 0 1 auto;
-  width: 60%;
-  max-height: 45%;
-  align-self: center;
-}
-
 /* Ranura vacía: la acción a la vista, sin doble clic que adivinar. */
-.pulso-f6-maqueta-elegir {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5em;
-  margin: auto;
-  padding: 0.7em 1.4em;
-  border-radius: 999px;
-  background: var(--module-accent-soft);
-  color: var(--module-accent);
-  font-size: 1.5em;
-  font-weight: var(--pulso-weight-semibold);
-}
-
 .pulso-f6-maqueta-ranura.is-vacia {
   justify-content: center;
 }
 
-.pulso-f6-maqueta-falta {
-  color: var(--module-accent);
-  font-size: 1.25em;
-  font-weight: var(--pulso-weight-semibold);
-}
-
 /* Varias preguntas en un gráfico: cuántas, si comparten escala, y la escala con sus colores reales. */
-.pulso-f6-maqueta-resumen {
-  color: var(--pulso-text-muted);
-  font-size: 1.15em;
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.pulso-f6-maqueta-preguntas {
-  display: flex;
-  flex-direction: column;
-  gap: 0.7em;
-  width: 100%;
-  font-size: 1.2em;
-}
-
 /* Una pregunta, sus categorías y sus colores, en su propia caja. */
-.pulso-f6-maqueta-pregunta-caja {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45em;
-  padding: 0.75em 0.95em;
-  border: 1px solid var(--pulso-border);
-  border-radius: calc(var(--pulso-radius) * 0.75);
-  background: var(--pulso-surface);
-}
-
-.pulso-f6-maqueta-pregunta-item {
-  display: -webkit-box;
-  overflow: hidden;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.3;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.pulso-f6-maqueta-escala {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35em 0.9em;
-  color: var(--pulso-text-soft);
-  font-size: 0.9em;
-}
-
-.pulso-f6-maqueta-opcion {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4em;
-}
-
-.pulso-f6-maqueta-opcion i {
-  flex: none;
-  width: 0.95em;
-  height: 0.95em;
-  border-radius: 0.2em;
-}
-
-.pulso-f6-maqueta-opcion i.is-sin-color {
-  border: 1.5px dashed var(--pulso-border-strong);
-  background: transparent;
-}
-
-.pulso-f6-maqueta-unicolor {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35em;
-}
-
-.pulso-f6-maqueta-opciones-texto {
-  color: var(--pulso-text-soft);
-  font-size: 0.9em;
-  line-height: 1.35;
-}
-
 /* Cuatro preguntas o más: una línea por pregunta con sus públicos; la escala, una vez. Cabe en la zona de datos sin que la
    ranura recorte arriba y abajo (lámina 10 de Arte, 2026-10-13). */
-.pulso-f6-maqueta-preguntas.is-compacta {
-  gap: 0.35em;
+
+/* Insignia de la composición: ícono y nombre del tipo de lámina, arriba a la derecha (la cabecera reserva ese 16 %). */
+.pulso-f6-maqueta-composicion {
+  position: absolute;
+  top: 2.6%;
+  right: 2.6%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  max-width: 14%;
+  padding: 0.35em 0.8em;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: 1.15em;
+  white-space: nowrap;
 }
 
-.pulso-f6-maqueta-pregunta-fila {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.8em;
-  align-items: baseline;
-  padding: 0.3em 0;
-  border-bottom: 1px solid var(--pulso-border);
-  min-width: 0;
-}
-
-.pulso-f6-maqueta-pregunta-linea {
+.pulso-f6-maqueta-composicion > span {
   overflow: hidden;
-  white-space: nowrap;
   text-overflow: ellipsis;
-  font-weight: var(--pulso-weight-semibold);
-  min-width: 0;
 }
 
-.pulso-f6-maqueta-pregunta-publicos {
-  color: var(--pulso-text-soft);
-  font-size: 0.85em;
-  white-space: nowrap;
-}
-
-.pulso-f6-maqueta-mas {
-  color: var(--pulso-text-soft);
-  font-size: 0.9em;
+.pulso-f6-maqueta-cifras {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--pulso-text-muted);
+  font-size: 1.3em;
 }
