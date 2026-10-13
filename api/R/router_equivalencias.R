@@ -99,7 +99,7 @@
     return(list(
       ok = TRUE, disponible = disponible, declarada = FALSE,
       n_filas = 0L, bases = character(0), cobertura = list(), desfasadas = character(0),
-      revision = ""
+      revision = "", armonizacion_periodos = list()
     ))
   }
 
@@ -131,6 +131,9 @@
     n_sugeridas = as.integer(sum(vapply(equiv$filas %||% list(),
                                         function(f) isTRUE(f$sugerida), logical(1)))),
     bases = as.character(equiv$bases %||% character(0)),
+    # Contrato E4-E7 (R3): orden de la serie (nombres de base). Siempre arreglo:
+    # una lista y no un vector, para que uno solo no viaje como escalar.
+    armonizacion_periodos = as.list(as.character(unlist(equiv$armonizacion_periodos %||% character(0)))),
     importada_en = as.character(equiv$importada_en %||% ""),
     # Huella del contenido: Gráficos la compara contra la que quedó grabada al
     # aplicar el mazo para saber si la propuesta envejeció (ADR 0063). Con los
@@ -287,6 +290,11 @@
   equiv$sellos <- lapply(inst_por_base, .equiv_sello_instrumento)
   equiv$importada_en <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   equiv$origen <- list(file_id = as.character(file_id), hoja = hoja_sel)
+  # Contrato E4-E7 (R3): la plantilla no lleva la armonización; se conserva de
+  # la declaración previa en las filas que casan por variables.
+  previo <- .equiv_get(sid)
+  equiv$filas <- .equiv_armon_conservar(equiv$filas, previo)
+  if (!is.null(previo$armonizacion_periodos)) equiv$armonizacion_periodos <- previo$armonizacion_periodos
 
   # Literal a proposito: el gate de session_schema.R escanea la clave en el
   # texto, y una constante lo dejaria ciego a esta escritura.
@@ -299,9 +307,17 @@
 # Guarda la declaracion editada en la pestana. Misma forma que la importada, asi
 # que Excel y editor producen el MISMO artefacto — es lo que impide que las dos
 # vias se separen y que una acabe pudiendo expresar cosas que la otra no.
-.equiv_guardar_declaracion <- function(sid, filas) {
+#
+# Contrato E4-E7 (R3): `armonizacion` por fila y `armonizacion_periodos` en la
+# raíz. Una fila que NO trae la clave `armonizacion` conserva la de la fila
+# previa con las mismas variables (un editor que no conoce el campo no lo borra);
+# una fila que la manda en null la borra. `armonizacion_periodos = NULL` conserva
+# el orden vigente.
+.equiv_guardar_declaracion <- function(sid, filas, armonizacion_periodos = NULL) {
   bases <- names(.equiv_inst_por_base(sid))
+  previo <- .equiv_get(sid)
   limpias <- list()
+  ausentes <- logical(0)
   for (f in (filas %||% list())) {
     vars <- list()
     for (b in bases) {
@@ -329,7 +345,18 @@
     # protege —que una sugerencia nunca actue como decision— se cumple en los dos
     # sitios donde importa: no escribe etiquetas y no llega al mazo.
     if (isTRUE(f$sugerida)) limpia$sugerida <- TRUE
+    id <- trimws(as.character(f$id %||% ""))[1]
+    if (!is.na(id) && nzchar(id)) limpia$id <- id
+    arm <- .equiv_armon_normalizar(f$armonizacion, bases, limpia$etiqueta_estandar)
+    if (!is.null(arm)) limpia$armonizacion <- arm
+    ausentes <- c(ausentes, !("armonizacion" %in% names(f)))
     limpias[[length(limpias) + 1L]] <- limpia
+  }
+  limpias <- .equiv_armon_conservar(limpias, previo, solo_ausentes = ausentes)
+  periodos <- if (is.null(armonizacion_periodos)) {
+    previo$armonizacion_periodos
+  } else {
+    .equiv_armon_periodos_normalizar(armonizacion_periodos, bases)
   }
 
   inst_por_base <- .equiv_inst_por_base(sid)
@@ -344,6 +371,7 @@
     importada_en = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
     origen = list(hoja = "editor")
   )
+  if (length(periodos)) equiv$armonizacion_periodos <- as.character(periodos)
   session_set(sid, "equivalencias_publicos", equiv)
   resumen <- .equiv_aplicar_a_analitica(sid, equiv)
   list(estado = .equiv_estado(sid), aplicacion = resumen)
@@ -415,6 +443,33 @@ mount_equivalencias <- function(pr) {
         stop_api(400, "E_EQUIV_FILAS_REQUERIDAS",
                  "Body debe incluir 'filas' con la declaracion editada.")
       }
-      c(list(ok = TRUE), .equiv_guardar_declaracion(sid, body$filas))
+      c(list(ok = TRUE), .equiv_guardar_declaracion(sid, body$filas, body$armonizacion_periodos))
+    })) |>
+
+    plumber::pr_get("/api/carga/equivalencias/armonizacion/preview",
+                    wrap_endpoint(function(req, res, fila = "", base = "") {
+      # Contrato E4-E7 (R3): cómo cae el mapa sobre los datos reales de una base.
+      sid <- session_header(req)
+      .equiv_requiere_disponible(sid)
+      .equiv_armon_preview(sid, fila, base)
+    })) |>
+
+    plumber::pr_post("/api/carga/equivalencias/importar-bloques", wrap_endpoint(function(req, res, ...) {
+      # Contrato E4-E7 (R3): matriz de correspondencias por bloques del proyecto.
+      sid <- session_header(req)
+      .equiv_requiere_disponible(sid)
+      body <- .analitica_json_body(req)
+      file_id <- as.character(body$file_id %||% "")
+      if (!nzchar(file_id)) {
+        stop_api(400, "E_EQUIV_FILE_ID_REQUERIDO",
+                 "Body debe incluir 'file_id' del archivo de la matriz.")
+      }
+      modo <- as.character(body$modo %||% "previsualizar")[1]
+      if (!modo %in% c("previsualizar", "aplicar")) {
+        stop_api(400, "E_EQUIV_BLOQUES_MODO",
+                 "'modo' debe ser «previsualizar» o «aplicar».")
+      }
+      c(list(ok = TRUE), equiv_bloques_importar(sid, file_id, body$mapa_periodos,
+                                                modo = modo, hoja = body$hoja))
     }))
 }
