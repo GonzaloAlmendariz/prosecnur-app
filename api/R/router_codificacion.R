@@ -3219,7 +3219,8 @@ mount_codificacion <- function(pr) {
       codif_set(sid, "plantilla_codigos_file_id", codes_meta$file_id)
 
       # 4) Bridge — write every in-app codification decision into the xlsx.
-      .bridge_grupos_to_plantilla(sid)
+      # Su `$skipped` es lo que NO se aplicará: se devuelve abajo (ADR 0100).
+      bridge <- .bridge_grupos_to_plantilla(sid)
 
       # 5) Extract the list of vars ppra_adaptar_data needs to know explicitly
       # (it's a bare-bones function: no args → no work done). Pull them from
@@ -3284,10 +3285,23 @@ mount_codificacion <- function(pr) {
         error = function(e) list()
       )
       codif_set(sid, "ultimo_aplicar_sin_recodificar", sin_recod)
+      # ADR 0100, P1: lo que el puente omitió (con su motivo) y los textos que
+      # quedaron sin código. Igual que `sin_recodificar`, informa y no bloquea:
+      # si el diagnóstico falla, el aplicar sigue y la lista sale vacía.
+      omitidas <- tryCatch(
+        .codif_omitidas(bridge$skipped, grupos_map, draft$rows, names(data_adapt_df)),
+        error = function(e) list()
+      )
+      textos_sin_codigo <- tryCatch(
+        .codif_textos_sin_codigo(bridge$patched, grupos_map, draft$rows, data_adapt_df),
+        error = function(e) list()
+      )
 
       list(
         ok = TRUE, job_id = job_id, kind = "codificacion.aplicar",
-        sin_recodificar = sin_recod
+        sin_recodificar = sin_recod,
+        omitidas = omitidas,
+        textos_sin_codigo = textos_sin_codigo
       )
     }))
 }
