@@ -117,6 +117,17 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
       </>
     );
   },
+  // Dicotómica (recetario 76): una barra partida a todo el ancho, con las dos cifras grandes en los polos.
+  p_dicotomica: () => (
+    <>
+      <Valor x={14} y={28} w={30} />
+      <Valor x={120} y={28} w={26} />
+      <Barra x={14} y={42} w={104} h={22} t="p" />
+      <Barra x={118} y={42} w={28} h={22} t="a" />
+      <Rotulo x={14} y={70} w={30} />
+      <Rotulo x={120} y={70} w={24} />
+    </>
+  ),
   // Ranking en barras horizontales, rótulo a la izquierda y cifra al final (p73).
   p_barras_agrupadas: () => {
     const largos = [96, 74, 58, 40, 24];

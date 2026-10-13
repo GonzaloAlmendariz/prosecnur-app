@@ -10,7 +10,7 @@ export type OrdenCategorias = { modo: ModoOrden; lista: string[]; invertir: bool
 export const MODOS_ORDEN: readonly ModoOrden[] = ["recetario", "frecuencia", "instrumento", "personalizado"];
 
 /** Graficadores a los que aplica (contrato §1). En escalas no se muestra: el orden es el de la escala. */
-const CON_ORDEN = new Set(["p_barras_categoricas", "p_barras_agrupadas", "p_pie", "p_donut"]);
+const CON_ORDEN = new Set(["p_barras_categoricas", "p_dicotomica", "p_barras_agrupadas", "p_pie", "p_donut"]);
 
 export function aplicaOrden(graficador: string): boolean {
   return CON_ORDEN.has(graficador);

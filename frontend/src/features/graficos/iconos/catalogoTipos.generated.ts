@@ -44,6 +44,7 @@ export const CATALOGO_LAMINAS: readonly TipoLaminaCatalogo[] = [
 
 export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [
   { name: "p_barras_agrupadas", familia_editor: "categorias", salida: "nativa", en_selector: true },
+  { name: "p_dicotomica", familia_editor: "categorias", salida: "nativa", en_selector: true },
   { name: "p_barras_categoricas", familia_editor: "categorias", salida: "nativa", en_selector: true },
   { name: "p_barras_apiladas", familia_editor: "escalas", salida: "nativa", en_selector: true },
   { name: "p_barras_multiapiladas", familia_editor: "escalas", salida: "nativa", en_selector: true },

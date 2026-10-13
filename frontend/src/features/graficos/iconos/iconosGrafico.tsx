@@ -31,6 +31,13 @@ const ICONOS: Readonly<Record<string, DibujoGrafico>> = {
       <Bloque x={15.75} y={13.5} w={3.75} h={6} />
     </>
   ),
+  // Dicotómica (p76): una barra partida en dos, la mayor en acento.
+  p_dicotomica: () => (
+    <>
+      <Acento><Bloque x={3} y={9} w={12} h={6} tono="pleno" /></Acento>
+      <Bloque x={15.5} y={9} w={5.5} h={6} />
+    </>
+  ),
   // Ranking en barras (p73): barras horizontales ordenadas.
   p_barras_agrupadas: () => (
     <>

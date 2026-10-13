@@ -1116,6 +1116,20 @@
     ), .args_graf_comunes())
   ),
 
+  p_dicotomica = list(
+    titulo_humano = "Dicotómica",
+    descripcion   = "Una pregunta de dos opciones (Sí/No) en una barra partida a todo el ancho, con las dos cifras grandes en los polos y los casos de cada una.",
+    icono_ui      = "ChartBarStacked",
+    categoria     = "distribution",
+    blueprint     = "bars-categorical",
+    args = list(
+      list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos",
+           descripcion = "Pregunta de dos opciones. Con más opciones sale como barras categóricas."),
+      list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
+           descripcion = "Por ejemplo «Sin información», para que queden las dos opciones de la dicotomía. Los porcentajes se recalculan sobre las visibles.")
+    )
+  ),
+
   p_barras_categoricas = list(
     titulo_humano = "Barras categóricas",
     descripcion   = "Barras verticales para pocas categorías (máximo 10), con un color propio por categoría. Útil para puntajes o distribuciones simples que necesitan una lectura más cuidada.",
@@ -2036,6 +2050,7 @@
 .GRAFICOS_SALIDA_EDITOR <- list(
   p_barras_agrupadas = list("categorias", "nativa", condicion = "Con «Dividir por» (dos o más series) sale por la ruta anterior."),
   p_barras_categoricas = list("categorias", "nativa", condicion = "Si los rótulos no caben ni en columnas ni en barras, sale por la ruta anterior."),
+  p_dicotomica = list("categorias", "nativa", condicion = "Sólo con dos opciones; con más, sale como barras categóricas."),
   p_barras_apiladas = list("escalas", "nativa"),
   p_barras_multiapiladas = list("escalas", "nativa", condicion = "Los bloques que no caben se reparten en láminas «(cont.)»."),
   p_nube_palabras = list("texto", "marco", motivo = "No hay pieza del recetario para la nube: la lámina es la del recetario y la nube va dibujada adentro."),
@@ -2081,6 +2096,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 .GRAFICADOR_PRESET_KEYS <- c(
   p_barras_agrupadas = "barras_agrupadas",
   p_barras_categoricas = "barras_categoricas",
+  p_dicotomica = "barras_categoricas",
   p_barras_apiladas = "barras_apiladas",
   p_barras_multiapiladas = "multi_apiladas",
   p_nube_palabras = "nube_palabras",
