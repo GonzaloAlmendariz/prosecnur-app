@@ -141,6 +141,17 @@ function Separador({ nivel: compuesto }: { nivel: string }) {
         </>
       );
     }
+    if (version === "sin_lamina") {
+      // Sin lámina propia: se dibuja la lámina siguiente, con el antetítulo en coral.
+      return (
+        <>
+          <Caja x={0.4} y={0.45} w={0.06} h={0.55} c="titulo" rx={0.02} />
+          <Renglon x={0.6} y={0.45} w={2.2} h={0.13} c="titulo" />
+          <Renglon x={0.6} y={0.7} w={6.4} h={0.3} c="tinta" />
+          {[0, 1, 2, 3].map((k) => <Renglon key={k} x={1.6} y={2.2 + k * 1.0} w={[9.5, 7, 8.2, 5.4][k]} h={0.45} c="suave" />)}
+        </>
+      );
+    }
     if (version === "banda") {
       return (
         <>
