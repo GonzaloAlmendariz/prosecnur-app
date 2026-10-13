@@ -166,6 +166,7 @@ export default function CodificacionPage() {
                   {step === "adaptar" && (
                     <AdaptarPane
                       key={codifActive}
+                      base={codifSource.active}
                       onBackToCodificar={() => goStep("codificar")}
                       onBackToMatrices={() => goStep("matrices")}
                     />

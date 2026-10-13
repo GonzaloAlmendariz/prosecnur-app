@@ -1,39 +1,30 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle2, Download, FileSpreadsheet, Play, RefreshCw, Tags } from "lucide-react";
-import type { CodifAplicarAvisos, CodifSinRecodificar } from "../../api/codificacion";
-import {
-  apiCodifAplicar,
-  apiCodifPlanAdaptacion,
-  AplicarResult,
-  downloadUrl,
-  PlanAdaptacion,
-  PlanPregunta,
-} from "../../api/client";
+import { CheckCircle2, FileSpreadsheet, RefreshCw, Tags } from "lucide-react";
+import { apiCodifPlanAdaptacion, PlanAdaptacion, PlanPregunta } from "../../api/client";
 import { Alert } from "../../components/Alert";
-import { JobProgress } from "../../components/JobProgress";
 import { Panel } from "../../components/Panel";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { useSession } from "../../lib/SessionContext";
-import { AplicarOmitidasAviso } from "./AplicarOmitidasAviso";
-
-const SIN_AVISOS_APLICAR: CodifAplicarAvisos = { omitidas: [], textos_sin_codigo: [] };
+import { AdaptarAplicacion } from "./AdaptarAplicacion";
+import { claveAplicar } from "./aplicarAvisosStore";
+import { motivoNoSoportado } from "./planAdaptacionModel";
 
 type Props = {
+  /** Base activa de codificación: los avisos de la última aplicación van por base. */
+  base: string | null;
   onBackToCodificar: () => void;
   onBackToMatrices: () => void;
 };
 
-export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
-  const { refresh } = useSession();
+export function AdaptarPane({ base, onBackToCodificar, onBackToMatrices }: Props) {
+  const { sessionId } = useSession();
   const [plan, setPlan] = useState<PlanAdaptacion | null>(null);
   const [loadErr, setLoadErr] = useState<string>("");
   const [busyLoad, setBusyLoad] = useState(false);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [sinRecodificar, setSinRecodificar] = useState<CodifSinRecodificar[]>([]);
-  // ADR 0100, P1: un solo estado con las dos listas de lo que no se aplicó.
-  const [avisosAplicar, setAvisosAplicar] = useState<CodifAplicarAvisos>(SIN_AVISOS_APLICAR);
-  const [runErr, setRunErr] = useState<string>("");
-  const [output, setOutput] = useState<{ data: string; inst: string } | null>(null);
+  // Lo que deja una aplicación (avisos, sin recodificar, descargas, job) vive
+  // en `aplicarAvisosStore`: al terminar el job la página remonta este panel y
+  // el estado local se perdía (QA C5, Codificación › Adaptar).
+  const clave = claveAplicar(sessionId, base);
 
   async function load() {
     setBusyLoad(true);
@@ -48,32 +39,6 @@ export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
     }
   }
   useEffect(() => { void load(); }, []);
-
-  async function onAdaptar() {
-    setRunErr("");
-    setOutput(null);
-    setSinRecodificar([]);
-    setAvisosAplicar(SIN_AVISOS_APLICAR);
-    try {
-      const r = await apiCodifAplicar();
-      // ADR 0078, punto 5: declarar qué se entrega sin recodificar. No frena
-      // la adaptación — que ya está corriendo cuando esto se pinta.
-      setSinRecodificar(r.sin_recodificar ?? []);
-      setAvisosAplicar({ omitidas: r.omitidas, textos_sin_codigo: r.textos_sin_codigo });
-      setJobId(r.job_id);
-    } catch (e) {
-      setRunErr((e as Error).message);
-    }
-  }
-
-  function onJobDone(d: AplicarResult) {
-    setOutput({ data: d.data_adaptada.file_id, inst: d.instrumento_adaptado.file_id });
-    setJobId(null);
-    void refresh();
-    window.dispatchEvent(new Event("pulso:session-changed"));
-  }
-  function onJobError(msg: string) { setRunErr(msg); setJobId(null); }
-  function onJobCancelled() { setJobId(null); }
 
   if (loadErr) return <ErrorBlock label="Error cargando plan" detail={loadErr} />;
   if (!plan) return <LoadingBlock label="Cargando resumen…" />;
@@ -91,12 +56,6 @@ export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
     n_codigos_nuevos: preguntasSoportadas.reduce((s, p) => s + p.n_codigos_nuevos, 0),
     n_codigos_reutilizados: preguntasSoportadas.reduce((s, p) => s + p.n_codigos_reutilizados, 0),
   };
-  const adaptarDisabledReason = jobId
-    ? "La adaptación ya está corriendo."
-    : t.n_preguntas === 0
-    ? "No hay codificaciones listas para adaptar."
-    : "";
-
   return (
     <section
       className="pulso-codificacion-adaptar"
@@ -176,107 +135,12 @@ export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
         </Alert>
       )}
 
-      {/* Acciones */}
-      {!output && (
-        <div className="pulso-codificacion-adaptar-actions">
-          <button type="button" className="pulso-cv2-pill" onClick={onBackToCodificar} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <ArrowLeft size={13} /> Volver a codificar
-          </button>
-          <button type="button" className="pulso-cv2-pill" onClick={onBackToMatrices} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <FileSpreadsheet size={13} /> Revisar matrices
-          </button>
-          <div style={{ flex: 1 }} />
-          <button
-            type="button"
-            className="pulso-primary"
-            onClick={onAdaptar}
-            disabled={!!jobId || t.n_preguntas === 0}
-            aria-describedby={adaptarDisabledReason ? "codificacion-adaptar-disabled-reason" : undefined}
-            style={{ fontSize: 14, display: "inline-flex", alignItems: "center", gap: 6 }}
-          >
-            <Play size={14} /> Confirmar y adaptar respuestas
-          </button>
-          {adaptarDisabledReason && (
-            <span id="codificacion-adaptar-disabled-reason" className="pulso-sr-only">
-              {adaptarDisabledReason}
-            </span>
-          )}
-        </div>
-      )}
-
-      {jobId && (
-        <JobProgress<AplicarResult>
-          label="Adaptando respuestas con mapeos confirmados"
-          jobId={jobId}
-          onDone={onJobDone}
-          onError={onJobError}
-          onCancelled={onJobCancelled}
-        />
-      )}
-
-      {runErr && <Alert kind="error">{runErr}</Alert>}
-
-      {/* ADR 0100, P1: las preguntas del catálogo que no se aplicaron y los
-          textos que quedaron sin código. Sin nada que decir, no pinta. */}
-      <AplicarOmitidasAviso
-        omitidas={avisosAplicar.omitidas}
-        textosSinCodigo={avisosAplicar.textos_sin_codigo}
+      <AdaptarAplicacion
+        clave={clave}
+        nPreguntas={t.n_preguntas}
+        onBackToCodificar={onBackToCodificar}
+        onBackToMatrices={onBackToMatrices}
       />
-
-      {/* ADR 0078, punto 5: qué se entrega sin recodificar. Aparece al aplicar
-          y no antes, porque es el momento en que deja de ser reversible sin
-          rehacer. Informa y no frena: bloquear acá se satisfaría desmarcando
-          todo, que dejaría el módulo peor que ahora. */}
-      {sinRecodificar.length > 0 && (
-        <Alert kind="warn">
-          <div data-testid="codificacion-sin-recodificar">
-            <strong>
-              {sinRecodificar.length === 1
-                ? "1 variable se entrega sin recodificar"
-                : `${sinRecodificar.length} variables se entregan sin recodificar`}
-              .
-            </strong>
-            <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
-              {sinRecodificar.map((v) => (
-                <li key={v.parent} style={{ fontSize: 12, marginBottom: 2 }}>
-                  <code>{v.parent}</code>{" "}
-                  {v.deliberado ? (
-                    <>— decidido: {v.motivo}</>
-                  ) : (
-                    <>
-                      — {v.n_respuestas} {v.n_respuestas === 1 ? "respuesta" : "respuestas"} sin
-                      categorizar
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Alert>
-      )}
-
-      {output && (
-        <Panel eyebrow="Resultado" title="Archivos adaptados listos para descargar">
-          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--pulso-success-fg)", marginBottom: 10 }}>
-            <CheckCircle2 size={16} /> La adaptación terminó correctamente.
-          </div>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <a
-              href={downloadUrl(output.data)}
-              className="pulso-primary"
-              style={{ fontSize: 13, padding: "8px 14px", display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
-            >
-              <Download size={14} /> data_adaptada.xlsx
-            </a>
-            <a
-              href={downloadUrl(output.inst)}
-              style={{ fontSize: 13, padding: "8px 14px", display: "inline-flex", alignItems: "center", gap: 6 }}
-            >
-              <Download size={14} /> instrumento_adaptado.xlsx
-            </a>
-          </div>
-        </Panel>
-      )}
     </section>
   );
 }
@@ -418,9 +282,4 @@ function CodigoRow({ c, kind }: { c: { codigo: string; etiqueta: string; n_respu
       </span>
     </div>
   );
-}
-
-function motivoNoSoportado(p: PlanPregunta): string {
-  if (p.tipo === "select_multiple" && !p.text_col) return "SM sin 'Otros, especifique' emparejado";
-  return "ajuste no reconocido";
 }
