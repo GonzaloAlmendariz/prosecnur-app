@@ -325,6 +325,15 @@ function normalizarTextosSinCodigo(raw: unknown): CodifTextosSinCodigo | null {
   };
 }
 
+/**
+ * `motivo_omision` de una pregunta del plan de adaptación (ADR 0100, P1): el
+ * mismo mensaje que el aviso de `/aplicar` cuando `bridge_soportado` es falso.
+ * R puede entregarlo como vector de largo uno o lista vacía; sin texto, "".
+ */
+export function normalizeCodifMotivoOmision(raw: unknown): string {
+  return codifTexto(raw);
+}
+
 /** Lee `omitidas` y `textos_sin_codigo` de la respuesta de `/aplicar`. */
 export function normalizeCodifAplicarAvisos(raw: unknown): CodifAplicarAvisos {
   const root = codifRegistro(raw);

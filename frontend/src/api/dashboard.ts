@@ -4,7 +4,7 @@
 
 import { apiFetch, downloadFailedMessage, handle, headers } from "./core";
 import type { CodifAplicarAvisos, CodifSinRecodificar } from "./codificacion";
-import { normalizeCodifAplicarAvisos } from "./codificacion";
+import { normalizeCodifAplicarAvisos, normalizeCodifMotivoOmision } from "./codificacion";
 
 // ---- Dimensiones (tab Analítica → Dimensiones) ---------------------------
 
@@ -1166,6 +1166,8 @@ export type PlanPregunta = {
   codigos_nuevos: PlanCodigoItem[];
   codigos_reutilizados: PlanCodigoItem[];
   bridge_soportado: boolean;
+  /** Con `bridge_soportado` falso: la causa en llano, la misma del aviso de `/aplicar` (ADR 0100, P1). */
+  motivo_omision?: string;
 };
 
 export type PlanAdaptacion = {
@@ -1179,10 +1181,18 @@ export type PlanAdaptacion = {
   };
 };
 
-export async function apiCodifPlanAdaptacion() {
-  return handle<PlanAdaptacion>(
+export async function apiCodifPlanAdaptacion(): Promise<PlanAdaptacion> {
+  const plan = await handle<PlanAdaptacion>(
     await apiFetch("/api/codificacion/plan-adaptacion", { headers: headers() })
   );
+  const preguntas: PlanPregunta[] = Array.isArray(plan.preguntas) ? plan.preguntas : [];
+  return {
+    ...plan,
+    preguntas: preguntas.map((p) => ({
+      ...p,
+      motivo_omision: normalizeCodifMotivoOmision(p.motivo_omision),
+    })),
+  };
 }
 
 // ---- Export / Import JSON de configuración --------------------------------
