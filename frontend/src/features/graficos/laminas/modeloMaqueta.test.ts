@@ -90,4 +90,13 @@ describe("maqueta: qué muestra cada ranura", () => {
     expect(baseAutomatica(s1, vars, "N = %s")).toBe("N = 52 docentes, 172 estudiantes y 15 administrativos");
     expect(baseAutomatica(slide({ graficador: "p_barras_categoricas", args: { var: "egresados$p1" } }), vars)).toBeNull();   // sin conteo: no se inventa
   });
+
+  it("con temas de públicos distintos, el pie nombra a todos los públicos de la lámina (Arte, lámina 10)", () => {
+    const vars = [
+      { name: "a1", source: "docentes", label: "x", n_non_empty: 116 }, { name: "a2", source: "administrativos", label: "x", n_non_empty: 89 },
+      { name: "b1", source: "docentes", label: "x", n_non_empty: 110 }, { name: "b2", source: "estudiantes", label: "x", n_non_empty: 289 },
+    ] as never[];
+    const s1 = slide({ graficador: "p_barras_multiapiladas", args: { modo: "var_cruce", vars: { t1: ["docentes$a1", "administrativos$a2"], t2: ["docentes$b1", "estudiantes$b2"] } } });
+    expect(baseAutomatica(s1, vars)).toBe("Base: 116 docentes, 89 administrativos y 289 estudiantes");
+  });
 });
