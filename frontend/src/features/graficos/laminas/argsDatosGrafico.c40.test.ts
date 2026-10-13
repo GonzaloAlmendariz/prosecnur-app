@@ -95,7 +95,8 @@ describe("C40 · ASIGNAR", () => {
     expect(campo(lollipop, {}, "p_lollipop", "top_n")?.rotulo).toBe("Máximo de categorías");
   });
   it("dumbbell: orden y la brecha, con su guarda a la vista", () => {
-    expect(nombres(dumbbell, {}, "p_dumbbell")).toEqual(["corte", "corte_etiqueta", "orden", "mostrar_brecha", "etiqueta_brecha"]);
+    // G17: el corte se marca en la tarjeta de la brecha (BrechaEntreGrupos), con las respuestas de la escala.
+    expect(nombres(dumbbell, {}, "p_dumbbell")).toEqual(["corte_etiqueta", "orden", "mostrar_brecha", "etiqueta_brecha"]);
     expect(campo(dumbbell, {}, "p_dumbbell", "mostrar_brecha")?.ayuda).toBe(AYUDA_BRECHA);
   });
   it("dumbbell: la unidad de la brecha sólo con la brecha encendida (default TRUE) y con «pts» a la vista", () => {
