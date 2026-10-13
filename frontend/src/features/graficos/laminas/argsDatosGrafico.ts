@@ -78,6 +78,17 @@ export const GRAFICADORES_NO_NATIVOS: ReadonlySet<string> = new Set([
 const TABLA = ["p_tabla"];
 const FODA = ["p_dim_foda"];
 
+/** ¿La multiapilada compara públicos? Algún tema (o tema de un bloque) con preguntas de dos bases o más. */
+export function comparaPublicos(valores: Valores): boolean {
+  const base = (r: unknown) => (typeof r === "string" && r.includes("$") ? r.slice(0, r.indexOf("$")) : null);
+  const temas = (vars: unknown): unknown[][] =>
+    vars && typeof vars === "object" && !Array.isArray(vars) ? Object.values(vars as Record<string, unknown>).map((v) => (Array.isArray(v) ? v : [])) : [];
+  const conVarias = (vars: unknown) => temas(vars).some((refs) => new Set(refs.map(base).filter(Boolean)).size >= 2);
+  if (conVarias(valores.vars)) return true;
+  const bloques = Array.isArray(valores.bloques) ? (valores.bloques as Record<string, unknown>[]) : [];
+  return bloques.some((b) => conVarias(b?.vars));
+}
+
 /** Mediciones (periodos) de una serie temporal: `orden_periodos` si se declaró; si no, las fuentes del primer tema. */
 export function medicionesDeSerie(valores: Valores): number {
   const orden = valores.orden_periodos;
@@ -180,7 +191,8 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   linea_y: { rotulo: "Corte vertical (%)", soloEn: ["p_matriz_cuadrantes"], cuando: (v) => v.linea === "valor" },
   destacado: { rotulo: "Cuadrante destacado", ayuda: "Lleva fondo y, a la derecha, la lista de lo que cae en él.", soloEn: ["p_matriz_cuadrantes"] },
   // G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos. Lo dibuja la lámina que compara públicos.
-  ancho_tema: { rotulo: "Ancho de los temas", ayuda: "Cuenta cuando la lámina compara públicos.", soloEn: ["p_barras_multiapiladas"] },
+  // Sólo donde hace algo: la lámina que compara públicos (Gonzalo, 2026-10-13: «que sus opciones tengan sentido»).
+  ancho_tema: { rotulo: "Ancho de los temas", soloEn: ["p_barras_multiapiladas"], cuando: comparaPublicos },
   excluir_opciones: { rotulo: "Excluir respuestas", ayuda: "Códigos separados por comas (p. ej. 88, 99)." },
   excluir_grupos: { rotulo: "Excluir grupos", ayuda: "Códigos separados por comas." },
   // Tabla (5a, ruta anterior): formales de p_tabla (p_radar_split.R); `sm_omit_na = TRUE` sin default en el registro.
