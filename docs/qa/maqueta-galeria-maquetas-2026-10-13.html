@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galería de maquetas</title>
+<style>
+  :root {
+    --navy: #081F5C; --coral: #C8463F; --texto: #1F2937; --suave: #5A6480; --tenue: #9AA3B5; --borde: #D8DEE8;
+    --fondo: #F2F4F8; --papel: #FFFFFF; --verde: #3E8E2F; --acento: #1F7A6D; --aviso: #9A5B00; --aviso-suave: #FFF4E0;
+    --ttb: #4E9A2E;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 13px/1.5 -apple-system, "Segoe UI", Arial, sans-serif; color: var(--texto); background: var(--fondo); }
+  main { max-width: 1240px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--suave); margin: 32px 0 10px; }
+  .nota { color: var(--suave); margin: 0 0 6px; max-width: 900px; }
+  .rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr)); gap: 16px; }
+  .caso { background: var(--papel); border: 1px solid var(--borde); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .caso header { display: flex; gap: 8px; align-items: baseline; }
+  .caso header b { font-size: 12px; color: var(--navy); }
+  .caso header span { font-size: 12px; font-weight: 600; }
+  .caso p { margin: 0; font-size: 12px; color: var(--suave); }
+  .clausulas { display: flex; flex-wrap: wrap; gap: 4px; }
+  .clausulas i { font-style: normal; font-size: 11px; border: 1px solid var(--borde); border-radius: 999px; padding: 0 7px; color: var(--suave); }
+  .aviso { font-size: 11.5px; color: var(--aviso); background: var(--aviso-suave); border-radius: 6px; padding: 3px 8px; align-self: flex-start; }
+  svg.lamina { width: 100%; height: auto; display: block; border-radius: 6px; box-shadow: 0 0 0 1px var(--borde); background: #fff; }
+  .comparar { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .comparar { grid-template-columns: 1fr; } }
+  .comparar figure { margin: 0; background: var(--papel); border: 1px solid var(--borde); border-radius: 10px; padding: 10px; }
+  .comparar figcaption { font-size: 12px; color: var(--suave); margin-top: 6px; }
+  .controles { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; background: var(--papel); border: 1px solid var(--borde); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+  .controles label { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; }
+  .controles button { font: inherit; font-size: 12.5px; border: 1px solid var(--borde); background: #fff; border-radius: 6px; padding: 3px 10px; cursor: pointer; }
+  .vivo { max-width: 760px; }
+  /* M8: los cambios se ven cambiar. Las piezas conservan su identidad entre estados y transitan su geometría. */
+  .vivo svg * { transition: x 220ms cubic-bezier(.2,.8,.2,1), y 220ms cubic-bezier(.2,.8,.2,1), width 220ms cubic-bezier(.2,.8,.2,1), height 220ms cubic-bezier(.2,.8,.2,1), opacity 180ms ease-out, fill 180ms ease-out; }
+  @media (prefers-reduced-motion: reduce) { .vivo svg * { transition: none; } }
+  ul.cambios { margin: 0; padding-left: 18px; max-width: 900px; } ul.cambios li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Galería de maquetas — propuesta</h1>
+  <p class="nota">Cada caso dibuja la lámina en miniatura con el contrato <code>docs/qa/contrato-maqueta-lamina-2026-10-13.md</code>:
+    la misma anatomía que el PPT de Arte y Diseño (pregunta a la izquierda, público con sus respuestas, barras, Top Two Box
+    en cifras verdes, leyenda centrada bajo las barras, base abajo), en las pulgadas reales de cada ranura. Las cifras no
+    se inventan: se marca dónde irán.</p>
+
+  <h2>Hoy y la propuesta</h2>
+  <div class="comparar">
+    <figure><svg class="lamina" id="hoy" viewBox="0 0 13.333 7.5"></svg>
+      <figcaption>Hoy (lámina 19 de Arte): plantilla fija de 4 barras, cajas verdes de Top Two Box, la leyenda como texto en
+        una columna aparte, contenido pegado a la izquierda y aire sin usar.</figcaption></figure>
+    <figure><svg class="lamina" id="propuesta" viewBox="0 0 13.333 7.5"></svg>
+      <figcaption>Propuesta: 2 filas reales (docentes y estudiantes), la pregunta en su columna, Top Two Box en cifras,
+        leyenda centrada bajo las barras, todo centrado en la ranura.</figcaption></figure>
+  </div>
+
+  <h2>En vivo: los cambios se ven cambiar (M8)</h2>
+  <div class="controles">
+    <label><input type="checkbox" id="c-ttb" checked> Top Two Box</label>
+    <label>Ancho de los temas <input type="range" id="c-eje" min="12" max="42" value="22"></label>
+    <button id="c-mas">Agregar tema</button><button id="c-menos">Quitar tema</button>
+    <label><input type="checkbox" id="c-escalas"> Un bloque con otra escala</label>
+    <label><input type="checkbox" id="c-n" checked> Respuestas por público</label>
+  </div>
+  <div class="vivo"><svg class="lamina" id="vivo" viewBox="0 0 13.333 7.5"></svg></div>
+
+  <h2>Multiapiladas</h2>
+  <div class="rejilla" id="g-multi"></div>
+  <h2>Composiciones</h2>
+  <div class="rejilla" id="g-comp"></div>
+  <h2>Otros tipos de gráfico</h2>
+  <div class="rejilla" id="g-otros"></div>
+  <h2>Láminas de estructura</h2>
+  <div class="rejilla" id="g-estructura"></div>
+  <h2>Vacíos</h2>
+  <div class="rejilla" id="g-vacios"></div>
+
+  <h2>Qué cambia</h2>
+  <ul class="cambios">
+    <li>La maqueta pasa a ser <b>la lámina en miniatura</b>: misma anatomía y proporciones que el PPT. La ficha de la
+      izquierda (tipo, preguntas, públicos) sale de la maqueta; esos datos siguen en la pestaña Gráfico.</li>
+    <li>Un motor de maqueta único, en pulgadas de la lámina, para todas las composiciones y tipos: lo que aquí se aprueba
+      se porta tal cual al editor (<code>modeloMaqueta.ts</code>), y cada caso de esta galería queda como test.</li>
+    <li>Con poco espacio la maqueta se degrada en orden (marcas de cifra → «N respuestas» → leyenda en dos líneas →
+      recorte con «…» → trazos grises) y nunca encima ni recorta a medias.</li>
+    <li><b>Más ajustes en el panel lateral</b> (M10), empezando por «Respuestas por público» en apiladas y
+      multiapiladas: hoy el motor siempre escribe «116 respuestas» junto a cada público; pasa a ser una opción, y la
+      maqueta lo refleja (control «Respuestas por público» arriba).</li>
+    <li><b>Colores fieles a la paleta</b> (M1b): hasta 10 respuestas con su color asignado; sin paleta asignada, grises
+      de oscuro a claro (casos 11b y 11c), en vez del rayado de hoy.</li>
+    <li><b>Láminas de estructura con su propia maqueta</b> (casos 22–28): portada, índice, separador, objetivo con
+      actores, cómo leer, ficha técnica y recomendaciones, con la anatomía del recetario.</li>
+    <li>Los tipos sin dibujo propio todavía (nube, tabla, serie temporal, mapa) se declaran en la galería; no se tapan con
+      un glifo genérico.</li>
+  </ul>
+</main>
+
+<script>
+// ───────────────────────── Motor de maqueta (en pulgadas de la lámina de 13,333 × 7,5) ─────────────────────────
+const NS = "http://www.w3.org/2000/svg";
+const C = {
+  navy: "#081F5C", coral: "#C8463F", texto: "#1F2937", suave: "#6B7489", tenue: "#B8BFCC", linea: "#D3D8E2",
+  ttb: "#4E9A2E", marca: "rgba(255,255,255,.75)", marcaOscura: "rgba(31,41,55,.28)", trazo: "#D6DAE3",
+};
+const ESCALAS = {
+  acuerdo: [["Totalmente en desacuerdo", "#F4B183"], ["En desacuerdo", "#FFD966"], ["De acuerdo", "#A9D18E"], ["Totalmente de acuerdo", "#70AD47"], ["SIN INF", "#BFBFBF"]],
+  satisf: [["Muy insatisfecho", "#F4B183"], ["Insatisfecho", "#FFD966"], ["Satisfecho", "#A9D18E"], ["Muy satisfecho", "#70AD47"], ["SIN INF", "#BFBFBF"]],
+  frecuencia: [["Nunca", "#F4B183"], ["Casi nunca", "#F8CBAD"], ["A veces", "#FFD966"], ["Con frecuencia", "#C5E0B4"], ["Casi siempre", "#A9D18E"], ["Siempre", "#70AD47"], ["No sabe", "#BFBFBF"]],
+  sino: [["Sí", "#0B2A6B"], ["No", "#9DC3E6"]],
+  // Sin paleta asignada: los colores son `null` y la maqueta usa grises (Gonzalo, 2026-10-13).
+  sinPaleta: [["Nada importante", null], ["Poco importante", null], ["Importante", null], ["Muy importante", null], ["No sabe", null]],
+  // Diez respuestas, cada una con su color asignado: la maqueta los respeta todos.
+  diez: [["1", "#7F1D1D"], ["2", "#B91C1C"], ["3", "#EA580C"], ["4", "#F59E0B"], ["5", "#FDE047"], ["6", "#D9F99D"], ["7", "#86EFAC"], ["8", "#22C55E"], ["9", "#15803D"], ["10", "#14532D"]],
+};
+/**
+ * El color de la respuesta k: el de su paleta, tal cual, hasta 10 distintos. Sin color asignado, un gris de una rampa
+ * de oscuro a claro según su posición (las residuales, el más claro): la forma se lee sin inventar colores.
+ */
+function colorDe(escala, k) {
+  const e = ESCALAS[escala]; const c = e[k]?.[1];
+  if (c && k < 10) return c;
+  const n = Math.min(e.length, 10); const t = n <= 1 ? .5 : k / (n - 1);
+  const v = Math.round(78 + t * (214 - 78));
+  return `rgb(${v},${v + 3},${v + 10})`;
+}
+const esOscuro = (color) => { const m = color.match(/\d+/g); const [r, g, b] = color.startsWith("#") ? [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16)) : (m ?? [255, 255, 255]).map(Number); return r * .299 + g * .587 + b * .114 < 110; };
+// Lupa tipográfica: la miniatura se mira a ~500 px de ancho; con el tamaño proporcional del PPT el texto no se lee. Los
+// textos van 1,6 veces más grandes y el diseño se acomoda (recorta antes); la geometría de barras y ranuras es la real.
+const LUPA = 1.6;
+const tam = (w) => Math.max(.13, Math.min(.135 * LUPA, .135 * LUPA * Math.min(1, w / 6.5)));
+const PESOS = { acuerdo: [.04, .12, .52, .27, .05], satisf: [.03, .1, .5, .3, .07], frecuencia: [.05, .08, .2, .22, .2, .18, .07], sino: [.78, .22], sinPaleta: [.06, .14, .4, .32, .08], diez: [.02, .02, .04, .06, .1, .14, .18, .2, .14, .1] };
+
+// Generador determinista: las proporciones varían por fila sin inventar cifras.
+function proporciones(escala, semilla) {
+  const base = PESOS[escala];
+  const v = base.map((p, i) => Math.max(.01, p * (1 + Math.sin(semilla * 7.3 + i * 2.1) * .35)));
+  const s = v.reduce((a, b) => a + b, 0);
+  return v.map((x) => x / s);
+}
+
+function el(tag, attrs = {}, padre) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v === undefined || v === null) continue;
+    if (k === "texto") e.textContent = v;
+    else if (["x", "y", "width", "height"].includes(k) && tag === "rect") e.style[k] = v + "px"; // geometría como CSS: transita (M8)
+    else e.setAttribute(k, v);
+  }
+  if (padre) padre.appendChild(e);
+  return e;
+}
+
+// Medida aproximada de texto (Arial): 0,5 em por carácter, 0,55 en negrita.
+const ancho = (t, fs, bold) => t.length * fs * (bold ? .55 : .5);
+function recortar(t, max, fs, bold) {
+  if (ancho(t, fs, bold) <= max) return t;
+  const n = Math.max(1, Math.floor(max / (fs * (bold ? .55 : .5))) - 1);
+  return n <= 2 ? "" : t.slice(0, n).trimEnd() + "…";
+}
+// Partir en líneas que quepan; la última se recorta con «…». Sin espacio para una letra → null (M4: pasa a trazo).
+function lineas(t, max, fs, maxLineas, bold) {
+  const palabras = t.split(/\s+/); const out = []; let cur = "";
+  for (const p of palabras) {
+    const prueba = cur ? cur + " " + p : p;
+    if (ancho(prueba, fs, bold) <= max) cur = prueba;
+    else { if (cur) out.push(cur); cur = p; }
+  }
+  if (cur) out.push(cur);
+  if (out.length > maxLineas) {
+    // La última línea visible lleva el resto del texto y se recorta con un solo «…».
+    const resto = out.slice(maxLineas - 1).join(" ");
+    out.length = maxLineas;
+    out[maxLineas - 1] = recortar(resto, max, fs, bold);
+  }
+  return out.map((l) => recortar(l, max, fs, bold)).filter(Boolean);
+}
+function textoMultilinea(g, t, x, y, max, fs, opts = {}) {
+  const ls = lineas(t, max, fs, opts.maxLineas ?? 3, opts.bold);
+  const lh = fs * 1.22;
+  const y0 = opts.centrarEn !== undefined ? opts.centrarEn - (ls.length * lh) / 2 + fs * .82 : y;
+  if (!ls.length) { el("rect", { x, y: (opts.centrarEn ?? y) - fs * .3, width: Math.min(max, 1.2), height: fs * .5, rx: fs * .25, fill: C.trazo }, g); return; }
+  ls.forEach((l, i) => el("text", { x: opts.anchor === "end" ? x + max : x, y: y0 + i * lh, "font-size": fs, fill: opts.fill ?? C.texto, "font-weight": opts.bold ? 700 : 400, "text-anchor": opts.anchor === "end" ? "end" : "start", texto: l }, g));
+}
+
+// ── Cromo de la lámina (M1): título, filete, logo, base, folio ──
+function cromo(svg, lam) {
+  el("rect", { x: 0, y: 0, width: 13.333, height: 7.5, fill: "#fff" }, svg);
+  el("rect", { x: .36, y: .42, width: .06, height: lam.titulo2 ? .98 : .5, fill: C.navy }, svg);
+  textoMultilinea(svg, lam.titulo, .5, .78, 10.6, .4, { maxLineas: 2, bold: true, fill: C.coral });
+  const lg = el("g", {}, svg);
+  el("circle", { cx: 11.62, cy: .66, r: .24, fill: C.navy }, lg);
+  el("text", { x: 11.95, y: .62, "font-size": .2, "font-weight": 800, fill: C.navy, texto: "PULSO" }, lg);
+  el("text", { x: 11.95, y: .84, "font-size": .2, "font-weight": 800, fill: C.navy, texto: "PUCP" }, lg);
+  if (lam.base) el("text", { x: .5, y: 7.1, "font-size": .19, "font-weight": 700, fill: C.texto, texto: recortar(lam.base, 11.5, .19, true) }, svg);
+  el("text", { x: 12.85, y: 7.1, "font-size": .19, fill: C.suave, "text-anchor": "end", texto: String(lam.folio ?? 9) }, svg);
+}
+function avisoPartes(svg, partes) {
+  {
+    const t = `Sale en ${partes} láminas`;
+    const w = ancho(t, .22) + .4;
+    el("rect", { x: 12.9 - w, y: 1.18, width: w, height: .4, rx: .2, fill: "#FFF4E0" }, svg);
+    el("text", { x: 12.9 - w / 2, y: 1.45, "font-size": .22, fill: "#9A5B00", "text-anchor": "middle", texto: t }, svg);
+  }
+}
+
+// ── Leyenda centrada bajo las barras (M1, M4) ──
+function medirLeyenda(escala, maxW, fs) {
+  const items = ESCALAS[escala].map(([l], k) => ({ l, c: colorDe(escala, k), w: fs * .9 + .06 + ancho(l, fs) + fs * 1.4 }));
+  const filas = [[]]; let w = 0;
+  for (const it of items) { if (w + it.w > maxW && filas[filas.length - 1].length) { filas.push([]); w = 0; } filas[filas.length - 1].push(it); w += it.w; }
+  return { filas, alto: filas.length * fs * 1.6 };
+}
+// Centrada en las barras; si es más ancha que ellas, usa el ancho de la ranura sin salirse (`lim` = [x0, x1]).
+function dibujarLeyenda(g, ley, cx, y, fs, lim) {
+  ley.filas.forEach((fila, i) => {
+    const tot = fila.reduce((a, b) => a + b.w, 0) - fs * 1.4; const yy = y + i * fs * 1.6;
+    let x = cx - tot / 2;
+    if (lim) x = Math.max(lim[0], Math.min(x, lim[1] - tot));
+    for (const it of fila) {
+      el("rect", { x, y: yy - fs * .82, width: fs * .9, height: fs * .9, fill: it.c }, g);
+      el("text", { x: x + fs * .9 + .06, y: yy, "font-size": fs, fill: C.texto, texto: it.l }, g);
+      x += it.w;
+    }
+  });
+}
+
+// ── Barras apiladas / multiapiladas en una ranura (M1–M5) ──
+// g = { bloques: [{ titulo?, escala, ttb, temas: [{ pregunta?, filas: [{ nombre?, n? }] }] }], eje (fracción), mostrarPregunta }
+const MAX_BARRAS = 7;   // `.plan_particionar_escalas`: más barras y la escala sale en «(cont.)»
+/** La primera parte de la lámina: temas completos hasta 7 barras; las demás partes salen en láminas «(cont.)». */
+function primeraParte(g) {
+  const total = g.bloques.reduce((a, b) => a + b.temas.reduce((x, t) => x + t.filas.length, 0), 0);
+  if (total <= MAX_BARRAS) return { g, partes: 1 };
+  let usadas = 0; const bloques = [];
+  for (const b of g.bloques) {
+    const temas = [];
+    for (const t of b.temas) { if (usadas && usadas + t.filas.length > MAX_BARRAS) break; temas.push(t); usadas += t.filas.length; }
+    if (temas.length) bloques.push({ ...b, temas });
+    if (temas.length < b.temas.length) break;
+  }
+  return { g: { ...g, bloques }, partes: Math.ceil(total / Math.max(1, usadas)) };
+}
+
+function apiladas(svg, r, g0, clave = "") {
+  const { g, partes } = primeraParte(g0);
+  const ancha = r.w;
+  const fs = tam(ancha);
+  const algunTtb = g.bloques.some((b) => b.ttb);
+  const hayPublico = g.bloques.some((b) => b.temas.some((t) => t.filas.some((f) => f.nombre)));
+  let muestraN = hayPublico && ancha >= 4.5 && g.mostrarN !== false;                 // M10: el analista puede quitarlo                                          // M4: «N respuestas» se va primero
+  const ttbW = algunTtb ? Math.max(.62, ancha * .075) : 0;
+  // La columna del público mide lo que su nombre más largo, con tope (16 % de la ranura): sólo se recorta si no cabe.
+  const nombres = g.bloques.flatMap((b) => b.temas.flatMap((t) => t.filas.map((f) => f.nombre).filter(Boolean)));
+  const pubW = hayPublico ? Math.min(ancha * .16, Math.max(.7, ...nombres.map((n) => ancho(n, fs * .92, true) + .08))) : 0;
+  const temaW = g.mostrarPregunta === false ? 0 : Math.max(.6, (g.eje ?? .22) * ancha);
+  const barX = r.x + temaW + pubW + .08; const barW = ancha - temaW - pubW - ttbW - .16;
+  const misma = g.bloques.every((b) => b.escala === g.bloques[0].escala);
+  const leyendas = g.bloques.map((b) => medirLeyenda(b.escala, ancha - .1, fs * .92));
+  const lim = [r.x + .05, r.x + ancha - .05];
+  const altoLey = misma ? leyendas[0].alto + .12 : leyendas.reduce((a, l) => a + l.alto + .1, 0);
+  const cab = algunTtb ? fs * 1.9 : 0;
+  const altoTitulos = g.bloques.filter((b) => b.titulo).length * fs * 1.7;
+  const nFilas = g.bloques.reduce((a, b) => a + b.temas.reduce((x, t) => x + t.filas.length, 0), 0);
+  const nSep = g.bloques.reduce((a, b) => a + b.temas.length - 1, 0) + (g.bloques.length - 1) * 1.6;
+  const disponible = r.h - cab - altoLey - altoTitulos - .1;
+  // Como el PPT: las filas se reparten en la altura disponible (con pocas, mucho aire entre ellas) y la barra no
+  // engorda más de 0,34 in.
+  const paso = Math.min(1.05, disponible / (nFilas + nSep * .45));
+  const barH = Math.min(.34, paso * .6);
+  if (paso < fs * 2.3) muestraN = false;                                               // M4: sin alto para dos líneas
+  const fsPub = Math.min(fs * .92, paso * .62);                                        // el nombre nunca más alto que su fila
+  const total = cab + altoTitulos + nFilas * paso + nSep * .45 * paso + altoLey;
+  let y = r.y + Math.max(0, (r.h - total) / 2);                                      // M3: centrado en la ranura
+  const gg = el("g", {}, svg);
+  if (algunTtb) el("text", { x: barX + barW + .08 + ttbW / 2, y: y + fs, "font-size": fs * .85, "font-weight": 700, fill: C.ttb, "text-anchor": "middle", texto: ancha < 4 ? "TTB" : "Top Two Box" }, gg);
+  y += cab;
+  let semilla = 1;
+  g.bloques.forEach((b, bi) => {
+    if (bi > 0) y += paso * .45 * 1.6;
+    if (b.titulo) { el("text", { x: r.x, y: y + fs, "font-size": fs, "font-weight": 700, fill: C.navy, texto: recortar(b.titulo, ancha, fs, true) }, gg); y += fs * 1.7; }
+    b.temas.forEach((t, ti) => {
+      if (ti > 0) { el("line", { x1: r.x, x2: r.x + ancha, y1: y + paso * .22, y2: y + paso * .22, stroke: C.linea, "stroke-width": .012, "stroke-dasharray": ".05 .05" }, gg); y += paso * .45; }
+      const yTema = y;
+      t.filas.forEach((f, fi) => {
+        const yb = y + (paso - barH) / 2;
+        if (f.nombre) {
+          el("text", { x: r.x + temaW + pubW, y: muestraN ? yb + barH * .45 : yb + barH / 2 + fsPub * .36, "font-size": fsPub, "font-weight": 700, fill: C.texto, "text-anchor": "end", texto: recortar(f.nombre, pubW, fsPub, true) }, gg);
+          if (muestraN && f.n) el("text", { x: r.x + temaW + pubW, y: yb + barH * .45 + fs * .95, "font-size": fs * .7, fill: C.suave, "text-anchor": "end", texto: `${f.n} respuestas` }, gg);
+        }
+        const props = proporciones(b.escala, semilla++);
+        let x = barX;
+        props.forEach((p, k) => {
+          const w = p * barW;
+          el("rect", { x, y: yb, width: Math.max(.005, w - .012), height: barH, fill: colorDe(b.escala, k), "data-k": `${clave}${bi}-${ti}-${fi}-${k}` }, gg);
+          if (w > fs * 2.4 && barH > fs * .9) {                                           // M4: la marca de cifra se va primero
+            const oscura = esOscuro(colorDe(b.escala, k));
+            el("rect", { x: x + w / 2 - fs * .7, y: yb + barH / 2 - fs * .22, width: fs * 1.4, height: fs * .44, rx: fs * .22, fill: oscura ? C.marca : C.marcaOscura }, gg);
+          }
+          x += w;
+        });
+        if (b.ttb) el("rect", { x: barX + barW + .08 + ttbW / 2 - fs * .9, y: yb + barH / 2 - fs * .3, width: fs * 1.8, height: fs * .6, rx: fs * .3, fill: C.ttb }, gg);
+        y += paso;
+      });
+      if (temaW && t.pregunta) textoMultilinea(gg, t.pregunta, r.x, 0, temaW - .12, fs * .95, { maxLineas: Math.max(1, Math.min(4, Math.floor((y - yTema) / (fs * 1.2)))), bold: true, centrarEn: (yTema + y) / 2, fill: C.navy });
+    });
+    if (!misma) { y += .08; dibujarLeyenda(gg, leyendas[bi], barX + barW / 2, y + fs * .9, fs * .92, lim); y += leyendas[bi].alto; }
+  });
+  if (misma) dibujarLeyenda(gg, leyendas[0], barX + barW / 2, y + .12 + fs * .9, fs * .92, lim);
+  return { partes };
+}
+
+// ── Barras por categoría (ranking) ──
+function barrasCategoria(svg, r, g) {
+  const fs = tam(r.w);
+  const cats = g.categorias; const lab = Math.max(.9, r.w * .26);
+  const paso = Math.min(.42, (r.h - .2) / cats.length); const barH = Math.min(.28, paso * .64);
+  let y = r.y + (r.h - paso * cats.length) / 2;
+  cats.forEach((c, i) => {
+    const w = (r.w - lab - .7) * (1 - i * .13);
+    textoMultilinea(svg, c, r.x, 0, lab - .1, fs * .92, { maxLineas: 1, anchor: "end", centrarEn: y + paso / 2 });
+    el("rect", { x: r.x + lab, y: y + (paso - barH) / 2, width: w, height: barH, fill: i === 0 && g.resaltar ? C.coral : C.navy }, svg);
+    el("rect", { x: r.x + lab + w + .08, y: y + paso / 2 - fs * .22, width: fs * 1.6, height: fs * .44, rx: fs * .22, fill: C.marcaOscura }, svg);
+    y += paso;
+  });
+}
+
+// ── Brecha entre dos grupos ──
+function brecha(svg, r, g) {
+  const fs = tam(r.w);
+  const lab = r.w * .3; const x0 = r.x + lab, x1 = r.x + r.w - .8;
+  const paso = Math.min(.75, (r.h - .6) / g.temas.length);
+  let y = r.y + (r.h - paso * g.temas.length - .4) / 2;
+  g.temas.forEach((t, i) => {
+    const a = x0 + (x1 - x0) * (.35 + .4 * Math.abs(Math.sin(i * 1.7 + 1))); const b = a - (x1 - x0) * (.06 + .12 * Math.abs(Math.cos(i * 2.3)));
+    textoMultilinea(svg, t, r.x, 0, lab - .15, fs * .92, { maxLineas: 1, anchor: "end", centrarEn: y + paso / 2 });
+    el("line", { x1: b, x2: a, y1: y + paso / 2, y2: y + paso / 2, stroke: C.tenue, "stroke-width": .04 }, svg);
+    el("circle", { cx: a, cy: y + paso / 2, r: .09, fill: C.navy }, svg);
+    el("circle", { cx: b, cy: y + paso / 2, r: .09, fill: C.coral }, svg);
+    el("rect", { x: x1 + .15, y: y + paso / 2 - fs * .22, width: fs * 2, height: fs * .44, rx: fs * .22, fill: C.marcaOscura }, svg);
+    y += paso;
+  });
+  const cx = (x0 + x1) / 2; const yy = y + .3;
+  [["#081F5C", g.grupos[0]], ["#C8463F", g.grupos[1]]].forEach(([c, l], i) => {
+    const x = cx + (i ? .2 : -.2 - ancho(l, fs * .92) - .2);
+    el("circle", { cx: x + .07, cy: yy - fs * .3, r: .07, fill: c }, svg);
+    el("text", { x: x + .2, y: yy, "font-size": fs * .92, fill: C.texto, texto: l }, svg);
+  });
+}
+
+// ── Matriz de cuadrantes ──
+function cuadrantes(svg, r, g) {
+  const fs = tam(r.w);
+  const lado = Math.min(r.h - .5, r.w - 1); const x0 = r.x + (r.w - lado) / 2 + .2, y0 = r.y + (r.h - lado) / 2;
+  el("rect", { x: x0, y: y0, width: lado / 2, height: lado / 2, fill: "#F8E3E2" }, svg);
+  el("rect", { x: x0, y: y0, width: lado, height: lado, fill: "none", stroke: C.linea, "stroke-width": .015 }, svg);
+  el("line", { x1: x0 + lado / 2, x2: x0 + lado / 2, y1: y0, y2: y0 + lado, stroke: C.tenue, "stroke-width": .015, "stroke-dasharray": ".06 .05" }, svg);
+  el("line", { x1: x0, x2: x0 + lado, y1: y0 + lado / 2, y2: y0 + lado / 2, stroke: C.tenue, "stroke-width": .015, "stroke-dasharray": ".06 .05" }, svg);
+  g.puntos.forEach((p, i) => {
+    const cx = x0 + lado * (.15 + .7 * ((Math.sin(i * 2.7) + 1) / 2)); const cy = y0 + lado * (.15 + .7 * ((Math.cos(i * 1.9) + 1) / 2));
+    el("circle", { cx, cy, r: .07, fill: C.navy }, svg);
+    el("text", { x: cx + .11, y: cy + fs * .35, "font-size": fs * .85, fill: C.texto, texto: recortar(p, 1.6, fs * .85) }, svg);
+  });
+  el("text", { x: x0 + lado / 2, y: y0 + lado + .3, "font-size": fs, fill: C.suave, "text-anchor": "middle", texto: g.ejeX }, svg);
+  el("text", { x: x0 - .15, y: y0 + lado / 2, "font-size": fs, fill: C.suave, "text-anchor": "middle", transform: `rotate(-90 ${x0 - .15} ${y0 + lado / 2})`, texto: g.ejeY }, svg);
+}
+
+// ── Radar ──
+function radar(svg, r, g) {
+  const fs = tam(r.w);
+  // Deja sitio para los rótulos de los ejes (arriba y abajo) y para la leyenda: nada se encima (M4).
+  const leyH = fs * 2; const R = Math.min(r.h - leyH - fs * 4, r.w - 3) / 2; const cx = r.x + r.w / 2, cy = r.y + fs * 1.8 + R; const n = g.ejes.length;
+  const pt = (i, f) => [cx + Math.sin((i / n) * 2 * Math.PI) * R * f, cy - Math.cos((i / n) * 2 * Math.PI) * R * f];
+  [.33, .66, 1].forEach((f) => el("polygon", { points: g.ejes.map((_, i) => pt(i, f).join(",")).join(" "), fill: "none", stroke: C.linea, "stroke-width": .012 }, svg));
+  g.ejes.forEach((e, i) => { const [x, y] = pt(i, 1.18); el("text", { x, y: y + fs * .35, "font-size": fs * .85, fill: C.texto, "text-anchor": "middle", texto: recortar(e, 1.5, fs * .85) }, svg); });
+  [[C.navy, .8], [C.coral, .62]].forEach(([c, k], s) => el("polygon", { points: g.ejes.map((_, i) => pt(i, k * (.7 + .3 * Math.abs(Math.sin(i * 1.3 + s)))).join(",")).join(" "), fill: c, "fill-opacity": .14, stroke: c, "stroke-width": .03 }, svg));
+  const yy = cy + R + fs * 1.6 + leyH;
+  g.series.forEach((l, i) => { const x = cx + (i ? .25 : -.25 - ancho(l, fs * .92) - .25); el("rect", { x, y: yy - fs * .75, width: fs * .9, height: fs * .9, fill: i ? C.coral : C.navy }, svg); el("text", { x: x + fs * .9 + .06, y: yy, "font-size": fs * .92, fill: C.texto, texto: l }, svg); });
+}
+
+// ── Cifras en banda, texto, vacíos ──
+function cifras(svg, r, g) {
+  const w = r.w / g.length;
+  g.forEach((t, i) => {
+    const cx = r.x + w * i + w / 2;
+    el("rect", { x: cx - .55, y: r.y + .18, width: 1.1, height: .42, rx: .08, fill: C.navy, "fill-opacity": .9 }, svg);
+    el("text", { x: cx, y: r.y + .95, "font-size": .2, fill: C.texto, "text-anchor": "middle", texto: recortar(t, w - .3, .2) }, svg);
+  });
+}
+function texto(svg, r) {
+  for (let i = 0; i < Math.floor((r.h - .2) / .32); i++) el("rect", { x: r.x, y: r.y + .2 + i * .32, width: r.w * (i % 3 === 2 ? .62 : .96), height: .1, rx: .05, fill: C.trazo }, svg);
+}
+function vacia(svg, r, rotulo) {
+  el("rect", { x: r.x, y: r.y, width: r.w, height: r.h, rx: .1, fill: "#F7F9FC", stroke: C.tenue, "stroke-width": .02, "stroke-dasharray": ".1 .08" }, svg);
+  el("text", { x: r.x + r.w / 2, y: r.y + r.h / 2 + .1, "font-size": .3, fill: C.suave, "text-anchor": "middle", texto: rotulo }, svg);
+}
+function sinPregunta(svg, r) {
+  const gg = el("g", { opacity: .35 }, svg);
+  apiladas(gg, r, { bloques: [{ escala: "acuerdo", ttb: false, temas: [{ pregunta: "", filas: [{}, {}, {}] }] }], eje: .2 });
+  el("rect", { x: r.x + r.w / 2 - 2, y: r.y + r.h / 2 - .32, width: 4, height: .64, rx: .32, fill: "#FFF4E0" }, svg);
+  el("text", { x: r.x + r.w / 2, y: r.y + r.h / 2 + .1, "font-size": .28, fill: "#9A5B00", "text-anchor": "middle", texto: "Falta elegir la pregunta" }, svg);
+}
+
+
+// ───────────── Láminas de estructura (Gonzalo: «deben haber maquetas para mostrar tipos de láminas, de forma elegante») ─────────────
+const COLORES_IDX = ["#F2C14E", "#E8A33D", "#7FA8D9", "#9B8BD6", "#8CC08C"];
+function persona(svg, x, y, h, color) {
+  el("circle", { cx: x, cy: y + h * .22, r: h * .2, fill: "none", stroke: color, "stroke-width": h * .06 }, svg);
+  el("path", { d: `M ${x - h * .32} ${y + h} Q ${x - h * .32} ${y + h * .48} ${x} ${y + h * .48} Q ${x + h * .32} ${y + h * .48} ${x + h * .32} ${y + h}`, fill: "none", stroke: color, "stroke-width": h * .06 }, svg);
+}
+function logos(svg, centrados) {
+  const x = centrados ? 5.6 : 11.4;
+  el("circle", { cx: x + .22, cy: .66, r: .24, fill: C.navy }, svg);
+  el("text", { x: x + .55, y: .62, "font-size": .2, "font-weight": 800, fill: C.navy, texto: "PULSO" }, svg);
+  el("text", { x: x + .55, y: .84, "font-size": .2, "font-weight": 800, fill: C.navy, texto: "PUCP" }, svg);
+}
+const ESTRUCTURA = {
+  portada(svg, lam) {
+    el("rect", { x: 0, y: 0, width: 13.333, height: 7.5, fill: "#fff" }, svg);
+    logos(svg, true);
+    el("rect", { x: 6.0, y: 2.2, width: 1.33, height: .05, fill: C.coral }, svg);
+    lineas(lam.titulo, 9.5, .42, 3, true).forEach((l, i) => el("text", { x: 6.667, y: 2.95 + i * .55, "font-size": .42, "font-weight": 700, fill: C.navy, "text-anchor": "middle", texto: l }, svg));
+    el("text", { x: 6.667, y: 4.85, "font-size": .22, fill: C.suave, "text-anchor": "middle", texto: lam.subtitulo }, svg);
+    el("text", { x: 6.667, y: 5.25, "font-size": .2, fill: C.suave, "text-anchor": "middle", texto: lam.fecha }, svg);
+  },
+  separador(svg, lam) {
+    el("rect", { x: 0, y: 0, width: 13.333, height: 7.5, fill: "#fff" }, svg);
+    for (let i = 0; i < 9; i++) persona(svg, 4.2 + i * .62, 1.7, .55, C.navy);
+    el("circle", { cx: 4.25, cy: 3.55, r: .28, fill: C.coral }, svg);
+    el("text", { x: 4.25, y: 3.63, "font-size": .22, "font-weight": 700, fill: "#fff", "text-anchor": "middle", texto: lam.numero }, svg);
+    el("text", { x: 4.75, y: 3.68, "font-size": .42, "font-weight": 700, fill: C.navy, texto: recortar(lam.titulo, 7.5, .42, true) }, svg);
+    el("text", { x: 4.75, y: 4.1, "font-size": .2, fill: C.suave, texto: recortar(lam.subtitulo, 7.5, .2) }, svg);
+    for (let i = 0; i < 7; i++) el("rect", { x: .2 + i * .42, y: 7.5 - (.5 + (i * 37 % 5) * .25), width: .36, height: .5 + (i * 37 % 5) * .25, fill: C.navy, opacity: .85 }, svg);
+  },
+  indice(svg, lam) {
+    el("rect", { x: 0, y: 0, width: 13.333, height: 7.5, fill: "#fff" }, svg);
+    el("rect", { x: 0, y: 0, width: 4.6, height: 7.5, fill: C.navy }, svg);
+    el("text", { x: .7, y: 2.4, "font-size": .2, fill: "#AFC0E8", texto: "ESTUDIO DE ACREDITACIÓN" }, svg);
+    el("text", { x: .7, y: 3.05, "font-size": .6, "font-weight": 700, fill: "#fff", texto: "Índice" }, svg);
+    lam.capitulos.forEach((c, i) => {
+      const y = 1.3 + i * (5.2 / lam.capitulos.length);
+      el("rect", { x: 5.3, y, width: .42, height: .42, fill: C.coral }, svg);
+      el("text", { x: 5.51, y: y + .3, "font-size": .22, "font-weight": 700, fill: "#fff", "text-anchor": "middle", texto: String(i + 1) }, svg);
+      el("rect", { x: 5.82, y, width: 6.6, height: .42, fill: "#ECEEF2" }, svg);
+      el("text", { x: 6.0, y: y + .29, "font-size": .21, fill: C.texto, texto: recortar(c, 6.2, .21) }, svg);
+    });
+    logos(svg);
+  },
+  objetivo(svg, lam) {
+    cromo(svg, { titulo: "Objetivo del estudio" });
+    el("circle", { cx: 1.4, cy: 2.75, r: .55, fill: C.coral }, svg);
+    [.36, .22, .08].forEach((rr, i) => el("circle", { cx: 1.4, cy: 2.75, r: rr, fill: i % 2 ? C.coral : "#fff" }, svg));
+    lineas(lam.texto, 10.2, .26, 4).forEach((l, i) => el("text", { x: 2.35, y: 2.5 + i * .4, "font-size": .26, fill: C.texto, texto: l }, svg));
+    if (lam.actores?.length) {
+      el("line", { x1: .5, x2: 12.83, y1: 4.75, y2: 4.75, stroke: C.linea, "stroke-width": .015 }, svg);
+      el("text", { x: .5, y: 5.1, "font-size": .19, "font-weight": 700, fill: C.suave, texto: "Actores consultados" }, svg);
+      const w = 12.33 / lam.actores.length;
+      lam.actores.forEach((a, i) => {
+        const cx = .5 + w * i + w / 2;
+        el("circle", { cx, cy: 5.75, r: .33, fill: C.navy }, svg);
+        persona(svg, cx, 5.52, .42, "#fff");
+        el("text", { x: cx, y: 6.42, "font-size": .2, "font-weight": 700, fill: C.navy, "text-anchor": "middle", texto: recortar(a, w - .1, .2, true) }, svg);
+      });
+    }
+  },
+  comoLeer(svg) {
+    cromo(svg, { titulo: "Top Two Box", base: "" });
+    el("text", { x: .5, y: .38, "font-size": .15, fill: C.suave, texto: "CÓMO LEER ESTE INFORME" }, svg);
+    lineas("Es la suma de los dos valores superiores de la escala. Resume en una cifra el acuerdo de cada grupo y permite compararlo entre actores y con mediciones de otros años.", 11.5, .24, 2).forEach((l, i) => el("text", { x: .9, y: 1.95 + i * .36, "font-size": .24, fill: C.texto, texto: l }, svg));
+    const x0 = 1.0, w = 8.4; const ps = [.05, .05, .35, .55]; let x = x0;
+    ps.forEach((p, k) => { el("rect", { x, y: 3.6, width: p * w - .02, height: .6, fill: colorDe("acuerdo", k) }, svg); x += p * w; });
+    el("path", { d: `M ${x0 + .1 * w} 3.35 V 3.2 H ${x0 + w} V 3.35 M ${x0 + .55 * w} 3.2 V 3.05`, fill: "none", stroke: C.ttb, "stroke-width": .03 }, svg);
+    el("text", { x: x0 + .55 * w, y: 2.95, "font-size": .17, "font-weight": 700, fill: C.ttb, "text-anchor": "middle", texto: "Los dos valores superiores" }, svg);
+    el("text", { x: 10.9, y: 3.3, "font-size": .17, "font-weight": 700, fill: C.navy, "text-anchor": "middle", texto: "Top Two Box" }, svg);
+    el("rect", { x: 10.3, y: 3.55, width: 1.2, height: .55, rx: .1, fill: C.ttb }, svg);
+    dibujarLeyenda(svg, medirLeyenda("acuerdo", 9, .17), x0 + w / 2, 4.75, .17);
+  },
+  ficha(svg) {
+    cromo(svg, { titulo: "Ficha técnica" });
+    const filas = ["Tipo de estudio", "Población", "Muestra", "Margen de error", "Trabajo de campo"];
+    filas.forEach((f, i) => {
+      const y = 1.75 + i * .82;
+      el("text", { x: .7, y: y + .3, "font-size": .21, "font-weight": 700, fill: C.navy, texto: f }, svg);
+      if (i === 2) [0, 1, 2].forEach((k) => { el("rect", { x: 3.6 + k * 2.6, y, width: 1.1, height: .42, rx: .06, fill: C.navy }, svg); el("rect", { x: 4.8 + k * 2.6, y: y + .16, width: 1.2, height: .1, rx: .05, fill: C.trazo }, svg); });
+      else { el("rect", { x: 3.6, y: y + .12, width: 8.6 - (i % 2) * 2, height: .1, rx: .05, fill: C.trazo }, svg); el("rect", { x: 3.6, y: y + .34, width: 5.4, height: .1, rx: .05, fill: C.trazo }, svg); }
+      if (i) el("line", { x1: .7, x2: 12.6, y1: y - .12, y2: y - .12, stroke: C.linea, "stroke-width": .012 }, svg);
+    });
+  },
+  lista(svg, lam) {
+    cromo(svg, { titulo: lam.titulo });
+    lam.items.forEach((t, i) => {
+      const y = 1.9 + i * .95;
+      el("rect", { x: .7, y, width: .42, height: .42, fill: C.coral }, svg);
+      el("text", { x: .91, y: y + .3, "font-size": .22, "font-weight": 700, fill: "#fff", "text-anchor": "middle", texto: String(i + 1) }, svg);
+      lineas(t, 11, .22, 2).forEach((l, k) => el("text", { x: 1.4, y: y + .28 + k * .32, "font-size": .22, fill: C.texto, texto: l }, svg));
+    });
+  },
+};
+const DIBUJOS = { apiladas, barrasCategoria, brecha, cuadrantes, radar, cifras, texto: (s, r) => texto(s, r), vacia: (s, r) => vacia(s, r, "+ Elegir gráfico"), sinPregunta };
+function lamina(svg, lam, clave) {
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  if (lam.estructura) { ESTRUCTURA[lam.estructura](svg, lam); return; }
+  cromo(svg, lam);
+  let partes = lam.partes ?? 1;
+  lam.ranuras.forEach((rn, i) => { const res = DIBUJOS[rn.dibujo](svg, rn, rn.g, `${clave ?? ""}${i}-`); partes = Math.max(partes, res?.partes ?? 1); });
+  if (partes > 1) avisoPartes(svg, partes);
+}
+
+// ───────────────────────── Datos de ejemplo (Arte y Diseño) ─────────────────────────
+const D = { nombre: "Docentes", n: 116 }, A = { nombre: "Administrativos", n: 89 }, E = { nombre: "Estudiantes", n: 289 };
+const R1 = { x: .495, y: 1.65, w: 12.523, h: 4.6 };
+const L = (nombre) => ({ x: .495, y: 1.65, w: 12.523, h: 4.6, nombre });
+const base3 = "Base: 116 docentes, 89 administrativos y 289 estudiantes", base2 = "Base: 116 docentes y 289 estudiantes";
+
+const CASOS = {
+  multi: [
+    { n: 1, t: "Públicos por tema · 1 tema × 3 públicos", p: "La anatomía completa del PPT.", m: ["M1", "M3"],
+      lam: { titulo: "Con la oferta de actividades culturales de la Universidad", base: base3, ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: .2, bloques: [{ escala: "satisf", ttb: true, temas: [{ pregunta: "Con la oferta de actividades culturales de la Universidad", filas: [D, A, E] }] }] } }] } },
+    { n: 2, t: "Públicos por tema · 2 temas × 3 públicos", p: "Separador entre temas; la pregunta centrada sobre sus filas.", m: ["M1", "M2"],
+      lam: { titulo: "Servicio de salud", base: base3, ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: .2, bloques: [{ escala: "satisf", ttb: true, temas: [{ pregunta: "Servicio de salud", filas: [D, A, E] }, { pregunta: "Servicio de Bienestar Psicológico", filas: [D, A, E] }] }] } }] } },
+    { n: 3, t: "Temas con públicos distintos", p: "Docentes y administrativos en el primero; docentes y estudiantes en el segundo: las filas reales, no cuatro fijas.", m: ["M2"],
+      lam: { titulo: "Las funciones y atribuciones de las autoridades de la Unidad están claramente definidas.", titulo2: true, base: base3, ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: .22, bloques: [{ escala: "acuerdo", ttb: true, temas: [{ pregunta: "Las autoridades de Formación General se desempeñan eficazmente en los cargos que ocupan.", filas: [D, A] }, { pregunta: "Las autoridades de Formación General son accesibles para realizar cualquier consulta.", filas: [D, E] }] }] } }] } },
+    { n: 4, t: "Preguntas · 4 de la misma escala", p: "Sin columna de público: la pregunta es el rótulo de la fila.", m: ["M5"],
+      lam: { titulo: "Percepción de los servicios", base: "Base: 289 estudiantes", ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: .34, bloques: [{ escala: "acuerdo", ttb: true, temas: ["Los trámites administrativos son rápidos y eficientes.", "Los canales de comunicación son adecuados.", "La biblioteca atiende en horarios convenientes.", "Los laboratorios están bien equipados."].map((q) => ({ pregunta: q, filas: [{}] })) }] } }] } },
+    { n: "5a", t: "Ancho de los temas: angosto (15 %)", p: "La pregunta se parte en más líneas y se recorta con «…».", m: ["M2", "M4"],
+      lam: { titulo: "Los criterios de admisión permiten titularse en un plazo razonable", base: base2, ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: .15, bloques: [{ escala: "acuerdo", ttb: true, temas: [{ pregunta: "Los criterios de admisión aplicados permiten a los(as) estudiantes matriculados cumplir con las exigencias del Plan de Estudios.", filas: [D, E] }, { pregunta: "La información referida a temas académicos (sílabos, notas, cursos, etc.) está disponible.", filas: [D, E] }] }] } }] } },
+    { n: "5b", t: "Ancho de los temas: ancho (38 %)", p: "Los mismos datos: la columna crece y las barras se acortan, como en el PPT.", m: ["M2"],
+      lam: { titulo: "Los criterios de admisión permiten titularse en un plazo razonable", base: base2, ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: .38, bloques: [{ escala: "acuerdo", ttb: true, temas: [{ pregunta: "Los criterios de admisión aplicados permiten a los(as) estudiantes matriculados cumplir con las exigencias del Plan de Estudios.", filas: [D, E] }, { pregunta: "La información referida a temas académicos (sílabos, notas, cursos, etc.) está disponible.", filas: [D, E] }] }] } }] } },
+    { n: 6, t: "Bloques con la misma escala", p: "Una sola leyenda compartida, bajo el último bloque.", m: ["M1", "M5"],
+      lam: { titulo: "Infraestructura y recursos", base: base2, ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: .24, bloques: [{ titulo: "Aulas y talleres", escala: "acuerdo", ttb: true, temas: [{ pregunta: "Las aulas son adecuadas", filas: [D, E] }] }, { titulo: "Biblioteca", escala: "acuerdo", ttb: true, temas: [{ pregunta: "Los libros son accesibles", filas: [D, E] }] }] } }] } },
+    { n: 7, t: "Bloques con escalas distintas", p: "Cada bloque con su leyenda; Top Two Box sólo donde está encendido.", m: ["M1", "M5"],
+      lam: { titulo: "Satisfacción y frecuencia de uso", base: base2, ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: .24, bloques: [{ titulo: "Satisfacción", escala: "satisf", ttb: true, temas: [{ pregunta: "Con la atención del personal", filas: [D, E] }] }, { titulo: "Frecuencia de uso", escala: "frecuencia", ttb: false, temas: [{ pregunta: "Usa los servicios de bienestar", filas: [D, E] }] }] } }] } },
+    { n: 8, t: "Una pregunta por grupos (cruce por sexo)", p: "Los grupos del cruce son las filas.", m: ["M5"],
+      lam: { titulo: "Estoy satisfecho(a) con la calidad de enseñanza", base: "Base: 289 estudiantes", ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: .22, bloques: [{ escala: "satisf", ttb: true, temas: [{ pregunta: "Estoy satisfecho(a) con la calidad de enseñanza", filas: [{ nombre: "Mujeres", n: 171 }, { nombre: "Hombres", n: 112 }, { nombre: "Otro", n: 6 }] }] }] } }] } },
+    { n: 9, t: "Escala de 7 respuestas", p: "La leyenda pasa a dos líneas, siempre centrada.", m: ["M4"],
+      lam: { titulo: "Frecuencia de uso de los servicios", base: base2, ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: .2, bloques: [{ escala: "frecuencia", ttb: false, temas: [{ pregunta: "Biblioteca", filas: [D, E] }, { pregunta: "Laboratorios", filas: [D, E] }] }] } }] } },
+    { n: 10, t: "Sí / No", p: "Dicotómica: dos colores, sin Top Two Box.", m: ["M5"],
+      lam: { titulo: "¿Sabe dónde consultar la misión y los propósitos de la PUCP?", base: "Base: 105 docentes, 84 administrativos y 196 estudiantes", ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: .2, bloques: [{ escala: "sino", ttb: false, temas: [{ pregunta: "¿Sabe dónde consultar la misión y los propósitos de la PUCP?", filas: [{ nombre: "Docentes", n: 105 }, { nombre: "Administrativos", n: 84 }, { nombre: "Estudiantes", n: 196 }] }] }] } }] } },
+    { n: "11b", t: "Sin paleta asignada", p: "Las respuestas sin color salen en grises, de oscuro a claro: se lee la forma sin inventar colores.", m: ["M1"],
+      lam: { titulo: "Importancia de los servicios", base: base2, ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: .2, bloques: [{ escala: "sinPaleta", ttb: false, temas: [{ pregunta: "Biblioteca", filas: [D, E] }, { pregunta: "Laboratorios", filas: [D, E] }] }] } }] } },
+    { n: "11c", t: "Escala de 10 respuestas con su paleta", p: "Los diez colores asignados, fieles; la leyenda en las líneas que necesite.", m: ["M1", "M4"],
+      lam: { titulo: "Del 1 al 10, ¿cuánto recomendaría la Facultad?", base: base2, ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: .2, bloques: [{ escala: "diez", ttb: false, temas: [{ pregunta: "Recomendaría la Facultad", filas: [D, E] }] }] } }] } },
+    { n: 11, t: "Lámina que se parte", p: "Más de 7 barras: la maqueta avisa «Sale en 2 láminas» y dibuja la primera parte.", m: ["M5"],
+      lam: { titulo: "La dotación de recursos es suficiente", base: base3, partes: 2, ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: .22, bloques: [{ escala: "acuerdo", ttb: true, temas: [{ pregunta: "La infraestructura de la Unidad es adecuada y se encuentra en buenas condiciones.", filas: [D, A, E] }, { pregunta: "La infraestructura se adecúa a las necesidades de la Formación General.", filas: [D, E] }] }] } }] } },
+  ],
+  comp: [
+    { n: 12, t: "Dos gráficos lado a lado", p: "Cada uno en su ranura de 6 in, con su propia leyenda centrada.", m: ["M2"],
+      lam: { titulo: "Conocimiento de la misión y los propósitos", base: base3, ranuras: [
+        { x: .495, y: 1.65, w: 6.012, h: 4.6, dibujo: "apiladas", g: { eje: .22, bloques: [{ escala: "sino", ttb: false, temas: [{ pregunta: "¿Conoce la misión?", filas: [D, A, E] }] }] } },
+        { x: 7.007, y: 1.65, w: 6.012, h: 4.6, dibujo: "apiladas", g: { eje: .22, bloques: [{ escala: "acuerdo", ttb: true, temas: [{ pregunta: "Está definida con claridad", filas: [D, A] }] }] } }] } },
+    { n: 13, t: "Gráfico principal y de apoyo (8,4 + 3,7 in)", p: "El de apoyo se degrada: sin «N respuestas», «TTB», leyenda en más líneas; nada se encima.", m: ["M2", "M4"],
+      lam: { titulo: "Satisfacción con la enseñanza y conocimiento del plan", base: base2, ranuras: [
+        { x: .495, y: 1.6, w: 8.4, h: 4.65, dibujo: "apiladas", g: { eje: .2, bloques: [{ escala: "satisf", ttb: true, temas: [{ pregunta: "Calidad de enseñanza", filas: [D, E] }, { pregunta: "Actualización docente", filas: [D, E] }] }] } },
+        { x: 9.35, y: 1.6, w: 3.668, h: 4.65, dibujo: "apiladas", g: { eje: .3, bloques: [{ escala: "sino", ttb: false, temas: [{ pregunta: "¿Conoce el plan?", filas: [D, E] }] }] } }] } },
+    { n: 14, t: "Dos gráficos apilados (2,2 in de alto)", p: "Con poca altura la barra adelgaza y la leyenda queda en una línea.", m: ["M4"],
+      lam: { titulo: "Biblioteca y laboratorios", base: base2, ranuras: [
+        { x: .495, y: 1.65, w: 12.523, h: 2.2, dibujo: "apiladas", g: { eje: .2, bloques: [{ escala: "acuerdo", ttb: true, temas: [{ pregunta: "Los libros son accesibles", filas: [D, E] }] }] } },
+        { x: .495, y: 4.05, w: 12.523, h: 2.2, dibujo: "apiladas", g: { eje: .2, bloques: [{ escala: "acuerdo", ttb: true, temas: [{ pregunta: "Los laboratorios están equipados", filas: [D, E] }] }] } }] } },
+    { n: 15, t: "Cifras en banda y dos gráficos", p: "Composición mixta: cifras arriba, dos gráficos abajo.", m: ["M2"],
+      lam: { titulo: "Resultados generales", base: base3, ranuras: [
+        { x: .495, y: 1.65, w: 12.523, h: 1.2, dibujo: "cifras", g: ["Satisfacción general", "Recomendaría la PUCP", "Conoce la misión"] },
+        { x: .495, y: 3.25, w: 6.012, h: 3, dibujo: "barrasCategoria", g: { categorias: ["Biblioteca", "Laboratorios", "Cafetería", "Deportes"], resaltar: true } },
+        { x: 7.007, y: 3.25, w: 6.012, h: 3, dibujo: "apiladas", g: { eje: .2, bloques: [{ escala: "sino", ttb: false, temas: [{ pregunta: "¿Usa los servicios?", filas: [D, E] }] }] } }] } },
+    { n: 16, t: "Gráfico con texto a la derecha", p: "El texto ocupa su ranura; el gráfico, la suya.", m: ["M2"],
+      lam: { titulo: "Aprendizaje autónomo y adaptabilidad", base: base2, ranuras: [
+        { x: .495, y: 1.65, w: 8.6, h: 4.6, dibujo: "apiladas", g: { eje: .22, bloques: [{ escala: "acuerdo", ttb: true, temas: [{ pregunta: "Aprendizaje autónomo", filas: [D, E] }, { pregunta: "Adaptabilidad", filas: [D, E] }] }] } },
+        { x: 9.55, y: 2.45, w: 3.468, h: 3.4, dibujo: "texto" }] } },
+  ],
+  otros: [
+    { n: 17, t: "Barras por categoría", p: "Ranking en un color, la primera resaltada si se pide.", m: ["M6"],
+      lam: { titulo: "Servicios más usados", base: "Base: 289 estudiantes", ranuras: [{ ...R1, dibujo: "barrasCategoria", g: { categorias: ["Biblioteca", "Laboratorios de cómputo", "Cafetería", "Servicios deportivos", "Bienestar psicológico", "Talleres"], resaltar: true } }] } },
+    { n: 18, t: "Brecha entre dos grupos", p: "Un punto por grupo y la distancia; la marca de la brecha al margen.", m: ["M6"],
+      lam: { titulo: "Brecha entre mujeres y hombres", base: "Base: 289 estudiantes", ranuras: [{ ...R1, dibujo: "brecha", g: { grupos: ["Mujeres", "Hombres"], temas: ["Servicio de salud", "Bienestar psicológico", "Actividades culturales", "Deportes", "Biblioteca"] } }] } },
+    { n: 19, t: "Matriz de cuadrantes", p: "El cuadrante destacado en su color; los temas con su nombre.", m: ["M6"],
+      lam: { titulo: "Satisfacción e importancia de los servicios", base: "Base: 289 estudiantes", ranuras: [{ ...R1, dibujo: "cuadrantes", g: { ejeX: "Satisfacción", ejeY: "Importancia", puntos: ["Biblioteca", "Laboratorios", "Cafetería", "Deportes", "Salud", "Bienestar"] } }] } },
+    { n: 20, t: "Radar", p: "Dos públicos comparados por dimensión.", m: ["M6"],
+      lam: { titulo: "Perfil por dimensión", base: base2, ranuras: [{ ...R1, dibujo: "radar", g: { ejes: ["Gestión", "Docencia", "Investigación", "Infraestructura", "Bienestar", "Comunicación"], series: ["Docentes", "Estudiantes"] } }] } },
+  ],
+  estructura: [
+    { n: 22, t: "Portada", p: "Logos centrados, título del estudio, a quién se dirige y fecha.", m: ["M6"],
+      lam: { estructura: "portada", titulo: "Estudio de opinión sobre el servicio educativo ofrecido por la Facultad de Arte y Diseño", subtitulo: "Por encargo de la Facultad de Arte y Diseño PUCP", fecha: "Octubre de 2026" } },
+    { n: 23, t: "Índice", p: "Panel azul con «Índice» y los capítulos numerados.", m: ["M6"],
+      lam: { estructura: "indice", capitulos: ["Objetivo del estudio", "Metodología y ficha técnica", "Perfil del encuestado", "Gestión institucional", "Formación General", "Conclusiones"] } },
+    { n: 24, t: "Separador de capítulo", p: "La fila de personas, el número en coral, el capítulo y su bajada.", m: ["M6"],
+      lam: { estructura: "separador", numero: "02", titulo: "Características institucionales", subtitulo: "Gestión, docencia, servicios y recursos" } },
+    { n: 25, t: "Objetivo con actores", p: "La diana, el objetivo y los actores consultados con su ícono (los que se eligen en el panel).", m: ["M6", "M10"],
+      lam: { estructura: "objetivo", texto: "Conocer la percepción de los docentes, estudiantes y administrativos sobre los propósitos, la gestión y los servicios de la Facultad de Arte y Diseño.", actores: ["Docentes", "Estudiantes", "Administrativos"] } },
+    { n: 26, t: "Cómo leer: Top Two Box", p: "La barra de ejemplo con la llave de los dos valores superiores y la cifra resumen.", m: ["M6"],
+      lam: { estructura: "comoLeer" } },
+    { n: 27, t: "Ficha técnica", p: "Criterio y detalle por fila; la muestra con sus cifras destacadas.", m: ["M6"],
+      lam: { estructura: "ficha" } },
+    { n: 28, t: "Recomendaciones", p: "Lista numerada; los textos largos pasan a dos líneas.", m: ["M6", "M4"],
+      lam: { estructura: "lista", titulo: "Recomendaciones", items: ["Fortalecer la difusión de la misión y los propósitos institucionales entre estudiantes de primeros ciclos.", "Revisar los canales de comunicación con el personal administrativo.", "Ampliar los horarios de atención de la biblioteca en época de entregas.", "Dar seguimiento a la percepción sobre la carga académica en la próxima medición."] } },
+  ],
+  vacios: [
+    { n: "21a", t: "Ranura sin gráfico", p: "«Elegir gráfico» dentro de la ranura punteada.", m: ["M7"],
+      lam: { titulo: "Título de la lámina", ranuras: [{ x: .495, y: 1.65, w: 6.012, h: 4.6, dibujo: "apiladas", g: { eje: .22, bloques: [{ escala: "acuerdo", ttb: true, temas: [{ pregunta: "Las aulas son adecuadas", filas: [D, E] }] }] } }, { x: 7.007, y: 1.65, w: 6.012, h: 4.6, dibujo: "vacia" }] } },
+    { n: "21b", t: "Gráfico sin pregunta", p: "Su forma en gris y lo que falta, sin cifras inventadas.", m: ["M7"],
+      lam: { titulo: "Título de la lámina", ranuras: [{ ...R1, dibujo: "sinPregunta" }] } },
+  ],
+};
+
+// ───────────────────────── Render de la galería ─────────────────────────
+for (const [grupo, casos] of Object.entries(CASOS)) {
+  const cont = document.getElementById("g-" + grupo);
+  for (const c of casos) {
+    const art = document.createElement("article"); art.className = "caso";
+    art.innerHTML = `<header><b>${c.n}</b><span>${c.t}</span></header>`;
+    const svg = document.createElementNS(NS, "svg"); svg.setAttribute("viewBox", "0 0 13.333 7.5"); svg.setAttribute("class", "lamina");
+    art.appendChild(svg);
+    art.insertAdjacentHTML("beforeend", `<p>${c.p}</p><div class="clausulas">${c.m.map((m) => `<i>${m}</i>`).join("")}</div>`);
+    cont.appendChild(art);
+    lamina(svg, c.lam, c.n);
+  }
+}
+
+// Hoy (réplica de la maqueta actual de la lámina 19) y la propuesta
+(function hoy() {
+  const svg = document.getElementById("hoy");
+  el("rect", { x: 0, y: 0, width: 13.333, height: 7.5, fill: "#fff" }, svg);
+  el("text", { x: .5, y: .5, "font-size": .2, fill: "#8A93A8", texto: "ANTETÍTULO" }, svg);
+  el("text", { x: .5, y: 1.05, "font-size": .38, "font-weight": 700, fill: "#1F2937", texto: "La investigación-creación desarrollada por los(as) d…" }, svg);
+  el("rect", { x: .4, y: 1.6, width: 12.5, height: 4.7, rx: .12, fill: "#F7F9FD", stroke: "#CFE3E0", "stroke-width": .02 }, svg);
+  el("text", { x: .7, y: 3.15, "font-size": .17, fill: "#5A6480", texto: "▦ Multiapiladas" }, svg);
+  el("rect", { x: .6, y: 3.3, width: 6.2, height: 1.55, rx: .1, fill: "#fff", stroke: "#D8DEE8", "stroke-width": .015 }, svg);
+  el("text", { x: .8, y: 3.65, "font-size": .17, "font-weight": 700, fill: "#1F2937", texto: "La investigación-creación desarrollada por los(as) docentes de" }, svg);
+  el("text", { x: .8, y: 3.9, "font-size": .17, "font-weight": 700, fill: "#1F2937", texto: "Formación General es relevante." }, svg);
+  el("text", { x: .8, y: 4.25, "font-size": .14, fill: "#1F2937", texto: "[Docentes] [Estudiantes]" }, svg);
+  el("text", { x: .8, y: 4.55, "font-size": .13, fill: "#1F2937", texto: "■ Totalmente en desacuerdo ■ En desacuerdo ■ De acuerdo" }, svg);
+  el("text", { x: .8, y: 4.75, "font-size": .13, fill: "#1F2937", texto: "■ Totalmente de acuerdo ■ SIN INF" }, svg);
+  for (let i = 0; i < 4; i++) {
+    const y = 2.2 + i * .52;
+    el("rect", { x: 7.5, y: y + .08, width: .9, height: .12, rx: .06, fill: "#C9D3E0" }, svg);
+    [[1.2, "#F4B183"], [1.1, "#FFD966"], [.8, "#A9D18E"], [.42, "#70AD47"], [.3, "#BFBFBF"]].reduce((x, [w, c]) => { el("rect", { x, y, width: w - .03, height: .3, fill: c }, svg); return x + w; }, 8.65);
+    el("rect", { x: 12.25, y: y - .02, width: .9, height: .34, rx: .05, fill: "#E3F2E7", stroke: "#3FA65E", "stroke-width": .035 }, svg);
+    el("rect", { x: 12.35, y: y + .08, width: .45, height: .14, fill: "#70AD47" }, svg);
+  }
+  el("text", { x: .5, y: 6.95, "font-size": .14, fill: "#5A6480", texto: "Base: 116 docentes y 289 estudiantes" }, svg);
+})();
+lamina(document.getElementById("propuesta"), { titulo: "La investigación-creación desarrollada por los(as) docentes de Formación General es relevante.", base: base2, folio: 35,
+  ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: .22, bloques: [{ escala: "acuerdo", ttb: true, temas: [{ pregunta: "La investigación-creación desarrollada por los(as) docentes de Formación General es relevante.", filas: [D, E] }] }] } }] });
+
+// En vivo (M8): las piezas conservan su identidad y transitan.
+const vivo = { ttb: true, eje: 22, temas: 2, escalas: false, n: true };
+const preguntasVivo = ["Servicio de salud", "Servicio de Bienestar Psicológico", "Actividades culturales", "Servicios deportivos"];
+function renderVivo() {
+  const svg = document.getElementById("vivo");
+  const nuevo = document.createElementNS(NS, "svg"); nuevo.setAttribute("viewBox", "0 0 13.333 7.5");
+  const bloques = [{ escala: "satisf", ttb: vivo.ttb, temas: preguntasVivo.slice(0, vivo.temas).map((q) => ({ pregunta: q, filas: [D, E] })) }];
+  if (vivo.escalas) bloques.push({ titulo: "Frecuencia de uso", escala: "frecuencia", ttb: false, temas: [{ pregunta: "Usa los servicios de bienestar", filas: [D, E] }] });
+  if (vivo.escalas) bloques[0].titulo = "Satisfacción";
+  lamina(nuevo, { titulo: "Satisfacción con los servicios", base: base2, ranuras: [{ ...R1, dibujo: "apiladas", g: { eje: vivo.eje / 100, mostrarN: vivo.n, bloques } }] }, "v");
+  // Reconciliar: las barras con la misma clave conservan su nodo (y transitan); lo demás se reemplaza.
+  // El primer dibujo no se anima (M8: nada se anima solo). Después, una barra que ya estaba transita a su nueva geometría
+  // y una nueva crece desde la izquierda.
+  const primera = !svg.firstChild;
+  const viejas = new Map([...svg.querySelectorAll("rect[data-k]")].map((r) => [r.getAttribute("data-k"), r]));
+  const crecen = [];
+  for (const r of nuevo.querySelectorAll("rect[data-k]")) {
+    const v = viejas.get(r.getAttribute("data-k"));
+    if (v) { for (const p of ["x", "y", "width", "height"]) v.style[p] = r.style[p]; r.replaceWith(v); viejas.delete(r.getAttribute("data-k")); }
+    else if (!primera) { crecen.push([r, r.style.width]); r.style.width = "0px"; }
+  }
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  while (nuevo.firstChild) svg.appendChild(nuevo.firstChild);
+  if (crecen.length) { void svg.getBoundingClientRect(); for (const [r, w] of crecen) r.style.width = w; }
+}
+document.getElementById("c-ttb").onchange = (e) => { vivo.ttb = e.target.checked; renderVivo(); };
+document.getElementById("c-eje").oninput = (e) => { vivo.eje = +e.target.value; renderVivo(); };
+document.getElementById("c-mas").onclick = () => { vivo.temas = Math.min(4, vivo.temas + 1); renderVivo(); };
+document.getElementById("c-menos").onclick = () => { vivo.temas = Math.max(1, vivo.temas - 1); renderVivo(); };
+document.getElementById("c-escalas").onchange = (e) => { vivo.escalas = e.target.checked; renderVivo(); };
+document.getElementById("c-n").onchange = (e) => { vivo.n = e.target.checked; renderVivo(); };
+renderVivo();
+</script>
+</body>
+</html>
