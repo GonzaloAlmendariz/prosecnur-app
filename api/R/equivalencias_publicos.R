@@ -805,7 +805,7 @@
       if (is.null(inst)) return("")
       .equiv_firma_escala(inst, vars[[b]])
     }, character(1))
-    paste(
+    parte <- paste(
       as.character(f$diapositiva %||% ""),
       # El enunciado titula la diapositiva (ADR 0064), así que cambiarlo cambia el
       # mazo y tiene que mover la revisión.
@@ -819,7 +819,15 @@
       paste(listas, collapse = "\u001d"),
       sep = "\u001e"
     )
+    # Contrato E4-E7 (R3): la armonización cambia lo que la serie compara. Entra
+    # sólo si existe, para que la huella de una fila sin ella no se mueva.
+    if (!is.null(f$armonizacion)) {
+      parte <- paste(parte, .equiv_armon_canonico(f$armonizacion), sep = "\u001e")
+    }
+    parte
   }, character(1))
+  periodos <- as.character(unlist((equiv %||% list())$armonizacion_periodos %||% character(0)))
+  if (length(periodos)) partes <- c(partes, paste0("periodos:", paste(periodos, collapse = ",")))
   # Ordenado: reordenar las filas sin cambiar su contenido no cambia el mazo.
   paste0("r2:", .equiv_hash_estable(sort(partes)))
 }
