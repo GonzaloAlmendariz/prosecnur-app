@@ -9,6 +9,7 @@ import {
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { Panel } from "../../../components/Panel";
 import { PulsoButton } from "../../../components/PulsoButton";
+import { Switch } from "../../../components/Switch";
 import { ErrorBlock, LoadingBlock } from "../../../components/States";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import { CifrasPestana, type CifraPestana } from "../CifrasPestana";
@@ -727,11 +728,12 @@ function DataReviewSection({
               <div className="pulso-data-review-row">
                 <label className="pulso-data-review-include">
                   <span>{variableLocked ? "Oculta" : "Incluir"}</span>
-                  <input
-                    type="checkbox"
+                  <Switch
                     checked={variableLocked ? false : included}
                     disabled={variableLocked}
-                    onChange={() => onToggleVariable(variable.name)}
+                    ariaLabel={`Incluir ${variable.name}`}
+                    className="analitica-interruptor"
+                    onToggle={() => onToggleVariable(variable.name)}
                   />
                 </label>
                 <div className="pulso-data-review-variable-copy">

@@ -52,4 +52,12 @@ describe("tarjetas de opción de Analítica", () => {
     );
     expect(conCasilla.map((f) => path.relative(raiz, f))).toEqual([]);
   });
+
+  it("«Incluir» de cada variable en Datos es un interruptor", () => {
+    const fuente = fs.readFileSync(path.join(__dirname, "panes", "DataReviewPane.tsx"), "utf8");
+    const bloque = fuente.slice(fuente.indexOf('className="pulso-data-review-include"'));
+    expect(bloque.length).toBeLessThan(fuente.length);
+    expect(bloque.slice(0, 600)).toContain("<Switch");
+    expect(bloque.slice(0, 600)).not.toContain('type="checkbox"');
+  });
 });
