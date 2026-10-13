@@ -367,3 +367,74 @@ test_that("un bloque cuyas categorías son años avisa que la cohorte se armoniz
   # El importador no infiere el mapa relativo: deja el de los códigos.
   expect_equal(out$filas[[1]]$armonizacion$por_base$b25$mapa[["1"]], "1")
 })
+
+test_that("una celda sólo «[código]» no tiene etiqueta que comparar: no avisa etiqueta_distinta", {
+  # RI-01-VB real: escala 1-5 con sólo los extremos rotulados.
+  m <- rbind(
+    c("ID", "Eje / Sección", "Elemento / categoría armonizada", "2024", "2025",
+      "Nivel de comparabilidad", "Observación (base de la comparabilidad)"),
+    c("RI-01", "7. Respuesta institucional", "Satisfacción", "", "", "Plenamente comparable", ""),
+    c("", "", "Variable en la base de datos", "p29", "p29", "", ""),
+    c("", "", "1 · Nada satisfecho/a", "Nada satisfecho/a [1]", "Nada satisfecho/a [1]", "", ""),
+    c("", "", "2", "[2]", "[2]", "", ""),
+    c("", "", "3", "[3]", "Tres [3]", "", "")
+  )
+  inst <- .bq_inst(list(p29 = c(`1` = "Nada satisfecho/a", `2` = "2", `3` = "3")))
+  out <- .equiv_bloques_importar_matriz(m, list("2024" = "b24", "2025" = "b25"),
+                                        list(b24 = inst, b25 = inst))
+  dist <- .bq_adv(out$advertencias, tipo = "etiqueta_distinta")
+  # Sólo la celda que SÍ rotula («Tres [3]») se compara y difiere.
+  expect_length(dist, 1L)
+  expect_identical(dist[[1]]$base, "b25")
+  expect_match(dist[[1]]$mensaje, "[3]", fixed = TRUE)
+})
+
+test_that("cohorte: «Otros [10]» no la apaga y la base con años como código avisa cohorte_codigo_anio", {
+  # S-08 real: posiciones 1..9 en la matriz, «Otros [10]» sin código especial,
+  # y la base 2025 guarda 2017..2025 como código.
+  m <- rbind(
+    c("ID", "Eje / Sección", "Elemento / categoría armonizada", "2024", "2025",
+      "Nivel de comparabilidad", "Observación (base de la comparabilidad)"),
+    c("S-08", "2. Sociodemográficas", "Año de ingreso a la PUCP", "", "", "Parcialmente comparable", ""),
+    c("", "", "Enunciado", "¿En qué año comenzaste?", "¿En qué año comenzaste a estudiar en la PUCP? [ESPECIFICA]", "", ""),
+    c("", "", "Variable en la base de datos", "anio_ingreso", "P8", "", ""),
+    c("", "", "Año más reciente (código 1)", "2024 [1]", "2025 [1]", "", ""),
+    c("", "", "Año más antiguo (código 9)", "2016 [9]", "2017 [9]", "", ""),
+    c("", "", "Ventana temporal", "9 años (2016 a 2024)", "9 años (2017 a 2025)", "", ""),
+    c("", "", "Otro", "Otros [10] [ESPECIFICA]", "Otros [10] [ESPECIFICA]", "", "")
+  )
+  anios25 <- stats::setNames(as.character(2025:2017), as.character(2025:2017))
+  inst24 <- .bq_inst(list(anio_ingreso = c(`1` = "2024", `9` = "2016", `10` = "Otros")))
+  inst25 <- .bq_inst(list(P8 = c(anios25, `88` = "Otro", `0` = "Selecciona una respuesta")))
+  out <- .equiv_bloques_importar_matriz(m, list("2024" = "b24", "2025" = "b25"),
+                                        list(b24 = inst24, b25 = inst25))
+  expect_length(.bq_adv(out$advertencias, "S-08", tipo = "cohorte_por_etiqueta"), 1L)
+  anio <- .bq_adv(out$advertencias, "S-08", tipo = "cohorte_codigo_anio")
+  expect_length(anio, 1L)
+  expect_identical(anio[[1]]$base, "b25")
+  expect_identical(anio[[1]]$mensaje, paste0(
+    "La base «b25» guarda el año como código (2017…2025); la matriz usa posiciones. ",
+    "Declara el mapa de esta fila a mano."))
+  # La base 2024 usa posiciones como la matriz: no avisa.
+  expect_length(.bq_adv(out$advertencias, "S-08", "b24", "cohorte_codigo_anio"), 0L)
+  # El enunciado es el del período más reciente, sin la marca «[ESPECIFICA]».
+  expect_identical(out$filas[[1]]$enunciado, "¿En qué año comenzaste a estudiar en la PUCP?")
+})
+
+test_that("el enunciado cae al primero no vacío de la hoja si ninguna base mapeada lo trae", {
+  m <- rbind(
+    c("ID", "Eje / Sección", "Elemento / categoría armonizada", "2022", "2024", "2025",
+      "Nivel de comparabilidad", "Observación (base de la comparabilidad)"),
+    c("S-09", "2. Sociodemográficas", "Sexo", "", "", "", "Plenamente comparable", ""),
+    c("", "", "Enunciado", "Sexo registrado", "—", "", "", ""),
+    c("", "", "Variable en la base de datos", "s22", "s24", "s25", "", ""),
+    c("", "", "Mujer", "Mujer [1]", "Mujer [1]", "Mujer [1]", "", "")
+  )
+  out <- .equiv_bloques_importar_matriz(m, list("2024" = "b24", "2025" = "b25"),
+                                        list(b24 = NULL, b25 = NULL))
+  expect_identical(out$filas[[1]]$enunciado, "Sexo registrado")
+  # Sin fila «Enunciado», queda vacío.
+  out2 <- .equiv_bloques_importar_matriz(m[-3, ], list("2024" = "b24", "2025" = "b25"),
+                                         list(b24 = NULL, b25 = NULL))
+  expect_identical(out2$filas[[1]]$enunciado, "")
+})

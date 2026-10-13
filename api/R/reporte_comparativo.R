@@ -65,6 +65,14 @@
   openxlsx::addStyle(wb, hoja, estilo, rows = fila, cols = col, stack = FALSE)
 }
 
+# Rótulo de sección: el eje de la matriz trae su numeración («3. Prevalencia
+# general…», «2) Sociodemográficas»), que en el entregable no significa nada.
+.comparativo_rotulo_seccion <- function(x) {
+  x <- trimws(as.character(x %||% "")[1])
+  if (is.na(x)) return("")
+  toupper(trimws(sub("^[0-9]+(\\.[0-9]+)*\\s*[.)]\\s*", "", x, perl = TRUE)))
+}
+
 .comparativo_titulo <- function(wb, hoja, st, fila, texto, ncol, seccion = FALSE) {
   .comparativo_put(wb, hoja, fila, 1, texto, if (seccion) st$sec_title else st$q_title)
   if (ncol > 1L) openxlsx::mergeCells(wb, hoja, rows = fila, cols = 1:ncol)
@@ -292,7 +300,7 @@ reporte_comparativo_simple <- function(modelo, path, rotulos, notas = NULL, extr
   linea_pond <- .comparativo_linea_ponderacion(modelo$ponderacion, periodos, rotulos)
   for (q in modelo$preguntas) {
     .comparativo_salto(wb, hoja, fila)
-    sec <- toupper(q$seccion %||% "")
+    sec <- .comparativo_rotulo_seccion(q$seccion)
     if (nzchar(sec) && !identical(sec, seccion_previa)) {
       fila <- .comparativo_titulo(wb, hoja, st, fila, sec, ncol, seccion = TRUE) + 1L
       seccion_previa <- sec
@@ -434,7 +442,7 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
   linea_pond <- .comparativo_linea_ponderacion(modelo$ponderacion, periodos, rotulos)
   for (q in modelo$preguntas) {
     .comparativo_salto(wb, hoja, fila)
-    sec <- toupper(q$seccion %||% "")
+    sec <- .comparativo_rotulo_seccion(q$seccion)
     if (nzchar(sec) && !identical(sec, seccion_previa)) {
       fila <- .comparativo_titulo(wb, hoja, st, fila, sec, ncol, seccion = TRUE) + 1L
       seccion_previa <- sec
