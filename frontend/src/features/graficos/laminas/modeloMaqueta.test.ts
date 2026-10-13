@@ -99,4 +99,13 @@ describe("maqueta: qué muestra cada ranura", () => {
     const s1 = slide({ graficador: "p_barras_multiapiladas", args: { modo: "var_cruce", vars: { t1: ["docentes$a1", "administrativos$a2"], t2: ["docentes$b1", "estudiantes$b2"] } } });
     expect(baseAutomatica(s1, vars)).toBe("Base: 116 docentes, 89 administrativos y 289 estudiantes");
   });
+
+  it("los públicos van en el orden de las bases, no en el de las preguntas (Arte, lámina 13; así sale el PPT)", () => {
+    const vars = [
+      { name: "a1", source: "docentes", label: "x", n_non_empty: 116 }, { name: "a2", source: "administrativos", label: "x", n_non_empty: 89 },
+      { name: "a3", source: "estudiantes", label: "x", n_non_empty: 289 },
+    ] as never[];
+    const s1 = slide({ graficador: "p_barras_multiapiladas", args: { modo: "var_cruce", vars: { t1: ["docentes$a1", "estudiantes$a3", "administrativos$a2"] } } });
+    expect(baseAutomatica(s1, vars)).toBe("Base: 116 docentes, 89 administrativos y 289 estudiantes");
+  });
 });
