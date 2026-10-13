@@ -14,6 +14,7 @@ import { Section, GenerateFooter } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
 import { useSession } from "../../../lib/SessionContext";
 import { NotasPieEditor } from "./NotasPieEditor";
+import { ALFA_CRUCES, detalleSignificancia, subtituloSignificancia } from "./crucesSignificancia";
 
 // CrucesPane — configuración mínima.
 // 1. Variables a cruzar (con posibilidad de excluir categorías específicas).
@@ -61,7 +62,7 @@ export function CrucesPane() {
     // Defaults fijos: alpha 0.05 e incluir_total siempre. `modo` lo
     // controla el usuario (estandar / dimensiones).
     const patch: Partial<typeof cruces> = {};
-    if (cruces.alpha !== 0.05) patch.alpha = 0.05;
+    if (cruces.alpha !== ALFA_CRUCES) patch.alpha = ALFA_CRUCES;
     if (!cruces.incluir_total) patch.incluir_total = true;
     if (Object.keys(patch).length > 0) setCruces(patch);
     await run.runAsync(() => apiAnaliticaCruces());
@@ -96,7 +97,13 @@ export function CrucesPane() {
 
   return (
     <Panel className="analitica-cruces-panel">
-      <div className="analitica-report-shell analitica-cruces-workbench">
+      {/* C1: barra, nota, secciones, notas al pie y pie de generación son
+          bloques independientes de alto intrínseco. */}
+      <div
+        className="analitica-report-shell analitica-cruces-workbench"
+        data-qa-geometry-group="analitica/cruces-workbench"
+        data-qa-geometry-contract="intrinsic"
+      >
         <div className="analitica-cruces-docbar">
           <span className="analitica-cruces-docbar-icon" aria-hidden="true">
             <Grid3x3 size={16} />
@@ -241,9 +248,7 @@ export function CrucesPane() {
 
         <Section
           title="Significancia estadística"
-          subtitle={<>
-            Marca con asterisco las celdas con diferencia significativa entre columnas (chi² al 5%).
-          </>}
+          subtitle={subtituloSignificancia()}
         >
           <label
             className={`analitica-control-card ${cruces.show_sig ? "is-active" : ""}`}
@@ -261,7 +266,7 @@ export function CrucesPane() {
                 Mostrar diferencias significativas
               </span>
               <span className="analitica-control-copy">
-                Activa el test de independencia entre fila y columna. Las celdas con p-valor &lt; 0.05 se marcan con asterisco.
+                {detalleSignificancia(cruces.modo, ALFA_CRUCES)}
               </span>
             </div>
           </label>

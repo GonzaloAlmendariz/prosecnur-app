@@ -122,3 +122,56 @@ export function resumenNotasPie(notas: NotasPieConfig, conCruces: boolean): stri
   }
   return partes.join(", ");
 }
+
+// ---- Notas por pregunta (patrón único de Frecuencias, Cruces y Comparativos)
+
+// Pregunta que puede llevar una nota propia. `codigo` es el nombre de la
+// variable cuando lo hay; una fila del comparativo sólo tiene etiqueta.
+export type OpcionNota = {
+  clave: string;
+  etiqueta: string;
+  codigo?: string;
+  tipo?: string;
+};
+
+function conTexto(texto: string | undefined): boolean {
+  return typeof texto === "string" && texto.trim().length > 0;
+}
+
+// Filas que muestra la lista: las notas con texto, en su orden, y después las
+// agregadas en la UI que aún no tienen texto.
+export function filasDeNotas(valores: Record<string, string>, pendientes: readonly string[]): string[] {
+  const guardadas = Object.keys(valores).filter((k) => conTexto(valores[k]));
+  return [...guardadas, ...pendientes.filter((p) => !guardadas.includes(p))];
+}
+
+// Separa las notas con texto de las preguntas ofrecidas de las que quedaron
+// guardadas para preguntas que ya no se ofrecen (no se imprimen, no se borran).
+export function notasFueraDeOpciones(
+  notas: Record<string, string>,
+  opciones: readonly Pick<OpcionNota, "clave">[],
+): { visibles: Record<string, string>; fuera: number } {
+  const ofrecidas = new Set(opciones.map((o) => o.clave));
+  const visibles: Record<string, string> = {};
+  let fuera = 0;
+  for (const [clave, texto] of Object.entries(notas)) {
+    if (!conTexto(texto)) continue;
+    if (ofrecidas.has(clave)) visibles[clave] = texto;
+    else fuera += 1;
+  }
+  return { visibles, fuera };
+}
+
+// Resumen del plegable de Comparativos: cuántas notas saldrán en el archivo.
+export function resumenNotasComparativo(
+  notasPregunta: Record<string, string>,
+  notasGenerales: string,
+  opciones: readonly Pick<OpcionNota, "clave">[],
+): string {
+  const generales = notasGenerales.split("\n").filter((l) => l.trim().length > 0).length;
+  const porPregunta = Object.keys(notasFueraDeOpciones(notasPregunta, opciones).visibles).length;
+  const partes: string[] = [];
+  if (generales > 0) partes.push(`${generales} ${generales === 1 ? "nota general" : "notas generales"}`);
+  if (porPregunta > 0) partes.push(`${porPregunta} ${porPregunta === 1 ? "nota por pregunta" : "notas por pregunta"}`);
+  return partes.length ? partes.join(", ") : "Sin notas";
+}

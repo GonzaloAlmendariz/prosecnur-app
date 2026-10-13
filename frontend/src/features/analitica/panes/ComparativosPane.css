@@ -182,9 +182,7 @@
   color: var(--pulso-text-soft);
 }
 
-.pulso-comparativos-rotulo input,
-.pulso-comparativos-campo input,
-.pulso-comparativos-campo textarea {
+.pulso-comparativos-rotulo input {
   width: 100%;
   min-width: 0;
   font-size: 13px;
@@ -241,7 +239,7 @@
   color: var(--pulso-text);
 }
 
-.pulso-comparativos-lista-barra .pulso-ghost {
+.pulso-comparativos-lista-barra .pulso-comparativos-desplegar {
   margin-left: auto;
 }
 
@@ -484,58 +482,8 @@
   white-space: nowrap;
 }
 
-/* Notas: plegable nativo, cerrado sólo cuenta el summary (C4). No es flex: el
- * slot oculto de un <details> flex sigue sumando su gap y deja capacidad muerta. */
-.pulso-comparativos-notas {
-  display: block;
-}
-
-.pulso-comparativos-notas[open] > .pulso-comparativos-notas-cuerpo {
-  margin-top: var(--pulso-space-3);
-}
-
-.pulso-comparativos-notas > summary {
-  display: flex;
-  align-items: baseline;
-  gap: var(--pulso-space-3);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text);
-}
-
-.pulso-comparativos-notas > summary small {
-  font-size: 12px;
-  font-weight: var(--pulso-weight-regular);
-  color: var(--pulso-text-soft);
-}
-
-.pulso-comparativos-notas > summary:focus-visible {
-  outline: none;
-  border-radius: var(--pulso-radius-chip);
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
-}
-
-.pulso-comparativos-notas-cuerpo,
-.pulso-comparativos-notas-preguntas {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-3);
-}
-
-.pulso-comparativos-campo {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--pulso-text-soft);
-}
-
-.pulso-comparativos-nota-vacia {
-  margin: 0;
-  font-size: 12px;
-  color: var(--pulso-text-soft);
-}
+/* Notas al pie: editor único de Analítica (NotasPieEditor), aquí sólo vive
+ * como miembro de las secciones. */
 
 /* Generar. */
 .pulso-comparativos-generar {
@@ -550,7 +498,7 @@
   gap: var(--pulso-space-2);
 }
 
-.pulso-comparativos-botones button {
+.pulso-comparativos-botones .pulso-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -575,7 +523,7 @@
   gap: 6px;
   padding: 6px 12px;
   border: 1px solid var(--pulso-primary-border);
-  border-radius: 8px;
+  border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
   color: var(--pulso-primary);
   font-size: 13px;
@@ -628,41 +576,123 @@
   text-decoration: none;
 }
 
+/* Avisos agrupados por tipo: un plegable por grupo, radio de tarjeta (texto
+ * largo, no píldora). Advertencia en ámbar sólo para lo que cambia
+ * denominadores o deja filas fuera; lo esperado va en tono informativo.
+ * <details> no es flex: el slot oculto sumaría su gap (ver Notas). */
 .pulso-comparativos-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-comparativos-aviso-grupo {
+  display: block;
+  min-width: 0;
+  border: 1px solid var(--pulso-info-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-text);
+}
+
+.pulso-comparativos-aviso-grupo.is-advertencia {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.pulso-comparativos-aviso-grupo > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-height: var(--pulso-control-height-lg);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius-card);
+  list-style: none;
+  cursor: pointer;
+  font-size: 12.5px;
+}
+
+.pulso-comparativos-aviso-grupo > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pulso-comparativos-aviso-grupo > summary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-comparativos-aviso-icono {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--pulso-info-fg);
+}
+
+.is-advertencia .pulso-comparativos-aviso-icono,
+.is-advertencia .pulso-comparativos-aviso-tipo {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-comparativos-aviso-tipo {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-info-fg);
+}
+
+.pulso-comparativos-aviso-alcance {
+  flex: 0 0 auto;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-comparativos-aviso-alcance::before {
+  content: "·";
+  margin-right: var(--pulso-space-2);
+}
+
+.pulso-comparativos-aviso-chevron {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--pulso-text-soft);
+  transition: transform 120ms ease;
+}
+
+.pulso-comparativos-aviso-grupo[open] .pulso-comparativos-aviso-chevron {
+  transform: rotate(180deg);
+}
+
+.pulso-comparativos-aviso-lista {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-1);
   margin: 0;
-  padding: 0;
+  padding: 0 var(--pulso-space-2) var(--pulso-space-2);
   list-style: none;
 }
 
-.pulso-comparativos-avisos li {
+.pulso-comparativos-aviso-lista > li {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--pulso-space-2);
+  gap: 2px var(--pulso-space-2);
   padding: var(--pulso-space-2) var(--pulso-space-3);
-  border: 1px solid var(--pulso-warn-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
+  /* Concéntrico con el grupo: radio de tarjeta menos el relleno de la lista. */
+  border-radius: calc(var(--pulso-radius-card) - var(--pulso-space-2));
+  background: var(--pulso-surface);
   font-size: 12.5px;
   line-height: 1.45;
 }
 
-.pulso-comparativos-avisos svg {
-  flex: 0 0 auto;
-  align-self: center;
-}
-
-.pulso-comparativos-aviso-tipo {
-  flex: 0 0 auto;
-  font-weight: var(--pulso-weight-semibold);
-}
-
 .pulso-comparativos-aviso-texto {
-  flex: 1 1 auto;
+  flex: 1 1 320px;
   min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-comparativos-aviso-accion--grupo {
+  display: inline-block;
+  margin: 0 var(--pulso-space-3) var(--pulso-space-3);
+  font-size: 12.5px;
 }
 
 .pulso-comparativos-aviso-accion {
@@ -743,7 +773,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pulso-comparativos-fila {
+  .pulso-comparativos-fila,
+  .pulso-comparativos-aviso-chevron {
     transition: none;
   }
 }
@@ -755,7 +786,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--pulso-space-2);
-  padding: var(--pulso-space-3) var(--pulso-space-4);
+  padding: var(--pulso-space-2);
   border: 1px solid var(--pulso-warn-border);
   border-left-width: 4px;
   border-radius: var(--pulso-radius-card);
@@ -764,6 +795,7 @@
 }
 
 .pulso-comparativos-omitidas > header {
+  padding: var(--pulso-space-1) var(--pulso-space-2) 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -817,7 +849,8 @@
   gap: 2px;
   padding: var(--pulso-space-2) var(--pulso-space-3);
   border: 1px solid var(--pulso-warn-border);
-  border-radius: var(--pulso-radius-card);
+  /* Concéntrico con el bloque: radio de tarjeta menos su relleno. */
+  border-radius: calc(var(--pulso-radius-card) - var(--pulso-space-2));
   background: var(--pulso-surface);
   font-size: 12.5px;
   line-height: 1.45;

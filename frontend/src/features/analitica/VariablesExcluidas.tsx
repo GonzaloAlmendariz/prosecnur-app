@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { EyeOff, Plus, Search, Undo2 } from "../../vendor/lucide-react";
+import { PulsoButton } from "../../components/PulsoButton";
 import {
   ROTULO_MOTIVO_EXCLUSION,
   conVariable,
@@ -113,15 +114,16 @@ export function VariablesExcluidas({
                     </span>
                   ) : null}
                 </div>
-                <button
-                  type="button"
-                  className="pulso-ghost pulso-excluidas-accion"
+                <PulsoButton
+                  variant="secondary"
+                  size="sm"
+                  className="pulso-excluidas-accion"
                   onClick={() => setExcluidas(sinVariable(excluidas, fila.name))}
                   aria-label={`Volver a incluir ${fila.name}`}
                 >
                   <Undo2 size={13} aria-hidden="true" />
                   Incluir
-                </button>
+                </PulsoButton>
               </li>
             ))}
           </ul>
@@ -151,15 +153,16 @@ export function VariablesExcluidas({
                     <span className="pulso-excluidas-fila-etiqueta">{variable.label}</span>
                   ) : null}
                 </div>
-                <button
-                  type="button"
-                  className="pulso-ghost pulso-excluidas-accion"
+                <PulsoButton
+                  variant="secondary"
+                  size="sm"
+                  className="pulso-excluidas-accion"
                   onClick={() => setExcluidas(conVariable(excluidas, variable.name))}
                   aria-label={`Excluir ${variable.name}`}
                 >
                   <Plus size={13} aria-hidden="true" />
                   Excluir
-                </button>
+                </PulsoButton>
               </li>
             ))}
           </ul>

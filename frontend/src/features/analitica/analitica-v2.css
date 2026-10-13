@@ -188,10 +188,13 @@
   flex-wrap: wrap;
 }
 
+/* Caja de «Añadir…»: radios concéntricos. Radio externo = radio interno +
+   relleno (tarjeta 14 = control 10 + 4), y selector y botones con el mismo
+   alto, centrados. */
 .analitica-picker-edit-row {
-  padding: 7px;
+  padding: var(--pulso-space-1);
   border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 42%, var(--pulso-border) 58%);
-  border-radius: 9px;
+  border-radius: var(--pulso-radius-card);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 251, 250, 0.78)),
     color-mix(in srgb, var(--pulso-module-processing-soft) 16%, var(--pulso-surface) 84%);
@@ -1210,6 +1213,29 @@
 .pulso-analitica-frame .analitica-collapsible-body,
 .pulso-analitica-frame .analitica-per-base-card {
   animation: pulso-av2-fade-up var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Controles de la caja de «Añadir…»: mismo alto y radio interno, también
+   para los botones heredados que el frame vuelve píldora. */
+.pulso-analitica-frame .analitica-picker-edit-row > button,
+.pulso-analitica-frame .analitica-picker-edit-row .analitica-picker-select > div > button {
+  min-height: var(--pulso-control-height-lg);
+  height: var(--pulso-control-height-lg);
+  border-radius: var(--pulso-radius);
+}
+
+.pulso-analitica-frame .analitica-picker-edit-row > button {
+  padding-block: 0;
+}
+
+/* ── 3b. Workbench en columna: ningún bloque se encoge ─────────────────── */
+
+/* El workbench es una columna de secciones independientes de alto intrínseco
+   y el dueño del scroll es el panel que lo contiene. Si un hijo pudiera
+   encogerse, el que recorta su contenido (un plegable con overflow: hidden,
+   como «Notas al pie») se aplastaba a 2 px en vez de empujar el scroll. */
+.pulso-analitica-frame .analitica-report-shell > * {
+  flex-shrink: 0;
 }
 
 /* ── 4. Entrada del workbench con stagger (máx 6 ítems) ────────────────── */

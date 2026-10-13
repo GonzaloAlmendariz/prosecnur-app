@@ -21,7 +21,6 @@ import {
 } from "../../../vendor/lucide-react";
 import {
   apiAnaliticaComparativoCruces,
-  type ComparativoAviso,
   type ComparativoOmitida,
   apiAnaliticaComparativoFrecuencias,
   normalizarComparativoResultado,
@@ -34,7 +33,6 @@ import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States
 import { JobProgress } from "../../../components/JobProgress";
 import {
   DIRECCION_EQUIVALENCIAS,
-  accionParaAviso,
   accionParaError,
   avisosGenerales,
   celdaSinVariable,
@@ -49,9 +47,9 @@ import {
   celdaNoOfrecidas,
   errorDesde,
   especialesSinMapa,
-  etiquetaDeAviso,
   estadoInicial,
   filasArmonizadas,
+  opcionesDeNotaComparativo,
   formatoBytes,
   motivoVacio,
   periodosDeSerie,
@@ -65,10 +63,12 @@ import {
   type CeldaResumen,
   type ComparativosUi,
   type ErrorComparativo,
-  type FilaArmonizada,
   type MotivoVacio,
 } from "./comparativosModel";
 import { ComparativosLista } from "./ComparativosLista";
+import { ComparativosAvisos } from "./ComparativosAvisos";
+import { NotasPieEditor } from "./NotasPieEditor";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { rotuloDeMatriz } from "../../../lib/rotuloDeMatriz";
 import { mayuscula, nombreDeSerie, type NombreDeSerie } from "../../carga/nombreDeSerie";
 import "./ComparativosPane.css";
@@ -180,6 +180,8 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
   }, []);
   const onCancelled = useCallback(() => dispatch({ tipo: "cancelado" }), []);
 
+  const opcionesDeNota = useMemo(() => opcionesDeNotaComparativo(filas, ui.preguntas), [filas, ui.preguntas]);
+
   const bloqueoSimple = bloqueoDeGeneracion(ui, "frecuencias");
   const bloqueoCruces = bloqueoDeGeneracion(ui, "cruces");
 
@@ -220,12 +222,12 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
           onElegirVarias={(claves, valor) => dispatch({ tipo: "elegir-preguntas", claves, valor })}
           acciones={(
             <div className="pulso-comparativos-lista-acciones">
-              <button type="button" className="pulso-ghost" onClick={() => dispatch({ tipo: "todas-las-preguntas", claves: filas.filter((f) => f.seleccionable).map((f) => f.clave) })}>
+              <PulsoButton variant="ghost" size="sm" onClick={() => dispatch({ tipo: "todas-las-preguntas", claves: filas.filter((f) => f.seleccionable).map((f) => f.clave) })}>
                 Todas
-              </button>
-              <button type="button" className="pulso-ghost" onClick={() => dispatch({ tipo: "ninguna-pregunta" })}>
+              </PulsoButton>
+              <PulsoButton variant="ghost" size="sm" onClick={() => dispatch({ tipo: "ninguna-pregunta" })}>
                 Ninguna
-              </button>
+              </PulsoButton>
             </div>
           )}
         />
@@ -244,9 +246,11 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
           onAlternar={(clave) => dispatch({ tipo: "alternar-cruce", clave })}
         />
 
-        <Notas
-          filas={filas.filter((f) => ui.preguntas.includes(f.clave))}
-          ui={ui}
+        <NotasPieEditor
+          variante="comparativo"
+          preguntas={opcionesDeNota}
+          notasPregunta={ui.notasPregunta}
+          notasGenerales={ui.notasGenerales}
           onNota={(clave, valor) => dispatch({ tipo: "nota-pregunta", clave, valor })}
           onGenerales={(valor) => dispatch({ tipo: "notas-generales", valor })}
         />
@@ -258,14 +262,14 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
             etiqueta="Generar comparativo simple"
             corriendo={ui.enviando === "frecuencias" || ui.job?.tipo === "frecuencias"}
             deshabilitado={ocupado || bloqueoSimple !== null}
-            variante="pulso-primary"
+            variante="primary"
             onClick={() => { void generar("frecuencias"); }}
           />
           <BotonGenerar
             etiqueta="Generar comparativo de cruces"
             corriendo={ui.enviando === "cruces" || ui.job?.tipo === "cruces"}
             deshabilitado={ocupado || bloqueoCruces !== null}
-            variante="pulso-secondary"
+            variante="secondary"
             onClick={() => { void generar("cruces"); }}
           />
         </div>
@@ -383,55 +387,6 @@ function RotulosPeriodos({
   );
 }
 
-function Notas({
-  filas,
-  ui,
-  onNota,
-  onGenerales,
-}: {
-  filas: FilaArmonizada[];
-  ui: ComparativosUi;
-  onNota: (clave: string, valor: string) => void;
-  onGenerales: (valor: string) => void;
-}) {
-  const conNota = filas.filter((f) => (ui.notasPregunta[f.clave] ?? "").trim()).length
-    + (ui.notasGenerales.trim() ? 1 : 0);
-  return (
-    <details className="pulso-comparativos-bloque pulso-comparativos-notas" data-qa-geometry-member>
-      <summary>
-        <span>Notas al pie</span>
-        <small>{conNota ? `${conNota} con texto` : "Opcional"}</small>
-      </summary>
-      <div className="pulso-comparativos-notas-cuerpo">
-        <label className="pulso-comparativos-campo">
-          <span>Notas generales, una por línea. Salen bajo todas las tablas.</span>
-          <textarea
-            rows={3}
-            value={ui.notasGenerales}
-            onChange={(e) => onGenerales(e.target.value)}
-          />
-        </label>
-        {filas.length ? (
-          <div className="pulso-comparativos-notas-preguntas">
-            {filas.map((fila) => (
-              <label key={fila.clave} className="pulso-comparativos-campo">
-                <span>Nota de {rotuloDeMatriz(fila.etiqueta)}</span>
-                <input
-                  type="text"
-                  value={ui.notasPregunta[fila.clave] ?? ""}
-                  onChange={(e) => onNota(fila.clave, e.target.value)}
-                />
-              </label>
-            ))}
-          </div>
-        ) : (
-          <p className="pulso-comparativos-nota-vacia">Elige preguntas para escribirles una nota propia.</p>
-        )}
-      </div>
-    </details>
-  );
-}
-
 function BotonGenerar({
   etiqueta,
   corriendo,
@@ -442,14 +397,14 @@ function BotonGenerar({
   etiqueta: string;
   corriendo: boolean;
   deshabilitado: boolean;
-  variante: "pulso-primary" | "pulso-secondary";
+  variante: "primary" | "secondary";
   onClick: () => void;
 }) {
   return (
-    <button type="button" className={variante} disabled={deshabilitado} onClick={onClick} aria-busy={corriendo}>
-      {corriendo ? <Loader2 size={14} className="pulso-spin" /> : <Play size={14} />}
+    <PulsoButton variant={variante} size="lg" disabled={deshabilitado} onClick={onClick} aria-busy={corriendo}>
+      {corriendo ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}
       {corriendo ? "Generando…" : etiqueta}
-    </button>
+    </PulsoButton>
   );
 }
 
@@ -500,15 +455,7 @@ function Resultado({ tipo, datos }: { tipo: ComparativoTipo; datos: ComparativoR
 
       <PreguntasOmitidas omitidas={omitidasDe(datos.resumen)} periodos={datos.periodos} />
 
-      {avisosGenerales(datos.resumen.avisos).length ? (
-        <ul className="pulso-comparativos-avisos" aria-label="Avisos del comparativo">
-          {avisosGenerales(datos.resumen.avisos).map((aviso, i) => (
-            <AvisoFila key={`${aviso.tipoOriginal}-${i}`} aviso={aviso} />
-          ))}
-        </ul>
-      ) : (
-        <p className="pulso-comparativos-sin-avisos">El motor no reportó otros avisos para este comparativo.</p>
-      )}
+      <ComparativosAvisos avisos={avisosGenerales(datos.resumen.avisos)} />
 
       <div className="pulso-comparativos-tabla-marco">
         <table className="pulso-comparativos-tabla">
@@ -631,20 +578,6 @@ function PreguntasOmitidas({
         ))}
       </ul>
     </section>
-  );
-}
-
-function AvisoFila({ aviso }: { aviso: ComparativoAviso }) {
-  const accion = accionParaAviso(aviso);
-  return (
-    <li>
-      <AlertTriangle size={13} aria-hidden="true" />
-      <span className="pulso-comparativos-aviso-tipo">{etiquetaDeAviso(aviso)}</span>
-      <span className="pulso-comparativos-aviso-texto">{aviso.mensaje}</span>
-      {accion ? (
-        <Link className="pulso-comparativos-aviso-accion" to={accion.href}>{accion.etiqueta}</Link>
-      ) : null}
-    </li>
   );
 }
 

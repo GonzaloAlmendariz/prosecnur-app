@@ -16,11 +16,14 @@ type VariableSelectProps = {
   allowClear?: boolean;
   // Filtra la lista antes de mostrarla (p.ej. solo tipos `select_one`).
   filter?: (v: VariableInstrumento) => boolean;
+  // Falso cuando las opciones no son variables con nombre propio (filas del
+  // comparativo): se muestra sólo la etiqueta.
+  mostrarNombre?: boolean;
 };
 
 export function VariableSelect({
   variables, value, onChange, placeholder = "Seleccionar variable…",
-  allowClear = false, filter,
+  allowClear = false, filter, mostrarNombre = true,
 }: VariableSelectProps) {
   const [open, setOpen] = useState(false);
   const [hover, setHover] = useState(false);
@@ -51,9 +54,9 @@ export function VariableSelect({
     const query = q.toLowerCase().trim();
     if (!query) return base;
     return base.filter(
-      (v) => v.name.toLowerCase().includes(query) || v.label.toLowerCase().includes(query),
+      (v) => (mostrarNombre && v.name.toLowerCase().includes(query)) || v.label.toLowerCase().includes(query),
     );
-  }, [variables, filter, q]);
+  }, [variables, filter, q, mostrarNombre]);
 
   const selectedVar = useMemo(
     () => variables.find((v) => v.name === value),
@@ -75,7 +78,7 @@ export function VariableSelect({
           padding: "7px 10px", textAlign: "left",
           background: "white",
           border: `1px solid ${open ? "var(--pulso-primary)" : hover ? "var(--pulso-text-soft)" : "var(--pulso-border)"}`,
-          borderRadius: 10,
+          borderRadius: "var(--pulso-radius)",
           fontSize: 13,
           cursor: "pointer",
           transition: "border-color 120ms ease",
@@ -83,10 +86,12 @@ export function VariableSelect({
       >
         {selectedVar ? (
           <>
-            <code style={{ fontFamily: "monospace", fontWeight: 700, color: "var(--pulso-primary)" }}>
-              {selectedVar.name}
-            </code>
-            <span style={{ flex: 1, minWidth: 0, color: "var(--pulso-text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12 }}>
+            {mostrarNombre && (
+              <code style={{ fontFamily: "monospace", fontWeight: 700, color: "var(--pulso-primary)" }}>
+                {selectedVar.name}
+              </code>
+            )}
+            <span style={{ flex: 1, minWidth: 0, color: mostrarNombre ? "var(--pulso-text-soft)" : "var(--pulso-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12 }}>
               {selectedVar.label}
             </span>
           </>
@@ -129,7 +134,7 @@ export function VariableSelect({
               ref={searchRef}
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar por nombre o etiqueta…"
+              placeholder={mostrarNombre ? "Buscar por nombre o etiqueta…" : "Buscar por etiqueta…"}
               style={{ flex: 1, border: "none", outline: "none", fontSize: 12, background: "transparent" }}
             />
             {q && (
@@ -177,10 +182,12 @@ export function VariableSelect({
                   >
                     <span>{isSelected && <Check size={12} color="var(--pulso-primary)" />}</span>
                     <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                      <code style={{ fontFamily: "monospace", fontWeight: 700, color: isSelected ? "var(--pulso-primary)" : "var(--pulso-text)" }}>
-                        {v.name}
-                      </code>
-                      <span style={{ color: "var(--pulso-text-soft)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {mostrarNombre && (
+                        <code style={{ fontFamily: "monospace", fontWeight: 700, color: isSelected ? "var(--pulso-primary)" : "var(--pulso-text)" }}>
+                          {v.name}
+                        </code>
+                      )}
+                      <span style={{ color: mostrarNombre ? "var(--pulso-text-soft)" : "var(--pulso-text)", fontSize: mostrarNombre ? 11 : 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {v.label || <em>(sin etiqueta)</em>}
                       </span>
                     </div>

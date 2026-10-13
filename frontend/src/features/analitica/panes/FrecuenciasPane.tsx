@@ -80,7 +80,13 @@ export function FrecuenciasPane() {
 
   return (
     <Panel className="analitica-frecuencias-panel">
-      <div className="analitica-report-shell analitica-frecuencias-workbench">
+      {/* C1: barra, nota, secciones, notas al pie y pie de generación son
+          bloques independientes de alto intrínseco. */}
+      <div
+        className="analitica-report-shell analitica-frecuencias-workbench"
+        data-qa-geometry-group="analitica/frecuencias-workbench"
+        data-qa-geometry-contract="intrinsic"
+      >
         <div className="analitica-frecuencias-docbar">
           <span className="analitica-frecuencias-docbar-icon" aria-hidden="true">
             <BarChart2 size={16} />

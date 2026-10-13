@@ -154,9 +154,10 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--pulso-space-2);
-  padding: var(--pulso-space-2) var(--pulso-space-3);
+  /* Concéntrico: botón (8) + relleno (8) = panel (16). */
+  padding: var(--pulso-space-2) var(--pulso-space-2) var(--pulso-space-2) var(--pulso-space-3);
   border: 1px solid var(--pulso-warn-border);
-  border-radius: var(--pulso-radius);
+  border-radius: var(--pulso-radius-panel);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
   font-size: 13px;

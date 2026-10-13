@@ -16,6 +16,7 @@ import { X } from "../../vendor/lucide-react";
 import { apiAnaliticaDataReview } from "../../api/client";
 import { getOrigenExterno, type OrigenExterno } from "../../api/cargaOrigenExterno";
 import { apiEstudioActiveBaseSet, apiEstudioGet, type EstudioPayload } from "../../api/estudio";
+import { PulsoButton } from "../../components/PulsoButton";
 import { ErrorBlock, LoadingBlock } from "../../components/States";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
@@ -176,14 +177,14 @@ export function PanelVariablesExcluidas() {
                   El enlace pide la base «{etiquetaDeBase(estudio, otraBase)}», pero estás viendo
                   «{etiquetaDeBase(estudio, activa)}».
                 </span>
-                <button
-                  type="button"
-                  className="pulso-ghost"
+                <PulsoButton
+                  variant="secondary"
+                  size="sm"
                   onClick={() => void cambiarABase(otraBase)}
                   disabled={cambiandoBase}
                 >
                   Ver «{etiquetaDeBase(estudio, otraBase)}»
-                </button>
+                </PulsoButton>
               </div>
             ) : null}
           </header>
