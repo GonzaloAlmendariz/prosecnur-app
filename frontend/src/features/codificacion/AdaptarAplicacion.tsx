@@ -183,6 +183,7 @@ export function AdaptarAplicacionVista({
       <AplicarOmitidasAviso
         omitidas={avisos.omitidas}
         textosSinCodigo={avisos.textos_sin_codigo}
+        incompletos={avisos.avisos_incompletos}
         enfocar={enfocarPendiente}
         onEnfocado={onEnfocado}
       />

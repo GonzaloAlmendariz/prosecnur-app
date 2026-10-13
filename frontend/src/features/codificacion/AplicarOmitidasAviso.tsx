@@ -16,6 +16,11 @@ type Props = {
   omitidas: CodifOmitida[];
   textosSinCodigo: CodifTextosSinCodigo[];
   /**
+   * Diagnósticos que fallaron en el backend. Sin esto, una lista vacía por
+   * error se leería como «no se omitió nada» (verde por ausencia).
+   */
+  incompletos?: string[];
+  /**
    * El aviso viene de una aplicación recién hecha: llevarlo a la vista y mover
    * el foco a su título (C4: con omitidas quedaba bajo el pliegue). Lo pide
    * el store dos veces como máximo: al llegar la respuesta y en el remontaje
@@ -55,10 +60,10 @@ function plural(n: number, uno: string, varios: string): string {
   return `${n} ${n === 1 ? uno : varios}`;
 }
 
-export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, enfocar = false, onEnfocado }: Props) {
+export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, incompletos = [], enfocar = false, onEnfocado }: Props) {
   const seccionRef = useRef<HTMLElement>(null);
   const tituloRef = useRef<HTMLElement>(null);
-  const hayAlgo = omitidas.length > 0 || textosSinCodigo.length > 0;
+  const hayAlgo = omitidas.length > 0 || textosSinCodigo.length > 0 || incompletos.length > 0;
 
   useEffect(() => {
     if (!enfocar || !hayAlgo) return;
@@ -76,6 +81,23 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, enfocar = fals
       aria-label="Lo que la adaptación no aplicó"
       data-testid="codificacion-aplicar-omitidas"
     >
+      {incompletos.length > 0 && (
+        <div
+          className="pulso-codif-omitidas-bloque pulso-codif-omitidas-bloque--fuerte"
+          role="alert"
+          data-testid="codificacion-aplicar-incompleto"
+        >
+          <div className="pulso-codif-omitidas-cabecera">
+            <AlertTriangle size={16} aria-hidden="true" className="pulso-codif-omitidas-icono" />
+            <strong className="pulso-codif-omitidas-incompleto">
+              No se pudo revisar {incompletos.join(" ni ")}
+            </strong>
+          </div>
+          <p className="pulso-codif-omitidas-incompleto-nota">
+            Puede haber preguntas que no se aplicaron o textos sin código que no aparecen aquí.
+          </p>
+        </div>
+      )}
       {omitidas.length > 0 && (
         <div className="pulso-codif-omitidas-bloque pulso-codif-omitidas-bloque--fuerte" role="alert">
           <div className="pulso-codif-omitidas-cabecera">

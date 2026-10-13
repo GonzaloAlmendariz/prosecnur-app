@@ -243,6 +243,12 @@ export type CodifTextosSinCodigo = {
 export type CodifAplicarAvisos = {
   omitidas: CodifOmitida[];
   textos_sin_codigo: CodifTextosSinCodigo[];
+  /**
+   * Qué diagnóstico falló en el backend (p. ej. «las preguntas omitidas»).
+   * Con algo aquí, las dos listas pueden estar incompletas: vacías no
+   * significa «no se omitió nada» (ADR 0100, cierre del verificador).
+   */
+  avisos_incompletos: string[];
 };
 
 const CODIF_OMITIDA_MOTIVOS: readonly CodifOmitidaMotivo[] = [
@@ -344,6 +350,9 @@ export function normalizeCodifAplicarAvisos(raw: unknown): CodifAplicarAvisos {
     textos_sin_codigo: codifLista(root.textos_sin_codigo)
       .map(normalizarTextosSinCodigo)
       .filter((t): t is CodifTextosSinCodigo => t !== null),
+    avisos_incompletos: codifLista(root.avisos_incompletos)
+      .map(codifTexto)
+      .filter((t) => t.length > 0),
   };
 }
 

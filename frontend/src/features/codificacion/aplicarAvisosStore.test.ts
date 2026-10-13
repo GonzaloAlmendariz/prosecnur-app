@@ -16,6 +16,7 @@ const respuesta = (over: Partial<CodifAplicarRespuesta> = {}): CodifAplicarRespu
   ok: true,
   job_id: "job-1",
   kind: "codif_aplicar",
+  avisos_incompletos: [],
   omitidas: [
     { pregunta: "P66", motivo: "sin_columna_texto", mensaje: "Falta «P66_otro».", variable_nueva: null },
   ],

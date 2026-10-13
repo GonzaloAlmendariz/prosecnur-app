@@ -48,7 +48,7 @@ export type AplicarEntrada = {
 export const APLICAR_ENTRADA_VACIA: AplicarEntrada = Object.freeze({
   aplicando: false,
   jobId: null,
-  avisos: Object.freeze({ omitidas: [], textos_sin_codigo: [] }) as CodifAplicarAvisos,
+  avisos: Object.freeze({ omitidas: [], textos_sin_codigo: [], avisos_incompletos: [] }) as CodifAplicarAvisos,
   sinRecodificar: [],
   salida: null,
   error: "",
@@ -62,7 +62,7 @@ export function claveAplicar(sessionId: string, base: string | null | undefined)
 }
 
 export function tieneAvisos(avisos: CodifAplicarAvisos): boolean {
-  return avisos.omitidas.length > 0 || avisos.textos_sin_codigo.length > 0;
+  return avisos.omitidas.length > 0 || avisos.textos_sin_codigo.length > 0 || avisos.avisos_incompletos.length > 0;
 }
 
 type AplicarAvisosState = {
@@ -104,6 +104,7 @@ export const useAplicarAvisosStore = create<AplicarAvisosState>((set) => ({
       const avisos: CodifAplicarAvisos = {
         omitidas: r.omitidas ?? [],
         textos_sin_codigo: r.textos_sin_codigo ?? [],
+        avisos_incompletos: r.avisos_incompletos ?? [],
       };
       return {
         porBase: actualizar(s.porBase, clave, {
@@ -149,7 +150,7 @@ export function debeRevelarAlMontar(e: AplicarEntrada): boolean {
 
 /** Cuántos avisos de ADR 0100 dejó la aplicación (preguntas, no filas). */
 export function contarAvisos(avisos: CodifAplicarAvisos): number {
-  return avisos.omitidas.length + avisos.textos_sin_codigo.length;
+  return avisos.omitidas.length + avisos.textos_sin_codigo.length + avisos.avisos_incompletos.length;
 }
 
 export function selectAplicarEntrada(clave: string) {

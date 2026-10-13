@@ -57,12 +57,13 @@ describe("normalizeCodifAplicarAvisos", () => {
   });
 
   it("vacío, ausente o `{}` de R son listas vacías, no un aviso", () => {
-    expect(normalizeCodifAplicarAvisos({ ok: true })).toEqual({ omitidas: [], textos_sin_codigo: [] });
+    expect(normalizeCodifAplicarAvisos({ ok: true })).toEqual({ omitidas: [], textos_sin_codigo: [], avisos_incompletos: [] });
     expect(normalizeCodifAplicarAvisos({ omitidas: [], textos_sin_codigo: {} })).toEqual({
       omitidas: [],
       textos_sin_codigo: [],
+      avisos_incompletos: [],
     });
-    expect(normalizeCodifAplicarAvisos(null)).toEqual({ omitidas: [], textos_sin_codigo: [] });
+    expect(normalizeCodifAplicarAvisos(null)).toEqual({ omitidas: [], textos_sin_codigo: [], avisos_incompletos: [] });
   });
 
   it("un motivo desconocido no se inventa ni se calla: cae a no_se_pudo_aplicar con su texto", () => {
@@ -84,5 +85,14 @@ describe("normalizeCodifAplicarAvisos", () => {
     expect(r.textos_sin_codigo).toHaveLength(1);
     expect(r.textos_sin_codigo[0].ejemplos).toEqual(["a", "b", "c", "d", "e"]);
     expect(r.textos_sin_codigo[0].textos).toBe(7);
+  });
+});
+
+describe("avisos_incompletos (ADR 0100)", () => {
+  it("se normaliza desde R: escalar suelto o lista, sin vacíos", () => {
+    expect(normalizeCodifAplicarAvisos({ avisos_incompletos: "las preguntas omitidas" }).avisos_incompletos)
+      .toEqual(["las preguntas omitidas"]);
+    expect(normalizeCodifAplicarAvisos({ avisos_incompletos: ["a", "", null] }).avisos_incompletos).toEqual(["a"]);
+    expect(normalizeCodifAplicarAvisos({}).avisos_incompletos).toEqual([]);
   });
 });
