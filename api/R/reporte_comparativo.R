@@ -264,8 +264,28 @@
     list(base = b,
          n_sin_mapa = as.integer(sm$n_sin_mapa %||% 0L),
          n_especial_sin_mapa = as.integer(sm$n_especial_sin_mapa %||% 0L),
-         codigos_sin_mapa = sm$codigos_sin_mapa %||% list())
+         codigos_sin_mapa = sm$codigos_sin_mapa %||% list(),
+         codigos_especiales = sm$codigos_especiales %||% list(),
+         etiquetas_especiales = sm$etiquetas_especiales %||% list())
   })
+}
+
+# {<cruce>: {<base>: [códigos]}}: categorías de cada variable de cruce que no
+# se ofrecían ese año, sólo en los años en que la pregunta y el cruce comparan.
+.comparativo_resumen_no_ofrecidas_cruce <- function(q, cruces, periodos) {
+  out <- list()
+  for (x in cruces) {
+    por_base <- list()
+    for (b in periodos) {
+      pp <- q$periodos[[b]]
+      if (!identical(pp$estado, "ok")) next
+      pc <- pp$cruces[[x$key]]
+      if (!identical(pc$estado, "ok") || !length(pc$no_ofrecidas)) next
+      por_base[[b]] <- as.list(pc$no_ofrecidas)
+    }
+    if (length(por_base)) out[[x$etiqueta]] <- por_base
+  }
+  out
 }
 
 .comparativo_resumen_no_ofrecidas <- function(q, periodos) {
@@ -526,18 +546,15 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
               next
             }
             col_no_ofrecida <- x$escala$codigos[kk] %in% (pc$no_ofrecidas %||% character(0))
-            if (fila_no_ofrecida || col_no_ofrecida) {
-              marca(ck, .COMPARATIVO_NO_OFRECIDA)
-              if (col_no_ofrecida && i == 1L) {
+            Nk <- unname(pc$N_vec[kk])
+            # Lo que es de la COLUMNA (no ofrecida, sin casos, base reducida)
+            # se registra una vez por año, aunque la primera respuesta de la
+            # pregunta tampoco se ofreciera ese año.
+            if (i == 1L) {
+              if (col_no_ofrecida) {
                 hay_no_ofrecida <- TRUE
                 no_of_notas <- c(no_of_notas, x$notas[[b]] %||% "")
-              }
-              next
-            }
-            Nk <- unname(pc$N_vec[kk])
-            celda(ck, if (es_total) NA_real_ else unname(pc$n_mat[i, kk]), Nk)
-            if (i == 1L) {
-              if (Nk <= 0) {
+              } else if (Nk <= 0) {
                 na_items[[length(na_items) + 1L]] <- list(
                   periodo = b, cruce = x$etiqueta, categoria = x$escala$etiquetas[kk],
                   nota = x$notas[[b]] %||% "")
@@ -547,6 +564,11 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
                   n = unname(pc$N_sin_peso[kk]))
               }
             }
+            if (fila_no_ofrecida || col_no_ofrecida) {
+              marca(ck, .COMPARATIVO_NO_OFRECIDA)
+              next
+            }
+            celda(ck, if (es_total) NA_real_ else unname(pc$n_mat[i, kk]), Nk)
           }
           if (i == 1L && !identical(pc$estado, "ok")) {
             nc_partes <- c(nc_partes, if (nzchar(x$notas[[b]])) paste0(x$etiqueta, ": ", x$notas[[b]]) else
@@ -651,6 +673,7 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
       n_a = lapply(na_items, function(it) it[c("periodo", "cruce", "categoria")]),
       n_reducidas = length(Filter(function(r) r$n > 0 && r$n < notas_n$base_reducida$umbral, reducidas)),
       no_ofrecidas = .comparativo_resumen_no_ofrecidas(q, periodos),
+      no_ofrecidas_cruce = .comparativo_resumen_no_ofrecidas_cruce(q, cruces, periodos),
       sin_mapa = .comparativo_resumen_sin_mapa(q, periodos)
     )
   }

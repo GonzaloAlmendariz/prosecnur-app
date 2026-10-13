@@ -297,3 +297,38 @@ test_that("el rótulo de sección sale sin la numeración del eje de la matriz",
   expect_identical(.comparativo_rotulo_seccion(NULL), "")
   expect_identical(.comparativo_rotulo_seccion(NA), "")
 })
+
+test_that("resumen de cruces: no_ofrecidas_cruce por variable y año, aunque la primera respuesta tampoco se ofreciera", {
+  g <- .rc_generar()
+  expect_identical(g$rcz$preguntas[[1]]$no_ofrecidas_cruce,
+                   list(`Lugar de nacimiento` = list(b2024 = list("3"))))
+  expect_identical(g$rs$preguntas[[1]]$no_ofrecidas_cruce, NULL)  # el simple no tiene cruces
+
+  # 2024 no ofrecía «Sí» en VBG-01: lo que es de la columna se registra igual.
+  sid <- .az_setup()
+  eq <- session_get(sid)$equivalencias_publicos
+  eq$filas[[1]]$armonizacion$por_base$b2024$mapa <- list(`2` = "2", `9` = "3")
+  session_set(sid, "equivalencias_publicos", eq)
+  notas <- .az_notas()
+  notas$base_reducida$umbral <- 1000
+  mc <- armonizada_modelo_cruces(.armz_preparar(sid, list(notas = notas), filas_refs = list("VBG-01"),
+                                                cruces_refs = list("S-05")))
+  path <- withr::local_tempfile(fileext = ".xlsx")
+  rz <- reporte_comparativo_cruces(mc, path, .armz_rotulos(mc$periodos), notas)
+  expect_identical(rz$preguntas[[1]]$no_ofrecidas, list(b2024 = list("1")))
+  expect_identical(rz$preguntas[[1]]$no_ofrecidas_cruce$`Lugar de nacimiento`$b2024, list("3"))
+  expect_gt(rz$preguntas[[1]]$n_reducidas, 0L)
+  d <- .rc_celdas(path)
+  expect_true(any(grepl("«Lima Metropolitana y Callao» (2024, 2025 y 2026)", d[[1]], fixed = TRUE)))
+  expect_true(any(grepl("no incluía la opción «Fuera del país»", d[[1]], fixed = TRUE)))
+})
+
+test_that("resumen: sin_mapa trae los códigos especiales y sus etiquetas", {
+  g <- .rc_generar()
+  sm25 <- Filter(function(x) identical(x$base, "b2025"), g$rs$preguntas[[1]]$sin_mapa)[[1]]
+  expect_identical(sm25$n_especial_sin_mapa, 3L)
+  expect_identical(sm25$codigos_especiales, list("99"))
+  expect_identical(sm25$etiquetas_especiales, list("Opción 99"))
+  sm24 <- Filter(function(x) identical(x$base, "b2024"), g$rcz$preguntas[[1]]$sin_mapa)[[1]]
+  expect_identical(sm24$codigos_especiales, list())
+})
