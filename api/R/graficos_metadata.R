@@ -62,23 +62,23 @@
 # (auditoría P7 del GOAL loop del motor PPT).
 .args_slide_titulos_base <- function(incluir = c("titulo", "etiqueta", "base", "pie")) {
   args <- list(
-    titulo = list(name = "titulo",     label = "Título del slide",    tipo_input = "string",   grupo = "textos",
+    titulo = list(name = "titulo",     label = "Título de la lámina",    tipo_input = "string",   grupo = "textos",
          descripcion = "Aparece arriba del gráfico como encabezado."),
     etiqueta = list(name = "etiqueta",   label = "Etiqueta corta",      tipo_input = "string",   grupo = "textos",
-         descripcion = "Texto pequeño que antecede al bloque de texto del slide (ej. sección numerada)."),
+         descripcion = "Texto pequeño sobre el bloque de texto de la lámina (ej. el número de sección)."),
     base = list(name = "base",       label = "Base",                tipo_input = "string",   grupo = "textos",
          descripcion = "Nota al pie con la base real (ej. 'Base: 120 encuestados'). Si la dejas vacía, se infiere automáticamente."),
     pie = list(name = "pie",        label = "Pie (nota)",          tipo_input = "textarea", grupo = "textos",
-         descripcion = "Línea de fuente o disclaimer al pie del slide.")
+         descripcion = "Fuente o nota al pie de la lámina.")
   )
   unname(args[intersect(names(args), incluir)])
 }
 
 .args_slide_poblacion_basico <- function(incluir = c("titulo", "icono", "base", "pie", "etiqueta")) {
   args <- list(
-    titulo = list(name = "titulo",   label = "Título del slide", tipo_input = "string",   grupo = "textos"),
+    titulo = list(name = "titulo",   label = "Título de la lámina", tipo_input = "string",   grupo = "textos"),
     icono = list(name = "icono",    label = "Ícono",            tipo_input = "icono",    grupo = "textos",
-         descripcion = "PNG central del slide, elegido desde los iconos subidos en Identidad > Íconos."),
+         descripcion = "Imagen central de la lámina, elegida entre los íconos subidos en Identidad > Íconos."),
     base = list(name = "base",     label = "Base",             tipo_input = "string",   grupo = "textos",
          descripcion = "Nota al pie con la base real. Vacío = automática."),
     pie = list(name = "pie",      label = "Pie",              tipo_input = "textarea", grupo = "textos"),
@@ -92,7 +92,7 @@
   list(name = "titulo",     label = "Título del gráfico", tipo_input = "string",      grupo = "textos",
        descripcion = "Título que aparece sobre el gráfico. Si lo dejas vacío, se usa la etiqueta de la variable."),
   list(name = "overrides",  label = "Overrides de estilo",tipo_input = "overrides",   grupo = "estilo",
-       descripcion = "Ajustes visuales específicos a este gráfico (tamaños, colores, canvas) que pisan el preset global."),
+       descripcion = "Ajustes visuales sólo para este gráfico (tamaños, colores, márgenes); mandan sobre el estilo del informe."),
   list(name = "filtros",    label = "Filtros",            tipo_input = "filtros",     grupo = "filtro",
        descripcion = "Restringe los datos que entran al gráfico (ej. solo mujeres, solo Lima)."),
   list(name = "base",       label = "Base del gráfico",   tipo_input = "base_config", grupo = "textos",
@@ -525,7 +525,7 @@
     # Sin `etiqueta`: el constructor no la acepta (el puente la descartaba).
     args = c(.args_slide_titulos_base(c("titulo", "base", "pie")), list(
       list(name = "subtitulo", label = "Subtítulo", tipo_input = "string", grupo = "textos",
-           descripcion = "Línea secundaria que aparece justo debajo del título del slide.")
+           descripcion = "Línea secundaria justo debajo del título de la lámina.")
     ))
   ),
 
@@ -715,7 +715,7 @@
     # constructor sí renderiza bajo el título y no tenía superficie.
     args = c(.args_slide_poblacion_basico(c("titulo", "icono", "base")), list(
       list(name = "texto", label = "Texto", tipo_input = "textarea", grupo = "textos",
-           descripcion = "Línea introductoria que aparece bajo el título del slide.")
+           descripcion = "Línea introductoria bajo el título de la lámina.")
     ))
   ),
 
@@ -1780,7 +1780,7 @@
       list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos",
            descripcion = "Se muestra como subtítulo. Ej. «% de acuerdo o total acuerdo»."),
       list(name = "orden_periodos", label = "Orden completo de periodos", tipo_input = "codigos_list", grupo = "datos",
-           descripcion = "Opcional. Debe ser una permutación exacta, completa y sin duplicados de las fuentes declaradas."),
+           descripcion = "Opcional. Todas las mediciones, una vez cada una, en el orden en que deben salir."),
       list(name = "mostrar_valores", label = "Mostrar cifras", tipo_input = "bool", grupo = "datos",
            default = TRUE,
            descripcion = "Escribe el porcentaje sobre cada punto. Cuando dos series se cruzan, una cifra pasa debajo del punto para no pisarse."),
@@ -2247,7 +2247,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   # =========================================================================
   base = list(
     titulo_humano = "Base — estilo común",
-    descripcion   = "Base visual que heredan todos los gráficos: fuente, tamaños, colores de texto, negritas, formato del texto 'Base: N' y guías de espacio para revisar el layout. Lo que ajustes aquí aplica a todo el reporte salvo que un tipo de gráfico tenga una base propia.",
+    descripcion   = "Base visual que heredan todos los gráficos: fuente, tamaños, colores de texto, negritas, formato del texto 'Base: N' y guías para revisar la composición. Lo que ajustes aquí aplica a todo el reporte salvo que un tipo de gráfico tenga una base propia.",
     icono_ui      = "Layers",
     args = list(
       # --- Tipografía y fuente --------------------------------------------
@@ -2255,7 +2255,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            default = "Arial",
            descripcion = "Familia tipográfica usada por todos los gráficos (ej. 'Arial', 'Helvetica', 'Open Sans', 'Roboto')."),
       list(name = "font_family_ppt",   label = "Fuente (solo PPT)",      tipo_input = "string", grupo = "textos",
-           descripcion = "Sobrescribe la 'Fuente' solo al exportar a PowerPoint. Vacío = usa la general. Útil si en PPT necesitas una fuente Office-safe distinta."),
+           descripcion = "Tipografía sólo para PowerPoint. Vacío, usa la general. Sirve cuando la general no está instalada en las computadoras donde se abre el PPT."),
       list(name = "formato",           label = "Formato del texto base", tipo_input = "string", grupo = "textos",
            default = "Base: %s",
            descripcion = "Plantilla del texto automático de la base. %s se reemplaza por el conteo. Ej. 'Base: %s' → 'Base: 120'. Otras opciones: 'n = %s', 'N = %s respuestas'."),
@@ -2268,7 +2268,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       # --- Tamaños (pt) ---------------------------------------------------
       list(name = "size_titulo",       label = "Tamaño del título",      tipo_input = "number", grupo = "estilo",
            default = 14,
-           descripcion = "Tamaño de fuente del título del gráfico (pt). Valor base Pulso: 14; títulos de slide se controlan desde la plantilla."),
+           descripcion = "Tamaño del título del gráfico, en puntos (14 por defecto). El título de la lámina se ajusta en la plantilla."),
       list(name = "size_titulo_slide", label = "Tamaño título PPT",      tipo_input = "number", grupo = "estilo",
            default = 24,
            descripcion = "Tamaño del título de una lámina PPT estructural (pt)."),
@@ -2301,7 +2301,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Título de la lámina, los separadores de sección y la portada."),
       list(name = "color_titulo",      label = "Color del título del gráfico", tipo_input = "color", grupo = "estilo",
            default = "#081F5C",
-           descripcion = "Hex del color del texto del título. Default Pulso PUCP: rojo principal."),
+           descripcion = "Color del texto del título. Por defecto, el rojo principal de la marca."),
       list(name = "color_subtitulo",   label = "Color del subtítulo",    tipo_input = "color", grupo = "estilo",
            default = "#081F5C",
            descripcion = "Color del subtítulo del gráfico."),
@@ -2329,10 +2329,10 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Muestra bordes de referencia alrededor de cada bloque interno del gráfico. Controlable con el botón global del encabezado."),
       list(name = "debug_ph_col",      label = "Color de los bordes", tipo_input = "string", grupo = "avanzado",
            default = "#0FA3B1",
-           descripcion = "Hex del color del plano de la guía. Cian apagado: se ve sobre el blanco del canvas y sobre el azul institucional sin comerse la lámina, que es lo que hacía el magenta anterior."),
+           descripcion = "Color de las guías. El cian apagado por defecto se ve sobre el blanco y sobre el azul institucional sin tapar la lámina."),
       list(name = "debug_ph_lwd",      label = "Grosor de los bordes", tipo_input = "number", grupo = "avanzado",
            default = 0.6,
-           descripcion = "Grosor de las guías de layout, en puntos. Solo se dibujan con las guías encendidas.")
+           descripcion = "Grosor de las guías, en puntos. Sólo se dibujan con las guías encendidas.")
     )
   ),
 
@@ -2356,7 +2356,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            default = TRUE,
            descripcion = "Añade una barra adicional a la derecha con Top2Box, Bottom2Box o N. Se configura con 'Preset de la barra extra' del graficador."),
       list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "color", grupo = "estilo",
-           descripcion = "Hex del color de la barra extra. Ej. '#081F5C'."),
+           descripcion = "Color de la barra extra."),
       list(name = "size_barra_extra",     label = "Tamaño texto barra extra", tipo_input = "number", grupo = "estilo",
            descripcion = "Cuerpo de letra de la cifra de la columna extra."),
       list(name = "barra_extra_preset",   label = "Qué muestra la barra extra", tipo_input = "choice", grupo = "estilo",
@@ -2496,7 +2496,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "legend_n_por_fila",    label = "Items por fila en leyenda", tipo_input = "number", grupo = "estilo",
            default = 6),
       list(name = "legend_ancho_rel",     label = "Ancho reservado leyenda", tipo_input = "number", grupo = "estilo",
-           descripcion = "Ancho relativo mínimo para centrar una leyenda compacta en canvas. Déjalo vacío para cálculo automático."),
+           descripcion = "Ancho mínimo, relativo al gráfico, para centrar una leyenda corta. Vacío, se calcula solo."),
       list(name = "legend_gap_npc",       label = "Separación compacta leyenda", tipo_input = "number", grupo = "estilo",
            default = 0.018,
            descripcion = "Separación horizontal entre ítems de la leyenda compacta."),
@@ -2504,7 +2504,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       # --- Canvas (anchos y altos internos en pulgadas) ------------------
       list(name = "canvas_w_etiquetas",     label = "Ancho columna etiquetas", tipo_input = "number", grupo = "canvas",
            default = 0.12,
-           descripcion = "Fracción del ancho total que ocupa la columna de etiquetas del eje Y. 0.12 = 12% del canvas."),
+           descripcion = "Parte del ancho que ocupa la columna de etiquetas del eje vertical. 0.12 = 12 % del gráfico."),
       list(name = "canvas_w_buf_etq_bars",  label = "Espacio etiquetas→barras", tipo_input = "number", grupo = "canvas",
            default = 0.02,
            descripcion = "Fracción de separación entre las etiquetas y las barras."),
@@ -2518,7 +2518,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Fracción del ancho para la columna de la barra extra (Top2Box, N, etc.)."),
       list(name = "canvas_h_toprow_in",     label = "Alto zona superior (in)", tipo_input = "number", grupo = "canvas",
            default = 0.10,
-           descripcion = "Altura en pulgadas de la primera fila del canvas (espacio en blanco arriba)."),
+           descripcion = "Espacio en blanco sobre el gráfico, en pulgadas."),
       list(name = "canvas_h_header_in",     label = "Alto del header (in)",   tipo_input = "number", grupo = "canvas",
            default = 0.15,
            descripcion = "Altura en pulgadas de la zona del título. Si el título no entra, aumenta este valor."),
@@ -2998,7 +2998,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   # =========================================================================
   nube_palabras = list(
     titulo_humano = "Nube de palabras",
-    descripcion   = "Estilo global para nubes de palabras de respuestas abiertas. Se usa de forma automática en slides Otros.",
+    descripcion   = "Estilo de las nubes de palabras de respuestas abiertas. Se aplica solo en las láminas de «Otros».",
     icono_ui      = "Cloud",
     args = list(
       list(name = "max_palabras", label = "Máximo de palabras", tipo_input = "number", grupo = "filtro", default = 40),
@@ -3595,9 +3595,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 
       # --- Tabla: colores y bordes --------------------------------------
       list(name = "tabla_header_fill",    label = "Color de fondo header",  tipo_input = "string", grupo = "tabla",
-           descripcion = "Hex del fondo del encabezado. NA = transparente."),
+           descripcion = "Color de fondo del encabezado. Vacío, transparente."),
       list(name = "tabla_body_fill",      label = "Color de fondo body",    tipo_input = "string", grupo = "tabla",
-           descripcion = "Hex del fondo de las celdas. NA = transparente."),
+           descripcion = "Color de fondo de las celdas. Vacío, transparente."),
       list(name = "tabla_grid_col",       label = "Color de la grilla",     tipo_input = "string", grupo = "tabla",
            default = "white"),
       list(name = "tabla_text_blue",      label = "Color del texto",        tipo_input = "string", grupo = "tabla",
@@ -3610,7 +3610,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "tabla_body_size",      label = "Tamaño texto body",      tipo_input = "number", grupo = "tabla", default = 7),
       list(name = "tabla_firstcol_size",  label = "Tamaño texto 1ra columna", tipo_input = "number", grupo = "tabla"),
       list(name = "tabla_firstcol_bold",  label = "1ra columna en negrita", tipo_input = "bool",   grupo = "tabla", default = TRUE),
-      list(name = "tabla_firstcol_wrap",  label = "Ancho 1ra columna (chars)", tipo_input = "number", grupo = "tabla",
+      list(name = "tabla_firstcol_wrap",  label = "Ancho de la primera columna (caracteres)", tipo_input = "number", grupo = "tabla",
            descripcion = "Máximo de caracteres por línea en la primera columna antes de romper."),
       list(name = "tabla_firstcol_indent_npc", label = "Indent 1ra columna", tipo_input = "number", grupo = "tabla"),
       list(name = "tabla_firstcol_frac",  label = "Fracción 1ra columna",   tipo_input = "number", grupo = "tabla",
@@ -5294,8 +5294,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   ),
 
   reporte_ejecutivo = list(
-    titulo_humano = "Reporte ejecutivo (10 slides)",
-    descripcion   = "Portada + índice + 2 bloques temáticos, cada uno con separador, slide narrativo, un gráfico y una comparativa de dos gráficos. Estructura típica para devolver hallazgos a stakeholders.",
+    titulo_humano = "Reporte ejecutivo (10 láminas)",
+    descripcion   = "Portada, índice y dos bloques temáticos; cada bloque con separador, una lámina de texto, un gráfico y una comparación de dos gráficos. Para devolver hallazgos a quien encargó el estudio.",
     icono_ui      = "Layers",
     n_slides      = 10L,
     plan = list(
@@ -5376,7 +5376,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 
   acreditacion_multibase = list(
     titulo_humano = "Acreditación — Multi-base (3 roles)",
-    descripcion   = "Template para estudios de acreditación con 3 bases paralelas (docentes / estudiantes / administrativos). Incluye portada, perfil demográfico por rol, y un bloque comparativo con p_barras_multiapiladas en modo var_cruce que muestra las 3 fuentes lado a lado. Diseñado para cargarse sobre el demo 'Acreditación PUCP — AMDT'.",
+    descripcion   = "Para estudios de acreditación con tres bases paralelas (docentes, estudiantes y administrativos): portada, perfil por público y un bloque que compara a los tres públicos lado a lado, tema por tema.",
     icono_ui      = "GraduationCap",
     n_slides      = 7L,
     plan = list(
