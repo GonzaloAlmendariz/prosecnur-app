@@ -1,0 +1,125 @@
+/* Lo que `/aplicar` no aplicó (ADR 0100, P1). Sólo tokens --pulso-*.
+ * Altura intrínseca: crece con sus filas dentro de AdaptarPane y el dueño del
+ * scroll es la página (No Scroll Jail); no hay scroll interno. Ningún dato se
+ * recorta: preguntas, columnas y ejemplos envuelven en vez de truncarse. */
+
+.pulso-codif-omitidas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-codif-omitidas-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 55%, var(--pulso-surface) 45%);
+  color: var(--pulso-text);
+}
+
+/* La omisión de una pregunta entera es el daño mayor: avisa fuerte (ADR 0077). */
+.pulso-codif-omitidas-bloque--fuerte {
+  border-color: color-mix(in srgb, var(--pulso-warn-accent) 45%, var(--pulso-warn-border));
+  border-left: 4px solid var(--pulso-warn-accent);
+  background: var(--pulso-warn-bg);
+}
+
+.pulso-codif-omitidas-cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-codif-omitidas-cabecera strong {
+  display: block;
+  color: var(--pulso-warn-fg);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-codif-omitidas-cabecera p {
+  margin: 2px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.pulso-codif-omitidas-icono {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--pulso-warn-accent);
+}
+
+.pulso-codif-omitidas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-codif-omitidas-fila {
+  display: grid;
+  grid-template-columns: minmax(64px, max-content) minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-1) 0;
+  border-top: 1px solid color-mix(in srgb, var(--pulso-warn-border) 60%, transparent);
+  font-size: 12px;
+}
+
+.pulso-codif-omitidas-fila:first-child {
+  border-top: 0;
+}
+
+.pulso-codif-omitidas-fila code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.pulso-codif-omitidas-pregunta {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-codif-omitidas-detalle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-codif-omitidas-mensaje {
+  min-width: 0;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.pulso-codif-omitidas-ejemplos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-codif-omitidas-ejemplos li {
+  max-width: 100%;
+  padding: 1px var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  overflow-wrap: anywhere;
+}
+
+.pulso-codif-omitidas-ejemplos .pulso-codif-omitidas-mas {
+  border-style: dashed;
+  background: transparent;
+}

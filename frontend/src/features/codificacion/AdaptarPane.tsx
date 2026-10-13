@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2, Download, FileSpreadsheet, Play, RefreshCw, Tags } from "lucide-react";
-import type { CodifSinRecodificar } from "../../api/codificacion";
+import type { CodifAplicarAvisos, CodifSinRecodificar } from "../../api/codificacion";
 import {
   apiCodifAplicar,
   apiCodifPlanAdaptacion,
@@ -14,6 +14,9 @@ import { JobProgress } from "../../components/JobProgress";
 import { Panel } from "../../components/Panel";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { useSession } from "../../lib/SessionContext";
+import { AplicarOmitidasAviso } from "./AplicarOmitidasAviso";
+
+const SIN_AVISOS_APLICAR: CodifAplicarAvisos = { omitidas: [], textos_sin_codigo: [] };
 
 type Props = {
   onBackToCodificar: () => void;
@@ -27,6 +30,8 @@ export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
   const [busyLoad, setBusyLoad] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [sinRecodificar, setSinRecodificar] = useState<CodifSinRecodificar[]>([]);
+  // ADR 0100, P1: un solo estado con las dos listas de lo que no se aplicó.
+  const [avisosAplicar, setAvisosAplicar] = useState<CodifAplicarAvisos>(SIN_AVISOS_APLICAR);
   const [runErr, setRunErr] = useState<string>("");
   const [output, setOutput] = useState<{ data: string; inst: string } | null>(null);
 
@@ -48,11 +53,13 @@ export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
     setRunErr("");
     setOutput(null);
     setSinRecodificar([]);
+    setAvisosAplicar(SIN_AVISOS_APLICAR);
     try {
       const r = await apiCodifAplicar();
       // ADR 0078, punto 5: declarar qué se entrega sin recodificar. No frena
       // la adaptación — que ya está corriendo cuando esto se pinta.
       setSinRecodificar(r.sin_recodificar ?? []);
+      setAvisosAplicar({ omitidas: r.omitidas, textos_sin_codigo: r.textos_sin_codigo });
       setJobId(r.job_id);
     } catch (e) {
       setRunErr((e as Error).message);
@@ -208,6 +215,13 @@ export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
       )}
 
       {runErr && <Alert kind="error">{runErr}</Alert>}
+
+      {/* ADR 0100, P1: las preguntas del catálogo que no se aplicaron y los
+          textos que quedaron sin código. Sin nada que decir, no pinta. */}
+      <AplicarOmitidasAviso
+        omitidas={avisosAplicar.omitidas}
+        textosSinCodigo={avisosAplicar.textos_sin_codigo}
+      />
 
       {/* ADR 0078, punto 5: qué se entrega sin recodificar. Aparece al aplicar
           y no antes, porque es el momento en que deja de ser reversible sin
