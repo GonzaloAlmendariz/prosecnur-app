@@ -285,3 +285,15 @@ test_that("R4b condiciones: pie de calibración fallida, N ponderado sólo si al
   expect_true("n.a.: no aplica, 2025 sin respuestas válidas (208 casos No sé / No responde)." %in% d[[1]])
   expect_identical(unname(unlist(d[6, 4:5])), rep("n.a.", 2))
 })
+
+test_that("el rótulo de sección sale sin la numeración del eje de la matriz", {
+  expect_identical(.comparativo_rotulo_seccion("3. Prevalencia general de hostigamiento sexual"),
+                   "PREVALENCIA GENERAL DE HOSTIGAMIENTO SEXUAL")
+  expect_identical(.comparativo_rotulo_seccion("2) Características sociodemográficas"),
+                   "CARACTERÍSTICAS SOCIODEMOGRÁFICAS")
+  expect_identical(.comparativo_rotulo_seccion("7.1. Respuesta institucional"), "RESPUESTA INSTITUCIONAL")
+  expect_identical(.comparativo_rotulo_seccion("Violencia basada en género"), "VIOLENCIA BASADA EN GÉNERO")
+  expect_identical(.comparativo_rotulo_seccion("2024 en cifras"), "2024 EN CIFRAS")
+  expect_identical(.comparativo_rotulo_seccion(NULL), "")
+  expect_identical(.comparativo_rotulo_seccion(NA), "")
+})
