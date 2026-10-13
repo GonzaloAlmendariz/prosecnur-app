@@ -42,13 +42,37 @@
 # entera; con 7 o mas, «las dos mejores» deja de resumir la mitad alta.
 .GPE_TOP2BOX_CATEGORIAS <- c(4L, 6L)
 
-.gpe_admite_top2box <- function(firmas) {
+.gpe_admite_top2box <- function(firmas) length(.gpe_top2box_etiquetas(firmas)) == 2L
+
+# Las dos categorías que suma el Top Two Box de la diapositiva, o `character(0)` si su escala no lo admite.
+#
+# D3 (mazo de Arte y Diseño, 2026-10-12): la regla contaba opciones y nada más, así que «¿Cuál es su género?» (Masculino,
+# Femenino, Prefiero no responder, Otro) entraba como escala de cuatro, y el motor —que ya no deduce las categorías del
+# orden de la escala— omitía la columna con un aviso en siete láminas. Ahora: sólo una escala con orden (`.goc_pistas_orden`:
+# acuerdo, satisfacción, frecuencia…), de 4 a 6 opciones válidas sin contar las residuales ni «Sin información», y se
+# declaran por nombre las dos últimas, las más favorables en el orden del instrumento.
+.gpe_top2box_etiquetas <- function(firmas) {
   firmas <- as.character(firmas %||% character(0))
   firmas <- unique(firmas[nzchar(firmas)])
-  if (length(firmas) != 1L) return(FALSE)
-  if (!grepl("=", firmas[1], fixed = TRUE)) return(FALSE)
-  n <- length(strsplit(firmas[1], "|", fixed = TRUE)[[1]])
-  n >= .GPE_TOP2BOX_CATEGORIAS[1] && n <= .GPE_TOP2BOX_CATEGORIAS[2]
+  if (length(firmas) != 1L || !grepl("=", firmas[1], fixed = TRUE)) return(character(0))
+  pares <- strsplit(firmas[1], "|", fixed = TRUE)[[1]]
+  etiquetas <- trimws(sub("^[^=]*=", "", pares))
+  validas <- etiquetas[nzchar(etiquetas) & !grepl(.CATEGORIAS_RESIDUALES, etiquetas, ignore.case = TRUE) &
+                         !grepl("^(sin inf|no aplica|no responde)", etiquetas, ignore.case = TRUE)]
+  n <- length(validas)
+  if (n < .GPE_TOP2BOX_CATEGORIAS[1] || n > .GPE_TOP2BOX_CATEGORIAS[2] || !isTRUE(.goc_pistas_orden(validas))) return(character(0))
+  utils::tail(validas, 2L)
+}
+
+# La firma de la escala va normalizada («de acuerdo»); el plan guarda las etiquetas como las escribe el instrumento
+# («De acuerdo»), que es como las muestra la tarjeta del gráfico.
+.gpe_con_etiquetas_originales <- function(etiquetas, filas, inst_por_base) {
+  if (!length(etiquetas) || !length(filas)) return(etiquetas)
+  f <- filas[[1]]; b <- names(f$variables)[1]; inst <- inst_por_base[[b]]
+  if (is.null(inst)) return(etiquetas)
+  originales <- vapply(.equiv_escala_opciones(inst, f$variables[[b]]), function(o) o$etiqueta, "")
+  hit <- originales[match(tolower(trimws(etiquetas)), tolower(trimws(originales)))]
+  ifelse(is.na(hit), etiquetas, hit)
 }
 
 .gpe_etiqueta_corte <- function(filas, inst_por_base, corte) {
@@ -428,8 +452,10 @@
       # Solo de 4 a 6 categorias: con 2 (Si/No) la suma de las dos ultimas es la
       # barra entera, y con 7 o mas «las dos mejores» deja de ser un resumen
       # honesto de la mitad alta.
-      if (.gpe_admite_top2box(firma_fila)) {
+      ttb <- .gpe_con_etiquetas_originales(.gpe_top2box_etiquetas(firma_fila), filas, inst_por_base)
+      if (length(ttb) == 2L) {
         args$top2box <- TRUE
+        args$top2box_labels <- ttb   # declaradas: el motor ya no las deduce del orden de la escala
       }
     }
 
