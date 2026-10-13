@@ -217,7 +217,7 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
       {esLaminaFija(slide.tipo) && (
         <p className="pulso-f6-candado">
           <Lock size={14} aria-hidden="true" />
-          Lámina estándar del recetario: su título, su texto y su ejemplo salen siempre iguales.
+          Lámina estándar: su título, su texto y su ejemplo salen siempre iguales.
         </p>
       )}
 

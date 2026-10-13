@@ -179,7 +179,7 @@
 
   p_slide_indice = list(
     titulo_humano = "Índice",
-    descripcion   = "Tabla de contenidos del reporte. Puede usar el layout de la plantilla o un índice limpio generado desde Prosecnur.",
+    descripcion   = "Los capítulos del informe con su ilustración. Sin capítulos escritos, toma los del informe.",
     icono_ui      = "List",
     categoria     = "estructural",
     render_key    = "indice",
@@ -329,7 +329,7 @@
 
   p_slide_top_two_box = list(
     titulo_humano = "Explicación Top Two Box",
-    descripcion   = "Lámina explicativa reutilizable para mostrar cómo se calcula Top Two Box con barra, llave, flecha y leyenda.",
+    descripcion   = "La lámina estándar que explica cómo se lee el Top Two Box: barra, llave, flecha y leyenda.",
     icono_ui      = "BarChart3",
     categoria     = "estructural",
     render_key    = "top_two_box",
@@ -386,7 +386,7 @@
 
   p_slide_redondeo = list(
     titulo_humano = "Explicación del redondeo",
-    descripcion   = "Lámina metodológica reutilizable: muestra la misma distribución rotulada por los dos métodos de redondeo, con su suma al lado. Responde de una vez la pregunta de por qué una barra suma 99 % o 101 %.",
+    descripcion   = "La lámina estándar del método: muestra la misma distribución rotulada por los dos métodos de redondeo, con su suma al lado. Responde de una vez la pregunta de por qué una barra suma 99 % o 101 %.",
     icono_ui      = "Calculator",
     categoria     = "estructural",
     render_key    = "redondeo",
@@ -421,7 +421,7 @@
 
   p_slide_seccion = list(
     titulo_humano = "Separador de sección",
-    descripcion   = "Lámina de transición entre bloques grandes del reporte. Muestra solo el título de la sección.",
+    descripcion   = "Abre un capítulo o un subcapítulo del informe, en siete versiones.",
     icono_ui      = "Bookmark",
     categoria     = "estructural",
     render_key    = "section",
@@ -443,7 +443,7 @@
 
   p_slide_objetivo_icono = list(
     titulo_humano = "Objetivo con ícono",
-    descripcion   = "El objetivo del estudio con la diana del recetario y, si se declaran, los actores consultados.",
+    descripcion   = "El objetivo del estudio con su diana y, si se declaran, los actores consultados.",
     icono_ui      = "Target",
     categoria     = "estructural",
     render_key    = "objetivo_icono",
@@ -465,7 +465,7 @@
 
   p_slide_texto = list(
     titulo_humano = "Bloque de texto",
-    descripcion   = "Lámina solo con texto: título + párrafo + bullets opcionales. Útil para conclusiones o metodología.",
+    descripcion   = "Sólo texto: título, párrafo y viñetas opcionales. Útil para conclusiones o metodología.",
     icono_ui      = "Type",
     categoria     = "estructural",
     render_key    = "text_slide",
@@ -488,7 +488,7 @@
 
   p_slide_tabla_tecnica = list(
     titulo_humano = "Tabla técnica",
-    descripcion   = "Slide con una tabla editorial (ej. ficha técnica del estudio, parámetros, metodología).",
+    descripcion   = "Una tabla de dos columnas, como la ficha técnica del estudio o sus parámetros.",
     icono_ui      = "Table",
     categoria     = "estructural",
     render_key    = "technical_table",
@@ -672,7 +672,7 @@
 
   p_slide_4_graficos = list(
     titulo_humano = "Cuatro gráficos",
-    descripcion   = "Grid 2×2 con cuatro gráficos compactos. Ideal para ver varias dimensiones en paralelo.",
+    descripcion   = "Cuatro gráficos compactos en dos filas. Ideal para ver varias dimensiones en paralelo.",
     icono_ui      = "LayoutGrid",
     categoria     = "4graficos",
     render_key    = "paneles_4",
@@ -904,7 +904,7 @@
   p_slide_4_graficos_poblacion = list(
     en_selector   = FALSE,   # Gonzalo, 2026-10-10: «bórralos, en el recetario tampoco están»; se migran (graficos_migrar_poblacion.R)
     titulo_humano = "Cuatro gráficos + ícono (población)",
-    descripcion   = "Grid 2×2 con ícono central, típico para slides demográficas.",
+    descripcion   = "Cuatro gráficos en dos filas con un ícono al centro, para describir a un público.",
     icono_ui      = "UsersRound",
     categoria     = "poblacion",
     render_key    = "poblacion_4",
@@ -2062,7 +2062,7 @@
   p_boxplot = list("numeros", "nativa"),
   p_media_rango = list("numeros", "nativa"),
   p_barras_divergentes = list("escalas", "nativa"),
-  p_puntos_comparativos = list("comparar", "nativa", condicion = "Sale como el ranking con puntos del recetario; si los rótulos no caben, por la ruta anterior."),
+  p_puntos_comparativos = list("comparar", "nativa", condicion = "Sale como ranking con puntos; si los rótulos no caben, sale como imagen."),
   p_mapa_resultado_distrital = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
   p_cifra = list("numeros", "nativa", condicion = "Va en las ranuras de cifra; en una ranura de gráfico sale por la ruta anterior."),
   p_dumbbell = list("comparar", "nativa"),
