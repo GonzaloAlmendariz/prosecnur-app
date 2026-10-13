@@ -1,4 +1,7 @@
 import { create } from "zustand";
+import { DEFAULT_NOTAS_PIE, normalizeNotasPie, type NotasPieConfig } from "./panes/notasPieModel";
+
+export type { NotasPieConfig } from "./panes/notasPieModel";
 
 // ----- Schema de configuración (v1) -----------------------------------------
 // Toda la configuración del analista para Fase 4 vive en este objeto.
@@ -371,6 +374,10 @@ export type AnaliticaConfig = {
   // Contrato compartido con el backend (`/api/analitica/config`): ausente
   // (undefined) = activo por default (true). Solo el frontend lo togglea.
   color_recodificaciones: boolean;
+  // Notas al pie compartidas por Frecuencias y Cruces (fuente, base por
+  // pregunta, notas por variable de cruce y aviso de base reducida). Contrato
+  // congelado con el motor R; ausente = «Fuente: Pulso PUCP» como hasta hoy.
+  notas: NotasPieConfig;
 };
 
 // ----- Defaults --------------------------------------------------------------
@@ -499,6 +506,7 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
     enabled: false,
     rake: { margins: [] },
   },
+  notas: DEFAULT_NOTAS_PIE,
 };
 
 // ----- Store -----------------------------------------------------------------
@@ -566,6 +574,10 @@ type AnaliticaStore = {
   setDimensionesIndices: (indices: IndiceConfig[]) => void;
   setDimensionesSemaforo: (patch: Partial<DimensionesSemaforo>) => void;
   setPonderacion: (patch: Partial<PonderacionConfig>) => void;
+  // Notas al pie: `base_reducida` se mezcla por campo.
+  setNotas: (patch: Partial<Omit<NotasPieConfig, "base_reducida">> & {
+    base_reducida?: Partial<NotasPieConfig["base_reducida"]>;
+  }) => void;
   upsertPonderMargin: (m: PonderMargin) => void;
   removePonderMargin: (varName: string) => void;
 
@@ -907,6 +919,20 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
       dirty({ config: { ...s.config, ponderacion: { ...s.config.ponderacion, ...patch } } }),
     ),
 
+  setNotas: (patch) =>
+    set((s) =>
+      dirty({
+        config: {
+          ...s.config,
+          notas: {
+            ...s.config.notas,
+            ...patch,
+            base_reducida: { ...s.config.notas.base_reducida, ...(patch.base_reducida ?? {}) },
+          },
+        },
+      }),
+    ),
+
   upsertPonderMargin: (m) =>
     set((s) => {
       const margins = (s.config.ponderacion.rake?.margins ?? []).slice();
@@ -1094,5 +1120,6 @@ export function normalizeAnaliticaConfig(raw: AnaliticaConfig): AnaliticaConfig 
       overrides: ((c as Partial<AnaliticaConfig>).bases?.overrides ?? {}),
     },
     dimensiones: { ...DEFAULT_CONFIG.dimensiones, ...((c as Partial<AnaliticaConfig>).dimensiones ?? {}) },
+    notas: normalizeNotasPie((c as Partial<AnaliticaConfig>).notas),
   };
 }

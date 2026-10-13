@@ -300,7 +300,7 @@ test_that("las notas de significancia de medias salen con tildes y sin punto med
     for (sh in openxlsx::getSheetNames(path)) {
       d <- openxlsx::read.xlsx(path, sheet = sh, colNames = FALSE, skipEmptyRows = FALSE)
       v <- as.character(unlist(d, use.names = FALSE))
-      out <- c(out, v[!is.na(v) & grepl("Las letras indican", v, fixed = TRUE)])
+      out <- c(out, v[!is.na(v) & grepl("Las letras comparan", v, fixed = TRUE)])
     }
     out
   }
@@ -351,7 +351,10 @@ test_that("las notas de significancia de medias salen con tildes y sin punto med
   expect_gt(length(notas_dim), 0L)
 
   notas <- c(notas_ind, notas_dim)
-  expect_true(all(grepl("según pruebas t de Welch con corrección de Bonferroni (α = ", notas, fixed = TRUE)))
+  # Redacción de la maqueta HSyVBG 2026 (checklist 1e): sin «Letras por
+  # estrato» ni «Fuente».
+  expect_true(all(grepl("(prueba t de Welch con corrección de Bonferroni, nivel de significancia de 0.05).", notas, fixed = TRUE)))
+  expect_false(any(grepl("Letras por estrato|Fuente", notas)))
   expect_false(any(grepl("·", notas, fixed = TRUE)))
   expect_false(any(grepl("\\b(segun|correccion|multiples|categoria|proporcion)\\b|alpha =", notas, perl = TRUE)))
 })

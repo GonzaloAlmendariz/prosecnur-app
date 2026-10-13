@@ -3287,7 +3287,16 @@
       modalidad_reglas = list(),
       modalidad_default = "Presencial"
     ),
-    dimensiones = .dimensiones_default_config()
+    dimensiones = .dimensiones_default_config(),
+    # Notas al pie de frecuencias y cruces (reporte_notas_pie.R). Contrato en
+    # docs/qa/checklist-entregables-hsyvbg-2026-10-13.md (1a–1d).
+    notas = list(
+      fuente = "Pulso PUCP",
+      base_defecto = "",
+      base_por_pregunta = stats::setNames(list(), character(0)),
+      por_cruce = stats::setNames(list(), character(0)),
+      base_reducida = list(activo = FALSE, umbral = 30L)
+    )
   )
 }
 
@@ -3595,6 +3604,8 @@ mount_analitica <- function(pr) {
       next_orden_json <- jsonlite::toJSON((cfg %||% list())$orden_categorias %||% list(), auto_unbox = TRUE, null = "null")
       prev_ord_lists_json <- jsonlite::toJSON((.analitica_config_get(sid, s_prev) %||% list())$listas_ordinales %||% list(), auto_unbox = TRUE, null = "null")
       next_ord_lists_json <- jsonlite::toJSON((cfg %||% list())$listas_ordinales %||% list(), auto_unbox = TRUE, null = "null")
+      prev_notas_json <- jsonlite::toJSON((.analitica_config_get(sid, s_prev) %||% list())$notas %||% list(), auto_unbox = TRUE, null = "null")
+      next_notas_json <- jsonlite::toJSON((cfg %||% list())$notas %||% list(), auto_unbox = TRUE, null = "null")
       prev_cruces_orden <- as.character(((.analitica_config_get(sid, s_prev) %||% list())$cruces %||% list())$orden %||% "original")
       next_cruces_orden <- as.character(((cfg %||% list())$cruces %||% list())$orden %||% "original")
       .analitica_config_set(sid, cfg)
@@ -3635,6 +3646,12 @@ mount_analitica <- function(pr) {
       # Marcar listas como ordinales cambia el orden de filas de frecuencias y
       # cruces (esas listas dejan de ordenarse por conteo).
       if (!identical(as.character(prev_ord_lists_json), as.character(next_ord_lists_json))) {
+        .analitica_status_set(sid, "analitica_frecuencias_ok", FALSE)
+        .analitica_status_set(sid, "analitica_cruces_ok", FALSE)
+      }
+      # Cambiar las notas al pie (fuente, base, notas por cruce, base reducida)
+      # invalida las tablas ya generadas: su pie cambia.
+      if (!identical(as.character(prev_notas_json), as.character(next_notas_json))) {
         .analitica_status_set(sid, "analitica_frecuencias_ok", FALSE)
         .analitica_status_set(sid, "analitica_cruces_ok", FALSE)
       }
@@ -4381,6 +4398,7 @@ mount_analitica <- function(pr) {
                         brecha_filas, brecha_cols,
                         aplicar_sem, sem_modo, sem_cortes, sem_colores,
                         orden_cruces, ordinal_lists_by_base,
+                        notas = NULL,
                         api_path, result_path, progress_path = NULL) {
           if (requireNamespace("pkgload", quietly = TRUE)) {
             pkgload::load_all(api_path, quiet = TRUE)
@@ -4418,6 +4436,8 @@ mount_analitica <- function(pr) {
               orden = orden_cruces,
               ordinal_lists = ordinal_lists_by_base[[nombre]] %||% character(0),
               repeat_design = repeat_design_by_base[[nombre]],
+              fuente = (notas %||% list())$fuente %||% "Pulso PUCP",
+              notas = notas,
               brecha_filas = brecha_filas,
               brecha_cols = brecha_cols,
               aplicar_semaforo = aplicar_sem,
@@ -4506,6 +4526,7 @@ mount_analitica <- function(pr) {
           sem_colores = sem_colores,
           orden_cruces = orden_cruces,
           ordinal_lists_by_base = ordinal_lists_by_base,
+          notas = .notas_pie_normalizar(cfg$notas),
           api_path = api_path
         ),
         result_filename = if (length(data_sources) > 1L) {
