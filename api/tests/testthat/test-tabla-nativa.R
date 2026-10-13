@@ -45,3 +45,12 @@ test_that("las preguntas y las dos categorías llegan como arreglo JSON del edit
   bloques <- p_tabla(modo = "box", vars = list(a = c("x", "y")), box_labels = c("1", "2"))   # la forma por bloques sigue igual
   expect_identical(names(bloques$vars), "a")
 })
+
+test_that("un público sin casos no sale con 0 %: se omite; una celda sin dato dice «—»", {
+  df <- data.frame(.eje = factor(c("A", "A", "A", "B", "B", "B")), .grupo = factor(rep(c("M", "F", "Otro"), 2), levels = c("M", "F", "Otro")),
+                   .valor = c(0.5, 0.6, NA, NA, 0.4, NA))
+  e <- .espec_radar(df, c(0, 1))
+  expect_identical(e$grupos, c("M", "F"))
+  expect_identical(unname(e$cifras["B", "M"]), "—")
+  expect_match(unname(e$cifras["A", "F"]), "^60")
+})
