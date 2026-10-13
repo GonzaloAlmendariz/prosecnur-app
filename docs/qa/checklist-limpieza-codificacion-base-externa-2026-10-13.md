@@ -151,5 +151,5 @@ variables […] una metavariable como inicio de la encuesta que de cara al clien
 | P2b.3 | Las de motivo Metadato o No va al cliente se suman a `variables_excluidas` de Analítica | ☑ c874192f0 |
 | P2b.4 | Ficha e informe: «se retiraron k variables del instrumento (m metadatos)» | ☑ c874192f0 (la frase verificada; el PDF no se renderizó: el proyecto no tiene plan de validación) |
 | P2b.5 | Panel «Base preparada fuera de la plataforma» con dos partes | ☑ 5e2633dd4, 9251b0b3d; QA visual pasa con observaciones, corregidas |
-| P2b.6 | Analítica no tiene un lugar visible para ver o editar `variables_excluidas` | ◐ avisado a la sesión de entregables (es su área) |
+| P2b.6 | Analítica no tenía un lugar visible para ver o editar `variables_excluidas` | ☑ la sesión de entregables lo creó (644c39c44) y el panel de Carga lo enlaza con la base en foco |
 | P2b.7 | La pregunta que falta se sigue recreando vacía en la base de trabajo (backfill); ahora queda declarada y fuera de los entregables | ◐ no se tocó: el backfill está en todas las rutas de carga (`router_carga.R:288` y 8 llamadas más); cambiarlo es una decisión aparte |
