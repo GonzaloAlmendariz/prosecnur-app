@@ -42,3 +42,15 @@ test_that("una lámina con «Más ancho» se arma entera: el ajuste no llega al 
     reporte_ppt_plan(data = df, instrumento = inst, plan = plan, path_ppt = out, mensajes_progreso = FALSE))))
   expect_true(file.exists(out))
 })
+
+test_that("en las láminas de la matriz (0.22 propio) «Más ancho» manda y «Automático» parte del 0.22", {
+  el <- list(overrides = list(canvas_w_grupo = 0.22, ancho_tema = "ancho"))
+  expect_identical(.multiactor_preset_de(list(), el)$canvas_w_grupo, 0.28)
+  expect_null(.multiactor_overrides_de(el$overrides)$canvas_w_grupo)       # no vuelve a pisar el reparto al final
+  auto <- list(overrides = list(canvas_w_grupo = 0.22, ancho_tema = "auto"))
+  expect_identical(.multiactor_preset_de(list(), auto)$canvas_w_grupo, 0.22)
+  expect_identical(.multiactor_overrides_de(auto$overrides)$canvas_w_grupo, 0.22)
+  r <- .multiactor_canvas_resolver(.multiactor_preset_de(list(), auto), show_extra = TRUE)
+  expect_equal(r$canvas_w_grupo + r$canvas_w_buf_grupo_etq + r$canvas_w_etiquetas + r$canvas_w_buf_etq_bars +
+                 r$canvas_w_bars + r$canvas_w_buf_bars_extra + r$canvas_w_extra, 1)
+})
