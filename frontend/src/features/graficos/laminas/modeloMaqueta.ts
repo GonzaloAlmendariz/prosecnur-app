@@ -205,7 +205,11 @@ export function baseAutomatica(
     const clave = pr.source ?? "";
     porPublico.set(clave, Math.max(porPublico.get(clave) ?? 0, n));
   }
-  const partes = [...porPublico].map(([fuente, n]) => (fuente ? `${n} ${fuente.replace(/[_-]+/g, " ")}` : `${n} respuestas`));
+  // En el orden de las bases del estudio, como lo escribe el motor (lámina 13 de Arte decía «docentes, estudiantes,
+  // administrativos» porque seguía la aparición de las preguntas y el PPT salía «docentes, administrativos y estudiantes»).
+  const posicion = (fuente: string) => { const i = variables.findIndex((x) => x.source === fuente); return i < 0 ? Number.MAX_SAFE_INTEGER : i; };
+  const partes = [...porPublico].sort(([a], [b]) => posicion(a) - posicion(b))
+    .map(([fuente, n]) => (fuente ? `${n} ${fuente.replace(/[_-]+/g, " ")}` : `${n} respuestas`));
   if (!partes.length) return null;
   return formato.includes("%s") ? formato.replace("%s", enumerar(partes)) : `Base: ${enumerar(partes)}`;
 }
