@@ -54,6 +54,8 @@ export type EstructuraInforme = {
 
 // Láminas metodológicas del capítulo «Cómo leer este informe» del recetario (Top Two Box p19, redondeo p20–21).
 const COMO_LEER: ReadonlySet<SlideType> = new Set<SlideType>(["p_slide_top_two_box", "p_slide_redondeo"]);
+// Láminas de apertura del recetario: detrás de «Cómo leer» no se vuelven parte de él (G15/U11: el índice quedaba dentro).
+const APERTURA: ReadonlySet<SlideType> = new Set<SlideType>(["p_slide_portada", "p_slide_indice", "p_slide_objetivo_icono", "p_slide_tabla_tecnica"]);
 
 const texto = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
@@ -161,6 +163,10 @@ export function construirEstructura(slides: readonly Slide[]): EstructuraInforme
     const abierto = bloque as { clase: ClaseBloque; nodo: Bloque } | null;
     // Una lámina de gráficos detrás de «Cómo leer» y sin separador no es de «Cómo leer»: en el mazo de Arte y Diseño
     // (2026-10-13) las 17 láminas de resultados quedaban colgadas de ese bloque. Van a «Sin capítulo», contiguas.
+    if (abierto && abierto.clase === "como-leer" && APERTURA.has(slide.tipo)) {
+      enBloque("apertura").laminas.push(lam);
+      return;
+    }
     if (abierto && abierto.clase === "como-leer" && !COMO_LEER.has(slide.tipo) && (SLIDE_GRAF_SLOTS[slide.tipo] ?? []).length > 0) {
       enBloque("sin-capitulo").laminas.push(lam);
       return;
