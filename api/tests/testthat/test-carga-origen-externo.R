@@ -154,3 +154,9 @@ test_that("si no empalma o la base se recargó, el tramo externo no se inventa",
   on.exit(session_delete(sid2), add = TRUE)
   expect_null(.validacion_upstream_universe(sid2, "default"))
 })
+
+test_that("con depuración externa las dos «recibidas» no se llaman igual", {
+  u <- list(external_applied = TRUE, total = 3318L)
+  expect_identical(.vmr_universe_rotulo_total(u), "encuestas cargadas a la plataforma")
+  expect_identical(.vmr_universe_rotulo_total(list(total = 3318L)), "encuestas recibidas")
+})

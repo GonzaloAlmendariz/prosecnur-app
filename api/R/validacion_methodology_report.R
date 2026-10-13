@@ -601,6 +601,14 @@
     isTRUE(universe$external_applied)
 }
 
+# Con depuración externa (ADR 0100) hay DOS «recibidas»: las que recibió el
+# script (3 327 en HSyVBG) y las que recibió la plataforma (3 318). Llamarlas
+# igual con dos números distintos en el mismo párrafo es un rótulo que promete
+# otro número: la de la plataforma pasa a llamarse «cargadas».
+.vmr_universe_rotulo_total <- function(universe) {
+  if (isTRUE(universe$external_applied)) "encuestas cargadas a la plataforma" else "encuestas recibidas"
+}
+
 .vmr_universe_rejection_count <- function(universe) {
   rules <- universe$exclusion_rules %||% list()
   audits <- .vmr_universe_records(universe$exclusion_audit %||% list())
@@ -1976,7 +1984,7 @@ validation_methodology_report_r <- function(model, path) {
     universe_summary <- c(
       universe_summary,
       if (isTRUE(universe$external_applied)) paste0("# Depuración externa previa a la carga: ", .vmr_script_count(universe$excluded_external, "0"), " retiradas de ", .vmr_script_count(universe$received_external)) else NULL,
-      paste0("# Encuestas recibidas: ", .vmr_script_count(universe$total)),
+      paste0(if (isTRUE(universe$external_applied)) "# Encuestas cargadas a la plataforma: " else "# Encuestas recibidas: ", .vmr_script_count(universe$total)),
       if (isTRUE(universe$applied)) paste0("# Encuestas reclasificadas de prueba a real: ", .vmr_script_count(universe$corrected, "0")) else NULL,
       if (isTRUE(universe$applied)) paste0("# Pruebas retiradas: ", .vmr_script_count(universe$excluded_test, "0")) else NULL,
       if (rejection_count > 0L) paste0("# Rechazos retirados: ", .vmr_script_count(rejection_count, "0")) else NULL,
@@ -2573,7 +2581,7 @@ validation_methodology_report_pdf <- function(model, path) {
       other_exclusions <- max(0L, .vmr_universe_count(universe$excluded_rules, 0L) - rejection_count)
       count_text <- if (isTRUE(universe$applied)) {
         paste0(
-          "De ", fmt(universe$total %||% NA_real_), " encuestas recibidas, ",
+          "De ", fmt(universe$total %||% NA_real_), " ", .vmr_universe_rotulo_total(universe), ", ",
           fmt(universe$corrected %||% 0L), " se reclasificaron de prueba a real. ",
           "Quedaron fuera ", fmt(universe$excluded_test %||% 0L),
           if (identical(.vmr_universe_count(universe$excluded_test, 0L), 1L)) " prueba retirada" else " pruebas retiradas",
@@ -2584,7 +2592,7 @@ validation_methodology_report_pdf <- function(model, path) {
       } else {
         # Sin filtro de pruebas la ficha se apoya sólo en la depuración.
         paste0(
-          "De ", fmt(universe$total %||% NA_real_), " encuestas recibidas se incluyeron ",
+          "De ", fmt(universe$total %||% NA_real_), " ", .vmr_universe_rotulo_total(universe), " se incluyeron ",
           fmt(universe$included %||% NA_real_), " en el estudio."
         )
       }
