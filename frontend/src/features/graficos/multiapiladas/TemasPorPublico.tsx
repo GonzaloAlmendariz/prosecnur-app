@@ -74,7 +74,7 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
               <div key={p} className={`pulso-mapi-linea${distinta ? " is-aviso" : ""}`}>
                 <span className="pulso-mapi-pub">{nombrePublico(p)}</span>
                 <div className="pulso-mapi-pregunta">
-                  <VariablePicker value={ref || null} allowEmpty placeholder="Elegir pregunta…"
+                  <VariablePicker value={ref || null} allowEmpty ocultarBase placeholder="Elegir pregunta…"
                                   onChange={(v) => {
                                     const actualizado = conRef(tema, publicos, p, v);
                                     // Sin nombre todavía, el tema toma la etiqueta de su primera pregunta: es el nombre que el analista escribiría.
