@@ -74,7 +74,7 @@ export function EquivalenciasTabla({
             {bases.map((base) => (
               <th key={base} scope="col">{base}</th>
             ))}
-            <th scope="col" className="pulso-equiv-col-n">Públicos</th>
+            <th scope="col" className="pulso-equiv-col-n">Bases</th>
             <th scope="col"><span className="pulso-sr-only">Acciones</span></th>
           </tr>
         </thead>

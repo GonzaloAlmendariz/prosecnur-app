@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Link2, Search, X } from "lucide-react";
 import type { PreguntaAbierta } from "../../api/client";
+import { textoPlano } from "../../lib/textoPlano";
 
 const TIPO_STYLE: Record<string, { bg: string; border: string; fg: string }> = {
   select_multiple: { bg: "var(--tipo-sm-bg)", border: "var(--tipo-sm-border)", fg: "var(--tipo-sm-fg)" },
@@ -16,7 +17,7 @@ export function filterRelationTargets(candidates: PreguntaAbierta[], query: stri
   return candidates.filter((candidate) =>
     candidate.parent.toLowerCase().includes(normalizedQuery) ||
     candidate.parent_label.toLowerCase().includes(normalizedQuery) ||
-    (candidate.section_label || "").toLowerCase().includes(normalizedQuery)
+    textoPlano(candidate.section_label).toLowerCase().includes(normalizedQuery)
   );
 }
 
@@ -102,7 +103,7 @@ export function RelationTargetDialog({
                 >
                   <code style={{ color: typeStyle.fg, background: typeStyle.bg, borderColor: typeStyle.border }}>{candidate.parent}</code>
                   <span>{truncate(candidate.parent_label, 120)}</span>
-                  <small>{candidate.section_label || "Sin sección"}</small>
+                  <small>{textoPlano(candidate.section_label) || "Sin sección"}</small>
                 </button>
               );
             })}

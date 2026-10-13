@@ -51,6 +51,7 @@ import NoCategorizarAction from "./NoCategorizarAction";
 import { contarSinDecidir, decisionDePregunta, frasePendientes, presentarDecision, restanteDeDecision } from "./decisionCodificacion";
 import { RelationDialog, RelationResult } from "./RelationDialog";
 import { RelationTargetDialog } from "./RelationTargetDialog";
+import { textoPlano } from "../../lib/textoPlano";
 
 const srOnlyStyle: React.CSSProperties = {
   position: "absolute",
@@ -280,7 +281,7 @@ export function PreguntasLanding() {
     const map = new Map<string, { id: string; label: string; preguntas: PreguntaAbierta[] }>();
     for (const p of sorted) {
       const key = p.section || "(sin sección)";
-      const label = p.section_label || p.section || "Sin sección";
+      const label = textoPlano(p.section_label) || p.section || "Sin sección";
       if (!map.has(key)) map.set(key, { id: key, label, preguntas: [] });
       map.get(key)!.preguntas.push(p);
     }
@@ -322,7 +323,7 @@ export function PreguntasLanding() {
     };
     const matchesQ = (p: PreguntaAbierta): boolean => {
       if (!q) return true;
-      return p.parent.toLowerCase().includes(q) || p.parent_label.toLowerCase().includes(q) || (p.section_label || "").toLowerCase().includes(q);
+      return p.parent.toLowerCase().includes(q) || p.parent_label.toLowerCase().includes(q) || textoPlano(p.section_label).toLowerCase().includes(q);
     };
     return bySection
       .map((s) => ({ ...s, preguntas: s.preguntas.filter((p) => wants(p) && matchesQ(p)) }))

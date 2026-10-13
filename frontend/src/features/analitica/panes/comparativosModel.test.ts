@@ -8,6 +8,7 @@ import {
   accionParaError,
   accionParaAviso,
   bloqueoDeGeneracion,
+  detalleCobertura,
   especialesSinMapa,
   etiquetaDeAviso,
   comparativosDisponibles,
@@ -34,8 +35,10 @@ const armon = {
   },
 };
 
+const VARS = { hsvg2024: "p1_24", hsvg2025: "p1_25", base_sin_anio: "p1_x", otra_base: "p1_o" };
+
 function fila(parcial: Partial<EquivalenciaFila>): EquivalenciaFila {
-  return { seccion: "", etiqueta_estandar: "", variables: {}, cantidad: 0, ...parcial };
+  return { seccion: "", etiqueta_estandar: "", variables: VARS, cantidad: 4, ...parcial };
 }
 
 function estado(parcial: Partial<EquivalenciasEstado> = {}): EquivalenciasEstado {
@@ -83,6 +86,40 @@ describe("filas candidatas y serie", () => {
     // aunque se cuele en la selección, no viaja
     const forzada = comparativosReducer(ui, { tipo: "alternar-pregunta", clave: "1" });
     expect(construirBody(forzada, "frecuencias", filas, periodosDeSerie(e)).filas).toEqual(["p1"]);
+  });
+
+  it("no cuenta como comparable una base sin variable declarada", () => {
+    const arm3 = {
+      escala: armon.escala,
+      por_base: {
+        hsvg2024: { comparable: true, mapa: {} },
+        hsvg2025: { comparable: true, mapa: {} },
+        hsvg2026: { comparable: true, mapa: {} },
+      },
+    };
+    const e = estado({
+      bases: ["hsvg2024", "hsvg2025", "hsvg2026"],
+      armonizacion_periodos: ["hsvg2024", "hsvg2025", "hsvg2026"],
+      filas: [
+        fila({ id: "a", etiqueta_estandar: "Acoso", armonizacion: arm3, variables: { hsvg2024: "p1", hsvg2025: "p1", hsvg2026: " " } }),
+        fila({ id: "b", etiqueta_estandar: "Solo 2026", armonizacion: arm3, variables: { hsvg2026: "q9" } }),
+        fila({ id: "c", etiqueta_estandar: "Ninguna", armonizacion: arm3, variables: {} }),
+      ],
+    });
+    const filas = filasArmonizadas(e);
+    expect(filas[0].basesComparables).toEqual(["hsvg2024", "hsvg2025"]);
+    expect(filas[0].basesSinVariable).toEqual(["hsvg2026"]);
+    expect(filas[0].seleccionable).toBe(true);
+    expect(filas[1].basesComparables).toEqual(["hsvg2026"]);
+    expect(filas[1].seleccionable).toBe(true);
+    expect(filas[2].basesComparables).toEqual([]);
+    expect(filas[2].seleccionable).toBe(false);
+    expect(detalleCobertura(filas[0], 3, { hsvg2026: "2026" }))
+      .toBe("comparable en 2 de 3 mediciones, 2 categorías, sin variable en 2026");
+    expect(detalleCobertura(filas[1], 3, {}))
+      .toBe("comparable en 1 de 3 mediciones, 2 categorías, sin variable en 2024 y 2025");
+    expect(detalleCobertura({ ...filas[0], basesSinVariable: [] }, 3, {}))
+      .toBe("comparable en 2 de 3 mediciones, 2 categorías");
   });
 
   it("ordena la serie por armonizacion_periodos y cae a las bases", () => {

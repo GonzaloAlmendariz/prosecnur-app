@@ -305,13 +305,13 @@ function equivalencesItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
     return item(
       "equivalencias",
       "ready",
-      `${declaradas} ${declaradas === 1 ? "pregunta emparejada" : "preguntas emparejadas"} entre los públicos.`,
+      `${declaradas} ${declaradas === 1 ? "pregunta emparejada" : "preguntas emparejadas"} entre las bases.`,
     );
   }
   return item(
     "equivalencias",
     "pending",
-    "Declara qué pregunta de un público equivale a cuál de otro para poder compararlos.",
+    "Declara qué pregunta de una base equivale a cuál de otra para poder compararlas.",
   );
 }
 

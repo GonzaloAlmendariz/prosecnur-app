@@ -551,7 +551,7 @@ export function agruparEnDiapositivas(
       bloque.motivoNoRadar = !bloque.ofrecerRadar
         ? ""
         : !rectangular
-          ? "sus temas no cubren los mismos públicos: al radar le faltarían vértices en unas series y no en otras"
+          ? "sus temas no cubren las mismas bases: al radar le faltarían vértices en unas series y no en otras"
           : bloque.opciones.length === 0
             ? "su escala no tiene opciones con las que construir un indicador"
             : etiquetasLargas
@@ -684,4 +684,17 @@ export function seccionLegible(seccion: string | null | undefined): string {
   const s = (seccion ?? "").trim();
   const m = /^pag(?:ina|e)?\s*_?(\d+)$/i.exec(s);
   return m ? `Página ${Number(m[1])} del formulario` : s;
+}
+
+/**
+ * Orden de las columnas por base. Si la matriz declara la serie
+ * (`armonizacion_periodos`), las bases van en ese orden y las que no forman
+ * parte de ella siguen al final en su orden original. Sin serie, el orden que
+ * trae el estado.
+ */
+export function ordenarBasesPorSerie(bases: readonly string[], periodos: readonly string[] | null | undefined): string[] {
+  const serie = (periodos ?? []).filter((p) => bases.includes(p));
+  if (serie.length === 0) return [...bases];
+  const unicos = serie.filter((p, i) => serie.indexOf(p) === i);
+  return [...unicos, ...bases.filter((b) => !unicos.includes(b))];
 }
