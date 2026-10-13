@@ -456,3 +456,32 @@ textarea.pulso-f6-input {
   padding-top: var(--pulso-space-3);
   border-top: 1px solid var(--pulso-border);
 }
+
+/* G14: los avisos de esta lámina (plan y motor), en una franja bajo la cabecera; sólo aparece si hay alguno. */
+.pulso-f6-inspector-avisos {
+  flex: none;
+  display: flex;
+  gap: var(--pulso-space-2);
+  align-items: flex-start;
+  margin: var(--pulso-space-2) var(--pulso-space-3) 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.pulso-f6-inspector-avisos ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-f6-inspector-avisos svg {
+  flex: none;
+  margin-top: 2px;
+}
