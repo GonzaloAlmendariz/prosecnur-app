@@ -840,3 +840,136 @@ test_that("omitidas: una variable de cruce defectuosa se omite con aviso si hay 
                 api_error = function(e) e)
   expect_equal(e$code, "E_ARMONIZADA_SELECT_MULTIPLE")
 })
+
+# ---- Variable declarada que no está en los datos de Analítica -------------------
+
+# Datos sin las columnas dadas por base: list(b2025 = "v25").
+.az_sin_columna <- function(quitar, datos = .az_datos()) {
+  for (b in names(quitar)) datos[[b]] <- datos[[b]][, setdiff(names(datos[[b]]), quitar[[b]]), drop = FALSE]
+  datos
+}
+
+# Config de Analítica por base con `variables_excluidas` en las bases dadas.
+.az_por_base_excluidas <- function(excluidas) {
+  pb <- list(
+    b2024 = list(ponderacion = list(enabled = TRUE, modo = "columna", peso_columna = "factor_ponderacion")),
+    b2025 = list(ponderacion = list(enabled = TRUE, modo = "columna", peso_columna = "w25")),
+    b2026 = list(ponderacion = list(enabled = FALSE))
+  )
+  for (b in names(excluidas)) pb[[b]]$variables_excluidas <- as.list(excluidas[[b]])
+  pb
+}
+
+test_that("variable ausente: excluida en Analítica en una base sale n.c. con aviso motivo excluida", {
+  sid <- .az_setup(datos = .az_sin_columna(list(b2025 = "v25")),
+                   por_base = .az_por_base_excluidas(list(b2025 = "v25")))
+  ap <- .armz_preparar(sid, list(notas = .az_notas()))
+  expect_identical(vapply(ap$preguntas, `[[`, "", "etiqueta"),
+                   c("Violencia alguna vez", "Denunció", "Lugar de nacimiento"))
+  expect_length(ap$omitidas, 0L)
+  m <- armonizada_modelo_frecuencias(ap)
+  vbg <- m$preguntas[[1]]
+  expect_identical(vapply(vbg$periodos, `[[`, "", "estado"),
+                   c(b2024 = "ok", b2025 = "n.c.", b2026 = "ok"))
+  expect_identical(vbg$periodos$b2025[c("motivo", "causa", "variable")],
+                   list(motivo = "variable_ausente", causa = "excluida", variable = "v25"))
+  av <- Filter(function(a) identical(a$tipo, "variable_ausente"), armonizada_avisos(ap))
+  expect_length(av, 1L)
+  expect_identical(av[[1]][c("tipo", "base", "fila", "variable", "motivo")],
+                   list(tipo = "variable_ausente", base = "b2025", fila = "Violencia alguna vez",
+                        variable = "v25", motivo = "excluida"))
+  expect_identical(av[[1]]$mensaje, paste(
+    "«¿Alguna vez en la vida has experimentado violencia basada en género?»:",
+    "la variable «v25» está excluida en Analítica en 2025. Ese año sale como n.c."))
+
+  # Contrato HTTP: el comparativo sale (200) con las tres preguntas, el aviso y el pie.
+  r <- .az_llamar(sid, "/api/analitica/armonizada/frecuencias", list())
+  expect_identical(r$status, 200L)
+  expect_identical(r$public$resumen$n_preguntas, 3L)
+  expect_true("variable_ausente" %in% vapply(r$public$resumen$avisos, `[[`, "", "tipo"))
+  expect_identical(r$public$resumen$preguntas[[1]]$variable_ausente,
+                   list(list(base = "b2025", fila = "Violencia alguna vez", variable = "v25",
+                             motivo = "excluida")))
+  celdas <- openxlsx::read.xlsx(session_get(sid)$files[[r$public$file_id]]$path,
+                                colNames = FALSE, skipEmptyRows = FALSE)[[1]]
+  expect_identical(sum(celdas == "n.c.: la variable «v25» está excluida en Analítica en 2025.",
+                       na.rm = TRUE), 1L)
+})
+
+test_that("variable ausente: la que la base no trae sale n.c. con motivo no_esta_en_la_base", {
+  sid <- .az_setup(datos = .az_sin_columna(list(b2024 = "v24")))
+  ap <- .armz_preparar(sid, list(), filas_refs = list("VBG-01"))
+  m <- armonizada_modelo_frecuencias(ap)
+  expect_identical(m$preguntas[[1]]$periodos$b2024[c("estado", "motivo", "causa")],
+                   list(estado = "n.c.", motivo = "variable_ausente", causa = "no_esta_en_la_base"))
+  expect_identical(m$preguntas[[1]]$periodos$b2025$estado, "ok")
+  av <- Filter(function(a) identical(a$tipo, "variable_ausente"), armonizada_avisos(ap))
+  expect_identical(av[[1]][c("base", "variable", "motivo")],
+                   list(base = "b2024", variable = "v24", motivo = "no_esta_en_la_base"))
+  expect_match(av[[1]]$mensaje, "la variable «v24» no está en la base de 2024. Ese año sale como n.c.",
+               fixed = TRUE)
+  expect_false(grepl("[;·—–]", av[[1]]$mensaje))
+})
+
+test_that("variable ausente: sin ninguna medición utilizable la pregunta se omite, sola es 409", {
+  datos <- .az_sin_columna(list(b2024 = "v24", b2025 = "v25", b2026 = "v26"))
+  sid <- .az_setup(datos = datos, por_base = .az_por_base_excluidas(list(b2025 = "v25")))
+  ap <- .armz_preparar(sid, list(notas = .az_notas()))
+  expect_identical(vapply(ap$preguntas, `[[`, "", "etiqueta"), c("Denunció", "Lugar de nacimiento"))
+  o <- ap$omitidas[[1]]
+  expect_identical(o[c("tipo", "fila", "motivo")],
+                   list(tipo = "pregunta", fila = "Violencia alguna vez", motivo = "variable_ausente"))
+  expect_identical(vapply(o$ausentes, `[[`, "", "motivo"),
+                   c("no_esta_en_la_base", "excluida", "no_esta_en_la_base"))
+  av <- armonizada_avisos(ap)
+  tipos <- vapply(av, `[[`, "", "tipo")
+  expect_identical(sum(tipos == "variable_ausente"), 0L)  # la omitida no avisa año por año
+  om <- av[[which(tipos == "pregunta_omitida")]]
+  expect_identical(om$motivo, "variable_ausente")
+  expect_match(om$mensaje, "No queda ningún año con su variable en los datos de Analítica.", fixed = TRUE)
+  expect_match(om$mensaje, "La variable «v25» está excluida en Analítica en 2025.", fixed = TRUE)
+  expect_false(grepl("[;·—–]", om$mensaje))
+
+  r <- .az_llamar(sid, "/api/analitica/armonizada/frecuencias", list())
+  expect_identical(r$status, 200L)
+  expect_identical(r$public$resumen$n_preguntas, 2L)
+  expect_identical(r$public$resumen$omitidas[[1]]$motivo, "variable_ausente")
+  om_x <- openxlsx::read.xlsx(session_get(sid)$files[[r$public$file_id]]$path,
+                              sheet = "Preguntas omitidas", colNames = FALSE, skipEmptyRows = FALSE)
+  expect_identical(om_x[3, 3], "Variable ausente en los datos")
+
+  # Una sola pregunta pedida y ninguna medición utilizable: se mantiene el 409.
+  e <- tryCatch(.armz_preparar(sid, list(), filas_refs = list("VBG-01")), api_error = function(e) e)
+  expect_equal(e$code, "E_EQUIV_ARMONIZACION_VARIABLE_AUSENTE")
+  expect_equal(e$status, 409)
+  r1 <- .az_llamar(sid, "/api/analitica/armonizada/frecuencias", list(filas = list("VBG-01")))
+  expect_identical(r1$status, 409L)
+})
+
+test_that("variable ausente: un cruce sin ninguna medición utilizable se omite como cruce_omitido", {
+  datos <- .az_sin_columna(list(b2024 = "lug24", b2025 = "lug25", b2026 = c("lug26_agrup", "lug26_det")))
+  sid <- .az_setup(datos = datos)
+  ap <- .armz_preparar(sid, list(), filas_refs = list("VBG-01"), cruces_refs = list("S-05", "DEN-01"))
+  expect_identical(vapply(ap$cruces, `[[`, "", "etiqueta"), "Denunció")
+  expect_identical(ap$omitidas[[1]][c("tipo", "fila", "motivo")],
+                   list(tipo = "cruce", fila = "Lugar de nacimiento", motivo = "variable_ausente"))
+  av <- Filter(function(a) identical(a$tipo, "cruce_omitido"), armonizada_avisos(ap))
+  expect_identical(av[[1]]$motivo, "variable_ausente")
+
+  # Ausente en una sola base: el cruce queda, esa columna sale n.c. con motivo propio.
+  sid2 <- .az_setup(datos = .az_sin_columna(list(b2024 = "lug24")))
+  ap2 <- .armz_preparar(sid2, list(), filas_refs = list("VBG-01"), cruces_refs = list("S-05"))
+  m <- armonizada_modelo_cruces(ap2)
+  x24 <- m$preguntas[[1]]$periodos$b2024$cruces$x1
+  expect_identical(x24[c("estado", "motivo", "causa")],
+                   list(estado = "n.c.", motivo = "variable_ausente", causa = "no_esta_en_la_base"))
+  av2 <- Filter(function(a) identical(a$tipo, "variable_ausente"), armonizada_avisos(ap2))
+  expect_identical(lapply(av2, `[[`, "fila"), list("Lugar de nacimiento"))
+})
+
+test_that("variable ausente: el preview de R3 sigue cortando con E_EQUIV_ARMONIZACION_VARIABLE_AUSENTE", {
+  sid <- .az_setup(datos = .az_sin_columna(list(b2024 = "v24")))
+  e <- tryCatch(.equiv_armon_preview(sid, "VBG-01", "b2024"), api_error = function(e) e)
+  expect_equal(e$code, "E_EQUIV_ARMONIZACION_VARIABLE_AUSENTE")
+  expect_equal(e$status, 409)
+})

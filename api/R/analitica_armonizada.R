@@ -47,6 +47,10 @@
 #          variable para una pregunta, la pregunta se omite del libro y queda
 #          un aviso `pregunta_omitida`. El comparativo no corta por eso: el
 #          409 `E_EQUIV_ARMONIZACION_SIN_VARIABLE` es del preview de R3.
+#          Una variable declarada que no está en los datos de Analítica
+#          (excluida en esa base o ausente de la base) también sale «n.c.»,
+#          con `motivo = "variable_ausente"` y aviso propio
+#          (`analitica_armonizada_ausente.R`).
 #   «n.a.» una categoría de cruce ofrecida que no tiene casos en ese período,
 #          o una pregunta sin ninguna respuesta sustantiva (N == 0).
 #   «—»    la categoría de la escala no tiene ningún código de origen en el
@@ -122,10 +126,16 @@
   !is.null(entrada) && isTRUE(entrada$comparable) && !nzchar(.armz_variable(fila, base))
 }
 
-# Estado «n.c.» de un período con su motivo.
+# Estado «n.c.» de un período con su motivo. Una variable declarada que no
+# está en los datos lleva su `causa` y su nombre para el pie.
 .armz_nc <- function(d, b) {
-  list(estado = "n.c.",
-       motivo = if (isTRUE(d$sin_variable[[b]])) "sin_variable" else "no_comparable")
+  if (isTRUE(d$sin_variable[[b]])) return(list(estado = "n.c.", motivo = "sin_variable"))
+  causa <- unname((d$ausente %||% character(0))[b])
+  if (length(causa) == 1L && !is.na(causa) && nzchar(causa)) {
+    return(list(estado = "n.c.", motivo = "variable_ausente", causa = causa,
+                variable = unname((d$variable_por %||% character(0))[b])))
+  }
+  list(estado = "n.c.", motivo = "no_comparable")
 }
 
 # Categorías de la escala sin ningún código de origen en el mapa de la base.
@@ -195,12 +205,16 @@
 #' @param cruces Filas de la matriz que hacen de variables de cruce.
 #' @param periodos Nombres de base en el orden de la serie.
 #' @param insts Instrumentos por base (para rechazar `select_multiple`).
+#' @param excluidas Lista base -> `variables_excluidas` de la config de
+#'   Analítica de esa base. Distingue la causa de una variable ausente.
 #' @return list(periodos, data, preguntas, cruces). `data` lleva `periodo`,
 #'   `peso` y una columna por pregunta (`q1`…) y por cruce (`x1`…) con el
 #'   código de la escala o NA. Cada descriptor trae `comparable`, `notas`,
-#'   `no_ofrecidas` y `sin_mapa` por período.
+#'   `no_ofrecidas`, `sin_mapa` y `ausente` (causa o "") por período. Una
+#'   variable declarada que no está en los datos deja el período «n.c.».
 #' @keywords internal
-armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(datos), insts = list()) {
+armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(datos), insts = list(),
+                              excluidas = list()) {
   periodos <- as.character(periodos)
   faltan <- setdiff(periodos, names(datos))
   if (length(faltan)) {
@@ -218,12 +232,18 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
       no_of <- lapply(periodos, function(b) .armz_no_ofrecidas(f, b, escala$codigos))
       sin_var <- vapply(periodos, function(b) .armz_sin_variable(f, b), logical(1))
       con_var <- vapply(periodos, function(b) nzchar(.armz_variable(f, b)), logical(1))
+      ausente <- vapply(periodos, function(b) .armz_ausencia(
+        f, b, datos[[b]], insts[[b]], excluidas[[b]]), character(1))
+      comp <- comp & !nzchar(ausente)
       list(key = paste0(prefijo, i), fila = f, titulo = .armz_titulo_fila(f),
            claves = claves[nzchar(claves)],
            etiqueta = .armz_txt(f$etiqueta_estandar) %||% "",
            seccion = .armz_txt(f$seccion), escala = escala,
            comparable = stats::setNames(comp, periodos),
            sin_variable = stats::setNames(sin_var, periodos),
+           ausente = stats::setNames(ausente, periodos),
+           variable_por = stats::setNames(vapply(periodos, function(b) .armz_variable(f, b),
+                                                 character(1)), periodos),
            con_variable = any(con_var),
            notas = stats::setNames(notas, periodos),
            no_ofrecidas = stats::setNames(no_of, periodos))
@@ -270,10 +290,15 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
 # Columna armonizada de UNA fila en cada período y sus casos sin mapa. Corta
 # con 409 si la fila es de opción múltiple o su mapa no deja ningún caso.
 .armz_columnas_fila <- function(d, datos, periodos, insts) {
+  if (any(nzchar(d$ausente %||% character(0))) && !any(d$comparable)) .armz_stop_sin_utilizable(d)
   v_por <- list()
   sm_por <- list()
   for (b in periodos) {
     df <- datos[[b]]
+    if (isTRUE(nzchar(unname(d$ausente[b])))) {
+      v_por[[b]] <- rep(NA_character_, nrow(df))
+      next
+    }
     spec <- .equiv_armon_spec(d$fila, b)
     if (!is.null(spec) && .armz_es_select_multiple(insts[[b]], df, spec$parent)) {
       stop_api(409, "E_ARMONIZADA_SELECT_MULTIPLE", sprintf(
@@ -305,7 +330,8 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
 
 # Errores de UNA fila que no invalidan a las demás: la fila se omite.
 .ARMZ_DEFECTOS_OMITIBLES <- c(E_ARMONIZADA_MAPA_ROTO = "mapa_roto",
-                              E_ARMONIZADA_SELECT_MULTIPLE = "select_multiple")
+                              E_ARMONIZADA_SELECT_MULTIPLE = "select_multiple",
+                              E_EQUIV_ARMONIZACION_VARIABLE_AUSENTE = "variable_ausente")
 
 #' Columnas de una lista de filas (preguntas o cruces). Una fila defectuosa
 #' (mapa roto, opción múltiple) se omite y queda declarada en `omitidas`
@@ -334,7 +360,7 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
       tipo = tipo, fila = d$etiqueta, titulo = d$titulo, claves = d$claves,
       motivo = unname(.ARMZ_DEFECTOS_OMITIBLES[[r$code]]), codigo_error = r$code,
       base = det$base, variable = det$variable, codigos = det$codigos,
-      detalle = conditionMessage(r))
+      ausentes = det$ausentes, detalle = conditionMessage(r))
   }
   if (length(errores) && (n_pedidas <= 1L || !length(quedan))) stop(errores[[1]])
   list(lista = quedan, cols = cols, omitidas = omitidas)
@@ -353,7 +379,8 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
 
 .armz_meta <- function(d) {
   list(key = d$key, etiqueta = d$etiqueta, escala = d$escala, claves = d$claves,
-       comparable = d$comparable, sin_variable = d$sin_variable, notas = d$notas,
+       comparable = d$comparable, sin_variable = d$sin_variable, ausente = d$ausente,
+       variable_por = d$variable_por, notas = d$notas,
        no_ofrecidas = d$no_ofrecidas, sin_mapa = d$sin_mapa)
 }
 
@@ -447,7 +474,8 @@ armonizada_modelo_cruces <- function(ap, alpha = 0.05) {
 #' casos en más de 2 %, notas por pregunta que no casan con ninguna fila,
 #' períodos sin variable declarada (`sin_variable`, uno por fila y base) y
 #' preguntas y cruces omitidos (`pregunta_omitida`, `cruce_omitido`, con
-#' `motivo` sin_variable, mapa_roto o select_multiple, y `base`/`codigos`
+#' `motivo` sin_variable, mapa_roto, select_multiple o variable_ausente, y
+#' `base`/`codigos`/`ausentes`
 #' cuando el defecto es de una base).
 #' @return Lista de list(tipo, base?, fila?, mensaje).
 #' @keywords internal
@@ -491,10 +519,12 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
         d$titulo, rotulos[[b]], .armz_capital(unidad$ese)))
     }
   }
+  out <- c(out, .armz_avisos_ausente(ap, rotulos))
   for (o in ap$omitidas %||% list()) {
     av <- list(tipo = if (identical(o$tipo, "cruce")) "cruce_omitido" else "pregunta_omitida",
                fila = o$fila, motivo = o$motivo %||% "sin_variable")
     if (length(o$base)) av$base <- o$base
+    if (length(o$ausentes)) av$ausentes <- o$ausentes
     if (length(o$codigos)) av$codigos <- o$codigos
     av$mensaje <- sprintf("«%s» no se incluyó en el comparativo%s. %s", o$titulo,
                           if (identical(o$tipo, "cruce")) " como variable de cruce" else "",
@@ -524,6 +554,7 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
     select_multiple = sprintf(
       "Es de opción múltiple en %s%s. El comparativo armoniza preguntas de una sola respuesta.",
       rot(o$base), if (length(o$variable)) paste0(" (variable «", o$variable, "»)") else ""),
+    variable_ausente = .armz_motivo_omision_ausente(o, rotulos),
     "No tiene variable declarada en la matriz para ninguna medición de la serie.")
 }
 
@@ -620,7 +651,8 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
     datos[[b]] <- pr$data
     pond[[b]] <- pr$estado
   }
-  ap <- armonizada_apilar(datos, filas, cruces, periodos, insts = fuentes$insts)
+  ap <- armonizada_apilar(datos, filas, cruces, periodos, insts = fuentes$insts,
+                          excluidas = fuentes$excluidas)
   ap$ponderacion <- pond
   ap
 }
@@ -670,7 +702,8 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
 
 #' Data e instrumento de cada período por la ruta de Analítica, revisados con
 #' la config de su base. Sin ponderar todavía.
-#' @return list(datos, insts), nombradas por base.
+#' @return list(datos, insts, excluidas), nombradas por base. `excluidas` es
+#'   `variables_excluidas` de la config de cada base.
 #' @keywords internal
 .armz_fuentes <- function(sid, periodos, cfg) {
   src <- .load_rp_sources(sid)
@@ -684,15 +717,18 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
   }
   datos <- list()
   insts <- list()
+  excluidas <- list()
   for (b in periodos) {
     if (!is.data.frame(ds[[b]])) {
       stop_api(409, "E_NO_DATA", sprintf("La base «%s» no tiene data cargada.", b), list(base = b))
     }
-    rv <- .analitica_apply_data_review(ds[[b]], is[[b]], .armz_cfg_revision(sid, b, cfg))
+    cfg_b <- .armz_cfg_revision(sid, b, cfg)
+    rv <- .analitica_apply_data_review(ds[[b]], is[[b]], cfg_b)
     datos[[b]] <- rv$data
     insts[[b]] <- rv$inst
+    excluidas[[b]] <- .as_chr_vec((cfg_b %||% list())$variables_excluidas)
   }
-  list(datos = datos, insts = insts)
+  list(datos = datos, insts = insts, excluidas = excluidas)
 }
 
 # ---- Ponderación declarada por base (puntos 2 y 7) ------------------------------

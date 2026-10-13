@@ -446,3 +446,35 @@ test_that("letras de columna: siguen con AA, AB… pasada la 26.ª categoría", 
   expect_false(anyNA(l))
   expect_identical(.comparativo_letras(0), character(0))
 })
+
+test_that("variable ausente: pie «n.c.» con su causa en el simple y en cruces, sin raya ni punto y coma", {
+  datos <- .az_sin_columna(list(b2024 = "lug24", b2025 = "v25", b2026 = "v26"))
+  sid <- .az_setup(datos = datos, por_base = .az_por_base_excluidas(list(b2025 = "v25")))
+  cfg <- list(notas = .az_notas())
+  dir <- withr::local_tempdir()
+  rot <- .armz_rotulos(c("b2024", "b2025", "b2026"))
+
+  ap <- .armz_preparar(sid, cfg, filas_refs = list("VBG-01", "DEN-01"))
+  rs <- reporte_comparativo_simple(armonizada_modelo_frecuencias(ap), file.path(dir, "s.xlsx"), rot, cfg$notas)
+  d <- .rc_celdas(file.path(dir, "s.xlsx"))[[1]]
+  expect_identical(sum(d == paste("n.c.: la variable «v25» está excluida en Analítica en 2025.",
+                                  "La variable «v26» no está en la base de 2026."), na.rm = TRUE), 1L)
+  expect_identical(rs$preguntas[[1]]$n_c, list("b2025", "b2026"))
+  expect_identical(vapply(rs$preguntas[[1]]$variable_ausente, `[[`, "", "motivo"),
+                   c("excluida", "no_esta_en_la_base"))
+  expect_false(any(grepl("n.c.: no comparable.$", d)))
+  .rc_notas_limpias(d[grepl("^n\\.c\\.", d)])
+
+  ap_c <- .armz_preparar(sid, cfg, filas_refs = list("DEN-01"), cruces_refs = list("S-05"))
+  path <- file.path(dir, "c.xlsx")
+  rc <- reporte_comparativo_cruces(armonizada_modelo_cruces(ap_c), path, rot, cfg$notas)
+  dc <- .rc_celdas(path)
+  r24 <- which(dc[[2]] == "2024")[1]
+  expect_identical(unname(unlist(dc[r24, 5:10])), rep("n.c.", 6))
+  pie <- dc[[1]]
+  expect_true("n.c.: la variable «lug24» de Lugar de nacimiento no está en la base de 2024." %in% pie)
+  expect_identical(rc$preguntas[[1]]$variable_ausente,
+                   list(list(base = "b2024", fila = "Lugar de nacimiento", variable = "lug24",
+                             motivo = "no_esta_en_la_base")))
+  .rc_notas_limpias(pie[grepl("^n\\.c\\.", pie)])
+})
