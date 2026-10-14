@@ -20,13 +20,14 @@
 #' @param titulo,overrides,base,filtros Como en los demás gráficos.
 #' @param frase Quiénes forman la base del dependiente, dicho por el analista («que trabajan»): la lámina escribe «Sólo los
 #'   139 que trabajan». Sin ella, «que respondieron «Sí»».
+#' @param rotulo Rótulo corto a la izquierda de la barra del dependiente cuando es una escala de una fila («Participaron», p192).
 #' @return Objeto `"ppt_element"`.
 #' @family reporte
 #' @export
 p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafico_sub = c("barras", "escala"),
                                  disposicion = c("costado", "abajo"), titulo = NULL, overrides = list(), base = list(),
                                  filtros = list(), grafico_filtro = c("auto", "torta", "dona"),
-                                 independiente = NULL, dependiente = NULL, frase = NULL) {
+                                 independiente = NULL, dependiente = NULL, frase = NULL, rotulo = NULL) {
   grafico_sub <- match.arg(grafico_sub)
   disposicion <- match.arg(disposicion)
   grafico_filtro <- match.arg(grafico_filtro)
@@ -51,7 +52,8 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
     grafico_sub = grafico_sub, disposicion = disposicion, grafico_filtro = grafico_filtro,
     title_slide = .ppt_norm_text1(titulo, blank = NULL),
     overrides = overrides, base = base, filtros = .ppt_norm_filters(filtros),
-    independiente = independiente, dependiente = dependiente, frase = .ppt_norm_text1(frase, blank = NULL)
+    independiente = independiente, dependiente = dependiente, frase = .ppt_norm_text1(frase, blank = NULL),
+    rotulo = .ppt_norm_text1(rotulo, blank = NULL)
   )
   class(el) <- c("ppt_element", "list")
   el
@@ -166,7 +168,7 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
   if (is.null(espec_f) || is.null(espec_s)) {
     habilitadas <- niveles$label[niveles$code %in% codigos]
     attr(p, "pulso_espec") <- list(version = "filtro_sub/1", tipo = "filtro_sub", filtro = espec_f, sub = espec_s,
-                                   habilita = habilitadas, disposicion = el$disposicion, frase = el$frase,
+                                   habilita = habilitadas, disposicion = el$disposicion, frase = el$frase, rotulo = el$rotulo,
                                    pregunta_filtro = titulo_de(el$independiente %||% list(), ctx_f), pregunta_sub = titulo_de(el$dependiente %||% list(), ctx_s),
                                    n_filtro = NA_real_, n_sub = NA_real_, plot_filtro = p_f, plot_sub = p_s)
     return(p)
@@ -176,7 +178,7 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
     attr(p, "pulso_espec") <- list(
       version = "filtro_sub/1", tipo = "filtro_sub", filtro = espec_f, sub = espec_s,
       habilita = intersect(espec_f$rotulos %||% character(0), habilitadas),
-      disposicion = el$disposicion, frase = el$frase,
+      disposicion = el$disposicion, frase = el$frase, rotulo = el$rotulo,
       pregunta_filtro = titulo_de(el$independiente %||% list(), ctx_f), pregunta_sub = titulo_de(el$dependiente %||% list(), ctx_s),
       plot_filtro = p_f, plot_sub = p_s,
       n_filtro = if (identical(espec_f$tipo, "pie")) espec_f$total_n_casos %||% espec_f$total_n else .espec_n_base(espec_f),

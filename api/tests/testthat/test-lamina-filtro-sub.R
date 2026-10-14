@@ -255,3 +255,22 @@ test_that("F5: la escala dependiente de una fila lleva su columna Top Two Box", 
   expect_true("Top Two Box" %in% r$textos, info = paste(r$textos, collapse = " | "))
   expect_true(esperado %in% r$por_nombre("box:cifra"), info = paste(r$por_nombre("box:cifra"), collapse = " | "))
 })
+
+test_that("F5: el rótulo que escribe el analista va a la izquierda de la barra del dependiente, y llega del meta", {
+  skip_if_not_installed("officer")
+  r <- .fsub_textos_de(p_filtro_subpregunta("inter", habilita = "Sí", subpregunta = "util", grafico_sub = "escala", disposicion = "abajo",
+                                            rotulo = "Participaron"))
+  expect_equal(r$por_nombre("escala:rotulo_fila"), "Participaron")
+  sin <- .fsub_textos_de(p_filtro_subpregunta("inter", habilita = "Sí", subpregunta = "util", grafico_sub = "escala", disposicion = "abajo"))
+  expect_length(sin$por_nombre("escala:rotulo_fila"), 0L)
+  s <- .dependencia_como_lamina(list(tipo = "p_slide_2_graficos_vertical", payload = list(
+    superior = list(graficador = "p_barras_agrupadas", args = list(var = "inter")),
+    inferior = list(graficador = "p_barras_apiladas", args = list(var = "util")),
+    meta = list(dependencia = list(de = "superior", habilita = "Sí", rotulo = "Participaron")))))
+  expect_identical(s$payload$grafico$args$rotulo, "Participaron")
+  vacio <- .dependencia_como_lamina(list(tipo = "p_slide_2_graficos_vertical", payload = list(
+    superior = list(graficador = "p_barras_agrupadas", args = list(var = "inter")),
+    inferior = list(graficador = "p_barras_apiladas", args = list(var = "util")),
+    meta = list(dependencia = list(de = "superior", habilita = "Sí", rotulo = "")))))
+  expect_null(vacio$payload$grafico$args$rotulo)
+})
