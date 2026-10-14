@@ -1410,6 +1410,29 @@ sm_api_extract_pages <- function(details, style = NULL) {
   FALSE
 }
 
+.sm_api_codigos_por_peso <- function(out) {
+  if (!length(out)) return(out)
+  pesos <- vapply(out, function(x) as.numeric(x$weight %||% NA_real_), numeric(1))
+  usar <- all(!is.na(pesos)) && all(pesos == round(pesos)) && !anyDuplicated(pesos)
+  lapply(out, function(x) {
+    if (usar) x$code <- as.character(as.integer(x$weight))
+    x$weight <- NULL
+    x
+  })
+}
+
+# Siguiente código libre para «Otros» y «Ninguna»: tras el mayor código
+# sustantivo (los especiales 90+ no cuentan), sin pisar uno ya usado. Sin pesos
+# coincide con la posición de siempre.
+.sm_api_codigo_libre <- function(out) {
+  usados <- suppressWarnings(as.integer(vapply(out, function(x) as.character(x$code), character(1))))
+  usados <- usados[!is.na(usados)]
+  sustantivos <- usados[usados < 90L]
+  siguiente <- max(c(length(out), sustantivos, 0L)) + 1L
+  while (siguiente %in% usados) siguiente <- siguiente + 1L
+  as.character(siguiente)
+}
+
 .sm_api_question_choices <- function(q) {
   answers <- .sm_or(q$answers, list())
   choices <- .sm_or(answers$choices, list())
@@ -1442,10 +1465,17 @@ sm_api_extract_pages <- function(details, style = NULL) {
         label = label,
         position = pos,
         is_other = FALSE,
-        is_none = FALSE
+        is_none = FALSE,
+        weight = suppressWarnings(as.numeric(.sm_or(ch$weight, NA_real_)))
       )
     }
   }
+  # 1b) Los pesos que el analista fijó en SurveyMonkey son los códigos
+  #     (checklist 2026-10-14, H3): «SIN INF» con peso 99 se codifica 99, como
+  #     manda el estándar de valores especiales, y no 5 por su posición. Sólo
+  #     si TODAS las opciones regulares traen un peso entero y ninguno se repite;
+  #     si no, rige la posición.
+  out <- .sm_api_codigos_por_peso(out)
   # 2) "Otros:" (Add an 'Other' option) — siempre al final, ignorando la
   #    `position` que reporta la API (suele ser 0 como sentinela).
   if (!is.null(other) && length(other) > 0L) {
@@ -1455,7 +1485,7 @@ sm_api_extract_pages <- function(details, style = NULL) {
       if (!is.na(label) && nzchar(label)) {
         pos <- length(out) + 1L
         out[[length(out) + 1L]] <- list(
-          code = as.character(pos),
+          code = .sm_api_codigo_libre(out),
           label = label,
           position = pos,
           is_other = TRUE,
@@ -1478,7 +1508,7 @@ sm_api_extract_pages <- function(details, style = NULL) {
   for (label in none_labels) {
     pos <- length(out) + 1L
     out[[length(out) + 1L]] <- list(
-      code = as.character(pos),
+      code = .sm_api_codigo_libre(out),
       label = label,
       position = pos,
       is_other = FALSE,
@@ -1492,12 +1522,19 @@ sm_api_extract_pages <- function(details, style = NULL) {
   x <- .sm_first_nonempty(x, fallback = NA_character_)
   if (is.na(x) || !nzchar(x)) return(NA_character_)
   x <- gsub("<br\\s*/?>", " ", x, ignore.case = TRUE, perl = TRUE)
-  x <- gsub("<[^>]+>", " ", x, perl = TRUE)
+  # Las etiquetas de bloque separan; las de línea (negrita, cursiva, span) no:
+  # reemplazarlas por un espacio dejaba «de la PUCP ?» y partía palabras
+  # («confidencia l») (checklist 2026-10-14, H6).
+  x <- gsub("</?(div|p|li|ul|ol|h[1-6]|tr|td|th|table|tbody|thead|blockquote)\\b[^>]*>", " ",
+            x, ignore.case = TRUE, perl = TRUE)
+  x <- gsub("<[^>]+>", "", x, perl = TRUE)
   x <- gsub("&nbsp;", " ", x, fixed = TRUE)
   x <- gsub("&amp;", "&", x, fixed = TRUE)
   x <- gsub("&quot;", "\"", x, fixed = TRUE)
   x <- gsub("&#39;", "'", x, fixed = TRUE)
-  .sm_norm_ws(x)
+  x <- .sm_norm_ws(x)
+  x <- gsub("\\s+([?.,;:!)\\]])", "\\1", x, perl = TRUE)
+  gsub("([(\\[¿¡])\\s+", "\\1", x, perl = TRUE)
 }
 
 .sm_api_question_heading <- function(q) {
@@ -1817,6 +1854,7 @@ sm_api_xlsform <- function(details, style = .sm_api_default_style(), lang = "es"
   diag_rows <- list()
   label_sets <- list()
   vars_rows <- list()
+  page_titles <- character(0)
   global_pos <- 0L
 
   add_survey <- function(type, name, label = NA_character_, required = NA_character_,
@@ -1885,6 +1923,8 @@ sm_api_xlsform <- function(details, style = .sm_api_default_style(), lang = "es"
       }, character(1))
     } else character(0)
     sec_name <- paste0("section_pag_", page_id)
+    page_titles[[sec_name]] <- .sm_first_nonempty(.sm_api_clean_text(.sm_or(page$title, NA_character_)),
+                                                  fallback = "")
     sec_label <- .sm_api_page_label(page_id, .sm_api_page_title(page, presentation_headings), page_qs)
     add_survey("begin_group", sec_name, sec_label, section = sec_name)
 
@@ -2029,7 +2069,8 @@ sm_api_xlsform <- function(details, style = .sm_api_default_style(), lang = "es"
     survey = survey,
     choices = choices,
     settings = settings,
-    diagnostico = diagnostico
+    diagnostico = diagnostico,
+    page_titles = page_titles
   )
   spec <- .sm_apply_remap_to_spec(spec_raw)
   spec$survey <- .sm_api_normalize_generated_note_names(spec$survey)
