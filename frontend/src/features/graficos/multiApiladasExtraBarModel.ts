@@ -24,7 +24,9 @@ export function mergeMultiApiladasArgsPatch(
   if (!hasExplicitExtraBar && Object.prototype.hasOwnProperty.call(patch, "top2box")) {
     overrides.mostrar_barra_extra = patch.top2box === true;
   } else if (!Object.prototype.hasOwnProperty.call(overrides, "mostrar_barra_extra")) {
-    overrides.mostrar_barra_extra = false;
+    // Sin declaración, la columna sigue lo que ya dice la lámina: cambiar de lectura con el Top Two Box encendido no
+    // lo apaga en silencio (2026-10-14).
+    overrides.mostrar_barra_extra = current.top2box === true;
   }
 
   return {

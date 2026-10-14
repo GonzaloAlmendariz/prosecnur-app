@@ -26,9 +26,14 @@ export function guardarLectura(clave: string, lectura: string, args: Args, m: Me
   m.set(clave, porLectura);
 }
 
-/** Lo que tenía esa lectura la última vez, o `null` si nunca se usó en esta lámina. */
+/**
+ * Lo que tenía esa lectura la última vez, o `null` si nunca se usó o si se dejó vacía. Una foto vacía no se restaura:
+ * restaurarla borraba las preguntas de la lectura actual (mergeSlotArgsPatch borra cada clave en null), y un clic en
+ * «Preguntas» después de armar «Públicos por tema» dejaba la lámina sin temas (2026-10-14).
+ */
 export function recuperarLectura(clave: string, lectura: string, m: Memoria = memoria): Record<string, unknown> | null {
-  return m.get(clave)?.get(lectura) ?? null;
+  const foto = m.get(clave)?.get(lectura) ?? null;
+  return foto && tieneContenido(foto) ? foto : null;
 }
 
 function tieneContenido(foto: Record<string, unknown>): boolean {
