@@ -1,5 +1,10 @@
 # Etiquetas para los entregables desde Procesamiento (G18) — propuesta
 
+Tipo: Propuesta de diseño
+Estado: Vigente
+Fecha: 2026-10-13
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
 Gonzalo, 2026-10-13: «aquí podemos ayudarnos de procesamiento para que las etiquetas no se vean tan largas; partimos del
 hecho de que esta base ya pasó por procesamiento y que es capaz de ajustar cosas de cara a los entregables» y «quiero que
 te centres en qué tipo de correcciones o errores ellos solían cometer». Regla vigente (D4): **la app detecta y avisa; el

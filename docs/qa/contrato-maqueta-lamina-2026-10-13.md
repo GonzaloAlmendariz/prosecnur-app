@@ -1,9 +1,14 @@
 # Contrato de la maqueta de lámina
 
-Fecha: 2026-10-13 · Pedido de Gonzalo: «las maquetas tienen que ser mucho más robustas a distintas situaciones… no hay
+Tipo: Contrato de superficie (propuesta)
+Estado: Vigente
+Fecha: 2026-10-13
+Autoridad: Propuesta pendiente de aprobación; no reemplaza un ADR
+
+Pedido de Gonzalo: «las maquetas tienen que ser mucho más robustas a distintas situaciones… no hay
 probado y testeado maquetas para todos los tipos de gráficos que se vean elegantes, sean robustas a diferentes
 situaciones y configuraciones».
-Estado: **propuesta, pendiente de aprobación** (rehecha el mismo día: de réplica del PPT a ficha visual). Galería que lo pone en práctica:
+Situación: **propuesta, pendiente de aprobación** (rehecha el mismo día: de réplica del PPT a ficha visual). Galería que lo pone en práctica:
 `docs/qa/maqueta-galeria-maquetas-2026-10-13.html`.
 
 ## Qué es la maqueta

@@ -53,6 +53,14 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Seguimiento de cuotas en cursos-horario — método y motores](metodo-seguimiento-cuotas-aulas.md): con qué motor sale cada cifra del avance y qué trampas costaron un ciclo.
 - [Croquis del campus PUCP — fuentes](croquis-campus-pucp-fuentes.md): respaldo de las coordenadas embebidas en el croquis de B32.
 
+### Entregables, láminas y limpieza (2026-10-13)
+
+- [Checklist de los entregables de HSyVBG 2026](checklist-entregables-hsyvbg-2026-10-13.md): el motor frente a la maqueta aprobada por la OIGD.
+- [Checklist de láminas y graficadores](checklist-graficadores-laminas-2026-10-13.md): dictado sobre el recetario mientras corría el loop de Arte.
+- [Checklist de limpieza, codificación y base limpiada fuera](checklist-limpieza-codificacion-base-externa-2026-10-13.md): pedido a partir de la base de HSyVBG.
+- [Contrato de la maqueta de lámina](contrato-maqueta-lamina-2026-10-13.md): propuesta de ficha visual robusta para todos los tipos de gráfico.
+- [Etiquetas para los entregables desde Procesamiento](propuesta-etiquetas-entregables-2026-10-13.md): propuesta G18, la app detecta y el analista corrige.
+
 ### Importación SurveyMonkey → Formularios → Procesamiento (Arte y Diseño 2026)
 
 - [Checklist de la importación SM de Arte](checklist-importacion-sm-arte-2026-10-14.md): hallazgos de API, UI y del paso a Procesamiento (ADR 0101–0102), con su estado.

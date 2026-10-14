@@ -1,5 +1,10 @@
 # Checklist: el motor genera los entregables de HSyVBG 2026 (2026-10-13)
 
+Tipo: Checklist de QA (pedido con varias indicaciones)
+Estado: Vigente
+Fecha: 2026-10-13
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
 Origen: maqueta «HSyVBG PUCP 2026_Lista y formato de entregables.xlsx» (carpeta
 `01_Estudios/2026_PUCP_HSyVbG/Entregables 2026/`), aprobada por la OIGD el
 2026-10-09. Diagnóstico de brechas del 2026-10-10: las tablas anuales están casi
