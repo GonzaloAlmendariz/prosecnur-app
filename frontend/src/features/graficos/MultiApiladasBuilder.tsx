@@ -29,7 +29,7 @@ import { useSession } from "../../lib/SessionContext";
 import { processingBaseScopePresentation } from "../procesamiento/baseScopeModel";
 import { blockFromArgs, carryCruce, carryVars } from "./multiApiladasCarry";
 import VariableRespondentSummary from "./VariableRespondentSummaryView";
-import { QueCompara } from "./multiapiladas/QueCompara";
+import { QueCompara, type BocetoQueCompara } from "./multiapiladas/QueCompara";
 import { TemasPorPublico } from "./multiapiladas/TemasPorPublico";
 import { useSugerenciasDeMatriz } from "./multiapiladas/useSugerenciasDeMatriz";
 import type { FuentesMatriz } from "./multiapiladas/sugerenciasMatriz";
@@ -77,7 +77,9 @@ const INTENTS: {
   /** El rótulo en «Qué compara» (G12 parte 2). */
   corto: string;
   description: string;
+  cadaBarra: string;
   example: string;
+  boceto: BocetoQueCompara;
   Icon: typeof GitCompare;
   requiresMulti?: boolean;
 }[] = [
@@ -85,32 +87,40 @@ const INTENTS: {
     key: "comparar",
     title: "Comparar preguntas",
     corto: "Preguntas",
-    description: "Varias preguntas con la misma escala, una fila por pregunta.",
-    example: "Satisfacción, claridad y confianza en una sola lectura.",
+    description: "Varias preguntas de un mismo público, una debajo de otra, para leerlas juntas. Tienen que usar la misma escala.",
+    cadaBarra: "cada barra es una pregunta.",
+    example: "«Los propósitos están claros», «Las autoridades son accesibles» y «Los trámites son rápidos», en Estudiantes.",
+    boceto: { bloques: [{ filas: ["Pregunta 1", "Pregunta 2", "Pregunta 3"] }] },
     Icon: GitCompare,
   },
   {
     key: "pregunta_grupos",
     title: "Abrir una pregunta por grupos",
     corto: "Una pregunta por grupos",
-    description: "Una pregunta dividida por región, sexo, sede u otro grupo.",
-    example: "Satisfacción por región.",
+    description: "Una sola pregunta, partida según un grupo del mismo público: sexo, ciclo, sede o dedicación.",
+    cadaBarra: "cada barra es un grupo y todas responden la misma pregunta.",
+    example: "«Los propósitos están claros» en Estudiantes, por ciclo.",
+    boceto: { bloques: [{ titulo: "Pregunta", filas: ["Grupo A", "Grupo B", "Grupo C"] }] },
     Icon: Split,
   },
   {
     key: "preguntas_grupos",
     title: "Abrir preguntas por grupos",
     corto: "Preguntas por grupos",
-    description: "Varias preguntas, cada una abierta por el mismo grupo.",
-    example: "Tres indicadores por tipo de usuario.",
+    description: "Varias preguntas, cada una partida por el mismo grupo: un bloque por pregunta.",
+    cadaBarra: "cada bloque es una pregunta y, dentro, cada barra es un grupo.",
+    example: "Infraestructura, bibliotecas y recursos informáticos en Docentes, por dedicación.",
+    boceto: { bloques: [{ titulo: "Pregunta 1", filas: ["Grupo A", "Grupo B"] }, { titulo: "Pregunta 2", filas: ["Grupo A ", "Grupo B "] }] },
     Icon: Layers3,
   },
   {
     key: "publicos_tema",
     title: "Comparar públicos por tema",
     corto: "Públicos por tema",
-    description: "Temas comparados entre fuentes o bases del estudio.",
-    example: "Docentes, estudiantes y administrativos frente al mismo tema.",
+    description: "La misma pregunta en cada público, para ver si opinan distinto. Eliges la pregunta de cada público; si declaraste la matriz de equivalencias, te sugiere la que corresponde.",
+    cadaBarra: "cada tema es un bloque y, dentro, cada barra es un público.",
+    example: "«Los propósitos están claros»: Estudiantes, Docentes y Administrativos.",
+    boceto: { bloques: [{ titulo: "Tema 1", filas: ["Público A", "Público B", "Público C"] }] },
     Icon: UsersRound,
     requiresMulti: true,
   },
@@ -118,8 +128,10 @@ const INTENTS: {
     key: "combinar",
     title: "Combinar bloques",
     corto: "Bloques",
-    description: "Varios bloques verticales, incluso con escalas distintas.",
-    example: "Un bloque Likert y otro Sí/No en la misma lamina.",
+    description: "Bloques independientes uno debajo de otro en el mismo gráfico, aunque usen escalas distintas.",
+    cadaBarra: "cada bloque se arma como una de las otras opciones, con su propia escala.",
+    example: "Un bloque de acuerdo y otro de Sí/No en la misma lámina.",
+    boceto: { bloques: [{ titulo: "Bloque 1", filas: ["Pregunta 1", "Pregunta 2"] }, { titulo: "Bloque 2", filas: ["Pregunta 3"] }] },
     Icon: Rows3,
   },
 ];
@@ -238,6 +250,9 @@ export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props
           key: item.key,
           titulo: item.corto,
           descripcion: item.description,
+          cadaBarra: item.cadaBarra,
+          ejemplo: item.example,
+          boceto: item.boceto,
           deshabilitada: item.requiresMulti && (!multi || sources.length < 2) ? multiSourceHint : null,
         }))}
       />
