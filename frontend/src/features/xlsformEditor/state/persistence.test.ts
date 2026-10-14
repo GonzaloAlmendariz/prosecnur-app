@@ -5,7 +5,9 @@ import {
   createPersistenceScheduler,
   deleteForm,
   deriveFormName,
+  fnv1a32Hex,
   getActiveForm,
+  legacyScopeKey,
   listForms,
   loadForm,
   loadSnapshot,
@@ -13,6 +15,7 @@ import {
   reconcileSnapshotWithBackend,
   saveForm,
   saveSnapshot,
+  scopeKey,
   setActiveForm,
   upsertLibraryEntry,
   type PersistedSnapshot,
@@ -510,5 +513,101 @@ describe("flushAndSync (G-13: guardar proyecto espera el POST del editor)", () =
     );
     await expect(scheduler.flushAndSync()).resolves.toBeUndefined();
     expect(saveMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("scopeKey discrimina la ruta completa (incidente 2026-10-14)", () => {
+  const BASE = "/Users/gonzaloalmendariz/repos/Pulso/prosecnur-app/outputs/reference-runs";
+  const RUTA_A = `${BASE}/acrconta-20261014-071801/acrconta.pulso`;
+  const RUTA_B = `${BASE}/acrconta-20261014-081200/acrconta.pulso`;
+  const CONTA_V3 = "/Users/x/Drive/Estudios/2026_PUCP_Acreditacion_Contabilidad/V3_Conta 11-08 equivalencias.pulso";
+  const CONTA_09 = "/Users/x/Drive/Estudios/2026_PUCP_Acreditacion_Contabilidad/Conta 09-08 equivalencias.pulso";
+
+  test("dos rutas con prefijo común de más de 80 chars dan claves distintas", () => {
+    // Precondición: con el formato viejo (prefijo de 80) colisionaban.
+    const viejo = (r: string) => r.replace(/[^a-zA-Z0-9]+/g, "_").slice(0, 80);
+    expect(viejo(RUTA_A)).toBe(viejo(RUTA_B));
+    expect(scopeKey(RUTA_A)).not.toBe(scopeKey(RUTA_B));
+    expect(scopeKey(CONTA_V3)).not.toBe(scopeKey(CONTA_09));
+  });
+
+  test("misma cola, distinto prefijo: el hash del path completo las separa", () => {
+    const a = `/a/${"x".repeat(60)}/estudio.pulso`;
+    const b = `/b/${"x".repeat(60)}/estudio.pulso`;
+    expect(scopeKey(a)).not.toBe(scopeKey(b));
+  });
+
+  test("la misma ruta da siempre la misma clave, legible y acotada", () => {
+    expect(scopeKey(RUTA_A)).toBe(scopeKey(`${RUTA_A}`));
+    expect(scopeKey(RUTA_A)).toMatch(/^[A-Za-z0-9_]{1,40}_[0-9a-f]{8}$/);
+    expect(scopeKey(RUTA_A)).toContain("acrconta_pulso");
+    expect(fnv1a32Hex("")).toBe("811c9dc5");
+    expect(fnv1a32Hex("a")).toBe("e40c292c");
+    expect(scopeKey(null)).toBe("no-project");
+    expect(scopeKey("   ")).toBe("no-project");
+  });
+
+  test("la biblioteca de una copia no muestra los formularios de la otra", () => {
+    vi.stubGlobal("localStorage", makeStorage());
+    vi.stubGlobal("sessionStorage", makeStorage());
+    saveForm(RUTA_A, "form-a", workbook("A"), { sourceName: "a.xlsx", sourceKind: "xlsform" });
+    expect(listForms(RUTA_B)).toEqual([]);
+    expect(listForms(RUTA_A).map((f) => f.id)).toEqual(["form-a"]);
+  });
+});
+
+describe("migración desde la clave vieja de scope", () => {
+  const CORTA = "/tmp/estudio.pulso";
+  const LARGA = "/Users/gonzaloalmendariz/repos/Pulso/prosecnur-app/outputs/reference-runs/acrconta-20261014-071801/acrconta.pulso";
+
+  test("clave vieja sin truncar (única): se migra índice y workbook por-formulario", () => {
+    const viejo = legacyScopeKey(CORTA);
+    expect(viejo).toBe("_tmp_estudio_pulso");
+    const storage = makeStorage({
+      [`pulso.xlsformEditor.library.v1.${viejo}`]: JSON.stringify({
+        activeFormId: "f1",
+        forms: [{ id: "f1", name: "Uno", savedAt: 1000, source: null }],
+      }),
+      [`pulso.xlsformEditor.workbook.v2.${viejo}.f1`]: JSON.stringify(workbook("migrado")),
+      [`pulso.xlsformEditor.meta.v2.${viejo}.f1`]: JSON.stringify({ savedAt: 1000, sourceName: "u.xlsx", sourceKind: "xlsform" }),
+    });
+    vi.stubGlobal("localStorage", storage);
+    vi.stubGlobal("sessionStorage", makeStorage());
+
+    expect(listForms(CORTA).map((f) => f.id)).toEqual(["f1"]);
+    expect(getActiveForm(CORTA)).toBe("f1");
+    expect(loadForm(CORTA, "f1")?.workbook.survey.rows[0][2]).toBe("migrado");
+    // Quedó copiado bajo la clave vigente.
+    expect(storage.getItem(`pulso.xlsformEditor.library.v1.${scopeKey(CORTA)}`)).not.toBeNull();
+    expect(storage.getItem(`pulso.xlsformEditor.workbook.v2.${scopeKey(CORTA)}.f1`)).not.toBeNull();
+
+    // Borrar el formulario no lo resucita desde la clave vieja.
+    deleteForm(CORTA, "f1");
+    expect(loadForm(CORTA, "f1")).toBeNull();
+    expect(storage.getItem(`pulso.xlsformEditor.workbook.v2.${viejo}.f1`)).toBeNull();
+  });
+
+  test("clave vieja truncada (pudo ser compartida): no se migra ni se borra", () => {
+    expect(legacyScopeKey(LARGA)).toBeNull();
+    const truncada = LARGA.replace(/[^a-zA-Z0-9]+/g, "_").slice(0, 80);
+    const libViejo = `pulso.xlsformEditor.library.v1.${truncada}`;
+    const wbViejo = `pulso.xlsformEditor.workbook.v2.${truncada}.fantasma`;
+    const storage = makeStorage({
+      [libViejo]: JSON.stringify({
+        activeFormId: "fantasma",
+        forms: [{ id: "fantasma", name: "De otra copia", savedAt: 1000, source: null }],
+      }),
+      [wbViejo]: JSON.stringify(workbook("ajeno")),
+    });
+    vi.stubGlobal("localStorage", storage);
+    vi.stubGlobal("sessionStorage", makeStorage());
+
+    expect(listForms(LARGA)).toEqual([]);
+    expect(loadForm(LARGA, "fantasma")).toBeNull();
+    expect(loadSnapshot(LARGA)).toBeNull();
+    deleteForm(LARGA, "fantasma");
+    // Las claves viejas ajenas siguen intactas.
+    expect(storage.getItem(libViejo)).not.toBeNull();
+    expect(storage.getItem(wbViejo)).not.toBeNull();
   });
 });
