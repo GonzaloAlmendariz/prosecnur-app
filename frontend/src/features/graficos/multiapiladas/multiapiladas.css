@@ -5,7 +5,24 @@
 .pulso-mapi-segmento { border: 0; background: transparent; border-radius: calc(var(--pulso-radius) - 3px); padding: 4px 9px; color: var(--pulso-text-soft); cursor: pointer; font: inherit; }
 .pulso-mapi-segmento[aria-pressed="true"] { background: var(--pulso-surface); color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); box-shadow: 0 0 0 1px var(--pulso-border); }
 .pulso-mapi-segmento:disabled { opacity: .5; cursor: not-allowed; }
-.pulso-mapi-desc { margin: 0; color: var(--pulso-text-soft); }
+.pulso-mapi-desc { margin: 0; color: var(--pulso-text); }
+
+/* Explicación de la opción elegida: boceto de cómo sale el gráfico + qué es cada barra + ejemplo. */
+.pulso-mapi-explica { display: grid; grid-template-columns: 196px minmax(0, 1fr); gap: var(--pulso-space-3); align-items: start; padding: 10px 12px; border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius); background: var(--pulso-surface-2); }
+.pulso-mapi-explica-texto { min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 1.4; }
+.pulso-mapi-explica-linea { margin: 0; color: var(--pulso-text-soft); }
+.pulso-mapi-explica-linea strong { color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
+.pulso-mapi-boceto { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 6px; background: var(--pulso-surface); border: 1px solid var(--pulso-border); }
+.pulso-mapi-boceto-bloque { display: flex; flex-direction: column; gap: 3px; }
+.pulso-mapi-boceto-titulo { font-size: 10px; font-weight: var(--pulso-weight-semibold); color: var(--pulso-text); }
+.pulso-mapi-boceto-fila { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 6px; align-items: center; }
+.pulso-mapi-boceto-rotulo { font-size: 10px; color: var(--pulso-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pulso-mapi-boceto-barra { display: flex; height: 8px; border-radius: 2px; overflow: hidden; }
+.pulso-mapi-boceto-barra > .is-t1 { background: color-mix(in srgb, var(--pulso-primary) 18%, var(--pulso-surface)); }
+.pulso-mapi-boceto-barra > .is-t2 { background: color-mix(in srgb, var(--pulso-primary) 38%, var(--pulso-surface)); }
+.pulso-mapi-boceto-barra > .is-t3 { background: color-mix(in srgb, var(--pulso-primary) 68%, var(--pulso-surface)); }
+.pulso-mapi-boceto-barra > .is-t4 { background: var(--pulso-primary); }
+@media (max-width: 1100px) { .pulso-mapi-explica { grid-template-columns: minmax(0, 1fr); } .pulso-mapi-boceto { max-width: 260px; } }
 .pulso-mapi-temas { display: flex; flex-direction: column; gap: var(--pulso-space-2); min-width: 0; }
 .pulso-mapi-publicos { margin: 0; color: var(--pulso-text-soft); font-size: 12px; white-space: pre-wrap; }
 .pulso-mapi-tarjeta { border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-card); padding: var(--pulso-space-2); display: flex; flex-direction: column; gap: var(--pulso-space-1); background: var(--pulso-surface); }
