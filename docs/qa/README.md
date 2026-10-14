@@ -241,3 +241,8 @@ Cada documento activo declara `Tipo`, `Estado`, `Fecha` y `Autoridad`. Antes de
 reutilizar una cifra o conclusión, confirme el corte observado y ejecute el gate
 vigente. `Plan`, `Prompt`, `Goal` y `Registro` orientan trabajo: no prueban que
 una reparación esté implementada.
+
+- [Checklist · maqueta como ficha visual (implementación en el editor)](checklist-maqueta-ficha-2026-10-13.md): Maqueta como ficha visual: ítems de implementación del contrato M1–M10.
+- [Checklist · configuraciones de los gráficos contra el recetario](checklist-configuraciones-graficos-2026-10-13.md): Configuraciones de los gráficos contra el recetario y controles que el editor muestra y el motor descartaba.
+- [Checklist · proyecto catálogo del recetario (.pulso de prueba)](checklist-catalogo-recetario-2026-10-14.md): Proyecto catálogo del recetario y hallazgos de su recorrido en la app (H, M, I).
+- [Checklist · la matriz de equivalencias sólo declara equivalencias (ADR 0101)](checklist-matriz-equivalencias-pura-2026-10-14.md): La matriz de equivalencias sólo declara equivalencias (ADR 0101).

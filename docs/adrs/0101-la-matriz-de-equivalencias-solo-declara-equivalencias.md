@@ -60,3 +60,12 @@ tener sus configuraciones activables, porque un PPT de ACNUR es bastante diferen
 | E4 | Front: la matriz sin columnas de lámina ni gráfico; retiro de `EquivalenciasDiapositivas.tsx` |
 | E5 | Los selectores de Gráficos que leen equivalencias siguen funcionando (públicos por tema, radar, brecha, serie) |
 | E6 | ACNUR: su perfil y su plan propio siguen activables (prueba que lo fija) |
+
+## Cumplimiento
+
+Lo verifican las pruebas de cada pieza (E1–E6) y el seguimiento en
+`docs/qa/checklist-matriz-equivalencias-pura-2026-10-14.md`.
+
+## Notas
+
+Este ADR no retira el plan sugerido en general; esa decisión, si llega, va en otro ADR y conserva lo de ACNUR.

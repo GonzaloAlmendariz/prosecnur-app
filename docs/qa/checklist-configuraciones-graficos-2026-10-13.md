@@ -1,5 +1,10 @@
 # Checklist · configuraciones de los gráficos contra el recetario
 
+Tipo: Checklist e inventario
+Estado: Vigente
+Fecha: 2026-10-13
+Autoridad: Gonzalo: «los gráficos aún no tienen las suficientes configuraciones como deberían». Sólo Gonzalo da por terminado un ítem
+
 Gonzalo (2026-10-13), al retomar el ítem 9 de la maqueta: «un problema fundamental es que los gráficos aún no tienen
 las suficientes configuraciones como deberían». La maqueta sólo puede reflejar los ajustes que el gráfico tiene, así que
 el ítem 9 de `checklist-maqueta-ficha-2026-10-13.md` se cumple aquí, configuración por configuración.
