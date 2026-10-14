@@ -171,3 +171,42 @@ test_that("F2: una batería dependiente sale nativa con su encabezado de base", 
   pregs <- xml2::xml_text(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='panel:pregunta']]"))
   expect_false("Los intercambios fortalecen mis competencias" %in% pregs)               # no se titula con la primera pregunta
 })
+
+# F4 (checklist-poblacion-y-filtro-2026-10-14): si el dependiente lo respondió gente que no lo habilitaba, el salto no cuadra
+# con los datos; esas respuestas quedan fuera de la lámina y se dice cuántas.
+.fsub_avisos <- function(df, inst, grafico) {
+  msgs <- character()
+  withCallingHandlers(
+    reporte_ppt_plan(data = df, instrumento = inst, path_ppt = tempfile(fileext = ".pptx"), mensajes_progreso = FALSE,
+                     plan = list(p_slide_1_grafico(grafico, titulo = "x"))),
+    message = function(m) { msgs <<- c(msgs, conditionMessage(m)); invokeRestart("muffleMessage") },
+    warning = function(w) { msgs <<- c(msgs, conditionMessage(w)); invokeRestart("muffleWarning") })
+  msgs
+}
+
+test_that("F4: con el salto respetado no se avisa nada", {
+  skip_if_not_installed("officer")
+  fx <- .fsub_fixture()
+  msgs <- .fsub_avisos(fx$df, fx$inst, p_filtro_subpregunta("inter", habilita = "Sí", subpregunta = "util", grafico_sub = "escala"))
+  expect_false(any(grepl("no cuadra", msgs)), info = paste(msgs, collapse = "\n"))
+})
+
+test_that("F4: quien respondió el dependiente sin habilitarlo se cuenta y se avisa", {
+  skip_if_not_installed("officer")
+  fx <- .fsub_fixture(); df <- fx$df
+  no <- which(df$inter == "2")[1:4]; df$util[no] <- "3"
+  msgs <- .fsub_avisos(df, fx$inst, p_filtro_subpregunta("inter", habilita = "Sí", subpregunta = "util", grafico_sub = "escala"))
+  expect_true(any(grepl("4 personas respondieron el gráfico dependiente sin haber elegido «Sí» en «¿Ha participado en programas de intercambio?»",
+                        msgs, fixed = TRUE)), info = paste(msgs, collapse = "\n"))
+  # Por la dependencia entre dos gráficos de una lámina, con el dependiente como lo puso el analista (su `var` se resuelve).
+  msgs <- .fsub_avisos(df, fx$inst, p_filtro_subpregunta(independiente = p_barras_agrupadas(var = "inter"),
+                                                         dependiente = p_barras_apiladas(var = "util"), habilita = "Sí"))
+  expect_true(any(grepl("4 personas respondieron el gráfico dependiente", msgs, fixed = TRUE)), info = paste(msgs, collapse = "\n"))
+})
+
+test_that("F4: el conteo lee filtros de selección múltiple y dependientes de varias preguntas", {
+  df <- data.frame(f = c("1 3", "2", NA, "3", "2"), a = c("x", "x", "x", NA, NA), b = c(NA, NA, NA, NA, 5), stringsAsFactors = FALSE)
+  expect_equal(.fsub_fuera_del_salto(df, "f", "1", c("a", "b")), 3L)   # fila 2, 3 (sin filtro) y 5 (b numérica)
+  expect_equal(.fsub_fuera_del_salto(df, "f", c("1", "2"), "a"), 1L)
+  expect_equal(.fsub_fuera_del_salto(df, "f", "1", "no_existe"), 0L)
+})
