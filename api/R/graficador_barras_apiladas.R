@@ -2833,7 +2833,12 @@ graficar_barras_apiladas <- function(
     btb_dec <- .box_decidir(labels = bottom2box_labels, etiquetas_grupos = etiquetas_grupos,
                             cols_porcentaje = cols_porcentaje, minimo = 3L)
     if (!isTRUE(btb_dec$dibujar)) {
-      if (identical(btb_dec$motivo, "sin_declaracion")) {
+      # Con el Top Two Box declarado la escala tiene orden por definición: la
+      # heurística de orden (que calla en género o carrera) no vale aquí, y
+      # una Bottom Two Box pedida sin categorías se avisa.
+      t2b_declarado <- length(top2box_labels) > 0L
+      if (identical(btb_dec$motivo, "sin_declaracion") ||
+          (identical(btb_dec$motivo, "sin_orden") && t2b_declarado)) {
         .pulso_aviso(.aviso_en_lamina("la columna «Bottom Two Box» se omite: no hay categorías declaradas. Decláralas en «Categorías del Bottom 2 Box»."))
       }
       btb_activa <- FALSE
