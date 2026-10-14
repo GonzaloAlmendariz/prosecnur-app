@@ -246,3 +246,4 @@ una reparación esté implementada.
 - [Checklist · configuraciones de los gráficos contra el recetario](checklist-configuraciones-graficos-2026-10-13.md): Configuraciones de los gráficos contra el recetario y controles que el editor muestra y el motor descartaba.
 - [Checklist · proyecto catálogo del recetario (.pulso de prueba)](checklist-catalogo-recetario-2026-10-14.md): Proyecto catálogo del recetario y hallazgos de su recorrido en la app (H, M, I).
 - [Checklist · la matriz de equivalencias sólo declara equivalencias (ADR 0101)](checklist-matriz-equivalencias-pura-2026-10-14.md): La matriz de equivalencias sólo declara equivalencias (ADR 0101).
+- [Láminas de población nativas y filtro con subpregunta](checklist-poblacion-y-filtro-2026-10-14.md): las láminas de población con piezas del recetario y las mejoras de la pregunta filtro (F1–F5).

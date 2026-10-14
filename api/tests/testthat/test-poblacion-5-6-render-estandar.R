@@ -1,5 +1,5 @@
 # K15 — «Cinco gráficos» y «Seis gráficos» (tipos 19 y 20) renderizados con la plantilla_16_9 real: el ícono del público
-# sale en la cabecera (no se suprime en silencio) y cada gráfico cae en su ranura del estándar.
+# sale en la cabecera (no se suprime en silencio) y cada gráfico cae en su ranura del estándar. Desde P4 salen nativas.
 #
 # El verificador de la 2.ª vuelta de K15 encontró que, al pasar el ícono a la cabecera (0.3 in), `.ppt_calibrar_pies_iconos`
 # sólo aceptaba un cajón cuadrado de 1 in o más centrado: marcaba el slot `suppress` y `.ph_with_strict` lo omitía sin
@@ -33,21 +33,26 @@
     c(x = as.numeric(xml2::xml_attr(off, "x")), y = as.numeric(xml2::xml_attr(off, "y")),
       w = as.numeric(xml2::xml_attr(ext, "cx")), h = as.numeric(xml2::xml_attr(ext, "cy"))) / 914400
   }
+  pregs <- xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='panel:pregunta']]")
   list(formas = lapply(top, function(n) list(caja = caja(n), textos = trimws(xml2::xml_text(xml2::xml_find_all(n, ".//a:t"))))),
+       preguntas = lapply(pregs, function(n) list(caja = caja(n), textos = trimws(xml2::xml_text(xml2::xml_find_all(n, ".//a:t"))))),
        avisos = avisos)
 }
 .p56_comprobar <- function(r, tipo, titulos) {
+  # P4 (checklist-poblacion-y-filtro, 2026-10-14): ya no salen en la plantilla sino nativas: cada panel abre con su
+  # enunciado en la esquina de su ranura del estándar (antes se buscaba la forma del gráfico en el hueco de la plantilla).
   ranuras <- .std_tipo_lamina(tipo)$ranuras
+  preg <- Filter(function(z) length(z$textos) == 1L, r$preguntas)
   for (k in seq_along(titulos)) {
-    f <- Filter(function(z) any(startsWith(z$textos, paste0(titulos[k], " "))), r$formas)
+    f <- Filter(function(z) identical(z$textos, titulos[k]), preg)
     expect_length(f, 1L)
     if (length(f) != 1L) next
-    esperado <- c(x = ranuras[[k]]$x, y = ranuras[[k]]$y, w = ranuras[[k]]$w, h = ranuras[[k]]$h)
-    expect_lte(max(abs(f[[1]]$caja - esperado)), 0.02,
-               label = sprintf("%s: «%s» en %s, ranura %d en %s", tipo, titulos[k], paste(round(f[[1]]$caja, 3), collapse = "/"), k,
+    esperado <- c(x = ranuras[[k]]$x, y = ranuras[[k]]$y)
+    expect_lte(max(abs(f[[1]]$caja[c("x", "y")] - esperado)), 0.05,
+               label = sprintf("%s: «%s» en %s, ranura %d en %s", tipo, titulos[k], paste(round(f[[1]]$caja[c("x", "y")], 3), collapse = "/"), k,
                                paste(round(esperado, 3), collapse = "/")))
   }
-  # El ícono del público, en la cabecera (p164/p166: 0.495, 0.165, 0.3).
+  # D4: el ícono del público, en la cabecera (p164/p166: 0.495, 0.165, 0.3).
   ico <- Filter(function(z) !is.na(z$caja[["x"]]) && abs(z$caja[["x"]] - 0.495) < 0.02 && z$caja[["y"]] < 0.6 && z$caja[["w"]] < 0.5, r$formas)
   expect_length(ico, 1L)
   expect_false(any(grepl("ícono", r$avisos, fixed = TRUE)))
@@ -55,14 +60,14 @@
 .p56_g <- function(v, t) p_barras_categoricas(v, titulo = t)
 .p56_icono <- function() p_ggplot_raw(ggplot2::ggplot() + ggplot2::theme_void())
 
-test_that("cinco gráficos: cada uno en su ranura (S1 S2 S3 / I1 I2) y el ícono en la cabecera", {
+test_that("cinco gráficos: cada enunciado en su ranura (S1 S2 S3 / I1 I2) y el ícono en la cabecera", {
   s <- p_slide_5_graficos_poblacion(grafico_superior_1 = .p56_g("v1", "S1"), grafico_superior_2 = .p56_g("v2", "S2"),
                                     grafico_superior_3 = .p56_g("v3", "S3"), grafico_inferior_1 = .p56_g("v4", "I1"),
                                     grafico_inferior_2 = .p56_g("v5", "I2"), icono = .p56_icono(), titulo = "Perfil")
   .p56_comprobar(.p56_render(s, 5), "p_slide_5_graficos_poblacion", c("S1", "S2", "S3", "I1", "I2"))
 })
 
-test_that("seis gráficos: cada uno en su ranura (S1 S2 S3 / I1 I2 I3) y el ícono en la cabecera", {
+test_that("seis gráficos: cada enunciado en su ranura (S1 S2 S3 / I1 I2 I3) y el ícono en la cabecera", {
   s <- p_slide_6_graficos_poblacion(grafico_superior_1 = .p56_g("v1", "S1"), grafico_superior_2 = .p56_g("v2", "S2"),
                                     grafico_superior_3 = .p56_g("v3", "S3"), grafico_inferior_1 = .p56_g("v4", "I1"),
                                     grafico_inferior_2 = .p56_g("v5", "I2"), grafico_inferior_3 = .p56_g("v6", "I3"),

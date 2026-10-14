@@ -64,14 +64,19 @@ test_that("dos escalas en la misma fila con la misma escala comparten una sola l
   expect_true(all(cuadros$y[cuadros$y > 5] >= .std_geom("contenido_y1") - 0.1))
 })
 
-test_that("la compuerta pide especificación en cada ranura y que el gráfico quepa en su panel", {
+# P4 (checklist-poblacion-y-filtro, 2026-10-14): un panel que no cabe ya no manda la lámina entera a la ruta anterior; va
+# con su gráfico dentro del panel (`.lam_mixta_respaldo_caja`). La lámina sólo se queda en la ruta anterior si ningún panel cabe.
+test_that("la compuerta compone con respaldo el panel que no cabe y sólo se rinde si ninguno cabe", {
   p <- function(e) structure(ggplot2::ggplot(), pulso_espec = e)
   e3 <- list(p(.mx_dico(.31)), p(.mx_cat(as.character(2022:2026), c(.04, .04, .14, .57, .21))), p(.mx_cat(letters[1:6], rep(1 / 6, 6))))
   expect_true(.lam_compositor_aplica_mixta(e3, list(), "graficos_3_2mas1"))
   expect_false(.lam_compositor_aplica_mixta(e3, list(meta = list(motor_nativo = FALSE)), "graficos_3_2mas1"))
-  expect_false(.lam_compositor_aplica_mixta(list(e3[[1]], ggplot2::ggplot(), e3[[3]]), list(), "graficos_3_2mas1"))
+  expect_true(.lam_compositor_aplica_mixta(list(e3[[1]], ggplot2::ggplot(), e3[[3]]), list(), "graficos_3_2mas1"))
+  expect_identical(.lam_mixta_caben(list(.mx_dico(.31), NULL, e3[[3]] |> attr("pulso_espec")), .lam_mixta_geo("graficos_3_2mas1")),
+                   c(TRUE, FALSE, TRUE))                                                   # el del medio va de respaldo
   largo <- p(.mx_cat(paste("c", 1:12), rep(1 / 12, 12)))
-  expect_false(.lam_compositor_aplica_mixta(list(e3[[1]], largo, e3[[3]]), list(), "graficos_3_2mas1"))   # 12 filas no caben abajo
+  expect_true(.lam_compositor_aplica_mixta(list(e3[[1]], largo, e3[[3]]), list(), "graficos_3_2mas1"))     # 12 filas: respaldo abajo
+  expect_false(.lam_compositor_aplica_mixta(list(ggplot2::ggplot(), ggplot2::ggplot(), ggplot2::ggplot()), list(), "graficos_3_2mas1"))
   expect_false(.lam_compositor_aplica_mixta(e3, list(), "graficos_3_fila"))
 })
 
