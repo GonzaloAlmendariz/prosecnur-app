@@ -36,6 +36,7 @@ import { CriteriosGrafico } from "./CriteriosGrafico";
 import { DestacarRespuestas } from "./DestacarRespuestas";
 import { DonaCentro } from "./DonaCentro";
 import { FiltroSubpregunta } from "./FiltroSubpregunta";
+import { PublicoGrafico } from "./PublicoGrafico";
 import { SignificanciaPublicos } from "./SignificanciaPublicos";
 import { ResaltarGrafico } from "./ResaltarGrafico";
 import { EnElWord } from "./tarjetaGrafico/EnElWord";
@@ -132,6 +133,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       <ResaltarGrafico slideId={slideId} slot={slot} valor={valor} />
       <DestacarRespuestas slideId={slideId} slot={slot} valor={valor} />
       <DonaCentro slideId={slideId} slot={slot} valor={valor} />
+      <PublicoGrafico slideId={slideId} slot={slot} valor={valor} />
       <CasosGrafico slideId={slideId} slot={slot} valor={valor} />
       <EnElWord slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
       <AjustesDelTipo valor={valor} />

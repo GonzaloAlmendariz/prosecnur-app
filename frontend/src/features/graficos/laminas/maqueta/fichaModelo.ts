@@ -6,6 +6,7 @@
 import { esRespuestaResidual } from "../../estilo/modeloColoresRespuestas";
 import type { OpcionesGlifo } from "../../iconos/glifosGrafico";
 import { firmaOpciones } from "../../paletasResolver";
+import { destacadasDe } from "../DestacarRespuestas";
 import { GRAFICOS_CON_RESALTE, resaltaMayor } from "../ResaltarGrafico";
 import type { OpcionMaqueta, RanuraMaqueta } from "../modeloMaqueta";
 
@@ -108,7 +109,12 @@ function lectorArgs(args: Readonly<Record<string, unknown>>): (k: string) => unk
 
 /** Ajustes que cualquier tipo puede llevar, leídos del slot o de sus overrides. */
 function ajustesComunes(args: Readonly<Record<string, unknown>>): string[] {
-  return lectorArgs(args)("mostrar_significancia") === true ? ["Diferencias significativas"] : [];
+  const v = lectorArgs(args);
+  return [
+    ...(v("mostrar_significancia") === true ? ["Diferencias significativas"] : []),
+    // D3: el panel con o sin «172 respuestas» bajo su enunciado (sin decidir, la regla G9; no se nombra).
+    ...(v("mostrar_publico") === true ? ["Con sus respuestas"] : v("mostrar_publico") === false ? ["Sin sus respuestas"] : []),
+  ];
 }
 
 const entero = (x: unknown): number | null => {
@@ -131,8 +137,11 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
   const glifo: OpcionesGlifo = { grupos, significancia: v("mostrar_significancia") === true };
   const ajustes: string[] = [];
   if (GRAFICOS_CON_RESALTE.has(graficador)) {
-    glifo.mayor = resaltaMayor(args as Record<string, unknown>);
-    if (glifo.mayor) ajustes.push("La mayor resaltada");
+    // D1: las respuestas elegidas mandan sobre «la mayor» (como en la lámina nativa).
+    const elegidas = destacadasDe(graficador, args);
+    glifo.mayor = !elegidas.length && resaltaMayor(args as Record<string, unknown>);
+    if (elegidas.length) { glifo.resaltar = true; ajustes.push(`Destacada: ${elegidas.join(", ")}`); }
+    else if (glifo.mayor) ajustes.push("La mayor resaltada");
   }
   switch (graficador) {
     case "p_barras_agrupadas": {

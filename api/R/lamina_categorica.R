@@ -18,7 +18,9 @@
   for (k in seq_len(n_)) {
     hk <- if (esc > 0) hmax * espec$largos[k] / esc else 0
     xk <- x0 + (k - 1) * paso + (paso - wcol) / 2
-    if (hk > 0.004) .lam_caja(lz, xk, ybase - hk, wcol, hk, if (is.null(cols)) azul else cols[k], nombre = "columna")
+    elegidas <- espec$resaltar %||% character(0)
+    fill <- if (length(elegidas)) (if (espec$rotulos[k] %in% elegidas) azul else .std_color("tenue")) else if (is.null(cols)) azul else cols[k]
+    if (hk > 0.004) .lam_caja(lz, xk, ybase - hk, wcol, hk, fill, nombre = "columna")
     .lam_txt(lz, espec$cifras[k], xk - 0.3, ybase - hk - 0.42, wcol + 0.6, 0.36, 16, azul, bold = TRUE, align = "center", nombre = "cifra")
     nk <- .espec_casos(espec)[k]   # casos sin ponderar (contrato base-sin-ponderar F6)
     if (is.finite(nk)) {
@@ -43,12 +45,13 @@
   wbar <- w - wlab - wcif; yy <- y
   azul <- .std_color("azul"); tenue <- .std_color("tenue")
   cols <- .espec_colores_de(espec, et)   # ADR 0097: con paleta del usuario cada barra lleva su color (y no hay tenue)
+  elegidas <- espec$resaltar %||% character(0)   # D1: las que el analista resalta mandan sobre «la mayor»
   for (k in seq_along(et)) {
-    es_max <- isTRUE(espec$realce) && v[k] == max(v)
+    es_max <- if (length(elegidas)) et[k] %in% elegidas else isTRUE(espec$realce) && v[k] == max(v)
     h <- .lam_alto_tinta(et[k], wlab, size)   # tinta medida: la estimación por carácter subía el rótulo de una línea
     .lam_txt(lz, et[k], x, yy + (fila - h) / 2, wlab, h, size, azul, bold = es_max, align = "right", nombre = "rotulo")
     yb <- yy + (fila - g) / 2; bw <- if (escala > 0) wbar * v[k] / escala else 0
-    fill <- if (!is.null(cols)) cols[k] else if (isTRUE(espec$realce) && !es_max) tenue else azul
+    fill <- if (!is.null(cols) && !length(elegidas)) cols[k] else if ((isTRUE(espec$realce) || length(elegidas)) && !es_max) tenue else azul
     if (bw > 0.004) .lam_caja(lz, x + wlab + 0.12, yb, bw, g, fill, nombre = "barra")
     .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - 0.3) / 2, wcif, 0.3, size, azul, bold = TRUE, nombre = "cifra")
     yy <- yy + fila

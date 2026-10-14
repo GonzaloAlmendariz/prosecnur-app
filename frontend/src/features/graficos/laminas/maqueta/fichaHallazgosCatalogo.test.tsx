@@ -105,6 +105,8 @@ describe("ítem 9 · el glifo refleja los ajustes de su tipo", () => {
   const casos: Array<[string, Record<string, unknown>, Record<string, unknown>, string]> = [
     ["p_barras_agrupadas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", max_categorias: 4 }, "Resto en «Otros»"],
     ["p_barras_agrupadas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", overrides: { resaltar_mayor: true } }, "La mayor resaltada"],
+    ["p_barras_agrupadas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", overrides: { resaltar_opciones: ["No"] } }, "Destacada: No"],
+    ["p_barras_categoricas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", overrides: { resaltar_opciones: ["Sí"] } }, "Destacada: Sí"],
     ["p_barras_categoricas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", cruces: "estudiantes$sexo" }, "Por grupos: Sexo"],
     ["p_barras_agrupadas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", overrides: { marcas_eje: true } }, "Marcas del eje"],
     ["p_lollipop", { var: "estudiantes$mision" }, { var: "estudiantes$mision", top_n: 3 }, "Primeras 3"],
