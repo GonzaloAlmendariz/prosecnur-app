@@ -57,9 +57,9 @@ Inspector › Gráfico de una lámina por tipo, leído del DOM (`.pulso-f6-inspe
 
 | # | Hallazgo | Láminas | Estado |
 |---|---|---|---|
-| I1 | El inspector no muestra qué preguntas tiene el gráfico: barras divergentes dice «Elige una pregunta…» con 6 preguntas en la lámina; serie temporal y tabla no listan sus preguntas | 27, 64, 71 | pendiente |
+| I1 | El inspector no muestra qué preguntas tiene el gráfico: barras divergentes dice «Elige una pregunta…» con 6 preguntas en la lámina; serie temporal y tabla no listan sus preguntas. Causa: la lista de preguntas (`variables_list`) no tiene control en la tarjeta (`CONTROL_POR_TIPO`, argsDatosGrafico.ts); sólo la editan los tipos con tarjeta propia (multiapiladas, matriz, brecha) | 27, 64, 71 | pendiente: control de lista de preguntas |
 | I2 | Mapa de calor por criterio: no se ven ni se editan sus criterios (`config_criterios`) | 74 | pendiente |
-| I3 | Barras categóricas: faltan «Mostrar promedio», el formato de la cifra y «Casos junto al %», que el motor sabe hacer y torta, dona y agrupadas sí ofrecen | 22 | pendiente |
+| I3 | Barras categóricas sin «Mostrar promedio» ni formato de la cifra | 22 | **no es un control olvidado**: `mostrar_promedio` y `formato_valor` están en `RETIRADOS` porque la lámina nativa no los dibuja. Va al inventario de configuraciones como función que falta en el dibujo nativo |
 | I4 | Ranking con puntos: falta «Resaltar» (el registro lo declara) | 29 | pendiente |
-| I5 | Diagrama de caja: sin ajustes propios (media, atípicos, puntos) | 57 | pendiente |
-| I6 | Histograma: no se puede elegir el grupo, aunque ofrece «Excluir grupos» | 53, 54 | pendiente |
+| I5 | Diagrama de caja sin ajustes propios (media, atípicos, puntos) | 57 | función que falta en el dibujo nativo (los formales del graficador ggplot no llegan a la lámina nativa); al inventario |
+| I6 | Histograma sin elegir el grupo | 53, 54 | **no es un control olvidado**: `grupo` está en `RETIRADOS` porque la lámina nativa no dibuja el histograma por grupos; al inventario. Lo mismo `mostrar_saldo` de las divergentes (lámina 28 del catálogo sale igual que la 27) |
