@@ -127,7 +127,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   var: { rotulo: "Pregunta", cuando: (v) => !tieneVars(v), excepto: ["p_filtro_subpregunta"] },
   // I1 (catálogo del recetario, 2026-10-14): la lista de preguntas no tenía control y el inspector decía «Elige una
   // pregunta…» con seis preguntas en la lámina. Las multiapiladas, la brecha y la matriz la editan en su propia tarjeta.
-  vars: { rotulo: "Preguntas", excepto: ["p_barras_multiapiladas", "p_dumbbell", "p_matriz_cuadrantes"] },
+  vars: { rotulo: "Preguntas", excepto: ["p_barras_multiapiladas", "p_dumbbell", "p_matriz_cuadrantes", "p_significancia_publicos"] },
   // En multiapiladas el modo se elige en «Bloques» (G12/U2, 2026-10-13): una fila «Modo» aparte era un segundo camino.
   modo: { rotulo: "Modo", excepto: ["p_barras_multiapiladas"] },
   // Mapa de cobertura territorial: la lámina nativa lee los cuatro (p_mapa_cobertura_territorial, graficador_mapa_cobertura.R).
@@ -144,7 +144,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   cruces: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie.", excepto: ["p_barras_multiapiladas"] },
   // G17: en la brecha el cruce, los grupos y el corte se eligen en su propia tarjeta (BrechaEntreGrupos).
   cruce: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie.", excepto: ["p_barras_multiapiladas", "p_dumbbell"] },
-  corte: { rotulo: "Corte", excepto: ["p_dumbbell"] },
+  corte: { rotulo: "Corte", excepto: ["p_dumbbell", "p_significancia_publicos"] },
   corte_etiqueta: { rotulo: "Rótulo del corte" },
   // C44: el radar «entre públicos» rotula cada columna de su tabla con el nombre técnico de la base.
   tabla_encabezados: { rotulo: "Nombre de cada público", ayuda: "Vacío conserva el nombre de la base.", estricto: true },
@@ -226,6 +226,8 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // Pregunta filtro y subpregunta (recetario p192–p194): las preguntas y lo que habilita van en su tarjeta.
   grafico_sub: { rotulo: "Gráfico de la subpregunta", soloEn: ["p_filtro_subpregunta"] },
   disposicion: { rotulo: "Disposición", soloEn: ["p_filtro_subpregunta"] },
+  // Diferencias significativas entre públicos (recetario p111–p112): los temas y lo que suma van en su tarjeta.
+  alpha: { rotulo: "Nivel de significancia", soloEn: ["p_significancia_publicos"] },
   // Inventario de configuraciones, ítem 3 (recetario p74–p75): formal de p_barras_agrupadas() → overrides.
   marcas_eje: { rotulo: "Marcas del eje", ayuda: "0, 25, 50, 75 y 100 % bajo las barras.", soloEn: ["p_barras_agrupadas"] },
   significancia_alpha: { rotulo: "Nivel de significancia", siActivo: "mostrar_significancia" },

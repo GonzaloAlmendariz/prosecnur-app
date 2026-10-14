@@ -198,6 +198,13 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
       if (v("grafico_sub") === "escala") ajustes.push("Subpregunta en escala");
       break;
     }
+    case "p_significancia_publicos": {
+      const corte = lista(v("corte"));
+      if (corte.length) ajustes.push(`Suman: ${corte.join(", ")}`);
+      const a = Number(v("alpha"));
+      if (Number.isFinite(a) && a > 0 && a !== 0.05) ajustes.push(`α = ${a}`);
+      break;
+    }
     case "p_tabla": {
       const u = entero(v("umbral_rojo_pct"));
       if (u) { glifo.rojo = true; ajustes.push(`En rojo bajo ${u} %`); }

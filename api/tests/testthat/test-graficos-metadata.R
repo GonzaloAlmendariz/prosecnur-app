@@ -208,6 +208,7 @@ source("setup-load-all.R")
   p_cifra = c(categoria = "numeric", blueprint = "numeric"),
   p_dumbbell = c(categoria = "comparison", blueprint = "dumbbell"),
   p_filtro_subpregunta = c(categoria = "distribution", blueprint = "bars-grouped"),   # recetario p192–p194
+  p_significancia_publicos = c(categoria = "comparison", blueprint = "comparison-dots"),   # recetario p111–p112
   p_matriz_cuadrantes = c(categoria = "comparison", blueprint = "quadrant"),
   p_lollipop = c(categoria = "distribution", blueprint = "lollipop"),
   p_serie_temporal = c(categoria = "comparison", blueprint = "line-series"),
@@ -240,6 +241,7 @@ source("setup-load-all.R")
   p_cifra = "",
   p_dumbbell = "dumbbell",
   p_filtro_subpregunta = "",
+  p_significancia_publicos = "",
   p_matriz_cuadrantes = "",
   p_lollipop = "lollipop",
   p_serie_temporal = "serie_temporal",
@@ -278,7 +280,7 @@ test_that("registry: cada slide y graficador expone el shape completo con nombre
   # `familias_editor` (K4, plan F6 §5.2): el orden de las familias del selector «Tipo de gráfico».
   expect_setequal(names(reg), c("slides", "graficadores", "familias_editor"))
   expect_length(reg$slides, 33L)
-  expect_length(reg$graficadores, 29L)
+  expect_length(reg$graficadores, 30L)
 
   slide_names <- vapply(reg$slides, function(s) s$name, character(1))
   graf_names <- vapply(reg$graficadores, function(g) g$name, character(1))
@@ -309,7 +311,7 @@ test_that("registry: cada slide y graficador expone el shape completo con nombre
   }
 })
 
-test_that("registry G2-L1: los 29 graficadores publican contrato operativo cerrado", {
+test_that("registry G2-L1: los 30 graficadores publican contrato operativo cerrado", {
   reg <- .graficos_registry_payload()
   by_name <- stats::setNames(
     reg$graficadores,
@@ -388,12 +390,12 @@ test_that("registry G2-L1: los 29 graficadores publican contrato operativo cerra
   expect_true(all(vapply(direct, `[[`, character(1), "data_requirement") == "var_or_vars"))
 })
 
-test_that("registry G2-L1: getExportedValue acredita los 29 constructores públicos", {
+test_that("registry G2-L1: getExportedValue acredita los 30 constructores públicos", {
   exported <- lapply(.graf_names(), function(name) {
     tryCatch(getExportedValue("prosecnurapp", name), error = identity)
   })
   names(exported) <- .graf_names()
-  expect_length(exported, 29L)
+  expect_length(exported, 30L)
   for (name in names(exported)) {
     expect_true(is.function(exported[[name]]), label = name)
   }
@@ -548,7 +550,7 @@ test_that("registry L4: slot_specs es la única autoría y el wire conserva nomb
   expect_setequal(unique(roles), c("chart", "icon"))
 })
 
-test_that("registry L4: los 29 graficadores publican categoría y blueprint exactos", {
+test_that("registry L4: los 30 graficadores publican categoría y blueprint exactos", {
   reg <- .graficos_registry_payload()
   expect_identical(.graf_names(), names(.gm_graficadores))
   wire_by_name <- stats::setNames(

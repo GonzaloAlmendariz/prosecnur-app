@@ -254,6 +254,41 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
       </>
     );
   },
+  // Diferencias significativas entre públicos (p112): la tabla con sus letras y un panel por par con la diferencia, su
+  // intervalo y el punto lleno cuando es significativa.
+  p_significancia_publicos: () => {
+    const filas = [24, 42, 60, 78];
+    return (
+      <>
+        {filas.map((y, i) => (
+          <g key={y}>
+            <Rotulo x={8} y={y - 1.5} w={26} />
+            <Valor x={40} y={y - 1.75} w={12} />
+            <Valor x={58} y={y - 1.75} w={12} />
+          </g>
+        ))}
+        {[0, 1].map((k) => {
+          const x0 = 80 + k * 40;
+          return (
+            <g key={k}>
+              <rect x={x0} y={14} width={34} height={72} rx={2} className="pulso-glifo__rejilla" />
+              <Trazo d={`M${x0 + 12} 14V86`} t="n" ancho={1} />
+              {filas.map((y, i) => {
+                const c = x0 + [22, 14, 26, 10][(i + k) % 4];
+                const lleno = (i + k) % 2 === 0;
+                return (
+                  <g key={y}>
+                    <Trazo d={`M${c - 7} ${y}H${c + 7}`} t={lleno ? "p" : "n"} ancho={1.5} />
+                    <Punto cx={c} cy={y} r={3} t={lleno ? "p" : "n"} />
+                  </g>
+                );
+              })}
+            </g>
+          );
+        })}
+      </>
+    );
+  },
   // Pregunta filtro y subpregunta (p193): la dicotomía en columna, la llave desde lo que habilita hasta el título de la
   // subpregunta y sus barras al costado.
   p_filtro_subpregunta: () => (

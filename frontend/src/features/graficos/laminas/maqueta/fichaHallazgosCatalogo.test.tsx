@@ -138,6 +138,13 @@ describe("ítem 9 · el glifo refleja los ajustes de su tipo", () => {
     expect(f.ajustes).toEqual(expect.arrayContaining(["Habilita: Sí", "Subpregunta abajo"]));
   });
 
+  it("diferencias significativas: la ficha lista los temas entre públicos y lo que suma (recetario p112)", () => {
+    const f = ficha(slide("p_significancia_publicos", { vars: { Tutoría: ["docentes$p1", "estudiantes$p1"] }, corte: ["De acuerdo", "Totalmente de acuerdo"] }));
+    expect(f.faltaPregunta).toBe(false);
+    expect(f.preguntas).toContain("La Unidad cuenta con tutoría");   // como en el radar entre públicos: el tema por su pregunta
+    expect(f.ajustes).toContain("Suman: De acuerdo, Totalmente de acuerdo");
+  });
+
   it("los interruptores sin guardar dibujan lo que dibuja el motor (defectos del registro)", () => {
     expect(ficha(slide("p_barras_divergentes", { vars: ["estudiantes$p1"] })).glifo.neutro).toBe(true);
     expect(ficha(slide("p_dumbbell", { vars: ["estudiantes$p1"] })).glifo.brecha).toBe(true);

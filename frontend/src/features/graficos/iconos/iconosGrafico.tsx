@@ -80,6 +80,20 @@ const ICONOS: Readonly<Record<string, DibujoGrafico>> = {
       <Bloque x={13.5} y={17.25} w={3} h={2.625} />
     </>
   ),
+  // Diferencias significativas entre públicos (p112): la columna de cifras y, al lado, el intervalo con su punto.
+  p_significancia_publicos: () => (
+    <>
+      <Bloque x={3} y={5.25} w={5.25} h={2.25} tono="apoyo" />
+      <Bloque x={3} y={10.875} w={5.25} h={2.25} tono="apoyo" />
+      <Bloque x={3} y={16.5} w={5.25} h={2.25} tono="apoyo" />
+      <Trazo d="M15 3.75V20.25M11.25 6.375H19.5M12.75 12H17.25M10.5 17.625H14.25" />
+      <Acento>
+        <Circulo cx={15.375} cy={6.375} r={1.875} />
+        <Circulo cx={12.375} cy={17.625} r={1.875} />
+      </Acento>
+      <Circulo cx={15} cy={12} r={1.5} tono="apoyo" />
+    </>
+  ),
   // Brecha entre dos públicos (p88).
   p_dumbbell: () => (
     <>

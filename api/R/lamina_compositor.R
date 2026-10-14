@@ -127,6 +127,8 @@
   if (identical(espec$tipo, "cuadrantes")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_cuadrantes_cabe(espec)))
   # G11: la tabla sin radar (`p_tabla`, láminas 197/225), si cabe.
   if (identical(espec$tipo, "tabla")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_tabla_cabe(espec)))
+  # Recetario p112: tabla de letras y paneles de diferencia entre públicos, si cabe.
+  if (identical(espec$tipo, "significancia")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_significancia_cabe(espec)))
   # Recetario p192–p194: pregunta filtro y subpregunta con su llave, si cabe.
   if (identical(espec$tipo, "filtro_sub")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_filtro_sub_cabe(espec)))
   # N6: torta y dona (láminas 69 y 70), si caben.
@@ -265,6 +267,12 @@
     return(.lam_laminas_radar(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                               base = .lam_unir_base(texto(base), texto(pie)), folio = length(doc) + 1L, sub = texto(subtitulo),
                               layout = layout, master = master, por_lamina = por_lamina)$doc)
+  }
+  if (identical(espec$tipo, "significancia")) {
+    pie_sig <- .lam_significancia_pie(espec, paste(c(texto(base), texto(pie)), collapse = ". "))
+    return(.lam_laminas_significancia(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = pie_sig,
+                                      folio = length(doc) + 1L, sub = texto(subtitulo), layout = layout, master = master,
+                                      por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "filtro_sub")) {
     unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
