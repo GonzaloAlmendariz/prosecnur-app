@@ -40,19 +40,19 @@ maqueta la muestra.** Sólo Gonzalo da por terminado un ítem.
 | 5 | p68 | Cifra con sus casos («13% · 22 estudiantes») | sí | sí (`formato_valor`) | ya está |
 | 6 | p78 | Top Two Box | sí | sí (`top2box`) | ya está |
 | 7 | p196 | Base chica: frecuencias «5 de 12» | sí | sí («Casos junto al porcentaje», configuración del informe) | ya está |
-| 8 | p69 | Torta con leyenda de cifras: cifra, rótulo y «56 de 178» | por verificar | no (`mostrar_n_en_etiquetas` sin registro) | por verificar |
-| 9 | p70 | Dona: qué respuesta va al centro y su frase | por verificar | no | por verificar |
-| 10 | p71 | Divergentes con columnas Top Two Box, Bottom Two Box y SIN INF | por verificar | parcial (`mostrar_saldo`, `incluir_neutro`) | por verificar |
-| 11 | p83–p84 | Caja y media-rango: media, atípicos, línea de referencia, significativos destacados | por verificar | no (`mostrar_media`, `mostrar_outliers`, `mostrar_ref_line`, `destacar_significativos` sin registro) | por verificar |
+| 8 | p69 | Torta con leyenda de cifras: cifra, rótulo y «56 de 178» | sí: `.lam_laminas_torta` escribe cifra, rótulo y «n de N <unidad>» siempre (`lamina_circulares.R`) | no hace falta control | ya está (verificado en el motor el 2026-10-14) |
+| 9 | p70 | Dona: qué respuesta va al centro y su frase | parcial: el centro es siempre la primera respuesta con su rótulo; `.lam_laminas_dona(rotulo_centro)` existe pero nada lo alimenta (el compositor no lo pasa) | no | **construible**: «Al centro» (respuesta) y «Frase del centro» («conoce la misión»); falta el camino espec → compositor |
+| 10 | p71 | Divergentes con columnas Top Two Box, Bottom Two Box y SIN INF | sí: suma del acuerdo en verde, del desacuerdo en coral y columna SIN INF (`.lam_laminas_divergentes`) | `incluir_neutro` sí | ya está. El «saldo» (`mostrar_saldo`, retirado) **no está en el recetario**: propuesta, no reponerlo |
+| 11 | p83–p84 | Caja y media-rango: media, atípicos, línea de referencia, significativos destacados | sí lo que pide el recetario: caja con mediana y 50 % central (p83); rango mínimo–máximo con «Media N» (p84) | no hace falta | ya está. Media en la caja, línea de referencia y significativos destacados eran del motor anterior y **el recetario no los dibuja**: propuesta, no reponerlos (cierra I5) |
 | 12 | p85 | Conteos por año: matriz de conteos con totales por fila y columna | no se encontró graficador | no | bloqueado: decidir si es tipo nuevo o modo de Tabla |
-| 13 | p94 | Puntos por competencia, alternativa al radar, con rango «96 a 98%» | por verificar (¿Puntos comparativos?) | por verificar | por verificar |
-| 14 | p95 | Mapa de calor: «* menos de 15 casos» y diferencia con el total | brecha sí; marca de base chica por verificar | brecha sí | por verificar |
+| 13 | p94 | Puntos por competencia, alternativa al radar, con rango «96 a 98%» | no: la lámina nativa de puntos (`.lam_laminas_pesas`, recetario 85) une **dos** valores; p94 lleva tres públicos y el rango escrito | no | bloqueado: decidir si «Puntos comparativos» crece a tres o más públicos con su rango |
+| 14 | p95 | Mapa de calor: «* menos de 15 casos» y diferencia con el total | sí: «* Menos de 15 casos.» y la diferencia en puntos bajo cada cifra (`lamina_dimensiones.R`) | no hace falta | ya está (verificado en el motor el 2026-10-14) |
 | 15 | p98 | Peso en la satisfacción (regresión) con TTB/BTB | no se encontró (la FODA está retirada) | no | bloqueado: tipo nuevo, decisión metodológica |
 | 16 | p103 | Nube de frases (dos y tres palabras) | no: la nube sólo cuenta palabras | no | bloqueado: tipo o modo nuevo |
 | 17 | p104 | Pregunta abierta: frases y temas | no | no | bloqueado: depende de la codificación |
-| 18 | p111–p112 | Diferencias significativas: intervalo de la diferencia; tabla de letras entre públicos | letras en `lamina_categorica.R`; tabla multi-pregunta por verificar | `mostrar_significancia` en apiladas y agrupadas | por verificar |
+| 18 | p111–p112 | Diferencias significativas: intervalo de la diferencia; tabla de letras entre públicos | letras sobre las barras sí (`lamina_categorica.R`); la tabla de letras de varias preguntas con los paneles de diferencia e intervalo, no | `mostrar_significancia` en apiladas y agrupadas | bloqueado: tipo nuevo (tabla de letras + paneles de diferencia), decisión metodológica |
 | 19 | p191 | Opción múltiple entre actores (base de cada actor, puede sumar más de 100) | por verificar | por verificar | por verificar |
-| 20 | p192–p194 | Pregunta filtro y subpregunta; filtro al costado; llave sobre varias categorías | `llave` en `reporte_plan_slides.R`, por verificar | por verificar | por verificar |
+| 20 | p192–p194 | Pregunta filtro y subpregunta; filtro al costado; llave sobre varias categorías | no: la única llave nativa es la de la lámina «Cómo leer el Top Two Box» (`lamina_identidad.R`) | no | bloqueado: composición nueva (filtro + subpregunta con su base) |
 
 ## Controles muertos (el editor los muestra, el motor los descarta)
 
