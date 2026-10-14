@@ -1,6 +1,11 @@
 # Checklist — importación SurveyMonkey → Formularios (Arte y Diseño 2026)
 
-Fecha: 2026-10-14 · Objetivo: comprobar que el editor de Formularios importe bien, y con una UI intuitiva, los formularios SurveyMonkey de Arte y Diseño 2026.
+Tipo: Checklist de QA (pedido con varias indicaciones)
+Estado: Vigente
+Fecha: 2026-10-14
+Autoridad: Evidencia de QA; las decisiones viven en los ADR 0099–0102
+
+Objetivo: comprobar que el editor de Formularios importe bien, y con una UI intuitiva, los formularios SurveyMonkey de Arte y Diseño 2026.
 
 ## Corpus
 
@@ -33,7 +38,7 @@ Lo que sale bien: 0 preguntas, filas de matriz u opciones perdidas en los cuatro
 
 ## Fase 2 — UI (editor de Formularios)
 
-Recorrido: copia temporal de `acrconta` (`outputs/reference-runs/acrconta-20261014-071801/`), backend 8822, 1440×1000. Importados: Estudiantes 528294775 y la campaña por correo 423593924.
+Recorrido: copia temporal de `acrconta` (preparada con `make reference-project-run REFERENCE_PROJECT=acrconta`), backend 8822, 1440×1000. Importados: Estudiantes 528294775 y la campaña por correo 423593924.
 
 | # | Hallazgo | Dónde vive | Estado |
 |---|---|---|---|
