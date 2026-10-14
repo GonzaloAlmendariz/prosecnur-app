@@ -73,9 +73,13 @@ test_that("GET /registry publica familia del editor y salida de cada graficador,
                    c("categorias", "escalas", "numeros", "comparar", "dimensiones", "territorio", "texto"))
   g <- setNames(r$json$graficadores, vapply(r$json$graficadores, `[[`, "", "name"))
   expect_identical(g$p_nube_palabras$familia_editor, "texto")
-  expect_false(g$p_nube_palabras$salida_nativa)
-  expect_identical(g$p_nube_palabras$salida, "marco")
-  expect_true(nzchar(g$p_nube_palabras$salida_motivo))
+  # c7ca26281 (G11): la nube sale nativa con su ranking; sin él cae a marco, y eso lo dice la condición.
+  expect_true(isTRUE(g$p_nube_palabras$salida_nativa))
+  expect_identical(g$p_nube_palabras$salida, "nativa")
+  expect_true(nzchar(g$p_nube_palabras$salida_condicion))
+  expect_false(g$p_dim_foda$salida_nativa)                                # la no nativa publica su motivo
+  expect_identical(g$p_dim_foda$salida, "ruta_anterior")
+  expect_true(nzchar(g$p_dim_foda$salida_motivo))
   expect_true(isTRUE(g$p_barras_apiladas$salida_nativa))
   expect_identical(g$p_barras_apiladas$salida_motivo, "")
   expect_false(g$p_dim_foda$en_selector)                                  # fuera del selector, pero sigue en el registro
