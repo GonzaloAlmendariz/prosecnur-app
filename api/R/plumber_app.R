@@ -87,6 +87,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_origen_externo(pr)
     pr <- mount_carga_fuentes(pr)
     pr <- mount_carga_formulario_publicado(pr)
+    pr <- mount_carga_armonizacion(pr)
     pr <- mount_processing_intake(pr)
     pr <- mount_processing_release(pr)
     pr <- mount_acreditacion_sav(pr)

@@ -371,6 +371,7 @@ errores_registrados <- function() {
     "E_COLLECTION_STATE_INVALID",                            "collection_engine.R",               "500",
     "E_COLLECTION_STATE_MUTATION_INVALID",                   "collection_engine.R",               "422",
     "E_COLLECTION_STATE_STALE",                              "collection_engine.R",               "409",
+    "E_COMPARAR_OTRA_REVISION",                              "carga_armonizacion.R",              "409",
     "E_CONNECTION_GLOBAL",                                   "router_monitoreo.R",                "410",
     "E_CONNECTION_PROFILES",                                 "router_connections.R",              "400",
     "E_CONNECTION_PROVIDER",                                 "router_connections.R",              "400",
