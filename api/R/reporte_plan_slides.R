@@ -1917,13 +1917,17 @@ p_slide_6_graficos_poblacion <- function(
 #' @param max_categorias,agrupar_resto_en_otros,etiqueta_otros Recorte del
 #'   excedente en «Otros» (C40); viajan en `overrides` al graficador. `NULL`
 #'   hereda el preset (12, `TRUE`, «Otros»).
+#' @param mostrar_significancia,significancia_alpha Marcar diferencias significativas entre grupos y su nivel.
+#' @param forzar_ancho_max_eje_y Respetar el ancho de las etiquetas aunque el texto quepa en menos.
+#'   Los tres van a `overrides`, de donde los lee el plan; `NULL` hereda el preset.
 #' @examples
 #' p_barras_agrupadas("p102", filtros = list(region = "Lima"))
 #' @family reporte
 #' @export
 p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), mostrar_ceros = NULL, excluir_opciones = NULL,
                                orden_categorias = NULL, max_categorias = NULL, agrupar_resto_en_otros = NULL,
-                               etiqueta_otros = NULL) {
+                               etiqueta_otros = NULL, mostrar_significancia = NULL, significancia_alpha = NULL,
+                               forzar_ancho_max_eje_y = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -1949,6 +1953,11 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
   overrides <- .ppt_slot_override(overrides, "max_categorias", max_categorias, "numero", min = 1)
   overrides <- .ppt_slot_override(overrides, "agrupar_resto_en_otros", agrupar_resto_en_otros, "bool")
   overrides <- .ppt_slot_override(overrides, "etiqueta_otros", etiqueta_otros, "texto")
+  # Controles del editor que se caían en `.clean_rebuild_args()` sin llegar al PPT (checklist de configuraciones,
+  # 2026-10-13): el motor los lee de `overrides`.
+  overrides <- .ppt_slot_override(overrides, "mostrar_significancia", mostrar_significancia, "bool")
+  overrides <- .ppt_slot_override(overrides, "significancia_alpha", significancia_alpha, "numero", min = 0)
+  overrides <- .ppt_slot_override(overrides, "forzar_ancho_max_eje_y", forzar_ancho_max_eje_y, "bool")
 
   el <- list(
     .element_type = "barras_agrupadas",
@@ -2041,12 +2050,15 @@ p_barras_categoricas <- function(
 #'   hereda el preset.
 #' @param mostrar_respuestas Si `FALSE`, la lámina no escribe «N respuestas» junto a cada público (el público se
 #'   queda). `NULL` hereda (encendido).
+#' @param mostrar_significancia,significancia_alpha Marcar diferencias significativas entre grupos y su nivel. Van a
+#'   `overrides`, de donde los lee el plan; `NULL` hereda el preset.
 #' @examples
 #' p_barras_apiladas("p102", filtros = list(region = "Lima"))
 #' @family reporte
 #' @export
 p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), excluir_opciones = NULL,
-                              mostrar_categorias_en_cero = NULL, mostrar_respuestas = NULL) {
+                              mostrar_categorias_en_cero = NULL, mostrar_respuestas = NULL,
+                              mostrar_significancia = NULL, significancia_alpha = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -2067,6 +2079,8 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
   excluir_opciones <- .ppt_norm_chr_vec_arg(excluir_opciones, "excluir_opciones")
   overrides <- .ppt_slot_override(overrides, "mostrar_categorias_en_cero", mostrar_categorias_en_cero, "bool")
   overrides <- .ppt_slot_override(overrides, "mostrar_respuestas", mostrar_respuestas, "bool")
+  overrides <- .ppt_slot_override(overrides, "mostrar_significancia", mostrar_significancia, "bool")
+  overrides <- .ppt_slot_override(overrides, "significancia_alpha", significancia_alpha, "numero", min = 0)
 
   el <- list(
     .element_type = "barras_apiladas",
