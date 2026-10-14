@@ -4,7 +4,6 @@ import { LayoutGrid } from "lucide-react";
 //
 // Usado en barras operativas para filtrar/categorizar listas:
 //   - PreguntasLanding: Todas / Emparejadas / Por codificar / Codificadas.
-//   - TimelinePanel (futuro uso): filtrar tipos de slide.
 //   - Otras listas con contadores por estado.
 //
 // El `tone` define el color semántico del count pill cuando el chip

@@ -56,6 +56,18 @@ const ICONOS: Readonly<Record<string, DibujoGrafico>> = {
       <Circulo cx={9.75} cy={18} r={2.25} tono="apoyo" />
     </>
   ),
+  // Matriz de cuadrantes (p91): dos ejes que se cruzan y puntos en sus cuadrantes, uno destacado.
+  p_matriz_cuadrantes: () => (
+    <>
+      <Trazo d="M12 3.75V20.25M3.75 12H20.25" />
+      <Circulo cx={16.5} cy={7.5} r={1.875} tono="apoyo" />
+      <Circulo cx={8.25} cy={16.5} r={1.875} tono="apoyo" />
+      <Circulo cx={17.25} cy={15.75} r={1.875} tono="apoyo" />
+      <Acento>
+        <Circulo cx={7.5} cy={7.5} r={2.25} />
+      </Acento>
+    </>
+  ),
   // Brecha entre dos públicos (p88).
   p_dumbbell: () => (
     <>

@@ -7,9 +7,9 @@ source("setup-load-all.R")
 
 .FAMILIAS_F6 <- c("categorias", "escalas", "numeros", "comparar", "dimensiones", "territorio", "texto")
 
-test_that("los 27 graficadores declaran familia del editor y salida, con motivo cuando no es nativa", {
+test_that("los 28 graficadores declaran familia del editor y salida, con motivo cuando no es nativa", {
   m <- .GRAFICADORES_META
-  expect_length(m, 27L)
+  expect_length(m, 28L)
   for (nm in names(m)) {
     expect_true(m[[nm]]$familia_editor %in% .FAMILIAS_F6, info = nm)
     expect_true(is.logical(m[[nm]]$salida_nativa) && length(m[[nm]]$salida_nativa) == 1L && !is.na(m[[nm]]$salida_nativa), info = nm)
@@ -23,9 +23,11 @@ test_that("los 27 graficadores declaran familia del editor y salida, con motivo 
 test_that("lo que hoy no tiene pieza del recetario no se anuncia nativo", {
   m <- .GRAFICADORES_META
   no_nativos <- names(m)[!vapply(m, `[[`, logical(1), "salida_nativa")]
-  # G11 (2026-10-13): los puntos comparativos salen como el ranking con puntos del recetario (lámina 72).
-  expect_setequal(no_nativos, c("p_nube_palabras", "p_tabla", "p_dim_radar", "p_dim_foda"))
-  expect_identical(m$p_nube_palabras$salida, "marco")
+  # G11 (2026-10-13): los puntos comparativos salen como el ranking con puntos (lámina 72), y el radar por dimensiones
+  # ya salía nativo con tres ejes o más: lo declarado decía lo contrario (test-dim-radar-nativo.R).
+  expect_setequal(no_nativos, "p_dim_foda")   # G11: la nube sale con su ranking (lámina 101) y la tabla como la del diseño
+  expect_identical(m$p_nube_palabras$salida, "nativa")
+  expect_match(m$p_nube_palabras$salida_condicion, "Sin el ranking", fixed = TRUE)
   expect_identical(m$p_dim_heatmap_criterios$salida, "nativa")          # la 93 ya es nativa (test-lamina-criterios.R)
 })
 
@@ -84,7 +86,7 @@ test_that("la salida declarada coincide con cómo sale la lámina en el motor re
     p_lollipop = p_lollipop("cat"),
     p_nube_palabras = p_nube_palabras("txt"),
     p_puntos_comparativos = p_puntos_comparativos("e", cruces = "g", corte = c("3", "4")),
-    p_tabla = p_tabla(modo = "box", vars = c("e", "e2"), box_labels = c("3", "4"))
+    p_tabla = p_tabla(modo = "box", vars = c("e", "e2"), box_labels = c("3", "4"))   # dos filas: antes salía «Sin datos» (exigía 3 ejes)
   )
   slides <- lapply(names(casos), function(nm) p_slide_1_grafico(casos[[nm]], titulo = nm))
   out <- tempfile(fileext = ".pptx")
@@ -99,7 +101,7 @@ test_that("la salida declarada coincide con cómo sale la lámina en el motor re
   for (nm in names(casos)) {
     expect_identical(estado[[nm]], .GRAFICADORES_META[[nm]]$salida, info = sprintf("%s salió «%s»", nm, estado[[nm]]))
   }
-  expect_identical(estado[["p_nube_palabras"]], "marco")
+  expect_identical(estado[["p_nube_palabras"]], "nativa")                 # con su ranking (lámina 101)
 })
 
 test_that("con «Dividir por» la agrupada sale por la ruta anterior, como dice su condición", {

@@ -293,22 +293,6 @@
   min-height: 0;
 }
 
-.pulso-gv2-mode-toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 0;
-  min-height: 45px;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--pulso-border);
-  background: color-mix(in srgb, var(--pulso-surface) 90%, transparent);
-  backdrop-filter: blur(10px) saturate(1.05);
-  -webkit-backdrop-filter: blur(10px) saturate(1.05);
-  animation: pulso-gv2-fade-in-up var(--motion-dur-fast) var(--gv2-press-ease);
-  position: relative;
-  z-index: 4;
-}
-
 .pulso-gv2-mode-tabs {
   justify-self: center;
 }
@@ -343,12 +327,6 @@
 .pulso-gv2-mode-tab:focus-visible {
   outline: 2px solid var(--pulso-primary);
   outline-offset: 1px;
-}
-
-.pulso-gv2-mode-toolbar-tail {
-  justify-self: end;
-  width: 1px;
-  height: 1px;
 }
 
 /* ── Salud del plan ------------------------------------------------------ */
@@ -9922,20 +9900,8 @@
     flex-wrap: wrap;
   }
 
-  .pulso-gv2-mode-toolbar {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    gap: 7px;
-    padding: 8px;
-  }
-
-  .pulso-gv2-density-toggle,
-  .pulso-gv2-mode-toolbar-tail {
+  .pulso-gv2-density-toggle {
     justify-self: center;
-  }
-
-  .pulso-gv2-mode-toolbar-tail {
-    display: none;
   }
 
   .pulso-gv2-shell-body.is-timeline {
@@ -13069,18 +13035,6 @@
     0 18px 42px rgba(15, 23, 42, 0.08);
 }
 
-.pulso-gv2-mode-toolbar {
-  grid-template-columns: minmax(260px, 1fr) auto minmax(220px, 1fr);
-  gap: 12px;
-  min-height: 58px;
-  padding: 9px 12px;
-  border-bottom-color: color-mix(in srgb, var(--gv2-accent-border) 56%, var(--pulso-border));
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--pulso-surface) 84%, transparent), color-mix(in srgb, var(--pulso-surface-2) 72%, transparent)),
-    color-mix(in srgb, var(--pulso-surface) 88%, transparent);
-  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.66);
-}
-
 .pulso-gv2-suite-status {
   justify-self: start;
   min-width: 0;
@@ -13674,10 +13628,6 @@
 }
 
 @media (max-width: 1280px) {
-  .pulso-gv2-mode-toolbar {
-    grid-template-columns: minmax(220px, 1fr) auto minmax(160px, 1fr);
-  }
-
   .pulso-gv2-suite-copy span {
     max-width: 112px;
   }
@@ -19288,11 +19238,6 @@
 
 /* Suite polish pass 20: short-screen editor scroll model for clearer controls. */
 @media (max-height: 720px) and (max-width: 1120px) {
-  .pulso-graficos-frame .pulso-gv2-mode-toolbar {
-    min-height: 50px;
-    padding: 6px 9px;
-  }
-
   .pulso-graficos-frame .pulso-gv2-suite-status {
     min-height: 32px;
   }
@@ -19489,13 +19434,6 @@
   font-size: 10px;
 }
 
-.pulso-graficos-frame .pulso-gv2-mode-toolbar {
-  min-height: 48px;
-  padding: 6px 10px;
-  grid-template-columns: minmax(210px, 1fr) auto minmax(150px, 1fr);
-  gap: 8px;
-}
-
 .pulso-graficos-frame .pulso-gv2-suite-status {
   min-height: 32px;
   gap: 6px;
@@ -19586,11 +19524,6 @@
     width: 13px;
     height: 13px;
     margin-inline: 1px;
-  }
-
-  .pulso-graficos-frame .pulso-gv2-mode-toolbar {
-    min-height: 43px;
-    padding: 5px 8px;
   }
 
   .pulso-graficos-frame .pulso-gv2-suite-status {
@@ -22108,6 +22041,15 @@
   background: transparent;
   color: var(--pulso-text-soft);
   cursor: pointer;
+}
+
+/* Con «Quitar variable», el disparador le deja su sitio: antes la X caía sobre el rótulo de la base («docentes»). */
+.pulso-gv2-variable-picker.has-clear .pulso-gv2-variable-trigger {
+  padding-right: 38px;
+}
+
+.pulso-gv2-variable-picker.has-clear .pulso-gv2-variable-clear {
+  right: 8px;
 }
 
 .pulso-gv2-variable-clear:hover {
@@ -33099,21 +33041,4 @@ input.pulso-inline-edit:focus {
   background: white;
   border-color: var(--pulso-primary-border);
   box-shadow: 0 0 0 3px var(--pulso-primary-focus);
-}
-
-/* Botón de "Agregar slide" en el TimelinePanel — ghost con hover soft
-   primary. Sin estilo persistente para que visualmente los botones no
-   compitan con los items del plan (arriba en la misma columna). */
-button.pulso-timeline-add {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--pulso-text);
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
-}
-
-button.pulso-timeline-add:hover:not(:disabled) {
-  background: var(--pulso-primary-soft);
-  color: var(--pulso-primary);
 }

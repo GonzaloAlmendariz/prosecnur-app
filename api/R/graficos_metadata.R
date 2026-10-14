@@ -62,23 +62,23 @@
 # (auditoría P7 del GOAL loop del motor PPT).
 .args_slide_titulos_base <- function(incluir = c("titulo", "etiqueta", "base", "pie")) {
   args <- list(
-    titulo = list(name = "titulo",     label = "Título del slide",    tipo_input = "string",   grupo = "textos",
+    titulo = list(name = "titulo",     label = "Título de la lámina",    tipo_input = "string",   grupo = "textos",
          descripcion = "Aparece arriba del gráfico como encabezado."),
     etiqueta = list(name = "etiqueta",   label = "Etiqueta corta",      tipo_input = "string",   grupo = "textos",
-         descripcion = "Texto pequeño que antecede al bloque de texto del slide (ej. sección numerada)."),
+         descripcion = "Texto pequeño sobre el bloque de texto de la lámina (ej. el número de sección)."),
     base = list(name = "base",       label = "Base",                tipo_input = "string",   grupo = "textos",
          descripcion = "Nota al pie con la base real (ej. 'Base: 120 encuestados'). Si la dejas vacía, se infiere automáticamente."),
     pie = list(name = "pie",        label = "Pie (nota)",          tipo_input = "textarea", grupo = "textos",
-         descripcion = "Línea de fuente o disclaimer al pie del slide.")
+         descripcion = "Fuente o nota al pie de la lámina.")
   )
   unname(args[intersect(names(args), incluir)])
 }
 
 .args_slide_poblacion_basico <- function(incluir = c("titulo", "icono", "base", "pie", "etiqueta")) {
   args <- list(
-    titulo = list(name = "titulo",   label = "Título del slide", tipo_input = "string",   grupo = "textos"),
+    titulo = list(name = "titulo",   label = "Título de la lámina", tipo_input = "string",   grupo = "textos"),
     icono = list(name = "icono",    label = "Ícono",            tipo_input = "icono",    grupo = "textos",
-         descripcion = "PNG central del slide, elegido desde los iconos subidos en Configuración global > Iconos."),
+         descripcion = "Imagen central de la lámina, elegida entre los íconos subidos en Identidad > Íconos."),
     base = list(name = "base",     label = "Base",             tipo_input = "string",   grupo = "textos",
          descripcion = "Nota al pie con la base real. Vacío = automática."),
     pie = list(name = "pie",      label = "Pie",              tipo_input = "textarea", grupo = "textos"),
@@ -92,7 +92,7 @@
   list(name = "titulo",     label = "Título del gráfico", tipo_input = "string",      grupo = "textos",
        descripcion = "Título que aparece sobre el gráfico. Si lo dejas vacío, se usa la etiqueta de la variable."),
   list(name = "overrides",  label = "Overrides de estilo",tipo_input = "overrides",   grupo = "estilo",
-       descripcion = "Ajustes visuales específicos a este gráfico (tamaños, colores, canvas) que pisan el preset global."),
+       descripcion = "Ajustes visuales sólo para este gráfico (tamaños, colores, márgenes); mandan sobre el estilo del informe."),
   list(name = "filtros",    label = "Filtros",            tipo_input = "filtros",     grupo = "filtro",
        descripcion = "Restringe los datos que entran al gráfico (ej. solo mujeres, solo Lima)."),
   list(name = "base",       label = "Base del gráfico",   tipo_input = "base_config", grupo = "textos",
@@ -179,7 +179,7 @@
 
   p_slide_indice = list(
     titulo_humano = "Índice",
-    descripcion   = "Tabla de contenidos del reporte. Puede usar el layout de la plantilla o un índice limpio generado desde Prosecnur.",
+    descripcion   = "Los capítulos del informe con su ilustración. Sin capítulos escritos, toma los del informe.",
     icono_ui      = "List",
     categoria     = "estructural",
     render_key    = "indice",
@@ -329,7 +329,7 @@
 
   p_slide_top_two_box = list(
     titulo_humano = "Explicación Top Two Box",
-    descripcion   = "Lámina explicativa reutilizable para mostrar cómo se calcula Top Two Box con barra, llave, flecha y leyenda.",
+    descripcion   = "La lámina estándar que explica cómo se lee el Top Two Box: barra, llave, flecha y leyenda.",
     icono_ui      = "BarChart3",
     categoria     = "estructural",
     render_key    = "top_two_box",
@@ -386,7 +386,7 @@
 
   p_slide_redondeo = list(
     titulo_humano = "Explicación del redondeo",
-    descripcion   = "Lámina metodológica reutilizable: muestra la misma distribución rotulada por los dos métodos de redondeo, con su suma al lado. Responde de una vez la pregunta de por qué una barra suma 99 % o 101 %.",
+    descripcion   = "La lámina estándar del método: muestra la misma distribución rotulada por los dos métodos de redondeo, con su suma al lado. Responde de una vez la pregunta de por qué una barra suma 99 % o 101 %.",
     icono_ui      = "Calculator",
     categoria     = "estructural",
     render_key    = "redondeo",
@@ -421,7 +421,7 @@
 
   p_slide_seccion = list(
     titulo_humano = "Separador de sección",
-    descripcion   = "Lámina de transición entre bloques grandes del reporte. Muestra solo el título de la sección.",
+    descripcion   = "Abre un capítulo o un subcapítulo del informe, en siete versiones.",
     icono_ui      = "Bookmark",
     categoria     = "estructural",
     render_key    = "section",
@@ -443,7 +443,7 @@
 
   p_slide_objetivo_icono = list(
     titulo_humano = "Objetivo con ícono",
-    descripcion   = "El objetivo del estudio con la diana del recetario y, si se declaran, los actores consultados.",
+    descripcion   = "El objetivo del estudio con su diana y, si se declaran, los actores consultados.",
     icono_ui      = "Target",
     categoria     = "estructural",
     render_key    = "objetivo_icono",
@@ -465,7 +465,7 @@
 
   p_slide_texto = list(
     titulo_humano = "Bloque de texto",
-    descripcion   = "Lámina solo con texto: título + párrafo + bullets opcionales. Útil para conclusiones o metodología.",
+    descripcion   = "Sólo texto: título, párrafo y viñetas opcionales. Útil para conclusiones o metodología.",
     icono_ui      = "Type",
     categoria     = "estructural",
     render_key    = "text_slide",
@@ -488,7 +488,7 @@
 
   p_slide_tabla_tecnica = list(
     titulo_humano = "Tabla técnica",
-    descripcion   = "Slide con una tabla editorial (ej. ficha técnica del estudio, parámetros, metodología).",
+    descripcion   = "Una tabla de dos columnas, como la ficha técnica del estudio o sus parámetros.",
     icono_ui      = "Table",
     categoria     = "estructural",
     render_key    = "technical_table",
@@ -525,7 +525,7 @@
     # Sin `etiqueta`: el constructor no la acepta (el puente la descartaba).
     args = c(.args_slide_titulos_base(c("titulo", "base", "pie")), list(
       list(name = "subtitulo", label = "Subtítulo", tipo_input = "string", grupo = "textos",
-           descripcion = "Línea secundaria que aparece justo debajo del título del slide.")
+           descripcion = "Línea secundaria justo debajo del título de la lámina.")
     ))
   ),
 
@@ -672,7 +672,7 @@
 
   p_slide_4_graficos = list(
     titulo_humano = "Cuatro gráficos",
-    descripcion   = "Grid 2×2 con cuatro gráficos compactos. Ideal para ver varias dimensiones en paralelo.",
+    descripcion   = "Cuatro gráficos compactos en dos filas. Ideal para ver varias dimensiones en paralelo.",
     icono_ui      = "LayoutGrid",
     categoria     = "4graficos",
     render_key    = "paneles_4",
@@ -715,7 +715,7 @@
     # constructor sí renderiza bajo el título y no tenía superficie.
     args = c(.args_slide_poblacion_basico(c("titulo", "icono", "base")), list(
       list(name = "texto", label = "Texto", tipo_input = "textarea", grupo = "textos",
-           descripcion = "Línea introductoria que aparece bajo el título del slide.")
+           descripcion = "Línea introductoria bajo el título de la lámina.")
     ))
   ),
 
@@ -904,7 +904,7 @@
   p_slide_4_graficos_poblacion = list(
     en_selector   = FALSE,   # Gonzalo, 2026-10-10: «bórralos, en el recetario tampoco están»; se migran (graficos_migrar_poblacion.R)
     titulo_humano = "Cuatro gráficos + ícono (población)",
-    descripcion   = "Grid 2×2 con ícono central, típico para slides demográficas.",
+    descripcion   = "Cuatro gráficos en dos filas con un ícono al centro, para describir a un público.",
     icono_ui      = "UsersRound",
     categoria     = "poblacion",
     render_key    = "poblacion_4",
@@ -976,7 +976,7 @@
   # ADR 0093 (N7): el cierre del recetario, láminas 61 a 65. Sin slots: el logo es de la plantilla y el contacto, texto.
   p_slide_cierre = list(
     titulo_humano = "Cierre",
-    descripcion   = "Contraportada del informe: el logo institucional centrado y el contacto, en una de las cinco composiciones del recetario.",
+    descripcion   = "Contraportada del informe: el logo institucional centrado y el contacto, en una de sus cinco composiciones.",
     icono_ui      = "BookMarked",
     categoria     = "estructural",
     render_key    = "cierre",
@@ -1021,10 +1021,10 @@
 # Las cuatro opciones de `tipo_rango` de `graficar_media_rango()`, compartidas por el graficador y el preset (C40).
 # `custom` usa `probs_rango` (sin él, 25 y 75: el mismo dibujo que el 50 % central).
 .MEDIA_RANGO_TIPOS_RANGO <- list(
-  list(value = "minmax",  label = "Mínimo a máximo", hint = "Lo que dibuja el recetario."),
+  list(value = "minmax",  label = "Mínimo a máximo", hint = "Lo que se dibuja por defecto."),
   list(value = "iqr",     label = "50 % central (P25–P75)"),
   list(value = "p10_p90", label = "Percentiles 10 a 90"),
-  list(value = "custom",  label = "Percentiles a medida", hint = "Los fija «probs_rango»; sin ellos, P25–P75.")
+  list(value = "custom",  label = "Percentiles a medida", hint = "Con los percentiles guardados en el informe; sin ellos, P25–P75.")
 )
 
 .GRAFICADORES_META <- list(
@@ -1178,7 +1178,7 @@
              list(value = "ninguna", label = "Sin cambios"),
              list(value = "mayuscula_inicial", label = "Mayúscula inicial")
            )),
-      list(name = "ancho_max_eje_x", label = "Wrap de etiquetas", tipo_input = "number", grupo = "espacio",
+      list(name = "ancho_max_eje_x", label = "Caracteres por línea en las etiquetas", tipo_input = "number", grupo = "espacio",
            descripcion = "Caracteres por línea antes de partir la etiqueta de una categoría. Menos caracteres = más líneas y barras más separadas.",
            default = 18, min = 6, max = 40, step = 1),
       list(name = "grosor_barras", label = "Grosor de barras", tipo_input = "number", grupo = "espacio",
@@ -1227,12 +1227,16 @@
       # C40: formal de `p_barras_apiladas()`; mismo default que el preset `barras_apiladas`.
       list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
            default = FALSE,
-           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %. Las respuestas especiales (90–99, sin información) sin casos nunca se muestran.")
+           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %."),
+      # M10 de la maqueta (Gonzalo, 2026-10-13): «poder mostrar o quitar el número de respuestas por actor».
+      list(name = "mostrar_respuestas", label = "Respuestas por público", tipo_input = "bool", grupo = "valores",
+           default = TRUE,
+           descripcion = "Escribe «116 respuestas» bajo el nombre de cada público. Apagado, el público se queda y su conteo no.")
     ), .args_graf_comunes())
   ),
 
   p_barras_multiapiladas = list(
-    titulo_humano = "Multi-apiladas",
+    titulo_humano = "Multiapiladas",
     descripcion   = "Varias barras apiladas en un solo gráfico. Perfecto para comparar preguntas con la misma escala de respuesta.",
     icono_ui      = "Rows3",
     categoria     = "distribution",
@@ -1278,7 +1282,19 @@
       # C40: formal de `p_barras_multiapiladas()`; en «Combinar bloques» cada bloque lo hereda. Default = preset `multi_apiladas`.
       list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
            default = FALSE,
-           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %. Las respuestas especiales (90–99, sin información) sin casos nunca se muestran.")
+           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %."),
+      # M10 de la maqueta (Gonzalo, 2026-10-13): «poder mostrar o quitar el número de respuestas por actor».
+      list(name = "mostrar_respuestas", label = "Respuestas por público", tipo_input = "bool", grupo = "valores",
+           default = TRUE,
+           descripcion = "Escribe «116 respuestas» bajo el nombre de cada público. Apagado, el público se queda y su conteo no."),
+      # G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos y no en proporciones. Sólo lo usa la
+      # lámina que compara públicos; «Automático» es el reparto del estilo del informe.
+      list(name = "ancho_tema", label = "Ancho de los temas", tipo_input = "choice", grupo = "valores", default = "auto",
+           choices = list(
+             list(value = "auto", label = "Automático"),
+             list(value = "ancho", label = "Más ancho"),
+             list(value = "angosto", label = "Más angosto")),
+           descripcion = "La columna donde va el enunciado de cada tema. Más ancho: menos líneas por tema y barras más cortas.")
     ), .args_graf_comunes())
   ),
 
@@ -1296,7 +1312,10 @@
       list(name = "max_palabras", label = "Máximo de palabras", tipo_input = "number", grupo = "filtro",
            default = 40),
       list(name = "min_chars", label = "Mínimo de caracteres", tipo_input = "number", grupo = "filtro",
-           default = 3)
+           default = 3),
+      # G11 (2026-10-13): la lámina 101 del diseño pone junto a la nube las diez palabras más dichas con su conteo.
+      list(name = "mostrar_ranking", label = "Ranking de palabras", tipo_input = "bool", grupo = "valores", default = TRUE,
+           descripcion = "Junto a la nube, las diez palabras más mencionadas con su número de menciones.")
     ), .args_graf_comunes())
   ),
 
@@ -1591,15 +1610,15 @@
     blueprint     = "comparison-dots",
     args = c(list(
       list(name = "var", label = "Indicador", tipo_input = "variable", grupo = "datos",
-           descripcion = "Pregunta select_one plana sobre la que se calcula el porcentaje."),
+           descripcion = "Pregunta de una sola respuesta sobre la que se calcula el porcentaje."),
       list(name = "cruces", label = "Comparar por", tipo_input = "variable", grupo = "datos",
-           descripcion = "Pregunta select_one plana que define entre 2 y 12 grupos observados."),
-      list(name = "corte", label = "Códigos objetivo", tipo_input = "codigos_list", grupo = "datos",
-           descripcion = "Uno o más códigos conocidos que forman el numerador del indicador."),
+           descripcion = "Pregunta de una sola respuesta que define los grupos (entre 2 y 12)."),
+      list(name = "corte", label = "Respuestas que suman", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Las respuestas que forman el porcentaje (ej. Satisfecho y Muy satisfecho)."),
       list(name = "excluir_opciones", label = "Excluir del denominador", tipo_input = "codigos_list", grupo = "filtro",
-           descripcion = "Retira códigos o etiquetas antes de calcular el denominador; no puede solaparse con los códigos objetivo del corte."),
+           descripcion = "Respuestas que no cuentan en el total (ej. No sabe); no pueden ser también respuestas que suman."),
       list(name = "orden_grupos", label = "Orden completo de grupos", tipo_input = "codigos_list", grupo = "estilo",
-           descripcion = "Opcional. Debe ser una permutación exacta de todos los grupos observados; vacío conserva el orden del instrumento.")
+           descripcion = "Opcional. Todos los grupos, en el orden en que deben salir; vacío conserva el orden del cuestionario.")
     ), .args_graf_comunes())
   ),
 
@@ -1612,11 +1631,11 @@
     blueprint     = "territory-map",
     args = c(list(
       list(name = "var", label = "Indicador", tipo_input = "variable", grupo = "datos",
-           descripcion = "Pregunta select_one sobre la que se calcula el porcentaje de cada distrito."),
+           descripcion = "Pregunta de una sola respuesta sobre la que se calcula el porcentaje de cada distrito."),
       list(name = "cruces", label = "Distrito", tipo_input = "variable", grupo = "datos",
-           descripcion = "Pregunta select_one con el distrito del encuestado: códigos UBIGEO o nombres de distrito."),
-      list(name = "corte", label = "Códigos objetivo", tipo_input = "codigos_list", grupo = "datos",
-           descripcion = "Códigos que forman el numerador (por ejemplo, satisfecho y muy satisfecho)."),
+           descripcion = "Pregunta con el distrito del encuestado: códigos UBIGEO o nombres de distrito."),
+      list(name = "corte", label = "Respuestas que suman", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Las respuestas que forman el porcentaje (ej. Satisfecho y Muy satisfecho)."),
       list(name = "excluir_opciones", label = "Excluir del denominador", tipo_input = "codigos_list", grupo = "filtro"),
       list(name = "min_n", label = "Casos mínimos por distrito", tipo_input = "number", grupo = "filtro", default = 1, min = 1, step = 1,
            descripcion = "Con menos casos válidos el distrito va como «Sin encuestas» y se avisa."),
@@ -1654,7 +1673,7 @@
       list(name = "unidad", label = "Unidad", tipo_input = "string", grupo = "textos",
            descripcion = "Para mediana o media («años»)."),
       list(name = "icono", label = "Ícono", tipo_input = "string", grupo = "estilo",
-           descripcion = "Nombre de un ícono de la biblioteca del recetario (opcional).")
+           descripcion = "Nombre de un ícono de la biblioteca de íconos (opcional).")
     # Una cifra no lleva título: lo que la nombra es su rótulo. El `titulo` común no lo recibe p_cifra() ni
     # graficar_cifra(), así que ofrecerlo era un control que se movía sin efecto.
     ), Filter(function(a) !identical(a$name, "titulo"), .args_graf_comunes()))
@@ -1664,26 +1683,31 @@
   # DUMBBELL (brecha entre dos bases)
   # =========================================================================
   p_dumbbell = list(
-    titulo_humano = "Brecha entre dos bases",
-    descripcion   = "Compara dos fuentes con select_one plano independiente, filtros y peso activos, y firma E1 común: brecha = primera − segunda; la primera es el grupo principal (en antes/después, la medición más reciente).",
+    titulo_humano = "Brecha entre dos grupos",
+    descripcion   = "Un punto por grupo y la distancia entre ambos, tema por tema: dos grupos de una base (mujeres y hombres) o dos bases con preguntas equivalentes (docentes y estudiantes). La brecha es el primero menos el segundo.",
     icono_ui      = "MoveHorizontal",
     categoria     = "comparison",
     blueprint     = "dumbbell",
-    requisito     = "Todos los temas deben declarar la misma pareja ordenada y completa de dos fuentes distintas.",
+    requisito     = "Entre dos grupos: una pregunta que define los grupos y, por tema, una pregunta de esa misma base. Entre dos bases: cada tema con su pregunta en las dos bases, desde la matriz de equivalencias.",
     args = c(list(
+      # G17 (Gonzalo, 2026-10-13): la brecha también entre dos grupos de una base (lámina 250 del diseño).
+      list(name = "cruce", label = "Comparar dos grupos de", tipo_input = "variable_opt", grupo = "datos",
+           descripcion = "Pregunta que define los grupos (ej. sexo, condición). Vacía, compara dos bases."),
+      list(name = "grupos", label = "Grupos que se comparan", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Los dos códigos del cruce, en orden: la brecha es el primero menos el segundo."),
       list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
-           descripcion = "Códigos de una firma E1 común sobre select_one plano independiente; aplica filtros y peso activo en cada fuente."),
+           descripcion = "Las respuestas que suman el porcentaje de cada punto (ej. Satisfecho y Muy satisfecho). Se calcula con los filtros y la ponderación activos."),
       list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos"),
       list(name = "orden", label = "Orden de las filas", tipo_input = "choice", grupo = "estilo",
            default = "brecha",
            choices = list(
              list(value = "brecha", label = "Por brecha", hint = "La lectura de ranking: la diferencia mayor, con su signo, arriba."),
-             list(value = "valor", label = "Por valor de la primera base"),
+             list(value = "valor", label = "Por valor del primer grupo"),
              list(value = "declarado", label = "Orden declarado")
            )),
       list(name = "mostrar_brecha", label = "Mostrar la brecha", tipo_input = "bool", grupo = "valores",
            default = TRUE,
-           descripcion = "Escribe al margen la primera fuente menos la segunda (+6 pts si la primera está 6 puntos arriba). En antes/después declara primero la medición más reciente."),
+           descripcion = "Escribe al margen el primer grupo menos el segundo (+6 pts si el primero está 6 puntos arriba). En antes y después, pon primero la medición más reciente."),
       list(name = "umbral_brecha_pct", label = "Umbral de brecha (pp)", tipo_input = "number", grupo = "valores",
            default = 0, min = 0, max = 50, step = 1, unidad = "pp",
            descripcion = "Sólo se rotulan las brechas de al menos este tamaño."),
@@ -1691,6 +1715,33 @@
       list(name = "etiqueta_brecha", label = "Unidad de la brecha", tipo_input = "string", grupo = "valores",
            default = "pts",
            descripcion = "Se escribe junto a la diferencia: «+6 pts».")
+    ), .args_graf_comunes())
+  ),
+
+  # =========================================================================
+  # MATRIZ DE CUADRANTES (G16, lámina 91 del recetario)
+  # =========================================================================
+  # Las preguntas de cada tema (`temas`: tema -> c(pregunta horizontal, pregunta vertical)) se eligen en su propia
+  # tarjeta, como las de la brecha: no son un control de una línea.
+  p_matriz_cuadrantes = list(
+    titulo_humano = "Matriz de cuadrantes",
+    descripcion   = "Cada tema es un punto con dos medidas que el estudio ya tiene —por ejemplo satisfacción e importancia, o docentes y estudiantes—; las líneas lo reparten en cuatro cuadrantes con nombre.",
+    icono_ui      = "Grid2x2",
+    categoria     = "comparison",
+    blueprint     = "quadrant",
+    args = c(list(
+      list(name = "corte_x", label = "Respuestas que suman el eje horizontal", tipo_input = "codigos_list", grupo = "datos"),
+      list(name = "corte_y", label = "Respuestas que suman el eje vertical", tipo_input = "codigos_list", grupo = "datos"),
+      list(name = "eje_x", label = "Nombre del eje horizontal", tipo_input = "string", grupo = "textos", placeholder = "Satisfacción"),
+      list(name = "eje_y", label = "Nombre del eje vertical", tipo_input = "string", grupo = "textos", placeholder = "Importancia"),
+      list(name = "linea", label = "Dónde cortan las líneas", tipo_input = "choice", grupo = "valores", default = "promedio",
+           choices = list(list(value = "promedio", label = "En el promedio de cada eje"), list(value = "valor", label = "En un valor"))),
+      list(name = "linea_x", label = "Línea del eje horizontal (%)", tipo_input = "number", grupo = "valores", min = 0, max = 100, step = 1),
+      list(name = "linea_y", label = "Línea del eje vertical (%)", tipo_input = "number", grupo = "valores", min = 0, max = 100, step = 1),
+      list(name = "destacado", label = "Cuadrante destacado", tipo_input = "choice", grupo = "valores", default = "arriba_izq",
+           choices = list(list(value = "arriba_izq", label = "Arriba a la izquierda"), list(value = "arriba_der", label = "Arriba a la derecha"),
+                          list(value = "abajo_izq", label = "Abajo a la izquierda"), list(value = "abajo_der", label = "Abajo a la derecha"),
+                          list(value = "ninguno", label = "Ninguno")))
     ), .args_graf_comunes())
   ),
 
@@ -1705,7 +1756,7 @@
     blueprint     = "lollipop",
     args = c(list(
       list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos",
-           descripcion = "Pregunta select_one plana, de diseño independiente, cuyas opciones se ordenan como ranking."),
+           descripcion = "Pregunta de una sola respuesta cuyas opciones se ordenan de más a menos mencionada."),
       list(name = "excluir_opciones", label = "Excluir del denominador", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Retira estas categorías antes de calcular porcentajes; sí cambia el denominador."),
       list(name = "orden", label = "Orden", tipo_input = "choice", grupo = "estilo",
@@ -1726,18 +1777,18 @@
 
   p_serie_temporal = list(
     titulo_humano = "Serie temporal",
-    descripcion   = "Evolución completa de select_one plano independiente con filtros y peso activos y firma E1 común; no puentea periodos ausentes.",
+    descripcion   = "Un indicador a lo largo de varias mediciones, una base por periodo. Un periodo sin datos queda como hueco: la línea no lo salta.",
     icono_ui      = "TrendingUp",
     categoria     = "comparison",
     blueprint     = "line-series",
-    requisito     = "Cada tema necesita la secuencia completa de fuentes; no se inventan ni se puentean periodos ausentes.",
+    requisito     = "Cada tema necesita su pregunta en todas las mediciones; un periodo sin datos no se inventa.",
     args = c(list(
       list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
-           descripcion = "Códigos de una firma E1 común sobre select_one plano independiente; aplica filtros y peso activo por periodo."),
+           descripcion = "Las respuestas que suman el porcentaje de cada periodo. Se calcula con los filtros y la ponderación activos."),
       list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos",
            descripcion = "Se muestra como subtítulo. Ej. «% de acuerdo o total acuerdo»."),
       list(name = "orden_periodos", label = "Orden completo de periodos", tipo_input = "codigos_list", grupo = "datos",
-           descripcion = "Opcional. Debe ser una permutación exacta, completa y sin duplicados de las fuentes declaradas."),
+           descripcion = "Opcional. Todas las mediciones, una vez cada una, en el orden en que deben salir."),
       list(name = "mostrar_valores", label = "Mostrar cifras", tipo_input = "bool", grupo = "datos",
            default = TRUE,
            descripcion = "Escribe el porcentaje sobre cada punto. Cuando dos series se cruzan, una cifra pasa debajo del punto para no pisarse."),
@@ -1811,7 +1862,7 @@
            default = 0,
            min = 0, max = 99,
            depende = list(arg = "modo", valores = list("publicos")),
-           descripcion = "Piso del eje radial. Con 0 es automático, como en el recetario: si los valores son altos, el eje arranca en el múltiplo de 5 bajo el más bajo y los anillos se rotulan, para que el acercamiento se vea. Un valor mayor fija el piso; si deja fuera un dato, baja solo hasta el valor más bajo en vez de recortarlo al centro."),
+           descripcion = "Piso del eje radial. Con 0 es automático, como en el estándar: si los valores son altos, el eje arranca en el múltiplo de 5 bajo el más bajo y los anillos se rotulan, para que el acercamiento se vea. Un valor mayor fija el piso; si deja fuera un dato, baja solo hasta el valor más bajo en vez de recortarlo al centro."),
       list(name = "mostrar_tabla", label = "Tabla al costado", tipo_input = "bool", grupo = "datos",
            default = TRUE,
            depende = list(arg = "modo", valores = list("publicos")),
@@ -2030,7 +2081,7 @@
       list(name = "config_criterios", label = "Criterios", tipo_input = "criteria_config", grupo = "datos",
            descripcion = "Agrupa variables en criterios para construir el heatmap."),
       list(name = "cruce", label = "Comparar por", tipo_input = "variable_opt", grupo = "datos",
-           descripcion = "Opcional. Una columna por público (Total y cada grupo), como en la lámina 93 del recetario."),
+           descripcion = "Opcional. Una columna por público (Total y cada grupo)."),
       list(name = "metrica", label = "Métrica", tipo_input = "choice", grupo = "datos", default = "top_two_box",
            choices = list(
              list(value = "top_two_box", label = "Top Two Box", hint = "Porcentaje en las dos categorías más altas de la escala."),
@@ -2053,7 +2104,7 @@
   p_dicotomica = list("categorias", "nativa", condicion = "Sólo con dos opciones; con más, sale como barras categóricas."),
   p_barras_apiladas = list("escalas", "nativa"),
   p_barras_multiapiladas = list("escalas", "nativa", condicion = "Los bloques que no caben se reparten en láminas «(cont.)»."),
-  p_nube_palabras = list("texto", "marco", motivo = "No hay pieza del recetario para la nube: la lámina es la del recetario y la nube va dibujada adentro."),
+  p_nube_palabras = list("texto", "nativa", condicion = "Sin el ranking de palabras, la nube va sola, dibujada dentro de una lámina estándar."),   # G11: lámina 101 del diseño
   p_mapa_cobertura_territorial = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
   p_pie = list("categorias", "nativa", condicion = "Sólo con dos o tres porciones; con más, sale por la ruta anterior."),
   p_donut = list("categorias", "nativa", condicion = "Sólo con dos porciones y sus frecuencias; si no, sale por la ruta anterior."),
@@ -2062,20 +2113,21 @@
   p_boxplot = list("numeros", "nativa"),
   p_media_rango = list("numeros", "nativa"),
   p_barras_divergentes = list("escalas", "nativa"),
-  p_puntos_comparativos = list("comparar", "nativa", condicion = "Sale como el ranking con puntos del recetario; si los rótulos no caben, por la ruta anterior."),
+  p_puntos_comparativos = list("comparar", "nativa", condicion = "Sale como ranking con puntos; si los rótulos no caben, sale como imagen."),
   p_mapa_resultado_distrital = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
   p_cifra = list("numeros", "nativa", condicion = "Va en las ranuras de cifra; en una ranura de gráfico sale por la ruta anterior."),
   p_dumbbell = list("comparar", "nativa"),
+  p_matriz_cuadrantes = list("comparar", "nativa", condicion = "Con más de 20 temas va como dibujo de respaldo."),   # G16: lámina 91
   p_lollipop = list("categorias", "nativa"),
-  p_serie_temporal = list("comparar", "nativa", condicion = "Con dos mediciones; con tres o más va en el marco del recetario con el dibujo adentro."),
+  p_serie_temporal = list("comparar", "nativa", condicion = "Con dos mediciones; con tres o más va dibujada dentro de una lámina estándar."),
   p_radar = list("comparar", "nativa", condicion = "Si los ejes o la tabla no caben, sale por la ruta anterior."),
-  p_tabla = list("comparar", "ruta_anterior", motivo = "La lámina va por la ruta anterior; la tabla sí sale como tabla editable de PowerPoint."),
-  p_dim_radar = list("dimensiones", "ruta_anterior", motivo = "No hay pieza del recetario para el radar de dimensiones."),
+  p_tabla = list("comparar", "nativa", condicion = "Con más de seis públicos, o filas que no caben en la lámina, va por la ruta anterior."),   # G11: láminas 197/225 del diseño
+  p_dim_radar = list("dimensiones", "nativa", condicion = "Con menos de tres ejes sale como barras, por la ruta anterior."),   # G11: ya salía nativo (medido 2026-10-13)
   p_dim_heatmap = list("dimensiones", "nativa", condicion = "Con brechas declaradas sale por la ruta anterior."),
   p_dim_comparativo_radarbar = list("dimensiones", "nativa", condicion = "Con brechas o con la columna Total sale por la ruta anterior."),
   # Fuera del selector (Gonzalo, 2026-10-10: «sí, sácalo»): no está en el recetario. Sigue registrado y renderizable
   # para los planes que ya lo usan.
-  p_dim_foda = list("dimensiones", "ruta_anterior", motivo = "No hay pieza del recetario para la matriz FODA.", en_selector = FALSE),
+  p_dim_foda = list("dimensiones", "ruta_anterior", motivo = "No hay pieza propia para la matriz FODA.", en_selector = FALSE),
   p_dim_heatmap_criterios = list("dimensiones", "nativa", condicion = "Si no cabe en la lámina, sale por la ruta anterior.")
 )
 stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
@@ -2124,8 +2176,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 )
 
 .graf_operational_contract <- function(name, meta) {
+  # G17 (2026-10-13): la brecha ya se arma en la tarjeta (dos grupos de una base); entre dos bases sigue saliendo de la
+  # matriz de equivalencias, que es lo que dice su requisito.
   generated <- c(
-    p_dumbbell = "equivalences_exactly_two",
     p_serie_temporal = "equivalences_temporal"
   )
   capability_key <- if (name %in% names(generated)) unname(generated[[name]]) else ""
@@ -2134,7 +2187,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     capability_key <- "territorial_coverage"
   }
 
-  data_requirement <- if (name %in% c("p_puntos_comparativos", "p_mapa_resultado_distrital")) {
+  data_requirement <- if (identical(name, "p_dumbbell")) {
+    "named_vars"
+  } else if (name %in% c("p_puntos_comparativos", "p_mapa_resultado_distrital")) {
     "var_cruces_corte"
   } else if (name %in% names(generated)) {
     "named_vars"
@@ -2144,17 +2199,19 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     "var_or_vars"
   }
   requirement_label <- if (identical(name, "p_puntos_comparativos")) {
-    "Selecciona indicador, agrupación y uno o más códigos objetivo de la base activa."
+    "Elige la pregunta, la que define los grupos y las respuestas que suman, de la base activa."
+  } else if (identical(name, "p_dumbbell")) {
+    "Elige la pregunta que define los dos grupos, los grupos y las preguntas; entre dos bases sale de la matriz de equivalencias."
   } else if (identical(name, "p_mapa_resultado_distrital")) {
-    "Selecciona indicador, la pregunta con el distrito y uno o más códigos objetivo de la base activa."
+    "Elige la pregunta, la del distrito y las respuestas que suman, de la base activa."
   } else {
     switch(
       capability_key,
-      dimensions = "Requiere dimensiones calculadas en Analítica.",
-      territorial_coverage = "Requiere cobertura disponible en Hojas de Ruta y Monitoreo territorial.",
-      equivalences_exactly_two = "Requiere un plan compatible que ya declare equivalencias entre exactamente dos bases; esta biblioteca aún no puede crearlo.",
-      equivalences_temporal = "Requiere un plan compatible que ya declare equivalencias entre bases ordenadas por momento; esta biblioteca aún no puede crearlo.",
-      "Selecciona una o varias variables de la base activa."
+      dimensions = "Necesita dimensiones calculadas en Analítica.",
+      territorial_coverage = "Necesita la cobertura de Hojas de ruta y de Monitoreo territorial.",
+      equivalences_exactly_two = "Sale de la matriz de equivalencias, con cada tema en exactamente dos bases; no se arma desde aquí.",
+      equivalences_temporal = "Sale de la matriz de equivalencias, con una base por medición y en orden; no se arma desde aquí.",
+      "Elige una o varias preguntas de la base activa."
     )
   }
 
@@ -2198,15 +2255,15 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   # =========================================================================
   base = list(
     titulo_humano = "Base — estilo común",
-    descripcion   = "Base visual que heredan todos los gráficos: fuente, tamaños, colores de texto, negritas, formato del texto 'Base: N' y guías de espacio para revisar el layout. Lo que ajustes aquí aplica a todo el reporte salvo que un tipo de gráfico tenga una base propia.",
+    descripcion   = "Base visual que heredan todos los gráficos: fuente, tamaños, colores de texto, negritas, formato del texto 'Base: N' y guías para revisar la composición. Lo que ajustes aquí aplica a todo el reporte salvo que un tipo de gráfico tenga una base propia.",
     icono_ui      = "Layers",
     args = list(
       # --- Tipografía y fuente --------------------------------------------
       list(name = "font_family",       label = "Fuente",                 tipo_input = "string", grupo = "textos",
            default = "Arial",
            descripcion = "Familia tipográfica usada por todos los gráficos (ej. 'Arial', 'Helvetica', 'Open Sans', 'Roboto')."),
-      list(name = "font_family_ppt",   label = "Fuente (solo PPT)",      tipo_input = "string", grupo = "textos",
-           descripcion = "Sobrescribe la 'Fuente' solo al exportar a PowerPoint. Vacío = usa la general. Útil si en PPT necesitas una fuente Office-safe distinta."),
+      list(name = "font_family_ppt",   label = "Tipografía (sólo PowerPoint)",      tipo_input = "string", grupo = "textos",
+           descripcion = "Tipografía sólo para PowerPoint. Vacío, usa la general. Sirve cuando la general no está instalada en las computadoras donde se abre el PPT."),
       list(name = "formato",           label = "Formato del texto base", tipo_input = "string", grupo = "textos",
            default = "Base: %s",
            descripcion = "Plantilla del texto automático de la base. %s se reemplaza por el conteo. Ej. 'Base: %s' → 'Base: 120'. Otras opciones: 'n = %s', 'N = %s respuestas'."),
@@ -2219,28 +2276,28 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       # --- Tamaños (pt) ---------------------------------------------------
       list(name = "size_titulo",       label = "Tamaño del título",      tipo_input = "number", grupo = "estilo",
            default = 14,
-           descripcion = "Tamaño de fuente del título del gráfico (pt). Valor base Pulso: 14; títulos de slide se controlan desde la plantilla."),
-      list(name = "size_titulo_slide", label = "Tamaño título PPT",      tipo_input = "number", grupo = "estilo",
+           descripcion = "Tamaño del título del gráfico, en puntos (14 por defecto). El título de la lámina se ajusta en la plantilla."),
+      list(name = "size_titulo_slide", label = "Tamaño del título (láminas de texto)",      tipo_input = "number", grupo = "estilo",
            default = 24,
-           descripcion = "Tamaño del título de una lámina PPT estructural (pt)."),
+           descripcion = "Tamaño del título en portadas, separadores y láminas de texto, en puntos."),
       list(name = "size_subtitulo",    label = "Tamaño del subtítulo",   tipo_input = "number", grupo = "estilo",
            default = 14),
-      list(name = "size_subtitulo_slide", label = "Tamaño subtítulo PPT", tipo_input = "number", grupo = "estilo",
+      list(name = "size_subtitulo_slide", label = "Tamaño del subtítulo (láminas de texto)", tipo_input = "number", grupo = "estilo",
            default = 16,
-           descripcion = "Tamaño del subtítulo de una lámina PPT estructural (pt)."),
-      list(name = "size_cuerpo_slide", label = "Tamaño cuerpo PPT",      tipo_input = "number", grupo = "estilo",
+           descripcion = "Tamaño del subtítulo en portadas, separadores y láminas de texto, en puntos."),
+      list(name = "size_cuerpo_slide", label = "Tamaño del texto (láminas de texto)",      tipo_input = "number", grupo = "estilo",
            default = 14,
-           descripcion = "Tamaño del cuerpo de texto en láminas PPT estructurales (pt)."),
+           descripcion = "Tamaño del texto en portadas, separadores y láminas de texto, en puntos."),
       list(name = "size_leyenda",      label = "Tamaño de la leyenda",   tipo_input = "number", grupo = "estilo",
            default = 10.5),
       list(name = "size_ejes",         label = "Tamaño de los ejes",     tipo_input = "number", grupo = "estilo",
            default = 10.5,
-           descripcion = "Tamaño de las etiquetas de los ejes X e Y (pt)."),
+           descripcion = "Tamaño de las etiquetas de los ejes, en puntos."),
       list(name = "size_nota_pie",     label = "Tamaño de la nota al pie", tipo_input = "number", grupo = "estilo",
            default = 10),
       list(name = "size_texto_barras", label = "Tamaño del texto de barras", tipo_input = "number", grupo = "estilo",
            default = 4.2,
-           descripcion = "Tamaño de los valores numéricos que se escriben DENTRO de las barras (ej. los %). Nota: en ggplot/cowplot no es pt exacto, son unidades relativas."),
+           descripcion = "Tamaño de las cifras escritas dentro de las barras (ej. los %). Es un tamaño relativo, no puntos exactos."),
 
       # --- Colores de texto ----------------------------------------------
       # Dos títulos, dos colores. El de LÁMINA (y con él los separadores de
@@ -2252,7 +2309,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Título de la lámina, los separadores de sección y la portada."),
       list(name = "color_titulo",      label = "Color del título del gráfico", tipo_input = "color", grupo = "estilo",
            default = "#081F5C",
-           descripcion = "Hex del color del texto del título. Default Pulso PUCP: rojo principal."),
+           descripcion = "Color del texto del título. Por defecto, el rojo principal de la marca."),
       list(name = "color_subtitulo",   label = "Color del subtítulo",    tipo_input = "color", grupo = "estilo",
            default = "#081F5C",
            descripcion = "Color del subtítulo del gráfico."),
@@ -2280,10 +2337,10 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Muestra bordes de referencia alrededor de cada bloque interno del gráfico. Controlable con el botón global del encabezado."),
       list(name = "debug_ph_col",      label = "Color de los bordes", tipo_input = "string", grupo = "avanzado",
            default = "#0FA3B1",
-           descripcion = "Hex del color del plano de la guía. Cian apagado: se ve sobre el blanco del canvas y sobre el azul institucional sin comerse la lámina, que es lo que hacía el magenta anterior."),
+           descripcion = "Color de las guías. El cian apagado por defecto se ve sobre el blanco y sobre el azul institucional sin tapar la lámina."),
       list(name = "debug_ph_lwd",      label = "Grosor de los bordes", tipo_input = "number", grupo = "avanzado",
            default = 0.6,
-           descripcion = "Grosor de las guías de layout, en puntos. Solo se dibujan con las guías encendidas.")
+           descripcion = "Grosor de las guías, en puntos. Sólo se dibujan con las guías encendidas.")
     )
   ),
 
@@ -2307,7 +2364,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            default = TRUE,
            descripcion = "Añade una barra adicional a la derecha con Top2Box, Bottom2Box o N. Se configura con 'Preset de la barra extra' del graficador."),
       list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "color", grupo = "estilo",
-           descripcion = "Hex del color de la barra extra. Ej. '#081F5C'."),
+           descripcion = "Color de la barra extra."),
       list(name = "size_barra_extra",     label = "Tamaño texto barra extra", tipo_input = "number", grupo = "estilo",
            descripcion = "Cuerpo de letra de la cifra de la columna extra."),
       list(name = "barra_extra_preset",   label = "Qué muestra la barra extra", tipo_input = "choice", grupo = "estilo",
@@ -2367,7 +2424,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Agrega la frecuencia entre paréntesis junto al porcentaje, por ejemplo 9% (16)."),
       list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "color", grupo = "estilo",
            default = "white",
-           descripcion = "Color del texto del porcentaje dentro de cada segmento. 'white' o un hex."),
+           descripcion = "Color del porcentaje escrito dentro de cada segmento."),
       list(name = "color_texto_barras_fuera", label = "Color texto fuera de barras", tipo_input = "color", grupo = "estilo",
            default = "#081F5C",
            descripcion = "Color alternativo para etiquetas desplazadas. En apiladas Pulso los porcentajes pequeños se conservan dentro del ancho total de la barra."),
@@ -2396,13 +2453,13 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Si está activo, las etiquetas de segmentos muy chicos se desplazan horizontalmente para no superponerse."),
       list(name = "etiquetas_arriba_si_no_caben", label = "Etiquetas arriba si no caben", tipo_input = "bool", grupo = "filtro",
            default = TRUE,
-           descripcion = "Lo fija el estándar de los recetarios (ADR 0092): si un porcentaje no entra en su segmento, sube encima de la barra con una línea guía. En el estilo común se impone; sólo se puede apagar lámina por lámina."),
+           descripcion = "Lo fija el estándar: si un porcentaje no entra en su segmento, sube encima de la barra con una línea guía. En el estilo común se impone; sólo se puede apagar lámina por lámina."),
       list(name = "etiquetas_arriba_offset", label = "Separación etiquetas superiores", tipo_input = "number", grupo = "filtro",
            descripcion = "Separación vertical entre la barra y los porcentajes superiores."),
       list(name = "color_conectores_etiquetas", label = "Color conectores etiquetas", tipo_input = "choice", grupo = "estilo",
            default = "tenue",
            choices = list(
-             list(value = "tenue", label = "Gris tenue (recetario)"),
+             list(value = "tenue", label = "Gris tenue (por defecto)"),
              list(value = "segmento", label = "Color del segmento"),
              list(value = "azul_pulso", label = "Azul Pulso")
            ),
@@ -2424,10 +2481,10 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "filtro",
            default = 15,
            descripcion = "Máximo de caracteres por línea en las etiquetas del eje Y antes de romper. Valores 10-80 según cuánto espacio tengas."),
-      list(name = "wrap_y",               label = "Wrap eje Y (alternativo)", tipo_input = "number", grupo = "filtro",
-           descripcion = "Alias alternativo para ancho_max_eje_y, por compatibilidad."),
+      list(name = "wrap_y",               label = "Caracteres por línea en el eje vertical (alternativo)", tipo_input = "number", grupo = "filtro",
+           descripcion = "Lo mismo que «Ancho de texto de etiquetas»; se conserva para informes antiguos."),
       list(name = "invertir_barras",      label = "Invertir orden de las barras", tipo_input = "bool",   grupo = "datos",
-           descripcion = "Si es TRUE, las barras se muestran en orden inverso (la primera abajo, la última arriba)."),
+           descripcion = "Invierte el orden de las barras: la primera abajo y la última arriba."),
 
       # --- Leyenda --------------------------------------------------------
       list(name = "leyenda_posicion",     label = "Posición de la leyenda", tipo_input = "choice", grupo = "estilo",
@@ -2447,7 +2504,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "legend_n_por_fila",    label = "Items por fila en leyenda", tipo_input = "number", grupo = "estilo",
            default = 6),
       list(name = "legend_ancho_rel",     label = "Ancho reservado leyenda", tipo_input = "number", grupo = "estilo",
-           descripcion = "Ancho relativo mínimo para centrar una leyenda compacta en canvas. Déjalo vacío para cálculo automático."),
+           descripcion = "Ancho mínimo, relativo al gráfico, para centrar una leyenda corta. Vacío, se calcula solo."),
       list(name = "legend_gap_npc",       label = "Separación compacta leyenda", tipo_input = "number", grupo = "estilo",
            default = 0.018,
            descripcion = "Separación horizontal entre ítems de la leyenda compacta."),
@@ -2455,7 +2512,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       # --- Canvas (anchos y altos internos en pulgadas) ------------------
       list(name = "canvas_w_etiquetas",     label = "Ancho columna etiquetas", tipo_input = "number", grupo = "canvas",
            default = 0.12,
-           descripcion = "Fracción del ancho total que ocupa la columna de etiquetas del eje Y. 0.12 = 12% del canvas."),
+           descripcion = "Parte del ancho que ocupa la columna de etiquetas del eje vertical. 0.12 = 12 % del gráfico."),
       list(name = "canvas_w_buf_etq_bars",  label = "Espacio etiquetas→barras", tipo_input = "number", grupo = "canvas",
            default = 0.02,
            descripcion = "Fracción de separación entre las etiquetas y las barras."),
@@ -2467,31 +2524,31 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "canvas_w_extra",         label = "Ancho columna extra",    tipo_input = "number", grupo = "canvas",
            default = 0.12,
            descripcion = "Fracción del ancho para la columna de la barra extra (Top2Box, N, etc.)."),
-      list(name = "canvas_h_toprow_in",     label = "Alto zona superior (in)", tipo_input = "number", grupo = "canvas",
+      list(name = "canvas_h_toprow_in",     label = "Alto de la zona superior (pulg.)", tipo_input = "number", grupo = "canvas",
            default = 0.10,
-           descripcion = "Altura en pulgadas de la primera fila del canvas (espacio en blanco arriba)."),
-      list(name = "canvas_h_header_in",     label = "Alto del header (in)",   tipo_input = "number", grupo = "canvas",
+           descripcion = "Espacio en blanco sobre el gráfico, en pulgadas."),
+      list(name = "canvas_h_header_in",     label = "Alto del encabezado (pulg.)",   tipo_input = "number", grupo = "canvas",
            default = 0.15,
            descripcion = "Altura en pulgadas de la zona del título. Si el título no entra, aumenta este valor."),
       list(name = "encabezado_desplazamiento_in", label = "Mover encabezado", tipo_input = "number", grupo = "canvas",
            descripcion = "Desplazamiento vertical fino del bloque de título/subtítulo."),
       list(name = "encabezado_separacion_in", label = "Separación título-subtítulo", tipo_input = "number", grupo = "canvas",
            descripcion = "Distancia vertical entre el título del gráfico y su subtítulo."),
-      list(name = "canvas_h_legend_in",     label = "Alto de la leyenda (in)", tipo_input = "number", grupo = "canvas",
+      list(name = "canvas_h_legend_in",     label = "Alto de la leyenda (pulg.)", tipo_input = "number", grupo = "canvas",
            default = 0.15),
       list(name = "leyenda_desplazamiento_in", label = "Mover leyenda", tipo_input = "number", grupo = "canvas",
            descripcion = "Desplazamiento vertical fino de la leyenda dentro del gráfico."),
-      list(name = "canvas_h_caption_in",    label = "Alto del pie de página (in)", tipo_input = "number", grupo = "canvas",
+      list(name = "canvas_h_caption_in",    label = "Alto del pie de página (pulg.)", tipo_input = "number", grupo = "canvas",
            default = 0.20),
-      list(name = "canvas_h_panel_in",      label = "Alto fijo del panel (in)", tipo_input = "number", grupo = "canvas",
+      list(name = "canvas_h_panel_in",      label = "Alto fijo del panel (pulg.)", tipo_input = "number", grupo = "canvas",
            descripcion = "Si se define, fuerza el alto interno del panel de barras. Útil para compactar gráficos de pocas filas."),
       list(name = "canvas_min_filas",       label = "Filas virtuales mínimas", tipo_input = "number", grupo = "canvas",
            default = 1,
            descripcion = "Mínimo de filas virtuales usadas para calcular separación vertical. 1 compacta gráficos con una barra."),
-      list(name = "canvas_pad_bars_y_in",   label = "Padding vertical barras (in)", tipo_input = "number", grupo = "canvas",
+      list(name = "canvas_pad_bars_y_in",   label = "Margen vertical de las barras (pulg.)", tipo_input = "number", grupo = "canvas",
            default = 0.08,
            descripcion = "Espacio interno superior e inferior alrededor del área de barras."),
-      list(name = "alto_por_categoria",     label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas",
+      list(name = "alto_por_categoria",     label = "Alto por categoría (pulg.)", tipo_input = "number", grupo = "canvas",
            default = 0.36,
            descripcion = "Altura en pulgadas que ocupa cada fila (categoría). Más = barras más gruesas."),
 
@@ -2499,23 +2556,18 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "grosor_modo",          label = "Modo de grosor",        tipo_input = "choice", grupo = "avanzado",
            default = "auto",
            choices = list(
-             list(value = "auto",   label = "Automático",   hint = "Se calcula según alto_por_categoria."),
-             list(value = "manual", label = "Manual",        hint = "Usa grosor_barras tal cual.")
+             list(value = "auto",   label = "Automático",   hint = "Se calcula según el alto por categoría."),
+             list(value = "manual", label = "Manual",        hint = "Usa el grosor de las barras tal cual.")
            )),
       list(name = "grosor_barras",        label = "Grosor de las barras",  tipo_input = "number", grupo = "avanzado",
            default = 0.6,
-           descripcion = "Solo si modo=manual. Valor entre 0 y 1."),
-      list(name = "grosor_barras_mult",   label = "Multiplicador grosor (modo auto)", tipo_input = "number", grupo = "avanzado",
+           descripcion = "Sólo en modo manual. Valor entre 0 y 1."),
+      list(name = "grosor_barras_mult",   label = "Grosor relativo (automático)", tipo_input = "number", grupo = "avanzado",
            default = 0.9,
-           descripcion = "Solo si modo=auto. Fracción del alto_por_categoria que ocupa la barra (0.9 = barras casi pegadas, 0.6 = más separadas)."),
+           descripcion = "Sólo en modo automático. Parte del alto por categoría que ocupa la barra (0.9 = barras casi pegadas, 0.6 = más separadas)."),
 
-      # --- Avanzado -------------------------------------------------------
-      list(name = "exportar",             label = "Modo de export",        tipo_input = "choice", grupo = "avanzado",
-           default = "rplot",
-           choices = list(
-             list(value = "rplot",  label = "R plot (default)"),
-             list(value = "image",  label = "Imagen PNG")
-           )),
+      # «Modo de export» (rplot/image) se retiró de la UI: el backend fuerza la salida y «image» ni existía en el
+      # graficador. Una opción que no hace nada no se muestra (loop UI R6, 2026-10-13).
 
       list(name = "metodo_redondeo", label = "Método de redondeo", tipo_input = "choice", grupo = "valores",
            default = "estandar",
@@ -2541,7 +2593,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   # detrás. Si el resto baja del piso, el motor avisa y vuelve al reparto de
   # fábrica en lugar de dibujar una lámina ilegible.
   multi_apiladas_multiactor = list(
-    titulo_humano = "Multi-apiladas multiactor",
+    titulo_humano = "Multiapiladas que comparan públicos",
     descripcion   = "Reparto de ancho de las láminas que comparan varios públicos sobre la misma escala: el tema, el nombre del actor y la barra extra. Las barras se quedan con el resto.",
     icono_ui      = "Columns3",
     args = list(
@@ -2564,7 +2616,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   ),
 
   multi_apiladas = list(
-    titulo_humano = "Multi-apiladas",
+    titulo_humano = "Multiapiladas",
     descripcion   = "Varias barras apiladas en un solo gráfico (preguntas con misma escala). Hereda muchos args de 'Barras apiladas' por similitud visual.",
     icono_ui      = "Rows3",
     args = list(
@@ -2604,7 +2656,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "color_conectores_etiquetas", label = "Color conectores etiquetas", tipo_input = "choice", grupo = "estilo",
            default = "tenue",
            choices = list(
-             list(value = "tenue", label = "Gris tenue (recetario)"),
+             list(value = "tenue", label = "Gris tenue (por defecto)"),
              list(value = "segmento", label = "Color del segmento"),
              list(value = "azul_pulso", label = "Azul Pulso")
            )),
@@ -2672,7 +2724,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "filtro"),
       list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "datos",
            descripcion = "Da la vuelta al orden de las filas. Útil cuando el instrumento las declara al revés de como se leen."),
-      list(name = "alto_por_categoria",   label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas"),
+      list(name = "alto_por_categoria",   label = "Alto por categoría (pulg.)", tipo_input = "number", grupo = "canvas"),
 
       # --- Leyenda --------------------------------------------------------
       list(name = "leyenda_posicion",     label = "Posición de la leyenda", tipo_input = "choice", grupo = "estilo",
@@ -2706,17 +2758,17 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "canvas_w_bars",          label = "Ancho zona de barras",   tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_w_buf_bars_extra",label = "Espacio barras→columna extra", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_w_extra",         label = "Ancho columna extra",    tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_toprow_in",     label = "Alto zona superior (in)", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_header_in",     label = "Alto del header (in)",   tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_toprow_in",     label = "Alto de la zona superior (pulg.)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_header_in",     label = "Alto del encabezado (pulg.)",   tipo_input = "number", grupo = "canvas"),
       list(name = "encabezado_desplazamiento_in", label = "Mover encabezado", tipo_input = "number", grupo = "canvas"),
       list(name = "encabezado_separacion_in", label = "Separación título-subtítulo", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_legend_in",     label = "Alto de la leyenda (in)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_legend_in",     label = "Alto de la leyenda (pulg.)", tipo_input = "number", grupo = "canvas"),
       list(name = "leyenda_desplazamiento_in", label = "Mover leyenda", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_caption_in",    label = "Alto del pie (in)",      tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_panel_in",      label = "Alto fijo del panel (in)", tipo_input = "number", grupo = "canvas",
+      list(name = "canvas_h_caption_in",    label = "Alto del pie (pulg.)",      tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_panel_in",      label = "Alto fijo del panel (pulg.)", tipo_input = "number", grupo = "canvas",
            descripcion = "Fija el alto del área de barras en vez de dejar que se derive de las filas. Vacío = automático."),
       list(name = "canvas_min_filas",       label = "Filas virtuales mínimas", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_pad_bars_y_in",   label = "Padding vertical barras (in)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_pad_bars_y_in",   label = "Margen vertical de las barras (pulg.)", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_gap_grupos",      label = "Separación entre bloques", tipo_input = "number", grupo = "canvas",
            descripcion = "Espacio vertical extra entre bloques temáticos, como fracción del alto de una fila."),
 
@@ -2727,7 +2779,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
              list(value = "manual", label = "Manual")
            )),
       list(name = "grosor_barras",        label = "Grosor de las barras", tipo_input = "number", grupo = "canvas"),
-      list(name = "grosor_barras_mult",   label = "Multiplicador grosor (modo auto)", tipo_input = "number", grupo = "canvas"),
+      list(name = "grosor_barras_mult",   label = "Grosor relativo (automático)", tipo_input = "number", grupo = "canvas"),
 
       list(name = "metodo_redondeo", label = "Método de redondeo", tipo_input = "choice", grupo = "valores",
            default = "estandar",
@@ -2838,7 +2890,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            max = 1.60,
            step = 0.05,
            descripcion = "Separación vertical entre líneas cuando una etiqueta de categoría se envuelve en varias filas."),
-      list(name = "wrap_y",               label = "Wrap eje Y",            tipo_input = "number", grupo = "filtro"),
+      list(name = "wrap_y",               label = "Caracteres por línea en el eje vertical",            tipo_input = "number", grupo = "filtro"),
 
       # --- Canvas ---------------------------------------------------------
       list(name = "canvas_w_etiquetas",     label = "Ancho columna etiquetas", tipo_input = "number", grupo = "canvas", default = 0.22),
@@ -2846,15 +2898,15 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "canvas_w_bars",          label = "Ancho zona de barras",   tipo_input = "number", grupo = "canvas", default = 0.58),
       list(name = "canvas_w_buf_bars_extra",label = "Espacio barras→extra",   tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_w_extra",         label = "Ancho columna extra",    tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_toprow_in",     label = "Alto zona superior (in)", tipo_input = "number", grupo = "canvas", default = 0.10),
-      list(name = "canvas_h_header_in",     label = "Alto del header (in)",   tipo_input = "number", grupo = "canvas", default = 0.70),
+      list(name = "canvas_h_toprow_in",     label = "Alto de la zona superior (pulg.)", tipo_input = "number", grupo = "canvas", default = 0.10),
+      list(name = "canvas_h_header_in",     label = "Alto del encabezado (pulg.)",   tipo_input = "number", grupo = "canvas", default = 0.70),
       list(name = "encabezado_desplazamiento_in", label = "Mover encabezado", tipo_input = "number", grupo = "canvas"),
       list(name = "encabezado_separacion_in", label = "Separación título-subtítulo", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_legend_in",     label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_h_legend_in",     label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas", default = 0),
       list(name = "leyenda_desplazamiento_in", label = "Mover leyenda", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_caption_in",    label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_h_caption_in",    label = "Alto del pie (pulg.)",          tipo_input = "number", grupo = "canvas", default = 0),
       list(name = "canvas_min_filas",        label = "Filas mínimas para grosor", tipo_input = "number", grupo = "canvas", default = 8),
-      list(name = "alto_por_categoria",     label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas", default = 0.48)
+      list(name = "alto_por_categoria",     label = "Alto por categoría (pulg.)", tipo_input = "number", grupo = "canvas", default = 0.48)
     )
   ),
 
@@ -2927,7 +2979,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 
       list(name = "grosor_barras", label = "Grosor de barras", tipo_input = "number", grupo = "espacio",
            default = 0.76, min = 0.25, max = 0.95, step = 0.01),
-      list(name = "ancho_max_eje_x", label = "Wrap de etiquetas", tipo_input = "number", grupo = "espacio",
+      list(name = "ancho_max_eje_x", label = "Caracteres por línea en las etiquetas", tipo_input = "number", grupo = "espacio",
            default = 18, min = 6, max = 40, step = 1),
       list(name = "limite_y", label = "Límite del eje Y", tipo_input = "number", grupo = "espacio",
            descripcion = "Vacío = automático."),
@@ -2949,13 +3001,13 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   # =========================================================================
   nube_palabras = list(
     titulo_humano = "Nube de palabras",
-    descripcion   = "Estilo global para nubes de palabras de respuestas abiertas. Se usa de forma automática en slides Otros.",
+    descripcion   = "Estilo de las nubes de palabras de respuestas abiertas. Se aplica solo en las láminas de «Otros».",
     icono_ui      = "Cloud",
     args = list(
       list(name = "max_palabras", label = "Máximo de palabras", tipo_input = "number", grupo = "filtro", default = 40),
       list(name = "min_chars", label = "Mínimo de caracteres", tipo_input = "number", grupo = "filtro", default = 3),
       list(name = "colores_palabras", label = "Colores de palabras", tipo_input = "series_colors", grupo = "estilo",
-           descripcion = "Paleta cíclica para colorear los términos. Vacía, la nube usa el degradado de azul por menciones del recetario."),
+           descripcion = "Paleta cíclica para colorear los términos. Vacía, la nube usa el degradado de azul por menciones."),
       list(name = "size_titulo", label = "Tamaño título", tipo_input = "number", grupo = "estilo", default = 16),
       list(name = "size_subtitulo", label = "Tamaño subtítulo", tipo_input = "number", grupo = "estilo", default = 12),
       list(name = "size_nota_pie", label = "Tamaño nota al pie", tipo_input = "number", grupo = "estilo", default = 10)
@@ -3020,10 +3072,10 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            )),
 
       # --- Canvas ---------------------------------------------------------
-      list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas", default = 0.12),
-      list(name = "canvas_h_legend",      label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0.10),
-      list(name = "canvas_h_caption",     label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0),
-      list(name = "canvas_pad_top",       label = "Padding superior (in)",  tipo_input = "number", grupo = "canvas", default = 0.01),
+      list(name = "canvas_h_title",       label = "Alto de la zona del título (pulg.)",  tipo_input = "number", grupo = "canvas", default = 0.12),
+      list(name = "canvas_h_legend",      label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas", default = 0.10),
+      list(name = "canvas_h_caption",     label = "Alto del pie (pulg.)",          tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_pad_top",       label = "Margen superior (pulg.)",  tipo_input = "number", grupo = "canvas", default = 0.01),
 
       # --- Textos --------------------------------------------------------
       list(name = "nota_pie",             label = "Nota al pie (fijo)",    tipo_input = "string", grupo = "textos",
@@ -3137,7 +3189,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 
       list(name = "ancho_barras", label = "Ancho de barras", tipo_input = "number", grupo = "espacio", default = 0.78),
       list(name = "mostrar_eje_y", label = "Mostrar eje Y", tipo_input = "bool", grupo = "estilo", default = TRUE),
-      list(name = "wrap_eje_x", label = "Wrap de intervalos", tipo_input = "number", grupo = "espacio", default = 14),
+      list(name = "wrap_eje_x", label = "Caracteres por línea en los intervalos", tipo_input = "number", grupo = "espacio", default = 14),
       list(name = "canvas_h_title", label = "Alto de encabezado", tipo_input = "number", grupo = "espacio", default = 0.12),
       list(name = "canvas_h_legend", label = "Alto de leyenda", tipo_input = "number", grupo = "espacio", default = 0.12),
       list(name = "canvas_h_caption", label = "Alto de pie", tipo_input = "number", grupo = "espacio", default = 0.04)
@@ -3218,17 +3270,17 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Las etiquetas en el orden exacto que quieres. Los modos automáticos dependen de los datos, así que la leyenda cambia de orden entre láminas; éste no."),
 
       # --- Canvas --------------------------------------------------------
-      list(name = "canvas_h_title",         label = "Alto zona título (in)", tipo_input = "number", grupo = "canvas", default = 0.08),
-      list(name = "canvas_h_caption",       label = "Alto zona pie (in)",    tipo_input = "number", grupo = "canvas", default = 0),
-      list(name = "canvas_h_legend_bottom", label = "Alto leyenda inferior (in)", tipo_input = "number", grupo = "canvas", default = 0.14),
+      list(name = "canvas_h_title",         label = "Alto de la zona del título (pulg.)", tipo_input = "number", grupo = "canvas", default = 0.08),
+      list(name = "canvas_h_caption",       label = "Alto de la zona del pie (pulg.)",    tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_h_legend_bottom", label = "Alto de la leyenda inferior (pulg.)", tipo_input = "number", grupo = "canvas", default = 0.14),
       list(name = "canvas_w_legend_right",  label = "Ancho leyenda derecha", tipo_input = "number", grupo = "canvas",
            descripcion = "Fracción del ancho reservada cuando la leyenda va a la derecha. Ej. 0.30 = 30% para la leyenda."),
-      list(name = "canvas_pad_top",         label = "Padding superior (in)", tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_pad_top",         label = "Margen superior (pulg.)", tipo_input = "number", grupo = "canvas", default = 0),
 
       # --- Debug ---------------------------------------------------------
       # Era `debug_lw`, que `graficar_pie()` no acepta: el motor lo descartaba en
       # silencio y el control no hacia nada. El arg real es `debug_ph_lwd`.
-      list(name = "debug_ph_lwd",         label = "Grosor línea debug",    tipo_input = "number", grupo = "avanzado", default = 1),
+      list(name = "debug_ph_lwd",         label = "Grosor de las guías",    tipo_input = "number", grupo = "avanzado", default = 1),
 
       list(name = "decimales_pct", label = "Decimales", tipo_input = "number", grupo = "valores",
            default = 0, min = 0, max = 2, step = 1,
@@ -3293,8 +3345,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "tamano_key_cm",        label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo"),
       list(name = "espaciado_vertical_cm",label = "Espaciado vertical leyenda (cm)", tipo_input = "number", grupo = "estilo"),
       list(name = "ncol_leyenda_bajo",    label = "Columnas leyenda (abajo)", tipo_input = "number", grupo = "estilo"),
-      list(name = "canvas_h_title",       label = "Alto zona título (in)", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_legend_bottom", label = "Alto leyenda inferior (in)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_title",       label = "Alto de la zona del título (pulg.)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_legend_bottom", label = "Alto de la leyenda inferior (pulg.)", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_w_legend_right",label = "Ancho leyenda derecha", tipo_input = "number", grupo = "canvas"),
 
       list(name = "decimales_pct", label = "Decimales", tipo_input = "number", grupo = "valores",
@@ -3377,7 +3429,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   ),
 
   dumbbell = list(
-    titulo_humano = "Brecha entre dos bases",
+    titulo_humano = "Brecha entre dos grupos",
     descripcion   = "Estilo global del dumbbell: tamaño de punto, grosor del segmento, cifras y leyenda.",
     icono_ui      = "MoveHorizontal",
     args = list(
@@ -3499,14 +3551,14 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
              list(value = "proporcion_100", label = "Porcentaje (0 a 100)", hint = "Los valores van de 0 a 100: 85 es el 85 %.")
            )),
       list(name = "limites",              label = "Límites del radar",     tipo_input = "codigos_list", grupo = "filtro",
-           descripcion = "Mínimo y máximo, separados por coma. Ej: 0, 1 o 0, 100. Si vacío, se deduce de escala_valor."),
+           descripcion = "Mínimo y máximo, separados por coma. Ej: 0, 1 o 0, 100. Vacío, se deduce de la escala de valores."),
       list(name = "cortes_grilla",        label = "Cortes de la grilla",   tipo_input = "number", grupo = "estilo", default = 6,
            descripcion = "Número de círculos concéntricos dentro del radar."),
       list(name = "mostrar_niveles",      label = "Mostrar etiquetas de grilla", tipo_input = "bool", grupo = "estilo", default = FALSE,
            descripcion = "Muestra los valores en cada círculo (ej. 20, 40, 60...)."),
       list(name = "mostrar_radios",       label = "Mostrar radios",        tipo_input = "bool",   grupo = "estilo", default = FALSE),
       list(name = "rellenar_poligono",    label = "Rellenar polígono",     tipo_input = "bool",   grupo = "estilo", default = FALSE,
-           descripcion = "Si es TRUE, el área dentro del polígono se colorea."),
+           descripcion = "Colorea el área dentro del polígono."),
       list(name = "radar_scale",          label = "Escala del radar",      tipo_input = "number", grupo = "estilo", default = 0.85,
            descripcion = "Fracción del espacio disponible que ocupa el radar (0.85 deja ~15% para respirar)."),
 
@@ -3546,9 +3598,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 
       # --- Tabla: colores y bordes --------------------------------------
       list(name = "tabla_header_fill",    label = "Color de fondo header",  tipo_input = "string", grupo = "tabla",
-           descripcion = "Hex del fondo del encabezado. NA = transparente."),
+           descripcion = "Color de fondo del encabezado. Vacío, transparente."),
       list(name = "tabla_body_fill",      label = "Color de fondo body",    tipo_input = "string", grupo = "tabla",
-           descripcion = "Hex del fondo de las celdas. NA = transparente."),
+           descripcion = "Color de fondo de las celdas. Vacío, transparente."),
       list(name = "tabla_grid_col",       label = "Color de la grilla",     tipo_input = "string", grupo = "tabla",
            default = "white"),
       list(name = "tabla_text_blue",      label = "Color del texto",        tipo_input = "string", grupo = "tabla",
@@ -3556,30 +3608,30 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "tabla_line_lwd",       label = "Grosor de líneas",       tipo_input = "number", grupo = "tabla"),
 
       # --- Tabla: tamaños y padding --------------------------------------
-      list(name = "tabla_padding_mm",     label = "Padding interno (mm)",   tipo_input = "number", grupo = "tabla", default = 10),
+      list(name = "tabla_padding_mm",     label = "Margen interno (mm)",   tipo_input = "number", grupo = "tabla", default = 10),
       list(name = "tabla_header_size",    label = "Tamaño texto header",    tipo_input = "number", grupo = "tabla", default = 8),
       list(name = "tabla_body_size",      label = "Tamaño texto body",      tipo_input = "number", grupo = "tabla", default = 7),
       list(name = "tabla_firstcol_size",  label = "Tamaño texto 1ra columna", tipo_input = "number", grupo = "tabla"),
       list(name = "tabla_firstcol_bold",  label = "1ra columna en negrita", tipo_input = "bool",   grupo = "tabla", default = TRUE),
-      list(name = "tabla_firstcol_wrap",  label = "Ancho 1ra columna (chars)", tipo_input = "number", grupo = "tabla",
+      list(name = "tabla_firstcol_wrap",  label = "Ancho de la primera columna (caracteres)", tipo_input = "number", grupo = "tabla",
            descripcion = "Máximo de caracteres por línea en la primera columna antes de romper."),
       list(name = "tabla_firstcol_indent_npc", label = "Indent 1ra columna", tipo_input = "number", grupo = "tabla"),
       list(name = "tabla_firstcol_frac",  label = "Fracción 1ra columna",   tipo_input = "number", grupo = "tabla",
            descripcion = "Fracción del ancho de la tabla que ocupa la primera columna (0.4 = 40%)."),
       list(name = "tabla_auto_fit",       label = "Auto-ajustar tamaños",   tipo_input = "bool",   grupo = "tabla", default = FALSE,
-           descripcion = "Si es TRUE, intenta ajustar los tamaños automáticamente para que quepa todo."),
+           descripcion = "Ajusta los tamaños para que quepa todo."),
       list(name = "tabla_height_frac",    label = "Fracción de altura",     tipo_input = "number", grupo = "tabla",
            descripcion = "Fracción del alto disponible que ocupa la tabla (0.72 = 72%)."),
 
       # --- Tabla: placeholder ppt ----------------------------------------
-      list(name = "tabla_ph_ancho",       label = "Ancho placeholder PPT",  tipo_input = "number", grupo = "canvas", default = 0.46),
+      list(name = "tabla_ph_ancho",       label = "Ancho del espacio en PowerPoint",  tipo_input = "number", grupo = "canvas", default = 0.46),
       list(name = "tabla_ph_gap",         label = "Gap placeholder-radar",  tipo_input = "number", grupo = "canvas", default = 0.01),
       list(name = "tabla_ph_margin_top",  label = "Margen superior PH",     tipo_input = "number", grupo = "canvas", default = 0.001),
       list(name = "tabla_ph_margin_bot",  label = "Margen inferior PH",     tipo_input = "number", grupo = "canvas", default = 0.001),
 
       # --- Canvas --------------------------------------------------------
-      list(name = "canvas_h_header_in",   label = "Alto header (in)",       tipo_input = "number", grupo = "canvas", default = 0.45),
-      list(name = "canvas_h_legend_in",   label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0.22)
+      list(name = "canvas_h_header_in",   label = "Alto del encabezado (pulg.)",       tipo_input = "number", grupo = "canvas", default = 0.45),
+      list(name = "canvas_h_legend_in",   label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas", default = 0.22)
     )
   ),
 
@@ -3612,9 +3664,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Decimales de la media que se muestra en el chip de cada categoría."),
 
       # --- Canvas --------------------------------------------------------
-      list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_legend",      label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_pad_top",       label = "Padding superior (in)",  tipo_input = "number", grupo = "canvas")
+      list(name = "canvas_h_title",       label = "Alto de la zona del título (pulg.)",  tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_legend",      label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_pad_top",       label = "Margen superior (pulg.)",  tipo_input = "number", grupo = "canvas")
     )
   ),
 
@@ -3644,9 +3696,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            default = TRUE,
            descripcion = "Añade una línea o texto con el promedio global como referencia visual."),
       list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo"),
-      list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_legend",      label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_pad_top",       label = "Padding superior (in)",  tipo_input = "number", grupo = "canvas")
+      list(name = "canvas_h_title",       label = "Alto de la zona del título (pulg.)",  tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_legend",      label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_pad_top",       label = "Margen superior (pulg.)",  tipo_input = "number", grupo = "canvas")
     )
   ),
 
@@ -3665,9 +3717,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo", default = 0),
       list(name = "size_ejes",            label = "Tamaño ejes",           tipo_input = "number", grupo = "estilo", default = 10),
       list(name = "size_texto_celdas",    label = "Tamaño texto de celdas", tipo_input = "number", grupo = "estilo", default = 10),
-      list(name = "canvas_h_title",       label = "Alto zona título (in)", tipo_input = "number", grupo = "canvas", default = 0.13),
-      list(name = "canvas_h_legend",      label = "Alto leyenda (in)",     tipo_input = "number", grupo = "canvas", default = 0.09),
-      list(name = "canvas_h_caption",     label = "Alto pie (in)",         tipo_input = "number", grupo = "canvas", default = 0.06)
+      list(name = "canvas_h_title",       label = "Alto de la zona del título (pulg.)", tipo_input = "number", grupo = "canvas", default = 0.13),
+      list(name = "canvas_h_legend",      label = "Alto de la leyenda (pulg.)",     tipo_input = "number", grupo = "canvas", default = 0.09),
+      list(name = "canvas_h_caption",     label = "Alto del pie (pulg.)",         tipo_input = "number", grupo = "canvas", default = 0.06)
     )
   ),
 
@@ -3717,9 +3769,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "legend_n_por_fila",    label = "Items por fila leyenda", tipo_input = "number", grupo = "estilo", default = 4),
       list(name = "legend_key_cm",        label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo", default = 0.45),
       list(name = "legend_espaciado",     label = "Espaciado leyenda",      tipo_input = "number", grupo = "estilo", default = 12),
-      list(name = "canvas_h_header_in",   label = "Alto header (in)",       tipo_input = "number", grupo = "canvas", default = 0.58),
-      list(name = "canvas_h_legend_in",   label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0.20),
-      list(name = "canvas_h_caption_in",  label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0.08)
+      list(name = "canvas_h_header_in",   label = "Alto del encabezado (pulg.)",       tipo_input = "number", grupo = "canvas", default = 0.58),
+      list(name = "canvas_h_legend_in",   label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas", default = 0.20),
+      list(name = "canvas_h_caption_in",  label = "Alto del pie (pulg.)",          tipo_input = "number", grupo = "canvas", default = 0.08)
     )
   ),
 
@@ -3735,9 +3787,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       # --- Negritas -------------------------------------------------------
       .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie")),
 
-      list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas", default = 0),
-      list(name = "canvas_h_legend",      label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0.09),
-      list(name = "canvas_h_caption",     label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0.06)
+      list(name = "canvas_h_title",       label = "Alto de la zona del título (pulg.)",  tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_h_legend",      label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas", default = 0.09),
+      list(name = "canvas_h_caption",     label = "Alto del pie (pulg.)",          tipo_input = "number", grupo = "canvas", default = 0.06)
     )
   )
 )
@@ -4841,7 +4893,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     ),
     color_conectores_etiquetas = list(
       label = "Color de la línea guía",
-      descripcion = "Por defecto, el gris tenue del recetario; también puede usar el color del segmento o el azul Pulso.",
+      descripcion = "Por defecto, el gris tenue; también puede usar el color del segmento o el azul Pulso.",
       efecto = "Solo afecta las líneas que conectan porcentajes superiores con la barra."
     ),
     posicion_conector_etiquetas = list(
@@ -5245,8 +5297,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   ),
 
   reporte_ejecutivo = list(
-    titulo_humano = "Reporte ejecutivo (10 slides)",
-    descripcion   = "Portada + índice + 2 bloques temáticos, cada uno con separador, slide narrativo, un gráfico y una comparativa de dos gráficos. Estructura típica para devolver hallazgos a stakeholders.",
+    titulo_humano = "Reporte ejecutivo (10 láminas)",
+    descripcion   = "Portada, índice y dos bloques temáticos; cada bloque con separador, una lámina de texto, un gráfico y una comparación de dos gráficos. Para devolver hallazgos a quien encargó el estudio.",
     icono_ui      = "Layers",
     n_slides      = 10L,
     plan = list(
@@ -5327,7 +5379,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 
   acreditacion_multibase = list(
     titulo_humano = "Acreditación — Multi-base (3 roles)",
-    descripcion   = "Template para estudios de acreditación con 3 bases paralelas (docentes / estudiantes / administrativos). Incluye portada, perfil demográfico por rol, y un bloque comparativo con p_barras_multiapiladas en modo var_cruce que muestra las 3 fuentes lado a lado. Diseñado para cargarse sobre el demo 'Acreditación PUCP — AMDT'.",
+    descripcion   = "Para estudios de acreditación con tres bases paralelas (docentes, estudiantes y administrativos): portada, perfil por público y un bloque que compara a los tres públicos lado a lado, tema por tema.",
     icono_ui      = "GraduationCap",
     n_slides      = 7L,
     plan = list(

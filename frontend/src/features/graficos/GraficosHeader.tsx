@@ -1,5 +1,5 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, AlignJustify, Check, CheckCircle2, ChevronDown, FileText, GanttChart, Layers3, LayoutGrid, RotateCcw, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, Ruler, SlidersHorizontal, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, AlignJustify, Check, CheckCircle2, ChevronDown, FileText, GanttChart, Layers3, LayoutGrid, RotateCcw, Rows3, Undo2, Redo2, PanelTopDashed, Ruler, SlidersHorizontal, X } from "lucide-react";
 import { ContextBar } from "../../components/ContextBar";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import { DEFAULT_DEBUG_PH, usePlanStore } from "./store";
@@ -7,7 +7,6 @@ import { PlanHealthBadge } from "./PlanHealthBadge";
 import { PlanCoverageBadge } from "./PlanCoverageBadge";
 import { SuggestedPlanButton } from "./SuggestedPlanButton";
 import { usePlanValidator } from "./usePlanValidator";
-import { EstiloGlobalDialog } from "./v2/shell/EstiloGlobalDialog";
 import { ExportarInformeMenu } from "./ExportarInformeMenu";
 import { useSession } from "../../lib/SessionContext";
 import { modoMultibaseDelPlan } from "./modoMultibase";
@@ -464,20 +463,10 @@ export function GraficosHeader({
   const dirty = usePlanStore((s) => s.dirty);
   const hydrated = usePlanStore((s) => s.hydrated);
   const nSlides = usePlanStore((s) => s.plan.slides.length);
-  const nPaletas = usePlanStore((s) => Object.keys(s.paletas).length);
-  const nIconos = usePlanStore((s) => s.iconos.length);
-  const nModos = usePlanStore((s) => s.overridesReusables.length);
-  const [estiloOpen, setEstiloOpen] = useState(false);
   const [jsonMenuOpen, setJsonMenuOpen] = useState(false);
   const compartir = useCompartirPlan(reportScope);
   const vaciar = useVaciarPlan(reportScope);
   const shareMenuRef = useRef<HTMLDivElement>(null);
-  const styleTriggerItems = [
-    { key: "ppt", label: "Base PPT", tone: "base" },
-    ...(nModos > 0 ? [{ key: "modos", label: `${nModos} estilo${nModos === 1 ? "" : "s"}`, tone: "mode" }] : []),
-    ...(nPaletas > 0 ? [{ key: "paletas", label: `${nPaletas} paleta${nPaletas === 1 ? "" : "s"}`, tone: "color" }] : []),
-    ...(nIconos > 0 ? [{ key: "iconos", label: `${nIconos} ícono${nIconos === 1 ? "" : "s"}`, tone: "asset" }] : []),
-  ];
 
   // El botón de export se desactiva si el padre lo bloquea (sesión sin
   // rp_data) O si el validador detecta errores (plan vacío, etc.).
@@ -547,30 +536,8 @@ export function GraficosHeader({
           <div className="pulso-gv2-command-cluster pulso-gv2-command-cluster--tools">
           <DebugPhToggle />
 
-          <button
-            type="button"
-            onClick={() => {
-              setJsonMenuOpen(false);
-              setEstiloOpen(true);
-            }}
-            className={`pulso-gv2-estilo-trigger pulso-gv2-pill-button ${estiloOpen ? "is-open" : ""}`}
-            aria-haspopup="dialog"
-            aria-expanded={estiloOpen}
-            title="Configurar bases visuales, color, íconos y estilos guardados para todos los slides"
-          >
-            <span className="pulso-gv2-estilo-trigger-icon" aria-hidden="true">
-              <Settings2 size={13} />
-            </span>
-            <span className="pulso-gv2-estilo-trigger-copy">
-              <span className="pulso-gv2-estilo-trigger-label">Estilo</span>
-              <span className="pulso-gv2-estilo-trigger-meta">
-                {styleTriggerItems.map((item) => (
-                  <span key={item.key} data-tone={item.tone}>{item.label}</span>
-                ))}
-              </span>
-            </span>
-          </button>
-
+          {/* «Estilo global» se retiró (Gonzalo, 2026-10-13): duplicaba las pestañas Estilo del informe, Identidad y Word,
+              y sus «estilos guardados» nadie los usaba. El estilo se configura en esas pestañas. */}
           <div style={jsonIoStyles.wrap} ref={shareMenuRef}>
             <button
               type="button"
@@ -658,7 +625,6 @@ export function GraficosHeader({
         </div>
       </ContextBar>
 
-      <EstiloGlobalDialog open={estiloOpen} onClose={() => setEstiloOpen(false)} />
     </div>
   );
 }
@@ -733,7 +699,7 @@ function PlanSnapshotBadge({
       >
         <FileText size={13} />
         <strong>{nSlides}</strong>
-        <span>slides</span>
+        <span>láminas</span>
       </button>
 
       {open && (
@@ -776,8 +742,8 @@ function clampDebugBorderWidth(value: number): number {
 }
 
 const CONSTRUCTOR_VIEW_MODES = [
-  { key: "timeline" as const, label: "Timeline", Icon: GanttChart, hint: "Vista lineal para ordenar slides" },
-  { key: "canvas" as const, label: "Canvas", Icon: LayoutGrid, hint: "Grilla para reordenar en bloque" },
+  { key: "timeline" as const, label: "Secuencia", Icon: GanttChart, hint: "Las láminas en orden, una tras otra" },
+  { key: "canvas" as const, label: "Grilla", Icon: LayoutGrid, hint: "Todas las láminas a la vista, para reordenar en bloque" },
 ];
 
 function ConstructorViewControls({ issueCount }: { issueCount: number }) {
@@ -918,14 +884,14 @@ export function DebugPhToggle({ etiqueta = "Guías" }: { etiqueta?: string } = {
         <div
           className="pulso-gv2-debug-border-popover"
           role="dialog"
-          aria-label="Guías de layout"
+          aria-label="Guías de composición"
         >
           <div className="pulso-gv2-debug-border-popover-head">
             <span className="pulso-gv2-debug-border-popover-icon" aria-hidden="true">
               <PanelTopDashed size={15} />
             </span>
             <div className="pulso-gv2-debug-border-popover-title">
-              <strong>Guías de layout</strong>
+              <strong>Guías de composición</strong>
               <span>{active ? "Visibles en el preview" : "Ocultas en el preview"}</span>
             </div>
             <button

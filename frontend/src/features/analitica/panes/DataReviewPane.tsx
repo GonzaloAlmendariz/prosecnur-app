@@ -28,6 +28,8 @@ import { conteoExclusion } from "../variablesExcluidasModel";
 import "../variablesExcluidas.css";
 import "./DataReviewPane.css";
 import { textoPlano } from "../../../lib/textoPlano";
+import { AvisosEtiqueta } from "./revisionEtiquetas/AvisosEtiqueta";
+import { opcionesEquivalentes, problemasDeEtiqueta, type ProblemaEtiqueta } from "./revisionEtiquetas/detectorEtiquetas";
 
 export function dataReviewHasEditableOptions(variable: Pick<DataReviewVariable, "tipo_xlsform" | "opciones">) {
   const tipo = (variable.tipo_xlsform ?? "").trim().toLowerCase();
@@ -435,7 +437,7 @@ export function DataReviewPane() {
           <div className="pulso-data-review-docbar-copy">
             <span>Producto de datos</span>
             <strong>Revisión de etiquetas</strong>
-            <small>Variables, secciones y labels que alimentan todos los reportes.</small>
+            <small>Variables, secciones y etiquetas que usan todos los informes.</small>
           </div>
           <div
             className="pulso-data-review-command"
@@ -485,7 +487,7 @@ export function DataReviewPane() {
           </div>
         </div>
 
-        {loading ? <LoadingBlock minHeight={280} label="Cargando revisión de datos..." /> : null}
+        {loading ? <LoadingBlock minHeight={280} label="Cargando revisión de datos…" /> : null}
         {error ? <ErrorBlock label="No se pudo cargar la revisión" detail={error} /> : null}
         {deteccion.estado === "error" && !deteccion.silenciosa ? (
           <ErrorBlock label="No se pudo detectar la estructura" detail={deteccion.mensaje} />
@@ -657,7 +659,7 @@ function DataReviewSection({
               </button>
             )}
             {group.manual ? <span className="pulso-data-review-pill">editada</span> : null}
-            {group.synthetic ? <span className="pulso-data-review-pill">sin estructura XLSForm</span> : null}
+            {group.synthetic ? <span className="pulso-data-review-pill">sin secciones del formulario</span> : null}
           </div>
           <div className="pulso-data-review-section-meta">
             {formatoConteo(includedInSection)}/{formatoConteo(group.variables.length)} incluidas · {group.hidden ? "sección oculta en agrupadores" : "sección visible en agrupadores"}
@@ -720,6 +722,15 @@ function DataReviewSection({
             return draftOption !== baselineOption || baselineOption !== originalOption;
           });
           const hasEdits = draftLabel !== baselineLabel || baselineLabel !== originalLabel || Boolean(hasOptionDraftChanges);
+          // G18: detalles de redacción de las opciones, contados también con el panel cerrado para que no se escondan.
+          const etiquetaOpcion = (option: (typeof variable.opciones)[number]) =>
+            draftValueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
+          const equivalentes = canEditOptions
+            ? opcionesEquivalentes(variable.opciones.map((o) => ({ code: o.code, label: etiquetaOpcion(o) })))
+            : new Map<string, ProblemaEtiqueta>();
+          const conDetalles = canEditOptions
+            ? variable.opciones.filter((o) => problemasDeEtiqueta(etiquetaOpcion(o), { esOpcion: true }).length > 0 || equivalentes.has(o.code)).length
+            : 0;
           return (
             <div
               key={variable.name}
@@ -778,6 +789,7 @@ function DataReviewSection({
                     className={`pulso-data-review-input${draftLabel.trim() ? "" : " is-empty"}`}
                     aria-label={`Etiqueta de ${variable.name}`}
                   />
+                  <AvisosEtiqueta problemas={problemasDeEtiqueta(draftLabel)} onAplicar={(t) => onSetVariableLabel(variable.name, t)} />
                 </label>
                 {/* «Restaurar» solo cuando hay algo que restaurar: un botón
                     deshabilitado repetido en cada fila era ruido (P-M2). El
@@ -812,6 +824,7 @@ function DataReviewSection({
                     </span>
                     <span className="pulso-data-review-options-summary">
                       {formatoConteo(variable.opciones.length)} código{variable.opciones.length === 1 ? "" : "s"}
+                      {conDetalles > 0 ? ` · ${formatoConteo(conDetalles)} con detalles de redacción` : ""}
                     </span>
                     <ChevronDown size={15} className="pulso-data-review-options-chevron" />
                   </button>
@@ -824,7 +837,8 @@ function DataReviewSection({
                       </div>
                       <div className="pulso-data-review-option-list">
                         {variable.opciones.map((option) => {
-                          const optionDraft = draftValueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
+                          const optionDraft = etiquetaOpcion(option);
+                          const avisos = [...problemasDeEtiqueta(optionDraft, { esOpcion: true }), ...(equivalentes.get(option.code) ? [equivalentes.get(option.code)!] : [])];
                           return (
                             <div
                               key={`${variable.name}-${option.code}`}
@@ -843,6 +857,7 @@ function DataReviewSection({
                               <span className="pulso-data-review-option-count">
                                 n={formatoConteo(option.count)}
                               </span>
+                              <AvisosEtiqueta problemas={avisos} onAplicar={(t) => onSetValueLabel(variable.name, option.code, t)} />
                             </div>
                           );
                         })}

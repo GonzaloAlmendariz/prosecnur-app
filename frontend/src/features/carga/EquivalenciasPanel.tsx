@@ -140,7 +140,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
       setAviso(
         nuevas > 0
           ? `${nuevas} temas agrupados por batería del formulario. Revisa las tarjetas —las baterías largas suelen partirse en varias— y guarda cuando estén bien.`
-          : "Todos los temas ya tienen diapositiva.",
+          : "Todos los temas ya tienen lámina.",
       );
       return next;
     });
@@ -475,7 +475,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                 aria-pressed={vista === "diapositivas"}
                 onClick={() => setVista("diapositivas")}
               >
-                Por diapositiva
+                Por lámina
               </button>
               <button
                 type="button"
@@ -495,10 +495,10 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                   size="sm"
                   className="pulso-equiv-accion-masiva"
                   onClick={onAgrupar}
-                  title="Agrupa por la batería del formulario: los temas cuyas variables comparten raíz en alguna base van a la misma diapositiva."
+                  title="Agrupa por la batería del formulario: los temas cuyas variables comparten raíz en algún público van a la misma lámina."
                 >
                   <Layers size={13} aria-hidden="true" />
-                  Agrupar {sinDiapositiva} sin diapositiva
+                  Agrupar {sinDiapositiva} sin lámina
                 </PulsoButton>
               )}
               {resumen.sugeridas > 0 && (
@@ -513,7 +513,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                 </PulsoButton>
               )}
               <span className="pulso-equiv-vistas-nota">
-                {formatoConteoDe(diapositivas.filter((l) => l.clave !== "").length, "diapositiva")} · {formatoConteoDe(filas.length, "tema")}
+                {formatoConteoDe(diapositivas.filter((l) => l.clave !== "").length, "lámina")} · {formatoConteoDe(filas.length, "tema")}
               </span>
             </div>
 
@@ -563,7 +563,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                 {`${formatoConteo(resumen.confirmadas)} confirmadas`
                   + (resumen.sugeridas ? ` · ${formatoConteo(resumen.sugeridas)} propuestas sin confirmar` : "")
                   + (resumen.sinEtiqueta ? ` · ${formatoConteo(resumen.sinEtiqueta)} sin etiqueta` : "")
-                  + (resumen.conDiapositiva ? ` · ${formatoConteo(resumen.conDiapositiva)} con diapositiva` : "")}
+                  + (resumen.conDiapositiva ? ` · ${formatoConteo(resumen.conDiapositiva)} con lámina` : "")}
               </span>
               <PulsoButton
                 variant="primary"

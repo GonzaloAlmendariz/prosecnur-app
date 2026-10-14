@@ -135,6 +135,7 @@ const GRAFICADOR_BLUEPRINT_KINDS: Record<GraficadorBlueprintKind, true> = {
   radar: true,
   table: true,
   "word-cloud": true,
+  quadrant: true,
   "territory-map": true,
   "dimension-radar": true,
   "dimension-heatmap": true,

@@ -117,14 +117,14 @@ export function TimelinePanelV2() {
   return (
     <aside
       className={`pulso-gv2-timeline ${density === "compact" ? "is-compact" : ""}`}
-      aria-label="Timeline de slides"
+      aria-label="Secuencia de láminas"
     >
       {/* KPIs arriba — overview del plan visible siempre */}
       {slides.length > 0 && (
         <div className="pulso-gv2-timeline-summary pulso-gv2-timeline-summary--top" aria-label="Resumen del plan">
           <div className="pulso-gv2-summary-stat">
             <span className="pulso-gv2-summary-num">{slides.length}</span>
-            <span className="pulso-gv2-summary-label">slides</span>
+            <span className="pulso-gv2-summary-label">láminas</span>
           </div>
           <div className="pulso-gv2-summary-stat">
             <span className="pulso-gv2-summary-num">
@@ -142,7 +142,7 @@ export function TimelinePanelV2() {
       )}
 
       <div className="pulso-gv2-timeline-title-row">
-        <span>Timeline</span>
+        <span>Láminas</span>
         {slides.length > 0 && (
           <span className="pulso-gv2-timeline-count">
             {filtered.length === slides.length
@@ -171,8 +171,8 @@ export function TimelinePanelV2() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar slide… (/)"
-              aria-label="Buscar slide por título o tipo"
+              placeholder="Buscar lámina… (/)"
+              aria-label="Buscar lámina por título o tipo"
             />
             {query && (
               <button
@@ -216,7 +216,7 @@ export function TimelinePanelV2() {
           <div className="pulso-gv2-timeline-empty-icon">
             <LayoutPanelTop size={28} />
           </div>
-          <div className="pulso-gv2-timeline-empty-title">Sin slides aún</div>
+          <div className="pulso-gv2-timeline-empty-title">Sin láminas aún</div>
           <div className="pulso-gv2-timeline-empty-hint">
             Abre la biblioteca o crea un primer modelo para activar el editor.
           </div>

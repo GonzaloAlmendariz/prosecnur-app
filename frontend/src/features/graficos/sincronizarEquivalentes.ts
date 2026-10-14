@@ -36,9 +36,9 @@ export type ResumenSincronizacion = {
 /**
  * Devuelve el plan con el bloque de equivalencias puesto al día.
  *
- * La posición la marca la PRIMERA derivada que hubiera: el bloque se reinserta
- * donde estaba, no al final. Un mazo donde las comparaciones abren el informe no
- * puede acabar con ellas detrás de los anexos sólo por haber regenerado.
+ * Cada derivada se reemplaza en su sitio: un mazo donde las comparaciones abren el
+ * informe no puede acabar con ellas detrás de los anexos sólo por haber regenerado,
+ * ni las láminas hechas a mano que viven entre ellas, detrás del bloque.
  *
  * Si no había ninguna, el bloque entra al final: es material nuevo y el sitio lo
  * decide después quien ordena el mazo.
@@ -52,15 +52,21 @@ export function sincronizarEquivalentes(
   const otras = slides.filter((s) => !esEquivalente(s));
   const bloque = derivadas.map((s) => ({ ...s, origen: ORIGEN_EQUIVALENCIAS }));
 
-  const primera = slides.findIndex(esEquivalente);
+  // En su sitio, una a una (G15, Arte 2026-10-13): reinsertar el bloque contiguo en la primera derivada empujaba detrás
+  // de todo el bloque las láminas hechas a mano que vivían intercaladas —objetivo, Top Two Box, índice—. Cada derivada
+  // vieja cede su posición a la nueva del mismo orden; las que sobran se retiran y las que faltan entran tras la última.
+  const ultima = slides.reduce((u, s, i) => (esEquivalente(s) ? i : u), -1);
   let resultado: Slide[];
-  if (primera === -1) {
+  if (ultima === -1) {
     resultado = [...otras, ...bloque];
   } else {
-    // Cuántas NO derivadas hay antes de la primera derivada: ese es el punto de
-    // inserción dentro de la lista sin derivadas.
-    const corte = slides.slice(0, primera).filter((s) => !esEquivalente(s)).length;
-    resultado = [...otras.slice(0, corte), ...bloque, ...otras.slice(corte)];
+    resultado = [];
+    let k = 0;
+    slides.forEach((s, i) => {
+      if (!esEquivalente(s)) resultado.push(s);
+      else if (k < bloque.length) resultado.push(bloque[k++]);
+      if (i === ultima) resultado.push(...bloque.slice(k));
+    });
   }
 
   return {

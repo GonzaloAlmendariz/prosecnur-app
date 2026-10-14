@@ -1,0 +1,5 @@
+/* G18: avisos de redacción bajo cada etiqueta. Intrínseca: crece con sus avisos. Sólo tokens. */
+.pulso-avisos-etiqueta { list-style: none; margin: var(--pulso-space-1) 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pulso-avisos-etiqueta__item { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--pulso-space-1); color: var(--pulso-warn-fg); font-size: 12px; }
+.pulso-avisos-etiqueta__item q { color: var(--pulso-text); }
+.pulso-avisos-etiqueta__accion { padding: 0 var(--pulso-space-1); }

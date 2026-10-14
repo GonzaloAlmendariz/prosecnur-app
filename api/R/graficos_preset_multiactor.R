@@ -75,9 +75,9 @@
 
   if (w_bars < .MULTIACTOR_W_BARS_MIN) {
     .pulso_aviso(sprintf(
-      paste0("El reparto de ancho de la lámina multiactor deja %.0f%% para las barras y el ",
-             "mínimo es %.0f%%: se vuelve al reparto de fábrica. Baja el ancho del tema o ",
-             "el del eje en Configuración global > Multi-apiladas multiactor."),
+      # G15 (2026-10-13): el aviso mandaba a «Configuración global > Multi-apiladas multiactor», que ya no existe en Láminas.
+      paste0("El reparto de ancho guardado para las láminas que comparan públicos deja %.0f%% para las barras ",
+             "y el mínimo es %.0f%%: la lámina usa el reparto por defecto."),
       w_bars * 100, .MULTIACTOR_W_BARS_MIN * 100
     ))
     return(.multiactor_canvas_resolver(list(), show_extra = show_extra))
@@ -115,4 +115,33 @@
   base <- suppressWarnings(as.numeric(wrap_y_eff)[1])
   if (!is.finite(base) || is.na(base) || base <= 0) base <- 40
   max(10, floor(base * (0.36 + (w - 0.13) * 0.857)))
+}
+
+
+# G15 (Gonzalo, 2026-10-13): «Ancho de los temas» por lámina. Tres pasos en vez de proporciones: «auto» deja el
+# reparto del estilo del informe; los otros fijan la columna del tema. Con «ancho» y la barra extra, las barras se
+# quedan con el 48 %, sobre el piso de `.MULTIACTOR_W_BARS_MIN`.
+.MULTIACTOR_ANCHO_TEMA <- c(auto = NA_real_, ancho = 0.28, angosto = 0.14)
+
+#' Args del preset multiactor para una lámina: los del informe con el ancho del tema que pidió esa lámina.
+#' Un ancho de tema propio de la lámina (las de la matriz traen `canvas_w_grupo = 0.22`) es el punto de partida en
+#' «Automático»: así las barras se calculan con el mismo ancho que dibuja el tema.
+.multiactor_preset_de <- function(presets, el) {
+  args <- presets$multi_apiladas_multiactor$args %||% list()
+  propio <- suppressWarnings(as.numeric(el$overrides$canvas_w_grupo %||% NA)[1])
+  if (is.finite(propio)) args$canvas_w_grupo <- propio
+  pedido <- el$overrides$ancho_tema %||% el$ancho_tema
+  w <- if (is.character(pedido) && length(pedido) == 1L) unname(.MULTIACTOR_ANCHO_TEMA[pedido]) else NA_real_
+  if (length(w) == 1L && is.finite(w)) args$canvas_w_grupo <- w
+  args
+}
+
+#' Los ajustes de la lámina que se aplican al final: con «Más ancho» o «Más angosto» el ancho de tema propio ya se
+#' resolvió en el reparto y no puede volver a pisarlo (las láminas de la matriz traen 0.22 fijo).
+.multiactor_overrides_de <- function(overrides) {
+  pedido <- overrides$ancho_tema
+  if (is.character(pedido) && length(pedido) == 1L && is.finite(unname(.MULTIACTOR_ANCHO_TEMA[pedido]) %||% NA_real_)) {
+    overrides$canvas_w_grupo <- NULL
+  }
+  overrides
 }

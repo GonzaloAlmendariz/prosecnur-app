@@ -107,3 +107,7 @@ for (i in seq_len(nrow(d3))) { yc <- yb + (i - 0.5) * fila; v <- unlist(d3[i, 2:
 zona("puntos, eje 80 a 100 rotulado", xl, yb, wl, nrow(d3) * fila)
 leyenda(doc, 0, YF - 0.3, sprintf("%s (%d)", names(TK$actores), ns6), TK$actores, centrar_en = xl + wl / 2)
 pie(doc, sprintf("Base: %d docentes, %d estudiantes y %d egresados", ns6[1], ns6[2], ns6[3]))
+
+# --- p_matriz_cuadrantes (G16, aprobada por Gonzalo el 2026-10-13): el propósito general de la FODA. La página vive en
+# propuestas_cuadrantes.R para poder verla sola (SOLO=cuadrantes); aquí entra en su lugar del recetario (2.4).
+source("docs/qa/motor-ppt-2026-10-06/herramientas/propuestas_cuadrantes.R", local = TRUE)

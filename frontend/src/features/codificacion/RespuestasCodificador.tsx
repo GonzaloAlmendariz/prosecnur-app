@@ -266,8 +266,7 @@ export function RespuestasCodificador({ parent }: Props) {
     if (activeGroupId === id) setActiveGroupId(null);
   }
 
-  // Reordena grupos ↑/↓ (patrón idéntico al de TimelinePanel.moveSlide de
-  // Fase 5 Gráficos). El autosave de grupos recoge el cambio automático;
+  // Reordena grupos ↑/↓. El autosave de grupos recoge el cambio automático;
   // el orden se persiste y se usa downstream (p.ej. integer usa el orden
   // como precedencia first-match-wins de las reglas).
   function moveGroup(id: string, direction: "up" | "down") {

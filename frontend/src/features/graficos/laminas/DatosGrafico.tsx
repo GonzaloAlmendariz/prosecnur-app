@@ -23,6 +23,7 @@ import {
   type CampoDato,
 } from "./argsDatosGrafico";
 import { useLaminasUi } from "./laminasStore";
+import { publicosDistintos } from "./argsDatosGrafico";
 import { useGraficosReportScope } from "../reportScope";
 import { aplicaOrden, varCalificada } from "./ordenCategorias";
 import { useSession } from "../../../lib/SessionContext";
@@ -35,6 +36,8 @@ import { EnElWord } from "./tarjetaGrafico/EnElWord";
 import { ColoresGrafico } from "./colores/ColoresGrafico";
 import { PaletaDelGrafico } from "./colores/PaletaDelGrafico";
 import { NombresPorBase } from "./datosBase/NombresPorBase";
+import { BrechaEntreGrupos } from "./brecha/BrechaEntreGrupos";
+import { MatrizCuadrantes } from "./matriz/MatrizCuadrantes";
 import { NotaBaseCompartido } from "./datosBase/NotaBaseCompartido";
 import { faltaBaseEnCompartido } from "./datosBase/baseEnCompartido";
 import "./datosGrafico.css";
@@ -57,7 +60,12 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   // En el informe compartido una pregunta sin base no se califica con la activa: se pide elegirla (H9).
   const sinBaseCompartido = faltaBaseEnCompartido(variable, scope);
   const esMulti = valor.graficador === "p_barras_multiapiladas";
-  const nVars = Array.isArray(args.vars) ? args.vars.length : 0;
+  // Las láminas de equivalencias traen `vars` por tema ({ tema_1: [docentes$p1, estudiantes$p1], … }): se cuentan los temas.
+  const varsPorTema = !Array.isArray(args.vars) && args.vars && typeof args.vars === "object" ? (args.vars as Record<string, unknown>) : null;
+  const nVars = Array.isArray(args.vars) ? args.vars.length : varsPorTema ? Object.keys(varsPorTema).length : 0;
+  // Los públicos distintos de la lámina, no el máximo por tema: en la lámina 10 de Arte cada tema tiene dos, pero entre
+  // todos son tres (docentes, administrativos y estudiantes), como dice la base (loop UI).
+  const nPublicos = varsPorTema ? publicosDistintos(varsPorTema) : 0;
   const filtros = Array.isArray(args.filtros) ? args.filtros.length : 0;
   const admiteFiltros = (meta?.args ?? []).some((a) => a.name === "filtros");
 
@@ -68,10 +76,16 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
           <span className="pulso-f6-dato-rotulo">Bloques</span>
           <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })}>
             <Rows3 size={14} aria-hidden="true" />
-            {nVars ? `${nVars} ${nVars === 1 ? "pregunta" : "preguntas"} · Editar…` : "Elegir preguntas…"}
+            {nVars
+              ? varsPorTema
+                ? `${nVars} ${nVars === 1 ? "tema" : "temas"} en ${nPublicos} ${nPublicos === 1 ? "público" : "públicos"} · Editar…`
+                : `${nVars} ${nVars === 1 ? "pregunta" : "preguntas"} · Editar…`
+              : "Elegir preguntas…"}
           </button>
         </div>
       )}
+      {valor.graficador === "p_dumbbell" && <BrechaEntreGrupos args={args} onCambio={set} />}
+      {valor.graficador === "p_matriz_cuadrantes" && <MatrizCuadrantes args={args} onCambio={set} />}
       {campos.map((c) => (
         <Fila key={c.arg.name} campo={c} valor={args[c.arg.name]} onCambio={(v) => set({ [c.arg.name]: v })} />
       ))}

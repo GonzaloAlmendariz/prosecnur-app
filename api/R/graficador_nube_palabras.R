@@ -32,6 +32,7 @@ graficar_nube_palabras <- function(
     color_titulo = .std_color("coral"),
     color_subtitulo = .std_color("azul"),
     color_nota_pie = .std_color("azul"),
+    mostrar_ranking = TRUE,
     ...
 ) {
   if (!is.data.frame(data)) stop("`data` debe ser data.frame.", call. = FALSE)
@@ -197,6 +198,13 @@ graficar_nube_palabras <- function(
       plot.margin = ggplot2::margin(4, 4, 4, 4)
     )
   # ADR 0093 (N6): la nube va en la lámina del recetario (antetítulo, título y pie nativos), a todo el ancho.
-  attr(p_out, "pulso_espec") <- .espec_ggplot_marco("nube", nota = nota_pie, lectura = "El tamaño crece con las menciones")
+  espec <- .espec_ggplot_marco("nube", nota = nota_pie, lectura = "El tamaño crece con las menciones")
+  # G11 (lámina 101 del diseño): las diez palabras más dichas, con su conteo, junto a la nube y en piezas editables.
+  if (!isFALSE(mostrar_ranking) && !identical(words$palabra, "Sin datos")) {
+    top <- utils::head(words, 10L)
+    espec$ranking <- list(palabras = as.character(top$palabra), n = as.numeric(top$n),
+                          respuestas = if (is.null(var_n)) length(textos) else NA_integer_)
+  }
+  attr(p_out, "pulso_espec") <- espec
   p_out
 }
