@@ -84,7 +84,11 @@ p_filtro_subpregunta <- function(var, habilita, subpregunta, grafico_sub = c("ba
   p_f <- rend(p_barras_agrupadas(var = el$filtro, filtros = el$filtros, overrides = ov))
   filtros_sub <- el$filtros %||% list()
   filtros_sub[[ctx_f$var]] <- codigos
-  el_s <- if (identical(el$grafico_sub, "escala")) p_barras_apiladas(var = el$subpregunta, filtros = filtros_sub, overrides = ov)
+  # La escala hereda del preset la columna Top Two Box; esta lámina no tiene dónde declarar sus respuestas, así que sin
+  # ellas va apagada (si no, el motor la omite y avisa «elígelas en la pestaña Gráfico», un aviso sin salida).
+  ov_s <- ov
+  if (identical(el$grafico_sub, "escala") && !length(ov$top2box_labels)) ov_s$mostrar_barra_extra <- FALSE
+  el_s <- if (identical(el$grafico_sub, "escala")) p_barras_apiladas(var = el$subpregunta, filtros = filtros_sub, overrides = ov_s)
           else p_barras_agrupadas(var = el$subpregunta, filtros = filtros_sub, overrides = ov)
   p_s <- rend(el_s)
   espec_f <- attr(p_f, "pulso_espec"); espec_s <- attr(p_s, "pulso_espec")

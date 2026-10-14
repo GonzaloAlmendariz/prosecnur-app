@@ -48,6 +48,20 @@ test_that("p192: filtro dicotómico arriba y la subpregunta abajo, con la base d
   expect_true(any(grepl("Los intercambios fortalecen mis competencias", r$textos, fixed = TRUE)))
 })
 
+test_that("la escala de la subpregunta no hereda una columna Top Two Box sin respuestas (aviso sin salida)", {
+  skip_if_not_installed("officer")
+  fx <- .fsub_fixture(); msgs <- character()
+  withCallingHandlers(
+    reporte_ppt_plan(data = fx$df, instrumento = fx$inst, path_ppt = tempfile(fileext = ".pptx"), mensajes_progreso = FALSE,
+                     # Como la hereda la app del preset de apiladas: encendida y sin respuestas declaradas.
+                     plan = list(p_slide_1_grafico(p_filtro_subpregunta("inter", habilita = "Sí", subpregunta = "util", grafico_sub = "escala",
+                                                                        overrides = list(mostrar_barra_extra = TRUE, barra_extra_preset = "top2box")), titulo = "x"))),
+    message = function(m) { msgs <<- c(msgs, conditionMessage(m)); invokeRestart("muffleMessage") },
+    warning = function(w) { msgs <<- c(msgs, conditionMessage(w)); invokeRestart("muffleWarning") }
+  )
+  expect_false(any(grepl("Top Two Box", msgs)), info = paste(msgs, collapse = "\n"))
+})
+
 test_that("p193: filtro dicotómico en columna y la subpregunta al costado", {
   skip_if_not_installed("officer")
   r <- .fsub_render(p_filtro_subpregunta("inter", habilita = "Sí", subpregunta = "util"))

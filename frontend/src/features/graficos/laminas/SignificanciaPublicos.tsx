@@ -33,12 +33,16 @@ export function SignificanciaPublicos({ args, onCambio }: Props) {
 
   const vars = (args.vars && typeof args.vars === "object" && !Array.isArray(args.vars) ? args.vars : {}) as Record<string, unknown>;
   const elegidos = new Set(Object.keys(vars));
-  const alternarTema = (f: EquivalenciaFila) => {
+  const alternarTema = (tema: string, f?: EquivalenciaFila) => {
     const siguiente = { ...vars };
-    if (elegidos.has(f.etiqueta_estandar)) delete siguiente[f.etiqueta_estandar];
-    else siguiente[f.etiqueta_estandar] = preguntasDelTema(f);
+    if (elegidos.has(tema)) delete siguiente[tema];
+    else if (f) siguiente[tema] = preguntasDelTema(f);
     onCambio({ vars: Object.keys(siguiente).length ? siguiente : null });
   };
+  // Los temas elegidos se ven siempre, estén o no en la matriz (un plan armado antes, o una matriz que cambió): si la
+  // tarjeta sólo listara la matriz, un tema elegido quedaría escondido y la lámina lo seguiría dibujando.
+  const deLaMatriz = new Map((filas ?? []).map((f) => [f.etiqueta_estandar, f]));
+  const opciones = [...new Set([...elegidos, ...deLaMatriz.keys()])];
 
   // Las respuestas que suman salen de la primera pregunta elegida (los temas comparten escala entre públicos).
   const primera = Object.values(vars).flatMap((v) => (Array.isArray(v) ? v.map(String) : []))[0];
@@ -57,17 +61,18 @@ export function SignificanciaPublicos({ args, onCambio }: Props) {
     <>
       <div className="pulso-f6-dato is-apilado" data-qa="significancia-temas">
         <span className="pulso-f6-dato-rotulo" id={idTemas}>Temas</span>
+        {opciones.length > 0 && (
+          <div className="pulso-f6-destacar" role="group" aria-labelledby={idTemas}>
+            {opciones.map((t) => (
+              <button key={t} type="button" className="pulso-f6-destacar-opcion is-unica" role="checkbox" aria-checked={elegidos.has(t)}
+                title={deLaMatriz.has(t) ? undefined : "Este tema no está en la matriz de equivalencias"} onClick={() => alternarTema(t, deLaMatriz.get(t))}>{t}</button>
+            ))}
+          </div>
+        )}
         {error ? <span className="pulso-f6-dato-ayuda" role="note">No se pudo leer la matriz de equivalencias.</span>
           : filas === null ? <span className="pulso-f6-dato-ayuda">Leyendo la matriz de equivalencias…</span>
-          : filas.length === 0 ? <span className="pulso-f6-dato-ayuda" role="note">La matriz de equivalencias no tiene temas confirmados en dos públicos. Se declaran en Carga › Equivalencias.</span>
-          : (
-            <div className="pulso-f6-destacar" role="group" aria-labelledby={idTemas}>
-              {filas.map((f) => (
-                <button key={f.id ?? f.etiqueta_estandar} type="button" className="pulso-f6-destacar-opcion is-unica" role="checkbox"
-                  aria-checked={elegidos.has(f.etiqueta_estandar)} onClick={() => alternarTema(f)}>{f.etiqueta_estandar}</button>
-              ))}
-            </div>
-          )}
+          : filas.length === 0 ? <span className="pulso-f6-dato-ayuda" role="note">La matriz de equivalencias no tiene temas confirmados en dos públicos; se declaran en Carga › Equivalencias.</span>
+          : null}
         {publicos.size > 3 && <span className="pulso-f6-dato-ayuda" role="note">La lámina compara hasta tres públicos; con más, sale como dibujo de respaldo.</span>}
       </div>
       {respuestas.length > 0 && (
