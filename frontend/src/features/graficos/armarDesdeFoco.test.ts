@@ -30,11 +30,11 @@ describe("«Armar desde…» devuelve el foco al disparador al cerrar", () => {
   });
 
   // Reemplazar, Fusionar y Sincronizar terminan en `aplicar()`.
-  it("aplicar() (Reemplazar / Fusionar / Sincronizar) cierra devolviendo el foco", () => {
+  it("aplicar() (Reemplazar / Fusionar) cierra devolviendo el foco", () => {
     const aplicar = cuerpoDe("function aplicar(");
     expect(aplicar).toContain("cerrarDevolviendoFoco()");
     expect(aplicar).not.toMatch(/panel\.cerrar\(\)/);
-    for (const f of ["function replacePlan()", "function mergePlan()", "function sincronizarPlan()"]) {
+    for (const f of ["function replacePlan()", "function mergePlan()"]) {
       expect(cuerpoDe(f)).toMatch(/\baplicar\(/);
     }
   });

@@ -13,7 +13,7 @@ import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
 import { graficosBodyLoadingLabel, graficosBodyState } from "./graficosBodyState";
-import { fijarAvisosSiembraCompartido, useDeclaracionAplicada } from "./useDeclaracionAplicada";
+import { fijarAvisosSiembraCompartido } from "./useDeclaracionAplicada";
 import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
@@ -71,8 +71,6 @@ export default function GraficosPage() {
   const wPresets = usePlanStore((s) => s.wPresets);
   const hydrated = usePlanStore((s) => s.hydrated);
   const hydrationRetrying = usePlanStore((s) => s.hydrationRetrying);
-  // Declaración de ahora contra la que armó el mazo: un solo cálculo, compartido con Láminas (ADR 0096 decisión 8).
-  const { aviso: avisoDeclaracion } = useDeclaracionAplicada();
 
   // Autosave: hidrata al montar + guarda debounced 2s en cada cambio.
   const { saveConsolidatedNow, consolidatedDraftRevision, seedConsolidatedPlan } =
@@ -152,8 +150,7 @@ export default function GraficosPage() {
       alreadySeeded: seededRef.current,
     })) return;
     seededRef.current = true;
-    // ADR 0096 decisión 6: la siembra graba la revisión de la matriz de la que salió (vacía si no trae láminas de ahí).
-    seedConsolidatedPlan(suggested as GraficosConfig["plan"], sharedPreflight?.equivalencias?.revision ?? "");
+    seedConsolidatedPlan(suggested as GraficosConfig["plan"]);
     setSeededSlideCount(suggestedSlides.length);
   }, [
     consolidatedDraftRevision, dirty, hydrated, plan.slides.length,
@@ -374,7 +371,6 @@ export default function GraficosPage() {
             </Alert>
           )}
 
-          {avisoDeclaracion && <Alert kind="warn">{avisoDeclaracion}</Alert>}
 
           {busyValidating && <Alert kind="info">{busyValidating}</Alert>}
           {warns.length > 0 && <Alert kind="warn">{warns.join(" · ")}</Alert>}

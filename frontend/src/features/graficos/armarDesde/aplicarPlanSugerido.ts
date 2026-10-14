@@ -1,7 +1,7 @@
 // «Armar desde un plan sugerido» (contrato A5 rebanada 2b): lo que decide qué se aplica, separado del popover que lo
 // muestra. Puro: sin store ni React, para que la forma del paso único (`usePlanStore.aplicarPlanSugerido`) y sus reglas
-// —qué sello de la declaración se graba, qué identidad sube a `scope_rules.global`, cuándo se propone «Otros»— se
-// prueben sin montar nada.
+// —qué identidad sube a `scope_rules.global`, cuándo se propone «Otros»— se prueben sin montar nada. ADR 0101: la
+// matriz de equivalencias ya no arma láminas, así que no hay sello de la declaración que grabar.
 
 import type { GraficosSuggestedPlanResponse, PlanJson, PptStyleProfileMeta } from "../../../api/graficos";
 import type { GraficosReportScope } from "../reportScope";
@@ -9,8 +9,6 @@ import type { GraficosReportScope } from "../reportScope";
 /** Entrada de la acción única del store: todo lo que cambia al aplicar un plan sugerido, en un solo paso deshacible. */
 export type PlanSugeridoAplicable = {
   plan: PlanJson;
-  /** Sello de la declaración de equivalencias (ADR 0063). `undefined` conserva el que había. */
-  revision?: string;
   /** Perfil de estilo PPT que el plan pide; `null` si no hay. */
   perfil: PptStyleProfileMeta | null;
   /** Identidad del plan (perfil, plantilla, modo ACNUR…) que se funde en `scope_rules.global`; `null` si no hay. */
@@ -19,18 +17,16 @@ export type PlanSugeridoAplicable = {
   autoOtrosSlides?: boolean;
 };
 
-export type ModoAplicarPlan = "reemplazar" | "fusionar" | "sincronizar";
+export type ModoAplicarPlan = "reemplazar" | "fusionar";
 
 type RespuestaPlan = Pick<
   GraficosSuggestedPlanResponse,
-  | "fuente" | "revision" | "profile_id" | "template_id" | "acnur_mode" | "report_scope" | "meta" | "auto_otros_slides"
-  | "contiene_equivalencias"
+  "profile_id" | "template_id" | "acnur_mode" | "report_scope" | "meta" | "auto_otros_slides"
 >;
 
 /**
- * `null` si «Armar desde…» se puede usar en este alcance; el motivo si no. ADR 0096 decisión 9: el informe compartido
- * ya se arma desde la matriz (`scope: "consolidado"`), así que hoy ningún alcance lo deshabilita; la firma se conserva
- * para que un motivo futuro tenga dónde vivir.
+ * `null` si «Armar desde…» se puede usar en este alcance; el motivo si no. Hoy ningún alcance lo deshabilita; la firma
+ * se conserva para que un motivo futuro tenga dónde vivir.
  */
 export function motivoArmarDesdeDeshabilitado(_scope: GraficosReportScope): string | null {
   return null;
@@ -39,23 +35,6 @@ export function motivoArmarDesdeDeshabilitado(_scope: GraficosReportScope): stri
 /** ¿Se pide la propuesta al backend? Sólo con el popover abierto y sin motivo que lo impida. */
 export function debePedirPropuesta(abierto: boolean, motivo: string | null): boolean {
   return abierto && motivo === null;
-}
-
-/**
- * Qué sello de la declaración deja cada forma de aplicar (ADR 0063):
- * - reemplazar: el del mazo si salió de la declaración; si no, vacío (no hay nada que contrastar);
- * - fusionar: el del mazo si salió de la declaración (el bloque nuevo sí se puede desfasar); si no, el que había;
- * - sincronizar: el del mazo, siempre (sólo existe con la declaración).
- */
-export function revisionAlAplicar(modo: ModoAplicarPlan, respuesta: RespuestaPlan): string | undefined {
-  // ADR 0096: la propuesta compuesta del compartido (`fuente: "consolidado"`) dice si trae láminas de la matriz con
-  // `contiene_equivalencias`; sin ese campo (base activa) manda la fuente.
-  const deLaDeclaracion = typeof respuesta.contiene_equivalencias === "boolean"
-    ? respuesta.contiene_equivalencias
-    : respuesta.fuente === "equivalencias";
-  if (modo === "sincronizar") return respuesta.revision ?? "";
-  if (deLaDeclaracion) return respuesta.revision ?? "";
-  return modo === "reemplazar" ? "" : undefined;
 }
 
 /** Perfil de plantilla con el que se resolvió el plan: el que devolvió el backend o, si no, el elegido (salvo «auto»). */

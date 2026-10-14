@@ -64,7 +64,6 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
   const autoOtrosSlides = usePlanStore((s) => s.autoOtrosSlides);
   // Suscripciones sólo para reprogramar el debounce; la config se arma con el productor único al disparar.
   const documentoWord = usePlanStore((s) => s.documentoWord);
-  const equivalenciasRevision = usePlanStore((s) => s.equivalenciasRevision);
   const dirty = usePlanStore((s) => s.dirty);
   const hydrated = usePlanStore((s) => s.hydrated);
   // Con conflicto de revisión (409 STALE, contrato A7 H3) el autosave se detiene: sólo recargar lo resuelve.
@@ -272,7 +271,7 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
     plan, presets, wPresets, selectedSlideId,
     paletas, paletasVinculos, iconos, overridesReusables, debugPh,
     viewMode, inspectorTab, density, canvasViewport,
-    scopeRules, autoOtrosSlides, documentoWord, equivalenciasRevision,
+    scopeRules, autoOtrosSlides, documentoWord,
     reportScope,
     persistConsolidated,
     dirty, hydrated, enConflicto, markClean,
@@ -283,15 +282,12 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
   // propuesta, no una edición, así que no marca `dirty` ni dispara autosave.
   // Se persiste recién cuando el usuario toca algo o exporta (que llama a
   // `saveConsolidatedNow`), y hasta entonces el borrador sigue en revision 0.
-  // ADR 0096 decisión 6: la revisión de la matriz entra en la MISMA hidratación (un setter marcaría `dirty`), así el
-  // aviso de desfase del compartido tiene con qué comparar y el primer guardado real la envía.
-  const seedConsolidatedPlan = useCallback((seededPlan: GraficosConfig["plan"], revision = "") => {
+  const seedConsolidatedPlan = useCallback((seededPlan: GraficosConfig["plan"]) => {
     const state = usePlanStore.getState();
     hydrate(buildGraficosConfig({
       ...state,
       plan: seededPlan,
       selectedSlideId: seededPlan.slides.length ? null : state.selectedSlideId,
-      equivalenciasRevision: revision,
     }));
     registrarAlcanceHidratado({ scope: "consolidated", sid: getSession(), persistirConsolidado: persistConsolidated });
   }, [hydrate, persistConsolidated]);

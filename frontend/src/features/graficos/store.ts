@@ -95,8 +95,6 @@ export type GraficosConfig = {
   density?: Density;
   canvas_viewport?: CanvasViewport;
 
-  /** ADR 0063: revisión de la declaración con la que se armó el plan. */
-  equivalencias_revision?: string;
 
   /** B42/G-18: si el PPT lleva las láminas de listado de «Otros». Opt-in. */
   auto_otros_slides?: boolean;
@@ -123,8 +121,6 @@ type Snapshot = {
   overridesReusables: OverrideReusable[];
   debugPh: DebugPh;
   scopeRules: ScopeRulesConfig;
-  /** ADR 0063: el sello de la declaración viaja con el plan que salió de ella; deshacer el plan deshace el sello. */
-  equivalenciasRevision: string;
   /** G6: el interruptor de «Otros» cambia la salida, así que se deshace con Ctrl/⌘+Z como cualquier edición. */
   autoOtrosSlides: boolean;
 };
@@ -157,13 +153,6 @@ type PlanStore = {
   canvasViewport: CanvasViewport;
 
   // --- Flags de sincronización ---
-  /**
-   * Revisión de la declaración de equivalencias con la que se armó este plan.
-   * Vacía cuando el plan no salió de ahí. ADR 0063: sin ella, el desfase entre
-   * el mazo aplicado y la declaración sólo se puede sospechar.
-   */
-  equivalenciasRevision: string;
-  setEquivalenciasRevision: (revision: string) => void;
   /**
    * B42/G-18: inserta una lámina con el listado literal de respuestas «Otros»
    * después de cada gráfico cuya pregunta tenga campo abierto. Apagada por
@@ -399,7 +388,6 @@ function snapshotFromState(state: PlanStore): Snapshot {
     overridesReusables: state.overridesReusables,
     debugPh: state.debugPh,
     scopeRules: state.scopeRules,
-    equivalenciasRevision: state.equivalenciasRevision,
     autoOtrosSlides: state.autoOtrosSlides,
   };
 }
@@ -520,20 +508,17 @@ export const usePlanStore = create<PlanStore>((set) => ({
   density: "comfortable",
   canvasViewport: DEFAULT_CANVAS_VIEWPORT,
 
-  equivalenciasRevision: "",
-  setEquivalenciasRevision: (revision) => set({ equivalenciasRevision: revision, dirty: true }),
   autoOtrosSlides: false,
   setAutoOtrosSlides: (value) => set((state) => (
     state.autoOtrosSlides === value ? state : dirty(state, { autoOtrosSlides: value })
   )),
-  aplicarPlanSugerido: ({ plan, revision, perfil, identidad, autoOtrosSlides }) => set((state) => {
+  aplicarPlanSugerido: ({ plan, perfil, identidad, autoOtrosSlides }) => set((state) => {
     const estilo = perfil ? estiloDePerfil(state, perfil) : null;
     return dirty(state, {
       plan,
       selectedSlideId: plan.slides[0]?.id ?? null,
       ...(estilo ?? {}),
       scopeRules: scopeRulesConIdentidad(estilo?.scopeRules ?? state.scopeRules, identidad) as ScopeRulesConfig,
-      ...(revision !== undefined ? { equivalenciasRevision: revision } : {}),
       ...(autoOtrosSlides !== undefined ? { autoOtrosSlides } : {}),
     });
   }),
@@ -598,7 +583,6 @@ export const usePlanStore = create<PlanStore>((set) => ({
     inspectorTab: cfg.inspector_tab ?? "content",
     density: cfg.density ?? "comfortable",
     canvasViewport: cfg.canvas_viewport ?? DEFAULT_CANVAS_VIEWPORT,
-    equivalenciasRevision: cfg.equivalencias_revision ?? "",
     autoOtrosSlides: cfg.auto_otros_slides === true,
     hydrated: true,
     hydrationRetrying: false,

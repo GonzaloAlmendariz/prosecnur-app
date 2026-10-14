@@ -35,7 +35,7 @@ type PlanStoreState = ReturnType<typeof usePlanStore.getState>;
 export type GraficosConfigSource = Pick<PlanStoreState,
   | "plan" | "presets" | "wPresets" | "documentoWord" | "estiloCliente" | "selectedSlideId" | "paletas" | "paletasVinculos" | "iconos"
   | "overridesReusables" | "debugPh" | "viewMode" | "inspectorTab" | "density" | "canvasViewport"
-  | "equivalenciasRevision" | "autoOtrosSlides" | "scopeRules">;
+  | "autoOtrosSlides" | "scopeRules">;
 
 /**
  * ÚNICO productor de la config de Gráficos a partir del estado del editor (contrato A6 §0.4). El autosave, el flush,
@@ -61,7 +61,6 @@ export function buildGraficosConfig(state: GraficosConfigSource): GraficosConfig
     inspector_tab: state.inspectorTab,
     density: state.density,
     canvas_viewport: state.canvasViewport,
-    equivalencias_revision: state.equivalenciasRevision,
     auto_otros_slides: state.autoOtrosSlides,
     // El interruptor va también dentro de `scope_rules.global` porque
     // `.graficos_delivery_options()` resuelve global ANTES que la raíz: un
@@ -98,7 +97,6 @@ export function graficosConfigSource(cfg: GraficosConfig): GraficosConfigSource 
     inspectorTab: cfg.inspector_tab ?? "content",
     density: cfg.density ?? "comfortable",
     canvasViewport: cfg.canvas_viewport ?? DEFAULT_CANVAS_VIEWPORT,
-    equivalenciasRevision: cfg.equivalencias_revision ?? "",
     autoOtrosSlides: cfg.auto_otros_slides === true,
     scopeRules: cfg.scope_rules ?? {},
   };
