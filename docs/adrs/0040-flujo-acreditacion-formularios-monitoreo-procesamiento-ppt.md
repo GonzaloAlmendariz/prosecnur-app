@@ -311,3 +311,12 @@ ADRs relacionados: [0013](0013-importacion-workbook-surveymonkey-offline.md),
 [0033](0033-reconciliacion-variables-data-xlsform.md),
 [0035 — Editor multi-formulario](0081-editor-xlsform-coleccion-multi-formulario.md)
 y [0036](0036-filtro-universo-manual-en-carga.md).
+
+## Enmienda 2026-10-14 — el público nunca es obligatorio para publicar
+
+Decisión de Gonzalo (2026-10-14): «no sé por qué me fuerza a elegir un público, cuando acreditación no es el único formulario ni tipo de proyecto que existe». No todo formulario de un estudio de acreditación es el instrumento de un actor (un piloto, una ficha de monitoreo, un auxiliar), y fuera de acreditación el público no existe.
+
+- Publicar una revisión ya no exige `source.actor_key` (se retira el bloqueo `actor_required` de `.xlsform_revision_domain_blockers`).
+- Un público declarado que ya no está en el catálogo de Monitoreo se informa como advertencia (`actor_not_in_catalog`, nivel `warn`, en `publication$warnings`), no bloquea.
+- En el plan de ingreso de Carga (`processing_intake.R`), una revisión publicada **sin** público se vincula a la entrada del plan y manda el actor de la entrada. Una revisión **con** público distinto al de la entrada sigue siendo `instrument_actor_mismatch`.
+- La interfaz debe acompañar la regla: fuera de acreditación no muestra el público; en acreditación lo ofrece como opcional (sugerido desde el título, nunca asignado en silencio) y nunca convierte «Elegir público» en la acción que reemplaza a «Publicar». Se implementa en el revamp de Formularios (`docs/qa/revamp-importacion-sm-2026-10-14.md`); hasta entonces la tarjeta sigue pidiéndolo aunque el backend ya deja publicar.

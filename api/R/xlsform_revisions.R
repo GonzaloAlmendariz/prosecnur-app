@@ -330,14 +330,12 @@
       !.acreditacion_actor_instrument(source)) {
     return(blockers)
   }
+  # El público nunca es obligatorio para publicar (decisión del usuario,
+  # 2026-10-14; enmienda al ADR 0040): no todo formulario de un estudio de
+  # acreditación es el instrumento de un actor, y el que lo es se vincula a su
+  # base después, en el plan de ingreso de Carga.
   actor_key <- .estudio_scalar((source %||% list())$actor_key, "")
   if (!nzchar(actor_key) || identical(actor_key, "sin_actor")) {
-    blockers[[length(blockers) + 1L]] <- list(
-      id = "actor_required",
-      level = "error",
-      title = "Actor de acreditación obligatorio",
-      detail = "Asigna un actor del catálogo de Monitoreo antes de publicar."
-    )
     return(blockers)
   }
 
@@ -345,7 +343,7 @@
   if (length(catalog) && !(actor_key %in% catalog)) {
     blockers[[length(blockers) + 1L]] <- list(
       id = "actor_not_in_catalog",
-      level = "error",
+      level = "warn",
       title = "Actor fuera del catálogo",
       detail = paste0(
         "El público asignado ya no pertenece a las fuentes activas de ",
@@ -410,6 +408,11 @@
     entry$workbook %||% list(),
     entry$source
   )
+  # Un aviso de dominio (p. ej. un público fuera del catálogo) se informa pero
+  # no bloquea publicar: va con las advertencias.
+  es_aviso <- vapply(domain_blockers, function(b) identical(as.character(b$level %||% "")[1], "warn"), logical(1))
+  domain_warnings <- domain_blockers[es_aviso]
+  domain_blockers <- domain_blockers[!es_aviso]
   blockers <- c(logic_blockers, domain_blockers, diagnostics$blockers)
   latest <- .xlsform_revision_latest(s, form_id)
 
@@ -444,7 +447,7 @@
     draft_choice_code_maps_sha256 = draft_maps_hash,
     latest_revision = latest,
     blockers = blockers,
-    warnings = diagnostics$warnings,
+    warnings = c(diagnostics$warnings, domain_warnings),
     bound_bases = .xlsform_revision_bound_bases(s, form_id, latest),
     can_publish = !length(blockers) && !identical(status, "published"),
     can_delete = is.null(latest)

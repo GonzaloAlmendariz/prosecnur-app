@@ -221,7 +221,6 @@
   source <- revision$source %||% list()
   if (!is.list(source)) source <- list()
   source_actor_key <- .processing_intake_scalar(source$actor_key)
-  source_schema <- .processing_intake_scalar(source$schema)
 
   if (nzchar(source_actor_key) && !identical(source_actor_key, entry$actor_key)) {
     return(list(list(
@@ -234,15 +233,9 @@
       field = "actor_key"
     )))
   }
-  if (!nzchar(source_actor_key) &&
-      (identical(source_schema, .ACREDITACION_ACTOR_INSTRUMENT_SCHEMA) ||
-       .processing_intake_is_acreditacion(s))) {
-    return(list(list(
-      code = "instrument_actor_required",
-      message = "La revisión publicada de acreditación debe declarar source.actor_key.",
-      field = "actor_key"
-    )))
-  }
+  # Una revisión publicada sin público se vincula aquí: el actor de la entrada
+  # del plan es el que manda (enmienda al ADR 0040, 2026-10-14). Sólo un
+  # público declarado y distinto sigue siendo un desacuerdo (arriba).
   # Sin actor declarado y sin ser un estudio de acreditación no hay nada que
   # contrastar: el catálogo de Monitoreo puede existir por otras razones y no
   # gobierna a un instrumento que no se reparte entre públicos.
