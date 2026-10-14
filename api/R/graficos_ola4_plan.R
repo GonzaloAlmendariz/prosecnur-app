@@ -692,6 +692,13 @@ p_lollipop <- function(var,
     el$overrides %||% list(),
     el
   )
+  # Opción múltiple (recetario p72: «% de encuestados que marcó cada opción»): el denominador son las personas que
+  # respondieron, no la suma de marcas, y no pasa por la validación de respuesta única de la escala (catálogo, H4).
+  es_sm <- dynGet(".reporte_plan_is_select_multiple", ifnotfound = function(...) FALSE)
+  if (isTRUE(es_sm(el$var))) {
+    df <- .ola4_lollipop_sm(el$var, el$filtros %||% list(), excluir_opciones)
+    total <- 1
+  } else {
   tab <- .ola4_tabla_opciones(
     el$var,
     el$filtros %||% list(),
@@ -711,6 +718,7 @@ p_lollipop <- function(var,
     pct = n / total,
     stringsAsFactors = FALSE
   )
+  }
 
   args_usuario <- utils::modifyList(as.list(base_preset %||% list()),
                                     as.list(el$overrides %||% list()))
@@ -723,6 +731,23 @@ p_lollipop <- function(var,
   args <- utils::modifyList(base_args, args_usuario)
   args <- .keep_formals(graficar_lollipop, args, contexto = "graficar_lollipop")
   .paleta_en_espec(do.call(graficar_lollipop, args), .ola4_paleta_de_ref(el$var))   # ADR 0097: espec$colores
+}
+
+#' Ranking de una pregunta de opción múltiple: cada opción sobre las personas que respondieron
+#'
+#' Las frecuencias son las del motor (`.tab_freq`); la fila «Total» de una opción múltiple trae la base de personas
+#' (`.plan_base_de_tab`), que es el denominador del recetario p72.
+#' @keywords internal
+.ola4_lollipop_sm <- function(ref, filtros, excluir_opciones = NULL) {
+  tab_freq <- dynGet(".tab_freq", ifnotfound = NULL)
+  if (!is.function(tab_freq)) stop("El render no expone `.tab_freq()` del motor.", call. = FALSE)
+  crudo <- tab_freq(ref, filtros = filtros)
+  if (is.null(crudo) || !nrow(crudo)) stop("lollipop: `var` no devolvio frecuencias utilizables.", call. = FALSE)
+  base <- .plan_base_de_tab(crudo, crudo, es_sm = TRUE)$n
+  tab <- .reporte_plan_filter_freq_options(.reporte_plan_prepare_freq_options(crudo), excluir_opciones)
+  tab <- tab[as.character(tab$Opciones) != "Total", , drop = FALSE]
+  if (!is.finite(base) || base <= 0 || !nrow(tab)) stop("lollipop: la base de `var` es cero.", call. = FALSE)
+  data.frame(categoria = as.character(tab$Opciones), pct = suppressWarnings(as.numeric(tab$n)) / base, stringsAsFactors = FALSE)
 }
 
 #' La paleta resuelta de la lista de una pregunta (`.paleta_auto` del motor), o `NULL` fuera del motor
