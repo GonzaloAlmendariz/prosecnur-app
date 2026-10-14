@@ -75,7 +75,8 @@ test_that("H5 y U9: la sección toma el título de su página y el rango no nomb
   survey <- as.data.frame(traducir()$survey)
   grupos <- survey$`label::es`[survey$type == "begin_group"]
   expect_identical(grupos[[2]], "Datos generales (p2)")
-  expect_match(grupos[[1]], "^Pag1 ")
+  # Sin título, la sección se lee «Página 1»; la clave del grupo sigue siendo «Pag1».
+  expect_match(grupos[[1]], "^Página 1 ")
   # El nombre del grupo sigue siendo estable.
   expect_identical(survey$name[survey$type == "begin_group"][[2]], "Pag2")
 })

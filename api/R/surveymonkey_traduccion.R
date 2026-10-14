@@ -468,9 +468,10 @@
       }
     } else ""
     # El título real de la página SurveyMonkey nombra la sección («Datos
-    # generales (p2-p6)»); sin título queda «PagN» (checklist 2026-10-14, H5).
+    # generales (p2-p6)»); sin título se lee «Página N» (checklist 2026-10-14,
+    # H5 y P11): «PagN» es la clave del grupo, no un rótulo para el analista.
     titulo <- page_titles[[current_page]] %||% NA_character_
-    base_label <- if (!is.na(titulo) && nzchar(titulo)) titulo else new_name
+    base_label <- if (!is.na(titulo) && nzchar(titulo)) titulo else sub("^Pag", "Página ", new_name)
     page_label[[current_page]] <<- paste0(base_label, rng)
   }
 
