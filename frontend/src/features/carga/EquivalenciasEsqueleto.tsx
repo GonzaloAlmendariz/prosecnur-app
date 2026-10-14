@@ -17,8 +17,8 @@ export function EquivalenciasTitulo() {
       <div>
         <strong>La misma pregunta en cada base</strong>
         <small>
-          Cada base nombra sus variables a su manera. Aquí declaras cuál es la misma
-          pregunta en cada una y, si sus respuestas usan códigos distintos, las armonizas.
+          Cada base nombra sus variables a su manera. Aquí declaras, pregunta por pregunta,
+          cuál es la misma en cada base y, si sus respuestas usan escalas distintas, las armonizas.
         </small>
         {/* U1: «armonizar» se explica donde aparece, con un ejemplo y no con
             una definición. Plegado por defecto: quien ya lo sabe no lo relee. */}
@@ -30,8 +30,8 @@ export function EquivalenciasTitulo() {
             la misma respuesta, para que la comparación cuente lo mismo.
           </p>
           <p>
-            Se hace pregunta por pregunta desde la marca «Sin armonizar» o «Armonizada» que
-            acompaña a cada tema. Solo las preguntas armonizadas entran a los comparativos de
+            Se hace pregunta por pregunta desde la columna «Escala» de cada fila, que dice si las
+            escalas coinciden. Solo las preguntas armonizadas entran a los comparativos de
             Analítica.
           </p>
         </details>
@@ -59,9 +59,8 @@ export function EquivalenciasEsqueleto() {
       <header className="pulso-equiv-head" data-qa-geometry-member>
         <EquivalenciasTitulo />
         <div className="pulso-equiv-actions" aria-hidden="true">
-          {[0, 1, 2, 3].map((i) => (
-            <span key={i} className="pulso-equiv-esq-boton pulso-equiv-esq-brillo" />
-          ))}
+          {/* ADR 0104: la cabecera tiene una sola acción, «Traer una serie de mediciones». */}
+          <span className="pulso-equiv-esq-boton pulso-equiv-esq-brillo" />
         </div>
       </header>
 

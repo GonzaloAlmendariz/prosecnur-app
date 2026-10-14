@@ -6,8 +6,7 @@
 # pasa de 2.000 líneas; la regla de la casa es que la funcionalidad nueva estrena
 # archivo y el grande la llama, no al revés.
 
-# Instrumentos por base del estudio, que es contra lo que se arma la plantilla y
-# se mide la cobertura.
+# Instrumentos por base del estudio, que es contra lo que se mide la cobertura.
 .equiv_inst_por_base <- function(sid) {
   s <- session_get(sid, required = FALSE)
   bases <- names(((s %||% list())$estudio %||% list())$bases %||% list())
@@ -145,171 +144,10 @@
   )
 }
 
-# Escribe la plantilla poblada y la registra como archivo descargable.
-.equiv_escribir_plantilla <- function(sid) {
-  if (!requireNamespace("openxlsx", quietly = TRUE)) {
-    stop_api(500, "E_EQUIV_SIN_OPENXLSX", "El paquete R 'openxlsx' no está instalado.")
-  }
-  inst_por_base <- .equiv_inst_por_base(sid)
-  df <- .equiv_plantilla_df(inst_por_base, .equiv_get(sid))
-  catalogo <- .equiv_catalogo_df(inst_por_base)
-
-  s <- session_get(sid)
-  dir_out <- file.path(s$dir, "downloads")
-  dir.create(dir_out, recursive = TRUE, showWarnings = FALSE)
-  path <- file.path(dir_out, sprintf("equivalencias_publicos_%s.xlsx",
-                                     format(Sys.Date(), "%d_%m_%y")))
-
-  wb <- openxlsx::createWorkbook()
-  openxlsx::addWorksheet(wb, .EQUIV_HOJA_PLANTILLA)
-  openxlsx::writeData(wb, .EQUIV_HOJA_PLANTILLA, df, withFilter = nrow(df) > 0L)
-  cabecera <- openxlsx::createStyle(textDecoration = "bold", fgFill = "#E8EAED")
-  openxlsx::addStyle(wb, .EQUIV_HOJA_PLANTILLA, cabecera, rows = 1L,
-                     cols = seq_along(df), gridExpand = TRUE, stack = TRUE)
-  openxlsx::freezePane(wb, .EQUIV_HOJA_PLANTILLA, firstRow = TRUE)
-  openxlsx::setColWidths(wb, .EQUIV_HOJA_PLANTILLA, cols = seq_along(df), widths = "auto")
-
-  # Hoja de consulta. Reemplaza a las columnas `<base>_etiqueta`, que doblaban el
-  # ancho de la hoja donde se escribe para dar una ayuda —reconocer que `p13_1`
-  # es «Servicio de salud»— que no declara nada. Aqui esta la misma ayuda, fuera
-  # del sitio de trabajo. El importador ignora esta hoja.
-  if (nrow(catalogo)) {
-    openxlsx::addWorksheet(wb, .EQUIV_HOJA_CATALOGO)
-    openxlsx::writeData(wb, .EQUIV_HOJA_CATALOGO, catalogo, withFilter = TRUE)
-    openxlsx::addStyle(wb, .EQUIV_HOJA_CATALOGO, cabecera, rows = 1L,
-                       cols = seq_along(catalogo), gridExpand = TRUE, stack = TRUE)
-    openxlsx::freezePane(wb, .EQUIV_HOJA_CATALOGO, firstRow = TRUE)
-    openxlsx::setColWidths(wb, .EQUIV_HOJA_CATALOGO, cols = seq_along(catalogo),
-                           widths = "auto")
-
-    # Un desplegable por columna de publico, con SUS variables y solo las suyas.
-    #
-    # Sin esto, llenar la hoja era ir al catalogo, buscar el codigo y copiarlo a
-    # mano; con 300 variables eso es el mismo trabajo que la hoja venia a evitar.
-    # Y ademas impide el error que ninguna validacion posterior atrapa bien:
-    # escribir en la columna de un publico una variable que pertenece a otro.
-    #
-    # El rango se CALCULA del catalogo, que ya viene agrupado por base. Nada de
-    # nombres de rango ni de listas fijas: un estudio de tres bases o de seis
-    # produce sus tres o seis desplegables sin tocar una linea.
-    filas_validacion <- max(nrow(df), 1L) + 500L
-    for (b in names(inst_por_base)) {
-      col <- which(names(df) == b)
-      if (!length(col)) next
-      pos <- which(catalogo$base == b)
-      if (!length(pos)) next
-      rango <- sprintf("'%s'!$B$%d:$B$%d", .EQUIV_HOJA_CATALOGO,
-                       min(pos) + 1L, max(pos) + 1L)
-      # Se extiende bastante por debajo de la ultima fila para que el analista
-      # siga teniendo el desplegable en las que anada, que es el caso normal
-      # cuando la plantilla sale vacia.
-      openxlsx::dataValidation(wb, .EQUIV_HOJA_PLANTILLA,
-                               cols = col[1], rows = 2L:filas_validacion,
-                               type = "list", value = rango,
-                               allowBlank = TRUE, showErrorMsg = FALSE)
-    }
-
-    # Las dos columnas de valor cerrado tambien se ofrecen por lista. Escritas a
-    # mano son la fuente de error mas tonta del formato: «Radar» con mayuscula o
-    # «auditoría» con tilde no casan con la clave del motor, y el bloque sale en
-    # barras sin que nadie sepa por que.
-    #
-    # `openxlsx` acepta una lista literal como cadena entrecomillada; no hace
-    # falta una hoja auxiliar para dos y cuatro valores.
-    cerradas <- list()
-    cerradas[[.EQUIV_COL_GRAFICO]] <- c("", .EQUIV_GRAFICO_RADAR)
-    if (exists(".RADAR_MB_ESTILOS")) {
-      cerradas[[.EQUIV_COL_ESTILO]] <- c("", names(.RADAR_MB_ESTILOS))
-    }
-    for (nm in names(cerradas)) {
-      col <- which(names(df) == nm)
-      if (!length(col)) next
-      openxlsx::dataValidation(
-        wb, .EQUIV_HOJA_PLANTILLA, cols = col[1], rows = 2L:filas_validacion,
-        type = "list",
-        value = sprintf("\"%s\"", paste(cerradas[[nm]], collapse = ",")),
-        allowBlank = TRUE, showErrorMsg = FALSE)
-    }
-  }
-  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
-
-  .register_output_file(sid, "equivalencias_plantilla", path)
-}
-
-# Importa desde un archivo ya subido al file store.
-.equiv_importar_desde_file <- function(sid, file_id, hoja = NULL) {
-  if (!requireNamespace("readxl", quietly = TRUE)) {
-    stop_api(500, "E_EQUIV_SIN_READXL", "El paquete R 'readxl' no está instalado.")
-  }
-  s <- session_get(sid)
-  meta <- s$files[[as.character(file_id %||% "")]]
-  if (is.null(meta) || is.null(meta$path) || !file.exists(meta$path)) {
-    stop_api(404, "E_EQUIV_ARCHIVO_NO_ENCONTRADO",
-             "No se encontró el archivo de la matriz en el almacén de la sesión.")
-  }
-
-  hojas <- readxl::excel_sheets(meta$path)
-  # Sin hoja pedida: la canónica si está, y si no la primera. Una matriz escrita
-  # fuera de la app no tiene por qué llamar a su hoja como nosotros.
-  hoja_sel <- if (!is.null(hoja) && nzchar(as.character(hoja)[1])) {
-    as.character(hoja)[1]
-  } else if (.EQUIV_HOJA_PLANTILLA %in% hojas) {
-    .EQUIV_HOJA_PLANTILLA
-  } else {
-    hojas[1]
-  }
-  if (!hoja_sel %in% hojas) {
-    stop_api(400, "E_EQUIV_HOJA_NO_ENCONTRADA",
-             sprintf("La hoja '%s' no existe en el archivo. Disponibles: %s.",
-                     hoja_sel, paste(hojas, collapse = ", ")))
-  }
-
-  df <- as.data.frame(
-    readxl::read_excel(meta$path, sheet = hoja_sel, .name_repair = "unique"),
-    stringsAsFactors = FALSE
-  )
-  bases <- names(.equiv_inst_por_base(sid))
-  equiv <- .equiv_desde_df(df, bases)
-
-  # Sello por base al momento de importar: es lo que permite decir después «esto
-  # se validó contra otro instrumento».
-  inst_por_base <- .equiv_inst_por_base(sid)
-  equiv$sellos <- lapply(inst_por_base, .equiv_sello_instrumento)
-  equiv$importada_en <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-  equiv$origen <- list(file_id = as.character(file_id), hoja = hoja_sel)
-  # Contrato E4-E7 (R3): la plantilla no lleva la armonización; se conserva de
-  # la declaración previa en las filas que casan por variables.
-  previo <- .equiv_get(sid)
-  equiv$filas <- .equiv_armon_conservar(equiv$filas, previo)
-  if (!is.null(previo$armonizacion_periodos)) equiv$armonizacion_periodos <- previo$armonizacion_periodos
-
-  # Literal a proposito: el gate de session_schema.R escanea la clave en el
-  # texto, y una constante lo dejaria ciego a esta escritura.
-  ignoradas <- equiv$columnas_ignoradas %||% list()
-  equiv$columnas_ignoradas <- NULL
-  session_set(sid, "equivalencias_publicos", equiv)
-  resumen <- .equiv_aplicar_a_analitica(sid, equiv)
-
-  list(estado = .equiv_estado(sid), aplicacion = resumen, avisos = .equiv_avisos_columnas_ignoradas(ignoradas))
-}
-
-#' Avisos de las columnas del informe que trajo el Excel y la matriz ya no guarda (ADR 0103)
-#' @param ignoradas Lista nombrada columna -> filas con valor.
-#' @return Lista de avisos `list(code, message)`.
-#' @keywords internal
-.equiv_avisos_columnas_ignoradas <- function(ignoradas) {
-  if (!length(ignoradas)) return(list())
-  nombres <- c(diapositiva = "diapositiva", enunciado = "enunciado", grafico = "gráfico", corte = "corte", estilo = "estilo")
-  partes <- vapply(names(ignoradas), function(k) sprintf("%s (%d %s)", nombres[[k]] %||% k, ignoradas[[k]],
-                                                         if (ignoradas[[k]] == 1L) "fila" else "filas"), character(1))
-  list(list(code = "columnas_del_informe_ignoradas", message = sprintf(
-    "La matriz sólo guarda equivalencias: no se usaron las columnas %s. Las láminas se arman en Gráficos.",
-    paste(partes, collapse = ", "))))
-}
-
-# Guarda la declaracion editada en la pestana. Misma forma que la importada, asi
-# que Excel y editor producen el MISMO artefacto — es lo que impide que las dos
-# vias se separen y que una acabe pudiendo expresar cosas que la otra no.
+# Guarda la declaracion editada en la pestana. ADR 0104: la matriz se arma en la
+# app; el editor es la unica via de declarar filas (la plantilla Excel, «Subir
+# matriz» y «Proponer emparejados» se retiraron). «Importar por bloques» produce
+# la misma forma para series de mediciones.
 #
 # Contrato E4-E7 (R3): `armonizacion` por fila y `armonizacion_periodos` en la
 # raíz. Una fila que NO trae la clave `armonizacion` conserva la de la fila
@@ -384,27 +222,6 @@ mount_equivalencias <- function(pr) {
       .equiv_estado(session_header(req))
     })) |>
 
-    plumber::pr_post("/api/carga/equivalencias/plantilla", wrap_endpoint(function(req, res, ...) {
-      sid <- session_header(req)
-      .equiv_requiere_disponible(sid)
-      meta <- .equiv_escribir_plantilla(sid)
-      list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name,
-           size = meta$size)
-    })) |>
-
-    plumber::pr_post("/api/carga/equivalencias/importar", wrap_endpoint(function(req, res, ...) {
-      sid <- session_header(req)
-      .equiv_requiere_disponible(sid)
-      body <- .analitica_json_body(req)
-      file_id <- as.character(body$file_id %||% "")
-      if (!nzchar(file_id)) {
-        stop_api(400, "E_EQUIV_FILE_ID_REQUERIDO",
-                 "Body debe incluir 'file_id' del archivo de la matriz.")
-      }
-      out <- .equiv_importar_desde_file(sid, file_id, body$hoja)
-      c(list(ok = TRUE), out)
-    })) |>
-
     plumber::pr_get("/api/carga/equivalencias/variables", wrap_endpoint(function(req, res) {
       # Catalogo por base para los selectores del editor. Va aparte del estado
       # porque son cientos de entradas (300 en el estudio medido) y el estado se
@@ -426,14 +243,6 @@ mount_equivalencias <- function(pr) {
         })
       })
       list(ok = TRUE, variables = out)
-    })) |>
-
-    plumber::pr_get("/api/carga/equivalencias/sugerencias", wrap_endpoint(function(req, res) {
-      # Se calculan a pedido y NUNCA se guardan solas: viajan marcadas para que
-      # la pestana pueda mostrarlas como propuesta y no como decision tomada.
-      sid <- session_header(req)
-      .equiv_requiere_disponible(sid)
-      list(ok = TRUE, sugerencias = .equiv_sugerir(.equiv_inst_por_base(sid)))
     })) |>
 
     plumber::pr_post("/api/carga/equivalencias/declaracion", wrap_endpoint(function(req, res, ...) {

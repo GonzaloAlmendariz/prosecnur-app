@@ -1,10 +1,11 @@
 // equivalencias.ts — equivalencia declarada entre públicos (ADR 0062).
 //
 // La misma pregunta vive en cada público con otro nombre de variable, y el
-// modelo no tenía dónde guardar esa tabla. Estos endpoints la declaran: la app
-// emite una plantilla poblada, el analista empareja y escribe la etiqueta
-// estándar, y al importarla las etiquetas aterrizan en la configuración de CADA
-// base — nunca en la global, que es lo que el ADR 0061 dejó prohibido.
+// modelo no tenía dónde guardar esa tabla. Estos endpoints la declaran: la
+// persona la arma en la app, fila por fila (ADR 0104: sin plantilla, sin subir
+// Excel y sin emparejado automático), y al guardarla las etiquetas aterrizan en
+// la configuración de CADA base — nunca en la global, que es lo que el ADR 0061
+// dejó prohibido.
 
 import { apiFetch, handle, headers } from "./core";
 
@@ -26,8 +27,9 @@ export type EquivalenciaFila = {
    */
   enunciado?: string;
   /**
-   * Propuesta del motor, no decisión del analista. La marca es el contrato con
-   * la UI: sin ella una sugerencia se vería igual que algo ya confirmado.
+   * Propuesta sin confirmar. ADR 0104: la app ya no propone; sólo la trae una
+   * matriz guardada por una versión anterior, que se conserva marcada hasta que
+   * la persona la confirma. Sin la marca se vería igual que algo ya decidido.
    */
   sugerida?: boolean;
   /**
@@ -79,13 +81,6 @@ export type EquivalenciasEstado = {
   filas?: EquivalenciaFila[];
 };
 
-export type EquivalenciasPlantilla = {
-  ok: boolean;
-  file_id: string;
-  filename: string;
-  size: number;
-};
-
 export type EquivalenciasAplicacionBase = {
   aplicadas: number;
   /** Etiquetas editadas a mano que se conservaron en vez de pisarse. */
@@ -96,7 +91,7 @@ export type EquivalenciasImportacion = {
   ok: boolean;
   estado: EquivalenciasEstado;
   aplicacion: Record<string, EquivalenciasAplicacionBase>;
-  /** ADR 0103: lo que el Excel traía y la matriz ya no guarda (columnas del informe), dicho. */
+  /** ADR 0103: lo que la declaración traía y la matriz ya no guarda, dicho. */
   avisos?: { code: string; message: string }[];
 };
 
@@ -224,40 +219,6 @@ export async function getEquivalencias(): Promise<EquivalenciasEstado> {
     await handle<EquivalenciasEstado>(
       await apiFetch("/api/carga/equivalencias", { headers: headers() }),
     ),
-  );
-}
-
-export async function generarPlantillaEquivalencias(): Promise<EquivalenciasPlantilla> {
-  return handle<EquivalenciasPlantilla>(
-    await apiFetch("/api/carga/equivalencias/plantilla", {
-      method: "POST",
-      headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({}),
-    }),
-  );
-}
-
-export async function importarEquivalencias(
-  fileId: string,
-  hoja?: string,
-): Promise<EquivalenciasImportacion> {
-  return normalizarImportacion(
-    await handle<EquivalenciasImportacion>(
-      await apiFetch("/api/carga/equivalencias/importar", {
-        method: "POST",
-        headers: headers({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ file_id: fileId, hoja }),
-      }),
-    ),
-  );
-}
-
-export async function getSugerenciasEquivalencias(): Promise<{
-  ok: boolean;
-  sugerencias: EquivalenciaFila[];
-}> {
-  return handle(
-    await apiFetch("/api/carga/equivalencias/sugerencias", { headers: headers() }),
   );
 }
 

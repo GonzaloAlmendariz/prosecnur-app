@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
+import * as modelo from "./equivalenciasEditorModel";
 import {
   aFilasEditor,
+  asignarPregunta,
   asignarVariable,
   confirmarFila,
+  filaVacia,
   filasParaGuardar,
-  incorporarSugerencias,
   resumenEditor,
   variablesTomadas,
   ordenarBasesPorSerie,
@@ -47,56 +49,52 @@ describe("editor de equivalencias", () => {
     expect(variablesTomadas(out, "docentes").size).toBe(0);
   });
 
-  it("las sugerencias no pisan lo ya decidido", () => {
-    const filas = aFilasEditor([fila("Ya decidida", { docentes: "p13_1" })]);
-    const out = incorporarSugerencias(filas, [
-      // Choca en docentes: se descarta entera.
-      fila("Propuesta que choca", { docentes: "p13_1", estudiantes: "p11_1" }),
-      fila("Propuesta libre", { docentes: "p14_1", estudiantes: "p12_1" }),
-    ]);
+  it("al elegir la primera pregunta, la fila sin nombre toma su etiqueta; un nombre escrito no se pisa (ADR 0104)", () => {
+    const filas = [filaVacia()];
+    const una = asignarPregunta(filas, filas[0].id, "docentes", "p13_1", "¿Conoce el servicio de salud?");
+    expect(una[0].etiqueta_estandar).toBe("¿Conoce el servicio de salud?");
+    expect(una[0].variables).toEqual({ docentes: "p13_1" });
 
-    expect(out).toHaveLength(2);
-    expect(out[0].etiqueta_estandar).toBe("Ya decidida");
-    expect(out[1].etiqueta_estandar).toBe("Propuesta libre");
-    expect(out[1].sugerida).toBe(true);
+    // La segunda base no renombra: el nombre ya existe.
+    const dos = asignarPregunta(una, filas[0].id, "estudiantes", "p11_1", "¿Sabe que existe salud?");
+    expect(dos[0].etiqueta_estandar).toBe("¿Conoce el servicio de salud?");
+    expect(dos[0].cantidad).toBe(2);
+
+    // Quitar una pregunta no inventa nombre, y una pregunta sin etiqueta tampoco.
+    const vacia = [filaVacia()];
+    expect(asignarPregunta(vacia, vacia[0].id, "docentes", "", "X")[0].etiqueta_estandar).toBe("");
+    expect(asignarPregunta(vacia, vacia[0].id, "docentes", "p9", "  ")[0].etiqueta_estandar).toBe("");
   });
 
-  it("una sugerencia que choca se descarta entera, no a medias", () => {
-    // Aceptarla a medias produciría una fila que dice ser la misma pregunta en
-    // dos públicos cuando el analista sólo confirmó uno, y eso no se ve.
-    const filas = aFilasEditor([fila("Decidida", { estudiantes: "p11_1" })]);
-    const out = incorporarSugerencias(filas, [
-      fila("Choca en estudiantes", { docentes: "p13_1", estudiantes: "p11_1" }),
-    ]);
-    expect(out).toHaveLength(1);
-    expect(variablesTomadas(out, "docentes").size).toBe(0);
+  it("asignarPregunta conserva la regla de una variable en una sola fila", () => {
+    const filas = aFilasEditor([fila("A", { docentes: "p13_1" }), fila("", {})]);
+    const out = asignarPregunta(filas, filas[1].id, "docentes", "p13_1", "Salud");
+    expect(out[0].variables.docentes).toBeUndefined();
+    expect(out[1]).toMatchObject({ etiqueta_estandar: "Salud", variables: { docentes: "p13_1" } });
   });
 
-  it("dos sugerencias que comparten variable no entran ambas", () => {
-    const out = incorporarSugerencias([], [
-      fila("A", { docentes: "p13_1", estudiantes: "p11_1" }),
-      fila("B", { docentes: "p13_1", estudiantes: "p12_1" }),
-    ]);
-    expect(out).toHaveLength(1);
-    expect(out[0].etiqueta_estandar).toBe("A");
+  it("ADR 0104: el editor ya no incorpora propuestas automáticas ni confirma en bloque", () => {
+    expect("incorporarSugerencias" in modelo).toBe(false);
+    expect("confirmarTodas" in modelo).toBe(false);
   });
 
-  it("una sugerencia sin confirmar se guarda MARCADA, no se pierde", () => {
-    // ADR 0064: la regla del 0062 —descartarla al guardar— destruía trabajo en
-    // cuanto la plantilla empezó a sembrar propuestas: confirmar diez de
-    // cincuenta y ocho y pulsar Guardar borraba las otras cuarenta y ocho. Lo
-    // que se protege es que la propuesta no ACTÚE como decisión, y eso lo
-    // garantizan el importador de etiquetas y el generador del mazo.
-    const filas = incorporarSugerencias([], [fila("Propuesta", { docentes: "p13_1", estudiantes: "p11_1" })]);
+  it("una propuesta heredada sin confirmar se guarda MARCADA, no se pierde, y se confirma de una en una", () => {
+    // ADR 0064 y ADR 0104 §5: lo que un .pulso anterior traía como propuesta no
+    // se descarta al guardar ni actúa como decisión hasta que alguien la confirma.
+    const filas = aFilasEditor([
+      fila("Propuesta", { docentes: "p13_1", estudiantes: "p11_1" }, { sugerida: true }),
+      fila("Otra propuesta", { docentes: "p14_1", estudiantes: "p12_1" }, { sugerida: true }),
+    ]);
     const pendientes = filasParaGuardar(filas);
-    expect(pendientes).toHaveLength(1);
-    expect(pendientes[0].sugerida).toBe(true);
+    expect(pendientes).toHaveLength(2);
+    expect(pendientes.every((f) => f.sugerida === true)).toBe(true);
 
     const confirmadas = confirmarFila(filas, filas[0].id);
     const guardadas = filasParaGuardar(confirmadas);
-    expect(guardadas).toHaveLength(1);
     expect(guardadas[0].cantidad).toBe(2);
     expect(guardadas[0].sugerida).toBe(false);
+    // La otra sigue sin confirmar: no hay confirmación en bloque.
+    expect(guardadas[1].sugerida).toBe(true);
     // Y lo que viaja al backend no lleva la identidad de edición.
     expect("id" in guardadas[0]).toBe(false);
   });
@@ -106,14 +104,12 @@ describe("editor de equivalencias", () => {
     expect(filasParaGuardar(filas)).toHaveLength(1);
   });
 
-  it("el resumen separa lo confirmado de lo propuesto", () => {
-    const filas = incorporarSugerencias(
-      aFilasEditor([
-        fila("Con etiqueta", { docentes: "p13_1" }),
-        fila("", { docentes: "p14_1" }),
-      ]),
-      [fila("Propuesta", { estudiantes: "p11_1", egresados: "p18_1" })],
-    );
+  it("el resumen separa lo confirmado de lo heredado sin confirmar", () => {
+    const filas = aFilasEditor([
+      fila("Con etiqueta", { docentes: "p13_1" }),
+      fila("", { docentes: "p14_1" }),
+      fila("Propuesta", { estudiantes: "p11_1", egresados: "p18_1" }, { sugerida: true }),
+    ]);
     const r = resumenEditor(filas);
     expect(r.total).toBe(3);
     expect(r.confirmadas).toBe(2);

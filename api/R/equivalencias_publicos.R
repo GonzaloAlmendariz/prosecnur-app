@@ -17,50 +17,10 @@
 # variable; y una `etiqueta_estandar` curada por el analista. Lo que la app puede
 # calcular —en cuántos públicos existe la pregunta— no se le pide.
 #
-# Este archivo es el motor puro: lee, normaliza y sella. No conoce la sesión ni
-# el HTTP; el router y la pestaña lo llaman.
-
-# Nombres de columna de la plantilla, en su forma canónica. Se comparan
-# normalizados (sin tildes, minúsculas) para que un Excel editado a mano con
-# «Sección» o «SECCION» siga entrando.
-.EQUIV_COL_SECCION <- "seccion"
-.EQUIV_COL_ETIQUETA <- "etiqueta_estandar"
-.EQUIV_SUFIJO_ETIQUETA <- "_etiqueta"
-# ADR 0062: la matriz real del equipo ya traia una columna `Diapo` con el plan
-# del informe —133 de 154 filas asignadas a 44 diapositivas, 42 de ellas con mas
-# de una pregunta—. Declararla aqui es lo que permite que Graficos derive el
-# mazo en vez de armarlo diapositiva por diapositiva.
-.EQUIV_COL_DIAPOSITIVA <- "diapositiva"
-# ADR 0064: el enunciado de la diapositiva. Es el texto que el importador de matrices
-# de SurveyMonkey pierde al aplanar el grupo en sus temas, y el que titula la
-# diapositiva del mazo. Vive por FILA en el formato plano —el Excel no tiene donde
-# poner un atributo de grupo— y la diapositiva toma el primero no vacio de las suyas.
-.EQUIV_COL_ENUNCIADO <- "enunciado"
-# ADR 0064: como se dibuja el bloque y con que corte.
-#
-# `grafico` es `""` (barras multiapiladas, el defecto) o `radar`. `corte` son los
-# CODIGOS de la escala que suman el indicador —«3,4» para el top-two-box de una
-# escala de 4 puntos mas un «sin informacion»—, y por eso se declaran en vez de
-# deducirse: cual es el corte es una decision metodologica del estudio, no una
-# propiedad de la escala. Un radar necesita UN numero por eje y por serie; las
-# barras dibujan la distribucion entera y no lo necesitan.
-.EQUIV_COL_GRAFICO <- "grafico"
-.EQUIV_COL_CORTE <- "corte"
-# Clave de estilo del radar. Vacia = `comparativo`, que es el que sincroniza con
-# la matriz. Se declara por BLOQUE porque el estilo dice como se lee ese bloque:
-# una bateria de perfil se presenta con lineas y una de diagnostico con la grilla
-# a la vista, y las dos pueden convivir en el mismo mazo.
-.EQUIV_COL_ESTILO <- "estilo"
-.EQUIV_GRAFICO_RADAR <- "radar"
-
-# ADR 0064: de donde viene la fila. `propuesta` marca lo que calculo el motor y
-# nadie ha confirmado todavia. Se lee pero ya no se emite: en el formato actual
-# una propuesta seria indistinguible de una decision, asi que la plantilla no se
-# siembra y emparejar con ayuda se hace en el editor.
-.EQUIV_COL_ORIGEN <- "origen"
-# ADR 0103: columnas que las matrices ya escritas traen y la matriz ya no guarda (se ignoran y se avisa).
-.EQUIV_COLS_RETIRADAS <- c(.EQUIV_COL_DIAPOSITIVA, .EQUIV_COL_ENUNCIADO, .EQUIV_COL_GRAFICO, .EQUIV_COL_CORTE, .EQUIV_COL_ESTILO)
-.EQUIV_ORIGEN_PROPUESTA <- "propuesta"
+# Este archivo es el motor puro: normaliza y sella. No conoce la sesión ni el
+# HTTP; el router y la pestaña lo llaman. ADR 0104: la matriz se arma en el editor
+# de la app; la plantilla Excel, «Subir matriz» y el emparejado automático se
+# retiraron.
 
 # Normaliza un encabezado a su forma comparable: minúsculas, sin tildes, sin
 # espacios ni signos. «Etiqueta estándar», «ETIQUETA_ESTANDAR» y «etiqueta
@@ -76,31 +36,14 @@
   # Sufijo de desambiguación de readxl (`.name_repair = "unique"`). Las matrices
   # reales repiten el nombre del público en dos bloques —el de variables y el de
   # ayuda «Variable labels»—, así que readxl entrega `Docentes...2` y
-  # `Docentes...12`. Sin quitarlo, NINGUNA columna normalizaba a «docentes» y la
-  # matriz del equipo rebotaba entera con E_EQUIV_SIN_COLUMNAS_BASE.
+  # `Docentes...12`. Sin quitarlo, NINGUNA columna normalizaba a «docentes» (lo
+  # usa el importador por bloques).
   x <- sub("\\.\\.\\.[0-9]+$", "", x)
   x <- chartr("áàäâãéèëêíìïîóòöôõúùüûñçÁÀÄÂÃÉÈËÊÍÌÏÎÓÒÖÔÕÚÙÜÛÑÇ",
               "aaaaaeeeeiiiiooooouuuuncAAAAAEEEEIIIIOOOOOUUUUNC", x)
   x <- tolower(x)
   x <- gsub("[^a-z0-9]+", "_", x)
   gsub("^_+|_+$", "", x)
-}
-
-# Rellena hacia abajo. Las matrices reales traen la sección en celdas
-# combinadas, así que sólo la primera fila del bloque la tiene: leída con
-# readxl, el resto llega NA. Sin este pase, 141 de 154 filas quedarían sin
-# sección.
-.equiv_fill_down <- function(x) {
-  x <- as.character(x)
-  ultimo <- NA_character_
-  for (i in seq_along(x)) {
-    if (!is.na(x[i]) && nzchar(trimws(x[i]))) {
-      ultimo <- trimws(x[i])
-    } else {
-      x[i] <- ultimo
-    }
-  }
-  x
 }
 
 # Nombre canónico de una variable dentro de la app. Acepta la forma cruda de la
@@ -156,126 +99,6 @@
   sprintf("%08x%08x", as.integer(h1), as.integer(h2))
 }
 
-# Lee un data.frame ya cargado (hoja de la plantilla) y devuelve la declaración
-# normalizada. Separado de la lectura del archivo para poder probarlo sin xlsx.
-#
-# `bases` es el vector de nombres de base del estudio: define qué columnas se
-# buscan y en qué orden viaja la equivalencia. Una columna de la plantilla que no
-# corresponda a ninguna base se ignora — así la matriz real, que trae columnas de
-# ayuda («Diapo», concatenados, iniciales), entra sin limpiarla a mano.
-.equiv_desde_df <- function(df, bases) {
-  bases <- as.character(bases %||% character(0))
-  if (!length(bases)) {
-    stop_api(400, "E_EQUIV_SIN_BASES",
-             "El estudio no declara bases contra las que mapear la matriz.")
-  }
-  if (is.null(df) || !nrow(df)) {
-    stop_api(400, "E_EQUIV_VACIA", "La matriz de equivalencias no tiene filas.")
-  }
-
-  cols <- .equiv_norm_col(names(df))
-  idx_de <- function(clave) {
-    hit <- which(cols == clave)
-    if (length(hit)) hit[1] else NA_integer_
-  }
-
-  i_etiqueta <- idx_de(.EQUIV_COL_ETIQUETA)
-  if (is.na(i_etiqueta)) {
-    stop_api(400, "E_EQUIV_SIN_ETIQUETA",
-             sprintf("La matriz no trae la columna '%s'.", .EQUIV_COL_ETIQUETA))
-  }
-  i_seccion <- idx_de(.EQUIV_COL_SECCION)
-
-  # Columna de variable por base. La columna de etiqueta por base
-  # (`<base>_etiqueta`) es ayuda de lectura para el analista y no entra: la
-  # etiqueta que manda es la estándar.
-  # Retirado el sufijo de readxl, el nombre de un público puede resolver a MÁS de
-  # una columna: la matriz real trae el bloque de variables y el de ayuda
-  # «Variable labels», ambos titulados con el público. Se elige por CONTENIDO —un
-  # nombre de variable no lleva espacios y la columna de ayuda es
-  # `q0013_0001 '¿Conoce…'`— y no por posición, que sería un supuesto sobre cómo
-  # alguien ordenó su Excel.
-  idx_de_base <- function(clave) {
-    hit <- which(cols == clave)
-    if (!length(hit)) return(NA_integer_)
-    if (length(hit) == 1L) return(hit[1])
-    puntaje <- vapply(hit, function(j) {
-      v <- trimws(as.character(df[[j]]))
-      v <- v[!is.na(v) & nzchar(v)]
-      if (!length(v)) return(0)
-      mean(!grepl("\\s", v))
-    }, numeric(1))
-    hit[which.max(puntaje)]
-  }
-
-  bases_norm <- .equiv_norm_col(bases)
-  i_base <- stats::setNames(vapply(bases_norm, idx_de_base, integer(1)), bases)
-  presentes <- bases[!is.na(i_base)]
-  if (!length(presentes)) {
-    stop_api(400, "E_EQUIV_SIN_COLUMNAS_BASE",
-             sprintf("La matriz no trae ninguna columna con el nombre de una base del estudio (%s).",
-                     paste(bases, collapse = ", ")))
-  }
-
-  # ADR 0103: la matriz sólo declara equivalencias. Las columnas del informe que traen las matrices ya escritas
-  # (diapositiva —o «diapo»—, enunciado, gráfico, corte, estilo) se ignoran, y se cuenta cuántas filas traían cada
-  # una para avisarlo: descartarlas en silencio haría creer que el plan sigue saliendo de aquí.
-  ignoradas <- list()
-  for (clave in .EQUIV_COLS_RETIRADAS) {
-    j <- idx_de(clave)
-    if (is.na(j) && identical(clave, .EQUIV_COL_DIAPOSITIVA)) j <- idx_de("diapo")
-    if (is.na(j)) next
-    v <- trimws(as.character(df[[j]]))
-    n <- sum(!is.na(v) & nzchar(v))
-    if (n) ignoradas[[clave]] <- n
-  }
-  i_origen <- idx_de(.EQUIV_COL_ORIGEN)
-  origen <- if (!is.na(i_origen)) .equiv_norm_col(df[[i_origen]]) else rep("", nrow(df))
-
-  seccion <- if (!is.na(i_seccion)) .equiv_fill_down(df[[i_seccion]]) else rep(NA_character_, nrow(df))
-  etiqueta <- trimws(as.character(df[[i_etiqueta]]))
-
-  filas <- list()
-  for (r in seq_len(nrow(df))) {
-    vars <- list()
-    for (b in presentes) {
-      v <- .equiv_var_canonica(df[[i_base[[b]]]][r])
-      if (nzchar(v)) vars[[b]] <- v
-    }
-    # Una fila sin ninguna variable es una separadora del Excel, no un dato.
-    if (!length(vars)) next
-    lab <- if (is.na(etiqueta[r])) "" else etiqueta[r]
-    fila <- list(
-      seccion = if (is.na(seccion[r])) "" else seccion[r],
-      etiqueta_estandar = lab,
-      variables = vars,
-      # Derivado, no pedido: en cuántos públicos existe la pregunta.
-      cantidad = length(vars)
-    )
-    # Una fila que vuelve marcada como propuesta sigue siendo propuesta: el
-    # viaje por el Excel no la convierte en decisión.
-    if (identical(origen[r], .EQUIV_ORIGEN_PROPUESTA) || identical(origen[r], "sugerida")) {
-      fila$sugerida <- TRUE
-    }
-    filas[[length(filas) + 1L]] <- fila
-  }
-
-  if (!length(filas)) {
-    stop_api(400, "E_EQUIV_SIN_FILAS_UTILES",
-             "Ninguna fila de la matriz trae variables de las bases del estudio.")
-  }
-
-  list(
-    schema = "equivalencias_publicos/v1",
-    bases = presentes,
-    filas = filas,
-    n_filas = length(filas),
-    n_sin_etiqueta = sum(vapply(filas, function(f) !nzchar(f$etiqueta_estandar), logical(1))),
-    n_sugeridas = sum(vapply(filas, function(f) isTRUE(f$sugerida), logical(1))),
-    columnas_ignoradas = ignoradas
-  )
-}
-
 # Etiquetas por base que la declaración implica: `variable -> etiqueta_estandar`.
 # Es lo que el importador escribe en `analitica_config_por_base[[base]]`, NUNCA
 # en la config global — escribirla en la global reintroduciría el defecto del
@@ -322,36 +145,6 @@
   out
 }
 
-# -----------------------------------------------------------------------------
-# Plantilla: la app emite el Excel ya poblado
-# -----------------------------------------------------------------------------
-#
-# Generar es la via principal del ADR 0062, no un accesorio de la importacion.
-# La app ya sabe, por cada base, sus variables y sus etiquetas: emitir el archivo
-# con esas columnas llenas deja al analista solo dos trabajos —emparejar filas y
-# escribir la etiqueta estandar— y elimina la deriva entre lo que el Excel trae y
-# lo que el importador espera, porque el formato lo produce quien lo consume.
-#
-# La plantilla sale SEMBRADA (ADR 0064): primero lo ya declarado, despues los
-# emparejados que el motor propone —marcados `origen = propuesta`— y al final,
-# sin emparejar, una fila por cada variable que no entro en ninguno.
-#
-# La version anterior emitia 300 filas sueltas frente a las 152 ya emparejadas de
-# la matriz que el equipo mantenia a mano: la via «principal» del ADR entregaba el
-# peor de los dos artefactos. La prohibicion del ADR 0062 —no inferir dentro de un
-# Excel— seguia valiendo por su motivo real: ahi una sugerencia era
-# INDISTINGUIBLE de una decision. La columna `origen` es lo que la distingue, de
-# ida y de vuelta, y ninguna propuesta escribe etiquetas ni llega al mazo hasta
-# confirmarse.
-
-.EQUIV_HOJA_PLANTILLA <- "Equivalencias"
-# Hoja de consulta con el catalogo de variables por base. El importador la ignora:
-# solo lee la hoja de la declaracion.
-.EQUIV_HOJA_CATALOGO <- "Variables"
-# Hoja de consulta con el catalogo de variables por base. El importador la ignora:
-# solo se lee la hoja de la declaracion.
-.EQUIV_HOJA_CATALOGO <- "Variables"
-
 # Variables reales de un instrumento, con su etiqueta, en el orden del formulario.
 .equiv_variables_de_base <- function(inst) {
   sv <- (inst %||% list())$survey
@@ -375,128 +168,15 @@
   )
 }
 
-# Data frame de la plantilla. Separado del escritor de xlsx para poder probar la
-# forma sin depender de openxlsx.
-.equiv_plantilla_df <- function(inst_por_base, equiv = NULL) {
-  bases <- names(inst_por_base %||% list())
-  if (!length(bases)) {
-    stop_api(400, "E_EQUIV_SIN_BASES",
-             "El estudio no declara bases con las que armar la plantilla.")
-  }
-
-  declaradas <- (equiv %||% list())$filas %||% list()
-
-  # La seccion, la etiqueta estandar y una columna por publico: nada mas (ADR 0103). El plan del informe
-  # (diapositiva, enunciado, grafico, corte, estilo) ya no vive en la matriz: se arma en Graficos.
-  cols <- list()
-  cols[[.EQUIV_COL_SECCION]] <- character(0)
-  cols[[.EQUIV_COL_ETIQUETA]] <- character(0)
-  for (b in bases) cols[[b]] <- character(0)
-
-  filas <- list()
-  ya_mapeadas <- stats::setNames(vector("list", length(bases)), bases)
-  # El catalogo por base se resuelve UNA vez: dentro del bucle de filas eran
-  # 152 x 4 lecturas completas del instrumento para emitir un archivo.
-  vars_por_base <- lapply(inst_por_base, .equiv_variables_de_base)
-
-  emitir <- function(f) {
-    fila <- list()
-    fila[[.EQUIV_COL_SECCION]] <- as.character(f$seccion %||% "")
-    fila[[.EQUIV_COL_ETIQUETA]] <- as.character(f$etiqueta_estandar %||% "")
-    for (b in bases) {
-      v <- as.character((f$variables %||% list())[[b]] %||% "")
-      fila[[b]] <- v
-      if (nzchar(v)) ya_mapeadas[[b]] <<- c(ya_mapeadas[[b]], v)
-    }
-    filas[[length(filas) + 1L]] <<- fila
-  }
-
-  # Una fila DECIDE algo si empareja mas de un publico o si le pusieron etiqueta
-  # estandar. Una fila con una sola variable y sin etiqueta no declara nada: es la
-  # misma informacion que «esta variable existe», que ya esta en el instrumento.
-  decide <- function(f) {
-    length(f$variables %||% list()) > 1L ||
-      nzchar(trimws(as.character(f$etiqueta_estandar %||% "")))
-  }
-
-  # 1) Lo decidido primero y en su orden: reabrir la plantilla no puede
-  #    desordenar el trabajo hecho ni obligar a rehacerlo.
-  for (f in Filter(decide, declaradas)) emitir(f)
-
-  # 2) Lo declarado que no decide nada, en su orden original.
-  for (f in Filter(function(f) !decide(f), declaradas)) {
-    vars_f <- f$variables %||% list()
-    ya <- any(vapply(names(vars_f), function(b) {
-      as.character(vars_f[[b]]) %in% (ya_mapeadas[[b]] %||% character(0))
-    }, logical(1)))
-    if (ya) next
-    emitir(f)
-  }
-
-  # Y NADA MAS. La plantilla lleva lo que el estudio declara; si no declara nada,
-  # sale con sus encabezados y sin filas.
-  #
-  # Antes volcaba una fila por CADA variable de cada base: 300 filas en el estudio
-  # medido, cada una con su codigo en una sola columna y las otras tres vacias.
-  # Visto en la hoja es una escalera diagonal, y emparejar exigia cortar y pegar
-  # filas hasta alinear los codigos. Ese volcado tampoco decia nada que el
-  # instrumento no dijera ya —y ahora lo dice la hoja `Variables`, que es donde se
-  # buscan los codigos—, asi que su unico efecto era enterrar lo que el analista
-  # si tiene que decidir debajo de 300 filas que nunca va a emparejar.
-  #
-  # Tampoco se siembra con los emparejados que el motor propone: en estas columnas
-  # una propuesta es indistinguible de una decision —no hay donde marcarla— y
-  # volveria como decidida al importarla, que es lo que el ADR 0062 prohibe.
-  # Emparejar con ayuda se hace en el editor, donde una propuesta se ve como tal.
-
-  if (!length(filas)) {
-    return(as.data.frame(cols, stringsAsFactors = FALSE, check.names = FALSE))
-  }
-  df <- do.call(rbind.data.frame, c(filas, list(stringsAsFactors = FALSE)))
-  names(df) <- names(cols)
-  rownames(df) <- NULL
-  df
-}
-
-# Catalogo de variables por base, para la hoja de consulta. Es lo que reemplaza a
-# las columnas `<base>_etiqueta` que antes doblaban el ancho de la hoja de
-# trabajo: la misma ayuda —reconocer que `p13_1` es «Servicio de salud»— pero
-# fuera de donde se escribe.
-.equiv_catalogo_df <- function(inst_por_base) {
-  filas <- list()
-  for (b in names(inst_por_base %||% list())) {
-    vars <- .equiv_variables_de_base(inst_por_base[[b]])
-    for (i in seq_len(nrow(vars))) {
-      filas[[length(filas) + 1L]] <- list(base = b, variable = vars$name[i],
-                                          etiqueta = vars$label[i])
-    }
-  }
-  if (!length(filas)) {
-    return(data.frame(base = character(0), variable = character(0),
-                      etiqueta = character(0), stringsAsFactors = FALSE))
-  }
-  df <- do.call(rbind.data.frame, c(filas, list(stringsAsFactors = FALSE)))
-  rownames(df) <- NULL
-  df
-}
-
 # -----------------------------------------------------------------------------
-# Sugerencia de emparejado (ADR 0062, enmienda del editor)
+# Firma de escala y clave por variable
 # -----------------------------------------------------------------------------
 #
-# El ADR se niega a INFERIR emparejamientos dentro de un Excel, y con razon: ahi
-# una sugerencia es indistinguible de una decision y termina en una diapositiva sin
-# que nadie lo note. En una herramienta el caso es otro — una sugerencia puede
-# verse COMO sugerencia y confirmarse de un clic—, asi que aqui se calculan pero
-# viajan marcadas y NUNCA se guardan solas.
+# ADR 0104: la matriz se arma en la app, fila por fila; el emparejado automatico
+# («Proponer emparejados») y la plantilla Excel se retiraron. Lo que queda aqui
+# lo consumen el editor (firma y opciones de cada variable) y la alineacion de
+# instrumentos de SurveyMonkey multibase (`.equiv_claves_de_base`).
 #
-# La firma que empareja es la terna (etiqueta normalizada, escala, ordinal de
-# aparicion). Las dos primeras no bastan en el caso real: en Acreditacion
-# Contabilidad «Servicio de salud» con escala Si/No aparece DOS veces por base
-# —«¿Conoce?» y «¿Ha utilizado?»— y solo el orden las separa. Con la terna, la
-# n-esima aparicion de una base calza con la n-esima de otra, que es exactamente
-# como estan construidos los cuestionarios paralelos de un estudio multiactor.
-
 # Firma de escala de una variable: los codigos y etiquetas de su lista, en orden.
 # Reusa el mismo criterio que el guard de multi-apiladas del frontend (la FIRMA,
 # no el `list_name`): el importador de SurveyMonkey genera un nombre de lista por
@@ -606,7 +286,9 @@
   })
 }
 
-# Clave de emparejado por variable, con el ordinal ya resuelto.
+# Clave de emparejado por variable, con el ordinal ya resuelto: la terna
+# (etiqueta normalizada, escala, ordinal de aparicion). La consume la alineacion
+# de instrumentos de SurveyMonkey multibase (`.sm_mb_alin_preguntas`).
 .equiv_claves_de_base <- function(inst) {
   vars <- .equiv_variables_de_base(inst)
   if (!nrow(vars)) return(list())
@@ -622,81 +304,6 @@
                           etiqueta = vars$label[i], seccion = vars$seccion[i])
   }
   out
-}
-
-# Propone filas de equivalencia agrupando por esa clave. Devuelve SOLO lo que
-# calza en mas de una base: una variable que no empareja no es una sugerencia,
-# es una fila que el analista tendra que decidir, y ofrecerla como propuesta
-# invitaria a confirmarla sin mirar.
-.equiv_sugerir <- function(inst_por_base) {
-  bases <- names(inst_por_base %||% list())
-  if (length(bases) < 2L) return(list())
-
-  por_clave <- list()
-  # Posición de cada variable en SU cuestionario: las propuestas salen en el orden del cuestionario, que es el orden
-  # en que se arma el mazo (Gonzalo 2026-10-11: «dejémoslo muy coherente para que funcione bien con gráficos»).
-  posicion <- list()
-  for (b in bases) {
-    claves <- .equiv_claves_de_base(inst_por_base[[b]])
-    # No son temas que se comparen ni se grafiquen: el «Otro (especifique)» viaja con su pregunta y el
-    # consentimiento sólo decide qué respuestas entran.
-    excluir <- names(claves)[grepl("_other$", names(claves)) & sub("_other$", "", names(claves)) %in% names(claves)]
-    consentimiento <- if (exists(".sm_mb_consent_var", mode = "function")) .sm_mb_consent_var(inst_por_base[[b]]) else ""
-    if (nzchar(consentimiento)) excluir <- c(excluir, consentimiento)
-    posicion[[b]] <- stats::setNames(seq_along(claves), names(claves))
-    for (nombre in setdiff(names(claves), excluir)) {
-      k <- claves[[nombre]]$clave
-      entrada <- por_clave[[k]] %||% list(variables = list(),
-                                          etiqueta = claves[[nombre]]$etiqueta,
-                                          seccion = claves[[nombre]]$seccion)
-      # Una base aporta como mucho una variable por clave: el ordinal ya la hizo
-      # unica, y dos de la misma base en la misma fila no seria una equivalencia
-      # entre publicos sino un error de lectura.
-      if (is.null(entrada$variables[[b]])) entrada$variables[[b]] <- nombre
-      por_clave[[k]] <- entrada
-    }
-  }
-
-  # Una etiqueta que se repite entre propuestas NO se prellena. En el estudio
-  # medido, las tres baterias de servicios dan tres filas distintas y correctas
-  # —¿Conoce?, ¿Ha utilizado?, satisfaccion— pero las tres se llaman «Servicio
-  # de salud» en el XLSForm. Ofrecer ese texto como etiqueta estandar reproduce
-  # exactamente la ambiguedad que este ADR existe para eliminar, y encima
-  # invita a confirmarla de un clic. Vacia, el campo pide lo unico que el
-  # analista tiene que aportar.
-  candidatas <- vapply(por_clave, function(e) as.character(e$etiqueta %||% ""), character(1))
-  utiles <- names(por_clave)[vapply(por_clave, function(e) length(e$variables) >= 2L, logical(1))]
-  repetidas <- names(which(table(candidatas[utiles]) > 1L))
-
-  out <- list()
-  for (k in names(por_clave)) {
-    e <- por_clave[[k]]
-    if (length(e$variables) < 2L) next
-    etiqueta <- as.character(e$etiqueta %||% "")
-    if (etiqueta %in% repetidas) etiqueta <- ""
-    out[[length(out) + 1L]] <- list(
-      seccion = as.character(e$seccion %||% ""),
-      etiqueta_estandar = etiqueta,
-      variables = e$variables,
-      cantidad = length(e$variables),
-      # La marca es el contrato con la UI: sin ella, una propuesta se ve igual
-      # que una decision tomada.
-      sugerida = TRUE
-    )
-  }
-  if (!length(out)) return(out)
-  # En el orden del cuestionario de referencia —la base que más propuestas comparte—; lo que esa base no tiene va
-  # después, en el orden de la primera base que lo pregunta. Antes iba primero lo que cubría más públicos, y el mazo
-  # que se arma desde aquí salía con las preguntas desordenadas.
-  cuenta <- vapply(bases, function(b) sum(vapply(out, function(x) !is.null(x$variables[[b]]), logical(1))), integer(1))
-  ref <- bases[which.max(cuenta)]
-  pos_en <- function(x, b) { v <- x$variables[[b]]; if (is.null(v)) NA_integer_ else unname(posicion[[b]][[v]] %||% NA_integer_) }
-  en_ref <- vapply(out, function(x) pos_en(x, ref), integer(1))
-  en_otra <- vapply(out, function(x) {
-    for (b in bases) { p <- pos_en(x, b); if (!is.na(p)) return(p) }
-    NA_integer_
-  }, integer(1))
-  out[order(is.na(en_ref), en_ref, en_otra)]
 }
 
 

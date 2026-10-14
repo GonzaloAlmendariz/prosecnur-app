@@ -10,58 +10,6 @@
  *   fuera de él, así Guardar siempre está a la vista.
  */
 
-/* --- Chip de la fila en la tabla ----------------------------------------- */
-
-.pulso-armon-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  align-self: flex-start;
-  max-width: 100%;
-  padding: 1px 7px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  font: inherit;
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.5;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.pulso-armon-chip > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pulso-armon-chip.is-armonizada {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.pulso-armon-chip.is-no_comparable {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
-.pulso-armon-chip:hover:not(:disabled) {
-  border-color: var(--module-accent-border);
-}
-
-.pulso-armon-chip:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.pulso-armon-chip:focus-visible {
-  outline: 2px solid var(--module-accent);
-  outline-offset: 2px;
-}
-
 /* --- Sideover ------------------------------------------------------------ */
 
 .pulso-armon-velo {

@@ -70,8 +70,8 @@ describe("chip de armonización", () => {
 
 describe("tablas con N bases", () => {
   test("cada columna de base tiene el mismo ancho fijo y la tabla un mínimo que crece con N", () => {
-    expect(anchoColumnaPublico()).toBe("132px");
-    expect(anchoMinimoLista(7) - anchoMinimoLista(3)).toBe(4 * 132);
+    expect(anchoColumnaPublico()).toBe("184px");
+    expect(anchoMinimoLista(7) - anchoMinimoLista(3)).toBe(4 * 184);
     expect(anchoMinimoLista(12)).toBeGreaterThan(anchoMinimoLista(7));
   });
 

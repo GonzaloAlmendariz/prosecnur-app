@@ -2,8 +2,7 @@ source("setup-load-all.R")
 
 # ADR 0062 — capa de sesión de la equivalencia entre públicos.
 #
-# El caso que más importa aquí no es la importación en sí: es DÓNDE aterrizan
-# las etiquetas. Escribirlas en la config global reintroduciría el defecto del
+# El caso que más importa aquí es DÓNDE aterrizan las etiquetas. Escribirlas en la config global reintroduciría el defecto del
 # ADR 0061 a mayor escala —152 etiquetas filtrándose entre públicos en vez de
 # las 10 que ya lo causaron—, así que ese guard es directo y explícito.
 
@@ -131,30 +130,7 @@ test_that("el estado de un estudio sin declaración no inventa nada", {
   expect_equal(estado$n_filas, 0L)
 })
 
-test_that("la plantilla de un estudio sin declaracion sale con encabezados y sin filas", {
-  skip_if_not_installed("openxlsx")
-  skip_if_not_installed("readxl")
-  sid <- .req_setup("separate")
-  on.exit(session_delete(sid), add = TRUE)
-
-  meta <- .equiv_escribir_plantilla(sid)
-  expect_true(file.exists(meta$path))
-  expect_equal(meta$kind, "equivalencias_plantilla")
-
-  hoja <- readxl::read_excel(meta$path, sheet = .EQUIV_HOJA_PLANTILLA,
-                             .name_repair = "minimal")
-  # Ni una fila. Antes volcaba una por CADA variable de cada base, con su codigo
-  # en una sola columna y el resto vacias: una escalera diagonal que enterraba lo
-  # que el analista si tiene que decidir. Los codigos se buscan en la hoja
-  # `Variables`, que es para lo que esta.
-  expect_equal(nrow(hoja), 0L)
-  expect_equal(names(hoja), c("seccion", "etiqueta_estandar", "docentes", "estudiantes"))   # ADR 0103
-
-  # Y subirla sin escribir nada se rechaza en vez de borrar lo que hubiera.
-  expect_error(.equiv_importar_desde_file(sid, meta$file_id), class = "api_error")
-})
-
-test_that("el editor y el Excel producen el mismo artefacto", {
+test_that("el editor normaliza códigos crudos, descarta filas vacías y sella la declaración", {
   sid <- .req_setup("separate")
   on.exit(session_delete(sid), add = TRUE)
 
@@ -169,122 +145,17 @@ test_that("el editor y el Excel producen el mismo artefacto", {
   expect_equal(out$estado$n_filas, 1L)
   s <- session_get(sid)
   fila <- s$equivalencias_publicos$filas[[1]]
-  # El editor acepta códigos crudos igual que el importador: una vía no puede
-  # expresar cosas que la otra no.
+  # El editor acepta códigos crudos de la plataforma y los guarda canónicos.
   expect_equal(fila$variables$docentes, "p13_1")
   expect_null(fila$diapositiva)   # ADR 0103: la matriz no guarda la diapositiva
   expect_equal(fila$cantidad, 2L)
 
-  # Y guardar aplica las etiquetas igual que importar.
+  # Y guardar aplica las etiquetas en la config de la base.
   expect_equal(s$analitica_config_por_base$docentes$datos$variable_labels[["p13_1"]],
                "¿Conoce el Servicio de salud?")
 
-  # El sello queda tomado al guardar, no sólo al importar desde Excel.
+  # El sello queda tomado al guardar.
   expect_true(nzchar(s$equivalencias_publicos$sellos$estudiantes))
-})
-
-test_that("las sugerencias no se guardan solas", {
-  sid <- .req_setup("separate")
-  on.exit(session_delete(sid), add = TRUE)
-  sug <- .equiv_sugerir(.equiv_inst_por_base(sid))
-  expect_true(length(sug) > 0)
-  # Pedirlas no declara nada: el estado sigue sin declaración.
-  expect_false(.equiv_estado(sid)$declarada)
-})
-
-test_that("exportar e importar sin editar devuelve la MISMA declaracion", {
-  skip_if_not_installed("openxlsx")
-  skip_if_not_installed("readxl")
-  sid <- .req_setup("separate")
-  on.exit(session_delete(sid), add = TRUE)
-
-  # Los tres modos del ADR 0064 —escribirlo en el Excel, decidirlo en la pestana,
-  # o decidirlo y descargarlo— solo conviven si el archivo no pierde nada al
-  # viajar. Esta garantia es lo que impide que la proxima columna que alguien
-  # anada se caiga en silencio: fue exactamente lo que paso con `enunciado`.
-  #
-  # El fixture mapea TODAS las variables del instrumento: asi la plantilla no
-  # anade filas sueltas y la comparacion es de identidad, no de contencion.
-  declarada <- list(
-    schema = "equivalencias_publicos/v1",
-    bases = c("docentes", "estudiantes"),
-    filas = list(
-      list(seccion = "1.2 Servicios", etiqueta_estandar = "Servicio de salud",
-           variables = list(docentes = "p13_1", estudiantes = "p11_1"),
-           diapositiva = "3", enunciado = "¿Conoce los siguientes servicios?",
-           cantidad = 2L),
-      list(seccion = "1.2 Servicios", etiqueta_estandar = "Bienestar",
-           variables = list(docentes = "p14_1", estudiantes = "p13_1"),
-           diapositiva = "3", enunciado = "¿Conoce los siguientes servicios?",
-           cantidad = 2L)
-    )
-  )
-  session_set(sid, "equivalencias_publicos", declarada)
-
-  meta <- .equiv_escribir_plantilla(sid)
-  vuelta <- .equiv_importar_desde_file(sid, meta$file_id)$estado
-
-  expect_equal(vuelta$n_filas, 2L)
-  comparable <- function(filas) {
-    lapply(filas, function(f) list(
-      seccion = as.character(f$seccion %||% ""),
-      etiqueta_estandar = as.character(f$etiqueta_estandar %||% ""),
-      variables = f$variables[order(names(f$variables))]   # ADR 0103: sin diapositiva ni enunciado
-    ))
-  }
-  expect_equal(comparable(vuelta$filas), comparable(declarada$filas))
-})
-
-test_that("la hoja de consulta viaja aparte y el importador la ignora", {
-  skip_if_not_installed("openxlsx")
-  skip_if_not_installed("readxl")
-  sid <- .req_setup("separate")
-  on.exit(session_delete(sid), add = TRUE)
-
-  meta <- .equiv_escribir_plantilla(sid)
-  hojas <- readxl::excel_sheets(meta$path)
-  expect_true(.EQUIV_HOJA_PLANTILLA %in% hojas)
-  expect_true(.EQUIV_HOJA_CATALOGO %in% hojas)
-
-  # El catalogo reemplaza a las columnas `<base>_etiqueta`, que doblaban el ancho
-  # de la hoja donde se escribe. La hoja de trabajo lleva el nucleo y el plan, y
-  # ninguna columna de ayuda.
-  hoja <- readxl::read_excel(meta$path, sheet = .EQUIV_HOJA_PLANTILLA,
-                             .name_repair = "minimal")
-  expect_equal(names(hoja), c("seccion", "etiqueta_estandar", "docentes", "estudiantes"))   # ADR 0103
-
-  # El catalogo lleva las variables de las dos bases: es donde se buscan los
-  # codigos ahora que la hoja de trabajo no los vuelca.
-  cat_ <- readxl::read_excel(meta$path, sheet = .EQUIV_HOJA_CATALOGO,
-                             .name_repair = "minimal")
-  expect_equal(names(cat_), c("base", "variable", "etiqueta"))
-  expect_setequal(unique(cat_$base), c("docentes", "estudiantes"))
-})
-
-test_that("cada columna de publico trae el desplegable de SUS variables", {
-  skip_if_not_installed("openxlsx")
-  sid <- .req_setup("separate")
-  on.exit(session_delete(sid), add = TRUE)
-
-  meta <- .equiv_escribir_plantilla(sid)
-  val <- xml2::read_xml(unz(meta$path, "xl/worksheets/sheet1.xml"))
-  nodos <- xml2::xml_find_all(val, "//*[local-name()='dataValidation']")
-  expect_equal(length(nodos), 2L)
-
-  # El rango se calcula del catalogo, agrupado por base: cada columna apunta a un
-  # tramo distinto. Nada de listas fijas — un estudio de tres bases o de seis
-  # produce sus tres o seis desplegables sin tocar codigo.
-  formulas <- vapply(nodos, function(n) {
-    xml2::xml_text(xml2::xml_find_first(n, ".//*[local-name()='formula1']"))
-  }, character(1))
-
-  # Las de PUBLICO apuntan al catalogo, cada una a su tramo.
-  del_catalogo <- grepl(sprintf("^'%s'!\\$B\\$", .EQUIV_HOJA_CATALOGO), formulas)
-  expect_equal(sum(del_catalogo), 2L)
-  expect_equal(length(unique(formulas[del_catalogo])), 2L)
-
-  # ADR 0103: sin columnas de gráfico ni estilo no quedan listas de valor cerrado.
-  expect_equal(sum(!del_catalogo), 0L)
 })
 
 # ADR 0096 decisión 5: GET /api/carga/equivalencias publica la revisión nueva
@@ -307,4 +178,27 @@ test_that("R9: GET /api/carga/equivalencias devuelve la revisión r3: con los in
   expect_identical(as.integer(res$status), 200L)
   expect_match(out$revision, "^r3:")
   expect_identical(out$revision, .equiv_declaracion_revision(.req_equiv(), .equiv_inst_por_base(sid)))
+})
+
+# ADR 0104: la matriz se arma en la app. «Generar plantilla», «Subir matriz» y
+# «Proponer emparejados» se retiraron con sus endpoints; «Importar por bloques»
+# (series de mediciones), guardar, leer, variables y preview se quedan.
+test_that("ADR 0104: los endpoints de plantilla, importar Excel y sugerencias ya no se montan", {
+  pr <- mount_equivalencias(plumber::pr())
+  endpoints <- unlist(pr$endpoints, recursive = FALSE)
+  rutas <- vapply(endpoints, function(e) paste(paste(e$verbs, collapse = ","), e$path), character(1))
+  expect_false(any(grepl("/api/carga/equivalencias/plantilla$", rutas)))
+  expect_false(any(grepl("/api/carga/equivalencias/importar$", rutas)))
+  expect_false(any(grepl("/api/carga/equivalencias/sugerencias$", rutas)))
+  expect_setequal(rutas, c(
+    "GET /api/carga/equivalencias",
+    "GET /api/carga/equivalencias/variables",
+    "POST /api/carga/equivalencias/declaracion",
+    "GET /api/carga/equivalencias/armonizacion/preview",
+    "POST /api/carga/equivalencias/importar-bloques"
+  ))
+  for (f in c(".equiv_escribir_plantilla", ".equiv_importar_desde_file", ".equiv_sugerir",
+              ".equiv_desde_df", ".equiv_plantilla_df", ".equiv_catalogo_df")) {
+    expect_false(exists(f, envir = asNamespace("prosecnurapp"), inherits = FALSE), info = f)
+  }
 })

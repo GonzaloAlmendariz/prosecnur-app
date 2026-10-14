@@ -46,10 +46,10 @@ export const PANEL_ORDEN_SERIE: PanelDeclarado = {
   clase: "sideover",
 };
 
-/** Importar la matriz de correspondencias por bloques del proyecto. */
+/** Traer la matriz por bloques de una serie de mediciones (ADR 0104: sólo series). */
 export const PANEL_IMPORTAR_BLOQUES: PanelDeclarado = {
   id: "importar-bloques",
-  label: "Importar matriz por bloques",
+  label: "Traer una serie de mediciones ya armada",
   clase: "dialogo",
 };
 

@@ -136,19 +136,6 @@ test_that("un editor que no conoce el campo no lo borra; null explícito sí", {
   expect_null(session_get(sid)$equivalencias_publicos$filas[[1]]$armonizacion)
 })
 
-test_that("reimportar la plantilla conserva la armonización de las filas que casan por variables", {
-  skip_if_not_installed("openxlsx")
-  skip_if_not_installed("readxl")
-  sid <- .arm_setup()
-  .equiv_guardar_declaracion(sid, list(.arm_fila(.arm_valida())),
-                             armonizacion_periodos = list("b2024", "b2025"))
-  meta <- .equiv_escribir_plantilla(sid)
-  vuelta <- .equiv_importar_desde_file(sid, meta$file_id)$estado
-  expect_equal(vuelta$n_filas, 1L)
-  expect_equal(vuelta$filas[[1]]$armonizacion, .equiv_armon_normalizar(.arm_valida(), c("b2024", "b2025")))
-  expect_equal(session_get(sid)$equivalencias_publicos$armonizacion_periodos, c("b2024", "b2025"))
-})
-
 test_that("la spec aplica identidad, deja NA los especiales sin mapear y calla si no es comparable", {
   arm <- .equiv_armon_normalizar(.arm_valida(), c("b2024", "b2025"))
   fila <- .arm_fila(arm)

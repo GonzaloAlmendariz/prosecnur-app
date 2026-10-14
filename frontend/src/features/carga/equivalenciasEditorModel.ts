@@ -1,16 +1,15 @@
 /**
- * Modelo del editor de equivalencias (ADR 0062, enmienda del editor).
+ * Modelo del editor de equivalencias (ADR 0062, enmienda del editor; ADR 0104).
  *
  * La forma la dicta el Excel que el equipo ya usaba, porque es la que se lee
- * bien: **una fila por pregunta y los públicos en paralelo**. La plantilla que
- * la app emite tiene 300 filas sin emparejar —una por variable de cada base—,
- * y esa forma es correcta para no inventar emparejamientos en un archivo, pero
- * es peor para trabajar. Aquí el emparejamiento se hace en pantalla, donde una
- * sugerencia puede verse COMO sugerencia y confirmarse de un clic.
+ * bien: **una fila por pregunta y los públicos en paralelo**. ADR 0104: la
+ * matriz se arma aquí, fila por fila, por la persona; no hay plantilla, subida
+ * de Excel ni emparejado automático. Una fila `sugerida` sólo puede venir de un
+ * `.pulso` anterior: se conserva marcada y se confirma de una en una.
  *
  * La lógica vive aparte del render porque es donde estaban los errores que
- * importan: una variable asignada a dos filas a la vez, o una sugerencia que se
- * guarda sin que nadie la confirme.
+ * importan: una variable asignada a dos filas a la vez, o una propuesta que se
+ * guarda como decisión sin que nadie la confirme.
  */
 
 import { rotuloDeMatriz } from "../../lib/rotuloDeMatriz";
@@ -79,6 +78,26 @@ export function asignarVariable(
   });
 }
 
+/**
+ * Asigna la pregunta de una base y, si la fila todavía no tiene nombre
+ * estándar, le da la etiqueta de esa pregunta (ADR 0104): es el nombre que la
+ * persona escribiría, y sigue siendo editable. Un nombre ya escrito no se pisa.
+ */
+export function asignarPregunta(
+  filas: readonly FilaEditor[],
+  filaId: string,
+  base: string,
+  variable: string,
+  etiquetaDeLaPregunta: string,
+): FilaEditor[] {
+  const nombre = etiquetaDeLaPregunta.trim();
+  return asignarVariable(filas, filaId, base, variable).map((fila) =>
+    fila.id === filaId && variable && nombre && !fila.etiqueta_estandar.trim()
+      ? { ...fila, etiqueta_estandar: nombre }
+      : fila,
+  );
+}
+
 /** ADR 0103: la matriz sólo declara equivalencias; la lámina, el gráfico y el corte se deciden en Gráficos. */
 export type CampoFila = "etiqueta_estandar" | "seccion";
 
@@ -106,56 +125,20 @@ export function variablesTomadas(filas: readonly FilaEditor[], base: string): Se
 }
 
 /**
- * Incorpora sugerencias sin pisar lo decidido. Una sugerencia se descarta
- * entera si **cualquiera** de sus variables ya está tomada: aceptarla a medias
- * produciría una fila que dice ser la misma pregunta en tres públicos cuando el
- * analista sólo confirmó dos, y esa diferencia no se ve en la tabla.
+ * Marca como decidida una propuesta heredada de un `.pulso` anterior. ADR 0104:
+ * de una en una; no hay confirmación en bloque.
  */
-export function incorporarSugerencias(
-  filas: readonly FilaEditor[],
-  sugerencias: readonly EquivalenciaFila[],
-): FilaEditor[] {
-  const tomadas = new Map<string, Set<string>>();
-  for (const fila of filas) {
-    for (const [base, v] of Object.entries(fila.variables)) {
-      if (!tomadas.has(base)) tomadas.set(base, new Set());
-      tomadas.get(base)!.add(v);
-    }
-  }
-
-  const nuevas: FilaEditor[] = [];
-  for (const sug of sugerencias) {
-    const choca = Object.entries(sug.variables).some(
-      ([base, v]) => tomadas.get(base)?.has(v),
-    );
-    if (choca) continue;
-    for (const [base, v] of Object.entries(sug.variables)) {
-      if (!tomadas.has(base)) tomadas.set(base, new Set());
-      tomadas.get(base)!.add(v);
-    }
-    nuevas.push({ ...sug, id: nuevaFilaId(), sugerida: true });
-  }
-  return [...filas, ...nuevas];
-}
-
-/** Marca una fila propuesta como decidida por el analista. */
 export function confirmarFila(filas: readonly FilaEditor[], filaId: string): FilaEditor[] {
   return filas.map((fila) =>
     fila.id === filaId ? { ...fila, sugerida: false } : fila,
   );
 }
 
-export function confirmarTodas(filas: readonly FilaEditor[]): FilaEditor[] {
-  return filas.map((fila) => ({ ...fila, sugerida: false }));
-}
-
 /**
  * Lo que se guarda. Las filas sin variables no declaran nada y se descartan.
  *
- * Las propuestas **sí se guardan, marcadas** (ADR 0064). La regla anterior las
- * descartaba al guardar, y con la plantilla sembrada eso destruía el trabajo:
- * confirmar diez de cincuenta y ocho propuestas y pulsar Guardar borraba las
- * otras cuarenta y ocho sin ninguna señal. Lo que el ADR 0062 protege —que una
+ * Las propuestas heredadas **sí se guardan, marcadas** (ADR 0064, ADR 0104 §5):
+ * descartarlas al guardar borraría sin señal lo que un `.pulso` anterior traía. Lo que el ADR 0062 protege —que una
  * sugerencia nunca actúe como decisión— se cumple donde importa: una propuesta
  * no escribe etiquetas en Analítica y no llega al mazo.
  */
