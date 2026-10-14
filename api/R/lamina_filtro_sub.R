@@ -97,7 +97,7 @@
 #' Gonzalo (2026-10-14): «el gráfico dependiente no debe verse más pequeño del que depende». La subpregunta llena su
 #' columna: filas de hasta 0.75 in con barras gruesas; la escala de una fila, en una barra de 0.8 in con su leyenda en el
 #' ancho de la columna y, si se le da `yc`, centrada a esa altura (la del disco del filtro, de donde sale el conector).
-.lam_filtro_sub_dibujar_sub <- function(lz, s, x, y, w, alto, yc = NULL) {
+.lam_filtro_sub_dibujar_sub <- function(lz, s, x, y, w, alto, yc = NULL, rotulo = NULL) {
   if (identical(s$tipo, "categorica")) {
     k <- length(s$rotulos); fila <- min(0.75, alto / max(1L, k)); g <- min(0.42, max(.std_grosor(k, "categorias"), fila * 0.55))
     return(.lam_barras_h(lz, s, x, y, w, wlab = min(2.5, w * 0.4), g = g, fila = fila, size = 12))
@@ -116,6 +116,12 @@
   }
   h <- 0.8
   yb <- if (!is.null(yc)) max(y + 0.2, yc - h / 2) else y + 0.35
+  # p192: el rótulo corto que escribió el analista («Participaron»), a la izquierda de la barra y en negrita.
+  if (!is.null(rotulo) && nzchar(rotulo)) {
+    wl <- min(w * 0.3, max(1, .lam_ancho_tinta(rotulo, 10.5, TRUE) + 0.2))
+    .lam_txt(lz, rotulo, x, yb + (h - 0.3) / 2, wl - 0.15, 0.3, 10.5, .std_color("azul"), bold = TRUE, align = "right", nombre = "escala:rotulo_fila")
+    x <- x + wl; w <- w - wl
+  }
   # F5: con Top Two Box declarada, su columna a la derecha de la barra con su rótulo encima (p192).
   wbox <- if (!is.null(s$box$unidades)) 1.3 else 0
   wb <- w - wbox
@@ -153,7 +159,7 @@
   dibujar_sub <- function(x, y, w, alto, yc = NULL) {
     # Una batería que no cabe en su alto (con aire para sus cifras chicas) va con su gráfico, no se sale de la lámina.
     cabe_alto <- !(identical(s$tipo, "escala") && NROW(s$filas) > 1L) || alto >= .lam_filtro_sub_alto_bateria(s)
-    if (sub_nativo && cabe_alto) return(.lam_filtro_sub_dibujar_sub(lz, s, x, y, w, alto, yc = yc))
+    if (sub_nativo && cabe_alto) return(.lam_filtro_sub_dibujar_sub(lz, s, x, y, w, alto, yc = yc, rotulo = espec$rotulo))
     imagen <<- c(x = x, y = y, w = w, h = alto); invisible(y + alto)
   }
   publico <- function(n) if (is.finite(n)) sprintf("%s %s", format(as.integer(n), big.mark = ","), unidad_n) else NULL

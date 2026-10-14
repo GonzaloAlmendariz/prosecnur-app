@@ -4,6 +4,7 @@
 // llave del recetario (p192–p194). Se guarda en `payload.meta.dependencia = { de, habilita }` (graficos_dependencia.R).
 
 import { useId } from "react";
+import { Switch } from "../../../components/Switch";
 import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { leerSlideMeta } from "../slideMeta";
 import { usePlanStore } from "../store";
@@ -17,7 +18,7 @@ export const LAMINAS_CON_DEPENDENCIA: Readonly<Record<string, readonly [string, 
 };
 const NOMBRE: Readonly<Record<string, string>> = { izquierda: "de la izquierda", derecha: "de la derecha", superior: "de arriba", inferior: "de abajo" };
 
-export type Dependencia = { de: string; habilita: string[]; frase?: string };
+export type Dependencia = { de: string; habilita: string[]; frase?: string; rotulo?: string };
 
 /** La dependencia guardada en la lámina (o `null`). */
 export function dependenciaDe(slide: Pick<Slide, "tipo" | "payload">): (Dependencia & { a: string }) | null {
@@ -26,8 +27,9 @@ export function dependenciaDe(slide: Pick<Slide, "tipo" | "payload">): (Dependen
   if (!ranuras || !d || typeof d.de !== "string" || !ranuras.includes(d.de)) return null;
   // Una sola respuesta llega como texto suelto (el JSON de R desempaca el vector de largo uno).
   const habilita = (Array.isArray(d.habilita) ? d.habilita : typeof d.habilita === "string" ? [d.habilita] : []).map(String).filter(Boolean);
-  const frase = typeof d.frase === "string" && d.frase.trim() ? d.frase.trim() : undefined;
-  return { de: d.de, a: ranuras.find((r) => r !== d.de) as string, habilita, ...(frase ? { frase } : {}) };
+  const texto = (x: unknown) => (typeof x === "string" && x.trim() ? x.trim() : undefined);
+  const frase = texto(d.frase); const rotulo = texto(d.rotulo);
+  return { de: d.de, a: ranuras.find((r) => r !== d.de) as string, habilita, ...(frase ? { frase } : {}), ...(rotulo ? { rotulo } : {}) };
 }
 
 /** Quiénes forman la base del dependiente si nadie lo escribió, como la lámina (`.lam_filtro_sub_base`): «que respondieron «Sí»». */
@@ -54,11 +56,21 @@ export function DependenciaLamina({ slide }: { slide: Slide }) {
   const variable = ref ? variables.find((v) => v.name === ref.name && (!ref.source || v.source === ref.source)) : undefined;
   const respuestas = (variable?.choices ?? []).map((c) => String(c.label ?? c.name)).filter(Boolean);
   const elegidas = new Set(dep?.habilita ?? []);
-  const alternar = (r: string) => dep && guardar({ de: dep.de, habilita: respuestas.filter((x) => (x === r ? !elegidas.has(x) : elegidas.has(x))), ...(dep.frase ? { frase: dep.frase } : {}) });
   // Lo escrito tal cual (con su espacio final mientras se teclea); la lámina lo usa recortado.
-  const crudo = (leerSlideMeta(slide).dependencia as Record<string, unknown> | undefined)?.frase;
-  const fraseEscrita = typeof crudo === "string" ? crudo : "";
-  const cambiarFrase = (t: string) => dep && guardar({ de: dep.de, habilita: dep.habilita, ...(t.trim() ? { frase: t } : {}) });
+  const cruda = (leerSlideMeta(slide).dependencia ?? {}) as Record<string, unknown>;
+  const actualizar = (cambios: Record<string, unknown>) => {
+    if (!dep) return;
+    const d = Object.fromEntries(Object.entries({ ...cruda, ...cambios }).filter(([, v]) => v !== undefined));
+    guardar(d as Dependencia);
+  };
+  const alternar = (r: string) => actualizar({ habilita: respuestas.filter((x) => (x === r ? !elegidas.has(x) : elegidas.has(x))) });
+  const fraseEscrita = typeof cruda.frase === "string" ? cruda.frase : "";
+  const cambiarFrase = (t: string) => actualizar({ frase: t.trim() ? t : undefined });
+  // p192: el rótulo corto a la izquierda de la barra del dependiente («Participaron»). Encendido aunque esté vacío.
+  const conRotulo = typeof cruda.rotulo === "string";
+  const rotuloEscrito = conRotulo ? (cruda.rotulo as string) : "";
+  const dependiente = dep ? grafico(dep.a) : undefined;
+  const admiteRotulo = dependiente?.graficador === "p_barras_apiladas";
   const [a, b] = ranuras;
   const propuesta = proponerDependencia(ranuras, grafico, variables);
   const mismaPropuesta = !!propuesta && !!dep && dep.de === propuesta.de
@@ -103,6 +115,18 @@ export function DependenciaLamina({ slide }: { slide: Slide }) {
             placeholder={quienesPorDefecto(dep.habilita)}
             onChange={(e) => cambiarFrase(e.target.value)} />
         </div>
+      )}
+      {dep && admiteRotulo && (
+        <>
+          <div className="pulso-f6-dato">
+            <span className="pulso-f6-dato-rotulo" id={`${id}-rot`}>Rótulo junto a la barra</span>
+            <Switch checked={conRotulo} ariaLabel="Rótulo junto a la barra" onToggle={() => actualizar({ rotulo: conRotulo ? undefined : "" })} />
+          </div>
+          {conRotulo && (
+            <input className="pulso-f6-input" type="text" aria-labelledby={`${id}-rot`} value={rotuloEscrito} placeholder="Participaron"
+              onChange={(e) => actualizar({ rotulo: e.target.value })} />
+          )}
+        </>
       )}
     </section>
   );

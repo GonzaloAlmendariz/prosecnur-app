@@ -266,7 +266,7 @@
     # Pregunta filtro y subpregunta con filtro dicotómico (p192 abajo, p193 al costado); la de varias categorías, arriba.
     sl("p_slide_2_graficos_vertical", titulo = "Pregunta filtro y subpregunta (p192)", superior = .cr_g("p_barras_agrupadas", var = "egresados$trabaja"),
        inferior = .cr_g("p_barras_apiladas", var = "egresados$relacion", overrides = list(top2box_labels = c("Relacionado", "Muy relacionado"))),
-       meta = list(dependencia = list(de = "superior", habilita = "Sí"))),
+       meta = list(dependencia = list(de = "superior", habilita = "Sí", rotulo = "Trabajan"))),
     sl("p_slide_2_graficos", titulo = "Filtro al costado (p193)", izquierda = .cr_g("p_donut", var = "egresados$trabaja"),
        derecha = .cr_g("p_barras_agrupadas", var = "egresados$relacion"), meta = list(dependencia = list(de = "izquierda", habilita = "Sí"))),
 
