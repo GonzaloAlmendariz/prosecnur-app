@@ -34,7 +34,13 @@ export function nombreSlot(slot: string, meta?: SlideMetadata): string {
 /** «Barras apiladas · P12». */
 export function nombreGrafico(g: GraficadorRef, graficadoresById: Readonly<Record<string, GraficadorMetadata>>): string {
   const variable = firstVariableRefFromGraph(g);
-  return `${graficadorDisplayName(g.graficador, graficadoresById[g.graficador])}${variable ? ` · ${variable}` : ""}`;
+  return `${graficadorDisplayName(g.graficador, graficadoresById[g.graficador])}${variable ? ` · ${rotuloVariable(variable)}` : ""}`;
+}
+
+/** «ciclo (estudiantes)» en vez de la referencia cruda «estudiantes$ciclo». */
+export function rotuloVariable(ref: string): string {
+  const i = ref.indexOf("$");
+  return i > 0 ? `${ref.slice(i + 1)} (${ref.slice(0, i)})` : ref;
 }
 
 const CAMPOS_CONOCIDOS: Readonly<Record<string, string>> = {

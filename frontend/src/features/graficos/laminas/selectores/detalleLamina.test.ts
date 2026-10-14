@@ -72,3 +72,11 @@ describe("nombres sin ícono", () => {
     }
   });
 });
+
+import { rotuloVariable } from "./etiquetas";
+describe("la variable del gráfico sin la referencia cruda", () => {
+  it("«estudiantes$ciclo» se lee «ciclo (estudiantes)»", () => {
+    expect(rotuloVariable("estudiantes$ciclo")).toBe("ciclo (estudiantes)");
+    expect(rotuloVariable("p12")).toBe("p12");
+  });
+});
