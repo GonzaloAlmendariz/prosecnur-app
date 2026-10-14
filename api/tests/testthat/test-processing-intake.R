@@ -262,11 +262,10 @@ test_that("actor_key del intake acredita exactamente la revisión publicada", {
   missing <- processing_intake_validate(
     sid, list(.pi_entry("administrativos", "rev-administrativos-1"))
   )
-  expect_false(missing$validation$valid)
-  expect_equal(missing$validation$entries[[1]]$status, "blocked")
-  expect_true("E_PROCESSING_INTAKE_INSTRUMENT_ACTOR_REQUIRED" %in%
-                vapply(missing$validation$blockers, `[[`, character(1), "code"))
-  expect_equal(missing$validation$blockers[[1]]$field, "actor_key")
+  # Una revisión publicada sin público se vincula en el plan: manda el actor de la
+  # entrada (enmienda al ADR 0040, 2026-10-14).
+  expect_true(missing$validation$valid)
+  expect_equal(missing$validation$entries[[1]]$status, "instrument_ready")
 })
 
 test_that("fuera de acreditación una entrada puede no declarar actor", {

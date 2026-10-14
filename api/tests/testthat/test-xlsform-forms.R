@@ -362,7 +362,7 @@ test_that("publicación exige al menos una pregunta sustantiva", {
                 vapply(publication$blockers, `[[`, character(1), "id"))
 })
 
-test_that("catálogo de actores de Monitoreo gobierna publicación de acreditación", {
+test_that("el público no es obligatorio para publicar, ni en acreditación; uno fuera del catálogo sólo avisa", {
   s <- list(
     monitoreo_config = list(monitoreo_profile = list(family = "acreditacion")),
     monitoreo_sources = list(list(
@@ -383,17 +383,19 @@ test_that("catálogo de actores de Monitoreo gobierna publicación de acreditaci
 
   missing <- .xlsform_forms_as_entry(accreditation_state, id = "form-sin-actor")
   missing_publication <- .xlsform_revision_publication(s, missing)
-  expect_false(missing_publication$can_publish)
-  expect_true("actor_required" %in%
-                vapply(missing_publication$blockers, `[[`, character(1), "id"))
+  # Decisión del usuario (2026-10-14, enmienda al ADR 0040): sin público se publica
+  # y se vincula después en el plan de ingreso de Carga.
+  expect_true(missing_publication$can_publish)
+  expect_false("actor_required" %in%
+                 vapply(missing_publication$blockers, `[[`, character(1), "id"))
 
   outside <- accreditation_state
   outside$source$actor_key <- "egresados"
   outside_entry <- .xlsform_forms_as_entry(outside, id = "form-actor-ajeno")
   outside_publication <- .xlsform_revision_publication(s, outside_entry)
-  expect_false(outside_publication$can_publish)
-  expect_true("actor_not_in_catalog" %in%
-                vapply(outside_publication$blockers, `[[`, character(1), "id"))
+  expect_true(outside_publication$can_publish)
+  expect_false("actor_not_in_catalog" %in% vapply(outside_publication$blockers, `[[`, character(1), "id"))
+  expect_true("actor_not_in_catalog" %in% vapply(outside_publication$warnings, function(w) as.character(w$id %||% ""), character(1)))
 
   generic <- make_state("Instrumento genérico")
   generic_entry <- .xlsform_forms_as_entry(generic, id = "form-generico")
