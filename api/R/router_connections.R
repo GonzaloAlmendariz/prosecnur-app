@@ -169,15 +169,18 @@
 .connections_save_profile_manifest <- function(provider, manifest) {
   provider <- .connections_normalize_provider(provider)
   if (!.connections_profiles_supported(provider)) return(invisible(FALSE))
-  profiles <- manifest$profiles %||% list()
-  profiles <- Filter(function(p) !isTRUE(p$legacy), profiles)
+  all_profiles <- manifest$profiles %||% list()
+  profiles <- Filter(function(p) !isTRUE(p$legacy), all_profiles)
   if (!length(profiles)) {
     prosecnur_secret_clear(.connections_profile_manifest_secret(provider))
     return(invisible(TRUE))
   }
   ids <- vapply(profiles, function(p) .connections_profile_clean_id(p$id %||% ""), character(1))
+  # El perfil heredado no se guarda (su secreto es el token único antiguo),
+  # pero sí puede ser el activo: validar contra todos, no sólo los guardados.
+  all_ids <- vapply(all_profiles, function(p) .connections_profile_clean_id(p$id %||% ""), character(1))
   default_id <- .connections_profile_clean_id(manifest$default_profile_id %||% "")
-  if (!nzchar(default_id) || !(default_id %in% ids)) default_id <- ids[1]
+  if (!nzchar(default_id) || !(default_id %in% all_ids)) default_id <- ids[1]
   clean <- list(
     default_profile_id = default_id,
     profiles = lapply(profiles, function(p) {
