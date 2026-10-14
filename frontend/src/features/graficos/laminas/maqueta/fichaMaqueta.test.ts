@@ -33,9 +33,13 @@ const ficha = (s: Slide, k = 0): FichaInfo => fichaDeRanura(ranurasDeMaqueta(s, 
 const filasDe = (f: FichaInfo) => (f.forma?.bloques ?? []).reduce((a, b) => a + b.temas.reduce((x, t) => x + t.filas, 0), 0);
 const tema = (q: string, bases = ["docentes", "estudiantes"]) => bases.map((b) => `${b}$${q}`);
 
+// Con el Top Two Box encendido la galería declara sus respuestas: sin ellas el PowerPoint sale sin la columna y la ficha
+// lo avisa (M2, fichaHallazgosCatalogo.test.tsx).
+const SATISF_TTB = ["Satisfecho", "Muy satisfecho"];
+
 describe("ficha de la maqueta: los casos de la galería", () => {
   it("1 · públicos por tema, 1 tema × 3 públicos, con Top Two Box", () => {
-    const f = ficha(multi({ modo: "var_cruce", vars: { t1: tema("cultura", ["docentes", "administrativos", "estudiantes"]) }, top2box: true }));
+    const f = ficha(multi({ modo: "var_cruce", vars: { t1: tema("cultura", ["docentes", "administrativos", "estudiantes"]) }, top2box: true, top2box_labels: SATISF_TTB }));
     expect(f).toMatchObject({ tipo: "Multiapiladas", lectura: "Públicos por tema", publicos: ["Docentes", "Administrativos", "Estudiantes"], ajustes: ["Top Two Box"], avisos: [] });
     expect(filasDe(f)).toBe(3);
     expect(f.leyendas).toHaveLength(1);
@@ -127,7 +131,7 @@ describe("ficha de la maqueta: los casos de la galería", () => {
     const f = ficha(multi({ modo: "var_cruce", vars: {
       t1: tema("salud", ["docentes", "administrativos", "estudiantes"]), t2: tema("bienestar", ["docentes", "administrativos", "estudiantes"]),
       t3: tema("cultura", ["docentes", "administrativos", "estudiantes"]),
-    } }));
+    }, top2box_labels: SATISF_TTB }));
     expect(filasDe(f)).toBeLessThanOrEqual(MAX_BARRAS);
     expect(f.avisos).toEqual(["Sale en 2 láminas"]);
     expect(f.preguntas).toHaveLength(2);   // describe la parte que se dibuja

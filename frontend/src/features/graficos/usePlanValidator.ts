@@ -11,6 +11,7 @@ import { nombreTipoLamina, rotuloLamina, tituloDeLamina } from "./rotuloLamina";
 import { tituloQueSale } from "./laminas/tituloQueSale";
 import { citaCorta, notasEnTitulo } from "./laminas/notaEnTitulo";
 import { indicesSinCapitulos } from "./indice/requisitoIndice";
+import { twoBoxDeGrafico } from "./laminas/modeloMaqueta";
 
 // Validador del plan 100% client-side: deriva warnings/errores de lo
 // que ya vive en el store + registry + variables del instrumento. Sin
@@ -58,7 +59,8 @@ export type ValidationIssue = {
     | "scale-mismatch"
     | "titulo-vacio"
     | "titulo-con-nota"
-    | "indice-sin-capitulos";
+    | "indice-sin-capitulos"
+    | "ttb-sin-respuestas";
   message: string;
   slideId?: string;       // para poder saltar al slide afectado
   slotName?: string;
@@ -284,6 +286,22 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
       });
     }
   }
+
+  // 4b) Top Two Box encendido sin sus respuestas: el motor omite la columna (catálogo del recetario, M2) --------------
+  slides.forEach((slide, indice) => {
+    for (const valor of Object.values((slide.payload ?? {}) as Record<string, unknown>)) {
+      const g = valor as GraficadorRef | undefined;
+      if (!g || typeof g !== "object" || typeof g.graficador !== "string") continue;
+      const tb = twoBoxDeGrafico(g.graficador, (g.args ?? {}) as Record<string, unknown>, presets);
+      if (!tb.ttb || !Array.isArray(tb.etiquetas) || tb.etiquetas.length) continue;
+      issues.push({
+        severity: "warning",
+        code: "ttb-sin-respuestas",
+        message: `${rotuloLamina(slide, indice)}: el Top Two Box está encendido pero sin sus respuestas; el PowerPoint sale sin la columna. Elígelas en la pestaña Gráfico.`,
+        slideId: slide.id,
+      });
+    }
+  });
 
   // 5) Índice sin capítulos: el motor no tiene qué listar (indice/requisitoIndice.ts) -----------------
   for (const { slideId, message } of indicesSinCapitulos(slides)) {

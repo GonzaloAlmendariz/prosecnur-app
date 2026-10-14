@@ -74,7 +74,7 @@ function PiezaFicha({ p, icono, graficador }: { p: Pieza; icono: string | null; 
     case "glifo":
       return (
         <svg className={`pulso-glifo pulso-ficha-glifo${p.tenue ? " is-tenue" : ""}`} x={p.x} y={p.y} width={p.w} height={p.h} viewBox="0 0 160 100" preserveAspectRatio="xMidYMid meet">
-          {graficador ? <CuerpoGlifo tipo={graficador} /> : null}
+          {graficador ? <CuerpoGlifo tipo={graficador} opciones={{ sinCifras: true }} /> : null}
         </svg>
       );
     case "vacia":
