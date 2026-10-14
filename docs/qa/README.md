@@ -53,6 +53,11 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Seguimiento de cuotas en cursos-horario — método y motores](metodo-seguimiento-cuotas-aulas.md): con qué motor sale cada cifra del avance y qué trampas costaron un ciclo.
 - [Croquis del campus PUCP — fuentes](croquis-campus-pucp-fuentes.md): respaldo de las coordenadas embebidas en el croquis de B32.
 
+### Importación SurveyMonkey → Formularios → Procesamiento (Arte y Diseño 2026)
+
+- [Checklist de la importación SM de Arte](checklist-importacion-sm-arte-2026-10-14.md): hallazgos de API, UI y del paso a Procesamiento (ADR 0101–0102), con su estado.
+- [Revamp del flujo SurveyMonkey → Formularios](revamp-importacion-sm-2026-10-14.md): dirección visual congelada y contrato de superficies.
+
 ### Robustez
 
 - [Robustez — la noche del 2026-09-11 al 12](goal-robustez-2026-09-12.md): diario de lo medido, lo arreglado y las recetas para reproducirlo.

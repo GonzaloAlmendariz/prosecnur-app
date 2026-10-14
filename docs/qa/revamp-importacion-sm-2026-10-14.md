@@ -1,5 +1,10 @@
 # Revamp — flujo SurveyMonkey → Formularios (2026-10-14)
 
+Tipo: Dirección de revamp visual
+Estado: Vigente
+Fecha: 2026-10-14
+Autoridad: Dirección de diseño congelada; no reemplaza un ADR
+
 Pedido del usuario: «A la UI le falta pulir muchísimo» (sobre la vista previa de la campaña: un muro de 28 viñetas). Checklist de origen: `docs/qa/checklist-importacion-sm-arte-2026-10-14.md` (U1–U8, U10, U11, U15 y la cara de UI de H4). Identidad: «Instrumento sereno» (`branding/direccion-creativa-v3.md`): el dato aparece antes que el chrome, acento modular sólo en contexto/selección/foco, éxito/alerta/peligro no cambian con el módulo, voz en sentence case sin `snake_case` ni inglés.
 
 Dimensión: todo vive en **Formularios → panel** (diálogos `PulsoDialog` sobre Radix) y en la biblioteca del módulo. No se crea navegación nueva.
