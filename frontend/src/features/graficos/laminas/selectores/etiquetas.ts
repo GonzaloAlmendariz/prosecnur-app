@@ -7,8 +7,20 @@ import { RANURAS_ESTANDAR } from "../../iconos/ranurasEstandar.generated";
 import { firstVariableRefFromGraph } from "../../slideAutoTitle";
 import { SLIDE_LABELS } from "../../store";
 
+/**
+ * Las láminas de población ya no llevan el ícono del público ni forman familia propia (Gonzalo, 2026-10-14), pero el
+ * registro y `SLIDE_LABELS` todavía las titulan «+ ícono»: el selector las nombra por su reparto.
+ */
+export const NOMBRES_SIN_ICONO: Readonly<Partial<Record<SlideType, string>>> = {
+  p_slide_3_graficos_poblacion_tira: "Tres gráficos en franjas",
+  p_slide_3_graficos_poblacion_corona: "Tres gráficos: dos arriba + uno ancho",
+  p_slide_3_graficos_poblacion_cifras: "Tres gráficos + cifras",
+  p_slide_5_graficos_poblacion: "Cinco gráficos",
+  p_slide_6_graficos_poblacion: "Seis gráficos",
+};
+
 export function nombreLamina(tipo: SlideType, meta?: SlideMetadata): string {
-  return meta?.titulo_humano?.trim() || SLIDE_LABELS[tipo] || RANURAS_ESTANDAR[tipo]?.nombre || humanizeIdentifier(tipo, "Lámina");
+  return NOMBRES_SIN_ICONO[tipo] || meta?.titulo_humano?.trim() || SLIDE_LABELS[tipo] || RANURAS_ESTANDAR[tipo]?.nombre || humanizeIdentifier(tipo, "Lámina");
 }
 
 /** Nombre de la ranura: el del registro (`slot_specs`), o el conocido del editor. */

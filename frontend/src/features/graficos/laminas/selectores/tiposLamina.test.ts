@@ -72,6 +72,19 @@ describe("los 33 tipos del registro", () => {
     for (const t of retirados) expect(intencionDe(t), t).toBeNull();
   });
 
+  it("«Describir a un público» ya no se ofrece; sus láminas caen en «Varias preguntas de un tema»", () => {
+    // Gonzalo, 2026-10-14: las de población son láminas normales de varios gráficos, sin ícono en la cabecera. Un plan
+    // guardado con una de ellas sigue resolviendo su familia (el selector la marca «Actual» en la nueva).
+    expect(INTENCIONES.map((i) => i.id)).not.toContain("publico");
+    expect(INTENCIONES.map((i) => i.label)).not.toContain("Describir a un público");
+    for (const i of INTENCIONES) expect(i.descripcion, i.id).not.toMatch(/[íi]cono/i);
+    for (const t of ["p_slide_3_graficos_poblacion_tira", "p_slide_3_graficos_poblacion_corona", "p_slide_5_graficos_poblacion", "p_slide_6_graficos_poblacion"] as const) {
+      expect(intencionDe(t), t).toBe("varias");
+      expect(payloadPorDefecto(t), t).toBeTypeOf("object");
+    }
+    expect(intencionDe("p_slide_3_graficos_poblacion_cifras")).toBe("cifras");
+  });
+
   it("cada tipo aparece en una sola intención", () => {
     const todos = INTENCIONES.flatMap((i) => i.tipos);
     expect(new Set(todos).size).toBe(todos.length);

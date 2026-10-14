@@ -76,7 +76,7 @@
 
 .pulso-f6-selector-cuerpo {
   display: grid;
-  grid-template-columns: 232px minmax(0, 1fr) 360px;
+  grid-template-columns: 232px minmax(0, 1fr) 340px;
   min-height: 0;
 }
 
@@ -107,7 +107,7 @@
 .pulso-f6-opciones {
   display: flex;
   flex-direction: column;
-  gap: var(--pulso-space-1);
+  gap: var(--pulso-space-2);
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -115,7 +115,12 @@
 }
 
 .pulso-f6-opciones > legend {
-  margin-bottom: var(--pulso-space-2);
+  /* Mismo renglón que la cabecera de la galería: la leyenda y el título del grupo arrancan a la misma altura y la
+     primera opción se alinea con la primera fila de tarjetas. */
+  display: flex;
+  align-items: center;
+  min-height: 20px;
+  margin-bottom: var(--pulso-space-3);
   padding: 0;
 }
 
@@ -185,6 +190,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--pulso-space-2);
+  min-height: 20px;
   margin: 0 0 var(--pulso-space-3);
 }
 
@@ -208,6 +214,15 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* Láminas: las tarjetas llenan el ancho de la galería (tantas columnas como quepan, ninguna más angosta que el mínimo) y
+   todas las filas miden lo que la más alta (`1fr` con alto indefinido): grupo `equal` cuyo marco no depende de cuántas
+   composiciones haya (C2) ni de cuántas líneas tome el texto de cada una. `auto-fill` y no `auto-fit`: con una sola
+   composición la tarjeta conserva el ancho de columna en vez de estirarse a toda la galería. */
+.pulso-f6-tarjetas.is-laminas {
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  grid-auto-rows: 1fr;
 }
 
 .pulso-f6-tarjetas.is-graficos {
@@ -284,6 +299,34 @@
   white-space: nowrap;
 }
 
+.pulso-f6-tarjeta-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-f6-tarjeta-cuerpo .pulso-f6-tarjeta-nombre {
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-tarjeta-uso {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.pulso-f6-tarjeta-admite {
+  margin-top: auto;
+  padding-top: var(--pulso-space-1);
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
 .pulso-f6-tarjeta-chips {
   position: absolute;
   top: calc(var(--pulso-space-3) + var(--pulso-space-1));
@@ -348,6 +391,59 @@
 
 .pulso-f6-selector-col.is-detalle > .pulso-f6-detalle {
   flex: 1 0 auto;
+}
+
+.pulso-f6-reparto {
+  display: grid;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-f6-reparto h4 {
+  margin: 0;
+}
+
+.pulso-f6-reparto ol {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-reparto li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+  align-items: start;
+}
+
+.pulso-f6-reparto-num {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-reparto-texto {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pulso-f6-reparto-grafico {
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-reparto-ranura {
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
 }
 
 .pulso-f6-detalle-texto {
@@ -425,19 +521,18 @@
   border-radius: 4px;
 }
 
+/* El nombre y el detalle de cada variante se leen enteros (dos o tres renglones), como en las tarjetas. */
 .pulso-f6-variante > span {
-  overflow: hidden;
   font-weight: var(--pulso-weight-medium);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .pulso-f6-variante > small {
-  overflow: hidden;
   color: var(--pulso-text-faint);
   font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .pulso-f6-variante:has(input:checked) {
@@ -484,6 +579,10 @@
   outline-offset: var(--pulso-nav-focus-offset);
 }
 
+.pulso-f6-medidas-familia {
+  margin-top: var(--pulso-space-2);
+}
+
 .pulso-f6-medidas table {
   width: 100%;
   margin-top: var(--pulso-space-2);
@@ -522,6 +621,8 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--pulso-space-2);
+  /* Pie del diálogo: pegado al fondo de la ficha (sticky) para que el botón se vea aunque la columna desplace con
+     variantes o con el aviso de cambio (C4). El espacio entre la ficha y el pie es de la ficha (C3). */
   margin: auto calc(-1 * var(--pulso-space-4)) 0;
   padding: var(--pulso-space-3) var(--pulso-space-4);
   border-top: 1px solid var(--pulso-border);
@@ -532,9 +633,23 @@
   flex-basis: 100%;
 }
 
+/* El botón ocupa el ancho del pie: es la acción de la columna y dice qué hace («Usar esta composición»), no un botón
+   chico perdido en la esquina. Con «Elegir otra» al lado, los dos se reparten el ancho. */
+.pulso-f6-selector-acciones {
+  display: flex;
+  flex: 1 1 100%;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-f6-selector-acciones > .pulso-button {
+  flex: 1 1 0;
+  justify-content: center;
+  gap: var(--pulso-space-1);
+}
+
 @media (max-width: 1180px) {
   .pulso-f6-selector-cuerpo {
-    grid-template-columns: 200px minmax(0, 1fr) 300px;
+    grid-template-columns: 200px minmax(0, 1fr) 296px;
   }
 }
 

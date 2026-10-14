@@ -12,7 +12,7 @@ import { SLIDE_GRAF_SLOTS } from "../../store";
 import { esSlotCifra } from "../../iconos/composicion";
 import { composicionIndiceEfectiva, composicionIndicePorDefecto } from "../../indice/modeloIndice";
 
-export type IntencionLamina = "una" | "dos" | "varias" | "publico" | "cifras" | "mensaje" | "estructura";
+export type IntencionLamina = "una" | "dos" | "varias" | "cifras" | "mensaje" | "estructura";
 
 export type Intencion = { id: IntencionLamina; label: string; descripcion: string; tipos: readonly SlideType[] };
 
@@ -35,14 +35,15 @@ export const INTENCIONES: readonly Intencion[] = [
   {
     id: "varias",
     label: "Varias preguntas de un tema",
-    descripcion: "Tres o cuatro gráficos de un mismo tema en un reparto fijo.",
-    tipos: ["p_slide_3_graficos_fila", "p_slide_3_graficos_2mas1", "p_slide_3_graficos_1mas2", "p_slide_3_graficos_1arriba", "p_slide_4_graficos"],
-  },
-  {
-    id: "publico",
-    label: "Describir a un público",
-    descripcion: "El perfil de un público, con su ícono en la cabecera.",
-    tipos: ["p_slide_3_graficos_poblacion_tira", "p_slide_3_graficos_poblacion_corona", "p_slide_5_graficos_poblacion", "p_slide_6_graficos_poblacion"],
+    descripcion: "De tres a seis gráficos de un mismo tema en un reparto fijo.",
+    // Las de población (tira, corona, cinco y seis) son láminas de varios gráficos como las demás (Gonzalo, 2026-10-14):
+    // ya no forman una familia propia ni llevan el ícono del público en la cabecera. Ninguna repite un reparto de esta
+    // lista (la tira son tres franjas anchas, no tres columnas), así que entran todas, ordenadas por cuántos gráficos.
+    tipos: [
+      "p_slide_3_graficos_fila", "p_slide_3_graficos_2mas1", "p_slide_3_graficos_1mas2", "p_slide_3_graficos_1arriba",
+      "p_slide_3_graficos_poblacion_tira", "p_slide_3_graficos_poblacion_corona", "p_slide_4_graficos",
+      "p_slide_5_graficos_poblacion", "p_slide_6_graficos_poblacion",
+    ],
   },
   {
     id: "cifras",

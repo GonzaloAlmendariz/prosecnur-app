@@ -1,9 +1,10 @@
 // Detalle del tipo elegido en «¿Qué lámina?» (F6.2; dirección F6 §4.3, columna derecha): la composición en grande con
-// sus ranuras numeradas y los gráficos acomodados, qué admite, la escala de su familia, sus variantes, sus medidas del
-// estándar y el botón para aplicarla. Si el tipo nuevo deja gráficos o textos fuera, lo dice antes y pide confirmarlo.
+// sus ranuras numeradas y los gráficos acomodados, una frase de para qué sirve, qué admite y el tamaño de su texto en
+// palabras, sus variantes, las medidas del estándar plegadas y el botón para aplicarla. Si el tipo nuevo deja gráficos
+// o textos fuera, lo dice antes y pide confirmarlo.
 
 import { useId } from "react";
-import { AlertTriangle, Lock } from "../../../../vendor/lucide-react";
+import { AlertTriangle, Check } from "../../../../vendor/lucide-react";
 import type { GraficadorRef, SlideType } from "../../../../api/graficos";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { ComposicionLamina } from "../../iconos/ComposicionLamina";
@@ -12,9 +13,10 @@ import { ESTANDAR_LAMINAS } from "../../iconos/estandarLaminas.generated";
 import { SLIDE_GRAF_SLOTS } from "../../store";
 import type { CambioTipoLamina } from "./cambioTipoLamina";
 import type { ModoSelectorLamina } from "./selectoresStore";
+import { etiquetaBoton, fraseDetalle, tamanoTexto } from "./detalleLamina";
+import { MedidasEstandar } from "./MedidasEstandar";
+import { RepartoGraficos } from "./RepartoGraficos";
 import { rotuloRanuras, type VariantesTipo } from "./tiposLamina";
-
-const num = (n: number): string => n.toLocaleString("es", { maximumFractionDigits: 3 });
 
 type Props = {
   tipo: SlideType;
@@ -37,18 +39,6 @@ type Props = {
   onVolver: () => void;
 };
 
-function etiquetaBoton(p: Pick<Props, "modo" | "cambio" | "variantes" | "variante" | "varianteActual" | "confirmando">): { texto: string; deshabilitado: boolean } {
-  if (p.modo === "insertar") return { texto: "Insertar esta lámina", deshabilitado: false };
-  if (p.cambio?.mismoTipo) {
-    if (!p.variantes) return { texto: "Es la lámina actual", deshabilitado: true };
-    return { texto: "Usar esta variante", deshabilitado: p.variante === p.varianteActual };
-  }
-  const n = p.cambio?.sobrantes.length ?? 0;
-  if (p.confirmando && n > 0) return { texto: `Cambiar y quitar ${n === 1 ? "1 gráfico" : `${n} gráficos`}`, deshabilitado: false };
-  if (p.confirmando) return { texto: "Cambiar de todos modos", deshabilitado: false };
-  return { texto: "Usar esta lámina", deshabilitado: false };
-}
-
 export function DetalleTipoLamina(props: Props) {
   const {
     tipo, nombre, descripcion, graficos, variantes, variante, onVariante, modo, cambio, confirmando,
@@ -63,7 +53,8 @@ export function DetalleTipoLamina(props: Props) {
   const textos = cambio && !cambio.mismoTipo ? cambio.textosSobrantes : [];
   const hayPerdida = sobrantes.length > 0 || textos.length > 0;
   const boton = etiquetaBoton(props);
-  const ranurasMedibles = comp.ranuras;
+  const frase = fraseDetalle(estandar?.uso, descripcion);
+  const tamano = tamanoTexto(estandar?.familia);
 
   return (
     <div className="pulso-f6-detalle">
@@ -79,27 +70,29 @@ export function DetalleTipoLamina(props: Props) {
       </div>
       <div className="pulso-f6-detalle-texto">
         <h3>{nombre}</h3>
-        {(estandar?.uso || descripcion) && <p>{estandar?.uso ? `${estandar.uso}. ${descripcion}`.trim() : descripcion}</p>}
+        {frase && <p>{frase}</p>}
       </div>
 
       <dl className="pulso-f6-ficha">
         <dt>Admite</dt>
-        <dd>{rotuloRanuras(tipo)}{comp.poblacion ? " · ícono del público" : ""}</dd>
-        {estandar?.familia && (
+        <dd>{rotuloRanuras(tipo)}</dd>
+        {tamano && (
           <>
-            <dt>Escala de la familia</dt>
-            <dd>{num(estandar.familia.escala)} · cifra {num(estandar.familia.cifra_pt)} pt · rótulo {num(estandar.familia.rotulo_pt)} pt</dd>
-            <dt>Grosor de barra</dt>
-            <dd>{num(estandar.familia.barra_in)} in</dd>
-          </>
-        )}
-        {estandar?.cifra_valor_pt && (
-          <>
-            <dt>Cifra destacada</dt>
-            <dd>{num(estandar.cifra_valor_pt)} pt</dd>
+            <dt>Tamaño del texto</dt>
+            <dd>{tamano}</dd>
           </>
         )}
       </dl>
+
+      {cambio && (
+        <RepartoGraficos
+          conservados={cambio.conservados}
+          slots={slots}
+          mismoTipo={cambio.mismoTipo}
+          nombreGrafico={nombreGrafico}
+          nombreSlot={nombreSlot}
+        />
+      )}
 
       {variantes && (
         <fieldset className="pulso-f6-variantes" aria-describedby={idVariantes}>
@@ -124,29 +117,7 @@ export function DetalleTipoLamina(props: Props) {
       )}
 
 
-      {ranurasMedibles.length > 0 && (
-        <details className="pulso-f6-medidas">
-          <summary>Medidas del estándar</summary>
-          <table>
-            <caption>Ranuras en pulgadas de la lámina de 13,333 × 7,5</caption>
-            <thead>
-              <tr><th scope="col">Ranura</th><th scope="col">x</th><th scope="col">y</th><th scope="col">Ancho</th><th scope="col">Alto</th></tr>
-            </thead>
-            <tbody>
-              {ranurasMedibles.map((r, i) => {
-                const k = r.slot ? slots.indexOf(r.slot) + 1 : 0;
-                const rotulo = r.tipo === "texto" ? "Texto" : `${r.tipo === "cifras" ? "Cifra" : "Gráfico"} ${k || ""}${r.slot ? ` · ${nombreSlot(r.slot)}` : ""}`.trim();
-                return (
-                  <tr key={`${r.tipo}-${i}`}>
-                    <th scope="row">{rotulo}</th>
-                    <td>{num(r.x)}</td><td>{num(r.y)}</td><td>{num(r.w)}</td><td>{num(r.h)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </details>
-      )}
+      <MedidasEstandar estandar={estandar} ranuras={comp.ranuras} slots={slots} nombreSlot={nombreSlot} />
 
       <div className="pulso-f6-selector-pie">
         {hayPerdida && (
@@ -164,16 +135,19 @@ export function DetalleTipoLamina(props: Props) {
             <span>Los demás gráficos se conservan. Puedes deshacerlo después.</span>
           </div>
         )}
-        {confirmando && <PulsoButton variant="secondary" size="sm" onClick={onVolver}>Elegir otra</PulsoButton>}
-        <PulsoButton
-          variant="primary"
-          size="sm"
-          disabled={boton.deshabilitado}
-          aria-describedby={hayPerdida ? idAviso : undefined}
-          onClick={onAplicar}
-        >
-          {boton.texto}
-        </PulsoButton>
+        <div className="pulso-f6-selector-acciones">
+          {confirmando && <PulsoButton variant="secondary" onClick={onVolver}>Elegir otra</PulsoButton>}
+          <PulsoButton
+            variant="primary"
+            className="pulso-f6-selector-aplicar"
+            disabled={boton.deshabilitado}
+            aria-describedby={hayPerdida ? idAviso : undefined}
+            onClick={onAplicar}
+          >
+            {boton.deshabilitado && <Check size={14} aria-hidden="true" />}
+            {boton.texto}
+          </PulsoButton>
+        </div>
       </div>
     </div>
   );
