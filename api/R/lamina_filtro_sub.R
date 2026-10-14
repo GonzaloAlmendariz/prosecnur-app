@@ -104,7 +104,9 @@
     gap <- 0.6; col <- (ancho - gap) / 2; xr <- ml + col + gap
     y0 <- .lam_panel_titulo(lz, ml, yt, col, espec$pregunta_filtro, publico(espec$n_filtro)) + 0.25
     if (identical(f$tipo, "pie")) {
-      circ <- .lam_filtro_sub_circular(lz, f, espec$habilita, ml, y0, col, yf - y0, xr, yt)
+      # Como la columna de p193: el disco mide lo que la subpregunta (Gonzalo, 2026-10-14: «se ve muy vacío abajo»).
+      alto_sub <- if (identical(s$tipo, "categorica")) length(s$rotulos) * min(0.75, (yf - y0 - 0.3) / max(1L, length(s$rotulos))) else 2.2
+      circ <- .lam_filtro_sub_circular(lz, f, espec$habilita, ml, y0, col, yf - y0, xr, yt, alto_sub = alto_sub)
     } else if (dico) {
       # p193: la dicotomía en una columna al 100 %, del alto del gráfico vecino, con sus cifras a la izquierda.
       d <- .lam_dicotomia_datos(f)
@@ -140,14 +142,15 @@
 }
 
 
-#' F1: el filtro como torta o dona, girado para que lo que habilita quede a las 3, con la leyenda debajo y un conector
-#' desde el borde de ese sector hasta el título de la subpregunta (el trazo de la llave)
+#' F1: el filtro dicotómico como torta o dona, como la columna de p193 (Gonzalo, 2026-10-14: «mantenerlo sólo para filtros
+#' dicotómicos»): el disco mide lo que la subpregunta, las dos cifras grandes a su izquierda con su rótulo y sus casos, y lo
+#' que habilita girado hacia la subpregunta (a las 3) con un conector hasta su título (el trazo de la llave).
 #' @keywords internal
-.lam_filtro_sub_circular <- function(lz, f, habilita, x, y0, w, alto, x_titulo, y_titulo, color = .std_color("azul"), t = 0.022) {
+.lam_filtro_sub_circular <- function(lz, f, habilita, x, y0, w, alto, x_titulo, y_titulo, alto_sub = 2.2,
+                                     color = .std_color("azul"), t = 0.022) {
   k <- length(f$valores); cols <- .lam_colores_pie(k, f); dona <- !identical(f$forma, "pie")
-  # El filtro no pesa más que la subpregunta (Gonzalo, 2026-10-14): el disco, a lo sumo 2 in.
-  fila <- 0.34; d <- min(alto - k * fila - 0.25, w * 0.4, 2.0); r <- d / 2 * 0.95
-  cx <- x + w * 0.4; cy <- y0 + 0.15 + d / 2
+  d <- max(2.0, min(alto_sub, alto - 0.1, w * 0.5, 3.4)); r <- d / 2
+  cx <- x + w - 0.45 - r; cy <- y0 + d / 2
   fr <- f$valores / sum(f$valores); acum <- c(0, cumsum(fr))
   hab <- which(f$rotulos %in% habilita)
   medio <- if (length(hab)) (acum[min(hab)] + acum[max(hab) + 1]) / 2 else 0
@@ -155,21 +158,24 @@
   for (i in seq_len(k)) if (fr[i] > 0) .lam_sector(lz, cx, cy, r, acum[i] + giro, acum[i + 1] + giro, cols[i], arco = dona, borde_pt = 1.2,
                                                    nombre = if (dona) "dona:porcion" else "torta:porcion")
   if (dona && length(hab)) {
-    tam <- min(24, max(14, r * 18))
+    tam <- min(26, max(16, r * 16))
     .lam_txt(lz, f$cifras[hab[1]], cx - r, cy - tam / 144 - 0.05, 2 * r, tam / 72 + 0.1, tam, color, bold = TRUE, align = "center", nombre = "dona:cifra")
   }
-  # Leyenda debajo: cuadro, cifra y rótulo (lo que habilita en negrita).
-  yl <- y0 + 0.15 + d + 0.25
-  for (i in seq_len(k)) {
-    yk <- yl + (i - 1) * fila
-    .lam_caja(lz, x + 0.1, yk + 0.08, 0.17, 0.17, cols[i], nombre = "circular:cuadro")
-    .lam_txt(lz, f$cifras[i], x + 0.34, yk, 0.8, 0.3, 13, color, bold = TRUE, nombre = "circular:cifra")
-    .lam_txt(lz, f$rotulos[i], x + 1.1, yk + 0.01, w - 1.2, 0.3, 11, color, bold = i %in% hab, nombre = "circular:rotulo")
+  # Las cifras a la izquierda del disco, como p193: grande en el color de su porción, el rótulo con sus casos debajo.
+  orden <- c(hab, setdiff(seq_len(k), hab)); xc <- cx - r - 0.25; paso <- min(1.1, d / max(1L, k))
+  y_c <- cy - paso * k / 2
+  n <- .espec_casos(f)
+  for (j in seq_along(orden)) {
+    i <- orden[j]; yk <- y_c + (j - 1) * paso
+    .lam_txt(lz, f$cifras[i], xc - 1.75, yk, 1.6, 0.42, 22, if (i %in% hab) color else .std_color("azul_medio"), bold = TRUE, align = "right",
+             nombre = "circular:cifra")
+    et <- if (length(n) >= i && is.finite(n[i])) sprintf("%s (%d)", f$rotulos[i], as.integer(n[i])) else f$rotulos[i]
+    .lam_txt(lz, et, xc - 1.75, yk + 0.4, 1.6, 0.26, 10.5, color, bold = i %in% hab, align = "right", nombre = "circular:rotulo")
   }
   # Conector: del borde del sector a las 3, en horizontal hasta la calle, y de ahí al título de la subpregunta.
   xt <- x_titulo - 0.22; yt <- y_titulo + 0.16
   .lam_caja(lz, cx + r + 0.06, cy - t / 2, xt - (cx + r + 0.06) + t, t, color, nombre = "conector")
   .lam_caja(lz, xt, min(cy, yt), t, abs(cy - yt) + t, color, nombre = "conector")
   .lam_caja(lz, xt, yt - t / 2, x_titulo - 0.06 - xt, t, color, nombre = "conector")
-  invisible(list(cy = cy, fin = yl + k * fila))
+  invisible(list(cy = cy, fin = y0 + d))
 }

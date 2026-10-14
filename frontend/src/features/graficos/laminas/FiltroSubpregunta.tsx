@@ -10,6 +10,7 @@ type Props = { args: Record<string, unknown>; onCambio: (patch: Record<string, u
 
 export function FiltroSubpregunta({ args, onCambio }: Props) {
   const idHab = useId();
+  const idGrafico = useId();
   const { variables } = useVariables();
   const filtro = typeof args.var === "string" ? args.var : null;
   const ref = filtro ? parseVarRef(filtro) : null;
@@ -40,6 +41,21 @@ export function FiltroSubpregunta({ args, onCambio }: Props) {
           </div>
           {habilita.size === 0 && <span className="pulso-f6-dato-ayuda" role="note">Elige al menos una: sin ella la subpregunta no tiene base.</span>}
         </div>
+      )}
+      {respuestas.length === 2 && (
+        // F1 (Gonzalo, 2026-10-14): torta o dona sólo con un filtro de dos respuestas; con más, barras con su llave.
+        <div className="pulso-f6-dato" data-qa="filtro-grafico">
+          <label className="pulso-f6-dato-rotulo" htmlFor={idGrafico}>Gráfico del filtro</label>
+          <select id={idGrafico} className="pulso-f6-input pulso-f6-dato-select" value={typeof args.grafico_filtro === "string" ? args.grafico_filtro : "auto"}
+            onChange={(e) => onCambio({ grafico_filtro: e.target.value === "auto" ? null : e.target.value })}>
+            <option value="auto">Barra partida</option>
+            <option value="torta">Torta</option>
+            <option value="dona">Dona</option>
+          </select>
+        </div>
+      )}
+      {respuestas.length > 2 && (args.grafico_filtro === "torta" || args.grafico_filtro === "dona") && (
+        <span className="pulso-f6-dato-ayuda" role="note">Con más de dos respuestas el filtro va en barras con su llave.</span>
       )}
       <div className="pulso-f6-dato is-apilado">
         <span className="pulso-f6-dato-rotulo">Subpregunta</span>

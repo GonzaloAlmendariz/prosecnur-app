@@ -98,6 +98,12 @@ p_filtro_subpregunta <- function(var, habilita, subpregunta, grafico_sub = c("ba
           else p_barras_agrupadas(var = el$subpregunta, filtros = filtros_sub, overrides = ov)
   p_s <- rend(el_s)
   espec_f <- attr(p_f, "pulso_espec"); espec_s <- attr(p_s, "pulso_espec")
+  # F1: la torta o dona del filtro va sólo con dos respuestas (Gonzalo, 2026-10-14); con más, barras con su llave y se avisa.
+  if (gf %in% c("torta", "dona") && !is.null(espec_f) && length(espec_f$rotulos) != 2L) {
+    .pulso_aviso(.aviso_en_lamina(sprintf("«%s» tiene %d respuestas: la torta o dona del filtro va sólo con dos; se dibuja en barras con su llave.",
+                                          .fsub_enunciado(ctx_f), length(espec_f$rotulos))))
+    p_f <- rend(p_barras_agrupadas(var = el$filtro, filtros = el$filtros, overrides = ov)); espec_f <- attr(p_f, "pulso_espec")
+  }
   # Ruta anterior (si la lámina nativa no cabe o falta una espec): los dos gráficos lado a lado o uno sobre otro.
   p <- cowplot::plot_grid(p_f, p_s, nrow = if (identical(el$disposicion, "abajo")) 2L else 1L)
   if (!is.null(espec_f) && !is.null(espec_s)) {

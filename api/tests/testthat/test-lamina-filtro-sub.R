@@ -92,13 +92,28 @@ test_that("habilitar una respuesta que el filtro no tiene no se dibuja en silenc
 })
 
 
-# F1: el filtro como torta o dona, con el sector que habilita a la derecha y un conector hasta el título de la subpregunta.
-test_that("F1: con torta o dona el filtro sale nativo con su conector y lo que habilita en negrita", {
+# F1: el filtro dicotómico como torta o dona (Gonzalo, 2026-10-14: «sólo para filtros dicotómicos»), con su conector; con más
+# respuestas cae a barras con su llave y lo avisa.
+test_that("F1: con un filtro de dos respuestas la torta y la dona salen nativas con su conector", {
   skip_if_not_installed("officer")
   for (gf in c("torta", "dona")) {
-    r <- .fsub_render(p_filtro_subpregunta("lab", habilita = c("Dependiente", "Independiente"), subpregunta = "rel", grafico_filtro = gf))
+    r <- .fsub_render(p_filtro_subpregunta("inter", habilita = "Sí", subpregunta = "util", grafico_filtro = gf))
     expect_true("prosecnur:grafico:filtro_sub" %in% r$nombres, info = gf)
     expect_equal(sum(r$nombres == "conector"), 3L, info = gf)
     expect_true(any(r$nombres == if (gf == "torta") "torta:porcion" else "dona:porcion"), info = gf)
   }
+})
+
+test_that("F1: con más de dos respuestas la torta cae a barras con su llave y lo avisa", {
+  skip_if_not_installed("officer")
+  fx <- .fsub_fixture(); msgs <- character(); out <- tempfile(fileext = ".pptx")
+  withCallingHandlers(
+    reporte_ppt_plan(data = fx$df, instrumento = fx$inst, path_ppt = out, mensajes_progreso = FALSE,
+                     plan = list(p_slide_1_grafico(p_filtro_subpregunta("lab", habilita = c("Dependiente", "Independiente"), subpregunta = "rel",
+                                                                        grafico_filtro = "torta"), titulo = "x"))),
+    message = function(m) { msgs <<- c(msgs, conditionMessage(m)); invokeRestart("muffleMessage") },
+    warning = function(w) { msgs <<- c(msgs, conditionMessage(w)); invokeRestart("muffleWarning") })
+  nombres <- xml2::xml_attr(xml2::xml_find_all(xml2::read_xml(unz(out, "ppt/slides/slide1.xml")), "//p:cNvPr"), "name")
+  expect_false(any(nombres == "torta:porcion")); expect_true("llave" %in% nombres)
+  expect_true(any(grepl("va sólo con dos", msgs)), info = paste(msgs, collapse = "\n"))
 })
