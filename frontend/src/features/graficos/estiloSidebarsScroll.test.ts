@@ -4,14 +4,13 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * C4 (No Scroll Jail) en Estilo > Base PPT / Base Word: la lista de presets de la izquierda es su propio dueño de
- * scroll (`overflow-y: auto`). En el QA en vivo (Meta A, 1024x600) la sidebar de Word medía 299 px de caja con 775 px
- * de contenido y `overflow-y: hidden`: una regla posterior de igual especificidad,
- * `.pulso-gv2-estilo-body :where(… sidebars …) { overflow: hidden }`, pisaba el `overflow-y: auto` de la base y las
- * últimas plantillas quedaban fuera de alcance.
+ * C4 (No Scroll Jail) en la pestaña Word: la lista de tipos de la izquierda es su propio dueño de scroll
+ * (`overflow-y: auto`). En el QA en vivo (Meta A, 1024x600) esa sidebar medía 299 px de caja con 775 px de contenido y
+ * `overflow-y: hidden`: una regla posterior de igual especificidad (la del antiguo diálogo «Estilo global», ya
+ * retirado) pisaba el `overflow-y: auto` de la base y los últimos tipos quedaban fuera de alcance.
  *
  * Este contrato resuelve la cascada de `editor-v2.css` (reglas de nivel superior, sin `@media`: el ancho de escritorio)
- * para cada sidebar dentro de `.pulso-gv2-estilo-body` y exige que el `overflow-y` ganador sea desplazable.
+ * para la sidebar y exige que el `overflow-y` ganador sea desplazable.
  */
 
 const CSS = fs.readFileSync(
@@ -71,7 +70,7 @@ function especificidad(sel: string): number {
   return ids * 100 + b;
 }
 
-/** ¿El sujeto del selector (su último compuesto) es la sidebar, en el contexto de `.pulso-gv2-estilo-body`? */
+/** ¿El sujeto del selector (su último compuesto) es la sidebar, sin ancestros que la acoten a otro contexto? */
 function apuntaA(sel: string, clase: string): boolean {
   if (sel.includes("::")) return false;
   const compuestos = sel.replace(/\([^()]*\)/g, (m) => m.replace(/\s+/g, "")).split(/\s*[\s>+~]\s*/).filter(Boolean);
@@ -79,7 +78,7 @@ function apuntaA(sel: string, clase: string): boolean {
   const clases: string[] = sujeto.match(/\.[\w-]+/g) ?? [];
   if (!clases.includes(`.${clase}`)) return false;
   // Ancestros: sólo los que también cumple una sidebar dentro de Estilo.
-  return compuestos.slice(0, -1).every((c) => c === ".pulso-gv2-estilo-body");
+  return compuestos.length === 1;
 }
 
 function overflowYGanador(css: string, clase: string): string | null {
@@ -102,15 +101,14 @@ function overflowYGanador(css: string, clase: string): string | null {
   return ganador?.valor ?? null;
 }
 
-describe("C4 · sidebars de Base PPT y Base Word son su propio dueño de scroll", () => {
-  it.each(["pulso-gv2-word-sidebar", "pulso-gv2-presets-sidebar"])("%s gana overflow-y desplazable", (clase) => {
-    expect(overflowYGanador(CSS, clase)).toMatch(/^(auto|scroll)$/);
+describe("C4 · la sidebar de Word es su propio dueño de scroll", () => {
+  it("pulso-gv2-word-sidebar gana overflow-y desplazable", () => {
+    expect(overflowYGanador(CSS, "pulso-gv2-word-sidebar")).toMatch(/^(auto|scroll)$/);
   });
 
   // El resolvedor no es vacuo: la regla que causó el fallo, añadida al final, lo hace rojo.
   it("el resolvedor detecta la regla que encerraba las sidebars", () => {
-    const envenenado = `${CSS}\n.pulso-gv2-estilo-body :where(.pulso-gv2-presets-sidebar, .pulso-gv2-word-sidebar) { overflow: hidden; }\n`;
+    const envenenado = `${CSS}\n.pulso-gv2-word-sidebar { overflow: hidden; }\n`;
     expect(overflowYGanador(envenenado, "pulso-gv2-word-sidebar")).toBe("hidden");
-    expect(overflowYGanador(envenenado, "pulso-gv2-presets-sidebar")).toBe("hidden");
   });
 });

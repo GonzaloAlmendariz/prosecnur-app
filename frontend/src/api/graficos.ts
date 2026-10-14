@@ -190,7 +190,7 @@ export type PlanJson = {
 };
 
 // Tipos de input que el editor reconoce. Cada `tipo_input` mapea a un
-// control UI específico en GraficadorForm/SlideEditor.
+// control UI específico del editor de láminas.
 export type ArgTipoInput =
   | "variable"
   | "variable_opt"

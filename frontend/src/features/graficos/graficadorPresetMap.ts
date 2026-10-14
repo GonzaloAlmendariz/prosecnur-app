@@ -1,6 +1,5 @@
-// Mapeo graficador R → tipo de preset. Usado para filtrar overrides
-// compatibles en GraficadorSlot y por el OverridesEditor para elegir
-// qué args mostrar cuando se edita un override de cierto tipo.
+// Mapeo graficador R → tipo de preset: qué ajustes de estilo le
+// corresponden a un gráfico según su tipo.
 //
 // Este mapa ya no es la autoridad para metadata del registry: `preset_key`
 // manda cuando viene en el wire. El mapa queda como compatibilidad para refs

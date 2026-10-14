@@ -76,9 +76,9 @@ export function presentChartLayoutOrigin(origin: unknown): ChartLayoutOriginPres
   if (candidate.kind === "base_ppt") {
     return {
       state: "base",
-      label: "Base PPT",
-      detail: "Valores editables de la base PPT",
-      resetLabel: "Restablecer Base PPT",
+      label: "Como en el PowerPoint",
+      detail: "Sin ajustes propios: usa los valores del PowerPoint",
+      resetLabel: "Volver a como en el PowerPoint",
       declared: true,
     };
   }
