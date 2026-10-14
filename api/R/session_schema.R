@@ -345,6 +345,7 @@ session_schema <- function() {
     "analitica_bases_script_r_ok", "literal", "persistible",    "router_analitica.R", "session_set", "",
     "rp_dim",                      "literal", "persistible",    "router_analitica.R", "session_set", "",
     "rp_dim_config",               "literal", "persistible",    "router_analitica.R", "session_set", "",
+    "rp_dim_base",                 "literal", "persistible",    "router_analitica.R", "session_set", "",
 
     # --- Gráficos ---
     "graficos_config",             "literal", "persistible",    "router_graficos.R", "session_set", "",

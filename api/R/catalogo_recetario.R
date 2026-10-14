@@ -7,9 +7,10 @@
 CATALOGO_RECETARIO_NOMBRE <- "Catálogo del recetario"
 
 catalogo_recetario_dir <- function() {
-  root <- Sys.getenv("PULSO_REPO_ROOT", "")
-  if (nzchar(root)) return(file.path(root, "api", "inst", "recetario_catalogo"))
-  file.path("api", "inst", "recetario_catalogo")
+  # Mismo patrón que `reference_project_install_dir()`: el instalado, o el inst/ del repo (load_all, tests, scripts).
+  instalado <- system.file("recetario_catalogo", package = "prosecnurapp")
+  if (nzchar(instalado) && dir.exists(instalado)) return(instalado)
+  file.path(normalizePath(.app_api_dir(), mustWork = FALSE), "inst", "recetario_catalogo")
 }
 
 .cr_escribir_xlsx <- function(path, hojas) {
@@ -22,21 +23,19 @@ catalogo_recetario_dir <- function() {
   path
 }
 
-# Dimensiones de competencias sobre una base (Analítica › Dimensiones): r100_ por ítem, subíndices e índice. Van en la
-# base como columnas, que es como Gráficos las lee (`p_dim_*` con `objetivo = "idx_comp"`).
-.cr_dimensiones <- function(data, inst) {
-  vars <- paste0("comp_", seq_along(.CR_COMPETENCIAS))
-  d1 <- reporte_dimensiones(data = data, instrumento = inst, vars = vars, codigos_missing = "99",
-                            prefijo = "r100_", reemplazar = FALSE, verbose = FALSE)
-  reporte_dimensiones_indices(
-    data = d1,
-    subindices = list(
-      subindice("tec", "Competencias técnicas", paste0("r100_comp_", 1:3)),
-      subindice("fin", "Gestión financiera", paste0("r100_comp_", c(4, 6))),
-      subindice("neg", "Visión empresarial", "r100_comp_5")
-    ),
-    indices = list(indice("comp", "Índice de competencias", c("tec", "fin", "neg")))
-  )
+# Dimensiones de competencias como las arma un analista en Analítica › Dimensiones: r100_ por ítem, tres subíndices y el
+# índice. Se construyen con `.dimensiones_construir()`, lo mismo que POST /api/analitica/dimensiones/build, y quedan en
+# la sesión (`rp_dim`), de donde Gráficos las toma (graficos_dimensiones_fuente.R): el catálogo prueba esa ruta.
+.cr_dimensiones_config <- function() {
+  list(listas_objetivo = list("acuerdo"), vars_recodificar = as.list(paste0("comp_", seq_along(.CR_COMPETENCIAS))), excluir_vars = list(),
+       orden_por_lista = list(acuerdo = as.list(as.character(1:4))), codigos_missing = list("99"), codigos_no_aplica = list(),
+       prefijo = "r100_", subcriterios = list(),
+       subindices = list(list(nombre = "tec", etiqueta = "Competencias técnicas", vars = as.list(paste0("r100_comp_", 1:3))),
+                         list(nombre = "fin", etiqueta = "Gestión financiera", vars = as.list(paste0("r100_comp_", c(4, 6)))),
+                         list(nombre = "neg", etiqueta = "Visión empresarial", vars = list("r100_comp_5"))),
+       indices = list(list(nombre = "comp", etiqueta = "Índice de competencias", subindices = list("tec", "fin", "neg"))),
+       semaforo = list(cortes = list(60L, 80L), colores = list(rojo = "#D84B55", ambar = "#E0B44C", verde = "#3A9A5B")),
+       radar = list(paleta = "okabe_ito", min_ejes = 2L))
 }
 
 #' Siembra la sesión del catálogo: bases, estudio y plan
@@ -56,12 +55,6 @@ catalogo_recetario_dir <- function() {
                             list(survey = bases[[b]]$survey, choices = choices, settings = settings))
     inst <- reporte_instrumento(path = xf)
     data <- bases[[b]]$data
-    if (identical(b, "estudiantes")) {
-      norm0 <- normalize_data_for_xlsform(data, inst)
-      dims <- .cr_dimensiones(reporte_data(norm0, instrumento = inst), inst)
-      nuevas <- grep("^(r100_|sub_|idx_)", names(dims), value = TRUE)
-      data <- cbind(data, as.data.frame(dims)[, nuevas, drop = FALSE])
-    }
     df <- .cr_escribir_xlsx(file.path(dir, paste0(b, "_data.xlsx")), list(data = data))
     xmeta <- save_upload(sid, "xlsform", basename(xf), readBin(xf, "raw", n = file.info(xf)$size))
     dmeta <- save_upload(sid, "data", basename(df), readBin(df, "raw", n = file.info(df)$size))
@@ -78,6 +71,13 @@ catalogo_recetario_dir <- function() {
     }
   }
   estudio_active_base_set(sid, "estudiantes")
+  # Analítica › Dimensiones sobre estudiantes, como lo haría el analista.
+  dim_cfg <- .cr_dimensiones_config()
+  cfg_an <- .analitica_get_config(sid); cfg_an$dimensiones <- dim_cfg; .analitica_config_set(sid, cfg_an)
+  ctx <- .load_rp_data(sid)
+  dims <- .dimensiones_construir(ctx$rp_data, ctx$rp_inst, dim_cfg)
+  session_set(sid, "rp_dim", dims$data_dim); session_set(sid, "rp_dim_config", dims$dim_cfg); session_set(sid, "rp_dim_base", "estudiantes")
+  .analitica_status_set(sid, "analitica_dim_ok", TRUE)
   cfg <- .graficos_default_config(sid)
   cfg$plan$slides <- .catalogo_recetario_plan()
   cfg$selected_slide_id <- cfg$plan$slides[[1]]$id

@@ -42,7 +42,9 @@
 
   calificar_args <- function(args) {
     if (!is.list(args)) return(args)
-    for (nm in c("var", "cruce", "cruces", "iter_var", "objetivo", "var_texto", "grupo", "fila")) {
+    # `objetivo` NO: es el nombre de un índice de dimensiones («idx_comp»), no una variable, y con el prefijo el motor
+    # ya no lo encontraba —los gráficos de dimensiones salían «Sin datos» al exportar (catálogo del recetario, H2)—.
+    for (nm in c("var", "cruce", "cruces", "iter_var", "var_texto", "grupo", "fila")) {
       if (!is.null(args[[nm]])) args[[nm]] <- .graficos_calificar_ref(args[[nm]], base_chr)
     }
     if (!is.null(args$vars)) {
