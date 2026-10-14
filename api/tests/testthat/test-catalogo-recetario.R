@@ -17,7 +17,11 @@ test_that("el plan del catálogo valida y cubre todos los gráficos vigentes y t
   expect_equal(setdiff(esperados, graf), character(0))
 
   tipos <- unique(vapply(plan, `[[`, "", "tipo"))
-  expect_equal(setdiff(.slide_names(), tipos), character(0))
+  # La población antigua salió del recetario y el editor la migra al abrir (graficos_migrar_poblacion.R): el catálogo
+  # no la usa, o abriría con «Cambios al abrir el plan» (Gonzalo, 2026-10-14).
+  antiguas <- names(.GRAFICOS_POBLACION_ANTIGUA)
+  expect_equal(intersect(tipos, antiguas), character(0))
+  expect_equal(setdiff(.slide_names(), c(tipos, antiguas)), character(0))
 })
 
 test_that("las bases sintéticas traen cada tipo de variable que el recetario necesita y se regeneran idénticas", {
