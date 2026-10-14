@@ -4773,7 +4773,7 @@ reporte_ppt_plan <- function(
       lvls_labels <- cruce_levels$labels
 
       # --- primero, descubrir el set de opciones (segmentos) de var (sobre total)
-      tab_total <- .tab_freq(var, filtros = filtros)
+      tab_total <- .tab_freq(var, filtros = filtros, source = ctx_var$source)  # `var` sin prefijo: con varias bases, su base (test-plan-multibase-cruce.R)
       if (is.null(tab_total) || !nrow(tab_total)) return(.blank_canvas(preset_args_multi, el$overrides %||% list()))
 
       tab_total <- .reporte_plan_prepare_freq_options(tab_total, incluir_sin_n = incluir_sin_n)
@@ -4837,7 +4837,7 @@ reporte_ppt_plan <- function(
         tab <- .reporte_plan_filter_freq_options(.reporte_plan_prepare_freq_options(tab, incluir_sin_n = incluir_sin_n), excluir_opciones)
 
         if (!nrow(tab)) next
-        base_tab <- .plan_base_de_tab(tab_crudo, tab, .reporte_plan_is_select_multiple(var)); N_total <- base_tab$n
+        base_tab <- .plan_base_de_tab(tab_crudo, tab, .reporte_plan_is_select_multiple(var, source = ctx_var$source)); N_total <- base_tab$n
         if (!is.finite(N_total) || N_total <= 0) next
 
         # pct enteros a 100 dentro del grupo
