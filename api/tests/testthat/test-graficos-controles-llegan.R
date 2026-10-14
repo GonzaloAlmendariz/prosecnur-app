@@ -8,8 +8,9 @@
 
 # Medidos el 2026-10-13 y todavía sin arreglar. Cada uno dice por qué; la lista sólo puede achicarse.
 PENDIENTES <- list(
-  p_numerico = "base",                    # la base del gráfico: el constructor no la recibe
-  p_dim_heatmap_criterios = "filtros",    # el constructor no recibe filtros
+  # «Base del gráfico» (`base_config`) no se sirve a la UI (`.normalize_args_for_ui`): el pie de base es automático en todos
+  # los tipos, así que aquí no hay control que mienta. Se deja listada para que no se cuele un formal que no hace nada.
+  p_numerico = "base",
   p_dim_foda = c("iter_var", "iter_level") # FODA retirada del selector (GRAFICOS_RETIRADOS); sólo planes viejos
 )
 
@@ -57,4 +58,12 @@ test_that("las pendientes siguen descartándose: si alguien las arregla, que las
     fml <- names(formals(get(p, envir = ns)))
     expect_false(any(PENDIENTES[[p]] %in% fml), info = p)
   }
+})
+
+# M5: los filtros del mapa de calor por criterio llegaban al slot y el constructor los perdía; el render ya los aplica.
+test_that("los filtros del mapa de calor por criterio llegan al elemento", {
+  cfg <- list(list(id = "a", titulo = "A", vars = c("p1", "p2")))
+  args <- .clean_rebuild_args(list(config_criterios = cfg, filtros = list(sexo = "1")), p_dim_heatmap_criterios)
+  el <- do.call(p_dim_heatmap_criterios, args)
+  expect_identical(names(el$filtros), "sexo")
 })

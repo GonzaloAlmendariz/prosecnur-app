@@ -32,6 +32,7 @@ import { TwoBoxGrafico } from "./tarjetaGrafico/TwoBoxGrafico";
 import { CasosGrafico } from "./CasosGrafico";
 import { AjustesDelTipo } from "./AjustesDelTipo";
 import { ListaPreguntas } from "./ListaPreguntas";
+import { CriteriosGrafico } from "./CriteriosGrafico";
 import { DestacarRespuestas } from "./DestacarRespuestas";
 import { ResaltarGrafico } from "./ResaltarGrafico";
 import { EnElWord } from "./tarjetaGrafico/EnElWord";
@@ -88,6 +89,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       )}
       {valor.graficador === "p_dumbbell" && <BrechaEntreGrupos args={args} onCambio={set} />}
       {valor.graficador === "p_matriz_cuadrantes" && <MatrizCuadrantes args={args} onCambio={set} />}
+      {valor.graficador === "p_dim_heatmap_criterios" && <CriteriosGrafico valor={args.config_criterios} onCambio={(c) => set({ config_criterios: c })} />}
       {valor.graficador === "p_serie_temporal" && varsPorTema && (
         // La serie sale de la matriz de equivalencias y no se arma aquí (test-graficos-metadata.R); se muestra qué trae (I1).
         <div className="pulso-f6-dato is-apilado">
