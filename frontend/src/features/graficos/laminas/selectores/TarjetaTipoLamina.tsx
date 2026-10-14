@@ -32,7 +32,7 @@ export function TarjetaTipoLamina({
     onAplicar();
   };
   return (
-    <label className="pulso-f6-tarjeta-tipo" title={uso || undefined} onDoubleClick={onAplicar} data-tipo-lamina={tipo}>
+    <label className="pulso-f6-tarjeta-tipo" onDoubleClick={onAplicar} data-tipo-lamina={tipo}>
       <input
         type="radio"
         className="pulso-f6-radio-oculto"
@@ -45,12 +45,13 @@ export function TarjetaTipoLamina({
       <span className="pulso-f6-tarjeta-lienzo">
         <ComposicionLamina tipo={tipo} slots={SLIDE_GRAF_SLOTS[tipo] ?? []} graficos={graficos} variante={variante} />
       </span>
-      <span className="pulso-f6-tarjeta-nombre">{nombre}</span>
-      {/* Dos renglones independientes (cuántos gráficos admite · para qué se usa): cada uno mide su línea, sin heredar
-          el alto del otro (C1 intrínseco). El marco de la tarjeta lo fija la grilla, no estos renglones. */}
-      <span className="pulso-f6-tarjeta-metas" data-qa-geometry-group="graficos/f6-tarjeta-lamina-meta" data-qa-geometry-contract="intrinsic">
-        <span className="pulso-f6-tarjeta-meta" data-qa-geometry-member>{meta}</span>
-        <span className="pulso-f6-tarjeta-meta" data-qa-geometry-member>{uso}</span>
+      {/* Nombre y para qué sirve se leen enteros (pueden ocupar dos renglones; nunca «…»). Cuántos gráficos admite va
+          al pie de la tarjeta: la grilla iguala el alto de todas (C1 `equal`) y ese renglón queda alineado entre
+          vecinas sin importar cuántas líneas tome el texto de cada una. */}
+      <span className="pulso-f6-tarjeta-cuerpo">
+        <span className="pulso-f6-tarjeta-nombre">{nombre}</span>
+        {uso && <span className="pulso-f6-tarjeta-uso">{uso}</span>}
+        <span className="pulso-f6-tarjeta-admite">{meta}</span>
       </span>
       {(actual || sobrantes > 0) && (
         <span className="pulso-f6-tarjeta-chips">

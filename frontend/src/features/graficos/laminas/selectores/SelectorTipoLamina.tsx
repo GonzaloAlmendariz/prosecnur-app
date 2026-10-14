@@ -14,6 +14,7 @@ import { payloadPorDefecto, usePlanStore } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { graficosDeLamina, graficosPorSlot, planearCambioTipo, requiereConfirmacion, type CambioTipoLamina } from "./cambioTipoLamina";
 import { DetalleTipoLamina } from "./DetalleTipoLamina";
+import { usoDeTarjeta } from "./detalleLamina";
 import { DialogoSelector } from "./DialogoSelector";
 import { destinoAlCerrarEnDocumento } from "./focoAlCerrar";
 import { nombreCampo, nombreGrafico, nombreLamina, nombreSlot } from "./etiquetas";
@@ -175,7 +176,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
             <p className="pulso-f6-selector-vacio" data-qa-geometry-capacity="owned">Este backend todavía no ofrece láminas de este grupo.</p>
           ) : (
             <ul
-              className="pulso-f6-tarjetas"
+              className="pulso-f6-tarjetas is-laminas"
               role="radiogroup"
               aria-labelledby={`${grupo}-galeria`}
               data-qa-geometry-group="graficos/f6-selector-lamina-tarjetas"
@@ -189,7 +190,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
                     tipo={t}
                     nombre={nombreLamina(t, slidesById[t])}
                     meta={rotuloRanuras(t)}
-                    uso={ESTANDAR_LAMINAS[t]?.uso ?? slidesById[t]?.descripcion ?? ""}
+                    uso={usoDeTarjeta(t, ESTANDAR_LAMINAS[t]?.uso, slidesById[t]?.descripcion)}
                     graficos={graficosDe(t)}
                     variante={varianteInicial(t)}
                     elegida={t === candidato}
