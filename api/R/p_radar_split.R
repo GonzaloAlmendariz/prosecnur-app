@@ -57,10 +57,10 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
                     tabla_encabezados = NULL,
                     tabla_ancho_tema = NULL,
                     tabla_proporcion = NULL,
-                    titulos_grupo = NULL,
                     overrides = list(),
                     base = list(),
-                    filtros = list()) {
+                    filtros = list(),
+                    titulos_grupo = NULL) {
   # El modo se resuelve ANTES del `match.arg` de `p_radar_tabla`, que no conoce
   # `publicos` y abortaría.
   if (identical(as.character(modo)[1], "publicos")) {

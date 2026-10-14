@@ -86,5 +86,6 @@ de otro actor, te la puede poner como recomendación… para que te llame la ate
    adivinado no se mezclan.
 3. **Una escala distinta se avisa, no se completa en silencio**: la sugerencia lo dice y queda fuera del completado en
    lote.
-4. **Pendiente (siguiente tanda):** el mismo mecanismo devuelve la autoría al radar entre públicos, a la brecha «Dos
-   bases» y a la serie temporal, que tras este ADR dicen «sale de la matriz» pero el editor no deja armar.
+4. **Cumplido (P21, `cbc1539d2`):** el mismo mecanismo devuelve la autoría al radar entre públicos, a la brecha «Dos
+   bases» y a la serie temporal: un editor de temas con las sugerencias de la matriz, el título de cada tema en
+   `titulos_grupo` y la serie con `authoring_mode` directo.
