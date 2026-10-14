@@ -37,8 +37,9 @@
 #' @keywords internal
 .lam_filtro_sub_base <- function(espec) {
   n <- espec$n_sub
-  cuantos <- if (is.finite(n)) format(as.integer(n), big.mark = ",") else ""
+  cuantos <- if (length(n) && is.finite(n)) format(as.integer(n), big.mark = ",") else ""
   quienes <- paste0("«", espec$habilita, "»", collapse = if (length(espec$habilita) > 2) ", " else " o ")
+  if (!nzchar(cuantos)) return(sprintf("Sólo quienes respondieron %s", quienes))
   trimws(sprintf("Sólo los %s que respondieron %s", cuantos, quienes))
 }
 
@@ -76,6 +77,10 @@
 .lam_laminas_filtro_sub <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL, unidad_n = "respuestas",
                                     layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
+  if (!isTRUE(.lam_filtro_sub_cabe(espec))) {
+    return(.lam_laminas_filtro_sub_respaldo(doc, espec, titulo, ante = ante, base = base, folio = folio, sub = sub, unidad_n = unidad_n,
+                                            layout = layout, master = master, por_lamina = por_lamina))
+  }
   g_ <- .std_geom; ml <- g_("margen_izq"); W <- g_("ancho"); mr <- g_("margen_der")
   yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1"); ancho <- W - ml - mr
   azul <- .std_color("azul"); tenue <- .std_color("tenue")
@@ -178,4 +183,45 @@
   .lam_caja(lz, xt, min(cy, yt), t, abs(cy - yt) + t, color, nombre = "conector")
   .lam_caja(lz, xt, yt - t / 2, x_titulo - 0.06 - xt, t, color, nombre = "conector")
   invisible(list(cy = cy, fin = y0 + d))
+}
+
+
+#' La dependencia cuando un lado no tiene pieza nativa: cada lado con su enunciado y su gráfico (editable), el título del
+#' dependiente con su base («Sólo los 20 que respondieron «Sí»») y un conector entre los dos. Al costado o abajo.
+#' @keywords internal
+.lam_laminas_filtro_sub_respaldo <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL, unidad_n = "respuestas",
+                                             layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
+  g_ <- .std_geom; ml <- g_("margen_izq"); W <- g_("ancho"); mr <- g_("margen_der")
+  yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1"); ancho <- W - ml - mr; azul <- .std_color("azul"); t <- 0.022
+  doc <- officer::add_slide(doc, layout = layout, master = master)
+  doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
+  lz <- .lam_lienzo()
+  limpio <- function(p) tryCatch(p + ggplot2::labs(title = NULL, subtitle = NULL, caption = NULL) +
+                                   ggplot2::theme(plot.caption = ggplot2::element_blank()), error = function(e) p)
+  if (identical(espec$disposicion, "abajo")) {
+    h <- (yf - yt - 0.5) / 2
+    y1 <- .lam_panel_titulo(lz, ml, yt, ancho, espec$pregunta_filtro) + 0.05
+    y2t <- yt + h + 0.5
+    y2 <- .lam_panel_titulo(lz, ml, y2t, ancho, espec$pregunta_sub, .lam_filtro_sub_base(espec)) + 0.05
+    cajas <- list(c(ml, y1, ancho, y2t - 0.3 - y1), c(ml, y2, ancho, yf - y2))
+    xc <- ml + 0.3
+    .lam_caja(lz, xc, y2t - 0.3, t, 0.46, azul, nombre = "conector"); .lam_caja(lz, xc, y2t + 0.16 - t / 2, 0.24, t, azul, nombre = "conector")
+  } else {
+    gap <- 0.6; col <- (ancho - gap) / 2; xr <- ml + col + gap
+    y1 <- .lam_panel_titulo(lz, ml, yt, col, espec$pregunta_filtro) + 0.05
+    y2 <- .lam_panel_titulo(lz, xr, yt, col, espec$pregunta_sub, .lam_filtro_sub_base(espec)) + 0.05
+    cajas <- list(c(ml, y1, col, yf - y1), c(xr, y2, col, yf - y2))
+    xt <- xr - 0.22; ym <- y1 + (yf - y1) / 2; ytt <- yt + 0.16
+    .lam_caja(lz, ml + col + 0.05, ym - t / 2, xt - (ml + col + 0.05) + t, t, azul, nombre = "conector")
+    .lam_caja(lz, xt, ytt, t, ym - ytt + t, azul, nombre = "conector")
+    .lam_caja(lz, xt, ytt - t / 2, xr - 0.06 - xt, t, azul, nombre = "conector")
+  }
+  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:filtro_sub")
+  for (k in 1:2) {
+    p <- if (k == 1L) espec$plot_filtro else espec$plot_sub; cj <- cajas[[k]]
+    doc <- officer::ph_with(doc, rvg::dml(ggobj = limpio(p), bg = "transparent", fonts = list(sans = .std_pt("fuente"))),
+                            location = officer::ph_location(left = cj[1], top = cj[2], width = cj[3], height = max(0.5, cj[4]), newlabel = "filtro_sub:respaldo"))
+  }
+  doc <- .lam_pie(doc, base, folio)
+  list(doc = por_lamina(doc), partes = 1L)
 }

@@ -13,7 +13,8 @@ test_that("el plan del catálogo valida y cubre todos los gráficos vigentes y t
   }
   graf <- unique(unlist(lapply(plan, graficos_de)))
   # Fuera a propósito: FODA (retirada del selector) y el mapa de cobertura (necesita contexto territorial; lámina de texto lo dice).
-  esperados <- setdiff(.graf_names(), c("p_dim_foda", "p_mapa_cobertura_territorial"))
+  # Y la pieza interna de la dependencia: se prueba con láminas de dos gráficos que la declaran (abajo).
+  esperados <- setdiff(.graf_names(), c("p_dim_foda", "p_mapa_cobertura_territorial", "p_filtro_subpregunta"))
   expect_equal(setdiff(esperados, graf), character(0))
 
   tipos <- unique(vapply(plan, `[[`, "", "tipo"))

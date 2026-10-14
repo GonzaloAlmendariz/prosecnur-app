@@ -3,6 +3,7 @@
 // gráfico es, su dibujo con la configuración, preguntas, públicos, leyenda y ajustes; los textos son los de la lámina. Todo es seleccionable, igual que sobre la imagen: un gráfico abre su tarjeta y un texto, su
 // campo. No necesita LibreOffice, así que abrir una lámina nunca obliga a esperar.
 
+import { dependenciaDe } from "./DependenciaLamina";
 import { useMemo } from "react";
 import type { Slide } from "../../../api/graficos";
 import { ComposicionLamina } from "../iconos/ComposicionLamina";
@@ -42,6 +43,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
   const paletas = usePlanStore((s) => s.paletas);
   const vinculos = usePlanStore((s) => s.paletasVinculos);
   const ranuras = useMemo(() => ranurasDeMaqueta(slide, variables, presets, { paletas, vinculos }), [slide, variables, presets, paletas, vinculos]);
+  const dep = dependenciaDe(slide);
   const antetitulo = lamina.antetituloHeredado;
   // El pie dice lo que saldrá: la base escrita por el usuario o, si no hay, la que arma el motor.
   const baseEscrita = typeof (slide.payload as Record<string, unknown>).base === "string" ? ((slide.payload as Record<string, unknown>).base as string).trim() : "";
@@ -97,7 +99,11 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
         if (r.k === null) {
           return <span key={i} className="pulso-f6-maqueta-ranura is-cifra" style={estilo} aria-hidden="true"><span className="pulso-f6-maqueta-cifras">Cifras</span></span>;
         }
-        const ficha = fichaDeRanura(r, nombreTipo);
+        const base = fichaDeRanura(r, nombreTipo);
+        // Dependencia entre los dos gráficos: el dependiente dice quiénes lo responden; el independiente, a quién habilita.
+        const ficha = !dep ? base : r.slot === dep.a
+          ? { ...base, ajustes: [`Sólo quienes respondieron ${dep.habilita.map((h) => `«${h}»`).join(" o ") || "…"}`, ...base.ajustes] }
+          : r.slot === dep.de ? { ...base, ajustes: [`Habilita: ${dep.habilita.join(", ") || "…"}`, ...base.ajustes] } : base;
         return (
           <button
             key={r.slot ?? i}

@@ -14,6 +14,7 @@ import { useVariables } from "../useVariables";
 import { ContenidoEspecialLamina } from "./contenidoEspecial/ContenidoEspecialLamina";
 import { contenidoEspecialDe, esArgEspecial, tituloPorDefecto } from "./contenidoEspecial/modeloContenidoEspecial";
 import { DatosGrafico } from "./DatosGrafico";
+import { DependenciaLamina } from "./DependenciaLamina";
 import { SeccionComposicion } from "./SeccionComposicion";
 import { nombreSlot } from "./selectores/etiquetas";
 import { graficadorDisplayName } from "../graficadorDisplay";
@@ -145,6 +146,7 @@ export function InspectorLamina({
         {seccion === "contenido" && (
           <>
             <SeccionComposicion slide={slide} lamina={lamina} ranura={ranura} onCambiarLamina={onCambiarLamina} />
+            <DependenciaLamina slide={slide} />
             <h3 className="pulso-f6-subtitulo pulso-f6-inspector-apartado">Textos, en el orden en que salen</h3>
             <SeccionContenido slide={slide} lamina={lamina} />
           </>

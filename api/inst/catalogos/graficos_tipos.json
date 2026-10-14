@@ -313,7 +313,7 @@
       "name": "p_filtro_subpregunta",
       "familia_editor": "categorias",
       "salida": "nativa",
-      "en_selector": true
+      "en_selector": false
     },
     {
       "name": "p_significancia_publicos",

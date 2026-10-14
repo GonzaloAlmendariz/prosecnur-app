@@ -474,6 +474,8 @@
                                          graficador_registry = .GRAFICADOR_REGISTRY,
                                          icon_registry = list()) {
   s <- as.list(s)
+  # Dependencia entre los dos gráficos de la lámina (graficos_dependencia.R): se compone como una lámina de un gráfico.
+  s <- .dependencia_como_lamina(s)
   tipo <- as.character(s$tipo %||% "")
   if (!nzchar(tipo)) stop("Slide sin tipo", call. = FALSE)
   if (!(tipo %in% names(slide_registry))) {

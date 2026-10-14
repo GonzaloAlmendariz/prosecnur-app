@@ -21,12 +21,20 @@
 #' @return Objeto `"ppt_element"`.
 #' @family reporte
 #' @export
-p_filtro_subpregunta <- function(var, habilita, subpregunta, grafico_sub = c("barras", "escala"),
+p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafico_sub = c("barras", "escala"),
                                  disposicion = c("costado", "abajo"), titulo = NULL, overrides = list(), base = list(),
-                                 filtros = list(), grafico_filtro = c("auto", "torta", "dona")) {
+                                 filtros = list(), grafico_filtro = c("auto", "torta", "dona"),
+                                 independiente = NULL, dependiente = NULL) {
   grafico_sub <- match.arg(grafico_sub)
   disposicion <- match.arg(disposicion)
   grafico_filtro <- match.arg(grafico_filtro)
+  # Dependencia entre los dos gráficos de una lámina (graficos_dependencia.R): llegan los dos gráficos tal cual.
+  if (!is.null(independiente) || !is.null(dependiente)) {
+    independiente <- .dependencia_elemento(independiente); dependiente <- .dependencia_elemento(dependiente)
+    var <- as.character(independiente$var %||% "")[1]
+    if (is.na(var) || !nzchar(var)) .plan_spec_abort("El gráfico del que depende el otro necesita una sola pregunta.")
+    subpregunta <- as.character(dependiente$var %||% unlist(dependiente$vars)[1] %||% "")[1]
+  }
   for (nm in c("var", "subpregunta")) {
     v <- get(nm)
     if (!is.character(v) || length(v) != 1L || !nzchar(trimws(v))) .plan_spec_abort("`", nm, "` debe ser character(1) no vacio.")
@@ -40,7 +48,8 @@ p_filtro_subpregunta <- function(var, habilita, subpregunta, grafico_sub = c("ba
     var = trimws(var), filtro = trimws(var), habilita = habilita, subpregunta = trimws(subpregunta),
     grafico_sub = grafico_sub, disposicion = disposicion, grafico_filtro = grafico_filtro,
     title_slide = .ppt_norm_text1(titulo, blank = NULL),
-    overrides = overrides, base = base, filtros = .ppt_norm_filters(filtros)
+    overrides = overrides, base = base, filtros = .ppt_norm_filters(filtros),
+    independiente = independiente, dependiente = dependiente
   )
   class(el) <- c("ppt_element", "list")
   el
@@ -85,7 +94,8 @@ p_filtro_subpregunta <- function(var, habilita, subpregunta, grafico_sub = c("ba
   ov <- el$overrides %||% list()
   # F1 (checklist-poblacion-y-filtro): el filtro también como torta o dona; la lámina lo une a la subpregunta con un conector.
   gf <- el$grafico_filtro %||% "auto"
-  p_f <- rend(if (identical(gf, "torta")) p_pie(var = el$filtro, filtros = el$filtros, overrides = ov)
+  p_f <- rend(if (!is.null(el$independiente)) el$independiente
+              else if (identical(gf, "torta")) p_pie(var = el$filtro, filtros = el$filtros, overrides = ov)
               else if (identical(gf, "dona")) p_donut(var = el$filtro, filtros = el$filtros, overrides = ov)
               else p_barras_agrupadas(var = el$filtro, filtros = el$filtros, overrides = ov))
   filtros_sub <- el$filtros %||% list()
@@ -94,25 +104,43 @@ p_filtro_subpregunta <- function(var, habilita, subpregunta, grafico_sub = c("ba
   # ellas va apagada (si no, el motor la omite y avisa «elígelas en la pestaña Gráfico», un aviso sin salida).
   ov_s <- ov
   if (identical(el$grafico_sub, "escala") && !length(ov$top2box_labels)) ov_s$mostrar_barra_extra <- FALSE
-  el_s <- if (identical(el$grafico_sub, "escala")) p_barras_apiladas(var = el$subpregunta, filtros = filtros_sub, overrides = ov_s)
-          else p_barras_agrupadas(var = el$subpregunta, filtros = filtros_sub, overrides = ov)
+  el_s <- if (!is.null(el$dependiente)) {
+    # La dependencia entre dos gráficos: el dependiente es el gráfico que puso el analista, con la base de quienes lo habilitan.
+    d <- el$dependiente; d$filtros <- utils::modifyList(d$filtros %||% list(), filtros_sub); d
+  } else if (identical(el$grafico_sub, "escala")) p_barras_apiladas(var = el$subpregunta, filtros = filtros_sub, overrides = ov_s)
+  else p_barras_agrupadas(var = el$subpregunta, filtros = filtros_sub, overrides = ov)
   p_s <- rend(el_s)
   espec_f <- attr(p_f, "pulso_espec"); espec_s <- attr(p_s, "pulso_espec")
   # F1: la torta o dona del filtro va sólo con dos respuestas (Gonzalo, 2026-10-14); con más, barras con su llave y se avisa.
-  if (gf %in% c("torta", "dona") && !is.null(espec_f) && length(espec_f$rotulos) != 2L) {
+  if (is.null(el$independiente) && gf %in% c("torta", "dona") && !is.null(espec_f) && length(espec_f$rotulos) != 2L) {
     .pulso_aviso(.aviso_en_lamina(sprintf("«%s» tiene %d respuestas: la torta o dona del filtro va sólo con dos; se dibuja en barras con su llave.",
                                           .fsub_enunciado(ctx_f), length(espec_f$rotulos))))
     p_f <- rend(p_barras_agrupadas(var = el$filtro, filtros = el$filtros, overrides = ov)); espec_f <- attr(p_f, "pulso_espec")
   }
   # Ruta anterior (si la lámina nativa no cabe o falta una espec): los dos gráficos lado a lado o uno sobre otro.
   p <- cowplot::plot_grid(p_f, p_s, nrow = if (identical(el$disposicion, "abajo")) 2L else 1L)
+  # Los títulos de cada lado: el del gráfico si el analista lo escribió; si no, el enunciado de su pregunta.
+  titulo_de <- function(e, ctx) {
+    t <- as.character((e$overrides %||% list())$titulo %||% e$title_slide %||% "")[1]
+    if (!is.na(t) && nzchar(trimws(t))) trimws(t) else .fsub_enunciado(ctx)
+  }
+  # Con un lado sin pieza nativa (una nube, un radar…), la lámina igual se compone: ese lado lleva su gráfico (respaldo).
+  if (is.null(espec_f) || is.null(espec_s)) {
+    habilitadas <- niveles$label[niveles$code %in% codigos]
+    attr(p, "pulso_espec") <- list(version = "filtro_sub/1", tipo = "filtro_sub", filtro = espec_f, sub = espec_s,
+                                   habilita = habilitadas, disposicion = el$disposicion,
+                                   pregunta_filtro = titulo_de(el$independiente %||% list(), ctx_f), pregunta_sub = titulo_de(el$dependiente %||% list(), ctx_s),
+                                   n_filtro = NA_real_, n_sub = NA_real_, plot_filtro = p_f, plot_sub = p_s)
+    return(p)
+  }
   if (!is.null(espec_f) && !is.null(espec_s)) {
     habilitadas <- niveles$label[niveles$code %in% codigos]
     attr(p, "pulso_espec") <- list(
       version = "filtro_sub/1", tipo = "filtro_sub", filtro = espec_f, sub = espec_s,
       habilita = intersect(espec_f$rotulos %||% character(0), habilitadas),
       disposicion = el$disposicion,
-      pregunta_filtro = .fsub_enunciado(ctx_f), pregunta_sub = .fsub_enunciado(ctx_s),
+      pregunta_filtro = titulo_de(el$independiente %||% list(), ctx_f), pregunta_sub = titulo_de(el$dependiente %||% list(), ctx_s),
+      plot_filtro = p_f, plot_sub = p_s,
       n_filtro = if (identical(espec_f$tipo, "pie")) espec_f$total_n_casos %||% espec_f$total_n else .espec_n_base(espec_f),
       n_sub = .espec_n_base(espec_s)
     )
