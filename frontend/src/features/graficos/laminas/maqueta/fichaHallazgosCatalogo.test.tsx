@@ -106,6 +106,7 @@ describe("ítem 9 · el glifo refleja los ajustes de su tipo", () => {
     ["p_barras_agrupadas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", max_categorias: 4 }, "Resto en «Otros»"],
     ["p_barras_agrupadas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", overrides: { resaltar_mayor: true } }, "La mayor resaltada"],
     ["p_barras_categoricas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", cruces: "estudiantes$sexo" }, "Por grupos: Sexo"],
+    ["p_barras_agrupadas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", overrides: { marcas_eje: true } }, "Marcas del eje"],
     ["p_lollipop", { var: "estudiantes$mision" }, { var: "estudiantes$mision", top_n: 3 }, "Primeras 3"],
     ["p_lollipop", { var: "estudiantes$mision" }, { var: "estudiantes$mision", resaltar: ["Sí"] }, "Destacada: Sí"],
     ["p_donut", { var: "estudiantes$mision" }, { var: "estudiantes$mision", top_k: 2 }, "Resto en «Otros»"],
@@ -139,5 +140,21 @@ describe("ítem 9 · el glifo refleja los ajustes de su tipo", () => {
     const conRetirados = ficha(slide("p_barras_categoricas", { var: "estudiantes$mision", mostrar_promedio: true, formato_valor: "n" }));
     expect(conRetirados.ajustes).toEqual(base.ajustes);
     expect(conRetirados.glifo).toEqual(base.glifo);
+  });
+});
+
+// Inventario de configuraciones, ítem 1 (recetario p79): la columna Bottom Two Box junto a la Top Two Box. El editor ya la
+// ofrecía; la maqueta no la dibujaba. Mata: encenderla y que la ficha siga igual.
+describe("ítem 1 · Bottom Two Box en la maqueta de multiapiladas", () => {
+  const ttb = { modo: "var", vars: ["estudiantes$p1", "estudiantes$p2"], top2box: true, top2box_labels: ["De acuerdo", "Totalmente de acuerdo"] };
+  const conBtb = { ...ttb, overrides: { columna_bottom2box: true, bottom2box_labels: ["Totalmente en desacuerdo", "En desacuerdo"] } };
+  it("la ficha la nombra y dibuja su columna al lado de la Top Two Box", () => {
+    const sin = ficha(slide("p_barras_multiapiladas", ttb));
+    const con = ficha(slide("p_barras_multiapiladas", conBtb));
+    expect(sin.ajustes).not.toContain("Bottom Two Box");
+    expect(con.ajustes).toContain("Bottom Two Box");
+    const html = (f: FichaInfo) => renderToStaticMarkup(<FichaRanura info={f} w={8} h={4} clave="k" />);
+    expect(html(sin)).not.toContain("is-btb");
+    expect(html(con).match(/is-btb/g)?.length).toBe(html(con).match(/is-ttb/g)?.length);
   });
 });

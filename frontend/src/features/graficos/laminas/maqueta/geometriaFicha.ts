@@ -15,7 +15,7 @@ export type Pieza =
   | { tipo: "texto"; x: number; y: number; texto: string; fs: number; estilo: "pregunta" | "suave" }
   | ({ tipo: "chip"; texto: string; fs: number; tono: TonoChip } & Caja)
   | ({ tipo: "leyenda"; titulo: string | null; fs: number; modo: "completa" | "linea"; items: { x: number; y: number; lado: number; color: string; texto: string | null }[] } & Caja)
-  | ({ tipo: "barra"; clave: string; color: string; rol: "segmento" | "ttb" | "pregunta" } & Caja)
+  | ({ tipo: "barra"; clave: string; color: string; rol: "segmento" | "ttb" | "btb" | "pregunta" } & Caja)
   | { tipo: "separador"; x1: number; x2: number; y: number }
   | ({ tipo: "glifo"; tenue: boolean } & Caja)
   | { tipo: "vacia"; x: number; y: number; texto: string; fs: number };
@@ -71,7 +71,9 @@ export function barrasDeForma(forma: FormaBarras, caja: Caja, clave = ""): Pieza
   const paso = Math.min(0.8, caja.h / (filas + huecos));
   const barH = Math.min(0.5, paso * 0.64);
   const temaW = caja.w * Math.min(0.45, forma.eje * 1.1);
-  const ttbW = algunTtb ? Math.max(0.35, caja.w * 0.09) : 0;
+  const colW = algunTtb ? Math.max(0.35, caja.w * 0.09) : 0;
+  // Con la Bottom Two Box, dos columnas a la derecha: la Top Two Box y, a su lado, la Bottom Two Box (recetario p79).
+  const ttbW = colW * (forma.btb ? 2 : 1);
   const x0 = caja.x + temaW + (temaW ? 0.12 : 0);
   const w = caja.w - (x0 - caja.x) - ttbW - (ttbW ? 0.1 : 0);
   let y = caja.y + Math.max(0, (caja.h - paso * (filas + huecos)) / 2);
@@ -93,7 +95,8 @@ export function barrasDeForma(forma: FormaBarras, caja: Caja, clave = ""): Pieza
           piezas.push({ tipo: "barra", rol: "segmento", clave: `${clave}${bi}-${ti}-${fi}-${k}`, x, y: yb, w: Math.max(0.005, ww - 0.015), h: barH, color: b.colores[k] ?? "rgb(160,163,170)" });
           x += ww;
         });
-        if (b.ttb) piezas.push({ tipo: "barra", rol: "ttb", clave: `${clave}${bi}-${ti}-${fi}-t`, x: x0 + w + 0.1 + ttbW * 0.15, y: yb + barH * 0.2, w: ttbW * 0.7, h: barH * 0.6, color: "" });
+        if (b.ttb) piezas.push({ tipo: "barra", rol: "ttb", clave: `${clave}${bi}-${ti}-${fi}-t`, x: x0 + w + 0.1 + colW * 0.15, y: yb + barH * 0.2, w: colW * 0.7, h: barH * 0.6, color: "" });
+        if (b.ttb && forma.btb) piezas.push({ tipo: "barra", rol: "btb", clave: `${clave}${bi}-${ti}-${fi}-b`, x: x0 + w + 0.1 + colW * 1.15, y: yb + barH * 0.2, w: colW * 0.7, h: barH * 0.6, color: "" });
         y += paso;
       }
       if (temaW) piezas.push({ tipo: "barra", rol: "pregunta", clave: `${clave}${bi}-${ti}-q`, x: caja.x, y: (yTema + y) / 2 - paso * 0.12, w: temaW * 0.85, h: paso * 0.24, color: "" });

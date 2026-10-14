@@ -33,9 +33,9 @@ maqueta la muestra.** Sólo Gonzalo da por terminado un ítem.
 
 | # | Recetario | Configuración | Motor nativo | Editor | Estado |
 |---|---|---|---|---|---|
-| 1 | p79 | Escalas: columna Bottom Two Box junto a la Top Two Box | sí: `espec$box2` en `lamina_escala.R` (~198) | sí, pestaña Gráfico (`TwoBoxGrafico.tsx`) | ya está en el editor; **la maqueta no la dibuja** (tanda 1) |
+| 1 | p79 | Escalas: columna Bottom Two Box junto a la Top Two Box | sí: `espec$box2` en `lamina_escala.R` (~198) | sí, pestaña Gráfico (`TwoBoxGrafico.tsx`) | hecho, por verificar: la maqueta dibuja la columna Bottom Two Box al lado de la Top Two Box y la ficha la nombra (`geometriaFicha.ts`, rol `btb`) |
 | 2 | p79 | Escalas: fila Total separada por filete | sólo sin grupos (`is.null(var_grupo_id)`); no sale en «Públicos por tema» | no | **decidido, no se construye por ahora** (Gonzalo, 2026-10-14): «debería ser un tipo de multiapilada, pero normalmente no es algo que solamos hacer, nos gusta diferenciar entre los actores». Si se retoma, va como lectura propia de multiapiladas, no como interruptor en las láminas por actor |
-| 3 | p74–p75 | Ranking en barras de 0 a 100 %, sin y con marcas del eje («Opcional brindar ambas opciones», 2026-10-09) | sí: 0–100 % ya es el defecto; `marcas_eje` en `lamina_categorica.R` (~58) | no (`marcas_eje`, `usar_eje_libre` sin registro) | tanda 1 |
+| 3 | p74–p75 | Ranking en barras de 0 a 100 %, sin y con marcas del eje («Opcional brindar ambas opciones», 2026-10-09) | sí: 0–100 % ya es el defecto; `marcas_eje` en `lamina_categorica.R` (~58) | sí: «Marcas del eje» en la pestaña Gráfico | hecho, por verificar: formal `marcas_eje` de `p_barras_agrupadas()` → `overrides` (prueba en `test-graficos-controles-llegan.R`), arg en el registro, control y glifo con sus marcas. La escala de 0 a 100 % ya era el defecto; el eje libre no se ofrece |
 | 4 | p73 | «Otros» y «No sabe» al final; la más marcada en oscuro | sí | sí (`agrupar_resto_en_otros`, `otros_al_final`) | ya está |
 | 5 | p68 | Cifra con sus casos («13% · 22 estudiantes») | sí | sí (`formato_valor`) | ya está |
 | 6 | p78 | Top Two Box | sí | sí (`top2box`) | ya está |

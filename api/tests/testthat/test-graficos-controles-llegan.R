@@ -46,6 +46,9 @@ test_that("la significancia y el ancho de etiquetas llegan a overrides desde el 
   }
   args <- .clean_rebuild_args(list(var = "p1", forzar_ancho_max_eje_y = TRUE), p_barras_agrupadas)
   expect_true(isTRUE(do.call(p_barras_agrupadas, args)$overrides$forzar_ancho_max_eje_y))
+  # Inventario de configuraciones, ítem 3: «Marcas del eje» del ranking en barras (recetario p74–p75).
+  args <- .clean_rebuild_args(list(var = "p1", marcas_eje = TRUE), p_barras_agrupadas)
+  expect_true(isTRUE(do.call(p_barras_agrupadas, args)$overrides$marcas_eje))
 })
 
 test_that("las pendientes siguen descartándose: si alguien las arregla, que las saque de la lista", {

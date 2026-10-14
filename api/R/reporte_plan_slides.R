@@ -1927,7 +1927,7 @@ p_slide_6_graficos_poblacion <- function(
 p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), mostrar_ceros = NULL, excluir_opciones = NULL,
                                orden_categorias = NULL, max_categorias = NULL, agrupar_resto_en_otros = NULL,
                                etiqueta_otros = NULL, mostrar_significancia = NULL, significancia_alpha = NULL,
-                               forzar_ancho_max_eje_y = NULL) {
+                               forzar_ancho_max_eje_y = NULL, marcas_eje = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -1958,6 +1958,8 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
   overrides <- .ppt_slot_override(overrides, "mostrar_significancia", mostrar_significancia, "bool")
   overrides <- .ppt_slot_override(overrides, "significancia_alpha", significancia_alpha, "numero", min = 0)
   overrides <- .ppt_slot_override(overrides, "forzar_ancho_max_eje_y", forzar_ancho_max_eje_y, "bool")
+  # Recetario p74–p75: con la escala de 0 a 100 %, las marcas 0, 25, 50, 75 y 100 % bajo las barras (inventario, ítem 3).
+  overrides <- .ppt_slot_override(overrides, "marcas_eje", marcas_eje, "bool")
 
   el <- list(
     .element_type = "barras_agrupadas",
