@@ -10,6 +10,11 @@ export type FormWorkflowStage = {
   detail: string;
 };
 
+/**
+ * `assign_audience` sigue en el tipo porque `FormPublicationStatus` lo sabe
+ * pintar, pero esta vista ya no lo emite: el público nunca es obligatorio
+ * (decisión del usuario, 2026-10-14).
+ */
 export type FormWorkflowPrimaryAction =
   | "review_logic"
   | "assign_audience"
@@ -18,9 +23,15 @@ export type FormWorkflowPrimaryAction =
 
 export type FormWorkflowView = {
   logic: FormWorkflowStage;
-  audience: FormWorkflowStage;
+  /** `null` fuera de un estudio con públicos: ni etapa ni campo. */
+  audience: FormWorkflowStage | null;
   processing: FormWorkflowStage;
   primaryAction: FormWorkflowPrimaryAction;
+  /**
+   * Borrador sin preguntas: lo único que impide publicar es que está vacío.
+   * No es un error y no se pinta en rojo.
+   */
+  emptyDraft: boolean;
 };
 
 export function instrumentActorLabel(option: InstrumentActorOption): string {
@@ -35,6 +46,35 @@ export function instrumentActorLabel(option: InstrumentActorOption): string {
     : "Público configurado";
 }
 
+function normalizarTexto(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+/** Raíces de los públicos de acreditación que un título suele nombrar. */
+const RAICES_PUBLICO = ["estudiant", "docente", "administrativ", "egresad"] as const;
+
+/**
+ * Público sugerido por el título del formulario («… - Estudiantes» →
+ * Estudiantes), sólo si existe en el catálogo del estudio y el título nombra
+ * uno solo. Es una sugerencia que la persona acepta; nunca se asigna sola.
+ */
+export function suggestAudienceFromTitle(
+  title: string,
+  actorOptions: InstrumentActorOption[],
+): InstrumentActorOption | null {
+  const titulo = normalizarTexto(title);
+  const nombradas = RAICES_PUBLICO.filter((raiz) => titulo.includes(raiz));
+  if (nombradas.length !== 1) return null;
+  const raiz = nombradas[0];
+  const coincidentes = actorOptions.filter((option) => (
+    normalizarTexto(`${option.actor} ${option.actor_key}`).includes(raiz)
+  ));
+  return coincidentes.length === 1 ? coincidentes[0] : null;
+}
+
 /**
  * Traduce el estado técnico de publicación a los tres hitos que una persona
  * necesita comprender antes de usar el instrumento en Procesamiento.
@@ -43,7 +83,8 @@ export function getFormWorkflowView(
   publication: XlsformFormPublication,
   actorOptions: InstrumentActorOption[],
   actorKey: string | null | undefined,
-  audienceRequired = true,
+  /** El estudio trabaja con públicos (acreditación). Aun así es opcional. */
+  audienceApplies = true,
 ): FormWorkflowView {
   const logicNeedsReview = publication.blockers.some((blocker) => (
     isConfirmableLogicBlocker(blocker.id)
@@ -85,29 +126,27 @@ export function getFormWorkflowView(
           detail: "La estructura lógica no tiene revisiones pendientes.",
         };
 
-  const audience: FormWorkflowStage = !audienceRequired
-    ? actorKey
-      ? {
-          label: "Asignación conservada",
-          tone: "success",
-          detail: "El proyecto ya validó esta asignación; no necesitas cambiarla para publicar.",
-        }
-      : {
-          label: "No requerido",
-          tone: "neutral",
-          detail: "Este tipo de proyecto puede publicar el instrumento sin asignar un público.",
-        }
+  // El público nunca es obligatorio. Fuera de un estudio con públicos no se
+  // muestra (antes salía «No requerido»: ruido); dentro, es opcional y neutro.
+  const audience: FormWorkflowStage | null = !audienceApplies
+    ? null
     : actor
       ? {
           label: instrumentActorLabel(actor),
           tone: "success",
-          detail: "Este es el público que reconocerá Procesamiento.",
+          detail: "Procesamiento reconocerá las bases de este público.",
         }
-      : {
-          label: "Elige un público",
-          tone: "warning",
-          detail: "Asigna a quién responde este instrumento antes de publicarlo.",
-        };
+      : actorKey
+        ? {
+            label: "Opcional",
+            tone: "neutral",
+            detail: "La asignación anterior ya no existe en el estudio. Puedes elegir otra o publicar sin público.",
+          }
+        : {
+            label: "Opcional",
+            tone: "neutral",
+            detail: "Puedes publicar sin público; asignarlo ayuda a Procesamiento a reconocer la base.",
+          };
 
   // Qué bases están usando de verdad este instrumento. Es la diferencia entre
   // "publicaste" y "sirvió": una revisión publicada que ninguna base usa no
@@ -160,11 +199,20 @@ export function getFormWorkflowView(
 
   const primaryAction: FormWorkflowPrimaryAction = logicNeedsReview
     ? "review_logic"
-    : audienceRequired && !actor
-      ? "assign_audience"
-      : publication.can_publish
-        ? "publish"
-        : "open";
+    : publication.can_publish
+      ? "publish"
+      : "open";
 
-  return { logic, audience, processing, primaryAction };
+  // Vacío y nada más: los bloqueos de lógica de un formulario sin preguntas
+  // son moot (no hay saltos que revisar), y los de público ya no existen (un
+  // backend anterior a 2026-10-14 aún puede mandarlos). Cualquier otro bloqueo
+  // es real.
+  const emptyDraft = sinPreguntas && publication.blockers.every((blocker) => (
+    blocker.id === "no_substantive_questions"
+    || blocker.id === "actor_required"
+    || blocker.id === "actor_not_in_catalog"
+    || isConfirmableLogicBlocker(blocker.id)
+  ));
+
+  return { logic, audience, processing, primaryAction, emptyDraft };
 }

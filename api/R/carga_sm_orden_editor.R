@@ -283,3 +283,205 @@
   }
   res
 }
+
+# --- Receta implícita: sin receta, manda el instrumento guardado --------------
+#
+# ADR 0099, decisión 7. Una base sin receta del editor tiene igual sus códigos:
+# los del instrumento con que se importó (`original_xlsform_file_id`). El
+# traductor puede cambiar cómo codifica SurveyMonkey (H3: el peso de la opción
+# pasó a ser el código, «SIN INF» peso 99 -> 99, antes 4 por posición), y el
+# refresh suma filas nuevas a las viejas sin recodificarlas: si el instrumento
+# regenerado no conserva los códigos guardados, la misma etiqueta queda con dos
+# códigos en la base (o dos etiquetas cambian de código entre sí).
+#
+# Por cada variable de opción, el código de toda etiqueta que ya estaba en el
+# instrumento guardado sale de ahí; una opción nueva de SurveyMonkey entra con
+# su código si está libre, o con el siguiente libre. Si una etiqueta guardada
+# ya no existe en la encuesta (renombrada o quitada) no se adivina: la variable
+# queda en `no_calzan` y el refresh se bloquea con la causa.
+
+# Opciones de `var` en un modelo: data.frame code / label / norm.
+.carga_sm_orden_opciones <- function(model, var) {
+  vacio <- data.frame(code = character(0), label = character(0), norm = character(0), stringsAsFactors = FALSE)
+  survey <- model$survey
+  choices <- model$choices
+  if (is.null(survey) || is.null(choices)) return(vacio)
+  lab_col <- .carga_sm_orden_label_col(choices)
+  if (is.na(lab_col)) return(vacio)
+  fila <- which(as.character(survey$name) == var)
+  if (!length(fila)) return(vacio)
+  tipo <- trimws(as.character(survey$type[fila[1]]))
+  if (!grepl("^select_(one|multiple)\\s+", tipo)) return(vacio)
+  ln <- trimws(sub("^select_(one|multiple)\\s+", "", tipo))
+  idx <- which(as.character(choices$list_name) == ln)
+  lab <- as.character(choices[[lab_col]][idx])
+  lab[is.na(lab)] <- ""
+  data.frame(code = as.character(choices$name[idx]), label = lab, norm = .sm_mb_norm(lab), stringsAsFactors = FALSE)
+}
+
+.carga_sm_orden_lista_de <- function(survey, var) {
+  fila <- which(as.character(survey$name) == var)
+  if (!length(fila)) return("")
+  trimws(sub("^select_(one|multiple)\\s+", "", trimws(as.character(survey$type[fila[1]]))))
+}
+
+# Instrumento leído (`reporte_instrumento`) o modelo -> modelo survey/choices.
+.carga_sm_orden_modelo_de_instrumento <- function(inst) {
+  if (is.null(inst)) return(NULL)
+  survey <- as.data.frame(inst$survey %||% data.frame(), stringsAsFactors = FALSE)
+  choices <- as.data.frame(inst$choices %||% data.frame(), stringsAsFactors = FALSE)
+  if (!all(c("type", "name") %in% names(survey)) || !all(c("list_name", "name") %in% names(choices))) return(NULL)
+  lab_col <- as.character(inst$label_col_choices %||% "")[1]
+  if (is.na(lab_col) || !nzchar(lab_col) || !lab_col %in% names(choices)) lab_col <- .carga_sm_orden_label_col(choices)
+  if (is.na(lab_col)) return(NULL)
+  # `reporte_instrumento` separa el tipo base (`select_one`) de `list_name`.
+  tipo <- trimws(as.character(survey$type))
+  if ("list_name" %in% names(survey)) {
+    ln <- trimws(as.character(survey$list_name))
+    pegar <- grepl("^select_(one|multiple)$", tipo) & !is.na(ln) & nzchar(ln)
+    tipo[pegar] <- paste(tipo[pegar], ln[pegar])
+  }
+  list(
+    survey = data.frame(type = tipo, name = as.character(survey$name), stringsAsFactors = FALSE),
+    choices = data.frame(list_name = as.character(choices$list_name), name = as.character(choices$name),
+                         `label::es` = as.character(choices[[lab_col]]), check.names = FALSE, stringsAsFactors = FALSE)
+  )
+}
+
+# Empareja opciones guardadas con generadas, de la clave más estricta a la más
+# laxa: etiqueta literal, `.sm_mb_norm` y, por último, sin ningún espacio
+# (bases importadas antes de b374804bc guardan «Muy de acuer do», partida por
+# el HTML en línea, y hoy se genera «Muy de acuerdo»). En cada nivel solo se
+# aceptan pares 1 a 1 entre lo que queda sin emparejar. Devuelve, por opción
+# guardada, el índice de la generada (NA si no hay una equivalente inequívoca).
+.carga_sm_orden_emparejar <- function(sav_lab, gen_lab) {
+  m <- rep(NA_integer_, length(sav_lab))
+  claves <- list(
+    function(x) trimws(x),
+    function(x) .sm_mb_norm(x),
+    function(x) gsub(" ", "", .sm_mb_norm(x), fixed = TRUE)
+  )
+  for (clave in claves) {
+    libres_s <- which(is.na(m))
+    libres_g <- setdiff(seq_along(gen_lab), m[!is.na(m)])
+    if (!length(libres_s) || !length(libres_g)) break
+    ks <- clave(sav_lab[libres_s])
+    kg <- clave(gen_lab[libres_g])
+    for (j in seq_along(libres_s)) {
+      k <- ks[j]
+      if (is.na(k) || !nzchar(k) || sum(ks == k, na.rm = TRUE) != 1L) next
+      hit <- which(kg == k)
+      if (length(hit) == 1L) m[libres_s[j]] <- libres_g[hit]
+    }
+  }
+  m
+}
+
+# Código para una opción nueva que choca: el siguiente libre tras el mayor
+# código sustantivo (< 90, fuera de los especiales 96-99), sin pisar uno usado.
+# Mismo criterio que `.sm_api_codigo_libre`.
+.carga_sm_orden_codigo_libre <- function(usados) {
+  num <- suppressWarnings(as.integer(usados))
+  num <- num[!is.na(num)]
+  siguiente <- max(c(num[num < 90L], 0L)) + 1L
+  while (as.character(siguiente) %in% usados) siguiente <- siguiente + 1L
+  as.character(siguiente)
+}
+
+# Mapa (formato del editor) que lleva `gen` a los códigos de `sav`, NULL si la
+# lista no cambia, o el motivo si una opción guardada no tiene equivalente.
+.carga_sm_orden_mapa_implicito <- function(var, ln, gen, sav) {
+  # Lista idéntica (mismos códigos con las mismas etiquetas literales): nada
+  # que conservar, aunque sus etiquetas normalizadas se repitan.
+  par <- function(d) paste(d$code, trimws(d$label), sep = "\r")
+  if (nrow(gen) == nrow(sav) && setequal(par(gen), par(sav)) && !anyDuplicated(par(sav))) {
+    return(list(map = NULL))
+  }
+  m <- .carga_sm_orden_emparejar(sav$label, gen$label)
+  if (anyNA(m)) {
+    return(list(
+      motivo = "la encuesta actual no trae una opción equivalente a opciones que la base tiene guardadas",
+      etiquetas = sav$label[is.na(m)]
+    ))
+  }
+  codigo <- rep(NA_character_, nrow(gen))
+  codigo[m] <- sav$code
+  usados <- sav$code
+  for (i in which(is.na(codigo))) {
+    codigo[i] <- if (!gen$code[i] %in% usados) gen$code[i] else .carga_sm_orden_codigo_libre(usados)
+    usados <- c(usados, codigo[i])
+  }
+  list(map = list(
+    variable = var,
+    list_name = ln,
+    mappings = lapply(seq_len(nrow(gen)), function(i) list(
+      xls_code = codigo[i], xls_label = gen$label[i], source_label = gen$label[i]
+    ))
+  ))
+}
+
+# model: XLSForm regenerado (ya con la receta explícita). inst_guardado: el
+# instrumento guardado de la base. excluir: variables que fijó la receta.
+.carga_sm_orden_conservar_guardado <- function(model, inst_guardado, excluir = character(0)) {
+  resumen <- list(conservadas = list(), no_calzan = list())
+  guardado <- .carga_sm_orden_modelo_de_instrumento(inst_guardado)
+  survey <- model$survey
+  if (is.null(guardado) || is.null(survey) || is.null(model$choices)) return(list(model = model, resumen = resumen))
+  tipos <- trimws(as.character(survey$type))
+  vars <- as.character(survey$name)[grepl("^select_(one|multiple)\\s+", tipos)]
+  listas_receta <- vapply(excluir, function(v) .carga_sm_orden_lista_de(survey, v), character(1))
+  no_calza <- function(var, motivo, etiquetas = character(0)) {
+    resumen$no_calzan[[length(resumen$no_calzan) + 1L]] <<- list(
+      variable = var, motivo = motivo, etiquetas = as.list(etiquetas)
+    )
+  }
+  mapas <- list()
+  distintas <- character(0)
+  for (v in setdiff(vars, excluir)) {
+    ln <- .carga_sm_orden_lista_de(survey, v)
+    if (ln %in% listas_receta) next
+    gen <- .carga_sm_orden_opciones(model, v)
+    sav <- .carga_sm_orden_opciones(guardado, v)
+    if (!nrow(gen) || !nrow(sav)) next
+    r <- .carga_sm_orden_mapa_implicito(v, ln, gen, sav)
+    if (!is.null(r$motivo)) { no_calza(v, r$motivo, r$etiquetas %||% character(0)); next }
+    # Sin cambios: mapa identidad, que solo se usa si comparte lista con otra
+    # variable que sí cambia.
+    mapas[[v]] <- r$map %||% list(variable = v, list_name = ln, mappings = lapply(seq_len(nrow(gen)), function(i) list(
+      xls_code = gen$code[i], xls_label = gen$label[i], source_label = gen$label[i]
+    )))
+    nuevos <- vapply(mapas[[v]]$mappings, function(m) m$xls_code, character(1))
+    if (!identical(nuevos, gen$code)) distintas <- c(distintas, v)
+  }
+  # Solo se tocan las listas que cambian; una lista compartida entra entera,
+  # con todas sus variables, para que la adopción detecte un conflicto.
+  listas <- unique(vapply(distintas, function(v) .carga_sm_orden_lista_de(survey, v), character(1)))
+  aplicar <- Filter(function(m) m$list_name %in% listas, mapas)
+  if (!length(aplicar)) return(list(model = model, resumen = resumen))
+  res <- .carga_sm_adoptar_orden_editor(model, unname(aplicar))
+  for (o in res$resumen$omitidas %||% list()) {
+    no_calza(o$variable, paste("no se pudieron conservar sus códigos:", o$motivo))
+  }
+  resumen$conservadas <- as.list(intersect(distintas, as.character(unlist(res$resumen$adoptadas %||% list()))))
+  list(model = res$model, resumen = resumen)
+}
+
+# Instrumento guardado de una base (el original, contra el que está su data).
+.carga_sm_orden_instrumento_guardado <- function(sid, base) {
+  fid <- .sm_mb_scalar((base %||% list())$original_xlsform_file_id %||% base$xlsform_file_id, "")
+  if (!nzchar(fid)) return(NULL)
+  tryCatch(reporte_instrumento(path = get_file(sid, fid)$path), error = function(e) NULL)
+}
+
+# Refresh: receta explícita primero (manda), receta implícita después.
+.carga_sm_orden_reaplicar_y_conservar <- function(sid, base_name, model, editor_maps = NULL) {
+  base <- session_get(sid)$estudio$bases[[base_name]]
+  res <- .carga_sm_orden_reaplicar(model, base$choice_order_editor, editor_maps)
+  receta_vars <- vapply(res$resumen$receta %||% list(), function(r) as.character(r$variable %||% "")[1], character(1))
+  guard <- .carga_sm_orden_conservar_guardado(
+    res$model,
+    .carga_sm_orden_instrumento_guardado(sid, base),
+    excluir = receta_vars[!is.na(receta_vars) & nzchar(receta_vars)]
+  )
+  list(model = guard$model, resumen = res$resumen, codigos_guardados = guard$resumen)
+}

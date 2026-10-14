@@ -7,7 +7,7 @@ import type { EstudioBase, EstudioLogicSyncResult, EstudioPayload } from "./estu
 import type { AsyncJobStart } from "./jobs";
 import { normalizeShareArray } from "./graficos";
 import type { MonitoreoKoboAssetItem, MonitoreoProcessingHandoffPromoteResult } from "./monitoreo";
-import { type EditorPayloadWithHallazgos, type Hallazgo, normalizeEditorPayload, normalizePersistedXlsformWorkbook, type SurveyMonkeyLogicState, type SurveyMonkeyVisualLogicAction, type SurveyMonkeyVisualLogicRule, type XlsformEditorPayload, type XlsformEditorWorkbook, type XlsformFormSource, type XlsformSourceRecord, type XlsformSourceValue } from "./multiIntegrado";
+import { type EditorPayloadWithHallazgos, type Hallazgo, normalizeEditorPayload, normalizePersistedXlsformWorkbook, type SurveyMonkeyLogicState, type SurveyMonkeyVisualLogicAction, type SurveyMonkeyVisualLogicRule, type XlsformEditorPayload, type XlsformEditorWorkbook, type XlsformFormSource, type XlsformFueraDelFormularioItem, type XlsformSourceRecord, type XlsformSourceValue } from "./multiIntegrado";
 
 // -----------------------------------------------------------------------------
 // Colección multi-formulario del editor XLSForm (Oleada 2)
@@ -110,6 +110,7 @@ const XLSFORM_SOURCE_FIELDS = [
   "logic_confirmed_at",
   "logic_confirmation_method",
   "logic_review",
+  "fuera_del_formulario",
 ] as const;
 
 const SENSITIVE_SOURCE_KEY = /(?:^|[_-])(?:token|authorization|password|secret|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|cookie|credential|session)(?:$|[_-])/i;
@@ -132,6 +133,25 @@ function sanitizeXlsformSourceValue(value: unknown, depth = 0): XlsformSourceVal
       return sanitized === undefined ? [] : [[key, sanitized] as const];
     });
   return Object.fromEntries(entries) as XlsformSourceRecord;
+}
+
+/**
+ * Lista `{tipo, nombre, detalle}` de lo que no entra al formulario (H9). El
+ * backend serializa una lista de un elemento como objeto suelto (auto_unbox),
+ * así que también se acepta ese caso. `undefined` si no viene o queda vacía.
+ */
+export function normalizeFueraDelFormulario(value: unknown): XlsformFueraDelFormularioItem[] | undefined {
+  if (value == null) return undefined;
+  const items = Array.isArray(value) ? value : [value];
+  const out = items.flatMap((item): XlsformFueraDelFormularioItem[] => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const raw = item as Record<string, unknown>;
+    const texto = (v: unknown) => (typeof v === "string" ? v.trim() : Array.isArray(v) && typeof v[0] === "string" ? v[0].trim() : "");
+    const detalle = texto(raw.detalle);
+    if (!detalle) return [];
+    return [{ tipo: texto(raw.tipo) || "otro", nombre: texto(raw.nombre), detalle }];
+  });
+  return out.length ? out : undefined;
 }
 
 /** Normaliza y sanea la procedencia usando exclusivamente su allowlist pública. */
@@ -161,6 +181,7 @@ export function normalizeXlsformFormSource(value: unknown): XlsformFormSource | 
   const logicReview = safe.logic_review && typeof safe.logic_review === "object" && !Array.isArray(safe.logic_review)
     ? safe.logic_review as XlsformSourceRecord
     : undefined;
+  const fueraDelFormulario = normalizeFueraDelFormulario(safe.fuera_del_formulario);
   const questionCount = typeof safe.question_count === "number" && Number.isFinite(safe.question_count)
     ? safe.question_count
     : null;
@@ -170,7 +191,8 @@ export function normalizeXlsformFormSource(value: unknown): XlsformFormSource | 
   };
   for (const field of XLSFORM_SOURCE_FIELDS) {
     if (field === "kind" || field === "original_name" || field === "variants"
-      || field === "provenance" || field === "logic_review" || field === "question_count") continue;
+      || field === "provenance" || field === "logic_review" || field === "question_count"
+      || field === "fuera_del_formulario") continue;
     const item = safe[field];
     if (typeof item === "string" || item === null) {
       normalized[field] = item;
@@ -180,6 +202,7 @@ export function normalizeXlsformFormSource(value: unknown): XlsformFormSource | 
   if (variants) normalized.variants = variants;
   if (provenance) normalized.provenance = provenance;
   if (logicReview) normalized.logic_review = logicReview;
+  if (fueraDelFormulario) normalized.fuera_del_formulario = fueraDelFormulario;
   const hasRichMetadata = Object.keys(normalized).some((key) => key !== "kind" && key !== "original_name");
   return kind == null && originalName == null && !hasRichMetadata ? null : normalized;
 }
@@ -284,7 +307,7 @@ export function normalizeXlsformFormPublication(value: unknown): XlsformFormPubl
   };
 }
 
-function normalizeFormEntry(value: unknown): FormLibraryEntry | null {
+export function normalizeFormLibraryEntry(value: unknown): FormLibraryEntry | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const v = value as Record<string, unknown>;
   const id = typeof v.id === "string" ? v.id : "";
@@ -314,7 +337,7 @@ export async function apiXlsformFormsList(): Promise<{
   );
   const r = (raw ?? {}) as Record<string, unknown>;
   const forms = Array.isArray(r.forms)
-    ? r.forms.map(normalizeFormEntry).filter((entry): entry is FormLibraryEntry => entry != null)
+    ? r.forms.map(normalizeFormLibraryEntry).filter((entry): entry is FormLibraryEntry => entry != null)
     : [];
   return {
     ok: true,

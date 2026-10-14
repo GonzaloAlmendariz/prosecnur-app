@@ -91,6 +91,8 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_acreditacion_sav(pr)
     pr <- mount_connections(pr)
     pr <- mount_xlsform_editor(pr)
+    pr <- mount_xlsform_campanas(pr)
+    pr <- mount_xlsform_sm_sugerencias(pr)
     pr <- mount_surveymonkey_multibase(pr)
     pr <- mount_multi_integrated(pr)
     pr <- mount_estudio(pr)

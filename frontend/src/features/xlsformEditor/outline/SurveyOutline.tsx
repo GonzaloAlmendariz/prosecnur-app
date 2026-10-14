@@ -311,7 +311,13 @@ export function SurveyOutline({
       onDragEnd={handleDragEnd}
       onDragCancel={clearDragState}
     >
-      <div ref={outlineContainerRef} className="pulso-outline-scroll">
+      <div
+        ref={outlineContainerRef}
+        className="pulso-outline-scroll"
+        data-qa-geometry-group="xlsform/outline"
+        data-qa-geometry-contract="intrinsic"
+        data-qa-geometry-capacity="owned"
+      >
         {/* Item especial "Ajustes del formulario" — no participa del dnd. */}
         <div
           role="button"

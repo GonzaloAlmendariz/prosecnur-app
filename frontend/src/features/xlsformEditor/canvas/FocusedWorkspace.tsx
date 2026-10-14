@@ -49,7 +49,7 @@ import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
 import { typeLabel } from "../parsing/parseType";
 import { FormCanvas, type FormCanvasProps } from "./FormCanvas";
 import { EditableQuestionCard } from "./EditableQuestionCard";
-import { SectionHeader } from "./SectionHeader";
+import { countFieldsInOutline, formatFieldSectionPair, plural } from "../shell/editorMetrics";
 import { InspectorBlock, InspectorField } from "../inspector/InspectorPrimitives";
 import { MarkdownField } from "../inspector/MarkdownField";
 import { TypePicker } from "../inspector/TypePicker";
@@ -183,8 +183,8 @@ export function FocusedWorkspace({
                       {item.icon}
                     </span>
                     <span>
-                      <strong>{item.value}</strong>
                       <small>{item.label}</small>
+                      <strong>{item.value}</strong>
                     </span>
                   </span>
                 ))}
@@ -209,8 +209,10 @@ export function FocusedWorkspace({
               data-gliding-key="focus"
               className={mode === "focus" ? "is-on" : ""}
               onClick={() => onModeChange("focus")}
+              aria-label="En foco"
+              title="En foco: edita el elemento seleccionado"
             >
-              <Eye size={13} /> En foco
+              <Eye size={13} aria-hidden="true" /> <span className="pulso-xf-focus-label">En foco</span>
             </button>
             <button
               type="button"
@@ -219,8 +221,10 @@ export function FocusedWorkspace({
               data-gliding-key="overview"
               className={mode === "overview" ? "is-on" : ""}
               onClick={() => onModeChange("overview")}
+              aria-label="Formulario completo"
+              title="Formulario completo: todas las preguntas en orden"
             >
-              <LayoutList size={13} /> Formulario completo
+              <LayoutList size={13} aria-hidden="true" /> <span className="pulso-xf-focus-label">Formulario completo</span>
             </button>
           </GlidingTabList>
 
@@ -237,8 +241,9 @@ export function FocusedWorkspace({
                 className="pulso-focus-danger-action"
                 onClick={onDelete}
                 title="Eliminar elemento seleccionado"
+                aria-label="Eliminar elemento seleccionado"
               >
-                <Trash2 size={14} /> Eliminar
+                <Trash2 size={14} aria-hidden="true" /> <span className="pulso-xf-focus-label">Eliminar</span>
               </button>
             </div>
           )}
@@ -312,7 +317,10 @@ function buildHeaderCopy(
     const Icon = iconForType(node.typeInfo.base);
     const accent = paletteForType(node.typeInfo.base);
     const accentSoft = paletteSoftForType(node.typeInfo.base);
-    const place = section && section.kind !== "root"
+    // Con un bloque seleccionado, `section` es el propio bloque: decir «en
+    // Pag1 (p1)» debajo del título «Pag1 (p1)» repetía el nombre.
+    const isOwnSection = section?.rowIndex === node.rowIndex;
+    const place = section && section.kind !== "root" && !isOwnSection
       ? ` · en ${stripMarkdown(section.label)}`
       : "";
     const kicker = node.kind === "section" || node.kind === "repeat"
@@ -344,7 +352,7 @@ function buildHeaderCopy(
 
   return {
     kicker: "Constructor",
-    title: "Selecciona una pieza",
+    title: "Selecciona un elemento",
     subtitle: "El outline manda el foco del workspace.",
     icon: Layers3,
     iconStyle: undefined,
@@ -462,8 +470,10 @@ function FullFormWorkspace({
     <div className="pulso-focus-overview">
       <div className="pulso-focus-overview-toolbar" role="toolbar" aria-label="Resumen del canvas del formulario">
         <span>Formulario completo</span>
-        <strong>{structure.outline.length} piezas</strong>
-        <strong>{sectionsCount} secciones</strong>
+        <strong>{formatFieldSectionPair(
+          countFieldsInOutline(structure.outline),
+          sectionsCount,
+        )}</strong>
       </div>
       <div className="pulso-focus-overview-stage">
         <FormCanvas
@@ -723,22 +733,21 @@ function FocusedPreview({
     const sectionMeta = structure?.sections.get(`section-${node.rowIndex}`) ?? section;
     return (
       <div className="pulso-focus-section-preview">
-        <SectionHeader
-          label={node.label}
-          name={node.name}
-          kind={node.kind}
-          depth={0}
-          childCount={sectionMeta?.itemCount ?? 0}
-          hasRelevant={!!node.relevant}
-          selected
-          collapsed={false}
-          onSelect={() => onSelectRow(node.rowIndex)}
-          onToggleCollapsed={() => undefined}
-          onLabelChange={(value) => onFieldChange("label", value)}
-        />
-        <div className="pulso-focus-section-facts">
-          <FocusFact label="Piezas dentro" value={`${sectionMeta?.itemCount ?? 0}`} />
-          <FocusFact label="Tipo de bloque" value={node.kind === "repeat" ? "Repetición" : "Sección"} />
+        {/* El título ya está en la cabecera y se edita en «Contenido»: aquí
+            van sólo los datos del bloque, cada uno una vez. */}
+        <div
+          className="pulso-focus-section-facts"
+          data-qa-geometry-group="xlsform/vista-trabajo-metricas"
+          data-qa-geometry-contract="equal"
+        >
+          <FocusFact
+            label="Dentro del bloque"
+            value={plural(sectionMeta?.itemCount ?? 0, "elemento", "elementos")}
+          />
+          <FocusFact
+            label="Visibilidad"
+            value={node.relevant?.trim() ? "Condicional" : "Siempre"}
+          />
           <FocusFact label="Código" value={node.name || "sin código"} code />
         </div>
         <SectionBoundaryControl
@@ -941,11 +950,11 @@ function SectionBoundaryControl({
           title={
             boundary.nextLabel
               ? `Mover el cierre para incluir "${boundary.nextLabel}"`
-              : "No hay una pieza siguiente para incluir"
+              : "No hay un elemento siguiente para incluir"
           }
         >
           <ArrowDown size={13} />
-          <span>Incluir siguiente pieza</span>
+          <span>Incluir el siguiente</span>
         </button>
         <button
           type="button"
@@ -955,11 +964,11 @@ function SectionBoundaryControl({
           title={
             boundary.lastChildLabel
               ? `Mover el cierre antes de "${boundary.lastChildLabel}"`
-              : "El bloque no tiene piezas para sacar"
+              : "El bloque no tiene elementos para sacar"
           }
         >
           <ArrowUp size={13} />
-          <span>Sacar última pieza</span>
+          <span>Sacar el último</span>
         </button>
       </div>
       <div className="pulso-focus-section-boundary-hint">
@@ -968,7 +977,7 @@ function SectionBoundaryControl({
             Siguiente fuera del bloque: <strong>{boundary.nextLabel}</strong>
           </span>
         ) : (
-          <span>No hay más piezas al mismo nivel para sumar a este bloque.</span>
+          <span>No hay más elementos al mismo nivel para sumar a este bloque.</span>
         )}
         {boundary.lastChildLabel && (
           <span>
@@ -1208,7 +1217,7 @@ function ResponseTab({
         <InspectorBlock>
           <div className="pulso-focus-structure-summary">
             <FocusFact label="Bloque" value={node.kind === "repeat" ? "Repetición" : "Sección"} />
-            <FocusFact label="Contenido directo" value={`${section?.itemCount ?? 0} piezas`} />
+            <FocusFact label="Contenido directo" value={plural(section?.itemCount ?? 0, "elemento", "elementos")} />
             <FocusFact label="Padre" value={section?.parentId && section.parentId !== "root" ? section.parentId : "Formulario"} />
           </div>
           <SectionBoundaryControl

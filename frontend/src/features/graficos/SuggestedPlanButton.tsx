@@ -127,7 +127,7 @@ export function SuggestedPlanButton() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<GraficosSuggestedPlanResponse | null>(null);
-  // ADR 0101: la matriz de equivalencias ya no es fuente del plan; ACNUR sigue activable (su PPT es distinto al de PULSO).
+  // ADR 0102: la matriz de equivalencias ya no es fuente del plan; ACNUR sigue activable (su PPT es distinto al de PULSO).
   const [profileId, setProfileId] = useState<"auto" | "acnur_kobo_cruncher_plus">("auto");
   const [acnurMode, setAcnurMode] = useState<"general" | "territorial">("general");
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>("paired_district");

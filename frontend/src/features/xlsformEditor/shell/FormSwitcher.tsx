@@ -75,9 +75,10 @@ export function FormSwitcher({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        title="Cambiar de formulario"
+        title={`${label} — cambiar de formulario`}
+        aria-label={`Formulario activo: ${label}. Cambiar de formulario`}
       >
-        <FileSpreadsheet size={13} />
+        <FileSpreadsheet size={13} aria-hidden="true" />
         <span className="pulso-xf-form-switcher-label">{label}</span>
         <ChevronDown size={13} aria-hidden="true" />
       </button>

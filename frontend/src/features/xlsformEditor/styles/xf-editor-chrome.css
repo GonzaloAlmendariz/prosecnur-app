@@ -1,0 +1,446 @@
+/* ==========================================================================
+   xf-editor-chrome.css — banda de comandos y vista de trabajo del editor
+   (revamp ola 2, 2026-10-14)
+
+   Selectores con `.pulso-xlsform-frame` + dos clases propias: theme.css carga
+   DESPUÉS de las hojas del feature, así que se gana por especificidad, no por
+   orden. theme.css está congelado a crecimiento: lo nuevo vive aquí.
+   ========================================================================== */
+
+/* ── Banda: una sola fila en todo el rango desktop ───────────────────────── */
+
+.pulso-xlsform-frame .pulso-xf-cmdbar.pulso-xlsform-commandbar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 0;
+  padding-block: 6px;
+}
+
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xlsform-commandbar-group {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  grid-column: auto;
+}
+
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xlsform-commandbar-group--document {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+}
+
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xlsform-commandbar-group--modes,
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xlsform-commandbar-group--actions {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+/* Selector de formulario: el nombre es el dato principal de la banda. */
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-form-switcher {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 140px;
+}
+
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-form-switcher-trigger {
+  max-width: min(420px, 30vw, 100%);
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+}
+
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-form-switcher-trigger svg {
+  flex: none;
+}
+
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-form-switcher-label {
+  min-width: 0;
+}
+
+/* Conteo: «92 preguntas · 17 secciones · 24 listas», listas en segundo plano. */
+.pulso-xlsform-frame .pulso-xf-cmd-metrics {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding-left: 10px;
+  border-left: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-xf-cmd-metrics strong {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-xlsform-frame .pulso-xf-cmd-secondary {
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+}
+
+.pulso-xlsform-frame .pulso-xf-cmd-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-xf-cmd-state .pulso-xlsform-history-controls {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.pulso-xlsform-frame .pulso-xf-cmd-state .pulso-xlsform-history-button {
+  width: 26px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+/* ── Segmentados neutros: la selección se marca con superficie, no relleno ── */
+
+.pulso-xlsform-frame .pulso-mode-toggle.pulso-xf-segmented {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-2);
+  box-shadow: none;
+}
+
+.pulso-xlsform-frame .pulso-mode-toggle.pulso-xf-segmented button {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding-inline: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xlsform-frame .pulso-mode-toggle.pulso-xf-segmented {
+  width: auto;
+}
+
+.pulso-xlsform-frame .pulso-mode-toggle.pulso-xf-segmented button.is-on {
+  background: var(--pulso-surface);
+  color: var(--module-accent, var(--pulso-primary));
+  box-shadow: var(--pulso-shadow-low), 0 0 0 1px var(--pulso-border);
+}
+
+/* «En foco | Formulario completo» y las pestañas del inspector: mismo idioma. */
+.pulso-xlsform-frame .pulso-focus-mode-toggle.pulso-gliding-tab-list,
+.pulso-xlsform-frame .pulso-focus-tabs.pulso-gliding-tab-list {
+  --pulso-gliding-indicator-bg: var(--pulso-surface);
+  --pulso-gliding-indicator-border: var(--pulso-border);
+  --pulso-gliding-indicator-shadow: var(--pulso-shadow-low);
+  --pulso-gliding-active-color: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-xlsform-frame .pulso-focus-mode-toggle.pulso-gliding-tab-list button.is-on {
+  background: var(--pulso-surface);
+  color: var(--module-accent, var(--pulso-primary));
+  box-shadow: var(--pulso-shadow-low);
+}
+
+/* ── Exportar: único primario, con su desplegable pegado ─────────────────── */
+
+.pulso-xlsform-frame .pulso-xf-export-split {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.pulso-xlsform-frame .pulso-xf-export-split .pulso-xf-export-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+  white-space: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-xf-export-split .pulso-xf-export-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 0 8px;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  border-start-end-radius: 999px;
+  border-end-end-radius: 999px;
+  border-left: 1px solid color-mix(in srgb, var(--pulso-surface) 40%, transparent);
+}
+
+.pulso-xlsform-frame .pulso-xf-export-menu {
+  min-width: 300px;
+}
+
+.pulso-xlsform-frame .pulso-xf-export-menu .pulso-more-views-item.is-active strong {
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+/* ── Estado del formulario (U10) ─────────────────────────────────────────── */
+
+.pulso-diagnostics-popover-step {
+  border: 1px solid var(--pulso-warn-border, var(--pulso-border));
+  background: var(--pulso-warn-bg, var(--pulso-surface-2));
+}
+
+.pulso-diagnostics-popover-action {
+  margin-top: 8px;
+  min-height: 26px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+/* ── Compacto (≤ 1280): rótulos secundarios a nombre accesible ───────────── */
+/* No se ocultan controles: se recoge el texto, que queda como aria-label y
+   title. Patrón sr-only para que el lector de pantalla lo siga leyendo. */
+@media (max-width: 1280px) {
+  .pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-cmd-label,
+  .pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-cmd-secondary {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .pulso-xlsform-frame .pulso-xf-cmdbar.pulso-xlsform-commandbar {
+    gap: 8px;
+    margin-inline: 8px;
+  }
+
+  /* El mismo par está justo debajo, en la cabecera del outline: en compacto
+     la banda cede ese ancho al nombre del formulario (sigue en el title). */
+  .pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-cmd-metrics,
+  .pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-cmd-source {
+    display: none;
+  }
+
+  .pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-form-switcher-trigger {
+    max-width: min(260px, 100%);
+  }
+
+  .pulso-xlsform-frame .pulso-xf-cmdbar .pulso-more-views-trigger {
+    padding-inline: 8px;
+  }
+
+  .pulso-xlsform-frame .pulso-xf-cmdbar .pulso-mode-toggle button {
+    padding-inline: 10px;
+  }
+}
+
+/* ── Vista de trabajo ────────────────────────────────────────────────────── */
+
+/* Métricas del bloque: etiqueta pequeña arriba, valor después (C1 equal). */
+.pulso-xlsform-frame .pulso-focus-section-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+/* Chips de estado del elemento: misma lectura (etiqueta → valor). */
+.pulso-xlsform-frame .pulso-focus-status-chip > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* El panel de vista previa nunca desborda en horizontal: su contenido se
+   adapta al ancho (antes `.pulso-canvas-section-meta` empujaba 25 px). */
+.pulso-xlsform-frame .pulso-focus-preview-pane,
+.pulso-xlsform-frame .pulso-focused-node-layout {
+  overflow-x: hidden;
+}
+
+.pulso-xlsform-frame .pulso-focus-preview-pane > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Cabecera del workspace compacta cuando la columna es estrecha: los modos y
+   «Eliminar» pierden el rótulo (lo conservan como nombre accesible) y quedan en
+   la misma fila que el título. Devuelve ~90 px de alto a la vista de trabajo. */
+@container pulso-focus-workspace (max-width: 900px) {
+  .pulso-xlsform-frame .pulso-focus-workspace .pulso-focus-workspace-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    padding: 10px 12px;
+  }
+
+  .pulso-xlsform-frame .pulso-focus-workspace .pulso-focus-workspace-controls {
+    justify-content: flex-end;
+  }
+
+  .pulso-xlsform-frame .pulso-focus-workspace .pulso-xf-focus-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .pulso-xlsform-frame .pulso-focus-workspace .pulso-focus-mode-toggle button,
+  .pulso-xlsform-frame .pulso-focus-workspace .pulso-focus-danger-action {
+    padding-inline: 8px;
+  }
+}
+
+/* Alto corto (1024×600 y similares): un solo dueño de scroll en la vista de
+   trabajo. El cuerpo del workspace es quien desplaza; el layout interno crece
+   con su contenido en vez de abrir una ventana de 111 px dentro de otra. */
+@media (max-width: 1180px) {
+  .pulso-xlsform-frame .pulso-focus-workspace .pulso-focus-workspace-body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 10px;
+  }
+
+  .pulso-xlsform-frame .pulso-focus-workspace .pulso-focused-node-layout,
+  .pulso-xlsform-frame .pulso-focus-workspace .pulso-focus-settings-layout {
+    height: auto;
+    overflow: visible;
+  }
+}
+
+/* ── Outline ─────────────────────────────────────────────────────────────── */
+
+/* Obligatoria: asterisco con el color de texto secundario. La estrella naranja
+   usaba el tono de alerta para algo que no es un problema. */
+.pulso-xlsform-frame .pulso-outline-row .pulso-outline-required {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--pulso-text-soft);
+}
+
+/* El cierre de sección usa el mismo borde que el resto de filas; su guía
+   vertical y el grip siguen diciendo que es un marcador arrastrable. */
+.pulso-xlsform-frame .pulso-outline-row.pulso-outline-closerow {
+  border: 1px solid transparent;
+}
+
+.pulso-xlsform-frame .pulso-outline-row.pulso-outline-closerow:not(.is-active) {
+  background: transparent;
+}
+
+/* ── Listas de opciones (H7) en la banda ─────────────────────────────────── */
+
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-cmd-listas {
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-xf-cmd-short {
+  display: none;
+}
+
+.pulso-xlsform-frame .pulso-xf-cmd-count {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 18px;
+  text-align: center;
+}
+
+/* Hasta 1520 px los rótulos de menor prioridad («Más vistas», «Nuevo
+   formulario», «Listas de opciones») se recogen; el número de repetidas y el
+   rótulo corto «Listas» quedan visibles. */
+@media (max-width: 1520px) {
+  .pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-cmd-label--low {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-cmd-short {
+    display: inline;
+  }
+
+  .pulso-xlsform-frame .pulso-xf-cmdbar .pulso-more-views-trigger {
+    padding-inline: 8px;
+  }
+}
+
+/* ── Pendientes tras traducir desde SurveyMonkey (H7 + H9) ───────────────── */
+
+.pulso-xlsform-frame .pulso-xf-sm-pendientes {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 12px 12px 0;
+  padding: 8px 10px 8px 14px;
+  border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--pulso-warn-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  font-size: 12.5px;
+}
+
+.pulso-xlsform-frame .pulso-xf-sm-pendientes-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 18px;
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-xf-sm-pendientes-linea {
+  margin: 0;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xlsform-frame .pulso-xf-sm-pendientes-linea strong {
+  color: var(--pulso-text);
+}
+
+.pulso-xlsform-frame .pulso-xf-sm-pendientes-accion {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--module-accent, var(--pulso-primary));
+  font: inherit;
+  font-weight: var(--pulso-weight-bold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.pulso-xlsform-frame .pulso-xf-sm-pendientes .pulso-xf-smi-fuera {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.pulso-xlsform-frame .pulso-xf-sm-pendientes-cerrar {
+  flex: none;
+}
+
+@media (max-height: 720px) {
+  .pulso-xlsform-frame .pulso-xf-sm-pendientes {
+    margin-top: 8px;
+    padding-block: 4px;
+  }
+}

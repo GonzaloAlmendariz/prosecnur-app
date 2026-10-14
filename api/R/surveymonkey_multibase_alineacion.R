@@ -790,7 +790,7 @@
 
 # Bloquean el refresh haya o no filas nuevas: la base no puede recibir filas
 # hasta que se resuelva cómo se juntan sus encuestas.
-.SM_MB_KINDS_BLOQUEO_REFRESH <- c("different_instrument", "legacy_positional")
+.SM_MB_KINDS_BLOQUEO_REFRESH <- c("different_instrument", "legacy_positional", "saved_codes_mismatch")
 
 .sm_mb_estructura_kinds <- function(estructura) {
   diffs <- (estructura %||% list())$diffs %||% list()
@@ -820,10 +820,72 @@
   estructura
 }
 
+# Sin receta del editor, el refresh conserva los códigos del instrumento
+# guardado de la base, por etiqueta (ADR 0099, decisión 7;
+# `.carga_sm_orden_conservar_guardado`). Una pregunta cuyas opciones guardadas
+# ya no están en la encuesta no se puede conservar sin adivinar: bloquea.
+.sm_mb_mensaje_codigos_guardados <- function(nc) {
+  var <- .sm_mb_scalar(nc$variable, "")
+  etiquetas <- as.character(unlist(nc$etiquetas %||% list(), use.names = FALSE))
+  if (length(etiquetas)) {
+    return(sprintf(paste(
+      "La base guarda %s en %s y la encuesta actual no trae una opción equivalente",
+      "(pudo cambiar en SurveyMonkey o en cómo la app traduce la encuesta):",
+      "sumar filas cambiaría los códigos de las respuestas que ya están.",
+      "Vuelve a importar la base o revisa esa opción en SurveyMonkey."
+    ), paste0("«", etiquetas, "»", collapse = ", "), var))
+  }
+  sprintf(paste(
+    "En %s %s, así que sumar filas cambiaría los códigos de las respuestas que ya están.",
+    "Vuelve a importar la base o revisa la pregunta en SurveyMonkey."
+  ), var, .sm_mb_scalar(nc$motivo, "las opciones no calzan con las de la base"))
+}
+
+.sm_mb_estructura_codigos_desde_resumen <- function(estructura, resumen) {
+  estructura <- estructura %||% list()
+  no_calzan <- (resumen %||% list())$no_calzan %||% list()
+  if (!length(no_calzan)) return(estructura)
+  previos <- vapply(estructura$diffs %||% list(), function(d) {
+    if (identical(.sm_mb_scalar(d$kind, ""), "saved_codes_mismatch")) .sm_mb_scalar(d$variable, "") else ""
+  }, character(1))
+  nuevos <- list()
+  for (nc in no_calzan) {
+    var <- .sm_mb_scalar(nc$variable, "")
+    if (var %in% previos) next
+    nuevos[[length(nuevos) + 1L]] <- list(
+      pos = .sm_mb_question_pos_for_var(var), variable = var, severity = "blocking",
+      kind = "saved_codes_mismatch", message = .sm_mb_mensaje_codigos_guardados(nc),
+      ref = paste(as.character(unlist(nc$etiquetas %||% list(), use.names = FALSE)), collapse = " | "),
+      current = ""
+    )
+  }
+  if (!length(nuevos)) return(estructura)
+  estructura$diffs <- c(estructura$diffs %||% list(), nuevos)
+  estructura$ok <- FALSE
+  estructura$n_blocking <- as.integer((estructura$n_blocking %||% 0L) + length(nuevos))
+  estructura
+}
+
+# Plan: regenera el XLSForm como lo haría el refresh y declara lo que no calza.
+# Si la encuesta no se puede leer, no declara nada: el conteo ya lo reporta.
+.sm_mb_estructura_codigos_guardados <- function(estructura, sid, base_name, spec, token) {
+  resumen <- tryCatch({
+    details <- sm_api_fetch_survey_details(spec$survey_id, token)
+    model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
+    .carga_sm_orden_reaplicar_y_conservar(sid, base_name, model)$codigos_guardados
+  }, error = function(e) NULL)
+  .sm_mb_estructura_codigos_desde_resumen(estructura, resumen)
+}
+
 # Motivo legible de una base que el diagnóstico no deja actualizar.
 .sm_mb_refresh_motivo_bloqueo <- function(estructura) {
   kinds <- .sm_mb_estructura_kinds(estructura)
   if ("legacy_positional" %in% kinds) return(.SM_MB_MENSAJE_LEGACY)
+  if ("saved_codes_mismatch" %in% kinds) {
+    diffs <- (estructura %||% list())$diffs %||% list()
+    msgs <- vapply(diffs[kinds == "saved_codes_mismatch"], function(d) .sm_mb_scalar(d$message, ""), character(1))
+    return(paste(msgs, collapse = " "))
+  }
   if ("different_instrument" %in% kinds) {
     return(paste(
       "Una de las encuestas de esta base es otro instrumento: calza menos del 80 % de sus variables.",

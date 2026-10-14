@@ -8,6 +8,11 @@ export type FormPublicationBlockerView = {
   detail: string;
   /** Fila del survey a la que apunta, si el diagnóstico la trae. */
   rowIndex?: number;
+  /**
+   * `step`: paso obligatorio antes de publicar (confirmar la lógica). No es un
+   * error y no se pinta en rojo. `error`: hace ininterpretable el instrumento.
+   */
+  kind: "step" | "error";
 };
 
 export type FormPublicationView = {
@@ -56,7 +61,10 @@ export function getFormPublicationView(
     title: blocker.title,
     detail: blocker.detail,
     rowIndex: blocker.rowIndex,
+    kind: isConfirmableLogicBlocker(blocker.id) ? "step" : "error",
   }));
+  const errores = blockers.filter((blocker) => blocker.kind === "error");
+  const pasos = blockers.length - errores.length;
 
   if (status === "published") {
     return {
@@ -77,7 +85,24 @@ export function getFormPublicationView(
       : "Publicar";
 
   if (status === "blocked") {
-    const count = blockers.length;
+    const sigueDisponible = hasPublishedRevision
+      ? `La revisión ${publication.latest_revision?.revision_no} sigue disponible para Procesamiento mientras tanto.`
+      : null;
+    // Sólo pasos (confirmar la lógica): es obligatorio, pero no un error.
+    // Tono de aviso y una sola señal: la etapa «Lógica» dice qué, la acción
+    // «Revisar lógica» dice cómo; no se repite como caja roja.
+    if (errores.length === 0) {
+      return {
+        status,
+        label: "Revisa la lógica para publicar",
+        tone: "warning",
+        actionLabel,
+        actionDisabled: true,
+        reason: sigueDisponible,
+        blockers,
+      };
+    }
+    const count = errores.length;
     return {
       status,
       // Cuántos, no solo que sí. "Publicación bloqueada" a secas no le decía
@@ -88,9 +113,9 @@ export function getFormPublicationView(
       tone: "danger",
       actionLabel,
       actionDisabled: true,
-      reason: hasPublishedRevision
-        ? `La revisión ${publication.latest_revision?.revision_no} sigue disponible para Procesamiento mientras corriges el borrador.`
-        : null,
+      reason: [pasos > 0 ? "Además, revisa la lógica." : null, sigueDisponible]
+        .filter(Boolean)
+        .join(" ") || null,
       blockers,
     };
   }

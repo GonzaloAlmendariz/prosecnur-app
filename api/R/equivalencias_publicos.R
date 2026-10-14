@@ -58,7 +58,7 @@
 # una propuesta seria indistinguible de una decision, asi que la plantilla no se
 # siembra y emparejar con ayuda se hace en el editor.
 .EQUIV_COL_ORIGEN <- "origen"
-# ADR 0101: columnas que las matrices ya escritas traen y la matriz ya no guarda (se ignoran y se avisa).
+# ADR 0102: columnas que las matrices ya escritas traen y la matriz ya no guarda (se ignoran y se avisa).
 .EQUIV_COLS_RETIRADAS <- c(.EQUIV_COL_DIAPOSITIVA, .EQUIV_COL_ENUNCIADO, .EQUIV_COL_GRAFICO, .EQUIV_COL_CORTE, .EQUIV_COL_ESTILO)
 .EQUIV_ORIGEN_PROPUESTA <- "propuesta"
 
@@ -217,7 +217,7 @@
                      paste(bases, collapse = ", ")))
   }
 
-  # ADR 0101: la matriz sólo declara equivalencias. Las columnas del informe que traen las matrices ya escritas
+  # ADR 0102: la matriz sólo declara equivalencias. Las columnas del informe que traen las matrices ya escritas
   # (diapositiva —o «diapo»—, enunciado, gráfico, corte, estilo) se ignoran, y se cuenta cuántas filas traían cada
   # una para avisarlo: descartarlas en silencio haría creer que el plan sigue saliendo de aquí.
   ignoradas <- list()
@@ -386,7 +386,7 @@
 
   declaradas <- (equiv %||% list())$filas %||% list()
 
-  # La seccion, la etiqueta estandar y una columna por publico: nada mas (ADR 0101). El plan del informe
+  # La seccion, la etiqueta estandar y una columna por publico: nada mas (ADR 0102). El plan del informe
   # (diapositiva, enunciado, grafico, corte, estilo) ya no vive en la matriz: se arma en Graficos.
   cols <- list()
   cols[[.EQUIV_COL_SECCION]] <- character(0)
@@ -755,7 +755,7 @@
       if (is.null(inst)) return("")
       .equiv_firma_escala(inst, vars[[b]])
     }, character(1))
-    # ADR 0101: la diapositiva, el enunciado, el gráfico, el corte y el estilo ya no son de la matriz.
+    # ADR 0102: la diapositiva, el enunciado, el gráfico, el corte y el estilo ya no son de la matriz.
     parte <- paste(
       as.character(f$etiqueta_estandar %||% ""),
       if (isTRUE(f$sugerida)) "sugerida" else "",
@@ -773,5 +773,5 @@
   periodos <- as.character(unlist((equiv %||% list())$armonizacion_periodos %||% character(0)))
   if (length(periodos)) partes <- c(partes, paste0("periodos:", paste(periodos, collapse = ",")))
   # Ordenado: reordenar las filas sin cambiar su contenido no cambia el mazo.
-  paste0("r3:", .equiv_hash_estable(sort(partes)))   # r3: sin las columnas del informe (ADR 0101)
+  paste0("r3:", .equiv_hash_estable(sort(partes)))   # r3: sin las columnas del informe (ADR 0102)
 }

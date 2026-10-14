@@ -20,9 +20,17 @@ import {
   Clock,
   FolderOpen,
   Lock,
+  Layers,
+  ChevronDown,
+  Circle,
+  Info,
+  Lightbulb,
 } from "../../../vendor/lucide-react";
 import type { XlsformFormPublication } from "../../../api/client";
+import { campanasDeFuente } from "../../../api/xlsformCampanas";
 import type { LibraryEntry } from "../state/persistence";
+import { admiteCampana } from "./campanaComplementariaModel";
+import { CampanasDeclaradas } from "./CampanasDeclaradas";
 import type { InstrumentActorOption } from "./actorAssignmentModel";
 import { FormPublicationStatus } from "./InstrumentRevisionStatus";
 import {
@@ -32,7 +40,7 @@ import {
   type FormCardMetrics,
   type FormOrigin,
 } from "./formCardMetrics";
-import { getFormWorkflowView, instrumentActorLabel } from "./formWorkflowView";
+import { getFormWorkflowView, instrumentActorLabel, suggestAudienceFromTitle } from "./formWorkflowView";
 
 export type ActorCatalogStatus = "loading" | "ready" | "empty" | "error";
 
@@ -54,6 +62,10 @@ export type FormCardProps = {
   onActorChange: (id: string, actorKey: string) => void;
   actorCatalogStatus?: ActorCatalogStatus;
   isAssigningActor?: boolean;
+  /** Abre «Agregar campaña complementaria» (sólo formularios de SurveyMonkey). */
+  onAddCampaign?: (id: string) => void;
+  /** Se declaró o quitó una campaña: la biblioteca debe releer el índice. */
+  onCampaignsChanged?: (id: string) => void;
 };
 
 const ORIGIN_ACCENT: Record<FormOrigin, { accent: string; soft: string }> = {
@@ -86,9 +98,13 @@ export function FormCard({
   onActorChange,
   actorCatalogStatus = "ready",
   isAssigningActor = false,
+  onAddCampaign,
+  onCampaignsChanged,
 }: FormCardProps) {
   const origin = normalizeOrigin(entry.source?.kind ?? null);
   const accent = ORIGIN_ACCENT[origin];
+  const campanas = campanasDeFuente(entry.source);
+  const puedeAgregarCampana = Boolean(onAddCampaign) && admiteCampana(entry.source);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -98,24 +114,43 @@ export function FormCard({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const actorSelectRef = useRef<HTMLSelectElement | null>(null);
   const headingId = `pulso-xf-form-${entry.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   const selectedActor = actorOptions.find((option) => option.actor_key === entry.source?.actor_key);
-  const audienceRequired = Boolean(
+  // El público nunca es obligatorio (decisión del usuario, 2026-10-14). Sólo
+  // se ofrece en un estudio que trabaja con públicos (acreditación); fuera de
+  // él no hay etapa ni campo.
+  const audienceApplies = Boolean(
     actorOptions.length
-    || entry.source?.schema === "acreditacion_actor_instrument_draft/v1"
-    || publication?.blockers.some((blocker) => (
-      blocker.id === "actor_required" || blocker.id === "actor_not_in_catalog"
-    )),
+    || entry.source?.schema === "acreditacion_actor_instrument_draft/v1",
   );
   const workflow = publication
     ? getFormWorkflowView(
         publication,
         actorOptions,
         entry.source?.actor_key,
-        audienceRequired,
+        audienceApplies,
       )
     : null;
+  // Sugerencia desde el título: un clic la acepta; nunca se asigna sola.
+  const suggestedActor = audienceApplies && !selectedActor && actorCatalogStatus === "ready"
+    ? suggestAudienceFromTitle(`${entry.name} ${entry.source?.survey_title ?? ""}`, actorOptions)
+    : null;
+  const warnings = publication?.warnings ?? [];
+  const actorDisabled = isPublishing
+    || isConfirmingLogic
+    || isAssigningActor
+    || actorCatalogStatus !== "ready";
+  const actorHelp = isAssigningActor
+    ? "Guardando el público en el proyecto…"
+    : actorCatalogStatus === "loading"
+      ? "Consultando los públicos disponibles…"
+      : actorCatalogStatus === "error"
+        ? "No pudimos consultar los públicos. Vuelve a abrir el proyecto para intentarlo otra vez."
+        : actorCatalogStatus === "empty"
+          ? "Este proyecto todavía no tiene públicos configurados."
+          : !selectedActor && entry.source?.actor_key
+            ? workflow?.audience?.detail ?? null
+            : null;
 
   useEffect(() => {
     if (renaming && inputRef.current) {
@@ -184,6 +219,7 @@ export function FormCard({
       ref={wrapperRef}
       className={`pulso-xf-home-card${isActive ? " is-active" : ""}`}
       style={cardStyle}
+      data-qa-geometry-member
       data-form-id={entry.id}
       aria-labelledby={headingId}
     >
@@ -211,10 +247,14 @@ export function FormCard({
               {entry.name}
             </h3>
           )}
-          <span className="pulso-xf-home-card-origin">{originLabel(origin)}</span>
-          {isActive && (
-            <span className="pulso-xf-home-card-active-badge">Activo</span>
-          )}
+          {/* Origen y «Activo» en una sola línea: la cabecera mide lo mismo en
+              todas las tarjetas y las etapas quedan alineadas en la fila. */}
+          <span className="pulso-xf-home-card-origin">
+            {originLabel(origin)}
+            {isActive && (
+              <span className="pulso-xf-home-card-active-badge">Activo</span>
+            )}
+          </span>
         </div>
         <div className="pulso-xf-home-card-menu">
           <button
@@ -271,6 +311,19 @@ export function FormCard({
                   <Copy size={15} /> Duplicar
                 </button>
               )}
+              {puedeAgregarCampana && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="pulso-xf-home-card-menu-item"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onAddCampaign?.(entry.id);
+                  }}
+                >
+                  <Layers size={15} /> Agregar campaña complementaria…
+                </button>
+              )}
               <span className="pulso-xf-home-card-menu-divider" aria-hidden="true" />
               <button
                 type="button"
@@ -325,7 +378,7 @@ export function FormCard({
             <span className="pulso-xf-home-card-metric">
               <span className="pulso-xf-home-card-metric-value">{metrics.questions}</span>
               <span className="pulso-xf-home-card-metric-label">
-                {metrics.questions === 1 ? "pregunta" : "preguntas"}
+                {metrics.questions === 1 ? "campo" : "campos"}
               </span>
             </span>
             <span className="pulso-xf-home-card-metric">
@@ -334,89 +387,131 @@ export function FormCard({
                 {metrics.sections === 1 ? "sección" : "secciones"}
               </span>
             </span>
+            <CampanasDeclaradas
+              formId={entry.id}
+              formName={entry.name}
+              campanas={campanas}
+              onCambio={onCampaignsChanged}
+            />
           </div>
           {workflow ? (
-            <div className="pulso-xf-home-card-workflow" aria-label={`Flujo de ${entry.name}`}>
+            <div
+              className="pulso-xf-home-card-workflow"
+              aria-label={`Flujo de ${entry.name}`}
+              data-qa-geometry-group="xlsform-home-etapas"
+              data-qa-geometry-contract="equal"
+            >
               {([
                 ["Lógica", workflow.logic],
-                ["Público", workflow.audience],
                 ["Procesamiento", workflow.processing],
               ] as const).map(([title, stage]) => (
-                <div key={title} className={`pulso-xf-home-card-stage is-${stage.tone}`}>
+                // La explicación larga va al tooltip: repetida en seis
+                // tarjetas era un muro. La guía del pie la da una sola vez.
+                <div key={title} className={`pulso-xf-home-card-stage is-${stage.tone}`} title={stage.detail}>
                   <span className="pulso-xf-home-card-stage-title">{title}</span>
                   <strong>{stage.label}</strong>
-                  <small>{stage.detail}</small>
+                  <span className="pulso-sr-only">{stage.detail}</span>
                 </div>
               ))}
             </div>
           ) : null}
-          {audienceRequired ? <label className="pulso-xf-home-card-actor">
-            <span>Público del instrumento</span>
-            <select
-              ref={actorSelectRef}
-              value={selectedActor?.actor_key ?? ""}
-              onChange={(event) => onActorChange(entry.id, event.target.value)}
-              disabled={
-                isPublishing
-                || isConfirmingLogic
-                || isAssigningActor
-                || actorCatalogStatus !== "ready"
-              }
-              aria-label={`Público del instrumento ${entry.name}`}
-              aria-busy={isAssigningActor || actorCatalogStatus === "loading"}
-            >
-              <option value="">Elige un público</option>
-              {actorOptions.map((option) => (
-                <option key={option.actor_key} value={option.actor_key}>
-                  {instrumentActorLabel(option)}
-                </option>
-              ))}
-            </select>
-            <small>
-              {isAssigningActor
-                ? "Guardando el público en el proyecto…"
-                : actorCatalogStatus === "loading"
-                  ? "Consultando los públicos disponibles…"
-                  : actorCatalogStatus === "error"
-                    ? "No pudimos consultar los públicos. Vuelve a abrir el proyecto para intentarlo otra vez."
-                    : actorCatalogStatus === "empty"
-                      ? "Este proyecto todavía no tiene públicos configurados para Procesamiento."
-                      : !selectedActor && entry.source?.actor_key
-                        ? "La asignación anterior ya no existe. Elige un público disponible."
-                        : publication?.latest_revision
-                          ? "La revisión publicada seguirá disponible hasta que publiques este cambio."
-                          : "Asigna a quién responde el instrumento antes de publicarlo."}
-            </small>
-          </label> : null}
-          <FormPublicationStatus
-            formId={entry.id}
-            publication={publication}
-            isPublishing={isPublishing}
-            isConfirmingLogic={isConfirmingLogic}
-            error={publicationError}
-            onPublish={() => onPublish(entry.id)}
-            onConfirmLogic={() => onConfirmLogic(entry.id)}
-            primaryAction={
-              workflow?.primaryAction === "assign_audience"
-                && actorCatalogStatus !== "ready"
-                ? "open"
-                : workflow?.primaryAction
-            }
-            onAssignAudience={() => actorSelectRef.current?.focus()}
-            onOpen={() => onOpen(entry.id)}
-          />
-          <div className="pulso-xf-home-card-foot">
-            <span className="pulso-xf-home-card-saved">
-              <Clock size={12} /> {formatRelativeSavedAt(entry.savedAt)}
-            </span>
-            <button
-              type="button"
-              className="pulso-xf-home-card-open"
-              onClick={() => onOpen(entry.id)}
-              aria-label={`Abrir ${entry.name}`}
-            >
-              <FolderOpen size={13} /> Abrir
-            </button>
+          {audienceApplies ? (
+            <div className="pulso-xf-home-card-actor">
+              <label className="pulso-xf-home-card-actor-fila">
+                <span className="pulso-xf-home-card-actor-rotulo">
+                  Público <small>opcional</small>
+                </span>
+                <span className="pulso-xf-home-card-select">
+                  <select
+                    value={selectedActor?.actor_key ?? ""}
+                    onChange={(event) => onActorChange(entry.id, event.target.value)}
+                    disabled={actorDisabled}
+                    aria-label={`Público del instrumento ${entry.name} (opcional)`}
+                    aria-busy={isAssigningActor || actorCatalogStatus === "loading"}
+                  >
+                    <option value="">Sin asignar</option>
+                    {actorOptions.map((option) => (
+                      <option key={option.actor_key} value={option.actor_key}>
+                        {instrumentActorLabel(option)}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} aria-hidden="true" />
+                </span>
+              </label>
+              {suggestedActor ? (
+                <button
+                  type="button"
+                  className="pulso-xf-home-card-sugerencia"
+                  disabled={actorDisabled}
+                  onClick={() => onActorChange(entry.id, suggestedActor.actor_key)}
+                  title="Sugerido por el título del formulario"
+                >
+                  <Lightbulb size={12} aria-hidden="true" />
+                  Usar «{instrumentActorLabel(suggestedActor)}»
+                  <span className="pulso-xf-home-card-sugerencia-origen">sugerido por el título</span>
+                </button>
+              ) : null}
+              {actorHelp ? <small>{actorHelp}</small> : null}
+            </div>
+          ) : null}
+          {warnings.length > 0 ? (
+            <details className="pulso-xf-home-card-avisos">
+              <summary>
+                <Info size={12} aria-hidden="true" />
+                {warnings.length === 1 ? "1 aviso" : `${warnings.length} avisos`}
+                <span>· no impide publicar</span>
+              </summary>
+              <ul>
+                {warnings.map((warning) => (
+                  <li key={warning.id}>
+                    <strong>{warning.title}</strong>
+                    {warning.detail ? <span>{warning.detail}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+          {/* Estado de publicación y pie van juntos al fondo: con la grilla
+              pareja (C2), el espacio libre queda entre la información y las
+              acciones, dentro de la tarjeta, y los pies se alinean. */}
+          {/* Un borrador vacío no es un error (C3): su vacío ocupa el espacio
+              libre de la tarjeta, contenido y con nombre, en vez de dejar un
+              hueco y un bloqueo en rojo. */}
+          {workflow?.emptyDraft ? (
+            <div className="pulso-xf-home-card-vacio" data-qa-geometry-capacity="owned">
+              <Circle size={14} aria-hidden="true" />
+              <strong>Borrador vacío</strong>
+              <span>Agrega preguntas para publicar.</span>
+            </div>
+          ) : null}
+          <div className="pulso-xf-home-card-cierre">
+            {workflow?.emptyDraft ? null : (
+              <FormPublicationStatus
+                formId={entry.id}
+                publication={publication}
+                isPublishing={isPublishing}
+                isConfirmingLogic={isConfirmingLogic}
+                error={publicationError}
+                onPublish={() => onPublish(entry.id)}
+                onConfirmLogic={() => onConfirmLogic(entry.id)}
+                primaryAction={workflow?.primaryAction}
+                onOpen={() => onOpen(entry.id)}
+              />
+            )}
+            <div className="pulso-xf-home-card-foot">
+              <span className="pulso-xf-home-card-saved">
+                <Clock size={12} /> {formatRelativeSavedAt(entry.savedAt)}
+              </span>
+              <button
+                type="button"
+                className="pulso-xf-home-card-open"
+                onClick={() => onOpen(entry.id)}
+                aria-label={`Abrir ${entry.name}`}
+              >
+                <FolderOpen size={13} /> Abrir
+              </button>
+            </div>
           </div>
         </>
       )}

@@ -153,8 +153,11 @@ describe("getFormPublicationView", () => {
       can_publish: false,
     }));
 
+    // Paso obligatorio antes de publicar, no un error: tono de aviso.
     expect(view).toMatchObject({
       status: "blocked",
+      tone: "warning",
+      label: "Revisa la lógica para publicar",
       actionDisabled: true,
     });
     expect(view.blockers).toEqual([{
@@ -162,7 +165,24 @@ describe("getFormPublicationView", () => {
       title: "Lógica pendiente de confirmación",
       detail: "Confirma manualmente la lógica antes de publicar.",
       rowIndex: undefined,
+      kind: "step",
     }]);
+  });
+
+  test("lógica pendiente junto a un error real: rojo, cuenta sólo los errores y recuerda la lógica", () => {
+    const view = getFormPublicationView(publication({
+      status: "draft",
+      blockers: [
+        { id: "logic_pending_manual_confirmation", title: "Lógica pendiente", detail: "" },
+        { id: "missing_name", title: "Falta name", detail: "Fila 3" },
+      ],
+      can_publish: false,
+    }));
+
+    expect(view.tone).toBe("danger");
+    expect(view.label).toBe("Falta 1 corrección para publicar");
+    expect(view.reason).toContain("revisa la lógica");
+    expect(view.blockers.map((b) => b.kind)).toEqual(["step", "error"]);
   });
 
   test("expone estado aria-live mientras publica sin cambiar la revisión local", () => {

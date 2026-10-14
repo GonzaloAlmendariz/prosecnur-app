@@ -9,8 +9,8 @@
 // el componente principal puede leer el snapshot y ofrecer al usuario
 // "Continuar editando" vs "Empezar de cero".
 //
-// Persistencia POR PROYECTO: las claves incluyen un hash del path del
-// `.pulso` activo, así cada proyecto tiene su propio snapshot y abrir
+// Persistencia POR PROYECTO: las claves incluyen la cola del path del
+// `.pulso` activo más un hash FNV-1a del path completo (ver `scopeKey`), así cada proyecto tiene su propio snapshot y abrir
 // otro proyecto no muestra el formulario en curso del anterior. Cuando
 // no hay proyecto activo se usa la clave `no-project` (un solo bucket
 // para el flujo "modo navegador" sin .pulso).
@@ -53,21 +53,108 @@ const LEGACY_V1_META = "pulso.xlsformEditor.meta.v1";
  *  o null si no hay proyecto. */
 export type ProjectScope = string | null;
 
-/** Sanitiza el path del proyecto a un sufijo seguro para localStorage. No
- *  necesitamos reversibilidad — solo discriminar entre proyectos
- *  distintos. Reemplazamos cualquier no-alfanumérico por `_`. */
-function scopeKey(scope: ProjectScope): string {
-  if (!scope || scope.trim() === "") return "no-project";
-  // Limitamos a 80 chars para no inflar la clave indefinidamente.
-  return scope.replace(/[^a-zA-Z0-9]+/g, "_").slice(0, 80) || "no-project";
+const NO_PROJECT_SCOPE = "no-project";
+
+/** Largo de la cola legible del path dentro de la clave. */
+const SCOPE_TAIL_CHARS = 40;
+
+/** Tope con el que la clave vieja truncaba el slug (conservaba el PREFIJO). */
+const LEGACY_SCOPE_MAX_CHARS = 80;
+
+function sanitizeScope(scope: string): string {
+  return scope.replace(/[^a-zA-Z0-9]+/g, "_");
+}
+
+/** FNV-1a de 32 bits sobre las unidades UTF-16 del texto, en hex de 8 chars.
+ *  Estable entre sesiones y plataformas, sin dependencias. No es criptográfico:
+ *  solo discrimina paths distintos. */
+export function fnv1a32Hex(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+}
+
+/** Sufijo de las claves de localStorage para el path del `.pulso` activo.
+ *
+ *  Antes se usaba el slug sanitizado cortado con `.slice(0, 80)`, es decir, el
+ *  PREFIJO del path. Dos proyectos cuya ruta compartía los primeros 80 chars
+ *  sanitizados (dos copias `outputs/reference-runs/acrconta-<fecha>/acrconta.pulso`,
+ *  o dos versiones del mismo estudio en la misma carpeta) compartían la clave y
+ *  los formularios autoguardados de uno aparecían en el otro como tarjetas
+ *  fantasma: sin existir en el backend, se quedaban en «Consultando revisión…»,
+ *  su menú no respondía y la biblioteca mostraba 7 tarjetas con tope 6
+ *  (incidente 2026-10-14).
+ *
+ *  Ahora la clave es la cola legible del path (lo que distingue a ojo: carpeta
+ *  y nombre del archivo) + `_` + FNV-1a del path COMPLETO, así discrimina la
+ *  ruta entera aunque la cola coincida. */
+export function scopeKey(scope: ProjectScope): string {
+  if (!scope || scope.trim() === "") return NO_PROJECT_SCOPE;
+  const tail = sanitizeScope(scope).slice(-SCOPE_TAIL_CHARS).replace(/^_+/, "") || "project";
+  return `${tail}_${fnv1a32Hex(scope)}`;
+}
+
+/** Sufijo con el formato viejo (prefijo de 80 chars), SOLO si era único: el
+ *  slug sanitizado completo cabía sin truncarse. Si estaba truncado pudo ser
+ *  compartido por varios proyectos y no hay forma de saber de cuál era: se
+ *  devuelve null y no se migra —el backend (`s$xlsform_forms` dentro del
+ *  `.pulso`) es la fuente de verdad y localStorage solo caché de autosave—.
+ *  `no-project` no cambia de formato y tampoco necesita migración. */
+export function legacyScopeKey(scope: ProjectScope): string | null {
+  if (!scope || scope.trim() === "") return null;
+  const slug = sanitizeScope(scope);
+  if (!slug || slug.length >= LEGACY_SCOPE_MAX_CHARS) return null;
+  return slug;
+}
+
+/** Clave `<prefix>.<scope>[.<tail>]` en el formato vigente. */
+function scopedKey(prefix: string, scope: ProjectScope, tail?: string): string {
+  return `${prefix}.${scopeKey(scope)}${tail ? `.${tail}` : ""}`;
+}
+
+/** Misma clave en el formato viejo, o null si no es migrable. */
+function legacyScopedKey(prefix: string, scope: ProjectScope, tail?: string): string | null {
+  const legacy = legacyScopeKey(scope);
+  return legacy == null ? null : `${prefix}.${legacy}${tail ? `.${tail}` : ""}`;
+}
+
+/** Lee una clave por proyecto. Si la vigente no existe pero sí la vieja (y era
+ *  única), la copia a la vigente y la devuelve. La vieja se conserva: solo la
+ *  retiran los borrados explícitos (`removeScopedItem`), para que un formulario
+ *  borrado no resucite desde ella. */
+function getScopedItem(prefix: string, scope: ProjectScope, tail?: string): string | null {
+  const key = scopedKey(prefix, scope, tail);
+  const current = localStorage.getItem(key);
+  if (current != null) return current;
+  const legacyKey = legacyScopedKey(prefix, scope, tail);
+  if (legacyKey == null) return null;
+  const legacy = localStorage.getItem(legacyKey);
+  if (legacy == null) return null;
+  try {
+    localStorage.setItem(key, legacy);
+  } catch {
+    // Quota: igual devolvemos el valor; la próxima lectura reintenta.
+  }
+  return legacy;
+}
+
+/** Borra la clave vigente y, si era única, su par en formato viejo. Una clave
+ *  vieja truncada (posiblemente ajena) nunca se toca. */
+function removeScopedItem(prefix: string, scope: ProjectScope, tail?: string): void {
+  localStorage.removeItem(scopedKey(prefix, scope, tail));
+  const legacyKey = legacyScopedKey(prefix, scope, tail);
+  if (legacyKey != null) localStorage.removeItem(legacyKey);
 }
 
 function workbookKey(scope: ProjectScope): string {
-  return `${STORAGE_PREFIX}.${scopeKey(scope)}`;
+  return scopedKey(STORAGE_PREFIX, scope);
 }
 
 function metaKey(scope: ProjectScope): string {
-  return `${META_PREFIX}.${scopeKey(scope)}`;
+  return scopedKey(META_PREFIX, scope);
 }
 
 /** Sanitiza un formId a un sufijo seguro para localStorage. Los uuid de
@@ -78,17 +165,17 @@ function formKeyPart(formId: string): string {
 
 /** Clave del workbook por-formulario: `...workbook.v2.<scope>.<formId>`. */
 function formWorkbookKey(scope: ProjectScope, formId: string): string {
-  return `${STORAGE_PREFIX}.${scopeKey(scope)}.${formKeyPart(formId)}`;
+  return scopedKey(STORAGE_PREFIX, scope, formKeyPart(formId));
 }
 
 /** Clave de la metadata por-formulario: `...meta.v2.<scope>.<formId>`. */
 function formMetaKey(scope: ProjectScope, formId: string): string {
-  return `${META_PREFIX}.${scopeKey(scope)}.${formKeyPart(formId)}`;
+  return scopedKey(META_PREFIX, scope, formKeyPart(formId));
 }
 
 /** Clave del índice de la biblioteca: `...library.v1.<scope>`. */
 function libraryKey(scope: ProjectScope): string {
-  return `${LIBRARY_PREFIX}.${scopeKey(scope)}`;
+  return scopedKey(LIBRARY_PREFIX, scope);
 }
 
 // -----------------------------------------------------------------------------
@@ -168,7 +255,7 @@ function normalizeEntry(value: unknown): LibraryEntry | null {
 
 function readIndex(scope: ProjectScope): LibraryIndex {
   try {
-    const raw = localStorage.getItem(libraryKey(scope));
+    const raw = getScopedItem(LIBRARY_PREFIX, scope);
     if (!raw) return emptyIndex();
     const parsed = JSON.parse(raw) as unknown;
     if (!isPlainRecord(parsed)) return emptyIndex();
@@ -247,11 +334,11 @@ export function setActiveForm(scope: ProjectScope, formId: string | null): void 
 /** Lee el snapshot de un formulario concreto. null si no existe o corrupto. */
 export function loadForm(scope: ProjectScope, formId: string): PersistedSnapshot | null {
   try {
-    const wbRaw = localStorage.getItem(formWorkbookKey(scope, formId));
+    const wbRaw = getScopedItem(STORAGE_PREFIX, scope, formKeyPart(formId));
     if (!wbRaw) return null;
     const workbook = normalizeWorkbookSnapshot(JSON.parse(wbRaw));
     if (!workbook) return null;
-    const metaRaw = localStorage.getItem(formMetaKey(scope, formId));
+    const metaRaw = getScopedItem(META_PREFIX, scope, formKeyPart(formId));
     const meta = metaRaw
       ? JSON.parse(metaRaw) as Record<string, unknown>
       : { savedAt: Date.now(), sourceName: null, sourceKind: null };
@@ -385,8 +472,8 @@ export function renameForm(
  *  resultante. */
 export function deleteForm(scope: ProjectScope, formId: string): LibraryIndex {
   try {
-    localStorage.removeItem(formWorkbookKey(scope, formId));
-    localStorage.removeItem(formMetaKey(scope, formId));
+    removeScopedItem(STORAGE_PREFIX, scope, formKeyPart(formId));
+    removeScopedItem(META_PREFIX, scope, formKeyPart(formId));
   } catch {
     // ignore
   }
@@ -613,13 +700,13 @@ export function saveSnapshot(
  *  pre-feature y no podemos saber a qué proyecto correspondían. */
 export function loadSnapshot(scope: ProjectScope = null): PersistedSnapshot | null {
   try {
-    let wbRaw = localStorage.getItem(workbookKey(scope));
-    let metaRaw = localStorage.getItem(metaKey(scope));
+    let wbRaw = getScopedItem(STORAGE_PREFIX, scope);
+    let metaRaw = getScopedItem(META_PREFIX, scope);
 
     // Migración v1 → v2 SOLO para el bucket no-project: el snapshot
     // legacy era global y conviene preservarlo cuando el usuario está
     // sin proyecto, pero no asumirlo como propio de un proyecto X.
-    if (!wbRaw && scopeKey(scope) === "no-project") {
+    if (!wbRaw && scopeKey(scope) === NO_PROJECT_SCOPE) {
       wbRaw = localStorage.getItem(LEGACY_V1_STORAGE);
       metaRaw = localStorage.getItem(LEGACY_V1_META);
       if (!wbRaw) {
@@ -667,11 +754,11 @@ export function loadSnapshot(scope: ProjectScope = null): PersistedSnapshot | nu
  *  "empezar de cero"). */
 export function clearSnapshot(scope: ProjectScope = null): void {
   try {
-    localStorage.removeItem(workbookKey(scope));
-    localStorage.removeItem(metaKey(scope));
+    removeScopedItem(STORAGE_PREFIX, scope);
+    removeScopedItem(META_PREFIX, scope);
     // Si estamos limpiando no-project, también borramos el legacy v1
     // para no resucitarlo en una recarga.
-    if (scopeKey(scope) === "no-project") {
+    if (scopeKey(scope) === NO_PROJECT_SCOPE) {
       localStorage.removeItem(LEGACY_V1_STORAGE);
       localStorage.removeItem(LEGACY_V1_META);
       sessionStorage.removeItem(LEGACY_V1_STORAGE);

@@ -1,5 +1,5 @@
 // La tarjeta de «Diferencias significativas entre públicos» (recetario p111–p112): los temas se eligen de la matriz de
-// equivalencias —la que dice qué pregunta de un público equivale a cuál de otro (ADR 0101)— y las respuestas que suman el
+// equivalencias —la que dice qué pregunta de un público equivale a cuál de otro (ADR 0102)— y las respuestas que suman el
 // porcentaje (Top Two Box o «Sí») se eligen entre las de la pregunta. Se guardan en `vars` (tema -> preguntas por
 // público) y `corte` (rótulos).
 

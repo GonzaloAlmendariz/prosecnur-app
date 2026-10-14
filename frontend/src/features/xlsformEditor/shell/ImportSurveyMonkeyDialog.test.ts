@@ -17,6 +17,7 @@ describe("FinalImportReviewModal", () => {
       surveyId: "123456789",
       sectionCount: 2,
       questionCount: 12,
+      fieldCount: 20,
       visualRuleCount: 1,
       advancedRuleCount: 0,
       overrideCount: 0,

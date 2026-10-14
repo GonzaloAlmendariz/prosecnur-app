@@ -100,7 +100,7 @@ describe("vacíos y avisos (lectura de la fuente: el vacío y la Vista general n
     expect(generar).not.toMatch(/scope:\s*"consolidado"/);
   });
 
-  // ADR 0101: la matriz ya no arma láminas; no queda «Sincronizar» con ella. Mata: reintroducirlo.
+  // ADR 0102: la matriz ya no arma láminas; no queda «Sincronizar» con ella. Mata: reintroducirlo.
   it("no hay Sincronizar con la matriz", () => {
     const src = fuente("../SuggestedPlanButton.tsx");
     expect(src).not.toMatch(/sincronizarPlan|sincronizarEquivalentes|esEquivalente/);

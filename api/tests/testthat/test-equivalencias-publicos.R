@@ -164,7 +164,7 @@ test_that("la plantilla sale poblada con las variables y etiquetas de cada base"
   df <- .equiv_plantilla_df(inst)
 
   # Seccion, etiqueta estandar y una columna por publico, y nada mas: la matriz sólo declara equivalencias
-  # (ADR 0101). Las columnas de ayuda por base salieron a la hoja de consulta.
+  # (ADR 0102). Las columnas de ayuda por base salieron a la hoja de consulta.
   expect_equal(names(df), c("seccion", "etiqueta_estandar", "docentes", "estudiantes"))
   # Sin nada declarado, la plantilla sale SIN filas. Antes volcaba una por cada
   # variable de cada base —300 en el estudio medido—, cada una con su codigo en
@@ -225,7 +225,7 @@ test_that("una plantilla sin filas se rechaza con un error explicito", {
 
 # --- Diapositiva y sugerencias (enmienda del editor, ADR 0062) ---------------
 
-test_that("la columna de diapositiva —también «Diapo»— se ignora y se cuenta para avisarlo (ADR 0101)", {
+test_that("la columna de diapositiva —también «Diapo»— se ignora y se cuenta para avisarlo (ADR 0102)", {
   df <- .eqp_df_real()
   df$Diapo <- c(3, 3, 5, NA)  # el nombre que usan las matrices ya escritas
   equiv <- .equiv_desde_df(df, c("docentes", "estudiantes"))
@@ -380,7 +380,7 @@ test_that("la matriz real entra aunque readxl desambigue los encabezados repetid
   expect_equal(equiv$filas[[2]]$seccion, "1.2 Servicios")
 })
 
-test_that("el enunciado, el gráfico, el corte y el estilo de una matriz ya escrita se ignoran y se cuentan (ADR 0101)", {
+test_that("el enunciado, el gráfico, el corte y el estilo de una matriz ya escrita se ignoran y se cuentan (ADR 0102)", {
   df <- data.frame(
     seccion = c("1.2 Servicios", NA),
     enunciado = c("¿Conoce los siguientes servicios?", NA),
@@ -397,7 +397,7 @@ test_that("el enunciado, el gráfico, el corte y el estilo de una matriz ya escr
   expect_equal(equiv$columnas_ignoradas, list(diapositiva = 2L, enunciado = 1L))
 })
 
-test_that("las columnas del informe no mueven la revisión: ya no son de la matriz (ADR 0101)", {
+test_that("las columnas del informe no mueven la revisión: ya no son de la matriz (ADR 0102)", {
   base_filas <- list(list(
     seccion = "", etiqueta_estandar = "Salud", diapositiva = "3",
     enunciado = "", variables = list(docentes = "p13_1"), cantidad = 1L))
@@ -474,7 +474,7 @@ test_that("la plantilla no se siembra: en seis columnas una propuesta no se dist
   expect_false("origen" %in% names(df))
 })
 
-test_that("la plantilla no emite columnas del informe y un archivo que las trae importa igual (ADR 0101)", {
+test_that("la plantilla no emite columnas del informe y un archivo que las trae importa igual (ADR 0102)", {
   inst <- list(docentes = .eqp_inst(c("p13_1"), c("Salud")))
   expect_equal(names(.equiv_plantilla_df(inst)), c("seccion", "etiqueta_estandar", "docentes"))
 

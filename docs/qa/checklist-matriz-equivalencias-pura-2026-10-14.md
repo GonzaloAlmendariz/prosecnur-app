@@ -1,9 +1,9 @@
-# Checklist · la matriz de equivalencias sólo declara equivalencias (ADR 0101)
+# Checklist · la matriz de equivalencias sólo declara equivalencias (ADR 0102)
 
 Tipo: Checklist de implementación
 Estado: Vigente
 Fecha: 2026-10-14
-Autoridad: ADR 0101 (aceptado); decisión de Gonzalo del 2026-10-14. Sólo Gonzalo da por terminado un ítem
+Autoridad: ADR 0102 (aceptado); decisión de Gonzalo del 2026-10-14. Sólo Gonzalo da por terminado un ítem
 
 Pedido de Gonzalo (2026-10-14): «la matriz de equivalencia no debería decir ni el tipo de gráfico ni la lámina en la que
 va o diapositiva, es solo una matriz de equivalencias». Alcance elegido: «Matriz pura; láminas en Gráficos». Salvedad:

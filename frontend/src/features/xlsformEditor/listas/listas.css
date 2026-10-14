@@ -1,0 +1,526 @@
+/* Listas de opciones (H7): diálogo, tarjetas de escalas repetidas y listas únicas.
+ *
+ * Sólo tokens `--pulso-*`; el tono del módulo llega al portal por
+ * `--module-accent` (tonoDePortales.css).
+ *
+ * Geometría (Contrato de Superficie):
+ * - C2: el diálogo tiene ancho Y alto fijos por viewport; las tarjetas del
+ *   grupo `xlsform-listas-grupos` comparten alto (`grid-auto-rows: 1fr`).
+ * - C3: el vacío de «Escalas repetidas» lo posee `.pulso-xf-listas-vacio`.
+ * - C4: un único dueño de scroll, `.pulso-xf-listas-cuerpo`.
+ */
+
+.pulso-xf-listas-velo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--pulso-z-modal);
+  background: color-mix(in srgb, var(--pulso-text) 30%, transparent);
+}
+
+.pulso-xf-listas-dialogo {
+  position: fixed;
+  z-index: var(--pulso-z-modal);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(760px, calc(100vw - var(--pulso-space-6)));
+  height: min(780px, calc(100vh - var(--pulso-space-6)));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-high);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-listas-dialogo:focus {
+  outline: none;
+}
+
+.pulso-xf-listas-cabecera {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  padding: var(--pulso-space-5) var(--pulso-space-6) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-listas-titular {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-xf-listas-titulo {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-xf-listas-descripcion {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-listas-cerrar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.pulso-xf-listas-cerrar:hover {
+  border-color: var(--pulso-border);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-listas-cerrar:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 1px;
+}
+
+.pulso-xf-listas-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--pulso-space-4) var(--pulso-space-6) var(--pulso-space-6);
+}
+
+.pulso-xf-listas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+}
+
+.pulso-xf-listas-aviso {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-success-fg);
+}
+
+.pulso-xf-listas-aviso:empty {
+  display: none;
+}
+
+.pulso-xf-listas-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-xf-listas-subtitulo {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-listas-contador {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.pulso-xf-listas-grupos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: 1fr;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-xf-listas-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-raised);
+}
+
+.pulso-xf-listas-grupo-cabecera {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-xf-listas-grupo-cabecera h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-xf-listas-grupo-cabecera p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-faint);
+}
+
+/* Opciones: tabla Código | Etiqueta. El código es lo que se guarda en la
+ * base; la etiqueta, lo que lee quien responde: deben leerse como dos cosas. */
+.pulso-xf-listas-opciones {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+
+.pulso-xf-listas-opciones th {
+  padding: 0 8px 4px 0;
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-listas-opciones th:first-child {
+  width: 72px;
+}
+
+.pulso-xf-listas-opciones td {
+  padding: 3px 8px 3px 0;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-listas-opciones tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.pulso-xf-listas-codigo {
+  display: inline-block;
+  min-width: 28px;
+  padding: 1px 6px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--pulso-text);
+}
+
+.pulso-xf-listas-etiqueta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-xf-listas-etiqueta .is-vacia,
+.pulso-xf-listas-opciones .is-resto td {
+  color: var(--pulso-text-faint);
+  font-style: italic;
+}
+
+.pulso-xf-listas-nombre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+/* La acción va al pie de la tarjeta: con alto igualado, el sobrante queda
+ * como capacidad interior encima, no estirando los controles. */
+/* Rejilla etiqueta / input+botón / error: el botón queda en la fila del input
+ * y la línea del error está reservada siempre, así un error no estira la
+ * tarjeta ni a sus pares del grupo `equal` (C2). */
+.pulso-xf-listas-grupo-accion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--pulso-space-3);
+  row-gap: 4px;
+  margin-top: auto;
+}
+
+.pulso-xf-listas-grupo-accion .pulso-xf-listas-campo {
+  display: contents;
+}
+
+.pulso-xf-listas-grupo-accion .pulso-xf-listas-campo label {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+.pulso-xf-listas-grupo-accion .pulso-xf-listas-campo input {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+}
+
+.pulso-xf-listas-grupo-boton {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.pulso-xf-listas-grupo-accion .pulso-xf-listas-error {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  min-height: 1.4em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-xf-listas-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pulso-xf-listas-campo label {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-listas-campo input {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12.5px;
+}
+
+.pulso-xf-listas-campo input:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 0;
+}
+
+.pulso-xf-listas-campo input[aria-invalid="true"] {
+  border-color: var(--pulso-danger-border);
+}
+
+.pulso-xf-listas-error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-xf-listas-vacio {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  min-height: 96px;
+  padding: var(--pulso-space-4);
+  border: 1px dashed var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+}
+
+.pulso-xf-listas-vacio p {
+  margin: 0;
+}
+
+.pulso-xf-listas-nota {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-xf-listas-unicas {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+}
+
+.pulso-xf-listas-unica {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+.pulso-xf-listas-unica + .pulso-xf-listas-unica {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-listas-unica-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-height: 28px;
+}
+
+.pulso-xf-listas-nombre {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+}
+
+.pulso-xf-listas-uso {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
+
+.pulso-xf-listas-unica-edicion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-xf-listas-unica-edicion .pulso-xf-listas-campo {
+  flex: 1 1 220px;
+}
+
+/* Entre formularios del proyecto: filas pares (`equal`) que comparten alto;
+ * la acción queda a la derecha y el texto envuelve sin empujar a sus pares. */
+.pulso-xf-listas-entre-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  min-height: 28px;
+}
+
+.pulso-xf-listas-entre,
+.pulso-xf-listas-codigos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: 1fr;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+}
+
+.pulso-xf-listas-entre-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+}
+
+.pulso-xf-listas-entre-fila + .pulso-xf-listas-entre-fila,
+.pulso-xf-listas-codigos-fila + .pulso-xf-listas-codigos-fila {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-listas-entre-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-xf-listas-entre-texto p,
+.pulso-xf-listas-codigos-fila p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-listas-entre-motivo,
+.pulso-xf-listas-entre-pendiente,
+.pulso-xf-listas-codigos-nota {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-xf-listas-entre-accion {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pulso-xf-listas-entre-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--pulso-success-fg);
+}
+
+.pulso-xf-listas-codigos {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.pulso-xf-listas-codigos-fila {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-xf-listas-codigos-fila > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.pulso-xf-listas-codigos-fila .pulso-xf-listas-nombre {
+  display: inline;
+}
+
+.pulso-xf-listas-codigos-fila + .pulso-xf-listas-codigos-fila {
+  border-top-color: var(--pulso-warn-border);
+}
+
+.pulso-xf-listas-girando {
+  animation: pulso-xf-listas-girar 1s linear infinite;
+}
+
+@keyframes pulso-xf-listas-girar {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xf-listas-girando {
+    animation: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .pulso-xf-listas-entre-fila {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-xf-listas-entre-accion {
+    justify-content: flex-start;
+  }
+}

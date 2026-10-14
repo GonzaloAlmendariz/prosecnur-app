@@ -68,7 +68,7 @@
   al <- .sm_mb_alinear_fuente(inst_base, inst_fuente)
   if (isTRUE(al$instrumento_distinto)) {
     stop_api(409, "E_FUENTE_OTRO_INSTRUMENTO", sprintf(
-      "Esta encuesta comparte sólo el %s de las preguntas de «%s»: parece otro cuestionario. Agrégala como una base aparte.",
+      "Esta encuesta comparte sólo el %s %% de las preguntas de «%s»: parece otro cuestionario. Agrégala como una base aparte.",
       .sm_mb_cobertura_texto(al$cobertura), base))
   }
   list(base = base, meta = meta, nueva = nueva, fuentes = fuentes, token = token, base_path = base_path,

@@ -293,7 +293,7 @@
   list(estado = .equiv_estado(sid), aplicacion = resumen, avisos = .equiv_avisos_columnas_ignoradas(ignoradas))
 }
 
-#' Avisos de las columnas del informe que trajo el Excel y la matriz ya no guarda (ADR 0101)
+#' Avisos de las columnas del informe que trajo el Excel y la matriz ya no guarda (ADR 0102)
 #' @param ignoradas Lista nombrada columna -> filas con valor.
 #' @return Lista de avisos `list(code, message)`.
 #' @keywords internal
@@ -333,7 +333,7 @@
     limpia <- list(
       seccion = as.character(f$seccion %||% ""),
       etiqueta_estandar = trimws(as.character(f$etiqueta_estandar %||% "")),
-      variables = vars,   # ADR 0101: sin diapositiva, enunciado, gráfico, corte ni estilo
+      variables = vars,   # ADR 0102: sin diapositiva, enunciado, gráfico, corte ni estilo
       cantidad = length(vars)
     )
     # ADR 0064: la propuesta SE GUARDA, marcada. La regla anterior la descartaba
@@ -343,7 +343,7 @@
     # protege —que una sugerencia nunca actue como decision— se cumple en los dos
     # sitios donde importa: no escribe etiquetas y no llega al mazo.
     if (isTRUE(f$sugerida)) limpia$sugerida <- TRUE
-    # El texto de la pregunta de una matriz por bloques (una serie) describe la pregunta y se queda (ADR 0101).
+    # El texto de la pregunta de una matriz por bloques (una serie) describe la pregunta y se queda (ADR 0102).
     enunciado <- trimws(as.character(f$enunciado %||% "")[1])
     if (!is.na(enunciado) && nzchar(enunciado)) limpia$enunciado <- enunciado
     id <- trimws(as.character(f$id %||% ""))[1]
