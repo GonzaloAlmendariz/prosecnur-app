@@ -533,7 +533,7 @@
   alin <- .sm_mb_alin_nuevo()
   for (k in seq_along(encuestas)) {
     e <- encuestas[[k]]
-    .carga_job_progress("fetch", current = k, total = length(encuestas),
+    .carga_job_progress("fetch", percent = round(100 * (k - 1) / length(encuestas)),
                         message = sprintf("SurveyMonkey: descargando %s...", e$titulo))
     details <- if (identical(e$survey_id, principal)) {
       details_principal
@@ -541,7 +541,9 @@
       .cfp_sm_transporte(sm_api_fetch_survey_details(e$survey_id, token), e$survey_id)
     }
     titulo <- .cfp_chr(details$title, e$titulo)
-    payload <- .cfp_sm_transporte(.carga_platform_fetch_sm_bulk(e$survey_id, token), e$survey_id)
+    payload <- .cfp_con_progreso_tramo(k, length(encuestas), function() {
+      .cfp_sm_transporte(.carga_platform_fetch_sm_bulk(e$survey_id, token), e$survey_id)
+    })
     df <- .sm_mb_codificar_fuente(
       details_fuente = details,
       responses = payload$data %||% list(),
@@ -606,4 +608,18 @@
       sm_opciones_sin_par_principal = base_meta_alin$sm_opciones_sin_par_principal
     )
   )
+}
+
+# El progreso de las páginas de respuestas de una encuesta avanza sólo dentro de
+# su tramo de la barra (encuesta k de n). Antes se mezclaban las dos cuentas y
+# la barra saltaba 50 % -> 33 % -> 98 %.
+.cfp_con_progreso_tramo <- function(k, n, fn) {
+  report <- .carga_jobs_env$report
+  if (!is.function(report) || !n) return(fn())
+  .carga_jobs_env$report <- function(phase, current = NULL, total = NULL, percent = NULL, message = NULL) {
+    frac <- if (!is.null(current) && !is.null(total) && is.finite(total) && total > 0) min(1, current / total) else 0
+    report(phase, current = NULL, total = NULL, percent = round(100 * ((k - 1) + frac) / n), message = message)
+  }
+  on.exit(.carga_jobs_env$report <- report, add = TRUE)
+  fn()
 }
