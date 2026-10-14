@@ -99,13 +99,12 @@ describe("(3) el autosave arma la config con el productor único", () => {
     expect(seed).not.toMatch(/w_presets\s*:/);
   });
 
-  it("la semilla conserva documento_word y el sello de equivalencias", () => {
+  it("la semilla conserva documento_word", () => {
     // Misma llamada que hace `seedConsolidatedPlan`, sin montar el hook.
-    usePlanStore.getState().hydrate(emptyConfig({ documento_word: { portada: "C" }, equivalencias_revision: "rev-1" }));
+    usePlanStore.getState().hydrate(emptyConfig({ documento_word: { portada: "C" } }));
     const cfg = buildGraficosConfigFromStore();
     usePlanStore.getState().hydrate({ ...cfg, plan: { slides: [] } });
     expect(usePlanStore.getState().documentoWord).toEqual({ portada: "C" });
-    expect(usePlanStore.getState().equivalenciasRevision).toBe("rev-1");
   });
 });
 
@@ -122,10 +121,9 @@ describe("(4) reset", () => {
 });
 
 describe("(5) mergeWithDefaults", () => {
-  it("incluye documento_word y el sello de equivalencias (antes los descartaba)", () => {
-    const merged = mergeWithDefaults({ documento_word: DOCUMENTO, equivalencias_revision: "rev-9" });
+  it("incluye documento_word (antes lo descartaba)", () => {
+    const merged = mergeWithDefaults({ documento_word: DOCUMENTO });
     expect(merged.documento_word).toEqual(DOCUMENTO);
-    expect(merged.equivalencias_revision).toBe("rev-9");
   });
 
   it("sin config remota devuelve defaults con documento_word vacío y el Word completo", () => {

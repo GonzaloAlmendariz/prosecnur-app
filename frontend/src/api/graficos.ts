@@ -1306,22 +1306,10 @@ export type GraficosSuggestedPlanResponse = {
   report_inputs?: GraficosReportInputs;
   coverage: GraficosCoverageResponse;
   warnings: string[];
-  /** ADR 0063: qué generó esta propuesta. `equivalencias` = mazo declarado. */
+  /** Qué generó esta propuesta (`auto`, `consolidado`, perfil). ADR 0101: la matriz ya no arma láminas. */
   fuente?: string;
-  declarada?: boolean;
-  /** ADR 0063: revisión de la declaración de la que salió el mazo. */
-  revision?: string;
-  n_diapositivas?: number;
-  /** Filas que no entraron al mazo, con su motivo. */
-  fuera?: { etiqueta: string; motivo: string; detalle?: string; variables?: string[] }[];
   /** B42/G-18: lo que el plan propone para las láminas de «Otros». Se propone; nunca cambia el interruptor sin avisar. */
   auto_otros_slides?: boolean;
-  /**
-   * ADR 0096: la propuesta del informe compartido es compuesta (`fuente: "consolidado"`); esto dice si trae láminas de
-   * la matriz y, por tanto, si `revision` es un sello que grabar.
-   */
-  contiene_equivalencias?: boolean;
-  radar_pendiente?: unknown[];
   bases_incluidas?: string[];
   bases_excluidas?: GraficosPlanBaseExcluida[];
   cobertura_reducida?: GraficosPlanCoberturaReducida[];
@@ -1366,16 +1354,6 @@ export function normalizeGraficosAvisosEquivalencias(value: unknown): GraficosAv
 export function normalizeGraficosSuggestedPlan(raw: unknown): GraficosSuggestedPlanResponse {
   const r = (esRegistroApi(raw) ? raw : {}) as GraficosSuggestedPlanResponse & Record<string, unknown>;
   const out: GraficosSuggestedPlanResponse = { ...r, warnings: arregloApi(r.warnings).map(textoApi) };
-  if (r.contiene_equivalencias !== undefined) out.contiene_equivalencias = r.contiene_equivalencias === true;
-  if (r.revision !== undefined) out.revision = textoApi(r.revision);
-  if (r.fuera !== undefined) {
-    out.fuera = arregloApi(r.fuera).filter(esRegistroApi).map((f) => ({
-      etiqueta: textoApi(f.etiqueta),
-      motivo: textoApi(f.motivo),
-      ...(f.detalle != null ? { detalle: textoApi(f.detalle) } : {}),
-      ...(f.variables != null ? { variables: arregloApi(f.variables).map(textoApi) } : {}),
-    }));
-  }
   if (r.bases_incluidas !== undefined) out.bases_incluidas = arregloApi(r.bases_incluidas).map(textoApi);
   if (r.bases_excluidas !== undefined) {
     out.bases_excluidas = arregloApi(r.bases_excluidas).filter(esRegistroApi).map((b) => ({
@@ -1388,7 +1366,6 @@ export function normalizeGraficosSuggestedPlan(raw: unknown): GraficosSuggestedP
     }));
   }
   if (r.avisos_equivalencias !== undefined) out.avisos_equivalencias = normalizeGraficosAvisosEquivalencias(r.avisos_equivalencias);
-  if (r.radar_pendiente !== undefined) out.radar_pendiente = arregloApi(r.radar_pendiente);
   return out;
 }
 

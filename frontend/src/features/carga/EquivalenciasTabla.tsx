@@ -21,7 +21,7 @@ export type EquivalenciasTablaProps = {
   filas: FilaEditor[];
   variablesPorBase: Record<string, VariableDeBase[]>;
   onAsignar: (filaId: string, base: string, variable: string) => void;
-  onEditar: (filaId: string, campo: "etiqueta_estandar" | "seccion" | "diapositiva", valor: string) => void;
+  onEditar: (filaId: string, campo: "etiqueta_estandar" | "seccion", valor: string) => void;
   onQuitar: (filaId: string) => void;
   onConfirmar: (filaId: string) => void;
   onAgregarFila: () => void;
@@ -67,7 +67,6 @@ export function EquivalenciasTabla({
         <colgroup>
           <col />
           {onArmonizar && <col style={{ width: `${ANCHO_COLUMNA_ESTADO_PX}px` }} />}
-          <col className="pulso-equiv-col-diapo" />
           {bases.map((base) => (
             <col key={base} style={{ width: anchoColumnaPublico() }} />
           ))}
@@ -78,7 +77,6 @@ export function EquivalenciasTabla({
           <tr>
             <th scope="col" className="pulso-equiv-col-etiqueta">Etiqueta estándar</th>
             {onArmonizar && <th scope="col" className="pulso-equiv-col-estado">Armonización</th>}
-            <th scope="col" className="pulso-equiv-col-diapo">Lámina</th>
             {bases.map((base) => (
               <th key={base} scope="col">{base}</th>
             ))}
@@ -114,15 +112,6 @@ export function EquivalenciasTabla({
                   <ArmonizacionIndicador fila={fila} serie={serie} onAbrir={onArmonizar} />
                 </td>
               )}
-              <td>
-                <input
-                  className="pulso-equiv-input-diapo"
-                  value={fila.diapositiva ?? ""}
-                  placeholder="—"
-                  aria-label={`Lámina de la fila ${fila.id}`}
-                  onChange={(e) => onEditar(fila.id, "diapositiva", e.target.value)}
-                />
-              </td>
               {bases.map((base) => {
                 const opciones = variablesPorBase[base] ?? [];
                 const valor = fila.variables[base] ?? "";

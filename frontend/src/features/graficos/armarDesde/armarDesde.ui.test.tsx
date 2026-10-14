@@ -100,12 +100,10 @@ describe("vacíos y avisos (lectura de la fuente: el vacío y la Vista general n
     expect(generar).not.toMatch(/scope:\s*"consolidado"/);
   });
 
-  // F3 (ADR 0096 decisión 6): en el compartido la propuesta es compuesta; «Sincronizar» sólo trae el bloque de la matriz.
-  it("Sincronizar reemplaza sólo con las láminas de origen equivalencias de la propuesta", () => {
+  // ADR 0101: la matriz ya no arma láminas; no queda «Sincronizar» con ella. Mata: reintroducirlo.
+  it("no hay Sincronizar con la matriz", () => {
     const src = fuente("../SuggestedPlanButton.tsx");
-    const sincronizar = src.slice(src.indexOf("function sincronizarPlan()"), src.indexOf("const derivadasEnPlan"));
-    expect(sincronizar).toContain("filter(esEquivalente)");
-    expect(sincronizar).toMatch(/sincronizarEquivalentes\(currentPlan,/);
+    expect(src).not.toMatch(/sincronizarPlan|sincronizarEquivalentes|esEquivalente/);
   });
 
   it("SuggestedPlanButton abre por la dirección y aplica en un paso", () => {

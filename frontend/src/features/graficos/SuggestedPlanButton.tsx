@@ -20,7 +20,6 @@ import { usePptStyleProfiles } from "./usePptStyleProfiles";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { useOptionalProjectShell } from "../project/ProjectShell";
 import { buildSuggestedPlanRecipeMarkdown } from "./suggestedPlanRecipe";
-import { esEquivalente, sincronizarEquivalentes } from "./sincronizarEquivalentes";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { PANEL_ARMAR_DESDE } from "./panelesGraficos";
 import { useGraficosReportScope } from "./reportScope";
@@ -30,12 +29,11 @@ import {
   motivoArmarDesdeDeshabilitado,
   perfilResuelto,
   propuestaOtros,
-  revisionAlAplicar,
   type ModoAplicarPlan,
 } from "./armarDesde/aplicarPlanSugerido";
 import { enfocarSinDesplazar } from "./laminas/enfocarSinDesplazar";
 import "./armarDesde/armarDesde.css";
-import { contenidoPropuesto, textoFueraDelMazo, tituloPropuesto } from "./armarDesde/vistaPreviaPropuesta";
+import { contenidoPropuesto, tituloPropuesto } from "./armarDesde/vistaPreviaPropuesta";
 
 function newSlideId(prefix = "sug") {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -129,7 +127,8 @@ export function SuggestedPlanButton() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<GraficosSuggestedPlanResponse | null>(null);
-  const [profileId, setProfileId] = useState<"auto" | "acnur_kobo_cruncher_plus" | "equivalencias">("auto");
+  // ADR 0101: la matriz de equivalencias ya no es fuente del plan; ACNUR sigue activable (su PPT es distinto al de PULSO).
+  const [profileId, setProfileId] = useState<"auto" | "acnur_kobo_cruncher_plus">("auto");
   const [acnurMode, setAcnurMode] = useState<"general" | "territorial">("general");
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>("paired_district");
   // Lo que el plan propone para «Otros» sólo se aplica si el analista lo acepta aquí (nunca sin avisar).
@@ -149,18 +148,14 @@ export function SuggestedPlanButton() {
     projectShell?.project.status.path,
   ].filter(Boolean).join(" ");
 
-  // Un estudio cuyo plan ya salió de la matriz abre en «Equivalencias»: abrir en «Automático» calculaba sola otra
-  // propuesta, ajena a la matriz (Gonzalo, 2026-10-13: «esto se activa solo sin pedirlo», 59 láminas «Sin título» en Arte).
-  const equivalenciasRevision = usePlanStore((s) => s.equivalenciasRevision);
   const { variables } = useVariables();
-  const conMatriz = Boolean(equivalenciasRevision) || currentPlan.slides.some(esEquivalente);
   useEffect(() => {
     const isAcnur = /\b(?:ACNUR|UNHCR)\b/i.test(projectIdentity);
-    setProfileId(isAcnur ? "acnur_kobo_cruncher_plus" : conMatriz ? "equivalencias" : "auto");
+    setProfileId(isAcnur ? "acnur_kobo_cruncher_plus" : "auto");
     setAcnurMode("general");
     setComparisonMode("none");
     setResult(null);
-  }, [projectIdentity, conMatriz]);
+  }, [projectIdentity]);
 
   const cerrarPanel = panel.cerrar;
   const cerrar = useRef(cerrarPanel);
@@ -216,9 +211,6 @@ export function SuggestedPlanButton() {
       const config = buildGraficosConfigFromStore();
       const next = await apiGraficosPlanSugerido({
         ...config,
-        // ADR 0063: el mazo declarado entra por este mismo endpoint como una
-        // fuente mas, no por un generador aparte.
-        ...(profileId === "equivalencias" ? { fuente: "equivalencias" } : {}),
         ...(profileId === "acnur_kobo_cruncher_plus"
           ? {
               profile_id: profileId,
@@ -259,7 +251,6 @@ export function SuggestedPlanButton() {
     const otros = propuestaOtros(result, autoOtrosActual);
     aplicarPlanSugerido({
       plan,
-      revision: revisionAlAplicar(modo, result),
       perfil: styleProfiles.find((p) => p.name === perfilId) ?? null,
       identidad: identidadDelPlan(result, profileId),
       ...(otros !== null && aceptarOtros ? { autoOtrosSlides: otros } : {}),
@@ -277,29 +268,6 @@ export function SuggestedPlanButton() {
     const suggested = clonePlanWithFreshIds(result.plan);
     aplicar("fusionar", { slides: [...currentPlan.slides, ...suggested.slides] });
   }
-
-  /**
-   * Pone al día SOLO el bloque que deriva la matriz de equivalencias. Ni
-   * «Reemplazar» —que borra el perfil sociodemográfico y todo lo hecho a mano—
-   * ni «Fusionar» —que al regenerar deja el bloque por duplicado— sirven cuando
-   * el mazo mezcla lo derivado con lo construido a mano.
-   */
-  function sincronizarPlan() {
-    if (!result) return;
-    // ADR 0096: en el compartido la propuesta es compuesta (matriz + láminas por fuente); sólo entra el bloque de la
-    // matriz, si no las láminas por fuente quedarían marcadas como derivadas y duplicadas.
-    const suggested = clonePlanWithFreshIds(result.plan);
-    const bloque = suggested.slides.filter(esEquivalente);
-    aplicar("sincronizar", sincronizarEquivalentes(currentPlan, bloque).plan);
-  }
-
-  const derivadasEnPlan = currentPlan.slides.filter(esEquivalente).length;
-  const puedeSincronizar =
-    (result?.fuente === "equivalencias" || result?.contiene_equivalencias === true)
-    && (result?.plan.slides.some(esEquivalente) ?? false);
-  const ayudaSincronizar = derivadasEnPlan > 0
-    ? `Reemplaza las ${derivadasEnPlan} láminas que salieron de la matriz y deja el resto del informe intacto.`
-    : "Añade las láminas de la matriz como un bloque propio, que podrás actualizar sin tocar el resto.";
 
   function downloadRecipe() {
     if (!result?.report_inputs) return;
@@ -377,37 +345,7 @@ export function SuggestedPlanButton() {
               >
                 <BarChart3 size={13} /> ACNUR
               </button>
-              <button
-                type="button"
-                className={profileId === "equivalencias" ? "is-active" : ""}
-                aria-pressed={profileId === "equivalencias"}
-                onClick={() => {
-                  setProfileId("equivalencias");
-                  setResult(null);
-                }}
-                title="Arma el informe con las láminas de la matriz de Carga → Equivalencias"
-              >
-                <GitMerge size={13} /> Equivalencias
-              </button>
             </div>
-
-            {profileId === "equivalencias" && (
-              // `editor-v2.css` esta congelado a crecimiento, asi que se reusa la
-              // clase que ya existe para texto de apoyo en este popover.
-              <div className="pulso-gv2-suggest-option-text">
-                <small>
-                  {result?.declarada === false
-                    ? "Este estudio todavía no tiene equivalencias. Complétalas en Carga → Equivalencias para armar el informe desde ellas."
-                    : "Una lámina por cada una de la matriz, con su enunciado como título y una barra por público. Las preguntas sin lámina asignada no entran."}
-                </small>
-              </div>
-            )}
-
-            {profileId === "equivalencias" && (result?.fuera?.length ?? 0) > 0 && (
-              <div className="pulso-gv2-suggest-option-text">
-                <small>{textoFueraDelMazo(result?.fuera ?? [])}</small>
-              </div>
-            )}
 
             {profileId === "acnur_kobo_cruncher_plus" && (
               <div className="pulso-gv2-suggest-acnur">
@@ -500,8 +438,6 @@ export function SuggestedPlanButton() {
                   <strong>{result.plan.slides.length}</strong>
                   <span>{result.plan.slides.length === 1 ? "lámina propuesta" : "láminas propuestas"}</span>
                 </div>
-                {/* El mazo de equivalencias no mide cobertura de variables: «0/0 graficables» decía que no había nada. */}
-                {profileId !== "equivalencias" && (<>
                 <div>
                   <strong>{summary?.included_graphable ?? 0}/{summary?.graphable_variables ?? 0}</strong>
                   <span>graficables cubiertas</span>
@@ -510,7 +446,6 @@ export function SuggestedPlanButton() {
                   <strong>{summary?.covered_by_recod ?? 0}</strong>
                   <span>cubiertas por recodificación</span>
                 </div>
-                </>)}
               </div>
 
               {result.warnings?.length ? (
@@ -588,7 +523,7 @@ export function SuggestedPlanButton() {
               <div className="pulso-gv2-suggest-preview">
                 {(result.plan.slides ?? []).slice(0, 10).map((slide, index) => (
                   <div key={`${slide.id}-${index}`}>
-                    <strong>{index + 1}. {normalizeAcnurVisibleText(tituloPropuesto(slide.payload?.titulo, profileId === "equivalencias", tituloQueSale(slide, variables, SLIDE_LABELS[slide.tipo] ?? slide.tipo)))}</strong>
+                    <strong>{index + 1}. {normalizeAcnurVisibleText(tituloPropuesto(slide.payload?.titulo, tituloQueSale(slide, variables, SLIDE_LABELS[slide.tipo] ?? slide.tipo)))}</strong>
                     <span>{contenidoPropuesto(slide.tipo)}</span>
                   </div>
                 ))}
@@ -616,14 +551,6 @@ export function SuggestedPlanButton() {
                 <button type="button" onClick={mergePlan}>
                   <GitMerge size={12} /> Fusionar al final
                 </button>
-                {/* Sólo cuando el estudio declara equivalencias CON plan: sin un
-                    bloque derivado que sincronizar, el botón no tendría qué
-                    hacer y competiría con los otros dos por atención. */}
-                {puedeSincronizar && (
-                  <button type="button" onClick={sincronizarPlan} title={ayudaSincronizar}>
-                    <RefreshCw size={12} /> Actualizar láminas equivalentes
-                  </button>
-                )}
                 <button type="button" onClick={cerrarDevolviendoFoco}>
                   Cancelar
                 </button>

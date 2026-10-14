@@ -256,8 +256,6 @@
 .pulso-equiv-tabla tr.is-sugerida td {
   background: var(--pulso-info-bg);
 }
-
-.pulso-equiv-col-diapo { width: 84px; }
 .pulso-equiv-col-acciones { width: 72px; }
 .pulso-equiv-col-n {
   width: 72px;
@@ -308,26 +306,6 @@
 
 /* La celda de diapositiva es un boton hasta que se edita, igual que la de
    variable: 157 recuadros diciendo «—» no informaban de nada. */
-.pulso-equiv-input-diapo {
-  width: 100%;
-  min-width: 0;
-  padding: 2px 6px;
-  border: 1px solid transparent;
-  border-radius: var(--pulso-radius-chip);
-  background: transparent;
-  color: var(--pulso-text);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-
-button.pulso-equiv-input-diapo:hover,
-.pulso-equiv-input-diapo:focus {
-  border-color: var(--pulso-border);
-  background: var(--pulso-surface-2);
-}
-
-.pulso-equiv-input-diapo.is-vacio { color: var(--pulso-text-faint); }
 
 .pulso-equiv-acciones-fila {
   display: flex;
@@ -409,172 +387,23 @@ button.pulso-equiv-input-diapo:hover,
   font-variant-numeric: tabular-nums;
 }
 
-.pulso-equiv-diapositivas {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-3);
-  min-width: 0;
-}
-
-.pulso-equiv-diapositiva {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
-  padding: var(--pulso-space-3);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface);
-  min-width: 0;
-  /* Sin scroll propio: un `overflow-x: auto` la volvía contenedor de scroll y su
-     cabecera sticky se pegaba a la tarjeta (que no se mueve) en vez de al dueño
-     real; a media altura los públicos perdían su rótulo. La tabla cabe por
-     construcción —el Tema absorbe el sobrante y encoge con elipsis—. */
-}
-
 /* Lo que no tiene diapositiva no es una diapositiva mas, pero tampoco un problema
    (M8): para comparar no hace falta. Se distingue por el fondo y por su rotulo
    neutro, sin el borde punteado que lo leia como trabajo pendiente. */
-.pulso-equiv-diapositiva.is-pendiente {
-  background: var(--pulso-surface-2);
-}
-
-.pulso-equiv-diapositiva.is-pendiente .pulso-equiv-diapositiva-id {
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-}
-
-.pulso-equiv-diapositiva-head {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--pulso-space-3);
-  min-width: 0;
-}
-
-.pulso-equiv-diapositiva-id {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-  min-width: 78px;
-  padding: 3px 8px;
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface-2);
-  color: var(--module-accent);
-  font-size: 12px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.pulso-equiv-diapositiva-texto {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1 1 auto;
-  min-width: 0;
-}
 
 /* El enunciado es el titulo de la diapositiva: se escribe donde se lee.
 
    Vacio NO es un recuadro esperando texto sino una accion discreta. Con 44
    diapositivas sin enunciado, la vista eran 44 recuadros grises identicos que
    tapaban lo unico que si informa: la etiqueta y los codigos por publico. */
-.pulso-equiv-enunciado {
-  width: 100%;
-  min-width: 0;
-  padding: 2px 6px;
-  border: 1px solid transparent;
-  border-radius: var(--pulso-radius-chip);
-  background: transparent;
-  color: var(--pulso-text);
-  font-size: 14px;
-  font-weight: 600;
-  text-align: left;
-  /* La regla global de `button` en la casa es `display: flex` centrado, asi que
-     `text-align` no basta: el enunciado y su accion vacia se alineaban al medio
-     de la tarjeta como si fueran un titulo de portada. */
-  justify-content: flex-start;
-}
-
-.pulso-equiv-enunciado:hover,
-.pulso-equiv-enunciado:focus {
-  border-color: var(--pulso-border);
-  background: var(--pulso-surface-2);
-}
 
 /* La accion se ve como accion —mas pequena y en el tono del modulo— y no como un
    enunciado que alguien escribio en gris. */
-.pulso-equiv-enunciado.is-vacio {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--pulso-text-faint);
-}
-
-.pulso-equiv-enunciado.is-vacio:hover {
-  color: var(--module-accent);
-}
 
 /* M8: el enunciado vacio es un campo con su propia etiqueta, no un texto gris
    en el lugar del titulo. */
-.pulso-equiv-enunciado-campo {
-  display: flex;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  min-width: 0;
-  padding-left: 6px;
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-}
-
-.pulso-equiv-enunciado-campo > span {
-  flex: 0 0 auto;
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.pulso-equiv-enunciado-campo > input {
-  flex: 1 1 auto;
-  min-width: 0;
-  max-width: 48ch;
-  min-height: var(--pulso-control-height-sm);
-  padding: 2px 8px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-  font-size: 12px;
-}
-
-.pulso-equiv-leyenda {
-  display: flex;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  margin: 0;
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-}
 
 /* La misma marca que pinta la fila (`tr.is-escala-rota`), en miniatura. */
-.pulso-equiv-leyenda-filete {
-  flex: 0 0 auto;
-  width: 2px;
-  height: 14px;
-  background: var(--pulso-border-strong);
-}
-
-.pulso-equiv-seccion,
-.pulso-equiv-diapositiva-nota {
-  font-size: 11px;
-  color: var(--pulso-text-faint);
-  padding-left: 6px;
-  margin: 0;
-}
-
-.pulso-equiv-diapositiva-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  flex-shrink: 0;
-  font-size: 11px;
-}
 
 /* El chip dice lo que CABE —la escala corta entera, o cuantas opciones son— y
    nunca recorta con puntos suspensivos: a 240 px con `text-overflow`, una escala
@@ -668,12 +497,6 @@ button.pulso-equiv-chip-escala:hover,
   font-variant-numeric: tabular-nums;
 }
 
-.pulso-equiv-chip-n {
-  color: var(--pulso-text-faint);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
 /* Los avisos DESCRIBEN el estado de la diapositiva; no denuncian un error. Una
    escala divergente entre publicos puede ser un hallazgo del estudio —los rangos
    de edad de docentes y egresados son distintos de verdad— y dos escalas en una
@@ -682,108 +505,33 @@ button.pulso-equiv-chip-escala:hover,
 /* Cada aviso es UNA caja. Apilados dentro de un solo recuadro se leian como un
    parrafo de problemas de la diapositiva; separados, cada uno es un hecho sobre
    un tema concreto, que es lo que son. */
-.pulso-equiv-avisos {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-1);
-  margin: 0;
-  /* La tabla de la tarjeta es mas ancha que el contenedor y lo hace scrollear en
-     horizontal; sin esto el aviso se estiraba al ancho de la tabla y su texto
-     salia fuera de la vista en vez de romper en varias lineas. */
-  min-width: 0;
-  align-self: stretch;
-  position: sticky;
-  left: 0;
-}
 
 /* Rectangulo, no pastilla. El aviso no cabe en una linea —nombra el tema y las
    escalas de cada publico— asi que su geometria es la de una caja de texto:
    radio de tarjeta, padding igual en los cuatro lados y el icono anclado a la
    primera linea. Con radio de chip y padding vertical corto, dos lineas se veian
    como una pastilla deformada. */
-.pulso-equiv-aviso-caja {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--pulso-space-2);
-  margin: 0;
-  padding: var(--pulso-space-2);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  line-height: 1.55;
-  min-width: 0;
-}
 
 /* El texto es quien rompe en lineas; sin `min-width: 0` un tema flex se niega a
    encogerse por debajo de su contenido y la caja crece en vez de envolver. */
-.pulso-equiv-aviso-caja > span {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.pulso-equiv-aviso-caja strong {
-  color: var(--pulso-text);
-  font-weight: 600;
-}
 
 /* El icono lleva el tono del modulo: informa de que superficie habla sin gritar.
    Anclado arriba, se queda junto a la primera linea cuando el texto ocupa tres. */
-.pulso-equiv-aviso-caja > svg {
-  flex-shrink: 0;
-  margin-top: 2px;
-  color: var(--module-accent);
-}
-
-.pulso-equiv-avisos li {
-  display: flex;
-  align-items: flex-start;
-  gap: 5px;
-}
 
 /* Modelo de columnas deliberado. El navegador repartia el sobrante entre todas
    por igual: los publicos quedaban anchisimos, «mover» y la papelera se
    apelotonaban a la izquierda de su celda y sobraba aire muerto a la derecha.
    Aqui el Tema absorbe TODO el sobrante y las demas se encogen a su contenido
    —`width: 1%` con `nowrap` es la forma de decir «lo minimo»—. */
-.pulso-equiv-diapositiva-tabla {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: 12px;
-}
-
-.pulso-equiv-diapositiva-tabla th,
-.pulso-equiv-diapositiva-tabla td {
-  width: 1%;
-  white-space: nowrap;
-}
-
-.pulso-equiv-diapositiva-tabla th.pulso-equiv-col-etiqueta,
-.pulso-equiv-diapositiva-tabla td:first-child {
-  width: 100%;
-  white-space: normal;
-}
 
 /* Los publicos van centrados bajo su encabezado y con un ancho minimo comun:
    sin el, una columna con `p9` y otra con `p12_1` se desalineaban a ojo. */
-.pulso-equiv-diapositiva-tabla th:not(.pulso-equiv-col-etiqueta),
-.pulso-equiv-diapositiva-tabla td:not(:first-child) {
-  text-align: center;
-  padding-left: var(--pulso-space-2);
-  padding-right: var(--pulso-space-2);
-}
 
 /* M9: el estado de armonizacion es una columna propia de ancho minimo comun.
    Dentro de la celda del tema, el ancho variable del chip hacia que el campo
    terminara en una x distinta en cada fila. */
-.pulso-equiv-diapositiva-tabla .pulso-equiv-col-estado,
 .pulso-equiv-tabla .pulso-equiv-col-estado {
   text-align: left;
-}
-
-.pulso-equiv-diapositiva-tabla th.pulso-equiv-col-estado {
-  min-width: 7.5rem;
 }
 
 .pulso-equiv-col-estado .pulso-armon-chip {
@@ -792,102 +540,24 @@ button.pulso-equiv-chip-escala:hover,
 
 /* Ancho mínimo común por base, el mismo con cualquier N: el contenido es un
    código corto y lo que no cabe se desplaza en el marco de la tabla. */
-.pulso-equiv-diapositiva-tabla th:not(.pulso-equiv-col-etiqueta) {
-  min-width: 76px;
-}
 
 /* La ultima columna pega con el borde de la tarjeta, no con la penultima. */
-.pulso-equiv-diapositiva-tabla th:last-child,
-.pulso-equiv-diapositiva-tabla td:last-child {
-  padding-right: 0;
-  text-align: right;
-}
 
 .pulso-equiv-acciones-fila { justify-content: flex-end; }
-
-.pulso-equiv-diapositiva-tabla th {
-  text-align: left;
-  font-weight: 600;
-  color: var(--pulso-text-faint);
-  font-size: 11px;
-  padding: 2px var(--pulso-space-2);
-  border-bottom: 1px solid var(--pulso-border);
-  white-space: nowrap;
-}
 
 /* La cabecera de cada tarjeta se pega bajo la barra de vistas mientras su
    tarjeta está a la vista, como en la Lista. El filete va en sombra: con
    `border-collapse` el borde no viaja con la celda pegada. */
-.pulso-equiv-diapositiva-tabla thead th {
-  position: sticky;
-  top: var(--pulso-equiv-barra-alto, 0px);
-  z-index: 2;
-  background: var(--pulso-surface);
-  box-shadow: inset 0 -1px 0 var(--pulso-border);
-}
-
-.pulso-equiv-diapositiva.is-pendiente .pulso-equiv-diapositiva-tabla thead th {
-  background: var(--pulso-surface-2);
-}
-
-.pulso-equiv-diapositiva-tabla td {
-  padding: 2px var(--pulso-space-2);
-  border-bottom: 1px solid var(--pulso-border);
-  vertical-align: middle;
-}
-
-.pulso-equiv-diapositiva-tabla tr:last-child td { border-bottom: none; }
-.pulso-equiv-diapositiva-tabla tr.is-sugerida td { background: var(--pulso-info-bg); }
 
 /* E1: los publicos de este tema no comparten escala. Marca de borde y no solo de
    fondo, para que sobreviva a una captura de bajo contraste — pero en tono
    neutro: senala cual es la fila, no la acusa. */
-.pulso-equiv-diapositiva-tabla tr.is-escala-rota td:first-child {
-  box-shadow: inset 2px 0 0 0 var(--pulso-border-strong);
-}
-
-.pulso-equiv-diapositiva-tabla input,
-.pulso-equiv-diapositiva-tabla select {
-  width: 100%;
-  min-width: 0;
-  text-overflow: ellipsis;
-  font-size: 12px;
-  padding: 2px 6px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-}
 
 /* La celda de variable es un boton hasta que se edita: montar un `select` por
    celda con cientos de `option` deja decenas de miles de nodos en el DOM y la
    pestana tarda en responder al primer clic. */
-.pulso-equiv-var {
-  width: 100%;
-  padding: 2px 6px;
-  border: 1px solid transparent;
-  border-radius: var(--pulso-radius-chip);
-  background: transparent;
-  color: var(--pulso-text);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  text-align: left;
-}
-
-.pulso-equiv-var:hover,
-.pulso-equiv-var:focus {
-  border-color: var(--pulso-border);
-  background: var(--pulso-surface-2);
-}
-
-.pulso-equiv-var.is-vacia { color: var(--pulso-text-faint); }
-
-.pulso-equiv-col-cob { width: 58px; }
 
 /* M3: es un PulsoButton secundario; aqui solo se ubica. */
-.pulso-equiv-add-tema {
-  align-self: flex-start;
-}
 
 /* Acciones que operan sobre todo el editor —agrupar, confirmar en bloque—. Viven
    junto al selector de vista y no en la cabecera: la cabecera declara que es la
@@ -904,22 +574,6 @@ button.pulso-equiv-chip-escala:hover,
    desplegable del Excel, y por el mismo motivo — reconocer `p13_1` entre cien
    hermanas ordenadas por el formulario no es una tarea que se le pueda pedir a
    nadie. */
-.pulso-equiv-var-input {
-  width: 100%;
-  min-width: 0;
-  padding: 2px 6px;
-  border: 1px solid var(--module-accent);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-
-.pulso-equiv-var-input::placeholder {
-  color: var(--pulso-text-faint);
-  font-variant-numeric: normal;
-}
 
 /* --- Bloques dentro de la diapositiva (ADR 0064) --------------------------
    Un bloque son los temas que comparten escala, que es como el render los
@@ -943,47 +597,15 @@ button.pulso-equiv-chip-escala:hover,
    seguidos de un tema cada uno se leian como cuatro filas sueltas.
    Material propio, llave gruesa con sus extremos redondeados y aire real entre
    uno y otro. */
-tbody.pulso-equiv-bloque.is-partido td {
-  background: var(--pulso-surface-2);
-  border-bottom-color: transparent;
-}
-
-tbody.pulso-equiv-bloque.is-partido td:first-child {
-  border-left: 4px solid var(--module-accent);
-  padding-left: var(--pulso-space-3);
-}
 
 /* La llave tiene principio y fin: sin las esquinas, el bloque parecia una franja
    cortada por arriba y por abajo. */
-tbody.pulso-equiv-bloque.is-partido tr:first-child td:first-child {
-  border-top-left-radius: 6px;
-}
-
-tbody.pulso-equiv-bloque.is-partido tr:last-child td:first-child {
-  border-bottom-left-radius: 6px;
-}
-
-tbody.pulso-equiv-bloque.is-partido tr:last-child td:last-child {
-  border-top-right-radius: 0;
-}
 
 /* Aire entre bloques. Se pinta con un borde del color del panel para no romper
    el modelo de columnas: un `tr` espaciador desalinearia la tabla. */
-tbody.pulso-equiv-bloque.is-partido + tbody.pulso-equiv-bloque.is-partido
-  tr:first-child td {
-  border-top: var(--pulso-space-3) solid var(--pulso-surface);
-}
 
 /* La cabecera del bloque cierra por arriba y sus filas no se separan del
    material: son la misma pieza. */
-tbody.pulso-equiv-bloque.is-partido tr:first-child td {
-  padding-top: var(--pulso-space-2);
-}
-
-tbody.pulso-equiv-bloque.is-partido tr:last-child td {
-  padding-bottom: var(--pulso-space-2);
-  border-bottom: none;
-}
 
 /* La cabecera del bloque ocupa toda la fila con `colSpan`, asi que es a la vez
    primera y ultima celda y heredaba el `text-align: right` de la columna de
@@ -992,186 +614,41 @@ tbody.pulso-equiv-bloque.is-partido tr:last-child td {
 /* El selector lleva la tabla por delante a proposito: `td:last-child` de la
    columna de acciones suma una pseudoclase y ganaba, asi que los controles del
    bloque se iban al borde derecho, lejos del bloque que describen. */
-.pulso-equiv-diapositiva-tabla .pulso-equiv-bloque-head td {
-  padding-top: var(--pulso-space-2);
-  padding-bottom: var(--pulso-space-2);
-  padding-right: 0;
-  border-bottom: none;
-  white-space: normal;
-  text-align: left;
-}
 
 /* Los tres elementos de la cabecera —escala, grafico, corte— con aire propio:
    pegados se leian como una sola tira de controles sin jerarquia. */
-.pulso-equiv-bloque-head td > span {
-  margin-right: var(--pulso-space-3);
-}
 
 /* La cabecera del bloque envuelve: con cinco opciones de escala larga, el
    control del corte no cabe en una linea y forzarlo desbordaba la tarjeta. */
-.pulso-equiv-bloque-head td > * {
-  vertical-align: middle;
-}
-
-.pulso-equiv-bloque-n {
-  margin-left: var(--pulso-space-2);
-  font-size: 11px;
-  color: var(--pulso-text-faint);
-}
 
 /* Mover es una accion, no un dato: la diapositiva ya esta en la esquina de la
    tarjeta y repetirla en cada fila no decia nada. Arranca vacia y solo pide el
    destino. */
 /* El campo de destino que abre el boton de mover (M2). */
-.pulso-equiv-diapositiva-tabla input.pulso-equiv-mover {
-  width: 9ch;
-  min-width: 0;
-  padding: 1px 6px;
-  border-color: var(--module-accent);
-  font-size: 11px;
-}
 
 /* --- Grafico y corte del bloque (ADR 0064) --------------------------------
    Solo aparece cuando el bloque es elegible: 5+ ejes, cobertura rectangular y
    2+ publicos. Ofrecerlo siempre pondria un control muerto en las 53 cabeceras
    del estudio medido, de las que solo 2 lo pueden usar. */
 
-.pulso-equiv-bloque-grafico {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  flex-wrap: wrap;
-  margin-left: var(--pulso-space-2);
-}
-
-.pulso-equiv-grafico-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 1px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-}
-
-.pulso-equiv-grafico-switch button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 1px 8px;
-  border: none;
-  border-radius: var(--pulso-radius-chip);
-  background: transparent;
-  color: var(--pulso-text-faint);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.pulso-equiv-grafico-switch button.is-active {
-  background: var(--pulso-surface-2);
-  color: var(--module-accent);
-}
-
 /* El corte son casillas sobre las opciones REALES del bloque. Una regla fija
    —«los dos ultimos»— seria falsa en cuanto la escala traiga su «sin
    informacion» al final, que es lo que pasa en el estudio medido. */
-.pulso-equiv-corte {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  flex-wrap: wrap;
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-}
-
-.pulso-equiv-corte-label { color: var(--pulso-text-faint); }
 
 /* Cada opcion es un boton que se enciende. La version con casilla duplicaba el
    estado —recuadro Y color— y metia un control de 13 px en una fila de
    pastillas; encendida, la pastilla ya dice que esta dentro del indicador. */
-.pulso-equiv-corte-op {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 9px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  white-space: nowrap;
-}
-
-.pulso-equiv-corte-op:hover { border-color: var(--pulso-border-strong); }
-
-.pulso-equiv-corte-op.is-on {
-  border-color: var(--module-accent);
-  background: var(--module-accent);
-  color: var(--pulso-surface);
-  font-weight: 600;
-}
-
-.pulso-equiv-corte-codigo {
-  color: var(--pulso-text-faint);
-  font-variant-numeric: tabular-nums;
-}
-
-.pulso-equiv-corte-op.is-on .pulso-equiv-corte-codigo {
-  color: var(--pulso-surface);
-  opacity: 0.75;
-}
 
 /* Sin eleccion no hay indicador: se avisa donde se decide. */
-.pulso-equiv-corte-falta { color: var(--pulso-warn-fg); font-size: 11px; }
 
 /* El motivo por el que un bloque no puede ser radar se dice al lado del boton
    apagado: un control deshabilitado sin explicacion se lee como algo roto. */
-.pulso-equiv-radar-motivo {
-  font-size: 11px;
-  color: var(--pulso-text-faint);
-  font-style: italic;
-}
-
-.pulso-equiv-grafico-switch button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
 
 /* Estilo del radar, declarado por bloque junto al corte.
  *
  * Mismo lenguaje que las pastillas del indicador: un botón que se enciende, no
  * una casilla con su etiqueta al lado. Cambiar de forma entre dos controles que
  * viven en la misma fila obliga a leerlos dos veces. */
-.pulso-equiv-estilo {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-left: 10px;
-}
-
-.pulso-equiv-estilo-op {
-  padding: 3px 9px;
-  font-size: 11px;
-  line-height: 1.3;
-  color: var(--pulso-text-soft);
-  background: var(--pulso-surface);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
-}
-
-.pulso-equiv-estilo-op:hover {
-  border-color: var(--pulso-border-strong);
-}
-
-.pulso-equiv-estilo-op.is-on {
-  font-weight: 600;
-  color: var(--pulso-button-accent-strong);
-  background: var(--pulso-button-accent-soft);
-  border-color: var(--pulso-button-accent-border);
-}
 
 /* Escritorio compacto (gramática: <=1320 de ancho o <=720 de alto). La
    descripción repite lo que ya dice el encabezado de la pestaña, y a 1024x600
@@ -1247,11 +724,9 @@ tbody.pulso-equiv-bloque.is-partido tr:last-child td {
    bases toda la pestaña se ensanchaba a 1400 px (cabecera y orden de la serie
    cortados) en vez de desplazarse sólo la tabla. */
 .pulso-equiv,
-.pulso-equiv-cuerpo,
-.pulso-equiv-diapositivas {
+.pulso-equiv-cuerpo {
   min-width: 0;
 }
-
 
 /* Sin `border-radius`: en un scroller compuesto Chromium recorta las esquinas
    con una máscara, y con la columna fija pintaba la tabla a medias, con un
@@ -1266,9 +741,7 @@ tbody.pulso-equiv-bloque.is-partido tr:last-child td {
 }
 
 .pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla th:first-child,
-.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla td:first-child,
-.pulso-equiv-hscroll.is-desborda .pulso-equiv-diapositiva-tabla th:first-child,
-.pulso-equiv-hscroll.is-desborda .pulso-equiv-diapositiva-tabla tr:not(.pulso-equiv-bloque-head) > td:first-child {
+.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla td:first-child {
   position: sticky;
   left: 0;
   z-index: 1;
@@ -1280,26 +753,20 @@ tbody.pulso-equiv-bloque.is-partido tr:last-child td {
    pegarse al dueño de scroll de Carga: su `top` (el alto de la barra de
    vistas) la empujaba hacia abajo DENTRO del marco y tapaba la primera fila.
    Ahí la cabecera queda en su sitio; sólo la columna del tema se fija. */
-.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla thead th,
-.pulso-equiv-hscroll.is-desborda .pulso-equiv-diapositiva-tabla thead th {
+.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla thead th {
   top: auto;
 }
 
-.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla thead th:first-child,
-.pulso-equiv-hscroll.is-desborda .pulso-equiv-diapositiva-tabla thead th:first-child {
+.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla thead th:first-child {
   z-index: 3;
 }
 
-.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla tr.is-sugerida td:first-child,
-.pulso-equiv-hscroll.is-desborda .pulso-equiv-diapositiva-tabla tr.is-sugerida td:first-child {
+.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla tr.is-sugerida td:first-child {
   background: var(--pulso-info-bg);
 }
 
 /* Al desplazarse, el tema conserva un ancho legible en vez de encogerse a
    los chips: es la columna que dice de qué fila se trata. */
-.pulso-equiv-diapositiva-tabla th.pulso-equiv-col-etiqueta {
-  min-width: 320px;
-}
 
 /* «3 de 7»: la misma forma con cualquier cantidad de bases. Lo parcial se
    marca en peso y color, y el detalle va en el `title`. */

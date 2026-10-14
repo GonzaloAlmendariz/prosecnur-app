@@ -3,7 +3,7 @@
 - **Estado**: Aceptado — decisión de Gonzalo del 2026-10-14, texto ratificado el mismo día («Hazlo»)
 - **Ámbito**: Carga › Equivalencias entre públicos y Gráficos (plan del informe)
 - **Fecha**: 2026-10-14
-- **Implementación**: Pendiente — piezas E1 a E6 (abajo). Seguimiento en
+- **Implementación**: Hecha, por verificar en la app — piezas E1 a E6 (abajo). Seguimiento en
   `docs/qa/checklist-matriz-equivalencias-pura-2026-10-14.md`
 - **Relación**: enmienda [ADR 0062](0062-matriz-de-equivalencias-entre-publicos.md) (quita de la forma plana la
   columna `diapositiva`; su decisión —la equivalencia se declara, no se adivina— queda entera),

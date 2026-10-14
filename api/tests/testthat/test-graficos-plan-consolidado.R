@@ -142,6 +142,21 @@ test_that("ADR 0101: pedir el plan con la fuente «equivalencias» responde 410 
   expect_match(.equiv_estado(sid)$revision, "^r3:")
 })
 
+# ADR 0101 decisión 5 (E6): ACNUR conserva sus configuraciones activables —su estilo, su plantilla y su plan propio—
+# aunque la matriz deje de armar láminas. Mata: retirar el perfil junto con la fuente «equivalencias».
+test_that("ADR 0101: el perfil ACNUR sigue activable con su estilo, su plantilla y su plan", {
+  expect_true("acnur_kobo_cruncher_plus" %in% names(.PPT_STYLE_PROFILES))
+  expect_identical(.PPT_STYLE_PROFILES$acnur_kobo_cruncher_plus$template_id, "acnur_16_9")
+  sid <- .hce_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  .hce_declarar(sid)
+  out <- .graficos_plan_sugerido_por_fuente(sid, config = list(profile_id = "acnur_kobo_cruncher_plus"))
+  expect_identical(out$profile_id, "acnur_kobo_cruncher_plus")
+  expect_identical(out$template_id, "acnur_16_9")
+  expect_false(isTRUE(out$auto_otros_slides))
+  expect_gt(length(out$plan$slides %||% list()), 0L)
+})
+
 # ---------------------------------------------------------------------------
 # R11 — scope inválido (400) y consolidado que no aplica (409), por el router.
 # ---------------------------------------------------------------------------

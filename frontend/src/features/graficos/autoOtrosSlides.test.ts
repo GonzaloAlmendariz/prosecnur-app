@@ -140,11 +140,10 @@ describe("A5 2b · «Otros» deshacible y plan sugerido en un paso", () => {
     expect("auto_otros_slides" in (buildGraficosConfigFromStore().plan as Record<string, unknown>)).toBe(false);
   });
 
-  // Mata: volver a los setters sueltos (loadPlan + setEquivalenciasRevision + applyPptStyleProfile + setScopeRules).
-  it("aplicarPlanSugerido es un solo paso con plan, revisión, perfil e identidad, y un deshacer lo revierte entero", () => {
+  // Mata: volver a los setters sueltos (loadPlan + applyPptStyleProfile + setScopeRules).
+  it("aplicarPlanSugerido es un solo paso con plan, perfil e identidad, y un deshacer lo revierte entero", () => {
     usePlanStore.getState().aplicarPlanSugerido({
       plan: { slides: [{ id: "s-1", tipo: "p_slide_portada", payload: { titulo: "Informe" } }] },
-      revision: "rev-7",
       perfil: { name: "acnur", titulo_humano: "ACNUR", descripcion: "", icono_ui: "", preview_colors: [], presets: { base: { color: "x" } } },
       identidad: { profile_id: "acnur", template_id: "acnur_16_9" },
     });
@@ -152,23 +151,20 @@ describe("A5 2b · «Otros» deshacible y plan sugerido en un paso", () => {
     expect(s.past).toHaveLength(1);
     expect(s.plan.slides.map((x) => x.id)).toEqual(["s-1"]);
     expect(s.selectedSlideId).toBe("s-1");
-    expect(s.equivalenciasRevision).toBe("rev-7");
     expect(s.presets.base).toEqual({ color: "x" });
     expect((s.scopeRules.global as Record<string, unknown>).template_id).toBe("acnur_16_9");
     expect(s.autoOtrosSlides).toBe(false);
     s.undo();
     const d = usePlanStore.getState();
     expect(d.plan.slides).toHaveLength(0);
-    expect(d.equivalenciasRevision).toBe("");
     expect(d.presets).toEqual({});
     expect(d.scopeRules.global).toBeUndefined();
   });
 
-  it("sin revisión conserva el sello; con autoOtrosSlides aceptado lo aplica en el mismo paso", () => {
-    usePlanStore.getState().hydrate(emptyConfig({ equivalencias_revision: "rev-1" }));
+  it("con autoOtrosSlides aceptado lo aplica en el mismo paso", () => {
+    usePlanStore.getState().hydrate(emptyConfig());
     usePlanStore.getState().aplicarPlanSugerido({ plan: { slides: [] }, perfil: null, identidad: null, autoOtrosSlides: true });
     const s = usePlanStore.getState();
-    expect(s.equivalenciasRevision).toBe("rev-1");
     expect(s.autoOtrosSlides).toBe(true);
     expect(s.past).toHaveLength(1);
   });

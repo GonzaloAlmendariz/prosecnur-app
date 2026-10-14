@@ -3,10 +3,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-// ADR 0096 decisión 8: el estado de la declaración aplicada (al día, desfasada, retirada, revisión anterior, sin mazo
-// derivado) se calcula en UN solo lugar —`useDeclaracionAplicada`— y lo consumen el Editor anterior (GraficosPage) y
-// «Avisos del informe» de Láminas, junto con los avisos de la siembra (`preflight.equivalencias.avisos`).
-// Sin DOM en vitest el hook no se monta: se fija que exista, que sea el único que llama al cálculo y quién lo consume.
+// ADR 0096 decisión 8, enmendada por ADR 0101: `useDeclaracionAplicada` sólo lleva los avisos de la siembra del
+// compartido (`preflight.equivalencias.avisos`) a «Avisos del informe» de Láminas; el estado de la declaración aplicada
+// (al día, desfasada…) se retiró con el sello de la matriz.
+// Sin DOM en vitest el hook no se monta: se fija que exista y quién lo consume.
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const fuente = (rel: string) => fs.readFileSync(path.join(AQUI, rel), "utf8");
@@ -20,23 +20,24 @@ function archivosDeProducto(dir: string): string[] {
   });
 }
 
-describe("useDeclaracionAplicada · un solo lugar para el estado de la declaración", () => {
+describe("useDeclaracionAplicada · avisos de la siembra", () => {
   it("el hook existe y se exporta", async () => {
     const mod = await import("./useDeclaracionAplicada");
     expect(typeof mod.useDeclaracionAplicada).toBe("function");
   });
 
-  // Mata: volver a calcular el estado en cada superficie (el editor anterior y Láminas discreparían).
-  it("sólo el hook llama a estadoDeclaracionAplicada", () => {
-    const llamadores = archivosDeProducto(AQUI)
-      .filter((f) => /\bestadoDeclaracionAplicada\(/.test(fs.readFileSync(f, "utf8")))
-      .map((f) => path.relative(AQUI, f).split(path.sep).join("/"))
-      .filter((f) => f !== "declaracionAplicada.ts");
-    expect(llamadores).toEqual(["useDeclaracionAplicada.ts"]);
+  // ADR 0101: la matriz ya no arma láminas, así que no hay estado de «declaración aplicada» que calcular.
+  // Mata: reintroducir el sello o el aviso de desfase.
+  it("no queda cálculo del estado de la declaración ni aviso de desfase", async () => {
+    const fuentes = archivosDeProducto(AQUI);
+    expect(fuentes.length).toBeGreaterThan(100);
+    const llamadores = fuentes.filter((f) => /\bestadoDeclaracionAplicada\(|equivalenciasRevision/.test(fs.readFileSync(f, "utf8")));
+    expect(llamadores).toEqual([]);
+    const mod = await import("./useDeclaracionAplicada");
+    expect(Object.keys(mod).sort()).toEqual(["fijarAvisosSiembraCompartido", "useDeclaracionAplicada"]);
   });
 
-  it("lo consumen el Editor anterior y Láminas", () => {
-    expect(fuente("GraficosPage.tsx")).toContain("useDeclaracionAplicada(");
+  it("Láminas lo consume para los avisos de la siembra", () => {
     expect(fuente("laminas/LaminasWorkbench.tsx")).toContain("useDeclaracionAplicada(");
   });
 

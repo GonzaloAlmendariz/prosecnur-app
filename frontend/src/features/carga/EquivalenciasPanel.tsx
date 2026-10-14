@@ -37,19 +37,13 @@ import { ArmonizacionFilaEditor, useAbrirArmonizacion } from "./ArmonizacionFila
 import { ArmonizacionPeriodos } from "./ArmonizacionPeriodos";
 import { ImportarBloquesBoton, ImportarBloquesDialog } from "./ImportarBloquesDialog";
 import { EquivalenciasTabla } from "./EquivalenciasTabla";
-import { EquivalenciasDiapositivas } from "./EquivalenciasDiapositivas";
 import { EquivalenciasEsqueleto, EquivalenciasTitulo } from "./EquivalenciasEsqueleto";
 import {
   aFilasEditor,
-  agruparEnDiapositivas,
-  agruparPorBateria,
   asignarVariable,
-  catalogoEscalas,
   confirmarFila,
   confirmarTodas,
   editarCampo,
-  editarCampoDeBloque,
-  editarCampoDeDiapositiva,
   filaVacia,
   filasParaGuardar,
   incorporarSugerencias,
@@ -101,10 +95,6 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
   // M14: «Guardado» sólo justo después de guardar desde aquí; al editar vuelve a
   // «Cambios sin guardar» y al recargar, a «Sin cambios».
   const [guardadoAhora, setGuardadoAhora] = useState(false);
-  // Por diapositiva es la vista por defecto (ADR 0064): es el grano en que se decide
-  // el mazo. La tabla plana se conserva porque sigue siendo la mejor forma de
-  // barrer 150 temas buscando uno.
-  const [vista, setVista] = useState<"diapositivas" | "tabla">("diapositivas");
   const archivoRef = useRef<HTMLInputElement>(null);
   const observadorBarra = useRef<ResizeObserver | null>(null);
 
@@ -124,27 +114,6 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
     if (typeof ResizeObserver === "undefined") return;
     observadorBarra.current = new ResizeObserver(aplicar);
     observadorBarra.current.observe(barra);
-  }, []);
-
-  // ADR 0064 regla 8: la agrupación se PROPONE. Se aplica al editor como una
-  // edición más —visible en las tarjetas, revertible sin guardar— y sólo se
-  // persiste al pulsar Guardar. Acierta 33 de 44 diapositivas del estudio
-  // medido; las baterías largas hay que partirlas a mano, así que ofrecerla como
-  // algo que se acepta en bloque sería el error que el ADR 0062 prohíbe.
-  const onAgrupar = useCallback(() => {
-    setFilas((prev) => {
-      const next = agruparPorBateria(prev);
-      const nuevas = next.filter(
-        (f, i) => (f.diapositiva ?? "") !== (prev[i]?.diapositiva ?? ""),
-      ).length;
-      setAviso(
-        nuevas > 0
-          ? `${nuevas} temas agrupados por batería del formulario. Revisa las tarjetas —las baterías largas suelen partirse en varias— y guarda cuando estén bien.`
-          : "Todos los temas ya tienen lámina.",
-      );
-      return next;
-    });
-    setSucio(true);
   }, []);
 
   const onConfirmarTodas = useCallback(() => {
@@ -270,10 +239,12 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
         setSucio(false);
         onDeclaradas?.(imp.estado.n_filas ?? 0);
         const { aplicadas, conservadas } = resumenAplicacion(imp);
+        // ADR 0101: lo que el Excel traía y la matriz ya no guarda se dice, no se descarta en silencio.
+        const ignoradas = (imp.avisos ?? []).map((a) => a.message).join(" ");
         setAviso(
-          conservadas > 0
+          (conservadas > 0
             ? `${aplicadas} etiquetas aplicadas. ${conservadas} se conservaron porque ya estaban editadas a mano.`
-            : `${aplicadas} etiquetas aplicadas en ${imp.estado.bases.length} bases.`,
+            : `${aplicadas} etiquetas aplicadas en ${imp.estado.bases.length} bases.`) + (ignoradas ? ` ${ignoradas}` : ""),
         );
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -326,15 +297,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
     }
   }, [filas, onDeclaradas]);
 
-  // El catálogo se indexa una vez y no en cada fila: son cientos de variables por
-  // base y la vista de diapositivas resuelve la escala de cada tema al pintar.
-  const catalogo = useMemo(() => catalogoEscalas(variablesPorBase), [variablesPorBase]);
-  const diapositivas = useMemo(() => agruparEnDiapositivas(filas, catalogo, estado?.radar_max_etiqueta), [filas, catalogo, estado?.radar_max_etiqueta]);
   const resumen = useMemo(() => resumenEditor(filas), [filas]);
-  const sinDiapositiva = useMemo(
-    () => filas.filter((f) => !(f.diapositiva ?? "").trim()).length,
-    [filas],
-  );
 
   // Las columnas siguen la serie declarada (2024, 2025, 2026), no el orden en
   // que se cargaron las bases.
@@ -468,39 +431,8 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
             {estado && declarada && bases.length > 1 && (
               <ArmonizacionPeriodos estado={estado} onGuardado={onArmonizacionGuardada} />
             )}
-            <div ref={barraRef} className="pulso-equiv-vistas" role="group" aria-label="Forma de ver la declaración">
-              <button
-                type="button"
-                className={vista === "diapositivas" ? "is-active" : ""}
-                aria-pressed={vista === "diapositivas"}
-                onClick={() => setVista("diapositivas")}
-              >
-                Por lámina
-              </button>
-              <button
-                type="button"
-                className={vista === "tabla" ? "is-active" : ""}
-                aria-pressed={vista === "tabla"}
-                onClick={() => setVista("tabla")}
-              >
-                Lista
-              </button>
-              {/* Las dos acciones que operan sobre TODO el editor viven junto al
-                  selector de vista y no en la cabecera: la cabecera declara qué
-                  es la superficie y por dónde entran los datos; esto opera sobre
-                  lo que ya está dentro. */}
-              {sinDiapositiva > 0 && (
-                <PulsoButton
-                  variant="secondary"
-                  size="sm"
-                  className="pulso-equiv-accion-masiva"
-                  onClick={onAgrupar}
-                  title="Agrupa por la batería del formulario: los temas cuyas variables comparten raíz en alguna base van a la misma lámina."
-                >
-                  <Layers size={13} aria-hidden="true" />
-                  Agrupar {sinDiapositiva} sin lámina
-                </PulsoButton>
-              )}
+            {/* ADR 0101: la matriz es una lista de equivalencias; las láminas se arman en Gráficos. */}
+            <div ref={barraRef} className="pulso-equiv-vistas" role="group" aria-label="Acciones sobre la declaración">
               {resumen.sugeridas > 0 && (
                 <PulsoButton
                   variant="secondary"
@@ -512,44 +444,20 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                   Confirmar {resumen.sugeridas} propuestas
                 </PulsoButton>
               )}
-              <span className="pulso-equiv-vistas-nota">
-                {formatoConteoDe(diapositivas.filter((l) => l.clave !== "").length, "lámina")} · {formatoConteoDe(filas.length, "tema")}
-              </span>
+              <span className="pulso-equiv-vistas-nota">{formatoConteoDe(filas.length, "tema")}</span>
             </div>
 
-            {vista === "diapositivas" ? (
-              <EquivalenciasDiapositivas
-                bases={bases.length ? bases : Object.keys(variablesPorBase)}
-                diapositivas={diapositivas}
-                catalogo={catalogo}
-                variablesPorBase={variablesPorBase}
-                estilosRadar={estado?.estilos_radar}
-                onEditarFila={(id, campo, v) => { setFilas((p) => editarCampo(p, id, campo, v)); setSucio(true); }}
-                onEditarDiapositiva={(clave, campo, v) => { setFilas((p) => editarCampoDeDiapositiva(p, clave, campo, v)); setSucio(true); }}
-                onEditarBloque={(ids, campo, v) => { setFilas((p) => editarCampoDeBloque(p, ids, campo, v)); setSucio(true); }}
-                onAsignar={(id, base, v) => { setFilas((p) => asignarVariable(p, id, base, v)); setSucio(true); }}
-                onQuitar={(id) => { setFilas((p) => quitarFila(p, id)); setSucio(true); }}
-                onConfirmar={(id) => { setFilas((p) => confirmarFila(p, id)); setSucio(true); }}
-                onArmonizar={bases.length > 1 ? abrirArmonizacion : undefined}
-                onAgregarTema={(clave) => {
-                  const diapo = diapositivas.find((l) => l.clave === clave);
-                  setFilas((p) => [...p, filaVacia(diapo?.seccion ?? "", clave, diapo?.enunciado ?? "")]);
-                  setSucio(true);
-                }}
-              />
-            ) : (
-              <EquivalenciasTabla
-                bases={bases.length ? bases : Object.keys(variablesPorBase)}
-                filas={filas}
-                variablesPorBase={variablesPorBase}
-                onAsignar={(id, base, v) => { setFilas((p) => asignarVariable(p, id, base, v)); setSucio(true); }}
-                onEditar={(id, campo, v) => { setFilas((p) => editarCampo(p, id, campo, v)); setSucio(true); }}
-                onQuitar={(id) => { setFilas((p) => quitarFila(p, id)); setSucio(true); }}
-                onConfirmar={(id) => { setFilas((p) => confirmarFila(p, id)); setSucio(true); }}
-                onArmonizar={bases.length > 1 ? abrirArmonizacion : undefined}
-                onAgregarFila={() => { setFilas((p) => [...p, filaVacia()]); setSucio(true); }}
-              />
-            )}
+            <EquivalenciasTabla
+              bases={bases.length ? bases : Object.keys(variablesPorBase)}
+              filas={filas}
+              variablesPorBase={variablesPorBase}
+              onAsignar={(id, base, v) => { setFilas((p) => asignarVariable(p, id, base, v)); setSucio(true); }}
+              onEditar={(id, campo, v) => { setFilas((p) => editarCampo(p, id, campo, v)); setSucio(true); }}
+              onQuitar={(id) => { setFilas((p) => quitarFila(p, id)); setSucio(true); }}
+              onConfirmar={(id) => { setFilas((p) => confirmarFila(p, id)); setSucio(true); }}
+              onArmonizar={bases.length > 1 ? abrirArmonizacion : undefined}
+              onAgregarFila={() => { setFilas((p) => [...p, filaVacia()]); setSucio(true); }}
+            />
             <div className="pulso-equiv-pie-editor">
               <SaveStatusIndicator
                 state={
@@ -562,8 +470,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
               <span className="pulso-equiv-pie-resumen">
                 {`${formatoConteo(resumen.confirmadas)} confirmadas`
                   + (resumen.sugeridas ? ` · ${formatoConteo(resumen.sugeridas)} propuestas sin confirmar` : "")
-                  + (resumen.sinEtiqueta ? ` · ${formatoConteo(resumen.sinEtiqueta)} sin etiqueta` : "")
-                  + (resumen.conDiapositiva ? ` · ${formatoConteo(resumen.conDiapositiva)} con lámina` : "")}
+                  + (resumen.sinEtiqueta ? ` · ${formatoConteo(resumen.sinEtiqueta)} sin etiqueta` : "")}
               </span>
               <PulsoButton
                 variant="primary"
