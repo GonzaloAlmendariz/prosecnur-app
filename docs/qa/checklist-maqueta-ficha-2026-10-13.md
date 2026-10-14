@@ -17,6 +17,7 @@ Sólo Gonzalo da por terminado un ítem.
 | 9 | Dibujos por tipo que reflejan sus ajustes (promedio, top N, neutro y saldo, con tabla, por grupo…) | `glifosGrafico.tsx` / nuevo | pendiente (siguiente tanda) |
 | 10 | Ícono propio de la Matriz FODA dimensional (hoy cae en el marco genérico) | `iconos/iconosGrafico.tsx` | no aplica: la FODA está retirada a propósito (`GRAFICOS_RETIRADOS`; la reemplazó la Matriz de cuadrantes, G16); sólo se dibuja en planes viejos y su marco genérico lo exige `iconosTipo.contract.test.ts` |
 | 11 | M10: «Respuestas por público» como ajuste (motor + pestaña Gráfico + ficha) | `p_barras_apiladas()`/`p_barras_multiapiladas()` → `graficar_barras_apiladas(mostrar_respuestas)` → `espec$mostrar_respuestas` → `lamina_escala.R` (3 sitios); `graficos_metadata.R`, `argsDatosGrafico.ts`, `fichaModelo.ts` | hecho, por verificar por Gonzalo |
+| 12 | Un índice sin capítulos (ni propios ni separadores de capítulo en el informe) no se exporta: avisa y bloquea; antes salía con la plantilla antigua y capítulos de ejemplo («no se puede exportar si no está definido… se debe avisar e impedir su exportación») | Compuerta de PPT y Word: `.plan_errores_indice` en `api/R/graficos_plan_requisitos.R`, llamada desde `.validar_plan_json` (400 `E_INVALID_PLAN`); editor: `indice/requisitoIndice.ts` → `validarPlan` (error `indice-sin-capitulos`, «Bloquean la exportación») | hecho, por verificar por Gonzalo (en vivo sobre Arte: lámina 4 bloquea y Exportar queda deshabilitado) |
 
 ## Notas
 

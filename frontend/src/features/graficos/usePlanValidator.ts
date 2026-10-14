@@ -10,6 +10,7 @@ import { isDerivedReportVariableRef } from "./derivedReportVariables";
 import { nombreTipoLamina, rotuloLamina, tituloDeLamina } from "./rotuloLamina";
 import { tituloQueSale } from "./laminas/tituloQueSale";
 import { citaCorta, notasEnTitulo } from "./laminas/notaEnTitulo";
+import { indicesSinCapitulos } from "./indice/requisitoIndice";
 
 // Validador del plan 100% client-side: deriva warnings/errores de lo
 // que ya vive en el store + registry + variables del instrumento. Sin
@@ -56,7 +57,8 @@ export type ValidationIssue = {
     | "numeric-invalid"
     | "scale-mismatch"
     | "titulo-vacio"
-    | "titulo-con-nota";
+    | "titulo-con-nota"
+    | "indice-sin-capitulos";
   message: string;
   slideId?: string;       // para poder saltar al slide afectado
   slotName?: string;
@@ -281,6 +283,11 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
         listName,
       });
     }
+  }
+
+  // 5) Índice sin capítulos: el motor no tiene qué listar (indice/requisitoIndice.ts) -----------------
+  for (const { slideId, message } of indicesSinCapitulos(slides)) {
+    issues.push({ severity: "error", code: "indice-sin-capitulos", message, slideId });
   }
 
   const errors = issues.filter((i) => i.severity === "error");
