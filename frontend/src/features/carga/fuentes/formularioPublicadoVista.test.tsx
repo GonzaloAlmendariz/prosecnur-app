@@ -19,7 +19,7 @@ const ARTE: FormularioPublicado = {
 
 const VP: VistaPreviaDatos = {
   n_filas: 120, fuentes: [], n_emparejadas: 38, n_variables_instrumento: 42, cobertura: 38 / 42, cobertura_texto: "",
-  sin_par_instrumento: [], sin_par_fuente: [{ variable: "q0099", etiqueta: "Respondent ID" }],
+  sin_par_instrumento: [], sin_par_fuente: [{ variable: "q0099", etiqueta: "Respondent ID" }], agregadas_fuente: [{ variable: "anio", etiqueta: "Años desde el ingreso" }],
   recodificaciones: Array.from({ length: 8 }, (_, i) => ({ variable: `p10_${i + 1}`, etiqueta: "SIN INF", desde: "5", hacia: "99" })),
   opciones_sin_par: [], bloqueo: null,
 };

@@ -1,5 +1,6 @@
 import type { PanelDeclarado } from "../../lib/navegacion/paneles";
 import { PANEL_ARMONIZACION, PANEL_IMPORTAR_BLOQUES } from "./armonizacionModel";
+import { PANEL_ARMONIZACION_BASE, PANEL_COMPARAR_FUENTES } from "./fuentes/compararFuentesModel";
 
 /**
  * Carga › Revisión: cómo se emparejó cada pregunta de una fuente de la base
@@ -16,4 +17,7 @@ export const PANELES_CARGA = [
   PANEL_EMPAREJAMIENTO_FUENTE,
   PANEL_ARMONIZACION,
   PANEL_IMPORTAR_BLOQUES,
+  // Carga › Fuentes (ADR 0102): `foco=<base>` y `foco=<baseA>~<baseB>`.
+  PANEL_ARMONIZACION_BASE,
+  PANEL_COMPARAR_FUENTES,
 ] as const satisfies readonly PanelDeclarado[];

@@ -1,0 +1,172 @@
+/* Marco lateral de Carga › Fuentes («Ver armonización», «Comparar fuentes»).
+ *
+ * Solo tokens `--pulso-*`. El panel va en portal al `body`, fuera del frame de
+ * Procesamiento: el acento del módulo se declara aquí.
+ *
+ * - C2: alto de la ventana, ancho fijo por viewport; 0 o 200 variables no lo mueven.
+ * - C4: un único dueño de scroll, `.pulso-plf-cuerpo`. La cabecera queda fuera.
+ */
+
+.pulso-plf-velo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--pulso-z-modal);
+  background: color-mix(in srgb, var(--pulso-text) 30%, transparent);
+}
+
+.pulso-plf {
+  --module-accent: var(--pulso-module-processing);
+  --module-accent-soft: var(--pulso-module-processing-soft);
+  position: fixed;
+  z-index: var(--pulso-z-modal);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(780px, calc(100vw - var(--pulso-space-9)));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--pulso-bg);
+  border-left: 1px solid var(--pulso-border-strong);
+  box-shadow: var(--pulso-shadow-high);
+  color: var(--pulso-text);
+  animation: pulso-plf-entrada 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.pulso-plf.is-ancho {
+  width: min(960px, calc(100vw - var(--pulso-space-9)));
+}
+
+.pulso-plf:focus {
+  outline: none;
+}
+
+@keyframes pulso-plf-entrada {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-plf {
+    animation: none;
+  }
+}
+
+.pulso-plf-cabecera {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-5) var(--pulso-space-6) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.pulso-plf-titular {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-plf-titulos {
+  min-width: 0;
+}
+
+.pulso-plf-antetitulo {
+  margin: 0 0 2px;
+  color: var(--module-accent);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.02em;
+}
+
+.pulso-plf-titulo {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.25;
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.pulso-plf-descripcion {
+  margin: 0;
+  max-width: 72ch;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.pulso-plf-cerrar {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.pulso-plf-cerrar:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.pulso-plf-cerrar:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+}
+
+.pulso-plf-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-5) var(--pulso-space-6) var(--pulso-space-7);
+}
+
+/* Estados terminales del panel: cargando, vacío honesto, error. Contienen su
+   propio vacío (C3) dentro del cuerpo. */
+.pulso-plf-estado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-5);
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.pulso-plf-estado strong {
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-plf-estado p {
+  margin: 0;
+  max-width: 62ch;
+}
+
+.pulso-plf-estado.is-error {
+  border-style: solid;
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}

@@ -306,3 +306,11 @@
 .pulso-bde-previa p { margin: 0; color: var(--pulso-text-soft); }
 .pulso-bde-previa ul { margin: 4px 0 0; padding-left: 18px; }
 .pulso-bde-previa-rotulo { color: var(--pulso-text-muted); font-size: 11.5px; font-weight: var(--pulso-weight-semibold); }
+
+/* ADR 0102: «Comparar fuentes» junto a «Agregar base». */
+.pulso-bde-encabezado-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}

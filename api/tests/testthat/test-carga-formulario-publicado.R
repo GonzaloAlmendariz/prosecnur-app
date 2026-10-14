@@ -148,6 +148,29 @@ test_that("(a) una etiqueta del .sav que no existe en la lista queda vacía y se
   expect_identical(.cfpt_leer_base(sid, imp$base_name)$p1, c("1", NA))
 })
 
+test_that("(a) una columna creada en la limpieza entra con su nombre y declarada; una pregunta SM sin par no entra", {
+  sid <- .cfpt_sesion()
+  .cfpt_publicar(sid, .cfpt_modelo(), source = list(kind = "surveymonkey", survey_id = "111"))
+  df <- data.frame(respondent_id = c("r1", "r2"), stringsAsFactors = FALSE)
+  df$q0001 <- .cfpt_lab(c(1, 1), c("Sí" = 1, "No" = 2), "¿Desea continuar?")
+  df$q0002_0001 <- .cfpt_lab(c(1, 2), c("Totalmente en desacuerdo" = 1, "En desacuerdo" = 2), "x")
+  df$q0003 <- c("a", "b")
+  df$q0099 <- c("x", "y")              # pregunta de la encuesta que el formulario no tiene
+  df$anio_ingreso <- c(3, 7)           # derivada en SPSS
+  attr(df$anio_ingreso, "label") <- "Años desde el ingreso"
+  path <- tempfile(fileext = ".sav")
+  haven::write_sav(df, path)
+  fid <- .cfpt_registrar_archivo(sid, "sav", "sav", path)
+  prev <- carga_formulario_publicado_vista_previa(sid, list(revision_id = "rev-1", fuente = "sav", file_id = fid))
+  expect_identical(vapply(prev$sin_par_fuente, `[[`, "", "variable"), "q0099")
+  expect_identical(prev$agregadas_fuente, list(list(variable = "anio_ingreso", etiqueta = "Años desde el ingreso")))
+  imp <- carga_formulario_publicado_importar(sid, list(revision_id = "rev-1", fuente = "sav", file_id = fid))
+  datos <- .cfpt_leer_base(sid, imp$base_name)
+  expect_true("anio_ingreso" %in% names(datos))
+  expect_false("q0099" %in% names(datos))
+  expect_equal(as.numeric(datos$anio_ingreso), c(3, 7))
+})
+
 # --- (b) SurveyMonkey por API: principal + campaña -----------------------------
 
 .cfpt_op <- function(id, text, pos) list(id = id, text = text, position = pos)
@@ -344,7 +367,9 @@ test_that("(c) un Excel con columnas del instrumento se normaliza; una etiqueta 
   prev <- carga_formulario_publicado_vista_previa(sid, list(revision_id = "rev-1", fuente = "excel", file_id = fid))
   expect_null(prev$bloqueo)
   expect_identical(prev$n_emparejadas, 3L)
-  expect_identical(vapply(prev$sin_par_fuente, `[[`, "", "variable"), "extra")
+  # Una columna del Excel que no es pregunta del formulario la agregó el analista: entra declarada.
+  expect_identical(prev$sin_par_fuente, list())
+  expect_identical(vapply(prev$agregadas_fuente, `[[`, "", "variable"), "extra")
   expect_identical(prev$opciones_sin_par, list(list(variable = "p2_1", n = 1L,
     etiquetas = list(list(etiqueta = "Algo raro", n = 1L)))))
   expect_true(any(vapply(prev$recodificaciones, function(r) identical(r$desde, "SIN INF") && identical(r$hacia, "99"),
