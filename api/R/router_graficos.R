@@ -1183,6 +1183,7 @@
       }
     }
   }
+  errs <- c(errs, .plan_errores_indice(slides))   # graficos_plan_requisitos.R: lo que impide exportar
   list(ok = length(errs) == 0, errors = errs, warnings = warns, n_slides = length(slides))
 }
 
