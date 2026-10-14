@@ -5039,7 +5039,7 @@ reporte_ppt_plan <- function(
             # el enunciado no cambió ni una línea.
             group_title <- stringr::str_wrap(group_title, width = .multiactor_wrap_tema(
               .reporte_plan_multiactor_canvas_defaults(
-                TRUE, (presets$multi_apiladas_multiactor$args %||% list())
+                TRUE, .multiactor_preset_de(presets, el)
               )$canvas_w_grupo,
               wrap_y_eff))
           }
@@ -5348,13 +5348,13 @@ reporte_ppt_plan <- function(
           args,
           .reporte_plan_multiactor_canvas_defaults(
             isTRUE(show_extra),
-            preset_args = (presets$multi_apiladas_multiactor$args %||% list())
+            preset_args = .multiactor_preset_de(presets, el)
           )
         )
         args$mostrar_barra_extra <- isTRUE(show_extra)
       }
 
-      args <- .merge_args(args, overrides)
+      args <- .merge_args(args, .multiactor_overrides_de(overrides))
       args <- .reservar_pie_para_base_slide(args, min_in = .PLAN_RESERVA_PIE_MULTI_IN, word_render = isTRUE(el$.word_render))
       args$usar_canvas <- TRUE
       fun  <- graficar_barras_apiladas
@@ -6956,7 +6956,7 @@ reporte_ppt_plan <- function(
   # hasta ser ilegible, y la unica salida es una lamina de mas.
   plan <- .plan_particionar_escalas(.plan_orden_categorias(plan, instrument_sources, presets, default_source), .slide_plot_elements)  # D8
 
-  if (!length(plan)) .plan_input_abort("No hay diapositivas...")
+  if (!length(plan)) .plan_input_abort("El informe no tiene láminas.")
 
   # ---------------------------------------------------------------------------
   # 7) Abrir plantilla / doc (solo si exporta)

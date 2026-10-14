@@ -1,0 +1,49 @@
+/* Ficha visual de una ranura de la maqueta (contrato de la maqueta, M1–M8). La geometría es SVG en pulgadas; los colores
+   de la ficha, tokens; los de las respuestas, los de su paleta (o grises). */
+
+.pulso-ficha {
+  display: block;
+  width: 100%;
+  height: 100%;
+  font-family: inherit;
+  overflow: visible;
+}
+
+.pulso-ficha-icono-fondo { fill: var(--pulso-primary-soft); }
+.pulso-ficha-icono { color: var(--pulso-primary); --icono-acento: var(--pulso-module-processing); }
+.pulso-ficha-tipo { fill: var(--pulso-primary); font-weight: 700; }
+.pulso-ficha-pregunta { fill: var(--pulso-text); font-weight: 700; }
+.pulso-ficha-suave { fill: var(--pulso-text-muted); }
+
+.pulso-ficha-chip text { font-weight: 600; }
+.pulso-ficha-chip.is-publico rect { fill: var(--pulso-module-processing-soft); }
+.pulso-ficha-chip.is-publico text { fill: var(--pulso-module-processing); }
+.pulso-ficha-chip.is-ajuste rect { fill: var(--pulso-primary-soft); }
+.pulso-ficha-chip.is-ajuste text { fill: var(--pulso-primary); }
+.pulso-ficha-chip.is-aviso rect { fill: var(--pulso-warn-bg); }
+.pulso-ficha-chip.is-aviso text { fill: var(--pulso-warn-fg); }
+
+.pulso-ficha-leyenda-caja { fill: var(--pulso-surface); stroke: var(--pulso-border); stroke-width: 0.015; }
+.pulso-ficha-leyenda-titulo { fill: var(--pulso-text-muted); font-weight: 700; }
+.pulso-ficha-leyenda-texto { fill: var(--pulso-text); }
+
+.pulso-ficha-barra.is-ttb { fill: var(--pulso-success-fg); }
+.pulso-ficha-barra.is-pregunta { fill: var(--pulso-border-strong); }
+.pulso-ficha-separador { stroke: var(--pulso-border-strong); stroke-width: 0.015; stroke-dasharray: 0.06 0.05; }
+.pulso-ficha-glifo.is-tenue { opacity: 0.35; }
+.pulso-ficha-vacia { fill: var(--pulso-text-muted); font-weight: 600; }
+
+/* M8: las barras conservan su identidad entre estados y transitan su geometría con una curva de salida (arranca rápido y
+   se posa suave); 240 ms. Al montar no hay transición (no hay estado previo). */
+.pulso-ficha-barra {
+  transition:
+    x 240ms cubic-bezier(0.23, 1, 0.32, 1),
+    y 240ms cubic-bezier(0.23, 1, 0.32, 1),
+    width 240ms cubic-bezier(0.23, 1, 0.32, 1),
+    height 240ms cubic-bezier(0.23, 1, 0.32, 1),
+    fill 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-ficha-barra { transition: none; }
+}

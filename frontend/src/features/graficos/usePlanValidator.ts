@@ -8,6 +8,9 @@ import { evaluateScaleCompat, multiApiladasScaleGroups, type ScaleVar } from "./
 import { formatNumericRange, hasMeaningfulValue, validateNumericArgValue } from "./numericArgValidation";
 import { isDerivedReportVariableRef } from "./derivedReportVariables";
 import { nombreTipoLamina, rotuloLamina, tituloDeLamina } from "./rotuloLamina";
+import { tituloQueSale } from "./laminas/tituloQueSale";
+import { citaCorta, notasEnTitulo } from "./laminas/notaEnTitulo";
+import { indicesSinCapitulos } from "./indice/requisitoIndice";
 
 // Validador del plan 100% client-side: deriva warnings/errores de lo
 // que ya vive en el store + registry + variables del instrumento. Sin
@@ -53,7 +56,9 @@ export type ValidationIssue = {
     | "paleta-monocromatica"
     | "numeric-invalid"
     | "scale-mismatch"
-    | "titulo-vacio";
+    | "titulo-vacio"
+    | "titulo-con-nota"
+    | "indice-sin-capitulos";
   message: string;
   slideId?: string;       // para poder saltar al slide afectado
   slotName?: string;
@@ -214,6 +219,23 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
       }
     }
 
+    // D4: el título que va a salir trae una nota entre corchetes o una etiqueta HTML. No se quita sola: se avisa con el
+    // fragmento exacto y el analista decide (Gonzalo, 2026-10-13).
+    {
+      const sale = tituloQueSale(slide, variables, nombreTipoLamina(slide.tipo));
+      const notas = notasEnTitulo(sale);
+      if (notas.length) {
+        const escrito = !!tituloDeLamina(slide.payload);
+        issues.push({
+          severity: "warning",
+          code: "titulo-con-nota",
+          message: `${lamina}: el título lleva «${citaCorta(notas[0])}»${notas.length > 1 ? ` y ${notas.length - 1} nota${notas.length > 2 ? "s" : ""} más` : ""}. `
+            + (escrito ? "Si no debe salir en la lámina, quítala del título." : "Viene del texto de la pregunta; si no debe salir, escribe el título de la lámina."),
+          slideId: slide.id,
+        });
+      }
+    }
+
     // Slot `icono` si el slide lo acepta
     // El objetivo lleva siempre la diana del recetario (G5): un ícono viejo en su payload ya no se usa.
     if (slideMeta.slots.includes("icono") && slide.tipo !== "p_slide_objetivo_icono") {
@@ -239,7 +261,7 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
 
   for (const override of overridesReusables) {
     issues.push(...checkNumericArgs(override.args, presetsByName[override.tipo_preset]?.args ?? [], {
-      scope: `Modo «${override.nombre}»`,
+      scope: `Estilo guardado «${override.nombre}»`,
     }));
   }
 
@@ -261,6 +283,11 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
         listName,
       });
     }
+  }
+
+  // 5) Índice sin capítulos: el motor no tiene qué listar (indice/requisitoIndice.ts) -----------------
+  for (const { slideId, message } of indicesSinCapitulos(slides)) {
+    issues.push({ severity: "error", code: "indice-sin-capitulos", message, slideId });
   }
 
   const errors = issues.filter((i) => i.severity === "error");
@@ -323,20 +350,20 @@ export function avisoDeVariableNoResuelta(
     return {
       severity: "error",
       code: "var-sin-base",
-      detalle: `la variable «${varName}» no dice de qué base es. Está en ${listarBases(basesDondeExiste)}; vuelve a elegirla para dejarlo escrito.`,
+      detalle: `la pregunta «${varName}» no dice de qué base es. Está en ${listarBases(basesDondeExiste)}; vuelve a elegirla para dejarlo escrito.`,
     };
   }
   if (basesDondeExiste.length > 1) {
     return {
       severity: "error",
       code: "var-sin-base",
-      detalle: `la variable «${varName}» existe en ${listarBases(basesDondeExiste)}. Elige de cuál es: el gráfico no puede resolverla solo.`,
+      detalle: `la pregunta «${varName}» existe en ${listarBases(basesDondeExiste)}. Elige de cuál es: el gráfico no puede resolverla solo.`,
     };
   }
   return {
     severity: "warning",
     code: "var-unknown",
-    detalle: `la variable «${varName}» no está en el instrumento. ¿La renombraste o la borraste?`,
+    detalle: `la pregunta «${varName}» no está en el instrumento. ¿La renombraste o la borraste?`,
   };
 }
 

@@ -237,8 +237,7 @@ export function GrupoCodificacionCard({
   );
 }
 
-// Botones pequeños ↑/↓ para reordenar grupos (patrón copiado de
-// TimelinePanel en Fase 5 Gráficos).
+// Botones pequeños ↑/↓ para reordenar grupos.
 function MoveButtons({ onMoveUp, onMoveDown, isFirst, isLast }: {
   onMoveUp: () => void;
   onMoveDown: () => void;

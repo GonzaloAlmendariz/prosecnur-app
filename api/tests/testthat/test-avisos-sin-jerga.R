@@ -90,7 +90,7 @@ test_that("el ícono que perdió su PNG se nombra como en el catálogo, no por s
   expect_identical(unname(attr(reg, "nombres")[[.UUID_TEST]]), "Perfil")
   av <- .avisos_de(.aviso_con_lamina(5, "Perfil del docente", .graficos_rebuild_icon(.UUID_TEST, reg)))
   expect_identical(av, paste0("Lámina 5 · “Perfil del docente”: su ícono «Perfil» ya no está en el catálogo de íconos y sale sin él. ",
-                              "Vuelve a subirlo en Configuración global > Íconos si lo necesitas."))
+                              "Vuelve a subirlo en Identidad > Íconos si lo necesitas."))
   expect_length(.jerga_en(av), 0L)
 })
 

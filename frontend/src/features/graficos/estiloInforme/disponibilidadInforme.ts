@@ -8,6 +8,8 @@
 import type { GraficosReportScope } from "../reportScope";
 
 export const AMBITO_BASE_ACTIVA = "Estos ajustes valen para el PPT y el Word de esta base.";
+/** Una base o un informe conjunto de varias (G15/U6, 2026-10-13: el conjunto de Arte decía «de esta base»). */
+export const AMBITO_INFORME = "Estos ajustes valen para el PPT y el Word de este informe.";
 export const AMBITO_COMPARTIDO =
   "Estás en el informe compartido: estos ajustes cambian su PPT consolidado y no se copian a ninguna base.";
 export const MOTIVO_WORD_EN_COMPARTIDO =
@@ -21,11 +23,12 @@ export type DisponibilidadInforme = {
   motivoWord: string | null;
 };
 
-export function disponibilidadInforme(scope: GraficosReportScope): DisponibilidadInforme {
+export function disponibilidadInforme(scope: GraficosReportScope, unInformePorBase = false): DisponibilidadInforme {
   const compartido = scope === "consolidated";
   return {
     disponible: true,
-    ambito: compartido ? AMBITO_COMPARTIDO : AMBITO_BASE_ACTIVA,
+    // «De esta base» sólo cuando cada base tiene su propio informe (hermanas independientes).
+    ambito: compartido ? AMBITO_COMPARTIDO : unInformePorBase ? AMBITO_BASE_ACTIVA : AMBITO_INFORME,
     motivoWord: compartido ? MOTIVO_WORD_EN_COMPARTIDO : null,
   };
 }

@@ -43,7 +43,7 @@ export function EditorAmplio() {
       </header>
       <div className="pulso-f6-editor-amplio-cuerpo">
         {editor.tipo === "bloques" && valor?.graficador
-          ? <MultiApiladasBuilder graf={valor} onArgs={(patch) => updateSlotArgs(slide.id, editor.slot, patch)} />
+          ? <MultiApiladasBuilder graf={valor} memoriaKey={`${slide.id}:${editor.slot}`} onArgs={(patch) => updateSlotArgs(slide.id, editor.slot, patch)} />
           : <FiltersPanel slide={slide} variables={variables} slotNames={[editor.slot]} />}
       </div>
     </section>

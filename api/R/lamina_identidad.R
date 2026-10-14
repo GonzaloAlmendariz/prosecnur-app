@@ -472,7 +472,12 @@
 
 #' Ícono de cada actor del objetivo, por su nombre
 #' @keywords internal
-.lam_icono_actor <- function(actor) .lam_icono_elegir(actor, "actor")$icono
+.lam_icono_actor <- function(actor, icono = "") {
+  # El que eligió el analista, si existe en la biblioteca; si no, el que el motor deduce del nombre.
+  icono <- trimws(as.character(icono %||% "")[1])
+  if (!is.na(icono) && nzchar(icono) && icono %in% .lam_iconos_catalogo()$nombres) return(icono)
+  .lam_icono_elegir(actor, "actor")$icono
+}
 
 #' Va sobre el layout general, como la moderna del recetario (el «Objetivos_Secciones» trae una línea punteada que cruza
 #' el texto) y sólo con la plantilla de PULSO: la de un cliente conserva su objetivo.
@@ -487,7 +492,7 @@
   titulo <- as.character(titulo %||% "")[1]; if (is.na(titulo) || !nzchar(trimws(titulo))) titulo <- "Objetivo del estudio"
   a <- .lam_objetivo_args(actores)   # `actores` puede ser la `meta` de la lámina (variante, dimensiones, actores)
   if (!identical(a$variante, "clasica")) return(.lam_objetivo_variante_dibujar(doc, texto, titulo, a, layout, master, por_lamina))
-  actores <- a$actores
+  actores <- a$actores; iconos_actor <- a$iconos
   doc <- officer::add_slide(doc, layout = layout, master = master)
   lz <- .lam_lienzo(); iconos <- list(list(n = "diana-flecha", x = ml + 0.62 * 0.24, y = 1.25 + 0.62 * 0.24))
   .lam_caja(lz, ml, 1.25, 0.62, 0.62, coral, geom = "ellipse", nombre = "objetivo:icono_fondo")
@@ -500,7 +505,7 @@
     for (k in seq_along(actores)) {
       xa <- ml + (k - 1) * wa
       .lam_caja(lz, xa + (wa - 0.62) / 2, 5.35, 0.62, 0.62, azul, geom = "ellipse", nombre = "objetivo:actor_fondo")
-      iconos[[length(iconos) + 1L]] <- list(n = .lam_icono_actor(actores[k]), x = xa + (wa - 0.62) / 2 + 0.62 * 0.24, y = 5.35 + 0.62 * 0.24)
+      iconos[[length(iconos) + 1L]] <- list(n = .lam_icono_actor(actores[k], iconos_actor[k]), x = xa + (wa - 0.62) / 2 + 0.62 * 0.24, y = 5.35 + 0.62 * 0.24)
       .lam_txt(lz, actores[k], xa - 0.1, 6.05, wa + 0.2, 0.5, 12, azul, bold = TRUE, align = "center", nombre = "objetivo:actor")
     }
   }

@@ -1917,13 +1917,17 @@ p_slide_6_graficos_poblacion <- function(
 #' @param max_categorias,agrupar_resto_en_otros,etiqueta_otros Recorte del
 #'   excedente en «Otros» (C40); viajan en `overrides` al graficador. `NULL`
 #'   hereda el preset (12, `TRUE`, «Otros»).
+#' @param mostrar_significancia,significancia_alpha Marcar diferencias significativas entre grupos y su nivel.
+#' @param forzar_ancho_max_eje_y Respetar el ancho de las etiquetas aunque el texto quepa en menos.
+#'   Los tres van a `overrides`, de donde los lee el plan; `NULL` hereda el preset.
 #' @examples
 #' p_barras_agrupadas("p102", filtros = list(region = "Lima"))
 #' @family reporte
 #' @export
 p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), mostrar_ceros = NULL, excluir_opciones = NULL,
                                orden_categorias = NULL, max_categorias = NULL, agrupar_resto_en_otros = NULL,
-                               etiqueta_otros = NULL) {
+                               etiqueta_otros = NULL, mostrar_significancia = NULL, significancia_alpha = NULL,
+                               forzar_ancho_max_eje_y = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -1949,6 +1953,11 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
   overrides <- .ppt_slot_override(overrides, "max_categorias", max_categorias, "numero", min = 1)
   overrides <- .ppt_slot_override(overrides, "agrupar_resto_en_otros", agrupar_resto_en_otros, "bool")
   overrides <- .ppt_slot_override(overrides, "etiqueta_otros", etiqueta_otros, "texto")
+  # Controles del editor que se caían en `.clean_rebuild_args()` sin llegar al PPT (checklist de configuraciones,
+  # 2026-10-13): el motor los lee de `overrides`.
+  overrides <- .ppt_slot_override(overrides, "mostrar_significancia", mostrar_significancia, "bool")
+  overrides <- .ppt_slot_override(overrides, "significancia_alpha", significancia_alpha, "numero", min = 0)
+  overrides <- .ppt_slot_override(overrides, "forzar_ancho_max_eje_y", forzar_ancho_max_eje_y, "bool")
 
   el <- list(
     .element_type = "barras_agrupadas",
@@ -2039,12 +2048,17 @@ p_barras_categoricas <- function(
 #' @param mostrar_categorias_en_cero Si `TRUE`, dibuja las opciones sustantivas
 #'   sin casos; las especiales (90-99, SIN INF) ausentes nunca (C40 D2). `NULL`
 #'   hereda el preset.
+#' @param mostrar_respuestas Si `FALSE`, la lámina no escribe «N respuestas» junto a cada público (el público se
+#'   queda). `NULL` hereda (encendido).
+#' @param mostrar_significancia,significancia_alpha Marcar diferencias significativas entre grupos y su nivel. Van a
+#'   `overrides`, de donde los lee el plan; `NULL` hereda el preset.
 #' @examples
 #' p_barras_apiladas("p102", filtros = list(region = "Lima"))
 #' @family reporte
 #' @export
 p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), excluir_opciones = NULL,
-                              mostrar_categorias_en_cero = NULL) {
+                              mostrar_categorias_en_cero = NULL, mostrar_respuestas = NULL,
+                              mostrar_significancia = NULL, significancia_alpha = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -2064,6 +2078,9 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
   filtros <- .ppt_norm_filters(filtros)
   excluir_opciones <- .ppt_norm_chr_vec_arg(excluir_opciones, "excluir_opciones")
   overrides <- .ppt_slot_override(overrides, "mostrar_categorias_en_cero", mostrar_categorias_en_cero, "bool")
+  overrides <- .ppt_slot_override(overrides, "mostrar_respuestas", mostrar_respuestas, "bool")
+  overrides <- .ppt_slot_override(overrides, "mostrar_significancia", mostrar_significancia, "bool")
+  overrides <- .ppt_slot_override(overrides, "significancia_alpha", significancia_alpha, "numero", min = 0)
 
   el <- list(
     .element_type = "barras_apiladas",
@@ -2119,7 +2136,9 @@ p_barras_multiapiladas <- function(
     overrides = list(),
     base = list(),
     filtros = list(),
-    mostrar_categorias_en_cero = NULL
+    mostrar_categorias_en_cero = NULL,
+    ancho_tema = NULL,
+    mostrar_respuestas = NULL
 ) {
   .ppt_as_chr_vec <- function(x, keep_names = FALSE) {
     if (is.null(x)) return(NULL)
@@ -2214,6 +2233,8 @@ p_barras_multiapiladas <- function(
   filtros <- .ppt_norm_filters(filtros)
   # C40: en multilista cada bloque hereda estos overrides (y puede pisarlos con los suyos).
   overrides <- .ppt_slot_override(overrides, "mostrar_categorias_en_cero", mostrar_categorias_en_cero, "bool")
+  overrides <- .ppt_slot_override(overrides, "ancho_tema", ancho_tema, "opcion", opciones = names(.MULTIACTOR_ANCHO_TEMA))
+  overrides <- .ppt_slot_override(overrides, "mostrar_respuestas", mostrar_respuestas, "bool")
 
   if (identical(modo, "multilista")) {
     if (!is.list(bloques) || !length(bloques)) {
@@ -2529,7 +2550,8 @@ p_nube_palabras <- function(
     min_chars = NULL,
     overrides = list(),
     base = list(),
-    filtros = list()
+    filtros = list(),
+    mostrar_ranking = NULL
 ) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
@@ -2553,6 +2575,7 @@ p_nube_palabras <- function(
 
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  overrides <- .ppt_slot_override(overrides, "mostrar_ranking", mostrar_ranking, "bool")
   if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)
 
@@ -2994,6 +3017,12 @@ p_radar_tabla <- function(
   }
 
   if (identical(modo, "box")) {
+    # El editor manda las preguntas como arreglo JSON, que llega como lista SIN nombres de textos sueltos: es la forma
+    # plana, no bloques (G11, 2026-10-13: la tabla de Arte abortaba con «debe ser una lista nombrada»).
+    if (is.list(vars) && length(vars) && is.null(names(vars)) &&
+        all(vapply(vars, function(x) is.character(x) && length(x) == 1L, logical(1)))) {
+      vars <- unlist(vars, use.names = FALSE)
+    }
     if (is.character(vars)) {
       if (length(vars) < 1L) {
         .plan_spec_abort("p_radar_tabla(modo='box'): `vars` debe ser character() con >=1 variable.")
@@ -3028,6 +3057,9 @@ p_radar_tabla <- function(
 
     if (!is.null(var)) .plan_spec_abort("p_radar_tabla(modo='box'): no usar `var`.")
 
+    if (is.list(box_labels) && all(vapply(box_labels, function(x) is.character(x) && length(x) == 1L, logical(1)))) {
+      box_labels <- unlist(box_labels, use.names = FALSE)   # arreglo JSON del editor (G11)
+    }
     if (!is.character(box_labels) || length(box_labels) != 2L) {
       .plan_spec_abort("p_radar_tabla(modo='box'): `box_labels` debe ser character(2).")
     }

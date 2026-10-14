@@ -203,7 +203,7 @@
   cats <- .goc_categorias(ctx$inst, ctx$var)
   pregunta <- if (is.null(ctx$inst)) ctx$var else .goc_pregunta(ctx$inst, ctx$var)
   if (!is.null(oc$modo_invalido)) {
-    .pulso_aviso(sprintf("“%s”: el orden de categorías guardado no existe en esta versión; se usa el del recetario.", pregunta))
+    .pulso_aviso(sprintf("“%s”: el orden de categorías guardado no existe en esta versión; se usa el orden por defecto.", pregunta))
   }
   if (!nrow(cats)) return(el)
   modo <- oc$modo
@@ -285,7 +285,7 @@
   oc <- .graficos_orden_cat_normalizar(args$orden_categorias)
   if (is.null(oc)) return(character())
   graf <- as.character(slot$graficador %||% "")[1]
-  c(if (!is.null(oc$modo_invalido)) sprintf("%s: el orden de categorías guardado no existe en esta versión; se usa el del recetario", tag),
+  c(if (!is.null(oc$modo_invalido)) sprintf("%s: el orden de categorías guardado no existe en esta versión; se usa el orden por defecto", tag),
     if (graf %in% .GOC_ESCALAS && !identical(oc$modo, "recetario")) sprintf("%s: %s", tag, .goc_texto_escala(graf)))
 }
 

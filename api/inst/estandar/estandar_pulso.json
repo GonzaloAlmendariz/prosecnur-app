@@ -73,7 +73,7 @@
       "mapa_aplicada": "#2F4B7C",
       "mapa_medio": "#9FB1D1",
       "mapa_fuera": "#E2E6EC",
-      "mapa_borde": "#B8C2D3", "numero_fondo": "#DCE2EC", "banda_clara": "#E3E7EF"
+      "mapa_borde": "#B8C2D3", "numero_fondo": "#DCE2EC", "banda_clara": "#E3E7EF", "fondo_destacado": "#F8E3E2"
     },
     "paletas": {
       "likert": {

@@ -54,10 +54,15 @@ export type EstructuraInforme = {
 
 // Láminas metodológicas del capítulo «Cómo leer este informe» del recetario (Top Two Box p19, redondeo p20–21).
 const COMO_LEER: ReadonlySet<SlideType> = new Set<SlideType>(["p_slide_top_two_box", "p_slide_redondeo"]);
+// Láminas de apertura del recetario: detrás de «Cómo leer» no se vuelven parte de él (G15/U11: el índice quedaba dentro).
+const APERTURA: ReadonlySet<SlideType> = new Set<SlideType>(["p_slide_portada", "p_slide_indice", "p_slide_objetivo_icono", "p_slide_tabla_tecnica"]);
 
 const texto = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
-function aLamina(slide: Slide, posicion: number, antetitulo: string | null): LaminaEnEstructura {
+/** El título que va a salir cuando la lámina de gráfico no tiene uno escrito (G15/U13: la tira y el visor decían «Un gráfico»). */
+export type TituloDeLamina = (slide: Slide, tipoLabel: string) => string;
+
+function aLamina(slide: Slide, posicion: number, antetitulo: string | null, tituloDe?: TituloDeLamina): LaminaEnEstructura {
   const payload = (slide.payload ?? {}) as Record<string, unknown>;
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
   const llenas = slots.filter((s) => {
@@ -70,7 +75,7 @@ function aLamina(slide: Slide, posicion: number, antetitulo: string | null): Lam
     id: slide.id,
     posicion,
     tipo: slide.tipo,
-    titulo: texto(payload.titulo) || tipoLabel,
+    titulo: texto(payload.titulo) || (tituloDe && slots.length > 0 ? tituloDe(slide, tipoLabel) || "Sin título" : tipoLabel),
     tipoLabel,
     ranuras: slots.length,
     ranurasLlenas: llenas,
@@ -96,7 +101,7 @@ const TITULO_BLOQUE: Record<ClaseBloque, string> = {
  * bloque «Cómo leer» o el «Cierre», que siguen abiertos hasta el próximo separador. Sólo antes de todo lo demás hay
  * Apertura; una lámina de cierre corta el capítulo vigente.
  */
-export function construirEstructura(slides: readonly Slide[]): EstructuraInforme {
+export function construirEstructura(slides: readonly Slide[], tituloDe?: TituloDeLamina): EstructuraInforme {
   const nodos: NodoEstructura[] = [];
   const laminas: LaminaEnEstructura[] = [];
   let bloque: { clase: ClaseBloque; nodo: Bloque } | null = null;
@@ -123,7 +128,7 @@ export function construirEstructura(slides: readonly Slide[]): EstructuraInforme
     if (slide.tipo === "p_slide_seccion") {
       const t = texto((slide.payload as Record<string, unknown>)?.titulo);
       if (t) antetitulo = t;
-      const lam = aLamina(slide, posicion, antetitulo);
+      const lam = aLamina(slide, posicion, antetitulo, tituloDe);
       laminas.push(lam);
       if (esSubcapitulo(slide) && capitulo) {
         const cap: Extract<NodoEstructura, { clase: "capitulo" }> = capitulo;
@@ -145,7 +150,7 @@ export function construirEstructura(slides: readonly Slide[]): EstructuraInforme
       return;
     }
 
-    const lam = aLamina(slide, posicion, antetitulo);
+    const lam = aLamina(slide, posicion, antetitulo, tituloDe);
     laminas.push(lam);
     if (slide.tipo === "p_slide_cierre") {
       enBloque("cierre").laminas.push(lam);
@@ -161,10 +166,18 @@ export function construirEstructura(slides: readonly Slide[]): EstructuraInforme
     const abierto = bloque as { clase: ClaseBloque; nodo: Bloque } | null;
     // Una lámina de gráficos detrás de «Cómo leer» y sin separador no es de «Cómo leer»: en el mazo de Arte y Diseño
     // (2026-10-13) las 17 láminas de resultados quedaban colgadas de ese bloque. Van a «Sin capítulo», contiguas.
+    if (abierto && (abierto.clase === "como-leer" || abierto.clase === "sin-capitulo") && APERTURA.has(slide.tipo)) {
+      enBloque("apertura").laminas.push(lam);
+      return;
+    }
     if (abierto && abierto.clase === "como-leer" && !COMO_LEER.has(slide.tipo) && (SLIDE_GRAF_SLOTS[slide.tipo] ?? []).length > 0) {
       enBloque("sin-capitulo").laminas.push(lam);
       return;
     }
+    // Un gráfico de resultados nunca es Apertura (D7, Arte 2026-10-13: «¿Cuál es su género?» antes del objetivo quedaba en
+    // «Apertura»; y U11: la Apertura reabierta tras «Cómo leer» se tragaba los resultados). Sin capítulo va a «Sin capítulo».
+    const esResultado = !APERTURA.has(slide.tipo) && !COMO_LEER.has(slide.tipo) && (SLIDE_GRAF_SLOTS[slide.tipo] ?? []).length > 0;
+    if (esResultado && (!abierto || abierto.clase === "apertura")) { enBloque("sin-capitulo").laminas.push(lam); return; }
     if (abierto && abierto.clase !== "apertura") { abierto.nodo.laminas.push(lam); return; }
     enBloque(COMO_LEER.has(slide.tipo) ? "como-leer" : "apertura").laminas.push(lam);
   });

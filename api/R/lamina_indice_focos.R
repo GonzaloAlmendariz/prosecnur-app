@@ -5,7 +5,7 @@
 # número de capítulos. El recetario (31-50) pone un ícono navy por capítulo en la lista, junto a su número y su título.
 # Aquí se traducen los ajustes `iconos_focos…` a esa composición:
 #
-# - `iconos_focos[k]` es el ícono del capítulo k. Un nombre de la biblioteca del recetario va tal cual; uno del catálogo
+# - `iconos_focos[k]` es el ícono del capítulo k. Un nombre de la biblioteca de íconos va tal cual; uno del catálogo
 #   anterior (`ppt_assets/indice_icons`) va por su equivalente del recetario cuando el motivo es el mismo y, si no lo hay,
 #   el mismo dibujo del usuario en navy; una ruta a un archivo va tal cual. Lo que no se resuelve se avisa
 #   (`[PULSO-AVISO]`) y su capítulo toma la elección automática: nunca se reemplaza en silencio.
@@ -16,7 +16,7 @@
 #   el foco es un círculo con su ícono. `meta$composicion = "focos"` es la elección explícita del estilo de bombillas,
 #   que no está en el recetario, y conserva su ruta.
 
-#' Equivalentes del catálogo anterior en la biblioteca del recetario, comprobados a ojo (mismo motivo: diana con flecha,
+#' Equivalentes del catálogo anterior en la biblioteca de íconos, comprobados a ojo (mismo motivo: diana con flecha,
 #' diana, columnas, persona). Los que comparten nombre (`clipboard-list`, `chart-column`, `lightbulb`) no hacen falta.
 #' @keywords internal
 .LAM_INDICE_ICONOS_EQUIVALENTES <- c(`target-arrow` = "diana-flecha", bullseye = "target", `bar-chart-line-fill` = "chart-column",
@@ -87,7 +87,7 @@
   }
   # `[[` y no `$`: `$` completa nombres parciales y `slots$iconos_focos` devolvía `iconos_focos_fill` (verificador de 8d6fc3d66).
   sin_eq <- .LAM_INDICE_FOCOS_SIN_EQUIVALENTE[vapply(.LAM_INDICE_FOCOS_SIN_EQUIVALENTE, function(k) lleno(slots[[k]]) || lleno(estilo[[k]]), TRUE)]
-  if (length(sin_eq)) avisar("el recetario no dibuja el foco (el ícono va sin círculo y su tamaño lo fija la lista); no se aplica ",
+  if (length(sin_eq)) avisar("el diseño del índice no dibuja el foco (el ícono va sin círculo y su tamaño lo fija la lista); no se aplica ",
                              paste(sin_eq, collapse = ", "), ".")
   if (identical(slots[["mostrar_iconos_focos"]], FALSE) || identical(estilo[["mostrar_iconos_focos"]], FALSE)) return(rep("", n))
   editor <- .lam_indice_ranuras(meta[["iconos"]]); focos <- .lam_indice_ranuras(slots[["iconos_focos"]] %||% estilo[["iconos_focos"]])
@@ -108,7 +108,7 @@
     hit <- if (nzchar(anterior)) file.path(anterior, paste0(base, c(".png", ".svg"))) else character(0)
     hit <- hit[file.exists(hit)]
     if (length(hit)) return(.lam_icono_navy_desde(hit[1]))
-    avisar("el ícono «", p, "» del capítulo «", caps[k], "» no está en la biblioteca del recetario; va el que elige el motor («",
+    avisar("el ícono «", p, "» del capítulo «", caps[k], "» no está en la biblioteca de íconos; va el que elige el motor («",
            auto[k], "»).")
     auto[k]
   }, "")

@@ -51,7 +51,7 @@ type Entrada = {
 export const AYUDA_CEROS = "Las respuestas especiales 90–99 sin casos nunca se muestran.";
 export const AYUDA_EJE_MIN =
   "0 = automático. Un piso alto acerca las diferencias; si deja fuera un dato, el eje baja solo y la lámina lo avisa.";
-export const AYUDA_BRECHA = "Primera fuente menos la segunda, restando las cifras ya rotuladas.";
+export const AYUDA_BRECHA = "El primer grupo menos el segundo, restando las cifras ya rotuladas.";
 export const AYUDA_MIN_N = "Con menos casos válidos el distrito va como «Sin encuestas» y la lámina lo avisa.";
 export const AYUDA_CORTES = "Porcentajes entre 0 y 100, separados por comas. Vacío: 55, 65 y 75.";
 export const AYUDA_LIMITE_SUPERIOR = "Vacío: sin tope. Lo que lo supera va en la última barra, rotulada con «+» (p. ej. «60+»).";
@@ -70,11 +70,33 @@ export const AYUDA_CORTES_CHIP = "Dos valores que separan rojo, ámbar y verde. 
  * catálogo generado (api/inst/catalogos/graficos_tipos.json). Cuando uno gane versión nativa, sale de aquí.
  */
 export const GRAFICADORES_NO_NATIVOS: ReadonlySet<string> = new Set([
-  // p_puntos_comparativos salió el 2026-10-13 (G11): ya sale como el ranking con puntos del recetario.
-  "p_nube_palabras", "p_tabla", "p_dim_radar", "p_dim_foda",
+  // p_puntos_comparativos salió el 2026-10-13 (G11): ya sale como el ranking con puntos. p_dim_radar también: con tres
+  // ejes o más ya salía nativo y el registro decía lo contrario (test-dim-radar-nativo.R).
+  // p_nube_palabras también (G11): sale con el ranking nativo de la lámina 101; y p_tabla, como la tabla del diseño.
+  "p_dim_foda",
 ]);
 const TABLA = ["p_tabla"];
 const FODA = ["p_dim_foda"];
+
+/**
+ * Públicos distintos de una lámina por temas (`{ tema: [base$var, …] }`): no el máximo por tema. En la lámina 10 de Arte
+ * cada tema tiene dos, pero entre todos son tres, como dice la base.
+ */
+export function publicosDistintos(varsPorTema: Readonly<Record<string, unknown>>): number {
+  const base = (r: unknown) => (typeof r === "string" && r.includes("$") ? r.slice(0, r.indexOf("$")) : String(r));
+  return new Set(Object.values(varsPorTema).flatMap((v) => (Array.isArray(v) ? v : [])).map(base)).size;
+}
+
+/** ¿La multiapilada compara públicos? Algún tema (o tema de un bloque) con preguntas de dos bases o más. */
+export function comparaPublicos(valores: Valores): boolean {
+  const base = (r: unknown) => (typeof r === "string" && r.includes("$") ? r.slice(0, r.indexOf("$")) : null);
+  const temas = (vars: unknown): unknown[][] =>
+    vars && typeof vars === "object" && !Array.isArray(vars) ? Object.values(vars as Record<string, unknown>).map((v) => (Array.isArray(v) ? v : [])) : [];
+  const conVarias = (vars: unknown) => temas(vars).some((refs) => new Set(refs.map(base).filter(Boolean)).size >= 2);
+  if (conVarias(valores.vars)) return true;
+  const bloques = Array.isArray(valores.bloques) ? (valores.bloques as Record<string, unknown>[]) : [];
+  return bloques.some((b) => conVarias(b?.vars));
+}
 
 /** Mediciones (periodos) de una serie temporal: `orden_periodos` si se declaró; si no, las fuentes del primer tema. */
 export function medicionesDeSerie(valores: Valores): number {
@@ -98,7 +120,8 @@ const OTROS_POR_TOP_K = { siActivo: undefined, cuando: conTopK };
 /** Orden de aparición = orden de las claves. */
 const LISTA_BLANCA: Record<string, Entrada> = {
   var: { rotulo: "Pregunta" },
-  modo: { rotulo: "Modo" },
+  // En multiapiladas el modo se elige en «Bloques» (G12/U2, 2026-10-13): una fila «Modo» aparte era un segundo camino.
+  modo: { rotulo: "Modo", excepto: ["p_barras_multiapiladas"] },
   // Mapa de cobertura territorial: la lámina nativa lee los cuatro (p_mapa_cobertura_territorial, graficador_mapa_cobertura.R).
   scope: { rotulo: "Alcance", soloEn: ["p_mapa_cobertura_territorial"] },
   ubigeo: {
@@ -111,8 +134,9 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // G12 (2026-10-13): en multiapiladas el grupo se elige dentro de su modo («Una pregunta por grupos»…); un «Dividir por»
   // suelto en la tarjeta era un segundo camino a lo mismo.
   cruces: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie.", excepto: ["p_barras_multiapiladas"] },
-  cruce: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie.", excepto: ["p_barras_multiapiladas"] },
-  corte: { rotulo: "Corte" },
+  // G17: en la brecha el cruce, los grupos y el corte se eligen en su propia tarjeta (BrechaEntreGrupos).
+  cruce: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie.", excepto: ["p_barras_multiapiladas", "p_dumbbell"] },
+  corte: { rotulo: "Corte", excepto: ["p_dumbbell"] },
   corte_etiqueta: { rotulo: "Rótulo del corte" },
   // C44: el radar «entre públicos» rotula cada columna de su tabla con el nombre técnico de la base.
   tabla_encabezados: { rotulo: "Nombre de cada público", ayuda: "Vacío conserva el nombre de la base.", estricto: true },
@@ -166,6 +190,24 @@ const LISTA_BLANCA: Record<string, Entrada> = {
     ayuda: AYUDA_CEROS,
     soloEn: ["p_barras_apiladas", "p_barras_multiapiladas"],
   },
+  // M10 de la maqueta (Gonzalo, 2026-10-13): «poder mostrar o quitar el número de respuestas por actor».
+  mostrar_respuestas: {
+    rotulo: "Respuestas por público",
+    ayuda: "«116 respuestas» bajo el nombre de cada público.",
+    soloEn: ["p_barras_apiladas", "p_barras_multiapiladas"],
+  },
+  // G11 (2026-10-13): la nube con su ranking de las diez palabras más dichas (lámina 101 del diseño), o sola.
+  mostrar_ranking: { rotulo: "Ranking de palabras", soloEn: ["p_nube_palabras"] },
+  // G16: la matriz de cuadrantes; los temas, sus respuestas y los nombres de los cuadrantes van en su tarjeta (MatrizCuadrantes).
+  eje_x: { rotulo: "Nombre del eje horizontal", placeholder: "Satisfacción", soloEn: ["p_matriz_cuadrantes"] },
+  eje_y: { rotulo: "Nombre del eje vertical", placeholder: "Importancia", soloEn: ["p_matriz_cuadrantes"] },
+  linea: { rotulo: "Dónde cortan las líneas", soloEn: ["p_matriz_cuadrantes"] },
+  linea_x: { rotulo: "Línea del eje horizontal (%)", soloEn: ["p_matriz_cuadrantes"], cuando: (v) => v.linea === "valor" },
+  linea_y: { rotulo: "Línea del eje vertical (%)", soloEn: ["p_matriz_cuadrantes"], cuando: (v) => v.linea === "valor" },
+  destacado: { rotulo: "Cuadrante destacado", ayuda: "Lleva fondo y, a la derecha, la lista de lo que cae en él.", soloEn: ["p_matriz_cuadrantes"] },
+  // G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos. Lo dibuja la lámina que compara públicos.
+  // Sólo donde hace algo: la lámina que compara públicos (Gonzalo, 2026-10-13: «que sus opciones tengan sentido»).
+  ancho_tema: { rotulo: "Ancho de los temas", soloEn: ["p_barras_multiapiladas"], cuando: comparaPublicos },
   excluir_opciones: { rotulo: "Excluir respuestas", ayuda: "Códigos separados por comas (p. ej. 88, 99)." },
   excluir_grupos: { rotulo: "Excluir grupos", ayuda: "Códigos separados por comas." },
   // Tabla (5a, ruta anterior): formales de p_tabla (p_radar_split.R); `sm_omit_na = TRUE` sin default en el registro.
@@ -215,9 +257,16 @@ const RETIRADO_EN: Readonly<Record<string, ReadonlySet<string>>> = {
   p_dim_comparativo_radarbar: new Set(["incluir_total"]),
 };
 
+/** Args retirados en general que en un graficador nativo siguen teniendo efecto: cambian los datos, no el dibujo. */
+const VIGENTE_EN: Readonly<Record<string, ReadonlySet<string>>> = {
+  // G11: «Omitir sin respuesta» cambia las filas de la tabla, que ahora sale nativa.
+  p_tabla: new Set(["sm_omit_na"]),
+};
+
 export function esRetirado(name: string, graficador?: string): boolean {
   // 5a: en un graficador no nativo lo retirado sigue teniendo efecto (lo dibuja ggplot).
   if (graficador && GRAFICADORES_NO_NATIVOS.has(graficador)) return false;
+  if (graficador && VIGENTE_EN[graficador]?.has(name)) return false;
   if (RETIRADOS.has(name) || RETIRADO_PREFIJO.some((p) => name.startsWith(p))) return true;
   return !!graficador && !!RETIRADO_EN[graficador]?.has(name);
 }

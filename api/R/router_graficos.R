@@ -347,8 +347,8 @@
     nombre <- .aviso_nombre_icono(ref, icon_registry)
     .aviso_detalle("ícono no disponible: ref=", ref, " ruta=", path)   # al `.err` del job; el aviso no lleva el id
     .pulso_aviso(.aviso_en_lamina(
-      sprintf("su ícono%s ya no está en el catálogo de íconos y sale sin él. Vuelve a subirlo en Configuración global > Íconos si lo necesitas.", nombre),
-      sin_contexto = sprintf("Un ícono%s elegido para una lámina ya no está en el catálogo de íconos y esa lámina sale sin él. Vuelve a subirlo en Configuración global > Íconos si lo necesitas.", nombre)
+      sprintf("su ícono%s ya no está en el catálogo de íconos y sale sin él. Vuelve a subirlo en Identidad > Íconos si lo necesitas.", nombre),
+      sin_contexto = sprintf("Un ícono%s elegido para una lámina ya no está en el catálogo de íconos y esa lámina sale sin él. Vuelve a subirlo en Identidad > Íconos si lo necesitas.", nombre)
     ))
     return(NULL)
   }
@@ -384,8 +384,8 @@
     # tener razón. Ahora la UI la tiene.
     .aviso_detalle("ícono requerido ausente en ", tipo, "; se usa builtin:users")
     .pulso_aviso(.aviso_en_lamina(
-      "necesita un ícono y no había ninguno disponible: se usó el integrado. Elige un PNG en Configuración global > Íconos.",
-      sin_contexto = sprintf("Una lámina «%s» necesita un ícono y no había ninguno disponible: se usó el integrado. Elige un PNG en Configuración global > Íconos.", .aviso_tipo_lamina(tipo))
+      "necesita un ícono y no había ninguno disponible: se usó el integrado. Elige un PNG en Identidad > Íconos.",
+      sin_contexto = sprintf("Una lámina «%s» necesita un ícono y no había ninguno disponible: se usó el integrado. Elige un PNG en Identidad > Íconos.", .aviso_tipo_lamina(tipo))
     ))
     payload$icono <- tryCatch(
       p_ggplot_raw(.graficos_builtin_icon_plot("builtin:users")),
@@ -394,7 +394,7 @@
     if (is.null(payload$icono)) {
       stop(
         sprintf(
-          "La lámina «%s» requiere un ícono. Elige un PNG en Configuración global > Íconos.",
+          "La lámina «%s» requiere un ícono. Elige un PNG en Identidad > Íconos.",
           .aviso_tipo_lamina(tipo)
         ),
         call. = FALSE
@@ -916,7 +916,12 @@
 }
 
 .graficos_export_filename <- function(sid, label, ext) {
-  active <- .graficos_active_base_name(sid)
+  # D6 (mazo de Arte y Diseño, 2026-10-12): el informe conjunto de tres bases se llamaba «…_docentes_reporte…» porque la
+  # base activa —que en multibase sólo califica las refs peladas— entraba al nombre. Sólo un informe POR BASE
+  # (hermanas independientes) lleva su base en el nombre.
+  siblings <- exists("estudio_is_independent_siblings", mode = "function") &&
+    isTRUE(tryCatch(estudio_is_independent_siblings(sid), error = function(e) FALSE))
+  active <- if (siblings) .graficos_active_base_name(sid) else ""
   if (nzchar(active)) .export_filename(sid, label, ext, base = active) else .export_filename(sid, label, ext)
 }
 
@@ -1178,6 +1183,7 @@
       }
     }
   }
+  errs <- c(errs, .plan_errores_indice(slides))   # graficos_plan_requisitos.R: lo que impide exportar
   list(ok = length(errs) == 0, errors = errs, warnings = warns, n_slides = length(slides))
 }
 

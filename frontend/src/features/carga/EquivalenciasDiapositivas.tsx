@@ -147,7 +147,7 @@ function MoverTema({ etiqueta, onMover }: { etiqueta: string; onMover: (destino:
       <button
         type="button"
         className="pulso-icon"
-        title="Mover a otra diapositiva"
+        title="Mover a otra lámina"
         aria-label={etiqueta}
         onClick={() => setEditando(true)}
       >
@@ -166,8 +166,8 @@ function MoverTema({ etiqueta, onMover }: { etiqueta: string; onMover: (destino:
       autoFocus
       className="pulso-equiv-mover"
       value={destino}
-      placeholder="Diapositiva"
-      aria-label={`${etiqueta}: escribe la diapositiva de destino`}
+      placeholder="Lámina"
+      aria-label={`${etiqueta}: escribe la lámina de destino`}
       onChange={(e) => setDestino(e.target.value)}
       onBlur={() => {
         const limpio = destino.trim();
@@ -205,7 +205,7 @@ function CampoEnunciado({
         className="pulso-equiv-enunciado"
         valor={valor}
         vacio=""
-        etiqueta={`Enunciado de la diapositiva ${clave} — será su título`}
+        etiqueta={`Enunciado de la lámina ${clave} — será su título`}
         onCambiar={onCambiar}
       />
     );
@@ -216,7 +216,7 @@ function CampoEnunciado({
       <span>Enunciado</span>
       <input
         value={borrador}
-        placeholder="Título que llevará la diapositiva en el mazo"
+        placeholder="Título que llevará la lámina en el informe"
         onChange={(e) => setBorrador(e.target.value)}
         onBlur={() => {
           if (borrador.trim() !== valor) onCambiar(borrador.trim());
@@ -338,7 +338,7 @@ function MarcoTabla({ nBases, children }: { nBases: number; children: JSX.Elemen
       data-qa-geometry-member
       data-scroll-axis={desborda ? "x" : undefined}
       role={desborda ? "region" : undefined}
-      aria-label={desborda ? `Temas de la diapositiva, ${nBases} bases, desplázate a la derecha para ver todas` : undefined}
+      aria-label={desborda ? `Temas de la lámina, ${nBases} bases, desplázate a la derecha para ver todas` : undefined}
       tabIndex={desborda ? 0 : undefined}
     >
       {children}
@@ -457,7 +457,7 @@ export function EquivalenciasDiapositivas({
                               está en la esquina de la tarjeta y repetirla en
                               cada fila no decía nada. */}
                           <MoverTema
-                            etiqueta={`Mover ${fila.etiqueta_estandar || "el tema"} a otra diapositiva`}
+                            etiqueta={`Mover ${fila.etiqueta_estandar || "el tema"} a otra lámina`}
                             onMover={(destino) => onEditarFila(fila.id, "diapositiva", destino)}
                           />
                           <button
@@ -481,14 +481,14 @@ export function EquivalenciasDiapositivas({
             className={sinDiapositiva ? "pulso-equiv-diapositiva is-pendiente" : "pulso-equiv-diapositiva"}
             data-qa-geometry-group="carga-equivalencias-diapositiva"
             data-qa-geometry-contract="intrinsic"
-            aria-label={sinDiapositiva ? "Temas sin diapositiva" : `Diapositiva ${diapo.clave}`}
+            aria-label={sinDiapositiva ? "Temas sin lámina" : `Lámina ${diapo.clave}`}
           >
             {/* C1: miembros = cabecera, avisos y tabla. «Añadir tema» es una
                 acción al pie, no una sección de la tarjeta. */}
             <header className="pulso-equiv-diapositiva-head" data-qa-geometry-member>
               <div className="pulso-equiv-diapositiva-id">
                 <Layers size={14} aria-hidden="true" />
-                <span>{sinDiapositiva ? "Sin diapositiva" : `Diapositiva ${diapo.clave}`}</span>
+                <span>{sinDiapositiva ? "Sin lámina" : `Lámina ${diapo.clave}`}</span>
               </div>
 
               <div className="pulso-equiv-diapositiva-texto">
@@ -496,7 +496,7 @@ export function EquivalenciasDiapositivas({
                   // C5 y M8: informativo, no un problema. Para comparar no hace
                   // falta diapositiva; sólo decide qué entra al mazo.
                   <p className="pulso-equiv-diapositiva-nota">
-                    Se comparan igual en Analítica. Para que entren al mazo, asígnales una diapositiva.
+                    Se comparan igual en Analítica. Para que entren al informe, asígnales una lámina.
                   </p>
                 ) : (
                   <CampoEnunciado
@@ -623,8 +623,8 @@ export function EquivalenciasDiapositivas({
                           opciones={bloque.opciones}
                           contexto={
                             diapo.bloques.length > 1
-                              ? `el bloque ${bi + 1} de la diapositiva ${diapo.clave}`
-                              : `la diapositiva ${diapo.clave}`
+                              ? `el bloque ${bi + 1} de la lámina ${diapo.clave}`
+                              : `la lámina ${diapo.clave}`
                           }
                         />
                         {diapo.bloques.length > 1 && (
@@ -657,7 +657,7 @@ export function EquivalenciasDiapositivas({
               onClick={() => onAgregarTema(diapo.clave)}
             >
               <Plus size={13} aria-hidden="true" />
-              Añadir tema a esta diapositiva
+              Añadir tema a esta lámina
             </PulsoButton>
           </section>
         );

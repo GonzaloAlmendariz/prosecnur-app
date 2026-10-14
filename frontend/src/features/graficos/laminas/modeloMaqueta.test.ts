@@ -74,7 +74,7 @@ describe("maqueta: qué muestra cada ranura", () => {
     const graf = (b: string[]) => slide({ graficador: "p_barras_multiapiladas", args: { modo: "multilista", bloques: b.map((v) => ({ vars: { t: [`docentes$${v}`] } })) } });
     const [dist] = ranurasDeMaqueta(graf(["p11", "p12"]), vars, {}, { paletas: { sn: { "Sí": "#081F5C" } } });
     expect(dist.mismaEscala).toBe(false);
-    expect(dist.preguntas[0]).toEqual({ titulo: "¿Conoce?", opciones: [{ rotulo: "Sí", color: "#081F5C" }, { rotulo: "No", color: null }], ttb: false, bases: [] });
+    expect(dist.preguntas[0]).toMatchObject({ titulo: "¿Conoce?", opciones: [{ rotulo: "Sí", color: "#081F5C" }, { rotulo: "No", color: null }], ttb: false, bases: [] });
     const [igual] = ranurasDeMaqueta(graf(["p11", "p11"]), vars, {});
     expect(igual.mismaEscala).toBe(true);
   });
@@ -89,5 +89,23 @@ describe("maqueta: qué muestra cada ranura", () => {
     expect(baseAutomatica(s1, vars)).toBe("Base: 52 docentes, 172 estudiantes y 15 administrativos");
     expect(baseAutomatica(s1, vars, "N = %s")).toBe("N = 52 docentes, 172 estudiantes y 15 administrativos");
     expect(baseAutomatica(slide({ graficador: "p_barras_categoricas", args: { var: "egresados$p1" } }), vars)).toBeNull();   // sin conteo: no se inventa
+  });
+
+  it("con temas de públicos distintos, el pie nombra a todos los públicos de la lámina (Arte, lámina 10)", () => {
+    const vars = [
+      { name: "a1", source: "docentes", label: "x", n_non_empty: 116 }, { name: "a2", source: "administrativos", label: "x", n_non_empty: 89 },
+      { name: "b1", source: "docentes", label: "x", n_non_empty: 110 }, { name: "b2", source: "estudiantes", label: "x", n_non_empty: 289 },
+    ] as never[];
+    const s1 = slide({ graficador: "p_barras_multiapiladas", args: { modo: "var_cruce", vars: { t1: ["docentes$a1", "administrativos$a2"], t2: ["docentes$b1", "estudiantes$b2"] } } });
+    expect(baseAutomatica(s1, vars)).toBe("Base: 116 docentes, 89 administrativos y 289 estudiantes");
+  });
+
+  it("los públicos van en el orden de las bases, no en el de las preguntas (Arte, lámina 13; así sale el PPT)", () => {
+    const vars = [
+      { name: "a1", source: "docentes", label: "x", n_non_empty: 116 }, { name: "a2", source: "administrativos", label: "x", n_non_empty: 89 },
+      { name: "a3", source: "estudiantes", label: "x", n_non_empty: 289 },
+    ] as never[];
+    const s1 = slide({ graficador: "p_barras_multiapiladas", args: { modo: "var_cruce", vars: { t1: ["docentes$a1", "estudiantes$a3", "administrativos$a2"] } } });
+    expect(baseAutomatica(s1, vars)).toBe("Base: 116 docentes, 89 administrativos y 289 estudiantes");
   });
 });

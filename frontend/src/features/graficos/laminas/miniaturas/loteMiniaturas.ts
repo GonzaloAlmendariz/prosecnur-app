@@ -15,7 +15,8 @@
 //    en la caché del backend (vuelve al instante).
 //  - Un estado del lote sólo actualiza la entrada si la clave con que ESE lote pidió la lámina sigue siendo la vigente:
 //    un lote viejo nunca pisa una lámina editada después.
-//  - Cuando el lote vigente termina (done/error/cancelled), lo que siga pendiente pasa a error reintentable.
+//  - Cuando el lote vigente termina (done/error), lo que siga pendiente pasa a error reintentable. Si se CANCELA, lo
+//    pendiente vuelve a «sin pedir» y se pide en el siguiente plan: nadie intentó dibujarlo, así que no «falló».
 //  - Los errores no se reintentan solos (evita un bucle contra un motor que falla): sólo con «Reintentar» o al editar.
 
 import type { MiniaturaEstado, MiniaturasLote } from "../../../../api/graficosMiniaturas";
@@ -118,6 +119,11 @@ export function mensajeLegible(m: string | null | undefined): string {
  */
 export function fusionarLote(entradas: Entradas, lote: MiniaturasLote, vigente: LoteVigente, src: (url: string) => string): Entradas {
   let sig: Entradas | null = null;
+  const quitar = (id: string) => {
+    if (!(id in (sig ?? entradas))) return;
+    sig = sig ?? { ...entradas };
+    delete sig[id];
+  };
   const poner = (id: string, e: EntradaMiniatura) => {
     const prev = (sig ?? entradas)[id];
     if (prev && prev.estado === e.estado && prev.src === e.src && prev.error === e.error && prev.clave === e.clave && prev.anterior === e.anterior && (prev.imagen ?? null) === (e.imagen ?? null)
@@ -127,6 +133,7 @@ export function fusionarLote(entradas: Entradas, lote: MiniaturasLote, vigente: 
     sig[id] = e;
   };
   const terminado = lote.status !== "running";
+  const cancelado = lote.status === "cancelled";
   const vistas = new Set<string>();
   for (const l of lote.laminas) {
     const clave = vigente.claves[l.slide_id];
@@ -134,7 +141,8 @@ export function fusionarLote(entradas: Entradas, lote: MiniaturasLote, vigente: 
     if (clave === undefined || !actual || actual.clave !== clave) continue;
     vistas.add(l.slide_id);
     if (l.estado === "pendiente") {
-      if (terminado) poner(l.slide_id, { ...actual, estado: "error", error: MENSAJE_INTERRUMPIDA });
+      if (cancelado) quitar(l.slide_id);
+      else if (terminado) poner(l.slide_id, { ...actual, estado: "error", error: MENSAJE_INTERRUMPIDA });
       continue;
     }
     const imagen = l.miniatura ? src(l.miniatura.url) : null;
@@ -152,7 +160,8 @@ export function fusionarLote(entradas: Entradas, lote: MiniaturasLote, vigente: 
     for (const [id, clave] of Object.entries(vigente.claves)) {
       const actual = entradas[id];
       if (vistas.has(id) || !actual || actual.clave !== clave || actual.estado !== "pendiente") continue;
-      poner(id, { ...actual, estado: "error", error: MENSAJE_INTERRUMPIDA });
+      if (cancelado) quitar(id);
+      else poner(id, { ...actual, estado: "error", error: MENSAJE_INTERRUMPIDA });
     }
   }
   return sig ?? entradas;

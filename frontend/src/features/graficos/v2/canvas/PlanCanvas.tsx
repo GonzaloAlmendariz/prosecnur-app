@@ -453,7 +453,7 @@ export function PlanCanvas() {
         type="button"
         className="pulso-gv2-canvas-add-section"
         onClick={addSection}
-        aria-label="Agregar slide separador de sección al final"
+        aria-label="Agregar un separador de sección al final"
       >
         <Bookmark size={13} />
         Nueva sección
@@ -495,7 +495,7 @@ function CanvasEmptyStart({
 }) {
   return (
     <div className={`pulso-gv2-canvas pulso-gv2-canvas-empty-shell ${density === "compact" ? "is-compact" : ""}`}>
-      <section className="pulso-gv2-canvas-empty-surface" aria-label="Canvas sin slides">
+      <section className="pulso-gv2-canvas-empty-surface" aria-label="Informe sin láminas">
         <div className="pulso-gv2-canvas-empty-board" aria-hidden="true">
           <div className="pulso-gv2-canvas-empty-section is-primary">
             <span />
@@ -518,12 +518,12 @@ function CanvasEmptyStart({
         </div>
 
         <div className="pulso-gv2-canvas-empty-copy">
-          <span className="pulso-gv2-canvas-empty-eyebrow">Canvas</span>
+          <span className="pulso-gv2-canvas-empty-eyebrow">Informe</span>
           <h2>Organiza el plan visualmente</h2>
           <p>
             Crea el primer bloque y el lienzo dibujará la grilla de slides por secciones.
           </p>
-          <div className="pulso-gv2-canvas-empty-actions" aria-label="Crear primer slide desde Canvas">
+          <div className="pulso-gv2-canvas-empty-actions" aria-label="Crear la primera lámina">
             {CANVAS_STARTERS.map(({ tipo, label, detail, tone, Icon }) => (
               <button
                 key={tipo}

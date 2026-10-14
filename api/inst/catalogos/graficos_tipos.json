@@ -234,7 +234,7 @@
     {
       "name": "p_nube_palabras",
       "familia_editor": "texto",
-      "salida": "marco",
+      "salida": "nativa",
       "en_selector": true
     },
     {
@@ -310,6 +310,12 @@
       "en_selector": true
     },
     {
+      "name": "p_matriz_cuadrantes",
+      "familia_editor": "comparar",
+      "salida": "nativa",
+      "en_selector": true
+    },
+    {
       "name": "p_lollipop",
       "familia_editor": "categorias",
       "salida": "nativa",
@@ -330,13 +336,13 @@
     {
       "name": "p_tabla",
       "familia_editor": "comparar",
-      "salida": "ruta_anterior",
+      "salida": "nativa",
       "en_selector": true
     },
     {
       "name": "p_dim_radar",
       "familia_editor": "dimensiones",
-      "salida": "ruta_anterior",
+      "salida": "nativa",
       "en_selector": true
     },
     {
