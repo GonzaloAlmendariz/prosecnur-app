@@ -24,7 +24,7 @@ no tiene datos de cliente y cubre cada tipo de variable a propósito.
 | K5 | Lo que el motor no produce (p69 torta con leyenda de cifras, p85 conteos por año, p98 peso en la satisfacción, p103–p104 frases y temas, mapas territoriales) entra como lámina de texto que dice qué falta, no se omite | `catalogo_recetario.R` | hecho, por verificar: 8 láminas de texto dicen qué falta |
 | K6 | Script y Makefile: `make catalogo-recetario-build` escribe `api/inst/reference_projects/recetario_catalogo/` con su manifiesto | `api/scripts/`, `Makefile` | hecho: `make catalogo-recetario-build` escribe `api/inst/recetario_catalogo/recetario_catalogo.pulso` (175 KB). No va en `reference_projects/`: no tiene origen de cliente ni pasa por el anonimizador |
 | K7 | Verificación: el plan valida, el PPT y el Word exportan, y la lista de avisos por lámina queda en el manifiesto (ningún «Sin datos» sin explicar) | test `test-catalogo-recetario.R` | PPT hecho (122 láminas, ninguna «Sin datos»); falta el Word. Antes: `test-catalogo-recetario.R` exige que el plan valide y cubra los 26 gráficos vigentes y los 33 tipos de lámina. El PPT sale con 124 láminas; 6 salen «Sin datos» (ver hallazgos) |
-| K8 | Recorrido en la app con `/ver-ui`: cada lámina en el editor (maqueta, pestaña Gráfico, ajustes disponibles); hallazgos al inventario de configuraciones | QA en vivo | en curso: maqueta de las 115 láminas recorrida (hallazgos M1–M7); falta la pestaña Gráfico y sus ajustes |
+| K8 | Recorrido en la app con `/ver-ui`: cada lámina en el editor (maqueta, pestaña Gráfico, ajustes disponibles); hallazgos al inventario de configuraciones | QA en vivo | hecho, por verificar: maqueta de las 115 láminas (M1–M8) y pestaña Gráfico de los 24 tipos (I1–I6) |
 
 ## Hallazgos del catálogo (2026-10-14)
 
@@ -50,3 +50,16 @@ Pila propia: backend 8854 con copia del catálogo, front 5196. Maqueta de cada l
 | M6 | Cifras inventadas en las fichas: toda dona dice «64 %» y toda cifra destacada «31 %» (el número de ejemplo del glifo) | 26, 60, 100–110 | hecho, por verificar: en la maqueta las cifras de ejemplo son un renglón neutro; el selector conserva sus ejemplos |
 | M7 | «Por grupos» no aparece en las barras apiladas con cruce, ni «Diferencias significativas» cuando está encendida | 50, 86, 87 | hecho, por verificar: «Por grupos» con `cruces`, `cruce` o `grupo` en cualquier tipo, y «Diferencias significativas» |
 | M8 | Recién abierto, el proyecto se marca «sin guardar» | — | por diagnosticar, acotado (2026-10-14): no pasa abriendo por la API (open + las mismas lecturas del editor); abriendo por la interfaz el inicio del proyecto queda limpio; aparece al entrar a Gráficos, antes de su primera escritura (coverage/miniaturas ya lo encuentran marcado). Siguiente paso: registrar `project_dirty` tras cada lectura en una sesión nueva abierta por la interfaz. Trampa: un rastreo en `session_store.R` lo reinstala el lanzador en la librería compartida; no hacerlo así |
+
+## Hallazgos de la pestaña Gráfico (K8, 2026-10-14)
+
+Inspector › Gráfico de una lámina por tipo, leído del DOM (`.pulso-f6-inspector-cuerpo`).
+
+| # | Hallazgo | Láminas | Estado |
+|---|---|---|---|
+| I1 | El inspector no muestra qué preguntas tiene el gráfico: barras divergentes dice «Elige una pregunta…» con 6 preguntas en la lámina; serie temporal y tabla no listan sus preguntas | 27, 64, 71 | pendiente |
+| I2 | Mapa de calor por criterio: no se ven ni se editan sus criterios (`config_criterios`) | 74 | pendiente |
+| I3 | Barras categóricas: faltan «Mostrar promedio», el formato de la cifra y «Casos junto al %», que el motor sabe hacer y torta, dona y agrupadas sí ofrecen | 22 | pendiente |
+| I4 | Ranking con puntos: falta «Resaltar» (el registro lo declara) | 29 | pendiente |
+| I5 | Diagrama de caja: sin ajustes propios (media, atípicos, puntos) | 57 | pendiente |
+| I6 | Histograma: no se puede elegir el grupo, aunque ofrece «Excluir grupos» | 53, 54 | pendiente |
