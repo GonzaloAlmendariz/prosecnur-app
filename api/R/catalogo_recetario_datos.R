@@ -52,7 +52,7 @@ CATALOGO_RECETARIO_SEMILLA <- 20261014L
 .CR_COMPETENCIAS <- c("Estados financieros", "Tributación", "Auditoría", "Finanzas", "Visión empresarial", "Costos y presupuestos")
 .CR_OE <- c("OE1: Diseña soluciones sostenibles y seguras", "OE2: Gestiona proyectos en equipos multidisciplinarios",
             "OE3: Se actualiza de forma permanente en su campo profesional", "OE4: Actúa con ética y responsabilidad social")
-.CR_SERVICIOS <- c("Biblioteca", "Bienestar estudiantil", "Servicio de salud")
+.CR_SERVICIOS <- c("Biblioteca", "Bienestar estudiantil", "Salud")
 .CR_ASPECTOS <- c("Trato del personal", "Tiempo de atención", "Claridad de la información", "Infraestructura")
 
 .cr_fila <- function(type, name, label, relevant = NA_character_) {
