@@ -126,7 +126,7 @@ describe("textos reescritos del validador", () => {
   });
 
   test("ícono que ya no está: lámina sin título, tipo con tilde y tuteo", () => {
-    expect(porCodigo("icon-unknown")).toEqual(["Lámina 3 (Tres gráficos alrededor del ícono): el ícono elegido ya no está en el catálogo. Sube uno nuevo o elige otro."]);
+    expect(porCodigo("icon-unknown")).toEqual(["Lámina 3 (Tres gráficos: dos arriba y uno ancho): el ícono elegido ya no está en el catálogo. Sube uno nuevo o elige otro."]);
   });
 
   test("variable perdida y variable sin base", () => {

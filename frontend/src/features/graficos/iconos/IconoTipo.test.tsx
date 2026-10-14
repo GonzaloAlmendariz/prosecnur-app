@@ -49,9 +49,9 @@ describe("IconoTipo · ranura activa", () => {
     expect(grupoAcento(activa)).not.toContain("fill-opacity");
   });
 
-  it("en una lámina de población el punto cede el acento a la ranura", () => {
+  it("una lámina de población ya no dibuja el punto del ícono: el acento es la ranura (2026-10-14)", () => {
     const reposo = pintar({ clase: "lamina", tipo: "p_slide_6_graficos_poblacion" });
-    expect(grupoAcento(reposo)).toMatch(/^<circle/);
+    expect(reposo).not.toMatch(/<circle/);
     const activa = pintar({ clase: "lamina", tipo: "p_slide_6_graficos_poblacion", ranuraActiva: 5 });
     expect(grupoAcento(activa)).toMatch(/^<rect/);
   });

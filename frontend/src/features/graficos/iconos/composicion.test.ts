@@ -57,10 +57,10 @@ describe("composicionDe", () => {
     for (let i = 1; i < cifras.length; i += 1) expect(cifras[i].x).toBeGreaterThan(cifras[i - 1].x + cifras[i - 1].w);
   });
 
-  it("las de población antiguas se dibujan con el reparto de su base y el ícono del público", () => {
+  it("las de población antiguas se dibujan con el reparto de su base, sin el ícono del público (2026-10-14)", () => {
     for (const [tipo, base] of Object.entries(BASE_DERIVADA)) {
       const comp = composicionDe(tipo, SLIDE_GRAF_SLOTS[tipo as SlideType]);
-      expect(comp).toMatchObject({ fuente: "derivada", base, poblacion: true });
+      expect(comp).toMatchObject({ fuente: "derivada", base, poblacion: false });
     }
   });
 

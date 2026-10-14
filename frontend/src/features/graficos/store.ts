@@ -936,14 +936,14 @@ export const SLIDE_LABELS: Record<SlideType, string> = {
   p_slide_3_graficos_fila:              "Tres gráficos en fila",
   p_slide_3_graficos_1arriba:           "Tres gráficos: uno ancho arriba",
   p_slide_4_graficos:                   "Cuatro gráficos",
-  p_slide_3_graficos_poblacion_tira:    "Tres franjas + ícono (población)",
-  p_slide_3_graficos_poblacion_corona:  "Tres gráficos alrededor del ícono",
-  p_slide_3_graficos_poblacion_cifras:  "Tres gráficos + cifras + ícono",
-  p_slide_2_graficos_poblacion:         "2 gráficos + ícono (población)",
-  p_slide_3_graficos_poblacion:         "3 gráficos + ícono (población)",
-  p_slide_4_graficos_poblacion:         "4 gráficos + ícono (población)",
-  p_slide_5_graficos_poblacion:         "5 gráficos + ícono (población)",
-  p_slide_6_graficos_poblacion:         "6 gráficos + ícono (población)",
+  p_slide_3_graficos_poblacion_tira:    "Tres franjas a lo ancho",
+  p_slide_3_graficos_poblacion_corona:  "Tres gráficos: dos arriba y uno ancho",
+  p_slide_3_graficos_poblacion_cifras:  "Tres gráficos + cifras",
+  p_slide_2_graficos_poblacion:         "Dos gráficos",
+  p_slide_3_graficos_poblacion:         "Tres gráficos",
+  p_slide_4_graficos_poblacion:         "Cuatro gráficos",
+  p_slide_5_graficos_poblacion:         "Cinco gráficos",
+  p_slide_6_graficos_poblacion:         "Seis gráficos",
 };
 
 // Slots de gráfico por tipo de slide (para iteración en la UI).

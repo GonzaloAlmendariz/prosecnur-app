@@ -42,15 +42,11 @@ export const BASE_DERIVADA: Readonly<Record<string, string>> = {
   p_slide_4_graficos_poblacion: "p_slide_4_graficos",
 };
 
-/** Tipos con el ícono del público en la cabecera (el recetario moderno lo pone ahí). */
-const CON_POBLACION: ReadonlySet<string> = new Set([
-  "p_slide_3_graficos_poblacion_tira",
-  "p_slide_3_graficos_poblacion_corona",
-  "p_slide_3_graficos_poblacion_cifras",
-  "p_slide_5_graficos_poblacion",
-  "p_slide_6_graficos_poblacion",
-  ...Object.keys(BASE_DERIVADA),
-]);
+/**
+ * Tipos con el ícono del público en la cabecera. Vacío desde 2026-10-14: Gonzalo decidió que las láminas de población
+ * son láminas normales de varios gráficos, sin ícono; el motor tampoco lo dibuja ya.
+ */
+const CON_POBLACION: ReadonlySet<string> = new Set<string>();
 
 /**
  * Orden en que los slots de gráfico llenan las ranuras de gráfico del estándar, cuando no es el de `SLIDE_GRAF_SLOTS`.
