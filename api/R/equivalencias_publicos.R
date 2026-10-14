@@ -159,6 +159,7 @@
   nombres <- as.character(sv$name)[keep]
   etiquetas <- if ("label" %in% names(sv)) as.character(sv$label)[keep] else rep("", sum(keep))
   secciones <- if ("section" %in% names(sv)) as.character(sv$section)[keep] else rep("", sum(keep))
+  secciones <- .inst_rotulo_seccion(secciones, .inst_rotulos_de_grupo(sv))
   ok <- !is.na(nombres) & nzchar(nombres)
   data.frame(
     name = nombres[ok],

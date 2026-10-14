@@ -10,7 +10,7 @@
   min-height: 30px;
   padding: 3px 6px;
   border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
+  border-radius: calc(var(--pulso-radius) - 2px);
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
@@ -108,7 +108,7 @@
   flex-direction: column;
   gap: 1px;
   padding: 5px var(--pulso-space-2);
-  border-radius: var(--pulso-radius-chip);
+  border-radius: calc(var(--pulso-radius) - 2px);
   cursor: pointer;
 }
 
