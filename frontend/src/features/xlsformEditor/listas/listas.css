@@ -178,45 +178,71 @@
   color: var(--pulso-text-faint);
 }
 
-.pulso-xf-listas-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.pulso-xf-listas-chip {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  max-width: 100%;
-  padding: 2px 8px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
+/* Opciones: tabla Código | Etiqueta. El código es lo que se guarda en la
+ * base; la etiqueta, lo que lee quien responde: deben leerse como dos cosas. */
+.pulso-xf-listas-opciones {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
   font-size: 12px;
   color: var(--pulso-text);
 }
 
-.pulso-xf-listas-chip > span {
-  min-width: 0;
+.pulso-xf-listas-opciones th {
+  padding: 0 8px 4px 0;
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-listas-opciones th:first-child {
+  width: 72px;
+}
+
+.pulso-xf-listas-opciones td {
+  padding: 3px 8px 3px 0;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-listas-opciones tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.pulso-xf-listas-codigo {
+  display: inline-block;
+  min-width: 28px;
+  padding: 1px 6px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--pulso-text);
+}
+
+.pulso-xf-listas-etiqueta {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pulso-xf-listas-chip code,
+.pulso-xf-listas-etiqueta .is-vacia,
+.pulso-xf-listas-opciones .is-resto td {
+  color: var(--pulso-text-faint);
+  font-style: italic;
+}
+
 .pulso-xf-listas-nombre {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11.5px;
   color: var(--pulso-text-soft);
-}
-
-.pulso-xf-listas-chip.is-resto {
-  border-style: dashed;
-  color: var(--pulso-text-faint);
 }
 
 /* La acción va al pie de la tarjeta: con alto igualado, el sobrante queda
@@ -377,4 +403,124 @@
 
 .pulso-xf-listas-unica-edicion .pulso-xf-listas-campo {
   flex: 1 1 220px;
+}
+
+/* Entre formularios del proyecto: filas pares (`equal`) que comparten alto;
+ * la acción queda a la derecha y el texto envuelve sin empujar a sus pares. */
+.pulso-xf-listas-entre-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  min-height: 28px;
+}
+
+.pulso-xf-listas-entre,
+.pulso-xf-listas-codigos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: 1fr;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+}
+
+.pulso-xf-listas-entre-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+}
+
+.pulso-xf-listas-entre-fila + .pulso-xf-listas-entre-fila,
+.pulso-xf-listas-codigos-fila + .pulso-xf-listas-codigos-fila {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-listas-entre-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-xf-listas-entre-texto p,
+.pulso-xf-listas-codigos-fila p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-listas-entre-motivo,
+.pulso-xf-listas-entre-pendiente,
+.pulso-xf-listas-codigos-nota {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-xf-listas-entre-accion {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pulso-xf-listas-entre-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--pulso-success-fg);
+}
+
+.pulso-xf-listas-codigos {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.pulso-xf-listas-codigos-fila {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-xf-listas-codigos-fila > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.pulso-xf-listas-codigos-fila .pulso-xf-listas-nombre {
+  display: inline;
+}
+
+.pulso-xf-listas-codigos-fila + .pulso-xf-listas-codigos-fila {
+  border-top-color: var(--pulso-warn-border);
+}
+
+.pulso-xf-listas-girando {
+  animation: pulso-xf-listas-girar 1s linear infinite;
+}
+
+@keyframes pulso-xf-listas-girar {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xf-listas-girando {
+    animation: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .pulso-xf-listas-entre-fila {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-xf-listas-entre-accion {
+    justify-content: flex-start;
+  }
 }

@@ -7,6 +7,8 @@
 //   opciones se acotan a 8 chips; el marco no depende de cuántas haya.
 // - C3: el vacío legítimo («No hay escalas repetidas») lo posee la sección.
 // - C4: el scroll lo posee el cuerpo del diálogo, no este componente.
+// - «Entre formularios del proyecto» declara su propio contrato
+//   (EntreFormulariosSeccion.tsx) y sólo aparece si hay otros formularios.
 
 import { useState } from "react";
 import { CheckCheck } from "../../../vendor/lucide-react";
@@ -15,7 +17,11 @@ import type { ControlListasOpciones } from "./useListasOpciones";
 import type { GrupoListasRepetidas } from "./listasModel";
 import { GrupoListasCard } from "./GrupoListasCard";
 import { ListaUnicaFila } from "./ListaUnicaFila";
+import { EntreFormulariosSeccion } from "./EntreFormulariosSeccion";
+import type { EstadoHermanos } from "./useFormulariosHermanos";
 import "./listas.css";
+
+const SIN_OTROS: EstadoHermanos = { estado: "sin-otros" };
 
 export const TEXTO_DIDACTICO_LISTAS =
   "Las escalas repetidas se pueden unificar en una sola lista con un nombre claro: así el formulario es más fácil de mantener y de leer.";
@@ -23,11 +29,14 @@ export const TEXTO_DIDACTICO_LISTAS =
 export function ListasOpcionesPanel({
   workbook,
   control,
+  hermanos = SIN_OTROS,
 }: {
   workbook: XlsformEditorWorkbook;
   control: ControlListasOpciones;
+  /** Otros formularios del proyecto (de `useFormulariosHermanos`). */
+  hermanos?: EstadoHermanos;
 }) {
-  const { analisis, aviso, unificar, renombrar } = control;
+  const { analisis, aviso, unificar, renombrar, renombrarVarias } = control;
   const { grupos, unicas } = analisis;
   // Nombre pendiente por escala (lo que el analista escribió o la sugerencia):
   // vive aquí para validar cada escala contra las demás.
@@ -72,6 +81,12 @@ export function ListasOpcionesPanel({
           </div>
         )}
       </section>
+      <EntreFormulariosSeccion
+        workbook={workbook}
+        hermanos={hermanos}
+        onRenombrar={renombrar}
+        onRenombrarVarias={renombrarVarias}
+      />
       <section className="pulso-xf-listas-seccion" aria-labelledby="xf-listas-unicas">
         <h3 id="xf-listas-unicas" className="pulso-xf-listas-subtitulo">
           Listas únicas

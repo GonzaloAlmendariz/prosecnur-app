@@ -3469,6 +3469,7 @@ export default function XlsformEditorPage() {
         <ListasOpcionesDialog
           panel={listasPanel}
           workbook={workbook}
+          proyecto={{ scope: projectScope, activoId: activeFormId, formularios: forms }}
           onWorkbookChange={(next) => {
             dispatch({ type: "SET", workbook: next });
             setArtifact(null);

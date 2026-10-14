@@ -11,6 +11,7 @@ import {
   type AnalisisListas,
   type GrupoListasRepetidas,
 } from "./listasModel";
+import { aplicarNombresComunes, type RenombreSugerido } from "./listasEntreFormularios";
 
 export type ControlListasOpciones = {
   analisis: AnalisisListas;
@@ -21,6 +22,8 @@ export type ControlListasOpciones = {
   /** Devuelve el motivo si no se pudo; `null` si se aplicó. */
   unificar: (grupo: GrupoListasRepetidas, nombre: string) => string | null;
   renombrar: (lista: string, nombre: string) => string | null;
+  /** Varios renombres en UNA edición (nombres comunes entre formularios). */
+  renombrarVarias: (renombres: readonly RenombreSugerido[]) => string | null;
 };
 
 export function useListasOpciones(
@@ -49,5 +52,16 @@ export function useListasOpciones(
     return null;
   }, [onWorkbookChange, workbook]);
 
-  return { analisis, repetidas: analisis.grupos.length, aviso, unificar, renombrar };
+  const renombrarVarias = useCallback((renombres: readonly RenombreSugerido[]) => {
+    const res = aplicarNombresComunes(workbook, renombres);
+    if (!res.ok) return res.motivo;
+    if (res.workbook !== workbook) {
+      onWorkbookChange(res.workbook);
+      const n = renombres.length;
+      setAviso(`${n} ${n === 1 ? "lista tomó su nombre común" : "listas tomaron su nombre común"} con los otros formularios.`);
+    }
+    return null;
+  }, [onWorkbookChange, workbook]);
+
+  return { analisis, repetidas: analisis.grupos.length, aviso, unificar, renombrar, renombrarVarias };
 }
