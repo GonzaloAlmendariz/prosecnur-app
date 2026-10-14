@@ -12,7 +12,6 @@ fuentes:
   - "frontend/src/lib/navegacion/catalogos/procesamiento.ts"
   - "frontend/src/features/graficos/GraficosPage.tsx"
   - "frontend/src/features/graficos/estiloInforme/PestanaEstiloInforme.tsx"
-  - "frontend/src/features/graficos/PaletasEditor.tsx"
 ---
 
 # Estilo del informe

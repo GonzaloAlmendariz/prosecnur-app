@@ -1,5 +1,10 @@
 # Checklist — láminas y graficadores (Gonzalo, 2026-10-13)
 
+Tipo: Checklist de QA (pedido con varias indicaciones)
+Estado: Vigente
+Fecha: 2026-10-13
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
 Dictado de Gonzalo mientras corría el loop de Arte y Diseño. Un ítem por indicación; sólo él los da por terminados.
 Referencia visual de cada estándar: `docs/qa/motor-ppt-2026-10-06/4-recetario/recetario-moderna.pptx` (y `-fiel`).
 

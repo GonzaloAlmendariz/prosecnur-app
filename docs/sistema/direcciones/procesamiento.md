@@ -6,11 +6,11 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `procesamiento` · ruta `/procesamiento` · 37 direcciones.
+Módulo `procesamiento` · ruta `/procesamiento` · 38 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `procesamiento` | modulo | Procesamiento | sí | 01752fb8 | sí | — |
+| `procesamiento` | modulo | Procesamiento | sí | f3e1e3ad | sí | — |
 | `procesamiento/carga` | seccion | Carga | sí | 54b0fe12 | sí | — |
 | `procesamiento/carga/plan` | pestana | Plan | sí | 15be26db | sí | — |
 | `procesamiento/carga/fuentes` | pestana | Fuentes | sí | 2af0cc2d | sí | — |
@@ -28,7 +28,7 @@ Módulo `procesamiento` · ruta `/procesamiento` · 37 direcciones.
 | `procesamiento/codificacion/codificar` | pestana | Codificar | sí | 1f64d398 | sí | — |
 | `procesamiento/codificacion/matrices` | pestana | Matrices | sí | 4aea74ab | sí | — |
 | `procesamiento/codificacion/adaptar` | pestana | Adaptación | sí | 366bb038 | sí | — |
-| `procesamiento/analitica` | seccion | Analítica | sí | d1a086ed | sí | — |
+| `procesamiento/analitica` | seccion | Analítica | sí | 075effe0 | sí | — |
 | `procesamiento/analitica/datos` | pestana | Datos | sí | afdb5553 | sí | — |
 | `procesamiento/analitica/base_final` | pestana | Base final | sí | 0e22e31d | sí | — |
 | `procesamiento/analitica/codebook` | pestana | Libro de códigos | sí | 6d30b90e | sí | — |
@@ -36,6 +36,7 @@ Módulo `procesamiento` · ruta `/procesamiento` · 37 direcciones.
 | `procesamiento/analitica/ponderacion` | pestana | Ponderación | sí | a5569e6e | sí | — |
 | `procesamiento/analitica/frecuencias` | pestana | Frecuencias | sí | 9d223e41 | sí | — |
 | `procesamiento/analitica/multibase` | pestana | Tablas multibase | sí | 21dfced8 | sí | — |
+| `procesamiento/analitica/comparativos` | pestana | Comparativos | sí | d9bc01fe | sí | — |
 | `procesamiento/analitica/panel` | pestana | Base panel | sí | e32ba388 | sí | — |
 | `procesamiento/analitica/ficha` | pestana | Ficha técnica | sí | 805e8f34 | sí | — |
 | `procesamiento/analitica/cruces` | pestana | Cruces | sí | ad686bdb | sí | — |

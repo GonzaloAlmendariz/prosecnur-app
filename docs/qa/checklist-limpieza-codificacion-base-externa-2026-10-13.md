@@ -1,5 +1,10 @@
 # Checklist — Limpieza, Codificación y base limpiada fuera de la app (2026-10-13)
 
+Tipo: Checklist de QA (pedido con varias indicaciones)
+Estado: Vigente
+Fecha: 2026-10-13
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
 Pedido de Gonzalo, 2026-10-13, a partir de una nota de Procesamiento y de la
 revisión de `01_Estudios/2026_PUCP_HSyVbG/Procesamiento/Hostigamiento_Recodificacion.pulso`.
 Lo cierra sólo el usuario. Se dibuja entero cada vez que se menciona.

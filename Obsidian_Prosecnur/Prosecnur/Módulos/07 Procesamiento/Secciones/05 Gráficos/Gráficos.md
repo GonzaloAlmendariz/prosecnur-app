@@ -8,16 +8,8 @@ tags:
   - Seccion
 fuentes:
   - "frontend/src/features/graficos/GraficosPage.tsx"
-  - "frontend/src/features/graficos/v2/shell/EditorShell.tsx"
-  - "frontend/src/features/graficos/v2/shell/ModeToolbar.tsx"
-  - "frontend/src/features/graficos/v2/timeline/TimelinePanelV2.tsx"
-  - "frontend/src/features/graficos/v2/canvas/PlanCanvas.tsx"
-  - "frontend/src/features/graficos/v2/inspector/InspectorV2.tsx"
-  - "frontend/src/features/graficos/v2/inspector/StylePanel.tsx"
   - "frontend/src/features/graficos/v2/inspector/FiltersPanel.tsx"
-  - "frontend/src/features/graficos/SlidePreview.tsx"
   - "frontend/src/features/graficos/SuggestedPlanButton.tsx"
-  - "frontend/src/features/graficos/ConfiguracionGlobal.tsx"
   - "frontend/src/features/graficos/PptStyleProfilesPanel.tsx"
   - "api/R/graficos_plan_coverage.R"
   - "api/R/graficos_share.R"
