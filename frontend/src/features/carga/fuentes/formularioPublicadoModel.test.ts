@@ -37,6 +37,7 @@ const VP: VistaPreviaFormularioPublicado = {
   cobertura_texto: "",
   sin_par_instrumento: [{ variable: "p40", etiqueta: "" }],
   sin_par_fuente: [],
+  agregadas_fuente: [],
   recodificaciones: [{ variable: "p10_1", etiqueta: "SIN INF", desde: "5", hacia: "99" }],
   opciones_sin_par: [{ variable: "p12", n: 3, etiquetas: [] }, { variable: "p13", n: 2, etiquetas: [] }],
   bloqueo: null,

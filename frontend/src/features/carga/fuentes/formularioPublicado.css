@@ -327,3 +327,22 @@
   color: var(--pulso-info-fg);
   font-size: 11px;
 }
+
+/* «Ver armonización» y «Comparar con…» bajo el formulario de la tarjeta. */
+.pulso-bfp-vinculo-acciones {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  margin-inline-start: -8px;
+}
+
+.pulso-bfp-vinculo-acciones .pulso-button {
+  max-inline-size: 100%;
+}
+
+.pulso-bfp-vinculo-acciones .pulso-button > span,
+.pulso-bfp-vinculo-acciones .pulso-button {
+  white-space: normal;
+  text-align: left;
+}

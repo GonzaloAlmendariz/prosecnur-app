@@ -177,6 +177,7 @@ carga_formularios_publicados <- function(sid) {
     cobertura_texto = .sm_mb_cobertura_texto(cobertura),
     sin_par_instrumento = .cfp_filas(.cfp_tabla_variables(inst, setdiff(variables, emparejadas))),
     sin_par_fuente = .cfp_filas(prep$sin_par_fuente),
+    agregadas_fuente = .cfp_filas(prep$agregadas_fuente),
     recodificaciones = .cfp_recodificaciones_unicas(prep$recodificaciones),
     opciones_sin_par = lapply(names(opciones), function(v) {
       et <- (prep$opciones_sin_par_etiquetas %||% list())[[v]] %||% integer(0)
@@ -297,6 +298,7 @@ carga_formulario_publicado_importar <- function(sid, parsed) {
     cobertura = resumen$cobertura,
     sin_par_instrumento = resumen$sin_par_instrumento,
     sin_par_fuente = resumen$sin_par_fuente,
+    agregadas_fuente = resumen$agregadas_fuente,
     recodificaciones = resumen$recodificaciones,
     opciones_sin_par = resumen$opciones_sin_par
   )

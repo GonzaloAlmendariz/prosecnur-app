@@ -138,6 +138,22 @@
 
 # Renombra la data de la fuente. Las columnas que no resuelven y no son
 # metadatos no entran y se listan.
+# La variable personalizada de SurveyMonkey llega en el export SPSS como una
+# pregunta más (`q0033`, etiqueta «id»); el formulario la trae como `cv_id`.
+.cfp_resolver_variable_personalizada <- function(etiqueta, nombres_inst) {
+  et <- trimws(as.character(etiqueta %||% "")[1])
+  if (is.na(et) || !nzchar(et)) return(NULL)
+  destino <- paste0("cv_", gsub("[^A-Za-z0-9_]", "_", et))
+  if (destino %in% nombres_inst) list(destino = destino, via = "variable_personalizada") else NULL
+}
+
+# Columna creada en la limpieza: no tiene forma de pregunta SurveyMonkey
+# (`q0014`, `q0010_0001`) y su nombre no choca con una variable del formulario.
+.cfp_es_columna_agregada <- function(col, nombres_inst, destinos) {
+  !grepl("^q[0-9]{4}(_[0-9]{4})?$", col, ignore.case = TRUE) &&
+    !(col %in% nombres_inst) && !(col %in% destinos)
+}
+
 .cfp_renombrar <- function(df, etiquetas_fuente, inst, desde_sm, fuente_titulo) {
   sv <- inst$survey
   nombres_inst <- as.character(sv$name[!is.na(sv$name) & nzchar(sv$name) &
@@ -146,6 +162,7 @@
   meta <- .cfp_columnas_meta(names(df))
   destinos <- stats::setNames(rep(NA_character_, ncol(df)), names(df))
   sin_par <- character(0)
+  agregadas <- character(0)
   dummies <- character(0)
   for (col in names(df)) {
     if (col %in% meta) {
@@ -153,7 +170,16 @@
       next
     }
     r <- .cfp_resolver_nombre(col, etiquetas_fuente[[col]] %||% "", inst, nombres_inst, etiquetas_inst, desde_sm)
+    if (is.null(r)) r <- .cfp_resolver_variable_personalizada(etiquetas_fuente[[col]] %||% "", nombres_inst)
     if (is.null(r) || r$destino %in% destinos) {
+      # Una columna que no es pregunta de SurveyMonkey (`q0014`) la agregó quien
+      # limpió la base (`año`, `filtro`): es trabajo del analista y entra con su
+      # nombre, declarada. Sólo se descarta la pregunta de la encuesta sin par.
+      if (is.null(r) && .cfp_es_columna_agregada(col, nombres_inst, destinos)) {
+        destinos[[col]] <- col
+        agregadas <- c(agregadas, col)
+        next
+      }
       sin_par <- c(sin_par, col)
       next
     }
@@ -167,6 +193,11 @@
     data = out,
     dummies = dummies,
     meta = meta,
+    agregadas = data.frame(
+      variable = agregadas,
+      etiqueta = vapply(agregadas, function(x) .cfp_chr(etiquetas_fuente[[x]]), character(1), USE.NAMES = FALSE),
+      stringsAsFactors = FALSE
+    ),
     sin_par_fuente = data.frame(
       variable = sin_par,
       etiqueta = vapply(sin_par, function(x) .cfp_chr(etiquetas_fuente[[x]]), character(1), USE.NAMES = FALSE),
@@ -331,6 +362,7 @@
     fuentes = list(list(tipo = tipo, titulo = titulo, n_filas = as.integer(nrow(data)))),
     emparejadas = emparejadas,
     sin_par_fuente = ren$sin_par_fuente,
+    agregadas_fuente = ren$agregadas,
     recodificaciones = rec$recodificaciones,
     opciones_sin_par = rec$opciones_sin_par,
     opciones_sin_par_etiquetas = rec$opciones_sin_par_etiquetas,

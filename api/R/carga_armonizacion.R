@@ -127,6 +127,7 @@ carga_armonizacion <- function(sid, base) {
     cobertura = suppressWarnings(as.numeric(fp$cobertura %||% NA_real_)[1]),
     sin_par_instrumento = .carm_lista(fp$sin_par_instrumento),
     sin_par_fuente = .carm_lista(fp$sin_par_fuente),
+    agregadas_fuente = .carm_lista(fp$agregadas_fuente),
     recodificaciones = .carm_lista(fp$recodificaciones),
     opciones_sin_par = .carm_lista(fp$opciones_sin_par)
   )

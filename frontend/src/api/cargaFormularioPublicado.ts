@@ -13,6 +13,7 @@
 // como objeto suelto y `NULL` como `{}`: los normalizadores aceptan las tres.
 
 import { apiFetch, handle, headers } from "./core";
+import { booleano, codigo, enteroONulo, lista, numeroONulo, registro, texto } from "./normalizarR";
 
 export type FuenteRespuestas = "surveymonkey" | "sav" | "excel";
 
@@ -61,6 +62,8 @@ export type VistaPreviaFormularioPublicado = {
   cobertura_texto: string;
   sin_par_instrumento: VariableConEtiqueta[];
   sin_par_fuente: VariableConEtiqueta[];
+  /** Columnas que creó quien limpió la base (`año`, `filtro`): entran con su nombre. */
+  agregadas_fuente: VariableConEtiqueta[];
   recodificaciones: Recodificacion[];
   opciones_sin_par: OpcionesSinPar[];
   bloqueo: BloqueoVistaPrevia | null;
@@ -91,55 +94,6 @@ export type CuerpoImportar = CuerpoVistaPrevia & { base_name: string };
 // ---------------------------------------------------------------------------
 // Normalizadores defensivos
 // ---------------------------------------------------------------------------
-
-function registro(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function escalar(value: unknown): unknown {
-  return Array.isArray(value) && value.length === 1 ? value[0] : value;
-}
-
-function texto(value: unknown): string {
-  const v = escalar(value);
-  if (typeof v === "string") return v.trim();
-  if (typeof v === "number" && Number.isFinite(v)) return String(v);
-  return "";
-}
-
-function numeroONulo(value: unknown): number | null {
-  const v = escalar(value);
-  if (v === null || v === undefined || v === "" || v === "NA") return null;
-  if (typeof v === "object") return null;
-  const n = typeof v === "number" ? v : Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
-function enteroONulo(value: unknown): number | null {
-  const n = numeroONulo(value);
-  return n == null ? null : Math.max(0, Math.round(n));
-}
-
-function booleano(value: unknown): boolean {
-  const v = escalar(value);
-  return v === true || v === 1 || v === "1" || v === "true" || v === "TRUE";
-}
-
-/** Lista de objetos: arreglo, objeto suelto (lista de uno) o `{}` (NULL). */
-function lista(value: unknown): Record<string, unknown>[] {
-  if (Array.isArray(value)) return value.map(registro).filter((r) => Object.keys(r).length > 0);
-  const r = registro(value);
-  return Object.keys(r).length ? [r] : [];
-}
-
-/** Código de opción: «5», «99», o texto si la fuente no trae número. */
-function codigo(value: unknown): string {
-  const v = escalar(value);
-  if (v === null || v === undefined || v === "NA") return "";
-  return texto(v);
-}
 
 function normalizeCampana(raw: Record<string, unknown>): CampanaPublicada | null {
   const survey_id = texto(raw.survey_id);
@@ -215,6 +169,7 @@ export function normalizeVistaPreviaFormularioPublicado(raw: unknown): VistaPrev
     cobertura_texto: texto(r.cobertura_texto),
     sin_par_instrumento: variablesConEtiqueta(r.sin_par_instrumento),
     sin_par_fuente: variablesConEtiqueta(r.sin_par_fuente),
+    agregadas_fuente: variablesConEtiqueta(r.agregadas_fuente),
     recodificaciones: lista(r.recodificaciones)
       .map((x) => ({ variable: texto(x.variable), etiqueta: texto(x.etiqueta), desde: codigo(x.desde), hacia: codigo(x.hacia) }))
       .filter((x) => x.variable),

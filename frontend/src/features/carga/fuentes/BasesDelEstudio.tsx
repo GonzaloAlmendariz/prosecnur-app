@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { apiEstudioGet, apiEstudioRemoveBase, apiEstudioRenameBase, type EstudioBase, type EstudioPayload } from "../../../api/estudio";
 import type { VistaPreviaFuente } from "../../../api/xlsformEditor";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { ClipboardCheck, CloudDownload, Database, FileCheck2, FileUp, GitMerge, Pencil, Plus, Trash2, Upload, X } from "../../../vendor/lucide-react";
+import { ClipboardCheck, CloudDownload, Database, FileCheck2, FileUp, GitCompareArrows, GitMerge, ListChecks, Pencil, Plus, Trash2, Upload, X } from "../../../vendor/lucide-react";
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import { ordenarBasesPorSerie } from "../equivalenciasEditorModel";
 import { useOrdenDeSerie } from "./useOrdenDeSerie";
@@ -15,6 +15,10 @@ import { AvisoFormularioPublicado } from "./AvisoFormularioPublicado";
 import { rotuloBaseDeclarada, vinculoFormularioDeBase, type VinculoFormulario } from "./formularioPublicadoModel";
 import { NuevaBaseFormularioPublicado } from "./NuevaBaseFormularioPublicado";
 import { useFormulariosPublicados } from "./useFormulariosPublicados";
+import { AbrirPanelFuentes } from "./AbrirPanelFuentes";
+import { ArmonizacionBasePanel } from "./ArmonizacionBasePanel";
+import { CompararFuentesPanel } from "./CompararFuentesPanel";
+import { comparablesCon, hayFuentesComparables, primerParComparable, searchConArmonizacionBase, searchConComparacion } from "./compararFuentesModel";
 import "./basesDelEstudio.css";
 
 export type OrigenNuevaBase = "formulario" | "surveymonkey" | "kobo" | "archivos" | "sav" | "monitoreo";
@@ -60,9 +64,11 @@ export function ordenarBasesDelEstudio(bases: readonly EstudioBase[], periodos: 
     .filter((b): b is EstudioBase => Boolean(b));
 }
 
-function TarjetaBase({ base, vinculo, ocupado, onRenombrar, onQuitar, onOtraFuente }: {
+function TarjetaBase({ base, vinculo, comparables, ocupado, onRenombrar, onQuitar, onOtraFuente }: {
   base: EstudioBase;
   vinculo: VinculoFormulario | null;
+  /** Otras bases ligadas a la misma revisión: habilitan «Comparar con…». */
+  comparables: readonly string[];
   ocupado: boolean;
   onOtraFuente?: () => void;
   onRenombrar: (nuevo: string) => Promise<void>;
@@ -102,6 +108,26 @@ function TarjetaBase({ base, vinculo, ocupado, onRenombrar, onQuitar, onOtraFuen
           <FileCheck2 size={13} aria-hidden="true" />
           <span>Formulario: <strong>{vinculo.formulario}</strong> · {vinculo.revision}</span>
           {vinculo.logicaExterna ? <span className="pulso-bfp-declarada">{rotuloBaseDeclarada(vinculo)}</span> : null}
+          <span className="pulso-bfp-vinculo-acciones">
+            <AbrirPanelFuentes
+              variant="ghost"
+              clave={`armonizacion:${base.nombre}`}
+              destino={(search) => searchConArmonizacionBase(search, base.nombre)}
+              etiqueta={`Ver armonización de ${base.nombre}`}
+            >
+              <ListChecks size={13} aria-hidden="true" />Ver armonización
+            </AbrirPanelFuentes>
+            {comparables.length ? (
+              <AbrirPanelFuentes
+                variant="ghost"
+                clave={`comparar:${base.nombre}`}
+                destino={(search) => searchConComparacion(search, { a: base.nombre, b: comparables[0] })}
+                etiqueta={`Comparar ${base.nombre} con ${comparables.length === 1 ? comparables[0] : "otra fuente del mismo formulario"}`}
+              >
+                <GitCompareArrows size={13} aria-hidden="true" />{comparables.length === 1 ? `Comparar con ${comparables[0]}` : "Comparar con…"}
+              </AbrirPanelFuentes>
+            ) : null}
+          </span>
         </p>
       ) : null}
       <dl className="pulso-bde-cifras">
@@ -178,6 +204,7 @@ export function BasesDelEstudio({
     setError("");
     try { await onCambio(await accion()); } catch (e) { setError(e instanceof Error ? e.message : "No se pudo completar."); } finally { setOcupado(false); }
   };
+  const parInicial = primerParComparable(bases);
   const total = bases.reduce((s, b) => s + (b.n_filas ?? 0), 0);
   const [otraFuente, setOtraFuenteEstado] = useState<{ base: string; canal: string } | null>(null);
   const setOtraFuente = (d: { base: string; canal: string } | null) => {
@@ -195,9 +222,17 @@ export function BasesDelEstudio({
             ? `${formatoConteoDe(bases.length, "base")}, ${formatoConteoDe(total, "respuesta")} en total${enSerie ? ", en el orden de la serie de Equivalencias" : ""}. Agrega las que falten cuando quieras.`
             : "Agrega la primera base: una por actor (estudiantes, docentes…)."}</p>
         </div>
-        {agregando ? null : (
-          <PulsoButton variant="primary" size="sm" onClick={() => { setOtraFuente(null); setAgregando(origenPorDefecto); }}><Plus size={14} aria-hidden="true" />Agregar base</PulsoButton>
-        )}
+        <div className="pulso-bde-encabezado-acciones">
+          {/* ADR 0102: dos bases de la misma revisión se pueden comparar fuente contra fuente. */}
+          {hayFuentesComparables(bases) ? (
+            <AbrirPanelFuentes variant="secondary" clave="comparar" destino={(search) => searchConComparacion(search, parInicial)}>
+              <GitCompareArrows size={14} aria-hidden="true" />Comparar fuentes
+            </AbrirPanelFuentes>
+          ) : null}
+          {agregando ? null : (
+            <PulsoButton variant="primary" size="sm" onClick={() => { setOtraFuente(null); setAgregando(origenPorDefecto); }}><Plus size={14} aria-hidden="true" />Agregar base</PulsoButton>
+          )}
+        </div>
       </header>
       {error ? <p className="pulso-bde-error" role="alert">{error}</p> : null}
       {bases.length ? (
@@ -207,6 +242,7 @@ export function BasesDelEstudio({
               key={b.nombre}
               base={b}
               vinculo={vinculoFormularioDeBase(b, publicados.formularios)}
+              comparables={comparablesCon(b.nombre, bases)}
               ocupado={ocupado}
               onRenombrar={(nuevo) => correr(() => apiEstudioRenameBase(b.nombre, nuevo))}
               onQuitar={() => correr(async () => { await apiEstudioRemoveBase(b.nombre); return apiEstudioGet(); })}
@@ -291,6 +327,8 @@ export function BasesDelEstudio({
           </div>
         </div>
       ) : null}
+      <ArmonizacionBasePanel />
+      <CompararFuentesPanel bases={bases} />
     </section>
   );
 }

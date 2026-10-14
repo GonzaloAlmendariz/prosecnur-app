@@ -1,5 +1,5 @@
-// Vista previa de «Formulario publicado» (ADR 0102): antes de crear la base se ve
-// cuánto calza, lo que no entra y cada recodificación con su código y su
+// Vista previa de «Formulario publicado» (ADR 0102): antes de crear la base —y
+// después, en «Ver armonización», con lo guardado— se ve cuánto calza, lo que no entra y cada recodificación con su código y su
 // etiqueta por separado («SIN INF», 5 → 99). Sólo pinta; el veredicto y los
 // contadores salen de `formularioPublicadoModel`.
 
@@ -53,7 +53,12 @@ function ListaVariables({ titulo, items }: { titulo: string; items: { variable: 
   );
 }
 
-export function VistaPreviaFormularioPublicado({ vistaPrevia }: { vistaPrevia: VistaPreviaDatos }) {
+/**
+ * Veredicto, contadores, recodificaciones y lo que no calza. La usan la vista
+ * previa antes de crear la base y el panel «Ver armonización» con lo guardado;
+ * `grupoQa` distingue ambas superficies para el Contrato de Superficie (C1).
+ */
+export function VistaPreviaFormularioPublicado({ vistaPrevia, grupoQa = "carga/formulario-publicado" }: { vistaPrevia: VistaPreviaDatos; grupoQa?: string }) {
   const veredicto = veredictoVistaPrevia(vistaPrevia);
   const contadores = contadoresVistaPrevia(vistaPrevia);
   const bloqueado = veredicto.nivel === "bloqueado";
@@ -63,7 +68,7 @@ export function VistaPreviaFormularioPublicado({ vistaPrevia }: { vistaPrevia: V
   const umbral = Math.round(UMBRAL_COBERTURA * 100);
 
   return (
-    <div className="pulso-bfp-previa" data-qa-geometry-group="carga/formulario-publicado/vista-previa" data-qa-geometry-contract="intrinsic">
+    <div className="pulso-bfp-previa" data-qa-geometry-group={`${grupoQa}/vista-previa`} data-qa-geometry-contract="intrinsic">
       <div className={bloqueado ? "pulso-bfp-veredicto is-bloqueado" : "pulso-bfp-veredicto is-listo"} data-qa-geometry-member role={bloqueado ? "alert" : "status"}>
         <span className="pulso-bfp-veredicto-icono" aria-hidden="true">
           {bloqueado ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
@@ -96,7 +101,7 @@ export function VistaPreviaFormularioPublicado({ vistaPrevia }: { vistaPrevia: V
         ) : null}
       </div>
 
-      <dl className="pulso-bfp-contadores" data-qa-geometry-member data-qa-geometry-group="carga/formulario-publicado/contadores" data-qa-geometry-contract="equal">
+      <dl className="pulso-bfp-contadores" data-qa-geometry-member data-qa-geometry-group={`${grupoQa}/contadores`} data-qa-geometry-contract="equal">
         {contadores.map((c) => (
           <div key={c.clave} className={c.valor ? "pulso-bfp-contador has-valor" : "pulso-bfp-contador"} data-qa-geometry-member>
             <dt>{c.rotulo}</dt>
@@ -120,10 +125,11 @@ export function VistaPreviaFormularioPublicado({ vistaPrevia }: { vistaPrevia: V
         </section>
       ) : null}
 
-      {vistaPrevia.sin_par_instrumento.length || vistaPrevia.sin_par_fuente.length || vistaPrevia.opciones_sin_par.length ? (
+      {vistaPrevia.sin_par_instrumento.length || vistaPrevia.sin_par_fuente.length || vistaPrevia.agregadas_fuente.length || vistaPrevia.opciones_sin_par.length ? (
         <section className="pulso-bfp-seccion" aria-label="Lo que no calza" data-qa-geometry-member>
           <ListaVariables titulo="Preguntas del formulario sin par (quedan vacías)" items={vistaPrevia.sin_par_instrumento} />
           <ListaVariables titulo="Columnas de la fuente que no entran" items={vistaPrevia.sin_par_fuente} />
+          <ListaVariables titulo="Columnas agregadas en la limpieza (entran con su nombre)" items={vistaPrevia.agregadas_fuente} />
           {vistaPrevia.opciones_sin_par.length ? (
             <details className="pulso-bfp-detalle">
               <summary>Opciones sin par, por variable ({formatoConteo(vistaPrevia.opciones_sin_par.length)})</summary>
