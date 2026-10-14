@@ -483,17 +483,13 @@
  * migración dedicada (docs/ui-layout-grammar.md).
  * ---------------------------------------------------------------------- */
 
-/* `.pulso-gv2-estilo-dialog` entra acá aunque no sea un frame: se monta en un
- * portal sobre document.body, fuera del frame de Gráficos, así que no hereda
- * nada y necesita declarar su pertenencia explícitamente. */
 .pulso-carga-frame,
 .pulso-validacion-frame,
 .pulso-codificacion-frame,
 .pulso-analitica-frame,
 .pulso-graficos-frame,
 .pulso-processing-phase-dock,
-.pulso-processing-phase-row,
-.pulso-gv2-estilo-dialog {
+.pulso-processing-phase-row {
   --module-accent: var(--pulso-module-processing);
   --module-accent-soft: var(--pulso-module-processing-soft);
   --module-accent-border: var(--pulso-module-processing-border);
@@ -545,7 +541,6 @@
 .pulso-graficos-frame,
 .pulso-processing-phase-dock,
 .pulso-processing-phase-row,
-.pulso-gv2-estilo-dialog,
 .pulso-xlsform-frame,
 .mon-module-chrome,
 .bitacora-frame,

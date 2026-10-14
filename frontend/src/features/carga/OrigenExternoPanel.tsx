@@ -3,26 +3,39 @@ import { AlertTriangle, ArrowRight, Loader2, ScrollText, Upload } from "lucide-r
 import {
   declararOrigenExterno,
   getOrigenExterno,
+  MOTIVOS_VARIABLE,
   subirListaExclusiones,
   type OrigenExterno,
+  type OrigenExternoMotivoVariable,
 } from "../../api/cargaOrigenExterno";
+import { Link, useInRouterContext } from "react-router-dom";
 import { PulsoButton } from "../../components/PulsoButton";
 import {
   BORRADOR_VACIO,
+  borradorDesde,
   cadenaOrigenEnLlano,
+  desgloseVariables,
   formatoEntero,
+  fraseVariablesRetiradas,
   leerRecibidas,
   motivoNoDeclarable,
+  motivosElegidos,
+  muestraCadenaCasos,
   procedenciaScript,
+  ROTULO_MOTIVO,
   rotuloEstado,
+  totalVariablesRetiradas,
   tramosOrigen,
+  hrefVariablesExcluidas,
+  variablesExcluidasDeLaDeclaracion,
   type OrigenExternoBorrador,
 } from "./origenExternoModel";
 import "./OrigenExternoPanel.css";
 
-// «Depuración hecha fuera» (ADR 0100, P2): la base que llegó recortada por un
-// script declara de dónde viene. Sólo se muestra el agregado; los
-// identificadores de las encuestas excluidas nunca llegan a esta pantalla.
+// «Base preparada fuera de la plataforma» (ADR 0100, P2 y Enmienda 1 / P2b): la
+// base que llegó con menos casos o menos variables que el instrumento declara
+// qué se retiró y por qué. De los casos sólo se muestra el agregado; los
+// identificadores de las encuestas retiradas nunca llegan a esta pantalla.
 
 export type OrigenExternoCarga =
   | { tipo: "leyendo" }
@@ -54,7 +67,9 @@ export function OrigenExternoPanel({ baseNombre, disabled = false }: PanelProps)
     if (archivoRef.current) archivoRef.current.value = "";
     void getOrigenExterno(baseNombre)
       .then((datos) => {
-        if (id === secuencia.current) setCarga({ tipo: "listo", datos });
+        if (id !== secuencia.current) return;
+        setCarga({ tipo: "listo", datos });
+        setBorrador(borradorDesde(datos));
       })
       .catch((reason: Error) => {
         if (id === secuencia.current) setCarga({ tipo: "error", mensaje: reason.message });
@@ -62,22 +77,23 @@ export function OrigenExternoPanel({ baseNombre, disabled = false }: PanelProps)
   }, [baseNombre]);
 
   async function declarar() {
-    if (motivoNoDeclarable(borrador) || !borrador.archivo) return;
+    if (motivoNoDeclarable(borrador)) return;
     const recibidas = leerRecibidas(borrador.recibidas);
     const id = secuencia.current;
     setEnvio({ tipo: "enviando" });
     try {
-      const fileId = await subirListaExclusiones(borrador.archivo);
+      const fileId = borrador.archivo ? await subirListaExclusiones(borrador.archivo) : null;
       const datos = await declararOrigenExterno({
         baseNombre,
         fileId,
-        nRecibidas: recibidas.ok ? recibidas.valor : null,
+        nRecibidas: fileId && recibidas.ok ? recibidas.valor : null,
         script: borrador.script,
         version: borrador.version,
+        variablesMotivo: motivosElegidos(borrador.motivos),
       });
       if (id !== secuencia.current) return;
       setCarga({ tipo: "listo", datos });
-      setBorrador(BORRADOR_VACIO);
+      setBorrador(borradorDesde(datos));
       if (archivoRef.current) archivoRef.current.value = "";
       setEnvio({ tipo: "quieto" });
     } catch (reason) {
@@ -141,8 +157,8 @@ export function OrigenExternoVista({
       <header className="pulso-origen-externo-head">
         <span className="pulso-origen-externo-icono" aria-hidden="true"><ScrollText size={16} /></span>
         <div className="pulso-origen-externo-titulo">
-          <strong id={`${id}-titulo`}>Depuración hecha fuera <span>(opcional)</span></strong>
-          <small>Si un script quitó encuestas antes de cargar la base, declara cuáles y por qué.</small>
+          <strong id={`${id}-titulo`}>Base preparada fuera de la plataforma <span>(opcional)</span></strong>
+          <small>Si la base llega con menos casos o menos variables que el instrumento, declara qué se retiró y por qué.</small>
         </div>
         {carga.tipo === "listo" && (
           <span className={`pulso-origen-externo-estado${estado ? ` is-${estado}` : ""}`}>
@@ -161,11 +177,10 @@ export function OrigenExternoVista({
             <p className="pulso-origen-externo-error" role="alert">{carga.mensaje}</p>
           ) : !datos?.bloque ? (
             <div className="pulso-origen-externo-vacio">
-              <strong>Esta base no declara una depuración externa.</strong>
+              <strong>Esta base no declara una preparación externa.</strong>
               <span>
-                Si la recibiste ya recortada, sube la lista de exclusiones del script: así la ficha
-                explica el paso de las encuestas recibidas a las cargadas. Si se depuró solo en la app,
-                no hace falta.
+                Si la recibiste con menos casos o menos variables, declara qué se retiró: así la ficha explica
+                el paso de la base recibida a la cargada. Si se depuró solo en la app, no hace falta.
               </span>
             </div>
           ) : (
@@ -186,53 +201,73 @@ export function OrigenExternoVista({
 
         <form className="pulso-origen-externo-form" onSubmit={enviar} aria-labelledby={`${id}-form`}>
           <span id={`${id}-form`} className="pulso-origen-externo-form-titulo">
-            {datos?.bloque ? "Reemplazar la declaración" : "Declarar la depuración"}
+            {datos?.bloque ? "Actualizar la declaración" : "Declarar lo retirado"}
           </span>
-          <fieldset disabled={bloqueado}>
-            <label className="pulso-origen-externo-campo is-archivo">
-              <span>Lista de exclusiones</span>
-              <input
-                ref={archivoRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                aria-describedby={`${id}-formato`}
-                onChange={(event) => onBorrador({ archivo: event.target.files?.[0] ?? null })}
+          <div
+            className="pulso-origen-externo-partes"
+            data-qa-geometry-group="carga-origen-externo-partes"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <fieldset className="pulso-origen-externo-parte is-casos" disabled={bloqueado} data-qa-geometry-member="">
+              <legend>Casos retirados <span>(opcional)</span></legend>
+              <div className="pulso-origen-externo-campos">
+                <label className="pulso-origen-externo-campo is-archivo">
+                  <span>Lista de casos retirados</span>
+                  <input
+                    ref={archivoRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    aria-describedby={`${id}-formato`}
+                    onChange={(event) => onBorrador({ archivo: event.target.files?.[0] ?? null })}
+                  />
+                  <small id={`${id}-formato`}>
+                    xlsx o csv con <code>_uuid</code>, <code>motivo</code> (texto libre) y, si quieres, <code>categoria</code>.
+                  </small>
+                </label>
+                <label className="pulso-origen-externo-campo">
+                  <span>Recibidas antes del script</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="Se deduce si la dejas vacía"
+                    value={borrador.recibidas}
+                    aria-invalid={!leerRecibidas(borrador.recibidas).ok}
+                    onChange={(event) => onBorrador({ recibidas: event.target.value })}
+                  />
+                </label>
+                <label className="pulso-origen-externo-campo">
+                  <span>Script</span>
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    placeholder="limpieza.R"
+                    value={borrador.script}
+                    onChange={(event) => onBorrador({ script: event.target.value })}
+                  />
+                </label>
+                <label className="pulso-origen-externo-campo">
+                  <span>Versión</span>
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    placeholder="v3 o el hash del commit"
+                    value={borrador.version}
+                    onChange={(event) => onBorrador({ version: event.target.value })}
+                  />
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset className="pulso-origen-externo-parte is-variables" disabled={bloqueado} data-qa-geometry-member="">
+              <legend>Variables retiradas</legend>
+              <VariablesFaltantes
+                carga={carga}
+                motivos={borrador.motivos}
+                onMotivo={(variable, motivo) => onBorrador({ motivos: { ...borrador.motivos, [variable]: motivo } })}
               />
-              <small id={`${id}-formato`}>xlsx o csv con <code>_uuid</code>, <code>motivo</code> y, si quieres, <code>categoria</code>.</small>
-            </label>
-            <label className="pulso-origen-externo-campo">
-              <span>Recibidas antes del script</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                autoComplete="off"
-                placeholder="Se deduce si la dejas vacía"
-                value={borrador.recibidas}
-                aria-invalid={!leerRecibidas(borrador.recibidas).ok}
-                onChange={(event) => onBorrador({ recibidas: event.target.value })}
-              />
-            </label>
-            <label className="pulso-origen-externo-campo">
-              <span>Script</span>
-              <input
-                type="text"
-                autoComplete="off"
-                placeholder="limpieza.R"
-                value={borrador.script}
-                onChange={(event) => onBorrador({ script: event.target.value })}
-              />
-            </label>
-            <label className="pulso-origen-externo-campo">
-              <span>Versión</span>
-              <input
-                type="text"
-                autoComplete="off"
-                placeholder="v3 o el hash del commit"
-                value={borrador.version}
-                onChange={(event) => onBorrador({ version: event.target.value })}
-              />
-            </label>
-          </fieldset>
+            </fieldset>
+          </div>
           <div className="pulso-origen-externo-acciones">
             <small id={`${id}-pendiente`} className="pulso-origen-externo-pendiente" aria-live="polite">
               {pendiente}
@@ -247,7 +282,7 @@ export function OrigenExternoVista({
               {enviando
                 ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
                 : <Upload size={14} aria-hidden="true" />}
-              {enviando ? "Declarando…" : datos?.bloque ? "Volver a declarar" : "Declarar"}
+              {enviando ? "Declarando…" : "Declarar"}
             </PulsoButton>
           </div>
           {envio.tipo === "error" && (
@@ -259,10 +294,80 @@ export function OrigenExternoVista({
   );
 }
 
+type VariablesFaltantesProps = {
+  carga: OrigenExternoCarga;
+  motivos: OrigenExternoBorrador["motivos"];
+  onMotivo: (variable: string, motivo: OrigenExternoMotivoVariable | "") => void;
+};
+
+function VariablesFaltantes({ carga, motivos, onMotivo }: VariablesFaltantesProps) {
+  if (carga.tipo === "leyendo") {
+    return <p className="pulso-origen-externo-nota">Leyendo las variables del instrumento…</p>;
+  }
+  if (carga.tipo === "error") {
+    return <p className="pulso-origen-externo-nota">No se pudo comparar la base con el instrumento.</p>;
+  }
+  const faltantes = carga.datos.variables_faltantes;
+  if (!faltantes.length) {
+    return (
+      <p className="pulso-origen-externo-completa" data-qa-geometry-capacity="owned">
+        La base trae todas las variables del instrumento.
+      </p>
+    );
+  }
+  return (
+    <>
+      <p className="pulso-origen-externo-explica">
+        {faltantes.length === 1
+          ? "Falta 1 variable del instrumento en la base."
+          : `Faltan ${formatoEntero(faltantes.length)} variables del instrumento en la base.`}{" "}
+        Las que marques como Metadato o No va al cliente no salen en los entregables: bases,
+        codebook, frecuencias y cruces.
+      </p>
+      <ul
+        className="pulso-origen-externo-variables"
+        aria-label="Variables del instrumento que no están en la base"
+        data-qa-geometry-group="carga-origen-externo-variables"
+        data-qa-geometry-contract="equal"
+      >
+        {faltantes.map((faltante) => (
+          <li key={faltante.variable} data-qa-geometry-member="">
+            <span className="pulso-origen-externo-variable">
+              <code title={faltante.variable}>{faltante.variable}</code>
+              {faltante.tipo && faltante.tipo !== faltante.variable && <small>{faltante.tipo}</small>}
+            </span>
+            <select
+              aria-label={`Motivo de ${faltante.variable}`}
+              value={motivos[faltante.variable] ?? ""}
+              onChange={(event) => {
+                const valor = event.target.value;
+                const motivo = (MOTIVOS_VARIABLE as readonly string[]).includes(valor)
+                  ? (valor as OrigenExternoMotivoVariable)
+                  : "";
+                onMotivo(faltante.variable, motivo);
+              }}
+            >
+              <option value="">Sin elegir</option>
+              {MOTIVOS_VARIABLE.map((motivo) => (
+                <option key={motivo} value={motivo}>{ROTULO_MOTIVO[motivo]}</option>
+              ))}
+            </select>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 function OrigenExternoResultado({ datos }: { datos: OrigenExterno }) {
   const tramos = tramosOrigen(datos);
   const procedencia = procedenciaScript(datos);
   const categorias = datos.resumen?.por_categoria ?? [];
+  const nVariables = totalVariablesRetiradas(datos);
+  const desglose = desgloseVariables(datos);
+  // Lo excluido se lee del bloque guardado, no sólo de la respuesta del POST:
+  // así sigue a la vista al recargar (QA 2026-10-13, C5).
+  const excluidas = variablesExcluidasDeLaDeclaracion(datos);
   return (
     <div className="pulso-origen-externo-declarada">
       {datos.estado === "otra_base" && (
@@ -271,30 +376,55 @@ function OrigenExternoResultado({ datos }: { datos: OrigenExterno }) {
           <span>La declaración habla de una base anterior; vuelve a declararla para esta base.</span>
         </p>
       )}
-      <ol
-        className="pulso-origen-externo-tramos"
-        aria-label={cadenaOrigenEnLlano(datos)}
-        data-qa-geometry-group="carga-origen-externo-tramos"
-        data-qa-geometry-contract="equal"
-      >
-        {tramos.map((tramo, index) => (
-          <li key={tramo.clave} className={`is-${tramo.clave}`} data-qa-geometry-member="">
-            {index > 0 && <ArrowRight size={14} className="pulso-origen-externo-flecha" aria-hidden="true" />}
-            <span className="pulso-origen-externo-rotulo">{tramo.rotulo}</span>
-            <strong className="pulso-origen-externo-valor">{tramo.valor}</strong>
-            {tramo.nota && <small>{tramo.nota}</small>}
-          </li>
-        ))}
-      </ol>
-      {categorias.length > 0 && (
-        <dl className="pulso-origen-externo-categorias" aria-label="Retiradas por categoría">
-          {categorias.map((fila) => (
-            <div key={fila.categoria}>
-              <dt>{fila.categoria}</dt>
-              <dd>{formatoEntero(fila.n)}</dd>
-            </div>
-          ))}
-        </dl>
+      {muestraCadenaCasos(datos) && (
+        <>
+          <ol
+            className="pulso-origen-externo-tramos"
+            aria-label={cadenaOrigenEnLlano(datos)}
+            data-qa-geometry-group="carga-origen-externo-tramos"
+            data-qa-geometry-contract="equal"
+          >
+            {tramos.map((tramo, index) => (
+              <li key={tramo.clave} className={`is-${tramo.clave}`} data-qa-geometry-member="">
+                {index > 0 && <ArrowRight size={14} className="pulso-origen-externo-flecha" aria-hidden="true" />}
+                <span className="pulso-origen-externo-rotulo">{tramo.rotulo}</span>
+                <strong className="pulso-origen-externo-valor">{tramo.valor}</strong>
+                {tramo.nota && <small>{tramo.nota}</small>}
+              </li>
+            ))}
+          </ol>
+          {categorias.length > 0 && (
+            <dl className="pulso-origen-externo-categorias" aria-label="Retiradas por categoría">
+              {categorias.map((fila) => (
+                <div key={fila.categoria}>
+                  <dt>{fila.categoria}</dt>
+                  <dd>{formatoEntero(fila.n)}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </>
+      )}
+      {nVariables > 0 && (
+        <div className="pulso-origen-externo-vars-resultado">
+          <strong className="pulso-origen-externo-vars-total">{fraseVariablesRetiradas(nVariables)}</strong>
+          {desglose.length > 0 && (
+            <dl className="pulso-origen-externo-categorias" aria-label="Variables retiradas por motivo">
+              {desglose.map((fila) => (
+                <div key={fila.motivo}>
+                  <dt>{fila.rotulo}</dt>
+                  <dd>{fila.valor}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {excluidas.length > 0 && (
+            <p className="pulso-origen-externo-excluidas">
+              No salen en los entregables: {excluidas.join(", ")}.{" "}
+              <EnlaceExcluidas href={hrefVariablesExcluidas(datos.base)} />
+            </p>
+          )}
+        </div>
       )}
       {(procedencia || datos.bloque?.declarado_at) && (
         <p className="pulso-origen-externo-procedencia">
@@ -304,4 +434,12 @@ function OrigenExternoResultado({ datos }: { datos: OrigenExterno }) {
       )}
     </div>
   );
+}
+
+// Navegación de la SPA cuando hay router; fuera de él (render estático de los
+// tests) un enlace normal, igual que ArmonizacionFilaEditor.
+function EnlaceExcluidas({ href }: { href: string }) {
+  const enRouter = useInRouterContext();
+  const texto = "Ver las variables excluidas";
+  return enRouter ? <Link to={href}>{texto}</Link> : <a href={href}>{texto}</a>;
 }

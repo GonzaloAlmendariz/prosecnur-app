@@ -1,0 +1,24 @@
+/* Tono del módulo en los portales (TonoDePortales.tsx, ronda de pulido P-A6).
+ *
+ * Todo hijo directo de <body> que no es la raíz de la app es un portal: los
+ * diálogos y popovers de Radix, los `createPortal` a document.body, los menús.
+ * Ahí no llega el acento que declara el frame del módulo, así que se reinyecta
+ * desde lo que el shell publicó en <body>, con el mismo contrato que
+ * `tokens.css`: el kit compartido lee `--module-accent*` y los componentes que
+ * leen el primario directo leen `--pulso-primary*`.
+ *
+ * `:where()` deja la especificidad en 0: un overlay que declara su propio
+ * acento en su raíz conserva el suyo. Dashboard sólo recibe `--module-accent*`
+ * por la misma razón por la que `tokens.css` no lo incluye en la tabla de
+ * frames: conserva su gramática `dash-*` hasta su migración. */
+:where(body[data-pulso-tono-portal] > :not(#root)) {
+  --module-accent: var(--pulso-portal-accent);
+  --module-accent-soft: var(--pulso-portal-accent-soft);
+  --module-accent-border: var(--pulso-portal-accent-border);
+}
+
+:where(body[data-pulso-tono-portal]:not([data-pulso-tono-portal="dashboard"]) > :not(#root)) {
+  --pulso-primary: var(--pulso-portal-accent);
+  --pulso-primary-soft: var(--pulso-portal-accent-soft);
+  --pulso-primary-border: var(--pulso-portal-accent-border);
+}

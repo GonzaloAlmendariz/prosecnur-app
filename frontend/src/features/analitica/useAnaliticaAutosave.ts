@@ -125,10 +125,19 @@ export function useAnaliticaAutosave() {
       }
     }
 
+    // El store es global: al volver a Analítica, o con otro proyecto abierto,
+    // conserva la config de la visita anterior —que Carga pudo cambiar, p. ej.
+    // al declarar el origen de una base (ADR 0100)—. Hasta que llegue la
+    // vigente no cuenta como hidratada.
+    useAnaliticaStore.setState({ hydrated: false });
     void hydrateFromBackend();
 
     function rehydrateScopedConfig() {
       if (timer.current) window.clearTimeout(timer.current);
+      // La config en memoria es la de la base anterior: mientras llega la nueva
+      // no está hidratada. Sin esto las pestañas seguían pintando —y la
+      // readiness publicando— las exclusiones de la otra base (U6).
+      useAnaliticaStore.setState({ hydrated: false });
       void hydrateFromBackend();
     }
     window.addEventListener("pulso:session-changed", rehydrateScopedConfig);

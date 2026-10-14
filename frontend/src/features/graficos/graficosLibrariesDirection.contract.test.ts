@@ -80,11 +80,9 @@ describe("bibliotecas de Gráficos como paneles direccionables", () => {
     );
   });
 
-  it("mantiene un solo host y saca los Dialog de Timeline y de cada slot", () => {
+  it("mantiene un solo host y las bibliotecas se abren por su panel", () => {
     const host = read("GraficosLibrariesHost.tsx");
     const page = read("GraficosPage.tsx");
-    const slot = read("GraficadorSlot.tsx");
-    const timeline = read("v2/timeline/TimelinePanelV2.tsx");
     const slidePicker = read("v2/timeline/SlidePicker.tsx");
     const graficadorPicker = read("GraficadorPicker.tsx");
 
@@ -96,8 +94,6 @@ describe("bibliotecas de Gráficos como paneles direccionables", () => {
     const hostBody = page.slice(page.indexOf("<GraficosLibrariesHost>"), page.indexOf("</GraficosLibrariesHost>"));
     expect(hostBody).not.toMatch(/<EditorShell\b/);
     expect(hostBody).toMatch(/<LaminasWorkbench\b/);
-    expect(slot).not.toMatch(/pickerOpen|GraficadorPicker|Dialog\./);
-    expect(timeline).not.toMatch(/pickerOpen|<SlidePicker\b|Dialog\./);
     expect(slidePicker).toContain("{...panel.props}");
     expect(graficadorPicker).toContain("{...panel.props}");
   });
@@ -141,18 +137,14 @@ describe("bibliotecas de Gráficos como paneles direccionables", () => {
     );
   });
 
-  it("no devuelve foco sobre otro modal ni abre slides con N/A dentro de un diálogo", () => {
+  it("no devuelve foco sobre otro modal", () => {
     const helper = read("useLibraryDialogA11y.ts");
-    const timeline = read("v2/timeline/TimelinePanelV2.tsx");
 
     expect(helper).toContain(
       `'[role="dialog"][aria-modal="true"][data-state="open"]'`,
     );
     expect(helper).toContain("document.querySelector(OPEN_MODAL_DIALOG_SELECTOR)");
     expect(helper).toContain("closingCycle !== openCycleRef.current");
-    expect(timeline).toContain(
-      `t?.closest('[role="dialog"][aria-modal="true"]')`,
-    );
   });
 
   it("preserva solo args compatibles al cambiar de modelo", () => {

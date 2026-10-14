@@ -121,7 +121,7 @@ export function ArgGroup({
   const varActual = typeof values.var === "string" ? values.var : undefined;
 
   // Modo flatten: render plano sin header colapsable. Usado cuando el
-  // ArgGroup vive dentro de una card mayor (StylePanel/FiltersPanel).
+  // ArgGroup vive dentro de una card mayor (FiltersPanel).
   if (flatten) {
     return (
       <div className="pulso-gv2-arg-body pulso-gv2-arg-body--flat">

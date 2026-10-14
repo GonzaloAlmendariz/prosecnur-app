@@ -15,11 +15,17 @@ import {
   type BaseSavRegistrada,
 } from "../../api/estudio";
 import "./BaseSavPanel.css";
+import { PulsoButton } from "../../components/PulsoButton";
 
 export type BaseSavPanelProps = {
   /** Se llama tras registrar la base: Carga refresca el estudio. */
   onRegistrada?: (r: BaseSavRegistrada) => void;
   disabled?: boolean;
+  /**
+   * Dentro de «Agregar base» (B2): la opción elegida ya dice qué es, así que el
+   * panel no repite su cabecera ni su marco.
+   */
+  embebido?: boolean;
 };
 
 type Estado =
@@ -39,7 +45,7 @@ export function nombreDesdeArchivo(nombre: string): string {
     .replace(/^_+|_+$/g, "");
 }
 
-export function BaseSavPanel({ onRegistrada, disabled }: BaseSavPanelProps) {
+export function BaseSavPanel({ onRegistrada, disabled, embebido = false }: BaseSavPanelProps) {
   const [archivo, setArchivo] = useState<File | null>(null);
   const [nombre, setNombre] = useState("");
   const [estado, setEstado] = useState<Estado>({ tipo: "inicial" });
@@ -63,13 +69,16 @@ export function BaseSavPanel({ onRegistrada, disabled }: BaseSavPanelProps) {
 
   return (
     <section
-      className="pulso-base-sav"
-      aria-labelledby="pulso-base-sav-titulo"
+      className={embebido ? "pulso-base-sav is-embebido" : "pulso-base-sav"}
+      aria-labelledby={embebido ? undefined : "pulso-base-sav-titulo"}
+      aria-label={embebido ? "Base .sav sin formulario" : undefined}
       data-qa-geometry-group="carga-base-sav"
       data-qa-geometry-contract="intrinsic"
     >
+      {embebido ? null : (
       <header className="pulso-base-sav-head" data-qa-geometry-member>
-        <Database size={16} aria-hidden="true" />
+        {/* B2: el mismo tile de ícono que las tarjetas de base. */}
+        <span className="pulso-base-sav-marca" aria-hidden="true"><Database size={16} /></span>
         <div>
           <h3 id="pulso-base-sav-titulo">Base .sav sin formulario</h3>
           <p>
@@ -78,17 +87,18 @@ export function BaseSavPanel({ onRegistrada, disabled }: BaseSavPanelProps) {
           </p>
         </div>
       </header>
+      )}
 
       <div className="pulso-base-sav-form" data-qa-geometry-member>
-        <button
-          type="button"
-          className="pulso-secondary pulso-base-sav-btn"
+        <PulsoButton
+          variant="secondary"
+          className="pulso-base-sav-btn"
           onClick={() => archivoRef.current?.click()}
           disabled={disabled || subiendo}
         >
           <Upload size={14} aria-hidden="true" />
           {archivo ? archivo.name : "Elegir archivo .sav"}
-        </button>
+        </PulsoButton>
         <input
           ref={archivoRef}
           className="pulso-base-sav-archivo"
@@ -113,19 +123,19 @@ export function BaseSavPanel({ onRegistrada, disabled }: BaseSavPanelProps) {
           <span>Nombre de la base</span>
           <input
             value={nombre}
-            placeholder="por ejemplo medicion_2024"
+            placeholder="Por ejemplo, b2023"
             disabled={disabled || subiendo}
             onChange={(e) => setNombre(e.target.value)}
           />
         </label>
-        <button
-          type="button"
-          className="pulso-primary pulso-base-sav-btn"
+        <PulsoButton
+          variant="primary"
+          className="pulso-base-sav-btn"
           disabled={disabled || subiendo || !archivo || !nombre.trim()}
           onClick={() => void registrar()}
         >
           {subiendo ? "Registrando…" : "Registrar base"}
-        </button>
+        </PulsoButton>
       </div>
 
       {estado.tipo === "error" && (

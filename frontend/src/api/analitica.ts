@@ -688,7 +688,20 @@ export type ComparativoPregunta = {
    * backend no lo reporta: entonces no se puede afirmar que no haya.
    */
   no_ofrecidas_cruce: Record<string, Record<string, string[]>> | null;
+  /**
+   * Mediciones donde la pregunta no tiene variable (sale «n.c.»). En el simple
+   * el backend manda bases; en el de cruces, `{base, fila}` donde `fila` es la
+   * variable de cruce que falta.
+   */
+  sin_variable: { base: string; fila?: string }[];
+  /**
+   * Mediciones donde la variable declarada no está en los datos: `excluida`
+   * en Analítica o `no_esta_en_la_base`. También sale «n.c.».
+   */
+  variable_ausente: ComparativoAusente[];
 };
+
+export type ComparativoAusente = { base: string; fila?: string; variable: string; motivo: string };
 
 export type ComparativoAvisoTipo =
   | "ponderacion"
@@ -696,6 +709,10 @@ export type ComparativoAvisoTipo =
   | "sin_mapa"
   | "nota_sin_pregunta"
   | "peso_ignorado"
+  | "sin_variable"
+  | "pregunta_omitida"
+  | "cruce_omitido"
+  | "variable_ausente"
   | "otro";
 
 export type ComparativoAviso = {
@@ -703,7 +720,31 @@ export type ComparativoAviso = {
   tipoOriginal: string;
   base?: string;
   fila?: string;
+  /** Sólo en `pregunta_omitida`: por qué quedó fuera (`sin_variable`, `mapa_roto`, `select_multiple`…). */
+  motivo?: string;
+  /** Códigos implicados, cuando el motor los nombra. */
+  codigos?: string[];
+  /** Sólo en `variable_ausente`: la variable que falta. */
+  variable?: string;
   mensaje: string;
+};
+
+/**
+ * Una fila que el motor dejó fuera del libro, y por qué. `tipo` dice si era una
+ * pregunta o una variable de cruce. `motivo` es la clave del motor
+ * (`mapa_roto`, `select_multiple`, `sin_variable`…); una que el cliente no
+ * conoce se conserva tal cual.
+ */
+export type ComparativoOmitida = {
+  fila: string;
+  titulo: string;
+  tipo: "pregunta" | "cruce";
+  motivo: string;
+  base: string;
+  codigos: string[];
+  detalle: string;
+  /** Con motivo `variable_ausente`: qué variable falta en qué base y por qué. */
+  ausentes: ComparativoAusente[];
 };
 
 export type ComparativoResultado = {
@@ -718,6 +759,8 @@ export type ComparativoResultado = {
     n_preguntas: number;
     preguntas: ComparativoPregunta[];
     avisos: ComparativoAviso[];
+    /** Lo que quedó fuera del libro. Vacío si no se omitió nada. */
+    omitidas: ComparativoOmitida[];
     /** Estado de la ponderación por medición. Sólo se lee `peso_ignorado`. */
     ponderacion: Record<string, { peso_ignorado: boolean }>;
   };
@@ -751,6 +794,17 @@ function cmpTextos(x: unknown): string[] {
   return cmpLista(x).map(cmpTexto).map((t) => t.trim()).filter(Boolean);
 }
 
+function cmpAusentes(x: unknown): ComparativoAusente[] {
+  return cmpLista(x).flatMap((a): ComparativoAusente[] => {
+    if (!cmpObjeto(a)) return [];
+    const base = cmpTexto(a.base).trim();
+    const variable = cmpTexto(a.variable).trim();
+    if (!base && !variable) return [];
+    const fila = cmpTexto(a.fila).trim();
+    return [{ base, variable, motivo: cmpTexto(a.motivo).trim(), ...(fila ? { fila } : {}) }];
+  });
+}
+
 function cmpPeriodos(x: unknown): ComparativoPeriodo[] {
   return cmpLista(x).flatMap((p) => {
     if (!cmpObjeto(p)) return [];
@@ -766,6 +820,10 @@ const AVISO_TIPOS: readonly ComparativoAvisoTipo[] = [
   "sin_mapa",
   "nota_sin_pregunta",
   "peso_ignorado",
+  "sin_variable",
+  "pregunta_omitida",
+  "cruce_omitido",
+  "variable_ausente",
 ];
 
 export function normalizarComparativoResultado(raw: unknown): ComparativoResultado {
@@ -833,9 +891,20 @@ export function normalizarComparativoResultado(raw: unknown): ComparativoResulta
         }
       }
     }
+    const sin_variable = cmpLista(p.sin_variable).flatMap((item): { base: string; fila?: string }[] => {
+      if (cmpObjeto(item)) {
+        const base = cmpTexto(item.base).trim();
+        const fila = cmpTexto(item.fila).trim();
+        return base ? [{ base, ...(fila ? { fila } : {}) }] : [];
+      }
+      const base = cmpTexto(item).trim();
+      return base ? [{ base }] : [];
+    });
     return [{
       titulo: cmpTexto(p.titulo).trim() || "Pregunta sin título",
       no_ofrecidas_cruce,
+      sin_variable,
+      variable_ausente: cmpAusentes(p.variable_ausente),
       n_c: cmpTextos(p.n_c),
       n_a,
       n_reducidas: p.n_reducidas === undefined || p.n_reducidas === null ? null : cmpNumero(p.n_reducidas),
@@ -853,7 +922,35 @@ export function normalizarComparativoResultado(raw: unknown): ComparativoResulta
       : "otro";
     const base = cmpTexto(a.base).trim();
     const fila = cmpTexto(a.fila).trim();
-    return [{ tipo, tipoOriginal, mensaje, ...(base ? { base } : {}), ...(fila ? { fila } : {}) }];
+    const motivo = cmpTexto(a.motivo).trim();
+    const codigos = cmpTextos(a.codigos);
+    const variable = cmpTexto(a.variable).trim();
+    return [{
+      tipo,
+      tipoOriginal,
+      mensaje,
+      ...(base ? { base } : {}),
+      ...(fila ? { fila } : {}),
+      ...(motivo ? { motivo } : {}),
+      ...(codigos.length ? { codigos } : {}),
+      ...(variable ? { variable } : {}),
+    }];
+  });
+  const omitidas = cmpLista(resumen.omitidas).flatMap((o): ComparativoOmitida[] => {
+    if (!cmpObjeto(o)) return [];
+    const fila = cmpTexto(o.fila).trim();
+    const titulo = cmpTexto(o.titulo).trim();
+    if (!fila && !titulo) return [];
+    return [{
+      fila,
+      titulo: titulo || fila,
+      tipo: cmpTexto(o.tipo).trim() === "cruce" ? "cruce" : "pregunta",
+      motivo: cmpTexto(o.motivo).trim(),
+      base: cmpTexto(o.base).trim(),
+      codigos: cmpTextos(o.codigos),
+      detalle: cmpTexto(o.detalle).trim(),
+      ausentes: cmpAusentes(o.ausentes),
+    }];
   });
   const ponderacion: Record<string, { peso_ignorado: boolean }> = {};
   if (cmpObjeto(resumen.ponderacion)) {
@@ -876,6 +973,7 @@ export function normalizarComparativoResultado(raw: unknown): ComparativoResulta
       n_preguntas: cmpNumero(resumen.n_preguntas) || preguntas.length,
       preguntas,
       avisos,
+      omitidas,
       ponderacion,
     },
   };

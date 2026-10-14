@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ChevronDown, Download, Loader2, Play } from "lucide-react";
 import { JobProgress } from "../../components/JobProgress";
+import { PulsoButton } from "../../components/PulsoButton";
 import { ErrorBlock } from "../../components/States";
 import { apiSaveFileAs, downloadUrl, FileJobResult } from "../../api/client";
 import { useProjectShell } from "../project/ProjectShell";
@@ -22,7 +23,15 @@ export function PaneGroup({ label, hint, children }: { label: string; hint?: str
         <span className="analitica-pane-group-label">{label}</span>
         {hint && <span className="analitica-pane-group-hint">{hint}</span>}
       </header>
-      <div className="analitica-pane-group-body">{children}</div>
+      {/* C1: los bloques de un grupo (formatos de salida, opciones) son
+          secciones independientes, cada una con su alto propio. */}
+      <div
+        className="analitica-pane-group-body"
+        data-qa-geometry-group="analitica/pane-group"
+        data-qa-geometry-contract="intrinsic"
+      >
+        {children}
+      </div>
     </section>
   );
 }
@@ -156,23 +165,29 @@ export function GenerateFooter({
     return () => { cancelled = true; };
   }, [fileId, running, downloadName, project.status.path]);
 
+  const saveStatusIsError = saveStatus.startsWith("[") || /\s·\s(?:E_|HTTP_)[A-Z0-9_]+$/.test(saveStatus);
+
   return (
     <>
       <div className="analitica-generate-footer">
-        <button
-          className={variant === "secondary" ? "pulso-secondary" : "pulso-primary"}
+        {/* La misma receta que «Generar comparativo»: PulsoButton grande con
+            el acento del módulo (resto de P-A5). */}
+        <PulsoButton
+          variant={variant}
+          size="lg"
           onClick={onGenerate}
           disabled={running || !!disabled}
+          aria-busy={running}
         >
           {running ? (
-            <Loader2 size={14} className="pulso-spin" />
+            <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
           ) : (
-            <Play size={14} />
+            <Play size={14} aria-hidden="true" />
           )}
           {running ? "Generando…" : label}
-        </button>
+        </PulsoButton>
         {disabled && disabledHint && (
-          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
+          <span className="analitica-generate-hint">
             {disabledHint}
           </span>
         )}
@@ -186,14 +201,8 @@ export function GenerateFooter({
           </a>
         )}
         {saveStatus && (
-          <span style={{
-            fontSize: 11,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            color: saveStatus.startsWith("[") || /\s·\s(?:E_|HTTP_)[A-Z0-9_]+$/.test(saveStatus) ? "var(--pulso-danger-fg)" : "var(--pulso-success-fg)",
-          }}>
-            {!(saveStatus.startsWith("[") || /\s·\s(?:E_|HTTP_)[A-Z0-9_]+$/.test(saveStatus)) && <CheckCircle2 size={12} />}
+          <span className={`analitica-generate-save${saveStatusIsError ? " is-error" : ""}`}>
+            {!saveStatusIsError && <CheckCircle2 size={12} aria-hidden="true" />}
             {saveStatus}
           </span>
         )}
@@ -204,19 +213,13 @@ export function GenerateFooter({
           <div className="analitica-per-base-title">
             Descarga individual por base:
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div className="analitica-per-base-list">
             {perBase!.map((b) => (
               b.skipped ? (
                 <span
                   key={b.nombre}
                   title={b.reason ?? "Omitida"}
-                  style={{
-                    fontSize: 11, padding: "3px 9px", borderRadius: 999,
-                    background: "var(--pulso-surface)",
-                    border: "1px dashed var(--pulso-border)",
-                    color: "var(--pulso-text-soft)",
-                    fontStyle: "italic",
-                  }}
+                  className="analitica-per-base-chip is-skipped"
                 >
                   {b.nombre} (omitida)
                 </span>
@@ -224,27 +227,12 @@ export function GenerateFooter({
                 <a
                   key={b.nombre}
                   href={downloadUrl(b.file_id)}
-                  style={{
-                    fontSize: 11,
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                    padding: "3px 9px", borderRadius: 999,
-                    background: "white", border: "1px solid var(--pulso-border)",
-                    color: "var(--pulso-text)", textDecoration: "none",
-                    fontWeight: 500,
-                  }}
+                  className="analitica-per-base-chip is-link"
                 >
-                  <Download size={10} /> {b.nombre}
+                  <Download size={10} aria-hidden="true" /> {b.nombre}
                 </a>
               ) : (
-                <span
-                  key={b.nombre}
-                  style={{
-                    fontSize: 11, padding: "3px 9px", borderRadius: 999,
-                    background: "var(--pulso-surface)",
-                    border: "1px solid var(--pulso-border)",
-                    color: "var(--pulso-text-soft)",
-                  }}
-                >
+                <span key={b.nombre} className="analitica-per-base-chip">
                   {b.nombre}
                 </span>
               )

@@ -94,7 +94,10 @@
   bloque <- base_meta$origen_externo
   if (!identical(.origen_externo_estado(bloque, base_meta$data_file_id), "vigente")) return(NULL)
   r <- .origen_externo_resumen(bloque)
-  if (is.null(r) || is.na(r$recibidas) || is.na(r$entregadas) || r$excluidas <= 0L) return(NULL)
+  if (is.null(r)) return(NULL)
+  # P2b: la declaración puede traer sólo variables retiradas, sin casos.
+  r$casos_ok <- !is.na(r$recibidas) && !is.na(r$entregadas) && r$excluidas > 0L
+  if (!r$casos_ok && (r$variables_retiradas$total %||% 0L) <= 0L) return(NULL)
   r
 }
 
@@ -104,6 +107,13 @@
 # las recibidas antes del script viajan aparte.
 .validacion_universe_con_externo <- function(universe, external) {
   if (is.null(universe) || is.null(external)) return(universe)
+  # Las variables retiradas no tocan los conteos de casos: se cuelgan siempre.
+  vars <- external$variables_retiradas %||% list()
+  if ((vars$total %||% 0L) > 0L) {
+    universe$variables_retiradas_external <- as.integer(vars$total)
+    universe$variables_retiradas_external_por_motivo <- vars$por_motivo %||% list()
+  }
+  if (!isTRUE(external$casos_ok)) return(universe)
   if (!identical(as.integer(universe$total %||% NA_integer_), external$entregadas)) return(universe)
   universe$external_applied <- TRUE
   universe$received_external <- external$recibidas

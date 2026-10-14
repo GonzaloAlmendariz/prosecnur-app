@@ -769,22 +769,6 @@ const DECLARED_VISUAL_SURFACES = [
   ),
   surface(
     "procesamiento",
-    "graficos",
-    "Timeline / Canvas",
-    "Previews de slides",
-    "SVG y previews dinámicos según plantilla de slide, tipo de gráfico, contenido, estilo y placeholders.",
-    "frontend/src/features/graficos/SlidePreview.tsx",
-  ),
-  surface(
-    "procesamiento",
-    "graficos",
-    "Canvas",
-    "Canvas del plan",
-    "Nodos de slide, selección múltiple, navegación espacial, toolbar, duplicación y eliminación masiva.",
-    "frontend/src/features/graficos/v2/canvas/PlanCanvas.tsx",
-  ),
-  surface(
-    "procesamiento",
     "analitica",
     "Dimensiones",
     "Árbol de dimensiones",
@@ -1929,9 +1913,6 @@ function refineContext(
       DimensionesPane: "Dimensiones",
       DimensionesWizard: "Dimensiones",
       EnumeradoresPane: "Enumeradores (declarada inactiva)",
-      TimelinePanelV2: "Timeline",
-      PlanCanvas: "Canvas",
-      InspectorV2: "Inspector",
     };
     for (const [needle, tab] of Object.entries(processingTabs)) {
       if (matchesNamedContext(needle)) next.tab = tab;

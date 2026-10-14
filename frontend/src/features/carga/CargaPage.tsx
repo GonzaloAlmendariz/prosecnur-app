@@ -57,7 +57,7 @@ import "./carga-v2.css";
 import "./carga-sources.css";
 import { PageFrame } from "../../components/PageFrame";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
-import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
+import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import { BasesPanel } from "./BasesPanel";
 import { InstrumentRevisionBindingNotice } from "./InstrumentRevisionBindingNotice";
@@ -108,6 +108,8 @@ import {
   type CargaRevisionLectura,
 } from "./cargaRevisionLecturaModel";
 import { baseDeLaDireccion } from "./fuentesEmparejamientoModel";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { Switch } from "../../components/Switch";
 
 // Fase 1 — Carga de insumos.
 //
@@ -849,7 +851,9 @@ export default function CargaPage() {
       : Number(hasXlsform || hasData);
   // Conteo de la equivalencia declarada, para que la pestaña diga si hay trabajo
   // hecho sin obligar a abrirla.
-  const [equivalenciasFilas, setEquivalenciasFilas] = useState(0);
+  // `null` hasta que Equivalencias la lee; así la pestaña dice «Revisando…» y
+  // no un «Pendiente» que todavía no sabe.
+  const [equivalenciasFilas, setEquivalenciasFilas] = useState<number | "error" | null>(null);
   const reviewHasIssues = Boolean(cargaReview && (
     !cargaReview.compatibility.ok
     || cargaReview.choice_mapping.pending
@@ -889,6 +893,7 @@ export default function CargaPage() {
       basesPrimarias: topologyBases.length,
     }),
     equivalenciasDeclaradas: equivalenciasFilas,
+    equivalenciasLeyendo: cargaDireccion.pestana === "equivalencias" && equivalenciasFilas === null,
     // Solo mientras se mira Revisión: en otras pestañas no se lee y la marca
     // se quedaría en «Revisando…» para siempre.
     revisionLeyendo: cargaDireccion.pestana === "revision" && !revisionEstado.datosLeidos,
@@ -1246,6 +1251,12 @@ export default function CargaPage() {
             />
   );
 
+  const onBaseSavRegistrada = () => {
+    void apiEstudioGet()
+      .then(onEstudioChanged)
+      .catch((reason: Error) => setError(reason.message));
+  };
+
   const sourcePlan = (
     <CargaSourcesPlan
       strategy={sourceStrategy}
@@ -1455,7 +1466,8 @@ export default function CargaPage() {
                   onCambio={onEstudioChanged}
                   onOrigen={(o) => {
                     if (o === "surveymonkey" || o === "kobo") { setPlatformProvider(o); setSourceMode("platform"); }
-                    else setSourceMode(o === "archivos" ? "files" : "monitoring");
+                    else if (o === "archivos") setSourceMode("files");
+                    else if (o === "monitoreo") setSourceMode("monitoring");
                   }}
                   onDestinoFuente={(d) => { setFuenteDestino(d); setVistaPreviaFuente(null); if (d) { setPlatformProvider("surveymonkey"); setSourceMode("platform"); } }}
                   vistaPreviaFuente={vistaPreviaFuente?.datos ?? null}
@@ -1463,7 +1475,9 @@ export default function CargaPage() {
                   onDescartarVistaPrevia={() => setVistaPreviaFuente(null)}
                   ocupado={!!busy}
                   renderCatalogo={() => platformPanel}
-                  renderOrigen={(o) => (o === "surveymonkey" || o === "kobo" ? platformPanel : o === "monitoreo" ? monitoringSourcePanel : (
+                  renderOrigen={(o) => (o === "surveymonkey" || o === "kobo" ? platformPanel : o === "monitoreo" ? monitoringSourcePanel : o === "sav" ? (
+                    <BaseSavPanel embebido disabled={!!busy} onRegistrada={onBaseSavRegistrada} />
+                  ) : (
                     <NuevaBaseArchivos estudio={estudio} onCambio={onEstudioChanged} />
                   ))}
                 />
@@ -1506,16 +1520,10 @@ export default function CargaPage() {
               ) : null}
                 </>
               )}
-              {/* Una base .sav sin XLSForm (series de años anteriores) entra en cualquier estudio, también con «Bases separadas». */}
-              {estudio ? (
-                <BaseSavPanel
-                  disabled={!!busy}
-                  onRegistrada={() => {
-                    void apiEstudioGet()
-                      .then(onEstudioChanged)
-                      .catch((reason: Error) => setError(reason.message));
-                  }}
-                />
+              {/* Una base .sav sin XLSForm (series de años anteriores) entra en cualquier estudio. Con «Bases separadas»
+                  es un origen más de «Agregar base» (B2); en el resto de estrategias conserva su panel. */}
+              {estudio && sourceStrategy !== "separate" ? (
+                <BaseSavPanel disabled={!!busy} onRegistrada={onBaseSavRegistrada} />
               ) : null}
               </div>
             ) : activeCargaTab === "revision" ? (
@@ -1602,10 +1610,11 @@ export default function CargaPage() {
                   )}
                 />
               ) : (
-                <EmptyState
-                  icon={<FileSpreadsheet size={20} />}
-                  title="Aún no hay estructura para revisar"
-                  hint="Agrega una base con instrumento desde Fuentes para inspeccionar secciones, preguntas y reglas."
+                <EstadoVacio
+                  tamano="normal"
+                  icono={<FileSpreadsheet size={18} />}
+                  titulo="Aún no hay estructura para revisar"
+                  descripcion="Agrega una base con instrumento desde Fuentes para inspeccionar secciones, preguntas y reglas."
                 />
               )
             ) : (
@@ -1952,10 +1961,11 @@ export default function CargaPage() {
                 estructura={estructura}
               />
             ) : (
-              <EmptyState
-                icon={<FileSpreadsheet size={20} />}
-                title="Aún no hay estructura para revisar"
-                hint="Agrega un formulario desde Fuentes para inspeccionar secciones, preguntas y reglas."
+              <EstadoVacio
+                tamano="normal"
+                icono={<FileSpreadsheet size={18} />}
+                titulo="Aún no hay estructura para revisar"
+                descripcion="Agrega un formulario desde Fuentes para inspeccionar secciones, preguntas y reglas."
               />
             )
           ) : (
@@ -2326,11 +2336,12 @@ function PlatformImportPanel({
           </div>
           {isSurveyMonkey && (
             <label className="pulso-platform-check">
-              <input
-                type="checkbox"
+              <Switch
+                className="pulso-carga-switch"
                 checked={includePartials}
-                onChange={(event) => onIncludePartialsChange(event.target.checked)}
+                onToggle={() => onIncludePartialsChange(!includePartials)}
                 disabled={busy}
+                ariaLabel="Incluir respuestas parciales"
               />
               <span>Parciales</span>
             </label>
@@ -2519,10 +2530,11 @@ function CargaBaseSheetPane({
   if (!enabled) {
     return (
       <section className="pulso-carga-base-shell" data-carga-surface="data" aria-label="Base de carga">
-        <EmptyState
-          icon={<Table2 size={20} />}
-          title="Aún no hay datos de Carga para explorar"
-          hint={disabledMessage}
+        <EstadoVacio
+          tamano="normal"
+          icono={<Table2 size={18} />}
+          titulo="Aún no hay datos de Carga para explorar"
+          descripcion={disabledMessage}
         />
       </section>
     );

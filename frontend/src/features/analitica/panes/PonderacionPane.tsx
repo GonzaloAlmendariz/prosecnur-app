@@ -8,7 +8,11 @@ import {
   PonderPreview, ValorColumna, VariableInstrumento,
 } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
-import { PonderMargin, useAnaliticaStore } from "../store";
+import { PulsoButton } from "../../../components/PulsoButton";
+import { Switch } from "../../../components/Switch";
+import { formatoConteo } from "../../../lib/formatoNumero";
+import { CifrasPestana } from "../CifrasPestana";
+import { useAnaliticaStore } from "../store";
 import { VariableSelect } from "../VariableSelect";
 import { useSession } from "../../../lib/SessionContext";
 import { PesoPorColumna } from "./PesoPorColumna";
@@ -20,9 +24,8 @@ import "./PonderacionPane.css";
 // La ponderación se persiste en analitica_config.ponderacion (autosave) y el
 // backend recalcula el peso de forma determinista; aquí solo se previsualiza.
 
-const fmt1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1) : "—");
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
-const intfmt = (x: number) => Math.round(x).toLocaleString("es-PE");
+const intfmt = (x: number) => formatoConteo(x);
 
 export function PonderacionPane() {
   const pond = useAnaliticaStore((s) => s.config.ponderacion);
@@ -84,7 +87,13 @@ export function PonderacionPane() {
 
   return (
     <Panel className="analitica-ponderacion-panel">
-      <div className="analitica-report-shell" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* C1: guía, interruptor, pasos y diagnóstico son bloques independientes
+          de alto intrínseco; el dueño del scroll es el panel. */}
+      <div
+        className="analitica-report-shell analitica-ponderacion-workbench"
+        data-qa-geometry-group="analitica/ponderacion-workbench"
+        data-qa-geometry-contract="intrinsic"
+      >
 
         {/* Docbar */}
         <div className="analitica-cruces-docbar">
@@ -94,26 +103,29 @@ export function PonderacionPane() {
             <strong>Ponderación</strong>
             <small>Ajusta tus resultados para que representen a la población.</small>
           </div>
-          <div className="analitica-cruces-docbar-stats" aria-label="Estado de la ponderación">
-            <span>Estado<strong style={{ color: pond.enabled ? "var(--pulso-primary)" : "var(--pulso-text-soft)" }}>{pond.enabled ? "Activa" : "Inactiva"}</strong></span>
-            <span>n efectivo<strong>{nEff}</strong></span>
-            <span>DEFF<strong>{deff}</strong></span>
-          </div>
+          <CifrasPestana
+            ariaLabel="Estado de la ponderación"
+            cifras={[
+              { etiqueta: "Estado", valor: pond.enabled ? "Activa" : "Inactiva", tono: pond.enabled ? "acento" : "neutral" },
+              { etiqueta: "n efectivo", valor: nEff },
+              { etiqueta: "DEFF", valor: deff },
+            ]}
+          />
         </div>
 
         {/* Guía de decisión */}
         <DecisionAid />
 
-        {/* Master switch */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 12, padding: "14px 16px",
-          background: "var(--pulso-surface)", border: `1px solid ${pond.enabled ? "var(--pulso-primary-border)" : "var(--pulso-border)"}`,
-          borderRadius: 12,
-        }}>
-          <Toggle on={pond.enabled} onClick={() => setPonderacion({ enabled: !pond.enabled })} label="Activar ponderación" />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>Activar ponderación</div>
-            <div style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
+        {/* Interruptor maestro */}
+        <div className={`pond-card pond-master${pond.enabled ? " is-on" : ""}`}>
+          <Switch
+            checked={pond.enabled}
+            onToggle={() => setPonderacion({ enabled: !pond.enabled })}
+            ariaLabel="Activar ponderación"
+          />
+          <div className="pond-master-copy">
+            <div className="pond-title">Activar ponderación</div>
+            <div className="pond-copy">
               {pond.enabled
                 ? "Frecuencias, cruces y dimensiones usan los pesos. Apágala para volver a peso 1 en cada caso."
                 : "Tus reportes usan cada caso con peso 1 (sin ponderar)."}
@@ -136,7 +148,7 @@ export function PonderacionPane() {
           <>
             {/* Paso 1 — Método */}
             <StepLabel n={1} text="¿Qué quieres corregir?" />
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+            <div className="pond-metodos">
               <MetodoCard
                 icon={<SlidersHorizontal size={17} />}
                 title="Ajustar a la población"
@@ -178,9 +190,9 @@ export function PonderacionPane() {
             />
 
             {designOn && (
-              <div style={{ marginTop: 4 }}>
-                <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", margin: "4px 2px 6px", display: "flex", alignItems: "center", gap: 6 }}>
-                  <Scale size={13} /> Reequilibrio: elige el estrato y su población real
+              <div className="pond-design">
+                <div className="pond-design-label">
+                  <Scale size={13} aria-hidden="true" /> Reequilibrio: elige el estrato y su población real
                 </div>
                 {pond.design?.var ? (
                   <CategoryEditor
@@ -222,36 +234,40 @@ function DecisionAid() {
   const conviene = describe === true && margins === true;
   const comparar = describe === false;
   return (
-    <div style={{ background: "var(--pulso-surface)", border: "1px solid var(--pulso-border)", borderRadius: 12, padding: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-        <HelpCircle size={17} style={{ color: "var(--pulso-primary)" }} />
-        <span style={{ fontSize: 15, fontWeight: 600 }}>Antes de empezar: ¿lo necesitas?</span>
+    <div className="pond-card pond-aid">
+      <div className="pond-aid-head">
+        <HelpCircle size={17} aria-hidden="true" />
+        <span className="pond-heading">Antes de empezar: ¿lo necesitas?</span>
       </div>
-      <div style={{ fontSize: 12.5, color: "var(--pulso-text-soft)", marginBottom: 12 }}>
+      <div className="pond-copy">
         Ponderar corrige el sesgo, pero cuesta precisión. Responde dos cosas y te digo si conviene.
       </div>
-      <YesNo
-        q="¿Vas a describir a la población (no solo comparar grupos entre sí)?"
-        yes="Describir población"
-        no="Solo comparar grupos"
-        value={describe}
-        onChange={setDescribe}
-      />
-      <YesNo
-        q="¿Tienes cifras poblacionales confiables (censo, padrón)?"
-        yes="Con cifras confiables"
-        no="Sin cifras confiables"
-        value={margins}
-        onChange={setMargins}
-      />
+      {/* C1: dos preguntas independientes; cada fila mide lo que su texto
+          necesita al envolver. */}
+      <div
+        className="pond-yesno-lista"
+        data-qa-geometry-group="analitica/ponderacion-preguntas"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <YesNo
+          q="¿Vas a describir a la población (no solo comparar grupos entre sí)?"
+          yes="Describir población"
+          no="Solo comparar grupos"
+          value={describe}
+          onChange={setDescribe}
+        />
+        <YesNo
+          q="¿Tienes cifras poblacionales confiables (censo, padrón)?"
+          yes="Con cifras confiables"
+          no="Sin cifras confiables"
+          value={margins}
+          onChange={setMargins}
+        />
+      </div>
       {answered && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 8, marginTop: 12, padding: "10px 12px", borderRadius: 8,
-          background: conviene ? "var(--pulso-success-soft, #E9F6EE)" : "var(--pulso-warning-soft, #FBF3E2)",
-        }}>
-          {conviene ? <CheckCircle2 size={17} style={{ color: "var(--pulso-success-fg)" }} />
-            : <Info size={17} style={{ color: "var(--pulso-warn-fg, #9A6B12)" }} />}
-          <span style={{ fontSize: 12.5, color: conviene ? "var(--pulso-success-fg)" : "var(--pulso-warn-fg, #9A6B12)" }}>
+        <div className={`pond-veredicto${conviene ? " is-success" : " is-warn"}`} role="status">
+          {conviene ? <CheckCircle2 size={17} aria-hidden="true" /> : <Info size={17} aria-hidden="true" />}
+          <span>
             {conviene
               ? "Ponderar tiene sentido aquí. Configura los objetivos abajo."
               : comparar
@@ -268,45 +284,47 @@ function YesNo({ q, yes, no, value, onChange }: {
   q: string; yes: string; no: string; value: boolean | null; onChange: (v: boolean) => void;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--pulso-surface-2)", borderRadius: 8, marginBottom: 8 }}>
-      <span style={{ fontSize: 13, flex: 1 }}>{q}</span>
-      <div className="analitica-segmented" role="group">
-        <button type="button" className={value === true ? "is-on" : ""} onClick={() => onChange(true)}>{yes}</button>
-        <button type="button" className={value === false ? "is-on" : ""} onClick={() => onChange(false)}>{no}</button>
+    <div className="pond-yesno">
+      <span className="pond-yesno-q">{q}</span>
+      <div className="analitica-segmented" role="group" aria-label={q}>
+        <button type="button" className={value === true ? "is-on" : ""} aria-pressed={value === true} onClick={() => onChange(true)}>{yes}</button>
+        <button type="button" className={value === false ? "is-on" : ""} aria-pressed={value === false} onClick={() => onChange(false)}>{no}</button>
       </div>
     </div>
   );
 }
 
 // ---- Método card ------------------------------------------------------------
+// La que se puede activar es un botón de verdad (teclado y estado); la otra
+// solo informa si está en uso.
 function MetodoCard({ icon, title, copy, active, activeLabel, toggle, onToggle }: {
   icon: React.ReactNode; title: string; copy: string; active: boolean;
   activeLabel?: string; toggle?: boolean; onToggle?: () => void;
 }) {
-  return (
-    <div
-      role={toggle ? "button" : undefined}
-      onClick={toggle ? onToggle : undefined}
-      style={{
-        background: "var(--pulso-surface)", borderRadius: 12, padding: 14, cursor: toggle ? "pointer" : "default",
-        border: active ? "2px solid var(--pulso-primary)" : "1px solid var(--pulso-border)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-        <span style={{ color: active ? "var(--pulso-primary)" : "var(--pulso-text-soft)" }}>{icon}</span>
-        <span style={{ fontSize: 14, fontWeight: 600 }}>{title}</span>
+  const contenido = (
+    <>
+      <span className="pond-metodo-head">
+        <span className="pond-metodo-icon" aria-hidden="true">{icon}</span>
+        <span className="pond-title">{title}</span>
         {(active && (activeLabel || toggle)) && (
-          <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 600, color: "var(--pulso-primary)", background: "var(--pulso-primary-soft)", padding: "2px 8px", borderRadius: 999 }}>
-            {activeLabel ?? "activo"}
-          </span>
+          <span className="pond-metodo-estado">{activeLabel ?? "activo"}</span>
         )}
         {toggle && !active && (
-          <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--pulso-text-soft)" }}>activar</span>
+          <span className="pond-metodo-activar">activar</span>
         )}
-      </div>
-      <div style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>{copy}</div>
-    </div>
+      </span>
+      <span className="pond-copy">{copy}</span>
+    </>
   );
+  const clase = `pond-card pond-metodo${active ? " is-active" : ""}`;
+  if (toggle) {
+    return (
+      <button type="button" className={`${clase} is-toggle`} aria-pressed={active} onClick={onToggle}>
+        {contenido}
+      </button>
+    );
+  }
+  return <div className={clase}>{contenido}</div>;
 }
 
 // ---- Editor de categorías (rake targets / design pop_sizes) -----------------
@@ -340,37 +358,37 @@ function CategoryEditor({ mode, variable, label, categorias, values, observed, o
   };
   const isRake = mode === "rake";
   return (
-    <div style={{ background: "var(--pulso-surface)", border: "1px solid var(--pulso-border)", borderRadius: 12, padding: 14 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        <span style={{ fontSize: 14, fontWeight: 600 }}>{label}</span>
+    <div className={`pond-card pond-categorias${isRake ? " is-rake" : " is-design"}`}>
+      <div className="pond-categorias-head">
+        <span className="pond-title">{label}</span>
         {isRake && (
-          <>
-            <button className="analitica-add-inline" style={{ marginLeft: "auto", fontSize: 11.5 }} onClick={usarMuestra} title="Prefijar los objetivos con la distribución actual de tu muestra">
+          <span className="pond-categorias-acciones">
+            <PulsoButton variant="secondary" size="sm" onClick={usarMuestra} title="Prefijar los objetivos con la distribución actual de tu muestra">
               Usar muestra
-            </button>
-            <button className="analitica-add-inline" style={{ fontSize: 11.5 }} onClick={igualar}>Igualar</button>
-            <button className="analitica-add-inline" style={{ fontSize: 11.5, opacity: 0.55, cursor: "not-allowed" }} disabled title="Disponible para estudios territoriales (próximamente)">
-              <Landmark size={13} style={{ verticalAlign: -2, marginRight: 4 }} />Censo INEI
-            </button>
-          </>
+            </PulsoButton>
+            <PulsoButton variant="secondary" size="sm" onClick={igualar}>Igualar</PulsoButton>
+            <PulsoButton variant="secondary" size="sm" disabled title="Disponible para estudios territoriales (próximamente)">
+              <Landmark size={13} aria-hidden="true" />Censo INEI
+            </PulsoButton>
+          </span>
         )}
-        <button aria-label="Quitar variable" onClick={onRemove} style={{ marginLeft: isRake ? 4 : "auto", padding: "4px 7px", background: "transparent", border: "none", color: "var(--pulso-text-soft)", cursor: "pointer" }}>
-          <X size={15} />
-        </button>
+        <PulsoButton variant="icon" size="sm" aria-label={`Quitar ${variable}`} onClick={onRemove} className="pond-categorias-quitar">
+          <X size={15} aria-hidden="true" />
+        </PulsoButton>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: `1fr auto ${isRake ? "auto" : ""}`.trim(), gap: "4px 14px", alignItems: "center", fontSize: 11, color: "var(--pulso-text-soft)", paddingBottom: 4, borderBottom: "1px solid var(--pulso-border)" }}>
+      <div className="pond-categorias-fila is-cabecera">
         <span>categoría</span>
-        {isRake && <span style={{ textAlign: "right" }}>en tu muestra</span>}
-        <span style={{ textAlign: "right" }}>{isRake ? "objetivo %" : "población"}</span>
+        {isRake && <span className="pond-num">en tu muestra</span>}
+        <span className="pond-num">{isRake ? "objetivo %" : "población"}</span>
       </div>
       {categorias.length === 0 && (
-        <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: "10px 0" }}>Cargando categorías…</div>
+        <div className="pond-copy pond-categorias-cargando">Cargando categorías…</div>
       )}
       {categorias.map((c) => (
-        <div key={c.value} style={{ display: "grid", gridTemplateColumns: `1fr auto ${isRake ? "auto" : ""}`.trim(), gap: "4px 14px", alignItems: "center", padding: "7px 0", borderBottom: "1px solid var(--pulso-border)" }}>
-          <span style={{ fontSize: 13 }}>{c.label}</span>
+        <div key={c.value} className="pond-categorias-fila">
+          <span className="pond-categorias-nombre">{c.label}</span>
           {isRake && (
-            <span style={{ fontSize: 12.5, color: "var(--pulso-text-soft)", textAlign: "right", minWidth: 52 }}>
+            <span className="pond-num pond-categorias-muestra">
               {obs(c.value) != null ? pct(obs(c.value)!) : "—"}
             </span>
           )}
@@ -379,7 +397,7 @@ function CategoryEditor({ mode, variable, label, categorias, values, observed, o
             onChange={(e) => set(c.value, e.target.value)}
             placeholder={isRake ? "%" : "n"}
             inputMode="decimal"
-            style={{ width: isRake ? 66 : 92, height: 30, textAlign: "right", fontSize: 13 }}
+            className="pond-categorias-input"
             aria-label={`${isRake ? "objetivo" : "población"} ${c.label}`}
           />
         </div>
@@ -395,17 +413,17 @@ function AddVariable({ variables, label, onPick }: {
   const [adding, setAdding] = useState(false);
   if (!adding) {
     return (
-      <button className="analitica-add-inline" style={{ alignSelf: "flex-start", fontSize: 12.5, display: "inline-flex", alignItems: "center", gap: 6 }} onClick={() => setAdding(true)}>
-        <Plus size={15} /> {label}
-      </button>
+      <PulsoButton variant="secondary" className="analitica-add-button" onClick={() => setAdding(true)}>
+        <Plus size={13} aria-hidden="true" /> {label}
+      </PulsoButton>
     );
   }
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <div style={{ flex: 1, maxWidth: 360 }}>
+    <div className="pond-add">
+      <div className="pond-add-select">
         <VariableSelect variables={variables} value="" onChange={(name) => { if (name) onPick(name); setAdding(false); }} placeholder="Elegir variable categórica…" />
       </div>
-      <button className="analitica-add-inline" style={{ fontSize: 12 }} onClick={() => setAdding(false)}>Cancelar</button>
+      <PulsoButton variant="secondary" onClick={() => setAdding(false)}>Cancelar</PulsoButton>
     </div>
   );
 }
@@ -421,58 +439,58 @@ function Diagnostico({ preview, nEff, deff, loss, cap, onCap }: {
   const max = Math.max(0.4, ...rows.flatMap((r) => [r.muestra, r.ponderado, r.objetivo]));
   const capVal = cap > 1 ? cap : 5;
   return (
-    <div style={{ background: "var(--pulso-surface)", border: "1px solid var(--pulso-border)", borderRadius: 12, padding: 16 }}>
+    <div className="pond-card pond-diagnostico">
       {!preview?.ok && (
-        <div style={{ fontSize: 12.5, color: "var(--pulso-text-soft)" }}>Configura al menos una variable con objetivos para ver el efecto.</div>
+        <div className="pond-copy">Configura al menos una variable con objetivos para ver el efecto.</div>
       )}
       {preview?.ok && firstVar && (
         <>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{firstVar}: antes y después de ponderar</div>
+          <div className="pond-title pond-diagnostico-titulo">{firstVar}: antes y después de ponderar</div>
           {rows.map((r) => (
-            <div key={r.categoria} style={{ display: "flex", alignItems: "center", gap: 10, margin: "7px 0" }}>
-              <span style={{ fontSize: 12, width: 64, color: "var(--pulso-text-soft)" }}>{r.categoria}</span>
-              <div style={{ flex: 1, position: "relative", height: 22, background: "var(--pulso-surface-2)", borderRadius: 5 }}>
-                <div style={{ position: "absolute", top: 3, height: 7, left: 0, width: `${(r.muestra / max) * 100}%`, background: "var(--pulso-border-strong, #C7D0DE)", borderRadius: 3 }} />
-                <div style={{ position: "absolute", bottom: 3, height: 7, left: 0, width: `${(r.ponderado / max) * 100}%`, background: "var(--pulso-primary)", borderRadius: 3 }} />
-                <div style={{ position: "absolute", top: 0, bottom: 0, left: `${(r.objetivo / max) * 100}%`, width: 2, background: "var(--pulso-text)" }} />
+            <div key={r.categoria} className="pond-barra-fila">
+              <span className="pond-barra-categoria">{r.categoria}</span>
+              <div className="pond-barra-pista">
+                {/* El ancho de cada barra es el dato: es lo único que va en línea. */}
+                <div className="pond-barra is-muestra" style={{ width: `${(r.muestra / max) * 100}%` }} />
+                <div className="pond-barra is-ponderado" style={{ width: `${(r.ponderado / max) * 100}%` }} />
+                <div className="pond-barra-objetivo" style={{ left: `${(r.objetivo / max) * 100}%` }} />
               </div>
-              <span style={{ fontSize: 12, width: 104, textAlign: "right", color: "var(--pulso-text-soft)" }}>{pct(r.muestra)} → {pct(r.ponderado)}</span>
+              <span className="pond-barra-valores">{pct(r.muestra)} → {pct(r.ponderado)}</span>
             </div>
           ))}
-          <div style={{ display: "flex", gap: 16, marginTop: 6, fontSize: 11, color: "var(--pulso-text-soft)" }}>
-            <Legend color="var(--pulso-border-strong, #C7D0DE)" text="tu muestra" />
-            <Legend color="var(--pulso-primary)" text="ponderado" />
-            <Legend color="var(--pulso-text)" line text="objetivo" />
+          <div className="pond-leyenda">
+            <Legend tono="muestra" text="tu muestra" />
+            <Legend tono="ponderado" text="ponderado" />
+            <Legend tono="objetivo" text="objetivo" />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px,1fr))", gap: 12, margin: "16px 0" }}>
-            <StatCard label="muestra efectiva" value={<>{nEff} <span style={{ fontSize: 13, color: "var(--pulso-text-soft)" }}>de {d ? intfmt(d.n) : "—"}</span></>} />
+          <div className="pond-stats">
+            <StatCard label="muestra efectiva" value={<>{nEff} <span className="pond-stat-de">de {d ? intfmt(d.n) : "—"}</span></>} />
             <StatCard label="efecto de diseño" value={deff} />
             <StatCard label="precisión que cedes" value={loss != null ? `${loss}%` : "—"} tone={loss != null && loss >= 25 ? "warn" : undefined} />
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, background: "var(--pulso-surface-2)", borderRadius: 8 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>Limitar pesos extremos</div>
-              <div style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
-                {cap > 1 ? <>Ningún caso pesa más de <strong style={{ color: "var(--pulso-text)" }}>{cap}×</strong> el promedio. Estabiliza sin sesgar.</>
+          <div className="pond-recorte">
+            <div className="pond-recorte-copy">
+              <div className="pond-title">Limitar pesos extremos</div>
+              <div className="pond-copy">
+                {cap > 1 ? <>Ningún caso pesa más de <strong>{cap}×</strong> el promedio. Estabiliza sin sesgar.</>
                   : "Sin recorte. Actívalo si aparecen pesos muy dispersos."}
               </div>
             </div>
-            <input type="range" min={2} max={8} step={1} value={capVal} onChange={(e) => onCap(parseInt(e.target.value, 10))} style={{ width: 150 }} aria-label="Recorte de pesos extremos" />
-            <span style={{ fontSize: 13, fontWeight: 600, minWidth: 26 }}>{capVal}×</span>
+            <input type="range" min={2} max={8} step={1} value={capVal} onChange={(e) => onCap(parseInt(e.target.value, 10))} className="pond-recorte-rango" aria-label="Recorte de pesos extremos" />
+            <span className="pond-recorte-valor">{capVal}×</span>
           </div>
 
           {(preview.warnings ?? []).map((w, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 12, padding: "10px 12px", borderRadius: 8, background: w.level === "warn" ? "var(--pulso-warning-soft, #FBF3E2)" : "var(--pulso-primary-soft)" }}>
-              {w.level === "warn" ? <AlertTriangle size={16} style={{ color: "var(--pulso-warn-fg, #9A6B12)", flexShrink: 0, marginTop: 1 }} />
-                : <Info size={16} style={{ color: "var(--pulso-primary)", flexShrink: 0, marginTop: 1 }} />}
-              <span style={{ fontSize: 12, color: w.level === "warn" ? "var(--pulso-warn-fg, #9A6B12)" : "var(--pulso-text)" }}>{w.message}</span>
+            <div key={i} className={`pond-aviso${w.level === "warn" ? " is-warn" : " is-info"}`}>
+              {w.level === "warn" ? <AlertTriangle size={16} aria-hidden="true" /> : <Info size={16} aria-hidden="true" />}
+              <span>{w.message}</span>
             </div>
           ))}
 
-          <div style={{ fontSize: 11.5, color: "var(--pulso-text-soft)", marginTop: 14, display: "flex", alignItems: "center", gap: 6 }}>
-            <CheckCircle2 size={13} style={{ color: "var(--pulso-success-fg)" }} />
+          <div className="pond-pie">
+            <CheckCircle2 size={13} aria-hidden="true" />
             Se aplica automáticamente a frecuencias, cruces y dimensiones. El método queda documentado en la ficha técnica.
           </div>
         </>
@@ -483,40 +501,25 @@ function Diagnostico({ preview, nEff, deff, loss, cap, onCap }: {
 
 function StatCard({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "warn" }) {
   return (
-    <div style={{ background: "var(--pulso-surface-2)", borderRadius: 8, padding: 12 }}>
-      <div style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 600, color: tone === "warn" ? "var(--pulso-warn-fg, #9A6B12)" : "var(--pulso-text)" }}>{value}</div>
+    <div className={`pond-stat${tone === "warn" ? " is-warn" : ""}`}>
+      <div className="pond-stat-label">{label}</div>
+      <div className="pond-stat-valor">{value}</div>
     </div>
   );
 }
 
-function Legend({ color, text, line }: { color: string; text: string; line?: boolean }) {
+function Legend({ tono, text }: { tono: "muestra" | "ponderado" | "objetivo"; text: string }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-      <span style={{ width: line ? 12 : 10, height: line ? 2 : 10, borderRadius: line ? 0 : 2, background: color, display: "inline-block" }} />{text}
+    <span className="pond-leyenda-item">
+      <span className={`pond-leyenda-marca is-${tono}`} aria-hidden="true" />{text}
     </span>
   );
 }
 
 function StepLabel({ n, text }: { n: number; text: string }) {
   return (
-    <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", margin: "6px 2px 0", fontWeight: 600 }}>
+    <div className="pond-paso">
       Paso {n} — {text}
     </div>
-  );
-}
-
-function Toggle({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
-  return (
-    <button
-      role="switch" aria-checked={on} aria-label={label} onClick={onClick}
-      style={{
-        width: 42, height: 24, borderRadius: 999, border: "none", cursor: "pointer", flexShrink: 0, padding: 0,
-        background: on ? "var(--pulso-primary)" : "var(--pulso-border-strong, #C7D0DE)", position: "relative",
-        transition: "background 160ms",
-      }}
-    >
-      <span style={{ position: "absolute", top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 160ms" }} />
-    </button>
   );
 }

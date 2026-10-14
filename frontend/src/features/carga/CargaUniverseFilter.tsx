@@ -23,6 +23,7 @@ import {
   validateUniverseFilterConfig,
   type UniverseClassification,
 } from "./universeFilterModel";
+import { Switch } from "../../components/Switch";
 
 type Props = {
   baseNombre?: string | null;
@@ -204,13 +205,13 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied, o
           ) : (
             <>
               <label className="pulso-carga-universe-switch">
-                <input
-                  type="checkbox"
+                <Switch
+                  className="pulso-carga-switch"
                   checked={draft.enabled}
                   disabled={disabled || saving}
-                  onChange={(event) => updateConfig({ enabled: event.target.checked })}
+                  onToggle={() => updateConfig({ enabled: !draft.enabled })}
+                  ariaLabel="Usar una variable real/prueba"
                 />
-                <span aria-hidden="true" />
                 <b>Usar una variable real/prueba</b>
               </label>
 

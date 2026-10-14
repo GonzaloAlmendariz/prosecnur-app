@@ -188,10 +188,13 @@
   flex-wrap: wrap;
 }
 
+/* Caja de «Añadir…»: radios concéntricos. Radio externo = radio interno +
+   relleno (tarjeta 14 = control 10 + 4), y selector y botones con el mismo
+   alto, centrados. */
 .analitica-picker-edit-row {
-  padding: 7px;
+  padding: var(--pulso-space-1);
   border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 42%, var(--pulso-border) 58%);
-  border-radius: 9px;
+  border-radius: var(--pulso-radius-card);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 251, 250, 0.78)),
     color-mix(in srgb, var(--pulso-module-processing-soft) 16%, var(--pulso-surface) 84%);
@@ -1113,8 +1116,7 @@
 .pulso-analitica-frame button.pulso-primary,
 .pulso-analitica-frame button.pulso-secondary,
 .pulso-analitica-frame .analitica-dimensiones-footer button,
-.pulso-analitica-frame .analitica-dimensiones-wizard-footer button,
-.pulso-analitica-frame .analitica-generate-footer button {
+.pulso-analitica-frame .analitica-dimensiones-wizard-footer button {
   min-height: 32px;
   border-radius: 999px;
   font-weight: var(--pulso-weight-semibold);
@@ -1210,6 +1212,29 @@
 .pulso-analitica-frame .analitica-collapsible-body,
 .pulso-analitica-frame .analitica-per-base-card {
   animation: pulso-av2-fade-up var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Controles de la caja de «Añadir…»: mismo alto y radio interno, también
+   para los botones heredados que el frame vuelve píldora. */
+.pulso-analitica-frame .analitica-picker-edit-row > button,
+.pulso-analitica-frame .analitica-picker-edit-row .analitica-picker-select > div > button {
+  min-height: var(--pulso-control-height-lg);
+  height: var(--pulso-control-height-lg);
+  border-radius: var(--pulso-radius);
+}
+
+.pulso-analitica-frame .analitica-picker-edit-row > button {
+  padding-block: 0;
+}
+
+/* ── 3b. Workbench en columna: ningún bloque se encoge ─────────────────── */
+
+/* El workbench es una columna de secciones independientes de alto intrínseco
+   y el dueño del scroll es el panel que lo contiene. Si un hijo pudiera
+   encogerse, el que recorta su contenido (un plegable con overflow: hidden,
+   como «Notas al pie») se aplastaba a 2 px en vez de empujar el scroll. */
+.pulso-analitica-frame .analitica-report-shell > * {
+  flex-shrink: 0;
 }
 
 /* ── 4. Entrada del workbench con stagger (máx 6 ítems) ────────────────── */
@@ -1900,7 +1925,7 @@
   cursor: not-allowed;
 }
 
-.pulso-data-review-card.is-section-hidden .pulso-data-review-include input {
+.pulso-data-review-card.is-section-hidden .pulso-data-review-include .pulso-switch {
   cursor: not-allowed;
 }
 
@@ -1912,16 +1937,13 @@
   cursor: default;
 }
 
-.pulso-data-review-include:hover {
-  border-color: var(--pulso-primary-border);
-  box-shadow: 0 0 0 3px var(--pulso-primary-ring);
-}
-
-.pulso-data-review-include input {
-  width: var(--pulso-control-check-size);
-  height: var(--pulso-control-check-size);
-  margin: 0;
-  cursor: pointer;
+/* «Incluir» es un ajuste que queda puesto: interruptor con su rótulo al lado,
+   sin caja alrededor (la caja era la piel de la antigua casilla). */
+.pulso-data-review-row .pulso-data-review-include,
+.pulso-data-review-row .pulso-data-review-include:hover {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
 }
 
 .pulso-data-review-variable-code {
@@ -2890,4 +2912,144 @@
 .pulso-analitica-panel-copy p {
   font-size: 11px;
   font-weight: var(--pulso-weight-semibold);
+}
+
+/* ── 10. Ronda de pulido (P-A5, P-M3, P-M12, P-B5) ─────────────────────── */
+
+/* «Añadir…» es un PulsoButton secundario con `Plus`; dentro de una columna
+ * flex no se estira a todo el ancho. */
+.analitica-add-button {
+  align-self: flex-start;
+}
+
+/* Pie de generación: pista del botón deshabilitado, aviso de guardado del
+ * archivo y descargas por base, antes con estilos en línea. */
+.analitica-generate-hint {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-style: italic;
+}
+
+.analitica-generate-save {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-success-fg);
+  font-size: 11px;
+}
+
+.analitica-generate-save.is-error {
+  color: var(--pulso-danger-fg);
+}
+
+.analitica-per-base-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.analitica-per-base-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  padding: 3px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.analitica-per-base-chip.is-link {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-medium);
+  text-decoration: none;
+}
+
+.analitica-per-base-chip.is-skipped {
+  border-style: dashed;
+  font-style: italic;
+}
+
+/* Un texto que remite a otra pestaña lleva su enlace (P-M12). */
+.analitica-enlace-pestana {
+  color: inherit;
+  font-weight: var(--pulso-weight-bold);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.analitica-enlace-pestana:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--pulso-primary) 40%, transparent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Lo informativo que antes tenía forma de opción (P-B5): una nota con ícono. */
+.pulso-analitica-frame .analitica-presentation-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.pulso-analitica-frame .analitica-presentation-note svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--pulso-primary);
+}
+
+/* Una tarjeta con casilla no repite su estado en un tile con ícono (P-B5):
+ * la casilla ya dice si está activa. Regla general para toda tarjeta de
+ * opción con casilla; las que no son control (un botón de modo) conservan
+ * su ícono. */
+label.analitica-control-card > input[type="checkbox"] ~ .analitica-control-icon {
+  display: none;
+}
+
+/* Opciones que quedan puestas: interruptor con el tono del módulo (piel por
+ * tokens del Switch, sin reimplementarlo) y el texto al lado. */
+.analitica-interruptor {
+  --pulso-switch-w: 34px;
+  --pulso-switch-h: 20px;
+  --pulso-switch-knob-size: 14px;
+  --pulso-switch-accent: var(--module-accent, var(--pulso-primary));
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.analitica-interruptor-opcion {
+  align-items: flex-start;
+}
+
+.analitica-interruptor-texto {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.analitica-interruptor-linea {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.analitica-interruptor-linea .analitica-control-title {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.analitica-interruptor-opcion.is-disabled,
+.analitica-interruptor-linea.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.analitica-enumeradores-vacias {
+  margin-top: 10px;
+}
+
+.pulso-analitica-frame .analitica-control-grid + .analitica-presentation-note {
+  margin-top: var(--pulso-space-2);
 }

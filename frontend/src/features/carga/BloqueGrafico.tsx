@@ -67,7 +67,7 @@ export function BloqueGrafico({ bloque, estilos = [], onCambiar }: BloqueGrafico
           onClick={() => onCambiar("grafico", "radar")}
           title={
             bloque.elegibleRadar
-              ? "Radar: un eje por tema y una serie por público. Necesita un indicador."
+              ? "Radar: un eje por tema y una serie por base. Necesita un indicador."
               : `No se puede: ${bloque.motivoNoRadar}.`
           }
         >

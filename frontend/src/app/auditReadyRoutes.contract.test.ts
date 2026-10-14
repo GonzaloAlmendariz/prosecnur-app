@@ -438,11 +438,16 @@ describe("audit-ready route root contract", () => {
 
     expect(
       compactConstInitializer("features/analitica/AnaliticaPage.tsx", "auditReady"),
-      "Analítica readiness: empty gate and prep failure are settled states; only prep in flight is not",
+      "Analítica readiness: empty gate and prep failure are settled states; prep in flight and config not yet hydrated are not",
     ).toBe(
-      '!prereqOk?"analitica-vacio"'
+      // Sin el estado de la sesión `prereqOk` es false: no es un vacío terminal.
+      '!sesionLeida?undefined'
+      + ':!prereqOk?"analitica-vacio"'
       + ':prepBusy?undefined'
       + ':!prepOk?"analitica-preparacion"'
+      // U6: sin la config hidratada las pestañas pintan los defaults (p. ej.
+      // «Excluidas 0» en el Libro de códigos) y no pueden darse por listas.
+      + ':!configHidratada?undefined'
       + ':activeMeta.readinessPropia?undefined'
       + ':`analitica-${active}`',
     );

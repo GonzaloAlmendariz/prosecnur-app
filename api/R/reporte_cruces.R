@@ -882,10 +882,10 @@ comparar_columnas_sig <- function(n_mat, N_vec, alpha = 0.05) {
         if (is.na(padj[k]) || padj[k] >= alpha) next
         a <- pairs[1, k]; b <- pairs[2, k]
         if (p[a] > p[b]) {
-          letras[i, a] <- paste(letras[i, a], LETTERS[b])
+          letras[i, a] <- paste(letras[i, a], openxlsx::int2col(b))
           sig[i, a]    <- TRUE
         } else if (p[b] > p[a]) {
-          letras[i, b] <- paste(letras[i, b], LETTERS[a])
+          letras[i, b] <- paste(letras[i, b], openxlsx::int2col(a))
           sig[i, b]    <- TRUE
         }
       }
@@ -943,10 +943,10 @@ comparar_medias_sig <- function(medias_mat, ns_mat, sds_mat, alpha = 0.05) {
       a <- pairs[1, k]
       b <- pairs[2, k]
       if (medias_mat[i, a] > medias_mat[i, b]) {
-        letras[i, a] <- trimws(paste(letras[i, a], LETTERS[b]))
+        letras[i, a] <- trimws(paste(letras[i, a], openxlsx::int2col(b)))
         sig[i, a] <- TRUE
       } else if (medias_mat[i, b] > medias_mat[i, a]) {
-        letras[i, b] <- trimws(paste(letras[i, b], LETTERS[a]))
+        letras[i, b] <- trimws(paste(letras[i, b], openxlsx::int2col(a)))
         sig[i, b] <- TRUE
       }
     }
@@ -1568,7 +1568,7 @@ exportar_cruces_multi <- function(data,
           s_lbl <- label_variable(s, dic_vars, labels_override, data)
 
           sig_h1 <- c(sig_h1, rep(s_lbl, length(estr_labels)))
-          col_letters <- LETTERS[seq_along(estr_labels)]
+          col_letters <- openxlsx::int2col(seq_along(estr_labels))
           sig_h2 <- c(sig_h2, paste0(estr_labels, " (", col_letters, ")"))
 
           letras_map_text <- c(
@@ -3002,7 +3002,7 @@ exportar_dimensiones_multi <- function(data,
 
           s_lbl <- .dim_label_limpio(label_variable(s_chr, dic_vars, labels_override, data))
           estr_lbl_s <- vapply(idx_cv, function(ix) as.character(blocks_t[[ix]]$sub %||% "")[1], character(1))
-          col_letters <- LETTERS[seq_along(estr_lbl_s)]
+          col_letters <- openxlsx::int2col(seq_along(estr_lbl_s))
           letras_map_text <- c(
             letras_map_text,
             paste0(s_lbl, ": ", paste0("(", col_letters, ") ", estr_lbl_s, collapse = ", "))
@@ -3601,7 +3601,7 @@ exportar_dimensiones_multi <- function(data,
         estr_lbl_s <- vapply(idx_s, function(ix) {
           as.character(blocks[[ix]]$sub %||% "")[1]
         }, FUN.VALUE = character(1))
-        col_letters <- LETTERS[seq_along(estr_lbl_s)]
+        col_letters <- openxlsx::int2col(seq_along(estr_lbl_s))
         letras_map_text <- c(
           letras_map_text,
           paste0(
@@ -3657,7 +3657,7 @@ exportar_dimensiones_multi <- function(data,
           idx_cv <- which(vapply(blocks, function(bl) identical(bl$var_key, s_chr), logical(1)))
           if (!length(idx_cv)) next
           estr_lbl_s <- vapply(idx_cv, function(ix) as.character(blocks[[ix]]$sub %||% "")[1], character(1))
-          col_letters <- LETTERS[seq_along(estr_lbl_s)]
+          col_letters <- openxlsx::int2col(seq_along(estr_lbl_s))
           has_cmp <- !is.null(cmp_by_var[[s_chr]])
           for (j in seq_along(idx_cv)) {
             b <- idx_cv[j]

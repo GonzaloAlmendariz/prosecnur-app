@@ -20,12 +20,14 @@ import {
   type MarcaPrevia,
   RespuestaUnica,
 } from "../../api/client";
-import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
+import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { GrupoCodificacionCard } from "./GrupoCodificacionCard";
 import { cleanCodificacionLabel, displayCodificacionValueLabel } from "./codificacionLabels";
 import { grupoAccentColor } from "./codificacionGrupoColor";
 import { avisoMarcaPrevia } from "./marcasPrevias";
+import { formatoConteo } from "../../lib/formatoNumero";
+import { EstadoVacio } from "../../components/EstadoVacio";
 
 // Estilo inline que expone el color de acento del grupo como custom property
 // para que el CSS lo mezcle con las superficies (color-mix) y adapte a claro/
@@ -406,7 +408,7 @@ export function RespuestasCodificador({ parent }: Props) {
         <div className="pulso-cv2-statrow">
           {stats.map((s) => (
             <div key={s.label} className={`pulso-cv2-stat is-${s.tone}`}>
-              <span className="pulso-cv2-stat-val">{s.value}</span>
+              <span className="pulso-cv2-stat-val">{typeof s.value === "number" ? formatoConteo(s.value) : s.value}</span>
               <span className="pulso-cv2-stat-label">{s.label}</span>
             </div>
           ))}
@@ -457,7 +459,8 @@ export function RespuestasCodificador({ parent }: Props) {
               </button>
             )}
           </div>
-          <div className="pulso-cv2-resp-list">
+          {/* C1: filas de respuesta; su alto depende de las variantes que agrupan. */}
+          <div className="pulso-cv2-resp-list" data-qa-geometry-group="codificacion/respuestas" data-qa-geometry-contract="intrinsic">
             {visibleRespuestas.length === 0 && (
               <div className="pulso-cv2-resp-empty">No hay respuestas que coincidan.</div>
             )}
@@ -535,14 +538,18 @@ export function RespuestasCodificador({ parent }: Props) {
             </span>
           </div>
           {grupos.length === 0 ? (
-            <EmptyState
-              variant="inline"
-              icon={<Inbox size={18} />}
-              title="Sin grupos todavía"
-              hint="Crea uno con 'Nuevo grupo' o marca una respuesta a la izquierda — se crea un grupo vacío automáticamente."
+            <EstadoVacio
+              tamano="compacto"
+              icono={<Inbox size={15} />}
+              titulo="Sin grupos todavía"
+              descripcion="Crea uno con «Nuevo grupo» o marca una respuesta de la izquierda."
             />
           ) : (
-            <div className="pulso-cv2-grupos-list pulso-codificacion-grupos-list">
+            <div
+              className="pulso-cv2-grupos-list pulso-codificacion-grupos-list"
+              data-qa-geometry-group="codificacion/grupos"
+              data-qa-geometry-contract="intrinsic"
+            >
               {grupos.map((g, idx) => (
                 <GrupoCodificacionCard
                   key={`${g.id}-${idx}`}

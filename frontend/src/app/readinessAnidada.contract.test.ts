@@ -129,8 +129,14 @@ describe("el puente y el runner aplican el mismo contrato", () => {
 const FALSE_TRANSITORIO: Record<string, string> = {
   "components/PageFrame.tsx":
     "`auditReady={false}` de la página: la página lo levanta al terminar su lectura (Carga › Revisión)",
+  "features/carga/EquivalenciasEsqueleto.tsx":
+    "esqueleto de Equivalencias: lo reemplaza la superficie al terminar la lectura de la declaración y el catálogo; en error publica true",
   "features/carga/FuentesEmparejamientoPanel.tsx":
     "panel «Ver preguntas»: cargando el endpoint o resolviendo la base; en error publica true",
+  "features/analitica/panes/DataReviewPane.tsx":
+    "`loading` de la revisión de datos; el error es terminal y publica true",
+  "features/analitica/PanelVariablesExcluidas.tsx":
+    "panel «Variables excluidas»: config de Analítica sin hidratar, variables cargando o cambio de base en curso; en error publica true",
   "features/graficos/GraficosPage.tsx":
     "fallbacks de Suspense de las pestañas perezosas: los reemplaza el chunk al cargar",
   "features/graficos/estilo/PestanaEstilo.tsx": "listo al llegar las opciones o su error",

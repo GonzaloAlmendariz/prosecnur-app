@@ -39,6 +39,7 @@ import {
 } from "../../api/client";
 import { Alert } from "../../components/Alert";
 import { useCodifSource } from "./useCodifSource";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 type Props = {
   disabled?: boolean;
@@ -682,7 +683,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
                       <span className="pulso-codificacion-matrix-variable-code">{question.parent}</span>
                       <span className="pulso-codificacion-matrix-variable-copy">
                         <strong>{question.parent_label || question.parent}</strong>
-                        <small>{question.n_respuestas} casos · {question.n_unicas} respuestas únicas</small>
+                        <small>{formatoConteo(question.n_respuestas)} casos · {formatoConteo(question.n_unicas)} respuestas únicas</small>
                       </span>
                       <span className={`pulso-codificacion-matrix-state is-${question.status.replace("-", "")}`}>
                         {question.status === "completo" ? "Lista" : question.marcada ? "Marcada" : "Disponible"}

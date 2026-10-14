@@ -38,6 +38,8 @@ import { comparativosDisponibles } from "./panes/comparativosModel";
 import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
 import { ProcessingReleasePanel } from "./ProcessingReleasePanel";
+import { PanelVariablesExcluidas } from "./PanelVariablesExcluidas";
+import { useAnaliticaStore } from "./store";
 import "./analitica-v2.css";
 
 // Revisión de data primero; enumeradores vive en Monitoreo.
@@ -51,6 +53,11 @@ export default function AnaliticaPage() {
   const navigate = useNavigate();
 
   useAnaliticaAutosave();
+  // La config de Analítica (exclusiones, etiquetas, secciones) llega por su
+  // propio GET. Hasta entonces el store tiene los defaults: una pestaña que
+  // pintara con ellos publicaría cifras falsas (U6: «Excluidas 0» durante la
+  // espera, con la readiness ya en verde).
+  const configHidratada = useAnaliticaStore((s) => s.hydrated);
 
   const prepOk = !!state?.analitica_prep_ok;
   // **Los prerequisitos son insumos UTILIZABLES, no archivos subidos.**
@@ -119,15 +126,25 @@ export default function AnaliticaPage() {
   // único tramo en que la sección todavía se está resolviendo— y se publica en
   // los tres estados terminales, incluido el vacío: una sección sin datos
   // también terminó de cargar (C3 del Contrato de Superficie).
-  const auditReady = !prereqOk
+  //
+  // U6: tampoco hay marca mientras la config de Analítica no llega —el Libro de
+  // códigos salía «listo» con el conteo de excluidas del default vacío—, ni
+  // mientras el estado de la sesión no llega: sin él `prereqOk` vale false y la
+  // sección se declaraba «vacía» con el proyecto cargado (medido en el QA de U5).
+  const sesionLeida = state != null;
+  const auditReady = !sesionLeida
+    ? undefined
+    : !prereqOk
     ? "analitica-vacio"
     : prepBusy
       ? undefined
       : !prepOk
         ? "analitica-preparacion"
-        : activeMeta.readinessPropia
+        : !configHidratada
           ? undefined
-          : `analitica-${active}`;
+          : activeMeta.readinessPropia
+            ? undefined
+            : `analitica-${active}`;
 
   function goReporte(next: Reporte) {
     const sp = new URLSearchParams(location.search);
@@ -153,7 +170,7 @@ export default function AnaliticaPage() {
       // capturara la sección como lista mientras la pestaña todavía se resuelve.
       // Vive en el tabpanel, sobre la const `auditReady`, que además distingue
       // la pestaña activa y cede el turno a las que publican su propia marca.
-      notices={!prereqOk ? (
+      notices={sesionLeida && !prereqOk ? (
         <Alert kind="warn">
           Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de analizar.
         </Alert>
@@ -186,7 +203,9 @@ export default function AnaliticaPage() {
           aria-labelledby={`analitica-tab-${active}`}
           data-audit-ready={auditReady}
         >
-          {!prereqOk ? (
+          {!sesionLeida ? (
+            <LoadingBlock label="Leyendo el proyecto…" />
+          ) : !prereqOk ? (
             <ProcessingPrereqGate
               eyebrow="Antes de analizar"
               title="Carga los insumos del estudio"
@@ -234,6 +253,8 @@ export default function AnaliticaPage() {
               <div className="pulso-analitica-panel-body">
                 {prepBusy ? (
                   <LoadingBlock label="Preparando datos…" />
+                ) : prepOk && !configHidratada ? (
+                  <LoadingBlock label="Cargando la configuración de Analítica…" />
                 ) : prepOk ? (
                   <>
                     {active === "datos"        && <DataReviewPane />}
@@ -287,6 +308,9 @@ export default function AnaliticaPage() {
           )}
         </main>
       </AdaptiveSplitView>
+      {/* Panel direccionable `?panel=excluidas`: vive a nivel de página para
+          abrirse desde cualquier pestaña y desde un enlace de Carga. */}
+      {prereqOk && prepOk ? <PanelVariablesExcluidas /> : null}
     </PageFrame>
   );
 }

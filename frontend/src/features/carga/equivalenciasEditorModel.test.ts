@@ -8,6 +8,7 @@ import {
   incorporarSugerencias,
   resumenEditor,
   variablesTomadas,
+  ordenarBasesPorSerie,
 } from "./equivalenciasEditorModel";
 import type { EquivalenciaFila } from "../../api/equivalencias";
 
@@ -172,5 +173,22 @@ describe("sección legible", () => {
     expect(seccionLegible("pag 12")).toBe("Página 12 del formulario");
     expect(seccionLegible("Características institucionales")).toBe("Características institucionales");
     expect(seccionLegible(null)).toBe("");
+  });
+});
+
+describe("ordenarBasesPorSerie", () => {
+  it("sigue armonizacion_periodos cuando existe", () => {
+    expect(ordenarBasesPorSerie(["b2026", "b2024", "b2025"], ["b2024", "b2025", "b2026"]))
+      .toEqual(["b2024", "b2025", "b2026"]);
+  });
+
+  it("deja al final las bases fuera de la serie e ignora periodos sin base", () => {
+    expect(ordenarBasesPorSerie(["extra", "b2026", "b2024"], ["b2024", "fantasma", "b2026"]))
+      .toEqual(["b2024", "b2026", "extra"]);
+  });
+
+  it("sin serie conserva el orden actual", () => {
+    expect(ordenarBasesPorSerie(["b2026", "b2024"], undefined)).toEqual(["b2026", "b2024"]);
+    expect(ordenarBasesPorSerie(["b2026", "b2024"], [])).toEqual(["b2026", "b2024"]);
   });
 });

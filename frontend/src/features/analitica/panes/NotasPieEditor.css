@@ -1,5 +1,43 @@
-/* Notas al pie (Frecuencias y Cruces). Reusa el plegable de PaneKit; aquí
-   solo el interior: campos, listas de notas y umbral. */
+/* Notas al pie (Frecuencias, Cruces y Comparativos). Reusa el plegable de
+   PaneKit; aquí el encabezado fijo y el interior: campos, listas de notas y
+   umbral. */
+
+/* El encabezado no cambia entre plegado y abierto: título a la izquierda y
+   resumen a la derecha. Sin `justify-content` explícito, una regla genérica de
+   botón lo centraba al desaparecer el resumen. */
+.analitica-notas-pie > .analitica-notas-pie-trigger {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+/* El plegable genérico recorta con overflow: hidden; aquí el selector de
+   «Añadir…» abre un desplegable absoluto que debe poder salir de la caja (C4).
+   Las esquinas las redondean el encabezado y el cuerpo. */
+.analitica-collapsible.analitica-notas-pie {
+  overflow: visible;
+}
+
+.analitica-notas-pie > .analitica-notas-pie-trigger {
+  border-radius: var(--pulso-radius);
+}
+
+.analitica-notas-pie > .analitica-notas-pie-trigger[aria-expanded="true"] {
+  border-radius: var(--pulso-radius) var(--pulso-radius) 0 0;
+}
+
+.analitica-notas-pie > .analitica-notas-pie-body {
+  border-radius: 0 0 var(--pulso-radius) var(--pulso-radius);
+}
+
+.analitica-notas-pie-titulo {
+  flex: 0 0 auto;
+}
+
+.analitica-notas-pie-trigger .analitica-collapsible-summary {
+  min-width: 0;
+  margin-left: auto;
+  text-align: right;
+}
 
 .analitica-notas-pie-body {
   display: flex;
@@ -84,6 +122,24 @@
   font-size: 12px;
   font-weight: var(--pulso-weight-bold);
   color: var(--pulso-primary);
+}
+
+.analitica-notas-pie-row-var.is-etiqueta span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  color: var(--pulso-text);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.analitica-notas-pie-field textarea {
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+  font: inherit;
+  font-size: 13px;
 }
 
 .analitica-notas-pie-row-var span {

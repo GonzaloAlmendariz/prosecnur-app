@@ -12,6 +12,8 @@ import {
   type BasesSavWriterInfo,
 } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
+import { CifrasPestana } from "../CifrasPestana";
+import { InterruptorOpcion } from "../InterruptorOpcion";
 import { Section, Collapsible, GenerateFooter, PaneGroup } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
 import { useAnaliticaStore } from "../store";
@@ -52,20 +54,14 @@ export function BasesPane() {
             <strong>Bases e instrumentos</strong>
             <small>Escoge qué revisar o entregar: fuente, unión multibase o archivo final para análisis.</small>
           </div>
-          <div className="analitica-bases-docbar-stats" aria-label="Estado de bases e instrumento">
-            <span>
-              Fuente activa
-              <strong>{fuenteLabel}</strong>
-            </span>
-            <span>
-              Alcance
-              <strong>{siblingsLabel}</strong>
-            </span>
-            <span>
-              Formatos
-              <strong>SAV / CSV / XLSX</strong>
-            </span>
-          </div>
+          <CifrasPestana
+            ariaLabel="Estado de bases e instrumento"
+            cifras={[
+              { etiqueta: "Fuente activa", valor: fuenteLabel },
+              { etiqueta: "Alcance", valor: siblingsLabel },
+              { etiqueta: "Formatos", valor: "SAV / CSV / XLSX" },
+            ]}
+          />
         </div>
         <BasesUseGuide
           fuenteLabel={fuenteLabel}
@@ -308,19 +304,13 @@ function SavCard({
         <SavWriterStatus writer={writer} />
 
         <Collapsible title="Avanzado" summary={cfg.incluir_sps ? "respaldo incluido" : "sin respaldo"} defaultOpen={false}>
-          <label className="analitica-bases-check-option">
-            <input
-              type="checkbox"
-              checked={cfg.incluir_sps}
-              onChange={(e) => onChange({ incluir_sps: e.target.checked })}
-            />
-            <span>
-              <strong>Incluir respaldo técnico para SPSS</strong>
-              <small>
-                Agrega un archivo con instrucciones de lectura. Normalmente no hace falta; actívalo solo si alguien necesita auditar la importación.
-              </small>
-            </span>
-          </label>
+          <InterruptorOpcion
+            variante="linea"
+            checked={cfg.incluir_sps}
+            onToggle={() => onChange({ incluir_sps: !cfg.incluir_sps })}
+            titulo="Incluir respaldo técnico para SPSS"
+            descripcion="Agrega un archivo con instrucciones de lectura. Normalmente no hace falta; actívalo solo si alguien necesita auditar la importación."
+          />
         </Collapsible>
 
         <GenerateFooter
@@ -516,23 +506,15 @@ function XlsxCard({
           ]}
         />
 
-        <label
-          className={`analitica-bases-check-option${madreSmAplica ? "" : " is-disabled"}`}
+        <InterruptorOpcion
+          variante="linea"
+          checked={incluirMadreSm}
+          disabled={!madreSmAplica}
           title={madreSmAplica ? undefined : "Disponible cuando eliges una columna por opción (0/1)."}
-        >
-          <input
-            type="checkbox"
-            checked={incluirMadreSm}
-            disabled={!madreSmAplica}
-            onChange={(e) => onChange({ incluir_madre_sm: e.target.checked })}
-          />
-          <span>
-            <strong>Incluir columna legible de opción múltiple</strong>
-            <small>
-              Junto a las columnas 0/1, agrega una columna con las respuestas escritas (unidas) para leer de un vistazo.
-            </small>
-          </span>
-        </label>
+          onToggle={() => onChange({ incluir_madre_sm: !incluirMadreSm })}
+          titulo="Incluir columna legible de opción múltiple"
+          descripcion="Junto a las columnas 0/1, agrega una columna con las respuestas escritas (unidas) para leer de un vistazo."
+        />
 
         <GenerateFooter
           label="Descargar Excel"

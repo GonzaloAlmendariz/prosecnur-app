@@ -9,8 +9,10 @@ import {
   ReglaInteger,
   RespuestaUnica,
 } from "../../api/client";
-import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
+import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { PulsoButton } from "../../components/PulsoButton";
 
 type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 
@@ -231,23 +233,15 @@ export function IntegerCodificador({ parent }: Props) {
       )}
 
       {grupos.length === 0 && (
-        <EmptyState
-          variant="inline"
-          icon={<Inbox size={18} />}
-          title="Sin rangos definidos"
-          hint="Crea rangos para agrupar los valores numéricos. Ej.: 18–29 con código 1 'Jóvenes'; 30–59 con código 2 'Adultos'; 60+ con código 3 'Mayores'."
-          cta={
-            <button
-              type="button"
-              className="pulso-primary"
-              onClick={addGroup}
-              style={{
-                fontSize: 12, padding: "7px 14px",
-                display: "inline-flex", alignItems: "center", gap: 6,
-              }}
-            >
-              <Plus size={13} /> Crear primer rango
-            </button>
+        <EstadoVacio
+          tamano="compacto"
+          icono={<Inbox size={15} />}
+          titulo="Sin rangos definidos"
+          descripcion="Agrupa los valores en rangos, por ejemplo 18–29 con el código 1 «Jóvenes»."
+          accion={
+            <PulsoButton variant="secondary" size="sm" onClick={addGroup}>
+              <Plus size={13} aria-hidden="true" /> Crear primer rango
+            </PulsoButton>
           }
         />
       )}

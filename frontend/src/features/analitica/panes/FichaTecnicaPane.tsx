@@ -19,6 +19,7 @@ import {
 import { Alert } from "../../../components/Alert";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { Panel } from "../../../components/Panel";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { GenerateFooter, Section } from "../PaneKit";
 import { type FichaTecnicaConfig, useAnaliticaStore } from "../store";
 import { useReporteRun } from "../useReporteRun";
@@ -198,14 +199,14 @@ export function FichaTecnicaPane() {
                   </button>
                 ))}
               </GlidingTabList>
-              <button type="button" className="pulso-secondary" onClick={applyEmptySuggestions} disabled={!suggestedCount}>
-                <Wand2 size={14} />
+              <PulsoButton variant="secondary" onClick={applyEmptySuggestions} disabled={!suggestedCount}>
+                <Wand2 size={14} aria-hidden="true" />
                 Completar sugeridos
-              </button>
-              <button type="button" className="pulso-secondary" onClick={() => void loadInfo(true)}>
-                <RefreshCw size={14} />
+              </PulsoButton>
+              <PulsoButton variant="secondary" onClick={() => void loadInfo(true)}>
+                <RefreshCw size={14} aria-hidden="true" />
                 Actualizar evidencia
-              </button>
+              </PulsoButton>
             </div>
 
             <div className="analitica-ficha-layout">
@@ -239,9 +240,9 @@ export function FichaTecnicaPane() {
                                   <Sparkles size={12} />
                                   {suggested}
                                 </span>
-                                <button type="button" className="pulso-secondary" onClick={() => applySuggestion(field)}>
+                                <PulsoButton variant="secondary" size="sm" onClick={() => applySuggestion(field)}>
                                   Usar
-                                </button>
+                                </PulsoButton>
                               </span>
                             )}
                           </label>

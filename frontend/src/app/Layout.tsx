@@ -14,6 +14,7 @@ import {
 import { ModuleNavigationRuntimeProvider } from "../lib/moduleNavigationRuntime";
 import { ModulePickerHost } from "../features/home/ModulePickerHost";
 import { Toaster } from "../components/Toaster";
+import { TonoDePortales } from "../components/TonoDePortales";
 import { usePuenteNavegacion } from "../lib/navegacion/usePuenteNavegacion";
 import ModuleWarmupBoundary, { RouteLoadingFallback } from "./ModuleWarmupBoundary";
 import { GlidingTabList } from "../components/GlidingTabList";
@@ -690,6 +691,9 @@ export default function Layout() {
         <div className="pulso-shell">{canvas}</div>
       </ModuleChromeSlotsProvider>
       <ModulePickerHost />
+      {/* Los portales (diálogos, sideovers, popovers) viven fuera del frame del
+          módulo: heredan su acento desde lo que esto publica en <body>. */}
+      <TonoDePortales modulo={activeModule} />
       {/* Host único del deck de toasts (ADR 0047). Sin Provider: quien emite
           importa `toast` de components/toasterStore. */}
       <Toaster />

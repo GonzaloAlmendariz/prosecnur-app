@@ -88,3 +88,32 @@ parte: **lo que deja de aplicarse no lo dice nadie**, y la base que vino de fuer
   hijas. Un estudio con repeats que depure fuera debe declarar cada base, o queda pendiente propagarla.
 - Lo que no cubre: no se reproduce dentro de Prosecnur lo que hizo el script. Si una decisión del script
   cambia, se cambia en el script y se recarga la base (D1).
+
+## Enmienda 1 (2026-10-13): la base preparada fuera difiere en casos y en variables
+
+Aprobada por Gonzalo («sí, hazlo así»). Motivo, en sus palabras: «no siempre van a ser casos de burla […]
+hay que buscar una forma más generalista de indicar si le damos una base con x menos casos o una base con
+menos variables […] a veces en el instrumento puede haber una metavariable como inicio de la encuesta que de
+cara al cliente no es útil».
+
+**Hallazgo que la hace necesaria.** Cuando a la base le falta una pregunta del instrumento,
+`.carga_backfill_missing_expected()` (`router_carga.R:288`) la recrea vacía en silencio («pregunta sin
+respuestas»), y sólo rechaza la base si falta más de la mitad. Una pregunta retirada por el script aparecía
+así con 0 respuestas: otro número, no un cero. Los metadatos (`start`, `end`, `today`, `deviceid`,
+`username`…) no se recrean —`.dn_expected_data_names()` ya los salta—, pero tampoco se declaraba que faltan.
+
+**D2 se generaliza.** Una base preparada fuera de la plataforma difiere del instrumento en dos ejes, y los
+dos se declaran en el mismo bloque `origen_externo`:
+
+| Eje | Cómo se declara | Qué hace la app |
+|---|---|---|
+| Menos casos | Lista con identificador y motivo **de texto libre** («prueba», «duplicado», «fuera de la población», «respuesta no válida»…) | Ficha: N recibidas → k retiradas → N cargadas |
+| Menos variables | La app **detecta** las variables del instrumento que no vienen en la base; el motivo de cada una es `metadato` (automático para los tipos de metadato del XLSForm), `no_va_al_cliente` u `otra` | Se listan como retiradas; las de motivo `metadato` o `no_va_al_cliente` se suman a `variables_excluidas` de la config de Analítica de esa base (visible y reversible allí); Codificación ya avisa si alguna tenía códigos (P1) |
+
+La declaración puede tener sólo uno de los dos ejes: una base con menos variables y todos los casos es
+válida. Recomendación que se mantiene (D4): los metadatos útiles para Validación (duración) no se borran en el
+script; se declaran en `variables_excluidas`. Pero si llegan borrados, la app lo sabe y lo dice.
+
+**Pieza P2b.** Backend: detección de variables retiradas, declaración sin lista de casos, escritura en
+`variables_excluidas` y tramo de variables en la ficha. Frontend: el panel de Carga pasa a «Base preparada
+fuera de la plataforma», con dos partes.
