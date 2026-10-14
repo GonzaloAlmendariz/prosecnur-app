@@ -63,13 +63,13 @@ Medidos el 2026-10-13 con la regla de arriba sobre todo el registro. Contrato: `
 | M1 | Ranking en barras | «Marcar diferencias significativas» y su nivel | arreglado: formales de `p_barras_agrupadas()` → `overrides` |
 | M2 | Barras apiladas | «Marcar diferencias significativas» y su nivel | arreglado: formales de `p_barras_apiladas()` → `overrides` |
 | M3 | Ranking en barras | «Respetar ancho de etiquetas» | arreglado: formal → `overrides` |
-| M4 | Indicador numérico | «Base del gráfico» | pendiente: el constructor no la recibe |
-| M5 | Mapa de calor por criterio | Filtros | pendiente: el constructor no los recibe |
+| M4 | Indicador numérico | «Base del gráfico» | no aplica (2026-10-14): `base_config` no se sirve a la interfaz (`.normalize_args_for_ui`) y el pie de base es automático en todos los tipos; no hay control que mienta. Sigue listada en el contrato para que no entre un formal que no hace nada |
+| M5 | Mapa de calor por criterio | Filtros | arreglado: formal `filtros` de `p_dim_heatmap_criterios()`; el render ya filtraba con `el$filtros` (`.filter_data`) |
 | M6 | FODA | Variable e índice de iteración | no aplica: FODA retirada; sólo planes viejos |
 
 ## Orden
 
-0. **Controles muertos (M1–M5):** primero, porque mienten. M1–M3 hechos; M4–M5 siguen.
+0. **Controles muertos (M1–M5):** primero, porque mienten. M1–M3 y M5 hechos; M4 no aplica.
 1. **Tanda 1:** lo que el motor nativo ya dibuja y el editor no ofrece (ítems 1 y 3; el 2 quedó decidido en contra). Cada configuración va con
    su arg en el registro, su control en la pestaña Gráfico, su ajuste en la ficha de la maqueta y su dibujo en el glifo.
 2. **Tanda 2:** verificar en la lámina nativa las filas «por verificar» y pasarlas a tanda 1 o a bloqueadas.

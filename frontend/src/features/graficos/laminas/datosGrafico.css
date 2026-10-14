@@ -190,3 +190,23 @@
   color: var(--pulso-danger-fg);
 }
 @media (prefers-reduced-motion: reduce) { .pulso-f6-destacar-opcion { transition: none; } }
+
+/* Criterios del mapa de calor por criterio (I2): una tarjeta por criterio con su nombre y sus preguntas. */
+.pulso-f6-criterios { display: grid; gap: 8px; }
+.pulso-f6-criterio { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--pulso-border); border-radius: 8px; background: var(--pulso-surface); }
+.pulso-f6-criterio-cabecera { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.pulso-f6-criterio-preguntas { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.pulso-f6-criterio-pregunta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 2px 4px 2px 8px;
+  border-radius: 999px;
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  font-size: 12px;
+}
+.pulso-f6-criterio-pregunta span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pulso-f6-criterio-quitar { display: inline-grid; place-items: center; padding: 2px; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; }
+.pulso-f6-criterio-quitar:hover { background: var(--pulso-surface); }

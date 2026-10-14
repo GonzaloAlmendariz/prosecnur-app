@@ -3258,7 +3258,8 @@ p_dim_heatmap_criterios <- function(
     base = list(),
     source = NULL,
     cruce = NULL,
-    metrica = c("top_two_box", "lineal")
+    metrica = c("top_two_box", "lineal"),
+    filtros = list()
 ) {
   # ADR 0093 (lámina 93): `cruce` abre una columna por público y `metrica` elige Top Two Box (por defecto) o el
   # promedio lineal 0-100 del criterio; los dos los aprobó Gonzalo (2026-10-09).
@@ -3285,7 +3286,9 @@ p_dim_heatmap_criterios <- function(
     metrica = metrica,
     title_slide = .ppt_norm_text1(titulo, blank = NULL),
     overrides = overrides,
-    base = base
+    base = base,
+    # M5 (checklist de configuraciones): el render ya filtra con `el$filtros` (`.filter_data`); el constructor los perdía.
+    filtros = .ppt_norm_filters(filtros)
   )
   class(el) <- c("ppt_element", "list")
   el
