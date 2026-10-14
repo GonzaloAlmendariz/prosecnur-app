@@ -143,3 +143,31 @@ test_that("una lámina de dos gráficos con dependencia se compone con su llave 
   n_hab <- sum(fx$df$lab %in% c("1", "2"))
   expect_true(any(grepl(sprintf("Sólo los %d que respondieron", n_hab), textos, fixed = TRUE)), info = paste(textos, collapse = " | "))
 })
+
+
+# F2: el dependiente puede ser una batería de preguntas (multiapiladas) con la base de quienes la habilitan; sin título propio,
+# su encabezado es su base y no la primera pregunta.
+test_that("F2: una batería dependiente sale nativa con su encabezado de base", {
+  skip_if_not_installed("officer")
+  fx <- .fsub_fixture()
+  fx$df$util2 <- ifelse(fx$df$inter == "1", sample(c("1", "2", "3", "4"), nrow(fx$df), TRUE), NA)
+  fx$inst$survey <- rbind(fx$inst$survey, data.frame(name = "util2", type = "select_one acuerdo", list_name = "acuerdo",
+                                                     label = "Los intercambios mejoran mi idioma", stringsAsFactors = FALSE))
+  fx$inst$orders_list <- .amb_orders_list(fx$inst)
+  s <- list(id = "b", tipo = "p_slide_2_graficos", payload = list(titulo = "Intercambio y valoración",
+    izquierda = list(graficador = "p_barras_agrupadas", args = list(var = "inter")),
+    derecha = list(graficador = "p_barras_multiapiladas", args = list(modo = "var", vars = list("util", "util2"))),
+    meta = list(dependencia = list(de = "izquierda", habilita = list("Sí")))))
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = fx$df, instrumento = fx$inst, path_ppt = out, mensajes_progreso = FALSE,
+    plan = list(a = .graficos_rebuild_slide_json(s)))))
+  x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
+  nombres <- xml2::xml_attr(xml2::xml_find_all(x, "//p:cNvPr"), "name"); textos <- xml2::xml_text(xml2::xml_find_all(x, "//a:t"))
+  expect_true("prosecnur:grafico:filtro_sub" %in% nombres)
+  expect_false("filtro_sub:respaldo" %in% nombres)                                      # nativa, no imagen
+  expect_equal(sum(nombres == "panel:rotulo"), 2L)                                        # una fila por pregunta
+  n_si <- sum(fx$df$inter == "1")
+  expect_true(any(grepl(sprintf("Sólo los %d que respondieron «Sí»", n_si), textos, fixed = TRUE)), info = paste(textos, collapse = " | "))
+  pregs <- xml2::xml_text(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='panel:pregunta']]"))
+  expect_false("Los intercambios fortalecen mis competencias" %in% pregs)               # no se titula con la primera pregunta
+})

@@ -122,7 +122,10 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
   # Los títulos de cada lado: el del gráfico si el analista lo escribió; si no, el enunciado de su pregunta.
   titulo_de <- function(e, ctx) {
     t <- as.character((e$overrides %||% list())$titulo %||% e$title_slide %||% "")[1]
-    if (!is.na(t) && nzchar(trimws(t))) trimws(t) else .fsub_enunciado(ctx)
+    if (!is.na(t) && nzchar(trimws(t))) return(trimws(t))
+    # F2: una batería de varias preguntas no se titula con la primera; sin título propio va sólo su base.
+    if (length(unlist(e$vars %||% list())) > 1L) return("")
+    .fsub_enunciado(ctx)
   }
   # Con un lado sin pieza nativa (una nube, un radar…), la lámina igual se compone: ese lado lleva su gráfico (respaldo).
   if (is.null(espec_f) || is.null(espec_s)) {
@@ -142,7 +145,9 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
       pregunta_filtro = titulo_de(el$independiente %||% list(), ctx_f), pregunta_sub = titulo_de(el$dependiente %||% list(), ctx_s),
       plot_filtro = p_f, plot_sub = p_s,
       n_filtro = if (identical(espec_f$tipo, "pie")) espec_f$total_n_casos %||% espec_f$total_n else .espec_n_base(espec_f),
-      n_sub = .espec_n_base(espec_s)
+      # F2: en una batería la base es la de quienes la respondieron (la fila con más casos; cada pregunta trae los suyos).
+      n_sub = if (identical(espec_s$tipo, "escala") && NROW(espec_s$filas) > 1L) suppressWarnings(max(.espec_casos(espec_s$filas), na.rm = TRUE))
+              else .espec_n_base(espec_s)
     )
   }
   p
