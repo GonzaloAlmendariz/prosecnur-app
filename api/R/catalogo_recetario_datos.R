@@ -191,6 +191,9 @@ CATALOGO_RECETARIO_SEMILLA <- 20261014L
     d$trabaja <- sample(1:2, n, replace = TRUE, prob = c(0.95, 0.05))
     d$situacion <- sample(1:5, n, replace = TRUE, prob = c(0.52, 0.18, 0.08, 0.15, 0.07))
     trabaja <- d$situacion %in% 1:3
+    # Trabaja quien es dependiente o independiente: así el salto de p192–p194 cuadra con los datos (F4 avisa si no). El
+    # sorteo de arriba se conserva para no mover la secuencia aleatoria del resto del catálogo.
+    d$trabaja <- ifelse(trabaja, 1L, 2L)
     d$relacion <- ifelse(trabaja, sample(1:5, n, replace = TRUE, prob = c(0.06, 0.11, 0.17, 0.35, 0.31)), NA_integer_)
     d$ingreso <- ifelse(d$situacion == 1, sample(1:5, n, replace = TRUE, prob = c(0.12, 0.3, 0.3, 0.18, 0.1)), NA_integer_)
     d$mejoras <- .cr_multiple(n, c(0.29, 0.27, 0.26, 0.21, 0.15, 0.15, 0.15, 0.13, 0.09, 0.04))

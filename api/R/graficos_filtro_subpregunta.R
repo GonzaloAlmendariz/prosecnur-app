@@ -63,6 +63,28 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
   unique(cod[!is.na(cod) & nzchar(cod)])
 }
 
+#' F4: cuántos respondieron la subpregunta sin haber dado una respuesta que la habilita (el salto del formulario no cuadra)
+#' @param data La base donde viven el filtro y la subpregunta.
+#' @param var_filtro La columna del filtro. @param codigos Los códigos que habilitan. @param vars_sub Las columnas del dependiente.
+#' @return El número de personas (0 si alguna columna no está en la base).
+#' @keywords internal
+.fsub_fuera_del_salto <- function(data, var_filtro, codigos, vars_sub) {
+  if (!is.data.frame(data) || !(var_filtro %in% names(data)) || !length(vars_sub) || !all(vars_sub %in% names(data))) return(0L)
+  lleno <- function(x) if (is.numeric(x)) !is.na(x) else { x <- trimws(as.character(x)); !is.na(x) & nzchar(x) }
+  respondio <- Reduce(`|`, lapply(vars_sub, function(v) lleno(data[[v]])))
+  f <- trimws(as.character(data[[var_filtro]]))
+  habilita <- vapply(strsplit(ifelse(is.na(f), "", f), "\\s+"), function(t) any(t %in% codigos), TRUE)
+  sum(respondio & !habilita)
+}
+
+#' Las columnas de las preguntas de un gráfico del plan (su `var` o su batería `vars`)
+#' @keywords internal
+.fsub_columnas <- function(g, resolver) {
+  refs <- as.character(unlist(c(g$var, g$vars)))
+  refs <- refs[!is.na(refs) & nzchar(refs)]
+  unique(unlist(lapply(refs, function(r) tryCatch(resolver(r, arg_name = "var")$var, error = function(e) NULL))))
+}
+
 #' El enunciado de una pregunta en su instrumento (columna en español si la hay)
 #' @keywords internal
 .fsub_enunciado <- function(ctx) {
@@ -110,6 +132,17 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
   } else if (identical(el$grafico_sub, "escala")) p_barras_apiladas(var = el$subpregunta, filtros = filtros_sub, overrides = ov_s)
   else p_barras_agrupadas(var = el$subpregunta, filtros = filtros_sub, overrides = ov)
   p_s <- rend(el_s)
+  # F4: si hay quien respondió el dependiente sin haberlo habilitado, el salto del formulario no cuadra con los datos; esas
+  # respuestas quedan fuera de la lámina y se dice cuántas.
+  vars_s <- if (!is.null(el$dependiente)) .fsub_columnas(el$dependiente, resolver) else ctx_s$var
+  fuera <- .fsub_fuera_del_salto(ctx_f$data, ctx_f$var, codigos, vars_s)
+  if (fuera > 0L) {
+    .pulso_aviso(.aviso_en_lamina(sprintf(
+      "%d %s el gráfico dependiente sin haber elegido %s en «%s»: el salto del formulario no cuadra con los datos y %s fuera de la lámina.",
+      fuera, if (fuera == 1L) "persona respondió" else "personas respondieron",
+      paste0("«", niveles$label[niveles$code %in% codigos], "»", collapse = ", "), .fsub_enunciado(ctx_f),
+      if (fuera == 1L) "esa respuesta queda" else "esas respuestas quedan")))
+  }
   espec_f <- attr(p_f, "pulso_espec"); espec_s <- attr(p_s, "pulso_espec")
   # F1: la torta o dona del filtro va sólo con dos respuestas (Gonzalo, 2026-10-14); con más, barras con su llave y se avisa.
   if (is.null(el$independiente) && gf %in% c("torta", "dona") && !is.null(espec_f) && length(espec_f$rotulos) != 2L) {
