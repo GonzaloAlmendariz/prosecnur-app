@@ -30,3 +30,9 @@ test_that("las bases sintéticas traen cada tipo de variable que el recetario ne
   expect_match(b$egresados$survey$type[b$egresados$survey$name == "p40_1"], "acuerdo_eg")
   expect_identical(.catalogo_recetario_bases(), b)
 })
+
+test_that("el plan del catálogo pasa la regla de escalas de la exportación con sus propios instrumentos", {
+  inst <- lapply(.catalogo_recetario_bases(), function(x) list(survey = x$survey, choices = .catalogo_recetario_choices()))
+  v <- .validar_plan_json(list(slides = .catalogo_recetario_plan()), inst_sources = inst)
+  expect_true(v$ok, info = paste(v$errors, collapse = "\n"))
+})

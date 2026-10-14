@@ -1144,7 +1144,7 @@
   do.call(get("w_presets", mode = "function", inherits = TRUE), .graficos_w_presets_args(w_json))
 }
 
-.validar_plan_json <- function(plan_json) {
+.validar_plan_json <- function(plan_json, inst_sources = NULL) {
   errs <- character(0); warns <- character(0)
   plan_json <- .normalize_plan(plan_json)
   slides <- plan_json$slides
@@ -1183,7 +1183,7 @@
       }
     }
   }
-  errs <- c(errs, .plan_errores_indice(slides))   # graficos_plan_requisitos.R: lo que impide exportar
+  errs <- c(errs, .plan_errores_indice(slides), .plan_errores_escalas(slides, inst_sources))   # graficos_plan_requisitos.R: lo que impide exportar
   list(ok = length(errs) == 0, errors = errs, warnings = warns, n_slides = length(slides))
 }
 
@@ -3084,7 +3084,8 @@ mount_graficos <- function(pr) {
       }
       if (is.null(plan)) stop_api(400, "E_NO_PLAN", "Falta 'plan' en el body")
       plan <- .normalize_plan(plan, avisar = TRUE)   # su aviso de migración va al resultado del job (on_complete)
-      validation <- .validar_plan_json(plan)
+      scoped_sources <- .graficos_processing_sources(sid)   # también para validar escalas (graficos_plan_requisitos.R)
+      validation <- .validar_plan_json(plan, inst_sources = scoped_sources$inst_sources)
       if (!validation$ok) stop_api(400, "E_INVALID_PLAN", paste(validation$errors, collapse = "; "))
       # Enriquecer presets con canvas-always + debug_ph global antes de
       # pasarlos al worker (invariantes Pulso).
@@ -3104,7 +3105,6 @@ mount_graficos <- function(pr) {
       # Serializamos las LISTAS NOMBRADAS (multi-base) a RDS para el
       # worker. Cuando hay 1 sola base, la lista tiene 1 sola entrada
       # y el motor la maneja como single-base automáticamente.
-      scoped_sources <- .graficos_processing_sources(sid)
       rp_data_path <- job_save_rds(sid, "rp_data_sources", scoped_sources$data_sources)
       rp_inst_path <- job_save_rds(sid, "rp_inst_sources", scoped_sources$inst_sources)
       active_base_arg <- .graficos_active_base_name(sid)
@@ -3305,7 +3305,8 @@ mount_graficos <- function(pr) {
       s <- .require_rp_data(sid)
       if (is.null(plan)) stop_api(400, "E_NO_PLAN", "Falta 'plan' en el body")
       plan <- .normalize_plan(plan, avisar = TRUE)   # su aviso de migración va al resultado del job (on_complete)
-      validation <- .validar_plan_json(plan)
+      scoped_sources <- .graficos_processing_sources(sid)   # también para validar escalas (graficos_plan_requisitos.R)
+      validation <- .validar_plan_json(plan, inst_sources = scoped_sources$inst_sources)
       if (!validation$ok) stop_api(400, "E_INVALID_PLAN", paste(validation$errors, collapse = "; "))
       # Mismas invariantes que en /ppt.
       cfg <- .graficos_effective_config(sid, config)
@@ -3313,7 +3314,6 @@ mount_graficos <- function(pr) {
       # Serializamos las LISTAS NOMBRADAS (multi-base) a RDS para el
       # worker. Cuando hay 1 sola base, la lista tiene 1 sola entrada
       # y el motor la maneja como single-base automáticamente.
-      scoped_sources <- .graficos_processing_sources(sid)
       rp_data_path <- job_save_rds(sid, "rp_data_sources", scoped_sources$data_sources)
       rp_inst_path <- job_save_rds(sid, "rp_inst_sources", scoped_sources$inst_sources)
       active_base_arg <- .graficos_active_base_name(sid)
