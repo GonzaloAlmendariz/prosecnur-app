@@ -35,7 +35,6 @@ import { ListaPreguntas } from "./ListaPreguntas";
 import { CriteriosGrafico } from "./CriteriosGrafico";
 import { DestacarRespuestas } from "./DestacarRespuestas";
 import { DonaCentro } from "./DonaCentro";
-import { FiltroSubpregunta } from "./FiltroSubpregunta";
 import { PublicoGrafico } from "./PublicoGrafico";
 import { SignificanciaPublicos } from "./SignificanciaPublicos";
 import { ResaltarGrafico } from "./ResaltarGrafico";
@@ -93,7 +92,6 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       )}
       {valor.graficador === "p_dumbbell" && <BrechaEntreGrupos args={args} onCambio={set} />}
       {valor.graficador === "p_matriz_cuadrantes" && <MatrizCuadrantes args={args} onCambio={set} />}
-      {valor.graficador === "p_filtro_subpregunta" && <FiltroSubpregunta args={args} onCambio={set} />}
       {valor.graficador === "p_significancia_publicos" && <SignificanciaPublicos args={args} onCambio={set} />}
       {valor.graficador === "p_dim_heatmap_criterios" && <CriteriosGrafico valor={args.config_criterios} onCambio={(c) => set({ config_criterios: c })} />}
       {valor.graficador === "p_serie_temporal" && varsPorTema && (

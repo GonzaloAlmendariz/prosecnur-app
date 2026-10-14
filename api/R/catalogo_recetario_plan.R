@@ -231,9 +231,10 @@
     sl("p_slide_2_graficos_texto_derecha", titulo = "Dos gráficos y texto a la derecha", grafico_1 = g_sexo, grafico_2 = g_ciclo, texto = TXT),
     sl("p_slide_2_graficos_vertical", titulo = "Dos gráficos en vertical", superior = g_ciclo, inferior = g_situacion),
     sl("p_slide_2_graficos_asimetrico", titulo = "Dos gráficos asimétricos", principal = g_ciclo, apoyo = g_sexo),
-    uno("Llave sobre varias categorías", .cr_g("p_filtro_subpregunta", var = "egresados$situacion",
-                                                habilita = c("Dependiente", "Independiente", "Dependiente e independiente"),
-                                                subpregunta = "egresados$relacion"), 194),
+    # Dependencia entre los dos gráficos de la lámina (Gonzalo, 2026-10-14: «la dependencia no es un tipo de gráfico»).
+    sl("p_slide_2_graficos", titulo = "Llave sobre varias categorías (p194)", izquierda = .cr_g("p_barras_agrupadas", var = "egresados$situacion"),
+       derecha = .cr_g("p_barras_agrupadas", var = "egresados$relacion"),
+       meta = list(dependencia = list(de = "izquierda", habilita = c("Dependiente", "Independiente", "Dependiente e independiente")))),
     sl("p_slide_3_graficos_fila", titulo = "Tres gráficos en fila", izquierda = g_sexo, centro = g_mision, derecha = g_titulo),
     sl("p_slide_3_graficos_2mas1", titulo = "Tres gráficos, dos más uno", superior_izquierda = g_sexo, inferior_izquierda = g_mision, derecha = g_ciclo),
     sl("p_slide_3_graficos_1mas2", titulo = "Tres gráficos, uno más dos", izquierda = g_ciclo, superior_derecha = g_sexo, inferior_derecha = g_mision),
@@ -262,10 +263,10 @@
        grafico_superior_3 = g_mision, grafico_inferior_1 = g_titulo, grafico_inferior_2 = g_situacion,
        grafico_inferior_3 = .cr_g("p_barras_agrupadas", var = "estudiantes$sexo")),
     # Pregunta filtro y subpregunta con filtro dicotómico (p192 abajo, p193 al costado); la de varias categorías, arriba.
-    uno("Pregunta filtro y subpregunta", .cr_g("p_filtro_subpregunta", var = "egresados$trabaja", habilita = "Sí",
-                                               subpregunta = "egresados$relacion", grafico_sub = "escala", disposicion = "abajo"), 192),
-    uno("Filtro al costado", .cr_g("p_filtro_subpregunta", var = "egresados$trabaja", habilita = "Sí",
-                                   subpregunta = "egresados$relacion"), 193),
+    sl("p_slide_2_graficos_vertical", titulo = "Pregunta filtro y subpregunta (p192)", superior = .cr_g("p_barras_agrupadas", var = "egresados$trabaja"),
+       inferior = .cr_g("p_barras_apiladas", var = "egresados$relacion"), meta = list(dependencia = list(de = "superior", habilita = "Sí"))),
+    sl("p_slide_2_graficos", titulo = "Filtro al costado (p193)", izquierda = .cr_g("p_donut", var = "egresados$trabaja"),
+       derecha = .cr_g("p_barras_agrupadas", var = "egresados$relacion"), meta = list(dependencia = list(de = "izquierda", habilita = "Sí"))),
 
     # ---- Cierres -----------------------------------------------------------------------------------------------------------
     sl("p_slide_cierre", variante = "contraportada", correo = "pulsopucp@pucp.edu.pe", direccion = "Av. Universitaria 1801, San Miguel", web = "pulso.pucp.edu.pe"),

@@ -132,7 +132,9 @@
   # Recetario p112: tabla de letras y paneles de diferencia entre públicos, si cabe.
   if (identical(espec$tipo, "significancia")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_significancia_cabe(espec)))
   # Recetario p192–p194: pregunta filtro y subpregunta con su llave, si cabe.
-  if (identical(espec$tipo, "filtro_sub")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_filtro_sub_cabe(espec)))
+  # La dependencia entre dos gráficos: con un lado sin pieza nativa va con su gráfico (respaldo), así que siempre se compone.
+  if (identical(espec$tipo, "filtro_sub")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) &&
+                                                    (isTRUE(.lam_filtro_sub_cabe(espec)) || (!is.null(espec$plot_filtro) && !is.null(espec$plot_sub))))
   # N6: torta y dona (láminas 69 y 70), si caben.
   if (identical(espec$tipo, "pie")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_circular_cabe(espec)))
   # N3: barras divergentes (lámina 71) y ranking con puntos (lámina 72), si caben.

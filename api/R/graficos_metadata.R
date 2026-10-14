@@ -2174,7 +2174,8 @@
   p_cifra = list("numeros", "nativa", condicion = "Va en las ranuras de cifra; en una ranura de gráfico sale por la ruta anterior."),
   p_dumbbell = list("comparar", "nativa"),
   p_significancia_publicos = list("comparar", "nativa", condicion = "Dos o tres públicos y hasta diez temas."),
-  p_filtro_subpregunta = list("categorias", "nativa", condicion = "Hasta siete respuestas en el filtro; «Abajo» pide un filtro de dos respuestas."),
+  # Pieza interna de la dependencia entre los dos gráficos de una lámina (graficos_dependencia.R): no se elige como tipo.
+  p_filtro_subpregunta = list("categorias", "nativa", condicion = "Hasta siete respuestas en el filtro; «Abajo» pide un filtro de dos respuestas.", en_selector = FALSE),
   p_matriz_cuadrantes = list("comparar", "nativa", condicion = "Con más de 20 temas va como dibujo de respaldo."),   # G16: lámina 91
   p_lollipop = list("categorias", "nativa"),
   p_serie_temporal = list("comparar", "nativa", condicion = "Con dos mediciones; con tres o más va dibujada dentro de una lámina estándar."),

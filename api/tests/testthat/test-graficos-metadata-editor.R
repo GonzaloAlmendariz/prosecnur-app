@@ -115,10 +115,12 @@ test_that("con «Dividir por» la agrupada sale por la ruta anterior, como dice 
 
 # Gonzalo, 2026-10-10 («sí, sácalo»): la matriz FODA no aparece en ninguna página del recetario y sale del selector de
 # tipos de gráfico. Sale sólo del selector: el graficador y su render siguen, para que los planes que ya lo usan exporten.
-test_that("p_dim_foda sale del selector pero sigue registrado y renderizable; los demás quedan en el selector", {
+# Gonzalo, 2026-10-14 («la dependencia no es un tipo de gráfico»): «Pregunta filtro y subpregunta» es la pieza interna de la
+# dependencia entre los dos gráficos de una lámina (graficos_dependencia.R); tampoco se elige en el selector.
+test_that("p_dim_foda y la pieza de la dependencia salen del selector pero siguen registrados y renderizables; los demás quedan", {
   m <- .GRAFICADORES_META
   en <- vapply(m, function(x) x$en_selector, logical(1))
-  expect_identical(names(en)[!en], "p_dim_foda")
+  expect_setequal(names(en)[!en], c("p_dim_foda", "p_filtro_subpregunta"))
   expect_true("p_dim_foda" %in% .graf_names())                            # el validador del plan lo sigue aceptando
   expect_true(exists("p_dim_foda", mode = "function"))
   reg <- .graficos_registry_payload()

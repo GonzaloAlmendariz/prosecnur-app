@@ -117,3 +117,29 @@ test_that("F1: con más de dos respuestas la torta cae a barras con su llave y l
   expect_false(any(nombres == "torta:porcion")); expect_true("llave" %in% nombres)
   expect_true(any(grepl("va sólo con dos", msgs)), info = paste(msgs, collapse = "\n"))
 })
+
+# La dependencia entre los dos gráficos de una lámina (Gonzalo, 2026-10-14: «la dependencia no es un tipo de gráfico sino que
+# cuando hay dos gráficos en un solo slide se puede establecer dependencia entre gráficos»): la lámina de dos gráficos que la
+# declara se compone con la llave y el dependiente lleva la base de quienes lo habilitan; los dos conservan su tipo.
+test_that("una lámina de dos gráficos con dependencia se compone con su llave y la base de quienes habilitan", {
+  skip_if_not_installed("officer")
+  s <- list(id = "x", tipo = "p_slide_2_graficos", payload = list(titulo = "Situación y relación",
+    izquierda = list(graficador = "p_barras_agrupadas", args = list(var = "lab")),
+    derecha = list(graficador = "p_barras_agrupadas", args = list(var = "rel")),
+    meta = list(dependencia = list(de = "izquierda", habilita = list("Dependiente", "Independiente")))))
+  conv <- .dependencia_como_lamina(s)
+  expect_identical(conv$tipo, "p_slide_1_grafico")
+  expect_identical(conv$payload$grafico$graficador, "p_filtro_subpregunta")
+  expect_identical(conv$payload$grafico$args$disposicion, "costado")
+  expect_null(conv$payload$meta$dependencia)
+  sin <- s; sin$payload$meta <- NULL
+  expect_identical(.dependencia_como_lamina(sin), sin)                                  # sin dependencia, la lámina no cambia
+  fx <- .fsub_fixture(); out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = fx$df, instrumento = fx$inst, path_ppt = out, mensajes_progreso = FALSE,
+    plan = list(a = .graficos_rebuild_slide_json(s)))))
+  x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
+  nombres <- xml2::xml_attr(xml2::xml_find_all(x, "//p:cNvPr"), "name"); textos <- xml2::xml_text(xml2::xml_find_all(x, "//a:t"))
+  expect_true("prosecnur:grafico:filtro_sub" %in% nombres); expect_true("llave" %in% nombres)
+  n_hab <- sum(fx$df$lab %in% c("1", "2"))
+  expect_true(any(grepl(sprintf("Sólo los %d que respondieron", n_hab), textos, fixed = TRUE)), info = paste(textos, collapse = " | "))
+})
