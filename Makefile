@@ -39,7 +39,7 @@ QA_URL ?= http://localhost:5173/
 QA_API ?= auto
 QA_OUT ?= $(REPO_ROOT)/outputs/visual-qa/$(shell date +%Y%m%d-%H%M%S)
 
-.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite dev-status dev-prune visual-qa ui-quick-check vaults-audit vaults-check vaults-index monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit audit-projects-build audit-project-build audit-project-run audit-project-visual-matrix audit-project-deliverables reference-projects-build reference-project-build reference-project-verify reference-project-seed-aulas reference-project-run reference-project-visual-matrix build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
+.PHONY: catalogo-recetario-build help dev-api dev-frontend dev-pulso dev-electron-vite dev-status dev-prune visual-qa ui-quick-check vaults-audit vaults-check vaults-index monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit audit-projects-build audit-project-build audit-project-run audit-project-visual-matrix audit-project-deliverables reference-projects-build reference-project-build reference-project-verify reference-project-seed-aulas reference-project-run reference-project-visual-matrix build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -63,6 +63,7 @@ help:
 	@echo "  build            Build the frontend into api/inst/www"
 	@echo "  desktop-fast     Run Electron, rebuilding frontend only if stale"
 	@echo "  audit-reference-build Generate the canonical audit .pulso"
+	@echo "  catalogo-recetario-build Generate the recetario catalog .pulso (every chart and slide variant)"
 	@echo "  audit-reference-run   Run dev stack with an isolated audit project copy"
 	@echo "  desktop-audit         Run Electron with the audit project + CDP smoke port"
 	@echo "  audit-reference-smoke Capture canonical audit screenshots from Electron"
@@ -200,6 +201,9 @@ monitoreo-qa:
 	  QA_API="$(QA_API)" \
 	  PULSO="$(PULSO)" \
 	  QA_ARGS='--wait-selector [data-audit-ready="monitoreo"] $(QA_ARGS)'
+
+catalogo-recetario-build:
+	Rscript api/scripts/catalogo_recetario_build.R
 
 audit-reference-build:
 	Rscript api/scripts/audit_reference_build.R --out "$(REPO_ROOT)/api/inst/audit_reference" --project "$(AUDIT_PROJECT)"
