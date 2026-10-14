@@ -4,7 +4,7 @@ import { usePlanStore, PaletaPorLista } from "./store";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { useVariables, type VarWithSource } from "./useVariables";
-import { evaluateScaleCompat, multiApiladasScaleGroups, type ScaleVar } from "./multiApiladasScale";
+import { ESCALAS_DISTINTAS, evaluateScaleCompat, multiApiladasScaleGroups, type ScaleVar } from "./multiApiladasScale";
 import { formatNumericRange, hasMeaningfulValue, validateNumericArgValue } from "./numericArgValidation";
 import { isDerivedReportVariableRef } from "./derivedReportVariables";
 import { nombreTipoLamina, rotuloLamina, tituloDeLamina } from "./rotuloLamina";
@@ -428,9 +428,10 @@ function checkScaleCompat(
   const issues: ValidationIssue[] = [];
   for (const refs of groups) {
     const verdict = evaluateScaleCompat(refs, resolve);
-    if (verdict.tone !== "error") continue;
+    const distintas = verdict.label === ESCALAS_DISTINTAS;   // se grafica, pero avisa
+    if (verdict.tone !== "error" && !distintas) continue;
     issues.push({
-      severity: "error",
+      severity: distintas ? "warning" : "error",
       code: "scale-mismatch",
       message: `${context.scope}: ${enMinuscula(verdict.message)}`,
       slideId: context.slideId,
