@@ -14,7 +14,7 @@ export const LAMINAS_CON_DEPENDENCIA: Readonly<Record<string, readonly [string, 
   p_slide_2_graficos: ["izquierda", "derecha"],
   p_slide_2_graficos_vertical: ["superior", "inferior"],
 };
-const NOMBRE: Readonly<Record<string, string>> = { izquierda: "izquierda", derecha: "derecha", superior: "de arriba", inferior: "de abajo" };
+const NOMBRE: Readonly<Record<string, string>> = { izquierda: "de la izquierda", derecha: "de la derecha", superior: "de arriba", inferior: "de abajo" };
 
 export type Dependencia = { de: string; habilita: string[] };
 
@@ -56,8 +56,8 @@ export function DependenciaLamina({ slide }: { slide: Slide }) {
         <select id={`${id}-sel`} className="pulso-f6-input pulso-f6-dato-select" value={dep?.de ?? ""}
           onChange={(e) => guardar(e.target.value ? { de: e.target.value, habilita: [] } : null)}>
           <option value="">No</option>
-          <option value={a}>El {NOMBRE[b]} depende del {NOMBRE[a]}</option>
-          <option value={b}>El {NOMBRE[a]} depende del {NOMBRE[b]}</option>
+          <option value={a}>El gráfico {NOMBRE[b]} depende del {NOMBRE[a]}</option>
+          <option value={b}>El gráfico {NOMBRE[a]} depende del {NOMBRE[b]}</option>
         </select>
       </div>
       {dep && !ref && <span className="pulso-f6-dato-ayuda" role="note">El gráfico del que depende necesita una sola pregunta.</span>}
