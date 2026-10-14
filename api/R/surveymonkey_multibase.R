@@ -3572,10 +3572,11 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
   # Mismo orden de opciones que el import (`carga_sm_orden_editor.R`), antes de
   # la lógica compartida: refrescar no puede cambiarle los códigos a la base.
   # ADR 0099, decisión 7: se reaplica la receta guardada al importar, no el
-  # orden del editor de hoy (que solo se compara y se declara).
-  orden_editor <- .carga_sm_orden_reaplicar(
-    xls_model,
-    session_get(sid)$estudio$bases[[base_name]]$choice_order_editor,
+  # orden del editor de hoy (que solo se compara y se declara). Sin receta,
+  # mandan los códigos del instrumento guardado de la base, por etiqueta; lo
+  # que no calza queda en `codigos_guardados$no_calzan` y bloquea el refresh.
+  orden_editor <- .carga_sm_orden_reaplicar_y_conservar(
+    sid, base_name, xls_model,
     .carga_platform_choice_code_maps(sid, "surveymonkey", spec$survey_id)
   )
   xls_model <- orden_editor$model
@@ -3663,6 +3664,7 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
     source_kind = if (length(source_specs) > 1L) "surveymonkey_api_multi_source" else "surveymonkey_api",
     xlsform_logic_sync = logic_sync[setdiff(names(logic_sync), "model")],
     choice_order_editor = orden_editor$resumen,
+    codigos_guardados = orden_editor$codigos_guardados,
     alineacion = alin,
     alineacion_fuentes = alin$fuentes
   )
@@ -3672,7 +3674,7 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
   details <- sm_api_fetch_survey_details(spec$survey_id, token)
   if (is.null(rp_inst)) {
     xls_model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
-    xls_model <- .carga_sm_orden_reaplicar(xls_model, session_get(sid)$estudio$bases[[base_name]]$choice_order_editor)$model
+    xls_model <- .carga_sm_orden_reaplicar_y_conservar(sid, base_name, xls_model)$model
     downloads_dir <- file.path(session_get(sid)$dir, "downloads")
     dir.create(downloads_dir, recursive = TRUE, showWarnings = FALSE)
     inst_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", base_name, "_raw_xlsform.xlsx"))
@@ -4627,6 +4629,7 @@ sm_multibase_refresh_plan <- function(sid,
       diffs = list(list(severity = "blocking", kind = "structure_error", message = conditionMessage(e)))
     ))
     structure <- .sm_mb_estructura_legacy(structure, base, spec_info$spec)
+    structure <- .sm_mb_estructura_codigos_guardados(structure, sid, base_name, spec, token)
     counts <- tryCatch(.sm_mb_incremental_counts(sid, base_name, base, spec, token), error = function(e) list(
       current_rows = as.integer(base$n_filas %||% 0L),
       remote_rows = NA_integer_,
@@ -4857,6 +4860,20 @@ sm_multibase_refresh <- function(sid,
         ok = FALSE,
         skipped = TRUE,
         reason = conditionMessage(snapshot)
+      )
+      next
+    }
+    # El plan ya lo declara; se vuelve a mirar aquí, antes de escribir nada,
+    # porque la encuesta pudo cambiar entre el plan y el refresh.
+    if (length((snapshot$codigos_guardados %||% list())$no_calzan)) {
+      estructura_codigos <- .sm_mb_estructura_codigos_desde_resumen(row$structure %||% list(), snapshot$codigos_guardados)
+      results[[length(results) + 1L]] <- list(
+        base_name = base_name,
+        ok = FALSE,
+        skipped = TRUE,
+        reason = .sm_mb_refresh_motivo_bloqueo(estructura_codigos),
+        issues = row$issues %||% list(),
+        structure = estructura_codigos
       )
       next
     }

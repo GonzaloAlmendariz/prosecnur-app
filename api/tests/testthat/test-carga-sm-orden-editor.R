@@ -231,6 +231,279 @@ test_that("refrescar («Traer respuestas») conserva los códigos del editor y l
   expect_equal(as.character(p1[[lab_col]][match(c("3", "2", "1"), p1$name)]), .sor_esperado_p1)
 })
 
+# --- Refresh sin receta: los códigos los fija el instrumento guardado ---------
+#
+# Imports nuevos usan el peso de SurveyMonkey como código (H3: «SIN INF» peso
+# 99 -> 99). Una base importada antes, con códigos por posición y SIN receta
+# del editor, no puede recibir filas nuevas en otro código: refrescar conserva
+# los códigos del instrumento guardado de la base, por etiqueta (ADR 0099, 7).
+
+.sor_peso_details <- function(pesos = NULL, survey_id = "sm_peso", etiquetas = c("De acuerdo", "Neutral", "En desacuerdo", "SIN INF")) {
+  ops <- lapply(seq_along(etiquetas), function(i) {
+    o <- list(id = paste0("c", i), text = etiquetas[i], position = i)
+    if (!is.null(pesos)) o$weight <- pesos[i]
+    o
+  })
+  list(id = survey_id, title = "Encuesta pesos", pages = list(list(id = "pg1", questions = list(
+    list(id = "q1", family = "single_choice", subtype = "vertical",
+         headings = list(list(heading = "¿Está de acuerdo?")),
+         answers = list(choices = ops)),
+    list(id = "q2", family = "open_ended", subtype = "single",
+         headings = list(list(heading = "Comentario")),
+         answers = list())
+  ))))
+}
+
+.sor_peso_resp <- function(id, ch) list(
+  id = id, response_status = "completed", date_modified = "2026-10-01T00:00:00Z",
+  pages = list(list(id = "pg1", questions = list(list(id = "q1", answers = list(list(choice_id = ch))))))
+)
+
+# Red simulada con estado mutable: `env$details` y `env$responses`.
+.sor_peso_mocks <- function(env) {
+  list(
+    .sor_mock(".connections_token_require", function(...) "tok"),
+    .sor_mock("sm_api_fetch_survey_details", function(survey_id, token, ...) {
+      d <- env$details
+      d$id <- survey_id
+      d
+    }),
+    .sor_mock("sm_api_fetch_all_responses_bulk", function(survey_id, token, ...) {
+      list(total = length(env$responses), data = env$responses)
+    }),
+    .sor_mock("sm_api_fetch_responses_bulk", function(survey_id, token, ...) {
+      list(total = length(env$responses), data = utils::head(env$responses, 1L))
+    }),
+    .sor_mock("sm_api_fetch_collectors", function(survey_id, ...) list(total = 0L, data = list())),
+    .sor_mock("sm_multibase_list_surveys", function(token, ...) list(surveys = list()))
+  )
+}
+
+.sor_lab_p1 <- function(inst, codes) {
+  ch <- as.data.frame(inst$choices)
+  lab_col <- intersect(c("label::es", "label"), names(ch))[1]
+  ch <- ch[ch$list_name == "lst_p1", ]
+  as.character(ch[[lab_col]][match(as.character(codes), as.character(ch$name))])
+}
+
+.sor_refresh_sin_receta <- function(pesos_refresh) {
+  env <- new.env()
+  env$details <- .sor_peso_details(NULL)
+  env$responses <- list(.sor_peso_resp("r1", "c4"), .sor_peso_resp("r2", "c1"))
+  restores <- .sor_peso_mocks(env)
+  sid <- session_create()
+  # Sin `xlsform_state`: la base no guarda receta del editor.
+  .carga_import_surveymonkey(sid, list(survey_id = "sm_peso"))
+  base <- session_get(sid)$estudio$bases$default
+  local <- .sm_mb_read_base_original_data(sid, base)
+  env$details <- .sor_peso_details(pesos_refresh)
+  env$responses <- c(env$responses, list(.sor_peso_resp("r3", "c4")))
+  snap <- .sm_mb_prepare_refresh_snapshot(sid, "default", list(survey_id = "sm_peso"), "tok")
+  merged <- .sm_mb_merge_new_rows(local, snap$remote_df, snap$rp_inst)
+  list(sid = sid, base = base, local = local, snap = snap, merged = merged, restores = restores)
+}
+
+test_that("refresh sin receta: los pesos de SM no recodifican la base (SIN INF sigue en 4)", {
+  r <- .sor_refresh_sin_receta(c(1, 2, 3, 99))
+  on.exit({ lapply(rev(r$restores), function(f) f()); session_delete(r$sid) }, add = TRUE)
+  expect_length(r$base$choice_order_editor$receta %||% list(), 0L)
+  expect_equal(as.character(r$local$p1), c("4", "1"))
+  expect_equal(.sor_lab_p1(r$snap$rp_inst, "4"), "SIN INF")
+  expect_false("99" %in% as.character(as.data.frame(r$snap$rp_inst$choices)$name))
+  expect_equal(as.character(r$merged$data$p1), c("4", "1", "4"))
+  expect_equal(r$merged$n_new, 1L)
+})
+
+test_that("refresh sin receta con pesos invertidos: cada fila conserva su etiqueta", {
+  r <- .sor_refresh_sin_receta(c(4, 3, 2, 1))
+  on.exit({ lapply(rev(r$restores), function(f) f()); session_delete(r$sid) }, add = TRUE)
+  expect_equal(.sor_lab_p1(r$snap$rp_inst, r$merged$data$p1), c("SIN INF", "De acuerdo", "SIN INF"))
+  expect_equal(as.character(r$merged$data$p1), c("4", "1", "4"))
+})
+
+test_that("refresh sin receta: una opción nueva entra con un código libre y las guardadas no cambian", {
+  env <- new.env()
+  env$details <- .sor_peso_details(NULL)
+  env$responses <- list(.sor_peso_resp("r1", "c4"), .sor_peso_resp("r2", "c1"))
+  restores <- .sor_peso_mocks(env)
+  on.exit(lapply(rev(restores), function(f) f()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  .carga_import_surveymonkey(sid, list(survey_id = "sm_peso"))
+  local <- .sm_mb_read_base_original_data(sid, session_get(sid)$estudio$bases$default)
+  env$details <- .sor_peso_details(c(1, 2, 3, 99, 4), etiquetas = c("De acuerdo", "Neutral", "En desacuerdo", "SIN INF", "No aplica"))
+  env$responses <- c(env$responses, list(.sor_peso_resp("r3", "c5"), .sor_peso_resp("r4", "c4")))
+  snap <- .sm_mb_prepare_refresh_snapshot(sid, "default", list(survey_id = "sm_peso"), "tok")
+  expect_length(snap$codigos_guardados$no_calzan, 0L)
+  merged <- .sm_mb_merge_new_rows(local, snap$remote_df, snap$rp_inst)
+  expect_equal(.sor_lab_p1(snap$rp_inst, merged$data$p1), c("SIN INF", "De acuerdo", "No aplica", "SIN INF"))
+  expect_equal(as.character(merged$data$p1)[c(1, 2, 4)], c("4", "1", "4"))
+  expect_false(as.character(merged$data$p1)[3] %in% c("1", "2", "3", "4"))
+})
+
+test_that("refresh sin receta: una opción guardada que ya no está en SM bloquea plan y refresh sin escribir", {
+  env <- new.env()
+  env$details <- .sor_peso_details(NULL)
+  env$responses <- list(.sor_peso_resp("r1", "c4"), .sor_peso_resp("r2", "c2"))
+  restores <- .sor_peso_mocks(env)
+  on.exit(lapply(rev(restores), function(f) f()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  spec <- list(list(survey_id = "sm_peso", label = "Pesos", source_title = "Pesos",
+                    response_statuses = list("completed"),
+                    sources = list(list(survey_id = "sm_peso", source_title = "Pesos", response_statuses = list("completed")))))
+  out <- sm_multibase_import_independent(sid, specs = spec, token = "tok")
+  base_name <- as.character(out$bases[[1]]$nombre %||% out$bases[[1]]$name %||% out$active_base)
+  data_antes <- session_get(sid)$estudio$bases[[base_name]]$data_file_id
+
+  # SM renombró «Neutral»: la base tiene filas con ese código y ya no se sabe
+  # qué opción nueva le corresponde.
+  env$details <- .sor_peso_details(c(1, 2, 3, 99), etiquetas = c("De acuerdo", "Ni de acuerdo ni en desacuerdo", "En desacuerdo", "SIN INF"))
+  env$responses <- c(env$responses, list(.sor_peso_resp("r3", "c4")))
+
+  plan <- sm_multibase_refresh_plan(sid, token = "tok")
+  row <- plan$bases[[1]]
+  expect_equal(row$refresh_action, "blocked")
+  kinds <- vapply(row$structure$diffs, function(d) as.character(d$kind %||% ""), "")
+  expect_true("saved_codes_mismatch" %in% kinds)
+  diff <- row$structure$diffs[[which(kinds == "saved_codes_mismatch")[1]]]
+  expect_equal(diff$severity, "blocking")
+  expect_equal(diff$variable, "p1")
+  expect_match(diff$message, "Neutral", fixed = TRUE)
+
+  res <- sm_multibase_refresh(sid, token = "tok", reapply_codificacion = FALSE)$results[[1]]
+  expect_true(isTRUE(res$skipped))
+  expect_match(res$reason, "códigos", fixed = TRUE)
+  expect_equal(session_get(sid)$estudio$bases[[base_name]]$data_file_id, data_antes)
+})
+
+.sor_spec_indep <- function() {
+  list(list(survey_id = "sm_peso", label = "Pesos", source_title = "Pesos",
+            response_statuses = list("completed"),
+            sources = list(list(survey_id = "sm_peso", source_title = "Pesos", response_statuses = list("completed")))))
+}
+
+test_that("una lista sin cambios nunca bloquea, aunque sus etiquetas normalizadas se repitan", {
+  modelo <- function(etiquetas) list(
+    survey = data.frame(type = "select_one lst_p1", name = "p1", stringsAsFactors = FALSE),
+    choices = data.frame(list_name = "lst_p1", name = as.character(seq_along(etiquetas)),
+                         `label::es` = etiquetas, check.names = FALSE, stringsAsFactors = FALSE)
+  )
+  m <- modelo(c("Sí", "Si", "No"))
+  r <- .carga_sm_orden_mapa_implicito("p1", "lst_p1", .carga_sm_orden_opciones(m, "p1"), .carga_sm_orden_opciones(m, "p1"))
+  expect_null(r$motivo)
+  expect_null(r$map)
+  out <- .carga_sm_orden_conservar_guardado(m, m)
+  expect_length(out$resumen$no_calzan, 0L)
+  expect_identical(out$model, m)
+})
+
+test_that("H6: una etiqueta guardada partida por el HTML («Muy de acuer do») se empareja sin espacios y refresca", {
+  env <- new.env()
+  partidas <- c("Muy de acuer do", "De acuerdo", "En desacuerdo", "SIN INF")
+  env$details <- .sor_peso_details(NULL, etiquetas = partidas)
+  env$responses <- list(.sor_peso_resp("r1", "c1"), .sor_peso_resp("r2", "c4"))
+  restores <- .sor_peso_mocks(env)
+  on.exit(lapply(rev(restores), function(f) f()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  out <- sm_multibase_import_independent(sid, specs = .sor_spec_indep(), token = "tok")
+  base_name <- as.character(out$bases[[1]]$nombre %||% out$bases[[1]]$name %||% out$active_base)
+
+  env$details <- .sor_peso_details(c(4, 3, 2, 99), etiquetas = c("Muy de acuerdo", "De acuerdo", "En desacuerdo", "SIN INF"))
+  env$responses <- c(env$responses, list(.sor_peso_resp("r3", "c1")))
+  plan <- sm_multibase_refresh_plan(sid, token = "tok")
+  kinds <- vapply(plan$bases[[1]]$structure$diffs %||% list(), function(d) as.character(d$kind %||% ""), "")
+  expect_false("saved_codes_mismatch" %in% kinds)
+  res <- sm_multibase_refresh(sid, token = "tok", reapply_codificacion = FALSE)$results[[1]]
+  expect_true(isTRUE(res$ok))
+  expect_false(isTRUE(res$skipped))
+  base <- session_get(sid)$estudio$bases[[base_name]]
+  df <- .sm_mb_read_base_original_data(sid, base)
+  expect_equal(as.character(df$p1), c("1", "4", "1"))
+  inst <- reporte_instrumento(path = get_file(sid, base$xlsform_file_id)$path)
+  expect_equal(.sor_lab_p1(inst, df$p1), c("Muy de acuerdo", "SIN INF", "Muy de acuerdo"))
+})
+
+test_that("si la encuesta cambia entre un plan limpio y el refresh, la base sale omitida sin escribir", {
+  env <- new.env()
+  env$details <- .sor_peso_details(NULL)
+  env$responses <- list(.sor_peso_resp("r1", "c4"), .sor_peso_resp("r2", "c2"))
+  restores <- .sor_peso_mocks(env)
+  on.exit(lapply(rev(restores), function(f) f()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  out <- sm_multibase_import_independent(sid, specs = .sor_spec_indep(), token = "tok")
+  base_name <- as.character(out$bases[[1]]$nombre %||% out$bases[[1]]$name %||% out$active_base)
+  data_antes <- session_get(sid)$estudio$bases[[base_name]]$data_file_id
+  env$responses <- c(env$responses, list(.sor_peso_resp("r3", "c4")))
+
+  # El plan que corre dentro del refresh ve la encuesta limpia; justo después
+  # SurveyMonkey renombra «Neutral».
+  plan_original <- get("sm_multibase_refresh_plan", envir = asNamespace("prosecnurapp"))
+  restaurar_plan <- .sor_mock("sm_multibase_refresh_plan", function(...) {
+    p <- plan_original(...)
+    env$details <- .sor_peso_details(NULL, etiquetas = c("De acuerdo", "Ni de acuerdo ni en desacuerdo", "En desacuerdo", "SIN INF"))
+    p
+  })
+  on.exit(restaurar_plan(), add = TRUE)
+  out <- sm_multibase_refresh(sid, token = "tok", reapply_codificacion = FALSE)
+  kinds <- vapply(out$plan$bases[[1]]$structure$diffs %||% list(), function(d) as.character(d$kind %||% ""), "")
+  expect_false("saved_codes_mismatch" %in% kinds)
+  expect_equal(out$plan$bases[[1]]$refresh_action, "update")
+  res <- out$results[[1]]
+  expect_true(isTRUE(res$skipped))
+  expect_false(isTRUE(res$ok))
+  expect_match(res$reason, "«Neutral»", fixed = TRUE)
+  expect_equal(session_get(sid)$estudio$bases[[base_name]]$data_file_id, data_antes)
+})
+
+test_that("una opción nueva que choca toma el siguiente código sustantivo libre, no 100", {
+  env <- new.env()
+  env$details <- .sor_peso_details(c(1, 2, 3, 99))
+  env$responses <- list(.sor_peso_resp("r1", "c4"), .sor_peso_resp("r2", "c1"))
+  restores <- .sor_peso_mocks(env)
+  on.exit(lapply(rev(restores), function(f) f()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  .carga_import_surveymonkey(sid, list(survey_id = "sm_peso"))
+  local <- .sm_mb_read_base_original_data(sid, session_get(sid)$estudio$bases$default)
+  expect_equal(as.character(local$p1), c("99", "1"))
+  # Pesos sin repetir: «No aplica» llega con peso 1, que en la base es «De acuerdo».
+  env$details <- .sor_peso_details(c(10, 2, 3, 99, 1), etiquetas = c("De acuerdo", "Neutral", "En desacuerdo", "SIN INF", "No aplica"))
+  env$responses <- c(env$responses, list(.sor_peso_resp("r3", "c5")))
+  snap <- .sm_mb_prepare_refresh_snapshot(sid, "default", list(survey_id = "sm_peso"), "tok")
+  expect_length(snap$codigos_guardados$no_calzan, 0L)
+  merged <- .sm_mb_merge_new_rows(local, snap$remote_df, snap$rp_inst)
+  expect_equal(as.character(merged$data$p1), c("99", "1", "4"))
+  expect_equal(.sor_lab_p1(snap$rp_inst, merged$data$p1), c("SIN INF", "De acuerdo", "No aplica"))
+})
+
+test_that("refresh de hermanas independientes sin receta: la base escrita conserva sus códigos", {
+  env <- new.env()
+  env$details <- .sor_peso_details(NULL)
+  env$responses <- list(.sor_peso_resp("r1", "c4"), .sor_peso_resp("r2", "c1"))
+  restores <- .sor_peso_mocks(env)
+  on.exit(lapply(rev(restores), function(f) f()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  spec <- list(list(survey_id = "sm_peso", label = "Pesos", source_title = "Pesos",
+                    response_statuses = list("completed"),
+                    sources = list(list(survey_id = "sm_peso", source_title = "Pesos", response_statuses = list("completed")))))
+  out <- sm_multibase_import_independent(sid, specs = spec, token = "tok")
+  base_name <- as.character(out$bases[[1]]$nombre %||% out$bases[[1]]$name %||% out$active_base)
+
+  env$details <- .sor_peso_details(c(4, 3, 2, 1))
+  env$responses <- c(env$responses, list(.sor_peso_resp("r3", "c4")))
+  res <- sm_multibase_refresh(sid, token = "tok", reapply_codificacion = FALSE)$results[[1]]
+  expect_true(isTRUE(res$ok))
+  expect_false(isTRUE(res$skipped))
+  base <- session_get(sid)$estudio$bases[[base_name]]
+  inst <- reporte_instrumento(path = get_file(sid, base$xlsform_file_id)$path)
+  df <- .sm_mb_read_base_original_data(sid, base)
+  expect_equal(.sor_lab_p1(inst, df$p1), c("SIN INF", "De acuerdo", "SIN INF"))
+})
+
 test_that("Carga › Revisión declara las preguntas que adoptaron el orden y las que no, sin bloquear", {
   restores <- .sor_mocks()
   on.exit(lapply(rev(restores), function(r) r()), add = TRUE)
