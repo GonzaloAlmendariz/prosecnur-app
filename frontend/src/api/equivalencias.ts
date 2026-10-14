@@ -22,7 +22,7 @@ export type EquivalenciaFila = {
   cantidad: number;
   /**
    * Texto de la pregunta en cada medición, en la matriz por bloques de una serie: describe la pregunta, no la lámina.
-   * ADR 0101: la matriz ya no lleva diapositiva, enunciado de lámina, gráfico, corte ni estilo.
+   * ADR 0102: la matriz ya no lleva diapositiva, enunciado de lámina, gráfico, corte ni estilo.
    */
   enunciado?: string;
   /**
@@ -72,7 +72,7 @@ export type EquivalenciasEstado = {
   cobertura: Record<string, EquivalenciaCoberturaBase>;
   /** Bases cuyo instrumento cambió después de importar la declaración. */
   desfasadas: string[];
-  /** Huella del CONTENIDO de la declaración. ADR 0101: Gráficos ya no la graba ni la compara. */
+  /** Huella del CONTENIDO de la declaración. ADR 0102: Gráficos ya no la graba ni la compara. */
   revision?: string;
   /** Orden de la serie de mediciones: nombres de base (contrato E4-E7). */
   armonizacion_periodos?: string[];
@@ -96,7 +96,7 @@ export type EquivalenciasImportacion = {
   ok: boolean;
   estado: EquivalenciasEstado;
   aplicacion: Record<string, EquivalenciasAplicacionBase>;
-  /** ADR 0101: lo que el Excel traía y la matriz ya no guarda (columnas del informe), dicho. */
+  /** ADR 0102: lo que el Excel traía y la matriz ya no guarda (columnas del informe), dicho. */
   avisos?: { code: string; message: string }[];
 };
 

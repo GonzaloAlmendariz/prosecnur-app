@@ -14,7 +14,7 @@
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { ArrowDown, ArrowUp, FolderMinus, GripVertical } from "lucide-react";
-import { IconConditionalLogic } from "../../../lib/icons";
+import { IconConditionalLogic, IconRequired } from "../../../lib/icons";
 import type { BuilderNode } from "../types";
 import { iconForType } from "../helpers/icons";
 import { stripMarkdown } from "../helpers/markdown";
@@ -87,7 +87,7 @@ export function OutlineCloseRow({
         <span className="pulso-outline-text">
           <strong className="pulso-outline-title">Cierre de {kind === "repeat" ? "repetición" : "sección"}</strong>
           <span className="pulso-outline-subtitle">
-            Termina <span className="pulso-outline-closelabel">{stripMarkdown(label) || label}</span>
+            Termina <span className="pulso-outline-closelabel" title={stripMarkdown(label) || label}>{stripMarkdown(label) || label}</span>
           </span>
         </span>
       </div>
@@ -219,7 +219,10 @@ export function OutlineRow({
               el name técnico en el subtítulo. Antes era al revés y los
               usuarios no expertos veían `informante_nombre` en lugar del
               texto que escribieron. */}
-          <strong className="pulso-outline-title">
+          <strong
+            className="pulso-outline-title"
+            title={stripMarkdown(node.label) || node.name || `fila_${node.rowIndex + 1}`}
+          >
             {stripMarkdown(node.label) || node.name || `fila_${node.rowIndex + 1}`}
           </strong>
           <span className="pulso-outline-subtitle">
@@ -251,7 +254,7 @@ export function OutlineRow({
             title="Obligatoria"
             className="pulso-outline-required"
           >
-            ★
+            <IconRequired size={12} strokeWidth={2.4} aria-hidden="true" />
           </span>
         )}
       </div>

@@ -199,16 +199,28 @@
   cols <- as.character(survey$columns %||% character(0))
   ti <- match("type", cols)
   if (is.na(ti) || !length(rows)) return(list(n_questions = 0L, n_sections = 0L))
-  structural <- c("begin_group", "end_group", "begin_repeat", "end_repeat")
+  # «Campos» = filas con nombre que reciben respuesta: sin estructura, sin
+  # notas y sin el «Otro (especifique)» `<x>_other` cuya madre existe. Es la
+  # misma regla del editor (`editorMetrics.countAnswerFields`) y del importador,
+  # para que la tarjeta no diga 104 donde el editor dice 87.
+  structural <- c("begin_group", "end_group", "begin_repeat", "end_repeat", "note")
+  ni <- match("name", cols)
+  cell <- function(r, i) {
+    if (is.na(i)) return("")
+    v <- tryCatch(as.character(r[[i]]), error = function(e) "")
+    v <- if (length(v)) v[1] else ""
+    if (is.na(v)) "" else trimws(v)
+  }
+  nombres <- vapply(rows, cell, character(1), i = ni)
   nq <- 0L; ns <- 0L
-  for (r in rows) {
-    ty <- tryCatch(as.character(r[[ti]]), error = function(e) "")
-    ty <- if (length(ty)) ty[1] else ""
-    if (is.na(ty)) ty <- ""
-    base <- tolower(trimws(sub("\\s.*$", "", ty)))
+  for (k in seq_along(rows)) {
+    base <- tolower(sub("\\s.*$", "", cell(rows[[k]], ti)))
     if (!nzchar(base)) next
     if (identical(base, "begin_group")) ns <- ns + 1L
-    if (!(base %in% structural)) nq <- nq + 1L
+    if (base %in% structural) next
+    nm <- nombres[[k]]
+    if (grepl("_other$", nm) && sub("_other$", "", nm) %in% nombres) next
+    nq <- nq + 1L
   }
   list(n_questions = nq, n_sections = ns)
 }
@@ -263,7 +275,7 @@
 # Inserta o actualiza una entrada por id. Si es el primer formulario (o no hay
 # activo válido), lo marca activo. Si se actualiza el activo, re-deriva el
 # espejo para conservar la invariante.
-.xlsform_forms_upsert <- function(s, entry) {
+.xlsform_forms_upsert <- function(s, entry, cliente = FALSE) {
   forms <- s$xlsform_forms %||% list()
   id <- as.character(entry$id %||% "")[1]
   if (!nzchar(id)) {
@@ -271,6 +283,10 @@
     entry$id <- id
   }
   previous <- forms[[id]]
+  # El autosave no es dueño de las campañas declaradas (ADR 0101).
+  if (isTRUE(cliente)) {
+    entry$source <- .xlsform_campanas_preservar(previous$source %||% list(), entry$source)
+  }
   entry$source <- .xlsform_forms_merge_source(
     previous$source %||% list(),
     entry$source %||% list()

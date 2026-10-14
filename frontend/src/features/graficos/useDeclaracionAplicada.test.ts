@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-// ADR 0096 decisión 8, enmendada por ADR 0101: `useDeclaracionAplicada` sólo lleva los avisos de la siembra del
+// ADR 0096 decisión 8, enmendada por ADR 0102: `useDeclaracionAplicada` sólo lleva los avisos de la siembra del
 // compartido (`preflight.equivalencias.avisos`) a «Avisos del informe» de Láminas; el estado de la declaración aplicada
 // (al día, desfasada…) se retiró con el sello de la matriz.
 // Sin DOM en vitest el hook no se monta: se fija que exista y quién lo consume.
@@ -26,7 +26,7 @@ describe("useDeclaracionAplicada · avisos de la siembra", () => {
     expect(typeof mod.useDeclaracionAplicada).toBe("function");
   });
 
-  // ADR 0101: la matriz ya no arma láminas, así que no hay estado de «declaración aplicada» que calcular.
+  // ADR 0102: la matriz ya no arma láminas, así que no hay estado de «declaración aplicada» que calcular.
   // Mata: reintroducir el sello o el aviso de desfase.
   it("no queda cálculo del estado de la declaración ni aviso de desfase", async () => {
     const fuentes = archivosDeProducto(AQUI);

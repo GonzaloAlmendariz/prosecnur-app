@@ -36,6 +36,7 @@ const SM_DIFF_KIND_LABELS: Readonly<Record<string, string>> = {
   ambiguous: "Preguntas ambiguas",
   different_instrument: "Instrumento distinto",
   legacy_positional: "Base armada por posición",
+  saved_codes_mismatch: "Opción guardada sin equivalente",
 };
 
 /** Kinds de emparejado que se agrupan por tipo en vez de «Revisar …». */

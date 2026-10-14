@@ -202,3 +202,18 @@ test_that("la lógica aplicada deja una huella reproducible sin guardar contenid
   expect_equal(first$rules_count, 1L)
   expect_false(any(grepl("Ocultar P2|C1", unlist(first), fixed = TRUE)))
 })
+
+test_that("H9: la variable personalizada y la imagen se declaran fuera del formulario, con su causa", {
+  details <- list(
+    custom_variables = list(id = "id"),
+    pages = list(list(position = 1, questions = list(
+      list(family = "presentation", subtype = "image"),
+      list(family = "presentation", subtype = "descriptive_text")
+    )))
+  )
+  fuera <- .xlsform_editor_sm_fuera_del_formulario(details)
+  expect_identical(vapply(fuera, `[[`, "", "tipo"), c("variable_personalizada", "imagen"))
+  expect_match(fuera[[1]]$detalle, "cv_id")
+  expect_match(fuera[[2]]$detalle, "página 1")
+  expect_length(.xlsform_editor_sm_fuera_del_formulario(list()), 0L)
+})

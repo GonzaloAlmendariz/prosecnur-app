@@ -1823,7 +1823,7 @@
 # ADR 0096 decisión 7: ningún generador de plan empareja variables de bases
 # distintas por parecido de etiqueta (lo invalida el ADR 0062). La comparación
 # entre públicos la arma el analista en Gráficos, con la matriz como fuente de qué
-# preguntas equivalen (ADR 0101). Reabrir la heurística exige enmendar el ADR 0096.
+# preguntas equivalen (ADR 0102). Reabrir la heurística exige enmendar el ADR 0096.
 #
 # `alcance` (informe compartido, `graficos_plan_consolidado.R`):
 # `list(config, fuentes, bloque)` con la config ya resuelta y portable, las

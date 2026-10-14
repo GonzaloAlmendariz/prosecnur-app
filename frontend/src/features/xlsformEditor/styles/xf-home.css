@@ -14,6 +14,9 @@
   /* Aprovecha el alto disponible: la grilla de slots es el área principal y la
      guía compacta se ancla al fondo (margin-top:auto), sin zonas muertas. */
   min-height: calc(100dvh - 126px);
+  /* Hijo de un cuerpo flex con scroll propio: sin esto se encoge a su
+     min-height y con seis formularios las tarjetas se salen del panel (C2). */
+  flex-shrink: 0;
   padding: 26px 24px 28px;
   border-radius: 16px;
   background: linear-gradient(
@@ -79,9 +82,15 @@
    que aprovecha el ancho del canvas sin dejar el hub sparse en una sola fila.
    Baja a 2 y 1 columnas en anchos compactos. */
 
+/* C2 (`xlsform-home-slots`, contrato `equal`): todas las filas miden lo que
+   la más alta (`grid-auto-rows: 1fr`), así que una tarjeta no cambia de alto
+   según con quién comparte fila. El espacio libre queda DENTRO de cada
+   tarjeta, entre la información y su cierre (estado + pie), y los pies se
+   alinean en toda la grilla. */
 .pulso-xf-home-slots {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
   gap: 14px;
   align-items: stretch;
 }
@@ -210,6 +219,12 @@
   border-color: var(--pulso-border-strong);
 }
 
+/* Un popover abierto (menú o campañas) se pinta sobre las tarjetas vecinas:
+   el `transform` del hover crea un contexto de apilamiento por tarjeta. */
+.pulso-xf-home-card:has([aria-expanded="true"]) {
+  z-index: 5;
+}
+
 .pulso-xf-home-card.is-active {
   border-color: var(--xf-card-accent);
   box-shadow: 0 0 0 1px var(--xf-card-accent), var(--pulso-shadow-soft);
@@ -233,15 +248,22 @@
   color: var(--xf-card-accent);
 }
 
+/* Cabecera de alto fijo: título hasta dos líneas + origen. Con un título de
+   una línea queda aire debajo, pero las métricas y etapas de toda la fila
+   arrancan a la misma altura. */
 .pulso-xf-home-card-heading {
   display: flex;
   flex-direction: column;
   gap: 3px;
   min-width: 0;
+  min-height: calc(2 * 1.3 * 14px + 3px + 1.4 * 11.5px);
   flex: 1;
 }
 
+/* Dos líneas antes de recortar: «Acreditación Arte y Diseño PUCP -
+   Estudiantes» se leía «…Estudiant…». El nombre completo queda en `title`. */
 .pulso-xf-home-card-name {
+  display: -webkit-box;
   margin: 0;
   font-size: 14px;
   font-weight: var(--pulso-weight-bold);
@@ -249,11 +271,17 @@
   letter-spacing: -0.1px;
   line-height: 1.3;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .pulso-xf-home-card-origin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   font-size: 11.5px;
   color: var(--pulso-text-soft);
   line-height: 1.4;
@@ -263,8 +291,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  align-self: flex-start;
-  padding: 2px 7px;
+  padding: 0 7px;
   border-radius: 999px;
   font-size: 10.5px;
   font-weight: var(--pulso-weight-bold);
@@ -292,6 +319,10 @@
   display: flex;
   align-items: center;
   gap: 14px;
+  /* Reserva el alto del chip de campañas (24 px + 2 de respiro): con o sin
+     campañas la fila mide lo mismo y las etapas no se mueven. */
+  box-sizing: border-box;
+  min-height: 26px;
   padding-top: 2px;
 }
 
@@ -313,35 +344,112 @@
   color: var(--pulso-text-soft);
 }
 
+/* Público: opcional. Una fila rótulo + select; la sugerencia y los estados
+   del catálogo van debajo sólo cuando existen. */
 .pulso-xf-home-card-actor {
   display: grid;
-  gap: 4px;
-  padding: 9px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 9px;
-  background: var(--pulso-surface-2);
+  gap: 6px;
 }
 
-.pulso-xf-home-card-actor > span {
+.pulso-xf-home-card-actor-fila {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.pulso-xf-home-card-actor-rotulo {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
 }
 
-.pulso-xf-home-card-actor select {
+.pulso-xf-home-card-actor-rotulo small {
+  margin-left: 3px;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
+}
+
+/* El select se ve como select: chevron propio sobre `appearance: none`. */
+.pulso-xf-home-card-select {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.pulso-xf-home-card-select select {
   width: 100%;
-  height: 28px;
-  padding: 3px 7px;
+  height: 30px;
+  padding: 3px 28px 3px 9px;
   border: 1px solid var(--pulso-border);
   border-radius: 7px;
   background: var(--pulso-surface);
   color: var(--pulso-text);
+  font: inherit;
   font-size: 12px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  text-overflow: ellipsis;
 }
 
-.pulso-xf-home-card-actor select:focus {
+.pulso-xf-home-card-select select:hover:not(:disabled) {
+  border-color: var(--pulso-border-strong);
+}
+
+.pulso-xf-home-card-select select:focus-visible {
   outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
   border-color: var(--pulso-module-editor-border);
+}
+
+.pulso-xf-home-card-select select:disabled {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-faint);
+  cursor: not-allowed;
+}
+
+.pulso-xf-home-card-select svg {
+  position: absolute;
+  top: 50%;
+  right: 9px;
+  transform: translateY(-50%);
+  color: var(--pulso-text-soft);
+  pointer-events: none;
+}
+
+.pulso-xf-home-card-sugerencia {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  justify-self: start;
+  gap: 5px;
+  max-width: 100%;
+  padding: 3px 9px;
+  border: 1px dashed var(--pulso-module-editor-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-module-editor);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.pulso-xf-home-card-sugerencia:hover:not(:disabled) {
+  border-style: solid;
+  background: var(--pulso-module-editor-soft);
+}
+
+.pulso-xf-home-card-sugerencia:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+.pulso-xf-home-card-sugerencia-origen {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-medium);
 }
 
 .pulso-xf-home-card-actor small {
@@ -350,9 +458,64 @@
   line-height: 1.35;
 }
 
+/* Avisos de publicación (p. ej. un público que ya no está en el catálogo):
+   discretos, plegados y sin rojo; no impiden publicar. */
+.pulso-xf-home-card-avisos {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-home-card-avisos summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  list-style: none;
+}
+
+.pulso-xf-home-card-avisos summary::-webkit-details-marker {
+  display: none;
+}
+
+.pulso-xf-home-card-avisos summary span {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-medium);
+}
+
+.pulso-xf-home-card-avisos summary:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.pulso-xf-home-card-avisos ul {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-xf-home-card-avisos li {
+  display: grid;
+  gap: 1px;
+  padding: 5px 8px;
+  border-left: 2px solid var(--pulso-warn-border);
+  background: var(--pulso-surface-2);
+  line-height: 1.35;
+}
+
+.pulso-xf-home-card-avisos li strong {
+  color: var(--pulso-text);
+  font-size: 11px;
+}
+
 .pulso-xf-home-card-workflow {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
   gap: 6px;
 }
 
@@ -360,8 +523,8 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 3px;
-  padding: 8px;
+  gap: 2px;
+  padding: 7px 9px;
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
   background: var(--pulso-surface-2);
@@ -379,11 +542,6 @@
   line-height: 1.3;
 }
 
-.pulso-xf-home-card-stage small {
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  line-height: 1.35;
-}
 
 .pulso-xf-home-card-stage.is-success {
   border-color: var(--pulso-success-border);
@@ -397,15 +555,42 @@
   border-color: var(--pulso-danger-border);
 }
 
+/* Borrador vacío: posee el espacio libre de la tarjeta (C3). Neutro. */
+.pulso-xf-home-card-vacio {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 72px;
+  padding: 12px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 9px;
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+  text-align: center;
+}
+
+.pulso-xf-home-card-vacio strong {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* Cierre de la tarjeta: estado de publicación + pie, anclados al fondo. */
+.pulso-xf-home-card-cierre {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+}
+
 .pulso-xf-home-card-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  /* Empuja la fila de acción (Abrir + marca de tiempo) al fondo de la tarjeta,
-     así queda en la misma línea base en toda la grilla aunque el contenido
-     variable (métricas) tenga alturas distintas entre tarjetas. */
-  margin-top: auto;
   padding-top: 10px;
   border-top: 1px solid var(--pulso-border);
 }
@@ -585,6 +770,11 @@
   color: var(--pulso-text-soft);
 }
 
+.pulso-xf-publication-label-detalle {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-medium);
+}
+
 .pulso-xf-publication.is-success .pulso-xf-publication-label {
   color: var(--pulso-success-fg);
 }
@@ -742,9 +932,17 @@
   max-width: 200px;
 }
 
+/* Mientras se elige cómo crear, las filas vuelven a su alto intrínseco: con
+   `1fr` la celda expandida heredaba el alto de una tarjeta (338 px con ~170
+   vacíos). Es un estado transitorio de la grilla. */
+.pulso-xf-home-slots:has(.pulso-xf-home-add--expanded) {
+  grid-auto-rows: auto;
+}
+
 /* Tarjeta expandida: ocupa la fila completa y revela las 3 vías. */
 .pulso-xf-home-add--expanded {
   grid-column: 1 / -1;
+  align-self: start;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -964,6 +1162,6 @@
 
 @media (max-width: 520px) {
   .pulso-xf-home-card-workflow {
-    grid-template-columns: 1fr;
+    grid-auto-flow: row;
   }
 }

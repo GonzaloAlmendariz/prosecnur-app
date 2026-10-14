@@ -1,6 +1,6 @@
 // «Armar desde un plan sugerido» (contrato A5 rebanada 2b): lo que decide qué se aplica, separado del popover que lo
 // muestra. Puro: sin store ni React, para que la forma del paso único (`usePlanStore.aplicarPlanSugerido`) y sus reglas
-// —qué identidad sube a `scope_rules.global`, cuándo se propone «Otros»— se prueben sin montar nada. ADR 0101: la
+// —qué identidad sube a `scope_rules.global`, cuándo se propone «Otros»— se prueben sin montar nada. ADR 0102: la
 // matriz de equivalencias ya no arma láminas, así que no hay sello de la declaración que grabar.
 
 import type { GraficosSuggestedPlanResponse, PlanJson, PptStyleProfileMeta } from "../../../api/graficos";

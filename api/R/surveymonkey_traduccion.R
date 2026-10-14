@@ -448,7 +448,7 @@
 # secciones de página en orden de aparición. Devuelve también un label
 # legible "Pag<N> (p<first>-p<last>)" calculado con el remap de preguntas
 # ya aplicado al survey.
-.sm_build_page_remap <- function(survey, name_remap) {
+.sm_build_page_remap <- function(survey, name_remap, page_titles = character(0)) {
   page_remap <- character(0)
   page_label <- character(0)
   page_seq <- 0L
@@ -467,7 +467,11 @@
         sprintf(" (%s-%s)", current_first_q, current_last_q)
       }
     } else ""
-    page_label[[current_page]] <<- paste0(new_name, rng)
+    # El título real de la página SurveyMonkey nombra la sección («Datos
+    # generales (p2-p6)»); sin título queda «PagN» (checklist 2026-10-14, H5).
+    titulo <- page_titles[[current_page]] %||% NA_character_
+    base_label <- if (!is.na(titulo) && nzchar(titulo)) titulo else new_name
+    page_label[[current_page]] <<- paste0(base_label, rng)
   }
 
   for (i in seq_len(nrow(survey))) {
@@ -493,8 +497,12 @@
     if (!is.na(current_page) && !is.na(nm) && nzchar(nm) && (nm %in% names(name_remap))) {
       mapped <- name_remap[[nm]]
       if (!is.na(mapped)) {
-        if (is.na(current_first_q)) current_first_q <- mapped
-        current_last_q <- mapped
+        # El rango nombra preguntas, no sus campos «Otro (especifique)»
+        # («p2-p6», no «p2-p6_other»; checklist 2026-10-14, U9).
+        if (!grepl("_other$", mapped)) {
+          if (is.na(current_first_q)) current_first_q <- mapped
+          current_last_q <- mapped
+        }
       }
     }
   }
@@ -516,7 +524,7 @@
     return(spec)
   }
 
-  page_info <- .sm_build_page_remap(survey, remap)
+  page_info <- .sm_build_page_remap(survey, remap, page_titles = spec$page_titles %||% character(0))
 
   rewrite_col <- function(x) vapply(x, .sm_rewrite_expr, character(1), remap = remap)
   apply_remap <- function(x) {
@@ -654,7 +662,7 @@
   #    que reflejen los nombres canónicos. NO agregamos columnas nuevas para
   #    no romper consumidores aguas abajo que asumen el shape original.
   if (!is.null(spec$diagnostico) && nrow(spec$diagnostico)) {
-    spec$diagnostico$name_final <- apply_remap(spec$diagnostico$name_final)
+    spec$diagnostico$name_final <- .sm_diag_madres_remapeadas(apply_remap(spec$diagnostico$name_final), remap)
     spec$diagnostico$section_final <- apply_page_remap(spec$diagnostico$section_final)
     if (length(list_remap) && "list_name_final" %in% names(spec$diagnostico)) {
       hits <- which(spec$diagnostico$list_name_final %in% names(list_remap))
@@ -675,6 +683,21 @@
   spec$name_remap <- remap
   spec$page_remap <- page_info$name_map
   spec
+}
+
+# La madre de una matriz no tiene fila en `survey` (sólo sus filas `q0010_1`),
+# así que el remap no la nombra y el diagnóstico quedaba con `q0010` mientras
+# `survey` decía `p10_*`. Se nombra como la madre de su primera fila remapeada
+# (checklist 2026-10-14, H8).
+.sm_diag_madres_remapeadas <- function(nombres, remap) {
+  if (!length(remap)) return(nombres)
+  claves <- names(remap)
+  vapply(nombres, function(n) {
+    if (is.na(n) || !grepl("^[qQ][0-9]+$", n) || n %in% unname(remap)) return(n)
+    hijos <- claves[startsWith(claves, paste0(n, "_"))]
+    if (!length(hijos)) return(n)
+    sub("_[^_]+$", "", remap[[hijos[[1L]]]])
+  }, character(1), USE.NAMES = FALSE)
 }
 
 .sm_other_choice_value <- function(labs) {

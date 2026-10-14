@@ -111,6 +111,7 @@ export function FormIntakeMenu({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label="Nuevo formulario"
         disabled={!canCreate}
         title={
           canCreate
@@ -118,8 +119,8 @@ export function FormIntakeMenu({
             : `Límite de ${maxForms} formularios por proyecto`
         }
       >
-        <IconNew size={14} />
-        Nuevo formulario
+        <IconNew size={14} aria-hidden="true" />
+        <span className="pulso-xf-cmd-label pulso-xf-cmd-label--low">Nuevo formulario</span>
         <ChevronDown size={13} aria-hidden="true" />
       </button>
       {open && (

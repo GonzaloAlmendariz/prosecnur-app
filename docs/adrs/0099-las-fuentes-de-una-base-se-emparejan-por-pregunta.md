@@ -58,8 +58,9 @@ Medido con los datos reales (2026-10-11), juntando la versión telefónica a la 
    del editor del momento.** Todo import SurveyMonkey por API (base única, bases separadas, import
    independiente; el integrado queda fuera) adopta el orden del editor y guarda la receta en la base. El
    refresh y la regeneración del snapshot reaplican esa receta por etiqueta contra el XLSForm recién
-   generado. Sin receta (base anterior o sin mapas) el refresh no adopta nada: quedan los códigos de la
-   plataforma. Si el editor pide hoy otro orden, no se recodifica: se declara `editor_distinto` y Revisión
+   generado. Sin receta (base anterior o sin mapas) el refresh conserva por etiqueta los códigos del
+   instrumento guardado de la base (`original_xlsform_file_id`), no los que hoy genere la plataforma; una
+   opción guardada que ya no existe bloquea con `saved_codes_mismatch` (enmienda 2026-10-14). Si el editor pide hoy otro orden, no se recodifica: se declara `editor_distinto` y Revisión
    avisa.
 8. **El consentimiento de cada fuente se evalúa en su propio instrumento, antes de alinear.** Si la
    variable de consentimiento de la base no recibe nada de la fuente, sus filas no se descartan como si no

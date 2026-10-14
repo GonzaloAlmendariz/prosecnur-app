@@ -27,6 +27,8 @@ import {
 import { PANELES_GRAFICOS } from "../../features/graficos/panelesGraficos";
 import { PANELES_CARGA } from "../../features/carga/panelesCarga";
 import { PANELES_ANALITICA } from "../../features/analitica/panelesAnalitica";
+import { PANEL_CAMPANA_COMPLEMENTARIA } from "../../features/xlsformEditor/shell/campanaComplementariaModel";
+import { PANEL_LISTAS_OPCIONES } from "../../features/xlsformEditor/listas/panelListas";
 
 export type NivelNodo = "modulo" | "modo" | "seccion" | "pestana" | "panel";
 
@@ -191,6 +193,8 @@ export const PANELES_POR_MODULO: Readonly<
   global: [PANEL_MODULOS, PANEL_CONFIGURACION],
   monitoreo: [PANEL_CONECTAR_FUENTE, PANEL_REEMPLAZO_AULAS],
   "diseno-estudio": [PANEL_AVISOS, PANEL_IMPORTAR],
+  // Se abre sobre un formulario: `?panel=campana-complementaria&foco=<id>`.
+  "editor-xlsform": [PANEL_CAMPANA_COMPLEMENTARIA, PANEL_LISTAS_OPCIONES],
   procesamiento: [...PANELES_GRAFICOS, ...PANELES_CARGA, ...PANELES_ANALITICA],
 };
 

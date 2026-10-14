@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   CheckCircle2,
   Circle,
   RefreshCw,
@@ -20,6 +21,7 @@ export type FormPublicationStatusProps = {
   onPublish: () => void;
   onConfirmLogic: () => void;
   primaryAction?: FormWorkflowPrimaryAction;
+  /** @deprecated El público es opcional; ya no hay acción «Elegir público». */
   onAssignAudience?: () => void;
   /**
    * Abrir el formulario para corregir. Es la salida de los bloqueos
@@ -37,7 +39,6 @@ export function FormPublicationStatus({
   onPublish,
   onConfirmLogic,
   primaryAction,
-  onAssignAudience,
   onOpen,
 }: FormPublicationStatusProps) {
   if (!publication) {
@@ -59,39 +60,42 @@ export function FormPublicationStatus({
   const logicBlocker = publication.blockers.find((blocker) => (
     isConfirmableLogicBlocker(blocker.id)
   ));
-  const resolvedAction = primaryAction ?? (logicBlocker ? "review_logic" : undefined);
+  // El público nunca es obligatorio (2026-10-14): «Elegir público» no puede
+  // tapar «Publicar». Un llamador viejo que aún pida `assign_audience` cae en
+  // la acción de publicación.
+  const pedida = primaryAction === "assign_audience" ? undefined : primaryAction;
+  const resolvedAction = pedida ?? (logicBlocker ? "review_logic" : undefined);
   // `open` es la acción de los bloqueos que no se arreglan desde la tarjeta
   // (names duplicados, catálogos ausentes, grupos descuadrados). Antes caía en
   // `actionLabel = null` y la tarjeta quedaba en rojo sin ningún control: el
   // usuario leía "Publicación bloqueada" y no tenía adónde ir.
   const actionLabel = resolvedAction === "review_logic"
-    ? (isConfirmingLogic ? "Guardando revisión…" : "Abrir y revisar lógica")
-    : resolvedAction === "assign_audience"
-      ? "Elegir público"
-      : resolvedAction === "open"
-        ? (view.status === "blocked" ? "Abrir y corregir" : null)
-        : view.actionLabel;
+    ? (isConfirmingLogic ? "Guardando revisión…" : "Revisar lógica")
+    : resolvedAction === "open"
+      ? (view.status === "blocked" ? "Abrir y corregir" : null)
+      : view.actionLabel;
   const actionDisabled = resolvedAction === "review_logic"
     ? isConfirmingLogic
-    : resolvedAction === "assign_audience"
+    : resolvedAction === "open"
       ? false
-      : resolvedAction === "open"
-        ? false
-        : view.actionDisabled;
+      : view.actionDisabled;
   const actionHandler = resolvedAction === "review_logic"
     ? onConfirmLogic
-    : resolvedAction === "assign_audience"
-      ? onAssignAudience
-      : resolvedAction === "open"
-        ? onOpen
-        : onPublish;
+    : resolvedAction === "open"
+      ? onOpen
+      : onPublish;
   const reasonId = `pulso-xf-publication-reason-${formId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  // Los pasos (confirmar la lógica) no se listan: la etapa y la acción ya los
+  // nombran. Sólo los errores van en la lista roja.
+  const errores = view.blockers.filter((blocker) => blocker.kind === "error");
   const StatusIcon = view.status === "published"
     ? CheckCircle2
     : view.status === "changes_pending"
       ? RefreshCw
-      : view.status === "blocked"
+      : view.status === "blocked" && view.tone === "danger"
         ? ShieldAlert
+        : view.status === "blocked"
+          ? AlertTriangle
         : Circle;
 
   return (
@@ -118,9 +122,9 @@ export function FormPublicationStatus({
           {view.reason}
         </p>
       ) : null}
-      {view.status === "blocked" && view.blockers.length > 0 ? (
+      {view.status === "blocked" && errores.length > 0 ? (
         <ul className="pulso-xf-publication-blockers">
-          {view.blockers.map((blocker) => (
+          {errores.map((blocker) => (
             <li key={blocker.id} className="pulso-xf-publication-blocker">
               <strong>{blocker.title}</strong>
               {blocker.detail ? <span>{blocker.detail}</span> : null}

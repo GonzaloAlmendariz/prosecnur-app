@@ -308,3 +308,36 @@ test_that("Google Sheets OAuth refreshes expired access tokens without leaking c
     expect_false(contains_value_recursive(list(saved), "client_secret_sentinel"))
   })
 })
+
+test_that("the legacy SurveyMonkey token can be re-activated as the default profile", {
+  # El token único de instalaciones anteriores (`sm_token`) se expone como el
+  # perfil heredado «Principal» (id `default`) y no se guarda en el manifiesto.
+  # Activarlo no puede caer en silencio al primer perfil guardado.
+  with_temp_home({
+    prosecnur_secret_save("sm_token", "sm_legacy_abcdef")
+    .connections_profile_save(
+      "surveymonkey",
+      token = "sm_second_123456",
+      alias = "Secundario",
+      profile_id = "secundario",
+      make_default = TRUE
+    )
+    expect_equal(.connections_token_require("surveymonkey"), "sm_second_123456")
+
+    status <- .connections_profile_set_default("surveymonkey", "default")
+
+    expect_equal(status$active_profile_id, "default")
+    expect_equal(.connections_token_require("surveymonkey"), "sm_legacy_abcdef")
+    expect_equal(.connections_load_profile_manifest("surveymonkey")$default_profile_id, "default")
+
+    # Guardar otro perfil sin pedirlo como activo no le quita el activo al heredado.
+    .connections_profile_save(
+      "surveymonkey",
+      token = "sm_third_654321",
+      alias = "Tercero",
+      profile_id = "tercero",
+      make_default = FALSE
+    )
+    expect_equal(.connections_token_require("surveymonkey"), "sm_legacy_abcdef")
+  })
+})

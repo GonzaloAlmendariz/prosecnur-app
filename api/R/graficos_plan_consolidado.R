@@ -1,4 +1,4 @@
-# El informe compartido se propone y se siembra (ADR 0096; ADR 0101)
+# El informe compartido se propone y se siembra (ADR 0096; ADR 0102)
 # ===================================================================
 #
 # `POST /api/graficos/plan/sugerido` con `scope:"consolidado"` y la siembra del
@@ -6,7 +6,7 @@
 # MISMA función de este archivo, así lo que se propone, lo que se siembra y lo
 # que genera el job son el mismo mazo para el mismo estado.
 #
-# - ADR 0101: la matriz de equivalencias sólo declara equivalencias. El bloque
+# - ADR 0102: la matriz de equivalencias sólo declara equivalencias. El bloque
 #   comparativo que antes se derivaba de ella (diapositiva, gráfico, corte) ya no
 #   existe: las láminas que comparan públicos las arma el analista en Gráficos.
 # - Sólo participan las bases con release aprobada y vigente; las demás se dicen
@@ -74,7 +74,7 @@
 
 .graficos_plan_consolidado_aviso <- function(code, message) list(code = code, message = message)
 
-# ADR 0101: sin bloque derivado de la matriz no hay avisos sobre ella; queda el de las bases que no entran.
+# ADR 0102: sin bloque derivado de la matriz no hay avisos sobre ella; queda el de las bases que no entran.
 .graficos_plan_consolidado_avisos <- function(excluidas) {
   if (!length(excluidas)) return(list())
   actores <- vapply(excluidas, function(x) as.character(x$actor %||% x$base), character(1))
@@ -82,7 +82,7 @@
     "Sin release aprobada y vigente, quedan fuera de la propuesta: %s.", paste(actores, collapse = ", "))))
 }
 
-#' Propuesta del informe compartido (ADR 0096, ADR 0101).
+#' Propuesta del informe compartido (ADR 0096, ADR 0102).
 #'
 #' La propuesta por fuente de las bases aprobadas. `sources` evita recalcular las fuentes cuando llama el preflight.
 #' @noRd
@@ -117,7 +117,7 @@
 # Elige la fuente del plan sugerido. Vive aqui y no en el router para que la
 # eleccion sea probable sin HTTP (routers delgados).
 #
-# ADR 0101: la matriz de equivalencias ya no es una fuente (`fuente = "equivalencias"` responde 410 con su motivo).
+# ADR 0102: la matriz de equivalencias ya no es una fuente (`fuente = "equivalencias"` responde 410 con su motivo).
 # ADR 0096: `scope` viene de la RAÍZ del cuerpo, igual que en `/plan/coverage`.
 .graficos_plan_sugerido_por_fuente <- function(sid, config = NULL, scope = "") {
   fuente <- tolower(trimws(as.character((config %||% list())$fuente %||% "")[1]))

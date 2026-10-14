@@ -92,8 +92,13 @@ describe("FormCard workflow", () => {
       can_publish: false,
     }));
 
-    expect(markup).toContain("Abrir y revisar lógica");
+    expect(markup).toContain(">Revisar lógica<");
     expect(markup).not.toContain("Confirmar lógica revisada");
+    // Paso obligatorio, no error: aviso, una sola señal, sin caja roja.
+    expect(markup).toContain("Revisa la lógica para publicar");
+    expect(markup).toContain("pulso-xf-publication is-warning");
+    expect(markup).not.toContain("pulso-xf-publication-blocker");
+    expect(markup).not.toContain("Falta 1 corrección");
   });
 
   test("uses article semantics and names the card actions accessibly", () => {
@@ -130,8 +135,68 @@ describe("FormCard workflow", () => {
       actorCatalogStatus: "empty",
     });
 
-    expect(markup).toContain("No requerido");
+    // Fuera de acreditación no hay etapa ni campo de público: era ruido.
+    expect(markup).not.toContain("No requerido");
+    expect(markup).not.toContain("Público");
     expect(markup).toContain(">Publicar<");
-    expect(markup).not.toContain("Público del instrumento");
+  });
+
+  test("acreditación sin público: «Publicar» disponible y el público como opcional", () => {
+    const markup = renderCard(publication(), {
+      actorOptions: [
+        { actor_key: "docentes", actor: "Docentes" },
+        { actor_key: "estudiantes", actor: "Estudiantes" },
+      ],
+      actorKey: null,
+    });
+
+    expect(markup).toMatch(/<button[^>]*class="pulso-xf-publication-action"[^>]*>Publicar<\/button>/);
+    expect(markup).not.toMatch(/<button[^>]*disabled=""[^>]*>Publicar</);
+    expect(markup).not.toContain("Elegir público");
+    expect(markup).not.toContain("antes de publicarlo");
+    expect(markup).toContain("opcional");
+    // Sugerencia desde el título («Encuesta docentes»), sin asignarla.
+    expect(markup).toContain("Usar «Docentes»");
+    expect(markup).toMatch(/<option value="" selected="">Sin asignar<\/option>/);
+  });
+
+  test("un borrador vacío se pinta neutro, no como error", () => {
+    const markup = renderCard(publication({
+      status: "blocked",
+      can_publish: false,
+      blockers: [{
+        id: "no_substantive_questions",
+        title: "Instrumento sin preguntas sustantivas",
+        detail: "Agrega al menos una pregunta antes de publicar.",
+      }],
+    }));
+
+    expect(markup).toContain("Borrador vacío");
+    expect(markup).toContain("Agrega preguntas para publicar.");
+    expect(markup).toContain('data-qa-geometry-capacity="owned"');
+    expect(markup).not.toContain("Falta 1 corrección");
+    expect(markup).not.toContain("is-danger");
+  });
+
+  test("los avisos de publicación se muestran sin bloquear «Publicar»", () => {
+    const markup = renderCard(publication({
+      warnings: [{
+        id: "actor_not_in_catalog",
+        title: "El público asignado no está en el catálogo",
+        detail: "Elige otro o publica sin público.",
+      }],
+    }));
+
+    expect(markup).toContain("1 aviso");
+    expect(markup).toContain("no impide publicar");
+    expect(markup).toContain("El público asignado no está en el catálogo");
+    expect(markup).toMatch(/class="pulso-xf-publication-action"[^>]*>Publicar</);
+  });
+
+  test("declara la tarjeta como miembro de la grilla y sus etapas como grupo par (C1)", () => {
+    const markup = renderCard();
+    expect(markup).toMatch(/<article[^>]*data-qa-geometry-member/);
+    expect(markup).toContain('data-qa-geometry-group="xlsform-home-etapas"');
+    expect(markup).toContain('data-qa-geometry-contract="equal"');
   });
 });

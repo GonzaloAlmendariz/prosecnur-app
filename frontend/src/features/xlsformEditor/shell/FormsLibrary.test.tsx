@@ -1,6 +1,12 @@
-import { renderToStaticMarkup } from "react-dom/server";
+import type { ReactNode } from "react";
+import { renderToStaticMarkup as renderSinRouter } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, test, vi } from "vitest";
 import { FormsLibrary, type FormsLibraryProps } from "./FormsLibrary";
+
+// La biblioteca lee la dirección (panel de campaña complementaria, ADR 0101).
+const renderToStaticMarkup = (nodo: ReactNode) =>
+  renderSinRouter(<MemoryRouter initialEntries={["/editor-xlsform"]}>{nodo}</MemoryRouter>);
 
 function props(
   overrides: Partial<FormsLibraryProps> = {},
@@ -48,7 +54,7 @@ describe("FormsLibrary", () => {
       expect(markup).toContain("Espacio de formularios");
       expect(markup).toContain("Cómo funciona");
       expect(markup).toContain("pulso-xf-home-add--tile");
-      expect(markup).toContain("Origen, lógica y público preparan una revisión estable");
+      expect(markup).toContain("Cada formulario se publica como una revisión estable");
       // Nada de hero, diagrama ni slots fantasma.
       expect(markup).not.toContain("pulso-xf-home-add--hero");
       expect(markup).not.toContain("pulso-hub-flow");
