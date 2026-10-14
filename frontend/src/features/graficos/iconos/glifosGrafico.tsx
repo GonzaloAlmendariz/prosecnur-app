@@ -7,7 +7,11 @@
 
 type Tono = "p" | "a" | "e1" | "e2" | "e3" | "e4" | "n" | "v";
 /** Lo que el dibujo puede reflejar del gráfico real (la maqueta de la lámina); sin opciones, el dibujo del catálogo. */
-export type OpcionesGlifo = { ttb?: boolean; btb?: boolean };
+export type OpcionesGlifo = {
+  ttb?: boolean; btb?: boolean;
+  /** Sin cifras de ejemplo («64%», «31%»): en la maqueta parecían resultados (catálogo del recetario, M6). */
+  sinCifras?: boolean;
+};
 type DibujoGlifo = (o?: OpcionesGlifo) => JSX.Element;
 
 export const GLIFO = { w: 160, h: 100 } as const;
@@ -285,11 +289,11 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
     </>
   ),
   // Dona de dos porciones con la cifra al centro (p70).
-  p_donut: () => (
+  p_donut: (o) => (
     <>
       <circle cx={56} cy={50} r={30} className="pulso-glifo__trazo-a" strokeWidth={14} fill="none" />
       <path d={arco(56, 50, 30, 0, 0.64)} className="pulso-glifo__trazo-p" strokeWidth={14} fill="none" />
-      <Cifra x={56} y={55} tam={14} texto="64%" />
+      {o?.sinCifras ? <Valor x={46} y={48} w={20} /> : <Cifra x={56} y={55} tam={14} texto="64%" />}
       <Leyenda x={104} y={38} tonos={["p"]} />
       <Leyenda x={104} y={56} tonos={["a"]} />
     </>
@@ -524,9 +528,9 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
     </>
   ),
   // Cifra destacada: el número manda y su rótulo lo explica (p17–18, 172–175).
-  p_cifra: () => (
+  p_cifra: (o) => (
     <>
-      <Cifra x={80} y={58} tam={36} texto="31%" />
+      {o?.sinCifras ? <Barra x={56} y={34} w={48} h={20} t="p" rx={3} /> : <Cifra x={80} y={58} tam={36} texto="31%" />}
       <Rotulo x={50} y={68} w={60} />
       <Rotulo x={60} y={74} w={40} />
     </>

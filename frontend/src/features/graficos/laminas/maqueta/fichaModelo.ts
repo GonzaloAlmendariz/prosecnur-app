@@ -7,6 +7,9 @@ import { esRespuestaResidual } from "../../estilo/modeloColoresRespuestas";
 import { firmaOpciones } from "../../paletasResolver";
 import type { OpcionMaqueta, RanuraMaqueta } from "../modeloMaqueta";
 
+/** Aviso de la ficha cuando el Top Two Box está encendido sin sus respuestas (el PowerPoint sale sin la columna). */
+export const TTB_SIN_RESPUESTAS = "Top Two Box sin respuestas elegidas";
+
 /** `.plan_particionar_escalas`: más barras y la escala sale en láminas «(cont.)». */
 export const MAX_BARRAS = 7;
 
@@ -81,10 +84,22 @@ export function primeraParte(bloques: readonly BloqueForma[]): { bloques: Bloque
   return { bloques: salen, partes: Math.ceil(total / Math.max(1, usadas)) };
 }
 
+/** `.MULTIACTOR_ANCHO_TEMA` (api/R/graficos_preset_multiactor.R): el ancho de la columna del tema que pide la lámina. */
+const ANCHO_TEMA: Readonly<Record<string, number>> = { ancho: 0.28, angosto: 0.14 };
+
 function ejeDe(args: Readonly<Record<string, unknown>>): number {
+  const pedido = typeof args.ancho_tema === "string" ? ANCHO_TEMA[args.ancho_tema] : undefined;
+  if (pedido) return pedido;
   const ov = (args.overrides && typeof args.overrides === "object" ? args.overrides : {}) as Record<string, unknown>;
   const w = Number(ov.canvas_w_grupo ?? args.canvas_w_grupo);
   return Number.isFinite(w) && w > 0 && w < 1 ? w : EJE_POR_DEFECTO;
+}
+
+/** Ajustes que cualquier tipo puede llevar, leídos del slot o de sus overrides. */
+function ajustesComunes(args: Readonly<Record<string, unknown>>): string[] {
+  const ov = (args.overrides && typeof args.overrides === "object" ? args.overrides : {}) as Record<string, unknown>;
+  const v = (k: string) => (k in ov ? ov[k] : args[k]);
+  return v("mostrar_significancia") === true ? ["Diferencias significativas"] : [];
 }
 
 /** La ficha de una ranura. `nombreTipo`: el nombre visible del graficador (registro). */
@@ -100,10 +115,12 @@ export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null): Fich
     const leyendas = r.pinta === "categorias" && q0.opciones.length
       ? [{ titulo: null, items: q0.opciones.map((o, k) => ({ rotulo: o.rotulo, color: coloresDeEscala(q0.opciones)[k] })) }]
       : [];
+    const cruceUno = q0.cruce;
     return {
       graficador: r.graficador, tipo: tipoNombre, lectura: null, vacia: false, faltaPregunta: false, forma: null,
       preguntas: r.preguntas.map((q) => q.titulo).filter(Boolean), publicos: r.bases, leyendas,
-      ajustes: r.twoBox.ttb ? ["Top Two Box"] : [], avisos: [],
+      ajustes: [...(r.twoBox.ttb ? ["Top Two Box"] : []), ...(cruceUno ? [`Por grupos: ${cruceUno}`] : []), ...ajustesComunes(r.args)],
+      avisos: [],
     };
   }
 
@@ -132,11 +149,16 @@ export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null): Fich
   const cruce = preguntasParte.find((q) => q.cruce)?.cruce ?? null;
   const ajustes: string[] = [];
   const conTtb = salen.filter((b) => b.ttb).length;
+  // M2 (catálogo del recetario): sin respuestas elegidas el motor omite la columna y avisa; la ficha no la promete.
+  const ttbSinRespuestas = conTtb > 0 && Array.isArray(r.twoBox.etiquetas) && r.twoBox.etiquetas.length === 0;
   if (conTtb) ajustes.push(conTtb === salen.length ? "Top Two Box" : "Top Two Box en un bloque");
   if (salen.length > 1) ajustes.push(`${salen.length} bloques`);
   if (cruce) ajustes.push(`Por grupos: ${cruce}`);
+  ajustes.push(...ajustesComunes(r.args));
   const eje = ejeDe(r.args);
-  if (eje >= 0.3) ajustes.push("Temas anchos");
+  // M3: el control vigente es `ancho_tema` («Más ancho», «Más angosto»); `canvas_w_grupo` es el de antes.
+  if (r.args.ancho_tema === "ancho" || (r.args.ancho_tema !== "angosto" && eje >= 0.3)) ajustes.push("Temas anchos");
+  else if (r.args.ancho_tema === "angosto") ajustes.push("Temas angostos");
   const ov = (r.args.overrides && typeof r.args.overrides === "object" ? r.args.overrides : {}) as Record<string, unknown>;
   if (publicos.length && (r.args.mostrar_respuestas === false || ov.mostrar_respuestas === false)) ajustes.push("Sin respuestas por público");
   const lectura = r.graficador === "p_barras_multiapiladas" ? lecturaMulti(r.args) : null;
@@ -151,7 +173,7 @@ export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null): Fich
     publicos,
     leyendas,
     ajustes,
-    avisos: partes > 1 ? [`Sale en ${partes} láminas`] : [],
+    avisos: [...(ttbSinRespuestas ? [TTB_SIN_RESPUESTAS] : []), ...(partes > 1 ? [`Sale en ${partes} láminas`] : [])],
     forma: { bloques: salen, eje },
     vacia: false,
     faltaPregunta: false,

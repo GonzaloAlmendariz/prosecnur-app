@@ -4,6 +4,7 @@
 
 import type { Slide } from "../../../../api/graficos";
 import { leerIndice } from "../../indice/modeloIndice";
+import { capitulosDelInforme } from "../../indice/requisitoIndice";
 import { leerSlideMeta } from "../../slideMeta";
 import { normalizeTechnicalRows } from "../../technicalRows";
 import { actoresDeMeta, dimensionesDeMeta, type Actor } from "../contenidoEspecial/modeloActoresObjetivo";
@@ -27,12 +28,17 @@ const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() 
 /** El texto del objetivo sin los `**` de negrita (la maqueta no los interpreta: sólo informa). */
 const sinMarcas = (t: string | null) => (t ? t.replace(/\*\*/g, "") : null);
 
-export function datosEstructura(slide: Pick<Slide, "tipo" | "payload">): DatosEstructura {
+/**
+ * @param informe Las láminas del informe: un índice sin capítulos propios lista los separadores de capítulo, como el
+ *   motor (`.lam_indice_capitulos_del_plan`); sin ellas la maqueta del índice salía vacía (catálogo del recetario, M4).
+ */
+export function datosEstructura(slide: Pick<Slide, "tipo" | "payload">, informe: readonly Pick<Slide, "tipo" | "payload">[] = []): DatosEstructura {
   const p = (slide.payload ?? {}) as Record<string, unknown>;
   const meta = leerSlideMeta(slide);
   const indice = slide.tipo === "p_slide_indice" ? leerIndice(p).capitulos.filter((c) => c.titulo.trim()) : [];
-  const capitulos = indice.map((c) => c.titulo.trim());
-  const subcapitulos = indice.map((c) => c.subcapitulos.map((x) => x.trim()).filter(Boolean));
+  const delInforme = slide.tipo === "p_slide_indice" && !indice.length ? capitulosDelInforme(informe) : [];
+  const capitulos = indice.length ? indice.map((c) => c.titulo.trim()) : delInforme;
+  const subcapitulos = indice.length ? indice.map((c) => c.subcapitulos.map((x) => x.trim()).filter(Boolean)) : delInforme.map(() => []);
   return {
     titulo: texto(p.titulo),
     subtitulo: texto(p.subtitulo),

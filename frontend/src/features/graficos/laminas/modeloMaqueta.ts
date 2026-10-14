@@ -34,7 +34,7 @@ export type RanuraMaqueta = {
   /** Bases (actores) que cruza, sólo cuando son más de una. */
   bases: string[];
   /** Columnas encendidas en el gráfico: Top Two Box y, a su lado, Bottom Two Box. */
-  twoBox: { ttb: boolean; btb: boolean };
+  twoBox: { ttb: boolean; btb: boolean; etiquetas?: string[] };
   /** Los args del gráfico, tal cual (la ficha lee de ahí la lectura y los ajustes). */
   args: Record<string, unknown>;
   /** Bloques del gráfico (multiapiladas «Bloques»); uno solo en los demás. */
@@ -144,8 +144,16 @@ export function preguntasDelGrafico(args: Record<string, unknown>): string[] {
 /** Las preguntas de un gráfico: por bloque (multilista) y por tema (`vars` como objeto, con su `titulos_grupo`); una
  *  lista plana es una pregunta por variable. Las variables equivalentes entre bases de un mismo tema son UNA pregunta. */
 /** El cruce que abre las preguntas por grupos (`modo` cruce, o var_cruce con lista): la variable de `cruces`. */
+const MODOS_MULTIAPILADAS = new Set(["var", "cruce", "var_cruce", "multilista"]);
+
 function cruceDe(args: Record<string, unknown>): string | null {
   const c = typeof args.cruces === "string" ? args.cruces.trim() : Array.isArray(args.cruces) && typeof args.cruces[0] === "string" ? String(args.cruces[0]).trim() : "";
+  // M7: los gráficos de una pregunta cruzan con `cruces` (apiladas, agrupadas), `cruce` (numérico, caja, media y rango)
+  // o `grupo` (histograma); sin `modo`, ese cruce son los grupos de la lámina.
+  if (!MODOS_MULTIAPILADAS.has(String(args.modo ?? ""))) {   // las dimensiones también traen `modo` («general»)
+    const uno = c || [args.cruce, args.grupo].find((x): x is string => typeof x === "string" && !!x.trim())?.trim() || "";
+    return uno || null;
+  }
   if (!c) return null;
   const nombrados = !!args.vars && typeof args.vars === "object" && !Array.isArray(args.vars);
   return args.modo === "cruce" || (args.modo === "var_cruce" && !nombrados) ? c : null;
@@ -167,6 +175,18 @@ function gruposDe(args: Record<string, unknown>, bloque = 0): Grupo[] {
       refs: refsDe(v), bloque, cruce,
     }));
   }
+  // M5 (catálogo del recetario): la matriz de cuadrantes declara `temas` y los gráficos de dimensiones un `objetivo` o
+  // sus criterios, no `var`: sin esto la ficha decía «Falta elegir la pregunta» con el gráfico completo.
+  if (args.temas && typeof args.temas === "object" && !Array.isArray(args.temas)) {
+    return Object.entries(args.temas as Record<string, unknown>).map(([k, v]) => ({ titulo: k, refs: refsDe(v), bloque, cruce }));
+  }
+  if (Array.isArray(args.config_criterios)) {
+    return (args.config_criterios as unknown[]).flatMap((c) => {
+      const t = c && typeof c === "object" ? (c as Record<string, unknown>).titulo : null;
+      return typeof t === "string" && t.trim() ? [{ titulo: t.trim(), refs: [], bloque, cruce }] : [];
+    });
+  }
+  if (typeof args.objetivo === "string" && args.objetivo.trim()) return [{ titulo: "Dimensiones de Analítica", refs: [], bloque, cruce }];
   const refs = ["var", "vars", "variable", "variables"].flatMap((k) => refsDe(args[k]));
   const porNombre = new Map<string, string[]>();
   for (const r of refs) {

@@ -43,10 +43,10 @@ Pila propia: backend 8854 con copia del catálogo, front 5196. Maqueta de cada l
 | # | Hallazgo | Láminas | Estado |
 |---|---|---|---|
 | M1 | La maqueta no refleja la configuración fuera de las multiapiladas: formato de cifra, saldo y neutro, top N y resaltada, 0–100 % con marcas, histograma por grupos, media o mediana salen idénticos a su variante (ítem 9 de la ficha) | 22–23, 27–28, 29–30, 32–34, 53–54, 55–56 | pendiente |
-| M2 | La ficha promete «Top Two Box» donde el PPT lo omite: sin respuestas declaradas, el motor quita la columna y avisa, pero la maqueta lo muestra y el editor dice «0 avisos» | 48, 49, 50, 87 | pendiente |
-| M3 | «Temas anchos» no aparece cuando se elige con el control vigente (`ancho_tema`): la ficha sólo lee el `canvas_w_grupo` viejo | 47 | pendiente |
-| M4 | El índice que toma sus capítulos de los separadores sale vacío en la maqueta | 2 | pendiente |
-| M5 | «Falta elegir la pregunta» en gráficos que sí la tienen: la ficha no lee `temas` (matriz de cuadrantes) ni `objetivo` (dimensiones) | 66, 73–76 | pendiente |
-| M6 | Cifras inventadas en las fichas: toda dona dice «64 %» y toda cifra destacada «31 %» (el número de ejemplo del glifo) | 26, 60, 100–110 | pendiente |
-| M7 | «Por grupos» no aparece en las barras apiladas con cruce, ni «Diferencias significativas» cuando está encendida | 50, 86, 87 | pendiente |
+| M2 | La ficha promete «Top Two Box» donde el PPT lo omite: sin respuestas declaradas, el motor quita la columna y avisa, pero la maqueta lo muestra y el editor dice «0 avisos» | 48, 49, 50, 87 | hecho, por verificar: la ficha avisa «Top Two Box sin respuestas elegidas» y el panel lo cuenta como aviso (no bloquea) |
+| M3 | «Temas anchos» no aparece cuando se elige con el control vigente (`ancho_tema`): la ficha sólo lee el `canvas_w_grupo` viejo | 47 | hecho, por verificar: «Temas anchos» / «Temas angostos» desde `ancho_tema`, y la columna se dibuja con el ancho del motor |
+| M4 | El índice que toma sus capítulos de los separadores sale vacío en la maqueta | 2 | hecho, por verificar: sin capítulos propios lista los separadores de capítulo, como el motor |
+| M5 | «Falta elegir la pregunta» en gráficos que sí la tienen: la ficha no lee `temas` (matriz de cuadrantes) ni `objetivo` (dimensiones) | 66, 73–76 | hecho, por verificar: la ficha lee `temas`, `objetivo` («Dimensiones de Analítica») y los criterios |
+| M6 | Cifras inventadas en las fichas: toda dona dice «64 %» y toda cifra destacada «31 %» (el número de ejemplo del glifo) | 26, 60, 100–110 | hecho, por verificar: en la maqueta las cifras de ejemplo son un renglón neutro; el selector conserva sus ejemplos |
+| M7 | «Por grupos» no aparece en las barras apiladas con cruce, ni «Diferencias significativas» cuando está encendida | 50, 86, 87 | hecho, por verificar: «Por grupos» con `cruces`, `cruce` o `grupo` en cualquier tipo, y «Diferencias significativas» |
 | M8 | Recién abierto, el proyecto se marca «sin guardar» | — | por diagnosticar |

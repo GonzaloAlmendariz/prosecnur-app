@@ -38,6 +38,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
   const estructura = composicionDe(slide.tipo, slots).fuente === "estructura";
   const presets = usePlanStore((s) => s.presets);
+  const informe = usePlanStore((s) => s.plan.slides);
   const paletas = usePlanStore((s) => s.paletas);
   const vinculos = usePlanStore((s) => s.paletasVinculos);
   const ranuras = useMemo(() => ranurasDeMaqueta(slide, variables, presets, { paletas, vinculos }), [slide, variables, presets, paletas, vinculos]);
@@ -55,7 +56,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
     // Portada, índice, separadores: su dibujo de estructura; el título sigue siendo editable con un clic.
     return (
       <div className="pulso-f6-maqueta is-estructura" data-maqueta-tipo={slide.tipo}>
-        <ComposicionLamina tipo={slide.tipo} slots={slots} variante={varianteDe(slide)} datos={datosEstructura(slide)} />
+        <ComposicionLamina tipo={slide.tipo} slots={slots} variante={varianteDe(slide)} datos={datosEstructura(slide, informe)} />
         {zonasPortada(slide.tipo, varianteDe(slide)) ? (
           <ZonasTextoLamina onTexto={onTexto} campos={campos} zonas={zonasPortada(slide.tipo, varianteDe(slide)) ?? undefined} />
         ) : campos.has("titulo") && (
