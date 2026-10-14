@@ -1,0 +1,456 @@
+/* Campaña complementaria (ADR 0101): diálogo, contenido y lista en la tarjeta.
+ *
+ * Sólo tokens `--pulso-*`. Diálogo centrado en portal al `body`; el tono del
+ * módulo llega por `tonoDePortales.css` (`--module-accent`).
+ *
+ * Geometría (Contrato de Superficie):
+ * - C2: ancho fijo por viewport y alto tope de la ventana.
+ * - C4: un único dueño de scroll, `.pulso-xf-campana-cuerpo`; cabecera y pie
+ *   fijos. Dentro de la importación el cuerpo no recorta: cae en el scroll del
+ *   diálogo padre.
+ */
+
+.pulso-xf-campana-velo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--pulso-z-modal);
+  background: color-mix(in srgb, var(--pulso-text) 30%, transparent);
+}
+
+.pulso-xf-campana {
+  position: fixed;
+  z-index: var(--pulso-z-modal);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(680px, calc(100vw - var(--pulso-space-6)));
+  max-height: calc(100vh - var(--pulso-space-6));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-high);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-campana:focus {
+  outline: none;
+}
+
+.pulso-xf-campana-cabecera {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  padding: var(--pulso-space-5) var(--pulso-space-6) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-campana-titular-fila {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-xf-campana-titulo {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-xf-campana-descripcion {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pulso-text-soft);
+  overflow-wrap: anywhere;
+}
+
+.pulso-xf-campana-cerrar {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.pulso-xf-campana-cerrar:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-campana-cerrar:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+}
+
+.pulso-xf-campana-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+}
+
+.pulso-xf-campana .pulso-xf-campana-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--pulso-space-4) var(--pulso-space-6);
+}
+
+.pulso-xf-campana-pie {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  padding-top: var(--pulso-space-3);
+}
+
+.pulso-xf-campana .pulso-xf-campana-pie {
+  padding: var(--pulso-space-3) var(--pulso-space-6);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-campana-regla,
+.pulso-xf-campana-nota {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-campana-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-xf-campana-subtitulo {
+  margin: 0;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-xf-campana-entrada {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-xf-campana-campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+/* La base de 220 px es un ANCHO en la fila de entrada. En el catálogo, que es
+   una columna, se leía como alto y dejaba un hueco entre el buscador y la lista. */
+.pulso-xf-campana-entrada > .pulso-xf-campana-campo {
+  flex: 1 1 220px;
+}
+
+.pulso-xf-campana-campo input {
+  height: 32px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.pulso-xf-campana-campo input:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 1px;
+}
+
+/* Encuesta elegida: resumen plegado del selector. */
+.pulso-xf-campana-elegida {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-xf-campana-elegida-texto {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-xf-campana-elegida-texto strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.pulso-xf-campana-elegida-texto small {
+  font-size: 12px;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-xf-campana-catalogo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-xf-campana-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-xf-campana-encuesta {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pulso-xf-campana-encuesta:hover:not(:disabled) {
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-xf-campana-encuesta[aria-pressed="true"] {
+  border-color: var(--module-accent);
+}
+
+.pulso-xf-campana-encuesta:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+}
+
+.pulso-xf-campana-encuesta:disabled {
+  cursor: not-allowed;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-xf-campana-encuesta-titulo {
+  max-width: 100%;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.pulso-xf-campana-encuesta-id,
+.pulso-xf-campana-encuesta-elegida,
+.pulso-xf-campana-variable {
+  font-size: 12px;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-xf-campana-encuesta-elegida {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-xf-campana-vista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-xf-campana-titular {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  font-size: 14px;
+}
+
+.pulso-xf-campana-grupo {
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-xf-campana-grupo h4 {
+  margin: 0 0 var(--pulso-space-1);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-xf-campana-grupo ul {
+  margin: 0;
+  padding-left: var(--pulso-space-4);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.pulso-xf-campana-grupo.is-ambiguas {
+  border-color: var(--pulso-warn-border);
+}
+
+.pulso-xf-campana-bloqueo {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.pulso-xf-campana-error {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 12.5px;
+}
+
+/* Aviso de la importación: «¿es una campaña de este formulario?». */
+.pulso-xf-campana-sugerencia {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0 0 var(--pulso-space-4);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-module-editor-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-module-editor-soft);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-campana-sugerencia p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.pulso-xf-campana-sugerencia-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
+
+/* Lista en la tarjeta del formulario. */
+.pulso-xf-home-card-campanas {
+  display: grid;
+  gap: var(--pulso-space-1);
+  padding: 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-xf-home-card-campanas-resumen {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-xf-home-card-campanas ul {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-xf-home-card-campanas li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-xf-home-card-campana-texto {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.pulso-xf-home-card-campana-texto strong {
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-xf-home-card-campana-texto small,
+.pulso-xf-home-card-campanas-nota {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.pulso-xf-home-card-campanas-error {
+  color: var(--pulso-danger-fg);
+  font-size: 11px;
+}
+
+.pulso-xf-home-card-campana-quitar,
+.pulso-xf-home-card-campana-confirmar button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.pulso-xf-home-card-campana-quitar:hover:not(:disabled),
+.pulso-xf-home-card-campana-confirmar button:hover {
+  border-color: var(--pulso-border-strong);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-home-card-campana-quitar:focus-visible,
+.pulso-xf-home-card-campana-confirmar button:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+.pulso-xf-home-card-campana-confirmar {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-xf-home-card-campana-confirmar button.is-danger {
+  border-color: var(--pulso-danger-border);
+  color: var(--pulso-danger-fg);
+}

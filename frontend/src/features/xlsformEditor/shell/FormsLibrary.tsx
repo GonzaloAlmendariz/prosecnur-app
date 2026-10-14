@@ -31,7 +31,11 @@
 import { useMemo, type ReactNode } from "react";
 import { Layers, Lock, TriangleAlert } from "../../../vendor/lucide-react";
 import type { XlsformFormPublication } from "../../../api/client";
+import { campanasDeFuente } from "../../../api/xlsformCampanas";
 import { AddFormCard } from "./AddFormCard";
+import { CampanaComplementariaDialog } from "./CampanaComplementariaDialog";
+import { admiteCampana, encuestaPrincipalDe } from "./campanaComplementariaModel";
+import { useCampanaComplementariaPanel } from "./useCampanaComplementariaPanel";
 import { FormCard, type ActorCatalogStatus } from "./FormCard";
 import { computeFormMetrics, type FormCardMetrics } from "./formCardMetrics";
 import { computeHomeSlots } from "./homeSlots";
@@ -72,6 +76,11 @@ export type FormsLibraryProps = {
   /** El índice no se pudo leer. Sin formularios locales no sabemos si hay. */
   loadFailed?: boolean;
   onRetryLoad?: () => void;
+  /**
+   * Se declaró o quitó una campaña complementaria (ADR 0101): hay que releer
+   * el índice del backend. Sin él la biblioteca no ofrece campañas.
+   */
+  onCampaignsChanged?: () => void;
 };
 
 export function FormsLibrary({
@@ -99,7 +108,12 @@ export function FormsLibrary({
   loading = false,
   loadFailed = false,
   onRetryLoad,
+  onCampaignsChanged,
 }: FormsLibraryProps) {
+  const campana = useCampanaComplementariaPanel();
+  const formularioCampana = campana.formId
+    ? forms.find((entry) => entry.id === campana.formId && admiteCampana(entry.source)) ?? null
+    : null;
   // Métricas por formulario, calculadas sobre el workbook local. Se recomputa
   // cuando cambia la identidad del array `forms` (cada save reemite el índice).
   const metricsById = useMemo(() => {
@@ -204,6 +218,8 @@ export function FormsLibrary({
             onActorChange={onActorChange}
             actorCatalogStatus={actorCatalogStatus}
             isAssigningActor={assigningActorFormId === entry.id}
+            onAddCampaign={onCampaignsChanged ? campana.abrirPara : undefined}
+            onCampaignsChanged={onCampaignsChanged ? () => onCampaignsChanged() : undefined}
           />
         ))}
 
@@ -245,6 +261,25 @@ export function FormsLibrary({
           </p>
         </footer>
       )}
+
+      {/* Un solo diálogo para la biblioteca; el `foco` de la dirección dice
+          sobre qué formulario se abre. Sin un formulario de SurveyMonkey que
+          lo respalde, la dirección no pinta nada. */}
+      {onCampaignsChanged && formularioCampana ? (
+        <CampanaComplementariaDialog
+          abierto={campana.abierto}
+          formId={formularioCampana.id}
+          formName={formularioCampana.name}
+          encuestaPrincipal={encuestaPrincipalDe(formularioCampana.source)}
+          campanasDeclaradas={campanasDeFuente(formularioCampana.source).map((c) => c.survey_id)}
+          panelProps={campana.props}
+          onCerrar={campana.cerrar}
+          onDeclarada={() => {
+            campana.cerrar();
+            onCampaignsChanged();
+          }}
+        />
+      ) : null}
     </section>
   );
 }

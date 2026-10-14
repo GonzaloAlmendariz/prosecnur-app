@@ -1,6 +1,12 @@
-import { renderToStaticMarkup } from "react-dom/server";
+import type { ReactNode } from "react";
+import { renderToStaticMarkup as renderSinRouter } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, test, vi } from "vitest";
 import { FormsLibrary, type FormsLibraryProps } from "./FormsLibrary";
+
+// La biblioteca lee la dirección (panel de campaña complementaria, ADR 0101).
+const renderToStaticMarkup = (nodo: ReactNode) =>
+  renderSinRouter(<MemoryRouter initialEntries={["/editor-xlsform"]}>{nodo}</MemoryRouter>);
 
 function props(
   overrides: Partial<FormsLibraryProps> = {},

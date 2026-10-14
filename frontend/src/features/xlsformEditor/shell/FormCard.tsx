@@ -20,9 +20,13 @@ import {
   Clock,
   FolderOpen,
   Lock,
+  Layers,
 } from "../../../vendor/lucide-react";
 import type { XlsformFormPublication } from "../../../api/client";
+import { campanasDeFuente } from "../../../api/xlsformCampanas";
 import type { LibraryEntry } from "../state/persistence";
+import { admiteCampana } from "./campanaComplementariaModel";
+import { CampanasDeclaradas } from "./CampanasDeclaradas";
 import type { InstrumentActorOption } from "./actorAssignmentModel";
 import { FormPublicationStatus } from "./InstrumentRevisionStatus";
 import {
@@ -54,6 +58,10 @@ export type FormCardProps = {
   onActorChange: (id: string, actorKey: string) => void;
   actorCatalogStatus?: ActorCatalogStatus;
   isAssigningActor?: boolean;
+  /** Abre «Agregar campaña complementaria» (sólo formularios de SurveyMonkey). */
+  onAddCampaign?: (id: string) => void;
+  /** Se declaró o quitó una campaña: la biblioteca debe releer el índice. */
+  onCampaignsChanged?: (id: string) => void;
 };
 
 const ORIGIN_ACCENT: Record<FormOrigin, { accent: string; soft: string }> = {
@@ -86,9 +94,13 @@ export function FormCard({
   onActorChange,
   actorCatalogStatus = "ready",
   isAssigningActor = false,
+  onAddCampaign,
+  onCampaignsChanged,
 }: FormCardProps) {
   const origin = normalizeOrigin(entry.source?.kind ?? null);
   const accent = ORIGIN_ACCENT[origin];
+  const campanas = campanasDeFuente(entry.source);
+  const puedeAgregarCampana = Boolean(onAddCampaign) && admiteCampana(entry.source);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -271,6 +283,19 @@ export function FormCard({
                   <Copy size={15} /> Duplicar
                 </button>
               )}
+              {puedeAgregarCampana && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="pulso-xf-home-card-menu-item"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onAddCampaign?.(entry.id);
+                  }}
+                >
+                  <Layers size={15} /> Agregar campaña complementaria…
+                </button>
+              )}
               <span className="pulso-xf-home-card-menu-divider" aria-hidden="true" />
               <button
                 type="button"
@@ -335,6 +360,12 @@ export function FormCard({
               </span>
             </span>
           </div>
+          <CampanasDeclaradas
+            formId={entry.id}
+            formName={entry.name}
+            campanas={campanas}
+            onCambio={onCampaignsChanged}
+          />
           {workflow ? (
             <div className="pulso-xf-home-card-workflow" aria-label={`Flujo de ${entry.name}`}>
               {([

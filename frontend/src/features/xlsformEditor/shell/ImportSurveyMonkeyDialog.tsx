@@ -31,6 +31,10 @@ import {
 } from "../../../api/client";
 import { compileVisualLogicRules, RuleWizard, type VisualLogicPage, type VisualLogicQuestion } from "./RuleWizard";
 import { XlsformTransferNotice } from "./XlsformTransferNotice";
+import { apiCampanaSugerir, type CampanaSugerencia } from "../../../api/xlsformCampanas";
+import { CampanaComplementariaPanel } from "./CampanaComplementariaPanel";
+import { textoCobertura } from "./campanaComplementariaModel";
+import { leerIdEncuesta, smSurveyMatchesQuery, smSurveyTitle } from "./surveyMonkeySurveySearch";
 import "../styles/xf-surveymonkey-dialog.css";
 
 // Modal de importación SurveyMonkey. El flujo principal usa solo la API:
@@ -87,27 +91,6 @@ export function surveyMonkeyTokenUiState(tokenState: SurveyMonkeyTokenState, cur
 }
 
 const newId = () => Math.random().toString(36).slice(2, 9);
-
-function normalizeSearch(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function smSurveyTitle(item: SurveyMonkeyListItem) {
-  return item.nickname || item.title || item.id;
-}
-
-function smSurveyMatchesQuery(item: SurveyMonkeyListItem, query: string) {
-  const tokens = normalizeSearch(query).split(" ").filter(Boolean);
-  if (!tokens.length) return true;
-  const haystack = normalizeSearch([item.id, item.title, item.nickname ?? ""].join(" "));
-  return tokens.every((token) => haystack.includes(token));
-}
 
 // Expande rangos tipo "Q25-Q31" a la lista completa ["Q25","Q26","Q27","Q28","Q29","Q30","Q31"].
 // Reconoce el prefijo (Q/P/q/p) + parte numérica con o sin padding y mantiene
@@ -272,14 +255,27 @@ export function shouldShowManualPageQuestionsInput(page: Pick<PageEntry, "questi
   return !page.questionDetails;
 }
 
+/** Sugerencia de campaña (ADR 0101): aviso o declaración ya en curso. */
+type EstadoCampanaSugerida = {
+  surveyId: string;
+  sugerencia: CampanaSugerencia;
+  declarando: boolean;
+};
+
 export function ImportSurveyMonkeyDialog({
   fileId,
   onCancel,
   onComplete,
+  onCampaignDeclared,
 }: {
   fileId?: string | null;
   fileName: string;
   onCancel: () => void;
+  /**
+   * La encuesta se declaró como campaña de un formulario existente en vez de
+   * importarse (ADR 0101). Sin él, el diálogo no ofrece esa salida.
+   */
+  onCampaignDeclared?: (declarada: { formId: string; formName: string }) => void;
   onComplete: (payload: EditorPayloadWithHallazgos & {
     surveyMonkeyRules?: import("./RuleWizard").ConfirmedRule[];
     surveyMonkeyVisualRules?: SurveyMonkeyVisualLogicRule[];
@@ -323,6 +319,10 @@ export function ImportSurveyMonkeyDialog({
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewChecked, setReviewChecked] = useState(false);
   const [visualPending, setVisualPending] = useState(false);
+  const [campanaSugerida, setCampanaSugerida] = useState<EstadoCampanaSugerida | null>(null);
+  // Sólo la última encuesta conectada puede sugerir: una respuesta tardía de
+  // otra encuesta no debe aparecer sobre la actual.
+  const sugerenciaPedidaRef = useRef<string | null>(null);
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -477,12 +477,11 @@ export function ImportSurveyMonkeyDialog({
     // Tolerancia: si el usuario pega una URL completa de SurveyMonkey,
     // intentamos extraer el ID numérico. Acepta /analyze/123456789,
     // /design/123456789, /summary/123456789, etc.
-    let cleanedId = smSurveyId.trim();
-    const urlMatch = cleanedId.match(/surveymonkey\.com\/[^/]+\/(\d{6,12})(?:[?/#]|$)/i);
-    if (urlMatch) {
-      cleanedId = urlMatch[1];
+    const leido = leerIdEncuesta(smSurveyId);
+    const cleanedId = leido.ok ? leido.id : "";
+    if (leido.ok && cleanedId !== smSurveyId.trim()) {
       setSmSurveyId(cleanedId);
-    } else if (/^https?:\/\//i.test(cleanedId)) {
+    } else if (!leido.ok) {
       setSmApiError(
         "La URL que pegaste no contiene un Survey ID numérico (necesito un número de 9-10 dígitos, no un session token tipo 'sm=...'). Abre el cuestionario específico en SurveyMonkey y copia el número de la URL.",
       );
@@ -493,6 +492,8 @@ export function ImportSurveyMonkeyDialog({
     setSmApiSuccess(null);
     setSmFetchedSurveyId(null);
     setSmDefinition(null);
+    setCampanaSugerida(null);
+    sugerenciaPedidaRef.current = null;
     try {
       const info = await apiXlsformEditorSmFetchSurveyInfo(
         fileId ?? null,
@@ -527,10 +528,25 @@ export function ImportSurveyMonkeyDialog({
             ? ` (la API también trae ${info.summary.n_required} required y ${info.summary.n_validation} validations — se aplicarán al XLSForm en el siguiente paso)`
             : ""),
       );
+      if (onCampaignDeclared) void consultarCampanaSugerida(cleanedId);
     } catch (e) {
       setSmApiError(String((e as Error)?.message ?? e));
     } finally {
       setSmFetching(false);
+    }
+  }
+
+  // ¿La encuesta es una campaña de un formulario que ya existe? Un fallo aquí
+  // no bloquea la importación: sin respuesta, el flujo sigue como siempre.
+  async function consultarCampanaSugerida(surveyId: string) {
+    sugerenciaPedidaRef.current = surveyId;
+    try {
+      const sugerencia = await apiCampanaSugerir(surveyId);
+      if (sugerencia && sugerenciaPedidaRef.current === surveyId) {
+        setCampanaSugerida({ surveyId, sugerencia, declarando: false });
+      }
+    } catch {
+      // Sin sugerencia: se importa como formulario nuevo.
     }
   }
 
@@ -752,7 +768,22 @@ export function ImportSurveyMonkeyDialog({
                   {error}
                 </div>
               ) : null}
-              {reviewOpen ? (
+              {campanaSugerida?.declarando ? (
+                <CampanaComplementariaPanel
+                  formId={campanaSugerida.sugerencia.form_id}
+                  formName={campanaSugerida.sugerencia.form_name}
+                  encuestaPrincipal={campanaSugerida.sugerencia.survey_id_principal || null}
+                  campanasDeclaradas={[]}
+                  surveyIdInicial={campanaSugerida.surveyId}
+                  elegirEncuesta={false}
+                  cancelarLabel="Volver a la importación"
+                  onCancelar={() => setCampanaSugerida({ ...campanaSugerida, declarando: false })}
+                  onDeclarada={() => onCampaignDeclared?.({
+                    formId: campanaSugerida.sugerencia.form_id,
+                    formName: campanaSugerida.sugerencia.form_name,
+                  })}
+                />
+              ) : reviewOpen ? (
                 <FinalImportReviewModal
                   surveyId={smFetchedSurveyId ?? ""}
                   sectionCount={pages.length}
@@ -774,6 +805,13 @@ export function ImportSurveyMonkeyDialog({
                 />
               ) : (
                 <>
+              {campanaSugerida ? (
+                <CampanaSugeridaAviso
+                  sugerencia={campanaSugerida.sugerencia}
+                  onDeclarar={() => setCampanaSugerida({ ...campanaSugerida, declarando: true })}
+                  onImportarNuevo={() => setCampanaSugerida(null)}
+                />
+              ) : null}
               <ImportFlowSummary
                 connected={Boolean(smFetchedSurveyId)}
                 sectionCount={pages.length}
@@ -798,6 +836,8 @@ export function ImportSurveyMonkeyDialog({
                   setSmSurveyId(next);
                   setSmFetchedSurveyId(null);
                   setSmDefinition(null);
+                  setCampanaSugerida(null);
+                  sugerenciaPedidaRef.current = null;
                 }}
                 onTokenChange={handleTokenChange}
                 onTokenBlur={handleTokenBlur}
@@ -887,7 +927,7 @@ export function ImportSurveyMonkeyDialog({
           )}
         </div>
 
-        {!reviewOpen ? <footer
+        {!reviewOpen && !campanaSugerida?.declarando ? <footer
           style={{
             padding: "12px 20px",
             borderTop: "1px solid var(--pulso-border, #e5e7eb)",
@@ -941,6 +981,41 @@ export function ImportSurveyMonkeyDialog({
   // El PageFrame y la barra global crean contextos de apilado propios. El
   // portal evita que el diálogo quede recortado o por debajo de ese chrome.
   return typeof document === "undefined" ? dialog : createPortal(dialog, document.body);
+}
+
+export function CampanaSugeridaAviso({
+  sugerencia,
+  onDeclarar,
+  onImportarNuevo,
+}: {
+  sugerencia: CampanaSugerencia;
+  onDeclarar: () => void;
+  onImportarNuevo: () => void;
+}) {
+  const cobertura = textoCobertura(sugerencia.cobertura, sugerencia.cobertura_texto)
+    || `${sugerencia.n_emparejadas} de ${sugerencia.n_preguntas_base}`;
+  return (
+    <section className="pulso-xf-campana-sugerencia" role="region" aria-label="Posible campaña complementaria">
+      <p>
+        <strong>
+          Esta encuesta comparte el {cobertura} de las preguntas de «{sugerencia.form_name}». ¿Es una
+          campaña de ese formulario?
+        </strong>
+      </p>
+      <p>
+        Si lo es, agrégala como campaña: no ocupa un espacio de formulario y sus respuestas se leen
+        con las preguntas del instrumento que ya tienes.
+      </p>
+      <div className="pulso-xf-campana-sugerencia-acciones">
+        <button type="button" className="pulso-primary" onClick={onDeclarar}>
+          Agregar como campaña de {sugerencia.form_name}
+        </button>
+        <button type="button" onClick={onImportarNuevo}>
+          Importar como formulario nuevo
+        </button>
+      </div>
+    </section>
+  );
 }
 
 export function FinalImportReviewModal({

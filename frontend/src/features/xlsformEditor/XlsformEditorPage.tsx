@@ -3354,6 +3354,7 @@ export default function XlsformEditorPage() {
             xlsInputRef.current?.click();
           }}
           onImportSurveyMonkey={onImportSurveyMonkey}
+          onCampaignsChanged={() => { void refreshBackendFormIndex().catch(() => undefined); }}
           resumeBanner={
             restoreOffer ? (
               <RestoreOfferBanner
@@ -3778,6 +3779,11 @@ export default function XlsformEditorPage() {
           fileName={smImportDialog.fileName}
           onCancel={() => setSmImportDialog(null)}
           onComplete={onSurveyMonkeyImportComplete}
+          onCampaignDeclared={({ formName }) => {
+            setSmImportDialog(null);
+            void refreshBackendFormIndex().catch(() => undefined);
+            toasts.push({ kind: "success", title: "Campaña agregada", detail: `Quedó declarada en «${formName}».`, durationMs: 6000 });
+          }}
         />
       ) : null}
 
