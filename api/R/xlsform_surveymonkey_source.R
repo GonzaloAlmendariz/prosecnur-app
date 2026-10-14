@@ -5,7 +5,7 @@
 # no incluye timestamps ni credenciales: solo la definición base observada, el
 # survey solicitado y la versión explícita del perfil de traducción.
 
-.XLSFORM_EDITOR_SM_TRANSLATION_PROFILE <- "surveymonkey_api_xlsform/v1"
+.XLSFORM_EDITOR_SM_TRANSLATION_PROFILE <- "surveymonkey_api_xlsform/v2"
 .XLSFORM_EDITOR_SM_HASH_SCOPE <- "xlsform_base+translation_profile"
 
 .xlsform_editor_sm_hash <- function(value) {
