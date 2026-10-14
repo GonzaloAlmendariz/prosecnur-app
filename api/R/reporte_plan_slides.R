@@ -57,8 +57,28 @@
   invisible(TRUE)
 }
 
+# Un arreglo JSON de textos llega del plan como lista de escalares
+# (`list("Primer punto", "Segundo")`), no como vector: así lo guarda el editor de
+# láminas. Se aplana antes de validar; una lista con algo que no es un texto
+# simple sigue siendo un error de especificación.
+.ppt_text_vec <- function(x) {
+  if (!is.list(x) || inherits(x, c("ppt_element", "ppt_element_text"))) return(x)
+  simples <- vapply(x, function(e) is.null(e) || (is.atomic(e) && length(e) <= 1L), logical(1))
+  if (!all(simples)) return(x)
+  out <- unlist(x, use.names = FALSE)
+  if (is.null(out)) character(0) else as.character(out)
+}
+
+# Un arreglo JSON de referencias sin nombres (`["est$p1", "est$p2"]`) llega como
+# lista sin nombres: es un vector de preguntas, no una lista de temas.
+.ppt_lista_sin_nombres_a_vec <- function(x) {
+  if (is.list(x) && is.null(names(x))) .ppt_text_vec(x) else x
+}
+
 .ppt_norm_text_lines <- function(texto = NULL, bullets = NULL, blank = NULL) {
   text_parts <- character(0)
+  texto <- .ppt_text_vec(texto)
+  bullets <- .ppt_text_vec(bullets)
 
   if (!is.null(texto)) {
     if (!is.character(texto)) .plan_spec_abort("`texto` debe ser character o NULL.")
@@ -2372,6 +2392,7 @@ p_barras_multiapiladas <- function(
 
   if (identical(modo, "var_cruce")) {
     if (is.null(vars)) .plan_spec_abort("modo='var_cruce': `vars` no puede ser NULL.")
+    vars <- .ppt_lista_sin_nombres_a_vec(vars)
     if (is.character(vars)) {
       if (length(vars) < 1L) .plan_spec_abort("modo='var_cruce': `vars` debe ser character() con >= 1 variable.")
       vars <- trimws(vars)
