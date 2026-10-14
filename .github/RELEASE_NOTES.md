@@ -1,20 +1,18 @@
-# Prosecnur 0.9.0 · el informe sale del motor nativo y el operativo de aulas se agenda día a día
+# Prosecnur 0.9.1 · la base nace del formulario publicado
 
-- Monitoreo de aulas: la agendación se mide día a día con los reemplazos, complementos y refuerzos dentro, y el Resumen dice qué fracción va agendada en cada facultad.
-- Monitoreo de aulas: el Sheets de los aplicadores se crea desde la app con una pestaña por semana, y «Traer respuestas» retira de los días siguientes las aulas ya aplicadas.
-- Monitoreo de aulas: las aulas de refuerzo se reparten entre las facultades que las necesitan, y agendar un refuerzo queda registrado como refuerzo y no como reemplazo.
-- Monitoreo de aulas: el PDF de avance para el cliente informa las metas por nivel, y cada respuesta se atribuye a su aula leyendo el código del QR o el que tipeó el aplicador.
-- Recopiladores: la ficha QR sale en PDF guardada en la carpeta del operativo, con el croquis del campus y el pabellón del curso resaltado al reverso.
-- Cálculo de muestra: la entrega del sorteo trae su memoria de cálculo y la forma de estimar la varianza, y el universo de cursos-horario sale de la base sin armar un marco aparte.
-- Formularios: el PDF del instrumento presenta cada pregunta como una tabla, lleva la rejilla de listas y matrices, y numera «Página N de M» con las páginas reales.
-- Carga: las bases de un estudio se agregan cuando hacen falta, desde SurveyMonkey, Kobo, archivos o Monitoreo, sin fijar antes cuántas serán.
-- Carga: un mismo actor que respondió por dos vías, como QR en aula y correo, queda en una sola base. Antes de unirlas se ve qué preguntas calzan, y las que solo trae la segunda encuesta se suman a la base.
-- Carga: las equivalencias propuestas siguen el orden del cuestionario, sin el «Otro» ni el consentimiento, y el mazo armado desde la matriz se titula con sus preguntas.
-- Gráficos: el PowerPoint sale del motor nativo en todas las láminas del recetario, de la portada y el índice a escalas, histogramas y el mapa de distrito, y cada pieza se edita en PowerPoint.
-- Gráficos: el Word exportado es el documento completo del informe, con portada y logos, índices, «Cómo leer», capítulos con apertura y contraportada.
-- Gráficos: «Casos junto al porcentaje» escribe «43 % (12)» cuando un grupo es chico, siempre o nunca, según el ajuste del informe, en el PowerPoint y en el Word.
-- Gráficos: cada lámina se edita sobre una maqueta que muestra sus preguntas, las bases de cada una y sus colores al instante; «Ver cómo queda» dibuja la lámina real.
-- Gráficos: Identidad reúne logos, letra, íconos y los colores de las respuestas. Las paletas llevan nombre, se eligen desde cada gráfico y no se exporta con respuestas sin color.
-- Gráficos: el texto de la base se arma escribiendo palabras, sin códigos, y cada base lleva la suya cuando el informe cruza varios públicos.
+- Formularios: una encuesta de SurveyMonkey se traduce con los títulos reales de sus páginas y «SIN INF» con su código 99, y el resumen dice lo que no entra al formulario, como la variable personalizada o la imagen de portada.
+- Formularios: una campaña complementaria, como la versión por correo de la misma encuesta, se declara dentro del formulario principal en vez de importarse como otro formulario.
+- Formularios: «Listas de opciones» unifica las escalas repetidas con un nombre legible, muestra código y etiqueta en columnas separadas y sugiere el nombre que ya usan los otros formularios del proyecto.
+- Formularios: el público deja de ser obligatorio para publicar, y un formulario cuya lógica y limpieza se hicieron en SPSS u otro programa se declara así y se publica sin revisar la lógica en la app.
+- Carga: la base nace del formulario publicado. Sus respuestas llegan de SurveyMonkey, de un .sav o de un Excel, se recodifican por etiqueta y la base queda ligada a esa revisión desde el inicio.
+- Carga: antes de crear la base se ve cuántas preguntas calzan, qué códigos cambian y qué respuestas usan opciones que el formulario no tiene. «Ver armonización» lo vuelve a mostrar después y «Comparar fuentes» contrasta dos bases del mismo formulario.
+- Carga: una base preparada fuera de la plataforma declara los casos y las variables que se retiraron, y las columnas creadas en la limpieza entran con su nombre.
+- Carga: la matriz de equivalencias declara qué pregunta de un público equivale a cuál de otro y, fila por fila, cómo se armoniza entre mediciones; las láminas se arman en Gráficos.
+- Analítica: «Comparativos» genera el comparativo entre mediciones armonizadas, con los años en columnas o en filas, y frecuencias y cruces llevan notas al pie configurables.
+- Codificación: «Agrupar categorías» crea una variable nueva juntando códigos, rangos de años y textos de «Otro», sin tocar la original.
+- Gráficos: nacen «Pregunta filtro y subpregunta», con la subpregunta sobre la base de quienes la habilitan, y «Diferencias significativas entre públicos», con la prueba entre cada par.
+- Gráficos: llegan la matriz de cuadrantes, la brecha entre dos grupos de una misma base, la barra dicotómica, la tabla y la nube de palabras con su ranking, como piezas editables del recetario.
+- Gráficos: el separador y el objetivo ofrecen las versiones del recetario, y la base va una sola vez cuando los gráficos de una lámina comparten público y número de casos.
+- Gráficos: el ranking con puntos acepta preguntas de opción múltiple, y una tabla de una o dos preguntas ya no sale vacía.
 
 Los instalables salen sin firmar: SmartScreen advierte en Windows y Gatekeeper pide «Abrir igualmente» en macOS. Windows conserva su actualizador automático; macOS se actualiza descargando el DMG.
