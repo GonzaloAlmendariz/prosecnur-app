@@ -273,6 +273,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
           </div>
         </div>
       </div>
+      {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} />}
       <SelectorTipoLamina slide={null} posicion={null} cerrar={cerrarSelectorLamina} />
       </div>
     );
