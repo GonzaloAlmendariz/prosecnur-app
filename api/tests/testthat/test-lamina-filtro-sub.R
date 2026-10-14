@@ -90,3 +90,15 @@ test_that("habilitar una respuesta que el filtro no tiene no se dibuja en silenc
   )
   expect_true(any(grepl("Tal vez", msgs)), info = paste(msgs, collapse = "\n"))
 })
+
+
+# F1: el filtro como torta o dona, con el sector que habilita a la derecha y un conector hasta el título de la subpregunta.
+test_that("F1: con torta o dona el filtro sale nativo con su conector y lo que habilita en negrita", {
+  skip_if_not_installed("officer")
+  for (gf in c("torta", "dona")) {
+    r <- .fsub_render(p_filtro_subpregunta("lab", habilita = c("Dependiente", "Independiente"), subpregunta = "rel", grafico_filtro = gf))
+    expect_true("prosecnur:grafico:filtro_sub" %in% r$nombres, info = gf)
+    expect_equal(sum(r$nombres == "conector"), 3L, info = gf)
+    expect_true(any(r$nombres == if (gf == "torta") "torta:porcion" else "dona:porcion"), info = gf)
+  }
+})

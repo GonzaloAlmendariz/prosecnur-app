@@ -16,15 +16,17 @@
 #' @param subpregunta Pregunta que respondieron sólo quienes dieron una de esas respuestas.
 #' @param grafico_sub `barras` (una barra por respuesta) o `escala` (barra al 100 % con su leyenda).
 #' @param disposicion `costado` (p193–p194) o `abajo` (p192, sólo con un filtro dicotómico).
+#' @param grafico_filtro `auto` (barra partida o barras, según el filtro), `torta` o `dona` (F1: con conector).
 #' @param titulo,overrides,base,filtros Como en los demás gráficos.
 #' @return Objeto `"ppt_element"`.
 #' @family reporte
 #' @export
 p_filtro_subpregunta <- function(var, habilita, subpregunta, grafico_sub = c("barras", "escala"),
                                  disposicion = c("costado", "abajo"), titulo = NULL, overrides = list(), base = list(),
-                                 filtros = list()) {
+                                 filtros = list(), grafico_filtro = c("auto", "torta", "dona")) {
   grafico_sub <- match.arg(grafico_sub)
   disposicion <- match.arg(disposicion)
+  grafico_filtro <- match.arg(grafico_filtro)
   for (nm in c("var", "subpregunta")) {
     v <- get(nm)
     if (!is.character(v) || length(v) != 1L || !nzchar(trimws(v))) .plan_spec_abort("`", nm, "` debe ser character(1) no vacio.")
@@ -36,7 +38,7 @@ p_filtro_subpregunta <- function(var, habilita, subpregunta, grafico_sub = c("ba
   el <- list(
     .element_type = "filtro_subpregunta",
     var = trimws(var), filtro = trimws(var), habilita = habilita, subpregunta = trimws(subpregunta),
-    grafico_sub = grafico_sub, disposicion = disposicion,
+    grafico_sub = grafico_sub, disposicion = disposicion, grafico_filtro = grafico_filtro,
     title_slide = .ppt_norm_text1(titulo, blank = NULL),
     overrides = overrides, base = base, filtros = .ppt_norm_filters(filtros)
   )
@@ -81,7 +83,11 @@ p_filtro_subpregunta <- function(var, habilita, subpregunta, grafico_sub = c("ba
                  paste0("«", el$habilita, "»", collapse = ", ")), call. = FALSE)
   }
   ov <- el$overrides %||% list()
-  p_f <- rend(p_barras_agrupadas(var = el$filtro, filtros = el$filtros, overrides = ov))
+  # F1 (checklist-poblacion-y-filtro): el filtro también como torta o dona; la lámina lo une a la subpregunta con un conector.
+  gf <- el$grafico_filtro %||% "auto"
+  p_f <- rend(if (identical(gf, "torta")) p_pie(var = el$filtro, filtros = el$filtros, overrides = ov)
+              else if (identical(gf, "dona")) p_donut(var = el$filtro, filtros = el$filtros, overrides = ov)
+              else p_barras_agrupadas(var = el$filtro, filtros = el$filtros, overrides = ov))
   filtros_sub <- el$filtros %||% list()
   filtros_sub[[ctx_f$var]] <- codigos
   # La escala hereda del preset la columna Top Two Box; esta lámina no tiene dónde declarar sus respuestas, así que sin
@@ -101,7 +107,8 @@ p_filtro_subpregunta <- function(var, habilita, subpregunta, grafico_sub = c("ba
       habilita = intersect(espec_f$rotulos %||% character(0), habilitadas),
       disposicion = el$disposicion,
       pregunta_filtro = .fsub_enunciado(ctx_f), pregunta_sub = .fsub_enunciado(ctx_s),
-      n_filtro = .espec_n_base(espec_f), n_sub = .espec_n_base(espec_s)
+      n_filtro = if (identical(espec_f$tipo, "pie")) espec_f$total_n_casos %||% espec_f$total_n else .espec_n_base(espec_f),
+      n_sub = .espec_n_base(espec_s)
     )
   }
   p

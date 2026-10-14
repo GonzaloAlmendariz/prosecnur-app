@@ -46,8 +46,8 @@
 #' @keywords internal
 .lam_filtro_sub_cabe <- function(espec) {
   f <- espec$filtro; s <- espec$sub
-  if (is.null(f) || is.null(s) || !identical(f$tipo, "categorica") || !length(espec$habilita)) return(FALSE)
-  if (length(f$rotulos) < 2L || length(f$rotulos) > 7L) return(FALSE)
+  if (is.null(f) || is.null(s) || !(f$tipo %in% c("categorica", "pie")) || !length(espec$habilita)) return(FALSE)
+  if (length(f$rotulos) < 2L || length(f$rotulos) > (if (identical(f$tipo, "pie")) 5L else 7L)) return(FALSE)
   if (identical(s$tipo, "categorica")) return(length(s$rotulos) >= 1L && length(s$rotulos) <= 8L)
   identical(s$tipo, "escala") && NROW(s$filas) == 1L
 }
@@ -98,7 +98,9 @@
   } else {
     gap <- 0.6; col <- (ancho - gap) / 2; xr <- ml + col + gap
     y0 <- .lam_panel_titulo(lz, ml, yt, col, espec$pregunta_filtro, publico(espec$n_filtro)) + 0.25
-    if (dico) {
+    if (identical(f$tipo, "pie")) {
+      .lam_filtro_sub_circular(lz, f, espec$habilita, ml, y0, col, yf - y0, xr, yt)
+    } else if (dico) {
       # p193: la dicotomía en una columna al 100 %, del alto del gráfico vecino, con sus cifras a la izquierda.
       d <- .lam_dicotomia_datos(f)
       hcol <- min(3.6, yf - y0 - 0.3); wcol <- 1.0; xcol <- ml + col - wcol - 1.3
@@ -130,4 +132,38 @@
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:filtro_sub")
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)
+}
+
+
+#' F1: el filtro como torta o dona, girado para que lo que habilita quede a las 3, con la leyenda debajo y un conector
+#' desde el borde de ese sector hasta el título de la subpregunta (el trazo de la llave)
+#' @keywords internal
+.lam_filtro_sub_circular <- function(lz, f, habilita, x, y0, w, alto, x_titulo, y_titulo, color = .std_color("azul"), t = 0.022) {
+  k <- length(f$valores); cols <- .lam_colores_pie(k, f); dona <- !identical(f$forma, "pie")
+  fila <- 0.34; d <- min(alto - k * fila - 0.25, w * 0.55, 3.2); r <- d / 2 * 0.95
+  cx <- x + w * 0.42; cy <- y0 + d / 2
+  fr <- f$valores / sum(f$valores); acum <- c(0, cumsum(fr))
+  hab <- which(f$rotulos %in% habilita)
+  medio <- if (length(hab)) (acum[min(hab)] + acum[max(hab) + 1]) / 2 else 0
+  giro <- 0.25 - medio   # el centro de lo que habilita, a las 3 (fracción 0.25 desde las 12, en sentido horario)
+  for (i in seq_len(k)) if (fr[i] > 0) .lam_sector(lz, cx, cy, r, acum[i] + giro, acum[i + 1] + giro, cols[i], arco = dona, borde_pt = 1.2,
+                                                   nombre = if (dona) "dona:porcion" else "torta:porcion")
+  if (dona && length(hab)) {
+    tam <- min(24, max(14, r * 18))
+    .lam_txt(lz, f$cifras[hab[1]], cx - r, cy - tam / 144 - 0.05, 2 * r, tam / 72 + 0.1, tam, color, bold = TRUE, align = "center", nombre = "dona:cifra")
+  }
+  # Leyenda debajo: cuadro, cifra y rótulo (lo que habilita en negrita).
+  yl <- y0 + d + 0.2
+  for (i in seq_len(k)) {
+    yk <- yl + (i - 1) * fila
+    .lam_caja(lz, x + 0.1, yk + 0.08, 0.17, 0.17, cols[i], nombre = "circular:cuadro")
+    .lam_txt(lz, f$cifras[i], x + 0.34, yk, 0.8, 0.3, 13, color, bold = TRUE, nombre = "circular:cifra")
+    .lam_txt(lz, f$rotulos[i], x + 1.1, yk + 0.01, w - 1.2, 0.3, 11, color, bold = i %in% hab, nombre = "circular:rotulo")
+  }
+  # Conector: del borde del sector a las 3, en horizontal hasta la calle, y de ahí al título de la subpregunta.
+  xt <- x_titulo - 0.22; yt <- y_titulo + 0.16
+  .lam_caja(lz, cx + r + 0.06, cy - t / 2, xt - (cx + r + 0.06) + t, t, color, nombre = "conector")
+  .lam_caja(lz, xt, min(cy, yt), t, abs(cy - yt) + t, color, nombre = "conector")
+  .lam_caja(lz, xt, yt - t / 2, x_titulo - 0.06 - xt, t, color, nombre = "conector")
+  invisible(yl + k * fila)
 }
