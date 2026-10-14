@@ -1062,7 +1062,7 @@ mount_xlsform_editor <- function(pr) {
       now <- .xlsform_forms_now()
       parsed$saved_at <- now
       entry <- .xlsform_forms_as_entry(parsed, id = if (nzchar(active_id)) active_id else NULL)
-      s <- .xlsform_forms_upsert(s, entry)
+      s <- .xlsform_forms_upsert(s, entry, cliente = TRUE)
       # El upsert re-deriva el espejo del activo; garantizamos que ESTE form es
       # el activo (POST /state siempre trabaja sobre el activo).
       s <- .xlsform_forms_set_active(s, entry$id)
@@ -1157,7 +1157,7 @@ mount_xlsform_editor <- function(pr) {
         id = parsed$id %||% NULL,
         name = parsed$name %||% NULL
       )
-      s <- .xlsform_forms_upsert(s, entry)
+      s <- .xlsform_forms_upsert(s, entry, cliente = TRUE)
       if (!is.null(s$project_path) && nzchar(s$project_path)) {
         s$project_dirty <- TRUE
       }

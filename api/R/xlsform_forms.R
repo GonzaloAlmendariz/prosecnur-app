@@ -263,7 +263,7 @@
 # Inserta o actualiza una entrada por id. Si es el primer formulario (o no hay
 # activo válido), lo marca activo. Si se actualiza el activo, re-deriva el
 # espejo para conservar la invariante.
-.xlsform_forms_upsert <- function(s, entry) {
+.xlsform_forms_upsert <- function(s, entry, cliente = FALSE) {
   forms <- s$xlsform_forms %||% list()
   id <- as.character(entry$id %||% "")[1]
   if (!nzchar(id)) {
@@ -271,6 +271,10 @@
     entry$id <- id
   }
   previous <- forms[[id]]
+  # El autosave no es dueño de las campañas declaradas (ADR 0101).
+  if (isTRUE(cliente)) {
+    entry$source <- .xlsform_campanas_preservar(previous$source %||% list(), entry$source)
+  }
   entry$source <- .xlsform_forms_merge_source(
     previous$source %||% list(),
     entry$source %||% list()

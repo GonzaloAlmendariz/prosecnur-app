@@ -284,7 +284,7 @@ export function normalizeXlsformFormPublication(value: unknown): XlsformFormPubl
   };
 }
 
-function normalizeFormEntry(value: unknown): FormLibraryEntry | null {
+export function normalizeFormLibraryEntry(value: unknown): FormLibraryEntry | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const v = value as Record<string, unknown>;
   const id = typeof v.id === "string" ? v.id : "";
@@ -314,7 +314,7 @@ export async function apiXlsformFormsList(): Promise<{
   );
   const r = (raw ?? {}) as Record<string, unknown>;
   const forms = Array.isArray(r.forms)
-    ? r.forms.map(normalizeFormEntry).filter((entry): entry is FormLibraryEntry => entry != null)
+    ? r.forms.map(normalizeFormLibraryEntry).filter((entry): entry is FormLibraryEntry => entry != null)
     : [];
   return {
     ok: true,
