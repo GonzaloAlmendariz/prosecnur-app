@@ -1,5 +1,10 @@
 # Checklist · proyecto catálogo del recetario (.pulso de prueba)
 
+Tipo: Checklist y hallazgos de QA
+Estado: Vigente
+Fecha: 2026-10-14
+Autoridad: Gonzalo: «crear un .pulso que contemple absolutamente todos los gráficos posibles según el recetario». Sólo Gonzalo da por terminado un ítem
+
 Pedido de Gonzalo (2026-10-14): «crear un .pulso que contemple absolutamente todos los gráficos posibles según el
 recetario para poder poner a prueba cómo se ven todos a nivel de la maqueta, UI y personalización disponible».
 Alimenta `checklist-configuraciones-graficos-2026-10-13.md` (inventario) y el ítem 9 de `checklist-maqueta-ficha-2026-10-13.md`.

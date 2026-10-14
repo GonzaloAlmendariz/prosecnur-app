@@ -1,5 +1,10 @@
 # Checklist · maqueta como ficha visual (implementación en el editor)
 
+Tipo: Checklist de implementación
+Estado: Vigente
+Fecha: 2026-10-13
+Autoridad: Gonzalo: «Apruebo, impleméntalo en el editor con los casos como test». Sólo Gonzalo da por terminado un ítem
+
 Pedido de Gonzalo (2026-10-13): «Apruebo, impleméntalo en el editor con los casos como test». Contrato:
 `docs/qa/contrato-maqueta-lamina-2026-10-13.md` (M1–M10). Galería aprobada: `docs/qa/maqueta-galeria-maquetas-2026-10-13.html`.
 Sólo Gonzalo da por terminado un ítem.
