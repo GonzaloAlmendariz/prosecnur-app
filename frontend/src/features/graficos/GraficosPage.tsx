@@ -11,6 +11,8 @@ import {
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
+import { AvisosExportacion } from "./avisosExportacion/AvisosExportacion";
+import { rotuloIrALamina } from "./avisosExportacion/avisosExportacionModel";
 import { LoadingBlock } from "../../components/States";
 import { graficosBodyLoadingLabel, graficosBodyState } from "./graficosBodyState";
 import { fijarAvisosSiembraCompartido } from "./useDeclaracionAplicada";
@@ -373,7 +375,7 @@ export default function GraficosPage() {
 
 
           {busyValidating && <Alert kind="info">{busyValidating}</Alert>}
-          {warns.length > 0 && <Alert kind="warn">{warns.join(" · ")}</Alert>}
+          {warns.length > 0 && <AvisosExportacion avisos={warns} />}
           {error && (
             <Alert kind="error">
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -386,20 +388,13 @@ export default function GraficosPage() {
                 {error.slideRef && (
                   <button
                     type="button"
+                    className="pulso-irlamina"
                     onClick={() => {
                       if (error.slideRef) select(error.slideRef.id);
                       setError(null);
                     }}
-                    style={{
-                      alignSelf: "flex-start",
-                      fontSize: 11, padding: "4px 10px",
-                      border: "1px solid var(--pulso-danger-fg)",
-                      borderRadius: 5,
-                      background: "white", color: "var(--pulso-danger-fg)",
-                      cursor: "pointer",
-                    }}
                   >
-                    Ir al slide "{error.slideRef.label}"
+                    {rotuloIrALamina(error.slideRef.label)}
                   </button>
                 )}
               </div>
