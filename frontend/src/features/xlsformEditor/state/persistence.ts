@@ -416,6 +416,40 @@ export function upsertLibraryEntry(scope: ProjectScope, entry: LibraryEntry): vo
   writeIndex(scope, { activeFormId: index.activeFormId, forms });
 }
 
+/**
+ * Reemplaza SOLO la procedencia de un formulario (metadatos + entrada del
+ * índice), sin tocar su workbook ni su `savedAt`. Lo usan las acciones que el
+ * backend resuelve sobre la procedencia (p. ej. declarar la lógica hecha fuera
+ * de Prosecnur): si la copia local quedara con la procedencia vieja, el próximo
+ * autosave la reenviaría y revertiría el estado en el servidor.
+ */
+export function updateFormSource(scope: ProjectScope, formId: string, source: FormSource): void {
+  const safe = normalizeSource(source);
+  try {
+    const metaRaw = getScopedItem(META_PREFIX, scope, formKeyPart(formId));
+    if (metaRaw) {
+      const meta = JSON.parse(metaRaw) as Record<string, unknown>;
+      localStorage.setItem(
+        formMetaKey(scope, formId),
+        JSON.stringify({
+          ...meta,
+          sourceName: safe?.original_name ?? nullableString(meta.sourceName),
+          sourceKind: safe?.kind ?? nullableString(meta.sourceKind),
+          source: safe,
+        }),
+      );
+    }
+  } catch {
+    // Meta corrupta o cuota llena: el índice se actualiza igual.
+  }
+  const index = readIndex(scope);
+  if (!index.forms.some((f) => f.id === formId)) return;
+  writeIndex(scope, {
+    activeFormId: index.activeFormId,
+    forms: index.forms.map((f) => (f.id === formId ? { ...f, source: safe } : f)),
+  });
+}
+
 /** Escribe un valor en la hoja `settings` (columna, primera fila), clonando
  *  el workbook. Crea la columna y/o la fila si no existen. */
 function writeSettingValue(

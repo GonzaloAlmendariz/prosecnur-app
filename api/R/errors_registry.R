@@ -443,6 +443,7 @@ errores_registrados <- function() {
     "E_CAMPANA_REPETIDA",                                    "xlsform_campanas.R",                "409",
     "E_CAMPANA_OTRO_INSTRUMENTO",                            "xlsform_campanas.R",                "409",
     "E_CAMPANA_NO_ENCONTRADA",                               "xlsform_campanas.R",                "404",
+    "E_LOGICA_EXTERNA_NO_DECLARADA",                         "xlsform_logica_externa.R",          "409",
     "E_DRIVE_FICHAS",                                         "collection_drive.R",                "409",
     "E_DRIVE_SCOPE",                                          "collection_drive.R",                "409",
     "E_DRIVE_SIN_GOOGLE",                                     "collection_drive.R",                "409",

@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
@@ -19,10 +20,9 @@ import {
   FileText,
   ListChecks,
   Plus,
-  Trash2,
   X,
 } from "lucide-react";
-import { IconForward, IconHint, IconRedo, IconSearch, IconUndo } from "../../lib/icons";
+import { IconRedo, IconSearch, IconUndo } from "../../lib/icons";
 import {
   apiSaveEntregable,
   apiEstudioProcessingSuggestions,
@@ -164,7 +164,10 @@ import { EditorCommandBar } from "./shell/EditorCommandBar";
 import { EditorSmImportNotice } from "./shell/EditorSmImportNotice";
 import { useActivePublicationRefresh } from "./shell/useActivePublicationRefresh";
 import { ListasOpcionesDialog, contarEscalasRepetidas, useListasOpcionesPanel } from "./listas";
-import { buildSuiteMetrics, formatFieldSectionPair, formatRelativeTime } from "./shell/editorMetrics";
+import { buildSuiteMetrics, formatFieldSectionPair } from "./shell/editorMetrics";
+import { RestoreOfferBanner } from "./shell/RestoreOfferBanner";
+import { LogicaExternaDialogo, LogicaExternaDisparador } from "./shell/LogicaExterna";
+import { useLogicaExterna } from "./shell/useLogicaExterna";
 import { CollapsibleSection } from "./shell/CollapsibleSection";
 import CatalogsContextLens from "./catalogs/CatalogsContextLens";
 import { CatalogLibrary as CatalogLibraryV2 } from "./catalogs/CatalogLibrary";
@@ -1025,6 +1028,14 @@ export default function XlsformEditorPage() {
       }));
     }
   }, [projectScope, refreshBackendFormIndex, toasts]);
+
+  // «La lógica y la limpieza se hicieron fuera»: misma ruta que la confirmación.
+  const logicaExterna = useLogicaExterna({
+    projectScope, activeFormIdRef, setForms, setSource, refreshBackendFormIndex, toasts,
+    setPublication: (id, pub) => setPublicationUi((prev) => ({ ...prev, byFormId: { ...prev.byFormId, [id]: pub } })),
+    flushPendiente: () => persistence.flushAndSync(),
+    onDeclarada: () => { setSmLogicDialogOpen(false); setLogicReviewFormId(null); },
+  });
 
   // Al montar — y al cambiar de proyecto — sembramos la biblioteca
   // multi-formulario: migramos cualquier snapshot legacy mono-formulario,
@@ -3159,6 +3170,7 @@ export default function XlsformEditorPage() {
             setCatalogsLensOpen(true);
           }}
           onReviewLogic={activeFormId ? () => { void openFormLogicReview(activeFormId); } : undefined}
+          logicaExterna={activeFormId ? { formId: activeFormId, acciones: logicaExterna } : undefined}
           canCreate={canCreateForm}
           maxForms={MAX_FORMS}
           onNewBlank={onNewWorkbook}
@@ -3218,6 +3230,7 @@ export default function XlsformEditorPage() {
           publicationErrors={publicationUi.errorsByFormId}
           onPublish={(id) => { void onPublishForm(id); }}
           onConfirmLogic={(id) => { void openFormLogicReview(id); }}
+          logicaExterna={logicaExterna}
           actorOptions={instrumentActors}
           actorCatalogStatus={instrumentActorCatalog.status}
           assigningActorFormId={assigningActorFormId}
@@ -3550,6 +3563,7 @@ export default function XlsformEditorPage() {
 	        onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
 	      />
 
+	      <LogicaExternaDialogo control={logicaExterna} formName={forms.find((f) => f.id === logicaExterna.formId)?.name ?? null} />
 	      {smLogicDialogOpen && workbook ? createPortal((
 	        <SurveyMonkeyLogicPopup
 	          workbook={workbook}
@@ -3560,6 +3574,7 @@ export default function XlsformEditorPage() {
 	          overrides={smLogicChoiceOverrides}
 	          busy={Boolean(busy)}
 	          reviewConfirmation={logicReviewFormId === activeFormId}
+	          alternativa={activeFormId && logicReviewFormId === activeFormId ? <LogicaExternaDisparador formId={activeFormId} acciones={logicaExterna} /> : null}
 	          onLogicDraftChange={updateSurveyMonkeyLogicDraft}
 	          onRulesChange={(nextRules) => updateSurveyMonkeyLogicDraft(nextRules)}
 	          onVisualRulesChange={updateSurveyMonkeyVisualRulesDraft}
@@ -4104,6 +4119,7 @@ function SurveyMonkeyLogicPopup({
   overrides,
   busy,
   reviewConfirmation,
+  alternativa,
   onLogicDraftChange,
   onRulesChange,
   onVisualRulesChange,
@@ -4119,6 +4135,8 @@ function SurveyMonkeyLogicPopup({
   overrides: Record<string, string[]>;
   busy: boolean;
   reviewConfirmation: boolean;
+  /** Segunda vía al confirmar: la lógica se hizo fuera de Prosecnur. */
+  alternativa?: ReactNode;
   onLogicDraftChange: (
     rules: ConfirmedRule[],
     visualRules: SurveyMonkeyVisualLogicRule[],
@@ -4396,6 +4414,7 @@ function SurveyMonkeyLogicPopup({
               : `${visualActionCountForFooter(visualRules) + rules.length} salto${visualActionCountForFooter(visualRules) + rules.length === 1 ? "" : "s"} configurado${visualActionCountForFooter(visualRules) + rules.length === 1 ? "" : "s"}`}
           </span>
           <div style={{ display: "inline-flex", gap: 8 }}>
+            {alternativa}
             <button type="button" onClick={onClose} disabled={busy}>
               Cancelar
             </button>
@@ -4411,122 +4430,6 @@ function SurveyMonkeyLogicPopup({
           </div>
         </footer>
       </div>
-    </div>
-  );
-}
-
-/**
- * Banner que aparece cuando al montar detectamos un snapshot persistido en
- * localStorage o backend. Le ofrece al usuario
- * restaurar lo que estaba editando vs descartarlo.
- */
-function RestoreOfferBanner({
-  snapshot,
-  onAccept,
-  onDismiss,
-}: {
-  snapshot: { savedAt: number; sourceName: string | null };
-  onAccept: () => void;
-  onDismiss: () => void;
-}) {
-  return (
-    <div
-      role="region"
-      aria-label="Restaurar formulario anterior"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: 8,
-        borderRadius: 12,
-        background: "color-mix(in srgb, var(--pulso-info-bg) 82%, #ffffff 18%)",
-        border: "1px solid color-mix(in srgb, var(--pulso-info-border) 72%, var(--pulso-border))",
-        color: "var(--pulso-text)",
-        flexWrap: "wrap",
-        boxShadow: "var(--xls-shadow-hairline, 0 1px 2px rgba(15, 23, 42, 0.06))",
-      }}
-    >
-      <button
-        type="button"
-        onClick={onAccept}
-        style={{
-          flex: "1 1 420px",
-          minWidth: 280,
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          padding: "10px 12px",
-          border: "1px solid transparent",
-          borderRadius: 10,
-          background: "rgba(255, 255, 255, 0.72)",
-          color: "inherit",
-          textAlign: "left",
-          cursor: "pointer",
-        }}
-      >
-        <span
-          aria-hidden="true"
-          style={{
-            width: 32,
-            height: 32,
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flex: "0 0 auto",
-            borderRadius: 9,
-            background: "color-mix(in srgb, var(--pulso-info-fg) 10%, #ffffff)",
-            color: "var(--pulso-info-fg)",
-          }}
-        >
-          <IconHint size={16} />
-        </span>
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: "block", fontSize: 13, fontWeight: 800 }}>
-            Continuar formulario guardado
-          </span>
-          <span style={{ display: "block", fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
-            {/* Defensivo: en localStorage viejo `sourceName` puede haber
-                quedado como objeto en algún caso edge. Solo lo mostramos
-                si es string no vacío. */}
-            {typeof snapshot.sourceName === "string" && snapshot.sourceName
-              ? `Archivo: ${snapshot.sourceName} · `
-              : ""}
-            Guardado automáticamente {formatRelativeTime(snapshot.savedAt)}.
-          </span>
-        </span>
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            color: "var(--pulso-info-fg)",
-            fontSize: 12,
-            fontWeight: 800,
-            whiteSpace: "nowrap",
-          }}
-        >
-          Entrar <IconForward size={14} />
-        </span>
-      </button>
-      <button
-        type="button"
-        onClick={onDismiss}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          minHeight: 36,
-          padding: "8px 10px",
-          border: "1px solid var(--pulso-border)",
-          borderRadius: 9,
-          background: "#ffffff",
-          color: "var(--pulso-text-soft)",
-          fontSize: 12,
-          fontWeight: 700,
-        }}
-      >
-        <Trash2 size={14} /> Descartar guardado
-      </button>
     </div>
   );
 }

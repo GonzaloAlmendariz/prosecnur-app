@@ -360,8 +360,20 @@ export type XlsformFormSource = {
   logic_confirmed_at?: string | null;
   logic_confirmation_method?: string | null;
   logic_review?: XlsformSourceRecord;
+  /**
+   * Declaración de que la lógica y la limpieza se hicieron fuera de Prosecnur
+   * (SPSS, R…). Sólo vale con `logic_status === "external_declared"`.
+   */
+  logic_external?: XlsformLogicaExternaSource;
   /** Lo que la encuesta trae y el formulario no importa, con su causa (H9). */
   fuera_del_formulario?: XlsformFueraDelFormularioItem[];
+};
+
+/** Procedencia de la lógica declarada fuera de Prosecnur, tal como la guarda el backend. */
+export type XlsformLogicaExternaSource = {
+  herramienta: string;
+  nota: string;
+  declarada_en: string;
 };
 
 /** Elemento de la encuesta de origen que no entra al formulario (H9). */
