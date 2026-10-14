@@ -2596,6 +2596,19 @@
   border-color: var(--pulso-success-border);
 }
 
+/* U3: una clave guardada pero sin probar no se pinta de verde; una rechazada, en rojo. */
+.home-connection-status.is-pending {
+  color: var(--pulso-text-soft);
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-border);
+}
+
+.home-connection-status.is-error {
+  color: var(--pulso-danger-fg);
+  background: var(--pulso-danger-bg);
+  border-color: var(--pulso-danger-border);
+}
+
 .home-connection-current,
 .home-connection-empty {
   display: grid;

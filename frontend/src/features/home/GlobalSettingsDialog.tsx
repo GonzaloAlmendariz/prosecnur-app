@@ -285,14 +285,19 @@ function activeConnectionLabel(meta: ProviderMeta, state: ConnectionTokenState):
   return state.active_profile_alias ? `Perfil ${state.active_profile_alias}` : "Clave activa de SurveyMonkey";
 }
 
-function activeConnectionDetail(meta: ProviderMeta, state: ConnectionTokenState): string {
+/** Lo que se sabe de la credencial: probada en esta sesión, rechazada o sin probar (U3: no se pinta «lista» sin haberla probado). */
+type VerificacionCredencial = "probada" | "rechazada" | "sin_probar";
+
+function activeConnectionDetail(meta: ProviderMeta, state: ConnectionTokenState, verificacion: VerificacionCredencial = "sin_probar"): string {
   const parts: string[] = [];
   if (meta.provider === "google_sheets") {
     parts.push("Lista para fuentes y publicaciones de Monitoreo");
   } else if (meta.provider === "kobo" && state.active_profile_base_url) {
     parts.push(state.active_profile_base_url);
   } else if (meta.provider === "surveymonkey") {
-    parts.push("Lista para importar encuestas y respuestas");
+    parts.push(verificacion === "probada" ? "Probada: lista para importar encuestas y respuestas"
+      : verificacion === "rechazada" ? "SurveyMonkey la rechazó: genera una clave nueva o activa otro perfil"
+      : "Sin probar en esta sesión: usa «Probar» antes de importar");
   }
   if (state.masked_token && meta.provider !== "google_sheets") {
     parts.push(`${meta.credentialKind === "oauth" ? "Referencia OAuth" : "Referencia local"} ${state.masked_token}`);
@@ -328,6 +333,8 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
   const [remember, setRemember] = useState<Record<ConnectionProvider, boolean>>({ surveymonkey: true, kobo: true, google_sheets: true });
   const [authUrls, setAuthUrls] = useState<Partial<Record<ConnectionProvider, string>>>({});
   const [busy, setBusy] = useState<Partial<Record<ConnectionProvider, "save" | "check" | "clear">>>({});
+  // Sólo «Probar» decide si una credencial está probada; guardar, activar o quitar la deja «sin probar» (U3).
+  const [verificaciones, setVerificaciones] = useState<Partial<Record<ConnectionProvider, VerificacionCredencial>>>({});
   const [loadingConnections, setLoadingConnections] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [messages, setMessages] = useState<Partial<Record<ConnectionProvider, { kind: "ok" | "error"; text: string }>>>({});
@@ -408,6 +415,10 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
     setBusy((current) => ({ ...current, [provider]: next ?? undefined }));
   }
 
+  function marcarVerificacion(provider: ConnectionProvider, valor: VerificacionCredencial) {
+    setVerificaciones((actual) => ({ ...actual, [provider]: valor }));
+  }
+
   function setProviderMessage(provider: ConnectionProvider, kind: "ok" | "error", text: string) {
     setMessages((current) => ({ ...current, [provider]: { kind, text } }));
   }
@@ -463,6 +474,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
         setAliases((current) => ({ ...current, [provider]: "" }));
         setAuthUrls((current) => ({ ...current, [provider]: "" }));
         setProviderMessage(provider, "ok", provider === "google_sheets" ? "Google Sheets autorizado." : "Clave actualizada.");
+      marcarVerificacion(provider, "sin_probar");
       }
     } catch (error) {
       setProviderMessage(provider, "error", String((error as Error)?.message ?? error));
@@ -489,8 +501,10 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
           ? { profile_id: connections.surveymonkey.active_profile_id || undefined }
         : {});
       setProviderMessage(provider, result.ok ? "ok" : "error", checkMessage(provider, result));
+      marcarVerificacion(provider, result.ok ? "probada" : "rechazada");
     } catch (error) {
       setProviderMessage(provider, "error", String((error as Error)?.message ?? error));
+      marcarVerificacion(provider, "rechazada");
     } finally {
       setProviderBusy(provider, null);
     }
@@ -502,6 +516,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
       const next = await apiConnectionTokenClear(provider);
       mergeConnection(next);
       setProviderMessage(provider, "ok", provider === "google_sheets" ? "Autorización OAuth quitada." : "Clave quitada.");
+      marcarVerificacion(provider, "sin_probar");
     } catch (error) {
       setProviderMessage(provider, "error", String((error as Error)?.message ?? error));
     } finally {
@@ -518,6 +533,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
         setBaseUrls((current) => ({ ...current, kobo: profile.base_url || KOBO_DEFAULT_BASE_URL }));
       }
       setProviderMessage(provider, "ok", `Perfil activo: ${profile.alias}.`);
+      marcarVerificacion(provider, "sin_probar");
     } catch (error) {
       setProviderMessage(provider, "error", String((error as Error)?.message ?? error));
     } finally {
@@ -531,6 +547,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
       const next = await apiConnectionProfileDelete(provider, profile.id);
       mergeConnection(next);
       setProviderMessage(provider, "ok", `Perfil quitado: ${profile.alias}.`);
+      marcarVerificacion(provider, "sin_probar");
     } catch (error) {
       setProviderMessage(provider, "error", String((error as Error)?.message ?? error));
     } finally {
@@ -865,6 +882,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
                     remember={remember[meta.provider]}
                     busy={busy[meta.provider] ?? null}
                     message={messages[meta.provider] ?? null}
+                    verificacion={verificaciones[meta.provider] ?? "sin_probar"}
                     onInputChange={(value) => setInputs((current) => ({ ...current, [meta.provider]: value }))}
                     onAliasChange={(value) => setAliases((current) => ({ ...current, [meta.provider]: value }))}
                     onBaseUrlChange={(value) => setBaseUrls((current) => ({ ...current, [meta.provider]: value }))}
@@ -1251,6 +1269,7 @@ function ConnectionCard({
   remember,
   busy,
   message,
+  verificacion,
   onInputChange,
   onAliasChange,
   onBaseUrlChange,
@@ -1271,6 +1290,7 @@ function ConnectionCard({
   remember: boolean;
   busy: "save" | "check" | "clear" | null;
   message: { kind: "ok" | "error"; text: string } | null;
+  verificacion: VerificacionCredencial;
   onInputChange: (value: string) => void;
   onAliasChange: (value: string) => void;
   onBaseUrlChange: (value: string) => void;
@@ -1312,9 +1332,10 @@ function ConnectionCard({
           <h4>{meta.title}</h4>
           <p>{meta.subtitle}</p>
         </div>
-        <span className={`home-connection-status ${state.has_token ? "is-ready" : ""}`}>
-          {state.has_token ? <ShieldCheck size={13} /> : <AlertTriangle size={13} />}
+        <span className={`home-connection-status ${!state.has_token ? "" : verificacion === "probada" || isOAuth ? "is-ready" : verificacion === "rechazada" ? "is-error" : "is-pending"}`}>
+          {state.has_token && verificacion !== "rechazada" ? <ShieldCheck size={13} /> : <AlertTriangle size={13} />}
           {connectionStatusLabel(meta, state)}
+          {state.has_token && !isOAuth ? (verificacion === "probada" ? " · probada" : verificacion === "rechazada" ? " · no responde" : " · sin probar") : null}
         </span>
       </div>
 
@@ -1322,7 +1343,7 @@ function ConnectionCard({
         <div className="home-connection-current">
           <span>{isOAuth ? "Autorización activa" : "Credencial activa"}</span>
           <strong>{activeConnectionLabel(meta, state)}</strong>
-          <small>{activeConnectionDetail(meta, state)}</small>
+          <small>{activeConnectionDetail(meta, state, verificacion)}</small>
         </div>
       ) : (
         <div className="home-connection-empty">
