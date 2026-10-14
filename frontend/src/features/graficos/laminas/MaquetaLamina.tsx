@@ -17,6 +17,7 @@ import type { LaminaEnEstructura } from "./modeloEstructura";
 import { baseAutomatica, ranurasDeMaqueta } from "./modeloMaqueta";
 import { fichaDeRanura } from "./maqueta/fichaModelo";
 import { FichaRanura } from "./maqueta/FichaRanura";
+import { datosEstructura } from "./maqueta/datosEstructura";
 import { varianteDe } from "./selectores/tiposLamina";
 import { camposTextoDe, ZonasTextoLamina, zonasPortada, type CampoTextoLamina } from "./ZonasTextoLamina";
 import { tituloQueSale } from "./tituloQueSale";
@@ -54,7 +55,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
     // Portada, índice, separadores: su dibujo de estructura; el título sigue siendo editable con un clic.
     return (
       <div className="pulso-f6-maqueta is-estructura" data-maqueta-tipo={slide.tipo}>
-        <ComposicionLamina tipo={slide.tipo} slots={slots} variante={varianteDe(slide)} />
+        <ComposicionLamina tipo={slide.tipo} slots={slots} variante={varianteDe(slide)} datos={datosEstructura(slide)} />
         {zonasPortada(slide.tipo, varianteDe(slide)) ? (
           <ZonasTextoLamina onTexto={onTexto} campos={campos} zonas={zonasPortada(slide.tipo, varianteDe(slide)) ?? undefined} />
         ) : campos.has("titulo") && (

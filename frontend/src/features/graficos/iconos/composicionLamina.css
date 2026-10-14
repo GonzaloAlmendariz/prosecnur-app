@@ -25,6 +25,8 @@
 .pulso-composicion__tinta { fill: var(--composicion-tinta); }
 .pulso-composicion__titulo { fill: var(--composicion-titulo); }
 .pulso-composicion__suave { fill: var(--composicion-suave); }
+/* Texto gris de la maqueta del editor (subtítulos, subcapítulos): el gris de las formas no se lee como letra. */
+.pulso-composicion__texto-suave { fill: var(--pulso-text-muted); }
 .pulso-composicion__acento { fill: var(--composicion-acento); }
 .pulso-composicion__acento.is-suave { fill: color-mix(in srgb, var(--composicion-acento) 45%, var(--composicion-papel)); }
 .pulso-composicion__ilustracion { fill: color-mix(in srgb, var(--composicion-acento) 16%, var(--composicion-papel)); }

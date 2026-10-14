@@ -8,6 +8,7 @@ import { CuerpoGlifo } from "./GlifoGrafico";
 import { GLIFO } from "./glifosGrafico";
 import { composicionDe, LAMINA_PULGADAS, numeroDeRanura, type RanuraComposicion } from "./composicion";
 import { Cabecera, DibujoEstructura } from "./dibujosEstructura";
+import type { DatosEstructura } from "../laminas/maqueta/datosEstructura";
 import "./composicionLamina.css";
 
 export type ComposicionLaminaProps = {
@@ -26,6 +27,8 @@ export type ComposicionLaminaProps = {
   /** Con título: `role="img"` y nombre accesible; sin él, decorativa. */
   titulo?: string;
   className?: string;
+  /** Sólo la maqueta del editor: el texto real de la lámina de estructura (título, capítulos, actores…). */
+  datos?: Partial<DatosEstructura>;
 };
 
 const INSET = 0.1;
@@ -97,7 +100,7 @@ function Ranura({ r, k, grafico, activa, numerar }: {
 }
 
 export function ComposicionLamina({
-  tipo, slots, graficos = {}, variante = null, ranuraActiva = null, numerar = false, titulo, className,
+  tipo, slots, graficos = {}, variante = null, ranuraActiva = null, numerar = false, titulo, className, datos,
 }: ComposicionLaminaProps): JSX.Element {
   const idTitulo = useId();
   const comp = composicionDe(tipo, slots);
@@ -117,7 +120,7 @@ export function ComposicionLamina({
       {titulo && <title id={idTitulo}>{titulo}</title>}
       <rect x={0} y={0} width={LAMINA_PULGADAS.w} height={LAMINA_PULGADAS.h} className="pulso-composicion__papel" />
       {estructura ? (
-        <DibujoEstructura tipo={tipo} variante={variante} />
+        <DibujoEstructura tipo={tipo} variante={variante} datos={datos} />
       ) : (
         <>
           <Cabecera />
