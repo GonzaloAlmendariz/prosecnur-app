@@ -28,6 +28,7 @@
 .pulso-ficha-leyenda-texto { fill: var(--pulso-text); }
 
 .pulso-ficha-barra.is-ttb { fill: var(--pulso-success-fg); }
+.pulso-ficha-barra.is-btb { fill: var(--pulso-danger-fg); }
 .pulso-ficha-barra.is-pregunta { fill: var(--pulso-border-strong); }
 .pulso-ficha-separador { stroke: var(--pulso-border-strong); stroke-width: 0.015; stroke-dasharray: 0.06 0.05; }
 .pulso-ficha-glifo.is-tenue { opacity: 0.35; }

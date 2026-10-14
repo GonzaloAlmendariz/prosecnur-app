@@ -20,6 +20,8 @@ export type OpcionesGlifo = {
   grupos?: boolean;
   /** Letras de diferencias significativas sobre las barras. */
   significancia?: boolean;
+  /** Ranking en barras: las marcas 0–100 % bajo las barras, con sus guías. */
+  marcas?: boolean;
   /** Lo que excede el máximo se junta en «Otros», al final y en neutro. */
   otros?: boolean;
   /** Ranking recortado a las primeras N (el dibujo tiene cinco filas). */
@@ -203,6 +205,12 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
             </g>
           );
         })}
+        {o?.marcas && [0, 1, 2, 3, 4].map((k) => (
+          <g key={`m${k}`}>
+            <path d={`M${42 + k * 24} 10V88`} className="pulso-glifo__rejilla" />
+            <Rotulo x={38 + k * 24} y={92} w={8} />
+          </g>
+        ))}
         <Eje d="M40 10V88" />
       </>
     );

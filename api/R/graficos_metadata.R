@@ -1110,6 +1110,10 @@
       list(name = "forzar_ancho_max_eje_y", label = "Respetar ancho de etiquetas", tipo_input = "bool", grupo = "filtro",
            default = FALSE,
            descripcion = "Evita que el motor compacte automáticamente el wrap cuando hay muchas categorías. Útil para etiquetas descriptivas largas."),
+      # Recetario p74–p75 («Opcional brindar ambas opciones»): la escala de 0 a 100 % es el defecto; las marcas, opcionales.
+      list(name = "marcas_eje", label = "Marcas del eje", tipo_input = "bool", grupo = "estilo",
+           default = FALSE,
+           descripcion = "Escribe 0, 25, 50, 75 y 100 % bajo las barras, con líneas guía. Sin ellas, cada barra lleva sólo su cifra."),
       list(name = "canvas_w_etiquetas", label = "Espacio para etiquetas", tipo_input = "number", grupo = "canvas",
            default = 0.36,
            descripcion = "Ancho relativo reservado para textos largos a la izquierda del gráfico.")

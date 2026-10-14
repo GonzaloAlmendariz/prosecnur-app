@@ -20,7 +20,8 @@ export type LeyendaFicha = { titulo: string | null; items: ItemLeyenda[] };
 export type TemaForma = { filas: number };
 export type BloqueForma = { titulo: string | null; colores: string[]; ttb: boolean; temas: TemaForma[] };
 /** Lo que dibuja una ranura de barras apiladas; `null` en los demás tipos (usan su glifo). */
-export type FormaBarras = { bloques: BloqueForma[]; eje: number };
+/** `btb`: la columna Bottom Two Box junto a la Top Two Box (recetario p79), en los bloques que la llevan. */
+export type FormaBarras = { bloques: BloqueForma[]; eje: number; btb?: boolean };
 
 export type FichaInfo = {
   graficador: string | null;
@@ -138,6 +139,8 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
       const max = entero(v("max_categorias"));
       if (max) ajustes.push(`Máximo ${max} categorías`);
       if (max && v("agrupar_resto_en_otros") !== false) { glifo.otros = true; ajustes.push("Resto en «Otros»"); }
+      // Las marcas sólo se dibujan con la escala de 0 a 100 % (`usar_eje_libre` apagado, el defecto).
+      if (v("marcas_eje") === true && v("usar_eje_libre") !== true) { glifo.marcas = true; ajustes.push("Marcas del eje"); }
       break;
     }
     case "p_pie":
@@ -247,6 +250,8 @@ export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null): Fich
   // M2 (catálogo del recetario): sin respuestas elegidas el motor omite la columna y avisa; la ficha no la promete.
   const ttbSinRespuestas = conTtb > 0 && Array.isArray(r.twoBox.etiquetas) && r.twoBox.etiquetas.length === 0;
   if (conTtb) ajustes.push(conTtb === salen.length ? "Top Two Box" : "Top Two Box en un bloque");
+  const btb = conTtb > 0 && r.twoBox.btb && !ttbSinRespuestas;
+  if (btb) ajustes.push("Bottom Two Box");
   if (salen.length > 1) ajustes.push(`${salen.length} bloques`);
   if (cruce) ajustes.push(`Por grupos: ${cruce}`);
   ajustes.push(...ajustesComunes(r.args));
@@ -269,7 +274,7 @@ export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null): Fich
     leyendas,
     ajustes,
     avisos: [...(ttbSinRespuestas ? [TTB_SIN_RESPUESTAS] : []), ...(partes > 1 ? [`Sale en ${partes} láminas`] : [])],
-    forma: { bloques: salen, eje },
+    forma: { bloques: salen, eje, btb },
     glifo: {},
     vacia: false,
     faltaPregunta: false,
