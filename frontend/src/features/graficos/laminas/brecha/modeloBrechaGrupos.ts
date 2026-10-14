@@ -63,7 +63,7 @@ export function aEntreGrupos(): Record<string, unknown> {
   return { cruce: "", grupos: [], vars: [] };
 }
 
-/** Volver a «entre dos bases»: sin cruce ni grupos; las preguntas por base las arma la matriz de equivalencias. */
+/** Volver a «entre dos bases»: sin cruce ni grupos; los temas por base se arman en EditorTemasEquivalentes (P21). */
 export function aEntreBases(): Record<string, unknown> {
   return { cruce: null, grupos: null, vars: {} };
 }

@@ -31,6 +31,8 @@
 #'   porcentuales.
 #' @param tabla_titulo,tabla_encabezados,tabla_ancho_tema,tabla_proporcion Sólo
 #'   en modo `publicos`: encabezados y anchos de la tabla al costado.
+#' @param titulos_grupo Sólo en modo `publicos`: títulos de los temas,
+#'   `clave -> título` (ver `p_radar_publicos`).
 #' @export
 p_radar <- function(modo = c("sm", "box", "publicos"),
                     var  = NULL,
@@ -55,6 +57,7 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
                     tabla_encabezados = NULL,
                     tabla_ancho_tema = NULL,
                     tabla_proporcion = NULL,
+                    titulos_grupo = NULL,
                     overrides = list(),
                     base = list(),
                     filtros = list()) {
@@ -71,7 +74,8 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
       decimales = valores_decimales %||% 0L, eje_min = eje_min %||% 0,
       tabla_titulo = tabla_titulo, tabla_encabezados = tabla_encabezados,
       tabla_ancho_tema = tabla_ancho_tema, tabla_proporcion = tabla_proporcion,
-      titulo = titulo, overrides = overrides, base = base, filtros = filtros
+      titulo = titulo, overrides = overrides, base = base, filtros = filtros,
+      titulos_grupo = titulos_grupo
     ))
   }
   overrides <- c(list(mostrar_tabla_derecha = FALSE), overrides %||% list())

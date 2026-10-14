@@ -21,6 +21,8 @@ type Props = {
   nuevoTema: (n: number) => TemaPublicos;
   /** Lo que la matriz de equivalencias sabe; sin matriz no se sugiere nada. */
   matriz?: FuentesMatriz;
+  /** Tipos de pregunta que ofrece el selector (radar, brecha y serie sólo aceptan opción única). */
+  filtroTipo?: (tipo: string) => boolean;
 };
 
 function ChipSugerencia({ s, publico, variables, onAplicar }: { s: SugerenciaPublico; publico: string; variables: readonly VarWithSource[]; onAplicar: () => void }) {
@@ -41,7 +43,7 @@ function ChipSugerencia({ s, publico, variables, onAplicar }: { s: SugerenciaPub
   );
 }
 
-export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTema, matriz = SIN_MATRIZ }: Props) {
+export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTema, matriz = SIN_MATRIZ, filtroTipo }: Props) {
   const lista = temas.length ? temas : [nuevoTema(1)];
   const mover = (i: number, d: -1 | 1) => {
     const j = i + d; if (j < 0 || j >= lista.length) return;
@@ -87,7 +89,7 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
                 <span className="pulso-mapi-pub">{nombrePublico(p)}</span>
                 <div className="pulso-mapi-pregunta">
                   {sugerida && <ChipSugerencia s={sugerida} publico={p} variables={variables} onAplicar={() => aplicar([sugerida])} />}
-                  <VariablePicker value={ref || null} allowEmpty ocultarBase placeholder="Elegir pregunta…"
+                  <VariablePicker value={ref || null} allowEmpty ocultarBase placeholder="Elegir pregunta…" filter={filtroTipo}
                                   onChange={(v) => {
                                     const actualizado = conRef(tema, publicos, p, v);
                                     // Sin nombre todavía, el tema toma la etiqueta de su primera pregunta: es el nombre que el analista escribiría.

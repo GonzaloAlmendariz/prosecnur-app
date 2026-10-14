@@ -646,6 +646,9 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
 #' @param corte Códigos de la escala que suman el indicador: `"3,4"`.
 #' @param estilo Clave de estilo: `comparativo`, `silueta`, `auditoria`, `limpio`.
 #' @param corte_etiqueta Nombre del indicador. Si falta, la tabla lo omite.
+#' @param titulos_grupo Títulos de los temas, `clave -> título`. Cuando llega,
+#'   reemplaza la clave de `vars` como etiqueta del vértice; lo que no se nombra
+#'   conserva su clave.
 #' @param mostrar_tabla Si `TRUE`, compone el radar con su tabla al costado.
 #' @param mostrar_valores Si `TRUE`, escribe el porcentaje en cada vértice.
 #' @param decimales Decimales del porcentaje, en el vértice y en la tabla.
@@ -684,8 +687,10 @@ p_radar_publicos <- function(
     titulo = NULL,
     overrides = list(),
     base = list(),
-    filtros = list()
+    filtros = list(),
+    titulos_grupo = NULL
 ) {
+  vars <- .graf_aplicar_titulos_grupo(vars, titulos_grupo, "p_radar_publicos()")
   if (!is.list(vars) || !length(vars)) {
     .plan_spec_abort("p_radar_publicos(): `vars` debe ser una lista nombrada no vacia.")
   }
@@ -707,7 +712,7 @@ p_radar_publicos <- function(
     # tumbaba el mazo entero con «La fuente c("docentes no existe en data».
     var            = NULL,
     vars           = lapply(vars, function(x) as.character(unlist(x))),
-    corte          = as.character(corte)[1],
+    corte          = .graf_corte_unido(corte),
     corte_etiqueta = as.character(corte_etiqueta %||% "")[1],
     estilo         = as.character(estilo %||% "comparativo")[1],
     mostrar_tabla  = isTRUE(mostrar_tabla),

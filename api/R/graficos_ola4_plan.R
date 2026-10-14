@@ -530,6 +530,8 @@ p_barras_divergentes <- function(vars = NULL,
 #' Declara lo mismo que `p_radar(modo = "publicos")` y lo dibuja como brecha.
 #' @param etiqueta_brecha Unidad junto a la diferencia («+6 pts»). `NULL` hereda
 #'   el preset o el motor («pts», como el recetario).
+#' @param titulos_grupo Títulos de los temas, `clave -> título`; reemplazan la
+#'   clave de `vars` como etiqueta de la fila (sólo sin `cruce`).
 #' @export
 p_dumbbell <- function(vars,
                        corte,
@@ -543,13 +545,15 @@ p_dumbbell <- function(vars,
                        filtros = list(),
                        etiqueta_brecha = NULL,
                        cruce = NULL,
-                       grupos = NULL) {
+                       grupos = NULL,
+                       titulos_grupo = NULL) {
   orden <- match.arg(orden)
   # G17: con `cruce` y `grupos` la brecha es entre dos grupos de una misma base (graficos_dumbbell_grupos.R).
   if (!is.null(cruce)) {
     return(.p_dumbbell_grupos(vars, corte, corte_etiqueta, orden, mostrar_brecha, umbral_brecha_pct, titulo,
                               overrides, base, filtros, etiqueta_brecha, cruce, grupos))
   }
+  vars <- .graf_aplicar_titulos_grupo(vars, titulos_grupo, "p_dumbbell()")
   if (!is.list(vars) || !length(vars)) {
     .plan_spec_abort("p_dumbbell(): `vars` debe ser una lista nombrada no vacia.")
   }
@@ -601,7 +605,7 @@ p_dumbbell <- function(vars,
     .element_type = "dumbbell",
     var  = NULL,
     vars = vars_norm,
-    corte = as.character(corte)[1],
+    corte = .graf_corte_unido(corte),
     corte_etiqueta = as.character(corte_etiqueta %||% "")[1],
     title_slide = titulo,
     overrides = ov,

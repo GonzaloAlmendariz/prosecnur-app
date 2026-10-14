@@ -373,6 +373,18 @@ export function textoACodigos(t: string): string[] {
   return t.split(/[,;\n]/).map((x) => x.trim()).filter(Boolean);
 }
 
+/**
+ * P21 (enmienda al ADR 0103): en los gráficos que comparan públicos por tema el corte viaja como cadena «3,4»
+ * (contrato con api/R/graficos_temas_titulos.R): una lista podía llegar al motor reducida a su primer código.
+ */
+export const CORTE_EN_CADENA: ReadonlySet<string> = new Set(["p_radar", "p_serie_temporal", "p_dumbbell"]);
+
+/** Lo que guarda un control de códigos: la lista, o la cadena unida con comas para el corte de esos gráficos. */
+export function codigosEmitidos(t: string, graficador: string | undefined, arg: string): string | string[] {
+  const codigos = textoACodigos(t);
+  return arg === "corte" && graficador && CORTE_EN_CADENA.has(graficador) ? codigos.join(",") : codigos;
+}
+
 /** La etiqueta corta de una variable vive en `overrides.etiquetas_vars[variable]` (K12a, 07d43c5f7). */
 export function leerEtiquetaCorta(args: Readonly<Record<string, unknown>>, variable: string): string {
   const o = args.overrides;

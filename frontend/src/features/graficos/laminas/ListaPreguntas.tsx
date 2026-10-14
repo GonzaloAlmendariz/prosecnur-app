@@ -2,8 +2,8 @@
 //
 // Antes no tenía control: el inspector de las barras divergentes decía «Elige una pregunta…» con seis preguntas en la
 // lámina, y la serie temporal y la tabla no decían qué preguntas tenían. Una lista se edita aquí (cambiar, quitar,
-// agregar); los temas con sus preguntas por base o por medición (serie temporal, radar entre públicos) se muestran, que
-// es lo que faltaba: se arman en la matriz de equivalencias.
+// agregar); unos temas con sus preguntas por base se muestran. P21: la serie temporal, el radar entre públicos y la
+// brecha entre dos bases ya no pasan por aquí: se arman con temas por público (temasEquivalentes/).
 
 import { Plus, X } from "../../../vendor/lucide-react";
 import VariablePicker from "../VariablePicker";
