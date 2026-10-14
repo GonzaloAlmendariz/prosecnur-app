@@ -31,6 +31,7 @@ import { OrdenCategoriasGrafico } from "./OrdenCategoriasGrafico";
 import { TwoBoxGrafico } from "./tarjetaGrafico/TwoBoxGrafico";
 import { CasosGrafico } from "./CasosGrafico";
 import { AjustesDelTipo } from "./AjustesDelTipo";
+import { ListaPreguntas } from "./ListaPreguntas";
 import { ResaltarGrafico } from "./ResaltarGrafico";
 import { EnElWord } from "./tarjetaGrafico/EnElWord";
 import { ColoresGrafico } from "./colores/ColoresGrafico";
@@ -86,6 +87,13 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       )}
       {valor.graficador === "p_dumbbell" && <BrechaEntreGrupos args={args} onCambio={set} />}
       {valor.graficador === "p_matriz_cuadrantes" && <MatrizCuadrantes args={args} onCambio={set} />}
+      {valor.graficador === "p_serie_temporal" && varsPorTema && (
+        // La serie sale de la matriz de equivalencias y no se arma aquí (test-graficos-metadata.R); se muestra qué trae (I1).
+        <div className="pulso-f6-dato is-apilado">
+          <span className="pulso-f6-dato-rotulo">Temas y mediciones</span>
+          <div className="pulso-f6-dato-control"><ListaPreguntas valor={varsPorTema} onCambio={() => undefined} /></div>
+        </div>
+      )}
       {campos.map((c) => (
         <Fila key={c.arg.name} campo={c} valor={args[c.arg.name]} onCambio={(v) => set({ [c.arg.name]: v })} />
       ))}
@@ -151,6 +159,17 @@ function Fila({ campo, valor, onCambio }: { campo: CampoDato; valor: unknown; on
             allowEmpty={control === "variable_opcional"}
             placeholder={control === "variable_opcional" ? "Sin dividir" : "Elige una pregunta…"}
           />
+        </div>
+        {nota}
+      </div>
+    );
+  }
+  if (control === "variables") {
+    return (
+      <div className="pulso-f6-dato is-apilado">
+        {etiqueta}
+        <div id={id} className="pulso-f6-dato-control">
+          <ListaPreguntas valor={valor} onCambio={onCambio} describe={describe} />
         </div>
         {nota}
       </div>
