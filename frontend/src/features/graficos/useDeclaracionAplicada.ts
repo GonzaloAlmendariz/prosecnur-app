@@ -2,7 +2,7 @@
 // por no tener release aprobada. GraficosPage los recibe del preflight y los deja aquí para que Láminas los muestre sin
 // volver a pedirlo.
 //
-// ADR 0102: la matriz de equivalencias ya no arma láminas, así que no hay «declaración aplicada» que contrastar ni aviso
+// ADR 0103: la matriz de equivalencias ya no arma láminas, así que no hay «declaración aplicada» que contrastar ni aviso
 // de desfase; el hook conserva su nombre y su forma para sus cuatro consumidores.
 //
 // Estado UI efímero (zustand): los avisos se derivan del backend y se vuelven a pedir al montar; nada se persiste.

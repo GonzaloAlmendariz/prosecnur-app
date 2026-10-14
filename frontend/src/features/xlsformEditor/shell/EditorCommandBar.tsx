@@ -22,7 +22,7 @@ import type { XlsformFormPublication } from "../../../api/xlsformEditor";
 import type { XlsformFormSource } from "../../../api/multiIntegrado";
 import type { BuilderDiagnostic, BuilderSelection } from "../types";
 import { formatSource, formatSourceLong } from "../parsing/parseType";
-import { DiagnosticsBadge } from "./DiagnosticsPopover";
+import { DiagnosticsBadge, type LogicaExternaCabecera } from "./DiagnosticsPopover";
 import { deriveEditorHeaderStatus } from "./editorHeaderStatus";
 import { formatSaveStatus, plural } from "./editorMetrics";
 import { ExportMenu } from "./ExportMenu";
@@ -52,6 +52,8 @@ export type EditorCommandBarProps = {
   onSelectRow: (rowIndex: number) => void;
   onFocusCatalog: (name: string) => void;
   onReviewLogic?: () => void;
+  /** Declarar o deshacer «la lógica y la limpieza se hicieron fuera». */
+  logicaExterna?: LogicaExternaCabecera;
   canCreate: boolean;
   maxForms: number;
   onNewBlank: () => void;
@@ -177,6 +179,7 @@ export function EditorCommandBar(props: EditorCommandBarProps) {
           onSelectRow={props.onSelectRow}
           onFocusCatalog={props.onFocusCatalog}
           onReviewLogic={props.onReviewLogic}
+          logicaExterna={props.logicaExterna}
         />
       </div>
 

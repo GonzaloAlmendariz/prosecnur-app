@@ -62,7 +62,7 @@ describe("shouldSeedSharedPlan", () => {
   });
 });
 
-// La siembra hidrata el plan sin marcar el borrador como sucio (ADR 0102: ya sin sello de la matriz).
+// La siembra hidrata el plan sin marcar el borrador como sucio (ADR 0103: ya sin sello de la matriz).
 describe("siembra del compartido", () => {
   it("hidratar el plan sembrado deja dirty=false", () => {
     usePlanStore.getState().hydrate(buildGraficosConfig({ ...usePlanStore.getState(), plan: { slides: [] } }));

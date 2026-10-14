@@ -5,6 +5,7 @@ import {
   RefreshCw,
   ShieldAlert,
 } from "../../../vendor/lucide-react";
+import type { ReactNode } from "react";
 import type { XlsformFormPublication } from "../../../api/client";
 import {
   getFormPublicationView,
@@ -28,6 +29,11 @@ export type FormPublicationStatusProps = {
    * estructurales: no se resuelven desde la tarjeta, se resuelven adentro.
    */
   onOpen?: () => void;
+  /**
+   * Segunda vía junto a la acción, en su propia fila: declarar la lógica hecha
+   * fuera de Prosecnur, o deshacer esa declaración.
+   */
+  alterna?: ReactNode;
 };
 
 export function FormPublicationStatus({
@@ -40,6 +46,7 @@ export function FormPublicationStatus({
   onConfirmLogic,
   primaryAction,
   onOpen,
+  alterna,
 }: FormPublicationStatusProps) {
   if (!publication) {
     return (
@@ -117,6 +124,7 @@ export function FormPublicationStatus({
           </button>
         ) : null}
       </div>
+      {alterna ? <div className="pulso-xf-publication-alterna">{alterna}</div> : null}
       {view.reason ? (
         <p id={reasonId} className="pulso-xf-publication-reason">
           {view.reason}

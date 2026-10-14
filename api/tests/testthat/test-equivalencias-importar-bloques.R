@@ -251,7 +251,7 @@ test_that("aplicar fusiona con la matriz vigente sin borrar filas del usuario", 
   expect_equal(sum(etq == "Orientación sexual"), 1L)
   s04 <- equiv$filas[[which(etq == "Orientación sexual")]]
   expect_equal(s04$id, "S-04")
-  expect_null(s04$diapositiva)   # ADR 0102: la diapositiva de la declaración previa no se vuelve a escribir
+  expect_null(s04$diapositiva)   # ADR 0103: la diapositiva de la declaración previa no se vuelve a escribir
   expect_equal(s04$variables[c("b2024", "b2025")], list(b2024 = "orientacion_sexual", b2025 = "P4"))
   expect_false(is.null(s04$armonizacion))
   expect_equal(equiv$armonizacion_periodos, c("b2024", "b2025", "b2026"))

@@ -239,7 +239,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
         setSucio(false);
         onDeclaradas?.(imp.estado.n_filas ?? 0);
         const { aplicadas, conservadas } = resumenAplicacion(imp);
-        // ADR 0102: lo que el Excel traía y la matriz ya no guarda se dice, no se descarta en silencio.
+        // ADR 0103: lo que el Excel traía y la matriz ya no guarda se dice, no se descarta en silencio.
         const ignoradas = (imp.avisos ?? []).map((a) => a.message).join(" ");
         setAviso(
           (conservadas > 0
@@ -431,7 +431,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
             {estado && declarada && bases.length > 1 && (
               <ArmonizacionPeriodos estado={estado} onGuardado={onArmonizacionGuardada} />
             )}
-            {/* ADR 0102: la matriz es una lista de equivalencias; las láminas se arman en Gráficos. */}
+            {/* ADR 0103: la matriz es una lista de equivalencias; las láminas se arman en Gráficos. */}
             <div ref={barraRef} className="pulso-equiv-vistas" role="group" aria-label="Acciones sobre la declaración">
               {resumen.sugeridas > 0 && (
                 <PulsoButton

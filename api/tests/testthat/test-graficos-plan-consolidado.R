@@ -1,12 +1,12 @@
 source("setup-load-all.R")
 
-# ADR 0096 — el informe compartido se siembra y se propone; ADR 0102 — ya no desde la matriz.
+# ADR 0096 — el informe compartido se siembra y se propone; ADR 0103 — ya no desde la matriz.
 #
 #   POST /api/graficos/plan/sugerido {config, scope?}
 #     ""|ausente = alcance actual; "consolidado" = informe compartido; otro → 400
 #     E_GRAFICOS_PLAN_SCOPE. Consolidado sin hermanas independientes → 409
 #     E_GRAFICOS_CONSOLIDADO_NO_APLICA. `fuente = "equivalencias"` → 410
-#     E_GRAFICOS_PLAN_EQUIVALENCIAS_RETIRADO (ADR 0102).
+#     E_GRAFICOS_PLAN_EQUIVALENCIAS_RETIRADO (ADR 0103).
 #   Respuesta consolidado: { ok, plan, report_scope:"consolidado", fuente:"consolidado",
 #     bases_incluidas, bases_excluidas:[{base,actor,motivo}], avisos_equivalencias:[{code,message}], coverage, warnings }
 #
@@ -85,7 +85,7 @@ test_that("R2: scope consolidado no lee ni escribe la config de la base activa",
 # por etiqueta arma «Comparativo por actor».
 # ---------------------------------------------------------------------------
 
-test_that("ADR 0102: con la matriz declarada, la propuesta no arma láminas que comparen públicos", {
+test_that("ADR 0103: con la matriz declarada, la propuesta no arma láminas que comparen públicos", {
   sid <- .hce_setup(aprobadas = names(.HCE_BASES))
   on.exit(session_delete(sid), add = TRUE)
   .hce_declarar(sid)
@@ -130,7 +130,7 @@ test_that("R4: con plan autorado el preflight lo respeta y lo informa como autor
   expect_identical(preflight$equivalencias$origen_plan, "autorado")
 })
 
-test_that("ADR 0102: pedir el plan con la fuente «equivalencias» responde 410 con su motivo", {
+test_that("ADR 0103: pedir el plan con la fuente «equivalencias» responde 410 con su motivo", {
   sid <- .hce_setup()
   on.exit(session_delete(sid), add = TRUE)
   .hce_declarar(sid)
@@ -142,9 +142,9 @@ test_that("ADR 0102: pedir el plan con la fuente «equivalencias» responde 410 
   expect_match(.equiv_estado(sid)$revision, "^r3:")
 })
 
-# ADR 0102 decisión 5 (E6): ACNUR conserva sus configuraciones activables —su estilo, su plantilla y su plan propio—
+# ADR 0103 decisión 5 (E6): ACNUR conserva sus configuraciones activables —su estilo, su plantilla y su plan propio—
 # aunque la matriz deje de armar láminas. Mata: retirar el perfil junto con la fuente «equivalencias».
-test_that("ADR 0102: el perfil ACNUR sigue activable con su estilo, su plantilla y su plan", {
+test_that("ADR 0103: el perfil ACNUR sigue activable con su estilo, su plantilla y su plan", {
   expect_true("acnur_kobo_cruncher_plus" %in% names(.PPT_STYLE_PROFILES))
   expect_identical(.PPT_STYLE_PROFILES$acnur_kobo_cruncher_plus$template_id, "acnur_16_9")
   sid <- .hce_setup()

@@ -1308,7 +1308,7 @@ export type GraficosSuggestedPlanResponse = {
   report_inputs?: GraficosReportInputs;
   coverage: GraficosCoverageResponse;
   warnings: string[];
-  /** Qué generó esta propuesta (`auto`, `consolidado`, perfil). ADR 0102: la matriz ya no arma láminas. */
+  /** Qué generó esta propuesta (`auto`, `consolidado`, perfil). ADR 0103: la matriz ya no arma láminas. */
   fuente?: string;
   /** B42/G-18: lo que el plan propone para las láminas de «Otros». Se propone; nunca cambia el interruptor sin avisar. */
   auto_otros_slides?: boolean;

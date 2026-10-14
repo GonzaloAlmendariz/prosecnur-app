@@ -1,0 +1,344 @@
+/* Lógica y limpieza hechas fuera de Prosecnur: disparador, diálogo y deshacer.
+ *
+ * Sólo tokens `--pulso-*`; el acento del módulo llega al portal por
+ * `tonoDePortales.css` (`--module-accent`).
+ *
+ * Geometría (Contrato de Superficie):
+ * - C2: ancho fijo por rol (diálogo de decisión); alto intrínseco: dos campos y
+ *   un pie, ninguna lista que crezca con los datos.
+ * - C4: el diálogo cabe en 1024x600 sin scroll; si el viewport fuera menor, el
+ *   cuerpo es el único dueño de overflow.
+ */
+
+/* Disparador: mismo peso secundario que «Revisar lógica», sin relleno de
+   acento para no competir con la acción principal. */
+.pulso-xf-logica-externa-disparador {
+  min-height: 28px;
+  padding: 4px 9px;
+  border-radius: 7px;
+  border: 1px solid var(--pulso-border-strong);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pulso-xf-logica-externa-disparador:hover:not(:disabled) {
+  border-color: var(--pulso-module-editor);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-logica-externa-disparador:focus-visible,
+.pulso-xf-logica-externa-enlace:focus-visible,
+.pulso-xf-logica-externa-confirmar:focus-visible,
+.pulso-xf-logica-externa-sugerencia:focus-visible,
+.pulso-xf-logica-externa-cerrar:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-module-editor));
+  outline-offset: 2px;
+}
+
+.pulso-xf-logica-externa-disparador:disabled {
+  color: var(--pulso-text-faint);
+  cursor: not-allowed;
+}
+
+/* Fila de la tarjeta bajo el estado de publicación. */
+.pulso-xf-publication-alterna {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* --- Deshacer --------------------------------------------------------- */
+
+.pulso-xf-logica-externa-deshacer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pulso-xf-logica-externa-deshacer.is-confirmando {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 7px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-xf-logica-externa-confirmacion {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-logica-externa-confirmacion-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.pulso-xf-logica-externa-enlace {
+  min-height: 24px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.pulso-xf-logica-externa-enlace:hover:not(:disabled) {
+  color: var(--pulso-text);
+}
+
+.pulso-xf-logica-externa-confirmar {
+  min-height: 24px;
+  padding: 2px 9px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  cursor: pointer;
+}
+
+.pulso-xf-logica-externa-enlace:disabled,
+.pulso-xf-logica-externa-confirmar:disabled {
+  color: var(--pulso-text-faint);
+  cursor: not-allowed;
+}
+
+/* --- Diálogo ---------------------------------------------------------- */
+
+/* Por encima de la ventana de lógica (z-index 2300 en línea), desde la que
+   también se abre; `--pulso-z-modal` (1500) quedaba debajo. */
+.pulso-xf-logica-externa-velo {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--pulso-z-modal) + 1000);
+  background: color-mix(in srgb, var(--pulso-text) 30%, transparent);
+}
+
+.pulso-xf-logica-externa {
+  position: fixed;
+  z-index: calc(var(--pulso-z-modal) + 1000);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(460px, calc(100vw - var(--pulso-space-6)));
+  max-height: calc(100vh - var(--pulso-space-6));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-high);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-logica-externa:focus {
+  outline: none;
+}
+
+.pulso-xf-logica-externa-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pulso-xf-logica-externa-cabecera {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  padding: var(--pulso-space-5) var(--pulso-space-5) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-logica-externa-titular {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-xf-logica-externa-titulo {
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.3;
+}
+
+.pulso-xf-logica-externa-cerrar {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.pulso-xf-logica-externa-cerrar:hover:not(:disabled) {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-logica-externa-descripcion {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-logica-externa-contexto {
+  margin: 0;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-xf-logica-externa-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+}
+
+.pulso-xf-logica-externa-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pulso-xf-logica-externa-campo label {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-logica-externa-campo label small {
+  margin-left: 4px;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text-faint);
+}
+
+.pulso-xf-logica-externa-campo input,
+.pulso-xf-logica-externa-campo textarea {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.pulso-xf-logica-externa-campo textarea {
+  resize: vertical;
+  min-height: 52px;
+}
+
+.pulso-xf-logica-externa-campo input[aria-invalid="true"] {
+  border-color: var(--pulso-danger-border);
+}
+
+.pulso-xf-logica-externa-sugerencias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pulso-xf-logica-externa-sugerencia {
+  min-height: 26px;
+  padding: 2px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.pulso-xf-logica-externa-sugerencia:hover {
+  border-color: var(--pulso-border-strong);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-logica-externa-sugerencia.is-on {
+  border-color: var(--pulso-module-editor-border);
+  background: var(--pulso-module-editor-soft);
+  color: var(--pulso-module-editor);
+}
+
+.pulso-xf-logica-externa-motivo {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-xf-logica-externa-pie {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-top: 1px solid var(--pulso-border);
+}
+
+/* --- Cabecera del editor: bloque del popover y badge neutro ------------ */
+
+.pulso-diagnostics-popover-logica-externa {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pulso-diagnostics-popover-logica-externa-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+/* El rótulo «Lógica: fuera de Prosecnur · SPSS» puede ser largo: en la banda
+   se recorta con su nombre completo en `aria-label` y `title`. */
+.pulso-diagnostics-badge.tone-neutral .pulso-diagnostics-badge-label {
+  max-width: 30ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  .pulso-diagnostics-badge.tone-neutral .pulso-diagnostics-badge-label {
+    max-width: 18ch;
+  }
+}
