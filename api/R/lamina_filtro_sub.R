@@ -33,14 +33,36 @@
   invisible(xc)
 }
 
-#' «Sólo los 20 que respondieron «Sí»»: la base de la subpregunta dicha con lo que la habilita
+#' «Sólo los 20 estudiantes que respondieron «Sí»»: la base del dependiente dicha con lo que lo habilita
+#'
+#' Como el recetario (p192–p194): con el público de la lámina («20 estudiantes») y, si el analista dijo quiénes son
+#' (`espec$frase`, «que trabajan»), con sus palabras: «Sólo los 139 que trabajan».
 #' @keywords internal
 .lam_filtro_sub_base <- function(espec) {
   n <- espec$n_sub
   cuantos <- if (length(n) && is.finite(n)) format(as.integer(n), big.mark = ",") else ""
-  quienes <- paste0("«", espec$habilita, "»", collapse = if (length(espec$habilita) > 2) ", " else " o ")
-  if (!nzchar(cuantos)) return(sprintf("Sólo quienes respondieron %s", quienes))
-  trimws(sprintf("Sólo los %s que respondieron %s", cuantos, quienes))
+  quienes <- espec$frase %||% sprintf("que respondieron %s",
+                                      paste0("«", espec$habilita, "»", collapse = if (length(espec$habilita) > 2) ", " else " o "))
+  if (!nzchar(cuantos)) return(sprintf("Sólo quienes %s", sub("^que\\s+", "", quienes)))
+  unidad <- espec$unidad_n %||% "respuestas"
+  publico <- if (is.null(espec$frase) && !identical(unidad, "respuestas")) paste0(" ", unidad) else ""
+  trimws(sprintf("Sólo los %s%s %s", cuantos, publico, quienes))
+}
+
+#' El pie con las dos bases, como el recetario: «Base: 201 estudiantes. La subpregunta, 20 estudiantes que respondieron «Sí»»
+#' @keywords internal
+.lam_filtro_sub_pie <- function(base, espec) {
+  sub_base <- sub("^Sólo (los )?", "", .lam_filtro_sub_base(espec))
+  partes <- c(if (!is.null(base) && nzchar(trimws(base))) sub("\\.\\s*$", "", trimws(base)), paste0("La subpregunta, ", sub_base))
+  paste(partes, collapse = ". ")
+}
+
+#' La dicotomía del filtro con sus casos en el rótulo («Sí (20)»): son la base del dependiente (recetario p192–p193)
+#' @keywords internal
+.lam_filtro_sub_dico <- function(f) {
+  d <- .lam_dicotomia_datos(f)
+  if (is.null(d$n) && identical(f$tipo, "categorica")) d$n <- .espec_casos(f)
+  d
 }
 
 #' ¿Cabe? Filtro de hasta 7 respuestas con alguna que habilita; subpregunta en barras de hasta 8 o una escala de una fila
@@ -94,9 +116,18 @@
   }
   h <- 0.8
   yb <- if (!is.null(yc)) max(y + 0.2, yc - h / 2) else y + 0.35
-  .lam_barra_apilada(lz, x, yb, w, .lam_escala_seg(s, 1L), h)
+  # F5: con Top Two Box declarada, su columna a la derecha de la barra con su rótulo encima (p192).
+  wbox <- if (!is.null(s$box$unidades)) 1.3 else 0
+  wb <- w - wbox
+  .lam_barra_apilada(lz, x, yb, wb, .lam_escala_seg(s, 1L), h)
+  if (wbox > 0) {
+    verde <- .std_color("verde_top_two_box")
+    .lam_txt(lz, s$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX, x + wb + 0.05, yb - 0.4, wbox - 0.05, 0.26, .std_pt("rotulo_top_two_box"),
+             verde, bold = TRUE, align = "center", nombre = "box:rotulo")
+    .lam_etiqueta_box(lz, s, x + wb + 0.05, yb, h, 1L, con_n = FALSE, color = verde, w = wbox - 0.05)
+  }
   ver <- which(as.logical(s$dibujar[1, ]))
-  fin <- .lam_leyenda_panel(lz, yb + h + 0.25, s$categorias$rotulo[ver], s$categorias$color[ver], centro = x + w / 2, x0 = x, x1 = x + w)
+  fin <- .lam_leyenda_panel(lz, yb + h + 0.25, s$categorias$rotulo[ver], s$categorias$color[ver], centro = x + wb / 2, x0 = x, x1 = x + wb)
   invisible(fin)
 }
 
@@ -105,6 +136,7 @@
 .lam_laminas_filtro_sub <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL, unidad_n = "respuestas",
                                     layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
+  espec$unidad_n <- unidad_n
   if (!isTRUE(.lam_filtro_sub_cabe_filtro(espec))) {
     return(.lam_laminas_filtro_sub_respaldo(doc, espec, titulo, ante = ante, base = base, folio = folio, sub = sub, unidad_n = unidad_n,
                                             layout = layout, master = master, por_lamina = por_lamina))
@@ -131,7 +163,7 @@
 
   if (dico && identical(espec$disposicion, "abajo")) {
     # p192: la dicotomía a todo el ancho; la llave baja desde lo que habilita hasta el título de la subpregunta.
-    d <- .lam_dicotomia_datos(f)
+    d <- .lam_filtro_sub_dico(f)
     wl <- 1.6; xb <- ml + wl + 0.12; wb <- ancho - wl - 0.12 - 1.1
     .lam_panel_titulo(lz, ml, yt, ancho, espec$pregunta_filtro, publico(espec$n_filtro))
     # F2: con una batería abajo, la dicotomía se compacta para dejarle el alto.
@@ -155,7 +187,7 @@
       circ <- .lam_filtro_sub_circular(lz, f, espec$habilita, ml, y0, col, yf - y0, xr, yt, alto_sub = alto_sub)
     } else if (dico) {
       # p193: la dicotomía en una columna al 100 %, del alto del gráfico vecino, con sus cifras a la izquierda.
-      d <- .lam_dicotomia_datos(f)
+      d <- .lam_filtro_sub_dico(f)
       hcol <- min(3.6, yf - y0 - 0.3); wcol <- 1.0; xcol <- ml + col - wcol - 1.3
       frac <- d$largos[1:2] / sum(d$largos[1:2]); yy <- y0; tramos <- list()
       for (k in 1:2) {
@@ -190,7 +222,7 @@
                             location = officer::ph_location(left = imagen[["x"]], top = imagen[["y"]], width = imagen[["w"]],
                                                             height = max(0.5, imagen[["h"]]), newlabel = "filtro_sub:respaldo"))
   }
-  doc <- .lam_pie(doc, base, folio)
+  doc <- .lam_pie(doc, .lam_filtro_sub_pie(base, espec), folio)
   list(doc = por_lamina(doc), partes = 1L)
 }
 
@@ -271,6 +303,6 @@
     doc <- officer::ph_with(doc, rvg::dml(ggobj = limpio(p), bg = "transparent", fonts = list(sans = .std_pt("fuente"))),
                             location = officer::ph_location(left = cj[1], top = cj[2], width = cj[3], height = max(0.5, cj[4]), newlabel = "filtro_sub:respaldo"))
   }
-  doc <- .lam_pie(doc, base, folio)
+  doc <- .lam_pie(doc, .lam_filtro_sub_pie(base, espec), folio)
   list(doc = por_lamina(doc), partes = 1L)
 }
