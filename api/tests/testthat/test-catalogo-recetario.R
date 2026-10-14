@@ -40,3 +40,22 @@ test_that("el plan del catálogo pasa la regla de escalas de la exportación con
   v <- .validar_plan_json(list(slides = .catalogo_recetario_plan()), inst_sources = inst)
   expect_true(v$ok, info = paste(v$errors, collapse = "\n"))
 })
+
+# La lámina nativa compara `resaltar` contra el rótulo (lamina_categorica.R): con un código («5») no pinta nada y la lámina
+# promete una destacada que el PowerPoint no trae. Además, recortado a `top_n`, lo destacado tiene que entrar.
+test_that("lo que el catálogo destaca en un ranking es un rótulo de la pregunta que entra en sus primeras", {
+  b <- .catalogo_recetario_bases()
+  ch <- .catalogo_recetario_choices()
+  graficos <- unlist(lapply(.catalogo_recetario_plan(), function(s) Filter(function(x) is.list(x) && identical(x$graficador, "p_lollipop"), s$payload)), recursive = FALSE)
+  con <- Filter(function(g) length(g$args$resaltar), graficos)
+  expect_gt(length(con), 0L)
+  for (g in con) {
+    ref <- strsplit(g$args$var, "$", fixed = TRUE)[[1]]
+    lista <- sub("^select_one ", "", b[[ref[1]]]$survey$type[b[[ref[1]]]$survey$name == ref[2]])
+    opciones <- ch[ch$list_name == lista, ]
+    frec <- table(factor(b[[ref[1]]]$data[[ref[2]]], levels = opciones$name))
+    primeras <- opciones$label[match(names(sort(frec, decreasing = TRUE))[seq_len(g$args$top_n %||% nrow(opciones))], opciones$name)]
+    expect_true(all(g$args$resaltar %in% opciones$label), info = paste(g$args$resaltar, collapse = ", "))
+    expect_true(all(g$args$resaltar %in% primeras), info = paste(primeras, collapse = ", "))
+  }
+})

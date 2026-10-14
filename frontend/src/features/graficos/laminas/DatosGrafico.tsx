@@ -32,6 +32,7 @@ import { TwoBoxGrafico } from "./tarjetaGrafico/TwoBoxGrafico";
 import { CasosGrafico } from "./CasosGrafico";
 import { AjustesDelTipo } from "./AjustesDelTipo";
 import { ListaPreguntas } from "./ListaPreguntas";
+import { DestacarRespuestas } from "./DestacarRespuestas";
 import { ResaltarGrafico } from "./ResaltarGrafico";
 import { EnElWord } from "./tarjetaGrafico/EnElWord";
 import { ColoresGrafico } from "./colores/ColoresGrafico";
@@ -122,6 +123,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       <PaletaDelGrafico valor={valor} />
       <TwoBoxGrafico slideId={slideId} slot={slot} valor={valor} onAbrirBloques={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })} />
       <ResaltarGrafico slideId={slideId} slot={slot} valor={valor} />
+      <DestacarRespuestas slideId={slideId} slot={slot} valor={valor} />
       <CasosGrafico slideId={slideId} slot={slot} valor={valor} />
       <EnElWord slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
       <AjustesDelTipo valor={valor} />
