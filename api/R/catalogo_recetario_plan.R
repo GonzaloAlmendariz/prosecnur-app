@@ -234,7 +234,8 @@
     # Dependencia entre los dos gráficos de la lámina (Gonzalo, 2026-10-14: «la dependencia no es un tipo de gráfico»).
     sl("p_slide_2_graficos", titulo = "Llave sobre varias categorías (p194)", izquierda = .cr_g("p_barras_agrupadas", var = "egresados$situacion"),
        derecha = .cr_g("p_barras_agrupadas", var = "egresados$relacion"),
-       meta = list(dependencia = list(de = "izquierda", habilita = c("Dependiente", "Independiente", "Dependiente e independiente")))),
+       meta = list(dependencia = list(de = "izquierda", habilita = c("Dependiente", "Independiente", "Dependiente e independiente"),
+                                     frase = "que trabajan"))),
     sl("p_slide_3_graficos_fila", titulo = "Tres gráficos en fila", izquierda = g_sexo, centro = g_mision, derecha = g_titulo),
     sl("p_slide_3_graficos_2mas1", titulo = "Tres gráficos, dos más uno", superior_izquierda = g_sexo, inferior_izquierda = g_mision, derecha = g_ciclo),
     sl("p_slide_3_graficos_1mas2", titulo = "Tres gráficos, uno más dos", izquierda = g_ciclo, superior_derecha = g_sexo, inferior_derecha = g_mision),
@@ -264,7 +265,8 @@
        grafico_inferior_3 = .cr_g("p_barras_agrupadas", var = "estudiantes$sexo")),
     # Pregunta filtro y subpregunta con filtro dicotómico (p192 abajo, p193 al costado); la de varias categorías, arriba.
     sl("p_slide_2_graficos_vertical", titulo = "Pregunta filtro y subpregunta (p192)", superior = .cr_g("p_barras_agrupadas", var = "egresados$trabaja"),
-       inferior = .cr_g("p_barras_apiladas", var = "egresados$relacion"), meta = list(dependencia = list(de = "superior", habilita = "Sí"))),
+       inferior = .cr_g("p_barras_apiladas", var = "egresados$relacion", overrides = list(top2box_labels = c("Relacionado", "Muy relacionado"))),
+       meta = list(dependencia = list(de = "superior", habilita = "Sí"))),
     sl("p_slide_2_graficos", titulo = "Filtro al costado (p193)", izquierda = .cr_g("p_donut", var = "egresados$trabaja"),
        derecha = .cr_g("p_barras_agrupadas", var = "egresados$relacion"), meta = list(dependencia = list(de = "izquierda", habilita = "Sí"))),
 

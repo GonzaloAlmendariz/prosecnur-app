@@ -17,15 +17,22 @@ export const LAMINAS_CON_DEPENDENCIA: Readonly<Record<string, readonly [string, 
 };
 const NOMBRE: Readonly<Record<string, string>> = { izquierda: "de la izquierda", derecha: "de la derecha", superior: "de arriba", inferior: "de abajo" };
 
-export type Dependencia = { de: string; habilita: string[] };
+export type Dependencia = { de: string; habilita: string[]; frase?: string };
 
 /** La dependencia guardada en la lámina (o `null`). */
 export function dependenciaDe(slide: Pick<Slide, "tipo" | "payload">): (Dependencia & { a: string }) | null {
   const ranuras = LAMINAS_CON_DEPENDENCIA[slide.tipo];
   const d = leerSlideMeta(slide).dependencia as Record<string, unknown> | undefined;
   if (!ranuras || !d || typeof d.de !== "string" || !ranuras.includes(d.de)) return null;
-  const habilita = (Array.isArray(d.habilita) ? d.habilita : []).map(String).filter(Boolean);
-  return { de: d.de, a: ranuras.find((r) => r !== d.de) as string, habilita };
+  // Una sola respuesta llega como texto suelto (el JSON de R desempaca el vector de largo uno).
+  const habilita = (Array.isArray(d.habilita) ? d.habilita : typeof d.habilita === "string" ? [d.habilita] : []).map(String).filter(Boolean);
+  const frase = typeof d.frase === "string" && d.frase.trim() ? d.frase.trim() : undefined;
+  return { de: d.de, a: ranuras.find((r) => r !== d.de) as string, habilita, ...(frase ? { frase } : {}) };
+}
+
+/** Quiénes forman la base del dependiente si nadie lo escribió, como la lámina (`.lam_filtro_sub_base`): «que respondieron «Sí»». */
+export function quienesPorDefecto(habilita: readonly string[]): string {
+  return `que respondieron ${habilita.map((h) => `«${h}»`).join(habilita.length > 2 ? ", " : " o ") || "…"}`;
 }
 
 export function DependenciaLamina({ slide }: { slide: Slide }) {
@@ -47,7 +54,11 @@ export function DependenciaLamina({ slide }: { slide: Slide }) {
   const variable = ref ? variables.find((v) => v.name === ref.name && (!ref.source || v.source === ref.source)) : undefined;
   const respuestas = (variable?.choices ?? []).map((c) => String(c.label ?? c.name)).filter(Boolean);
   const elegidas = new Set(dep?.habilita ?? []);
-  const alternar = (r: string) => dep && guardar({ de: dep.de, habilita: respuestas.filter((x) => (x === r ? !elegidas.has(x) : elegidas.has(x))) });
+  const alternar = (r: string) => dep && guardar({ de: dep.de, habilita: respuestas.filter((x) => (x === r ? !elegidas.has(x) : elegidas.has(x))), ...(dep.frase ? { frase: dep.frase } : {}) });
+  // Lo escrito tal cual (con su espacio final mientras se teclea); la lámina lo usa recortado.
+  const crudo = (leerSlideMeta(slide).dependencia as Record<string, unknown> | undefined)?.frase;
+  const fraseEscrita = typeof crudo === "string" ? crudo : "";
+  const cambiarFrase = (t: string) => dep && guardar({ de: dep.de, habilita: dep.habilita, ...(t.trim() ? { frase: t } : {}) });
   const [a, b] = ranuras;
   const propuesta = proponerDependencia(ranuras, grafico, variables);
   const mismaPropuesta = !!propuesta && !!dep && dep.de === propuesta.de
@@ -83,6 +94,14 @@ export function DependenciaLamina({ slide }: { slide: Slide }) {
             ))}
           </div>
           {elegidas.size === 0 && <span className="pulso-f6-dato-ayuda" role="note">Elige al menos una: sin ella el gráfico dependiente no tiene base.</span>}
+        </div>
+      )}
+      {dep && (
+        <div className="pulso-f6-dato is-apilado">
+          <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-frase`}>Quiénes son</label>
+          <input id={`${id}-frase`} className="pulso-f6-input" type="text" value={fraseEscrita}
+            placeholder={quienesPorDefecto(dep.habilita)}
+            onChange={(e) => cambiarFrase(e.target.value)} />
         </div>
       )}
     </section>

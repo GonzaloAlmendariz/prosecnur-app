@@ -2,7 +2,7 @@
 # cuando hay dos gráficos en un solo slide se puede establecer dependencia entre gráficos»).
 #
 # Una lámina de dos gráficos declara en su `meta` cuál depende de cuál y qué respuestas lo habilitan:
-#   meta$dependencia = list(de = "izquierda", habilita = c("Sí"))
+#   meta$dependencia = list(de = "izquierda", habilita = c("Sí"), frase = "que trabajan")   # `frase`, opcional
 # El otro gráfico es el dependiente: su base pasa a ser la de quienes dieron una de esas respuestas, y la lámina se dibuja
 # como el recetario (p192–p194): la llave sobre lo que habilita y su título «Sólo los 20 que respondieron «Sí»». Los dos
 # gráficos conservan su tipo y sus ajustes. Lado a lado (`p_slide_2_graficos`), al costado; uno sobre otro
@@ -31,7 +31,8 @@
   if (!(de %in% conf$slots) || !length(habilita)) return(NULL)
   a <- setdiff(conf$slots, de)
   if (is.null(pl[[de]]) || is.null(pl[[a]])) return(NULL)
-  list(de = de, a = a, habilita = habilita, disposicion = conf$disposicion)
+  frase <- trimws(as.character(unlist(dep$frase) %||% "")[1])
+  list(de = de, a = a, habilita = habilita, disposicion = conf$disposicion, frase = if (!is.na(frase) && nzchar(frase)) frase)
 }
 
 #' La lámina de dos gráficos con dependencia, compuesta como una lámina de un gráfico con la pieza `p_filtro_subpregunta`
@@ -41,7 +42,8 @@
   if (is.null(d)) return(s)
   s <- as.list(s); pl <- .as_json_list(s$payload) %||% list()
   grafico <- list(graficador = "p_filtro_subpregunta",
-                  args = list(independiente = pl[[d$de]], dependiente = pl[[d$a]], habilita = as.list(d$habilita), disposicion = d$disposicion))
+                  args = list(independiente = pl[[d$de]], dependiente = pl[[d$a]], habilita = as.list(d$habilita),
+                              disposicion = d$disposicion, frase = d$frase))
   meta <- .as_json_list(pl$meta) %||% list(); meta$dependencia <- NULL
   nuevo <- list(grafico = grafico, titulo = pl$titulo, base = pl$base, pie = pl$pie)
   if (length(meta)) nuevo$meta <- meta

@@ -210,3 +210,48 @@ test_that("F4: el conteo lee filtros de selección múltiple y dependientes de v
   expect_equal(.fsub_fuera_del_salto(df, "f", c("1", "2"), "a"), 1L)
   expect_equal(.fsub_fuera_del_salto(df, "f", "1", "no_existe"), 0L)
 })
+
+# F5 (checklist-poblacion-y-filtro-2026-10-14): como p192–p194 del recetario.
+.fsub_textos_de <- function(grafico, base = NULL) {
+  fx <- .fsub_fixture(); out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = fx$df, instrumento = fx$inst, path_ppt = out, mensajes_progreso = FALSE,
+    plan = list(a = p_slide_1_grafico(grafico, titulo = "x", base = base)))))
+  x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
+  formas <- xml2::xml_find_all(x, "//p:sp")
+  list(fx = fx, textos = xml2::xml_text(xml2::xml_find_all(x, "//a:t")),
+       por_nombre = function(nm) xml2::xml_text(formas[xml2::xml_attr(xml2::xml_find_first(formas, ".//p:cNvPr"), "name") == nm]))
+}
+
+test_that("F5: el pie lleva las dos bases y el filtro dicotómico sus casos en el rótulo", {
+  skip_if_not_installed("officer")
+  r <- .fsub_textos_de(p_filtro_subpregunta("inter", habilita = "Sí", subpregunta = "util", grafico_sub = "escala", disposicion = "abajo"),
+                       base = "Base: 120 estudiantes")
+  n_si <- sum(r$fx$df$inter == "1")
+  expect_equal(r$por_nombre("Base lamina"), sprintf("Base: 120 estudiantes. La subpregunta, %d que respondieron «Sí»", n_si))
+  expect_true(any(r$textos == sprintf("Sí (%d)", n_si)), info = paste(r$textos, collapse = " | "))
+})
+
+test_that("F5: quien arma la lámina dice quiénes son, y la frase llega del meta de la dependencia", {
+  skip_if_not_installed("officer")
+  r <- .fsub_textos_de(p_filtro_subpregunta("lab", habilita = c("Dependiente", "Independiente", "Dependiente e independiente"),
+                                            subpregunta = "rel", frase = "que trabajan"))
+  n <- sum(!is.na(r$fx$df$rel))
+  expect_true(any(r$textos == sprintf("Sólo los %d que trabajan", n)), info = paste(r$textos, collapse = " | "))
+  expect_true(any(grepl(sprintf("La subpregunta, %d que trabajan", n), r$por_nombre("Base lamina"), fixed = TRUE)))
+  s <- .dependencia_como_lamina(list(tipo = "p_slide_2_graficos", payload = list(
+    izquierda = list(graficador = "p_barras_agrupadas", args = list(var = "lab")),
+    derecha = list(graficador = "p_barras_agrupadas", args = list(var = "rel")),
+    meta = list(dependencia = list(de = "izquierda", habilita = list("Dependiente"), frase = "que trabajan")))))
+  expect_identical(s$payload$grafico$args$frase, "que trabajan")
+})
+
+test_that("F5: la escala dependiente de una fila lleva su columna Top Two Box", {
+  skip_if_not_installed("officer")
+  r <- .fsub_textos_de(p_filtro_subpregunta("inter", habilita = "Sí", subpregunta = "util", grafico_sub = "escala", disposicion = "abajo",
+                                            overrides = list(barra_extra_preset = "top2box", top2box_labels = c("De acuerdo", "Totalmente de acuerdo"))))
+  sub <- r$fx$df$util[!is.na(r$fx$df$util)]
+  # La columna suma lo que se ve en la barra: los dos segmentos ya redondeados.
+  esperado <- sprintf("%d%%", sum(round(100 * c(mean(sub == "3"), mean(sub == "4")))))
+  expect_true("Top Two Box" %in% r$textos, info = paste(r$textos, collapse = " | "))
+  expect_true(esperado %in% r$por_nombre("box:cifra"), info = paste(r$por_nombre("box:cifra"), collapse = " | "))
+})
