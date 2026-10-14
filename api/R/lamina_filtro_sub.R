@@ -45,12 +45,28 @@
 
 #' ¿Cabe? Filtro de hasta 7 respuestas con alguna que habilita; subpregunta en barras de hasta 8 o una escala de una fila
 #' @keywords internal
-.lam_filtro_sub_cabe <- function(espec) {
-  f <- espec$filtro; s <- espec$sub
-  if (is.null(f) || is.null(s) || !(f$tipo %in% c("categorica", "pie")) || !length(espec$habilita)) return(FALSE)
-  if (length(f$rotulos) < 2L || length(f$rotulos) > (if (identical(f$tipo, "pie")) 5L else 7L)) return(FALSE)
+.lam_filtro_sub_cabe <- function(espec) isTRUE(.lam_filtro_sub_cabe_filtro(espec)) && isTRUE(.lam_filtro_sub_cabe_sub(espec$sub))
+
+#' ¿El gráfico del que depende tiene pieza nativa? Categórica de 2 a 7 respuestas o torta/dona de 2 a 5, con algo que habilita
+#' @keywords internal
+.lam_filtro_sub_cabe_filtro <- function(espec) {
+  f <- espec$filtro
+  if (is.null(f) || !(f$tipo %in% c("categorica", "pie")) || !length(espec$habilita)) return(FALSE)
+  length(f$rotulos) >= 2L && length(f$rotulos) <= (if (identical(f$tipo, "pie")) 5L else 7L)
+}
+
+#' Alto que pide una batería de preguntas en el likert compacto: encabezado, filas con aire para las cifras chicas y leyenda
+#' @keywords internal
+.lam_filtro_sub_alto_bateria <- function(s) {
+  n <- NROW(s$filas); 0.4 + n * (0.26 + .std_geom("aire_cifra_chica")) + 0.4
+}
+
+#' ¿El dependiente tiene pieza nativa? Barras de hasta 8 o una escala de hasta 8 filas (F2: una batería de preguntas)
+#' @keywords internal
+.lam_filtro_sub_cabe_sub <- function(s) {
+  if (is.null(s)) return(FALSE)
   if (identical(s$tipo, "categorica")) return(length(s$rotulos) >= 1L && length(s$rotulos) <= 8L)
-  identical(s$tipo, "escala") && NROW(s$filas) == 1L
+  identical(s$tipo, "escala") && NROW(s$filas) >= 1L && NROW(s$filas) <= 8L
 }
 
 #' La subpregunta en su caja: barras de una serie o una escala al 100 % con su leyenda debajo
@@ -63,6 +79,18 @@
   if (identical(s$tipo, "categorica")) {
     k <- length(s$rotulos); fila <- min(0.75, alto / max(1L, k)); g <- min(0.42, max(.std_grosor(k, "categorias"), fila * 0.55))
     return(.lam_barras_h(lz, s, x, y, w, wlab = min(2.5, w * 0.4), g = g, fila = fila, size = 12))
+  }
+  if (NROW(s$filas) > 1L) {
+    # F2: una batería de preguntas con la misma base (multiapiladas): el likert compacto de las láminas mixtas, con su
+    # leyenda debajo, en el ancho del dependiente.
+    filas <- s$orden$aplicado %||% seq_len(NROW(s$filas)); n <- length(filas)
+    rot <- s$filas$rotulo[filas]
+    wlab <- min(w * 0.42, max(1.4, max(.lam_ancho_tinta(rot, 10.5, TRUE)) / 2 + 0.3))
+    fila <- min(0.75, (alto - 0.75) / n); g <- max(0.26, round(fila * 0.55, 2))
+    yy <- .lam_likert_panel(lz, s, x, y + 0.1, w, filas, g = g, fila = fila, wlab = wlab, size_lab = 10.5)
+    ley <- s$leyenda
+    return(invisible(.lam_leyenda_panel(lz, yy + 0.08, s$categorias$rotulo[ley], s$categorias$color[ley],
+                                        centro = x + wlab + (w - wlab) / 2, x0 = x, x1 = x + w)))
   }
   h <- 0.8
   yb <- if (!is.null(yc)) max(y + 0.2, yc - h / 2) else y + 0.35
@@ -77,7 +105,7 @@
 .lam_laminas_filtro_sub <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL, unidad_n = "respuestas",
                                     layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
-  if (!isTRUE(.lam_filtro_sub_cabe(espec))) {
+  if (!isTRUE(.lam_filtro_sub_cabe_filtro(espec))) {
     return(.lam_laminas_filtro_sub_respaldo(doc, espec, titulo, ante = ante, base = base, folio = folio, sub = sub, unidad_n = unidad_n,
                                             layout = layout, master = master, por_lamina = por_lamina))
   }
@@ -86,6 +114,16 @@
   azul <- .std_color("azul"); tenue <- .std_color("tenue")
   f <- espec$filtro; s <- espec$sub
   dico <- .lam_es_dicotomia(f)
+  # Sin título del dependiente (una batería sin título propio), su encabezado es su base: «Sólo los 126 que respondieron «Sí»».
+  if (!nzchar(espec$pregunta_sub %||% "")) { espec$pregunta_sub <- .lam_filtro_sub_base(espec); espec$base_en_titulo <- TRUE }
+  # Respaldo parcial: si sólo el dependiente no tiene pieza nativa, el filtro sigue nativo y el dependiente va con su gráfico.
+  sub_nativo <- isTRUE(.lam_filtro_sub_cabe_sub(s)); imagen <- NULL
+  dibujar_sub <- function(x, y, w, alto, yc = NULL) {
+    # Una batería que no cabe en su alto (con aire para sus cifras chicas) va con su gráfico, no se sale de la lámina.
+    cabe_alto <- !(identical(s$tipo, "escala") && NROW(s$filas) > 1L) || alto >= .lam_filtro_sub_alto_bateria(s)
+    if (sub_nativo && cabe_alto) return(.lam_filtro_sub_dibujar_sub(lz, s, x, y, w, alto, yc = yc))
+    imagen <<- c(x = x, y = y, w = w, h = alto); invisible(y + alto)
+  }
   publico <- function(n) if (is.finite(n)) sprintf("%s %s", format(as.integer(n), big.mark = ","), unidad_n) else NULL
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
@@ -96,15 +134,18 @@
     d <- .lam_dicotomia_datos(f)
     wl <- 1.6; xb <- ml + wl + 0.12; wb <- ancho - wl - 0.12 - 1.1
     .lam_panel_titulo(lz, ml, yt, ancho, espec$pregunta_filtro, publico(espec$n_filtro))
-    yb_fin <- .lam_dicotomia(lz, xb, yt + 0.55, wb, d$rotulos, d$cifras, d$largos, d$n, size = 26, g = 0.42, cols = d$colores)
+    # F2: con una batería abajo, la dicotomía se compacta para dejarle el alto.
+    bateria <- identical(s$tipo, "escala") && NROW(s$filas) > 1L
+    yb_fin <- .lam_dicotomia(lz, xb, yt + 0.55, wb, d$rotulos, d$cifras, d$largos, d$n, size = if (bateria) 20 else 26,
+                             g = if (bateria) 0.32 else 0.42, cols = d$colores)
     w1 <- wb * d$largos[1] / sum(d$largos[1:2])
     hab <- which(d$rotulos %in% espec$habilita)
     x0 <- if (identical(hab, 2L)) xb + w1 else xb
     x1 <- if (identical(hab, 1L)) xb + w1 else xb + wb
-    y2 <- yb_fin + 0.75
+    y2 <- yb_fin + (if (bateria) 0.5 else 0.75)
     .lam_llave_baja(lz, x0, x1, yb_fin + 0.06, ml, y2, espec$pregunta_sub)
-    ys <- .lam_panel_titulo(lz, ml, y2, ancho, espec$pregunta_sub, .lam_filtro_sub_base(espec))
-    .lam_filtro_sub_dibujar_sub(lz, s, ml, ys + 0.2, ancho, yf - ys - 0.4)
+    ys <- .lam_panel_titulo(lz, ml, y2, ancho, espec$pregunta_sub, if (isTRUE(espec$base_en_titulo)) NULL else .lam_filtro_sub_base(espec))
+    dibujar_sub(ml, ys + 0.2, ancho, yf - ys - 0.4)
   } else {
     gap <- 0.6; col <- (ancho - gap) / 2; xr <- ml + col + gap
     y0 <- .lam_panel_titulo(lz, ml, yt, col, espec$pregunta_filtro, publico(espec$n_filtro)) + 0.25
@@ -138,10 +179,17 @@
       .lam_llave_a_titulo(lz, ml + col - 0.35, y0 + (min(hab) - 1) * fila + (fila - g) / 2,
                           y0 + (max(hab) - 1) * fila + (fila + g) / 2, xr, yt)
     }
-    ys <- .lam_panel_titulo(lz, xr, yt, col, espec$pregunta_sub, .lam_filtro_sub_base(espec)) + 0.25
-    .lam_filtro_sub_dibujar_sub(lz, s, xr, ys, col, yf - ys - 0.3, yc = if (exists("circ", inherits = FALSE)) circ$cy)
+    ys <- .lam_panel_titulo(lz, xr, yt, col, espec$pregunta_sub, if (isTRUE(espec$base_en_titulo)) NULL else .lam_filtro_sub_base(espec)) + 0.25
+    dibujar_sub(xr, ys, col, yf - ys - 0.3, yc = if (exists("circ", inherits = FALSE)) circ$cy)
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:filtro_sub")
+  if (!is.null(imagen) && !is.null(espec$plot_sub)) {
+    g <- tryCatch(espec$plot_sub + ggplot2::labs(title = NULL, subtitle = NULL, caption = NULL) +
+                    ggplot2::theme(plot.caption = ggplot2::element_blank()), error = function(e) espec$plot_sub)
+    doc <- officer::ph_with(doc, rvg::dml(ggobj = g, bg = "transparent", fonts = list(sans = .std_pt("fuente"))),
+                            location = officer::ph_location(left = imagen[["x"]], top = imagen[["y"]], width = imagen[["w"]],
+                                                            height = max(0.5, imagen[["h"]]), newlabel = "filtro_sub:respaldo"))
+  }
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)
 }
@@ -204,8 +252,9 @@
     y2t <- yt + h + 0.5
     y2 <- .lam_panel_titulo(lz, ml, y2t, ancho, espec$pregunta_sub, .lam_filtro_sub_base(espec)) + 0.05
     cajas <- list(c(ml, y1, ancho, y2t - 0.3 - y1), c(ml, y2, ancho, yf - y2))
-    xc <- ml + 0.3
-    .lam_caja(lz, xc, y2t - 0.3, t, 0.46, azul, nombre = "conector"); .lam_caja(lz, xc, y2t + 0.16 - t / 2, 0.24, t, azul, nombre = "conector")
+    # El conector va por el margen y llega al título de abajo por su izquierda: no pisa el texto.
+    xc <- ml - 0.2
+    .lam_caja(lz, xc, y2t - 0.3, t, 0.46, azul, nombre = "conector"); .lam_caja(lz, xc, y2t + 0.16 - t / 2, 0.15, t, azul, nombre = "conector")
   } else {
     gap <- 0.6; col <- (ancho - gap) / 2; xr <- ml + col + gap
     y1 <- .lam_panel_titulo(lz, ml, yt, col, espec$pregunta_filtro) + 0.05
