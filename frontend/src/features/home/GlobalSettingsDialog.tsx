@@ -295,9 +295,9 @@ function activeConnectionDetail(meta: ProviderMeta, state: ConnectionTokenState,
   } else if (meta.provider === "kobo" && state.active_profile_base_url) {
     parts.push(state.active_profile_base_url);
   } else if (meta.provider === "surveymonkey") {
-    parts.push(verificacion === "probada" ? "Probada: lista para importar encuestas y respuestas"
+    parts.push(verificacion === "probada" ? "Verificada: lista para importar encuestas y respuestas"
       : verificacion === "rechazada" ? "SurveyMonkey la rechazó: genera una clave nueva o activa otro perfil"
-      : "Sin probar en esta sesión: usa «Probar» antes de importar");
+      : "Sin verificar en esta sesión: pulsa «Verificar» (↻) antes de importar");
   }
   if (state.masked_token && meta.provider !== "google_sheets") {
     parts.push(`${meta.credentialKind === "oauth" ? "Referencia OAuth" : "Referencia local"} ${state.masked_token}`);
@@ -333,7 +333,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
   const [remember, setRemember] = useState<Record<ConnectionProvider, boolean>>({ surveymonkey: true, kobo: true, google_sheets: true });
   const [authUrls, setAuthUrls] = useState<Partial<Record<ConnectionProvider, string>>>({});
   const [busy, setBusy] = useState<Partial<Record<ConnectionProvider, "save" | "check" | "clear">>>({});
-  // Sólo «Probar» decide si una credencial está probada; guardar, activar o quitar la deja «sin probar» (U3).
+  // Sólo «Verificar» decide si una credencial está verificada; guardar, activar o quitar la deja «sin verificar» (U3).
   const [verificaciones, setVerificaciones] = useState<Partial<Record<ConnectionProvider, VerificacionCredencial>>>({});
   const [loadingConnections, setLoadingConnections] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -1335,7 +1335,7 @@ function ConnectionCard({
         <span className={`home-connection-status ${!state.has_token ? "" : verificacion === "probada" || isOAuth ? "is-ready" : verificacion === "rechazada" ? "is-error" : "is-pending"}`}>
           {state.has_token && verificacion !== "rechazada" ? <ShieldCheck size={13} /> : <AlertTriangle size={13} />}
           {connectionStatusLabel(meta, state)}
-          {state.has_token && !isOAuth ? (verificacion === "probada" ? " · probada" : verificacion === "rechazada" ? " · no responde" : " · sin probar") : null}
+          {state.has_token && !isOAuth ? (verificacion === "probada" ? " · verificada" : verificacion === "rechazada" ? " · no responde" : " · sin verificar") : null}
         </span>
       </div>
 
