@@ -1756,7 +1756,7 @@
     blueprint     = "lollipop",
     args = c(list(
       list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos",
-           descripcion = "Pregunta de una sola respuesta cuyas opciones se ordenan de más a menos mencionada."),
+           descripcion = "Pregunta cuyas opciones se ordenan de más a menos mencionada. Si es de opción múltiple, cada opción sale sobre las personas que respondieron y pueden sumar más de 100 %."),
       list(name = "excluir_opciones", label = "Excluir del denominador", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Retira estas categorías antes de calcular porcentajes; sí cambia el denominador."),
       list(name = "orden", label = "Orden", tipo_input = "choice", grupo = "estilo",
