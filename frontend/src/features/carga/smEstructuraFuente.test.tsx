@@ -168,4 +168,17 @@ describe("bloqueos que son una sola decisión", () => {
     expect(detail?.label).toBe("Base armada por posición");
     expect(detail?.title).not.toMatch(/pos\. (null|NaN)/u);
   });
+
+  it("una opción guardada sin equivalente se nombra en español y dice qué variable bloquea", () => {
+    expect(smDiffKindLabel("saved_codes_mismatch")).toBe("Opción guardada sin equivalente");
+    const detail = smRefreshStructureDetail({
+      base_name: "pesos",
+      refresh_action: "blocked",
+      updateable: false,
+      structure: { n_blocking: 1, diffs: [{ kind: "saved_codes_mismatch", severity: "blocking", pos: 1, variable: "p1", message: "La base guarda «Neutral» en p1" }] },
+    } as unknown as Parameters<typeof smRefreshStructureDetail>[0]);
+    expect(detail?.label).toBe("Bloqueos en p1");
+    expect(detail?.title).toContain("Opción guardada sin equivalente");
+    expect(detail?.title).not.toContain("saved codes mismatch");
+  });
 });
