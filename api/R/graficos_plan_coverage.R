@@ -1166,7 +1166,8 @@
       group_path = .graficos_clean_dynamic_label(group_path),
       section_reliable = .graficos_section_is_reliable(group_path %||% section, source_kind),
       parent_inherited = parent_inherited,
-      repeat_inherited = repeat_inherited
+      repeat_inherited = repeat_inherited,
+      habilitada_por = if ("relevant" %in% names(survey)) .relevant_habilitada_por(survey$relevant[i], survey, choices)
     )
   }
   .graficos_finalize_var_metadata(vs)

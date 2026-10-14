@@ -395,6 +395,8 @@ export type VarInfo = {
   section_reliable?: boolean;
   status?: string;
   coverage_countable?: boolean;
+  /** La pregunta que la habilita según su `relevant` (sólo condiciones simples); un `NULL` de R llega como `{}`. */
+  habilitada_por?: { var?: string; codigos?: string[] | string; rotulos?: string[] | string } | null;
 };
 
 export async function apiGraficosRegistry(): Promise<unknown> {

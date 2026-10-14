@@ -8,6 +8,7 @@ import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { leerSlideMeta } from "../slideMeta";
 import { usePlanStore } from "../store";
 import { parseVarRef, useVariables } from "../useVariables";
+import { proponerDependencia } from "./propuestaDependencia";
 
 /** Las láminas que admiten dependencia y sus dos ranuras, en el orden en que se leen. */
 export const LAMINAS_CON_DEPENDENCIA: Readonly<Record<string, readonly [string, string]>> = {
@@ -48,6 +49,9 @@ export function DependenciaLamina({ slide }: { slide: Slide }) {
   const elegidas = new Set(dep?.habilita ?? []);
   const alternar = (r: string) => dep && guardar({ de: dep.de, habilita: respuestas.filter((x) => (x === r ? !elegidas.has(x) : elegidas.has(x))) });
   const [a, b] = ranuras;
+  const propuesta = proponerDependencia(ranuras, grafico, variables);
+  const mismaPropuesta = !!propuesta && !!dep && dep.de === propuesta.de
+    && dep.habilita.length === propuesta.habilita.length && propuesta.habilita.every((r) => elegidas.has(r));
   return (
     <section data-qa="dependencia-lamina" aria-labelledby={id}>
       <h3 className="pulso-f6-subtitulo pulso-f6-inspector-apartado" id={id}>Dependencia</h3>
@@ -60,6 +64,15 @@ export function DependenciaLamina({ slide }: { slide: Slide }) {
           <option value={b}>El gráfico {NOMBRE[a]} depende del {NOMBRE[b]}</option>
         </select>
       </div>
+      {propuesta && !mismaPropuesta && (
+        <div className="pulso-f6-dato is-apilado" data-qa="dependencia-propuesta">
+          <span className="pulso-f6-dato-ayuda" role="note">
+            Según el formulario, el gráfico {NOMBRE[ranuras.find((r) => r !== propuesta.de) as string]} sólo lo responden quienes
+            eligieron {propuesta.habilita.map((r) => `«${r}»`).join(", ")} en el {NOMBRE[propuesta.de]}.
+          </span>
+          <button type="button" className="pulso-f6-texto-boton" onClick={() => guardar(propuesta)}>Usar</button>
+        </div>
+      )}
       {dep && !ref && <span className="pulso-f6-dato-ayuda" role="note">El gráfico del que depende necesita una sola pregunta.</span>}
       {dep && ref && respuestas.length > 0 && (
         <div className="pulso-f6-dato is-apilado">
