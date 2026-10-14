@@ -5177,6 +5177,7 @@ mount_analitica <- function(pr) {
       out <- .dimensiones_construir(ctx$rp_data, ctx$rp_inst, dim_cfg)
       session_set(sid, "rp_dim", out$data_dim)
       session_set(sid, "rp_dim_config", out$dim_cfg)
+      session_set(sid, "rp_dim_base", estudio_active_base(sid))   # Gráficos las une a esta base (graficos_dimensiones_fuente.R)
       .analitica_status_set(sid, "analitica_dim_ok", TRUE)
       list(
         ok = TRUE,

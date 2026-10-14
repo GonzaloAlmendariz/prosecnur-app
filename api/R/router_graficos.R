@@ -851,6 +851,7 @@
     }
   }
   finalize_sources <- function(src) {
+    src <- .graficos_aplicar_dimensiones(sid, src)   # las dimensiones de Analítica (graficos_dimensiones_fuente.R)
     src <- .graficos_repeat_enrich_sources(sid, src)
     src <- normalize_sources(src)
     src <- .graficos_align_recoded_dummy_sources(src)
