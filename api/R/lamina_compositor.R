@@ -127,6 +127,8 @@
   if (identical(espec$tipo, "cuadrantes")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_cuadrantes_cabe(espec)))
   # G11: la tabla sin radar (`p_tabla`, láminas 197/225), si cabe.
   if (identical(espec$tipo, "tabla")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_tabla_cabe(espec)))
+  # Recetario p192–p194: pregunta filtro y subpregunta con su llave, si cabe.
+  if (identical(espec$tipo, "filtro_sub")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_filtro_sub_cabe(espec)))
   # N6: torta y dona (láminas 69 y 70), si caben.
   if (identical(espec$tipo, "pie")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_circular_cabe(espec)))
   # N3: barras divergentes (lámina 71) y ranking con puntos (lámina 72), si caben.
@@ -264,11 +266,19 @@
                               base = .lam_unir_base(texto(base), texto(pie)), folio = length(doc) + 1L, sub = texto(subtitulo),
                               layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
+  if (identical(espec$tipo, "filtro_sub")) {
+    unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
+    return(.lam_laminas_filtro_sub(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
+                                   base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L,
+                                   sub = texto(subtitulo), unidad_n = unidad, layout = layout, master = master,
+                                   por_lamina = por_lamina)$doc)
+  }
   if (identical(espec$tipo, "pie")) {
     unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
     f <- if (identical(espec$forma, "pie")) .lam_laminas_torta else .lam_laminas_dona
     return(f(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = paste(c(texto(base), texto(pie)), collapse = ". "),
-             folio = length(doc) + 1L, sub = texto(subtitulo), unidad_n = unidad, layout = layout, master = master, por_lamina = por_lamina)$doc)
+             folio = length(doc) + 1L, sub = texto(subtitulo), unidad_n = unidad, layout = layout, master = master, por_lamina = por_lamina,
+             rotulo_centro = espec$frase_centro)$doc)
   }
   if (identical(espec$tipo, "divergentes")) {
     return(.lam_laminas_divergentes(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),

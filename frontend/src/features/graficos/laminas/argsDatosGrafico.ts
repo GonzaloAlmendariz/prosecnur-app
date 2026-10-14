@@ -123,7 +123,8 @@ export const tieneVars = (v: Valores) =>
   (Array.isArray(v.vars) && v.vars.length > 0) || (!!v.vars && typeof v.vars === "object" && Object.keys(v.vars as object).length > 0);
 
 const LISTA_BLANCA: Record<string, Entrada> = {
-  var: { rotulo: "Pregunta", cuando: (v) => !tieneVars(v) },
+  // La pregunta filtro de «Filtro y subpregunta» se elige en su tarjeta, junto con lo que habilita.
+  var: { rotulo: "Pregunta", cuando: (v) => !tieneVars(v), excepto: ["p_filtro_subpregunta"] },
   // I1 (catálogo del recetario, 2026-10-14): la lista de preguntas no tenía control y el inspector decía «Elige una
   // pregunta…» con seis preguntas en la lámina. Las multiapiladas, la brecha y la matriz la editan en su propia tarjeta.
   vars: { rotulo: "Preguntas", excepto: ["p_barras_multiapiladas", "p_dumbbell", "p_matriz_cuadrantes"] },
@@ -222,6 +223,9 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   sm_omit_na: { rotulo: "Omitir sin respuesta", soloEn: TABLA, defecto: true },
   umbral_rojo_pct: { rotulo: "Resaltar en rojo bajo (%)", ayuda: "0 desactiva el resaltado.", soloEn: TABLA },
   mostrar_significancia: { rotulo: "Marcar diferencias significativas" },
+  // Pregunta filtro y subpregunta (recetario p192–p194): las preguntas y lo que habilita van en su tarjeta.
+  grafico_sub: { rotulo: "Gráfico de la subpregunta", soloEn: ["p_filtro_subpregunta"] },
+  disposicion: { rotulo: "Disposición", soloEn: ["p_filtro_subpregunta"] },
   // Inventario de configuraciones, ítem 3 (recetario p74–p75): formal de p_barras_agrupadas() → overrides.
   marcas_eje: { rotulo: "Marcas del eje", ayuda: "0, 25, 50, 75 y 100 % bajo las barras.", soloEn: ["p_barras_agrupadas"] },
   significancia_alpha: { rotulo: "Nivel de significancia", siActivo: "mostrar_significancia" },

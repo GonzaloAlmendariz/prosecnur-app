@@ -61,6 +61,7 @@ export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [
   { name: "p_mapa_resultado_distrital", familia_editor: "territorio", salida: "nativa", en_selector: true },
   { name: "p_cifra", familia_editor: "numeros", salida: "nativa", en_selector: true },
   { name: "p_dumbbell", familia_editor: "comparar", salida: "nativa", en_selector: true },
+  { name: "p_filtro_subpregunta", familia_editor: "categorias", salida: "nativa", en_selector: true },
   { name: "p_matriz_cuadrantes", familia_editor: "comparar", salida: "nativa", en_selector: true },
   { name: "p_lollipop", familia_editor: "categorias", salida: "nativa", en_selector: true },
   { name: "p_serie_temporal", familia_editor: "comparar", salida: "nativa", en_selector: true },

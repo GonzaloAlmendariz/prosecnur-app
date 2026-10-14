@@ -146,6 +146,9 @@ graficar_pie <- function(
     orden_categorias_manual = NULL,
     # D8: con `desc`/`asc`, los residuales al final (lo pide `.plan_orden_categorias` en «frecuencia»).
     residuales_al_final = FALSE,
+    # Recetario p70 (dona): qué respuesta va al centro y con qué frase («conoce la misión»). Sólo la lámina nativa.
+    al_centro          = NULL,
+    frase_centro       = NULL,
     top_k              = NULL,
     etiqueta_otros     = "Otros",
 
@@ -358,6 +361,7 @@ graficar_pie <- function(
          n_casos = df$n_casos, total_n_casos = if (all(is.finite(df$n_casos))) sum(df$n_casos) else NA_real_,
          nota = nota_pie)   # la base viaja en el caption del gráfico (ruta anterior): la lámina nativa la necesita
   }, error = function(e) NULL)
+  espec_pie <- .pie_espec_centro(espec_pie, al_centro, frase_centro)
 
   # Una torta ES una distribución que cierra a 100 %, así que aquí el método
   # tiene algo que decidir y se aplica al vector entero de porciones, no
@@ -767,4 +771,23 @@ graficar_pie <- function(
   }
 
   p_final
+}
+
+
+#' La respuesta del centro de la dona va primero en la espec, que es la que la lámina pone al centro y en la lectura
+#' (recetario p70); la frase reemplaza su rótulo en el centro. Sin elegir, la espec queda como estaba.
+#' @keywords internal
+.pie_espec_centro <- function(espec, al_centro = NULL, frase_centro = NULL) {
+  if (is.null(espec)) return(espec)
+  elegido <- trimws(as.character(al_centro %||% "")[1])
+  i <- if (nzchar(elegido %||% "")) match(elegido, espec$rotulos) else NA_integer_
+  if (!is.na(i) && i > 1L) {
+    orden <- c(i, setdiff(seq_along(espec$rotulos), i))
+    for (k in c("rotulos", "valores", "cifras", "unidades", "n", "n_casos")) {
+      if (length(espec[[k]]) == length(orden)) espec[[k]] <- espec[[k]][orden]
+    }
+  }
+  frase <- trimws(as.character(frase_centro %||% "")[1])
+  if (nzchar(frase %||% "")) espec$frase_centro <- frase
+  espec
 }

@@ -125,6 +125,19 @@ describe("ítem 9 · el glifo refleja los ajustes de su tipo", () => {
     expect(dibujo(d)).not.toBe(dibujo(a));
   });
 
+  it("la dona nombra la respuesta y la frase de su centro (recetario p70)", () => {
+    const f = ficha(slide("p_donut", { var: "estudiantes$mision", al_centro: "No", frase_centro: "no conoce la misión" }));
+    expect(f.ajustes).toEqual(expect.arrayContaining(["Al centro: No", "«no conoce la misión»"]));
+    expect(ficha(slide("p_donut", { var: "estudiantes$mision" })).ajustes.some((a) => a.startsWith("Al centro"))).toBe(false);
+  });
+
+  it("filtro y subpregunta: la ficha lista las dos preguntas y lo que habilita (recetario p192–p194)", () => {
+    const f = ficha(slide("p_filtro_subpregunta", { var: "estudiantes$mision", habilita: ["Sí"], subpregunta: "estudiantes$p1", disposicion: "abajo" }));
+    expect(f.faltaPregunta).toBe(false);
+    expect(f.preguntas).toEqual(["¿Conoce la misión?", "La Unidad cuenta con tutoría"]);
+    expect(f.ajustes).toEqual(expect.arrayContaining(["Habilita: Sí", "Subpregunta abajo"]));
+  });
+
   it("los interruptores sin guardar dibujan lo que dibuja el motor (defectos del registro)", () => {
     expect(ficha(slide("p_barras_divergentes", { vars: ["estudiantes$p1"] })).glifo.neutro).toBe(true);
     expect(ficha(slide("p_dumbbell", { vars: ["estudiantes$p1"] })).glifo.brecha).toBe(true);

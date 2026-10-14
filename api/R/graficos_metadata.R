@@ -1374,6 +1374,11 @@
     blueprint     = "donut",
     args = c(list(
       list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos"),
+      # Recetario p70: la respuesta del centro y su frase. La pestaña Gráfico los edita con su tarjeta (DonaCentro).
+      list(name = "al_centro", label = "Al centro", tipo_input = "string", grupo = "valores",
+           descripcion = "La respuesta cuya cifra va al centro de la dona y abre la lectura. Vacío: la primera."),
+      list(name = "frase_centro", label = "Frase del centro", tipo_input = "string", grupo = "textos",
+           descripcion = "Lo que se lee bajo la cifra del centro («conoce la misión»). Vacío: el nombre de la respuesta."),
       list(name = "top_k", label = "Top K + Otros", tipo_input = "number", grupo = "filtro",
            descripcion = "Muestra solo las K categorías más frecuentes y agrupa el resto en 'Otros'. Recomendado con más de 6 categorías."),
       list(name = "etiqueta_otros", label = "Etiqueta de Otros", tipo_input = "string", grupo = "filtro",
@@ -1719,6 +1724,29 @@
       list(name = "etiqueta_brecha", label = "Unidad de la brecha", tipo_input = "string", grupo = "valores",
            default = "pts",
            descripcion = "Se escribe junto a la diferencia: «+6 pts».")
+    ), .args_graf_comunes())
+  ),
+
+  # Recetario p192–p194 (inventario de configuraciones, ítem 20): la pregunta filtro, lo que habilita y la subpregunta con
+  # su propia base, unidas por una llave. Se arma en su tarjeta (FiltroSubpregunta en la pestaña Gráfico).
+  p_filtro_subpregunta = list(
+    titulo_humano = "Pregunta filtro y subpregunta",
+    descripcion   = "La pregunta que habilita otra y, al lado o debajo, la subpregunta con su propia base: sólo quienes dieron la respuesta que la abre. Una llave une lo que habilita con el título de la subpregunta.",
+    icono_ui      = "GitBranch",
+    categoria     = "distribution",
+    blueprint     = "bars-grouped",   # sus dos gráficos son barras; el dibujo del editor es el de ellas
+    requisito     = "Una pregunta filtro de respuesta única, las respuestas que habilitan la subpregunta y la subpregunta, de la misma base.",
+    args = c(list(
+      list(name = "var", label = "Pregunta filtro", tipo_input = "variable", grupo = "datos",
+           descripcion = "La pregunta que decide quién responde la subpregunta (ej. ¿Ha participado en intercambios?)."),
+      list(name = "habilita", label = "Respuestas que habilitan", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Las respuestas del filtro que abren la subpregunta. Con varias, la llave las abraza."),
+      list(name = "subpregunta", label = "Subpregunta", tipo_input = "variable", grupo = "datos",
+           descripcion = "La pregunta que respondieron sólo quienes dieron una de esas respuestas; su base es la de ellos."),
+      list(name = "grafico_sub", label = "Gráfico de la subpregunta", tipo_input = "choice", grupo = "datos", default = "barras",
+           choices = list(list(value = "barras", label = "Barras"), list(value = "escala", label = "Escala al 100 %"))),
+      list(name = "disposicion", label = "Disposición", tipo_input = "choice", grupo = "estilo", default = "costado",
+           choices = list(list(value = "costado", label = "Al costado"), list(value = "abajo", label = "Abajo (filtro de dos respuestas)")))
     ), .args_graf_comunes())
   ),
 
@@ -2121,6 +2149,7 @@
   p_mapa_resultado_distrital = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
   p_cifra = list("numeros", "nativa", condicion = "Va en las ranuras de cifra; en una ranura de gráfico sale por la ruta anterior."),
   p_dumbbell = list("comparar", "nativa"),
+  p_filtro_subpregunta = list("categorias", "nativa", condicion = "Hasta siete respuestas en el filtro; «Abajo» pide un filtro de dos respuestas."),
   p_matriz_cuadrantes = list("comparar", "nativa", condicion = "Con más de 20 temas va como dibujo de respaldo."),   # G16: lámina 91
   p_lollipop = list("categorias", "nativa"),
   p_serie_temporal = list("comparar", "nativa", condicion = "Con dos mediciones; con tres o más va dibujada dentro de una lámina estándar."),
@@ -2168,6 +2197,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   p_mapa_resultado_distrital = "",
   p_cifra = "",
   p_dumbbell = "dumbbell",
+  p_filtro_subpregunta = "",
   p_lollipop = "lollipop",
   p_serie_temporal = "serie_temporal",
   p_radar = "radar_tabla",
@@ -2208,6 +2238,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     "Elige la pregunta que define los dos grupos, los grupos y las preguntas; entre dos bases sale de la matriz de equivalencias."
   } else if (identical(name, "p_mapa_resultado_distrital")) {
     "Elige la pregunta, la del distrito y las respuestas que suman, de la base activa."
+  } else if (identical(name, "p_filtro_subpregunta")) {
+    "Elige la pregunta filtro, las respuestas que habilitan y la subpregunta, de la misma base."
   } else {
     switch(
       capability_key,

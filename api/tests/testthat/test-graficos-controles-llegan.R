@@ -67,3 +67,19 @@ test_that("los filtros del mapa de calor por criterio llegan al elemento", {
   el <- do.call(p_dim_heatmap_criterios, args)
   expect_identical(names(el$filtros), "sexo")
 })
+
+# Inventario de configuraciones, ítem 9 (recetario p70): qué respuesta va al centro de la dona y con qué frase.
+test_that("la respuesta y la frase del centro de la dona llegan a la espec de la lámina", {
+  args <- .clean_rebuild_args(list(var = "p1", al_centro = "No", frase_centro = "no conoce la misión"), p_donut)
+  el <- do.call(p_donut, args)
+  expect_identical(el$overrides$al_centro, "No")
+  expect_identical(el$overrides$frase_centro, "no conoce la misión")
+  espec <- list(rotulos = c("Sí", "No"), valores = c(77, 23), cifras = c("77%", "23%"), unidades = c(77, 23), n = c(133, 39), n_casos = c(133, 39))
+  e <- .pie_espec_centro(espec, "No", "no conoce la misión")
+  expect_identical(e$rotulos, c("No", "Sí"))
+  expect_identical(e$cifras, c("23%", "77%"))
+  expect_identical(e$n, c(39, 133))
+  expect_identical(e$frase_centro, "no conoce la misión")
+  expect_identical(.pie_espec_centro(espec, NULL, NULL), espec)
+  expect_identical(.pie_espec_centro(espec, "Otra", "")$rotulos, c("Sí", "No"))
+})

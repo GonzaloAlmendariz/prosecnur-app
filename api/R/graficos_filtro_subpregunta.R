@@ -1,0 +1,104 @@
+# Pregunta filtro y subpregunta (recetario p192–p194; inventario de configuraciones, ítem 20).
+#
+# Una pregunta filtro, las respuestas que habilitan la subpregunta y la subpregunta con su propia base: sólo quienes
+# dieron una de esas respuestas. La lámina nativa dibuja los dos gráficos y una llave que sale de lo que habilita y
+# llega al título de la subpregunta (recetario_m4.R, «desglose conectado»):
+#   - p192: filtro dicotómico arriba y la subpregunta abajo (`disposicion = "abajo"`);
+#   - p193: filtro dicotómico en columna y la subpregunta al costado (`disposicion = "costado"`);
+#   - p194: filtro de varias respuestas en barras, la llave abraza las que habilitan y la subpregunta va al costado.
+# Los dos gráficos salen de los renders de siempre (barras agrupadas y apiladas), así que cifras, redondeo, casos y
+# colores son los mismos que en cualquier lámina; aquí sólo se decide qué base lleva la subpregunta y cómo se unen.
+
+#' Pregunta filtro y subpregunta
+#'
+#' @param var La pregunta filtro: la que habilita la subpregunta (respuesta única).
+#' @param habilita Rótulos de las respuestas del filtro que habilitan la subpregunta.
+#' @param subpregunta Pregunta que respondieron sólo quienes dieron una de esas respuestas.
+#' @param grafico_sub `barras` (una barra por respuesta) o `escala` (barra al 100 % con su leyenda).
+#' @param disposicion `costado` (p193–p194) o `abajo` (p192, sólo con un filtro dicotómico).
+#' @param titulo,overrides,base,filtros Como en los demás gráficos.
+#' @return Objeto `"ppt_element"`.
+#' @family reporte
+#' @export
+p_filtro_subpregunta <- function(var, habilita, subpregunta, grafico_sub = c("barras", "escala"),
+                                 disposicion = c("costado", "abajo"), titulo = NULL, overrides = list(), base = list(),
+                                 filtros = list()) {
+  grafico_sub <- match.arg(grafico_sub)
+  disposicion <- match.arg(disposicion)
+  for (nm in c("var", "subpregunta")) {
+    v <- get(nm)
+    if (!is.character(v) || length(v) != 1L || !nzchar(trimws(v))) .plan_spec_abort("`", nm, "` debe ser character(1) no vacio.")
+  }
+  habilita <- trimws(as.character(unlist(habilita %||% character(0))))
+  habilita <- unique(habilita[!is.na(habilita) & nzchar(habilita)])
+  if (!length(habilita)) .plan_spec_abort("`habilita` debe nombrar al menos una respuesta del filtro.")
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  el <- list(
+    .element_type = "filtro_subpregunta",
+    var = trimws(var), filtro = trimws(var), habilita = habilita, subpregunta = trimws(subpregunta),
+    grafico_sub = grafico_sub, disposicion = disposicion,
+    title_slide = .ppt_norm_text1(titulo, blank = NULL),
+    overrides = overrides, base = base, filtros = .ppt_norm_filters(filtros)
+  )
+  class(el) <- c("ppt_element", "list")
+  el
+}
+
+#' Los códigos de las respuestas del filtro que habilitan, desde sus rótulos (el filtro de datos compara códigos)
+#' @keywords internal
+.fsub_codigos <- function(niveles, habilita) {
+  norm <- function(x) tolower(trimws(as.character(x)))
+  cod <- niveles$code[norm(niveles$label) %in% norm(habilita) | norm(niveles$code) %in% norm(habilita)]
+  unique(cod[!is.na(cod) & nzchar(cod)])
+}
+
+#' El enunciado de una pregunta en su instrumento (columna en español si la hay)
+#' @keywords internal
+.fsub_enunciado <- function(ctx) {
+  surv <- ctx$survey
+  col <- .detect_label_es_col(surv)
+  if (is.na(col)) col <- grep("^label", names(surv), value = TRUE)[1]
+  i <- which(!is.na(surv$name) & surv$name == ctx$var)[1]
+  out <- if (!is.na(col) && !is.na(i)) as.character(surv[[col]][i]) else NA_character_
+  if (is.na(out) || !nzchar(trimws(out))) ctx$var else trimws(out)
+}
+
+#' Render: el filtro con sus datos, la subpregunta con los que habilitan, y la espec que une las dos
+#' @keywords internal
+.render_filtro_subpregunta <- function(el, preset_args = list()) {
+  rend <- dynGet(".render_element", ifnotfound = NULL)
+  resolver <- dynGet(".resolve_ref", ifnotfound = NULL)
+  lista_de <- dynGet(".list_name_from_ctx", ifnotfound = NULL)
+  if (!is.function(rend) || !is.function(resolver) || !is.function(lista_de)) {
+    stop("El render no expone el motor de láminas.", call. = FALSE)
+  }
+  ctx_f <- resolver(el$filtro, arg_name = "filtro")
+  ctx_s <- resolver(el$subpregunta, arg_name = "subpregunta")
+  niveles <- .reporte_plan_choice_levels_for_list(lista_de(ctx_f), ctx_f$choices)
+  codigos <- .fsub_codigos(niveles, el$habilita)
+  if (!length(codigos)) {
+    stop(sprintf("Filtro y subpregunta: «%s» no tiene las respuestas %s.", el$filtro,
+                 paste0("«", el$habilita, "»", collapse = ", ")), call. = FALSE)
+  }
+  ov <- el$overrides %||% list()
+  p_f <- rend(p_barras_agrupadas(var = el$filtro, filtros = el$filtros, overrides = ov))
+  filtros_sub <- el$filtros %||% list()
+  filtros_sub[[ctx_f$var]] <- codigos
+  el_s <- if (identical(el$grafico_sub, "escala")) p_barras_apiladas(var = el$subpregunta, filtros = filtros_sub, overrides = ov)
+          else p_barras_agrupadas(var = el$subpregunta, filtros = filtros_sub, overrides = ov)
+  p_s <- rend(el_s)
+  espec_f <- attr(p_f, "pulso_espec"); espec_s <- attr(p_s, "pulso_espec")
+  # Ruta anterior (si la lámina nativa no cabe o falta una espec): los dos gráficos lado a lado o uno sobre otro.
+  p <- cowplot::plot_grid(p_f, p_s, nrow = if (identical(el$disposicion, "abajo")) 2L else 1L)
+  if (!is.null(espec_f) && !is.null(espec_s)) {
+    habilitadas <- niveles$label[niveles$code %in% codigos]
+    attr(p, "pulso_espec") <- list(
+      version = "filtro_sub/1", tipo = "filtro_sub", filtro = espec_f, sub = espec_s,
+      habilita = intersect(espec_f$rotulos %||% character(0), habilitadas),
+      disposicion = el$disposicion,
+      pregunta_filtro = .fsub_enunciado(ctx_f), pregunta_sub = .fsub_enunciado(ctx_s),
+      n_filtro = .espec_n_base(espec_f), n_sub = .espec_n_base(espec_s)
+    )
+  }
+  p
+}

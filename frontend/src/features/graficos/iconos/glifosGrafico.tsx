@@ -254,6 +254,25 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
       </>
     );
   },
+  // Pregunta filtro y subpregunta (p193): la dicotomía en columna, la llave desde lo que habilita hasta el título de la
+  // subpregunta y sus barras al costado.
+  p_filtro_subpregunta: () => (
+    <>
+      <Rotulo x={12} y={8} w={50} />
+      <Barra x={30} y={18} w={18} h={52} t="a" rx={0} />
+      <Barra x={30} y={70} w={18} h={18} t="p" rx={0} />
+      <Valor x={12} y={42} w={14} />
+      <Valor x={12} y={77} w={14} />
+      <Trazo d="M51 70H54V88H51M54 79H70V11H86" t="p" ancho={1.5} />
+      <Rotulo x={88} y={8} w={50} />
+      {[24, 42, 60, 78].map((y, i) => (
+        <g key={y}>
+          <Rotulo x={88} y={y + 2} w={16} />
+          <Barra x={108} y={y} w={[34, 26, 18, 10][i]} h={8} t="p" />
+        </g>
+      ))}
+    </>
+  ),
   // Brecha entre dos públicos (p88).
   // La brecha escrita al margen (por defecto); sin ella, los pares llegan al borde.
   p_dumbbell: (o) => {
