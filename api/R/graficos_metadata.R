@@ -1750,7 +1750,7 @@
       # F1 (checklist-poblacion-y-filtro): el filtro como torta o dona, con un conector desde lo que habilita.
       list(name = "grafico_filtro", label = "Gráfico del filtro", tipo_input = "choice", grupo = "datos", default = "auto",
            choices = list(list(value = "auto", label = "Barras"), list(value = "torta", label = "Torta"), list(value = "dona", label = "Dona")),
-           descripcion = "Con torta o dona, el sector que habilita queda a la derecha y un conector lo une al título de la subpregunta; va al costado.")
+           descripcion = "Sólo con un filtro de dos respuestas. Con torta o dona, lo que habilita queda hacia la subpregunta y un conector lo une a su título; va al costado.")
     ), .args_graf_comunes())
   ),
 

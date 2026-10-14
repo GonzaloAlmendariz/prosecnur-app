@@ -226,7 +226,6 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // Pregunta filtro y subpregunta (recetario p192–p194): las preguntas y lo que habilita van en su tarjeta.
   grafico_sub: { rotulo: "Gráfico de la subpregunta", soloEn: ["p_filtro_subpregunta"] },
   disposicion: { rotulo: "Disposición", soloEn: ["p_filtro_subpregunta"], cuando: (v) => v.grafico_filtro !== "torta" && v.grafico_filtro !== "dona" },
-  grafico_filtro: { rotulo: "Gráfico del filtro", soloEn: ["p_filtro_subpregunta"] },
   // Diferencias significativas entre públicos (recetario p111–p112): los temas y lo que suma van en su tarjeta.
   alpha: { rotulo: "Nivel de significancia", soloEn: ["p_significancia_publicos"] },
   // Inventario de configuraciones, ítem 3 (recetario p74–p75): formal de p_barras_agrupadas() → overrides.
