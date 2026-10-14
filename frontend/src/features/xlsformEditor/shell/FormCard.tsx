@@ -28,11 +28,14 @@ import {
 } from "../../../vendor/lucide-react";
 import type { XlsformFormPublication } from "../../../api/client";
 import { campanasDeFuente } from "../../../api/xlsformCampanas";
+import { leerLogicaExterna } from "../../../api/xlsformLogicaExterna";
 import type { LibraryEntry } from "../state/persistence";
 import { admiteCampana } from "./campanaComplementariaModel";
 import { CampanasDeclaradas } from "./CampanasDeclaradas";
 import type { InstrumentActorOption } from "./actorAssignmentModel";
 import { FormPublicationStatus } from "./InstrumentRevisionStatus";
+import { LogicaExternaDeshacer, LogicaExternaDisparador } from "./LogicaExterna";
+import type { AccionesLogicaExterna } from "./useLogicaExterna";
 import {
   formatRelativeSavedAt,
   normalizeOrigin,
@@ -66,6 +69,8 @@ export type FormCardProps = {
   onAddCampaign?: (id: string) => void;
   /** Se declaró o quitó una campaña: la biblioteca debe releer el índice. */
   onCampaignsChanged?: (id: string) => void;
+  /** Declarar o deshacer «la lógica y la limpieza se hicieron fuera». */
+  logicaExterna?: AccionesLogicaExterna;
 };
 
 const ORIGIN_ACCENT: Record<FormOrigin, { accent: string; soft: string }> = {
@@ -100,6 +105,7 @@ export function FormCard({
   isAssigningActor = false,
   onAddCampaign,
   onCampaignsChanged,
+  logicaExterna,
 }: FormCardProps) {
   const origin = normalizeOrigin(entry.source?.kind ?? null);
   const accent = ORIGIN_ACCENT[origin];
@@ -123,14 +129,31 @@ export function FormCard({
     actorOptions.length
     || entry.source?.schema === "acreditacion_actor_instrument_draft/v1",
   );
+  const externa = leerLogicaExterna(entry.source);
   const workflow = publication
     ? getFormWorkflowView(
         publication,
         actorOptions,
         entry.source?.actor_key,
         audienceApplies,
+        externa,
       )
     : null;
+  // La segunda vía va donde se pide revisar la lógica; declarada, sólo queda
+  // la acción discreta de deshacer (la etapa «Lógica» ya dice dónde se hizo).
+  const alternaLogica = !logicaExterna || !workflow || workflow.emptyDraft
+    ? null
+    : externa
+      ? <LogicaExternaDeshacer formId={entry.id} acciones={logicaExterna} />
+      : workflow.primaryAction === "review_logic"
+        ? (
+            <LogicaExternaDisparador
+              formId={entry.id}
+              acciones={logicaExterna}
+              disabled={isConfirmingLogic || isPublishing}
+            />
+          )
+        : null;
   // Sugerencia desde el título: un clic la acepta; nunca se asigna sola.
   const suggestedActor = audienceApplies && !selectedActor && actorCatalogStatus === "ready"
     ? suggestAudienceFromTitle(`${entry.name} ${entry.source?.survey_title ?? ""}`, actorOptions)
@@ -497,6 +520,7 @@ export function FormCard({
                 onConfirmLogic={() => onConfirmLogic(entry.id)}
                 primaryAction={workflow?.primaryAction}
                 onOpen={() => onOpen(entry.id)}
+                alterna={alternaLogica}
               />
             )}
             <div className="pulso-xf-home-card-foot">

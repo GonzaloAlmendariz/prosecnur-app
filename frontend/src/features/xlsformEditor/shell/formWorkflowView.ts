@@ -1,5 +1,7 @@
 import type { XlsformFormPublication } from "../../../api/client";
+import type { LogicaExterna } from "../../../api/xlsformLogicaExterna";
 import type { InstrumentActorOption } from "./actorAssignmentModel";
+import { CONSECUENCIA_LOGICA_EXTERNA, detalleLogicaExterna } from "./logicaExternaModel";
 import { isConfirmableLogicBlocker } from "./formPublicationView";
 
 export type FormWorkflowTone = "neutral" | "success" | "warning" | "danger";
@@ -85,8 +87,13 @@ export function getFormWorkflowView(
   actorKey: string | null | undefined,
   /** El estudio trabaja con públicos (acreditación). Aun así es opcional. */
   audienceApplies = true,
+  /**
+   * Lógica y limpieza declaradas fuera de Prosecnur. Manda sobre una
+   * publicación cargada antes de declararla: no se vuelve a pedir revisión.
+   */
+  logicaExterna: LogicaExterna | null = null,
 ): FormWorkflowView {
-  const logicNeedsReview = publication.blockers.some((blocker) => (
+  const logicNeedsReview = !logicaExterna && publication.blockers.some((blocker) => (
     isConfirmableLogicBlocker(blocker.id)
   ));
   const actor = actorOptions.find((option) => option.actor_key === actorKey);
@@ -114,6 +121,13 @@ export function getFormWorkflowView(
         tone: "neutral",
         detail: "La lógica aparece cuando el formulario tenga preguntas que enlazar.",
       }
+    : logicaExterna
+      ? {
+          // Neutro: es un dato de procedencia, no un aviso ni un logro.
+          label: detalleLogicaExterna(logicaExterna),
+          tone: "neutral",
+          detail: CONSECUENCIA_LOGICA_EXTERNA,
+        }
     : logicNeedsReview
       ? {
           label: "Revisión necesaria",

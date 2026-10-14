@@ -248,3 +248,25 @@ describe("suggestAudienceFromTitle", () => {
     expect(suggestAudienceFromTitle("Estudiantes", [{ actor_key: "docentes", actor: "Docentes" }])).toBeNull();
   });
 });
+
+describe("getFormWorkflowView con la lógica hecha fuera", () => {
+  const externa = { herramienta: "SPSS", nota: "", declaradaEn: "2026-10-14" };
+
+  test("etapa neutra con el programa y publicar como acción", () => {
+    const view = getFormWorkflowView(publication(), [], null, false, externa);
+    expect(view.logic).toMatchObject({ label: "Fuera de Prosecnur · SPSS", tone: "neutral" });
+    expect(view.logic.detail).toContain("la base limpia se carga en Procesamiento");
+    expect(view.primaryAction).toBe("publish");
+  });
+
+  test("manda sobre un bloqueo de lógica de una publicación anterior", () => {
+    const view = getFormWorkflowView(publication({
+      status: "blocked",
+      blockers: [{ id: "logic_pending_manual_confirmation", title: "Lógica", detail: "" }],
+      can_publish: false,
+    }), [], null, false, externa);
+    expect(view.primaryAction).not.toBe("review_logic");
+    expect(view.logic.tone).toBe("neutral");
+  });
+});
+

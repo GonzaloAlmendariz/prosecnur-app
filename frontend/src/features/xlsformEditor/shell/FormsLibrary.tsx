@@ -36,6 +36,7 @@ import { AddFormCard } from "./AddFormCard";
 import { CampanaComplementariaDialog } from "./CampanaComplementariaDialog";
 import { admiteCampana, encuestaPrincipalDe } from "./campanaComplementariaModel";
 import { useCampanaComplementariaPanel } from "./useCampanaComplementariaPanel";
+import type { AccionesLogicaExterna } from "./useLogicaExterna";
 import { FormCard, type ActorCatalogStatus } from "./FormCard";
 import { computeFormMetrics, type FormCardMetrics } from "./formCardMetrics";
 import { computeHomeSlots } from "./homeSlots";
@@ -81,6 +82,8 @@ export type FormsLibraryProps = {
    * el índice del backend. Sin él la biblioteca no ofrece campañas.
    */
   onCampaignsChanged?: () => void;
+  /** Declarar o deshacer «la lógica y la limpieza se hicieron fuera». */
+  logicaExterna?: AccionesLogicaExterna;
 };
 
 export function FormsLibrary({
@@ -109,6 +112,7 @@ export function FormsLibrary({
   loadFailed = false,
   onRetryLoad,
   onCampaignsChanged,
+  logicaExterna,
 }: FormsLibraryProps) {
   const campana = useCampanaComplementariaPanel();
   const formularioCampana = campana.formId
@@ -243,6 +247,7 @@ export function FormsLibrary({
             isAssigningActor={assigningActorFormId === entry.id}
             onAddCampaign={onCampaignsChanged ? campana.abrirPara : undefined}
             onCampaignsChanged={onCampaignsChanged ? () => onCampaignsChanged() : undefined}
+            logicaExterna={logicaExterna}
           />
         ))}
 

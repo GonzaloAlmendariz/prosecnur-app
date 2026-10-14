@@ -89,3 +89,34 @@ describe("editorMetrics (U8)", () => {
     expect(formatFieldSectionPair(metrics.fields, metrics.sections)).toBe("5 campos · 1 sección");
   });
 });
+
+describe("deriveEditorHeaderStatus con la lógica hecha fuera", () => {
+  const declarada = {
+    kind: "surveymonkey",
+    original_name: "x",
+    logic_status: "external_declared",
+    logic_confirmed_at: "2026-10-14",
+    logic_external: { herramienta: "SPSS", nota: "", declarada_en: "2026-10-14" },
+  };
+
+  it("rótulo neutro con el programa, nunca «Revisa la lógica»", () => {
+    const status = deriveEditorHeaderStatus([], publication([]), declarada);
+    expect(status.tone).toBe("neutral");
+    expect(status.label).toBe("Lógica: fuera de Prosecnur · SPSS");
+    expect(status.logicStepPending).toBe(false);
+    expect(status.logicaExterna?.herramienta).toBe("SPSS");
+  });
+
+  it("una publicación cargada antes de declarar no reabre el paso de lógica", () => {
+    const status = deriveEditorHeaderStatus([], publication([logicPending]), declarada);
+    expect(status.label).not.toBe("Revisa la lógica");
+    expect(status.logicStepPending).toBe(false);
+  });
+
+  it("los avisos del workbook siguen teniendo precedencia", () => {
+    const warn = { id: "w1", level: "warn", message: "x" } as unknown as BuilderDiagnostic;
+    const status = deriveEditorHeaderStatus([warn], publication([]), declarada);
+    expect(status.label).toBe("1 aviso");
+    expect(status.logicaExterna).not.toBeNull();
+  });
+});
