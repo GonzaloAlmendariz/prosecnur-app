@@ -1,23 +1,31 @@
 // Carga › Fuentes con «Bases separadas» (propuesta F aprobada por Gonzalo, 2026-10-11): la lista de bases del estudio,
 // sin número fijo. Cada base es una tarjeta con su actor, de dónde viene y cuántas respuestas trae; «Agregar base» está
-// siempre a mano y pregunta de dónde sale (SurveyMonkey, Kobo, archivos o Monitoreo). Responde a «¿qué pasa si
+// siempre a mano y pregunta de dónde sale (formulario publicado —ADR 0102—, SurveyMonkey, Kobo, archivos o Monitoreo). Responde a «¿qué pasa si
 // quiero agregar una base o si tenía pensado 3 y luego eran 4?».
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { apiEstudioGet, apiEstudioRemoveBase, apiEstudioRenameBase, type EstudioBase, type EstudioPayload } from "../../../api/estudio";
 import type { VistaPreviaFuente } from "../../../api/xlsformEditor";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { ClipboardCheck, CloudDownload, Database, FileUp, GitMerge, Pencil, Plus, Trash2, Upload, X } from "../../../vendor/lucide-react";
+import { ClipboardCheck, CloudDownload, Database, FileCheck2, FileUp, GitMerge, Pencil, Plus, Trash2, Upload, X } from "../../../vendor/lucide-react";
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import { ordenarBasesPorSerie } from "../equivalenciasEditorModel";
 import { useOrdenDeSerie } from "./useOrdenDeSerie";
+import { AvisoFormularioPublicado } from "./AvisoFormularioPublicado";
+import { rotuloBaseDeclarada, vinculoFormularioDeBase, type VinculoFormulario } from "./formularioPublicadoModel";
+import { NuevaBaseFormularioPublicado } from "./NuevaBaseFormularioPublicado";
+import { useFormulariosPublicados } from "./useFormulariosPublicados";
 import "./basesDelEstudio.css";
 
-export type OrigenNuevaBase = "surveymonkey" | "kobo" | "archivos" | "sav" | "monitoreo";
+export type OrigenNuevaBase = "formulario" | "surveymonkey" | "kobo" | "archivos" | "sav" | "monitoreo";
+/** Los orígenes que resuelve la página; «formulario» (ADR 0102) lo resuelve esta sección. */
+export type OrigenDePagina = Exclude<OrigenNuevaBase, "formulario">;
 
 // B2: la base .sav sin formulario es un origen más de «Agregar base», no un
 // panel aparte que compita con él.
+// ADR 0102: «Formulario publicado» va primero y sólo aparece si hay alguno.
 const ORIGENES: { id: OrigenNuevaBase; rotulo: string; ayuda: string; icono: ReactNode }[] = [
+  { id: "formulario", rotulo: "Formulario publicado", ayuda: "Usa un formulario de Formularios", icono: <FileCheck2 size={16} aria-hidden="true" /> },
   { id: "surveymonkey", rotulo: "SurveyMonkey", ayuda: "Una encuesta de tu cuenta", icono: <CloudDownload size={16} aria-hidden="true" /> },
   { id: "kobo", rotulo: "KoboToolbox", ayuda: "Un proyecto de Kobo", icono: <CloudDownload size={16} aria-hidden="true" /> },
   { id: "archivos", rotulo: "Archivos", ayuda: "Formulario y respuestas en Excel", icono: <Upload size={16} aria-hidden="true" /> },
@@ -28,7 +36,9 @@ const ORIGENES: { id: OrigenNuevaBase; rotulo: string; ayuda: string; icono: Rea
 /** De dónde viene una base, en palabras: «SurveyMonkey», «Kobo», «Archivos». */
 export function origenDeBase(b: Pick<EstudioBase, "source_kind">): string {
   const k = String(b.source_kind ?? "manual");
-  if (k === "surveymonkey") return "SurveyMonkey";
+  if (k === "surveymonkey" || k === "formulario_publicado_surveymonkey") return "SurveyMonkey";
+  if (k === "formulario_publicado_sav") return "Archivo .sav";
+  if (k === "formulario_publicado_excel") return "Excel";
   if (k.startsWith("kobo")) return "KoboToolbox";
   return "Archivos";
 }
@@ -50,8 +60,9 @@ export function ordenarBasesDelEstudio(bases: readonly EstudioBase[], periodos: 
     .filter((b): b is EstudioBase => Boolean(b));
 }
 
-function TarjetaBase({ base, ocupado, onRenombrar, onQuitar, onOtraFuente }: {
+function TarjetaBase({ base, vinculo, ocupado, onRenombrar, onQuitar, onOtraFuente }: {
   base: EstudioBase;
+  vinculo: VinculoFormulario | null;
   ocupado: boolean;
   onOtraFuente?: () => void;
   onRenombrar: (nuevo: string) => Promise<void>;
@@ -86,6 +97,13 @@ function TarjetaBase({ base, ocupado, onRenombrar, onQuitar, onOtraFuente }: {
           ))}
         </ul>
       ) : titulo ? <p className="pulso-bde-fuente">{titulo}{base.source_channel ? <span className="pulso-bde-canal">{base.source_channel}</span> : null}</p> : null}
+      {vinculo ? (
+        <p className="pulso-bfp-vinculo">
+          <FileCheck2 size={13} aria-hidden="true" />
+          <span>Formulario: <strong>{vinculo.formulario}</strong> · {vinculo.revision}</span>
+          {vinculo.logicaExterna ? <span className="pulso-bfp-declarada">{rotuloBaseDeclarada(vinculo)}</span> : null}
+        </p>
+      ) : null}
       <dl className="pulso-bde-cifras">
         <div><dt>Respuestas</dt><dd>{formatoConteo(base.n_filas)}</dd></div>
         <div><dt>Columnas</dt><dd>{formatoConteo(base.n_columnas)}</dd></div>
@@ -127,7 +145,7 @@ export function BasesDelEstudio({
   /** Avisa el origen elegido para que la página prepare lo suyo (proveedor del catálogo, modo de carga). */
   onOrigen?: (origen: OrigenNuevaBase) => void;
   /** Lo que se muestra para traer la base nueva desde el origen elegido (catálogo, carriles de archivos, Monitoreo). */
-  renderOrigen: (origen: OrigenNuevaBase) => ReactNode;
+  renderOrigen: (origen: OrigenDePagina) => ReactNode;
   /** «Agregar otra fuente a esta base»: la página dirige el próximo import del catálogo a esa base con ese canal. */
   onDestinoFuente?: (destino: { base: string; canal: string } | null) => void;
   renderCatalogo?: () => ReactNode;
@@ -141,8 +159,18 @@ export function BasesDelEstudio({
   const periodos = useOrdenDeSerie(altas.map((b) => b.nombre).join("|"));
   const bases = ordenarBasesDelEstudio(altas, periodos);
   const enSerie = periodos.some((p) => altas.some((b) => b.nombre === p));
+  const publicados = useFormulariosPublicados();
+  const hayPublicados = publicados.formularios.length > 0;
+  const origenPorDefecto: OrigenNuevaBase = hayPublicados ? "formulario" : "surveymonkey";
+  const origenes = hayPublicados ? ORIGENES : ORIGENES.filter((o) => o.id !== "formulario");
   const [agregando, setAgregandoEstado] = useState<OrigenNuevaBase | null>(bases.length ? null : "surveymonkey");
-  const setAgregando = (o: OrigenNuevaBase | null) => { setAgregandoEstado(o); if (o) onOrigen?.(o); };
+  const eligioOrigen = useRef(false);
+  const setAgregando = (o: OrigenNuevaBase | null) => { eligioOrigen.current = true; setAgregandoEstado(o); if (o) onOrigen?.(o); };
+  // Sin bases, «Agregar base» se abre solo; cuando llega el catálogo, el
+  // formulario publicado pasa a ser la opción propuesta si nadie eligió otra.
+  useEffect(() => {
+    if (hayPublicados && !eligioOrigen.current) setAgregandoEstado((actual) => (actual === "surveymonkey" ? "formulario" : actual));
+  }, [hayPublicados]);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState("");
   const correr = async (accion: () => Promise<EstudioPayload>) => {
@@ -168,7 +196,7 @@ export function BasesDelEstudio({
             : "Agrega la primera base: una por actor (estudiantes, docentes…)."}</p>
         </div>
         {agregando ? null : (
-          <PulsoButton variant="primary" size="sm" onClick={() => { setOtraFuente(null); setAgregando("surveymonkey"); }}><Plus size={14} aria-hidden="true" />Agregar base</PulsoButton>
+          <PulsoButton variant="primary" size="sm" onClick={() => { setOtraFuente(null); setAgregando(origenPorDefecto); }}><Plus size={14} aria-hidden="true" />Agregar base</PulsoButton>
         )}
       </header>
       {error ? <p className="pulso-bde-error" role="alert">{error}</p> : null}
@@ -178,10 +206,14 @@ export function BasesDelEstudio({
             <TarjetaBase
               key={b.nombre}
               base={b}
+              vinculo={vinculoFormularioDeBase(b, publicados.formularios)}
               ocupado={ocupado}
               onRenombrar={(nuevo) => correr(() => apiEstudioRenameBase(b.nombre, nuevo))}
               onQuitar={() => correr(async () => { await apiEstudioRemoveBase(b.nombre); return apiEstudioGet(); })}
-              onOtraFuente={renderCatalogo && origenDeBase(b) === "SurveyMonkey" ? () => setOtraFuente({ base: b.nombre, canal: "" }) : undefined}
+              // Sólo la vía SurveyMonkey clásica: una base nacida de un formulario
+              // publicado suma sus campañas desde el formulario (ADR 0102), y
+              // «Agregar fuente» regeneraría el XLSForm rompiendo el enlace.
+              onOtraFuente={renderCatalogo && b.source_kind === "surveymonkey" ? () => setOtraFuente({ base: b.nombre, canal: "" }) : undefined}
             />
           ))}
         </div>
@@ -234,14 +266,29 @@ export function BasesDelEstudio({
             ) : null}
           </div>
           <div className="pulso-bde-origenes" role="radiogroup" aria-label="Origen de la base nueva">
-            {ORIGENES.map((o) => (
+            {origenes.map((o) => (
               <button key={o.id} type="button" role="radio" aria-checked={agregando === o.id} className={agregando === o.id ? "pulso-bde-origen-opcion is-activa" : "pulso-bde-origen-opcion"} onClick={() => setAgregando(o.id)}>
                 {o.icono}
                 <span><strong>{o.rotulo}</strong><small>{o.ayuda}</small></span>
               </button>
             ))}
           </div>
-          <div className="pulso-bde-agregar-cuerpo">{renderOrigen(agregando)}</div>
+          <div className="pulso-bde-agregar-cuerpo">
+            {agregando === "formulario" ? (
+              <NuevaBaseFormularioPublicado
+                estudio={estudio}
+                formularios={publicados.formularios}
+                onCreada={async () => { await onCambio(await apiEstudioGet()); setAgregando(null); }}
+              />
+            ) : (
+              <>
+                {agregando === "archivos" ? (
+                  <AvisoFormularioPublicado cuantos={publicados.formularios.length} onUsar={() => setAgregando("formulario")} />
+                ) : null}
+                {renderOrigen(agregando)}
+              </>
+            )}
+          </div>
         </div>
       ) : null}
     </section>
