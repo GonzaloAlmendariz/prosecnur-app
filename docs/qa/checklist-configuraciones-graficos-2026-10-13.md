@@ -29,7 +29,7 @@ maqueta la muestra.** Sólo Gonzalo da por terminado un ítem.
 | # | Recetario | Configuración | Motor nativo | Editor | Estado |
 |---|---|---|---|---|---|
 | 1 | p79 | Escalas: columna Bottom Two Box junto a la Top Two Box | sí: `espec$box2` en `lamina_escala.R` (~198) | sí, pestaña Gráfico (`TwoBoxGrafico.tsx`) | ya está en el editor; **la maqueta no la dibuja** (tanda 1) |
-| 2 | p79 | Escalas: fila Total separada por filete (decidida como opción apagada, D-a 2026-10-11) | sí, pero sólo sin grupos: el graficador exige `is.null(var_grupo_id)`, y en «Públicos por tema» (el caso de p79 y de Arte) las filas van agrupadas, así que no sale. En «Preguntas» sumaría preguntas distintas | no | tanda 1: Total por tema en el motor y control donde la lámina compara públicos o grupos |
+| 2 | p79 | Escalas: fila Total separada por filete | sólo sin grupos (`is.null(var_grupo_id)`); no sale en «Públicos por tema» | no | **decidido, no se construye por ahora** (Gonzalo, 2026-10-14): «debería ser un tipo de multiapilada, pero normalmente no es algo que solamos hacer, nos gusta diferenciar entre los actores». Si se retoma, va como lectura propia de multiapiladas, no como interruptor en las láminas por actor |
 | 3 | p74–p75 | Ranking en barras de 0 a 100 %, sin y con marcas del eje («Opcional brindar ambas opciones», 2026-10-09) | sí: 0–100 % ya es el defecto; `marcas_eje` en `lamina_categorica.R` (~58) | no (`marcas_eje`, `usar_eje_libre` sin registro) | tanda 1 |
 | 4 | p73 | «Otros» y «No sabe» al final; la más marcada en oscuro | sí | sí (`agrupar_resto_en_otros`, `otros_al_final`) | ya está |
 | 5 | p68 | Cifra con sus casos («13% · 22 estudiantes») | sí | sí (`formato_valor`) | ya está |
@@ -65,7 +65,7 @@ Medidos el 2026-10-13 con la regla de arriba sobre todo el registro. Contrato: `
 ## Orden
 
 0. **Controles muertos (M1–M5):** primero, porque mienten. M1–M3 hechos; M4–M5 siguen.
-1. **Tanda 1:** lo que el motor nativo ya dibuja y el editor no ofrece (ítems 1–3). Cada configuración va con
+1. **Tanda 1:** lo que el motor nativo ya dibuja y el editor no ofrece (ítems 1 y 3; el 2 quedó decidido en contra). Cada configuración va con
    su arg en el registro, su control en la pestaña Gráfico, su ajuste en la ficha de la maqueta y su dibujo en el glifo.
 2. **Tanda 2:** verificar en la lámina nativa las filas «por verificar» y pasarlas a tanda 1 o a bloqueadas.
 3. **Tanda 3:** lo que no existe (ítems 12, 15, 16 y 17). Cada uno exige decidir qué es antes de construirlo.
