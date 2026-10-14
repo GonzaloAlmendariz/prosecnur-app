@@ -29,6 +29,8 @@ import {
 import { Alert } from "../../../components/Alert";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { Panel } from "../../../components/Panel";
+import { PulsoButton } from "../../../components/PulsoButton";
+import { InterruptorOpcion } from "../InterruptorOpcion";
 import { EmptyState, LoadingBlock } from "../../../components/States";
 import { GenerateFooter, Section } from "../PaneKit";
 import { type PanelConfig, useAnaliticaStore } from "../store";
@@ -309,15 +311,14 @@ export function PanelBasePane() {
                   </button>
                 ))}
               </GlidingTabList>
-              <button
-                type="button"
-                className="pulso-secondary"
+              <PulsoButton
+                variant="secondary"
                 onClick={() => refreshPreview("variables")}
                 disabled={disabled}
               >
-                <Rows3 size={14} />
+                <Rows3 size={14} aria-hidden="true" />
                 Previsualizar
-              </button>
+              </PulsoButton>
             </div>
 
             <PanelContractStrip
@@ -396,14 +397,12 @@ export function PanelBasePane() {
 
             {view === "nse" && (
               <Section title="Contexto para lectura" subtitle="Agrega variables de contexto que ayudan a interpretar el cambio entre mediciones.">
-                <label className="analitica-panel-check">
-                  <input
-                    type="checkbox"
-                    checked={panel.nse.enabled}
-                    onChange={(e) => setPanel({ nse: { ...panel.nse, enabled: e.target.checked } })}
-                  />
-                  <span>Incluir nivel socioeconómico cuando esté disponible</span>
-                </label>
+                <InterruptorOpcion
+                  variante="linea"
+                  checked={panel.nse.enabled}
+                  onToggle={() => setPanel({ nse: { ...panel.nse, enabled: !panel.nse.enabled } })}
+                  titulo="Incluir nivel socioeconómico cuando esté disponible"
+                />
                 {!preview ? (
                   <EmptyPanelState icon={<BookOpenCheck size={16} />} label="Previsualiza para ver qué tan completo está el contexto." />
                 ) : (
@@ -682,14 +681,12 @@ export function PanelBasePane() {
                       title="SPSS panel"
                       copy="SAV con etiquetas de variable y lectura preparada para SPSS."
                     >
-                      <label className="analitica-panel-check">
-                        <input
-                          type="checkbox"
-                          checked={panel.formatos.sav.incluir_sps}
-                          onChange={(e) => setPanel({ formatos: { ...panel.formatos, sav: { ...panel.formatos.sav, incluir_sps: e.target.checked } } })}
-                        />
-                        <span>Incluir sintaxis de niveles de medida</span>
-                      </label>
+                      <InterruptorOpcion
+                        variante="linea"
+                        checked={panel.formatos.sav.incluir_sps}
+                        onToggle={() => setPanel({ formatos: { ...panel.formatos, sav: { ...panel.formatos.sav, incluir_sps: !panel.formatos.sav.incluir_sps } } })}
+                        titulo="Incluir sintaxis de niveles de medida"
+                      />
                       <MiniSelect
                         label="Multi-respuesta"
                         value={panel.formatos.sav.multi_select ?? "dummy_01"}
@@ -1015,13 +1012,12 @@ function MiniSelect({
 
 function ToggleOutput({ label, checked, onChange }: { label: string; checked: boolean; onChange: (next: boolean) => void }) {
   return (
-    <label className={`analitica-control-card analitica-option-card ${checked ? "is-active" : ""}`}>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <span className="analitica-control-icon">{checked ? <CheckCircle2 size={15} /> : <BookOpenCheck size={15} />}</span>
-      <span>
-        <span className="analitica-control-title">{label}</span>
-        <span className="analitica-control-copy">Se incluirá cuando lo generes.</span>
-      </span>
-    </label>
+    <InterruptorOpcion
+      className="analitica-option-card"
+      checked={checked}
+      onToggle={() => onChange(!checked)}
+      titulo={label}
+      descripcion="Se incluirá cuando lo generes."
+    />
   );
 }

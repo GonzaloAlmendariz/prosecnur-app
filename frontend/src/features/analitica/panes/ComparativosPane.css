@@ -10,37 +10,6 @@
   min-width: 0;
 }
 
-/* Cifras de la serie: cuatro pares del mismo rol, mismo marco (C2). */
-.pulso-comparativos-cifras {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--pulso-space-2);
-  margin: 0;
-}
-
-.pulso-comparativos-cifra {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--pulso-space-2) var(--pulso-space-3);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface);
-}
-
-.pulso-comparativos-cifra dt {
-  font-size: 11.5px;
-  color: var(--pulso-text-soft);
-}
-
-.pulso-comparativos-cifra dd {
-  margin: 0;
-  font-size: 18px;
-  font-weight: var(--pulso-weight-semibold);
-  font-variant-numeric: tabular-nums;
-  color: var(--pulso-text);
-}
-
 /* Secciones independientes: altura intrínseca, se apilan tras el gutter (C3). */
 .pulso-comparativos-secciones {
   display: flex;
@@ -83,15 +52,94 @@
   color: var(--pulso-text-soft);
 }
 
-/* Rótulos: una caja por medición, todas del mismo ancho (C2). */
+/* Presentación: qué produce la pestaña y qué entra. Sección independiente de
+ * alto intrínseco; el enlace a Equivalencias envuelve debajo en compacto. */
+.pulso-comparativos-presentacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-module-processing);
+}
+
+.pulso-comparativos-presentacion > div {
+  display: flex;
+  flex: 1 1 360px;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pulso-comparativos-presentacion h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-comparativos-presentacion p {
+  margin: 0;
+  max-width: 80ch;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-presentacion .pulso-comparativos-enlace {
+  align-self: center;
+}
+
+/* Rótulos: una caja por medición, todas del mismo ancho (C2). La grilla
+ * acomoda N mediciones: con siete bases envuelve a filas nuevas y cada caja
+ * conserva su ancho mínimo, no se aprietan siete en una fila. */
 .pulso-comparativos-rotulos {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-comparativos-rotulos > li {
+  display: flex;
+  min-width: 0;
+}
+
+.pulso-comparativos-rotulo-pos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-comparativos-rotulos-aviso {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
 }
 
 .pulso-comparativos-rotulo {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
@@ -103,9 +151,7 @@
   color: var(--pulso-text-soft);
 }
 
-.pulso-comparativos-rotulo input,
-.pulso-comparativos-campo input,
-.pulso-comparativos-campo textarea {
+.pulso-comparativos-rotulo input {
   width: 100%;
   min-width: 0;
   font-size: 13px;
@@ -116,6 +162,182 @@
   display: inline-flex;
   gap: var(--pulso-space-2);
   margin-left: auto;
+}
+
+/* Barra de la lista: buscar, contador y plegado. Envuelve antes de recortar. */
+.pulso-comparativos-lista-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.pulso-comparativos-buscar {
+  display: inline-flex;
+  flex: 1 1 260px;
+  align-items: center;
+  gap: 6px;
+  max-width: 420px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-faint);
+}
+
+.pulso-comparativos-buscar:focus-within {
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-comparativos-buscar input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 5px 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.pulso-comparativos-contador {
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.pulso-comparativos-lista-barra .pulso-comparativos-desplegar {
+  margin-left: auto;
+}
+
+/* Leyenda de las marcas por medición: forma e icono, nunca sólo color. */
+.pulso-comparativos-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-comparativos-coberturas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.pulso-comparativos-cob {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 100%;
+  padding: 0 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.pulso-comparativos-cob svg {
+  flex: 0 0 auto;
+}
+
+.pulso-comparativos-cob.is-comparable {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-comparativos-cob.is-sin-variable {
+  border-style: dashed;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-comparativos-cob.is-no-comparable {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+
+/* Secciones plegables: altura intrínseca, cada una tras el gutter (C3). */
+.pulso-comparativos-grupos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-comparativos-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-comparativos-grupo-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-comparativos-grupo-head h4 {
+  flex: 1 1 260px;
+  min-width: 0;
+  margin: 0;
+}
+
+.pulso-comparativos-grupo-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--pulso-space-2);
+  max-width: 100%;
+  padding: 3px 4px;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pulso-comparativos-grupo-toggle:disabled {
+  cursor: default;
+}
+
+.pulso-comparativos-grupo-toggle:hover:not(:disabled) {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-comparativos-grupo-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-comparativos-grupo-titulo {
+  overflow-wrap: anywhere;
+}
+
+.pulso-comparativos-grupo-toggle small {
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-regular);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-grupo-acciones {
+  display: inline-flex;
+  gap: var(--pulso-space-1);
 }
 
 .pulso-comparativos-filas {
@@ -221,58 +443,8 @@
   white-space: nowrap;
 }
 
-/* Notas: plegable nativo, cerrado sólo cuenta el summary (C4). No es flex: el
- * slot oculto de un <details> flex sigue sumando su gap y deja capacidad muerta. */
-.pulso-comparativos-notas {
-  display: block;
-}
-
-.pulso-comparativos-notas[open] > .pulso-comparativos-notas-cuerpo {
-  margin-top: var(--pulso-space-3);
-}
-
-.pulso-comparativos-notas > summary {
-  display: flex;
-  align-items: baseline;
-  gap: var(--pulso-space-3);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text);
-}
-
-.pulso-comparativos-notas > summary small {
-  font-size: 12px;
-  font-weight: var(--pulso-weight-regular);
-  color: var(--pulso-text-soft);
-}
-
-.pulso-comparativos-notas > summary:focus-visible {
-  outline: none;
-  border-radius: var(--pulso-radius-chip);
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
-}
-
-.pulso-comparativos-notas-cuerpo,
-.pulso-comparativos-notas-preguntas {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-3);
-}
-
-.pulso-comparativos-campo {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--pulso-text-soft);
-}
-
-.pulso-comparativos-nota-vacia {
-  margin: 0;
-  font-size: 12px;
-  color: var(--pulso-text-soft);
-}
+/* Notas al pie: editor único de Analítica (NotasPieEditor), aquí sólo vive
+ * como miembro de las secciones. */
 
 /* Generar. */
 .pulso-comparativos-generar {
@@ -287,7 +459,7 @@
   gap: var(--pulso-space-2);
 }
 
-.pulso-comparativos-botones button {
+.pulso-comparativos-botones .pulso-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -312,7 +484,7 @@
   gap: 6px;
   padding: 6px 12px;
   border: 1px solid var(--pulso-primary-border);
-  border-radius: 8px;
+  border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
   color: var(--pulso-primary);
   font-size: 13px;
@@ -365,41 +537,123 @@
   text-decoration: none;
 }
 
+/* Avisos agrupados por tipo: un plegable por grupo, radio de tarjeta (texto
+ * largo, no píldora). Advertencia en ámbar sólo para lo que cambia
+ * denominadores o deja filas fuera; lo esperado va en tono informativo.
+ * <details> no es flex: el slot oculto sumaría su gap (ver Notas). */
 .pulso-comparativos-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-comparativos-aviso-grupo {
+  display: block;
+  min-width: 0;
+  border: 1px solid var(--pulso-info-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-text);
+}
+
+.pulso-comparativos-aviso-grupo.is-advertencia {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.pulso-comparativos-aviso-grupo > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-height: var(--pulso-control-height-lg);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius-card);
+  list-style: none;
+  cursor: pointer;
+  font-size: 12.5px;
+}
+
+.pulso-comparativos-aviso-grupo > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pulso-comparativos-aviso-grupo > summary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-comparativos-aviso-icono {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--pulso-info-fg);
+}
+
+.is-advertencia .pulso-comparativos-aviso-icono,
+.is-advertencia .pulso-comparativos-aviso-tipo {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-comparativos-aviso-tipo {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-info-fg);
+}
+
+.pulso-comparativos-aviso-alcance {
+  flex: 0 0 auto;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-comparativos-aviso-alcance::before {
+  content: "·";
+  margin-right: var(--pulso-space-2);
+}
+
+.pulso-comparativos-aviso-chevron {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--pulso-text-soft);
+  transition: transform 120ms ease;
+}
+
+.pulso-comparativos-aviso-grupo[open] .pulso-comparativos-aviso-chevron {
+  transform: rotate(180deg);
+}
+
+.pulso-comparativos-aviso-lista {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-1);
   margin: 0;
-  padding: 0;
+  padding: 0 var(--pulso-space-2) var(--pulso-space-2);
   list-style: none;
 }
 
-.pulso-comparativos-avisos li {
+.pulso-comparativos-aviso-lista > li {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--pulso-space-2);
+  gap: 2px var(--pulso-space-2);
   padding: var(--pulso-space-2) var(--pulso-space-3);
-  border: 1px solid var(--pulso-warn-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
+  /* Concéntrico con el grupo: radio de tarjeta menos el relleno de la lista. */
+  border-radius: calc(var(--pulso-radius-card) - var(--pulso-space-2));
+  background: var(--pulso-surface);
   font-size: 12.5px;
   line-height: 1.45;
 }
 
-.pulso-comparativos-avisos svg {
-  flex: 0 0 auto;
-  align-self: center;
-}
-
-.pulso-comparativos-aviso-tipo {
-  flex: 0 0 auto;
-  font-weight: var(--pulso-weight-semibold);
-}
-
 .pulso-comparativos-aviso-texto {
-  flex: 1 1 auto;
+  flex: 1 1 320px;
   min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-comparativos-aviso-accion--grupo {
+  display: inline-block;
+  margin: 0 var(--pulso-space-3) var(--pulso-space-3);
+  font-size: 12.5px;
 }
 
 .pulso-comparativos-aviso-accion {
@@ -480,7 +734,126 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pulso-comparativos-fila {
+  .pulso-comparativos-fila,
+  .pulso-comparativos-aviso-chevron {
     transition: none;
   }
+}
+
+/* Preguntas omitidas: bloque propio y destacado, antes de los demás avisos.
+ * Una omisión es una tabla que falta en el archivo, no una nota al margen. */
+.pulso-comparativos-omitidas {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-warn-border);
+  border-left-width: 4px;
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-text);
+}
+
+.pulso-comparativos-omitidas > header {
+  padding: var(--pulso-space-1) var(--pulso-space-2) 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--pulso-space-2);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-comparativos-omitidas h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-comparativos-omitidas > header p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-omitidas-grupo h5 {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-comparativos-omitidas-grupo ul {
+  margin: 0;
+  padding-left: var(--pulso-space-4);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.pulso-comparativos-omitidas-grupo small {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-omitidas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-comparativos-omitidas-lista > li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-warn-border);
+  /* Concéntrico con el bloque: radio de tarjeta menos su relleno. */
+  border-radius: calc(var(--pulso-radius-card) - var(--pulso-space-2));
+  background: var(--pulso-surface);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.pulso-comparativos-omitida-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px var(--pulso-space-2);
+}
+
+.pulso-comparativos-omitida-cabeza strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.pulso-comparativos-omitida-tipo {
+  padding: 0 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.pulso-comparativos-omitida-motivo {
+  margin: 0;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-comparativos-omitida-detalle {
+  margin: 0;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-grupo-casilla {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+/* Celda sin nada que listar (P-B4): «—» atenuado, como en Equivalencias. */
+.pulso-comparativos-nada {
+  color: var(--pulso-text-faint);
 }

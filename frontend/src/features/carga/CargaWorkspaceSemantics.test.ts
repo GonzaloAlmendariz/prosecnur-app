@@ -43,7 +43,7 @@ describe("Carga workspace integration semantics", () => {
       "const hasData = !!state?.data && !!state.data_previewed",
     );
     expect(pageSource).toContain("if (!state?.instrumento_parsed || !state?.data_previewed)");
-    expect(pageSource).toContain('title="Aún no hay datos de Carga para explorar"');
+    expect(pageSource).toContain('titulo="Aún no hay datos de Carga para explorar"');
   });
 
   it("publishes a stable QA readiness marker after the active topology loads", () => {

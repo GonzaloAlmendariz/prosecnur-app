@@ -25,6 +25,7 @@ import type {
   TipoAdvertenciaBloques,
 } from "../../api/equivalencias";
 import type { PanelDeclarado } from "../../lib/navegacion/paneles";
+import type { NombreDeSerie } from "./nombreDeSerie";
 
 // ---- Paneles direccionables -------------------------------------------------
 
@@ -34,7 +35,14 @@ import type { PanelDeclarado } from "../../lib/navegacion/paneles";
  */
 export const PANEL_ARMONIZACION: PanelDeclarado = {
   id: "armonizacion",
-  label: "Armonizar entre mediciones",
+  label: "Armonizar una pregunta",
+  clase: "sideover",
+};
+
+/** Editar el orden de la serie de mediciones (M7: la vista lo resume en una línea). */
+export const PANEL_ORDEN_SERIE: PanelDeclarado = {
+  id: "orden-serie",
+  label: "Orden de la serie",
   clase: "sideover",
 };
 
@@ -72,14 +80,47 @@ export function estadoArmonizacion(
   const conVariable = Object.keys(fila.variables).filter((b) => fila.variables[b]);
   const noComparables = conVariable.filter((b) => arm.por_base[b]?.comparable !== true);
   if (noComparables.length > 0) {
+    // El chip dice cuántas y el `title` las nombra: con cualquier cantidad de
+    // bases y cualquier largo de nombre, el chip cabe y no esconde nada tras
+    // una elipsis.
     return {
       tipo: "no_comparable",
-      texto: `No comparable en ${listarEnPalabras(noComparables)}`,
+      texto: `No comparable en ${noComparables.length} ${noComparables.length === 1 ? "base" : "bases"}`,
       bases: noComparables,
     };
   }
   return { tipo: "armonizada", texto: "Armonizada" };
 }
+
+/**
+ * Qué significa el estado del chip, en palabras llanas. Va como descripción del
+ * botón (su `title`), así el lector de pantalla la anuncia tras el nombre y el
+ * puntero la muestra al pasar.
+ */
+export function explicacionArmonizacion(estado: EstadoArmonizacion, serie: NombreDeSerie): string {
+  switch (estado.tipo) {
+    case "armonizada":
+      return `Las respuestas de esta pregunta están puestas en una misma escala en todas las bases donde existe. Entra a los comparativos entre ${serie.plural}.`;
+    case "sin_armonizar":
+      return `Esta pregunta todavía no tiene una escala común. Sin ella no se puede comparar entre ${serie.plural} ni entra a los comparativos.`;
+    case "no_comparable":
+      return `No comparable en ${listarEnPalabras(estado.bases)}. Ahí la pregunta se marcó como no comparable o falta decidirlo, y sale como no comparable en los comparativos.`;
+  }
+}
+
+/** Estado de cada base dentro del borrador, para el índice del editor. */
+export type EstadoBaseBorrador = "comparable" | "no-comparable" | "sin-declarar";
+
+export function estadoDeBase(entrada: EntradaBorrador | undefined): EstadoBaseBorrador {
+  if (!entrada || entrada.comparable === null) return "sin-declarar";
+  return entrada.comparable ? "comparable" : "no-comparable";
+}
+
+export const TEXTO_ESTADO_BASE: Record<EstadoBaseBorrador, string> = {
+  comparable: "comparable",
+  "no-comparable": "no comparable",
+  "sin-declarar": "sin decidir",
+};
 
 // ---- Referencia de la fila (foco) -------------------------------------------
 
@@ -450,6 +491,18 @@ export function ordenEfectivo(periodos: readonly string[], bases: readonly strin
   return [...declarados, ...bases.filter((b) => !declarados.includes(b))];
 }
 
+/**
+ * Resumen de una línea del orden de la serie: «b2024 → b2025 → … → posgrado».
+ * Con pocas bases se nombran todas; con más, las primeras y la última, y el
+ * resto se cuenta. La misma forma con 3 bases que con 20.
+ */
+export function resumenOrdenSerie(orden: readonly string[], maxVisibles = 4): string {
+  if (orden.length <= maxVisibles) return orden.join(" → ");
+  const cabeza = orden.slice(0, Math.max(1, maxVisibles - 1));
+  const ocultas = orden.length - cabeza.length - 1;
+  return `${cabeza.join(" → ")} → … (${ocultas} más) → ${orden[orden.length - 1]}`;
+}
+
 export function moverEnLista<T>(lista: readonly T[], i: number, delta: -1 | 1): T[] {
   const j = i + delta;
   if (i < 0 || i >= lista.length || j < 0 || j >= lista.length) return lista.slice();
@@ -519,9 +572,9 @@ export function mapaPeriodosInicial(
 
 export function mapaPeriodosValido(mapa: Record<string, string>): { ok: boolean; motivo: string } {
   const asignadas = Object.values(mapa).filter(Boolean);
-  if (asignadas.length === 0) return { ok: false, motivo: "Asigna al menos un año a una base." };
+  if (asignadas.length === 0) return { ok: false, motivo: "Asigna al menos una columna a una base." };
   if (new Set(asignadas).size !== asignadas.length) {
-    return { ok: false, motivo: "Dos años apuntan a la misma base." };
+    return { ok: false, motivo: "Dos columnas apuntan a la misma base." };
   }
   return { ok: true, motivo: "" };
 }

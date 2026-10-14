@@ -49,7 +49,7 @@
 }
 
 .pulso-armon-chip:hover:not(:disabled) {
-  border-color: var(--pulso-module-processing-border);
+  border-color: var(--module-accent-border);
 }
 
 .pulso-armon-chip:disabled {
@@ -58,7 +58,7 @@
 }
 
 .pulso-armon-chip:focus-visible {
-  outline: 2px solid var(--pulso-module-processing);
+  outline: 2px solid var(--module-accent);
   outline-offset: 2px;
 }
 
@@ -71,9 +71,9 @@
   background: color-mix(in srgb, var(--pulso-text) 30%, transparent);
 }
 
+/* Sin acento propio: el sideover va en portal y hereda el del módulo desde
+   `components/tonoDePortales.css`, como cualquier overlay. */
 .pulso-armon {
-  --module-accent: var(--pulso-module-processing);
-  --module-accent-soft: var(--pulso-module-processing-soft);
   position: fixed;
   z-index: var(--pulso-z-modal);
   top: 0;
@@ -135,7 +135,7 @@
   font-size: 11px;
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.02em;
-  color: var(--pulso-module-processing);
+  color: var(--module-accent);
 }
 
 .pulso-armon-titulo {
@@ -165,7 +165,7 @@
 }
 
 .pulso-armon-cerrar:focus-visible {
-  outline: 2px solid var(--pulso-module-processing);
+  outline: 2px solid var(--module-accent);
   outline-offset: 2px;
 }
 
@@ -200,6 +200,10 @@
 
 .pulso-armon-pie-estado {
   flex: 1 1 200px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
   min-width: 0;
   font-size: 12px;
   color: var(--pulso-text-soft);
@@ -431,7 +435,8 @@
 .pulso-armon-periodos {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
   gap: var(--pulso-space-2) var(--pulso-space-3);
   padding: var(--pulso-space-2) var(--pulso-space-3);
   border: 1px solid var(--pulso-border);
@@ -441,11 +446,12 @@
 }
 
 .pulso-armon-periodos-titulo {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: var(--pulso-space-1);
   font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-module-processing);
+  color: var(--module-accent);
 }
 
 .pulso-armon-periodos-lista {
@@ -457,15 +463,7 @@
   list-style: none;
 }
 
-.pulso-armon-periodos-lista li {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 1px 2px 1px var(--pulso-space-2);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-}
+/* Cada base es un chip con controles: geometría en components/chipConControles.css. */
 
 .pulso-armon-periodos-pos {
   margin-right: 2px;
@@ -479,7 +477,50 @@
 }
 
 .pulso-armon-periodos-nota {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--pulso-text-soft);
+}
+
+/* M7: el orden en una línea. El resumen ya cuenta las bases que no nombra, así
+   que la elipsis sólo actúa si ni siquiera eso cabe; el orden entero va en el
+   `title` y en el sideover. */
+.pulso-armon-periodos-resumen {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-armon-periodos-editar {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+/* En el sideover la lista es una columna: cada base una fila del mismo ancho,
+   y se recorre con el scroll del cuerpo con cualquier N. */
+.pulso-armon-periodos-lista.is-vertical {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.pulso-armon-periodos-lista.is-vertical > li {
+  width: 100%;
+}
+
+.pulso-armon-periodos-lista.is-vertical .pulso-armon-periodos-base {
+  flex: 1 1 auto;
+}
+
+.pulso-armon.is-angosto {
+  width: min(440px, calc(100vw - var(--pulso-space-9)));
 }
 
 /* «Etiqueta distinta»: el código tiene destino pero su etiqueta no es la de la
@@ -509,4 +550,129 @@
 .pulso-armon-base-resumen.is-aviso {
   color: var(--pulso-warn-fg);
   font-weight: var(--pulso-weight-semibold);
+}
+
+/* --- Ayudas e índice del editor ------------------------------------------ */
+
+.pulso-armon-seccion-titulo {
+  display: flex;
+  flex: 1 1 260px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-armon-ayuda {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-armon-seccion-head h3:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+  border-radius: var(--pulso-radius-chip);
+}
+
+/* Índice de bases: con cuatro o más, los mapas quedan a varias pantallas de la
+ * escala. Se pega arriba del dueño de scroll del panel (`.pulso-armon-cuerpo`)
+ * y envuelve en vez de recortar los nombres. Va sobre el padding del cuerpo
+ * para que las secciones no asomen por los lados al pasar debajo. */
+.pulso-armon-indice {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  margin: calc(-1 * var(--pulso-space-4)) calc(-1 * var(--pulso-space-6)) 0;
+  padding: var(--pulso-space-2) var(--pulso-space-6);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  font-size: 12px;
+}
+
+.pulso-armon-indice-titulo {
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-armon-indice ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-armon-indice button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 11.5px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+
+.pulso-armon-indice button.is-comparable {
+  border-color: var(--pulso-success-border);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-armon-indice button.is-no-comparable {
+  border-color: var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-armon-indice button.is-sin-declarar {
+  border-style: dashed;
+}
+
+.pulso-armon-indice button:hover {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-armon-indice button:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+}
+
+/* El ancla deja el encabezado bajo el índice pegado, no tapado por él. */
+.pulso-armon-cuerpo h3[id] {
+  scroll-margin-top: 72px;
+}
+
+/* M10: «Cómo armonizar» plegable; recuerda cómo lo dejó el usuario. */
+.pulso-armon-como > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--module-accent);
+}
+
+.pulso-armon-como > summary:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+  border-radius: var(--pulso-radius-chip);
+}
+
+.pulso-armon-como[open] > summary {
+  margin-bottom: var(--pulso-space-1);
+}
+
+/* En el sideover angosto el estado comparte línea con los botones. */
+.pulso-armon.is-angosto .pulso-armon-pie-estado {
+  flex-basis: auto;
 }

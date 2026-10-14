@@ -8,6 +8,7 @@ import { useSession } from "../../lib/SessionContext";
 import { AdaptarAplicacion, AdaptarAplicacionResumen } from "./AdaptarAplicacion";
 import { claveAplicar } from "./aplicarAvisosStore";
 import { motivoNoSoportado } from "./planAdaptacionModel";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 type Props = {
   /** Base activa de codificación: los avisos de la última aplicación van por base. */
@@ -222,7 +223,7 @@ function PreguntaPlanCard({ p }: { p: PlanPregunta }) {
         <span style={{ color: "var(--pulso-success-fg)", fontWeight: 700 }}>Campo nuevo:</span>
         <code style={{ fontFamily: "monospace", fontWeight: 700 }}>{p.nueva_variable}</code>
         <span style={{ color: "var(--pulso-success-fg)" }}>·</span>
-        <span>{p.n_respuestas_afectadas} {p.n_respuestas_afectadas === 1 ? "respuesta afectada" : "respuestas afectadas"}</span>
+        <span>{formatoConteo(p.n_respuestas_afectadas)} {p.n_respuestas_afectadas === 1 ? "respuesta afectada" : "respuestas afectadas"}</span>
       </div>
 
       {/* Códigos nuevos */}
@@ -286,7 +287,7 @@ function CodigoRow({ c, kind }: { c: { codigo: string; etiqueta: string; n_respu
       </code>
       <span>{c.etiqueta || <em style={{ color: "var(--pulso-text-soft)" }}>sin etiqueta</em>}</span>
       <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-        {c.n_respuestas} {c.n_respuestas === 1 ? "respuesta" : "respuestas"}
+        {formatoConteo(c.n_respuestas)} {c.n_respuestas === 1 ? "respuesta" : "respuestas"}
       </span>
     </div>
   );

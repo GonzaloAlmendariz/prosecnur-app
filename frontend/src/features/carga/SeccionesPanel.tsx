@@ -1,7 +1,7 @@
 import { FolderClosed } from "../../vendor/lucide-react";
 import type { Seccion } from "../../api/client";
-import { EmptyState } from "../../components/States";
 import { RepeatBadge } from "../../components/RepeatBadge";
+import { EstadoVacio } from "../../components/EstadoVacio";
 
 // Lista de secciones del XLSForm con sus flags (repeat / condicional) y
 // la condición `relevant` traducida a texto humano.
@@ -19,11 +19,11 @@ function sustituir_refs(expr: string): string {
 export default function SeccionesPanel({ secciones }: { secciones: Seccion[] }) {
   if (!secciones || secciones.length === 0) {
     return (
-      <EmptyState
-        variant="inline"
-        icon={<FolderClosed size={18} />}
-        title="Sin secciones detectadas"
-        hint="Verifica que tu XLSForm tenga grupos (begin_group / end_group)."
+      <EstadoVacio
+        tamano="compacto"
+        icono={<FolderClosed size={15} />}
+        titulo="Sin secciones detectadas"
+        descripcion="Verifica que tu XLSForm tenga grupos (begin_group / end_group)."
       />
     );
   }

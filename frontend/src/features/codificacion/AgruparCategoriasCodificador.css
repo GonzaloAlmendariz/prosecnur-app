@@ -40,12 +40,10 @@
   cursor: pointer;
 }
 
-.pulso-agrupar-modos-tabs [role="tab"]:hover:not([aria-selected="true"]) {
-  background: var(--pulso-nav-hover-bg);
-  color: var(--pulso-text);
-}
+/* Hover, seleccionado y foco de estas pestañas los resuelve app/nav-states.css
+ * vía `data-nav-item` (contrato ModuleChrome: un hover propio no puede excluir
+ * al activo). */
 
-.pulso-agrupar-modos-tabs [role="tab"]:focus-visible,
 .pulso-agrupar-cat-toggle:focus-visible {
   outline: 2px solid var(--pulso-primary-ring);
   outline-offset: 2px;
@@ -268,17 +266,12 @@
 
 .pulso-agrupar-check {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--pulso-space-2);
   color: var(--pulso-text);
   font-size: 12px;
   line-height: 1.4;
   cursor: pointer;
-}
-
-.pulso-agrupar-check input {
-  margin: 2px 0 0;
-  accent-color: var(--pulso-primary);
 }
 
 .pulso-agrupar-tabla {

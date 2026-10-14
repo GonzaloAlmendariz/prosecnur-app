@@ -8,6 +8,9 @@ import {
 } from "../../../api/client";
 import { Alert } from "../../../components/Alert";
 import { Panel } from "../../../components/Panel";
+import { PulsoButton } from "../../../components/PulsoButton";
+import { formatoConteo } from "../../../lib/formatoNumero";
+import { CifrasPestana } from "../CifrasPestana";
 import { ErrorBlock, LoadingBlock } from "../../../components/States";
 import { useSession } from "../../../lib/SessionContext";
 import { DimensionesWizard } from "../dimensiones/DimensionesWizard";
@@ -73,20 +76,14 @@ export function DimensionesPane() {
             <strong>Dimensiones e índices</strong>
             <small>Convierte grupos de preguntas en puntajes 0-100 listos para comparar.</small>
           </div>
-          <div className="analitica-dimensiones-docbar-stats" aria-label="Estado de dimensiones e índices">
-            <span>
-              Listas
-              <strong>{listasCount}</strong>
-            </span>
-            <span>
-              Bloques
-              <strong>{bloquesCount}</strong>
-            </span>
-            <span>
-              Índices
-              <strong>{indicesCount}</strong>
-            </span>
-          </div>
+          <CifrasPestana
+            ariaLabel="Estado de dimensiones e índices"
+            cifras={[
+              { etiqueta: "Listas", valor: formatoConteo(listasCount) },
+              { etiqueta: "Bloques", valor: formatoConteo(bloquesCount) },
+              { etiqueta: "Índices", valor: formatoConteo(indicesCount) },
+            ]}
+          />
         </div>
       {efectivo === "wizard" ? (
         <DimensionesWizard onComplete={onWizardComplete} />
@@ -172,9 +169,9 @@ function ResumenPostBuild({ onEditar }: { onEditar: () => void }) {
             Abre el asistente para elegir preguntas, agruparlas en bloques y generar los puntajes que luego usarán Cruces, Gráficos y Dashboard.
           </span>
         </div>
-        <button type="button" className="pulso-primary analitica-dimensiones-action" onClick={onEditar}>
-          <Edit3 size={13} /> Abrir asistente
-        </button>
+        <PulsoButton variant="primary" className="analitica-dimensiones-action" onClick={onEditar}>
+          <Edit3 size={13} aria-hidden="true" /> Abrir asistente
+        </PulsoButton>
       </div>
     );
   }

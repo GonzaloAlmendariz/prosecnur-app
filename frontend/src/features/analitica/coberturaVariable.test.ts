@@ -7,6 +7,11 @@ import type { DataReviewVariable } from "../../api/client";
 // imaginación: se midieron sobre los proyectos de referencia y hoy los tres
 // escribían el mismo «0 con dato» en la tarjeta.
 
+// Las cifras pasan por el formateador es-PE («1,241»). El separador lo pone
+// el runtime (el Node del runner puede no traer ICU completo), así que se
+// normaliza antes de comparar: lo que se sujeta es la cifra, no el carácter.
+const sinSeparador = (texto: string) => texto.replace(/(\d)[.,\u00a0\u202f](\d)/g, "$1$2");
+
 function variable(extra: Partial<DataReviewVariable>): DataReviewVariable {
   return {
     name: "x",
@@ -32,7 +37,7 @@ describe("describirCobertura", () => {
     // mitad.
     const c = describirCobertura({ n_non_missing: 1241, n_missing: 42 });
     expect(c.estado).toBe("normal");
-    expect(c.texto).toBe("1241 de 1283 con dato");
+    expect(sinSeparador(c.texto)).toBe("1241 de 1283 con dato");
     expect(c.aviso).toBeNull();
   });
 
@@ -41,9 +46,9 @@ describe("describirCobertura", () => {
     // vacías.
     const vacia = describirCobertura({ n_non_missing: 0, n_missing: 1283 });
     expect(vacia.estado).toBe("vacia");
-    expect(vacia.texto).toBe("0 de 1283 con dato");
+    expect(sinSeparador(vacia.texto)).toBe("0 de 1283 con dato");
     expect(vacia.aviso?.etiqueta).toBe("sin ningún dato");
-    expect(vacia.aviso?.detalle).toContain("1283");
+    expect(sinSeparador(vacia.aviso?.detalle ?? "")).toContain("1283");
 
     // `SPACE_nolabel` (acnur_pdm): declarada en el formulario, ausente en los
     // datos. El motor la devuelve como 0/0.

@@ -43,14 +43,19 @@ import {
   OpcionSM,
   PreguntaAbierta,
 } from "../../api/client";
-import { ErrorBlock, EmptyState } from "../../components/States";
+import { ErrorBlock } from "../../components/States";
 import { FilterChip } from "../../components/FilterChip";
+import { Switch } from "../../components/Switch";
 import { PairingDialog, PairingResult } from "./PairingDialog";
 import DecisionChip from "./DecisionChip";
 import NoCategorizarAction from "./NoCategorizarAction";
 import { contarSinDecidir, decisionDePregunta, frasePendientes, presentarDecision, restanteDeDecision } from "./decisionCodificacion";
 import { RelationDialog, RelationResult } from "./RelationDialog";
 import { RelationTargetDialog } from "./RelationTargetDialog";
+import { textoPlano } from "../../lib/textoPlano";
+import { sinEnfasis } from "../../lib/enfasisTexto";
+import { formatoConteo } from "../../lib/formatoNumero";
+import { EstadoVacio } from "../../components/EstadoVacio";
 
 const srOnlyStyle: React.CSSProperties = {
   position: "absolute",
@@ -280,7 +285,7 @@ export function PreguntasLanding() {
     const map = new Map<string, { id: string; label: string; preguntas: PreguntaAbierta[] }>();
     for (const p of sorted) {
       const key = p.section || "(sin sección)";
-      const label = p.section_label || p.section || "Sin sección";
+      const label = textoPlano(p.section_label) || p.section || "Sin sección";
       if (!map.has(key)) map.set(key, { id: key, label, preguntas: [] });
       map.get(key)!.preguntas.push(p);
     }
@@ -322,7 +327,7 @@ export function PreguntasLanding() {
     };
     const matchesQ = (p: PreguntaAbierta): boolean => {
       if (!q) return true;
-      return p.parent.toLowerCase().includes(q) || p.parent_label.toLowerCase().includes(q) || (p.section_label || "").toLowerCase().includes(q);
+      return p.parent.toLowerCase().includes(q) || p.parent_label.toLowerCase().includes(q) || textoPlano(p.section_label).toLowerCase().includes(q);
     };
     return bySection
       .map((s) => ({ ...s, preguntas: s.preguntas.filter((p) => wants(p) && matchesQ(p)) }))
@@ -523,10 +528,11 @@ export function PreguntasLanding() {
       )}
 
       {visibleSections.length === 0 && (
-        <EmptyState
-          icon={<Inbox size={20} />}
-          title="No hay preguntas en esta vista"
-          hint={
+        <EstadoVacio
+          tamano="normal"
+          icono={<Inbox size={18} />}
+          titulo="No hay preguntas en esta vista"
+          descripcion={
             query
               ? "No hay matches para tu búsqueda. Prueba con otro nombre o limpia el filtro."
               : "Cambia el filtro de arriba para ver otras preguntas."
@@ -690,7 +696,7 @@ function DragOverlayCard({ p }: { p: PreguntaAbierta }) {
       }}
     >
       <div style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: ts.fg }}>{p.parent}</div>
-      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>{truncate(p.parent_label, 60)}</div>
+      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>{truncate(sinEnfasis(p.parent_label), 60)}</div>
     </div>
   );
 }
@@ -782,7 +788,14 @@ function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnp
         </span>
       </button>
       {!collapsed && (
-        <div id={`${sectionDomId}-body`} className="pulso-codificacion-question-grid">
+        /* C1: las tarjetas se estiran por fila (`align-items: stretch`), pero
+           entre filas miden lo que pide su contenido: contrato `intrinsic`. */
+        <div
+          id={`${sectionDomId}-body`}
+          className="pulso-codificacion-question-grid"
+          data-qa-geometry-group="codificacion/preguntas"
+          data-qa-geometry-contract="intrinsic"
+        >
           {preguntas.map((p) => (
             <PreguntaCard
               key={p.parent}
@@ -852,8 +865,8 @@ function MarcarFooter({ p, arq, busy, onToggleMarcada, onNoCategorizar }: { p: P
   // Adoptadas, config-so, no-aplica: no mostrar toggle.
   if (arq === "adoptada" || arq === "no-aplica" || arq === "config-so") return null;
   // Resto: toggle explícito.
-  const labelOn = "✓ Incluida en codificación";
-  const labelOff = "Incluir en codificación";
+  // «Incluir en codificación» queda puesto en la pregunta: interruptor, no
+  // casilla. El rótulo no cambia con el estado; lo dice la perilla.
   return (
     <div
       onClick={(e) => e.stopPropagation()}
@@ -863,16 +876,15 @@ function MarcarFooter({ p, arq, busy, onToggleMarcada, onNoCategorizar }: { p: P
         display: "flex", alignItems: "center", gap: 8,
       }}
     >
-      <label style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: busy ? "wait" : "pointer", fontSize: 11, fontWeight: 600, color: p.marcada ? "var(--pulso-success-fg)" : "var(--pulso-text-soft)" }}>
-        <input
-          type="checkbox"
+      <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: busy ? "wait" : "pointer", fontSize: 11, fontWeight: 600, color: p.marcada ? "var(--pulso-text)" : "var(--pulso-text-soft)" }}>
+        <Switch
+          className="pulso-codificacion-switch"
           checked={p.marcada}
           disabled={busy}
-          onChange={(e) => onToggleMarcada(e.target.checked)}
-          style={{ cursor: busy ? "wait" : "pointer" }}
-          aria-label={p.marcada ? `Quitar ${p.parent} del flujo de codificación` : `Incluir ${p.parent} en el flujo de codificación`}
+          onToggle={() => onToggleMarcada(!p.marcada)}
+          ariaLabel={`Incluir ${p.parent} en el flujo de codificación`}
         />
-        {p.marcada ? labelOn : labelOff}
+        Incluir en codificación
       </label>
       {p.marcada && decidir}
     </div>
@@ -961,8 +973,8 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
   );
 
   const label = (
-    <div style={{ fontSize: 13, color: "var(--pulso-text)", lineHeight: 1.35 }} title={p.parent_label}>
-      {truncate(p.parent_label, 110)}
+    <div style={{ fontSize: 13, color: "var(--pulso-text)", lineHeight: 1.35 }} title={sinEnfasis(p.parent_label)}>
+      {truncate(sinEnfasis(p.parent_label), 110)}
     </div>
   );
 
@@ -985,7 +997,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
       {p.n_respuestas > 0 && (
         <span>
-          <strong style={{ color: "var(--pulso-text)" }}>{p.n_respuestas}</strong> respuestas · <strong style={{ color: "var(--pulso-text)" }}>{p.n_unicas}</strong> únicas
+          <strong style={{ color: "var(--pulso-text)" }}>{formatoConteo(p.n_respuestas)}</strong> respuestas · <strong style={{ color: "var(--pulso-text)" }}>{formatoConteo(p.n_unicas)}</strong> únicas
         </span>
       )}
       {decisionChip}

@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, ChevronDown, Inbox, Info, SearchX, X } from "../../vendor/lucide-react";
 import { EMPAREJAMIENTO_ESTADOS_FILA, type CargaFuentesEmparejamiento, type EmparejamientoFuente } from "../../api/cargaFuentes";
 import { GlidingRadioGroup } from "../../components/GlidingRadioGroup";
-import { EmptyState, ErrorBlock, LoadingBlock } from "../../components/States";
+import { ErrorBlock, LoadingBlock } from "../../components/States";
 import {
   EMPAREJAMIENTO_ESTADOS,
   avisoExclusion,
@@ -21,6 +21,7 @@ import {
   type EmparejamientoFiltro,
 } from "./fuentesEmparejamientoModel";
 import { EmparejamientoInsignia, FuentesEmparejamientoTabla, ICONO_ESTADO } from "./FuentesEmparejamientoTabla";
+import { EstadoVacio } from "../../components/EstadoVacio";
 
 export type EmparejamientoCarga =
   | { tipo: "cargando" }
@@ -189,11 +190,11 @@ function DetalleFuente({
         {visibles.length ? (
           <FuentesEmparejamientoTabla filas={visibles} fuenteNombre={nombre} />
         ) : (
-          <EmptyState
-            variant="inline"
-            icon={<Inbox size={18} />}
-            title="Todas las preguntas se emparejaron con el mismo nombre."
-            hint="Elige «Todas» para verlas."
+          <EstadoVacio
+            tamano="compacto"
+            icono={<Inbox size={15} />}
+            titulo="Todas las preguntas se emparejaron con el mismo nombre."
+            descripcion="Elige «Todas» para verlas."
           />
         )}
       </div>
@@ -229,34 +230,38 @@ export function FuentesEmparejamientoVista({
     cuerpo = <ErrorBlock label="No se pudo leer el emparejamiento de las preguntas" detail={carga.mensaje} />;
   } else if (carga.tipo === "fuera-del-estudio") {
     cuerpo = (
-      <EmptyState
-        icon={<SearchX size={20} />}
-        title="No se encontró esa fuente en este estudio"
-        hint="Ninguna base la junta. Ábrela desde «Ver preguntas» en la tarjeta de su fuente."
+      <EstadoVacio
+        tamano="normal"
+        icono={<SearchX size={18} />}
+        titulo="No se encontró esa fuente en este estudio"
+        descripcion="Ninguna base la junta. Ábrela desde «Ver preguntas» en la tarjeta de su fuente."
       />
     );
   } else if (!fuentes.length) {
     cuerpo = (
-      <EmptyState
-        icon={<Inbox size={20} />}
-        title="Esta base no junta encuestas"
-        hint="No hay fuentes que emparejar con la base."
+      <EstadoVacio
+        tamano="normal"
+        icono={<Inbox size={18} />}
+        titulo="Esta base no junta encuestas"
+        descripcion="No hay fuentes que emparejar con la base."
       />
     );
   } else if (!fuente) {
     cuerpo = (
-      <EmptyState
-        icon={<SearchX size={20} />}
-        title="Esa fuente ya no forma parte de esta base"
-        hint="Elige otra fuente arriba."
+      <EstadoVacio
+        tamano="normal"
+        icono={<SearchX size={18} />}
+        titulo="Esa fuente ya no forma parte de esta base"
+        descripcion="Elige otra fuente arriba."
       />
     );
   } else if (!fuente.detalle_disponible) {
     cuerpo = (
-      <EmptyState
-        icon={<Inbox size={20} />}
-        title="Vuelve a traer las respuestas para ver el detalle de esta fuente."
-        hint={fuente.n_preguntas_base > 0
+      <EstadoVacio
+        tamano="normal"
+        icono={<Inbox size={18} />}
+        titulo="Vuelve a traer las respuestas para ver el detalle de esta fuente."
+        descripcion={fuente.n_preguntas_base > 0
           ? `${formatoEntero(fuente.n_emparejadas)} de ${formatoEntero(fuente.n_preguntas_base)} preguntas de la base tienen par en esta fuente.`
           : undefined}
       />

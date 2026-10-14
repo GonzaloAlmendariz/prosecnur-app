@@ -8,7 +8,9 @@
 // racimo de useState.
 
 import type {
+  ComparativoAusente,
   ComparativoAviso,
+  ComparativoOmitida,
   ComparativoBody,
   ComparativoNa,
   ComparativoRefFila,
@@ -17,7 +19,10 @@ import type {
   ComparativoTipo,
 } from "../../../api/analitica";
 import type { EquivalenciasEstado } from "../../../api/equivalencias";
+import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import { serializarDireccion } from "../../../lib/navegacion/direccion";
+import { rotuloPorDefecto } from "../../carga/nombreDeSerie";
+import { rotuloDeMatriz } from "../../../lib/rotuloDeMatriz";
 
 // ---- Filas candidatas -------------------------------------------------------
 
@@ -32,6 +37,8 @@ export type FilaArmonizada = {
   seccion: string;
   /** Mediciones de la serie en las que la fila es comparable. */
   basesComparables: string[];
+  /** Mediciones de la serie en las que la fila no declara variable. */
+  basesSinVariable: string[];
   nCategorias: number;
   /** Comparable en al menos una medición de la serie. Si no, no se ofrece. */
   seleccionable: boolean;
@@ -54,15 +61,20 @@ export function filasArmonizadas(estado: EquivalenciasEstado | null): FilaArmoni
       etiqueta,
       seccion: fila.seccion.trim(),
       basesComparables: [],
+      basesSinVariable: [],
       nCategorias: arm.escala.length,
       seleccionable: false,
     });
     const ultima = out[out.length - 1];
     // Una base sin entrada en `por_base` es «n.c.» (contrato E4-E7). Sólo cuentan
-    // las mediciones de la serie: una base fuera de ella no se tabula.
+    // las mediciones de la serie: una base fuera de ella no se tabula. Tampoco
+    // cuenta una base sin variable declarada: no hay columna que tabular y el
+    // motor la publica como «n.c.» aunque su armonización diga comparable.
+    const conVariable = (base: string) => (fila.variables?.[base] ?? "").trim() !== "";
     ultima.basesComparables = Object.entries(arm.por_base)
-      .filter(([base, entrada]) => entrada.comparable && (serie.length === 0 || serie.includes(base)))
+      .filter(([base, entrada]) => entrada.comparable && conVariable(base) && (serie.length === 0 || serie.includes(base)))
       .map(([base]) => base);
+    ultima.basesSinVariable = (serie.length ? serie : Object.keys(arm.por_base)).filter((base) => !conVariable(base));
     ultima.seleccionable = ultima.basesComparables.length > 0;
   });
   return out;
@@ -74,9 +86,40 @@ export function periodosDeSerie(estado: EquivalenciasEstado | null): string[] {
   return declarados.length ? declarados : (estado?.bases ?? []).filter(Boolean);
 }
 
-/** Espejo de `.armz_rotulos()`: el año del nombre de la base, si lo tiene. */
-export function rotuloPorDefecto(base: string): string {
-  return base.match(/(19|20)[0-9]{2}/)?.[0] ?? base;
+/**
+ * Espejo de `.armz_rotulos()`: el año del nombre de la base, si lo tiene, o el
+ * nombre entero. Vive en `nombreDeSerie` porque Equivalencias decide con él
+ * cómo nombrar la serie, y las dos superficies tienen que decir lo mismo.
+ */
+export { rotuloPorDefecto };
+
+/**
+ * Rótulos por defecto de toda la serie. El año sólo se usa si nombra a UNA
+ * base: con «encuesta_2024_docentes» y «encuesta_2024_estudiantes» las dos
+ * columnas se titularían «2024» y la tabla no diría cuál es cuál, así que
+ * esas bases conservan su nombre entero.
+ */
+export function rotulosPorDefecto(periodos: readonly string[]): Record<string, string> {
+  const cortos = periodos.map((p) => rotuloPorDefecto(p));
+  return Object.fromEntries(
+    periodos.map((p, i) => {
+      const repetido = cortos.filter((c) => c === cortos[i]).length > 1;
+      return [p, repetido ? p : cortos[i]];
+    }),
+  );
+}
+
+/** Rótulos que titulan a más de una medición. Dos columnas iguales no se distinguen. */
+export function rotulosRepetidos(
+  rotulos: Record<string, string>,
+  periodos: readonly string[],
+): string[] {
+  const vistos = new Map<string, number>();
+  for (const base of periodos) {
+    const r = (rotulos[base] ?? "").trim() || base;
+    vistos.set(r, (vistos.get(r) ?? 0) + 1);
+  }
+  return [...vistos.entries()].filter(([, n]) => n > 1).map(([r]) => r);
 }
 
 /** Un estudio con menos de dos bases no tiene serie que comparar. */
@@ -117,7 +160,7 @@ export function estadoInicial(filas: FilaArmonizada[], periodos: string[]): Comp
   return {
     preguntas: filas.filter((f) => f.seleccionable).map((f) => f.clave),
     cruces: [],
-    rotulos: Object.fromEntries(periodos.map((p) => [p, rotuloPorDefecto(p)])),
+    rotulos: rotulosPorDefecto(periodos),
     notasPregunta: {},
     notasGenerales: "",
     enviando: null,
@@ -132,6 +175,8 @@ export type AccionComparativos =
   | { tipo: "alternar-pregunta"; clave: string }
   | { tipo: "todas-las-preguntas"; claves: string[] }
   | { tipo: "ninguna-pregunta" }
+  /** Elige o suelta de una vez las preguntas de un grupo (una sección, un filtro). */
+  | { tipo: "elegir-preguntas"; claves: string[]; valor: boolean }
   | { tipo: "alternar-cruce"; clave: string }
   | { tipo: "rotulo"; base: string; valor: string }
   | { tipo: "nota-pregunta"; clave: string; valor: string }
@@ -156,6 +201,10 @@ export function comparativosReducer(ui: ComparativosUi, accion: AccionComparativ
       return { ...ui, preguntas: [...accion.claves] };
     case "ninguna-pregunta":
       return { ...ui, preguntas: [] };
+    case "elegir-preguntas": {
+      const sin = ui.preguntas.filter((c) => !accion.claves.includes(c));
+      return { ...ui, preguntas: accion.valor ? [...sin, ...accion.claves] : sin };
+    }
     case "alternar-cruce":
       return { ...ui, cruces: alternar(ui.cruces, accion.clave) };
     case "rotulo":
@@ -305,16 +354,138 @@ const ETIQUETA_AVISO: Partial<Record<string, string>> = {
   sin_mapa: "Sin correspondencia",
   nota_sin_pregunta: "Nota sin pregunta",
   peso_ignorado: "Peso ignorado",
+  sin_variable: "Sin variable",
+  "variable_ausente:excluida": "Variable excluida en Analítica",
+  "variable_ausente:no_esta_en_la_base": "Variable que no está en la base",
+  // Un `variable_ausente` sin motivo conocido conserva un rótulo honesto.
+  variable_ausente: "Variable que no está en los datos",
 };
+
+// ---- Preguntas omitidas ------------------------------------------------------
+
+/**
+ * Por qué una pregunta quedó fuera del comparativo, en palabras llanas. Un
+ * motivo que el cliente no conoce se muestra tal cual: nunca se oculta.
+ */
+const MOTIVO_OMISION: Partial<Record<string, string>> = {
+  sin_variable: "No tiene variable en la base que se iba a tabular",
+  mapa_roto: "Su armonización apunta a respuestas que la escala común no tiene",
+  select_multiple: "Es de respuesta múltiple y el comparativo sólo tabula preguntas de una respuesta",
+  "variable_ausente:excluida": "Variable excluida en Analítica",
+  "variable_ausente:no_esta_en_la_base": "Variable que no está en la base",
+  variable_ausente: "Variable que no está en los datos",
+};
+
+/**
+ * Motivo en palabras llanas. `variable_ausente` se precisa con los motivos de
+ * sus `ausentes`: si todas están excluidas en Analítica lo dice así, si alguna
+ * falta en la base, eso.
+ */
+export function textoMotivoOmision(
+  motivo: string | undefined,
+  ausentes: readonly Pick<ComparativoAusente, "motivo">[] = [],
+): string {
+  const m = (motivo ?? "").trim();
+  if (!m) return "Motivo no informado";
+  if (m === "variable_ausente" && ausentes.length) {
+    const sub = ausentes.every((a) => a.motivo === "excluida") ? "excluida" : "no_esta_en_la_base";
+    return MOTIVO_OMISION[`${m}:${sub}`] ?? m;
+  }
+  return MOTIVO_OMISION[m] ?? m;
+}
+
+/**
+ * El detalle de una omisión en una sola frase: el texto del motor, las
+ * variables ausentes por base y, si el motor no dio texto, los códigos.
+ */
+export function detalleDeOmitida(
+  o: Pick<ComparativoOmitida, "detalle" | "ausentes" | "codigos">,
+  periodos: ComparativoResultado["periodos"],
+): string {
+  const partes: string[] = [];
+  if (o.detalle) partes.push(o.detalle);
+  for (const a of o.ausentes) partes.push(`${rotuloDe(a.base, periodos)}: ${textoAusente(a)}.`);
+  if (!o.detalle && o.codigos.length) partes.push(`Códigos: ${o.codigos.join(", ")}.`);
+  return partes.join(" ");
+}
+
+/** Por qué falta la variable en una base, como frase. */
+export function textoAusente(a: Pick<ComparativoAusente, "variable" | "motivo">): string {
+  return a.motivo === "excluida"
+    ? `La variable ${a.variable} está excluida en Analítica para esta base`
+    : `La variable ${a.variable} no está en los datos de esta base`;
+}
+
+/**
+ * Lo que quedó fuera del libro. La fuente es `resumen.omitidas`. Un motor que
+ * todavía no la manda sólo avisaba con `pregunta_omitida`/`cruce_omitido`: se
+ * reconstruye desde esos avisos para no perder la omisión.
+ */
+export function omitidasDe(resumen: Pick<ComparativoResultado["resumen"], "omitidas" | "avisos">): ComparativoOmitida[] {
+  if (resumen.omitidas.length) return resumen.omitidas;
+  return resumen.avisos
+    .filter((a) => a.tipoOriginal === "pregunta_omitida" || a.tipoOriginal === "cruce_omitido")
+    .map((a) => ({
+      fila: a.fila ?? "",
+      titulo: a.fila ?? "",
+      tipo: a.tipoOriginal === "cruce_omitido" ? "cruce" : "pregunta",
+      motivo: a.motivo ?? "",
+      base: a.base ?? "",
+      codigos: a.codigos ?? [],
+      detalle: a.mensaje,
+      ausentes: [],
+    }));
+}
+
+/** Los demás avisos: las omisiones van en su propio bloque, no mezcladas. */
+export function avisosGenerales(avisos: readonly ComparativoAviso[]): ComparativoAviso[] {
+  return avisos.filter((a) => a.tipoOriginal !== "pregunta_omitida" && a.tipoOriginal !== "cruce_omitido");
+}
+
+/** Abre el editor de armonización sobre la fila omitida. */
+export function direccionDeOmitida(o: Pick<ComparativoOmitida, "fila">): string {
+  return o.fila
+    ? serializarDireccion({
+      modulo: "procesamiento",
+      seccion: "carga",
+      pestana: "equivalencias",
+      panel: "armonizacion",
+      foco: o.fila,
+    })
+    : DIRECCION_EQUIVALENCIAS;
+}
+
+/** «2024» o «2024 (Sexo)»: dónde no tiene variable una pregunta, con sus rótulos. */
+export function celdaSinVariable(
+  p: Pick<Pregunta, "sin_variable" | "variable_ausente">,
+  periodos: ComparativoResultado["periodos"],
+): string[] {
+  const sin = p.sin_variable.map((s) => {
+    const rotulo = rotuloDe(s.base, periodos);
+    return s.fila ? `${rotulo} (${s.fila})` : rotulo;
+  });
+  // La variable está declarada pero no en los datos: se dice cuál y por qué.
+  const ausentes = p.variable_ausente.map((a) => {
+    const rotulo = rotuloDe(a.base, periodos);
+    return `${rotulo}: ${textoAusente(a)}`;
+  });
+  return [...sin, ...ausentes];
+}
 
 /** Rótulo del tipo de aviso. Un tipo que el cliente no conoce se muestra tal cual, nunca se oculta. */
 export function etiquetaDeAviso(aviso: ComparativoAviso): string {
-  return ETIQUETA_AVISO[aviso.tipoOriginal] ?? (aviso.tipoOriginal || "Aviso");
+  const conMotivo = aviso.motivo ? ETIQUETA_AVISO[`${aviso.tipoOriginal}:${aviso.motivo}`] : undefined;
+  return conMotivo ?? ETIQUETA_AVISO[aviso.tipoOriginal] ?? (aviso.tipoOriginal || "Aviso");
 }
 
 /** Dónde se resuelve un aviso, si tiene dónde. */
 export function accionParaAviso(aviso: ComparativoAviso): AccionDeError | null {
   if (aviso.tipo === "peso_ignorado") return { etiqueta: "Ir a Ponderación", href: DIRECCION_PONDERACION };
+  // Una variable que no está en la base se revisa en la fila de Equivalencias.
+  // Una excluida en Analítica no tiene superficie a la que llevar: sólo se dice.
+  if (aviso.tipo === "variable_ausente" && aviso.motivo === "no_esta_en_la_base") {
+    return { etiqueta: "Revisar en Equivalencias", href: direccionDeOmitida({ fila: aviso.fila ?? "" }) };
+  }
   return null;
 }
 
@@ -381,12 +552,133 @@ export function rotuloDe(base: string, periodos: ComparativoResultado["periodos"
   return periodos.find((p) => p.base === base)?.rotulo ?? base;
 }
 
+// ---- Cobertura por medición y agrupación de la lista ---------------------------
+
+export type EstadoCobertura = "comparable" | "sin-variable" | "no-comparable";
+
+export type CoberturaMedicion = { base: string; rotulo: string; estado: EstadoCobertura };
+
+/**
+ * Estado de la fila en cada medición de la serie, en el orden de la serie. Es lo
+ * que la tarjeta pinta como un chip por medición: con siete bases, una frase
+ * «comparable en 5 de 7, sin variable en A y B» no dice dónde está cada una.
+ */
+export function coberturaPorMedicion(
+  fila: Pick<FilaArmonizada, "basesComparables" | "basesSinVariable">,
+  periodos: readonly string[],
+  rotulos: Record<string, string>,
+): CoberturaMedicion[] {
+  return periodos.map((base) => ({
+    base,
+    rotulo: (rotulos[base] ?? "").trim() || rotuloPorDefecto(base),
+    estado: fila.basesComparables.includes(base)
+      ? "comparable"
+      : fila.basesSinVariable.includes(base)
+        ? "sin-variable"
+        : "no-comparable",
+  }));
+}
+
+export const TEXTO_COBERTURA: Record<EstadoCobertura, string> = {
+  comparable: "comparable",
+  "sin-variable": "sin variable",
+  "no-comparable": "no comparable",
+};
+
+export type GrupoDeFilas = { clave: string; titulo: string; filas: FilaArmonizada[] };
+
+/** Nombre legible de una sección del formulario: «pag3» es «Página 3 del formulario». */
+export function tituloDeSeccion(seccion: string): string {
+  const s = seccion.trim();
+  if (!s) return "Sin sección";
+  const m = /^pag(?:ina|e)?\s*_?(\d+)$/i.exec(s);
+  return m ? `Página ${Number(m[1])} del formulario` : rotuloDeMatriz(s);
+}
+
+/** Estado de la casilla de una sección: todas, ninguna o algunas elegidas. */
+export type EstadoCasilla = "todas" | "ninguna" | "algunas";
+
+export function estadoDeCasilla(claves: readonly string[], elegidas: readonly string[]): EstadoCasilla {
+  const n = claves.filter((c) => elegidas.includes(c)).length;
+  if (n === 0) return "ninguna";
+  return n === claves.length ? "todas" : "algunas";
+}
+
+/** Agrupa por sección conservando el orden de la matriz: la primera aparición manda. */
+export function agruparPorSeccion(filas: readonly FilaArmonizada[]): GrupoDeFilas[] {
+  const grupos = new Map<string, GrupoDeFilas>();
+  for (const fila of filas) {
+    const clave = fila.seccion.trim();
+    const grupo = grupos.get(clave) ?? { clave, titulo: tituloDeSeccion(clave), filas: [] };
+    grupo.filas.push(fila);
+    grupos.set(clave, grupo);
+  }
+  return [...grupos.values()];
+}
+
+function plano(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+/** Filtra por texto en la etiqueta o la sección, sin distinguir tildes ni mayúsculas. */
+export function filtrarFilas(filas: readonly FilaArmonizada[], consulta: string): FilaArmonizada[] {
+  const q = plano(consulta.trim());
+  if (!q) return [...filas];
+  return filas.filter((f) => plano(`${f.etiqueta} ${f.seccion} ${tituloDeSeccion(f.seccion)}`).includes(q));
+}
+
+/** «12 elegidas de 74». Sólo cuentan las que se pueden elegir. */
+export function contadorElegidas(filas: readonly FilaArmonizada[], elegidas: readonly string[]): string {
+  const seleccionables = filas.filter((f) => f.seleccionable);
+  const n = seleccionables.filter((f) => elegidas.includes(f.clave)).length;
+  return `${formatoConteo(n)} ${n === 1 ? "elegida" : "elegidas"} de ${formatoConteo(seleccionables.length)}`;
+}
+
+/** Lo que la tarjeta dice de la cobertura de la fila en la serie. */
+export function detalleCobertura(
+  fila: Pick<FilaArmonizada, "basesComparables" | "basesSinVariable" | "nCategorias">,
+  totalPeriodos: number,
+  rotulos: Record<string, string>,
+): string {
+  const partes = [
+    `comparable en ${fila.basesComparables.length} de ${cantidad(totalPeriodos, "medición", "mediciones")}`,
+    cantidad(fila.nCategorias, "categoría", "categorías"),
+  ];
+  if (fila.basesSinVariable.length) {
+    const mediciones = fila.basesSinVariable.map((b) => (rotulos[b] ?? "").trim() || rotuloPorDefecto(b));
+    partes.push(`sin variable en ${unirLista(mediciones)}`);
+  }
+  return partes.join(", ");
+}
+
+function unirLista(items: string[]): string {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} y ${items[items.length - 1]}`;
+}
+
 export function cantidad(n: number, singular: string, plural: string): string {
-  return `${n} ${n === 1 ? singular : plural}`;
+  return formatoConteoDe(n, singular, plural);
 }
 
 export function formatoBytes(n: number): string {
   if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
   if (n >= 1024) return `${Math.round(n / 1024)} KB`;
   return `${n} B`;
+}
+
+// ---- Notas por pregunta ------------------------------------------------------
+
+/**
+ * Preguntas que pueden llevar nota propia en el comparativo: las elegidas, con
+ * la etiqueta legible de la matriz. Se ofrecen al selector «Añadir nota para
+ * una pregunta» del editor único de notas al pie.
+ */
+export function opcionesDeNotaComparativo(
+  filas: readonly FilaArmonizada[],
+  elegidas: readonly string[],
+): Array<{ clave: string; etiqueta: string }> {
+  const set = new Set(elegidas);
+  return filas
+    .filter((f) => f.seleccionable && set.has(f.clave))
+    .map((f) => ({ clave: f.clave, etiqueta: rotuloDeMatriz(f.etiqueta) }));
 }

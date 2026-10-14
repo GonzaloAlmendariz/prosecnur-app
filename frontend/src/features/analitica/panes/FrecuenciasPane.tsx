@@ -1,11 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown01, ArrowUp01, BarChart2, CheckCircle2, Hash, Info, ListOrdered, Plus, Rows3, Table2, X } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowDown01, ArrowUp01, BarChart2, Hash, Info, ListOrdered, Plus, Table2, X } from "lucide-react";
 import {
   apiAnaliticaFrecuencias,
   apiAnaliticaVariables,
   VariableInstrumento,
 } from "../../../api/client";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 import { Panel } from "../../../components/Panel";
+import { PulsoButton } from "../../../components/PulsoButton";
+import { formatoConteo } from "../../../lib/formatoNumero";
+import { CifrasPestana } from "../CifrasPestana";
+import { InterruptorOpcion } from "../InterruptorOpcion";
+import { DIRECCION_DATOS } from "../direccionesAnalitica";
+import { resumenSecciones, variablesAnalizables } from "../estructuraDeSecciones";
 import { useAnaliticaStore } from "../store";
 import { VariableSelect } from "../VariableSelect";
 import { Section, GenerateFooter } from "../PaneKit";
@@ -13,10 +21,10 @@ import { useReporteRun } from "../useReporteRun";
 import { NotasPieEditor } from "./NotasPieEditor";
 
 // FrecuenciasPane — configuración específica del reporte de frecuencias.
-// Las secciones del instrumento y las variables excluidas globalmente
-// viven en "Definición global" arriba de la página; aquí el analista
-// solo decide QUÉ variables resumir numéricamente y CÓMO ordenar las
-// respuestas. Las secciones activas = todas las no-ocultas en el global.
+// Las secciones del instrumento y las variables excluidas se deciden en la
+// pestaña Datos; aquí el analista solo decide QUÉ variables resumir
+// numéricamente y CÓMO ordenar las respuestas. Las secciones activas son las
+// no ocultas; sin secciones declaradas, el motor usa las del instrumento.
 
 export function FrecuenciasPane() {
   const frec = useAnaliticaStore((s) => s.config.frecuencias);
@@ -27,14 +35,23 @@ export function FrecuenciasPane() {
   const run = useReporteRun();
 
   const [variables, setVariables] = useState<VariableInstrumento[]>([]);
+  // Mientras llegan las variables (el backend puede tardar varios segundos en
+  // preparar la fuente) la pestaña no afirma «0 analizables»: dice que lee.
+  const [lecturaVariables, setLecturaVariables] = useState<"leyendo" | "lista" | "error">("leyendo");
 
   useEffect(() => {
+    let vigente = true;
     (async () => {
       try {
         const r = await apiAnaliticaVariables();
+        if (!vigente) return;
         setVariables(r.variables);
-      } catch {/* no-op */}
+        setLecturaVariables("lista");
+      } catch {
+        if (vigente) setLecturaVariables("error");
+      }
     })();
+    return () => { vigente = false; };
   }, []);
 
   async function onGenerate() {
@@ -56,17 +73,12 @@ export function FrecuenciasPane() {
     setFrec({ numericas_override: [] });
   }
 
-  // Resumen de qué entra: todas las secciones no-ocultas del global.
-  const seccionesActivas = secciones.filter((s) => !s.oculto);
-  const variablesByName = useMemo(() => new Map(variables.map((v) => [v.name, v])), [variables]);
+  // Resumen de qué entra. Sin secciones declaradas no son «0 activas»: el
+  // motor agrupa por la estructura del instrumento (C5, vacío por
+  // desconexión que bloqueaba «Generar» sin motivo).
+  const resumen = resumenSecciones(secciones);
   const variablesExcluidas = useMemo(() => new Set(excluidas), [excluidas]);
-  const nVariablesAfectadas = seccionesActivas.reduce((sum, s) => {
-    return sum + s.variables.filter((name) => {
-      if (variablesExcluidas.has(name)) return false;
-      const meta = variablesByName.get(name);
-      return !!meta?.categorica || numericas.includes(name);
-    }).length;
-  }, 0);
+  const nVariablesAfectadas = variablesAnalizables(secciones, variables, variablesExcluidas, numericas);
   const ordenOptions = [
     { k: "desc", label: "Más frecuentes", hint: "Prioriza lectura ejecutiva", icon: <ArrowDown01 size={13} /> },
     { k: "asc", label: "Menos frecuentes", hint: "Útil para detectar minorías", icon: <ArrowUp01 size={13} /> },
@@ -80,7 +92,13 @@ export function FrecuenciasPane() {
 
   return (
     <Panel className="analitica-frecuencias-panel">
-      <div className="analitica-report-shell analitica-frecuencias-workbench">
+      {/* C1: barra, nota, secciones, notas al pie y pie de generación son
+          bloques independientes de alto intrínseco. */}
+      <div
+        className="analitica-report-shell analitica-frecuencias-workbench"
+        data-qa-geometry-group="analitica/frecuencias-workbench"
+        data-qa-geometry-contract="intrinsic"
+      >
         <div className="analitica-frecuencias-docbar">
           <span className="analitica-frecuencias-docbar-icon" aria-hidden="true">
             <BarChart2 size={16} />
@@ -90,28 +108,37 @@ export function FrecuenciasPane() {
             <strong>Frecuencias</strong>
             <small>Tablas univariadas estilo SPSS agrupadas por instrumento.</small>
           </div>
-          <div className="analitica-frecuencias-docbar-stats" aria-label="Estado del reporte de frecuencias">
-            <span>
-              Secciones
-              <strong>{seccionesActivas.length} {seccionesActivas.length === 1 ? "activa" : "activas"}</strong>
-            </span>
-            <span>
-              Variables
-              <strong>{nVariablesAfectadas} analizables</strong>
-            </span>
-            <span>
-              Orden
-              <strong>{ordenActual.label}</strong>
-            </span>
-          </div>
+          <CifrasPestana
+            ariaLabel="Estado del reporte de frecuencias"
+            cifras={[
+              {
+                etiqueta: "Secciones",
+                valor: resumen.modo === "instrumento"
+                  ? "del instrumento"
+                  : `${formatoConteo(resumen.activas)} ${resumen.activas === 1 ? "activa" : "activas"}`,
+                titulo: resumen.modo === "instrumento" ? "Sin secciones declaradas en Datos: se usan las del instrumento." : undefined,
+              },
+              {
+                etiqueta: "Variables",
+                valor: lecturaVariables === "leyendo"
+                  ? "leyendo…"
+                  : lecturaVariables === "error"
+                    ? "sin leer"
+                    : `${formatoConteo(nVariablesAfectadas)} analizables`,
+                tono: lecturaVariables === "error" ? "alerta" : undefined,
+                titulo: lecturaVariables === "error" ? "No se pudieron leer las variables del instrumento. Vuelve a abrir la pestaña." : undefined,
+              },
+              { etiqueta: "Orden", valor: ordenActual.label },
+            ]}
+          />
         </div>
 
         <div className="analitica-report-note">
           <Info size={14} />
           <div>
-            Secciones y exclusiones se controlan en <strong>Definición global</strong>. Aquí solo ajustas cómo se resumen las variables y cómo queda presentada la tabla final.
+            Secciones y exclusiones se deciden en <Link to={DIRECCION_DATOS} className="analitica-enlace-pestana">Datos</Link>. Aquí solo ajustas cómo se resumen las variables y cómo queda presentada la tabla final.
             {excluidas.length > 0 && (
-              <> Hay <strong>{excluidas.length}</strong> {excluidas.length === 1 ? "variable excluida" : "variables excluidas"} activas.</>
+              <> Hay <strong>{formatoConteo(excluidas.length)}</strong> {excluidas.length === 1 ? "variable excluida" : "variables excluidas"}.</>
             )}
           </div>
         </div>
@@ -130,14 +157,16 @@ export function FrecuenciasPane() {
               onRemove={removeNumerica}
             />
             {numericas.length > 0 && (
-              <button
-                type="button"
+              <PulsoButton
+                variant="ghost"
+                size="sm"
                 onClick={clearNumericas}
                 className="analitica-frecuencias-clear"
                 title="Quitar todas las variables numéricas de este reporte"
               >
+                <X size={12} aria-hidden="true" />
                 Quitar numéricas
-              </button>
+              </PulsoButton>
             )}
           </div>
         </Section>
@@ -169,50 +198,29 @@ export function FrecuenciasPane() {
             </p>
 
             <div className="analitica-control-grid">
-              <label className={`analitica-control-card ${frec.mostrar_todo ? "is-active" : ""}`}>
-                <input
-                  type="checkbox"
-                  checked={frec.mostrar_todo}
-                  onChange={(e) => setFrec({ mostrar_todo: e.target.checked })}
-                />
-                <span className="analitica-control-icon">
-                  {frec.mostrar_todo ? <CheckCircle2 size={15} /> : <Rows3 size={15} />}
-                </span>
-                <span>
-                  <span className="analitica-control-title">Mostrar catálogo completo</span>
-                  <span className="analitica-control-copy">
-                    Incluye opciones sin respuestas para reportes comparables entre mediciones.
-                  </span>
-                </span>
-              </label>
+              <InterruptorOpcion
+                checked={frec.mostrar_todo}
+                onToggle={() => setFrec({ mostrar_todo: !frec.mostrar_todo })}
+                titulo="Mostrar catálogo completo"
+                descripcion="Incluye opciones sin respuestas para reportes comparables entre mediciones."
+              />
 
-              <label className={`analitica-control-card ${frec.incluir_secciones ? "is-active" : ""}`}>
-                <input
-                  type="checkbox"
-                  checked={frec.incluir_secciones}
-                  onChange={(e) => setFrec({ incluir_secciones: e.target.checked })}
-                />
-                <span className="analitica-control-icon">
-                  {frec.incluir_secciones ? <CheckCircle2 size={15} /> : <Rows3 size={15} />}
-                </span>
-                <span>
-                  <span className="analitica-control-title">Mostrar nombres de sección</span>
-                  <span className="analitica-control-copy">
-                    Agrega la celda separadora con el nombre de cada sección del instrumento.
-                  </span>
-                </span>
-              </label>
+              <InterruptorOpcion
+                checked={frec.incluir_secciones}
+                onToggle={() => setFrec({ incluir_secciones: !frec.incluir_secciones })}
+                titulo="Mostrar nombres de sección"
+                descripcion="Agrega la celda separadora con el nombre de cada sección del instrumento."
+              />
 
-              <div className="analitica-control-card">
-                <span className="analitica-control-icon"><Table2 size={15} /></span>
-                <div>
-                  <div className="analitica-control-title">Salida Excel pulida</div>
-                  <div className="analitica-control-copy">
-                    Las tablas simples mantienen siempre el título de la variable y salen con hoja blanca, gridlines ocultas y columnas numéricas centradas.
-                  </div>
-                </div>
-              </div>
             </div>
+
+            {/* Lo que no es una opción no lleva forma de opción (P-B5). */}
+            <p className="analitica-presentation-hint analitica-presentation-note">
+              <Table2 size={13} aria-hidden="true" />
+              <span>
+                <strong>Salida Excel:</strong> cada tabla conserva el título de su variable y sale con hoja blanca, sin líneas de cuadrícula y con las columnas numéricas centradas.
+              </span>
+            </p>
           </div>
         </Section>
 
@@ -226,7 +234,15 @@ export function FrecuenciasPane() {
           error={run.error}
           onGenerate={onGenerate}
           disabled={nVariablesAfectadas === 0}
-          disabledHint={nVariablesAfectadas === 0 ? "No hay secciones visibles. Abre Definición global y activa alguna con el icono del ojo." : undefined}
+          disabledHint={nVariablesAfectadas === 0
+            ? lecturaVariables === "leyendo"
+              ? "Leyendo las variables del instrumento…"
+              : lecturaVariables === "error"
+                ? "No se pudieron leer las variables del instrumento. Vuelve a abrir la pestaña."
+                : resumen.modo === "declaradas" && resumen.activas === 0
+              ? "Todas las secciones están ocultas. Muestra alguna en la pestaña Datos."
+              : "No hay variables que tabular. Incluye alguna en la pestaña Datos."
+            : undefined}
           perBase={run.perBase}
         />
       </div>
@@ -267,13 +283,11 @@ function NumericasPicker({
   return (
     <div className="analitica-variable-picker">
       {numericas.length === 0 && !adding && (
-        <div className="analitica-empty">
-          <span className="analitica-empty-icon" aria-hidden="true">
-            <Hash size={15} />
-          </span>
-          <strong>Sin resumen numérico</strong>
-          <small>Marca edades, ingresos o puntajes para resumirlos aparte.</small>
-        </div>
+        <EstadoVacio
+          icono={<Hash size={15} />}
+          titulo="Sin resumen numérico"
+          descripcion="Marca edades, ingresos o puntajes para resumirlos aparte."
+        />
       )}
       {numericas.length > 0 && (
         <div className="analitica-token-list">
@@ -311,31 +325,19 @@ function NumericasPicker({
               placeholder="Seleccionar variable numérica…"
             />
           </div>
-          <button
-            type="button"
-            className="pulso-primary"
-            onClick={commitAdd}
-            disabled={!pendingVar}
-          >
+          <PulsoButton variant="primary" onClick={commitAdd} disabled={!pendingVar}>
             Añadir
-          </button>
-          <button
-            type="button"
-            onClick={() => { setAdding(false); setPendingVar(""); }}
-            className="pulso-secondary"
-          >
+          </PulsoButton>
+          <PulsoButton variant="secondary" onClick={() => { setAdding(false); setPendingVar(""); }}>
             Cancelar
-          </button>
+          </PulsoButton>
         </div>
       ) : (
         <div className="analitica-picker-actions">
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="analitica-add-inline"
-          >
-            <Plus size={12} /> Añadir variable numérica
-          </button>
+          <PulsoButton variant="secondary" onClick={() => setAdding(true)}>
+            <Plus size={13} aria-hidden="true" />
+            Añadir variable numérica
+          </PulsoButton>
           {sugeridas.length > 0 && (
             <>
               <span className="analitica-picker-hint">

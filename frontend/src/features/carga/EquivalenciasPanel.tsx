@@ -16,7 +16,6 @@ import {
   CheckCheck,
   CheckCircle2,
   Download,
-  GitCompare,
   Layers,
   Save,
   Sparkles,
@@ -39,6 +38,7 @@ import { ArmonizacionPeriodos } from "./ArmonizacionPeriodos";
 import { ImportarBloquesBoton, ImportarBloquesDialog } from "./ImportarBloquesDialog";
 import { EquivalenciasTabla } from "./EquivalenciasTabla";
 import { EquivalenciasDiapositivas } from "./EquivalenciasDiapositivas";
+import { EquivalenciasEsqueleto, EquivalenciasTitulo } from "./EquivalenciasEsqueleto";
 import {
   aFilasEditor,
   agruparEnDiapositivas,
@@ -53,6 +53,7 @@ import {
   filaVacia,
   filasParaGuardar,
   incorporarSugerencias,
+  ordenarBasesPorSerie,
   quitarFila,
   resumenEditor,
   type FilaEditor,
@@ -60,14 +61,19 @@ import {
 import { apiUpload } from "../../api/estudio";
 import { downloadUrl } from "../../api/core";
 import "./EquivalenciasPanel.css";
+import { PulsoButton } from "../../components/PulsoButton";
+import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { formatoConteo, formatoConteoDe } from "../../lib/formatoNumero";
 
 export type EquivalenciasPanelProps = {
   /**
    * Reporta cuántas preguntas hay declaradas, no cuántas veces se importó. El
    * chip de la pestaña decía «1 pregunta emparejada» tras subir una matriz de
-   * 300 filas porque contaba importaciones.
+   * 300 filas porque contaba importaciones. `"error"`: no se pudo leer, y la
+   * pestaña no debe seguir diciendo «Revisando…» ni afirmar «Pendiente».
    */
-  onDeclaradas?: (n: number) => void;
+  onDeclaradas?: (n: number | "error") => void;
 };
 
 function resumenAplicacion(imp: EquivalenciasImportacion): {
@@ -92,6 +98,9 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
   const [filas, setFilas] = useState<FilaEditor[]>([]);
   const [variablesPorBase, setVariablesPorBase] = useState<Record<string, VariableDeBase[]>>({});
   const [sucio, setSucio] = useState(false);
+  // M14: «Guardado» sólo justo después de guardar desde aquí; al editar vuelve a
+  // «Cambios sin guardar» y al recargar, a «Sin cambios».
+  const [guardadoAhora, setGuardadoAhora] = useState(false);
   // Por diapositiva es la vista por defecto (ADR 0064): es el grano en que se decide
   // el mazo. La tabla plana se conserva porque sigue siendo la mejor forma de
   // barrer 150 temas buscando uno.
@@ -214,6 +223,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      onDeclaradas?.("error");
     } finally {
       setCargando(false);
     }
@@ -263,7 +273,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
         setAviso(
           conservadas > 0
             ? `${aplicadas} etiquetas aplicadas. ${conservadas} se conservaron porque ya estaban editadas a mano.`
-            : `${aplicadas} etiquetas aplicadas en ${imp.estado.bases.length} públicos.`,
+            : `${aplicadas} etiquetas aplicadas en ${imp.estado.bases.length} bases.`,
         );
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -303,6 +313,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
       setEstado(out.estado);
       setFilas(aFilasEditor(out.estado.filas ?? []));
       setSucio(false);
+      setGuardadoAhora(true);
       onDeclaradas?.(out.estado.n_filas ?? 0);
       const { aplicadas, conservadas } = resumenAplicacion(out);
       setAviso(conservadas > 0
@@ -325,16 +336,38 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
     [filas],
   );
 
-  if (cargando && !estado) {
+  // Las columnas siguen la serie declarada (2024, 2025, 2026), no el orden en
+  // que se cargaron las bases.
+  const bases = ordenarBasesPorSerie(estado?.bases ?? [], estado?.armonizacion_periodos);
+
+  // Overlays direccionables: van en portal, fuera de la geometría de la
+  // superficie. Se montan también durante la lectura, para que un enlace a
+  // `panel=armonizacion` muestre su propio estado de carga desde el principio.
+  const overlays = (
+    <>
+      <ArmonizacionFilaEditor
+        estado={estado}
+        cargandoEstado={cargando}
+        variablesPorBase={variablesPorBase}
+        onGuardado={onArmonizacionGuardada}
+      />
+      <ImportarBloquesDialog bases={bases} onAplicado={onBloquesAplicados} />
+    </>
+  );
+
+  // P-A8: la lectura inicial trae la declaración Y el catálogo de variables.
+  // Hasta que llegan las dos, la superficie es su esqueleto y su readiness es
+  // `false`: antes la tabla se pintaba sin catálogo y se daba por lista.
+  if (cargando) {
     return (
-      <section className="pulso-equiv" aria-label="Equivalencias entre públicos">
-        <p className="pulso-equiv-cargando">Revisando la declaración del estudio…</p>
-      </section>
+      <>
+        <EquivalenciasEsqueleto />
+        {overlays}
+      </>
     );
   }
 
   const declarada = Boolean(estado?.declarada);
-  const bases = estado?.bases ?? [];
   const desfasadas = estado?.desfasadas ?? [];
 
   // C1: seccion independiente, no una coleccion de pares. Su alto es intrinseco
@@ -351,58 +384,51 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
   return (
     <section
       className="pulso-equiv"
-      aria-label="Equivalencias entre públicos"
+      aria-label="Equivalencias entre bases"
+      // Terminal: la lectura terminó, con datos, vacía o con error a la vista.
+      data-audit-ready="true"
       data-qa-geometry-group="carga-equivalencias"
       data-qa-geometry-contract="intrinsic"
     >
       {/* C1: los miembros son la cabecera y el cuerpo. El aviso y el error son
           estado transitorio de la última acción, no secciones de la superficie. */}
       <header className="pulso-equiv-head" data-qa-geometry-member>
-        <div className="pulso-equiv-title">
-          <GitCompare size={18} aria-hidden="true" />
-          <div>
-            <strong>La misma pregunta en cada público</strong>
-            <small>
-              Cada público nombra sus variables distinto. Declarar la equivalencia es lo
-              que permite compararlos sin emparejar a mano.
-            </small>
-          </div>
-        </div>
+        <EquivalenciasTitulo />
         <div className="pulso-equiv-actions">
-          <button
-            type="button"
-            className="pulso-secondary pulso-equiv-btn"
+          <PulsoButton
+            variant="secondary"
+            className="pulso-equiv-btn"
             onClick={() => void onGenerar()}
             disabled={ocupado !== ""}
           >
             <Download size={14} aria-hidden="true" />
             {declarada ? "Descargar plantilla actual" : "Generar plantilla"}
-          </button>
-          <button
-            type="button"
-            className="pulso-secondary pulso-equiv-btn"
+          </PulsoButton>
+          <PulsoButton
+            variant="secondary"
+            className="pulso-equiv-btn"
             onClick={() => void onSugerir()}
             disabled={ocupado !== ""}
             title="Propone emparejamientos por etiqueta, escala y orden. No se guardan sin confirmar."
           >
             <Sparkles size={14} aria-hidden="true" />
             Proponer emparejados
-          </button>
+          </PulsoButton>
           {/* Un `button` real y no un `label` vestido de botón: el label no
               recibía el estilo de sus hermanos (16px/400, sin borde, 18 px de
               alto). El botón es el control —nombre, foco visible y Enter/Espacio
               nativos— y abre el selector de archivo, que queda fuera del orden
               de tabulación para no duplicar la parada. */}
-          <button
-            type="button"
-            className="pulso-secondary pulso-equiv-btn"
+          <PulsoButton
+            variant="secondary"
+            className="pulso-equiv-btn"
             onClick={() => archivoRef.current?.click()}
             disabled={ocupado !== ""}
             aria-controls="pulso-equiv-archivo"
           >
             <Upload size={14} aria-hidden="true" />
             Subir matriz
-          </button>
+          </PulsoButton>
           <ImportarBloquesBoton disabled={ocupado !== ""} />
           <input
             ref={archivoRef}
@@ -464,28 +490,30 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                   es la superficie y por dónde entran los datos; esto opera sobre
                   lo que ya está dentro. */}
               {sinDiapositiva > 0 && (
-                <button
-                  type="button"
+                <PulsoButton
+                  variant="secondary"
+                  size="sm"
                   className="pulso-equiv-accion-masiva"
                   onClick={onAgrupar}
-                  title="Agrupa por la batería del formulario: los temas cuyas variables comparten raíz en algún público van a la misma lámina."
+                  title="Agrupa por la batería del formulario: los temas cuyas variables comparten raíz en alguna base van a la misma lámina."
                 >
                   <Layers size={13} aria-hidden="true" />
-                  Agrupar {sinDiapositiva} sin diapositiva
-                </button>
+                  Agrupar {sinDiapositiva} sin lámina
+                </PulsoButton>
               )}
               {resumen.sugeridas > 0 && (
-                <button
-                  type="button"
+                <PulsoButton
+                  variant="secondary"
+                  size="sm"
                   className="pulso-equiv-accion-masiva"
                   onClick={onConfirmarTodas}
                 >
                   <CheckCheck size={13} aria-hidden="true" />
                   Confirmar {resumen.sugeridas} propuestas
-                </button>
+                </PulsoButton>
               )}
               <span className="pulso-equiv-vistas-nota">
-                {diapositivas.filter((l) => l.clave !== "").length} láminas · {filas.length} temas
+                {formatoConteoDe(diapositivas.filter((l) => l.clave !== "").length, "lámina")} · {formatoConteoDe(filas.length, "tema")}
               </span>
             </div>
 
@@ -523,43 +551,50 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
               />
             )}
             <div className="pulso-equiv-pie-editor">
-              <span>
-                {`${resumen.confirmadas} confirmadas`
-                  + (resumen.sugeridas ? ` · ${resumen.sugeridas} propuestas sin confirmar` : "")
-                  + (resumen.sinEtiqueta ? ` · ${resumen.sinEtiqueta} sin etiqueta` : "")
-                  + (resumen.conDiapositiva ? ` · ${resumen.conDiapositiva} con lámina` : "")}
+              <SaveStatusIndicator
+                state={
+                  ocupado === "guardar" ? "saving"
+                    : sucio ? "dirty"
+                    : guardadoAhora ? "saved" : "idle"
+                }
+                variant="badge"
+              />
+              <span className="pulso-equiv-pie-resumen">
+                {`${formatoConteo(resumen.confirmadas)} confirmadas`
+                  + (resumen.sugeridas ? ` · ${formatoConteo(resumen.sugeridas)} propuestas sin confirmar` : "")
+                  + (resumen.sinEtiqueta ? ` · ${formatoConteo(resumen.sinEtiqueta)} sin etiqueta` : "")
+                  + (resumen.conDiapositiva ? ` · ${formatoConteo(resumen.conDiapositiva)} con lámina` : "")}
               </span>
-              <button
-                type="button"
-                className="pulso-primary pulso-equiv-btn"
+              <PulsoButton
+                variant="primary"
+                className="pulso-equiv-btn"
                 onClick={() => void onGuardar()}
                 disabled={ocupado !== "" || !sucio}
               >
                 <Save size={14} aria-hidden="true" />
-                {sucio ? "Guardar cambios" : "Sin cambios"}
-              </button>
+                Guardar cambios
+              </PulsoButton>
             </div>
           </>
         ) : !declarada ? (
           // C5 categoría 1: vacío legítimo — el estudio todavía no la declaró.
           // El estado dice qué falta y cómo se llena, dentro de su propia caja.
-          <div className="pulso-equiv-vacio">
-            <p>
-              <strong>Este estudio todavía no declara equivalencias.</strong>
-            </p>
-            <p>
-              Genera la plantilla: sale con las variables y etiquetas de cada público ya
-              puestas. Empareja las filas que son la misma pregunta, escribe su etiqueta
-              estándar y súbela.
-            </p>
-            <p className="pulso-equiv-vacio-nota">
-              Sin esto, comparar dos públicos exige recordar qué variable corresponde a
-              cuál en cada uno.
-            </p>
-          </div>
+          // M4: la receta compartida de vacío.
+          <EstadoVacio
+            tamano="normal"
+            icono={<Layers size={18} />}
+            titulo="Este estudio todavía no declara equivalencias"
+            descripcion="Genera la plantilla con las variables de cada base, empareja la misma pregunta y súbela."
+            accion={
+              <PulsoButton variant="secondary" size="sm" onClick={() => void onGenerar()} disabled={ocupado !== ""}>
+                <Download size={13} aria-hidden="true" />
+                Generar plantilla
+              </PulsoButton>
+            }
+          />
         ) : (
           <>
-            <ul className="pulso-equiv-resumen" aria-label="Cobertura por público">
+            <ul className="pulso-equiv-resumen" aria-label="Cobertura por base">
               {bases.map((base) => {
                 const cob = estado?.cobertura?.[base];
                 const huerfanas = cob?.huerfanas ?? [];
@@ -581,7 +616,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                     <span className="pulso-equiv-resumen-copy">
                       <strong>{base}</strong>
                       <small>
-                        {cob ? `${cob.n_calzan} de ${cob.n_declaradas} variables declaradas` : "—"}
+                        {cob ? `${formatoConteo(cob.n_calzan)} de ${formatoConteoDe(cob.n_declaradas, "variable declarada", "variables declaradas")}` : "—"}
                       </small>
                       {desfasada && (
                         <small className="pulso-equiv-alerta">
@@ -602,7 +637,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
             </ul>
 
             <p className="pulso-equiv-pie">
-              {estado?.n_filas} preguntas declaradas
+              {formatoConteoDe(estado?.n_filas, "pregunta declarada", "preguntas declaradas")}
               {typeof estado?.n_sin_etiqueta === "number" && estado.n_sin_etiqueta > 0
                 ? ` · ${estado.n_sin_etiqueta} todavía sin etiqueta estándar`
                 : ""}
@@ -612,15 +647,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
         )}
       </div>
 
-      {/* Overlays direccionables: van en portal, fuera de la geometría de la
-          superficie. */}
-      <ArmonizacionFilaEditor
-        estado={estado}
-        cargandoEstado={cargando}
-        variablesPorBase={variablesPorBase}
-        onGuardado={onArmonizacionGuardada}
-      />
-      <ImportarBloquesDialog bases={bases} onAplicado={onBloquesAplicados} />
+      {overlays}
     </section>
   );
 }

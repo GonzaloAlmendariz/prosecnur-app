@@ -7,15 +7,21 @@ import { useState, type ReactNode } from "react";
 import { apiEstudioGet, apiEstudioRemoveBase, apiEstudioRenameBase, type EstudioBase, type EstudioPayload } from "../../../api/estudio";
 import type { VistaPreviaFuente } from "../../../api/xlsformEditor";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { ClipboardCheck, CloudDownload, Database, GitMerge, Pencil, Plus, Trash2, Upload, X } from "../../../vendor/lucide-react";
+import { ClipboardCheck, CloudDownload, Database, FileUp, GitMerge, Pencil, Plus, Trash2, Upload, X } from "../../../vendor/lucide-react";
+import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
+import { ordenarBasesPorSerie } from "../equivalenciasEditorModel";
+import { useOrdenDeSerie } from "./useOrdenDeSerie";
 import "./basesDelEstudio.css";
 
-export type OrigenNuevaBase = "surveymonkey" | "kobo" | "archivos" | "monitoreo";
+export type OrigenNuevaBase = "surveymonkey" | "kobo" | "archivos" | "sav" | "monitoreo";
 
+// B2: la base .sav sin formulario es un origen más de «Agregar base», no un
+// panel aparte que compita con él.
 const ORIGENES: { id: OrigenNuevaBase; rotulo: string; ayuda: string; icono: ReactNode }[] = [
   { id: "surveymonkey", rotulo: "SurveyMonkey", ayuda: "Una encuesta de tu cuenta", icono: <CloudDownload size={16} aria-hidden="true" /> },
   { id: "kobo", rotulo: "KoboToolbox", ayuda: "Un proyecto de Kobo", icono: <CloudDownload size={16} aria-hidden="true" /> },
   { id: "archivos", rotulo: "Archivos", ayuda: "Formulario y respuestas en Excel", icono: <Upload size={16} aria-hidden="true" /> },
+  { id: "sav", rotulo: "Archivo .sav", ayuda: "Sin formulario, sólo el .sav", icono: <FileUp size={16} aria-hidden="true" /> },
   { id: "monitoreo", rotulo: "Monitoreo", ayuda: "Lo que ya sigue el proyecto en campo", icono: <ClipboardCheck size={16} aria-hidden="true" /> },
 ];
 
@@ -30,6 +36,18 @@ export function origenDeBase(b: Pick<EstudioBase, "source_kind">): string {
 /** Las bases que se muestran como tarjeta: las hijas de un grupo repetido viven dentro de su madre. */
 export function basesVisibles(estudio: Pick<EstudioPayload, "bases">): EstudioBase[] {
   return Object.values(estudio.bases ?? {}).filter((b) => !b.parent_base);
+}
+
+/**
+ * Las tarjetas siguen el orden de la serie declarado en Equivalencias (M6); las
+ * bases que la serie no nombra van después, en su orden de alta. Sin serie, el
+ * orden de alta.
+ */
+export function ordenarBasesDelEstudio(bases: readonly EstudioBase[], periodos: readonly string[]): EstudioBase[] {
+  const porNombre = new Map(bases.map((b) => [b.nombre, b] as const));
+  return ordenarBasesPorSerie(bases.map((b) => b.nombre), periodos)
+    .map((nombre) => porNombre.get(nombre))
+    .filter((b): b is EstudioBase => Boolean(b));
 }
 
 function TarjetaBase({ base, ocupado, onRenombrar, onQuitar, onOtraFuente }: {
@@ -69,8 +87,8 @@ function TarjetaBase({ base, ocupado, onRenombrar, onQuitar, onOtraFuente }: {
         </ul>
       ) : titulo ? <p className="pulso-bde-fuente">{titulo}{base.source_channel ? <span className="pulso-bde-canal">{base.source_channel}</span> : null}</p> : null}
       <dl className="pulso-bde-cifras">
-        <div><dt>Respuestas</dt><dd>{base.n_filas ?? "—"}</dd></div>
-        <div><dt>Columnas</dt><dd>{base.n_columnas ?? "—"}</dd></div>
+        <div><dt>Respuestas</dt><dd>{formatoConteo(base.n_filas)}</dd></div>
+        <div><dt>Columnas</dt><dd>{formatoConteo(base.n_columnas)}</dd></div>
       </dl>
       {confirmando ? (
         <div className="pulso-bde-confirmar" role="alert">
@@ -81,10 +99,11 @@ function TarjetaBase({ base, ocupado, onRenombrar, onQuitar, onOtraFuente }: {
       ) : (
         <div className="pulso-bde-acciones">
           {onOtraFuente ? (
-            <PulsoButton variant="ghost" size="sm" disabled={ocupado} onClick={onOtraFuente}><GitMerge size={13} aria-hidden="true" />Agregar otra fuente</PulsoButton>
+            <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={onOtraFuente}><GitMerge size={13} aria-hidden="true" />Agregar otra fuente</PulsoButton>
           ) : null}
-          <PulsoButton variant="ghost" size="sm" disabled={ocupado} onClick={() => setEditando(true)}><Pencil size={13} aria-hidden="true" />Renombrar</PulsoButton>
-          <PulsoButton variant="ghost" size="sm" disabled={ocupado} onClick={() => setConfirmando(true)}><Trash2 size={13} aria-hidden="true" />Quitar</PulsoButton>
+          {/* M2: acciones secundarias con el mismo PulsoButton secundario de Carga. */}
+          <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={() => setEditando(true)}><Pencil size={13} aria-hidden="true" />Renombrar</PulsoButton>
+          <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={() => setConfirmando(true)}><Trash2 size={13} aria-hidden="true" />Quitar</PulsoButton>
         </div>
       )}
     </article>
@@ -118,7 +137,10 @@ export function BasesDelEstudio({
   onDescartarVistaPrevia?: () => void;
   ocupado?: boolean;
 }) {
-  const bases = basesVisibles(estudio);
+  const altas = basesVisibles(estudio);
+  const periodos = useOrdenDeSerie(altas.map((b) => b.nombre).join("|"));
+  const bases = ordenarBasesDelEstudio(altas, periodos);
+  const enSerie = periodos.some((p) => altas.some((b) => b.nombre === p));
   const [agregando, setAgregandoEstado] = useState<OrigenNuevaBase | null>(bases.length ? null : "surveymonkey");
   const setAgregando = (o: OrigenNuevaBase | null) => { setAgregandoEstado(o); if (o) onOrigen?.(o); };
   const [ocupado, setOcupado] = useState(false);
@@ -141,7 +163,9 @@ export function BasesDelEstudio({
       <header className="pulso-bde-encabezado">
         <div>
           <h3 id="pulso-bde-titulo">Bases del estudio</h3>
-          <p>{bases.length ? `${bases.length} ${bases.length === 1 ? "base" : "bases"}, ${total} respuestas en total. Agrega las que falten cuando quieras.` : "Agrega la primera base: una por actor (estudiantes, docentes…)."}</p>
+          <p>{bases.length
+            ? `${formatoConteoDe(bases.length, "base")}, ${formatoConteoDe(total, "respuesta")} en total${enSerie ? ", en el orden de la serie de Equivalencias" : ""}. Agrega las que falten cuando quieras.`
+            : "Agrega la primera base: una por actor (estudiantes, docentes…)."}</p>
         </div>
         {agregando ? null : (
           <PulsoButton variant="primary" size="sm" onClick={() => { setOtraFuente(null); setAgregando("surveymonkey"); }}><Plus size={14} aria-hidden="true" />Agregar base</PulsoButton>

@@ -1,10 +1,18 @@
-// Lógica pura del panel «Depuración hecha fuera» (ADR 0100, P2).
+// Lógica pura del panel «Base preparada fuera de la plataforma» (ADR 0100, P2 y
+// Enmienda 1 / P2b): casos retirados y variables retiradas.
 //
-// Lo que se muestra es el agregado: recibidas, retiradas fuera y cargadas, más
-// el conteo por categoría. Los identificadores de las encuestas excluidas
+// De los casos se muestra el agregado: recibidas, retiradas fuera y cargadas,
+// más el conteo por categoría. Los identificadores de las encuestas retiradas
 // nunca llegan al frontend.
 
-import type { OrigenExterno, OrigenExternoEstado } from "../../api/cargaOrigenExterno";
+import type {
+  OrigenExterno,
+  OrigenExternoEstado,
+  OrigenExternoMotivoVariable,
+} from "../../api/cargaOrigenExterno";
+
+/** Motivo elegido por variable; vacío = sin elegir (no se declara). */
+export type MotivosBorrador = Record<string, OrigenExternoMotivoVariable | "">;
 
 export type OrigenExternoBorrador = {
   archivo: File | null;
@@ -12,6 +20,7 @@ export type OrigenExternoBorrador = {
   recibidas: string;
   script: string;
   version: string;
+  motivos: MotivosBorrador;
 };
 
 export const BORRADOR_VACIO: OrigenExternoBorrador = {
@@ -19,7 +28,44 @@ export const BORRADOR_VACIO: OrigenExternoBorrador = {
   recibidas: "",
   script: "",
   version: "",
+  motivos: {},
 };
+
+export const ROTULO_MOTIVO: Record<OrigenExternoMotivoVariable, string> = {
+  metadato: "Metadato",
+  no_va_al_cliente: "No va al cliente",
+  otra: "Otra",
+};
+
+/**
+ * Motivo con el que arranca cada variable faltante: el ya declarado si lo hay;
+ * si no, la sugerencia del backend (`metadato`); si no, sin elegir.
+ */
+export function motivosIniciales(datos: OrigenExterno): MotivosBorrador {
+  const declarados = new Map(
+    (datos.bloque?.variables_retiradas ?? []).map((item) => [item.variable, item.motivo] as const),
+  );
+  const motivos: MotivosBorrador = {};
+  for (const faltante of datos.variables_faltantes) {
+    motivos[faltante.variable] = declarados.get(faltante.variable) ?? faltante.motivo_sugerido;
+  }
+  return motivos;
+}
+
+export function borradorDesde(datos: OrigenExterno): OrigenExternoBorrador {
+  return { ...BORRADOR_VACIO, motivos: motivosIniciales(datos) };
+}
+
+/** Sólo las variables con motivo elegido: es lo que viaja en `variables_motivo`. */
+export function motivosElegidos(
+  motivos: MotivosBorrador,
+): Record<string, OrigenExternoMotivoVariable> {
+  const elegidos: Record<string, OrigenExternoMotivoVariable> = {};
+  for (const [variable, motivo] of Object.entries(motivos)) {
+    if (motivo) elegidos[variable] = motivo;
+  }
+  return elegidos;
+}
 
 export type RecibidasLeidas =
   | { ok: true; valor: number | null }
@@ -50,13 +96,42 @@ export function esListaExclusiones(nombre: string): boolean {
 
 /** Qué falta para poder declarar; vacío cuando se puede. */
 export function motivoNoDeclarable(borrador: OrigenExternoBorrador): string {
-  if (!borrador.archivo) return "Elige la lista de exclusiones (xlsx o csv).";
-  if (!esListaExclusiones(borrador.archivo.name)) {
-    return "La lista de exclusiones tiene que ser un xlsx o un csv.";
+  if (borrador.archivo && !esListaExclusiones(borrador.archivo.name)) {
+    return "La lista de casos retirados tiene que ser un xlsx o un csv.";
   }
   const recibidas = leerRecibidas(borrador.recibidas);
   if (!recibidas.ok) return recibidas.mensaje;
+  const hayVariables = Object.keys(motivosElegidos(borrador.motivos)).length > 0;
+  if (!borrador.archivo && !hayVariables) {
+    return "No hay nada que declarar: elige la lista de casos retirados o el motivo de alguna variable.";
+  }
   return "";
+}
+
+/** La cadena de casos se muestra si se retiraron casos, o si la declaración no retiró nada (la de siempre). */
+export function muestraCadenaCasos(datos: OrigenExterno): boolean {
+  const bloque = datos.bloque;
+  if (!bloque) return false;
+  return (datos.resumen?.excluidas ?? bloque.n_excluidas) > 0 || totalVariablesRetiradas(datos) === 0;
+}
+
+export function totalVariablesRetiradas(datos: OrigenExterno): number {
+  if (!datos.bloque) return 0;
+  return datos.resumen?.variables_retiradas.total ?? datos.bloque.n_variables_retiradas;
+}
+
+export function fraseVariablesRetiradas(n: number): string {
+  return `${formatoEntero(n)} ${n === 1 ? "variable retirada" : "variables retiradas"}`;
+}
+
+export type MotivoDesglose = { motivo: OrigenExternoMotivoVariable; rotulo: string; valor: string };
+
+export function desgloseVariables(datos: OrigenExterno): MotivoDesglose[] {
+  return (datos.resumen?.variables_retiradas.por_motivo ?? []).map((fila) => ({
+    motivo: fila.motivo,
+    rotulo: ROTULO_MOTIVO[fila.motivo],
+    valor: formatoEntero(fila.n),
+  }));
 }
 
 export function formatoEntero(n: number | null): string {
@@ -112,4 +187,28 @@ export function procedenciaScript(datos: OrigenExterno): string {
   if (!bloque) return "";
   const partes = [bloque.script, bloque.version ? `versión ${bloque.version}` : ""].filter(Boolean);
   return partes.join(" · ");
+}
+
+/**
+ * Las variables retiradas que no salen en los entregables: las del bloque
+ * guardado con motivo Metadato o No va al cliente, más las que el último POST
+ * agregó. Leerlas sólo del POST las hacía desaparecer al recargar.
+ */
+export function variablesExcluidasDeLaDeclaracion(datos: OrigenExterno): string[] {
+  const delBloque = (datos.bloque?.variables_retiradas ?? [])
+    .filter((v) => v.motivo === "metadato" || v.motivo === "no_va_al_cliente")
+    .map((v) => v.variable);
+  return Array.from(new Set([...delBloque, ...datos.variables_excluidas_agregadas]));
+}
+
+/**
+ * Dónde se ven y editan las variables excluidas: el panel lateral de Analítica
+ * (`panelesAnalitica.ts`, id `excluidas`). Con `foco` en la base declarada, el
+ * panel avisa si no es la activa en vez de cambiarla solo.
+ */
+export function hrefVariablesExcluidas(baseNombre?: string | null): string {
+  const params = new URLSearchParams({ pestana: "datos", panel: "excluidas" });
+  const base = (baseNombre ?? "").trim();
+  if (base) params.set("foco", base);
+  return `/analitica?${params.toString()}`;
 }

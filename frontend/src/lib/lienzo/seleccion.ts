@@ -1,6 +1,6 @@
 // Selección y arrastre en un lienzo espacial (ADR 0047).
 //
-// Destilado de `features/graficos/v2/canvas/PlanCanvas.tsx`, que ya resolvía
+// Destilado del antiguo lienzo del plan de Gráficos (`PlanCanvas`, ya retirado), que ya resolvía
 // bien la semántica —Shift+Click alterna, el fondo limpia, el arrastre de grupo
 // preserva offsets— pero acoplada a su dominio.
 //

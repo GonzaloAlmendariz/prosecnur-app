@@ -6,6 +6,7 @@ import {
   type ProcessingReleaseCatalog,
 } from "../../api/client";
 import { processingReleaseActive, processingReleaseCounts, processingReleaseStatusView } from "./processingReleaseModel";
+import { PulsoButton } from "../../components/PulsoButton";
 
 export function ProcessingReleasePanel({ activeBase }: { activeBase?: string | null }) {
   const [catalog, setCatalog] = useState<ProcessingReleaseCatalog | null>(null);
@@ -67,15 +68,15 @@ export function ProcessingReleasePanel({ activeBase }: { activeBase?: string | n
 
       {error ? <p className="pulso-processing-release-error">{error}</p> : null}
 
-      <button
-        type="button"
-        className="pulso-primary"
+      <PulsoButton
+        variant="primary"
         disabled={!active?.ready || active.approved || busy}
         onClick={() => { void approve(); }}
+        aria-busy={busy}
       >
-        {busy ? <RefreshCw size={14} className="is-spinning" /> : <ShieldCheck size={14} />}
+        {busy ? <RefreshCw size={14} className="is-spinning" aria-hidden="true" /> : <ShieldCheck size={14} aria-hidden="true" />}
         {active?.approved ? "Aprobada" : active?.status === "stale" ? "Volver a aprobar" : "Aprobar para informe"}
-      </button>
+      </PulsoButton>
     </section>
   );
 }

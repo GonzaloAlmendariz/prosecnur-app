@@ -26,6 +26,7 @@ import {
 } from "../../features/home/panelesHome";
 import { PANELES_GRAFICOS } from "../../features/graficos/panelesGraficos";
 import { PANELES_CARGA } from "../../features/carga/panelesCarga";
+import { PANELES_ANALITICA } from "../../features/analitica/panelesAnalitica";
 
 export type NivelNodo = "modulo" | "modo" | "seccion" | "pestana" | "panel";
 
@@ -190,7 +191,7 @@ export const PANELES_POR_MODULO: Readonly<
   global: [PANEL_MODULOS, PANEL_CONFIGURACION],
   monitoreo: [PANEL_CONECTAR_FUENTE, PANEL_REEMPLAZO_AULAS],
   "diseno-estudio": [PANEL_AVISOS, PANEL_IMPORTAR],
-  procesamiento: [...PANELES_GRAFICOS, ...PANELES_CARGA],
+  procesamiento: [...PANELES_GRAFICOS, ...PANELES_CARGA, ...PANELES_ANALITICA],
 };
 
 export function nodosDe(modulo: ProsecnurModuleSlug): NodoNavegacion[] {

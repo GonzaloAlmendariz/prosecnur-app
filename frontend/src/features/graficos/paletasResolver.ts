@@ -3,7 +3,7 @@
 // `config.paletas_vinculos[list_name] = clave`; (c) firma de opciones: una paleta cuyas etiquetas, normalizadas sin caja,
 // tildes ni espacios repetidos, coinciden COMO CONJUNTO con las opciones de la lista.
 //
-// Sin React ni store: el editor de Paletas (`PaletasEditor.tsx`) y el conteo de la sección (`listasConColor`) leen de
+// Sin React ni store: los colores por respuesta de la pestaña Estilo y el conteo de la sección (`listasConColor`) leen de
 // aquí, así que lo que la pantalla dice y lo que el motor pinta no pueden divergir sin que un test lo note.
 
 import { normalizePaletasVinculos } from "../../api/graficosConfigNormalizer";

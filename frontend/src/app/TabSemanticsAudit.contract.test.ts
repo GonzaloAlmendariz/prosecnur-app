@@ -338,12 +338,6 @@ const REAL_TABSETS: readonly TabsetCase[] = [
     relationStem: "bcanvas-lienzo",
   },
   {
-    name: "B03 InspectorV2",
-    file: "features/graficos/v2/inspector/InspectorV2.tsx",
-    rootMarker: 'className="pulso-gv2-inspector-tabs"',
-    relationStem: "pulso-gv2-inspector",
-  },
-  {
     name: "B05 GlobalSettingsDialog",
     file: "features/home/GlobalSettingsDialog.tsx",
     rootMarker: 'className="home-settings-nav"',

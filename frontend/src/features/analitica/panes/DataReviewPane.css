@@ -1,0 +1,49 @@
+/* Datos › Revisión de etiquetas: reglas nuevas fuera de theme.css (congelado).
+ *
+ * C4: el nombre de una sección es dato operativo y puede ser largo (lo trae el
+ * grupo del XLSForm). El botón que lo lleva era `inline-flex` sin tope de ancho
+ * y empujaba el texto fuera de su caja a 1024 px; ahora envuelve dentro.
+ */
+.pulso-data-review-section-title {
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* P-M11: la lectura automática de la estructura se anuncia sin bloquear el
+ * botón ni ocupar su rótulo. Si falla, queda como texto atenuado con el
+ * motivo en el title; «Detectar estructura» sigue disponible para reintentar. */
+.pulso-data-review-structure-reading {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.pulso-data-review-structure-reading.is-error {
+  color: var(--pulso-warn-fg);
+}
+
+/* P-M2: «Restaurar» aparece solo cuando hay algo que restaurar. El hueco
+ * reserva su ancho para que la etiqueta de la fila no cambie de tamaño al
+ * aparecer el botón. */
+.pulso-data-review-restore-slot {
+  min-width: 96px;
+  display: inline-flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 820px) {
+  .pulso-data-review-restore-slot {
+    min-width: 0;
+    justify-content: flex-start;
+  }
+
+  .pulso-data-review-restore-slot:empty {
+    display: none;
+  }
+}

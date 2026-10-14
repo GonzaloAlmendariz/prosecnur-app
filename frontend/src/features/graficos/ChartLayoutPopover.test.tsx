@@ -477,7 +477,7 @@ describe("ChartLayoutPopover — procedencia explícita", () => {
     ].map(sourceClaim);
 
     expect(claims).toEqual([
-      { state: "base", label: "Base PPT" },
+      { state: "base", label: "Como en el PowerPoint" },
       { state: "mode", label: `Estilo guardado: ${longStyleLabel}` },
       { state: "manual", label: "Ajuste de este gráfico" },
     ]);
@@ -512,16 +512,16 @@ describe("ChartLayoutPopover — procedencia explícita", () => {
         { canvas_w_etiquetas: 0.45, canvas_w_bars: 0.52 }
       )),
     }).toEqual({
-      base: { label: "Restablecer Base PPT", disabled: false },
+      base: { label: "Volver a como en el PowerPoint", disabled: false },
       savedStyle: { label: "Restablecer estilo guardado", disabled: false },
       chartAdjustment: { label: "Quitar ajuste de este gráfico", disabled: false },
-      inheritedOnly: { label: "Restablecer Base PPT", disabled: true },
+      inheritedOnly: { label: "Volver a como en el PowerPoint", disabled: true },
     });
   });
 
   test("el nombre accesible de la tarjeta contiene el claim visible exacto", () => {
     const cases = [
-      { claim: "Base PPT", markup: renderLayoutOrigin({ kind: "base_ppt" }) },
+      { claim: "Como en el PowerPoint", markup: renderLayoutOrigin({ kind: "base_ppt" }) },
       {
         claim: "Estilo guardado: Narrativa territorial",
         markup: renderLayoutOrigin({

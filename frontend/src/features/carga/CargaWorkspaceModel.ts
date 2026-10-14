@@ -22,8 +22,16 @@ export type CargaWorkspaceContext = {
   dataBaseCount?: number;
   /** ADR 0062: sólo con bases que no comparten instrumento existe la pestaña. */
   basesSeparadas?: boolean;
-  /** Filas de la equivalencia ya declarada, si el estudio la tiene. */
-  equivalenciasDeclaradas?: number;
+  /**
+   * Filas de la equivalencia ya declarada. `null`: todavía no se leyó;
+   * `"error"`: la lectura falló y no se sabe cuántas hay.
+   */
+  equivalenciasDeclaradas?: number | "error" | null;
+  /**
+   * Equivalencias está leyendo la declaración. Mientras tanto la pestaña no
+   * afirma «Pendiente»: no sabe todavía si hay algo declarado (P-A8).
+   */
+  equivalenciasLeyendo?: boolean;
   /**
    * Revisión está leyendo el resultado de la base elegida. Mientras tanto la
    * pestaña no afirma «Listo» ni «Sin incidencias»: no lo sabe todavía.
@@ -300,18 +308,31 @@ function dataItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
  * un solo estado y no dos cosas a la vez.
  */
 function equivalencesItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
+  if (context.equivalenciasLeyendo) {
+    return {
+      ...item("equivalencias", "neutral", "Leyendo la declaración de equivalencias del estudio."),
+      statusLabel: CARGA_REVISION_LEYENDO,
+    };
+  }
   const declaradas = context.equivalenciasDeclaradas ?? 0;
+  if (declaradas === "error") {
+    return item(
+      "equivalencias",
+      "attention",
+      "No se pudo leer la declaración de equivalencias: el aviso de la pestaña dice por qué.",
+    );
+  }
   if (declaradas > 0) {
     return item(
       "equivalencias",
       "ready",
-      `${declaradas} ${declaradas === 1 ? "pregunta emparejada" : "preguntas emparejadas"} entre los públicos.`,
+      `${declaradas} ${declaradas === 1 ? "pregunta emparejada" : "preguntas emparejadas"} entre las bases.`,
     );
   }
   return item(
     "equivalencias",
     "pending",
-    "Declara qué pregunta de un público equivale a cuál de otro para poder compararlos.",
+    "Declara qué pregunta de una base equivale a cuál de otra para poder compararlas.",
   );
 }
 

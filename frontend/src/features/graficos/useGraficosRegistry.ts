@@ -209,8 +209,7 @@ export function useGraficosRegistry(): {
     };
   }, [sid]);
 
-  // Pre-calculamos maps name → metadata para lookups O(1) en los
-  // renderers de GraficadorForm y SlideEditor.
+  // Pre-calculamos maps name → metadata para lookups O(1) en los editores.
   const { slidesById, graficadoresById } = useMemo(
     () => graficosRegistryMaps(visibleSnapshot.registry),
     [visibleSnapshot.registry],

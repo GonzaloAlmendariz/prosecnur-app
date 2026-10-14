@@ -1,9 +1,11 @@
-// cargaOrigenExterno.ts — la base limpiada fuera entra declarada (ADR 0100, P2).
+// cargaOrigenExterno.ts — la base preparada fuera entra declarada (ADR 0100,
+// P2 y Enmienda 1 / P2b).
 //
-// Cuando la depuración se hizo en un script fuera de la app, la base llega ya
-// recortada. Este módulo declara de dónde viene: la lista de exclusiones del
-// script (`_uuid`, `motivo`, `categoria`), cuántas encuestas recibió y qué
-// versión del script la produjo.
+// Cuando la base se preparó con un script fuera de la app, puede llegar con
+// menos casos, con menos variables que el instrumento, o con ambas cosas. Este
+// módulo declara de dónde viene: la lista de casos retirados (`_uuid`,
+// `motivo`, `categoria`), cuántas encuestas recibió, qué versión del script la
+// produjo y el motivo de cada variable del instrumento que no está en la base.
 //
 // La respuesta nunca trae los identificadores de las encuestas excluidas: sólo
 // el agregado y el conteo por categoría, igual que el linaje de Limpieza.
@@ -28,15 +30,48 @@ export type OrigenExternoBloque = {
   data_file_id: string;
   declarado_at: string;
   enabled: boolean;
+  variables_retiradas: OrigenExternoVariableRetirada[];
+  n_variables_retiradas: number;
 };
 
 export type OrigenExternoCategoria = { categoria: string; n: number };
+
+/** Por qué una variable del instrumento no viene en la base. */
+export type OrigenExternoMotivoVariable = "metadato" | "no_va_al_cliente" | "otra";
+
+export const MOTIVOS_VARIABLE: readonly OrigenExternoMotivoVariable[] = [
+  "metadato",
+  "no_va_al_cliente",
+  "otra",
+];
+
+/** Variable del instrumento que no está en la base (la detecta el backend). */
+export type OrigenExternoVariableFaltante = {
+  variable: string;
+  tipo: string;
+  /** `metadato` para los tipos de metadato del XLSForm; vacío si no hay sugerencia. */
+  motivo_sugerido: "metadato" | "";
+};
+
+export type OrigenExternoVariableRetirada = {
+  variable: string;
+  tipo: string;
+  motivo: OrigenExternoMotivoVariable;
+};
+
+export type OrigenExternoMotivoConteo = { motivo: OrigenExternoMotivoVariable; n: number };
+
+export type OrigenExternoVariablesResumen = {
+  total: number;
+  por_motivo: OrigenExternoMotivoConteo[];
+};
 
 export type OrigenExternoResumen = {
   recibidas: number | null;
   excluidas: number;
   entregadas: number | null;
   por_categoria: OrigenExternoCategoria[];
+  variables_retiradas: OrigenExternoVariablesResumen;
 };
 
 export type OrigenExternoAvisoCodigo =
@@ -44,6 +79,8 @@ export type OrigenExternoAvisoCodigo =
   | "siguen_en_la_base"
   | "no_cuadra"
   | "sin_motivo"
+  | "variable_presente"
+  | "motivo_invalido"
   | "otro";
 
 export type OrigenExternoAviso = { codigo: OrigenExternoAvisoCodigo; mensaje: string };
@@ -53,16 +90,22 @@ export type OrigenExterno = {
   estado: OrigenExternoEstado;
   bloque: OrigenExternoBloque | null;
   resumen: OrigenExternoResumen | null;
+  /** Variables del instrumento que no están en la base; siempre viene. */
+  variables_faltantes: OrigenExternoVariableFaltante[];
   /** Sólo los trae la declaración; la consulta los deja vacíos. */
   avisos: OrigenExternoAviso[];
+  /** Sólo la declaración: variables que pasaron a Analítica › Variables excluidas. */
+  variables_excluidas_agregadas: string[];
 };
 
 export type DeclararOrigenExternoParams = {
   baseNombre?: string | null;
-  fileId: string;
+  /** Lista de casos retirados ya subida; opcional si se declaran variables. */
+  fileId?: string | null;
   nRecibidas?: number | null;
   script?: string;
   version?: string;
+  variablesMotivo?: Partial<Record<string, OrigenExternoMotivoVariable>>;
 };
 
 // ---------------------------------------------------------------------------
@@ -132,7 +175,79 @@ const CODIGOS_AVISO: readonly OrigenExternoAvisoCodigo[] = [
   "siguen_en_la_base",
   "no_cuadra",
   "sin_motivo",
+  "variable_presente",
+  "motivo_invalido",
 ];
+
+function motivoVariable(value: unknown): OrigenExternoMotivoVariable | "" {
+  const v = texto(value);
+  return (MOTIVOS_VARIABLE as readonly string[]).includes(v) ? (v as OrigenExternoMotivoVariable) : "";
+}
+
+/** Un vector de textos que R puede mandar como escalar o lista. */
+function textos(value: unknown): string[] {
+  const crudo = Array.isArray(value) ? value : value == null ? [] : [value];
+  const vistos = new Set<string>();
+  for (const item of crudo) {
+    const t = texto(item);
+    if (t) vistos.add(t);
+  }
+  return [...vistos];
+}
+
+/** Sin nombre no hay variable; un nombre repetido cuenta una vez. */
+function unicasPorVariable<T extends { variable: string }>(items: T[]): T[] {
+  const vistos = new Set<string>();
+  return items.filter((item) => {
+    if (!item.variable || vistos.has(item.variable)) return false;
+    vistos.add(item.variable);
+    return true;
+  });
+}
+
+function normalizarFaltantes(raw: unknown): OrigenExternoVariableFaltante[] {
+  return unicasPorVariable(
+    filas(raw).map((fila) => ({
+      variable: texto(fila.variable),
+      tipo: texto(fila.tipo),
+      motivo_sugerido: motivoVariable(fila.motivo_sugerido) === "metadato" ? ("metadato" as const) : ("" as const),
+    })),
+  );
+}
+
+function normalizarRetiradas(raw: unknown): OrigenExternoVariableRetirada[] {
+  return unicasPorVariable(
+    filas(raw).map((fila) => ({
+      variable: texto(fila.variable),
+      tipo: texto(fila.tipo),
+      // Un motivo que el front no conoce se lee como «otra», no se pierde.
+      motivo: motivoVariable(fila.motivo) || ("otra" as const),
+    })),
+  );
+}
+
+function normalizarResumenVariables(
+  raw: unknown,
+  retiradas: OrigenExternoVariableRetirada[],
+): OrigenExternoVariablesResumen {
+  const r = registro(escalar(raw));
+  const conteos = new Map<OrigenExternoMotivoVariable, number>();
+  for (const fila of filas(r.por_motivo)) {
+    const motivo = motivoVariable(fila.motivo) || "otra";
+    const n = entero(fila.n);
+    if (n > 0) conteos.set(motivo, (conteos.get(motivo) ?? 0) + n);
+  }
+  // Sin desglose del backend, se cuenta del bloque.
+  if (!conteos.size) {
+    for (const item of retiradas) conteos.set(item.motivo, (conteos.get(item.motivo) ?? 0) + 1);
+  }
+  const porMotivo = MOTIVOS_VARIABLE.filter((motivo) => conteos.has(motivo)).map((motivo) => ({
+    motivo,
+    n: conteos.get(motivo) ?? 0,
+  }));
+  const sumado = porMotivo.reduce((acc, fila) => acc + fila.n, 0);
+  return { total: enteroONulo(r.total) ?? sumado, por_motivo: porMotivo };
+}
 
 function normalizarBloque(raw: unknown): OrigenExternoBloque | null {
   const r = registro(escalar(raw));
@@ -140,6 +255,7 @@ function normalizarBloque(raw: unknown): OrigenExternoBloque | null {
   if (!Object.keys(r).length) return null;
   const enabled = r.enabled === undefined ? true : booleano(r.enabled);
   if (!enabled) return null;
+  const variablesRetiradas = normalizarRetiradas(r.variables_retiradas);
   return {
     script: texto(r.script),
     version: texto(r.version),
@@ -150,10 +266,15 @@ function normalizarBloque(raw: unknown): OrigenExternoBloque | null {
     data_file_id: texto(r.data_file_id),
     declarado_at: texto(r.declarado_at),
     enabled,
+    variables_retiradas: variablesRetiradas,
+    n_variables_retiradas: enteroONulo(r.n_variables_retiradas) ?? variablesRetiradas.length,
   };
 }
 
-function normalizarResumen(raw: unknown): OrigenExternoResumen | null {
+function normalizarResumen(
+  raw: unknown,
+  bloque: OrigenExternoBloque,
+): OrigenExternoResumen | null {
   const r = registro(escalar(raw));
   if (!Object.keys(r).length) return null;
   const porCategoria = filas(r.por_categoria)
@@ -164,6 +285,7 @@ function normalizarResumen(raw: unknown): OrigenExternoResumen | null {
     excluidas: entero(r.excluidas),
     entregadas: enteroONulo(r.entregadas),
     por_categoria: porCategoria,
+    variables_retiradas: normalizarResumenVariables(r.variables_retiradas, bloque.variables_retiradas),
   };
 }
 
@@ -193,10 +315,12 @@ export function normalizeOrigenExterno(raw: unknown): OrigenExterno {
     base: texto(root.base),
     estado,
     bloque,
-    resumen: bloque ? normalizarResumen(root.resumen) : null,
+    resumen: bloque ? normalizarResumen(root.resumen, bloque) : null,
+    variables_faltantes: normalizarFaltantes(root.variables_faltantes),
     avisos: lista(root.avisos)
       .map((aviso) => normalizarAviso(registro(aviso)))
       .filter((aviso): aviso is OrigenExternoAviso => aviso !== null),
+    variables_excluidas_agregadas: textos(root.variables_excluidas_agregadas),
   };
 }
 
@@ -214,7 +338,7 @@ export async function getOrigenExterno(baseNombre?: string | null): Promise<Orig
 }
 
 /**
- * Sube la lista de exclusiones (xlsx o csv). No hay un `UploadKind` propio: se
+ * Sube la lista de casos retirados (xlsx o csv). No hay un `UploadKind` propio: se
  * usa el genérico de datos, que el backend lee con el mismo lector de bases.
  */
 export async function subirListaExclusiones(file: File): Promise<string> {
@@ -223,7 +347,17 @@ export async function subirListaExclusiones(file: File): Promise<string> {
 }
 
 export async function declararOrigenExterno(params: DeclararOrigenExternoParams): Promise<OrigenExterno> {
-  const body: Record<string, string | number> = { file_id: params.fileId };
+  const body: Record<string, string | number | Record<string, OrigenExternoMotivoVariable>> = {};
+  const fileId = params.fileId?.trim();
+  if (fileId) body.file_id = fileId;
+  const motivos: Record<string, OrigenExternoMotivoVariable> = {};
+  for (const [variable, motivo] of Object.entries(params.variablesMotivo ?? {})) {
+    if (variable && motivo && (MOTIVOS_VARIABLE as readonly string[]).includes(motivo)) motivos[variable] = motivo;
+  }
+  if (Object.keys(motivos).length) body.variables_motivo = motivos;
+  if (!body.file_id && !body.variables_motivo) {
+    throw new Error("Declara la lista de casos retirados o el motivo de alguna variable.");
+  }
   const base = params.baseNombre?.trim();
   if (base) body.base_nombre = base;
   if (params.nRecibidas != null && Number.isFinite(params.nRecibidas)) body.n_recibidas = params.nRecibidas;

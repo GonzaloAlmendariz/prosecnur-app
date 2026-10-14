@@ -15,6 +15,38 @@
   background: var(--module-accent-soft, var(--pulso-surface-2));
 }
 
+/* B2: la estrategia «Bases separadas» como una línea de metadatos. */
+.pulso-carga-sources-plan-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px var(--pulso-space-2);
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-carga-sources-plan-meta > svg {
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-carga-sources-plan-meta > strong {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-carga-sources-plan-meta-origen {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-carga-sources-plan-meta-origen::before {
+  content: "·";
+  margin-right: 4px;
+}
+
 .pulso-carga-sources-plan-strategy,
 .pulso-carga-sources-plan-result,
 .pulso-carga-platform-shell-context,

@@ -22,6 +22,7 @@ import {
   ordenEfectivo,
   reducirArmonizacion,
   resumenMapa,
+  resumenOrdenSerie,
   textoResumenMapa,
   validarArmonizacion,
 } from "./armonizacionModel";
@@ -45,14 +46,15 @@ describe("estadoArmonizacion", () => {
 
   test("nombra la base no comparable y sólo las que tienen variable", () => {
     const e = estadoArmonizacion({ armonizacion: ARM, variables: { b2024: "p5", b2025: "p6" } });
-    expect(e).toMatchObject({ tipo: "no_comparable", texto: "No comparable en b2025" });
+    // El chip dice cuántas, las bases van en `bases` (y en el title).
+    expect(e).toMatchObject({ tipo: "no_comparable", texto: "No comparable en 1 base", bases: ["b2025"] });
     const sinLaDe2025 = estadoArmonizacion({ armonizacion: ARM, variables: { b2024: "p5" } });
     expect(sinLaDe2025.texto).toBe("Armonizada");
   });
 
   test("una base con variable y sin entrada no se presume comparable", () => {
     const e = estadoArmonizacion({ armonizacion: ARM, variables: { b2024: "p5", b2026: "p4" } });
-    expect(e.texto).toBe("No comparable en b2026");
+    expect(e).toMatchObject({ texto: "No comparable en 1 base", bases: ["b2026"] });
   });
 });
 
@@ -294,7 +296,7 @@ describe("importar por bloques", () => {
 
   test("rechaza un mapa vacío o con una base repetida", () => {
     expect(mapaPeriodosValido({ "2024": "" }).ok).toBe(false);
-    expect(mapaPeriodosValido({ "2024": "a", "2025": "a" }).motivo).toBe("Dos años apuntan a la misma base.");
+    expect(mapaPeriodosValido({ "2024": "a", "2025": "a" }).motivo).toBe("Dos columnas apuntan a la misma base.");
     expect(mapaPeriodosValido({ "2024": "a", "2025": "" }).ok).toBe(true);
   });
 
@@ -353,5 +355,17 @@ describe("normalizadores de la frontera", () => {
     expect(imp.advertencias[0].tipo).toBe("otro");
     expect(imp.advertencias[0].tipo_crudo).toBe("nuevo_tipo");
     expect(imp.resumen.por_base.a).toEqual({ anio: "2024", n_variables: 5, n_pendientes: 0, n_codigos_inexistentes: 0 });
+  });
+});
+
+describe("resumenOrdenSerie (M7)", () => {
+  test("con pocas bases las nombra todas", () => {
+    expect(resumenOrdenSerie(["b2024", "b2025", "b2026"])).toBe("b2024 → b2025 → b2026");
+  });
+
+  test("con muchas nombra las primeras y la última y cuenta el resto", () => {
+    const siete = ["b2024", "b2025", "b2026", "egresados", "docentes", "administrativos", "posgrado"];
+    expect(resumenOrdenSerie(siete)).toBe("b2024 → b2025 → b2026 → … (3 más) → posgrado");
+    expect(resumenOrdenSerie(siete, 2)).toBe("b2024 → … (5 más) → posgrado");
   });
 });

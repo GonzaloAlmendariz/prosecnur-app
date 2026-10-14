@@ -1,0 +1,386 @@
+/* Panel «Variables excluidas» de Analítica (U5).
+ *
+ * Solo tokens `--pulso-*`. El panel va en portal al `body`, fuera del frame de
+ * Procesamiento: el acento del módulo se declara aquí y no se da por heredado.
+ *
+ * Geometría (Contrato de Superficie):
+ * - C2: el sideover mide el alto de la ventana y un ancho fijo por viewport;
+ *   0, 2 o 300 variables no lo mueven. La variación se resuelve dentro.
+ * - C3: cada bloque contiene su vacío con una línea que dice qué significa.
+ * - C4: un único dueño de scroll, `.pulso-excluidas-cuerpo`. La cabecera queda
+ *   fuera (siempre visible) y el buscador es sticky dentro del cuerpo.
+ */
+
+/* --- Disparador en Datos y Libro de códigos ------------------------------ */
+
+.pulso-excluidas-enlace {
+  color: var(--pulso-module-processing);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* En la barra de Datos el enlace tiene forma de chip: el borde lo distingue. */
+.pulso-data-review-command-chip.pulso-excluidas-enlace {
+  border-color: var(--pulso-module-processing-border);
+  color: var(--pulso-module-processing);
+  text-decoration: none;
+}
+
+.pulso-data-review-command-chip.pulso-excluidas-enlace:hover {
+  background: var(--pulso-module-processing-soft);
+}
+
+.pulso-excluidas-enlace:hover {
+  background: var(--pulso-module-processing-soft);
+}
+
+.pulso-excluidas-enlace:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 2px;
+}
+
+/* --- Sideover ------------------------------------------------------------ */
+
+.pulso-excluidas-velo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--pulso-z-modal);
+  background: color-mix(in srgb, var(--pulso-text) 30%, transparent);
+  animation: pulso-excluidas-velo 140ms ease-out;
+}
+
+.pulso-excluidas {
+  --module-accent: var(--pulso-module-processing);
+  --module-accent-soft: var(--pulso-module-processing-soft);
+  position: fixed;
+  z-index: var(--pulso-z-modal);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(640px, calc(100vw - var(--pulso-space-9)));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--pulso-surface);
+  border-left: 1px solid var(--pulso-border-strong);
+  box-shadow: var(--pulso-shadow-high);
+  color: var(--pulso-text);
+  animation: pulso-excluidas-entrada 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.pulso-excluidas:focus {
+  outline: none;
+}
+
+/* --- Cabecera (fija) ----------------------------------------------------- */
+
+.pulso-excluidas-cabecera {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-5) var(--pulso-space-6) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.pulso-excluidas-titular {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-excluidas-titular h2 {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.25;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+/* El título recibe el foco al abrir el panel (lo hace el diálogo, no el
+ * usuario): es un destino de foco post-navegación con `tabindex=-1`, fuera
+ * del orden de tabulación, y no lleva anillo (P-B1), igual que el editor de
+ * armonización. Los controles del panel conservan el suyo. */
+.pulso-excluidas-titular h2:focus,
+.pulso-excluidas-titular h2:focus-visible {
+  outline: none;
+}
+
+.pulso-excluidas-alcance {
+  margin: var(--pulso-space-1) 0 0;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-module-processing);
+  overflow-wrap: anywhere;
+}
+
+.pulso-excluidas-cerrar {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.pulso-excluidas-cerrar:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.pulso-excluidas-cerrar:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 2px;
+}
+
+.pulso-excluidas-regla {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-excluidas-otra-base {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  /* Concéntrico: botón (8) + relleno (8) = panel (16). */
+  padding: var(--pulso-space-2) var(--pulso-space-2) var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* --- Cuerpo: único dueño de scroll -------------------------------------- */
+
+.pulso-excluidas-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 var(--pulso-space-6) var(--pulso-space-6);
+}
+
+.pulso-excluidas-contenido {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+}
+
+.pulso-excluidas-buscador {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  padding: var(--pulso-space-4) 0 var(--pulso-space-3);
+  background: var(--pulso-surface);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-excluidas-buscador-rotulo {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-excluidas-buscador-campo {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-excluidas-buscador-campo:focus-within {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 1px;
+}
+
+.pulso-excluidas-buscador-campo input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 7px 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+/* --- Bloques ------------------------------------------------------------- */
+
+.pulso-excluidas-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-excluidas-bloque-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-excluidas-bloque-cabecera h3 {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-excluidas-cuenta {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+
+.pulso-excluidas-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.pulso-excluidas-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.pulso-excluidas-fila + .pulso-excluidas-fila {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-excluidas-fila.is-excluida {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-excluidas-fila-texto {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--pulso-space-2);
+  row-gap: var(--pulso-space-1);
+}
+
+.pulso-excluidas-fila-texto code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.pulso-excluidas-fila-etiqueta {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--pulso-text-soft);
+  overflow-wrap: anywhere;
+}
+
+.pulso-excluidas-fila-marcas {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-excluidas-marca {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.pulso-excluidas-marca.is-motivo {
+  border-color: var(--pulso-module-processing-border);
+  color: var(--pulso-module-processing);
+}
+
+.pulso-excluidas-accion {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pulso-excluidas-accion > span {
+  min-width: max-content;
+}
+
+@keyframes pulso-excluidas-velo {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulso-excluidas-entrada {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@media (max-height: 720px) {
+  .pulso-excluidas-cabecera {
+    padding: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-3);
+  }
+  .pulso-excluidas-cuerpo {
+    padding: 0 var(--pulso-space-5) var(--pulso-space-5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-excluidas-velo,
+  .pulso-excluidas {
+    animation: none;
+  }
+}
+
+/* Alcance y estado de guardado en una línea bajo el título (P-M14). */
+.pulso-excluidas-subtitulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  margin-top: var(--pulso-space-1);
+}
+
+.pulso-excluidas-subtitulo .pulso-excluidas-alcance {
+  margin: 0;
+}

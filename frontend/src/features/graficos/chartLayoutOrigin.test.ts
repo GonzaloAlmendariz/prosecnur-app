@@ -6,7 +6,7 @@ import {
 } from "./chartLayoutOrigin";
 
 describe("resolveActiveChartLayoutOrigin", () => {
-  test("un slot activo sólo es Base PPT sin overrides; todo snapshot propio es ajuste", () => {
+  test("un slot activo sólo sale como en el PowerPoint sin overrides; todo snapshot propio es ajuste", () => {
     const savedStyleSnapshot = {
       canvas_w_etiquetas: 0.45,
       canvas_w_bars: 0.52,
@@ -57,7 +57,7 @@ describe("compatibilidad de estilo legacy en slots activos", () => {
     });
   });
 
-  test("Base PPT y copia reemplazan overrides y limpian sólo visuales legacy presentes", () => {
+  test("La base y la copia reemplazan overrides y limpian sólo visuales legacy presentes", () => {
     const slotArgs = {
       var: "p1",
       vars: ["p1", "p2"],

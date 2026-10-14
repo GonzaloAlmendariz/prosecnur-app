@@ -209,3 +209,54 @@ de nacimiento completadas a mano.
   S-05 sin códigos, notas al pie (fuente 2026, base) sin configurar.
 - Decisión pendiente de Gonzalo: «—» (opción no ofrecida) frente a «n.a.» de la maqueta
   para «Fuera del país» en 2024.
+
+## Ronda de claridad de la UI (pedido de Gonzalo, 2026-10-13)
+
+Textual: «Debe seguir mejorando, además no especificas qué es armonizar, debe estar claro
+y recuerda que las columnas pueden ser más de 3 o puede haber bases con nombres
+diferentes».
+
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| U1 | Explicar qué es armonizar, en palabras simples y con un ejemplo, donde aparece (Equivalencias, editor de armonización, chip «Armonizada», pestaña Comparativos) | frontend carga + analítica | hecho y verificado (cb1a1ea90) |
+| U2 | Funcionar con más de 3 bases: tabla de equivalencias, orden de la serie, editor de armonización, rótulos y tarjetas de Comparativos (probar con 4 y con 7 bases) | frontend | hecho y verificado (cb1a1ea90) |
+| U3 | Bases con nombres que no son años (docentes, estudiantes…): rótulos por defecto, textos que no digan «año» si no lo son, encabezado «Año» del XLSX | frontend + motor (`reporte_comparativo.R`) | hecho y verificado (cb1a1ea90, 8732b5428) |
+| U4 | Tarjetas de Comparativos más legibles con 74 preguntas (jerarquía, búsqueda o filtro por sección) | frontend analítica | hecho y verificado (cb1a1ea90) |
+| U5 | No hay lugar visible para ver ni editar `variables_excluidas` (DefinicionGlobal no está montado). Analítica › Datos dice «265/265 incluidas» con 2 excluidas | frontend analítica | hecho y verificado (644c39c44) |
+| U6 | El Codebook muestra «Excluidas 0» unos 15 s con la readiness ya en verde y luego pasa a 2 | frontend analítica | hecho y verificado (644c39c44) |
+
+## Ronda de pulido visual (pedido de Gonzalo, 2026-10-13)
+
+Textual: «Sigue puliendo para que se vea aún mejor». Principio: soluciones generales.
+Paso 1: auditoría visual independiente (qa-visual-desktop) de las superficies nuevas en
+3 casos (3 bases con años, 4 con nombres, 7 mezcladas). Paso 2: implementar por
+prioridad. Paso 3: QA y commit. Los hallazgos se listan aquí como P-1, P-2… al llegar.
+
+Hallazgos de la auditoría (qa-visual-desktop, evidencia en scratchpad/polishqa/):
+
+| # | Hallazgo | Estado |
+|---|---|---|
+| P-A1 | Cruces: «Notas al pie» aplastada a 2 px, no se puede abrir (flex-shrink en el workbench) | hecho (49fe9e213) |
+| P-A2 | Frecuencias: «Notas al pie» abierta se recorta; encabezado salta a centrado | hecho (49fe9e213) |
+| P-A3 | «Notas al pie» con dos implementaciones; en Comparativos un campo por pregunta (72 inputs) | hecho (49fe9e213) |
+| P-A4 | Resultado del comparativo: 73 avisos ámbar sueltos; agrupar por tipo y separar severidad | hecho (49fe9e213) |
+| P-A5 | Tres recetas de botón primario (teal píldora, teal 8 px, navy) | hecho (49fe9e213, d2fdf563b) |
+| P-A6 | Paneles en portal pierden el tono del módulo (navy en vez de teal) | hecho (d2fdf563b) |
+| P-A7 | Importar por bloques dice «año» aunque las bases no sean años | hecho (d2fdf563b) |
+| P-A8 | Equivalencias publica readiness lista antes de cargar; carga como texto suelto | hecho (d2fdf563b) |
+| P-A10 | Radios no concéntricos: píldora con botones internos de esquinas casi rectas («Orden de la serie»), detectado por Gonzalo; regla general radio interno = externo − padding con tokens | hecho (d2fdf563b) |
+| P-A9 | Cruces describe la significancia como «chi² al 5 %, asterisco» y el motor usa letras con z y Bonferroni | hecho (49fe9e213) |
+| P-M1…M14 | Medias: cifras, botones secundarios, «añadir», vacíos, formato de números, orden de bases en Fuentes, orden de la serie compacto, Equivalencias mezcla mazo y comparación, anchos de tabla, explicación larga del editor, Datos «Detectando…» pegado y «sin guardar» al entrar, «Definición global» desactualizado, Codificación sin elipsis y con markdown crudo, tres patrones de guardado | hecho (e4b0a3232, 40c10590b); la parte de backend de «sin guardar» pasa a P-C2 |
+| P-B1…B7 | Bajas: foco visible en título, panel .sav, rótulos repetidos, «Ninguna» repetido, tarjetas de opción, estilos en línea, pendientes no verificables | hecho (e4b0a3232, 40c10590b) |
+
+Regla de cierre (Gonzalo, 2026-10-13): «cierra todo lo pendiente hasta finalizarlo, pero no
+abras más campos a menos que sean graves». Se terminan P-A, P-M y P-B. Un hallazgo nuevo
+solo se abre si rompe un entregable, pierde datos o deja algo inalcanzable; lo demás se
+anota y no se trabaja.
+
+| P-G1 | Contrato ModuleChrome «suprime hover» en rojo por AgruparCategoriasCodificador.css (23ba9d819) | hecho (40c10590b) |
+| P-C1 | Brecha de capacidad: Importar por bloques solo lee columnas con encabezado de año (`.equiv_bloques_encabezado`); la UI lo avisa y deriva a «Subir matriz» | anotado, no se trabaja (no es grave) |
+| P-S1 | Ajustes con casilla en vez de interruptor (Gonzalo: «Sigue usando check en vez de switchers elegantes»): 9 en Carga/Codificación y 13 en Analítica pasan a `<Switch>`; las casillas quedan sólo para elegir elementos de una lista; contract tests `ajustesSonInterruptores` y guard de `analitica-control-card` | hecho (e4b0a3232, 40c10590b) |
+| P-C2 | «Sin guardar» al entrar a Analítica: el GET `/api/analitica/data-review` escribe cachés derivados con `session_set` (marca dirty) en `.analitica_prepare_and_cache` (`api/R/router_analitica.R` ~2138); debería ser `session_set_cache` (`session_store.R:99`) | anotado, no se trabaja (no pierde datos) |
+| P-C3 | `DefinicionGlobal.tsx` no se monta en ningún sitio (código muerto; borrar exige doble confirmación) | anotado |
+| P-C4 | Botones `pulso-primary/secondary` y estilos en línea en el asistente de Dimensiones; deuda C1 previa en Bases, Ficha y Dimensiones; estilos muertos en `theme.css` (congelado); tamaños sueltos 11.5/12.5 px en Comparativos | anotado |

@@ -1,10 +1,18 @@
-import { BookOpen, CheckCircle2, Download, FileSpreadsheet, FileText, Info, Palette } from "lucide-react";
+import { BookOpen, CheckCircle2, Download, FileSpreadsheet, FileText, Info } from "lucide-react";
 import { apiAnaliticaCodebook, apiAnaliticaConfigPut, downloadUrl, type MultiBaseResult } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
+import { formatoConteo } from "../../../lib/formatoNumero";
+import { CifrasPestana } from "../CifrasPestana";
+import { InterruptorOpcion } from "../InterruptorOpcion";
 import { useAnaliticaStore } from "../store";
 import { Section, GenerateFooter, PaneGroup } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
 import { useSession } from "../../../lib/SessionContext";
+import { Link, useLocation } from "react-router-dom";
+import { searchConPanel } from "../../../lib/navegacion/paneles";
+import { PANEL_VARIABLES_EXCLUIDAS } from "../panelesAnalitica";
+import "../variablesExcluidas.css";
+import "./CodebookPane.css";
 
 // CodebookPane. La inclusión/exclusión y los labels confirmados viven en
 // Datos / Revisión de data. Este panel genera el diccionario y el XLSForm
@@ -16,7 +24,11 @@ export function CodebookPane() {
   const setCodebook = useAnaliticaStore((s) => s.setCodebook);
   const colorRecods = useAnaliticaStore((s) => s.config.color_recodificaciones);
   const setColorRecodificaciones = useAnaliticaStore((s) => s.setColorRecodificaciones);
-  const excluidasCount = useAnaliticaStore((s) => s.config.variables_excluidas.length);
+  // AnaliticaPage no monta las pestañas hasta hidratar la config, así que este
+  // conteo ya es el de la base activa y no el default vacío (U6).
+  const excluidasCount = useAnaliticaStore((s) => new Set(s.config.variables_excluidas).size);
+  const location = useLocation();
+  const hrefExcluidas = { pathname: location.pathname, search: searchConPanel(location.search, PANEL_VARIABLES_EXCLUIDAS) };
   const run = useReporteRun();
   const runPdf = useReporteRun();
   const { state } = useSession();
@@ -56,7 +68,12 @@ export function CodebookPane() {
 
   return (
     <Panel className="analitica-codebook-panel">
-      <div className="analitica-report-shell analitica-codebook-workbench">
+      {/* C1: barra, avisos y secciones del libro son bloques independientes. */}
+      <div
+        className="analitica-report-shell analitica-codebook-workbench"
+        data-qa-geometry-group="analitica/codebook-workbench"
+        data-qa-geometry-contract="intrinsic"
+      >
         <div className="analitica-codebook-docbar">
           <span className="analitica-codebook-docbar-icon" aria-hidden="true">
             <BookOpen size={16} />
@@ -66,20 +83,27 @@ export function CodebookPane() {
             <strong>Libro de códigos</strong>
             <small>Diccionario sincronizado con etiquetas confirmadas y XLSForm final.</small>
           </div>
-          <div className="analitica-codebook-docbar-stats" aria-label="Estado del libro de códigos">
-            <span>
-              Fuente
-              <strong>{fuenteLabel}</strong>
-            </span>
-            <span>
-              Códigos
-              <strong>{codes.length}/5 activos</strong>
-            </span>
-            <span>
-              Excluidas
-              <strong>{excluidasCount}</strong>
-            </span>
-          </div>
+          <CifrasPestana
+            ariaLabel="Estado del libro de códigos"
+            cifras={[
+              { etiqueta: "Fuente", valor: fuenteLabel },
+              { etiqueta: "Códigos", valor: `${codes.length}/5 activos` },
+              {
+                etiqueta: "Excluidas",
+                valor: (
+                  <Link
+                    to={hrefExcluidas}
+                    replace
+                    className="pulso-excluidas-enlace"
+                    aria-haspopup="dialog"
+                    aria-label={`${formatoConteo(excluidasCount)} ${excluidasCount === 1 ? "variable excluida" : "variables excluidas"}: ver y editar`}
+                  >
+                    {formatoConteo(excluidasCount)}
+                  </Link>
+                ),
+              },
+            ]}
+          />
         </div>
 
         <div className="analitica-codebook-info">
@@ -120,34 +144,31 @@ export function CodebookPane() {
           </>}
         >
           <div className="analitica-control-grid">
-            <label className={`analitica-control-card ${colorRecods ? "is-active" : ""}`}>
-              <input
-                type="checkbox"
-                checked={colorRecods}
-                onChange={(e) => setColorRecodificaciones(e.target.checked)}
-              />
-              <span className="analitica-control-icon">
-                {colorRecods ? <CheckCircle2 size={15} /> : <Palette size={15} />}
-              </span>
-              <span>
-                <span className="analitica-control-title">Resaltar recodificaciones con color</span>
-                <span className="analitica-control-copy">
-                  Pinta las variables recodificadas con un color de fondo en el instrumento, la base de datos y el libro de códigos.
-                </span>
-              </span>
-            </label>
+            <InterruptorOpcion
+              checked={colorRecods}
+              onToggle={() => setColorRecodificaciones(!colorRecods)}
+              titulo="Resaltar recodificaciones con color"
+              descripcion="Pinta las variables recodificadas con un color de fondo en el instrumento, la base de datos y el libro de códigos."
+            />
           </div>
         </Section>
 
         {excluidasCount > 0 && (
           <div className="analitica-codebook-note">
-            Este reporte omite <strong>{excluidasCount}</strong> {excluidasCount === 1 ? "variable excluida" : "variables excluidas"} globalmente. Edita esa selección en <strong>Datos / Revisión de data</strong>.
+            {/* Un bloque y no texto suelto: así la línea entera es el contenido
+                medido y la nota no declara capacidad que no tiene (C3). */}
+            <div>
+              Este reporte omite <strong>{excluidasCount}</strong> {excluidasCount === 1 ? "variable excluida" : "variables excluidas"}.{" "}
+              <Link to={hrefExcluidas} replace className="pulso-excluidas-enlace" aria-haspopup="dialog">
+                Ver y editar las excluidas
+              </Link>
+            </div>
           </div>
         )}
 
         <PaneGroup
           label="Libro de códigos"
-          hint="El diccionario del estudio — en Excel para análisis o en PDF para leer e imprimir."
+          hint="El diccionario del estudio, en Excel para análisis o en PDF para leer e imprimir."
         >
           <Section
             title={
