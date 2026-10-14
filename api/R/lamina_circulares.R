@@ -47,7 +47,8 @@
 #' «n de N <unidad>».
 #' @keywords internal
 .lam_laminas_torta <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL, unidad_n = "respuestas",
-                               layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
+                               layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc,
+                               rotulo_centro = NULL) {   # la torta no tiene centro: comparte la llamada con la dona
   force(folio)
   g_ <- .std_geom; ml <- g_("margen_izq"); yt <- g_("zona_datos_y0")
   azul <- .std_color("azul"); k <- length(espec$valores); cols <- .lam_colores_pie(k, espec)

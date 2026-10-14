@@ -184,6 +184,13 @@
   transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out;
 }
 .pulso-f6-destacar-opcion:hover { border-color: var(--pulso-border-strong); }
+/* «Al centro» de la dona: una sola respuesta, en el tono principal (no es un énfasis). */
+.pulso-f6-destacar-opcion.is-unica[aria-checked="true"],
+.pulso-f6-destacar-opcion.is-unica[aria-checked="true"]:hover {
+  border-color: var(--pulso-primary);
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
 .pulso-f6-destacar-opcion[aria-pressed="true"] {
   border-color: var(--pulso-danger-fg);
   background: var(--pulso-danger-bg);

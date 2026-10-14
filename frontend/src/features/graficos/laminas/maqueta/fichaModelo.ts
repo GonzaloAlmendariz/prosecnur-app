@@ -147,6 +147,9 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
     case "p_donut": {
       const k = entero(v("top_k"));
       if (k) { glifo.otros = true; ajustes.push(`Máximo ${k} categorías`, "Resto en «Otros»"); }
+      // Recetario p70: la respuesta y la frase del centro de la dona.
+      if (graficador === "p_donut" && typeof v("al_centro") === "string" && v("al_centro")) ajustes.push(`Al centro: ${v("al_centro") as string}`);
+      if (graficador === "p_donut" && typeof v("frase_centro") === "string" && (v("frase_centro") as string).trim()) ajustes.push(`«${(v("frase_centro") as string).trim()}»`);
       break;
     }
     case "p_lollipop": {
@@ -188,6 +191,13 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
       glifo.total = v("incluir_total") === true;
       if (glifo.total) ajustes.push("Columna Total");
       break;
+    case "p_filtro_subpregunta": {
+      const hab = lista(v("habilita"));
+      if (hab.length) ajustes.push(`Habilita: ${hab.join(", ")}`);
+      if (v("disposicion") === "abajo") ajustes.push("Subpregunta abajo");
+      if (v("grafico_sub") === "escala") ajustes.push("Subpregunta en escala");
+      break;
+    }
     case "p_tabla": {
       const u = entero(v("umbral_rojo_pct"));
       if (u) { glifo.rojo = true; ajustes.push(`En rojo bajo ${u} %`); }

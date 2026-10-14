@@ -2503,7 +2503,8 @@ p_pie <- function(var, titulo = NULL, top_k = NULL, etiqueta_otros = NULL,
 #' @family reporte
 #' @export
 p_donut <- function(var, titulo = NULL, top_k = NULL, etiqueta_otros = NULL,
-                  overrides = list(), base = list(), filtros = list(), orden_categorias = NULL) {
+                  overrides = list(), base = list(), filtros = list(), orden_categorias = NULL,
+                  al_centro = NULL, frase_centro = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -2521,6 +2522,9 @@ p_donut <- function(var, titulo = NULL, top_k = NULL, etiqueta_otros = NULL,
 
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
   if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
+  # Recetario p70: la respuesta del centro y su frase (inventario de configuraciones, ítem 9).
+  overrides <- .ppt_slot_override(overrides, "al_centro", al_centro, "texto")
+  overrides <- .ppt_slot_override(overrides, "frase_centro", frase_centro, "texto")
   filtros <- .ppt_norm_filters(filtros)
 
   el <- list(

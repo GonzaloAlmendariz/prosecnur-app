@@ -68,6 +68,18 @@ const ICONOS: Readonly<Record<string, DibujoGrafico>> = {
       </Acento>
     </>
   ),
+  // Pregunta filtro y subpregunta (p192–p194): la columna del filtro, la llave desde lo que habilita y las barras de la
+  // subpregunta al costado.
+  p_filtro_subpregunta: () => (
+    <>
+      <Bloque x={3} y={3.75} w={4.5} h={10.5} tono="apoyo" />
+      <Acento><Bloque x={3} y={14.25} w={4.5} h={6} tono="pleno" /></Acento>
+      <Trazo d="M9 14.25H9.75V20.25H9M9.75 17.25H11.25V5.25H12.75" />
+      <Bloque x={13.5} y={8.25} w={7.5} h={2.625} />
+      <Bloque x={13.5} y={12.75} w={5.25} h={2.625} />
+      <Bloque x={13.5} y={17.25} w={3} h={2.625} />
+    </>
+  ),
   // Brecha entre dos públicos (p88).
   p_dumbbell: () => (
     <>

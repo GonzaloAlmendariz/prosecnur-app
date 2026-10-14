@@ -310,6 +310,12 @@
       "en_selector": true
     },
     {
+      "name": "p_filtro_subpregunta",
+      "familia_editor": "categorias",
+      "salida": "nativa",
+      "en_selector": true
+    },
+    {
       "name": "p_matriz_cuadrantes",
       "familia_editor": "comparar",
       "salida": "nativa",

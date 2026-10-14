@@ -187,6 +187,10 @@ function gruposDe(args: Record<string, unknown>, bloque = 0): Grupo[] {
     });
   }
   if (typeof args.objetivo === "string" && args.objetivo.trim()) return [{ titulo: "Dimensiones de Analítica", refs: [], bloque, cruce }];
+  // Pregunta filtro y subpregunta (recetario p192–p194): las dos preguntas, primero la que habilita.
+  if (typeof args.subpregunta === "string") {
+    return ["var", "subpregunta"].flatMap((k) => refsDe(args[k])).map((r) => ({ titulo: null, refs: [r], bloque, cruce }));
+  }
   const refs = ["var", "vars", "variable", "variables"].flatMap((k) => refsDe(args[k]));
   const porNombre = new Map<string, string[]>();
   for (const r of refs) {
