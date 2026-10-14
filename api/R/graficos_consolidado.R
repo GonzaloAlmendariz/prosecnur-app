@@ -660,9 +660,21 @@ graficos_consolidado_job_runner <- function(data_path, inst_path, recipe_path,
   rebuilt <- vector("list", length(slides))
   for (i in seq_along(slides)) {
     report("rebuild", current = i, total = length(slides), percent = 8 + round(42 * i / max(1, length(slides))), message = sprintf("Armando la lámina %s de %s…", i, length(slides)))
-    rebuilt[[i]] <- .pkg_fn(".aviso_con_lamina")(i, .pkg_fn(".aviso_titulo_payload")(slides[[i]]), .pkg_fn(".graficos_rebuild_slide_json")(
-      slides[[i]], icon_registry = icon_registry
-    ))
+    titulo_i <- .pkg_fn(".aviso_titulo_payload")(slides[[i]])
+    # Un error al armar una lámina dice cuál es: «Revisa la lámina indicada» sin
+    # número dejaba al analista buscando entre 117 (catálogo del recetario, 2026-10-14).
+    rebuilt[[i]] <- tryCatch(
+      .pkg_fn(".aviso_con_lamina")(i, titulo_i, .pkg_fn(".graficos_rebuild_slide_json")(
+        slides[[i]], icon_registry = icon_registry
+      )),
+      error = function(e) {
+        titulo_txt <- as.character(titulo_i %||% "")[1]
+        e$message <- sprintf("Lámina %s%s: %s", i,
+                             if (!is.na(titulo_txt) && nzchar(titulo_txt)) paste0(" «", titulo_txt, "»") else "",
+                             conditionMessage(e))
+        stop(e)
+      }
+    )
   }
   report("render", percent = 58, message = "Renderizando el PPT consolidado...")
   palette_env <- .pkg_fn(".graficos_palette_env")(recipe$paletas %||% list(), parent = parent.frame())
