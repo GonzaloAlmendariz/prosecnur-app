@@ -70,3 +70,21 @@ Lo verifican las pruebas de cada pieza (E1–E6) y el seguimiento en
 ## Notas
 
 Este ADR no retira el plan sugerido en general; esa decisión, si llega, va en otro ADR y conserva lo de ACNUR.
+
+## Enmienda 2026-10-14 — la matriz sugiere, la lámina decide
+
+Gonzalo, 2026-10-14, probando el informe de Arte y Diseño 2026: si la matriz ya no arma láminas, que sirva para
+algo más que la significancia entre públicos; «ya escogiste una variable, la matriz sabe que es equivalente a otra
+de otro actor, te la puede poner como recomendación… para que te llame la atención».
+
+1. **La matriz alimenta sugerencias, nunca decisiones.** En «Comparar públicos por tema», al elegir la pregunta de un
+   público, cada línea vacía ofrece primero la equivalente según la matriz (acento violeta) y el tema puede
+   completarse en un paso («Completar con la matriz»). Elegir otra variable sigue siendo libre; el motor no se salta
+   lo que la lámina declara. Esto conserva la decisión 2: las láminas se arman en Gráficos.
+2. **Dos fuerzas a la vista.** Una fila confirmada de la matriz es «equivalente según tu matriz»; sin fila confirmada,
+   la propuesta automática por enunciado aparece como «parece la misma pregunta», en estilo neutro. Lo confirmado y lo
+   adivinado no se mezclan.
+3. **Una escala distinta se avisa, no se completa en silencio**: la sugerencia lo dice y queda fuera del completado en
+   lote.
+4. **Pendiente (siguiente tanda):** el mismo mecanismo devuelve la autoría al radar entre públicos, a la brecha «Dos
+   bases» y a la serie temporal, que tras este ADR dicen «sale de la matriz» pero el editor no deja armar.

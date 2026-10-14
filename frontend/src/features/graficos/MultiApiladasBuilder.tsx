@@ -31,6 +31,8 @@ import { blockFromArgs, carryCruce, carryVars } from "./multiApiladasCarry";
 import VariableRespondentSummary from "./VariableRespondentSummaryView";
 import { QueCompara } from "./multiapiladas/QueCompara";
 import { TemasPorPublico } from "./multiapiladas/TemasPorPublico";
+import { useSugerenciasDeMatriz } from "./multiapiladas/useSugerenciasDeMatriz";
+import type { FuentesMatriz } from "./multiapiladas/sugerenciasMatriz";
 import { EstadoMultiapiladas } from "./multiapiladas/EstadoMultiapiladas";
 import { guardarLectura, recuperarLectura } from "./multiapiladas/memoriaLecturas";
 import "./multiapiladas/multiapiladas.css";
@@ -138,6 +140,8 @@ export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props
   const args = graf.args ?? {};
   const intent = detectIntent(args);
   const refs = refsForIntent(args);
+  // P20: la matriz de equivalencias sugiere el público vacío; se carga una vez y sólo si hay públicos que comparar.
+  const matriz = useSugerenciasDeMatriz(multi && sources.length > 1 && (intent === "publicos_tema" || intent === "combinar"));
   const issues = validateArgs(args, variables, multi);
   const scale = scaleSummary(refs, variables, multi);
 
@@ -248,10 +252,10 @@ export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props
         <QuestionsByGroups args={args} onArgs={commitArgs} variables={variables} multi={multi} />
       )}
       {intent === "publicos_tema" && (
-        <PublicsByTopic args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} multiSourceHint={multiSourceHint} publicos={sources.map((src) => src.name)} />
+        <PublicsByTopic args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} multiSourceHint={multiSourceHint} publicos={sources.map((src) => src.name)} matriz={matriz} />
       )}
       {intent === "combinar" && (
-        <MultiListBlocks args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} multiSourceHint={multiSourceHint} publicos={sources.map((src) => src.name)} />
+        <MultiListBlocks args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} multiSourceHint={multiSourceHint} publicos={sources.map((src) => src.name)} matriz={matriz} />
       )}
       <EstadoMultiapiladas escala={refs.length ? scale : null} filas={estimateRows(intent, args, variables, multi)} problemas={issues} />
     </div>
@@ -313,7 +317,7 @@ function QuestionsByGroups({ args, onArgs, variables, multi }: BuilderSectionPro
   );
 }
 
-function PublicsByTopic({ args, onArgs, variables, multi, sourceCount, multiSourceHint, publicos }: BuilderSectionProps & { sourceCount: number; multiSourceHint: string; publicos: string[] }) {
+function PublicsByTopic({ args, onArgs, variables, multi, sourceCount, multiSourceHint, publicos, matriz }: BuilderSectionProps & { sourceCount: number; multiSourceHint: string; publicos: string[]; matriz: FuentesMatriz }) {
   const topics = topicsFromArgs(args.vars, args.titulos_grupo);
   if (!multi || sourceCount < 2) {
     return <RequirementPanel title="Esta lectura compara fuentes" text={multiSourceHint} />;
@@ -324,6 +328,7 @@ function PublicsByTopic({ args, onArgs, variables, multi, sourceCount, multiSour
       temas={topics}
       publicos={publicos}
       variables={variables}
+      matriz={matriz}
       nuevoTema={newTopic}
       onChange={(next) => {
         const conClave = next.map((t, i) => ({ ...t, key: t.key || `tema_${i + 1}` }));
@@ -333,7 +338,7 @@ function PublicsByTopic({ args, onArgs, variables, multi, sourceCount, multiSour
   );
 }
 
-function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSourceHint, publicos }: BuilderSectionProps & { sourceCount: number; multiSourceHint: string; publicos: string[] }) {
+function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSourceHint, publicos, matriz }: BuilderSectionProps & { sourceCount: number; multiSourceHint: string; publicos: string[]; matriz: FuentesMatriz }) {
   const blocks = asBlocks(args.bloques);
   const normalized = blocks.length ? blocks : [{ modo: "var", vars: [] }];
 
@@ -354,6 +359,7 @@ function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSou
             sourceCount={sourceCount}
             multiSourceHint={multiSourceHint}
             publicos={publicos}
+            matriz={matriz}
             onChange={(patch) => {
               const next = normalized.map((b, i) => (
                 i === index ? mergeMultiApiladasArgsPatch(b, patch) : b
@@ -390,6 +396,7 @@ function BlockEditor({
   sourceCount,
   multiSourceHint,
   publicos,
+  matriz,
   onChange,
   onRemove,
   onMove,
@@ -401,6 +408,7 @@ function BlockEditor({
   sourceCount: number;
   multiSourceHint: string;
   publicos: string[];
+  matriz: FuentesMatriz;
   onChange: (patch: MultiBlock) => void;
   onRemove: () => void;
   onMove: (direction: "up" | "down") => void;
@@ -516,6 +524,7 @@ function BlockEditor({
             temas={topicsFromArgs(block.vars, block.titulos_grupo)}
             publicos={publicos}
             variables={variables}
+            matriz={matriz}
             nuevoTema={newTopic}
             onChange={(next) => {
               const conClave = next.map((t, i) => ({ ...t, key: t.key || `tema_${i + 1}` }));
