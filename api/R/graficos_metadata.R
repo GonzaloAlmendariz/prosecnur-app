@@ -1750,6 +1750,26 @@
     ), .args_graf_comunes())
   ),
 
+  # Recetario p111–p112 (inventario de configuraciones, ítem 18): tabla de letras y un panel por par con la diferencia y
+  # su intervalo. Los temas salen de la matriz de equivalencias y se eligen en su tarjeta (SignificanciaPublicos).
+  p_significancia_publicos = list(
+    titulo_humano = "Diferencias significativas entre públicos",
+    descripcion   = "Por tema, el porcentaje de cada público con la letra del público al que supera, y un panel por par con la diferencia y su intervalo: punto lleno si es significativa. Prueba z con corrección de Bonferroni.",
+    icono_ui      = "Sigma",
+    categoria     = "comparison",
+    blueprint     = "comparison-dots",
+    requisito     = "Temas de la matriz de equivalencias en dos o tres públicos y las respuestas que suman (Top Two Box o «Sí»).",
+    args = c(list(
+      list(name = "vars", label = "Temas", tipo_input = "variables_list", grupo = "datos",
+           descripcion = "Cada tema con su pregunta en cada público, desde la matriz de equivalencias."),
+      list(name = "corte", label = "Respuestas que suman", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Las respuestas que forman el porcentaje de cada público (Top Two Box o «Sí»)."),
+      list(name = "alpha", label = "Nivel de significancia", tipo_input = "number", grupo = "datos", default = 0.05,
+           min = 0.001, max = 0.2, step = 0.005,
+           descripcion = "Umbral de la prueba, después de la corrección de Bonferroni entre los pares de cada tema.")
+    ), .args_graf_comunes())
+  ),
+
   # =========================================================================
   # MATRIZ DE CUADRANTES (G16, lámina 91 del recetario)
   # =========================================================================
@@ -2149,6 +2169,7 @@
   p_mapa_resultado_distrital = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
   p_cifra = list("numeros", "nativa", condicion = "Va en las ranuras de cifra; en una ranura de gráfico sale por la ruta anterior."),
   p_dumbbell = list("comparar", "nativa"),
+  p_significancia_publicos = list("comparar", "nativa", condicion = "Dos o tres públicos y hasta diez temas."),
   p_filtro_subpregunta = list("categorias", "nativa", condicion = "Hasta siete respuestas en el filtro; «Abajo» pide un filtro de dos respuestas."),
   p_matriz_cuadrantes = list("comparar", "nativa", condicion = "Con más de 20 temas va como dibujo de respaldo."),   # G16: lámina 91
   p_lollipop = list("categorias", "nativa"),
@@ -2198,6 +2219,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   p_cifra = "",
   p_dumbbell = "dumbbell",
   p_filtro_subpregunta = "",
+  p_significancia_publicos = "",
   p_lollipop = "lollipop",
   p_serie_temporal = "serie_temporal",
   p_radar = "radar_tabla",

@@ -215,7 +215,10 @@
                                                       mostrar_significancia = TRUE), 111),
     uno("Apiladas con diferencias significativas", .cr_g("p_barras_apiladas", var = "estudiantes$tutoria", cruces = "estudiantes$sexo",
                                                        mostrar_significancia = TRUE), 111),
-    falta("Tabla de letras entre públicos", 112, "Por verificar."),
+    uno("Tabla de letras entre públicos", .cr_g("p_significancia_publicos",
+         vars = list(`Conoce la misión` = c("docentes$conoce_mision", "estudiantes$conoce_mision", "egresados$conoce_mision"),
+                     `Sabe dónde consultarla` = c("docentes$consulta_mision", "estudiantes$consulta_mision", "egresados$consulta_mision")),
+         corte = "Sí"), 112),
 
     # ---- 3. Composiciones ----------------------------------------------------------------------------------------------
     cap("Composiciones de lámina", NULL, 10, "Las disposiciones del recetario con varios gráficos"),

@@ -72,10 +72,7 @@ export type EquivalenciasEstado = {
   cobertura: Record<string, EquivalenciaCoberturaBase>;
   /** Bases cuyo instrumento cambió después de importar la declaración. */
   desfasadas: string[];
-  /**
-   * Huella del CONTENIDO de la declaración (ADR 0063). Gráficos la compara
-   * contra la que quedó grabada al aplicar el mazo para saber si envejeció.
-   */
+  /** Huella del CONTENIDO de la declaración. ADR 0101: Gráficos ya no la graba ni la compara. */
   revision?: string;
   /** Orden de la serie de mediciones: nombres de base (contrato E4-E7). */
   armonizacion_periodos?: string[];
