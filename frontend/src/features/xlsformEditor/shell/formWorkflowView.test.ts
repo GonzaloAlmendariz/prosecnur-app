@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { XlsformFormPublication } from "../../../api/client";
-import { getFormWorkflowView } from "./formWorkflowView";
+import { getFormWorkflowView, suggestAudienceFromTitle } from "./formWorkflowView";
 
 function publication(
   overrides: Partial<XlsformFormPublication> = {},
@@ -55,18 +55,21 @@ describe("getFormWorkflowView", () => {
   });
 
   test.each([null, "", "actor_que_ya_no_existe"])(
-    "asks for a valid audience before publication when actor is %s",
+    "el público es opcional: sin él (%s) la acción sigue siendo publicar",
     (actorKey) => {
+      // Decisión del usuario (2026-10-14): el público nunca es obligatorio.
       const view = getFormWorkflowView(publication(), actors, actorKey);
 
-      expect(view.primaryAction).toBe("assign_audience");
-      expect(view.audience.label).toMatch(/sin (público|asignar)|elige/i);
+      expect(view.primaryAction).toBe("publish");
+      expect(view.audience?.label).toBe("Opcional");
+      expect(view.audience?.tone).toBe("neutral");
+      expect(view.audience?.detail).not.toMatch(/antes de publicar/i);
       expect(view.processing.label).toBe("Aún no disponible");
       expect([
         view.logic.label,
         view.logic.detail,
-        view.audience.label,
-        view.audience.detail,
+        view.audience?.label,
+        view.audience?.detail,
         view.processing.label,
         view.processing.detail,
       ].join(" ")).not.toContain("actor_que_ya_no_existe");
@@ -81,12 +84,12 @@ describe("getFormWorkflowView", () => {
     );
 
     expect(view.primaryAction).toBe("publish");
-    expect(view.audience.label).toContain("Docentes");
+    expect(view.audience?.label).toContain("Docentes");
     expect([
       view.logic.label,
       view.logic.detail,
-      view.audience.label,
-      view.audience.detail,
+      view.audience?.label,
+      view.audience?.detail,
       view.processing.label,
       view.processing.detail,
     ].join(" ")).not.toContain("docentes_acreditacion");
@@ -179,7 +182,7 @@ describe("getFormWorkflowView", () => {
     );
   });
 
-  test("a generic project can publish without an audience catalog", () => {
+  test("fuera de un estudio con públicos no hay etapa de público", () => {
     const view = getFormWorkflowView(
       publication(),
       [],
@@ -187,7 +190,61 @@ describe("getFormWorkflowView", () => {
       false,
     );
 
-    expect(view.audience.label).toBe("No requerido");
+    expect(view.audience).toBeNull();
     expect(view.primaryAction).toBe("publish");
+  });
+
+  test("nunca emite «Elegir público» como acción primaria", () => {
+    for (const actorKey of [null, "docentes_acreditacion", "fantasma"]) {
+      for (const applies of [true, false]) {
+        const view = getFormWorkflowView(publication({ can_publish: false }), actors, actorKey, applies);
+        expect(view.primaryAction).not.toBe("assign_audience");
+      }
+    }
+  });
+
+  test("un borrador vacío no es un error: lo marca como tal", () => {
+    const vacio = getFormWorkflowView(publication({
+      status: "blocked",
+      can_publish: false,
+      blockers: [
+        { id: "no_substantive_questions", title: "Instrumento sin preguntas sustantivas", detail: "" },
+        { id: "logic_pending_manual_confirmation", title: "Lógica pendiente", detail: "" },
+      ],
+    }), actors, null);
+    expect(vacio.emptyDraft).toBe(true);
+
+    const conOtroBloqueo = getFormWorkflowView(publication({
+      status: "blocked",
+      can_publish: false,
+      blockers: [
+        { id: "no_substantive_questions", title: "Instrumento sin preguntas sustantivas", detail: "" },
+        { id: "name-duplicate-p1", title: "Nombre duplicado", detail: "" },
+      ],
+    }), actors, null);
+    expect(conOtroBloqueo.emptyDraft).toBe(false);
+  });
+});
+
+describe("suggestAudienceFromTitle", () => {
+  const catalogo = [
+    { actor_key: "estudiantes_pregrado", actor: "Estudiantes" },
+    { actor_key: "docentes_acreditacion", actor: "Docentes" },
+    { actor_key: "administrativos", actor: "Administrativos" },
+    { actor_key: "egresados", actor: "Egresados" },
+  ];
+
+  test("lee el público del título si existe en el catálogo", () => {
+    expect(suggestAudienceFromTitle("Acreditación Arte y Diseño PUCP - Estudiantes", catalogo)?.actor_key)
+      .toBe("estudiantes_pregrado");
+    expect(suggestAudienceFromTitle("Copia de Acreditación - Egresados Personalizado", catalogo)?.actor_key)
+      .toBe("egresados");
+    expect(suggestAudienceFromTitle("ADMINISTRATIVOS 2026", catalogo)?.actor_key).toBe("administrativos");
+  });
+
+  test("no sugiere si el título no nombra ninguno, nombra dos o el catálogo no lo tiene", () => {
+    expect(suggestAudienceFromTitle("Nuevo formulario", catalogo)).toBeNull();
+    expect(suggestAudienceFromTitle("Docentes y estudiantes", catalogo)).toBeNull();
+    expect(suggestAudienceFromTitle("Estudiantes", [{ actor_key: "docentes", actor: "Docentes" }])).toBeNull();
   });
 });

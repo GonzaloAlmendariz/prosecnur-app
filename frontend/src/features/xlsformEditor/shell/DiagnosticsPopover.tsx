@@ -18,38 +18,32 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
+import { IconConditionalLogic } from "../../../lib/icons";
 import type { BuilderDiagnostic, BuilderSelection } from "../types";
+import type { EditorHeaderStatus } from "./editorHeaderStatus";
 
 export type DiagnosticsBadgeProps = {
   diagnostics: BuilderDiagnostic[];
+  /** Estado unificado (diagnósticos + publicación). Una sola fuente (U10). */
+  status: EditorHeaderStatus;
   selection: BuilderSelection | null;
   onSelectRow: (rowIndex: number) => void;
   onFocusCatalog: (catalogName: string) => void;
+  /** Abre la revisión de la lógica cuando ése es el paso pendiente. */
+  onReviewLogic?: () => void;
 };
 
 export function DiagnosticsBadge({
   diagnostics,
+  status,
   selection,
   onSelectRow,
   onFocusCatalog,
+  onReviewLogic,
 }: DiagnosticsBadgeProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-
-  // `error` es el nivel que impide sellar una revisión. Se cuenta y se anuncia
-  // aparte porque el usuario necesita distinguir "esto hay que arreglarlo para
-  // publicar" de "esto conviene mirarlo".
-  const errorCount = diagnostics.filter((d) => d.level === "error").length;
-  const warnCount = diagnostics.filter((d) => d.level === "warn").length;
-  const infoCount = diagnostics.filter((d) => d.level === "info").length;
-  const total = diagnostics.length;
-  const tone: "ok" | "info" | "warn" | "error" = errorCount > 0
-    ? "error"
-    : warnCount > 0
-      ? "warn"
-      : infoCount > 0
-        ? "info"
-        : "ok";
+  const { tone } = status;
 
   return (
     <>
@@ -58,36 +52,25 @@ export function DiagnosticsBadge({
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={`pulso-diagnostics-badge tone-${tone}`}
-        title={
-          tone === "ok"
-            ? "Todo en orden — no hay sugerencias"
-            : errorCount > 0
-              ? `${errorCount} ${errorCount === 1 ? "problema impide" : "problemas impiden"} publicar`
-              : `${total} ${total === 1 ? "sugerencia" : "sugerencias"} (${warnCount} a revisar)`
-        }
+        title={status.title}
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-label={errorCount > 0
-          ? `Problemas que impiden publicar (${errorCount}) y avisos (${total - errorCount})`
-          : `Sugerencias y advertencias (${total})`}
+        aria-label={`Estado del formulario: ${status.label}`}
       >
         {tone === "ok"
           ? <CheckCircle2 size={14} />
           : tone === "info"
             ? <Info size={14} />
-            : <AlertTriangle size={14} />}
-        <span className="pulso-diagnostics-badge-label">
-          {tone === "ok"
-            ? "Sin avisos"
-            : errorCount > 0
-              ? `${errorCount} sin resolver`
-              : `${total} aviso${total === 1 ? "" : "s"}`}
-        </span>
+            : status.logicStepPending && tone === "warn"
+              ? <IconConditionalLogic size={14} />
+              : <AlertTriangle size={14} />}
+        <span className="pulso-diagnostics-badge-label">{status.label}</span>
       </button>
       {open && triggerRef.current && (
         <DiagnosticsPopover
           anchor={triggerRef.current}
           diagnostics={diagnostics}
+          status={status}
           selection={selection}
           onSelectRow={(rowIndex) => {
             onSelectRow(rowIndex);
@@ -97,6 +80,10 @@ export function DiagnosticsBadge({
             onFocusCatalog(name);
             setOpen(false);
           }}
+          onReviewLogic={onReviewLogic ? () => {
+            setOpen(false);
+            onReviewLogic();
+          } : undefined}
           onClose={() => setOpen(false)}
         />
       )}
@@ -111,13 +98,17 @@ export function DiagnosticsBadge({
 function DiagnosticsPopover({
   anchor,
   diagnostics,
+  status,
   selection,
   onSelectRow,
   onFocusCatalog,
+  onReviewLogic,
   onClose,
 }: {
   anchor: HTMLElement;
   diagnostics: BuilderDiagnostic[];
+  status: EditorHeaderStatus;
+  onReviewLogic?: () => void;
   selection: BuilderSelection | null;
   onSelectRow: (rowIndex: number) => void;
   onFocusCatalog: (name: string) => void;
@@ -172,7 +163,16 @@ function DiagnosticsPopover({
   // quede arriba. Lo que bloquea la publicación va primero siempre.
   const rank = (level: BuilderDiagnostic["level"]) =>
     level === "error" ? 0 : level === "warn" ? 1 : 2;
-  const sorted = [...diagnostics].sort((a, b) => rank(a.level) - rank(b.level));
+  // Las correcciones que exige el backend se listan junto a los diagnósticos:
+  // si la cabecera las cuenta, el popover tiene que poder mostrarlas.
+  const remote: BuilderDiagnostic[] = status.publicationErrors.map((b) => ({
+    id: b.id,
+    level: "error",
+    title: b.title,
+    detail: b.detail,
+    rowIndex: b.rowIndex,
+  }));
+  const sorted = [...remote, ...diagnostics].sort((a, b) => rank(a.level) - rank(b.level));
   const blockingCount = sorted.filter((d) => d.level === "error").length;
 
   return createPortal(
@@ -188,7 +188,9 @@ function DiagnosticsPopover({
           <strong style={{ fontSize: 13 }}>Sugerencias y advertencias</strong>
           <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2 }}>
             {sorted.length === 0
-              ? "Todo en orden por ahora."
+              ? status.logicStepPending
+                ? "Falta un paso para publicar."
+                : "Todo en orden por ahora."
               : blockingCount > 0
                 ? `${blockingCount} ${blockingCount === 1 ? "impide" : "impiden"} publicar una revisión.`
                 : `${sorted.length} ${sorted.length === 1 ? "punto" : "puntos"} por revisar antes de exportar.`}
@@ -206,7 +208,25 @@ function DiagnosticsPopover({
       </header>
 
       <div className="pulso-diagnostics-popover-list">
-        {sorted.length === 0 ? (
+        {status.logicStepPending && (
+          <div className="pulso-diagnostics-popover-item pulso-diagnostics-popover-step">
+            <span className="pulso-diagnostics-popover-icon" style={{ color: "var(--pulso-warn-fg)" }}>
+              <IconConditionalLogic size={14} />
+            </span>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <strong style={{ fontSize: 12, color: "var(--pulso-text)" }}>Confirma la lógica</strong>
+              <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45, marginTop: 2 }}>
+                Es el paso que falta para publicar una revisión del instrumento.
+              </div>
+              {onReviewLogic && (
+                <button type="button" className="pulso-primary pulso-diagnostics-popover-action" onClick={onReviewLogic}>
+                  Revisar lógica
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        {sorted.length === 0 && !status.logicStepPending ? (
           <div className="pulso-diagnostics-popover-empty">
             <CheckCircle2 size={32} color="var(--pulso-success-fg)" />
             <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--pulso-text-soft)" }}>

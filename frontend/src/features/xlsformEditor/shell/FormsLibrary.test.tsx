@@ -54,7 +54,7 @@ describe("FormsLibrary", () => {
       expect(markup).toContain("Espacio de formularios");
       expect(markup).toContain("Cómo funciona");
       expect(markup).toContain("pulso-xf-home-add--tile");
-      expect(markup).toContain("Origen, lógica y público preparan una revisión estable");
+      expect(markup).toContain("Cada formulario se publica como una revisión estable");
       // Nada de hero, diagrama ni slots fantasma.
       expect(markup).not.toContain("pulso-xf-home-add--hero");
       expect(markup).not.toContain("pulso-hub-flow");

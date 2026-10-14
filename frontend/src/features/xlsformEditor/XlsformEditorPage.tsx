@@ -157,11 +157,14 @@ import {
   type InstrumentActorOption,
 } from "./shell/actorAssignmentModel";
 import { instrumentActorLabel } from "./shell/formWorkflowView";
-import { FormSwitcher } from "./shell/FormSwitcher";
 import { ConfigurarPdfDialog } from "./shell/ConfigurarPdfDialog";
 import { QuestionnaireProgressPanel } from "./shell/QuestionnaireProgressPanel";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
-import { DiagnosticsBadge } from "./shell/DiagnosticsPopover";
+import { EditorCommandBar } from "./shell/EditorCommandBar";
+import { EditorSmImportNotice } from "./shell/EditorSmImportNotice";
+import { useActivePublicationRefresh } from "./shell/useActivePublicationRefresh";
+import { ListasOpcionesDialog, contarEscalasRepetidas, useListasOpcionesPanel } from "./listas";
+import { buildSuiteMetrics, formatFieldSectionPair, formatRelativeTime } from "./shell/editorMetrics";
 import { CollapsibleSection } from "./shell/CollapsibleSection";
 import CatalogsContextLens from "./catalogs/CatalogsContextLens";
 import { CatalogLibrary as CatalogLibraryV2 } from "./catalogs/CatalogLibrary";
@@ -179,8 +182,6 @@ import {
   type FocusWorkspaceMode,
   type SectionBoundaryState,
 } from "./canvas/FocusedWorkspace";
-import { MoreViewsMenu } from "./shell/MoreViewsMenu";
-import { FormIntakeMenu } from "./shell/FormIntakeMenu";
 import { Coachmarks } from "./shell/Coachmarks";
 import { iconForType } from "./helpers/icons";
 import { paletteForType } from "./helpers/paletteForType";
@@ -1452,6 +1453,9 @@ export default function XlsformEditorPage() {
     }
     return out;
   }, [localDiagnostics, remoteDiagnostics]);
+  useActivePublicationRefresh(workbook ? activeFormId : null, lastSavedAt, refreshBackendFormIndex);
+  const listasPanel = useListasOpcionesPanel();
+  const escalasRepetidas = useMemo(() => contarEscalasRepetidas(workbook), [workbook]);
   const suiteMetrics = useMemo(
     () => buildSuiteMetrics(structure, catalogs.length, diagnostics),
     [structure, catalogs.length, diagnostics],
@@ -3107,195 +3111,65 @@ export default function XlsformEditorPage() {
       auditReady={workbook ? "xlsform-editor" : undefined /* el hub: lo decide FormsLibrary */}
       resetScrollKey={`${workbook ? "workbook" : "empty"}:${editorMode}`}
       toolbar={workbook ? (
-        <div className="pulso-command-bar pulso-xlsform-commandbar" aria-label="Comandos del formulario activo">
-          <div className="pulso-xlsform-commandbar-group pulso-xlsform-commandbar-group--document">
-            {/* Sin contrato geométrico: el vocabulario no tiene el que le toca.
-                Una tira de chips es «mismo alto, ancho intrínseco», y hoy solo
-                existen `equal` (mismo alto Y mismo ancho) e `intrinsic` (cada
-                uno ciñe su contenido). Medido: con `intrinsic` da capacity-drift
-                —los 10,5 px libres son el `min-height: 22px` del chip, un alto
-                de control deliberado, no desperdicio— y con `equal` da
-                width-drift de 118 px. Ver la decisión abierta en el goal. */}
-            <div className="pulso-xlsform-document-strip" aria-label="Resumen del formulario">
-              <FormSwitcher
-                forms={forms}
-                activeFormId={activeFormId}
-                activeName={activeFormName}
-                canCreate={canCreateForm}
-                onSwitch={(id) => { void switchToForm(id); }}
-                onNew={onNewWorkbook}
-                onViewAll={onBackToHub}
-              />
-              <span className="pulso-xlsform-document-divider" aria-hidden="true" />
-              <DocumentMetric value={structure?.outline.length ?? 0} label="piezas" />
-              <DocumentMetric
-                value={catalogs.length}
-                label={catalogs.length === readyCatalogsCount ? "listas" : "listas preparadas"}
-              />
-              {/* El conteo de avisos no se repite acá: DiagnosticsBadge, en la
-                  zona de modos, ya es el indicador de diagnósticos y además
-                  lleva al aviso. Tenerlo dos veces sumaba ruido sin informar. */}
-            </div>
-            {/* Misma razón que la tira de arriba, y aquí el caso es más limpio:
-                «Nuevo» y «Guardado ahora» son dos chips de la misma variante,
-                con el mismo alto por diseño y 55 px de diferencia de ancho por
-                contenido. Es exactamente lo que el vocabulario no sabe decir. */}
-            <div className="pulso-xlsform-state-strip" aria-label="Estado del formulario">
-              <StatusChip
-                label={formatSource(source?.kind ?? null)}
-                title={formatSourceLong(source?.kind ?? null)}
-                tone="info"
-              />
-              <StatusChip
-                label={formatSaveStatus(dirty, lastSavedAt)}
-                tone={dirty ? "warn" : lastSavedAt != null ? "info" : "success"}
-              />
-              {(canUndo || canRedo) && (
-                <div className="pulso-xlsform-history-controls">
-                  <button
-                    type="button"
-                    onClick={() => dispatch({ type: "UNDO" })}
-                    disabled={!canUndo}
-                    title="Deshacer (Cmd/Ctrl+Z)"
-                    className="pulso-xlsform-history-button"
-                    aria-label="Deshacer último cambio"
-                  >
-                    <span className="pulso-xlsform-history-icon" aria-hidden="true">
-                      <IconUndo size={13} strokeWidth={2.2} />
-                    </span>
-                    <span>Deshacer</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => dispatch({ type: "REDO" })}
-                    disabled={!canRedo}
-                    title="Rehacer (Shift+Cmd/Ctrl+Z)"
-                    className="pulso-xlsform-history-button"
-                    aria-label="Rehacer cambio deshecho"
-                  >
-                    <span className="pulso-xlsform-history-icon" aria-hidden="true">
-                      <IconRedo size={13} strokeWidth={2.2} />
-                    </span>
-                    <span>Rehacer</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="pulso-xlsform-commandbar-group pulso-xlsform-commandbar-group--modes">
-            <div
-              className="pulso-mode-toggle"
-              role="radiogroup"
-              aria-label="Modo de edición"
-            >
-              <button
-                type="button"
-                role="radio"
-                aria-checked={editorMode === "builder"}
-                className={editorMode === "builder" ? "is-on" : ""}
-                onClick={() => setEditorMode("builder")}
-                title="Editor visual guiado"
-              >
-                Constructor
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={editorMode === "sheets"}
-                className={editorMode === "sheets" ? "is-on" : ""}
-                onClick={() => setEditorMode("sheets")}
-                title="Vista por hojas — edición de celdas crudas"
-              >
-                Hojas
-              </button>
-            </div>
-            <MoreViewsMenu
-              catalogsCount={catalogs.length}
-              onOpenLogicCanvas={() => setLogicCanvasOpen(true)}
-              onOpenChoiceFilters={() => setChoiceFiltersOpen(true)}
-              onOpenSurveyMonkeyLogic={() => {
-                setLogicReviewFormId(null);
-                setSmLogicDialogOpen(true);
-              }}
-              onOpenQuestionnaireView={() => setQuestionnaireViewOpen(true)}
-              onOpenCatalogsLens={() => setCatalogsLensOpen(true)}
-              onOpenSimulator={() => setSimulatorOpen(true)}
-              onOpenSummary={() => setSummaryViewOpen(true)}
-            />
-            <DiagnosticsBadge
-              diagnostics={diagnostics}
-              selection={selection}
-              onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
-              onFocusCatalog={(name) => {
-                setCatalogFocus(name);
-                setCatalogsLensOpen(true);
-              }}
-            />
-          </div>
-
-          <div className="pulso-xlsform-commandbar-group pulso-xlsform-commandbar-group--actions">
-            {/* Traer un formulario al proyecto: una sola intención con tres
-                orígenes, recogida en su menú. Antes eran tres botones sueltos
-                del mismo peso que exportar, que es lo que se hace a diario. */}
-            <FormIntakeMenu
-              canCreate={canCreateForm}
-              maxForms={MAX_FORMS}
-              onNewBlank={onNewWorkbook}
-              onImportXlsform={() => xlsInputRef.current?.click()}
-              onImportSurveyMonkey={onImportSurveyMonkey}
-            />
-            {/* Salidas del editor. El destino no es una acción hermana sino el
-                ajuste del .xlsx, así que comparte cápsula con Exportar.
-                Antes era una casilla llamada «Columnas de plataforma», que
-                describía la mecánica (qué columnas se incluyen) en vez de la
-                consecuencia, y con un nombre ambiguo: «plataforma» podía
-                leerse como Kobo o como Prosecnur, que son justo las dos
-                opciones opuestas. */}
-            <div className="pulso-xf-export-cluster">
-              <div
-                className="pulso-mode-toggle pulso-xf-target-toggle"
-                role="radiogroup"
-                aria-label="Destino del archivo exportado"
-              >
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={!includeAppColumns}
-                  className={!includeAppColumns ? "is-on" : ""}
-                  onClick={() => setIncludeAppColumns(false)}
-                  disabled={!!busy}
-                  title="XLSForm estándar, listo para subir a Kobo u ODK. Sin las hojas ni las columnas propias de Prosecnur."
-                >
-                  Kobo / ODK
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={includeAppColumns}
-                  className={includeAppColumns ? "is-on" : ""}
-                  onClick={() => setIncludeAppColumns(true)}
-                  disabled={!!busy}
-                  title="Conserva la capa de Prosecnur: la hoja paper con el mapeo al cuestionario impreso (PDF/Word), la hoja diagnostico y las columnas paper_*."
-                >
-                  Prosecnur
-                </button>
-              </div>
-              <button type="button" className="pulso-primary pulso-xlsform-toolbar-button" onClick={onExport} disabled={!!busy}>
-                <Download size={14} /> Exportar .xlsx
-              </button>
-            </div>
-            <button
-              type="button"
-              className="pulso-xlsform-toolbar-button"
-              onClick={() => setPdfDialogOpen(true)}
-              disabled={!!busy}
-              title="Configurar y exportar el cuestionario impreso (PDF o Word)"
-            >
-              <FileText size={14} /> Documento
-            </button>
-          </div>
-        </div>
+        <EditorCommandBar
+          switcher={{
+            forms,
+            activeFormId,
+            activeName: activeFormName,
+            canCreate: canCreateForm,
+            onSwitch: (id) => { void switchToForm(id); },
+            onNew: onNewWorkbook,
+            onViewAll: onBackToHub,
+          }}
+          metrics={{
+            fields: suiteMetrics.fields,
+            sections: suiteMetrics.sections,
+            catalogs: catalogs.length,
+            readyCatalogs: readyCatalogsCount,
+          }}
+          source={source}
+          dirty={dirty}
+          lastSavedAt={lastSavedAt}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={() => dispatch({ type: "UNDO" })}
+          onRedo={() => dispatch({ type: "REDO" })}
+          editorMode={editorMode}
+          onEditorModeChange={setEditorMode}
+          moreViews={{
+            catalogsCount: catalogs.length,
+            onOpenLogicCanvas: () => setLogicCanvasOpen(true),
+            onOpenChoiceFilters: () => setChoiceFiltersOpen(true),
+            onOpenSurveyMonkeyLogic: () => {
+              setLogicReviewFormId(null);
+              setSmLogicDialogOpen(true);
+            },
+            onOpenQuestionnaireView: () => setQuestionnaireViewOpen(true),
+            onOpenCatalogsLens: () => setCatalogsLensOpen(true),
+            onOpenSimulator: () => setSimulatorOpen(true),
+            onOpenSummary: () => setSummaryViewOpen(true),
+          }}
+          listas={{ repetidas: escalasRepetidas, onOpen: listasPanel.abrir }}
+          diagnostics={diagnostics}
+          publication={activeFormId ? publicationUi.byFormId[activeFormId] ?? null : null}
+          selection={selection}
+          onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
+          onFocusCatalog={(name) => {
+            setCatalogFocus(name);
+            setCatalogsLensOpen(true);
+          }}
+          onReviewLogic={activeFormId ? () => { void openFormLogicReview(activeFormId); } : undefined}
+          canCreate={canCreateForm}
+          maxForms={MAX_FORMS}
+          onNewBlank={onNewWorkbook}
+          onImportXlsform={() => xlsInputRef.current?.click()}
+          onImportSurveyMonkey={onImportSurveyMonkey}
+          includeAppColumns={includeAppColumns}
+          onIncludeAppColumnsChange={setIncludeAppColumns}
+          onExport={onExport}
+          onOpenDocument={() => setPdfDialogOpen(true)}
+          busy={!!busy}
+        />
       ) : undefined}
     >
       {/*
@@ -3439,6 +3313,12 @@ export default function XlsformEditorPage() {
                 onAddColumn={sheetsAddColumn}
               />
             )}
+            <EditorSmImportNotice
+              formId={activeFormId}
+              source={source}
+              repetidas={escalasRepetidas}
+              onOpenListas={listasPanel.abrir}
+            />
             {editorMode === "builder" && (
               <div className="pulso-builder-grid">
                 <div className="pulso-xlsform-workbench-column pulso-xlsform-workbench-column--outline">
@@ -3450,7 +3330,7 @@ export default function XlsformEditorPage() {
                       <div>
                         <span className="pulso-section-eyebrow">Outline maestro</span>
                         <strong>Estructura</strong>
-                        <small>{suiteMetrics.questions} preguntas · {suiteMetrics.sections} secciones</small>
+                        <small>{formatFieldSectionPair(suiteMetrics.fields, suiteMetrics.sections)}</small>
                       </div>
                       <div className="pulso-xlsform-outline-actions" style={{ position: "relative" }}>
                         <button
@@ -3585,6 +3465,17 @@ export default function XlsformEditorPage() {
         </>
       )}
 
+      {workbook && (
+        <ListasOpcionesDialog
+          panel={listasPanel}
+          workbook={workbook}
+          onWorkbookChange={(next) => {
+            dispatch({ type: "SET", workbook: next });
+            setArtifact(null);
+          }}
+        />
+      )}
+
       {/* Coachmarks de primer uso — solo aparecen cuando hay workbook con
           contenido editable y el flag `firstUseDone` no está seteado. */}
       {workbook && hasEditableContent && <Coachmarks />}
@@ -3698,7 +3589,7 @@ export default function XlsformEditorPage() {
               <div className="pulso-graph-header-title">
                 <strong>Vista del cuestionario</strong>
                 <span>
-                  {suiteMetrics.questions} pregunta{suiteMetrics.questions === 1 ? "" : "s"}
+                  {suiteMetrics.fields} campo{suiteMetrics.fields === 1 ? "" : "s"}
                   {" · "}
                   {suiteMetrics.sections} secci{suiteMetrics.sections === 1 ? "ón" : "ones"}
                   {" · "}
@@ -4198,113 +4089,10 @@ function describeAddMenuItem(item: AddMenuItem): {
   }
 }
 
-type SuiteMetrics = {
-  pieces: number;
-  sections: number;
-  questions: number;
-  catalogs: number;
-  required: number;
-  logicRules: number;
-  warnings: number;
-  infos: number;
-};
-
-function buildSuiteMetrics(
-  structure: BuilderStructure | null,
-  catalogsCount: number,
-  diagnostics: BuilderDiagnostic[],
-): SuiteMetrics {
-  const nodes = structure?.outline ?? [];
-  return {
-    pieces: nodes.length,
-    sections: nodes.filter((node) => node.kind === "section" || node.kind === "repeat").length,
-    questions: nodes.filter((node) => node.kind === "question" || node.kind === "note" || node.kind === "calculate").length,
-    catalogs: catalogsCount,
-    required: nodes.filter((node) => node.required).length,
-    logicRules: nodes.filter(
-      (node) =>
-        node.relevant?.trim() ||
-        node.constraint?.trim() ||
-        node.calculation?.trim() ||
-        node.choiceFilter?.trim(),
-    ).length,
-    warnings: diagnostics.filter((diagnostic) => diagnostic.level === "warn").length,
-    infos: diagnostics.filter((diagnostic) => diagnostic.level === "info").length,
-  };
-}
-
-/**
- * Estado del formulario (procedencia y guardado). Es información, no un
- * control: se lee como texto con un punto de color, sin cápsula ni borde.
- *
- * Antes era una pastilla con fondo y borde por cada estado, con los estilos
- * inline. Sumadas al selector, al segmentado, al menú y a los botones, la
- * banda acumulaba nueve cajas con el mismo tratamiento y nada destacaba: el
- * peso visual de un dato pasivo igualaba al de la acción principal.
- */
-function StatusChip({
-  label,
-  tone,
-  title,
-}: {
-  label: string;
-  tone: "neutral" | "info" | "warn" | "success";
-  /** Texto explicado, cuando la etiqueta visible va abreviada. */
-  title?: string;
-}) {
-  return (
-    <span className={`pulso-xf-status is-${tone}`} title={title}>
-      <span className="pulso-xf-status-dot" aria-hidden="true" />
-      {label}
-    </span>
-  );
-}
-
-function DocumentMetric({
-  value,
-  label,
-  tone = "neutral",
-}: {
-  value: number;
-  label: string;
-  tone?: "neutral" | "warn" | "success";
-}) {
-  return (
-    <span className={`pulso-xlsform-document-metric is-${tone}`}>
-      <strong>{value}</strong>
-      <span>{label}</span>
-    </span>
-  );
-}
-
 // =============================================================================
 // Helpers añadidos en Sub-PR 2 (estado + autosave + undo/redo)
 // =============================================================================
 
-/** Texto humano del estado de guardado para el chip del header. */
-function formatSaveStatus(dirty: boolean, lastSavedAt: number | null): string {
-  if (dirty) {
-    if (lastSavedAt == null) return "Cambios sin guardar";
-    return `Cambios sin guardar · último guardado ${formatRelativeTime(lastSavedAt)}`;
-  }
-  if (lastSavedAt == null) return "Sin cambios pendientes";
-  return `Guardado ${formatRelativeTime(lastSavedAt)}`;
-}
-
-/** Convierte un timestamp ms epoch en frase tipo "hace 4 s" / "hace 2 min". */
-function formatRelativeTime(ts: number): string {
-  const diffMs = Date.now() - ts;
-  if (diffMs < 0) return "ahora";
-  const sec = Math.floor(diffMs / 1000);
-  if (sec < 5) return "ahora";
-  if (sec < 60) return `hace ${sec} s`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `hace ${min} min`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `hace ${hr} h`;
-  const day = Math.floor(hr / 24);
-  return `hace ${day} d`;
-}
 
 function SurveyMonkeyLogicPopup({
   workbook,

@@ -34,11 +34,20 @@ describe("computeFormMetrics", () => {
     expect(m.sections).toBe(1);
   });
 
-  test("filas de type vacío no cuentan", () => {
+  test("filas de type vacío y notas no cuentan como campos", () => {
     const wb = workbook([
       ["text", "p1", "Pregunta 1"],
       ["", "", ""],
       ["note", "n1", "Nota"],
+    ]);
+    expect(computeFormMetrics(wb).questions).toBe(1);
+  });
+
+  test("el «Otro (especifique)» viaja con su pregunta madre (mismo número que el import)", () => {
+    const wb = workbook([
+      ["select_one l", "p3", "Género"],
+      ["text", "p3_other", "Otro (especifique)"],
+      ["text", "suelto_other", "Sin madre"],
     ]);
     expect(computeFormMetrics(wb).questions).toBe(2);
   });
