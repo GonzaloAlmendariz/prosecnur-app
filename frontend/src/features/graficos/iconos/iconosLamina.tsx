@@ -15,14 +15,8 @@ import {
 export type OpcionesLamina = { ranuraActiva?: number };
 type DibujoLamina = (o: OpcionesLamina) => JSX.Element;
 
-/** Tipos con el ícono del público (el recetario moderno lo pone en la cabecera). */
-const CON_POBLACION = new Set([
-  "p_slide_3_graficos_poblacion_tira",
-  "p_slide_3_graficos_poblacion_corona",
-  "p_slide_3_graficos_poblacion_cifras",
-  "p_slide_5_graficos_poblacion",
-  "p_slide_6_graficos_poblacion",
-]);
+/** Tipos con el ícono del público en la miniatura: ninguno desde 2026-10-14 (las láminas de población ya no lo llevan). */
+const CON_POBLACION = new Set<string>();
 
 /** Láminas de población antiguas del registro: su base del estándar + punto de población. */
 export const ALIAS_LAMINA: Readonly<Record<string, string>> = {
