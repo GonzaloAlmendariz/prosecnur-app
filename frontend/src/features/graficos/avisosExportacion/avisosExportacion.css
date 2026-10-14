@@ -1,0 +1,12 @@
+/* Avisos antes de exportar, una lámina por renglón. Sólo tokens `--pulso-*`. */
+.pulso-avexp { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pulso-avexp-titulo { font-weight: var(--pulso-weight-semibold); }
+.pulso-avexp-grupos { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.pulso-avexp-grupo { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pulso-avexp-lamina { font-size: 12.5px; font-weight: var(--pulso-weight-semibold); }
+.pulso-avexp-nombre { font-weight: var(--pulso-weight-regular); }
+.pulso-avexp-detalles { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.45; }
+.pulso-avexp-mas { align-self: flex-start; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-size: 12.5px; font-weight: var(--pulso-weight-semibold); text-decoration: underline; cursor: pointer; }
+.pulso-irlamina { align-self: flex-start; padding: 4px 10px; border: 1px solid var(--pulso-danger-border); border-radius: 6px; background: var(--pulso-surface); color: var(--pulso-danger-fg); font: inherit; font-size: 12px; font-weight: var(--pulso-weight-semibold); cursor: pointer; }
+.pulso-irlamina:hover { background: var(--pulso-danger-bg); }
+.pulso-irlamina:focus-visible { outline: 2px solid var(--pulso-danger-fg); outline-offset: 2px; }
