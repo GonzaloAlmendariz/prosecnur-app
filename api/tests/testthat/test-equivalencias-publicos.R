@@ -163,12 +163,9 @@ test_that("la plantilla sale poblada con las variables y etiquetas de cada base"
   )
   df <- .equiv_plantilla_df(inst)
 
-  # El nucleo primero: seccion, etiqueta estandar y una columna por publico.
-  # Detras las dos del plan del informe, opcionales al leer. Las columnas de
-  # ayuda por base ya no estan: salieron a la hoja de consulta, donde dan la
-  # misma ayuda sin doblar el ancho de la hoja donde se escribe.
-  expect_equal(names(df), c("seccion", "etiqueta_estandar", "docentes", "estudiantes",
-                            "diapositiva", "enunciado", "grafico", "corte", "estilo"))
+  # Seccion, etiqueta estandar y una columna por publico, y nada mas: la matriz sólo declara equivalencias
+  # (ADR 0101). Las columnas de ayuda por base salieron a la hoja de consulta.
+  expect_equal(names(df), c("seccion", "etiqueta_estandar", "docentes", "estudiantes"))
   # Sin nada declarado, la plantilla sale SIN filas. Antes volcaba una por cada
   # variable de cada base —300 en el estudio medido—, cada una con su codigo en
   # una sola columna: una escalera diagonal que habia que cortar y pegar para
@@ -228,13 +225,15 @@ test_that("una plantilla sin filas se rechaza con un error explicito", {
 
 # --- Diapositiva y sugerencias (enmienda del editor, ADR 0062) ---------------
 
-test_that("lee la columna de diapositiva y acepta el nombre corto de las matrices reales", {
+test_that("la columna de diapositiva —también «Diapo»— se ignora y se cuenta para avisarlo (ADR 0101)", {
   df <- .eqp_df_real()
   df$Diapo <- c(3, 3, 5, NA)  # el nombre que usan las matrices ya escritas
   equiv <- .equiv_desde_df(df, c("docentes", "estudiantes"))
-  expect_equal(equiv$filas[[1]]$diapositiva, "3")
-  expect_equal(equiv$filas[[2]]$diapositiva, "3")
-  expect_equal(equiv$filas[[3]]$diapositiva, "5")
+  expect_null(equiv$filas[[1]]$diapositiva)
+  expect_equal(equiv$columnas_ignoradas$diapositiva, 3L)
+  aviso <- .equiv_avisos_columnas_ignoradas(equiv$columnas_ignoradas)
+  expect_match(aviso[[1]]$message, "diapositiva (3 filas)", fixed = TRUE)
+  expect_match(aviso[[1]]$message, "Gráficos", fixed = TRUE)
 })
 
 test_that("la sugerencia separa baterías que comparten etiqueta y escala", {
@@ -377,12 +376,11 @@ test_that("la matriz real entra aunque readxl desambigue los encabezados repetid
   # seria un supuesto sobre como alguien ordeno su Excel.
   expect_equal(equiv$filas[[1]]$variables$docentes, "p13_1")
   expect_equal(equiv$filas[[2]]$variables$docentes, "p13_2")
-  expect_equal(equiv$filas[[1]]$diapositiva, "3")
   # La seccion vive en celdas combinadas y se rellena hacia abajo.
   expect_equal(equiv$filas[[2]]$seccion, "1.2 Servicios")
 })
 
-test_that("el enunciado se lee de la matriz y se rellena hacia abajo", {
+test_that("el enunciado, el gráfico, el corte y el estilo de una matriz ya escrita se ignoran y se cuentan (ADR 0101)", {
   df <- data.frame(
     seccion = c("1.2 Servicios", NA),
     enunciado = c("¿Conoce los siguientes servicios?", NA),
@@ -394,23 +392,19 @@ test_that("el enunciado se lee de la matriz y se rellena hacia abajo", {
 
   equiv <- .equiv_desde_df(df, c("docentes"))
 
-  # El enunciado es un atributo de la DIAPOSITIVA escrito una vez sobre su bloque; sin
-  # el relleno hacia abajo, la segunda fila lo perderia y la diapositiva diria dos
-  # cosas segun que fila se leyera primero.
-  expect_equal(equiv$filas[[1]]$enunciado, "¿Conoce los siguientes servicios?")
-  expect_equal(equiv$filas[[2]]$enunciado, "¿Conoce los siguientes servicios?")
+  # La matriz sólo guarda equivalencias: el enunciado de la diapositiva va en la lámina, en Gráficos.
+  expect_null(equiv$filas[[1]]$enunciado)
+  expect_equal(equiv$columnas_ignoradas, list(diapositiva = 2L, enunciado = 1L))
 })
 
-test_that("cambiar el enunciado mueve la revision de la declaracion", {
+test_that("las columnas del informe no mueven la revisión: ya no son de la matriz (ADR 0101)", {
   base_filas <- list(list(
     seccion = "", etiqueta_estandar = "Salud", diapositiva = "3",
     enunciado = "", variables = list(docentes = "p13_1"), cantidad = 1L))
   con_enunciado <- base_filas
   con_enunciado[[1]]$enunciado <- "¿Conoce los siguientes servicios?"
 
-  # El enunciado titula la diapositiva (ADR 0064), asi que cambiarlo cambia el mazo:
-  # si no moviera la revision, Graficos no podria avisar del desfase.
-  expect_false(identical(
+  expect_true(identical(
     .equiv_declaracion_revision(list(filas = base_filas)),
     .equiv_declaracion_revision(list(filas = con_enunciado))
   ))
@@ -480,32 +474,21 @@ test_that("la plantilla no se siembra: en seis columnas una propuesta no se dist
   expect_false("origen" %in% names(df))
 })
 
-test_that("las columnas del plan van al final y son opcionales al leer", {
+test_that("la plantilla no emite columnas del informe y un archivo que las trae importa igual (ADR 0101)", {
   inst <- list(docentes = .eqp_inst(c("p13_1"), c("Salud")))
+  expect_equal(names(.equiv_plantilla_df(inst)), c("seccion", "etiqueta_estandar", "docentes"))
 
-  # Se emiten SIEMPRE y detras del nucleo: emitirlas solo cuando ya tienen datos
-  # dejaba al analista sin la columna justo cuando quiere empezar a repartir
-  # diapositivas desde el Excel.
-  df <- .equiv_plantilla_df(inst)
-  expect_equal(names(df), c("seccion", "etiqueta_estandar", "docentes",
-                            "diapositiva", "enunciado", "grafico", "corte", "estilo"))
-
-  # Y un archivo que no las trae importa igual: son opcionales.
   minima <- data.frame(seccion = "1.2 Servicios", etiqueta_estandar = "Salud",
                        docentes = "p13_1", stringsAsFactors = FALSE)
   equiv <- .equiv_desde_df(minima, c("docentes"))
   expect_equal(equiv$n_filas, 1L)
-  expect_equal(equiv$filas[[1]]$diapositiva, "")
-  expect_equal(equiv$filas[[1]]$enunciado, "")
+  expect_length(equiv$columnas_ignoradas, 0L)
 
-  # Lo declarado en ellas sobrevive a reexportar.
-  con_plan <- list(filas = list(list(
-    seccion = "", etiqueta_estandar = "Salud", diapositiva = "3",
-    enunciado = "¿Conoce los siguientes servicios?",
+  # Una declaración vieja que aún las guarda no las vuelve a emitir.
+  vieja <- list(filas = list(list(
+    seccion = "", etiqueta_estandar = "Salud", diapositiva = "3", enunciado = "¿Conoce?",
     variables = list(docentes = "p13_1"), cantidad = 1L)))
-  df2 <- .equiv_plantilla_df(inst, equiv = con_plan)
-  expect_equal(df2$diapositiva[1], "3")
-  expect_equal(df2$enunciado[1], "¿Conoce los siguientes servicios?")
+  expect_equal(names(.equiv_plantilla_df(inst, equiv = vieja)), c("seccion", "etiqueta_estandar", "docentes"))
 })
 
 test_that("el catalogo de variables sale aparte, no en la hoja de trabajo", {
@@ -532,33 +515,6 @@ test_that("una propuesta sin confirmar no escribe etiquetas", {
   # su etiqueta seria tratar una sugerencia como una decision.
   expect_equal(labels$docentes[["p13_1"]], "Decidida")
   expect_null(labels$docentes[["p14_1"]])
-})
-
-test_that("el grafico y el corte no se arrastran a la diapositiva siguiente", {
-  # Medido: declarar radar en un bloque de 6 filas y reimportar devolvia 47 filas
-  # con radar, porque el relleno hacia abajo seguia cayendo hasta el final de la
-  # hoja. `enunciado`, `grafico` y `corte` son atributos de SU diapositiva.
-  df <- data.frame(
-    seccion = c("3.2 Perfil", NA, NA, NA),
-    diapositiva = c("29", "29", "30", "30"),
-    enunciado = c("¿Qué tan de acuerdo?", NA, NA, NA),
-    grafico = c("radar", NA, NA, NA),
-    corte = c("3,4", NA, NA, NA),
-    etiqueta_estandar = c("A", "B", "C", "D"),
-    docentes = c("p30_1", "p30_2", "p31_1", "p31_2"),
-    stringsAsFactors = FALSE
-  )
-
-  equiv <- .equiv_desde_df(df, c("docentes"))
-  g <- vapply(equiv$filas, function(f) as.character(f$grafico %||% ""), character(1))
-  e <- vapply(equiv$filas, function(f) as.character(f$enunciado %||% ""), character(1))
-
-  expect_equal(g, c("radar", "radar", "", ""))
-  expect_equal(e, c("¿Qué tan de acuerdo?", "¿Qué tan de acuerdo?", "", ""))
-
-  # La seccion SI cruza la frontera: una seccion abarca varias diapositivas.
-  expect_equal(vapply(equiv$filas, function(f) f$seccion, character(1)),
-               rep("3.2 Perfil", 4))
 })
 
 test_that("las propuestas salen en el orden del cuestionario, sin el «Otro» ni el consentimiento", {

@@ -148,9 +148,7 @@ test_that("la plantilla de un estudio sin declaracion sale con encabezados y sin
   # que el analista si tiene que decidir. Los codigos se buscan en la hoja
   # `Variables`, que es para lo que esta.
   expect_equal(nrow(hoja), 0L)
-  expect_equal(names(hoja), c("seccion", "etiqueta_estandar", "docentes",
-                              "estudiantes", "diapositiva", "enunciado",
-                              "grafico", "corte", "estilo"))
+  expect_equal(names(hoja), c("seccion", "etiqueta_estandar", "docentes", "estudiantes"))   # ADR 0101
 
   # Y subirla sin escribir nada se rechaza en vez de borrar lo que hubiera.
   expect_error(.equiv_importar_desde_file(sid, meta$file_id), class = "api_error")
@@ -174,7 +172,7 @@ test_that("el editor y el Excel producen el mismo artefacto", {
   # El editor acepta códigos crudos igual que el importador: una vía no puede
   # expresar cosas que la otra no.
   expect_equal(fila$variables$docentes, "p13_1")
-  expect_equal(fila$diapositiva, "3")
+  expect_null(fila$diapositiva)   # ADR 0101: la matriz no guarda la diapositiva
   expect_equal(fila$cantidad, 2L)
 
   # Y guardar aplica las etiquetas igual que importar.
@@ -231,9 +229,7 @@ test_that("exportar e importar sin editar devuelve la MISMA declaracion", {
     lapply(filas, function(f) list(
       seccion = as.character(f$seccion %||% ""),
       etiqueta_estandar = as.character(f$etiqueta_estandar %||% ""),
-      diapositiva = as.character(f$diapositiva %||% ""),
-      enunciado = as.character(f$enunciado %||% ""),
-      variables = f$variables[order(names(f$variables))]
+      variables = f$variables[order(names(f$variables))]   # ADR 0101: sin diapositiva ni enunciado
     ))
   }
   expect_equal(comparable(vuelta$filas), comparable(declarada$filas))
@@ -255,9 +251,7 @@ test_that("la hoja de consulta viaja aparte y el importador la ignora", {
   # ninguna columna de ayuda.
   hoja <- readxl::read_excel(meta$path, sheet = .EQUIV_HOJA_PLANTILLA,
                              .name_repair = "minimal")
-  expect_equal(names(hoja), c("seccion", "etiqueta_estandar", "docentes",
-                              "estudiantes", "diapositiva", "enunciado",
-                              "grafico", "corte", "estilo"))
+  expect_equal(names(hoja), c("seccion", "etiqueta_estandar", "docentes", "estudiantes"))   # ADR 0101
 
   # El catalogo lleva las variables de las dos bases: es donde se buscan los
   # codigos ahora que la hoja de trabajo no los vuelca.
@@ -275,7 +269,7 @@ test_that("cada columna de publico trae el desplegable de SUS variables", {
   meta <- .equiv_escribir_plantilla(sid)
   val <- xml2::read_xml(unz(meta$path, "xl/worksheets/sheet1.xml"))
   nodos <- xml2::xml_find_all(val, "//*[local-name()='dataValidation']")
-  expect_gte(length(nodos), 2L)
+  expect_equal(length(nodos), 2L)
 
   # El rango se calcula del catalogo, agrupado por base: cada columna apunta a un
   # tramo distinto. Nada de listas fijas — un estudio de tres bases o de seis
@@ -289,21 +283,15 @@ test_that("cada columna de publico trae el desplegable de SUS variables", {
   expect_equal(sum(del_catalogo), 2L)
   expect_equal(length(unique(formulas[del_catalogo])), 2L)
 
-  # Las de VALOR CERRADO —como se dibuja el bloque y con que estilo— van como
-  # lista literal. Escritas a mano son la fuente de error mas tonta del formato:
-  # «Radar» con mayuscula o «auditoría» con tilde no casan con la clave del motor
-  # y el bloque sale en barras sin que nadie sepa por que.
-  literales <- formulas[!del_catalogo]
-  expect_gte(length(literales), 2L)
-  expect_true(any(grepl("radar", literales, fixed = TRUE)))
-  expect_true(any(grepl("auditoria", literales, fixed = TRUE)))
+  # ADR 0101: sin columnas de gráfico ni estilo no quedan listas de valor cerrado.
+  expect_equal(sum(!del_catalogo), 0L)
 })
 
 # ADR 0096 decisión 5: GET /api/carga/equivalencias publica la revisión nueva
-# (`r2:`), calculada con los instrumentos de cada público. Es uno de los cuatro
+# (`r3:` desde el ADR 0101), calculada con los instrumentos de cada público. Es uno de los cuatro
 # productores que tienen que coincidir (los otros tres en
 # test-graficos-plan-consolidado.R, R9).
-test_that("R9: GET /api/carga/equivalencias devuelve la revisión r2: con los instrumentos", {
+test_that("R9: GET /api/carga/equivalencias devuelve la revisión r3: con los instrumentos", {
   sid <- .req_setup("separate")
   on.exit(session_delete(sid), add = TRUE)
   session_set(sid, "equivalencias_publicos", .req_equiv())
@@ -317,6 +305,6 @@ test_that("R9: GET /api/carga/equivalencias devuelve la revisión r2: con los in
   out <- ep$getFunc()(new.env(parent = emptyenv()), res)
 
   expect_identical(as.integer(res$status), 200L)
-  expect_match(out$revision, "^r2:")
+  expect_match(out$revision, "^r3:")
   expect_identical(out$revision, .equiv_declaracion_revision(.req_equiv(), .equiv_inst_por_base(sid)))
 })

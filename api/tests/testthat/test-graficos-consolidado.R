@@ -208,11 +208,8 @@ test_that("preflight usa todas las releases sin cambiar active_base", {
   refs <- .graficos_collect_plan_refs(preflight$plan)
   expect_true(length(refs) >= 3L)
   expect_true(all(grepl("^[^$]+\\$[^$]+$", refs)))
-  expect_true(any(vapply(.gcc_test_graph_specs(preflight$plan), function(graf) {
-    identical(graf$graficador, "p_barras_multiapiladas") &&
-      identical((graf$args %||% list())$modo, "var_cruce")
-  }, logical(1))))
-  expect_gt(preflight$n_comparison_slides, 0L)
+  # ADR 0101: la siembra ya no arma láminas que comparen públicos desde la matriz; las arma el analista.
+  expect_identical(preflight$n_comparison_slides, 0L)
   expect_identical(session_get(sid), before)
 })
 

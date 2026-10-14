@@ -12,9 +12,9 @@ un ítem.
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| E1 | La forma plana y su lectura/escritura sin `diapositiva`, `enunciado`, `grafico`, `corte`, `estilo` | `api/R/equivalencias_publicos.R` | pendiente |
-| E2 | La importación de Excel ignora esas columnas y avisa cuántas filas traían cada una | `api/R/router_equivalencias.R` | pendiente |
-| E3 | El plan consolidado sin bloque derivado de la matriz; retiro de `.graficos_plan_desde_equivalencias` | `api/R/graficos_plan_consolidado.R`, `graficos_plan_equivalencias.R` | pendiente (borrado respaldado por ADR 0101) |
+| E1 | La forma plana y su lectura/escritura sin `diapositiva`, `enunciado`, `grafico`, `corte`, `estilo` | `api/R/equivalencias_publicos.R` | hecho, por verificar: lectura (las columnas se ignoran y se cuentan), plantilla y guardado sin ellas; la revisión pasa a `r3:` sin ellas. El enunciado de la matriz por bloques (texto de la pregunta en cada medición) se queda |
+| E2 | La importación de Excel ignora esas columnas y avisa cuántas filas traían cada una | `api/R/router_equivalencias.R` | hecho, por verificar: la importación devuelve `avisos` con «no se usaron las columnas diapositiva (N filas), …; las láminas se arman en Gráficos» |
+| E3 | El plan consolidado sin bloque derivado de la matriz; retiro de `.graficos_plan_desde_equivalencias` | `api/R/graficos_plan_consolidado.R`, `graficos_plan_equivalencias.R` | hecho, por verificar (backend): borrado `graficos_plan_equivalencias.R`; el consolidado propone sin bloque derivado; `fuente = "equivalencias"` responde 410 `E_GRAFICOS_PLAN_EQUIVALENCIAS_RETIRADO`. Falta el front |
 | E4 | La matriz en el front sin columnas de lámina ni gráfico; retiro de la vista de reparto en diapositivas | `frontend/src/features/carga/Equivalencias*.tsx` | pendiente (borrado respaldado por ADR 0101) |
 | E5 | Los selectores de Gráficos que leen equivalencias siguen funcionando (públicos por tema, radar, brecha, serie) | `frontend/src/features/graficos` | pendiente |
 | E6 | ACNUR: su perfil `acnur_kobo_cruncher_plus` y su plan propio siguen activables; una prueba lo fija | `api/R/graficos_metadata.R` | pendiente |

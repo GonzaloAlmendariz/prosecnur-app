@@ -596,7 +596,7 @@ graficos_consolidado_preflight <- function(sid, config = NULL) {
   suggested <- if (isTRUE(authored)) {
     list(plan = cfg$plan, warnings = list())
   } else {
-    .graficos_plan_sugerido_consolidado(sid, config = cfg, fuente = "", sources = sources)
+    .graficos_plan_sugerido_consolidado(sid, config = cfg, sources = sources)
   }
   methodology_rules <- .graficos_consolidado_methodology_rules(catalog)
   methodology <- .graficos_consolidado_plan_entregable(suggested$plan %||% list(), methodology_rules)

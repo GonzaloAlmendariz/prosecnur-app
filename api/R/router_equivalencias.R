@@ -141,19 +141,6 @@
     revision = .equiv_declaracion_revision(equiv, inst_por_base),
     cobertura = cobertura,
     desfasadas = desfasadas,
-    # Catalogo de estilos de radar, para que el editor los ofrezca sin
-    # duplicarlos. Se deriva del motor: un estilo nuevo aparece en la pestana
-    # sin tocar el frontend, y uno retirado deja de ofrecerse.
-    estilos_radar = if (exists(".radar_mb_choices_ui", mode = "function")) {
-      .radar_mb_choices_ui()
-    } else list(),
-    # Largo maximo del nombre de un tema para que el bloque pueda salir como
-    # radar. Viaja desde el motor y no se copia en el frontend: el editor no
-    # puede ofrecer un radar que el mazo va a rechazar despues, porque entonces
-    # lo declarado deja de ser lo que sale.
-    radar_max_etiqueta = if (exists(".RADAR_MB_MAX_ETIQUETA")) {
-      as.integer(.RADAR_MB_MAX_ETIQUETA)
-    } else NA_integer_,
     filas = equiv$filas
   )
 }
@@ -298,10 +285,26 @@
 
   # Literal a proposito: el gate de session_schema.R escanea la clave en el
   # texto, y una constante lo dejaria ciego a esta escritura.
+  ignoradas <- equiv$columnas_ignoradas %||% list()
+  equiv$columnas_ignoradas <- NULL
   session_set(sid, "equivalencias_publicos", equiv)
   resumen <- .equiv_aplicar_a_analitica(sid, equiv)
 
-  list(estado = .equiv_estado(sid), aplicacion = resumen)
+  list(estado = .equiv_estado(sid), aplicacion = resumen, avisos = .equiv_avisos_columnas_ignoradas(ignoradas))
+}
+
+#' Avisos de las columnas del informe que trajo el Excel y la matriz ya no guarda (ADR 0101)
+#' @param ignoradas Lista nombrada columna -> filas con valor.
+#' @return Lista de avisos `list(code, message)`.
+#' @keywords internal
+.equiv_avisos_columnas_ignoradas <- function(ignoradas) {
+  if (!length(ignoradas)) return(list())
+  nombres <- c(diapositiva = "diapositiva", enunciado = "enunciado", grafico = "gráfico", corte = "corte", estilo = "estilo")
+  partes <- vapply(names(ignoradas), function(k) sprintf("%s (%d %s)", nombres[[k]] %||% k, ignoradas[[k]],
+                                                         if (ignoradas[[k]] == 1L) "fila" else "filas"), character(1))
+  list(list(code = "columnas_del_informe_ignoradas", message = sprintf(
+    "La matriz sólo guarda equivalencias: no se usaron las columnas %s. Las láminas se arman en Gráficos.",
+    paste(partes, collapse = ", "))))
 }
 
 # Guarda la declaracion editada en la pestana. Misma forma que la importada, asi
@@ -330,12 +333,7 @@
     limpia <- list(
       seccion = as.character(f$seccion %||% ""),
       etiqueta_estandar = trimws(as.character(f$etiqueta_estandar %||% "")),
-      variables = vars,
-      diapositiva = trimws(as.character(f$diapositiva %||% "")),
-      enunciado = trimws(as.character(f$enunciado %||% "")),
-      grafico = tolower(trimws(as.character(f$grafico %||% ""))),
-      corte = trimws(as.character(f$corte %||% "")),
-      estilo = tolower(trimws(as.character(f$estilo %||% ""))),
+      variables = vars,   # ADR 0101: sin diapositiva, enunciado, gráfico, corte ni estilo
       cantidad = length(vars)
     )
     # ADR 0064: la propuesta SE GUARDA, marcada. La regla anterior la descartaba
@@ -345,6 +343,9 @@
     # protege —que una sugerencia nunca actue como decision— se cumple en los dos
     # sitios donde importa: no escribe etiquetas y no llega al mazo.
     if (isTRUE(f$sugerida)) limpia$sugerida <- TRUE
+    # El texto de la pregunta de una matriz por bloques (una serie) describe la pregunta y se queda (ADR 0101).
+    enunciado <- trimws(as.character(f$enunciado %||% "")[1])
+    if (!is.na(enunciado) && nzchar(enunciado)) limpia$enunciado <- enunciado
     id <- trimws(as.character(f$id %||% ""))[1]
     if (!is.na(id) && nzchar(id)) limpia$id <- id
     arm <- .equiv_armon_normalizar(f$armonizacion, bases, limpia$etiqueta_estandar)

@@ -400,9 +400,8 @@
     seccion = bloque$eje,
     etiqueta_estandar = bloque$nombre,
     variables = variables,
-    diapositiva = "",
+    # El texto de la pregunta en cada medición: describe la pregunta, no la lámina (ADR 0101), así que se queda.
     enunciado = .equiv_bloques_enunciado(bloque$enunciado, names(periodos)),
-    grafico = "", corte = "", estilo = "",
     cantidad = length(variables)
   )
   if (!is.null(armonizacion)) fila$armonizacion <- armonizacion
