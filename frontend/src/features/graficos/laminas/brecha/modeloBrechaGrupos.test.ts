@@ -45,3 +45,10 @@ describe("la brecha entre dos grupos de una base (G17)", () => {
     expect(mismaBase(vars, "docentes$p3", "docentes$p12_2")).toBe(true);
   });
 });
+
+describe("la brecha entre dos bases se arma en la lámina (P21, enmienda ADR 0103)", () => {
+  it("vars por tema con titulos_grupo y corte en arreglo siguen siendo entre bases", () => {
+    const args = { cruce: null, grupos: null, vars: { tema_1: ["docentes$p12_1", "estudiantes$p12_1"] }, titulos_grupo: { tema_1: "Clima" }, corte: ["4", "5"] };
+    expect(esEntreGrupos(args)).toBe(false);
+  });
+});

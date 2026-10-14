@@ -4,7 +4,7 @@
 // (bloques de multiapiladas, filtros) se edita en un panel ancho. Cierran la tarjeta el Top/Bottom Two Box de las
 // escalas y «En el Word» (F6.2, F-d; tarjetaGrafico/).
 
-import { useId } from "react";
+import { Fragment, useId } from "react";
 import { useLocation } from "react-router-dom";
 import { Filter, Rows3 } from "../../../vendor/lucide-react";
 import { AyudaGlobo } from "./AyudaGlobo";
@@ -16,10 +16,10 @@ import VariablePicker from "../VariablePicker";
 import {
   camposDeDatos,
   codigosATexto,
+  codigosEmitidos,
   conEtiquetaCorta,
   interruptorEncendido,
   leerEtiquetaCorta,
-  textoACodigos,
   type CampoDato,
 } from "./argsDatosGrafico";
 import { useLaminasUi } from "./laminasStore";
@@ -46,6 +46,9 @@ import { BrechaEntreGrupos } from "./brecha/BrechaEntreGrupos";
 import { MatrizCuadrantes } from "./matriz/MatrizCuadrantes";
 import { NotaBaseCompartido } from "./datosBase/NotaBaseCompartido";
 import { faltaBaseEnCompartido } from "./datosBase/baseEnCompartido";
+import { EditorTemasEquivalentes } from "../temasEquivalentes/EditorTemasEquivalentes";
+import { argsATemas, codigosComunes, patchModoRadar } from "../temasEquivalentes/temasEquivalentesModel";
+import { useVariables } from "../useVariables";
 import "./datosGrafico.css";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef };
@@ -58,7 +61,16 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const args = (valor.args ?? {}) as Record<string, unknown>;
   // Donde aplica el orden por gráfico (D8), su fila reemplaza al «Orden» anterior del registro.
   const conOrden = aplicaOrden(valor.graficador);
-  const campos = camposDeDatos(meta?.args ?? [], args, valor.graficador).filter((c) => !(conOrden && ORDEN_ANTERIOR.has(c.arg.name)));
+  // P21: el radar entre públicos y la serie temporal se arman con temas por público; su editor es dueño de las
+  // preguntas, del orden de las mediciones y —cuando hay respuestas comunes que marcar— del indicador.
+  const radarPublicos = valor.graficador === "p_radar" && args.modo === "publicos";
+  const serie = valor.graficador === "p_serie_temporal";
+  const { variables } = useVariables();
+  const conCasillas = (radarPublicos || serie) && codigosComunes(argsATemas(args), variables).length > 0;
+  const delEditor = (name: string) =>
+    (radarPublicos || serie) && (name === "vars" || name === "orden_periodos" || (name === "corte" && conCasillas));
+  const campos = camposDeDatos(meta?.args ?? [], args, valor.graficador)
+    .filter((c) => !(conOrden && ORDEN_ANTERIOR.has(c.arg.name)) && !delEditor(c.arg.name));
   const scope = useGraficosReportScope(useLocation().search);
   const baseActiva = useSession().state?.active_base;
   const set = (patch: Record<string, unknown>) => updateSlotArgs(slideId, slot, patch);
@@ -94,15 +106,13 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       {valor.graficador === "p_matriz_cuadrantes" && <MatrizCuadrantes args={args} onCambio={set} />}
       {valor.graficador === "p_significancia_publicos" && <SignificanciaPublicos args={args} onCambio={set} />}
       {valor.graficador === "p_dim_heatmap_criterios" && <CriteriosGrafico valor={args.config_criterios} onCambio={(c) => set({ config_criterios: c })} />}
-      {valor.graficador === "p_serie_temporal" && varsPorTema && (
-        // La serie sale de la matriz de equivalencias y no se arma aquí (test-graficos-metadata.R); se muestra qué trae (I1).
-        <div className="pulso-f6-dato is-apilado">
-          <span className="pulso-f6-dato-rotulo">Temas y mediciones</span>
-          <div className="pulso-f6-dato-control"><ListaPreguntas valor={varsPorTema} onCambio={() => undefined} /></div>
-        </div>
-      )}
+      {serie && <EditorTemasEquivalentes tipo="serie" args={args} onCambio={set} />}
       {campos.map((c) => (
-        <Fila key={c.arg.name} campo={c} valor={args[c.arg.name]} onCambio={(v) => set({ [c.arg.name]: v })} />
+        <Fragment key={c.arg.name}>
+          <Fila campo={c} graficador={valor.graficador} valor={args[c.arg.name]}
+                onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v) : { [c.arg.name]: v })} />
+          {radarPublicos && c.arg.name === "modo" && <EditorTemasEquivalentes tipo="radar" args={args} onCambio={set} />}
+        </Fragment>
       ))}
       {sinBaseCompartido && <NotaBaseCompartido />}
       {conOrden && variable && !sinBaseCompartido && (
@@ -145,7 +155,7 @@ function Ayuda({ rotulo, detalle }: { rotulo: string; detalle: string }) {
   return <AyudaGlobo rotulo={rotulo} detalle={detalle} />;
 }
 
-function Fila({ campo, valor, onCambio }: { campo: CampoDato; valor: unknown; onCambio: (v: unknown) => void }) {
+function Fila({ campo, graficador, valor, onCambio }: { campo: CampoDato; graficador: string; valor: unknown; onCambio: (v: unknown) => void }) {
   const id = useId();
   const idAyuda = `${id}-ayuda`;
   const { arg, rotulo, ayuda, detalle, control, placeholder } = campo;
@@ -234,7 +244,7 @@ function Fila({ campo, valor, onCambio }: { campo: CampoDato; valor: unknown; on
       <div className="pulso-f6-dato is-apilado">
         {etiqueta}
         <input id={id} className="pulso-f6-input" value={codigosATexto(valor)} placeholder={placeholder ?? "Ninguna"} aria-describedby={describe}
-          onChange={(e) => onCambio(textoACodigos(e.target.value))} />
+          onChange={(e) => onCambio(codigosEmitidos(e.target.value, graficador, arg.name))} />
         {nota}
       </div>
     );

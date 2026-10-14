@@ -1697,7 +1697,7 @@
     icono_ui      = "MoveHorizontal",
     categoria     = "comparison",
     blueprint     = "dumbbell",
-    requisito     = "Entre dos grupos: una pregunta que define los grupos y, por tema, una pregunta de esa misma base. Entre dos bases: cada tema con su pregunta en las dos bases, desde la matriz de equivalencias.",
+    requisito     = "Entre dos grupos: una pregunta que define los grupos y, por tema, una pregunta de esa misma base. Entre dos bases: cada tema con su pregunta en las dos bases; eliges la pregunta de cada público y tu matriz de equivalencias te sugiere la equivalente.",
     args = c(list(
       # G17 (Gonzalo, 2026-10-13): la brecha también entre dos grupos de una base (lámina 250 del diseño).
       list(name = "cruce", label = "Comparar dos grupos de", tipo_input = "variable_opt", grupo = "datos",
@@ -1837,7 +1837,7 @@
     icono_ui      = "TrendingUp",
     categoria     = "comparison",
     blueprint     = "line-series",
-    requisito     = "Cada tema necesita su pregunta en todas las mediciones; un periodo sin datos no se inventa.",
+    requisito     = "Cada tema necesita su pregunta en todas las mediciones: eliges la pregunta de cada medición y tu matriz de equivalencias te sugiere la equivalente. Un periodo sin datos no se inventa.",
     args = c(list(
       list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
            descripcion = "Las respuestas que suman el porcentaje de cada periodo. Se calcula con los filtros y la ponderación activos."),
@@ -1879,7 +1879,7 @@
            choices = list(
              list(value = "sm",  label = "Las opciones de una pregunta", hint = "Un eje por opción de una pregunta de selección múltiple."),
              list(value = "box", label = "Varias preguntas de la misma escala", hint = "Un eje por pregunta, cada una resumida por un corte (ej. Top-Two-Box)."),
-             list(value = "publicos", label = "Los públicos del estudio", hint = "Una línea por base y un eje por tema de la matriz de equivalencias. Necesita bases separadas.")
+             list(value = "publicos", label = "Los públicos del estudio", hint = "Una línea por base y un eje por tema: eliges la pregunta de cada público y tu matriz de equivalencias te sugiere la equivalente. Necesita bases separadas.")
            )),
       # `depende` deja que la UI muestre sólo lo que el modo elegido usa. Antes,
       # el modo se repetía en cada etiqueta —«Variable (modo Select múltiple)»—
@@ -1897,9 +1897,10 @@
 
       # ---- Modo «Entre públicos» (ADR 0064) ----
       # Mismo dibujo, otra procedencia de las series: aquí cada serie es una
-      # fuente del estudio, no un cruce dentro de una base. Los ejes llegan
-      # armados desde la matriz de equivalencias —son bloques con NOMBRE, que es
-      # lo que se dibuja en el vértice— y por eso `vars` no se re-declara.
+      # fuente del estudio, no un cruce dentro de una base. Los ejes se arman en
+      # la lámina (enmienda al ADR 0103): eliges la pregunta de cada público y la
+      # matriz de equivalencias sólo sugiere; el título de cada tema viaja en
+      # `titulos_grupo` y es lo que se dibuja en el vértice.
       list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
            depende = list(arg = "modo", valores = list("publicos")),
            descripcion = "Códigos de la escala que cuentan como indicador. El porcentaje se calcula sobre las respuestas válidas, no sobre el total: un público con más no-respuesta saldría artificialmente bajo. Ej. '3,4' para el top-two-box de una escala cuyo 5 es 'sin información'."),
@@ -2237,18 +2238,17 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 )
 
 .graf_operational_contract <- function(name, meta) {
-  # G17 (2026-10-13): la brecha ya se arma en la tarjeta (dos grupos de una base); entre dos bases sigue saliendo de la
-  # matriz de equivalencias, que es lo que dice su requisito.
-  generated <- c(
-    p_serie_temporal = "equivalences_temporal"
-  )
+  # Enmienda al ADR 0103 (P21): la brecha entre dos bases, el radar entre públicos y la serie temporal se arman en la
+  # lámina eligiendo la pregunta de cada público o medición; la matriz de equivalencias sólo sugiere. Ninguno queda
+  # `generated`; el mecanismo se conserva para un graficador que de verdad sólo salga de una capacidad.
+  generated <- stats::setNames(character(0), character(0))
   capability_key <- if (name %in% names(generated)) unname(generated[[name]]) else ""
   if (identical(meta$requisito %||% "", "dimensiones")) capability_key <- "dimensions"
   if (identical(meta$requisito %||% "", "territorial_coverage")) {
     capability_key <- "territorial_coverage"
   }
 
-  data_requirement <- if (identical(name, "p_dumbbell")) {
+  data_requirement <- if (name %in% c("p_dumbbell", "p_serie_temporal")) {
     "named_vars"
   } else if (name %in% c("p_puntos_comparativos", "p_mapa_resultado_distrital")) {
     "var_cruces_corte"
@@ -2262,7 +2262,9 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   requirement_label <- if (identical(name, "p_puntos_comparativos")) {
     "Elige la pregunta, la que define los grupos y las respuestas que suman, de la base activa."
   } else if (identical(name, "p_dumbbell")) {
-    "Elige la pregunta que define los dos grupos, los grupos y las preguntas; entre dos bases sale de la matriz de equivalencias."
+    "Elige la pregunta que define los dos grupos, los grupos y las preguntas; entre dos bases eliges la pregunta de cada público y tu matriz de equivalencias te sugiere la equivalente."
+  } else if (identical(name, "p_serie_temporal")) {
+    "Elige la pregunta de cada medición, tema por tema, y las respuestas que suman; tu matriz de equivalencias te sugiere la equivalente."
   } else if (identical(name, "p_mapa_resultado_distrital")) {
     "Elige la pregunta, la del distrito y las respuestas que suman, de la base activa."
   } else if (identical(name, "p_filtro_subpregunta")) {

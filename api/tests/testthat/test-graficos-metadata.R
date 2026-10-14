@@ -323,9 +323,11 @@ test_that("registry G2-L1: los 30 graficadores publican contrato operativo cerra
     .gm_preset_keys
   )
 
+  # P21 (enmienda ADR 0103 «la matriz sugiere, la lámina decide»): con la serie
+  # temporal ya en la lámina, ningún graficador del registry queda «generated».
   expect_setequal(
     unique(vapply(by_name, `[[`, character(1), "authoring_mode")),
-    c("direct", "generated")
+    "direct"
   )
   expect_true(all(vapply(by_name, function(g) nzchar(g$requirement_label), logical(1))))
   expect_true(all(vapply(by_name, function(g) {
@@ -338,18 +340,21 @@ test_that("registry G2-L1: los 30 graficadores publican contrato operativo cerra
     )
   }, logical(1))))
 
-  # G17 (2026-10-13): la brecha se arma en la tarjeta (dos grupos de una base); entre dos bases sale de la matriz.
+  # G17 (2026-10-13): la brecha se arma en la tarjeta (dos grupos de una base).
+  # P21 (2026-10-14, enmienda ADR 0103 «la matriz sugiere, la lámina decide»):
+  # la brecha entre dos bases y la serie temporal también se arman en la lámina;
+  # la matriz solo sugiere. Ninguna de las dos remite ya a la matriz.
   expect_identical(by_name$p_dumbbell$authoring_mode, "direct")
   expect_identical(by_name$p_dumbbell$data_requirement, "named_vars")
   expect_identical(by_name$p_dumbbell$capability_key, "")
-  expect_match(by_name$p_dumbbell$requirement_label, "define los dos grupos", fixed = TRUE)
-  expect_identical(by_name$p_serie_temporal$authoring_mode, "generated")
+  expect_identical(by_name$p_serie_temporal$authoring_mode, "direct")
   expect_identical(by_name$p_serie_temporal$data_requirement, "named_vars")
-  expect_identical(by_name$p_serie_temporal$capability_key, "equivalences_temporal")
-  expect_identical(
-    by_name$p_serie_temporal$requirement_label,
-    "Sale de la matriz de equivalencias, con una base por medición y en orden; no se arma desde aquí."
-  )
+  expect_identical(by_name$p_serie_temporal$capability_key, "")
+  for (name in c("p_dumbbell", "p_serie_temporal")) {
+    label <- by_name[[name]]$requirement_label
+    expect_false(grepl("no se arma desde aqu", label, ignore.case = TRUE), label = name)
+    expect_false(grepl("sale de la matriz", label, ignore.case = TRUE), label = name)
+  }
   generated_labels <- vapply(
     by_name[c("p_dumbbell", "p_serie_temporal")],
     `[[`,

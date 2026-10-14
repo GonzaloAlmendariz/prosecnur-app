@@ -239,7 +239,10 @@ test_that("serie temporal conserva su prefijo y llamada posicional historicos", 
       "vars", "corte", "corte_etiqueta", "orden_periodos", "mostrar_valores",
       "valores_decimales", "destacar_ultimo", "colores_series", "limite_y",
       "titulo", "overrides", "base", "filtros",
-      "max_series_con_cifras", "mostrar_puntos", "mostrar_grid_y"
+      "max_series_con_cifras", "mostrar_puntos", "mostrar_grid_y",
+      # P21 (enmienda ADR 0103): el título de cada tema viaja aparte de su clave; va al final para no romper
+      # las llamadas posicionales.
+      "titulos_grupo"
     )
   )
 

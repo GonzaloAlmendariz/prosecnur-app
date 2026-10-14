@@ -98,6 +98,8 @@
 #' @param corte_etiqueta Nombre del indicador; se muestra como subtitulo.
 #' @param orden_periodos Orden explicito del eje X. Sin el, manda el orden de
 #'   declaracion de las fuentes.
+#' @param titulos_grupo Titulos de los temas, `clave -> titulo`; reemplazan la
+#'   clave de `vars` como etiqueta de la linea.
 #' @export
 p_serie_temporal <- function(
     vars,
@@ -115,8 +117,10 @@ p_serie_temporal <- function(
     filtros = list(),
     max_series_con_cifras = 5L,
     mostrar_puntos = TRUE,
-    mostrar_grid_y = TRUE
+    mostrar_grid_y = TRUE,
+    titulos_grupo = NULL
 ) {
+  vars <- .graf_aplicar_titulos_grupo(vars, titulos_grupo, "p_serie_temporal()")
   if (!is.list(vars) || !length(vars)) {
     .plan_spec_abort("p_serie_temporal(): `vars` debe ser una lista nombrada no vacia.")
   }
@@ -168,7 +172,7 @@ p_serie_temporal <- function(
     # `p_radar_publicos`.
     var            = NULL,
     vars           = vars_norm,
-    corte          = as.character(corte)[1],
+    corte          = .graf_corte_unido(corte),
     corte_etiqueta = as.character(corte_etiqueta %||% "")[1],
     title_slide    = titulo,
     overrides      = ov,

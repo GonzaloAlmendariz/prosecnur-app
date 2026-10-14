@@ -1,9 +1,11 @@
-// G17 (Gonzalo, 2026-10-13): la tarjeta de la brecha. Entre dos bases la arma la matriz de equivalencias; entre dos
-// grupos de una base se elige aquí: la pregunta que define los grupos, los dos grupos, las preguntas y el indicador.
+// G17 (Gonzalo, 2026-10-13): la tarjeta de la brecha. Entre dos grupos de una base se elige aquí: la pregunta que define
+// los grupos, los dos grupos, las preguntas y el indicador. P21 (enmienda al ADR 0103): entre dos bases ya no sale sólo
+// de la matriz de equivalencias; se arma con los temas por público (EditorTemasEquivalentes), que la matriz sugiere.
 
 import { useId } from "react";
 import { Plus, X } from "../../../../vendor/lucide-react";
 import VariablePicker from "../../VariablePicker";
+import { EditorTemasEquivalentes } from "../../temasEquivalentes/EditorTemasEquivalentes";
 import { useVariables } from "../../useVariables";
 import {
   aEntreBases, aEntreGrupos, conCorte, conCruce, conGrupo, conPreguntas, corteDe, esEntreGrupos, faltaEnBrecha, gruposDe,
@@ -23,10 +25,9 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
   const preguntas = preguntasDe(args);
   const opcionesCruce = cruce ? opcionesDe(variables, cruce) : [];
   const [g1, g2] = gruposDe(args);
-  const escala = preguntas.length ? opcionesDe(variables, preguntas[0]) : [];
+  const escala = grupos && preguntas.length ? opcionesDe(variables, preguntas[0]) : [];
   const corte = new Set(corteDe(args));
   const falta = grupos ? faltaEnBrecha(args) : null;
-  const nBases = !grupos && args.vars && typeof args.vars === "object" ? Object.keys(args.vars as object).length : 0;
 
   return (
     <div className="pulso-f6-brecha" data-qa-geometry-group="graficos/f6-brecha" data-qa-geometry-contract="intrinsic">
@@ -36,12 +37,9 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
           <button type="button" className="pulso-f6-boton" aria-pressed={!grupos} onClick={() => grupos && onCambio(aEntreBases())}>Dos bases</button>
           <button type="button" className="pulso-f6-boton" aria-pressed={grupos} onClick={() => !grupos && onCambio(aEntreGrupos())}>Dos grupos de una base</button>
         </div>
-        {!grupos && (
-          <span className="pulso-f6-dato-ayuda">
-            {nBases ? `${nBases} ${nBases === 1 ? "tema" : "temas"} entre dos bases, de la matriz de equivalencias.` : "Las preguntas entre dos bases salen de la matriz de equivalencias."}
-          </span>
-        )}
       </div>
+
+      {!grupos && <EditorTemasEquivalentes tipo="brecha" args={args} onCambio={onCambio} />}
 
       {grupos && (
         <>
