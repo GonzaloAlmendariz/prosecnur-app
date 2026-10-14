@@ -1,30 +1,28 @@
 // P20 (enmienda al ADR 0103, «la matriz sugiere, la lámina decide»): en «Comparar públicos por tema», la matriz de
 // equivalencias propone la pregunta de cada público vacío a partir de las que el tema ya tiene. Proponer no es aplicar:
-// la línea sigue vacía hasta que el analista acepta. Una fila confirmada pesa «matriz»; una propuesta del motor
-// (fila `sugerida` o la sugerencia automática por enunciado) sólo «parecida».
+// la línea sigue vacía hasta que el analista acepta.
+//
+// ADR 0104: sólo se sugiere lo declarado. La fuerza «parecida» —que salía del emparejado automático por enunciado y de
+// las filas `sugerida` sin confirmar— se retiró: una fila que nadie confirmó no propone nada.
 
 import type { EquivalenciaFila } from "../../../api/equivalencias";
 import type { VarWithSource } from "../useVariables";
 import { formatVarRef, parseVarRef } from "../useVariables";
 import { otraEscala, refDePublico, type TemaPublicos } from "./temasPublicos";
 
-export type FuerzaSugerencia = "matriz" | "parecida";
-
 export type SugerenciaPublico = {
   ref: string;
-  fuerza: FuerzaSugerencia;
   etiquetaEstandar: string;
   /** La sugerida tiene otra escala que la primera del tema: se muestra, pero no entra en lote. */
   otraEscala: boolean;
 };
 
-/** Lo que la matriz sabe, separado por fuerza. */
+/** Lo que la matriz sabe: sólo las filas que la persona confirmó. */
 export type FuentesMatriz = {
   confirmadas: readonly EquivalenciaFila[];
-  parecidas: readonly EquivalenciaFila[];
 };
 
-export const SIN_MATRIZ: FuentesMatriz = { confirmadas: [], parecidas: [] };
+export const SIN_MATRIZ: FuentesMatriz = { confirmadas: [] };
 
 const esObjeto = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);
 const texto = (x: unknown): string => {
@@ -34,7 +32,7 @@ const texto = (x: unknown): string => {
   return "";
 };
 
-/** Normaliza una fila que llega sin normalizador (la sugerencia automática): sólo lo que esta lógica lee. */
+/** Normaliza una fila de la matriz con lo mínimo que esta lógica lee; tolera las formas de R (escalares como arreglos). */
 export function filaMinima(x: unknown): EquivalenciaFila | null {
   if (!esObjeto(x)) return null;
   const variables: Record<string, string> = {};
@@ -55,14 +53,13 @@ export function filaMinima(x: unknown): EquivalenciaFila | null {
   };
 }
 
-/** Reparte las filas de la matriz y la propuesta automática por fuerza. Una fila `sugerida` no está confirmada. */
-export function fuentesDeMatriz(filasMatriz: readonly unknown[], propuestaAutomatica: readonly unknown[]): FuentesMatriz {
+/**
+ * Las filas confirmadas de la matriz. Una fila `sugerida` (propuesta de una versión anterior que nadie confirmó) no
+ * entra: no es una declaración y ADR 0104 retira toda sugerencia que no nazca de una.
+ */
+export function fuentesDeMatriz(filasMatriz: readonly unknown[]): FuentesMatriz {
   const matriz = filasMatriz.map(filaMinima).filter((f): f is EquivalenciaFila => f !== null);
-  const auto = propuestaAutomatica.map(filaMinima).filter((f): f is EquivalenciaFila => f !== null);
-  return {
-    confirmadas: matriz.filter((f) => !f.sugerida),
-    parecidas: [...matriz.filter((f) => f.sugerida), ...auto],
-  };
+  return { confirmadas: matriz.filter((f) => !f.sugerida) };
 }
 
 const existe = (variables: readonly VarWithSource[], base: string, name: string) =>
@@ -100,13 +97,11 @@ export function sugerenciasDeTema(
   if (!anclas.length) return out;
   for (const p of publicos) {
     if (refDePublico(tema, p)) continue;
-    const confirmada = filaParaPublico(fuentes.confirmadas, anclas, p, variables);
-    const fila = confirmada ?? filaParaPublico(fuentes.parecidas, anclas, p, variables);
+    const fila = filaParaPublico(fuentes.confirmadas, anclas, p, variables);
     if (!fila) continue;
     const ref = formatVarRef(p, fila.variables[p], true);
     out[p] = {
       ref,
-      fuerza: confirmada ? "matriz" : "parecida",
       etiquetaEstandar: fila.etiqueta_estandar,
       otraEscala: otraEscala(variables, tema, ref),
     };
@@ -114,7 +109,7 @@ export function sugerenciasDeTema(
   return out;
 }
 
-/** Las que «Completar con la matriz» aplica de una vez: confirmadas y de la misma escala. */
+/** Las que «Completar con la matriz» aplica de una vez: las de la misma escala. */
 export function aplicablesEnLote(sugerencias: Record<string, SugerenciaPublico>): SugerenciaPublico[] {
-  return Object.values(sugerencias).filter((s) => s.fuerza === "matriz" && !s.otraEscala);
+  return Object.values(sugerencias).filter((s) => !s.otraEscala);
 }

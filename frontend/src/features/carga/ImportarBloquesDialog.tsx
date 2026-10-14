@@ -5,10 +5,14 @@
 // a una base del estudio, muestra qué entraría y qué advierte el motor, y sólo
 // entonces aplica. Direccionable con `?panel=importar-bloques`.
 //
+// ADR 0104: es la única vía de importación que queda, y sólo para series de
+// mediciones (la misma pregunta a lo largo de varios años). No empareja
+// públicos: eso se declara fila por fila en el editor de la pestaña.
+//
 // Capacidad del lector (P-A7): hoy el motor sólo reconoce columnas cuyo
 // encabezado es un año (`.equiv_bloques_encabezado`, 19xx/20xx). Una serie de
-// públicos o sedes no se esconde detrás de un copy neutro: se dice, y se ofrece
-// la vía que sí la acepta («Subir matriz»).
+// públicos o sedes no se esconde detrás de un copy neutro: se dice, y se remite
+// al editor de la pestaña.
 //
 // La lógica vive en `armonizacionModel`; aquí sólo hay render y eventos.
 
@@ -62,7 +66,7 @@ export function ImportarBloquesBoton({ disabled }: { disabled?: boolean }) {
       aria-haspopup="dialog"
     >
       <FileSpreadsheet size={14} aria-hidden="true" />
-      Importar por bloques
+      Traer una serie de mediciones ya armada
     </PulsoButton>
   );
 }
@@ -156,15 +160,16 @@ export function ImportarBloquesDialog({ bases, onAplicado }: ImportarBloquesDial
         >
           <header className="pulso-bloques-cabecera">
             <div className="pulso-bloques-titular">
-              <Dialog.Title className="pulso-bloques-titulo">Importar matriz por bloques</Dialog.Title>
+              <Dialog.Title className="pulso-bloques-titulo">Traer una serie de mediciones ya armada</Dialog.Title>
               <Dialog.Close className="pulso-bloques-cerrar" aria-label="Cerrar">
                 <X size={16} aria-hidden="true" />
               </Dialog.Close>
             </div>
             <Dialog.Description id="pulso-bloques-descripcion" className="pulso-bloques-regla">
-              La matriz del proyecto lleva un bloque por pregunta y una columna por {serie.singular}.
-              Cada columna se ata a una base del estudio, y los códigos se validan contra el
-              instrumento de esa base.
+              Para la misma pregunta a lo largo de varias mediciones. La matriz lleva un bloque por
+              pregunta y una columna por {serie.singular}; cada columna se ata a una base del estudio
+              y los códigos se validan contra el instrumento de esa base. Para emparejar públicos,
+              añade cada pregunta equivalente en la pestaña.
             </Dialog.Description>
             <ol className="pulso-bloques-pasos" aria-label="Pasos">
               {(["archivo", "mapear", "vista"] as const).map((p, i) => (
@@ -203,8 +208,8 @@ export function ImportarBloquesDialog({ bases, onAplicado }: ImportarBloquesDial
                   // reconoce columnas encabezadas por un año.
                   <p className="pulso-bloques-nota is-aviso">
                     Las bases de este estudio no se nombran por año, y este lector sólo reconoce
-                    columnas encabezadas por un año (2024, 2025…). Si tu matriz nombra sus
-                    columnas de otra forma, súbela con «Subir matriz».
+                    columnas encabezadas por un año (2024, 2025…). Si comparas públicos o sedes,
+                    declara cada pregunta con «Añadir pregunta equivalente».
                   </p>
                 )}
                 <PulsoButton

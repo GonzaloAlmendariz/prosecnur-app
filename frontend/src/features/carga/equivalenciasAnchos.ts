@@ -11,8 +11,12 @@
  * Lógica pura: el componente sólo aplica lo que este módulo decide.
  */
 
-/** Ancho fijo de una columna de base en la Lista, en px. */
-export const ANCHO_COLUMNA_BASE_PX = 132;
+/**
+ * Ancho fijo de una columna de base en la Lista, en px. ADR 0104: la celda es
+ * un buscador que muestra la etiqueta de la pregunta y su código; a 132 px sólo
+ * cabía el código.
+ */
+export const ANCHO_COLUMNA_BASE_PX = 184;
 
 export function anchoColumnaPublico(): string {
   return `${ANCHO_COLUMNA_BASE_PX}px`;
@@ -24,15 +28,17 @@ export function anchoColumnaPublico(): string {
  * armonizar»), el campo del tema terminaba en una x distinta en cada fila. En
  * columna propia y de ancho fijo, todos los campos terminan en el mismo borde.
  */
-export const ANCHO_COLUMNA_ESTADO_PX = 160;
+export const ANCHO_COLUMNA_ESTADO_PX = 210;
 
-/** Ancho mínimo de la Lista: etiqueta, estado, diapositiva, las N bases, cobertura y acciones. */
+/**
+ * Ancho mínimo de la Lista: nombre, escala, las N bases, cobertura y acciones.
+ * (La columna de diapositiva se fue con el ADR 0103 y ya no se reserva.)
+ */
 export function anchoMinimoLista(nBases: number): number {
   const etiqueta = 260;
-  const diapositiva = 84;
   const cobertura = 72;
   const acciones = 72;
-  return etiqueta + ANCHO_COLUMNA_ESTADO_PX + diapositiva
+  return etiqueta + ANCHO_COLUMNA_ESTADO_PX
     + Math.max(0, nBases) * ANCHO_COLUMNA_BASE_PX + cobertura + acciones;
 }
 

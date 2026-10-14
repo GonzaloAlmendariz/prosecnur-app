@@ -3,6 +3,7 @@
 // muestra por su etiqueta (la de Procesamiento) y el código pequeño; una pregunta con otra escala se marca en su línea.
 
 // P20: la matriz de equivalencias sugiere la pregunta de cada público vacío y la lámina decide (enmienda al ADR 0103).
+// ADR 0104: sólo sugiere lo que la persona declaró; no hay sugerencia «parecida».
 
 import { ArrowDown, ArrowUp, Link2, Plus, X } from "../../../vendor/lucide-react";
 import VariablePicker from "../VariablePicker";
@@ -29,12 +30,12 @@ function ChipSugerencia({ s, publico, variables, onAplicar }: { s: SugerenciaPub
   const v = buscar(variables, s.ref);
   const codigo = v?.name ?? s.ref;
   const etiqueta = v?.label || s.etiquetaEstandar;
-  const prefijo = s.fuerza === "matriz" ? "Equivalente según tu matriz" : "Parece la misma pregunta";
+  const prefijo = "Equivalente según tu matriz";
   const nombre = `${prefijo} para ${nombrePublico(publico)}: ${codigo}${etiqueta ? ` · ${etiqueta}` : ""}${s.otraEscala ? " (otra escala)" : ""}. Usarla`;
   return (
-    <button type="button" className={`pulso-mapi-sugerencia is-${s.fuerza}${s.otraEscala ? " is-otra-escala" : ""}`}
+    <button type="button" className={`pulso-mapi-sugerencia${s.otraEscala ? " is-otra-escala" : ""}`}
             aria-label={nombre} title={nombre} onClick={onAplicar}>
-      {s.fuerza === "matriz" && <Link2 size={12} aria-hidden="true" />}
+      <Link2 size={12} aria-hidden="true" />
       <span className="pulso-mapi-sugerencia-texto">
         {prefijo}: <code>{codigo}</code>{etiqueta ? ` · ${etiqueta}` : ""}
       </span>

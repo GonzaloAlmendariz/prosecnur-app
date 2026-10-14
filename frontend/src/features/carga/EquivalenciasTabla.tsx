@@ -4,14 +4,22 @@
 // bien: una fila por pregunta y los públicos en paralelo. Se lee de corrido y
 // se ve de un golpe en cuántos públicos existe cada pregunta.
 //
-// La lógica vive en `equivalenciasEditorModel`; aquí sólo hay render y eventos.
+// ADR 0104: la matriz se arma aquí, por la persona. Cada base elige su pregunta
+// con un buscador por texto (`PreguntaCombobox`), y la columna «Escala» dice si
+// las preguntas elegidas usan la misma lista de respuestas y abre la
+// armonización de la fila cuando no.
+//
+// La lógica vive en `equivalenciasEditorModel` y `preguntaEquivalenteModel`;
+// aquí sólo hay render y eventos.
 
-import { Check, Plus, Sparkles, Trash2 } from "../../vendor/lucide-react";
+import { CheckCircle2, Check, GitCompareArrows, Minus, Plus, Trash2 } from "../../vendor/lucide-react";
 import type { VariableDeBase } from "../../api/equivalencias";
-import type { FilaEditor } from "./equivalenciasEditorModel";
-import { ArmonizacionIndicador } from "./ArmonizacionFilaEditor";
+import { variablesTomadas, type FilaEditor } from "./equivalenciasEditorModel";
+import { focoDeFila } from "./armonizacionModel";
+import { indicadorDeEscala, type IndicadorDeEscala } from "./preguntaEquivalenteModel";
+import { PreguntaCombobox } from "./PreguntaCombobox";
 import { CoberturaBases } from "./CoberturaBases";
-import { nombreDeSerieDeBases } from "./nombreDeSerie";
+import { nombreDeSerieDeBases, type NombreDeSerie } from "./nombreDeSerie";
 import { ANCHO_COLUMNA_ESTADO_PX, anchoColumnaPublico, anchoMinimoLista } from "./equivalenciasAnchos";
 import { useDesbordeHorizontal } from "./useDesbordeHorizontal";
 import { PulsoButton } from "../../components/PulsoButton";
@@ -23,16 +31,60 @@ export type EquivalenciasTablaProps = {
   onAsignar: (filaId: string, base: string, variable: string) => void;
   onEditar: (filaId: string, campo: "etiqueta_estandar" | "seccion", valor: string) => void;
   onQuitar: (filaId: string) => void;
+  /** Confirma una propuesta heredada de un `.pulso` anterior (ADR 0104 §5). */
   onConfirmar: (filaId: string) => void;
   onAgregarFila: () => void;
-  /** Abre el editor de armonización con el `foco` de la fila. Sin él, no hay indicador. */
+  /** Abre el editor de armonización con el `foco` de la fila. Sin él, no hay columna de escala. */
   onArmonizar?: (foco: string) => void;
 };
 
-function textoVariable(opciones: readonly VariableDeBase[], valor: string): string {
-  if (!valor) return "";
-  const v = opciones.find((o) => o.name === valor);
-  return v ? `${v.name} · ${v.label}` : valor;
+/**
+ * Indicador de escala de la fila. Abre la armonización cuando hay dos bases
+ * elegidas; una fila sin guardar todavía no tiene a qué referirse y lo dice.
+ */
+function EscalaDeFila({
+  fila,
+  bases,
+  variablesPorBase,
+  serie,
+  onArmonizar,
+}: {
+  fila: FilaEditor;
+  bases: readonly string[];
+  variablesPorBase: Record<string, VariableDeBase[]>;
+  serie: NombreDeSerie;
+  onArmonizar: (foco: string) => void;
+}) {
+  const ind: IndicadorDeEscala = indicadorDeEscala(fila, bases, variablesPorBase, serie);
+  const icono = ind.tono === "ok"
+    ? <CheckCircle2 size={11} aria-hidden="true" />
+    : ind.tono === "aviso"
+      ? <GitCompareArrows size={11} aria-hidden="true" />
+      : <Minus size={11} aria-hidden="true" />;
+  if (!ind.abre) {
+    return (
+      <span className={`pulso-equiv-escala is-${ind.tono}`} title={ind.explicacion}>
+        {icono}
+        <span>{ind.texto}</span>
+      </span>
+    );
+  }
+  const foco = focoDeFila(fila);
+  const nombre = fila.etiqueta_estandar || "esta pregunta";
+  return (
+    <button
+      type="button"
+      className={`pulso-equiv-escala is-${ind.tono}`}
+      disabled={!foco}
+      data-armon-abrir={foco ?? undefined}
+      title={foco ? ind.explicacion : `${ind.explicacion} Guarda la fila para poder armonizarla.`}
+      aria-label={`${ind.texto}. Abrir la armonización de ${nombre}`}
+      onClick={() => foco && onArmonizar(foco)}
+    >
+      {icono}
+      <span>{ind.texto}</span>
+    </button>
+  );
 }
 
 export function EquivalenciasTabla({
@@ -75,8 +127,8 @@ export function EquivalenciasTabla({
         </colgroup>
         <thead>
           <tr>
-            <th scope="col" className="pulso-equiv-col-etiqueta">Etiqueta estándar</th>
-            {onArmonizar && <th scope="col" className="pulso-equiv-col-estado">Armonización</th>}
+            <th scope="col" className="pulso-equiv-col-etiqueta">Nombre estándar</th>
+            {onArmonizar && <th scope="col" className="pulso-equiv-col-estado">Escala</th>}
             {bases.map((base) => (
               <th key={base} scope="col">{base}</th>
             ))}
@@ -85,51 +137,53 @@ export function EquivalenciasTabla({
           </tr>
         </thead>
         <tbody>
-          {filas.map((fila) => (
+          {filas.map((fila, indice) => {
+            const contexto = fila.etiqueta_estandar.trim() || `la fila ${indice + 1}`;
+            return (
             <tr key={fila.id} className={fila.sugerida ? "is-sugerida" : undefined}>
               <td>
                 <div className="pulso-equiv-celda-etiqueta">
-                  {/* La marca de propuesta va en la fila y también aquí: si sólo
-                      estuviera en el color, una fila sugerida y una decidida se
-                      leerían igual en una captura o con poco contraste. */}
+                  {/* Sólo una matriz de una versión anterior trae propuestas sin
+                      confirmar (ADR 0104 §5). La marca va en texto además del
+                      color: una propuesta y una decisión no pueden leerse igual. */}
                   {fila.sugerida && (
-                    <span className="pulso-equiv-chip-sugerida" title="Propuesta del sistema: revísala y confírmala">
-                      <Sparkles size={11} aria-hidden="true" />
-                      Propuesta
+                    <span className="pulso-equiv-chip-sugerida" title="Viene de una versión anterior y nadie la confirmó: no entra al mazo hasta que la confirmes.">
+                      Sin confirmar
                     </span>
                   )}
                   <input
                     value={fila.etiqueta_estandar}
                     title={fila.etiqueta_estandar || undefined}
                     placeholder="Cómo se llama esta pregunta en el informe"
-                    aria-label={`Etiqueta estándar de la fila ${fila.id}`}
+                    aria-label={`Nombre estándar de la fila ${indice + 1}`}
                     onChange={(e) => onEditar(fila.id, "etiqueta_estandar", e.target.value)}
                   />
                 </div>
               </td>
               {onArmonizar && (
                 <td className="pulso-equiv-col-estado">
-                  <ArmonizacionIndicador fila={fila} serie={serie} onAbrir={onArmonizar} />
+                  <EscalaDeFila
+                    fila={fila}
+                    bases={bases}
+                    variablesPorBase={variablesPorBase}
+                    serie={serie}
+                    onArmonizar={onArmonizar}
+                  />
                 </td>
               )}
               {bases.map((base) => {
-                const opciones = variablesPorBase[base] ?? [];
                 const valor = fila.variables[base] ?? "";
+                const enOtras = new Set(variablesTomadas(filas.filter((f) => f.id !== fila.id), base));
                 return (
                   <td key={base}>
-                    <select
-                      value={valor}
-                      title={textoVariable(opciones, valor) || undefined}
-                      aria-label={`Variable de ${base} en la fila ${fila.id}`}
-                      onChange={(e) => onAsignar(fila.id, base, e.target.value)}
-                    >
-                      <option value="">—</option>
-                      {opciones.map((v) => (
-                        <option key={v.name} value={v.name}>
-                          {v.name} · {v.label.slice(0, 70)}
-                        </option>
-                      ))}
-                    </select>
+                    <PreguntaCombobox
+                      base={base}
+                      opciones={variablesPorBase[base] ?? []}
+                      valor={valor}
+                      contexto={contexto}
+                      tomadasEnOtraFila={enOtras}
+                      onElegir={(v) => onAsignar(fila.id, base, v)}
+                    />
                   </td>
                 );
               })}
@@ -142,8 +196,8 @@ export function EquivalenciasTabla({
                     <button
                       type="button"
                       className="pulso-icon"
-                      title="Confirmar esta propuesta"
-                      aria-label="Confirmar propuesta"
+                      title="Confirmar esta fila"
+                      aria-label={`Confirmar ${contexto}`}
                       onClick={() => onConfirmar(fila.id)}
                     >
                       <Check size={12} />
@@ -153,7 +207,7 @@ export function EquivalenciasTabla({
                     type="button"
                     className="pulso-icon pulso-icon-danger"
                     title="Quitar la fila"
-                    aria-label="Quitar fila"
+                    aria-label={`Quitar ${contexto}`}
                     onClick={() => onQuitar(fila.id)}
                   >
                     <Trash2 size={12} />
@@ -161,14 +215,15 @@ export function EquivalenciasTabla({
                 </div>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
       </div>
 
       <PulsoButton variant="secondary" className="pulso-equiv-btn" onClick={onAgregarFila}>
         <Plus size={14} aria-hidden="true" />
-        Añadir pregunta
+        Añadir pregunta equivalente
       </PulsoButton>
     </div>
   );

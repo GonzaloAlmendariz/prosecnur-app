@@ -7,27 +7,24 @@
 // bienestar psicológico?» de docentes contra «¿Ha utilizado…?» de estudiantes,
 // 90 % contra 31 %.
 //
-// La superficie tiene dos entradas deliberadas y en este orden: generar la
-// plantilla poblada (la vía principal del ADR) y subir una ya escrita.
+// ADR 0104: la matriz se arma aquí, por la persona, fila por fila: «Añadir
+// pregunta equivalente», elegir la pregunta de cada base buscándola por su
+// texto y, si las escalas no coinciden, armonizar en la misma fila. No hay
+// plantilla, subida de Excel ni emparejado automático. «Traer una serie de
+// mediciones ya armada» queda sólo para series largas de la misma pregunta.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
-  CheckCheck,
   CheckCircle2,
-  Download,
   Layers,
+  Plus,
   Save,
-  Sparkles,
-  Upload,
 } from "../../vendor/lucide-react";
 import {
-  generarPlantillaEquivalencias,
   getEquivalencias,
-  getSugerenciasEquivalencias,
   getVariablesEquivalencias,
   guardarEquivalencias,
-  importarEquivalencias,
   type EquivalenciasEstado,
   type EquivalenciasImportacion,
   type ImportacionBloques,
@@ -40,20 +37,17 @@ import { EquivalenciasTabla } from "./EquivalenciasTabla";
 import { EquivalenciasEsqueleto, EquivalenciasTitulo } from "./EquivalenciasEsqueleto";
 import {
   aFilasEditor,
-  asignarVariable,
+  asignarPregunta,
   confirmarFila,
-  confirmarTodas,
   editarCampo,
   filaVacia,
   filasParaGuardar,
-  incorporarSugerencias,
   ordenarBasesPorSerie,
   quitarFila,
   resumenEditor,
   type FilaEditor,
 } from "./equivalenciasEditorModel";
-import { apiUpload } from "../../api/estudio";
-import { downloadUrl } from "../../api/core";
+import { etiquetaDePregunta } from "./preguntaEquivalenteModel";
 import "./EquivalenciasPanel.css";
 import { PulsoButton } from "../../components/PulsoButton";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
@@ -86,7 +80,7 @@ function resumenAplicacion(imp: EquivalenciasImportacion): {
 export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
   const [estado, setEstado] = useState<EquivalenciasEstado | null>(null);
   const [cargando, setCargando] = useState(true);
-  const [ocupado, setOcupado] = useState<"" | "plantilla" | "importar" | "sugerir" | "guardar">("");
+  const [ocupado, setOcupado] = useState<"" | "guardar">("");
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
   const [filas, setFilas] = useState<FilaEditor[]>([]);
@@ -95,7 +89,6 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
   // M14: «Guardado» sólo justo después de guardar desde aquí; al editar vuelve a
   // «Cambios sin guardar» y al recargar, a «Sin cambios».
   const [guardadoAhora, setGuardadoAhora] = useState(false);
-  const archivoRef = useRef<HTMLInputElement>(null);
   const observadorBarra = useRef<ResizeObserver | null>(null);
 
   // La barra de vistas queda fija arriba del dueño de scroll y la cabecera de la
@@ -114,19 +107,6 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
     if (typeof ResizeObserver === "undefined") return;
     observadorBarra.current = new ResizeObserver(aplicar);
     observadorBarra.current.observe(barra);
-  }, []);
-
-  const onConfirmarTodas = useCallback(() => {
-    setFilas((prev) => {
-      const pendientes = prev.filter((f) => f.sugerida).length;
-      setAviso(
-        pendientes > 0
-          ? `${pendientes} propuestas confirmadas. Guarda para que apliquen sus etiquetas y entren al mazo.`
-          : "No hay propuestas pendientes.",
-      );
-      return confirmarTodas(prev);
-    });
-    setSucio(true);
   }, []);
 
   const abrirArmonizacion = useAbrirArmonizacion();
@@ -168,7 +148,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
       setError("");
       const r = res.resumen;
       setAviso(
-        `Matriz por bloques aplicada: ${r.nuevas} filas nuevas y ${r.actualizadas} actualizadas`
+        `Serie de mediciones aplicada: ${r.nuevas} filas nuevas y ${r.actualizadas} actualizadas`
           + (r.n_con_armonizacion ? `, ${r.n_con_armonizacion} con armonización.` : "."),
       );
     },
@@ -202,80 +182,6 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
     void refrescar();
   }, [refrescar]);
 
-  const onGenerar = useCallback(async () => {
-    setOcupado("plantilla");
-    setError("");
-    try {
-      const out = await generarPlantillaEquivalencias();
-      // Mismo camino que el resto de artefactos de la sesión: `downloadUrl`
-      // resuelve el prefijo de la API, que en dev no es el origen de la página.
-      const url = downloadUrl(out.file_id);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = out.filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setAviso(`Plantilla generada: ${out.filename}`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setOcupado("");
-    }
-  }, []);
-
-  const onSubir = useCallback(
-    async (file: File) => {
-      setOcupado("importar");
-      setError("");
-      try {
-        const subido = await apiUpload(file, "equivalencias");
-        const imp = await importarEquivalencias(subido.file_id);
-        setEstado(imp.estado);
-        // Sin esto la tabla quedaba vacía tras importar y sólo se veía el
-        // resumen de cobertura: el trabajo entraba al backend y no se podía
-        // seguir editando en pantalla.
-        setFilas(aFilasEditor(imp.estado.filas ?? []));
-        setSucio(false);
-        onDeclaradas?.(imp.estado.n_filas ?? 0);
-        const { aplicadas, conservadas } = resumenAplicacion(imp);
-        // ADR 0103: lo que el Excel traía y la matriz ya no guarda se dice, no se descarta en silencio.
-        const ignoradas = (imp.avisos ?? []).map((a) => a.message).join(" ");
-        setAviso(
-          (conservadas > 0
-            ? `${aplicadas} etiquetas aplicadas. ${conservadas} se conservaron porque ya estaban editadas a mano.`
-            : `${aplicadas} etiquetas aplicadas en ${imp.estado.bases.length} bases.`) + (ignoradas ? ` ${ignoradas}` : ""),
-        );
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-      } finally {
-        setOcupado("");
-      }
-    },
-    [onDeclaradas],
-  );
-
-  const onSugerir = useCallback(async () => {
-    setOcupado("sugerir");
-    setError("");
-    try {
-      const { sugerencias } = await getSugerenciasEquivalencias();
-      setFilas((prev) => {
-        const next = incorporarSugerencias(prev, sugerencias);
-        const nuevas = next.length - prev.length;
-        setAviso(nuevas > 0
-          ? `${nuevas} propuestas añadidas. Revísalas y confírmalas: sin confirmar no se guardan.`
-          : "No hay propuestas nuevas que no choquen con lo ya declarado.");
-        return next;
-      });
-      setSucio(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setOcupado("");
-    }
-  }, []);
-
   const onGuardar = useCallback(async () => {
     setOcupado("guardar");
     setError("");
@@ -299,9 +205,27 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
 
   const resumen = useMemo(() => resumenEditor(filas), [filas]);
 
+  const onAgregarFila = useCallback(() => {
+    setFilas((p) => [...p, filaVacia()]);
+    setSucio(true);
+  }, []);
+
+  // Al elegir una pregunta, la fila sin nombre toma su etiqueta (ADR 0104).
+  const onAsignar = useCallback(
+    (id: string, base: string, v: string) => {
+      const etiqueta = v ? etiquetaDePregunta(variablesPorBase[base] ?? [], v) : "";
+      setFilas((p) => asignarPregunta(p, id, base, v, etiqueta === v ? "" : etiqueta));
+      setSucio(true);
+    },
+    [variablesPorBase],
+  );
+
   // Las columnas siguen la serie declarada (2024, 2025, 2026), no el orden en
   // que se cargaron las bases.
   const bases = ordenarBasesPorSerie(estado?.bases ?? [], estado?.armonizacion_periodos);
+  // Antes de guardar la primera fila el estado aún no trae las bases: la tabla y su columna «Escala» las toman del
+  // catálogo de variables, para que la escala se vea desde la primera pregunta elegida.
+  const basesDeTabla = bases.length ? bases : Object.keys(variablesPorBase);
 
   // Overlays direccionables: van en portal, fuera de la geometría de la
   // superficie. Se montan también durante la lectura, para que un enlace a
@@ -357,57 +281,9 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
           estado transitorio de la última acción, no secciones de la superficie. */}
       <header className="pulso-equiv-head" data-qa-geometry-member>
         <EquivalenciasTitulo />
+        {/* ADR 0104: la única importación que queda, y sólo para series de mediciones. */}
         <div className="pulso-equiv-actions">
-          <PulsoButton
-            variant="secondary"
-            className="pulso-equiv-btn"
-            onClick={() => void onGenerar()}
-            disabled={ocupado !== ""}
-          >
-            <Download size={14} aria-hidden="true" />
-            {declarada ? "Descargar plantilla actual" : "Generar plantilla"}
-          </PulsoButton>
-          <PulsoButton
-            variant="secondary"
-            className="pulso-equiv-btn"
-            onClick={() => void onSugerir()}
-            disabled={ocupado !== ""}
-            title="Propone emparejamientos por etiqueta, escala y orden. No se guardan sin confirmar."
-          >
-            <Sparkles size={14} aria-hidden="true" />
-            Proponer emparejados
-          </PulsoButton>
-          {/* Un `button` real y no un `label` vestido de botón: el label no
-              recibía el estilo de sus hermanos (16px/400, sin borde, 18 px de
-              alto). El botón es el control —nombre, foco visible y Enter/Espacio
-              nativos— y abre el selector de archivo, que queda fuera del orden
-              de tabulación para no duplicar la parada. */}
-          <PulsoButton
-            variant="secondary"
-            className="pulso-equiv-btn"
-            onClick={() => archivoRef.current?.click()}
-            disabled={ocupado !== ""}
-            aria-controls="pulso-equiv-archivo"
-          >
-            <Upload size={14} aria-hidden="true" />
-            Subir matriz
-          </PulsoButton>
           <ImportarBloquesBoton disabled={ocupado !== ""} />
-          <input
-            ref={archivoRef}
-            id="pulso-equiv-archivo"
-            className="pulso-equiv-archivo"
-            type="file"
-            accept=".xlsx,.xls"
-            tabIndex={-1}
-            aria-label="Matriz de equivalencias (.xlsx)"
-            disabled={ocupado !== ""}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              if (file) void onSubir(file);
-            }}
-          />
         </div>
       </header>
 
@@ -432,31 +308,20 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
               <ArmonizacionPeriodos estado={estado} onGuardado={onArmonizacionGuardada} />
             )}
             {/* ADR 0103: la matriz es una lista de equivalencias; las láminas se arman en Gráficos. */}
-            <div ref={barraRef} className="pulso-equiv-vistas" role="group" aria-label="Acciones sobre la declaración">
-              {resumen.sugeridas > 0 && (
-                <PulsoButton
-                  variant="secondary"
-                  size="sm"
-                  className="pulso-equiv-accion-masiva"
-                  onClick={onConfirmarTodas}
-                >
-                  <CheckCheck size={13} aria-hidden="true" />
-                  Confirmar {resumen.sugeridas} propuestas
-                </PulsoButton>
-              )}
-              <span className="pulso-equiv-vistas-nota">{formatoConteoDe(filas.length, "tema")}</span>
+            <div ref={barraRef} className="pulso-equiv-vistas" role="group" aria-label="Resumen de la declaración">
+              <span className="pulso-equiv-vistas-nota">{formatoConteoDe(filas.length, "pregunta equivalente", "preguntas equivalentes")}</span>
             </div>
 
             <EquivalenciasTabla
-              bases={bases.length ? bases : Object.keys(variablesPorBase)}
+              bases={basesDeTabla}
               filas={filas}
               variablesPorBase={variablesPorBase}
-              onAsignar={(id, base, v) => { setFilas((p) => asignarVariable(p, id, base, v)); setSucio(true); }}
+              onAsignar={onAsignar}
               onEditar={(id, campo, v) => { setFilas((p) => editarCampo(p, id, campo, v)); setSucio(true); }}
               onQuitar={(id) => { setFilas((p) => quitarFila(p, id)); setSucio(true); }}
               onConfirmar={(id) => { setFilas((p) => confirmarFila(p, id)); setSucio(true); }}
-              onArmonizar={bases.length > 1 ? abrirArmonizacion : undefined}
-              onAgregarFila={() => { setFilas((p) => [...p, filaVacia()]); setSucio(true); }}
+              onArmonizar={basesDeTabla.length > 1 ? abrirArmonizacion : undefined}
+              onAgregarFila={onAgregarFila}
             />
             <div className="pulso-equiv-pie-editor">
               <SaveStatusIndicator
@@ -469,8 +334,8 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
               />
               <span className="pulso-equiv-pie-resumen">
                 {`${formatoConteo(resumen.confirmadas)} confirmadas`
-                  + (resumen.sugeridas ? ` · ${formatoConteo(resumen.sugeridas)} propuestas sin confirmar` : "")
-                  + (resumen.sinEtiqueta ? ` · ${formatoConteo(resumen.sinEtiqueta)} sin etiqueta` : "")}
+                  + (resumen.sugeridas ? ` · ${formatoConteo(resumen.sugeridas)} sin confirmar` : "")
+                  + (resumen.sinEtiqueta ? ` · ${formatoConteo(resumen.sinEtiqueta)} sin nombre estándar` : "")}
               </span>
               <PulsoButton
                 variant="primary"
@@ -491,11 +356,11 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
             tamano="normal"
             icono={<Layers size={18} />}
             titulo="Este estudio todavía no declara equivalencias"
-            descripcion="Genera la plantilla con las variables de cada base, empareja la misma pregunta y súbela."
+            descripcion="La matriz dice qué pregunta de cada base es la misma, para poder compararlas entre públicos."
             accion={
-              <PulsoButton variant="secondary" size="sm" onClick={() => void onGenerar()} disabled={ocupado !== ""}>
-                <Download size={13} aria-hidden="true" />
-                Generar plantilla
+              <PulsoButton variant="primary" size="sm" onClick={onAgregarFila}>
+                <Plus size={13} aria-hidden="true" />
+                Añadir pregunta equivalente
               </PulsoButton>
             }
           />

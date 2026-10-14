@@ -59,7 +59,7 @@
 }
 
 /* `pulso-secondary` es la clase de la casa y no trae gap propio: sin esto el
-   icono queda pegado al texto («⊥Subir matriz»), que fue lo que mostro la
+   icono queda pegado al texto, que fue lo que mostro la
    captura y ninguna metrica. */
 .pulso-equiv-btn {
   display: inline-flex;
@@ -67,9 +67,8 @@
   gap: var(--pulso-space-2);
 }
 
-/* El selector de archivo lo abre «Subir matriz», que es un `button` real con
-   el mismo estilo que sus hermanos. El input no es una segunda parada de
-   teclado. */
+/* El selector de archivo de «Traer una serie de mediciones» lo abre un
+   `button` real; el input no es una segunda parada de teclado. */
 .pulso-equiv-archivo {
   display: none;
 }
@@ -271,9 +270,9 @@
   min-width: 0;
 }
 
-/* La marca de propuesta no puede vivir solo en el color de fondo: en una
-   captura o con poco contraste, una fila sugerida y una decidida se leerian
-   igual, que es exactamente lo que el ADR 0062 prohibe. */
+/* Propuesta heredada de un .pulso anterior (ADR 0104 §5). La marca no puede
+   vivir solo en el color de fondo: en una captura o con poco contraste, una
+   fila sin confirmar y una decidida se leerian igual (ADR 0062). */
 .pulso-equiv-chip-sugerida {
   display: inline-flex;
   align-items: center;
@@ -534,8 +533,62 @@ button.pulso-equiv-chip-escala:hover,
   text-align: left;
 }
 
-.pulso-equiv-col-estado .pulso-armon-chip {
-  align-self: auto;
+/* ADR 0104: la columna «Escala» dice si las preguntas elegidas usan la misma
+   lista de respuestas y, si no, abre la armonización de la fila. El texto lleva
+   el estado además del color. */
+.pulso-equiv-escala {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 1px 7px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.pulso-equiv-escala > svg { flex: none; }
+
+.pulso-equiv-escala > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pulso-equiv-escala.is-neutro {
+  border-style: dashed;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-equiv-escala.is-ok {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-equiv-escala.is-aviso {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+button.pulso-equiv-escala { cursor: pointer; }
+
+button.pulso-equiv-escala:hover:not(:disabled) { border-color: var(--module-accent-border); }
+
+button.pulso-equiv-escala:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+button.pulso-equiv-escala:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
 }
 
 /* Ancho mínimo común por base, el mismo con cualquier N: el contenido es un
@@ -559,15 +612,6 @@ button.pulso-equiv-chip-escala:hover,
 
 /* M3: es un PulsoButton secundario; aqui solo se ubica. */
 
-/* Acciones que operan sobre todo el editor —agrupar, confirmar en bloque—. Viven
-   junto al selector de vista y no en la cabecera: la cabecera declara que es la
-   superficie y por donde entran los datos; esto opera sobre lo que ya esta
-   dentro, y mezclarlas hacia leer «Subir matriz» y «Confirmar 58 propuestas»
-   como acciones del mismo rango. */
-/* Acciones masivas: PulsoButton secundario (M2); aquí sólo el espacio. */
-.pulso-equiv-accion-masiva {
-  gap: 5px;
-}
 
 /* La celda de variable en modo busqueda. Escribes y el navegador filtra por
    codigo o por etiqueta contra el `datalist` de SU base: el mismo gesto que el

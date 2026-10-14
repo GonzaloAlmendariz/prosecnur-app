@@ -38,12 +38,10 @@
 .pulso-mapi-estado .is-ok { color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
 .pulso-mapi-estado .is-aviso { color: var(--pulso-warn-fg); font-weight: var(--pulso-weight-semibold); }
 .pulso-mapi-estado .is-error { color: var(--pulso-warn-fg); font-weight: var(--pulso-weight-semibold); }
-/* P20: la matriz sugiere, la lámina decide. Confirmada en violeta (acento de comparación); parecida, neutra. */
+/* P20: la matriz sugiere, la lámina decide. ADR 0104: sólo sugiere lo declarado, en violeta (acento de comparación). */
 .pulso-mapi-completar { display: inline-flex; align-items: center; gap: 4px; margin-right: var(--pulso-space-1); color: var(--pulso-accent-violet); border-color: color-mix(in srgb, var(--pulso-accent-violet) 40%, var(--pulso-border)); }
-.pulso-mapi-sugerencia { align-self: flex-start; max-width: 100%; display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font: inherit; font-size: 12px; text-align: left; cursor: pointer; border: 1px dashed var(--pulso-border); background: var(--pulso-surface-2); color: var(--pulso-text-soft); transition: background-color 120ms ease, border-color 120ms ease; }
-.pulso-mapi-sugerencia.is-matriz { border-style: solid; border-color: color-mix(in srgb, var(--pulso-accent-violet) 45%, transparent); background: color-mix(in srgb, var(--pulso-accent-violet) 9%, var(--pulso-surface)); color: color-mix(in srgb, var(--pulso-accent-violet) 70%, var(--pulso-text)); }
-.pulso-mapi-sugerencia:hover { border-color: var(--pulso-text-soft); }
-.pulso-mapi-sugerencia.is-matriz:hover { background: color-mix(in srgb, var(--pulso-accent-violet) 16%, var(--pulso-surface)); border-color: var(--pulso-accent-violet); }
+.pulso-mapi-sugerencia { align-self: flex-start; max-width: 100%; display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font: inherit; font-size: 12px; text-align: left; cursor: pointer; border: 1px solid color-mix(in srgb, var(--pulso-accent-violet) 45%, transparent); background: color-mix(in srgb, var(--pulso-accent-violet) 9%, var(--pulso-surface)); color: color-mix(in srgb, var(--pulso-accent-violet) 70%, var(--pulso-text)); transition: background-color 120ms ease, border-color 120ms ease; }
+.pulso-mapi-sugerencia:hover { background: color-mix(in srgb, var(--pulso-accent-violet) 16%, var(--pulso-surface)); border-color: var(--pulso-accent-violet); }
 .pulso-mapi-sugerencia:focus-visible { outline: 2px solid var(--pulso-accent-violet); outline-offset: 2px; }
 /* Una sola línea con elipsis: el texto completo va en title y aria-label. Con overflow-wrap el chip medía su
    min-content y se salía del panel por la derecha. */

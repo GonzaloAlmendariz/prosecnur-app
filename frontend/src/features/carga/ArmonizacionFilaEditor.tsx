@@ -45,12 +45,9 @@ import {
   PANEL_ARMONIZACION,
   aArmonizacion,
   borradorDesde,
-  estadoArmonizacion,
   estadoDeBase,
-  explicacionArmonizacion,
   filasConArmonizacion,
   filasDeMapa,
-  focoDeFila,
   indiceDeFoco,
   mapaExplicito,
   TEXTO_ESTADO_BASE,
@@ -66,54 +63,10 @@ import { nombreDeSerieDeBases, type NombreDeSerie } from "./nombreDeSerie";
 import "./ArmonizacionFilaEditor.css";
 import { PulsoButton } from "../../components/PulsoButton";
 
-// ---- Indicador por fila -----------------------------------------------------
-
-/**
- * Chip de la fila en la tabla: dice el estado y abre el editor. Una fila que
- * todavía no se guardó no tiene a qué referirse el preview y lo dice.
- */
-export function ArmonizacionIndicador({
-  fila,
-  serie,
-  onAbrir,
-}: {
-  /** Cómo se nombra la serie («años» o «mediciones»), decidido por `nombreDeSerie`. */
-  serie: NombreDeSerie;
-  fila: Pick<EquivalenciaFila, "armonizacion" | "variables" | "etiqueta_estandar"> & {
-    id_declarado?: string;
-    indice_declarado?: number;
-  };
-  onAbrir: (foco: string) => void;
-}) {
-  const estado = estadoArmonizacion(fila);
-  const foco = focoDeFila(fila);
-  const nombre = fila.etiqueta_estandar || "esta pregunta";
-  return (
-    <button
-      type="button"
-      className={`pulso-armon-chip is-${estado.tipo}`}
-      disabled={!foco}
-      data-armon-abrir={foco ?? undefined}
-      // El `title` explica el estado en palabras llanas y es también la
-      // descripción accesible: el lector anuncia primero el nombre y después
-      // qué significa «Armonizada» o «No comparable en …».
-      title={foco
-        ? explicacionArmonizacion(estado, serie)
-        : "Guarda la fila para poder armonizarla."}
-      aria-label={`${estado.texto}. Abrir la armonización de ${nombre}`}
-      onClick={() => foco && onAbrir(foco)}
-    >
-      {estado.tipo === "armonizada" ? (
-        <CheckCircle2 size={11} aria-hidden="true" />
-      ) : estado.tipo === "no_comparable" ? (
-        <CircleSlash2 size={11} aria-hidden="true" />
-      ) : (
-        <GitCompareArrows size={11} aria-hidden="true" />
-      )}
-      <span>{estado.texto}</span>
-    </button>
-  );
-}
+// ---- Abrir sobre una fila ---------------------------------------------------
+//
+// El indicador por fila vive en la columna «Escala» de `EquivalenciasTabla`
+// (ADR 0104): dice si las escalas coinciden y abre este editor.
 
 /** Abre el editor sobre una fila: escribe `panel` y `foco` en la dirección. */
 export function useAbrirArmonizacion(): (foco: string) => void {
