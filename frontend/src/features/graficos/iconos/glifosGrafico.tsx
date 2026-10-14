@@ -5,12 +5,43 @@
 // «31%» sin espacio y en negrita. Los colores no viven aquí: cada pieza lleva una clase de tono que glifoGrafico.css
 // resuelve con tokens `--pulso-*`.
 
-type Tono = "p" | "a" | "e1" | "e2" | "e3" | "e4" | "n" | "v";
-/** Lo que el dibujo puede reflejar del gráfico real (la maqueta de la lámina); sin opciones, el dibujo del catálogo. */
+type Tono = "p" | "a" | "e1" | "e2" | "e3" | "e4" | "n" | "v" | "r";
+/**
+ * Lo que el dibujo puede reflejar del gráfico real (la maqueta de la lámina, ítem 9); sin opciones, el dibujo del catálogo.
+ * Sólo ajustes que la lámina nativa dibuja: lo que el motor descarta no se promete aquí (ver argsDatosGrafico RETIRADOS).
+ */
 export type OpcionesGlifo = {
   ttb?: boolean; btb?: boolean;
   /** Sin cifras de ejemplo («64%», «31%»): en la maqueta parecían resultados (catálogo del recetario, M6). */
   sinCifras?: boolean;
+  /** «Resaltar la barra más alta»: sin él, todas las barras en el mismo tono (por defecto, en el catálogo, sí). */
+  mayor?: boolean;
+  /** Dividido por un cruce: dos series lado a lado con su leyenda. */
+  grupos?: boolean;
+  /** Letras de diferencias significativas sobre las barras. */
+  significancia?: boolean;
+  /** Lo que excede el máximo se junta en «Otros», al final y en neutro. */
+  otros?: boolean;
+  /** Ranking recortado a las primeras N (el dibujo tiene cinco filas). */
+  topN?: number;
+  /** Una categoría destacada en el color de énfasis. */
+  resaltar?: boolean;
+  /** Divergentes: el neutro partido a cada lado del cero (por defecto sí). */
+  neutro?: boolean;
+  /** Brecha: la diferencia escrita al margen (por defecto sí). */
+  brecha?: boolean;
+  /** Serie: las cifras sobre cada punto (por defecto sí). */
+  cifras?: boolean;
+  /** Radar entre públicos: la tabla al costado (por defecto sí). */
+  tabla?: boolean;
+  /** Nube: el ranking de las palabras al costado (por defecto sí). */
+  ranking?: boolean;
+  /** Matriz de cuadrantes: cuál lleva fondo. */
+  destacado?: "arriba_izq" | "arriba_der" | "abajo_izq" | "abajo_der" | "ninguno";
+  /** Mapa de calor: la columna del total. */
+  total?: boolean;
+  /** Tabla: celdas bajo el umbral en rojo. */
+  rojo?: boolean;
 };
 type DibujoGlifo = (o?: OpcionesGlifo) => JSX.Element;
 
@@ -18,18 +49,27 @@ export const GLIFO = { w: 160, h: 100 } as const;
 
 const r2 = (n: number): number => Math.round(n * 100) / 100;
 
+/**
+ * Geometría también como estilo: Chrome anima el cambio de una propiedad de estilo pero no el de un atributo, y la maqueta
+ * transita sus piezas cuando cambia un ajuste (fichaRanura.css). El atributo queda para quien lea el SVG sin estilos.
+ */
+const geom = (x: number, y: number, w: number, h: number) => ({ x: r2(x), y: r2(y), width: r2(w), height: r2(h) });
+
 function Barra({ x, y, w, h, t = "a", rx = 1.5 }: { x: number; y: number; w: number; h: number; t?: Tono; rx?: number }) {
-  return <rect x={r2(x)} y={r2(y)} width={r2(w)} height={r2(h)} rx={rx} className={`pulso-glifo__${t}`} />;
+  const g = geom(x, y, w, h);
+  return <rect {...g} style={g} rx={rx} className={`pulso-glifo__${t}`} />;
 }
 
 /** Rótulo de categoría o de eje: un renglón tenue. */
 function Rotulo({ x, y, w }: { x: number; y: number; w: number }) {
-  return <rect x={r2(x)} y={r2(y)} width={r2(w)} height={3} rx={1.5} className="pulso-glifo__rotulo" />;
+  const g = geom(x, y, w, 3);
+  return <rect {...g} style={g} rx={1.5} className="pulso-glifo__rotulo" />;
 }
 
 /** Cifra rotulada sobre o junto a la barra: un renglón más firme que el rótulo. */
-function Valor({ x, y, w = 10, verde = false }: { x: number; y: number; w?: number; verde?: boolean }) {
-  return <rect x={r2(x)} y={r2(y)} width={r2(w)} height={3.5} rx={1.75} className={`pulso-glifo__valor${verde ? " is-verde" : ""}`} />;
+function Valor({ x, y, w = 10, verde = false, rojo = false }: { x: number; y: number; w?: number; verde?: boolean; rojo?: boolean }) {
+  const g = geom(x, y, w, 3.5);
+  return <rect {...g} style={g} rx={1.75} className={`pulso-glifo__valor${verde ? " is-verde" : ""}${rojo ? " is-rojo" : ""}`} />;
 }
 
 function Eje({ d }: { d: string }) {
@@ -41,7 +81,8 @@ function Trazo({ d, t = "a", ancho = 2 }: { d: string; t?: Tono; ancho?: number 
 }
 
 function Punto({ cx, cy, r = 3.5, t = "a" }: { cx: number; cy: number; r?: number; t?: Tono }) {
-  return <circle cx={r2(cx)} cy={r2(cy)} r={r} className={`pulso-glifo__${t}`} />;
+  const g = { cx: r2(cx), cy: r2(cy), r };
+  return <circle {...g} style={g} className={`pulso-glifo__${t}`} />;
 }
 
 function Cifra({ x, y, tam, texto, anclaje = "middle" }: { x: number; y: number; tam: number; texto: string; anclaje?: "start" | "middle" }) {
@@ -103,20 +144,29 @@ const ESCALA: readonly Tono[] = ["e1", "e2", "e3", "e4", "n"];
 
 const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
   // Columnas de mayor a menor con su cifra encima (recetario p68).
-  p_barras_categoricas: () => {
+  // Con grupos (maqueta): cada categoría con una columna por grupo y la leyenda arriba.
+  p_barras_categoricas: (o) => {
     const altos = [62, 46, 34, 22, 12];
+    const segundo = [48, 52, 24, 28, 8];
+    const g = !!o?.grupos;
+    const tope = g ? 18 : 84;
     return (
       <>
-        {altos.map((h, i) => {
+        {altos.map((h0, i) => {
           const x = 20 + i * 27;
+          const h = g ? h0 * 0.82 : h0;
+          const h2 = segundo[i] * 0.82;
           return (
-            <g key={x}>
-              <Barra x={x} y={84 - h} w={18} h={h} t={i === 0 ? "p" : "a"} />
-              <Valor x={x + 3} y={84 - h - 7} w={12} />
+            <g key={i}>
+              <Barra x={x} y={84 - h} w={g ? 9 : 18} h={h} t={g ? "p" : i === 0 && (o?.mayor ?? true) ? "p" : "a"} />
+              {g && <Barra x={x + 9.6} y={84 - h2} w={8.4} h={h2} t="a" />}
+              {!g && <Valor x={x + 3} y={84 - h - 7} w={12} />}
+              {o?.significancia && <Punto cx={x + 4.5} cy={84 - h - 5} r={1.8} t="r" />}
               <Rotulo x={x + 2} y={88} w={14} />
             </g>
           );
         })}
+        {g && tope < 84 && <Leyenda x={40} y={4} tonos={["p", "a"]} />}
         <Eje d="M14 84H146" />
       </>
     );
@@ -133,17 +183,23 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
     </>
   ),
   // Ranking en barras horizontales, rótulo a la izquierda y cifra al final (p73).
-  p_barras_agrupadas: () => {
+  // Con «Otros» (maqueta): la última barra es el resto, en neutro. Con grupos: dos barras finas por categoría.
+  p_barras_agrupadas: (o) => {
     const largos = [96, 74, 58, 40, 24];
+    const segundo = [80, 82, 44, 50, 18];
+    const g = !!o?.grupos;
     return (
       <>
         {largos.map((w, i) => {
           const y = 14 + i * 15;
+          const otros = !!o?.otros && i === largos.length - 1;
           return (
-            <g key={y}>
+            <g key={i}>
               <Rotulo x={12} y={y + 3} w={22} />
-              <Barra x={42} y={y} w={w} h={9} t={i === 0 ? "p" : "a"} />
-              <Valor x={46 + w} y={y + 2.75} />
+              <Barra x={42} y={y} w={w} h={g ? 4.6 : 9} t={otros ? "n" : g ? "p" : i === 0 && (o?.mayor ?? true) ? "p" : "a"} />
+              {g && <Barra x={42} y={y + 5.2} w={segundo[i]} h={4.6} t="a" />}
+              <Valor x={46 + Math.max(w, g ? segundo[i] : 0)} y={y + 2.75} />
+              {o?.significancia && <Punto cx={42 + w + 18} cy={y + 4.5} r={1.8} t="r" />}
             </g>
           );
         })}
@@ -152,17 +208,22 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
     );
   },
   // Ranking con puntos (p72).
-  p_lollipop: () => {
+  // Con «Conservar sólo las primeras» (maqueta) salen menos filas, más holgadas; «Destacar» pinta una en énfasis.
+  p_lollipop: (o) => {
     const fines = [136, 114, 98, 80, 64];
+    const n = Math.max(1, Math.min(fines.length, o?.topN ?? fines.length));
+    const paso = n === fines.length ? 15 : Math.min(22, 72 / n);
+    const y0 = 18 + (fines.length * 15 - n * paso) / 2;
     return (
       <>
-        {fines.map((x, i) => {
-          const y = 18 + i * 15;
+        {fines.slice(0, n).map((x, i) => {
+          const y = y0 + i * paso;
+          const t: Tono = o?.resaltar && i === 2 ? "r" : i === 0 ? "p" : "a";
           return (
-            <g key={y}>
+            <g key={i}>
               <Rotulo x={12} y={y - 1.5} w={22} />
-              <Trazo d={`M42 ${y}H${x}`} ancho={1.5} />
-              <Punto cx={x} cy={y} r={4} t={i === 0 ? "p" : "a"} />
+              <Trazo d={`M42 ${y}H${x}`} ancho={1.5} t={t === "r" ? "r" : "a"} />
+              <Punto cx={x} cy={y} r={4} t={t} />
             </g>
           );
         })}
@@ -171,20 +232,27 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
     );
   },
   // Matriz de cuadrantes (p91): el cuadrante destacado con fondo, las dos líneas de corte y los puntos.
-  p_matriz_cuadrantes: () => {
+  p_matriz_cuadrantes: (o) => {
     const puntos: ReadonlyArray<readonly [number, number, boolean]> = [[40, 30, true], [55, 40, true], [110, 26, false], [128, 52, false],
       [70, 74, false], [118, 80, false], [46, 84, false]];
     return (
       <>
-        <rect x={20} y={14} width={68} height={42} rx={2} className="pulso-glifo__area-a" />
+        {o?.destacado !== "ninguno" && (
+          <rect x={o?.destacado?.endsWith("der") ? 88 : 20} y={o?.destacado?.startsWith("abajo") ? 56 : 14}
+            width={o?.destacado?.endsWith("der") ? 68 : 68} height={o?.destacado?.startsWith("abajo") ? 40 : 42} rx={2} className="pulso-glifo__area-a" />
+        )}
         <Trazo d="M88 14V100M20 56H156" ancho={1.5} t="n" />
         {puntos.map(([x, y, d]) => <Punto key={`${x}-${y}`} cx={x} cy={y} r={4} t={d ? "a" : "p"} />)}
       </>
     );
   },
   // Brecha entre dos públicos (p88).
-  p_dumbbell: () => {
-    const pares: ReadonlyArray<readonly [number, number]> = [[60, 128], [72, 118], [54, 100], [86, 136]];
+  // La brecha escrita al margen (por defecto); sin ella, los pares llegan al borde.
+  p_dumbbell: (o) => {
+    const conBrecha = o?.brecha ?? false;
+    const k = conBrecha ? 0.86 : 1;
+    const pares: ReadonlyArray<readonly [number, number]> = ([[60, 128], [72, 118], [54, 100], [86, 136]] as const)
+      .map(([a, b]) => [40 + (a - 40) * k, 40 + (b - 40) * k] as const);
     return (
       <>
         {pares.map(([a, b], i) => {
@@ -195,6 +263,7 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
               <Trazo d={`M${a} ${y}H${b}`} ancho={2.5} t="n" />
               <Punto cx={a} cy={y} r={4} t="a" />
               <Punto cx={b} cy={y} r={4} t="p" />
+              {conBrecha && <Valor x={136} y={y - 1.75} w={12} />}
             </g>
           );
         })}
@@ -256,20 +325,23 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
     );
   },
   // Divergentes: desacuerdo a la izquierda, acuerdo a la derecha del cero (p71).
-  p_barras_divergentes: () => {
+  // Con el neutro partido (maqueta, por defecto), media barra neutra a cada lado del cero.
+  p_barras_divergentes: (o) => {
     const izq = [[10, 8], [16, 10], [8, 6], [20, 12], [12, 8]];
     const der = [[40, 14], [30, 16], [46, 12], [22, 14], [34, 16]];
+    const m = o?.neutro ? 5 : 0;
     return (
       <>
         {izq.map(([a, b], i) => {
           const y = 14 + i * 15;
           const [c, d] = der[i];
           return (
-            <g key={y}>
-              <Barra x={80 - a - b} y={y} w={b - 0.8} h={10} t="e4" rx={0.5} />
-              <Barra x={80 - a} y={y} w={a} h={10} t="e3" rx={0.5} />
-              <Barra x={80} y={y} w={c - 0.8} h={10} t="e1" rx={0.5} />
-              <Barra x={80 + c} y={y} w={d} h={10} t="e2" rx={0.5} />
+            <g key={i}>
+              <Barra x={80 - m - a - b} y={y} w={b - 0.8} h={10} t="e4" rx={0.5} />
+              <Barra x={80 - m - a} y={y} w={a} h={10} t="e3" rx={0.5} />
+              {m > 0 && <Barra x={80 - m} y={y} w={m * 2} h={10} t="n" rx={0.5} />}
+              <Barra x={80 + m} y={y} w={c - 0.8} h={10} t="e1" rx={0.5} />
+              <Barra x={80 + m + c} y={y} w={d} h={10} t="e2" rx={0.5} />
             </g>
           );
         })}
@@ -278,21 +350,24 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
     );
   },
   // Torta de dos o tres porciones con su leyenda (p69).
-  p_pie: () => (
+  // Con «Otros» (maqueta): una porción más, la del resto, en neutro.
+  p_pie: (o) => (
     <>
       <path d={sector(56, 50, 36, 0, 0.56)} className="pulso-glifo__p" />
-      <path d={sector(56, 50, 36, 0.56, 0.86)} className="pulso-glifo__a" />
+      <path d={sector(56, 50, 36, 0.56, o?.otros ? 0.76 : 0.86)} className="pulso-glifo__a" />
+      {o?.otros && <path d={sector(56, 50, 36, 0.76, 0.86)} className="pulso-glifo__e3" />}
       <path d={sector(56, 50, 36, 0.86, 1)} className="pulso-glifo__n" />
       <Leyenda x={104} y={30} tonos={["p"]} />
       <Leyenda x={104} y={46} tonos={["a"]} />
       <Leyenda x={104} y={62} tonos={["n"]} />
     </>
   ),
-  // Dona de dos porciones con la cifra al centro (p70).
+  // Dona de dos porciones con la cifra al centro (p70); con «Otros» (maqueta), el resto en neutro.
   p_donut: (o) => (
     <>
       <circle cx={56} cy={50} r={30} className="pulso-glifo__trazo-a" strokeWidth={14} fill="none" />
       <path d={arco(56, 50, 30, 0, 0.64)} className="pulso-glifo__trazo-p" strokeWidth={14} fill="none" />
+      {o?.otros && <path d={arco(56, 50, 30, 0.84, 0.97)} className="pulso-glifo__trazo-n" strokeWidth={14} fill="none" />}
       {o?.sinCifras ? <Valor x={46} y={48} w={20} /> : <Cifra x={56} y={55} tam={14} texto="64%" />}
       <Leyenda x={104} y={38} tonos={["p"]} />
       <Leyenda x={104} y={56} tonos={["a"]} />
@@ -392,7 +467,8 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
     );
   },
   // Serie: mediciones en el tiempo, la vigente en el principal (p91).
-  p_serie_temporal: () => {
+  // Con cifras (maqueta, por defecto), un rótulo sobre cada punto de la serie vigente.
+  p_serie_temporal: (o) => {
     const xs = [24, 52, 80, 108, 136];
     const p = [62, 54, 48, 36, 28];
     const a = [70, 68, 60, 58, 50];
@@ -407,6 +483,7 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
           <g key={x}>
             <Punto cx={x} cy={a[i]} r={2.5} t="a" />
             <Punto cx={x} cy={p[i]} r={3} t="p" />
+            {o?.cifras && <Valor x={x - 5} y={p[i] - 9} w={10} />}
             <Rotulo x={x - 6} y={88} w={12} />
           </g>
         ))}
@@ -414,18 +491,22 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
     );
   },
   // Radar con su tabla al lado (p94).
-  p_radar: () => (
-    <>
-      <Radar cx={50} cy={52} r={34} lados={5} series={[{ k: [0.9, 0.62, 0.78, 0.5, 0.7], t: "p" }]} />
-      <Barra x={98} y={18} w={48} h={9} t="p" rx={1} />
-      {[32, 44, 56, 68, 80].map((y) => (
-        <g key={y}>
-          <Rotulo x={100} y={y} w={22} />
-          <Valor x={132} y={y - 0.25} w={12} />
-        </g>
-      ))}
-    </>
-  ),
+  // Sin la tabla al costado (maqueta), el radar se centra y crece.
+  p_radar: (o) => {
+    const tabla = o?.tabla ?? true;
+    return (
+      <>
+        <Radar cx={tabla ? 50 : 80} cy={tabla ? 52 : 50} r={tabla ? 34 : 40} lados={5} series={[{ k: [0.9, 0.62, 0.78, 0.5, 0.7], t: "p" }]} />
+        {tabla && <Barra x={98} y={18} w={48} h={9} t="p" rx={1} />}
+        {tabla && [32, 44, 56, 68, 80].map((y) => (
+          <g key={y}>
+            <Rotulo x={100} y={y} w={22} />
+            <Valor x={132} y={y - 0.25} w={12} />
+          </g>
+        ))}
+      </>
+    );
+  },
   // Radar por dimensiones: dos públicos (p95).
   p_dim_radar: () => (
     <Radar cx={80} cy={50} r={40} lados={6} series={[
@@ -434,19 +515,24 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
     ]} />
   ),
   // Mapa de calor por dimensiones: más intenso cuanto mayor el valor (p96).
-  p_dim_heatmap: () => {
+  // Con la columna Total (maqueta), una columna más, enmarcada, a la derecha.
+  p_dim_heatmap: (o) => {
     const valores = [[1, 2, 1, 3, 2], [2, 1, 3, 2, 4], [3, 2, 2, 1, 3], [4, 3, 4, 2, 1]];
+    const paso = o?.total ? 18 : 21.6;
+    const ancho = paso - 1.6;
     return (
       <>
         {valores.map((fila, i) => (
           <g key={i}>
             <Rotulo x={12} y={22 + i * 18} w={22} />
             {fila.map((v, j) => (
-              <Barra key={j} x={40 + j * 21.6} y={16 + i * 18} w={20} h={16} t={(["e1", "e2", "e3", "e4"] as const)[v - 1]} rx={1} />
+              <Barra key={j} x={40 + j * paso} y={16 + i * 18} w={ancho} h={16} t={(["e1", "e2", "e3", "e4"] as const)[v - 1]} rx={1} />
             ))}
+            {o?.total && <Barra x={40 + 5 * paso + 4} y={16 + i * 18} w={ancho} h={16} t="e2" rx={1} />}
           </g>
         ))}
-        {[0, 1, 2, 3, 4].map((j) => <Rotulo key={j} x={44 + j * 21.6} y={9} w={12} />)}
+        {[0, 1, 2, 3, 4].map((j) => <Rotulo key={j} x={40 + j * paso + 4} y={9} w={ancho - 8} />)}
+        {o?.total && <rect x={40 + 5 * paso + 2} y={6} width={ancho + 4} height={84} rx={2} className="pulso-glifo__marco-p" />}
       </>
     );
   },
@@ -494,7 +580,25 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
     </>
   ),
   // Nube de palabras: el tamaño es la frecuencia (p100).
-  p_nube_palabras: () => (
+  // Con el ranking (maqueta, por defecto), la nube a la izquierda y las diez más dichas a la derecha.
+  p_nube_palabras: (o) => o?.ranking ? (
+    <>
+      <g transform="translate(6 0) scale(0.62 1)">
+        <Barra x={44} y={42} w={72} h={14} t="p" rx={3} />
+        <Barra x={22} y={22} w={44} h={10} t="a" rx={3} />
+        <Barra x={76} y={20} w={52} h={9} t="e2" rx={3} />
+        <Barra x={18} y={64} w={36} h={8} t="e3" rx={3} />
+        <Barra x={62} y={66} w={58} h={11} t="a" rx={3} />
+        <Barra x={24} y={46} w={14} h={6} t="n" rx={3} />
+      </g>
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <g key={i}>
+          <Rotulo x={110} y={16 + i * 12} w={20} />
+          <Barra x={110} y={20.5 + i * 12} w={36 - i * 5} h={3} t={i === 0 ? "p" : "a"} rx={1} />
+        </g>
+      ))}
+    </>
+  ) : (
     <>
       <Barra x={44} y={42} w={72} h={14} t="p" rx={3} />
       <Barra x={22} y={22} w={44} h={10} t="a" rx={3} />
@@ -536,7 +640,8 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
     </>
   ),
   // Tabla editable: cabecera en el principal y filas con sus cifras (p197).
-  p_tabla: () => (
+  // Con el umbral en rojo (maqueta), las cifras bajo el umbral se pintan en rojo.
+  p_tabla: (o) => (
     <>
       <rect x={16} y={12} width={128} height={76} rx={3} className="pulso-glifo__contorno" />
       <Barra x={16} y={12} w={128} h={13} t="p" rx={3} />
@@ -546,8 +651,8 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
         <g key={y}>
           <Rotulo x={22} y={y} w={32} />
           <Valor x={72} y={y - 0.25} w={14} />
-          <Valor x={100} y={y - 0.25} w={14} />
-          <Valor x={124} y={y - 0.25} w={12} />
+          <Valor x={100} y={y - 0.25} w={14} rojo={!!o?.rojo && y === 47} />
+          <Valor x={124} y={y - 0.25} w={12} rojo={!!o?.rojo && y === 79} />
         </g>
       ))}
     </>

@@ -88,3 +88,56 @@ describe("M4 · índice que toma sus capítulos del informe", () => {
     expect(datosEstructura(indice).capitulos).toEqual([]);
   });
 });
+
+// Ítem 9 de la maqueta (M1 del catálogo): el glifo de cada tipo cambia con sus ajustes y la ficha los nombra; sin guardar,
+// dibuja lo que el motor dibuja (los defectos del registro). Mata: un ajuste que la ficha nombra y el dibujo no cambia, o
+// un defecto distinto al del motor.
+describe("ítem 9 · el glifo refleja los ajustes de su tipo", () => {
+  const dibujo = (s: Slide) => {
+    const info = ficha(s);
+    // Sólo el glifo: los chips de la ficha cambian de ancho con el texto del ajuste y darían el «cambio» solos.
+    const html = renderToStaticMarkup(<FichaRanura info={info} w={4} h={3} clave="k" />);
+    // Su contenido, sin la caja: la caja se mueve cuando la ficha suma un chip.
+    const glifo = html.match(/<svg class="pulso-glifo pulso-ficha-glifo[^>]*>([\s\S]*?)<\/svg>/)?.[1] ?? "";
+    expect(glifo).not.toBe("");
+    return glifo;
+  };
+  const casos: Array<[string, Record<string, unknown>, Record<string, unknown>, string]> = [
+    ["p_barras_agrupadas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", max_categorias: 4 }, "Resto en «Otros»"],
+    ["p_barras_agrupadas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", overrides: { resaltar_mayor: true } }, "La mayor resaltada"],
+    ["p_barras_categoricas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", cruces: "estudiantes$sexo" }, "Por grupos: Sexo"],
+    ["p_lollipop", { var: "estudiantes$mision" }, { var: "estudiantes$mision", top_n: 3 }, "Primeras 3"],
+    ["p_lollipop", { var: "estudiantes$mision" }, { var: "estudiantes$mision", resaltar: ["Sí"] }, "Destacada: Sí"],
+    ["p_donut", { var: "estudiantes$mision" }, { var: "estudiantes$mision", top_k: 2 }, "Resto en «Otros»"],
+    ["p_barras_divergentes", { vars: ["estudiantes$p1"] }, { vars: ["estudiantes$p1"], incluir_neutro: false }, "Sin el neutro partido"],
+    ["p_serie_temporal", { var: "estudiantes$p1" }, { var: "estudiantes$p1", mostrar_valores: false }, "Sin cifras"],
+    ["p_nube_palabras", { var: "estudiantes$p1" }, { var: "estudiantes$p1", mostrar_ranking: false }, "Sin ranking de palabras"],
+    ["p_radar", { var: "estudiantes$p1", modo: "publicos" }, { var: "estudiantes$p1", modo: "publicos", mostrar_tabla: false }, "Sin tabla al costado"],
+    ["p_dim_heatmap", { objetivo: "idx" }, { objetivo: "idx", incluir_total: true }, "Columna Total"],
+    ["p_tabla", { vars: ["estudiantes$p1"] }, { vars: ["estudiantes$p1"], umbral_rojo_pct: 50 }, "En rojo bajo 50 %"],
+    ["p_matriz_cuadrantes", { temas: { T: ["estudiantes$p1"] } }, { temas: { T: ["estudiantes$p1"] }, destacado: "abajo_der" }, "Destacado abajo a la derecha"],
+  ];
+  it.each(casos)("%s: el ajuste cambia el dibujo y se nombra", (g, antes, despues, nombre) => {
+    const a = slide(g, antes), d = slide(g, despues);
+    expect(ficha(d).ajustes).toContain(nombre);
+    expect(ficha(a).ajustes).not.toContain(nombre);
+    expect(dibujo(d)).not.toBe(dibujo(a));
+  });
+
+  it("los interruptores sin guardar dibujan lo que dibuja el motor (defectos del registro)", () => {
+    expect(ficha(slide("p_barras_divergentes", { vars: ["estudiantes$p1"] })).glifo.neutro).toBe(true);
+    expect(ficha(slide("p_dumbbell", { vars: ["estudiantes$p1"] })).glifo.brecha).toBe(true);
+    expect(ficha(slide("p_serie_temporal", { var: "estudiantes$p1" })).glifo.cifras).toBe(true);
+    expect(ficha(slide("p_nube_palabras", { var: "estudiantes$p1" })).glifo.ranking).toBe(true);
+    expect(ficha(slide("p_matriz_cuadrantes", { temas: { T: ["estudiantes$p1"] } })).glifo.destacado).toBe("arriba_izq");
+    // Sin `resaltar_mayor` la lámina pinta todas las barras igual: la maqueta no promete la mayor resaltada.
+    expect(ficha(slide("p_barras_agrupadas", { var: "estudiantes$mision" })).glifo.mayor).toBe(false);
+  });
+
+  it("los retirados (sin efecto en la lámina nativa) no cambian la ficha", () => {
+    const base = ficha(slide("p_barras_categoricas", { var: "estudiantes$mision" }));
+    const conRetirados = ficha(slide("p_barras_categoricas", { var: "estudiantes$mision", mostrar_promedio: true, formato_valor: "n" }));
+    expect(conRetirados.ajustes).toEqual(base.ajustes);
+    expect(conRetirados.glifo).toEqual(base.glifo);
+  });
+});

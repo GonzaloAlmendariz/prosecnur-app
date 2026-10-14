@@ -119,6 +119,15 @@
   opacity: 1;
 }
 
+/* Énfasis («Destacar» del ranking, letras de significancia, cifras bajo el umbral): el coral de la lámina nativa. */
+.pulso-glifo__r { fill: var(--pulso-danger-fg); }
+.pulso-glifo__trazo-r { stroke: var(--pulso-danger-fg); }
+
+.pulso-glifo__valor.is-rojo {
+  fill: var(--pulso-danger-fg);
+  opacity: 1;
+}
+
 .pulso-glifo__marco-p {
   fill: none;
   stroke: var(--glifo-principal);

@@ -100,7 +100,7 @@
     uno("Barras divergentes con saldo y sin neutro",
         .cr_g("p_barras_divergentes", vars = as.list(gestion), n_negativas = 2, excluir_opciones = "SIN INF", mostrar_saldo = TRUE, incluir_neutro = FALSE), 71),
     uno("Ranking con puntos", .cr_g("p_lollipop", var = "estudiantes$ciclo"), 72),
-    uno("Ranking con puntos, top 3 y una resaltada", .cr_g("p_lollipop", var = "estudiantes$ciclo", top_n = 3, resaltar = "5"), 72),
+    uno("Ranking con puntos, top 3 y una resaltada", .cr_g("p_lollipop", var = "estudiantes$ciclo", top_n = 3, resaltar = "Noveno ciclo"), 72),
     uno("Ranking con puntos de opción múltiple", .cr_g("p_lollipop", var = "egresados$mejoras"), 72),
     uno("Ranking en barras", .cr_g("p_barras_agrupadas", var = "egresados$mejoras"), 73),
     uno("Barras de 0 a 100 %, sin marcas", .cr_g("p_barras_agrupadas", var = "egresados$mejoras", overrides = list(usar_eje_libre = FALSE)), 74),

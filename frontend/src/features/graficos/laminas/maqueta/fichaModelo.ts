@@ -4,7 +4,9 @@
 // (docs/qa/maqueta-galeria-maquetas-2026-10-13.html).
 
 import { esRespuestaResidual } from "../../estilo/modeloColoresRespuestas";
+import type { OpcionesGlifo } from "../../iconos/glifosGrafico";
 import { firmaOpciones } from "../../paletasResolver";
+import { GRAFICOS_CON_RESALTE, resaltaMayor } from "../ResaltarGrafico";
 import type { OpcionMaqueta, RanuraMaqueta } from "../modeloMaqueta";
 
 /** Aviso de la ficha cuando el Top Two Box está encendido sin sus respuestas (el PowerPoint sale sin la columna). */
@@ -32,6 +34,8 @@ export type FichaInfo = {
   ajustes: string[];
   avisos: string[];
   forma: FormaBarras | null;
+  /** Lo que el glifo de los demás tipos refleja de sus ajustes (ítem 9 de la maqueta); vacío en las barras apiladas. */
+  glifo: OpcionesGlifo;
   /** La ranura no tiene gráfico. */
   vacia: boolean;
   /** Tiene gráfico pero ninguna pregunta. */
@@ -95,16 +99,106 @@ function ejeDe(args: Readonly<Record<string, unknown>>): number {
   return Number.isFinite(w) && w > 0 && w < 1 ? w : EJE_POR_DEFECTO;
 }
 
+/** Lector de un arg del slot o de sus overrides (los overrides mandan, como en el motor). */
+function lectorArgs(args: Readonly<Record<string, unknown>>): (k: string) => unknown {
+  const ov = (args.overrides && typeof args.overrides === "object" ? args.overrides : {}) as Record<string, unknown>;
+  return (k: string) => (k in ov ? ov[k] : args[k]);
+}
+
 /** Ajustes que cualquier tipo puede llevar, leídos del slot o de sus overrides. */
 function ajustesComunes(args: Readonly<Record<string, unknown>>): string[] {
-  const ov = (args.overrides && typeof args.overrides === "object" ? args.overrides : {}) as Record<string, unknown>;
-  const v = (k: string) => (k in ov ? ov[k] : args[k]);
-  return v("mostrar_significancia") === true ? ["Diferencias significativas"] : [];
+  return lectorArgs(args)("mostrar_significancia") === true ? ["Diferencias significativas"] : [];
+}
+
+const entero = (x: unknown): number | null => {
+  const n = Number(x);
+  return x !== null && x !== "" && Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
+};
+const lista = (x: unknown): string[] => (Array.isArray(x) ? x : typeof x === "string" ? x.split(",") : []).map((t) => String(t).trim()).filter(Boolean);
+
+const DESTACADO: Readonly<Record<string, string>> = {
+  arriba_der: "arriba a la derecha", abajo_izq: "abajo a la izquierda", abajo_der: "abajo a la derecha",
+};
+
+/**
+ * Ítem 9 de la maqueta: lo que el glifo de cada tipo refleja de sus ajustes y cómo se nombra en la ficha. Sólo lee args que
+ * la lámina nativa dibuja (los RETIRADOS de argsDatosGrafico no salen) y usa el mismo valor por defecto que el registro
+ * (`graficos_metadata.R`): un interruptor sin guardar dibuja lo que el motor dibuja.
+ */
+export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string, unknown>>, grupos: boolean): { glifo: OpcionesGlifo; ajustes: string[] } {
+  const v = lectorArgs(args);
+  const glifo: OpcionesGlifo = { grupos, significancia: v("mostrar_significancia") === true };
+  const ajustes: string[] = [];
+  if (GRAFICOS_CON_RESALTE.has(graficador)) {
+    glifo.mayor = resaltaMayor(args as Record<string, unknown>);
+    if (glifo.mayor) ajustes.push("La mayor resaltada");
+  }
+  switch (graficador) {
+    case "p_barras_agrupadas": {
+      const max = entero(v("max_categorias"));
+      if (max) ajustes.push(`Máximo ${max} categorías`);
+      if (max && v("agrupar_resto_en_otros") !== false) { glifo.otros = true; ajustes.push("Resto en «Otros»"); }
+      break;
+    }
+    case "p_pie":
+    case "p_donut": {
+      const k = entero(v("top_k"));
+      if (k) { glifo.otros = true; ajustes.push(`Máximo ${k} categorías`, "Resto en «Otros»"); }
+      break;
+    }
+    case "p_lollipop": {
+      const n = entero(v("top_n"));
+      if (n) { glifo.topN = n; ajustes.push(`Primeras ${n}`); }
+      const destacadas = lista(v("resaltar"));
+      if (destacadas.length) { glifo.resaltar = true; ajustes.push(`Destacada: ${destacadas.join(", ")}`); }
+      break;
+    }
+    case "p_barras_divergentes":
+      glifo.neutro = v("incluir_neutro") !== false;
+      if (!glifo.neutro) ajustes.push("Sin el neutro partido");
+      break;
+    case "p_dumbbell":
+      glifo.brecha = v("mostrar_brecha") !== false;
+      if (!glifo.brecha) ajustes.push("Sin la brecha");
+      break;
+    case "p_serie_temporal":
+      glifo.cifras = v("mostrar_valores") !== false;
+      if (!glifo.cifras) ajustes.push("Sin cifras");
+      break;
+    case "p_radar":
+      // `mostrar_tabla` depende de `modo = "publicos"` (registro): en los demás modos la tabla sale siempre.
+      glifo.tabla = !(v("modo") === "publicos" && v("mostrar_tabla") === false);
+      if (!glifo.tabla) ajustes.push("Sin tabla al costado");
+      break;
+    case "p_nube_palabras":
+      glifo.ranking = v("mostrar_ranking") !== false;
+      if (!glifo.ranking) ajustes.push("Sin ranking de palabras");
+      break;
+    case "p_matriz_cuadrantes": {
+      const d = typeof v("destacado") === "string" ? (v("destacado") as string) : "arriba_izq";
+      glifo.destacado = (["arriba_izq", "arriba_der", "abajo_izq", "abajo_der", "ninguno"].includes(d) ? d : "arriba_izq") as OpcionesGlifo["destacado"];
+      if (glifo.destacado === "ninguno") ajustes.push("Sin cuadrante destacado");
+      else if (DESTACADO[glifo.destacado as string]) ajustes.push(`Destacado ${DESTACADO[glifo.destacado as string]}`);
+      break;
+    }
+    case "p_dim_heatmap":
+      glifo.total = v("incluir_total") === true;
+      if (glifo.total) ajustes.push("Columna Total");
+      break;
+    case "p_tabla": {
+      const u = entero(v("umbral_rojo_pct"));
+      if (u) { glifo.rojo = true; ajustes.push(`En rojo bajo ${u} %`); }
+      break;
+    }
+    default:
+      break;
+  }
+  return { glifo, ajustes };
 }
 
 /** La ficha de una ranura. `nombreTipo`: el nombre visible del graficador (registro). */
 export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null): FichaInfo {
-  const base = { graficador: r.graficador, lectura: null, preguntas: [], publicos: [], leyendas: [], ajustes: [], avisos: [], forma: null } as const;
+  const base = { graficador: r.graficador, lectura: null, preguntas: [], publicos: [], leyendas: [], ajustes: [], avisos: [], forma: null, glifo: {} } as const;
   if (!r.graficador) return { ...base, tipo: "Elegir gráfico", vacia: true, faltaPregunta: false, preguntas: [], publicos: [], leyendas: [], ajustes: [], avisos: [] };
   const tipoNombre = nombreTipo ?? "Gráfico";
   if (!r.preguntas.length) return { ...base, tipo: tipoNombre, vacia: false, faltaPregunta: true, preguntas: [], publicos: [], leyendas: [], ajustes: [], avisos: [] };
@@ -116,10 +210,11 @@ export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null): Fich
       ? [{ titulo: null, items: q0.opciones.map((o, k) => ({ rotulo: o.rotulo, color: coloresDeEscala(q0.opciones)[k] })) }]
       : [];
     const cruceUno = q0.cruce;
+    const propios = ajustesDelGlifo(r.graficador, r.args, !!cruceUno);
     return {
-      graficador: r.graficador, tipo: tipoNombre, lectura: null, vacia: false, faltaPregunta: false, forma: null,
+      graficador: r.graficador, tipo: tipoNombre, lectura: null, vacia: false, faltaPregunta: false, forma: null, glifo: propios.glifo,
       preguntas: r.preguntas.map((q) => q.titulo).filter(Boolean), publicos: r.bases, leyendas,
-      ajustes: [...(r.twoBox.ttb ? ["Top Two Box"] : []), ...(cruceUno ? [`Por grupos: ${cruceUno}`] : []), ...ajustesComunes(r.args)],
+      ajustes: [...(r.twoBox.ttb ? ["Top Two Box"] : []), ...(cruceUno ? [`Por grupos: ${cruceUno}`] : []), ...ajustesComunes(r.args), ...propios.ajustes],
       avisos: [],
     };
   }
@@ -175,6 +270,7 @@ export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null): Fich
     ajustes,
     avisos: [...(ttbSinRespuestas ? [TTB_SIN_RESPUESTAS] : []), ...(partes > 1 ? [`Sale en ${partes} láminas`] : [])],
     forma: { bloques: salen, eje },
+    glifo: {},
     vacia: false,
     faltaPregunta: false,
   };

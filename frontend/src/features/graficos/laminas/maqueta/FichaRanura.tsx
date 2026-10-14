@@ -1,9 +1,10 @@
 // La ficha visual de una ranura en la maqueta (contrato M1–M8): dibuja la escena de `geometriaFicha` en un SVG con las
 // pulgadas de la ranura como unidad. Los íconos son los de la app (IconoTipo); los tipos que no son barras apiladas usan su
-// glifo (glifosGrafico). Las barras transitan por su clave (M8).
+// glifo (glifosGrafico), con los ajustes que refleja (ítem 9). Las barras y las piezas del glifo transitan (M8).
 
 import { useMemo } from "react";
 import { CuerpoGlifo } from "../../iconos/GlifoGrafico";
+import type { OpcionesGlifo } from "../../iconos/glifosGrafico";
 import { dibujoGrafico, PRESET_DICOTOMICA } from "../../iconos/iconosGrafico";
 import type { FichaInfo } from "./fichaModelo";
 import { escenaFicha, type Pieza } from "./geometriaFicha";
@@ -19,12 +20,12 @@ export function FichaRanura({ info, w, h, clave }: Props) {
   return (
     <svg className="pulso-ficha" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false"
       data-ficha-nivel={escena.nivel} data-ficha-horizontal={escena.horizontal ? "true" : undefined}>
-      {escena.piezas.map((p, i) => <PiezaFicha key={p.tipo === "barra" ? p.clave : `${p.tipo}-${i}`} p={p} icono={icono} graficador={info.graficador} />)}
+      {escena.piezas.map((p, i) => <PiezaFicha key={p.tipo === "barra" ? p.clave : p.tipo === "glifo" ? "glifo" : `${p.tipo}-${i}`} p={p} icono={icono} graficador={info.graficador} glifo={info.glifo} />)}
     </svg>
   );
 }
 
-function PiezaFicha({ p, icono, graficador }: { p: Pieza; icono: string | null; graficador: string | null }) {
+function PiezaFicha({ p, icono, graficador, glifo }: { p: Pieza; icono: string | null; graficador: string | null; glifo: OpcionesGlifo }) {
   switch (p.tipo) {
     case "cabecera": {
       const dibujo = icono ? dibujoGrafico(icono) : null;
@@ -74,7 +75,7 @@ function PiezaFicha({ p, icono, graficador }: { p: Pieza; icono: string | null; 
     case "glifo":
       return (
         <svg className={`pulso-glifo pulso-ficha-glifo${p.tenue ? " is-tenue" : ""}`} x={p.x} y={p.y} width={p.w} height={p.h} viewBox="0 0 160 100" preserveAspectRatio="xMidYMid meet">
-          {graficador ? <CuerpoGlifo tipo={graficador} opciones={{ sinCifras: true }} /> : null}
+          {graficador ? <CuerpoGlifo tipo={graficador} opciones={{ ...glifo, sinCifras: true }} /> : null}
         </svg>
       );
     case "vacia":

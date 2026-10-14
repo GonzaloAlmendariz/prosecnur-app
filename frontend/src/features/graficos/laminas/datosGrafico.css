@@ -169,3 +169,24 @@
 .pulso-f6-preguntas.is-temas li { display: grid; gap: 2px; padding: 6px 8px; border: 1px solid var(--pulso-border); border-radius: 8px; }
 .pulso-f6-preguntas-tema { font-weight: 600; color: var(--pulso-text); }
 .pulso-f6-preguntas-refs { font-size: 12px; color: var(--pulso-text-muted); overflow-wrap: anywhere; }
+
+/* «Destacar» del ranking con puntos (I4): las respuestas de la pregunta como botones que se encienden. */
+.pulso-f6-destacar { display: flex; flex-wrap: wrap; gap: 6px; }
+.pulso-f6-destacar-opcion {
+  padding: 3px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out;
+}
+.pulso-f6-destacar-opcion:hover { border-color: var(--pulso-border-strong); }
+.pulso-f6-destacar-opcion[aria-pressed="true"] {
+  border-color: var(--pulso-danger-fg);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+@media (prefers-reduced-motion: reduce) { .pulso-f6-destacar-opcion { transition: none; } }
