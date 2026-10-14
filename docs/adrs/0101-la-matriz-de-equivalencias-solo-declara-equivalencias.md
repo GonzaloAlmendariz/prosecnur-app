@@ -1,6 +1,6 @@
 # ADR 0101 — La matriz de equivalencias sólo declara equivalencias
 
-- **Estado**: Propuesto — decisión de Gonzalo del 2026-10-14; falta ratificar este texto
+- **Estado**: Aceptado — decisión de Gonzalo del 2026-10-14, texto ratificado el mismo día («Hazlo»)
 - **Ámbito**: Carga › Equivalencias entre públicos y Gráficos (plan del informe)
 - **Fecha**: 2026-10-14
 - **Implementación**: Pendiente — piezas E1 a E6 (abajo). Seguimiento en
@@ -29,7 +29,8 @@ tener sus configuraciones activables, porque un PPT de ACNUR es bastante diferen
 
 1. **La matriz declara equivalencias y nada más**: la `etiqueta_estandar`, la variable de cada público y la
    `seccion` (que agrupa preguntas para leer la matriz, no láminas). Salen de la matriz `diapositiva`,
-   `enunciado`, `grafico`, `corte` y `estilo`.
+   `enunciado` (el de la diapositiva, ADR 0064), `grafico`, `corte` y `estilo`. El enunciado de la matriz por
+   bloques de una serie (el texto de la pregunta en cada medición) describe la pregunta y se queda.
 2. **Las láminas se arman en Gráficos.** Qué preguntas van juntas, con qué gráfico, qué corte y qué enunciado se
    decide al armar cada lámina; la matriz es la fuente de qué preguntas son equivalentes (los selectores de
    «Públicos por tema», el radar y la brecha entre públicos, y la serie temporal la siguen leyendo).

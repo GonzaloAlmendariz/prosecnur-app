@@ -1,17 +1,14 @@
 source("setup-load-all.R")
 
-# ADR 0096 — el informe compartido se siembra y se propone desde la matriz.
+# ADR 0096 — el informe compartido se siembra y se propone; ADR 0101 — ya no desde la matriz.
 #
-# Contrato congelado (guardian-contratos, 2026-10-11):
 #   POST /api/graficos/plan/sugerido {config, scope?}
 #     ""|ausente = alcance actual; "consolidado" = informe compartido; otro → 400
 #     E_GRAFICOS_PLAN_SCOPE. Consolidado sin hermanas independientes → 409
-#     E_GRAFICOS_CONSOLIDADO_NO_APLICA.
-#   Respuesta consolidado: { ok, plan, report_scope:"consolidado",
-#     fuente:"equivalencias"|"consolidado", contiene_equivalencias, declarada,
-#     revision:"r2:…"|"", n_diapositivas, fuera, radar_pendiente, bases_incluidas,
-#     bases_excluidas:[{base,actor,motivo}], cobertura_reducida:[{etiqueta,
-#     declaradas,incluidas}], avisos_equivalencias:[{code,message}], coverage, warnings }
+#     E_GRAFICOS_CONSOLIDADO_NO_APLICA. `fuente = "equivalencias"` → 410
+#     E_GRAFICOS_PLAN_EQUIVALENCIAS_RETIRADO (ADR 0101).
+#   Respuesta consolidado: { ok, plan, report_scope:"consolidado", fuente:"consolidado",
+#     bases_incluidas, bases_excluidas:[{base,actor,motivo}], avisos_equivalencias:[{code,message}], coverage, warnings }
 #
 # El fixture vive en helper-consolidado-equivalencias.R: tres públicos con
 # etiquetas IDÉNTICAS entre sí y sólo dos con release aprobada.
@@ -29,41 +26,19 @@ test_that("R1: una base sin release no aparece en lo propuesto y se reporta", {
   on.exit(session_delete(sid), add = TRUE)
   .hce_declarar(sid)
 
-  out <- .hce_sugerido(sid, config = list(fuente = "equivalencias"))
+  out <- .hce_sugerido(sid, config = list())
 
   expect_true(isTRUE(out$ok))
   expect_identical(out$report_scope, "consolidado")
-  expect_identical(out$fuente, "equivalencias")
-  expect_true(isTRUE(out$contiene_equivalencias))
+  expect_identical(out$fuente, "consolidado")
+  expect_false(any(startsWith(.hce_refs_plan(out$plan), "administrativos$")))
 
-  # Ninguna referencia a la base sin release, en ninguna lámina.
-  refs <- .hce_refs_plan(out$plan)
-  expect_gt(length(refs), 0L)
-  expect_false(any(startsWith(refs, "administrativos$")))
-
-  # La base fuera se dice, con su motivo.
   excluidas <- out$bases_excluidas %||% list()
   expect_identical(vapply(excluidas, function(x) as.character(x$base), character(1)), "administrativos")
   expect_identical(.hcp_motivos(excluidas), "release_no_aprobada")
   expect_identical(as.character(excluidas[[1]]$actor), "Administrativos")
   expect_setequal(unlist(out$bases_incluidas), c("docentes", "estudiantes"))
-
-  # Fila que se queda con un solo público: a `fuera`, nunca degradada a una
-  # lámina de un público.
-  fuera_rel <- Filter(function(x) identical(x$motivo, "release_no_aprobada"), out$fuera %||% list())
-  expect_identical(vapply(fuera_rel, function(x) as.character(x$etiqueta), character(1)), "Conoce (doc-adm)")
-  # Con `fuente = equivalencias` sólo sale el bloque de la matriz: ninguna lámina de un solo público.
-  expect_length(Filter(function(r) length(unique(sub("\\$.*$", "", r))) < 2L,
-                       .hce_refs_por_lamina(out$plan)), 0L)
-
-  # Fila con tres declarados y dos con release: entra, y se reporta reducida.
-  reducida <- Filter(function(x) identical(x$etiqueta, "Satisfaccion"), out$cobertura_reducida %||% list())
-  expect_length(reducida, 1L)
-  expect_identical(as.integer(reducida[[1]]$declaradas), 3L)
-  expect_identical(as.integer(reducida[[1]]$incluidas), 2L)
-  expect_true(all(c("docentes$p_sat", "estudiantes$q_sat") %in% refs))
-
-  expect_true(any(.hcp_codigos(out$avisos_equivalencias) %in% c("bases_excluidas", "cobertura_reducida")))
+  expect_identical(.hcp_codigos(out$avisos_equivalencias), "bases_excluidas")
 })
 
 # ---------------------------------------------------------------------------
@@ -110,45 +85,23 @@ test_that("R2: scope consolidado no lee ni escribe la config de la base activa",
 # por etiqueta arma «Comparativo por actor».
 # ---------------------------------------------------------------------------
 
-test_that("R3: sin matriz la siembra del preflight no trae comparativos por etiqueta", {
+test_that("ADR 0101: con la matriz declarada, la propuesta no arma láminas que comparen públicos", {
   sid <- .hce_setup(aprobadas = names(.HCE_BASES))
   on.exit(session_delete(sid), add = TRUE)
-
-  preflight <- graficos_consolidado_preflight(sid)
-
-  # Medido hoy sobre este fixture: 2 láminas «Comparativo por actor» con
-  # docentes/estudiantes/administrativos emparejados por etiqueta.
-  expect_length(.hce_laminas_multifuente(preflight$plan), 0L)
-  expect_identical(preflight$n_comparison_slides, 0L)
-  titulos <- vapply(preflight$plan$slides %||% list(),
-                    function(x) as.character(x$payload$titulo %||% ""), character(1))
-  expect_false(any(grepl("Comparativo por actor", titulos, fixed = TRUE)))
-  # Y lo dice: un compartido sin comparaciones sin explicación se lee como un fallo.
-  expect_true("sin_matriz" %in% .hcp_codigos(preflight$equivalencias$avisos))
-  expect_false(isTRUE(preflight$equivalencias$declarada))
-  expect_false(isTRUE(preflight$equivalencias$contiene_equivalencias))
-})
-
-test_that("R3: sin matriz /plan/sugerido consolidado tampoco compara bases y avisa sin_matriz", {
-  sid <- .hce_setup(aprobadas = names(.HCE_BASES))
-  on.exit(session_delete(sid), add = TRUE)
+  .hce_declarar(sid)
 
   out <- .hce_sugerido(sid, config = list())
+  preflight <- graficos_consolidado_preflight(sid)
 
-  expect_identical(out$report_scope, "consolidado")
-  expect_identical(out$fuente, "consolidado")
-  expect_false(isTRUE(out$contiene_equivalencias))
-  expect_false(isTRUE(out$declarada))
-  expect_identical(out$revision, "")
+  # Las láminas que comparan públicos las arma el analista en Gráficos: ni la propuesta ni la siembra las derivan.
   expect_length(.hce_laminas_multifuente(out$plan), 0L)
-  expect_true("sin_matriz" %in% .hcp_codigos(out$avisos_equivalencias))
+  expect_length(.hce_laminas_multifuente(preflight$plan), 0L)
+  expect_false(any(vapply(out$plan$slides, function(x) identical(x$origen %||% "", "equivalencias"), logical(1))))
   # Sigue habiendo propuesta: las láminas por fuente del generador genérico.
   expect_gt(length(out$plan$slides), 0L)
+  # Y no hay avisos sobre la matriz: ya no es fuente del plan.
+  expect_length(intersect(.hcp_codigos(out$avisos_equivalencias), c("sin_matriz", "matriz_no_disponible")), 0L)
 })
-
-# ---------------------------------------------------------------------------
-# R4 — la siembra es la propuesta compuesta y es la misma que deriva el preflight.
-# ---------------------------------------------------------------------------
 
 test_that("R4: preflight con borrador vacío y /plan/sugerido consolidado dan el mismo plan", {
   sid <- .hce_setup()
@@ -159,35 +112,9 @@ test_that("R4: preflight con borrador vacío y /plan/sugerido consolidado dan el
   preflight <- graficos_consolidado_preflight(sid)
 
   expect_identical(sugerido$fuente, "consolidado")
-  expect_true(isTRUE(sugerido$contiene_equivalencias))
   expect_identical(.hce_proyeccion_plan(preflight$plan), .hce_proyeccion_plan(sugerido$plan))
   expect_identical(preflight$n_slides, as.integer(length(sugerido$plan$slides)))
-
-  # El bloque de la matriz entra marcado; las comparaciones salen de ahí.
-  origenes <- vapply(preflight$plan$slides, function(x) as.character(x$origen %||% ""), character(1))
-  expect_true(any(origenes == "equivalencias"))
-  multifuente <- Filter(function(sl) {
-    refs <- .hce_refs_por_lamina(list(slides = list(sl)))[[1]]
-    length(unique(sub("\\$.*$", "", refs))) >= 2L
-  }, preflight$plan$slides)
-  expect_gt(length(multifuente), 0L)
-  expect_true(all(vapply(multifuente, function(x) identical(x$origen, "equivalencias"), logical(1))))
-
-  # Bloque aditivo del preflight, con la misma revisión que la propuesta.
-  eq <- preflight$equivalencias
-  expect_true(isTRUE(eq$declarada))
-  expect_identical(eq$origen_plan, "derivado")
-  expect_true(isTRUE(eq$contiene_equivalencias))
-  expect_identical(eq$revision, sugerido$revision)
-  expect_match(eq$revision, "^r2:")
-  expect_identical(as.integer(eq$n_diapositivas), as.integer(sugerido$n_diapositivas))
-
-  # Las láminas por fuente no repiten referencias ya consumidas por la matriz.
-  por_fuente <- Filter(function(x) !identical(x$origen %||% "", "equivalencias"), sugerido$plan$slides)
-  refs_por_fuente <- .hce_refs_plan(list(slides = por_fuente))
-  refs_matriz <- .hce_refs_plan(list(slides = Filter(function(x) identical(x$origen %||% "", "equivalencias"),
-                                                     sugerido$plan$slides)))
-  expect_length(intersect(refs_por_fuente, refs_matriz), 0L)
+  expect_identical(preflight$equivalencias$origen_plan, "derivado")
 })
 
 test_that("R4: con plan autorado el preflight lo respeta y lo informa como autorado", {
@@ -203,68 +130,16 @@ test_that("R4: con plan autorado el preflight lo respeta y lo informa como autor
   expect_identical(preflight$equivalencias$origen_plan, "autorado")
 })
 
-# ---------------------------------------------------------------------------
-# R6 — lo que se propone no se bloquea por escala; lo divergente va a `fuera`.
-# ---------------------------------------------------------------------------
-
-test_that("R6: escalas que difieren sólo en la caja se proponen y no se bloquean", {
-  sid <- .hce_setup(variante_estudiantes = "caja")
-  on.exit(session_delete(sid), add = TRUE)
-  .hce_declarar(sid, list(
-    .hce_fila("Satisfaccion", "1", list(docentes = "p_sat", estudiantes = "q_sat"))))
-
-  out <- .hce_sugerido(sid, config = list())
-  expect_true(all(c("docentes$p_sat", "estudiantes$q_sat") %in% .hce_refs_plan(out$plan)))
-
-  # Todo lo propuesto pasa el bloqueo de escala del consolidado…
-  autorado <- graficos_consolidado_preflight(sid, config = list(plan = out$plan))
-  expect_length(.hce_bloqueos_escala(autorado), 0L)
-  # …y también la siembra que deriva el propio preflight (hoy: la heurística
-  # empareja por etiqueta y el bloqueo literal la rechaza por la caja).
-  sembrado <- graficos_consolidado_preflight(sid)
-  expect_length(.hce_bloqueos_escala(sembrado), 0L)
-})
-
-test_that("R6: códigos distintos no se proponen como comparación: salen a fuera", {
-  sid <- .hce_setup(variante_estudiantes = "codigo")
-  on.exit(session_delete(sid), add = TRUE)
-  .hce_declarar(sid, list(
-    .hce_fila("Satisfaccion", "1", list(docentes = "p_sat", estudiantes = "q_sat")),
-    .hce_fila("Conoce", "2", list(docentes = "p_con", estudiantes = "q_con"))))
-
-  out <- .hce_sugerido(sid, config = list())
-
-  fuera <- Filter(function(x) identical(x$etiqueta, "Satisfaccion"), out$fuera %||% list())
-  expect_length(fuera, 1L)
-  expect_true(fuera[[1]]$motivo %in% c("escala_divergente", "escala_incompatible"))
-  # Ninguna lámina junta p_sat con q_sat.
-  juntas <- Filter(function(r) all(c("docentes$p_sat", "estudiantes$q_sat") %in% r),
-                   .hce_refs_por_lamina(out$plan))
-  expect_length(juntas, 0L)
-  # Lo propuesto, autorado tal cual, no recibe bloqueos de escala.
-  expect_length(.hce_bloqueos_escala(graficos_consolidado_preflight(sid, config = list(plan = out$plan))), 0L)
-  expect_length(.hce_bloqueos_escala(graficos_consolidado_preflight(sid)), 0L)
-})
-
-# ---------------------------------------------------------------------------
-# R9 — los cuatro productores de la revisión devuelven el mismo valor.
-# ---------------------------------------------------------------------------
-
-test_that("R9: Carga, /plan/sugerido (activo y consolidado) y preflight dan la misma revisión r2:", {
+test_that("ADR 0101: pedir el plan con la fuente «equivalencias» responde 410 con su motivo", {
   sid <- .hce_setup()
   on.exit(session_delete(sid), add = TRUE)
   .hce_declarar(sid)
-
-  carga <- .equiv_estado(sid)$revision
-  activo <- .graficos_plan_sugerido_por_fuente(sid, config = list(fuente = "equivalencias"))$revision
-  consolidado <- .hce_sugerido(sid, config = list())$revision
-  preflight <- graficos_consolidado_preflight(sid)$equivalencias$revision
-
-  expect_match(carga, "^r2:")
-  expect_identical(activo, carga)
-  expect_identical(consolidado, carga)
-  expect_identical(preflight, carga)
-  expect_identical(.graficos_plan_desde_equivalencias(sid)$revision, carga)
+  err <- tryCatch(.graficos_plan_sugerido_por_fuente(sid, config = list(fuente = "equivalencias")), api_error = function(e) e)
+  expect_s3_class(err, "api_error")
+  expect_identical(err$code, "E_GRAFICOS_PLAN_EQUIVALENCIAS_RETIRADO")
+  expect_identical(as.integer(err$status), 410L)
+  # La revisión de la matriz sigue publicándose en Carga, sin las columnas del informe.
+  expect_match(.equiv_estado(sid)$revision, "^r3:")
 })
 
 # ---------------------------------------------------------------------------
@@ -308,7 +183,7 @@ test_that("R11: scope desconocido → 400 E_GRAFICOS_PLAN_SCOPE", {
 test_that("R11: consolidado sin hermanas independientes → 409 E_GRAFICOS_CONSOLIDADO_NO_APLICA", {
   sid <- .hcp_sesion_multibase()
   on.exit(session_delete(sid), add = TRUE)
-  r <- .hcp_router_sugerido(sid, list(config = list(fuente = "equivalencias"), scope = "consolidado"))
+  r <- .hcp_router_sugerido(sid, list(config = list(), scope = "consolidado"))
   expect_identical(r$status, 409L)
   expect_identical(r$body$error$code, "E_GRAFICOS_CONSOLIDADO_NO_APLICA")
 })
@@ -321,20 +196,20 @@ test_that("R11: el router lee scope en la raíz del cuerpo y deja intacto el alc
   expect_identical(consolidado$status, 200L)
   expect_identical(consolidado$body$report_scope, "consolidado")
   # `scope` dentro de config no cuenta: el contrato lo pone en la raíz, igual que /plan/coverage.
-  dentro <- .hcp_router_sugerido(sid, list(config = list(fuente = "equivalencias", scope = "consolidado")))
+  dentro <- .hcp_router_sugerido(sid, list(config = list(scope = "consolidado")))
   expect_identical(dentro$status, 200L)
   expect_false(identical(dentro$body$report_scope %||% "", "consolidado"))
-  vacio <- .hcp_router_sugerido(sid, list(config = list(fuente = "equivalencias"), scope = ""))
+  vacio <- .hcp_router_sugerido(sid, list(config = list(), scope = ""))
   expect_identical(vacio$status, 200L)
-  expect_identical(vacio$body$fuente, "equivalencias")
   expect_false(identical(vacio$body$report_scope %||% "", "consolidado"))
 })
 
-test_that("R11: los dos códigos nuevos están en el registro con su status", {
+test_that("R11: los códigos del plan sugerido están en el registro con su status", {
   reg <- errores_registrados()
   fila <- function(code) reg[reg$codigo == code, , drop = FALSE]
   expect_identical(fila("E_GRAFICOS_PLAN_SCOPE")$status, "400")
   expect_identical(fila("E_GRAFICOS_CONSOLIDADO_NO_APLICA")$status, "409")
+  expect_identical(fila("E_GRAFICOS_PLAN_EQUIVALENCIAS_RETIRADO")$status, "410")
 })
 
 # ---------------------------------------------------------------------------

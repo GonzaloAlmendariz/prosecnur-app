@@ -58,6 +58,8 @@
 # una propuesta seria indistinguible de una decision, asi que la plantilla no se
 # siembra y emparejar con ayuda se hace en el editor.
 .EQUIV_COL_ORIGEN <- "origen"
+# ADR 0101: columnas que las matrices ya escritas traen y la matriz ya no guarda (se ignoran y se avisa).
+.EQUIV_COLS_RETIRADAS <- c(.EQUIV_COL_DIAPOSITIVA, .EQUIV_COL_ENUNCIADO, .EQUIV_COL_GRAFICO, .EQUIV_COL_CORTE, .EQUIV_COL_ESTILO)
 .EQUIV_ORIGEN_PROPUESTA <- "propuesta"
 
 # Normaliza un encabezado a su forma comparable: minúsculas, sin tildes, sin
@@ -88,35 +90,6 @@
 # combinadas, así que sólo la primera fila del bloque la tiene: leída con
 # readxl, el resto llega NA. Sin este pase, 141 de 154 filas quedarían sin
 # sección.
-# Relleno hacia abajo que se REINICIA al cambiar de grupo.
-#
-# `enunciado`, `grafico` y `corte` son atributos de una diapositiva o de un
-# bloque suyo, no del documento: rellenarlos sin frontera los arrastra a las
-# diapositivas siguientes. Medido: declarar radar en la diapositiva 29 —6 filas—
-# y reimportar el archivo devolvia 47 filas con radar, porque el valor seguia
-# cayendo hasta el final de la hoja.
-#
-# `seccion` no usa esto: una seccion SI abarca varias diapositivas y su relleno
-# tiene que cruzar esa frontera.
-.equiv_fill_down_en <- function(x, grupo) {
-  x <- as.character(x)
-  grupo <- as.character(grupo)
-  ultimo <- NA_character_
-  grupo_ultimo <- NA_character_
-  for (i in seq_along(x)) {
-    if (!identical(grupo[i], grupo_ultimo)) {
-      ultimo <- NA_character_
-      grupo_ultimo <- grupo[i]
-    }
-    if (!is.na(x[i]) && nzchar(trimws(x[i]))) {
-      ultimo <- trimws(x[i])
-    } else {
-      x[i] <- ultimo
-    }
-  }
-  x
-}
-
 .equiv_fill_down <- function(x) {
   x <- as.character(x)
   ultimo <- NA_character_
@@ -244,30 +217,23 @@
                      paste(bases, collapse = ", ")))
   }
 
-  i_diapo <- idx_de(.EQUIV_COL_DIAPOSITIVA)
-  # «Diapo» es como la llaman las matrices ya escritas; aceptarla evita pedirle
-  # al equipo que renombre una columna para que la app la lea.
-  if (is.na(i_diapo)) i_diapo <- idx_de("diapo")
-
-  i_enunciado <- idx_de(.EQUIV_COL_ENUNCIADO)
-  i_grafico <- idx_de(.EQUIV_COL_GRAFICO)
-  i_corte <- idx_de(.EQUIV_COL_CORTE)
-  i_estilo <- idx_de(.EQUIV_COL_ESTILO)
+  # ADR 0101: la matriz sólo declara equivalencias. Las columnas del informe que traen las matrices ya escritas
+  # (diapositiva —o «diapo»—, enunciado, gráfico, corte, estilo) se ignoran, y se cuenta cuántas filas traían cada
+  # una para avisarlo: descartarlas en silencio haría creer que el plan sigue saliendo de aquí.
+  ignoradas <- list()
+  for (clave in .EQUIV_COLS_RETIRADAS) {
+    j <- idx_de(clave)
+    if (is.na(j) && identical(clave, .EQUIV_COL_DIAPOSITIVA)) j <- idx_de("diapo")
+    if (is.na(j)) next
+    v <- trimws(as.character(df[[j]]))
+    n <- sum(!is.na(v) & nzchar(v))
+    if (n) ignoradas[[clave]] <- n
+  }
   i_origen <- idx_de(.EQUIV_COL_ORIGEN)
   origen <- if (!is.na(i_origen)) .equiv_norm_col(df[[i_origen]]) else rep("", nrow(df))
 
   seccion <- if (!is.na(i_seccion)) .equiv_fill_down(df[[i_seccion]]) else rep(NA_character_, nrow(df))
   etiqueta <- trimws(as.character(df[[i_etiqueta]]))
-  diapo <- if (!is.na(i_diapo)) trimws(as.character(df[[i_diapo]])) else rep(NA_character_, nrow(df))
-  # Igual que la sección, el enunciado vive en celdas combinadas: es un atributo
-  # de la diapositiva escrito una vez sobre su bloque de filas.
-  # El enunciado, el grafico y el corte se rellenan DENTRO de su diapositiva y no
-  # mas alla: son atributos suyos, y arrastrarlos a la siguiente los inventa.
-  diapo_grupo <- ifelse(is.na(diapo), "", diapo)
-  enunciado <- if (!is.na(i_enunciado)) .equiv_fill_down_en(df[[i_enunciado]], diapo_grupo) else rep(NA_character_, nrow(df))
-  grafico <- if (!is.na(i_grafico)) .equiv_fill_down_en(df[[i_grafico]], diapo_grupo) else rep(NA_character_, nrow(df))
-  corte <- if (!is.na(i_corte)) .equiv_fill_down_en(df[[i_corte]], diapo_grupo) else rep(NA_character_, nrow(df))
-  estilo <- if (!is.na(i_estilo)) .equiv_fill_down_en(df[[i_estilo]], diapo_grupo) else rep(NA_character_, nrow(df))
 
   filas <- list()
   for (r in seq_len(nrow(df))) {
@@ -283,11 +249,6 @@
       seccion = if (is.na(seccion[r])) "" else seccion[r],
       etiqueta_estandar = lab,
       variables = vars,
-      diapositiva = if (is.na(diapo[r])) "" else diapo[r],
-      enunciado = if (is.na(enunciado[r])) "" else enunciado[r],
-      grafico = if (is.na(grafico[r])) "" else tolower(trimws(grafico[r])),
-      corte = if (is.na(corte[r])) "" else trimws(corte[r]),
-      estilo = if (is.na(estilo[r])) "" else tolower(trimws(estilo[r])),
       # Derivado, no pedido: en cuántos públicos existe la pregunta.
       cantidad = length(vars)
     )
@@ -310,7 +271,8 @@
     filas = filas,
     n_filas = length(filas),
     n_sin_etiqueta = sum(vapply(filas, function(f) !nzchar(f$etiqueta_estandar), logical(1))),
-    n_sugeridas = sum(vapply(filas, function(f) isTRUE(f$sugerida), logical(1)))
+    n_sugeridas = sum(vapply(filas, function(f) isTRUE(f$sugerida), logical(1))),
+    columnas_ignoradas = ignoradas
   )
 }
 
@@ -424,21 +386,12 @@
 
   declaradas <- (equiv %||% list())$filas %||% list()
 
-  # El NUCLEO —seccion, etiqueta estandar y una columna por publico— es lo que
-  # declara la equivalencia y va primero. Detras, el plan del informe.
-  #
-  # Las dos del plan son OPCIONALES al leer: un archivo sin ellas importa igual.
-  # Pero se emiten siempre, y vacias si hace falta: emitirlas solo cuando ya
-  # tienen datos dejaba al analista sin la columna justo cuando quiere empezar a
-  # repartir diapositivas desde el Excel.
-  extras <- c(.EQUIV_COL_DIAPOSITIVA, .EQUIV_COL_ENUNCIADO,
-              .EQUIV_COL_GRAFICO, .EQUIV_COL_CORTE, .EQUIV_COL_ESTILO)
-
+  # La seccion, la etiqueta estandar y una columna por publico: nada mas (ADR 0101). El plan del informe
+  # (diapositiva, enunciado, grafico, corte, estilo) ya no vive en la matriz: se arma en Graficos.
   cols <- list()
   cols[[.EQUIV_COL_SECCION]] <- character(0)
   cols[[.EQUIV_COL_ETIQUETA]] <- character(0)
   for (b in bases) cols[[b]] <- character(0)
-  for (e in extras) cols[[e]] <- character(0)
 
   filas <- list()
   ya_mapeadas <- stats::setNames(vector("list", length(bases)), bases)
@@ -455,18 +408,15 @@
       fila[[b]] <- v
       if (nzchar(v)) ya_mapeadas[[b]] <<- c(ya_mapeadas[[b]], v)
     }
-    for (e in extras) fila[[e]] <- as.character(f[[e]] %||% "")
     filas[[length(filas) + 1L]] <<- fila
   }
 
-  # Una fila DECIDE algo si empareja mas de un publico, si le pusieron etiqueta
-  # estandar o si le asignaron diapositiva. Una fila con una sola variable, sin
-  # etiqueta y sin diapositiva no declara nada: es la misma informacion que «esta
-  # variable existe», que ya esta en el instrumento.
+  # Una fila DECIDE algo si empareja mas de un publico o si le pusieron etiqueta
+  # estandar. Una fila con una sola variable y sin etiqueta no declara nada: es la
+  # misma informacion que «esta variable existe», que ya esta en el instrumento.
   decide <- function(f) {
     length(f$variables %||% list()) > 1L ||
-      nzchar(trimws(as.character(f$etiqueta_estandar %||% ""))) ||
-      nzchar(trimws(as.character(f$diapositiva %||% "")))
+      nzchar(trimws(as.character(f$etiqueta_estandar %||% "")))
   }
 
   # 1) Lo decidido primero y en su orden: reabrir la plantilla no puede
@@ -805,16 +755,10 @@
       if (is.null(inst)) return("")
       .equiv_firma_escala(inst, vars[[b]])
     }, character(1))
+    # ADR 0101: la diapositiva, el enunciado, el gráfico, el corte y el estilo ya no son de la matriz.
     parte <- paste(
-      as.character(f$diapositiva %||% ""),
-      # El enunciado titula la diapositiva (ADR 0064), así que cambiarlo cambia el
-      # mazo y tiene que mover la revisión.
-      as.character(f$enunciado %||% ""),
-      as.character(f$grafico %||% ""),
-      as.character(f$corte %||% ""),
       as.character(f$etiqueta_estandar %||% ""),
       if (isTRUE(f$sugerida)) "sugerida" else "",
-      tolower(trimws(as.character(f$estilo %||% ""))),
       paste(names(vars)[orden], unlist(vars)[orden], sep = "=", collapse = ","),
       paste(listas, collapse = "\u001d"),
       sep = "\u001e"
@@ -829,5 +773,5 @@
   periodos <- as.character(unlist((equiv %||% list())$armonizacion_periodos %||% character(0)))
   if (length(periodos)) partes <- c(partes, paste0("periodos:", paste(periodos, collapse = ",")))
   # Ordenado: reordenar las filas sin cambiar su contenido no cambia el mazo.
-  paste0("r2:", .equiv_hash_estable(sort(partes)))
+  paste0("r3:", .equiv_hash_estable(sort(partes)))   # r3: sin las columnas del informe (ADR 0101)
 }

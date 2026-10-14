@@ -2984,8 +2984,8 @@ mount_graficos <- function(pr) {
       } else {
         list()
       }
-      # ADR 0063: la fuente decide el generador (perfiles o declaracion de
-      # equivalencias); la eleccion vive en graficos_plan_equivalencias.R.
+      # La fuente decide el generador (perfiles o consolidado); la eleccion vive en graficos_plan_consolidado.R.
+      # ADR 0101: la matriz de equivalencias ya no es fuente.
       # ADR 0096: `scope` en la raiz del cuerpo, igual que /plan/coverage.
       .graficos_plan_sugerido_por_fuente(sid, config = parsed$config %||% NULL,
                                          scope = parsed$scope %||% "")
