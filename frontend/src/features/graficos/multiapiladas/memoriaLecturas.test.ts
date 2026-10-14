@@ -21,3 +21,18 @@ describe("cambiar de lectura no destruye lo avanzado (G12 parte 2)", () => {
     expect(recuperarLectura("s", "comparar", m)?.vars).toEqual(["a", "b"]);
   });
 });
+
+describe("una lectura vacía no se restaura (pérdida de temas, 2026-10-14)", () => {
+  it("la foto vacía de «Preguntas» no vuelve: volver a ella arrastra lo armado en vez de borrarlo", () => {
+    const m = new Map();
+    // Lámina nueva (args vacíos, se lee como «Preguntas») que pasa a «Públicos por tema».
+    guardarLectura("s:g", "comparar", {}, m);
+    expect(recuperarLectura("s:g", "comparar", m)).toBeNull();
+  });
+
+  it("una foto con contenido sí vuelve", () => {
+    const m = new Map();
+    guardarLectura("s:g", "comparar", { modo: "var", vars: ["estudiantes$p1"] }, m);
+    expect(recuperarLectura("s:g", "comparar", m)).toMatchObject({ modo: "var", vars: ["estudiantes$p1"] });
+  });
+});

@@ -7,6 +7,15 @@ function extraBarValue(args: Record<string, unknown>): unknown {
 }
 
 describe("mergeMultiApiladasArgsPatch", () => {
+  test("cambiar de lectura con el Top Two Box encendido no apaga la columna", () => {
+    const merged = mergeMultiApiladasArgsPatch(
+      { top2box: true, top2box_labels: ["De acuerdo", "Totalmente de acuerdo"] },
+      { modo: "var" },
+    );
+
+    expect(extraBarValue(merged)).toBe(true);
+  });
+
   test("declara la barra extra apagada por defecto", () => {
     const merged = mergeMultiApiladasArgsPatch({}, { vars: ["estudiantes$p1"] });
 
