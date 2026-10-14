@@ -14,9 +14,6 @@ const ESCALAS: Record<string, [string, string | null][]> = {
   sinpaleta: [["Nada importante", null], ["Poco importante", null], ["Importante", null], ["Muy importante", null], ["No sabe", null]],
   diez: Array.from({ length: 10 }, (_, k) => [String(k + 1), `#${(k * 1712 + 4096).toString(16).padStart(6, "0").slice(0, 6)}`] as [string, string]),
   sexo: [["Mujer", null], ["Hombre", null], ["Otro", null]],
-  acuerdo5: [["Totalmente en desacuerdo", null], ["En desacuerdo", null], ["Ni de acuerdo ni en desacuerdo", null], ["De acuerdo", null], ["Totalmente de acuerdo", null]],
-  acuerdo4: [["Totalmente en desacuerdo", null], ["En desacuerdo", null], ["De acuerdo", null], ["Totalmente de acuerdo", null]],
-  acuerdo4caja: [["Totalmente en Desacuerdo", null], ["En Desacuerdo", null], ["De Acuerdo", null], ["Totalmente de Acuerdo", null]],
   genero: [["Masculino", null], ["Femenino", null], ["Prefiero no responder", null], ["Otro (especifique)", null]],
 };
 const PALETAS = Object.fromEntries(Object.entries(ESCALAS).map(([lista, ops]) => [lista, Object.fromEntries(ops.filter(([, c]) => c).map(([l, c]) => [l, c]))]));
@@ -29,7 +26,6 @@ const VARS = [
     v(s, "mision", "sino", "¿Conoce la misión?"), v(s, "importa", "sinpaleta", "Importancia"), v(s, "nota", "diez", "Del 1 al 10"),
     v(s, "sexo", "sexo", "Sexo"), v(s, "genero", "genero", "¿Cuál es su género?"),
   ]),
-  v("docentes", "serv", "acuerdo5", "Servicio"), v("estudiantes", "serv", "acuerdo4", "Servicio"), v("administrativos", "serv", "acuerdo4caja", "Servicio"),
 ] as never[];
 const slide = (tipo: string, payload: Record<string, unknown>) => ({ tipo, payload: { titulo: "T", ...payload } }) as unknown as Slide;
 const multi = (args: Record<string, unknown>) => slide("p_slide_1_grafico", { grafico: { graficador: "p_barras_multiapiladas", args } });
@@ -195,18 +191,5 @@ describe("geometría de la ficha", () => {
     expect(f.forma).toBeNull();
     expect(escenaFicha(f, 12.5, 4.6).piezas.some((p) => p.tipo === "glifo" && !p.tenue)).toBe(true);
     expect(f.preguntas).toEqual(["Servicio de salud"]);
-  });
-});
-
-describe("cada público con su escala (Gonzalo, 2026-10-14)", () => {
-  it("cinco y cuatro puntos en el mismo tema: la leyenda es la de cinco y la ficha lo dice", () => {
-    const f = ficha(multi({ modo: "var_cruce", vars: { Servicio: tema("serv") } }));
-    expect(f.ajustes).toContain("Cada público con su escala");
-    expect(f.leyendas[0].items.map((i) => i.rotulo)).toContain("Ni de acuerdo ni en desacuerdo");
-  });
-
-  it("la misma escala con otra caja en las etiquetas no es otra escala", () => {
-    const f = ficha(multi({ modo: "var_cruce", vars: { Servicio: tema("serv", ["estudiantes", "administrativos"]) } }));
-    expect(f.ajustes).not.toContain("Cada público con su escala");
   });
 });

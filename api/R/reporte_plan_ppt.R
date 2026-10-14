@@ -2355,7 +2355,7 @@ reporte_ppt_plan <- function(
       }
     }
 
-    .escala_union_spec(ctxs, .escala_h()) %||% stop(   # una escala contiene a las demás: cada fila con la suya (H3)
+    stop(
       "multiapiladas (modo='", arg_name, "'): las referencias no comparten una escala compatible. ",
       "Listas encontradas: ", paste(lns_nonempty, collapse = " | "),
       call. = FALSE
@@ -2367,18 +2367,18 @@ reporte_ppt_plan <- function(
   # fuente ("De acuerdo" vs "De Acuerdo") deben fundirse en la etiqueta
   # canonica de la escala elegida. Sin esto, la union de opciones duplicaba
   # series y leyenda, y el top2box contaba solo la mitad de los actores.
-  .escala_h <- function() list(list_name = .list_name_from_ctx, label_col = .choices_label_col, norm = .norm_label_scale, especial = .es_categoria_especial)
   .canonizar_freq_a_escala <- function(tab, ctx, spec) {
     if (is.null(tab) || !nrow(tab) || !isTRUE(spec$equivalent)) return(tab)
-    if (isTRUE(spec$por_etiqueta)) return(.escala_union_canonizar(tab, ctx, spec, .escala_h()))   # graficos_escala_union.R
-    ch_canon <- spec$choices; ln_canon <- spec$list_name
+    ch_canon <- spec$choices
+    ln_canon <- spec$list_name
     if (is.null(ch_canon) || !is.data.frame(ch_canon) ||
         is.na(ln_canon) || !nzchar(ln_canon)) return(tab)
     ch_src <- ctx$choices
     ln_src <- .list_name_from_ctx(ctx)
     if (is.null(ch_src) || !is.data.frame(ch_src) ||
         is.na(ln_src) || !nzchar(ln_src)) return(tab)
-    lab_col_src <- .choices_label_col(ch_src); lab_col_can <- .choices_label_col(ch_canon)
+    lab_col_src <- .choices_label_col(ch_src)
+    lab_col_can <- .choices_label_col(ch_canon)
     sub_src <- ch_src[ch_src$list_name == ln_src, , drop = FALSE]
     sub_can <- ch_canon[ch_canon$list_name == ln_canon, , drop = FALSE]
     if (!nrow(sub_src) || !nrow(sub_can)) return(tab)
@@ -5002,7 +5002,7 @@ reporte_ppt_plan <- function(
           )
         }
         labels_opts <- .reporte_plan_labels_for_levels(ln, all_opts, choices_use = choices_use)
-        leyenda_opts <- .escala_union_leyenda(.reporte_plan_legend_labels_for_levels(ln, all_opts, choices_use = choices_use), .reporte_plan_labels_for_levels(ln, all_opts, choices_use = choices_use), scale_spec, .pretty_source_label)
+        leyenda_opts <- .reporte_plan_legend_labels_for_levels(ln, all_opts, choices_use = choices_use)
         colores_grupos <- .reporte_plan_palette_for_levels(
           ln,
           labels_opts,
