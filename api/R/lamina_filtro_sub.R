@@ -54,16 +54,21 @@
 
 #' La subpregunta en su caja: barras de una serie o una escala al 100 % con su leyenda debajo
 #' @keywords internal
-.lam_filtro_sub_dibujar_sub <- function(lz, s, x, y, w, alto) {
+#'
+#' Gonzalo (2026-10-14): «el gráfico dependiente no debe verse más pequeño del que depende». La subpregunta llena su
+#' columna: filas de hasta 0.75 in con barras gruesas; la escala de una fila, en una barra de 0.8 in con su leyenda en el
+#' ancho de la columna y, si se le da `yc`, centrada a esa altura (la del disco del filtro, de donde sale el conector).
+.lam_filtro_sub_dibujar_sub <- function(lz, s, x, y, w, alto, yc = NULL) {
   if (identical(s$tipo, "categorica")) {
-    k <- length(s$rotulos); fila <- min(0.66, alto / max(1L, k)); g <- min(0.36, fila * 0.6)
+    k <- length(s$rotulos); fila <- min(0.75, alto / max(1L, k)); g <- min(0.42, max(.std_grosor(k, "categorias"), fila * 0.55))
     return(.lam_barras_h(lz, s, x, y, w, wlab = min(2.5, w * 0.4), g = g, fila = fila, size = 12))
   }
-  seg <- .lam_escala_seg(s, 1L)
-  .lam_barra_apilada(lz, x, y + 0.35, w, seg, 0.5)
+  h <- 0.8
+  yb <- if (!is.null(yc)) max(y + 0.2, yc - h / 2) else y + 0.35
+  .lam_barra_apilada(lz, x, yb, w, .lam_escala_seg(s, 1L), h)
   ver <- which(as.logical(s$dibujar[1, ]))
-  .lam_leyenda(lz, y + 1.05, s$categorias$rotulo[ver], s$categorias$color[ver], centrar_en = x + w / 2)
-  invisible(y + 1.4)
+  fin <- .lam_leyenda_panel(lz, yb + h + 0.25, s$categorias$rotulo[ver], s$categorias$color[ver], centro = x + w / 2, x0 = x, x1 = x + w)
+  invisible(fin)
 }
 
 #' Lámina de pregunta filtro y subpregunta
@@ -99,7 +104,7 @@
     gap <- 0.6; col <- (ancho - gap) / 2; xr <- ml + col + gap
     y0 <- .lam_panel_titulo(lz, ml, yt, col, espec$pregunta_filtro, publico(espec$n_filtro)) + 0.25
     if (identical(f$tipo, "pie")) {
-      .lam_filtro_sub_circular(lz, f, espec$habilita, ml, y0, col, yf - y0, xr, yt)
+      circ <- .lam_filtro_sub_circular(lz, f, espec$habilita, ml, y0, col, yf - y0, xr, yt)
     } else if (dico) {
       # p193: la dicotomía en una columna al 100 %, del alto del gráfico vecino, con sus cifras a la izquierda.
       d <- .lam_dicotomia_datos(f)
@@ -127,7 +132,7 @@
                           y0 + (max(hab) - 1) * fila + (fila + g) / 2, xr, yt)
     }
     ys <- .lam_panel_titulo(lz, xr, yt, col, espec$pregunta_sub, .lam_filtro_sub_base(espec)) + 0.25
-    .lam_filtro_sub_dibujar_sub(lz, s, xr, ys, col, yf - ys - 0.3)
+    .lam_filtro_sub_dibujar_sub(lz, s, xr, ys, col, yf - ys - 0.3, yc = if (exists("circ", inherits = FALSE)) circ$cy)
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:filtro_sub")
   doc <- .lam_pie(doc, base, folio)
@@ -140,8 +145,9 @@
 #' @keywords internal
 .lam_filtro_sub_circular <- function(lz, f, habilita, x, y0, w, alto, x_titulo, y_titulo, color = .std_color("azul"), t = 0.022) {
   k <- length(f$valores); cols <- .lam_colores_pie(k, f); dona <- !identical(f$forma, "pie")
-  fila <- 0.34; d <- min(alto - k * fila - 0.25, w * 0.55, 3.2); r <- d / 2 * 0.95
-  cx <- x + w * 0.42; cy <- y0 + d / 2
+  # El filtro no pesa más que la subpregunta (Gonzalo, 2026-10-14): el disco, a lo sumo 2 in.
+  fila <- 0.34; d <- min(alto - k * fila - 0.25, w * 0.4, 2.0); r <- d / 2 * 0.95
+  cx <- x + w * 0.4; cy <- y0 + 0.15 + d / 2
   fr <- f$valores / sum(f$valores); acum <- c(0, cumsum(fr))
   hab <- which(f$rotulos %in% habilita)
   medio <- if (length(hab)) (acum[min(hab)] + acum[max(hab) + 1]) / 2 else 0
@@ -153,7 +159,7 @@
     .lam_txt(lz, f$cifras[hab[1]], cx - r, cy - tam / 144 - 0.05, 2 * r, tam / 72 + 0.1, tam, color, bold = TRUE, align = "center", nombre = "dona:cifra")
   }
   # Leyenda debajo: cuadro, cifra y rótulo (lo que habilita en negrita).
-  yl <- y0 + d + 0.2
+  yl <- y0 + 0.15 + d + 0.25
   for (i in seq_len(k)) {
     yk <- yl + (i - 1) * fila
     .lam_caja(lz, x + 0.1, yk + 0.08, 0.17, 0.17, cols[i], nombre = "circular:cuadro")
@@ -165,5 +171,5 @@
   .lam_caja(lz, cx + r + 0.06, cy - t / 2, xt - (cx + r + 0.06) + t, t, color, nombre = "conector")
   .lam_caja(lz, xt, min(cy, yt), t, abs(cy - yt) + t, color, nombre = "conector")
   .lam_caja(lz, xt, yt - t / 2, x_titulo - 0.06 - xt, t, color, nombre = "conector")
-  invisible(yl + k * fila)
+  invisible(list(cy = cy, fin = yl + k * fila))
 }
