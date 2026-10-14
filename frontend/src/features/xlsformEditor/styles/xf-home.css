@@ -14,6 +14,9 @@
   /* Aprovecha el alto disponible: la grilla de slots es el área principal y la
      guía compacta se ancla al fondo (margin-top:auto), sin zonas muertas. */
   min-height: calc(100dvh - 126px);
+  /* Hijo de un cuerpo flex con scroll propio: sin esto se encoge a su
+     min-height y con seis formularios las tarjetas se salen del panel (C2). */
+  flex-shrink: 0;
   padding: 26px 24px 28px;
   border-radius: 16px;
   background: linear-gradient(
