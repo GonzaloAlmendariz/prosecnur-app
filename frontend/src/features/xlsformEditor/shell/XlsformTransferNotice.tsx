@@ -10,7 +10,7 @@ const NOTICE_COPY = {
   translation: {
     title: "De SurveyMonkey a un borrador XLSForm",
     detail:
-      "Prosecnur traduce estructura, matrices, saltos y validaciones a un borrador editable. Este paso no publica el instrumento y no confirma la lógica: revísalo y publica una revisión desde la biblioteca cuando esté listo.",
+      "Prosecnur traduce secciones, preguntas, matrices, obligatoriedad y validaciones a un borrador editable. Los saltos no llegan por la API de SurveyMonkey: se agregan en la lógica. Este paso no publica el instrumento y no confirma la lógica: revísalo y publica una revisión desde la biblioteca cuando esté listo.",
   },
   export: {
     title: "Qué viaja en el .xlsx",

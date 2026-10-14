@@ -156,9 +156,10 @@ export function MoreViewsMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         title="Otras vistas y herramientas avanzadas"
+        aria-label="Más vistas"
       >
-        <MoreHorizontal size={14} />
-        Más vistas
+        <MoreHorizontal size={14} aria-hidden="true" />
+        <span className="pulso-xf-cmd-label pulso-xf-cmd-label--low">Más vistas</span>
       </button>
       {open && (
         <div className="pulso-more-views-menu" role="menu">

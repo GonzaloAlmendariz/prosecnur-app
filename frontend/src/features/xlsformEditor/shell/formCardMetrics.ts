@@ -9,6 +9,7 @@
 
 import type { XlsformEditorWorkbook } from "../types";
 import { parseType } from "../parsing/parseType";
+import { countAnswerFields } from "./editorMetrics";
 
 /** Bases de `type` que NO cuentan como pregunta (marcadores de estructura). */
 const STRUCTURAL_BASES = new Set([
@@ -19,7 +20,12 @@ const STRUCTURAL_BASES = new Set([
 ]);
 
 export type FormCardMetrics = {
-  /** Filas de `survey` cuyo `type` no es begin/end group/repeat (ni vacío). */
+  /**
+   * Campos: variables que reciben respuesta, con la definición única de
+   * `editorMetrics.countAnswerFields` (sin estructura, sin notas, sin `_other`
+   * con madre). Se rotula «campos» en la tarjeta, igual que en el editor y el
+   * import. (El nombre de la propiedad se conserva por compatibilidad.)
+   */
   questions: number;
   /** Número de secciones = grupos (`begin_group`). */
   sections: number;
@@ -44,16 +50,19 @@ export function computeFormMetrics(
   const typeIdx = columnIndex(survey.columns, "type");
   if (typeIdx < 0) return { questions: 0, sections: 0 };
 
-  let questions = 0;
+  const nameIdx = columnIndex(survey.columns, "name");
   let sections = 0;
+  const fieldRows: Array<{ base: string; name: string }> = [];
   for (const row of survey.rows) {
     const rawType = typeof row[typeIdx] === "string" ? row[typeIdx] : "";
     const { base } = parseType(rawType);
     if (!base) continue;
     if (base === "begin_group") sections += 1;
-    if (!STRUCTURAL_BASES.has(base)) questions += 1;
+    if (STRUCTURAL_BASES.has(base)) continue;
+    const rawName = nameIdx >= 0 && typeof row[nameIdx] === "string" ? row[nameIdx].trim() : "";
+    fieldRows.push({ base, name: rawName });
   }
-  return { questions, sections };
+  return { questions: countAnswerFields(fieldRows), sections };
 }
 
 /**

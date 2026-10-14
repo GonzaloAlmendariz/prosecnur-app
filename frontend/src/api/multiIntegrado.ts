@@ -5,7 +5,7 @@
 import { apiFetch, downloadFailedMessage, handle, headers } from "./core";
 import type { EstudioBase, EstudioPayload } from "./estudio";
 import type { MonitoreoSheetsConnectResult } from "./monitoreo";
-import { type ChoiceCodeMap, normalizeSurveyMonkeyLogicState, normalizeXlsformFormSource } from "./xlsformEditor";
+import { type ChoiceCodeMap, normalizeFueraDelFormulario, normalizeSurveyMonkeyLogicState, normalizeXlsformFormSource } from "./xlsformEditor";
 
 // ============================================================================
 // Multi integrado generico: instrumentos hermanos -> una base + XLSForm comun
@@ -360,6 +360,17 @@ export type XlsformFormSource = {
   logic_confirmed_at?: string | null;
   logic_confirmation_method?: string | null;
   logic_review?: XlsformSourceRecord;
+  /** Lo que la encuesta trae y el formulario no importa, con su causa (H9). */
+  fuera_del_formulario?: XlsformFueraDelFormularioItem[];
+};
+
+/** Elemento de la encuesta de origen que no entra al formulario (H9). */
+export type XlsformFueraDelFormularioItem = {
+  /** `variable_personalizada`, `imagen`, … */
+  tipo: string;
+  nombre: string;
+  /** Frase legible que explica por qué no entra y dónde queda. */
+  detalle: string;
 };
 
 export type XlsformEditorPayload = {
@@ -1003,7 +1014,18 @@ export type SurveyMonkeyListItem = {
   title: string;
   nickname: string | null;
   date_modified: string | null;
+  /** Respuestas recibidas; `null` si el catálogo no lo trae (caché antigua). */
+  response_count?: number | null;
+  /** Preguntas de la encuesta; `null` si el catálogo no lo trae. */
+  question_count?: number | null;
 };
+
+function smListCount(value: unknown): number | null {
+  const v = Array.isArray(value) ? value[0] : value;
+  if (v == null || v === "NA" || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+}
 
 export async function apiXlsformEditorSmListSurveys(
   limit = 500,
@@ -1051,6 +1073,8 @@ export async function apiXlsformEditorSmListSurveys(
       title: String(s.title ?? "(sin título)"),
       nickname: s.nickname == null || s.nickname === "NA" ? null : String(s.nickname),
       date_modified: s.date_modified == null || s.date_modified === "NA" ? null : String(s.date_modified),
+      response_count: smListCount(s.response_count),
+      question_count: smListCount(s.question_count),
     })),
   };
 }
@@ -1090,6 +1114,8 @@ export type SurveyMonkeyApiInfo = {
   };
   style: { prefix: string; pad: number };
   definition: SurveyMonkeyDefinition | null;
+  /** Lo que la encuesta trae y no entra al formulario (H9); vacío si nada. */
+  fuera_del_formulario: XlsformFueraDelFormularioItem[];
 };
 
 export type SurveyMonkeyDefinition = {
@@ -1185,6 +1211,7 @@ export async function apiXlsformEditorSmFetchSurveyInfo(
           translation_profile: String(definitionRaw.translation_profile ?? ""),
         }
       : null,
+    fuera_del_formulario: normalizeFueraDelFormulario(r.fuera_del_formulario) ?? [],
   };
 }
 

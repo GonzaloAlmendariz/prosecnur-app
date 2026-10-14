@@ -28,6 +28,44 @@ export function smSurveyMatchesQuery(item: SurveyMonkeyListItem, query: string):
   return tokens.every((token) => haystack.includes(token));
 }
 
+const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+/** «2026-10-12T…» → «12 oct 2026». Sin Intl: el resultado no depende del ICU. */
+export function smFechaCorta(iso: string | null | undefined): string {
+  const m = (iso ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return "";
+  const mes = MESES[Number(m[2]) - 1];
+  if (!mes) return "";
+  return `${Number(m[3])} ${mes} ${m[1]}`;
+}
+
+function miles(n: number): string {
+  // es-PE agrupa miles con coma («1,234»); a mano para no depender del ICU.
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function conteo(n: number, singular: string, plural: string): string {
+  return `${miles(n)} ${n === 1 ? singular : plural}`;
+}
+
+/**
+ * Lo que distingue dos encuestas hermanas en el buscador: respuestas,
+ * preguntas y fecha de modificación (U5). Un conteo que el catálogo no trae
+ * se omite; no se muestra como cero.
+ */
+export function smSurveyMetaParts(item: SurveyMonkeyListItem): string[] {
+  const partes: string[] = [];
+  if (typeof item.response_count === "number") {
+    partes.push(conteo(item.response_count, "respuesta", "respuestas"));
+  }
+  if (typeof item.question_count === "number") {
+    partes.push(conteo(item.question_count, "pregunta", "preguntas"));
+  }
+  const fecha = smFechaCorta(item.date_modified);
+  if (fecha) partes.push(`modificada ${fecha}`);
+  return partes;
+}
+
 export type IdEncuestaLeido =
   | { ok: true; id: string }
   | { ok: false; motivo: "vacio" | "enlace_sin_id" };

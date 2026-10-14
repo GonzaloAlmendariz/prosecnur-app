@@ -5,7 +5,9 @@ import type { CampanaVistaPrevia } from "../../../api/xlsformCampanas";
 import {
   PANEL_CAMPANA_COMPLEMENTARIA,
   admiteCampana,
+  agruparPorSeccion,
   leerVistaPrevia,
+  preguntaMadre,
   motivoNoElegible,
   resumenCampanas,
   searchAbrirCampana,
@@ -49,13 +51,28 @@ describe("campaña complementaria: quién la admite", () => {
 });
 
 describe("lectura de la vista previa", () => {
-  test("calza y lista sólo los grupos con preguntas", () => {
+  test("calza con una diferencia: veredicto de alerta y tres contadores", () => {
     const lectura = leerVistaPrevia(VISTA);
-    expect(lectura.titular).toBe("Calzan 73 de 74 preguntas (98.6 %)");
+    expect(lectura.estado).toBe("con_diferencias");
+    expect(lectura.tono).toBe("warning");
+    expect(lectura.calce).toBe("73 de 74 campos calzan");
+    expect(lectura.cobertura).toBe("98.6 %");
+    expect(lectura.porcentaje).toBe(98.6);
     expect(lectura.puedeDeclarar).toBe(true);
     expect(lectura.bloqueo).toBeNull();
-    expect(lectura.grupos.map((g) => g.id)).toEqual(["faltan"]);
-    expect(lectura.grupos[0].titulo).toBe("Quedarán vacías para las respuestas de esta campaña");
+    expect(lectura.contadores.map((c) => [c.id, c.n])).toEqual([["faltan", 1], ["extra", 0], ["ambiguas", 0]]);
+    expect(lectura.contadores[0].abiertoPorDefecto).toBe(true);
+  });
+
+  test("sin diferencias: completa", () => {
+    const lectura = leerVistaPrevia({ ...VISTA, faltan: [] });
+    expect(lectura.estado).toBe("completa");
+    expect(lectura.tono).toBe("success");
+  });
+
+  test("más de cinco arranca plegado", () => {
+    const faltan = Array.from({ length: 6 }, (_, i) => ({ variable: `p${i}`, etiqueta: "x" }));
+    expect(leerVistaPrevia({ ...VISTA, faltan }).contadores[0].abiertoPorDefecto).toBe(false);
   });
 
   test("el texto del servidor ya trae el signo y se usa tal cual", () => {
@@ -63,11 +80,38 @@ describe("lectura de la vista previa", () => {
     expect(textoCobertura(null, "")).toBe("");
   });
 
-  test("instrumento distinto bloquea con la salida del ADR", () => {
+  test("instrumento distinto bloquea con la salida del ADR y deja todo plegado", () => {
     const lectura = leerVistaPrevia({ ...VISTA, instrumento_distinto: true, n_emparejadas: 30, cobertura: 0.4, cobertura_texto: "40.5 %" });
+    expect(lectura.estado).toBe("bloqueada");
+    expect(lectura.tono).toBe("danger");
     expect(lectura.puedeDeclarar).toBe(false);
     expect(lectura.bloqueo).toMatch(/formulario propio/);
     expect(lectura.bloqueo).toMatch(/Equivalencias/);
+    expect(lectura.contadores.every((c) => !c.abiertoPorDefecto)).toBe(true);
+  });
+});
+
+describe("agrupación por sección", () => {
+  test("las filas de una matriz van juntas; las sueltas consecutivas, en una tanda sin título", () => {
+    const secciones = agruparPorSeccion([
+      { variable: "p4", etiqueta: "a" },
+      { variable: "p5", etiqueta: "b" },
+      { variable: "p12_2", etiqueta: "c" },
+      { variable: "p12_6", etiqueta: "d" },
+      { variable: "p12_other", etiqueta: "e" },
+      { variable: "p19", etiqueta: "f" },
+    ]);
+    expect(secciones.map((s) => [s.titulo, s.preguntas.length])).toEqual([
+      [null, 2],
+      ["Batería p12", 3],
+      [null, 1],
+    ]);
+  });
+
+  test("la madre de una variable", () => {
+    expect(preguntaMadre("p13_1")).toBe("p13");
+    expect(preguntaMadre("p4_other")).toBe("p4");
+    expect(preguntaMadre("edad")).toBe("edad");
   });
 });
 

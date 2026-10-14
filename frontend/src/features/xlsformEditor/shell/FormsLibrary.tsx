@@ -28,7 +28,7 @@
 // de otra máquina), la tarjeta muestra ceros sin romper.
 // =============================================================================
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, type MouseEvent, type ReactNode } from "react";
 import { Layers, Lock, TriangleAlert } from "../../../vendor/lucide-react";
 import type { XlsformFormPublication } from "../../../api/client";
 import { campanasDeFuente } from "../../../api/xlsformCampanas";
@@ -146,6 +146,23 @@ export function FormsLibrary({
   const empty = !unknown && slots.empty;
   const { count, atLimit, canCreate, ghostSlots } = slots;
 
+  // U1: el «+» expande «¿Cómo quieres empezar?» en su sitio, que con seis
+  // celdas cae bajo el pliegue. Se escucha por delegación porque la celda de
+  // creación no avisa al expandirse: tras pintar, se lleva a la vista y el foco
+  // pasa a la primera vía.
+  function onSlotsClick(event: MouseEvent<HTMLDivElement>) {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target?.closest(".pulso-xf-home-add--tile")) return;
+    const slotsEl = event.currentTarget;
+    requestAnimationFrame(() => {
+      const expandida = slotsEl.querySelector<HTMLElement>(".pulso-xf-home-add--expanded");
+      if (!expandida) return;
+      const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+      expandida.scrollIntoView({ block: "nearest", behavior: reducido ? "auto" : "smooth" });
+      expandida.querySelector<HTMLElement>(".pulso-xf-home-action")?.focus({ preventScroll: true });
+    });
+  }
+
   return (
     <section
       className={`pulso-xf-home${loading ? " is-loading" : ""}`}
@@ -197,7 +214,13 @@ export function FormsLibrary({
           ))}
         </div>
       ) : (
-      <div className="pulso-xf-home-slots" data-slot-count={count}>
+      <div
+        className="pulso-xf-home-slots"
+        data-slot-count={count}
+        data-qa-geometry-group="xlsform-home-slots"
+        data-qa-geometry-contract="equal"
+        onClick={onSlotsClick}
+      >
         {forms.map((entry) => (
           <FormCard
             key={entry.id}
@@ -257,7 +280,8 @@ export function FormsLibrary({
         <footer className="pulso-xf-home-guide is-compact">
           <span className="pulso-xf-home-guide-eyebrow">Cómo funciona</span>
           <p className="pulso-xf-home-guide-copy">
-            Origen, lógica y público preparan una revisión estable para Procesamiento.
+            Cada formulario se publica como una revisión estable para Procesamiento. Antes, revisa su
+            lógica; el público que responde es opcional y ayuda a reconocer la base.
           </p>
         </footer>
       )}
@@ -271,6 +295,14 @@ export function FormsLibrary({
           formId={formularioCampana.id}
           formName={formularioCampana.name}
           encuestaPrincipal={encuestaPrincipalDe(formularioCampana.source)}
+          encuestaPrincipalTitulo={formularioCampana.source?.survey_title ?? null}
+          onImportarComoFormulario={() => {
+            campana.cerrar();
+            onImportSurveyMonkey();
+          }}
+          importarBloqueadoPor={canCreate
+            ? null
+            : `Límite de ${MAX_FORMS} formularios: elimina uno para importar.`}
           campanasDeclaradas={campanasDeFuente(formularioCampana.source).map((c) => c.survey_id)}
           panelProps={campana.props}
           onCerrar={campana.cerrar}

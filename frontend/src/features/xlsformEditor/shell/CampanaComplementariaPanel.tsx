@@ -11,7 +11,7 @@
 // fijo; dentro de la importación todo cae en el scroll del diálogo padre.
 
 import { useEffect, useRef, useState } from "react";
-import { Search } from "../../../vendor/lucide-react";
+import { CheckCircle2, Lock, Search } from "../../../vendor/lucide-react";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { splitErrorDetail } from "../../../components/errorPresentation";
 import { apiXlsformEditorSmListSurveys, type SurveyMonkeyListItem } from "../../../api/multiIntegrado";
@@ -23,7 +23,7 @@ import {
 } from "../../../api/xlsformCampanas";
 import { leerVistaPrevia, motivoNoElegible } from "./campanaComplementariaModel";
 import { CampanaVistaPreviaResumen } from "./CampanaVistaPreviaResumen";
-import { leerIdEncuesta, smSurveyMatchesQuery, smSurveyTitle } from "./surveyMonkeySurveySearch";
+import { leerIdEncuesta, smSurveyMatchesQuery, smSurveyMetaParts, smSurveyTitle } from "./surveyMonkeySurveySearch";
 import "../styles/xf-campana.css";
 
 /** Encuestas del catálogo a la vista; el resto se alcanza afinando la búsqueda. */
@@ -58,6 +58,14 @@ export type CampanaComplementariaPanelProps = {
   /** `false` oculta el selector: la encuesta viene dada. */
   elegirEncuesta: boolean;
   cancelarLabel?: string;
+  /**
+   * Salida del bloqueo (< 80 %): importar la encuesta como formulario propio.
+   * Sólo la puerta de la tarjeta la ofrece; dentro de la importación ya se está
+   * importando.
+   */
+  onImportarComoFormulario?: () => void;
+  /** Razón visible si la importación no está disponible (tope de formularios). */
+  importarBloqueadoPor?: string | null;
   onCancelar: () => void;
   onDeclarada: (resultado: CampanaDeclararResultado) => void;
 };
@@ -70,6 +78,8 @@ export function CampanaComplementariaPanel({
   surveyIdInicial,
   elegirEncuesta,
   cancelarLabel = "Cancelar",
+  onImportarComoFormulario,
+  importarBloqueadoPor = null,
   onCancelar,
   onDeclarada,
 }: CampanaComplementariaPanelProps) {
@@ -90,6 +100,9 @@ export function CampanaComplementariaPanel({
   // foco pasa al control que lo reemplaza para no perderse en el documento.
   const cambiarRef = useRef<HTMLButtonElement | null>(null);
   const entradaRef = useRef<HTMLInputElement | null>(null);
+  // Al llegar el catálogo el foco pasa al buscador: el botón que lo pidió
+  // queda deshabilitado mientras carga y el foco caía al documento.
+  const busquedaRef = useRef<HTMLInputElement | null>(null);
 
   async function comparar(surveyId: string) {
     const pedido = ++pedidoRef.current;
@@ -135,6 +148,7 @@ export function CampanaComplementariaPanel({
     try {
       const resultado = await apiXlsformEditorSmListSurveys(500, 6);
       setCatalogo({ estado: "listo", encuestas: resultado.surveys });
+      requestAnimationFrame(() => busquedaRef.current?.focus());
     } catch (e) {
       setCatalogo({ estado: "error", mensaje: mensajeDeError(e) });
     }
@@ -171,11 +185,14 @@ export function CampanaComplementariaPanel({
         data-qa-geometry-group="xlsform-campana-complementaria"
         data-qa-geometry-contract="intrinsic"
       >
-        <p className="pulso-xf-campana-regla">
-          Una campaña complementaria es otra encuesta de SurveyMonkey que aplica este mismo
-          instrumento, por ejemplo un envío por correo. No crea un formulario nuevo: sus respuestas
-          se leerán con las preguntas de «{formName}».
-        </p>
+        {/* En el diálogo la explicación es su descripción; en la importación,
+            dos líneas aquí. */}
+        {elegirEncuesta ? null : (
+          <p className="pulso-xf-campana-regla">
+            Otra encuesta de SurveyMonkey que aplica este mismo instrumento. No crea un formulario:
+            sus respuestas se leen con las preguntas de «{formName}».
+          </p>
+        )}
 
         {elegirEncuesta ? (
           <section className="pulso-xf-campana-seccion" aria-labelledby="pulso-xf-campana-elegir" data-qa-geometry-member>
@@ -207,7 +224,7 @@ export function CampanaComplementariaPanel({
                     <input
                       ref={entradaRef}
                       value={entrada}
-                      placeholder="423593924"
+                      placeholder="Ej.: 123456789 o enlace de SurveyMonkey"
                       onChange={(event) => setEntrada(event.target.value)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter") {
@@ -231,7 +248,11 @@ export function CampanaComplementariaPanel({
                 </div>
 
                 {catalogo.estado === "cargando" ? (
-                  <p className="pulso-xf-campana-nota" role="status">Consultando tus encuestas en SurveyMonkey…</p>
+                  <div className="pulso-xf-campana-catalogo" role="status" aria-label="Consultando tus encuestas en SurveyMonkey">
+                    {[0, 1, 2].map((i) => (
+                      <span key={i} className="pulso-xf-campana-esqueleto" aria-hidden="true" />
+                    ))}
+                  </div>
                 ) : null}
                 {catalogo.estado === "error" ? (
                   <p className="pulso-xf-campana-error" role="alert">{catalogo.mensaje}</p>
@@ -240,7 +261,13 @@ export function CampanaComplementariaPanel({
                   <div className="pulso-xf-campana-catalogo">
                     <label className="pulso-xf-campana-campo">
                       <span>Buscar por título o ID</span>
-                      <input value={busqueda} onChange={(event) => setBusqueda(event.target.value)} />
+                      <input
+                        ref={busquedaRef}
+                        type="search"
+                        value={busqueda}
+                        placeholder="Ej.: Docentes"
+                        onChange={(event) => setBusqueda(event.target.value)}
+                      />
                     </label>
                     {visibles.length === 0 ? (
                       <p className="pulso-xf-campana-nota">
@@ -252,11 +279,14 @@ export function CampanaComplementariaPanel({
                       <ul className="pulso-xf-campana-lista" aria-label="Tus encuestas de SurveyMonkey">
                         {visibles.map((item) => {
                           const motivo = motivoNoElegible(item.id, encuestaPrincipal, campanasDeclaradas);
+                          // U5: respuestas · preguntas · fecha distinguen encuestas hermanas.
+                          const meta = [...smSurveyMetaParts(item), `ID ${item.id}`].join(" · ");
+                          const MotivoIcono = motivo === "Ya está declarada" ? CheckCircle2 : Lock;
                           return (
                             <li key={item.id}>
                               <button
                                 type="button"
-                                className="pulso-xf-campana-encuesta"
+                                className={`pulso-xf-campana-encuesta${motivo ? " is-no-elegible" : ""}`}
                                 disabled={Boolean(motivo)}
                                 aria-pressed={vista.estado === "lista" && vista.vista.survey_id === item.id}
                                 onClick={() => {
@@ -265,10 +295,17 @@ export function CampanaComplementariaPanel({
                                   requestAnimationFrame(() => cambiarRef.current?.focus());
                                 }}
                               >
-                                <span className="pulso-xf-campana-encuesta-titulo">{smSurveyTitle(item)}</span>
-                                <span className="pulso-xf-campana-encuesta-id">
-                                  {motivo ? `${motivo} · ` : ""}ID {item.id}
+                                <span className="pulso-xf-campana-encuesta-texto">
+                                  <span className="pulso-xf-campana-encuesta-titulo">{smSurveyTitle(item)}</span>
+                                  <span className="pulso-xf-campana-encuesta-id">
+                                    {meta}
+                                  </span>
                                 </span>
+                                {motivo ? (
+                                  <span className="pulso-xf-campana-encuesta-motivo">
+                                    <MotivoIcono size={13} aria-hidden="true" /> {motivo}
+                                  </span>
+                                ) : null}
                               </button>
                             </li>
                           );
@@ -288,26 +325,39 @@ export function CampanaComplementariaPanel({
         ) : null}
 
         <section
-          className="pulso-xf-campana-seccion"
+          className="pulso-xf-campana-seccion is-coincidencia"
           aria-labelledby="pulso-xf-campana-vista"
           aria-live="polite"
           data-qa-geometry-member
         >
           <h3 id="pulso-xf-campana-vista" className="pulso-xf-campana-subtitulo">Coincidencia con el instrumento</h3>
           {vista.estado === "vacia" ? (
-            <p className="pulso-xf-campana-nota">
+            <p className="pulso-xf-campana-vacio" data-qa-geometry-capacity="owned">
               Elige una encuesta para ver cuántas de sus preguntas calzan con este formulario.
             </p>
           ) : null}
           {vista.estado === "cargando" ? (
-            <p className="pulso-xf-campana-nota" role="status">
-              Comparando las preguntas de la encuesta {vista.surveyId}…
-            </p>
+            <div className="pulso-xf-campana-cargando" role="status">
+              <span className="pulso-xf-campana-esqueleto is-veredicto" aria-hidden="true" />
+              <span className="pulso-xf-campana-esqueleto is-contadores" aria-hidden="true" />
+              <span className="pulso-xf-campana-nota">
+                Comparando las preguntas de la encuesta {vista.surveyId}…
+              </span>
+            </div>
           ) : null}
           {vista.estado === "error" ? (
             <p className="pulso-xf-campana-error" role="alert">{vista.mensaje}</p>
           ) : null}
-          {vista.estado === "lista" ? <CampanaVistaPreviaResumen vista={vista.vista} /> : null}
+          {vista.estado === "lista" ? (
+            <CampanaVistaPreviaResumen
+              key={vista.vista.survey_id}
+              vista={vista.vista}
+              mostrarEncuesta={!elegirEncuesta}
+              onImportarComoFormulario={onImportarComoFormulario}
+              importarBloqueadoPor={importarBloqueadoPor}
+              enfocarVeredicto={elegirEncuesta}
+            />
+          ) : null}
         </section>
 
         {declarar.error ? (
