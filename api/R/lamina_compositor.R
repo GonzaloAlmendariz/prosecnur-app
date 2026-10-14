@@ -9,14 +9,16 @@
 
 #' Título de la lámina: barra navy al borde, antetítulo en versalitas y título coral
 #' @keywords internal
-.lam_titulo <- function(doc, titulo, ante = NULL, sub = NULL, avisar = TRUE) {
+.lam_titulo <- function(doc, titulo, ante = NULL, sub = NULL, avisar = TRUE, con_icono = FALSE) {
   g <- .std_geom; ml0 <- g("margen_izq_borde"); ml <- g("margen_izq"); yt <- g("titulo_y")
   if (isTRUE(avisar)) .lam_aviso_titulo(titulo, 10.4)  # K12b: un título de más de dos líneas se avisa (lamina_avisos_lineas.R)
   lz <- .lam_lienzo()
   .lam_caja(lz, ml0, yt - 0.12, 0.05, if (is.null(sub)) 0.72 else 0.98, .std_color("azul"), nombre = "titulo:barra")
   if (!is.null(ante) && nzchar(ante)) {
     color_ante <- if (.lam_ante_es_subcapitulo(ante)) .std_color("coral") else .std_color("texto_suave")   # G8: subcapítulo sin lámina
-    .lam_txt(lz, toupper(ante), ml, yt - 0.17, 9, 0.26, .std_pt("antetitulo"), color_ante, bold = TRUE, nombre = "Antetitulo lamina")
+    # D4 (checklist-poblacion-y-filtro): con el ícono del público en la cabecera (p159–p170), el antetítulo va a su derecha.
+    .lam_txt(lz, toupper(ante), ml + (if (isTRUE(con_icono)) 0.4 else 0), yt - 0.17, 9, 0.26, .std_pt("antetitulo"), color_ante, bold = TRUE,
+             nombre = "Antetitulo lamina")
   }
   .lam_txt(lz, titulo, ml, yt + 0.06, 10.4, 0.5, .std_pt("titulo"), .std_color("coral"), bold = TRUE, nombre = "Titulo lamina")
   if (!is.null(sub) && nzchar(sub)) .lam_txt(lz, sub, ml, yt + 0.55, 10.4, 0.32, 12.5, .std_color("texto_suave"), nombre = "Subtitulo lamina")

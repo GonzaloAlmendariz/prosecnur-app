@@ -66,6 +66,10 @@
     # única); el panel de abajo dibuja hasta el fin del contenido, como el de abajo de las demás mixtas, y los filetes
     # van al medio de cada calle.
     poblacion_3_corona = .lam_corona_geo(),
+    # P4 (checklist-poblacion-y-filtro): tira, cinco y seis desde las ranuras del estándar (lamina_poblacion_geo.R).
+    poblacion_3_tira = .lam_poblacion_geo("p_slide_3_graficos_poblacion_tira", lateral = TRUE),
+    poblacion_5 = .lam_poblacion_geo("p_slide_5_graficos_poblacion"),
+    poblacion_6 = .lam_poblacion_geo("p_slide_6_graficos_poblacion"),
     paneles_4 = {
       h2 <- (yf - yt - 0.35) / 2
       list(paneles = list(P(ml, yt, col2, h2), P(xr, yt, col2, h2), P(ml, yt + h2 + 0.35, col2, h2), P(xr, yt + h2 + 0.35, col2, h2)),
@@ -94,7 +98,22 @@
 #' @keywords internal
 .lam_espec_de <- function(p) {
   if (!inherits(p, "ggplot")) return(NULL)
-  attr(p, "pulso_espec") %||% (if (!is.null(attr(p, "pulso_cifra"))) list(tipo = "cifra", item = attr(p, "pulso_cifra")))
+  e <- attr(p, "pulso_espec") %||% (if (!is.null(attr(p, "pulso_cifra"))) list(tipo = "cifra", item = attr(p, "pulso_cifra")))
+  .lam_numerico_como_cifra(e) %||% e
+}
+
+#' P2 (checklist-poblacion-y-filtro): un indicador numérico de un solo valor (la media de la edad, sin grupos) es una
+#' cifra destacada: el valor, lo que mide y, debajo, la métrica con sus casos («Promedio de 172 respuestas»). Antes no
+#' cabía en la ranura de cifra y la lámina entera caía a la plantilla anterior.
+#' @keywords internal
+.lam_numerico_como_cifra <- function(e) {
+  if (!is.list(e) || !identical(e$tipo, "numerico") || length(e$cifras) != 1L || !nzchar(e$cifras[1] %||% "")) return(NULL)
+  que <- c(mean = "Promedio", median = "Mediana", N = "Casos", pct = "Porcentaje")[[e$metrica %||% "mean"]] %||% "Promedio"
+  n <- suppressWarnings(as.numeric(e$n)[1])
+  detalle <- if (is.finite(n) && !identical(e$metrica, "N")) sprintf("%s de %s respuestas", que, format(round(n), big.mark = ",", trim = TRUE)) else que
+  rotulo <- trimws(as.character(e$etiqueta %||% e$rotulos[1] %||% "")[1])
+  if (!nzchar(rotulo) || identical(rotulo, "Total")) rotulo <- que
+  list(tipo = "cifra", item = list(valor = e$cifras[1], rotulo = rotulo, detalle = detalle, icono = "", desde_numerico = TRUE))
 }
 .lam_es_cifra <- function(e) is.list(e) && identical(e$tipo, "cifra")
 
@@ -147,9 +166,12 @@
     # (la corona, p160) puede pedirla a todo el panel y con la frecuencia, si cabe con ella.
     # Si los rótulos llevan «(n)» lo decide «Casos junto al porcentaje» (`.lam_dicotomia_datos`); aquí sólo si cabe.
     con_n <- .lam_dicotomia_cabe(espec, wd, con_n = TRUE)
-    return(list(tipo = "dicotomia", y0 = y + 0.65 + dy, cabe = h - 0.65 - dy >= 1.4, w = wd, con_n = con_n,
+    d0 <- rd$dy %||% 0.65
+    return(list(tipo = "dicotomia", y0 = y + d0 + dy, cabe = h - d0 - dy >= (rd$alto_min %||% 1.4), w = wd, con_n = con_n,
                 size = rd$size %||% 22, g = rd$g %||% 0.34, receta = receta))
   }
+  # P1 (checklist-poblacion-y-filtro): la torta y la dona que eligió el analista, en pequeño (lamina_panel_circular.R).
+  if (identical(espec$tipo, "pie")) return(.lam_panel_circular_geo(espec, x, y, w, h, dy))
   if (identical(espec$tipo, "categorica")) {
     rb <- receta$barras
     # La receta puede correr el bloque hacia adentro (la corona centra las barras de abajo, p160).
@@ -167,8 +189,20 @@
     # `.lam_barras_h` centra en la fila): la lámina 162 deja «Departamento de Ciencias Contables» en dos líneas de
     # 11 pt dentro de una fila de 0.42 in. Medir el cuadro entero mandaba esa cuadrícula a la ruta anterior.
     altos <- vapply(espec$rotulos, function(r) .lam_alto_tinta(r, wlab, size), 0)
-    return(list(tipo = "barras", x = x, w = w, y0 = y0, fila = fila, g = g, wlab = wlab, size = size, receta = receta,
-                cabe = length(espec$largos) >= 1L && fila >= 0.3 && all(altos - 0.1 <= fila - 0.02)))
+    barras <- list(tipo = "barras", x = x, w = w, y0 = y0, fila = fila, g = g, wlab = wlab, size = size, receta = receta,
+                   cabe = length(espec$largos) >= 1L && fila >= 0.3 && all(altos - 0.1 <= fila - 0.02))
+    if (isTRUE(barras$cabe)) return(barras)
+    # P3 (checklist-poblacion-y-filtro): en un panel ancho y bajo (el de abajo de la corona) las categorías que no caben
+    # como filas van en columnas, como la lámina 68 del recetario: cifra encima, rótulo debajo.
+    x_c <- x - sang; w_c <- w + 2 * sang
+    if (w_c >= 6 && n <= 8L) {
+      ybase <- y + h - 0.42; techo <- y + 0.55 + dy + 0.72
+      paso <- (w_c - 1.2) / n
+      rot_ok <- all(vapply(espec$rotulos, function(r) .lam_alto_tinta(r, paso * 0.56 + 0.8, 12, TRUE) <= 0.42, TRUE))
+      return(list(tipo = "columnas", x0 = x_c + 0.6, ybase = ybase, wv = w_c - 1.2, hmax = ybase - techo,
+                  cabe = ybase - techo >= 0.6 && rot_ok))
+    }
+    return(barras)
   }
   if (!identical(espec$tipo, "escala") || NROW(espec$filas) < 1L || .lam_escala_en_filas(espec)) return(list(tipo = "escala", cabe = FALSE))
   # Escala: el likert compacto (likert_panel). El recetario lo pone 0.45 in bajo la pregunta con público y, sin
@@ -194,6 +228,12 @@
 #' @return El `y` donde terminó lo dibujado (para colocar una leyenda compartida debajo).
 #' @keywords internal
 .lam_panel_mixto <- function(lz, espec, x, y, w, h, pregunta = NULL, publico = NULL, leyenda = TRUE, receta = NULL) {
+  if (!is.null(receta$lateral)) {
+    # La tira (P4): el enunciado y su público en la columna izquierda; el gráfico a su derecha, sin encabezado.
+    if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, x, y, receta$lateral$w_titulo, pregunta, publico)
+    q <- .lam_panel_lateral_rect(list(x = x, y = y, w = w, h = h, receta = receta))
+    return(.lam_panel_mixto(lz, espec, q$x, q$y, q$w, q$h, NULL, NULL, leyenda, receta = utils::modifyList(receta, list(lateral = NULL))))
+  }
   if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, x, y, w, pregunta, publico)
   geo <- .lam_panel_geo(espec, x, y, w, h, pregunta, publico, leyenda, receta = receta)
   if (identical(geo$tipo, "dicotomia")) {
@@ -203,6 +243,11 @@
   }
   if (identical(geo$tipo, "barras")) {
     return(.lam_barras_h(lz, espec, geo$x, geo$y0, geo$w, wlab = geo$wlab, g = geo$g, fila = geo$fila, size = geo$size))
+  }
+  if (identical(geo$tipo, "circular")) return(.lam_panel_circular(lz, espec, geo))
+  if (identical(geo$tipo, "columnas")) {
+    .lam_columnas(lz, espec, x0 = geo$x0, ybase = geo$ybase, wv = geo$wv, hmax = geo$hmax)
+    return(invisible(geo$ybase + 0.42))
   }
   yy <- .lam_likert_panel(lz, espec, x, geo$y0, w, geo$filas, g = geo$g, fila = geo$fila, wlab = geo$wlab, size_lab = geo$size_lab)
   if (isTRUE(leyenda)) {
@@ -222,12 +267,19 @@
 #' @return Lista con `doc` y `partes`, o `NULL` si `tipo` no es una disposición mixta del recetario.
 #' @keywords internal
 .lam_laminas_mixta <- function(doc, especs, tipo, preguntas, publicos = NULL, titulo, ante = NULL, base = NULL, folio = NULL,
-                               sub = NULL, layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
+                               sub = NULL, layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc,
+                               respaldo = NULL, icono = NULL) {
   force(folio)
   geo <- .lam_mixta_geo(tipo)
   if (is.null(geo)) return(NULL)   # disposición sin geometría del recetario: quien llama sigue con la ruta anterior
   doc <- officer::add_slide(doc, layout = layout, master = master)
-  doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
+  doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub, con_icono = !is.null(icono))
+  # D4: el ícono del público en la cabecera, un cuadrado de 0.3 in junto al antetítulo (recetario p159–p170).
+  if (!is.null(icono)) {
+    doc <- officer::ph_with(doc, rvg::dml(ggobj = icono, bg = "transparent"),
+                            location = officer::ph_location(left = .std_geom("margen_izq") - 0.005, top = 0.165, width = 0.3, height = 0.3,
+                                                            newlabel = "titulo:icono"))
+  }
   lz <- .lam_lienzo()
   P <- geo$paneles
   compartida <- .lam_mixta_compartida(especs, P)
@@ -245,8 +297,14 @@
                            pieza = if (!is.null(geo$cifras)) .std_valor("ppt", "geometria", "cifra_pieza"), calle = geo$cifras$calle)
     iconos <- c(iconos, b$iconos); fines[fila] <- p1$y + b$alto
   }
+  graficos <- list()
   for (k in setdiff(seq_along(P), cifras)) {
     p <- P[[k]]
+    if (!is.null((respaldo %||% list())[k][[1]])) {
+      # P4: el panel que no cabe en piezas nativas lleva su enunciado y, debajo, su gráfico (editable, como en el marco).
+      graficos[[length(graficos) + 1L]] <- .lam_mixta_respaldo_caja(lz, p, preguntas[[k]] %||% NULL, (publicos %||% list())[k][[1]] %||% NULL, respaldo[[k]])
+      next
+    }
     fines[k] <- .lam_panel_mixto(lz, especs[[k]], p$x, p$y, p$w, p$h, preguntas[[k]] %||% NULL,
                                  (publicos %||% list())[k][[1]] %||% NULL, leyenda = !compartida[k], receta = p$receta)
   }
@@ -259,6 +317,8 @@
     if (identical(f$tipo, "v")) .lam_separador_v(lz, f$x, f$y0, f$y1) else .lam_separador_h(lz, f$x0, f$x1, f$y)
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:mixta")
+  for (g in graficos) doc <- officer::ph_with(doc, rvg::dml(ggobj = g$p, bg = "transparent", fonts = list(sans = .std_pt("fuente"))),
+                                              location = officer::ph_location(left = g$x, top = g$y, width = g$w, height = g$h, newlabel = "mixta:respaldo"))
   doc <- .lam_cifras_iconos(doc, iconos)
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)
@@ -290,7 +350,7 @@
       (if (is.function(titulo_de_var) && !is.null(el$var)) texto(tryCatch(.plan_titulo_corto(titulo_de_var, el), error = function(e) NULL))) %||% ""
   })
   publicos <- lapply(especs, function(e) {
-    if (.lam_es_cifra(e)) return(NULL)
+    if (is.null(e) || .lam_es_cifra(e) || identical(e$tipo, "respaldo")) return(NULL)
     n <- .espec_n_base(e)
     if (is.finite(n) && n > 0) paste(format(round(n), big.mark = ",", trim = TRUE), "respuestas") else NULL
   })
@@ -301,6 +361,11 @@
 #' @keywords internal
 .lam_mixta_cabe <- function(espec, p, pregunta = NULL, publico = NULL, leyenda = TRUE) {
   if (.lam_es_cifra(espec)) return(TRUE)
+  if (is.null(espec)) return(FALSE)
+  if (!is.null(p$receta$lateral)) {
+    q <- .lam_panel_lateral_rect(p)
+    return(isTRUE(.lam_panel_geo(espec, q$x, q$y, q$w, q$h, NULL, NULL, leyenda, receta = p$receta)$cabe))
+  }
   isTRUE(.lam_panel_geo(espec, p$x, p$y, p$w, p$h, pregunta, publico, leyenda, receta = p$receta)$cabe)
 }
 
@@ -311,12 +376,19 @@
   geo <- .lam_mixta_geo(tipo)
   if (is.null(geo) || length(ps) != length(geo$paneles)) return(FALSE)
   especs <- lapply(ps, .lam_espec_de)
-  if (any(vapply(especs, is.null, TRUE))) return(FALSE)
   if (sum(vapply(especs, .lam_es_cifra, TRUE)) > 5L) return(FALSE)
-  enc <- .lam_mixta_encabezados(especs, els, titulo_de_var)
-  compartida <- .lam_mixta_compartida(especs, geo$paneles)
-  all(vapply(seq_along(especs), function(k) .lam_mixta_cabe(especs[[k]], geo$paneles[[k]], enc$preguntas[[k]], enc$publicos[[k]],
-                                                           leyenda = !compartida[k]), TRUE))
+  # P4 (checklist-poblacion-y-filtro): un panel que no cabe en piezas nativas va con su gráfico dentro del panel
+  # (`.lam_mixta_respaldo`), así que la lámina se compone igual. Sólo si NINGÚN panel cabe se queda en la ruta anterior.
+  any(.lam_mixta_caben(especs, geo, els, titulo_de_var))
+}
+
+#' Qué paneles caben en piezas nativas (el resto va con su gráfico de respaldo)
+#' @keywords internal
+.lam_mixta_caben <- function(especs, geo, els = NULL, titulo_de_var = NULL) {
+  enc <- .lam_mixta_encabezados(lapply(especs, function(e) e %||% list(tipo = "respaldo")), els, titulo_de_var)
+  compartida <- .lam_mixta_compartida(lapply(especs, function(e) e %||% list(tipo = "respaldo")), geo$paneles)
+  vapply(seq_along(especs), function(k) .lam_mixta_cabe(especs[[k]], geo$paneles[[k]], enc$preguntas[[k]], enc$publicos[[k]],
+                                                       leyenda = !compartida[k]), TRUE)
 }
 
 #' Una lámina mixta del plan, en nativo (enganche de la composición y de `paneles_4`)
@@ -325,14 +397,27 @@
 #' («178 respuestas») se nombra cuando el panel es de un solo público. La base de la lámina reúne las notas
 #' al pie de los gráficos si la lámina no trae la suya.
 #' @keywords internal
-.lam_composicion_mixta <- function(doc, tipo, rendered, els, slide, titulo_de_var = NULL, base = NULL, solo_base_declarada = FALSE) {
+.lam_composicion_mixta <- function(doc, tipo, rendered, els, slide, titulo_de_var = NULL, base = NULL, solo_base_declarada = FALSE,
+                                   icono = NULL) {
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
   slots <- slide$slots %||% list()
   base <- if (isTRUE(solo_base_declarada)) texto(base) else
-    texto(base) %||% (if (is.character(slots$base)) texto(slots$base) else if (inherits(slots$base, "ppt_element_text")) texto(slots$base$text))
+    texto(base) %||% (if (is.character(slots$base)) texto(slots$base) else if (inherits(slots$base, "ppt_element_text")) texto(slots$base$text)) %||%
+      (if (is.character(slots$footer)) texto(slots$footer))   # población de cinco y seis: su base se llama `footer`
   especs <- lapply(seq_along(rendered), function(k) {
     e <- .lam_espec_de(rendered[[k]])
     if (identical(els[[k]]$.element_type, "barras_multiapiladas") && identical(els[[k]]$modo %||% "var", "var")) e <- .espec_ordenar_por_box(e)
+    # P2: la cifra que sale de un indicador numérico dice qué mide (el título del gráfico o su pregunta), no «Media».
+    if (.lam_es_cifra(e) && isTRUE(e$item$desde_numerico)) {
+      q <- .lam_mixta_encabezados(list(list(tipo = "numerico")), list(els[[k]]), titulo_de_var)$preguntas[[1]]
+      if (!is.null(q) && nzchar(q)) e$item$rotulo <- q
+      # D6: la cifra lleva su unidad, como el recetario («22 años»): si el valor es sólo número y la pregunta la dice entre
+      # paréntesis al final («Edad (años)»), la unidad pasa al valor y sale del rótulo.
+      u <- regmatches(e$item$rotulo, regexec("^(.*?)\\s*\\(([^()]{1,20})\\)\\s*$", e$item$rotulo))[[1]]
+      if (length(u) == 3L && grepl("^[0-9.,]+$", e$item$valor)) {
+        e$item$valor <- paste(e$item$valor, u[3]); e$item$rotulo <- u[2]
+      }
+    }
     e
   })
   # Población (base por gráfico, reporte_plan_base_por_grafico.R): cada panel ya nombra su público y la lámina sólo
@@ -354,7 +439,9 @@
       if (length(notas) == 1L) base <- notas
     }
   }
-  .lam_laminas_mixta(doc, especs, tipo, enc$preguntas, enc$publicos, titulo = texto(slots$title %||% slide$title) %||% "",
+  caben <- .lam_mixta_caben(especs, .lam_mixta_geo(tipo), els, titulo_de_var)
+  respaldo <- lapply(seq_along(rendered), function(k) if (caben[k] || .lam_es_cifra(especs[[k]])) NULL else rendered[[k]])
+  .lam_laminas_mixta(doc, especs, tipo, enc$preguntas, enc$publicos, respaldo = respaldo, icono = icono, titulo = texto(slots$title %||% slide$title) %||% "",
                      ante = texto((slide$meta %||% list())$antetitulo), base = base, folio = length(doc) + 1L)$doc
 }
 
@@ -391,5 +478,31 @@
       nchar(c) > nchar(b) && startsWith(c, b) && grepl("^[[:space:][:punct:]]", substr(c, nchar(b) + 1L, nchar(c)))
     }, TRUE))
   }, TRUE)
-  bases[!contenida]
+  bases <- bases[!contenida]
+  # «Base: 172 estudiantes» y «Base: 172 respuestas» dicen lo mismo con dos unidades (la torta no sabe del público):
+  # se queda la que nombra al público (checklist-poblacion-y-filtro, P1).
+  generica <- grepl("^Base:\\s*[0-9.,]+\\s+respuestas\\.?$", bases)
+  num <- function(b) sub("^Base:\\s*([0-9.,]+).*$", "\\1", b)
+  repetida <- generica & vapply(seq_along(bases), function(i) any(!generica[-i] & num(bases[-i]) == num(bases[i])), TRUE)
+  bases[!repetida]
+}
+
+
+#' P4: el panel de respaldo —enunciado arriba (o a la izquierda en la tira) y el rectángulo donde va su gráfico—
+#' @return Lista con el gráfico sin título ni pie (la lámina los escribe) y su rectángulo.
+#' @keywords internal
+.lam_mixta_respaldo_caja <- function(lz, p, pregunta, publico, grafico) {
+  lateral <- p$receta$lateral
+  if (!is.null(lateral)) {
+    if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, p$x, p$y, lateral$w_titulo, pregunta, publico)
+    q <- .lam_panel_lateral_rect(p); y0 <- q$y; x0 <- q$x; w0 <- q$w; h0 <- q$h
+  } else {
+    y_fin <- if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, p$x, p$y, p$w, pregunta, publico) else p$y
+    x0 <- p$x; w0 <- p$w; y0 <- y_fin + 0.1; h0 <- p$y + p$h - y0
+  }
+  # Sin título, subtítulo ni pie: el panel tiene su enunciado y la lámina su base (antes se repetía «Base: …» dentro).
+  g <- tryCatch(grafico + ggplot2::labs(title = NULL, subtitle = NULL, caption = NULL) +
+                  ggplot2::theme(plot.caption = ggplot2::element_blank(), plot.title = ggplot2::element_blank(),
+                                 plot.subtitle = ggplot2::element_blank()), error = function(e) grafico)
+  list(p = g, x = x0, y = y0, w = max(0.5, w0), h = max(0.5, h0))
 }

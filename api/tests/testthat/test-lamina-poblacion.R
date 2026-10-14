@@ -30,11 +30,14 @@ test_that("la cuadrícula de población sale nativa, con la pregunta de cada pan
   expect_equal(sum(nm == "dicotomia:cifra"), 4L)                                            # dos dicotomías, dos cifras cada una
 })
 
-test_that("una cuadrícula con un panel que no tiene pieza nativa vuelve entera a la ruta anterior", {
+# P4 (checklist-poblacion-y-filtro, 2026-10-14): antes volvía entera a la ruta anterior; ahora el panel sin pieza nativa
+# lleva su gráfico dentro de su panel y los demás siguen nativos.
+test_that("una cuadrícula con un panel que no tiene pieza nativa sale nativa y ese panel lleva su gráfico", {
   lam <- .pb_lams(list(a = p_slide_4_graficos_poblacion(p_barras_categoricas("cargo"), p_barras_categoricas("anios"),
                                                        p_barras_categoricas("sexo"), p_histograma("edad"), titulo = "Con histograma")))
   nm <- xml2::xml_attr(xml2::xml_find_all(lam[[1]], "//p:cNvPr"), "name")
-  expect_false(any(grepl("^prosecnur:grafico", nm)))
+  expect_true(any(grepl("^prosecnur:grafico", nm)))
+  expect_true("mixta:respaldo" %in% nm)
 })
 
 test_that("un rótulo que cabe en una línea con la tinta medida no manda el panel a la ruta anterior", {
