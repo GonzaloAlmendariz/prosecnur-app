@@ -44,3 +44,55 @@ test_that("la base que repite el número con otra unidad se cuenta una vez", {
   expect_identical(.lam_bases_sin_repetir(c("Base: 172 estudiantes", "Base: 172 respuestas")), "Base: 172 estudiantes")
   expect_identical(.lam_bases_sin_repetir(c("Base: 172 estudiantes", "Base: 52 respuestas")), c("Base: 172 estudiantes", "Base: 52 respuestas"))
 })
+
+test_that("D1: las respuestas resaltadas van en azul y negrita, las demás tenues; sin elegir, un solo color", {
+  e <- preparar_categorica(c("Mujer", "Hombre", "Otro"), c(.5, .4, .1), c("50%", "40%", "10%"), resaltar_opciones = "Hombre")
+  expect_identical(e$resaltar, "Hombre")
+  expect_length(preparar_categorica(c("A", "B"), c(.6, .4), c("60%", "40%"))$resaltar, 0L)
+  colores <- function(espec) {
+    lz <- .lam_lienzo(); .lam_barras_h(lz, espec, 0.5, 1.5, 6, wlab = 1.5, g = 0.3, fila = 0.5)
+    x <- paste(unlist(lz$formas), collapse = "")
+    barras <- regmatches(x, gregexpr('name="barra".*?srgbClr val="([0-9A-F]{6})"', x))[[1]]
+    sub('.*val="([0-9A-F]{6})"$', "\\1", barras)
+  }
+  c1 <- colores(e)
+  expect_length(unique(c1), 2L)                                               # una azul (Hombre) y dos tenues
+  expect_identical(sum(c1 == c1[2]), 1L)
+  expect_length(unique(colores(preparar_categorica(c("Mujer", "Hombre", "Otro"), c(.5, .4, .1), c("50%", "40%", "10%")))), 1L)
+})
+
+test_that("D1 por la ruta real: `overrides.resaltar_opciones` llega a la lámina nativa", {
+  skip_if_not_installed("officer")
+  df <- data.frame(s = c(rep("1", 50), rep("2", 40), rep("3", 10)), stringsAsFactors = FALSE)
+  inst <- list(survey = data.frame(name = "s", type = "select_one sx", list_name = "sx", label = "Sexo", stringsAsFactors = FALSE),
+               choices = data.frame(list_name = "sx", name = c("1", "2", "3"), label = c("Mujer", "Hombre", "Otro"), stringsAsFactors = FALSE), orders_list = NULL)
+  inst$orders_list <- .amb_orders_list(inst)
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = df, instrumento = inst, path_ppt = out, mensajes_progreso = FALSE,
+    plan = list(a = p_slide_1_grafico(p_barras_agrupadas("s", overrides = list(resaltar_opciones = "Hombre")), titulo = "Sexo")))))
+  x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
+  rot <- xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='rotulo']]")
+  negrita <- vapply(rot, function(n) identical(xml2::xml_attr(xml2::xml_find_first(n, ".//a:rPr"), "b"), "1"), TRUE)
+  expect_identical(xml2::xml_text(rot)[negrita], "Hombre")
+})
+
+test_that("D3: cada gráfico decide si su panel dice sus respuestas; sin decidir, G9 las omite si todas coinciden", {
+  skip_if_not_installed("officer")
+  set.seed(5)
+  df <- data.frame(a = sample(c("1", "2"), 100, TRUE), b = sample(c("1", "2", "3"), 100, TRUE), c = sample(c("1", "2", "3"), 100, TRUE),
+                   stringsAsFactors = FALSE)
+  inst <- list(survey = data.frame(name = c("a", "b", "c"), type = "select_one l3", list_name = "l3", label = c("Pregunta A", "Pregunta B", "Pregunta C"),
+                                   stringsAsFactors = FALSE),
+               choices = data.frame(list_name = "l3", name = c("1", "2", "3"), label = c("Uno", "Dos", "Tres"), stringsAsFactors = FALSE), orders_list = NULL)
+  inst$orders_list <- .amb_orders_list(inst)
+  bases_panel <- function(ov_b) {
+    out <- tempfile(fileext = ".pptx")
+    suppressMessages(suppressWarnings(reporte_ppt_plan(data = df, instrumento = inst, path_ppt = out, mensajes_progreso = FALSE,
+      plan = list(x = p_slide_3_graficos_poblacion_corona(superior_izquierda = p_barras_agrupadas("a"), superior_derecha = p_barras_agrupadas("b", overrides = ov_b),
+                                                          inferior = p_barras_agrupadas("c"), titulo = "Perfil")))))
+    x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
+    xml2::xml_text(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='panel:base']]"))
+  }
+  expect_length(bases_panel(list()), 0L)                                        # G9: el mismo n, sólo la base de la lámina
+  expect_identical(bases_panel(list(mostrar_publico = TRUE)), "100 respuestas")  # este gráfico pide la suya
+})

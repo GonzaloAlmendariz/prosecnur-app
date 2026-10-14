@@ -432,12 +432,19 @@
   # G9 (Gonzalo, 2026-10-13): si todos los gráficos son del mismo público con el mismo n, el n de cada panel repite lo
   # que ya dice la base de la lámina; basta con la de la esquina del documento.
   # Si el analista ocultó la base de la lámina, cada panel conserva la suya: sin ella no quedaría ninguna.
+  publicos_todos <- enc$publicos
   if (!isTRUE((slide$meta %||% list())$suppress_base_placeholder) && .lam_mixta_publico_comun(especs, els)) {
     enc$publicos <- lapply(enc$publicos, function(x) NULL)
     if (is.null(base)) {
       notas <- unique(unlist(c(lapply(els, function(el) texto(el$overrides$nota_pie %||% NULL)), lapply(especs, function(e) texto(e$nota)))))
       if (length(notas) == 1L) base <- notas
     }
+  }
+  # D3 (checklist-poblacion-y-filtro, Gonzalo 2026-10-14: «que cada gráfico pueda permitir si incluye o no su base»): el
+  # gráfico decide si su panel dice «172 respuestas» bajo el enunciado; sin decidir, la regla G9 de arriba.
+  for (k in seq_along(els)) {
+    mp <- (els[[k]]$overrides %||% list())$mostrar_publico
+    if (isTRUE(mp)) enc$publicos[[k]] <- publicos_todos[[k]] else if (identical(mp, FALSE)) enc$publicos[k] <- list(NULL)
   }
   caben <- .lam_mixta_caben(especs, .lam_mixta_geo(tipo), els, titulo_de_var)
   respaldo <- lapply(seq_along(rendered), function(k) if (caben[k] || .lam_es_cifra(especs[[k]])) NULL else rendered[[k]])

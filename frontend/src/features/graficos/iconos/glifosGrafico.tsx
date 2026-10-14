@@ -160,7 +160,7 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
           const h2 = segundo[i] * 0.82;
           return (
             <g key={i}>
-              <Barra x={x} y={84 - h} w={g ? 9 : 18} h={h} t={g ? "p" : i === 0 && (o?.mayor ?? true) ? "p" : "a"} />
+              <Barra x={x} y={84 - h} w={g ? 9 : 18} h={h} t={g ? "p" : o?.resaltar ? (i === 2 ? "p" : "n") : i === 0 && (o?.mayor ?? true) ? "p" : "a"} />
               {g && <Barra x={x + 9.6} y={84 - h2} w={8.4} h={h2} t="a" />}
               {!g && <Valor x={x + 3} y={84 - h - 7} w={12} />}
               {o?.significancia && <Punto cx={x + 4.5} cy={84 - h - 5} r={1.8} t="r" />}
@@ -198,7 +198,7 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
           return (
             <g key={i}>
               <Rotulo x={12} y={y + 3} w={22} />
-              <Barra x={42} y={y} w={w} h={g ? 4.6 : 9} t={otros ? "n" : g ? "p" : i === 0 && (o?.mayor ?? true) ? "p" : "a"} />
+              <Barra x={42} y={y} w={w} h={g ? 4.6 : 9} t={otros ? "n" : g ? "p" : o?.resaltar ? (i === 2 ? "p" : "n") : i === 0 && (o?.mayor ?? true) ? "p" : "a"} />
               {g && <Barra x={42} y={y + 5.2} w={segundo[i]} h={4.6} t="a" />}
               <Valor x={46 + Math.max(w, g ? segundo[i] : 0)} y={y + 2.75} />
               {o?.significancia && <Punto cx={42 + w + 18} cy={y + 4.5} r={1.8} t="r" />}
