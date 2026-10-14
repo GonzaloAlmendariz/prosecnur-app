@@ -765,3 +765,21 @@ test_that("stale, inválido y fallo de commit no dejan mutación parcial", {
   expect_length(session_get(sid)$files, 0L)
   expect_length(session_get(sid)$instrument_revisions %||% list(), 0L)
 })
+
+test_that("la tarjeta cuenta campos como el editor: sin notas ni el «Otro» con madre", {
+  wb <- list(survey = list(
+    columns = list("type", "name", "label::es"),
+    rows = list(
+      list("begin_group", "Pag1", "Datos"),
+      list("note", "nota_1", "Bienvenida"),
+      list("select_one lst_p1", "p1", "Género"),
+      list("text", "p1_other", "Otro (especifique)"),
+      list("text", "suelta_other", "Campo cuyo nombre termina en _other sin madre"),
+      list("integer", "p2", "Edad"),
+      list("end_group", "", "")
+    )
+  ))
+  counts <- .xlsform_forms_survey_counts(wb)
+  expect_identical(counts$n_questions, 3L)
+  expect_identical(counts$n_sections, 1L)
+})

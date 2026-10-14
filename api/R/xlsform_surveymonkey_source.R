@@ -202,6 +202,45 @@
   )
 }
 
+# Lo que la encuesta trae y el formulario no importa, dicho con su causa
+# (checklist 2026-10-14, H9): una variable personalizada no es una pregunta,
+# llega en los datos como columna de metadato `cv_<nombre>`
+# (`sm_api_flatten_responses`); una imagen de presentación no tiene celda en el
+# XLSForm. Se declara en vez de omitirlo en silencio.
+.xlsform_editor_sm_fuera_del_formulario <- function(details) {
+  details <- details %||% list()
+  out <- list()
+  custom <- details$custom_variables %||% list()
+  for (nm in names(custom)) {
+    if (is.null(nm) || !nzchar(nm)) next
+    out[[length(out) + 1L]] <- list(
+      tipo = "variable_personalizada",
+      nombre = nm,
+      detalle = sprintf(
+        "La variable personalizada «%s» no es una pregunta: llega en los datos como la columna «cv_%s» (metadato).",
+        nm, .sm_api_safe_name(nm)
+      )
+    )
+  }
+  pages <- details$pages %||% list()
+  for (i in seq_along(pages)) {
+    for (q in pages[[i]]$questions %||% list()) {
+      if (identical(as.character(q$family %||% ""), "presentation") &&
+          identical(as.character(q$subtype %||% ""), "image")) {
+        out[[length(out) + 1L]] <- list(
+          tipo = "imagen",
+          nombre = sprintf("Página %d", as.integer(pages[[i]]$position %||% i)),
+          detalle = sprintf(
+            "La imagen de la página %d no se importa: el formulario no la incluye; agrégala como archivo multimedia si la necesitas.",
+            as.integer(pages[[i]]$position %||% i)
+          )
+        )
+      }
+    }
+  }
+  out
+}
+
 .xlsform_editor_sm_source <- function(definition, details, survey_title,
                                        logic_provenance = NULL) {
   provenance <- list(
@@ -223,6 +262,7 @@
     remote_payload_sha256_observed = .xlsform_editor_sm_hash(details),
     provenance = provenance,
     translated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    fuera_del_formulario = .xlsform_editor_sm_fuera_del_formulario(details),
     logic_status = "pending_manual_confirmation",
     publication_guard = paste0(
       "Confirma manualmente la lógica en el Editor antes de publicar este ",

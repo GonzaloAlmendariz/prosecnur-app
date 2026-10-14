@@ -1029,7 +1029,8 @@ mount_xlsform_editor <- function(pr) {
         pages = pages,
         summary = summary,
         style = list(prefix = style$prefix, pad = as.integer(style$pad)),
-        definition = definition
+        definition = definition,
+        fuera_del_formulario = .xlsform_editor_sm_fuera_del_formulario(details)
       )
     })) |>
     plumber::pr_get("/api/xlsform-editor/state", wrap_endpoint(function(req, res, ...) {

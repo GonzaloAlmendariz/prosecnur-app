@@ -215,7 +215,7 @@ sm_api_list_surveys <- function(token, base_url = "https://api.surveymonkey.com/
   # tope. El default 20 cubre el uso típico (escoger un survey activo); si
   # alguien necesita más, llama con per_page distinto.
   url <- sprintf(
-    "%s/surveys?per_page=%d&sort_by=date_modified&sort_order=DESC&include=date_modified,nickname,response_count",
+    "%s/surveys?per_page=%d&sort_by=date_modified&sort_order=DESC&include=date_modified,nickname,response_count,question_count",
     sub("/$", "", base_url), as.integer(per_page)
   )
   res <- .sm_api_fetch_with_retry(url, function() .sm_api_auth_handle(token))
@@ -240,7 +240,10 @@ sm_api_list_surveys <- function(token, base_url = "https://api.surveymonkey.com/
     nickname = .sm_or(s$nickname, NA_character_),
     href = .sm_or(s$href, NA_character_),
     date_modified = .sm_or(s$date_modified, NA_character_),
-    response_count = .sm_or(s$response_count, NA_integer_)
+    response_count = .sm_or(s$response_count, NA_integer_),
+    # El buscador del editor distingue encuestas hermanas por sus respuestas y
+    # preguntas (checklist 2026-10-14, U5).
+    question_count = .sm_or(s$question_count, NA_integer_)
   ))
 }
 
