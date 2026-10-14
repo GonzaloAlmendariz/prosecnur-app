@@ -135,6 +135,7 @@ export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null): Fich
   if (conTtb) ajustes.push(conTtb === salen.length ? "Top Two Box" : "Top Two Box en un bloque");
   if (salen.length > 1) ajustes.push(`${salen.length} bloques`);
   if (cruce) ajustes.push(`Por grupos: ${cruce}`);
+  if (preguntasParte.some((q) => q.variasEscalas)) ajustes.push("Cada público con su escala");
   const eje = ejeDe(r.args);
   if (eje >= 0.3) ajustes.push("Temas anchos");
   const ov = (r.args.overrides && typeof r.args.overrides === "object" ? r.args.overrides : {}) as Record<string, unknown>;
