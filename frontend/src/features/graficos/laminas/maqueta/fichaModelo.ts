@@ -203,7 +203,8 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
     case "p_filtro_subpregunta": {
       const hab = lista(v("habilita"));
       if (hab.length) ajustes.push(`Habilita: ${hab.join(", ")}`);
-      if (v("disposicion") === "abajo") ajustes.push("Subpregunta abajo");
+      if (v("grafico_filtro") === "torta" || v("grafico_filtro") === "dona") ajustes.push(`Filtro en ${v("grafico_filtro") as string}`);
+      else if (v("disposicion") === "abajo") ajustes.push("Subpregunta abajo");
       if (v("grafico_sub") === "escala") ajustes.push("Subpregunta en escala");
       break;
     }

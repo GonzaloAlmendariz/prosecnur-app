@@ -1746,7 +1746,11 @@
       list(name = "grafico_sub", label = "Gráfico de la subpregunta", tipo_input = "choice", grupo = "datos", default = "barras",
            choices = list(list(value = "barras", label = "Barras"), list(value = "escala", label = "Escala al 100 %"))),
       list(name = "disposicion", label = "Disposición", tipo_input = "choice", grupo = "estilo", default = "costado",
-           choices = list(list(value = "costado", label = "Al costado"), list(value = "abajo", label = "Abajo (filtro de dos respuestas)")))
+           choices = list(list(value = "costado", label = "Al costado"), list(value = "abajo", label = "Abajo (filtro de dos respuestas)"))),
+      # F1 (checklist-poblacion-y-filtro): el filtro como torta o dona, con un conector desde lo que habilita.
+      list(name = "grafico_filtro", label = "Gráfico del filtro", tipo_input = "choice", grupo = "datos", default = "auto",
+           choices = list(list(value = "auto", label = "Barras"), list(value = "torta", label = "Torta"), list(value = "dona", label = "Dona")),
+           descripcion = "Con torta o dona, el sector que habilita queda a la derecha y un conector lo une al título de la subpregunta; va al costado.")
     ), .args_graf_comunes())
   ),
 

@@ -24,7 +24,7 @@ Dos pedidos de Gonzalo del mismo día:
 | D4 | El ícono del público junto al antetítulo, como el recetario; hoy la lámina nativa descarta la ranura `icon` | `lamina_mixtas.R`, `.lam_titulo` | hecho, por verificar: el ícono de la ranura `icon` en un cuadrado de 0.3 in en (0.495, 0.165) y el antetítulo a su derecha |
 | D5 | = P5 (el catálogo usa en población lo que dibuja el recetario) | | ver P5 |
 | D6 | La cifra que sale de un indicador numérico lleva su unidad («22 años») | `.lam_composicion_mixta` | hecho, por verificar: «21.0 años / Edad mediana» cuando la pregunta trae la unidad entre paréntesis |
-| F1 | Filtro como torta o dona, con conector desde el sector que habilita hasta el título de la subpregunta | `lamina_filtro_sub.R`, `graficos_filtro_subpregunta.R` | pendiente |
+| F1 | Filtro como torta o dona, con conector desde el sector que habilita hasta el título de la subpregunta | `lamina_filtro_sub.R`, `graficos_filtro_subpregunta.R` | hecho, por verificar: «Gráfico del filtro» (Barras, Torta, Dona); el disco gira para que lo que habilita quede a las 3, el conector sale de su borde con el trazo de la llave, la leyenda va debajo con lo que habilita en negrita y la dona lleva su cifra al centro; con torta o dona va al costado. `test-lamina-filtro-sub.R` |
 | F2 | Subpregunta de varias preguntas (multiapilada), todas con la base de quienes la habilitan | idem | pendiente |
 | F3 | Proponer la pregunta filtro y lo que habilita desde el `relevant` del XLSForm | `FiltroSubpregunta.tsx` + endpoint | pendiente |
 | F4 | Aviso cuando el salto no cuadra: respuestas de la subpregunta en personas que no la habilitan | `graficos_filtro_subpregunta.R` | pendiente |
