@@ -495,7 +495,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                   size="sm"
                   className="pulso-equiv-accion-masiva"
                   onClick={onAgrupar}
-                  title="Agrupa por la batería del formulario: los temas cuyas variables comparten raíz en algún público van a la misma lámina."
+                  title="Agrupa por la batería del formulario: los temas cuyas variables comparten raíz en alguna base van a la misma lámina."
                 >
                   <Layers size={13} aria-hidden="true" />
                   Agrupar {sinDiapositiva} sin lámina
