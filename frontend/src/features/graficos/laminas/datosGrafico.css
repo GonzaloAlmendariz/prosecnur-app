@@ -160,3 +160,12 @@
 .pulso-f6-dato > .pulso-f6-dato-ayuda {
   grid-column: 1 / -1;
 }
+
+/* Lista de preguntas de un gráfico (ListaPreguntas.tsx, I1 del catálogo del recetario). */
+.pulso-f6-preguntas { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.pulso-f6-preguntas-fila { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; }
+.pulso-f6-preguntas-fila.is-nueva { grid-template-columns: auto minmax(0, 1fr); color: var(--pulso-text-muted); }
+.pulso-f6-preguntas-quitar { padding: 4px; }
+.pulso-f6-preguntas.is-temas li { display: grid; gap: 2px; padding: 6px 8px; border: 1px solid var(--pulso-border); border-radius: 8px; }
+.pulso-f6-preguntas-tema { font-weight: 600; color: var(--pulso-text); }
+.pulso-f6-preguntas-refs { font-size: 12px; color: var(--pulso-text-muted); overflow-wrap: anywhere; }

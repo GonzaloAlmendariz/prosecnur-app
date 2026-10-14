@@ -13,7 +13,7 @@
 import type { ArgMetadata } from "../../../api/graficos";
 import { argAplica } from "../argDependencias";
 
-export type ControlDato = "variable" | "variable_opcional" | "interruptor" | "numero" | "opciones" | "texto" | "codigos" | "nombres_base";
+export type ControlDato = "variable" | "variable_opcional" | "variables" | "interruptor" | "numero" | "opciones" | "texto" | "codigos" | "nombres_base";
 
 type Valores = Readonly<Record<string, unknown>>;
 
@@ -118,8 +118,15 @@ const conTopK = (v: Valores) => typeof v.top_k === "number" && Number.isFinite(v
 const OTROS_POR_TOP_K = { siActivo: undefined, cuando: conTopK };
 
 /** Orden de aparición = orden de las claves. */
+/** ¿El gráfico ya trae su lista de preguntas (`vars`)? Entonces la «Pregunta» suelta no aplica (catálogo, I1). */
+export const tieneVars = (v: Valores) =>
+  (Array.isArray(v.vars) && v.vars.length > 0) || (!!v.vars && typeof v.vars === "object" && Object.keys(v.vars as object).length > 0);
+
 const LISTA_BLANCA: Record<string, Entrada> = {
-  var: { rotulo: "Pregunta" },
+  var: { rotulo: "Pregunta", cuando: (v) => !tieneVars(v) },
+  // I1 (catálogo del recetario, 2026-10-14): la lista de preguntas no tenía control y el inspector decía «Elige una
+  // pregunta…» con seis preguntas en la lámina. Las multiapiladas, la brecha y la matriz la editan en su propia tarjeta.
+  vars: { rotulo: "Preguntas", excepto: ["p_barras_multiapiladas", "p_dumbbell", "p_matriz_cuadrantes"] },
   // En multiapiladas el modo se elige en «Bloques» (G12/U2, 2026-10-13): una fila «Modo» aparte era un segundo camino.
   modo: { rotulo: "Modo", excepto: ["p_barras_multiapiladas"] },
   // Mapa de cobertura territorial: la lámina nativa lee los cuatro (p_mapa_cobertura_territorial, graficador_mapa_cobertura.R).
@@ -275,6 +282,7 @@ export function esRetirado(name: string, graficador?: string): boolean {
 const CONTROL_POR_TIPO: Partial<Record<ArgMetadata["tipo_input"], ControlDato>> = {
   variable: "variable",
   variable_opt: "variable_opcional",
+  variables_list: "variables",
   bool: "interruptor",
   number: "numero",
   choice: "opciones",
