@@ -21,6 +21,12 @@ import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 import { IconConditionalLogic } from "../../../lib/icons";
 import type { BuilderDiagnostic, BuilderSelection } from "../types";
 import type { EditorHeaderStatus } from "./editorHeaderStatus";
+import { LogicaExternaDeshacer, LogicaExternaDisparador } from "./LogicaExterna";
+import { CONSECUENCIA_LOGICA_EXTERNA, rotuloLogicaExterna } from "./logicaExternaModel";
+import type { AccionesLogicaExterna } from "./useLogicaExterna";
+
+/** Formulario abierto y acciones para declarar/deshacer la lógica hecha fuera. */
+export type LogicaExternaCabecera = { formId: string; acciones: AccionesLogicaExterna };
 
 export type DiagnosticsBadgeProps = {
   diagnostics: BuilderDiagnostic[];
@@ -31,6 +37,7 @@ export type DiagnosticsBadgeProps = {
   onFocusCatalog: (catalogName: string) => void;
   /** Abre la revisión de la lógica cuando ése es el paso pendiente. */
   onReviewLogic?: () => void;
+  logicaExterna?: LogicaExternaCabecera;
 };
 
 export function DiagnosticsBadge({
@@ -40,6 +47,7 @@ export function DiagnosticsBadge({
   onSelectRow,
   onFocusCatalog,
   onReviewLogic,
+  logicaExterna,
 }: DiagnosticsBadgeProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -57,7 +65,9 @@ export function DiagnosticsBadge({
         aria-haspopup="dialog"
         aria-label={`Estado del formulario: ${status.label}`}
       >
-        {tone === "ok"
+        {tone === "neutral"
+          ? <IconConditionalLogic size={14} />
+          : tone === "ok"
           ? <CheckCircle2 size={14} />
           : tone === "info"
             ? <Info size={14} />
@@ -84,6 +94,17 @@ export function DiagnosticsBadge({
             setOpen(false);
             onReviewLogic();
           } : undefined}
+          logicaExterna={logicaExterna ? {
+            formId: logicaExterna.formId,
+            // Abrir el diálogo cierra el popover: el diálogo vive en su portal.
+            acciones: {
+              ...logicaExterna.acciones,
+              abrirPara: (id) => {
+                setOpen(false);
+                logicaExterna.acciones.abrirPara(id);
+              },
+            },
+          } : undefined}
           onClose={() => setOpen(false)}
         />
       )}
@@ -103,12 +124,14 @@ function DiagnosticsPopover({
   onSelectRow,
   onFocusCatalog,
   onReviewLogic,
+  logicaExterna,
   onClose,
 }: {
   anchor: HTMLElement;
   diagnostics: BuilderDiagnostic[];
   status: EditorHeaderStatus;
   onReviewLogic?: () => void;
+  logicaExterna?: LogicaExternaCabecera;
   selection: BuilderSelection | null;
   onSelectRow: (rowIndex: number) => void;
   onFocusCatalog: (name: string) => void;
@@ -190,7 +213,9 @@ function DiagnosticsPopover({
             {sorted.length === 0
               ? status.logicStepPending
                 ? "Falta un paso para publicar."
-                : "Todo en orden por ahora."
+                : status.logicaExterna
+                  ? "La lógica y la limpieza se hicieron fuera de Prosecnur."
+                  : "Todo en orden por ahora."
               : blockingCount > 0
                 ? `${blockingCount} ${blockingCount === 1 ? "impide" : "impiden"} publicar una revisión.`
                 : `${sorted.length} ${sorted.length === 1 ? "punto" : "puntos"} por revisar antes de exportar.`}
@@ -218,15 +243,38 @@ function DiagnosticsPopover({
               <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45, marginTop: 2 }}>
                 Es el paso que falta para publicar una revisión del instrumento.
               </div>
-              {onReviewLogic && (
-                <button type="button" className="pulso-primary pulso-diagnostics-popover-action" onClick={onReviewLogic}>
-                  Revisar lógica
-                </button>
-              )}
+              <div className="pulso-diagnostics-popover-logica-externa-acciones">
+                {onReviewLogic && (
+                  <button type="button" className="pulso-primary pulso-diagnostics-popover-action" onClick={onReviewLogic}>
+                    Revisar lógica
+                  </button>
+                )}
+                {logicaExterna && (
+                  <LogicaExternaDisparador formId={logicaExterna.formId} acciones={logicaExterna.acciones} />
+                )}
+              </div>
             </div>
           </div>
         )}
-        {sorted.length === 0 && !status.logicStepPending ? (
+        {status.logicaExterna && (
+          <div className="pulso-diagnostics-popover-item pulso-diagnostics-popover-logica-externa">
+            <strong style={{ fontSize: 12, color: "var(--pulso-text)" }}>
+              {rotuloLogicaExterna(status.logicaExterna)}
+            </strong>
+            <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
+              {CONSECUENCIA_LOGICA_EXTERNA}
+            </span>
+            {status.logicaExterna.nota ? (
+              <span style={{ fontSize: 11, color: "var(--pulso-text-faint)", lineHeight: 1.45 }}>
+                Nota: {status.logicaExterna.nota}
+              </span>
+            ) : null}
+            {logicaExterna && (
+              <LogicaExternaDeshacer formId={logicaExterna.formId} acciones={logicaExterna.acciones} />
+            )}
+          </div>
+        )}
+        {sorted.length === 0 && !status.logicStepPending && !status.logicaExterna ? (
           <div className="pulso-diagnostics-popover-empty">
             <CheckCircle2 size={32} color="var(--pulso-success-fg)" />
             <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--pulso-text-soft)" }}>

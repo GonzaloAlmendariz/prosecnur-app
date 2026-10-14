@@ -44,8 +44,17 @@
   "kobo_refresh_independent",
   "sm_multibase_import",
   "sm_multibase_import_independent",
-  "sm_multibase_refresh"
+  "sm_multibase_refresh",
+  # ADR 0102: la base nace del formulario publicado (descarga SurveyMonkey).
+  "formulario_publicado_sm"
 )
+
+# Kinds de job que cuentan como import de plataforma para el guard de
+# concurrencia. El de formulario publicado tiene kind propio por contrato.
+.carga_platform_job_kind_es_import <- function(kind) {
+  kind <- as.character(kind %||% "")
+  startsWith(kind, "carga.platform.") || identical(kind, "carga.formulario_publicado_sm")
+}
 
 # ---------------------------------------------------------------------------
 # Reporter de progreso instalable. En el camino síncrono nunca se instala y
@@ -190,6 +199,7 @@
         raw_snapshot_only = isTRUE(parsed$raw_snapshot_only)
       )
     },
+    formulario_publicado_sm = carga_formulario_publicado_importar(sid, parsed),
     stop_api(400, "E_CARGA_JOB_ACTION",
              sprintf("Import de plataforma no soportado en modo async: '%s'.", action))
   )
@@ -225,7 +235,7 @@
   for (id in ls(.jobs)) {
     j <- .jobs[[id]]
     if (is.null(j) || !identical(j$sid, sid)) next
-    if (!startsWith(as.character(j$kind %||% ""), "carga.platform.")) next
+    if (!.carga_platform_job_kind_es_import(j$kind)) next
     if (!identical(j$status, "running")) next
     j <- tryCatch(job_poll(id), error = function(e) j)
     if (identical(j$status, "running")) return(TRUE)
@@ -238,7 +248,7 @@
 # on_complete con merge mínimo. Devuelve el handle estándar de jobs.
 # ---------------------------------------------------------------------------
 
-.carga_platform_job_submit <- function(sid, action, parsed) {
+.carga_platform_job_submit <- function(sid, action, parsed, kind = NULL) {
   if (!(action %in% .CARGA_PLATFORM_JOB_ACTIONS)) {
     stop_api(400, "E_CARGA_JOB_ACTION",
              sprintf("Import de plataforma no soportado en modo async: '%s'.", action))
@@ -268,7 +278,7 @@
 
   runner <- carga_platform_job_runner
   attr(runner, "prosecnur_job_function_name") <- "carga_platform_job_runner"
-  kind <- paste0("carga.platform.", action)
+  kind <- kind %||% paste0("carga.platform.", action)
   job_id <- tryCatch(job_submit(
     sid = sid,
     kind = kind,

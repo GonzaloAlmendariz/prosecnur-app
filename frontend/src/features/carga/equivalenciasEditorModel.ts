@@ -79,7 +79,7 @@ export function asignarVariable(
   });
 }
 
-/** ADR 0102: la matriz sólo declara equivalencias; la lámina, el gráfico y el corte se deciden en Gráficos. */
+/** ADR 0103: la matriz sólo declara equivalencias; la lámina, el gráfico y el corte se deciden en Gráficos. */
 export type CampoFila = "etiqueta_estandar" | "seccion";
 
 export function editarCampo(

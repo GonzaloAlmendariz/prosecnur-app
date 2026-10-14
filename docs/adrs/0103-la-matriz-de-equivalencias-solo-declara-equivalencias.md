@@ -1,4 +1,4 @@
-# ADR 0102 — La matriz de equivalencias sólo declara equivalencias
+# ADR 0103 — La matriz de equivalencias sólo declara equivalencias
 
 - **Estado**: Aceptado — decisión de Gonzalo del 2026-10-14, texto ratificado el mismo día («Hazlo»)
 - **Ámbito**: Carga › Equivalencias entre públicos y Gráficos (plan del informe)

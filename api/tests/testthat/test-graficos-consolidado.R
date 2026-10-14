@@ -208,7 +208,7 @@ test_that("preflight usa todas las releases sin cambiar active_base", {
   refs <- .graficos_collect_plan_refs(preflight$plan)
   expect_true(length(refs) >= 3L)
   expect_true(all(grepl("^[^$]+\\$[^$]+$", refs)))
-  # ADR 0102: la siembra ya no arma láminas que comparen públicos desde la matriz; las arma el analista.
+  # ADR 0103: la siembra ya no arma láminas que comparen públicos desde la matriz; las arma el analista.
   expect_identical(preflight$n_comparison_slides, 0L)
   expect_identical(session_get(sid), before)
 })

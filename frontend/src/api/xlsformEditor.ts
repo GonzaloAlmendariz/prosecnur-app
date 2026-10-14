@@ -6,6 +6,7 @@ import { ApiError, apiFetch, handle, headers } from "./core";
 import type { EstudioBase, EstudioLogicSyncResult, EstudioPayload } from "./estudio";
 import type { AsyncJobStart } from "./jobs";
 import { normalizeShareArray } from "./graficos";
+import { type DeclaracionLogicaExterna, normalizeLogicaExternaSource } from "./xlsformLogicaExterna";
 import type { MonitoreoKoboAssetItem, MonitoreoProcessingHandoffPromoteResult } from "./monitoreo";
 import { type EditorPayloadWithHallazgos, type Hallazgo, normalizeEditorPayload, normalizePersistedXlsformWorkbook, type SurveyMonkeyLogicState, type SurveyMonkeyVisualLogicAction, type SurveyMonkeyVisualLogicRule, type XlsformEditorPayload, type XlsformEditorWorkbook, type XlsformFormSource, type XlsformFueraDelFormularioItem, type XlsformSourceRecord, type XlsformSourceValue } from "./multiIntegrado";
 
@@ -110,6 +111,7 @@ const XLSFORM_SOURCE_FIELDS = [
   "logic_confirmed_at",
   "logic_confirmation_method",
   "logic_review",
+  "logic_external",
   "fuera_del_formulario",
 ] as const;
 
@@ -182,6 +184,7 @@ export function normalizeXlsformFormSource(value: unknown): XlsformFormSource | 
     ? safe.logic_review as XlsformSourceRecord
     : undefined;
   const fueraDelFormulario = normalizeFueraDelFormulario(safe.fuera_del_formulario);
+  const logicExternal = normalizeLogicaExternaSource(safe.logic_external);
   const questionCount = typeof safe.question_count === "number" && Number.isFinite(safe.question_count)
     ? safe.question_count
     : null;
@@ -192,7 +195,7 @@ export function normalizeXlsformFormSource(value: unknown): XlsformFormSource | 
   for (const field of XLSFORM_SOURCE_FIELDS) {
     if (field === "kind" || field === "original_name" || field === "variants"
       || field === "provenance" || field === "logic_review" || field === "question_count"
-      || field === "fuera_del_formulario") continue;
+      || field === "fuera_del_formulario" || field === "logic_external") continue;
     const item = safe[field];
     if (typeof item === "string" || item === null) {
       normalized[field] = item;
@@ -202,6 +205,7 @@ export function normalizeXlsformFormSource(value: unknown): XlsformFormSource | 
   if (variants) normalized.variants = variants;
   if (provenance) normalized.provenance = provenance;
   if (logicReview) normalized.logic_review = logicReview;
+  if (logicExternal) normalized.logic_external = logicExternal;
   if (fueraDelFormulario) normalized.fuera_del_formulario = fueraDelFormulario;
   const hasRichMetadata = Object.keys(normalized).some((key) => key !== "kind" && key !== "original_name");
   return kind == null && originalName == null && !hasRichMetadata ? null : normalized;
@@ -481,6 +485,42 @@ export async function apiXlsformFormConfirmLogic(
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ expected_content_sha256: expectedContentSha256 }),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    ok: true,
+    source: normalizeXlsformFormSource(r.source),
+    publication: normalizeXlsformFormPublication(r.publication),
+  };
+}
+
+/**
+ * Declara (o retira con `declarada: false`) que la lógica y la limpieza de este
+ * formulario se hicieron fuera de Prosecnur. Devuelve la procedencia nueva, que
+ * el editor debe adoptar: su autosave manda la procedencia y una copia vieja
+ * revertiría el estado en el servidor.
+ */
+export async function apiXlsformFormLogicaExterna(
+  id: string,
+  declaracion: DeclaracionLogicaExterna,
+): Promise<{
+  ok: true;
+  source: XlsformFormSource | null;
+  publication: XlsformFormPublication;
+}> {
+  const body: DeclaracionLogicaExterna = { declarada: declaracion.declarada !== false };
+  if (body.declarada) {
+    const herramienta = declaracion.herramienta?.trim();
+    const nota = declaracion.nota?.trim();
+    if (herramienta) body.herramienta = herramienta;
+    if (nota) body.nota = nota;
+  }
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/xlsform-editor/forms/${encodeURIComponent(id)}/logica-externa`, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body),
     }),
   );
   const r = (raw ?? {}) as Record<string, unknown>;

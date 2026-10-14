@@ -400,7 +400,7 @@
     seccion = bloque$eje,
     etiqueta_estandar = bloque$nombre,
     variables = variables,
-    # El texto de la pregunta en cada medición: describe la pregunta, no la lámina (ADR 0102), así que se queda.
+    # El texto de la pregunta en cada medición: describe la pregunta, no la lámina (ADR 0103), así que se queda.
     enunciado = .equiv_bloques_enunciado(bloque$enunciado, names(periodos)),
     cantidad = length(variables)
   )

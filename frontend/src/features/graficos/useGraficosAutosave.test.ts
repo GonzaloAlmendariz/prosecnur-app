@@ -269,7 +269,7 @@ describe("ack de persistencia para composición", () => {
     // Una hidratación correcta desde el backend sale del conflicto (cambio de sesión o de alcance).
     expect(source.match(/hydrate\(config\);\n\s*limpiarConflictoBorrador\(\);/g)).toHaveLength(2);
   });
-  // ADR 0102: la siembra del compartido hidrata sólo el plan; el sello `equivalencias_revision` se retiró.
+  // ADR 0103: la siembra del compartido hidrata sólo el plan; el sello `equivalencias_revision` se retiró.
   // Mata: volver a sembrar una revisión de la matriz o fijarla con un setter que marque el borrador como sucio.
   it("la siembra del compartido hidrata el plan sin sello de la matriz", () => {
     const source = fs.readFileSync(path.join(featureDir, "useGraficosAutosave.ts"), "utf8");
