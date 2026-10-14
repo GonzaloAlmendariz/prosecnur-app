@@ -1116,6 +1116,7 @@
   }
   repeat_grain <- attr(rp_inst, "repeat_grain", exact = TRUE) %||% rp_inst$repeat_grain %||% list()
   is_repeat <- identical(.graficos_scalar_chr(repeat_grain$kind, ""), "instancia")
+  rotulos_grupo <- .inst_rotulos_de_grupo(survey)
   vs <- list()
   for (i in seq_len(nrow(survey))) {
     tb <- as.character(type_base[i] %||% type[i] %||% "")
@@ -1126,7 +1127,7 @@
     if (startsWith(nm, "__")) next
     list_name <- .graficos_list_name_for_row(survey, i)
     choice_meta <- .graficos_choices_for_list(choices, list_name)
-    section <- as.character(group_name[i] %||% "")
+    section <- .inst_rotulo_seccion(as.character(group_name[i] %||% ""), rotulos_grupo)
     group_path <- .graficos_group_path_for_row(survey, i)
     if (!nzchar(.graficos_scalar_chr(group_path, ""))) {
       group_path <- .graficos_scalar_chr(structural_section[[i]], "")
