@@ -56,8 +56,6 @@ export type OpcionMaqueta = { rotulo: string; color: string | null };
 /** `ttb`: la columna Top Two Box de ESA pregunta (en multi-apiladas cada bloque decide la suya). */
 export type PreguntaMaqueta = {
   titulo: string; opciones: OpcionMaqueta[]; ttb: boolean;
-  /** Los públicos del tema responden en escalas distintas: `opciones` es la mayor (api/R/graficos_escala_union.R). */
-  variasEscalas?: boolean;
   /** Bases (actores) de ESTA pregunta, legibles; vacío en un informe de una base. */ bases: string[];
   /** Bloque (0-based) al que pertenece. */ bloque: number;
   /** Cuántas barras dibuja: una por público (temas), una por grupo del cruce o una sola. */ filas: number;
@@ -207,12 +205,9 @@ export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variabl
         const basesQ = [...new Set(g.refs.map((x) => parseVarRef(x).source).filter((x): x is string => !!x))];
         const cruceInfo = g.cruce ? buscar(g.cruce) : undefined;
         const filas = g.cruce ? Math.max(1, cruceInfo?.choices?.length ?? 2) : Math.max(1, g.refs.length);
-        // Cada público con su escala: la leyenda es la de la escala mayor del tema, como la dibuja el motor.
-        const escalasTema = g.refs.map((x) => escalaDe(buscar(x), colores)).filter((e) => e.length);
-        const opciones = escalasTema.reduce((m, e) => (e.length > m.length ? e : m), escalaDe(iv, colores));
-        const variasEscalas = new Set(escalasTema.map((e) => firmaOpciones(e.map((o) => o.rotulo)))).size > 1;
+        const opciones = escalaDe(iv, colores);
         return {
-          titulo, opciones, variasEscalas, ttb: g.ttb ?? twoBoxEnPregunta(twoBox.ttb, twoBox.etiquetas, opciones), bases: bases.length > 1 ? basesQ.map(nombreBase) : [],
+          titulo, opciones, ttb: g.ttb ?? twoBoxEnPregunta(twoBox.ttb, twoBox.etiquetas, opciones), bases: bases.length > 1 ? basesQ.map(nombreBase) : [],
           bloque: g.bloque, filas, cruce: g.cruce ? cleanInferredVariableTitle(cruceInfo?.label) ?? parseVarRef(g.cruce).name : null,
         };
       });

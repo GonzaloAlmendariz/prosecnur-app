@@ -113,28 +113,3 @@ describe("multiApiladasScaleGroups", () => {
     expect(groups).toEqual([["a", "b"], ["c", "d"]]);
   });
 });
-
-describe("cada público con su escala (Gonzalo, 2026-10-14)", () => {
-  const esc = (pares: [string, string][]) => pares.map(([name, label]) => ({ name, label }));
-  const cinco = esc([["1", "Totalmente en desacuerdo"], ["2", "En desacuerdo"], ["3", "Ni de acuerdo ni en desacuerdo"], ["4", "De acuerdo"], ["5", "Totalmente de acuerdo"], ["99", "SIN INF"]]);
-  const cuatro = esc([["1", "Totalmente en Desacuerdo"], ["2", "En desacuerdo"], ["3", "De acuerdo"], ["4", "Totalmente de acuerdo"], ["99", "SIN INF"]]);
-  const utilidad = esc([["1", "Nada útil"], ["2", "Poco útil"], ["3", "Útil"], ["4", "Muy útil"]]);
-  const vars: Record<string, ScaleVar> = {
-    "docentes$p1": { name: "p1", list_name: "a5", scale_signature: "a5", choices: cinco },
-    "estudiantes$p1": { name: "p1", list_name: "a4", scale_signature: "a4", choices: cuatro },
-    "egresados$u": { name: "u", list_name: "util", scale_signature: "util", choices: utilidad },
-  };
-  const resolve = (r: string) => vars[r];
-
-  it("cinco y cuatro puntos con las mismas respuestas: se grafica, cada fila con su escala", () => {
-    const v = evaluateScaleCompat(["docentes$p1", "estudiantes$p1"], resolve);
-    // Se grafica, pero avisa: lo habitual es la misma escala en todos los públicos.
-    expect(v.tone).toBe("warning");
-    expect(v.label).toBe("Cada público con su escala");
-    expect(v.message).toContain("revisa el instrumento");
-  });
-
-  it("escalas que no se contienen siguen siendo un error", () => {
-    expect(evaluateScaleCompat(["egresados$u", "estudiantes$p1"], resolve).tone).toBe("error");
-  });
-});
