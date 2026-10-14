@@ -7,6 +7,8 @@ import { analizarListas } from "./listasModel";
 import { ListasOpcionesPanel, TEXTO_DIDACTICO_LISTAS } from "./ListasOpcionesPanel";
 import { PANEL_LISTAS_OPCIONES, rotuloBotonListas } from "./panelListas";
 import type { ControlListasOpciones } from "./useListasOpciones";
+import { TEXTO_ENTRE_FORMULARIOS } from "./EntreFormulariosSeccion";
+import type { EstadoHermanos } from "./useFormulariosHermanos";
 
 const ACUERDO = [["1", "En desacuerdo"], ["2", "De acuerdo"]];
 
@@ -20,7 +22,7 @@ function wb(choices: string[][], survey: string[][]): XlsformEditorWorkbook {
 
 function control(w: XlsformEditorWorkbook): ControlListasOpciones {
   const analisis = analizarListas(w);
-  return { analisis, repetidas: analisis.grupos.length, aviso: null, unificar: vi.fn(() => null), renombrar: vi.fn(() => null) };
+  return { analisis, repetidas: analisis.grupos.length, aviso: null, unificar: vi.fn(() => null), renombrar: vi.fn(() => null), renombrarVarias: vi.fn(() => null) };
 }
 
 describe("ListasOpcionesPanel", () => {
@@ -35,7 +37,9 @@ describe("ListasOpcionesPanel", () => {
     expect(html).toContain("Esta escala se repite en 2 preguntas");
     expect(html).toContain('value="acuerdo"');
     expect(html).toContain("Unificar como «acuerdo»");
-    expect(html).toContain("<code>1</code><span>En desacuerdo</span>");
+    // Código y etiqueta en columnas rotuladas, no pegados en un chip.
+    expect(html).toContain('<th scope="col">Código</th><th scope="col">Etiqueta</th>');
+    expect(html).toContain('<code class="pulso-xf-listas-codigo">1</code></td><td class="pulso-xf-listas-etiqueta" title="En desacuerdo">En desacuerdo</td>');
     expect(html).toContain("Listas únicas");
     expect(html).toContain("Renombrar la lista sexo");
   });
@@ -63,6 +67,33 @@ describe("ListasOpcionesPanel", () => {
     expect(html).toContain("No hay escalas repetidas.");
     expect(html).toContain('data-qa-geometry-capacity="owned"');
     expect(html).not.toContain("xlsform-listas-grupos");
+  });
+
+  test("entre formularios: no aparece sin otros formularios; con ellos, filas C1 equal y advertencia de códigos", () => {
+    const w = wb(
+      [["lst_p3", "1", "Masculino"], ["lst_p3", "2", "Femenino"], ["lst_p8", "1", "Sí"], ["lst_p8", "5", "SIN INF"]],
+      [["select_one lst_p3", "p3", ""], ["select_one lst_p8", "p8", ""]],
+    );
+    const sin = renderToStaticMarkup(<ListasOpcionesPanel workbook={w} control={control(w)} />);
+    expect(sin).not.toContain("Entre formularios del proyecto");
+    const otro = wb(
+      [["genero", "1", "Masculino"], ["genero", "2", "Femenino"], ["lst_p8", "1", "Sí"], ["lst_p8", "99", "SIN INF"]],
+      [["select_one genero", "p3", ""], ["select_one lst_p8", "p8", ""]],
+    );
+    const hermanos: EstadoHermanos = { estado: "listo", hermanos: [{ id: "doc", nombre: "Docentes", workbook: otro }], fallidos: ["Administrativos"] };
+    const html = renderToStaticMarkup(<ListasOpcionesPanel workbook={w} control={control(w)} hermanos={hermanos} />);
+    expect(html).toContain("Entre formularios del proyecto");
+    expect(html).toContain(TEXTO_ENTRE_FORMULARIOS);
+    expect(html).toContain('data-qa-geometry-group="xlsform-listas-entre"');
+    expect(html).toContain("Igual en Docentes · se llama «genero» allí");
+    expect(html).toContain("Renombrar como «genero»");
+    expect(html).toContain('data-qa-geometry-group="xlsform-listas-codigos"');
+    expect(html).toContain("Misma escala con códigos distintos en Docentes (SIN INF: 5 aquí, 99 allá)");
+    expect(html).toContain("No se pudo leer «Administrativos»");
+    // Un solo renombre: la acción global no duplica la de la fila.
+    expect(html).not.toContain("Aplicar los nombres comunes");
+    const cargando = renderToStaticMarkup(<ListasOpcionesPanel workbook={w} control={control(w)} hermanos={{ estado: "cargando" }} />);
+    expect(cargando).toContain("Leyendo los otros formularios del proyecto");
   });
 
   test("texto didáctico y panel direccionable declarado", () => {

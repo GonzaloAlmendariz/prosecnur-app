@@ -15,3 +15,9 @@ export {
   type ListaOpciones,
   type OpcionLista,
 } from "./listasModel";
+export {
+  compararListasEntreFormularios,
+  type ComparacionEntreFormularios,
+  type FormularioHermano,
+} from "./listasEntreFormularios";
+export type { FormulariosDelProyecto } from "./useFormulariosHermanos";

@@ -11,6 +11,7 @@ import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
 import type { ControlPanel } from "../../../lib/navegacion/paneles";
 import { ListasOpcionesPanel, TEXTO_DIDACTICO_LISTAS } from "./ListasOpcionesPanel";
 import { useListasOpciones } from "./useListasOpciones";
+import { useFormulariosHermanos, type FormulariosDelProyecto } from "./useFormulariosHermanos";
 import "./listas.css";
 
 /** Disparador del editor, para devolver el foco si el diálogo se abrió por
@@ -22,9 +23,11 @@ export type ListasOpcionesDialogProps = {
   panel: ControlPanel;
   workbook: XlsformEditorWorkbook;
   onWorkbookChange: (next: XlsformEditorWorkbook) => void;
+  /** Biblioteca del proyecto, para comparar listas con los otros formularios. */
+  proyecto?: FormulariosDelProyecto;
 };
 
-export function ListasOpcionesDialog({ panel, workbook, onWorkbookChange }: ListasOpcionesDialogProps) {
+export function ListasOpcionesDialog({ panel, workbook, onWorkbookChange, proyecto }: ListasOpcionesDialogProps) {
   // El diálogo se abre por dirección, no con un Dialog.Trigger: Radix no sabe
   // a dónde devolver el foco y caía en <body>. Se recuerda el elemento activo
   // al abrir; el layout effect corre antes de que el portal monte y mueva el foco.
@@ -67,7 +70,7 @@ export function ListasOpcionesDialog({ panel, workbook, onWorkbookChange }: List
           </header>
           <div className="pulso-xf-listas-cuerpo">
             {panel.abierto ? (
-              <ListasOpcionesCuerpo workbook={workbook} onWorkbookChange={onWorkbookChange} />
+              <ListasOpcionesCuerpo workbook={workbook} onWorkbookChange={onWorkbookChange} proyecto={proyecto} />
             ) : null}
           </div>
         </Dialog.Content>
@@ -79,10 +82,14 @@ export function ListasOpcionesDialog({ panel, workbook, onWorkbookChange }: List
 function ListasOpcionesCuerpo({
   workbook,
   onWorkbookChange,
+  proyecto,
 }: {
   workbook: XlsformEditorWorkbook;
   onWorkbookChange: (next: XlsformEditorWorkbook) => void;
+  proyecto?: FormulariosDelProyecto;
 }) {
+  // Se monta sólo con el diálogo abierto: la carga de los otros formularios es perezosa.
   const control = useListasOpciones(workbook, onWorkbookChange);
-  return <ListasOpcionesPanel workbook={workbook} control={control} />;
+  const hermanos = useFormulariosHermanos(proyecto);
+  return <ListasOpcionesPanel workbook={workbook} control={control} hermanos={hermanos} />;
 }

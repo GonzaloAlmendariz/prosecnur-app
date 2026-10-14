@@ -122,6 +122,11 @@ describe("sugerencia de nombre", () => {
     ["conocimiento", ["Lo conoce", "No lo conoce"]],
     ["frecuencia", ["Siempre", "A veces", "Nunca"]],
     ["calidad", ["Muy buena", "Buena", "Mala"]],
+    ["genero", ["Masculino", "Femenino", "Prefiero no responder"]],
+    ["genero", ["Hombre", "Mujer"]],
+    ["facultad", ["Facultad de Arte y Diseño", "Facultad de Música"]],
+    ["ciclo", ["Primer ciclo", "Segundo ciclo"]],
+    ["grado", ["Bachiller", "Licenciado", "Maestría", "Doctorado"]],
     ["rojo_verde", ["Rojo", "Verde", "Azul"]],
     ["lista_2019_2020", ["2019", "2020"]],
   ];

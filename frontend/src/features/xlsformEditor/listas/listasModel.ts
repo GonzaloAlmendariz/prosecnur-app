@@ -164,9 +164,19 @@ function leerListas(workbook: XlsformEditorWorkbook): ListaLeida[] {
   }));
 }
 
+/** Listas del formulario con sus opciones y preguntas, en orden de `choices`. */
+export function listasDelFormulario(workbook: XlsformEditorWorkbook): ListaOpciones[] {
+  return leerListas(workbook).map(({ nombre, opciones, preguntas }) => ({ nombre, opciones, preguntas }));
+}
+
 // ---------------------------------------------------------------------------
 // Sugerencia de nombre
 // ---------------------------------------------------------------------------
+
+/** Etiqueta comparable: sin tildes, mayúsculas, HTML ni espacios repetidos. */
+export function normalizarEtiqueta(texto: string): string {
+  return normalizar(texto);
+}
 
 function normalizar(texto: string): string {
   return texto
@@ -203,6 +213,12 @@ export function nombreBaseDesdeEtiquetas(opciones: readonly OpcionLista[]): stri
   if (/\b(des)?acuerdo\b/.test(todas)) return "acuerdo";
   if (/satisfech|satisfacci|insatisf/.test(todas)) return "satisfaccion";
   if (esSiNo(etiquetas)) return "si_no";
+  // Variables de caracterización que se repiten entre públicos: el nombre
+  // común es lo que permite analizarlas juntas (Listas entre formularios).
+  if (/\b(masculino|femenino|hombre|mujer|varon)\b/.test(todas)) return "genero";
+  if (/\bfacultad\b/.test(todas)) return "facultad";
+  if (/\bciclo\b/.test(todas)) return "ciclo";
+  if (/\bbachiller|licenciad|maestri?a\b|magister|doctorado|\bgrado\b/.test(todas)) return "grado";
   if (/\bconoc/.test(todas)) return "conocimiento";
   if (/frecuen|\bsiempre\b|\bnunca\b|a veces|casi siempre/.test(todas)) return "frecuencia";
   if (/calidad|\bbuen[oa]?\b|\bmal[oa]?\b|excelente|pesim/.test(todas)) return "calidad";
