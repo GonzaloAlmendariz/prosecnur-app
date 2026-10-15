@@ -971,3 +971,141 @@
     transition: none;
   }
 }
+
+/* I7 del rediseño (2026-10-14): barra de selección flotante. Va sobre el pie del clasificador, centrada, y entra subiendo;
+   flota (absoluta dentro de `.pulso-f6-vg`), así que elegir no mueve nada. Tinta oscura sobre el lienzo claro. */
+.pulso-f6-vg-selbar {
+  position: absolute;
+  left: 50%;
+  bottom: var(--pulso-space-3);
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  /* Con `left: 50%` el ancho automático se limitaría a la mitad del contenedor y la barra partiría en dos líneas. */
+  width: max-content;
+  max-width: calc(100% - 2 * var(--pulso-space-4));
+  padding: var(--pulso-space-2) var(--pulso-space-2) var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-text);
+  color: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-high);
+  font-size: 12px;
+  transform: translateX(-50%);
+  animation: pulso-f6-vg-selbar-sube var(--motion-dur-base) var(--motion-ease-out);
+}
+
+@keyframes pulso-f6-vg-selbar-sube {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+}
+
+.pulso-f6-vg-selbar-n strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-vg-selbar .pulso-f6-vg-mover select {
+  border-color: color-mix(in srgb, var(--pulso-surface) 35%, transparent);
+  background-color: transparent;
+  color: var(--pulso-surface);
+}
+
+.pulso-f6-vg-selbar .pulso-f6-vg-mover option {
+  color: var(--pulso-text);
+}
+
+.pulso-f6-vg-selbar-btn,
+.pulso-f6-vg-selbar-x {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: var(--pulso-control-height-md);
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid color-mix(in srgb, var(--pulso-surface) 35%, transparent);
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out), background-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-vg-selbar-x {
+  border-color: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-vg-selbar-btn:not(:disabled):hover,
+  .pulso-f6-vg-selbar-x:hover {
+    border-color: var(--pulso-surface);
+    background: color-mix(in srgb, var(--pulso-surface) 8%, transparent);
+  }
+}
+
+.pulso-f6-vg-selbar-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Más específica que `.pulso-f6-vg .is-peligro` (rojo hondo, ilegible sobre la tinta de la barra): un rojo claro. */
+.pulso-f6-vg .pulso-f6-vg-selbar-btn.is-peligro:not(:disabled) {
+  color: color-mix(in srgb, var(--pulso-danger-fg) 30%, var(--pulso-surface));
+}
+
+.pulso-f6-vg-selbar-btn:focus-visible,
+.pulso-f6-vg-selbar-x:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--pulso-surface);
+  outline-offset: 1px;
+}
+
+.pulso-f6-vg-selbar kbd {
+  font-family: inherit;
+  font-size: 10.5px;
+  opacity: 0.7;
+}
+
+.pulso-f6-vg-selbar-hint {
+  opacity: 0.65;
+  white-space: nowrap;
+}
+
+@media (max-width: 1279px) {
+  .pulso-f6-vg-selbar-hint {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-vg-selbar {
+    animation-name: none;
+  }
+}
+
+/* La marca de elegida va en la cabecera, junto al número: sobre la maqueta tapaba su título. */
+.pulso-f6-vg-cabeza .pulso-f6-vg-check {
+  position: relative;
+  top: auto;
+  left: auto;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  box-shadow: none;
+}
+
+.pulso-f6-vg-cabeza .pulso-f6-vg-check::after {
+  left: 4.5px;
+  top: 2px;
+  width: 3.5px;
+  height: 7px;
+}
+
+.pulso-f6-vg-tarjeta:not(.is-seleccionada) .pulso-f6-vg-cabeza .pulso-f6-vg-check {
+  width: 0;
+  margin-left: -4px;
+}
+
+/* Con la barra de selección a la vista, el cuerpo gana aire abajo para que la última fila no quede tapada. */
+.pulso-f6-vg:has(.pulso-f6-vg-selbar) .pulso-f6-vg-cuerpo {
+  padding-bottom: calc(var(--pulso-control-height-md) + 2 * var(--pulso-space-2) + 2 * var(--pulso-space-3) + var(--pulso-space-6));
+}

@@ -44,6 +44,7 @@ import { objetivoDeAccion, reconciliarSeleccionVG, seleccionar, seleccionarTodo,
 import { destinoDeFoco, intencionDeTecla, objetivoDeReenfoque } from "./tecladoVistaGeneral";
 import { useEstadosInforme } from "./useEstadosInforme";
 import { EstructuraLateral } from "./EstructuraLateral";
+import { BarraSeleccion } from "./BarraSeleccion";
 import { pasaFiltro } from "./estadoTarjetas";
 import { useFlipTarjetas } from "./useFlipTarjetas";
 import { useVistaGeneralUi } from "./vistaGeneralStore";
@@ -232,9 +233,13 @@ export default function VistaGeneral() {
   const moverA = useCallback((filaId: string) => {
     const { ids: orden, filas: actuales, seleccion: sel, slides: actualesSlides } = vivo.current;
     const r = moverAlCapitulo(orden, actuales, sel.ids, filaId);
-    if (r.ok) aplicar(reordenarSlides(actualesSlides, r.orden));
+    if (r.ok) {
+      aplicar(reordenarSlides(actualesSlides, r.orden));
+      // I7: como al eliminar, mover se puede deshacer desde el aviso.
+      toast.aviso(r.anuncio, { accion: { label: "Deshacer", onSelect: () => { undo(); useVistaGeneralUi.getState().anunciar("Movimiento deshecho."); } } });
+    }
     useVistaGeneralUi.getState().anunciar(r.anuncio);
-  }, [aplicar]);
+  }, [aplicar, undo]);
   const destinosMover = useMemo(() => destinosParaMover(filas, seleccion.ids), [filas, seleccion.ids]);
 
   const manejadores = useMemo<ManejadoresTarjeta>(() => ({
@@ -408,13 +413,7 @@ export default function VistaGeneral() {
         conteos={conteos}
         filtro={filtro}
         onFiltro={useVistaGeneralUi.getState().setFiltro}
-        filas={filas}
         seleccionadas={seleccion.ids.length}
-        destinosHabilitados={destinosMover}
-        onMoverA={moverA}
-        onDuplicar={() => duplicar(seleccion.ids)}
-        onEliminar={() => { retornoTrasConfirmar.current = itinerante; pedirEliminar(seleccion.ids); }}
-        onVaciar={() => useVistaGeneralUi.getState().setSeleccion(SELECCION_VACIA)}
       />
       <span className="pulso-sr-only" role="status" aria-live="polite">{anuncio}</span>
       <div
@@ -482,6 +481,15 @@ export default function VistaGeneral() {
           })}
         </div>
       </div>
+      <BarraSeleccion
+        filas={filas}
+        seleccionadas={seleccion.ids.length}
+        destinosHabilitados={destinosMover}
+        onMoverA={moverA}
+        onDuplicar={() => duplicar(seleccion.ids)}
+        onEliminar={() => { retornoTrasConfirmar.current = itinerante; pedirEliminar(seleccion.ids); }}
+        onVaciar={() => useVistaGeneralUi.getState().setSeleccion(SELECCION_VACIA)}
+      />
       <AvisosVistaGeneral estructura={estructura} onIr={abrir} />
       <ConfirmarEliminar
         titulos={titulosAEliminar}
