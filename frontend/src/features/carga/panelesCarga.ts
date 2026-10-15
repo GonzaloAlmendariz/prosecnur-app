@@ -3,6 +3,7 @@ import { PANEL_ARMONIZACION, PANEL_IMPORTAR_BLOQUES } from "./armonizacionModel"
 import { PANEL_INDICADOR_COMPUESTO } from "./indicadorCompuestoModel";
 import { PANEL_MAPA_BASES } from "./mapaBasesModel";
 import { PANEL_ARMONIZACION_BASE, PANEL_COMPARAR_FUENTES } from "./fuentes/compararFuentesModel";
+import { PANEL_VARIABLES_BASE } from "./variablesBase/variablesBaseModel";
 
 /**
  * Carga › Revisión: cómo se emparejó cada pregunta de una fuente de la base
@@ -26,4 +27,6 @@ export const PANELES_CARGA = [
   PANEL_COMPARAR_FUENTES,
   // G1: sin `foco`, la matriz por base; con `foco=<base>`, lo que esa base tiene fuera de la matriz.
   PANEL_MAPA_BASES,
+  // ADR 0106: `foco=<base>`; columnas propias, calculadas y «ya viene codificada».
+  PANEL_VARIABLES_BASE,
 ] as const satisfies readonly PanelDeclarado[];

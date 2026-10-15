@@ -7,6 +7,7 @@ import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { useSession } from "../../lib/SessionContext";
 import { AdaptarAplicacion, AdaptarAplicacionResumen } from "./AdaptarAplicacion";
 import { claveAplicar } from "./aplicarAvisosStore";
+import { useBaseYaCodificada } from "./useBaseYaCodificada";
 import { motivoNoSoportado } from "./planAdaptacionModel";
 import { formatoConteo } from "../../lib/formatoNumero";
 
@@ -26,6 +27,7 @@ export function AdaptarPane({ base, onBackToCodificar, onBackToMatrices }: Props
   // en `aplicarAvisosStore`: al terminar el job la página remonta este panel y
   // el estado local se perdía (QA C5, Codificación › Adaptar).
   const clave = claveAplicar(sessionId, base);
+  const yaCodificada = useBaseYaCodificada(base);
 
   async function load() {
     setBusyLoad(true);
@@ -149,6 +151,7 @@ export function AdaptarPane({ base, onBackToCodificar, onBackToMatrices }: Props
         nPreguntas={t.n_preguntas}
         onBackToCodificar={onBackToCodificar}
         onBackToMatrices={onBackToMatrices}
+        yaCodificadaEn={yaCodificada ? base : null}
       />
     </section>
   );

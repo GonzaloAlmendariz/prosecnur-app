@@ -6,6 +6,7 @@ import { JobProgress } from "../../components/JobProgress";
 import { Panel } from "../../components/Panel";
 import { useSession } from "../../lib/SessionContext";
 import { AplicarOmitidasAviso, irAlAviso } from "./AplicarOmitidasAviso";
+import { AvisoBaseYaCodificada } from "./AvisoBaseYaCodificada";
 import {
   type AplicarEntrada,
   aplicarCodificacion,
@@ -28,6 +29,8 @@ type Props = {
   nPreguntas: number;
   onBackToCodificar: () => void;
   onBackToMatrices: () => void;
+  /** ADR 0106: la base marcada «ya viene codificada»; no se ofrece aplicar. */
+  yaCodificadaEn?: string | null;
 };
 
 const TEXTO_APLICANDO = "Revisando el catálogo contra la base; puede tardar un par de minutos.";
@@ -47,7 +50,7 @@ export function pulsarAdaptar(estado: Enfocable | null, adaptar: () => void): vo
   adaptar();
 }
 
-export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBackToMatrices }: Props) {
+export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBackToMatrices, yaCodificadaEn = null }: Props) {
   const { refresh } = useSession();
   const entrada = useAplicarAvisosStore(selectAplicarEntrada(clave));
   const terminar = useAplicarAvisosStore((s) => s.terminar);
@@ -69,6 +72,7 @@ export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBack
       nPreguntas={nPreguntas}
       onBackToCodificar={onBackToCodificar}
       onBackToMatrices={onBackToMatrices}
+      yaCodificadaEn={yaCodificadaEn}
       onAdaptar={() => void aplicarCodificacion(clave, apiCodifAplicar)}
       onJobDone={(d) => {
         terminar(clave, { data: d.data_adaptada.file_id, inst: d.instrumento_adaptado.file_id });
@@ -92,6 +96,7 @@ type VistaProps = {
   onJobError: (msg: string) => void;
   onJobCancelled: () => void;
   onEnfocado: () => void;
+  yaCodificadaEn?: string | null;
 };
 
 /** Presentación pura de la entrada del store; testeable sin DOM. */
@@ -105,6 +110,7 @@ export function AdaptarAplicacionVista({
   onJobError,
   onJobCancelled,
   onEnfocado,
+  yaCodificadaEn = null,
 }: VistaProps) {
   const { aplicando, jobId, avisos, sinRecodificar, salida, error, enfocarPendiente } = entrada;
   const estadoRef = useRef<HTMLSpanElement>(null);
@@ -139,6 +145,9 @@ export function AdaptarAplicacionVista({
           >
             {aplicando ? TEXTO_APLICANDO : jobId ? TEXTO_CORRIENDO : ""}
           </span>
+          {yaCodificadaEn && !aplicando && !jobId ? (
+            <AvisoBaseYaCodificada base={yaCodificadaEn} />
+          ) : (
           <button
             type="button"
             className="pulso-primary"
@@ -159,6 +168,7 @@ export function AdaptarAplicacionVista({
               </>
             )}
           </button>
+          )}
           {motivoDeshabilitado && (
             <span id="codificacion-adaptar-disabled-reason" className="pulso-sr-only">
               {motivoDeshabilitado}

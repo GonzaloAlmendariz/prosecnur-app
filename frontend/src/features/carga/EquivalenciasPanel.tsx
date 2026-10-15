@@ -56,6 +56,8 @@ import {
 import { etiquetaDePregunta } from "./preguntaEquivalenteModel";
 import { ConfirmarMismaEscalaBoton } from "./ConfirmarMismaEscalaBoton";
 import { MapaBasesBoton, MapaBasesPanel } from "./MapaBasesPanel";
+import { VariablesBasePanel } from "./variablesBase/VariablesBasePanel";
+import { EVENTO_VARIABLES_BASE } from "./variablesBase/variablesBaseModel";
 import { filasConMismaEscalaConfirmada, indicesDeMismaEscala } from "./mismaEscalaModel";
 import "./EquivalenciasPanel.css";
 import { PulsoButton } from "../../components/PulsoButton";
@@ -206,6 +208,21 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
     void refrescar();
   }, [refrescar]);
 
+  // ADR 0106: una columna incorporada o una variable calculada entra al catálogo
+  // de su base. Sólo se relee el catálogo: la matriz en edición no se toca.
+  const disponible = Boolean(estado?.disponible);
+  useEffect(() => {
+    if (!disponible) return undefined;
+    const releer = () => {
+      getVariablesEquivalencias()
+        .then((cat) => setVariablesPorBase(cat.variables ?? {}))
+        // Si falla, el catálogo anterior sigue sirviendo; la próxima lectura completa lo trae.
+        .catch(() => undefined);
+    };
+    window.addEventListener(EVENTO_VARIABLES_BASE, releer);
+    return () => window.removeEventListener(EVENTO_VARIABLES_BASE, releer);
+  }, [disponible]);
+
   const onGuardar = useCallback(async () => {
     setOcupado("guardar");
     setError("");
@@ -315,6 +332,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
         variablesPorBase={variablesPorBase}
         onAnadir={onAnadirDesdeMapa}
       />
+      <VariablesBasePanel antetitulo="Carga › Equivalencias" />
       <ImportarBloquesDialog bases={bases} onAplicado={onBloquesAplicados} />
       <IndicadorCompuestoEditor
         estado={estado}

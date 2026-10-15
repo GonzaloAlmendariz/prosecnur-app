@@ -83,3 +83,23 @@
     animation: none;
   }
 }
+
+/* ADR 0106: la base que ya viene codificada ocupa el lugar del botón. */
+.pulso-codif-ya-codificada {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+}
+
+.pulso-codif-ya-codificada a {
+  color: var(--pulso-primary);
+  font-weight: var(--pulso-weight-semibold);
+}

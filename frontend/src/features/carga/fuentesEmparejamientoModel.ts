@@ -238,9 +238,12 @@ export function leerFocoFuente(foco: string | null | undefined): FocoFuente | nu
 
 /**
  * La base que nombra la dirección cuando el panel está abierto sobre una de
- * sus fuentes. Revisión la adopta como «Base revisada».
+ * sus fuentes. Revisión la adopta como «Base revisada». Sin panel, `foco` es la
+ * base misma: así llega «Declarar el motivo» desde Variables de la base
+ * (ADR 0106, `?pestana=revision&foco=<base>`).
  */
 export function baseDeLaDireccion(panel: string | null | undefined, foco: string | null | undefined): string | null {
+  if (!panel) return foco?.trim() || null;
   if (panel !== PANEL_EMPAREJAMIENTO_FUENTE.id) return null;
   return leerFocoFuente(foco)?.base ?? null;
 }
