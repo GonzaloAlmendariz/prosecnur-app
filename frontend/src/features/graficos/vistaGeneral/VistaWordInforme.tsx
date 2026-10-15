@@ -38,8 +38,10 @@ export function useArmadoWord(slides: readonly Slide[]) {
       const meta = (payload.meta ?? {}) as Record<string, unknown>;
       if (slide.tipo === "p_slide_portada") { tituloInforme ||= texto(payload.titulo); continue; }
       if (slide.tipo === "p_slide_seccion") {
-        // El Word lee el nivel de `meta.word_heading_level` (1 por defecto): hoy un subcapítulo sin él entra como capítulo.
-        elementos.push({ clase: "seccion", nivel: Number(meta.word_heading_level) === 2 ? 2 : 1, titulo: texto(payload.titulo) });
+        // Como `.word_nivel_seccion`: el nivel explícito manda; si no, un subcapítulo es sección N.M (decisión 2026-10-15).
+        const explicito = Number(meta.word_heading_level);
+        const nivel = explicito >= 1 ? (explicito >= 2 ? 2 : 1) : meta.nivel === "subcapitulo" ? 2 : 1;
+        elementos.push({ clase: "seccion", nivel, titulo: texto(payload.titulo) });
         continue;
       }
       if (slide.tipo === "p_slide_texto") { elementos.push({ clase: "texto", titulo: texto(payload.titulo) }); continue; }

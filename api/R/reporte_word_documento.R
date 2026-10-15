@@ -37,6 +37,19 @@
   out
 }
 
+#' Nivel de un separador en el Word: 1 = capítulo con apertura, 2 = sección N.M dentro del capítulo
+#'
+#' Un `meta$word_heading_level` explícito manda; si no hay, un subcapítulo de la app (`meta$nivel = "subcapitulo"`) es
+#' una sección N.M y todo lo demás es capítulo. Antes se leía sólo el nivel explícito (1 por defecto), y un subcapítulo
+#' salía como capítulo propio con su apertura y una página casi vacía (decisión de Gonzalo, 2026-10-15: N.M).
+#' @keywords internal
+.word_nivel_seccion <- function(meta) {
+  meta <- meta %||% list()
+  n <- suppressWarnings(as.integer(unlist(meta$word_heading_level)[1]))
+  if (length(n) && is.finite(n) && !is.na(n) && n >= 1L) return(n)
+  if (identical(as.character(unlist(meta$nivel)[1] %||% ""), "subcapitulo")) 2L else 1L
+}
+
 #' Título corto del encabezado: el que se dé o el título del informe cortado en la última palabra antes de 60 caracteres
 #' @keywords internal
 .word_titulo_corto <- function(titulo, dado = NULL, max = 60L) {
@@ -125,7 +138,7 @@
     if (isTRUE(mensajes)) message(sprintf("  Word %03d/%03d — %s", i, length(render_meta), kind))
     if (identical(kind, "title_doc")) next
     if (identical(kind, "section")) {
-      nivel <- suppressWarnings(as.integer(e$meta$word_heading_level %||% 1L)[1]); if (!is.finite(nivel)) nivel <- 1L
+      nivel <- .word_nivel_seccion(e$meta)
       titulo <- .word_oracion(sub("^\\s*\\d+(?:\\.\\d+)*\\.?\\s+", "", .word_txt1(e$title), perl = TRUE))
       if (nivel <= 1L) {
         doc <- poner_como_leer(doc)
