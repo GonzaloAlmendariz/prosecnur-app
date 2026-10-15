@@ -3655,51 +3655,20 @@ reporte_ppt_plan <- function(
       )
     }
 
-    # Helper: divide un bloque var_cruce/var en un entry por grupo/variable
-    .split_multi_block <- function(block_data) {
-      modo_b <- block_data$modo %||% "var"
-
-      if (identical(modo_b, "var_cruce")) {
-        # Un chart por grupo (dim): titulo va fuera como parrafo Word
-        vars_list     <- block_data$vars          %||% list()
-        titulos_grupo <- block_data$titulos_grupo %||% list()
-        for (nm in names(vars_list)) {
-          sub               <- block_data
-          sub$vars          <- vars_list[nm]
-          sub$titulos_grupo <- NULL   # no mostrar en el chart; sale como titulo Word
-          title_g <- .word_titulo_bloque_multi(block_data$title_slide, titulos_grupo[[nm]] %||% nm)
-          .push_multi_block(sub, title_g)
-        }
-
-      } else if (identical(modo_b, "var")) {
-        # Un chart por variable individual; titulo va fuera como parrafo Word
-        vars_vec <- block_data$vars %||% character(0)
-        if (is.list(vars_vec)) vars_vec <- unlist(vars_vec, use.names = FALSE)
-        for (v in vars_vec) {
-          sub               <- block_data
-          sub$vars          <- v
-          sub$titulos_grupo <- NULL
-          title_v <- tryCatch(.title_of_var(v), error = function(e) v)
-          if (is.null(title_v) || !nzchar(trimws(as.character(title_v)[1]))) title_v <- v
-          .push_multi_block(sub, .word_titulo_bloque_multi(block_data$title_slide, title_v))
-        }
-
-      } else {
-        # Modo desconocido: renderizar como bloque unico
-        title_b <- .word_title_for_element(block_data)
-        .push_multi_block(block_data, title_b)
-      }
+    # Helper: divide un bloque en figuras Word segun el modo de la lamina o del informe (W6/D6: reporte_word_multi_modos.R)
+    .split_multi_block <- function(block_data, modo_word = "automatico") {
+      for (pz in .word_multi_piezas(block_data, modo_word, .title_of_var)) .push_multi_block(pz$sub, pz$titulo)
     }
 
     # --- MULTILISTA: un entry por grupo dentro de cada bloque ---
     if (identical(etype, "barras_multiapiladas") && identical(el$modo %||% "", "multilista")) {
-      for (block in .calculos_sanear_elemento(el)$bloques %||% list()) .split_multi_block(block)  # redondeo: graficos_calculos_gobernados.R
+      for (block in .calculos_sanear_elemento(el)$bloques %||% list()) .split_multi_block(block, .word_multi_modo_resolver(el, presets))  # redondeo: graficos_calculos_gobernados.R
       return(invisible(NULL))
     }
 
     # --- MULTIAPILADAS var_cruce / var: un entry por grupo/variable ---
     if (identical(etype, "barras_multiapiladas")) {
-      .split_multi_block(.calculos_sanear_elemento(el))  # el Word redondea como la lámina
+      .split_multi_block(.calculos_sanear_elemento(el), .word_multi_modo_resolver(el, presets))  # el Word redondea como la lámina
       return(invisible(NULL))
     }
 

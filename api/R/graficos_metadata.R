@@ -1304,7 +1304,16 @@
              list(value = "auto", label = "Automático"),
              list(value = "ancho", label = "Más ancho"),
              list(value = "angosto", label = "Más angosto")),
-           descripcion = "La columna donde va el enunciado de cada tema. Más ancho: menos líneas por tema y barras más cortas.")
+           descripcion = "La columna donde va el enunciado de cada tema. Más ancho: menos líneas por tema y barras más cortas."),
+      # W6/D6 (Gonzalo): cuántas figuras sale de esta lámina en el Word; vacío hereda Word › Gráficos
+      # (`w_presets$chart_options$multiapiladas_word`). Sólo lo lee el Word (reporte_word_multi_modos.R).
+      list(name = "word_multiapiladas", label = "En el Word", tipo_input = "choice", grupo = "word", default = "",
+           choices = list(
+             list(value = "", label = "Como el informe", hint = "Lo que diga Word › Gráficos; si no dice nada, una figura por tema (o por barra si compara preguntas)."),
+             list(value = "un_grafico", label = "Un gráfico", hint = "La lámina entera en una sola figura, con sus temas dentro."),
+             list(value = "por_tema", label = "Por tema", hint = "Una figura por tema."),
+             list(value = "por_barra", label = "Por barra", hint = "Una figura por barra, con el título del tema y el de la barra.")),
+           descripcion = "Cuántas figuras sale de esta lámina en el Word. La lámina del PPT no cambia.")
     ), .args_graf_comunes())
   ),
 

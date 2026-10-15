@@ -146,7 +146,9 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   ui_grupo_soportado <- c(
     "datos", "lectura", "valores", "leyenda", "espacio", "tabla",
     "diagnostico", "textos", "estilo", "filtro", "semaforo", "canvas",
-    "avanzado"
+    "avanzado",
+    # W6/D6: controles que sólo lee el Word (p. ej. `word_multiapiladas` de las multiapiladas).
+    "word"
   )
 
   slide_args <- unlist(lapply(.SLIDES_META, `[[`, "args"), recursive = FALSE)
