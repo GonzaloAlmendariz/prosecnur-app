@@ -108,6 +108,7 @@
     uno("Barras de 0 a 100 %, sin marcas", .cr_g("p_barras_agrupadas", var = "egresados$mejoras", overrides = list(usar_eje_libre = FALSE)), 74),
     uno("Barras de 0 a 100 %, con marcas", .cr_g("p_barras_agrupadas", var = "egresados$mejoras", overrides = list(usar_eje_libre = FALSE, marcas_eje = TRUE)), 75),
     uno("Dicotómica", .cr_g("p_dicotomica", var = "egresados$trabaja"), 76),
+    uno("Dicotómica vertical", .cr_g("p_dicotomica", var = "egresados$trabaja", orientacion = "vertical"), 76),
 
     # ---- 2.2 Escalas -------------------------------------------------------------------------------------------------
     cap("Escalas de acuerdo", "fondo", 3, "Barras apiladas con Top Two Box y Bottom Two Box"),
