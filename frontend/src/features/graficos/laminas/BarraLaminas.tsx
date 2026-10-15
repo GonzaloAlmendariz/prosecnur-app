@@ -32,6 +32,7 @@ import { useLaminasUi } from "./laminasStore";
 import { useAvisosPlanSesion } from "../avisosPlan";
 import { ACCION_RECARGAR_BORRADOR, MENSAJE_CONFLICTO_BORRADOR, recargarBorradorCompartido, useConflictoBorrador } from "../conflictoBorrador";
 import { agruparAvisos, rotuloLaminasYPartes, totalAvisos } from "./resumenInforme";
+import { useColoresPendientes } from "../estilo/ColoresPendientesAviso";
 import { useDeclaracionAplicada } from "../useDeclaracionAplicada";
 import "./movimiento.css";
 import "./barraLaminas.css";
@@ -83,7 +84,9 @@ export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...export
   const avisosPlan = useAvisosPlanSesion();
   const { avisos: avisosEquivalencias } = useDeclaracionAplicada();   // ADR 0096: los avisos de la siembra cuentan en «N avisos»
   const grupos = useMemo(() => agruparAvisos(validator.issues, resumenes, ids, avisosPlan, avisosEquivalencias), [validator.issues, resumenes, ids, avisosPlan, avisosEquivalencias]);
-  const nAvisos = totalAvisos(grupos);
+  // Los colores que faltan bloquean «Exportar»: cuentan como un aviso que bloquea, igual que en el panel.
+  const sinColor = useColoresPendientes().pendientes.length > 0;
+  const nAvisos = totalAvisos(grupos) + (sinColor ? 1 : 0);
 
   return (
     <div className="pulso-f6-barra-host" ref={hostRef}>
@@ -127,7 +130,7 @@ export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...export
         </span>
         <button
           type="button"
-          className={`pulso-f6-boton pulso-f6-barra-avisos${grupos.bloquean.length ? " is-bloquea" : ""}`}
+          className={`pulso-f6-boton pulso-f6-barra-avisos${grupos.bloquean.length || sinColor ? " is-bloquea" : ""}`}
           aria-expanded={avisosPanel.abierto}
           onClick={avisosPanel.alternar}
           title={grupos.bloquean.length ? `${grupos.bloquean.length} bloquean la exportación` : "Avisos del informe"}

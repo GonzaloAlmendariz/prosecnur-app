@@ -11,6 +11,7 @@ import type { GrupoAvisos } from "./resumenInforme";
 import { capaVisibleFuera, destinoDelFoco, escucharEscape } from "./cierreConEscape";
 import { useAvisosPlan } from "../avisosPlan";
 import { useAvisosExportacion } from "../avisosExportacion/avisosExportacionStore";
+import { useColoresPendientes } from "../estilo/ColoresPendientesAviso";
 import { agruparAvisos as agruparPorLamina, type GrupoAvisos as GrupoPorLamina } from "../avisosExportacion/avisosExportacionModel";
 import "../avisosExportacion/avisosExportacion.css";
 import { enfocarSinDesplazar } from "./enfocarSinDesplazar";
@@ -54,6 +55,10 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
   const hayPlan = grupos.plan.length > 0;
   useEffect(() => { if (hayPlan) marcarVistos(); }, [hayPlan, marcarVistos]);
 
+  // Los colores que faltan bloquean el menú «Exportar»: el panel lo dice también, para no contradecirlo
+  // («Nada bloquea la exportación» mientras el menú no dejaba exportar; catálogo del recetario, 2026-10-14).
+  const colores = useColoresPendientes();
+  const laminasSinColor = new Set(colores.pendientes.map((p) => p.slideId)).size;
   const previos = useAvisosExportacion((st) => st.previos);
   const ultimos = useAvisosExportacion((st) => st.motor);
   const posicionDe = useMemo(() => new Map(estructura.laminas.map((l) => [l.id, l.posicion])), [estructura]);
@@ -104,8 +109,18 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
           </section>
         )}
         <section className="pulso-f6-avisos-grupo is-bloquea" aria-label="Bloquean la exportación">
-          <h3>Bloquean la exportación <span>{grupos.bloquean.length}</span></h3>
-          {grupos.bloquean.length ? <ul data-qa-geometry-group="graficos/f6-avisos-bloquean" data-qa-geometry-contract="intrinsic">{grupos.bloquean.map(fila)}</ul> : <p>Nada bloquea la exportación.</p>}
+          <h3>Bloquean la exportación <span>{grupos.bloquean.length + (laminasSinColor ? 1 : 0)}</span></h3>
+          {grupos.bloquean.length || laminasSinColor ? (
+            <ul data-qa-geometry-group="graficos/f6-avisos-bloquean" data-qa-geometry-contract="intrinsic">
+              {laminasSinColor ? (
+                <li>
+                  <span>Faltan colores en {laminasSinColor === 1 ? "1 lámina" : `${laminasSinColor} láminas`}: esos gráficos pintan cada respuesta con su color.</span>
+                  <button type="button" className="pulso-f6-texto-boton" onClick={colores.completar}>Completar todos los colores</button>
+                </li>
+              ) : null}
+              {grupos.bloquean.map(fila)}
+            </ul>
+          ) : <p>Nada bloquea la exportación.</p>}
         </section>
         <section className="pulso-f6-avisos-grupo" aria-label="Conviene revisar">
           <h3>Conviene revisar <span>{grupos.revisar.length}</span></h3>
