@@ -5,6 +5,8 @@ Estado: Vigente
 Fecha: 2026-10-14
 Autoridad: Gonzalo (2026-10-14): «vamos a diseñar Vista general, Identidad y Estilo de informe, necesitamos un revamp completo y planificarlo conceptualmente y a nivel de UI»; «el Word también falta muchísimo con la UI, y vista general como en el PPT de LibreOffice y cómo se vería en Word con diseño elegante». Sólo Gonzalo da por terminado un ítem
 
+Aprobado entero por Gonzalo (2026-10-14: «todo, absolutamente todo tiene mi aprobación»). Checklist de implementación: [checklist-revamp-informe-graficos-2026-10-14.md](checklist-revamp-informe-graficos-2026-10-14.md).
+
 Propuesta con maquetas: https://claude.ai/artifact/8vtEx3LmE5V92FfqXxN8ZH (privada). El prototipo tiene las medidas de la app (barra de 77 px, fases, barra del proyecto, riel de 55 px, contenido desde ~195 px) y un modo «Tamaño real»; se revisa en la matriz 1440×1000, 1366×768, 1280×720 y 1024×600 con un auditor de desbordes y cortes, no en una columna de lectura (Gonzalo, 2026-10-14: «no lo estás probando bien en un HTML que tenga las medidas reales»).
 
 ## Concepto
@@ -70,10 +72,10 @@ Las maquetas de página del Word siguen la convención de `docs/qa/motor-ppt-202
 
 | # | Decisión | Propuesta | Estado |
 |---|---|---|---|
-| D1 | Nombres de las pestañas | Láminas · Word · Informe · Identidad · Reglas (orden fijado por Gonzalo, 2026-10-14: «Láminas y Word deberían ir uno detrás de otro y luego lo demás»; los nombres siguen por decidir) | orden resuelto; nombres bloqueados (decide Gonzalo) |
+| D1 | Pestañas | Láminas · Word · Informe · Identidad · Reglas | **resuelta** (2026-10-14) |
 | D2 | Fidelidad de la vista Word | maquetas de página en el Informe; Word real sólo en la pestaña Word con «Previsualizar» | **resuelta** (Gonzalo, 2026-10-14) |
-| D3 | Lugar de la línea visual | Identidad | bloqueado (decide Gonzalo) |
-| D4 | «Otros» como regla del informe | pasa a Reglas, texto corregido | bloqueado (decide Gonzalo) |
-| D5 | Logos y letra en el PPT | llevarlos o marcarlos «Sólo Word» | bloqueado (decide Gonzalo; decisión 16 de `decisiones-pendientes-f6-2026-10-10.md`) |
-| D6 | Multiapiladas en el Word: ¿una forma para todo el informe o por lámina con una por defecto? | por lámina, con «Un gráfico por tema» como valor del informe | bloqueado (decide Gonzalo) |
-| D7 | Dónde se guardan las líneas visuales propias | en la app, disponibles para todos los estudios (no dentro del `.pulso`); al aplicarla, el estudio copia sus valores | bloqueado (decide Gonzalo) |
+| D3 | Lugar de la línea visual | Identidad | **resuelta** (2026-10-14) |
+| D4 | «Otros» como regla del informe | pasa a Reglas, texto corregido | **resuelta** (2026-10-14) |
+| D5 | Logos y letra en el PPT | llegan también al PPT en este rediseño | **resuelta** (Gonzalo, 2026-10-14) |
+| D6 | Multiapiladas en el Word | por lámina, «Un gráfico por tema» por defecto | **resuelta** (2026-10-14) |
+| D7 | Líneas visuales propias | en la app, para todos los estudios | **resuelta** (2026-10-14) |
