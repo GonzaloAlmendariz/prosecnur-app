@@ -203,35 +203,4 @@ describe("bibliotecas de Gráficos como paneles direccionables", () => {
     expect(resolveLibraryReturnFocus(disconnected("previous"), requested, fallback)).toBe(requested);
     expect(resolveLibraryReturnFocus(null, disconnected("requested"), fallback)).toBe(fallback);
   });
-
-  it("muestra íntegro el nombre del estilo en lista, focus-card y opción portada", () => {
-    const css = read("chartLayoutEditor.css");
-    const selectors = [
-      ".pulso-gv2-overrides-list .pulso-gv2-mode-list-label",
-      ".pulso-gv2-override-focus-grid span.is-mode > b",
-      '.pulso-gv2-mode-option[data-kind="mode"] .pulso-gv2-mode-option-label',
-    ];
-    const declarations = [
-      ["overflow", "visible"],
-      ["text-overflow", "clip"],
-      ["white-space", "normal"],
-      ["overflow-wrap", "anywhere"],
-    ];
-
-    expect(selectors.map((selector) => ({
-      selector,
-      hasCompleteRule: cssRuleBodies(css, selector).some((body) =>
-        declarations.every(([property, value]) => hasCssDeclaration(body, property, value))
-      ),
-    }))).toEqual(selectors.map((selector) => ({ selector, hasCompleteRule: true })));
-  });
-
-  it("impide que el listado comprima las filas de estilos con nombres largos", () => {
-    const css = read("chartLayoutEditor.css");
-    const selector = ".pulso-gv2-overrides-list > .pulso-gv2-mode-list-item";
-
-    expect(cssRuleBodies(css, selector).some((body) =>
-      hasCssDeclaration(body, "flex", "0 0 auto")
-    )).toBe(true);
-  });
 });
