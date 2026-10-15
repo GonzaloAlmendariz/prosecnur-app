@@ -234,7 +234,8 @@
   lo <- espec$eje[["lo"]]; hi <- espec$eje[["hi"]]; paso <- espec$eje[["paso"]]
   px <- function(v) xl + wl * (v - lo) / (hi - lo)
   doc <- officer::add_slide(doc, layout = layout, master = master)
-  doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
+  arriba <- .lam_leyenda_va_arriba(espec$leyenda)   # G4: la leyenda sube al antetítulo
+  doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub, leyenda = if (arriba) stats::setNames(espec$colores, espec$leyenda))
   lz <- .lam_lienzo()
   for (v in seq(lo, hi, by = paso)) {
     .lam_caja(lz, px(v), yb, 0.006, k * fila, .std_color("filete"), nombre = "pesas:guia")
@@ -272,7 +273,7 @@
              align = if (sube_b) "center" else if (mayor_a) "right" else "left", nombre = "pesas:cifra_b")
     if (con_dif) .lam_txt(lz, espec$textos_diferencia[i], W - mr - 1.3, yc - 0.15, 1.3, 0.3, 13, azul, bold = TRUE, align = "center", nombre = "pesas:diferencia")
   }
-  .lam_leyenda(lz, yf - 0.3, espec$leyenda, espec$colores, centrar_en = xl + wl / 2)
+  if (!arriba) .lam_leyenda(lz, yf - 0.3, espec$leyenda, espec$colores, centrar_en = xl + wl / 2)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:pesas")
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)

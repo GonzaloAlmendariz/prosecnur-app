@@ -23,7 +23,7 @@ test_that("la espec del radar trae ejes, series, piso, anillos y las cifras de l
   expect_false(attr(suppressWarnings(graficar_radar(.rd_datos(), escala_valor = "proporcion_100")), "pulso_espec")$con_tabla)
 })
 
-test_that("la lámina 90 lleva el radar a la izquierda, la leyenda centrada bajo él y la tabla nativa con sus cifras", {
+test_that("la lámina 90 lleva el radar a la izquierda, la leyenda en el antetítulo y la tabla nativa con sus cifras", {
   e <- .rd_espec(titulo_tabla = "Competencia")
   expect_true(.lam_radar_cabe(e))
   o <- .lam_laminas_radar(.rd_doc(), e, "Formulación del perfil de egreso", ante = "Radar con tabla", folio = 90, base = "Base: 51 docentes")
@@ -35,7 +35,17 @@ test_that("la lámina 90 lleva el radar a la izquierda, la leyenda centrada bajo
   expect_identical(celdas[5:8], c("Estados financieros", "98%", "96%", "98%"))
   off <- xml2::xml_find_first(xml, "//p:graphicFrame[.//a:tbl]/p:xfrm/a:off")
   expect_equal(as.numeric(xml2::xml_attr(off, "x")) / 914400, 7.25, tolerance = 0.01)
-  ley <- xml2::xml_text(xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='leyenda:texto']]"))
+  # G4 (2026-10-14): la leyenda sube al antetítulo, tras el capítulo, cada público en su color; abajo ya no se repite.
+  expect_length(xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='leyenda:texto']]"), 0L)
+  ante <- xml2::xml_find_first(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='Antetitulo lamina']]")
+  expect_match(xml2::xml_text(ante), "RADAR CON TABLA.*DOCENTES.*ESTUDIANTES.*EGRESADOS")
+  colores_ante <- xml2::xml_attr(xml2::xml_find_all(ante, ".//a:srgbClr"), "val")
+  expect_true(all(toupper(sub("^#", "", unname(e$colores))) %in% toupper(colores_ante)))
+  # Una lámina que lo apaga vuelve a la leyenda centrada bajo el radar.
+  withr::with_options(list(prosecnur.lam_leyenda_antetitulo = FALSE), {
+    o2 <- .lam_laminas_radar(.rd_doc(), e, "Formulación del perfil de egreso", ante = "Radar con tabla", folio = 90)
+  })
+  ley <- xml2::xml_text(xml2::xml_find_all(.rd_xml(o2$doc), "//p:sp[p:nvSpPr/p:cNvPr[@name='leyenda:texto']]"))
   expect_identical(ley, c("Docentes", "Estudiantes", "Egresados"))
   # Los ejes van en el sentido del reloj desde arriba: el segundo (Auditoría) queda a la derecha del primero.
   gg <- ggplot2::ggplot_build(.lam_radar_gg(e))

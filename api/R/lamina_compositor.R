@@ -9,13 +9,15 @@
 
 #' Título de la lámina: barra navy al borde, antetítulo en versalitas y título coral
 #' @keywords internal
-.lam_titulo <- function(doc, titulo, ante = NULL, sub = NULL, avisar = TRUE) {
+.lam_titulo <- function(doc, titulo, ante = NULL, sub = NULL, avisar = TRUE, leyenda = NULL) {
   g <- .std_geom; ml0 <- g("margen_izq_borde"); ml <- g("margen_izq"); yt <- g("titulo_y")
   if (isTRUE(avisar)) .lam_aviso_titulo(titulo, 10.4)  # K12b: un título de más de dos líneas se avisa (lamina_avisos_lineas.R)
   lz <- .lam_lienzo()
   .lam_caja(lz, ml0, yt - 0.12, 0.05, if (is.null(sub)) 0.72 else 0.98, .std_color("azul"), nombre = "titulo:barra")
-  if (!is.null(ante) && nzchar(ante)) {
-    color_ante <- if (.lam_ante_es_subcapitulo(ante)) .std_color("coral") else .std_color("texto_suave")   # G8: subcapítulo sin lámina
+  color_ante <- if (!is.null(ante) && .lam_ante_es_subcapitulo(ante)) .std_color("coral") else .std_color("texto_suave")   # G8: subcapítulo sin lámina
+  if (length(leyenda)) {   # G4: el antetítulo hace de leyenda (lamina_antetitulo_leyenda.R)
+    .lam_txt_ante_leyenda(lz, ante, leyenda, ml, yt - 0.17, 10.4, 0.26, .std_pt("antetitulo"), color_ante)
+  } else if (!is.null(ante) && nzchar(ante)) {
     .lam_txt(lz, toupper(ante), ml, yt - 0.17, 9, 0.26, .std_pt("antetitulo"), color_ante, bold = TRUE,
              nombre = "Antetitulo lamina")
   }
@@ -184,6 +186,8 @@
 .lam_slide_1_nativa <- function(doc, p, slide, titulo, subtitulo, el_plot, presets, layout, master, antetitulo,
                                 base_auto, nota_de, sin_base = FALSE, sin_pie = FALSE, por_lamina = function(doc) doc,
                                 titulo_de_var = NULL) {
+  # G4: una lámina apaga la leyenda en el antetítulo con `meta$leyenda_antetitulo = FALSE` (lamina_antetitulo_leyenda.R).
+  if (identical((slide$meta %||% list())$leyenda_antetitulo, FALSE)) { op <- options(prosecnur.lam_leyenda_antetitulo = FALSE); on.exit(options(op), add = TRUE) }
   slots <- slide$slots %||% list()
   como_texto <- function(x) if (inherits(x, "ppt_element_text")) x$text else if (is.character(x)) x else NULL
   base <- if (isTRUE(sin_base)) NULL else como_texto(slots$base)
