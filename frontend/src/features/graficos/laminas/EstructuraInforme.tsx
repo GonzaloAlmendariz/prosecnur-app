@@ -110,7 +110,7 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
         {estructura.laminas.length === 0 ? (
           <p className="pulso-f6-vacio-col">El informe todavía no tiene láminas. Inserta la primera o arma el informe desde un plan sugerido.</p>
         ) : nodos.length === 0 ? (
-          <p className="pulso-f6-vacio-col">Ninguna lámina coincide con «{consulta.trim()}».</p>
+          <p className="pulso-f6-vacio-col">Ninguna lámina coincide con “{consulta.trim()}”.</p>
         ) : (
           <ul className="pulso-f6-arbol" data-qa-geometry-group="graficos/f6-estructura-nodos" data-qa-geometry-contract="intrinsic">
             {nodos.map((nodo) => (
@@ -192,7 +192,7 @@ function FilaLamina({ lamina, activa, sangria, resumen, validacion, onSelecciona
   const punto = puntoDeEstado(resumen, validacion);
   // El conteo de gráficos sólo aparece cuando dice algo: ranuras vacías.
   const detalle = lamina.ranuras > 0 && lamina.ranurasLlenas < lamina.ranuras
-    ? `${lamina.tipoLabel} · ${lamina.ranurasLlenas} de ${lamina.ranuras} con gráfico`
+    ? `${lamina.tipoLabel}, ${lamina.ranurasLlenas} de ${lamina.ranuras} con gráfico`
     : lamina.ranuras === 0 && lamina.titulo === lamina.tipoLabel
       ? "Estructura del informe"   // sin título propio, el tipo ya es el título: no se repite debajo
       : lamina.tipoLabel;

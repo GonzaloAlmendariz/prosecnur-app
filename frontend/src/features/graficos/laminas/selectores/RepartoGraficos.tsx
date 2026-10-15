@@ -26,7 +26,7 @@ export function RepartoGraficos({ conservados, slots, mismoTipo, nombreGrafico, 
               <span className="pulso-f6-reparto-num" aria-hidden="true">{k || "·"}</span>
               <span className="pulso-f6-reparto-texto">
                 <span className="pulso-f6-reparto-grafico">{nombreGrafico(r.grafico)}</span>
-                <span className="pulso-f6-reparto-ranura">{k ? `Ranura ${k} · ${nombreSlot(r.hacia)}` : nombreSlot(r.hacia)}</span>
+                <span className="pulso-f6-reparto-ranura">{k ? `Ranura ${k}, ${nombreSlot(r.hacia)}` : nombreSlot(r.hacia)}</span>
               </span>
             </li>
           );

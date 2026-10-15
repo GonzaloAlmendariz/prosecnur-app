@@ -97,7 +97,7 @@ export function InspectorLamina({
           <IconoTipo clase="lamina" tipo={slide.tipo} size={24} className="pulso-icono-tipo--acento" />
         </span>
         <span className="pulso-f6-inspector-tipo-texto">
-          <strong id="pulso-f6-inspector-titulo">Lámina {lamina.posicion} · {lamina.tipoLabel}</strong>
+          <strong id="pulso-f6-inspector-titulo">Lámina {lamina.posicion}: {lamina.tipoLabel}</strong>
           <span>{conGraficos ? (lamina.antetituloHeredado ? `Capítulo: ${lamina.antetituloHeredado}` : "Sin capítulo") : "Estructura del informe"}</span>
         </span>
         <button type="button" className="pulso-f6-boton pulso-f6-inspector-cambiar" onClick={onCambiarLamina} aria-label={`Cambiar el tipo de la lámina ${lamina.posicion}`}>
@@ -200,7 +200,7 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
           />
           <span className="pulso-f6-ayuda">
             {lamina.antetituloHeredado
-              ? `Vacío, hereda «${lamina.antetituloHeredado}» del separador.`
+              ? `Vacío, hereda “${lamina.antetituloHeredado}” del separador.`
               : "Ningún separador lo precede: sin texto, la lámina sale sin antetítulo."}
           </span>
         </div>
@@ -212,7 +212,7 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
       ) : ante.modo === "fijo" ? (
         <p className="pulso-f6-candado">
           <Lock size={14} aria-hidden="true" />
-          Antetítulo fijo del estándar: «{ante.texto}».
+          Antetítulo fijo del estándar: “{ante.texto}”.
         </p>
       ) : null}
 
@@ -242,7 +242,7 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
         <p className="pulso-f6-pendiente">
           <History size={14} aria-hidden="true" />
           <span>
-            {contenido.pendientes.join(" · ")}: este ajuste todavía no está en Láminas.
+            {contenido.pendientes.join(", ")}: este ajuste todavía no está en Láminas.
           </span>
         </p>
       )}

@@ -35,8 +35,8 @@ describe("llave de la dependencia en la maqueta (F5)", () => {
 describe("quiénes forman la base por defecto", () => {
   it("une como la lámina: «o» con dos, comas con tres o más", async () => {
     const { quienesPorDefecto } = await import("../DependenciaLamina");
-    expect(quienesPorDefecto(["Sí"])).toBe("que respondieron «Sí»");
-    expect(quienesPorDefecto(["A", "B"])).toBe("que respondieron «A» o «B»");
-    expect(quienesPorDefecto(["A", "B", "C"])).toBe("que respondieron «A», «B», «C»");
+    expect(quienesPorDefecto(["Sí"])).toBe("que respondieron “Sí”");
+    expect(quienesPorDefecto(["A", "B"])).toBe("que respondieron “A” o “B”");
+    expect(quienesPorDefecto(["A", "B", "C"])).toBe("que respondieron “A”, “B”, “C”");
   });
 });

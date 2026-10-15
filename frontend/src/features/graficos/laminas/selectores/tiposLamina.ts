@@ -152,7 +152,7 @@ export const VARIANTES_LAMINA: Partial<Record<SlideType, VariantesTipo>> = {
     label: "Separador",
     defecto: "capitulo",
     opciones: [
-      { valor: "capitulo", label: "Capítulo con rótulo", detalle: "«Capítulo 2» sobre un filete; el título manda" },
+      { valor: "capitulo", label: "Capítulo con rótulo", detalle: "Capítulo 2 sobre un filete; el título manda" },
       { valor: "capitulo:numero", label: "Capítulo con número", detalle: "El número grande en coral, con un filete" },
       { valor: "capitulo:fondo", label: "Capítulo con número de fondo", detalle: "El número detrás, como marca de agua" },
       { valor: "subcapitulo", label: "Subcapítulo sobrio", detalle: "Número y título en una línea" },

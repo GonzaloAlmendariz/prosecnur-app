@@ -18,9 +18,9 @@ describe("ListaColores", () => {
   });
   it("cada muestra tiene nombre accesible y su color se lee en texto", () => {
     const html = pintar({});
-    expect([...html.matchAll(/aria-label="Color de la serie «([^»]+)»"/g)].map((m) => m[1])).toEqual(["Acceso", "Trato"]);
-    expect(html).toContain("Azul · #0B4F8C");
-    expect(html).toContain("Verde azulado · #2A9D8F");
+    expect([...html.matchAll(/aria-label="Color de la serie “([^”]+)”"/g)].map((m) => m[1])).toEqual(["Acceso", "Trato"]);
+    expect(html).toContain("Azul, #0B4F8C");
+    expect(html).toContain("Verde azulado, #2A9D8F");
     expect(html).toMatch(/type="color"[^>]*value="#0b4f8c"/);
   });
   it("sin decisiones: todo «Del recetario» y ningún «Volver al recetario»", () => {
@@ -31,8 +31,8 @@ describe("ListaColores", () => {
   it("con una decisión: «Propio» y su botón con nombre propio (mutante: botón en todas las filas)", () => {
     const html = pintar({ Trato: "#101010" });
     expect(html.match(/is-propio/g)).toHaveLength(1);
-    expect(html.match(/aria-label="Volver al color por defecto en «Trato»"/g)).toHaveLength(1);
-    expect(html).not.toContain("Volver al color por defecto en «Acceso»");
+    expect(html.match(/aria-label="Volver al color por defecto en “Trato”"/g)).toHaveLength(1);
+    expect(html).not.toContain("Volver al color por defecto en “Acceso”");
     expect(html).toContain("#101010");
   });
   it("sin series el vacío vive en la fila (C3) y no dibuja muestras", () => {

@@ -14,7 +14,7 @@ describe("rotuloLaminasYPartes", () => {
     expect(rotuloLaminasYPartes(["a", "b"], {
       a: { estado: "nativa", partes: 2, avisos: 0 },
       b: { estado: "nativa", partes: 1, avisos: 0 },
-    })).toBe("2 láminas · 3 partes");
+    })).toBe("2 láminas, 3 partes");
   });
   it("sin partes extra no repite la cifra", () => {
     expect(rotuloLaminasYPartes(["a"], { a: { estado: "nativa", partes: 1, avisos: 0 } })).toBe("1 lámina");

@@ -22,10 +22,10 @@ export function vistaDeMiniatura(entrada: EntradaMiniatura | undefined, imagenPr
 /** Sufijo del nombre accesible: el estado se oye, no sólo se ve. */
 export function rotuloEstado(vista: VistaMiniatura): string {
   switch (vista) {
-    case "actualizando": return " · actualizando miniatura";
-    case "esqueleto": return " · dibujando miniatura";
-    case "sin_datos": return " · sin datos";
-    case "error": return " · no se pudo dibujar la miniatura";
+    case "actualizando": return ", actualizando miniatura";
+    case "esqueleto": return ", dibujando miniatura";
+    case "sin_datos": return ", sin datos";
+    case "error": return ", no se pudo dibujar la miniatura";
     default: return "";
   }
 }

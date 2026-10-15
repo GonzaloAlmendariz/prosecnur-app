@@ -34,7 +34,7 @@ export function dependenciaDe(slide: Pick<Slide, "tipo" | "payload">): (Dependen
 
 /** Quiénes forman la base del dependiente si nadie lo escribió, como la lámina (`.lam_filtro_sub_base`): «que respondieron «Sí»». */
 export function quienesPorDefecto(habilita: readonly string[]): string {
-  return `que respondieron ${habilita.map((h) => `«${h}»`).join(habilita.length > 2 ? ", " : " o ") || "…"}`;
+  return `que respondieron ${habilita.map((h) => `“${h}”`).join(habilita.length > 2 ? ", " : " o ") || "…"}`;
 }
 
 export function DependenciaLamina({ slide }: { slide: Slide }) {
@@ -91,7 +91,7 @@ export function DependenciaLamina({ slide }: { slide: Slide }) {
         <div className="pulso-f6-dato is-apilado" data-qa="dependencia-propuesta">
           <span className="pulso-f6-dato-ayuda" role="note">
             Según el formulario, el gráfico {NOMBRE[ranuras.find((r) => r !== propuesta.de) as string]} sólo lo responden quienes
-            eligieron {propuesta.habilita.map((r) => `«${r}»`).join(", ")} en el {NOMBRE[propuesta.de]}.
+            eligieron {propuesta.habilita.map((r) => `“${r}”`).join(", ")} en el {NOMBRE[propuesta.de]}.
           </span>
           <button type="button" className="pulso-f6-texto-boton" onClick={() => guardar(propuesta)}>Usar</button>
         </div>

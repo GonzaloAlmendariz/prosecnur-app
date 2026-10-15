@@ -222,9 +222,9 @@ function PanelGuias({ id, abierto, propsPanel, ancla, enfocarAlAbrir, onCerrar, 
                   >
                     <span className="pulso-f6-guias-elemento-nombre">{e.nombre}</span>
                     <span className="pulso-f6-guias-elemento-dato">
-                      {rotuloDeRol(e.rol)} · {e.medidas}
-                      {e.pt && <> · <span className={e.ptFuera ? "is-fuera" : undefined}>{e.pt}{e.ptFuera ? " (fuera del estándar)" : ""}</span></>}
-                      {e.recortado && " · recortado"}
+                      {rotuloDeRol(e.rol)}, {e.medidas}
+                      {e.pt && <>, <span className={e.ptFuera ? "is-fuera" : undefined}>{e.pt}{e.ptFuera ? " (fuera del estándar)" : ""}</span></>}
+                      {e.recortado && ", recortado"}
                     </span>
                   </button>
                 </li>

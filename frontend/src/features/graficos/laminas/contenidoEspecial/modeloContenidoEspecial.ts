@@ -48,10 +48,10 @@ export type TituloPorDefecto = {
  */
 export function tituloPorDefecto(slide: Slide, variables: readonly (VarInfo & { source?: string })[], tipoLabel: string): TituloPorDefecto {
   // El motor rotula el objetivo «Objetivo del estudio» cuando no se escribe otro (`.lam_laminas_objetivo`).
-  if (slide.tipo === "p_slide_objetivo_icono") return { placeholder: "Objetivo del estudio", ayuda: "Vacío, sale «Objetivo del estudio»." };
+  if (slide.tipo === "p_slide_objetivo_icono") return { placeholder: "Objetivo del estudio", ayuda: "Vacío, sale Objetivo del estudio." };
   const inferido = inferSlideVariableTitle(slide, [...variables]);
   if (inferido.source === "variable" && inferido.title) {
-    return { placeholder: inferido.title, ayuda: `Vacío, sale «${inferido.title}»: el nombre de la pregunta del gráfico.` };
+    return { placeholder: inferido.title, ayuda: `Vacío, sale “${inferido.title}”: el nombre de la pregunta del gráfico.` };
   }
   return { placeholder: tipoLabel, ayuda: null };
 }

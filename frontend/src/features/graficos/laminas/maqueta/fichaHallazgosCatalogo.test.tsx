@@ -103,7 +103,7 @@ describe("ítem 9 · el glifo refleja los ajustes de su tipo", () => {
     return glifo;
   };
   const casos: Array<[string, Record<string, unknown>, Record<string, unknown>, string]> = [
-    ["p_barras_agrupadas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", max_categorias: 4 }, "Resto en «Otros»"],
+    ["p_barras_agrupadas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", max_categorias: 4 }, "Resto en Otros"],
     ["p_barras_agrupadas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", overrides: { resaltar_mayor: true } }, "La mayor resaltada"],
     ["p_barras_agrupadas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", overrides: { resaltar_opciones: ["No"] } }, "Destacada: No"],
     ["p_barras_categoricas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", overrides: { resaltar_opciones: ["Sí"] } }, "Destacada: Sí"],
@@ -111,7 +111,7 @@ describe("ítem 9 · el glifo refleja los ajustes de su tipo", () => {
     ["p_barras_agrupadas", { var: "estudiantes$mision" }, { var: "estudiantes$mision", overrides: { marcas_eje: true } }, "Marcas del eje"],
     ["p_lollipop", { var: "estudiantes$mision" }, { var: "estudiantes$mision", top_n: 3 }, "Primeras 3"],
     ["p_lollipop", { var: "estudiantes$mision" }, { var: "estudiantes$mision", resaltar: ["Sí"] }, "Destacada: Sí"],
-    ["p_donut", { var: "estudiantes$mision" }, { var: "estudiantes$mision", top_k: 2 }, "Resto en «Otros»"],
+    ["p_donut", { var: "estudiantes$mision" }, { var: "estudiantes$mision", top_k: 2 }, "Resto en Otros"],
     ["p_barras_divergentes", { vars: ["estudiantes$p1"] }, { vars: ["estudiantes$p1"], incluir_neutro: false }, "Sin el neutro partido"],
     ["p_serie_temporal", { var: "estudiantes$p1" }, { var: "estudiantes$p1", mostrar_valores: false }, "Sin cifras"],
     ["p_nube_palabras", { var: "estudiantes$p1" }, { var: "estudiantes$p1", mostrar_ranking: false }, "Sin ranking de palabras"],
@@ -129,7 +129,7 @@ describe("ítem 9 · el glifo refleja los ajustes de su tipo", () => {
 
   it("la dona nombra la respuesta y la frase de su centro (recetario p70)", () => {
     const f = ficha(slide("p_donut", { var: "estudiantes$mision", al_centro: "No", frase_centro: "no conoce la misión" }));
-    expect(f.ajustes).toEqual(expect.arrayContaining(["Al centro: No", "«no conoce la misión»"]));
+    expect(f.ajustes).toEqual(expect.arrayContaining(["Al centro: No", "“no conoce la misión”"]));
     expect(ficha(slide("p_donut", { var: "estudiantes$mision" })).ajustes.some((a) => a.startsWith("Al centro"))).toBe(false);
   });
 

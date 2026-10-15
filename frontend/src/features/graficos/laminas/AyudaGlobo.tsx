@@ -14,7 +14,7 @@ export function AyudaGlobo({ rotulo, detalle }: { rotulo: string; detalle: strin
       <button
         type="button"
         className="pulso-f6-ayuda-boton"
-        aria-label={`Qué es «${rotulo}»`}
+        aria-label={`Qué es “${rotulo}”`}
         aria-describedby={id}
         aria-expanded={fijo}
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFijo((v) => !v); }}

@@ -17,7 +17,7 @@ export function ListaPreguntas({ valor, onCambio, describe }: Props) {
     const r = parseVarRef(ref);
     const v = variables.find((x) => x.name === r.name && (!r.source || x.source === r.source));
     const rotulo = v?.label?.trim() || r.name;
-    return r.source ? `${rotulo} · ${r.source}` : rotulo;
+    return r.source ? `${rotulo}, ${r.source}` : rotulo;
   };
 
   if (valor && typeof valor === "object" && !Array.isArray(valor)) {
@@ -27,7 +27,7 @@ export function ListaPreguntas({ valor, onCambio, describe }: Props) {
         {temas.map(([tema, refs]) => (
           <li key={tema}>
             <span className="pulso-f6-preguntas-tema">{tema}</span>
-            <span className="pulso-f6-preguntas-refs">{(Array.isArray(refs) ? refs : [refs]).map((r) => nombre(String(r))).join(" · ")}</span>
+            <span className="pulso-f6-preguntas-refs">{(Array.isArray(refs) ? refs : [refs]).map((r) => nombre(String(r))).join(", ")}</span>
           </li>
         ))}
       </ul>

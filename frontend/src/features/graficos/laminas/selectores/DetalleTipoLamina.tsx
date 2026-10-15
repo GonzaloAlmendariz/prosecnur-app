@@ -65,7 +65,7 @@ export function DetalleTipoLamina(props: Props) {
           graficos={graficos}
           variante={variante}
           numerar
-          titulo={`Composición de «${nombre}»${Object.keys(graficos).length ? " con los gráficos de la lámina" : ""}`}
+          titulo={`Composición de “${nombre}”${Object.keys(graficos).length ? " con los gráficos de la lámina" : ""}`}
         />
       </div>
       <div className="pulso-f6-detalle-texto">
@@ -130,7 +130,7 @@ export function DetalleTipoLamina(props: Props) {
               {sobrantes.map((g) => (
                 <li key={g.slot}>{nombreGrafico(g.grafico)} <span>(ranura {nombreSlot(g.slot)})</span></li>
               ))}
-              {textos.map((t) => <li key={t}>Texto «{nombreCampo(t)}»</li>)}
+              {textos.map((t) => <li key={t}>Texto “{nombreCampo(t)}”</li>)}
             </ul>
             <span>Los demás gráficos se conservan. Puedes deshacerlo después.</span>
           </div>

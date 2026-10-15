@@ -65,12 +65,12 @@ function FilaColor({ fila, idDesc, onElegir }: { fila: ColorDeSerie; idDesc: str
         type="color"
         className={`pulso-f6-colores-muestra${hex ? "" : " is-automatico"}`}
         value={(hex ?? "#FFFFFF").toLowerCase()}
-        aria-label={`Color de la serie «${nombre}»`}
+        aria-label={`Color de la serie “${nombre}”`}
         aria-describedby={idDesc}
         onChange={(e) => onElegir(nombre, e.target.value)}
       />
       <span className="pulso-f6-colores-nombre">{nombre}</span>
-      <span className="pulso-f6-colores-valor" id={idDesc}>{legible}{hex && legible !== hex ? ` · ${hex}` : ""}</span>
+      <span className="pulso-f6-colores-valor" id={idDesc}>{legible}{hex && legible !== hex ? `, ${hex}` : ""}</span>
       {origen === "informe" ? (
         <span className="pulso-f6-estilo-sello is-recetario">Del informe</span>
       ) : (
@@ -80,7 +80,7 @@ function FilaColor({ fila, idDesc, onElegir }: { fila: ColorDeSerie; idDesc: str
         <button
           type="button"
           className="pulso-f6-icono-boton"
-          aria-label={`Volver al color por defecto en «${nombre}»`}
+          aria-label={`Volver al color por defecto en “${nombre}”`}
           title="Volver al valor por defecto"
           onClick={() => onElegir(nombre, null)}
         >

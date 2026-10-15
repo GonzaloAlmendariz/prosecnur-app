@@ -87,7 +87,7 @@ export function SignificanciaPublicos({ args, onCambio }: Props) {
                 onClick={() => alternarCorte(r)}>{r}</button>
             ))}
           </div>
-          {corte.size === 0 && <span className="pulso-f6-dato-ayuda" role="note">Elige las que forman el porcentaje (Top Two Box o «Sí»).</span>}
+          {corte.size === 0 && <span className="pulso-f6-dato-ayuda" role="note">Elige las que forman el porcentaje (Top Two Box o Sí).</span>}
         </div>
       )}
     </>

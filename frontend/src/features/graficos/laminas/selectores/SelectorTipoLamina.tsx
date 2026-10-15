@@ -113,7 +113,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
     setSlideTipo(id, candidato, payload);
     const quitados = cambio.sobrantes.length;
     toast.aviso(
-      cambio.mismoTipo ? `Lámina ${posicion}: otra composición` : `Lámina ${posicion}: ahora es «${nombre}»`,
+      cambio.mismoTipo ? `Lámina ${posicion}: otra composición` : `Lámina ${posicion}: ahora es “${nombre}”`,
       {
         detalle: quitados
           ? `${quitados === 1 ? "Se quitó 1 gráfico" : `Se quitaron ${quitados} gráficos`} que no cabían.`

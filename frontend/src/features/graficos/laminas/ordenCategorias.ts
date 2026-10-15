@@ -53,9 +53,9 @@ const NOMBRE_MODO: Record<Exclude<ModoOrden, "recetario">, string> = {
 
 /** Rótulo de la opción «Recetario», que dice qué aplica: «Recetario · por frecuencia». */
 export function rotuloRecetario(datos: GraficosCategorias | null, heredado: boolean): string {
-  if (heredado) return "Por defecto · orden elegido antes";
+  if (heredado) return "Por defecto, orden elegido antes";
   const m = datos?.modo_recetario;
-  return m ? `Por defecto · ${NOMBRE_MODO[m]}` : "Por defecto";
+  return m ? `Por defecto, ${NOMBRE_MODO[m]}` : "Por defecto";
 }
 
 /**

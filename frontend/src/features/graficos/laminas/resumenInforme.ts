@@ -10,7 +10,7 @@ export function rotuloLaminasYPartes(ids: readonly string[], resumenes: Readonly
   const base = `${n} ${n === 1 ? "lámina" : "láminas"}`;
   if (n === 0 || !ids.every((id) => resumenes[id])) return base;
   const partes = ids.reduce((t, id) => t + Math.max(1, resumenes[id].partes), 0);
-  return partes === n ? base : `${base} · ${partes} partes`;
+  return partes === n ? base : `${base}, ${partes} partes`;
 }
 
 export type GrupoAvisos = {

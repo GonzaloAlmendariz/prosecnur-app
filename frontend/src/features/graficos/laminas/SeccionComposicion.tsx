@@ -56,7 +56,7 @@ export function SeccionComposicion({ slide, lamina, ranura, onCambiarLamina }: P
         <strong>{lamina.tipoLabel}</strong>
         <span>
           {slots.length > 0
-            ? `${rotuloRanuras(slide.tipo)} · ${lamina.ranurasLlenas} con contenido`
+            ? `${rotuloRanuras(slide.tipo)}, ${lamina.ranurasLlenas} con contenido`
             : "Lámina de estructura, sin ranuras de gráfico"}
         </span>
         {uso && <span>{uso}.</span>}

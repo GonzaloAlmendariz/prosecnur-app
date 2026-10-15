@@ -52,13 +52,13 @@ export const AYUDA_CEROS = "Las respuestas especiales 90–99 sin casos nunca se
 export const AYUDA_EJE_MIN =
   "0 = automático. Un piso alto acerca las diferencias; si deja fuera un dato, el eje baja solo y la lámina lo avisa.";
 export const AYUDA_BRECHA = "El primer grupo menos el segundo, restando las cifras ya rotuladas.";
-export const AYUDA_MIN_N = "Con menos casos válidos el distrito va como «Sin encuestas» y la lámina lo avisa.";
+export const AYUDA_MIN_N = "Con menos casos válidos el distrito va como Sin encuestas y la lámina lo avisa.";
 export const AYUDA_CORTES = "Porcentajes entre 0 y 100, separados por comas. Vacío: 55, 65 y 75.";
-export const AYUDA_LIMITE_SUPERIOR = "Vacío: sin tope. Lo que lo supera va en la última barra, rotulada con «+» (p. ej. «60+»).";
+export const AYUDA_LIMITE_SUPERIOR = "Vacío: sin tope. Lo que lo supera va en la última barra, rotulada con + (p. ej. 60+).";
 export const AYUDA_TIPO_RANGO = "La leyenda de la lámina dice qué abarca la barra.";
 // 6a (Gonzalo, 2026-10-11): «custom» depende de `probs_rango`, que no tiene control en la tarjeta.
 export const AVISO_RANGO_CUSTOM = "Personalizado: se dibuja con los percentiles guardados.";
-export const AYUDA_CORTE_SCORE = "Obligatorio en «Dispersión»: separa los puntajes altos de los bajos.";
+export const AYUDA_CORTE_SCORE = "Obligatorio en Dispersión: separa los puntajes altos de los bajos.";
 export const AYUDA_CORTES_CHIP = "Dos valores que separan rojo, ámbar y verde. Vacío: 60 y 80.";
 
 /**
@@ -149,7 +149,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // C44: el radar «entre públicos» rotula cada columna de su tabla con el nombre técnico de la base.
   tabla_encabezados: { rotulo: "Nombre de cada público", ayuda: "Vacío conserva el nombre de la base.", estricto: true },
   mostrar_tabla: { rotulo: "Tabla al costado", estricto: true, soloEn: ["p_radar"] },
-  tabla_titulo: { rotulo: "Encabezado de la primera columna", ayuda: "Vacío: «Tema».", estricto: true, soloEn: ["p_radar"] },
+  tabla_titulo: { rotulo: "Encabezado de la primera columna", ayuda: "Vacío: Tema.", estricto: true, soloEn: ["p_radar"] },
   eje_min: { rotulo: "El eje arranca en (%)", ayuda: AYUDA_EJE_MIN, estricto: true, soloEn: ["p_radar"] },
   objetivo: { rotulo: "Objetivo" },
   metrica: { rotulo: "Métrica" },
@@ -182,11 +182,11 @@ const LISTA_BLANCA: Record<string, Entrada> = {
     placeholder: "Todas",
     soloEn: ["p_lollipop"],
   },
-  agrupar_resto_en_otros: { rotulo: "Agrupar el resto en «Otros»", siActivo: undefined },
+  agrupar_resto_en_otros: { rotulo: "Agrupar el resto en Otros", siActivo: undefined },
   // Formal de p_barras_agrupadas (e93c51d), p_pie y p_donut (reporte_plan_slides.R). En agrupadas sale con la agrupación
   // encendida (default TRUE del registro); en torta y dona, con `top_k`. Sin ninguna de las dos guardas, nunca.
   etiqueta_otros: {
-    rotulo: "Nombre de «Otros»",
+    rotulo: "Nombre de Otros",
     placeholder: "Otros",
     siActivo: "agrupar_resto_en_otros",
     porGraficador: { p_pie: OTROS_POR_TOP_K, p_donut: OTROS_POR_TOP_K },
@@ -201,7 +201,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // M10 de la maqueta (Gonzalo, 2026-10-13): «poder mostrar o quitar el número de respuestas por actor».
   mostrar_respuestas: {
     rotulo: "Respuestas por público",
-    ayuda: "«116 respuestas» bajo el nombre de cada público.",
+    ayuda: "116 respuestas bajo el nombre de cada público.",
     soloEn: ["p_barras_apiladas", "p_barras_multiapiladas"],
   },
   // G11 (2026-10-13): la nube con su ranking de las diez palabras más dichas (lámina 101 del diseño), o sola.

@@ -104,7 +104,7 @@ describe("lámina de cuatro gráficos con 87 cajas chicas", () => {
     const rs = colocarRotulos(modelo, HOJA_1024);
     const piezas = modelo.elementos.filter((e) => e.nombre.startsWith("pieza"));
     expect(rs.filter((r) => piezas.some((p) => r.id === `c:${p.id}`))).toEqual([]);
-    expect(datoDeForma(modelo, piezas[0].id)).toMatch(/pt · .* cm$/);
+    expect(datoDeForma(modelo, piezas[0].id)).toMatch(/pt, .* cm$/);
   });
 
   it("el título gana siempre su rótulo", () => {
@@ -130,7 +130,7 @@ describe("un rótulo por caja", () => {
   it("Tipografía y Medidas sobre la misma caja dan un solo rótulo combinado", () => {
     const rs = colocarRotulos(construirGuias(datos, 1, capas({ tipografia: true, medidas: true }), []), HOJA_1440);
     expect(rs).toHaveLength(1);
-    expect(rs[0].texto).toBe("24 pt · 30,48 × 2,29 cm");
+    expect(rs[0].texto).toBe("24 pt, 30,48 × 2,29 cm");
     expect(clasesDeRotulo(rs[0]).split(" ")).toEqual(expect.arrayContaining(["is-caja", "is-pt", "is-fuera", "is-medida"]));
   });
 

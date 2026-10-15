@@ -34,7 +34,7 @@ export function nombreSlot(slot: string, meta?: SlideMetadata): string {
 /** «Barras apiladas · P12». */
 export function nombreGrafico(g: GraficadorRef, graficadoresById: Readonly<Record<string, GraficadorMetadata>>): string {
   const variable = firstVariableRefFromGraph(g);
-  return `${graficadorDisplayName(g.graficador, graficadoresById[g.graficador])}${variable ? ` · ${rotuloVariable(variable)}` : ""}`;
+  return `${graficadorDisplayName(g.graficador, graficadoresById[g.graficador])}${variable ? `, ${rotuloVariable(variable)}` : ""}`;
 }
 
 /** «ciclo (estudiantes)» en vez de la referencia cruda «estudiantes$ciclo». */

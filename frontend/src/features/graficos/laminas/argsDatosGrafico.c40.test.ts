@@ -183,7 +183,7 @@ describe("C40 · ASIGNAR", () => {
     expect(nombres(histograma, {}, "p_histograma")).toEqual(["var", "limite_superior"]);
     const lim = campo(histograma, {}, "p_histograma", "limite_superior");
     expect([lim?.control, lim?.ayuda, lim?.placeholder]).toEqual(["numero", AYUDA_LIMITE_SUPERIOR, "Sin tope"]);
-    expect(AYUDA_LIMITE_SUPERIOR).toContain("«+»");
+    expect(AYUDA_LIMITE_SUPERIOR).toContain("+");
     expect(nombres(histograma, {}, "p_numerico")).not.toContain("limite_superior");
   });
   it("PENDIENTE: iter_var/iter_level no salen (el pie de la lámina nativa no declara el subgrupo)", () => {

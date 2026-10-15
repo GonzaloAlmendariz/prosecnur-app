@@ -71,7 +71,7 @@ function Rotulo({ rotulo: r, i }: { rotulo: RotuloColocado; i: number }) {
       style={{ left: `${r.pct.left}%`, top: `${r.pct.top}%`, maxWidth: `${r.pct.maxWidth}%`, "--pulso-f6-guia-i": Math.min(i, 12) } as CSSProperties}
     >
       {r.partes.map((p, k) => (
-        <span key={k} className={`pulso-f6-guia-parte is-${p.tono}`}>{k > 0 ? ` · ${p.texto}` : p.texto}</span>
+        <span key={k} className={`pulso-f6-guia-parte is-${p.tono}`}>{k > 0 ? `, ${p.texto}` : p.texto}</span>
       ))}
     </span>
   );
@@ -85,7 +85,7 @@ function Etiqueta({ elemento, dato }: { elemento: CajaGuia; dato: string | null 
       style={{ left: `${Math.min(elemento.pos.left, 60)}%`, top: `${elemento.pos.top}%` }}
     >
       <strong>{elemento.nombre}</strong>
-      <span>{ROTULO_ROL[elemento.rol]}{elemento.grupo ? ` · en ${elemento.grupo}` : ""}</span>
+      <span>{ROTULO_ROL[elemento.rol]}{elemento.grupo ? `, en ${elemento.grupo}` : ""}</span>
       {dato && <span className="pulso-f6-guia-nombre-dato">{dato}</span>}
     </span>
   );
