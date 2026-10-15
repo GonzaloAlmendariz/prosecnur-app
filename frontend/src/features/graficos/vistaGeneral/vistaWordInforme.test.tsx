@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { PaginaWord } from "./paginasWord";
 
 const paginas: PaginaWord[] = [
-  { clase: "portada", titulo: "Acreditación" },
+  { clase: "portada", titulo: "Acreditación", sub: "", fecha: "" },
   { clase: "como-leer", numero: 1, secciones: ["Top Two Box"], figuras: [1, 2], folio: 3 },
   { clase: "capitulo", encabezado: "Perfil", titulos: ["2. Perfil"], texto: false, figuras: [{ numero: 3, graficador: "p_pie", pregunta: "Sexo", base: "Base: 172 estudiantes" }], folio: 4 },
   { clase: "contraportada" },

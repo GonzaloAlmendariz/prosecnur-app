@@ -1402,6 +1402,23 @@
   background: var(--module-accent);
 }
 
+/* W3: portada A / B / C como `.word_portada`: A y C con el texto en el tercio alto; B con banda azul y el texto abajo;
+   C cierra con la ficha (para quién, por quién, fecha, versión). */
+.pulso-f6-vg-pagina.is-portada { justify-content: flex-start; }
+.pulso-f6-vg-pag-portada { margin-top: 26%; }
+.pulso-f6-vg-pag-portada.is-c .pulso-f6-vg-pag-t { font-size: 6.9cqw; }
+.pulso-f6-vg-pag-portada.is-b { margin-top: auto; padding-left: 8cqw; }
+.pulso-f6-vg-pag-portada.is-b .pulso-f6-vg-pag-t { font-size: 6.9cqw; }
+.pulso-f6-vg-pag-banda { position: absolute; inset: 0 auto 0 0; width: 7cqw; background: var(--pulso-primary); }
+.pulso-f6-vg-pag-sub { color: var(--pulso-text); font-size: 3.4cqw; }
+.pulso-f6-vg-pag-quien { display: flex; flex-direction: column; gap: 0.6cqw; margin-top: 18cqw; font-size: 2.6cqw; color: var(--pulso-text-soft); }
+.pulso-f6-vg-pag-quien b { color: var(--pulso-primary); }
+.pulso-f6-vg-pag-portada.is-b .pulso-f6-vg-pag-quien { margin-top: 10cqw; flex-direction: row; gap: 3cqw; }
+.pulso-f6-vg-pag-ficha { display: flex; flex-direction: column; margin-top: 12cqw; border-top: 0.25cqw solid var(--pulso-primary); }
+.pulso-f6-vg-pag-ficha > span { display: grid; grid-template-columns: 40% 60%; padding: 1cqw 0; border-bottom: 0.15cqw solid var(--pulso-border); font-size: 2.5cqw; }
+.pulso-f6-vg-pag-ficha > span > span { color: var(--pulso-text-soft); }
+.pulso-f6-vg-pag-ficha b { color: var(--pulso-primary); }
+
 .pulso-f6-vg-pagina.is-contraportada {
   justify-content: center;
   align-items: center;

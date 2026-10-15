@@ -11,7 +11,7 @@ import { tituloCortoWord } from "../vistaGeneral/paginasWord";
 type ComoLeer = "auto" | "si" | "no";
 
 /** Campo de texto que se guarda al salir (no en cada tecla: cada cambio es un paso deshacible del plan). */
-function CampoTexto({ etiqueta, valor, placeholder, ayuda, max, onGuardar }: {
+export function CampoTexto({ etiqueta, valor, placeholder, ayuda, max, onGuardar }: {
   etiqueta: string; valor: string; placeholder: string; ayuda: string; max: number; onGuardar: (v: string) => void;
 }) {
   const id = useId();
