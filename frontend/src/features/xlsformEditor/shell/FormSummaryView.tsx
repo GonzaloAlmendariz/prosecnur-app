@@ -1,43 +1,48 @@
 // =============================================================================
-// shell/FormSummaryView.tsx — "Resumen del formulario": panorama ejecutivo
+// shell/FormSummaryView.tsx — pestaña «Resumen» del editor de formularios
 // =============================================================================
-// Overlay full-screen 100% visual: KPIs con stagger de entrada, distribución
-// por tipo de pregunta (barras CSS puras), mapa de secciones clickeable y
-// badge de salud construido desde diagnostics + problemas estructurales.
-// Click en sección/aviso → onSelectRow(rowIndex) y cierra.
+// Rediseño 2026-10-15 («esto puede verse muchísimo mejor»). Usa todo el ancho
+// de la pestaña:
+//   - una banda de cifras en lenguaje llano (sin jerga XLSForm);
+//   - «Qué falta para publicar e imprimir», conectado a lo que el editor ya
+//     sabe (lógica por revisar, escalas repetidas, avisos, preguntas sin lista,
+//     previa del impreso), con su enlace;
+//   - la composición en barras apiladas de UN sistema de color;
+//   - las secciones como tabla ordenable con su peso, dueña de su scroll.
+// Las cifras salen de `resumen/modeloResumen.ts`. Elegir una sección o una
+// pregunta lleva al Constructor (`onSelectRow` / `onIrAPregunta`).
 // =============================================================================
 
 import { useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import type { ReactNode } from "react";
-import {
-  AlertCircle,
-  AlertTriangle,
-  Asterisk,
-  CheckCircle2,
-  ChevronLeft,
-  Clock3,
-  Folder,
-  GitBranch,
-  Layers3,
-  List,
-  ListChecks,
-  Repeat,
-  X,
-} from "lucide-react";
-import type {
-  BuilderDiagnostic,
-  BuilderNode,
-  BuilderStructure,
-  SectionMeta,
-  XlsformEditorWorkbook,
-} from "../types";
+import { ChevronLeft, X } from "../../../vendor/lucide-react";
+import type { BuilderDiagnostic, BuilderStructure, XlsformEditorWorkbook } from "../types";
 import { buildCatalogs } from "../parsing/buildIndex";
-import { typeLabel } from "../parsing/parseType";
-import { iconForType } from "../helpers/icons";
-import { paletteForType } from "../helpers/paletteForType";
-import { TechTerm } from "../helpers/TechTerm";
+import { BarraComposicion } from "../resumen/BarraComposicion";
+import { PendientesPublicar } from "../resumen/PendientesPublicar";
+import { TablaSecciones } from "../resumen/TablaSecciones";
+import {
+  minutos,
+  pendientesParaPublicar,
+  porcentaje,
+  resumirFormulario,
+  type AccionPendiente,
+} from "../resumen/modeloResumen";
+import { usePreviaImpreso } from "../impreso/storePrevia";
 import "../styles/xf-summary.css";
+
+/** Lo que el editor sabe fuera de la estructura: lógica, listas, impreso y adónde llevar cada cosa. */
+export type ContextoResumen = {
+  formId: string | null;
+  logica: { pendiente: boolean; externa: string | null };
+  escalasRepetidas: number;
+  /** Correcciones que el backend exige para publicar y que no son diagnósticos locales. */
+  erroresPublicacion: number;
+  onRevisarLogica?: () => void;
+  onAbrirListas: () => void;
+  onIrAPregunta: (name: string) => void;
+  onIrImpreso: () => void;
+};
 
 export type FormSummaryViewProps = {
   open: boolean;
@@ -46,18 +51,10 @@ export type FormSummaryViewProps = {
   structure: BuilderStructure | null;
   diagnostics: BuilderDiagnostic[];
   onSelectRow?: (rowIndex: number) => void;
-  /** Dentro de una pestaña del editor (2026-10-15): sin portal, sin «Volver» ni «Cerrar», y Esc no cierra. */
+  contexto: ContextoResumen;
+  /** Dentro de una pestaña del editor: sin portal, sin «Volver» ni «Cerrar», y Esc no cierra. */
   embebido?: boolean;
 };
-
-// -----------------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------------
-
-/** Nodos "de contenido": preguntan, informan o calculan (no estructura). */
-function isContentNode(node: BuilderNode): boolean {
-  return node.kind === "question" || node.kind === "note" || node.kind === "calculate";
-}
 
 function readFormTitle(workbook: XlsformEditorWorkbook): string {
   const idx = workbook.settings.columns.indexOf("form_title");
@@ -65,24 +62,7 @@ function readFormTitle(workbook: XlsformEditorWorkbook): string {
   return (workbook.settings.rows[0]?.[idx] ?? "").trim();
 }
 
-type KpiCard = {
-  key: string;
-  icon: ReactNode;
-  value: number | string;
-  label: string;
-  tech?: string;
-};
-
-type SectionRow = {
-  meta: SectionMeta;
-  count: number;
-  firstRow: number | null;
-  pct: number;
-};
-
-// -----------------------------------------------------------------------------
-// Componente principal
-// -----------------------------------------------------------------------------
+type Cifra = { clave: string; rotulo: string; valor: string; detalle: string };
 
 export function FormSummaryView({
   open,
@@ -92,6 +72,7 @@ export function FormSummaryView({
   structure,
   diagnostics,
   onSelectRow,
+  contexto,
 }: FormSummaryViewProps) {
   useEffect(() => {
     if (!open || embebido) return;
@@ -103,121 +84,89 @@ export function FormSummaryView({
   }, [open, embebido, onClose]);
 
   const formTitle = useMemo(() => readFormTitle(workbook), [workbook]);
+  const resumen = useMemo(
+    () => resumirFormulario(structure, buildCatalogs(workbook.choices)),
+    [structure, workbook],
+  );
 
-  const stats = useMemo(() => {
-    const outline = structure?.outline ?? [];
-    const questionNodes = outline.filter((node) => node.kind === "question");
-    const contentNodes = outline.filter(isContentNode);
-    const catalogs = buildCatalogs(workbook.choices);
-    const catalogSizes = new Map(
-      catalogs.map((catalog) => [catalog.listName, catalog.items.length]),
-    );
+  const previa = usePreviaImpreso();
+  const estadoImpreso: "sin-previa" | "al-dia" | "vieja" =
+    previa.fase !== "lista" || previa.formId !== contexto.formId
+      ? "sin-previa"
+      : previa.workbook === workbook ? "al-dia" : "vieja";
 
-    // Heurística de duración: ~20s por pregunta simple, ~30s por select con
-    // más de 6 opciones, +10s si es obligatoria.
-    let seconds = 0;
-    questionNodes.forEach((node) => {
-      const base = node.typeInfo.base;
-      const isSelect = base === "select_one" || base === "select_multiple";
-      const optionCount = isSelect ? (catalogSizes.get(node.typeInfo.listName) ?? 0) : 0;
-      seconds += isSelect && optionCount > 6 ? 30 : 20;
-      if (node.required) seconds += 10;
-    });
+  const errores = diagnostics.filter((d) => d.level === "error").length + contexto.erroresPublicacion;
+  const avisos = diagnostics.filter((d) => d.level === "warn").length;
+  const primeraFila = diagnostics.find((d) => d.level !== "info" && d.rowIndex != null)?.rowIndex ?? null;
+  const pendientes = pendientesParaPublicar({
+    logica: contexto.logica,
+    escalasRepetidas: contexto.escalasRepetidas,
+    diagnosticos: { errores, avisos, primeraFila },
+    sinLista: resumen.sinLista,
+    impreso: { estado: estadoImpreso, paginas: previa.cifras?.paginas ?? null },
+  });
 
-    const sections = Array.from(structure?.sections.values() ?? [])
-      .filter((section) => section.kind !== "root")
-      .sort((a, b) => (a.rowIndex ?? 0) - (b.rowIndex ?? 0));
-
-    return {
-      nQuestions: questionNodes.length,
-      nSections: sections.length,
-      nRequired: questionNodes.filter((node) => node.required).length,
-      nLogic: contentNodes.filter((node) => node.relevant !== "").length,
-      nCatalogs: catalogs.length,
-      minutes: questionNodes.length ? Math.max(1, Math.round(seconds / 60)) : 0,
-      contentNodes,
-      sections,
-    };
-  }, [structure, workbook]);
-
-  const typeRows = useMemo(() => {
-    const counts = new Map<string, number>();
-    stats.contentNodes.forEach((node) => {
-      const base = node.typeInfo.base || "sin_tipo";
-      counts.set(base, (counts.get(base) ?? 0) + 1);
-    });
-    const rows = Array.from(counts.entries()).map(([base, count]) => ({ base, count }));
-    rows.sort((a, b) => b.count - a.count || a.base.localeCompare(b.base));
-    const max = rows[0]?.count ?? 1;
-    return rows.map((row) => ({
-      ...row,
-      pct: Math.max(8, Math.round((row.count / max) * 100)),
-    }));
-  }, [stats.contentNodes]);
-
-  const sectionRows = useMemo<SectionRow[]>(() => {
-    if (!structure) return [];
-    const rows = stats.sections.map((meta) => {
-      const items = structure.outline.filter(
-        (node) => node.sectionId === meta.id && isContentNode(node),
-      );
-      return {
-        meta,
-        count: items.length,
-        firstRow: items[0]?.rowIndex ?? meta.rowIndex,
-      };
-    });
-    const max = Math.max(1, ...rows.map((row) => row.count));
-    return rows.map((row) => ({
-      ...row,
-      pct: Math.max(6, Math.round((row.count / max) * 100)),
-    }));
-  }, [structure, stats.sections]);
-
-  const structuralIssues =
-    (structure?.unmatchedEndRows.length ?? 0) +
-    (structure?.unclosedSectionIds.length ?? 0);
-  const warnCount = diagnostics.filter((diag) => diag.level === "warn").length;
-  const healthTone: "ok" | "warn" | "danger" =
-    structuralIssues > 0 ? "danger" : warnCount > 0 ? "warn" : "ok";
-  const healthLabel =
-    healthTone === "danger"
-      ? `${structuralIssues} error${structuralIssues === 1 ? "" : "es"} de estructura`
-      : healthTone === "warn"
-        ? `${warnCount} aviso${warnCount === 1 ? "" : "s"}`
-        : "Sin avisos";
-  const healthIcon =
-    healthTone === "ok" ? (
-      <CheckCircle2 size={13} />
-    ) : healthTone === "warn" ? (
-      <AlertTriangle size={13} />
-    ) : (
-      <AlertCircle size={13} />
-    );
-
-  const kpis: KpiCard[] = [
-    { key: "preguntas", icon: <ListChecks size={15} />, value: stats.nQuestions, label: "Preguntas" },
-    { key: "secciones", icon: <Layers3 size={15} />, value: stats.nSections, label: "Secciones" },
-    { key: "obligatorias", icon: <Asterisk size={15} />, value: stats.nRequired, label: "Obligatorias", tech: "required" },
-    { key: "logica", icon: <GitBranch size={15} />, value: stats.nLogic, label: "Con lógica", tech: "relevant" },
-    { key: "listas", icon: <List size={15} />, value: stats.nCatalogs, label: "Listas de opciones", tech: "choices" },
-    { key: "duracion", icon: <Clock3 size={15} />, value: stats.minutes ? `≈ ${stats.minutes} min` : "—", label: "Duración estimada" },
-  ];
-
-  const goToRow = (rowIndex: number | null | undefined) => {
-    if (rowIndex == null || !onSelectRow) return;
-    onSelectRow(rowIndex);
-    onClose();
+  const irA = (destino: AccionPendiente) => {
+    if (destino.tipo === "revisar-logica") contexto.onRevisarLogica?.();
+    else if (destino.tipo === "listas") contexto.onAbrirListas();
+    else if (destino.tipo === "fila") onSelectRow?.(destino.rowIndex);
+    else if (destino.tipo === "pregunta") contexto.onIrAPregunta(destino.name);
+    else contexto.onIrImpreso();
   };
+
+  const masLarga = [...resumen.filasSecciones].sort((a, b) => b.preguntas - a.preguntas)[0];
+  const cifras: Cifra[] = [
+    {
+      clave: "preguntas",
+      rotulo: "Preguntas",
+      valor: String(resumen.preguntas),
+      detalle: resumen.notas ? `y ${resumen.notas} ${resumen.notas === 1 ? "nota" : "notas"} para quien encuesta` : "sin notas aparte",
+    },
+    {
+      clave: "secciones",
+      rotulo: "Secciones",
+      valor: String(resumen.secciones),
+      detalle: masLarga && masLarga.preguntas ? `la más larga: ${masLarga.rotulo}, con ${masLarga.preguntas} ${masLarga.preguntas === 1 ? "pregunta" : "preguntas"}` : "sin secciones",
+    },
+    {
+      clave: "obligatorias",
+      rotulo: "Obligatorias",
+      valor: String(resumen.obligatorias),
+      detalle: `${porcentaje(resumen.obligatorias, resumen.preguntas)} de las preguntas`,
+    },
+    {
+      clave: "condiciones",
+      rotulo: "Con condición",
+      valor: String(resumen.conCondiciones),
+      detalle: resumen.conCondiciones
+        ? `${porcentaje(resumen.conCondiciones, resumen.preguntas)} aparecen sólo si se cumple su condición`
+        : contexto.logica.pendiente ? "la lógica importada aún no se revisa" : "todas aparecen siempre",
+    },
+    {
+      clave: "listas",
+      rotulo: "Listas de opciones",
+      valor: String(resumen.listas),
+      detalle: contexto.escalasRepetidas
+        ? `${contexto.escalasRepetidas} ${contexto.escalasRepetidas === 1 ? "escala repetida" : "escalas repetidas"}`
+        : "ninguna escala repetida",
+    },
+    {
+      clave: "duracion",
+      rotulo: "Duración estimada",
+      valor: resumen.preguntas ? `≈ ${minutos(resumen.segundos)} min` : "—",
+      detalle: resumen.preguntas ? `unos ${Math.round(resumen.segundos / resumen.preguntas)} s por pregunta` : "sin preguntas",
+    },
+  ];
 
   if (!open) return null;
 
   const vista = (
     <div
-      className={embebido ? "pulso-graph-overlay pulso-xfsum-overlay is-embebido" : "pulso-graph-overlay pulso-xfsum-overlay pulso-xf-overlay-enter"}
+      className={`pulso-graph-overlay pulso-xfsum-overlay${embebido ? " is-embebido" : " pulso-xf-overlay-enter"}`}
       role={embebido ? "region" : "dialog"}
       aria-modal={embebido ? undefined : true}
       aria-label="Resumen del formulario"
+      data-audit-ready="xlsform-resumen"
     >
       <header className="pulso-graph-header">
         <div className="pulso-graph-header-left">
@@ -227,169 +176,74 @@ export function FormSummaryView({
             </button>
           )}
           <div className="pulso-graph-header-title">
-            <strong>Resumen del formulario</strong>
+            <strong>Resumen</strong>
             <span>{formTitle || "Formulario sin título"}</span>
           </div>
         </div>
-        <div className="pulso-graph-header-right">
-          {!embebido && (
-            <button
-              type="button"
-              className="pulso-icon"
-              onClick={onClose}
-              aria-label="Cerrar resumen"
-              title="Cerrar"
-            >
+        {!embebido && (
+          <div className="pulso-graph-header-right">
+            <button type="button" className="pulso-icon" onClick={onClose} aria-label="Cerrar resumen" title="Cerrar">
               <X size={14} />
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </header>
 
-      <div className="pulso-xfsum-main">
-        <section className="pulso-xfsum-kpis" aria-label="Indicadores del formulario" data-qa-geometry-group="xlsform/resumen-kpis" data-qa-geometry-contract="equal">
-          {kpis.map((kpi, index) => (
-            <article
-              key={kpi.key}
-              className="pulso-xfsum-kpi"
-              style={{ animationDelay: `${index * 40}ms` }}
-            >
-              <span className="pulso-xfsum-kpi-icon" aria-hidden="true">
-                {kpi.icon}
-              </span>
-              <strong className="pulso-xfsum-kpi-value">{kpi.value}</strong>
-              <span className="pulso-xfsum-kpi-label">
-                {kpi.label}
-                {kpi.tech ? (
-                  <>
-                    {" "}
-                    <TechTerm t={kpi.tech} />
-                  </>
-                ) : null}
-              </span>
+      <div className="pulso-xf-res" data-qa-scroll-owner="resumen">
+        <section className="pulso-xf-res-cifras" aria-label="El formulario en cifras"
+          data-qa-geometry-group="xlsform/resumen-cifras" data-qa-geometry-contract="equal">
+          {cifras.map((c) => (
+            <article key={c.clave} className={`pulso-xf-res-cifra is-${c.clave}`} data-qa-geometry-member="">
+              <span className="pulso-xf-res-cifra-rotulo">{c.rotulo}</span>
+              <strong className="pulso-xf-res-cifra-valor">{c.valor}</strong>
+              <span className="pulso-xf-res-cifra-detalle" title={c.detalle}>{c.detalle}</span>
             </article>
           ))}
         </section>
 
-        <div className="pulso-xfsum-grid" data-qa-geometry-group="xlsform/resumen-paneles" data-qa-geometry-contract="intrinsic">
-          <section className="pulso-xfsum-panel" aria-label="Tipos de pregunta">
-            <h3 className="pulso-xfsum-panel-title">Tipos de pregunta</h3>
-            <ul className="pulso-xfsum-types" data-qa-geometry-group="xlsform/resumen-tipos" data-qa-geometry-contract="equal">
-              {typeRows.map((row, index) => {
-                const Icon = iconForType(row.base);
-                const color = paletteForType(row.base);
-                return (
-                  <li
-                    key={row.base}
-                    className="pulso-xfsum-type-row"
-                    style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
-                  >
-                    <span
-                      className="pulso-xfsum-type-icon"
-                      style={{ color }}
-                      aria-hidden="true"
-                    >
-                      <Icon size={13} />
-                    </span>
-                    <span className="pulso-xfsum-type-label">
-                      {typeLabel(row.base)} <TechTerm t={row.base} />
-                    </span>
-                    <span className="pulso-xfsum-type-bar" aria-hidden="true">
-                      <i
-                        style={{
-                          width: `${row.pct}%`,
-                          background: color,
-                          animationDelay: `${Math.min(index, 8) * 40 + 80}ms`,
-                        }}
-                      />
-                    </span>
-                    <span className="pulso-xfsum-type-count">{row.count}</span>
-                  </li>
-                );
-              })}
-              {typeRows.length === 0 ? (
-                <li className="pulso-xfsum-empty-row">Aún no hay preguntas</li>
-              ) : null}
-            </ul>
-          </section>
-
-          <section className="pulso-xfsum-panel" aria-label="Mapa de secciones">
-            <h3 className="pulso-xfsum-panel-title">Secciones</h3>
-            <ul className="pulso-xfsum-sections" data-qa-geometry-group="xlsform/resumen-secciones" data-qa-geometry-contract="equal">
-              {sectionRows.map((row, index) => {
-                const Icon = row.meta.kind === "repeat" ? Repeat : Folder;
-                return (
-                  <li
-                    key={row.meta.id}
-                    className="pulso-xfsum-section-item"
-                    style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
-                  >
-                    <button
-                      type="button"
-                      className="pulso-xfsum-section-row"
-                      disabled={!onSelectRow || row.firstRow == null}
-                      onClick={() => goToRow(row.firstRow)}
-                      style={{ paddingLeft: `${12 + Math.min(row.meta.depth, 4) * 14}px` }}
-                    >
-                      <span className="pulso-xfsum-section-icon" aria-hidden="true">
-                        <Icon size={13} />
-                      </span>
-                      <span className="pulso-xfsum-section-label">
-                        {row.meta.label || row.meta.name || "Sección"}
-                      </span>
-                      <span className="pulso-xfsum-section-bar" aria-hidden="true">
-                        <i
-                          style={{
-                            width: `${row.pct}%`,
-                            animationDelay: `${Math.min(index, 8) * 40 + 80}ms`,
-                          }}
-                        />
-                      </span>
-                      <span className="pulso-xfsum-section-count">
-                        {row.count} pregunta{row.count === 1 ? "" : "s"}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-              {sectionRows.length === 0 ? (
-                <li className="pulso-xfsum-empty-row">Sin secciones todavía</li>
-              ) : null}
-            </ul>
-          </section>
+        <div className="pulso-xf-res-cuerpo" data-qa-geometry-group="xlsform/resumen-cuerpo" data-qa-geometry-contract="intrinsic">
+          <div className="pulso-xf-res-lateral" data-qa-geometry-member="">
+            <PendientesPublicar items={pendientes} onAccion={irA} />
+            <section className="pulso-xf-res-panel pulso-xf-res-composicion" aria-labelledby="xf-res-composicion-titulo">
+              <header className="pulso-xf-res-panel-cabeza">
+                <h3 id="xf-res-composicion-titulo">Composición</h3>
+                <span className="pulso-xf-res-panel-nota">{resumen.preguntas} preguntas</span>
+              </header>
+              {resumen.preguntas === 0 ? (
+                <p className="pulso-xf-res-vacio">Aún no hay preguntas: agrega la primera en el Constructor.</p>
+              ) : (
+                <div className="pulso-xf-res-comp-pila" data-qa-geometry-group="xlsform/resumen-composicion" data-qa-geometry-contract="intrinsic">
+                  <BarraComposicion
+                    titulo="Tipos de pregunta"
+                    total={resumen.preguntas}
+                    segmentos={resumen.tipos.map((t) => ({ clave: t.base, rotulo: t.rotulo, valor: t.preguntas }))}
+                  />
+                  <BarraComposicion
+                    titulo="Obligatoriedad"
+                    total={resumen.preguntas}
+                    segmentos={[
+                      { clave: "obligatorias", rotulo: "Obligatorias", valor: resumen.obligatorias },
+                      { clave: "opcionales", rotulo: "Opcionales", valor: resumen.preguntas - resumen.obligatorias },
+                    ]}
+                  />
+                  <BarraComposicion
+                    titulo="Forma de responder"
+                    total={resumen.preguntas}
+                    segmentos={[
+                      { clave: "cerradas", rotulo: "Cerradas", valor: resumen.cerradas, detalle: "Se elige entre opciones" },
+                      { clave: "abiertas", rotulo: "Abiertas", valor: resumen.abiertas, detalle: "Se escribe o se anota un número o una fecha" },
+                    ]}
+                  />
+                </div>
+              )}
+            </section>
+          </div>
+          <TablaSecciones
+            filas={resumen.filasSecciones}
+            kindDe={(id) => structure?.sections.get(id)?.kind ?? "root"}
+            onAbrir={(fila) => { if (fila.name) contexto.onIrAPregunta(fila.name); }}
+          />
         </div>
-
-        <section className="pulso-xfsum-panel" aria-label="Salud del formulario">
-          <header className="pulso-xfsum-health-head">
-            <h3 className="pulso-xfsum-panel-title">Salud del formulario</h3>
-            <span className={`pulso-xfsum-health is-${healthTone}`}>
-              {healthIcon}
-              {healthLabel}
-            </span>
-          </header>
-          {diagnostics.length > 0 ? (
-            <ul className="pulso-xfsum-diags">
-              {diagnostics.map((diag, index) => (
-                <li
-                  key={diag.id}
-                  className="pulso-xfsum-diag-item"
-                  style={{ animationDelay: `${Math.min(index, 6) * 30}ms` }}
-                >
-                  <button
-                    type="button"
-                    className={`pulso-xfsum-diag is-${diag.level}`}
-                    disabled={diag.rowIndex == null || !onSelectRow}
-                    onClick={() => goToRow(diag.rowIndex)}
-                  >
-                    <i className="pulso-xfsum-diag-dot" aria-hidden="true" />
-                    <strong>{diag.title}</strong>
-                    <span>{diag.detail}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </section>
       </div>
     </div>
   );

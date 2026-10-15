@@ -162,6 +162,8 @@ import { EditorPestanas } from "./shell/EditorPestanas";
 import { usePestanaEditor } from "./shell/pestanaEditor";
 import { PANEL_CATALOGOS, PANEL_LOGICA_SURVEYMONKEY } from "./shell/panelesEditor";
 import { VistaCuestionario } from "./shell/VistaCuestionario";
+import { deriveEditorHeaderStatus } from "./shell/editorHeaderStatus";
+import { contextoResumen } from "./resumen/contextoResumen";
 import { PestanaImpreso } from "./impreso/PestanaImpreso";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { esperarExportPapel, textoExportando } from "./shell/paperExportJob";
@@ -3544,6 +3546,17 @@ export default function XlsformEditorPage() {
                 structure={structure}
                 diagnostics={diagnostics}
                 onSelectRow={irAFila}
+                contexto={contextoResumen(
+                  deriveEditorHeaderStatus(diagnostics, activeFormId ? publicationUi.byFormId[activeFormId] ?? null : null, source),
+                  {
+                    formId: activeFormId,
+                    escalasRepetidas,
+                    onRevisarLogica: activeFormId ? () => { void openFormLogicReview(activeFormId); } : undefined,
+                    onAbrirListas: listasPanel.abrir,
+                    onIrAPregunta: irAPregunta,
+                    onIrImpreso: () => irPestana("impreso"),
+                  },
+                )}
               />
             )}
             {pestana === "impreso" && (
