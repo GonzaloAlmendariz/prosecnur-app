@@ -96,3 +96,34 @@ test_that("los motores Word de la app entregan el docx conforme", {
                     plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_apiladas(var = "docentes$conoce"))), mensajes_progreso = FALSE)
   .docx_conforme(informe)
 })
+
+test_that("una parte de mas de 1M caracteres sale entera (substring() corta en 1e6 por defecto)", {
+  # Regresion medida el 2026-10-15: `substring(txt, corte)` usa `last = 1000000L`
+  # y truncaba el document.xml de cualquier formulario real (~100 filas o mas).
+  # El documento se arma a mano para no depender de officer y para controlar el
+  # tamano: la raiz declara `w`, y los parrafos interiores la repiten (como los
+  # nodos que deja el reordenamiento), que es lo que obliga a reescribir el texto.
+  ns_w <- "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  relleno <- strrep("x", 200)
+  n <- 6000L
+  parrafos <- sprintf('<w:p xmlns:w="%s"><w:r><w:t>p%05d %s</w:t></w:r></w:p>', ns_w, seq_len(n), relleno)
+  xml <- paste0('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n',
+                '<w:document xmlns:w="', ns_w, '"><w:body>',
+                paste(parrafos, collapse = ""),
+                '<w:p><w:r><w:t>FIN-DEL-DOCUMENTO</w:t></w:r></w:p></w:body></w:document>')
+  expect_gt(nchar(xml), 1500000L)   # sin esto el test no discrimina
+  path <- tempfile(fileext = ".xml")
+  on.exit(unlink(path), add = TRUE)
+  writeLines(xml, path, useBytes = TRUE)
+
+  .docx_conformar_parte(path)
+
+  doc <- xml2::read_xml(path)   # truncado, ni siquiera parsea
+  ns <- c(w = ns_w)
+  textos <- xml2::xml_text(xml2::xml_find_all(doc, "//w:t", ns))
+  expect_length(textos, n + 1L)
+  expect_identical(textos[[n + 1L]], "FIN-DEL-DOCUMENTO")
+  # Y las declaraciones interiores se retiraron: solo queda la de la raiz.
+  txt <- paste(readLines(path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  expect_identical(lengths(regmatches(txt, gregexpr("xmlns:w=", txt, fixed = TRUE))), 1L)
+})

@@ -107,7 +107,11 @@
     raiz <- regmatches(txt, pos_raiz)
     decl <- regmatches(raiz, gregexpr('xmlns:[A-Za-z0-9]+="[^"]*"', raiz))[[1]]
     corte <- pos_raiz + attr(pos_raiz, "match.length")
-    resto <- substring(txt, corte)
+    # `last` EXPLICITO: el default de substring() es 1000000L, y un document.xml
+    # de mas de 1M caracteres salia truncado e ilegible (formularios de ~100
+    # filas ya lo pasan; medido 2026-10-15: 802 KB -> 577 KB, Word/LibreOffice
+    # no lo abrian).
+    resto <- substring(txt, corte, nchar(txt))
     for (d in decl) resto <- gsub(paste0(" ", d), "", resto, fixed = TRUE)
     writeLines(paste0(substring(txt, 1, corte - 1), resto), path_xml, useBytes = TRUE)
   }
