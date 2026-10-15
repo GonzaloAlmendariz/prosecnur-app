@@ -72,3 +72,7 @@ Concepto, decisiones y fallas del inventario: [plan-revamp-informe-graficos-2026
 | W6 | Multiapiladas en el Word: un gráfico, por tema, por barra; por lámina con «por tema» por defecto (D6) | front + `reporte_word_graficos_escala.R` | pendiente (por tema y por barra: motor nuevo) |
 | W7 | Cierre: contraportada con contacto | front + `reporte_word_portada.R` | pendiente |
 | W8 | «Previsualizar»: el Word real por páginas | front + job de Word → imágenes | pendiente |
+
+## QA visual reproducible de la fase Informe (2026-10-15)
+
+`node scripts/ui-quick-check.mjs` sobre una copia del catálogo del recetario, rutas `/graficos?pestana=informe`, `identidad&scope=consolidado`, `reglas` y el alias `estilo`, a 1440×1000 y 1024×600, con `--require-geometry --fail-on-issues`: 8 capturas distintas (md5), issues 0, desbordes 0, derrames 0, solapes 0, scroll jails 0, desplazamiento horizontal 0, desvíos de ruta 0, 44 grupos de geometría sin fallas ni huecos de cobertura. Dos fallas que sí encontró, ya arregladas: el motivo de Identidad en el compartido era un `<p>` suelto en su grupo (capacity-drift) y la lista de texto de la base por base no declaraba contrato. Lo único que queda es `apiErrors=2`: un 409 `E_GRAFICOS_CONSOLIDADO_NO_APLICA` de `/api/graficos/plan/sugerido` al barrer popovers en el compartido, legítimo y previo (el catálogo no es estudio de bases hermanas independientes, `graficos_plan_consolidado.R:34`). El verificador de la fase rechazó primero I11 por la numeración del Word (C5); arreglado en 09229d38d y 2644ee09e.
