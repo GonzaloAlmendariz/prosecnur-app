@@ -16,8 +16,13 @@
 #      frontend: si la verdad vive en dos sitios, en algún momento discrepan.
 #   2. El SANEO de los overrides, que quita estos campos del nivel del slide
 #      para que gane la configuración general.
+#   3. La EXCEPCIÓN explícita: un gráfico que marca `calculos_propios = TRUE`
+#      en sus overrides conserva su método y sus decimales. Es una decisión a la
+#      vista —la marca la pone el analista en ese gráfico—, no un residuo
+#      guardado hace meses: sin la marca, lo viejo se sigue ignorando.
 #
-# Ver `docs/qa/checklist-redondeo-decimales-2026-08-14.md` (ítems 6, 9-12).
+# Ver `docs/qa/checklist-redondeo-decimales-2026-08-14.md` (ítems 6, 9-12) y
+# `docs/qa/checklist-revamp-informe-graficos-2026-10-14.md` (R4).
 
 #' Campos que gobierna la configuración general y nadie pisa por lámina.
 #' @keywords internal
@@ -307,7 +312,9 @@
   spec <- if (nzchar(preset)) .PRESETS_CALCULOS[[preset]] else NULL
   if (is.null(spec)) return(el)
 
-  args_familia <- presets[[preset]]$args %||% list()
+  # Lo que rige es lo EFECTIVO del gráfico: un override que sobrevivió al saneo
+  # (`calculos_propios`) pisa al preset igual que lo pisa en el graficador.
+  args_familia <- .calculos_efectivos(presets[[preset]]$args %||% list(), el$overrides)
   metodo <- args_familia$metodo_redondeo %||% "estandar"
   condicional <- identical(modo, "si_no_cierra")
   cierra <- isTRUE(spec$cierra_100)
@@ -347,14 +354,92 @@
 #' ganar. Se hace aquí y no en cada `.render_*` porque los puntos de merge son
 #' muchos y basta olvidar uno para que una familia quede fuera del gobierno.
 #'
+#' La excepción es explícita: con `calculos_propios = TRUE` (un lógico, no un
+#' texto) los campos gobernados de ESE gráfico se conservan y la cascada vuelve
+#' a ser la normal. La marca se consume aquí en todos los casos y nunca llega a
+#' un graficador como argumento.
+#'
 #' Los valores viejos NO se borran del plan guardado: se ignoran al renderizar.
 #' Si mañana se decide volver a permitirlos, siguen ahí.
 #'
+#' No es idempotente con la marca: tras sanear, `calculos_propios` ya no está y
+#' un segundo saneo quitaría lo conservado. Por eso el elemento se sanea una
+#' sola vez, vía `.calculos_sanear_elemento()`.
+#'
 #' @param overrides Lista de overrides de un elemento.
-#' @return La misma lista sin los campos gobernados.
+#' @return La misma lista sin la marca y, salvo excepción, sin los campos gobernados.
 #' @keywords internal
 .calculos_sanear_overrides <- function(overrides) {
   if (is.null(overrides) || !length(overrides)) return(overrides)
   if (is.null(names(overrides))) return(overrides)
-  overrides[!(names(overrides) %in% .CALCULOS_CAMPOS)]
+  quitar <- "calculos_propios"
+  if (!.calculos_propios(overrides)) quitar <- c(quitar, .CALCULOS_CAMPOS)
+  overrides[!(names(overrides) %in% quitar)]
+}
+
+#' ¿El gráfico pidió sus propios cálculos?
+#'
+#' Sólo un `TRUE` lógico de largo uno: un `"true"` de texto o una lista no
+#' cuentan, para que la excepción no se encienda por un valor mal serializado.
+#' Se lee con `[[` porque `$` en una lista completa nombres parciales.
+#' @keywords internal
+.calculos_propios <- function(overrides) {
+  is.list(overrides) && isTRUE(overrides[["calculos_propios"]])
+}
+
+#' Campos gobernados que un gráfico conserva por excepción (lista vacía si no).
+#' @keywords internal
+.calculos_campos_propios <- function(overrides) {
+  if (!.calculos_propios(overrides)) return(list())
+  overrides[intersect(names(overrides), .CALCULOS_CAMPOS)]
+}
+
+#' Args de familia con lo que el gráfico conservó por excepción encima.
+#'
+#' Se usa para decidir la nota de redondeo con el método y los decimales que el
+#' graficador va a rotular, no con los del preset del informe. Recibe overrides
+#' YA saneados: lo que quede de `.CALCULOS_CAMPOS` en ellos es excepción.
+#' @keywords internal
+.calculos_efectivos <- function(args_familia = list(), overrides = NULL) {
+  args_familia <- args_familia %||% list()
+  if (!is.list(overrides) || is.null(names(overrides))) return(args_familia)
+  propios <- overrides[intersect(names(overrides), .CALCULOS_CAMPOS)]
+  if (!length(propios)) return(args_familia)
+  args_familia[names(propios)] <- propios
+  args_familia
+}
+
+#' Sanea un elemento del plan completo: sus overrides y los de sus bloques.
+#'
+#' Los bloques de una multiapilada `multilista` se renderizan cada uno con SUS
+#' overrides, sin pasar por el saneo del elemento padre; sin esto un override
+#' viejo dentro de un bloque cambiaba sus cifras. La excepción se declara en el
+#' gráfico (el slot), así que con la marca en el padre sus campos conservados
+#' bajan a todos los bloques y pisan lo que cada uno traiga.
+#'
+#' Marca el elemento como saneado y no repite el trabajo: el saneo no es
+#' idempotente con la excepción (ver `.calculos_sanear_overrides()`).
+#'
+#' @param el Elemento del plan (`ppt_element` o bloque).
+#' @return El elemento saneado.
+#' @keywords internal
+.calculos_sanear_elemento <- function(el) {
+  if (!is.list(el) || isTRUE(el[[".calculos_saneado"]])) return(el)
+  propios <- .calculos_campos_propios(el[["overrides"]])
+  if (!is.null(el[["overrides"]])) el[["overrides"]] <- .calculos_sanear_overrides(el[["overrides"]])
+  bloques <- el[["bloques"]]
+  if (is.list(bloques) && length(bloques)) {
+    el[["bloques"]] <- lapply(bloques, function(b) {
+      if (!is.list(b)) return(b)
+      ov <- .calculos_sanear_overrides(b[["overrides"]])
+      if (length(propios)) {
+        ov <- ov %||% list()
+        ov[names(propios)] <- propios
+      }
+      b[["overrides"]] <- ov
+      b
+    })
+  }
+  el[[".calculos_saneado"]] <- TRUE
+  el
 }

@@ -3693,13 +3693,13 @@ reporte_ppt_plan <- function(
 
     # --- MULTILISTA: un entry por grupo dentro de cada bloque ---
     if (identical(etype, "barras_multiapiladas") && identical(el$modo %||% "", "multilista")) {
-      for (block in el$bloques %||% list()) .split_multi_block(block)
+      for (block in .calculos_sanear_elemento(el)$bloques %||% list()) .split_multi_block(block)  # redondeo: graficos_calculos_gobernados.R
       return(invisible(NULL))
     }
 
     # --- MULTIAPILADAS var_cruce / var: un entry por grupo/variable ---
     if (identical(etype, "barras_multiapiladas")) {
-      .split_multi_block(el)
+      .split_multi_block(.calculos_sanear_elemento(el))  # el Word redondea como la lámina
       return(invisible(NULL))
     }
 
@@ -3871,7 +3871,7 @@ reporte_ppt_plan <- function(
     }
     fn <- get(fn_name, mode = "function", inherits = TRUE)
     # Cómo se redondea no se decide por lámina: ver graficos_calculos_gobernados.R
-    el$overrides <- .calculos_sanear_overrides(el$overrides %||% NULL)
+    el <- .calculos_sanear_elemento(el)
     el <- .calculos_aplicar_nota(el, presets)
 
     # presets por tipo (si no existen, lista vacia)
