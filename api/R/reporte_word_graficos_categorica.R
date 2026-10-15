@@ -88,19 +88,36 @@
   attr(g, "alto") <- .word_alto_figura("dicotomia"); g
 }
 
-#' Lollipop ordenado de menor a mayor, el mayor en azul (`g_lollipop()` moderna)
+#' Ranking con puntos (`g_lollipop()` moderna), en el orden de la espec
+#'
+#' La espec ya trae el orden resuelto (el del ranking o el declarado, las residuales al final): la primera opción va
+#' arriba, como en la lámina 72; reordenar aquí desharía `orden = "declarado"`. Colores del recetario Word: la mayor (sin
+#' contar residuales) en azul, el resto tenue y las residuales en gris; la paleta por lista (ADR 0097) los reemplaza y las
+#' que el analista resalta van en coral con su rótulo en negrita, como en la lámina. El alto crece con las filas, como las
+#' barras, y nunca baja del de la figura del recetario.
 #' @keywords internal
 .word_g_lollipop <- function(espec) {
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
-  w <- .word_envolver_holgado(espec$rotulos, 45); p <- espec$largos * 100; o <- order(p)
-  d <- data.frame(l = factor(w[o], levels = unique(w[o])), p = p[o], et = espec$cifras[o]); top <- nrow(d)
-  g <- ggplot2::ggplot(d, ggplot2::aes(y = .data$l)) +
-    ggplot2::geom_segment(ggplot2::aes(x = 0, xend = .data$p, yend = .data$l), colour = T$tenue, linewidth = 0.9) +
-    ggplot2::geom_point(ggplot2::aes(x = .data$p), size = 3, colour = as.vector(.word_colores_de_espec(espec, espec$rotulos[o], ifelse(seq_len(top) == top, T$navy, T$tenue)))) +
-    ggplot2::geom_text(ggplot2::aes(x = .data$p + max(.data$p) * 0.04, label = .data$et), hjust = 0, size = .word_pt(8.5), fontface = "bold", colour = navy, family = "Arial") +
-    ggplot2::scale_x_continuous(limits = c(0, max(d$p) * 1.15), expand = c(0, 0)) + .word_tema() +
-    ggplot2::theme(axis.text.y = ggplot2::element_text(size = max(8, 8.5 * 0.95), colour = navy, family = "Arial", hjust = 1, lineheight = 0.9, margin = ggplot2::margin(r = 8)))
-  attr(g, "alto") <- .word_alto_figura("lollipop"); g
+  l <- .word_envolver_holgado(espec$rotulos, 40); p <- espec$largos * 100
+  resid <- grepl(.CATEGORIAS_RESIDUALES, espec$rotulos, ignore.case = TRUE)
+  ps <- .word_posiciones(l); mx <- which.max(ifelse(resid, -1, p))
+  col <- as.vector(.word_colores_de_espec(espec, espec$rotulos, ifelse(resid, T$gris, ifelse(seq_along(p) == mx, T$navy, T$tenue))))
+  marcadas <- espec$rotulos %in% (espec[["resaltar"]] %||% character(0))
+  col[marcadas] <- T$coral
+  esc <- max(p, 1) * (if (any(grepl("\\(", espec$cifras))) 1.30 else 1.15)
+  d <- data.frame(l = l, p = p, y = ps$y, col = col, et = espec$cifras, negrita = marcadas,
+                  stringsAsFactors = FALSE)
+  g <- ggplot2::ggplot(d) +
+    ggplot2::geom_segment(ggplot2::aes(x = 0, xend = .data$p, y = .data$y, yend = .data$y), colour = T$tenue, linewidth = 0.9) +
+    ggplot2::geom_point(ggplot2::aes(x = .data$p, y = .data$y, colour = .data$col), size = 3) + ggplot2::scale_colour_identity() +
+    ggplot2::geom_text(ggplot2::aes(x = .data$p + esc * 0.035, y = .data$y, label = .data$et), hjust = 0, size = .word_pt(8.5), fontface = "bold",
+                       colour = navy, family = "Arial") +
+    ggplot2::geom_text(ggplot2::aes(x = -esc * 0.02, y = .data$y, label = .data$l, fontface = ifelse(.data$negrita, "bold", "plain")), hjust = 1,
+                       size = .word_pt(8.5), colour = navy, family = "Arial", lineheight = 0.9) +
+    ggplot2::scale_x_continuous(limits = c(.word_xmin(l, 8.5, esc), esc), expand = c(0, 0)) +
+    ggplot2::scale_y_continuous(limits = c(0.4, ps$tot + 0.6), expand = c(0, 0)) + .word_tema() + ggplot2::theme(legend.position = "none")
+  attr(g, "filas") <- ps$tot; attr(g, "alto") <- max(.word_alto_figura("lollipop"), .word_alto_figura("barras", ps$tot))
+  g
 }
 
 #' Divergentes: desacuerdo a la izquierda del cero, acuerdo a la derecha y los totales a cada lado (`g_divergente()`)

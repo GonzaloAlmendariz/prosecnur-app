@@ -10,7 +10,7 @@
 #' Renderer Word de cada tipo de espec
 #' @keywords internal
 .WORD_RENDERERS <- list(
-  categorica = function(e) if (isTRUE(.lam_es_dicotomia(e))) .word_g_sino(e) else .word_g_barras(e),   # la misma regla que la lámina
+  categorica = function(e) .word_categorica(e),
   escala = function(e) .word_g_escala(e),
   divergentes = function(e) .word_g_divergente(e),
   pesas = function(e) .word_g_pesas(e),
@@ -24,6 +24,16 @@
   radar = function(e) .word_g_radar(e),
   mapa = function(e) .word_g_mapa(e)
 )
+
+#' Categórica del Word: el ranking de `graficar_lollipop()` como lollipop; si no, dicotomía o barras, la misma regla que la lámina
+#'
+#' Se decide por `graficador`, no por `forma`: los puntos comparativos también llevan `forma = "lollipop"` (para la
+#' lámina 72) y en el Word todavía salen como barras (O6, Gonzalo, 2026-10-15: «O6 activar lollipop»).
+#' @keywords internal
+.word_categorica <- function(e) {
+  if (identical(e[["graficador"]], "lollipop") && identical(e[["forma"]], "lollipop")) return(.word_g_lollipop(e))
+  if (isTRUE(.lam_es_dicotomia(e))) .word_g_sino(e) else .word_g_barras(e)
+}
 
 #' El gráfico Word de un ggplot del motor: el renderer de su espec o, sin él, el propio ggplot en su marco
 #'

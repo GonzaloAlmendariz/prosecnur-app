@@ -71,10 +71,10 @@ test_that("dicotomía: la paleta llega a las dos partes por rótulo", {
 test_that("lollipop: el punto toma el color de su rótulo y, sin paleta, el mayor va en azul", {
   e <- preparar_categorica(c("A", "B", "C"), c(.2, .5, .3), c("20%", "50%", "30%"))
   p0 <- .wcp_capa(.word_g_lollipop(e), 2L)
-  expect_identical(p0$colour, c(.WORD_TINTA$tenue, .WORD_TINTA$tenue, .WORD_TINTA$navy))   # orden A, C, B
+  expect_identical(p0$colour, c(.WORD_TINTA$tenue, .WORD_TINTA$navy, .WORD_TINTA$tenue))   # orden de la espec: A, B, C
   e$colores <- c(B = "#0000AA", A = "#AA0000")
   p1 <- .wcp_capa(.word_g_lollipop(e), 2L)
-  expect_identical(p1$colour, c("#AA0000", .WORD_TINTA$tenue, "#0000AA"))                 # C sin color: su respaldo
+  expect_identical(p1$colour, c("#AA0000", "#0000AA", .WORD_TINTA$tenue))                 # C sin color: su respaldo
 })
 
 test_that("divergentes: los colores van por etiqueta, no por posición", {
