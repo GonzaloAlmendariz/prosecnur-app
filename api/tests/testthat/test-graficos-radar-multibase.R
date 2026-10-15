@@ -245,6 +245,17 @@ test_that("los numeros en los vertices se piden y el umbral no los silencia", {
   expect_false(.radar_mb_capturar_args(d)$mostrar_valores)
 })
 
+test_that("la escala del radar entre publicos no la pisa el preset de una base", {
+  # El preset `radar_tabla` declara `escala_valor = "proporcion_1"` para el
+  # radar de una base. Mezclado aqui, todo radar entre publicos avisaba que sus
+  # porcentajes (0 a 100) llegaban con la escala en proporcion (catalogo del
+  # recetario, laminas 68 y 69).
+  d <- data.frame(eje = factor(c("A", "B")), grupo = factor(c("g", "g")),
+                  valor = c(90, 40), n = c(100L, 100L))
+  args <- .radar_mb_capturar_args(d, overrides = list(escala_valor = "proporcion_1"))
+  expect_equal(args$escala_valor, "proporcion_100")
+})
+
 test_that("los decimales mandan sobre el vertice y sobre la tabla a la vez", {
   d <- data.frame(eje = factor(c("A", "B")), grupo = factor(c("g", "g")),
                   valor = c(98.04, 96.25), n = c(51L, 51L))
