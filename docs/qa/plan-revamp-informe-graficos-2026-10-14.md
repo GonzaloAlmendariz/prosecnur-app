@@ -12,6 +12,14 @@ Propuesta con maquetas: https://claude.ai/artifact/8vtEx3LmE5V92FfqXxN8ZH (priva
 Cada pestaña responde una pregunta del analista y cada ajuste vive en un solo lugar:
 
 - **Informe** (hoy Vista general): ¿está bien armado lo que voy a entregar? Vista de **maquetas** (decisión de Gonzalo, 2026-10-14: «para la vista de informe el énfasis no es cómo se ve en PowerPoint sino las maquetas; el cómo se ve en PowerPoint se queda en Lámina y el botón cambia a "Previsualizar"») y vista Word en **maquetas de página** (portada, índice, capítulos, figuras numeradas con su glifo y su pie). El Word real sólo se previsualiza en la pestaña Word (Gonzalo, 2026-10-14: «para el Word es igual, con un sistema de maquetas que se muestran de forma elegante, pero que sólo se puede previsualizar en la subtab de Word; para Informe es sólo una maqueta profesional»). En cada tarjeta, el ícono del tipo de lámina va en la cabecera y el del tipo de gráfico dentro de su espacio, junto a su pregunta («los íconos de tipo de lámina y tipo de gráficos tienen que estar mejor puestos»).
+- **Informe, revisado en detalle** (Gonzalo, 2026-10-14: «ahora revisemos Informe con el mismo detalle»). Conserva todo lo que hace hoy la Vista general (selección con clic, Mayús, Ctrl/⌘, Ctrl+A y Esc; arrastrar láminas y capítulos; Alt+↑↓; mover a capítulo; duplicar ⌘D; eliminar Supr con confirmación y «Deshacer»; doble clic o Enter abre la lámina; bloques Apertura / Cómo leer / Cierre; capítulos con subir y bajar) y suma:
+  - **Resumen clicable** arriba: todas, con avisos, faltan colores, sin gráfico (filtran y apagan las demás) y la cobertura de variables.
+  - **Estructura lateral fija** con los capítulos, su número de láminas y un punto si tienen avisos; clic lleva al capítulo (se oculta por debajo de 1280 px).
+  - **Capítulos plegables** con su separador como primera tarjeta, «N láminas · M con gráfico · K con avisos», subir, bajar y «+ Lámina» (que nace «Sin gráfico» y seleccionada).
+  - **Bloques cortos lado a lado** (Apertura y «Cómo leer»).
+  - **Barra de selección** abajo: «N láminas seleccionadas», «Mover a», «Duplicar ⌘D», «Eliminar Supr» y los atajos; avisos con «Deshacer».
+  - **Arrastrar** con línea de inserción entre tarjetas o soltando en un capítulo plegado; las tarjetas movidas o duplicadas aparecen con una animación corta.
+  - Las maquetas de estructura (portada, índice, texto, separador, cierre) se dibujan con su forma propia.
 - **Identidad**: ¿de quién es y cómo se ve? Revisada en detalle (Gonzalo, 2026-10-14: «ahora revisemos Identidad con el mismo detalle»):
   - Cabecera con el ámbito («Todo el estudio» / «Cada base», con la base que se edita), que rige todas las piezas.
   - Columna de piezas con su estado (línea aplicada, «N sin colores», letra, logos) y un cuadro «A qué salida llega» por pieza: línea visual, colores e íconos a PPT y Word; logos y letra sólo Word hasta D5.
