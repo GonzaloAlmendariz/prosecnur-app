@@ -322,7 +322,8 @@
     return(.lam_laminas_dicotomia(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), pregunta = pregunta,
                                   publico = publico, base = paste(c(texto(base), texto(pie)), collapse = ". "),
                                   folio = length(doc) + 1L, sub = texto(subtitulo), layout = layout, master = master,
-                                  por_lamina = por_lamina)$doc)
+                                  por_lamina = por_lamina,
+                                  vertical = identical((el_plot$overrides %||% list())$orientacion_dicotomica, "vertical"))$doc)
   }
   if (identical(espec$tipo, "categorica")) {
     # La pregunta categórica va en columnas (lámina 68); «N estudiantes» nombra al público de la base.

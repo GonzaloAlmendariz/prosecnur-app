@@ -1127,7 +1127,10 @@
       list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos",
            descripcion = "Pregunta de dos opciones. Con más opciones sale como barras categóricas."),
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
-           descripcion = "Por ejemplo «Sin información», para que queden las dos opciones de la dicotomía. Los porcentajes se recalculan sobre las visibles.")
+           descripcion = "Por ejemplo «Sin información», para que queden las dos opciones de la dicotomía. Los porcentajes se recalculan sobre las visibles."),
+      list(name = "orientacion", label = "Orientación", tipo_input = "choice", grupo = "estilo", default = "horizontal",
+           choices = list(list(value = "horizontal", label = "Horizontal"), list(value = "vertical", label = "Vertical")),
+           descripcion = "Horizontal: la barra partida a todo el ancho. Vertical: la misma barra de pie, con cada cifra junto a su polo.")
     )
   ),
 
