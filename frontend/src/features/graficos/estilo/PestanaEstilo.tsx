@@ -160,7 +160,7 @@ export default function PestanaEstilo() {
   const conLetra = letraModificada(decisiones);
   const piezas: Pieza[] = [
     { clave: "linea", titulo: "Línea visual", resumen: lineaNombre ?? "Sin línea aplicada", estado: lineaNombre ? { texto: "Aplicada", tono: "ok" } : { texto: "Por defecto", tono: "neutro" } },
-    { clave: "colores", titulo: "Colores de las respuestas", resumen: "Por escala",
+    { clave: "colores", titulo: "Colores", resumen: "Por escala",
       estado: faltanColores ? { texto: `${faltanColores} sin colores`, tono: "aviso" } : { texto: "Completos", tono: "ok" } },
     { clave: "logos", titulo: "Logos", resumen: conLogos ? "Logos propios" : "Los del recetario", estado: conLogos ? { texto: "Propios", tono: "ok" } : { texto: "Por defecto", tono: "neutro" } },
     { clave: "letra", titulo: "Letra", resumen: conLetra ? "Tamaño ajustado" : "Tamaño estándar", estado: conLetra ? { texto: "Ajustada", tono: "ok" } : { texto: "Estándar", tono: "neutro" } },

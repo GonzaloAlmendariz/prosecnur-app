@@ -67,7 +67,7 @@ export function CifraGrafico({ args, variable, scope, onCambio }: Props) {
         </div>
       )}
 
-      <div className="pulso-f6-cifra-textos" role="group" aria-label="Texto de la cifra">
+      <div className="pulso-f6-cifra-textos" role="group" aria-label="Texto de la cifra" data-qa-geometry-group="graficos/f6-cifra-textos" data-qa-geometry-contract="intrinsic">
         <Campo rotulo="Rótulo" valor={texto(args.rotulo)} placeholder="Vacío, se arma desde la pregunta"
           ayuda="Lo que dice la cifra, debajo del número." onCambio={(t) => onCambio({ rotulo: t || null })} />
         {deMedida && (
