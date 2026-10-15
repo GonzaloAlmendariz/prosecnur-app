@@ -35,7 +35,9 @@ export type PaginaWord =
   | PaginaCapitulo
   | { clase: "contraportada" };
 
-const FIGURAS_POR_PAGINA = 2;
+// Calibrado con el Word real del catálogo (W8, 2026-10-15): 63 páginas reales; con 2 por página la maqueta estimaba 78,
+// con 3 estima 59. Las figuras del Word se acomodan a la altura de la página.
+const FIGURAS_POR_PAGINA = 3;
 /** Entradas del «Contenido» por página: más se salen de la página A4 (en el Word el índice también sigue en otra). */
 export const ENTRADAS_POR_PAGINA = 18;   // medido: caben 20 dentro del margen de la página
 
