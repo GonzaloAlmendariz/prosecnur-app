@@ -4,6 +4,7 @@
 
 import { create } from "zustand";
 import type { Arrastre, MarcaSoltar } from "./modeloVistaGeneral";
+import type { FiltroInforme } from "./estadoTarjetas";
 import { SELECCION_VACIA, type SeleccionVistaGeneral } from "./seleccionVistaGeneral";
 
 type VistaGeneralStore = {
@@ -13,6 +14,9 @@ type VistaGeneralStore = {
   /** Ids que pide eliminar el diálogo de confirmación; null = cerrado. */
   confirmarEliminar: string[] | null;
   anuncio: string;
+  /** I3: qué tarjetas resalta el resumen clicable; las demás se atenúan. */
+  filtro: FiltroInforme;
+  setFiltro: (f: FiltroInforme) => void;
   setSeleccion: (s: SeleccionVistaGeneral) => void;
   setArrastre: (a: Arrastre | null) => void;
   setMarca: (m: MarcaSoltar | null) => void;
@@ -28,6 +32,8 @@ export const useVistaGeneralUi = create<VistaGeneralStore>((set) => ({
   marca: null,
   confirmarEliminar: null,
   anuncio: "",
+  filtro: "todas",
+  setFiltro: (filtro) => set({ filtro }),
   setSeleccion: (seleccion) => set((s) => (s.seleccion === seleccion ? s : { seleccion })),
   setArrastre: (arrastre) => set(arrastre ? { arrastre } : { arrastre: null, marca: null }),
   setMarca: (marca) => set((s) => (mismaMarca(s.marca, marca) ? s : { marca })),

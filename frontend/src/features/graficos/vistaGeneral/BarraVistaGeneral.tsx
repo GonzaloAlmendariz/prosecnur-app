@@ -7,6 +7,8 @@
 import { useState } from "react";
 import { Copy, ListTree, Trash2, X } from "../../../vendor/lucide-react";
 import { InterruptorOtros } from "./InterruptorOtros";
+import { ResumenInforme } from "./ResumenInforme";
+import type { FiltroInforme } from "./estadoTarjetas";
 import type { CoberturaInforme, FilaVistaGeneral } from "./modeloVistaGeneral";
 
 const esMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
@@ -14,6 +16,9 @@ const MOD = esMac ? "⌘" : "Ctrl+";
 
 type Props = {
   cobertura: CoberturaInforme;
+  conteos: Record<FiltroInforme, number>;
+  filtro: FiltroInforme;
+  onFiltro: (f: FiltroInforme) => void;
   filas: readonly FilaVistaGeneral[];
   seleccionadas: number;
   /** Destinos válidos para la selección (con un separador elegido, sólo otros capítulos: viaja el capítulo entero). */
@@ -24,7 +29,7 @@ type Props = {
   onVaciar: () => void;
 };
 
-export function BarraVistaGeneral({ cobertura, filas, seleccionadas, destinosHabilitados, onMoverA, onDuplicar, onEliminar, onVaciar }: Props) {
+export function BarraVistaGeneral({ cobertura, conteos, filtro, onFiltro, filas, seleccionadas, destinosHabilitados, onMoverA, onDuplicar, onEliminar, onVaciar }: Props) {
   const [destino, setDestino] = useState("");
   const habilitadas = filas.filter((f) => destinosHabilitados.has(f.id));
   const destinoValido = habilitadas.some((f) => f.id === destino) ? destino : habilitadas[0]?.id ?? "";
@@ -34,11 +39,8 @@ export function BarraVistaGeneral({ cobertura, filas, seleccionadas, destinosHab
       <div className="pulso-f6-vg-cobertura" aria-label="Cobertura del informe"
         data-qa-geometry-group="graficos/f6-vg-cobertura" data-qa-geometry-contract="intrinsic">
         <h2 className="pulso-f6-vg-titulo-vista">Informe</h2>
-        <span className="pulso-f6-vg-dato" data-qa-geometry-member><strong>{cobertura.laminas}</strong> {cobertura.laminas === 1 ? "lámina" : "láminas"}</span>
-        <span className="pulso-f6-vg-dato" data-qa-geometry-member><strong>{cobertura.conGrafico}</strong> con gráfico</span>
-        {cobertura.incompletas > 0 && (
-          <span className="pulso-f6-vg-dato is-aviso" data-qa-geometry-member><strong>{cobertura.incompletas}</strong> {cobertura.incompletas === 1 ? "incompleta" : "incompletas"}</span>
-        )}
+        {/* I3: el resumen clicable reemplaza los conteos de láminas, con gráfico e incompletas. */}
+        <ResumenInforme conteos={conteos} filtro={filtro} onFiltro={onFiltro} />
         <span className="pulso-f6-vg-dato" data-qa-geometry-member><strong>{cobertura.capitulos}</strong> {cobertura.capitulos === 1 ? "capítulo" : "capítulos"}</span>
         <InterruptorOtros />
       </div>
