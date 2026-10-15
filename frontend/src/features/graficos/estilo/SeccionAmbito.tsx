@@ -23,7 +23,7 @@ export function SeccionAmbito({
         ahora pasa al lugar nuevo y el anterior se conserva por si vuelves.
       </p>
       <fieldset className="pulso-f6-estilo-opciones" data-qa-geometry-group="graficos/f6-estilo-ambitos" data-qa-geometry-contract="equal">
-        <legend className="pulso-sr-only">Dónde se guarda el estilo del cliente</legend>
+        <legend className="pulso-sr-only">Dónde se guarda la identidad</legend>
         {ESTILO_AMBITOS.map((id) => (
           <label key={id} className={`pulso-f6-estilo-opcion${ambito === id ? " is-activa" : ""}`} data-qa-geometry-member>
             <input
