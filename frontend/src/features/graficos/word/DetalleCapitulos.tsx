@@ -9,7 +9,7 @@ import { CampoTexto } from "./DetalleDocumento";
 
 const VARIANTES = [
   { clave: "B", nombre: "Número grande", detalle: "El número en azul claro, el título y la entrada." },
-  { clave: "A", nombre: "Sobria", detalle: "«CAPÍTULO N», el título y la entrada." },
+  { clave: "A", nombre: "Sobria", detalle: "Capítulo N en versalitas, el título y la entrada." },
 ] as const;
 
 const texto = (v: unknown) => (typeof v === "string" ? v.trim() : "");
@@ -53,7 +53,7 @@ export function DetalleCapitulos() {
         <h3 className="pulso-f6-w-titulo">Entrada de cada capítulo</h3>
         <p className="pulso-f6-informe-ayuda">Va debajo del título del capítulo. Vacía, el Word usa el subtítulo de su separador.</p>
         {capitulos.length === 0 ? (
-          <p className="pulso-f6-informe-ayuda">El informe todavía no tiene separadores de capítulo: los resultados van en un capítulo «Resultados» sin entrada.</p>
+          <p className="pulso-f6-informe-ayuda">El informe todavía no tiene separadores de capítulo: los resultados van en un capítulo de Resultados, sin entrada.</p>
         ) : (
           <div className="pulso-f6-w-entradas">
             {capitulos.map((c) => (

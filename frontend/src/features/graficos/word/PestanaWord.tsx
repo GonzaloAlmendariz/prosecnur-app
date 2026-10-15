@@ -18,7 +18,7 @@ import { contarFiguras, tituloCortoWord } from "../vistaGeneral/paginasWord";
 import { DetalleDocumento } from "./DetalleDocumento";
 import { DetallePortada } from "./DetallePortada";
 import { DetalleCapitulos } from "./DetalleCapitulos";
-import { WordPresetsEditor } from "../WordPresetsEditor";
+import { DetalleGraficos } from "./DetalleGraficos";
 import { PartesWord } from "./PartesWord";
 import { PARTES_WORD, paginaDeParte, resumenDeParte, type ParteWord } from "./modeloPestanaWord";
 import "../estilo/estilo.css";
@@ -47,23 +47,17 @@ function DetalleParte({ parte, resumen, tituloInforme, portada }: {
   if (parte === "documento") return <DetalleDocumento tituloInforme={tituloInforme} resumen={resumen} />;
   if (parte === "portada") return <DetallePortada desdeLamina={portada} />;
   if (parte === "capitulos") return <DetalleCapitulos />;
-  if (parte === "graficos") {
-    return (
-      <section className="pulso-f6-informe-seccion" aria-label="Ajustes por tipo de gráfico" data-qa-geometry-member data-seccion="word-graficos">
-        <WordPresetsEditor />
-      </section>
-    );
-  }
+  if (parte === "graficos") return <DetalleGraficos />;   // O7a: sólo lo que el Word hace distinto
   const textos: Record<Exclude<ParteWord, "graficos" | "documento" | "portada" | "capitulos">, { titulo: string; cuerpo: string; vinculo?: { pestana: string; foco?: string; texto: string } }> = {
-    cierre: { titulo: "Cierre", cuerpo: "La contraportada lleva el logo y el contacto al centro.", vinculo: { pestana: "identidad", foco: "logos", texto: "Identidad › Logos" } },
+    cierre: { titulo: "Cierre", cuerpo: "La contraportada lleva el logo y el contacto al centro.", vinculo: { pestana: "identidad", foco: "logos", texto: "Identidad" } },
   };
   const t = textos[parte];
   return (
     <section className="pulso-f6-informe-seccion" aria-label={t.titulo} data-qa-geometry-member data-seccion={`word-${parte}`}>
       <h3 className="pulso-f6-w-titulo">{t.titulo}</h3>
       <p className="pulso-f6-informe-ayuda">{t.cuerpo}</p>
-      {t.vinculo && <p className="pulso-f6-informe-ayuda">Los logos vienen de <Vinculo pestana={t.vinculo.pestana} foco={t.vinculo.foco}>{t.vinculo.texto}</Vinculo>.</p>}
-      {parte === "cierre" && <p className="pulso-f6-informe-ayuda">Las respuestas «Otros» se deciden en <Vinculo pestana="reglas" foco="otros">Reglas › Otros</Vinculo>.</p>}
+      {t.vinculo && <p className="pulso-f6-informe-ayuda">Los logos se eligen en <Vinculo pestana={t.vinculo.pestana} foco={t.vinculo.foco}>{t.vinculo.texto}</Vinculo>.</p>}
+      {parte === "cierre" && <p className="pulso-f6-informe-ayuda">Las respuestas abiertas de tipo Otros se deciden en <Vinculo pestana="reglas" foco="otros">Reglas</Vinculo>.</p>}
     </section>
   );
 }
@@ -86,7 +80,7 @@ export default function PestanaWord() {
     <div className="pulso-f6-informe" data-audit-ready="graficos-word" data-qa-surface="graficos/f6-word" data-scope={scope}>
       <header className="pulso-f6-informe-barra">
         <h2 className="pulso-f6-informe-titulo">Word</h2>
-        <p className="pulso-f6-informe-ayuda" role="note">A4 · ≈ {paginas.length} páginas · {nGraficos} {nGraficos === 1 ? "gráfico" : "gráficos"}</p>
+        <p className="pulso-f6-informe-ayuda" role="note">A4, unas {paginas.length} páginas y {nGraficos} {nGraficos === 1 ? "gráfico" : "gráficos"}</p>
       </header>
       <div className="pulso-f6-informe-cuerpo" data-qa-scroll-owner="word">
         {disponibilidad.motivoWord ? (
@@ -102,7 +96,7 @@ export default function PestanaWord() {
                 portada={paginas[0]?.clase === "portada" ? { titulo: paginas[0].titulo, sub: paginas[0].sub, fecha: paginas[0].fecha } : { titulo: tituloInforme, sub: "", fecha: "" }} />
             </div>
             <aside className="pulso-f6-w-prev" aria-label="Así queda">
-              <span className="pulso-f6-lectura-lab">Así queda · {PARTES_WORD.find((p) => p.key === parte)?.label}</span>
+              <span className="pulso-f6-lectura-lab">Así queda</span>
               {pagina
                 ? <div className="pulso-f6-w-pagina"><PaginaMaqueta pagina={pagina} tituloCorto={tituloCorto} /></div>
                 : <p className="pulso-f6-informe-ayuda">El informe todavía no tiene esta página.</p>}
