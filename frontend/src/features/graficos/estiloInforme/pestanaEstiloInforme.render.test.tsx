@@ -129,6 +129,6 @@ describe("PestanaEstiloInforme · markup", () => {
     expect(html).toContain("cambian su PPT consolidado y no se copian a ninguna base");
     expect(html).not.toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""/);
     expect(html).toMatch(/<select id="f6-informe-met-barras_apiladas"(?![^>]*disabled)/);
-    expect(html).toContain("Aplicar a todos");
+    expect(html).toContain('aria-label="Regla para todo el informe"');   // R2: los segmentados reemplazan a «Aplicar a todos»
   });
 });

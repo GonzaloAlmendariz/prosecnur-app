@@ -415,3 +415,59 @@
 .pulso-f6-regla {
   scroll-margin-top: var(--pulso-space-3);
 }
+
+/* R2 del rediseño (2026-10-15): la regla del informe (método y decimales) y la tabla por tipo plegada. */
+.pulso-f6-regla-general {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  margin: var(--pulso-space-2) 0;
+}
+
+.pulso-f6-regla-lab {
+  padding-top: 5px;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-regla-general .pulso-f6-informe-ayuda {
+  margin: var(--pulso-space-1) 0 0;
+}
+
+.pulso-f6-regla-tipos {
+  margin-top: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+  padding-top: var(--pulso-space-2);
+}
+
+.pulso-f6-regla-tipos > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-1) 0;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.pulso-f6-regla-tipos > summary:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: 2px;
+}
+
+.pulso-f6-regla-pill {
+  padding: 1px 8px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
+}
+
+.pulso-f6-regla-pill.is-propia {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}

@@ -8,6 +8,8 @@ import { RotateCcw } from "../../../vendor/lucide-react";
 import { resolveGraphLucideIcon } from "../lucideRegistry";
 import { SelloProcedencia } from "../estilo/SelloProcedencia";
 import { CabeceraSeccion } from "./CabeceraSeccion";
+import { Segmentado } from "../subpestanas/Segmentado";
+import { reglaGeneral } from "./reglaRedondeo";
 import {
   DECIMALES_MAX,
   METODO_ESTANDAR,
@@ -135,20 +137,18 @@ export function SeccionCalculos({
   const cierran = filas.filter((f) => f.admiteMetodo);
   const independientes = filas.filter((f) => !f.admiteMetodo);
   const modificado = nota.procedencia === "propio" || filas.some((f) => f.procedencia === "propio");
+  const general = reglaGeneral(filas);
+  const nPropias = general.conReglaPropia.length;
   return (
     <section className="pulso-f6-informe-seccion" aria-labelledby={tituloId} data-qa-geometry-member>
       <CabeceraSeccion
         id={tituloId}
-        titulo="Cálculos"
+        titulo="Redondeo y decimales"
         modificado={modificado}
         etiquetaVolver="Volver a los cálculos por defecto"
         onVolver={acciones.onVolverTodo}
       />
-      <p className="pulso-f6-informe-ayuda">
-        Lo único de esta pestaña que no es estético: decide las cifras de todo el mazo. El redondeo estándar redondea cada
-        cifra sola, como SPSS y Excel, y puede sumar 99 % o 101 %; el reparto a 100 % cierra la suma a costa de alejar
-        alguna cifra de su valor.
-      </p>
+      <p className="pulso-f6-informe-ayuda">Decide las cifras de todo el informe, en el PPT y en el Word.</p>
 
       <div className="pulso-f6-informe-nota">
         <input
@@ -168,13 +168,31 @@ export function SeccionCalculos({
         <p className="pulso-f6-informe-estado" role="status">{estado}</p>
       ) : (
         <>
-          <div className="pulso-f6-informe-aplicar" role="group" aria-label="Aplicar a todos los gráficos">
-            <span>Aplicar a todos:</span>
-            <PulsoButton variant="secondary" size="sm" onClick={() => acciones.onMetodoEnTodas(METODO_ESTANDAR)}>Redondeo estándar</PulsoButton>
-            <PulsoButton variant="secondary" size="sm" onClick={() => acciones.onMetodoEnTodas(METODO_REPARTO)}>Reparto a 100 %</PulsoButton>
-            <PulsoButton variant="secondary" size="sm" onClick={() => acciones.onDecimalesEnTodas(0)}>Sin decimales</PulsoButton>
-            <PulsoButton variant="secondary" size="sm" onClick={() => acciones.onDecimalesEnTodas(1)}>Un decimal</PulsoButton>
+          {/* R2 (2026-10-15): la regla del informe es la que comparte la mayoría de los tipos; elegirla la escribe en todos. */}
+          <div className="pulso-f6-regla-general" role="group" aria-label="Regla para todo el informe">
+            <span className="pulso-f6-regla-lab">Método</span>
+            <div>
+              <Segmentado etiqueta="Método de redondeo del informe" valor={general.metodo === METODO_REPARTO ? METODO_REPARTO : METODO_ESTANDAR}
+                onCambiar={(m) => acciones.onMetodoEnTodas(m)}
+                opciones={[{ clave: METODO_ESTANDAR, rotulo: "Estándar" }, { clave: METODO_REPARTO, rotulo: "Reparto a 100 %" }]} />
+              <p className="pulso-f6-informe-ayuda">
+                {general.metodo === METODO_REPARTO
+                  ? "Cada barra suma exactamente 100 %: el resto se reparte entre las cifras que más perdieron al redondear."
+                  : "Cada cifra se redondea sola, como SPSS y Excel. Una barra puede sumar 99 % o 101 %."}
+              </p>
+            </div>
+            <span className="pulso-f6-regla-lab">Decimales</span>
+            <div>
+              <Segmentado etiqueta="Decimales del informe" valor={general.decimales >= 1 ? "1" : "0"}
+                onCambiar={(d) => acciones.onDecimalesEnTodas(Number(d))}
+                opciones={[{ clave: "0", rotulo: "Sin decimales" }, { clave: "1", rotulo: "Un decimal" }]} />
+            </div>
           </div>
+          <details className="pulso-f6-regla-tipos" open={nPropias > 0 || undefined}>
+            <summary>
+              Por tipo de gráfico
+              <span className={`pulso-f6-regla-pill${nPropias ? " is-propia" : ""}`}>{nPropias ? `${nPropias} con regla propia` : "todos con la del informe"}</span>
+            </summary>
           {cierran.length > 0 ? (
             <>
               <h4 className="pulso-f6-informe-subtitulo">Sus categorías suman 100 %</h4>
@@ -190,6 +208,7 @@ export function SeccionCalculos({
               <TablaCalculos filas={independientes} acciones={acciones} titulo="Gráficos de cifras independientes" />
             </>
           ) : null}
+          </details>
         </>
       )}
     </section>
