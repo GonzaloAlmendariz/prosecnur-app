@@ -158,6 +158,56 @@ test_that("el editor normaliza códigos crudos, descarta filas vacías y sella l
   expect_true(nzchar(s$equivalencias_publicos$sellos$estudiantes))
 })
 
+test_that("base_texto de la fila persiste como el enunciado: recortado y sólo si no está vacío", {
+  sid <- .req_setup("separate")
+  on.exit(session_delete(sid), add = TRUE)
+  .equiv_guardar_declaracion(sid, list(
+    list(seccion = "Servicios", etiqueta_estandar = "¿Conoce el Servicio de salud?",
+         variables = list(docentes = "p13_1", estudiantes = "p11_1"),
+         enunciado = "  ¿Conoces el Servicio de salud?  ",
+         base_texto = "  quienes usaron algún servicio de la PUCP  "),
+    list(seccion = "Servicios", etiqueta_estandar = "¿Qué tan satisfecho con el Servicio de salud?",
+         variables = list(estudiantes = "p13_1"), base_texto = "   ")
+  ))
+  filas <- session_get(sid)$equivalencias_publicos$filas
+  expect_identical(filas[[1]]$base_texto, "quienes usaron algún servicio de la PUCP")
+  expect_identical(filas[[1]]$enunciado, "¿Conoces el Servicio de salud?")
+  expect_false("base_texto" %in% names(filas[[2]]))
+
+  # Volver a guardar sin el campo lo quita: la declaración es la del editor.
+  .equiv_guardar_declaracion(sid, list(
+    list(seccion = "Servicios", etiqueta_estandar = "¿Conoce el Servicio de salud?",
+         variables = list(docentes = "p13_1", estudiantes = "p11_1"))))
+  expect_null(session_get(sid)$equivalencias_publicos$filas[[1]]$base_texto)
+})
+
+test_that("ida y vuelta: \"\" borra enunciado y base_texto guardados, y la clave ausente no los revive", {
+  sid <- .req_setup("separate")
+  on.exit(session_delete(sid), add = TRUE)
+  arm <- list(escala = list(list(codigo = "1", etiqueta = "Sí"), list(codigo = "2", etiqueta = "No")),
+              por_base = list(docentes = list(comparable = TRUE, mapa = stats::setNames(list(), character(0))),
+                              estudiantes = list(comparable = TRUE, mapa = stats::setNames(list(), character(0)))))
+  fila <- function(...) c(list(seccion = "Servicios", etiqueta_estandar = "¿Conoce el Servicio de salud?",
+                               variables = list(docentes = "p13_1", estudiantes = "p11_1")), list(...))
+  guardada <- function() session_get(sid)$equivalencias_publicos$filas[[1]]
+  declarar <- function() .equiv_guardar_declaracion(sid, list(fila(
+    enunciado = "¿Conoces el Servicio de salud?", base_texto = "quienes usaron un servicio", armonizacion = arm)))
+
+  # 1. El cliente borra los dos textos: llegan "" y la fila previa no los repone,
+  #    ni siquiera por la conservación de la armonización (la clave no viaja).
+  declarar()
+  expect_identical(guardada()$base_texto, "quienes usaron un servicio")
+  .equiv_guardar_declaracion(sid, list(fila(enunciado = "", base_texto = "")))
+  expect_false(any(c("enunciado", "base_texto") %in% names(guardada())))
+  expect_false(is.null(guardada()$armonizacion))  # lo que sí se conserva sigue conservándose
+
+  # 2. La fila llega SIN las claves: tampoco quedan.
+  declarar()
+  .equiv_guardar_declaracion(sid, list(fila()))
+  expect_false(any(c("enunciado", "base_texto") %in% names(guardada())))
+  expect_false(is.null(guardada()$armonizacion))
+})
+
 # ADR 0096 decisión 5: GET /api/carga/equivalencias publica la revisión nueva
 # (`r3:` desde el ADR 0103), calculada con los instrumentos de cada público. Es uno de los cuatro
 # productores que tienen que coincidir (los otros tres en

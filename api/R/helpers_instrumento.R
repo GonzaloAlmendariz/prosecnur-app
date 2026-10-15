@@ -15,3 +15,16 @@
   tipo <- tolower(as.character(surv$type[i]))
   if (is.na(tipo)) "" else tipo
 }
+
+# Etiqueta del instrumento sin el marcado de énfasis de Kobo/ODK: `**negrita**`
+# y `*cursiva*` pierden los asteriscos y conservan el texto. Sólo se quitan los
+# PARES que abrazan texto (sin espacio pegado por dentro), así que un asterisco
+# suelto que es parte del contenido («De 5* a 10*», una llamada de nota) se
+# queda. Vectorizada; NA sale "".
+.inst_sin_marcado <- function(x) {
+  x <- as.character(x %||% character(0))
+  x[is.na(x)] <- ""
+  x <- gsub("\\*\\*(?=\\S)(.+?)(?<=\\S)\\*\\*", "\\1", x, perl = TRUE)
+  x <- gsub("(?<!\\*)\\*(?=[^\\s*])([^*]*?)(?<=[^\\s*])\\*(?!\\*)", "\\1", x, perl = TRUE)
+  trimws(gsub("\\s+", " ", x, perl = TRUE))
+}

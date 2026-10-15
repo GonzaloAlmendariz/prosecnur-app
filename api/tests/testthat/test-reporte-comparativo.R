@@ -82,31 +82,32 @@ test_that("comparativo simple: geometría, formatos, n.c., «—» y pie como la
   expect_identical(.rc_estilo(wb, "Comparativo", 6, 3)$numFmt$formatCode, "0.00%")
   expect_identical(.rc_estilo(wb, "Comparativo", 6, 2)$numFmt$formatCode, "#,##0")
 
-  # Pie: fuente, base, ponderación por año y casos sustantivos sin mapa.
+  # Pie: fuente y base en líneas propias, N ponderado (alguien pondera) y casos
+  # sustantivos sin mapa. Sin la línea «Ponderación: …» (Gonzalo, 2026-10-15).
   expect_identical(d[10, 1], "Fuente: Pulso PUCP 2026.")
   expect_identical(d[11, 1], "Base: total de encuestados.")
-  expect_identical(d[12, 1], "Ponderación: 2024 por factor_ponderacion. 2025 por w25. 2026 sin ponderar.")
-  expect_identical(d[13, 1], "La columna N muestra el N ponderado.")
-  expect_identical(d[14, 1], "2 casos de 2024 sin correspondencia en la escala.")
+  expect_identical(d[12, 1], "La columna N muestra el N ponderado.")
+  expect_identical(d[13, 1], "2 casos de 2024 sin correspondencia en la escala.")
+  expect_false(any(grepl("^Ponderación", d[[1]])))
 
   # DEN-01: n.c. en 2025 en gris cursiva, «—» donde 2024 no ofrecía la opción
   # y un cero observado en 2026 que sigue siendo 0 / 0.00 %.
-  expect_identical(d[16, 1], "Denunció")
-  expect_identical(unname(unlist(d[19:22, 4])), rep("n.c.", 4))
-  est <- .rc_estilo(wb, "Comparativo", 19, 4)
+  expect_identical(d[15, 1], "Denunció")
+  expect_identical(unname(unlist(d[18:21, 4])), rep("n.c.", 4))
+  est <- .rc_estilo(wb, "Comparativo", 18, 4)
   expect_true("ITALIC" %in% toupper(est$fontDecoration))
   expect_identical(toupper(unname(unlist(est$fontColour))[1]), "FF6B7280")
-  expect_identical(d[21, 1], "No recuerda")
-  expect_identical(unname(unlist(d[21, 2:3])), rep("n.a.", 2))
-  est <- .rc_estilo(wb, "Comparativo", 21, 2)
+  expect_identical(d[20, 1], "No recuerda")
+  expect_identical(unname(unlist(d[20, 2:3])), rep("n.a.", 2))
+  est <- .rc_estilo(wb, "Comparativo", 20, 2)
   expect_true("ITALIC" %in% toupper(est$fontDecoration))
-  expect_equal(as.numeric(d[21, 6]), 0)
-  expect_equal(as.numeric(d[21, 7]), 0)
-  expect_identical(.rc_estilo(wb, "Comparativo", 21, 7)$numFmt$formatCode, "0.00%")
-  expect_equal(as.numeric(d[22, 2]), g$mf$preguntas[[2]]$periodos$b2024$N)  # el total no se marca
-  expect_identical(d[24, 1], "Base: quienes experimentaron al menos una situación.")
-  expect_identical(d[27, 1], "n.c.: no comparable por diferencias en la redacción de la pregunta entre mediciones.")
-  expect_identical(d[28, 1], "n.a.: no aplica, la opción no se ofrecía ese año.")
+  expect_equal(as.numeric(d[20, 6]), 0)
+  expect_equal(as.numeric(d[20, 7]), 0)
+  expect_identical(.rc_estilo(wb, "Comparativo", 20, 7)$numFmt$formatCode, "0.00%")
+  expect_equal(as.numeric(d[21, 2]), g$mf$preguntas[[2]]$periodos$b2024$N)  # el total no se marca
+  expect_identical(d[23, 1], "Base: quienes experimentaron al menos una situación.")
+  expect_identical(d[25, 1], "n.c.: no comparable por diferencias en la redacción de la pregunta entre mediciones.")
+  expect_identical(d[26, 1], "n.a.: no aplica, la opción no se ofrecía ese año.")
 
   notas <- unlist(d[grepl("^(Fuente|Base|Ponderación|La columna|n\\.c\\.|n\\.a\\.|—:|[0-9])", d[[1]]), 1])
   .rc_notas_limpias(notas)
@@ -114,7 +115,7 @@ test_that("comparativo simple: geometría, formatos, n.c., «—» y pie como la
   expect_identical(g$rs$preguntas[[2]]$no_ofrecidas, list(b2024 = list("3")))
 
   # Una pregunta por página y ajuste al ancho.
-  expect_identical(.rc_saltos(g$simple), c(15L, 29L))
+  expect_identical(.rc_saltos(g$simple), c(14L, 27L))
   expect_match(wb$worksheets[[1]]$pageSetup, 'fitToWidth="1"', fixed = TRUE)
 })
 
@@ -156,31 +157,31 @@ test_that("comparativo de cruces: Respuesta x año, «—», letras dentro del a
   # Pie en el orden del contrato.
   expect_identical(d[19, 1], paste("Fuente: Pulso PUCP 2026. Base: total de encuestados.",
                                    "Porcentajes por columna dentro de cada año."))
-  expect_identical(d[20, 1], "Ponderación: 2024 por factor_ponderacion. 2025 por w25. 2026 sin ponderar.")
-  expect_identical(d[21, 1], "Lugar de nacimiento: «Lima Metropolitana y Callao» incluye el Callao.")
-  expect_identical(d[22, 1], paste("n.a.: no aplica, la opción no se ofrecía ese año.",
+  expect_false(any(grepl("^Ponderación", d[[1]])))
+  expect_identical(d[20, 1], "Lugar de nacimiento: «Lima Metropolitana y Callao» incluye el Callao.")
+  expect_identical(d[21, 1], paste("n.a.: no aplica, la opción no se ofrecía ese año.",
                                    "El cuestionario de 2024 no incluía la opción «Fuera del país»."))
-  expect_identical(d[23, 1], "2 casos de 2024 sin correspondencia en la escala.")
+  expect_identical(d[22, 1], "2 casos de 2024 sin correspondencia en la escala.")
   # Especiales del cruce: fuera de toda columna pero dentro del Total.
-  expect_identical(d[24, 1], "5 casos de 2025 sin categoría en Lugar de nacimiento (Opción 99).")
+  expect_identical(d[23, 1], "5 casos de 2025 sin categoría en Lugar de nacimiento (Opción 99).")
   # Bases reducidas agrupadas por columna, con los años.
-  expect_identical(d[25, 1], paste("Tiene base reducida (menos de 30 casos) la columna «Fuera del país»",
+  expect_identical(d[24, 1], paste("Tiene base reducida (menos de 30 casos) la columna «Fuera del país»",
                                    "(2025 y 2026). Sus porcentajes deben leerse con cautela."))
 
   # Subtabla de letras.
-  expect_identical(d[27, 1], "Comparaciones de proporciones de columna")
-  expect_identical(d[28, 3], "Lugar de nacimiento")
-  expect_true(all(c("A28:B28", "C28:E28", "A30:A32") %in% m))
-  expect_identical(unname(unlist(d[29, 3:5])),
+  expect_identical(d[26, 1], "Comparaciones de proporciones de columna")
+  expect_identical(d[27, 3], "Lugar de nacimiento")
+  expect_true(all(c("A27:B27", "C27:E27", "A29:A31") %in% m))
+  expect_identical(unname(unlist(d[28, 3:5])),
                    c("Lima Metropolitana y Callao (A)", "Otras regiones (B)", "Fuera del país (C)"))
-  letras_xlsx <- unname(unlist(d[31, 3:5]))
+  letras_xlsx <- unname(unlist(d[30, 3:5]))
   letras_xlsx[is.na(letras_xlsx)] <- ""
   expect_identical(letras_xlsx, unname(c25$letras[1, ]))
-  expect_identical(d[30, 5], "n.a.")
-  expect_identical(d[39, 1], paste0(.notas_pie_significancia("z", 0.05),
+  expect_identical(d[29, 5], "n.a.")
+  expect_identical(d[38, 1], paste0(.notas_pie_significancia("z", 0.05),
                                     " Las comparaciones se hacen dentro de cada año.",
                                     " Las letras usan el N ponderado, sin corrección por efecto de diseño."))
-  expect_identical(d[40, 1], d[22, 1])
+  expect_identical(d[39, 1], d[21, 1])
 
   # DEN-01 no comparable en 2025: toda la fila del año en n.c. «No recuerda»
   # no se ofrecía en 2024: toda su fila del año en «—».
@@ -216,10 +217,10 @@ test_that("notas libres: la de la pregunta y las generales tras un renglón en b
               notas_generales = c("Los segmentos se definen igual en los tres años"))
   g <- .rc_generar(extras = ext)
   d <- .rc_celdas(g$simple)
-  expect_identical(d[14, 1], "2 casos de 2024 sin correspondencia en la escala.")
-  expect_true(is.na(d[15, 1]))
-  expect_identical(d[16, 1], "En cada medición la pregunta se refiere al año de esa encuesta.")
-  expect_identical(d[17, 1], "Los segmentos se definen igual en los tres años.")
+  expect_identical(d[13, 1], "2 casos de 2024 sin correspondencia en la escala.")
+  expect_true(is.na(d[14, 1]))
+  expect_identical(d[15, 1], "En cada medición la pregunta se refiere al año de esa encuesta.")
+  expect_identical(d[16, 1], "Los segmentos se definen igual en los tres años.")
   expect_identical(sum(d[[1]] == "Los segmentos se definen igual en los tres años.", na.rm = TRUE), 3L)
   expect_identical(sum(d[[1]] == "En cada medición la pregunta se refiere al año de esa encuesta.", na.rm = TRUE), 1L)
 
@@ -267,13 +268,11 @@ test_that("contrato de artefactos: un deliverable y un único manifest con su hu
   }
 })
 
-test_that("R4b condiciones: pie de calibración fallida, N ponderado sólo si alguien pondera, n.a. con especiales", {
+test_that("R4b condiciones: N ponderado sólo si alguien pondera, n.a. con especiales", {
   rot <- .armz_rotulos(c("b2024", "b2025", "b2026"))
   pond <- list(b2024 = list(pondera = FALSE, estado = "no_aplicada"),
                b2025 = list(pondera = TRUE, metodo = "columna", peso_columna = "w25"),
                b2026 = list(pondera = FALSE, estado = "sin_ponderar"))
-  expect_identical(.comparativo_linea_ponderacion(pond, names(pond), rot),
-    "Ponderación: 2024 sin ponderar (la calibración declarada no se aplicó). 2025 por w25. 2026 sin ponderar.")
   expect_identical(.comparativo_linea_n_ponderado(pond), "La columna N muestra el N ponderado.")
   expect_identical(.comparativo_linea_n_ponderado(pond[c(1, 3)]), "")
 
@@ -477,4 +476,128 @@ test_that("variable ausente: pie «n.c.» con su causa en el simple y en cruces,
                    list(list(base = "b2024", fila = "Lugar de nacimiento", variable = "lug24",
                              motivo = "no_esta_en_la_base")))
   .rc_notas_limpias(pie[grepl("^n\\.c\\.", pie)])
+})
+
+# Pie y título contra la maqueta HSyVbG (2026-10-15): título = enunciado de la
+# fila sin marcado de Kobo, «Base: <base_texto>.» declarada en la matriz o
+# calculada contra el total de casos con peso > 0, «Fuente: Pulso PUCP <año>.»
+# por defecto y ninguna línea «Ponderación: …».
+.rc_sesion_maqueta <- function(env = parent.frame()) {
+  sid <- .az_setup(env)
+  s <- session_get(sid)
+  for (i in seq_along(s$equivalencias_publicos$filas)) {
+    f <- s$equivalencias_publicos$filas[[i]]
+    if (identical(f$id, "VBG-01")) {
+      f$enunciado <- "¿Alguna vez en la vida has experimentado **violencia basada en género**?"
+      f$armonizacion$escala[[1]]$etiqueta <- "*Sí*"
+    }
+    if (identical(f$id, "DEN-01")) {
+      f$base_texto <- "quienes declararon haber experimentado hostigamiento sexual alguna vez en la vida"
+    }
+    if (identical(f$id, "S-05")) f$etiqueta_estandar <- "**Lugar** de nacimiento"
+    s$equivalencias_publicos$filas[[i]] <- f
+  }
+  .session_env[[sid]] <- s
+  sid
+}
+
+# Líneas de pie entre el Total de la pregunta `titulo` y el siguiente renglón vacío.
+.rc_pie_de <- function(col1, titulo, desde_total = TRUE) {
+  i <- which(col1 == titulo)[1]
+  expect_false(is.na(i), info = titulo)
+  t <- i + which(col1[(i + 1):length(col1)] == "Total")[1]
+  if (!desde_total) t <- i
+  out <- character(0)
+  r <- t + 1L
+  # En cruces el Total ocupa un renglón por período con la columna A combinada.
+  while (r <= length(col1) && is.na(col1[r])) r <- r + 1L
+  while (r <= length(col1) && !is.na(col1[r]) && nzchar(col1[r])) {
+    out <- c(out, col1[r]); r <- r + 1L
+  }
+  out
+}
+
+test_that("maqueta: título = enunciado sin marcado, base declarada o calculada, fuente con año, sin ponderación (simple)", {
+  sid <- .rc_sesion_maqueta()
+  notas <- list(base_reducida = list(activo = FALSE))  # nada declarado: fuente y base por defecto
+  ap <- .armz_preparar(sid, list(notas = notas))
+  mf <- armonizada_modelo_frecuencias(ap)
+  path <- withr::local_tempfile(fileext = ".xlsx")
+  reporte_comparativo_simple(mf, path, .armz_rotulos(ap$periodos), notas)
+  d <- .rc_celdas(path)[[1]]
+
+  titulo <- "¿Alguna vez en la vida has experimentado violencia basada en género?"
+  expect_true(titulo %in% d)
+  expect_true("Sí" %in% d)
+  expect_false(any(grepl("*", d, fixed = TRUE)))
+  expect_true("¿Dónde naciste?" %in% d)  # S-05 declara enunciado: manda sobre la etiqueta
+  expect_false(any(grepl("^Ponderación", d)))
+
+  # VBG-01: 2024 deja 2 casos sin mapa y 2025 3 especiales fuera de la escala.
+  expect_identical(.rc_pie_de(d, titulo)[1:3],
+                   c("Fuente: Pulso PUCP 2026.", "Base: quienes respondieron la pregunta.",
+                     "La columna N muestra el N ponderado."))
+  # DEN-01: base declarada en la fila de la matriz, punto final incluido.
+  expect_identical(.rc_pie_de(d, "Denunció")[1:2],
+                   c("Fuente: Pulso PUCP 2026.",
+                     "Base: quienes declararon haber experimentado hostigamiento sexual alguna vez en la vida."))
+  # Sin base_texto, DEN-01 la tiene completa en 2024 y 2026 (2025 es n.c. y no cuenta).
+  ap$preguntas[[2]]$base_texto <- ""
+  q_den <- armonizada_modelo_frecuencias(ap)$preguntas[[2]]
+  expect_identical(q_den$periodos$b2024$N_sin_peso, q_den$periodos$b2024$casos)
+  expect_identical(.comparativo_base(notas, q_den, ap$periodos), "total de encuestados")
+  # Un caso con peso 0 no es encuestado de la base; uno sin respuesta sí la reduce.
+  q_den$periodos$b2026$N_sin_peso <- q_den$periodos$b2026$casos - 1L
+  expect_identical(.comparativo_base(notas, q_den, ap$periodos), "quienes respondieron la pregunta")
+  # Lo declarado en las notas sigue mandando sobre lo calculado; base_texto sobre todo.
+  expect_identical(.comparativo_base(list(base_defecto = "total de encuestados"), q_den, ap$periodos),
+                   "total de encuestados")
+  q_den$base_texto <- "quienes estudian"
+  expect_identical(.comparativo_base(list(base_defecto = "x"), q_den, ap$periodos), "quienes estudian")
+})
+
+test_that("maqueta: el pie de cruces junta fuente, base y porcentajes en una línea", {
+  sid <- .rc_sesion_maqueta()
+  notas <- list(fuente = "Pulso PUCP", por_cruce = list(`S-05` = "Lugar de nacimiento: nota."),
+                base_reducida = list(activo = FALSE))
+  ap <- .armz_preparar(sid, list(notas = notas), cruces_refs = list("S-05"))
+  path <- withr::local_tempfile(fileext = ".xlsx")
+  reporte_comparativo_cruces(armonizada_modelo_cruces(ap), path, .armz_rotulos(ap$periodos), notas)
+  dc <- .rc_celdas(path)
+  d <- dc[[1]]
+  titulo <- "¿Alguna vez en la vida has experimentado violencia basada en género?"
+  expect_true(titulo %in% d)
+  expect_identical(dc[which(d == titulo) + 1L, 5], "Lugar de nacimiento")  # banner sin marcado
+  expect_true("Sí" %in% d)
+  expect_false(any(grepl("*", unlist(dc), fixed = TRUE)))
+  expect_false(any(grepl("^Ponderación", d)))
+  # «Pulso PUCP» es la que siembra el editor de notas: no cuenta como declarada.
+  expect_identical(.rc_pie_de(d, titulo)[1:2],
+                   c(paste("Fuente: Pulso PUCP 2026. Base: quienes respondieron la pregunta.",
+                           "Porcentajes por columna dentro de cada año."),
+                     "Lugar de nacimiento: nota."))
+  expect_identical(.rc_pie_de(d, "Denunció")[1],
+                   paste("Fuente: Pulso PUCP 2026.",
+                         "Base: quienes declararon haber experimentado hostigamiento sexual alguna vez en la vida.",
+                         "Porcentajes por columna dentro de cada año."))
+})
+
+test_that("fuente: la declarada se respeta, la por defecto lleva el año del último período si es año", {
+  rot <- c(b2024 = "2024", b2025 = "2025", b2026 = "2026")
+  per <- names(rot)
+  expect_identical(.comparativo_fuente(NULL, rot, per), "Fuente: Pulso PUCP 2026.")
+  expect_identical(.comparativo_fuente(list(fuente = "Pulso PUCP."), rot, per), "Fuente: Pulso PUCP 2026.")
+  expect_identical(.comparativo_fuente(list(fuente = "Encuesta OIGD 2026"), rot, per),
+                   "Fuente: Encuesta OIGD 2026.")
+  expect_identical(.comparativo_fuente(list(fuente = "  "), rot, per), "Fuente: Pulso PUCP 2026.")
+  expect_identical(.comparativo_fuente(NULL, c(a = "2024", b = "egresados"), c("a", "b")), "Fuente: Pulso PUCP.")
+  expect_identical(.comparativo_fuente(NULL, rot, c("b2026", "b2024")), "Fuente: Pulso PUCP 2024.")
+})
+
+test_that("marcado de Kobo: se quitan los pares de asteriscos, no los sueltos", {
+  expect_identical(.inst_sin_marcado(c("**Sí**, *mucho*", "De 5* a 10*", "x * y", NA, "")),
+                   c("Sí, mucho", "De 5* a 10*", "x * y", "", ""))
+  expect_identical(.armz_titulo_fila(list(enunciado = " *¿Has* **visto**? ", etiqueta_estandar = "E")),
+                   "¿Has visto?")
+  expect_identical(.armz_titulo_fila(list(enunciado = "", etiqueta_estandar = "**E**")), "E")
 })

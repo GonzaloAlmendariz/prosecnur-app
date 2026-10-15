@@ -318,16 +318,9 @@ test_that("R4b-2: una columna peso sin ponderación declarada corta, «sin ponde
   expect_true(ap$ponderacion$b2026$declarada)
   q <- armonizada_modelo_frecuencias(ap)$preguntas[[1]]
   expect_equal(q$periodos$b2026$N, nrow(datos$b2026))
-
-  # Pie: cómo se ponderó cada año, agrupado por método.
-  pond <- list(b2024 = list(pondera = TRUE, metodo = "columna", peso_columna = "factor_ponderacion"),
-               b2025 = list(pondera = TRUE, metodo = "columna", peso_columna = "factor_ponderacion"),
-               b2026 = list(pondera = FALSE, metodo = "sin_ponderar"))
-  rot <- .armz_rotulos(c("b2024", "b2025", "b2026"))
-  expect_identical(.comparativo_linea_ponderacion(pond, names(pond), rot),
-                   "Ponderación: 2024 y 2025 por factor_ponderacion. 2026 sin ponderar.")
-  expect_identical(.comparativo_linea_ponderacion(ap$ponderacion, ap$periodos, rot),
-                   "Ponderación: 2024 por factor_ponderacion. 2025 por w25. 2026 sin ponderar.")
+  # Cómo se ponderó cada año queda en el manifest, no en el pie (Gonzalo, 2026-10-15).
+  expect_identical(ap$ponderacion$b2025$peso_columna, "w25")
+  expect_false(exists(".comparativo_linea_ponderacion", envir = asNamespace("prosecnurapp"), inherits = FALSE))
 })
 
 test_that("R4b-3: casos sin mapa por pregunta y período, sustantivos y especiales por separado", {

@@ -189,6 +189,9 @@
     # El texto de la pregunta de una matriz por bloques (una serie) describe la pregunta y se queda (ADR 0103).
     enunciado <- trimws(as.character(f$enunciado %||% "")[1])
     if (!is.na(enunciado) && nzchar(enunciado)) limpia$enunciado <- enunciado
+    # A quién se le hizo la pregunta, para el pie de los comparativos («Base: …»).
+    base_texto <- trimws(as.character(f$base_texto %||% "")[1])
+    if (!is.na(base_texto) && nzchar(base_texto)) limpia$base_texto <- base_texto
     id <- trimws(as.character(f$id %||% ""))[1]
     if (!is.na(id) && nzchar(id)) limpia$id <- id
     arm <- .equiv_armon_normalizar(f$armonizacion, bases, limpia$etiqueta_estandar)
