@@ -519,8 +519,7 @@ reporte_word_plan <- function(
           toc_inserted <- TRUE
           doc <- officer::body_add_break(doc)
         }
-        level_i <- suppressWarnings(as.integer(entry$meta$word_heading_level %||% 1L)[1])
-        if (!is.finite(level_i) || is.na(level_i) || level_i < 1L) level_i <- 1L
+        level_i <- .word_nivel_seccion(entry$meta)   # un subcapítulo es sección N.M (reporte_word_documento.R)
         heading_style <- if (level_i <= 1L) "heading 1" else "heading 2"
         heading_fp <- if (level_i <= 1L) presets_word$section_style else (presets_word$subsection_style %||% presets_word$title_style)
         heading_txt <- .strip_heading_number(entry$title)
