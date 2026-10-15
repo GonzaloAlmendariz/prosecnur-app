@@ -178,7 +178,7 @@
     sl("p_slide_cifras_y_graficos", titulo = "Cifras destacadas (p172)",
        cifra_izquierda = g_cifra("conoce_mision", "conoce la misión"),
        cifra_centro = g_cifra("consulta_mision", "sabe dónde consultarla"),
-       cifra_derecha = .cr_g("p_numerico", var = "estudiantes$horas_estudio", metrica = "mean", titulo = "Horas de estudio a la semana"),
+       cifra_derecha = .cr_g("p_cifra", var = "estudiantes$horas_estudio", modo = "media", unidad = "horas", rotulo = "Horas de estudio a la semana"),
        grafico_izquierda = g_sexo, grafico_derecha = g_ciclo),
 
     # ---- 2.4 Comparaciones -------------------------------------------------------------------------------------------
