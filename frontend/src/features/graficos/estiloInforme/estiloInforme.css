@@ -515,3 +515,68 @@
   color: var(--pulso-text-faint);
   font-size: 11px;
 }
+
+/* R5: gráficos con regla propia bajo una regla del informe. */
+.pulso-f6-excepciones {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: var(--pulso-space-1) 0 var(--pulso-space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-excepciones li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border-radius: var(--pulso-radius);
+  font-size: 12.5px;
+}
+
+.pulso-f6-excepciones li:nth-child(odd) {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-f6-excepcion-pos {
+  flex: none;
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+}
+
+.pulso-f6-excepcion-titulo {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-f6-excepcion-valor {
+  flex: none;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-excepcion-ver {
+  flex: none;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--module-accent);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.pulso-f6-excepcion-ver:hover {
+  text-decoration: underline;
+}
+
+.pulso-f6-excepcion-ver:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: 2px;
+}

@@ -40,6 +40,9 @@ import { SeccionCasos } from "./SeccionCasos";
 import { useEffect } from "react";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { NivelesReglas } from "./NivelesReglas";
+import { excepcionesDelPlan } from "./excepcionesPlan";
+import { GRAFICOS_CON_CASOS, opcionCasos } from "../laminas/CasosGrafico";
+import { tituloQueSale } from "../laminas/tituloQueSale";
 import { ARG_NOTA_MODO, ARG_NOTA_TEXTO, conModoNota, conTextoNota, leerNota } from "./notaRedondeo";
 import { conCasosJunto, leerCasosJunto } from "./casosJunto";
 import { ARG_SUFIJO_POR_BASE, conSufijoDeBase, leerSufijosPorBase } from "./sufijoPorBase";
@@ -63,7 +66,7 @@ export default function PestanaEstiloInforme() {
   const { presets: defaults, loading: cargandoDefaults } = usePresetsDefaults();
   const presets = usePlanStore((s) => s.presets);
   const setPresets = usePlanStore((s) => s.setPresets);
-  const { sources: fuentes, multi } = useVariables();
+  const { sources: fuentes, multi, variables: variablesPlan } = useVariables();
   const bases = multi ? fuentes.map((f) => f.name) : [];
 
   const metaBase = presetsByName[PRESET_BASE];
@@ -95,6 +98,11 @@ export default function PestanaEstiloInforme() {
     onVolverTodo: () => cambiarPresets((p) => filas.reduce(sinCalculos, sinArgs(p, PRESET_BASE, [ARG_NOTA, ARG_NOTA_MODO, ARG_NOTA_TEXTO]))),
   };
 
+  const slidesPlan = usePlanStore((s) => s.plan.slides);
+  // R5: los gráficos con casos propios («Siempre» / «Nunca» en su tarjeta) se listan bajo la regla.
+  const excepcionesCasos = useMemo(() => excepcionesDelPlan(slidesPlan,
+    (graficador, args) => (GRAFICOS_CON_CASOS.has(graficador) ? ({ siempre: "Siempre", nunca: "Nunca", informe: null } as const)[opcionCasos(args)] : null),
+    (s) => tituloQueSale(s, variablesPlan, "Lámina")), [slidesPlan, variablesPlan]);
   const cargando = cargandoCatalogo || cargandoDefaults;
   // Un enlace con `foco` lleva a su regla una vez montada (sin robar el foco del teclado).
   useEffect(() => {
@@ -131,7 +139,7 @@ export default function PestanaEstiloInforme() {
             <SeccionCalculos filas={filas} nota={{ ...nota, ...leerNota(presets, nota.activa) }} acciones={acciones} estado={estadoCalculos} />
           </div>
           <div id="regla-casos" className="pulso-f6-regla" data-qa-geometry-member>
-            <SeccionCasos casos={leerCasosJunto(presets)} onCambiar={(c) => cambiarPresets((p) => conCasosJunto(p, c))} />
+            <SeccionCasos casos={leerCasosJunto(presets)} onCambiar={(c) => cambiarPresets((p) => conCasosJunto(p, c))} excepciones={excepcionesCasos} />
           </div>
           <div id="regla-base" className="pulso-f6-regla" data-qa-geometry-member>
           <SeccionTextoBase
