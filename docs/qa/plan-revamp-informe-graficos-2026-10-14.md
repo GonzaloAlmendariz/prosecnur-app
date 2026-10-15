@@ -15,6 +15,9 @@ Cada pestaña responde una pregunta del analista y cada ajuste vive en un solo l
 - **Identidad**: ¿de quién es y cómo se ve? Línea visual, colores de las respuestas, logos, letra, íconos, con muestra viva.
 - **Reglas** (hoy Estilo del informe): ¿qué dicen las cifras? Redondeo, casos, texto de la base, «Otros», nota de redondeo, cada una con su «cómo se lee».
 - **Word**: ¿cómo sale como documento? Piezas del documento primero; sólo los tipos de gráfico que usa el informe; «Previsualizar» genera el Word real y lo muestra por páginas.
+  - Multiapiladas en el Word en tres formas (Gonzalo, 2026-10-14: «que todas las multiapiladas vayan en un gráfico, que vayan por temas o que cada barra sea un gráfico independiente»): un solo gráfico, un gráfico por tema, un gráfico por barra. El motor del Word hoy sólo hace la primera (`reporte_word_graficos_escala.R`); las otras dos son motor nuevo.
+
+Las maquetas de página del Word siguen la convención de `docs/qa/motor-ppt-2026-10-06/4-recetario/propuesta-word.docx`: encabezado corrido con filete, títulos numerados («5.4.») en sans azul, cada gráfico sin marco con «Gráfico N» en negrita, la pregunta en cursiva encima y al pie la base y la fuente centradas; portada con PUCP a la izquierda y PULSO PUCP a la derecha, título azul y filete coral corto. Las maquetas usan los glifos e íconos de la app (`glifosGrafico.tsx`, `IconoTipo`), no dibujos propios.
 
 ## Fallas encontradas en el inventario (F0)
 
@@ -36,7 +39,7 @@ Cada pestaña responde una pregunta del analista y cada ajuste vive en un solo l
 | F2 | Informe, vista Word en maquetas de página | bloqueado por D1 |
 | F3 | Identidad | bloqueado por D3 y D5 |
 | F4 | Reglas | bloqueado por D1 y D4 |
-| F5 | Word: piezas del documento, gráficos del informe y «Previsualizar» del Word real | pendiente de F2 |
+| F5 | Word: piezas del documento, gráficos del informe, multiapiladas en uno / por tema / por barra y «Previsualizar» del Word real | pendiente de F2 y D6 |
 
 ## Decisiones
 
@@ -47,3 +50,4 @@ Cada pestaña responde una pregunta del analista y cada ajuste vive en un solo l
 | D3 | Lugar de la línea visual | Identidad | bloqueado (decide Gonzalo) |
 | D4 | «Otros» como regla del informe | pasa a Reglas, texto corregido | bloqueado (decide Gonzalo) |
 | D5 | Logos y letra en el PPT | llevarlos o marcarlos «Sólo Word» | bloqueado (decide Gonzalo; decisión 16 de `decisiones-pendientes-f6-2026-10-10.md`) |
+| D6 | Multiapiladas en el Word: ¿una forma para todo el informe o por lámina con una por defecto? | por lámina, con «Un gráfico por tema» como valor del informe | bloqueado (decide Gonzalo) |
