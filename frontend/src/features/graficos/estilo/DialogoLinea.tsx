@@ -11,6 +11,7 @@ import { usePlanStore } from "../store";
 import { useLineasPropias } from "./lineasPropiasStore";
 import { lineaDesdePerfil, lineaDesdePlan } from "./modeloLineaPropia";
 import { PulsoButton } from "../../../components/PulsoButton";
+import { aplicarPropia } from "./BibliotecaLineas";
 
 const mensaje = (e: unknown) => (e instanceof Error && e.message ? e.message : "No se pudo guardar la línea visual.");
 
@@ -19,7 +20,6 @@ export function DialogoLinea() {
   const setEdicion = useLineasPropias((s) => s.setEdicion);
   const guardar = useLineasPropias((s) => s.guardar);
   const eliminar = useLineasPropias((s) => s.eliminar);
-  const aplicar = usePlanStore((s) => s.applyPptStyleProfile);
   // Estado del formulario: vive sólo mientras el diálogo está abierto y se reinicia al abrirlo.
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -66,7 +66,7 @@ export function DialogoLinea() {
         id = idLineaNueva(titulo);
       }
       const guardada = await guardar(id, linea);
-      if (edicion.modo === "nueva") aplicar(guardada);   // lo actual pasa a ser esta línea
+      if (edicion.modo === "nueva") aplicarPropia(guardada);   // lo actual pasa a ser esta línea (con su huella, ID3d)
       setEdicion(null);
     } catch (err) {
       setError(mensaje(err));

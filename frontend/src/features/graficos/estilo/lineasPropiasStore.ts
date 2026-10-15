@@ -24,6 +24,9 @@ type LineasPropiasStore = {
   /** El diálogo abierto (efímero: una acción sobre una línea, no una vista enlazable). */
   edicion: EdicionLinea | null;
   setEdicion: (e: EdicionLinea | null) => void;
+  /** ID3d: huella del plan justo después de aplicar o guardar una línea propia (efímera: se pierde al recargar). */
+  huella: { id: string; valor: Record<string, unknown> } | null;
+  setHuella: (h: { id: string; valor: Record<string, unknown> } | null) => void;
   lineas: LineaVisualPropia[];
   cargadas: boolean;
   error: string;
@@ -37,6 +40,8 @@ const mensaje = (e: unknown, porDefecto: string) => (e instanceof Error && e.mes
 export const useLineasPropias = create<LineasPropiasStore>((set, get) => ({
   edicion: null,
   setEdicion: (edicion) => set({ edicion }),
+  huella: null,
+  setHuella: (huella) => set({ huella }),
   lineas: [],
   cargadas: false,
   error: "",

@@ -56,3 +56,68 @@ export function lineaDesdePerfil(perfil: PptStyleProfileMeta, titulo: string): L
     { titulo, descripcion: perfil.descripcion ?? "", colores: true, graficos: true },
   );
 }
+
+const esRegistro = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const igual = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+/** Cuántos valores de `aporte` ya no valen lo mismo en `actual` (hojas comparadas; un registro se recorre). */
+function cambiados(actual: unknown, aporte: unknown): number {
+  if (esRegistro(aporte)) {
+    const a = esRegistro(actual) ? actual : {};
+    return Object.entries(aporte).reduce((n, [k, v]) => n + cambiados(a[k], v), 0);
+  }
+  return igual(actual, aporte) ? 0 : 1;
+}
+
+/**
+ * ID3d (2026-10-15): ¿el plan cambió algo de lo que trae la línea aplicada? Aplicar FUNDE la línea sobre el plan, así que
+ * el plan siempre tiene más que la línea: sólo cuentan los valores que la línea pone (presets, paletas, ajustes
+ * guardados por id y reglas, sin el `profile_id`). Devuelve cuántos difieren; 0 es «sin cambios».
+ */
+export function cambiosSobreLinea(plan: PlanParaLinea, linea: Pick<PptStyleProfileMeta, "presets" | "paletas" | "overrides_reusables" | "scope_rules">): number {
+  const reglas = (linea.scope_rules ?? {}) as { global?: Record<string, unknown> };
+  const global = esRegistro(reglas.global) ? Object.fromEntries(Object.entries(reglas.global).filter(([k]) => k !== "profile_id")) : {};
+  const overridesPlan = new Map((plan.overridesReusables as { id?: string }[]).map((o) => [o.id, o]));
+  const overrides = (linea.overrides_reusables ?? []).reduce((n, o) => n + (igual(overridesPlan.get((o as { id?: string }).id), o) ? 0 : 1), 0);
+  return cambiados(plan.presets, linea.presets ?? {}) + cambiados(plan.paletas, linea.paletas ?? {}) + overrides
+    + cambiados(plan.scopeRules, { ...reglas, global });
+}
+
+/** Hojas distintas entre dos valores, sobre la UNIÓN de sus claves (una clave nueva en cualquiera de los dos cuenta). */
+export function diferencias(a: unknown, b: unknown): number {
+  if (esRegistro(a) || esRegistro(b)) {
+    const x = esRegistro(a) ? a : {};
+    const y = esRegistro(b) ? b : {};
+    return [...new Set([...Object.keys(x), ...Object.keys(y)])].reduce((n, k) => n + diferencias(x[k], y[k]), 0);
+  }
+  return igual(a, b) ? 0 : 1;
+}
+
+/**
+ * Huella del plan en lo que una línea gobierna según su `incluye` (sin `profile_id`). Se toma al aplicar una línea
+ * propia; comparar la huella de ahora con esa detecta también los ajustes NUEVOS que la línea no traía (p. ej. elegir
+ * «reparto» donde la línea no decía nada), que `cambiosSobreLinea` no ve.
+ */
+export function huellaPlan(plan: PlanParaLinea, incluye: { colores: boolean; portada: boolean }): Record<string, unknown> {
+  const { global, ...resto } = plan.scopeRules as { global?: Record<string, unknown> };
+  const globalSinPerfil = esRegistro(global) ? Object.fromEntries(Object.entries(global).filter(([k]) => k !== "profile_id")) : {};
+  return {
+    ...(incluye.colores ? { paletas: plan.paletas } : {}),
+    ...(incluye.portada ? {
+      presets: plan.presets,
+      overrides: Object.fromEntries((plan.overridesReusables as { id?: string }[]).map((o) => [o.id ?? "", o])),
+      reglas: { ...resto, global: globalSinPerfil },
+    } : {}),
+  };
+}
+
+/** Lo que hay que devolverle al plan para descartar los cambios: la huella vuelta a la forma del store. */
+export function estiloDesdeHuella(huella: Record<string, unknown>, lineaId: string): Partial<PlanParaLinea> {
+  const reglas = esRegistro(huella.reglas) ? huella.reglas : null;
+  return {
+    ...(esRegistro(huella.paletas) ? { paletas: huella.paletas as PlanParaLinea["paletas"] } : {}),
+    ...(esRegistro(huella.presets) ? { presets: huella.presets as PlanParaLinea["presets"] } : {}),
+    ...(esRegistro(huella.overrides) ? { overridesReusables: Object.values(huella.overrides) } : {}),
+    ...(reglas ? { scopeRules: { ...reglas, global: { ...(esRegistro(reglas.global) ? reglas.global : {}), profile_id: lineaId } } } : {}),
+  };
+}
