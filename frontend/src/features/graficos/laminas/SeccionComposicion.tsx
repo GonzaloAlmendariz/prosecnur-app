@@ -98,7 +98,7 @@ export function SeccionComposicion({ slide, lamina, ranura, onCambiarLamina }: P
       )}
 
 
-      <button type="button" className="pulso-f6-boton pulso-f6-composicion-cambiar" onClick={onCambiarLamina}>
+      <button type="button" className="pulso-f6-boton pulso-f6-composicion-cambiar" data-qa-geometry-capacity="owned" onClick={onCambiarLamina}>
         <LayoutTemplate size={15} aria-hidden="true" />
         Cambiar de lámina…
       </button>

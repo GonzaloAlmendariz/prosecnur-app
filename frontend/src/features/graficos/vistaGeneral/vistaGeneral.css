@@ -1472,10 +1472,9 @@
   display: inline-flex;
   align-items: center;
   align-self: center;
-  height: 22px;
   min-height: 0;
   line-height: 1;
-  padding: 0 var(--pulso-space-2);
+  padding: 4px var(--pulso-space-2);
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
   background: transparent;

@@ -23,7 +23,7 @@ export function CabeceraSeccion({
   extra?: ReactNode;
 }) {
   return (
-    <header className="pulso-f6-informe-cabecera">
+    <header className="pulso-f6-informe-cabecera" data-qa-geometry-capacity="owned">
       <h3 id={id}>{titulo}</h3>
       <MarcaModificado visible={modificado} />
       {extra}
