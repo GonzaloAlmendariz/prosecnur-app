@@ -25,6 +25,19 @@ test_that("el plan del catálogo valida y cubre todos los gráficos vigentes y t
   expect_equal(setdiff(.slide_names(), c(tipos, antiguas)), character(0))
 })
 
+test_that("cada ranura de cifra del catálogo lleva una cifra destacada, como exige el selector", {
+  # Lámina 67 (2026-10-15): la ranura `cifra_derecha` llevaba un indicador numérico; la lámina salía igual pero la
+  # tarjeta mostraba controles de otro gráfico. El selector no lo permite (`encajeEnRanura`); el catálogo tampoco.
+  plan <- .catalogo_recetario_plan()
+  ranuras <- unlist(lapply(plan, function(s) {
+    nm <- grep("^cifra_", names(s$payload), value = TRUE)
+    if (!length(nm)) return(NULL)
+    stats::setNames(vapply(nm, function(n) as.character(s$payload[[n]]$graficador %||% ""), ""), paste(s$id, nm))
+  }))
+  expect_gt(length(ranuras), 0L)
+  expect_equal(names(ranuras)[ranuras != "p_cifra"], character(0))
+})
+
 test_that("las bases sintéticas traen cada tipo de variable que el recetario necesita y se regeneran idénticas", {
   b <- .catalogo_recetario_bases()
   expect_setequal(names(b), c("docentes", "estudiantes", "egresados", "estudiantes_2018", "estudiantes_2021"))
