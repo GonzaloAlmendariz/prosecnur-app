@@ -587,6 +587,10 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
   piso <- .radar_mb_piso(datos, eje_min)
   if (piso > 0) args$limites <- c(piso / 100, 1)
   if (length(overrides)) args <- utils::modifyList(args, overrides)
+  # El radar entre públicos calcula sus propios porcentajes (0 a 100): la escala no es configurable. El preset
+  # `radar_tabla` trae `escala_valor = "proporcion_1"` para el radar de una base y, mezclado aquí, hacía que todo radar
+  # entre públicos avisara «recibió valores de hasta 90 con la escala en proporción» (catálogo del recetario, 2026-10-14).
+  args$escala_valor <- "proporcion_100"
 
   # Quedarse SOLO con lo que `graficar_radar()` acepta. El preset llega con el
   # estilo base ya heredado —`preservar_tamanos_texto`, `size_texto_barras`,
