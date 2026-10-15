@@ -1419,7 +1419,7 @@
              list(value = "N",      label = "Conteo (N)", hint = "Cantidad de casos válidos.")
            )),
       list(name = "cruce",   label = "Dividir por", tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "decimales", label = "Decimales", tipo_input = "number", grupo = "valores", default = 1, min = 0, max = 2,
+      list(name = "decimales", label = "Decimales", tipo_input = "number", grupo = "valores", default = 1, min = 0, max = 4, step = 1,
            descripcion = "Decimales de la cifra. No lo gobierna Reglas: el numérico no rotula porcentajes."),   # O7c
       list(name = "mostrar_leyenda", label = "Mostrar la leyenda", tipo_input = "bool", grupo = "valores", default = TRUE,
            descripcion = "La leyenda de las series cuando el gráfico se divide por grupos."),   # O7c
@@ -1454,7 +1454,7 @@
       # C40: formal de `p_histograma()` (antes sólo en el preset; el slot lo descartaba). Sin default: vacío = sin tope.
       list(name = "limite_superior", label = "Límite superior", tipo_input = "number", grupo = "datos",
            descripcion = "Tope del eje. Los valores que lo superan se juntan en la última barra, rotulada con «+» (por ejemplo «60+»). Vacío: sin tope."),
-      list(name = "decimales", label = "Decimales", tipo_input = "number", grupo = "valores", default = 0, min = 0, max = 2,
+      list(name = "decimales", label = "Decimales", tipo_input = "number", grupo = "valores", default = 0, min = 0, max = 4, step = 1,
            descripcion = "Decimales de las cifras. No lo gobierna Reglas: el histograma no rotula porcentajes."),   # O7c
       list(name = "mostrar_bins_vacios", label = "Mostrar intervalos vacíos", tipo_input = "bool", grupo = "datos",
            default = TRUE,
