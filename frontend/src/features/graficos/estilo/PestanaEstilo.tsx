@@ -1,5 +1,5 @@
-// Pestaña «Estilo del cliente» de Procesamiento › Gráficos (F6.4; A6 R3; ADR 0094; dirección F6 §4.6). Dirección:
-// `/graficos?pestana=estilo`. Edita `config.estilo_cliente` en `usePlanStore` (un paso deshacible por cambio) y lo guarda
+// Pestaña «Identidad» (antes «Estilo del cliente») de Procesamiento › Gráficos (F6.4; A6 R3; ADR 0094; dirección F6 §4.6). Dirección:
+// `/graficos?pestana=identidad` (`estilo` se lee como alias). Edita `config.estilo_cliente` en `usePlanStore` (un paso deshacible por cambio) y lo guarda
 // el autosave de siempre. Procedencia derivada contra los defaults del GET: «Del recetario» o «Propio» por bloque.
 //
 // Un solo dueño de desplazamiento (C4, No Scroll Jail): el cuerpo. La vista previa del Word acompaña pegada arriba.

@@ -1,5 +1,5 @@
-// Pestaña «Estilo del informe» de Procesamiento › Gráficos (A10 W-E; decisiones 28–29). Dirección:
-// `/graficos?pestana=estilo-informe`. Trae a Láminas lo que sólo vivía en el «Estilo global» del editor anterior: texto
+// Pestaña «Reglas» (antes «Estilo del informe») de Procesamiento › Gráficos (A10 W-E; decisiones 28–29). Dirección:
+// `/graficos?pestana=reglas` (`estilo-informe` se lee como alias). Trae a Láminas lo que sólo vivía en el «Estilo global» del editor anterior: texto
 // de la base (C48), cálculos (C50), paletas (C51), línea visual (C52) y la parte del Word que se decide (C49 reducida).
 // Los íconos (C53) son otra rebanada.
 //
