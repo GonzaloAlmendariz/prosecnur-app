@@ -78,6 +78,7 @@ export default function VistaGeneral() {
   const anuncio = useVistaGeneralUi((s) => s.anuncio);
   const filtro = useVistaGeneralUi((s) => s.filtro);
   const plegados = useVistaGeneralUi((s) => s.plegados);
+  const tamano = useVistaGeneralUi((s) => s.tamano);
   const insertSlideAt = usePlanStore((s) => s.insertSlideAt);
 
   const estructura = useMemo(() => construirEstructura(slides), [slides]);
@@ -407,13 +408,15 @@ export default function VistaGeneral() {
 
   let indiceCapitulo = -1;
   return (
-    <div className="pulso-f6-vg" data-audit-ready="graficos-vista-general" data-qa-surface="graficos/f6-vista-general">
+    <div className="pulso-f6-vg" data-tamano={tamano} data-audit-ready="graficos-vista-general" data-qa-surface="graficos/f6-vista-general">
       <BarraVistaGeneral
         cobertura={cobertura}
         conteos={conteos}
         filtro={filtro}
         onFiltro={useVistaGeneralUi.getState().setFiltro}
         seleccionadas={seleccion.ids.length}
+        tamano={tamano}
+        onTamano={useVistaGeneralUi.getState().setTamano}
       />
       <span className="pulso-sr-only" role="status" aria-live="polite">{anuncio}</span>
       <div

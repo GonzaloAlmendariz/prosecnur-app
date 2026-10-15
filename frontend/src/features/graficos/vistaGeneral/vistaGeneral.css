@@ -9,8 +9,10 @@
 
 .pulso-f6-vg {
   /* I2 (2026-10-14): la tarjeta es una caja con cabecera (tipo de lámina y número), maqueta 16:9 y pie (título). */
-  --pulso-f6-vg-ancho: 184px;
-  --pulso-f6-vg-alto: 103.5px;
+  /* I10: el tamaño se elige por el ancho de la CAJA (Grande 300, Medio 220, Chico 160); lienzo y alto se derivan. */
+  --pulso-f6-vg-caja: 220px;
+  --pulso-f6-vg-ancho: calc(var(--pulso-f6-vg-caja) - 2 * var(--pulso-f6-vg-pad) - 2px);
+  --pulso-f6-vg-alto: calc(var(--pulso-f6-vg-ancho) * 9 / 16);
   --pulso-f6-vg-cabeza: 18px;
   --pulso-f6-vg-pie: 18px;
   --pulso-f6-vg-pad: 7px;
@@ -194,9 +196,47 @@
   flex: 0 1 auto;
 }
 
-/* Un bloque no tiene asa que sangrar: sus tarjetas arrancan al borde y el bloque gana ese ancho para caber junto a otro. */
+/* Un bloque no tiene asa que sangrar: sus tarjetas arrancan al borde y el bloque gana ese ancho para caber junto a otro.
+   Sus tarjetas son de ancho fijo (el tamaño elegido) para que el bloque mida lo que ellas y pueda ir junto a otro. */
 .pulso-f6-vg-fila.is-bloque .pulso-f6-vg-tarjetas {
+  display: flex;
+  flex-wrap: wrap;
   padding-left: 0;
+}
+
+.pulso-f6-vg-fila.is-bloque .pulso-f6-vg-tarjeta {
+  width: var(--pulso-f6-vg-caja);
+}
+
+/* El ancho de un bloque lo dan sus tarjetas, no su cabecera: la cabecera no aporta al ancho intrínseco (width 0 +
+   min-width 100 %) y su título y su conteo se cortan con elipsis si no caben. */
+.pulso-f6-vg-fila.is-bloque .pulso-f6-vg-fila-cabeza {
+  width: 0;
+  min-width: 100%;
+}
+
+.pulso-f6-vg-fila.is-bloque .pulso-f6-vg-fila-conteo {
+  flex: 0 100 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* En la cabecera estrecha de un bloque se corta primero el conteo; el título, sólo si aun así no cabe. */
+.pulso-f6-vg-fila.is-bloque .pulso-f6-vg-fila-titulo {
+  flex: 0 1 auto;
+}
+
+.pulso-f6-vg[data-tamano="grande"] { --pulso-f6-vg-caja: 300px; }
+.pulso-f6-vg[data-tamano="chico"] { --pulso-f6-vg-caja: 160px; }
+
+/* Chico: la pill de estado queda en su punto (el estado sigue en el nombre accesible de la tarjeta). */
+.pulso-f6-vg[data-tamano="chico"] .pulso-f6-vg-pill {
+  width: 18px;
+  padding: 0;
+  justify-content: center;
+  font-size: 0;
 }
 
 /* --- Fila de capítulo -------------------------------------------------------------------------------------------- */
@@ -291,10 +331,12 @@
 
 /* --- Tarjetas ---------------------------------------------------------------------------------------------------- */
 
+/* I10: en un capítulo las tarjetas llenan la fila (grilla auto-fill con mínimo del tamaño elegido): todas las de una
+   fila miden igual (C2) y no queda un hueco a la derecha. Un bloque (I6) conserva tarjetas de ancho fijo, ver abajo. */
 .pulso-f6-vg-tarjetas {
   position: relative;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--pulso-f6-vg-caja), 1fr));
   gap: var(--pulso-space-3);
   min-height: var(--pulso-f6-vg-caja-alto);
   margin: var(--pulso-space-1) 0 0;
@@ -315,10 +357,10 @@
   position: relative;
   flex: none;
   display: grid;
-  grid-template-rows: var(--pulso-f6-vg-cabeza) var(--pulso-f6-vg-alto) var(--pulso-f6-vg-pie);
+  grid-template-rows: var(--pulso-f6-vg-cabeza) auto var(--pulso-f6-vg-pie);
   row-gap: var(--pulso-f6-vg-hueco);
   box-sizing: border-box;
-  width: calc(var(--pulso-f6-vg-ancho) + 2 * var(--pulso-f6-vg-pad) + 2px);
+  min-width: 0;
   padding: var(--pulso-f6-vg-pad);
   border: 1px solid var(--pulso-border);
   border-radius: calc(var(--pulso-radius) * 1.6);
@@ -334,8 +376,9 @@
 }
 
 .pulso-f6-vg .pulso-f6-miniatura.pulso-f6-vg-lienzo {
-  width: var(--pulso-f6-vg-ancho);
-  height: var(--pulso-f6-vg-alto);
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
   border-radius: calc(var(--pulso-radius) * 0.6);
 }
 
@@ -1100,9 +1143,9 @@
   height: 7px;
 }
 
+/* Sin elegir, la marca sale del flujo: colapsada a ancho 0 su visto asomaba 8 px fuera de la cabecera. */
 .pulso-f6-vg-tarjeta:not(.is-seleccionada) .pulso-f6-vg-cabeza .pulso-f6-vg-check {
-  width: 0;
-  margin-left: -4px;
+  display: none;
 }
 
 /* Con la barra de selección a la vista, el cuerpo gana aire abajo para que la última fila no quede tapada. */
@@ -1155,4 +1198,38 @@
   height: 0.55em;
   border-radius: 1px;
   background: var(--pulso-border);
+}
+
+/* I10: control de tamaño, un segmentado chico como el del prototipo. */
+.pulso-f6-vg-tamano {
+  display: inline-flex;
+  flex: none;
+  padding: 2px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-f6-vg-tamano-op {
+  height: 22px;
+  padding: 0 var(--pulso-space-2);
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out), color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-vg-tamano-op.is-activo {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-f6-vg-tamano-op:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: 1px;
 }
