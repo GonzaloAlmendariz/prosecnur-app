@@ -23,11 +23,24 @@ test_that("la dicotomía escribe las dos cifras grandes y sus rótulos con la ba
   expect_true(all(c("31%", "69%", "Sí (56)", "No (122)") %in% tx))
 })
 
-test_that("el lollipop ordena de menor a mayor y rotula cada punto", {
-  e <- preparar_categorica(c("A", "B", "C"), c(.2, .5, .3), c("20%", "50%", "30%"))
+test_that("el lollipop respeta el orden de la espec (la primera arriba) y rotula cada punto", {
+  # O6: la espec trae el orden resuelto (ranking o declarado, residuales al final); el Word no lo rehace.
+  e <- preparar_categorica(c("A", "No sabe", "B", "C"), c(.2, .4, .5, .3), c("20%", "40%", "50%", "30%"))
   g <- .word_g_lollipop(e)
-  expect_identical(levels(g$data$l), c("A", "C", "B"))
-  expect_true(all(c("20%", "30%", "50%") %in% .wc_textos(g)))
+  expect_identical(g$data$l[order(-g$data$y)], c("A", "B", "C", "No sabe"))
+  expect_true(all(c("20%", "30%", "40%", "50%") %in% .wc_textos(g)))
+  expect_gte(attr(g, "alto"), .word_alto_figura("lollipop"))
+  largo <- preparar_categorica(paste("Opción", 1:15), seq(.01, .15, .01), paste0(1:15, "%"))
+  expect_gt(attr(.word_g_lollipop(largo), "alto"), attr(g, "alto"))          # quince filas no caben en el alto fijo
+})
+
+test_that("el lollipop resalta en coral lo que pide el analista y no se rompe con todo en cero", {
+  e <- preparar_categorica(c("A", "B", "C"), c(.2, .5, .3), c("20%", "50%", "30%"))
+  e$resaltar <- "C"
+  b <- suppressWarnings(ggplot2::ggplot_build(.word_g_lollipop(e)))
+  expect_identical(b$data[[2]]$colour, c(.WORD_TINTA$tenue, .WORD_TINTA$navy, .WORD_TINTA$coral))
+  z <- preparar_categorica(c("A", "B"), c(0, 0), c("0%", "0%"), sin_ceros = FALSE)
+  expect_s3_class(suppressWarnings(ggplot2::ggplot_build(.word_g_lollipop(z))), "ggplot_built")
 })
 
 test_that("las divergentes ponen el desacuerdo a la izquierda, el acuerdo a la derecha y los totales a cada lado", {

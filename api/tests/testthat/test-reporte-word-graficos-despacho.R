@@ -24,3 +24,29 @@ test_that("sin renderer propio el ggplot va en su marco: sin título, subtítulo
   expect_message(g2 <- .word_grafico(p), "renderer «pie» falló")
   expect_identical(attr(g2, "renderer"), "marco")
 })
+
+test_that("O6: el ranking lollipop del plan sale como lollipop en el Word, no como barras", {
+  # Gonzalo (2026-10-15): «O6 activar lollipop». El elemento del plan pasa por su render real y luego por el despacho.
+  .tab_freq <- function(ref, filtros = list()) {
+    data.frame(Opciones = c("Transporte", "Salud", "Trabajo", "No sabe", "Total"), n = c(30, 45, 15, 10, 100), stringsAsFactors = FALSE)
+  }
+  p <- suppressWarnings(.render_lollipop(p_lollipop("p1"), preset_args = list()))
+  expect_identical(attr(p, "pulso_espec")$graficador, "lollipop")
+  g <- .word_grafico(p)
+  expect_identical(attr(g, "renderer"), "categorica")
+  capas <- vapply(g$layers, function(l) class(l$geom)[1], "")
+  expect_true(all(c("GeomSegment", "GeomPoint") %in% capas))                 # tallo y punto
+  expect_false("GeomRect" %in% capas)                                         # no barras
+  expect_true(all(c("45%", "30%", "15%", "10%") %in% unlist(lapply(suppressWarnings(ggplot2::ggplot_build(g))$data, function(l) l$label))))
+})
+
+test_that("O6: los puntos comparativos comparten la forma de la lámina 72 pero en el Word siguen como barras", {
+  d <- data.frame(grupo = c("Docentes", "Estudiantes", "Egresados"), porcentaje = c(62, 48, 55), n = c(40, 120, 60), stringsAsFactors = FALSE)
+  p <- suppressWarnings(graficar_puntos_comparativos(d))
+  e <- attr(p, "pulso_espec")
+  expect_identical(e$forma, "lollipop")
+  expect_null(e[["graficador"]])
+  capas <- vapply(.word_grafico(p)$layers, function(l) class(l$geom)[1], "")
+  expect_true("GeomRect" %in% capas)
+  expect_false("GeomPoint" %in% capas)
+})

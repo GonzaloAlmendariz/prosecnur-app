@@ -186,7 +186,10 @@ graficar_lollipop <- function(
     )
 
   attr(out, "pulso_lollipop_recortadas") <- recortadas
-  if (!is.null(espec_lollipop)) espec_lollipop$forma <- "lollipop"
+  # `forma` la comparten el ranking y los puntos comparativos (los dos van a la lámina 72); `graficador` dice que éste es
+  # el ranking, y es lo que lee el despacho del Word para dibujarlo como lollipop (O6, Gonzalo, 2026-10-15: «O6 activar
+  # lollipop»). Los puntos comparativos no lo llevan y en el Word siguen saliendo como barras.
+  if (!is.null(espec_lollipop)) { espec_lollipop$forma <- "lollipop"; espec_lollipop$graficador <- "lollipop" }
   attr(out, "pulso_espec") <- espec_lollipop
   out
 }
