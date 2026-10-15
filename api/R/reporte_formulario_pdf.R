@@ -2051,7 +2051,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   } else {
     y <- if (is.null(g$lbl_lay)) {
       .form_pdf_text(paste0(prefix, block$label), bx, y, bw,
-                     chars = chars_lbl, align = lbl_align,
+                     lines = g$lbl_lines, align = lbl_align,
                      fontsize = 8.4, fontface = "bold", col = tk$ink, line_h = 0.0142)
     } else {
       .form_pdf_rt_draw(g$lbl_lay, bx, y, bw, col = tk$ink, align = lbl_align)
@@ -2059,13 +2059,15 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     if (nzchar(block$hint %||% "")) {
       y <- if (is.null(g$hint_lay)) {
         .form_pdf_text(block$hint, bx, y - 0.002, bw,
-                       chars = chars_lbl,
+                       lines = g$hint_lines,
                        fontsize = 7.3, fontface = "italic", col = tk$ink, line_h = 0.011)
       } else {
         .form_pdf_rt_draw(g$hint_lay, bx, y - 0.002, bw, col = tk$ink)
       }
     }
-    y <- y - 0.007
+    # Fondo del texto de la nota-introduccion (para medir su aire con la tabla).
+    if (isTRUE(g$intro)) .form_pdf_traza("nota_texto", NA_integer_, y, y)
+    y <- y - (if (isTRUE(g$intro)) 0 else 0.007)
   }
   if (isTRUE(block$coded_list)) {
     grid::grid.rect(x = grid::unit(x + 0.006 + (w - 0.012) / 2, "npc"), y = grid::unit(y - 0.017, "npc"),
@@ -2096,7 +2098,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
                         chars = if (isTRUE(block$full_width)) 112 else 48,
                         fontsize = 7.6, fontface = "italic", col = tk$navy, line_h = 0.012)
   }
-  y - 0.013
+  y - g$cierre
 }
 
 # Patron fuerte de etiqueta de valor faltante / NS-NR (independiente del codigo).
@@ -2246,41 +2248,54 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 
 .form_pdf_matrix_cat_header_geom <- function(cat_labels, sp_label, has_special, col_w, total_cols) {
   all_labels <- c(cat_labels, if (has_special) sp_label else character(0))
+  rotulos <- all_labels
   all_labels <- all_labels[nzchar(all_labels)]
   if (!length(all_labels)) all_labels <- ""
   max_chars <- max(1L, max(nchar(all_labels, type = "width")))
   base_fs <- if (total_cols >= 6L) 5.6 else 6.2
-  # La calibracion 118 char/npc esta tomada del cuerpo (~6.5 pt); con un cuerpo
-  # menor entran proporcionalmente mas caracteres en el mismo ancho.
+  # La decision se toma MIDIENDO con la fuente del dispositivo (2026-10-15). Se
+  # calibraba con «118 caracteres por npc a 6.5 pt», que es el ancho medio de una
+  # sans normal: con una estrecha sobreestima ~50 % y una escala de 4 puntos
+  # («Insatisfecho» en una columna de 34 pt, donde cabe a 6.2 pt) salia rotada.
+  # Sin dispositivo abierto, cae al conteo de antes.
+  util <- max(0.004, col_w - 0.006)
+  palabras <- unique(unlist(lapply(all_labels, function(l) {
+    w <- unlist(strsplit(.form_pdf_clean_text(l), "[[:space:]/-]+")); w[nzchar(w)]
+  })))
+  ancho_max <- function(fs) {
+    if (!length(palabras)) return(0)
+    v <- vapply(palabras, function(p) .form_pdf_medir_npc(p, fs, "bold"), numeric(1))
+    if (any(!is.finite(v))) NA_real_ else max(v)
+  }
+  medible <- is.finite(ancho_max(base_fs))
   chars_at <- function(fs) max(1L, floor(col_w * 118 * (6.5 / fs)))
+  longest_word <- max(1L, max(nchar(c(palabras, ""), type = "width")))
+  cabe <- function(fs) if (medible) ancho_max(fs) <= util else longest_word <= chars_at(fs)
   # Manda la palabra mas larga: si no entra en la columna, el rotulo invade a su
-  # vecino. Se baja el cuerpo hasta que entre, con piso legible; lo que aun no
-  # entre se parte al dibujar.
-  longest_word <- max(1L, max(vapply(all_labels, function(l) {
-    w <- unlist(strsplit(.form_pdf_clean_text(l), "[[:space:]/-]+"))
-    w <- w[nzchar(w)]
-    if (!length(w)) 0L else max(nchar(w, type = "width"))
-  }, integer(1))))
+  # vecino. Se baja el cuerpo hasta que entre, con piso legible.
   fs <- base_fs
-  while (fs > 4.6 && longest_word > chars_at(fs)) fs <- fs - 0.2
+  while (fs > 4.6 && !cabe(fs)) fs <- fs - 0.2
   col_chars <- chars_at(fs)
   # Si ni al cuerpo minimo entra la palabra mas larga, partirla deja un rotulo
   # ilegible ("Fuerteme / nte en / desacuer / do"). En ese caso el rotulo se
   # escribe rotado, que es como caben las escalas largas de 7 puntos.
-  if (longest_word > col_chars) {
+  if (!cabe(fs)) {
     return(list(layout = "rotated",
                 height = min(0.135, max_chars * 0.0046 + 0.014),
                 col_chars = col_chars,
                 cat_fs = min(base_fs, 5.8)))
   }
-  # Categorias SIEMPRE horizontal con wrap (hasta 4 lineas), como la referencia
-  # ("Totalmente en desacuerdo" partido en varias lineas sobre su columna). Solo
-  # se rota si aun envolviendo excede 4 lineas (label absurdamente largo).
-  hdr_lines <- max(1L, max(vapply(all_labels, function(l)
-    length(.form_pdf_wrap(.form_pdf_break_long_words(l, col_chars), col_chars)), integer(1))))
+  # Lineas de cada rotulo, envueltas por ANCHO MEDIDO a su cuerpo (las mismas
+  # que se dibujan: el dibujo las toma de aqui).
+  lineas <- lapply(rotulos, function(l) {
+    if (!nzchar(l)) return(character(0))
+    if (medible) .form_pdf_wrap_fit(l, util, fontsize = fs, fontface = "bold")
+    else .form_pdf_wrap(.form_pdf_break_long_words(l, col_chars), col_chars)
+  })
+  hdr_lines <- max(1L, max(lengths(lineas)))
   if (hdr_lines <= 4L) {
     list(layout = "horizontal", height = hdr_lines * 0.011 + 0.010,
-         col_chars = col_chars, cat_fs = fs)
+         col_chars = col_chars, cat_fs = fs, lineas = lineas)
   } else {
     list(layout = "rotated", height = min(0.115, max_chars * 0.0044 + 0.013),
          col_chars = col_chars, cat_fs = min(fs, if (total_cols >= 6L) 5.6 else 6.0))
@@ -2377,6 +2392,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   scale_x0 <- x0 + label_w
   scale_w <- n_scale * col_w
   y_top_tbl <- y
+  .form_pdf_traza("tabla_tope", NA_integer_, y_top_tbl, y_top_tbl)
 
   code_y_off <- 0.010  # los codigos se alinean con la primera linea del item
   # Con muchas columnas, reduce el tamaño del codigo para que quepa.
@@ -2405,13 +2421,13 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     if (identical(geom$layout, "horizontal")) {
       hy <- y - header_h / 2
       for (k in seq_len(n_scale)) {
-        grid::grid.text(paste(.form_pdf_wrap(.form_pdf_break_long_words(cat_labels[k], geom$col_chars), geom$col_chars), collapse = "\n"),
+        grid::grid.text(paste(geom$lineas[[k]], collapse = "\n"),
                         x = grid::unit(scale_x0 + (k - 0.5) * col_w, "npc"),
                         y = grid::unit(hy, "npc"), just = c("center", "center"),
                         gp = grid::gpar(fontsize = cat_fs, fontface = "bold", col = tk$navy, lineheight = 0.95))
       }
       if (has_special) {
-        grid::grid.text(paste(.form_pdf_wrap(.form_pdf_break_long_words(sp_label, geom$col_chars), geom$col_chars), collapse = "\n"),
+        grid::grid.text(paste(geom$lineas[[n_scale + 1L]], collapse = "\n"),
                         x = grid::unit(scale_x0 + scale_w + col_w / 2, "npc"),
                         y = grid::unit(hy, "npc"), just = c("center", "center"),
                         gp = grid::gpar(fontsize = cat_fs, fontface = "bold", col = tk$soft, lineheight = 0.95))

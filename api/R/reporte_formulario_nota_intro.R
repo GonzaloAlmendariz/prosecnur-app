@@ -38,6 +38,10 @@
     if (.form_pdf_es_nota(blocks[[i]]) && introducible) {
       blocks[[i]]$full_width <- TRUE
       blocks[[i]]$keep_with_next <- TRUE
+      # Que introduce (para el aire hasta su tabla): en una cadena de notas, la
+      # ultima introduce el bloque; las demas, otra nota.
+      blocks[[i]]$introduce <- sig$kind %||% ""
+      if (.form_pdf_es_nota(sig)) blocks[[i]]$introduce <- "note"
     }
   }
   blocks
