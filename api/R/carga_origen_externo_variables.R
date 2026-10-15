@@ -10,7 +10,9 @@
 # Funciones puras (sin sesión): reciben el `survey` del XLSForm y los nombres de
 # columna de la base tal como se cargó.
 
-.ORIGEN_EXTERNO_MOTIVOS_VARIABLE <- c("metadato", "no_va_al_cliente", "otra")
+# `pendiente`: la carga manual registró la retirada y nadie le puso motivo aún
+# (ADR 0106, punto 4). No excluye de los entregables.
+.ORIGEN_EXTERNO_MOTIVOS_VARIABLE <- c("metadato", "no_va_al_cliente", "otra", "pendiente")
 
 # Motivos que también retiran la variable de los entregables de Analítica.
 .ORIGEN_EXTERNO_MOTIVOS_EXCLUYEN <- c("metadato", "no_va_al_cliente")

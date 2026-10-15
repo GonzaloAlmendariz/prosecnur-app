@@ -575,7 +575,9 @@ estudio_init_default_base <- function(sid, choice_code_maps) {
       !isTRUE(s_current$choice_code_maps_confirmed$confirmed %||% FALSE)) {
     .carga_store_choice_code_maps(sid, maps_payload, confirmed = FALSE)
   }
-  .carga_assert_data_xlsform_compatible(data_df, rp_inst)
+  # ADR 0106: una pregunta que falta se retira (pendiente de motivo), no rechaza la base.
+  retiro <- base_variables_carga_retiradas(data_df, rp_inst, xls_meta$path, dat_meta$file_id)
+  rp_inst <- retiro$rp_inst
   rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
   estudio_ensure(sid)
@@ -605,6 +607,7 @@ estudio_init_default_base <- function(sid, choice_code_maps) {
       n_columnas      = as.integer(ncol(data_df))
     )
   }
+  base_variables_carga_registrar(sid, "default", retiro)
   if (tolower(as.character(dat_meta$ext %||% "")) %in% c("xlsx", "xls")) {
     .carga_xlsx_register_repeat_bases(sid, parent_base_name = "default")
   }

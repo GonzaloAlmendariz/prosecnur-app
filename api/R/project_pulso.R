@@ -786,7 +786,9 @@
 # canónicos de una base integrada, pero perder o malformar los caches runtime
 # `rp_data_sources` / `rp_inst_sources`. Validación consume esos maps por base,
 # así que al abrir el proyecto los re-derivamos desde los file_id persistidos.
-.pulso_rebuild_estudio_runtime_sources <- function(sid) {
+# `bases`: sólo esas (NULL = todas). La usa la declaración de variables propias
+# (ADR 0106) para rehacer la base declarada sin releer sus hermanas.
+.pulso_rebuild_estudio_runtime_sources <- function(sid, bases = NULL) {
   s <- session_get(sid, required = FALSE)
   if (is.null(s) || is.null(s$estudio) || !length(s$estudio$bases)) return(invisible(FALSE))
 
@@ -802,6 +804,7 @@
 
   changed <- FALSE
   for (base_name in names(s$estudio$bases)) {
+    if (!is.null(bases) && !(base_name %in% bases)) next
     base <- s$estudio$bases[[base_name]]
     xls_fid <- as.character(base$xlsform_file_id %||% "")
     data_fid <- as.character(base$data_file_id %||% "")
@@ -811,7 +814,7 @@
     inst <- NULL
     inst_from_file <- FALSE
     if (!is.null(xls_meta) && !is.null(xls_meta$path) && file.exists(xls_meta$path)) {
-      inst <- tryCatch(reporte_instrumento(path = xls_meta$path), error = function(e) NULL)
+      inst <- tryCatch(base_variables_instrumento(xls_meta$path, base), error = function(e) NULL)
       inst_from_file <- .pulso_valid_inst_cache(inst)
     }
     if (!.pulso_valid_inst_cache(inst)) {
@@ -851,6 +854,7 @@
           normalize_data_for_xlsform(raw_df, inst, choice_code_maps = choice_maps),
           error = function(e) { norm_ok <<- FALSE; raw_df }
         )
+        data_norm <- base_variables_materializar(data_norm, base)
         data_cache <- tryCatch(
           reporte_data(data_norm, instrumento = inst),
           error = function(e) data_norm

@@ -637,7 +637,8 @@
   partes <- c(
     if (n_por("metadato") > 0L) paste0(n_por("metadato"), if (n_por("metadato") == 1L) " metadato" else " metadatos", " de la plataforma"),
     if (n_por("no_va_al_cliente") > 0L) paste0(n_por("no_va_al_cliente"), " de uso interno"),
-    if (n_por("otra") > 0L) paste0(n_por("otra"), " por otros motivos")
+    if (n_por("otra") > 0L) paste0(n_por("otra"), " por otros motivos"),
+    if (n_por("pendiente") > 0L) paste0(n_por("pendiente"), " pendiente", if (n_por("pendiente") == 1L) "" else "s", " de motivo")
   )
   paste0(
     "Antes de cargarse a la plataforma se retir", if (k == 1L) "ó " else "aron ", k,
