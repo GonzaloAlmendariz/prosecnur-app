@@ -292,3 +292,11 @@ describe("palabra por base (varias bases)", () => {
     expect(p).toEqual({ base: { formato: "Base: %s" } });
   });
 });
+
+describe("palabra por defecto de una base", () => {
+  it("es el nombre de la base sin guiones bajos, como la escribe el motor", async () => {
+    const { palabraPorDefecto } = await import("./SufijosPorBase");
+    expect(palabraPorDefecto("estudiantes_2018")).toBe("estudiantes 2018");
+    expect(palabraPorDefecto("docentes")).toBe("docentes");
+  });
+});
