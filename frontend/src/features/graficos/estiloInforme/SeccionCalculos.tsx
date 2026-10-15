@@ -2,7 +2,8 @@
 // redondeo al pie. No son decisiones de lámina: valen para todo el informe. La clasificación (qué familia puede repartir
 // a 100 % y cómo se llama su campo de decimales) la sirve el motor en `preset.calculos`; aquí no se repite.
 
-import { useId } from "react";
+import { useEffect, useId, useState } from "react";
+import { textoAutomatico, type ModoNota } from "./notaRedondeo";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { RotateCcw } from "../../../vendor/lucide-react";
 import { resolveGraphLucideIcon } from "../lucideRegistry";
@@ -26,6 +27,9 @@ export type AccionesCalculos = {
   onMetodoEnTodas: (metodo: string) => void;
   onDecimalesEnTodas: (decimales: number) => void;
   onNota: (activa: boolean) => void;
+  /** R3: cuándo va la nota y con qué texto («» = automático). */
+  onModoNota: (modo: ModoNota) => void;
+  onTextoNota: (texto: string) => void;
   onVolverTodo: () => void;
 };
 
@@ -120,6 +124,53 @@ function TablaCalculos({ filas, acciones, titulo }: { filas: readonly FilaCalcul
   );
 }
 
+const HINT_MODO: Record<ModoNota, string> = {
+  nunca: "Ninguna lámina lleva la nota.",
+  si_no_cierra: "Sólo las láminas con alguna barra en 99 % o 101 % la llevan.",
+  siempre: "Toda lámina con porcentajes la lleva, sumen o no 100 %.",
+};
+
+/** R3 (2026-10-15): cuándo va la nota del redondeo y qué dice: automática (se ve aquí) o propia (se edita aquí). */
+function NotaAlPie({ nota, metodo, decimales, acciones }: { nota: { modo: ModoNota; texto: string }; metodo: string; decimales: number; acciones: AccionesCalculos }) {
+  const automatico = textoAutomatico(metodo, decimales);
+  const propio = nota.texto.trim() !== "";
+  // Borrador local: el texto se guarda al salir del campo (un paso deshacible por edición, no por tecla).
+  const [borrador, setBorrador] = useState(nota.texto);
+  useEffect(() => { setBorrador(nota.texto); }, [nota.texto]);
+  return (
+    <div className="pulso-f6-regla-general" role="group" aria-label="Nota al pie del redondeo">
+      <span className="pulso-f6-regla-lab">Nota al pie</span>
+      <div>
+        <Segmentado etiqueta="Cuándo va la nota al pie" valor={nota.modo} onCambiar={acciones.onModoNota}
+          opciones={[{ clave: "nunca", rotulo: "Nunca" }, { clave: "si_no_cierra", rotulo: "Sólo si una barra no suma 100 %" }, { clave: "siempre", rotulo: "Siempre" }]} />
+        <p className="pulso-f6-informe-ayuda">
+          {metodo === METODO_REPARTO && nota.modo === "si_no_cierra"
+            ? "Con el reparto toda barra suma 100 %: así ninguna lámina la lleva. Elige «Siempre» para explicar el reparto."
+            : HINT_MODO[nota.modo]}
+        </p>
+      </div>
+      {nota.modo !== "nunca" && (<>
+        <span className="pulso-f6-regla-lab">Texto</span>
+        <div>
+          <Segmentado etiqueta="Texto de la nota" valor={propio ? "propio" : "auto"}
+            onCambiar={(v) => acciones.onTextoNota(v === "propio" ? (nota.texto || automatico) : "")}
+            opciones={[{ clave: "auto", rotulo: "Automático" }, { clave: "propio", rotulo: "Propio" }]} />
+          {propio ? (
+            <label className="pulso-f6-nota-propia">
+              <span className="pulso-sr-only">Texto propio de la nota del redondeo</span>
+              <textarea value={borrador} rows={3} maxLength={300} onChange={(e) => setBorrador(e.target.value)}
+                onBlur={() => { if (borrador !== nota.texto) acciones.onTextoNota(borrador); }} />
+              <small>{borrador.length}/300 · Si la lámina ya trae una nota, ésta va después.</small>
+            </label>
+          ) : (
+            <p className="pulso-f6-nota-auto"><b>Va a decir:</b> «{automatico}» <span>Cambia sola con el método y los decimales.</span></p>
+          )}
+        </div>
+      </>)}
+    </div>
+  );
+}
+
 export function SeccionCalculos({
   filas,
   nota,
@@ -127,13 +178,12 @@ export function SeccionCalculos({
   estado,
 }: {
   filas: readonly FilaCalculo[];
-  nota: NotaRedondeo;
+  nota: NotaRedondeo & { modo: ModoNota; texto: string };
   acciones: AccionesCalculos;
   /** Texto de carga, error o catálogo vacío: ocupa el lugar de la tabla dentro de la sección (C3). */
   estado?: string;
 }) {
   const tituloId = useId();
-  const notaId = useId();
   const cierran = filas.filter((f) => f.admiteMetodo);
   const independientes = filas.filter((f) => !f.admiteMetodo);
   const modificado = nota.procedencia === "propio" || filas.some((f) => f.procedencia === "propio");
@@ -150,19 +200,6 @@ export function SeccionCalculos({
       />
       <p className="pulso-f6-informe-ayuda">Decide las cifras de todo el informe, en el PPT y en el Word.</p>
 
-      <div className="pulso-f6-informe-nota">
-        <input
-          id={notaId}
-          type="checkbox"
-          checked={nota.activa}
-          onChange={(e) => acciones.onNota(e.target.checked)}
-        />
-        <label htmlFor={notaId}>
-          <strong>Declarar el redondeo al pie de las láminas.</strong> Explica por qué una barra suma 99 % o 101 %. Si la
-          lámina ya trae una nota, se anexa.
-        </label>
-        <SelloProcedencia procedencia={nota.procedencia} />
-      </div>
 
       {estado ? (
         <p className="pulso-f6-informe-estado" role="status">{estado}</p>
@@ -188,6 +225,7 @@ export function SeccionCalculos({
                 opciones={[{ clave: "0", rotulo: "Sin decimales" }, { clave: "1", rotulo: "Un decimal" }]} />
             </div>
           </div>
+          <NotaAlPie nota={nota} metodo={general.metodo} decimales={general.decimales} acciones={acciones} />
           <details className="pulso-f6-regla-tipos" open={nPropias > 0 || undefined}>
             <summary>
               Por tipo de gráfico
