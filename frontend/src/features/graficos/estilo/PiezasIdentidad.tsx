@@ -2,7 +2,8 @@
 // vistazo, y debajo «A qué salida llega» (PPT / Word). Es la navegación de la pestaña: una lista de pestañas vertical
 // (flechas arriba/abajo, Inicio/Fin) sobre el `foco` de la dirección, como las subpestañas que reemplaza.
 
-import { useRef, type KeyboardEvent } from "react";
+import { Blocks, Image, Layers, Palette, Type } from "../../../vendor/lucide-react";
+import { MenuLateral } from "../subpestanas/MenuLateral";
 
 export type ClavePieza = "linea" | "colores" | "logos" | "letra" | "iconos";
 export type TonoEstado = "ok" | "aviso" | "neutro";
@@ -19,34 +20,15 @@ export const SALIDAS: readonly { clave: ClavePieza; titulo: string; ppt: boolean
 
 type Props = { piezas: readonly Pieza[]; actual: ClavePieza; onElegir: (k: ClavePieza) => void; idPanel: string };
 
+const ICONOS = { linea: Layers, colores: Palette, logos: Image, letra: Type, iconos: Blocks } as const;
+
 export function PiezasIdentidad({ piezas, actual, onElegir, idPanel }: Props) {
-  const lista = useRef<HTMLDivElement>(null);
-  const onTecla = (e: KeyboardEvent<HTMLDivElement>) => {
-    const paso = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
-    const extremo = e.key === "Home" ? 0 : e.key === "End" ? piezas.length - 1 : null;
-    if (!paso && extremo === null) return;
-    e.preventDefault();
-    const i = piezas.findIndex((p) => p.clave === actual);
-    const j = extremo ?? (i + paso + piezas.length) % piezas.length;
-    onElegir(piezas[j].clave);
-    lista.current?.querySelectorAll<HTMLButtonElement>("[role=tab]")[j]?.focus();
-  };
   return (
     <aside className="pulso-f6-id-piezas">
-      <div ref={lista} role="tablist" aria-orientation="vertical" aria-label="Piezas de la identidad" onKeyDown={onTecla}
-        data-qa-geometry-group="graficos/f6-id-piezas" data-qa-geometry-contract="equal">
-        {piezas.map((p) => (
-          <button key={p.clave} type="button" role="tab" id={`f6-id-pieza-${p.clave}`} aria-selected={p.clave === actual}
-            aria-controls={idPanel} tabIndex={p.clave === actual ? 0 : -1} data-qa-geometry-member
-            className={`pulso-f6-id-pieza${p.clave === actual ? " is-activa" : ""}`} onClick={() => onElegir(p.clave)}>
-            <span className="pulso-f6-id-pieza-texto">
-              <b>{p.titulo}</b>
-              <small>{p.resumen}</small>
-            </span>
-            <span className={`pulso-f6-id-pill is-${p.estado.tono}`}>{p.estado.texto}</span>
-          </button>
-        ))}
-      </div>
+      {/* Mismo menú que las partes del Word (MenuLateral); el estado de cada pieza va como dato a la derecha. */}
+      <MenuLateral items={piezas.map((p) => ({ clave: p.clave, titulo: p.titulo, resumen: p.resumen, icono: ICONOS[p.clave], dato: p.estado }))}
+        actual={actual} onElegir={onElegir} idPanel={idPanel} etiqueta="Piezas de la identidad" idDe={(k) => `f6-id-pieza-${k}`}
+        grupoQa="graficos/f6-id-piezas" contratoQa="equal" />
       <div className="pulso-f6-id-salidas" role="table" data-qa-geometry-group="graficos/f6-id-salidas" data-qa-geometry-contract="intrinsic" aria-label="A qué salida llega cada pieza">
         <span className="pulso-f6-id-salidas-lab" aria-hidden="true">A qué salida llega</span>
         <span className="pulso-f6-id-salidas-fila is-cabecera" role="row">
