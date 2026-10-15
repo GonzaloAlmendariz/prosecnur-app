@@ -50,3 +50,24 @@ los cruces», y luego «lánzala» (prueba real con 2024, 2025 y 2026 en una cop
 ponderado (2025 cierra en 2 500 con n real 2 471; 2024 en 2 267,97) y el pie no lleva ninguna nota de
 ponderación, ni por año ni sobre el N ponderado. Sólo «Fuente: Pulso PUCP <año>.» y «Base: …». Commits
 d7085e93f y 5ab1dfcad.
+
+## Segunda tanda (Gonzalo, 2026-10-15): la UI todavía puede ser más clara
+
+Pedido textual: «tratemos de mejorar la UI aún más, por ejemplo aún no te dice las diferencias entre bases o por
+ejemplo la base 2024 y 2025 ya tiene los indicadores pero la del 2026 aún no, ¿se pueden armarlos? ¿Qué pasa con la
+armonización de opciones? ¿Qué pasa si Ulises ya tiene la base lista limpia y codificada con los 2500 casos
+aleatorios, y con los indicadores creados ahí mismo, la app es capaz de reconocerlo? ¿Hace falta que el XLSForm
+también tome en cuenta estos indicadores?»
+
+| # | Indicación | Dónde vive | Estado |
+|---|---|---|---|
+| G1 | La UI dice qué tiene cada base y qué le falta frente a las otras | por definir (Equivalencias / Plan) | ☐ investigando |
+| G2 | Armar en 2026 las variables que 2024 y 2025 ya traen recodificadas (`_R`, `facultad`, `unidad`…) | por definir (Codificación / indicador compuesto materializado) | ☐ investigando |
+| G3 | Armonización de opciones: armonizar una escala una vez y aplicarla a todas las preguntas que la comparten | Equivalencias | ☐ investigando |
+| G4 | Una base 2026 preparada fuera (limpia, codificada, 2 500 casos, con indicadores) se reconoce tal cual | ADR 0100, origen externo | ☐ investigando |
+| G5 | ¿El XLSForm tiene que declarar esos indicadores? | Carga (columnas fuera del instrumento) | ☐ investigando |
+
+Aprendido: lo que 2024 y 2025 traen «de más» no son indicadores compuestos sino recodificaciones del procesamiento de
+esos años: variables `_R` (P12_R, P13_R… con 100 = «Perdido»), dummies de opción múltiple `P25.1_R`…, sociodemográficas
+renombradas (Edad, Sexo, Identidad_genero, lugar_nacimiento, anio_ingreso), `facultad`, `unidad`/`unidad_value`,
+`Curso_horario`. 2024: 409 columnas, 100 casan con el XLSForm aplicado. 2025: 278, 115 casan.
