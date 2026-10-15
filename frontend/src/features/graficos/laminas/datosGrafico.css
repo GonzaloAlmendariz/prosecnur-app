@@ -232,3 +232,21 @@
 }
 .pulso-f6-grupo-cuerpo { display: grid; gap: 0; min-width: 0; }
 .pulso-f6-grupo-cuerpo > .pulso-f6-dato:first-child { border-top: 0; }
+
+/* O7b: marca de alcance. Discreta; el menú dice qué pasa con cada opción. */
+.pulso-f6-alcance {
+  display: inline-flex; align-items: center; height: 20px; padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-warn-border); border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-bg); color: var(--pulso-warn-fg);
+  font: inherit; font-size: 11px; font-weight: var(--pulso-weight-semibold); white-space: nowrap; cursor: pointer;
+}
+.pulso-f6-alcance:focus-visible { outline: 2px solid var(--module-accent); outline-offset: 1px; }
+.pulso-f6-alcance-opciones { display: flex; flex-direction: column; gap: 2px; padding: var(--pulso-space-1); min-width: 220px; }
+.pulso-f6-alcance-opciones button {
+  padding: var(--pulso-space-2) var(--pulso-space-3); border: 0; border-radius: 6px; background: transparent;
+  color: var(--pulso-text); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer;
+}
+.pulso-f6-alcance-opciones button:hover, .pulso-f6-alcance-opciones button:focus-visible { background: var(--pulso-surface-2); outline: none; }
+.pulso-f6-alcance-opciones button.is-principal { color: var(--module-accent); font-weight: var(--pulso-weight-semibold); }
+.pulso-f6-alcance-pie { margin-top: var(--pulso-space-2); border-top: 1px solid var(--pulso-border); }
+.pulso-f6-alcance-pie .pulso-f6-dato-rotulo { color: var(--pulso-warn-fg); }

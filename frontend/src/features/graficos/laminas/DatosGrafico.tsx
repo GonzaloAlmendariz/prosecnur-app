@@ -30,7 +30,6 @@ import { useSession } from "../../../lib/SessionContext";
 import { OrdenCategoriasGrafico } from "./OrdenCategoriasGrafico";
 import { TwoBoxGrafico } from "./tarjetaGrafico/TwoBoxGrafico";
 import { CasosGrafico } from "./CasosGrafico";
-import { AjustesDelTipo } from "./AjustesDelTipo";
 import { ListaPreguntas } from "./ListaPreguntas";
 import { CriteriosGrafico } from "./CriteriosGrafico";
 import { DestacarRespuestas } from "./DestacarRespuestas";
@@ -44,6 +43,11 @@ import { PaletaDelGrafico } from "./colores/PaletaDelGrafico";
 import { NombresPorBase } from "./datosBase/NombresPorBase";
 import { RedondeoDelGrafico } from "./RedondeoDelGrafico";
 import { grupoDeCampo, TITULO_GRUPO, type GrupoTarjeta } from "./gruposTarjeta";
+import { esPropio, ranurasDelTipo, SIN_ALCANCE, valorDelTipo } from "./modeloAlcance";
+import { SelloAlcance } from "./SelloAlcance";
+import { graficadorToPresetType } from "../graficadorPresetMap";
+import { graficadorDisplayName } from "../graficadorDisplay";
+import { toast } from "../../../components/toasterStore";
 import { BrechaEntreGrupos } from "./brecha/BrechaEntreGrupos";
 import { MatrizCuadrantes } from "./matriz/MatrizCuadrantes";
 import { NotaBaseCompartido } from "./datosBase/NotaBaseCompartido";
@@ -76,6 +80,10 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const scope = useGraficosReportScope(useLocation().search);
   const baseActiva = useSession().state?.active_base;
   const set = (patch: Record<string, unknown>) => updateSlotArgs(slideId, slot, patch);
+  const presets = usePlanStore((s) => s.presets) as Record<string, Record<string, unknown>>;
+  const slidesPlan = usePlanStore((s) => s.plan.slides);
+  const aplicarAlTipo = usePlanStore((s) => s.aplicarAjusteAlTipo);
+  const undo = usePlanStore((s) => s.undo);
   const variable = typeof args.var === "string" ? args.var : "";
   // En el informe compartido una pregunta sin base no se califica con la activa: se pide elegirla (H9).
   const sinBaseCompartido = faltaBaseEnCompartido(variable, scope);
@@ -89,9 +97,39 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const filtros = Array.isArray(args.filtros) ? args.filtros.length : 0;
   const admiteFiltros = (meta?.args ?? []).some((a) => a.name === "filtros");
 
+  // O7b: en Categorías y orden y en Cifras, cada ajuste sabe si es propio de este gráfico o viene de su tipo.
+  const tipo = graficadorToPresetType(valor.graficador);
+  const nTipo = tipo ? ranurasDelTipo(slidesPlan, tipo).length : 0;
+  const nombreTipo = graficadorDisplayName(valor.graficador, meta).toLowerCase();
+  const alcance = (c: CampoDato) => {
+    const name = c.arg.name;
+    if (!tipo || grupoDeCampo(name) === "datos" || SIN_ALCANCE.has(name)) return { valor: args[name], sello: undefined, propio: false };
+    const delTipo = valorDelTipo(presets, tipo, name, c.arg.default);
+    const enPreset = presets[tipo]?.[name];
+    const sello = esPropio(args, name, delTipo) ? (
+      <SelloAlcance nombreTipo={nombreTipo} nTipo={nTipo} ajuste={c.rotulo}
+        onAplicarTipo={() => {
+          aplicarAlTipo(tipo, { [name]: args[name] });
+          toast.exito(`${c.rotulo}: aplicado a ${nTipo > 1 ? `los ${nTipo} gráficos` : "los gráficos"} de ${nombreTipo}`, {
+            accion: { label: "Deshacer", onSelect: () => undo() },
+          });
+        }}
+        onVolver={() => set({ [name]: enPreset === undefined || enPreset === null ? undefined : enPreset })} />
+    ) : undefined;
+    return { valor: args[name] ?? (enPreset === null ? undefined : enPreset), sello, propio: !!sello };
+  };
+  // El pie de la tarjeta lleva todos los cambios propios de una vez (los mismos que muestran la marca).
+  const propios = tipo ? campos.filter((c) => alcance(c).propio) : [];
+  const aplicarTodos = () => {
+    if (!tipo || !propios.length) return;
+    aplicarAlTipo(tipo, Object.fromEntries(propios.map((c) => [c.arg.name, args[c.arg.name]])));
+    toast.exito(`${propios.length === 1 ? "Un cambio aplicado" : `${propios.length} cambios aplicados`} a los gráficos de ${nombreTipo}`, {
+      accion: { label: "Deshacer", onSelect: () => undo() },
+    });
+  };
   const filaDe = (c: CampoDato) => (
     <Fragment key={c.arg.name}>
-      <Fila campo={c} graficador={valor.graficador} valor={args[c.arg.name]}
+      <Fila campo={c} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello}
             onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v) : { [c.arg.name]: v })} />
       {radarPublicos && c.arg.name === "modo" && <EditorTemasEquivalentes tipo="radar" args={args} onCambio={set} />}
     </Fragment>
@@ -162,7 +200,16 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         <PaletaDelGrafico valor={valor} />
       </GrupoDeTarjeta>
       <EnElWord slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
-      <AjustesDelTipo valor={valor} />
+      {propios.length > 0 && (
+        <div className="pulso-f6-dato pulso-f6-alcance-pie" data-qa="ajustes-del-tipo">
+          <span className="pulso-f6-dato-rotulo">
+            {propios.length === 1 ? "Un ajuste es sólo de este gráfico" : `${propios.length} ajustes son sólo de este gráfico`}
+          </span>
+          <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={aplicarTodos}>
+            Aplicar a {nTipo > 1 ? `los ${nTipo} gráficos` : "todos los gráficos"} de {nombreTipo}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -184,7 +231,7 @@ function Ayuda({ rotulo, detalle }: { rotulo: string; detalle: string }) {
   return <AyudaGlobo rotulo={rotulo} detalle={detalle} />;
 }
 
-function Fila({ campo, graficador, valor, onCambio }: { campo: CampoDato; graficador: string; valor: unknown; onCambio: (v: unknown) => void }) {
+function Fila({ campo, graficador, valor, onCambio, sello }: { campo: CampoDato; graficador: string; valor: unknown; onCambio: (v: unknown) => void; sello?: ReactNode }) {
   const id = useId();
   const idAyuda = `${id}-ayuda`;
   const { arg, rotulo, ayuda, detalle, control, placeholder } = campo;
@@ -195,6 +242,7 @@ function Fila({ campo, graficador, valor, onCambio }: { campo: CampoDato; grafic
     <label className="pulso-f6-dato-rotulo" htmlFor={id}>
       {rotulo}
       <Ayuda rotulo={rotulo} detalle={detalle} />
+      {sello}
     </label>
   );
   if (control === "variable" || control === "variable_opcional") {
@@ -232,7 +280,7 @@ function Fila({ campo, graficador, valor, onCambio }: { campo: CampoDato; grafic
     const encendido = interruptorEncendido(arg, valor);
     return (
       <div className="pulso-f6-dato">
-        <span className="pulso-f6-dato-rotulo" id={id}>{rotulo}<Ayuda rotulo={rotulo} detalle={detalle} /></span>
+        <span className="pulso-f6-dato-rotulo" id={id}>{rotulo}<Ayuda rotulo={rotulo} detalle={detalle} />{sello}</span>
         <Switch checked={encendido} ariaLabel={rotulo} onToggle={() => onCambio(!encendido)} />
         {nota}
       </div>
@@ -278,16 +326,16 @@ function Fila({ campo, graficador, valor, onCambio }: { campo: CampoDato; grafic
       </div>
     );
   }
-  return <FilaTexto rotulo={rotulo} ayuda={ayuda} placeholder={placeholder} valor={typeof valor === "string" ? valor : ""} onCambio={(t) => onCambio(t)} />;
+  return <FilaTexto rotulo={rotulo} ayuda={ayuda} placeholder={placeholder} valor={typeof valor === "string" ? valor : ""} onCambio={(t) => onCambio(t)} sello={sello} />;
 }
 
-function FilaTexto({ rotulo, ayuda, placeholder = null, valor, onCambio }: {
-  rotulo: string; ayuda: string | null; placeholder?: string | null; valor: string; onCambio: (t: string) => void;
+function FilaTexto({ rotulo, ayuda, placeholder = null, valor, onCambio, sello }: {
+  rotulo: string; ayuda: string | null; placeholder?: string | null; valor: string; onCambio: (t: string) => void; sello?: ReactNode;
 }) {
   const id = useId();
   return (
     <div className="pulso-f6-dato is-apilado">
-      <label className="pulso-f6-dato-rotulo" htmlFor={id}>{rotulo}</label>
+      <label className="pulso-f6-dato-rotulo" htmlFor={id}>{rotulo}{sello}</label>
       <input id={id} className="pulso-f6-input" value={valor} placeholder={placeholder ?? undefined}
         aria-describedby={ayuda ? `${id}-ayuda` : undefined} onChange={(e) => onCambio(e.target.value)} />
       {ayuda && <span id={`${id}-ayuda`} className="pulso-f6-dato-ayuda">{ayuda}</span>}
