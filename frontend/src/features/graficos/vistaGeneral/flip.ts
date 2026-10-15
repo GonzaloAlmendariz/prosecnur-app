@@ -25,3 +25,12 @@ export function desplazamientosFlip(
   }
   return out;
 }
+
+/** I8 (2026-10-14): las tarjetas que no existían antes del cambio (agregadas o duplicadas): ésas «aparecen». */
+/** Si el «antes» estaba vacío (primera carga) o casi todo es nuevo (otra base, otro plan), no se anima nada: aparecer es
+ *  para una o unas pocas tarjetas que el usuario acaba de crear, no para un informe entero que llega. */
+export function tarjetasNuevas(antes: ReadonlyMap<string, Punto>, despues: ReadonlyMap<string, Punto>, maximo = 12): string[] {
+  if (antes.size === 0) return [];
+  const nuevas = [...despues.keys()].filter((id) => !antes.has(id));
+  return nuevas.length > maximo || nuevas.length > despues.size / 2 ? [] : nuevas;
+}
