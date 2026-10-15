@@ -3509,13 +3509,11 @@ export default function XlsformEditorPage() {
             )}
             {pestana === "cuestionario" && (
               <VistaCuestionario
+                workbook={workbook}
                 structure={structure}
-                selection={selection}
-                metricas={suiteMetrics}
-                onElegir={(next) => {
-                  selectBuilderFocus(next);
-                  irPestana("constructor");
-                }}
+                logicaPendiente={deriveEditorHeaderStatus(diagnostics, activeFormId ? publicationUi.byFormId[activeFormId] ?? null : null, source).logicStepPending}
+                onRevisarLogica={activeFormId ? () => { void openFormLogicReview(activeFormId); } : undefined}
+                onIrAPregunta={irAPregunta}
               />
             )}
             {/* El mapa queda montado aunque se cambie de pestaña: conserva zoom y
