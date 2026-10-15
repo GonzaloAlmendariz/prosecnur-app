@@ -217,3 +217,18 @@
 .pulso-f6-criterio-pregunta span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pulso-f6-criterio-quitar { display: inline-grid; place-items: center; padding: 2px; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; }
 .pulso-f6-criterio-quitar:hover { background: var(--pulso-surface); }
+
+/* O7b: la tarjeta en grupos con un título discreto. Un grupo cuyo cuerpo quedó vacío para ese tipo no se muestra. */
+.pulso-f6-grupo { display: grid; gap: 0; min-width: 0; padding-top: var(--pulso-space-3); }
+.pulso-f6-grupo:first-child { padding-top: 0; }
+.pulso-f6-grupo:not(:has(> .pulso-f6-grupo-cuerpo > *)) { display: none; }
+.pulso-f6-grupo-titulo {
+  margin: 0 0 var(--pulso-space-1);
+  color: var(--module-accent);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.pulso-f6-grupo-cuerpo { display: grid; gap: 0; min-width: 0; }
+.pulso-f6-grupo-cuerpo > .pulso-f6-dato:first-child { border-top: 0; }
