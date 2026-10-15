@@ -30,6 +30,7 @@ import { PulsoButton } from "../../components/PulsoButton";
 import { seccionLegible, type FilaEditor } from "./equivalenciasEditorModel";
 import { useDesbordeHorizontal } from "./useDesbordeHorizontal";
 import { etiquetaLegible } from "./preguntaEquivalenteModel";
+import { searchConVariablesBase } from "./variablesBase/variablesBaseModel";
 import {
   PANEL_MAPA_BASES,
   filasDelMapa,
@@ -110,6 +111,13 @@ function PanelConDireccion({ cargando, bases, filas, variablesPorBase, onAnadir 
     );
   }, [location.pathname, location.search, navigate]);
 
+  // ADR 0106: lo que la base trae fuera del formulario se declara en su panel.
+  const abrirVariables = useCallback(
+    (base: string) =>
+      navigate({ pathname: location.pathname, search: searchConVariablesBase(location.search, base) }, { replace: true }),
+    [location.pathname, location.search, navigate],
+  );
+
   const anadir = (base: string, variable: string) => {
     filaPorEnfocar.current = onAnadir(base, variable);
     cerrar();
@@ -163,6 +171,7 @@ function PanelConDireccion({ cargando, bases, filas, variablesPorBase, onAnadir 
                 foco={foco}
                 onIr={irA}
                 onAnadir={anadir}
+                onVariables={abrirVariables}
               />
             </div>
           </div>
@@ -183,10 +192,12 @@ export type MapaBasesCuerpoProps = {
   foco: string | null;
   onIr: (base: string | null) => void;
   onAnadir: (base: string, variable: string) => void;
+  /** Abre «Variables de la base» (ADR 0106); sin él no se ofrece. */
+  onVariables?: (base: string) => void;
 };
 
 /** Lo que va dentro del dueño de scroll. Aparte del diálogo para poder renderizarlo sin portal. */
-export function MapaBasesCuerpo({ cargando, bases, filas, variablesPorBase, foco, onIr, onAnadir }: MapaBasesCuerpoProps) {
+export function MapaBasesCuerpo({ cargando, bases, filas, variablesPorBase, foco, onIr, onAnadir, onVariables }: MapaBasesCuerpoProps) {
   const resumen = useMemo(() => resumenPorBase(bases, filas, variablesPorBase), [bases, filas, variablesPorBase]);
   const baseActiva = foco && bases.includes(foco) ? foco : null;
   if (cargando) {
@@ -199,7 +210,7 @@ export function MapaBasesCuerpo({ cargando, bases, filas, variablesPorBase, foco
   }
   return (
     <>
-      <ResumenBases resumen={resumen} activa={baseActiva} onIr={onIr} />
+      <ResumenBases resumen={resumen} activa={baseActiva} onIr={onIr} onVariables={onVariables} />
       {foco && !baseActiva ? (
         <section className="pulso-armon-seccion" data-qa-geometry-member>
           <p className="pulso-armon-vacio">La base «{foco}» no está en este estudio.</p>
@@ -233,10 +244,12 @@ function ResumenBases({
   resumen,
   activa,
   onIr,
+  onVariables,
 }: {
   resumen: readonly ResumenDeBase[];
   activa: string | null;
   onIr: (base: string | null) => void;
+  onVariables?: (base: string) => void;
 }) {
   return (
     <ul className="pulso-mapa-resumen" aria-label="Resumen por base" data-qa-geometry-member>
@@ -265,6 +278,18 @@ function ResumenBases({
             >
               {esActiva ? "Ver la matriz" : r.fuera === 0 ? "Todas en la matriz" : `Ver las ${formatoConteo(r.fuera)} fuera`}
             </button>
+            {onVariables && (
+              <button
+                type="button"
+                className="pulso-mapa-resumen-ir"
+                aria-haspopup="dialog"
+                aria-label={`Variables de la base ${r.base}`}
+                data-plf-abrir={`variables-base:${r.base}`}
+                onClick={() => onVariables(r.base)}
+              >
+                Variables de la base
+              </button>
+            )}
           </li>
         );
       })}

@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { apiEstudioGet, apiEstudioRemoveBase, apiEstudioRenameBase, type EstudioBase, type EstudioPayload } from "../../../api/estudio";
 import type { VistaPreviaFuente } from "../../../api/xlsformEditor";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { ClipboardCheck, CloudDownload, Database, FileCheck2, FileUp, GitCompareArrows, GitMerge, ListChecks, Pencil, Plus, Trash2, Upload, X } from "../../../vendor/lucide-react";
+import { ClipboardCheck, CloudDownload, Columns3, Database, FileCheck2, FileUp, GitCompareArrows, GitMerge, ListChecks, Pencil, Plus, Trash2, Upload, X } from "../../../vendor/lucide-react";
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import { ordenarBasesPorSerie } from "../equivalenciasEditorModel";
 import { useOrdenDeSerie } from "./useOrdenDeSerie";
@@ -18,6 +18,8 @@ import { useFormulariosPublicados } from "./useFormulariosPublicados";
 import { AbrirPanelFuentes } from "./AbrirPanelFuentes";
 import { ArmonizacionBasePanel } from "./ArmonizacionBasePanel";
 import { CompararFuentesPanel } from "./CompararFuentesPanel";
+import { VariablesBasePanel } from "../variablesBase/VariablesBasePanel";
+import { searchConVariablesBase } from "../variablesBase/variablesBaseModel";
 import { comparablesCon, hayFuentesComparables, primerParComparable, searchConArmonizacionBase, searchConComparacion } from "./compararFuentesModel";
 import "./basesDelEstudio.css";
 
@@ -145,6 +147,15 @@ function TarjetaBase({ base, vinculo, comparables, ocupado, onRenombrar, onQuita
           {onOtraFuente ? (
             <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={onOtraFuente}><GitMerge size={13} aria-hidden="true" />Agregar otra fuente</PulsoButton>
           ) : null}
+          {/* ADR 0106: columnas propias, calculadas y la marca «ya viene codificada». */}
+          <AbrirPanelFuentes
+            variant="secondary"
+            clave={`variables-base:${base.nombre}`}
+            destino={(search) => searchConVariablesBase(search, base.nombre)}
+            etiqueta={`Variables de la base ${base.nombre}`}
+          >
+            <Columns3 size={13} aria-hidden="true" />Variables
+          </AbrirPanelFuentes>
           {/* M2: acciones secundarias con el mismo PulsoButton secundario de Carga. */}
           <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={() => setEditando(true)}><Pencil size={13} aria-hidden="true" />Renombrar</PulsoButton>
           <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={() => setConfirmando(true)}><Trash2 size={13} aria-hidden="true" />Quitar</PulsoButton>
@@ -329,6 +340,7 @@ export function BasesDelEstudio({
       ) : null}
       <ArmonizacionBasePanel />
       <CompararFuentesPanel bases={bases} />
+      <VariablesBasePanel />
     </section>
   );
 }

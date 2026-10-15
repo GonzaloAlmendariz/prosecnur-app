@@ -30,6 +30,7 @@ const INTERRUPTORES: Array<[string, string]> = [
   ["./BasesPanel.tsx", "Rescatar parciales con avance suficiente"],
   ["./BasesPanel.tsx", "Permitir repetidos en la base"],
   ["./BasesPanel.tsx", "Permitir rechazos en la base"],
+  ["./variablesBase/VariablesBasePanel.tsx", "Esta base ya viene codificada"], // ADR 0106
 ];
 
 describe("Carga: ajustes con interruptor, selección con casilla", () => {
