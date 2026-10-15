@@ -263,6 +263,7 @@ export type ArgGrupo =
                // antes iban a "avanzado" y lo saturaban.
   | "tabla"    // específico de radar_tabla: todo lo que afecta la tabla
                // derecha (tabla_header_fill, tabla_body_size, …).
+  | "word"     // W6: cómo sale el gráfico en el documento Word (multiapiladas).
   | "avanzado";
 
 export type ArgChoice = {

@@ -64,6 +64,7 @@ const ARG_GRUPOS: Record<ArgGrupo, true> = {
   semaforo: true,
   canvas: true,
   tabla: true,
+  word: true,
   avanzado: true,
 };
 

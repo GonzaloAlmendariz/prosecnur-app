@@ -2,6 +2,7 @@
 // motor ya lee por gráfico (`enElWord.ts`). Sección intrínseca con encabezado propio; nada se recorta (C4).
 
 import { useId } from "react";
+import { leerModoInforme, leerModoLamina, MODOS_MULTI_INFORME, rotuloModo } from "../../word/modeloMultiWord";
 import { FileText } from "../../../../vendor/lucide-react";
 import type { ArgMetadata, GraficadorRef } from "../../../../api/graficos";
 import { Switch } from "../../../../components/Switch";
@@ -46,7 +47,8 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
       <h4 className="pulso-f6-word-cabeza" id={`${id}-cab`}>
         <FileText size={14} aria-hidden="true" /> En el Word
       </h4>
-      <p className="pulso-f6-dato-ayuda">{COMO_SALE[titulo]}</p>
+      {/* En las multiapiladas cómo sale depende de su forma (W6): lo explica la ayuda del control de abajo. */}
+      {valor.graficador !== "p_barras_multiapiladas" && <p className="pulso-f6-dato-ayuda">{COMO_SALE[titulo]}</p>}
       {conTitulo && (
         <div className="pulso-f6-dato is-apilado">
           <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-titulo`}>Título de la figura</label>
@@ -61,6 +63,18 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
           <span className="pulso-f6-dato-ayuda" id={`${id}-titulo-ayuda`}>
             También encabeza este gráfico en la lámina. Vacío usa la etiqueta corta o la pregunta.
           </span>
+        </div>
+      )}
+      {/* W6: cómo sale la multiapilada en el Word; vacío sigue al informe (Word, Gráficos). */}
+      {valor.graficador === "p_barras_multiapiladas" && (
+        <div className="pulso-f6-dato is-apilado">
+          <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-multi`}>Cómo sale en el Word</label>
+          <select id={`${id}-multi`} className="pulso-f6-input" value={leerModoLamina(args)}
+            onChange={(e) => set({ word_multiapiladas: e.target.value || null })}>
+            <option value="">Como el informe ({rotuloModo(leerModoInforme(wPresets as Record<string, Record<string, unknown>>)).toLowerCase()})</option>
+            {MODOS_MULTI_INFORME.filter((m) => m.clave !== "automatico").map((m) => <option key={m.clave} value={m.clave}>{m.rotulo}</option>)}
+          </select>
+          <span className="pulso-f6-dato-ayuda">{MODOS_MULTI_INFORME.find((m) => m.clave === (leerModoLamina(args) || leerModoInforme(wPresets as Record<string, Record<string, unknown>>)))?.detalle}</span>
         </div>
       )}
       {conRotulo && (
