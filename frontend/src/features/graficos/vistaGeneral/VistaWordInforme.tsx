@@ -71,7 +71,7 @@ export function VistaWordInforme({ paginas }: Props) {
   );
 }
 
-function PaginaMaqueta({ pagina, tituloCorto }: { pagina: PaginaWord; tituloCorto: string }) {
+export function PaginaMaqueta({ pagina, tituloCorto }: { pagina: PaginaWord; tituloCorto: string }) {
   const cabeza = (seccion: string) => (
     <span className="pulso-f6-vg-pag-enc"><span>{tituloCorto}</span><b>{seccion}</b></span>
   );
