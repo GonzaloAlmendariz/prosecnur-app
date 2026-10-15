@@ -230,7 +230,8 @@
 #' @return Invisible, la `y` donde termina el bloque (sin la leyenda).
 #' @keywords internal
 .lam_bloque_escala <- function(lz, espec, premisas, solo = TRUE, y0 = NULL, y1 = NULL, leyenda = TRUE,
-                               estirar = NULL, nb = NULL, aire = NULL, grosor = NULL, rotulo_sobre = NULL) {
+                               estirar = NULL, nb = NULL, aire = NULL, grosor = NULL, rotulo_sobre = NULL, titulo_lamina = NULL,
+                               encabezar_tema = FALSE) {
   g_ <- .std_geom; L <- g_("likert"); azul <- .std_color("azul"); verde <- .std_color("verde_top_two_box")
   W <- g_("ancho"); MR <- g_("margen_der"); ML <- g_("margen_izq")
   Y_DATOS <- g_("zona_datos_y0"); Y_LEY <- g_("leyenda_y"); Y_BASE <- g_("base_y")
@@ -302,28 +303,52 @@
   # sólo corta la lectura (Gonzalo, 2026-10-14: «en el caso que todas las barras sean de un público es mejor no
   # agregar líneas grises dividiéndolas»).
   con_filete <- !.lam_escala_sin_actor(premisas)
+  # Un solo tema con varios públicos (Gonzalo, 2026-10-14): el tema va arriba como encabezado y no le quita a los públicos
+  # la columna de la izquierda; sus rótulos usan todo el ancho hasta la barra y un nombre largo («Estudiantes 2018») ya
+  # no se parte sobre sus respuestas. Si el tema repite el título de la lámina, no se escribe.
+  un_tema <- isTRUE(encabezar_tema) && length(premisas) == 1L && con_filete
+  x_act <- if (un_tema) L$x_premisa else L$x_actor
+  w_act <- L$ancho_actor; x_bar <- L$x_barra
+  if (un_tema) {
+    # La barra arranca donde empezaba la columna del tema, tras el rótulo más ancho de los públicos (Gonzalo,
+    # 2026-10-14: «que el eje empiece antes, donde antes empezaba el tema, para que esa columna no se vea vacía»).
+    actores <- vapply(premisas[[1]]$filas, function(fl) fl$actor, "")
+    w_act <- max(1.3, max(.lam_ancho_tinta(actores, .std_pt("actor"), TRUE), 0) + 0.35)   # 0.2 in de márgenes internos de la caja
+    x_bar <- L$x_premisa + w_act + 0.2
+    WB <- WB + (L$x_barra - x_bar)
+  }
   for (i in seq_along(premisas)) {
     p <- premisas[[i]]; a <- altos[i]; hp <- .lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE); hn <- .lam_premisa_alto(p, wp)
     if (i > 1 && con_filete) .lam_caja(lz, ML, y - gap / 2, W - ML - MR, 0.008, .std_color("filete"), nombre = "filete")
-    .lam_txt(lz, p$texto, L$x_premisa, y + (a - hn) / 2, wp, hp, .std_pt("pregunta"), azul, bold = TRUE, nombre = "premisa")
-    if (!is.null(p$nota)) .lam_txt(lz, p$nota, L$x_premisa, y + (a - hn) / 2 + hp - 0.04, wp, 0.26, .std_pt("n"), .std_color("texto_tenue"),
-                                   nombre = "premisa:n")
+    if (un_tema) {
+      if (nzchar(p$texto %||% "") && !identical(trimws(p$texto), trimws(titulo_lamina %||% "")))
+        .lam_txt(lz, p$texto, L$x_premisa, y - (rotulo_sobre %||% 0.45), L$x_top_two_box - L$x_premisa - 0.2, 0.3, .std_pt("pregunta"), azul,
+                 bold = TRUE, nombre = "premisa")
+    } else {
+      .lam_txt(lz, p$texto, L$x_premisa, y + (a - hn) / 2, wp, hp, .std_pt("pregunta"), azul, bold = TRUE, nombre = "premisa")
+      if (!is.null(p$nota)) .lam_txt(lz, p$nota, L$x_premisa, y + (a - hn) / 2 + hp - 0.04, wp, 0.26, .std_pt("n"), .std_color("texto_tenue"),
+                                     nombre = "premisa:n")
+    }
     yf <- y + (a - length(p$filas) * fila) / 2
     for (fl in p$filas) {
       yb <- yf + (fila - g) / 2 + 0.06
       if (nzchar(fl$actor)) {
-        .lam_txt(lz, fl$actor, L$x_actor, yb + g / 2 - 0.25, L$ancho_actor, 0.3, .std_pt("actor"), azul, bold = TRUE, align = "right", nombre = "actor")
-        if (con_n) .lam_txt(lz, respuestas(fl$valid), L$x_actor - 0.4, yb + g / 2, L$ancho_actor + 0.4, 0.26, .std_pt("n"), .std_color("texto_tenue"),
+        # Un rótulo que no cabe en una línea sube lo que mide su segunda línea: si no, se montaba sobre «N respuestas».
+        cabe <- .lam_ancho_tinta(fl$actor, .std_pt("actor"), TRUE) <= w_act - 0.2
+        lin <- if (cabe) 1L else .lam_lineas_tinta(fl$actor, w_act, .std_pt("actor"), TRUE)
+        dy <- if (lin > 1) (lin - 1) * .std_pt("actor") * 1.2 / 72 else 0
+        .lam_txt(lz, fl$actor, x_act, yb + g / 2 - 0.25 - dy, w_act, 0.3 + dy, .std_pt("actor"), azul, bold = TRUE, align = "right", nombre = "actor")
+        if (con_n) .lam_txt(lz, respuestas(fl$valid), x_act - 0.4, yb + g / 2, w_act + 0.4, 0.26, .std_pt("n"), .std_color("texto_tenue"),
                             align = "right", nombre = "respuestas")
       }
-      .lam_barra_apilada(lz, L$x_barra, yb, WB, .lam_escala_seg(espec, fl$i), g)
+      .lam_barra_apilada(lz, x_bar, yb, WB, .lam_escala_seg(espec, fl$i), g)
       for (cc in cb$cols) .lam_etiqueta_box(lz, espec, cc$x, yb, g, fl$i, con_n = hay_chica, caja = cc$caja, color = cc$color,
                                             w = wcol, prefijo = cc$prefijo)
       yf <- yf + fila
     }
     y <- y + a + gap
   }
-  fin_bloque <- if (ttb_col) L$x_top_two_box + 0.75 else L$x_barra + WB
+  fin_bloque <- if (ttb_col) L$x_top_two_box + 0.75 else x_bar + WB
   if (isTRUE(leyenda)) .lam_leyenda(lz, min(Y_LEY, ytop + tot + 0.3), labels, cols, centrar_en = (L$x_premisa + fin_bloque) / 2)
   invisible(ytop + tot)
 }

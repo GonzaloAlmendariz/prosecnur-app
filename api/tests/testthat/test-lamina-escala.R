@@ -210,3 +210,19 @@ test_that("con actores y Bottom Two Box cada premisa conserva su título", {
   actores <- unlist(lapply(seq_len(o$partes), function(k) .textos(o$doc, length(o$doc) - o$partes + k, "actor")))
   expect_identical(sort(actores), sort(c("Alumnos", "Docentes", "Alumnos", "Docentes")))
 })
+
+test_that("un solo tema de varios públicos lleva el tema arriba y la barra desde la columna del tema (2026-10-14)", {
+  d <- data.frame(item = c("a1", "a2", "a3"), actor = c("Docentes", "Estudiantes", "Estudiantes 2018"),
+                  grupo = "P1", titulo = "Servicios de tutoría", N = 100, t1 = .1, t2 = .1, t3 = .4, t4 = .3, t5 = .1)
+  e <- preparar_escala(d, "item", "N", paste0("t", 1:5), .niv_esc, var_etiqueta_categoria = "actor", var_grupo_id = "grupo",
+                       var_grupo_titulo = "titulo", colores_grupos = as.list(setNames(.std_paleta("likert"), .niv_esc)),
+                       barra_extra_preset = "top2box", top2box_labels = .niv_esc[3:4])
+  o <- .lam_laminas_escala(.doc_vacio(), e, "Un tema", base = "Base", folio = 1)
+  L <- .std_geom("likert")
+  tema <- .formas(o$doc, "premisa"); barra_y <- min(.formas(o$doc, "actor")$y)
+  expect_identical(tema$texto, "Servicios de tutoría")
+  expect_lt(tema$y, barra_y)                                                   # encabezado, sobre la primera fila
+  act <- .formas(o$doc, "actor")
+  expect_equal(min(act$x), L$x_premisa, tolerance = 0.01)                      # los públicos toman la columna del tema
+  expect_lt(max(act$x + act$w), L$x_barra)                                     # y la barra arranca antes que con varios temas
+})
