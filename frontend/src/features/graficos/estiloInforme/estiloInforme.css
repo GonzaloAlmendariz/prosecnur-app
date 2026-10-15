@@ -336,10 +336,12 @@
 }
 .pulso-f6-sufijo-base {
   display: grid;
-  grid-template-columns: minmax(96px, 140px) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(96px, 140px) minmax(150px, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 2px 12px;
 }
+/* QA de la fase: el campo medía 52 px a 1024 y cortaba «estudiantes 2018»; el ejemplo va debajo del campo. */
+.pulso-f6-sufijo-base-ejemplo { grid-column: 2; }
 .pulso-f6-sufijo-base-nombre {
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
@@ -351,6 +353,7 @@
 }
 @media (max-width: 720px) {
   .pulso-f6-sufijo-base { grid-template-columns: 1fr; gap: 4px; }
+  .pulso-f6-sufijo-base-ejemplo { grid-column: auto; }
 }
 
 /* R1 del rediseño (2026-10-15): la franja de quién manda y las reglas apiladas en una sola página. */

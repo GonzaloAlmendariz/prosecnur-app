@@ -47,14 +47,14 @@ export function PiezasIdentidad({ piezas, actual, onElegir, idPanel }: Props) {
           </button>
         ))}
       </div>
-      <div className="pulso-f6-id-salidas" role="table" aria-label="A qué salida llega cada pieza">
+      <div className="pulso-f6-id-salidas" role="table" data-qa-geometry-group="graficos/f6-id-salidas" data-qa-geometry-contract="intrinsic" aria-label="A qué salida llega cada pieza">
         <span className="pulso-f6-id-salidas-lab" aria-hidden="true">A qué salida llega</span>
         <span className="pulso-f6-id-salidas-fila is-cabecera" role="row">
           <span role="columnheader"><span className="pulso-sr-only">Pieza</span></span>
           <b role="columnheader">PPT</b><b role="columnheader">Word</b>
         </span>
         {SALIDAS.map((s) => (
-          <span key={s.clave} className="pulso-f6-id-salidas-fila" role="row">
+          <span key={s.clave} className="pulso-f6-id-salidas-fila" role="row" data-qa-geometry-group="graficos/f6-id-salidas-fila" data-qa-geometry-contract="intrinsic">
             <span role="rowheader">{s.titulo}</span>
             <i role="cell" className={s.ppt ? "is-si" : ""} aria-label={s.ppt ? "Llega al PPT" : "No llega al PPT"} />
             <i role="cell" className={s.word ? "is-si" : ""} aria-label={s.word ? "Llega al Word" : "No llega al Word"} />

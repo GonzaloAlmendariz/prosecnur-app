@@ -18,7 +18,7 @@ const ESCALA = ["Totalmente en desacuerdo", "En desacuerdo", "Ni de acuerdo ni e
 function MuestraLeyenda({ modo, negrita }: { modo: ModoLeyenda; negrita: boolean }) {
   const filas = modo === "una_fila" ? [ESCALA] : modo === "dos_filas" ? [ESCALA.slice(0, 3), ESCALA.slice(3)] : [ESCALA.slice(0, 2), ESCALA.slice(2, 4), ESCALA.slice(4)];
   return (
-    <div className={`pulso-f6-leg-muestra is-${modo}${negrita ? " is-negrita" : ""}`} aria-hidden="true">
+    <div className={`pulso-f6-leg-muestra is-${modo}${negrita ? " is-negrita" : ""}`} aria-hidden="true" data-qa-geometry-group="graficos/f6-leg-muestra" data-qa-geometry-contract="intrinsic">
       {filas.map((f, i) => (
         <div key={i} className="pulso-f6-leg-fila">
           {f.map((t) => <span key={t}><i className={`c${ESCALA.indexOf(t)}`} />{t}</span>)}
@@ -45,8 +45,8 @@ export function SeccionLegibilidad({ estilo, onCambiar }: { estilo: EstiloClient
       </header>
       <p className="pulso-f6-estilo-ayuda">Vale para todos los gráficos del informe, en la lámina y en el Word.</p>
 
-      <div className="pulso-f6-leg-columnas">
-        <div className="pulso-f6-leg-grupo" role="group" aria-labelledby="f6-leg-negrita">
+      <div className="pulso-f6-leg-columnas" data-qa-geometry-group="graficos/f6-leg-columnas" data-qa-geometry-contract="intrinsic">
+        <div className="pulso-f6-leg-grupo" role="group" aria-labelledby="f6-leg-negrita" data-qa-geometry-group="graficos/f6-leg-negrita" data-qa-geometry-contract="intrinsic">
           <h4 id="f6-leg-negrita" className="pulso-f6-estilo-subtitulo">Negrita</h4>
           {ROLES_NEGRITA.map((r) => (
             <div key={r.rol} className="pulso-f6-leg-fila-ajuste">
@@ -62,7 +62,7 @@ export function SeccionLegibilidad({ estilo, onCambiar }: { estilo: EstiloClient
           </div>
         </div>
 
-        <div className="pulso-f6-leg-grupo" role="group" aria-labelledby="f6-leg-leyenda">
+        <div className="pulso-f6-leg-grupo" role="group" aria-labelledby="f6-leg-leyenda" data-qa-geometry-group="graficos/f6-leg-leyenda" data-qa-geometry-contract="intrinsic">
           <h4 id="f6-leg-leyenda" className="pulso-f6-estilo-subtitulo">Leyenda</h4>
           <Segmentado etiqueta="Cómo se acomoda la leyenda" valor={leyenda} opciones={MODOS_LEYENDA}
             onCambiar={(m) => onCambiar((e) => conLeyenda(e, m))} />

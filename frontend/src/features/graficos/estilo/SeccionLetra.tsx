@@ -84,7 +84,7 @@ export function SeccionLetra({
       ) : null}
 
       <h4 className="pulso-f6-estilo-subtitulo">Afinar por elemento</h4>
-      <ul className="pulso-f6-estilo-roles" data-qa-geometry-group="graficos/f6-estilo-roles" data-qa-geometry-contract="equal">
+      <ul className="pulso-f6-estilo-roles" data-qa-geometry-group="graficos/f6-estilo-roles" data-qa-geometry-contract="intrinsic">
         {ESTILO_ROLES.map((rol) => {
           const efectivo = pasoRol(rol);
           const elegido = rolPropio(rol);
