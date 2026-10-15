@@ -1293,8 +1293,8 @@
 
 .pulso-f6-vg-fig {
   display: flex;
+  flex: none;
   flex-direction: column;
-  min-height: 0;
   margin: 2.5cqw 0 2cqw;
 }
 
@@ -1312,8 +1312,9 @@
 
 .pulso-f6-vg-fig-gl {
   align-self: center;
-  width: 62%;
-  height: auto;
+  width: auto;
+  max-width: 62%;
+  height: 18cqw;
 }
 
 .pulso-f6-vg-fig-nt {
