@@ -9,36 +9,55 @@ import { GlifoGrafico } from "../iconos/GlifoGrafico";
 import { baseAutomatica, ranurasDeMaqueta } from "../laminas/modeloMaqueta";
 import { usePlanStore } from "../store";
 import { useVariables } from "../useVariables";
-import type { FilaVistaGeneral } from "./modeloVistaGeneral";
-import { paginasWord, type GraficosDeLamina, type PaginaWord } from "./paginasWord";
+import { paginasWord, type ElementoWord, type PaginaWord } from "./paginasWord";
 
 const FUENTE = "Fuente: PULSO PUCP.";
 
-type Props = { filas: readonly FilaVistaGeneral[]; slides: readonly Slide[] };
+/** Las páginas las arma una vez VistaGeneral (`useArmadoWord`), que también cuenta páginas y gráficos para la barra. */
+type Props = { paginas: readonly PaginaWord[] };
 
-export function useArmadoWord(filas: readonly FilaVistaGeneral[], slides: readonly Slide[]) {
+const texto = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+const ESCALAS = new Set(["p_barras_apiladas", "p_barras_multiapiladas"]);
+
+/** El plan, en orden, como lo recorre `.word_documento`: secciones, textos, tablas, gráficos y franjas de cifras. */
+export function useArmadoWord(slides: readonly Slide[]) {
   const { variables } = useVariables();
   const presets = usePlanStore((s) => s.presets);
   const paletas = usePlanStore((s) => s.paletas);
   const vinculos = usePlanStore((s) => s.paletasVinculos);
   return useMemo(() => {
-    const graficos = new Map<string, { graficador: string; pregunta: string; base: string | null }[]>();
+    const elementos: ElementoWord[] = [];
+    let tituloInforme = "";
+    let hayEscalas = false;
+    let hayBottom = false;
+    let conTablas = false;
     for (const slide of slides) {
+      const payload = (slide.payload ?? {}) as Record<string, unknown>;
+      const meta = (payload.meta ?? {}) as Record<string, unknown>;
+      if (slide.tipo === "p_slide_portada") { tituloInforme ||= texto(payload.titulo); continue; }
+      if (slide.tipo === "p_slide_seccion") {
+        // El Word lee el nivel de `meta.word_heading_level` (1 por defecto): hoy un subcapítulo sin él entra como capítulo.
+        elementos.push({ clase: "seccion", nivel: Number(meta.word_heading_level) === 2 ? 2 : 1, titulo: texto(payload.titulo) });
+        continue;
+      }
+      if (slide.tipo === "p_slide_texto") { elementos.push({ clase: "texto", titulo: texto(payload.titulo) }); continue; }
+      if (slide.tipo === "p_slide_tabla_tecnica") { conTablas = true; elementos.push({ clase: "tabla", titulo: texto(payload.titulo) }); continue; }
       const ranuras = ranurasDeMaqueta(slide, variables, presets, { paletas, vinculos }).filter((r) => r.graficador);
-      if (!ranuras.length) continue;
       // Con un gráfico la base es la de la lámina; con varios, cada uno lleva la suya y aquí no se inventa.
       const base = baseAutomatica(slide, variables);
-      graficos.set(slide.id, ranuras.map((r) => ({ graficador: r.graficador as string, pregunta: r.pregunta ?? "Sin pregunta", base })));
+      let cifras = false;
+      for (const r of ranuras) {
+        if (r.graficador === "p_cifra") { if (!cifras) elementos.push({ clase: "cifras" }); cifras = true; continue; }
+        if (ESCALAS.has(r.graficador as string)) hayEscalas = true;
+        if (r.twoBox.btb) hayBottom = true;
+        elementos.push({ clase: "grafico", graficador: r.graficador as string, pregunta: r.pregunta ?? "Sin pregunta", base });
+      }
     }
-    const portada = slides.find((s) => s.tipo === "p_slide_portada");
-    const titulo = typeof (portada?.payload as Record<string, unknown> | undefined)?.titulo === "string"
-      ? ((portada?.payload as Record<string, unknown>).titulo as string).trim() : "";
-    return paginasWord(filas, graficos as GraficosDeLamina, titulo || "Informe");
-  }, [filas, slides, variables, presets, paletas, vinculos]);
+    return paginasWord(elementos, { tituloInforme: tituloInforme || "Informe", hayEscalas, hayBottom, conTablas });
+  }, [slides, variables, presets, paletas, vinculos]);
 }
 
-export function VistaWordInforme({ filas, slides }: Props) {
-  const paginas = useArmadoWord(filas, slides);
+export function VistaWordInforme({ paginas }: Props) {
   const tituloCorto = paginas[0]?.clase === "portada" ? paginas[0].titulo : "Informe";
   return (
     <div className="pulso-f6-vg-word" data-qa-geometry-group="graficos/f6-vg-word" data-qa-geometry-contract="equal">
@@ -76,16 +95,23 @@ function PaginaMaqueta({ pagina, tituloCorto }: { pagina: PaginaWord; tituloCort
               <span key={i} className={`pulso-f6-vg-pag-toc-e is-n${e.nivel}`}><span>{e.numero}</span>{e.titulo}<i /></span>
             ))}
           </span>
+          {pagina.indices.map((t) => <span key={t} className="pulso-f6-vg-pag-h2 is-indice">{t}</span>)}
         </>)}
-        {pagina.clase === "texto" && (<>
-          {cabeza(pagina.encabezado)}
-          <span className="pulso-f6-vg-pag-h1">{pagina.titulo}</span>
-          {[96, 92, 88, 60, 0, 94, 90, 72].map((w, i) => (w ? <span key={i} className="pulso-f6-vg-pag-ln" style={{ width: `${w}%` }} /> : <span key={i} className="pulso-f6-vg-pag-sep" />))}
+        {pagina.clase === "como-leer" && (<>
+          {cabeza("Cómo leer este informe")}
+          <span className="pulso-f6-vg-pag-h1">{pagina.numero}. Cómo leer este informe</span>
+          {pagina.secciones.map((t, i) => (
+            <span key={t} className="pulso-f6-vg-pag-sub">
+              <span className="pulso-f6-vg-pag-h3">{pagina.numero}.{i + 1}. {t}</span>
+              <span className="pulso-f6-vg-pag-ln" style={{ width: `${[94, 86, 90, 80, 92, 84][i % 6]}%` }} />
+            </span>
+          ))}
+          <span className="pulso-f6-vg-pag-ejemplos">Gráficos de ejemplo: {pagina.figuras.map((n) => `Gráfico ${n}`).join(", ")}</span>
         </>)}
-        {pagina.clase === "graficos" && (<>
+        {pagina.clase === "capitulo" && (<>
           {cabeza(pagina.encabezado)}
-          {pagina.titulos.map((t, i) => <span key={i} className={i === 0 && /^\d+\. /.test(t) && !/^\d+\.\d/.test(t) ? "pulso-f6-vg-pag-h1" : "pulso-f6-vg-pag-h2"}>{t}</span>)}
-          {pagina.titulos.length > 0 && <><span className="pulso-f6-vg-pag-ln" style={{ width: "94%" }} /><span className="pulso-f6-vg-pag-ln" style={{ width: "58%" }} /></>}
+          {pagina.titulos.map((t, i) => <span key={i} className={/^\d+\. /.test(t) ? "pulso-f6-vg-pag-h1" : "pulso-f6-vg-pag-h2"}>{t}</span>)}
+          {pagina.texto && [96, 92, 88, 60].map((w, i) => <span key={i} className="pulso-f6-vg-pag-ln" style={{ width: `${w}%` }} />)}
           {pagina.figuras.map((f) => (
             <span key={f.numero} className="pulso-f6-vg-fig">
               <span className="pulso-f6-vg-fig-lab">Gráfico {f.numero}</span>
