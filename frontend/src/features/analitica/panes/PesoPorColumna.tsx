@@ -7,12 +7,14 @@
 // el suyo: se cambia de base con el selector de Analítica.
 
 import type { VariableInstrumento } from "../../../api/client";
+import type { LecturaVariables } from "./variablesDeLaBase";
 import "./PesoPorColumna.css";
 
 export type PesoPorColumnaProps = {
   modo: "calibracion" | "columna";
   pesoColumna: string;
-  variables: VariableInstrumento[];
+  /** La lectura de las variables de la base activa: cargando, lista o error. */
+  lectura: LecturaVariables;
   baseActiva: string | null;
   onModo: (modo: "calibracion" | "columna") => void;
   onColumna: (columna: string) => void;
@@ -26,16 +28,37 @@ export function columnasCandidatasAPeso(variables: readonly VariableInstrumento[
     .sort((a, b) => Number(pareceraPeso(b)) - Number(pareceraPeso(a)) || a.name.localeCompare(b.name, "es"));
 }
 
+/**
+ * Lo que el control dice en lugar del selector. «No tiene columnas numéricas»
+ * sólo tras una respuesta real sin candidatas: mientras carga, o si la lectura
+ * falló, no se sabe y no se afirma (F7). `null`: se muestra el selector.
+ */
+export function avisoColumnasDePeso(
+  lectura: LecturaVariables,
+  pesoColumna: string,
+): { tipo: "cargando" | "error" | "sin-numericas"; texto: string } | null {
+  if (lectura.tipo === "cargando") return { tipo: "cargando", texto: "Cargando las columnas de la base…" };
+  if (lectura.tipo === "error") {
+    return { tipo: "error", texto: "No se pudieron leer las columnas de la base. Vuelve a abrir Ponderación para reintentar." };
+  }
+  if (columnasCandidatasAPeso(lectura.variables).length === 0 && !pesoColumna) {
+    return { tipo: "sin-numericas", texto: "Esta base no tiene columnas numéricas. Un peso tomado de una columna necesita una." };
+  }
+  return null;
+}
+
 export function PesoPorColumna({
   modo,
   pesoColumna,
-  variables,
+  lectura,
   baseActiva,
   onModo,
   onColumna,
 }: PesoPorColumnaProps) {
-  const candidatas = columnasCandidatasAPeso(variables);
-  const declarada = pesoColumna && !candidatas.some((v) => v.name === pesoColumna);
+  const candidatas = columnasCandidatasAPeso(lectura.tipo === "lista" ? lectura.variables : []);
+  const aviso = avisoColumnasDePeso(lectura, pesoColumna);
+  // Sólo con la lista leída se sabe si la columna declarada falta en la base.
+  const declarada = lectura.tipo === "lista" && pesoColumna && !candidatas.some((v) => v.name === pesoColumna);
   return (
     <section
       className="pulso-peso-columna"
@@ -70,10 +93,16 @@ export function PesoPorColumna({
 
       {modo === "columna" && (
         <div className="pulso-peso-columna-cuerpo" data-qa-geometry-member>
-          {candidatas.length === 0 && !pesoColumna ? (
-            // C5: vacío legítimo de la base, no del control.
-            <p className="pulso-peso-columna-aviso">
-              Esta base no tiene columnas numéricas. Un peso tomado de una columna necesita una.
+          {aviso ? (
+            // C3/C5: el vacío es del control y dice cuál es: cargando, error
+            // de lectura o vacío legítimo de la base tras una respuesta real.
+            <p
+              className="pulso-peso-columna-aviso"
+              data-peso-columnas={aviso.tipo}
+              role={aviso.tipo === "error" ? "alert" : "status"}
+            >
+              {aviso.texto}
+              {pesoColumna && aviso.tipo !== "sin-numericas" ? ` Columna declarada: ${pesoColumna}.` : ""}
             </p>
           ) : (
             <label className="pulso-peso-columna-campo">

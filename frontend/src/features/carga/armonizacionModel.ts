@@ -164,15 +164,24 @@ export type EntradaBorrador = {
   mapa: Record<string, string>;
 };
 
+/**
+ * Textos de la fila que imprime el comparativo: el enunciado de la tabla y la
+ * línea «Base: …» bajo ella. Vacío = el informe usa el nombre estándar y una
+ * base calculada por el motor.
+ */
+export type TextosInforme = { enunciado: string; baseTexto: string };
+
 export type BorradorArmonizacion = {
   escala: CategoriaBorrador[];
   porBase: Record<string, EntradaBorrador>;
   siguiente: number;
+  textos: TextosInforme;
 };
 
 export function borradorDesde(
   arm: Armonizacion | null | undefined,
   bases: readonly string[],
+  fila?: Pick<EquivalenciaFila, "enunciado" | "base_texto">,
 ): BorradorArmonizacion {
   const escala = (arm?.escala ?? []).map((c, i) => ({ ...c, clave: `c${i + 1}` }));
   const porBase: Record<string, EntradaBorrador> = {};
@@ -182,7 +191,8 @@ export function borradorDesde(
       ? { comparable: e.comparable, nota: e.nota ?? "", mapa: { ...e.mapa } }
       : { comparable: null, nota: "", mapa: {} };
   }
-  return { escala, porBase, siguiente: escala.length + 1 };
+  const textos = { enunciado: fila?.enunciado ?? "", baseTexto: fila?.base_texto ?? "" };
+  return { escala, porBase, siguiente: escala.length + 1, textos };
 }
 
 /** Siguiente código numérico libre de la escala. */
@@ -207,6 +217,15 @@ export type AccionArmonizacion =
     /** Códigos de la base que se conocen: hacen falta para materializar la identidad. */
     conocidos: readonly string[];
   }
+  | {
+    /** F2: varios códigos de la base a la misma categoría (o a «sin mapa») de una vez. */
+    tipo: "destinos";
+    base: string;
+    codigos: readonly string[];
+    destino: string | null;
+    conocidos: readonly string[];
+  }
+  | { tipo: "texto"; campo: keyof TextosInforme; valor: string }
   | { tipo: "sembrar"; opciones: readonly CategoriaEscalaComun[] }
   | { tipo: "emparejar"; base: string; opciones: readonly CategoriaEscalaComun[] };
 
@@ -315,20 +334,12 @@ export function reducirArmonizacion(
     case "nota":
       return conEntrada(b, a.base, (e) => ({ ...e, nota: a.valor }));
     case "destino":
-      return conEntrada(b, a.base, (e) => {
-        // Con el mapa vacío la identidad está implícita. Editar UN código la
-        // rompería para todos los demás —pasarían a «sin mapa» sin que nadie
-        // lo pidiera—, así que antes se escribe la identidad que ya regía.
-        const mapa = { ...e.mapa };
-        if (!mapaExplicito(e)) {
-          for (const cod of a.conocidos) {
-            if (b.escala.some((c) => c.codigo === cod)) mapa[cod] = cod;
-          }
-        }
-        if (a.destino) mapa[a.codigo] = a.destino;
-        else delete mapa[a.codigo];
-        return { ...e, comparable: e.comparable ?? true, mapa };
-      });
+      return asignarDestinos(b, a.base, [a.codigo], a.destino, a.conocidos);
+    case "destinos":
+      if (a.codigos.length === 0) return b;
+      return asignarDestinos(b, a.base, a.codigos, a.destino, a.conocidos);
+    case "texto":
+      return { ...b, textos: { ...b.textos, [a.campo]: a.valor } };
     case "sembrar": {
       if (b.escala.length > 0) return b;
       const escala = a.opciones.map((o, i) => ({
@@ -352,6 +363,34 @@ export function reducirArmonizacion(
         return { ...e, comparable: e.comparable ?? true, mapa };
       });
   }
+}
+
+/**
+ * Lleva códigos de una base a un destino. Con el mapa vacío la identidad está
+ * implícita: editar UNOS códigos la rompería para todos los demás —pasarían a
+ * «sin mapa» sin que nadie lo pidiera—, así que antes se escribe la identidad
+ * que ya regía.
+ */
+function asignarDestinos(
+  b: BorradorArmonizacion,
+  base: string,
+  codigos: readonly string[],
+  destino: string | null,
+  conocidos: readonly string[],
+): BorradorArmonizacion {
+  return conEntrada(b, base, (e) => {
+    const mapa = { ...e.mapa };
+    if (!mapaExplicito(e)) {
+      for (const cod of conocidos) {
+        if (b.escala.some((c) => c.codigo === cod)) mapa[cod] = cod;
+      }
+    }
+    for (const codigo of codigos) {
+      if (destino) mapa[codigo] = destino;
+      else delete mapa[codigo];
+    }
+    return { ...e, comparable: e.comparable ?? true, mapa };
+  });
 }
 
 const CODIGO_RE = /^[A-Za-z0-9_.-]+$/;
@@ -398,8 +437,28 @@ export function filasConArmonizacion(
   guardadas: readonly EquivalenciaFila[],
   indice: number,
   arm: Armonizacion | null,
+  textos?: TextosInforme,
 ): EquivalenciaFila[] {
-  return guardadas.map((f, i) => (i === indice ? { ...f, armonizacion: arm } : f));
+  return guardadas.map((f, i) => {
+    if (i !== indice) return f;
+    const fila: EquivalenciaFila = { ...f, armonizacion: arm };
+    if (textos) {
+      aplicarTexto(fila, "enunciado", textos.enunciado);
+      aplicarTexto(fila, "base_texto", textos.baseTexto);
+    }
+    return fila;
+  });
+}
+
+/**
+ * Un texto vacío borra el campo. Si la fila ya lo traía viaja como `""` para
+ * que el guardado lo quite y no lo conserve por ausencia.
+ */
+function aplicarTexto(fila: EquivalenciaFila, campo: "enunciado" | "base_texto", valor: string) {
+  const limpio = valor.trim();
+  if (limpio) fila[campo] = limpio;
+  else if (fila[campo]) fila[campo] = "";
+  else delete fila[campo];
 }
 
 // ---- Tabla de mapeo por base -------------------------------------------------
@@ -420,6 +479,8 @@ export type FilaMapa = {
    * emparejar por etiqueta, así que esto se avisa y no se da por bueno.
    */
   etiquetaDistinta: boolean;
+  /** Comparte destino con otros códigos de la base: agrupación deliberada (F3). */
+  agrupado: boolean;
 };
 
 export function filasDeMapa(
@@ -427,25 +488,40 @@ export function filasDeMapa(
   entrada: EntradaBorrador | undefined,
   escala: readonly CategoriaEscalaComun[],
 ): FilaMapa[] {
-  return codigos.map((c) => {
-    const destino = destinoDe(entrada, escala, c.codigo);
+  const destinos = codigos.map((c) => destinoDe(entrada, escala, c.codigo));
+  const porDestino = new Map<string, number>();
+  for (const d of destinos) if (d !== null) porDestino.set(d, (porDestino.get(d) ?? 0) + 1);
+  return codigos.map((c, i) => {
+    const destino = destinos[i];
     const etiquetaDestino = destino === null
       ? null
       : escala.find((e) => e.codigo === destino)?.etiqueta ?? null;
+    // F3: varios códigos en el mismo destino son una agrupación deliberada
+    // (26 departamentos → «Provincias»): ahí la etiqueta difiere por diseño y
+    // no se acusa. Sólo un destino 1:1 con otra etiqueta es sospechoso.
+    const agrupado = destino !== null && (porDestino.get(destino) ?? 0) > 1;
     // Sin etiqueta en la base no hay con qué comparar: no se acusa.
     const etiquetaDistinta = Boolean(
-      c.etiqueta
+      !agrupado
+        && c.etiqueta
         && etiquetaDestino
         && normalizarEtiqueta(c.etiqueta) !== normalizarEtiqueta(etiquetaDestino),
     );
-    return { ...c, destino, sinMapa: destino === null, etiquetaDestino, etiquetaDistinta };
+    return { ...c, destino, sinMapa: destino === null, etiquetaDestino, etiquetaDistinta, agrupado };
   });
 }
 
-export type ResumenMapa = { sinMapa: number; casosSinMapa: number; etiquetaDistinta: number };
+export type ResumenMapa = {
+  sinMapa: number;
+  casosSinMapa: number;
+  etiquetaDistinta: number;
+  /** Códigos que comparten destino con otros, y en cuántas categorías caen. */
+  agrupados?: number;
+  categoriasAgrupadas?: number;
+};
 
 export function resumenMapa(filas: readonly FilaMapa[]): ResumenMapa {
-  return filas.reduce(
+  const base = filas.reduce(
     (acc, f) => ({
       sinMapa: acc.sinMapa + (f.sinMapa ? 1 : 0),
       casosSinMapa: acc.casosSinMapa + (f.sinMapa ? f.n ?? 0 : 0),
@@ -453,6 +529,13 @@ export function resumenMapa(filas: readonly FilaMapa[]): ResumenMapa {
     }),
     { sinMapa: 0, casosSinMapa: 0, etiquetaDistinta: 0 },
   );
+  const agrupadas = filas.filter((f) => f.agrupado);
+  if (agrupadas.length === 0) return base;
+  return {
+    ...base,
+    agrupados: agrupadas.length,
+    categoriasAgrupadas: new Set(agrupadas.map((f) => f.destino)).size,
+  };
 }
 
 function plural(n: number, uno: string, varios: string): string {
@@ -473,6 +556,9 @@ export function textoResumenMapa(r: ResumenMapa, explicito: boolean): string {
   }
   if (r.etiquetaDistinta > 0) {
     partes.push(`${plural(r.etiquetaDistinta, "código con etiqueta distinta", "códigos con etiqueta distinta")} a la de su destino.`);
+  }
+  if (r.agrupados) {
+    partes.push(`${r.agrupados} códigos agrupados en ${plural(r.categoriasAgrupadas ?? 0, "categoría", "categorías")}.`);
   }
   if (partes.length === 0) partes.push("Todos los códigos caen en una categoría con su misma etiqueta.");
   if (!explicito) partes.push("Sin mapa explícito cada código cae en el código igual de la escala.");

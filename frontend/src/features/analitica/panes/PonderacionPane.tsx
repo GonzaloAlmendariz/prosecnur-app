@@ -4,7 +4,7 @@ import {
   SlidersHorizontal, X,
 } from "../../../vendor/lucide-react";
 import {
-  apiAnaliticaColumnValues, apiAnaliticaPonderacionPreview, apiAnaliticaVariables,
+  apiAnaliticaColumnValues, apiAnaliticaPonderacionPreview,
   PonderPreview, ValorColumna, VariableInstrumento,
 } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
@@ -16,6 +16,7 @@ import { useAnaliticaStore } from "../store";
 import { VariableSelect } from "../VariableSelect";
 import { useSession } from "../../../lib/SessionContext";
 import { PesoPorColumna } from "./PesoPorColumna";
+import { useVariablesDeLaBase, variablesDeLectura } from "./variablesDeLaBase";
 import "./PonderacionPane.css";
 
 // PonderacionPane — pondera los reportes (frecuencias, cruces, dimensiones)
@@ -39,16 +40,12 @@ export function PonderacionPane() {
   const designOn = !!pond.design;
   const cap = pond.trim?.cap ?? 0;
 
-  const [variables, setVariables] = useState<VariableInstrumento[]>([]);
+  // F7: la lectura se repite al cambiar de base y distingue cargando de vacío.
+  const lecturaVariables = useVariablesDeLaBase(baseActiva);
+  const variables = useMemo(() => variablesDeLectura(lecturaVariables), [lecturaVariables]);
   const [preview, setPreview] = useState<PonderPreview | null>(null);
   const [catCache, setCatCache] = useState<Record<string, ValorColumna[]>>({});
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      try { setVariables((await apiAnaliticaVariables()).variables); } catch { /* no-op */ }
-    })();
-  }, []);
 
   const categoricas = useMemo(() => variables.filter((v) => !!v.categorica), [variables]);
   const labelOf = (name: string) =>
@@ -137,7 +134,7 @@ export function PonderacionPane() {
           <PesoPorColumna
             modo={porColumna ? "columna" : "calibracion"}
             pesoColumna={pond.peso_columna ?? ""}
-            variables={variables}
+            lectura={lecturaVariables}
             baseActiva={baseActiva}
             onModo={(modo) => setPonderacion(modo === "columna" ? { modo } : { modo: undefined, peso_columna: undefined })}
             onColumna={(peso_columna) => setPonderacion({ modo: "columna", peso_columna })}

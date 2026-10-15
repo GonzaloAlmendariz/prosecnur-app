@@ -27,6 +27,12 @@ export type EquivalenciaFila = {
    */
   enunciado?: string;
   /**
+   * Base de la pregunta en el comparativo: se imprime como «Base: …» bajo su
+   * tabla. Vacío o ausente: el motor la calcula («total de encuestados» si todos
+   * respondieron en cada medición; si no, «quienes respondieron la pregunta»).
+   */
+  base_texto?: string;
+  /**
    * Propuesta sin confirmar. ADR 0104: la app ya no propone; sólo la trae una
    * matriz guardada por una versión anterior, que se conserva marcada hasta que
    * la persona la confirma. Sin la marca se vería igual que algo ya decidido.
@@ -222,6 +228,13 @@ function normalizarFila(x: unknown): EquivalenciaFila | null {
   fila.etiqueta_estandar = texto(x.etiqueta_estandar);
   fila.variables = variables;
   fila.cantidad = Object.keys(variables).length;
+  // Textos del comparativo: siempre texto (R puede mandar un arreglo de uno).
+  for (const campo of ["enunciado", "base_texto"] as const) {
+    if (!(campo in x)) continue;
+    const valor = textoONulo(x[campo]);
+    if (valor) fila[campo] = valor;
+    else delete fila[campo];
+  }
   if ("armonizacion" in x) {
     const arm = normalizarArmonizacion(x.armonizacion);
     if (arm) fila.armonizacion = arm;
