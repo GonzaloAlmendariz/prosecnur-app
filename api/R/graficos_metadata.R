@@ -1067,6 +1067,8 @@
       list(name = "mostrar_ceros", label = "Mostrar opciones 0%", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
            descripcion = "Conserva opciones definidas en el instrumento aunque no tengan casos. Apágalo para graficar solo categorías con N."),
+      list(name = "invertir_barras", label = "Invertir el orden de las barras", tipo_input = "bool", grupo = "filtro",
+           default = TRUE, descripcion = "Dibuja las barras en el orden contrario."),   # O7c: formal del constructor desde 383c1fe2b
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
       # C40: `max_categorias`, `agrupar_resto_en_otros` y `etiqueta_otros` son formales de `p_barras_agrupadas()` (antes
@@ -1226,6 +1228,8 @@
       list(name = "significancia_alpha", label = "Nivel de significancia", tipo_input = "number", grupo = "datos",
            default = 0.05, min = 0.001, max = 0.2, step = 0.005,
            descripcion = "Umbral del contraste. 0.05 es el estándar; bajarlo exige diferencias más grandes para marcar."),
+      list(name = "invertir_barras", label = "Invertir el orden de las barras", tipo_input = "bool", grupo = "filtro",
+           default = FALSE, descripcion = "Dibuja las barras en el orden contrario."),   # O7c: formal del constructor desde 383c1fe2b
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
       # C40: formal de `p_barras_apiladas()`; mismo default que el preset `barras_apiladas`.
@@ -1284,6 +1288,8 @@
       list(name = "wrap_y",        label = "Ancho etiquetas Y", tipo_input = "number",    grupo = "avanzado",
            descripcion = "Máximo de caracteres por línea en las etiquetas del eje Y. Recomendado: 30-80."),
       # C40: formal de `p_barras_multiapiladas()`; en «Combinar bloques» cada bloque lo hereda. Default = preset `multi_apiladas`.
+      list(name = "invertir_barras", label = "Invertir el orden de las barras", tipo_input = "bool", grupo = "filtro",
+           default = FALSE, descripcion = "Dibuja las barras en el orden contrario."),   # O7c: formal del constructor desde 383c1fe2b
       list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
            default = FALSE,
            descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %."),
@@ -1404,6 +1410,10 @@
              list(value = "N",      label = "Conteo (N)", hint = "Cantidad de casos válidos.")
            )),
       list(name = "cruce",   label = "Dividir por", tipo_input = "variable_opt", grupo = "datos"),
+      list(name = "decimales", label = "Decimales", tipo_input = "number", grupo = "valores", default = 1, min = 0, max = 2,
+           descripcion = "Decimales de la cifra. No lo gobierna Reglas: el numérico no rotula porcentajes."),   # O7c
+      list(name = "mostrar_leyenda", label = "Mostrar la leyenda", tipo_input = "bool", grupo = "valores", default = TRUE,
+           descripcion = "La leyenda de las series cuando el gráfico se divide por grupos."),   # O7c
       list(name = "formato", label = "Formato",     tipo_input = "string",       grupo = "avanzado",
            descripcion = "Plantilla del número. Con '%s' envuelve la cifra conservando los separadores de la casa (ej. 'S/ %s' → S/ 3.660,0); con una conversión numérica ('%.2f') formatea el valor crudo.")
     ), .args_graf_comunes())
@@ -1435,6 +1445,8 @@
       # C40: formal de `p_histograma()` (antes sólo en el preset; el slot lo descartaba). Sin default: vacío = sin tope.
       list(name = "limite_superior", label = "Límite superior", tipo_input = "number", grupo = "datos",
            descripcion = "Tope del eje. Los valores que lo superan se juntan en la última barra, rotulada con «+» (por ejemplo «60+»). Vacío: sin tope."),
+      list(name = "decimales", label = "Decimales", tipo_input = "number", grupo = "valores", default = 0, min = 0, max = 2,
+           descripcion = "Decimales de las cifras. No lo gobierna Reglas: el histograma no rotula porcentajes."),   # O7c
       list(name = "mostrar_bins_vacios", label = "Mostrar intervalos vacíos", tipo_input = "bool", grupo = "datos",
            default = TRUE,
            descripcion = "Si se desactiva, oculta rangos sin casos para compactar el histograma."),
@@ -1858,6 +1870,8 @@
            descripcion = "Engrosa el marcador de la última ola, que es el dato que el lector busca primero."),
       list(name = "mostrar_puntos", label = "Mostrar puntos", tipo_input = "bool", grupo = "estilo",
            default = TRUE),
+      list(name = "mostrar_leyenda", label = "Mostrar la leyenda", tipo_input = "bool", grupo = "valores", default = TRUE,
+           descripcion = "La leyenda de las series, con tres o más mediciones."),   # O7c
       list(name = "colores_series", label = "Colores por serie", tipo_input = "series_colors", grupo = "estilo",
            descripcion = "Asigna un color a cada tema. Si está vacío, se usa la paleta Pulso."),
       list(name = "mostrar_grid_y", label = "Mostrar grilla horizontal", tipo_input = "bool", grupo = "estilo",

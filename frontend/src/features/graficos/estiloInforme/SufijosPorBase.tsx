@@ -50,7 +50,7 @@ export function SufijosPorBase({
   return (
     <div className="pulso-f6-informe-campo" data-qa-geometry-member>
       <div className="pulso-f6-informe-campo-cabecera">
-        <span className="pulso-f6-informe-campo-etiqueta">Después del número, en cada base</span>
+        <span className="pulso-f6-informe-campo-etiqueta">Después del número</span>
       </div>
       {/* C1 (QA del Informe, 2026-10-15): una fila por base, de alto propio. */}
       <ul className="pulso-f6-sufijos-base" data-qa-geometry-group="graficos/f6-sufijos-base" data-qa-geometry-contract="intrinsic">

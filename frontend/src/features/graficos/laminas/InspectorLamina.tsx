@@ -147,7 +147,7 @@ export function InspectorLamina({
           <>
             <SeccionComposicion slide={slide} lamina={lamina} ranura={ranura} onCambiarLamina={onCambiarLamina} />
             <DependenciaLamina slide={slide} />
-            <h3 className="pulso-f6-subtitulo pulso-f6-inspector-apartado">Textos, en el orden en que salen</h3>
+            <h3 className="pulso-f6-subtitulo pulso-f6-inspector-apartado">Textos</h3>
             <SeccionContenido slide={slide} lamina={lamina} />
           </>
         )}

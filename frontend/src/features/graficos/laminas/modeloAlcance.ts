@@ -10,9 +10,9 @@ import { SLIDE_GRAF_SLOTS } from "../store";
 type Presets = Record<string, Record<string, unknown>>;
 const esObjeto = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
-/** Ajustes sin alcance por tipo en la tarjeta: los decimales los gobierna Reglas (y el Redondeo propio de R4); el motor
- *  borra los del gráfico sin `calculos_propios` (graficos_calculos_gobernados.R). */
-export const SIN_ALCANCE: ReadonlySet<string> = new Set(["valores_decimales", "decimales", "decimales_pct", "metodo_redondeo"]);
+/** Ajustes sin alcance por tipo en la tarjeta: método y decimales de porcentaje los gobierna Reglas (y el Redondeo propio
+ *  de R4). Los decimales de radar, numérico e histograma sí tienen alcance: O7c (383c1fe2b) los eximió del saneo. */
+export const SIN_ALCANCE: ReadonlySet<string> = new Set(["decimales_pct", "metodo_redondeo"]);
 
 /** El valor que tiene el tipo: el de su preset o, sin él, el por defecto del registro. */
 export function valorDelTipo(presets: Presets, tipo: string | null, arg: string, porDefecto: unknown): unknown {
