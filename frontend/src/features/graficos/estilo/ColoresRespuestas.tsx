@@ -6,13 +6,14 @@
 import { useId, useMemo, useState } from "react";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
-import { Check, ChevronDown, Palette, Search } from "../../../vendor/lucide-react";
+import { Check, ChevronDown, Palette, Search, Sparkles } from "../../../vendor/lucide-react";
 import { usePlanStore } from "../store";
 import { usePaletasRespuestas } from "./usePaletasRespuestas";
 import { combinacionesPara, grupoCoincide, MUESTRAS_MARCA, textoSobre } from "./modeloColoresRespuestas";
 import {
   conAgrupado,
   conColoresDeFila,
+  conTodosCompletados,
   conNombre,
   conSeparado,
   errorNombre,
@@ -265,6 +266,14 @@ export function ColoresRespuestas() {
     <section className="pulso-cr" aria-labelledby={tituloId} data-seccion="colores-respuestas">
       <header className="pulso-cr-cabecera">
         <h3 id={tituloId} className="pulso-cr-titulo">Colores de las respuestas</h3>
+        {/* ID4: completar aquí, donde se ven las paletas (antes sólo desde el menú Exportar). Un paso deshacible. */}
+        {listas && faltan > 0 ? (
+          <PulsoButton variant="primary" size="sm" className="pulso-cr-completar"
+            onClick={() => { const r = conTodosCompletados(filas, listas, paletas); if (r.completadas) setPaletas(r.paletas); }}>
+            <Sparkles size={14} aria-hidden="true" />
+            Completar todos los colores
+          </PulsoButton>
+        ) : null}
         <p className="pulso-cr-bajada">
           Las preguntas que comparten respuestas se pintan juntas. Ponle nombre a una paleta para reunir otros grupos y elegirla desde cualquier gráfico.
         </p>

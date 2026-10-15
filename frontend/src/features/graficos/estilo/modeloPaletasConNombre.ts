@@ -255,3 +255,21 @@ export function coloresParaCompletar(fila: FilaPaleta): Record<string, string> {
   }
   return out;
 }
+
+/**
+ * ID4 del rediseño (2026-10-15): «Completar todos los colores» desde Identidad. Completa, en cada paleta a la que le
+ * falta algo, sólo lo que falta (`coloresParaCompletar`: primero el color que esa respuesta ya tiene en otra lista,
+ * después la primera combinación de la marca). Un solo mapa nuevo: el store lo guarda como UN paso deshacible.
+ */
+export function conTodosCompletados(filas: readonly FilaPaleta[], listas: readonly ListaRespuestas[], paletas: MapaPaletas): { paletas: MapaPaletas; completadas: number } {
+  let acc = paletas;
+  let completadas = 0;
+  for (const f of filas) {
+    if (f.faltan === 0) continue;
+    const colores = coloresParaCompletar(f);
+    if (!Object.keys(colores).length) continue;
+    acc = conColoresDeFila(f, colores, listas, acc);
+    completadas += 1;
+  }
+  return { paletas: acc, completadas };
+}
