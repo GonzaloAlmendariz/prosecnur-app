@@ -63,3 +63,17 @@ describe("stripMarkdown", () => {
     expect(stripMarkdown('a **b** <span style="color:blue">c</span>')).toBe("a b c");
   });
 });
+
+describe("guion bajo dentro de una palabra", () => {
+  test("los nombres con _ no se vuelven cursiva (Pag10 (p14_1-p17_6))", () => {
+    expect(renderMarkdownInline("Pag10 (p14_1-p17_6)")).toBe("Pag10 (p14_1-p17_6)");
+    expect(stripMarkdown("Pag10 (p14_1-p17_6)")).toBe("Pag10 (p14_1-p17_6)");
+    expect(stripMarkdown("nota_pag1_1")).toBe("nota_pag1_1");
+    expect(renderMarkdownInline("a__b__c")).toBe("a__b__c");
+  });
+  test("el énfasis con _ entre espacios se mantiene", () => {
+    expect(renderMarkdownInline("una _palabra_ suelta")).toBe("una <em>palabra</em> suelta");
+    expect(renderMarkdownInline("una __fuerte__ aquí")).toBe("una <strong>fuerte</strong> aquí");
+    expect(stripMarkdown("(_nota_)")).toBe("(nota)");
+  });
+});

@@ -13,3 +13,14 @@ export function editorRequestedFormExists(
   if (!requestedFormId) return false;
   return new Set([...localFormIds, ...backendFormIds]).has(requestedFormId);
 }
+
+/** Devuelve `search` con `form_id` fijado (o quitado con `null`), sin tocar
+ *  el resto de la dirección. Un formulario abierto se escribe en la URL para
+ *  que recargar o compartir `?pestana=…` vuelva al mismo formulario. */
+export function searchConFormId(search: string, formId: string | null): string {
+  const params = new URLSearchParams(search);
+  if (formId) params.set("form_id", formId);
+  else params.delete("form_id");
+  const out = params.toString();
+  return out ? `?${out}` : "";
+}

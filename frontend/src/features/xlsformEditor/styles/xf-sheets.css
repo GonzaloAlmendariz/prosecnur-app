@@ -31,6 +31,9 @@
   display: inline-flex;
   align-items: center;
   align-self: flex-start;
+  /* Hijo de una columna flex con overflow propio: sin esto su alto mínimo
+     cae a 0 y, con el aviso de escalas arriba, se aplasta a ~10 px. */
+  flex-shrink: 0;
   gap: 3px;
   padding: 3px;
   border-radius: 999px;

@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   CalendarDays,
   CheckCircle2,
@@ -70,7 +70,7 @@ import SaveEntregableButton from "../project/SaveEntregableButton";
 import { sanitizeFilenameStem } from "../project/FilenameInput";
 import { useSession } from "../../lib/SessionContext";
 import { registerPendingFlush } from "../../lib/pendingFlushRegistry";
-import { editorFormIdFromSearch, editorRequestedFormExists } from "./state/editorDeepLink";
+import { editorFormIdFromSearch, editorRequestedFormExists, searchConFormId } from "./state/editorDeepLink";
 
 // -----------------------------------------------------------------------------
 // Tipos, parsing y helpers extraídos a submódulos durante el revamp Sub-PR 1.
@@ -566,6 +566,7 @@ export default function XlsformEditorPage() {
   const { project } = useProjectShell();
   const { sessionId } = useSession();
   const location = useLocation();
+  const navigate = useNavigate();
   const requestedFormId = editorFormIdFromSearch(location.search);
   // Estado del workbook + dirty + lastSavedAt + history (undo/redo) en un
   // solo reducer para mantener consistencia transaccional. Las acciones
@@ -617,6 +618,22 @@ export default function XlsformEditorPage() {
   useEffect(() => {
     activeFormIdRef.current = activeFormId;
   }, [activeFormId]);
+
+  // Toda vista es enlazable: con un formulario abierto, la dirección lleva su
+  // `form_id`. Sin esto, recargar `?pestana=impreso` caía en la biblioteca y
+  // el enlace no llevaba a ningún formulario.
+  const hayWorkbook = workbook != null;
+  // El usuario pidió la biblioteca («Ver todos»): la apertura automática del
+  // formulario activo no lo devuelve adentro hasta que abra uno.
+  const hubElegidoRef = useRef(false);
+  useEffect(() => {
+    if (hayWorkbook) hubElegidoRef.current = false;
+    if (!hayWorkbook || !activeFormId || requestedFormId === activeFormId) return;
+    navigate(
+      { pathname: location.pathname, search: searchConFormId(location.search, activeFormId) },
+      { replace: true },
+    );
+  }, [hayWorkbook, activeFormId, requestedFormId, location.pathname, location.search, navigate]);
 
   const [selection, setSelection] = useState<BuilderSelection | null>(null);
   const [busy, setBusy] = useState("");
@@ -1103,7 +1120,10 @@ export default function XlsformEditorPage() {
       // entramos directo a editarlo. El activo queda apuntado para "Ver todos"
       // / el conmutador del toolbar.
       try {
-        if (requestedFormId) {
+        if (requestedFormId && requestedFormId === activeFormIdRef.current && workbookRef.current) {
+          // La URL sólo acaba de anotar el formulario que ya está abierto
+          // (ver el efecto que escribe `form_id`): no hay nada que cambiar.
+        } else if (requestedFormId) {
           const requestedExists = editorRequestedFormExists(
             requestedFormId,
             listForms(projectScope).map((form) => form.id),
@@ -1119,7 +1139,13 @@ export default function XlsformEditorPage() {
             detail: "El plan de ingreso apunta a un form_id que ya no está disponible en este proyecto.",
             durationMs: 6000,
           });
-        } else if (localActive && formCount <= 1) {
+        } else if (
+          localActive
+          && !hubElegidoRef.current
+          && (formCount <= 1 || new URLSearchParams(window.location.search).has("pestana"))
+        ) {
+          // Una dirección que pide una pestaña (`?pestana=impreso`) pide el
+          // formulario, no la biblioteca: sin `form_id`, se abre el activo.
           await switchToFormRef.current?.(localActive);
         }
       } finally {
@@ -2226,6 +2252,16 @@ export default function XlsformEditorPage() {
   // Oleada 3— el hub usan esto para "Ver todos".
   function onBackToHub() {
     const formId = activeFormIdRef.current;
+    hubElegidoRef.current = true;
+    // La biblioteca no es una pestaña del formulario: se quitan su `form_id`,
+    // su `pestana` y su `foco`, o recargar reabriría el formulario.
+    const hub = new URLSearchParams(searchConFormId(location.search, null));
+    hub.delete("pestana");
+    hub.delete("foco");
+    const hubSearch = hub.toString() ? `?${hub.toString()}` : "";
+    if (hubSearch !== location.search) {
+      navigate({ pathname: location.pathname, search: hubSearch }, { replace: true });
+    }
     const currentWorkbook = workbookRef.current;
     persistence.flush();
     resetMessages();
@@ -3253,13 +3289,16 @@ export default function XlsformEditorPage() {
         />
       )}
 
-      {busy && (
+      {/* En Impreso el progreso vive en el botón de su cabecera y el resultado
+          llega como aviso (con «Descargar» si no hay proyecto): estos dos
+          paneles empujaban la pestaña hacia abajo mientras exportaba. */}
+      {busy && pestanaEditor.pestana !== "impreso" && (
         <Panel title="Procesando" hint={busy}>
           <LoadingBlock label={busy} variant="inline" minHeight={88} />
         </Panel>
       )}
 
-      {workbook && artifact && (
+      {workbook && artifact && !(pestanaEditor.pestana === "impreso" && artifact.extension !== "xlsx") && (
         <Panel
           title={artifact.extension === "xlsx" ? "XLSForm listo" : "Documento listo"}
           hint={project.status.has_project

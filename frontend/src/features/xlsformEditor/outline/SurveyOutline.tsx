@@ -100,6 +100,18 @@ export function SurveyOutline({
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [overlayGeometry, setOverlayGeometry] = useState<OverlayGeometry | null>(null);
 
+  // Una selección que llega de fuera (?foco=, una fila del Resumen, un aviso)
+  // puede caer en una fila que el outline no está mostrando: se trae a la
+  // vista. `nearest` no mueve nada si ya está visible.
+  const selectedRow = selection?.kind === "survey" ? selection.rowIndex : null;
+  useEffect(() => {
+    if (selectedRow == null) return;
+    const row = outlineContainerRef.current?.querySelector<HTMLElement>(
+      `[data-outline-row="${selectedRow}"]`,
+    );
+    row?.scrollIntoView({ block: "nearest" });
+  }, [selectedRow]);
+
   useEffect(() => {
     if (activeRow == null) return;
     document.body.classList.add("pulso-outline-drag-active");

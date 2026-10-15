@@ -87,13 +87,15 @@ function applyMarkdownTokens(escaped: string): string {
   // Bold (** o __). Match no-greedy para que pares múltiples no se
   // mezclen: `**a** **b**` → dos bolds, no un mega bold.
   out = out.replace(/\*\*([^*\n]+?)\*\*/g, "<strong>$1</strong>");
-  out = out.replace(/__([^_\n]+?)__/g, "<strong>$1</strong>");
+  // `_`/`__` sólo marcan énfasis fuera de una palabra (CommonMark): en
+  // `p14_1-p17_6` o `nota_pag1_1` son parte del nombre, no cursiva.
+  out = out.replace(/(?<![\p{L}\p{N}_])__([^_\n]+?)__(?![\p{L}\p{N}_])/gu, "<strong>$1</strong>");
 
   // Italic (* o _). Cuidado: no hacer match con ** (ya lo procesamos)
   // ni con __ . Usamos lookbehind/lookahead manuales con grupo
   // negativo. En JS regex moderno: (?<!\*)\*([^*\n]+?)\*(?!\*).
   out = out.replace(/(?<![*])\*([^*\n]+?)\*(?![*])/g, "<em>$1</em>");
-  out = out.replace(/(?<![_])_([^_\n]+?)_(?![_])/g, "<em>$1</em>");
+  out = out.replace(/(?<![\p{L}\p{N}_])_([^_\n]+?)_(?![\p{L}\p{N}_])/gu, "<em>$1</em>");
 
   // Strikethrough.
   out = out.replace(/~~([^~\n]+?)~~/g, "<s>$1</s>");
@@ -144,10 +146,10 @@ export function stripMarkdown(input: string): string {
   out = out.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
   // Bold y strike: quitar marcadores.
   out = out.replace(/\*\*([^*\n]+?)\*\*/g, "$1");
-  out = out.replace(/__([^_\n]+?)__/g, "$1");
+  out = out.replace(/(?<![\p{L}\p{N}_])__([^_\n]+?)__(?![\p{L}\p{N}_])/gu, "$1");
   out = out.replace(/~~([^~\n]+?)~~/g, "$1");
   // Italic: cuidar de no comer dobles asteriscos ya procesados.
   out = out.replace(/(?<![*])\*([^*\n]+?)\*(?![*])/g, "$1");
-  out = out.replace(/(?<![_])_([^_\n]+?)_(?![_])/g, "$1");
+  out = out.replace(/(?<![\p{L}\p{N}_])_([^_\n]+?)_(?![\p{L}\p{N}_])/gu, "$1");
   return out;
 }
