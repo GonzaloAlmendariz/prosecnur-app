@@ -45,7 +45,7 @@ Las maquetas de página del Word siguen la convención de `docs/qa/motor-ppt-202
 
 | # | Decisión | Propuesta | Estado |
 |---|---|---|---|
-| D1 | Nombres de las pestañas | Láminas · Informe · Identidad · Reglas · Word | bloqueado (decide Gonzalo) |
+| D1 | Nombres de las pestañas | Láminas · Word · Informe · Identidad · Reglas (orden fijado por Gonzalo, 2026-10-14: «Láminas y Word deberían ir uno detrás de otro y luego lo demás»; los nombres siguen por decidir) | orden resuelto; nombres bloqueados (decide Gonzalo) |
 | D2 | Fidelidad de la vista Word | maquetas de página en el Informe; Word real sólo en la pestaña Word con «Previsualizar» | **resuelta** (Gonzalo, 2026-10-14) |
 | D3 | Lugar de la línea visual | Identidad | bloqueado (decide Gonzalo) |
 | D4 | «Otros» como regla del informe | pasa a Reglas, texto corregido | bloqueado (decide Gonzalo) |
