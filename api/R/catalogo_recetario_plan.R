@@ -265,19 +265,19 @@
        inferior_izquierda = .cr_g("p_donut", var = "docentes$consulta_mision", filtros = list(grado = "4")),
        inferior_derecha = .cr_g("p_barras_agrupadas", var = "docentes$sexo", filtros = list(grado = "4"))),
     # P5 (checklist-poblacion-y-filtro): la tira del recetario es de dicotómicas (recetario_m2c.R:26-35).
-    sl("p_slide_3_graficos_poblacion_tira", titulo = "Población en tira", superior = .cr_g("p_barras_agrupadas", var = "egresados$sexo"),
+    sl("p_slide_3_graficos_poblacion_tira", titulo = "Tres gráficos en tira", superior = .cr_g("p_barras_agrupadas", var = "egresados$sexo"),
        medio = .cr_g("p_barras_agrupadas", var = "egresados$titulo"), inferior = .cr_g("p_barras_agrupadas", var = "egresados$trabaja")),
     # P5/D5: corona y cifras con lo que dibuja el recetario (p161, p170): dicotomía, barras y cifras con su unidad. La torta y la
     # dona en un panel (P1) se prueban en las de cinco y seis.
-    sl("p_slide_3_graficos_poblacion_corona", titulo = "Población en corona", superior_izquierda = .cr_g("p_barras_agrupadas", var = "estudiantes$conoce_mision"),
+    sl("p_slide_3_graficos_poblacion_corona", titulo = "Tres gráficos en corona", superior_izquierda = .cr_g("p_barras_agrupadas", var = "estudiantes$conoce_mision"),
        superior_derecha = .cr_g("p_barras_agrupadas", var = "estudiantes$sexo"), inferior = g_ciclo),
-    sl("p_slide_3_graficos_poblacion_cifras", titulo = "Población con cifras", superior_izquierda = .cr_g("p_barras_agrupadas", var = "estudiantes$conoce_mision"),
+    sl("p_slide_3_graficos_poblacion_cifras", titulo = "Cifras en columna lateral", superior_izquierda = .cr_g("p_barras_agrupadas", var = "estudiantes$conoce_mision"),
        derecha = g_ciclo, cifra_superior = .cr_g("p_numerico", var = "estudiantes$edad", metrica = "median", titulo = "Edad mediana (años)"),
        inferior_izquierda = .cr_g("p_barras_agrupadas", var = "estudiantes$sexo"),
        cifra_inferior = .cr_g("p_numerico", var = "estudiantes$horas_estudio", metrica = "mean", titulo = "Horas de estudio a la semana (horas)")),
-    sl("p_slide_5_graficos_poblacion", titulo = "Población: cinco gráficos", grafico_superior_1 = g_sexo, grafico_superior_2 = g_ciclo,
+    sl("p_slide_5_graficos_poblacion", titulo = "Cinco gráficos", grafico_superior_1 = g_sexo, grafico_superior_2 = g_ciclo,
        grafico_superior_3 = g_mision, grafico_inferior_1 = g_titulo, grafico_inferior_2 = g_situacion),
-    sl("p_slide_6_graficos_poblacion", titulo = "Población: seis gráficos", grafico_superior_1 = g_sexo, grafico_superior_2 = g_ciclo,
+    sl("p_slide_6_graficos_poblacion", titulo = "Seis gráficos", grafico_superior_1 = g_sexo, grafico_superior_2 = g_ciclo,
        grafico_superior_3 = g_mision, grafico_inferior_1 = g_titulo, grafico_inferior_2 = g_situacion,
        grafico_inferior_3 = .cr_g("p_barras_agrupadas", var = "estudiantes$sexo")),
     # Pregunta filtro y subpregunta con filtro dicotómico (p192 abajo, p193 al costado); la de varias categorías, arriba.

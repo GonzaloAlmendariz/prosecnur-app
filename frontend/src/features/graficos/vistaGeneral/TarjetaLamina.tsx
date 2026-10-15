@@ -37,6 +37,7 @@ type Props = {
   manejadores: ManejadoresTarjeta;
 };
 
+const MAX_ICONOS = 6;
 const ROL: Record<TarjetaVistaGeneral["rol"], string> = { separador: "Capítulo", subcapitulo: "Subcapítulo", lamina: "" };
 
 function TarjetaLaminaBase({ tarjeta, slide, entrada, imagenPrevia, nombresGraficos, seleccionada, itinerante, arrastrada, soltar, manejadores }: Props) {
@@ -87,10 +88,12 @@ function TarjetaLaminaBase({ tarjeta, slide, entrada, imagenPrevia, nombresGrafi
         <span className="pulso-f6-vg-titulo" title={lamina.titulo}>{lamina.titulo}</span>
         {lamina.ranuras > 0 && (
           <span className={`pulso-f6-vg-graficos${lamina.ranurasLlenas < lamina.ranuras ? " is-incompleta" : ""}`}>
-            {graficos.slice(0, 4).map((g, i) => (
+            {/* Hasta seis, que es lo más que lleva una lámina («Seis gráficos»): con cuatro y «+2» la tarjeta escondía
+                justo los gráficos de las láminas más cargadas (Gonzalo, 2026-10-14). */}
+            {graficos.slice(0, MAX_ICONOS).map((g, i) => (
               <IconoTipo key={`${g}-${i}`} clase="grafico" tipo={g} size={16} />
             ))}
-            {graficos.length > 4 && <span className="pulso-f6-vg-mas">+{graficos.length - 4}</span>}
+            {graficos.length > MAX_ICONOS && <span className="pulso-f6-vg-mas">+{graficos.length - MAX_ICONOS}</span>}
             {lamina.ranurasLlenas < lamina.ranuras && (
               <span className="pulso-f6-vg-vacias">{lamina.ranuras - lamina.ranurasLlenas} sin gráfico</span>
             )}
