@@ -2,42 +2,16 @@
    arriba y la página queda a la derecha de los ajustes. */
 .pulso-f6-w {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr) 300px;
+  grid-template-columns: 236px minmax(0, 1fr) 300px;
   gap: var(--pulso-space-4);
   align-items: start;
   min-width: 0;
 }
 
 .pulso-f6-w-partes {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
   position: sticky;
   top: 0;
 }
-
-.pulso-f6-w-parte {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  padding: var(--pulso-space-2) var(--pulso-space-3);
-  border: 0;
-  border-radius: var(--pulso-radius-chip);
-  background: transparent;
-  color: var(--pulso-text);
-  min-width: 0;
-  white-space: normal;
-  text-align: left;
-  cursor: pointer;
-  transition: background var(--motion-dur-fast) var(--motion-ease-out);
-}
-.pulso-f6-w-parte b { font-size: 13px; }
-.pulso-f6-w-parte small { font-size: 11px; line-height: 1.35; color: var(--pulso-text-soft); white-space: normal; overflow-wrap: anywhere; }
-.pulso-f6-w-parte:hover { background: var(--pulso-surface-2); }
-.pulso-f6-w-parte.is-activa { background: var(--module-accent-soft); }
-.pulso-f6-w-parte.is-activa b { color: var(--module-accent); }
-.pulso-f6-w-parte:focus-visible { outline: 2px solid var(--module-accent); outline-offset: 1px; }
 
 .pulso-f6-w-detalle { max-width: none; }
 
@@ -80,8 +54,8 @@
     padding-bottom: var(--pulso-space-2);
     border-bottom: 1px solid var(--pulso-border);
   }
-  .pulso-f6-w-parte { flex: none; }
-  .pulso-f6-w-parte small { display: none; }
+  .pulso-f6-w-partes .pulso-f6-menu-item { flex: none; min-height: 40px; }
+  .pulso-f6-w-partes .pulso-f6-menu-texto small { display: none; }
 }
 
 /* W2: campos de Word › Documento. */
