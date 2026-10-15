@@ -12,6 +12,7 @@ import { tituloQueSale } from "./laminas/tituloQueSale";
 import { citaCorta, notasEnTitulo } from "./laminas/notaEnTitulo";
 import { indicesSinCapitulos } from "./indice/requisitoIndice";
 import { twoBoxDeGrafico } from "./laminas/modeloMaqueta";
+import { conteoBarrasMultiapiladas, excedeTope, laminasNecesarias, MAX_BARRAS_MULTIAPILADAS } from "./multiapiladas/topeBarras";
 
 // Validador del plan 100% client-side: deriva warnings/errores de lo
 // que ya vive en el store + registry + variables del instrumento. Sin
@@ -43,6 +44,9 @@ import { twoBoxDeGrafico } from "./laminas/modeloMaqueta";
 //     lámina sale degradada a "Sin datos" con el título de la primera
 //     pregunta y una base que no sustenta nada. El constructor ya lo avisa
 //     mientras editas; esto es lo que impide que llegue al entregable.
+//   - "multiapiladas-tope": una multiapilada pasa de seis barras (Gonzalo,
+//     2026-10-14). Es ERROR: el motor la parte en «(cont.)» y la lámina no se
+//     ve como debe; el editor ya no deja agregar la séptima.
 //
 // Severidad: "error" bloquea export; "warning" solo avisa.
 
@@ -57,6 +61,7 @@ export type ValidationIssue = {
     | "paleta-monocromatica"
     | "numeric-invalid"
     | "scale-mismatch"
+    | "multiapiladas-tope"
     | "titulo-vacio"
     | "titulo-con-nota"
     | "indice-sin-capitulos"
@@ -179,6 +184,12 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
         ));
 
         issues.push(...checkScaleCompat(graf, resolveVar, {
+          scope: enEspacio(slot),
+          slideId: slide.id,
+          slotName: slot,
+        }));
+
+        issues.push(...checkTopeBarras(graf, {
           scope: enEspacio(slot),
           slideId: slide.id,
           slotName: slot,
@@ -456,6 +467,26 @@ function checkScaleCompat(
     });
   }
   return issues;
+}
+
+/** Una multiapilada lleva hasta seis barras; lo que el editor no puede contar (grupos) lo avisa el motor. */
+function checkTopeBarras(
+  graf: GraficadorRef,
+  context: { scope: string; slideId?: string; slotName?: string },
+): ValidationIssue[] {
+  if (graf.graficador !== "p_barras_multiapiladas") return [];
+  const conteo = conteoBarrasMultiapiladas(graf.args ?? {});
+  if (!excedeTope(conteo)) return [];
+  const laminas = laminasNecesarias(conteo.barras);
+  const cuantas = conteo.exacto ? `${conteo.barras}` : `al menos ${conteo.barras}`;
+  return [{
+    severity: "error",
+    code: "multiapiladas-tope",
+    message: `${context.scope}: tiene ${cuantas} barras y una multiapilada lleva hasta ${MAX_BARRAS_MULTIAPILADAS}. `
+      + `Divídela en ${laminas === 2 ? "dos" : laminas === 3 ? "tres" : laminas} láminas.`,
+    slideId: context.slideId,
+    slotName: context.slotName,
+  }];
 }
 
 /** «Estas preguntas…» → «estas preguntas…», para ir detrás de «Lámina 3 · …: ». */
