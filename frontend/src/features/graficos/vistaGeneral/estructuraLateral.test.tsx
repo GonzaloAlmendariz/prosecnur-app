@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { EstructuraLateral } from "./EstructuraLateral";
 import type { FilaVistaGeneral } from "./modeloVistaGeneral";
+import type { EstadoTarjeta } from "./estadoTarjetas";
 
 const fila = (id: string, clase: "bloque" | "capitulo", titulo: string, ids: string[], numero: string | null = null) =>
   ({ id, clase, titulo, numero, rotulo: titulo, ids, tarjetas: [], conteo: { laminas: ids.length, conGrafico: 0, incompletas: 0 } }) as unknown as FilaVistaGeneral;
@@ -13,7 +14,7 @@ describe("estructura lateral del Informe", () => {
   it("un botón por bloque y capítulo, con su conteo y un punto donde algo pide atención", () => {
     const html = renderToStaticMarkup(createElement(EstructuraLateral, {
       filas: [fila("ap", "bloque", "Apertura", ["a", "b"]), fila("c1", "capitulo", "Satisfacción", ["c", "d", "e"], "1")],
-      estados: new Map([["d", { clave: "colores", texto: "Faltan colores" }], ["a", { clave: "lista", texto: "Lista" }]]),
+      estados: new Map<string, EstadoTarjeta>([["d", { clave: "colores", texto: "Faltan colores" }], ["a", { clave: "lista", texto: "Lista" }]]),
       onIr: () => undefined,
     }));
     expect(html.match(/pulso-f6-vg-ol /g)?.length).toBe(2);
