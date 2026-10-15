@@ -47,7 +47,8 @@ import { IconosEditor } from "../IconosEditor";
 import { ColoresRespuestas } from "./ColoresRespuestas";
 import { useSubpestana, type Subpestana } from "../subpestanas/Subpestanas";
 import { Segmentado } from "../subpestanas/Segmentado";
-import { PiezasIdentidad, type ClavePieza, type Pieza } from "./PiezasIdentidad";
+import { PREFIJO_PIEZA, PiezasIdentidad, type ClavePieza } from "./PiezasIdentidad";
+import { piezasIdentidad } from "./modeloPiezasIdentidad";
 import { SeccionLineaVisual } from "../estiloInforme/SeccionLineaVisual";
 import { lineaVisualAplicada } from "../estiloInforme/modeloEstiloInforme";
 import { usePptStyleProfiles } from "../usePptStyleProfiles";
@@ -158,14 +159,7 @@ export default function PestanaEstilo() {
   const faltanColores = filasPaletas.filter((f) => f.faltan > 0).length;
   const conLogos = logosModificados(decisiones);
   const conLetra = letraModificada(decisiones);
-  const piezas: Pieza[] = [
-    { clave: "linea", titulo: "Línea visual", resumen: lineaNombre ?? "Sin línea aplicada", estado: lineaNombre ? { texto: "Aplicada", tono: "ok" } : { texto: "Por defecto", tono: "neutro" } },
-    { clave: "colores", titulo: "Colores", resumen: "Por escala",
-      estado: faltanColores ? { texto: `${faltanColores} sin colores`, tono: "aviso" } : { texto: "Completos", tono: "ok" } },
-    { clave: "logos", titulo: "Logos", resumen: conLogos ? "Logos propios" : "Los del recetario", estado: conLogos ? { texto: "Propios", tono: "ok" } : { texto: "Por defecto", tono: "neutro" } },
-    { clave: "letra", titulo: "Letra", resumen: conLetra ? "Tamaño ajustado" : "Tamaño estándar", estado: conLetra ? { texto: "Ajustada", tono: "ok" } : { texto: "Estándar", tono: "neutro" } },
-    { clave: "iconos", titulo: "Íconos propios", resumen: "Objetivo y capítulos", estado: { texto: String(iconos.length), tono: iconos.length ? "ok" : "neutro" } },
-  ];
+  const piezas = piezasIdentidad({ lineaNombre, faltanColores, conLogos, conLetra, nIconos: iconos.length });
   // ID8: datos de la muestra viva. La escala de muestra es la primera con todos sus colores (o la primera con alguno).
   const escala = filasPaletas.find((f) => f.faltan === 0 && f.opciones.length >= 3) ?? filasPaletas.find((f) => f.faltan < f.opciones.length) ?? null;
   const logoMuestra = (lugar: EstiloLugarLogo): LogoMuestra => {
@@ -205,7 +199,7 @@ export default function PestanaEstilo() {
         <div className="pulso-f6-id-grid">
           <PiezasIdentidad piezas={piezas} actual={sub} onElegir={setSub} idPanel={ID_PANEL} />
           <div className="pulso-f6-id-detalle">
-          <div className="pulso-f6-estilo-secciones" id={ID_PANEL} role="tabpanel" aria-labelledby={`f6-id-pieza-${sub}`}
+          <div className="pulso-f6-estilo-secciones" id={ID_PANEL} role="region" aria-labelledby={`${PREFIJO_PIEZA}-${sub}`}
             data-qa-geometry-group="graficos/f6-estilo-secciones" data-qa-geometry-contract="intrinsic">
             {opcionesError ? <p className="pulso-f6-estilo-error" role="alert">{opcionesError}</p> : null}
             {/* QA del Informe (2026-10-15): el motivo es una sección más del grupo, no un <p> suelto (capacity-drift). */}

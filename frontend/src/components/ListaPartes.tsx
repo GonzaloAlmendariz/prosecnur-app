@@ -33,6 +33,11 @@ export type ListaPartesProps<K extends string> = {
   idPanel?: string;
   /** Prefijo de los ids de fila; el contenido puede usar `${prefijoId}-${clave}` como `aria-labelledby`. */
   prefijoId?: string;
+  /**
+   * Líneas del detalle: 1 (por defecto) o 2. Con 2, TODAS las filas crecen igual (64 px) y el detalle corta en la
+   * segunda línea; sirve cuando el detalle es un nombre propio largo («Acreditación · informe institucional»).
+   */
+  detalleLineas?: 1 | 2;
   className?: string;
 };
 
@@ -92,6 +97,7 @@ export function ListaPartes<K extends string>({
   onElegir,
   idPanel,
   prefijoId = "lista-partes",
+  detalleLineas = 1,
   className,
 }: ListaPartesProps<K>) {
   const raiz = useRef<HTMLDivElement>(null);
@@ -121,7 +127,7 @@ export function ListaPartes<K extends string>({
   return (
     <div
       ref={raiz}
-      className={["pulso-lista-partes", slot === "angosto" ? "is-slot-angosto" : null, className].filter(Boolean).join(" ")}
+      className={["pulso-lista-partes", slot === "angosto" ? "is-slot-angosto" : null, detalleLineas === 2 ? "is-detalle-2" : null, className].filter(Boolean).join(" ")}
       role="group"
       aria-label={etiqueta}
       onKeyDown={onTecla}

@@ -18,7 +18,7 @@ import { DetallePortada } from "./DetallePortada";
 import { DetalleCapitulos } from "./DetalleCapitulos";
 import { DetalleCierre } from "./DetalleCierre";
 import { DetalleGraficos } from "./DetalleGraficos";
-import { PartesWord } from "./PartesWord";
+import { PREFIJO_PARTE_WORD, PartesWord } from "./PartesWord";
 import { PreviaWord } from "./PreviaWord";
 import { useEstiloUi } from "../estilo/estiloUiStore";
 import { PARTES_WORD, paginaDeParte, resumenDeParte, type ParteWord } from "./modeloPestanaWord";
@@ -75,7 +75,7 @@ export default function PestanaWord() {
         ) : (
           <div className="pulso-f6-w">
             <PartesWord partes={partes} actual={parte} onElegir={setParte} idPanel={ID_PANEL} />
-            <div className="pulso-f6-informe-secciones pulso-f6-w-detalle" id={ID_PANEL} role="tabpanel" aria-labelledby={`f6-w-parte-${parte}`}
+            <div className="pulso-f6-informe-secciones pulso-f6-w-detalle" id={ID_PANEL} role="region" aria-labelledby={`${PREFIJO_PARTE_WORD}-${parte}`}
               data-qa-geometry-group="graficos/f6-word-secciones" data-qa-geometry-contract="intrinsic">
               <DetalleParte parte={parte} resumen={partes.find((p) => p.key === parte)?.resumen ?? ""} tituloInforme={tituloInforme}
                 portada={paginas[0]?.clase === "portada" ? { titulo: paginas[0].titulo, sub: paginas[0].sub, fecha: paginas[0].fecha } : { titulo: tituloInforme, sub: "", fecha: "" }} />

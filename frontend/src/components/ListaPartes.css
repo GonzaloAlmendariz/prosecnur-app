@@ -99,6 +99,19 @@
   line-height: 1.35;
 }
 
+/* Variante de detalle en dos líneas: la altura sube para todas las filas (C2) y el detalle corta en la segunda. */
+.pulso-lista-partes.is-detalle-2 {
+  --lista-partes-alto-fila: 64px;
+}
+
+.pulso-lista-partes.is-detalle-2 .pulso-lista-partes-detalle {
+  display: -webkit-box;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .pulso-lista-partes-fila:hover:not(.is-elegida),
   .pulso-lista-partes-plegable:hover {

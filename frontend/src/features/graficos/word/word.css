@@ -1,5 +1,5 @@
-/* Pestaña Word en cinco partes (W1 del rediseño, 2026-10-15): menú · ajustes · página. Bajo 1280 px el menú va en fila
-   arriba y la página queda a la derecha de los ajustes. */
+/* Pestaña Word en cinco partes (W1 del rediseño, 2026-10-15): partes · ajustes · página. Bajo 1280 px las partes siguen
+   en su columna (nunca una barra horizontal) y la página baja debajo de ellas; los ajustes ocupan el resto. */
 .pulso-f6-w {
   display: grid;
   grid-template-columns: 236px minmax(0, 1fr) 300px;
@@ -44,18 +44,14 @@
 .pulso-f6-w-vinculo:focus-visible { outline: 2px solid var(--module-accent); outline-offset: 1px; }
 
 @media (max-width: 1280px) {
-  .pulso-f6-w { grid-template-columns: minmax(0, 1fr) 260px; }
-  .pulso-f6-w-partes {
-    grid-column: 1 / -1;
-    flex-direction: row;
-    position: static;
-    gap: var(--pulso-space-1);
-    overflow-x: auto;
-    padding-bottom: var(--pulso-space-2);
-    border-bottom: 1px solid var(--pulso-border);
+  .pulso-f6-w {
+    grid-template-columns: 216px minmax(0, 1fr);
+    grid-template-areas: "partes detalle" "prev detalle";
+    grid-template-rows: auto 1fr;
   }
-  .pulso-f6-w-partes .pulso-f6-menu-item { flex: none; min-height: 40px; }
-  .pulso-f6-w-partes .pulso-f6-menu-texto small { display: none; }
+  .pulso-f6-w-partes { grid-area: partes; position: static; }
+  .pulso-f6-w-detalle { grid-area: detalle; }
+  .pulso-f6-w-prev { grid-area: prev; position: static; }
 }
 
 /* W2: campos de Word › Documento. */

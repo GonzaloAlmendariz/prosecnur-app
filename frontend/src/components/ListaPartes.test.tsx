@@ -80,6 +80,14 @@ describe("ListaPartes · render", () => {
     expect(html).toMatch(/<\/span><\/span><span class="pulso-lista-partes-estado is-neutro"/);
   });
 
+  test("detalle en dos líneas: la clase va en el panel (todas las filas crecen igual); por defecto, una", () => {
+    const una = renderToStaticMarkup(<ListaPartes etiqueta="x" grupos={GRUPOS} actual="formato" onElegir={noop} />);
+    expect(una).not.toContain("is-detalle-2");
+    const dos = renderToStaticMarkup(<ListaPartes etiqueta="x" grupos={GRUPOS} actual="formato" onElegir={noop} detalleLineas={2} />);
+    expect(dos).toMatch(/class="pulso-lista-partes[^"]* is-detalle-2"/);
+    expect(dos.match(/is-detalle-2/g)).toHaveLength(1);
+  });
+
   test("el grupo plegable arranca cerrado, salvo que contenga la parte elegida", () => {
     const cerrado = renderToStaticMarkup(<ListaPartes etiqueta="x" grupos={GRUPOS} actual="formato" onElegir={noop} />);
     expect(cerrado).toMatch(/class="pulso-lista-partes-plegable" aria-expanded="false"/);
