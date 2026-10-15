@@ -1462,6 +1462,9 @@ graficar_histograma <- function(
     ggplot2::theme(
       panel.grid.major.x = ggplot2::element_blank(),
       panel.grid.minor = ggplot2::element_blank(),
+      # Sin eje Y la grilla no mide nada: las cifras ya están escritas sobre cada barra (mazo de Ing. Civil «sin líneas
+      # grises», 13-07-2026).
+      panel.grid.major.y = if (isTRUE(mostrar_eje_y)) NULL else ggplot2::element_blank(),
       # H39 — el titulo del eje Y se declaraba sin margen y se escribia ENCIMA
       # de las marcas: «30%» y «20%» quedaban tachadas por «Porcentaje del
       # total». Viaja encendido de fabrica (el preset del histograma trae
