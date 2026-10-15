@@ -706,3 +706,145 @@
   font-size: 11px;
   line-height: 1.4;
 }
+
+/* ID3 del rediseño (2026-10-15): biblioteca de líneas visuales. Tarjetas pares por grupo (C2), con sus colores, qué
+   traen y el botón de aplicar; la aplicada lleva el borde del acento. */
+.pulso-f6-lv {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+}
+
+.pulso-f6-lv-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-f6-lv-grupo-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-lv-grupo-titulo small {
+  margin-left: var(--pulso-space-2);
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-regular);
+}
+
+.pulso-f6-lv-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+.pulso-f6-lv-tarjeta {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto auto;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out), box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-lv-tarjeta:not(.is-aplicada):hover {
+    border-color: var(--pulso-border-strong);
+    box-shadow: var(--pulso-shadow-low);
+  }
+}
+
+.pulso-f6-lv-tarjeta.is-aplicada {
+  border-color: var(--module-accent);
+  box-shadow: 0 0 0 1px var(--module-accent);
+}
+
+.pulso-f6-lv-colores {
+  display: flex;
+  gap: 4px;
+  margin-bottom: var(--pulso-space-1);
+}
+
+.pulso-f6-lv-colores i {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-text) 12%, transparent);
+}
+
+.pulso-f6-lv-nombre {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-lv-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.pulso-f6-lv-trae {
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+}
+
+.pulso-f6-lv-aplicar {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: var(--pulso-control-height-md);
+  margin-top: var(--pulso-space-2);
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--module-accent-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--module-accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-lv-aplicar:not(:disabled):hover {
+    background: color-mix(in srgb, var(--module-accent) 8%, var(--pulso-surface));
+  }
+}
+
+.pulso-f6-lv-aplicar.is-aplicada {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--module-accent) 12%, var(--pulso-surface));
+  cursor: default;
+}
+
+.pulso-f6-lv-aplicar:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+.pulso-f6-lv-estado {
+  margin: 0;
+  padding: var(--pulso-space-3);
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.pulso-f6-lv-estado.is-error {
+  border-color: var(--pulso-danger-border);
+  color: var(--pulso-danger-fg);
+}
