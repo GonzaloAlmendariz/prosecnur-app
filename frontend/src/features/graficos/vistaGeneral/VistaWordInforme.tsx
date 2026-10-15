@@ -9,6 +9,7 @@ import { GlifoGrafico } from "../iconos/GlifoGrafico";
 import { baseAutomatica, ranurasDeMaqueta } from "../laminas/modeloMaqueta";
 import { usePlanStore } from "../store";
 import { useVariables } from "../useVariables";
+import { PortadaMaqueta } from "./PortadaMaqueta";
 import { paginasWord, tituloCortoWord, type ElementoWord, type PaginaWord } from "./paginasWord";
 
 const FUENTE = "Fuente: PULSO PUCP.";
@@ -30,13 +31,18 @@ export function useArmadoWord(slides: readonly Slide[]) {
   return useMemo(() => {
     const elementos: ElementoWord[] = [];
     let tituloInforme = "";
+    let portadaSub = "";
+    let portadaFecha = "";
     let hayEscalas = false;
     let hayBottom = false;
     let conTablas = false;
     for (const slide of slides) {
       const payload = (slide.payload ?? {}) as Record<string, unknown>;
       const meta = (payload.meta ?? {}) as Record<string, unknown>;
-      if (slide.tipo === "p_slide_portada") { tituloInforme ||= texto(payload.titulo); continue; }
+      if (slide.tipo === "p_slide_portada") {
+        if (!tituloInforme) { tituloInforme = texto(payload.titulo); portadaSub = texto(payload.subtitulo); portadaFecha = texto(payload.fecha); }
+        continue;
+      }
       if (slide.tipo === "p_slide_seccion") {
         // Como `.word_nivel_seccion`: el nivel explícito manda; si no, un subcapítulo es sección N.M (decisión 2026-10-15).
         const explicito = Number(meta.word_heading_level);
@@ -57,7 +63,7 @@ export function useArmadoWord(slides: readonly Slide[]) {
         elementos.push({ clase: "grafico", graficador: r.graficador as string, pregunta: r.pregunta ?? "Sin pregunta", base });
       }
     }
-    return paginasWord(elementos, { tituloInforme: tituloInforme || "Informe", hayEscalas, hayBottom, conTablas, comoLeer });
+    return paginasWord(elementos, { tituloInforme: tituloInforme || "Informe", hayEscalas, hayBottom, conTablas, comoLeer, portadaSub, portadaFecha });
   }, [slides, variables, presets, paletas, vinculos, comoLeer]);
 }
 
@@ -83,15 +89,8 @@ export function PaginaMaqueta({ pagina, tituloCorto }: { pagina: PaginaWord; tit
   return (
     <span className={`pulso-f6-vg-pagina-caja`} data-qa-geometry-member>
       <span className={`pulso-f6-vg-pagina is-${pagina.clase}`}>
-        {pagina.clase === "portada" && (<>
-          <span className="pulso-f6-vg-pag-logos"><span>PUCP</span><span>PULSO PUCP</span></span>
-          <span className="pulso-f6-vg-pag-portada">
-            <span className="pulso-f6-vg-pag-k">Informe de resultados</span>
-            <span className="pulso-f6-vg-pag-t">{pagina.titulo}</span>
-            <span className="pulso-f6-vg-pag-regla" />
-          </span>
-          <span className="pulso-f6-vg-pag-pie"><b>PULSO PUCP</b></span>
-        </>)}
+        {/* W3: la portada en su variante, con los datos del motor (antes decía «Informe de resultados», que el motor no pone). */}
+        {pagina.clase === "portada" && <PortadaMaqueta titulo={pagina.titulo} sub={pagina.sub} fecha={pagina.fecha} />}
         {pagina.clase === "indice" && (<>
           {cabeza("Contenido")}
           <span className="pulso-f6-vg-pag-h1">Contenido</span>

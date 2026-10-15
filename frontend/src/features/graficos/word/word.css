@@ -94,3 +94,29 @@
 .pulso-f6-w-campo > span { color: var(--pulso-text-soft); font-weight: var(--pulso-weight-semibold); }
 .pulso-f6-w-campo small { color: var(--pulso-text-soft); font-size: 11px; }
 @container (max-width: 520px) { .pulso-f6-w-campos { grid-template-columns: minmax(0, 1fr); } }
+
+/* W3: variantes de la portada como tarjetas elegibles, con una miniatura de su composición. */
+.pulso-f6-w-variantes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--pulso-space-3); }
+.pulso-f6-w-variante {
+  display: flex; flex-direction: column; gap: var(--pulso-space-1); min-width: 0; padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-card); background: var(--pulso-surface);
+  font-size: 12px; cursor: pointer; transition: box-shadow var(--motion-dur-fast) var(--motion-ease-out), transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-f6-w-variante:hover { transform: translateY(-1px); box-shadow: var(--pulso-shadow-soft); }
+.pulso-f6-w-variante.is-activa { box-shadow: inset 0 0 0 2px var(--module-accent); }
+.pulso-f6-w-variante:has(input:focus-visible) { outline: 2px solid var(--module-accent); outline-offset: 2px; }
+.pulso-f6-w-variante small { color: var(--pulso-text-soft); font-size: 11px; line-height: 1.35; }
+.pulso-f6-w-variante-mini {
+  position: relative; display: flex; flex-direction: column; gap: 4px; justify-content: flex-start; aspect-ratio: 210 / 140;
+  padding: 18% 12% 8%; border: 1px solid var(--pulso-border); border-radius: 2px; background: var(--pulso-bg); overflow: hidden;
+}
+.pulso-f6-w-variante-mini i { display: block; height: 4px; border-radius: 2px; background: var(--pulso-border-strong); }
+.pulso-f6-w-variante-mini i:nth-child(1) { width: 80%; height: 7px; background: var(--pulso-primary); }
+.pulso-f6-w-variante-mini i:nth-child(2) { width: 24%; background: var(--module-accent); }
+.pulso-f6-w-variante-mini i:nth-child(3) { width: 55%; }
+.pulso-f6-w-variante-mini.is-b { justify-content: flex-end; padding-left: 22%; }
+.pulso-f6-w-variante-mini.is-b::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 12%; background: var(--pulso-primary); }
+.pulso-f6-w-variante-mini.is-b i:nth-child(2) { background: var(--pulso-border-strong); }
+.pulso-f6-w-variante-mini.is-c::after { content: ""; display: block; margin-top: auto; height: 22%; border-top: 2px solid var(--pulso-primary);
+  background: repeating-linear-gradient(to bottom, transparent 0 5px, var(--pulso-border) 5px 6px); }
+@container (max-width: 560px) { .pulso-f6-w-variantes { grid-template-columns: minmax(0, 1fr); } }

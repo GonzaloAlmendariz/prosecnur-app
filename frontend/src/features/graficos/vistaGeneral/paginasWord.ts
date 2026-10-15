@@ -17,14 +17,18 @@ export type ElementoWord =
   | { clase: "grafico"; graficador: string; pregunta: string; base: string | null }
   | { clase: "cifras" };
 
-export type OpcionesWord = { tituloInforme: string; hayEscalas: boolean; hayBottom: boolean; comoLeer?: boolean; conTablas?: boolean };
+export type OpcionesWord = {
+  tituloInforme: string; hayEscalas: boolean; hayBottom: boolean; comoLeer?: boolean; conTablas?: boolean;
+  /** Subtítulo y fecha de la lámina de portada: la portada del Word los usa si Word › Portada no los cambia (W3). */
+  portadaSub?: string; portadaFecha?: string;
+};
 
 export type FiguraWord = { numero: number; graficador: string; pregunta: string; base: string | null };
 export type EntradaIndice = { numero: string; titulo: string; nivel: 1 | 2 };
 type PaginaCapitulo = { clase: "capitulo"; encabezado: string; titulos: string[]; texto: boolean; figuras: FiguraWord[]; folio: number };
 
 export type PaginaWord =
-  | { clase: "portada"; titulo: string }
+  | { clase: "portada"; titulo: string; sub: string; fecha: string }
   | { clase: "indice"; entradas: EntradaIndice[]; indices: string[]; folio: number }
   | { clase: "como-leer"; numero: number; secciones: string[]; figuras: number[]; folio: number }
   | PaginaCapitulo
@@ -59,7 +63,7 @@ const sinNumero = (t: string) => oracion(t.replace(/^\s*\d+(?:\.\d+)*\.?\s+/u, "
 export function paginasWord(elementos: readonly ElementoWord[], op: OpcionesWord): PaginaWord[] {
   const entradas: EntradaIndice[] = [];
   const paginas: PaginaWord[] = [
-    { clase: "portada", titulo: op.tituloInforme },
+    { clase: "portada", titulo: op.tituloInforme, sub: op.portadaSub ?? "", fecha: op.portadaFecha ?? "" },
     { clase: "indice", entradas, indices: ["Índice de gráficos", ...(op.conTablas ? ["Índice de tablas"] : [])], folio: 2 },
   ];
   let folio = 3;
