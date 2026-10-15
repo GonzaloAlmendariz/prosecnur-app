@@ -16,7 +16,7 @@ function FilaBase({ base, palabra, formato, onCambiar }: { base: string; palabra
     if (borrador.trim() !== palabra) onCambiar(borrador);
   };
   return (
-    <li className="pulso-f6-sufijo-base">
+    <li className="pulso-f6-sufijo-base" data-qa-geometry-member>
       <label htmlFor={id} className="pulso-f6-sufijo-base-nombre">{base}</label>
       <input
         id={id}
@@ -52,7 +52,8 @@ export function SufijosPorBase({
       <div className="pulso-f6-informe-campo-cabecera">
         <span className="pulso-f6-informe-campo-etiqueta">Después del número, en cada base</span>
       </div>
-      <ul className="pulso-f6-sufijos-base">
+      {/* C1 (QA del Informe, 2026-10-15): una fila por base, de alto propio. */}
+      <ul className="pulso-f6-sufijos-base" data-qa-geometry-group="graficos/f6-sufijos-base" data-qa-geometry-contract="intrinsic">
         {bases.map((b) => (
           <FilaBase key={`${b}:${sufijos[b] ?? ""}`} base={b} palabra={sufijos[b] ?? ""} formato={formato} onCambiar={(p) => onCambiar(b, p)} />
         ))}

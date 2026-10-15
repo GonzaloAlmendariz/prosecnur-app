@@ -138,7 +138,12 @@ export default function PestanaEstilo() {
         <div className="pulso-f6-estilo-columnas">
           <div className="pulso-f6-estilo-secciones" data-qa-geometry-group="graficos/f6-estilo-secciones" data-qa-geometry-contract="intrinsic">
             {opcionesError ? <p className="pulso-f6-estilo-error" role="alert">{opcionesError}</p> : null}
-            {motivoPieza ? <p className="pulso-f6-estilo-no-disponible" role="status">{motivoPieza}</p> : null}
+            {/* QA del Informe (2026-10-15): el motivo es una sección más del grupo, no un <p> suelto (capacity-drift). */}
+            {motivoPieza ? (
+              <section className="pulso-f6-estilo-seccion" data-qa-geometry-member>
+                <p className="pulso-f6-estilo-ayuda" role="status">{motivoPieza}</p>
+              </section>
+            ) : null}
             {sub === "logos" && !motivoPieza && (<>
             <SeccionAmbito
               ambito={ambito}
