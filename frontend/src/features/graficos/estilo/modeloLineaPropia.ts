@@ -2,7 +2,7 @@
 //
 // Una línea guarda la forma de un perfil del recetario: presets, paletas, ajustes guardados y reglas. Lo que lleva lo
 // deciden dos interruptores reales —«Colores» (las paletas) y «Gráficos y portada» (presets, ajustes guardados y reglas,
-// donde viven plantilla y portada)—. Logos y letra viven en el estilo del cliente y todavía no llegan al PPT (D5, ID9):
+// donde viven plantilla y portada)—. Logos y letra viven en el estilo del cliente, no en la forma de una línea (perfil):
 // la línea los declara `false` y la UI lo dice, en vez de prometer algo que aplicar no haría.
 
 import type { LineaVisualNueva, IncluyeLinea } from "../../../api/graficosLineasVisuales";

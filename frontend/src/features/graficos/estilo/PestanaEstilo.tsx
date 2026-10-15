@@ -190,7 +190,7 @@ export default function PestanaEstilo() {
   return (
     <div className="pulso-f6-estilo" data-audit-ready={listo ? "graficos-estilo" : "false"} data-qa-surface="graficos/f6-estilo">
       {/* ID1 del rediseño (2026-10-14): el ámbito va en la cabecera y rige todas las piezas. En el compartido no aplica
-          (logos y letra no llegan a su PPT todavía). */}
+          (su PPT es por base: el ámbito no aplica). */}
       <header className="pulso-f6-estilo-barra">
         <h2 className="pulso-f6-estilo-titulo">Identidad</h2>
         {scope !== "consolidated" && (<>
@@ -228,7 +228,7 @@ export default function PestanaEstilo() {
                   </PulsoButton>
                 ) : null}
               </header>
-              <p className="pulso-f6-estilo-ayuda">El logo de cada lugar de la portada y la contraportada del Word (al PPT llegan con la decisión D5). Si no subes uno, va el de por defecto. Sólo PNG con fondo transparente, hasta 5 MB.</p>
+              <p className="pulso-f6-estilo-ayuda">El logo de cada lugar de la portada y la contraportada, en el PPT y en el Word. Si no subes uno, va el de por defecto. Sólo PNG con fondo transparente, hasta 5 MB.</p>
               <div className="pulso-f6-estilo-logos" data-qa-geometry-group="graficos/f6-estilo-logos" data-qa-geometry-contract="equal">
                 {ESTILO_LUGARES_LOGO.map((lugar) => (
                   <TarjetaLogo
