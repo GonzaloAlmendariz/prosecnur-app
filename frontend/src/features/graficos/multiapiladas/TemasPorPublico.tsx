@@ -59,7 +59,7 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
   const otroTema = cabeOtroTema(lista, publicos.length, cupo);
   const n = (p: string) => Math.max(0, ...lista.map((t) => buscar(variables, refDePublico(t, p))?.n_non_empty ?? 0));
   return (
-    <div className="pulso-mapi-temas">
+    <div className="pulso-mapi-temas" data-qa-geometry-group="graficos/mapi-temas" data-qa-geometry-contract="intrinsic">
       <p className="pulso-mapi-publicos">{publicos.map((p) => (n(p) ? `${nombrePublico(p)} · ${n(p)}` : nombrePublico(p))).join("   ")}</p>
       {lista.map((tema, i) => {
         const sugerencias = sugerenciasDeTema(tema, publicos, variables, matriz);
@@ -73,7 +73,7 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
           reemplazar({ ...actualizado, title: titulo });
         };
         return (
-        <div key={tema.key || i} className="pulso-mapi-tarjeta">
+        <div key={tema.key || i} className="pulso-mapi-tarjeta" data-qa-geometry-member data-qa-geometry-group="graficos/mapi-tarjeta" data-qa-geometry-contract="intrinsic">
           <div className="pulso-mapi-tema">
             <input className="pulso-f6-input" aria-label="Nombre del tema" value={tema.title} placeholder="Nombre del tema"
                    onChange={(e) => onChange(lista.map((t, j) => (j === i ? { ...t, title: e.target.value } : t)))} />

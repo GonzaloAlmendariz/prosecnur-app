@@ -53,7 +53,7 @@ export const AYUDA_EJE_MIN =
   "0 = automático. Un piso alto acerca las diferencias; si deja fuera un dato, el eje baja solo y la lámina lo avisa.";
 export const AYUDA_BRECHA = "El primer grupo menos el segundo, restando las cifras ya rotuladas.";
 export const AYUDA_MIN_N = "Con menos casos válidos el distrito va como Sin encuestas y la lámina lo avisa.";
-export const AYUDA_CORTES = "Porcentajes entre 0 y 100, separados por comas. Vacío: 55, 65 y 75.";
+export const AYUDA_CORTES = "Tres cortes dan cuatro clases. Vacío: 55, 65 y 75.";
 export const AYUDA_LIMITE_SUPERIOR = "Vacío: sin tope. Lo que lo supera va en la última barra, rotulada con + (p. ej. 60+).";
 export const AYUDA_TIPO_RANGO = "La leyenda de la lámina dice qué abarca la barra.";
 // 6a (Gonzalo, 2026-10-11): «custom» depende de `probs_rango`, que no tiene control en la tarjeta.
@@ -217,7 +217,10 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // Sólo donde hace algo: la lámina que compara públicos (Gonzalo, 2026-10-13: «que sus opciones tengan sentido»).
   ancho_tema: { rotulo: "Ancho de los temas", soloEn: ["p_barras_multiapiladas"], cuando: comparaPublicos },
   excluir_opciones: { rotulo: "Excluir respuestas", ayuda: "Escribe los códigos separados por comas, por ejemplo 88, 99." },
-  excluir_grupos: { rotulo: "Excluir grupos", ayuda: "Escribe los códigos separados por comas." },
+  // Histograma por grupos: la tarjeta no tenía dónde elegir la pregunta que divide, y «Excluir grupos» pedía elegirla
+  // (pasada final 2026-10-15). Sin grupo elegido no hay grupos que excluir.
+  grupo: { rotulo: "Dividir por", ayuda: "Sin dividir, un solo histograma.", soloEn: ["p_histograma"] },
+  excluir_grupos: { rotulo: "Excluir grupos", cuando: (v) => typeof v.grupo === "string" && v.grupo !== "" },
   // Tabla (5a, ruta anterior): formales de p_tabla (p_radar_split.R); `sm_omit_na = TRUE` sin default en el registro.
   // `top_n` y `sm_omit_codes` siguen sin control: recortan antes del denominador (C40, D1).
   sm_omit_na: { rotulo: "Omitir sin respuesta", soloEn: TABLA, defecto: true },

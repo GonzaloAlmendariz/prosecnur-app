@@ -64,7 +64,7 @@ export function ExplicaTemas({ tipo }: { tipo: TipoTemas }) {
   return (
     <div className="pulso-teq-explica">
       <Boceto tipo={tipo} />
-      <div className="pulso-teq-explica-texto">
+      <div className="pulso-teq-explica-texto" data-qa-geometry-group="graficos/teq-explica" data-qa-geometry-contract="intrinsic">
         <p className="pulso-teq-explica-desc">{e.descripcion}</p>
         <p className="pulso-teq-explica-linea"><strong>Cómo sale:</strong> {e.comoSale}</p>
         <p className="pulso-teq-explica-linea"><strong>Ejemplo:</strong> {e.ejemplo}</p>

@@ -25,9 +25,9 @@ export function MatrizCuadrantes({ args, onCambio }: Props) {
     <div className="pulso-f6-brecha" data-qa-geometry-group="graficos/f6-matriz" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-dato is-apilado">
         <span className="pulso-f6-dato-rotulo">Temas</span>
-        <ul className="pulso-f6-brecha-preguntas">
+        <ul className="pulso-f6-brecha-preguntas" data-qa-geometry-group="graficos/f6-matriz-preguntas" data-qa-geometry-contract="intrinsic">
           {temas.map((t, i) => (
-            <li key={`${t.nombre}-${i}`} className="pulso-f6-matriz-tema">
+            <li key={`${t.nombre}-${i}`} className="pulso-f6-matriz-tema" data-qa-geometry-member data-qa-geometry-group="graficos/f6-matriz-tema" data-qa-geometry-contract="intrinsic">
               <input className="pulso-f6-input" aria-label="Nombre del tema" value={t.nombre}
                      onChange={(e) => cambiar(temas.map((u, j) => (j === i ? { ...u, nombre: e.target.value } : u)))} />
               <button type="button" className="pulso-f6-icono-boton" aria-label="Quitar el tema" onClick={() => cambiar(temas.filter((_, j) => j !== i))}>

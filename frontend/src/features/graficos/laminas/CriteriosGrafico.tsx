@@ -55,7 +55,7 @@ export function CriteriosGrafico({ valor, onCambio }: { valor: unknown; onCambio
   return (
     <div className="pulso-f6-dato is-apilado" data-qa="criterios-grafico">
       <span className="pulso-f6-dato-rotulo" id={id}>Criterios</span>
-      <div className="pulso-f6-criterios" role="group" aria-labelledby={id}>
+      <div className="pulso-f6-criterios" role="group" aria-labelledby={id} data-qa-geometry-group="graficos/f6-criterios" data-qa-geometry-contract="intrinsic">
         {criterios.map((c, i) => (
           <div key={`${c.id}-${i}`} className="pulso-f6-criterio">
             <div className="pulso-f6-criterio-cabecera">
@@ -66,7 +66,7 @@ export function CriteriosGrafico({ valor, onCambio }: { valor: unknown; onCambio
                 <X size={14} aria-hidden="true" />
               </button>
             </div>
-            <ul className="pulso-f6-criterio-preguntas">
+            <ul className="pulso-f6-criterio-preguntas" data-qa-geometry-group="graficos/f6-criterio-preguntas" data-qa-geometry-contract="intrinsic">
               {c.vars.map((ref) => (
                 <li key={ref} className="pulso-f6-criterio-pregunta">
                   <span title={ref}>{nombre(ref)}</span>
