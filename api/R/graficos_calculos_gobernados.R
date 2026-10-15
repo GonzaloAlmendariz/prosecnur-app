@@ -153,31 +153,170 @@
   )
 }
 
+#' Modos de la nota de redondeo, en el orden en que los ofrece la UI.
+#' @keywords internal
+.CALCULOS_NOTA_MODOS <- c("nunca", "si_no_cierra", "siempre")
+
+#' Modo efectivo de la nota de redondeo según el preset `base`.
+#'
+#' `nota_redondeo_modo` manda cuando trae un valor reconocible. Si falta —planes
+#' guardados antes de que existiera, o un valor que no se reconoce— se deduce
+#' del interruptor viejo `nota_redondeo`: encendido era «siempre» y apagado,
+#' «nunca». Así un `.pulso` viejo sale igual que antes.
+#'
+#' @param base_args Args del preset `base`.
+#' @return `"nunca"`, `"si_no_cierra"` o `"siempre"`.
+#' @keywords internal
+.calculos_nota_modo <- function(base_args = list()) {
+  m <- suppressWarnings(as.character(base_args$nota_redondeo_modo %||% "")[1])
+  m <- if (is.na(m)) "" else tolower(trimws(m))
+  if (m %in% .CALCULOS_NOTA_MODOS) return(m)
+  if (isTRUE(base_args$nota_redondeo)) "siempre" else "nunca"
+}
+
+#' Texto de la nota que va al pie: el propio del analista o el automático.
+#'
+#' `nota_redondeo_texto` vacío o ausente significa «automático». Con texto, se
+#' usa tal cual: el analista lo escribió para este informe y no se le añade ni
+#' se le quita nada.
+#' @keywords internal
+.calculos_nota_texto_efectivo <- function(base_args = list(), metodo = "estandar",
+                                          decimales = 0) {
+  propio <- suppressWarnings(as.character(base_args$nota_redondeo_texto %||% "")[1])
+  if (!is.na(propio) && nzchar(trimws(propio))) return(trimws(propio))
+  .calculos_nota_texto(metodo, decimales)
+}
+
+#' ¿Alguna cifra rotulada de este conjunto deja de sumar 100?
+#'
+#' Responde sobre las cifras TAL COMO SE ROTULAN: mismo método y mismos
+#' decimales que el gráfico, vía `.pulso_pct_unidades()`, que es la función que
+#' escribe las etiquetas. Con el reparto la suma cierra por construcción y la
+#' respuesta es siempre `FALSE`.
+#'
+#' Un conjunto que no es una distribución —respuesta múltiple, un subconjunto de
+#' opciones— no tiene un 100 que cerrar: sus proporciones no suman 1 y la
+#' pregunta no aplica. Se usa la misma tolerancia (0,01) con la que categóricas
+#' y torta deciden si el reparto tiene sentido.
+#'
+#' @param p Proporciones de UNA barra/serie (escala 0-1). Las categorías
+#'   residuales que se rotulan en la barra van incluidas.
+#' @param dec Decimales rotulados.
+#' @param metodo Método de redondeo del gráfico.
+#' @return `TRUE` si la suma rotulada difiere de 100 %.
+#' @keywords internal
+.calculos_no_cierra <- function(p, dec = 0, metodo = "estandar") {
+  if (identical(.pulso_pct_metodo(metodo), "reparto")) return(FALSE)
+  p <- suppressWarnings(as.numeric(p))
+  p <- p[is.finite(p)]
+  if (!length(p)) return(FALSE)
+  s <- sum(p)
+  if (!is.finite(s) || s <= 0 || abs(s - 1) > 0.01) return(FALSE)
+  d <- suppressWarnings(as.integer(dec)[1])
+  if (!is.finite(d) || d < 0) d <- 0L
+  sum(.pulso_pct_unidades(p, d, "estandar")) != as.integer(100L * 10^d)
+}
+
+#' Anexa la nota de redondeo a un pie, salvo que ya hable del redondeo.
+#'
+#' La previa primero —la del analista, la de significancia o la Base que
+#' torta y categóricas llevan en su caption—, la del redondeo después, que es
+#' el orden en que se leen. Si la previa ya menciona el redondeo, o ya trae
+#' este mismo texto, no se repite.
+#'
+#' @return El pie compuesto, o `previa` tal cual si no hay nada que anexar.
+#' @keywords internal
+.calculos_nota_anexar <- function(previa, nota) {
+  nota <- trimws(as.character(nota %||% "")[1])
+  if (is.na(nota) || !nzchar(nota)) return(previa)
+  pv <- trimws(as.character(previa %||% "")[1])
+  if (is.na(pv) || !nzchar(pv)) return(nota)
+  if (grepl("redondead", pv, ignore.case = TRUE) || grepl(nota, pv, fixed = TRUE)) return(previa)
+  paste0(pv, if (grepl("[.!?:;]$", pv)) " " else ". ", nota)
+}
+
+#' Resuelve, dentro del graficador, la nota de redondeo de una familia que cierra a 100.
+#'
+#' Para estas familias (`cierra_100` en `.PRESETS_CALCULOS`: apiladas,
+#' multiapiladas, categóricas, torta y dona) el plan no escribe la nota en
+#' `nota_pie`: deja la marca `nota_redondeo_pie` y el graficador la resuelve
+#' aquí, por dos razones.
+#'
+#'   1. En «Sólo si una barra no suma 100 %» la decisión necesita las cifras, y
+#'      el plan todavía no las tiene. El graficador ya calculó las unidades que
+#'      va a rotular y sabe si alguna barra no cierra (`.calculos_no_cierra()`).
+#'   2. Escrita en el plan, la nota PISABA el caption que el renderer arma
+#'      después: en torta y categóricas ese caption es la Base, y la lámina
+#'      salía sin Base; en multiapiladas era la nota de significancia. Aquí se
+#'      anexa a lo que haya.
+#'
+#' @param nota_pie Pie que recibió el graficador.
+#' @param marca `list(texto, solo_si_no_cierra)` dejada por `.calculos_aplicar_nota()`, o `NULL`.
+#' @param no_cierra `TRUE` si alguna barra rotulada no suma 100.
+#' @return El pie a dibujar.
+#' @keywords internal
+.calculos_nota_resolver <- function(nota_pie, marca = NULL, no_cierra = FALSE) {
+  if (is.null(marca) || !is.list(marca)) return(nota_pie)
+  if (isTRUE(marca$solo_si_no_cierra) && !isTRUE(no_cierra)) return(nota_pie)
+  .calculos_nota_anexar(nota_pie, marca$texto)
+}
+
+#' Lleva el pie con la nota de redondeo a la lámina nativa y al Word.
+#'
+#' La lámina nativa y el Word no leen el caption del ggplot: leen
+#' `attr(p, "note_outside")` (`.plot_note_from()`), y si no existe, la nota del
+#' elemento guardado, que no tiene la de redondeo. Sin esto la nota de una
+#' apilada no llegaba a ninguna lámina. Solo se marca cuando se anexó la nota:
+#' en otro caso el gráfico sale exactamente como antes.
+#'
+#' @param obj Gráfico que devuelve el graficador.
+#' @param antes Pie que recibió el graficador.
+#' @param despues Pie resuelto por `.calculos_nota_resolver()`.
+#' @keywords internal
+.calculos_nota_al_grafico <- function(obj, antes, despues) {
+  if (is.null(obj) || identical(antes, despues) || is.null(despues)) return(obj)
+  attr(obj, "note_outside") <- trimws(as.character(despues)[1])
+  obj
+}
+
 #' Inyecta la nota de redondeo en un elemento del plan, si procede.
 #'
-#' Condiciones, todas necesarias: el interruptor encendido en la base, que la
-#' familia rotule porcentajes, y que la lámina no traiga ya una nota propia.
+#' Condiciones, todas necesarias: un modo distinto de «nunca» en la base, que la
+#' familia rotule porcentajes, y que la lámina no traiga ya una nota que hable
+#' del redondeo. Se **anexa**, no pisa: la del analista o la de significancia
+#' primero, la del redondeo después.
 #'
-#' Lo último importa más de lo que parece. La nota de significancia se aplica
-#' con esta misma regla —solo si no hay nota— y si las dos se pisaran, la que
-#' explica las letras de significancia desaparecería sin dejar rastro. Aquí se
-#' **anexan**: la del analista o la de significancia primero, la del redondeo
-#' después, que es el orden en que se leen.
+#' Las familias que cierran a 100 no reciben la nota aquí sino una marca
+#' (`overrides$nota_redondeo_pie`) que resuelve su graficador
+#' (`.calculos_nota_resolver()`); en «si_no_cierra» además solo entran ellas, y
+#' nunca con el reparto, que siempre cierra. Las demás familias de porcentaje
+#' —agrupadas, divergentes, series…— la reciben en `nota_pie`, como antes, y
+#' solo en «siempre».
 #'
 #' @param el Elemento del plan.
 #' @param presets Bloques de preset resueltos.
-#' @return El elemento, con `overrides$nota_pie` completado cuando corresponde.
+#' @return El elemento, con `overrides$nota_redondeo_pie` u `overrides$nota_pie`
+#'   cuando corresponde.
 #' @keywords internal
 .calculos_aplicar_nota <- function(el, presets = list()) {
   base_args <- presets$base$args %||% list()
-  if (!isTRUE(base_args$nota_redondeo)) return(el)
+  modo <- .calculos_nota_modo(base_args)
+  if (identical(modo, "nunca")) return(el)
 
   preset <- .calculos_preset_de_etype(el$.element_type %||% "")
-  if (!nzchar(preset) || is.null(.PRESETS_CALCULOS[[preset]])) return(el)
+  spec <- if (nzchar(preset)) .PRESETS_CALCULOS[[preset]] else NULL
+  if (is.null(spec)) return(el)
 
   args_familia <- presets[[preset]]$args %||% list()
-  nota <- .calculos_nota_texto(
-    args_familia$metodo_redondeo %||% "estandar",
+  metodo <- args_familia$metodo_redondeo %||% "estandar"
+  condicional <- identical(modo, "si_no_cierra")
+  cierra <- isTRUE(spec$cierra_100)
+  if (condicional && (!cierra || identical(.pulso_pct_metodo(metodo), "reparto"))) {
+    return(el)
+  }
+
+  nota <- .calculos_nota_texto_efectivo(
+    base_args, metodo,
     args_familia$decimales %||% args_familia$decimales_pct %||%
       args_familia$valores_decimales %||% 0
   )
@@ -186,15 +325,17 @@
   previa <- el$overrides$nota_pie %||% el$nota_pie %||% ""
   previa <- as.character(previa)[1]
   if (is.na(previa)) previa <- ""
-  if (nzchar(trimws(previa))) {
-    # Ya declarada: no se repite. Pasa cuando el analista escribe la suya
-    # mencionando el redondeo, y dos frases sobre lo mismo al pie sobran.
-    if (grepl("redondead", previa, ignore.case = TRUE)) return(el)
-    nota <- paste0(trimws(previa), " ", nota)
-  }
+  final <- .calculos_nota_anexar(previa, nota)
+  # Ya declarada: no se repite. Pasa cuando el analista escribe la suya
+  # mencionando el redondeo, y dos frases sobre lo mismo al pie sobran.
+  if (identical(final, previa)) return(el)
 
   if (is.null(el$overrides)) el$overrides <- list()
-  el$overrides$nota_pie <- nota
+  if (cierra) {
+    el$overrides$nota_redondeo_pie <- list(texto = nota, solo_si_no_cierra = condicional)
+  } else {
+    el$overrides$nota_pie <- final
+  }
   el
 }
 

@@ -318,24 +318,30 @@ test_that("el texto de la nota dice lo que hay que advertir de cada metodo", {
 })
 
 test_that("la nota solo aparece con el interruptor encendido y en familias de %", {
+  # Las familias que cierran a 100 reciben la nota como marca que resuelve su
+  # graficador (ver test-graficos-nota-redondeo-modo.R).
   expect_true(nzchar(.calculos_aplicar_nota(.nota_el("barras_apiladas"),
-                                            .nota_presets())$overrides$nota_pie %||% ""))
+                                            .nota_presets())$overrides$nota_redondeo_pie$texto %||% ""))
   # Apagado —el default— no toca nada.
-  expect_null(.calculos_aplicar_nota(.nota_el("barras_apiladas"),
-                                     .nota_presets(encendido = FALSE))$overrides$nota_pie)
+  apagado <- .calculos_aplicar_nota(.nota_el("barras_apiladas"), .nota_presets(encendido = FALSE))
+  expect_null(apagado$overrides$nota_pie)
+  expect_null(apagado$overrides$nota_redondeo_pie)
   # Un box plot no rotula porcentajes: no hay criterio que declarar.
-  expect_null(.calculos_aplicar_nota(.nota_el("boxplot"), .nota_presets())$overrides$nota_pie)
+  box <- .calculos_aplicar_nota(.nota_el("boxplot"), .nota_presets())
+  expect_null(box$overrides$nota_pie)
+  expect_null(box$overrides$nota_redondeo_pie)
 })
 
 test_that("la nota se anexa y no pisa la que ya trae la lamina", {
   # La de significancia se aplica con esta misma regla. Si se pisaran, la que
   # explica las letras desaparecería sin dejar rastro.
-  out <- .calculos_aplicar_nota(
+  m <- .calculos_aplicar_nota(
     .nota_el("barras_apiladas", list(nota_pie = "Letras: diferencias significativas.")),
     .nota_presets()
-  )
-  expect_match(out$overrides$nota_pie, "^Letras: diferencias significativas[.] ")
-  expect_match(out$overrides$nota_pie, "no sumar exactamente 100")
+  )$overrides$nota_redondeo_pie
+  out <- .calculos_nota_resolver("Letras: diferencias significativas.", m)
+  expect_match(out, "^Letras: diferencias significativas[.] ")
+  expect_match(out, "no sumar exactamente 100")
 })
 
 test_that("una nota que ya habla de redondeo no se duplica", {
@@ -343,6 +349,7 @@ test_that("una nota que ya habla de redondeo no se duplica", {
   out <- .calculos_aplicar_nota(.nota_el("barras_apiladas", list(nota_pie = previa)),
                                 .nota_presets())
   expect_equal(out$overrides$nota_pie, previa)
+  expect_null(out$overrides$nota_redondeo_pie)
 })
 
 test_that("el mapeo de tipo de elemento a preset cubre los nombres que no calzan", {

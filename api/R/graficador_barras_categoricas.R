@@ -204,6 +204,7 @@ graficar_barras_categoricas <- function(
     titulo                    = NULL,
     subtitulo                 = NULL,
     nota_pie                  = NULL,
+    nota_redondeo_pie         = NULL,   # nota de redondeo: ver `.calculos_nota_resolver()`
     mostrar_promedio          = FALSE,
     promedio                  = NULL,
     promedio_label            = "Promedio",
@@ -358,6 +359,11 @@ graficar_barras_categoricas <- function(
     }
   }
 
+  # La nota de redondeo se decide con las cifras que se rotulan (solo si la serie cierra a 100).
+  nota_pie_previa <- nota_pie
+  nota_pie <- .calculos_nota_resolver(nota_pie, nota_redondeo_pie,
+                                      grepl("^porcentaje", formato_valor[1]) &&
+                                        .calculos_no_cierra(df$pct, decimales, metodo_redondeo))
   label_note <- nota_pie
   if (isTRUE(mostrar_promedio) && !is.null(promedio)) {
     promedio <- suppressWarnings(as.numeric(promedio)[1])
@@ -451,6 +457,7 @@ graficar_barras_categoricas <- function(
     attr(p, "pulso_barras_categoricas_promedio") <- promedio
     attr(p, "pulso_barras_categoricas_max_categorias") <- max_categorias
     attr(p, "pulso_espec") <- espec_categorica
+    p <- .calculos_nota_al_grafico(p, nota_pie_previa, nota_pie)
     if (identical(exportar, "png")) {
       if (is.null(path_salida) || !nzchar(path_salida)) {
         stop("`path_salida` es obligatorio cuando `exportar = 'png'`.", call. = FALSE)
@@ -513,6 +520,7 @@ graficar_barras_categoricas <- function(
   attr(p, "pulso_barras_categoricas_promedio") <- promedio
   attr(p, "pulso_barras_categoricas_max_categorias") <- max_categorias
   attr(p, "pulso_espec") <- espec_categorica
+  p <- .calculos_nota_al_grafico(p, nota_pie_previa, nota_pie)
 
   if (identical(exportar, "png")) {
     if (is.null(path_salida) || !nzchar(path_salida)) {

@@ -159,6 +159,7 @@ graficar_pie <- function(
     titulo    = NULL,
     subtitulo = NULL,
     nota_pie  = NULL,
+    nota_redondeo_pie = NULL,   # nota de redondeo: ver `.calculos_nota_resolver()`
 
     # Posición H
     pos_titulo    = c("izquierda", "centro", "derecha"),
@@ -353,6 +354,11 @@ graficar_pie <- function(
   df$categoria <- factor(df$categoria, levels = df$categoria)
   # ADR 0093 (N6): lo que afirma la torta o la dona para la lámina nativa (láminas 69 y 70): las porciones en su
   # orden, la cifra con el redondeo del gráfico y la frecuencia de cada una.
+  # La nota de redondeo se decide con las porciones tal como se rotulan.
+  nota_pie_previa <- nota_pie
+  nota_pie <- .calculos_nota_resolver(nota_pie, nota_redondeo_pie,
+                                      isTRUE(mostrar_etiquetas_pct) &&
+                                        .calculos_no_cierra(df$pct, decimales_pct, metodo_redondeo))
   espec_pie <- tryCatch({
     u <- .pulso_pct_unidades(df$pct, decimales_pct, metodo_redondeo)
     list(version = "pie/1", tipo = "pie", forma = tipo_pie[1], rotulos = as.character(df$categoria), valores = df$pct,
@@ -727,6 +733,7 @@ graficar_pie <- function(
   attr(p_final, "pulso_title_lines") <- as.integer(title_lines)
   attr(p_final, "pulso_canvas_title_height") <- as.numeric(canvas_title_height_eff)
   attr(p_final, "pulso_espec") <- espec_pie
+  p_final <- .calculos_nota_al_grafico(p_final, nota_pie_previa, nota_pie)
   if (exportar == "rplot") return(p_final)
 
   if (is.null(path_salida) || !nzchar(path_salida)) {
