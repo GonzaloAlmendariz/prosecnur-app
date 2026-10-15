@@ -22,13 +22,13 @@ describe("Vista general · interruptor de «Otros»", () => {
     paletas: {}, iconos: [], overrides_reusables: [], debug_ph: { activo: false, color: "#FF00FF", lwd: 0.6 },
   }));
 
-  // Mata: un `aria-checked` fijo o un rótulo que no diga PowerPoint.
-  it("aria-checked sigue al valor, el rótulo dice PowerPoint y el chip aparece sólo encendido", () => {
+  // Mata: un `aria-checked` fijo o un rótulo que no nombre las dos salidas.
+  it("aria-checked sigue al valor, el rótulo nombra PowerPoint y Word, y el chip aparece sólo encendido", () => {
     const apagado = pintar(false);
     expect(apagado).toContain('role="switch"');
     expect(apagado).toContain('aria-checked="false"');
     expect(apagado).toContain(`aria-label="${ROTULO_OTROS}"`);
-    expect(ROTULO_OTROS).toBe("Láminas de «Otros» en el PowerPoint");
+    expect(ROTULO_OTROS).toBe("Respuestas «Otros» en el PowerPoint y el Word");
     expect(apagado).not.toContain(CHIP_OTROS);
     const encendido = pintar(true);
     expect(encendido).toContain('aria-checked="true"');
@@ -47,8 +47,10 @@ describe("Vista general · interruptor de «Otros»", () => {
     expect(usePlanStore.getState().autoOtrosSlides).toBe(true);
   });
 
-  it("la ayuda dice que el Word no las lleva y, con un informe por base, que vale para la activa", () => {
-    expect(ayudaOtros({ visible: false, clave: "conjunto" })).toContain("el Word no las lleva");
+  // L1 del rediseño (2026-10-14): el Word SÍ las lleva (reporte_word_otros.R, tabla tras cada gráfico); la ayuda decía lo contrario.
+  it("la ayuda dice que van al PowerPoint y al Word y, con un informe por base, que vale para la activa", () => {
+    expect(ayudaOtros({ visible: false, clave: "conjunto" })).toContain("una tabla numerada en el Word");
+    expect(ayudaOtros({ visible: false, clave: "conjunto" })).not.toContain("no las lleva");
     expect(ayudaOtros({ visible: true, clave: "por-base" })).toContain("Vale para la base activa.");
     expect(ayudaOtros({ visible: true, clave: "conjunto" })).not.toContain("base activa");
   });

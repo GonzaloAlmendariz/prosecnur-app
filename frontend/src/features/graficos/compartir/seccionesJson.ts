@@ -40,7 +40,7 @@ export type SeccionJson = { id: GraficosJsonSectionId; label: string; help: stri
 
 export const GRAFICOS_JSON_SECTIONS: readonly SeccionJson[] = [
   { id: "plan", label: "Láminas", help: "Orden y contenido de cada lámina." },
-  { id: "auto_otros_slides", label: "Láminas de «Otros»", help: "Si el PPT agrega las respuestas «Otros»." },
+  { id: "auto_otros_slides", label: "Respuestas «Otros»", help: "Si el PPT y el Word agregan las respuestas «Otros»." },
   { id: "presets", label: "Estilo para PPT", help: "Bases visuales para PowerPoint." },
   { id: "w_presets", label: "Estilo para Word", help: "Formato de gráficos y tablas." },
   { id: "documento_word", label: "Documento Word", help: "Portada, apertura, redondeo y contacto." },

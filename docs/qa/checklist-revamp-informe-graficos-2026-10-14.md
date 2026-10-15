@@ -24,7 +24,7 @@ Concepto, decisiones y fallas del inventario: [plan-revamp-informe-graficos-2026
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
 | **F0 · Limpieza** | | | |
-| L1 | Texto del interruptor «Otros» corregido (el motor sí las pone en el Word) | `vistaGeneral/interruptorOtrosModel.ts` | pendiente |
+| L1 | Texto del interruptor «Otros» corregido (el motor sí las pone en el Word) | `vistaGeneral/interruptorOtrosModel.ts`, `compartir/seccionesJson.ts` | hecho, por verificar: rótulo «Respuestas «Otros» en el PowerPoint y el Word»; la ayuda dice lámina en el PPT y tabla numerada en el Word (`reporte_word_otros.R`) |
 | L2 | Identidad disponible en el informe compartido (colores e íconos valen para el PPT) | `estilo/disponibilidadEstilo.ts` | pendiente |
 | L3 | Código que nadie pinta: `SeccionWordRecetario.tsx`, `VistaPreviaWord.tsx`, cálculos sin uso de `PestanaEstiloInforme.tsx` | `estilo/`, `estiloInforme/`, `word/` | pendiente: se lista cada archivo y se confirma antes de borrar (regla de borrados) |
 | L4 | «Quitar línea» visual | `estiloInforme/SeccionLineaVisual.tsx` → Identidad | pendiente |

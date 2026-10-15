@@ -1,4 +1,4 @@
-// Interruptor «Láminas de «Otros» en el PowerPoint» de la barra de Vista general (contrato A5 2b). Lee y escribe el
+// Interruptor «Respuestas «Otros» en el PowerPoint y el Word» de la barra de Vista general (contrato A5 2b). Lee y escribe el
 // store (`autoOtrosSlides`, un paso deshacible); encendido muestra el chip «+ Otros al exportar» al lado, en el mismo
 // grupo, para que el marco de la barra no salte (C2).
 
