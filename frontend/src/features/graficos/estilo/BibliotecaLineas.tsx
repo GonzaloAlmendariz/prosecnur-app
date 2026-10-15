@@ -9,7 +9,9 @@ import type { LineaVisualPropia } from "../../../api/graficosLineasVisuales";
 import { lineaVisualAplicada } from "../estiloInforme/modeloEstiloInforme";
 import { usePlanStore } from "../store";
 import { usePptStyleProfiles } from "../usePptStyleProfiles";
-import { Check, Sparkles } from "../../../vendor/lucide-react";
+import { Check, Copy, Pencil, Plus, Sparkles, Trash2 } from "../../../vendor/lucide-react";
+import { DialogoLinea } from "./DialogoLinea";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { useLineasPropias } from "./lineasPropiasStore";
 
 /** Lo que trae una línea, en palabras: cuántas bases de gráfico, paletas y estilos guardados. */
@@ -24,7 +26,9 @@ export function queTrae(perfil: Pick<PptStyleProfileMeta, "presets" | "paletas" 
 
 const idDe = (p: PptStyleProfileMeta) => lineaVisualAplicada(p.scope_rules ?? {}) ?? p.name;
 
-function TarjetaLinea({ perfil, aplicada, onAplicar }: { perfil: PptStyleProfileMeta; aplicada: boolean; onAplicar: () => void }) {
+type AccionesTarjeta = { onEditar?: () => void; onDuplicar: () => void; onEliminar?: () => void };
+
+function TarjetaLinea({ perfil, aplicada, onAplicar, acciones }: { perfil: PptStyleProfileMeta; aplicada: boolean; onAplicar: () => void; acciones: AccionesTarjeta }) {
   return (
     <article className={`pulso-f6-lv-tarjeta${aplicada ? " is-aplicada" : ""}`} data-qa-geometry-member>
       <span className="pulso-f6-lv-colores" aria-hidden="true">
@@ -38,6 +42,12 @@ function TarjetaLinea({ perfil, aplicada, onAplicar }: { perfil: PptStyleProfile
         {aplicada ? <Check size={13} aria-hidden="true" /> : <Sparkles size={13} aria-hidden="true" />}
         {aplicada ? "Línea activa" : "Aplicar"}
       </button>
+      {/* ID3c: lo que se hace con la línea. Las del recetario sólo se duplican como propias. */}
+      <span className="pulso-f6-lv-acciones">
+        {acciones.onEditar && <PulsoButton variant="icon" size="sm" onClick={acciones.onEditar} aria-label={`Editar ${perfil.titulo_humano}`} title="Editar"><Pencil size={14} aria-hidden="true" /></PulsoButton>}
+        <PulsoButton variant="icon" size="sm" onClick={acciones.onDuplicar} aria-label={`Duplicar ${perfil.titulo_humano} como línea propia`} title="Duplicar como propia"><Copy size={14} aria-hidden="true" /></PulsoButton>
+        {acciones.onEliminar && <PulsoButton variant="icon" size="sm" className="pulso-f6-lv-eliminar" onClick={acciones.onEliminar} aria-label={`Eliminar ${perfil.titulo_humano}`} title="Eliminar"><Trash2 size={14} aria-hidden="true" /></PulsoButton>}
+      </span>
     </article>
   );
 }
@@ -49,6 +59,7 @@ export function BibliotecaLineas() {
   const errorPropias = useLineasPropias((s) => s.error);
   const aplicar = usePlanStore((s) => s.applyPptStyleProfile);
   const aplicadaId = usePlanStore((s) => lineaVisualAplicada(s.scopeRules));
+  const editar = useLineasPropias((s) => s.setEdicion);
 
   useEffect(() => {
     if (!useLineasPropias.getState().cargadas) void useLineasPropias.getState().cargar();
@@ -56,13 +67,19 @@ export function BibliotecaLineas() {
 
   return (
     <div className="pulso-f6-lv">
+      <div className="pulso-f6-lv-barra">
+        <PulsoButton variant="secondary" size="sm" onClick={() => editar({ modo: "nueva" })}>
+          <Plus size={14} aria-hidden="true" />
+          Guardar como línea nueva
+        </PulsoButton>
+      </div>
       <section className="pulso-f6-lv-grupo" aria-labelledby="f6-lv-recetario">
         <h4 id="f6-lv-recetario" className="pulso-f6-lv-grupo-titulo">Del recetario <small>se aplican tal cual; para cambiarlas, guarda una propia</small></h4>
         {loading ? <p className="pulso-f6-lv-estado" role="status">Cargando las líneas del recetario…</p>
           : error ? <p className="pulso-f6-lv-estado is-error" role="alert">No se pudieron cargar: {error}</p>
           : (
             <div className="pulso-f6-lv-lista" data-qa-geometry-group="graficos/f6-lv-recetario" data-qa-geometry-contract="equal">
-              {profiles.map((p) => <TarjetaLinea key={p.name} perfil={p} aplicada={aplicadaId === idDe(p)} onAplicar={() => aplicar(p)} />)}
+              {profiles.map((p) => <TarjetaLinea key={p.name} perfil={p} aplicada={aplicadaId === idDe(p)} onAplicar={() => aplicar(p)} acciones={{ onDuplicar: () => editar({ modo: "duplicar", base: p }) }} />)}
             </div>
           )}
       </section>
@@ -74,10 +91,17 @@ export function BibliotecaLineas() {
             <p className="pulso-f6-lv-estado">Todavía no guardaste líneas. «Guardar como línea nueva» parte de lo que tienes ahora.</p>
           ) : (
             <div className="pulso-f6-lv-lista" data-qa-geometry-group="graficos/f6-lv-propias" data-qa-geometry-contract="equal">
-              {propias.map((l: LineaVisualPropia) => <TarjetaLinea key={l.id} perfil={l} aplicada={aplicadaId === l.id} onAplicar={() => aplicar(l)} />)}
+              {propias.map((l: LineaVisualPropia) => (
+                <TarjetaLinea key={l.id} perfil={l} aplicada={aplicadaId === l.id} onAplicar={() => aplicar(l)} acciones={{
+                  onEditar: () => editar({ modo: "editar", linea: l }),
+                  onDuplicar: () => editar({ modo: "duplicar", base: l }),
+                  onEliminar: () => editar({ modo: "eliminar", linea: l }),
+                }} />
+              ))}
             </div>
           )}
       </section>
+      <DialogoLinea />
     </div>
   );
 }

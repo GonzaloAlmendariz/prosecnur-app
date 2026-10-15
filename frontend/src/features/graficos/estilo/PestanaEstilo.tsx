@@ -51,6 +51,7 @@ import { SeccionLineaVisual } from "../estiloInforme/SeccionLineaVisual";
 import { lineaVisualAplicada } from "../estiloInforme/modeloEstiloInforme";
 import { usePptStyleProfiles } from "../usePptStyleProfiles";
 import { useColoresPendientes } from "./ColoresPendientesAviso";
+import { useLineasPropias } from "./lineasPropiasStore";
 import { useVariables } from "../useVariables";
 import { ESTILO_AMBITOS } from "../../../api/graficosEstilo";
 import { ETIQUETA_AMBITO } from "./modeloEstilo";
@@ -86,6 +87,7 @@ export default function PestanaEstilo() {
   const scopeRules = usePlanStore((s) => s.scopeRules);
   const iconos = usePlanStore((s) => s.iconos);
   const { profiles } = usePptStyleProfiles();
+  const propias = useLineasPropias((s) => s.lineas);
   const { pendientes } = useColoresPendientes();
   const { sources } = useVariables();
   const defaults = usePlanStore((s) => s.estiloClienteDefaults);
@@ -143,7 +145,10 @@ export default function PestanaEstilo() {
   const paso = pasoEfectivo(estilo, ref);
   const listo = !!opciones || !!opcionesError;
   const lineaId = lineaVisualAplicada(scopeRules);
-  const lineaNombre = lineaId ? profiles.find((p) => lineaVisualAplicada(p.scope_rules ?? {}) === lineaId)?.titulo_humano ?? lineaId : null;
+  // La aplicada puede ser del recetario o propia (ID3): se busca en las dos para mostrar su nombre y no su id.
+  // Una propia que se borró de la biblioteca sigue aplicada en el estudio con sus valores copiados (D7): se dice así.
+  const lineaNombre = lineaId ? [...profiles, ...propias].find((p) => lineaVisualAplicada(p.scope_rules ?? {}) === lineaId)?.titulo_humano
+    ?? (lineaId.startsWith("lv-") ? "Una línea que ya no está en la biblioteca" : lineaId) : null;
   const faltanColores = new Set(pendientes.map((p) => p.fila.id)).size;
   const conLogos = logosModificados(decisiones);
   const conLetra = letraModificada(decisiones);

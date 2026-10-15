@@ -3,6 +3,7 @@
 
 import { useId } from "react";
 import { BibliotecaLineas } from "../estilo/BibliotecaLineas";
+import type { PptStyleProfileMeta } from "../../../api/graficos";
 import { useLineasPropias } from "../estilo/lineasPropiasStore";
 import { usePptStyleProfiles } from "../usePptStyleProfiles";
 import { SelloProcedencia } from "../estilo/SelloProcedencia";
@@ -20,7 +21,9 @@ export function SeccionLineaVisual({ aplicada }: { aplicada: string | null }) {
   const propias = useLineasPropias((s) => s.lineas);
   const quitar = usePlanStore((s) => s.quitarPptStyleProfile);
   // L4: la línea aplicada se reconoce por el `profile_id` que su perfil escribe en `scope_rules.global`.
-  const perfilAplicado = aplicada ? [...profiles, ...propias].find((p) => lineaVisualAplicada(p.scope_rules ?? {}) === aplicada) ?? null : null;
+  // Si la línea aplicada ya no existe (una propia borrada), quitar sólo suelta su marca: sus valores se quedan (D7).
+  const perfilAplicado = aplicada ? [...profiles, ...propias].find((p) => lineaVisualAplicada(p.scope_rules ?? {}) === aplicada)
+    ?? ({ name: aplicada, titulo_humano: "la línea", descripcion: "", icono_ui: "", preview_colors: [], presets: {}, scope_rules: { global: { profile_id: aplicada } } } satisfies PptStyleProfileMeta) : null;
   return (
     <section className="pulso-f6-informe-seccion" aria-labelledby={tituloId} data-qa-geometry-member data-seccion="linea-visual">
       <CabeceraSeccion

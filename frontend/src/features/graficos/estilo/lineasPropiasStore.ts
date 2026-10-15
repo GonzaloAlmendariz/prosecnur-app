@@ -11,7 +11,19 @@ import {
   type LineaVisualPropia,
 } from "../../../api/graficosLineasVisuales";
 
+import type { PptStyleProfileMeta } from "../../../api/graficos";
+
+/** Qué hace el diálogo de líneas: guardar lo actual como nueva, editar una propia, duplicar una o eliminar una propia. */
+export type EdicionLinea =
+  | { modo: "nueva" }
+  | { modo: "editar"; linea: LineaVisualPropia }
+  | { modo: "duplicar"; base: PptStyleProfileMeta }
+  | { modo: "eliminar"; linea: LineaVisualPropia };
+
 type LineasPropiasStore = {
+  /** El diálogo abierto (efímero: una acción sobre una línea, no una vista enlazable). */
+  edicion: EdicionLinea | null;
+  setEdicion: (e: EdicionLinea | null) => void;
   lineas: LineaVisualPropia[];
   cargadas: boolean;
   error: string;
@@ -23,6 +35,8 @@ type LineasPropiasStore = {
 const mensaje = (e: unknown, porDefecto: string) => (e instanceof Error && e.message ? e.message : porDefecto);
 
 export const useLineasPropias = create<LineasPropiasStore>((set, get) => ({
+  edicion: null,
+  setEdicion: (edicion) => set({ edicion }),
   lineas: [],
   cargadas: false,
   error: "",
