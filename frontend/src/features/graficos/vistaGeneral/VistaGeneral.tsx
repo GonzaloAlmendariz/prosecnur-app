@@ -88,7 +88,7 @@ export default function VistaGeneral() {
   const filas = useMemo(() => construirFilas(estructura, slides), [estructura, slides]);
   const cobertura = useMemo(() => coberturaInforme(filas), [filas]);
   const { estados, conteos } = useEstadosInforme(estructura);
-  const paginas = useArmadoWord(filas, slides);
+  const paginas = useArmadoWord(slides);
   const resumenWord = useMemo(() => ({ paginas: paginas.length, graficos: contarFiguras(paginas) }), [paginas]);
   const ids = useMemo(() => slides.map((s) => s.id), [slides]);
   const porId = useMemo(() => new Map(slides.map((s) => [s.id, s])), [slides]);
@@ -431,10 +431,10 @@ export default function VistaGeneral() {
         ref={cuerpoRef}
         className={`pulso-f6-vg-cuerpo${arrastre ? " is-arrastrando" : ""}${modo === "word" ? " is-word" : ""}`}
         data-qa-scroll-owner="vista-general"
-        aria-label="Láminas del informe por capítulo"
+        aria-label={modo === "word" ? "Páginas del Word del informe" : "Láminas del informe por capítulo"}
         role="region"
       >
-        {modo === "word" ? <VistaWordInforme filas={filas} slides={slides} /> : (<>
+        {modo === "word" ? <VistaWordInforme paginas={paginas} /> : (<>
         <EstructuraLateral filas={filas} estados={estados}
           onIr={(id) => cuerpoRef.current?.querySelector(`[data-vg-fila="${CSS.escape(id)}"]`)?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })} />
         <div className="pulso-f6-vg-filas" data-qa-geometry-group="graficos/f6-vg-filas" data-qa-geometry-contract="intrinsic"

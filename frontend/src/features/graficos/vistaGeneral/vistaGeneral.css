@@ -1455,3 +1455,29 @@
   color: var(--pulso-text-soft);
   font-size: 12px;
 }
+
+/* I11 (corrección del verificador): «Cómo leer» con sus secciones numeradas y sus figuras de ejemplo, y los índices de
+   gráficos y tablas en «Contenido», como los pone el motor. */
+.pulso-f6-vg-pag-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2cqw;
+  margin-bottom: 2.4cqw;
+}
+
+.pulso-f6-vg-pag-h3 {
+  color: var(--pulso-primary);
+  font-size: 3.4cqw;
+  font-weight: 700;
+}
+
+.pulso-f6-vg-pag-ejemplos {
+  margin-top: auto;
+  color: var(--pulso-text-soft);
+  font-size: 2.6cqw;
+  font-style: italic;
+}
+
+.pulso-f6-vg-pag-h2.is-indice {
+  margin-top: 4cqw;
+}
