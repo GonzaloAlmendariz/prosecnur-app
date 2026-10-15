@@ -281,8 +281,8 @@ function fieldStateMeta(argState: ArgState): {
   return {
     label: "Base",
     className: "is-inherited",
-    title: "Valor base del estilo global (o base heredada del layout).",
-    ariaLabel: "Valor base heredado del estilo global",
+    title: "Valor base del informe (o heredado del layout).",
+    ariaLabel: "Valor base heredado del informe",
   };
 }
 
@@ -2846,7 +2846,7 @@ function IconoSelect({
             <span style={iconPickerPreviewStyle} aria-hidden="true"><ImageIcon size={15} /></span>
             <span style={{ minWidth: 0 }}>
               <strong style={iconPickerTitleStyle}>Seleccionar icono</strong>
-              <small style={iconPickerSubtitleStyle}>Recursos cargados en Estilo global</small>
+              <small style={iconPickerSubtitleStyle}>Íconos subidos en Identidad</small>
             </span>
           </div>
           <div style={iconPickerGridStyle}>

@@ -440,7 +440,7 @@ export default function GraficosPage() {
                 : pestana === "vista-general"
                   ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando la vista general…" /></div>}><VistaGeneral /></Suspense>
                   : pestana === "estilo"
-                    ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el estilo del cliente…" /></div>}><PestanaEstilo /></Suspense>
+                    ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando la identidad…" /></div>}><PestanaEstilo /></Suspense>
                   : pestana === "estilo-informe"
                     ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el estilo del informe…" /></div>}><PestanaEstiloInforme /></Suspense>
                   : pestana === "word"
