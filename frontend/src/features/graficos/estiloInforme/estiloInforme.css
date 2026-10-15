@@ -352,3 +352,66 @@
 @media (max-width: 720px) {
   .pulso-f6-sufijo-base { grid-template-columns: 1fr; gap: 4px; }
 }
+
+/* R1 del rediseño (2026-10-15): la franja de quién manda y las reglas apiladas en una sola página. */
+.pulso-f6-niveles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-f6-niveles-lista {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-nivel {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-f6-nivel-flecha {
+  color: var(--pulso-text-faint);
+  font-size: 16px;
+}
+
+.pulso-f6-nivel-texto {
+  display: flex;
+  flex-direction: column;
+  padding: var(--pulso-space-1) var(--pulso-space-3);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  box-shadow: 0 0 0 1px var(--pulso-border);
+}
+
+.pulso-f6-nivel-texto b {
+  color: var(--pulso-text);
+  font-size: 12.5px;
+}
+
+.pulso-f6-nivel-texto small {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+}
+
+.pulso-f6-niveles-nota {
+  flex: 1 1 220px;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.pulso-f6-regla {
+  scroll-margin-top: var(--pulso-space-3);
+}
