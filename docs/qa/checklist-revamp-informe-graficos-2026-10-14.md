@@ -73,6 +73,20 @@ Concepto, decisiones y fallas del inventario: [plan-revamp-informe-graficos-2026
 | W7 | Cierre: contraportada con contacto | front + `reporte_word_portada.R` | pendiente |
 | W8 | «Previsualizar»: el Word real por páginas | front + job de Word → imágenes | pendiente |
 
+## Opciones de cada gráfico (pedido de Gonzalo, 2026-10-15)
+
+Pedido: «Cada graficos tiene una multitud de opcionesy confoguraocn muchas de las cuales ya no son necesarias pero toras podiras servirnos en laminas o en word de forma separada, evaluemos cuales». Inventario (447 args, 22 tipos; 198 sin efecto, ~240 de ~403 controles de Word › Gráficos sin efecto en el Word) y página de decisión: https://claude.ai/artifact/HmFHr1c5LKMyQmAe2ySyb7. Respuesta: «Todas las recomendadas sí, O4 la A, O6 activar lollipop. Pero falta algo definir que configuraiocn por graficos si se van a quedar y como se van a mostrar en la UI».
+
+| # | Indicación | Dónde vive | Estado |
+|---|---|---|---|
+| O1 | Quitar de Word › Gráficos los ~240 controles sin efecto en el Word | `WordPresetsEditor.tsx` (se rehace en W5) | decidido: sí — espera O7 |
+| O2 | Sacar del Word decimales y método por tipo (pisan Reglas sólo en el Word) | `WordPresetsEditor.tsx`; motor: `reporte_plan_word.R:246-266` mezcla `chart_presets` sobre presets | decidido: sí — espera O7 |
+| O3 | Quitar `tipo_pie` (vuelve donas las tortas del Word) y `bins`/`ancho_bin` (histograma a imagen) | `WordPresetsEditor.tsx`, `argsDatosGrafico.ts` | decidido: sí — espera O7 |
+| O4 | Los 155 que sólo valen en la imagen: A, retirarlos de la interfaz | interfaz (tarjeta, Word) | decidido: A — espera O7 |
+| O5 | Limpiar del registro del motor los 198 sin efecto, después y aparte | `api/R/graficos_metadata.R` (`.PRESETS_META`) | decidido: sí, después de O1–O4 |
+| O6 | Lollipop en el Word: activar `.word_g_lollipop` (hoy sale como barras) | `reporte_word_graficos_despacho.R:13`, `reporte_word_graficos_categorica.R:93` | decidido: activar — pendiente |
+| O7 | Definir qué configuración por gráfico se queda y cómo se muestra en la UI | propuesta en la página de decisión, sección «Dónde vive cada ajuste» | en curso: propuesta para que Gonzalo la apruebe |
+
 ## QA visual reproducible de la fase Informe (2026-10-15)
 
 `node scripts/ui-quick-check.mjs` sobre una copia del catálogo del recetario, rutas `/graficos?pestana=informe`, `identidad&scope=consolidado`, `reglas` y el alias `estilo`, a 1440×1000 y 1024×600, con `--require-geometry --fail-on-issues`: 8 capturas distintas (md5), issues 0, desbordes 0, derrames 0, solapes 0, scroll jails 0, desplazamiento horizontal 0, desvíos de ruta 0, 44 grupos de geometría sin fallas ni huecos de cobertura. Dos fallas que sí encontró, ya arregladas: el motivo de Identidad en el compartido era un `<p>` suelto en su grupo (capacity-drift) y la lista de texto de la base por base no declaraba contrato. Lo único que queda es `apiErrors=2`: un 409 `E_GRAFICOS_CONSOLIDADO_NO_APLICA` de `/api/graficos/plan/sugerido` al barrer popovers en el compartido, legítimo y previo (el catálogo no es estudio de bases hermanas independientes, `graficos_plan_consolidado.R:34`). El verificador de la fase rechazó primero I11 por la numeración del Word (C5); arreglado en 09229d38d y 2644ee09e.
