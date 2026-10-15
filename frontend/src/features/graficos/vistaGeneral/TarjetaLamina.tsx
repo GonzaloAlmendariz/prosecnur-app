@@ -81,10 +81,10 @@ function TarjetaLaminaBase({ tarjeta, estado, fuera, slide, nombresGraficos, sel
         <IconoTipo clase="lamina" tipo={lamina.tipo} size={16} className="pulso-f6-vg-tipo" />
         <span className="pulso-f6-vg-tipo-nombre">{ROL[rol] ? [ROL[rol], numero].filter(Boolean).join(" ") : lamina.tipoLabel}</span>
         <span className="pulso-f6-vg-pos">{lamina.posicion}</span>
+        <span className="pulso-f6-vg-check" aria-hidden="true" />
       </span>
       <span className="pulso-f6-miniatura pulso-f6-vg-lienzo is-maqueta">
         {slide && <MaquetaTarjeta slide={slide} tipoLabel={lamina.tipoLabel} antetitulo={lamina.antetituloHeredado} />}
-        <span className="pulso-f6-vg-check" aria-hidden="true" />
       </span>
       <span className="pulso-f6-vg-pie" aria-hidden="true">
         <span className="pulso-f6-vg-titulo" title={lamina.titulo}>{lamina.titulo}</span>
