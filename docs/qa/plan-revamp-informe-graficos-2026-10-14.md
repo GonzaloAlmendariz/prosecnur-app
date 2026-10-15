@@ -61,12 +61,12 @@ Las maquetas de página del Word siguen la convención de `docs/qa/motor-ppt-202
 | # | Fase | Estado |
 |---|---|---|
 | F0 | Limpieza L1–L5 | pendiente |
-| F1 | Informe, vista de maquetas (íconos de lámina en la cabecera, de gráfico en su espacio) | bloqueado por D1 |
+| F1 | Informe, vista de maquetas (íconos de lámina en la cabecera, de gráfico en su espacio) | pendiente |
 | F1a | Botón «Previsualizar» en Láminas (antes «Ver cómo queda») | hecho, por verificar (019d0ad83) |
-| F2 | Informe, vista Word en maquetas de página | bloqueado por D1 |
-| F3 | Identidad | bloqueado por D3 y D5 |
-| F4 | Reglas | bloqueado por D1 y D4 |
-| F5 | Word: piezas del documento, gráficos del informe, multiapiladas en uno / por tema / por barra y «Previsualizar» del Word real | pendiente de F2 y D6 |
+| F2 | Informe, vista Word en maquetas de página | pendiente |
+| F3 | Identidad | pendiente |
+| F4 | Reglas | pendiente |
+| F5 | Word: piezas del documento, gráficos del informe, multiapiladas en uno / por tema / por barra y «Previsualizar» del Word real | pendiente |
 
 ## Decisiones
 
