@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest";
+import { scopeKey } from "../state/persistence";
 import {
+  DEFAULT_PDF_DIALOG_STATE,
   DEFAULT_PDF_EXPORT_PREFERENCE,
   buildMatrixGroups,
+  buildMatrixGroupsFromChoices,
+  buildPaperExportOptions,
+  exportWarningDetail,
+  loadPdfDialogState,
+  matrixChoiceFor,
+  parsePdfDialogState,
+  pdfDialogStorageKey,
+  savePdfDialogState,
+  serializePdfDialogState,
   columnsLabel,
   exportButtonTitle,
   logicLanguageLabel,
@@ -152,5 +163,164 @@ describe("buildMatrixGroups", () => {
     expect(groups).toEqual([
       { members: ["p1", "p2"], tenor: "Indique…", special: "9", header: "categorias" },
     ]);
+  });
+});
+
+function memStorage(initial: Record<string, string> = {}) {
+  const data = new Map(Object.entries(initial));
+  return {
+    getItem: (k: string) => data.get(k) ?? null,
+    setItem: (k: string, v: string) => {
+      data.set(k, v);
+    },
+    data,
+  };
+}
+
+describe("estado persistido del diálogo", () => {
+  const RUTA = "/Users/x/Drive/Estudios/2026_PUCP_Acreditacion_Contabilidad/V3_Conta 11-08 equivalencias.pulso";
+  const OTRA = "/Users/x/Drive/Estudios/2026_PUCP_Acreditacion_Contabilidad/Conta 09-08 equivalencias.pulso";
+
+  it("la clave separa proyecto y formulario, con el scopeKey del autosave", () => {
+    expect(pdfDialogStorageKey(RUTA, "f1")).toBe(`pulso.xlsformEditor.pdfExport.v1.${scopeKey(RUTA)}.f1`);
+    expect(pdfDialogStorageKey(RUTA, "f1")).not.toBe(pdfDialogStorageKey(OTRA, "f1"));
+    expect(pdfDialogStorageKey(RUTA, "f1")).not.toBe(pdfDialogStorageKey(RUTA, "f2"));
+    expect(pdfDialogStorageKey(RUTA, null)).toBeNull();
+    expect(pdfDialogStorageKey(null, "f1")).toBe("pulso.xlsformEditor.pdfExport.v1.no-project.f1");
+  });
+
+  it("vacío o corrupto → defaults", () => {
+    expect(parsePdfDialogState(null)).toEqual(DEFAULT_PDF_DIALOG_STATE);
+    expect(parsePdfDialogState("")).toEqual(DEFAULT_PDF_DIALOG_STATE);
+    expect(parsePdfDialogState("{no json")).toEqual(DEFAULT_PDF_DIALOG_STATE);
+    expect(parsePdfDialogState("[1,2]")).toEqual(DEFAULT_PDF_DIALOG_STATE);
+    expect(parsePdfDialogState("null")).toEqual(DEFAULT_PDF_DIALOG_STATE);
+  });
+
+  it("campos inválidos caen a su default uno por uno", () => {
+    const state = parsePdfDialogState(
+      JSON.stringify({
+        columns: 3,
+        logicLanguage: "condiciones",
+        showQuestionnaireNumber: "no",
+        matrixLayout: "column",
+        maxOptionsPerQuestion: 2,
+        defaultIntro: false,
+        showHeaderTitle: 0,
+        matrices: { "p1|p2": { enabled: false, header: "raro", tenor: 5 } },
+      }),
+    );
+    expect(state.columns).toBe(2);
+    expect(state.logicLanguage).toBe("condiciones");
+    expect(state.showQuestionnaireNumber).toBe(true);
+    expect(state.matrixLayout).toBe("column");
+    expect(state.maxOptionsPerQuestion).toBe(18);
+    expect(state.defaultIntro).toBe(false);
+    expect(state.showHeaderTitle).toBe(true);
+    expect(state.matrices).toEqual({ "p1|p2": { enabled: false } });
+  });
+
+  it("ida y vuelta conserva todo; las matrices viajan por firma de miembros", () => {
+    const c = candidate("matrix_0", ["p1", "p2"]);
+    const state = {
+      ...DEFAULT_PDF_DIALOG_STATE,
+      columns: "auto" as const,
+      consentVar: "consiente",
+      maxOptionsPerQuestion: 25,
+      defaultIntro: false,
+      showHeaderTitle: false,
+      matrices: { "p1|p2": { enabled: true, tenor: "Indique…", special: "9", header: "extremos" } },
+    };
+    expect(parsePdfDialogState(serializePdfDialogState(state, [c]))).toEqual(state);
+  });
+
+  it("restaurar con matrices viejas: las firmas que ya no existen se ignoran", () => {
+    const saved = parsePdfDialogState(
+      JSON.stringify({ matrices: { "q1|q2": { tenor: "viejo" }, "p1|p2": { tenor: "vigente" } } }),
+    );
+    // El candidato vigente cambió de id (se insertó una fila arriba): la firma lo encuentra igual.
+    const c = candidate("matrix_7", ["p1", "p2"]);
+    expect(buildMatrixGroupsFromChoices([c], saved.matrices)).toEqual([
+      { members: ["p1", "p2"], tenor: "vigente" },
+    ]);
+    // Al guardar, la firma vieja se poda.
+    expect(JSON.parse(serializePdfDialogState(saved, [c])).matrices).toEqual({ "p1|p2": { tenor: "vigente" } });
+    // Sin candidatos (workbook aún sin cargar) no se poda nada.
+    expect(Object.keys(JSON.parse(serializePdfDialogState(saved, [])).matrices)).toHaveLength(2);
+  });
+
+  it("columna especial guardada que ya no está en la escala vuelve a auto", () => {
+    const c = candidate("matrix_0", ["p1", "p2"]);
+    expect(matrixChoiceFor(c, { "p1|p2": { special: "99" } }).special).toBe("auto");
+    expect(matrixChoiceFor(c, { "p1|p2": { special: "9" } }).special).toBe("9");
+    expect(matrixChoiceFor(c, { "p1|p2": { special: "none" } }).special).toBe("none");
+  });
+
+  it("default de activación: 2+ preguntas activa, 1 pregunta apagada", () => {
+    expect(matrixChoiceFor(candidate("a", ["p1", "p2"]), {}).enabled).toBe(true);
+    expect(matrixChoiceFor(candidate("b", ["p9"]), {}).enabled).toBe(false);
+    expect(matrixChoiceFor(candidate("b", ["p9"]), { p9: { enabled: true } }).enabled).toBe(true);
+  });
+
+  it("load/save toleran storage roto y no persisten sin clave", () => {
+    const roto = {
+      getItem: () => {
+        throw new Error("SecurityError");
+      },
+      setItem: () => {
+        throw new Error("QuotaExceeded");
+      },
+    };
+    expect(loadPdfDialogState("k", roto)).toEqual(DEFAULT_PDF_DIALOG_STATE);
+    expect(() => savePdfDialogState("k", DEFAULT_PDF_DIALOG_STATE, [], roto)).not.toThrow();
+    const mem = memStorage();
+    savePdfDialogState(null, DEFAULT_PDF_DIALOG_STATE, [], mem);
+    expect(mem.data.size).toBe(0);
+    savePdfDialogState("k", { ...DEFAULT_PDF_DIALOG_STATE, columns: 1 }, [], mem);
+    expect(loadPdfDialogState("k", mem).columns).toBe(1);
+  });
+});
+
+describe("buildPaperExportOptions", () => {
+  const c = candidate("matrix_0", ["p1", "p2"]);
+
+  it("con defaults no envía las tres opciones nuevas ni consentimiento", () => {
+    const opts = buildPaperExportOptions(DEFAULT_PDF_DIALOG_STATE, [c], []);
+    expect(opts).toEqual({
+      columns: 2,
+      logic_language: "saltos",
+      show_questionnaire_number: true,
+      matrix_layout: "full",
+      matrix_groups: [{ members: ["p1", "p2"] }],
+    });
+    expect(opts).not.toHaveProperty("title");
+  });
+
+  it("las envía sólo cuando difieren del default del motor", () => {
+    const opts = buildPaperExportOptions(
+      { ...DEFAULT_PDF_DIALOG_STATE, maxOptionsPerQuestion: 30, defaultIntro: false, showHeaderTitle: false },
+      [],
+      [],
+    );
+    expect(opts.max_options_per_question).toBe(30);
+    expect(opts.no_default_intro).toBe(true);
+    expect(opts.show_header_title).toBe(false);
+  });
+
+  it("consentimiento que ya no es candidato no viaja", () => {
+    const state = { ...DEFAULT_PDF_DIALOG_STATE, consentVar: "acepta" };
+    expect(buildPaperExportOptions(state, [], ["acepta"]).consent_var).toBe("acepta");
+    expect(buildPaperExportOptions(state, [], ["otra"])).not.toHaveProperty("consent_var");
+  });
+});
+
+describe("exportWarningDetail", () => {
+  it("dice la primera advertencia real y cuántas más hay", () => {
+    expect(exportWarningDetail([])).toBe("");
+    expect(exportWarningDetail(undefined)).toBe("");
+    expect(exportWarningDetail(["La pregunta `p5` tiene 30 opciones."])).toBe(
+      " · La pregunta `p5` tiene 30 opciones.",
+    );
+    expect(exportWarningDetail(["uno", " ", "dos", "tres"])).toBe(" · uno (+2 más)");
   });
 });

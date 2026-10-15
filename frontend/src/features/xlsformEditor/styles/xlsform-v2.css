@@ -629,6 +629,22 @@
   border-color: var(--pulso-border-strong);
 }
 
+/* Fila con campo numérico (tope de opciones): misma caja que el switch. */
+.pulso-xf-pdf-number-row {
+  cursor: default;
+}
+
+.pulso-xf-pdf-number-row .pulso-xf-pdf-switch-text {
+  cursor: pointer;
+}
+
+.pulso-xf-pdf-number {
+  flex: 0 0 auto;
+  width: 72px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .pulso-xf-pdf-switch-text {
   display: flex;
   flex-direction: column;

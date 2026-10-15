@@ -5,10 +5,18 @@
 #   - traducir un formulario SurveyMonkey vía API a un XLSForm editable
 #   - exportar nuevamente el workbook editado a .xlsx dentro de la sesión
 
+# Columnas minimas por hoja. La de `survey` espeja `SURVEY_COLUMNS` del editor
+# (frontend/src/features/xlsformEditor/types.ts), capa `paper_*` incluida: un
+# payload sin `columns` o una hoja ausente no debe perder `paper_subgroup` ni
+# `paper_subletter` camino al motor del papel (item 6, checklist 2026-10-15).
+# El export "limpio" a Kobo/ODK las quita igual (.xlsform_editor_strip_app_columns).
 .xlsform_editor_default_columns <- function(sheet_name) {
   switch(
     tolower(as.character(sheet_name)[1] %||% ""),
-    survey = c("type", "name", "label", "required", "relevant", "constraint", "calculation", "choice_filter", "appearance"),
+    survey = c("type", "name", "label", "hint", "required", "relevant", "constraint",
+               "calculation", "choice_filter", "appearance",
+               "paper_number", "paper_label", "paper_layout", "paper_group",
+               "paper_subgroup", "paper_subletter", "paper_only", "paper_skip"),
     choices = c("list_name", "name", "label"),
     settings = c("form_title", "form_id", "version", "default_language"),
     paper = c("id", "kind", "position", "title", "body", "layout"),
@@ -33,10 +41,13 @@
   df[, !drop, drop = FALSE]
 }
 
+# Data frame de 0 filas CON sus columnas. `vector("list", n)` daba una lista de
+# NULL y `as.data.frame()` descarta las entradas NULL: salia un df de 0
+# columnas y las columnas por defecto no llegaban a ningun lado.
 .xlsform_editor_empty_df <- function(columns = character(0)) {
   cols <- as.character(columns %||% character(0))
   out <- as.data.frame(
-    stats::setNames(vector("list", length(cols)), cols),
+    stats::setNames(lapply(cols, function(col) character(0)), cols),
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
@@ -1546,126 +1557,23 @@ mount_xlsform_editor <- function(pr) {
       )
     })) |>
     plumber::pr_post("/api/xlsform-editor/export-pdf", wrap_endpoint(function(req, res, ...) {
-      sid <- session_header(req)
-      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
-        sid <- session_create()
-        res$setHeader("X-Pulso-Session", sid)
-      }
-
-      parsed <- .xlsform_editor_parse_body(req)
-      workbook <- parsed$workbook %||% list()
-      filename <- as.character(parsed$filename %||% "formulario_impreso.pdf")
-      if (!grepl("\\.pdf$", filename, ignore.case = TRUE)) {
-        filename <- paste0(filename, ".pdf")
-      }
-
-      survey <- .xlsform_editor_payload_to_df(workbook$survey, "survey")
-      choices <- .xlsform_editor_payload_to_df(workbook$choices, "choices")
-      settings <- .xlsform_editor_payload_to_df(workbook$settings, "settings")
-      paper <- if (!is.null(workbook$paper)) {
-        .xlsform_editor_payload_to_df(workbook$paper, "paper")
-      } else {
-        .xlsform_editor_empty_df(.xlsform_editor_default_columns("paper"))
-      }
-      options <- parsed$options %||% list()
-      if (!nzchar(as.character(options$title %||% ""))) {
-        fallback_title <- tools::file_path_sans_ext(basename(filename))
-        fallback_title <- gsub("(_papel|_editado)$", "", fallback_title, ignore.case = TRUE)
-        fallback_title <- gsub("[_-]+", " ", fallback_title)
-        options$title <- fallback_title
-      }
-      if (!nzchar(as.character(options$footer_title %||% ""))) {
-        options$footer_title <- options$title
-      }
-
-      s <- session_get(sid)
-      out_path <- file.path(s$dir, "downloads", paste0(uuid::UUIDgenerate(), ".pdf"))
-      result <- tryCatch(
-        reporte_formulario_pdf(
-          survey = survey,
-          choices = choices,
-          settings = settings,
-          paper = paper,
-          output_file = out_path,
-          options = options
-        ),
-        error = function(e) {
-          stop_api(500, "E_PDF_EXPORT_FAILED",
-                   sprintf("No pude generar el PDF del formulario: %s", conditionMessage(e)))
-        }
-      )
-      meta <- .register_output_file(sid, "formulario_pdf", out_path, original_name = filename)
-
-      list(
-        ok = TRUE,
-        file_id = meta$file_id,
-        original_name = meta$original_name,
-        size = meta$size,
-        summary = result$summary,
-        warnings = result$warnings %||% character(0)
-      )
+      .xlsform_editor_export_formulario(req, res, list(
+        ext = "pdf",
+        output_kind = "formulario_pdf",
+        fail_code = "E_PDF_EXPORT_FAILED",
+        fail_message = "No pude generar el PDF del formulario"
+      ))
     })) |>
     plumber::pr_post("/api/xlsform-editor/export-word", wrap_endpoint(function(req, res, ...) {
       # Segundo motor de exportacion: MISMO modelo que el PDF (build_model
-      # compartido), renderizado a .docx (officer/flextable).
-      sid <- session_header(req)
-      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
-        sid <- session_create()
-        res$setHeader("X-Pulso-Session", sid)
-      }
-
-      parsed <- .xlsform_editor_parse_body(req)
-      workbook <- parsed$workbook %||% list()
-      filename <- as.character(parsed$filename %||% "formulario_impreso.docx")
-      if (!grepl("\\.docx$", filename, ignore.case = TRUE)) {
-        filename <- paste0(filename, ".docx")
-      }
-
-      survey <- .xlsform_editor_payload_to_df(workbook$survey, "survey")
-      choices <- .xlsform_editor_payload_to_df(workbook$choices, "choices")
-      settings <- .xlsform_editor_payload_to_df(workbook$settings, "settings")
-      paper <- if (!is.null(workbook$paper)) {
-        .xlsform_editor_payload_to_df(workbook$paper, "paper")
-      } else {
-        .xlsform_editor_empty_df(.xlsform_editor_default_columns("paper"))
-      }
-      options <- parsed$options %||% list()
-      if (!nzchar(as.character(options$title %||% ""))) {
-        fallback_title <- tools::file_path_sans_ext(basename(filename))
-        fallback_title <- gsub("(_papel|_editado)$", "", fallback_title, ignore.case = TRUE)
-        fallback_title <- gsub("[_-]+", " ", fallback_title)
-        options$title <- fallback_title
-      }
-      if (!nzchar(as.character(options$footer_title %||% ""))) {
-        options$footer_title <- options$title
-      }
-
-      s <- session_get(sid)
-      out_path <- file.path(s$dir, "downloads", paste0(uuid::UUIDgenerate(), ".docx"))
-      result <- tryCatch(
-        reporte_formulario_word(
-          survey = survey,
-          choices = choices,
-          settings = settings,
-          paper = paper,
-          output_file = out_path,
-          options = options
-        ),
-        error = function(e) {
-          stop_api(500, "E_WORD_EXPORT_FAILED",
-                   sprintf("No pude generar el Word del formulario: %s", conditionMessage(e)))
-        }
-      )
-      meta <- .register_output_file(sid, "formulario_word", out_path, original_name = filename)
-
-      list(
-        ok = TRUE,
-        file_id = meta$file_id,
-        original_name = meta$original_name,
-        size = meta$size,
-        summary = result$summary,
-        warnings = result$warnings %||% character(0)
-      )
+      # compartido), renderizado a .docx (officer/flextable). Las dos rutas
+      # encolan un job; contrato en xlsform_editor_export.R.
+      .xlsform_editor_export_formulario(req, res, list(
+        ext = "docx",
+        output_kind = "formulario_word",
+        fail_code = "E_WORD_EXPORT_FAILED",
+        fail_message = "No pude generar el Word del formulario"
+      ))
     })) |>
     plumber::pr_post("/api/xlsform-editor/validate", wrap_endpoint(function(req, res, ...) {
       # Validador estructural ligero. El frontend lo invoca debounced (cada

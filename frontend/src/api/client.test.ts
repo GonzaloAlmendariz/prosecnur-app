@@ -77,6 +77,8 @@ import {
   apiAnaliticaConfigPut,
   apiAnaliticaPreparar,
   apiXlsformEditorExportPdf,
+  apiXlsformEditorExportWord,
+  normalizeXlsformPaperExportResult,
   apiXlsformEditorImport,
   apiXlsformEditorImportMatrizPulso,
   apiXlsformEditorImportSurveyMonkeyWithLogic,
@@ -1129,28 +1131,20 @@ describe("XLSForm editor PDF client", () => {
     vi.unstubAllGlobals();
   });
 
-  test("sends workbook paper sheet and export options to the PDF endpoint", async () => {
+  test("sends workbook paper sheet and export options to the PDF endpoint and returns the job", async () => {
     let sentInit: RequestInit | undefined;
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       sentInit = init;
-      return jsonResponse({
-        ok: true,
-        file_id: "file-pdf",
-        original_name: "demo_papel.pdf",
-        size: 2048,
-        summary: { n_blocks: 3, n_questions: 1, n_sections: 0, n_matrices: 0 },
-        warnings: ["Revisar salto manual"],
-      });
+      return jsonResponse({ ok: true, job_id: "job-pdf", kind: "xlsform_editor.formulario_pdf" });
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await apiXlsformEditorExportPdf(workbook, "demo_papel.pdf", {
-      title: "Encuesta demo",
+    const job = await apiXlsformEditorExportPdf(workbook, "demo_papel.pdf", {
       footer_title: "Pulso",
+      no_default_intro: true,
     });
 
-    expect(result.file_id).toBe("file-pdf");
-    expect(result.warnings).toHaveLength(1);
+    expect(job).toEqual({ ok: true, job_id: "job-pdf", kind: "xlsform_editor.formulario_pdf" });
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/xlsform-editor/export-pdf",
       expect.objectContaining({ method: "POST" }),
@@ -1158,8 +1152,43 @@ describe("XLSForm editor PDF client", () => {
 
     const payload = JSON.parse(String(sentInit?.body));
     expect(payload.filename).toBe("demo_papel.pdf");
-    expect(payload.options).toEqual({ title: "Encuesta demo", footer_title: "Pulso" });
+    expect(payload.options).toEqual({ footer_title: "Pulso", no_default_intro: true });
     expect(payload.workbook.paper).toEqual(paperSheet);
+  });
+
+  test("the Word export posts to its own endpoint and also returns a job", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ ok: true, job_id: "job-word", kind: "xlsform_editor.formulario_word" }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const job = await apiXlsformEditorExportWord(workbook, "demo.docx", {});
+    expect(job.job_id).toBe("job-word");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/xlsform-editor/export-word",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  test("a start response without job_id is an error, not a silent empty job", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ ok: true })));
+    await expect(apiXlsformEditorExportPdf(workbook)).rejects.toMatchObject({ code: "E_EXPORT_JOB_START" });
+  });
+
+  test("normalizes the job result_data of a paper export", () => {
+    const out = normalizeXlsformPaperExportResult({
+      ok: true,
+      file_id: "file-pdf",
+      original_name: "demo_papel.pdf",
+      size: 2048,
+      summary: { n_blocks: 3, n_questions: 1, n_sections: 0, n_matrices: 0 },
+      warnings: "Revisar salto manual",
+    });
+    expect(out.file_id).toBe("file-pdf");
+    expect(out.warnings).toEqual(["Revisar salto manual"]);
+    expect(() =>
+      normalizeXlsformPaperExportResult({ ok: false, error: { code: "E_FORM_PDF", message: "Sin preguntas" } }),
+    ).toThrow(/E_FORM_PDF/);
+    expect(() => normalizeXlsformPaperExportResult({ ok: true })).toThrow(/E_EXPORT_JOB_RESULT/);
   });
 
   test("preserves the optional paper sheet when normalizing imports", async () => {

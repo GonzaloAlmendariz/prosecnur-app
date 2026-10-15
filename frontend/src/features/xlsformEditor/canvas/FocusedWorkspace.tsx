@@ -62,6 +62,8 @@ import { ConstraintBuilder } from "../inspector/logic/ConstraintBuilder";
 import { TextRuleSuite } from "../inspector/logic/TextRuleSuite";
 import { matchTextRule } from "../inspector/logic/textRules";
 import { TechTerm } from "../helpers/TechTerm";
+import { PaperSettingsBlock } from "./PaperSettingsBlock";
+import { offersPaperSettings } from "./paperSettings";
 
 export type FocusWorkspaceMode = "focus" | "overview";
 
@@ -3578,14 +3580,6 @@ function DataTab({
         ]
       : []),
   ];
-  const paperFields = [
-    node.paperNumber,
-    node.paperLabel,
-    node.paperSkip,
-    node.paperGroup,
-    node.paperLayout,
-  ];
-  const hasPaperOverrides = paperFields.some((value) => Boolean(value?.trim()));
   const hasTechnicalOverrides = Boolean(
     node.read_only?.trim() || node.parameters?.trim() || node.paperOnly?.trim(),
   );
@@ -3664,68 +3658,8 @@ function DataTab({
         )}
       </div>
 
-      {hasPaperOverrides && (
-        <InspectorBlock>
-          <details className="pulso-focus-disclosure" open>
-            <summary>Ajustes de PDF importados</summary>
-            <InspectorField
-              label="Número visible en PDF"
-              hint="Número heredado de una plantilla impresa. Si queda vacío, Quobo lo deriva automáticamente."
-            >
-              <input
-                type="text"
-                value={node.paperNumber ?? ""}
-                onChange={(event) => onFieldChange("paper_number", event.target.value)}
-                placeholder="Ej. 108"
-              />
-            </InspectorField>
-            <InspectorField
-              label="Texto alternativo en PDF"
-              hint="Reemplaza el texto solo en la versión impresa, no en el formulario digital."
-            >
-              <input
-                type="text"
-                value={node.paperLabel ?? ""}
-                onChange={(event) => onFieldChange("paper_label", event.target.value)}
-                placeholder="Etiqueta para el PDF"
-              />
-            </InspectorField>
-            <InspectorField
-              label="Salto impreso manual"
-              hint="Tiene prioridad sobre el salto inferido desde Reglas. Úsalo solo si el papel necesita una redacción especial."
-            >
-              <input
-                type="text"
-                value={node.paperSkip ?? ""}
-                onChange={(event) => onFieldChange("paper_skip", event.target.value)}
-                placeholder="Ej. IR A LA PREGUNTA 117"
-              />
-            </InspectorField>
-            <InspectorField
-              label="Agrupación impresa"
-              hint="Une varias filas en una matriz o bloque común dentro del PDF importado."
-            >
-              <input
-                type="text"
-                value={node.paperGroup ?? ""}
-                onChange={(event) => onFieldChange("paper_group", event.target.value)}
-                placeholder="Ej. p104_servicios"
-              />
-            </InspectorField>
-            <InspectorField
-              label="Layout impreso"
-              hint="Anula el layout automático del PDF: full, wide, matrix o compact."
-            >
-              <input
-                type="text"
-                value={node.paperLayout ?? ""}
-                onChange={(event) => onFieldChange("paper_layout", event.target.value)}
-                placeholder="Automático"
-                spellCheck={false}
-              />
-            </InspectorField>
-          </details>
-        </InspectorBlock>
+      {offersPaperSettings(node) && (
+        <PaperSettingsBlock key={node.rowIndex} node={node} onFieldChange={onFieldChange} />
       )}
 
       {hasTechnicalOverrides && (
