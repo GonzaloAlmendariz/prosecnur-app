@@ -10,7 +10,7 @@ import { CabeceraSeccion } from "./CabeceraSeccion";
 import { SufijosPorBase } from "./SufijosPorBase";
 import { ExcepcionesRegla } from "./ExcepcionesRegla";
 import type { Excepcion } from "./excepcionesPlan";
-import { formatoDesdePartes, N_EJEMPLO, partesFormato, type CampoBase, type TextoBase } from "./modeloEstiloInforme";
+import { formatoDesdePartes, partesFormato, type CampoBase, type TextoBase } from "./modeloEstiloInforme";
 
 function CampoTexto({
   campo,
@@ -127,12 +127,6 @@ export function SeccionTextoBase({
           />
         )}
       </div>
-      {bases.length > 1 ? null : (
-        <p className="pulso-f6-informe-ejemplo">
-          <span className="pulso-f6-informe-ejemplo-rotulo">Con {N_EJEMPLO} casos se lee:</span>{" "}
-          <output className="pulso-f6-informe-ejemplo-texto">{texto.ejemplo}</output>
-        </p>
-      )}
       <ExcepcionesRegla excepciones={excepciones}
         ayuda="«Nombre de cada público» en la tarjeta del gráfico cambia la palabra sólo en ese gráfico." />
     </section>
