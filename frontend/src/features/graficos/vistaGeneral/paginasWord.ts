@@ -45,6 +45,15 @@ export function oracion(texto: string): string {
   return bajo.charAt(0).toLocaleUpperCase("es") + bajo.slice(1);
 }
 
+/** `.word_titulo_corto`: el que se dé o el título del informe cortado en la última palabra antes de 60 caracteres. */
+export function tituloCortoWord(titulo: string, dado?: string, max = 60): string {
+  if (dado?.trim()) return dado.trim();
+  const t = oracion(titulo);
+  if (t.length <= max) return t;
+  const corte = t.slice(0, max).replace(/\s+\S*$/u, "");
+  return `${corte.replace(/[,;:]$/u, "")}…`;
+}
+
 const sinNumero = (t: string) => oracion(t.replace(/^\s*\d+(?:\.\d+)*\.?\s+/u, ""));
 
 export function paginasWord(elementos: readonly ElementoWord[], op: OpcionesWord): PaginaWord[] {

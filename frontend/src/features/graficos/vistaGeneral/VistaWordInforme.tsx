@@ -9,7 +9,7 @@ import { GlifoGrafico } from "../iconos/GlifoGrafico";
 import { baseAutomatica, ranurasDeMaqueta } from "../laminas/modeloMaqueta";
 import { usePlanStore } from "../store";
 import { useVariables } from "../useVariables";
-import { paginasWord, type ElementoWord, type PaginaWord } from "./paginasWord";
+import { paginasWord, tituloCortoWord, type ElementoWord, type PaginaWord } from "./paginasWord";
 
 const FUENTE = "Fuente: PULSO PUCP.";
 
@@ -25,6 +25,8 @@ export function useArmadoWord(slides: readonly Slide[]) {
   const presets = usePlanStore((s) => s.presets);
   const paletas = usePlanStore((s) => s.paletas);
   const vinculos = usePlanStore((s) => s.paletasVinculos);
+  // W2: «Cómo leer» decidido en Word › Documento (ausente = si hay escalas, como el motor).
+  const comoLeer = usePlanStore((s) => s.documentoWord.como_leer);
   return useMemo(() => {
     const elementos: ElementoWord[] = [];
     let tituloInforme = "";
@@ -53,12 +55,13 @@ export function useArmadoWord(slides: readonly Slide[]) {
         elementos.push({ clase: "grafico", graficador: r.graficador as string, pregunta: r.pregunta ?? "Sin pregunta", base });
       }
     }
-    return paginasWord(elementos, { tituloInforme: tituloInforme || "Informe", hayEscalas, hayBottom, conTablas });
-  }, [slides, variables, presets, paletas, vinculos]);
+    return paginasWord(elementos, { tituloInforme: tituloInforme || "Informe", hayEscalas, hayBottom, conTablas, comoLeer });
+  }, [slides, variables, presets, paletas, vinculos, comoLeer]);
 }
 
 export function VistaWordInforme({ paginas }: Props) {
-  const tituloCorto = paginas[0]?.clase === "portada" ? paginas[0].titulo : "Informe";
+  const dado = usePlanStore((s) => s.documentoWord.titulo_corto);
+  const tituloCorto = tituloCortoWord(paginas[0]?.clase === "portada" ? paginas[0].titulo : "Informe", dado);
   return (
     <div className="pulso-f6-vg-word" data-qa-geometry-group="graficos/f6-vg-word" data-qa-geometry-contract="equal">
       <div className="pulso-f6-vg-paginas">
