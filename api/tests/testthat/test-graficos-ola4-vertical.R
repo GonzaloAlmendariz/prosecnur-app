@@ -133,7 +133,8 @@ test_that("el pipeline publico renderiza las cuatro familias con filtros y matri
 
   serie <- salida$rendered[[4]]
   expect_equal(serie$data$.y, c(50, 100))
-  expect_identical(levels(serie$data$.periodo), c("ola1", "ola2"))
+  # El eje nombra la medicion con el rotulo de la fuente, no con su clave (catalogo del recetario, 2026-10-14).
+  expect_identical(levels(serie$data$.periodo), c("Ola1", "Ola2"))
 
   lollipop <- salida$rendered[[3]]
   expect_identical(lollipop$labels$caption, "Se muestran 2 de 3 categorías.")

@@ -231,6 +231,15 @@ p_serie_temporal <- function(
     "serie_temporal"
   )
 
+  # El eje X nombra la medición, no la base: «estudiantes_2021» salía tal cual en la lámina (catálogo del recetario,
+  # 2026-10-14). Se rotula con el mismo criterio que el resto del motor usa para nombrar una fuente.
+  rotular <- dynGet(".pretty_source_label", ifnotfound = function(x) tools::toTitleCase(gsub("_+", " ", trimws(x))))
+  rotulos <- vapply(orden_efectivo, rotular, character(1), USE.NAMES = FALSE)
+  if (!anyDuplicated(rotulos)) {
+    datos$grupo <- factor(rotulos[match(as.character(datos$grupo), orden_efectivo)], levels = rotulos)
+    orden_efectivo <- args_usuario$orden_periodos <- rotulos
+  }
+
   base_args <- list(
     data      = datos,
     var_eje   = "eje",
