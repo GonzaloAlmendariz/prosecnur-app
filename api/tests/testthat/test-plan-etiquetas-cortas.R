@@ -156,3 +156,17 @@ test_that("una lámina de dos gráficos con texto, sin título, toma la etiqueta
     expect_identical(toupper(.pptx_lamina_titulo(.pptx_leer_parte(ppt, .pptx_slide_paths(ppt)[[1]]))), "SEXO CORTO")
   }
 })
+
+# Sin preset que pida versales, el título de una lámina va como se escribió: el mazo mezclaba «Histograma (p81)» con
+# «HISTOGRAMA POR GRUPOS (P81)» según el gráfico saliera nativo o no (catálogo del recetario, 2026-10-14).
+test_that("sin preset de versales, el título de la lámina conserva mayúsculas y minúsculas", {
+  f <- .ec_fixture()
+  plan <- list(b = p_slide_2_graficos_texto_derecha(p_barras_categoricas("sexo"), p_barras_categoricas("grado"),
+                                                    texto = "Un texto", titulo = "Sexo y grado"))
+  ppt <- tempfile(fileext = ".pptx")
+  presets <- .PRESETS_DEFAULT_PULSO
+  presets$base$mayusculas_titulo_slide <- NULL
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = f$df, instrumento = f$inst, plan = plan, presets = do.call(p_presets, presets),
+                                                     path_ppt = ppt, mensajes_progreso = FALSE)))
+  expect_identical(.pptx_lamina_titulo(.pptx_leer_parte(ppt, .pptx_slide_paths(ppt)[[1]])), "Sexo y grado")
+})
