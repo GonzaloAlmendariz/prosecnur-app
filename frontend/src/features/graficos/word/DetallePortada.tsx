@@ -38,7 +38,7 @@ export function DetallePortada({ desdeLamina }: { desdeLamina: { titulo: string;
       </section>
       <section className="pulso-f6-informe-seccion" aria-label="Textos de la portada" data-qa-geometry-member data-seccion="word-portada-textos">
         <h3 className="pulso-f6-w-titulo">Textos de la portada</h3>
-        <p className="pulso-f6-informe-ayuda">El título es el de la lámina de portada: «{desdeLamina.titulo}». Vacío, cada texto usa el de la lámina o se omite.</p>
+        <p className="pulso-f6-informe-ayuda">El título viene de la lámina de portada: <b>{desdeLamina.titulo}</b>. Un campo vacío usa el texto de la lámina o se omite.</p>
         <div className="pulso-f6-w-campos">
           {campo("ante", "Antetítulo", "Sin antetítulo", "Encima del título, en versalitas.", 80)}
           {campo("fecha", "Fecha", desdeLamina.fecha || "Sin fecha", "Vacío, la de la lámina de portada.", 60)}

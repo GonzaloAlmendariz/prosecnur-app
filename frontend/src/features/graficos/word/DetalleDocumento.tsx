@@ -41,20 +41,20 @@ export function DetalleDocumento({ tituloInforme, resumen }: { tituloInforme: st
         <div className="pulso-f6-w-campos">
           <CampoTexto etiqueta="Título corto" valor={dw.titulo_corto ?? ""} placeholder={automatico} max={80}
             ayuda="Vacío, va el título del informe cortado a 60 caracteres." onGuardar={(v) => setDw({ ...dw, titulo_corto: v })} />
-          <CampoTexto etiqueta="Fuente" valor={dw.fuente ?? ""} placeholder="Por ejemplo «Fuente: PULSO PUCP 2026.»" max={160}
+          <CampoTexto etiqueta="Fuente" valor={dw.fuente ?? ""} placeholder="Por ejemplo, Fuente: PULSO PUCP 2026." max={160}
             ayuda="Vacío, la base va sin fuente." onGuardar={(v) => setDw({ ...dw, fuente: v })} />
         </div>
       </section>
       <section className="pulso-f6-informe-seccion" aria-label="Índices" data-qa-geometry-member data-seccion="word-indices">
         <h3 className="pulso-f6-w-titulo">Índices</h3>
         <p className="pulso-f6-informe-ayuda">
-          El documento lleva {resumen.split(" · ")[0].toLowerCase()}.{resumen.includes("tablas") ? "" : " El de tablas aparece cuando el informe tiene tablas."}
+          El documento lleva el contenido, el índice de gráficos y, cuando el informe tiene tablas, el índice de tablas.
         </p>
       </section>
-      <section className="pulso-f6-informe-seccion" aria-label="«Cómo leer este informe»" data-qa-geometry-member data-seccion="word-como-leer">
-        <h3 className="pulso-f6-w-titulo">«Cómo leer este informe»</h3>
+      <section className="pulso-f6-informe-seccion" aria-label="Cómo leer este informe" data-qa-geometry-member data-seccion="word-como-leer">
+        <h3 className="pulso-f6-w-titulo">Cómo leer este informe</h3>
         <p className="pulso-f6-informe-ayuda">Explica el Top Two Box, el redondeo, las escalas y las bases chicas antes de los resultados.</p>
-        <Segmentado etiqueta="«Cómo leer este informe»" valor={comoLeer}
+        <Segmentado etiqueta="Cómo leer este informe" valor={comoLeer}
           onCambiar={(k) => setDw({ ...dw, como_leer: k === "auto" ? undefined : k === "si" })}
           opciones={[{ clave: "auto", rotulo: "Automático" }, { clave: "si", rotulo: "Siempre" }, { clave: "no", rotulo: "Nunca" }]} />
         <p className="pulso-f6-informe-ayuda">

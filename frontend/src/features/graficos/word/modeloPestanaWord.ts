@@ -37,8 +37,9 @@ export function resumenDeParte(paginas: readonly PaginaWord[], parte: ParteWord)
   const hayContenido = paginas.some((p) => p.clase === "indice");
   const comoLeer = paginas.some((p) => p.clase === "como-leer");
   switch (parte) {
-    case "documento": return [hayContenido ? ["Contenido", ...indices.map((t) => t.toLowerCase())].join(", ").replace(/, ([^,]*)$/, " e $1") : "", comoLeer ? "«Cómo leer»" : ""].filter(Boolean).join(" · ") || "Sin índices";
-    case "portada": return "Título del informe y logos";
+    // O9: sin punto medio ni comillas angulares.
+    case "documento": return [hayContenido ? (indices.length ? "Contenido e índices" : "Contenido") : "", comoLeer ? "Cómo leer" : ""].filter(Boolean).join(" y ") || "Sin índices";
+    case "portada": return "Título y logos";
     case "capitulos": return capitulos === 1 ? "1 capítulo" : `${capitulos} capítulos`;
     case "graficos": return figuras === 1 ? "1 gráfico" : `${figuras} gráficos`;
     case "cierre": return "Contraportada con logos";

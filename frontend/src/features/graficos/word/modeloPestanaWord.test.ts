@@ -23,12 +23,11 @@ describe("pestaña Word · partes", () => {
   it("el resumen cuenta sobre las páginas", () => {
     expect(resumenDeParte(paginas, "capitulos")).toMatch(/capítulos?$/);
     expect(resumenDeParte(paginas, "graficos")).toMatch(/^\d+ gráficos?$/);
-    expect(resumenDeParte(paginas, "documento")).toContain("Contenido e índice de gráficos");
+    expect(resumenDeParte(paginas, "documento")).toBe("Contenido e índices y Cómo leer");
     // Un contenido largo se parte en páginas y sólo una trae los índices: igual se nombran.
     const largo = paginasWord(Array.from({ length: 40 }, (_, i) => ({ clase: "seccion" as const, nivel: 1 as const, titulo: `Capítulo ${i}` })),
       { tituloInforme: "x", hayEscalas: false, hayBottom: false, conTablas: true });
     expect(largo.filter((p) => p.clase === "indice").length).toBeGreaterThan(1);
-    expect(resumenDeParte(largo, "documento")).toBe("Contenido, índice de gráficos e índice de tablas");
-    expect(resumenDeParte(paginas, "documento")).toContain("«Cómo leer»");
+    expect(resumenDeParte(largo, "documento")).toBe("Contenido e índices");
   });
 });

@@ -35,7 +35,7 @@ describe("Word › Documento", () => {
     expect(html).toContain('placeholder="Encuesta de satisfacción estudiantil con los servicios de…"');
     expect(html).toMatch(/aria-checked="true"[^>]*>Automático/);
     expect(html).toContain("Va si el informe tiene gráficos de escala.");
-    expect(html).toContain("contenido e índice de gráficos");
+    expect(html).toContain("el contenido, el índice de gráficos");
   });
 
   // Mata: un segmentado que no lea `como_leer` del store.
