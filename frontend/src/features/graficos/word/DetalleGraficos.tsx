@@ -10,6 +10,8 @@ import { conOcultarEtiqueta, ocultarEtiquetaSiTitulo, type MapaPresets } from ".
 import { usePlanStore } from "../store";
 import { usePresetsMetadata } from "../usePresetsMetadata";
 import { decisionesSinFijados } from "../wordFijado";
+import { Segmentado } from "../subpestanas/Segmentado";
+import { conModoInforme, leerModoInforme, MODOS_MULTI_INFORME } from "./modeloMultiWord";
 import { AJUSTES_WORD, ajustesSobrantes, sinSobrantes, tiposDelInforme, type AjusteWord } from "./ajustesWord";
 
 const registro = (v: unknown): Record<string, Record<string, unknown>> =>
@@ -75,6 +77,17 @@ export function DetalleGraficos() {
         <p className="pulso-f6-informe-ayuda">Cada gráfico sale como en su lámina: datos, orden, box y cifras se deciden en su tarjeta, en Reglas y en Identidad.</p>
       </section>
 
+      {tipos.includes("multi_apiladas") && (
+        <section className="pulso-f6-informe-seccion" aria-label="Multiapiladas en el Word" data-qa-geometry-member data-seccion="word-multi">
+          <h3 className="pulso-f6-w-titulo">Multiapiladas en el Word</h3>
+          <Segmentado etiqueta="Multiapiladas en el Word" valor={leerModoInforme(wPresets)} opciones={MODOS_MULTI_INFORME}
+            onCambiar={(m) => setWPresets(conModoInforme(wPresets, m))} />
+          <p className="pulso-f6-informe-ayuda">
+            {MODOS_MULTI_INFORME.find((m) => m.clave === leerModoInforme(wPresets))?.detalle} Cada lámina puede elegir otra forma en su tarjeta.
+          </p>
+        </section>
+      )}
+
       {sobrantes.length > 0 && (
         <section className="pulso-f6-informe-seccion pulso-f6-w-aviso" aria-label="Ajustes del Word que ya no se usan" data-qa-geometry-member data-seccion="word-sobrantes" role="status">
           <h3 className="pulso-f6-w-titulo">{sobrantes.length === 1 ? "Un ajuste del Word ya no se usa" : `${sobrantes.length} ajustes del Word ya no se usan`}</h3>
@@ -97,11 +110,11 @@ export function DetalleGraficos() {
         ) : (
           <>
             {conAjustes.length > 0 && (
-              <div className="pulso-f6-w-tipos">
+              <div className="pulso-f6-w-tipos" data-qa-geometry-group="graficos/f6-w-tipos" data-qa-geometry-contract="intrinsic">
                 {conAjustes.map((t) => (
                   <div key={t} className="pulso-f6-w-tipo">
                     <span className="pulso-f6-w-tipo-nombre">{nombreTipo(t)}</span>
-                    <div className="pulso-f6-w-tipo-ajustes">
+                    <div className="pulso-f6-w-tipo-ajustes" data-qa-geometry-group="graficos/f6-w-tipo-ajustes" data-qa-geometry-contract="intrinsic">
                       {(AJUSTES_WORD[t] ?? []).map((a) => {
                         const m = meta(t, a.arg);
                         const valor = chartPresets[t]?.[a.arg] ?? defaults[t]?.[a.arg] ?? m?.default;

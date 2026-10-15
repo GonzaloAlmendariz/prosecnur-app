@@ -93,6 +93,7 @@
 .pulso-f6-w-campo { display: flex; flex-direction: column; gap: var(--pulso-space-1); min-width: 0; font-size: 12px; }
 .pulso-f6-w-campo > span { color: var(--pulso-text-soft); font-weight: var(--pulso-weight-semibold); }
 .pulso-f6-w-campo small { color: var(--pulso-text-soft); font-size: 11px; }
+.pulso-f6-w-campo-ancho { grid-column: 1 / -1; min-width: 0; }
 @container (max-width: 520px) { .pulso-f6-w-campos { grid-template-columns: minmax(0, 1fr); } }
 
 /* W3: variantes de la portada como tarjetas elegibles, con una miniatura de su composición. */
