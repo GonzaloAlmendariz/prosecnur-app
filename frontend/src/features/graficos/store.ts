@@ -10,6 +10,7 @@ import {
 import type { GraficosConfigDefaults } from "../../api/graficosConfigDefaults";
 import { normalizeEstiloCliente, type EstiloCliente } from "../../api/graficosEstilo";
 import { conVinculo, vinculosDecisiones } from "./paletasResolver";
+import { sinEstiloDePerfil } from "./estiloInforme/quitarLineaVisual";
 
 // Store del plan de gráficos. Sigue el mismo patrón que el store de
 // Analítica: hidrata desde backend al montar, marca `dirty` con cada
@@ -216,6 +217,7 @@ type PlanStore = {
   /** Reemplaza el estilo del cliente (un paso deshacible). Las funciones de cambio viven en `estilo/modeloEstilo.ts`. */
   setEstiloCliente: (estiloCliente: EstiloCliente) => void;
   applyPptStyleProfile: (profile: PptStyleProfileMeta) => void;
+  quitarPptStyleProfile: (profile: PptStyleProfileMeta) => void;
   // Merge granular de args en el preset `tipo`. Si `patch[arg] === null`
   // (o undefined después de merge), borra ese arg para que el backend
   // use el default. Usado por PresetsEditor para actualizar un arg a la vez.
@@ -707,6 +709,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setEstiloCliente: (estiloCliente) => set((state) => dirty(state, { estiloCliente: normalizeEstiloCliente(estiloCliente) })),
 
   applyPptStyleProfile: (profile) => set((state) => dirty(state, estiloDePerfil(state, profile))),
+  quitarPptStyleProfile: (profile) => set((state) => dirty(state, sinEstiloDePerfil(state, profile) as Partial<PlanStore>)),
 
   setPresetArg: (tipo, arg, value) => {
     set((state) => {
