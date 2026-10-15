@@ -35,6 +35,8 @@
   pub <- function(v, bases = c("docentes", "estudiantes", "egresados")) paste0(bases, "$", v)
   ttb <- c("De acuerdo", "Totalmente de acuerdo")
   btb <- c("Totalmente en desacuerdo", "En desacuerdo")
+  # Las apiladas declaran sus respuestas de la caja: sin ellas el motor quita la columna Top Two Box y avisa.
+  sat <- c("Satisfecho", "Muy satisfecho")
   gestion <- paste0("estudiantes$gestion_", seq_along(.CR_GESTION))
   comp_pub <- stats::setNames(lapply(seq_along(.CR_COMPETENCIAS), function(i) pub(paste0("comp_", i))), .CR_COMPETENCIAS)
   TXT <- "Texto de ejemplo: resume el hallazgo principal de la lámina y orienta la lectura del gráfico."
@@ -144,9 +146,10 @@
         .cr_g("p_barras_multiapiladas", modo = "var_cruce", vars = comp_pub[1:3], ancho_tema = "ancho", mostrar_respuestas = FALSE,
               top2box = TRUE, top2box_labels = ttb), 79),
     uno("Categorías en 0 % y sin Top Two Box",
-        .cr_g("p_barras_multiapiladas", modo = "var", vars = as.list(gestion), mostrar_categorias_en_cero = TRUE), 79),
-    uno("Barras apiladas", .cr_g("p_barras_apiladas", var = "estudiantes$satisf_general"), 77),
-    uno("Barras apiladas por grupos", .cr_g("p_barras_apiladas", var = "estudiantes$satisf_general", cruces = "estudiantes$ciclo"), 77),
+        .cr_g("p_barras_multiapiladas", modo = "var", vars = as.list(gestion), mostrar_categorias_en_cero = TRUE,
+              overrides = list(mostrar_barra_extra = FALSE)), 79),
+    uno("Barras apiladas", .cr_g("p_barras_apiladas", var = "estudiantes$satisf_general", overrides = list(top2box_labels = sat)), 77),
+    uno("Barras apiladas por grupos", .cr_g("p_barras_apiladas", var = "estudiantes$satisf_general", cruces = "estudiantes$ciclo", overrides = list(top2box_labels = sat)), 77),
     falta("Peso en la satisfacción", 98, "El peso por regresión es una propuesta del recetario; las escalas de los aspectos sí se grafican arriba."),
 
     # ---- 2.3 Números -------------------------------------------------------------------------------------------------
@@ -214,7 +217,7 @@
     uno("Ranking con diferencias significativas", .cr_g("p_barras_agrupadas", var = "estudiantes$conoce_mision", cruces = "estudiantes$sexo",
                                                       mostrar_significancia = TRUE), 111),
     uno("Apiladas con diferencias significativas", .cr_g("p_barras_apiladas", var = "estudiantes$tutoria", cruces = "estudiantes$sexo",
-                                                       mostrar_significancia = TRUE), 111),
+                                                       mostrar_significancia = TRUE, overrides = list(top2box_labels = ttb)), 111),
     uno("Tabla de letras entre públicos", .cr_g("p_significancia_publicos",
          vars = list(`Conoce la misión` = c("docentes$conoce_mision", "estudiantes$conoce_mision", "egresados$conoce_mision"),
                      `Sabe dónde consultarla` = c("docentes$consulta_mision", "estudiantes$consulta_mision", "egresados$consulta_mision")),
