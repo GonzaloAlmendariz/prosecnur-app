@@ -38,6 +38,8 @@ export type PaginaWord =
 // Calibrado con el Word real del catálogo (W8, 2026-10-15): 63 páginas reales; con 2 por página la maqueta estimaba 78,
 // con 3 estima 59. Las figuras del Word se acomodan a la altura de la página.
 const FIGURAS_POR_PAGINA = 3;
+/** La apertura (número grande, título y entrada) ocupa un tercio de la página: debajo caben dos figuras. */
+const FIGURAS_CON_APERTURA = 2;
 /** Entradas del «Contenido» por página: más se salen de la página A4 (en el Word el índice también sigue en otra). */
 export const ENTRADAS_POR_PAGINA = 18;   // medido: caben 20 dentro del margen de la página
 
@@ -125,7 +127,7 @@ export function paginasWord(elementos: readonly ElementoWord[], op: OpcionesWord
       abrirCapitulo("Resultados");
     }
     let actual = pagina as PaginaCapitulo | null;
-    if (!actual || actual.figuras.length >= FIGURAS_POR_PAGINA || (actual.texto && actual.figuras.length >= 1)) actual = nueva();
+    if (!actual || actual.figuras.length >= (actual.apertura ? FIGURAS_CON_APERTURA : FIGURAS_POR_PAGINA) || (actual.texto && actual.figuras.length >= 1)) actual = nueva();
     actual.figuras.push({ numero: figura++, graficador: e.graficador, pregunta: e.pregunta, base: e.base });
   }
   paginas.push({ clase: "contraportada" });

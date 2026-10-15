@@ -23,7 +23,8 @@ describe("páginas de la vista Word, con la numeración del motor", () => {
     expect(capitulos(ps)).toEqual([
       [["1. Introducción", "1.1. Objetivo"], []],
       ["como-leer 2", [1, 2, 3]],
-      [["3. Perfil de los públicos"], [4, 5, 6]],   // tres figuras por página: calibrado con el Word real (63 páginas del catálogo)
+      [["3. Perfil de los públicos"], [4, 5]],   // la apertura ocupa un tercio de la página: debajo caben dos figuras
+      [[], [6]],                                 // tres por página en las demás: calibrado con el Word real (63 páginas)
       [["3.1. Servicios"], [7]],
     ]);
     const indice = ps[1];
