@@ -47,6 +47,8 @@ import { useEffect } from "react";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { NivelesReglas } from "./NivelesReglas";
 import { excepcionesDelPlan, nombresPropiosDeBase } from "./excepcionesPlan";
+import { describirRedondeo } from "../laminas/modeloRedondeoGrafico";
+import { graficadorToPresetType } from "../graficadorPresetMap";
 import { parseBaseLabels } from "../laminas/datosBase/nombresPorBaseModel";
 import { GRAFICOS_CON_CASOS, opcionCasos } from "../laminas/CasosGrafico";
 import { tituloQueSale } from "../laminas/tituloQueSale";
@@ -110,6 +112,11 @@ export default function PestanaEstiloInforme() {
   const excepcionesCasos = useMemo(() => excepcionesDelPlan(slidesPlan,
     (graficador, args) => (GRAFICOS_CON_CASOS.has(graficador) ? ({ siempre: "Siempre", nunca: "Nunca", informe: null } as const)[opcionCasos(args)] : null),
     (s) => tituloQueSale(s, variablesPlan, "Lámina")), [slidesPlan, variablesPlan]);
+  // R4: los gráficos con su propio método o decimales.
+  const excepcionesRedondeo = useMemo(() => excepcionesDelPlan(slidesPlan, (g, args) => {
+    const fila = filas.find((f) => f.preset === graficadorToPresetType(g));
+    return fila ? describirRedondeo(args, fila) : null;
+  }, (s) => tituloQueSale(s, variablesPlan, "Lámina")), [slidesPlan, variablesPlan, filas]);
   // R6: los gráficos que nombran a sus públicos con otra palabra («Nombre de cada público» en su tarjeta).
   const excepcionesBase = useMemo(() => excepcionesDelPlan(slidesPlan, (_g, args) => nombresPropiosDeBase(args, parseBaseLabels),
     (s) => tituloQueSale(s, variablesPlan, "Lámina")), [slidesPlan, variablesPlan]);
@@ -155,7 +162,7 @@ export default function PestanaEstiloInforme() {
         >
           <NivelesReglas />
           <div id="regla-redondeo" className="pulso-f6-regla" data-qa-geometry-member>
-            <SeccionCalculos filas={filas} nota={notaLeida} acciones={acciones} estado={estadoCalculos} />
+            <SeccionCalculos filas={filas} nota={notaLeida} acciones={acciones} estado={estadoCalculos} excepciones={excepcionesRedondeo} />
             {filas.length > 0 && <LecturaRedondeo ejemplo={ejemplo} decimales={regla.decimales} />}
           </div>
           <div id="regla-casos" className="pulso-f6-regla" data-qa-geometry-member>

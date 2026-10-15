@@ -42,6 +42,7 @@ import { EnElWord } from "./tarjetaGrafico/EnElWord";
 import { ColoresGrafico } from "./colores/ColoresGrafico";
 import { PaletaDelGrafico } from "./colores/PaletaDelGrafico";
 import { NombresPorBase } from "./datosBase/NombresPorBase";
+import { RedondeoDelGrafico } from "./RedondeoDelGrafico";
 import { BrechaEntreGrupos } from "./brecha/BrechaEntreGrupos";
 import { MatrizCuadrantes } from "./matriz/MatrizCuadrantes";
 import { NotaBaseCompartido } from "./datosBase/NotaBaseCompartido";
@@ -126,6 +127,8 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
           onCambio={(t) => set({ overrides: conEtiquetaCorta(args, variable, t) })}
         />
       )}
+      {/* R4: método y decimales propios, como excepción a la regla del informe. */}
+      <RedondeoDelGrafico graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
       {admiteFiltros && (
         <div className="pulso-f6-dato">
           <span className="pulso-f6-dato-rotulo">Filtrar respuestas</span>
