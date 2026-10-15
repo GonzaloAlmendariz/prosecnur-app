@@ -19,7 +19,7 @@ const DONDE: Record<EstiloLugarLogo, string> = {
 };
 
 /** Los logos por defecto, servidos por la app (copias de api/inst/estandar/logos). */
-const IMAGEN_POR_DEFECTO: Record<string, string> = { pucp: "/logos-estandar/pucp.png", pulso: "/logos-estandar/pulso.png" };
+export const IMAGEN_POR_DEFECTO: Record<string, string> = { pucp: "/logos-estandar/pucp.png", pulso: "/logos-estandar/pulso.png" };
 import { SelloProcedencia } from "./SelloProcedencia";
 
 export function TarjetaLogo({
