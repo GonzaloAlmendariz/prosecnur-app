@@ -40,7 +40,7 @@ export function SeccionCasos({ casos, onCambiar, excepciones = [] }: { casos: Ca
       <p className="pulso-f6-informe-ayuda">{fraseCasos(casos)} Vale para todos los gráficos del PowerPoint y del Word; un gráfico puede pedir otra cosa en su tarjeta.</p>
       {/* R5 (2026-10-15): los gráficos que piden otra cosa, a la vista y a un clic de su lámina. */}
       <ExcepcionesRegla excepciones={excepciones}
-        ayuda="Se elige en la tarjeta del gráfico (barras agrupadas, torta y dona): «Como el informe», «Siempre» o «Nunca»." />
+        ayuda="Se elige en la tarjeta del gráfico (barras agrupadas, torta y dona): Como el informe, Siempre o Nunca." />
     </section>
   );
 }

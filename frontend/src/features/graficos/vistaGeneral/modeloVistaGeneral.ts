@@ -366,22 +366,22 @@ export function moverAlCapitulo(
     return {
       ok: false,
       anuncio: capitulos.includes(destino)
-        ? `«${destino.titulo}» está entre lo que se mueve: elige otro capítulo.`
-        : `Un capítulo sólo se puede mover detrás de otro capítulo, no a «${destino.titulo}».`,
+        ? `“${destino.titulo}” está entre lo que se mueve: elige otro capítulo.`
+        : `Un capítulo sólo se puede mover detrás de otro capítulo, no a “${destino.titulo}”.`,
     };
   }
   const orden = moverIds(ids, mover, ranuraAlFinalDeFila(ids, destino));
-  if (mismoOrden(ids, orden)) return { ok: false, anuncio: `Las elegidas ya están al final de «${destino.titulo}».` };
+  if (mismoOrden(ids, orden)) return { ok: false, anuncio: `Las elegidas ya están al final de “${destino.titulo}”.` };
   const movidas = ids.filter((id) => mover.has(id));
   const sueltas = movidas.length - capitulos.reduce((n, c) => n + c.ids.length, 0);
   const partes = [
-    ...(capitulos.length === 1 ? [`el capítulo «${capitulos[0].titulo}»`] : capitulos.length > 1 ? [`${capitulos.length} capítulos`] : []),
+    ...(capitulos.length === 1 ? [`el capítulo “${capitulos[0].titulo}”`] : capitulos.length > 1 ? [`${capitulos.length} capítulos`] : []),
     ...(sueltas > 0 ? [sueltas === 1 ? "1 lámina" : `${sueltas} láminas`] : []),
   ];
   const que = partes.join(" y ");
   const anuncio = capitulos.length
-    ? `Movido ${que} detrás de «${destino.titulo}».`
-    : `${sueltas === 1 ? "1 lámina movida" : `${sueltas} láminas movidas`} al final de «${destino.titulo}».`;
+    ? `Movido ${que} detrás de “${destino.titulo}”.`
+    : `${sueltas === 1 ? "1 lámina movida" : `${sueltas} láminas movidas`} al final de “${destino.titulo}”.`;
   return { ok: true, orden, movidas, anuncio: anuncio.charAt(0).toUpperCase() + anuncio.slice(1) };
 }
 

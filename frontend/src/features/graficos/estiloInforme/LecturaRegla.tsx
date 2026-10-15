@@ -17,7 +17,7 @@ export function LecturaRegla({ lectura, regla }: { lectura: Lectura; regla: stri
 export function LecturaRedondeo({ ejemplo, decimales }: { ejemplo: EjemploRedondeo; decimales: number }) {
   return (
     <aside className="pulso-f6-lectura is-ejemplo" aria-label="Cómo se lee: redondeo y decimales">
-      <span className="pulso-f6-lectura-lab" aria-hidden="true">Cómo se lee · lámina de ejemplo</span>
+      <span className="pulso-f6-lectura-lab" aria-hidden="true">Cómo se lee, lámina de ejemplo</span>
       <figure className="pulso-f6-lectura-lamina">
         <figcaption>Servicios de tutoría</figcaption>
         {ejemplo.filas.map((f) => (

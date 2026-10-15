@@ -123,7 +123,7 @@ export function errorNombre(nombre: string, filas: readonly FilaPaleta[], listas
   const n = nombre.trim();
   if (!n) return "Escribe un nombre.";
   if (nombresDeListas(listas).has(n)) return "Ese nombre ya lo usa una lista del formulario; elige otro.";
-  if (filas.some((f) => f !== propia && f.clave === n)) return "Ya hay una paleta con ese nombre. Para juntarlas usa «Agrupar con».";
+  if (filas.some((f) => f !== propia && f.clave === n)) return "Ya hay una paleta con ese nombre. Para juntarlas usa Agrupar con.";
   return null;
 }
 

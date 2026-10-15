@@ -24,7 +24,7 @@ describe("Vista general · interruptor de «Otros»", () => {
 
   // El rótulo de «Otros» nombra las dos salidas (lo usa el segmentado de la regla en Reglas).
   it("el rótulo nombra PowerPoint y Word", () => {
-    expect(ROTULO_OTROS).toBe("Respuestas «Otros» en el PowerPoint y el Word");
+    expect(ROTULO_OTROS).toBe("Respuestas Otros en el PowerPoint y el Word");
   });
 
   // R7 (D4): el control vive en Reglas (SeccionOtros, conectado al setter deshacible); la barra del Informe sólo enlaza.
@@ -42,8 +42,8 @@ describe("Vista general · interruptor de «Otros»", () => {
 
   // Mata: un enlace que no diga el estado o una regla cuyo segmentado no siga al valor.
   it("el enlace dice cómo está y la regla marca la opción elegida", () => {
-    expect(renderToStaticMarkup(createElement(EnlaceOtrosVista, { encendido: false, onIr: () => undefined }))).toContain("Sin «Otros»");
-    expect(renderToStaticMarkup(createElement(EnlaceOtrosVista, { encendido: true, onIr: () => undefined }))).toContain("+ «Otros» al exportar");
+    expect(renderToStaticMarkup(createElement(EnlaceOtrosVista, { encendido: false, onIr: () => undefined }))).toContain("Sin respuestas Otros");
+    expect(renderToStaticMarkup(createElement(EnlaceOtrosVista, { encendido: true, onIr: () => undefined }))).toContain("Con respuestas Otros");
     const regla = (v: boolean) => renderToStaticMarkup(createElement(SeccionOtros, { encendido: v, ayuda: "AYUDA", onCambiar: () => undefined }));
     expect(regla(true)).toMatch(/aria-checked="true"[^>]*>Después de su gráfico/);
     expect(regla(true)).toContain("AYUDA");

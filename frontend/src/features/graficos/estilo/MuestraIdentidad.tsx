@@ -32,7 +32,7 @@ export function MuestraIdentidad({ datos }: { datos: DatosMuestra }) {
   const base = ptConPaso(8.5, datos.desplazamientoPt);
   return (
     <section className="pulso-f6-muestra" aria-label="Muestra de la identidad" data-qa-geometry-group="graficos/f6-muestra" data-qa-geometry-contract="equal">
-      <span className="pulso-f6-muestra-lab">Muestra · cambia con cada ajuste</span>
+      <span className="pulso-f6-muestra-lab">Muestra en vivo</span>
       <div className="pulso-f6-muestra-fila">
         <figure className="pulso-f6-muestra-pieza" data-qa-geometry-member>
           <figcaption>Portada del PPT</figcaption>

@@ -61,7 +61,7 @@ function CampoTexto({
         }}
       />
       <p id={`${id}-ayuda`} className="pulso-f6-informe-ayuda">
-        {ayuda} Por defecto: {porDefecto ? <strong>«{porDefecto}»</strong> : "nada"}.
+        {ayuda} Por defecto: {porDefecto ? <strong>{porDefecto}</strong> : "nada"}.
       </p>
     </div>
   );
@@ -119,7 +119,7 @@ export function SeccionTextoBase({
           key={`sufijo:${texto.sufijo.valor}`}
           campo={texto.sufijo}
           etiqueta="Después del número"
-          ayuda="Por ejemplo «estudiantes» o «docentes»; vacío, va solo el número."
+          ayuda="Por ejemplo, estudiantes o docentes. Vacío, va solo el número."
           valor={texto.sufijo.valor}
           porDefecto={texto.sufijo.porDefecto}
           onCambiar={(v) => onCambiar(texto.sufijo.arg, v)}
@@ -128,7 +128,7 @@ export function SeccionTextoBase({
         )}
       </div>
       <ExcepcionesRegla excepciones={excepciones}
-        ayuda="«Nombre de cada público» en la tarjeta del gráfico cambia la palabra sólo en ese gráfico." />
+        ayuda="Nombre de cada público, en la tarjeta del gráfico, cambia la palabra solo en ese gráfico." />
     </section>
   );
 }

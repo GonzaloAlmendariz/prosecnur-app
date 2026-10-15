@@ -105,7 +105,7 @@ function Pintor({ fila, onPintar }: { fila: FilaPaleta; onPintar: (c: Record<str
           ))}
         </ul>
         {activa ? (
-          <div className="pulso-cr-muestras" role="group" aria-label={`Color para «${activa}»`}>
+          <div className="pulso-cr-muestras" role="group" aria-label={`Color para ${activa}`}>
             {MUESTRAS_MARCA.map((m) => {
               const elegida = color?.toLowerCase() === m.hex.toLowerCase();
               return (

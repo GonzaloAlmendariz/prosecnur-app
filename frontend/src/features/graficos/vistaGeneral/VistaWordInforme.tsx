@@ -77,7 +77,7 @@ export function VistaWordInforme({ paginas }: Props) {
         {paginas.map((p, i) => <PaginaMaqueta key={i} pagina={p} tituloCorto={tituloCorto} />)}
       </div>
       <p className="pulso-f6-vg-word-nota">
-        Maquetas de página con la convención del recetario Word. El Word con sus cifras: pestaña Word › «Previsualizar».
+        Maquetas de página con la convención del recetario Word. El documento con sus cifras se ve en la pestaña Word.
       </p>
     </div>
   );

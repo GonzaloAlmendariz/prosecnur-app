@@ -49,7 +49,7 @@ export function ColoresPendientesAviso({ pendientes, onCompletar, onVer }: { pen
             </span>
             <span className="pulso-cp-texto">
               <span>Lámina {p.numero}: {p.pregunta}</span>
-              <small>{p.fila.faltan === 1 ? "Falta 1 color" : `Faltan ${p.fila.faltan} colores`} en «{p.fila.nombre}»</small>
+              <small>{p.fila.faltan === 1 ? "Falta 1 color" : `Faltan ${p.fila.faltan} colores`} en “{p.fila.nombre}”</small>
             </span>
             <button type="button" className="pulso-cp-ver" onClick={() => ver(p.slideId)}>Ver</button>
           </li>

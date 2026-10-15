@@ -185,7 +185,7 @@ export default function PestanaEstilo() {
   };
   const nBases = sources.length;
   const subtitulo = ambito === "base"
-    ? `Cada base con su estilo · ahora: ${state?.active_base ?? "base activa"}`
+    ? `Cada base con su estilo. Ahora: ${state?.active_base ?? "base activa"}`
     : nBases > 1 ? `Un solo estilo para las ${nBases} bases` : "Un solo estilo para el estudio";
 
   return (
