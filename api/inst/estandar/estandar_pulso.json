@@ -53,6 +53,15 @@
       "narrativa": 15,
       "cifra_destacada": 34,
       "rotulo_top_two_box": 10,
+      "cifra_minimo": 8,
+      "portada_rotulo": 13,
+      "portada_titulo": 30,
+      "portada_encargo": 18,
+      "portada_fecha": 18,
+      "portada_encargo_izquierda": 16,
+      "portada_fecha_izquierda": 14,
+      "portada_encargo_banda": 15,
+      "portada_fecha_banda": 13,
       "fuente": "Arial"
     },
     "colores": {

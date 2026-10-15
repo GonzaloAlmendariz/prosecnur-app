@@ -3144,7 +3144,7 @@ mount_graficos <- function(pr) {
           template_pptx = template_pptx_arg,
           template_id = delivery$template_id,
           auto_otros_slides = auto_otros_slides_arg
-        ),
+        ) |> c(.graficos_estilo_cliente_arg(sid, cfg, "ppt")),   # D5: logos y letra del cliente, sólo si hay (como /word)
         result_filename = .graficos_export_filename(sid, "reporte_ppt", "pptx"),
         on_complete = function(j) {
           meta <- .register_output_file(j$sid, "reporte_ppt", j$result_path)
@@ -3215,7 +3215,7 @@ mount_graficos <- function(pr) {
           template_id = delivery_b$template_id,
           auto_otros_slides = delivery_b$auto_otros_slides,
           filename = .export_filename(sid, "reporte_ppt", "pptx", base = base)
-        )
+        ) |> c(.graficos_estilo_cliente_arg(sid, cfg, "ppt"))   # D5: el estilo del cliente de ESTA base (su ámbito)
       }
       if (length(errors) > 0L) {
         stop_api(400, "E_INVALID_PLAN_MULTI", paste(errors, collapse = " | "))

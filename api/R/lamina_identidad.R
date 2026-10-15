@@ -315,7 +315,8 @@
 #' 30 pt, el encargo y la fecha; tres variantes (Gonzalo, 2026-10-09: quedan todas como opciones)
 #'
 #' El subtítulo del motor es el rótulo («INFORME CONSOLIDADO»), el subtexto es el encargo («Por encargo de…») y la
-#' fecha, la fecha.
+#' fecha, la fecha. Los tamaños son tokens `ppt.tipografia.portada_*` del estándar (rol «titulos» del paso de letra del
+#' cliente) y los logos propios del cliente reemplazan a los de la plantilla (lamina_logos_cliente.R).
 #' @keywords internal
 .lam_laminas_portada <- function(doc, titulo, subtitulo = NULL, fecha = NULL, subtexto = NULL, layout = "Title Slide",
                                  master = "Office Theme", por_lamina = function(doc) doc, variante = "centrada") {
@@ -325,31 +326,33 @@
   doc <- officer::add_slide(doc, layout = layout, master = master)
   lz <- .lam_lienzo()
   rot <- limpio(subtitulo); tit <- limpio(titulo) %||% ""; enc <- limpio(subtexto); fec <- limpio(fecha)
+  pt_rot <- .std_pt("portada_rotulo"); pt_tit <- .std_pt("portada_titulo")
   if (identical(variante, "izquierda")) {
     # 24: alineada a la izquierda; la línea coral de la plantilla (y = 4.21) separa título y encargo.
     # Un título de tres líneas sube con su rótulo: la última línea no puede bajar de 3.72 o sus descendentes cruzan la
     # línea coral (verificador de N7, ronda 10).
-    sube <- max(0L, .lam_lineas_tinta(tit, 9.6, 30, TRUE) - 2L) * 30 * 1.2 / 72
-    if (!is.null(rot)) .lam_txt(lz, toupper(rot), 1.08, 2.25 - sube, 8, 0.32, 13, coral, bold = TRUE, nombre = "portada:rotulo")
-    .lam_txt(lz, tit, 1.08, 2.62 - sube, 9.6, 1.3 + sube, 30, azul, bold = TRUE, nombre = "portada:titulo")
-    if (!is.null(enc)) .lam_txt(lz, enc, 1.08, 4.45, 9.6, 0.36, 16, azul, nombre = "portada:encargo")
-    if (!is.null(fec)) .lam_txt(lz, fec, 1.08, 4.85, 9.6, 0.34, 14, suave, nombre = "portada:fecha")
+    sube <- max(0L, .lam_lineas_tinta(tit, 9.6, pt_tit, TRUE) - 2L) * pt_tit * 1.2 / 72
+    if (!is.null(rot)) .lam_txt(lz, toupper(rot), 1.08, 2.25 - sube, 8, 0.32, pt_rot, coral, bold = TRUE, nombre = "portada:rotulo")
+    .lam_txt(lz, tit, 1.08, 2.62 - sube, 9.6, 1.3 + sube, pt_tit, azul, bold = TRUE, nombre = "portada:titulo")
+    if (!is.null(enc)) .lam_txt(lz, enc, 1.08, 4.45, 9.6, 0.36, .std_pt("portada_encargo_izquierda"), azul, nombre = "portada:encargo")
+    if (!is.null(fec)) .lam_txt(lz, fec, 1.08, 4.85, 9.6, 0.34, .std_pt("portada_fecha_izquierda"), suave, nombre = "portada:fecha")
   } else if (identical(variante, "banda")) {
     # 25: centrada, con el encargo y la fecha en una banda azul al pie.
     H <- 7.5; W <- .std_geom("ancho")
-    sube <- max(0L, .lam_lineas_tinta(tit, 10.5, 30, TRUE) - 2L) * 30 * 1.2 / 72
-    if (!is.null(rot)) .lam_txt(lz, toupper(rot), 1.6, 2.25 - sube, 10.1, 0.32, 13, coral, bold = TRUE, align = "center", nombre = "portada:rotulo")
-    .lam_txt(lz, tit, 1.4, 2.62 - sube, 10.5, 1.3 + sube, 30, azul, bold = TRUE, align = "center", nombre = "portada:titulo")
+    sube <- max(0L, .lam_lineas_tinta(tit, 10.5, pt_tit, TRUE) - 2L) * pt_tit * 1.2 / 72
+    if (!is.null(rot)) .lam_txt(lz, toupper(rot), 1.6, 2.25 - sube, 10.1, 0.32, pt_rot, coral, bold = TRUE, align = "center", nombre = "portada:rotulo")
+    .lam_txt(lz, tit, 1.4, 2.62 - sube, 10.5, 1.3 + sube, pt_tit, azul, bold = TRUE, align = "center", nombre = "portada:titulo")
     .lam_caja(lz, 0, H - 1.25, W, 1.25, azul, nombre = "portada:banda")
-    if (!is.null(enc)) .lam_txt(lz, enc, 1.6, H - 0.95, 10.1, 0.34, 15, "#FFFFFF", bold = TRUE, align = "center", nombre = "portada:encargo")
-    if (!is.null(fec)) .lam_txt(lz, fec, 1.6, H - 0.58, 10.1, 0.3, 13, "#FFFFFF", align = "center", nombre = "portada:fecha")
+    if (!is.null(enc)) .lam_txt(lz, enc, 1.6, H - 0.95, 10.1, 0.34, .std_pt("portada_encargo_banda"), "#FFFFFF", bold = TRUE, align = "center", nombre = "portada:encargo")
+    if (!is.null(fec)) .lam_txt(lz, fec, 1.6, H - 0.58, 10.1, 0.3, .std_pt("portada_fecha_banda"), "#FFFFFF", align = "center", nombre = "portada:fecha")
   } else {
-    if (!is.null(rot)) .lam_txt(lz, toupper(rot), 1.6, 2.12, 10.1, 0.32, 13, coral, bold = TRUE, align = "center", nombre = "portada:rotulo")
-    .lam_txt(lz, tit, 1.3, 2.48, 10.7, 1.5, 30, azul, bold = TRUE, align = "center", nombre = "portada:titulo")
-    if (!is.null(enc)) .lam_txt(lz, enc, 1.6, 4.65, 10.1, 0.4, 18, azul, align = "center", nombre = "portada:encargo")
-    if (!is.null(fec)) .lam_txt(lz, fec, 1.6, 5.12, 10.1, 0.4, 18, suave, align = "center", nombre = "portada:fecha")
+    if (!is.null(rot)) .lam_txt(lz, toupper(rot), 1.6, 2.12, 10.1, 0.32, pt_rot, coral, bold = TRUE, align = "center", nombre = "portada:rotulo")
+    .lam_txt(lz, tit, 1.3, 2.48, 10.7, 1.5, pt_tit, azul, bold = TRUE, align = "center", nombre = "portada:titulo")
+    if (!is.null(enc)) .lam_txt(lz, enc, 1.6, 4.65, 10.1, 0.4, .std_pt("portada_encargo"), azul, align = "center", nombre = "portada:encargo")
+    if (!is.null(fec)) .lam_txt(lz, fec, 1.6, 5.12, 10.1, 0.4, .std_pt("portada_fecha"), suave, align = "center", nombre = "portada:fecha")
   }
-  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:portada")
+  logos <- .lam_logos_cliente_tapar(lz, c("portada_izquierda", "portada_derecha"))
+  doc <- .lam_logos_cliente_poner(.lam_agrupar(doc, lz, nombre = "prosecnur:portada"), logos)
   list(doc = por_lamina(doc), partes = 1L)
 }
 
@@ -360,13 +363,13 @@
   if (v %in% c("izquierda", "24", "alineada")) "izquierda" else if (v %in% c("banda", "25", "banda inferior")) "banda" else "centrada"
 }
 
-#' ¿La portada cabe? El título en tres líneas a 30 pt, cortadas por palabras en el ancho de la caja de su variante
-#' (10.7, 9.6 o 10.5 in)
+#' ¿La portada cabe? El título en tres líneas a 30 pt (el token `portada_titulo`, con el paso de letra del cliente),
+#' cortadas por palabras en el ancho de la caja de su variante (10.7, 9.6 o 10.5 in)
 #' @keywords internal
 .lam_portada_cabe <- function(titulo, variante = "centrada") {
   t <- as.character(titulo %||% "")[1]
   ancho <- c(centrada = 10.7, izquierda = 9.6, banda = 10.5)[[.lam_portada_variante(variante)]]
-  !is.na(t) && nzchar(trimws(t)) && .lam_lineas_tinta(t, ancho, 30, TRUE) <= 3L
+  !is.na(t) && nzchar(trimws(t)) && .lam_lineas_tinta(t, ancho, .std_pt("portada_titulo"), TRUE) <= 3L
 }
 
 # ---- Ficha técnica (lámina 29, recetario.R:489-533) -------------------------------------------------------------
@@ -708,7 +711,8 @@
 
 #' Cierre del recetario sobre el layout «Contraportada»: el logo de la plantilla centrado y el contacto según la variante
 #'
-#' Donde el contacto no va al pie, una forma del color del fondo tapa los íconos del layout sin tocar la línea coral.
+#' Donde el contacto no va al pie, una forma del color del fondo tapa los íconos del layout sin tocar la línea coral. El
+#' logo propio de la contraportada del cliente reemplaza al de la plantilla en su caja (lamina_logos_cliente.R).
 #' @keywords internal
 .lam_laminas_cierre <- function(doc, variante = "contraportada", contacto = .lam_cierre_contacto(list()), layout = "Contraportada",
                                 master = "Office Theme", por_lamina = function(doc) doc) {
@@ -758,7 +762,8 @@
       }
     }
   }
-  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:cierre")
+  logos <- .lam_logos_cliente_tapar(lz, "contraportada")
+  doc <- .lam_logos_cliente_poner(.lam_agrupar(doc, lz, nombre = "prosecnur:cierre"), logos)
   for (ic in iconos) {
     ruta <- .lam_icono_ruta(ic$n, ic$color)
     if (!is.null(ruta)) doc <- officer::ph_with(doc, officer::external_img(ruta, width = ic$d, height = ic$d),
