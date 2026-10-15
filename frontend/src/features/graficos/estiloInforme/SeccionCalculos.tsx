@@ -140,7 +140,7 @@ function NotaAlPie({ nota, metodo, decimales, acciones }: { nota: { modo: ModoNo
   const [borrador, setBorrador] = useState(nota.texto);
   useEffect(() => { setBorrador(nota.texto); }, [nota.texto]);
   return (
-    <div className="pulso-f6-regla-general" role="group" aria-label="Nota al pie del redondeo">
+    <div className="pulso-f6-regla-general" role="group" aria-label="Nota al pie del redondeo" data-qa-geometry-group="graficos/f6-regla-nota" data-qa-geometry-contract="intrinsic">
       <span className="pulso-f6-regla-lab">Nota al pie</span>
       <div>
         <Segmentado etiqueta="Cuándo va la nota al pie" valor={nota.modo} onCambiar={acciones.onModoNota}
@@ -195,7 +195,7 @@ export function SeccionCalculos({
   const general = reglaGeneral(filas);
   const nPropias = general.conReglaPropia.length;
   return (
-    <section className="pulso-f6-informe-seccion" aria-labelledby={tituloId} data-qa-geometry-member>
+    <section className="pulso-f6-informe-seccion" aria-labelledby={tituloId} data-qa-geometry-member data-qa-geometry-group="graficos/f6-regla-redondeo" data-qa-geometry-contract="intrinsic">
       <CabeceraSeccion
         id={tituloId}
         titulo="Redondeo y decimales"
@@ -211,7 +211,7 @@ export function SeccionCalculos({
       ) : (
         <>
           {/* R2 (2026-10-15): la regla del informe es la que comparte la mayoría de los tipos; elegirla la escribe en todos. */}
-          <div className="pulso-f6-regla-general" role="group" aria-label="Regla para todo el informe">
+          <div className="pulso-f6-regla-general" role="group" aria-label="Regla para todo el informe" data-qa-geometry-group="graficos/f6-regla-general" data-qa-geometry-contract="intrinsic">
             <span className="pulso-f6-regla-lab">Método</span>
             <div>
               <Segmentado etiqueta="Método de redondeo del informe" valor={general.metodo === METODO_REPARTO ? METODO_REPARTO : METODO_ESTANDAR}

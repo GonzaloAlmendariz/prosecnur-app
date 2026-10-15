@@ -11,7 +11,7 @@ const NIVELES = [
 export function NivelesReglas() {
   return (
     <div className="pulso-f6-niveles" role="note" aria-label="Quién manda en las reglas" data-qa-geometry-member>
-      <ol className="pulso-f6-niveles-lista">
+      <ol className="pulso-f6-niveles-lista" data-qa-geometry-group="graficos/f6-niveles" data-qa-geometry-contract="intrinsic">
         {NIVELES.map((n, i) => (
           <li key={n.titulo} className="pulso-f6-nivel">
             {i > 0 ? <span className="pulso-f6-nivel-flecha" aria-hidden="true">›</span> : null}

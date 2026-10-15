@@ -42,7 +42,7 @@ export function DetallePortada({ desdeLamina }: { desdeLamina: { titulo: string;
         <div className="pulso-f6-w-campos">
           {campo("ante", "Antetítulo", "Sin antetítulo", "Encima del título, en versalitas.", 80)}
           {campo("fecha", "Fecha", desdeLamina.fecha || "Sin fecha", "Vacío, la de la lámina de portada.", 60)}
-          {campo("sub", "Subtítulo", desdeLamina.sub || "Sin subtítulo", "Vacío, el de la lámina de portada.", 200)}
+          <div className="pulso-f6-w-campo-ancho">{campo("sub", "Subtítulo", desdeLamina.sub || "Sin subtítulo", "Vacío, el de la lámina de portada.", 200)}</div>
           {campo("por", "Elaborado por", "PULSO PUCP", "Vacío, PULSO PUCP.", 120)}
           {d.variante === "C" && campo("para", "Elaborado para", "Sin dato", "Sólo en la ficha de la variante con ficha.", 120)}
           {d.variante === "C" && campo("version", "Versión", "Sin dato", "Sólo en la ficha de la variante con ficha.", 40)}

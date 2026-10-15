@@ -20,7 +20,7 @@ export function PartesWord({ partes, actual, onElegir, idPanel }: Props) {
   };
   return (
     <div ref={lista} className="pulso-f6-w-partes" role="tablist" aria-orientation="vertical" aria-label="Partes del documento"
-      onKeyDown={onTecla} data-qa-geometry-group="graficos/f6-w-partes" data-qa-geometry-contract="equal">
+      onKeyDown={onTecla} data-qa-geometry-group="graficos/f6-w-partes" data-qa-geometry-contract="intrinsic">
       {partes.map((p) => (
         <button key={p.key} type="button" role="tab" id={`f6-w-parte-${p.key}`} aria-selected={p.key === actual} aria-controls={idPanel} aria-label={`${p.label}. ${p.resumen}`}
           tabIndex={p.key === actual ? 0 : -1} data-qa-geometry-member className={`pulso-f6-w-parte${p.key === actual ? " is-activa" : ""}`}

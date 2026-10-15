@@ -31,13 +31,13 @@ export function MuestraIdentidad({ datos }: { datos: DatosMuestra }) {
   const lectura = ptConPaso(10.5, datos.desplazamientoPt);
   const base = ptConPaso(8.5, datos.desplazamientoPt);
   return (
-    <section className="pulso-f6-muestra" aria-label="Muestra de la identidad" data-qa-geometry-group="graficos/f6-muestra" data-qa-geometry-contract="equal">
+    <section className="pulso-f6-muestra" aria-label="Muestra de la identidad" data-qa-geometry-group="graficos/f6-muestra" data-qa-geometry-contract="intrinsic">
       <span className="pulso-f6-muestra-lab">Muestra en vivo</span>
-      <div className="pulso-f6-muestra-fila">
+      <div className="pulso-f6-muestra-fila" data-qa-geometry-group="graficos/f6-muestra-fila" data-qa-geometry-contract="intrinsic">
         <figure className="pulso-f6-muestra-pieza" data-qa-geometry-member>
           <figcaption>Portada del PPT</figcaption>
           <span className="pulso-f6-muestra-ppt-portada">
-            <span className="pulso-f6-muestra-logos is-ppt"><Logo logo={datos.logos.izquierda} /><Logo logo={datos.logos.derecha} /></span>
+            <span className="pulso-f6-muestra-logos is-ppt" data-qa-geometry-group="graficos/f6-muestra-logos" data-qa-geometry-contract="intrinsic"><Logo logo={datos.logos.izquierda} /><Logo logo={datos.logos.derecha} /></span>
             <span className="pulso-f6-muestra-ppt-titulo">{datos.titulo}</span>
             <span className="pulso-f6-muestra-ppt-regla" />
           </span>
@@ -58,7 +58,7 @@ export function MuestraIdentidad({ datos }: { datos: DatosMuestra }) {
           <figcaption>Portada y página del Word</figcaption>
           <span className="pulso-f6-muestra-word">
             <span className="pulso-f6-muestra-word-pag is-portada">
-              <span className="pulso-f6-muestra-logos"><Logo logo={datos.logos.izquierda} /><Logo logo={datos.logos.derecha} /></span>
+              <span className="pulso-f6-muestra-logos" data-qa-geometry-group="graficos/f6-muestra-logos" data-qa-geometry-contract="intrinsic"><Logo logo={datos.logos.izquierda} /><Logo logo={datos.logos.derecha} /></span>
               <span className="pulso-f6-muestra-word-titulo">{datos.titulo}</span>
             </span>
             <span className="pulso-f6-muestra-word-pag" data-letra-pt={lectura}>
