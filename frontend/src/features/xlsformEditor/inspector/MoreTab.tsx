@@ -30,14 +30,18 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
             label={<>Cantidad de repeticiones <TechTerm t="repeat_count" /></>}
             hint="Número fijo o referencia. Vacío = decide el encuestador."
           >
-            <input
-              type="text"
-              className="pulso-xfi-mono"
-              value={(node as BuilderNode & { repeat_count?: string }).repeat_count ?? ""}
-              onChange={(event) => onFieldChange("repeat_count", event.target.value)}
-              placeholder='Ej. 5  o  ${num_personas}'
-              spellCheck={false}
-            />
+            {(campo) => (
+              <input
+                id={campo.id}
+                aria-describedby={campo.hintId}
+                type="text"
+                className="pulso-xfi-mono"
+                value={(node as BuilderNode & { repeat_count?: string }).repeat_count ?? ""}
+                onChange={(event) => onFieldChange("repeat_count", event.target.value)}
+                placeholder='Ej. 5  o  ${num_personas}'
+                spellCheck={false}
+              />
+            )}
           </InspectorField>
         </InspectorBlock>
       )}
@@ -49,80 +53,108 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
               label={<>Número visible en papel <TechTerm t="paper_number" /></>}
               hint="Vacío = el PDF lo deriva del nombre interno o el orden."
             >
-              <input
-                type="text"
-                value={node.paperNumber ?? ""}
-                onChange={(event) => onFieldChange("paper_number", event.target.value)}
-                placeholder="Ej. 108"
-              />
+              {(campo) => (
+                <input
+                  id={campo.id}
+                  aria-describedby={campo.hintId}
+                  type="text"
+                  value={node.paperNumber ?? ""}
+                  onChange={(event) => onFieldChange("paper_number", event.target.value)}
+                  placeholder="Ej. 108"
+                />
+              )}
             </InspectorField>
             <InspectorField
               label={<>Texto alternativo para papel <TechTerm t="paper_label" /></>}
               hint="Reemplaza el texto solo en el PDF impreso."
             >
-              <input
-                type="text"
-                value={node.paperLabel ?? ""}
-                onChange={(event) => onFieldChange("paper_label", event.target.value)}
-                placeholder="Etiqueta para el PDF"
-              />
+              {(campo) => (
+                <input
+                  id={campo.id}
+                  aria-describedby={campo.hintId}
+                  type="text"
+                  value={node.paperLabel ?? ""}
+                  onChange={(event) => onFieldChange("paper_label", event.target.value)}
+                  placeholder="Etiqueta para el PDF"
+                />
+              )}
             </InspectorField>
             <InspectorField
               label={<>Salto impreso <TechTerm t="paper_skip" /></>}
               hint="Instrucción manual; prima sobre la inferencia automática."
             >
-              <input
-                type="text"
-                value={node.paperSkip ?? ""}
-                onChange={(event) => onFieldChange("paper_skip", event.target.value)}
-                placeholder="Ej. IR A LA PREGUNTA 117"
-              />
+              {(campo) => (
+                <input
+                  id={campo.id}
+                  aria-describedby={campo.hintId}
+                  type="text"
+                  value={node.paperSkip ?? ""}
+                  onChange={(event) => onFieldChange("paper_skip", event.target.value)}
+                  placeholder="Ej. IR A LA PREGUNTA 117"
+                />
+              )}
             </InspectorField>
             <InspectorField
               label={<>Grupo / matriz en papel <TechTerm t="paper_group" /></>}
               hint="Mismo valor en varias filas = se imprimen como matriz."
             >
-              <input
-                type="text"
-                value={node.paperGroup ?? ""}
-                onChange={(event) => onFieldChange("paper_group", event.target.value)}
-                placeholder="Ej. p104_servicios"
-              />
+              {(campo) => (
+                <input
+                  id={campo.id}
+                  aria-describedby={campo.hintId}
+                  type="text"
+                  value={node.paperGroup ?? ""}
+                  onChange={(event) => onFieldChange("paper_group", event.target.value)}
+                  placeholder="Ej. p104_servicios"
+                />
+              )}
             </InspectorField>
             <InspectorField
               label={<>Subsección en papel <TechTerm t="paper_subgroup" /></>}
               hint="Banda bajo la sección. Un valor nuevo abre otra subsección."
             >
-              <input
-                type="text"
-                value={node.paperSubgroup ?? ""}
-                onChange={(event) => onFieldChange("paper_subgroup", event.target.value)}
-                placeholder="Ej. D.4. Sobre el apoyo de tu familia"
-              />
+              {(campo) => (
+                <input
+                  id={campo.id}
+                  aria-describedby={campo.hintId}
+                  type="text"
+                  value={node.paperSubgroup ?? ""}
+                  onChange={(event) => onFieldChange("paper_subgroup", event.target.value)}
+                  placeholder="Ej. D.4. Sobre el apoyo de tu familia"
+                />
+              )}
             </InspectorField>
             <InspectorField
               label={<>Letra en papel <TechTerm t="paper_subletter" /></>}
               hint="En una matriz: a, b, c… en vez de número. «@» = enunciado madre."
             >
-              <input
-                type="text"
-                value={node.paperSubletter ?? ""}
-                onChange={(event) => onFieldChange("paper_subletter", event.target.value)}
-                placeholder="Ej. a"
-                spellCheck={false}
-              />
+              {(campo) => (
+                <input
+                  id={campo.id}
+                  aria-describedby={campo.hintId}
+                  type="text"
+                  value={node.paperSubletter ?? ""}
+                  onChange={(event) => onFieldChange("paper_subletter", event.target.value)}
+                  placeholder="Ej. a"
+                  spellCheck={false}
+                />
+              )}
             </InspectorField>
             <InspectorField
               label={<>Layout de papel <TechTerm t="paper_layout" /></>}
               hint="full, wide, matrix o compact. Vacío = automático."
             >
-              <input
-                type="text"
-                value={node.paperLayout ?? ""}
-                onChange={(event) => onFieldChange("paper_layout", event.target.value)}
-                placeholder="full"
-                spellCheck={false}
-              />
+              {(campo) => (
+                <input
+                  id={campo.id}
+                  aria-describedby={campo.hintId}
+                  type="text"
+                  value={node.paperLayout ?? ""}
+                  onChange={(event) => onFieldChange("paper_layout", event.target.value)}
+                  placeholder="full"
+                  spellCheck={false}
+                />
+              )}
             </InspectorField>
           </InspectorBlock>
 
@@ -147,14 +179,18 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
               label={<>Mensaje cuando es obligatoria <TechTerm t="required_message" /></>}
               hint="Se muestra al intentar avanzar sin responder."
             >
-              <input
-                type="text"
-                value={
-                  (node as BuilderNode & { required_message?: string }).required_message ?? ""
-                }
-                onChange={(event) => onFieldChange("required_message", event.target.value)}
-                placeholder="Ej. Por favor responde para continuar."
-              />
+              {(campo) => (
+                <input
+                  id={campo.id}
+                  aria-describedby={campo.hintId}
+                  type="text"
+                  value={
+                    (node as BuilderNode & { required_message?: string }).required_message ?? ""
+                  }
+                  onChange={(event) => onFieldChange("required_message", event.target.value)}
+                  placeholder="Ej. Por favor responde para continuar."
+                />
+              )}
             </InspectorField>
           </InspectorBlock>
         </>
@@ -165,14 +201,18 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
           label={<>Parámetros técnicos <TechTerm t="parameters" /></>}
           hint="Atributos crudos del XLSForm; cámbialos solo si hace falta."
         >
-          <input
-            type="text"
-            className="pulso-xfi-mono"
-            value={(node as BuilderNode & { parameters?: string }).parameters ?? ""}
-            onChange={(event) => onFieldChange("parameters", event.target.value)}
-            placeholder="Ej. randomize=true seed=42"
-            spellCheck={false}
-          />
+          {(campo) => (
+            <input
+              id={campo.id}
+              aria-describedby={campo.hintId}
+              type="text"
+              className="pulso-xfi-mono"
+              value={(node as BuilderNode & { parameters?: string }).parameters ?? ""}
+              onChange={(event) => onFieldChange("parameters", event.target.value)}
+              placeholder="Ej. randomize=true seed=42"
+              spellCheck={false}
+            />
+          )}
         </InspectorField>
       </InspectorBlock>
     </div>

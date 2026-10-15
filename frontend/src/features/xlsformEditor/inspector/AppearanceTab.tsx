@@ -45,12 +45,16 @@ export function AppearanceTab({ node, onFieldChange }: AppearanceTabProps) {
             label={<>Valor por defecto <TechTerm t="default" /></>}
             hint="Aparece prellenado al abrir la pregunta."
           >
-            <input
-              type="text"
-              value={(node as BuilderNode & { default?: string }).default ?? ""}
-              onChange={(event) => onFieldChange("default", event.target.value)}
-              placeholder="Opcional"
-            />
+            {(campo) => (
+              <input
+                id={campo.id}
+                aria-describedby={campo.hintId}
+                type="text"
+                value={(node as BuilderNode & { default?: string }).default ?? ""}
+                onChange={(event) => onFieldChange("default", event.target.value)}
+                placeholder="Opcional"
+              />
+            )}
           </InspectorField>
         </InspectorBlock>
       )}

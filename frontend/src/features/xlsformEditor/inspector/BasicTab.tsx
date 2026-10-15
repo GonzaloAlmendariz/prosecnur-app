@@ -105,12 +105,17 @@ export function BasicTab({
           }
           hint={isSection ? "Cabecera del bloque." : "Usa la barra para dar formato."}
         >
-          <MarkdownField
-            value={node.label}
-            onChange={(next) => onFieldChange("label", next)}
-            placeholder="Ej. ¿Cuál es tu edad?"
-            rows={2}
-          />
+          {(campo) => (
+            <MarkdownField
+              id={campo.id}
+              ariaLabelledBy={campo.labelId}
+              ariaDescribedBy={campo.hintId}
+              value={node.label}
+              onChange={(next) => onFieldChange("label", next)}
+              placeholder="Ej. ¿Cuál es tu edad?"
+              rows={2}
+            />
+          )}
         </InspectorField>
 
         {!isSection && (
@@ -118,13 +123,18 @@ export function BasicTab({
             label={<>Pista o ayuda <TechTerm t="hint" /></>}
             hint="Aclaración corta y opcional bajo el texto."
           >
-            <MarkdownField
-              value={node.hint}
-              onChange={(next) => onFieldChange("hint", next)}
-              placeholder="Ej. Indica años cumplidos."
-              rows={2}
-              compact
-            />
+            {(campo) => (
+              <MarkdownField
+                id={campo.id}
+                ariaLabelledBy={campo.labelId}
+                ariaDescribedBy={campo.hintId}
+                value={node.hint}
+                onChange={(next) => onFieldChange("hint", next)}
+                placeholder="Ej. Indica años cumplidos."
+                rows={2}
+                compact
+              />
+            )}
           </InspectorField>
         )}
       </InspectorBlock>
@@ -219,11 +229,15 @@ export function BasicTab({
           label={<>Nombre interno <TechTerm t="name" /></>}
           hint="Identifica a la pregunta en la lógica y el export."
         >
-          <NameField
-            value={node.name}
-            onChange={(next) => onFieldChange("name", next)}
-            placeholder="Ej. p1_edad"
-          />
+          {(campo) => (
+            <NameField
+              id={campo.id}
+              ariaDescribedBy={campo.hintId}
+              value={node.name}
+              onChange={(next) => onFieldChange("name", next)}
+              placeholder="Ej. p1_edad"
+            />
+          )}
         </InspectorField>
 
         {!isSection && isSelect && (

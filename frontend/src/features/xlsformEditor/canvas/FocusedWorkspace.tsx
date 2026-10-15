@@ -1051,12 +1051,17 @@ function ContentTab({
                 : "La pregunta que verá el encuestado."
           }
         >
-          <MarkdownField
-            value={node.label}
-            onChange={(next) => onFieldChange("label", next)}
-            placeholder={isSection ? "Ej. Datos de la vivienda" : "Ej. ¿Cuál es tu edad?"}
-            rows={2}
-          />
+          {(campo) => (
+            <MarkdownField
+              id={campo.id}
+              ariaLabelledBy={campo.labelId}
+              ariaDescribedBy={campo.hintId}
+              value={node.label}
+              onChange={(next) => onFieldChange("label", next)}
+              placeholder={isSection ? "Ej. Datos de la vivienda" : "Ej. ¿Cuál es tu edad?"}
+              rows={2}
+            />
+          )}
         </InspectorField>
 
         {!isSection && (
@@ -1064,13 +1069,18 @@ function ContentTab({
             label="Pista de apoyo"
             hint="Aclaración breve debajo de la pregunta. Puede quedar vacía."
           >
-            <MarkdownField
-              value={node.hint}
-              onChange={(next) => onFieldChange("hint", next)}
-              placeholder="Ej. Indica años cumplidos."
-              rows={2}
-              compact
-            />
+            {(campo) => (
+              <MarkdownField
+                id={campo.id}
+                ariaLabelledBy={campo.labelId}
+                ariaDescribedBy={campo.hintId}
+                value={node.hint}
+                onChange={(next) => onFieldChange("hint", next)}
+                placeholder="Ej. Indica años cumplidos."
+                rows={2}
+                compact
+              />
+            )}
           </InspectorField>
         )}
       </InspectorBlock>
@@ -1310,12 +1320,16 @@ function ResponseTab({
             label="Valor por defecto"
             hint="Respuesta prellenada al abrir la pregunta. Déjalo vacío si el encuestador debe responder desde cero."
           >
-            <input
-              type="text"
-              value={(node as BuilderNode & { default?: string }).default ?? ""}
-              onChange={(event) => onFieldChange("default", event.target.value)}
-              placeholder="Opcional"
-            />
+            {(campo) => (
+              <input
+                id={campo.id}
+                aria-describedby={campo.hintId}
+                type="text"
+                value={(node as BuilderNode & { default?: string }).default ?? ""}
+                onChange={(event) => onFieldChange("default", event.target.value)}
+                placeholder="Opcional"
+              />
+            )}
           </InspectorField>
         </InspectorBlock>
       )}
@@ -1911,14 +1925,18 @@ function RepeatCountPanel({
         label="Regla guardada"
         hint="Vacío = el encuestador decide cuántas veces repetir. También puedes pegar una fórmula XLSForm."
       >
-        <input
-          type="text"
-          value={value}
-          onChange={(event) => onFieldChange("repeat_count", event.target.value)}
-          placeholder='Ej. 5 o ${num_personas}'
-          spellCheck={false}
-          className="pulso-focus-repeat-formula"
-        />
+        {(campo) => (
+          <input
+            id={campo.id}
+            aria-describedby={campo.hintId}
+            type="text"
+            value={value}
+            onChange={(event) => onFieldChange("repeat_count", event.target.value)}
+            placeholder='Ej. 5 o ${num_personas}'
+            spellCheck={false}
+            className="pulso-focus-repeat-formula"
+          />
+        )}
       </InspectorField>
     </div>
   );
@@ -2497,13 +2515,17 @@ function ChoiceFilterPanel({
         label="Regla guardada"
         hint="Ej. region=${region}. La parte antes del igual debe existir como columna en choices."
       >
-        <textarea
-          value={currentFilter}
-          onChange={(event) => onFieldChange("choice_filter", event.target.value)}
-          placeholder="Ej. region=${region}"
-          rows={2}
-          spellCheck={false}
-        />
+        {(campo) => (
+          <textarea
+            id={campo.id}
+            aria-describedby={campo.hintId}
+            value={currentFilter}
+            onChange={(event) => onFieldChange("choice_filter", event.target.value)}
+            placeholder="Ej. region=${region}"
+            rows={2}
+            spellCheck={false}
+          />
+        )}
       </InspectorField>
 
       <div className="pulso-focus-choice-filter-actions">
@@ -2741,13 +2763,17 @@ function CustomValidationPanel({
         label="Regla avanzada"
         hint="Debe devolver verdadero cuando la respuesta puede aceptarse. Se exporta como validación XLSForm."
       >
-        <textarea
-          value={node.constraint}
-          onChange={(event) => onFieldChange("constraint", event.target.value)}
-          placeholder={"Ej. regex(., '^[^@\\\\s]+@[^@\\\\s]+\\\\.[^@\\\\s]+$')"}
-          rows={3}
-          spellCheck={false}
-        />
+        {(campo) => (
+          <textarea
+            id={campo.id}
+            aria-describedby={campo.hintId}
+            value={node.constraint}
+            onChange={(event) => onFieldChange("constraint", event.target.value)}
+            placeholder={"Ej. regex(., '^[^@\\\\s]+@[^@\\\\s]+\\\\.[^@\\\\s]+$')"}
+            rows={3}
+            spellCheck={false}
+          />
+        )}
       </InspectorField>
     </details>
   );
@@ -2773,22 +2799,28 @@ function ConstraintMessageField({
       label="Mensaje si la respuesta no es válida"
       hint="Texto visible en Kobo cuando la respuesta no cumple la regla. Escríbelo como una indicación para campo."
     >
-      {hasConstraint && (
-        <ConstraintMessageAssistant
-          value={value}
-          validation={validation}
-          presets={presets}
-          onApply={(message) => onFieldChange("constraint_message", message)}
-        />
+      {(campo) => (
+        <>
+          {hasConstraint && (
+            <ConstraintMessageAssistant
+              value={value}
+              validation={validation}
+              presets={presets}
+              onApply={(message) => onFieldChange("constraint_message", message)}
+            />
+          )}
+          <input
+            id={campo.id}
+            aria-describedby={campo.hintId}
+            type="text"
+            value={value}
+            onChange={(event) =>
+              onFieldChange("constraint_message", event.target.value)
+            }
+            placeholder="Ej. Ingresa un correo electrónico válido."
+          />
+        </>
       )}
-      <input
-        type="text"
-        value={value}
-        onChange={(event) =>
-          onFieldChange("constraint_message", event.target.value)
-        }
-        placeholder="Ej. Ingresa un correo electrónico válido."
-      />
     </InspectorField>
   );
 }
@@ -3596,16 +3628,22 @@ function DataTab({
           label={isSection ? "Nombre de variable del bloque" : "Nombre de columna"}
           hint="El identificador interno: se usa en reglas, exportación y bases. Corto, único y sin tildes ni espacios."
         >
-          <NameField
-            value={node.name}
-            onChange={(next) => onFieldChange("name", next)}
-            placeholder={isSection ? "ej. datos_hogar" : "ej. p1_edad"}
-          />
-          <KoboNameAssistant
-            node={node}
-            structure={structure}
-            onApply={(next) => onFieldChange("name", next)}
-          />
+          {(campo) => (
+            <>
+              <NameField
+                id={campo.id}
+                ariaDescribedBy={campo.hintId}
+                value={node.name}
+                onChange={(next) => onFieldChange("name", next)}
+                placeholder={isSection ? "ej. datos_hogar" : "ej. p1_edad"}
+              />
+              <KoboNameAssistant
+                node={node}
+                structure={structure}
+                onApply={(next) => onFieldChange("name", next)}
+              />
+            </>
+          )}
         </InspectorField>
       </InspectorBlock>
 
@@ -3686,12 +3724,16 @@ function DataTab({
                 label="Solo papel"
                 hint="Marca importada para salida impresa. Déjala vacía si el elemento debe vivir también en el formulario digital."
               >
-                <input
-                  type="text"
-                  value={node.paperOnly}
-                  onChange={(event) => onFieldChange("paper_only", event.target.value)}
-                  spellCheck={false}
-                />
+                {(campo) => (
+                  <input
+                    id={campo.id}
+                    aria-describedby={campo.hintId}
+                    type="text"
+                    value={node.paperOnly}
+                    onChange={(event) => onFieldChange("paper_only", event.target.value)}
+                    spellCheck={false}
+                  />
+                )}
               </InspectorField>
             )}
             {node.parameters && (
@@ -3699,14 +3741,18 @@ function DataTab({
                 label="Parámetros XLSForm"
                 hint="Atributos crudos importados. Se preservan al exportar."
               >
-                <input
-                  type="text"
-                  value={node.parameters}
-                  onChange={(event) => onFieldChange("parameters", event.target.value)}
-                  placeholder="Ej. randomize=true seed=42"
-                  spellCheck={false}
-                  style={{ fontFamily: "ui-monospace, monospace", fontSize: 12 }}
-                />
+                {(campo) => (
+                  <input
+                    id={campo.id}
+                    aria-describedby={campo.hintId}
+                    type="text"
+                    value={node.parameters}
+                    onChange={(event) => onFieldChange("parameters", event.target.value)}
+                    placeholder="Ej. randomize=true seed=42"
+                    spellCheck={false}
+                    style={{ fontFamily: "ui-monospace, monospace", fontSize: 12 }}
+                  />
+                )}
               </InspectorField>
             )}
           </details>
@@ -4028,18 +4074,26 @@ function FocusedSettingsWorkspace({
         <div className="pulso-focus-config-body">
           <InspectorBlock>
             <InspectorField label="Título del formulario">
-              <input value={values?.form_title ?? ""} onChange={(event) => onChange("form_title", event.target.value)} />
+              {(campo) => (
+                <input id={campo.id} value={values?.form_title ?? ""} onChange={(event) => onChange("form_title", event.target.value)} />
+              )}
             </InspectorField>
             <InspectorField label="ID interno">
-              <input value={values?.form_id ?? ""} onChange={(event) => onChange("form_id", event.target.value)} />
+              {(campo) => (
+                <input id={campo.id} value={values?.form_id ?? ""} onChange={(event) => onChange("form_id", event.target.value)} />
+              )}
             </InspectorField>
           </InspectorBlock>
           <InspectorBlock>
             <InspectorField label="Versión">
-              <input value={values?.version ?? ""} onChange={(event) => onChange("version", event.target.value)} />
+              {(campo) => (
+                <input id={campo.id} value={values?.version ?? ""} onChange={(event) => onChange("version", event.target.value)} />
+              )}
             </InspectorField>
             <InspectorField label="Idioma por defecto">
-              <input value={values?.default_language ?? "es"} onChange={(event) => onChange("default_language", event.target.value)} />
+              {(campo) => (
+                <input id={campo.id} value={values?.default_language ?? "es"} onChange={(event) => onChange("default_language", event.target.value)} />
+              )}
             </InspectorField>
           </InspectorBlock>
         </div>

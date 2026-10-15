@@ -26,9 +26,19 @@ export type NameFieldProps = {
   placeholder?: string;
   /** Si true, el input está deshabilitado (ej. cuando es una sección root). */
   disabled?: boolean;
+  /** Id del input (lo entrega `InspectorField` para asociar su rótulo). */
+  id?: string;
+  ariaDescribedBy?: string;
 };
 
-export function NameField({ value, onChange, placeholder, disabled }: NameFieldProps) {
+export function NameField({
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  id,
+  ariaDescribedBy,
+}: NameFieldProps) {
   const committed = value ?? "";
   const [draft, setDraft] = useState(committed);
 
@@ -58,6 +68,8 @@ export function NameField({ value, onChange, placeholder, disabled }: NameFieldP
     <div className="pulso-xfi-namefield">
       <div className="pulso-xfi-namefield-row">
         <input
+          id={id}
+          aria-describedby={ariaDescribedBy}
           type="text"
           className={`pulso-xfi-mono${isValid ? "" : " is-invalid"}`}
           value={draft}
