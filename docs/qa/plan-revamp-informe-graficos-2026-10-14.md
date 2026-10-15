@@ -11,7 +11,7 @@ Propuesta con maquetas: https://claude.ai/artifact/8vtEx3LmE5V92FfqXxN8ZH (priva
 
 Cada pestaña responde una pregunta del analista y cada ajuste vive en un solo lugar:
 
-- **Informe** (hoy Vista general): ¿cómo queda lo que voy a entregar? Vista PowerPoint (clasificador con miniaturas reales y estado por lámina) y vista Word (páginas A4).
+- **Informe** (hoy Vista general): ¿está bien armado lo que voy a entregar? Vista de **maquetas** (decisión de Gonzalo, 2026-10-14: «para la vista de informe el énfasis no es cómo se ve en PowerPoint sino las maquetas; el cómo se ve en PowerPoint se queda en Lámina y el botón cambia a "Previsualizar"») y vista Word (páginas A4). En cada tarjeta, el ícono del tipo de lámina va en la cabecera y el del tipo de gráfico dentro de su espacio, junto a su pregunta («los íconos de tipo de lámina y tipo de gráficos tienen que estar mejor puestos»).
 - **Identidad**: ¿de quién es y cómo se ve? Línea visual, colores de las respuestas, logos, letra, íconos, con muestra viva.
 - **Reglas** (hoy Estilo del informe): ¿qué dicen las cifras? Redondeo, casos, texto de la base, «Otros», nota de redondeo, cada una con su «cómo se lee».
 - **Word**: ¿cómo sale como documento? Piezas del documento primero; sólo los tipos de gráfico que usa el informe.
@@ -31,7 +31,8 @@ Cada pestaña responde una pregunta del analista y cada ajuste vive en un solo l
 | # | Fase | Estado |
 |---|---|---|
 | F0 | Limpieza L1–L5 | pendiente |
-| F1 | Informe, vista PowerPoint | bloqueado por D1 |
+| F1 | Informe, vista de maquetas (íconos de lámina en la cabecera, de gráfico en su espacio) | bloqueado por D1 |
+| F1a | Botón «Previsualizar» en Láminas (antes «Ver cómo queda») | hecho, por verificar (019d0ad83) |
 | F2 | Informe, vista Word | bloqueado por D2 |
 | F3 | Identidad | bloqueado por D3 y D5 |
 | F4 | Reglas | bloqueado por D1 y D4 |
