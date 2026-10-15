@@ -11,6 +11,8 @@ import { SelloProcedencia } from "../estilo/SelloProcedencia";
 import { CabeceraSeccion } from "./CabeceraSeccion";
 import { Segmentado } from "../subpestanas/Segmentado";
 import { reglaGeneral } from "./reglaRedondeo";
+import { ExcepcionesRegla } from "./ExcepcionesRegla";
+import type { Excepcion } from "./excepcionesPlan";
 import {
   DECIMALES_MAX,
   METODO_ESTANDAR,
@@ -176,8 +178,11 @@ export function SeccionCalculos({
   nota,
   acciones,
   estado,
+  excepciones = [],
 }: {
   filas: readonly FilaCalculo[];
+  /** R4: gráficos con su propio método o decimales (marcados «Propio» en su tarjeta). */
+  excepciones?: readonly Excepcion[];
   nota: NotaRedondeo & { modo: ModoNota; texto: string };
   acciones: AccionesCalculos;
   /** Texto de carga, error o catálogo vacío: ocupa el lugar de la tabla dentro de la sección (C3). */
@@ -247,6 +252,8 @@ export function SeccionCalculos({
             </>
           ) : null}
           </details>
+          <ExcepcionesRegla excepciones={excepciones}
+            ayuda="«Redondeo › Propio» en la tarjeta del gráfico le da su método y sus decimales sólo a ese gráfico." />
         </>
       )}
     </section>
