@@ -76,6 +76,19 @@ export function textoComponentes(c: DerivadaBase): string {
 }
 
 /**
+ * Lo que cabe en la celda de la tabla, con la misma gramática que una pregunta
+ * simple: arriba lo que se reconoce («Alguna de 9 preguntas»), abajo lo que
+ * desambigua («P28_2 … P28_10 · sí = 1»). El detalle entero va en `title`.
+ */
+export function resumenCelda(c: DerivadaBase): { etiqueta: string; codigo: string } {
+  const n = c.variables.length;
+  const etiqueta = n === 1 ? "Alguna de 1 pregunta" : `Alguna de ${n} preguntas`;
+  const vars = n > 2 ? `${c.variables[0]} … ${c.variables[n - 1]}` : c.variables.join(", ");
+  const si = c.codigos.length ? ` · sí = ${c.codigos.join(", ")}` : "";
+  return { etiqueta, codigo: `${vars}${si}` };
+}
+
+/**
  * Línea de conteos de una base, con lo guardado: «Sí 120 · No 80 · Sin dato 5».
  * Si falta una componente en los datos, dice cuál.
  */

@@ -202,27 +202,11 @@
 }
 
 .pulso-compuesto-celda {
-  display: flex;
-  align-items: flex-start;
-  gap: 4px;
-  width: 100%;
-  min-width: 0;
-  padding: 4px 6px;
-  border: 1px dashed var(--module-accent-border);
-  border-radius: var(--pulso-radius);
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-  font: inherit;
-  font-size: 11.5px;
-  line-height: 1.35;
-  text-align: left;
-  overflow-wrap: anywhere;
+  /* Hereda la geometría de .pulso-preg-disparador: misma altura, borde y recorte. */
   cursor: pointer;
 }
 
 .pulso-compuesto-celda > svg {
-  flex: 0 0 auto;
-  margin-top: 2px;
   color: var(--module-accent);
 }
 

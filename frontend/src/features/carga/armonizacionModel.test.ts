@@ -420,3 +420,14 @@ describe("textos del informe (enunciado y base)", () => {
     expect(est.filas?.[0].enunciado).toBe("¿Edad?");
   });
 });
+
+describe("resumen del mapa: un código sin casos se informa sin alarmar", () => {
+  test("«0 Selecciona una respuesta» con 0 casos no es aviso; sin conteo o con casos, sí", async () => {
+    const { resumenEsAviso } = await import("./armonizacionModel");
+    const r = (sinMapa: number, casosSinMapa: number) => ({ sinMapa, casosSinMapa, etiquetaDistinta: 0 });
+    expect(resumenEsAviso(r(1, 0), true)).toBe(false);
+    expect(resumenEsAviso(r(1, 0), false)).toBe(true);
+    expect(resumenEsAviso(r(1, 3), true)).toBe(true);
+    expect(resumenEsAviso({ ...r(0, 0), etiquetaDistinta: 1 }, true)).toBe(true);
+  });
+});

@@ -547,6 +547,16 @@ function plural(n: number, uno: string, varios: string): string {
  * además todos caen en una categoría con su misma etiqueta: un destino por
  * número con otra etiqueta no es un destino resuelto.
  */
+/**
+ * ¿El resumen es un aviso? Un código sin mapa que no pierde casos (el «0
+ * Selecciona una respuesta» de Kobo, contado en 0) se informa, pero no alarma.
+ * Sin conteos todavía no se sabe y sí avisa.
+ */
+export function resumenEsAviso(r: ResumenMapa, conConteos: boolean): boolean {
+  if (r.etiquetaDistinta > 0) return true;
+  return r.sinMapa > 0 && (!conConteos || r.casosSinMapa > 0);
+}
+
 export function textoResumenMapa(r: ResumenMapa, explicito: boolean): string {
   const partes: string[] = [];
   if (r.sinMapa > 0) {

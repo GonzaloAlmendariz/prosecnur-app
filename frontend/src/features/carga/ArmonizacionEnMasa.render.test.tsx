@@ -42,8 +42,8 @@ describe("textos del informe", () => {
     }));
     expect(html).toContain("Enunciado en el informe");
     expect(html).toContain('placeholder="Departamento de residencia"');
-    expect(html).toContain('placeholder="se calcula sola"');
-    expect(html).toContain("Se imprime como «Base: …» bajo la tabla.");
+    expect(html).toContain('placeholder="Automática"');
+    expect(html).toContain("Va bajo la tabla como «Base: …».");
     expect(html).toContain("data-qa-geometry-member");
   });
 });
