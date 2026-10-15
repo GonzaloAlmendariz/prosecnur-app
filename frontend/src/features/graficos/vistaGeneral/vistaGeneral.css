@@ -1109,3 +1109,50 @@
 .pulso-f6-vg:has(.pulso-f6-vg-selbar) .pulso-f6-vg-cuerpo {
   padding-bottom: calc(var(--pulso-control-height-md) + 2 * var(--pulso-space-2) + 2 * var(--pulso-space-3) + var(--pulso-space-6));
 }
+
+/* I9 del rediseño (2026-10-14): maqueta de la lámina de texto. */
+.pulso-f6-vg-maqueta.is-texto .pulso-f6-vg-maqueta-titulo {
+  top: 6%;
+}
+
+.pulso-f6-vg-texto {
+  position: absolute;
+  top: 24%;
+  left: 3.6%;
+  right: 8%;
+  bottom: 8%;
+  display: flex;
+  flex-direction: column;
+  gap: 2.4em;
+  overflow: hidden;
+  color: var(--pulso-text-muted);
+  font-size: 3.6em;
+  line-height: 1.3;
+}
+
+.pulso-f6-vg-texto-linea {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.pulso-f6-vg-texto-linea.is-vineta {
+  -webkit-line-clamp: 1;
+  padding-left: 1.1em;
+  text-indent: -1.1em;
+}
+
+.pulso-f6-vg-texto-linea.is-vineta::before {
+  content: "•";
+  display: inline-block;
+  width: 1.1em;
+  text-indent: 0;
+  color: var(--module-accent);
+}
+
+.pulso-f6-vg-texto-gris {
+  height: 0.55em;
+  border-radius: 1px;
+  background: var(--pulso-border);
+}

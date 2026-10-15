@@ -33,6 +33,22 @@ function MaquetaTarjetaBase({ slide, tipoLabel, antetitulo }: Props) {
     [estructura, slide, variables, presets, paletas, vinculos],
   );
 
+  // I9 (2026-10-14): la lámina de texto no tiene composición que dibujar —salía en blanco—; su maqueta es su título y el
+  // comienzo de su texto o sus viñetas, y líneas grises si todavía no tiene texto.
+  if (slide.tipo === "p_slide_texto") {
+    const { titulo, lineas } = textoDeLamina(slide.payload as Record<string, unknown>);
+    return (
+      <span className="pulso-f6-vg-maqueta is-texto" data-maqueta-tipo={slide.tipo}>
+        <span className={`pulso-f6-vg-maqueta-titulo${titulo ? "" : " is-vacio"}`}>{titulo || "Sin título"}</span>
+        <span className="pulso-f6-vg-texto">
+          {lineas.length
+            ? lineas.map((l, i) => <span key={i} className={`pulso-f6-vg-texto-linea${l.vineta ? " is-vineta" : ""}`}>{l.texto}</span>)
+            : [92, 84, 70].map((w) => <span key={w} className="pulso-f6-vg-texto-gris" style={{ width: `${w}%` }} />)}
+        </span>
+      </span>
+    );
+  }
+
   if (estructura) {
     return (
       <span className="pulso-f6-vg-maqueta is-estructura" data-maqueta-tipo={slide.tipo}>
@@ -66,3 +82,16 @@ function MaquetaTarjetaBase({ slide, tipoLabel, antetitulo }: Props) {
 }
 
 export const MaquetaTarjeta = memo(MaquetaTarjetaBase);
+
+const MAX_LINEAS = 4;
+const texto = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+
+/** Título y hasta cuatro líneas de una lámina de texto: sus viñetas o, sin ellas, su texto (que el CSS corta). */
+export function textoDeLamina(payload: Record<string, unknown>): { titulo: string; lineas: { texto: string; vineta: boolean }[] } {
+  const vinetas = Array.isArray(payload.bullets) ? payload.bullets.map(texto).filter(Boolean) : [];
+  const cuerpo = texto(payload.texto);
+  const lineas = vinetas.length
+    ? vinetas.slice(0, MAX_LINEAS).map((t) => ({ texto: t, vineta: true }))
+    : cuerpo ? [{ texto: cuerpo, vineta: false }] : [];
+  return { titulo: texto(payload.titulo), lineas };
+}
