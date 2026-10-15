@@ -14,7 +14,8 @@ import { useGraficosReportScope } from "../reportScope";
 import { usePlanStore } from "../store";
 import { useSubpestana } from "../subpestanas/Subpestanas";
 import { PaginaMaqueta, useArmadoWord } from "../vistaGeneral/VistaWordInforme";
-import { contarFiguras } from "../vistaGeneral/paginasWord";
+import { contarFiguras, tituloCortoWord } from "../vistaGeneral/paginasWord";
+import { DetalleDocumento } from "./DetalleDocumento";
 import { WordPresetsEditor } from "../WordPresetsEditor";
 import { PartesWord } from "./PartesWord";
 import { PARTES_WORD, paginaDeParte, resumenDeParte, type ParteWord } from "./modeloPestanaWord";
@@ -38,7 +39,8 @@ function Vinculo({ pestana, foco, children }: { pestana: string; foco?: string; 
   return <button type="button" className="pulso-f6-w-vinculo" onClick={ir}>{children}</button>;
 }
 
-function DetalleParte({ parte, resumen }: { parte: ParteWord; resumen: string }) {
+function DetalleParte({ parte, resumen, tituloInforme }: { parte: ParteWord; resumen: string; tituloInforme: string }) {
+  if (parte === "documento") return <DetalleDocumento tituloInforme={tituloInforme} resumen={resumen} />;
   if (parte === "graficos") {
     return (
       <section className="pulso-f6-informe-seccion" aria-label="Ajustes por tipo de gráfico" data-qa-geometry-member data-seccion="word-graficos">
@@ -46,8 +48,7 @@ function DetalleParte({ parte, resumen }: { parte: ParteWord; resumen: string })
       </section>
     );
   }
-  const textos: Record<Exclude<ParteWord, "graficos">, { titulo: string; cuerpo: string; vinculo?: { pestana: string; foco?: string; texto: string } }> = {
-    documento: { titulo: "Documento", cuerpo: `Hoy el documento lleva: ${resumen}. El encabezado corre arriba de cada página con el título del informe.` },
+  const textos: Record<Exclude<ParteWord, "graficos" | "documento">, { titulo: string; cuerpo: string; vinculo?: { pestana: string; foco?: string; texto: string } }> = {
     portada: { titulo: "Portada", cuerpo: "La portada del recetario Word, con el título del informe y los logos.", vinculo: { pestana: "identidad", foco: "logos", texto: "Identidad › Logos" } },
     capitulos: { titulo: "Capítulos", cuerpo: `Cada capítulo abre con su número y su título (${resumen}).` },
     cierre: { titulo: "Cierre", cuerpo: "La contraportada lleva el logo y el contacto al centro.", vinculo: { pestana: "identidad", foco: "logos", texto: "Identidad › Logos" } },
@@ -73,7 +74,8 @@ export default function PestanaWord() {
   const paginas = useArmadoWord(slides);
   const partes = useMemo(() => PARTES_WORD.map((p) => ({ ...p, resumen: resumenDeParte(paginas, p.key) })), [paginas]);
   const pagina = paginaDeParte(paginas, parte);
-  const tituloCorto = paginas[0]?.clase === "portada" ? paginas[0].titulo : "Informe";
+  const tituloInforme = paginas[0]?.clase === "portada" ? paginas[0].titulo : "Informe";
+  const tituloCorto = tituloCortoWord(tituloInforme, usePlanStore((s) => s.documentoWord.titulo_corto));
   const nGraficos = contarFiguras(paginas);
 
   return (
@@ -92,7 +94,7 @@ export default function PestanaWord() {
             <PartesWord partes={partes} actual={parte} onElegir={setParte} idPanel={ID_PANEL} />
             <div className="pulso-f6-informe-secciones pulso-f6-w-detalle" id={ID_PANEL} role="tabpanel" aria-labelledby={`f6-w-parte-${parte}`}
               data-qa-geometry-group="graficos/f6-word-secciones" data-qa-geometry-contract="intrinsic">
-              <DetalleParte parte={parte} resumen={partes.find((p) => p.key === parte)?.resumen ?? ""} />
+              <DetalleParte parte={parte} resumen={partes.find((p) => p.key === parte)?.resumen ?? ""} tituloInforme={tituloInforme} />
             </div>
             <aside className="pulso-f6-w-prev" aria-label="Así queda">
               <span className="pulso-f6-lectura-lab">Así queda · {PARTES_WORD.find((p) => p.key === parte)?.label}</span>

@@ -83,3 +83,14 @@
   .pulso-f6-w-parte { flex: none; }
   .pulso-f6-w-parte small { display: none; }
 }
+
+/* W2: campos de Word › Documento. */
+.pulso-f6-w-campos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+}
+.pulso-f6-w-campo { display: flex; flex-direction: column; gap: var(--pulso-space-1); min-width: 0; font-size: 12px; }
+.pulso-f6-w-campo > span { color: var(--pulso-text-soft); font-weight: var(--pulso-weight-semibold); }
+.pulso-f6-w-campo small { color: var(--pulso-text-soft); font-size: 11px; }
+@container (max-width: 520px) { .pulso-f6-w-campos { grid-template-columns: minmax(0, 1fr); } }
