@@ -4,6 +4,7 @@
 
 import { InterruptorOtros } from "./InterruptorOtros";
 import { ResumenInforme } from "./ResumenInforme";
+import { Segmentado } from "./Segmentado";
 import type { FiltroInforme } from "./estadoTarjetas";
 import type { CoberturaInforme } from "./modeloVistaGeneral";
 import type { TamanoTarjeta } from "./vistaGeneralStore";
@@ -37,14 +38,8 @@ export function BarraVistaGeneral({ cobertura, conteos, filtro, onFiltro, selecc
         data-qa-geometry-group="graficos/f6-vg-cobertura" data-qa-geometry-contract="intrinsic">
         <h2 className="pulso-f6-vg-titulo-vista">Informe</h2>
         {/* I11: maquetas de lámina o de página del Word (D2: el Word real, sólo en la pestaña Word). */}
-        <div className="pulso-f6-vg-tamano" role="radiogroup" aria-label="Cómo ver el informe">
-          {(["maquetas", "word"] as const).map((m) => (
-            <button key={m} type="button" role="radio" aria-checked={modo === m}
-              className={`pulso-f6-vg-tamano-op${modo === m ? " is-activo" : ""}`} onClick={() => onModo(m)}>
-              {m === "maquetas" ? "Maquetas" : "Word"}
-            </button>
-          ))}
-        </div>
+        <Segmentado etiqueta="Cómo ver el informe" valor={modo} onCambiar={onModo}
+          opciones={[{ clave: "maquetas", rotulo: "Maquetas" }, { clave: "word", rotulo: "Word" }]} />
         {/* I3: el resumen clicable reemplaza los conteos de láminas, con gráfico e incompletas. */}
         {word
           ? <span className="pulso-f6-vg-dato">≈ <strong>{paginasWord.paginas}</strong> páginas · <strong>{paginasWord.graficos}</strong> gráficos</span>
@@ -56,14 +51,7 @@ export function BarraVistaGeneral({ cobertura, conteos, filtro, onFiltro, selecc
       {/* I7: las acciones sobre la selección viven en la barra flotante (BarraSeleccion); aquí sólo cómo elegir. */}
       {seleccionadas === 0 && !word && <span className="pulso-f6-vg-seleccion">Clic para elegir · Mayús o Ctrl/⌘ para varias</span>}
       {/* I10: el tamaño de las tarjetas; la maqueta escala sola (cqw) y las filas de un capítulo se llenan solas. */}
-      {!word && <div className="pulso-f6-vg-tamano" role="radiogroup" aria-label="Tamaño de las tarjetas">
-        {TAMANOS.map(({ clave, rotulo }) => (
-          <button key={clave} type="button" role="radio" aria-checked={tamano === clave}
-            className={`pulso-f6-vg-tamano-op${tamano === clave ? " is-activo" : ""}`} onClick={() => onTamano(clave)}>
-            {rotulo}
-          </button>
-        ))}
-      </div>}
+      {!word && <Segmentado etiqueta="Tamaño de las tarjetas" opciones={TAMANOS} valor={tamano} onCambiar={onTamano} />}
     </header>
   );
 }
