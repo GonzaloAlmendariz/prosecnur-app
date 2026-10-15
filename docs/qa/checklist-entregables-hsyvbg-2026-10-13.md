@@ -166,6 +166,14 @@ RI-03, CO-01, CO-03, AP-10, AP-11, A-01, A-02).
 
 ## R4b: correcciones metodológicas al comparativo (revisor-metodologico, 2026-10-13: RECHAZADO)
 
+**Estado: cerrado** en 7b79bf9ba (puntos 1–8) y 57b36023a (opciones no ofrecidas y
+especiales en el resumen de cruces); ampliado después por 8732b5428, ec7831f37,
+f9cc44a5f y 343abd265 («n.c.», omisiones avisadas, exclusiones de Analítica). El pie con
+la ponderación de cada año existe (`.comparativo_linea_ponderacion`,
+`api/R/reporte_comparativo.R` ~232). Una sesión hermana informó el 2026-10-15 que Gonzalo
+no quiere esa línea; queda **pendiente de su confirmación directa** antes de quitarla. El
+409 por peso no declarado no es una nota y se mantiene.
+
 Backend de R4 commiteado en 10f2ab416 (verificador APROBADO en contrato y formato). El
 revisor metodológico lo rechazó por cifras que pueden salir mal sin aviso. Pendiente
 como R4b, antes de dar los comparativos por buenos:
