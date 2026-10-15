@@ -95,7 +95,7 @@ export function BibliotecaLineas() {
   }, []);
 
   return (
-    <div className="pulso-f6-lv">
+    <div className="pulso-f6-lv" data-qa-geometry-group="graficos/f6-lv-grupos" data-qa-geometry-contract="intrinsic">
       {propiaAplicada && cambios > 0 && (
         <div className="pulso-f6-lv-banda" role="status">
           <span>Cambiaste {cambios === 1 ? "un valor" : `${cambios} valores`} de “{propiaAplicada.titulo_humano}”.</span>
@@ -120,7 +120,7 @@ export function BibliotecaLineas() {
           Guardar como línea nueva
         </PulsoButton>
       </div>
-      <section className="pulso-f6-lv-grupo" aria-labelledby="f6-lv-recetario">
+      <section className="pulso-f6-lv-grupo" aria-labelledby="f6-lv-recetario" data-qa-geometry-member>
         <h4 id="f6-lv-recetario" className="pulso-f6-lv-grupo-titulo">Del recetario <small>se aplican tal cual; para cambiarlas, guarda una propia</small></h4>
         {loading ? <p className="pulso-f6-lv-estado" role="status">Cargando las líneas del recetario…</p>
           : error ? <p className="pulso-f6-lv-estado is-error" role="alert">No se pudieron cargar: {error}</p>
@@ -130,7 +130,7 @@ export function BibliotecaLineas() {
             </div>
           )}
       </section>
-      <section className="pulso-f6-lv-grupo" aria-labelledby="f6-lv-propias">
+      <section className="pulso-f6-lv-grupo" aria-labelledby="f6-lv-propias" data-qa-geometry-member>
         <h4 id="f6-lv-propias" className="pulso-f6-lv-grupo-titulo">Tus líneas <small>guardadas en la app, para todos los estudios</small></h4>
         {!cargadas ? <p className="pulso-f6-lv-estado" role="status">Cargando tus líneas…</p>
           : errorPropias ? <p className="pulso-f6-lv-estado is-error" role="alert">{errorPropias}</p>

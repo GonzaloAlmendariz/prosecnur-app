@@ -1,19 +1,19 @@
-// Menú de las cinco partes del Word (W1 del rediseño, 2026-10-15) sobre el `foco` de la dirección. Usa el mismo menú
-// lateral que las piezas de Identidad (MenuLateral, 2026-10-15: «más profesional y uniforme»). Bajo 1280 px se pone en
-// fila (word.css).
+// Las cinco partes del Word (W1 del rediseño, 2026-10-15) sobre el `foco` de la dirección, con la columna de partes
+// compartida (`components/ListaPartes`, la misma de Identidad y del Impreso del editor de formularios: «más profesional
+// y uniforme»). Sin estado: el Word no tiene uno real por parte; el detalle ya dice lo que hay («19 capítulos»).
 
-import { BarChart3, BookOpen, Bookmark, FileText, ListOrdered } from "../../../vendor/lucide-react";
-import { MenuLateral } from "../subpestanas/MenuLateral";
+import { ListaPartes, type GrupoDePartes } from "../../../components/ListaPartes";
 import type { ParteWord } from "./modeloPestanaWord";
+
+/** Prefijo de los ids de fila: el detalle cita `${PREFIJO_PARTE_WORD}-${parte}` en `aria-labelledby`. */
+export const PREFIJO_PARTE_WORD = "f6-w-parte";
 
 type Props = { partes: readonly { key: ParteWord; label: string; resumen: string }[]; actual: ParteWord; onElegir: (k: ParteWord) => void; idPanel: string };
 
-const ICONOS = { documento: FileText, portada: BookOpen, capitulos: ListOrdered, graficos: BarChart3, cierre: Bookmark } as const;
-
 export function PartesWord({ partes, actual, onElegir, idPanel }: Props) {
+  const grupos: GrupoDePartes<ParteWord>[] = [{ id: "word", partes: partes.map((p) => ({ clave: p.key, rotulo: p.label, detalle: p.resumen })) }];
   return (
-    <MenuLateral items={partes.map((p) => ({ clave: p.key, titulo: p.label, resumen: p.resumen, icono: ICONOS[p.key] }))}
-      actual={actual} onElegir={onElegir} idPanel={idPanel} etiqueta="Partes del documento" idDe={(k) => `f6-w-parte-${k}`}
-      className="pulso-f6-w-partes" grupoQa="graficos/f6-w-partes" contratoQa="intrinsic" />
+    <ListaPartes etiqueta="Partes del documento" grupos={grupos} actual={actual} onElegir={onElegir} idPanel={idPanel}
+      prefijoId={PREFIJO_PARTE_WORD} className="pulso-f6-w-partes" />
   );
 }
