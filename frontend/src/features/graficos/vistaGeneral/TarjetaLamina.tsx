@@ -33,11 +33,10 @@ type Props = {
   manejadores: ManejadoresTarjeta;
 };
 
-const MAX_ICONOS = 6;
 const ROL: Record<TarjetaVistaGeneral["rol"], string> = { separador: "Capítulo", subcapitulo: "Subcapítulo", lamina: "" };
 
 function TarjetaLaminaBase({ tarjeta, slide, nombresGraficos, seleccionada, itinerante, arrastrada, soltar, manejadores }: Props) {
-  const { lamina, rol, numero, graficos } = tarjeta;
+  const { lamina, rol, numero } = tarjeta;
   const detalleGraficos = lamina.ranuras === 0
     ? ""
     : lamina.ranurasLlenas === 0
@@ -70,29 +69,21 @@ function TarjetaLaminaBase({ tarjeta, slide, nombresGraficos, seleccionada, itin
       onDrop={manejadores.onSoltar}
       onDragEnd={manejadores.onFinArrastre}
     >
+      {/* I2 (2026-10-14): arriba el tipo de lámina con su ícono y el número; los glifos de cada gráfico van DENTRO de su
+          ranura en la maqueta (I1), junto a su pregunta, y ya no en una fila de íconos al pie. */}
+      <span className="pulso-f6-vg-cabeza" aria-hidden="true">
+        <IconoTipo clase="lamina" tipo={lamina.tipo} size={16} className="pulso-f6-vg-tipo" />
+        <span className="pulso-f6-vg-tipo-nombre">{ROL[rol] ? [ROL[rol], numero].filter(Boolean).join(" ") : lamina.tipoLabel}</span>
+        <span className="pulso-f6-vg-pos">{lamina.posicion}</span>
+      </span>
       <span className="pulso-f6-miniatura pulso-f6-vg-lienzo is-maqueta">
         {slide && <MaquetaTarjeta slide={slide} tipoLabel={lamina.tipoLabel} antetitulo={lamina.antetituloHeredado} />}
-        {rol !== "lamina" && numero && (
-          <span className="pulso-f6-vg-rol" aria-hidden="true">{ROL[rol]} {numero}</span>
-        )}
-        <span className="pulso-f6-miniatura-num" aria-hidden="true">{lamina.posicion}</span>
         <span className="pulso-f6-vg-check" aria-hidden="true" />
       </span>
       <span className="pulso-f6-vg-pie" aria-hidden="true">
-        <IconoTipo clase="lamina" tipo={lamina.tipo} size={16} className="pulso-f6-vg-tipo" />
         <span className="pulso-f6-vg-titulo" title={lamina.titulo}>{lamina.titulo}</span>
-        {lamina.ranuras > 0 && (
-          <span className={`pulso-f6-vg-graficos${lamina.ranurasLlenas < lamina.ranuras ? " is-incompleta" : ""}`}>
-            {/* Hasta seis, que es lo más que lleva una lámina («Seis gráficos»): con cuatro y «+2» la tarjeta escondía
-                justo los gráficos de las láminas más cargadas (Gonzalo, 2026-10-14). */}
-            {graficos.slice(0, MAX_ICONOS).map((g, i) => (
-              <IconoTipo key={`${g}-${i}`} clase="grafico" tipo={g} size={16} />
-            ))}
-            {graficos.length > MAX_ICONOS && <span className="pulso-f6-vg-mas">+{graficos.length - MAX_ICONOS}</span>}
-            {lamina.ranurasLlenas < lamina.ranuras && (
-              <span className="pulso-f6-vg-vacias">{lamina.ranuras - lamina.ranurasLlenas} sin gráfico</span>
-            )}
-          </span>
+        {lamina.ranuras > 0 && lamina.ranurasLlenas < lamina.ranuras && (
+          <span className="pulso-f6-vg-vacias">{lamina.ranuras - lamina.ranurasLlenas} sin gráfico</span>
         )}
       </span>
     </li>
