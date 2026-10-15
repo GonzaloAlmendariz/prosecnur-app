@@ -124,7 +124,7 @@ export function DialogoLinea() {
                   <legend>Qué incluye</legend>
                   <label><input type="checkbox" checked={colores} onChange={(e) => setColores(e.target.checked)} /> Colores <small>las paletas de las respuestas</small></label>
                   <label><input type="checkbox" checked={graficos} onChange={(e) => setGraficos(e.target.checked)} /> Gráficos y portada <small>estilo de los gráficos, estilos guardados y plantilla</small></label>
-                  <label className="is-deshabilitado"><input type="checkbox" checked={false} disabled /> Logos y letra <small>llegarán a la línea cuando lleguen al PowerPoint</small></label>
+                  <label className="is-deshabilitado"><input type="checkbox" checked={false} disabled /> Logos y letra <small>se ajustan en sus piezas de Identidad; la línea guarda colores y gráficos</small></label>
                 </fieldset>
               )}
               {error ? <p className="pulso-f6-lv-dialogo-error" role="alert">{error}</p> : null}

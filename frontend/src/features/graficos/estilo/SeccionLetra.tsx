@@ -55,8 +55,8 @@ export function SeccionLetra({
         ) : null}
       </header>
       <p className="pulso-f6-estilo-ayuda">
-        Para un cliente que pide letras más grandes en todos sus informes. Aplica a toda la jerarquía del Word (al PPT llega
-        con la decisión D5); las cifras de los gráficos nunca bajan de 8 pt.
+        Para un cliente que pide letras más grandes en todos sus informes. Aplica a toda la jerarquía, en el PPT y en el Word;
+        las cifras de los gráficos nunca bajan de 8 pt.
       </p>
 
       <fieldset className="pulso-f6-estilo-opciones is-pasos" data-qa-geometry-group="graficos/f6-estilo-pasos" data-qa-geometry-contract="equal">

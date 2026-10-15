@@ -1,7 +1,7 @@
 // Muestra viva de Identidad (ID8 del rediseño, 2026-10-15): tres miniaturas que cambian con cada ajuste de la pestaña —
 // la portada del PPT, una lámina con los colores de las respuestas y la portada y una página del Word—. No es el
 // documento: es lo que la identidad elegida cambia, a la vista mientras se ajusta. Lo que cada salida recibe sigue la
-// tabla «A qué salida llega»: logos y letra, por ahora, sólo en el Word (D5).
+// tabla «A qué salida llega»: desde ID9 (D5) logos y letra llegan al PPT y al Word.
 
 import { GlifoGrafico } from "../iconos/GlifoGrafico";
 
@@ -37,6 +37,7 @@ export function MuestraIdentidad({ datos }: { datos: DatosMuestra }) {
         <figure className="pulso-f6-muestra-pieza" data-qa-geometry-member>
           <figcaption>Portada del PPT</figcaption>
           <span className="pulso-f6-muestra-ppt-portada">
+            <span className="pulso-f6-muestra-logos is-ppt"><Logo logo={datos.logos.izquierda} /><Logo logo={datos.logos.derecha} /></span>
             <span className="pulso-f6-muestra-ppt-titulo">{datos.titulo}</span>
             <span className="pulso-f6-muestra-ppt-regla" />
           </span>

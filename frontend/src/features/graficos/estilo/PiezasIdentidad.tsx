@@ -8,12 +8,12 @@ export type ClavePieza = "linea" | "colores" | "logos" | "letra" | "iconos";
 export type TonoEstado = "ok" | "aviso" | "neutro";
 export type Pieza = { clave: ClavePieza; titulo: string; resumen: string; estado: { texto: string; tono: TonoEstado } };
 
-/** Qué pieza llega a qué salida. Logos y letra llegan al PPT con la decisión D5 (ID9); hasta entonces, sólo al Word. */
+/** Qué pieza llega a qué salida. ID9 (d589311b3): logos y letra llegan también al PPT (decisión D5). */
 export const SALIDAS: readonly { clave: ClavePieza; titulo: string; ppt: boolean; word: boolean }[] = [
   { clave: "linea", titulo: "Línea visual", ppt: true, word: true },
   { clave: "colores", titulo: "Colores", ppt: true, word: true },
-  { clave: "logos", titulo: "Logos", ppt: false, word: true },
-  { clave: "letra", titulo: "Letra", ppt: false, word: true },
+  { clave: "logos", titulo: "Logos", ppt: true, word: true },
+  { clave: "letra", titulo: "Letra", ppt: true, word: true },
   { clave: "iconos", titulo: "Íconos", ppt: true, word: true },
 ];
 
@@ -60,7 +60,7 @@ export function PiezasIdentidad({ piezas, actual, onElegir, idPanel }: Props) {
             <i role="cell" className={s.word ? "is-si" : ""} aria-label={s.word ? "Llega al Word" : "No llega al Word"} />
           </span>
         ))}
-        <p className="pulso-f6-id-salidas-nota">Logos y letra llegarán también al PPT (decisión D5).</p>
+        <p className="pulso-f6-id-salidas-nota">Con una plantilla de cliente que trae su propia portada, los logos propios no se ponen en ella.</p>
       </div>
     </aside>
   );

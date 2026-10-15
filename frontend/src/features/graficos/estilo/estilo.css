@@ -1211,3 +1211,20 @@
   color: var(--pulso-text-faint);
   font-size: 11px;
 }
+
+/* ID9: la portada del PPT de la muestra también lleva los logos (arriba, como la plantilla estándar). */
+.pulso-f6-muestra-logos.is-ppt {
+  position: absolute;
+  top: 5cqw;
+  left: 6cqw;
+  right: 6cqw;
+}
+
+.pulso-f6-muestra-logos.is-ppt .pulso-f6-muestra-logo-texto {
+  color: var(--pulso-surface);
+  font-size: 3.4cqw;
+}
+
+.pulso-f6-muestra-logos.is-ppt .pulso-f6-muestra-logo-img {
+  height: 8cqw;
+}
