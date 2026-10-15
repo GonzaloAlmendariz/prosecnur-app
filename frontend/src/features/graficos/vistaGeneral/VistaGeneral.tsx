@@ -43,6 +43,7 @@ import {
 import { objetivoDeAccion, reconciliarSeleccionVG, seleccionar, seleccionarTodo, SELECCION_VACIA } from "./seleccionVistaGeneral";
 import { destinoDeFoco, intencionDeTecla, objetivoDeReenfoque } from "./tecladoVistaGeneral";
 import { useEstadosInforme } from "./useEstadosInforme";
+import { EstructuraLateral } from "./EstructuraLateral";
 import { pasaFiltro } from "./estadoTarjetas";
 import { useFlipTarjetas } from "./useFlipTarjetas";
 import { useVistaGeneralUi } from "./vistaGeneralStore";
@@ -421,6 +422,8 @@ export default function VistaGeneral() {
         aria-label="Láminas del informe por capítulo"
         role="region"
       >
+        <EstructuraLateral filas={filas} estados={estados}
+          onIr={(id) => cuerpoRef.current?.querySelector(`[data-vg-fila="${CSS.escape(id)}"]`)?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })} />
         <div className="pulso-f6-vg-filas" data-qa-geometry-group="graficos/f6-vg-filas" data-qa-geometry-contract="intrinsic"
           onDragOver={onSobreHueco} onDrop={manejadores.onSoltar}>
           {filas.map((fila) => {
