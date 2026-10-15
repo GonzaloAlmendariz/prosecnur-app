@@ -118,7 +118,8 @@
   force(folio)
   R <- .LAM_RADAR; g_ <- .std_geom; ml <- g_("margen_izq"); W <- g_("ancho"); yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
   doc <- officer::add_slide(doc, layout = layout, master = master)
-  doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
+  arriba <- .lam_leyenda_va_arriba(espec$grupos)   # G4: la leyenda sube al antetítulo
+  doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub, leyenda = if (arriba) espec$colores)
   # Sin tabla, el radar y su leyenda se centran en la lámina.
   x_radar <- if (isTRUE(espec$con_tabla)) ml else W / 2 - R$ancho / 2
   doc <- officer::ph_with(doc, rvg::dml(ggobj = .lam_radar_gg(espec), bg = "transparent", fonts = list(sans = .std_pt("fuente"))),
@@ -127,7 +128,7 @@
   lz <- .lam_lienzo()
   # Una serie única sintética («Total») no lleva leyenda, como en `graficar_radar()`.
   sintetica <- length(espec$grupos) == 1L && trimws(tolower(espec$grupos[1])) %in% c("total", "")
-  if (!sintetica) .lam_leyenda(lz, yf - 0.3, espec$grupos, unname(espec$colores), centrar_en = x_radar + R$ancho / 2)
+  if (!sintetica && !arriba) .lam_leyenda(lz, yf - 0.3, espec$grupos, unname(espec$colores), centrar_en = x_radar + R$ancho / 2)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:radar:leyenda")
   if (isTRUE(espec$con_tabla)) {
     d <- data.frame(espec$ejes, espec$cifras, check.names = FALSE, stringsAsFactors = FALSE)
