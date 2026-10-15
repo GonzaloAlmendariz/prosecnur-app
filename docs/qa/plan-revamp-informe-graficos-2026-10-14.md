@@ -11,10 +11,10 @@ Propuesta con maquetas: https://claude.ai/artifact/8vtEx3LmE5V92FfqXxN8ZH (priva
 
 Cada pestaña responde una pregunta del analista y cada ajuste vive en un solo lugar:
 
-- **Informe** (hoy Vista general): ¿está bien armado lo que voy a entregar? Vista de **maquetas** (decisión de Gonzalo, 2026-10-14: «para la vista de informe el énfasis no es cómo se ve en PowerPoint sino las maquetas; el cómo se ve en PowerPoint se queda en Lámina y el botón cambia a "Previsualizar"») y vista Word (páginas A4). En cada tarjeta, el ícono del tipo de lámina va en la cabecera y el del tipo de gráfico dentro de su espacio, junto a su pregunta («los íconos de tipo de lámina y tipo de gráficos tienen que estar mejor puestos»).
+- **Informe** (hoy Vista general): ¿está bien armado lo que voy a entregar? Vista de **maquetas** (decisión de Gonzalo, 2026-10-14: «para la vista de informe el énfasis no es cómo se ve en PowerPoint sino las maquetas; el cómo se ve en PowerPoint se queda en Lámina y el botón cambia a "Previsualizar"») y vista Word en **maquetas de página** (portada, índice, capítulos, figuras numeradas con su glifo y su pie). El Word real sólo se previsualiza en la pestaña Word (Gonzalo, 2026-10-14: «para el Word es igual, con un sistema de maquetas que se muestran de forma elegante, pero que sólo se puede previsualizar en la subtab de Word; para Informe es sólo una maqueta profesional»). En cada tarjeta, el ícono del tipo de lámina va en la cabecera y el del tipo de gráfico dentro de su espacio, junto a su pregunta («los íconos de tipo de lámina y tipo de gráficos tienen que estar mejor puestos»).
 - **Identidad**: ¿de quién es y cómo se ve? Línea visual, colores de las respuestas, logos, letra, íconos, con muestra viva.
 - **Reglas** (hoy Estilo del informe): ¿qué dicen las cifras? Redondeo, casos, texto de la base, «Otros», nota de redondeo, cada una con su «cómo se lee».
-- **Word**: ¿cómo sale como documento? Piezas del documento primero; sólo los tipos de gráfico que usa el informe.
+- **Word**: ¿cómo sale como documento? Piezas del documento primero; sólo los tipos de gráfico que usa el informe; «Previsualizar» genera el Word real y lo muestra por páginas.
 
 ## Fallas encontradas en el inventario (F0)
 
@@ -33,17 +33,17 @@ Cada pestaña responde una pregunta del analista y cada ajuste vive en un solo l
 | F0 | Limpieza L1–L5 | pendiente |
 | F1 | Informe, vista de maquetas (íconos de lámina en la cabecera, de gráfico en su espacio) | bloqueado por D1 |
 | F1a | Botón «Previsualizar» en Láminas (antes «Ver cómo queda») | hecho, por verificar (019d0ad83) |
-| F2 | Informe, vista Word | bloqueado por D2 |
+| F2 | Informe, vista Word en maquetas de página | bloqueado por D1 |
 | F3 | Identidad | bloqueado por D3 y D5 |
 | F4 | Reglas | bloqueado por D1 y D4 |
-| F5 | Word | pendiente de F2 |
+| F5 | Word: piezas del documento, gráficos del informe y «Previsualizar» del Word real | pendiente de F2 |
 
 ## Decisiones
 
 | # | Decisión | Propuesta | Estado |
 |---|---|---|---|
 | D1 | Nombres de las pestañas | Láminas · Informe · Identidad · Reglas · Word | bloqueado (decide Gonzalo) |
-| D2 | Fidelidad de la vista Word | páginas compuestas en la app + «Ver el Word real» bajo pedido | bloqueado (decide Gonzalo) |
+| D2 | Fidelidad de la vista Word | maquetas de página en el Informe; Word real sólo en la pestaña Word con «Previsualizar» | **resuelta** (Gonzalo, 2026-10-14) |
 | D3 | Lugar de la línea visual | Identidad | bloqueado (decide Gonzalo) |
 | D4 | «Otros» como regla del informe | pasa a Reglas, texto corregido | bloqueado (decide Gonzalo) |
 | D5 | Logos y letra en el PPT | llevarlos o marcarlos «Sólo Word» | bloqueado (decide Gonzalo; decisión 16 de `decisiones-pendientes-f6-2026-10-10.md`) |
