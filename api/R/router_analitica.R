@@ -593,7 +593,8 @@
 }
 
 .analitica_read_pair_uncached <- function(pair, base_meta = NULL) {
-  rp_inst <- reporte_instrumento(path = pair$xls$path)
+  # ADR 0106: el instrumento de la base es el XLSForm más lo que la base declara.
+  rp_inst <- base_variables_instrumento(pair$xls$path, base_meta)
   rp_inst <- .analitica_apply_integrated_key(rp_inst, base_meta)
   dat_raw <- .analitica_read_data_file(pair$data)
   # CURA (frente B): este read RE-LEE el archivo crudo y alimenta la Analítica y
@@ -609,6 +610,7 @@
     monitoreo_handoff = if (nzchar(handoff_kind)) .base_hygiene_is_monitoreo_kind(handoff_kind) else NULL
   )
   dat_raw <- normalize_data_for_xlsform(dat_raw, rp_inst)
+  dat_raw <- base_variables_materializar(dat_raw, base_meta)
   dat_raw <- .analitica_filter_data_to_inst(dat_raw, rp_inst)
   # Universo analizable: si el estudio declaró qué caso cuenta, Analítica no
   # puede reportar sobre los que no. Un caso de prueba o sin consentimiento

@@ -61,11 +61,11 @@ también tome en cuenta estos indicadores?»
 
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
-| G1 | La UI dice qué tiene cada base y qué le falta frente a las otras | por definir (Equivalencias / Plan) | ☐ investigando |
-| G2 | Armar en 2026 las variables que 2024 y 2025 ya traen recodificadas (`_R`, `facultad`, `unidad`…) | por definir (Codificación / indicador compuesto materializado) | ☐ investigando |
-| G3 | Armonización de opciones: armonizar una escala una vez y aplicarla a todas las preguntas que la comparten | Equivalencias | ☐ investigando |
-| G4 | Una base 2026 preparada fuera (limpia, codificada, 2 500 casos, con indicadores) se reconoce tal cual | ADR 0100, origen externo | ☐ investigando |
-| G5 | ¿El XLSForm tiene que declarar esos indicadores? | Carga (columnas fuera del instrumento) | ☐ investigando |
+| G1 | La UI dice qué tiene cada base y qué le falta frente a las otras | por definir (Equivalencias / Plan) | ☑ panel «Mapa de bases» (5fe338e9e); metadatos plegados al final |
+| G2 | Armar en 2026 las variables que 2024 y 2025 ya traen recodificadas (`_R`, `facultad`, `unidad`…) | por definir (Codificación / indicador compuesto materializado) | ◐ hecho, falta revisarlo en el navegador: variables calculadas por base (ADR 0106), reglas «alguna» y «recodificar» |
+| G3 | Armonización de opciones: armonizar una escala una vez y aplicarla a todas las preguntas que la comparten | Equivalencias | ☑ «Aplicar a otras con la misma escala» (5fe338e9e) |
+| G4 | Una base 2026 preparada fuera (limpia, codificada, 2 500 casos, con indicadores) se reconoce tal cual | ADR 0100, origen externo | ◐ hecho, falta revisarlo en el navegador: panel «Variables de la base» (columnas propias, «ya codificada», retiradas pendientes) |
+| G5 | ¿El XLSForm tiene que declarar esos indicadores? | Carga (columnas fuera del instrumento) | ☑ con ADR 0106 ya no hace falta tocar el XLSForm |
 
 Aprendido: lo que 2024 y 2025 traen «de más» no son indicadores compuestos sino recodificaciones del procesamiento de
 esos años: variables `_R` (P12_R, P13_R… con 100 = «Perdido»), dummies de opción múltiple `P25.1_R`…, sociodemográficas

@@ -285,6 +285,17 @@ errores_registrados <- function() {
     # Base .sav sin XLSForm (contrato E4-E7, R1) y peso por columna (R2).
     "E_BASE_SAV_NO_SAV",                                     "carga_sav_sin_xlsform.R",           "400",
     "E_BASE_SAV_SIN_VARIABLES",                              "carga_sav_sin_xlsform.R",           "422",
+    # Variables propias y calculadas de cada base (ADR 0106).
+    "E_BASE_VARIABLE_NOMBRE_INVALIDO",                       "base_variables_calculadas.R",       "400",
+    "E_BASE_VARIABLE_DUPLICADA",                             "base_variables_calculadas.R",       "409",
+    "E_BASE_VARIABLE_INEXISTENTE",                           "base_variables_calculadas.R",       "422",
+    "E_BASE_VARIABLE_REGLA_DESCONOCIDA",                     "base_variables_calculadas.R",       "422",
+    "E_BASE_VARIABLE_REGLA_INCOMPLETA",                      "base_variables_calculadas.R",       "422",
+    "E_BASE_VARIABLE_ESCALA_VACIA",                          "base_variables_calculadas.R",       "422",
+    "E_BASE_VARIABLE_MAPA_INVALIDO",                         "base_variables_calculadas.R",       "422",
+    "E_BASE_VARIABLE_TIPO_INVALIDO",                         "base_variables_servicio.R",         "422",
+    "E_BASE_VARIABLE_NO_ENCONTRADA",                         "base_variables_servicio.R",         "404",
+    "E_CODIF_BASE_YA_CODIFICADA",                            "base_variables_servicio.R",         "409",
     "E_PONDERACION_COLUMNA_SIN_NOMBRE",                      "ponderacion_analitica.R",           "400",
     "E_PONDERACION_COLUMNA_INEXISTENTE",                     "ponderacion_analitica.R",           "422",
     "E_BASE_REQUERIDA",                                      "carga_estructura_base.R",           "400",

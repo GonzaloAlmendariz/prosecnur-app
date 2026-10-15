@@ -37,7 +37,14 @@
   "reporte_instrumento",
   "reporte_data",
   "normalize_data_for_xlsform",
-  "sanitize_base_data"
+  "sanitize_base_data",
+  # ADR 0106: instrumento adaptado y variables calculadas de la base.
+  "base_variables_xls_path",
+  ".base_variables_frames_adaptados",
+  "base_variables_materializar",
+  ".base_variables_retiradas",
+  ".base_variables_rellenar_retiradas",
+  "base_variables_calcular"
 )
 
 # Sello del código que produce una lectura: versión del paquete + texto de las

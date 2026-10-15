@@ -1413,7 +1413,9 @@ codif_inst_cached <- function(sid, source = NULL) {
     stop_api(409, "E_NO_XLSFORM",
              sprintf("La base '%s' no tiene XLSForm cargado.", src))
   }
-  inst <- leer_instrumento_xlsform(path)
+  # ADR 0106: las columnas propias y calculadas de la base también se codifican.
+  base_meta <- ((session_get(sid)$estudio %||% list())$bases %||% list())[[src]]
+  inst <- leer_instrumento_xlsform(base_variables_xls_path(path, base_meta))
   codif_set(sid, "inst", inst, source = src)
   inst
 }
@@ -1429,7 +1431,9 @@ codif_data_cached <- function(sid, source = NULL) {
   final_scope <- tryCatch(validacion_scope_get(sid, scope_source), error = function(e) NULL)
   finalized_at <- final_scope$limpieza_artifacts$finalized_at %||% NULL
   final_data <- final_scope$limpieza_preview$data_final %||% NULL
+  base_meta <- ((s$estudio %||% list())$bases %||% list())[[src]]
   if (!is.null(finalized_at) && nzchar(as.character(finalized_at)) && is.data.frame(final_data)) {
+    final_data <- base_variables_materializar(final_data, base_meta)
     codif_set(sid, "data", final_data, source = src)
     return(final_data)
   }
@@ -1442,6 +1446,7 @@ codif_data_cached <- function(sid, source = NULL) {
   df <- .read_data_any(meta)
   inst <- codif_inst_cached(sid, src)
   df <- normalize_data_for_xlsform(df, inst)
+  df <- base_variables_materializar(df, base_meta)
   codif_set(sid, "data", df, source = src)
   df
 }

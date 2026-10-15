@@ -3138,8 +3138,14 @@ mount_codificacion <- function(pr) {
     plumber::pr_post("/api/codificacion/aplicar", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       s <- session_get(sid)
+      # ADR 0106: una base marcada «ya viene codificada» no se recodifica (409),
+      # y la que declara columnas propias o calculadas se codifica con ellas.
+      base_codif <- codif_source_active(sid)
+      base_variables_assert_codificable(sid, base_codif)
+      base_codif_meta <- ((s$estudio %||% list())$bases %||% list())[[base_codif]]
       source_pair <- .codif_source_pair_for_adapt(sid)
       xls <- source_pair$xls
+      xls$path <- base_variables_xls_path(xls$path, base_codif_meta)
       dat <- source_pair$data
 
       # The app is the source of truth. On every /aplicar we rebuild the
@@ -3149,6 +3155,7 @@ mount_codificacion <- function(pr) {
       inst <- leer_instrumento_xlsform(xls$path)
       data_df <- .read_data_any(dat)
       data_df <- normalize_data_for_xlsform(data_df, inst)
+      data_df <- base_variables_materializar(data_df, base_codif_meta)
       data_adapt_df <- .codif_prepare_data_for_adapt(data_df)
 
       # 1) Ensure we have a familias draft (auto-generate from suggestion

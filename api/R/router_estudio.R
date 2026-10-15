@@ -1712,7 +1712,9 @@ mount_estudio <- function(pr) {
       rp_inst <- reporte_instrumento(path = xls_meta$path)
       data_df <- .read_data_from_path(dat_meta$path, dat_meta$ext)
       data_df <- normalize_data_for_xlsform(data_df, rp_inst)
-      .carga_assert_data_xlsform_compatible(data_df, rp_inst)
+      # ADR 0106: una pregunta que falta se retira (pendiente de motivo), no rechaza la base.
+      retiro <- base_variables_carga_retiradas(data_df, rp_inst, xls_meta$path, data_file_id)
+      rp_inst <- retiro$rp_inst
       rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
       base_meta <- estudio_add_base(
@@ -1726,6 +1728,8 @@ mount_estudio <- function(pr) {
         n_filas         = as.integer(nrow(data_df)),
         n_columnas      = as.integer(ncol(data_df))
       )
+      base_variables_carga_registrar(sid, nombre, retiro)
+      base_meta <- session_get(sid)$estudio$bases[[nombre]] %||% base_meta
 
       # Si es la primera base, también seteamos analitica_prep_ok y
       # analitica_fuente para preservar el contrato legacy con el frontend.
