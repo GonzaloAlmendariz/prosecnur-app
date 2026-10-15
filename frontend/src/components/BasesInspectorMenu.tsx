@@ -170,6 +170,9 @@ export function BasesInspectorMenu({
       maxWidth={520}
       ariaLabel="Instrumento y base de datos de cada base"
       trigger={disparador}
+      // Elegida otra base, el menú se queda abierto mientras dice «Cambiando…»
+      // y se cierra cuando la base activa ya es la nueva.
+      cerrarAlCambiar={onSeleccionar ? activa ?? null : undefined}
     >
       <div className="pulso-bases-inspector">
         <div className="pulso-bases-inspector-head">
