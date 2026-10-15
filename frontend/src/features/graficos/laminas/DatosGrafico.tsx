@@ -4,7 +4,7 @@
 // (bloques de multiapiladas, filtros) se edita en un panel ancho. Cierran la tarjeta el Top/Bottom Two Box de las
 // escalas y «En el Word» (F6.2, F-d; tarjetaGrafico/).
 
-import { Fragment, useId } from "react";
+import { Fragment, useId, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { Filter, Rows3 } from "../../../vendor/lucide-react";
 import { AyudaGlobo } from "./AyudaGlobo";
@@ -43,6 +43,7 @@ import { ColoresGrafico } from "./colores/ColoresGrafico";
 import { PaletaDelGrafico } from "./colores/PaletaDelGrafico";
 import { NombresPorBase } from "./datosBase/NombresPorBase";
 import { RedondeoDelGrafico } from "./RedondeoDelGrafico";
+import { grupoDeCampo, TITULO_GRUPO, type GrupoTarjeta } from "./gruposTarjeta";
 import { BrechaEntreGrupos } from "./brecha/BrechaEntreGrupos";
 import { MatrizCuadrantes } from "./matriz/MatrizCuadrantes";
 import { NotaBaseCompartido } from "./datosBase/NotaBaseCompartido";
@@ -88,67 +89,92 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const filtros = Array.isArray(args.filtros) ? args.filtros.length : 0;
   const admiteFiltros = (meta?.args ?? []).some((a) => a.name === "filtros");
 
+  const filaDe = (c: CampoDato) => (
+    <Fragment key={c.arg.name}>
+      <Fila campo={c} graficador={valor.graficador} valor={args[c.arg.name]}
+            onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v) : { [c.arg.name]: v })} />
+      {radarPublicos && c.arg.name === "modo" && <EditorTemasEquivalentes tipo="radar" args={args} onCambio={set} />}
+    </Fragment>
+  );
+  const delGrupo = (g: GrupoTarjeta) => campos.filter((c) => grupoDeCampo(c.arg.name) === g).map(filaDe);
+
+  // O7b: la tarjeta en grupos; cada uno se oculta si ese tipo no tiene nada en él (`.pulso-f6-grupo:not(:has(...))`).
   return (
     <div className="pulso-f6-datos" data-qa-geometry-group="graficos/f6-datos" data-qa-geometry-contract="intrinsic">
-      {esMulti && (
-        <div className="pulso-f6-dato">
-          <span className="pulso-f6-dato-rotulo">Bloques</span>
-          <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })}>
-            <Rows3 size={14} aria-hidden="true" />
-            {nVars
-              ? varsPorTema
-                ? `${nVars} ${nVars === 1 ? "tema" : "temas"} en ${nPublicos} ${nPublicos === 1 ? "público" : "públicos"} · Editar…`
-                : `${nVars} ${nVars === 1 ? "pregunta" : "preguntas"} · Editar…`
-              : "Elegir preguntas…"}
-          </button>
-        </div>
-      )}
-      {valor.graficador === "p_dumbbell" && <BrechaEntreGrupos args={args} onCambio={set} />}
-      {valor.graficador === "p_matriz_cuadrantes" && <MatrizCuadrantes args={args} onCambio={set} />}
-      {valor.graficador === "p_significancia_publicos" && <SignificanciaPublicos args={args} onCambio={set} />}
-      {valor.graficador === "p_dim_heatmap_criterios" && <CriteriosGrafico valor={args.config_criterios} onCambio={(c) => set({ config_criterios: c })} />}
-      {serie && <EditorTemasEquivalentes tipo="serie" args={args} onCambio={set} />}
-      {campos.map((c) => (
-        <Fragment key={c.arg.name}>
-          <Fila campo={c} graficador={valor.graficador} valor={args[c.arg.name]}
-                onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v) : { [c.arg.name]: v })} />
-          {radarPublicos && c.arg.name === "modo" && <EditorTemasEquivalentes tipo="radar" args={args} onCambio={set} />}
-        </Fragment>
-      ))}
-      {sinBaseCompartido && <NotaBaseCompartido />}
-      {conOrden && variable && !sinBaseCompartido && (
-        <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva, scope)} graficador={valor.graficador} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
-      )}
-      {variable && (
-        <FilaTexto
-          rotulo="Etiqueta corta"
-          ayuda="Rótulo de la pregunta en la lámina y el Word; vacío usa el del instrumento."
-          valor={leerEtiquetaCorta(args, variable)}
-          onCambio={(t) => set({ overrides: conEtiquetaCorta(args, variable, t) })}
-        />
-      )}
-      {/* R4: método y decimales propios, como excepción a la regla del informe. */}
-      <RedondeoDelGrafico graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
-      {admiteFiltros && (
-        <div className="pulso-f6-dato">
-          <span className="pulso-f6-dato-rotulo">Filtrar respuestas</span>
-          <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={() => abrirEditorAmplio({ tipo: "filtros", slideId, slot })}>
-            <Filter size={14} aria-hidden="true" />
-            {filtros ? `${filtros} ${filtros === 1 ? "regla" : "reglas"} · Editar…` : "Sin filtro · Agregar…"}
-          </button>
-        </div>
-      )}
-      <ColoresGrafico slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
-      <PaletaDelGrafico valor={valor} />
-      <TwoBoxGrafico slideId={slideId} slot={slot} valor={valor} onAbrirBloques={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })} />
-      <ResaltarGrafico slideId={slideId} slot={slot} valor={valor} />
-      <DestacarRespuestas slideId={slideId} slot={slot} valor={valor} />
-      <DonaCentro slideId={slideId} slot={slot} valor={valor} />
-      <PublicoGrafico slideId={slideId} slot={slot} valor={valor} />
-      <CasosGrafico slideId={slideId} slot={slot} valor={valor} />
+      <GrupoDeTarjeta titulo={TITULO_GRUPO.datos}>
+        {esMulti && (
+          <div className="pulso-f6-dato">
+            <span className="pulso-f6-dato-rotulo">Bloques</span>
+            <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })}>
+              <Rows3 size={14} aria-hidden="true" />
+              {nVars
+                ? varsPorTema
+                  ? `${nVars} ${nVars === 1 ? "tema" : "temas"} en ${nPublicos} ${nPublicos === 1 ? "público" : "públicos"}, editar`
+                  : `${nVars} ${nVars === 1 ? "pregunta" : "preguntas"}, editar`
+                : "Elegir preguntas"}
+            </button>
+          </div>
+        )}
+        {valor.graficador === "p_dumbbell" && <BrechaEntreGrupos args={args} onCambio={set} />}
+        {valor.graficador === "p_matriz_cuadrantes" && <MatrizCuadrantes args={args} onCambio={set} />}
+        {valor.graficador === "p_significancia_publicos" && <SignificanciaPublicos args={args} onCambio={set} />}
+        {valor.graficador === "p_dim_heatmap_criterios" && <CriteriosGrafico valor={args.config_criterios} onCambio={(c) => set({ config_criterios: c })} />}
+        {serie && <EditorTemasEquivalentes tipo="serie" args={args} onCambio={set} />}
+        {delGrupo("datos")}
+        {sinBaseCompartido && <NotaBaseCompartido />}
+        {variable && (
+          <FilaTexto
+            rotulo="Etiqueta corta"
+            ayuda="Rótulo de la pregunta en la lámina y el Word; vacío usa el del instrumento."
+            valor={leerEtiquetaCorta(args, variable)}
+            onCambio={(t) => set({ overrides: conEtiquetaCorta(args, variable, t) })}
+          />
+        )}
+        {admiteFiltros && (
+          <div className="pulso-f6-dato">
+            <span className="pulso-f6-dato-rotulo">Filtrar respuestas</span>
+            <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={() => abrirEditorAmplio({ tipo: "filtros", slideId, slot })}>
+              <Filter size={14} aria-hidden="true" />
+              {filtros ? `${filtros} ${filtros === 1 ? "regla" : "reglas"}, editar` : "Sin filtro, agregar"}
+            </button>
+          </div>
+        )}
+        <PublicoGrafico slideId={slideId} slot={slot} valor={valor} />
+      </GrupoDeTarjeta>
+      <GrupoDeTarjeta titulo={TITULO_GRUPO.orden}>
+        {conOrden && variable && !sinBaseCompartido && (
+          <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva, scope)} graficador={valor.graficador} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
+        )}
+        {delGrupo("orden")}
+        <ResaltarGrafico slideId={slideId} slot={slot} valor={valor} />
+        <DestacarRespuestas slideId={slideId} slot={slot} valor={valor} />
+      </GrupoDeTarjeta>
+      <GrupoDeTarjeta titulo={TITULO_GRUPO.cifras}>
+        {delGrupo("cifras")}
+        <TwoBoxGrafico slideId={slideId} slot={slot} valor={valor} onAbrirBloques={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })} />
+        <CasosGrafico slideId={slideId} slot={slot} valor={valor} />
+        {/* R4: método y decimales propios, como excepción a la regla del informe. */}
+        <RedondeoDelGrafico graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
+        <DonaCentro slideId={slideId} slot={slot} valor={valor} />
+      </GrupoDeTarjeta>
+      <GrupoDeTarjeta titulo={TITULO_GRUPO.colores}>
+        <ColoresGrafico slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
+        <PaletaDelGrafico valor={valor} />
+      </GrupoDeTarjeta>
       <EnElWord slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
       <AjustesDelTipo valor={valor} />
     </div>
+  );
+}
+
+/** Un grupo de la tarjeta con su título; el cuerpo vacío lo oculta por CSS. */
+function GrupoDeTarjeta({ titulo, children }: { titulo: string; children: ReactNode }) {
+  const id = useId();
+  return (
+    <section className="pulso-f6-grupo" aria-labelledby={id}>
+      <h4 id={id} className="pulso-f6-grupo-titulo">{titulo}</h4>
+      <div className="pulso-f6-grupo-cuerpo">{children}</div>
+    </section>
   );
 }
 
