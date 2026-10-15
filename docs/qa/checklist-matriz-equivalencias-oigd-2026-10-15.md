@@ -62,9 +62,9 @@ también tome en cuenta estos indicadores?»
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
 | G1 | La UI dice qué tiene cada base y qué le falta frente a las otras | por definir (Equivalencias / Plan) | ☑ panel «Mapa de bases» (5fe338e9e); metadatos plegados al final |
-| G2 | Armar en 2026 las variables que 2024 y 2025 ya traen recodificadas (`_R`, `facultad`, `unidad`…) | por definir (Codificación / indicador compuesto materializado) | ◐ hecho, falta revisarlo en el navegador: variables calculadas por base (ADR 0106), reglas «alguna» y «recodificar» |
+| G2 | Armar en 2026 las variables que 2024 y 2025 ya traen recodificadas (`_R`, `facultad`, `unidad`…) | por definir (Codificación / indicador compuesto materializado) | ☑ 47ebfe245, 4724ab5f9: en 2026 «vbg_instancia_pucp» (alguna de P29_2…P29_10) da Sí 122 · No 785 · Sin dato 2 411, igual que el compuesto de la matriz, y aparece en Analítica y en Equivalencias |
 | G3 | Armonización de opciones: armonizar una escala una vez y aplicarla a todas las preguntas que la comparten | Equivalencias | ☑ «Aplicar a otras con la misma escala» (5fe338e9e) |
-| G4 | Una base 2026 preparada fuera (limpia, codificada, 2 500 casos, con indicadores) se reconoce tal cual | ADR 0100, origen externo | ◐ hecho, falta revisarlo en el navegador: panel «Variables de la base» (columnas propias, «ya codificada», retiradas pendientes) |
+| G4 | Una base 2026 preparada fuera (limpia, codificada, 2 500 casos, con indicadores) se reconoce tal cual | ADR 0100, origen externo | ◐ funcional verificado (panel «Variables de la base», «ya codificada», retiradas pendientes); falta mirarlo con una base que traiga columnas fuera del formulario |
 | G5 | ¿El XLSForm tiene que declarar esos indicadores? | Carga (columnas fuera del instrumento) | ☑ con ADR 0106 ya no hace falta tocar el XLSForm |
 
 Aprendido: lo que 2024 y 2025 traen «de más» no son indicadores compuestos sino recodificaciones del procesamiento de
