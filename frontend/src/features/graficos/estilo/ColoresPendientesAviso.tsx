@@ -55,7 +55,8 @@ export function ColoresPendientesAviso({ pendientes, onCompletar, onVer }: { pen
           </li>
         ))}
       </ul>
-      {pendientes.length > MAX_VISIBLES ? <p className="pulso-cp-mas">y {pendientes.length - MAX_VISIBLES} más</p> : null}
+      {/* La lista cuenta gráficos (una lámina puede tener varios); el encabezado, láminas. */}
+      {pendientes.length > MAX_VISIBLES ? <p className="pulso-cp-mas">y {pendientes.length - MAX_VISIBLES === 1 ? "1 gráfico más" : `${pendientes.length - MAX_VISIBLES} gráficos más`}</p> : null}
       <PulsoButton variant="primary" size="sm" onClick={onCompletar}>Completar todos los colores</PulsoButton>
     </div>
   );
