@@ -129,9 +129,6 @@
         .cr_g("p_barras_multiapiladas", modo = "var_cruce",
               vars = stats::setNames(lapply(seq_along(.CR_SERVICIOS), function(i) c(paste0("estudiantes$serv_", i), paste0("egresados$p40_", i))), .CR_SERVICIOS),
               top2box = TRUE, top2box_labels = ttb), 79),
-    # Una multiapilada lleva a lo más seis barras (Gonzalo, 2026-10-14): dos temas de tres públicos por lámina.
-    uno("Públicos por tema, dos temas de tres públicos (el máximo de seis barras)",
-        .cr_g("p_barras_multiapiladas", modo = "var_cruce", vars = comp_pub[1:2], top2box = TRUE, top2box_labels = ttb), 79),
     uno("Una pregunta por grupos",
         .cr_g("p_barras_multiapiladas", modo = "cruce", var = "estudiantes$tutoria", cruces = "estudiantes$ciclo",
               top2box = TRUE, top2box_labels = ttb), 79),
@@ -142,6 +139,21 @@
         .cr_g("p_barras_multiapiladas", modo = "multilista", top2box = TRUE, top2box_labels = ttb, bloques = list(
           list(modo = "var", vars = as.list(gestion[1:3]), titulo = "Gestión"),
           list(modo = "var", vars = as.list(paste0("estudiantes$satisf_", 1:3)), titulo = "Atención", top2box_labels = c("Satisfecho", "Muy satisfecho")))), 79),
+    # Una multiapilada lleva a lo más seis barras y cabe entera en su lámina (Gonzalo, 2026-10-14: «todo ejemplo debe
+    # estar en el recetario»): las seis formas de llegar a 4, 5 y 6 barras.
+    subcap("Hasta seis barras por lámina"),
+    uno("6 barras: dos temas de tres públicos (3 + 3)",
+        .cr_g("p_barras_multiapiladas", modo = "var_cruce", vars = comp_pub[1:2], top2box = TRUE, top2box_labels = ttb), 79),
+    uno("6 barras: tres temas de dos públicos (2 + 2 + 2)",
+        .cr_g("p_barras_multiapiladas", modo = "var_cruce", vars = lapply(comp_pub[1:3], `[`, 1:2), top2box = TRUE, top2box_labels = ttb), 79),
+    uno("6 barras: seis preguntas de un público",
+        .cr_g("p_barras_multiapiladas", modo = "var", vars = as.list(gestion), top2box = TRUE, top2box_labels = ttb), 79),
+    uno("5 barras: un tema de tres públicos y otro de dos (3 + 2)",
+        .cr_g("p_barras_multiapiladas", modo = "var_cruce", vars = c(comp_pub[3], lapply(comp_pub[4], `[`, 2:3)), top2box = TRUE, top2box_labels = ttb), 79),
+    uno("4 barras: dos temas de dos públicos (2 + 2)",
+        .cr_g("p_barras_multiapiladas", modo = "var_cruce", vars = lapply(comp_pub[5:6], `[`, 2:3), top2box = TRUE, top2box_labels = ttb), 79),
+    uno("6 barras: dos preguntas por sexo (3 + 3)",
+        .cr_g("p_barras_multiapiladas", modo = "var_cruce", vars = gestion[1:2], cruces = "estudiantes$sexo", top2box = TRUE, top2box_labels = ttb), 79),
     subcap("Ajustes de las escalas"),
     uno("Temas anchos y sin respuestas por público",
         .cr_g("p_barras_multiapiladas", modo = "var_cruce", vars = comp_pub[1:2], ancho_tema = "ancho", mostrar_respuestas = FALSE,
