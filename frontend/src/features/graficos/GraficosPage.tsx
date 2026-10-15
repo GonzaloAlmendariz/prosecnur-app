@@ -437,12 +437,12 @@ export default function GraficosPage() {
             >
               {pestana === "laminas"
                 ? <LaminasWorkbench />
-                : pestana === "vista-general"
+                : pestana === "informe"
                   ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando la vista general…" /></div>}><VistaGeneral /></Suspense>
-                  : pestana === "estilo"
+                  : pestana === "identidad"
                     ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando la identidad…" /></div>}><PestanaEstilo /></Suspense>
-                  : pestana === "estilo-informe"
-                    ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el estilo del informe…" /></div>}><PestanaEstiloInforme /></Suspense>
+                  : pestana === "reglas"
+                    ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando las reglas…" /></div>}><PestanaEstiloInforme /></Suspense>
                   : pestana === "word"
                     ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el Word…" /></div>}><PestanaWord /></Suspense>
                   : <LaminasWorkbench />}

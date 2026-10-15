@@ -33,7 +33,7 @@ export function BarraVistaGeneral({ cobertura, filas, seleccionadas, destinosHab
     <header className="pulso-f6-vg-barra">
       <div className="pulso-f6-vg-cobertura" aria-label="Cobertura del informe"
         data-qa-geometry-group="graficos/f6-vg-cobertura" data-qa-geometry-contract="intrinsic">
-        <h2 className="pulso-f6-vg-titulo-vista">Vista general</h2>
+        <h2 className="pulso-f6-vg-titulo-vista">Informe</h2>
         <span className="pulso-f6-vg-dato" data-qa-geometry-member><strong>{cobertura.laminas}</strong> {cobertura.laminas === 1 ? "lámina" : "láminas"}</span>
         <span className="pulso-f6-vg-dato" data-qa-geometry-member><strong>{cobertura.conGrafico}</strong> con gráfico</span>
         {cobertura.incompletas > 0 && (

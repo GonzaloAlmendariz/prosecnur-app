@@ -128,13 +128,13 @@ describe("catálogos canónicos de pestañas", () => {
       "dimensiones:Dimensiones",
     ]);
     // F6: «Láminas» (por defecto), «Vista general», «Estilo del cliente», «Estilo del informe» y «Word» (PowerPoint pasó a la tarjeta del gráfico).
-    // El Editor anterior se retiró (2026-10-11).
+    // El Editor anterior se retiró (2026-10-11). Rediseño N1 (2026-10-14, D1): Láminas · Word · Informe · Identidad · Reglas.
     expect(firma(PROCESAMIENTO_PESTANAS.graficos)).toEqual([
       "laminas:Láminas",
-      "vista-general:Vista general",
-      "estilo:Identidad",
-      "estilo-informe:Estilo del informe",
       "word:Word",
+      "informe:Informe",
+      "identidad:Identidad",
+      "reglas:Reglas",
     ]);
   });
 

@@ -113,9 +113,9 @@ describe("la barra de Láminas y el header usan la misma puerta", () => {
 });
 
 describe("textos de Láminas y compartir sin «Editor anterior» (A10 W-C)", () => {
-  it("el estilo del cliente lleva a su pestaña, sin el texto «Mientras llega su pestaña»", () => {
+  it("Identidad lleva a su pestaña, sin el texto «Mientras llega su pestaña»", () => {
     const barra = sinComentarios(leer("laminas", "BarraLaminas.tsx"));
-    expect(barra).toMatch(/irA\("pestana", "estilo"\)/);
+    expect(barra).toMatch(/irA\("pestana", "identidad"\)/);   // N1 (2026-10-14): la clave nueva
     expect(barra).not.toMatch(/Mientras llega su pestaña/);
     expect(barra).not.toMatch(/onClick=\{item\(onIrEditorAnterior\)\}/);
   });

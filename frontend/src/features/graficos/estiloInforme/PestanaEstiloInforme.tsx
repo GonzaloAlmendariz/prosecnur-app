@@ -113,9 +113,9 @@ export default function PestanaEstiloInforme() {
       data-scope={scope}
     >
       <header className="pulso-f6-informe-barra">
-        <h2 className="pulso-f6-informe-titulo">Estilo del informe</h2>
+        <h2 className="pulso-f6-informe-titulo">Reglas</h2>
         <p className="pulso-f6-informe-ayuda" role="note">{disponibilidad.ambito}</p>
-        <Subpestanas opciones={SUB_INFORME} actual={sub} onCambiar={setSub} etiqueta="Estilo del informe" />
+        <Subpestanas opciones={SUB_INFORME} actual={sub} onCambiar={setSub} etiqueta="Reglas" />
       </header>
       <div className="pulso-f6-informe-cuerpo" data-qa-scroll-owner="estilo-informe">
         <div
