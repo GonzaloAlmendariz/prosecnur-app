@@ -91,12 +91,12 @@ describe("PestanaEstiloInforme · markup", () => {
     expect(html).toContain('data-qa-surface="graficos/f6-estilo-informe"');
     expect(html.match(/data-qa-scroll-owner=/g)).toHaveLength(1);   // una sola página, un solo dueño
     expect(html).toContain('aria-label="Quién manda en las reglas"');
-    for (const regla of ["redondeo", "casos", "base"]) expect(html).toContain(`id="regla-${regla}"`);
+    for (const regla of ["redondeo", "casos", "base", "otros"]) expect(html).toContain(`id="regla-${regla}"`);
     for (const grupo of ["f6-estilo-informe-secciones", "f6-estilo-informe-texto-base"]) {
       expect(html).toContain(`data-qa-geometry-group="graficos/${grupo}"`);
     }
     // Cinco secciones: texto de la base, cálculos, casos junto al porcentaje, línea visual y paletas.
-    expect(html.match(/class="pulso-f6-informe-seccion"/g)).toHaveLength(3);   // colores y línea visual pasaron a Identidad
+    expect(html.match(/class="pulso-f6-informe-seccion"/g)).toHaveLength(4);   // colores y línea visual pasaron a Identidad; «Otros» llegó del Informe (R7)
   });
 
   it("mientras carga el catálogo o los defaults, la readiness queda en false", () => {

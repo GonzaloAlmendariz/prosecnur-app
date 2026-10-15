@@ -1,8 +1,8 @@
 // Barra del Informe (F6.3; I3 e I7 del rediseño): el título, el resumen clicable por estado, los capítulos y el
-// interruptor de «Otros» (`InterruptorOtros`, contrato A5 2b). Las acciones sobre la selección (inventario A0 C31) viven en
+// estado de «Otros» con enlace a su regla (`EnlaceOtros`; R7: el interruptor pasó a Reglas). Las acciones sobre la selección (inventario A0 C31) viven en
 // la barra flotante `BarraSeleccion`; aquí, sin láminas elegidas, sólo se explica cómo elegir.
 
-import { InterruptorOtros } from "./InterruptorOtros";
+import { EnlaceOtros } from "./EnlaceOtros";
 import { ResumenInforme } from "./ResumenInforme";
 import { Segmentado } from "../subpestanas/Segmentado";
 import type { FiltroInforme } from "./estadoTarjetas";
@@ -45,7 +45,7 @@ export function BarraVistaGeneral({ cobertura, conteos, filtro, onFiltro, selecc
           ? <span className="pulso-f6-vg-dato">≈ <strong>{paginasWord.paginas}</strong> páginas · <strong>{paginasWord.graficos}</strong> gráficos</span>
           : <ResumenInforme conteos={conteos} filtro={filtro} onFiltro={onFiltro} />}
         <span className="pulso-f6-vg-dato" data-qa-geometry-member><strong>{cobertura.capitulos}</strong> {cobertura.capitulos === 1 ? "capítulo" : "capítulos"}</span>
-        <InterruptorOtros />
+        <EnlaceOtros />
       </div>
       <span className="pulso-f6-col-sp" />
       {/* I7: las acciones sobre la selección viven en la barra flotante (BarraSeleccion); aquí sólo cómo elegir. */}

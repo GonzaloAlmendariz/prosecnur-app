@@ -36,6 +36,9 @@ import {
 } from "./modeloEstiloInforme";
 import { SeccionCalculos, type AccionesCalculos } from "./SeccionCalculos";
 import { SeccionTextoBase } from "./SeccionTextoBase";
+import { SeccionOtros } from "./SeccionOtros";
+import { ayudaOtros } from "../vistaGeneral/interruptorOtrosModel";
+import { modoMultibaseDelPlan } from "../modoMultibase";
 import { SeccionCasos } from "./SeccionCasos";
 import { useEffect } from "react";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
@@ -54,7 +57,7 @@ import "./estiloInforme.css";
 
 // R1 del rediseño (2026-10-15): una sola página con las reglas apiladas (antes subpestañas Base y notas · Cálculos ·
 // Casos). El `foco` de un enlace viejo (`calculos`, `casos`, `base`) lleva a su regla. La línea visual vive en Identidad (D3).
-const REGLA_DE_FOCO: Readonly<Record<string, string>> = { calculos: "redondeo", redondeo: "redondeo", casos: "casos", base: "base" };
+const REGLA_DE_FOCO: Readonly<Record<string, string>> = { calculos: "redondeo", redondeo: "redondeo", casos: "casos", base: "base", otros: "otros" };
 
 export default function PestanaEstiloInforme() {
   const { foco } = useSeccion("procesamiento");
@@ -107,6 +110,10 @@ export default function PestanaEstiloInforme() {
   // R6: los gráficos que nombran a sus públicos con otra palabra («Nombre de cada público» en su tarjeta).
   const excepcionesBase = useMemo(() => excepcionesDelPlan(slidesPlan, (_g, args) => nombresPropiosDeBase(args, parseBaseLabels),
     (s) => tituloQueSale(s, variablesPlan, "Lámina")), [slidesPlan, variablesPlan]);
+  // R7 (D4): «Otros» es regla del informe; el Informe sólo enlaza aquí.
+  const autoOtros = usePlanStore((s) => s.autoOtrosSlides);
+  const setAutoOtros = usePlanStore((s) => s.setAutoOtrosSlides);
+  const ayudaOtrosRegla = ayudaOtros(modoMultibaseDelPlan(sesion?.state?.estudio_processing_mode, sesion?.state?.n_bases, sesion?.state?.active_base, scope));
   const cargando = cargandoCatalogo || cargandoDefaults;
   // Un enlace con `foco` lleva a su regla una vez montada (sin robar el foco del teclado).
   useEffect(() => {
@@ -156,6 +163,9 @@ export default function PestanaEstiloInforme() {
             onSufijoDeBase={(base, palabra) => cambiarPresets((p) => conSufijoDeBase(p, base, palabra))}
             excepciones={excepcionesBase}
           />
+          </div>
+          <div id="regla-otros" className="pulso-f6-regla" data-qa-geometry-member>
+            <SeccionOtros encendido={autoOtros} ayuda={ayudaOtrosRegla} onCambiar={setAutoOtros} />
           </div>
         </div>
       </div>
