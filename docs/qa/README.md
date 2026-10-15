@@ -202,6 +202,7 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 
 - [Checklist — perfil comparable 2021 vs 2026 (ACRD CONTA)](checklist-perfil-comparativo-2021-2026-08-25.md): barras 2021 en gris junto a 2026.
 - [Checklist — el instrumento artesanal al motor de formulario en papel](checklist-motor-formulario-papel-2026-09-24.md): lo aprendido del instrumento de Ser Adolescente.
+- [Checklist — exportación del formulario a PDF y Word](checklist-exportacion-formulario-2026-10-15.md): Word respeta las columnas, exportación como job, diálogo persistente y el `.docx` de más de 1M caracteres que salía corrupto.
 - [Checklist: diagnóstico del motor de PPT](checklist-motor-ppt-diagnostico-2026-10-06.md): brecha contra las presentaciones de capacitación y plan; entregables en su carpeta.
 - [Checklist: comentarios de Gonzalo al recetario PPT moderno](checklist-recetario-comentarios-2026-10-07.md): 41 comentarios en 38 láminas.
 - [Inventario F6 — el editor frente a los motores nativos](inventario-f6-editor-2026-10-09.md): hechos del motor que sostienen la dirección de diseño.
