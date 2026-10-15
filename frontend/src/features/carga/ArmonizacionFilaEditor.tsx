@@ -61,6 +61,15 @@ import {
 } from "./armonizacionModel";
 import { nombreDeSerieDeBases, type NombreDeSerie } from "./nombreDeSerie";
 import { rotuloDeVariable } from "./indicadorCompuestoModel";
+import {
+  accionAsignarMarcados,
+  alternarMarca,
+  codigosSinMapa,
+  marcadosVigentes,
+  marcarSinMapa,
+} from "./armonizacionMasaModel";
+import { ArmonizacionAsignarEnMasa } from "./ArmonizacionAsignarEnMasa";
+import { ArmonizacionTextosInforme } from "./ArmonizacionTextosInforme";
 import "./ArmonizacionFilaEditor.css";
 import { PulsoButton } from "../../components/PulsoButton";
 
@@ -261,7 +270,7 @@ function EditorFila({
   const [borrador, despachar] = useReducer(
     reducirArmonizacion,
     undefined,
-    () => borradorDesde(fila.armonizacion, conVariable),
+    () => borradorDesde(fila.armonizacion, conVariable, fila),
   );
   const [cargas, setCargas] = useState<Record<string, CargaBase>>(
     () => Object.fromEntries(conVariable.map((b) => [b, { tipo: "cargando" } as CargaBase])),
@@ -329,7 +338,7 @@ function EditorFila({
     setError("");
     try {
       const arm = borrar ? null : aArmonizacion(borrador);
-      const out = await guardarEquivalencias(filasConArmonizacion(guardadas, indice, arm));
+      const out = await guardarEquivalencias(filasConArmonizacion(guardadas, indice, arm, borrador.textos));
       onGuardado(
         out,
         borrar || !arm
@@ -387,6 +396,12 @@ function EditorFila({
         data-qa-geometry-contract="intrinsic"
       >
         {conVariable.length > 1 && <IndiceDeBases bases={conVariable} borrador={borrador} />}
+
+        <ArmonizacionTextosInforme
+          textos={borrador.textos}
+          nombreEstandar={fila.etiqueta_estandar}
+          onCambiar={(campo, valor) => despacharSucio({ tipo: "texto", campo, valor })}
+        />
 
         <EscalaComun borrador={borrador} serie={serie} despachar={despacharSucio} />
 
@@ -621,6 +636,17 @@ function MapaDeBase({
 }) {
   const filas = filasDeMapa(codigos, entrada, escala);
   const resumen = resumenMapa(filas);
+  // F2: lo marcado es estado de la pantalla, no del borrador; se descarta al
+  // asignar y nunca viaja al backend.
+  const [marcados, setMarcados] = useState<ReadonlySet<string>>(() => new Set());
+  const vigentes = marcadosVigentes(marcados, filas);
+  const conocidos = codigos.map((c) => c.codigo);
+  const asignarMarcados = (eleccion: string) => {
+    const accion = accionAsignarMarcados(base, vigentes, eleccion, conocidos);
+    if (!accion) return;
+    despachar(accion);
+    setMarcados(new Set());
+  };
   const explicito = mapaExplicito(entrada);
   const comparable = entrada?.comparable ?? null;
   const opciones = codigos
@@ -736,10 +762,23 @@ function MapaDeBase({
               La variable no tiene lista de opciones ni valores observados en esta base.
             </p>
           ) : (
+            <>
+            {escala.length > 0 && (
+              <ArmonizacionAsignarEnMasa
+                base={base}
+                escala={escala}
+                nMarcados={vigentes.length}
+                nSinMapa={codigosSinMapa(filas).length}
+                onAsignar={asignarMarcados}
+                onMarcarSinMapa={() => setMarcados((m) => marcarSinMapa(m, filas))}
+                onLimpiar={() => setMarcados(new Set())}
+              />
+            )}
             <div className="pulso-armon-tabla-wrap">
               <table className="pulso-armon-tabla">
                 <thead>
                   <tr>
+                    <th scope="col"><span className="pulso-sr-only">Marcar</span></th>
                     <th scope="col">Código</th>
                     <th scope="col">Etiqueta en {base}</th>
                     <th scope="col" className="is-num">Casos</th>
@@ -755,8 +794,23 @@ function MapaDeBase({
                   {filas.map((f) => (
                     <tr
                       key={f.codigo}
-                      className={f.sinMapa ? "is-sin-mapa" : f.etiquetaDistinta ? "is-etiqueta-distinta" : undefined}
+                      className={[
+                        f.sinMapa ? "is-sin-mapa" : f.etiquetaDistinta ? "is-etiqueta-distinta" : "",
+                        marcados.has(f.codigo) ? "is-marcado" : "",
+                      ].filter(Boolean).join(" ") || undefined}
                     >
+                      <td className="pulso-armon-marca">
+                        <input
+                          type="checkbox"
+                          checked={marcados.has(f.codigo)}
+                          disabled={escala.length === 0}
+                          aria-label={`Marcar el código ${f.codigo} de ${base}`}
+                          onChange={(e) => {
+                            const marcado = e.currentTarget.checked;
+                            setMarcados((m) => alternarMarca(m, f.codigo, marcado));
+                          }}
+                        />
+                      </td>
                       <td className="pulso-armon-codigo">{f.codigo}</td>
                       <td>{f.etiqueta ?? <span className="pulso-armon-tenue">sin etiqueta</span>}</td>
                       <td className="is-num">
@@ -772,7 +826,7 @@ function MapaDeBase({
                               base,
                               codigo: f.codigo,
                               destino: e.target.value || null,
-                              conocidos: codigos.map((c) => c.codigo),
+                              conocidos,
                             })
                           }
                         >
@@ -797,6 +851,7 @@ function MapaDeBase({
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </>
       )}

@@ -369,3 +369,35 @@ describe("resumenOrdenSerie (M7)", () => {
     expect(resumenOrdenSerie(siete, 2)).toBe("b2024 → … (5 más) → posgrado");
   });
 });
+
+describe("textos del informe (enunciado y base)", () => {
+  const guardadas = [
+    { seccion: "", etiqueta_estandar: "Edad", variables: { b2024: "p1" }, cantidad: 1, enunciado: "¿Qué edad tienes?" },
+    { seccion: "", etiqueta_estandar: "Sexo", variables: { b2024: "p2" }, cantidad: 1 },
+  ];
+
+  test("el borrador parte de los textos guardados y se editan con su acción", () => {
+    let b = borradorDesde(null, ["b2024"], guardadas[0]);
+    expect(b.textos).toEqual({ enunciado: "¿Qué edad tienes?", baseTexto: "" });
+    b = reducirArmonizacion(b, { tipo: "texto", campo: "baseTexto", valor: " total de encuestados " });
+    expect(b.textos.baseTexto).toBe(" total de encuestados ");
+  });
+
+  test("se guardan con la armonización, recortados; vaciar uno ya guardado lo manda vacío", () => {
+    const out = filasConArmonizacion(guardadas, 0, ARM, { enunciado: "  ", baseTexto: " total de encuestados " });
+    expect(out[0].enunciado).toBe("");
+    expect(out[0].base_texto).toBe("total de encuestados");
+    const sinTextos = filasConArmonizacion(guardadas, 1, ARM, { enunciado: "", baseTexto: "" });
+    expect("enunciado" in sinTextos[1]).toBe(false);
+    expect("base_texto" in sinTextos[1]).toBe(false);
+    expect(out[1]).toBe(guardadas[1]);
+  });
+
+  test("el normalizador conserva base_texto y enunciado como texto", () => {
+    const est = normalizarEstadoEquivalencias({
+      filas: [{ seccion: "", etiqueta_estandar: "Edad", variables: { b2024: "p1" }, base_texto: ["total de encuestados"], enunciado: "¿Edad?" }],
+    } as unknown as EquivalenciasEstado);
+    expect(est.filas?.[0].base_texto).toBe("total de encuestados");
+    expect(est.filas?.[0].enunciado).toBe("¿Edad?");
+  });
+});
