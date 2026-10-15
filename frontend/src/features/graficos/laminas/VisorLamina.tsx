@@ -45,7 +45,7 @@ import "./visorLamina.css";
 type Props = {
   slide: Slide;
   lamina: LaminaEnEstructura;
-  /** «Ver cómo queda» activo: el dibujo del motor en vez de la maqueta. */
+  /** «Previsualizar» activo: el dibujo del motor en vez de la maqueta. */
   verComoQueda: boolean;
   onAlternarComoQueda: () => void;
   /** Clic en el antetítulo, el título o la base: abre ese campo en los ajustes. */
@@ -209,13 +209,14 @@ export function VisorLamina({
           className={`pulso-f6-boton${verComoQueda ? " is-activo" : ""}`}
           aria-pressed={verComoQueda}
           disabled={!prepOk && !verComoQueda}
-          title={prepOk ? (verComoQueda ? "Volver a la maqueta" : "Ver la lámina como saldrá en el PowerPoint") : "Prepara la base en Analítica para ver cómo queda"}
+          title={prepOk ? (verComoQueda ? "Volver a la maqueta" : "Ver la lámina como saldrá en el PowerPoint") : "Prepara la base en Analítica para previsualizar"}
           onClick={onAlternarComoQueda}
         >
           {verComoQueda && cargando ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
-          Ver cómo queda
+          {/* «Previsualizar» (Gonzalo, 2026-10-14): el dibujo real del PowerPoint vive aquí; el Informe muestra maquetas. */}
+          Previsualizar
         </button>
-        {/* Las guías miden el dibujo del motor: sólo existen en «Ver cómo queda», no sobre la maqueta. */}
+        {/* Las guías miden el dibujo del motor: sólo existen al previsualizar, no sobre la maqueta. */}
         {verComoQueda && (
           <span className="pulso-f6-guias">
             <BotonGuias modelo={guias} roles={rolesGuias} disponible={!!formas?.disponible && !cargando} hayRanuras={(formas?.ranuras.length ?? 0) > 0} />
