@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { desplazamientosFlip } from "./flip";
+import { desplazamientosFlip, tarjetasNuevas } from "./flip";
 import { destinoDeFoco, intencionDeTecla, type TeclaVistaGeneral } from "./tecladoVistaGeneral";
 
 const t = (key: string, mods: Partial<Omit<TeclaVistaGeneral, "key">> = {}): TeclaVistaGeneral => ({
@@ -60,5 +60,15 @@ describe("FLIP al reordenar", () => {
       { id: "b", dx: 200, dy: 0 },
     ]);
     expect(desplazamientosFlip(antes, new Map([["a", { x: 5000, y: 0 }]]))).toEqual([]);
+  });
+});
+
+// I8 (2026-10-14). Mata: animar el informe entero al cargarlo o al cambiar de base, o no animar la copia recién hecha.
+describe("tarjetas que aparecen", () => {
+  const p = (ids: string[]) => new Map(ids.map((id, i) => [id, { x: i * 10, y: 0 }]));
+  it("sólo las pocas que el usuario acaba de crear", () => {
+    expect(tarjetasNuevas(p(["a", "b", "c"]), p(["a", "a2", "b", "c"]))).toEqual(["a2"]);
+    expect(tarjetasNuevas(new Map(), p(["a", "b"]))).toEqual([]);
+    expect(tarjetasNuevas(p(["a", "b"]), p(["x", "y", "z"]))).toEqual([]);
   });
 });
