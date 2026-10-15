@@ -70,7 +70,7 @@ export function PaletaDelGrafico({ valor }: Props) {
 
   const nombradas = filas.filter((f) => f.clave);
   const irAIdentidad = () =>
-    navigate({ pathname: loc.pathname, search: conNivel(conNivel(searchConNivel(loc.search, "pestana", "estilo"), "foco", "colores"), "panel", null) });
+    navigate({ pathname: loc.pathname, search: conNivel(conNivel(searchConNivel(loc.search, "pestana", "identidad"), "foco", "colores"), "panel", null) });
   const elegir = ({ fila, grupo }: { fila: FilaPaleta; grupo: GrupoRespuestas }, clave: string) => {
     const destino = nombradas.find((f) => f.clave === clave);
     if (!destino) return;

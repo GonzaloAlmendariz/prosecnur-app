@@ -240,15 +240,15 @@ describe("Word reducido con candado (C49, decisión 29)", () => {
 });
 
 describe("dirección y disponibilidad (decisión 28)", () => {
-  it("`?pestana=estilo-informe` es una pestaña propia del catálogo, con alias de mayúsculas y guion bajo", () => {
-    expect(PESTANAS_GRAFICOS.map((p) => p.key)).toContain("estilo-informe");
-    expect(resolverPestanaGraficos("estilo-informe")).toBe("estilo-informe");
-    expect(resolverPestanaGraficos("Estilo_Informe")).toBe("estilo-informe");
-    expect(resolverPestanaGraficos("estilo")).toBe("estilo");
-    const nodo = nodoPorClave("procesamiento/graficos/estilo-informe");
+  it("`?pestana=reglas` es una pestaña propia del catálogo; `estilo-informe` es su alias (N1, 2026-10-14)", () => {
+    expect(PESTANAS_GRAFICOS.map((p) => p.key)).toContain("reglas");
+    expect(resolverPestanaGraficos("reglas")).toBe("reglas");
+    expect(resolverPestanaGraficos("Estilo_Informe")).toBe("reglas");
+    expect(resolverPestanaGraficos("identidad")).toBe("identidad");
+    const nodo = nodoPorClave("procesamiento/graficos/reglas");
     expect(nodo).not.toBeNull();
-    expect(nodo?.href).toContain("pestana=estilo-informe");
-    expect(parsearDireccionDesdeHref(nodo?.href ?? "")?.pestana).toBe("estilo-informe");
+    expect(nodo?.href).toContain("pestana=reglas");
+    expect(parsearDireccionDesdeHref(nodo?.href ?? "")?.pestana).toBe("reglas");
   });
 
   // L2 (2026-10-14): ninguna pestaña del rail se deshabilita en el compartido; Identidad explica pieza por pieza.

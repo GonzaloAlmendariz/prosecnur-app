@@ -30,7 +30,7 @@ export function atajosDePestana(pestana: GraficosTabId, mod: string): Atajo[] {
         { keys: [mod, "."], label: "Mostrar u ocultar los Ajustes", group: "Paneles" },
         AYUDA,
       ];
-    case "vista-general":
+    case "informe":
       return [
         ...deshacer,
         { keys: ["←", "→"], label: "Lámina anterior / siguiente", group: "Recorrer las tarjetas" },
@@ -47,8 +47,8 @@ export function atajosDePestana(pestana: GraficosTabId, mod: string): Atajo[] {
         { keys: ["Supr"], label: "Eliminar la selección (pide confirmar)", group: "Ordenar" },
         AYUDA,
       ];
-    case "estilo":
-    case "estilo-informe":
+    case "identidad":
+    case "reglas":
     case "word":
       return [...deshacer, AYUDA];
   }
@@ -59,7 +59,7 @@ export function ShortcutsModal({ onClose }: { onClose: () => void }) {
   const mod = isMac ? "⌘" : "Ctrl";
   const pestana = resolverPestanaGraficos(useSeccion("procesamiento").pestana);
   const shortcuts = atajosDePestana(pestana, mod);
-  const nota = pestana === "vista-general" ? " Los de la Vista general actúan con el foco en una tarjeta." : "";
+  const nota = pestana === "informe" ? " Los del Informe actúan con el foco en una tarjeta." : "";
 
   return (
     <div

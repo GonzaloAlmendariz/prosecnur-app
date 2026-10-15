@@ -156,9 +156,11 @@ describe("manifiesto de navegación", () => {
     expect(procesamiento).toHaveLength(32);
     expect(nodoPorClave("procesamiento/graficos/word")).not.toBeNull();
     expect(nodoPorClave("procesamiento/graficos/clasico")).toBeNull();
-    expect(nodoPorClave("procesamiento/graficos/vista-general")).not.toBeNull();
-    expect(nodoPorClave("procesamiento/graficos/estilo")).not.toBeNull();
-    expect(nodoPorClave("procesamiento/graficos/estilo-informe")).not.toBeNull();
+    // Rediseño N1 (2026-10-14): las claves pasan a `informe`, `identidad` y `reglas`; las viejas sólo se leen como alias. 32.
+    expect(nodoPorClave("procesamiento/graficos/informe")).not.toBeNull();
+    expect(nodoPorClave("procesamiento/graficos/identidad")).not.toBeNull();
+    expect(nodoPorClave("procesamiento/graficos/reglas")).not.toBeNull();
+    expect(nodoPorClave("procesamiento/graficos/vista-general")).toBeNull();
     expect(dashboard).toHaveLength(4);
   });
 

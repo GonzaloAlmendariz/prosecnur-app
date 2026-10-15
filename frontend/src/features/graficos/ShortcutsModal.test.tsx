@@ -21,14 +21,14 @@ describe("atajosDePestana", () => {
   });
 
   it("Vista general anuncia su recorrido de tarjetas y nada del clásico", () => {
-    const lista = atajosDePestana("vista-general", "⌘");
+    const lista = atajosDePestana("informe", "⌘");
     expect(lista.map((a) => a.keys.join("+"))).toEqual(expect.arrayContaining(["←+→", "Enter", "⌘+A", "Alt+←+↑", "Supr"]));
     expect(lista.map((a) => a.keys.join("+"))).not.toContain("J");
     expect(lista.map((a) => a.label).join(" ")).not.toMatch(DEL_CLASICO);
   });
 
   it("todas las pestañas ofrecen deshacer y la ayuda", () => {
-    for (const p of ["laminas", "vista-general", "estilo", "estilo-informe", "word"] as const) {
+    for (const p of ["laminas", "informe", "identidad", "reglas", "word"] as const) {
       expect(teclas(p)).toEqual(expect.arrayContaining(["Ctrl+Z", "?"]));
     }
   });

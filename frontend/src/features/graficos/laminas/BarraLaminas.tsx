@@ -149,7 +149,7 @@ export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...export
             abrir: it.clave === "plan-portatil" ? planPortatilPanel.abrir : seccionesJsonPanel.abrir,
           }))}
           vaciar={{ ...itemVaciarMenu(vaciar.disponibilidad), abrir: vaciar.pedir }}
-          onIrEstilo={() => irA("pestana", "estilo")}
+          onIrEstilo={() => irA("pestana", "identidad")}
           disparadorRef={masRef}
         />
       </div>

@@ -137,18 +137,16 @@ export const PROCESAMIENTO_PESTANAS = {
     pestana("analitica", "orden", "Orden de categorías", "Secuencia de respuestas ordinales", ListOrdered, { readinessPropia: true }),
     pestana("analitica", "dimensiones", "Dimensiones", "Índices y puntajes", Layers),
   ],
-  // F6 (remasterización del editor de Gráficos): «Láminas» es el editor nuevo y la pestaña por defecto; «Vista general»
-  // (F6.3) ordena el informe por capítulos; «Editor anterior» conserva el editor de siempre mientras F6 se completa por
-  // partes. «Estilo del cliente» (F6.4) va tras Vista general; Word entra aquí cuando exista, no antes.
+  // Rediseño 2026-10-14 (D1): Láminas y Word van primero, uno detrás del otro, y luego lo demás. Las claves viejas
+  // (`vista-general`, `estilo`, `estilo-informe`) se leen como alias en `resolverPestanaGraficos` y no se escriben.
   graficos: [
     pestana("graficos", "laminas", "Láminas", "La lámina tal como sale, con su estructura y ajustes", LayoutTemplate),
-    pestana("graficos", "vista-general", "Vista general", "El informe por capítulos, para ordenarlo de un vistazo", LayoutGrid),
-    // F6.4 (A6 R3): logos y tamaño de letra del cliente, guardados como decisiones sobre el recetario (ADR 0094).
-    pestana("graficos", "estilo", "Identidad", "Logos, letra, íconos y colores de las respuestas", Palette),
-    // A10 W-E (decisión 28): texto de la base, cálculos, paletas, línea visual y la parte del Word que se decide. A
-    // diferencia de «Estilo del cliente», también en el informe compartido (cambia su PPT consolidado).
-    pestana("graficos", "estilo-informe", "Estilo del informe", "Texto de la base, cálculos, paletas y línea visual del informe", Paintbrush),
-    pestana("graficos", "word", "Word", "Cómo sale cada gráfico en el documento Word", FileText),
+    pestana("graficos", "word", "Word", "Cómo sale el informe en el documento Word", FileText),
+    pestana("graficos", "informe", "Informe", "El informe por capítulos, para ordenarlo de un vistazo", LayoutGrid),
+    // Logos, letra, íconos y colores, guardados como decisiones sobre el recetario (ADR 0094).
+    pestana("graficos", "identidad", "Identidad", "Logos, letra, íconos y colores de las respuestas", Palette),
+    // Texto de la base, cálculos, casos y nota al pie; también en el informe compartido (cambia su PPT consolidado).
+    pestana("graficos", "reglas", "Reglas", "Redondeo, nota al pie, casos y texto de la base del informe", Paintbrush),
   ],
 } as const satisfies Record<ProcesamientoSeccionId, readonly PestanaProcesamiento[]>;
 
