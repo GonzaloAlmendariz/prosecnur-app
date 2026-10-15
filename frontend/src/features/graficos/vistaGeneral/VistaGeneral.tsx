@@ -76,6 +76,8 @@ export default function VistaGeneral() {
   const confirmarEliminar = useVistaGeneralUi((s) => s.confirmarEliminar);
   const anuncio = useVistaGeneralUi((s) => s.anuncio);
   const filtro = useVistaGeneralUi((s) => s.filtro);
+  const plegados = useVistaGeneralUi((s) => s.plegados);
+  const insertSlideAt = usePlanStore((s) => s.insertSlideAt);
 
   const estructura = useMemo(() => construirEstructura(slides), [slides]);
   const filas = useMemo(() => construirFilas(estructura, slides), [estructura, slides]);
@@ -444,6 +446,21 @@ export default function VistaGeneral() {
                 onSobreFinFila={onSobreFinFila}
                 onSoltar={manejadores.onSoltar}
                 onFinArrastre={manejadores.onFinArrastre}
+                plegado={plegados.has(fila.id)}
+                onPlegar={useVistaGeneralUi.getState().alternarPlegado}
+                atencion={fila.ids.filter((id) => (estados.get(id)?.clave ?? "lista") !== "lista").length}
+                onAgregar={(filaId) => {
+                  // I5: una lámina «Un gráfico» vacía al final de la fila; queda elegida y lista para abrir en Láminas.
+                  const f = vivo.current.filas.find((x) => x.id === filaId);
+                  const ultima = f?.ids[f.ids.length - 1];
+                  const i = ultima ? vivo.current.ids.indexOf(ultima) + 1 : vivo.current.ids.length;
+                  const id = insertSlideAt("p_slide_1_grafico", {}, i);
+                  useVistaGeneralUi.getState().anunciar(`Lámina nueva al final de ${f?.rotulo ?? "la fila"}.`);
+                  // Como al duplicar: la tarjeta nueva queda elegida, con el foco y en la dirección.
+                  useVistaGeneralUi.getState().setSeleccion({ ids: [id], ancla: id });
+                  reenfocar.current = id;
+                  escribirFoco(id);
+                }}
               >
                 {fila.tarjetas.map((t) => (
                   <TarjetaLamina

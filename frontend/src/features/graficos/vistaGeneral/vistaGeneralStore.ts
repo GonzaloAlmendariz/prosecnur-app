@@ -17,6 +17,9 @@ type VistaGeneralStore = {
   /** I3: qué tarjetas resalta el resumen clicable; las demás se atenúan. */
   filtro: FiltroInforme;
   setFiltro: (f: FiltroInforme) => void;
+  /** I5: capítulos y bloques plegados (por id de fila). */
+  plegados: ReadonlySet<string>;
+  alternarPlegado: (filaId: string) => void;
   setSeleccion: (s: SeleccionVistaGeneral) => void;
   setArrastre: (a: Arrastre | null) => void;
   setMarca: (m: MarcaSoltar | null) => void;
@@ -34,6 +37,12 @@ export const useVistaGeneralUi = create<VistaGeneralStore>((set) => ({
   anuncio: "",
   filtro: "todas",
   setFiltro: (filtro) => set({ filtro }),
+  plegados: new Set<string>(),
+  alternarPlegado: (filaId) => set((s) => {
+    const plegados = new Set(s.plegados);
+    if (!plegados.delete(filaId)) plegados.add(filaId);
+    return { plegados };
+  }),
   setSeleccion: (seleccion) => set((s) => (s.seleccion === seleccion ? s : { seleccion })),
   setArrastre: (arrastre) => set(arrastre ? { arrastre } : { arrastre: null, marca: null }),
   setMarca: (marca) => set((s) => (mismaMarca(s.marca, marca) ? s : { marca })),
