@@ -5,10 +5,8 @@
 // En el informe compartido el Word no sale: se dice por qué.
 
 import { useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useOptionalSession } from "../../../lib/SessionContext";
-import { conNivel } from "../../../lib/navegacion/direccion";
-import { searchConNivel } from "../../../lib/navegacion/useDireccion";
 import { disponibilidadInforme } from "../estiloInforme/disponibilidadInforme";
 import { useGraficosReportScope } from "../reportScope";
 import { usePlanStore } from "../store";
@@ -18,6 +16,7 @@ import { contarFiguras, tituloCortoWord } from "../vistaGeneral/paginasWord";
 import { DetalleDocumento } from "./DetalleDocumento";
 import { DetallePortada } from "./DetallePortada";
 import { DetalleCapitulos } from "./DetalleCapitulos";
+import { DetalleCierre } from "./DetalleCierre";
 import { DetalleGraficos } from "./DetalleGraficos";
 import { PartesWord } from "./PartesWord";
 import { PARTES_WORD, paginaDeParte, resumenDeParte, type ParteWord } from "./modeloPestanaWord";
@@ -30,36 +29,14 @@ const ID_PANEL = "f6-w-detalle";
 // Sin `foco`, abre en Gráficos: es la parte que hoy tiene ajustes (useSubpestana toma la primera como defecto).
 const OPCIONES_FOCO = [...PARTES_WORD].sort((a, b) => Number(b.key === "graficos") - Number(a.key === "graficos"));
 
-/** Un enlace a otra pestaña de Gráficos, con su `foco` (p. ej. Identidad › Logos). */
-function Vinculo({ pestana, foco, children }: { pestana: string; foco?: string; children: string }) {
-  const navigate = useNavigate();
-  const { pathname, search } = useLocation();
-  const ir = () => {
-    const s = searchConNivel(search, "pestana", pestana);
-    navigate({ pathname, search: foco ? conNivel(s, "foco", foco) : s });
-  };
-  return <button type="button" className="pulso-f6-w-vinculo" onClick={ir}>{children}</button>;
-}
-
 function DetalleParte({ parte, resumen, tituloInforme, portada }: {
   parte: ParteWord; resumen: string; tituloInforme: string; portada: { titulo: string; sub: string; fecha: string };
 }) {
   if (parte === "documento") return <DetalleDocumento tituloInforme={tituloInforme} resumen={resumen} />;
   if (parte === "portada") return <DetallePortada desdeLamina={portada} />;
   if (parte === "capitulos") return <DetalleCapitulos />;
-  if (parte === "graficos") return <DetalleGraficos />;   // O7a: sólo lo que el Word hace distinto
-  const textos: Record<Exclude<ParteWord, "graficos" | "documento" | "portada" | "capitulos">, { titulo: string; cuerpo: string; vinculo?: { pestana: string; foco?: string; texto: string } }> = {
-    cierre: { titulo: "Cierre", cuerpo: "La contraportada lleva el logo y el contacto al centro.", vinculo: { pestana: "identidad", foco: "logos", texto: "Identidad" } },
-  };
-  const t = textos[parte];
-  return (
-    <section className="pulso-f6-informe-seccion" aria-label={t.titulo} data-qa-geometry-member data-seccion={`word-${parte}`}>
-      <h3 className="pulso-f6-w-titulo">{t.titulo}</h3>
-      <p className="pulso-f6-informe-ayuda">{t.cuerpo}</p>
-      {t.vinculo && <p className="pulso-f6-informe-ayuda">Los logos se eligen en <Vinculo pestana={t.vinculo.pestana} foco={t.vinculo.foco}>{t.vinculo.texto}</Vinculo>.</p>}
-      {parte === "cierre" && <p className="pulso-f6-informe-ayuda">Las respuestas abiertas de tipo Otros se deciden en <Vinculo pestana="reglas" foco="otros">Reglas</Vinculo>.</p>}
-    </section>
-  );
+  if (parte === "cierre") return <DetalleCierre />;
+  return <DetalleGraficos />;   // O7a: sólo lo que el Word hace distinto
 }
 
 export default function PestanaWord() {

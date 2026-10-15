@@ -9,7 +9,7 @@ import { GlifoGrafico } from "../iconos/GlifoGrafico";
 import { baseAutomatica, ranurasDeMaqueta } from "../laminas/modeloMaqueta";
 import { usePlanStore } from "../store";
 import { useVariables } from "../useVariables";
-import { AperturaMaqueta, PortadaMaqueta } from "./PortadaMaqueta";
+import { AperturaMaqueta, ContraportadaMaqueta, PortadaMaqueta } from "./PortadaMaqueta";
 import { paginasWord, tituloCortoWord, type ElementoWord, type PaginaWord } from "./paginasWord";
 
 const FUENTE = "Fuente: PULSO PUCP.";
@@ -127,9 +127,8 @@ export function PaginaMaqueta({ pagina, tituloCorto }: { pagina: PaginaWord; tit
             </span>
           ))}
         </>)}
-        {pagina.clase === "contraportada" && (
-          <span className="pulso-f6-vg-pag-contra"><b>PULSO PUCP</b><span>Contacto</span></span>
-        )}
+        {/* W7: como `.word_contraportada`: el logo al centro y la línea de contacto debajo, en página blanca. */}
+        {pagina.clase === "contraportada" && <ContraportadaMaqueta />}
         {"folio" in pagina && <span className="pulso-f6-vg-pag-folio">{pagina.folio}</span>}
       </span>
     </span>

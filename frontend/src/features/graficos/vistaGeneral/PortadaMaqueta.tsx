@@ -3,6 +3,7 @@
 
 import { usePlanStore } from "../store";
 import { datosPortada, fichaPortada } from "../word/modeloPortadaWord";
+import { contactoEfectivo } from "../word/modeloCierreWord";
 
 export function PortadaMaqueta({ titulo, sub, fecha }: { titulo: string; sub: string; fecha: string }) {
   const dw = usePlanStore((s) => s.documentoWord);
@@ -37,6 +38,17 @@ export function AperturaMaqueta({ numero, titulo, entrada }: { numero: number; t
       {variante === "B" ? <span className="pulso-f6-vg-pag-ap-num">{numero}</span> : <span className="pulso-f6-vg-pag-ap-k">Capítulo {numero}</span>}
       <span className="pulso-f6-vg-pag-h1">{titulo}</span>
       {entrada && <span className="pulso-f6-vg-pag-ap-ent">{entrada}</span>}
+    </span>
+  );
+}
+
+/** Contraportada como `.word_contraportada`: el logo de PULSO PUCP (o el propio) al centro y el contacto debajo. */
+export function ContraportadaMaqueta() {
+  const contacto = usePlanStore((s) => s.documentoWord.contacto);
+  return (
+    <span className="pulso-f6-vg-pag-contra">
+      <b className="pulso-f6-vg-pag-contra-logo">PULSO PUCP</b>
+      <span className="pulso-f6-vg-pag-contra-datos">{contactoEfectivo(contacto).map((d) => <span key={d}>{d}</span>)}</span>
     </span>
   );
 }
