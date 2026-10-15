@@ -175,10 +175,28 @@
   background: transparent;
 }
 
+/* I6 del rediseño (2026-10-14): las filas se envuelven. Un capítulo ocupa todo el ancho; un bloque corto (Apertura,
+   «Cómo leer», Cierre) sólo lo que miden sus tarjetas, así dos bloques seguidos van lado a lado cuando caben y se apilan
+   cuando no (un bloque más ancho que el cuerpo se encoge y envuelve sus tarjetas). */
 .pulso-f6-vg-filas {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-f6-vg-filas > .pulso-f6-vg-fila {
+  flex: 1 1 100%;
+}
+
+.pulso-f6-vg-filas > .pulso-f6-vg-fila.is-bloque {
+  flex: 0 1 auto;
+}
+
+/* Un bloque no tiene asa que sangrar: sus tarjetas arrancan al borde y el bloque gana ese ancho para caber junto a otro. */
+.pulso-f6-vg-fila.is-bloque .pulso-f6-vg-tarjetas {
+  padding-left: 0;
 }
 
 /* --- Fila de capítulo -------------------------------------------------------------------------------------------- */
