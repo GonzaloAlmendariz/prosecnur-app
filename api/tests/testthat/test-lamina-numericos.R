@@ -97,6 +97,9 @@ test_that("media y rango: un rótulo de dos líneas en cinco grupos baja a 12 pt
   expect_true("20" %in% .nm_txt(xml, "media_rango:eje"))
   mx <- .nm_ext(xml, "media_rango:maximo"); rg <- .nm_ext(xml, "media_rango:rango")
   expect_true(all(mx$x >= rg$x + rg$w - 1e-6))
+  # Los mínimos en 0 (el eje no baja de cero) también van a su costado: el eje se corre lo que mide el número.
+  mn <- .nm_ext(xml, "media_rango:minimo")
+  expect_true(all(mn$x + mn$w <= rg$x + 1e-6))
   # A 13 pt la geometría es la de siempre: dos grupos cortos no cambian de tamaño.
   expect_identical(.lam_media_rango_rotulo_pt(c("Docentes", "Estudiantes"), 2), 13)
 })

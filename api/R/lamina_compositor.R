@@ -231,6 +231,11 @@
   if (espec$tipo %in% c("histograma", "numerico", "boxplot", "media_rango", "pesas", "serie2")) {
     # Los gráficos de números (láminas 79-87): el público de la base nombra los casos («22 estudiantes»).
     unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
+    # El pie automático dice el mismo público que las filas: «Base: 178 egresados», no «178 respuestas» sobre filas de
+    # «91 egresados» (Gonzalo, 2026-10-15). Una base escrita en la lámina se respeta tal cual.
+    if (!isTRUE(sin_base) && is.null(como_texto(slots$base)) && !identical(unidad, "respuestas") && !is.null(texto(base))) {
+      base <- sub("^(Base:\\s*[0-9][0-9.,]*)\\s+respuestas$", paste0("\\1 ", unidad), texto(base))
+    }
     # La unidad del valor («años») sale de la etiqueta de la variable, no de una constante.
     etiqueta_var <- if (is.function(titulo_de_var) && !is.null(el_plot$var)) tryCatch(.plan_titulo_corto(titulo_de_var, el_plot), error = function(e) NULL)
     unidad_valor <- .unidad_de_etiqueta(etiqueta_var %||% "")

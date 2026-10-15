@@ -187,7 +187,11 @@
   # un paso de ese lado (abajo, sólo si no cruza el cero).
   if (max(espec$sup) >= hi) hi <- hi + paso
   if (min(espec$inf) <= lo && (lo - paso >= 0 || min(espec$inf) < 0)) lo <- lo - paso
-  xl <- ml + 2.2; wl <- W - mr - xl - 1.8; px <- function(v) xl + wl * (v - lo) / (hi - lo); fila <- (yf - yt - 1.0) / k
+  xl <- ml + 2.2; wl <- W - mr - xl - 1.8
+  # Si el mínimo sigue en el borde (el eje no baja de cero), el eje se corre a la derecha lo que mide ese número, que
+  # así se escribe a su costado como los demás en vez de subirse encima de la barra.
+  if (min(espec$inf) <= lo) { corre <- .lam_ancho_tinta(.lam_num(lo), 10.5) + 0.3; xl <- xl + corre; wl <- wl - corre }
+  px <- function(v) xl + wl * (v - lo) / (hi - lo); fila <- (yf - yt - 1.0) / k
   num <- .lam_num
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
