@@ -79,19 +79,34 @@
 }
 
 #' Leyenda centrada en un bloque; junta los ítems si no cabe y nunca sale del margen
+#'
+#' El reparto lo decide `.lam_leyenda_plan()` (leyenda_plan.R, O8b) con el modo de Identidad › Letra. En la automática,
+#' una fila centrada en `centrar_en` que aprieta su espacio hasta 0,15 in y, si así no cabe centrada, se corre dentro del
+#' margen (lo de siempre); sólo si no cabe en el ancho de la lámina pasa a filas equilibradas. Con más de una fila, el
+#' bloque sube lo necesario para no pisar la base.
 #' @keywords internal
 .lam_leyenda <- function(lz, y, labels, cols, centrar_en) {
-  g <- .std_geom; size <- .std_pt("leyenda")
+  g <- .std_geom
   ml <- g("margen_izq"); fin <- g("ancho") - g("margen_der")
-  wk <- .lam_ancho_tinta(labels, size); ws <- 0.22 + wk; gap <- 0.3
-  tot <- sum(ws) + gap * (length(ws) - 1)
   disp <- 2 * min(centrar_en - ml, fin - centrar_en)
-  if (tot > disp && length(ws) > 1) { gap <- max(0.15, (disp - sum(ws)) / (length(ws) - 1)); tot <- sum(ws) + gap * (length(ws) - 1) }
-  x <- min(max(centrar_en - tot / 2, ml), fin - tot)
-  for (k in seq_along(labels)) {
-    .lam_caja(lz, x, y + 0.07, 0.15, 0.15, cols[k], nombre = "leyenda:cuadro")
-    .lam_txt(lz, labels[k], x + 0.12, y, wk[k] + 0.3, 0.3, size, .std_color("azul"), nombre = "leyenda:texto")
-    x <- x + ws[k] + gap
+  modo <- .std_leyenda_modo()
+  plan <- .lam_leyenda_plan(labels, if (identical(modo, "automatica")) disp else fin - ml, modo = modo)
+  if (identical(modo, "automatica") && length(plan$filas) > 1L) {
+    entera <- .lam_leyenda_plan(labels, fin - ml, modo = modo)   # cabe en una fila corrida dentro del margen
+    if (length(entera$filas) == 1L) { plan <- entera; plan$gaps <- 0.15; plan$totales <- sum(plan$items) + 0.15 * (length(labels) - 1L) }
+  }
+  .leyenda_avisar(plan)
+  k <- length(plan$filas)
+  if (k > 1L) y <- min(y, g("base_y") - 0.02 - 0.3 * k)
+  for (r in seq_len(k)) {
+    idx <- plan$filas[[r]]
+    x <- .leyenda_x_fila(plan$totales[r], centrar_en, ml, fin)
+    for (i in idx) {
+      .lam_caja(lz, x, y + 0.07, 0.15, 0.15, cols[i], nombre = "leyenda:cuadro")
+      .lam_txt(lz, labels[i], x + 0.12, y, plan$anchos[i] + 0.3, 0.3, plan$size, .std_color("azul"), nombre = "leyenda:texto")
+      x <- x + plan$items[i] + plan$gaps[r]
+    }
+    y <- y + 0.3
   }
   invisible(lz)
 }

@@ -8,6 +8,8 @@
 #
 # - Avisos del resolver: salen tal cual al resultado del job (`.pulso_aviso`).
 # - Letra K13: `prosecnur.letra_desplazo` (estandar_tokens.R la suma a los tokens de cada rol; piso de 8 pt en cifras).
+# - Negrita por elemento y modo de la leyenda (O8): `prosecnur.negrita` (estilo_negrita.R) y `prosecnur.leyenda`
+#   (leyenda_plan.R), sólo con lo que se aparta de hoy.
 # - Logos: en el Word van a `opciones_documento$logos` (lo hace el worker con `ec$logos`); en el PPT, a la opción
 #   `prosecnur.logos_cliente`, que leen la portada y el cierre nativos (lamina_logos_cliente.R). Con una plantilla de
 #   cliente no se ponen: su portada es suya, y se avisa la causa.
@@ -15,7 +17,8 @@
 #' Opciones del proceso que toca el estilo del cliente, para reponerlas al salir
 #' @keywords internal
 .graficos_estilo_cliente_previas <- function() {
-  list(prosecnur.letra_desplazo = getOption("prosecnur.letra_desplazo"), prosecnur.logos_cliente = getOption("prosecnur.logos_cliente"))
+  list(prosecnur.letra_desplazo = getOption("prosecnur.letra_desplazo"), prosecnur.logos_cliente = getOption("prosecnur.logos_cliente"),
+       prosecnur.negrita = getOption("prosecnur.negrita"), prosecnur.leyenda = getOption("prosecnur.leyenda"))
 }
 
 #' Argumento `estilo_cliente` para el job: `list(estilo_cliente = .)` si hay algo que aplicar, `list()` si no

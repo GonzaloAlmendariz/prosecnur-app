@@ -48,7 +48,7 @@
   elegidas <- espec$resaltar %||% character(0)   # D1: las que el analista resalta mandan sobre «la mayor»
   for (k in seq_along(et)) {
     es_max <- if (length(elegidas)) et[k] %in% elegidas else isTRUE(espec$realce) && v[k] == max(v)
-    h <- .lam_alto_tinta(et[k], wlab, size)   # tinta medida: la estimación por carácter subía el rótulo de una línea
+    h <- .lam_alto_tinta(et[k], wlab, size, .std_negrita_forzada("categorias"))   # tinta medida: la estimación por carácter subía el rótulo de una línea
     .lam_txt(lz, et[k], x, yy + (fila - h) / 2, wlab, h, size, azul, bold = es_max, align = "right", nombre = "rotulo")
     yb <- yy + (fila - g) / 2; bw <- if (escala > 0) wbar * v[k] / escala else 0
     fill <- if (!is.null(cols) && !length(elegidas)) cols[k] else if ((isTRUE(espec$realce) || length(elegidas)) && !es_max) tenue else azul
@@ -73,7 +73,7 @@
   n <- max(1L, length(espec$largos))
   size <- if (any(nchar(espec$rotulos) > 45)) 11 else 12
   fila <- min(0.62, (yf - yt - 0.45) / n); g <- min(0.42, fila * 0.62)
-  wlab <- min(6.3, max(1.4, max(.lam_ancho_tinta(espec$rotulos, size)) + 0.3))
+  wlab <- min(6.3, max(1.4, max(.lam_ancho_tinta(espec$rotulos, size, .std_negrita_forzada("categorias"))) + 0.3))
   list(size = size, fila = fila, g = g, wlab = wlab)
 }
 

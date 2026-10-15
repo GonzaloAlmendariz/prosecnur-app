@@ -22,21 +22,21 @@
   pal <- if (n <= length(pal)) pal[seq_len(n)] else grDevices::colorRampPalette(pal)(n)
   pal <- as.vector(.word_colores_de_espec(espec, rot, pal))                 # paleta por lista (ADR 0097) por rótulo
   # Dona y leyenda se centran JUNTAS en el ancho de la página («la leyenda no usa todo el espacio y no está centrada»).
-  tl <- 9.5; panel <- alto - 0.5; leg <- max(nchar(rot)) * tl * 0.55 / 72 + 0.4
+  tl <- 9.5 + .word_desplazo("leyenda"); panel <- alto - 0.5; leg <- max(nchar(rot)) * tl * 0.55 / 72 + 0.4
   m <- max(0.1, (.std_word("pagina", "ancho_util") - panel - leg - 0.35) / 2)
   cif <- .casos_junto_cifras(espec$cifras, .espec_casos(espec), .espec_total_casos(espec))   # «Casos junto al porcentaje»
   et <- ifelse(v >= 6 & !(dona & v == max(v)), cif, "")         # en la dona la mayor ya está al centro
   d <- data.frame(k = factor(rot, levels = rot), v = v, et = et)
   g <- ggplot2::ggplot(d, ggplot2::aes(x = if (dona) 2 else 1, y = .data$v, fill = .data$k)) +
     ggplot2::geom_col(width = 1, colour = "#FFFFFF") + ggplot2::coord_polar(theta = "y", direction = -1) +
-    ggplot2::geom_text(ggplot2::aes(label = .data$et), position = ggplot2::position_stack(vjust = 0.5), size = .word_pt(8.5), fontface = "bold",
+    ggplot2::geom_text(ggplot2::aes(label = .data$et), position = ggplot2::position_stack(vjust = 0.5), size = .word_pt(8.5, "cifra"), fontface = .word_cara("cifras"),
                        family = "Arial", colour = "#FFFFFF") +
     ggplot2::scale_fill_manual(values = stats::setNames(pal, rot)) + .word_tema() +
-    ggplot2::theme(legend.position = "right", legend.text = ggplot2::element_text(size = tl, colour = navy, margin = ggplot2::margin(l = 4)),
+    ggplot2::theme(legend.position = "right", legend.text = ggplot2::element_text(size = tl, colour = navy, face = .word_cara("leyenda", FALSE), margin = ggplot2::margin(l = 4)),
                    legend.key.size = ggplot2::unit(11, "pt"), legend.key.spacing.y = ggplot2::unit(5, "pt"), legend.box.spacing = ggplot2::unit(0.35, "in"),
                    plot.margin = ggplot2::margin(6, m * 72, 4, m * 72, "pt"))
   if (dona) g <- g + ggplot2::xlim(0.6, 2.5) +
-    ggplot2::annotate("text", x = 0.6, y = 0, label = espec$cifras[which.max(v)], size = .word_pt(18), fontface = "bold", colour = .WORD_TINTA$navy, family = "Arial")
+    ggplot2::annotate("text", x = 0.6, y = 0, label = espec$cifras[which.max(v)], size = .word_pt(18, "cifra"), fontface = .word_cara("cifras"), colour = .WORD_TINTA$navy, family = "Arial")
   attr(g, "alto") <- alto - 0.22; g
 }
 
@@ -58,14 +58,14 @@
   d$x <- d$j; d$y <- nf + 1 - d$i
   g <- ggplot2::ggplot(d) + ggplot2::geom_tile(ggplot2::aes(x = .data$x, y = .data$y, fill = .data$col), colour = "#FFFFFF", linewidth = 1.2) +
     ggplot2::scale_fill_identity() +
-    ggplot2::geom_text(ggplot2::aes(x = .data$x, y = .data$y, label = paste0(.data$v, "%"), colour = .data$txt), size = .word_pt(9), fontface = "bold",
+    ggplot2::geom_text(ggplot2::aes(x = .data$x, y = .data$y, label = paste0(.data$v, "%"), colour = .data$txt), size = .word_pt(9, "cifra"), fontface = .word_cara("cifras"),
                        family = "Arial") + ggplot2::scale_colour_identity() +
-    ggplot2::annotate("text", x = seq_len(nc), y = nf + 0.75, label = .word_envolver(cols, 8), size = .word_pt(7.5), fontface = "bold", colour = navy,
+    ggplot2::annotate("text", x = seq_len(nc), y = nf + 0.75, label = .word_envolver(cols, 8), size = .word_pt(7.5, "rotulo"), fontface = "bold", colour = navy,
                       family = "Arial", vjust = 0, lineheight = 0.9) +
-    ggplot2::annotate("text", x = 0.42, y = rev(seq_len(nf)), label = .word_envolver(filas, 22), hjust = 1, size = .word_pt(9), fontface = "bold",
+    ggplot2::annotate("text", x = 0.42, y = rev(seq_len(nf)), label = .word_envolver(filas, 22), hjust = 1, size = .word_pt(9, "rotulo"), fontface = .word_cara("categorias"),
                       colour = navy, family = "Arial", lineheight = 0.9) +
     # La columna de rótulos crece con el rótulo más largo (nunca menos que la del recetario, -1.9).
-    ggplot2::scale_x_continuous(limits = c(min(-1.9, .word_xmin(.word_envolver(filas, 22), 9, nc + 0.5, 0.42) - 0.1), nc + 0.5), expand = c(0, 0)) + ggplot2::scale_y_continuous(limits = c(0.5, nf + 1.35), expand = c(0, 0)) +
+    ggplot2::scale_x_continuous(limits = c(min(-1.9, .word_xmin(.word_envolver(filas, 22), 9 + .word_desplazo("rotulo"), nc + 0.5, 0.42) - 0.1), nc + 0.5), expand = c(0, 0)) + ggplot2::scale_y_continuous(limits = c(0.5, nf + 1.35), expand = c(0, 0)) +
     .word_tema() + ggplot2::coord_cartesian(clip = "off")
   # Recetario: 2.4 in con 4 filas y 3.9 in con 11, con el pie (recetario_word.R:395, 399).
   attr(g, "alto") <- 1.54 + 0.214 * nf - 0.12
@@ -99,8 +99,8 @@
     ggplot2::geom_point(data = d, ggplot2::aes(.data$v, .data$c, colour = .data$a), size = 2.6) +
     ggplot2::scale_colour_manual(values = stats::setNames(cols, gr), name = NULL) +
     ggplot2::scale_x_continuous(limits = c(lo, 100.5), labels = function(x) paste0(x, "%")) + .word_tema() +
-    ggplot2::theme(axis.text.y = ggplot2::element_text(size = 8.5, colour = navy, face = "bold", family = "Arial", hjust = 1),
-                   axis.text.x = ggplot2::element_text(size = 8, colour = T$gris, family = "Arial"),
+    ggplot2::theme(axis.text.y = ggplot2::element_text(size = 8.5 + .word_desplazo("rotulo"), colour = navy, face = .word_cara("categorias"), family = "Arial", hjust = 1),
+                   axis.text.x = ggplot2::element_text(size = 8 + .word_desplazo("rotulo"), colour = T$gris, family = "Arial"),
                    panel.grid.major.x = ggplot2::element_line(colour = "#E3E6EC", linewidth = 0.3))
   attr(g, "alto") <- 0.58 + 0.3 * length(ejes); g         # recetario_word.R:406: 6 competencias en 2.6 in con el pie
 }
@@ -127,11 +127,11 @@
   lab <- data.frame(t = .word_envolver(ejes, 16), x = 1.2 * cos(ang), y = 1.13 * sin(ang), h = ifelse(abs(cos(ang)) < 0.15, 0.5, ifelse(cos(ang) > 0, 0, 1)))
   g <- ggplot2::ggplot() + ggplot2::geom_path(data = ring, ggplot2::aes(.data$x, .data$y, group = .data$r), colour = "#D5D9DF", linewidth = 0.3) +
     ggplot2::annotate("text", x = rr(anillos) * cos(pi / 2 - pi / k), y = rr(anillos) * sin(pi / 2 - pi / k), label = paste0(anillos, "%"),
-                      size = .word_pt(7.5), colour = T$gris, family = "Arial") +
+                      size = .word_pt(7.5, "rotulo"), colour = T$gris, family = "Arial") +
     ggplot2::geom_path(data = ser, ggplot2::aes(.data$x, .data$y, group = .data$a, colour = .data$a), linewidth = 0.9) +
     ggplot2::geom_point(data = ser, ggplot2::aes(.data$x, .data$y, colour = .data$a), size = 1.6) +
-    ggplot2::geom_text(data = lab, ggplot2::aes(.data$x, .data$y, label = .data$t, hjust = .data$h), size = .word_pt(8), colour = navy, family = "Arial",
-                       fontface = "bold", lineheight = 0.9) +
+    ggplot2::geom_text(data = lab, ggplot2::aes(.data$x, .data$y, label = .data$t, hjust = .data$h), size = .word_pt(8, "rotulo"), colour = navy, family = "Arial",
+                       fontface = .word_cara("categorias"), lineheight = 0.9) +
     ggplot2::scale_colour_manual(values = stats::setNames(cols, gr), name = NULL) +
     ggplot2::coord_equal(xlim = c(-1.9, 1.9), ylim = c(-1.3, 1.3), clip = "off") + .word_tema()
   # Recetario: 3.4 in con 6 ejes y 3.6 con 11, con el pie (recetario_word.R:408, 412).
@@ -157,11 +157,11 @@
     ggplot2::geom_point(data = ley, ggplot2::aes(.data$x, .data$y, colour = .data$k), alpha = 0) +
     ggplot2::scale_colour_manual(values = stats::setNames(ley_col, ley_rot), name = titulo, drop = FALSE) +
     ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(alpha = 1, shape = 22, size = 3.6, fill = ley_col, colour = "#B8C2D3"))) +
-    ggplot2::theme(legend.position = "right", legend.title = ggplot2::element_text(size = 8, face = "bold", colour = T$gris, family = "Arial"),
-                   legend.text = ggplot2::element_text(size = 8.5, colour = navy, family = "Arial"), legend.justification = c(0, 0.5),
+    ggplot2::theme(legend.position = "right", legend.title = ggplot2::element_text(size = 8 + .word_desplazo("leyenda"), face = "bold", colour = T$gris, family = "Arial"),
+                   legend.text = ggplot2::element_text(size = 8.5 + .word_desplazo("leyenda"), colour = navy, face = .word_cara("leyenda", FALSE), family = "Arial"), legend.justification = c(0, 0.5),
                    legend.box.spacing = ggplot2::unit(0.15, "in"), plot.margin = ggplot2::margin(4, 4, 4, 4))
   asp <- unname((cj[["ymax"]] - cj[["ymin"]]) / ((cj[["xmax"]] - cj[["xmin"]]) * cos(mean(cj[c("ymin", "ymax")]) * pi / 180)))
-  ley_w <- 0.35 + max(nchar(c(titulo, ley_rot))) * 8.5 * 0.5 / 72
+  ley_w <- 0.35 + max(nchar(c(titulo, ley_rot))) * (8.5 + .word_desplazo("leyenda")) * 0.5 / 72
   attr(g, "alto") <- alto - 0.22
   attr(g, "ancho") <- min(.std_word("pagina", "ancho_util"), (alto - 0.35) / asp + ley_w + 0.25)
   g

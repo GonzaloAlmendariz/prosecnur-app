@@ -129,7 +129,11 @@
     pasos = lapply(names(.ESTILO_CLIENTE_PASOS), function(p) list(id = p, desplazamiento_pt = .ESTILO_CLIENTE_PASOS[[p]])),
     roles = lapply(names(.ESTILO_CLIENTE_ROLES), function(r) list(
       id = r, ppt = pt_de("ppt", .ESTILO_CLIENTE_ROLES[[r]]$ppt), word = pt_de("word", .ESTILO_CLIENTE_ROLES[[r]]$word))),
-    logos = lapply(names(.ESTILO_CLIENTE_LOGOS_RECETARIO), function(k) c(list(lugar = k), .ESTILO_CLIENTE_LOGOS_RECETARIO[[k]]))
+    logos = lapply(names(.ESTILO_CLIENTE_LOGOS_RECETARIO), function(k) c(list(lugar = k), .ESTILO_CLIENTE_LOGOS_RECETARIO[[k]])),
+    # O8 (estilo_negrita.R, leyenda_plan.R): el defecto de cada rol es lo que el informe hace hoy.
+    negrita = lapply(names(.NEGRITA_DEFECTO), function(r) list(id = r, defecto = .NEGRITA_DEFECTO[[r]],
+      valores = if (identical(r, "categorias")) as.list(.NEGRITA_CATEGORIAS) else list(TRUE, FALSE))),
+    leyendas = as.list(.LEYENDA_MODOS)
   )
 }
 
@@ -169,6 +173,7 @@
         .ec_bad("«letra.roles.", k, "» debe ser ", paste(pasos, collapse = ", "), ".")
       }
     }
+    .negrita_validar_letra(l)   # O8: negrita por elemento y modo de la leyenda (estilo_negrita.R)
   }
   if (!is.null(x$logos)) {
     lg <- .as_json_list(x$logos)
@@ -235,7 +240,8 @@
         if (nzchar(p) && !identical(p, heredado)) r[[rol]] <- p
       }
       if (length(r)) l$roles <- r
-      for (extra in setdiff(names(v), c("paso", "roles"))) l[[extra]] <- v[[extra]]
+      l <- c(l, .negrita_solo_decisiones(v))   # O8: sólo lo que se aparta de hoy
+      for (extra in setdiff(names(v), c("paso", "roles", "negrita", "leyenda"))) l[[extra]] <- v[[extra]]
       if (length(l)) out$letra <- l
       next
     }
@@ -526,9 +532,11 @@
                                 else sprintf("el Word usa el de %s", .ESTILO_CLIENTE_LOGOS_RECETARIO[[lugar]]$nombre)))
   }
   desplazos <- .graficos_estilo_cliente_desplazos(x$letra)
+  o8 <- .negrita_resolver(x$letra)   # negrita por elemento y modo de la leyenda, sólo si se apartan de hoy
   out <- list()
   if (length(logos)) out$logos <- logos
   if (length(desplazos$ppt) || length(desplazos$word)) out$letra <- desplazos
+  if (length(o8)) out$letra <- c(out$letra %||% list(ppt = numeric(0), word = numeric(0)), o8)
   if (length(avisos)) out$avisos <- avisos
   out
 }
@@ -536,8 +544,15 @@
 #' Aplica los desplazamientos de letra en el proceso (worker): devuelve las opciones previas para `on.exit(options(.))`
 #' @keywords internal
 .graficos_estilo_cliente_aplicar_letra <- function(letra) {
-  if (!is.list(letra) || (!length(letra$ppt) && !length(letra$word))) return(list(prosecnur.letra_desplazo = getOption("prosecnur.letra_desplazo")))
-  options(prosecnur.letra_desplazo = list(ppt = letra$ppt %||% numeric(0), word = letra$word %||% numeric(0)))
+  previas <- list(prosecnur.letra_desplazo = getOption("prosecnur.letra_desplazo"), prosecnur.negrita = getOption("prosecnur.negrita"),
+                  prosecnur.leyenda = getOption("prosecnur.leyenda"))
+  if (!is.list(letra)) return(invisible(previas))
+  if (length(letra$ppt) || length(letra$word)) {
+    options(prosecnur.letra_desplazo = list(ppt = letra$ppt %||% numeric(0), word = letra$word %||% numeric(0)))
+  }
+  if (length(letra$negrita)) options(prosecnur.negrita = letra$negrita)   # O8a: estilo_negrita.R
+  if (length(letra$leyenda)) options(prosecnur.leyenda = letra$leyenda)   # O8b: leyenda_plan.R
+  invisible(previas)
 }
 
 # --- Subida de logos ------------------------------------------------------------------------------------------------------
@@ -630,7 +645,7 @@
 
 # --- Huella de miniaturas (grupo d) ----------------------------------------------------------------------------------------
 
-#' Lo del estilo del cliente que entra en la huella de una lámina: desplazamientos de letra y sha256 de cada logo
+#' Lo del estilo del cliente que entra en la huella de una lámina: letra (desplazamientos, negrita, leyenda) y sha256 de cada logo
 #' @param estilo Lo que devuelve `.graficos_estilo_cliente_resolver()` (o `NULL`).
 #' @keywords internal
 .graficos_estilo_cliente_huella <- function(estilo) {
