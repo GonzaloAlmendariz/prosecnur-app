@@ -2050,24 +2050,31 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     # Sin hueco: la cabecera y el cuerpo son la MISMA tabla.
     y <- y - head_h
   } else {
-    y <- if (is.null(g$lbl_lay)) {
-      .form_pdf_text(paste0(prefix, block$label), bx, y, bw,
+    # El texto baja el mismo margen que el enunciado dentro de su celda: la caja
+    # de la fuente sube ~3.2 pt sobre la «M», y pegado al borde superior del
+    # bloque tocaba el final del divisor de columnas («académico», acrconta p. 3).
+    # El avance NO cambia (la interlinea reservada sobra abajo): se dibuja `pad`
+    # mas abajo y se avanza como siempre.
+    pad <- .FORM_PDF_ENUNCIADO_PAD
+    y <- pad + if (is.null(g$lbl_lay)) {
+      .form_pdf_text(paste0(prefix, block$label), bx, y - pad, bw,
                      lines = g$lbl_lines, align = lbl_align,
                      fontsize = 8.4, fontface = "bold", col = tk$ink, line_h = 0.0142)
     } else {
-      .form_pdf_rt_draw(g$lbl_lay, bx, y, bw, col = tk$ink, align = lbl_align)
+      .form_pdf_rt_draw(g$lbl_lay, bx, y - pad, bw, col = tk$ink, align = lbl_align)
     }
     if (nzchar(block$hint %||% "")) {
-      y <- if (is.null(g$hint_lay)) {
-        .form_pdf_text(block$hint, bx, y - 0.002, bw,
+      y <- pad + if (is.null(g$hint_lay)) {
+        .form_pdf_text(block$hint, bx, y - 0.002 - pad, bw,
                        lines = g$hint_lines,
                        fontsize = 7.3, fontface = "italic", col = tk$ink, line_h = 0.011)
       } else {
-        .form_pdf_rt_draw(g$hint_lay, bx, y - 0.002, bw, col = tk$ink)
+        .form_pdf_rt_draw(g$hint_lay, bx, y - 0.002 - pad, bw, col = tk$ink)
       }
     }
-    # Fondo del texto de la nota-introduccion (para medir su aire con la tabla).
-    if (isTRUE(g$intro)) .form_pdf_traza("nota_texto", NA_integer_, y, y)
+    # Fondo del texto de la nota-introduccion (para medir su aire con la tabla):
+    # donde termina lo dibujado, con su margen.
+    if (isTRUE(g$intro)) .form_pdf_traza("nota_texto", NA_integer_, y - pad, y - pad)
     y <- y - (if (isTRUE(g$intro)) 0 else 0.007)
   }
   if (isTRUE(block$coded_list)) {

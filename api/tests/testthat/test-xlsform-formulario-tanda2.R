@@ -129,6 +129,21 @@
        settings = data.frame(form_title = "acnur_pdm", stringsAsFactors = FALSE))
 }
 
+# Instrumento de acrconta (Acreditacion Contabilidad PUCP Estudiantes) desde su
+# proyecto de referencia.
+.t2_acrconta <- function() {
+  pulso <- system.file("reference_projects", "acrconta", "acrconta.pulso", package = "prosecnurapp")
+  if (!nzchar(pulso)) pulso <- testthat::test_path("..", "..", "inst", "reference_projects", "acrconta", "acrconta.pulso")
+  testthat::skip_if_not(file.exists(pulso), "proyecto de referencia acrconta ausente")
+  dentro <- utils::unzip(pulso, list = TRUE)$Name
+  xlsx <- grep("Acreditacion_Contabilidad_PUCP_Estudiantes.*\\.xlsx$", dentro, value = TRUE)[1]
+  d <- tempfile("t2_acr_")
+  utils::unzip(pulso, files = xlsx, exdir = d)
+  p <- file.path(d, xlsx)
+  rd <- function(sh) as.data.frame(readxl::read_excel(p, sheet = sh, col_types = "text"))
+  list(survey = rd("survey"), choices = rd("choices"), settings = rd("settings"))
+}
+
 # Mide reserva (`.form_pdf_block_height`) y dibujo de cada bloque de un render.
 .t2_medir_reserva <- function(fx, options) {
   medidas <- list()
@@ -838,20 +853,28 @@ test_that("paridad: el PDF imprime los mismos codigos que el Word (igual a la et
 
 test_that("divisor: ningun tramo del divisor de columnas toca un bloque de ancho completo", {
   skip_if_not_installed("readxl")
+  skip_if_not(nzchar(.t2_pdftotext()))
   # Con las coordenadas que el render ya conoce (`.form_pdf_traza`): por pagina,
   # cada tramo del divisor queda FUERA de la caja de todo bloque full_width, con
   # al menos 0.003 npc de aire (antes terminaba justo en su borde y tocaba la
   # primera linea de la nota: «en|», acnur_pdm p. 2).
-  for (fx in list(.t2_acnur_pdm(), .t2_hsvg2026())) {
+  # Y LAS LETRAS (`pdftotext -bbox`): la caja de la fuente sube ~3.2 pt sobre la
+  # «M», asi que medir solo cajas de bloque daba verde mientras el final del
+  # divisor tocaba «académico» (acrconta p. 3). Ninguna palabra que cruce la x
+  # del divisor puede quedar a menos de 1 pt de sus extremos.
+  bp <- function(y) 18 + (1 - y) * 805.8898
+  x_div <- 18 + 0.5 * 559.2756
+  for (fx in list(.t2_acnur_pdm(), .t2_hsvg2026(), .t2_acrconta())) {
     traza <- list()
     testthat::local_mocked_bindings(
       .form_pdf_traza = function(tipo, pagina, y_arriba, y_abajo) {
         traza[[length(traza) + 1L]] <<- data.frame(tipo = tipo, pag = pagina, arriba = y_arriba, abajo = y_abajo)
       }, .package = "prosecnurapp")
+    tmp <- tempfile(fileext = ".pdf")
     suppressWarnings(reporte_formulario_pdf(fx$survey, fx$choices, fx$settings,
-                                            output_file = tempfile(fileext = ".pdf"),
-                                            options = list(columns = 2)))
+                                            output_file = tmp, options = list(columns = 2)))
     d <- do.call(rbind, traza)
+    d <- d[seq.int(nrow(d) / 2 + 1, nrow(d)), ]                    # pasada que dibuja
     div <- d[d$tipo == "divisor", ]; anc <- d[d$tipo == "ancho", ]
     expect_gt(nrow(div), 0L); expect_gt(nrow(anc), 0L)
     cruces <- 0L
@@ -861,6 +884,19 @@ test_that("divisor: ningun tramo del divisor de columnas toca un bloque de ancho
       cruces <- cruces + sum(choca)
     }
     expect_identical(cruces, 0L)
+    pal <- .t2_palabras_pdf(tmp)
+    cruzan <- pal[pal$xmin <= x_div & pal$xmax >= x_div, ]
+    tocan <- 0L
+    for (k in seq_len(nrow(div))) {
+      w <- cruzan[cruzan$pagina == div$pag[k], ]
+      fin <- bp(div$abajo[k]); ini <- bp(div$arriba[k])
+      # Debajo del final: la primera linea del bloque que sigue.
+      bajo <- w[w$ymin >= fin - 3 & w$ymin <= fin + 15, ]
+      # Encima del arranque: la ultima linea del bloque anterior.
+      sobre <- w[w$ymax <= ini + 3 & w$ymax >= ini - 15, ]
+      tocan <- tocan + sum(bajo$ymin - fin < 1) + sum(ini - sobre$ymax < 1)
+    }
+    expect_identical(tocan, 0L)
   }
 })
 
