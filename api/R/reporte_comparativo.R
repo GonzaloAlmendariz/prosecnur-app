@@ -18,8 +18,8 @@
 # (`reporte_notas_pie.R`). Textos sin raya, sin punto medio y sin punto y coma,
 # salvo la marca «—» de opción no ofrecida, que es la de la maqueta.
 #
-# Pie de cada pregunta (R4b): fuente y base, cómo se ponderó cada año, notas
-# por cruce, marcas (n.c., «—», n.a.), casos sin correspondencia en la escala,
+# Pie de cada pregunta (R4b): fuente y base, notas por cruce, marcas (n.c.,
+# «—», n.a.), casos sin correspondencia en la escala,
 # bases reducidas agrupadas por columna y, tras un renglón en blanco, la nota
 # libre de la pregunta y las notas generales (`extras`). Cada pregunta abre
 # página (salto manual) y la hoja se ajusta al ancho.
@@ -111,14 +111,46 @@
   fila
 }
 
-# Texto de base de una pregunta: `base_por_pregunta` acepta el id de la fila,
-# su etiqueta estándar o cualquiera de sus variables. Si no, la base por defecto.
-.comparativo_base <- function(notas, claves) {
+# Texto de base de una pregunta, de lo declarado a lo calculado:
+#   1. `base_texto` de la fila de la matriz;
+#   2. `base_por_pregunta` de las notas (id de la fila, su etiqueta estándar o
+#      cualquiera de sus variables) y `base_defecto`;
+#   3. si nada lo declara, «total de encuestados» cuando en TODOS los períodos
+#      comparables respondió la pregunta cada caso con peso > 0, y si no
+#      «quienes respondieron la pregunta». Un indicador compuesto (ADR 0105)
+#      deja NA a quien no se le preguntó: su base reducida cae en el segundo.
+.comparativo_base <- function(notas, q, periodos = names(q$periodos)) {
+  bt <- .notas_pie_texto(q$base_texto)
+  if (nzchar(bt)) return(bt)
   notas <- .notas_pie_normalizar(notas)
   bpp <- notas$base_por_pregunta
-  hit <- intersect(claves, names(bpp))
+  hit <- intersect(q$claves, names(bpp))
   if (length(hit)) return(.notas_pie_texto(bpp[[hit[[1]]]]))
-  notas$base_defecto
+  if (nzchar(notas$base_defecto)) return(notas$base_defecto)
+  .comparativo_base_calculada(q, periodos)
+}
+
+.comparativo_base_calculada <- function(q, periodos) {
+  comp <- Filter(function(pp) !identical(pp$estado, "n.c."), (q$periodos %||% list())[periodos])
+  completa <- length(comp) > 0L && all(vapply(comp, function(pp) {
+    n <- as.numeric(pp$N_sin_peso %||% (pp$total %||% list())$N_sin_peso %||% NA_real_)
+    casos <- as.numeric(pp$casos %||% NA_real_)
+    length(n) == 1L && length(casos) == 1L && !is.na(n) && !is.na(casos) && casos > 0 && n == casos
+  }, logical(1)))
+  if (completa) "total de encuestados" else "quienes respondieron la pregunta"
+}
+
+# «Fuente: …». Una fuente declarada en las notas se respeta tal cual. La por
+# defecto («Pulso PUCP», también la que siembra el editor de notas) lleva el
+# año del último período de la serie cuando su rótulo es un año.
+.comparativo_fuente <- function(notas, rotulos, periodos) {
+  f <- .notas_pie_texto((if (is.list(notas)) notas else list())$fuente)
+  if (nzchar(f) && !identical(sub("\\.+$", "", f), .notas_pie_fuente_defecto)) {
+    return(paste0("Fuente: ", .notas_pie_cerrar(f)))
+  }
+  ult <- if (length(periodos)) trimws(as.character(rotulos[[periodos[[length(periodos)]]]] %||% "")) else ""
+  paste0("Fuente: ", .notas_pie_fuente_defecto,
+         if (length(ult) == 1L && grepl("^[0-9]{4}$", ult)) paste0(" ", ult) else "", ".")
 }
 
 .comparativo_por_cruce <- function(notas, cruces) {
@@ -226,25 +258,6 @@
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   pulso_xlsx_ignore_number_warnings(path)
   invisible(path)
-}
-
-# «Ponderación: 2024 y 2025 por factor_ponderacion. 2026 sin ponderar.»
-.comparativo_linea_ponderacion <- function(pond, periodos, rotulos) {
-  if (is.null(pond) || !length(pond)) return("")
-  metodo_de <- vapply(periodos, function(b) {
-    p <- pond[[b]] %||% list()
-    if (!isTRUE(p$pondera) && identical(as.character(p$estado %||% ""), "no_aplicada")) {
-      return("sin ponderar (la calibración declarada no se aplicó)")
-    }
-    if (!isTRUE(p$pondera)) return("sin ponderar")
-    col <- as.character(p$peso_columna %||% "")
-    if (identical(as.character(p$metodo %||% ""), "columna") && nzchar(col)) return(paste("por", col))
-    "con pesos calibrados"
-  }, character(1))
-  frases <- vapply(unique(metodo_de), function(g) {
-    paste0(.notas_pie_unir_es(unname(rotulos[periodos[metodo_de == g]])), " ", g, ".")
-  }, character(1))
-  paste0("Ponderación: ", paste(unname(frases), collapse = " "))
 }
 
 # «12 casos de 2024 y 3 de 2025 sin correspondencia en la escala.»
@@ -405,7 +418,6 @@ reporte_comparativo_simple <- function(modelo, path, rotulos, notas = NULL, extr
   hoja <- "Comparativo"
   .comparativo_sheet_setup(wb, hoja)
   st <- .comparativo_estilos("0.00%")
-  notas_n <- .notas_pie_normalizar(notas)
   periodos <- modelo$periodos
   ncol <- 1L + 2L * length(periodos)
   openxlsx::setColWidths(wb, hoja, cols = 1, widths = 58)
@@ -414,7 +426,8 @@ reporte_comparativo_simple <- function(modelo, path, rotulos, notas = NULL, extr
   fila <- 1L
   seccion_previa <- NULL
   resumen <- list()
-  linea_pond <- .comparativo_linea_ponderacion(modelo$ponderacion, periodos, rotulos)
+  # Gonzalo, 2026-10-15: sin la línea «Ponderación: … por …» de cada año.
+  linea_fuente <- .comparativo_fuente(notas, rotulos, periodos)
   for (q in modelo$preguntas) {
     .comparativo_salto(wb, hoja, fila)
     sec <- .comparativo_rotulo_seccion(q$seccion)
@@ -484,11 +497,9 @@ reporte_comparativo_simple <- function(modelo, path, rotulos, notas = NULL, extr
     va_periodos <- nc_periodos[vapply(nc_periodos, function(b) .comparativo_es_variable_ausente(q$periodos[[b]]), logical(1))]
     va_items <- lapply(va_periodos, function(b) .comparativo_item_ausente(q$periodos[[b]], b))
     nc_decl <- setdiff(nc_periodos, c(sv_periodos, va_periodos))
-    base <- .comparativo_base(notas, q$claves)
     lineas <- c(
-      paste0("Fuente: ", .notas_pie_cerrar(notas_n$fuente)),
-      if (nzchar(base)) paste0("Base: ", .notas_pie_cerrar(base)) else character(0),
-      linea_pond,
+      linea_fuente,
+      paste0("Base: ", .notas_pie_cerrar(.comparativo_base(notas, q, periodos))),
       .comparativo_linea_n_ponderado(modelo$ponderacion),
       if (length(nc_decl)) .comparativo_linea_nc(unname(q$notas[nc_decl])) else character(0),
       .comparativo_linea_sin_variable(lapply(sv_periodos, function(b) list(periodo = b, elemento = "")),
@@ -550,7 +561,11 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
   st <- .comparativo_estilos("0.0%")
   notas_n <- .notas_pie_normalizar(notas)
   periodos <- modelo$periodos
-  cruces <- modelo$cruces
+  # El rótulo del cruce sale de la etiqueta estándar: sin marcado de Kobo.
+  cruces <- lapply(modelo$cruces, function(x) {
+    x$etiqueta <- .inst_sin_marcado(x$etiqueta)
+    x
+  })
   ncat <- vapply(cruces, function(x) length(x$escala$codigos), integer(1))
   ncol <- 4L + 2L * sum(ncat)
   nsig <- 2L + sum(ncat)
@@ -569,7 +584,8 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
   fila <- 1L
   seccion_previa <- NULL
   resumen <- list()
-  linea_pond <- .comparativo_linea_ponderacion(modelo$ponderacion, periodos, rotulos)
+  # Gonzalo, 2026-10-15: sin la línea «Ponderación: … por …» de cada año.
+  linea_fuente <- .comparativo_fuente(notas, rotulos, periodos)
   for (q in modelo$preguntas) {
     .comparativo_salto(wb, hoja, fila)
     sec <- .comparativo_rotulo_seccion(q$seccion)
@@ -707,9 +723,7 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
     }
     pulso_xlsx_box(wb, hoja, rg, fila - 1L, 1L, ncol, sep_cols = c(3L, inicio))
 
-    base <- .comparativo_base(notas, q$claves)
-    linea1 <- paste0("Fuente: ", .notas_pie_cerrar(notas_n$fuente),
-                     if (nzchar(base)) paste0(" Base: ", .notas_pie_cerrar(base)) else "",
+    linea1 <- paste0(linea_fuente, " Base: ", .notas_pie_cerrar(.comparativo_base(notas, q, periodos)),
                      " Porcentajes por columna dentro de ", unidad$cada, ".")
     linea_na <- .comparativo_linea_na(na_items, rotulos)
     linea_red <- if (isTRUE(notas_n$base_reducida$activo)) {
@@ -725,7 +739,7 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
                      x$sin_mapa, periodos, rotulos, prefijo = paste0(x$etiqueta, ": ")), character(1)),
                    vapply(cruces, .comparativo_linea_especiales_cruce, character(1),
                           periodos = periodos, rotulos = rotulos))
-    lineas <- c(linea1, linea_pond, .comparativo_por_cruce(notas, cruces), linea_nc, linea_sv, linea_va, linea_no_of,
+    lineas <- c(linea1, .comparativo_por_cruce(notas, cruces), linea_nc, linea_sv, linea_va, linea_no_of,
                 linea_na, lineas_sm, linea_red)
     libres <- .comparativo_extras(extras, q$claves)
     fila <- .comparativo_pie(wb, hoja, st, fila, lineas, if (isTRUE(show_sig) && length(cruces)) character(0) else libres,

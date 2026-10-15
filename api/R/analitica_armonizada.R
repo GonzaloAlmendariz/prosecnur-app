@@ -62,6 +62,10 @@
 
 .armz_txt <- function(x) .notas_pie_texto(x)
 
+# Texto que el libro imprime desde una etiqueta del instrumento o de la matriz
+# (título, categoría, sección): sin el marcado de Kobo (`*…*`, `**…**`).
+.armz_impreso <- function(x) .inst_sin_marcado(.armz_txt(x))
+
 # ---- Períodos y rótulos -------------------------------------------------------
 
 #' Rótulo de cada período: el parámetro manda, si no el año del nombre de base
@@ -100,14 +104,16 @@
   esc <- (fila$armonizacion %||% list())$escala %||% list()
   list(
     codigos = vapply(esc, function(e) as.character(e$codigo), character(1)),
-    etiquetas = vapply(esc, function(e) .armz_txt(e$etiqueta %||% e$codigo), character(1))
+    etiquetas = vapply(esc, function(e) .armz_impreso(e$etiqueta %||% e$codigo), character(1))
   )
 }
 
+# Título de la tabla: el enunciado declarado en la matriz y, si no, la
+# etiqueta estándar. Sin marcado de Kobo en ninguno de los dos.
 .armz_titulo_fila <- function(fila) {
-  enun <- .armz_txt(fila$enunciado)
+  enun <- .armz_impreso(fila$enunciado)
   if (nzchar(enun)) return(enun)
-  .armz_txt(fila$etiqueta_estandar)
+  .armz_impreso(fila$etiqueta_estandar)
 }
 
 .armz_nota_base <- function(fila, base) {
@@ -173,7 +179,7 @@
   cods <- unique(orig[sust])
   cods_esp <- .equiv_armon_orden_codigos(unique(orig[sm & esp]))
   etq_esp <- vapply(cods_esp, function(cd) {
-    e <- if (!is.null(etiquetas) && cd %in% names(etiquetas)) .armz_txt(etiquetas[[cd]]) else ""
+    e <- if (!is.null(etiquetas) && cd %in% names(etiquetas)) .armz_impreso(etiquetas[[cd]]) else ""
     if (nzchar(e)) e else cd
   }, character(1))
   list(n_sin_mapa = sum(sust), n_especial_sin_mapa = sum(sm & esp),
@@ -238,7 +244,9 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
       list(key = paste0(prefijo, i), fila = f, titulo = .armz_titulo_fila(f),
            claves = claves[nzchar(claves)],
            etiqueta = .armz_txt(f$etiqueta_estandar) %||% "",
-           seccion = .armz_txt(f$seccion), escala = escala,
+           seccion = .armz_impreso(f$seccion), escala = escala,
+           # Base declarada en la fila para el pie («Base: <base_texto>.»).
+           base_texto = .armz_txt(f$base_texto),
            comparable = stats::setNames(comp, periodos),
            sin_variable = stats::setNames(sin_var, periodos),
            ausente = stats::setNames(ausente, periodos),
@@ -378,6 +386,10 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
        N_sin_peso = sum(ok & x %in% codigos_escala & w > 0))
 }
 
+# Casos del período que cuentan (peso > 0): el total de encuestados contra el
+# que el pie decide si la base de una pregunta es la muestra completa.
+.armz_casos_periodo <- function(d, sel) sum(sel & d$peso > 0)
+
 .armz_meta <- function(d) {
   list(key = d$key, etiqueta = d$etiqueta, escala = d$escala, claves = d$claves,
        comparable = d$comparable, sin_variable = d$sin_variable, ausente = d$ausente,
@@ -398,6 +410,7 @@ armonizada_modelo_frecuencias <- function(ap) {
       pct <- if (ct$N > 0) ct$n / ct$N else rep(NA_real_, length(ct$n))
       list(estado = if (ct$N > 0) "ok" else "n.a.", n = ct$n, N = ct$N,
            pct = stats::setNames(pct, names(ct$n)), N_sin_peso = ct$N_sin_peso,
+           casos = .armz_casos_periodo(d, sel),
            no_ofrecidas = q$no_ofrecidas[[b]] %||% character(0))
     })
     names(por_periodo) <- ap$periodos
@@ -454,7 +467,7 @@ armonizada_modelo_cruces <- function(ap, alpha = 0.05) {
              no_ofrecidas = x$no_ofrecidas[[b]] %||% character(0))
       })
       names(por_cruce) <- vapply(cruces_meta, `[[`, character(1), "key")
-      list(estado = "ok", total = total, cruces = por_cruce,
+      list(estado = "ok", total = total, cruces = por_cruce, casos = .armz_casos_periodo(d, sel),
            no_ofrecidas = q$no_ofrecidas[[b]] %||% character(0))
     })
     names(por_periodo) <- ap$periodos
