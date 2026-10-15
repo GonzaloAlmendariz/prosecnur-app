@@ -151,3 +151,12 @@
 .form_pdf_aire_intro_cierre <- function(block) {
   if (identical(block$introduce %||% "", "matrix")) .FORM_PDF_AIRE_INTRO - 0.007 else .FORM_PDF_AIRE_INTRO
 }
+
+# Margen superior del enunciado dentro de su celda (npc, ~4.4 pt). `grid` coloca
+# el texto justificado arriba por la altura de «M»; la caja de la fuente (tildes,
+# «¿», «Í») sube ~3.2 pt mas a 8.4 pt. Con el 0.002 (1.6 pt) que habia, la
+# primera linea quedaba montada sobre el borde de la celda (acrconta P29). La
+# celda NO crece: abajo sobraban ~11 pt (la interlinea reservada, 0.0142, es
+# mayor que la dibujada, y el cierre deja 0.009), y bajar el texto 2.8 pt los
+# deja en ~8. Medido con el test de la celda: ninguna palabra cruza ningun borde.
+.FORM_PDF_ENUNCIADO_PAD <- 0.0055
