@@ -82,6 +82,8 @@ export type BuilderNode = {
   paperLabel?: string;
   paperLayout?: string;
   paperGroup?: string;
+  paperSubgroup?: string;
+  paperSubletter?: string;
   paperOnly?: string;
   paperSkip?: string;
   repeat_count?: string;
@@ -217,6 +219,8 @@ export const SURVEY_COLUMNS: readonly string[] = [
   "paper_label",
   "paper_layout",
   "paper_group",
+  "paper_subgroup",
+  "paper_subletter",
   "paper_only",
   "paper_skip",
 ];

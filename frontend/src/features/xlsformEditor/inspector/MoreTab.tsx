@@ -90,6 +90,29 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
               />
             </InspectorField>
             <InspectorField
+              label={<>Subsección en papel <TechTerm t="paper_subgroup" /></>}
+              hint="Banda bajo la sección. Un valor nuevo abre otra subsección."
+            >
+              <input
+                type="text"
+                value={node.paperSubgroup ?? ""}
+                onChange={(event) => onFieldChange("paper_subgroup", event.target.value)}
+                placeholder="Ej. D.4. Sobre el apoyo de tu familia"
+              />
+            </InspectorField>
+            <InspectorField
+              label={<>Letra en papel <TechTerm t="paper_subletter" /></>}
+              hint="En una matriz: a, b, c… en vez de número. «@» = enunciado madre."
+            >
+              <input
+                type="text"
+                value={node.paperSubletter ?? ""}
+                onChange={(event) => onFieldChange("paper_subletter", event.target.value)}
+                placeholder="Ej. a"
+                spellCheck={false}
+              />
+            </InspectorField>
+            <InspectorField
               label={<>Layout de papel <TechTerm t="paper_layout" /></>}
               hint="full, wide, matrix o compact. Vacío = automático."
             >

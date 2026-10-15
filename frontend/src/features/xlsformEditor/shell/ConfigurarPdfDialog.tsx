@@ -8,13 +8,14 @@
 // se exponen todas las opciones de forma discoverable, sin clutter de "metadata
 // detectada".
 //
-// El estado de la preferencia (columnas / lógica / N.º / matrices desactivadas /
-// tenor / columna especial) vive en este componente, que se mantiene MONTADO
-// aunque esté cerrado (renderiza `null` con `open=false`) para que las
-// elecciones sobrevivan a abrir/cerrar dentro de una sesión de edición.
+// El estado de la preferencia (columnas / lógica / N.º / título de cabecera /
+// instrucciones por defecto / tope de opciones / matrices) se restaura de
+// localStorage por proyecto + formulario y se guarda en cada cambio
+// (`pdfExportPreference.ts`). Las matrices se recuerdan por la firma de sus
+// miembros, no por el id de fila del candidato.
 //
-// La lógica pura de armado del payload sigue en `pdfExportPreference.ts`
-// (`buildMatrixGroups`) y la detección en `parsing/detectMatrixCandidates.ts`;
+// La lógica pura de armado del payload vive en `pdfExportPreference.ts`
+// (`buildPaperExportOptions`) y la detección en `parsing/detectMatrixCandidates.ts`;
 // aquí solo se presenta y se recolecta la elección del usuario.
 //
 // Overlay a z-index 1400 (por encima del chrome del módulo, `pulso-page-frame-
@@ -22,37 +23,35 @@
 // iconos lucide vía el shim compartido.
 // =============================================================================
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, Columns2, FileText, GitBranch, Grid3x3, LayoutTemplate, Route, ShieldCheck, Square, Table2, X } from "../../../vendor/lucide-react";
 import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
 import type { ConsentQuestion } from "../parsing/detectConsentQuestions";
+import type { XlsformPaperExportOptions } from "../../../api/xlsformEditor";
 import {
-  DEFAULT_PDF_EXPORT_PREFERENCE,
-  buildMatrixGroups,
-  type MatrixGroupPayload,
-  type PdfColumns,
-  type PdfLogicLanguage,
-  type PdfMatrixLayout,
+  MIN_MAX_OPTIONS_PER_QUESTION,
+  buildPaperExportOptions,
+  loadPdfDialogState,
+  matrixChoiceFor,
+  matrixSignature,
+  parseMaxOptionsPerQuestion,
+  savePdfDialogState,
+  type PdfDialogState,
+  type PdfMatrixChoice,
 } from "./pdfExportPreference";
 
 export type ConfigurarPdfDialogProps = {
   open: boolean;
   onClose: () => void;
-  onExport: (
-    format: "pdf" | "word",
-    columns: PdfColumns,
-    logicLanguage: PdfLogicLanguage,
-    showQuestionnaireNumber: boolean,
-    matrixGroups: MatrixGroupPayload[],
-    matrixLayout: PdfMatrixLayout,
-    consentVar: string | null,
-  ) => void;
+  onExport: (format: "pdf" | "word", options: XlsformPaperExportOptions) => void;
   matrixCandidates?: MatrixCandidate[];
   /** Preguntas candidatas a variable de consentimiento (select_one/acknowledge). */
   consentQuestions?: ConsentQuestion[];
   /** Nombre del formulario/archivo, mostrado como subtítulo si viene. */
   fileName?: string | null;
+  /** Clave de localStorage (proyecto + formulario); null = no se persiste. */
+  storageKey?: string | null;
   /** Bloquea el botón de exportar mientras hay un job en curso. */
   busy?: boolean;
 };
@@ -72,47 +71,37 @@ export function ConfigurarPdfDialog({
   matrixCandidates = [],
   consentQuestions = [],
   fileName,
+  storageKey = null,
   busy = false,
 }: ConfigurarPdfDialogProps) {
-  const [columns, setColumns] = useState<PdfColumns>(DEFAULT_PDF_EXPORT_PREFERENCE.columns);
-  const [logicLanguage, setLogicLanguage] = useState<PdfLogicLanguage>(
-    DEFAULT_PDF_EXPORT_PREFERENCE.logicLanguage,
-  );
-  const [showQuestionnaireNumber, setShowQuestionnaireNumber] = useState<boolean>(
-    DEFAULT_PDF_EXPORT_PREFERENCE.showQuestionnaireNumber,
-  );
-  // Ancho de las tablas de matriz (GLOBAL): "full" (default) / "column".
-  const [matrixLayout, setMatrixLayout] = useState<PdfMatrixLayout>("full");
-  // Ids de candidatos DESACTIVADOS. Los grupos de 2+ preguntas arrancan activos
-  // (como la auto-detección); los de UNA sola pregunta arrancan apagados —
-  // ir como matriz es opt-in para no cambiar el look por defecto.
-  const [disabledMatrixIds, setDisabledMatrixIds] = useState<Set<string>>(
-    () => new Set(matrixCandidates.filter((c) => c.count < 2).map((c) => c.id)),
-  );
-  // El diálogo permanece montado entre aperturas, así que el inicializador de
-  // arriba corre UNA vez por formulario. Los candidatos de 1 pregunta que
-  // aparezcan después (el usuario sigue editando) también deben arrancar
-  // apagados, sin pisar los toggles que el usuario ya decidió.
-  const seenMatrixIds = useRef<Set<string>>(new Set(matrixCandidates.map((c) => c.id)));
+  // Un solo estado para todas las elecciones; se restaura de localStorage al
+  // montar (el `key` del padre remonta por proyecto + formulario) y se guarda
+  // en cada cambio. Las matrices van por firma de miembros, no por id de fila.
+  const [state, setState] = useState<PdfDialogState>(() => loadPdfDialogState(storageKey));
+  const [maxOptionsDraft, setMaxOptionsDraft] = useState<string>(() => String(state.maxOptionsPerQuestion));
+  const [touched, setTouched] = useState(false);
+
   useEffect(() => {
-    const fresh = matrixCandidates.filter((c) => !seenMatrixIds.current.has(c.id));
-    if (!fresh.length) return;
-    for (const c of fresh) seenMatrixIds.current.add(c.id);
-    const freshOptIn = fresh.filter((c) => c.count < 2).map((c) => c.id);
-    if (freshOptIn.length) {
-      setDisabledMatrixIds((prev) => new Set([...prev, ...freshOptIn]));
-    }
-  }, [matrixCandidates]);
-  // Tenor (enunciado guía) por candidato: map id→texto. Vacío = sin tenor.
-  const [tenorById, setTenorById] = useState<Record<string, string>>({});
-  // Columna especial por candidato: map id→valor. Ausente/"auto" = heurística
-  // del motor (no se anuncia como metadata detectada).
-  const [specialById, setSpecialById] = useState<Record<string, string>>({});
-  // Cabecera por candidato: map id→"auto"|"extremos"|"categorias". Ausente/
-  // "auto" = el motor decide (se omite del payload).
-  const [headerById, setHeaderById] = useState<Record<string, string>>({});
-  // Variable de consentimiento (name de la pregunta) o "" = ninguna.
-  const [consentVar, setConsentVar] = useState<string>("");
+    if (!touched) return;
+    savePdfDialogState(storageKey, state, matrixCandidates);
+  }, [touched, storageKey, state, matrixCandidates]);
+
+  function update(patch: Partial<PdfDialogState>) {
+    setTouched(true);
+    setState((prev) => ({ ...prev, ...patch }));
+  }
+
+  function updateMatrix(candidate: MatrixCandidate, patch: PdfMatrixChoice) {
+    const signature = matrixSignature(candidate);
+    setTouched(true);
+    setState((prev) => ({
+      ...prev,
+      matrices: { ...prev.matrices, [signature]: { ...prev.matrices[signature], ...patch } },
+    }));
+  }
+
+  const consentNames = consentQuestions.map((q) => q.name);
+  const consentValue = consentNames.includes(state.consentVar) ? state.consentVar : "";
 
   // Cerrar con Escape (salvo mientras se exporta).
   useEffect(() => {
@@ -126,25 +115,8 @@ export function ConfigurarPdfDialog({
 
   if (!open) return null;
 
-  function toggleMatrix(id: string) {
-    setDisabledMatrixIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
   function exportNow(format: "pdf" | "word") {
-    const groups = buildMatrixGroups(
-      matrixCandidates,
-      disabledMatrixIds,
-      tenorById,
-      specialById,
-      headerById,
-    );
-    const consent = consentVar.trim() ? consentVar.trim() : null;
-    onExport(format, columns, logicLanguage, showQuestionnaireNumber, groups, matrixLayout, consent);
+    onExport(format, buildPaperExportOptions(state, matrixCandidates, consentNames));
     onClose();
   }
 
@@ -193,9 +165,9 @@ export function ConfigurarPdfDialog({
                 <button
                   type="button"
                   role="radio"
-                  aria-checked={columns === 1}
-                  className={`pulso-xf-pdf-card${columns === 1 ? " is-active" : ""}`}
-                  onClick={() => setColumns(1)}
+                  aria-checked={state.columns === 1}
+                  className={`pulso-xf-pdf-card${state.columns === 1 ? " is-active" : ""}`}
+                  onClick={() => update({ columns: 1 })}
                 >
                   <span className="pulso-xf-pdf-card-icon"><Square size={18} /></span>
                   <span className="pulso-xf-pdf-card-text">
@@ -206,9 +178,9 @@ export function ConfigurarPdfDialog({
                 <button
                   type="button"
                   role="radio"
-                  aria-checked={columns === 2}
-                  className={`pulso-xf-pdf-card${columns === 2 ? " is-active" : ""}`}
-                  onClick={() => setColumns(2)}
+                  aria-checked={state.columns === 2}
+                  className={`pulso-xf-pdf-card${state.columns === 2 ? " is-active" : ""}`}
+                  onClick={() => update({ columns: 2 })}
                 >
                   <span className="pulso-xf-pdf-card-icon"><Columns2 size={18} /></span>
                   <span className="pulso-xf-pdf-card-text">
@@ -219,9 +191,9 @@ export function ConfigurarPdfDialog({
                 <button
                   type="button"
                   role="radio"
-                  aria-checked={columns === "auto"}
-                  className={`pulso-xf-pdf-card pulso-xf-pdf-card--ancha${columns === "auto" ? " is-active" : ""}`}
-                  onClick={() => setColumns("auto")}
+                  aria-checked={state.columns === "auto"}
+                  className={`pulso-xf-pdf-card pulso-xf-pdf-card--ancha${state.columns === "auto" ? " is-active" : ""}`}
+                  onClick={() => update({ columns: "auto" })}
                 >
                   <span className="pulso-xf-pdf-card-icon"><LayoutTemplate size={18} /></span>
                   <span className="pulso-xf-pdf-card-text">
@@ -234,15 +206,30 @@ export function ConfigurarPdfDialog({
             <button
               type="button"
               role="switch"
-              aria-checked={showQuestionnaireNumber}
-              className={`pulso-xf-pdf-switch-row${showQuestionnaireNumber ? " is-on" : ""}`}
-              onClick={() => setShowQuestionnaireNumber((v) => !v)}
+              aria-checked={state.showQuestionnaireNumber}
+              className={`pulso-xf-pdf-switch-row${state.showQuestionnaireNumber ? " is-on" : ""}`}
+              onClick={() => update({ showQuestionnaireNumber: !state.showQuestionnaireNumber })}
             >
               <span className="pulso-xf-pdf-switch-text">
                 <strong>Número de cuestionario</strong>
                 <em>Imprime los recuadros de N.º en la cabecera.</em>
               </span>
-              <span className="pulso-xf-pdf-switch" aria-hidden="true">
+              <span className={`pulso-xf-pdf-switch${state.showQuestionnaireNumber ? " is-on" : ""}`} aria-hidden="true">
+                <span className="pulso-xf-pdf-switch-thumb" />
+              </span>
+            </button>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={state.showHeaderTitle}
+              className={`pulso-xf-pdf-switch-row${state.showHeaderTitle ? " is-on" : ""}`}
+              onClick={() => update({ showHeaderTitle: !state.showHeaderTitle })}
+            >
+              <span className="pulso-xf-pdf-switch-text">
+                <strong>Título en la cabecera</strong>
+                <em>Repite el título del formulario arriba de cada página.</em>
+              </span>
+              <span className={`pulso-xf-pdf-switch${state.showHeaderTitle ? " is-on" : ""}`} aria-hidden="true">
                 <span className="pulso-xf-pdf-switch-thumb" />
               </span>
             </button>
@@ -252,9 +239,9 @@ export function ConfigurarPdfDialog({
                 <button
                   type="button"
                   role="radio"
-                  aria-checked={matrixLayout === "full"}
-                  className={`pulso-xf-pdf-card${matrixLayout === "full" ? " is-active" : ""}`}
-                  onClick={() => setMatrixLayout("full")}
+                  aria-checked={state.matrixLayout === "full"}
+                  className={`pulso-xf-pdf-card${state.matrixLayout === "full" ? " is-active" : ""}`}
+                  onClick={() => update({ matrixLayout: "full" })}
                 >
                   <span className="pulso-xf-pdf-card-icon"><Table2 size={18} /></span>
                   <span className="pulso-xf-pdf-card-text">
@@ -265,9 +252,9 @@ export function ConfigurarPdfDialog({
                 <button
                   type="button"
                   role="radio"
-                  aria-checked={matrixLayout === "column"}
-                  className={`pulso-xf-pdf-card${matrixLayout === "column" ? " is-active" : ""}`}
-                  onClick={() => setMatrixLayout("column")}
+                  aria-checked={state.matrixLayout === "column"}
+                  className={`pulso-xf-pdf-card${state.matrixLayout === "column" ? " is-active" : ""}`}
+                  onClick={() => update({ matrixLayout: "column" })}
                 >
                   <span className="pulso-xf-pdf-card-icon"><Columns2 size={18} /></span>
                   <span className="pulso-xf-pdf-card-text">
@@ -286,9 +273,9 @@ export function ConfigurarPdfDialog({
               <button
                 type="button"
                 role="radio"
-                aria-checked={logicLanguage === "saltos"}
-                className={`pulso-xf-pdf-card${logicLanguage === "saltos" ? " is-active" : ""}`}
-                onClick={() => setLogicLanguage("saltos")}
+                aria-checked={state.logicLanguage === "saltos"}
+                className={`pulso-xf-pdf-card${state.logicLanguage === "saltos" ? " is-active" : ""}`}
+                onClick={() => update({ logicLanguage: "saltos" })}
               >
                 <span className="pulso-xf-pdf-card-icon"><Route size={18} /></span>
                 <span className="pulso-xf-pdf-card-text">
@@ -299,9 +286,9 @@ export function ConfigurarPdfDialog({
               <button
                 type="button"
                 role="radio"
-                aria-checked={logicLanguage === "condiciones"}
-                className={`pulso-xf-pdf-card${logicLanguage === "condiciones" ? " is-active" : ""}`}
-                onClick={() => setLogicLanguage("condiciones")}
+                aria-checked={state.logicLanguage === "condiciones"}
+                className={`pulso-xf-pdf-card${state.logicLanguage === "condiciones" ? " is-active" : ""}`}
+                onClick={() => update({ logicLanguage: "condiciones" })}
               >
                 <span className="pulso-xf-pdf-card-icon"><GitBranch size={18} /></span>
                 <span className="pulso-xf-pdf-card-text">
@@ -318,8 +305,8 @@ export function ConfigurarPdfDialog({
                 <select
                   id="pulso-xf-pdf-consent"
                   className="pulso-xf-pdf-select"
-                  value={consentVar}
-                  onChange={(e) => setConsentVar(e.target.value)}
+                  value={consentValue}
+                  onChange={(e) => update({ consentVar: e.target.value })}
                 >
                   <option value="">Ninguna</option>
                   {consentQuestions.map((question) => (
@@ -337,6 +324,47 @@ export function ConfigurarPdfDialog({
             </div>
           </section>
 
+          {/* ── Contenido ───────────────────────────────────────────── */}
+          <section className="pulso-xf-pdf-section">
+            <h3 className="pulso-xf-pdf-section-title">Contenido</h3>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={state.defaultIntro}
+              className={`pulso-xf-pdf-switch-row${state.defaultIntro ? " is-on" : ""}`}
+              onClick={() => update({ defaultIntro: !state.defaultIntro })}
+            >
+              <span className="pulso-xf-pdf-switch-text">
+                <strong>Instrucciones al inicio</strong>
+                <em>Banda «INSTRUCCIONES» si el formulario no trae introducción propia.</em>
+              </span>
+              <span className={`pulso-xf-pdf-switch${state.defaultIntro ? " is-on" : ""}`} aria-hidden="true">
+                <span className="pulso-xf-pdf-switch-thumb" />
+              </span>
+            </button>
+            <div className="pulso-xf-pdf-switch-row pulso-xf-pdf-number-row">
+              <label className="pulso-xf-pdf-switch-text" htmlFor="pulso-xf-pdf-max-options">
+                <strong>Máximo de opciones impresas</strong>
+                <em>Con más opciones, la pregunta sale con casilla de código.</em>
+              </label>
+              <input
+                id="pulso-xf-pdf-max-options"
+                type="number"
+                inputMode="numeric"
+                min={MIN_MAX_OPTIONS_PER_QUESTION}
+                step={1}
+                className="pulso-xf-pdf-input pulso-xf-pdf-number"
+                value={maxOptionsDraft}
+                onChange={(e) => {
+                  setMaxOptionsDraft(e.target.value);
+                  const parsed = parseMaxOptionsPerQuestion(e.target.value);
+                  if (parsed !== null) update({ maxOptionsPerQuestion: parsed });
+                }}
+                onBlur={() => setMaxOptionsDraft(String(state.maxOptionsPerQuestion))}
+              />
+            </div>
+          </section>
+
           {/* ── Matrices ────────────────────────────────────────────── */}
           <section className="pulso-xf-pdf-section">
             <h3 className="pulso-xf-pdf-section-title">Matrices</h3>
@@ -348,12 +376,11 @@ export function ConfigurarPdfDialog({
             ) : (
               <div className="pulso-xf-pdf-matrix-list">
                 {matrixCandidates.map((candidate) => {
-                  const enabled = !disabledMatrixIds.has(candidate.id);
+                  const choice = matrixChoiceFor(candidate, state.matrices);
+                  const enabled = choice.enabled;
                   const tenorInputId = `pulso-xf-pdf-tenor-${candidate.id}`;
                   const specialSelectId = `pulso-xf-pdf-special-${candidate.id}`;
                   const headerSelectId = `pulso-xf-pdf-header-${candidate.id}`;
-                  const specialValue = specialById[candidate.id] ?? "auto";
-                  const headerValue = headerById[candidate.id] ?? "auto";
                   return (
                     <div
                       key={candidate.id}
@@ -364,7 +391,7 @@ export function ConfigurarPdfDialog({
                         role="switch"
                         aria-checked={enabled}
                         className="pulso-xf-pdf-matrix-head"
-                        onClick={() => toggleMatrix(candidate.id)}
+                        onClick={() => updateMatrix(candidate, { enabled: !enabled })}
                       >
                         <span className="pulso-xf-pdf-matrix-badge" aria-hidden="true">
                           <Grid3x3 size={16} />
@@ -393,10 +420,10 @@ export function ConfigurarPdfDialog({
                               id={tenorInputId}
                               type="text"
                               className="pulso-xf-pdf-input"
-                              value={tenorById[candidate.id] ?? ""}
+                              value={choice.tenor}
                               placeholder="A continuación, indique cuán de acuerdo…"
                               onChange={(e) =>
-                                setTenorById((prev) => ({ ...prev, [candidate.id]: e.target.value }))
+                                updateMatrix(candidate, { tenor: e.target.value })
                               }
                             />
                             <span className="pulso-xf-pdf-control-hint">
@@ -409,9 +436,9 @@ export function ConfigurarPdfDialog({
                               <select
                                 id={specialSelectId}
                                 className="pulso-xf-pdf-select"
-                                value={specialValue}
+                                value={choice.special}
                                 onChange={(e) =>
-                                  setSpecialById((prev) => ({ ...prev, [candidate.id]: e.target.value }))
+                                  updateMatrix(candidate, { special: e.target.value })
                                 }
                               >
                                 <option value="auto">Automática</option>
@@ -435,9 +462,9 @@ export function ConfigurarPdfDialog({
                               <select
                                 id={headerSelectId}
                                 className="pulso-xf-pdf-select"
-                                value={headerValue}
+                                value={choice.header}
                                 onChange={(e) =>
-                                  setHeaderById((prev) => ({ ...prev, [candidate.id]: e.target.value }))
+                                  updateMatrix(candidate, { header: e.target.value })
                                 }
                               >
                                 <option value="auto">Automática</option>

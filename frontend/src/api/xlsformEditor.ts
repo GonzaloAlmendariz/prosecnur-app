@@ -4,7 +4,7 @@
 
 import { ApiError, apiFetch, handle, headers } from "./core";
 import type { EstudioBase, EstudioLogicSyncResult, EstudioPayload } from "./estudio";
-import type { AsyncJobStart } from "./jobs";
+import { type AsyncJobStart, jobResultDomainError, type JobStart } from "./jobs";
 import { normalizeShareArray } from "./graficos";
 import { type DeclaracionLogicaExterna, normalizeLogicaExternaSource } from "./xlsformLogicaExterna";
 import type { MonitoreoKoboAssetItem, MonitoreoProcessingHandoffPromoteResult } from "./monitoreo";
@@ -882,80 +882,139 @@ export async function apiXlsformEditorExport(
   );
 }
 
-export async function apiXlsformEditorExportPdf(
-  workbook: XlsformEditorWorkbook,
-  filename?: string,
-  options: {
-    title?: string;
-    footer_title?: string;
-    columns?: 1 | 2 | "auto";
-    logic_language?: "saltos" | "condiciones";
-    show_questionnaire_number?: boolean;
-    matrix_layout?: "full" | "column";
-    consent_var?: string;
-    matrix_groups?: Array<{ members: string[]; tenor?: string; special?: string; header?: string }>;
-  } = {},
-) {
-  return handle<{
-    ok: true;
-    file_id: string;
-    original_name: string;
-    size: number;
+/**
+ * `options` de export-pdf y export-word (ambos comparten el modelo del motor).
+ * El título impreso lo toma el backend de `settings.form_title`; `title` sólo
+ * existe para llamadas que quieran forzarlo. Los campos opcionales se omiten
+ * cuando valen su default del motor.
+ */
+export type XlsformPaperExportOptions = {
+  title?: string;
+  footer_title?: string;
+  columns?: 1 | 2 | "auto";
+  logic_language?: "saltos" | "condiciones";
+  show_questionnaire_number?: boolean;
+  /** Título pequeño repetido en la cabecera de cada página (default true). */
+  show_header_title?: boolean;
+  matrix_layout?: "full" | "column";
+  consent_var?: string;
+  matrix_groups?: Array<{ members: string[]; tenor?: string; special?: string; header?: string }>;
+  /** Más opciones que esto → la pregunta se imprime como campo codificado (motor: 18, mínimo 4). */
+  max_options_per_question?: number;
+  /** true = sin la banda «INSTRUCCIONES» por defecto cuando no hay intro en la hoja paper. */
+  no_default_intro?: boolean;
+};
+
+/** Resultado de exportar el formulario a papel: `result_data` del job. */
+export type XlsformPaperExportResult = {
+  ok: true;
+  file_id: string;
+  original_name: string;
+  size: number;
+  summary: {
+    n_blocks: number;
+    n_questions: number;
+    n_sections: number;
+    n_matrices: number;
+  };
+  warnings: string[];
+};
+
+/** Job lanzado por export-pdf/export-word (forma JobStart; `kind` es
+ *  "xlsform_editor.formulario_pdf" o "xlsform_editor.formulario_word"). */
+export type XlsformPaperExportJobStart = JobStart;
+
+function normalizePaperExportJobStart(data: unknown): XlsformPaperExportJobStart {
+  const raw = (data ?? {}) as Partial<JobStart>;
+  const jobId = typeof raw.job_id === "string" ? raw.job_id.trim() : "";
+  if (!jobId) {
+    throw new ApiError(
+      "E_EXPORT_JOB_START",
+      "El servidor no devolvió el trabajo de exportación. Reintenta.",
+    );
+  }
+  return { ok: true, job_id: jobId, kind: typeof raw.kind === "string" ? raw.kind : "" };
+}
+
+/**
+ * `result_data` de un job de exportación terminado («done»). Un error de
+ * dominio embebido ({ok:false, error:{code,…}}) se relanza como ApiError,
+ * igual que en el camino síncrono; un payload sin archivo también.
+ */
+export function normalizeXlsformPaperExportResult(data: unknown): XlsformPaperExportResult {
+  const domainError = jobResultDomainError(data);
+  if (domainError) throw new ApiError(domainError.code, domainError.message);
+  const raw = (data ?? {}) as Partial<Omit<XlsformPaperExportResult, "summary" | "warnings">> & {
+    summary?: Record<string, unknown>;
+    warnings?: unknown;
+  };
+  const fileId = typeof raw.file_id === "string" ? raw.file_id : "";
+  if (raw.ok !== true || !fileId) {
+    throw new ApiError(
+      "E_EXPORT_JOB_RESULT",
+      "La exportación terminó sin archivo. Reintenta.",
+    );
+  }
+  const summary: Record<string, unknown> = raw.summary && typeof raw.summary === "object" ? raw.summary : {};
+  const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  return {
+    ok: true,
+    file_id: fileId,
+    original_name: typeof raw.original_name === "string" && raw.original_name ? raw.original_name : fileId,
+    size: num(raw.size),
     summary: {
-      n_blocks: number;
-      n_questions: number;
-      n_sections: number;
-      n_matrices: number;
-    };
-    warnings: string[];
-  }>(
-    await apiFetch("/api/xlsform-editor/export-pdf", {
+      n_blocks: num(summary.n_blocks),
+      n_questions: num(summary.n_questions),
+      n_sections: num(summary.n_sections),
+      n_matrices: num(summary.n_matrices),
+    },
+    // El unboxed-JSON de R entrega un vector de largo 1 como string suelto.
+    warnings: (Array.isArray(raw.warnings) ? raw.warnings : typeof raw.warnings === "string" ? [raw.warnings] : [])
+      .filter((w): w is string => typeof w === "string" && w.trim() !== ""),
+  };
+}
+
+async function startPaperExport(
+  path: "/api/xlsform-editor/export-pdf" | "/api/xlsform-editor/export-word",
+  workbook: XlsformEditorWorkbook,
+  filename: string | undefined,
+  options: XlsformPaperExportOptions,
+): Promise<XlsformPaperExportJobStart> {
+  const data = await handle<unknown>(
+    await apiFetch(path, {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ workbook, filename, options }),
     })
   );
+  return normalizePaperExportJobStart(data);
 }
 
 /**
- * Exporta el MISMO cuestionario en formato Word (.docx). Reutiliza el mismo
- * modelo que el PDF en el backend (build_model compartido), así que acepta las
- * mismas `options`. Devuelve un file_id descargable/registrable como entregable.
+ * Lanza la exportación del cuestionario a PDF como job. El resultado se
+ * pollea por GET /api/jobs/<job_id> y, al terminar, `result_data` se lee con
+ * `normalizeXlsformPaperExportResult` (no por /api/jobs/<id>/result: el
+ * archivo queda registrado y se descarga por /api/files/<file_id>/download).
+ */
+export async function apiXlsformEditorExportPdf(
+  workbook: XlsformEditorWorkbook,
+  filename?: string,
+  options: XlsformPaperExportOptions = {},
+) {
+  return startPaperExport("/api/xlsform-editor/export-pdf", workbook, filename, options);
+}
+
+/**
+ * Exporta el MISMO cuestionario en formato Word (.docx), también como job.
+ * Reutiliza el modelo del PDF en el backend, así que acepta las mismas
+ * `options` y su `result_data` tiene la misma forma.
  */
 export async function apiXlsformEditorExportWord(
   workbook: XlsformEditorWorkbook,
   filename?: string,
-  options: {
-    title?: string;
-    footer_title?: string;
-    columns?: 1 | 2 | "auto";
-    logic_language?: "saltos" | "condiciones";
-    show_questionnaire_number?: boolean;
-    show_header_title?: boolean;
-    matrix_layout?: "full" | "column";
-    consent_var?: string;
-    matrix_groups?: Array<{ members: string[]; tenor?: string; special?: string; header?: string }>;
-  } = {},
+  options: XlsformPaperExportOptions = {},
 ) {
-  return handle<{
-    ok: true;
-    file_id: string;
-    original_name: string;
-    size: number;
-    summary: {
-      n_blocks: number;
-      n_questions: number;
-      n_sections: number;
-      n_matrices: number;
-    };
-    warnings: string[];
-  }>(
-    await apiFetch("/api/xlsform-editor/export-word", {
-      method: "POST",
-      headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ workbook, filename, options }),
-    })
-  );
+  return startPaperExport("/api/xlsform-editor/export-word", workbook, filename, options);
 }
 
 /**

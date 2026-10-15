@@ -88,6 +88,8 @@ const PDF_EXTENSION_COLUMNS = new Set([
   "paper_label",
   "paper_layout",
   "paper_group",
+  "paper_subgroup",
+  "paper_subletter",
   "paper_only",
   "paper_skip",
 ]);
@@ -159,6 +161,16 @@ const COLUMN_HELP: Record<string, { label: string; detail: string; badge?: strin
   paper_group: {
     label: "Grupo en papel",
     detail: "Agrupa piezas en la maqueta de papel sin cambiar la lógica Kobo.",
+    badge: "Papel",
+  },
+  paper_subgroup: {
+    label: "Subsección en papel",
+    detail: "Banda de segundo nivel en el PDF. Un valor nuevo abre otra subsección.",
+    badge: "Papel",
+  },
+  paper_subletter: {
+    label: "Letra en papel",
+    detail: "En una matriz, numera la fila con a, b, c… en vez de un número. «@» marca el enunciado madre.",
     badge: "Papel",
   },
   paper_only: {

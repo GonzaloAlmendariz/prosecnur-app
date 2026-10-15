@@ -51,6 +51,7 @@ import {
   type XlsformFormPublication,
   type XlsformFormSource,
 } from "../../api/client";
+import type { XlsformPaperExportOptions } from "../../api/xlsformEditor";
 import { useProjectShell } from "../project/ProjectShell";
 import { ImportSurveyMonkeyDialog } from "./shell/ImportSurveyMonkeyDialog";
 import { MatrizPulsoDialog } from "./shell/MatrizPulsoDialog";
@@ -158,6 +159,8 @@ import {
 } from "./shell/actorAssignmentModel";
 import { instrumentActorLabel } from "./shell/formWorkflowView";
 import { ConfigurarPdfDialog } from "./shell/ConfigurarPdfDialog";
+import { exportWarningDetail, pdfDialogStorageKey } from "./shell/pdfExportPreference";
+import { esperarExportPapel, textoExportando } from "./shell/paperExportJob";
 import { QuestionnaireProgressPanel } from "./shell/QuestionnaireProgressPanel";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { EditorCommandBar } from "./shell/EditorCommandBar";
@@ -2127,12 +2130,7 @@ export default function XlsformEditorPage() {
 
   async function onExportForm(
     format: "pdf" | "word" = "pdf",
-    columns: 1 | 2 | "auto" = 2,
-    logicLanguage: "saltos" | "condiciones" = "saltos",
-    showQuestionnaireNumber: boolean = true,
-    matrixGroups: Array<{ members: string[]; tenor?: string; special?: string; header?: string }> = [],
-    matrixLayout: "full" | "column" = "full",
-    consentVar: string | null = null,
+    exportOptions: XlsformPaperExportOptions = {},
   ) {
     if (!workbook) return;
     const isWord = format === "word";
@@ -2140,30 +2138,24 @@ export default function XlsformEditorPage() {
     const ext = isWord ? "docx" : "pdf";
     resetMessages();
     setArtifact(null);
-    setBusy(`Exportando ${label} para papel…`);
+    setBusy(textoExportando(label, ""));
     try {
       const exportableWorkbook = { ...workbook, diagnostico: null };
       const exportFn = isWord ? apiXlsformEditorExportWord : apiXlsformEditorExportPdf;
       const filename = isWord
         ? wordFilenameFromSource(source?.original_name)
         : pdfFilenameFromSource(source?.original_name);
-      const out = await exportFn(
+      const job = await exportFn(
         exportableWorkbook,
         filename,
-        {
-          columns,
-          logic_language: logicLanguage,
-          show_questionnaire_number: showQuestionnaireNumber,
-          matrix_layout: matrixLayout,
-          matrix_groups: matrixGroups,
-          ...(consentVar ? { consent_var: consentVar } : {}),
-        },
+        exportOptions,
       );
+      const out = await esperarExportPapel(job.job_id, {
+        onFase: (fase) => setBusy(textoExportando(label, fase)),
+      });
       setArtifact({ file_id: out.file_id, original_name: out.original_name, extension: ext });
-      setStatus(`Listo: generamos ${out.original_name} con plantilla impresa Pulso.`);
-      const warnDetail = out.warnings?.length
-        ? ` ${out.warnings.length} salto(s) o regla(s) necesitan revisión manual.`
-        : "";
+      setStatus(`Listo: generamos ${out.original_name}.`);
+      const warnDetail = exportWarningDetail(out.warnings);
 
       if (project.status.has_project) {
         try {
@@ -3710,26 +3702,17 @@ export default function XlsformEditorPage() {
         />
       ) : null}
 
-      {/* Diálogo "Configurar PDF": Formato / Lógica / Matrices. Se mantiene
-          montado (aunque cerrado) para conservar las elecciones del usuario
-          entre aperturas DEL MISMO formulario. El `key` por formulario activo
-          lo remonta al cambiar de formulario, descartando estado form-específico
-          (ids de matriz row-based, tenor, columna especial, cabecera, variable
-          de consentimiento) que no aplica al nuevo workbook. */}
+      {/* Diálogo "Configurar PDF": Formato / Lógica / Contenido / Matrices.
+          Sus elecciones se guardan en localStorage por proyecto + formulario
+          (`storageKey`); el `key` lo remonta al cambiar de proyecto o de
+          formulario para que restaure las del nuevo. */}
       <ConfigurarPdfDialog
-        key={activeFormId ?? "no-form"}
+        key={`${projectScope ?? "no-project"}::${activeFormId ?? "no-form"}`}
+        storageKey={pdfDialogStorageKey(projectScope, activeFormId)}
         open={pdfDialogOpen}
         onClose={() => setPdfDialogOpen(false)}
-        onExport={(format, columns, logicLanguage, showQuestionnaireNumber, matrixGroups, matrixLayout, consentVar) => {
-          void onExportForm(
-            format,
-            columns,
-            logicLanguage,
-            showQuestionnaireNumber,
-            matrixGroups,
-            matrixLayout,
-            consentVar,
-          );
+        onExport={(format, exportOptions) => {
+          void onExportForm(format, exportOptions);
         }}
         matrixCandidates={matrixCandidates}
         consentQuestions={consentQuestions}
