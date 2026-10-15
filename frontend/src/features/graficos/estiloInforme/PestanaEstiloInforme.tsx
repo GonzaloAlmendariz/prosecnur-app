@@ -11,7 +11,6 @@
 import { useOptionalSession } from "../../../lib/SessionContext";
 import { useCallback, useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import { resolveWordPresetsDefaults } from "../../../api/graficosConfigDefaults";
 import { useGraficosReportScope } from "../reportScope";
 import { usePlanStore } from "../store";
 import { usePresetsMetadata } from "../usePresetsMetadata";
@@ -22,19 +21,15 @@ import {
   ARG_NOTA,
   ARG_SUFIJO,
   PRESET_BASE,
-  bloquesFijados,
   conArg,
   conDecimales,
   conDecimalesEnTodas,
   conMetodo,
   conMetodoEnTodas,
-  conOcultarEtiqueta,
   defaultDeArg,
   filasCalculos,
   lineaVisualAplicada,
-  listasConColor,
   notaRedondeo,
-  ocultarEtiquetaSiTitulo,
   sinArgs,
   sinCalculos,
   textoBase,
@@ -73,19 +68,12 @@ export default function PestanaEstiloInforme() {
   const setPresets = usePlanStore((s) => s.setPresets);
   const { sources: fuentes, multi } = useVariables();
   const bases = multi ? fuentes.map((f) => f.name) : [];
-  const wPresets = usePlanStore((s) => s.wPresets);
-  const setWPresets = usePlanStore((s) => s.setWPresets);
-  const configDefaults = usePlanStore((s) => s.configDefaults);
-  const paletas = usePlanStore((s) => s.paletas);
   const scopeRules = usePlanStore((s) => s.scopeRules);
 
   const metaBase = presetsByName[PRESET_BASE];
-  const referenciaWord = useMemo(() => resolveWordPresetsDefaults(configDefaults), [configDefaults]);
   const texto = textoBase(presets, defaults, metaBase);
   const nota = notaRedondeo(presets, defaults, metaBase);
   const filas = useMemo(() => filasCalculos(catalogo, presets, defaults), [catalogo, presets, defaults]);
-  const bloques = useMemo(() => bloquesFijados(catalogo, wPresets, referenciaWord), [catalogo, wPresets, referenciaWord]);
-  const opcionWord = ocultarEtiquetaSiTitulo(wPresets, referenciaWord);
 
   // Se lee el estado vivo al escribir: dos cambios seguidos no se pisan con un cierre viejo.
   const cambiarPresets = useCallback((f: (p: MapaPresets) => MapaPresets) => {
