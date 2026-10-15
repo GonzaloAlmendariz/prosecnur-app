@@ -192,8 +192,9 @@ describe("(7) «Modificado» compara contra el default (decisión 5a)", () => {
     expect(resolveWordPresetsDefaults(null)).toEqual(DEFAULT_WORD_PRESETS);
   });
 
+  // Desde O7a el editor del Word es word/DetalleGraficos.tsx (WordPresetsEditor se retiró).
   it("el editor cuenta decisiones y no valores no vacíos", () => {
-    const editor = fs.readFileSync(path.join(featureDir, "WordPresetsEditor.tsx"), "utf8");
+    const editor = fs.readFileSync(path.join(featureDir, "word", "DetalleGraficos.tsx"), "utf8");
     expect(editor).toContain("wordChartPresetsDecisiones(wPresets, referencia)");
     expect(editor).toContain("resolveWordPresetsDefaults(configDefaults)");
     expect(editor).not.toMatch(/hasValue\(/);
