@@ -54,7 +54,7 @@ import {
   ordenEfectivo,
   reducirArmonizacion,
   resumenMapa,
-  textoResumenMapa,
+  textoResumenMapa, resumenEsAviso,
   validarArmonizacion,
   type BorradorArmonizacion,
   type EntradaBorrador,
@@ -742,12 +742,16 @@ function MapaDeBase({
                 {explicito ? "Emparejar por etiqueta" : "Convertir en mapa por etiqueta"}
               </PulsoButton>
             )}
-            <span
-              className={`pulso-armon-base-resumen${resumen.etiquetaDistinta > 0 || resumen.sinMapa > 0 ? " is-aviso" : ""}`}
-              aria-live="polite"
-            >
-              {textoResumenMapa(resumen, explicito)}
-            </span>
+            {/* Mientras cuenta no se resume: con la tabla vacía el resumen afirmaría
+                «todos caen en su etiqueta» sin haberlo medido. */}
+            {carga.tipo !== "cargando" && (
+              <span
+                className={`pulso-armon-base-resumen${resumenEsAviso(resumen, carga.tipo === "listo") ? " is-aviso" : ""}`}
+                aria-live="polite"
+              >
+                {textoResumenMapa(resumen, explicito)}
+              </span>
+            )}
           </div>
 
           {carga.tipo === "instrumento" && <p className="pulso-armon-aviso">{carga.motivo}</p>}

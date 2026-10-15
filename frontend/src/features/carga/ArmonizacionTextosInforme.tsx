@@ -29,11 +29,11 @@ export function ArmonizacionTextosInforme({ textos, nombreEstandar, onCambiar }:
         <span>Base</span>
         <input
           value={textos.baseTexto}
-          placeholder="se calcula sola"
+          placeholder="Automática"
           aria-describedby="pulso-armon-informe-base-ayuda"
           onChange={(e) => onCambiar("baseTexto", e.target.value)}
         />
-        <small id="pulso-armon-informe-base-ayuda">Se imprime como «Base: …» bajo la tabla. Vacía, dice «total de encuestados» o «quienes respondieron la pregunta».</small>
+        <small id="pulso-armon-informe-base-ayuda">Va bajo la tabla como «Base: …».</small>
       </label>
     </section>
   );
