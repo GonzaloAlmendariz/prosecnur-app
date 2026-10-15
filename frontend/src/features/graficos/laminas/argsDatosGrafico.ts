@@ -241,6 +241,14 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   },
   // Formal de p_histograma (e93c51d); sin default en el registro: vacío = sin tope.
   limite_superior: { rotulo: "Límite superior", ayuda: AYUDA_LIMITE_SUPERIOR, placeholder: "Sin tope", soloEn: ["p_histograma"] },
+  // O7c (383c1fe2b): el motor ya acepta estos ajustes desde el gráfico y usa el del tipo debajo.
+  invertir_barras: { rotulo: "Invertir el orden de las barras", soloEn: ["p_barras_agrupadas", "p_barras_apiladas", "p_barras_multiapiladas"] },
+  otros_al_final: { rotulo: "Otros al final", ayuda: "La categoría Otros va al final, sin importar su frecuencia.", soloEn: ["p_barras_agrupadas"] },
+  normalizar_etiquetas: { rotulo: "Escritura de las categorías", soloEn: ["p_barras_agrupadas", "p_barras_categoricas"] },
+  max_palabras: { rotulo: "Máximo de palabras", soloEn: ["p_nube_palabras"] },
+  min_chars: { rotulo: "Mínimo de letras por palabra", soloEn: ["p_nube_palabras"] },
+  decimales: { rotulo: "Decimales", soloEn: ["p_numerico", "p_histograma"] },
+  mostrar_leyenda: { rotulo: "Mostrar la leyenda", soloEn: ["p_serie_temporal", "p_numerico"] },
   mostrar_valores: { rotulo: "Mostrar cifras", soloEn: ["p_serie_temporal"], cuando: serieEnMarco },
   max_series_con_cifras: {
     rotulo: "Máximo de series con cifras",
@@ -262,7 +270,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
 export const RETIRADOS: ReadonlySet<string> = new Set([
   "invertir_leyenda", "tipo_pie", "umbral_brecha_pct", "tabla_ancho_tema", "tabla_proporcion", "sm_omit_na",
   "umbral_rojo_pct", "mostrar_tabla_derecha", "modo_semaforo", "mostrar_ref_label", "mostrar_n_cruce_x", "radar_min_ejes",
-  "bins", "ancho_bin", "grupo", "mostrar_bins_vacios", "otros_al_final", "mostrar_saldo", "umbral_etiqueta_pct",
+  "bins", "ancho_bin", "grupo", "mostrar_bins_vacios", "mostrar_saldo", "umbral_etiqueta_pct",
   "mostrar_promedio", "formato_valor", "cortes_chip",
 ]);
 /** Familias retiradas enteras: las brechas declaradas (`brecha_*`) y los args propios de la matriz FODA. */

@@ -157,7 +157,7 @@ describe("C40 · ASIGNAR", () => {
   });
   it("agrupadas: máximo, agrupación y etiqueta de «Otros» (formales desde e93c51d); la etiqueta sigue a la agrupación", () => {
     expect(nombres(agrupadas, {}, "p_barras_agrupadas")).toEqual(
-      ["var", "max_categorias", "agrupar_resto_en_otros", "etiqueta_otros", "mostrar_ceros"]);
+      ["var", "max_categorias", "agrupar_resto_en_otros", "etiqueta_otros", "mostrar_ceros", "otros_al_final"]);   // O7c: vuelve a la tarjeta
     expect(nombres(agrupadas, { agrupar_resto_en_otros: false }, "p_barras_agrupadas")).not.toContain("etiqueta_otros");
     expect(campo(agrupadas, {}, "p_barras_agrupadas", "etiqueta_otros")?.placeholder).toBe("Otros");
     // top_k no cuenta fuera de torta y dona: en agrupadas manda el interruptor.

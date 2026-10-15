@@ -98,7 +98,7 @@ export function EditorTemasEquivalentes({ tipo, args, onCambio }: Props) {
 
       {tipo === "serie" && periodos.length > 0 && (
         <div className="pulso-f6-dato is-apilado">
-          <span className="pulso-f6-dato-rotulo">Mediciones, en orden</span>
+          <span className="pulso-f6-dato-rotulo">Mediciones</span>
           <p className="pulso-teq-orden">{resumenOrdenSerie(periodos.map(nombrePublico))}</p>
           <span className="pulso-f6-dato-ayuda">El orden se declara en Carga › Equivalencias.</span>
         </div>
