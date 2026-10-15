@@ -186,6 +186,13 @@ carga_sav_registrar_base <- function(sid, data_file_id, nombre = "") {
     session_set(sid, "analitica_prep_ok", TRUE)
     session_set(sid, "analitica_fuente", sprintf("estudio:%s", nombre))
   }
+  # Una base que llega desde un .sav trae su propio instrumento: junto a otra base
+  # sólo puede leerse como bases separadas, que es además lo que Plan ya muestra.
+  # Sin declararlo, Equivalencias y la config por base seguían apagadas y Plan no
+  # ofrecía cómo encenderlas (prueba HSyVbG 2024-2026, 2026-10-15).
+  if (is.null(estudio_topology(sid)) && length(estudio_list_bases(sid)) > 1L) {
+    estudio_set_topology(sid, "separate")
+  }
   list(
     base_meta = base_meta,
     xlsform_file_id = xls_meta$file_id,

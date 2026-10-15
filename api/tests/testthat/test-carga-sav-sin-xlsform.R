@@ -109,6 +109,10 @@ test_that("un .sav entra como segunda base y sobrevive al .pulso", {
   expect_equal(s$files[[meta$xlsform_file_id]]$kind, "xlsform")
   # La base activa sigue siendo la primera: registrar no la cambia.
   expect_equal(estudio_active_base(sid), "2026")
+  # Una base .sav junto a otra declara bases separadas: sin eso Equivalencias
+  # seguía apagada y Plan no ofrecía cómo encenderla.
+  expect_equal(estudio_topology(sid), "separate")
+  expect_true(.analitica_config_es_por_base(sid))
 
   inst <- s$rp_inst_sources[["2024"]]
   expect_equal(inst$survey$list_name[inst$survey$name == "p1"], "l_p1")
@@ -186,4 +190,16 @@ test_that("contrato HTTP de POST /api/estudio/base-sav", {
                         body = list(data_file_id = "no-existe", nombre = "x"), sid = sid)
   expect_equal(bad$status, 404L)
   expect_equal(bad$json$code %||% bad$json$error$code, "E_NO_FILE")
+})
+
+test_that("una declaración previa de topología no se pisa al sumar un .sav", {
+  skip_if_not_installed("haven")
+  skip_if_not_installed("openxlsx")
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  .sav_estudio_con_base_2026(sid)
+  estudio_set_topology(sid, "independent")
+  sav <- save_upload(sid, "sav", "hsyvbg_2024.sav", .sav_fixture_bytes())
+  carga_sav_registrar_base(sid, sav$file_id, "2024")
+  expect_equal(estudio_topology(sid), "independent")
 })
