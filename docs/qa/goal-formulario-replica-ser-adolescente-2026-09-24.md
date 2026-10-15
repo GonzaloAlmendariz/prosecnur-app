@@ -66,7 +66,7 @@ versiona**. Dos archivos y no son intercambiables:
 
 | | Afirmación | Cómo se mide |
 |---|---|---|
-| **V1** | El cuerpo va en una **tipografía estrecha** | Word: `w:rFonts` 100 % Arial Narrow ✅. **PDF: Helvetica-Narrow, con reserva declarada** — Arial Narrow es del sistema y en el runner Linux del CI cairo caería a otra en silencio; un PDF distinto según la máquina es peor que otra tipografía. Cumplirlo literalmente exige empaquetar la fuente (decisión de packaging) |
+| **V1** | El cuerpo va en una **tipografía estrecha** | Word: `w:rFonts` 100 % Arial Narrow ✅. **PDF ✅ — reserva levantada 2026-10-15 (ítem 22 de `checklist-exportacion-formulario-2026-10-15.md`)**: Liberation Sans Narrow 1.07.5 (GPLv2 + font exception, métrico-compatible con Arial Narrow) empaquetada en `api/inst/fonts/liberation-sans-narrow/` y embebida como subconjunto TrueType vía `cairo_pdf()` + fontconfig registrado al cargar el paquete; falla explícita si la fuente falta o no llega al artefacto. hsvg2026 a 1 columna pasa de 15 a 16 páginas; el resto, igual |
 | **V2** | **Cero color.** Ni un `w:color` ni un `w:fill` fuera de la escala de grises | todo `w:color` = `000000`; todo `w:fill` con R=G=B |
 | **V3** | Cuerpo base **10 pt** (`w:sz` = 20), cabecera de escala 8 pt (16) | histograma de `w:sz`: el 90 % en {16, 20} |
 | **V4** | **Todas** las celdas llevan borde de 0,5 pt (`w:sz` = 4) | cero tablas sin `insideH`/`insideV`; grosor dominante 4 |
