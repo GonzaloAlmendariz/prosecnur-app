@@ -141,9 +141,9 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   coverage_mode: { rotulo: "Cobertura", soloEn: ["p_mapa_cobertura_territorial"] },
   // G12 (2026-10-13): en multiapiladas el grupo se elige dentro de su modo («Una pregunta por grupos»…); un «Dividir por»
   // suelto en la tarjeta era un segundo camino a lo mismo.
-  cruces: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie.", excepto: ["p_barras_multiapiladas"] },
+  cruces: { rotulo: "Dividir por", ayuda: "Sin dividir, el gráfico muestra una sola serie.", excepto: ["p_barras_multiapiladas"] },
   // G17: en la brecha el cruce, los grupos y el corte se eligen en su propia tarjeta (BrechaEntreGrupos).
-  cruce: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie.", excepto: ["p_barras_multiapiladas", "p_dumbbell"] },
+  cruce: { rotulo: "Dividir por", ayuda: "Sin dividir, el gráfico muestra una sola serie.", excepto: ["p_barras_multiapiladas", "p_dumbbell"] },
   corte: { rotulo: "Corte", excepto: ["p_dumbbell", "p_significancia_publicos"] },
   corte_etiqueta: { rotulo: "Rótulo del corte" },
   // C44: el radar «entre públicos» rotula cada columna de su tabla con el nombre técnico de la base.
@@ -216,8 +216,8 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos. Lo dibuja la lámina que compara públicos.
   // Sólo donde hace algo: la lámina que compara públicos (Gonzalo, 2026-10-13: «que sus opciones tengan sentido»).
   ancho_tema: { rotulo: "Ancho de los temas", soloEn: ["p_barras_multiapiladas"], cuando: comparaPublicos },
-  excluir_opciones: { rotulo: "Excluir respuestas", ayuda: "Códigos separados por comas (p. ej. 88, 99)." },
-  excluir_grupos: { rotulo: "Excluir grupos", ayuda: "Códigos separados por comas." },
+  excluir_opciones: { rotulo: "Excluir respuestas", ayuda: "Escribe los códigos separados por comas, por ejemplo 88, 99." },
+  excluir_grupos: { rotulo: "Excluir grupos", ayuda: "Escribe los códigos separados por comas." },
   // Tabla (5a, ruta anterior): formales de p_tabla (p_radar_split.R); `sm_omit_na = TRUE` sin default en el registro.
   // `top_n` y `sm_omit_codes` siguen sin control: recortan antes del denominador (C40, D1).
   sm_omit_na: { rotulo: "Omitir sin respuesta", soloEn: TABLA, defecto: true },
