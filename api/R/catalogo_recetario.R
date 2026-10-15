@@ -38,6 +38,25 @@ catalogo_recetario_dir <- function() {
        radar = list(paleta = "okabe_ito", min_ejes = 2L))
 }
 
+# Colores de las respuestas, como los dejaría el analista en Identidad › Colores de las respuestas: las escalas con la
+# rampa del recetario (SIN INF en gris) y las categóricas que se pintan por respuesta con la combinación principal de
+# la marca. Sin ellos la exportación se detiene en «Faltan colores», que no es lo que el catálogo viene a probar.
+.cr_paletas <- function() {
+  rampa4 <- c("#F4B183", "#FFD965", "#ADD493", "#70AD47")
+  rampa5 <- c("#F4B183", "#FFD965", "#D9D9D9", "#ADD493", "#70AD47")
+  gris <- "#BFBFBF"
+  ch <- .catalogo_recetario_choices()
+  pintar <- function(lista, colores) {
+    rot <- ch$label[ch$list_name == lista]
+    sust <- setdiff(rot, c("SIN INF", "Prefiero no responder"))
+    as.list(stats::setNames(c(colores[seq_along(sust)], rep(gris, length(rot) - length(sust))), c(sust, setdiff(rot, sust))))
+  }
+  c(lapply(stats::setNames(nm = c("acuerdo", "acuerdo_eg", "utilidad", "satisf")), pintar, colores = rampa4),
+    lapply(stats::setNames(nm = c("acuerdo5", "relacion")), pintar, colores = rampa5),
+    list(si_no = pintar("si_no", c("#081F5C", "#CA5651")),
+         sexo = pintar("sexo", c("#081F5C", "#CA5651"))))
+}
+
 #' Siembra la sesión del catálogo: bases, estudio y plan
 #' @param dir Carpeta donde se escriben los formularios y datos de entrada.
 #' @return `sid`.
@@ -80,6 +99,7 @@ catalogo_recetario_dir <- function() {
   .analitica_status_set(sid, "analitica_dim_ok", TRUE)
   cfg <- .graficos_default_config(sid)
   cfg$plan$slides <- .catalogo_recetario_plan()
+  cfg$paletas <- .cr_paletas()
   cfg$selected_slide_id <- cfg$plan$slides[[1]]$id
   .graficos_config_set(sid, cfg)
   sid
