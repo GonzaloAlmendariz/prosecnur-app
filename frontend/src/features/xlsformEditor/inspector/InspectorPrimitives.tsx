@@ -3,7 +3,7 @@
 // =============================================================================
 // Componentes mínimos que reusamos en todas las tabs (Básico/Apariencia/Más/
 // Lógica). Mantienen la mismas reglas visuales:
-//   - InspectorField: par label + hint + control.
+//   - InspectorField: par label + hint + control (rótulo asociado, ver abajo).
 //   - InspectorBlock: agrupador con borde sutil y separación interna.
 //   - InspectorEyebrow: cabecera tipo "small caps" con icono opcional.
 //
@@ -12,8 +12,33 @@
 // sea coherente con el resto del editor.
 // =============================================================================
 
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 
+/**
+ * Lo que `InspectorField` entrega a su control para asociarlo al rótulo.
+ *  - `id`: va en el `id` del input/textarea/select; el rótulo es un `<label
+ *    htmlFor>` y el control toma de ahí su nombre accesible.
+ *  - `labelId`: para controles que no son etiquetables con `htmlFor` (un
+ *    `contentEditable` con `role="textbox"`): se pasa a `aria-labelledby`.
+ *  - `hintId`: id de la ayuda, para `aria-describedby`; ausente si no hay.
+ */
+export type InspectorFieldControl = {
+  id: string;
+  labelId: string;
+  hintId: string | undefined;
+};
+
+/**
+ * Par rótulo + control + ayuda.
+ *
+ * Asociar el rótulo es opt-in y explícito: si `children` es una función, el
+ * campo genera los ids y se los pasa; el rótulo pasa a ser un `<label
+ * htmlFor>` y la ayuda queda enlazada por `aria-describedby`. Si `children`
+ * es un nodo (un control compuesto: selector de tipo, chip de lista, lectura
+ * con botón), el rótulo sigue siendo texto y nombra al grupo
+ * (`role="group"` + `aria-labelledby`), porque no hay un único control al
+ * que atarlo.
+ */
 export function InspectorField({
   label,
   hint,
@@ -22,13 +47,43 @@ export function InspectorField({
   /** Texto del label. Acepta nodos para incrustar `<TechTerm />`. */
   label: ReactNode;
   hint?: ReactNode;
-  children: ReactNode;
+  children: ReactNode | ((control: InspectorFieldControl) => ReactNode);
 }) {
+  const baseId = useId();
+  const control: InspectorFieldControl = {
+    id: `${baseId}-control`,
+    labelId: `${baseId}-label`,
+    hintId: hint ? `${baseId}-hint` : undefined,
+  };
+  const bound = typeof children === "function";
   return (
     <div className="pulso-inspector-field">
-      <span className="pulso-inspector-field-label">{label}</span>
-      <div className="pulso-inspector-field-control">{children}</div>
-      {hint && <span className="pulso-inspector-field-hint">{hint}</span>}
+      {bound ? (
+        <label id={control.labelId} htmlFor={control.id} className="pulso-inspector-field-label">
+          {label}
+        </label>
+      ) : (
+        <span id={control.labelId} className="pulso-inspector-field-label">
+          {label}
+        </span>
+      )}
+      {bound ? (
+        <div className="pulso-inspector-field-control">{children(control)}</div>
+      ) : (
+        <div
+          className="pulso-inspector-field-control"
+          role="group"
+          aria-labelledby={control.labelId}
+          aria-describedby={control.hintId}
+        >
+          {children}
+        </div>
+      )}
+      {hint && (
+        <span id={control.hintId} className="pulso-inspector-field-hint">
+          {hint}
+        </span>
+      )}
     </div>
   );
 }

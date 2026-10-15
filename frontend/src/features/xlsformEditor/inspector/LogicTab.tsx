@@ -110,14 +110,18 @@ export function LogicTab({ node, scope, onFieldChange }: LogicTabProps) {
               label={<>Mensaje de error <TechTerm t="constraint_message" /></>}
               hint="Lo ve el encuestado si su respuesta no cumple la regla."
             >
-              <input
-                type="text"
-                value={constraintMessage}
-                onChange={(event) =>
-                  onFieldChange("constraint_message", event.target.value)
-                }
-                placeholder="Ej. Ingresa un valor entre 18 y 65."
-              />
+              {(campo) => (
+                <input
+                  id={campo.id}
+                  aria-describedby={campo.hintId}
+                  type="text"
+                  value={constraintMessage}
+                  onChange={(event) =>
+                    onFieldChange("constraint_message", event.target.value)
+                  }
+                  placeholder="Ej. Ingresa un valor entre 18 y 65."
+                />
+              )}
             </InspectorField>
           )}
         </InspectorBlock>

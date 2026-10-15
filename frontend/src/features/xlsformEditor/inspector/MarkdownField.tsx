@@ -35,6 +35,11 @@ export type MarkdownFieldProps = {
   rows?: number;
   /** Si true, la toolbar muestra menos botones (omite tachado). */
   compact?: boolean;
+  /** Id del editable (lo entrega `InspectorField`). */
+  id?: string;
+  /** Rótulo visible que nombra al editable; sin él, el nombre es el placeholder. */
+  ariaLabelledBy?: string;
+  ariaDescribedBy?: string;
 };
 
 export function MarkdownField({
@@ -42,6 +47,9 @@ export function MarkdownField({
   onChange,
   placeholder,
   compact = false,
+  id,
+  ariaLabelledBy,
+  ariaDescribedBy,
 }: MarkdownFieldProps) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   // Último valor pintado en el DOM — usado para evitar repintar mientras
@@ -245,12 +253,15 @@ export function MarkdownField({
 
       <div
         ref={editorRef}
+        id={id}
         className="pulso-md-editor"
         contentEditable
         suppressContentEditableWarning
         role="textbox"
         aria-multiline="true"
-        aria-label={placeholder}
+        aria-label={ariaLabelledBy ? undefined : placeholder}
+        aria-labelledby={ariaLabelledBy}
+        aria-describedby={ariaDescribedBy}
         data-placeholder={placeholder || ""}
         data-empty={!value || value.length === 0 ? "true" : "false"}
         onKeyDown={onKeyDown}
