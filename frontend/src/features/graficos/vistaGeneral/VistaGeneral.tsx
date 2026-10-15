@@ -16,9 +16,7 @@ import { nuevoIdLamina, usePlanStore } from "../store";
 import { focoDeId, resolverFocoLamina } from "../focoLamina";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import { enfocarSinDesplazar } from "../laminas/enfocarSinDesplazar";
-import { useLaminasUi } from "../laminas/laminasStore";
 import { construirEstructura } from "../laminas/modeloEstructura";
-import { useMiniaturasLote } from "../laminas/miniaturas/useMiniaturasLote";
 import { BotonArmarDesdeVacio } from "../armarDesde/BotonArmarDesdeVacio";
 import { AvisosVistaGeneral } from "./AvisosVistaGeneral";
 import { BarraVistaGeneral } from "./BarraVistaGeneral";
@@ -45,7 +43,6 @@ import {
 import { objetivoDeAccion, reconciliarSeleccionVG, seleccionar, seleccionarTodo, SELECCION_VACIA } from "./seleccionVistaGeneral";
 import { destinoDeFoco, intencionDeTecla, objetivoDeReenfoque } from "./tecladoVistaGeneral";
 import { useFlipTarjetas } from "./useFlipTarjetas";
-import { useTarjetasVistas } from "./useTarjetasVistas";
 import { useVistaGeneralUi } from "./vistaGeneralStore";
 import "../laminas/movimiento.css";
 import "../laminas/laminasWorkbench.css";
@@ -69,7 +66,6 @@ export default function VistaGeneral() {
   const loadPlan = usePlanStore((s) => s.loadPlan);
   const select = usePlanStore((s) => s.select);
   const undo = usePlanStore((s) => s.undo);
-  const imagenesPrevias = useLaminasUi((s) => s.miniaturas);
   const { graficadoresById } = useGraficosRegistry();
   const seleccion = useVistaGeneralUi((s) => s.seleccion);
   const arrastre = useVistaGeneralUi((s) => s.arrastre);
@@ -90,9 +86,6 @@ export default function VistaGeneral() {
   const itinerante = focoId ?? ids[0] ?? null;
 
   const cuerpoRef = useRef<HTMLDivElement>(null);
-  const vistas = useTarjetasVistas(cuerpoRef, firma);
-  const laminasVistas = useMemo(() => estructura.laminas.filter((l) => vistas.has(l.id)), [estructura, vistas]);
-  const { entradas } = useMiniaturasLote(laminasVistas, true);
   useFlipTarjetas(cuerpoRef, firma);
 
   // Lo último de cada valor para los manejadores estables (las tarjetas son `memo`: no se re-crean por render).
@@ -447,8 +440,6 @@ export default function VistaGeneral() {
                     key={t.lamina.id}
                     tarjeta={t}
                     slide={porId.get(t.lamina.id)}
-                    entrada={entradas[t.lamina.id]}
-                    imagenPrevia={imagenesPrevias[t.lamina.id]}
                     nombresGraficos={nombresGraficos.get(t.lamina.id) ?? SIN_NOMBRES}
                     seleccionada={elegidas.has(t.lamina.id)}
                     itinerante={t.lamina.id === itinerante}
