@@ -15,7 +15,9 @@
 # Tope de entradas para no retener data de sesiones cerradas.
 
 .analitica_lectura_cache <- new.env(parent = emptyenv())
-.ANALITICA_LECTURA_CACHE_MAX <- 12L
+# Cada base ocupa dos entradas (lectura cruda + normalizada): 16 cubre un
+# estudio de tres bases con margen para versiones previas de sus archivos.
+.ANALITICA_LECTURA_CACHE_MAX <- 16L
 
 .analitica_lectura_file_stamp <- function(meta) {
   path <- as.character((meta %||% list())$path %||% "")
@@ -69,10 +71,29 @@
   invisible(value)
 }
 
+# Ante un fallo, cosecha la lectura en segundo plano si ya terminó
+# (analitica_warmup.R) y vuelve a mirar. Nunca espera a un job vivo.
+.analitica_lectura_cache_get_or_harvest <- function(signature) {
+  if (is.null(signature)) return(NULL)
+  hit <- .analitica_lectura_cache_get(signature)
+  if (!is.null(hit)) return(hit)
+  harvested <- tryCatch(.analitica_lectura_bg_harvest(), error = function(e) 0L)
+  if (harvested > 0L) .analitica_lectura_cache_get(signature) else NULL
+}
+
 .analitica_lectura_cache_clear <- function() {
   keys <- ls(.analitica_lectura_cache, all.names = TRUE)
   if (length(keys)) rm(list = keys, envir = .analitica_lectura_cache)
   invisible(length(keys))
+}
+
+# La lectura devuelta lleva su firma como atributo: así quien la normaliza
+# después (`.analitica_prepare_and_cache`) puede memoizar también ese paso sin
+# volver a firmar los archivos.
+.analitica_lectura_tag <- function(value, signature) {
+  if (is.null(signature) || !is.list(value)) return(value)
+  attr(value, "analitica_lectura_signature") <- signature
+  value
 }
 
 # Lectura memoizada. `reader` es el parser real (inyectable en tests).
@@ -82,8 +103,48 @@
     # Sin firma se lee sin cache: la firma es una optimización, nunca un error.
     error = function(e) NULL
   )
-  hit <- .analitica_lectura_cache_get(signature)
-  if (!is.null(hit)) return(hit)
+  hit <- .analitica_lectura_cache_get_or_harvest(signature)
+  if (!is.null(hit)) return(.analitica_lectura_tag(hit, signature))
   value <- reader(pair, base_meta)
   .analitica_lectura_cache_put(signature, value)
+  .analitica_lectura_tag(value, signature)
+}
+
+# Normalización de reporte (`.bases_normalize_report_context`) de una lectura
+# ya firmada. Es función pura de la lectura y del override ambiente, y ambos ya
+# están en la firma: cuesta ~0,3–0,9 s por base y se pagaba en cada cambio de
+# base activa. Sin firma se normaliza sin cache.
+.analitica_lectura_norm_key <- function(signature) {
+  if (is.null(signature) || !is.character(signature) || length(signature) != 1L ||
+      is.na(signature) || !nzchar(signature)) {
+    return(NULL)
+  }
+  paste0(signature, "::norm")
+}
+
+.analitica_lectura_normalized <- function(signature, data, inst, normalize = .bases_normalize_report_context) {
+  key <- .analitica_lectura_norm_key(signature)
+  hit <- .analitica_lectura_cache_get_or_harvest(key)
+  if (!is.null(hit)) return(hit)
+  value <- normalize(data, inst)
+  .analitica_lectura_cache_put(key, value)
+}
+
+# Equivalente memoizado de `.bases_normalize_source_contexts` para el contexto
+# de Analítica: `signatures` es la firma de lectura de cada base (por nombre).
+.analitica_lectura_normalize_sources <- function(data_sources, inst_sources, signatures = list()) {
+  if (!is.list(data_sources) || is.data.frame(data_sources) ||
+      !is.list(inst_sources) || is.data.frame(inst_sources)) {
+    return(list(data_sources = data_sources, inst_sources = inst_sources))
+  }
+  for (nm in intersect(names(data_sources), names(inst_sources))) {
+    ctx <- .analitica_lectura_normalized(
+      (signatures %||% list())[[nm]],
+      data_sources[[nm]],
+      inst_sources[[nm]]
+    )
+    data_sources[[nm]] <- ctx$data
+    inst_sources[[nm]] <- ctx$inst
+  }
+  list(data_sources = data_sources, inst_sources = inst_sources)
 }

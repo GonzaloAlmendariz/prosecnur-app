@@ -1268,6 +1268,16 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
     return(.project_warmup_public_result(result))
   }
   .project_warmup_merge_session_patch(j$sid, result$session_patch %||% list())
+  # La lectura de todas las bases para Analítica NO bloquea la apertura: arranca
+  # aquí como job aparte y se cosecha sola en la primera lectura que la necesite
+  # (analitica_warmup.R).
+  task_ids <- vapply(result$tasks %||% list(), function(t) as.character(t$id %||% ""), character(1))
+  if ("analitica" %in% task_ids) {
+    result$analitica_lectura_job <- tryCatch(
+      .analitica_lectura_bg_start(j$sid),
+      error = function(e) NULL
+    )
+  }
   .project_warmup_public_result(result)
 }
 
@@ -1280,6 +1290,12 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
   budget_ms <- .project_warmup_budget_ms(budget_ms)
   module_ids <- unique(as.character(unlist(modules %||% character(0), use.names = FALSE)))
   module_ids <- module_ids[nzchar(module_ids) & module_ids %in% vapply(.project_warmup_tasks(), `[[`, character(1), "id")]
+  if (!length(module_ids) || "analitica" %in% module_ids) {
+    # El reparador puede reescribir archivos y la sesión: va aquí, en el proceso
+    # del backend, y el worker recibe la sesión ya convergida.
+    .analitica_warmup_prerepair(sid)
+    s <- session_get(sid)
+  }
   session_path <- job_save_rds(sid, "project_warmup_session", s)
   job_id <- tryCatch(
     job_submit(
