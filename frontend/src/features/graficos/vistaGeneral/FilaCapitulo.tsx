@@ -3,7 +3,7 @@
 // llevan gráfico; la de un capítulo además se arrastra (asa) o se mueve con Alt+↑/↓ y con sus botones.
 
 import { type DragEvent, type KeyboardEvent, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, GripVertical } from "../../../vendor/lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, GripVertical, Plus } from "../../../vendor/lucide-react";
 import type { FilaVistaGeneral } from "./modeloVistaGeneral";
 
 type Props = {
@@ -20,18 +20,27 @@ type Props = {
   onSobreFinFila: (filaId: string, e: DragEvent<HTMLElement>) => void;
   onSoltar: (e: DragEvent<HTMLElement>) => void;
   onFinArrastre: () => void;
+  /** I5: el capítulo está plegado (sólo su cabecera a la vista). */
+  plegado: boolean;
+  onPlegar: (filaId: string) => void;
+  /** I5: cuántas láminas piden atención (aviso, colores o ranura vacía). */
+  atencion: number;
+  /** I5: agrega una lámina al final de la fila. */
+  onAgregar: (filaId: string) => void;
   children: ReactNode;
 };
 
-export function textoConteo(c: FilaVistaGeneral["conteo"]): string {
+export function textoConteo(c: FilaVistaGeneral["conteo"], atencion = 0): string {
   const partes = [`${c.laminas} ${c.laminas === 1 ? "lámina" : "láminas"}`, `${c.conGrafico} con gráfico`];
-  if (c.incompletas) partes.push(`${c.incompletas} ${c.incompletas === 1 ? "incompleta" : "incompletas"}`);
+  if (atencion) partes.push(`${atencion} ${atencion === 1 ? "pide" : "piden"} atención`);
+  else if (c.incompletas) partes.push(`${c.incompletas} ${c.incompletas === 1 ? "incompleta" : "incompletas"}`);
   return partes.join(" · ");
 }
 
 export function FilaCapitulo({
   fila, indiceCapitulo, totalCapitulos, arrastrada, soltarCapitulo, soltarAlFinal,
-  onMoverCapitulo, onArrastrarCapitulo, onSobreFila, onSobreFinFila, onSoltar, onFinArrastre, children,
+  onMoverCapitulo, onArrastrarCapitulo, onSobreFila, onSobreFinFila, onSoltar, onFinArrastre,
+  plegado, onPlegar, atencion, onAgregar, children,
 }: Props) {
   const idTitulo = `pulso-f6-vg-fila-${fila.id}`;
   const esCapitulo = fila.clase === "capitulo" && indiceCapitulo !== null;
@@ -47,6 +56,7 @@ export function FilaCapitulo({
     `is-${fila.clase}`,
     arrastrada ? "is-arrastrada" : "",
     soltarCapitulo ? `is-soltar-${soltarCapitulo}` : "",
+    plegado ? "is-plegado" : "",
   ].filter(Boolean).join(" ");
   return (
     <section
@@ -58,6 +68,16 @@ export function FilaCapitulo({
       onDrop={onSoltar}
     >
       <header className="pulso-f6-vg-fila-cabeza">
+        <button
+          type="button"
+          className="pulso-f6-icono-boton pulso-f6-vg-plegar"
+          aria-expanded={!plegado}
+          aria-controls={`${idTitulo}-cuerpo`}
+          aria-label={`${plegado ? "Desplegar" : "Plegar"} ${fila.rotulo}`}
+          onClick={() => onPlegar(fila.id)}
+        >
+          <ChevronDown size={16} aria-hidden="true" />
+        </button>
         {esCapitulo ? (
           <button
             type="button"
@@ -77,7 +97,7 @@ export function FilaCapitulo({
         )}
         {fila.numero && <span className="pulso-f6-num pulso-f6-vg-num">{fila.numero}</span>}
         <h3 id={idTitulo} className="pulso-f6-vg-fila-titulo" title={fila.titulo}>{fila.titulo}</h3>
-        <span className="pulso-f6-vg-fila-conteo">{textoConteo(fila.conteo)}</span>
+        <span className={`pulso-f6-vg-fila-conteo${atencion ? " is-atencion" : ""}`}>{textoConteo(fila.conteo, atencion)}</span>
         <span className="pulso-f6-col-sp" />
         {esCapitulo && (
           <span className="pulso-f6-vg-fila-acciones">
@@ -103,8 +123,15 @@ export function FilaCapitulo({
             </button>
           </span>
         )}
+        <button type="button" className="pulso-f6-boton pulso-f6-vg-agregar" onClick={() => onAgregar(fila.id)}
+          aria-label={`Agregar una lámina al final de ${fila.rotulo}`}>
+          <Plus size={14} aria-hidden="true" />
+          Lámina
+        </button>
       </header>
       {/* Tarjetas: marco 176 × 99 + pie, iguales entre sí (C2). Soltar en el hueco tras la última la deja al final. */}
+      {/* I5: plegar anima la altura de este envoltorio (0fr ↔ 1fr); plegado, lo de dentro sale del orden de foco. */}
+      <div className="pulso-f6-vg-fila-cuerpo" id={`${idTitulo}-cuerpo`} ref={(el) => { if (el) el.inert = plegado; }}>
       <ul
         className={`pulso-f6-vg-tarjetas${soltarAlFinal ? " is-soltar-fin" : ""}`}
         role="listbox"
@@ -118,6 +145,7 @@ export function FilaCapitulo({
       >
         {children}
       </ul>
+      </div>
     </section>
   );
 }

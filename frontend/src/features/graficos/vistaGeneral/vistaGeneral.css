@@ -903,3 +903,53 @@
   border-radius: 50%;
   background: var(--pulso-warn-accent);
 }
+
+/* I5 del rediseño (2026-10-14): capítulos plegables. El envoltorio anima su fila de grid de 1fr a 0fr (altura real,
+   sin medir en JS); plegado, lo de dentro queda `inert`. El chevrón gira con el estado. */
+.pulso-f6-vg-fila-cuerpo {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows var(--motion-dur-base) var(--motion-ease-out),
+    opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Sólo plegado recorta: desplegado, el alza de la tarjeta al pasar, su foco y su borde de elegida se ven enteros. */
+.pulso-f6-vg-fila-cuerpo > .pulso-f6-vg-tarjetas {
+  min-height: 0;
+}
+
+.pulso-f6-vg-fila.is-plegado .pulso-f6-vg-fila-cuerpo > .pulso-f6-vg-tarjetas {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pulso-f6-vg-fila.is-plegado .pulso-f6-vg-fila-cuerpo {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+
+
+.pulso-f6-vg-plegar svg {
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-vg-fila.is-plegado .pulso-f6-vg-plegar svg {
+  transform: rotate(-90deg);
+}
+
+.pulso-f6-vg-fila-conteo.is-atencion {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-f6-vg-agregar {
+  flex: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-vg-fila-cuerpo,
+  .pulso-f6-vg-plegar svg {
+    transition: none;
+  }
+}
