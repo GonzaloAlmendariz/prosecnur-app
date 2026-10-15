@@ -90,11 +90,28 @@ describe("InspectorField asocia su rótulo al control", () => {
       /^Salto impreso manual/,
       /^Agrupación impresa/,
       /^Letra impresa/,
-      /^Layout impreso/,
     ]) {
       expect(controlPorRotulo(html, rotulo)).toMatch(/^<input/);
     }
+    // `paper_layout` es un select: sólo lo que el motor respeta, o vacío.
+    expect(controlPorRotulo(html, /^Layout impreso/)).toMatch(/^<select/);
     expect(html).not.toContain("aria-label=");
+  });
+
+  test("Layout impreso: castellano con el código, y un valor desconocido de la fila se conserva como opción", () => {
+    const html = renderToStaticMarkup(
+      <PaperSettingsBlock node={node({ paperLayout: "horizontal" })} onFieldChange={noop} />,
+    );
+    const select = /<select[^>]*>([\s\S]*?)<\/select>/.exec(html)?.[1] ?? "";
+    const opciones = [...select.matchAll(/<option value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map((m) => [m[1], m[2]]);
+    expect(opciones).toEqual([
+      ["", "Automático"],
+      ["full", "Ancho completo (full)"],
+      ["wide", "Ancho (wide)"],
+      ["all_choices", "Todas las opciones (all_choices)"],
+      ["horizontal", "horizontal (valor de la fila)"],
+    ]);
+    expect(html).toMatch(/<option value="horizontal" selected="">/);
   });
 
   test("pestaña Más: paper_subgroup y parámetros también quedan asociados", () => {

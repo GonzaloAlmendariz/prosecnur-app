@@ -45,6 +45,7 @@ import {
 } from "./navegacion/catalogos/calcMuestra";
 import { PROCESAMIENTO_PESTANAS } from "./navegacion/catalogos/procesamiento";
 import { DASHBOARD_PESTANAS } from "./navegacion/catalogos/dashboard";
+import { EDITOR_FORMULARIOS_PESTANAS } from "./navegacion/catalogos/editorFormularios";
 
 export type ProsecnurModuleSlug =
   | "editor-xlsform"
@@ -370,11 +371,11 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
       chromeExcepcion: {
         adr: "0042-chrome-modulo-uniforme-topbar.md",
         motivo:
-          "Su banda no cabe en una fila: selector de formulario, tres metricas, " +
-          "dos chips de estado, el toggle Constructor/Hojas, «Mas vistas», el chip " +
-          "de avisos y seis acciones. Reducirla exige decidir que se recoge, y esa " +
-          "es una decision de producto, no de layout. Conserva el material, el " +
-          "radio, el acento y los estados del canon.",
+          "Su banda es del formulario abierto: selector de formulario, metricas, " +
+          "estado, listas, avisos y exportar .xlsx. Las vistas (Constructor, Hojas, " +
+          "Mapa de logica, Impreso…) son pestañas del rail izquierdo desde el " +
+          "2026-10-15, no controles de la banda. Conserva el material, el radio, " +
+          "el acento y los estados del canon.",
       },
     },
     title: "Editor de formularios",
@@ -400,6 +401,8 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         icon: IconEditor,
         to: "/editor-xlsform",
         layoutPolicy: "viewport",
+        // Con un formulario abierto: rail de pestañas (la biblioteca no lo lleva).
+        tabs: EDITOR_FORMULARIOS_PESTANAS,
       },
     ],
   },

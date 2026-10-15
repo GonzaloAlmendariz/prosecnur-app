@@ -45,6 +45,8 @@ export type FormSimulatorProps = {
   workbook: XlsformEditorWorkbook;
   structure: BuilderStructure | null;
   onEditRow?: (rowIndex: number) => void;
+  /** Dentro de una pestaña del editor (2026-10-15): sin portal, sin «Volver» ni «Cerrar», y Esc no cierra. */
+  embebido?: boolean;
 };
 
 // -----------------------------------------------------------------------------
@@ -107,6 +109,7 @@ const ALWAYS_VISIBLE: VisState = { visible: true, advanced: false };
 export function FormSimulator({
   open,
   onClose,
+  embebido = false,
   workbook,
   structure,
   onEditRow,
@@ -119,13 +122,13 @@ export function FormSimulator({
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || embebido) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, embebido, onClose]);
 
   const formTitle = useMemo(() => readFormTitle(workbook), [workbook]);
 
@@ -260,18 +263,20 @@ export function FormSimulator({
     ? (clampedIdx + 1) / visiblePages.length
     : 0;
 
-  return createPortal(
+  const vista = (
     <div
-      className="pulso-graph-overlay pulso-xfsim-overlay pulso-xf-overlay-enter"
-      role="dialog"
-      aria-modal="true"
+      className={embebido ? "pulso-graph-overlay pulso-xfsim-overlay is-embebido" : "pulso-graph-overlay pulso-xfsim-overlay pulso-xf-overlay-enter"}
+      role={embebido ? "region" : "dialog"}
+      aria-modal={embebido ? undefined : true}
       aria-label="Probar formulario"
     >
       <header className="pulso-graph-header">
         <div className="pulso-graph-header-left">
-          <button type="button" className="pulso-graph-back" onClick={onClose}>
-            <ChevronLeft size={14} /> Volver al editor
-          </button>
+          {!embebido && (
+            <button type="button" className="pulso-graph-back" onClick={onClose}>
+              <ChevronLeft size={14} /> Volver al editor
+            </button>
+          )}
           <div className="pulso-graph-header-title">
             <strong>Probar formulario</strong>
             <span>
@@ -284,15 +289,17 @@ export function FormSimulator({
           <button type="button" className="pulso-xfsim-pill" onClick={reset}>
             <RotateCcw size={13} /> Reiniciar
           </button>
-          <button
-            type="button"
-            className="pulso-icon"
-            onClick={onClose}
-            aria-label="Cerrar simulador"
-            title="Cerrar"
-          >
-            <X size={14} />
-          </button>
+          {!embebido && (
+            <button
+              type="button"
+              className="pulso-icon"
+              onClick={onClose}
+              aria-label="Cerrar simulador"
+              title="Cerrar"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
       </header>
 
@@ -300,7 +307,7 @@ export function FormSimulator({
         <i style={{ transform: `scaleX(${progressFraction})` }} />
       </div>
 
-      <main className="pulso-xfsim-main">
+      <div className="pulso-xfsim-main">
         {currentPage ? (
           <div className="pulso-xfsim-sheet" key={currentPage.id}>
             <header className="pulso-xfsim-page-head">
@@ -315,7 +322,7 @@ export function FormSimulator({
               </span>
             </header>
 
-            <div className="pulso-xfsim-cards">
+            <div className="pulso-xfsim-cards" data-qa-geometry-group="xlsform/prueba-preguntas" data-qa-geometry-contract="intrinsic">
               {currentPage.nodes.map((node) => (
                 <QuestionSlot
                   key={node.rowIndex}
@@ -359,10 +366,10 @@ export function FormSimulator({
             <span>Agrega preguntas en el constructor y vuelve a abrir esta vista.</span>
           </div>
         )}
-      </main>
-    </div>,
-    document.body,
+      </div>
+    </div>
   );
+  return embebido ? vista : createPortal(vista, document.body);
 }
 
 // -----------------------------------------------------------------------------

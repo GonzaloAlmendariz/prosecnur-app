@@ -31,6 +31,8 @@ export type ChoiceFiltersViewProps = {
   onSelectRow?: (rowIndex: number) => void;
   title?: string;
   backLabel?: string;
+  /** Dentro de una pestaña del editor (2026-10-15): sin portal, sin «Volver» ni «Cerrar», y Esc no cierra. */
+  embebido?: boolean;
 };
 
 export function ChoiceFiltersView({
@@ -42,6 +44,7 @@ export function ChoiceFiltersView({
   onSelectRow,
   title = "Filtros de opciones",
   backLabel = "Volver al editor",
+  embebido = false,
 }: ChoiceFiltersViewProps) {
   // El modelo puede ser caro en formularios grandes; solo se calcula cuando el
   // overlay está abierto (mismo patrón que LogicCanvas con su grafo).
@@ -52,7 +55,7 @@ export function ChoiceFiltersView({
 
   // Esc cierra el overlay.
   useEffect(() => {
-    if (!open) return;
+    if (!open || embebido) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -61,7 +64,7 @@ export function ChoiceFiltersView({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, embebido, onClose]);
 
   if (!open) return null;
 
@@ -77,16 +80,18 @@ export function ChoiceFiltersView({
 
   const overlay = (
     <div
-      className="pulso-xcf-overlay"
-      role="dialog"
+      className={`pulso-xcf-overlay${embebido ? " is-embebido" : ""}`}
+      role={embebido ? "region" : "dialog"}
       aria-label="Filtros de opciones del formulario"
       data-audit-ready={ready ? "true" : "false"}
     >
       <header className="pulso-xcf-header">
         <div className="pulso-xcf-header-left">
-          <button type="button" className="pulso-xcf-back" onClick={onClose}>
-            <ChevronLeft size={14} /> {backLabel}
-          </button>
+          {!embebido && (
+            <button type="button" className="pulso-xcf-back" onClick={onClose}>
+              <ChevronLeft size={14} /> {backLabel}
+            </button>
+          )}
           <div className="pulso-xcf-header-title">
             <strong>{title}</strong>
             <span>
@@ -95,15 +100,17 @@ export function ChoiceFiltersView({
             </span>
           </div>
         </div>
-        <button
-          type="button"
-          className="pulso-xcf-close"
-          onClick={onClose}
-          title="Cerrar (Esc)"
-          aria-label="Cerrar"
-        >
-          <X size={14} />
-        </button>
+        {!embebido && (
+          <button
+            type="button"
+            className="pulso-xcf-close"
+            onClick={onClose}
+            title="Cerrar (Esc)"
+            aria-label="Cerrar"
+          >
+            <X size={14} />
+          </button>
+        )}
       </header>
 
       <div className="pulso-xcf-body">
@@ -139,5 +146,5 @@ export function ChoiceFiltersView({
     </div>
   );
 
-  return createPortal(overlay, document.body);
+  return embebido ? overlay : createPortal(overlay, document.body);
 }

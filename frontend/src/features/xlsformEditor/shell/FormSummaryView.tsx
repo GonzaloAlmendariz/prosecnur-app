@@ -46,6 +46,8 @@ export type FormSummaryViewProps = {
   structure: BuilderStructure | null;
   diagnostics: BuilderDiagnostic[];
   onSelectRow?: (rowIndex: number) => void;
+  /** Dentro de una pestaña del editor (2026-10-15): sin portal, sin «Volver» ni «Cerrar», y Esc no cierra. */
+  embebido?: boolean;
 };
 
 // -----------------------------------------------------------------------------
@@ -85,19 +87,20 @@ type SectionRow = {
 export function FormSummaryView({
   open,
   onClose,
+  embebido = false,
   workbook,
   structure,
   diagnostics,
   onSelectRow,
 }: FormSummaryViewProps) {
   useEffect(() => {
-    if (!open) return;
+    if (!open || embebido) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, embebido, onClose]);
 
   const formTitle = useMemo(() => readFormTitle(workbook), [workbook]);
 
@@ -209,38 +212,42 @@ export function FormSummaryView({
 
   if (!open) return null;
 
-  return createPortal(
+  const vista = (
     <div
-      className="pulso-graph-overlay pulso-xfsum-overlay pulso-xf-overlay-enter"
-      role="dialog"
-      aria-modal="true"
+      className={embebido ? "pulso-graph-overlay pulso-xfsum-overlay is-embebido" : "pulso-graph-overlay pulso-xfsum-overlay pulso-xf-overlay-enter"}
+      role={embebido ? "region" : "dialog"}
+      aria-modal={embebido ? undefined : true}
       aria-label="Resumen del formulario"
     >
       <header className="pulso-graph-header">
         <div className="pulso-graph-header-left">
-          <button type="button" className="pulso-graph-back" onClick={onClose}>
-            <ChevronLeft size={14} /> Volver al editor
-          </button>
+          {!embebido && (
+            <button type="button" className="pulso-graph-back" onClick={onClose}>
+              <ChevronLeft size={14} /> Volver al editor
+            </button>
+          )}
           <div className="pulso-graph-header-title">
             <strong>Resumen del formulario</strong>
             <span>{formTitle || "Formulario sin título"}</span>
           </div>
         </div>
         <div className="pulso-graph-header-right">
-          <button
-            type="button"
-            className="pulso-icon"
-            onClick={onClose}
-            aria-label="Cerrar resumen"
-            title="Cerrar"
-          >
-            <X size={14} />
-          </button>
+          {!embebido && (
+            <button
+              type="button"
+              className="pulso-icon"
+              onClick={onClose}
+              aria-label="Cerrar resumen"
+              title="Cerrar"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
       </header>
 
-      <main className="pulso-xfsum-main">
-        <section className="pulso-xfsum-kpis" aria-label="Indicadores del formulario">
+      <div className="pulso-xfsum-main">
+        <section className="pulso-xfsum-kpis" aria-label="Indicadores del formulario" data-qa-geometry-group="xlsform/resumen-kpis" data-qa-geometry-contract="equal">
           {kpis.map((kpi, index) => (
             <article
               key={kpi.key}
@@ -264,10 +271,10 @@ export function FormSummaryView({
           ))}
         </section>
 
-        <div className="pulso-xfsum-grid">
+        <div className="pulso-xfsum-grid" data-qa-geometry-group="xlsform/resumen-paneles" data-qa-geometry-contract="intrinsic">
           <section className="pulso-xfsum-panel" aria-label="Tipos de pregunta">
             <h3 className="pulso-xfsum-panel-title">Tipos de pregunta</h3>
-            <ul className="pulso-xfsum-types">
+            <ul className="pulso-xfsum-types" data-qa-geometry-group="xlsform/resumen-tipos" data-qa-geometry-contract="equal">
               {typeRows.map((row, index) => {
                 const Icon = iconForType(row.base);
                 const color = paletteForType(row.base);
@@ -308,7 +315,7 @@ export function FormSummaryView({
 
           <section className="pulso-xfsum-panel" aria-label="Mapa de secciones">
             <h3 className="pulso-xfsum-panel-title">Secciones</h3>
-            <ul className="pulso-xfsum-sections">
+            <ul className="pulso-xfsum-sections" data-qa-geometry-group="xlsform/resumen-secciones" data-qa-geometry-contract="equal">
               {sectionRows.map((row, index) => {
                 const Icon = row.meta.kind === "repeat" ? Repeat : Folder;
                 return (
@@ -383,8 +390,8 @@ export function FormSummaryView({
             </ul>
           ) : null}
         </section>
-      </main>
-    </div>,
-    document.body,
+      </div>
+    </div>
   );
+  return embebido ? vista : createPortal(vista, document.body);
 }

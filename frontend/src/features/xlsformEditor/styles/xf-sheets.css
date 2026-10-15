@@ -185,7 +185,9 @@
 }
 .pulso-xlsform-frame .pulso-xfs-newcol-input {
   min-height: 30px;
-  width: 230px;
+  /* El placeholder «Columna nueva (ej. label::English)» mide 235 px en
+     monoespaciada: con 230 de caja y 26 de relleno se cortaba. */
+  width: 268px;
   max-width: 100%;
   padding: 4px 13px;
   border: 1px solid var(--xls-border);

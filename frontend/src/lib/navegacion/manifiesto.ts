@@ -30,6 +30,7 @@ import { PANELES_ANALITICA } from "../../features/analitica/panelesAnalitica";
 import { PANEL_CAMPANA_COMPLEMENTARIA } from "../../features/xlsformEditor/shell/campanaComplementariaModel";
 import { PANEL_LISTAS_OPCIONES } from "../../features/xlsformEditor/listas/panelListas";
 import { PANEL_LOGICA_EXTERNA } from "../../features/xlsformEditor/shell/logicaExternaModel";
+import { PANEL_CATALOGOS, PANEL_LOGICA_SURVEYMONKEY } from "../../features/xlsformEditor/shell/panelesEditor";
 
 export type NivelNodo = "modulo" | "modo" | "seccion" | "pestana" | "panel";
 
@@ -196,7 +197,14 @@ export const PANELES_POR_MODULO: Readonly<
   "diseno-estudio": [PANEL_AVISOS, PANEL_IMPORTAR],
   // Se abre sobre un formulario: `?panel=campana-complementaria&foco=<id>`.
   // `?panel=logica-externa&foco=<id>`: lógica y limpieza hechas fuera.
-  "editor-xlsform": [PANEL_CAMPANA_COMPLEMENTARIA, PANEL_LISTAS_OPCIONES, PANEL_LOGICA_EXTERNA],
+  // `?panel=catalogos`: el editor de listas; `?panel=logica-surveymonkey`: el borrador de saltos de SurveyMonkey.
+  "editor-xlsform": [
+    PANEL_CAMPANA_COMPLEMENTARIA,
+    PANEL_LISTAS_OPCIONES,
+    PANEL_LOGICA_EXTERNA,
+    PANEL_CATALOGOS,
+    PANEL_LOGICA_SURVEYMONKEY,
+  ],
   procesamiento: [...PANELES_GRAFICOS, ...PANELES_CARGA, ...PANELES_ANALITICA],
 };
 
