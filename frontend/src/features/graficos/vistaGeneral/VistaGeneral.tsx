@@ -1,8 +1,8 @@
-// Pestaña Vista general de Procesamiento › Gráficos (F6.3; dirección F6 §4.2): el informe como clasificador por
+// Pestaña Informe (antes «Vista general») de Procesamiento › Gráficos (F6.3; dirección F6 §4.2): el informe como clasificador por
 // capítulos. Cada capítulo es una fila con su separador y sus láminas como tarjetas 16:9 pares; se reordena arrastrando
 // láminas y capítulos (o con Alt+flechas), se eligen varias (clic, Mayús+clic, Ctrl/⌘+clic) para moverlas, duplicarlas
 // o eliminarlas, y con doble clic o Enter se abre la lámina en Láminas.
-// Dirección: `/graficos?pestana=vista-general&foco=<id de lámina>`. El `foco` es el id (no la posición): reordenar no
+// Dirección: `/graficos?pestana=informe&foco=<id de lámina>` (`vista-general` se lee como alias). El `foco` es el id (no la posición): reordenar no
 // lo cambia de lámina. Cada cambio del plan es UN paso deshacible (`loadPlan`), así que Ctrl/⌘+Z lo revierte entero.
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";

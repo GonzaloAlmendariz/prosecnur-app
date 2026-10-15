@@ -87,11 +87,18 @@ describe("PestanaEstilo · markup", () => {
     expect(html).toContain('type="radio" name="f6-estilo-ambito"');
   });
 
-  it("en el informe compartido no ofrece ajustes y dice por qué", () => {
-    const html = pintar("?pestana=estilo&scope=consolidado");
+  // L2 (2026-10-14): en el compartido sólo logos y letra dicen por qué no; colores e íconos se ajustan.
+  it("en el informe compartido los logos no se ajustan y dicen por qué", () => {
+    const html = pintar("?pestana=identidad&scope=consolidado");
     expect(html).toContain("pulso-f6-estilo-no-disponible");
     expect(html).toContain('role="status"');
     expect(html).toContain('data-audit-ready="graficos-estilo"');
     expect(html).not.toContain("Subir PNG");
+  });
+
+  it("en el informe compartido los colores de las respuestas sí se ajustan", () => {
+    const html = pintar("?pestana=identidad&scope=consolidado&foco=colores");
+    expect(html).not.toContain("pulso-f6-estilo-no-disponible");
+    expect(html).toContain("Colores de las respuestas");
   });
 });
