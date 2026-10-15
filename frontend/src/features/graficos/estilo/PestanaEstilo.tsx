@@ -50,7 +50,7 @@ import { PiezasIdentidad, type ClavePieza, type Pieza } from "./PiezasIdentidad"
 import { SeccionLineaVisual } from "../estiloInforme/SeccionLineaVisual";
 import { lineaVisualAplicada } from "../estiloInforme/modeloEstiloInforme";
 import { usePptStyleProfiles } from "../usePptStyleProfiles";
-import { useColoresPendientes } from "./ColoresPendientesAviso";
+import { usePaletasRespuestas } from "./usePaletasRespuestas";
 import { useLineasPropias } from "./lineasPropiasStore";
 import { useVariables } from "../useVariables";
 import { ESTILO_AMBITOS } from "../../../api/graficosEstilo";
@@ -88,7 +88,7 @@ export default function PestanaEstilo() {
   const iconos = usePlanStore((s) => s.iconos);
   const { profiles } = usePptStyleProfiles();
   const propias = useLineasPropias((s) => s.lineas);
-  const { pendientes } = useColoresPendientes();
+  const { filas: filasPaletas } = usePaletasRespuestas();
   const { sources } = useVariables();
   const defaults = usePlanStore((s) => s.estiloClienteDefaults);
   const setEstiloCliente = usePlanStore((s) => s.setEstiloCliente);
@@ -149,7 +149,8 @@ export default function PestanaEstilo() {
   // Una propia que se borró de la biblioteca sigue aplicada en el estudio con sus valores copiados (D7): se dice así.
   const lineaNombre = lineaId ? [...profiles, ...propias].find((p) => lineaVisualAplicada(p.scope_rules ?? {}) === lineaId)?.titulo_humano
     ?? (lineaId.startsWith("lv-") ? "Una línea que ya no está en la biblioteca" : lineaId) : null;
-  const faltanColores = new Set(pendientes.map((p) => p.fila.id)).size;
+  // Las mismas paletas que cuenta «Faltan colores» en la lista (ID4): no sólo las que exigen los gráficos para exportar.
+  const faltanColores = filasPaletas.filter((f) => f.faltan > 0).length;
   const conLogos = logosModificados(decisiones);
   const conLetra = letraModificada(decisiones);
   const piezas: Pieza[] = [

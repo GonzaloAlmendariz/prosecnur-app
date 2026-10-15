@@ -10,6 +10,18 @@
   width: 100%;
 }
 
+/* ID4: título a la izquierda y «Completar todos los colores» a la derecha; la bajada debajo, a todo el ancho. */
+.pulso-cr-cabecera {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--pulso-space-3);
+}
+
+.pulso-cr-cabecera .pulso-cr-bajada {
+  grid-column: 1 / -1;
+}
+
 .pulso-cr-titulo {
   margin: 0;
   font-size: 17px;

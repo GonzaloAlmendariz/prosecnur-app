@@ -204,3 +204,21 @@ describe("la paleta desde la tarjeta del gráfico", () => {
     expect(paletaDeLaPregunta(filasDe(r), "p3")!.fila.clave).toBe("Aceptación");
   });
 });
+
+// ID4 (2026-10-15). Mata: un «Completar todos» que pisa colores ya puestos o que deja paletas incompletas.
+import { conTodosCompletados } from "./modeloPaletasConNombre";
+
+describe("completar todos los colores", () => {
+  it("sólo agrega lo que falta y cuenta las paletas que completó", () => {
+    const fila = (id: string, opciones: string[], colores: Record<string, string>) => ({
+      id, nombre: id, clave: id, opciones, colores, faltan: opciones.filter((o) => !colores[o]).length,
+      grupos: [{ id, opciones, listas: [], preguntas: [], bases: [], colores: {}, enAlguna: {}, faltan: 0 }], preguntas: [], bases: [],
+    });
+    const filas = [fila("sino", ["Sí", "No"], { "Sí": "#111111" }), fila("listo", ["A"], { A: "#222222" })] as never[];
+    const r = conTodosCompletados(filas, [], { sino: { "Sí": "#111111" }, listo: { A: "#222222" } });
+    expect(r.completadas).toBe(1);
+    expect(r.paletas.sino["Sí"]).toBe("#111111");
+    expect(r.paletas.sino.No).toMatch(/^#/);
+    expect(r.paletas.listo).toEqual({ A: "#222222" });
+  });
+});
