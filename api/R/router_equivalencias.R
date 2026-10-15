@@ -159,12 +159,17 @@
   previo <- .equiv_get(sid)
   limpias <- list()
   ausentes <- logical(0)
+  ausentes_der <- logical(0)
   for (f in (filas %||% list())) {
     vars <- list()
     for (b in bases) {
       v <- .equiv_var_canonica((f$variables %||% list())[[b]] %||% "")
       if (nzchar(v)) vars[[b]] <- v
     }
+    # ADR 0105: un indicador compuesto escribe su expresión `alguna(...)` en
+    # `variables[base]`; por eso se normaliza antes de descartar filas vacías.
+    der <- .equiv_deriv_normalizar(f$derivada, bases, trimws(as.character(f$etiqueta_estandar %||% "")))
+    vars <- .equiv_deriv_variables(vars, der)
     # Una fila sin ninguna variable no declara nada; guardarla solo ensuciaria
     # la tabla y el conteo.
     if (!length(vars)) next
@@ -189,9 +194,12 @@
     arm <- .equiv_armon_normalizar(f$armonizacion, bases, limpia$etiqueta_estandar)
     if (!is.null(arm)) limpia$armonizacion <- arm
     ausentes <- c(ausentes, !("armonizacion" %in% names(f)))
+    if (!is.null(der)) limpia$derivada <- der
+    ausentes_der <- c(ausentes_der, !("derivada" %in% names(f)))
     limpias[[length(limpias) + 1L]] <- limpia
   }
   limpias <- .equiv_armon_conservar(limpias, previo, solo_ausentes = ausentes)
+  limpias <- .equiv_deriv_cerrar(limpias, previo, solo_ausentes = ausentes_der)
   periodos <- if (is.null(armonizacion_periodos)) {
     previo$armonizacion_periodos
   } else {

@@ -37,6 +37,21 @@ export type EquivalenciaFila = {
    * previa al guardar y `null` la borra.
    */
   armonizacion?: Armonizacion | null;
+  /**
+   * Indicador compuesto (ADR 0105): en cada base, las preguntas que lo forman y
+   * los códigos que cuentan como «sí». El backend escribe en `variables[base]`
+   * la expresión `alguna(V1,V2,...)`, que es la columna que se materializa.
+   */
+  derivada?: Derivada;
+};
+
+/** Componentes de un indicador compuesto en una base (ADR 0105). */
+export type DerivadaBase = { variables: string[]; codigos: string[] };
+
+/** ADR 0105: una sola regla, `alguna`. */
+export type Derivada = {
+  regla: "alguna";
+  por_base: Record<string, DerivadaBase>;
 };
 
 /** Categoría de la escala común. Los códigos viajan siempre como texto. */
@@ -168,6 +183,26 @@ export function normalizarArmonizacion(x: unknown): Armonizacion | null {
   return { escala, por_base };
 }
 
+/**
+ * Indicador compuesto (ADR 0105). Un arreglo de un elemento puede llegar como
+ * escalar. Devuelve `null` si no hay ninguna base con variables: sin ellas no
+ * hay indicador que conservar. Una `regla` que esta versión no conoce se deja
+ * pasar tal cual en la fila (ver `normalizarFila`), no se reescribe a `alguna`.
+ */
+export function normalizarDerivada(x: unknown): Derivada | null {
+  if (!esObjeto(x) || texto(x.regla).trim() !== "alguna") return null;
+  const por_base: Record<string, DerivadaBase> = {};
+  if (esObjeto(x.por_base)) {
+    for (const [base, valor] of Object.entries(x.por_base)) {
+      if (!base || !esObjeto(valor)) continue;
+      const variables = listaDeTextos(valor.variables);
+      if (variables.length === 0) continue;
+      por_base[base] = { variables, codigos: listaDeTextos(valor.codigos) };
+    }
+  }
+  return Object.keys(por_base).length ? { regla: "alguna", por_base } : null;
+}
+
 function normalizarFila(x: unknown): EquivalenciaFila | null {
   if (!esObjeto(x)) return null;
   const variables: Record<string, string> = {};
@@ -191,6 +226,14 @@ function normalizarFila(x: unknown): EquivalenciaFila | null {
     const arm = normalizarArmonizacion(x.armonizacion);
     if (arm) fila.armonizacion = arm;
     else delete fila.armonizacion;
+  }
+  // ADR 0105: la derivada viaja normalizada. Si no se reconoce, se conserva la
+  // forma cruda que trajo el spread de arriba: borrarla aquí la quitaría del
+  // backend en el próximo guardado sin que nadie lo decida.
+  if ("derivada" in x) {
+    const derivada = normalizarDerivada(x.derivada);
+    if (derivada) fila.derivada = derivada;
+    else if (x.derivada === null || x.derivada === undefined) delete fila.derivada;
   }
   return fila;
 }
@@ -268,7 +311,30 @@ export type ArmonizacionPreview = {
   n_sin_mapa: number;
   codigos: ArmonizacionPreviewCodigo[];
   escala: { codigo: string; etiqueta: string; n: number }[];
+  /** ADR 0105: sólo en una fila compuesta. Casos en 1, en 0 y sin dato, con lo guardado. */
+  derivada?: ArmonizacionPreviewDerivada;
 };
+
+export type ArmonizacionPreviewDerivada = {
+  regla: string;
+  variables: string[];
+  codigos: string[];
+  n_si: number;
+  n_no: number;
+  n_sin_dato: number;
+};
+
+export function normalizarPreviewDerivada(x: unknown): ArmonizacionPreviewDerivada | null {
+  if (!esObjeto(x)) return null;
+  return {
+    regla: texto(x.regla).trim(),
+    variables: listaDeTextos(x.variables),
+    codigos: listaDeTextos(x.codigos),
+    n_si: entero(x.n_si),
+    n_no: entero(x.n_no),
+    n_sin_dato: entero(x.n_sin_dato),
+  };
+}
 
 /** R puede serializar `NA_character_` como el texto «NA»: en el preview es ausencia. */
 function textoONuloR(x: unknown): string | null {
@@ -294,6 +360,7 @@ export function normalizarArmonizacionPreview(x: unknown): ArmonizacionPreview {
     })).filter((e) => e.codigo !== "")
     : [];
   const comparable = Array.isArray(o.comparable) ? o.comparable[0] : o.comparable;
+  const derivada = normalizarPreviewDerivada(o.derivada);
   return {
     ok: o.ok === true || (Array.isArray(o.ok) && o.ok[0] === true),
     fila: texto(o.fila),
@@ -306,6 +373,7 @@ export function normalizarArmonizacionPreview(x: unknown): ArmonizacionPreview {
     n_sin_mapa: entero(o.n_sin_mapa),
     codigos,
     escala,
+    ...(derivada ? { derivada } : {}),
   };
 }
 
@@ -325,6 +393,41 @@ export async function getArmonizacionPreview(
       }),
     ),
   );
+}
+
+/**
+ * Conteos de una fila compuesta en una base (ADR 0105). El 409
+ * `E_EQUIV_ARMONIZACION_VARIABLE_AUSENTE` no es un fallo aquí: dice qué
+ * componente falta en los datos de esa base, y `handle()` descarta sus
+ * `details`, así que se lee el cuerpo antes. Cualquier otro error se lanza.
+ */
+export type ConteosCompuesto =
+  | { tipo: "conteos"; n_si: number; n_no: number; n_sin_dato: number }
+  | { tipo: "ausente"; variables: string[] };
+
+export async function getConteosCompuesto(fila: string, base: string): Promise<ConteosCompuesto | null> {
+  const q = new URLSearchParams({ fila, base });
+  const res = await apiFetch(`/api/carga/equivalencias/armonizacion/preview?${q.toString()}`, {
+    headers: headers(),
+  });
+  if (res.status === 409) {
+    const raw = await res.clone().text().catch(() => "");
+    let body: unknown = null;
+    try {
+      body = raw ? JSON.parse(raw) : null;
+    } catch {
+      body = null;
+    }
+    const error = esObjeto(body) && esObjeto(body.error) ? body.error : null;
+    const details = error && esObjeto(error.details) ? error.details : null;
+    if (error && texto(error.code) === "E_EQUIV_ARMONIZACION_VARIABLE_AUSENTE") {
+      const ausentes = details ? listaDeTextos(details.variables_ausentes) : [];
+      const variable = details ? textoONulo(details.variable) : null;
+      return { tipo: "ausente", variables: ausentes.length ? ausentes : variable ? [variable] : [] };
+    }
+  }
+  const d = normalizarArmonizacionPreview(await handle<unknown>(res)).derivada;
+  return d ? { tipo: "conteos", n_si: d.n_si, n_no: d.n_no, n_sin_dato: d.n_sin_dato } : null;
 }
 
 // ---- Importar la matriz de bloques del proyecto ----------------------------

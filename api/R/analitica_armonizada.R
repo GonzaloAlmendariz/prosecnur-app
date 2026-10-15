@@ -242,8 +242,9 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
            comparable = stats::setNames(comp, periodos),
            sin_variable = stats::setNames(sin_var, periodos),
            ausente = stats::setNames(ausente, periodos),
-           variable_por = stats::setNames(vapply(periodos, function(b) .armz_variable(f, b),
-                                                 character(1)), periodos),
+           # ADR 0105: de un indicador compuesto se nombra la componente que falta.
+           variable_por = stats::setNames(vapply(periodos, function(b) .equiv_deriv_variable_aviso(
+             f, b, datos[[b]], excluidas[[b]]), character(1)), periodos),
            con_variable = any(con_var),
            notas = stats::setNames(notas, periodos),
            no_ofrecidas = stats::setNames(no_of, periodos))
@@ -651,8 +652,10 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
     datos[[b]] <- pr$data
     pond[[b]] <- pr$estado
   }
-  ap <- armonizada_apilar(datos, filas, cruces, periodos, insts = fuentes$insts,
-                          excluidas = fuentes$excluidas)
+  # ADR 0105: los indicadores compuestos se materializan como una columna más.
+  prep <- .equiv_derivadas_preparar(datos, c(filas, cruces), periodos, fuentes$excluidas)
+  ap <- armonizada_apilar(prep$datos, filas, cruces, periodos, insts = fuentes$insts,
+                          excluidas = prep$excluidas)
   ap$ponderacion <- pond
   ap
 }

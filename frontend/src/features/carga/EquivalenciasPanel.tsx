@@ -33,6 +33,12 @@ import {
 import { ArmonizacionFilaEditor, useAbrirArmonizacion } from "./ArmonizacionFilaEditor";
 import { ArmonizacionPeriodos } from "./ArmonizacionPeriodos";
 import { ImportarBloquesBoton, ImportarBloquesDialog } from "./ImportarBloquesDialog";
+import {
+  AnadirIndicadorCompuestoBoton,
+  IndicadorCompuestoEditor,
+  useAbrirIndicadorCompuesto,
+} from "./IndicadorCompuestoEditor";
+import { fusionarCompuestoGuardado } from "./indicadorCompuestoModel";
 import { EquivalenciasTabla } from "./EquivalenciasTabla";
 import { EquivalenciasEsqueleto, EquivalenciasTitulo } from "./EquivalenciasEsqueleto";
 import {
@@ -110,6 +116,21 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
   }, []);
 
   const abrirArmonizacion = useAbrirArmonizacion();
+  const abrirCompuesto = useAbrirIndicadorCompuesto();
+
+  // ADR 0105: el indicador compuesto se guarda desde su panel, sobre la
+  // declaración guardada. Con cambios pendientes, sólo entra esa fila.
+  const onCompuestoGuardado = useCallback(
+    (out: EquivalenciasImportacion, indice: number, mensaje: string) => {
+      setEstado(out.estado);
+      const guardadas = out.estado.filas ?? [];
+      setFilas((prev) => (sucio ? fusionarCompuestoGuardado(prev, guardadas, indice) : aFilasEditor(guardadas)));
+      onDeclaradas?.(out.estado.n_filas ?? 0);
+      setError("");
+      setAviso(mensaje);
+    },
+    [onDeclaradas, sucio],
+  );
 
   // Guardar una armonización (o el orden de la serie) reescribe la declaración
   // del servidor con sus filas tal como estaban guardadas. Si el editor tiene
@@ -239,6 +260,13 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
         onGuardado={onArmonizacionGuardada}
       />
       <ImportarBloquesDialog bases={bases} onAplicado={onBloquesAplicados} />
+      <IndicadorCompuestoEditor
+        estado={estado}
+        cargandoEstado={cargando}
+        bases={basesDeTabla}
+        variablesPorBase={variablesPorBase}
+        onGuardado={onCompuestoGuardado}
+      />
     </>
   );
 
@@ -322,6 +350,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
               onConfirmar={(id) => { setFilas((p) => confirmarFila(p, id)); setSucio(true); }}
               onArmonizar={basesDeTabla.length > 1 ? abrirArmonizacion : undefined}
               onAgregarFila={onAgregarFila}
+              onIndicadorCompuesto={abrirCompuesto}
             />
             <div className="pulso-equiv-pie-editor">
               <SaveStatusIndicator
@@ -358,10 +387,13 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
             titulo="Este estudio todavía no declara equivalencias"
             descripcion="La matriz dice qué pregunta de cada base es la misma, para poder compararlas entre públicos."
             accion={
-              <PulsoButton variant="primary" size="sm" onClick={onAgregarFila}>
-                <Plus size={13} aria-hidden="true" />
-                Añadir pregunta equivalente
-              </PulsoButton>
+              <div className="pulso-compuesto-acciones-tabla">
+                <PulsoButton variant="primary" size="sm" onClick={onAgregarFila}>
+                  <Plus size={13} aria-hidden="true" />
+                  Añadir pregunta equivalente
+                </PulsoButton>
+                <AnadirIndicadorCompuestoBoton size="sm" onAbrir={() => abrirCompuesto()} />
+              </div>
             }
           />
         ) : (

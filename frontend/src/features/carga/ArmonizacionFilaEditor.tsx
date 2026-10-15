@@ -60,6 +60,7 @@ import {
   type EntradaBorrador,
 } from "./armonizacionModel";
 import { nombreDeSerieDeBases, type NombreDeSerie } from "./nombreDeSerie";
+import { rotuloDeVariable } from "./indicadorCompuestoModel";
 import "./ArmonizacionFilaEditor.css";
 import { PulsoButton } from "../../components/PulsoButton";
 
@@ -394,7 +395,7 @@ function EditorFila({
             key={base}
             anclaId={anclaDeBase(base)}
             base={base}
-            variable={fila.variables[base] ?? ""}
+            rotulo={rotuloDeVariable(fila, base)}
             entrada={borrador.porBase[base]}
             escala={borrador.escala}
             carga={cargas[base] ?? { tipo: "cargando" }}
@@ -599,7 +600,7 @@ function EscalaComun({
 function MapaDeBase({
   anclaId,
   base,
-  variable,
+  rotulo,
   entrada,
   escala,
   carga,
@@ -610,7 +611,8 @@ function MapaDeBase({
   anclaId: string;
   base: string;
   codigos: CodigoBase[];
-  variable: string;
+  /** «variable P12», o los componentes de un indicador compuesto (ADR 0105). */
+  rotulo: string;
   entrada: EntradaBorrador | undefined;
   escala: readonly CategoriaEscalaComun[];
   carga: CargaBase;
@@ -634,7 +636,7 @@ function MapaDeBase({
     >
       <div className="pulso-armon-seccion-head">
         <h3 id={anclaId} tabIndex={-1}>
-          {base} <small>variable {variable}</small>
+          {base} <small>{rotulo}</small>
         </h3>
         <div className="pulso-armon-comparable" role="radiogroup" aria-label={`¿${base} es comparable?`}>
           <label>

@@ -23,6 +23,9 @@ import { nombreDeSerieDeBases, type NombreDeSerie } from "./nombreDeSerie";
 import { ANCHO_COLUMNA_ESTADO_PX, anchoColumnaPublico, anchoMinimoLista } from "./equivalenciasAnchos";
 import { useDesbordeHorizontal } from "./useDesbordeHorizontal";
 import { PulsoButton } from "../../components/PulsoButton";
+import { esCompuesta } from "./indicadorCompuestoModel";
+import { IndicadorCompuestoCelda } from "./IndicadorCompuestoCelda";
+import { AnadirIndicadorCompuestoBoton } from "./IndicadorCompuestoEditor";
 
 export type EquivalenciasTablaProps = {
   bases: string[];
@@ -36,6 +39,8 @@ export type EquivalenciasTablaProps = {
   onAgregarFila: () => void;
   /** Abre el editor de armonización con el `foco` de la fila. Sin él, no hay columna de escala. */
   onArmonizar?: (foco: string) => void;
+  /** ADR 0105: abre el editor del indicador compuesto; sin `foco`, uno nuevo. */
+  onIndicadorCompuesto?: (foco?: string) => void;
 };
 
 /**
@@ -97,6 +102,7 @@ export function EquivalenciasTabla({
   onConfirmar,
   onAgregarFila,
   onArmonizar,
+  onIndicadorCompuesto,
 }: EquivalenciasTablaProps) {
   const [marcoRef, desborda] = useDesbordeHorizontal();
   const serie = nombreDeSerieDeBases(bases);
@@ -172,6 +178,19 @@ export function EquivalenciasTabla({
                 </td>
               )}
               {bases.map((base) => {
+                if (esCompuesta(fila)) {
+                  return (
+                    <td key={base}>
+                      <IndicadorCompuestoCelda
+                        fila={fila}
+                        base={base}
+                        foco={focoDeFila(fila)}
+                        contexto={contexto}
+                        onEditar={onIndicadorCompuesto}
+                      />
+                    </td>
+                  );
+                }
                 const valor = fila.variables[base] ?? "";
                 const enOtras = new Set(variablesTomadas(filas.filter((f) => f.id !== fila.id), base));
                 return (
@@ -221,10 +240,13 @@ export function EquivalenciasTabla({
       </table>
       </div>
 
-      <PulsoButton variant="secondary" className="pulso-equiv-btn" onClick={onAgregarFila}>
-        <Plus size={14} aria-hidden="true" />
-        Añadir pregunta equivalente
-      </PulsoButton>
+      <div className="pulso-compuesto-acciones-tabla">
+        <PulsoButton variant="secondary" className="pulso-equiv-btn" onClick={onAgregarFila}>
+          <Plus size={14} aria-hidden="true" />
+          Añadir pregunta equivalente
+        </PulsoButton>
+        {onIndicadorCompuesto && <AnadirIndicadorCompuestoBoton onAbrir={() => onIndicadorCompuesto()} />}
+      </div>
     </div>
   );
 }

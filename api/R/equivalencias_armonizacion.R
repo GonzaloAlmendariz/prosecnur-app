@@ -313,7 +313,8 @@ equiv_armonizar_base <- function(df, fila, base) {
              sprintf("La fila «%s» no tiene variable en la base «%s».", fila$etiqueta_estandar %||% "", base),
              list(base = base))
   }
-  df <- .equiv_armon_datos_base(sid, base)
+  # ADR 0105: una fila compuesta se mira sobre su indicador materializado.
+  df <- .equiv_deriv_preview_df(.equiv_armon_datos_base(sid, base), fila, base)
   if (!var %in% names(df)) {
     stop_api(409, "E_EQUIV_ARMONIZACION_VARIABLE_AUSENTE",
              sprintf("La variable «%s» no está en los datos de la base «%s».", var, base),
@@ -326,7 +327,8 @@ equiv_armonizar_base <- function(df, fila, base) {
   armon <- if (comparable) equiv_armonizar_base(df, fila, base) else rep(NA_character_, length(orig))
 
   inst <- .equiv_inst_por_base(sid)[[base]]
-  opciones <- .equiv_escala_opciones(inst, var)
+  compuesta <- !is.null(.equiv_deriv_entrada(fila, base))
+  opciones <- if (compuesta) .equiv_deriv_opciones() else .equiv_escala_opciones(inst, var)
   etq_inst <- stats::setNames(
     vapply(opciones, function(o) o$etiqueta, character(1)),
     vapply(opciones, function(o) o$codigo, character(1))
@@ -352,7 +354,7 @@ equiv_armonizar_base <- function(df, fila, base) {
     list(codigo = e$codigo, etiqueta = e$etiqueta,
          n = as.integer(sum(!is.na(armon) & armon == e$codigo)))
   })
-  list(
+  out <- list(
     ok = TRUE,
     fila = fila$etiqueta_estandar %||% "",
     id = fila$id %||% NA_character_,
@@ -365,4 +367,6 @@ equiv_armonizar_base <- function(df, fila, base) {
     codigos = codigos,
     escala = escala
   )
+  if (compuesta) out$derivada <- .equiv_deriv_preview_resumen(fila, base, orig)
+  out
 }
