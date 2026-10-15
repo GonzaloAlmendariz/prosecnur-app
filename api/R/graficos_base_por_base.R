@@ -20,5 +20,7 @@
 #' @keywords internal
 .base_sufijo_de_fuente <- function(src) {
   propio <- getOption("prosecnur.base_sufijos", list())[[src]]
-  if (is.character(propio) && length(propio) == 1L && nzchar(propio)) propio else src
+  # Sin palabra elegida, la clave de la base sin sus guiones bajos: «140 estudiantes 2018», no «estudiantes_2018»
+  # (Gonzalo, 2026-10-14).
+  if (is.character(propio) && length(propio) == 1L && nzchar(propio)) propio else gsub("_+", " ", trimws(src))
 }

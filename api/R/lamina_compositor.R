@@ -64,7 +64,8 @@
     # El subtítulo sólo en la primera parte, bajo el título (recetario.R:122); el aviso del título, una vez por lámina.
     doc <- .lam_titulo(doc, if (k > 1) .particion_titulo_cont(titulo) else titulo, ante = ante, sub = if (k == 1L) sub else NULL, avisar = k == 1L)   # «(cont.)» una sola vez
     lz <- .lam_lienzo()
-    if (en_filas) .lam_bloque_filas(lz, espec, partes[[k]]) else .lam_bloque_escala(lz, espec, partes[[k]], solo = length(partes) == 1L)
+    if (en_filas) .lam_bloque_filas(lz, espec, partes[[k]]) else .lam_bloque_escala(lz, espec, partes[[k]], solo = length(partes) == 1L,
+                                                                                  titulo_lamina = titulo, encabezar_tema = length(premisas) == 1L)
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:escala")
     doc <- .lam_pie(doc, base, if (is.null(folio)) NULL else folio + k - 1L)
     doc <- por_lamina(doc)
