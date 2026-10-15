@@ -17,6 +17,7 @@ import {
   camposDeDatos,
   codigosATexto,
   codigosEmitidos,
+  CORTE_EN_CADENA,
   conEtiquetaCorta,
   interruptorEncendido,
   leerEtiquetaCorta,
@@ -45,6 +46,7 @@ import { RedondeoDelGrafico } from "./RedondeoDelGrafico";
 import { grupoDeCampo, TITULO_GRUPO, type GrupoTarjeta } from "./gruposTarjeta";
 import { esPropio, ranurasDelTipo, SIN_ALCANCE, valorDelTipo } from "./modeloAlcance";
 import { SelloAlcance } from "./SelloAlcance";
+import { SelectorCategorias } from "./SelectorCategorias";
 import { graficadorToPresetType } from "../graficadorPresetMap";
 import { graficadorDisplayName } from "../graficadorDisplay";
 import { toast } from "../../../components/toasterStore";
@@ -127,9 +129,20 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       accion: { label: "Deshacer", onSelect: () => undo() },
     });
   };
+  // Excluir respuestas y Corte usan las categorías de la pregunta; Excluir grupos, las de la variable de grupo.
+  const grupoVar = typeof args.grupo === "string" ? args.grupo : "";
+  const categoriasDe = (name: string): CategoriasFila | undefined => {
+    if (name === "excluir_opciones" || name === "corte") {
+      // Varias preguntas (bloques, temas): no hay una sola lista de categorías; queda el texto.
+      if (!variable && nVars > 0) return undefined;
+      return { variable: variable ? varCalificada(variable, baseActiva, scope) : "", scope, modo: name === "corte" ? "elegir" : "excluir" };
+    }
+    if (name === "excluir_grupos") return { variable: grupoVar ? varCalificada(grupoVar, baseActiva, scope) : "", scope, modo: "excluir" };
+    return undefined;
+  };
   const filaDe = (c: CampoDato) => (
     <Fragment key={c.arg.name}>
-      <Fila campo={c} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello}
+      <Fila campo={c} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello} categorias={categoriasDe(c.arg.name)}
             onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v) : { [c.arg.name]: v })} />
       {radarPublicos && c.arg.name === "modo" && <EditorTemasEquivalentes tipo="radar" args={args} onCambio={set} />}
     </Fragment>
@@ -163,7 +176,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         {variable && (
           <FilaTexto
             rotulo="Etiqueta corta"
-            ayuda="Rótulo de la pregunta en la lámina y el Word; vacío usa el del instrumento."
+            ayuda="Nombre breve de la pregunta en la lámina y el Word. Vacío, usa el del instrumento."
             valor={leerEtiquetaCorta(args, variable)}
             onCambio={(t) => set({ overrides: conEtiquetaCorta(args, variable, t) })}
           />
@@ -231,7 +244,13 @@ function Ayuda({ rotulo, detalle }: { rotulo: string; detalle: string }) {
   return <AyudaGlobo rotulo={rotulo} detalle={detalle} />;
 }
 
-function Fila({ campo, graficador, valor, onCambio, sello }: { campo: CampoDato; graficador: string; valor: unknown; onCambio: (v: unknown) => void; sello?: ReactNode }) {
+type CategoriasFila = { variable: string; scope: "active" | "consolidated"; modo: "excluir" | "elegir" };
+
+function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
+  campo: CampoDato; graficador: string; valor: unknown; onCambio: (v: unknown) => void; sello?: ReactNode;
+  /** Para los campos de códigos que son categorías de una pregunta: cuál y cómo se marcan. */
+  categorias?: CategoriasFila;
+}) {
   const id = useId();
   const idAyuda = `${id}-ayuda`;
   const { arg, rotulo, ayuda, detalle, control, placeholder } = campo;
@@ -317,13 +336,21 @@ function Fila({ campo, graficador, valor, onCambio, sello }: { campo: CampoDato;
     );
   }
   if (control === "codigos") {
-    return (
+    const comoTexto = (
       <div className="pulso-f6-dato is-apilado">
         {etiqueta}
         <input id={id} className="pulso-f6-input" value={codigosATexto(valor)} placeholder={placeholder ?? "Ninguna"} aria-describedby={describe}
           onChange={(e) => onCambio(codigosEmitidos(e.target.value, graficador, arg.name))} />
         {nota}
       </div>
+    );
+    // Con la pregunta elegida, sus categorías como fichas; el texto queda de respaldo (sin lista o con error).
+    if (!categorias) return comoTexto;
+    return (
+      <SelectorCategorias id={id} etiqueta={etiqueta} variable={categorias.variable} scope={categorias.scope} graficador={graficador}
+        valor={valor} modo={categorias.modo} textoRespaldo={comoTexto}
+        nota={<span className="pulso-f6-dato-ayuda">{categorias.modo === "excluir" ? "Las marcadas no salen en el gráfico." : "Las marcadas forman el corte."}</span>}
+        onCambio={(cods) => onCambio(arg.name === "corte" && CORTE_EN_CADENA.has(graficador) ? cods.join(",") : cods)} />
     );
   }
   return <FilaTexto rotulo={rotulo} ayuda={ayuda} placeholder={placeholder} valor={typeof valor === "string" ? valor : ""} onCambio={(t) => onCambio(t)} sello={sello} />;
