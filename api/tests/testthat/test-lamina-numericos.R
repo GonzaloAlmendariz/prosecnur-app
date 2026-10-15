@@ -123,6 +123,31 @@ test_that("las pesas siguen la regla del recetario: diferencia primero menos seg
   expect_true(all(ifelse(e$a >= e$b, ca$x > pa$x, ca$x + ca$w < pa$x + pa$w)))   # la cifra al costado exterior de su punto
 })
 
+test_that("en la brecha entre públicos la leyenda sube al antetítulo con el color de cada público (G4)", {
+  d <- data.frame(eje = rep(c("A", "B"), 2), grupo = factor(rep(c("Docentes", "Estudiantes"), each = 2), levels = c("Docentes", "Estudiantes")),
+                  valor = c(92, 96, 94, 91), n = rep(c(51, 109), each = 2))
+  e <- attr(graficar_dumbbell(d), "pulso_espec")
+  xml <- .nm_xml(.nm_print(.lam_laminas_pesas(.nm_doc(), e, "Brecha", ante = "Comparaciones", folio = 86)$doc), 1L)
+  expect_length(.nm_txt(xml, "leyenda:texto"), 0L)
+  ante <- xml2::xml_find_first(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='Antetitulo lamina']]")
+  expect_match(xml2::xml_text(ante), "COMPARACIONES.*DOCENTES \\(51\\).*ESTUDIANTES \\(109\\)")
+  expect_true(all(toupper(sub("^#", "", e$colores)) %in% toupper(xml2::xml_attr(xml2::xml_find_all(ante, ".//a:srgbClr"), "val"))))
+})
+
+test_that("una lámina con meta$leyenda_antetitulo = FALSE apaga la leyenda arriba mientras se compone (G4)", {
+  visto <- NULL
+  slide <- list(meta = list(leyenda_antetitulo = FALSE), slots = list())
+  p <- structure(list(), pulso_espec = list(tipo = "radar"))
+  testthat::with_mocked_bindings(
+    .lam_laminas_radar = function(doc, ...) { visto <<- getOption("prosecnur.lam_leyenda_antetitulo", TRUE); list(doc = doc) },
+    .lam_slide_1_nativa(doc = list(), p = p, slide = slide, titulo = "T", subtitulo = NULL, el_plot = list(.element_type = "radar"),
+                        presets = list(base = list(args = list())), layout = "L", master = "M", antetitulo = NULL,
+                        base_auto = function(...) NULL, nota_de = function(...) NULL, sin_base = TRUE, sin_pie = TRUE),
+    .package = "prosecnurapp")
+  expect_false(visto)
+  expect_true(getOption("prosecnur.lam_leyenda_antetitulo", TRUE))       # se restaura al salir
+})
+
 test_that("en las pesas de públicos (85) los casos van por fila y la leyenda nombra los indicadores sin base", {
   d <- data.frame(eje = rep(c("Docentes", "Estudiantes"), each = 2), grupo = factor(rep(c("Conoce", "Sabe"), 2), levels = c("Conoce", "Sabe")),
                   valor = c(98, 92, 77, 80), n = rep(c(52, 172), each = 2))
