@@ -76,12 +76,14 @@
 .std_pt <- function(nombre) .std_letra_desplazada(.std_valor("ppt", "tipografia", nombre), "ppt", nombre)
 
 # Suma el desplazamiento K13 de `getOption("prosecnur.letra_desplazo")[[medio]][[nombre]]` a un tamaño numérico. En el
-# Word, las figuras nunca bajan del piso del estándar (`grafico_minimo`, 8 pt).
+# Word, las figuras nunca bajan del piso del estándar (`grafico_minimo`, 8 pt); en el PPT, las cifras (rol «cifras» de
+# graficos_estilo_cliente.R) tampoco bajan del suyo (`cifra_minimo`, 8 pt).
 .std_letra_desplazada <- function(v, medio, nombre) {
   d <- (getOption("prosecnur.letra_desplazo") %||% list())[[medio]]
   if (!is.numeric(v) || !length(d) || !nombre %in% names(d)) return(v)
   v <- v + d[[nombre]]
   if (identical(medio, "word") && startsWith(nombre, "grafico_")) v <- max(v, .std_valor("word", "tipografia", "grafico_minimo"))
+  if (identical(medio, "ppt") && nombre %in% .ESTILO_CLIENTE_ROLES$cifras$ppt) v <- max(v, .std_valor("ppt", "tipografia", "cifra_minimo"))
   v
 }
 

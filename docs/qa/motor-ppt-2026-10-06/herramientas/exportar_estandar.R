@@ -17,7 +17,12 @@ geom <- list(unidad = "in", ancho = W, alto = H, margen_izq_borde = ML0, margen_
              # rótulo debajo (0.3), detalle en +0.9 (0.26); ocupa 1.15 y sus separadores van de y + 0.05 a y + 1.2 (p171).
              cifra_pieza = list(valor_h = 0.62, rotulo_dy = 0.62, rotulo_h = 0.3, detalle_dy = 0.9, detalle_h = 0.26, alto = 1.15, separador_dy = 0.05))
 tipografia_ppt <- list(unidad = "pt", titulo = 24, antetitulo = 10, pregunta = 13, cifra = 14, cifra_fuera = 12, leyenda = 12, actor = 12,
-                       base = 10, n = 10, cuerpo = 14, narrativa = 15, cifra_destacada = 34, rotulo_top_two_box = 10, fuente = "Arial")
+                       base = 10, n = 10, cuerpo = 14, narrativa = 15, cifra_destacada = 34, rotulo_top_two_box = 10,
+                       # Piso de las cifras tras el paso de letra del cliente (K13 en el PPT, como `grafico_minimo` en el Word) y la
+                       # portada del recetario (lámina 23 y sus variantes 24 «izquierda» y 25 «banda», lamina_identidad.R).
+                       cifra_minimo = 8, portada_rotulo = 13, portada_titulo = 30, portada_encargo = 18, portada_fecha = 18,
+                       portada_encargo_izquierda = 16, portada_fecha_izquierda = 14, portada_encargo_banda = 15, portada_fecha_banda = 13,
+                       fuente = "Arial")
 colores <- list(coral = "#CA5651", azul = "#081F5C", tenue = "#8E9DBD", texto_suave = "#5A6480", texto_tenue = "#8A93A8", filete = "#D5D9DF",
                 cebra = "#E9ECF1", fondo = "#F2F2F2", verde_top_two_box = "#4E9438", naranja_bottom_two_box = "#B4541F", naranja_bottom_two_box_texto = "#A44A1F", azul_medio = "#4F7FAF",
                 azul_rango = "#B9C5DC",   # caja del 50 % central (boxplot) y barra del rango (media y rango), recetario_m3b.R

@@ -42,10 +42,13 @@
 
 #' Roles de «Afinar por elemento» y los tokens del estándar que desplaza cada uno (PPT: `ppt.tipografia`, Word:
 #' `word.tipografia`). Todo token numérico pertenece a un rol: el paso global alcanza a toda la jerarquía.
-#' `grafico_minimo` del Word es un piso, no un tamaño, y no se desplaza.
+#' `grafico_minimo` del Word y `cifra_minimo` del PPT son pisos, no tamaños, y no se desplazan. La portada del recetario
+#' PPT (`portada_*`, lamina_identidad.R) es de «titulos», como la del Word.
 #' @keywords internal
 .ESTILO_CLIENTE_ROLES <- list(
-  titulos   = list(ppt = c("titulo", "antetitulo"), word = c("titulo_1", "titulo_2", "numero_capitulo")),
+  titulos   = list(ppt = c("titulo", "antetitulo", "portada_rotulo", "portada_titulo", "portada_encargo", "portada_fecha",
+                           "portada_encargo_izquierda", "portada_fecha_izquierda", "portada_encargo_banda", "portada_fecha_banda"),
+                   word = c("titulo_1", "titulo_2", "numero_capitulo")),
   preguntas = list(ppt = c("pregunta", "cuerpo", "narrativa"), word = c("lectura", "cuerpo", "toc_1", "toc_2")),
   cifras    = list(ppt = c("cifra", "cifra_fuera", "cifra_destacada"), word = "grafico_cifra"),
   rotulos   = list(ppt = c("leyenda", "actor", "rotulo_top_two_box"), word = c("rotulo", "grafico_rotulo", "grafico_leyenda")),
@@ -499,10 +502,11 @@
 #'
 #' Un logo cuyo archivo falta (o no es PNG) degrada al del recetario —el de PULSO PUCP o PUCP según su lugar— con aviso.
 #' @param cfg Config efectiva (normalizada) del export.
+#' @param medio `"word"` o `"ppt"`: sólo cambia el texto del aviso (en el PPT el logo por defecto es el de la plantilla).
 #' @return `list(logos = list(lugar = ruta), letra = list(ppt, word), avisos = chr)` sin lo vacío; `list()` si no hay
 #'   nada que aplicar (el router entonces no pasa el argumento al worker).
 #' @keywords internal
-.graficos_estilo_cliente_resolver <- function(sid, cfg) {
+.graficos_estilo_cliente_resolver <- function(sid, cfg, medio = "word") {
   x <- .graficos_estilo_cliente_validos((cfg %||% list())$estilo_cliente)
   s <- session_get(sid, required = FALSE)
   logos <- list(); avisos <- character(0)
@@ -516,9 +520,10 @@
       next
     }
     n <- .ec_txt(e$nombre)
-    avisos <- c(avisos, sprintf("El logo %s de la %s no está en el proyecto: el Word usa el de %s.",
+    avisos <- c(avisos, sprintf("El logo %s de la %s no está en el proyecto: %s.",
                                 if (nzchar(n)) sprintf("«%s»", n) else "propio", .ec_lugar_humano(lugar),
-                                .ESTILO_CLIENTE_LOGOS_RECETARIO[[lugar]]$nombre))
+                                if (identical(medio, "ppt")) "el PowerPoint usa el de la plantilla"
+                                else sprintf("el Word usa el de %s", .ESTILO_CLIENTE_LOGOS_RECETARIO[[lugar]]$nombre)))
   }
   desplazos <- .graficos_estilo_cliente_desplazos(x$letra)
   out <- list()

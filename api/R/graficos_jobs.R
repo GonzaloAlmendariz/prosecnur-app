@@ -145,14 +145,17 @@
 # Worker del job `graficos.ppt` (POST /api/graficos/ppt): exporta el PPT
 # de la base activa. Los data/instrumento viajan por RDS (job_save_rds)
 # porque las listas multibase no sobreviven la serialización de args.
+# El estilo del cliente (D5) llega resuelto como en el Word: logos a la portada y el cierre nativos, letra K13.
 graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, paletas,
                                     slide_registry, graficador_registry,
                                     icon_registry, active_base,
                                     template_pptx, template_id, auto_otros_slides,
-                                    result_path, progress_path = NULL) {
+                                    result_path, progress_path = NULL, estilo_cliente = list()) {
   report <- job_progress_writer(progress_path)
   base_error <- .graficos_job_base_error(active_base)
   report("loading", percent = 2, message = "Cargando datos y plantilla...")
+  ec <- .graficos_estilo_cliente_iniciar(estilo_cliente, "ppt", template_pptx)   # graficos_estilo_cliente_worker.R
+  on.exit(options(ec$previas), add = TRUE)
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
   plan <- .graficos_calificar_refs_plan(plan, active_base)
   slides_r <- .graficos_job_rebuild_slides(
@@ -175,6 +178,7 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
     ),
     error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
   )
+  .graficos_estilo_cliente_cerrar_ppt(ec, slides_r)
   for (m in graficos_avisos_ponderacion_mazo(slides_r, readRDS(rp_data_path))) .pulso_aviso(m)   # D-b/D-c (S1–S4): en el job, no en la vista previa
   report("export", percent = 96, message = "Guardando PPTX...")
   list(path = result_path, n_slides = .graficos_laminas_entregadas(result_path, length(slides_r)))
@@ -191,6 +195,8 @@ graficos_job_worker_ppt_all <- function(rp_data_path, rp_inst_path, per_base_pat
                                         result_path, progress_path = NULL) {
   report <- job_progress_writer(progress_path)
   report("loading", percent = 2, message = "Cargando datos y plantillas...")
+  previas_job <- .graficos_estilo_cliente_previas()   # cada base trae su estilo del cliente (`info$estilo_cliente`)
+  on.exit(options(previas_job), add = TRUE)
 
   all_data <- readRDS(rp_data_path)
   all_inst <- readRDS(rp_inst_path)
@@ -218,6 +224,7 @@ graficos_job_worker_ppt_all <- function(rp_data_path, rp_inst_path, per_base_pat
     )
     palette_env <- .graficos_palette_env(info$paletas, parent = parent.frame())
     out_path <- file.path(stage, info$filename)
+    ec <- .graficos_estilo_cliente_iniciar(info$estilo_cliente %||% list(), "ppt", info$template_pptx, base = base)
     tryCatch(
       .lam_avisos_con_base(base, reporte_ppt_plan(  # los avisos de líneas dicen de qué base es cada lámina (K12b)
         data = stats::setNames(list(all_data[[base]]), base),
@@ -233,6 +240,8 @@ graficos_job_worker_ppt_all <- function(rp_data_path, rp_inst_path, per_base_pat
       )),
       error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
     )
+    .graficos_estilo_cliente_cerrar_ppt(ec, slides_r, base = base)
+    options(ec$previas)
     for (m in graficos_avisos_ponderacion_mazo(slides_r, stats::setNames(list(all_data[[base]]), base))) .pulso_aviso(sprintf("%s: %s", base, m))
     results[[i]] <- list(nombre = base, filename = info$filename,
                          n_slides = .graficos_laminas_entregadas(out_path, length(slides_r)))
@@ -263,12 +272,9 @@ graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, 
   opciones_documento$fuente <- NULL
   # Estilo del cliente (A6 R3, graficos_estilo_cliente.R): llega ya resuelto a rutas y desplazamientos, y sólo si hay algo.
   # Los logos van a la portada y la contraportada; la letra K13 se fija como opción y se repone al salir.
-  if (length(estilo_cliente)) {
-    for (aviso in estilo_cliente$avisos %||% character(0)) .pulso_aviso(aviso)
-    if (length(estilo_cliente$logos)) opciones_documento$logos <- estilo_cliente$logos
-    letra_previa <- .graficos_estilo_cliente_aplicar_letra(estilo_cliente$letra)
-    on.exit(options(letra_previa), add = TRUE)
-  }
+  ec <- .graficos_estilo_cliente_iniciar(estilo_cliente, "word")   # graficos_estilo_cliente_worker.R
+  on.exit(options(ec$previas), add = TRUE)
+  if (length(ec$logos)) opciones_documento$logos <- ec$logos
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
   plan <- .graficos_calificar_refs_plan(plan, active_base)
   slides_r <- .graficos_job_rebuild_slides(
