@@ -5,6 +5,7 @@ import type { Armonizacion, VariableDeBase } from "../../api/equivalencias";
 import {
   coincidenciaDeEscala,
   etiquetaDePregunta,
+  etiquetaLegible,
   filtrarPreguntas,
   indicadorDeEscala,
   normalizarBusqueda,
@@ -27,6 +28,29 @@ const estudiantes = [
 ];
 const porBase = { docentes, estudiantes };
 const serie = nombreDeSerie(["docentes", "estudiantes"]);
+
+describe("marcado de Kobo en las etiquetas (F10)", () => {
+  const kobo = [
+    v("p5", "¿Estudia en una universidad *de la PUCP*?"),
+    v("p6", "Docentes **NO PUCP** del curso"),
+    v("p7", "Nota 5 * 3 sin pareja *"),
+  ];
+
+  it("se lee sin los pares de asteriscos y deja los sueltos", () => {
+    expect(etiquetaLegible("¿Estudia en una universidad *de la PUCP*?")).toBe("¿Estudia en una universidad de la PUCP?");
+    expect(etiquetaLegible("Docentes **NO PUCP** del curso")).toBe("Docentes NO PUCP del curso");
+    expect(etiquetaLegible("Nota 5 * 3 sin pareja *")).toBe("Nota 5 * 3 sin pareja *");
+    expect(etiquetaLegible(null)).toBe("");
+    expect(etiquetaDePregunta(kobo, "p6")).toBe("Docentes NO PUCP del curso");
+  });
+
+  it("la búsqueda casa con y sin asteriscos", () => {
+    expect(filtrarPreguntas(kobo, "de la PUCP").map((o) => o.name)).toEqual(["p5"]);
+    expect(filtrarPreguntas(kobo, "*de la PUCP*").map((o) => o.name)).toEqual(["p5"]);
+    expect(filtrarPreguntas(kobo, "no pucp").map((o) => o.name)).toEqual(["p6"]);
+    expect(filtrarPreguntas(kobo, "**NO PUCP**").map((o) => o.name)).toEqual(["p6"]);
+  });
+});
 
 describe("búsqueda por texto", () => {
   it("sin tildes ni mayúsculas, y cada palabra en cualquier orden", () => {

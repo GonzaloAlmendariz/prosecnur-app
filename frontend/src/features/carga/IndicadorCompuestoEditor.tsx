@@ -29,6 +29,7 @@ import { useSeccion } from "../../lib/navegacion/useDireccion";
 import { SaveStatusIndicator, type SaveState } from "../../components/SaveStatusIndicator";
 import { PulsoButton } from "../../components/PulsoButton";
 import { indiceDeFoco } from "./armonizacionModel";
+import { etiquetaLegible } from "./preguntaEquivalenteModel";
 import {
   PANEL_INDICADOR_COMPUESTO,
   borradorCompuestoDesde,
@@ -352,7 +353,7 @@ export function BaseCompuesta({
   const { visibles, resto } = resultadosBusqueda(opciones, consulta, entrada.variables);
   const ayuda = opcionesDeAyuda(opciones, entrada.variables);
   const codigos = parsearCodigos(entrada.codigosTexto);
-  const etiquetaDe = (nombre: string) => opciones.find((o) => o.name === nombre)?.label.trim() || "";
+  const etiquetaDe = (nombre: string) => etiquetaLegible(opciones.find((o) => o.name === nombre)?.label);
   const sinPreguntas = entrada.variables.length === 0;
 
   return (
@@ -414,11 +415,11 @@ export function BaseCompuesta({
                     <button
                       type="button"
                       onClick={() => despachar({ tipo: "agregar", base, variable: o.name })}
-                      aria-label={`Agregar ${o.label || o.name} (${o.name})`}
+                      aria-label={`Agregar ${etiquetaLegible(o.label) || o.name} (${o.name})`}
                     >
                       <Plus size={12} aria-hidden="true" />
                       <code>{o.name}</code>
-                      <span className="pulso-compuesto-etiqueta">{o.label}</span>
+                      <span className="pulso-compuesto-etiqueta">{etiquetaLegible(o.label)}</span>
                     </button>
                   </li>
                 ))}

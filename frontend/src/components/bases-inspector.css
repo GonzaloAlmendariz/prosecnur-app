@@ -317,3 +317,49 @@
     color: var(--pulso-text);
   }
 }
+
+/* ── Cambio de base en curso (F8) ────────────────────────────────────────────
+ * Cambiar la base activa tarda 20–40 s en un estudio grande. El chip dice a qué
+ * base se cambia y gira un indicador en el sitio del contador; el menú repite el
+ * aviso arriba y en la fila de destino. Con movimiento reducido no gira: el
+ * texto ya dice lo que pasa. */
+@keyframes pulso-bases-inspector-spin-kf {
+  to { transform: rotate(360deg); }
+}
+
+.pulso-bases-inspector-spin {
+  flex: 0 0 auto;
+  color: var(--module-accent, var(--pulso-primary));
+  animation: pulso-bases-inspector-spin-kf 1s linear infinite;
+}
+
+.pulso-bases-inspector-trigger[data-cambiando] {
+  cursor: progress;
+}
+
+.pulso-bases-inspector-trigger[data-cambiando] .pulso-bases-inspector-trigger-label {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-bases-inspector-cambio {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: var(--pulso-radius-card);
+  background: color-mix(in srgb, var(--pulso-inspector-accent) 8%, var(--pulso-surface));
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-bases-inspector-cambio .pulso-bases-inspector-spin {
+  color: var(--pulso-inspector-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-bases-inspector-spin {
+    animation: none;
+  }
+}

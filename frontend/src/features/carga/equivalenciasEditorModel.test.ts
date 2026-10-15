@@ -140,7 +140,10 @@ describe("ordenarBasesPorSerie", () => {
   });
 
   it("sin serie conserva el orden actual", () => {
-    expect(ordenarBasesPorSerie(["b2026", "b2024"], undefined)).toEqual(["b2026", "b2024"]);
-    expect(ordenarBasesPorSerie(["b2026", "b2024"], [])).toEqual(["b2026", "b2024"]);
+    // Sin serie declarada y con años en todos los nombres: cronológico (F6).
+    expect(ordenarBasesPorSerie(["b2026", "b2024"], undefined)).toEqual(["b2024", "b2026"]);
+    expect(ordenarBasesPorSerie(["b2026", "b2024"], [])).toEqual(["b2024", "b2026"]);
+    // Con una base sin año, el orden del estado.
+    expect(ordenarBasesPorSerie(["b2026", "docentes"], [])).toEqual(["b2026", "docentes"]);
   });
 });

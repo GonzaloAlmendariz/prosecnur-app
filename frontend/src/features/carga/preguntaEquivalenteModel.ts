@@ -11,6 +11,7 @@
  */
 
 import type { EquivalenciaFila, VariableDeBase } from "../../api/equivalencias";
+import { sinEnfasis } from "../../lib/enfasisTexto";
 import { estadoArmonizacion, explicacionArmonizacion } from "./armonizacionModel";
 import type { NombreDeSerie } from "./nombreDeSerie";
 
@@ -26,10 +27,19 @@ export function normalizarBusqueda(s: string): string {
 }
 
 /**
+ * La etiqueta como se lee (F10): sin el marcado de Kobo (`*de la PUCP*`,
+ * `**NO PUCP**`). Un asterisco suelto se queda: no es énfasis.
+ */
+export function etiquetaLegible(label: string | null | undefined): string {
+  return sinEnfasis(label).trim();
+}
+
+/**
  * Preguntas de una base que casan con lo escrito. Cada palabra de la consulta
  * tiene que aparecer en la etiqueta, el código o la sección, en cualquier orden:
  * «salud uso» encuentra «¿Ha usado el servicio de salud?». Sin consulta, todas
- * en el orden del instrumento.
+ * en el orden del instrumento. Casa con la etiqueta cruda y con la legible, así
+ * «de la PUCP» y «*de la PUCP*» encuentran la misma pregunta.
  */
 export function filtrarPreguntas(
   opciones: readonly VariableDeBase[],
@@ -38,7 +48,7 @@ export function filtrarPreguntas(
   const palabras = normalizarBusqueda(consulta).split(/\s+/).filter(Boolean);
   if (palabras.length === 0) return [...opciones];
   return opciones.filter((o) => {
-    const texto = normalizarBusqueda(`${o.label} ${o.name} ${o.seccion}`);
+    const texto = normalizarBusqueda(`${o.label} ${etiquetaLegible(o.label)} ${o.name} ${o.seccion}`);
     return palabras.every((p) => texto.includes(p));
   });
 }
@@ -47,7 +57,7 @@ export function filtrarPreguntas(
 export function etiquetaDePregunta(opciones: readonly VariableDeBase[], nombre: string): string {
   if (!nombre) return "";
   const v = opciones.find((o) => o.name === nombre);
-  return v?.label.trim() || nombre;
+  return (v ? etiquetaLegible(v.label) : "") || nombre;
 }
 
 // ---- Escala de la fila ------------------------------------------------------

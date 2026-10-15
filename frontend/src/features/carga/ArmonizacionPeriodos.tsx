@@ -13,7 +13,7 @@
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useInRouterContext } from "react-router-dom";
-import { ArrowDown, ArrowUp, ListOrdered, Pencil, Save, X } from "../../vendor/lucide-react";
+import { ArrowDown, ArrowDown01, ArrowUp, ListOrdered, Pencil, Save, X } from "../../vendor/lucide-react";
 import {
   guardarEquivalencias,
   type EquivalenciasEstado,
@@ -26,6 +26,7 @@ import {
   ordenEfectivo,
   resumenOrdenSerie,
 } from "./armonizacionModel";
+import { ordenPorAnio } from "./nombreDeSerie";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { CLASE_CHIP_CON_CONTROLES, ChipControl } from "../../components/ChipConControles";
 import { SaveStatusIndicator, type SaveState } from "../../components/SaveStatusIndicator";
@@ -46,6 +47,8 @@ function PeriodosConDireccion({ estado, onGuardado }: ArmonizacionPeriodosProps)
   const panel = usePanelDireccionable(PANEL_ORDEN_SERIE);
   const guardado = ordenEfectivo(estado.armonizacion_periodos ?? [], estado.bases);
   const declarado = (estado.armonizacion_periodos ?? []).length > 0;
+  // F6: sin declaración el orden por defecto ya es cronológico si todas las bases nombran un año.
+  const porAnio = ordenPorAnio(estado.bases) !== null;
 
   if (estado.bases.length < 2) return null;
 
@@ -59,7 +62,9 @@ function PeriodosConDireccion({ estado, onGuardado }: ArmonizacionPeriodosProps)
         {resumenOrdenSerie(guardado)}
       </span>
       {!declarado && (
-        <span className="pulso-armon-periodos-nota">Sin declarar: se usa el orden de las bases.</span>
+        <span className="pulso-armon-periodos-nota">
+          {porAnio ? "Sin declarar: se propone el orden por año." : "Sin declarar: se usa el orden de las bases."}
+        </span>
       )}
       <PulsoButton
         variant="secondary"
@@ -109,12 +114,20 @@ function EditorOrden({
   const [guardadoAhora, setGuardadoAhora] = useState(false);
   const [error, setError] = useState("");
   const cambiado = !mismoOrden(orden, guardado);
+  // «Ordenar por año» sólo existe si todas las bases nombran un año (F6).
+  const cronologico = ordenPorAnio(orden);
   // Sin declarar también es algo por guardar: el orden propuesto aún no es la serie.
   const pendiente = cambiado || !declarado;
 
   const mover = (i: number, delta: -1 | 1) => {
     setGuardadoAhora(false);
     setElegido({ revision: estado.revision ?? "", orden: moverEnLista(orden, i, delta) });
+  };
+
+  const ordenarPorAnio = () => {
+    if (!cronologico) return;
+    setGuardadoAhora(false);
+    setElegido({ revision: estado.revision ?? "", orden: cronologico });
   };
 
   const guardar = async () => {
@@ -171,6 +184,18 @@ function EditorOrden({
 
             {/* C4: un único dueño de scroll; la lista crece con N y se recorre aquí. */}
             <div className="pulso-armon-cuerpo">
+              {cronologico && (
+                <PulsoButton
+                  variant="secondary"
+                  size="sm"
+                  className="pulso-armon-periodos-ordenar"
+                  disabled={guardando || mismoOrden(orden, cronologico)}
+                  onClick={ordenarPorAnio}
+                >
+                  <ArrowDown01 size={13} aria-hidden="true" />
+                  Ordenar por año
+                </PulsoButton>
+              )}
               {/* C1: filas pares, mismo alto y ancho con cualquier N. */}
               <ol
                 className="pulso-armon-periodos-lista is-vertical"

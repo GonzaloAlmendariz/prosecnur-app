@@ -21,7 +21,7 @@ import type {
 import type { EquivalenciasEstado } from "../../../api/equivalencias";
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import { serializarDireccion } from "../../../lib/navegacion/direccion";
-import { rotuloPorDefecto } from "../../carga/nombreDeSerie";
+import { ordenPorDefectoDeSerie, rotuloPorDefecto } from "../../carga/nombreDeSerie";
 import { rotuloDeMatriz } from "../../../lib/rotuloDeMatriz";
 
 // ---- Filas candidatas -------------------------------------------------------
@@ -80,10 +80,13 @@ export function filasArmonizadas(estado: EquivalenciasEstado | null): FilaArmoni
   return out;
 }
 
-/** Orden de la serie: el declarado en la matriz y, si no hay, el de sus bases. */
+/**
+ * Orden de la serie: el declarado en la matriz y, si no hay, el orden por
+ * defecto de sus bases (cronológico si todas nombran un año; F6).
+ */
 export function periodosDeSerie(estado: EquivalenciasEstado | null): string[] {
   const declarados = (estado?.armonizacion_periodos ?? []).filter(Boolean);
-  return declarados.length ? declarados : (estado?.bases ?? []).filter(Boolean);
+  return declarados.length ? declarados : ordenPorDefectoDeSerie((estado?.bases ?? []).filter(Boolean));
 }
 
 /**

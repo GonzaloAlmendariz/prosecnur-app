@@ -10,44 +10,7 @@ import {
 } from "../../vendor/lucide-react";
 import type { EstudioBase } from "../../api/client";
 import type { CargaTopologyResolution } from "./CargaTopologyModel";
-
-type CoverageState = "ready" | "attention" | "pending";
-
-type CoverageRow = {
-  key: string;
-  label: string;
-  meta: string;
-  hasInstrument: boolean;
-  hasData: boolean;
-  state: CoverageState;
-};
-
-function baseLabel(base: EstudioBase) {
-  return String(base.source_alias || base.source_title || base.nombre || "").trim() || base.nombre;
-}
-
-function sourceLabel(base: EstudioBase) {
-  if (base.source_kind === "surveymonkey") return "SurveyMonkey";
-  if (base.source_kind === "kobo_repeat") return "Kobo · grupo repetido";
-  if (base.source_kind?.startsWith("kobo")) return "KoboToolbox";
-  return "Archivo o fuente local";
-}
-
-function baseMeta(base: EstudioBase) {
-  const rows = typeof base.n_filas === "number"
-    ? `${base.n_filas.toLocaleString("es-PE")} filas`
-    : "filas por contar";
-  const columns = typeof base.n_columnas === "number"
-    ? `${base.n_columnas.toLocaleString("es-PE")} columnas`
-    : "columnas por contar";
-  return `${sourceLabel(base)} · ${rows} · ${columns}`;
-}
-
-function rowState(hasInstrument: boolean, hasData: boolean): CoverageState {
-  if (hasInstrument && hasData) return "ready";
-  if (hasInstrument || hasData) return "attention";
-  return "pending";
-}
+import { coverageSummary, type CoverageRow } from "./CargaPlanCoverageModel";
 
 function statusLabel(row: CoverageRow) {
   if (row.state === "ready") return "Completa";
@@ -103,34 +66,12 @@ export function CargaPlanOverview({
   onOpenSources?: () => void;
 }) {
   const topologyDefined = topology.mode !== "undecided";
-  const rows: CoverageRow[] = topology.mode === "multi"
-    ? bases.map((base) => {
-        const baseHasInstrument = Boolean(base.xlsform_file_id);
-        const baseHasData = Boolean(base.data_file_id);
-        return {
-          key: base.nombre,
-          label: baseLabel(base),
-          meta: baseMeta(base),
-          hasInstrument: baseHasInstrument,
-          hasData: baseHasData,
-          state: rowState(baseHasInstrument, baseHasData),
-        };
-      })
-    : topologyDefined ? [{
-        key: "single",
-        label: "Base del estudio",
-        meta: hasData ? "Respuestas conectadas a esta sesión" : "Aún sin respuestas conectadas",
-        hasInstrument,
-        hasData,
-        state: rowState(hasInstrument, hasData),
-      }] : [];
-  const plannedBaseCount = topology.mode === "multi" ? bases.length : topologyDefined ? 1 : 0;
-  const instrumentCount = topology.mode === "multi"
-    ? rows.filter((row) => row.hasInstrument).length
-    : Number(hasInstrument);
-  const dataCount = topology.mode === "multi"
-    ? rows.filter((row) => row.hasData).length
-    : Number(hasData);
+  const {
+    rows,
+    baseCount: plannedBaseCount,
+    instrumentCount,
+    dataCount,
+  } = coverageSummary({ topology, bases, hasInstrument, hasData });
 
   return (
     <section
