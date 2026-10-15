@@ -251,7 +251,7 @@ test_that("item 10: el .docx del motor pasa el verificador OOXML", {
   skip_if_not_installed("xml2")
   skip_if_not_installed("zip")
 
-  for (cols in list(1L, "auto")) {
+  for (cols in list(1L, 2L, "auto")) {
     out <- .form_word_fixture_docx(cols)
     rep <- expect_docx_ooxml_valid(out)
 
@@ -285,22 +285,102 @@ test_that("item 10: el sectPr que officer 0.7.1 emite fuera de secuencia sale co
   expect_identical(ordenes, "headerReference footerReference type pgSz pgMar cols")
 })
 
-test_that("compatibilidad de `columns`: 1 y 2 no cambian la forma del .docx de hoy", {
+# Tramos de un .docx en orden de cuerpo: cada `w:tbl` pertenece al tramo que
+# cierra el siguiente `sectPr` (un `w:p` con `w:pPr/w:sectPr`, o el `sectPr`
+# final del body). Devuelve la lista de tablas con su tramo, el texto y las
+# filas, y el numero de columnas de cada tramo. Todo por xml2, nunca regex.
+.form_word_tramos_docx <- function(doc) {
+  ns <- xml2::xml_ns(doc)
+  hijos <- xml2::xml_children(xml2::xml_find_first(doc, "//w:body", ns))
+  tramo <- 1L
+  tablas <- list()
+  for (nodo in hijos) {
+    nombre <- xml2::xml_name(nodo)
+    if (identical(nombre, "tbl")) {
+      tablas[[length(tablas) + 1L]] <- list(
+        tramo = tramo,
+        texto = paste(xml2::xml_text(xml2::xml_find_all(nodo, ".//w:t", ns)), collapse = " "),
+        filas = length(xml2::xml_find_all(nodo, "./w:tr", ns)),
+        cant_split = length(xml2::xml_find_all(nodo, ".//w:cantSplit", ns))
+      )
+    } else if (identical(nombre, "p") &&
+               length(xml2::xml_find_all(nodo, "./w:pPr/w:sectPr", ns))) {
+      tramo <- tramo + 1L
+    }
+  }
+  sect <- xml2::xml_find_all(doc, "//w:sectPr", ns)
+  cols <- vapply(sect, function(s) {
+    n <- xml2::xml_attr(xml2::xml_find_first(s, "./w:cols", ns), "num")
+    if (is.na(n)) 1L else as.integer(n)
+  }, integer(1))
+  list(tablas = tablas, cols = cols)
+}
+
+test_that("B1: `columns = 1` conserva la forma de siempre (una seccion, sin columnas)", {
   skip_if_not_installed("officer")
   skip_if_not_installed("flextable")
   skip_if_not_installed("xml2")
 
-  # Promesa hecha al usuario en el item 12 del checklist: mientras la decision
-  # de honrar `columns = 2` en Word siga bloqueada, NINGUN export existente
-  # cambia de forma. Una sola seccion y cero columnas de texto.
-  for (cols in list(1L, 2L)) {
-    out <- .form_word_fixture_docx(cols)
-    doc <- .form_word_document_xml(out)
-    ns <- xml2::xml_ns(doc)
-    expect_length(xml2::xml_find_all(doc, "//w:sectPr", ns), 1L)
-    nums <- xml2::xml_attr(xml2::xml_find_all(doc, "//w:cols", ns), "num")
-    expect_true(all(is.na(nums)), info = sprintf("columns=%s emitio w:cols w:num", cols))
+  out <- .form_word_fixture_docx(1L)
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+  # Ningun `sectPr` intermedio: el unico es el del body.
+  expect_length(xml2::xml_find_all(doc, "//w:sectPr", ns), 1L)
+  expect_length(xml2::xml_find_all(doc, "//w:p/w:pPr/w:sectPr", ns), 0L)
+  nums <- xml2::xml_attr(xml2::xml_find_all(doc, "//w:cols", ns), "num")
+  expect_true(all(is.na(nums)))
+})
+
+test_that("B1: `columns = 2` corta en tramos por ancho y la matriz ancha queda a una columna", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+
+  # Decision B1 (2026-10-15): Word respeta `columns`. El dialogo trae «Dos
+  # columnas» por defecto y antes el .docx salia a una sin avisar.
+  out <- .form_word_fixture_docx(2L)
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+  sect <- xml2::xml_find_all(doc, "//w:sectPr", ns)
+  expect_gt(length(sect), 1L)
+  tipos <- vapply(sect, function(s) {
+    xml2::xml_attr(xml2::xml_find_first(s, "./w:type", ns), "val")
+  }, character(1))
+  expect_true(all(tipos == "continuous"))
+
+  tr <- .form_word_tramos_docx(doc)
+  expect_true(any(tr$cols == 2L))
+  # Mismo plan que deriva el motor de los `full_width` del modelo.
+  fx <- .form_word_fixture_tramos()
+  model <- formulario_pdf_build_model(fx$survey, fx$choices, fx$settings, options = list(
+    columns = 2, matrix_groups = list(list(
+      members = c("m1", "m2", "m3", "m4"), tenor = "Grado de acuerdo", special = "auto"))))
+  plan <- .form_word_plan_por_ancho(model)
+  expect_identical(tr$cols, vapply(plan, function(t) t$columns, integer(1)))
+  # El plan es la particion exacta de los bloques en corridas de `full_width`.
+  for (t in plan) {
+    anchos <- vapply(model$blocks[t$from:t$to], function(b) isTRUE(b$full_width), logical(1))
+    expect_true(all(anchos == identical(t$columns, 1L)))
   }
+
+  # La matriz (su tenor va en la esquina) vive en un tramo de UNA columna.
+  mat <- Filter(function(t) grepl("Grado de acuerdo", t$texto, fixed = TRUE), tr$tablas)
+  expect_length(mat, 1L)
+  expect_identical(tr$cols[[mat[[1]]$tramo]], 1L)
+  # Y las preguntas cortas de la seccion A fluyen a dos.
+  q <- Filter(function(t) grepl("Trabajas", t$texto, fixed = TRUE), tr$tablas)
+  expect_length(q, 1L)
+  expect_identical(tr$cols[[q[[1]]$tramo]], 2L)
+
+  cols_node <- xml2::xml_find_first(sect[[which(tr$cols == 2L)[1]]], "./w:cols", ns)
+  expect_identical(xml2::xml_attr(cols_node, "sep"), "1")
+  expect_identical(xml2::xml_attr(cols_node, "space"), "425")
+})
+
+test_that("compatibilidad de `columns`: \"auto\" sigue cortando por el plan del planificador", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
 
   # Y "auto" SI corta en tramos: secciones continuas, con al menos una a dos
   # columnas con la canaleta del instrumento de referencia (425 twips).
@@ -354,43 +434,21 @@ test_that("cantSplit solo vive en tramos de una columna (es contenido perdido, n
   # caben en lo que resta de columna hace que LibreOffice las DESCARTE en vez de
   # pasarlas a la columna siguiente: las filas estan en el document.xml y no
   # llegan al PDF. Perder contenido es peor que una tabla partida.
-  out <- .form_word_fixture_docx("auto")
-  doc <- .form_word_document_xml(out)
-  ns <- xml2::xml_ns(doc)
-
   # Se recorre el cuerpo en orden: un parrafo que lleva `sectPr` CIERRA su
   # tramo, asi que cada tabla pertenece al tramo que se cierra despues de ella.
-  hijos <- xml2::xml_children(xml2::xml_find_first(doc, "//w:body", ns))
-  tramo <- 1L
-  tablas <- list()
-  for (nodo in hijos) {
-    nombre <- xml2::xml_name(nodo)
-    if (identical(nombre, "tbl")) {
-      tablas[[length(tablas) + 1L]] <- list(
-        tramo = tramo,
-        filas = length(xml2::xml_find_all(nodo, "./w:tr", ns)),
-        cant_split = length(xml2::xml_find_all(nodo, ".//w:cantSplit", ns))
-      )
-    } else if (identical(nombre, "p") &&
-               length(xml2::xml_find_all(nodo, "./w:pPr/w:sectPr", ns))) {
-      tramo <- tramo + 1L
-    }
-  }
-  sect <- xml2::xml_find_all(doc, "//w:sectPr", ns)
-  cols_de <- vapply(sect, function(s) {
-    n <- xml2::xml_attr(xml2::xml_find_first(s, "./w:cols", ns), "num")
-    if (is.na(n)) 1L else as.integer(n)
-  }, integer(1))
-
-  expect_gt(length(tablas), 0L)
-  expect_true(any(cols_de == 2L))  # sin tramo de dos columnas esto no discrimina
-  for (t in tablas) {
-    if (identical(cols_de[[t$tramo]], 2L)) {
-      expect_identical(t$cant_split, 0L,
-                       info = "tabla con cantSplit dentro de un tramo de dos columnas")
-    } else {
-      # En un tramo de una columna si va, y en TODAS las filas (item 3).
-      expect_identical(t$cant_split, t$filas)
+  # Vale para "auto" y para `columns = 2` (B1), que comparten maquinaria.
+  for (modo in list("auto", 2L)) {
+    tr <- .form_word_tramos_docx(.form_word_document_xml(.form_word_fixture_docx(modo)))
+    expect_gt(length(tr$tablas), 0L)
+    expect_true(any(tr$cols == 2L))  # sin tramo de dos columnas esto no discrimina
+    for (t in tr$tablas) {
+      if (identical(tr$cols[[t$tramo]], 2L)) {
+        expect_identical(t$cant_split, 0L,
+                         info = sprintf("columns=%s: cantSplit en un tramo de dos columnas", modo))
+      } else {
+        # En un tramo de una columna si va, y en TODAS las filas (item 3).
+        expect_identical(t$cant_split, t$filas)
+      }
     }
   }
 })

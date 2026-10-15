@@ -144,7 +144,8 @@
 # solo traia una). Aislado con el mismo modelo renderizado con y sin `split`:
 # con cantSplit 0 apariciones, sin cantSplit 1. Perder contenido es peor que una
 # tabla partida, y ademas el item 3 habla de MATRICES, que siempre caen en un
-# tramo de una columna (el plan las manda ahi por `min_width_twips`).
+# tramo de una columna (el plan las manda ahi por `min_width_twips`; con
+# `columns = 2`, por `full_width`, salvo `matrix_layout = "column"` angosta).
 # Numero de filas por debajo del cual una tabla se considera "corta" y no debe
 # repartirse entre dos columnas. Por encima, partirse es lo correcto: una bateria
 # de 15 items TIENE que partirse, y para eso repite su cabecera (`tblHeader`).
@@ -940,7 +941,7 @@ formulario_word_render <- function(model, output_file) {
   doc <- officer::read_docx()
 
   furniture <- .form_word_furniture_parts(model)
-  plan <- .form_word_column_plan(model)
+  plan <- .form_word_plan_efectivo(model)
   emit_sections <- .form_word_sections_enabled(model, plan)
 
   for (ti in seq_along(plan)) {
@@ -986,7 +987,8 @@ formulario_word_render <- function(model, output_file) {
 .form_word_column_plan <- function(model) {
   n <- length(model$blocks %||% list())
   fallback <- function(motivo) {
-    # Con `columns` 1 o 2 el plan es irrelevante por contrato: no se avisa.
+    # Con `columns` 1 o 2 este plan no se usa (ver .form_word_plan_efectivo):
+    # no se avisa.
     if (identical(tolower(as.character(model$columns %||% "1")[1]), "auto")) {
       message("[formulario_word] plan de columnas ignorado (", motivo,
               "); el documento sale a UNA columna.")
@@ -1019,13 +1021,58 @@ formulario_word_render <- function(model, output_file) {
   out
 }
 
-# Regla de compatibilidad, innegociable: con `model$columns` igual a 1 o 2 la
-# salida .docx es la de HOY (una columna, sin `sectPr` intermedios). Solo el modo
-# "auto" —y solo si su plan tiene mas de un tramo o un tramo de dos columnas—
-# emite secciones. `model$columns` NO decide la geometria (esa sale del plan):
-# decide unicamente si este motor esta autorizado a cambiar la salida.
+# Regla de compatibilidad (B1, decidida por Gonzalo el 2026-10-15: Word
+# RESPETA `columns`). Antes el .docx salia a una columna con 1 y con 2, y el
+# dialogo trae «Dos columnas» por defecto: se elegia una cosa y se recibia otra.
+#   - `columns = 1`: una columna, SIN `sectPr` intermedios (como siempre).
+#   - `columns = 2`: tramos por ancho, derivados de `full_width` de cada bloque
+#     (ver .form_word_plan_por_ancho): lo mismo que hace el PDF, que pinta a
+#     todo el ancho los bloques `full_width` y reparte el resto en dos columnas.
+#   - `"auto"`: el plan del planificador (`model$column_plan`), sin cambio.
+# Se emiten secciones solo si el plan tiene mas de un tramo o un tramo de dos
+# columnas: un plan de un unico tramo a una columna es la salida de siempre.
+# Los .docx ya exportados no cambian: son archivos.
+.form_word_columns_mode <- function(model) {
+  raw <- tolower(trimws(as.character(model$columns %||% "1")[1]))
+  if (identical(raw, "auto")) return("auto")
+  if (identical(suppressWarnings(as.integer(raw)), 2L)) return("2")
+  "1"
+}
+
+# Plan de tramos con el que se pinta el .docx, segun el modo de columnas.
+.form_word_plan_efectivo <- function(model) {
+  switch(.form_word_columns_mode(model),
+    auto = .form_word_column_plan(model),
+    "2"  = .form_word_plan_por_ancho(model),
+    {
+      n <- length(model$blocks %||% list())
+      if (n) list(list(columns = 1L, from = 1L, to = n, reason = "opcion-explicita")) else list()
+    }
+  )
+}
+
+# `columns = 2` (B1): corridas contiguas de bloques `full_width` -> tramo de una
+# columna; corridas contiguas del resto -> tramo de dos columnas. Es la misma
+# semantica del renderer PDF (`full_width` se pinta a lo ancho y corta el flujo
+# de columnas; lo demas fluye en dos). No re-mide anchos: `full_width` ya lo
+# decidio el modelo (matrices anchas, enunciados largos, listas largas).
+.form_word_plan_por_ancho <- function(model) {
+  blocks <- model$blocks %||% list()
+  n <- length(blocks)
+  if (!n) return(list())
+  full <- vapply(blocks, function(b) isTRUE(b$full_width), logical(1))
+  corridas <- rle(full)
+  hasta <- cumsum(corridas$lengths)
+  desde <- hasta - corridas$lengths + 1L
+  lapply(seq_along(hasta), function(k) {
+    list(columns = if (corridas$values[k]) 1L else 2L,
+         from = as.integer(desde[k]), to = as.integer(hasta[k]),
+         reason = if (corridas$values[k]) "ancho-completo" else "dos-columnas")
+  })
+}
+
 .form_word_sections_enabled <- function(model, plan) {
-  if (!identical(tolower(as.character(model$columns %||% "1")[1]), "auto")) return(FALSE)
+  if (identical(.form_word_columns_mode(model), "1")) return(FALSE)
   if (!length(plan)) return(FALSE)
   length(plan) > 1L ||
     any(vapply(plan, function(tr) identical(as.integer(tr$columns), 2L), logical(1)))

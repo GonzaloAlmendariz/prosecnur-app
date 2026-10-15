@@ -762,6 +762,38 @@
   df
 }
 
+# Numeros de pregunta de primer nivel que el instrumento IMPRIME, sin repetir.
+# Es el grano de `summary$n_questions` (B2). Se lee de lo que los renderers
+# pintan, no de los tipos del XLSForm:
+#   - una `note` no lleva numero (item 7): no cuenta;
+#   - una pregunta con `paper_number = "-"` sale sin numero: no cuenta;
+#   - una matriz CON tenor imprime «X. tenor» y sus filas X.1, X.2…: cuenta 1;
+#   - una matriz SIN tenor imprime un numero por fila: cuenta sus filas, salvo
+#     las sub-preguntas (a, b, c…), que se rotulan con letra, no con numero;
+#   - un numero con punto (`paper_number = "5.1"`) es de segundo nivel.
+# Unico, porque un numero repetido a mano sigue siendo una sola «P5».
+.form_pdf_numeros_impresos <- function(blocks) {
+  nums <- character(0)
+  for (b in blocks %||% list()) {
+    kind <- b$kind %||% ""
+    if (identical(kind, "question")) {
+      if (identical(b$type %||% "", "note")) next
+      nums <- c(nums, .form_pdf_clean_text(b$number %||% ""))
+    } else if (identical(kind, "matrix")) {
+      if (nzchar(.form_pdf_clean_text(b$tenor %||% ""))) {
+        nums <- c(nums, .form_pdf_clean_text(b$number %||% ""))
+      } else {
+        for (it in b$items %||% list()) {
+          if (nzchar(.form_pdf_clean_text(it$subletter %||% ""))) next
+          nums <- c(nums, .form_pdf_clean_text(it$number %||% ""))
+        }
+      }
+    }
+  }
+  nums <- nums[nzchar(nums) & !grepl(".", nums, fixed = TRUE)]
+  unique(nums)
+}
+
 formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper = NULL, options = list()) {
   settings <- .form_pdf_ensure_cols(settings, c("form_title", "form_id", "default_language"))
   lang <- tolower(trimws(.form_pdf_setting(settings, "default_language", "es")))
@@ -1261,7 +1293,9 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     warnings = unique(warnings),
     summary = list(
       n_blocks = as.integer(length(blocks)),
-      n_questions = as.integer(sum(vapply(blocks, function(b) b$kind %in% c("question", "matrix"), logical(1)))),
+      # GRANO (B2, 2026-10-15): numeros de pregunta de PRIMER NIVEL que imprime
+      # el instrumento («P1…PN» de un aplicador). Ver .form_pdf_numeros_impresos.
+      n_questions = length(.form_pdf_numeros_impresos(blocks)),
       n_sections = as.integer(sum(vapply(blocks, function(b) identical(b$kind, "section"), logical(1)))),
       n_matrices = as.integer(sum(vapply(blocks, function(b) identical(b$kind, "matrix"), logical(1))))
     )

@@ -1980,3 +1980,60 @@ test_that("L20: una banda de seccion nunca amanece sola al pie de la pagina", {
   texto <- trimws(paste(ultima$texto, collapse = " "))
   expect_false(grepl("^B\\.?\\s*BATERIA$", texto))
 })
+
+test_that("B2: n_questions cuenta los numeros de primer nivel que imprime el instrumento", {
+  # Grano decidido el 2026-10-15: lo que un aplicador reconoce como «P1…PN».
+  # Una nota no lleva numero; una matriz con tenor imprime UN numero (X, con
+  # filas X.1, X.2…); una matriz sin tenor imprime un numero por fila.
+  survey <- data.frame(
+    type = c("note",
+             "select_one esc", "select_one esc", "select_one esc",
+             "select_one esc", "select_one esc", "select_one esc",
+             "text"),
+    name = c("instr", "t1", "t2", "t3", "s1", "s2", "s3", "abierta"),
+    label = c("Lea con atencion las afirmaciones siguientes.",
+              "Tenor A", "Tenor B", "Tenor C",
+              "Suelta A", "Suelta B", "Suelta C",
+              "Comentario final"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(list_name = rep("esc", 3), name = c("1", "2", "3"),
+                        label = c("Nada", "Algo", "Mucho"), stringsAsFactors = FALSE)
+  model <- formulario_pdf_build_model(
+    survey, choices, data.frame(form_title = "T"),
+    options = list(matrix_groups = list(
+      list(members = c("t1", "t2", "t3"), tenor = "Cuanto confias en", special = "auto"),
+      list(members = c("s1", "s2", "s3"), tenor = "", special = "auto")
+    ))
+  )
+  mats <- Filter(function(b) identical(b$kind, "matrix"), model$blocks)
+  expect_length(mats, 2L)
+  # Precondicion del grano: la nota sigue en el modelo (si desapareciera, el
+  # test dejaria de probar que no cuenta).
+  expect_true(any(vapply(model$blocks, function(b) identical(b$type, "note"), logical(1))))
+
+  # tenor = 1, sin tenor = 3, la abierta = 1, la nota = 0.
+  expect_identical(model$summary$n_questions, 5L)
+  expect_identical(.form_pdf_numeros_impresos(mats[1]), "1")
+  expect_length(.form_pdf_numeros_impresos(mats[2]), 3L)
+  expect_identical(model$summary$n_matrices, 2L)
+})
+
+test_that("B2: n_questions no cuenta sub-preguntas con letra ni numeros de segundo nivel", {
+  survey <- data.frame(
+    type = c("select_one esc", "select_one esc", "select_one esc", "integer", "integer"),
+    name = c("comp", "comp_a", "comp_b", "edad", "edad_hijo"),
+    label = c("Competencias:", "Liderazgo", "Trabajo en equipo", "Edad", "Edad del hijo"),
+    paper_subletter = c("@", "a", "b", "", ""),
+    paper_number = c("", "-", "-", "", "4.1"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(list_name = rep("esc", 2), name = c("1", "2"),
+                        label = c("No", "Si"), stringsAsFactors = FALSE)
+  model <- formulario_pdf_build_model(
+    survey, choices, data.frame(form_title = "T"),
+    options = list(matrix_groups = list(
+      list(members = c("comp", "comp_a", "comp_b"), tenor = "", special = "auto"))))
+  # Madre (imprime su numero) + edad = 2; las letras y el 4.1 no son P-nivel.
+  expect_identical(model$summary$n_questions, 2L)
+})
