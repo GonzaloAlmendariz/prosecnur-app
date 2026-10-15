@@ -83,7 +83,7 @@ export function CriteriosGrafico({ valor, onCambio }: { valor: unknown; onCambio
             </div>
           </div>
         ))}
-        <button type="button" className="pulso-f6-boton pulso-f6-dato-accion"
+        <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" data-qa-geometry-capacity="owned"
           onClick={() => onCambio([...criterios, { id: `criterio_${criterios.length + 1}`, titulo: `Criterio ${criterios.length + 1}`, vars: [] }])}>
           <Plus size={14} aria-hidden="true" /> Agregar criterio
         </button>

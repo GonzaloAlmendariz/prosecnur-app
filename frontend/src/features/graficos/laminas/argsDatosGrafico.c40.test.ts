@@ -180,7 +180,9 @@ describe("C40 · ASIGNAR", () => {
     expect(nombres(apiladas, {}, "p_barras_agrupadas")).not.toContain("mostrar_categorias_en_cero");
   });
   it("histograma: límite superior, vacío = sin tope, con el rótulo «+» explicado", () => {
-    expect(nombres(histograma, {}, "p_histograma")).toEqual(["var", "limite_superior"]);
+    // `grupo` (Dividir por) vuelve a la tarjeta: el histograma por grupos tiene dibujo propio (c440f928b).
+    expect(nombres(histograma, {}, "p_histograma")).toEqual(expect.arrayContaining(["var", "limite_superior"]));
+    expect(nombres(histograma, {}, "p_histograma").filter((n) => n !== "grupo")).toEqual(["var", "limite_superior"]);
     const lim = campo(histograma, {}, "p_histograma", "limite_superior");
     expect([lim?.control, lim?.ayuda, lim?.placeholder]).toEqual(["numero", AYUDA_LIMITE_SUPERIOR, "Sin tope"]);
     expect(AYUDA_LIMITE_SUPERIOR).toContain("+");

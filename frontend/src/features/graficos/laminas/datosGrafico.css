@@ -114,10 +114,12 @@
   min-width: 0;
 }
 
-.pulso-f6-dato-select {
-  width: auto;
-  /* Un modo con nombre largo («Varias preguntas de la misma escala») se lee entero sin pisar el rótulo. */
-  max-width: min(64%, 300px);
+.pulso-f6-dato .pulso-f6-dato-select {
+  /* max-content: con width:100% del input genérico el select se encogía dentro de la columna auto y cortaba su texto. */
+  width: max-content;
+  /* Un modo con nombre largo («Varias preguntas de la misma escala») se lee entero sin pisar el rótulo. Tope fijo: un
+     porcentaje aquí se resuelve contra la columna auto, que mide lo que mide el select, y lo encogía. */
+  max-width: 250px;
 }
 
 .pulso-f6-dato-numero {
@@ -280,4 +282,4 @@
 
 /* Cortes numéricos (CortesNumericos.tsx): un campo por corte, en fila. */
 .pulso-f6-cortes { display: flex; flex-wrap: wrap; gap: var(--pulso-space-2); }
-.pulso-f6-cortes-campo { width: 72px; text-align: center; font-variant-numeric: tabular-nums; }
+.pulso-f6-cortes .pulso-f6-cortes-campo { flex: 0 0 76px; width: 76px; text-align: center; font-variant-numeric: tabular-nums; }
