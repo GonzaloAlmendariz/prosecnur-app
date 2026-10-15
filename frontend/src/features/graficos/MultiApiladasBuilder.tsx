@@ -35,6 +35,8 @@ import { useSugerenciasDeMatriz } from "./multiapiladas/useSugerenciasDeMatriz";
 import type { FuentesMatriz } from "./multiapiladas/sugerenciasMatriz";
 import { EstadoMultiapiladas } from "./multiapiladas/EstadoMultiapiladas";
 import { guardarLectura, recuperarLectura } from "./multiapiladas/memoriaLecturas";
+import { conteoBarrasMultiapiladas, cupoBarras, MOTIVO_TOPE, type ConteoBarras } from "./multiapiladas/topeBarras";
+import { ConteoBarrasMultiapiladas } from "./multiapiladas/ConteoBarras";
 import "./multiapiladas/multiapiladas.css";
 
 type Props = {
@@ -156,6 +158,8 @@ export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props
   const matriz = useSugerenciasDeMatriz(multi && sources.length > 1 && (intent === "publicos_tema" || intent === "combinar"));
   const issues = validateArgs(args, variables, multi);
   const scale = scaleSummary(refs, variables, multi);
+  // Tope de seis barras (multiapiladas/topeBarras.ts): el conteo va junto a la lista y frena el «agregar».
+  const conteo = conteoBarrasMultiapiladas(args);
 
   function commitArgs(patch: Record<string, unknown>) {
     onArgs(mergeMultiApiladasArgsPatch(args, patch));
@@ -258,7 +262,7 @@ export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props
       />
 
       {intent === "comparar" && (
-        <CompareQuestions args={args} onArgs={commitArgs} variables={variables} multi={multi} />
+        <CompareQuestions args={args} onArgs={commitArgs} variables={variables} multi={multi} conteo={conteo} />
       )}
       {intent === "pregunta_grupos" && (
         <QuestionByGroups args={args} onArgs={commitArgs} variables={variables} multi={multi} />
@@ -267,17 +271,17 @@ export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props
         <QuestionsByGroups args={args} onArgs={commitArgs} variables={variables} multi={multi} />
       )}
       {intent === "publicos_tema" && (
-        <PublicsByTopic args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} multiSourceHint={multiSourceHint} publicos={sources.map((src) => src.name)} matriz={matriz} />
+        <PublicsByTopic args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} multiSourceHint={multiSourceHint} publicos={sources.map((src) => src.name)} matriz={matriz} conteo={conteo} />
       )}
       {intent === "combinar" && (
-        <MultiListBlocks args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} multiSourceHint={multiSourceHint} publicos={sources.map((src) => src.name)} matriz={matriz} />
+        <MultiListBlocks args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} multiSourceHint={multiSourceHint} publicos={sources.map((src) => src.name)} matriz={matriz} conteo={conteo} />
       )}
-      <EstadoMultiapiladas escala={refs.length ? scale : null} filas={estimateRows(intent, args, variables, multi)} problemas={issues} />
+      <EstadoMultiapiladas escala={refs.length ? scale : null} filas={conteo.exacto ? 0 : estimateRows(intent, args, variables, multi)} problemas={issues} />
     </div>
   );
 }
 
-function CompareQuestions({ args, onArgs, variables, multi }: BuilderSectionProps) {
+function CompareQuestions({ args, onArgs, variables, multi, conteo }: BuilderSectionProps & { conteo: ConteoBarras }) {
   const vars = asStringArray(args.vars);
   return (
     <BuilderSection title="Preguntas a comparar" hint="Todas deben compartir escala. El gráfico crea una fila por pregunta.">
@@ -286,7 +290,9 @@ function CompareQuestions({ args, onArgs, variables, multi }: BuilderSectionProp
         onChange={(next) => onArgs({ modo: "var", vars: next })}
         variables={variables}
         multi={multi}
+        bloqueo={cupoBarras(conteo) < 1 ? MOTIVO_TOPE : undefined}
       />
+      <ConteoBarrasMultiapiladas conteo={conteo} />
     </BuilderSection>
   );
 }
@@ -332,7 +338,7 @@ function QuestionsByGroups({ args, onArgs, variables, multi }: BuilderSectionPro
   );
 }
 
-function PublicsByTopic({ args, onArgs, variables, multi, sourceCount, multiSourceHint, publicos, matriz }: BuilderSectionProps & { sourceCount: number; multiSourceHint: string; publicos: string[]; matriz: FuentesMatriz }) {
+function PublicsByTopic({ args, onArgs, variables, multi, sourceCount, multiSourceHint, publicos, matriz, conteo }: BuilderSectionProps & { sourceCount: number; multiSourceHint: string; publicos: string[]; matriz: FuentesMatriz; conteo: ConteoBarras }) {
   const topics = topicsFromArgs(args.vars, args.titulos_grupo);
   if (!multi || sourceCount < 2) {
     return <RequirementPanel title="Esta lectura compara fuentes" text={multiSourceHint} />;
@@ -345,6 +351,8 @@ function PublicsByTopic({ args, onArgs, variables, multi, sourceCount, multiSour
       variables={variables}
       matriz={matriz}
       nuevoTema={newTopic}
+      cupo={cupoBarras(conteo)}
+      pie={<ConteoBarrasMultiapiladas conteo={conteo} />}
       onChange={(next) => {
         const conClave = next.map((t, i) => ({ ...t, key: t.key || `tema_${i + 1}` }));
         onArgs({ modo: "var_cruce", vars: topicsToVars(conClave), titulos_grupo: topicsToTitles(conClave), cruces: null });
@@ -353,7 +361,7 @@ function PublicsByTopic({ args, onArgs, variables, multi, sourceCount, multiSour
   );
 }
 
-function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSourceHint, publicos, matriz }: BuilderSectionProps & { sourceCount: number; multiSourceHint: string; publicos: string[]; matriz: FuentesMatriz }) {
+function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSourceHint, publicos, matriz, conteo }: BuilderSectionProps & { sourceCount: number; multiSourceHint: string; publicos: string[]; matriz: FuentesMatriz; conteo: ConteoBarras }) {
   const blocks = asBlocks(args.bloques);
   const normalized = blocks.length ? blocks : [{ modo: "var", vars: [] }];
 
@@ -375,6 +383,7 @@ function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSou
             multiSourceHint={multiSourceHint}
             publicos={publicos}
             matriz={matriz}
+            cupo={cupoBarras(conteo)}
             onChange={(patch) => {
               const next = normalized.map((b, i) => (
                 i === index ? mergeMultiApiladasArgsPatch(b, patch) : b
@@ -392,13 +401,18 @@ function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSou
           />
         ))}
       </div>
-      <button
-        type="button"
-        onClick={() => commit([...normalized, { modo: "var", vars: [] }])}
-        style={secondaryButtonStyle}
-      >
-        <Plus size={12} /> Agregar bloque
-      </button>
+      <div className="pulso-mapi-pie">
+        <button
+          type="button"
+          onClick={() => commit([...normalized, { modo: "var", vars: [] }])}
+          disabled={cupoBarras(conteo) < 1}
+          title={cupoBarras(conteo) < 1 ? MOTIVO_TOPE : undefined}
+          style={cupoBarras(conteo) < 1 ? { ...secondaryButtonStyle, opacity: 0.45, cursor: "default" } : secondaryButtonStyle}
+        >
+          <Plus size={12} /> Agregar bloque
+        </button>
+        <ConteoBarrasMultiapiladas conteo={conteo} />
+      </div>
     </BuilderSection>
   );
 }
@@ -412,6 +426,7 @@ function BlockEditor({
   multiSourceHint,
   publicos,
   matriz,
+  cupo,
   onChange,
   onRemove,
   onMove,
@@ -424,6 +439,8 @@ function BlockEditor({
   multiSourceHint: string;
   publicos: string[];
   matriz: FuentesMatriz;
+  /** Barras que todavía caben en toda la multiapilada. */
+  cupo: number;
   onChange: (patch: MultiBlock) => void;
   onRemove: () => void;
   onMove: (direction: "up" | "down") => void;
@@ -502,7 +519,7 @@ function BlockEditor({
 
       {blockIntent === "comparar" && (
         <>
-          <MultiVarPicker value={vars} onChange={(next) => onChange({ modo: "var", vars: next })} variables={variables} multi={multi} compact />
+          <MultiVarPicker value={vars} onChange={(next) => onChange({ modo: "var", vars: next })} variables={variables} multi={multi} compact bloqueo={cupo < 1 ? MOTIVO_TOPE : undefined} />
           <ScaleInline refs={vars} variables={variables} multi={multi} />
         </>
       )}
@@ -541,6 +558,7 @@ function BlockEditor({
             variables={variables}
             matriz={matriz}
             nuevoTema={newTopic}
+            cupo={cupo}
             onChange={(next) => {
               const conClave = next.map((t, i) => ({ ...t, key: t.key || `tema_${i + 1}` }));
               onChange({ modo: "var_cruce", vars: topicsToVars(conClave), titulos_grupo: topicsToTitles(conClave), cruces: null });
@@ -589,12 +607,15 @@ function MultiVarPicker({
   variables,
   multi,
   compact = false,
+  bloqueo,
 }: {
   value: string[];
   onChange: (next: string[]) => void;
   variables: VarWithSource[];
   multi: boolean;
   compact?: boolean;
+  /** Por qué no se puede agregar otra pregunta (el tope de barras), si no se puede. */
+  bloqueo?: string;
 }) {
   const selected = new Set(value);
 
@@ -634,7 +655,8 @@ function MultiVarPicker({
         // aparezca recién al terminar de elegir.
         scaleAnchor={findVar(value[0] ?? "", variables, multi)}
         placeholder="Agregar pregunta"
-        emptyHint={`${Math.max(0, variables.length - selected.size)} disponible${variables.length - selected.size === 1 ? "" : "s"}`}
+        emptyHint={bloqueo ?? `${Math.max(0, variables.length - selected.size)} disponible${variables.length - selected.size === 1 ? "" : "s"}`}
+        bloqueo={bloqueo}
         onPick={(ref) => onChange([...value, ref])}
       />
     </div>
@@ -675,6 +697,7 @@ function VariableChoicePopover({
   emptyHint,
   allowEmpty = false,
   scaleAnchor,
+  bloqueo,
   onPick,
 }: {
   value?: string;
@@ -687,6 +710,8 @@ function VariableChoicePopover({
   allowEmpty?: boolean;
   /** Variable cuya escala ya fijó el bloque, si la hay. */
   scaleAnchor?: VarWithSource;
+  /** Si viene, el selector no abre y dice por qué. */
+  bloqueo?: string;
   onPick: (ref: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -774,6 +799,8 @@ function VariableChoicePopover({
         className={`pulso-gv2-variable-trigger ${selected ? "has-value" : ""}`}
         style={compact ? compactVariableTriggerStyle : undefined}
         onClick={toggleOpen}
+        disabled={!!bloqueo}
+        title={bloqueo}
         aria-haspopup="dialog"
         aria-expanded={open}
       >

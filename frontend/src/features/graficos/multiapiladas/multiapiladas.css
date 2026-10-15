@@ -50,3 +50,11 @@
 .pulso-mapi-sugerencia code { font-size: 11px; }
 .pulso-mapi-sugerencia-escala { flex: none; color: var(--pulso-warn-fg); font-weight: var(--pulso-weight-semibold); }
 @media (prefers-reduced-motion: reduce) { .pulso-mapi-sugerencia { transition: none; } }
+/* Tope de seis barras (2026-10-14): el conteo va al lado del «agregar»; sólo cambia de tono si ya se pasó. */
+.pulso-mapi-pie { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pulso-space-2); }
+.pulso-mapi-conteo { color: var(--pulso-text-soft); font-size: 12px; font-variant-numeric: tabular-nums; }
+.pulso-mapi-conteo.is-excede { color: var(--pulso-warn-fg); font-weight: var(--pulso-weight-semibold); }
+.pulso-mapi-sin-cupo { color: var(--pulso-text-muted); font-size: 12px; padding-top: 6px; }
+.pulso-mapi-pie .pulso-f6-boton:disabled,
+.pulso-mapi-completar:disabled,
+.pulso-gv2-multi-builder .pulso-gv2-variable-trigger:disabled { opacity: .45; cursor: default; }

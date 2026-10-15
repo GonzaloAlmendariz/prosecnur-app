@@ -5,11 +5,13 @@
 // P20: la matriz de equivalencias sugiere la pregunta de cada público vacío y la lámina decide (enmienda al ADR 0103).
 // ADR 0104: sólo sugiere lo que la persona declaró; no hay sugerencia «parecida».
 
+import type { ReactNode } from "react";
 import { ArrowDown, ArrowUp, Link2, Plus, X } from "../../../vendor/lucide-react";
 import VariablePicker from "../VariablePicker";
 import type { VarWithSource } from "../useVariables";
 import { parseVarRef } from "../useVariables";
 import { buscar, conRef, nombrePublico, refDePublico, otraEscala, type TemaPublicos } from "./temasPublicos";
+import { cabeOtroTema, MAX_BARRAS_MULTIAPILADAS, MOTIVO_TOPE } from "./topeBarras";
 import { aplicablesEnLote, SIN_MATRIZ, sugerenciasDeTema, type FuentesMatriz, type SugerenciaPublico } from "./sugerenciasMatriz";
 
 export { conRef, nombrePublico, otraEscala, refDePublico, type TemaPublicos };
@@ -24,6 +26,10 @@ type Props = {
   matriz?: FuentesMatriz;
   /** Tipos de pregunta que ofrece el selector (radar, brecha y serie sólo aceptan opción única). */
   filtroTipo?: (tipo: string) => boolean;
+  /** Barras que todavía caben en la multiapilada (topeBarras.ts); sin él no hay tope. */
+  cupo?: number;
+  /** Lo que va al lado de «Agregar tema» (el conteo de barras). */
+  pie?: ReactNode;
 };
 
 function ChipSugerencia({ s, publico, variables, onAplicar }: { s: SugerenciaPublico; publico: string; variables: readonly VarWithSource[]; onAplicar: () => void }) {
@@ -44,12 +50,13 @@ function ChipSugerencia({ s, publico, variables, onAplicar }: { s: SugerenciaPub
   );
 }
 
-export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTema, matriz = SIN_MATRIZ, filtroTipo }: Props) {
+export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTema, matriz = SIN_MATRIZ, filtroTipo, cupo = Infinity, pie }: Props) {
   const lista = temas.length ? temas : [nuevoTema(1)];
   const mover = (i: number, d: -1 | 1) => {
     const j = i + d; if (j < 0 || j >= lista.length) return;
     const next = [...lista]; [next[i], next[j]] = [next[j], next[i]]; onChange(next);
   };
+  const otroTema = cabeOtroTema(lista, publicos.length, cupo);
   const n = (p: string) => Math.max(0, ...lista.map((t) => buscar(variables, refDePublico(t, p))?.n_non_empty ?? 0));
   return (
     <div className="pulso-mapi-temas">
@@ -57,6 +64,7 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
       {lista.map((tema, i) => {
         const sugerencias = sugerenciasDeTema(tema, publicos, variables, matriz);
         const lote = aplicablesEnLote(sugerencias);
+        const loteCabe = lote.length <= cupo;
         const reemplazar = (t: TemaPublicos) => onChange(lista.map((x, j) => (j === i ? t : x)));
         const aplicar = (aplicadas: readonly SugerenciaPublico[]) => {
           const actualizado = aplicadas.reduce((t, s) => conRef(t, publicos, parseVarRef(s.ref).source ?? "", s.ref), tema);
@@ -72,6 +80,7 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
             <span className="pulso-mapi-acciones">
               {lote.length > 0 && (
                 <button type="button" className="pulso-f6-boton pulso-mapi-completar" onClick={() => aplicar(lote)}
+                        disabled={!loteCabe} title={loteCabe ? undefined : MOTIVO_TOPE}
                         aria-label={`Completar con la matriz ${lote.length === 1 ? "el público vacío" : `los ${lote.length} públicos vacíos`} de ${tema.title.trim() || "este tema"}`}>
                   <Link2 size={12} aria-hidden="true" /> Completar con la matriz
                 </button>
@@ -84,12 +93,14 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
           {publicos.map((p) => {
             const ref = refDePublico(tema, p);
             const distinta = ref && otraEscala(variables, tema, ref);
-            const sugerida = ref ? undefined : sugerencias[p];
+            const sinCupo = !ref && cupo < 1;
+            const sugerida = ref || sinCupo ? undefined : sugerencias[p];
             return (
               <div key={p} className={`pulso-mapi-linea${distinta ? " is-aviso" : ""}`}>
                 <span className="pulso-mapi-pub">{nombrePublico(p)}</span>
                 <div className="pulso-mapi-pregunta">
                   {sugerida && <ChipSugerencia s={sugerida} publico={p} variables={variables} onAplicar={() => aplicar([sugerida])} />}
+                  {sinCupo ? <span className="pulso-mapi-sin-cupo">Ya hay {MAX_BARRAS_MULTIAPILADAS} barras.</span> : (
                   <VariablePicker value={ref || null} allowEmpty ocultarBase placeholder="Elegir pregunta…" filter={filtroTipo}
                                   onChange={(v) => {
                                     const actualizado = conRef(tema, publicos, p, v);
@@ -97,6 +108,7 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
                                     const titulo = tema.title.trim() || (v ? buscar(variables, v)?.label ?? "" : "");
                                     onChange(lista.map((t, j) => (j === i ? { ...actualizado, title: titulo } : t)));
                                   }} />
+                  )}
                   {distinta && <span className="pulso-mapi-aviso">Otra escala que el resto del tema.</span>}
                 </div>
               </div>
@@ -105,9 +117,13 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
         </div>
         );
       })}
-      <button type="button" className="pulso-f6-boton pulso-mapi-agregar" onClick={() => onChange([...lista, nuevoTema(lista.length + 1)])}>
-        <Plus size={12} aria-hidden="true" /> Agregar tema
-      </button>
+      <div className="pulso-mapi-pie">
+        <button type="button" className="pulso-f6-boton pulso-mapi-agregar" disabled={!otroTema} title={otroTema ? undefined : MOTIVO_TOPE}
+                onClick={() => onChange([...lista, nuevoTema(lista.length + 1)])}>
+          <Plus size={12} aria-hidden="true" /> Agregar tema
+        </button>
+        {pie}
+      </div>
     </div>
   );
 }
