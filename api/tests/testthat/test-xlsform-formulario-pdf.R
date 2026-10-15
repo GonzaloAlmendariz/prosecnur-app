@@ -1916,12 +1916,13 @@ test_that("L19: la reserva de paginado sigue al dibujo en TODO bloque", {
   cortos <- names(Filter(function(v) v[["reserva"]] < v[["dibuja"]] - 0.0006, medidas))
   expect_identical(cortos, character(0))
 
-  # Techo. Los dos que siguen por encima del 15 % —`question/integer` (+29 %) y
-  # `paper` (+20 %)— estan declarados como hallazgo ABIERTO en el GOAL con su
-  # cifra, no disimulados aqui. El techo va justo encima del peor para que
-  # cualquier EMPEORAMIENTO caiga.
+  # Techo. Hasta L21 (item 14, 2026-10-15) `question/integer` reservaba +29 % y
+  # `paper` +20 %, y el techo estaba en 1.35. Desde L21 pregunta y paper miden
+  # con la misma geometria que dibujan (reporte_formulario_reserva_pdf.R) y el
+  # peor medido sobre ESTE fixture es 1.0000. Regla del techo: max(medido) +
+  # 0.05, nunca por debajo de 1.05 — cualquier EMPEORAMIENTO cae.
   exceso <- vapply(medidas, function(v) v[["reserva"]] / v[["dibuja"]], numeric(1))
-  expect_lt(max(exceso), 1.35)
+  expect_lt(max(exceso), 1.05)
   # Y los que ya comparten UNA cuenta entre dibujo y paginado tienen que seguir
   # clavados: son la vara de que el patron funciona, y lo unico que distingue
   # "lo arregle" de "le subi el techo".

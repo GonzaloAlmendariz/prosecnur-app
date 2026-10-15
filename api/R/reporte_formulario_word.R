@@ -65,29 +65,18 @@
 # que habia aqui. Ver docs/qa/goal-formulario-replica-ser-adolescente-2026-09-24.md
 .FORM_WORD_LINE    <- "#000000"   # rejilla: NEGRA, ver el bloque de arriba
 
-# Ancho util aproximado de una carta con margenes por defecto de officer (pulg).
-# officer emite A4 (11906 x 16838 twips) con margenes de 1417: 9072 twips utiles.
-# Ancho util = A4 (11 906 twips) menos los margenes de 680 por lado = 10 546
-# twips = 7,32 in. La referencia mide 10 549: la diferencia son 3 twips, 0,05 mm.
-.FORM_WORD_USABLE_IN <- (11906 - 680 * 2) / 1440
-# Separacion entre columnas cuando un tramo va a dos columnas. 425 twips es el
-# valor del instrumento de referencia (<w:cols w:num="2" w:sep="1" w:space="425"/>).
-.FORM_WORD_COL_SPACE_TWIPS <- 425
-.FORM_WORD_COL_SPACE_IN <- .FORM_WORD_COL_SPACE_TWIPS / 1440
+# Ancho util: ya NO es una constante (§17). Sale de la geometria de la seccion
+# (pagina - margenes, y por columna en las de dos), que es la misma que emite el
+# `sectPr`: ver `reporte_formulario_geometria_word.R`.
 
 # TRUE si el tramo ocupa el ancho completo de la caja de texto (una columna).
 .form_word_tramo_is_full <- function(usable) {
-  isTRUE(all.equal(usable %||% .FORM_WORD_USABLE_IN, .FORM_WORD_USABLE_IN))
+  full <- .form_word_ancho_util_in(1L)
+  isTRUE(all.equal(usable %||% full, full))
 }
 
 # Ancho util (pulg) de UN tramo segun su numero de columnas.
-.form_word_tramo_usable_in <- function(columns) {
-  if (identical(as.integer(columns %||% 1L), 2L)) {
-    (.FORM_WORD_USABLE_IN - .FORM_WORD_COL_SPACE_IN) / 2
-  } else {
-    .FORM_WORD_USABLE_IN
-  }
-}
+.form_word_tramo_usable_in <- function(columns) .form_word_ancho_util_in(columns)
 
 # Parrafo con formato. Devuelve el doc (officer es inmutable: hay que reasignar).
 # `keep_with_next` emite `w:keepNext` en el pPr: el parrafo no se separa de lo
@@ -95,7 +84,7 @@
 .form_word_par <- function(doc, text, size = .FORM_WORD_SZ, bold = FALSE, italic = FALSE,
                            color = .FORM_WORD_INK, align = "left", shade = NULL,
                            space_after = 4, space_before = 0,
-                           keep_with_next = FALSE, borde = NULL) {
+                           keep_with_next = FALSE, borde = NULL, rt = NULL) {
   txt <- .form_pdf_clean_text(text %||% "")
   fp_t <- officer::fp_text(font.size = size, bold = bold, italic = italic,
                            color = color, font.family = .FORM_WORD_FONT)
@@ -119,6 +108,22 @@
     args$border.left <- borde; args$border.right <- borde
   }
   fp_p <- do.call(officer::fp_par, args)
+  # Item 19: con formato visible en el sitio, runs por tramo (w:b/w:i/w:u, w:br).
+  # `rt` tiene que decir lo mismo que `text` (el llamador lo prepara: prefijo,
+  # mayusculas); si no casa, va el texto plano.
+  if (!is.null(rt)) {
+    runs <- .form_word_rt_alinea(rt, txt)
+    if (.form_rt_tiene_formato(runs, base_b = bold, base_i = italic)) {
+      # Justificado + salto manual: Word y LibreOffice ESTIRAN la linea que acaba
+      # en `w:br` («Antes        de        empezar»). Con saltos, a la izquierda.
+      if (identical(align, "justify") && any(vapply(runs, .form_rt_es_br, logical(1)))) {
+        args$text.align <- "left"
+        fp_p <- do.call(officer::fp_par, args)
+      }
+      vals <- .form_word_rt_ftext(runs, size = size, negrita_base = bold, italic = italic, color = color)
+      return(officer::body_add_fpar(doc, do.call(officer::fpar, c(vals, list(fp_p = fp_p)))))
+    }
+  }
   officer::body_add_fpar(doc, officer::fpar(officer::ftext(txt, prop = fp_t), fp_p = fp_p))
 }
 
@@ -184,7 +189,7 @@
 # escala con el codigo impreso por celda + columna especial opcional. Cabecera
 # replica el modo del PDF: "categorias" (cada opcion rotulada) o "extremos"
 # (solo primer/ultimo ancla + especial). Devuelve NULL si no hay filas.
-.form_word_matrix_flextable <- function(block, usable = .FORM_WORD_USABLE_IN) {
+.form_word_matrix_flextable <- function(block, usable = .form_word_ancho_util_in(1L)) {
   part <- .form_pdf_matrix_partition_options(block$options, block$special_override %||% "auto")
   scale <- part$scale
   special <- part$special
@@ -354,15 +359,21 @@
   # se anade como un chunk mas en cursiva.
   item_skips <- vapply(items, function(it) .form_pdf_clean_text(it$skip %||% ""), character(1))
   for (ri in seq_len(nrow(df))) {
-    trozos <- .form_word_chunks_enfasis(df$lbl[ri])
+    # Item 19 / L15: los tramos del modelo (enfasis del autor y HTML), con el
+    # numero de la madre delante como tramo plano.
+    it <- items[[ri]]
+    num_m <- .form_pdf_clean_text(it$number %||% "")
+    rt <- .form_word_rt_prefijo(if (isTRUE(it$is_parent) && nzchar(num_m)) paste0(num_m, ".  ") else "",
+                                .form_rt_campo(it, "label"))
+    trozos <- .form_word_rt_chunks(rt)
     if (!length(trozos)) next
     if (nzchar(item_skips[ri])) {
       trozos <- c(trozos, list(flextable::as_chunk(
         paste0("\n", item_skips[ri]),
         props = officer::fp_text(italic = TRUE, color = .FORM_WORD_INK,
                                  font.size = .FORM_WORD_SZ_MIN, font.family = .FORM_WORD_FONT))))
-    } else if (!grepl("**", df$lbl[ri], fixed = TRUE)) {
-      next   # sin enfasis ni salto no hay nada que componer
+    } else if (!.form_rt_tiene_formato(rt)) {
+      next   # sin formato ni salto no hay nada que componer
     }
     ft <- flextable::compose(ft, i = ri, j = "lbl", part = "body",
                              value = do.call(flextable::as_paragraph, trozos))
@@ -381,7 +392,8 @@
   # todo lo de arriba —`align(j="num", "center")`, el 8 pt de la cabecera,
   # `table_base`— la pisaria si fuera antes.
   ft <- .form_word_esquina_matriz(ft, block$tenor %||% "", numero = block$number %||% "",
-                                  hint = block$hint %||% "")
+                                  hint = block$hint %||% "",
+                                  enunciado_rt = block$tenor_rt, hint_rt = block$hint_rt)
   ft
 }
 
@@ -440,29 +452,14 @@
   max(vapply(ws, .form_word_ancho_pt, numeric(1), size = size))
 }
 
-# Trocea un texto en `as_chunk()` respetando el enfasis del autor (`**...**`).
-# El motor borraba esos marcadores y dejaba texto plano; la referencia los usa
-# para el sujeto de cada item, asi que perderlos es perder intencion del
-# instrumento. `negrita_base` es el peso del texto normal: en una cabecera todo
-# va en negrita y el enfasis no se distingue, asi que ahi no se aplica.
-.form_word_chunks_enfasis <- function(txt, size = .FORM_WORD_SZ, negrita_base = FALSE,
-                                      italic = FALSE, color = .FORM_WORD_INK) {
-  tramos <- .form_pdf_tramos_enfasis(txt)
-  if (!length(tramos)) return(list())
-  lapply(tramos, function(tr) {
-    flextable::as_chunk(tr$texto, props = officer::fp_text(
-      font.size = size, bold = isTRUE(negrita_base) || isTRUE(tr$negrita),
-      italic = italic, color = color, font.family = .FORM_WORD_FONT))
-  })
-}
-
 # Enunciado como PRIMERA FILA de la tabla de la pregunta (L4 del GOAL). En la
 # referencia cada pregunta es UNA tabla y su primera fila es el enunciado
 # sombreado; aqui el enunciado era un parrafo suelto encima de la tabla, sin
 # relacion estructural con ella: si la pagina cortaba justo ahi el enunciado se
 # quedaba arriba y sus opciones abajo, y en papel eso es una pregunta sin texto.
 # `hint` va en la MISMA celda, como segundo chunk en cursiva y cuerpo menor.
-.form_word_cabecera_enunciado <- function(ft, col_ids, enunciado, hint = "") {
+.form_word_cabecera_enunciado <- function(ft, col_ids, enunciado, hint = "",
+                                          enunciado_rt = NULL, hint_rt = NULL) {
   enunciado <- .form_pdf_clean_text(enunciado %||% "")
   hint <- .form_pdf_clean_text(hint %||% "")
   if (!nzchar(enunciado)) return(ft)
@@ -470,15 +467,10 @@
   vals[[col_ids[1]]] <- enunciado
   ft <- do.call(flextable::set_header_labels, c(list(ft), vals))
   ft <- flextable::merge_at(ft, i = 1, j = col_ids, part = "header")
-  # El enunciado va entero en negrita, asi que el enfasis del autor no se
-  # distinguiria; se trocea igualmente para no dejar los `**` a la vista.
-  chunks <- .form_word_chunks_enfasis(enunciado, negrita_base = TRUE)
-  if (nzchar(hint)) {
-    chunks <- c(chunks, list(flextable::as_chunk(
-      paste0("\n", hint),
-      props = officer::fp_text(font.size = .FORM_WORD_SZ_MIN, italic = TRUE,
-                               color = .FORM_WORD_INK, font.family = .FORM_WORD_FONT))))
-  }
+  # El enunciado va entero en negrita; sus tramos (item 19) aportan cursiva,
+  # subrayado y saltos.
+  chunks <- .form_word_rt_chunks(.form_word_rt_alinea(enunciado_rt, enunciado), negrita_base = TRUE)
+  chunks <- c(chunks, .form_word_hint_chunks(hint, hint_rt))
   ft <- flextable::compose(ft, i = 1, j = col_ids[1], part = "header",
                            value = do.call(flextable::as_paragraph, chunks))
   ft <- flextable::bg(ft, bg = .FORM_WORD_ZEBRA, part = "header")
@@ -504,7 +496,8 @@
 # Es la misma razon de L4: separado de su tabla, el enunciado se corta de ella.
 # La esquina fusiona `num` + `lbl` porque en la referencia el "P20." arranca en
 # la columna del numero de item, no en la de la etiqueta.
-.form_word_esquina_matriz <- function(ft, enunciado, numero = "", hint = "") {
+.form_word_esquina_matriz <- function(ft, enunciado, numero = "", hint = "",
+                                      enunciado_rt = NULL, hint_rt = NULL) {
   enunciado <- .form_pdf_clean_text_enfasis(enunciado %||% "")
   if (!nzchar(enunciado)) return(ft)
   numero <- .form_pdf_clean_text(numero %||% "")
@@ -512,13 +505,10 @@
   texto <- if (nzchar(numero)) paste0(numero, ".  ", enunciado) else enunciado
 
   ft <- flextable::merge_at(ft, i = 1, j = c("num", "lbl"), part = "header")
-  chunks <- .form_word_chunks_enfasis(texto, negrita_base = TRUE)
-  if (nzchar(hint)) {
-    chunks <- c(chunks, list(flextable::as_chunk(
-      paste0("\n", hint),
-      props = officer::fp_text(font.size = .FORM_WORD_SZ_MIN, italic = TRUE,
-                               color = .FORM_WORD_INK, font.family = .FORM_WORD_FONT))))
-  }
+  rt <- .form_word_rt_prefijo(if (nzchar(numero)) paste0(numero, ".  ") else "",
+                              .form_word_rt_alinea(enunciado_rt, enunciado))
+  chunks <- .form_word_rt_chunks(rt, negrita_base = TRUE)
+  chunks <- c(chunks, .form_word_hint_chunks(hint, hint_rt))
   ft <- flextable::compose(ft, i = 1, j = "num", part = "header",
                            value = do.call(flextable::as_paragraph, chunks))
   # La esquina va al cuerpo (10 pt) y alineada a la izquierda: el resto de la
@@ -529,8 +519,9 @@
   ft
 }
 
-.form_word_options_flextable <- function(opts, usable = .FORM_WORD_USABLE_IN,
-                                        enunciado = "", hint = "") {
+.form_word_options_flextable <- function(opts, usable = .form_word_ancho_util_in(1L),
+                                        enunciado = "", hint = "",
+                                        enunciado_rt = NULL, hint_rt = NULL) {
   if (!length(opts)) return(NULL)
   # Categorias de respuesta: limpieza INOCUA (ver .form_word_matrix_flextable).
   codes  <- vapply(opts, function(o) .form_pdf_clean_text_safe(o$code %||% ""), character(1))
@@ -551,7 +542,11 @@
   # ancho util es la mitad.
   #
   # Con saltos por opcion se queda vertical: cada salto necesita su propia celda.
-  cod_w <- 0.28
+  # Item 18: la columna del codigo arranca en 0.28 in y crece hasta el codigo
+  # mas ancho medido (tope 0.56), luego baja su cuerpo hasta 7 pt
+  # (reporte_formulario_codigos.R). Un codigo que ya cabia no cambia nada.
+  cg_h <- .form_word_codigo_geom(codes, 0.28)
+  cod_w <- cg_h$width
   pad_pt <- 6
   anchos <- vapply(seq_along(labels), function(i) {
     .form_word_ancho_pt(labels[i], .FORM_WORD_SZ) + cod_w * 72 + pad_pt * 2
@@ -586,8 +581,12 @@
       ft <- flextable::align(ft, j = paste0("c", i), align = "center", part = "body")
       ft <- flextable::bold(ft, j = paste0("c", i), part = "body")
       ft <- flextable::align(ft, j = paste0("l", i), align = "left", part = "body")
+      if (cg_h$size < .FORM_WORD_SZ) {
+        ft <- flextable::fontsize(ft, j = paste0("c", i), size = cg_h$size, part = "body")
+      }
     }
-    ft <- .form_word_cabecera_enunciado(ft, names(df), enunciado, hint)
+    ft <- .form_word_opciones_rt(ft, opts, labels, paste0("l", seq_along(labels)))
+    ft <- .form_word_cabecera_enunciado(ft, names(df), enunciado, hint, enunciado_rt, hint_rt)
     ft <- .form_word_table_base(ft, names(df), no_split = .form_word_tramo_is_full(usable))
     return(ft)
   }
@@ -613,25 +612,33 @@
 
   # En un tramo angosto (dos columnas) la columna de saltos se encoge con el
   # resto; nunca puede llevarse mas de un tercio del ancho disponible.
-  skip_w <- min(1.7, max(0.8, (usable - 0.4) / 3))
-  ft <- flextable::width(ft, j = "code", width = 0.4)
+  # Item 18: 0.4 in es el piso de la columna del codigo; crece hasta el codigo
+  # mas ancho medido (tope 0.8) y luego baja su cuerpo hasta 7 pt.
+  cg_v <- .form_word_codigo_geom(codes, 0.4)
+  code_w <- cg_v$width
+  skip_w <- min(1.7, max(0.8, (usable - code_w) / 3))
+  ft <- flextable::width(ft, j = "code", width = code_w)
   if (has_skip) {
-    ft <- flextable::width(ft, j = "label", width = usable - 0.4 - skip_w)
+    ft <- flextable::width(ft, j = "label", width = usable - code_w - skip_w)
     ft <- flextable::width(ft, j = "skip", width = skip_w)
     ft <- flextable::align(ft, j = "skip", align = "right", part = "body")
     ft <- flextable::italic(ft, j = "skip", part = "body")
     ft <- flextable::color(ft, j = "skip", color = .FORM_WORD_INK, part = "body")
     ft <- flextable::fontsize(ft, j = "skip", size = .FORM_WORD_SZ_MIN, part = "body")
   } else {
-    ft <- flextable::width(ft, j = "label", width = usable - 0.4)
+    ft <- flextable::width(ft, j = "label", width = usable - code_w)
   }
   ft <- flextable::align(ft, j = "code", align = "center", part = "body")
   ft <- flextable::color(ft, j = "code", color = .FORM_WORD_INK, part = "body")
   ft <- flextable::bold(ft, j = "code", part = "body")
+  if (cg_v$size < .FORM_WORD_SZ) {
+    ft <- flextable::fontsize(ft, j = "code", size = cg_v$size, part = "body")
+  }
   ft <- flextable::fontsize(ft, j = "label", size = .FORM_WORD_SZ, part = "body")
   even <- which(seq_len(nrow(df)) %% 2L == 0L)
   if (length(even)) ft <- flextable::bg(ft, i = even, bg = .FORM_WORD_ZEBRA, part = "body")
-  ft <- .form_word_cabecera_enunciado(ft, names(df), enunciado, hint)
+  ft <- .form_word_opciones_rt(ft, opts, labels, "label")
+  ft <- .form_word_cabecera_enunciado(ft, names(df), enunciado, hint, enunciado_rt, hint_rt)
   ft <- .form_word_table_base(ft, names(df), no_split = .form_word_tramo_is_full(usable))
   ft
 }
@@ -679,7 +686,7 @@
 # categorias de respuesta de un instrumento acordado con el cliente, que es
 # justo lo que prohibe la regla que no se negocia del checklist. Sin
 # `consent_var` declarado no se pinta la casilla y se dice por que.
-.form_word_acuerdo_flextable <- function(opts, usable = .FORM_WORD_USABLE_IN) {
+.form_word_acuerdo_flextable <- function(opts, usable = .form_word_ancho_util_in(1L)) {
   if (!length(opts)) return(NULL)
   labels <- vapply(opts, function(o) .form_pdf_clean_text_safe(o$label %||% o$code %||% ""), character(1))
   # Columna de relleno al principio. Sin `tblW` el .docx no dice cuanto mide la
@@ -765,8 +772,8 @@
 # corren al escribir encima y, con una tipografia estrecha, una tira fija de 60
 # ya no cabe en una columna -- envuelve y deja un guion suelto en la linea de
 # abajo. Una celda no depende del ancho de la fuente ni de la columna.
-.form_word_caja_vacia <- function(usable = .FORM_WORD_USABLE_IN, alto = 0.3,
-                                  enunciado = "", hint = "") {
+.form_word_caja_vacia <- function(usable = .form_word_ancho_util_in(1L), alto = 0.3,
+                                  enunciado = "", hint = "", enunciado_rt = NULL, hint_rt = NULL) {
   ft <- flextable::flextable(data.frame(cell = "", stringsAsFactors = FALSE))
   if (!nzchar(.form_pdf_clean_text(enunciado %||% ""))) {
     ft <- flextable::delete_part(ft, part = "header")
@@ -776,7 +783,7 @@
   ft <- flextable::width(ft, j = "cell", width = usable)
   ft <- flextable::height(ft, height = alto, part = "body")
   ft <- flextable::hrule(ft, rule = "exact", part = "body")
-  ft <- .form_word_cabecera_enunciado(ft, "cell", enunciado, hint)
+  ft <- .form_word_cabecera_enunciado(ft, "cell", enunciado, hint, enunciado_rt, hint_rt)
   ft <- flextable::border_remove(ft)
   ft <- flextable::border_outer(ft, border = officer::fp_border(color = .FORM_WORD_LINE, width = 0.5), part = "all")
   ft <- flextable::border_inner_h(ft, border = officer::fp_border(color = .FORM_WORD_LINE, width = 0.5), part = "all")
@@ -784,7 +791,7 @@
                                   opts_word = list(split = FALSE))
 }
 
-.form_word_paper_flextable <- function(block, usable = .FORM_WORD_USABLE_IN) {
+.form_word_paper_flextable <- function(block, usable = .form_word_ancho_util_in(1L)) {
   title <- .form_pdf_clean_text(block$title %||% "")
   body  <- .form_pdf_clean_text(block$body %||% "")
   if (!nzchar(title) && !nzchar(body)) return(NULL)
@@ -805,6 +812,23 @@
   if (nzchar(body)) {
     fila_cuerpo <- if (nzchar(title)) 2L else 1L
     ft <- flextable::align(ft, i = fila_cuerpo, j = "cell", align = "justify", part = "body")
+  }
+  # Item 19: titulo y cuerpo con formato, por tramos en su fila.
+  rt_t <- .form_word_rt_alinea(.form_rt_mayusculas(.form_rt_campo(block, "title")), toupper(title))
+  if (nzchar(title) && .form_rt_tiene_formato(rt_t, base_b = TRUE)) {
+    ft <- flextable::compose(ft, i = 1, j = "cell", part = "body",
+                             value = do.call(flextable::as_paragraph,
+                                             .form_word_rt_chunks(rt_t, negrita_base = TRUE)))
+  }
+  rt_b <- .form_word_rt_alinea(.form_rt_campo(block, "body"), body)
+  if (nzchar(body) && .form_rt_tiene_formato(rt_b)) {
+    fila_b <- if (nzchar(title)) 2L else 1L
+    ft <- flextable::compose(ft, i = fila_b, j = "cell", part = "body",
+                             value = do.call(flextable::as_paragraph, .form_word_rt_chunks(rt_b)))
+    # Con saltos manuales, sin justificar (ver .form_word_par).
+    if (any(vapply(rt_b, .form_rt_es_br, logical(1)))) {
+      ft <- flextable::align(ft, i = fila_b, j = "cell", align = "left", part = "body")
+    }
   }
   ft <- flextable::padding(ft, padding = 7, part = "body")
   ft <- flextable::valign(ft, valign = "top", part = "body")
@@ -876,16 +900,18 @@
 #      emita `<w:titlePg/>`, y con `titlePg` la primera pagina de CADA seccion
 #      queda sin pie. El instrumento de referencia lleva `titlePg` en seis de sus
 #      siete secciones y por eso pierde el pie donde no debe.
-.form_word_section_prop <- function(columns, furniture, type = "continuous") {
+.form_word_section_prop <- function(columns, furniture, type = "continuous",
+                                    geom = .form_word_geometria()) {
   ncol <- if (identical(as.integer(columns %||% 1L), 2L)) 2L else 1L
   cols <- if (ncol == 2L) {
-    w <- .form_word_tramo_usable_in(2L)
-    officer::section_columns(widths = c(w, w), space = .FORM_WORD_COL_SPACE_IN, sep = TRUE)
+    w <- .form_word_ancho_util_in(2L, geom)
+    officer::section_columns(widths = c(w, w), space = geom$col_space_tw / 1440, sep = TRUE)
   } else {
     NULL   # section_columns() exige >= 2 anchos; una columna va con <w:cols/>.
   }
   officer::prop_section(
     type = type,
+    page_size = geom$page_size,
     section_columns = cols,
     # Margenes de la referencia (twips -> pulgadas): left/right 680, top 420,
     # bottom 700, header 397, footer 250. La plantilla de officer traia 1417
@@ -893,10 +919,9 @@
     # instrumento: un 15 % menos de caja. Un formulario en papel no es un
     # documento de oficina — la densidad ES la funcion, y ese 15 % es lo que
     # separaba nuestras tablas de las suyas.
-    page_margins = officer::page_mar(
-      top = 420 / 1440, bottom = 700 / 1440,
-      left = 680 / 1440, right = 680 / 1440,
-      header = 397 / 1440, footer = 250 / 1440, gutter = 0),
+    # Los valores viven en `.form_word_geometria()`, de la que tambien sale el
+    # ancho util de las tablas (§17): una sola fuente para la caja y su relleno.
+    page_margins = .form_word_geom_page_mar(geom),
     # `furniture$header` es una LISTA de bloques (rotulo, casillas, logo), asi
     # que se despliega con do.call: `block_list(lista)` la anidaria como un
     # solo bloque.
@@ -946,7 +971,7 @@ formulario_word_render <- function(model, output_file) {
 
   for (ti in seq_along(plan)) {
     tramo <- plan[[ti]]
-    usable <- if (emit_sections) .form_word_tramo_usable_in(tramo$columns) else .FORM_WORD_USABLE_IN
+    usable <- if (emit_sections) .form_word_tramo_usable_in(tramo$columns) else .form_word_ancho_util_in(1L)
     for (bi in seq.int(tramo$from, tramo$to)) {
       doc <- .form_word_add_block(doc, model$blocks[[bi]], usable = usable,
                                   folio = !identical(model$show_questionnaire_number, FALSE),
@@ -1080,7 +1105,7 @@ formulario_word_render <- function(model, output_file) {
 
 # Pinta UN bloque del modelo. `usable` es el ancho (pulg) del tramo en curso:
 # en un tramo de dos columnas las tablas se encogen a la mitad.
-.form_word_add_block <- function(doc, block, usable = .FORM_WORD_USABLE_IN,
+.form_word_add_block <- function(doc, block, usable = .form_word_ancho_util_in(1L),
                                  folio = TRUE, consent_options = list()) {
   {
     kind <- block$kind %||% ""
@@ -1099,6 +1124,7 @@ formulario_word_render <- function(model, output_file) {
         doc <- flextable::body_add_flextable(doc, .form_word_casillas_folio(), align = "right")
       }
       doc <- .form_word_par(doc, block$title, size = .FORM_WORD_SZ_TITULO, bold = TRUE, color = .FORM_WORD_INK,
+                            rt = .form_rt_campo(block, "title"),
                             align = "center", space_before = 6, space_after = 2)
       # Regla corta centrada bajo el titulo (paridad con la portada del PDF).
       doc <- .form_word_par(doc, strrep("─", 10), size = .FORM_WORD_SZ, color = .FORM_WORD_INK,
@@ -1123,12 +1149,14 @@ formulario_word_render <- function(model, output_file) {
       } else {
         if (nzchar(block$title %||% "")) {
           doc <- .form_word_par(doc, toupper(block$title), size = .FORM_WORD_SZ, bold = TRUE, color = .FORM_WORD_INK,
+                                rt = .form_rt_mayusculas(.form_rt_campo(block, "title")),
                                 shade = .FORM_WORD_BAND, space_before = 4, space_after = 2,
                                 borde = officer::fp_border(color = .FORM_WORD_INK, width = 0.5, style = "solid"),
                                 keep_with_next = nzchar(block$body %||% ""))
         }
         if (nzchar(block$body %||% "")) {
-          doc <- .form_word_par(doc, block$body, size = .FORM_WORD_SZ, space_after = 6)
+          doc <- .form_word_par(doc, block$body, size = .FORM_WORD_SZ, space_after = 6,
+                                rt = .form_rt_campo(block, "body"))
         }
       }
 
@@ -1137,6 +1165,7 @@ formulario_word_render <- function(model, output_file) {
       # arrastrando lo que sigue. Cambian el tono y la alineacion (la seccion va
       # centrada, la subseccion pegada al margen, como en la referencia).
       doc <- .form_word_par(doc, toupper(block$title %||% ""), size = .FORM_WORD_SZ, bold = TRUE,
+                            rt = .form_rt_mayusculas(.form_rt_campo(block, "title")),
                             color = .FORM_WORD_INK, shade = .FORM_WORD_BAND_SUB,
                             align = "left", space_before = 4, space_after = 3,
                             borde = officer::fp_border(color = .FORM_WORD_INK, width = 0.5, style = "solid"),
@@ -1148,12 +1177,14 @@ formulario_word_render <- function(model, output_file) {
       ttl <- if (nzchar(num)) paste0(num, "  ", block$title) else (block$title %||% "")
       # La banda de sección no se queda sola al pie: arrastra lo que sigue.
       doc <- .form_word_par(doc, toupper(ttl), size = .FORM_WORD_SZ, bold = TRUE, color = .FORM_WORD_INK,
+                            rt = .form_rt_mayusculas(.form_word_rt_prefijo(
+                              if (nzchar(num)) paste0(num, "  ") else "", .form_rt_campo(block, "title"))),
                             shade = .FORM_WORD_BAND, align = "center", space_after = 4,
                             borde = officer::fp_border(color = .FORM_WORD_INK, width = 0.5, style = "solid"),
                             keep_with_next = TRUE)
       if (nzchar(block$hint %||% "")) {
         doc <- .form_word_par(doc, block$hint, size = .FORM_WORD_SZ_MIN, italic = TRUE, color = .FORM_WORD_INK,
-                              keep_with_next = TRUE)
+                              keep_with_next = TRUE, rt = .form_rt_campo(block, "hint"))
       }
 
     } else if (identical(kind, "matrix")) {
@@ -1164,7 +1195,7 @@ formulario_word_render <- function(model, output_file) {
       # tenor no hay enunciado que mover y la pista sigue como parrafo pegado.
       if (!nzchar(block$tenor %||% "") && nzchar(block$hint %||% "")) {
         doc <- .form_word_par(doc, block$hint, size = .FORM_WORD_SZ_MIN, italic = TRUE, color = .FORM_WORD_INK,
-                              keep_with_next = TRUE)
+                              keep_with_next = TRUE, rt = .form_rt_campo(block, "hint"))
       }
       ft <- .form_word_matrix_flextable(block, usable = usable)
       if (!is.null(ft)) {
@@ -1176,9 +1207,12 @@ formulario_word_render <- function(model, output_file) {
       if (identical(block$type %||% "", "note")) {
         # Nota informativa (tipo `note` del XLSForm): texto de sección/escala como
         # en la referencia — párrafo justificado semibold, NO una pregunta numerada.
+        # Item 17: si la nota introduce el bloque que sigue, va pegada a el.
         doc <- .form_word_par(doc, block$label %||% "", size = .FORM_WORD_SZ, bold = TRUE,
                               color = .FORM_WORD_INK, align = "justify",
-                              space_before = 4, space_after = 6)
+                              space_before = 4, space_after = 6,
+                              keep_with_next = isTRUE(block$keep_with_next),
+                              rt = .form_rt_campo(block, "label"))
       } else {
         num <- .form_pdf_clean_text(block$number %||% "")
         lbl <- if (nzchar(num)) paste0(num, ".  ", block$label) else (block$label %||% "")
@@ -1187,22 +1221,28 @@ formulario_word_render <- function(model, output_file) {
         # tiene cuerpo tabular donde alojarlo.
         opts <- block$options %||% list()
         hint <- block$hint %||% ""
+        # Item 19: el enunciado con su numero delante y la pista, como tramos.
+        lbl_rt <- .form_word_rt_prefijo(if (nzchar(num)) paste0(num, ".  ") else "",
+                                        .form_rt_campo(block, "label"))
+        hint_rt <- .form_rt_campo(block, "hint")
         es_campo <- (block$type %||% "") %in%
           c("text", "integer", "decimal", "date", "time", "datetime")
         ft <- if (length(opts)) {
-          .form_word_options_flextable(opts, usable = usable, enunciado = lbl, hint = hint)
+          .form_word_options_flextable(opts, usable = usable, enunciado = lbl, hint = hint,
+                                       enunciado_rt = lbl_rt, hint_rt = hint_rt)
         } else if (isTRUE(block$coded_list) || es_campo) {
           ancho <- if (isTRUE(block$coded_list)) min(2.2, usable) else usable
-          .form_word_caja_vacia(usable = ancho, alto = 0.3, enunciado = lbl, hint = hint)
+          .form_word_caja_vacia(usable = ancho, alto = 0.3, enunciado = lbl, hint = hint,
+                                enunciado_rt = lbl_rt, hint_rt = hint_rt)
         } else NULL
         if (!is.null(ft)) {
           doc <- flextable::body_add_flextable(doc, ft, align = "left")
           doc <- .form_word_blank(doc)
         } else {
           doc <- .form_word_par(doc, lbl, size = .FORM_WORD_SZ, bold = TRUE,
-                                space_before = 4, space_after = 3)
+                                space_before = 4, space_after = 3, rt = lbl_rt)
           if (nzchar(hint)) {
-            doc <- .form_word_par(doc, hint, size = .FORM_WORD_SZ_MIN, italic = TRUE,
+            doc <- .form_word_par(doc, hint, size = .FORM_WORD_SZ_MIN, italic = TRUE, rt = hint_rt,
                                   color = .FORM_WORD_INK)
           }
         }
