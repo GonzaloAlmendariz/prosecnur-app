@@ -1136,6 +1136,18 @@
 
   changed <- FALSE
   out_repairs <- list()
+  # Lista `_recod` por padre: si dos padres comparten lista, cada uno recibe la
+  # suya (ver project_pulso_recod_reparacion.R; sin esto no converge).
+  rep_parents <- vapply(repairs, function(r) as.character(r$parent %||% ""), character(1))
+  rep_lists <- vapply(rep_parents, function(p) {
+    idx <- which(as.character(survey$name) == p)[1]
+    if (is.na(idx)) return("")
+    .pulso_list_name_from_survey_row(survey[idx, , drop = FALSE])
+  }, character(1))
+  recod_list_names <- .pulso_recod_list_names(rep_parents, rep_lists)
+  displaced_lists <- unique(paste0(rep_lists, "_recod")[
+    nzchar(rep_lists) & paste0(rep_lists, "_recod") != recod_list_names[rep_parents]
+  ])
   for (rep in repairs) {
     parent <- as.character(rep$parent %||% "")
     text_col <- as.character(rep$text_col %||% "")
@@ -1149,7 +1161,8 @@
     if (!type_base %in% c("select_one", "select_multiple")) next
     parent_list <- .pulso_list_name_from_survey_row(parent_row)
     if (!nzchar(parent_list)) next
-    recod_list <- paste0(parent_list, "_recod")
+    recod_list <- unname(recod_list_names[parent]) %||% paste0(parent_list, "_recod")
+    if (is.na(recod_list) || !nzchar(recod_list)) recod_list <- paste0(parent_list, "_recod")
 
     parent_choices <- choices[as.character(choices$list_name) == parent_list, , drop = FALSE]
     existing_recod <- choices[as.character(choices$list_name) == recod_list, , drop = FALSE]
@@ -1348,6 +1361,11 @@
     out_repairs[[length(out_repairs) + 1L]] <- rep
   }
 
+  orphans <- .pulso_recod_drop_orphan_lists(survey, choices, displaced_lists)
+  if (isTRUE(orphans$changed)) {
+    choices <- orphans$choices
+    changed <- TRUE
+  }
   if (changed) .pulso_write_xlsform_frames(path, survey, choices, settings)
   list(changed = isTRUE(changed), repairs = out_repairs)
 }
@@ -1392,11 +1410,21 @@
     xls_meta <- s$files[[as.character(base$xlsform_file_id %||% "")]]
     if (is.null(data_meta) || is.null(data_meta$path) || !file.exists(data_meta$path)) next
     if (!tolower(tools::file_ext(data_meta$path)) %in% c("xlsx", "xls")) next
+    # Memo de firma (project_pulso_recod_reparacion.R): si XLSForm, data y pedido
+    # no cambiaron desde la última pasada que no tuvo nada que reparar, no se
+    # vuelve a leer ningún archivo.
+    xls_path <- if (!is.null(xls_meta)) as.character(xls_meta$path %||% "") else ""
+    firma <- .pulso_recod_repair_signature(data_meta$path, xls_path, repairs)
+    if (.pulso_recod_memo_hit(sid, base_name, firma)) next
+    base_changed <- FALSE
 
     if (!is.null(xls_meta) && !is.null(xls_meta$path) && file.exists(xls_meta$path)) {
       xls_fixed <- .pulso_repair_parent_recod_xlsform(xls_meta$path, repairs)
       repairs <- xls_fixed$repairs %||% repairs
-      if (isTRUE(xls_fixed$changed)) changed <- TRUE
+      if (isTRUE(xls_fixed$changed)) {
+        changed <- TRUE
+        base_changed <- TRUE
+      }
     }
 
     sheets <- tryCatch(readxl::excel_sheets(data_meta$path), error = function(e) character(0))
@@ -1419,6 +1447,9 @@
       changed <- TRUE
     }
 
+    if (!isTRUE(base_changed) && !isTRUE(data_changed)) {
+      .pulso_recod_memo_set(sid, base_name, firma)
+    }
     if (isTRUE(data_changed)) {
       if (!is.null(s$rp_data_sources[[base_name]])) s$rp_data_sources[[base_name]] <- NULL
       if (!is.null(s$analitica_rp_data_sources[[base_name]])) s$analitica_rp_data_sources[[base_name]] <- NULL

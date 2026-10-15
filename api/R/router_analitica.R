@@ -587,7 +587,12 @@
   out$data
 }
 
+# Memoizada por firma de archivos + metadata (analitica_lectura_cache.R).
 .analitica_read_pair <- function(pair, base_meta = NULL) {
+  .analitica_read_pair_memo(pair, base_meta, .analitica_read_pair_uncached)
+}
+
+.analitica_read_pair_uncached <- function(pair, base_meta = NULL) {
   rp_inst <- reporte_instrumento(path = pair$xls$path)
   rp_inst <- .analitica_apply_integrated_key(rp_inst, base_meta)
   dat_raw <- .analitica_read_data_file(pair$data)
