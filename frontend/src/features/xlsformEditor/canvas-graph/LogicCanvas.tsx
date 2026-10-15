@@ -467,6 +467,20 @@ export function LogicCanvas({
     return m;
   }, [layout]);
 
+  // React registra `onWheel` como listener PASIVO: su preventDefault() no
+  // hacía nada, así que el pellizco hacía zoom a la página entera y el
+  // desplazamiento movía la página además del lienzo. Va nativo, no pasivo.
+  // Los hooks viven ANTES del retorno temprano: debajo romperían su orden.
+  const onWheelRef = useRef<(event: WheelEvent) => void>(() => undefined);
+  useEffect(() => {
+    if (!open) return;
+    const svg = svgRef.current;
+    if (!svg) return;
+    const handler = (event: WheelEvent) => onWheelRef.current(event);
+    svg.addEventListener("wheel", handler, { passive: false });
+    return () => svg.removeEventListener("wheel", handler);
+  }, [open]);
+
   if (!open) return null;
 
   // Destinos INVÁLIDOS mientras se arrastra una conexión desde `edgeDraft`:
@@ -545,7 +559,7 @@ export function LogicCanvas({
   // para que ese caso siga haciendo zoom, detectamos `deltaMode !== 0`
   // (line/page mode) o un deltaY chico — proxy razonable para "no es
   // trackpad". Si dudas, el usuario puede mantener Cmd para forzar zoom.
-  const onWheel = (event: React.WheelEvent<SVGSVGElement>) => {
+  const onWheel = (event: WheelEvent) => {
     event.preventDefault();
     const isPinch = event.ctrlKey;
     const isTrackpadPan =
@@ -565,6 +579,8 @@ export function LogicCanvas({
     const delta = -event.deltaY * 0.0015;
     setZoom((z) => Math.max(0.3, Math.min(2.5, z * (1 + delta))));
   };
+  // La rueda se atiende con un listener nativo (ver el efecto de arriba).
+  onWheelRef.current = onWheel;
   const onMouseDown = (event: React.MouseEvent<SVGSVGElement>) => {
     if ((event.target as Element).closest(".pulso-graph-node")) return;
     isDraggingRef.current = true;
@@ -903,7 +919,6 @@ export function LogicCanvas({
         <svg
           ref={svgRef}
           className="pulso-graph-svg"
-          onWheel={onWheel}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
