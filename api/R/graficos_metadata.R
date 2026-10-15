@@ -720,53 +720,50 @@
   ),
 
   p_slide_3_graficos_poblacion_tira = list(
-    titulo_humano = "Tres franjas + ícono (población)",
-    descripcion   = "Ícono a la izquierda y tres franjas anchas: cuando las categorías son largas, el ancho vale más que el alto.",
+    titulo_humano = "Tres franjas (población)",
+    descripcion   = "Tres franjas anchas del mismo público: cuando las categorías son largas, el ancho vale más que el alto.",
     icono_ui      = "LayoutGrid",
     categoria     = "poblacion",
     render_key    = "poblacion_3_tira",
-    blueprint     = list(kind = "population3_row", ppt_layout = "poblacion_3_tira", structure_label = "Tres franjas + ícono"),
+    blueprint     = list(kind = "population3_row", ppt_layout = "poblacion_3_tira", structure_label = "Tres franjas"),
     slot_specs    = list(
       superior = list(role = "chart", label = "Superior"),
       medio = list(role = "chart", label = "Medio"),
-      inferior = list(role = "chart", label = "Inferior"),
-      icono = list(role = "icon", label = "Ícono")
+      inferior = list(role = "chart", label = "Inferior")
     ),
-    args = .args_slide_poblacion_basico(c("titulo", "icono", "base"))
+    args = .args_slide_poblacion_basico(c("titulo", "base"))
   ),
 
   p_slide_3_graficos_poblacion_corona = list(
-    titulo_humano = "Tres gráficos alrededor del ícono",
-    descripcion   = "El ícono al centro y los tres alrededor: la composición dice que describen al mismo sujeto, no una secuencia.",
+    titulo_humano = "Dos gráficos arriba + uno ancho (población)",
+    descripcion   = "Dos paneles arriba y uno ancho debajo, del mismo público: el ancho es para la variable con categorías largas.",
     icono_ui      = "LayoutGrid",
     categoria     = "poblacion",
     render_key    = "poblacion_3_corona",
-    blueprint     = list(kind = "population3_crown", ppt_layout = "poblacion_3_corona", structure_label = "Ícono central + tres"),
+    blueprint     = list(kind = "population3_crown", ppt_layout = "poblacion_3_corona", structure_label = "Dos arriba + uno ancho"),
     slot_specs    = list(
       superior_izquierda = list(role = "chart", label = "Superior izquierda"),
       superior_derecha = list(role = "chart", label = "Superior derecha"),
-      inferior = list(role = "chart", label = "Inferior"),
-      icono = list(role = "icon", label = "Ícono")
+      inferior = list(role = "chart", label = "Inferior")
     ),
-    args = .args_slide_poblacion_basico(c("titulo", "icono", "base"))
+    args = .args_slide_poblacion_basico(c("titulo", "base"))
   ),
 
   p_slide_3_graficos_poblacion_cifras = list(
-    titulo_humano = "Tres gráficos + cifras + ícono",
-    descripcion   = "Como la de perfil, más dos cifras sueltas bajo el ícono: el N del público, la tasa de respuesta.",
+    titulo_humano = "Tres gráficos + cifras (población)",
+    descripcion   = "Tres gráficos del mismo público y dos cifras sueltas en una columna lateral: el N del público, la edad mediana.",
     icono_ui      = "LayoutGrid",
     categoria     = "poblacion",
     render_key    = "poblacion_3_cifras",
-    blueprint     = list(kind = "population3_kpi", ppt_layout = "poblacion_3_cifras", structure_label = "Ícono + cifras + tres"),
+    blueprint     = list(kind = "population3_kpi", ppt_layout = "poblacion_3_cifras", structure_label = "Cifras + tres"),
     slot_specs    = list(
       superior_izquierda = list(role = "chart", label = "Superior izquierda"),
       derecha = list(role = "chart", label = "Derecha"),
       cifra_superior = list(role = "chart", label = "Cifra superior"),
       inferior_izquierda = list(role = "chart", label = "Inferior izquierda"),
-      cifra_inferior = list(role = "chart", label = "Cifra inferior"),
-      icono = list(role = "icon", label = "Ícono")
+      cifra_inferior = list(role = "chart", label = "Cifra inferior")
     ),
-    args = .args_slide_poblacion_basico(c("titulo", "icono", "base"))
+    args = .args_slide_poblacion_basico(c("titulo", "base"))
   ),
 
   p_slide_cifras_y_graficos = list(
@@ -925,39 +922,39 @@
   ),
 
   p_slide_5_graficos_poblacion = list(
-    titulo_humano = "Cinco gráficos + ícono",
-    descripcion   = "Tres gráficos arriba + dos abajo, con ícono central. Diseñado para caracterizar poblaciones con muchas dimensiones.",
+    titulo_humano = "Cinco gráficos (población)",
+    descripcion   = "Tres gráficos arriba y dos abajo del mismo público. Diseñado para caracterizar poblaciones con muchas dimensiones.",
     icono_ui      = "UsersRound",
     categoria     = "poblacion",
     render_key    = "poblacion_5",
     blueprint     = list(
       kind = "population5",
       ppt_layout = "poblacion_5",
-      structure_label = "Matriz 3 + 2 + ícono"
+      structure_label = "Matriz 3 + 2"
     ),
     slot_specs    = list(
       grafico_superior_1 = list(role = "chart", label = "Superior izquierda"),
       grafico_superior_2 = list(role = "chart", label = "Superior centro"),
       grafico_superior_3 = list(role = "chart", label = "Superior derecha"),
       grafico_inferior_1 = list(role = "chart", label = "Inferior izquierda"),
-      grafico_inferior_2 = list(role = "chart", label = "Inferior centro"),
-      icono = list(role = "icon", label = "Ícono central")
+      grafico_inferior_2 = list(role = "chart", label = "Inferior centro")
     ),
     # Sin `base` (el constructor no la acepta; el pie de lámina es `pie`) y
     # sin `etiqueta` (formal aceptado pero jamás dibujado — render P8).
-    args = .args_slide_poblacion_basico(c("titulo", "icono", "pie"))
+    # Sin `icono` (Gonzalo, 2026-10-14): el constructor aún lo acepta para no romper planes guardados y el motor lo ignora.
+    args = .args_slide_poblacion_basico(c("titulo", "pie"))
   ),
 
   p_slide_6_graficos_poblacion = list(
-    titulo_humano = "Seis gráficos + ícono",
-    descripcion   = "Grid 3×2 con ícono central, la lámina más densa de población.",
+    titulo_humano = "Seis gráficos (población)",
+    descripcion   = "Grid 3×2 del mismo público, la lámina más densa de población.",
     icono_ui      = "UsersRound",
     categoria     = "poblacion",
     render_key    = "poblacion_6",
     blueprint     = list(
       kind = "population6",
       ppt_layout = "poblacion_6",
-      structure_label = "Matriz 3 × 2 + ícono"
+      structure_label = "Matriz 3 × 2"
     ),
     slot_specs    = list(
       grafico_superior_1 = list(role = "chart", label = "Superior izquierda"),
@@ -965,12 +962,12 @@
       grafico_superior_3 = list(role = "chart", label = "Superior derecha"),
       grafico_inferior_1 = list(role = "chart", label = "Inferior izquierda"),
       grafico_inferior_2 = list(role = "chart", label = "Inferior centro"),
-      grafico_inferior_3 = list(role = "chart", label = "Inferior derecha"),
-      icono = list(role = "icon", label = "Ícono central")
+      grafico_inferior_3 = list(role = "chart", label = "Inferior derecha")
     ),
     # Sin `base` (el constructor no la acepta; el pie de lámina es `pie`) y
     # sin `etiqueta` (formal aceptado pero jamás dibujado — render P8).
-    args = .args_slide_poblacion_basico(c("titulo", "icono", "pie"))
+    # Sin `icono` (Gonzalo, 2026-10-14): el constructor aún lo acepta para no romper planes guardados y el motor lo ignora.
+    args = .args_slide_poblacion_basico(c("titulo", "pie"))
   ),
 
   # ADR 0093 (N7): el cierre del recetario, láminas 61 a 65. Sin slots: el logo es de la plantilla y el contacto, texto.

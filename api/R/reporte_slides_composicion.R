@@ -102,10 +102,8 @@
       p_s <- tryCatch(helpers$render_element(helpers$inject_title_override(el_s), ancho_slot = anchos[[i]]), error = function(e) NULL)
       if (!is.null(p_s)) para_lamina[[i]] <- p_s
     }
-    # D4: el ícono del público (la ranura `icon` de las láminas de población) va en la cabecera nativa.
-    icono_p <- if (inherits(slots$icon, "ppt_element")) tryCatch(helpers$render_element(slots$icon, ancho_slot = 0.3), error = function(e) NULL)
-    nativo <- .lam_composicion_mixta(doc, stype, unname(para_lamina), unname(els), slide, titulo_de_var = helpers$title_of_var,
-                                     icono = if (inherits(icono_p, "ggplot")) icono_p)
+    # El `icon` que traiga un plan guardado se ignora: la población ya no lleva ícono (Gonzalo, 2026-10-14).
+    nativo <- .lam_composicion_mixta(doc, stype, unname(para_lamina), unname(els), slide, titulo_de_var = helpers$title_of_var)
     if (!is.null(nativo)) return(list(doc = nativo, rendered = unname(rendered), elementos = els))
   }
   tipo_std <- if (identical(stype, "graficos_2_vertical")) "p_slide_2_graficos_vertical" else stype
@@ -126,13 +124,7 @@
                                   contract$slots[[nm]])
   }
 
-  icono <- slots$icon %||% NULL
-  if (!is.null(icono) && !is.null(contract$slots$icon)) {
-    p_icon <- helpers$render_element(icono, ancho_slot = 1.9)
-    if (!is.null(p_icon)) {
-      doc <- helpers$ph_with_strict(doc, helpers$dml_o_tabla(p_icon), contract$slots$icon)
-    }
-  }
+  # Sin ícono también en la plantilla de respaldo: el `icon` de un plan guardado se ignora (Gonzalo, 2026-10-14).
 
   base <- slots$base %||% slots$footer %||% NULL
   ph_base <- contract$slots$base %||% contract$slots$footer

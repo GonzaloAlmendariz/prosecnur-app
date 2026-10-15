@@ -1,5 +1,6 @@
-# K15 — «Cinco gráficos» y «Seis gráficos» (tipos 19 y 20) renderizados con la plantilla_16_9 real: el ícono del público
-# sale en la cabecera (no se suprime en silencio) y cada gráfico cae en su ranura del estándar. Desde P4 salen nativas.
+# K15 — «Cinco gráficos» y «Seis gráficos» (tipos 19 y 20) renderizados con la plantilla_16_9 real: cada gráfico cae en
+# su ranura del estándar. Desde P4 salen nativas. Gonzalo, 2026-10-14: ya no llevan el ícono del público en la cabecera
+# (son láminas normales de varios gráficos); un plan guardado que aún traiga `icono` renderiza igual y el ícono se ignora.
 #
 # El verificador de la 2.ª vuelta de K15 encontró que, al pasar el ícono a la cabecera (0.3 in), `.ppt_calibrar_pies_iconos`
 # sólo aceptaba un cajón cuadrado de 1 in o más centrado: marcaba el slot `suppress` y `.ph_with_strict` lo omitía sin
@@ -34,7 +35,15 @@
       w = as.numeric(xml2::xml_attr(ext, "cx")), h = as.numeric(xml2::xml_attr(ext, "cy"))) / 914400
   }
   pregs <- xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='panel:pregunta']]")
-  list(formas = lapply(top, function(n) list(caja = caja(n), textos = trimws(xml2::xml_text(xml2::xml_find_all(n, ".//a:t"))))),
+  # Toda imagen o marco gráfico que caiga en la franja de la cabecera (y < 1.2 in): ahí sólo van antetítulo y título.
+  arriba <- function(n) { cj <- caja(n); !is.na(cj[["y"]]) && cj[["y"]] < 1.2 }
+  pics <- Filter(arriba, xml2::xml_find_all(xml, "//p:pic|//p:graphicFrame"))
+  nombre_caja <- function(nm) {
+    n <- xml2::xml_find_first(xml, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", nm))
+    if (inherits(n, "xml_missing")) NULL else caja(n)
+  }
+  list(icono_nombrado = xml2::xml_find_all(xml, "//*[p:cNvPr[@name='titulo:icono']]|//p:cNvPr[@name='titulo:icono']"),
+       pics_cabecera = pics, antetitulo = nombre_caja("Antetitulo lamina"), titulo = nombre_caja("Titulo lamina"),formas = lapply(top, function(n) list(caja = caja(n), textos = trimws(xml2::xml_text(xml2::xml_find_all(n, ".//a:t"))))),
        preguntas = lapply(pregs, function(n) list(caja = caja(n), textos = trimws(xml2::xml_text(xml2::xml_find_all(n, ".//a:t"))))),
        avisos = avisos)
 }
@@ -52,27 +61,42 @@
                label = sprintf("%s: «%s» en %s, ranura %d en %s", tipo, titulos[k], paste(round(f[[1]]$caja[c("x", "y")], 3), collapse = "/"), k,
                                paste(round(esperado, 3), collapse = "/")))
   }
-  # D4: el ícono del público, en la cabecera (p164/p166: 0.495, 0.165, 0.3).
+  # 2026-10-14: sin ícono en la cabecera (antes D4: un cuadrado de 0.3 in en 0.495/0.165), ni forma ni imagen.
   ico <- Filter(function(z) !is.na(z$caja[["x"]]) && abs(z$caja[["x"]] - 0.495) < 0.02 && z$caja[["y"]] < 0.6 && z$caja[["w"]] < 0.5, r$formas)
-  expect_length(ico, 1L)
+  expect_length(ico, 0L)
+  expect_length(r$icono_nombrado, 0L)
+  expect_length(r$pics_cabecera, 0L)
   expect_false(any(grepl("ícono", r$avisos, fixed = TRUE)))
+  # La cabecera es la de una lámina normal: el antetítulo arranca en el margen, como el título (antes iba 0.4 in a la derecha).
+  if (length(r$antetitulo)) expect_equal(r$antetitulo[["x"]], r$titulo[["x"]], tolerance = 0.01)
 }
 .p56_g <- function(v, t) p_barras_categoricas(v, titulo = t)
 .p56_icono <- function() p_ggplot_raw(ggplot2::ggplot() + ggplot2::theme_void())
 
-test_that("cinco gráficos: cada enunciado en su ranura (S1 S2 S3 / I1 I2) y el ícono en la cabecera", {
+test_that("cinco gráficos: cada enunciado en su ranura (S1 S2 S3 / I1 I2) y sin ícono aunque el plan viejo lo traiga", {
   s <- p_slide_5_graficos_poblacion(grafico_superior_1 = .p56_g("v1", "S1"), grafico_superior_2 = .p56_g("v2", "S2"),
                                     grafico_superior_3 = .p56_g("v3", "S3"), grafico_inferior_1 = .p56_g("v4", "I1"),
                                     grafico_inferior_2 = .p56_g("v5", "I2"), icono = .p56_icono(), titulo = "Perfil")
   .p56_comprobar(.p56_render(s, 5), "p_slide_5_graficos_poblacion", c("S1", "S2", "S3", "I1", "I2"))
 })
 
-test_that("seis gráficos: cada enunciado en su ranura (S1 S2 S3 / I1 I2 I3) y el ícono en la cabecera", {
+test_that("seis gráficos: cada enunciado en su ranura (S1 S2 S3 / I1 I2 I3) y sin ícono aunque el plan viejo lo traiga", {
   s <- p_slide_6_graficos_poblacion(grafico_superior_1 = .p56_g("v1", "S1"), grafico_superior_2 = .p56_g("v2", "S2"),
                                     grafico_superior_3 = .p56_g("v3", "S3"), grafico_inferior_1 = .p56_g("v4", "I1"),
                                     grafico_inferior_2 = .p56_g("v5", "I2"), grafico_inferior_3 = .p56_g("v6", "I3"),
                                     icono = .p56_icono(), titulo = "Perfil")
   .p56_comprobar(.p56_render(s, 6), "p_slide_6_graficos_poblacion", c("S1", "S2", "S3", "I1", "I2", "I3"))
+})
+
+test_that("seis gráficos sin ícono y con antetítulo: la cabecera es la de una lámina normal de varios gráficos", {
+  s <- p_slide_6_graficos_poblacion(grafico_superior_1 = .p56_g("v1", "S1"), grafico_superior_2 = .p56_g("v2", "S2"),
+                                    grafico_superior_3 = .p56_g("v3", "S3"), grafico_inferior_1 = .p56_g("v4", "I1"),
+                                    grafico_inferior_2 = .p56_g("v5", "I2"), grafico_inferior_3 = .p56_g("v6", "I3"),
+                                    titulo = "Perfil", meta = list(antetitulo = "Estudiantes"))
+  r <- .p56_render(s, 6)
+  .p56_comprobar(r, "p_slide_6_graficos_poblacion", c("S1", "S2", "S3", "I1", "I2", "I3"))
+  expect_false(is.null(r$antetitulo))
+  expect_equal(r$antetitulo[["x"]], .std_geom("margen_izq"), tolerance = 0.01)
 })
 
 test_that("con plantilla_16_9 el ícono de cinco y seis va al cajón de cabecera; sin cajón, se avisa en vez de callar", {
