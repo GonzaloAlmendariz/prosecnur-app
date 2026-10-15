@@ -10,7 +10,7 @@ import type { GraficosReportScope } from "../reportScope";
 export const MOTIVO_ESTILO_EN_COMPARTIDO =
   "Los logos y la letra hoy sólo se aplican al Word, y el informe compartido todavía no sale en Word. Ajústalos desde cada base.";
 
-export type PiezaIdentidad = "logos" | "letra" | "iconos" | "colores";
+export type PiezaIdentidad = "linea" | "logos" | "letra" | "iconos" | "colores";
 
 /** Motivo por el que una pieza no se ajusta en este informe, o `null` si se ajusta. */
 export function motivoPiezaNoDisponible(scope: GraficosReportScope, pieza: PiezaIdentidad): string | null {

@@ -4,7 +4,7 @@
 
 import { InterruptorOtros } from "./InterruptorOtros";
 import { ResumenInforme } from "./ResumenInforme";
-import { Segmentado } from "./Segmentado";
+import { Segmentado } from "../subpestanas/Segmentado";
 import type { FiltroInforme } from "./estadoTarjetas";
 import type { CoberturaInforme } from "./modeloVistaGeneral";
 import type { TamanoTarjeta } from "./vistaGeneralStore";

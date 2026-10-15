@@ -55,7 +55,8 @@ describe("PestanaEstilo · markup", () => {
     expect(html).toContain('data-audit-ready="graficos-estilo"');
     expect(html).toContain('data-qa-surface="graficos/f6-estilo"');
     expect(html.match(/data-qa-scroll-owner=/g)).toHaveLength(3);   // uno por subpestaña dibujada
-    for (const grupo of ["f6-estilo-secciones", "f6-estilo-ambitos", "f6-estilo-logos", "f6-estilo-pasos", "f6-estilo-roles"]) {
+    // ID1/ID2 (2026-10-14): el ámbito pasó a la cabecera (segmentado) y las piezas son una columna de pestañas.
+    for (const grupo of ["f6-estilo-secciones", "f6-id-piezas", "f6-estilo-logos", "f6-estilo-pasos", "f6-estilo-roles"]) {
       expect(html).toContain(`data-qa-geometry-group="graficos/${grupo}"`);
     }
     // Tres lugares de logo, cinco roles: marcos pares.
@@ -84,7 +85,8 @@ describe("PestanaEstilo · markup", () => {
     expect(html).toContain("Reemplazar PNG");
     expect(html).toContain('accept="image/png,.png"');
     expect(html).toContain('aria-label="Volver al logo por defecto en contraportada"');
-    expect(html).toContain('type="radio" name="f6-estilo-ambito"');
+    expect(html).toContain('role="radiogroup" aria-label="Dónde se guarda la identidad"');
+    expect(html).toContain('role="tablist" aria-orientation="vertical" aria-label="Piezas de la identidad"');
   });
 
   // L2 (2026-10-14): en el compartido sólo logos y letra dicen por qué no; colores e íconos se ajustan.

@@ -28,7 +28,6 @@ import {
   conMetodoEnTodas,
   defaultDeArg,
   filasCalculos,
-  lineaVisualAplicada,
   notaRedondeo,
   sinArgs,
   sinCalculos,
@@ -36,7 +35,6 @@ import {
   type MapaPresets,
 } from "./modeloEstiloInforme";
 import { SeccionCalculos, type AccionesCalculos } from "./SeccionCalculos";
-import { SeccionLineaVisual } from "./SeccionLineaVisual";
 import { SeccionTextoBase } from "./SeccionTextoBase";
 import { SeccionCasos } from "./SeccionCasos";
 import { Subpestanas, useSubpestana, type Subpestana } from "../subpestanas/Subpestanas";
@@ -47,12 +45,12 @@ import { useVariables } from "../useVariables";
 import "../estilo/estilo.css";
 import "./estiloInforme.css";
 
-type SubInforme = "base" | "calculos" | "casos" | "linea";
+// D3 (ID2, 2026-10-14): la línea visual se mudó a Identidad.
+type SubInforme = "base" | "calculos" | "casos";
 const SUB_INFORME: readonly Subpestana<SubInforme>[] = [
   { key: "base", label: "Base y notas" },
   { key: "calculos", label: "Cálculos" },
   { key: "casos", label: "Casos" },
-  { key: "linea", label: "Línea visual" },
 ];
 
 export default function PestanaEstiloInforme() {
@@ -68,7 +66,6 @@ export default function PestanaEstiloInforme() {
   const setPresets = usePlanStore((s) => s.setPresets);
   const { sources: fuentes, multi } = useVariables();
   const bases = multi ? fuentes.map((f) => f.name) : [];
-  const scopeRules = usePlanStore((s) => s.scopeRules);
 
   const metaBase = presetsByName[PRESET_BASE];
   const texto = textoBase(presets, defaults, metaBase);
@@ -136,7 +133,6 @@ export default function PestanaEstiloInforme() {
           )}
           {sub === "calculos" && <SeccionCalculos filas={filas} nota={nota} acciones={acciones} estado={estadoCalculos} />}
           {sub === "casos" && <SeccionCasos casos={leerCasosJunto(presets)} onCambiar={(c) => cambiarPresets((p) => conCasosJunto(p, c))} />}
-          {sub === "linea" && <SeccionLineaVisual aplicada={lineaVisualAplicada(scopeRules)} />}
         </div>
       </div>
     </div>

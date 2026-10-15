@@ -7,6 +7,8 @@ import { PptStyleProfilesPanel } from "../PptStyleProfilesPanel";
 import { usePptStyleProfiles } from "../usePptStyleProfiles";
 import { SelloProcedencia } from "../estilo/SelloProcedencia";
 import { CabeceraSeccion } from "./CabeceraSeccion";
+// D3: la sección vive ahora en Identidad, que no carga la hoja de Reglas: trae la suya.
+import "./estiloInforme.css";
 import { lineaVisualAplicada } from "./modeloEstiloInforme";
 import { usePlanStore } from "../store";
 import { PulsoButton } from "../../../components/PulsoButton";

@@ -41,11 +41,19 @@ import {
   sinPaso,
   sinRol,
 } from "./modeloEstilo";
-import { SeccionAmbito } from "./SeccionAmbito";
 import { SeccionLetra } from "./SeccionLetra";
 import { IconosEditor } from "../IconosEditor";
 import { ColoresRespuestas } from "./ColoresRespuestas";
-import { Subpestanas, useSubpestana, type Subpestana } from "../subpestanas/Subpestanas";
+import { useSubpestana, type Subpestana } from "../subpestanas/Subpestanas";
+import { Segmentado } from "../subpestanas/Segmentado";
+import { PiezasIdentidad, type ClavePieza, type Pieza } from "./PiezasIdentidad";
+import { SeccionLineaVisual } from "../estiloInforme/SeccionLineaVisual";
+import { lineaVisualAplicada } from "../estiloInforme/modeloEstiloInforme";
+import { usePptStyleProfiles } from "../usePptStyleProfiles";
+import { useColoresPendientes } from "./ColoresPendientesAviso";
+import { useVariables } from "../useVariables";
+import { ESTILO_AMBITOS } from "../../../api/graficosEstilo";
+import { ETIQUETA_AMBITO } from "./modeloEstilo";
 import { MarcaModificado } from "./SelloProcedencia";
 import { TarjetaLogo } from "./TarjetaLogo";
 import { PulsoButton } from "../../../components/PulsoButton";
@@ -56,13 +64,15 @@ function mensajeDe(error: unknown, porDefecto: string): string {
   return error instanceof Error && error.message ? error.message : porDefecto;
 }
 
-type SubIdentidad = "logos" | "letra" | "iconos" | "colores";
-const SUB_IDENTIDAD: readonly Subpestana<SubIdentidad>[] = [
+// ID2 del rediseño (2026-10-14): las piezas, en el orden del prototipo; la elegida vive en el `foco` de la dirección.
+const SUB_IDENTIDAD: readonly Subpestana<ClavePieza>[] = [
+  { key: "linea", label: "Línea visual" },
+  { key: "colores", label: "Colores de las respuestas" },
   { key: "logos", label: "Logos" },
   { key: "letra", label: "Letra" },
-  { key: "iconos", label: "Íconos" },
-  { key: "colores", label: "Colores de las respuestas" },
+  { key: "iconos", label: "Íconos propios" },
 ];
+const ID_PANEL = "f6-id-detalle";
 
 export default function PestanaEstilo() {
   const [sub, setSub] = useSubpestana(SUB_IDENTIDAD);
@@ -73,6 +83,11 @@ export default function PestanaEstilo() {
   const prepOk = !!state?.analitica_prep_ok;
 
   const estilo = usePlanStore((s) => s.estiloCliente);
+  const scopeRules = usePlanStore((s) => s.scopeRules);
+  const iconos = usePlanStore((s) => s.iconos);
+  const { profiles } = usePptStyleProfiles();
+  const { pendientes } = useColoresPendientes();
+  const { sources } = useVariables();
   const defaults = usePlanStore((s) => s.estiloClienteDefaults);
   const setEstiloCliente = usePlanStore((s) => s.setEstiloCliente);
   const setDefaults = usePlanStore((s) => s.setEstiloClienteDefaults);
@@ -127,16 +142,42 @@ export default function PestanaEstilo() {
   const ambito: EstiloAmbito = estilo.ambito ?? ref.ambito ?? "proyecto";
   const paso = pasoEfectivo(estilo, ref);
   const listo = !!opciones || !!opcionesError;
+  const lineaId = lineaVisualAplicada(scopeRules);
+  const lineaNombre = lineaId ? profiles.find((p) => lineaVisualAplicada(p.scope_rules ?? {}) === lineaId)?.titulo_humano ?? lineaId : null;
+  const faltanColores = new Set(pendientes.map((p) => p.fila.id)).size;
+  const conLogos = logosModificados(decisiones);
+  const conLetra = letraModificada(decisiones);
+  const piezas: Pieza[] = [
+    { clave: "linea", titulo: "Línea visual", resumen: lineaNombre ?? "Sin línea aplicada", estado: lineaNombre ? { texto: "Aplicada", tono: "ok" } : { texto: "Por defecto", tono: "neutro" } },
+    { clave: "colores", titulo: "Colores de las respuestas", resumen: "Los colores de cada escala de respuestas",
+      estado: faltanColores ? { texto: `${faltanColores} sin colores`, tono: "aviso" } : { texto: "Completos", tono: "ok" } },
+    { clave: "logos", titulo: "Logos", resumen: conLogos ? "Logos propios" : "Los del recetario", estado: conLogos ? { texto: "Propios", tono: "ok" } : { texto: "Por defecto", tono: "neutro" } },
+    { clave: "letra", titulo: "Letra", resumen: conLetra ? "Tamaño ajustado" : "Tamaño estándar", estado: conLetra ? { texto: "Ajustada", tono: "ok" } : { texto: "Estándar", tono: "neutro" } },
+    { clave: "iconos", titulo: "Íconos propios", resumen: "Objetivo y capítulos", estado: { texto: String(iconos.length), tono: iconos.length ? "ok" : "neutro" } },
+  ];
+  const nBases = sources.length;
+  const subtitulo = ambito === "base"
+    ? `Cada base con su estilo · ahora: ${state?.active_base ?? "base activa"}`
+    : nBases > 1 ? `Un solo estilo para las ${nBases} bases` : "Un solo estilo para el estudio";
 
   return (
     <div className="pulso-f6-estilo" data-audit-ready={listo ? "graficos-estilo" : "false"} data-qa-surface="graficos/f6-estilo">
+      {/* ID1 del rediseño (2026-10-14): el ámbito va en la cabecera y rige todas las piezas. En el compartido no aplica
+          (logos y letra no llegan a su PPT todavía). */}
       <header className="pulso-f6-estilo-barra">
         <h2 className="pulso-f6-estilo-titulo">Identidad</h2>
-        <Subpestanas opciones={SUB_IDENTIDAD} actual={sub} onCambiar={setSub} etiqueta="Identidad" />
+        {scope !== "consolidated" && (<>
+          <Segmentado etiqueta="Dónde se guarda la identidad" valor={ambito}
+            onCambiar={(nuevo) => { if (nuevo !== ambito) cambiar((e) => conAmbito(e, nuevo)); }}
+            opciones={ESTILO_AMBITOS.map((id) => ({ clave: id, rotulo: id === "proyecto" ? "Todo el estudio" : ETIQUETA_AMBITO[id].titulo }))} />
+          <span className="pulso-f6-estilo-sub" title={ETIQUETA_AMBITO[ambito].explicacion}>{subtitulo}</span>
+        </>)}
       </header>
       <div className="pulso-f6-estilo-cuerpo" data-qa-scroll-owner="estilo">
-        <div className="pulso-f6-estilo-columnas">
-          <div className="pulso-f6-estilo-secciones" data-qa-geometry-group="graficos/f6-estilo-secciones" data-qa-geometry-contract="intrinsic">
+        <div className="pulso-f6-id-grid">
+          <PiezasIdentidad piezas={piezas} actual={sub} onElegir={setSub} idPanel={ID_PANEL} />
+          <div className="pulso-f6-estilo-secciones" id={ID_PANEL} role="tabpanel" aria-labelledby={`f6-id-pieza-${sub}`}
+            data-qa-geometry-group="graficos/f6-estilo-secciones" data-qa-geometry-contract="intrinsic">
             {opcionesError ? <p className="pulso-f6-estilo-error" role="alert">{opcionesError}</p> : null}
             {/* QA del Informe (2026-10-15): el motivo es una sección más del grupo, no un <p> suelto (capacity-drift). */}
             {motivoPieza ? (
@@ -144,12 +185,9 @@ export default function PestanaEstilo() {
                 <p className="pulso-f6-estilo-ayuda" role="status">{motivoPieza}</p>
               </section>
             ) : null}
+            {/* D3: la línea visual vive en Identidad (antes en Reglas); su biblioteca llega con ID3. */}
+            {sub === "linea" && <SeccionLineaVisual aplicada={lineaId} />}
             {sub === "logos" && !motivoPieza && (<>
-            <SeccionAmbito
-              ambito={ambito}
-              ambitoDefault={ref.ambito}
-              onCambiar={(nuevo) => { if (nuevo !== ambito) cambiar((e) => conAmbito(e, nuevo)); }}
-            />
 
             <section className="pulso-f6-estilo-seccion" aria-labelledby="f6-estilo-logos-titulo" data-qa-geometry-member>
               <header className="pulso-f6-estilo-seccion-cabecera">
