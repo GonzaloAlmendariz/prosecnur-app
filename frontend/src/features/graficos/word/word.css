@@ -155,3 +155,24 @@
 .pulso-f6-w-tipos:empty + .pulso-f6-w-iguales, .pulso-f6-w-iguales:first-child { border-top: 0; padding-top: 0; }
 .pulso-f6-w-iguales-lista { display: flex; flex-wrap: wrap; gap: var(--pulso-space-1); }
 .pulso-f6-w-iguales-lista i { font-style: normal; padding: 1px 8px; border-radius: var(--pulso-radius-chip); background: var(--pulso-surface-2); color: var(--pulso-text); }
+
+/* W8: vista previa del Word real en un panel amplio; las páginas en una grilla que se llena sola. */
+.pulso-f6-pw-velo { position: fixed; inset: 0; background: color-mix(in srgb, var(--pulso-text) 32%, transparent); z-index: 80; }
+.pulso-f6-pw {
+  position: fixed; inset: 4vh 4vw; z-index: 81; display: flex; flex-direction: column; gap: var(--pulso-space-2);
+  padding: var(--pulso-space-4) var(--pulso-space-5); border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface); box-shadow: var(--pulso-shadow-soft);
+}
+.pulso-f6-pw-cabeza { display: flex; align-items: center; justify-content: space-between; gap: var(--pulso-space-3); }
+.pulso-f6-pw-titulo { margin: 0; font-size: 16px; }
+.pulso-f6-pw-acciones { display: inline-flex; align-items: center; gap: var(--pulso-space-2); }
+.pulso-f6-pw-nota { margin: 0; color: var(--pulso-text-soft); font-size: 12.5px; }
+.pulso-f6-pw-cuerpo { flex: 1; min-height: 0; overflow: auto; padding-top: var(--pulso-space-2); }
+.pulso-f6-pw-estado { margin: 0; color: var(--pulso-text-soft); font-size: 13px; }
+.pulso-f6-pw-estado.is-error { color: var(--pulso-danger-fg); }
+.pulso-f6-pw-paginas { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--pulso-space-4); margin-top: var(--pulso-space-3); }
+.pulso-f6-pw-paginas.is-vieja { opacity: 0.45; }
+.pulso-f6-pw-pagina { display: flex; flex-direction: column; gap: var(--pulso-space-1); margin: 0; align-items: center; }
+.pulso-f6-pw-pagina img { width: 100%; height: auto; aspect-ratio: 210 / 297; object-fit: contain; background: var(--pulso-surface); box-shadow: 0 0 0 1px var(--pulso-border), var(--pulso-shadow-soft); }
+.pulso-f6-pw-pagina figcaption { color: var(--pulso-text-soft); font-size: 11px; font-variant-numeric: tabular-nums; }
+.pulso-f6-w-previa { margin-left: auto; }
