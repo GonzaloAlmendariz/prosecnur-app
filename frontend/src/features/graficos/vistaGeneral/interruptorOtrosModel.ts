@@ -1,10 +1,9 @@
-// Interruptor de las láminas de «Otros» en la barra de Vista general (contrato A5 2b; decisión 21 de Gonzalo: feature
-// visible, apagada por defecto). Textos y reglas puros, aparte del componente.
+// Textos de la regla «Respuestas «Otros»» (contrato A5 2b; decisión 21 de Gonzalo: apagada por defecto; R7: vive en
+// Reglas, SeccionOtros). Puros, aparte del componente.
 
 import type { ModoMultibase } from "../modoMultibase";
 
 export const ROTULO_OTROS = "Respuestas «Otros» en el PowerPoint y el Word";
-export const CHIP_OTROS = "+ Otros al exportar";
 
 /** Ayuda del interruptor: qué hace, dónde no aplica y, con un informe por base, a quién afecta. */
 export function ayudaOtros(modo: Pick<ModoMultibase, "clave" | "visible">): string {

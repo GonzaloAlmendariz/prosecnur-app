@@ -5,6 +5,7 @@
 import { useId } from "react";
 import { Segmentado } from "../subpestanas/Segmentado";
 import { CabeceraSeccion } from "./CabeceraSeccion";
+import { ROTULO_OTROS } from "../vistaGeneral/interruptorOtrosModel";
 
 type Opcion = "no" | "si";
 const OPCIONES: readonly { clave: Opcion; rotulo: string }[] = [
@@ -18,7 +19,7 @@ export function SeccionOtros({ encendido, ayuda, onCambiar }: { encendido: boole
     <section className="pulso-f6-informe-seccion" aria-labelledby={tituloId} data-qa-geometry-member data-seccion="otros">
       <CabeceraSeccion id={tituloId} titulo="Respuestas «Otros»" modificado={encendido}
         etiquetaVolver="Volver al valor por defecto de las respuestas «Otros»" onVolver={() => onCambiar(false)} />
-      <Segmentado etiqueta="Respuestas «Otros» en el PowerPoint y el Word" opciones={OPCIONES}
+      <Segmentado etiqueta={ROTULO_OTROS} opciones={OPCIONES}
         valor={encendido ? "si" : "no"} onCambiar={(k) => onCambiar(k === "si")} />
       <p className="pulso-f6-informe-ayuda">
         {encendido ? ayuda : "Lo que escribieron en «Otro, especifique» no sale en el informe."} Sólo para todo el informe: no hay

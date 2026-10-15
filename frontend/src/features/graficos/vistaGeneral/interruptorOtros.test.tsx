@@ -6,17 +6,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { usePlanStore } from "../store";
-import { ayudaOtros, CHIP_OTROS, ROTULO_OTROS } from "./interruptorOtrosModel";
+import { ayudaOtros, ROTULO_OTROS } from "./interruptorOtrosModel";
 import { objetivoDeReenfoque, type ElementoEnfocable } from "./tecladoVistaGeneral";
 
 // Contrato A5 2b (W1): el interruptor de «Otros» de la barra de Vista general y el arreglo F1-bis del foco.
 
 vi.mock("../../../lib/SessionContext", () => ({ useSession: () => ({ state: null }) }));
-const { InterruptorOtrosVista } = await import("./InterruptorOtros");
 const { EnlaceOtrosVista } = await import("./EnlaceOtros");
 const { SeccionOtros } = await import("../estiloInforme/SeccionOtros");
 
-const pintar = (encendido: boolean) => renderToStaticMarkup(createElement(InterruptorOtrosVista, { encendido, ayuda: "ayuda", onCambiar: () => undefined }));
 
 describe("Vista general · interruptor de «Otros»", () => {
   beforeEach(() => usePlanStore.getState().hydrate({
@@ -24,17 +22,9 @@ describe("Vista general · interruptor de «Otros»", () => {
     paletas: {}, iconos: [], overrides_reusables: [], debug_ph: { activo: false, color: "#FF00FF", lwd: 0.6 },
   }));
 
-  // Mata: un `aria-checked` fijo o un rótulo que no nombre las dos salidas.
-  it("aria-checked sigue al valor, el rótulo nombra PowerPoint y Word, y el chip aparece sólo encendido", () => {
-    const apagado = pintar(false);
-    expect(apagado).toContain('role="switch"');
-    expect(apagado).toContain('aria-checked="false"');
-    expect(apagado).toContain(`aria-label="${ROTULO_OTROS}"`);
+  // El rótulo de «Otros» nombra las dos salidas (lo usa el segmentado de la regla en Reglas).
+  it("el rótulo nombra PowerPoint y Word", () => {
     expect(ROTULO_OTROS).toBe("Respuestas «Otros» en el PowerPoint y el Word");
-    expect(apagado).not.toContain(CHIP_OTROS);
-    const encendido = pintar(true);
-    expect(encendido).toContain('aria-checked="true"');
-    expect(encendido).toContain(CHIP_OTROS);
   });
 
   // R7 (D4): el control vive en Reglas (SeccionOtros, conectado al setter deshacible); la barra del Informe sólo enlaza.
