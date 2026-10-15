@@ -1,7 +1,7 @@
 // Pestaña Word de Gráficos (W1 del rediseño, 2026-10-15): el documento en cinco partes —Documento, Portada, Capítulos,
 // Gráficos y Cierre— con su menú a la izquierda, los ajustes de la parte en el centro y, a la derecha, la página del
 // documento que la muestra (maqueta de `paginasWord`, la misma del Informe › Word). Gráficos lleva los ajustes de Word de
-// cada tipo (`WordPresetsEditor`); las demás partes dicen lo que hoy hace el documento y llegan con sus ajustes en W2–W7.
+// cada tipo (`DetalleGraficos`); las demás partes dicen lo que hoy hace el documento y llegan con sus ajustes en W2–W7.
 // En el informe compartido el Word no sale: se dice por qué.
 
 import { useMemo } from "react";
