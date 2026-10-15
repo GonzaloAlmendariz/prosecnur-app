@@ -139,7 +139,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
 
   const prepOk = !!state?.analitica_prep_ok || parseGraficosReportScope(location.search) === "consolidated";
   // Por defecto el visor muestra la maqueta (cambiar un título o un gráfico se ve al instante, sin dibujar nada); la vista
-  // previa del motor sólo corre con «Ver cómo queda» activo.
+  // previa del motor sólo corre con «Previsualizar» activo.
   const verComoQueda = useLaminasUi((s) => s.verComoQueda);
   const alternarComoQueda = useLaminasUi((s) => s.alternarComoQueda);
   const vista = usePreviewLamina(slide, lamina?.antetituloHeredado ?? null, prepOk && verComoQueda);
