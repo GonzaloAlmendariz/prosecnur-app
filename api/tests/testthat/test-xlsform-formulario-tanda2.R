@@ -19,6 +19,7 @@
                xmin = as.numeric(xml2::xml_attr(w, "xmin")),
                xmax = as.numeric(xml2::xml_attr(w, "xmax")),
                ymin = as.numeric(xml2::xml_attr(w, "ymin")),
+               ymax = as.numeric(xml2::xml_attr(w, "ymax")),
                stringsAsFactors = FALSE)
   }))
 }
@@ -953,4 +954,36 @@ test_that("metrica: una nota justificada llena la linea (sin rios)", {
   linea <- linea[order(linea$xmin), ]
   huecos <- linea$xmin[-1] - linea$xmax[-nrow(linea)]
   expect_lt(max(huecos), 4)
+})
+
+test_that("celda: ninguna palabra del enunciado cruza los bordes de su celda", {
+  skip_if_not(nzchar(.t2_pdftotext()))
+  # acrconta P29: la primera linea del enunciado quedaba sobre el borde superior.
+  lbl <- "¿Conoce las actividades y políticas institucionales para el fortalecimiento de la igualdad de género en la universidad?"
+  survey <- data.frame(type = c("select_one sn", "integer"), name = c("p29", "edad"),
+                       label = c(lbl, "Área Índice ¿Edad?"),
+                       hint = c("", "Época de referencia"), stringsAsFactors = FALSE)
+  choices <- data.frame(list_name = "sn", name = c("1", "2"), label = c("Sí", "No"),
+                        stringsAsFactors = FALSE)
+  traza <- list()
+  testthat::local_mocked_bindings(
+    .form_pdf_traza = function(tipo, pagina, y_arriba, y_abajo) {
+      if (identical(tipo, "celda_enunciado")) traza[[length(traza) + 1L]] <<- c(y_arriba, y_abajo)
+    }, .package = "prosecnurapp")
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, list(form_title = "Celda"), output_file = tmp,
+                         options = list(columns = 2, no_default_intro = TRUE))
+  celdas <- traza[(length(traza) / 2 + 1):length(traza)]          # pasada que dibuja
+  expect_length(celdas, 2L)
+  bp <- function(y) 18 + (1 - y) * 805.8898                       # npc de la region -> bp desde arriba
+  pal <- .t2_palabras_pdf(tmp)
+  pal <- pal[pal$pagina == 1L, ]
+  textos <- list(c("29.", strsplit(lbl, " ")[[1]]), c("2.", "Área", "Índice", "¿Edad?", "Época", "de", "referencia"))
+  for (k in 1:2) {
+    top <- bp(celdas[[k]][1]); bot <- bp(celdas[[k]][2])
+    w <- pal[pal$texto %in% textos[[k]] & pal$ymin > top - 12 & pal$ymax < bot + 12, ]
+    expect_gte(nrow(w), 4L)
+    expect_true(all(w$ymin >= top), label = sprintf("celda %d: tope %.1f, palabra mas alta %.1f", k, top, min(w$ymin)))
+    expect_true(all(w$ymax <= bot), label = sprintf("celda %d: fondo %.1f, palabra mas baja %.1f", k, bot, max(w$ymax)))
+  }
 })

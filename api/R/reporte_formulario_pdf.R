@@ -2031,13 +2031,14 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     hint_lines <- g$hint_lines
     head_h <- g$head_h
     .form_pdf_rect(bx, y, bw, head_h, fill = tk$tbl_zebra, col = tk$tbl_frame, lwd = 0.5)
+    .form_pdf_traza("celda_enunciado", NA_integer_, y, y - head_h)
     # Item 19: con formato, por tramos (la misma geometria que reserva el alto).
     yt <- if (is.null(g$lbl_lay)) {
-      .form_pdf_text(paste0(prefix, block$label), bx + 0.005, y - 0.002, bw - 0.010,
+      .form_pdf_text(paste0(prefix, block$label), bx + 0.005, y - .FORM_PDF_ENUNCIADO_PAD, bw - 0.010,
                      lines = lbl_lines, align = lbl_align,
                      fontsize = 8.4, fontface = "bold", col = tk$ink, line_h = 0.0142)
     } else {
-      .form_pdf_rt_draw(g$lbl_lay, bx + 0.005, y - 0.002, bw - 0.010, col = tk$ink, align = lbl_align)
+      .form_pdf_rt_draw(g$lbl_lay, bx + 0.005, y - .FORM_PDF_ENUNCIADO_PAD, bw - 0.010, col = tk$ink, align = lbl_align)
     }
     if (!is.null(g$hint_lay)) {
       .form_pdf_rt_draw(g$hint_lay, bx + 0.005, yt - 0.001, bw - 0.010, col = tk$ink)
