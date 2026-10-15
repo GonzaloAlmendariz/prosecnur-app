@@ -991,3 +991,21 @@ test_that("variable ausente: excluida en Analítica con la columna presente tamb
   expect_identical(x25$cruces$x1[c("estado", "motivo", "causa")],
                    list(estado = "n.c.", motivo = "variable_ausente", causa = "excluida"))
 })
+
+test_that("sin orden declarado la serie va por año si todas las bases lo nombran (igual que el frontend)", {
+  expect_identical(.armz_orden_por_defecto(c("2026", "2024", "2025")), c("2024", "2025", "2026"))
+  expect_identical(.armz_orden_por_defecto(c("hsyvbg_2025", "base 2024")), c("base 2024", "hsyvbg_2025"))
+  # Empates conservan el orden de carga; una base sin año deja el orden de carga.
+  expect_identical(.armz_orden_por_defecto(c("2025b", "2024", "2025a")), c("2024", "2025b", "2025a"))
+  expect_identical(.armz_orden_por_defecto(c("2026", "alumnos", "2024")), c("2026", "alumnos", "2024"))
+  expect_identical(.armz_orden_por_defecto("2026"), "2026")
+  # Un orden declarado manda aunque no sea cronológico.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  s$estudio <- list(bases = list(`2026` = list(), `2024` = list(), `2025` = list()))
+  .session_env[[sid]] <- s
+  expect_identical(.armz_periodos_estudio(sid, list()), c("2024", "2025", "2026"))
+  expect_identical(.armz_periodos_estudio(sid, list(armonizacion_periodos = list("2026", "2024", "2025"))),
+                   c("2026", "2024", "2025"))
+})

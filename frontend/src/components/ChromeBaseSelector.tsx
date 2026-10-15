@@ -29,7 +29,10 @@ import { useSession } from "../lib/SessionContext";
 export function ChromeBaseSelector() {
   const { refresh } = useSession();
   const [estudio, setEstudio] = useState<EstudioPayload | null>(null);
-  const [cambiando, setCambiando] = useState(false);
+  // Cambiar de base tarda 20–40 s en un estudio grande (F8): se guarda A QUÉ
+  // base se cambia para decirlo en el chip y en el menú, no sólo deshabilitar.
+  const [cambiandoA, setCambiandoA] = useState<string | null>(null);
+  const cambiando = cambiandoA !== null;
 
   const cargar = useCallback(async () => {
     try {
@@ -60,13 +63,14 @@ export function ChromeBaseSelector() {
   const bases = Object.values(estudio.bases);
   const activa = estudio.active_base ?? bases[0]?.nombre ?? null;
   const base = bases.find((b) => b.nombre === activa) ?? bases[0];
-  const etiqueta = base
-    ? base.source_alias || base.source_title || base.nombre
-    : "Elegir base";
+  const etiquetaDe = (b: (typeof bases)[number]) => b.source_alias || b.source_title || b.nombre;
+  const etiqueta = base ? etiquetaDe(base) : "Elegir base";
+  const destino = cambiandoA ? bases.find((b) => b.nombre === cambiandoA) : undefined;
+  const textoCambio = cambiandoA ? `Cambiando a ${destino ? etiquetaDe(destino) : cambiandoA}…` : null;
 
   async function seleccionar(nombre: string) {
     if (!nombre || nombre === activa || cambiando) return;
-    setCambiando(true);
+    setCambiandoA(nombre);
     try {
       const resultado = await apiEstudioActiveBaseSet(nombre);
       await refresh();
@@ -77,18 +81,28 @@ export function ChromeBaseSelector() {
       }));
       await cargar();
     } finally {
-      setCambiando(false);
+      setCambiandoA(null);
     }
   }
 
   return (
-    <BasesInspectorMenu
-      bases={basesDesdeEstudio(estudio)}
-      activa={activa}
-      onSeleccionar={(nombre) => void seleccionar(nombre)}
-      deshabilitado={cambiando}
-      modo={alcance.summaryLabel}
-      disparador={<BaseSelectorTrigger etiqueta={etiqueta} total={estudio.n_bases} />}
-    />
+    <>
+      <BasesInspectorMenu
+        bases={basesDesdeEstudio(estudio)}
+        activa={activa}
+        onSeleccionar={(nombre) => void seleccionar(nombre)}
+        deshabilitado={cambiando}
+        cambiandoA={cambiandoA}
+        textoCambio={textoCambio}
+        modo={alcance.summaryLabel}
+        disparador={
+          <BaseSelectorTrigger etiqueta={etiqueta} total={estudio.n_bases} cambiando={textoCambio} />
+        }
+      />
+      {/* Anuncio para lector de pantalla: el popover puede estar cerrado. */}
+      <span className="pulso-sr-only" role="status" aria-live="polite">
+        {textoCambio ?? ""}
+      </span>
+    </>
   );
 }

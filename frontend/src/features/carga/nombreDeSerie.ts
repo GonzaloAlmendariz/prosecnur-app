@@ -61,3 +61,42 @@ export function nombreDeSerieDeBases(bases: readonly string[]): NombreDeSerie {
 export function mayuscula(s: string): string {
   return s ? s[0].toUpperCase() + s.slice(1) : s;
 }
+
+// ---- Orden por defecto de la serie (F6, matriz HSyVbG 2026-10-15) -------------
+//
+// Mientras la persona no declara el orden, la serie se leía en el orden de alta
+// de las bases: 2026 → 2024 → 2025 cuando la base de este año se cargó primero.
+// Si TODAS las bases nombran un año (en el nombre o en su rótulo), el orden por
+// defecto es cronológico; si una sola no lo nombra, no hay un criterio que
+// valga para todas y se conserva el de alta. Los empates de año (dos públicos
+// de 2024) quedan en su orden de alta.
+
+const ANIO_EN_TEXTO = /(19|20)[0-9]{2}/;
+
+function anioDe(base: string, rotulos?: Readonly<Record<string, string>>): number | null {
+  const desdeRotulo = (rotulos?.[base] ?? "").match(ANIO_EN_TEXTO)?.[0];
+  const anio = desdeRotulo ?? base.match(ANIO_EN_TEXTO)?.[0];
+  return anio ? Number(anio) : null;
+}
+
+/** Las bases en orden cronológico, o `null` si alguna no nombra un año. */
+export function ordenPorAnio(
+  bases: readonly string[],
+  rotulos?: Readonly<Record<string, string>>,
+): string[] | null {
+  if (bases.length === 0) return null;
+  const anios = bases.map((b) => anioDe(b, rotulos));
+  if (anios.some((a) => a === null)) return null;
+  return bases
+    .map((base, i) => ({ base, i, anio: anios[i] as number }))
+    .sort((a, b) => a.anio - b.anio || a.i - b.i)
+    .map((x) => x.base);
+}
+
+/** Orden de la serie sin declaración: cronológico si todas nombran un año; si no, el de alta. */
+export function ordenPorDefectoDeSerie(
+  bases: readonly string[],
+  rotulos?: Readonly<Record<string, string>>,
+): string[] {
+  return ordenPorAnio(bases, rotulos) ?? [...bases];
+}

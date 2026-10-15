@@ -18,7 +18,7 @@
 
 import { forwardRef } from "react";
 
-import { Check, ChevronDown, Database, FileSpreadsheet, FileText } from "../vendor/lucide-react";
+import { Check, ChevronDown, Database, FileSpreadsheet, FileText, Loader2 } from "../vendor/lucide-react";
 
 import { Popover } from "./Popover";
 import type { EstudioBase, EstudioPayload } from "../api/estudio";
@@ -96,21 +96,33 @@ export const BaseSelectorTrigger = forwardRef<
     /** Cuántas bases hay en el estudio. Se muestra como contador. */
     total: number;
     rotulo?: string;
+    /**
+     * «Cambiando a 2024…» mientras la base activa cambia (F8). El cambio tarda
+     * 20–40 s en un estudio grande; sin esto el chip seguía diciendo la base
+     * anterior y lo único visible era que los botones no respondían.
+     */
+    cambiando?: string | null;
   } & React.ButtonHTMLAttributes<HTMLButtonElement>
->(function BaseSelectorTrigger({ etiqueta, total, rotulo = "Base", ...resto }, ref) {
+>(function BaseSelectorTrigger({ etiqueta, total, rotulo = "Base", cambiando, ...resto }, ref) {
   return (
     <button
       ref={ref}
       type="button"
       className="pulso-bases-inspector-trigger is-selector"
-      title={`${etiqueta} · ${total} bases en el estudio`}
+      title={cambiando ?? `${etiqueta} · ${total} bases en el estudio`}
+      aria-busy={cambiando ? true : undefined}
+      data-cambiando={cambiando ? "" : undefined}
       {...resto}
     >
       <span className="pulso-bases-inspector-trigger-copy">
         <small>{rotulo}</small>
-        <strong className="pulso-bases-inspector-trigger-label">{etiqueta}</strong>
+        <strong className="pulso-bases-inspector-trigger-label">{cambiando ?? etiqueta}</strong>
       </span>
-      <span className="pulso-bases-inspector-trigger-count">{total}</span>
+      {cambiando ? (
+        <Loader2 size={13} aria-hidden className="pulso-bases-inspector-spin" />
+      ) : (
+        <span className="pulso-bases-inspector-trigger-count">{total}</span>
+      )}
       <ChevronDown size={12} aria-hidden className="pulso-bases-inspector-trigger-chevron" />
     </button>
   );
@@ -121,6 +133,8 @@ export function BasesInspectorMenu({
   activa,
   onSeleccionar,
   deshabilitado,
+  cambiandoA,
+  textoCambio,
   modo,
   disparador,
 }: {
@@ -133,6 +147,10 @@ export function BasesInspectorMenu({
    */
   onSeleccionar?: (nombre: string) => void;
   deshabilitado?: boolean;
+  /** Base a la que se está cambiando: su fila dice «Cambiando…» con indicador (F8). */
+  cambiandoA?: string | null;
+  /** «Cambiando a 2024…», para la cabecera del menú. */
+  textoCambio?: string | null;
   /**
    * Cómo trata el procesamiento a este conjunto de bases: combinadas en una sola
    * mesa o independientes. Vive acá y no en la banda porque es una propiedad DE
@@ -164,10 +182,19 @@ export function BasesInspectorMenu({
           ) : null}
         </div>
 
-        <ul className="pulso-bases-inspector-list">
+        {/* El aviso vive en el menú abierto; el chip lleva su propio role=status. */}
+        {textoCambio ? (
+          <p className="pulso-bases-inspector-cambio">
+            <Loader2 size={13} aria-hidden className="pulso-bases-inspector-spin" />
+            {textoCambio}
+          </p>
+        ) : null}
+
+        <ul className="pulso-bases-inspector-list" aria-busy={cambiandoA ? true : undefined}>
           {bases.map((base) => {
             const nombre = base.nombre;
             const esActiva = nombre === activa;
+            const esDestino = Boolean(cambiandoA) && nombre === cambiandoA;
             const tieneDetalle = Boolean(base.instrumento || base.datos);
             return (
               <li
@@ -189,7 +216,12 @@ export function BasesInspectorMenu({
                   >
                     <Database size={13} aria-hidden />
                     <strong>{base.etiqueta}</strong>
-                    {esActiva ? (
+                    {esDestino ? (
+                      <span className="pulso-bases-inspector-badge is-cambiando">
+                        <Loader2 size={11} aria-hidden className="pulso-bases-inspector-spin" />
+                        Cambiando…
+                      </span>
+                    ) : esActiva ? (
                       <span className="pulso-bases-inspector-badge">
                         <Check size={11} aria-hidden />
                         Activa

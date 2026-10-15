@@ -27,6 +27,7 @@ import {
   validarArmonizacion,
 } from "./armonizacionModel";
 import { aFilasEditor, filasParaGuardar } from "./equivalenciasEditorModel";
+import { ordenPorAnio, ordenPorDefectoDeSerie } from "./nombreDeSerie";
 
 const ARM: Armonizacion = {
   escala: [
@@ -277,6 +278,24 @@ describe("orden de la serie", () => {
       "b2024",
       "b2026",
     ]);
+  });
+
+  test("sin declarar, cronológico si todas las bases nombran un año (F6)", () => {
+    expect(ordenEfectivo([], ["hsvg2026", "hsvg2024", "hsvg2025"])).toEqual(["hsvg2024", "hsvg2025", "hsvg2026"]);
+    // Lo declarado que ya no es una base cuenta como no declarado.
+    expect(ordenEfectivo(["vieja"], ["b2026", "b2024"])).toEqual(["b2024", "b2026"]);
+    // Una base sin año: el orden de alta.
+    expect(ordenEfectivo([], ["b2026", "posgrado", "b2024"])).toEqual(["b2026", "posgrado", "b2024"]);
+    // Declarado manda aunque no sea cronológico.
+    expect(ordenEfectivo(["b2026", "b2024"], ["b2024", "b2026"])).toEqual(["b2026", "b2024"]);
+  });
+
+  test("ordenPorAnio: empates en su orden, rótulos con año y null sin año", () => {
+    expect(ordenPorAnio(["e2024", "d2023", "d2024"])).toEqual(["d2023", "e2024", "d2024"]);
+    expect(ordenPorAnio(["actual", "previa"], { actual: "2026", previa: "Ola 2024" })).toEqual(["previa", "actual"]);
+    expect(ordenPorAnio(["b2024", "docentes"])).toBeNull();
+    expect(ordenPorAnio([])).toBeNull();
+    expect(ordenPorDefectoDeSerie(["b2024", "docentes"])).toEqual(["b2024", "docentes"]);
   });
 
   test("mover no sale de la lista", () => {

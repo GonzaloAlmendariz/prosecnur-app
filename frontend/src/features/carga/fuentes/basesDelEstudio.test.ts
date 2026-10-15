@@ -34,9 +34,11 @@ describe("Fuentes sigue el orden de la serie (M6)", () => {
       .toEqual(["b2024", "b2025", "b2026", "extra"]);
   });
 
-  it("sin serie declarada conserva el orden de alta", () => {
+  it("sin serie declarada: cronológico si todas nombran un año (F6), si no el orden de alta", () => {
     const altas = [base("b2026"), base("b2024")];
-    expect(ordenarBasesDelEstudio(altas, []).map((b) => b.nombre)).toEqual(["b2026", "b2024"]);
-    expect(ordenarBasesDelEstudio(altas, ["otra"]).map((b) => b.nombre)).toEqual(["b2026", "b2024"]);
+    expect(ordenarBasesDelEstudio(altas, []).map((b) => b.nombre)).toEqual(["b2024", "b2026"]);
+    expect(ordenarBasesDelEstudio(altas, ["otra"]).map((b) => b.nombre)).toEqual(["b2024", "b2026"]);
+    const mixtas = [base("b2026"), base("docentes"), base("b2024")];
+    expect(ordenarBasesDelEstudio(mixtas, []).map((b) => b.nombre)).toEqual(["b2026", "docentes", "b2024"]);
   });
 });

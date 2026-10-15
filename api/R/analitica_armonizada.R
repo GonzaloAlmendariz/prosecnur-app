@@ -579,16 +579,29 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
 # ---- Lado sesión --------------------------------------------------------------
 
 #' Orden de la serie: `armonizacion_periodos` de la matriz y, si no lo hay,
-#' el orden de las bases del estudio.
+#' el orden por defecto de las bases (`.armz_orden_por_defecto`).
 #' @noRd
 .armz_periodos_estudio <- function(sid, equiv) {
   s <- session_get(sid, required = FALSE)
   bases <- names(((s %||% list())$estudio %||% list())$bases %||% list())
   p <- as.character(unlist(equiv$armonizacion_periodos %||% character(0), use.names = FALSE))
   p <- p[nzchar(p)]
-  if (!length(p)) p <- bases
   if (length(bases)) p <- p[p %in% bases]
+  if (!length(p)) p <- .armz_orden_por_defecto(bases)
   p
+}
+
+#' Sin orden declarado: cronológico si TODAS las bases nombran un año de cuatro
+#' cifras (empates en el orden de carga); si alguna no lo nombra, el orden de
+#' carga. Es la misma regla que `ordenPorDefectoDeSerie` del frontend: las dos
+#' capas deben mostrar y entregar la serie en el mismo orden.
+#' @noRd
+.armz_orden_por_defecto <- function(bases) {
+  bases <- as.character(bases %||% character(0))
+  if (length(bases) < 2L) return(bases)
+  m <- regmatches(bases, regexpr("(?<![0-9])(19|20)[0-9]{2}(?![0-9])", bases, perl = TRUE))
+  if (length(m) != length(bases)) return(bases)
+  bases[order(as.integer(m), seq_along(bases))]
 }
 
 .armz_misma_fila <- function(a, b) {

@@ -126,6 +126,9 @@ describe("filas candidatas y serie", () => {
     expect(periodosDeSerie(estado({ armonizacion_periodos: ["hsvg2025", "hsvg2024"] })))
       .toEqual(["hsvg2025", "hsvg2024"]);
     expect(periodosDeSerie(estado())).toEqual(["hsvg2024", "hsvg2025", "base_sin_anio"]);
+    // F6: sin declarar y con año en todas, cronológico aunque la carga fuera otra.
+    expect(periodosDeSerie(estado({ bases: ["hsvg2026", "hsvg2024", "hsvg2025"] })))
+      .toEqual(["hsvg2024", "hsvg2025", "hsvg2026"]);
   });
 
   it("rotula con el año del nombre de la base, como .armz_rotulos()", () => {

@@ -20,7 +20,7 @@ import type { CSSProperties, KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, Search } from "../../vendor/lucide-react";
 import type { VariableDeBase } from "../../api/equivalencias";
-import { filtrarPreguntas } from "./preguntaEquivalenteModel";
+import { etiquetaLegible, filtrarPreguntas } from "./preguntaEquivalenteModel";
 import "./PreguntaCombobox.css";
 
 export type PreguntaComboboxProps = {
@@ -65,7 +65,7 @@ export function PreguntaCombobox({
   const visibles = useMemo<Opcion[]>(() => {
     const filtradas = filtrarPreguntas(opciones, consulta).map((o) => ({
       nombre: o.name,
-      etiqueta: o.label,
+      etiqueta: etiquetaLegible(o.label),
       seccion: o.seccion,
     }));
     // Quitar la pregunta es una opción más, arriba y sólo si hay algo que quitar
@@ -173,7 +173,7 @@ export function PreguntaCombobox({
     }
   };
 
-  const textoElegida = elegida ? elegida.label || elegida.name : valor;
+  const textoElegida = elegida ? etiquetaLegible(elegida.label) || elegida.name : valor;
   const nombreAccesible = `Pregunta de ${base} en ${contexto}: ${valor ? `${textoElegida} (${valor})` : "sin elegir"}`;
   const activa = visibles[cursor];
 

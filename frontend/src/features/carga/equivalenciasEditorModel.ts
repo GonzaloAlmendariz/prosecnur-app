@@ -14,6 +14,7 @@
 
 import { rotuloDeMatriz } from "../../lib/rotuloDeMatriz";
 import type { EquivalenciaFila, VariableDeBase } from "../../api/equivalencias";
+import { ordenPorDefectoDeSerie } from "./nombreDeSerie";
 
 export type FilaEditor = EquivalenciaFila & {
   /** Identidad estable de la fila mientras se edita; no viaja al backend. */
@@ -179,12 +180,12 @@ export function seccionLegible(seccion: string | null | undefined): string {
 /**
  * Orden de las columnas por base. Si la matriz declara la serie
  * (`armonizacion_periodos`), las bases van en ese orden y las que no forman
- * parte de ella siguen al final en su orden original. Sin serie, el orden que
- * trae el estado.
+ * parte de ella siguen al final en su orden original. Sin serie, el orden por
+ * defecto: cronológico si todas las bases nombran un año, si no el del estado.
  */
 export function ordenarBasesPorSerie(bases: readonly string[], periodos: readonly string[] | null | undefined): string[] {
   const serie = (periodos ?? []).filter((p) => bases.includes(p));
-  if (serie.length === 0) return [...bases];
+  if (serie.length === 0) return ordenPorDefectoDeSerie(bases);
   const unicos = serie.filter((p, i) => serie.indexOf(p) === i);
   return [...unicos, ...bases.filter((b) => !unicos.includes(b))];
 }

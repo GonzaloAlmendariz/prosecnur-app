@@ -25,7 +25,7 @@ import type {
   TipoAdvertenciaBloques,
 } from "../../api/equivalencias";
 import type { PanelDeclarado } from "../../lib/navegacion/paneles";
-import type { NombreDeSerie } from "./nombreDeSerie";
+import { ordenPorDefectoDeSerie, type NombreDeSerie } from "./nombreDeSerie";
 
 // ---- Paneles direccionables -------------------------------------------------
 
@@ -569,11 +569,14 @@ export function textoResumenMapa(r: ResumenMapa, explicito: boolean): string {
 
 /**
  * Orden efectivo de la serie: lo declarado que sigue siendo una base del
- * estudio, y al final las bases que el orden todavía no nombra.
+ * estudio, y al final las bases que el orden todavía no nombra. Sin nada
+ * declarado, el orden por defecto (`ordenPorDefectoDeSerie`): cronológico si
+ * todas las bases nombran un año.
  */
 export function ordenEfectivo(periodos: readonly string[], bases: readonly string[]): string[] {
   const set = new Set(bases);
   const declarados = periodos.filter((p, i) => set.has(p) && periodos.indexOf(p) === i);
+  if (declarados.length === 0) return ordenPorDefectoDeSerie(bases);
   return [...declarados, ...bases.filter((b) => !declarados.includes(b))];
 }
 
