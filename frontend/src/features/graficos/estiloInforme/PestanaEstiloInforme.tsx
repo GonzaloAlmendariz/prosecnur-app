@@ -37,6 +37,9 @@ import {
 import { SeccionCalculos, type AccionesCalculos } from "./SeccionCalculos";
 import { SeccionTextoBase } from "./SeccionTextoBase";
 import { SeccionOtros } from "./SeccionOtros";
+import { LecturaRedondeo, LecturaRegla } from "./LecturaRegla";
+import { ejemploRedondeo, lecturaBase, lecturaCasos, lecturaOtros } from "./modeloLecturaRegla";
+import { reglaGeneral } from "./reglaRedondeo";
 import { ayudaOtros } from "../vistaGeneral/interruptorOtrosModel";
 import { modoMultibaseDelPlan } from "../modoMultibase";
 import { SeccionCasos } from "./SeccionCasos";
@@ -114,6 +117,11 @@ export default function PestanaEstiloInforme() {
   const autoOtros = usePlanStore((s) => s.autoOtrosSlides);
   const setAutoOtros = usePlanStore((s) => s.setAutoOtrosSlides);
   const ayudaOtrosRegla = ayudaOtros(modoMultibaseDelPlan(sesion?.state?.estudio_processing_mode, sesion?.state?.n_bases, sesion?.state?.active_base, scope));
+  // R8: lo que cada regla produce en una lámina.
+  const notaLeida = { ...nota, ...leerNota(presets, nota.activa) };
+  const regla = reglaGeneral(filas);
+  const ejemplo = ejemploRedondeo(regla.metodo, regla.decimales, notaLeida.modo, notaLeida.texto);
+  const casos = leerCasosJunto(presets);
   const cargando = cargandoCatalogo || cargandoDefaults;
   // Un enlace con `foco` lleva a su regla una vez montada (sin robar el foco del teclado).
   useEffect(() => {
@@ -147,10 +155,12 @@ export default function PestanaEstiloInforme() {
         >
           <NivelesReglas />
           <div id="regla-redondeo" className="pulso-f6-regla" data-qa-geometry-member>
-            <SeccionCalculos filas={filas} nota={{ ...nota, ...leerNota(presets, nota.activa) }} acciones={acciones} estado={estadoCalculos} />
+            <SeccionCalculos filas={filas} nota={notaLeida} acciones={acciones} estado={estadoCalculos} />
+            {filas.length > 0 && <LecturaRedondeo ejemplo={ejemplo} decimales={regla.decimales} />}
           </div>
           <div id="regla-casos" className="pulso-f6-regla" data-qa-geometry-member>
-            <SeccionCasos casos={leerCasosJunto(presets)} onCambiar={(c) => cambiarPresets((p) => conCasosJunto(p, c))} excepciones={excepcionesCasos} />
+            <SeccionCasos casos={casos} onCambiar={(c) => cambiarPresets((p) => conCasosJunto(p, c))} excepciones={excepcionesCasos} />
+            <LecturaRegla regla="casos junto al porcentaje" lectura={lecturaCasos(casos, excepcionesCasos.length)} />
           </div>
           <div id="regla-base" className="pulso-f6-regla" data-qa-geometry-member>
           <SeccionTextoBase
@@ -163,9 +173,11 @@ export default function PestanaEstiloInforme() {
             onSufijoDeBase={(base, palabra) => cambiarPresets((p) => conSufijoDeBase(p, base, palabra))}
             excepciones={excepcionesBase}
           />
+            <LecturaRegla regla="texto de la base" lectura={lecturaBase(texto.formato.valor, texto.sufijo.valor, bases, leerSufijosPorBase(presets))} />
           </div>
           <div id="regla-otros" className="pulso-f6-regla" data-qa-geometry-member>
             <SeccionOtros encendido={autoOtros} ayuda={ayudaOtrosRegla} onCambiar={setAutoOtros} />
+            <LecturaRegla regla="respuestas «Otros»" lectura={lecturaOtros(autoOtros)} />
           </div>
         </div>
       </div>

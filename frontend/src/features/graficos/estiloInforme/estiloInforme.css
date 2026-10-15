@@ -580,3 +580,106 @@
   outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
   outline-offset: 2px;
 }
+
+/* R8 del rediseño (2026-10-15): «Cómo se lee» al lado de cada regla cuando la página es ancha; debajo, si no. */
+.pulso-f6-regla {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+}
+
+/* El contenedor es la columna de reglas (una consulta no puede estilar a su propio contenedor). */
+.pulso-f6-informe-secciones { container-type: inline-size; }
+
+@container (min-width: 880px) {
+  /* Un solo ancho para todas: así las tarjetas de las reglas terminan en la misma línea. */
+  .pulso-f6-regla:has(> .pulso-f6-lectura) { grid-template-columns: minmax(0, 1fr) 320px; align-items: start; }
+  .pulso-f6-regla > .pulso-f6-lectura { position: sticky; top: var(--pulso-space-3); }
+}
+
+.pulso-f6-lectura {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  min-height: 92px;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-lectura-lab {
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-f6-lectura-grande {
+  font-size: 16px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-lectura-lamina {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: var(--pulso-space-1) 0;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 4px;
+  background: var(--pulso-surface);
+}
+
+.pulso-f6-lectura-lamina figcaption {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--module-accent);
+}
+
+.pulso-f6-lectura-fila {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr) 46px;
+  gap: var(--pulso-space-2);
+  align-items: center;
+  font-size: 11px;
+}
+
+.pulso-f6-lectura-barra {
+  display: flex;
+  height: 18px;
+  overflow: hidden;
+  border-radius: 3px;
+}
+
+.pulso-f6-lectura-barra i {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  font-size: 10px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+.pulso-f6-lectura-barra i.is-s0 { background: var(--module-accent); color: var(--pulso-surface); }
+.pulso-f6-lectura-barra i.is-s1 { background: color-mix(in srgb, var(--module-accent) 55%, var(--pulso-surface)); }
+.pulso-f6-lectura-barra i.is-s2 { background: color-mix(in srgb, var(--module-accent) 22%, var(--pulso-surface)); }
+
+.pulso-f6-lectura-suma {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.pulso-f6-lectura-suma.is-mal { color: var(--pulso-danger-fg); font-weight: var(--pulso-weight-semibold); }
+
+.pulso-f6-lectura-pie {
+  margin: 2px 0 0;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
