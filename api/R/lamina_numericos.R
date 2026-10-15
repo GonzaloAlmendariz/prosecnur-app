@@ -152,6 +152,20 @@
   list(doc = por_lamina(doc), partes = 1L)
 }
 
+#' Tamaño del rótulo de grupo en media y rango: 13 pt como el recetario, o 12 / 11 si a 13 no cabe en dos líneas con
+#' sus casos debajo. Antes la regla de «cabe» exigía 13 pt y un rótulo de dos líneas en cinco grupos («Dependiente e
+#' independiente») mandaba la lámina entera al gráfico anterior por 0.016 in (pedido de Gonzalo, 2026-10-15: «se ve
+#' muy mal, muy simplón y aburrido»). `NA` si ni a 11 pt cabe.
+#' @keywords internal
+.lam_media_rango_rotulo_pt <- function(rotulos, fila) {
+  for (pt in c(13, 12, 11)) {
+    lineas <- vapply(rotulos, function(x) .lam_lineas(x, 2.05, pt, TRUE), 0)
+    altos <- vapply(rotulos, function(x) .lam_alto_txt(x, 2.05, pt, TRUE), 0)
+    if (all(lineas <= 2) && all(altos + 0.3 <= fila)) return(pt)
+  }
+  NA_real_
+}
+
 #' Lámina de media y rango por grupo (lámina 82, recetario_m3b.R:48-63)
 #'
 #' Guías verticales cada paso redondo; por grupo, el rótulo en 13 pt y sus casos debajo, la barra delgada del
@@ -169,6 +183,10 @@
   paso <- .lam_paso_guias(min(espec$inf), max(espec$sup))
   lo <- floor(min(espec$inf) / paso) * paso; hi <- ceiling(max(espec$sup) / paso) * paso; if (hi <= lo) hi <- lo + paso
   paso <- .lam_paso_guias(lo, hi)
+  # Un extremo justo en el borde del eje no tiene dónde escribirse al costado y se subía encima de la barra: el eje gana
+  # un paso de ese lado (abajo, sólo si no cruza el cero).
+  if (max(espec$sup) >= hi) hi <- hi + paso
+  if (min(espec$inf) <= lo && (lo - paso >= 0 || min(espec$inf) < 0)) lo <- lo - paso
   xl <- ml + 2.2; wl <- W - mr - xl - 1.8; px <- function(v) xl + wl * (v - lo) / (hi - lo); fila <- (yf - yt - 1.0) / k
   num <- .lam_num
   doc <- officer::add_slide(doc, layout = layout, master = master)
@@ -178,11 +196,14 @@
     .lam_caja(lz, px(v), yt + 0.35, 0.006, k * fila, .std_color("filete"), nombre = "media_rango:guia")
     .lam_txt(lz, .lam_num(v), px(v) - 0.45, yt + 0.05, 0.9, 0.24, 10, tenue, align = "center", nombre = "media_rango:eje")
   }
-  if (!is.null(encabezado) && nzchar(encabezado)) .lam_txt(lz, encabezado, xl, yt - 0.25, 3, 0.26, 10, suave, bold = TRUE, nombre = "media_rango:encabezado")
+  if (!is.null(encabezado) && nzchar(encabezado)) .lam_txt(lz, encabezado, xl, yt - 0.25, wl, 0.26, 10, suave, bold = TRUE, nombre = "media_rango:encabezado")
+  pt_rot <- .lam_media_rango_rotulo_pt(espec$rotulos, fila)
+  if (!is.finite(pt_rot)) pt_rot <- 13
+  h1 <- .lam_alto_txt("X", 2.05, pt_rot, TRUE)
   for (i in seq_len(k)) {
     yc <- yt + 0.35 + (i - 0.5) * fila
-    hr <- .lam_alto_txt(espec$rotulos[i], 2.05, 13, TRUE)
-    .lam_txt(lz, espec$rotulos[i], ml, yc - 0.27 - max(0, hr - 0.317), 2.05, hr, 13, azul, bold = TRUE, align = "right", nombre = "media_rango:rotulo")
+    hr <- .lam_alto_txt(espec$rotulos[i], 2.05, pt_rot, TRUE)
+    .lam_txt(lz, espec$rotulos[i], ml, yc - 0.27 - max(0, hr - h1), 2.05, hr, pt_rot, azul, bold = TRUE, align = "right", nombre = "media_rango:rotulo")
     if (is.finite(espec$n[i])) .lam_txt(lz, sprintf("%s %s", format(round(espec$n[i]), big.mark = ",", trim = TRUE), unidad_n), ml, yc + 0.02, 2.05,
                                         0.26, 10, tenue, align = "right", nombre = "media_rango:casos")
     .lam_caja(lz, px(espec$inf[i]), yc - 0.03, max(px(espec$sup[i]) - px(espec$inf[i]), 0.002), 0.06, claro, nombre = "media_rango:rango")
@@ -359,8 +380,7 @@
     },
     media_rango = {
       k <- length(espec$media); fila <- (yf - yt - 1.0) / max(1L, k)
-      k >= 1L && k <= 12L && dos_lineas(espec$rotulos, 2.05, 13) &&
-        all(vapply(espec$rotulos, function(x) .lam_alto_txt(x, 2.05, 13, TRUE), 0) + 0.3 <= fila) &&
+      k >= 1L && k <= 12L && is.finite(.lam_media_rango_rotulo_pt(espec$rotulos, fila)) &&
         all(.lam_ancho_txt(paste("Media", espec$cifras), 12, TRUE) <= 1.55)
     },
     pesas = {
