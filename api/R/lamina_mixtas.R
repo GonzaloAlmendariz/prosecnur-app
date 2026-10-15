@@ -268,18 +268,14 @@
 #' @keywords internal
 .lam_laminas_mixta <- function(doc, especs, tipo, preguntas, publicos = NULL, titulo, ante = NULL, base = NULL, folio = NULL,
                                sub = NULL, layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc,
-                               respaldo = NULL, icono = NULL) {
+                               respaldo = NULL) {
   force(folio)
   geo <- .lam_mixta_geo(tipo)
   if (is.null(geo)) return(NULL)   # disposición sin geometría del recetario: quien llama sigue con la ruta anterior
   doc <- officer::add_slide(doc, layout = layout, master = master)
-  doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub, con_icono = !is.null(icono))
-  # D4: el ícono del público en la cabecera, un cuadrado de 0.3 in junto al antetítulo (recetario p159–p170).
-  if (!is.null(icono)) {
-    doc <- officer::ph_with(doc, rvg::dml(ggobj = icono, bg = "transparent"),
-                            location = officer::ph_location(left = .std_geom("margen_izq") - 0.005, top = 0.165, width = 0.3, height = 0.3,
-                                                            newlabel = "titulo:icono"))
-  }
+  # Gonzalo, 2026-10-14: las láminas de población ya no llevan el ícono del público en la cabecera; la cabecera es la
+  # de cualquier lámina de varios gráficos (antetítulo y título desde el margen).
+  doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
   P <- geo$paneles
   compartida <- .lam_mixta_compartida(especs, P)
@@ -397,8 +393,7 @@
 #' («178 respuestas») se nombra cuando el panel es de un solo público. La base de la lámina reúne las notas
 #' al pie de los gráficos si la lámina no trae la suya.
 #' @keywords internal
-.lam_composicion_mixta <- function(doc, tipo, rendered, els, slide, titulo_de_var = NULL, base = NULL, solo_base_declarada = FALSE,
-                                   icono = NULL) {
+.lam_composicion_mixta <- function(doc, tipo, rendered, els, slide, titulo_de_var = NULL, base = NULL, solo_base_declarada = FALSE) {
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
   slots <- slide$slots %||% list()
   base <- if (isTRUE(solo_base_declarada)) texto(base) else
@@ -448,7 +443,7 @@
   }
   caben <- .lam_mixta_caben(especs, .lam_mixta_geo(tipo), els, titulo_de_var)
   respaldo <- lapply(seq_along(rendered), function(k) if (caben[k] || .lam_es_cifra(especs[[k]])) NULL else rendered[[k]])
-  .lam_laminas_mixta(doc, especs, tipo, enc$preguntas, enc$publicos, respaldo = respaldo, icono = icono, titulo = texto(slots$title %||% slide$title) %||% "",
+  .lam_laminas_mixta(doc, especs, tipo, enc$preguntas, enc$publicos, respaldo = respaldo, titulo = texto(slots$title %||% slide$title) %||% "",
                      ante = texto((slide$meta %||% list())$antetitulo), base = base, folio = length(doc) + 1L)$doc
 }
 

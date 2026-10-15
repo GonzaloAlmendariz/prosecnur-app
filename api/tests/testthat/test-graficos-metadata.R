@@ -41,9 +41,9 @@ source("setup-load-all.R")
   p_slide_2_graficos_texto_derecha = c(kind = "twoTextRight", ppt_layout = "right_2graficos_texto", structure_label = "Dos gráficos + texto"),
   p_slide_4_graficos = c(kind = "grid4", ppt_layout = "4_paneles", structure_label = "Matriz 2 × 2"),
   p_slide_2_graficos_poblacion = c(kind = "population2", ppt_layout = "poblacion_2", structure_label = "Dos gráficos + ícono"),
-  p_slide_3_graficos_poblacion_tira = c(kind = "population3_row", ppt_layout = "poblacion_3_tira", structure_label = "Tres franjas + ícono"),
-  p_slide_3_graficos_poblacion_corona = c(kind = "population3_crown", ppt_layout = "poblacion_3_corona", structure_label = "Ícono central + tres"),
-  p_slide_3_graficos_poblacion_cifras = c(kind = "population3_kpi", ppt_layout = "poblacion_3_cifras", structure_label = "Ícono + cifras + tres"),
+  p_slide_3_graficos_poblacion_tira = c(kind = "population3_row", ppt_layout = "poblacion_3_tira", structure_label = "Tres franjas"),
+  p_slide_3_graficos_poblacion_corona = c(kind = "population3_crown", ppt_layout = "poblacion_3_corona", structure_label = "Dos arriba + uno ancho"),
+  p_slide_3_graficos_poblacion_cifras = c(kind = "population3_kpi", ppt_layout = "poblacion_3_cifras", structure_label = "Cifras + tres"),
   p_slide_cifras_y_graficos = c(kind = "kpi_band", ppt_layout = "cifras_y_graficos", structure_label = "Banda de cifras + dos"),
   p_slide_3_graficos_2mas1 = c(kind = "grid3_2p1", ppt_layout = "graficos_3_2mas1", structure_label = "Dos apilados + uno alto"),
   p_slide_3_graficos_1mas2 = c(kind = "grid3_1p2", ppt_layout = "graficos_3_1mas2", structure_label = "Uno alto + dos apilados"),
@@ -53,8 +53,8 @@ source("setup-load-all.R")
   p_slide_2_graficos_asimetrico = c(kind = "grid2_asym", ppt_layout = "graficos_2_asimetrico", structure_label = "Principal + apoyo"),
   p_slide_3_graficos_poblacion = c(kind = "population3", ppt_layout = "poblacion_3", structure_label = "Dos apilados + uno alto + ícono"),
   p_slide_4_graficos_poblacion = c(kind = "population4", ppt_layout = "poblacion_4", structure_label = "Matriz 2 × 2 + ícono"),
-  p_slide_5_graficos_poblacion = c(kind = "population5", ppt_layout = "poblacion_5", structure_label = "Matriz 3 + 2 + ícono"),
-  p_slide_6_graficos_poblacion = c(kind = "population6", ppt_layout = "poblacion_6", structure_label = "Matriz 3 × 2 + ícono"),
+  p_slide_5_graficos_poblacion = c(kind = "population5", ppt_layout = "poblacion_5", structure_label = "Matriz 3 + 2"),
+  p_slide_6_graficos_poblacion = c(kind = "population6", ppt_layout = "poblacion_6", structure_label = "Matriz 3 × 2"),
   p_slide_cierre = c(kind = "closing", ppt_layout = "Contraportada", structure_label = "Contraportada")
 )
 
@@ -103,22 +103,19 @@ source("setup-load-all.R")
   p_slide_3_graficos_poblacion_tira = list(
     superior = .gm_slot("chart", "Superior"),
     medio = .gm_slot("chart", "Medio"),
-    inferior = .gm_slot("chart", "Inferior"),
-    icono = .gm_slot("icon", "Ícono")
+    inferior = .gm_slot("chart", "Inferior")
   ),
   p_slide_3_graficos_poblacion_corona = list(
     superior_izquierda = .gm_slot("chart", "Superior izquierda"),
     superior_derecha = .gm_slot("chart", "Superior derecha"),
-    inferior = .gm_slot("chart", "Inferior"),
-    icono = .gm_slot("icon", "Ícono")
+    inferior = .gm_slot("chart", "Inferior")
   ),
   p_slide_3_graficos_poblacion_cifras = list(
     superior_izquierda = .gm_slot("chart", "Superior izquierda"),
     derecha = .gm_slot("chart", "Derecha"),
     cifra_superior = .gm_slot("chart", "Cifra superior"),
     inferior_izquierda = .gm_slot("chart", "Inferior izquierda"),
-    cifra_inferior = .gm_slot("chart", "Cifra inferior"),
-    icono = .gm_slot("icon", "Ícono")
+    cifra_inferior = .gm_slot("chart", "Cifra inferior")
   ),
   p_slide_cifras_y_graficos = list(
     cifra_izquierda = .gm_slot("chart", "Cifra izquierda"),
@@ -173,8 +170,7 @@ source("setup-load-all.R")
     grafico_superior_2 = .gm_slot("chart", "Superior centro"),
     grafico_superior_3 = .gm_slot("chart", "Superior derecha"),
     grafico_inferior_1 = .gm_slot("chart", "Inferior izquierda"),
-    grafico_inferior_2 = .gm_slot("chart", "Inferior centro"),
-    icono = .gm_slot("icon", "Ícono central")
+    grafico_inferior_2 = .gm_slot("chart", "Inferior centro")
   ),
   p_slide_6_graficos_poblacion = list(
     grafico_superior_1 = .gm_slot("chart", "Superior izquierda"),
@@ -182,8 +178,7 @@ source("setup-load-all.R")
     grafico_superior_3 = .gm_slot("chart", "Superior derecha"),
     grafico_inferior_1 = .gm_slot("chart", "Inferior izquierda"),
     grafico_inferior_2 = .gm_slot("chart", "Inferior centro"),
-    grafico_inferior_3 = .gm_slot("chart", "Inferior derecha"),
-    icono = .gm_slot("icon", "Ícono central")
+    grafico_inferior_3 = .gm_slot("chart", "Inferior derecha")
   ),
   p_slide_cierre = list()
 )
@@ -767,4 +762,23 @@ test_that("el perfil ACNUR pinta sus titulos con la paleta institucional", {
   colores <- unlist(base[grepl("^color_", names(base))], use.names = TRUE)
   intrusos <- colores[toupper(colores) %in% toupper(pulso)]
   expect_length(intrusos, 0L)
+})
+
+test_that("población sin ícono (Gonzalo, 2026-10-14): ni ranura, ni arg, ni «ícono» en su nombre; un payload viejo con `icono` se arma igual", {
+  tipos <- c("p_slide_3_graficos_poblacion_tira", "p_slide_3_graficos_poblacion_corona", "p_slide_3_graficos_poblacion_cifras",
+             "p_slide_5_graficos_poblacion", "p_slide_6_graficos_poblacion")
+  for (t in tipos) {
+    m <- .SLIDES_META[[t]]
+    expect_false("icono" %in% names(m$slot_specs), label = t)
+    expect_false("icono" %in% .slide_slots(t), label = t)
+    expect_false("icono" %in% vapply(m$args, `[[`, "", "name"), label = t)
+    expect_false(grepl("ícono", paste(m$titulo_humano, m$descripcion, m$blueprint$structure_label), ignore.case = TRUE), label = t)
+  }
+  # Un plan guardado con `icono` en el payload no aborta: el constructor aún acepta el formal y el motor lo ignora.
+  g <- list(tipo = "p_barras_categoricas", payload = list(var = "v1"))
+  s <- list(tipo = "p_slide_6_graficos_poblacion",
+            payload = list(titulo = "Perfil", icono = "builtin:users", grafico_superior_1 = g, grafico_superior_2 = g,
+                           grafico_superior_3 = g, grafico_inferior_1 = g, grafico_inferior_2 = g, grafico_inferior_3 = g))
+  sl <- suppressMessages(.graficos_rebuild_slide_json(s))
+  expect_s3_class(sl, "ppt_slide")
 })
