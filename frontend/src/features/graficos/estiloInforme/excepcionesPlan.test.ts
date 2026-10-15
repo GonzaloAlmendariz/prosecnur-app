@@ -19,3 +19,14 @@ describe("gráficos con regla propia", () => {
     expect(r.map((e) => `L${e.posicion} ${e.titulo} ${e.valor}`)).toEqual(["L1 Sexo Siempre", "L2 Grado Nunca"]);
   });
 });
+
+import { nombresPropiosDeBase } from "./excepcionesPlan";
+import { parseBaseLabels } from "../laminas/datosBase/nombresPorBaseModel";
+
+describe("nombres propios de las bases en un gráfico", () => {
+  it("dice qué nombre reemplaza a cuál y calla si no hay o si es el mismo", () => {
+    expect(nombresPropiosDeBase({ tabla_encabezados: "docentes=Profesores\nestudiantes=" }, parseBaseLabels)).toBe("«Profesores» en vez de «docentes»");
+    expect(nombresPropiosDeBase({ tabla_encabezados: "estudiantes_2018=Estudiantes 2018" }, parseBaseLabels)).toBeNull();
+    expect(nombresPropiosDeBase({}, parseBaseLabels)).toBeNull();
+  });
+});

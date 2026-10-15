@@ -40,7 +40,8 @@ import { SeccionCasos } from "./SeccionCasos";
 import { useEffect } from "react";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { NivelesReglas } from "./NivelesReglas";
-import { excepcionesDelPlan } from "./excepcionesPlan";
+import { excepcionesDelPlan, nombresPropiosDeBase } from "./excepcionesPlan";
+import { parseBaseLabels } from "../laminas/datosBase/nombresPorBaseModel";
 import { GRAFICOS_CON_CASOS, opcionCasos } from "../laminas/CasosGrafico";
 import { tituloQueSale } from "../laminas/tituloQueSale";
 import { ARG_NOTA_MODO, ARG_NOTA_TEXTO, conModoNota, conTextoNota, leerNota } from "./notaRedondeo";
@@ -103,6 +104,9 @@ export default function PestanaEstiloInforme() {
   const excepcionesCasos = useMemo(() => excepcionesDelPlan(slidesPlan,
     (graficador, args) => (GRAFICOS_CON_CASOS.has(graficador) ? ({ siempre: "Siempre", nunca: "Nunca", informe: null } as const)[opcionCasos(args)] : null),
     (s) => tituloQueSale(s, variablesPlan, "Lámina")), [slidesPlan, variablesPlan]);
+  // R6: los gráficos que nombran a sus públicos con otra palabra («Nombre de cada público» en su tarjeta).
+  const excepcionesBase = useMemo(() => excepcionesDelPlan(slidesPlan, (_g, args) => nombresPropiosDeBase(args, parseBaseLabels),
+    (s) => tituloQueSale(s, variablesPlan, "Lámina")), [slidesPlan, variablesPlan]);
   const cargando = cargandoCatalogo || cargandoDefaults;
   // Un enlace con `foco` lleva a su regla una vez montada (sin robar el foco del teclado).
   useEffect(() => {
@@ -150,6 +154,7 @@ export default function PestanaEstiloInforme() {
             bases={bases}
             sufijosPorBase={leerSufijosPorBase(presets)}
             onSufijoDeBase={(base, palabra) => cambiarPresets((p) => conSufijoDeBase(p, base, palabra))}
+            excepciones={excepcionesBase}
           />
           </div>
         </div>
