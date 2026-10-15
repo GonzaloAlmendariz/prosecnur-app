@@ -1419,20 +1419,21 @@
 .pulso-f6-vg-pag-ficha > span > span { color: var(--pulso-text-soft); }
 .pulso-f6-vg-pag-ficha b { color: var(--pulso-primary); }
 
+/* W7: la contraportada del Word es una página blanca con el logo al centro y el contacto debajo (no una página azul). */
 .pulso-f6-vg-pagina.is-contraportada {
   justify-content: center;
   align-items: center;
-  background: var(--pulso-primary);
 }
 
 .pulso-f6-vg-pag-contra {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2cqw;
-  color: var(--pulso-surface);
-  font-size: 4cqw;
+  gap: 4cqw;
+  text-align: center;
 }
+.pulso-f6-vg-pag-contra-logo { color: var(--pulso-primary); font-size: 5cqw; letter-spacing: 0.04em; }
+.pulso-f6-vg-pag-contra-datos { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5cqw 3cqw; color: var(--pulso-text-soft); font-size: 2.2cqw; }
 
 .pulso-f6-vg-word-nota {
   margin: var(--pulso-space-4) 0 0;
