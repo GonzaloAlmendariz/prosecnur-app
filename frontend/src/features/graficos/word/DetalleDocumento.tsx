@@ -51,7 +51,8 @@ export function DetalleDocumento({ tituloInforme, resumen }: { tituloInforme: st
           El documento lleva el contenido, el índice de gráficos y, cuando el informe tiene tablas, el índice de tablas.
         </p>
       </section>
-      <section className="pulso-f6-informe-seccion" aria-label="Cómo leer este informe" data-qa-geometry-member data-seccion="word-como-leer">
+      <section className="pulso-f6-informe-seccion" aria-label="Cómo leer este informe" data-qa-geometry-member data-seccion="word-como-leer"
+        data-qa-geometry-group="graficos/f6-w-como-leer" data-qa-geometry-contract="intrinsic">
         <h3 className="pulso-f6-w-titulo">Cómo leer este informe</h3>
         <p className="pulso-f6-informe-ayuda">Explica el Top Two Box, el redondeo, las escalas y las bases chicas antes de los resultados.</p>
         <Segmentado etiqueta="Cómo leer este informe" valor={comoLeer}

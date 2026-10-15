@@ -81,18 +81,22 @@
   font-weight: var(--pulso-weight-medium);
   line-height: 1.45;
   white-space: normal;
+  /* Cerrado no ocupa lugar: invisible pero en el flujo inflaba el área de desplazamiento del rótulo (QA 2026-10-15). */
+  display: none;
   opacity: 0;
-  visibility: hidden;
   transform: translateY(-2px);
-  transition: opacity 120ms ease, transform 120ms ease, visibility 0s linear 120ms;
+  transition: opacity 120ms ease, transform 120ms ease, display 120ms allow-discrete;
   pointer-events: none;
 }
 
 .pulso-f6-ayuda.is-abierta .pulso-f6-ayuda-globo {
+  display: block;
   opacity: 1;
-  visibility: visible;
   transform: none;
-  transition-delay: 0s;
+}
+
+@starting-style {
+  .pulso-f6-ayuda.is-abierta .pulso-f6-ayuda-globo { opacity: 0; transform: translateY(-2px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
