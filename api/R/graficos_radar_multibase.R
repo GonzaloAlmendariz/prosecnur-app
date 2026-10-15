@@ -515,7 +515,7 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
 #' Dibuja el radar comparativo.
 .radar_mb_grafico <- function(datos, estilo = NULL, overrides = list(), titulo = NULL,
                               mostrar_valores = NULL, decimales = NULL, eje_min = NULL,
-                              indicador = "") {
+                              indicador = "", preset = list()) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop_api(500, "E_RADAR_SIN_GGPLOT2", "El paquete R 'ggplot2' no está instalado.")
   }
@@ -565,6 +565,10 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
     ),
     .radar_mb_estilo_args(estilo)
   )
+  # Orden (O7c): base -> estilo -> preset del tipo -> lo que declara el elemento
+  # -> sus overrides. El preset es el defecto del tipo, no un candado sobre el
+  # grafico.
+  if (length(preset)) args <- utils::modifyList(args, preset)
 
   # Lo que el analista declara pisa al estilo: el estilo es un punto de partida,
   # no un candado.
@@ -574,18 +578,25 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
     # valores chicos. Un indicador entre publicos no tiene ese problema y sus
     # ceros legitimos —un tema en el que nadie esta de acuerdo— merecen su
     # etiqueta, asi que aqui se apaga.
-    args$valores_umbral_pct <- 0
+    # (Un umbral o una direccion que el preset declare siguen mandando, como
+    # antes de O7c: son del tipo, no del grafico.)
+    if (is.null(preset$valores_umbral_pct)) args$valores_umbral_pct <- 0
     # Hacia el centro: un indicador entre publicos vive en la banda alta, donde
     # el anillo exterior ya lo ocupa el nombre del tema. Escribir «98.0%» hacia
     # afuera lo tapaba.
-    args$valores_hacia_dentro <- TRUE
+    if (is.null(preset$valores_hacia_dentro)) args$valores_hacia_dentro <- TRUE
   }
   if (!is.null(decimales)) {
     dec <- suppressWarnings(as.integer(decimales)[1])
     if (is.finite(dec)) args$valores_decimales <- max(0L, min(3L, dec))
   }
-  piso <- .radar_mb_piso(datos, eje_min)
-  if (piso > 0) args$limites <- c(piso / 100, 1)
+  # Un piso declarado (incluido 0, «eje completo») manda sobre los `limites` del
+  # preset; sin piso declarado rigen esos limites o, sin ellos, el automatico.
+  if (!is.null(eje_min)) {
+    args$limites <- NULL
+    piso <- .radar_mb_piso(datos, eje_min)
+    if (piso > 0) args$limites <- c(piso / 100, 1)
+  }
   if (length(overrides)) args <- utils::modifyList(args, overrides)
   # El radar entre públicos calcula sus propios porcentajes (0 a 100): la escala no es configurable. El preset
   # `radar_tabla` trae `escala_valor = "proporcion_1"` para el radar de una base y, mezclado aquí, hacía que todo radar
@@ -656,10 +667,14 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
 #' @param mostrar_tabla Si `TRUE`, compone el radar con su tabla al costado.
 #' @param mostrar_valores Si `TRUE`, escribe el porcentaje en cada vértice.
 #' @param decimales Decimales del porcentaje, en el vértice y en la tabla.
-#'   `0` (el defecto) da enteros.
+#'   `0` da enteros.
 #' @param eje_min Piso del eje radial en puntos porcentuales. `0` es el eje
 #'   completo; `50` estira la mitad alta para ver diferencias dentro de una
 #'   banda estrecha.
+#'
+#'   Los tres aceptan `NULL` —el defecto—, que significa «el gráfico no opina»
+#'   (O7c): rige el preset del tipo (`mostrar_valores`, `valores_decimales`,
+#'   `limites`) y, sin él, `FALSE`, 0 y 0. Ver `.radar_mb_resolver()`.
 #' @param tabla_titulo Encabezado de la primera columna. Vacío = «Tema» más el
 #'   nombre del indicador.
 #' @param tabla_encabezados Renombres de las columnas de público, `clave=Título`
@@ -681,9 +696,9 @@ p_radar_publicos <- function(
     # preset del proyecto decida. Con `FALSE` el `%||%` del render nunca caia
     # al preset —`FALSE` no es `NULL`— y `tabla_nativa` del proyecto no llegaba.
     tabla_nativa  = NULL,
-    mostrar_valores = FALSE,
-    decimales = 0L,
-    eje_min = 0,
+    mostrar_valores = NULL,
+    decimales = NULL,
+    eje_min = NULL,
     tabla_titulo = NULL,
     tabla_encabezados = NULL,
     tabla_ancho_tema = NULL,
@@ -721,9 +736,9 @@ p_radar_publicos <- function(
     estilo         = as.character(estilo %||% "comparativo")[1],
     mostrar_tabla  = isTRUE(mostrar_tabla),
     tabla_nativa   = if (is.null(tabla_nativa)) NULL else isTRUE(tabla_nativa),
-    mostrar_valores = isTRUE(mostrar_valores),
-    decimales      = .radar_mb_decimales(decimales),
-    eje_min        = .radar_mb_eje_min(eje_min),
+    mostrar_valores = if (is.null(mostrar_valores)) NULL else isTRUE(mostrar_valores),
+    decimales      = if (is.null(decimales)) NULL else .radar_mb_decimales(decimales),
+    eje_min        = if (is.null(eje_min)) NULL else .radar_mb_eje_min(eje_min),
     tabla_titulo   = as.character(tabla_titulo %||% "")[1],
     tabla_encabezados = .radar_mb_renombres(tabla_encabezados),
     tabla_ancho_tema  = .radar_mb_fraccion(tabla_ancho_tema),
@@ -735,6 +750,21 @@ p_radar_publicos <- function(
   )
   class(el) <- c("ppt_element", "list")
   el
+}
+
+#' Lo que el radar entre públicos dibuja: el elemento, luego el preset, luego el defecto (O7c).
+#'
+#' `eje_min` se queda en `NULL` cuando ni el elemento lo declara ni hay defecto
+#' que poner: si el preset trae `limites`, son esos los que rigen; si no, `NULL`
+#' equivale a 0 (sin piso) en `.radar_mb_grafico()`.
+#' @keywords internal
+.radar_mb_resolver <- function(el, preset_args = list()) {
+  preset_args <- preset_args %||% list()
+  list(
+    mostrar_valores = isTRUE(el$mostrar_valores %||% preset_args$mostrar_valores %||% FALSE),
+    decimales = .radar_mb_decimales(el$decimales %||% preset_args$valores_decimales %||% 0L),
+    eje_min = el$eje_min
+  )
 }
 
 # El despacho del PPT resuelve por convencion de nombre —`.render_<etype>` con
@@ -767,17 +797,20 @@ p_radar_publicos <- function(
       call. = FALSE
     )
   }
-  overrides <- utils::modifyList(as.list(preset_args %||% list()),
-                                 as.list(el$overrides %||% list()))
-  g <- .radar_mb_grafico(datos, estilo = el$estilo, overrides = overrides,
+  # O7c: el preset va DEBAJO de lo que el elemento declara. Antes se mezclaba
+  # con `el$overrides` y esa mezcla se aplicaba al final, asi que el preset
+  # pisaba los decimales, las cifras y el piso del propio grafico.
+  res <- .radar_mb_resolver(el, preset_args)
+  g <- .radar_mb_grafico(datos, estilo = el$estilo, overrides = as.list(el$overrides %||% list()),
                          titulo = el$title_slide,
-                         mostrar_valores = el$mostrar_valores,
-                         decimales = el$decimales,
-                         eje_min = el$eje_min,
-                         indicador = el$corte_etiqueta)
+                         mostrar_valores = res$mostrar_valores,
+                         decimales = res$decimales,
+                         eje_min = res$eje_min,
+                         indicador = el$corte_etiqueta,
+                         preset = as.list(preset_args %||% list()))
   if (!isTRUE(el$mostrar_tabla)) return(g)
 
-  tabla <- .radar_mb_tabla(datos, el$corte_etiqueta, decimales = el$decimales)
+  tabla <- .radar_mb_tabla(datos, el$corte_etiqueta, decimales = res$decimales)
   .radar_mb_componer(g, tabla,
                      # Mismo orden que el resto: elemento, luego preset. Leyendolo
                      # solo del elemento, un `tabla_nativa` declarado en el

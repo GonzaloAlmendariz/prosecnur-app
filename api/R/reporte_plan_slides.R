@@ -1940,6 +1940,9 @@ p_slide_6_graficos_poblacion <- function(
 #' @param mostrar_significancia,significancia_alpha Marcar diferencias significativas entre grupos y su nivel.
 #' @param forzar_ancho_max_eje_y Respetar el ancho de las etiquetas aunque el texto quepa en menos.
 #'   Los tres van a `overrides`, de donde los lee el plan; `NULL` hereda el preset.
+#' @param invertir_barras,otros_al_final,normalizar_etiquetas Orden y rótulos de las categorías que la tarjeta de
+#'   Láminas escribe en el slot (O7c). Van a `overrides`; `NULL` hereda el preset (en la casa, `TRUE`, `TRUE` y
+#'   «ninguna»).
 #' @examples
 #' p_barras_agrupadas("p102", filtros = list(region = "Lima"))
 #' @family reporte
@@ -1947,7 +1950,8 @@ p_slide_6_graficos_poblacion <- function(
 p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), mostrar_ceros = NULL, excluir_opciones = NULL,
                                orden_categorias = NULL, max_categorias = NULL, agrupar_resto_en_otros = NULL,
                                etiqueta_otros = NULL, mostrar_significancia = NULL, significancia_alpha = NULL,
-                               forzar_ancho_max_eje_y = NULL, marcas_eje = NULL) {
+                               forzar_ancho_max_eje_y = NULL, marcas_eje = NULL, invertir_barras = NULL,
+                               otros_al_final = NULL, normalizar_etiquetas = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -1980,6 +1984,11 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
   overrides <- .ppt_slot_override(overrides, "forzar_ancho_max_eje_y", forzar_ancho_max_eje_y, "bool")
   # Recetario p74–p75: con la escala de 0 a 100 %, las marcas 0, 25, 50, 75 y 100 % bajo las barras (inventario, ítem 3).
   overrides <- .ppt_slot_override(overrides, "marcas_eje", marcas_eje, "bool")
+  # O7c: lo que la tarjeta escribe en el slot y el constructor no declaraba se caía en `.clean_rebuild_args()`.
+  overrides <- .ppt_slot_override(overrides, "invertir_barras", invertir_barras, "bool")
+  overrides <- .ppt_slot_override(overrides, "otros_al_final", otros_al_final, "bool")
+  overrides <- .ppt_slot_override(overrides, "normalizar_etiquetas", normalizar_etiquetas, "opcion",
+                                  opciones = eval(formals(graficar_barras_agrupadas)$normalizar_etiquetas))
 
   el <- list(
     .element_type = "barras_agrupadas",
@@ -2074,13 +2083,14 @@ p_barras_categoricas <- function(
 #'   queda). `NULL` hereda (encendido).
 #' @param mostrar_significancia,significancia_alpha Marcar diferencias significativas entre grupos y su nivel. Van a
 #'   `overrides`, de donde los lee el plan; `NULL` hereda el preset.
+#' @param invertir_barras Da la vuelta al orden de las filas (O7c). Va a `overrides`; `NULL` hereda el preset.
 #' @examples
 #' p_barras_apiladas("p102", filtros = list(region = "Lima"))
 #' @family reporte
 #' @export
 p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), excluir_opciones = NULL,
                               mostrar_categorias_en_cero = NULL, mostrar_respuestas = NULL,
-                              mostrar_significancia = NULL, significancia_alpha = NULL) {
+                              mostrar_significancia = NULL, significancia_alpha = NULL, invertir_barras = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -2103,6 +2113,7 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
   overrides <- .ppt_slot_override(overrides, "mostrar_respuestas", mostrar_respuestas, "bool")
   overrides <- .ppt_slot_override(overrides, "mostrar_significancia", mostrar_significancia, "bool")
   overrides <- .ppt_slot_override(overrides, "significancia_alpha", significancia_alpha, "numero", min = 0)
+  overrides <- .ppt_slot_override(overrides, "invertir_barras", invertir_barras, "bool")
 
   el <- list(
     .element_type = "barras_apiladas",
@@ -2125,6 +2136,8 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
 #'   y los argumentos necesarios para ese submodo (`vars`, `var`, `cruces`,
 #'   `titulos_grupo`, etc.). Cada bloque puede incluir opcionalmente
 #'   `altura_rel`, `overrides`, `base` y `filtros`.
+#' @param invertir_barras Da la vuelta al orden de las filas (O7c). Va a `overrides`, así que en `multilista` lo
+#'   heredan los bloques; `NULL` hereda el preset.
 #' @examples
 #' p_barras_multiapiladas(
 #'   modo = "cruce",
@@ -2160,7 +2173,8 @@ p_barras_multiapiladas <- function(
     filtros = list(),
     mostrar_categorias_en_cero = NULL,
     ancho_tema = NULL,
-    mostrar_respuestas = NULL
+    mostrar_respuestas = NULL,
+    invertir_barras = NULL
 ) {
   .ppt_as_chr_vec <- function(x, keep_names = FALSE) {
     if (is.null(x)) return(NULL)
@@ -2257,6 +2271,7 @@ p_barras_multiapiladas <- function(
   overrides <- .ppt_slot_override(overrides, "mostrar_categorias_en_cero", mostrar_categorias_en_cero, "bool")
   overrides <- .ppt_slot_override(overrides, "ancho_tema", ancho_tema, "opcion", opciones = names(.MULTIACTOR_ANCHO_TEMA))
   overrides <- .ppt_slot_override(overrides, "mostrar_respuestas", mostrar_respuestas, "bool")
+  overrides <- .ppt_slot_override(overrides, "invertir_barras", invertir_barras, "bool")   # O7c
 
   if (identical(modo, "multilista")) {
     if (!is.list(bloques) || !length(bloques)) {
@@ -2630,6 +2645,9 @@ p_nube_palabras <- function(
 #' @param formato Formato de salida (p.ej. `"%.0f%%"`).
 #' @param overrides Lista de overrides (p.ej. `fn`, `denom`, `na_rm`).
 #' @param filtros Lista nombrada de filtros por igualdad/inclusion.
+#' @param decimales,mostrar_leyenda,invertir_barras Lo que la tarjeta de Láminas escribe en el slot (O7c). Van a
+#'   `overrides`; `NULL` hereda el preset. Los decimales del indicador no los gobierna la pestaña «Cálculos»
+#'   (graficos_calculos_gobernados.R): no rotula porcentajes de una distribución.
 #' @examples
 #' p_numerico("p118_tbc_a", cruce = "region", filtros = list(sexo = "Mujer"))
 #'
@@ -2660,7 +2678,10 @@ p_numerico <- function(
     titulo = NULL,
     formato = NULL,
     overrides = list(),
-    filtros = list()
+    filtros = list(),
+    decimales = NULL,
+    mostrar_leyenda = NULL,
+    invertir_barras = NULL
 ) {
   # H41: nombre exacto o alias en espanol. `match.arg` aceptaba prefijos y «media» terminaba en «median».
   metrica <- .plan_metrica_numerica(metrica)
@@ -2684,6 +2705,9 @@ p_numerico <- function(
 
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)
+  overrides <- .ppt_slot_override(overrides, "decimales", decimales, "numero", min = 0)
+  overrides <- .ppt_slot_override(overrides, "mostrar_leyenda", mostrar_leyenda, "bool")
+  overrides <- .ppt_slot_override(overrides, "invertir_barras", invertir_barras, "bool")
 
   el <- list(
     .element_type = "numerico",
@@ -2714,6 +2738,8 @@ p_numerico <- function(
 #' @param limite_superior Tope del eje: lo que lo supera se junta en la última
 #'   barra, rotulada «N+» (C40). Formal y no sólo `...`: el slot de Láminas
 #'   descarta lo que no es formal.
+#' @param decimales Decimales de los porcentajes (O7c). Formal por la misma razón: por `...` el slot lo descartaba.
+#'   `NULL` hereda el preset.
 #'
 #' @return Objeto `"ppt_element"`.
 #' @family reporte
@@ -2727,6 +2753,7 @@ p_histograma <- function(
     base = list(),
     filtros = list(),
     limite_superior = NULL,
+    decimales = NULL,
     ...
 ) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
@@ -2750,6 +2777,7 @@ p_histograma <- function(
     overrides$modo <- overrides$modo %||% modo
   }
   overrides <- .ppt_slot_override(overrides, "limite_superior", limite_superior, "numero")
+  overrides <- .ppt_slot_override(overrides, "decimales", decimales, "numero", min = 0)
   if (!is.null(grupo)) overrides <- .histograma_con_estilo_grupos(overrides)   # G1: el dibujo de Ing. Civil por defecto
   if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)

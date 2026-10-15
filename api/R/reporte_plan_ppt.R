@@ -3905,8 +3905,8 @@ reporte_ppt_plan <- function(
       # firma esperada: (el, preset_args_multi, preset_args_single)
       args <- list(
         el                = el,
-        preset_args_multi  = pa_multi,
-        preset_args_single = pa_apiladas
+        preset_args_multi  = .casos_junto_sin_preset(pa_multi),   # O7c: los casos, como el resto (graficos_casos_junto.R)
+        preset_args_single = .casos_junto_sin_preset(pa_apiladas)
       )
       out <- tryCatch(.call_keep_formals(fn, args), error = identity)
       if (inherits(out, "error")) {
@@ -4722,7 +4722,7 @@ reporte_ppt_plan <- function(
         overrides <- .collapse_y_label_space_word(overrides)
       }
 
-      args <- .merge_args(.plan_args_casos(base_args), preset_args_single, preset_args_multi, overrides)
+      args <- .merge_args(.plan_args_casos(base_args), preset_args_single, preset_args_multi, .top2box_del_grafico(el), overrides)  # O7c
       args <- .reservar_pie_para_base_slide(args, min_in = .PLAN_RESERVA_PIE_MULTI_IN, word_render = isTRUE(el$.word_render))
       args$ancho_max_eje_y <- wrap_y_eff  # sin re-wrap del graficador (H31)
       fun  <- graficar_barras_apiladas
@@ -4919,7 +4919,7 @@ reporte_ppt_plan <- function(
         preset_args_single[[k]] <- NULL
       }
 
-      args <- .merge_args(.plan_args_casos(base_args), preset_args_single, preset_args_multi, overrides)
+      args <- .merge_args(.plan_args_casos(base_args), preset_args_single, preset_args_multi, .top2box_del_grafico(el), overrides)  # O7c
       args <- .reservar_pie_para_base_slide(args, min_in = .PLAN_RESERVA_PIE_MULTI_IN, word_render = isTRUE(el$.word_render))
       args$ancho_max_eje_y <- wrap_y_eff  # idem modo var: sin re-wrap (H31)
       fun  <- graficar_barras_apiladas
@@ -5332,7 +5332,7 @@ reporte_ppt_plan <- function(
       )
       base_args <- .apply_top2box_alias(base_args)
 
-      args <- .merge_args(.plan_args_casos(base_args), preset_args_single, preset_args_multi)
+      args <- .merge_args(.plan_args_casos(base_args), preset_args_single, preset_args_multi, .top2box_del_grafico(el))  # O7c
       if (isTRUE(usar_layout_multiactor)) {
         effective_args <- .merge_args(args, overrides)
         extra_preset <- as.character(effective_args$barra_extra_preset %||% "ninguno")[1]
@@ -5354,7 +5354,7 @@ reporte_ppt_plan <- function(
         args$mostrar_barra_extra <- isTRUE(show_extra)
       }
 
-      args <- .merge_args(args, .multiactor_overrides_de(overrides))
+      args <- .merge_args(args, .multiactor_overrides_de(overrides, presets))
       args <- .reservar_pie_para_base_slide(args, min_in = .PLAN_RESERVA_PIE_MULTI_IN, word_render = isTRUE(el$.word_render))
       args$usar_canvas <- TRUE
       fun  <- graficar_barras_apiladas

@@ -33,6 +33,8 @@
 #'   en modo `publicos`: encabezados y anchos de la tabla al costado.
 #' @param titulos_grupo Sólo en modo `publicos`: títulos de los temas,
 #'   `clave -> título` (ver `p_radar_publicos`).
+#' @param limites Rango del eje radial, `c(min, max)` en escala 0-1 (O7c). Va a
+#'   `overrides` en los tres modos; `NULL` hereda el preset.
 #' @export
 p_radar <- function(modo = c("sm", "box", "publicos"),
                     var  = NULL,
@@ -60,18 +62,24 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
                     overrides = list(),
                     base = list(),
                     filtros = list(),
-                    titulos_grupo = NULL) {
+                    titulos_grupo = NULL,
+                    limites = NULL) {
+  overrides <- .radar_slot_limites(overrides %||% list(), limites)
   # El modo se resuelve ANTES del `match.arg` de `p_radar_tabla`, que no conoce
   # `publicos` y abortaría.
   if (identical(as.character(modo)[1], "publicos")) {
     # `mostrar_valores` y `valores_decimales` son los MISMOS args que los otros
     # dos modos ya exponen: el analista no tiene por que aprender un nombre
     # distinto segun lo que el radar compare.
+    #
+    # O7c: sin valor llegan como `NULL` —el elemento no opina— para que el preset
+    # del tipo decida debajo del grafico; los defectos (FALSE, 0, 0) los pone el
+    # render cuando ni el grafico ni el preset dicen nada.
     return(p_radar_publicos(
       vars = vars, corte = corte, estilo = estilo %||% "comparativo",
       corte_etiqueta = corte_etiqueta, mostrar_tabla = isTRUE(mostrar_tabla),
-      mostrar_valores = isTRUE(mostrar_valores),
-      decimales = valores_decimales %||% 0L, eje_min = eje_min %||% 0,
+      mostrar_valores = mostrar_valores,
+      decimales = valores_decimales, eje_min = eje_min,
       tabla_titulo = tabla_titulo, tabla_encabezados = tabla_encabezados,
       tabla_ancho_tema = tabla_ancho_tema, tabla_proporcion = tabla_proporcion,
       titulo = titulo, overrides = overrides, base = base, filtros = filtros,
@@ -96,6 +104,17 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
     sm_omit_na = sm_omit_na,
     overrides = overrides, base = base, filtros = filtros
   )
+}
+
+# O7c: `limites` es un par, así que no cabe en `.ppt_slot_override()` (escalares). Un override explícito manda.
+.radar_slot_limites <- function(overrides, limites) {
+  if (is.null(limites) || !is.null(overrides$limites)) return(overrides)
+  lim <- suppressWarnings(as.numeric(unlist(limites)))
+  if (length(lim) != 2L || any(!is.finite(lim)) || lim[1] >= lim[2]) {
+    .plan_spec_abort("`limites` debe ser NULL o un par c(min, max) de numeros finitos con min < max.")
+  }
+  overrides$limites <- lim
+  overrides
 }
 
 #' Tabla sola (sin radar)

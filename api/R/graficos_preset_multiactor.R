@@ -123,6 +123,15 @@
 # quedan con el 48 %, sobre el piso de `.MULTIACTOR_W_BARS_MIN`.
 .MULTIACTOR_ANCHO_TEMA <- c(auto = NA_real_, ancho = 0.28, angosto = 0.14)
 
+#' «Ancho de los temas» que rige una lámina: el de la lámina y, si no opina, el del preset del tipo (O7c).
+#'
+#' «Aplicar a todos los gráficos del tipo» lo escribe en `presets$multi_apiladas$args$ancho_tema`; antes sólo se leía
+#' el de la lámina y el del preset no llegaba nunca.
+#' @keywords internal
+.multiactor_ancho_tema_pedido <- function(ancho_lamina, presets = NULL) {
+  ancho_lamina %||% (if (is.list(presets)) presets$multi_apiladas$args$ancho_tema else NULL)
+}
+
 #' Args del preset multiactor para una lámina: los del informe con el ancho del tema que pidió esa lámina.
 #' Un ancho de tema propio de la lámina (las de la matriz traen `canvas_w_grupo = 0.22`) es el punto de partida en
 #' «Automático»: así las barras se calculan con el mismo ancho que dibuja el tema.
@@ -130,16 +139,17 @@
   args <- presets$multi_apiladas_multiactor$args %||% list()
   propio <- suppressWarnings(as.numeric(el$overrides$canvas_w_grupo %||% NA)[1])
   if (is.finite(propio)) args$canvas_w_grupo <- propio
-  pedido <- el$overrides$ancho_tema %||% el$ancho_tema
+  pedido <- .multiactor_ancho_tema_pedido(el$overrides$ancho_tema %||% el$ancho_tema, presets)
   w <- if (is.character(pedido) && length(pedido) == 1L) unname(.MULTIACTOR_ANCHO_TEMA[pedido]) else NA_real_
   if (length(w) == 1L && is.finite(w)) args$canvas_w_grupo <- w
   args
 }
 
 #' Los ajustes de la lámina que se aplican al final: con «Más ancho» o «Más angosto» el ancho de tema propio ya se
-#' resolvió en el reparto y no puede volver a pisarlo (las láminas de la matriz traen 0.22 fijo).
-.multiactor_overrides_de <- function(overrides) {
-  pedido <- overrides$ancho_tema
+#' resolvió en el reparto y no puede volver a pisarlo (las láminas de la matriz traen 0.22 fijo). El ancho puede venir
+#' del preset del tipo (`presets`), con la misma regla.
+.multiactor_overrides_de <- function(overrides, presets = NULL) {
+  pedido <- .multiactor_ancho_tema_pedido(overrides$ancho_tema, presets)
   if (is.character(pedido) && length(pedido) == 1L && is.finite(unname(.MULTIACTOR_ANCHO_TEMA[pedido]) %||% NA_real_)) {
     overrides$canvas_w_grupo <- NULL
   }

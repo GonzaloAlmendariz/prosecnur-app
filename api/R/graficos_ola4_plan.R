@@ -552,13 +552,16 @@ p_barras_divergentes <- function(vars = NULL,
 #'   el preset o el motor («pts», como el recetario).
 #' @param titulos_grupo Títulos de los temas, `clave -> título`; reemplazan la
 #'   clave de `vars` como etiqueta de la fila (sólo sin `cruce`).
+#' @param orden,mostrar_brecha,umbral_brecha_pct `NULL` no opina (O7c): rige el
+#'   preset del tipo y, sin él, el defecto de `graficar_dumbbell()` («brecha»,
+#'   `TRUE`, 0: los que tenía este constructor).
 #' @export
 p_dumbbell <- function(vars,
                        corte,
                        corte_etiqueta = NULL,
-                       orden = c("brecha", "valor", "declarado"),
-                       mostrar_brecha = TRUE,
-                       umbral_brecha_pct = 0,
+                       orden = NULL,
+                       mostrar_brecha = NULL,
+                       umbral_brecha_pct = NULL,
                        titulo = NULL,
                        overrides = list(),
                        base = list(),
@@ -567,7 +570,6 @@ p_dumbbell <- function(vars,
                        cruce = NULL,
                        grupos = NULL,
                        titulos_grupo = NULL) {
-  orden <- match.arg(orden)
   # G17: con `cruce` y `grupos` la brecha es entre dos grupos de una misma base (graficos_dumbbell_grupos.R).
   if (!is.null(cruce)) {
     return(.p_dumbbell_grupos(vars, corte, corte_etiqueta, orden, mostrar_brecha, umbral_brecha_pct, titulo,
@@ -615,11 +617,7 @@ p_dumbbell <- function(vars,
     }
   }
 
-  ov <- overrides
-  ov$orden <- orden
-  ov$mostrar_brecha <- isTRUE(mostrar_brecha)
-  ov$umbral_brecha_pct <- suppressWarnings(as.numeric(umbral_brecha_pct)[1])
-  ov <- .ppt_slot_override(ov, "etiqueta_brecha", etiqueta_brecha, "texto")
+  ov <- .dumbbell_slot_overrides(overrides, orden, mostrar_brecha, umbral_brecha_pct, etiqueta_brecha)
 
   el <- list(
     .element_type = "dumbbell",
@@ -634,6 +632,19 @@ p_dumbbell <- function(vars,
   )
   class(el) <- c("ppt_element", "list")
   el
+}
+
+# O7c: el constructor escribía SIEMPRE `orden`, `mostrar_brecha` y `umbral_brecha_pct` con sus defectos, y como el
+# render mezcla `preset -> overrides`, el preset del tipo no llegaba nunca. Sólo se escribe lo que el slot declara; un
+# override explícito manda sobre el formal. Compartido con la brecha entre grupos (graficos_dumbbell_grupos.R).
+.DUMBBELL_ORDENES <- c("brecha", "valor", "declarado")
+
+#' @keywords internal
+.dumbbell_slot_overrides <- function(overrides, orden, mostrar_brecha, umbral_brecha_pct, etiqueta_brecha) {
+  ov <- .ppt_slot_override(overrides, "orden", orden, "opcion", opciones = .DUMBBELL_ORDENES)
+  ov <- .ppt_slot_override(ov, "mostrar_brecha", mostrar_brecha, "bool")
+  ov <- .ppt_slot_override(ov, "umbral_brecha_pct", umbral_brecha_pct, "numero", min = 0)
+  .ppt_slot_override(ov, "etiqueta_brecha", etiqueta_brecha, "texto")
 }
 
 #' @keywords internal
@@ -670,9 +681,11 @@ p_dumbbell <- function(vars,
 # --- Lollipop ---------------------------------------------------------------
 
 #' Ranking tipo lollipop de las opciones de una pregunta
+#' @param orden `NULL` no opina (O7c): rige el preset del tipo y, sin él, el
+#'   defecto de `graficar_lollipop()` («mayor_menor», el que tenía este constructor).
 #' @export
 p_lollipop <- function(var,
-                       orden = c("mayor_menor", "menor_mayor", "declarado"),
+                       orden = NULL,
                        top_n = NULL,
                        resaltar = NULL,
                        titulo = NULL,
@@ -680,14 +693,12 @@ p_lollipop <- function(var,
                        base = list(),
                        filtros = list(),
                        excluir_opciones = NULL) {
-  orden <- match.arg(orden)
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("p_lollipop(): `var` debe ser character(1) no vacio.")
   }
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
 
-  ov <- overrides
-  ov$orden <- orden
+  ov <- .ppt_slot_override(overrides, "orden", orden, "opcion", opciones = c("mayor_menor", "menor_mayor", "declarado"))
   if (!is.null(top_n)) ov$top_n <- suppressWarnings(as.integer(top_n)[1])
   if (!is.null(resaltar)) ov$resaltar <- as.character(resaltar)
   if (!is.null(excluir_opciones)) {
