@@ -1014,3 +1014,200 @@
   flex-wrap: wrap;
   gap: var(--pulso-space-1);
 }
+
+/* ID8 del rediseño (2026-10-15): muestra viva. Tres piezas pares (C2) debajo del detalle; cada una se mide en `cqw` de
+   su propia caja para escalar con el ancho. Los colores de la lámina son datos del proyecto y van en línea. */
+.pulso-f6-id-detalle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  min-width: 0;
+}
+
+.pulso-f6-muestra {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-f6-muestra-lab {
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pulso-f6-muestra-fila {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+@media (max-width: 1100px) {
+  .pulso-f6-muestra-fila {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.pulso-f6-muestra-pieza {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  margin: 0;
+  container-type: inline-size;
+}
+
+.pulso-f6-muestra-pieza figcaption {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+}
+
+.pulso-f6-muestra-ppt-portada,
+.pulso-f6-muestra-lamina {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--pulso-border);
+}
+
+.pulso-f6-muestra-ppt-portada {
+  justify-content: flex-end;
+  gap: 2cqw;
+  padding: 7cqw;
+  background: var(--pulso-primary);
+}
+
+.pulso-f6-muestra-ppt-titulo {
+  color: var(--pulso-surface);
+  font-size: 6.4cqw;
+  font-weight: 700;
+  line-height: 1.12;
+}
+
+.pulso-f6-muestra-ppt-regla {
+  width: 18cqw;
+  height: 1cqw;
+  background: var(--module-accent);
+}
+
+.pulso-f6-muestra-lamina {
+  gap: 3cqw;
+  padding: 5cqw;
+  background: var(--pulso-surface);
+}
+
+.pulso-f6-muestra-lamina-ante {
+  width: 20cqw;
+  height: 1.6cqw;
+  border-radius: 1px;
+  background: var(--pulso-border-strong);
+}
+
+.pulso-f6-muestra-lamina-titulo {
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 5cqw;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-f6-muestra-barra {
+  display: flex;
+  height: 6cqw;
+  overflow: hidden;
+  border-radius: 1px;
+}
+
+.pulso-f6-muestra-barra i { display: block; }
+.pulso-f6-muestra-barra i.is-tono-0 { background: color-mix(in srgb, var(--pulso-primary) 25%, var(--pulso-surface)); }
+.pulso-f6-muestra-barra i.is-tono-1 { background: color-mix(in srgb, var(--pulso-primary) 45%, var(--pulso-surface)); }
+.pulso-f6-muestra-barra i.is-tono-2 { background: color-mix(in srgb, var(--pulso-primary) 65%, var(--pulso-surface)); }
+.pulso-f6-muestra-barra i.is-tono-3 { background: color-mix(in srgb, var(--pulso-primary) 85%, var(--pulso-surface)); }
+.pulso-f6-muestra-barra i.is-tono-4 { background: var(--pulso-border-strong); }
+
+.pulso-f6-muestra-word {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3cqw;
+}
+
+.pulso-f6-muestra-word-pag {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6cqw;
+  aspect-ratio: 210 / 297;
+  overflow: hidden;
+  padding: 5cqw 4cqw;
+  border-radius: 2px;
+  background: var(--pulso-surface);
+  box-shadow: 0 0 0 1px var(--pulso-border);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.pulso-f6-muestra-word-pag.is-portada {
+  justify-content: space-between;
+}
+
+.pulso-f6-muestra-logos {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2cqw;
+}
+
+.pulso-f6-muestra-logo-img {
+  max-width: 45%;
+  height: 6cqw;
+  object-fit: contain;
+}
+
+.pulso-f6-muestra-logo-texto {
+  color: var(--pulso-primary);
+  font-size: 3cqw;
+  font-weight: 700;
+}
+
+.pulso-f6-muestra-word-titulo {
+  margin-bottom: 30%;
+  color: var(--pulso-primary);
+  font-size: 4.4cqw;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.pulso-f6-muestra-word-h {
+  color: var(--pulso-primary);
+  font-weight: 700;
+}
+
+.pulso-f6-muestra-word-lab {
+  font-weight: 700;
+}
+
+.pulso-f6-muestra-word-q {
+  font-style: italic;
+}
+
+.pulso-f6-muestra-glifo {
+  width: 100%;
+  height: auto;
+}
+
+.pulso-f6-muestra-word-base {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-muestra-nota {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+}

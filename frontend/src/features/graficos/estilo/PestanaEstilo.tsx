@@ -51,6 +51,9 @@ import { SeccionLineaVisual } from "../estiloInforme/SeccionLineaVisual";
 import { lineaVisualAplicada } from "../estiloInforme/modeloEstiloInforme";
 import { usePptStyleProfiles } from "../usePptStyleProfiles";
 import { usePaletasRespuestas } from "./usePaletasRespuestas";
+import { MuestraIdentidad, type DatosMuestra, type LogoMuestra } from "./MuestraIdentidad";
+import { IMAGEN_POR_DEFECTO } from "./TarjetaLogo";
+import { downloadUrl } from "../../../api/core";
 import { useLineasPropias } from "./lineasPropiasStore";
 import { useVariables } from "../useVariables";
 import { ESTILO_AMBITOS } from "../../../api/graficosEstilo";
@@ -86,6 +89,7 @@ export default function PestanaEstilo() {
   const estilo = usePlanStore((s) => s.estiloCliente);
   const scopeRules = usePlanStore((s) => s.scopeRules);
   const iconos = usePlanStore((s) => s.iconos);
+  const slidesPlan = usePlanStore((s) => s.plan.slides);
   const { profiles } = usePptStyleProfiles();
   const propias = useLineasPropias((s) => s.lineas);
   const { filas: filasPaletas } = usePaletasRespuestas();
@@ -161,6 +165,23 @@ export default function PestanaEstilo() {
     { clave: "letra", titulo: "Letra", resumen: conLetra ? "Tamaño ajustado" : "Tamaño estándar", estado: conLetra ? { texto: "Ajustada", tono: "ok" } : { texto: "Estándar", tono: "neutro" } },
     { clave: "iconos", titulo: "Íconos propios", resumen: "Objetivo y capítulos", estado: { texto: String(iconos.length), tono: iconos.length ? "ok" : "neutro" } },
   ];
+  // ID8: datos de la muestra viva. La escala de muestra es la primera con todos sus colores (o la primera con alguno).
+  const escala = filasPaletas.find((f) => f.faltan === 0 && f.opciones.length >= 3) ?? filasPaletas.find((f) => f.faltan < f.opciones.length) ?? null;
+  const logoMuestra = (lugar: EstiloLugarLogo): LogoMuestra => {
+    const propio = estilo.logos?.[lugar];
+    const rec = opciones?.logos.find((l) => l.lugar === lugar);
+    return propio ? { src: downloadUrl(propio.file_id), nombre: propio.nombre ?? "Logo propio" }
+      : { src: rec?.logo ? IMAGEN_POR_DEFECTO[rec.logo] ?? null : null, nombre: rec?.nombre ?? "" };
+  };
+  const portada = slidesPlan.find((x) => x.tipo === "p_slide_portada");
+  const tituloInforme = typeof (portada?.payload as Record<string, unknown> | undefined)?.titulo === "string" ? String((portada?.payload as Record<string, unknown>).titulo) : "Informe";
+  const muestra: DatosMuestra = {
+    titulo: tituloInforme,
+    desplazamientoPt: opciones?.pasos.find((x) => x.id === paso)?.desplazamientoPt ?? 0,
+    colores: escala ? escala.opciones.map((o) => escala.colores[o]).filter((c): c is string => !!c) : [],
+    respuestas: escala?.opciones ?? [],
+    logos: { izquierda: logoMuestra("portada_izquierda"), derecha: logoMuestra("portada_derecha") },
+  };
   const nBases = sources.length;
   const subtitulo = ambito === "base"
     ? `Cada base con su estilo · ahora: ${state?.active_base ?? "base activa"}`
@@ -182,6 +203,7 @@ export default function PestanaEstilo() {
       <div className="pulso-f6-estilo-cuerpo" data-qa-scroll-owner="estilo">
         <div className="pulso-f6-id-grid">
           <PiezasIdentidad piezas={piezas} actual={sub} onElegir={setSub} idPanel={ID_PANEL} />
+          <div className="pulso-f6-id-detalle">
           <div className="pulso-f6-estilo-secciones" id={ID_PANEL} role="tabpanel" aria-labelledby={`f6-id-pieza-${sub}`}
             data-qa-geometry-group="graficos/f6-estilo-secciones" data-qa-geometry-contract="intrinsic">
             {opcionesError ? <p className="pulso-f6-estilo-error" role="alert">{opcionesError}</p> : null}
@@ -249,6 +271,9 @@ export default function PestanaEstilo() {
               </section>
             )}
             {sub === "colores" && <ColoresRespuestas />}
+          </div>
+          {/* ID8: lo que la identidad cambia, a la vista mientras se ajusta (no en el compartido: sin logos ni letra). */}
+          {scope !== "consolidated" && <MuestraIdentidad datos={muestra} />}
           </div>
         </div>
       </div>
