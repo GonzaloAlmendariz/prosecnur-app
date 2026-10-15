@@ -554,3 +554,103 @@
     animation-name: pulso-f6-vg-velo;
   }
 }
+
+/* I1 del rediseño (2026-10-14): la maqueta de la tarjeta (MaquetaTarjeta.tsx). La lámina se mide en `cqw` de su propia
+   caja para que título, glifos y preguntas escalen con el ancho de la tarjeta (I10) sin recalcular nada en JS; las ranuras
+   usan las fracciones reales de la composición del tipo, igual que la maqueta del editor. */
+.pulso-f6-vg-lienzo.is-maqueta {
+  position: relative;
+  overflow: hidden;
+  background: var(--pulso-surface);
+  /* El contenedor es el marco y no la maqueta: el `cqw` de un elemento se mide contra su ANCESTRO contenedor. */
+  container-type: inline-size;
+}
+
+.pulso-f6-vg-maqueta {
+  position: absolute;
+  inset: 0;
+  font-size: 1cqw;
+}
+
+.pulso-f6-vg-maqueta.is-estructura > .pulso-composicion {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.pulso-f6-vg-maqueta-ante {
+  position: absolute;
+  top: 3.4%;
+  left: 3.6%;
+  width: 22%;
+  height: 2.4%;
+  border-radius: 1px;
+  background: var(--pulso-border-strong);
+  font-size: 0;
+}
+
+.pulso-f6-vg-maqueta-titulo {
+  position: absolute;
+  top: 7.6%;
+  left: 3.6%;
+  right: 12%;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 5.2em;
+  font-weight: 700;
+  line-height: 1.12;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-f6-vg-maqueta-titulo.is-vacio {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-vg-ranura {
+  position: absolute;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  justify-items: center;
+  align-items: center;
+  gap: 1.2em;
+  padding: 2em 2em 1.6em;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--pulso-surface-2);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+}
+
+.pulso-f6-vg-ranura-gl {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.pulso-f6-vg-ranura-lb {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--pulso-text-muted);
+  font-size: 3.4em;
+  line-height: 1.15;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-f6-vg-ranura-lb.is-vacio,
+.pulso-f6-vg-ranura.is-vacia .pulso-f6-vg-ranura-lb {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-vg-ranura.is-vacia {
+  grid-template-rows: 1fr;
+  background: transparent;
+  box-shadow: none;
+  outline: 1.5px dashed var(--pulso-border-strong);
+  outline-offset: -2px;
+}
+
+.pulso-f6-vg-ranura.is-cifra {
+  background: color-mix(in srgb, var(--module-accent) 6%, var(--pulso-surface));
+}

@@ -1,14 +1,12 @@
-// Tarjeta de una lámina en la Vista general (F6.3): miniatura 16:9 real (176 × 99, mismo lote y caché que la tira), su
-// número, el ícono de su tipo, su título y un ícono por gráfico configurado (inventario A0 C29). Marco fijo (C2): toda
-// variante de la miniatura —esqueleto, imagen, composición, error— ocupa la misma caja. Es una opción de la lista del
+// Tarjeta de una lámina en el Informe (F6.3; I1 del rediseño, 2026-10-14): su MAQUETA 16:9 (`MaquetaTarjeta`, la del
+// editor reducida; ya no la miniatura del motor, que se queda en Láminas con «Previsualizar»), su número, el ícono de su
+// tipo, su título y un ícono por gráfico configurado (inventario A0 C29). Marco fijo (C2): la maqueta llena la misma caja. Es una opción de la lista del
 // capítulo: se elige, se arrastra y con doble clic (o Enter) se abre en Láminas.
 
 import { memo, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
 import type { Slide } from "../../../api/graficos";
 import { IconoTipo } from "../iconos/IconoTipo";
-import { ContenidoMiniatura } from "../laminas/miniaturas/ContenidoMiniatura";
-import type { EntradaMiniatura } from "../laminas/miniaturas/loteMiniaturas";
-import { rotuloEstado, vistaDeMiniatura } from "../laminas/miniaturas/vistaMiniatura";
+import { MaquetaTarjeta } from "./MaquetaTarjeta";
 import type { TarjetaVistaGeneral } from "./modeloVistaGeneral";
 
 export type ManejadoresTarjeta = {
@@ -25,8 +23,6 @@ export type ManejadoresTarjeta = {
 type Props = {
   tarjeta: TarjetaVistaGeneral;
   slide: Slide | undefined;
-  entrada: EntradaMiniatura | undefined;
-  imagenPrevia: string | undefined;
   /** Nombre humano de cada gráfico configurado (mismo orden que `tarjeta.graficos`). */
   nombresGraficos: string[];
   seleccionada: boolean;
@@ -40,9 +36,8 @@ type Props = {
 const MAX_ICONOS = 6;
 const ROL: Record<TarjetaVistaGeneral["rol"], string> = { separador: "Capítulo", subcapitulo: "Subcapítulo", lamina: "" };
 
-function TarjetaLaminaBase({ tarjeta, slide, entrada, imagenPrevia, nombresGraficos, seleccionada, itinerante, arrastrada, soltar, manejadores }: Props) {
+function TarjetaLaminaBase({ tarjeta, slide, nombresGraficos, seleccionada, itinerante, arrastrada, soltar, manejadores }: Props) {
   const { lamina, rol, numero, graficos } = tarjeta;
-  const { vista, src } = vistaDeMiniatura(entrada, imagenPrevia);
   const detalleGraficos = lamina.ranuras === 0
     ? ""
     : lamina.ranurasLlenas === 0
@@ -60,7 +55,7 @@ function TarjetaLaminaBase({ tarjeta, slide, entrada, imagenPrevia, nombresGrafi
     <li
       role="option"
       aria-selected={seleccionada}
-      aria-label={`Lámina ${lamina.posicion}: ${lamina.titulo}. ${rotuloRol}${lamina.tipoLabel}.${detalleGraficos}${rotuloEstado(vista)}`}
+      aria-label={`Lámina ${lamina.posicion}: ${lamina.titulo}. ${rotuloRol}${lamina.tipoLabel}.${detalleGraficos}`}
       tabIndex={itinerante ? 0 : -1}
       className={clases}
       data-vg-tarjeta={lamina.id}
@@ -75,8 +70,8 @@ function TarjetaLaminaBase({ tarjeta, slide, entrada, imagenPrevia, nombresGrafi
       onDrop={manejadores.onSoltar}
       onDragEnd={manejadores.onFinArrastre}
     >
-      <span className={`pulso-f6-miniatura pulso-f6-vg-lienzo is-${vista}`}>
-        <ContenidoMiniatura vista={vista} src={src} slide={slide} lamina={lamina} />
+      <span className="pulso-f6-miniatura pulso-f6-vg-lienzo is-maqueta">
+        {slide && <MaquetaTarjeta slide={slide} tipoLabel={lamina.tipoLabel} antetitulo={lamina.antetituloHeredado} />}
         {rol !== "lamina" && numero && (
           <span className="pulso-f6-vg-rol" aria-hidden="true">{ROL[rol]} {numero}</span>
         )}
