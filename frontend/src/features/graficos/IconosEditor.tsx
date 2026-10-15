@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Upload, Trash2, Pencil, Check, ImageOff, Images, CheckCircle2 } from "lucide-react";
+import { Upload, Trash2, Pencil, Check, ImageOff, Images, CheckCircle2 } from "../../vendor/lucide-react";
 import { apiGraficosIconoUpload, downloadUrl } from "../../api/client";
 import { usePlanStore, IconoConfig } from "./store";
 import { EmptyState, ErrorBlock } from "../../components/States";
