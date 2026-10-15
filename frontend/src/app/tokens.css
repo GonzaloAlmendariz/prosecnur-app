@@ -493,6 +493,9 @@
   --module-accent: var(--pulso-module-processing);
   --module-accent-soft: var(--pulso-module-processing-soft);
   --module-accent-border: var(--pulso-module-processing-border);
+  /* Los interruptores toman el color del módulo, como ya hacía Carga (carga-v2.css); el primario azul es de la app. */
+  --pulso-switch-accent: var(--pulso-module-processing);
+  --pulso-switch-accent-ring: color-mix(in srgb, var(--pulso-module-processing) 18%, transparent);
 }
 
 .pulso-xlsform-frame {
