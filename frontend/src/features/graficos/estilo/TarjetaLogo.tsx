@@ -10,10 +10,11 @@ import { ImagePlus, RotateCcw } from "../../../vendor/lucide-react";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ETIQUETA_LUGAR, type Procedencia } from "./modeloEstilo";
 
-/** Dónde sale cada logo, en palabras del documento. */
+/** Dónde sale cada logo, en palabras del documento. ID5 (2026-10-15): hoy sólo el job del Word recibe el estilo del
+ *  cliente (graficos_jobs.R, `graficos_job_worker_word`); decía «en el PPT y en el Word». Llegan al PPT con ID9 (D5). */
 const DONDE: Record<EstiloLugarLogo, string> = {
-  portada_izquierda: "Arriba a la izquierda de la portada, en el PPT y en el Word.",
-  portada_derecha: "Arriba a la derecha de la portada, en el PPT y en el Word.",
+  portada_izquierda: "Arriba a la izquierda de la portada del Word.",
+  portada_derecha: "Arriba a la derecha de la portada del Word.",
   contraportada: "Al centro de la última página.",
 };
 
