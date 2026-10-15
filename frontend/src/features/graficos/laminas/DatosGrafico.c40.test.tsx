@@ -29,7 +29,9 @@ const REGISTRO: Record<string, { args: ArgMetadata[] }> = {
 };
 
 vi.mock("react-router-dom", () => ({ useLocation: () => ({ search: "", pathname: "/graficos" }), useNavigate: () => () => undefined }));
-vi.mock("../store", () => ({ usePlanStore: (sel: (s: { updateSlotArgs: () => void }) => unknown) => sel({ updateSlotArgs: () => undefined }) }));
+// O7b: la tarjeta lee también los presets y el plan (alcance de cada ajuste) y aplica al tipo.
+const ESTADO = { updateSlotArgs: () => undefined, presets: {}, plan: { slides: [] }, aplicarAjusteAlTipo: () => undefined, undo: () => undefined };
+vi.mock("../store", () => ({ usePlanStore: (sel: (s: typeof ESTADO) => unknown) => sel(ESTADO), SLIDE_GRAF_SLOTS: {} }));
 vi.mock("./laminasStore", () => ({ useLaminasUi: (sel: (s: { setEditorAmplio: () => void }) => unknown) => sel({ setEditorAmplio: () => undefined }) }));
 vi.mock("../useGraficosRegistry", () => ({ useGraficosRegistry: () => ({ graficadoresById: REGISTRO }) }));
 vi.mock("../reportScope", () => ({ useGraficosReportScope: () => "active" }));

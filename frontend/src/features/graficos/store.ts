@@ -11,6 +11,7 @@ import type { GraficosConfigDefaults } from "../../api/graficosConfigDefaults";
 import { normalizeEstiloCliente, type EstiloCliente } from "../../api/graficosEstilo";
 import { conVinculo, vinculosDecisiones } from "./paletasResolver";
 import { sinEstiloDePerfil } from "./estiloInforme/quitarLineaVisual";
+import { conAjusteEnElTipo } from "./laminas/modeloAlcance";
 
 // Store del plan de gráficos. Sigue el mismo patrón que el store de
 // Analítica: hidrata desde backend al montar, marca `dirty` con cada
@@ -212,6 +213,8 @@ type PlanStore = {
   setSlot: (id: string, slot: string, graf: GraficadorRef | null) => void;
   updateSlotArgs: (id: string, slot: string, patch: Record<string, unknown>) => void;
   setPresets: (presets: Record<string, Record<string, unknown>>) => void;
+  /** O7b: lleva un ajuste al preset del tipo y a cada gráfico de ese tipo, en un solo paso deshacible. */
+  aplicarAjusteAlTipo: (tipo: string, cambios: Record<string, unknown>) => void;
   setWPresets: (wPresets: Record<string, Record<string, unknown>>) => void;
   setDocumentoWord: (documentoWord: DocumentoWordOpciones) => void;
   /** Reemplaza el estilo del cliente (un paso deshacible). Las funciones de cambio viven en `estilo/modeloEstilo.ts`. */
@@ -706,6 +709,10 @@ export const usePlanStore = create<PlanStore>((set) => ({
   },
 
   setPresets: (presets) => set((state) => dirty(state, { presets })),
+  aplicarAjusteAlTipo: (tipo, cambios) => set((state) => {
+    const r = conAjusteEnElTipo({ presets: state.presets, slides: state.plan.slides }, tipo, cambios);
+    return dirty(state, { presets: r.presets, plan: { ...state.plan, slides: r.slides } });
+  }),
   setWPresets: (wPresets) => set((state) => dirty(state, { wPresets })),
   setDocumentoWord: (documentoWord) => set((state) => dirty(state, { documentoWord: normalizeDocumentoWord(documentoWord) })),
   setEstiloCliente: (estiloCliente) => set((state) => dirty(state, { estiloCliente: normalizeEstiloCliente(estiloCliente) })),
