@@ -22,7 +22,7 @@ export function ExcepcionesRegla({ excepciones, ayuda }: { excepciones: readonly
             <li key={`${e.slideId}-${e.slot}`}>
               <span className="pulso-f6-excepcion-pos">L{e.posicion}</span>
               <span className="pulso-f6-excepcion-titulo">{e.titulo}</span>
-              <span className="pulso-f6-excepcion-valor">· {e.valor}</span>
+              <span className="pulso-f6-excepcion-valor">{e.valor}</span>
               <button type="button" className="pulso-f6-excepcion-ver" onClick={() => ver(e.slideId)}>Ver lámina</button>
             </li>
           ))}

@@ -99,7 +99,7 @@ export function DialogoLinea() {
           {edicion?.modo === "eliminar" ? (
             <>
               <p className="pulso-f6-lv-dialogo-texto">
-                «{edicion.linea.titulo_humano}» se borra de la app y deja de estar en la biblioteca de todos los estudios. Los
+                “{edicion.linea.titulo_humano}” se borra de la app y deja de estar en la biblioteca de todos los estudios. Los
                 estudios que ya la aplicaron conservan sus colores y estilos.
               </p>
               {error ? <p className="pulso-f6-lv-dialogo-error" role="alert">{error}</p> : null}

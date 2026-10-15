@@ -27,7 +27,7 @@ describe("capítulo plegable del Informe", () => {
 
   it("lleva «+ Lámina» y el conteo con lo que pide atención", () => {
     expect(pintar(false, 1)).toContain('aria-label="Agregar una lámina al final de 1. Satisfacción"');
-    expect(textoConteo(fila.conteo, 1)).toBe("2 láminas · 1 con gráfico · 1 pide atención");
-    expect(textoConteo(fila.conteo)).toBe("2 láminas · 1 con gráfico · 1 incompleta");
+    expect(textoConteo(fila.conteo, 1)).toBe("2 láminas, 1 con gráfico, 1 pide atención");
+    expect(textoConteo(fila.conteo)).toBe("2 láminas, 1 con gráfico, 1 incompleta");
   });
 });

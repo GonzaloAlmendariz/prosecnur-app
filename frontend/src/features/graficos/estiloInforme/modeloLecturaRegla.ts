@@ -73,7 +73,7 @@ export function lecturaCasos(c: CasosJunto, conReglaPropia: number): Lectura {
 /** Con varias bases, el texto de las dos primeras con su palabra; con una, el ejemplo de siempre. */
 export function lecturaBase(formato: string, sufijo: string, bases: readonly string[], sufijosPorBase: Record<string, string>): Lectura {
   if (bases.length < 2) {
-    return { grande: ejemploTextoBase(formato, sufijo), detalle: sufijo.trim() ? `Con 120 casos; «${sufijo.trim()}» después del número` : "Con 120 casos; sólo el número" };
+    return { grande: ejemploTextoBase(formato, sufijo), detalle: sufijo.trim() ? `Con 120 casos y “${sufijo.trim()}” después del número` : "Con 120 casos, solo el número" };
   }
   const [a, b] = bases;
   const palabra = (base: string) => sufijosPorBase[base]?.trim() || palabraPorDefecto(base);
@@ -87,6 +87,6 @@ export function lecturaBase(formato: string, sufijo: string, bases: readonly str
 
 export function lecturaOtros(encendido: boolean): Lectura {
   return encendido
-    ? { grande: "Lámina «Otros» después de su gráfico", detalle: "Lo que escribieron en «Otro, especifique», en el PPT y en el Word" }
-    : { grande: "Sin lámina de «Otros»", detalle: "Las respuestas abiertas no salen en el informe" };
+    ? { grande: "Lámina de Otros después de su gráfico", detalle: "Lo que escribieron en Otro (especifique), en el PPT y en el Word" }
+    : { grande: "Sin lámina de Otros", detalle: "Las respuestas abiertas no salen en el informe" };
 }

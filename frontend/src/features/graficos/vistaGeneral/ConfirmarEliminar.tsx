@@ -35,7 +35,7 @@ export function ConfirmarEliminar({ titulos, onConfirmar, onCancelar, retorno }:
             {n === 1 ? "¿Eliminar esta lámina?" : `¿Eliminar ${n} láminas?`}
           </Dialog.Title>
           <Dialog.Description className="pulso-f6-vg-confirmar-texto">
-            Se quitan del informe. Puedes deshacerlo justo después con «Deshacer» o con Ctrl/⌘+Z.
+            Se quitan del informe. Puedes deshacerlo justo después con Deshacer o con Ctrl/⌘+Z.
           </Dialog.Description>
           <ul className="pulso-f6-vg-confirmar-lista">
             {(titulos ?? []).slice(0, MAX_LISTADAS).map((t, i) => <li key={`${i}-${t}`}>{t}</li>)}

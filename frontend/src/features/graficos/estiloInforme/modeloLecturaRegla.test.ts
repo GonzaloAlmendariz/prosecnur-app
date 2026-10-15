@@ -32,7 +32,7 @@ describe("lectura de las reglas", () => {
     expect(lecturaBase("Base: %s", "", ["docentes", "estudiantes_2018"], {}).grande).toBe("Base: 52 docentes y 140 estudiantes 2018");
     expect(lecturaBase("Base: %s", "", ["docentes", "estudiantes_2018"], { docentes: "profesores" }))
       .toEqual({ grande: "Base: 52 profesores y 140 estudiantes 2018", detalle: "Una palabra elegida para cada base" });
-    expect(lecturaOtros(false).grande).toBe("Sin lámina de «Otros»");
+    expect(lecturaOtros(false).grande).toBe("Sin lámina de Otros");
     expect(lecturaOtros(true).grande).toContain("después de su gráfico");
   });
 });

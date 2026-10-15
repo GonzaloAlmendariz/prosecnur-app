@@ -147,7 +147,7 @@ function NotaAlPie({ nota, metodo, decimales, acciones }: { nota: { modo: ModoNo
           opciones={[{ clave: "nunca", rotulo: "Nunca" }, { clave: "si_no_cierra", rotulo: "Sólo si una barra no suma 100 %" }, { clave: "siempre", rotulo: "Siempre" }]} />
         <p className="pulso-f6-informe-ayuda">
           {metodo === METODO_REPARTO && nota.modo === "si_no_cierra"
-            ? "Con el reparto toda barra suma 100 %: así ninguna lámina la lleva. Elige «Siempre» para explicar el reparto."
+            ? "Con el reparto toda barra suma 100 %: así ninguna lámina la lleva. Elige Siempre para explicar el reparto."
             : HINT_MODO[nota.modo]}
         </p>
       </div>
@@ -162,10 +162,10 @@ function NotaAlPie({ nota, metodo, decimales, acciones }: { nota: { modo: ModoNo
               <span className="pulso-sr-only">Texto propio de la nota del redondeo</span>
               <textarea value={borrador} rows={3} maxLength={300} onChange={(e) => setBorrador(e.target.value)}
                 onBlur={() => { if (borrador !== nota.texto) acciones.onTextoNota(borrador); }} />
-              <small>{borrador.length}/300 · Si la lámina ya trae una nota, ésta va después.</small>
+              <small>{borrador.length}/300. Si la lámina ya trae una nota, esta va después.</small>
             </label>
           ) : (
-            <p className="pulso-f6-nota-auto"><b>Va a decir:</b> «{automatico}» <span>Cambia sola con el método y los decimales.</span></p>
+            <p className="pulso-f6-nota-auto"><b>Va a decir:</b> “{automatico}” <span>Cambia sola con el método y los decimales.</span></p>
           )}
         </div>
       </>)}
@@ -253,7 +253,7 @@ export function SeccionCalculos({
           ) : null}
           </details>
           <ExcepcionesRegla excepciones={excepciones}
-            ayuda="«Redondeo › Propio» en la tarjeta del gráfico le da su método y sus decimales sólo a ese gráfico." />
+            ayuda="Redondeo propio, en la tarjeta del gráfico, le da su método y sus decimales solo a ese gráfico." />
         </>
       )}
     </section>

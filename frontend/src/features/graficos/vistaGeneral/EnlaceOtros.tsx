@@ -18,8 +18,8 @@ export function EnlaceOtros() {
 export function EnlaceOtrosVista({ encendido, onIr }: { encendido: boolean; onIr: () => void }) {
   return (
     <button type="button" className={`pulso-f6-vg-otros-enlace${encendido ? " is-activo" : ""}`} onClick={onIr}
-      data-qa-geometry-member title="Se decide en Reglas › Respuestas «Otros»">
-      {encendido ? "+ «Otros» al exportar" : "Sin «Otros»"}
+      data-qa-geometry-member title="Se decide en Reglas">
+      {encendido ? "Con respuestas Otros" : "Sin respuestas Otros"}
     </button>
   );
 }

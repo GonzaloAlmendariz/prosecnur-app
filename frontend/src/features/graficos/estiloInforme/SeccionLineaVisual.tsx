@@ -41,7 +41,7 @@ export function SeccionLineaVisual({ aplicada }: { aplicada: string | null }) {
         </>}
       />
       <p className="pulso-f6-informe-ayuda">
-        Una línea funde en el informe sus colores y sus bases de gráfico, sin mover láminas ni variables. «Quitar línea»
+        Una línea funde en el informe sus colores y sus bases de gráfico, sin mover láminas ni variables. Quitar línea
         retira lo que trajo; lo que cambies después manda sobre ella y se queda.
       </p>
       <BibliotecaLineas />

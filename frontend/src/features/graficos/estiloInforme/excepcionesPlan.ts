@@ -36,6 +36,6 @@ export function nombresPropiosDeBase(args: Record<string, unknown>, parse: (v: u
   const nombres = parse(args.tabla_encabezados ?? ov.tabla_encabezados);
   const partes = Object.entries(nombres)
     .filter(([clave, titulo]) => titulo && titulo.toLowerCase() !== clave.replace(/_+/g, " ").toLowerCase())
-    .map(([clave, titulo]) => `«${titulo}» en vez de «${clave.replace(/_+/g, " ")}»`);
+    .map(([clave, titulo]) => `“${titulo}” en vez de “${clave.replace(/_+/g, " ")}”`);
   return partes.length ? partes.join(", ") : null;
 }

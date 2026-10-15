@@ -24,7 +24,7 @@ import { focoDeId, resolverFocoLamina } from "../focoLamina";
 const s = (id: string, tipo: SlideType, payload: Record<string, unknown> = {}): Slide => ({ id, tipo, payload });
 const graf = (g = "p_barras_apiladas") => ({ graficador: g, args: { var: "P1" } });
 
-// Apertura (a), capítulo 1 «Perfil» (c1: e, f-sub, g), capítulo 2 «Docentes» (c2: h, i), cierre (z).
+// Apertura (a), capítulo 1 “Perfil” (c1: e, f-sub, g), capítulo 2 “Docentes” (c2: h, i), cierre (z).
 const plan: Slide[] = [
   s("a", "p_slide_portada", { titulo: "Estudio" }),
   s("c1", "p_slide_seccion", { titulo: "Perfil" }),
@@ -57,7 +57,7 @@ describe("filas de la Vista general", () => {
     expect(fila("cap-c1").tarjetas.find((t) => t.lamina.id === "e")?.graficos).toEqual(["p_pie"]);
   });
 
-  // Mata: contar como «con gráfico» una lámina sin gráficos, o no marcar la de dos ranuras con una vacía.
+  // Mata: contar como “con gráfico” una lámina sin gráficos, o no marcar la de dos ranuras con una vacía.
   it("cuenta láminas, con gráfico e incompletas por capítulo y en total", () => {
     expect(fila("cap-c1").conteo).toEqual({ laminas: 4, conGrafico: 2, incompletas: 1 });
     expect(fila("cap-c2").conteo).toEqual({ laminas: 3, conGrafico: 1, incompletas: 0 });
@@ -205,7 +205,7 @@ describe("invariante de orden (F1 del QA: el clasificador pinta el orden del pla
   });
 });
 
-describe("«Mover al capítulo» con separadores (F2 del QA)", () => {
+describe("“Mover al capítulo” con separadores (F2 del QA)", () => {
   const filasTras = (orden: string[]) => filasDe(orden).map((f) => `${f.id}:${f.ids.join(",")}`);
 
   // Mata: mover el separador solo (quedaba como capítulo vacío tras el destino y sus láminas se fundían con el anterior).
@@ -215,7 +215,7 @@ describe("«Mover al capítulo» con separadores (F2 del QA)", () => {
     if (!r.ok) return;
     expect(r.orden).toEqual(["a", "c2", "h", "i", "c1", "e", "f", "g", "z"]);
     expect(filasTras(r.orden)).toEqual(["bloque-apertura:a", "cap-c2:c2,h,i", "cap-c1:c1,e,f,g", "bloque-cierre:z"]);
-    expect(r.anuncio).toBe("Movido el capítulo «Perfil» detrás de «Docentes».");
+    expect(r.anuncio).toBe("Movido el capítulo “Perfil” detrás de “Docentes”.");
   });
 
   it("un separador de subcapítulo se lleva su subcapítulo", () => {
@@ -234,8 +234,8 @@ describe("«Mover al capítulo» con separadores (F2 del QA)", () => {
 
   it("láminas sueltas siguen yendo al final de cualquier fila, y el anuncio nombra el destino", () => {
     const r = moverAlCapitulo(ids, filas, ["h"], "bloque-apertura");
-    expect(r).toMatchObject({ ok: true, orden: ["a", "h", "c1", "e", "f", "g", "c2", "i", "z"], anuncio: "1 lámina movida al final de «Apertura»." });
-    expect(moverAlCapitulo(ids, filas, ["i"], "cap-c2")).toMatchObject({ ok: false, anuncio: "Las elegidas ya están al final de «Docentes»." });
+    expect(r).toMatchObject({ ok: true, orden: ["a", "h", "c1", "e", "f", "g", "c2", "i", "z"], anuncio: "1 lámina movida al final de “Apertura”." });
+    expect(moverAlCapitulo(ids, filas, ["i"], "cap-c2")).toMatchObject({ ok: false, anuncio: "Las elegidas ya están al final de “Docentes”." });
   });
 });
 

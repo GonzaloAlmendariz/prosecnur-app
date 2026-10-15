@@ -34,7 +34,7 @@ export function textoConteo(c: FilaVistaGeneral["conteo"], atencion = 0): string
   const partes = [`${c.laminas} ${c.laminas === 1 ? "lámina" : "láminas"}`, `${c.conGrafico} con gráfico`];
   if (atencion) partes.push(`${atencion} ${atencion === 1 ? "pide" : "piden"} atención`);
   else if (c.incompletas) partes.push(`${c.incompletas} ${c.incompletas === 1 ? "incompleta" : "incompletas"}`);
-  return partes.join(" · ");
+  return partes.join(", ");
 }
 
 export function FilaCapitulo({

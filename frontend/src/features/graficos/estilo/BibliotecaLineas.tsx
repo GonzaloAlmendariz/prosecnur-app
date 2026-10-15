@@ -22,7 +22,7 @@ export function queTrae(perfil: Pick<PptStyleProfileMeta, "presets" | "paletas" 
     n(Object.keys(perfil.presets ?? {}).length, "base de gráfico", "bases de gráfico"),
     n(Object.keys(perfil.paletas ?? {}).length, "paleta", "paletas"),
     n(perfil.overrides_reusables?.length ?? 0, "estilo guardado", "estilos guardados"),
-  ].filter(Boolean).join(" · ") || "Sin ajustes";
+  ].filter(Boolean).join(", ") || "Sin ajustes";
 }
 
 const idDe = (p: PptStyleProfileMeta) => lineaVisualAplicada(p.scope_rules ?? {}) ?? p.name;
@@ -98,7 +98,7 @@ export function BibliotecaLineas() {
     <div className="pulso-f6-lv">
       {propiaAplicada && cambios > 0 && (
         <div className="pulso-f6-lv-banda" role="status">
-          <span>Cambiaste {cambios === 1 ? "un valor" : `${cambios} valores`} de «{propiaAplicada.titulo_humano}».</span>
+          <span>Cambiaste {cambios === 1 ? "un valor" : `${cambios} valores`} de “{propiaAplicada.titulo_humano}”.</span>
           <span className="pulso-f6-lv-banda-acciones">
             <PulsoButton variant="primary" size="sm" onClick={() => void guardar(propiaAplicada.id, lineaDesdePlan(plan, {
               titulo: propiaAplicada.titulo_humano, descripcion: propiaAplicada.descripcion,
@@ -135,7 +135,7 @@ export function BibliotecaLineas() {
         {!cargadas ? <p className="pulso-f6-lv-estado" role="status">Cargando tus líneas…</p>
           : errorPropias ? <p className="pulso-f6-lv-estado is-error" role="alert">{errorPropias}</p>
           : propias.length === 0 ? (
-            <p className="pulso-f6-lv-estado">Todavía no guardaste líneas. «Guardar como línea nueva» parte de lo que tienes ahora.</p>
+            <p className="pulso-f6-lv-estado">Todavía no guardaste líneas. Guardar como línea nueva parte de lo que tienes ahora.</p>
           ) : (
             <div className="pulso-f6-lv-lista" data-qa-geometry-group="graficos/f6-lv-propias" data-qa-geometry-contract="equal">
               {propias.map((l: LineaVisualPropia) => (

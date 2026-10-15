@@ -232,7 +232,7 @@ export default function VistaGeneral() {
     const nuevos = reordenarSlides(vivo.current.slides, siguiente);
     aplicar(nuevos);
     const numero = filasDe(nuevos).find((f) => f.ids[0] === fila.ids[0])?.numero;
-    useVistaGeneralUi.getState().anunciar(`Capítulo «${fila.titulo}» movido${numero ? `: ahora es el ${numero}` : ""}.`);
+    useVistaGeneralUi.getState().anunciar(`Capítulo “${fila.titulo}” movido${numero ? `: ahora es el ${numero}` : ""}.`);
   }, [aplicar]);
 
   // Un separador elegido mueve su capítulo entero, como el asa (ver `moverAlCapitulo`); el anuncio nombra el destino.
@@ -324,7 +324,7 @@ export default function VistaGeneral() {
       const nuevos = reordenarSlides(vivo.current.slides, siguiente);
       aplicar(nuevos);
       const numero = fila ? filasDe(nuevos).find((f) => f.ids[0] === fila.ids[0])?.numero : null;
-      ui.anunciar(`Capítulo${fila ? ` «${fila.titulo}»` : ""} movido${numero ? `: ahora es el ${numero}` : ""}.`);
+      ui.anunciar(`Capítulo${fila ? ` “${fila.titulo}”` : ""} movido${numero ? `: ahora es el ${numero}` : ""}.`);
     },
     onFinArrastre: () => useVistaGeneralUi.getState().setArrastre(null),
   }), [abrir, aplicar, duplicar, escribirFoco, pedirEliminar, reordenar, select]);

@@ -48,7 +48,7 @@ export function BarraSeleccion({ filas, seleccionadas, destinosHabilitados, onMo
         <Trash2 size={14} aria-hidden="true" />
         Eliminar <kbd>Supr</kbd>
       </button>
-      <span className="pulso-f6-vg-selbar-hint">Alt+↑↓ mueve · Enter abre</span>
+      <span className="pulso-f6-vg-selbar-hint">Alt y flechas para mover, Enter para abrir</span>
       <button type="button" className="pulso-f6-vg-selbar-x" onClick={onVaciar} aria-label="Soltar la selección" title="Soltar la selección (Esc)">
         <X size={15} aria-hidden="true" />
       </button>

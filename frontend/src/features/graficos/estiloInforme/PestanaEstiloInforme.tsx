@@ -184,7 +184,7 @@ export default function PestanaEstiloInforme() {
           </div>
           <div id="regla-otros" className="pulso-f6-regla" data-qa-geometry-member>
             <SeccionOtros encendido={autoOtros} ayuda={ayudaOtrosRegla} onCambiar={setAutoOtros} />
-            <LecturaRegla regla="respuestas «Otros»" lectura={lecturaOtros(autoOtros)} />
+            <LecturaRegla regla="respuestas Otros" lectura={lecturaOtros(autoOtros)} />
           </div>
         </div>
       </div>

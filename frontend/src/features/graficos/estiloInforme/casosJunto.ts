@@ -33,7 +33,7 @@ export function conCasosJunto(presets: MapaPresets, casos: CasosJunto): MapaPres
 
 /** Cómo se lee el ajuste en una frase, para la ayuda y el «Cómo leer». */
 export function fraseCasos(c: CasosJunto): string {
-  if (c.cuando === "siempre") return "Cada porcentaje va con su número de casos, por ejemplo «43% (12)».";
+  if (c.cuando === "siempre") return "Cada porcentaje va con su número de casos, por ejemplo, 43% (12).";
   if (c.cuando === "nunca") return "Los porcentajes van solos, sin el número de casos.";
-  return `Cuando un grupo tiene menos de ${c.umbral} casos, sus porcentajes van con el número de casos, por ejemplo «43% (12)».`;
+  return `Cuando un grupo tiene menos de ${c.umbral} casos, sus porcentajes van con el número de casos, por ejemplo, 43% (12).`;
 }
