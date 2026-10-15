@@ -692,3 +692,112 @@
 .pulso-f6-vg-ranura.is-cifra {
   background: color-mix(in srgb, var(--module-accent) 6%, var(--pulso-surface));
 }
+
+/* I3 del rediseño (2026-10-14): resumen clicable y estado de cada tarjeta. */
+.pulso-f6-vg-resumen {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-f6-vg-rs {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  height: 26px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 12px;
+  line-height: 24px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-vg-rs strong {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-vg-rs.is-aviso strong,
+.pulso-f6-vg-rs.is-colores strong {
+  color: var(--pulso-warn-fg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-vg-rs:not(:disabled):hover {
+    border-color: var(--pulso-border-strong);
+  }
+}
+
+.pulso-f6-vg-rs.is-activo {
+  border-color: var(--module-accent);
+  background: color-mix(in srgb, var(--module-accent) 8%, var(--pulso-surface));
+  color: var(--pulso-text);
+}
+
+.pulso-f6-vg-rs:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.pulso-f6-vg-rs:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+.pulso-f6-vg-pie .pulso-f6-vg-titulo {
+  flex: 1;
+}
+
+.pulso-f6-vg-pill {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.pulso-f6-vg-pill i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.pulso-f6-vg-pill.is-lista {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-f6-vg-pill.is-aviso,
+.pulso-f6-vg-pill.is-colores {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-f6-vg-tarjeta.is-fuera {
+  opacity: 0.18;
+  transform: scale(0.97);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-vg-tarjeta.is-fuera {
+    transform: none;
+  }
+}

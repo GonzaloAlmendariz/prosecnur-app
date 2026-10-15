@@ -42,6 +42,8 @@ import {
 } from "./modeloVistaGeneral";
 import { objetivoDeAccion, reconciliarSeleccionVG, seleccionar, seleccionarTodo, SELECCION_VACIA } from "./seleccionVistaGeneral";
 import { destinoDeFoco, intencionDeTecla, objetivoDeReenfoque } from "./tecladoVistaGeneral";
+import { useEstadosInforme } from "./useEstadosInforme";
+import { pasaFiltro } from "./estadoTarjetas";
 import { useFlipTarjetas } from "./useFlipTarjetas";
 import { useVistaGeneralUi } from "./vistaGeneralStore";
 import "../laminas/movimiento.css";
@@ -72,10 +74,12 @@ export default function VistaGeneral() {
   const marca = useVistaGeneralUi((s) => s.marca);
   const confirmarEliminar = useVistaGeneralUi((s) => s.confirmarEliminar);
   const anuncio = useVistaGeneralUi((s) => s.anuncio);
+  const filtro = useVistaGeneralUi((s) => s.filtro);
 
   const estructura = useMemo(() => construirEstructura(slides), [slides]);
   const filas = useMemo(() => construirFilas(estructura, slides), [estructura, slides]);
   const cobertura = useMemo(() => coberturaInforme(filas), [filas]);
+  const { estados, conteos } = useEstadosInforme(estructura);
   const ids = useMemo(() => slides.map((s) => s.id), [slides]);
   const porId = useMemo(() => new Map(slides.map((s) => [s.id, s])), [slides]);
   const firma = ids.join("|");
@@ -398,6 +402,9 @@ export default function VistaGeneral() {
     <div className="pulso-f6-vg" data-audit-ready="graficos-vista-general" data-qa-surface="graficos/f6-vista-general">
       <BarraVistaGeneral
         cobertura={cobertura}
+        conteos={conteos}
+        filtro={filtro}
+        onFiltro={useVistaGeneralUi.getState().setFiltro}
         filas={filas}
         seleccionadas={seleccion.ids.length}
         destinosHabilitados={destinosMover}
@@ -439,6 +446,8 @@ export default function VistaGeneral() {
                   <TarjetaLamina
                     key={t.lamina.id}
                     tarjeta={t}
+                    estado={estados.get(t.lamina.id)}
+                    fuera={!pasaFiltro(filtro, estados.get(t.lamina.id))}
                     slide={porId.get(t.lamina.id)}
                     nombresGraficos={nombresGraficos.get(t.lamina.id) ?? SIN_NOMBRES}
                     seleccionada={elegidas.has(t.lamina.id)}

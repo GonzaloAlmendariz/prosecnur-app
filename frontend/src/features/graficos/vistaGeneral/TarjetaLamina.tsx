@@ -8,6 +8,7 @@ import type { Slide } from "../../../api/graficos";
 import { IconoTipo } from "../iconos/IconoTipo";
 import { MaquetaTarjeta } from "./MaquetaTarjeta";
 import type { TarjetaVistaGeneral } from "./modeloVistaGeneral";
+import type { EstadoTarjeta } from "./estadoTarjetas";
 
 export type ManejadoresTarjeta = {
   onClic: (id: string, e: MouseEvent<HTMLElement>) => void;
@@ -22,6 +23,10 @@ export type ManejadoresTarjeta = {
 
 type Props = {
   tarjeta: TarjetaVistaGeneral;
+  /** I3: lo más urgente de la lámina (aviso, colores, ranura vacía) o «Lista». */
+  estado: EstadoTarjeta | undefined;
+  /** I3: el resumen filtra por otro estado; la tarjeta se atenúa y no recibe el puntero. */
+  fuera: boolean;
   slide: Slide | undefined;
   /** Nombre humano de cada gráfico configurado (mismo orden que `tarjeta.graficos`). */
   nombresGraficos: string[];
@@ -35,7 +40,7 @@ type Props = {
 
 const ROL: Record<TarjetaVistaGeneral["rol"], string> = { separador: "Capítulo", subcapitulo: "Subcapítulo", lamina: "" };
 
-function TarjetaLaminaBase({ tarjeta, slide, nombresGraficos, seleccionada, itinerante, arrastrada, soltar, manejadores }: Props) {
+function TarjetaLaminaBase({ tarjeta, estado, fuera, slide, nombresGraficos, seleccionada, itinerante, arrastrada, soltar, manejadores }: Props) {
   const { lamina, rol, numero } = tarjeta;
   const detalleGraficos = lamina.ranuras === 0
     ? ""
@@ -49,12 +54,13 @@ function TarjetaLaminaBase({ tarjeta, slide, nombresGraficos, seleccionada, itin
     seleccionada ? "is-seleccionada" : "",
     arrastrada ? "is-arrastrada" : "",
     soltar ? `is-soltar-${soltar}` : "",
+    fuera ? "is-fuera" : "",
   ].filter(Boolean).join(" ");
   return (
     <li
       role="option"
       aria-selected={seleccionada}
-      aria-label={`Lámina ${lamina.posicion}: ${lamina.titulo}. ${rotuloRol}${lamina.tipoLabel}.${detalleGraficos}`}
+      aria-label={`Lámina ${lamina.posicion}: ${lamina.titulo}. ${rotuloRol}${lamina.tipoLabel}.${detalleGraficos}${estado && estado.clave !== "lista" ? ` ${estado.texto}.` : ""}`}
       tabIndex={itinerante ? 0 : -1}
       className={clases}
       data-vg-tarjeta={lamina.id}
@@ -82,9 +88,7 @@ function TarjetaLaminaBase({ tarjeta, slide, nombresGraficos, seleccionada, itin
       </span>
       <span className="pulso-f6-vg-pie" aria-hidden="true">
         <span className="pulso-f6-vg-titulo" title={lamina.titulo}>{lamina.titulo}</span>
-        {lamina.ranuras > 0 && lamina.ranurasLlenas < lamina.ranuras && (
-          <span className="pulso-f6-vg-vacias">{lamina.ranuras - lamina.ranurasLlenas} sin gráfico</span>
-        )}
+        {estado && <span className={`pulso-f6-vg-pill is-${estado.clave}`}><i aria-hidden="true" />{estado.texto}</span>}
       </span>
     </li>
   );
