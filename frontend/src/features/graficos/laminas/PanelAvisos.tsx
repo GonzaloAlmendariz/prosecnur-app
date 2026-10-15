@@ -10,6 +10,9 @@ import type { EstructuraInforme } from "./modeloEstructura";
 import type { GrupoAvisos } from "./resumenInforme";
 import { capaVisibleFuera, destinoDelFoco, escucharEscape } from "./cierreConEscape";
 import { useAvisosPlan } from "../avisosPlan";
+import { useAvisosExportacion } from "../avisosExportacion/avisosExportacionStore";
+import { agruparAvisos as agruparPorLamina, type GrupoAvisos as GrupoPorLamina } from "../avisosExportacion/avisosExportacionModel";
+import "../avisosExportacion/avisosExportacion.css";
 import { enfocarSinDesplazar } from "./enfocarSinDesplazar";
 import "./panelAvisos.css";
 
@@ -51,6 +54,8 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
   const hayPlan = grupos.plan.length > 0;
   useEffect(() => { if (hayPlan) marcarVistos(); }, [hayPlan, marcarVistos]);
 
+  const previos = useAvisosExportacion((st) => st.previos);
+  const ultimos = useAvisosExportacion((st) => st.motor);
   const posicionDe = useMemo(() => new Map(estructura.laminas.map((l) => [l.id, l.posicion])), [estructura]);
   const ir = (slideId: string | undefined) => {
     const p = slideId ? posicionDe.get(slideId) : undefined;
@@ -106,6 +111,8 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
           <h3>Conviene revisar <span>{grupos.revisar.length}</span></h3>
           {grupos.revisar.length ? <ul data-qa-geometry-group="graficos/f6-avisos-revisar" data-qa-geometry-contract="intrinsic">{grupos.revisar.map(fila)}</ul> : <p>Sin advertencias del plan.</p>}
         </section>
+        <ListaPorLamina titulo="Antes de exportar" grupos={agruparPorLamina(previos)} geometria="graficos/f6-avisos-previos" />
+        <ListaPorLamina titulo="Última exportación" grupos={agruparPorLamina(ultimos)} geometria="graficos/f6-avisos-ultima" />
         <section className="pulso-f6-avisos-grupo" aria-label="Avisos del motor">
           <h3>Avisos del motor <span>{grupos.motor.reduce((t, m) => t + m.avisos.length, 0)}</span></h3>
           {grupos.motor.length ? (
@@ -125,5 +132,24 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
         </section>
       </div>
     </aside>
+  );
+}
+
+/** Avisos de la validación previa o de la última exportación, por lámina; sin avisos no ocupa lugar. */
+function ListaPorLamina({ titulo, grupos, geometria }: { titulo: string; grupos: GrupoPorLamina[]; geometria: string }) {
+  if (!grupos.length) return null;
+  const total = grupos.reduce((t, g) => t + g.detalles.length, 0);
+  return (
+    <section className="pulso-f6-avisos-grupo" aria-label={titulo}>
+      <h3>{titulo} <span>{total}</span></h3>
+      <ul data-qa-geometry-group={geometria} data-qa-geometry-contract="intrinsic">
+        {grupos.map((g) => (
+          <li key={g.clave} className="pulso-avexp-panel-item">
+            <span className="pulso-avexp-panel-lamina">{g.lamina ? `Lámina ${g.lamina}${g.titulo ? ` · ${g.titulo}` : ""}` : "Informe"}</span>
+            <ul className="pulso-avexp-panel-detalles">{g.detalles.map((d) => <li key={d}>{d}</li>)}</ul>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

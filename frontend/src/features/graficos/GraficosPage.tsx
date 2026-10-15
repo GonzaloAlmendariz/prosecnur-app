@@ -11,7 +11,10 @@ import {
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
-import { AvisosExportacion } from "./avisosExportacion/AvisosExportacion";
+import { ResumenAvisosExportacion } from "./avisosExportacion/ResumenAvisosExportacion";
+import { usePanelDireccionable } from "../../lib/navegacion/paneles";
+import { PANEL_AVISOS_INFORME } from "./panelesGraficos";
+import { useAvisosExportacion } from "./avisosExportacion/avisosExportacionStore";
 import { rotuloIrALamina } from "./avisosExportacion/avisosExportacionModel";
 import { LoadingBlock } from "../../components/States";
 import { graficosBodyLoadingLabel, graficosBodyState } from "./graficosBodyState";
@@ -90,6 +93,12 @@ export default function GraficosPage() {
   const select = usePlanStore((s) => s.select);
   // Avisos del motor tras el último export. Se limpian al empezar otro.
   const [avisosDelMotor, setAvisosDelMotor] = useState<string[]>([]);
+  // Los avisos se leen en el panel «Avisos del informe»; la página sólo deja una línea con «Ver avisos».
+  const panelAvisos = usePanelDireccionable(PANEL_AVISOS_INFORME);
+  const ponerMotor = useAvisosExportacion((st) => st.ponerMotor);
+  const ponerPrevios = useAvisosExportacion((st) => st.ponerPrevios);
+  useEffect(() => { ponerMotor(avisosDelMotor); }, [avisosDelMotor, ponerMotor]);
+  useEffect(() => { ponerPrevios(warns); }, [warns, ponerPrevios]);
   const [pptFileId, setPptFileId] = useState<string | null>(null);
   const [docxFileId, setDocxFileId] = useState<string | null>(null);
   const [pptFilename, setPptFilename] = useState<string | null>(null);
@@ -360,22 +369,10 @@ export default function GraficosPage() {
             />
           )}
 
-          {avisosDelMotor.length > 0 && (
-            <Alert kind="info">
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <strong>
-                  {avisosDelMotor.length === 1
-                    ? "El motor ajustó algo al renderizar"
-                    : `El motor ajustó ${avisosDelMotor.length} cosas al renderizar`}
-                </strong>
-                {avisosDelMotor.map((a, i) => <span key={i}>{a}</span>)}
-              </div>
-            </Alert>
-          )}
 
 
           {busyValidating && <Alert kind="info">{busyValidating}</Alert>}
-          {warns.length > 0 && <AvisosExportacion avisos={warns} />}
+          <ResumenAvisosExportacion motor={avisosDelMotor.length} previos={warns.length} onVer={() => panelAvisos.abrir()} />
           {error && (
             <Alert kind="error">
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
