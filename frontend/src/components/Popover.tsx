@@ -36,6 +36,7 @@ export function Popover({
   ariaLabel,
   hoverOpenDelay = 120,
   hoverCloseDelay = 160,
+  cerrarAlCambiar,
 }: {
   /** Elemento que dispara el popover. Si es un elemento válido se clona con los handlers. */
   trigger: ReactElement;
@@ -50,6 +51,11 @@ export function Popover({
   hoverOpenDelay?: number;
   /** Retardo de cierre al salir del trigger (ms). 0 = desaparece de inmediato. */
   hoverCloseDelay?: number;
+  /**
+   * Cierra el panel cuando este valor cambia (p. ej. la base activa después de
+   * elegir otra): el que abrió el menú ya obtuvo lo que pidió.
+   */
+  cerrarAlCambiar?: string | number | null;
 }) {
   const [open, setOpen] = useState(false);
   // Salida animada: el panel queda montado ~110ms con data-state="closing"
@@ -94,6 +100,13 @@ export function Popover({
       setClosing(false);
     }, 110);
   }, []);
+
+  const cerrarPrevio = useRef(cerrarAlCambiar);
+  useEffect(() => {
+    if (cerrarPrevio.current === cerrarAlCambiar) return;
+    cerrarPrevio.current = cerrarAlCambiar;
+    requestClose();
+  }, [cerrarAlCambiar, requestClose]);
 
   const reposition = useCallback(() => {
     const anchor = triggerRef.current;
