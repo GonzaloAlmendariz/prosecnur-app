@@ -11,7 +11,6 @@ import type { GrupoAvisos } from "./resumenInforme";
 import { capaVisibleFuera, destinoDelFoco, escucharEscape } from "./cierreConEscape";
 import { useAvisosPlan } from "../avisosPlan";
 import { useAvisosExportacion } from "../avisosExportacion/avisosExportacionStore";
-import { useColoresPendientes } from "../estilo/ColoresPendientesAviso";
 import { agruparAvisos as agruparPorLamina, type GrupoAvisos as GrupoPorLamina } from "../avisosExportacion/avisosExportacionModel";
 import "../avisosExportacion/avisosExportacion.css";
 import { enfocarSinDesplazar } from "./enfocarSinDesplazar";
@@ -24,9 +23,11 @@ type Props = {
   onIr: (posicion: number) => void;
   /** Se abrió desde una capa que se cierra al abrirlo (el Inspector modal): el foco entra al panel. */
   enfocarAlAbrir?: boolean;
+  /** Láminas con respuestas sin color (bloquean «Exportar») y cómo completarlas; ausente, no se muestra. */
+  coloresPendientes?: { laminas: number; completar: () => void };
 };
 
-export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = false }: Props) {
+export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = false, coloresPendientes }: Props) {
   // Quién lo abrió (la barra o el visor): al cerrar, el foco vuelve ahí; si ya no existe, a «N avisos» de la barra.
   const disparadorRef = useRef<HTMLElement | null>(null);
   const cerrarRef = useRef<HTMLButtonElement>(null);
@@ -57,8 +58,7 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
 
   // Los colores que faltan bloquean el menú «Exportar»: el panel lo dice también, para no contradecirlo
   // («Nada bloquea la exportación» mientras el menú no dejaba exportar; catálogo del recetario, 2026-10-14).
-  const colores = useColoresPendientes();
-  const laminasSinColor = new Set(colores.pendientes.map((p) => p.slideId)).size;
+  const laminasSinColor = coloresPendientes?.laminas ?? 0;
   const previos = useAvisosExportacion((st) => st.previos);
   const ultimos = useAvisosExportacion((st) => st.motor);
   const posicionDe = useMemo(() => new Map(estructura.laminas.map((l) => [l.id, l.posicion])), [estructura]);
@@ -115,7 +115,7 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
               {laminasSinColor ? (
                 <li>
                   <span>Faltan colores en {laminasSinColor === 1 ? "1 lámina" : `${laminasSinColor} láminas`}: esos gráficos pintan cada respuesta con su color.</span>
-                  <button type="button" className="pulso-f6-texto-boton" onClick={colores.completar}>Completar todos los colores</button>
+                  <button type="button" className="pulso-f6-texto-boton" onClick={coloresPendientes?.completar}>Completar todos los colores</button>
                 </li>
               ) : null}
               {grupos.bloquean.map(fila)}
