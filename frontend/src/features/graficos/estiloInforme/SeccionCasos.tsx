@@ -4,8 +4,10 @@ import { useId } from "react";
 import { CabeceraSeccion } from "./CabeceraSeccion";
 import "./casos.css";
 import { CASOS_POR_DEFECTO, fraseCasos, OPCIONES_CASOS, type CasosJunto } from "./casosJunto";
+import { ExcepcionesRegla } from "./ExcepcionesRegla";
+import type { Excepcion } from "./excepcionesPlan";
 
-export function SeccionCasos({ casos, onCambiar }: { casos: CasosJunto; onCambiar: (c: CasosJunto) => void }) {
+export function SeccionCasos({ casos, onCambiar, excepciones = [] }: { casos: CasosJunto; onCambiar: (c: CasosJunto) => void; excepciones?: readonly Excepcion[] }) {
   const tituloId = useId();
   const umbralId = useId();
   const modificado = casos.cuando !== CASOS_POR_DEFECTO.cuando || casos.umbral !== CASOS_POR_DEFECTO.umbral;
@@ -36,6 +38,9 @@ export function SeccionCasos({ casos, onCambiar }: { casos: CasosJunto; onCambia
         )}
       </div>
       <p className="pulso-f6-informe-ayuda">{fraseCasos(casos)} Vale para todos los gráficos del PowerPoint y del Word; un gráfico puede pedir otra cosa en su tarjeta.</p>
+      {/* R5 (2026-10-15): los gráficos que piden otra cosa, a la vista y a un clic de su lámina. */}
+      <ExcepcionesRegla excepciones={excepciones}
+        ayuda="Se elige en la tarjeta del gráfico (barras agrupadas, torta y dona): «Como el informe», «Siempre» o «Nunca»." />
     </section>
   );
 }
