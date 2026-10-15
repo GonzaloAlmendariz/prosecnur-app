@@ -862,3 +862,95 @@ test_that("divisor: ningun tramo del divisor de columnas toca un bloque de ancho
     expect_identical(cruces, 0L)
   }
 })
+
+# =============================================================================
+# Medir con la metrica del dibujo (2026-10-15, acrconta por la UI)
+# =============================================================================
+
+.t2_fixture_escala4 <- function() {
+  list(
+    survey = data.frame(
+      type = c("note", rep("select_one sat", 4L)),
+      name = c("nota_p13", "p13_1", "p13_2", "p13_3", "p13_4"),
+      label = c("¿Qué tan satisfecho se encuentra con los servicios/actividades ? Por favor, indique su nivel de satisfacción en la siguiente escala.",
+                "Servicio de salud", "Bienestar psicológico", "Servicio de empleabilidad", "Actividades culturales"),
+      stringsAsFactors = FALSE),
+    choices = data.frame(list_name = "sat", name = as.character(1:4),
+                         label = c("Muy insatisfecho", "Insatisfecho", "Satisfecho", "Muy satisfecho"),
+                         stringsAsFactors = FALSE),
+    settings = list(form_title = "Escala de 4"),
+    options = list(columns = 2, matrix_groups = list(list(
+      members = c("p13_1", "p13_2", "p13_3", "p13_4"), tenor = "", special = "auto", header = "categorias"))))
+}
+
+test_that("metrica: el ancho medido es el ancho dibujado, en el dispositivo real", {
+  skip_if_not(nzchar(.t2_pdftotext()))
+  tmp <- tempfile(fileext = ".pdf")
+  .form_fuente_dispositivo(tmp)
+  grid::grid.newpage(); .form_fuente_region()
+  casos <- list(list(t = "Insatisfecho", fs = 6.2, f = "bold"),
+                list(t = "Qué tan satisfecho se encuentra con los servicios", fs = 8.4, f = "bold"),
+                list(t = "Hasta 15 minutos de viaje desde su casa", fs = 7.9, f = "plain"))
+  medidos <- numeric(0)
+  for (k in seq_along(casos)) {
+    cs <- casos[[k]]
+    medidos[k] <- .form_pdf_medir_npc(cs$t, cs$fs, cs$f) * 559.2756
+    if (identical(cs$f, "plain")) expect_equal(.form_pdf_ancho_npc(cs$t, cs$fs) * 559.2756, medidos[k], tolerance = 1e-6)
+    grid::grid.text(cs$t, x = 0.1, y = 0.8 - k * 0.1, just = c("left", "bottom"),
+                    gp = grid::gpar(fontsize = cs$fs, fontface = cs$f))
+  }
+  grDevices::dev.off()
+  pal <- .t2_palabras_pdf(tmp)
+  for (k in seq_along(casos)) {
+    ws <- strsplit(casos[[k]]$t, " ")[[1]]
+    a <- pal[pal$texto == ws[1], ][1, ]; b <- pal[pal$texto == ws[length(ws)] & abs(pal$ymin - a$ymin) < 1, ][1, ]
+    expect_lt(abs((b$xmax - a$xmin) - medidos[k]), 0.5)
+  }
+})
+
+test_that("metrica: una escala de 4 puntos con rotulos de <= 2 palabras va en horizontal a 2 columnas", {
+  skip_if_not(nzchar(.t2_pdftotext()))
+  fx <- .t2_fixture_escala4()
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(fx$survey, fx$choices, fx$settings, output_file = tmp, options = fx$options)
+  pal <- .t2_palabras_pdf(tmp)
+  pal$alto <- as.numeric(NA)
+  x <- system2(.t2_pdftotext(), c("-bbox", shQuote(tmp), "-"), stdout = TRUE)
+  w <- grep(">Insatisfecho<", x, value = TRUE)[1]
+  num <- function(a) as.numeric(sub(paste0('^.*', a, '="([0-9.]+)".*$'), "\\1", w))
+  # Horizontal: la caja de la palabra es mas ancha que alta (rotada seria al reves).
+  expect_gt(num("xMax") - num("xMin"), num("yMax") - num("yMin"))
+})
+
+test_that("metrica: la nota que introduce una matriz no deja hueco: el aire declarado y nada mas", {
+  fx <- .t2_fixture_escala4()
+  traza <- list()
+  testthat::local_mocked_bindings(
+    .form_pdf_traza = function(tipo, pagina, y_arriba, y_abajo) {
+      traza[[length(traza) + 1L]] <<- data.frame(tipo = tipo, y = y_arriba)
+    }, .package = "prosecnurapp")
+  reporte_formulario_pdf(fx$survey, fx$choices, fx$settings, output_file = tempfile(fileext = ".pdf"),
+                         options = fx$options)
+  d <- do.call(rbind, traza)
+  d <- d[d$tipo %in% c("nota_texto", "tabla_tope"), ]
+  k <- which(d$tipo == "nota_texto")
+  expect_gt(length(k), 0L)
+  for (i in k) {
+    expect_identical(d$tipo[i + 1L], "tabla_tope")
+    expect_lte(d$y[i] - d$y[i + 1L], .FORM_PDF_AIRE_INTRO + 1e-9)
+  }
+})
+
+test_that("metrica: una nota justificada llena la linea (sin rios)", {
+  skip_if_not(nzchar(.t2_pdftotext()))
+  fx <- .t2_fixture_escala4()
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(fx$survey, fx$choices, fx$settings, output_file = tmp, options = fx$options)
+  pal <- .t2_palabras_pdf(tmp)
+  linea <- pal[pal$ymin == pal$ymin[pal$texto == "¿Qué"][1], ]
+  # Hueco entre palabras de la primera linea justificada: como un espacio normal
+  # (~2 pt a 8.4 pt), no estirado. Con el corte por conteo pasaba de 6 pt.
+  linea <- linea[order(linea$xmin), ]
+  huecos <- linea$xmin[-1] - linea$xmax[-nrow(linea)]
+  expect_lt(max(huecos), 4)
+})

@@ -50,13 +50,17 @@
   tiene_cuerpo <- !is_note &&
     (isTRUE(block$coded_list) ||
        type %in% c("select_one", "select_multiple", .FORM_PDF_TIPOS_CAMPO))
-  lbl_lines <- .form_pdf_wrap(paste0(prefix, block$label), chars_lbl)
   hay_hint <- nzchar(block$hint %||% "")
-  hint_lines <- if (hay_hint) .form_pdf_wrap(block$hint, chars_lbl) else character(0)
+  # Envoltorio por ANCHO MEDIDO con la fuente con que se dibuja (2026-10-15).
+  # Antes era por conteo de caracteres (54/118), calibrado para una sans normal:
+  # con una estrecha las lineas cortaban mucho antes del margen y la nota
+  # justificada estiraba los espacios («rios»). Sin dispositivo, el conteo.
+  txt_w <- if (tiene_cuerpo) w - 0.022 else w - 0.012
+  lbl_lines <- .form_pdf_wrap_fit(paste0(prefix, block$label), txt_w, fontsize = 8.4, fontface = "bold")
+  hint_lines <- if (hay_hint) .form_pdf_wrap_fit(block$hint, txt_w, fontsize = 7.3, fontface = "italic") else character(0)
   # Item 19: con formato visible (cursiva, subrayado, saltos, encabezados) el
   # enunciado y la pista se componen por tramos al ancho real del recuadro; el
   # enunciado va en negrita, asi que su negrita del HTML no cuenta como formato.
-  txt_w <- if (tiene_cuerpo) w - 0.022 else w - 0.012
   lbl_rt <- .form_rt_campo(block, "label")
   if (nzchar(prefix)) lbl_rt <- c(list(.form_rt_run(prefix)), lbl_rt)
   lbl_lay <- .form_pdf_rt_si(lbl_rt, txt_w, 8.4, 0.0142, base_b = TRUE)
@@ -90,13 +94,19 @@
     0.025
   }
   skip_lines <- if (nzchar(block$skip %||% "")) .form_pdf_wrap(block$skip, chars_skip) else character(0)
+  # Nota que introduce el bloque siguiente (item 17): entre el fondo de su texto
+  # y el tope de la tabla que introduce va el aire declarado, no la suma de los
+  # cierres de una pregunta suelta (0.007 + 0.013) mas el arranque de la matriz.
+  intro <- is_note && isTRUE(block$keep_with_next)
+  cierre <- if (intro) .form_pdf_aire_intro_cierre(block) else 0.013
   skip_h <- if (nzchar(block$skip %||% "")) 0.006 + length(skip_lines) * 0.012 else 0
   list(chars_lbl = chars_lbl, chars_skip = chars_skip, opening = opening,
        prefix = prefix, tiene_cuerpo = tiene_cuerpo, lbl_lines = lbl_lines,
        hint_lines = hint_lines, lbl_lay = lbl_lay, hint_lay = hint_lay,
        lbl_alto = lbl_alto, hint_alto = hint_alto, txt_w = txt_w,
        head_h = head_h, cuerpo_h = cuerpo_h,
-       h = opening_h + head_h + cuerpo_h + skip_h + 0.013)
+       cierre = cierre, intro = intro,
+       h = opening_h + head_h + cuerpo_h + skip_h + cierre - (if (intro) 0.007 else 0))
 }
 
 # Geometria de un bloque `paper` (banda de titulo + cuerpo justificado + casilla
@@ -107,7 +117,9 @@
     bh <- .form_pdf_band_height(block$title, 118, rt = .form_rt_campo(block, "title"), w = w)
     if (bh > 0) bh + 0.008 else 0.008
   } else 0
-  body_lines <- if (nzchar(block$body %||% "")) .form_pdf_wrap(block$body, 122) else character(0)
+  # Cuerpo justificado: por ancho medido (ver `.form_pdf_question_geom`).
+  body_lines <- if (!nzchar(block$body %||% "")) character(0) else if (!is.null(w))
+    .form_pdf_wrap_fit(block$body, w - 0.016, fontsize = 8.1) else .form_pdf_wrap(block$body, 122)
   body_lay <- if (length(body_lines) && !is.null(w))
     .form_pdf_rt_si(.form_rt_campo(block, "body"), w - 0.016, 8.1, 0.012)
   body_alto <- if (is.null(body_lay)) length(body_lines) * 0.012 else body_lay$alto
@@ -130,4 +142,12 @@
   lay <- .form_pdf_rt_si(.form_rt_campo(block, "hint"), w - 0.016, 7.5, 0.012, base_i = TRUE)
   if (!is.null(lay)) return(lay$alto)
   .form_pdf_lines_height(.form_pdf_wrap(block$hint, 112), 0.012)
+}
+
+# Aire declarado entre el texto de una nota-introduccion y el tope de la tabla
+# que introduce (npc, ~8 pt). La matriz arranca 0.007 por debajo de donde se la
+# coloca; una pregunta, en el mismo sitio.
+.FORM_PDF_AIRE_INTRO <- 0.010
+.form_pdf_aire_intro_cierre <- function(block) {
+  if (identical(block$introduce %||% "", "matrix")) .FORM_PDF_AIRE_INTRO - 0.007 else .FORM_PDF_AIRE_INTRO
 }
