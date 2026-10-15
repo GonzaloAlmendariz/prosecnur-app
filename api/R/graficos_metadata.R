@@ -777,8 +777,8 @@
       cifra_izquierda = list(role = "chart", label = "Cifra izquierda"),
       cifra_centro = list(role = "chart", label = "Cifra centro"),
       cifra_derecha = list(role = "chart", label = "Cifra derecha"),
-      grafico_izquierda = list(role = "chart", label = "Grafico izquierda"),
-      grafico_derecha = list(role = "chart", label = "Grafico derecha")
+      grafico_izquierda = list(role = "chart", label = "Gráfico izquierda"),
+      grafico_derecha = list(role = "chart", label = "Gráfico derecha")
     ),
     args = .args_slide_poblacion_basico(c("titulo", "base"))
   ),

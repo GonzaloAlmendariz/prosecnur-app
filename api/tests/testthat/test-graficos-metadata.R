@@ -121,8 +121,8 @@ source("setup-load-all.R")
     cifra_izquierda = .gm_slot("chart", "Cifra izquierda"),
     cifra_centro = .gm_slot("chart", "Cifra centro"),
     cifra_derecha = .gm_slot("chart", "Cifra derecha"),
-    grafico_izquierda = .gm_slot("chart", "Grafico izquierda"),
-    grafico_derecha = .gm_slot("chart", "Grafico derecha")
+    grafico_izquierda = .gm_slot("chart", "Gráfico izquierda"),
+    grafico_derecha = .gm_slot("chart", "Gráfico derecha")
   ),
   p_slide_3_graficos_2mas1 = list(
     superior_izquierda = .gm_slot("chart", "Superior izquierda"),
