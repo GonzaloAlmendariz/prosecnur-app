@@ -436,6 +436,24 @@ p_barras_divergentes <- function(vars = NULL,
   )
 }
 
+# El rótulo de cada fila es el enunciado de la pregunta, no su referencia: la tabla se arma por `ref` y sin esto la
+# lámina decía «estudiantes$gestion_5» (catálogo del recetario, 2026-10-14). Un nombre declarado en `vars` manda; si el
+# motor no expone el resolvedor (tests del graficador), queda la referencia.
+.ola4_rotulos_preguntas <- function(vars, refs) {
+  refs <- as.character(refs)
+  nombres <- names(vars) %||% character(0)
+  vals <- vapply(vars, function(v) as.character(v)[1], character(1))
+  resolver <- dynGet(".resolve_ref", ifnotfound = NULL)
+  vapply(refs, function(r) {
+    i <- match(r, vals)
+    if (!is.na(i) && length(nombres) >= i && !is.na(nombres[i]) && nzchar(trimws(nombres[i]))) return(trimws(nombres[i]))
+    if (!is.function(resolver)) return(r)
+    ctx <- tryCatch(resolver(r, arg_name = "vars"), error = function(e) NULL)
+    if (is.null(ctx) || !is.data.frame(ctx$survey)) return(r)
+    .fsub_enunciado(ctx)
+  }, character(1), USE.NAMES = FALSE)
+}
+
 #' @keywords internal
 .render_barras_divergentes <- function(el, preset_args = list()) {
   base_preset <- if (length(preset_args)) preset_args else .ola4_preset("barras_divergentes")
@@ -454,6 +472,8 @@ p_barras_divergentes <- function(vars = NULL,
     incluir_neutro = args_usuario$incluir_neutro %||% TRUE,
     direccion_escala = args_usuario$direccion_escala %||% "negativo_positivo"
   )
+
+  tabla$data$categoria <- .ola4_rotulos_preguntas(el$vars, tabla$data$categoria)
 
   args_usuario$excluir_opciones <- NULL
   args_usuario$direccion_escala <- NULL

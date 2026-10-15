@@ -415,8 +415,8 @@ reporte_ppt_plan <- function(
     } else {
       base_args$mayusculas_titulo_slide %||% base_args$uppercase_title_slide
     }
-    uppercase_title <- uppercase_title %||% TRUE
-    uppercase_title <- isTRUE(uppercase_title)
+    # Sin preset, versales sólo en portada: la lámina nativa (ADR 0092) titula como se escribió y el mazo mezclaba casos.
+    uppercase_title <- isTRUE(uppercase_title %||% is_cover_title)
 
     bold_title <- if (is_cover_title) {
       base_args$bold_titulo_portada %||% base_args$title_cover_bold %||%

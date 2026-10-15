@@ -588,3 +588,15 @@ test_that("con orden por brecha la mayor con su signo va arriba, igual en ggplot
   expect_identical(arriba_abajo, c("t1", "t5", "t4", "t3", "t2"))
   expect_identical(as.character(attr(p5, "pulso_espec")$rotulos), arriba_abajo)
 })
+
+test_that("las filas de las divergentes llevan el enunciado, no la referencia", {
+  # La tabla se arma por `ref` y la lamina decia «estudiantes$gestion_5»
+  # (catalogo del recetario, 2026-10-14).
+  .resolve_ref <- function(ref, arg_name = "var") {
+    list(var = sub("^.*\\$", "", ref),
+         survey = data.frame(name = c("g1", "g2"), label = c("Primera pregunta", ""), stringsAsFactors = FALSE))
+  }
+  vars <- list("est$g1", "est$g2", Declarada = "est$g3")
+  expect_identical(.ola4_rotulos_preguntas(vars, c("est$g1", "est$g2", "est$g3")),
+                   c("Primera pregunta", "g2", "Declarada"))
+})
