@@ -70,6 +70,13 @@ export const PANEL_SECCIONES_JSON: PanelDeclarado = {
   clase: "dialogo",
 };
 
+/** W8: el Word real, generado y convertido en páginas, desde la pestaña Word. */
+export const PANEL_PREVIA_WORD: PanelDeclarado = {
+  id: "previa-word",
+  label: "Vista previa del Word",
+  clase: "dialogo",
+};
+
 export const PANELES_GRAFICOS = [
   PANEL_BIBLIOTECA_SLIDES,
   PANEL_BIBLIOTECA_GRAFICADORES,
@@ -84,4 +91,5 @@ export const PANELES_GRAFICOS = [
   PANEL_ICONO_ACTOR,
   PANEL_PLAN_PORTATIL,
   PANEL_SECCIONES_JSON,
+  PANEL_PREVIA_WORD,
 ] as const satisfies readonly PanelDeclarado[];

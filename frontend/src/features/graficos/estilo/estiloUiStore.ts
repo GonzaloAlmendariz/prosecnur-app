@@ -9,15 +9,14 @@ export type FaseVistaPrevia = "inactiva" | "exportando" | "convirtiendo" | "list
 export type VistaPreviaWord = {
   fase: FaseVistaPrevia;
   jobId: string | null;
-  /** Portada y contraportada del último Word regenerado desde aquí (data URI). */
-  portada: string | null;
-  contraportada: string | null;
+  /** W8: todas las páginas del último Word generado para previsualizar (data URI, en orden). */
+  paginas: string[];
   exportado: string;
   mensaje: string;
 };
 
 const VISTA_PREVIA_INICIAL: VistaPreviaWord = {
-  fase: "inactiva", jobId: null, portada: null, contraportada: null, exportado: "", mensaje: "",
+  fase: "inactiva", jobId: null, paginas: [], exportado: "", mensaje: "",
 };
 
 type EstiloUi = {

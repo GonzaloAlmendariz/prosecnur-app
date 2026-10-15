@@ -19,6 +19,8 @@ import { DetalleCapitulos } from "./DetalleCapitulos";
 import { DetalleCierre } from "./DetalleCierre";
 import { DetalleGraficos } from "./DetalleGraficos";
 import { PartesWord } from "./PartesWord";
+import { PreviaWord } from "./PreviaWord";
+import { useEstiloUi } from "../estilo/estiloUiStore";
 import { PARTES_WORD, paginaDeParte, resumenDeParte, type ParteWord } from "./modeloPestanaWord";
 import "../estilo/estilo.css";
 import "../estiloInforme/estiloInforme.css";
@@ -52,12 +54,18 @@ export default function PestanaWord() {
   const tituloInforme = paginas[0]?.clase === "portada" ? paginas[0].titulo : "Informe";
   const tituloCorto = tituloCortoWord(tituloInforme, usePlanStore((s) => s.documentoWord.titulo_corto));
   const nGraficos = contarFiguras(paginas);
+  // W8: con una vista previa generada, la cifra real reemplaza a la estimación de las maquetas (que hoy queda alta).
+  const paginasReales = useEstiloUi((s) => (s.vistaPrevia.fase === "lista" ? s.vistaPrevia.paginas.length : 0));
 
   return (
     <div className="pulso-f6-informe" data-audit-ready="graficos-word" data-qa-surface="graficos/f6-word" data-scope={scope}>
       <header className="pulso-f6-informe-barra">
         <h2 className="pulso-f6-informe-titulo">Word</h2>
-        <p className="pulso-f6-informe-ayuda" role="note">A4, unas {paginas.length} páginas y {nGraficos} {nGraficos === 1 ? "gráfico" : "gráficos"}</p>
+        <p className="pulso-f6-informe-ayuda" role="note">
+          {paginasReales ? `A4, ${paginasReales} páginas en la última vista previa` : `A4, unas ${paginas.length} páginas`} y {nGraficos} {nGraficos === 1 ? "gráfico" : "gráficos"}
+        </p>
+        {/* W8: el Word real, con sus cifras. En el informe compartido el Word no sale. */}
+        {!disponibilidad.motivoWord && <span className="pulso-f6-w-previa"><PreviaWord prepOk={!!sesion?.state?.analitica_prep_ok} /></span>}
       </header>
       <div className="pulso-f6-informe-cuerpo" data-qa-scroll-owner="word">
         {disponibilidad.motivoWord ? (
