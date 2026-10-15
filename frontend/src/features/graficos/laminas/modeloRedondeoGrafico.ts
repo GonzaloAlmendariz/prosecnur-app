@@ -47,7 +47,7 @@ export function describirRedondeo(args: Args, fila: FilaCalculo): string | null 
   const partes: string[] = [];
   if (fila.admiteMetodo) partes.push(r.metodo === METODO_REPARTO ? "Reparto a 100 %" : "Estándar");
   if (fila.campoDecimales) partes.push(r.decimales === 0 ? "Sin decimales" : r.decimales === 1 ? "Un decimal" : `${r.decimales} decimales`);
-  return partes.join(" · ") || null;
+  return partes.join(", ") || null;
 }
 
 export { METODO_ESTANDAR, METODO_REPARTO };

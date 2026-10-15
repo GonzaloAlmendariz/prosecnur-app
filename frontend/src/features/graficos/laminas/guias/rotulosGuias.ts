@@ -67,7 +67,7 @@ const PRIORIDAD_DESCONOCIDA = 11;
 
 export const prioridadDeRol = (rol: string): number => PRIORIDAD_ROL[rol] ?? PRIORIDAD_DESCONOCIDA;
 
-export const textoDe = (partes: readonly ParteRotulo[]): string => partes.map((p) => p.texto).join(" · ");
+export const textoDe = (partes: readonly ParteRotulo[]): string => partes.map((p) => p.texto).join(", ");
 
 export function medirRotulo(texto: string): { ancho: number; alto: number } {
   return { ancho: Math.ceil([...texto].length * ANCHO_CARACTER_PX + RELLENO_ROTULO_PX), alto: ALTO_ROTULO_PX };

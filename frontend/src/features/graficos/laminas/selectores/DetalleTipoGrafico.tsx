@@ -36,7 +36,7 @@ export function DetalleTipoGrafico({ meta, nombre, ranura, encaje, bloqueo, esAc
   return (
     <div className="pulso-f6-detalle">
       <div className="pulso-f6-detalle-lienzo is-grafico">
-        <GlifoGrafico tipo={meta.name} titulo={`Esquema de «${nombre}»`} />
+        <GlifoGrafico tipo={meta.name} titulo={`Esquema de “${nombre}”`} />
       </div>
       <div className="pulso-f6-detalle-texto">
         <h3>{nombre}</h3>

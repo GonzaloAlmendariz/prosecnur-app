@@ -34,10 +34,10 @@ describe("orden de categorías por gráfico (D8)", () => {
   });
 
   it("la opción Recetario dice qué modo aplica, o que manda un orden anterior", () => {
-    expect(rotuloRecetario(datos, false)).toBe("Por defecto · por frecuencia");
-    expect(rotuloRecetario({ ...datos, modo_recetario: "instrumento" }, false)).toBe("Por defecto · como el instrumento");
+    expect(rotuloRecetario(datos, false)).toBe("Por defecto, por frecuencia");
+    expect(rotuloRecetario({ ...datos, modo_recetario: "instrumento" }, false)).toBe("Por defecto, como el instrumento");
     expect(rotuloRecetario(null, false)).toBe("Por defecto");
-    expect(rotuloRecetario(datos, true)).toBe("Por defecto · orden elegido antes");
+    expect(rotuloRecetario(datos, true)).toBe("Por defecto, orden elegido antes");
     expect(tieneOrdenHeredado({ orden_barras: "mayor_menor" })).toBe(true);
     expect(tieneOrdenHeredado({ overrides: { orden_categorias_manual: [] } })).toBe(false);
   });
@@ -160,7 +160,7 @@ describe("avisos de la pregunta (decisión 4, §7)", () => {
     expect(sinPrefijoPregunta(`“${P}”:una`, P)).toBe(`“${P}”:una`);
     expect(sinPrefijoPregunta(`“${P}”: `, P)).toBe(`“${P}”: `);
     expect(sinPrefijoPregunta("“”: x", "")).toBe("“”: x");
-    expect(sinPrefijoPregunta(`“${P}”: «Otro» va al final.`, P)).toBe("«Otro» va al final.");
+    expect(sinPrefijoPregunta(`“${P}”: Otro va al final.`, P)).toBe("Otro va al final.");
   });
 
   it("separa la de escala, destaca base_por_defecto y conserva el orden y los códigos desconocidos", () => {

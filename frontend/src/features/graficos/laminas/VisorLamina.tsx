@@ -157,7 +157,7 @@ export function VisorLamina({
         <IconoTipo clase="lamina" tipo={lamina.tipo} size={16} titulo={lamina.tipoLabel} className="pulso-f6-visor-tipo" />
         <p className="pulso-f6-visor-pos" aria-live="polite">
           <strong><span className="pulso-f6-rotulo-angosto">Lámina </span>{lamina.posicion} de {total}</strong>
-          {nPartes > 1 && <span className="pulso-sr-only"> · parte {parteActiva} de {nPartes}</span>}
+          {nPartes > 1 && <span className="pulso-sr-only">, parte {parteActiva} de {nPartes}</span>}
         </p>
         {estado && !cargando && (
           <span className={`pulso-f6-chip-estado is-${estado === "ruta_anterior" ? "ruta" : estado === "sin_grafico" ? "neutro" : "nativa"}`} title={motivoDeEstado(estado, motorNativoApagado, (l?.avisos.length ?? 0) > 0)}>
@@ -170,7 +170,7 @@ export function VisorLamina({
           <span className="pulso-f6-chip-estado is-neutro" role="status">
             <Loader2 size={13} className="pulso-spin" aria-hidden="true" />
             {vista.desactualizada ? "Regenerando" : "Generando"}
-            {vista.progreso?.porcentaje != null ? ` · ${Math.round(vista.progreso.porcentaje)} %` : ""}
+            {vista.progreso?.porcentaje != null ? `, ${Math.round(vista.progreso.porcentaje)} %` : ""}
             {vista.progreso?.mensaje ? <span className="pulso-sr-only">: {vista.progreso.mensaje}</span> : null}
           </span>
         )}

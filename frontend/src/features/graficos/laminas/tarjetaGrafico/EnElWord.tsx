@@ -21,9 +21,9 @@ import "./tarjetaGrafico.css";
 type Props = { slideId: string; slot: string; valor: GraficadorRef; argsDelRegistro: readonly ArgMetadata[] };
 
 const COMO_SALE: Record<TituloDeFigura, string> = {
-  propio: "Sale como figura «Gráfico N», con su título en la línea siguiente y la base centrada debajo.",
-  lamina: "Sale como figura «Gráfico N» con el título de la lámina (pestaña Lámina) y la base centrada debajo.",
-  lamina_y_pregunta: "Cada pregunta o tema sale como su propia figura «Gráfico N», con el título de la lámina seguido del de la pregunta, y la base centrada debajo.",
+  propio: "Sale como figura Gráfico N, con su título en la línea siguiente y la base centrada debajo.",
+  lamina: "Sale como figura Gráfico N con el título de la lámina (pestaña Lámina) y la base centrada debajo.",
+  lamina_y_pregunta: "Cada pregunta o tema sale como su propia figura Gráfico N, con el título de la lámina seguido del de la pregunta, y la base centrada debajo.",
 };
 
 export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {

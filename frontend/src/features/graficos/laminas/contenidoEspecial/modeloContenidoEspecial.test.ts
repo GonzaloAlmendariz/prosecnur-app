@@ -42,7 +42,7 @@ describe("título por defecto (C35)", () => {
   it("toma el nombre de la pregunta del gráfico con inferSlideVariableTitle", () => {
     const t = tituloPorDefecto(unGrafico("", { var: "base$q1" }), variables, "1 gráfico");
     expect(t.placeholder).toBe("Satisfacción con el servicio");
-    expect(t.ayuda).toContain("«Satisfacción con el servicio»");
+    expect(t.ayuda).toContain("Satisfacción con el servicio");
   });
 
   it("sin gráfico ni pregunta vuelve al nombre del tipo, sin ayuda", () => {
@@ -60,7 +60,7 @@ describe("título por defecto (C35)", () => {
 describe("objetivo (G5/G6)", () => {
   it("vacío, su rótulo es el del motor: «Objetivo del estudio»", () => {
     const slide = { id: "o", tipo: "p_slide_objetivo_icono", payload: { titulo: "", texto: "" } } as Slide;
-    expect(tituloPorDefecto(slide, [], "Objetivo con ícono")).toEqual({ placeholder: "Objetivo del estudio", ayuda: "Vacío, sale «Objetivo del estudio»." });
+    expect(tituloPorDefecto(slide, [], "Objetivo con ícono")).toEqual({ placeholder: "Objetivo del estudio", ayuda: "Vacío, sale Objetivo del estudio." });
   });
 
 });

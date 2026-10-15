@@ -151,7 +151,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
     const v = slot ? (slide.payload as Record<string, unknown>)[slot] as GraficadorRef | undefined : undefined;
     if (!v?.graficador) return "sin gráfico";
     const variable = firstVariableRefFromGraph(v);
-    return `${graficadorDisplayName(v.graficador, graficadoresById[v.graficador])}${variable ? ` · ${variable}` : ""}`;
+    return `${graficadorDisplayName(v.graficador, graficadoresById[v.graficador])}${variable ? `, ${variable}` : ""}`;
   }, [slide, graficadoresById]);
   // Estructura ⇄ Inspector (excluyentes): la URL dice cuál, la sesión lo recuerda. Ver lateralLaminas.ts.
   const resolucion = resolverLateral(direccion.panel, lateralPreferido);

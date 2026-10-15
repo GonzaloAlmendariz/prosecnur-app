@@ -147,7 +147,7 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
     case "p_barras_agrupadas": {
       const max = entero(v("max_categorias"));
       if (max) ajustes.push(`Máximo ${max} categorías`);
-      if (max && v("agrupar_resto_en_otros") !== false) { glifo.otros = true; ajustes.push("Resto en «Otros»"); }
+      if (max && v("agrupar_resto_en_otros") !== false) { glifo.otros = true; ajustes.push("Resto en Otros"); }
       // Las marcas sólo se dibujan con la escala de 0 a 100 % (`usar_eje_libre` apagado, el defecto).
       if (v("marcas_eje") === true && v("usar_eje_libre") !== true) { glifo.marcas = true; ajustes.push("Marcas del eje"); }
       break;
@@ -155,10 +155,10 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
     case "p_pie":
     case "p_donut": {
       const k = entero(v("top_k"));
-      if (k) { glifo.otros = true; ajustes.push(`Máximo ${k} categorías`, "Resto en «Otros»"); }
+      if (k) { glifo.otros = true; ajustes.push(`Máximo ${k} categorías`, "Resto en Otros"); }
       // Recetario p70: la respuesta y la frase del centro de la dona.
       if (graficador === "p_donut" && typeof v("al_centro") === "string" && v("al_centro")) ajustes.push(`Al centro: ${v("al_centro") as string}`);
-      if (graficador === "p_donut" && typeof v("frase_centro") === "string" && (v("frase_centro") as string).trim()) ajustes.push(`«${(v("frase_centro") as string).trim()}»`);
+      if (graficador === "p_donut" && typeof v("frase_centro") === "string" && (v("frase_centro") as string).trim()) ajustes.push(`“${(v("frase_centro") as string).trim()}”`);
       break;
     }
     case "p_lollipop": {

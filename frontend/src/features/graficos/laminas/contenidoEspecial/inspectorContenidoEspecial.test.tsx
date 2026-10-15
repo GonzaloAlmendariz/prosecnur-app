@@ -88,7 +88,7 @@ describe("Inspector › Contenido especial", () => {
     expect(html).toContain("Sin ícono");
     expect(html).toMatch(/aria-label="Diana" checked=""/);
     expect(html).not.toMatch(/aria-label="Casa" checked=""/);
-    expect(html).toContain("Sale «Diana».");
+    expect(html).toContain("Sale “Diana”.");
     expect(html).toContain('src="/api/files/f1"');
     expect(html).not.toContain("El actual");
     expect(html).not.toContain("todavía no está en Láminas");
@@ -109,7 +109,7 @@ describe("Inspector › Contenido especial", () => {
   it("C35: el título vacío muestra el nombre de la pregunta del gráfico", () => {
     const html = pintar({ id: "g", tipo: "p_slide_1_grafico", payload: { titulo: "", grafico: { graficador: "p_barras_apiladas", args: { var: "base$q1" } } } });
     expect(html).toContain('placeholder="Confianza en la institución"');
-    expect(html).toContain("Vacío, sale «Confianza en la institución»");
+    expect(html).toContain("Vacío, sale “Confianza en la institución”");
   });
 
 });

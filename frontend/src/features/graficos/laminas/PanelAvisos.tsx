@@ -160,7 +160,7 @@ function ListaPorLamina({ titulo, grupos, geometria }: { titulo: string; grupos:
       <ul data-qa-geometry-group={geometria} data-qa-geometry-contract="intrinsic">
         {grupos.map((g) => (
           <li key={g.clave} className="pulso-avexp-panel-item">
-            <span className="pulso-avexp-panel-lamina">{g.lamina ? `Lámina ${g.lamina}${g.titulo ? ` · ${g.titulo}` : ""}` : "Informe"}</span>
+            <span className="pulso-avexp-panel-lamina">{g.lamina ? `Lámina ${g.lamina}${g.titulo ? `, ${g.titulo}` : ""}` : "Informe"}</span>
             <ul className="pulso-avexp-panel-detalles">{g.detalles.map((d) => <li key={d}>{d}</li>)}</ul>
           </li>
         ))}

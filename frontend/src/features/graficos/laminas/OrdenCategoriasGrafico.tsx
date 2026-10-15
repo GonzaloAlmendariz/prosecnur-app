@@ -158,7 +158,7 @@ function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCateg
     if (hasta < 0 || hasta >= lista.length || desde === hasta) return;
     const codigo = lista[desde];
     onLista(mover(lista, desde, hasta));
-    setAnuncio(`«${etiqueta.get(codigo) ?? codigo}» en la posición ${hasta + 1} de ${lista.length}.`);
+    setAnuncio(`“${etiqueta.get(codigo) ?? codigo}” en la posición ${hasta + 1} de ${lista.length}.`);
     if (!enfocar) return;
     requestAnimationFrame(() => {
       const item = items.current.get(codigo);
@@ -210,10 +210,10 @@ function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCateg
                 {texto}
                 {vacia && <span className="pulso-f6-orden-sin-respuestas" aria-hidden="true">{NO_SE_DIBUJA}</span>}
               </span>
-              <button type="button" className="pulso-f6-icono-boton" {...{ [ATRIBUTO_ACCION_ORDEN]: "subir" }} aria-label={`Subir «${texto}»`} disabled={i === 0} onClick={() => moverA(i, i - 1, "subir")}>
+              <button type="button" className="pulso-f6-icono-boton" {...{ [ATRIBUTO_ACCION_ORDEN]: "subir" }} aria-label={`Subir “${texto}”`} disabled={i === 0} onClick={() => moverA(i, i - 1, "subir")}>
                 <ArrowUp size={14} aria-hidden="true" />
               </button>
-              <button type="button" className="pulso-f6-icono-boton" {...{ [ATRIBUTO_ACCION_ORDEN]: "bajar" }} aria-label={`Bajar «${texto}»`} disabled={i === lista.length - 1} onClick={() => moverA(i, i + 1, "bajar")}>
+              <button type="button" className="pulso-f6-icono-boton" {...{ [ATRIBUTO_ACCION_ORDEN]: "bajar" }} aria-label={`Bajar “${texto}”`} disabled={i === lista.length - 1} onClick={() => moverA(i, i + 1, "bajar")}>
                 <ArrowDown size={14} aria-hidden="true" />
               </button>
             </li>

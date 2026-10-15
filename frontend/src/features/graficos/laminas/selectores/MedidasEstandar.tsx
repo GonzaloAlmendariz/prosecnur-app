@@ -27,8 +27,8 @@ export function MedidasEstandar({ estandar, ranuras, slots, nombreSlot }: Props)
             <>
               <dt>Escala de la familia</dt>
               <dd>{num(familia.escala)}</dd>
-              <dt>Cifra · rótulo</dt>
-              <dd>{num(familia.cifra_pt)} pt · {num(familia.rotulo_pt)} pt</dd>
+              <dt>Cifra y rótulo</dt>
+              <dd>{num(familia.cifra_pt)} pt, {num(familia.rotulo_pt)} pt</dd>
               <dt>Grosor de barra</dt>
               <dd>{num(familia.barra_in)} in</dd>
             </>
@@ -50,7 +50,7 @@ export function MedidasEstandar({ estandar, ranuras, slots, nombreSlot }: Props)
           <tbody>
             {ranuras.map((r, i) => {
               const k = r.slot ? slots.indexOf(r.slot) + 1 : 0;
-              const rotulo = r.tipo === "texto" ? "Texto" : `${r.tipo === "cifras" ? "Cifra" : "Gráfico"} ${k || ""}${r.slot ? ` · ${nombreSlot(r.slot)}` : ""}`.trim();
+              const rotulo = r.tipo === "texto" ? "Texto" : `${r.tipo === "cifras" ? "Cifra" : "Gráfico"} ${k || ""}${r.slot ? `, ${nombreSlot(r.slot)}` : ""}`.trim();
               return (
                 <tr key={`${r.tipo}-${i}`}>
                   <th scope="row">{rotulo}</th>

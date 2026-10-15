@@ -176,7 +176,7 @@ export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...export
       panelProps={seccionesJsonPanel.props}
       clave="f6-secciones-json"
       titulo="Exportar o importar secciones"
-      descripcion={`Archivo JSON con las partes del plan que elijas · ${compartir.nSecciones} de ${compartir.totalSecciones} incluidas.`}
+      descripcion={`Archivo JSON con las partes del plan que elijas, ${compartir.nSecciones} de ${compartir.totalSecciones} incluidas.`}
       contenedor={marco}
       retornoRef={masRef}
       mensaje={compartir.estado.mensaje}

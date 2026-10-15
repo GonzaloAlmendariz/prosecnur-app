@@ -19,7 +19,7 @@ describe("redondeo propio de un gráfico", () => {
   it("propio: escribe la marca y los campos de su familia, y se describe", () => {
     const ov = conRedondeo({ overrides: { titulo: "x" } }, fila(), { metodo: "reparto" });
     expect(ov).toEqual({ titulo: "x", calculos_propios: true, metodo_redondeo: "reparto", decimales: 0 });
-    expect(describirRedondeo({ overrides: ov }, fila())).toBe("Reparto a 100 % · Sin decimales");
+    expect(describirRedondeo({ overrides: ov }, fila())).toBe("Reparto a 100 %, Sin decimales");
     // Una familia sin método (respuesta múltiple) sólo lleva decimales, en su propio campo.
     const multiple = fila({ admiteMetodo: false, campoDecimales: "decimales_pct" });
     expect(conRedondeo({}, multiple, { decimales: 1 })).toEqual({ calculos_propios: true, decimales_pct: 1 });

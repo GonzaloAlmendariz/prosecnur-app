@@ -187,7 +187,7 @@ function ListaDimensiones({ dimensiones, onCambio }: { dimensiones: string[]; on
         <h3 id={idTitulo} className="pulso-f6-subtitulo">Dimensiones</h3>
         <span className="pulso-f6-ayuda">{dimensiones.length === 0 ? "Ninguna" : `${dimensiones.length} de ${MAX_DIMENSIONES}`}</span>
       </div>
-      <span className="pulso-f6-ayuda">Van en tarjetas bajo «Conocer la percepción sobre».</span>
+      <span className="pulso-f6-ayuda">Van en tarjetas bajo Conocer la percepción sobre.</span>
       {dimensiones.length > 0 && (
         <ol ref={lista} className="pulso-f6-filas" data-qa-geometry-group="graficos/f6-dimensiones-filas" data-qa-geometry-contract="intrinsic">
           {dimensiones.map((d, i) => (
