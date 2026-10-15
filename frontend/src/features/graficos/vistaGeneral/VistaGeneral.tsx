@@ -45,6 +45,8 @@ import { destinoDeFoco, intencionDeTecla, objetivoDeReenfoque } from "./tecladoV
 import { useEstadosInforme } from "./useEstadosInforme";
 import { EstructuraLateral } from "./EstructuraLateral";
 import { BarraSeleccion } from "./BarraSeleccion";
+import { VistaWordInforme, useArmadoWord } from "./VistaWordInforme";
+import { contarFiguras } from "./paginasWord";
 import { pasaFiltro } from "./estadoTarjetas";
 import { useFlipTarjetas } from "./useFlipTarjetas";
 import { useVistaGeneralUi } from "./vistaGeneralStore";
@@ -79,12 +81,15 @@ export default function VistaGeneral() {
   const filtro = useVistaGeneralUi((s) => s.filtro);
   const plegados = useVistaGeneralUi((s) => s.plegados);
   const tamano = useVistaGeneralUi((s) => s.tamano);
+  const modo = useVistaGeneralUi((s) => s.modo);
   const insertSlideAt = usePlanStore((s) => s.insertSlideAt);
 
   const estructura = useMemo(() => construirEstructura(slides), [slides]);
   const filas = useMemo(() => construirFilas(estructura, slides), [estructura, slides]);
   const cobertura = useMemo(() => coberturaInforme(filas), [filas]);
   const { estados, conteos } = useEstadosInforme(estructura);
+  const paginas = useArmadoWord(filas, slides);
+  const resumenWord = useMemo(() => ({ paginas: paginas.length, graficos: contarFiguras(paginas) }), [paginas]);
   const ids = useMemo(() => slides.map((s) => s.id), [slides]);
   const porId = useMemo(() => new Map(slides.map((s) => [s.id, s])), [slides]);
   const firma = ids.join("|");
@@ -417,15 +422,19 @@ export default function VistaGeneral() {
         seleccionadas={seleccion.ids.length}
         tamano={tamano}
         onTamano={useVistaGeneralUi.getState().setTamano}
+        modo={modo}
+        onModo={useVistaGeneralUi.getState().setModo}
+        paginasWord={resumenWord}
       />
       <span className="pulso-sr-only" role="status" aria-live="polite">{anuncio}</span>
       <div
         ref={cuerpoRef}
-        className={`pulso-f6-vg-cuerpo${arrastre ? " is-arrastrando" : ""}`}
+        className={`pulso-f6-vg-cuerpo${arrastre ? " is-arrastrando" : ""}${modo === "word" ? " is-word" : ""}`}
         data-qa-scroll-owner="vista-general"
         aria-label="Láminas del informe por capítulo"
         role="region"
       >
+        {modo === "word" ? <VistaWordInforme filas={filas} slides={slides} /> : (<>
         <EstructuraLateral filas={filas} estados={estados}
           onIr={(id) => cuerpoRef.current?.querySelector(`[data-vg-fila="${CSS.escape(id)}"]`)?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })} />
         <div className="pulso-f6-vg-filas" data-qa-geometry-group="graficos/f6-vg-filas" data-qa-geometry-contract="intrinsic"
@@ -483,8 +492,9 @@ export default function VistaGeneral() {
             );
           })}
         </div>
+        </>)}
       </div>
-      <BarraSeleccion
+      {modo === "maquetas" && <BarraSeleccion
         filas={filas}
         seleccionadas={seleccion.ids.length}
         destinosHabilitados={destinosMover}
@@ -492,7 +502,7 @@ export default function VistaGeneral() {
         onDuplicar={() => duplicar(seleccion.ids)}
         onEliminar={() => { retornoTrasConfirmar.current = itinerante; pedirEliminar(seleccion.ids); }}
         onVaciar={() => useVistaGeneralUi.getState().setSeleccion(SELECCION_VACIA)}
-      />
+      />}
       <AvisosVistaGeneral estructura={estructura} onIr={abrir} />
       <ConfirmarEliminar
         titulos={titulosAEliminar}

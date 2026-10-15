@@ -1233,3 +1233,225 @@
   outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
   outline-offset: 1px;
 }
+
+/* I11 del rediseño (2026-10-14): vista Word del Informe, páginas A4 como maquetas. La caja es el contenedor (cqw de sus
+   hijos), la página guarda la proporción 210/297. Encabezado corrido, títulos en el primario, gráficos sin marco. */
+.pulso-f6-vg-cuerpo.is-word {
+  display: block;
+}
+
+.pulso-f6-vg-paginas {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--pulso-space-4);
+  align-items: start;
+}
+
+@media (max-width: 1279px) {
+  .pulso-f6-vg-paginas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pulso-f6-vg-pagina-caja {
+  display: block;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.pulso-f6-vg-pagina {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 210 / 297;
+  padding: 9cqw 9cqw 7cqw;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--pulso-surface);
+  box-shadow: 0 0 0 1px var(--pulso-border), var(--pulso-shadow-soft);
+  color: var(--pulso-text);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.pulso-f6-vg-pag-enc {
+  display: flex;
+  justify-content: space-between;
+  gap: 2cqw;
+  margin-bottom: 3cqw;
+  padding-bottom: 1.2cqw;
+  border-bottom: 0.4cqw solid var(--pulso-border);
+  color: var(--pulso-text-faint);
+  font-size: 2.6cqw;
+  white-space: nowrap;
+}
+
+.pulso-f6-vg-pag-enc span,
+.pulso-f6-vg-pag-enc b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pulso-f6-vg-pag-enc b {
+  color: var(--pulso-primary);
+}
+
+.pulso-f6-vg-pag-h1 {
+  margin: 1cqw 0 3cqw;
+  color: var(--pulso-primary);
+  font-size: 6cqw;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.pulso-f6-vg-pag-h2 {
+  margin: 1cqw 0 2cqw;
+  color: var(--pulso-primary);
+  font-size: 4.2cqw;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.pulso-f6-vg-pag-ln {
+  flex: none;
+  height: 1.3cqw;
+  margin-bottom: 1.6cqw;
+  border-radius: 1px;
+  background: var(--pulso-surface-3);
+}
+
+.pulso-f6-vg-pag-sep {
+  flex: none;
+  height: 2.6cqw;
+}
+
+.pulso-f6-vg-fig {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 2.5cqw 0 2cqw;
+}
+
+.pulso-f6-vg-fig-lab {
+  font-size: 3cqw;
+  font-weight: 700;
+}
+
+.pulso-f6-vg-fig-q {
+  margin-bottom: 1.5cqw;
+  font-size: 3cqw;
+  font-style: italic;
+  line-height: 1.25;
+}
+
+.pulso-f6-vg-fig-gl {
+  align-self: center;
+  width: 62%;
+  height: auto;
+}
+
+.pulso-f6-vg-fig-nt {
+  margin-top: 1cqw;
+  color: var(--pulso-text-soft);
+  font-size: 2.4cqw;
+  text-align: center;
+}
+
+.pulso-f6-vg-pag-folio {
+  position: absolute;
+  right: 9cqw;
+  bottom: 4cqw;
+  color: var(--pulso-text-faint);
+  font-size: 2.4cqw;
+}
+
+.pulso-f6-vg-pag-toc {
+  display: flex;
+  flex-direction: column;
+  gap: 1.8cqw;
+  font-size: 3cqw;
+}
+
+.pulso-f6-vg-pag-toc-e {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5cqw;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.pulso-f6-vg-pag-toc-e > span {
+  flex: none;
+  min-width: 5cqw;
+  color: var(--pulso-primary);
+  font-weight: 700;
+}
+
+.pulso-f6-vg-pag-toc-e i {
+  flex: 1;
+  border-bottom: 0.3cqw dotted var(--pulso-border-strong);
+}
+
+.pulso-f6-vg-pag-toc-e.is-n2 {
+  padding-left: 5cqw;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-vg-pagina.is-portada {
+  justify-content: space-between;
+}
+
+.pulso-f6-vg-pag-logos,
+.pulso-f6-vg-pag-pie {
+  display: flex;
+  justify-content: space-between;
+  color: var(--pulso-primary);
+  font-size: 3cqw;
+  font-weight: 700;
+}
+
+.pulso-f6-vg-pag-portada {
+  display: flex;
+  flex-direction: column;
+  gap: 3cqw;
+}
+
+.pulso-f6-vg-pag-k {
+  color: var(--pulso-text-soft);
+  font-size: 2.8cqw;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pulso-f6-vg-pag-t {
+  color: var(--pulso-primary);
+  font-size: 7.4cqw;
+  font-weight: 700;
+  line-height: 1.12;
+}
+
+.pulso-f6-vg-pag-regla {
+  width: 22cqw;
+  height: 0.9cqw;
+  background: var(--module-accent);
+}
+
+.pulso-f6-vg-pagina.is-contraportada {
+  justify-content: center;
+  align-items: center;
+  background: var(--pulso-primary);
+}
+
+.pulso-f6-vg-pag-contra {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2cqw;
+  color: var(--pulso-surface);
+  font-size: 4cqw;
+}
+
+.pulso-f6-vg-word-nota {
+  margin: var(--pulso-space-4) 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
