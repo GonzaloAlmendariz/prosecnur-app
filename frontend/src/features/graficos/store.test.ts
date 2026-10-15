@@ -1,5 +1,4 @@
 import { describe, expect, test } from "vitest";
-import { buildActiveChartStylePatch } from "./chartLayoutOrigin";
 import * as storeModule from "./store";
 
 type MergeSlotArgsPatch = (
@@ -25,11 +24,11 @@ describe("mergeSlotArgsPatch — tombstones visuales legacy", () => {
 
     const base = mergeSlotArgsPatch(
       legacyArgs,
-      buildActiveChartStylePatch(legacyArgs, visualArgNames, {}),
+      { ...Object.fromEntries(visualArgNames.map((k) => [k, null])), overrides: {} },
     );
     const copied = mergeSlotArgsPatch(
       legacyArgs,
-      buildActiveChartStylePatch(legacyArgs, visualArgNames, copiedOverrides),
+      { ...Object.fromEntries(visualArgNames.map((k) => [k, null])), overrides: copiedOverrides },
     );
 
     expect({
