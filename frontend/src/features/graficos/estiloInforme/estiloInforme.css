@@ -471,3 +471,47 @@
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
 }
+
+/* R3: la nota al pie, automática (se lee) o propia (se edita). */
+.pulso-f6-nota-auto {
+  margin: var(--pulso-space-2) 0 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.pulso-f6-nota-auto span {
+  display: block;
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+}
+
+.pulso-f6-nota-propia {
+  display: grid;
+  gap: 4px;
+  margin-top: var(--pulso-space-2);
+}
+
+.pulso-f6-nota-propia textarea {
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12.5px;
+  resize: vertical;
+}
+
+.pulso-f6-nota-propia textarea:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: 1px;
+}
+
+.pulso-f6-nota-propia small {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+}

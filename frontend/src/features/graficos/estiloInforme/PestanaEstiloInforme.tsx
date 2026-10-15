@@ -40,6 +40,7 @@ import { SeccionCasos } from "./SeccionCasos";
 import { useEffect } from "react";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { NivelesReglas } from "./NivelesReglas";
+import { ARG_NOTA_MODO, ARG_NOTA_TEXTO, conModoNota, conTextoNota, leerNota } from "./notaRedondeo";
 import { conCasosJunto, leerCasosJunto } from "./casosJunto";
 import { ARG_SUFIJO_POR_BASE, conSufijoDeBase, leerSufijosPorBase } from "./sufijoPorBase";
 import { useVariables } from "../useVariables";
@@ -89,7 +90,9 @@ export default function PestanaEstiloInforme() {
     onMetodoEnTodas: (metodo) => cambiarPresets((p) => conMetodoEnTodas(p, filas, metodo)),
     onDecimalesEnTodas: (dec) => cambiarPresets((p) => conDecimalesEnTodas(p, filas, dec)),
     onNota: (activa) => cambiarPresets((p) => conArg(p, PRESET_BASE, ARG_NOTA, activa, nota.porDefecto)),
-    onVolverTodo: () => cambiarPresets((p) => filas.reduce(sinCalculos, sinArgs(p, PRESET_BASE, [ARG_NOTA]))),
+    onModoNota: (modo) => cambiarPresets((p) => conModoNota(p, modo)),
+    onTextoNota: (texto) => cambiarPresets((p) => conTextoNota(p, texto)),
+    onVolverTodo: () => cambiarPresets((p) => filas.reduce(sinCalculos, sinArgs(p, PRESET_BASE, [ARG_NOTA, ARG_NOTA_MODO, ARG_NOTA_TEXTO]))),
   };
 
   const cargando = cargandoCatalogo || cargandoDefaults;
@@ -125,7 +128,7 @@ export default function PestanaEstiloInforme() {
         >
           <NivelesReglas />
           <div id="regla-redondeo" className="pulso-f6-regla" data-qa-geometry-member>
-            <SeccionCalculos filas={filas} nota={nota} acciones={acciones} estado={estadoCalculos} />
+            <SeccionCalculos filas={filas} nota={{ ...nota, ...leerNota(presets, nota.activa) }} acciones={acciones} estado={estadoCalculos} />
           </div>
           <div id="regla-casos" className="pulso-f6-regla" data-qa-geometry-member>
             <SeccionCasos casos={leerCasosJunto(presets)} onCambiar={(c) => cambiarPresets((p) => conCasosJunto(p, c))} />
