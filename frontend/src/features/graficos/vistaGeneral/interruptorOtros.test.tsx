@@ -13,6 +13,8 @@ import { objetivoDeReenfoque, type ElementoEnfocable } from "./tecladoVistaGener
 
 vi.mock("../../../lib/SessionContext", () => ({ useSession: () => ({ state: null }) }));
 const { InterruptorOtrosVista } = await import("./InterruptorOtros");
+const { EnlaceOtrosVista } = await import("./EnlaceOtros");
+const { SeccionOtros } = await import("../estiloInforme/SeccionOtros");
 
 const pintar = (encendido: boolean) => renderToStaticMarkup(createElement(InterruptorOtrosVista, { encendido, ayuda: "ayuda", onCambiar: () => undefined }));
 
@@ -35,16 +37,28 @@ describe("Vista general · interruptor de «Otros»", () => {
     expect(encendido).toContain(CHIP_OTROS);
   });
 
-  // Mata: desconectar el interruptor del store (o del setter deshacible) y dejarlo fuera de la barra.
-  it("el conectado lee `autoOtrosSlides` del store y la barra de Vista general lo monta", () => {
+  // R7 (D4): el control vive en Reglas (SeccionOtros, conectado al setter deshacible); la barra del Informe sólo enlaza.
+  it("Reglas lee y escribe `autoOtrosSlides` y la barra del Informe monta el enlace, no un segundo interruptor", () => {
     const dir = path.dirname(fileURLToPath(import.meta.url));
-    const src = fs.readFileSync(path.join(dir, "InterruptorOtros.tsx"), "utf8");
-    expect(src).toContain("usePlanStore((s) => s.autoOtrosSlides)");
-    expect(src).toContain("encendido={encendido}");
-    expect(src).toContain("onCambiar={setAutoOtrosSlides}");
-    expect(fs.readFileSync(path.join(dir, "BarraVistaGeneral.tsx"), "utf8")).toContain("<InterruptorOtros />");
+    const reglas = fs.readFileSync(path.join(dir, "../estiloInforme/PestanaEstiloInforme.tsx"), "utf8");
+    expect(reglas).toContain("usePlanStore((s) => s.autoOtrosSlides)");
+    expect(reglas).toContain("onCambiar={setAutoOtros}");
+    const barra = fs.readFileSync(path.join(dir, "BarraVistaGeneral.tsx"), "utf8");
+    expect(barra).toContain("<EnlaceOtros />");
+    expect(barra).not.toContain("<InterruptorOtros");
     usePlanStore.getState().setAutoOtrosSlides(true);
     expect(usePlanStore.getState().autoOtrosSlides).toBe(true);
+  });
+
+  // Mata: un enlace que no diga el estado o una regla cuyo segmentado no siga al valor.
+  it("el enlace dice cómo está y la regla marca la opción elegida", () => {
+    expect(renderToStaticMarkup(createElement(EnlaceOtrosVista, { encendido: false, onIr: () => undefined }))).toContain("Sin «Otros»");
+    expect(renderToStaticMarkup(createElement(EnlaceOtrosVista, { encendido: true, onIr: () => undefined }))).toContain("+ «Otros» al exportar");
+    const regla = (v: boolean) => renderToStaticMarkup(createElement(SeccionOtros, { encendido: v, ayuda: "AYUDA", onCambiar: () => undefined }));
+    expect(regla(true)).toMatch(/aria-checked="true"[^>]*>Después de su gráfico/);
+    expect(regla(true)).toContain("AYUDA");
+    expect(regla(false)).toMatch(/aria-checked="true"[^>]*>No agregar/);
+    expect(regla(false)).toContain("no sale en el informe");
   });
 
   // L1 del rediseño (2026-10-14): el Word SÍ las lleva (reporte_word_otros.R, tabla tras cada gráfico); la ayuda decía lo contrario.

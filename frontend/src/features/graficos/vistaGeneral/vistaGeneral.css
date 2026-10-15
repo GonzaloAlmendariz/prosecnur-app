@@ -1448,3 +1448,28 @@
 .pulso-f6-vg-pag-h2.is-indice {
   margin-top: 4cqw;
 }
+
+/* R7 (D4): «Otros» se decide en Reglas; la barra del Informe dice cómo está y lleva a su regla. */
+.pulso-f6-vg-otros-enlace {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  height: 22px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out), color var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-f6-vg-otros-enlace:hover { border-color: var(--module-accent-border); color: var(--pulso-text); }
+.pulso-f6-vg-otros-enlace:focus-visible { outline: 2px solid var(--module-accent); outline-offset: 2px; }
+.pulso-f6-vg-otros-enlace.is-activo {
+  border-color: var(--module-accent-border);
+  background: var(--module-accent-soft);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
