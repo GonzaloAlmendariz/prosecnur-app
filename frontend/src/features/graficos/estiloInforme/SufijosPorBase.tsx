@@ -4,6 +4,11 @@
 import { useId, useState } from "react";
 import { ejemploTextoBase, N_EJEMPLO } from "./modeloEstiloInforme";
 
+/** Lo que escribe el motor sin palabra propia: el nombre de la base sin guiones bajos (`.base_sufijo_de_fuente`). */
+export function palabraPorDefecto(base: string): string {
+  return base.trim().replace(/_+/g, " ");
+}
+
 function FilaBase({ base, palabra, formato, onCambiar }: { base: string; palabra: string; formato: string; onCambiar: (palabra: string) => void }) {
   const id = useId();
   const [borrador, setBorrador] = useState(palabra);
@@ -18,7 +23,7 @@ function FilaBase({ base, palabra, formato, onCambiar }: { base: string; palabra
         className="pulso-f6-informe-input"
         type="text"
         value={borrador}
-        placeholder={base}
+        placeholder={palabraPorDefecto(base)}
         onChange={(e) => setBorrador(e.target.value)}
         onBlur={confirmar}
         onKeyDown={(e) => {
@@ -26,7 +31,7 @@ function FilaBase({ base, palabra, formato, onCambiar }: { base: string; palabra
           if (e.key === "Escape") setBorrador(palabra);
         }}
       />
-      <output className="pulso-f6-sufijo-base-ejemplo">{ejemploTextoBase(formato, borrador.trim() || base, N_EJEMPLO)}</output>
+      <output className="pulso-f6-sufijo-base-ejemplo">{ejemploTextoBase(formato, borrador.trim() || palabraPorDefecto(base), N_EJEMPLO)}</output>
     </li>
   );
 }
@@ -52,7 +57,7 @@ export function SufijosPorBase({
           <FilaBase key={`${b}:${sufijos[b] ?? ""}`} base={b} palabra={sufijos[b] ?? ""} formato={formato} onCambiar={(p) => onCambiar(b, p)} />
         ))}
       </ul>
-      <p className="pulso-f6-informe-ayuda">Vacío, va el nombre de la base.</p>
+      <p className="pulso-f6-informe-ayuda">Vacío, va el nombre de la base sin guiones bajos.</p>
     </div>
   );
 }
