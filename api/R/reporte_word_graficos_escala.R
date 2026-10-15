@@ -96,6 +96,8 @@
   hay_chicas <- any(A * 100 > 0 & A * 100 < .WORD_ESCALA_CABE_PCT & Dw)
   nl <- vapply(strsplit(lbw, "\n"), function(x) max(1L, length(x)), 1L)
   esp <- pmax(if (hay_chicas) 1.3 else 1, 0.55 + 0.34 * nl); tot <- sum(esp); ys <- tot - (cumsum(esp) - esp / 2) + 0.5
+  grp <- .word_escala_grupos(F, esp, envolver = if (length(espec$box$cifras)) 60 else 80)   # W6: temas de «Un gráfico»
+  if (!is.null(grp)) { ys <- grp$ys; tot <- grp$tot }
   d <- do.call(rbind, lapply(seq_len(nf), function(i) {
     p <- as.numeric(A[i, ]) * 100; x1 <- cumsum(p); x0 <- x1 - p
     data.frame(y = ys[i], cat = factor(cat$rotulo, levels = cat$rotulo), x0 = x0, x1 = x1, p = p, cifra = as.character(Ci[i, ]),
@@ -142,6 +144,7 @@
   if (isTRUE(F$es_total[1]) && nf > 1) {   # desde el borde del eje: con rótulos cortos, −30 del recetario quedaba fuera
     g <- g + ggplot2::annotate("segment", x = max(-30, xmin), xend = if (ttb) col$filete else 116, y = (ys[1] + ys[2]) / 2, yend = (ys[1] + ys[2]) / 2, colour = filete, linewidth = 0.5)
   }
+  if (!is.null(grp)) g <- g + ggplot2::annotate("text", x = xmin, y = grp$cabeceras$y, label = grp$cabeceras$texto, hjust = 0, size = .word_pt(.WORD_ESCALA_PT$rotulo_fila, "rotulo"), fontface = "bold", colour = navy, family = "Arial", lineheight = 0.9)
   size_ley <- .WORD_ESCALA_PT$leyenda + .word_desplazo("leyenda")
   plan_ley <- .leyenda_avisar(.word_leyenda_plan(cat$rotulo[espec$leyenda %||% seq_len(k)], size_ley))
   size_ley <- plan_ley$size

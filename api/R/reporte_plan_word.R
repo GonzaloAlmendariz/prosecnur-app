@@ -274,6 +274,11 @@ w_presets <- function(
     width_in  = suppressWarnings(as.numeric(img$width_in  %||% 6.1)[1]),
     height_in = suppressWarnings(as.numeric(img$height_in %||% 2.95)[1])
   )
+  # W6/D6: el modo Word de las multiapiladas del informe viaja igual que el lienzo; la lámina que declare el suyo manda
+  # (`.word_multi_modo_resolver`, reporte_word_multi_modos.R). Ausente o «automatico» = el corte de siempre.
+  presets_ppt$base$args$word_multiapiladas <- .word_multi_modo_normalizar(
+    chart_options[["multiapiladas_word", exact = TRUE]], "el informe", admite_automatico = TRUE
+  )
 
   class(presets_ppt) <- c("ppt_presets", "list")
   presets_ppt

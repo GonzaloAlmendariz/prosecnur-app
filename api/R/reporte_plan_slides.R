@@ -2138,6 +2138,9 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
 #'   `altura_rel`, `overrides`, `base` y `filtros`.
 #' @param invertir_barras Da la vuelta al orden de las filas (O7c). Va a `overrides`, así que en `multilista` lo
 #'   heredan los bloques; `NULL` hereda el preset.
+#' @param word_multiapiladas Figuras del Word (W6/D6): `"un_grafico"`, `"por_tema"` o `"por_barra"`; `NULL` o `""`
+#'   hereda `w_presets$chart_options$multiapiladas_word`. En `multilista` vale
+#'   para cada bloque. La lámina del PPT no cambia.
 #' @examples
 #' p_barras_multiapiladas(
 #'   modo = "cruce",
@@ -2174,7 +2177,8 @@ p_barras_multiapiladas <- function(
     mostrar_categorias_en_cero = NULL,
     ancho_tema = NULL,
     mostrar_respuestas = NULL,
-    invertir_barras = NULL
+    invertir_barras = NULL,
+    word_multiapiladas = NULL
 ) {
   .ppt_as_chr_vec <- function(x, keep_names = FALSE) {
     if (is.null(x)) return(NULL)
@@ -2272,6 +2276,8 @@ p_barras_multiapiladas <- function(
   overrides <- .ppt_slot_override(overrides, "ancho_tema", ancho_tema, "opcion", opciones = names(.MULTIACTOR_ANCHO_TEMA))
   overrides <- .ppt_slot_override(overrides, "mostrar_respuestas", mostrar_respuestas, "bool")
   overrides <- .ppt_slot_override(overrides, "invertir_barras", invertir_barras, "bool")   # O7c
+  # W6/D6: cuántas figuras Word sale de esta lámina; NULL hereda el informe (reporte_word_multi_modos.R)
+  word_multiapiladas <- .word_multi_modo_normalizar(word_multiapiladas, "la lámina")
 
   if (identical(modo, "multilista")) {
     if (!is.list(bloques) || !length(bloques)) {
@@ -2354,7 +2360,8 @@ p_barras_multiapiladas <- function(
       prefijo_grupos = prefijo_grupos,
       overrides      = overrides,
       base           = base,
-      filtros        = filtros
+      filtros        = filtros,
+      word_multiapiladas = word_multiapiladas
     )
     class(el) <- c("ppt_element", "list")
     return(el)
@@ -2399,7 +2406,8 @@ p_barras_multiapiladas <- function(
       prefijo_grupos = prefijo_grupos,
       overrides      = overrides,
       base           = base,
-      filtros        = filtros
+      filtros        = filtros,
+      word_multiapiladas = word_multiapiladas
     )
     class(el) <- c("ppt_element", "list")
     return(el)
@@ -2456,7 +2464,8 @@ p_barras_multiapiladas <- function(
       prefijo_grupos = prefijo_grupos,
       overrides      = overrides,
       base           = base,
-      filtros        = filtros
+      filtros        = filtros,
+      word_multiapiladas = word_multiapiladas
     )
     class(el) <- c("ppt_element", "list")
     return(el)
@@ -2486,7 +2495,8 @@ p_barras_multiapiladas <- function(
     prefijo_grupos = prefijo_grupos,
     overrides      = overrides,
     base           = base,
-    filtros        = filtros
+    filtros        = filtros,
+    word_multiapiladas = word_multiapiladas
   )
   class(el) <- c("ppt_element", "list")
   el

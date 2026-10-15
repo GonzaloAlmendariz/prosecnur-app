@@ -3023,8 +3023,10 @@ p_reset <- function(
   block_clean$overrides <- block_clean$overrides %||% list()
   block_clean$overrides$titulo    <- NULL
   block_clean$overrides$subtitulo <- NULL
-  # Flag para renderizado Word: omite columna de grupo en var_cruce
-  block_clean$.word_sin_grupo <- TRUE
+  # Flag para renderizado Word: omite columna de grupo en var_cruce, salvo la multiapilada «Un gráfico» (W6/D6), que
+  # lleva sus temas dentro de la figura (`.word_multi_piezas`, reporte_word_multi_modos.R)
+  block_clean$.word_sin_grupo <- !isTRUE(block_data$.word_con_grupos)
+  block_clean$.word_con_grupos <- NULL
   block_clean$.word_render <- TRUE
   # Compensar que sin columna de grupo las barras se perciben algo mas delgadas
   if (is.null(block_clean$overrides$grosor_barras_mult))

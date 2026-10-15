@@ -3331,6 +3331,7 @@ mount_graficos <- function(pr) {
       # ADR 0094: lo guardado (lector tolerante) con el body encima, por clave; el body inválido sigue siendo 400.
       opciones_documento <- .graficos_documento_word_mezclar(cfg$documento_word, if (is.list(crudo)) crudo$opciones_documento)
       w_presets <- .graficos_deep_merge(cfg$w_presets, w_presets)   # default -> fósiles -> diff guardado -> body
+      .word_multi_validar_export(plan, w_presets)   # W6/D6: modo Word de multiapiladas inválido = 400 antes del job
       args_word <- list(
         rp_data_path = rp_data_path,
         rp_inst_path = rp_inst_path,
