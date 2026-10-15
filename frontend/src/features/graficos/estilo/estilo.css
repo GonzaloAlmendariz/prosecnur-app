@@ -114,7 +114,7 @@
   margin: 0;
   max-width: 72ch;
   font-size: 12.5px;
-  line-height: 1.5;
+  line-height: 1.4;
   color: var(--pulso-text-soft);
 }
 
@@ -409,7 +409,6 @@
   grid-template-columns: minmax(160px, 220px) minmax(150px, 200px) minmax(0, 1fr);
   align-items: center;
   gap: var(--pulso-space-2) var(--pulso-space-3);
-  min-height: 64px;
   padding: var(--pulso-space-3) var(--pulso-space-4);
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-card);
@@ -1045,6 +1044,7 @@
 .pulso-f6-muestra-fila {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
   gap: var(--pulso-space-3);
 }
 

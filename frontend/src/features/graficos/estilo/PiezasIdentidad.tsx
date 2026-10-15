@@ -56,8 +56,8 @@ export function PiezasIdentidad({ piezas, actual, onElegir, idPanel }: Props) {
         {SALIDAS.map((s) => (
           <span key={s.clave} className="pulso-f6-id-salidas-fila" role="row" data-qa-geometry-group="graficos/f6-id-salidas-fila" data-qa-geometry-contract="intrinsic">
             <span role="rowheader">{s.titulo}</span>
-            <i role="cell" className={s.ppt ? "is-si" : ""} aria-label={s.ppt ? "Llega al PPT" : "No llega al PPT"} />
-            <i role="cell" className={s.word ? "is-si" : ""} aria-label={s.word ? "Llega al Word" : "No llega al Word"} />
+            <i role="cell" data-qa-geometry-capacity="owned" className={s.ppt ? "is-si" : ""} aria-label={s.ppt ? "Llega al PPT" : "No llega al PPT"} />
+            <i role="cell" data-qa-geometry-capacity="owned" className={s.word ? "is-si" : ""} aria-label={s.word ? "Llega al Word" : "No llega al Word"} />
           </span>
         ))}
         <p className="pulso-f6-id-salidas-nota">Con una plantilla de cliente que trae su propia portada, los logos propios no se ponen en ella.</p>

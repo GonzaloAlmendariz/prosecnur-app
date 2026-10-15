@@ -21,7 +21,7 @@ export const ptConPaso = (base: number, paso: number) => Math.max(8, base + paso
 const BARRAS = [[8, 17, 40, 25, 10], [6, 20, 37, 26, 11], [10, 7, 44, 25, 14]];
 
 function Logo({ logo }: { logo: LogoMuestra }) {
-  return logo.src ? <img src={logo.src} alt="" className="pulso-f6-muestra-logo-img" /> : <span className="pulso-f6-muestra-logo-texto">{logo.nombre}</span>;
+  return logo.src ? <img src={logo.src} alt="" className="pulso-f6-muestra-logo-img" data-qa-geometry-capacity="owned" /> : <span className="pulso-f6-muestra-logo-texto">{logo.nombre}</span>;
 }
 
 export function MuestraIdentidad({ datos }: { datos: DatosMuestra }) {
