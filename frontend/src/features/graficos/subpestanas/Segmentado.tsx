@@ -1,8 +1,9 @@
-// Segmentado de la barra del Informe (Maquetas/Word, tamaño de tarjeta) con el patrón WAI-ARIA de grupo de radios:
+// Segmentado de Gráficos (Maquetas/Word y tamaño en el Informe, ámbito en Identidad) con el patrón WAI-ARIA de radios:
 // un solo punto de tabulación (la opción elegida) y las flechas mueven y eligen. Observación del verificador de la
 // fase Informe (2026-10-15): cada opción era un tab stop y las flechas no hacían nada.
 
 import { useRef, type KeyboardEvent } from "react";
+import "./segmentado.css";
 
 type Props<K extends string> = {
   etiqueta: string;
@@ -24,10 +25,10 @@ export function Segmentado<K extends string>({ etiqueta, opciones, valor, onCamb
     grupo.current?.querySelectorAll<HTMLButtonElement>("[role=radio]")[j]?.focus();
   };
   return (
-    <div ref={grupo} className="pulso-f6-vg-tamano" role="radiogroup" aria-label={etiqueta} onKeyDown={onTecla}>
+    <div ref={grupo} className="pulso-f6-seg" role="radiogroup" aria-label={etiqueta} onKeyDown={onTecla}>
       {opciones.map(({ clave, rotulo }) => (
         <button key={clave} type="button" role="radio" aria-checked={valor === clave} tabIndex={valor === clave ? 0 : -1}
-          className={`pulso-f6-vg-tamano-op${valor === clave ? " is-activo" : ""}`} onClick={() => onCambiar(clave)}>
+          className={`pulso-f6-seg-op${valor === clave ? " is-activo" : ""}`} onClick={() => onCambiar(clave)}>
           {rotulo}
         </button>
       ))}

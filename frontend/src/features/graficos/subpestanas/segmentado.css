@@ -1,0 +1,33 @@
+/* Segmentado de Gráficos (Segmentado.tsx): una píldora con las opciones; la elegida, en superficie y con sombra. */
+.pulso-f6-seg {
+  display: inline-flex;
+  flex: none;
+  padding: 2px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-f6-seg-op {
+  height: 22px;
+  padding: 0 var(--pulso-space-2);
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out), color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-seg-op.is-activo {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-f6-seg-op:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: 1px;
+}
