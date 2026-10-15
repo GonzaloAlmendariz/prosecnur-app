@@ -25,7 +25,7 @@ Concepto, decisiones y fallas del inventario: [plan-revamp-informe-graficos-2026
 |---|---|---|---|
 | **F0 · Limpieza** | | | |
 | L1 | Texto del interruptor «Otros» corregido (el motor sí las pone en el Word) | `vistaGeneral/interruptorOtrosModel.ts`, `compartir/seccionesJson.ts` | hecho, por verificar: rótulo «Respuestas «Otros» en el PowerPoint y el Word»; la ayuda dice lámina en el PPT y tabla numerada en el Word (`reporte_word_otros.R`) |
-| L2 | Identidad disponible en el informe compartido (colores e íconos valen para el PPT) | `estilo/disponibilidadEstilo.ts` | pendiente |
+| L2 | Identidad disponible en el informe compartido (colores e íconos valen para el PPT) | `estilo/disponibilidadEstilo.ts` (`motivoPiezaNoDisponible`), `PestanaEstilo.tsx`, `GraficosPage.tsx` | hecho, por verificar: la pestaña ya no se deshabilita; en el compartido Colores (77 preguntas en 5 bases) e Íconos se ajustan, Logos y Letra dicen que hoy sólo van al Word. El motivo cae con ID9 |
 | L3 | Código que nadie pinta: `SeccionWordRecetario.tsx`, `VistaPreviaWord.tsx`, cálculos sin uso de `PestanaEstiloInforme.tsx` | `estilo/`, `estiloInforme/`, `word/` | pendiente: se lista cada archivo y se confirma antes de borrar (regla de borrados) |
 | L4 | «Quitar línea» visual | `estiloInforme/SeccionLineaVisual.tsx` → Identidad | pendiente |
 | L5 | Ayudas desfasadas («estilo del cliente», «Cálculos o Paletas») | catálogo de navegación, Línea visual | pendiente |

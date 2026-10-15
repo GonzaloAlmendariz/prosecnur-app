@@ -14,7 +14,7 @@ import { normalizeGraficosConfig } from "../../../api/graficosConfigNormalizer";
 import { buildGraficosConfigFromStore, graficosConfigFromRemote } from "../configSnapshot";
 import { usePlanStore, type GraficosConfig } from "../store";
 import { mergeWithDefaults } from "../useGraficosAutosave";
-import { conDisponibilidadEstilo, motivoEstiloNoDisponible, motivoSinVistaPrevia } from "./disponibilidadEstilo";
+import { motivoPiezaNoDisponible, motivoSinVistaPrevia } from "./disponibilidadEstilo";
 import {
   conAmbito,
   conLogo,
@@ -316,14 +316,14 @@ describe("Opciones y tamaños «16 pt = 14 + 2»", () => {
 });
 
 describe("Disponibilidad · consolidado y vista previa", () => {
-  // Mata: ofrecer la pestaña en el informe compartido, que no exporta Word.
-  it("en el compartido la pestaña queda deshabilitada con su motivo", () => {
-    const items = [{ key: "laminas", description: "a" }, { key: "estilo", description: "b" }];
-    expect(conDisponibilidadEstilo(items, "active")).toEqual(items);
-    const compartido = conDisponibilidadEstilo(items, "consolidated");
-    expect(compartido[0]).toEqual(items[0]);
-    expect(compartido[1]).toMatchObject({ key: "estilo", disabled: true, description: motivoEstiloNoDisponible("consolidated") });
-    expect(motivoEstiloNoDisponible("active")).toBeNull();
+  // L2 (2026-10-14). Mata: volver a apagar Identidad entera en el compartido, o dejar logos y letra ajustables ahí
+  // cuando sólo los aplica el Word (que el compartido no exporta).
+  it("en el compartido colores e íconos se ajustan; logos y letra dicen por qué no", () => {
+    expect(motivoPiezaNoDisponible("consolidated", "colores")).toBeNull();
+    expect(motivoPiezaNoDisponible("consolidated", "iconos")).toBeNull();
+    expect(motivoPiezaNoDisponible("consolidated", "logos")).toMatch(/Word/);
+    expect(motivoPiezaNoDisponible("consolidated", "letra")).toMatch(/Word/);
+    for (const pieza of ["logos", "letra", "iconos", "colores"] as const) expect(motivoPiezaNoDisponible("active", pieza)).toBeNull();
   });
 
   it("la vista previa explica por qué no se puede generar", () => {
