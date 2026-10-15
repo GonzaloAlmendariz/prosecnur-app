@@ -5,7 +5,7 @@
 
 import type { FilaVistaGeneral } from "./modeloVistaGeneral";
 
-export type FiguraWord = { numero: number; graficador: string; pregunta: string };
+export type FiguraWord = { numero: number; graficador: string; pregunta: string; base: string | null };
 export type EntradaIndice = { numero: string; titulo: string; nivel: 1 | 2 };
 
 export type PaginaWord =
@@ -16,7 +16,7 @@ export type PaginaWord =
   | { clase: "contraportada" };
 
 /** Lo que el Word saca de cada lámina con gráficos: un tipo y una pregunta por gráfico, en el orden de sus ranuras. */
-export type GraficosDeLamina = ReadonlyMap<string, readonly { graficador: string; pregunta: string }[]>;
+export type GraficosDeLamina = ReadonlyMap<string, readonly { graficador: string; pregunta: string; base?: string | null }[]>;
 
 const FIGURAS_POR_PAGINA = 2;
 
@@ -58,7 +58,7 @@ export function paginasWord(filas: readonly FilaVistaGeneral[], graficos: Grafic
       }
       for (const g of graficos.get(t.lamina.id) ?? []) {
         if (pendientes.length === FIGURAS_POR_PAGINA) cerrar();
-        pendientes.push({ numero: ++n, graficador: g.graficador, pregunta: g.pregunta });
+        pendientes.push({ numero: ++n, graficador: g.graficador, pregunta: g.pregunta, base: g.base ?? null });
       }
     }
     cerrar();

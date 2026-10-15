@@ -33,6 +33,9 @@ type VistaGeneralStore = {
   plegados: ReadonlySet<string>;
   tamano: TamanoTarjeta;
   setTamano: (t: TamanoTarjeta) => void;
+  /** I11: el Informe en maquetas de lámina o en maquetas de página del Word. */
+  modo: "maquetas" | "word";
+  setModo: (m: "maquetas" | "word") => void;
   alternarPlegado: (filaId: string) => void;
   setSeleccion: (s: SeleccionVistaGeneral) => void;
   setArrastre: (a: Arrastre | null) => void;
@@ -53,6 +56,8 @@ export const useVistaGeneralUi = create<VistaGeneralStore>((set) => ({
   setFiltro: (filtro) => set({ filtro }),
   plegados: new Set<string>(),
   tamano: tamanoGuardado(),
+  modo: "maquetas",
+  setModo: (modo) => set({ modo }),
   setTamano: (tamano) => {
     try { globalThis.localStorage?.setItem(CLAVE_TAMANO, tamano); } catch { /* sin almacenamiento: vale para esta sesión */ }
     set({ tamano });
