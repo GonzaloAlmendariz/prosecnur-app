@@ -219,6 +219,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   excluir_opciones: { rotulo: "Excluir respuestas", ayuda: "Escribe los códigos separados por comas, por ejemplo 88, 99." },
   // Histograma por grupos: la tarjeta no tenía dónde elegir la pregunta que divide, y «Excluir grupos» pedía elegirla
   // (pasada final 2026-10-15). Sin grupo elegido no hay grupos que excluir.
+  // `grupo` salió de RETIRADOS: el histograma por grupos tiene su dibujo (c440f928b) y es el único que lo declara.
   grupo: { rotulo: "Dividir por", ayuda: "Sin dividir, un solo histograma.", soloEn: ["p_histograma"] },
   excluir_grupos: { rotulo: "Excluir grupos", cuando: (v) => typeof v.grupo === "string" && v.grupo !== "" },
   // Tabla (5a, ruta anterior): formales de p_tabla (p_radar_split.R); `sm_omit_na = TRUE` sin default en el registro.
@@ -273,7 +274,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
 export const RETIRADOS: ReadonlySet<string> = new Set([
   "invertir_leyenda", "tipo_pie", "umbral_brecha_pct", "tabla_ancho_tema", "tabla_proporcion", "sm_omit_na",
   "umbral_rojo_pct", "mostrar_tabla_derecha", "modo_semaforo", "mostrar_ref_label", "mostrar_n_cruce_x", "radar_min_ejes",
-  "bins", "ancho_bin", "grupo", "mostrar_bins_vacios", "mostrar_saldo", "umbral_etiqueta_pct",
+  "bins", "ancho_bin", "mostrar_bins_vacios", "mostrar_saldo", "umbral_etiqueta_pct",
   "mostrar_promedio", "formato_valor", "cortes_chip",
 ]);
 /** Familias retiradas enteras: las brechas declaradas (`brecha_*`) y los args propios de la matriz FODA. */
