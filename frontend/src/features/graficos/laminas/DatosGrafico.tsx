@@ -47,6 +47,7 @@ import { grupoDeCampo, TITULO_GRUPO, type GrupoTarjeta } from "./gruposTarjeta";
 import { esPropio, ranurasDelTipo, SIN_ALCANCE, valorDelTipo } from "./modeloAlcance";
 import { SelloAlcance } from "./SelloAlcance";
 import { SelectorCategorias } from "./SelectorCategorias";
+import { CifraGrafico } from "./CifraGrafico";
 import { graficadorToPresetType } from "../graficadorPresetMap";
 import { graficadorDisplayName } from "../graficadorDisplay";
 import { toast } from "../../../components/toasterStore";
@@ -75,7 +76,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const serie = valor.graficador === "p_serie_temporal";
   const { variables } = useVariables();
   const conCasillas = (radarPublicos || serie) && codigosComunes(argsATemas(args), variables).length > 0;
-  const delEditor = (name: string) =>
+  // La cifra destacada tiene su propio editor (qué cifra, respuesta y texto); de la lista genérica sólo queda la pregunta.
+  const cifra = valor.graficador === "p_cifra";
+  const delEditor = (name: string) => (cifra && name !== "var") ||
     (radarPublicos || serie) && (name === "vars" || name === "orden_periodos" || (name === "corte" && conCasillas));
   const campos = camposDeDatos(meta?.args ?? [], args, valor.graficador)
     .filter((c) => !(conOrden && ORDEN_ANTERIOR.has(c.arg.name)) && !delEditor(c.arg.name));
@@ -172,8 +175,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         {valor.graficador === "p_dim_heatmap_criterios" && <CriteriosGrafico valor={args.config_criterios} onCambio={(c) => set({ config_criterios: c })} />}
         {serie && <EditorTemasEquivalentes tipo="serie" args={args} onCambio={set} />}
         {delGrupo("datos")}
+        {cifra && <CifraGrafico args={args} variable={variable && !sinBaseCompartido ? varCalificada(variable, baseActiva, scope) : ""} scope={scope} onCambio={set} />}
         {sinBaseCompartido && <NotaBaseCompartido />}
-        {variable && (
+        {variable && !cifra && (
           <FilaTexto
             rotulo="Etiqueta corta"
             ayuda="Nombre breve de la pregunta en la lámina y el Word. Vacío, usa el del instrumento."

@@ -13,7 +13,8 @@ export function PublicoGrafico({ slideId, slot, valor }: { slideId: string; slot
   const id = useId();
   const tipo = usePlanStore((s) => s.plan?.slides?.find((x) => x.id === slideId)?.tipo);
   const updateSlotArgs = usePlanStore((s) => s.updateSlotArgs);
-  if (!tipo || (SLIDE_GRAF_SLOTS[tipo] ?? []).length < 2) return null;
+  // La cifra destacada ya dice su base en el detalle y no tiene enunciado bajo el cual ponerla.
+  if (!tipo || (SLIDE_GRAF_SLOTS[tipo] ?? []).length < 2 || valor.graficador === "p_cifra") return null;
   const args = (valor.args ?? {}) as Record<string, unknown>;
   const ov = args.overrides && typeof args.overrides === "object" ? (args.overrides as Record<string, unknown>) : {};
   const actual: Valor = ov.mostrar_publico === true ? "si" : ov.mostrar_publico === false ? "no" : "auto";

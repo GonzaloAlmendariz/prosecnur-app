@@ -1,0 +1,40 @@
+/* Cifra destacada en su tarjeta (CifraGrafico.tsx): respuestas como lista de una sola elección y el texto que
+   acompaña al número agrupado en un bloque suave. */
+.pulso-f6-cifra { display: flex; flex-direction: column; gap: var(--pulso-space-4); padding: var(--pulso-space-3) 0 var(--pulso-space-2); border-top: 1px solid var(--pulso-border); }
+.pulso-f6-cifra .pulso-f6-seg { display: flex; }
+.pulso-f6-cifra .pulso-f6-seg-op { flex: 1 1 0; }
+
+.pulso-f6-cifra-cats {
+  display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius); background: var(--pulso-surface);
+}
+.pulso-f6-cifra-cat {
+  display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; align-items: center; gap: var(--pulso-space-2);
+  min-height: 34px; padding: 6px var(--pulso-space-3);
+  border: 0; border-top: 1px solid var(--pulso-border); background: transparent;
+  color: var(--pulso-text); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer;
+  transition: background var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-f6-cifra-cat:first-child { border-top: 0; }
+.pulso-f6-cifra-cat:hover { background: var(--pulso-surface-2); }
+.pulso-f6-cifra-cat:focus-visible { outline: 2px solid var(--module-accent); outline-offset: -2px; }
+.pulso-f6-cifra-cat-marca {
+  width: 14px; height: 14px; border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--pulso-border-strong);
+  transition: box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-f6-cifra-cat.is-activa { background: var(--module-accent-soft); font-weight: var(--pulso-weight-semibold); }
+.pulso-f6-cifra-cat.is-activa .pulso-f6-cifra-cat-marca { box-shadow: inset 0 0 0 4px var(--module-accent); }
+.pulso-f6-cifra-cat.is-residual .pulso-f6-cifra-cat-texto { color: var(--pulso-text-soft); }
+.pulso-f6-cifra-cat-texto { min-width: 0; overflow-wrap: anywhere; }
+.pulso-f6-cifra-cat-n { color: var(--pulso-text-soft); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+
+.pulso-f6-cifra-textos {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3); border-radius: var(--pulso-radius); background: var(--pulso-surface-2);
+}
+.pulso-f6-cifra .pulso-f6-dato { padding: 0; border-top: 0; }
+.pulso-f6-cifra-textos .pulso-f6-dato.is-corto .pulso-f6-input { max-width: 180px; }
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-cifra-cat, .pulso-f6-cifra-cat-marca { transition: none; }
+}
