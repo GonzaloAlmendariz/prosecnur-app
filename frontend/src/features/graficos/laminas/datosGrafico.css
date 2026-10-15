@@ -116,11 +116,13 @@
 
 .pulso-f6-dato-select {
   width: auto;
-  max-width: 220px;
+  /* Un modo con nombre largo («Varias preguntas de la misma escala») se lee entero sin pisar el rótulo. */
+  max-width: min(64%, 300px);
 }
 
 .pulso-f6-dato-numero {
-  width: 88px;
+  width: 100px;
+  min-width: 100px;
 }
 
 .pulso-f6-dato-accion {
@@ -203,10 +205,10 @@
 @media (prefers-reduced-motion: reduce) { .pulso-f6-destacar-opcion { transition: none; } }
 
 /* Criterios del mapa de calor por criterio (I2): una tarjeta por criterio con su nombre y sus preguntas. */
-.pulso-f6-criterios { display: grid; gap: 8px; }
-.pulso-f6-criterio { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--pulso-border); border-radius: 8px; background: var(--pulso-surface); }
+.pulso-f6-criterios { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; }
+.pulso-f6-criterio { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; gap: 6px; padding: 8px; border: 1px solid var(--pulso-border); border-radius: 8px; background: var(--pulso-surface); }
 .pulso-f6-criterio-cabecera { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; }
-.pulso-f6-criterio-preguntas { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.pulso-f6-criterio-preguntas { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; margin: 0; padding: 0; list-style: none; }
 .pulso-f6-criterio-pregunta {
   display: inline-flex;
   align-items: center;
@@ -218,7 +220,8 @@
   color: var(--pulso-primary);
   font-size: 12px;
 }
-.pulso-f6-criterio-pregunta span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pulso-f6-criterio-pregunta { min-width: 0; }
+.pulso-f6-criterio-pregunta span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pulso-f6-criterio-quitar { display: inline-grid; place-items: center; padding: 2px; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; }
 .pulso-f6-criterio-quitar:hover { background: var(--pulso-surface); }
 
@@ -274,3 +277,7 @@
 .pulso-f6-cats.is-excluir .pulso-f6-cat.is-activa { background: var(--pulso-surface-2); color: var(--pulso-text-soft); }
 .pulso-f6-cats.is-excluir .pulso-f6-cat.is-activa .pulso-f6-cat-texto { text-decoration: line-through; }
 .pulso-f6-cats.is-elegir .pulso-f6-cat.is-activa { border-color: var(--module-accent); background: var(--module-accent-soft); color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
+
+/* Cortes numéricos (CortesNumericos.tsx): un campo por corte, en fila. */
+.pulso-f6-cortes { display: flex; flex-wrap: wrap; gap: var(--pulso-space-2); }
+.pulso-f6-cortes-campo { width: 72px; text-align: center; font-variant-numeric: tabular-nums; }

@@ -17,6 +17,7 @@ import {
   camposDeDatos,
   codigosATexto,
   codigosEmitidos,
+  textoACodigos,
   CORTE_EN_CADENA,
   conEtiquetaCorta,
   interruptorEncendido,
@@ -48,6 +49,10 @@ import { esPropio, ranurasDelTipo, SIN_ALCANCE, valorDelTipo } from "./modeloAlc
 import { SelloAlcance } from "./SelloAlcance";
 import { SelectorCategorias } from "./SelectorCategorias";
 import { CifraGrafico } from "./CifraGrafico";
+import { ObjetivoDimension } from "./ObjetivoDimension";
+import { CortesNumericos } from "./CortesNumericos";
+import { Segmentado } from "../subpestanas/Segmentado";
+import { opcionesNumeroEnBotones } from "./numerosEnBotones";
 import { graficadorToPresetType } from "../graficadorPresetMap";
 import { graficadorDisplayName } from "../graficadorDisplay";
 import { toast } from "../../../components/toasterStore";
@@ -136,14 +141,20 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const grupoVar = typeof args.grupo === "string" ? args.grupo : "";
   const categoriasDe = (name: string): CategoriasFila | undefined => {
     if (name === "excluir_opciones" || name === "corte") {
-      // Varias preguntas (bloques, temas): no hay una sola lista de categorías; queda el texto.
-      if (!variable && nVars > 0) return undefined;
-      return { variable: variable ? varCalificada(variable, baseActiva, scope) : "", scope, modo: name === "corte" ? "elegir" : "excluir" };
+      // Varias preguntas de la misma escala (radar, divergentes): las categorías de la primera, que todas comparten.
+      // Con temas por público (objeto, no lista) no hay una sola lista: queda el texto.
+      const primera = !variable && Array.isArray(args.vars) && typeof args.vars[0] === "string" ? args.vars[0] : "";
+      if (!variable && !primera) return nVars > 0 ? undefined : { variable: "", scope, modo: name === "corte" ? "elegir" : "excluir" };
+      return { variable: varCalificada(variable || primera, baseActiva, scope), scope, modo: name === "corte" ? "elegir" : "excluir" };
     }
     if (name === "excluir_grupos") return { variable: grupoVar ? varCalificada(grupoVar, baseActiva, scope) : "", scope, modo: "excluir" };
     return undefined;
   };
-  const filaDe = (c: CampoDato) => (
+  const filaDe = (c: CampoDato) => c.arg.name === "objetivo" && valor.graficador.startsWith("p_dim_") ? (
+    <ObjetivoDimension key={c.arg.name} id={`${slideId}-${slot}-objetivo`} modo={args.modo} valor={args.objetivo}
+      etiqueta={<label className="pulso-f6-dato-rotulo" htmlFor={`${slideId}-${slot}-objetivo`}>Índice</label>}
+      onCambio={(v) => set({ objetivo: v })} />
+  ) : (
     <Fragment key={c.arg.name}>
       <Fila campo={c} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello} categorias={categoriasDe(c.arg.name)}
             onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v) : { [c.arg.name]: v })} />
@@ -237,7 +248,7 @@ function GrupoDeTarjeta({ titulo, children }: { titulo: string; children: ReactN
   return (
     <section className="pulso-f6-grupo" aria-labelledby={id}>
       <h4 id={id} className="pulso-f6-grupo-titulo">{titulo}</h4>
-      <div className="pulso-f6-grupo-cuerpo">{children}</div>
+      <div className="pulso-f6-grupo-cuerpo" data-qa-geometry-group="graficos/f6-grupo-cuerpo" data-qa-geometry-contract="intrinsic">{children}</div>
     </section>
   );
 }
@@ -326,6 +337,19 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
       </div>
     );
   }
+  // Decimales y nivel de significancia: pocos valores posibles, como botones en vez de un número a escribir.
+  const enBotones = control === "numero" ? opcionesNumeroEnBotones(arg, valor) : null;
+  if (enBotones) {
+    const actual = typeof valor === "number" ? valor : typeof arg.default === "number" ? arg.default : enBotones[0].valor;
+    return (
+      <div className="pulso-f6-dato">
+        <span className="pulso-f6-dato-rotulo" id={id}>{rotulo}<Ayuda rotulo={rotulo} detalle={detalle} />{sello}</span>
+        <Segmentado etiqueta={rotulo} valor={String(actual)} opciones={enBotones.map((o) => ({ clave: String(o.valor), rotulo: o.rotulo }))}
+          onCambiar={(k) => onCambio(Number(k))} />
+        {nota}
+      </div>
+    );
+  }
   if (control === "numero") {
     return (
       <div className="pulso-f6-dato">
@@ -338,6 +362,9 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
         {nota}
       </div>
     );
+  }
+  if (control === "codigos" && (arg.name === "cortes" || arg.name === "cortes_chip") && placeholder) {
+    return <CortesNumericos id={id} etiqueta={etiqueta} nota={nota} describe={describe} defectos={textoACodigos(placeholder)} valor={valor} onCambio={onCambio} />;
   }
   if (control === "codigos") {
     const comoTexto = (

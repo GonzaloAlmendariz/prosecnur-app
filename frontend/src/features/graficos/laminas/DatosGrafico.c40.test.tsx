@@ -63,7 +63,10 @@ describe("DatosGrafico · C40", () => {
     const html = pintar("p_media_rango");
     expect(html).toMatch(/<option value="minmax" selected="">Mínimo a máximo<\/option>/);
     expect(ayudaDe(html, AYUDA_TIPO_RANGO)).toBe(true);
-    expect(html).toMatch(/type="number"[^>]*placeholder="1"[^>]*min="0" max="2" step="1"/);
+    // Decimales de la media: botones 0, 1 y 2 (tope del registro), con el 1 por defecto marcado (pasada final 2026-10-15).
+    const botones = [...html.matchAll(/role="radio" aria-checked="(true|false)"[^>]*>([^<]+)</g)].map((m) => `${m[2]}:${m[1]}`);
+    expect(botones).toEqual(expect.arrayContaining(["0:false", "1:true", "2:false"]));
+    expect(botones).not.toContain("3:false");
     expect(pintar("p_media_rango", { tipo_rango: "iqr" })).toMatch(/<option value="iqr" selected="">/);
   });
   it("media y rango (6a): «custom» no se ofrece; guardado, se ve como actual con su aviso enlazado al select", () => {
@@ -98,6 +101,7 @@ describe("DatosGrafico · C40", () => {
     const html = pintar("p_mapa_resultado_distrital");
     expect(ayudaDe(html, AYUDA_MIN_N)).toBe(true);
     expect(ayudaDe(html, AYUDA_CORTES)).toBe(true);
-    expect(html).toContain('placeholder="55, 65, 75"');
+    // Un campo por corte con el default del motor en cada uno (pasada final 2026-10-15: nada de comas).
+    expect([...html.matchAll(/aria-label="Corte (\d)"[^>]*placeholder="(\d+)"/g)].map((m) => m[2])).toEqual(["55", "65", "75"]);
   });
 });

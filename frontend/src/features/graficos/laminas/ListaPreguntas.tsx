@@ -23,7 +23,7 @@ export function ListaPreguntas({ valor, onCambio, describe }: Props) {
   if (valor && typeof valor === "object" && !Array.isArray(valor)) {
     const temas = Object.entries(valor as Record<string, unknown>);
     return (
-      <ul className="pulso-f6-preguntas is-temas" aria-describedby={describe}>
+      <ul className="pulso-f6-preguntas is-temas" aria-describedby={describe} data-qa-geometry-group="graficos/f6-preguntas" data-qa-geometry-contract="intrinsic">
         {temas.map(([tema, refs]) => (
           <li key={tema}>
             <span className="pulso-f6-preguntas-tema">{tema}</span>
@@ -42,7 +42,7 @@ export function ListaPreguntas({ valor, onCambio, describe }: Props) {
     onCambio(siguiente);
   };
   return (
-    <div className="pulso-f6-preguntas" aria-describedby={describe}>
+    <div className="pulso-f6-preguntas" aria-describedby={describe} data-qa-geometry-group="graficos/f6-preguntas-lista" data-qa-geometry-contract="intrinsic">
       {lista.map((ref, i) => (
         <div key={`${ref}-${i}`} className="pulso-f6-preguntas-fila">
           <VariablePicker value={ref} onChange={(v) => reemplazar(i, v)} placeholder="Elige una pregunta…" />

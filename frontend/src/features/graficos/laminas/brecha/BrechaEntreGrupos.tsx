@@ -67,7 +67,7 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
           )}
           <div className="pulso-f6-dato is-apilado">
             <span className="pulso-f6-dato-rotulo">Preguntas</span>
-            <ul className="pulso-f6-brecha-preguntas">
+            <ul className="pulso-f6-brecha-preguntas" data-qa-geometry-group="graficos/f6-brecha-preguntas" data-qa-geometry-contract="intrinsic">
               {preguntas.map((ref, i) => (
                 <li key={`${ref}-${i}`} className="pulso-f6-brecha-pregunta">
                   <div className="pulso-f6-dato-control">
