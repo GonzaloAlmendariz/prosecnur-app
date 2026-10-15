@@ -259,6 +259,7 @@ una reparación esté implementada.
 - [Checklist · configuraciones de los gráficos contra el recetario](checklist-configuraciones-graficos-2026-10-13.md): Configuraciones de los gráficos contra el recetario y controles que el editor muestra y el motor descartaba.
 - [Checklist · proyecto catálogo del recetario (.pulso de prueba)](checklist-catalogo-recetario-2026-10-14.md): Proyecto catálogo del recetario y hallazgos de su recorrido en la app (H, M, I).
 - [Checklist · histograma por grupos, serie temporal y antetítulo con colores](checklist-histograma-serie-antetitulo-2026-10-14.md): Estilo de Ing. Civil en el histograma, leyenda de la serie, antetítulo-leyenda, tope de seis barras y dicotómica (G, M, D).
-- [Plan · rediseño de Vista general, Identidad, Estilo del informe y Word](plan-revamp-informe-graficos-2026-10-14.md): Concepto, fallas del inventario, fases y decisiones pendientes del rediseño.
+- [Plan · rediseño de Vista general, Identidad, Estilo del informe y Word](plan-revamp-informe-graficos-2026-10-14.md): Concepto, fallas del inventario, fases y decisiones del rediseño.
+- [Checklist · rediseño de Informe, Identidad, Reglas y Word](checklist-revamp-informe-graficos-2026-10-14.md): Un ítem por indicación aprobada, con dónde vive y su estado.
 - [Checklist · la matriz de equivalencias sólo declara equivalencias (ADR 0103)](checklist-matriz-equivalencias-pura-2026-10-14.md): La matriz de equivalencias sólo declara equivalencias (ADR 0103).
 - [Láminas de población nativas y filtro con subpregunta](checklist-poblacion-y-filtro-2026-10-14.md): las láminas de población con piezas del recetario y las mejoras de la pregunta filtro (F1–F5).
