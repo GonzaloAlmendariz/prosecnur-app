@@ -12,6 +12,7 @@ import type { BuilderNode } from "../types";
 import { InspectorBlock, InspectorField } from "../inspector/InspectorPrimitives";
 import { TechTerm } from "../helpers/TechTerm";
 import { hasPaperOverrides } from "./paperSettings";
+import { opcionesLayoutImpreso } from "./paperLayout";
 
 export function PaperSettingsBlock({
   node,
@@ -123,18 +124,19 @@ export function PaperSettingsBlock({
         </InspectorField>
         <InspectorField
           label={<>Layout impreso <TechTerm t="paper_layout" /></>}
-          hint="full, wide, matrix o compact. Vacío = automático."
+          hint="Cuánto ancho ocupa en la página impresa."
         >
           {(campo) => (
-            <input
+            <select
               id={campo.id}
               aria-describedby={campo.hintId}
-              type="text"
-              value={node.paperLayout ?? ""}
+              value={(node.paperLayout ?? "").trim()}
               onChange={(event) => onFieldChange("paper_layout", event.target.value)}
-              placeholder="Automático"
-              spellCheck={false}
-            />
+            >
+              {opcionesLayoutImpreso(node.paperLayout).map((opcion) => (
+                <option key={opcion.valor || "auto"} value={opcion.valor}>{opcion.rotulo}</option>
+              ))}
+            </select>
           )}
         </InspectorField>
       </details>

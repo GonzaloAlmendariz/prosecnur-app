@@ -14,7 +14,6 @@ import { useLocation } from "react-router-dom";
 import {
   CalendarDays,
   CheckCircle2,
-  ChevronLeft,
   Download,
   FileSpreadsheet,
   FileText,
@@ -158,10 +157,14 @@ import {
   type InstrumentActorOption,
 } from "./shell/actorAssignmentModel";
 import { instrumentActorLabel } from "./shell/formWorkflowView";
-import { ConfigurarPdfDialog } from "./shell/ConfigurarPdfDialog";
 import { exportWarningDetail, pdfDialogStorageKey } from "./shell/pdfExportPreference";
+import { EditorPestanas } from "./shell/EditorPestanas";
+import { usePestanaEditor } from "./shell/pestanaEditor";
+import { PANEL_CATALOGOS, PANEL_LOGICA_SURVEYMONKEY } from "./shell/panelesEditor";
+import { VistaCuestionario } from "./shell/VistaCuestionario";
+import { PestanaImpreso } from "./impreso/PestanaImpreso";
+import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { esperarExportPapel, textoExportando } from "./shell/paperExportJob";
-import { QuestionnaireProgressPanel } from "./shell/QuestionnaireProgressPanel";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { EditorCommandBar } from "./shell/EditorCommandBar";
 import { EditorSmImportNotice } from "./shell/EditorSmImportNotice";
@@ -621,31 +624,30 @@ export default function XlsformEditorPage() {
   const [source, setSource] = useState<XlsformFormSource | null>(null);
   const [catalogFocus, setCatalogFocus] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
-  /** Si está abierto el ContextLens de catálogos. Click en el botón
-   *  "Catálogos" del header del constructor lo abre; el lens lo cierra. */
-  const [catalogsLensOpen, setCatalogsLensOpen] = useState(false);
-  /** Modo de visualización del workbook. "builder" = constructor visual
-   *  guiado (default). "sheets" = vista por hojas tipo Excel, donde el
-   *  usuario edita celdas crudas. Cualquier cambio en sheets se refleja
-   *  automáticamente en builder porque ambos leen del mismo workbook. */
-  const [editorMode, setEditorMode] = useState<"builder" | "sheets">("builder");
+  /** Pestaña del rail (Constructor, Hojas, Mapa de lógica, Impreso…): la
+   *  dirección manda (`?pestana=`). Constructor y Hojas leen el mismo
+   *  workbook, así que un cambio en una se ve en la otra. */
+  const pestanaEditor = usePestanaEditor();
+  const { pestana, ir: irPestana, irAPregunta } = pestanaEditor;
+  /** Editor de listas (ContextLens de catálogos): panel direccionable. */
+  const catalogosPanel = usePanelDireccionable(PANEL_CATALOGOS);
+  const catalogsLensOpen = catalogosPanel.abierto;
+  // Los atajos de teclado se registran una vez: leen la pestaña por ref.
+  const irPestanaRef = useRef(irPestana);
+  irPestanaRef.current = irPestana;
   const [builderWorkspaceMode, setBuilderWorkspaceMode] =
     useState<FocusWorkspaceMode>("focus");
-  /** Si está abierto el overlay del mapa de lógica (canvas Obsidian-style).
-   *  Se accede desde el botón "Mapa de lógica" del header del constructor. */
-	  const [logicCanvasOpen, setLogicCanvasOpen] = useState(false);
-	  /** Overlay de «Filtros de opciones»: vista hermana del mapa de lógica que
-	   *  explica en lenguaje humano qué respuesta previa habilita qué opción. */
-	  const [choiceFiltersOpen, setChoiceFiltersOpen] = useState(false);
-	  const [smLogicDialogOpen, setSmLogicDialogOpen] = useState(false);
+	  /** Lógica de SurveyMonkey: borrador que se aplica o se descarta → panel. */
+	  const smLogicPanel = usePanelDireccionable(PANEL_LOGICA_SURVEYMONKEY);
+	  const smLogicDialogOpen = smLogicPanel.abierto;
+	  // Los callbacks asíncronos (revisar la lógica tras cambiar de formulario)
+	  // abren y cierran el panel con la dirección vigente, no con la de su cierre.
+	  const smLogicPanelRef = useRef(smLogicPanel);
+	  smLogicPanelRef.current = smLogicPanel;
 	  const [logicReviewFormId, setLogicReviewFormId] = useState<string | null>(null);
 	  const [smLogicRules, setSmLogicRules] = useState<ConfirmedRule[]>([]);
 	  const [smVisualLogicRules, setSmVisualLogicRules] = useState<SurveyMonkeyVisualLogicRule[]>([]);
 	  const [smLogicChoiceOverrides, setSmLogicChoiceOverrides] = useState<Record<string, string[]>>({});
-	  const [questionnaireViewOpen, setQuestionnaireViewOpen] = useState(false);
-  /** Overlays complementarios v2: simulador de llenado y resumen ejecutivo. */
-  const [simulatorOpen, setSimulatorOpen] = useState(false);
-  const [summaryViewOpen, setSummaryViewOpen] = useState(false);
   /** Modal de importación SurveyMonkey vía API. El .sav queda solo como ruta
    *  legacy opcional; el flujo principal ya no pide archivo. */
   const [smImportDialog, setSmImportDialog] = useState<
@@ -660,8 +662,6 @@ export default function XlsformEditorPage() {
     | null
   >(null);
   const [matrizPulsoSubmitting, setMatrizPulsoSubmitting] = useState(false);
-  /** Abre/cierra el diálogo "Configurar PDF" que reemplaza al viejo popover. */
-  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   /**
    * Al exportar el .xlsx, por defecto NO se incluyen las columnas propias de
    * la plataforma (namespace `paper_*` + hojas `paper`/`diagnostico`): sirven
@@ -942,7 +942,7 @@ export default function XlsformEditorPage() {
     if (!switchForm) return;
     await switchForm(id);
     setLogicReviewFormId(id);
-    setSmLogicDialogOpen(true);
+    smLogicPanelRef.current.abrir();
   }, []);
 
   const persistAndConfirmFormLogic = useCallback(async (
@@ -1037,7 +1037,7 @@ export default function XlsformEditorPage() {
     projectScope, activeFormIdRef, setForms, setSource, refreshBackendFormIndex, toasts,
     setPublication: (id, pub) => setPublicationUi((prev) => ({ ...prev, byFormId: { ...prev.byFormId, [id]: pub } })),
     flushPendiente: () => persistence.flushAndSync(),
-    onDeclarada: () => { setSmLogicDialogOpen(false); setLogicReviewFormId(null); },
+    onDeclarada: () => { smLogicPanelRef.current.cerrar(); setLogicReviewFormId(null); },
   });
 
   // Al montar — y al cambiar de proyecto — sembramos la biblioteca
@@ -1191,7 +1191,7 @@ export default function XlsformEditorPage() {
       if (key === "n" && !event.shiftKey) {
         if (!workbookRef.current) return;
         event.preventDefault();
-        setEditorMode("builder");
+        irPestanaRef.current("constructor");
         setShowAddMenu(true);
         return;
       }
@@ -1224,7 +1224,7 @@ export default function XlsformEditorPage() {
   );
 
   // Preguntas candidatas a variable de consentimiento (select_one/acknowledge)
-  // para el selector del diálogo "Configurar PDF".
+  // para el selector de la pestaña Impreso.
   const consentQuestions = useMemo(
     () => (workbook ? detectConsentQuestions(workbook) : []),
     [workbook],
@@ -1280,6 +1280,28 @@ export default function XlsformEditorPage() {
     setSelection(next);
     setBuilderWorkspaceMode("focus");
   }, []);
+
+  /** Desde otra pestaña (mapa, resumen, prueba, avisos): la fila queda elegida en el Constructor. */
+  const irAFila = useCallback((rowIndex: number) => {
+    selectBuilderFocus({ kind: "survey", rowIndex });
+    irPestana("constructor");
+  }, [irPestana, selectBuilderFocus]);
+
+  // `?pestana=constructor&foco=<name>` (p. ej. desde Impreso › Papel por
+  // pregunta): la pregunta queda elegida. Una sola vez por valor de `foco`: si
+  // después se elige otra, editar no la devuelve a la del enlace.
+  const focoPregunta = pestana === "constructor" && !pestanaEditor.panel ? pestanaEditor.foco : null;
+  const focoAplicadoRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (pestana !== "constructor") focoAplicadoRef.current = null;
+  }, [pestana]);
+  useEffect(() => {
+    if (!focoPregunta || !structure || focoAplicadoRef.current === focoPregunta) return;
+    const nodo = structure.outline.find((n) => n.name === focoPregunta);
+    if (!nodo) return;
+    focoAplicadoRef.current = focoPregunta;
+    selectBuilderFocus({ kind: "survey", rowIndex: nodo.rowIndex });
+  }, [focoPregunta, structure, selectBuilderFocus]);
 
   const selectedNode = selection?.kind === "survey"
     ? structure?.byRow.get(selection.rowIndex) ?? null
@@ -1539,11 +1561,9 @@ export default function XlsformEditorPage() {
       setArtifact(null);
       setStatus(nextStatus);
       setRestoreOffer(null);
-      setEditorMode("builder");
+      // La pestaña no se resetea: es la dirección (un enlace a `?pestana=impreso`
+      // abre el formulario restaurado en Impreso, no en el Constructor).
       setBuilderWorkspaceMode("focus");
-      setLogicCanvasOpen(false);
-      setChoiceFiltersOpen(false);
-      setQuestionnaireViewOpen(false);
       setSmLogicRules(loadedWorkbook.surveyMonkeyLogic?.advanced_rules ?? loadedWorkbook.surveyMonkeyLogic?.rules ?? []);
       setSmVisualLogicRules(loadedWorkbook.surveyMonkeyLogic?.visual_rules ?? []);
       setSmLogicChoiceOverrides(loadedWorkbook.surveyMonkeyLogic?.choice_order_overrides ?? {});
@@ -1992,7 +2012,7 @@ export default function XlsformEditorPage() {
           detail: "Los saltos del modal reemplazaron la lógica previa en los destinos afectados.",
         });
       }
-      setSmLogicDialogOpen(false);
+      smLogicPanelRef.current.cerrar();
     } catch {
       toasts.push({
         kind: "danger",
@@ -3112,7 +3132,7 @@ export default function XlsformEditorPage() {
       className="pulso-xlsform-frame"
       headerMode="sr-only"
       auditReady={workbook ? "xlsform-editor" : undefined /* el hub: lo decide FormsLibrary */}
-      resetScrollKey={`${workbook ? "workbook" : "empty"}:${editorMode}`}
+      resetScrollKey={`${workbook ? "workbook" : "empty"}:${pestana}`}
       toolbar={workbook ? (
         <EditorCommandBar
           switcher={{
@@ -3137,29 +3157,14 @@ export default function XlsformEditorPage() {
           canRedo={canRedo}
           onUndo={() => dispatch({ type: "UNDO" })}
           onRedo={() => dispatch({ type: "REDO" })}
-          editorMode={editorMode}
-          onEditorModeChange={setEditorMode}
-          moreViews={{
-            catalogsCount: catalogs.length,
-            onOpenLogicCanvas: () => setLogicCanvasOpen(true),
-            onOpenChoiceFilters: () => setChoiceFiltersOpen(true),
-            onOpenSurveyMonkeyLogic: () => {
-              setLogicReviewFormId(null);
-              setSmLogicDialogOpen(true);
-            },
-            onOpenQuestionnaireView: () => setQuestionnaireViewOpen(true),
-            onOpenCatalogsLens: () => setCatalogsLensOpen(true),
-            onOpenSimulator: () => setSimulatorOpen(true),
-            onOpenSummary: () => setSummaryViewOpen(true),
-          }}
           listas={{ repetidas: escalasRepetidas, onOpen: listasPanel.abrir }}
           diagnostics={diagnostics}
           publication={activeFormId ? publicationUi.byFormId[activeFormId] ?? null : null}
           selection={selection}
-          onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
+          onSelectRow={irAFila}
           onFocusCatalog={(name) => {
             setCatalogFocus(name);
-            setCatalogsLensOpen(true);
+            catalogosPanel.abrir();
           }}
           onReviewLogic={activeFormId ? () => { void openFormLogicReview(activeFormId); } : undefined}
           logicaExterna={activeFormId ? { formId: activeFormId, acciones: logicaExterna } : undefined}
@@ -3171,7 +3176,7 @@ export default function XlsformEditorPage() {
           includeAppColumns={includeAppColumns}
           onIncludeAppColumnsChange={setIncludeAppColumns}
           onExport={onExport}
-          onOpenDocument={() => setPdfDialogOpen(true)}
+          onOpenDocument={() => irPestana("impreso")}
           busy={!!busy}
         />
       ) : undefined}
@@ -3304,11 +3309,16 @@ export default function XlsformEditorPage() {
                   header → popover floating al click.
                 - Índice → CollapsibleSection abajo, no en columna lateral. */}
 
-          <Panel
-            className="pulso-xlsform-workbench-panel"
-            noPadding
-          >
-            {editorMode === "sheets" && workbook && (
+          <EditorPestanas pestana={pestana} onCambiar={(destino) => irPestana(destino)}>
+            {(pestana === "constructor" || pestana === "hojas") && (
+                <EditorSmImportNotice
+                  formId={activeFormId}
+                  source={source}
+                  repetidas={escalasRepetidas}
+                  onOpenListas={listasPanel.abrir}
+                />
+            )}
+            {pestana === "hojas" && (
               <SheetsView
                 workbook={workbook}
                 onUpdateCell={sheetsUpdateCell}
@@ -3318,13 +3328,7 @@ export default function XlsformEditorPage() {
                 onAddColumn={sheetsAddColumn}
               />
             )}
-            <EditorSmImportNotice
-              formId={activeFormId}
-              source={source}
-              repetidas={escalasRepetidas}
-              onOpenListas={listasPanel.abrir}
-            />
-            {editorMode === "builder" && (
+            {pestana === "constructor" && (
               <div className="pulso-builder-grid">
                 <div className="pulso-xlsform-workbench-column pulso-xlsform-workbench-column--outline">
                   <Panel
@@ -3424,7 +3428,7 @@ export default function XlsformEditorPage() {
                     onCatalogCreate={() => createCatalog(true)}
                     onOpenCatalogLens={(focusListName) => {
                       if (focusListName) setCatalogFocus(focusListName);
-                      setCatalogsLensOpen(true);
+                      catalogosPanel.abrir();
                     }}
                     onCloneCatalog={
                       selectedNode
@@ -3454,7 +3458,7 @@ export default function XlsformEditorPage() {
                       existingLists: existingListsForAdd,
                       onOpenCatalogLens: (listName) => {
                         if (listName) setCatalogFocus(listName);
-                        setCatalogsLensOpen(true);
+                        catalogosPanel.abrir();
                       },
                     }}
                   />
@@ -3462,7 +3466,104 @@ export default function XlsformEditorPage() {
                 </div>
               </div>
             )}
-          </Panel>
+            {pestana === "cuestionario" && (
+              <VistaCuestionario
+                structure={structure}
+                selection={selection}
+                metricas={suiteMetrics}
+                onElegir={(next) => {
+                  selectBuilderFocus(next);
+                  irPestana("constructor");
+                }}
+              />
+            )}
+            {/* El mapa queda montado aunque se cambie de pestaña: conserva zoom y
+                encuadre entre visitas (como hacía el overlay). */}
+            <LogicCanvas
+              embebido
+              open={pestana === "logica"}
+              onClose={() => irPestana("constructor")}
+              structure={structure}
+              catalogs={catalogs}
+              onSelectRow={irAFila}
+              acciones={(
+                <button
+                  type="button"
+                  className="pulso-graph-allbutton"
+                  onClick={() => {
+                    setLogicReviewFormId(null);
+                    smLogicPanel.abrir();
+                  }}
+                  title="Editar, agregar o reutilizar reglas de salto de SurveyMonkey sin regenerar el XLSForm"
+                >
+                  Lógica de SurveyMonkey
+                </button>
+              )}
+              onSetRelevant={(rowIndex, expression) => {
+                // El canvas declara/edita/elimina relaciones de visibilidad
+                // (relevant). Una expresión vacía ELIMINA la condición (el
+                // elemento pasa a mostrarse siempre); una no vacía la crea/edita.
+                updateSurveyField(rowIndex, "relevant", expression);
+                const cleared = expression.trim() === "";
+                toasts.push({
+                  kind: "success",
+                  title: cleared ? "Relación eliminada" : "Conexión creada",
+                  detail: cleared
+                    ? "Se quitó la condición de visibilidad; el elemento se mostrará siempre."
+                    : "Se condicionó la visibilidad. Refínala en el inspector si quieres precisar el valor.",
+                });
+              }}
+            />
+            {pestana === "filtros" && (
+              <ChoiceFiltersView
+                embebido
+                open
+                onClose={() => irPestana("constructor")}
+                structure={structure}
+                choicesColumns={workbook.choices.columns}
+                choicesRows={workbook.choices.rows}
+                onSelectRow={irAFila}
+              />
+            )}
+            {pestana === "probar" && (
+              <FormSimulator
+                embebido
+                open
+                onClose={() => irPestana("constructor")}
+                workbook={workbook}
+                structure={structure}
+                onEditRow={irAFila}
+              />
+            )}
+            {pestana === "resumen" && (
+              <FormSummaryView
+                embebido
+                open
+                onClose={() => irPestana("constructor")}
+                workbook={workbook}
+                structure={structure}
+                diagnostics={diagnostics}
+                onSelectRow={irAFila}
+              />
+            )}
+            {pestana === "impreso" && (
+              <PestanaImpreso
+                key={`${projectScope ?? "no-project"}::${activeFormId ?? "no-form"}`}
+                formId={activeFormId}
+                workbook={workbook}
+                structure={structure}
+                storageKey={pdfDialogStorageKey(projectScope, activeFormId)}
+                candidatas={matrixCandidates}
+                consentimiento={consentQuestions}
+                nombrePdf={pdfFilenameFromSource(source?.original_name)}
+                parte={pestanaEditor.foco}
+                onParte={(parte) => pestanaEditor.fijarFoco(parte)}
+                onExportar={(formato, opciones) => { void onExportForm(formato, opciones); }}
+                onIrAPregunta={irAPregunta}
+                ocupado={busy}
+              />
+            )}
+          </EditorPestanas>
 
           {/* "Índice del instrumento" eliminado — la información que ofrece
               (variables, dependencias, referencias faltantes) ya está
@@ -3490,7 +3591,7 @@ export default function XlsformEditorPage() {
           constructor o cuando un diagnostic apunta a un catálogo. */}
       <CatalogsContextLens
         open={catalogsLensOpen}
-        onClose={() => setCatalogsLensOpen(false)}
+        onClose={catalogosPanel.cerrar}
         listsCount={catalogs.length}
         readyListsCount={readyCatalogsCount}
         onCreate={() => createCatalog(false)}
@@ -3517,44 +3618,6 @@ export default function XlsformEditorPage() {
         )}
       />
 
-      {/* Mapa de lógica — overlay full-screen estilo Obsidian. Se monta
-          siempre (no se desmonta al cerrar) para preservar zoom/pan entre
-          aperturas. La condición open={logicCanvasOpen} lo oculta. */}
-	      <LogicCanvas
-	        open={logicCanvasOpen}
-        onClose={() => setLogicCanvasOpen(false)}
-        structure={structure}
-        catalogs={catalogs}
-        onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
-        onSetRelevant={(rowIndex, expression) => {
-          // El canvas declara/edita/elimina relaciones de visibilidad
-          // (relevant). Una expresión vacía ELIMINA la condición (el
-          // elemento pasa a mostrarse siempre); una no vacía la crea/edita.
-          updateSurveyField(rowIndex, "relevant", expression);
-          const cleared = expression.trim() === "";
-          toasts.push({
-            kind: "success",
-            title: cleared ? "Relación eliminada" : "Conexión creada",
-            detail: cleared
-              ? "Se quitó la condición de visibilidad; el elemento se mostrará siempre."
-              : "Se condicionó la visibilidad. Refínala en el inspector si quieres precisar el valor.",
-          });
-	        }}
-	      />
-
-	      {/* Filtros de opciones — overlay hermano del mapa de lógica.
-	          Solo lectura: explica qué respuesta previa habilita qué opción,
-	          en lenguaje humano. Lee las filas CRUDAS de la hoja choices
-	          (con las columnas filter_*) directamente del workbook. */}
-	      <ChoiceFiltersView
-	        open={choiceFiltersOpen}
-	        onClose={() => setChoiceFiltersOpen(false)}
-	        structure={structure}
-	        choicesColumns={workbook?.choices.columns ?? []}
-	        choicesRows={workbook?.choices.rows ?? []}
-	        onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
-	      />
-
 	      <LogicaExternaDialogo control={logicaExterna} formName={forms.find((f) => f.id === logicaExterna.formId)?.name ?? null} />
 	      {smLogicDialogOpen && workbook ? createPortal((
 	        <SurveyMonkeyLogicPopup
@@ -3572,98 +3635,12 @@ export default function XlsformEditorPage() {
 	          onVisualRulesChange={updateSurveyMonkeyVisualRulesDraft}
 	          onOverridesChange={updateSurveyMonkeyOverridesDraft}
 	          onClose={() => {
-	            setSmLogicDialogOpen(false);
+	            smLogicPanel.cerrar();
 	            setLogicReviewFormId(null);
 	          }}
 	          onApply={applySurveyMonkeyLogicFromEditor}
 	        />
 	      ), document.body) : null}
-
-	      {questionnaireViewOpen ? createPortal((
-        <div
-          className="pulso-graph-overlay pulso-questionnaire-overlay pulso-xf-overlay-enter"
-          role="dialog"
-          aria-label="Vista del cuestionario"
-        >
-          <header className="pulso-graph-header">
-            <div className="pulso-graph-header-left">
-              <button
-                type="button"
-                className="pulso-graph-back"
-                onClick={() => setQuestionnaireViewOpen(false)}
-              >
-                <ChevronLeft size={14} /> Volver al editor
-              </button>
-              <div className="pulso-graph-header-title">
-                <strong>Vista del cuestionario</strong>
-                <span>
-                  {suiteMetrics.fields} campo{suiteMetrics.fields === 1 ? "" : "s"}
-                  {" · "}
-                  {suiteMetrics.sections} secci{suiteMetrics.sections === 1 ? "ón" : "ones"}
-                  {" · "}
-                  {suiteMetrics.logicRules} regla{suiteMetrics.logicRules === 1 ? "" : "s"}
-                </span>
-              </div>
-            </div>
-            <div className="pulso-graph-header-right">
-              <div className="pulso-questionnaire-header-stats" aria-label="Resumen del formulario">
-                <span>{suiteMetrics.required} obligatoria{suiteMetrics.required === 1 ? "" : "s"}</span>
-                <span>{suiteMetrics.catalogs} catálogo{suiteMetrics.catalogs === 1 ? "" : "s"}</span>
-              </div>
-              <button
-                type="button"
-                className="pulso-icon"
-                onClick={() => setQuestionnaireViewOpen(false)}
-                aria-label="Cerrar vista del cuestionario"
-                title="Cerrar"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          </header>
-          <main className="pulso-questionnaire-shell">
-            <QuestionnaireProgressPanel
-              structure={structure}
-              selection={selection}
-              onSelect={(next) => {
-                setSelection(next);
-                setQuestionnaireViewOpen(false);
-              }}
-            />
-          </main>
-        </div>
-      ), document.body) : null}
-
-      {/* Simulador de llenado — overlay full-screen; evalúa relevant en vivo
-          contra las respuestas del usuario. */}
-      {workbook && (
-        <FormSimulator
-          open={simulatorOpen}
-          onClose={() => setSimulatorOpen(false)}
-          workbook={workbook}
-          structure={structure}
-          onEditRow={(rowIndex) => {
-            setSelection({ kind: "survey", rowIndex });
-            setSimulatorOpen(false);
-          }}
-        />
-      )}
-
-      {/* Resumen ejecutivo del formulario — KPIs, distribución por tipo,
-          mapa de secciones y salud. */}
-      {workbook && (
-        <FormSummaryView
-          open={summaryViewOpen}
-          onClose={() => setSummaryViewOpen(false)}
-          workbook={workbook}
-          structure={structure}
-          diagnostics={diagnostics}
-          onSelectRow={(rowIndex) => {
-            setSelection({ kind: "survey", rowIndex });
-            setSummaryViewOpen(false);
-          }}
-        />
-      )}
 
       {/* Toasts deslizables: mensajes efímeros de operaciones (import/export).
           El deck se monta una sola vez y se mantiene a nivel del editor —
@@ -3701,24 +3678,6 @@ export default function XlsformEditorPage() {
           onConfirm={onMatrizPulsoConfirm}
         />
       ) : null}
-
-      {/* Diálogo "Configurar PDF": Formato / Lógica / Contenido / Matrices.
-          Sus elecciones se guardan en localStorage por proyecto + formulario
-          (`storageKey`); el `key` lo remonta al cambiar de proyecto o de
-          formulario para que restaure las del nuevo. */}
-      <ConfigurarPdfDialog
-        key={`${projectScope ?? "no-project"}::${activeFormId ?? "no-form"}`}
-        storageKey={pdfDialogStorageKey(projectScope, activeFormId)}
-        open={pdfDialogOpen}
-        onClose={() => setPdfDialogOpen(false)}
-        onExport={(format, exportOptions) => {
-          void onExportForm(format, exportOptions);
-        }}
-        matrixCandidates={matrixCandidates}
-        consentQuestions={consentQuestions}
-        fileName={activeFormName}
-        busy={!!busy}
-      />
 
       {/* Panel de hallazgos del validador empírico — drawer flotante a la
           derecha. Aparece tras un import-with-logic con resultados. Click en

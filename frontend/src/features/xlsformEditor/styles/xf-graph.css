@@ -1168,3 +1168,39 @@
     transition-duration: 1ms !important;
   }
 }
+
+/* Avisos vacíos del mapa, centrados sin `translate`. theme.css declara también
+   `.pulso-graph-empty { inset: 0 }` y, según el orden del bundle, ganaba sobre
+   el `left: 50%` de aquí: el aviso «sin relaciones» quedaba estirado a todo el
+   alto y corrido medio ancho a la izquierda, cortado. Con más especificidad y
+   centrado por márgenes no depende del orden de carga. */
+.pulso-graph-body .pulso-graph-empty {
+  inset: 0;
+  width: fit-content;
+  height: fit-content;
+  margin: auto;
+  transform: none;
+  animation-name: pulso-xf-graph-aviso-in;
+}
+
+.pulso-graph-body .pulso-graph-empty.pulso-graph-empty-no-edges {
+  inset: auto 0 24px;
+  max-width: min(560px, calc(100% - 48px));
+}
+
+@keyframes pulso-xf-graph-aviso-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-graph-body .pulso-graph-empty {
+    animation: none;
+  }
+}

@@ -224,6 +224,19 @@
     display: none;
   }
 
+  /* Un indicador cuyo texto se recogió se recoge entero, con su punto: si no,
+     quedaba un «•» suelto en la banda. Sigue leyéndose (sr-only) y en `title`.
+     Con cambios sin guardar el texto no se recoge y el indicador se ve. */
+  .pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-status:has(> .pulso-xf-cmd-label) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   .pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-form-switcher-trigger {
     max-width: min(260px, 100%);
   }
@@ -303,6 +316,19 @@
     overflow-x: hidden;
     overflow-y: auto;
     padding: 10px;
+  }
+
+  /* La barra de pestañas del inspector es sticky en este dueño de scroll. Con
+     `top: 0` quedaba una franja de 10 px (el padding) por donde asomaba el
+     contenido ya desplazado, cortado a media línea: el rótulo del primer campo
+     de «Ajustes de papel» se veía recortado. La barra cubre desde el borde del
+     scrollport y lo que se trae a la vista queda debajo de ella, no tapado. */
+  .pulso-xlsform-frame .pulso-focus-workspace .pulso-focus-workspace-body {
+    scroll-padding-top: 72px;
+  }
+
+  .pulso-xlsform-frame .pulso-focus-workspace .pulso-focus-workspace-body .pulso-focus-tabs {
+    top: -10px;
   }
 
   .pulso-xlsform-frame .pulso-focus-workspace .pulso-focused-node-layout,

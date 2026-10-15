@@ -77,7 +77,7 @@ export function QuestionnaireProgressPanel({
         </div>
       </section>
 
-      <div className="pulso-questionnaire-summary-grid">
+      <div className="pulso-questionnaire-summary-grid" data-qa-geometry-group="xlsform/cuestionario-resumen" data-qa-geometry-contract="equal">
         <SummaryTile icon={<ListChecks size={15} />} value={questionNodes.length} label="preguntas/textos" />
         <SummaryTile icon={<Layers3 size={15} />} value={realSectionCount} label="secciones" />
         <SummaryTile icon={<CheckCircle2 size={15} />} value={requiredCount} label="obligatorias" />
@@ -96,7 +96,7 @@ export function QuestionnaireProgressPanel({
           </div>
         </header>
 
-        <div className="pulso-questionnaire-section-grid">
+        <div className="pulso-questionnaire-section-grid" data-qa-geometry-group="xlsform/cuestionario-secciones" data-qa-geometry-contract="intrinsic">
           {sections.map((section) => (
             <SectionCard
               key={section.id}

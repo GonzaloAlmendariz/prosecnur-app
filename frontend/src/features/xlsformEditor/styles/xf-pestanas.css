@@ -1,0 +1,67 @@
+/* Rail de pestañas del editor de formularios (2026-10-15). El workbench es un AdaptiveSplitView con el
+   ContextTabRail de la casa; cada pestaña llena el panel y es dueña de su propio scroll (No Scroll Jail: un dueño
+   por columna, nunca el panel entero). Las vistas que antes eran overlays a pantalla completa (mapa de lógica,
+   filtros, prueba, resumen, cuestionario) se montan aquí con `is-embebido`: sin `position: fixed`, sin velo, sin
+   animación de entrada y con su cabecera alineada al primer botón del rail. */
+
+.pulso-xlsform-frame .pulso-xf-pestanas {
+  min-height: 0;
+}
+
+.pulso-xlsform-frame .pulso-xf-pestanas > .pulso-adaptive-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pulso-xf-pestana {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Constructor: la grilla de siempre llena la pestaña. */
+.pulso-xf-pestana > .pulso-builder-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Overlays de antes, ahora contenido de pestaña. */
+.pulso-xf-pestana .pulso-graph-overlay.is-embebido,
+.pulso-xf-pestana .pulso-xcf-overlay.is-embebido {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  flex: 1 1 auto;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  animation: none;
+}
+
+.pulso-xf-pestana .is-embebido > .pulso-graph-header,
+.pulso-xf-pestana .is-embebido > .pulso-xcf-header {
+  min-height: calc(var(--pulso-nav-item-height) + 2 * var(--pulso-rail-bubble-offset));
+  box-sizing: border-box;
+}
+
+/* Hojas: la tabla es la dueña del scroll (DataSurface) y se queda con el alto que deja la pestaña, en vez del
+   cálculo por viewport que hacía cuando no había rail. */
+.pulso-xf-pestana > .pulso-xfs-view {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pulso-xf-pestana > .pulso-xfs-view .pulso-xfs-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}

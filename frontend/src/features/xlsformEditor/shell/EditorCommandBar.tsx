@@ -2,16 +2,18 @@
 // shell/EditorCommandBar.tsx — banda de comandos del editor de formularios
 // =============================================================================
 // Extraída de XlsformEditorPage (ola 2 del revamp). Una sola fila en todo el
-// rango desktop (1024 → 1710): tres zonas —documento, modo, salida— y una sola
-// acción con relleno (Exportar). Los toggles son segmentados neutros.
+// rango desktop (1024 → 1710): documento, estado y salida, con una sola acción
+// con relleno (Exportar). Desde el 2026-10-15 las vistas (Constructor, Hojas,
+// Mapa de lógica, Impreso…) son pestañas del rail izquierdo: el toggle
+// «Constructor | Hojas» y «Más vistas» ya no viven aquí.
 //
 //   [Formulario ▾] 92 campos · 17 secciones · 24 listas  ● Guardado ahora ↶ ↷
-//                     [Constructor | Hojas]  ⋯ Más vistas  ⚠ Revisa la lógica
+//                               [Listas 3]  ⚠ Revisa la lógica
 //                                          [+ Nuevo ▾]  [⤓ Exportar .xlsx | ▾]
 //
-// En anchos compactos los rótulos secundarios (procedencia, «Más vistas»,
-// «Nuevo formulario», «.xlsx», «Deshacer») se recogen y quedan como nombre
-// accesible y `title`; ningún control desaparece.
+// En anchos compactos los rótulos secundarios (procedencia, «Nuevo
+// formulario», «.xlsx», «Deshacer») se recogen y quedan como nombre accesible
+// y `title`; ningún control desaparece.
 // =============================================================================
 
 import { IconRedo, IconUndo } from "../../../lib/icons";
@@ -28,7 +30,6 @@ import { formatSaveStatus, plural } from "./editorMetrics";
 import { ExportMenu } from "./ExportMenu";
 import { FormIntakeMenu } from "./FormIntakeMenu";
 import { FormSwitcher, type FormSwitcherProps } from "./FormSwitcher";
-import { MoreViewsMenu, type MoreViewsMenuProps } from "./MoreViewsMenu";
 import "../styles/xf-editor-chrome.css";
 
 export type EditorCommandBarProps = {
@@ -41,9 +42,6 @@ export type EditorCommandBarProps = {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
-  editorMode: "builder" | "sheets";
-  onEditorModeChange: (mode: "builder" | "sheets") => void;
-  moreViews: MoreViewsMenuProps;
   /** H7: escalas repetidas y apertura del diálogo «Listas de opciones». */
   listas: { repetidas: number; onOpen: () => void };
   diagnostics: BuilderDiagnostic[];
@@ -68,7 +66,7 @@ export type EditorCommandBarProps = {
 
 export function EditorCommandBar(props: EditorCommandBarProps) {
   const {
-    metrics, source, dirty, lastSavedAt, canUndo, canRedo, editorMode, busy,
+    metrics, source, dirty, lastSavedAt, canUndo, canRedo, busy,
   } = props;
   const status = deriveEditorHeaderStatus(props.diagnostics, props.publication, source);
   const saveLabel = formatSaveStatus(dirty, lastSavedAt);
@@ -89,6 +87,8 @@ export function EditorCommandBar(props: EditorCommandBarProps) {
         <span
           className="pulso-xf-cmd-metrics"
           aria-label="Resumen del formulario"
+          data-qa-geometry-group="xlsform/banda-metricas"
+          data-qa-geometry-contract="intrinsic"
           title={`${plural(metrics.fields, "campo", "campos")} (variables que reciben respuesta) · ${plural(metrics.sections, "sección", "secciones")} · ${listsLabel}`}
         >
           <span><strong>{metrics.fields}</strong> {metrics.fields === 1 ? "campo" : "campos"}</span>
@@ -134,28 +134,6 @@ export function EditorCommandBar(props: EditorCommandBarProps) {
       </div>
 
       <div className="pulso-xlsform-commandbar-group pulso-xlsform-commandbar-group--modes">
-        <div className="pulso-mode-toggle pulso-xf-segmented" role="radiogroup" aria-label="Modo de edición">
-          <button
-            type="button"
-            role="radio"
-            aria-checked={editorMode === "builder"}
-            className={editorMode === "builder" ? "is-on" : ""}
-            onClick={() => props.onEditorModeChange("builder")}
-            title="Editor visual guiado"
-          >
-            Constructor
-          </button>
-          <button
-            type="button"
-            role="radio"
-            aria-checked={editorMode === "sheets"}
-            className={editorMode === "sheets" ? "is-on" : ""}
-            onClick={() => props.onEditorModeChange("sheets")}
-            title="Vista por hojas — edición de celdas crudas"
-          >
-            Hojas
-          </button>
-        </div>
         <PulsoButton
           variant="secondary"
           size="sm"
@@ -171,7 +149,6 @@ export function EditorCommandBar(props: EditorCommandBarProps) {
             <span className="pulso-xf-cmd-count" aria-hidden="true">{props.listas.repetidas}</span>
           )}
         </PulsoButton>
-        <MoreViewsMenu {...props.moreViews} />
         <DiagnosticsBadge
           diagnostics={props.diagnostics}
           status={status}

@@ -372,119 +372,10 @@
 .pulso-xlsform-frame .pulso-more-views-item:nth-child(5) { animation-delay: 120ms; }
 .pulso-xlsform-frame .pulso-more-views-item:nth-child(6) { animation-delay: 150ms; }
 
-/* ── Diálogo "Configurar PDF" ──────────────────────────────────────────── */
-/* Reemplaza al viejo split-button + popover apretado por un modal amplio con
-   secciones Formato / Lógica / Matrices. Overlay a z-1400 (por encima del
-   chrome del módulo, `pulso-page-frame-toolbar` es z-1000). Todo con tokens
-   `--pulso-*`; sin hex. No va scopeado a `.pulso-xlsform-frame` porque el
-   overlay se pinta a nivel de la página, fuera del frame del editor. */
-
-.pulso-xf-pdf-dialog-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1400;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: color-mix(in srgb, var(--pulso-text) 42%, transparent);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  animation: pulso-xf-overlay-in var(--motion-dur-fast) ease;
-}
-
-.pulso-xf-pdf-dialog {
-  width: min(720px, 100%);
-  max-height: 88vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--pulso-surface);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-panel);
-  box-shadow: var(--pulso-shadow-high);
-  overflow: hidden;
-  animation: pulso-xf-sheet-in var(--motion-dur-base) var(--motion-ease-out);
-}
-
-/* ── Cabecera ──────────────────────────────────────────────────────────── */
-
-.pulso-xf-pdf-dialog-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--pulso-border-soft);
-}
-
-.pulso-xf-pdf-dialog-badge {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  background: var(--pulso-primary-soft);
-  color: var(--pulso-primary);
-}
-
-.pulso-xf-pdf-dialog-heading {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.pulso-xf-pdf-dialog-heading h2 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text);
-}
-
-.pulso-xf-pdf-dialog-sub {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: var(--pulso-text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pulso-xf-pdf-dialog-close {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--pulso-text-muted);
-  cursor: pointer;
-  transition: background var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
-}
-
-.pulso-xf-pdf-dialog-close:hover:not(:disabled) {
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text);
-}
-
-.pulso-xf-pdf-dialog-close:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-/* ── Cuerpo scrollable ─────────────────────────────────────────────────── */
-
-.pulso-xf-pdf-dialog-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
+/* ── Controles del impreso (pestaña «Impreso») ──────────────────────────── */
+/* Tarjetas de opción, interruptores, matrices y selects que nacieron en el
+   diálogo «Configurar PDF» y hoy usa la pestaña «Impreso» (2026-10-15). El
+   marco del diálogo se retiró con él. Todo con tokens `--pulso-*`. */
 
 .pulso-xf-pdf-section {
   display: flex;
@@ -869,84 +760,9 @@
   pointer-events: none;
 }
 
-/* ── Pie de página ─────────────────────────────────────────────────────── */
-
-.pulso-xf-pdf-dialog-foot {
-  flex: 0 0 auto;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 20px;
-  border-top: 1px solid var(--pulso-border-soft);
-  background: var(--pulso-surface-2);
-}
-
-.pulso-xf-pdf-dialog-cancel {
-  height: 32px;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: var(--pulso-weight-medium);
-  color: var(--pulso-text);
-  background: var(--pulso-surface);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  cursor: pointer;
-  transition: border-color var(--motion-dur-fast) ease, background var(--motion-dur-fast) ease;
-}
-
-.pulso-xf-pdf-dialog-cancel:hover:not(:disabled) {
-  border-color: var(--pulso-border-strong);
-  background: var(--pulso-surface-3);
-}
-
-.pulso-xf-pdf-dialog-export {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 32px;
-  padding: 0 18px;
-  font-size: 13px;
-  font-weight: var(--pulso-weight-semibold);
-  color: #fff;
-  background: var(--pulso-primary);
-  border: 1px solid var(--pulso-primary);
-  border-radius: var(--pulso-radius-chip);
-  cursor: pointer;
-  transition: background var(--motion-dur-fast) ease, transform var(--motion-dur-press) var(--motion-ease-out);
-}
-
-.pulso-xf-pdf-dialog-export:hover:not(:disabled) {
-  background: var(--pulso-primary-hover);
-}
-
-/* Segunda salida (Word): variante secundaria outline junto al PDF primario. */
-.pulso-xf-pdf-dialog-export-word {
-  color: var(--pulso-primary);
-  background: transparent;
-  border-color: var(--pulso-border-strong, var(--pulso-primary));
-}
-
-.pulso-xf-pdf-dialog-export-word:hover:not(:disabled) {
-  background: var(--pulso-surface-hover, rgba(0, 36, 87, 0.06));
-}
-
-.pulso-xf-pdf-dialog-export:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.pulso-xf-pdf-dialog-cancel:disabled,
-.pulso-xf-pdf-dialog-export:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.pulso-xf-pdf-dialog-close:focus-visible,
 .pulso-xf-pdf-card:focus-visible,
 .pulso-xf-pdf-switch-row:focus-visible,
-.pulso-xf-pdf-matrix-head:focus-visible,
-.pulso-xf-pdf-dialog-cancel:focus-visible,
-.pulso-xf-pdf-dialog-export:focus-visible {
+.pulso-xf-pdf-matrix-head:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--pulso-primary-focus);
 }
@@ -963,10 +779,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pulso-xf-pdf-dialog-overlay,
-  .pulso-xf-pdf-dialog {
-    animation: none;
-  }
   .pulso-xf-pdf-switch-thumb {
     transition: none;
   }
@@ -6075,6 +5887,14 @@ button.pulso-focus-calculation-recipe {
 
 .pulso-focus-disclosure[open] summary {
   margin-bottom: 10px;
+}
+
+/* El contenido de un <details> no participa del flex de su caja (va en el
+   slot interno del elemento), así que el `gap` de arriba no separaba los
+   campos: la ayuda de uno quedaba pegada al rótulo del siguiente. Mismo
+   espaciado que el resto de bloques del inspector (`.pulso-inspector-block`). */
+.pulso-focus-disclosure > :not(summary) + :not(summary) {
+  margin-top: 10px;
 }
 
 .pulso-focus-overview {

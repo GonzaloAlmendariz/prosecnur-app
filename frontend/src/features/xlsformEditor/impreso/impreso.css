@@ -1,0 +1,464 @@
+/* Pestaña «Impreso» del editor de formularios (2026-10-15): barra de la pestaña, partes · detalle · «Así queda».
+   Dueños de scroll: el detalle (y la previa, dentro de su iframe). Bajo 1280 px la previa baja debajo del detalle
+   dentro de la misma columna, que pasa a ser el único dueño; las partes siguen en su columna (nunca una barra
+   horizontal de pestañas). */
+
+.pulso-xf-imp {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--pulso-surface);
+}
+
+/* La barra arranca en el borde del panel y mide lo que el primer botón del rail más su respiro (40 + 2×8). */
+.pulso-xf-imp-barra {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-height: calc(var(--pulso-nav-item-height) + 2 * var(--pulso-rail-bubble-offset));
+  padding: var(--pulso-rail-bubble-offset) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  flex: 0 0 auto;
+}
+
+.pulso-xf-imp-barra-icono {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+  flex: 0 0 auto;
+}
+
+.pulso-xf-imp-titulo {
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.pulso-xf-imp-resumen {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-xf-imp-acciones {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.pulso-xf-imp-cuerpo {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  gap: var(--pulso-space-4);
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--pulso-space-4);
+}
+
+.pulso-xf-imp-partes {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Detalle y previa lado a lado; cada uno su scroll. */
+.pulso-xf-imp-contenido {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.95fr);
+  gap: var(--pulso-space-4);
+  min-width: 0;
+  min-height: 0;
+}
+
+.pulso-xf-imp-detalle {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.pulso-xf-imp-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.pulso-xf-imp-tarjeta-cabeza {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-xf-imp-tarjeta-titulo {
+  margin: 0;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-xf-imp-tarjeta-ayuda {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pulso-xf-imp-tarjeta-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+/* Los controles del diálogo de antes, dentro de una columna que se encoge: la rejilla no puede pedir el ancho
+   mínimo de su contenido (desbordaba a la derecha) y baja a una columna cuando la tarjeta es angosta. */
+.pulso-xf-imp .pulso-xf-pdf-cards,
+.pulso-xf-imp .pulso-xf-pdf-matrix-controls {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pulso-xf-imp .pulso-xf-pdf-card,
+.pulso-xf-imp .pulso-xf-pdf-card-text {
+  min-width: 0;
+}
+
+/* Son botones: el editor les fija una sola línea. Aquí su descripción tiene que leerse entera. */
+.pulso-xf-imp .pulso-xf-pdf-card,
+.pulso-xf-imp .pulso-xf-pdf-switch-row,
+.pulso-xf-imp .pulso-xf-pdf-matrix-head {
+  justify-content: flex-start;
+  white-space: normal;
+}
+
+.pulso-xf-imp .pulso-xf-pdf-switch-row {
+  justify-content: space-between;
+}
+
+@container (max-width: 440px) {
+  .pulso-xf-imp .pulso-xf-pdf-cards,
+  .pulso-xf-imp .pulso-xf-pdf-matrix-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.pulso-xf-imp-vacio {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+/* Preguntas sueltas con escala: plegadas por defecto, con su cuenta. */
+.pulso-xf-imp-sueltas {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.pulso-xf-imp-sueltas > summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  cursor: pointer;
+  list-style: none;
+}
+
+.pulso-xf-imp-sueltas > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pulso-xf-imp-sueltas > summary > span {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-xf-imp-sueltas > summary > span::before {
+  content: "▸";
+  display: inline-block;
+  width: 1.1em;
+  color: var(--pulso-text-soft);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-xf-imp-sueltas[open] > summary > span::before {
+  transform: rotate(90deg);
+}
+
+.pulso-xf-imp-sueltas > summary > small {
+  padding-left: 1.1em;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.pulso-xf-imp-sueltas > summary:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: -2px;
+  border-radius: var(--pulso-radius-card);
+}
+
+.pulso-xf-imp-sueltas > .pulso-xf-pdf-matrix-list {
+  padding: 0 var(--pulso-space-4) var(--pulso-space-4);
+}
+
+/* Papel por pregunta: filas parejas con enlace al Constructor. */
+.pulso-xf-imp-papel {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  overflow: hidden;
+}
+
+.pulso-xf-imp-papel li + li {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-imp-papel-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr) 14px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pulso-xf-imp-papel-fila:hover {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-xf-imp-papel-fila:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: -2px;
+}
+
+.pulso-xf-imp-papel-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pulso-xf-imp-papel-texto code {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.pulso-xf-imp-papel-texto span,
+.pulso-xf-imp-papel-columnas {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-xf-imp-papel-columnas {
+  color: var(--pulso-text-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+
+/* «Así queda». */
+.pulso-xf-imp-previa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  min-height: 0;
+}
+
+.pulso-xf-imp-previa-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+}
+
+.pulso-xf-imp-eyebrow {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+}
+
+.pulso-xf-imp-previa-marco {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+
+.pulso-xf-imp-previa-pdf {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  background: var(--pulso-surface);
+}
+
+.pulso-xf-imp-previa-vacia {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-5);
+  text-align: center;
+}
+
+.pulso-xf-imp-previa-vacia strong {
+  font-size: 13.5px;
+}
+
+.pulso-xf-imp-previa-vacia p {
+  max-width: 34ch;
+  margin: 0 0 var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.pulso-xf-imp-previa-vacia.is-error strong {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-xf-imp-previa-icono {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  color: var(--module-accent, var(--pulso-primary));
+  box-shadow: 0 0 0 1px var(--pulso-border);
+}
+
+.pulso-xf-imp-previa-pasos {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  margin: auto;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-5);
+  list-style: none;
+  font-size: 12.5px;
+}
+
+.pulso-xf-imp-previa-pasos li {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-imp-previa-pasos li.is-en-curso {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-xf-imp-previa-paso-icono {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  box-shadow: 0 0 0 1px var(--pulso-border);
+}
+
+.pulso-xf-imp-previa-pasos li.is-hecho .pulso-xf-imp-previa-paso-icono {
+  color: var(--pulso-success-fg);
+}
+
+.pulso-xf-imp-gira {
+  animation: pulso-xf-imp-gira 0.9s linear infinite;
+}
+
+@keyframes pulso-xf-imp-gira {
+  to { transform: rotate(360deg); }
+}
+
+.pulso-xf-imp-previa-vieja {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xf-imp-gira { animation: none; }
+}
+
+/* Compacto: la previa baja debajo del detalle; la columna de contenido es el único dueño de scroll. */
+@media (max-width: 1280px) {
+  .pulso-xf-imp-cuerpo {
+    grid-template-columns: 224px minmax(0, 1fr);
+    gap: var(--pulso-space-3);
+    padding: var(--pulso-space-3);
+  }
+
+  .pulso-xf-imp-contenido {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pulso-space-3);
+    overflow-y: auto;
+  }
+
+  .pulso-xf-imp-detalle {
+    overflow: visible;
+    flex: 0 0 auto;
+  }
+
+  .pulso-xf-imp-previa {
+    flex: 0 0 auto;
+  }
+
+  .pulso-xf-imp-previa-marco {
+    flex: 0 0 auto;
+    height: max(420px, calc(100dvh - 260px));
+  }
+}

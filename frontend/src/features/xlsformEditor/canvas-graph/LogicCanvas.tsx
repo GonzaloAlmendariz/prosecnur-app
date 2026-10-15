@@ -20,7 +20,7 @@
 //                            tipo de relación posible en este diseño).
 // =============================================================================
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   ChevronLeft,
@@ -61,6 +61,10 @@ export type LogicCanvasProps = {
   /** Escribe la expresión de visibilidad (`relevant`) cuando el usuario
    *  declara una nueva conexión via drag-arrow. */
   onSetRelevant?: (rowIndex: number, expression: string) => void;
+  /** Dentro de una pestaña del editor (2026-10-15): sin portal, sin «Volver» ni «Cerrar», y Esc no cierra. */
+  embebido?: boolean;
+  /** Acciones extra en la cabecera (p. ej. «Lógica de SurveyMonkey» en el editor). */
+  acciones?: ReactNode;
 };
 
 export function LogicCanvas({
@@ -73,6 +77,8 @@ export function LogicCanvas({
   backLabel = "Volver al editor",
   onSelectRow,
   onSetRelevant,
+  embebido = false,
+  acciones,
 }: LogicCanvasProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -239,7 +245,7 @@ export function LogicCanvas({
             setSelectedId(null);
           } else if (legendOpen) {
             setLegendOpen(false);
-          } else {
+          } else if (!embebido) {
             onClose();
           }
           event.preventDefault();
@@ -296,7 +302,7 @@ export function LogicCanvas({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, connectPicker, selectedEdgeIdx, selectedId, legendOpen, confirmingDelete, readOnly, onSetRelevant]);
+  }, [open, embebido, connectPicker, selectedEdgeIdx, selectedId, legendOpen, confirmingDelete, readOnly, onSetRelevant]);
 
   // La confirmación de borrado no debe sobrevivir a un cambio de
   // relación seleccionada (o a cerrar el panel).
@@ -773,15 +779,17 @@ export function LogicCanvas({
 
   const overlay = (
     <div
-      className="pulso-graph-overlay"
-      role="dialog"
+      className={`pulso-graph-overlay${embebido ? " is-embebido" : ""}`}
+      role={embebido ? "region" : "dialog"}
       aria-label="Mapa de lógica del formulario"
     >
       <header className="pulso-graph-header">
         <div className="pulso-graph-header-left">
-          <button type="button" className="pulso-graph-back" onClick={onClose}>
-            <ChevronLeft size={14} /> {backLabel}
-          </button>
+          {!embebido && (
+            <button type="button" className="pulso-graph-back" onClick={onClose}>
+              <ChevronLeft size={14} /> {backLabel}
+            </button>
+          )}
           <div className="pulso-graph-header-title">
             <strong>{title}</strong>
             <span>
@@ -792,6 +800,7 @@ export function LogicCanvas({
           </div>
         </div>
         <div className="pulso-graph-header-right">
+          {acciones}
           <button
             type="button"
             className="pulso-graph-allbutton"
@@ -859,15 +868,17 @@ export function LogicCanvas({
               <Info size={14} />
             </button>
           </div>
-          <button
-            type="button"
-            className="pulso-icon pulso-icon-danger"
-            onClick={onClose}
-            title="Cerrar (Esc)"
-            aria-label="Cerrar"
-          >
-            <X size={14} />
-          </button>
+          {!embebido && (
+            <button
+              type="button"
+              className="pulso-icon pulso-icon-danger"
+              onClick={onClose}
+              title="Cerrar (Esc)"
+              aria-label="Cerrar"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
       </header>
 
@@ -1356,100 +1367,6 @@ export function LogicCanvas({
                 />
               )}
             </svg>
-            </div>
-          );
-        })()}
-
-        {/* Mini-map (bottom-right). Solo se muestra si hay 4+ secciones
-            visibles — para formularios chicos no aporta. Renderiza
-            cada nodo visible como un rectángulo escalado y un
-            rectángulo del viewport actual. Click navega ahí. */}
-        {layout && layout.nodes.filter((n) => n.visible).length >= 4 && (() => {
-          const visibles = layout.nodes.filter((n) => n.visible);
-          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-          for (const n of visibles) {
-            if (n.x < minX) minX = n.x;
-            if (n.y < minY) minY = n.y;
-            if (n.x + n.width > maxX) maxX = n.x + n.width;
-            if (n.y + n.height > maxY) maxY = n.y + n.height;
-          }
-          const bbW = maxX - minX;
-          const bbH = maxY - minY;
-          const MAP_W = 200;
-          const MAP_H = 130;
-          const padding = 6;
-          const usableW = MAP_W - padding * 2;
-          const usableH = MAP_H - padding * 2;
-          const scale = Math.min(usableW / bbW, usableH / bbH);
-          const offsetX = padding + (usableW - bbW * scale) / 2;
-          const offsetY = padding + (usableH - bbH * scale) / 2;
-          // Viewport rect en coords del mini-map.
-          const rect = svgRef.current?.getBoundingClientRect();
-          const vpX = rect ? -pan.x / zoom : 0;
-          const vpY = rect ? -pan.y / zoom : 0;
-          const vpW = rect ? rect.width / zoom : 0;
-          const vpH = rect ? rect.height / zoom : 0;
-          const onMiniClick = (event: React.MouseEvent<SVGSVGElement>) => {
-            const target = event.currentTarget.getBoundingClientRect();
-            const cx = event.clientX - target.left;
-            const cy = event.clientY - target.top;
-            // Convertir click del mini-map a coordenadas del canvas.
-            const canvasX = (cx - offsetX) / scale + minX;
-            const canvasY = (cy - offsetY) / scale + minY;
-            if (!rect) return;
-            // Centrar en (canvasX, canvasY).
-            setPan({
-              x: rect.width / 2 - canvasX * zoom,
-              y: rect.height / 2 - canvasY * zoom,
-            });
-          };
-          return (
-            <div className="pulso-graph-minimap">
-              <svg
-                width={MAP_W}
-                height={MAP_H}
-                onClick={onMiniClick}
-                aria-label="Mini-mapa del lienzo"
-              >
-                {/* Cards visibles */}
-                {visibles.map((n) => {
-                  const isSection = n.node.kind === "section";
-                  return (
-                    <rect
-                      key={n.node.id}
-                      x={offsetX + (n.x - minX) * scale}
-                      y={offsetY + (n.y - minY) * scale}
-                      width={n.width * scale}
-                      height={n.height * scale}
-                      rx={1.5}
-                      ry={1.5}
-                      fill={
-                        isSection
-                          ? "rgba(15, 118, 110, 0.18)"
-                          : "rgba(36, 87, 214, 0.10)"
-                      }
-                      stroke={
-                        isSection
-                          ? "rgba(15, 118, 110, 0.55)"
-                          : "rgba(36, 87, 214, 0.35)"
-                      }
-                      strokeWidth={0.6}
-                    />
-                  );
-                })}
-                {/* Viewport actual */}
-                <rect
-                  x={offsetX + (vpX - minX) * scale}
-                  y={offsetY + (vpY - minY) * scale}
-                  width={vpW * scale}
-                  height={vpH * scale}
-                  fill="rgba(36, 87, 214, 0.08)"
-                  stroke="var(--pulso-primary)"
-                  strokeWidth={1.2}
-                  rx={2}
-                  ry={2}
-                />
-              </svg>
             </div>
           );
         })()}
@@ -2323,7 +2240,7 @@ export function LogicCanvas({
     </div>
   );
 
-  return createPortal(overlay, document.body);
+  return embebido ? overlay : createPortal(overlay, document.body);
 }
 
 // ─────────────────────────────────────────────────────────────────────

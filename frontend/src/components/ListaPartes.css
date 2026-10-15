@@ -1,0 +1,201 @@
+/* ListaPartes — columna de partes de una pestaña. Un panel, filas de alto fijo separadas por filete; la elegida con
+   barra de acento de 3 px, relleno suave del módulo y rótulo en el acento. Sin bordes por ítem ni tarjetas sueltas. */
+
+.pulso-lista-partes {
+  --lista-partes-acento: var(--module-accent, var(--pulso-primary));
+  --lista-partes-acento-suave: var(--module-accent-soft, var(--pulso-primary-soft));
+  --lista-partes-alto-fila: 52px;
+  --lista-partes-slot: 84px;
+
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+
+.pulso-lista-partes-grupo + .pulso-lista-partes-grupo {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-lista-partes-encabezado {
+  margin: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-3) var(--pulso-space-1);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+}
+
+.pulso-lista-partes-filas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-lista-partes-item + .pulso-lista-partes-item {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-lista-partes-fila {
+  position: relative;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  height: var(--lista-partes-alto-fila);
+  padding: 0 var(--pulso-space-3) 0 calc(var(--pulso-space-3) + 3px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion-dur-fast, 120ms) var(--motion-ease-out, ease-out);
+}
+
+.pulso-lista-partes-fila.con-estado {
+  grid-template-columns: minmax(0, 1fr) var(--lista-partes-slot);
+}
+
+/* La barra existe siempre (transparente) para que elegir no mueva el texto. */
+.pulso-lista-partes-fila::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: transparent;
+}
+
+.pulso-lista-partes-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pulso-lista-partes-rotulo,
+.pulso-lista-partes-detalle {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-lista-partes-rotulo {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.3;
+}
+
+.pulso-lista-partes-detalle {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-lista-partes-fila:hover:not(.is-elegida),
+  .pulso-lista-partes-plegable:hover {
+    background: var(--pulso-surface-2);
+  }
+}
+
+.pulso-lista-partes-fila.is-elegida {
+  background: var(--lista-partes-acento-suave);
+}
+
+.pulso-lista-partes-fila.is-elegida::before {
+  background: var(--lista-partes-acento);
+}
+
+.pulso-lista-partes-fila.is-elegida .pulso-lista-partes-rotulo {
+  color: var(--lista-partes-acento);
+}
+
+.pulso-lista-partes-fila:focus-visible,
+.pulso-lista-partes-plegable:focus-visible {
+  outline: 2px solid var(--lista-partes-acento);
+  outline-offset: -2px;
+}
+
+.pulso-lista-partes.is-slot-angosto {
+  --lista-partes-slot: 32px;
+}
+
+/* Slot de estado: una gramática. Se reserva en todas las filas si alguna lo usa. */
+.pulso-lista-partes-estado {
+  justify-self: end;
+  max-width: var(--lista-partes-slot);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.pulso-lista-partes-estado.is-aviso {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-lista-partes-estado.is-listo {
+  display: inline-flex;
+  color: var(--pulso-success-fg);
+}
+
+.pulso-lista-partes-estado.is-conteo {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* Fila que abre un grupo plegable: misma altura de banda, chevron que gira. */
+.pulso-lista-partes-plegable {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  min-height: 40px;
+  padding: 0 var(--pulso-space-3);
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pulso-lista-partes-plegable-texto {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-lista-partes-chevron {
+  transition: transform var(--motion-dur-fast, 120ms) var(--motion-ease-out, ease-out);
+}
+
+.pulso-lista-partes-plegable[aria-expanded="true"] .pulso-lista-partes-chevron {
+  transform: rotate(90deg);
+}
+
+.pulso-lista-partes-plegable[aria-expanded="true"] + .pulso-lista-partes-filas {
+  border-top: 1px solid var(--pulso-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-lista-partes-fila,
+  .pulso-lista-partes-chevron {
+    transition: none;
+  }
+}
