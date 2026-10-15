@@ -120,3 +120,11 @@
 .pulso-f6-w-variante-mini.is-c::after { content: ""; display: block; margin-top: auto; height: 22%; border-top: 2px solid var(--pulso-primary);
   background: repeating-linear-gradient(to bottom, transparent 0 5px, var(--pulso-border) 5px 6px); }
 @container (max-width: 560px) { .pulso-f6-w-variantes { grid-template-columns: minmax(0, 1fr); } }
+
+/* W4: dos variantes de apertura y la lista de entradas por capítulo. */
+.pulso-f6-w-variantes.is-dos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pulso-f6-w-variante-mini.is-ap-b i:nth-child(1) { width: 22%; height: 16px; background: color-mix(in srgb, var(--pulso-primary) 25%, var(--pulso-surface)); }
+.pulso-f6-w-variante-mini.is-ap-b i:nth-child(2) { width: 70%; height: 6px; background: var(--pulso-primary); }
+.pulso-f6-w-variante-mini.is-ap-a i:nth-child(1) { width: 30%; height: 4px; background: var(--module-accent); }
+.pulso-f6-w-variante-mini.is-ap-a i:nth-child(2) { width: 70%; height: 6px; background: var(--pulso-primary); }
+.pulso-f6-w-entradas { display: flex; flex-direction: column; gap: var(--pulso-space-3); }

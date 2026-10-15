@@ -1490,3 +1490,10 @@
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-semibold);
 }
+
+/* W4: apertura de capítulo como `.word_apertura` (B: número de 60 pt en azul claro; A: «CAPÍTULO N» en versalitas). */
+.pulso-f6-vg-pag-apertura { display: flex; flex-direction: column; gap: 1.6cqw; margin-bottom: 3cqw; }
+.pulso-f6-vg-pag-apertura.is-b { margin-top: 6cqw; }
+.pulso-f6-vg-pag-ap-num { color: color-mix(in srgb, var(--pulso-primary) 25%, var(--pulso-surface)); font-size: 15cqw; font-weight: 700; line-height: 1; }
+.pulso-f6-vg-pag-ap-k { color: var(--module-accent); font-size: 2.6cqw; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.pulso-f6-vg-pag-ap-ent { color: var(--pulso-text); font-size: 2.7cqw; line-height: 1.4; }

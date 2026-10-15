@@ -9,7 +9,7 @@ import { GlifoGrafico } from "../iconos/GlifoGrafico";
 import { baseAutomatica, ranurasDeMaqueta } from "../laminas/modeloMaqueta";
 import { usePlanStore } from "../store";
 import { useVariables } from "../useVariables";
-import { PortadaMaqueta } from "./PortadaMaqueta";
+import { AperturaMaqueta, PortadaMaqueta } from "./PortadaMaqueta";
 import { paginasWord, tituloCortoWord, type ElementoWord, type PaginaWord } from "./paginasWord";
 
 const FUENTE = "Fuente: PULSO PUCP.";
@@ -47,7 +47,8 @@ export function useArmadoWord(slides: readonly Slide[]) {
         // Como `.word_nivel_seccion`: el nivel explícito manda; si no, un subcapítulo es sección N.M (decisión 2026-10-15).
         const explicito = Number(meta.word_heading_level);
         const nivel = explicito >= 1 ? (explicito >= 2 ? 2 : 1) : meta.nivel === "subcapitulo" ? 2 : 1;
-        elementos.push({ clase: "seccion", nivel, titulo: texto(payload.titulo) });
+        // W4: la entrada del capítulo es la introducción para el Word o, sin ella, el subtítulo del separador (`.word_documento`).
+        elementos.push({ clase: "seccion", nivel, titulo: texto(payload.titulo), entrada: texto(payload.introduccion_word) || texto(payload.subtitulo) });
         continue;
       }
       if (slide.tipo === "p_slide_texto") { elementos.push({ clase: "texto", titulo: texto(payload.titulo) }); continue; }
@@ -114,7 +115,8 @@ export function PaginaMaqueta({ pagina, tituloCorto }: { pagina: PaginaWord; tit
         </>)}
         {pagina.clase === "capitulo" && (<>
           {cabeza(pagina.encabezado)}
-          {pagina.titulos.map((t, i) => <span key={i} className={/^\d+\. /.test(t) ? "pulso-f6-vg-pag-h1" : "pulso-f6-vg-pag-h2"}>{t}</span>)}
+          {pagina.apertura && <AperturaMaqueta {...pagina.apertura} />}
+          {pagina.titulos.slice(pagina.apertura ? 1 : 0).map((t, i) => <span key={i} className={/^\d+\. /.test(t) ? "pulso-f6-vg-pag-h1" : "pulso-f6-vg-pag-h2"}>{t}</span>)}
           {pagina.texto && [96, 92, 88, 60].map((w, i) => <span key={i} className="pulso-f6-vg-pag-ln" style={{ width: `${w}%` }} />)}
           {pagina.figuras.map((f) => (
             <span key={f.numero} className="pulso-f6-vg-fig">
