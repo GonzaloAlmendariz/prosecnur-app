@@ -630,6 +630,7 @@
   if (length(bases) > 0L) {
     data_sources <- list()
     inst_sources <- list()
+    signatures <- list()
     for (nombre in names(bases)) {
       pair <- .analitica_pair_for_base(s, bases[[nombre]], fuente, nombre)
       if (is.null(pair)) {
@@ -639,6 +640,7 @@
       parsed <- .analitica_read_pair(pair, bases[[nombre]])
       data_sources[[nombre]] <- parsed$data
       inst_sources[[nombre]] <- parsed$inst
+      signatures[[nombre]] <- attr(parsed, "analitica_lectura_signature", exact = TRUE)
     }
     active <- .analitica_active_source_name(sid, names(data_sources))
     return(list(
@@ -646,7 +648,8 @@
       rp_data = data_sources[[active]],
       rp_inst = inst_sources[[active]],
       data_sources = data_sources,
-      inst_sources = inst_sources
+      inst_sources = inst_sources,
+      lectura_signatures = signatures
     ))
   }
 
@@ -2145,7 +2148,10 @@
   cfg <- .analitica_get_config(sid)
   ctx <- .analitica_prepare_context(sid, cfg)
   if (exists(".bases_normalize_source_contexts", mode = "function")) {
-    normalized <- .bases_normalize_source_contexts(ctx$data_sources, ctx$inst_sources)
+    # Memoizada por la firma de lectura de cada base (analitica_lectura_cache.R).
+    normalized <- .analitica_lectura_normalize_sources(
+      ctx$data_sources, ctx$inst_sources, ctx$lectura_signatures
+    )
     ctx$data_sources <- normalized$data_sources
     ctx$inst_sources <- normalized$inst_sources
     active <- .analitica_active_source_name(sid, names(ctx$data_sources))
