@@ -218,6 +218,8 @@ type PlanStore = {
   setEstiloCliente: (estiloCliente: EstiloCliente) => void;
   applyPptStyleProfile: (profile: PptStyleProfileMeta) => void;
   quitarPptStyleProfile: (profile: PptStyleProfileMeta) => void;
+  /** ID3d: vuelve presets, paletas, ajustes guardados y reglas a un estado tomado antes (descartar cambios sobre una línea). */
+  restaurarEstilo: (estado: Partial<Pick<PlanStore, "presets" | "paletas" | "overridesReusables" | "scopeRules">>) => void;
   // Merge granular de args en el preset `tipo`. Si `patch[arg] === null`
   // (o undefined después de merge), borra ese arg para que el backend
   // use el default. Usado por PresetsEditor para actualizar un arg a la vez.
@@ -710,6 +712,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   applyPptStyleProfile: (profile) => set((state) => dirty(state, estiloDePerfil(state, profile))),
   quitarPptStyleProfile: (profile) => set((state) => dirty(state, sinEstiloDePerfil(state, profile) as Partial<PlanStore>)),
+  restaurarEstilo: (estado) => set((state) => dirty(state, estado)),
 
   setPresetArg: (tipo, arg, value) => {
     set((state) => {

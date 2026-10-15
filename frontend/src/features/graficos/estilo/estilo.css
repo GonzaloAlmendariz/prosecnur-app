@@ -993,3 +993,24 @@
     animation: none;
   }
 }
+
+/* ID3d: aviso de cambios sobre la línea propia aplicada. */
+.pulso-f6-lv-banda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 12.5px;
+}
+
+.pulso-f6-lv-banda-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+}
