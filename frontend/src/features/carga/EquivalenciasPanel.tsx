@@ -55,6 +55,7 @@ import {
 } from "./equivalenciasEditorModel";
 import { etiquetaDePregunta } from "./preguntaEquivalenteModel";
 import { ConfirmarMismaEscalaBoton } from "./ConfirmarMismaEscalaBoton";
+import { MapaBasesBoton, MapaBasesPanel } from "./MapaBasesPanel";
 import { filasConMismaEscalaConfirmada, indicesDeMismaEscala } from "./mismaEscalaModel";
 import "./EquivalenciasPanel.css";
 import { PulsoButton } from "../../components/PulsoButton";
@@ -228,6 +229,22 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
 
   const resumen = useMemo(() => resumenEditor(filas), [filas]);
 
+  // G1: «Añadir a la matriz» desde el mapa de bases es el mismo «Añadir pregunta
+  // equivalente», con la pregunta de esa base ya elegida. Queda sin guardar.
+  const onAnadirDesdeMapa = useCallback(
+    (base: string, variable: string): string => {
+      const nueva = filaVacia();
+      const etiqueta = etiquetaDePregunta(variablesPorBase[base] ?? [], variable);
+      setFilas((p) => asignarPregunta([...p, nueva], nueva.id, base, variable, etiqueta === variable ? "" : etiqueta));
+      setSucio(true);
+      setGuardadoAhora(false);
+      setError("");
+      setAviso(`Se añadió «${etiqueta}» a la matriz. Elige su pregunta en las otras bases y guarda.`);
+      return nueva.id;
+    },
+    [variablesPorBase],
+  );
+
   const onAgregarFila = useCallback(() => {
     setFilas((p) => [...p, filaVacia()]);
     setSucio(true);
@@ -288,7 +305,15 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
         estado={estado}
         cargandoEstado={cargando}
         variablesPorBase={variablesPorBase}
+        filasEditor={filas}
         onGuardado={onArmonizacionGuardada}
+      />
+      <MapaBasesPanel
+        cargando={cargando}
+        bases={basesDeTabla}
+        filas={filas}
+        variablesPorBase={variablesPorBase}
+        onAnadir={onAnadirDesdeMapa}
       />
       <ImportarBloquesDialog bases={bases} onAplicado={onBloquesAplicados} />
       <IndicadorCompuestoEditor
@@ -342,6 +367,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
         <EquivalenciasTitulo />
         {/* ADR 0104: la única importación que queda, y sólo para series de mediciones. */}
         <div className="pulso-equiv-actions">
+          {basesDeTabla.length > 0 && <MapaBasesBoton />}
           <ImportarBloquesBoton disabled={ocupado !== ""} />
         </div>
       </header>

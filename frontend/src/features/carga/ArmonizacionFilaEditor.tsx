@@ -70,6 +70,14 @@ import {
 } from "./armonizacionMasaModel";
 import { ArmonizacionAsignarEnMasa } from "./ArmonizacionAsignarEnMasa";
 import { ArmonizacionTextosInforme } from "./ArmonizacionTextosInforme";
+import { EscalaCompartidaAviso, EscalaCompartidaLista } from "./ArmonizacionEscalaCompartida";
+import {
+  candidatosDeEscala,
+  filasConEscalaAplicada,
+  marcadosPorDefecto,
+  textoAplicarA,
+} from "./escalaCompartidaModel";
+import type { FilaEditor } from "./equivalenciasEditorModel";
 import "./ArmonizacionFilaEditor.css";
 import { PulsoButton } from "../../components/PulsoButton";
 
@@ -102,6 +110,11 @@ export type ArmonizacionFilaEditorProps = {
   /** La declaración se está leyendo. Sin estado y sin carga, la lectura falló. */
   cargandoEstado: boolean;
   variablesPorBase: Record<string, VariableDeBase[]>;
+  /**
+   * Filas de la tabla tal como se ven. Las guardadas que tienen cambios sin
+   * guardar no reciben una escala aplicada desde aquí (G3).
+   */
+  filasEditor?: readonly FilaEditor[] | null;
   onGuardado: (out: EquivalenciasImportacion, mensaje: string) => void;
 };
 
@@ -109,7 +122,7 @@ export function ArmonizacionFilaEditor(props: ArmonizacionFilaEditorProps) {
   return useInRouterContext() ? <PanelConDireccion {...props} /> : null;
 }
 
-function PanelConDireccion({ estado, cargandoEstado, variablesPorBase, onGuardado }: ArmonizacionFilaEditorProps) {
+function PanelConDireccion({ estado, cargandoEstado, variablesPorBase, filasEditor = null, onGuardado }: ArmonizacionFilaEditorProps) {
   const panel = usePanelDireccionable(PANEL_ARMONIZACION);
   const procesamiento = useSeccion("procesamiento");
   const location = useLocation();
@@ -166,6 +179,7 @@ function PanelConDireccion({ estado, cargandoEstado, variablesPorBase, onGuardad
               guardadas={guardadas}
               bases={bases}
               variablesPorBase={variablesPorBase}
+              filasEditor={filasEditor}
               onGuardado={onGuardado}
               onCerrar={cerrar}
             />
@@ -253,6 +267,7 @@ function EditorFila({
   guardadas,
   bases,
   variablesPorBase,
+  filasEditor,
   onGuardado,
   onCerrar,
 }: {
@@ -261,6 +276,7 @@ function EditorFila({
   guardadas: readonly EquivalenciaFila[];
   bases: string[];
   variablesPorBase: Record<string, VariableDeBase[]>;
+  filasEditor: readonly FilaEditor[] | null;
   onGuardado: (out: EquivalenciasImportacion, mensaje: string) => void;
   onCerrar: () => void;
 }) {
@@ -333,6 +349,62 @@ function EditorFila({
     : sucio ? "dirty"
     : guardadoAhora ? "saved" : "idle";
 
+  // G3: la misma armonización, llevada a las otras preguntas con esta escala.
+  const [vista, setVista] = useState<"editar" | "compartir">("editar");
+  const [elegidos, setElegidos] = useState<ReadonlySet<number>>(() => new Set());
+  const armonizacionActual = useMemo(() => aArmonizacion(borrador), [borrador]);
+  const compartidas = useMemo(
+    () => errores.length > 0
+      ? { candidatos: [], parciales: 0 }
+      : candidatosDeEscala({
+        indiceOrigen: indice,
+        origen: armonizacionActual,
+        guardadas,
+        editor: filasEditor,
+        bases,
+        variablesPorBase,
+      }),
+    [armonizacionActual, bases, errores.length, filasEditor, guardadas, indice, variablesPorBase],
+  );
+  const verCompartidas = () => {
+    setElegidos(marcadosPorDefecto(compartidas.candidatos));
+    setVista("compartir");
+  };
+  const enCompartir = vista === "compartir" && compartidas.candidatos.length > 0;
+  // Cambiar de vista desmonta el control que tenía el foco: se lleva al título
+  // de la lista al entrar y al botón que la abre al volver.
+  const vistaPrevia = useRef(vista);
+  useEffect(() => {
+    if (vistaPrevia.current === vista) return;
+    vistaPrevia.current = vista;
+    const destino = vista === "compartir"
+      ? document.getElementById("pulso-armon-compartida-titulo")
+      : document.querySelector<HTMLElement>("button[data-armon-compartir]");
+    destino?.focus();
+  }, [vista]);
+
+  const aplicarACompartidas = async () => {
+    setGuardando(true);
+    setError("");
+    try {
+      const conOrigen = filasConArmonizacion(guardadas, indice, armonizacionActual, borrador.textos);
+      const out = await guardarEquivalencias(filasConEscalaAplicada(conOrigen, compartidas.candidatos, elegidos));
+      const n = compartidas.candidatos.filter((c) => elegidos.has(c.indice)).length;
+      onGuardado(
+        out,
+        n === 1
+          ? `La escala de «${fila.etiqueta_estandar}» se aplicó a 1 pregunta más.`
+          : `La escala de «${fila.etiqueta_estandar}» se aplicó a ${n} preguntas más.`,
+      );
+      setSucio(false);
+      setGuardadoAhora(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   const guardar = async (borrar: boolean) => {
     setGuardando(true);
     setError("");
@@ -395,7 +467,27 @@ function EditorFila({
         data-qa-geometry-group="carga-armonizacion"
         data-qa-geometry-contract="intrinsic"
       >
+        {enCompartir ? (
+          <EscalaCompartidaLista
+            candidatos={compartidas.candidatos}
+            parciales={compartidas.parciales}
+            elegidos={elegidos}
+            guardaOrigen={sucio}
+            onAlternar={(i, marcado) =>
+              setElegidos((prev) => {
+                const next = new Set(prev);
+                if (marcado) next.add(i);
+                else next.delete(i);
+                return next;
+              })}
+            onTodas={(marcadas) =>
+              setElegidos(marcadas ? new Set(compartidas.candidatos.map((c) => c.indice)) : new Set())}
+          />
+        ) : (
+        <>
         {conVariable.length > 1 && <IndiceDeBases bases={conVariable} borrador={borrador} />}
+
+        <EscalaCompartidaAviso n={compartidas.candidatos.length} onVer={verCompartidas} />
 
         <ArmonizacionTextosInforme
           textos={borrador.textos}
@@ -427,6 +519,8 @@ function EditorFila({
               : `${sinVariable.join(", ")} no tienen esta pregunta: no hay nada que armonizar ahí.`}
           </p>
         )}
+        </>
+        )}
       </div>
 
       <footer className="pulso-armon-pie">
@@ -440,6 +534,23 @@ function EditorFila({
             <span className="pulso-armon-error">{errores[0]}</span>
           ) : null}
         </div>
+        {enCompartir ? (
+          <>
+            <PulsoButton variant="secondary" className="pulso-armon-btn" onClick={() => setVista("editar")}>
+              Volver
+            </PulsoButton>
+            <PulsoButton
+              variant="primary"
+              className="pulso-armon-btn"
+              disabled={guardando || elegidos.size === 0}
+              onClick={() => void aplicarACompartidas()}
+            >
+              <Save size={14} aria-hidden="true" />
+              {guardando ? "Aplicando…" : textoAplicarA(elegidos.size)}
+            </PulsoButton>
+          </>
+        ) : (
+        <>
         {fila.armonizacion && (
           <PulsoButton
             variant="secondary"
@@ -463,6 +574,8 @@ function EditorFila({
           <Save size={14} aria-hidden="true" />
           {guardando ? "Guardando…" : "Guardar armonización"}
         </PulsoButton>
+        </>
+        )}
       </footer>
     </div>
   );
