@@ -128,11 +128,26 @@ export function resumirFormulario(
   };
 }
 
-/** Minutos para mostrar: enteros desde 1; bajo un minuto, con un decimal. */
+/** Minutos para mostrar: enteros; bajo un minuto, «< 1». */
 export function minutos(segundos: number): string {
   if (segundos <= 0) return "0";
-  const m = segundos / 60;
-  return m < 1 ? m.toFixed(1).replace(".", ",") : String(Math.round(m));
+  return segundos < 60 ? "< 1" : String(Math.round(segundos / 60));
+}
+
+/** Duración legible: «< 1 min» o «~N min». */
+export function duracion(segundos: number): string {
+  const m = minutos(segundos);
+  return m === "< 1" ? "< 1 min" : `~${m} min`;
+}
+
+/** Marcas del recorrido en el tiempo: cada 10 minutos (cada 5 si dura menos de 20), sin pasar del total. */
+export function marcasDeMinutos(segundos: number): number[] {
+  const total = segundos / 60;
+  if (total <= 0) return [];
+  const paso = total < 20 ? 5 : 10;
+  const marcas: number[] = [];
+  for (let m = 0; m <= total + 1e-9; m += paso) marcas.push(m);
+  return marcas;
 }
 
 export function porcentaje(parte: number, total: number): string {

@@ -74,39 +74,29 @@
   line-height: 1.15;
 }
 
-/* Dos líneas reservadas en todas las cifras: el marco no depende del largo del texto (C2). */
 .pulso-xf-res-cifra-detalle {
-  display: -webkit-box;
-  min-height: calc(2 * 1.35em);
   overflow: hidden;
   color: var(--pulso-text-soft);
   font-size: 12px;
   line-height: 1.35;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* ── Cuerpo: lateral + secciones ───────────────────────────────────────── */
 
 .pulso-xf-res-cuerpo {
   display: grid;
-  grid-template-columns: minmax(340px, 0.42fr) minmax(0, 1fr);
+  grid-template-columns: minmax(300px, 1fr) minmax(250px, 0.72fr) minmax(0, 1.65fr);
   gap: var(--pulso-space-4);
   flex: 1 1 auto;
   min-height: 0;
 }
 
-.pulso-xf-res-lateral {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-4);
-  min-width: 0;
-  min-height: 0;
+/* Cada panel del cuerpo es dueño de su scroll si el alto no alcanza (1366×768); a 1440×900 caben enteros. */
+.pulso-xf-res-cuerpo > .pulso-xf-res-pendientes,
+.pulso-xf-res-cuerpo > .pulso-xf-res-composicion {
   overflow-y: auto;
-}
-
-.pulso-xf-res-lateral > .pulso-xf-res-panel {
-  flex: 0 0 auto;
 }
 
 .pulso-xf-res-panel {
@@ -182,7 +172,7 @@
   gap: var(--pulso-space-3);
   box-sizing: border-box;
   /* Alto fijo del renglón (C2): título en una línea, detalle en dos como máximo. */
-  height: 72px;
+  height: 62px;
   padding: var(--pulso-space-2) var(--pulso-space-4);
 }
 
@@ -227,7 +217,7 @@
   overflow: hidden;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  line-height: 1.35;
+  line-height: 1.3;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -389,7 +379,7 @@
 
 .pulso-xf-res-tabla thead th.is-peso,
 .pulso-xf-res-tabla thead th.is-tipo {
-  padding: var(--pulso-space-2) var(--pulso-space-3);
+  padding: var(--pulso-space-2);
 }
 
 .pulso-xf-res-orden {
@@ -398,7 +388,7 @@
   justify-content: flex-start;
   gap: 4px;
   width: 100%;
-  padding: var(--pulso-space-2) var(--pulso-space-3);
+  padding: var(--pulso-space-2);
   border: 0;
   background: transparent;
   color: inherit;
@@ -424,7 +414,7 @@
 
 .pulso-xf-res-tabla tbody th,
 .pulso-xf-res-tabla tbody td {
-  padding: var(--pulso-space-2) var(--pulso-space-3);
+  padding: var(--pulso-space-2);
   border-bottom: 1px solid var(--pulso-border);
   vertical-align: middle;
   font-weight: inherit;
@@ -502,8 +492,8 @@
 }
 
 .pulso-xf-res-tabla td.is-peso {
-  width: 22%;
-  min-width: 110px;
+  width: 24%;
+  min-width: 100px;
 }
 
 .pulso-xf-res-tabla td.is-peso {
@@ -513,7 +503,7 @@
 .pulso-xf-res-peso {
   display: inline-block;
   width: calc(100% - 44px);
-  height: 8px;
+  height: 12px;
   margin-right: 6px;
   overflow: hidden;
   vertical-align: middle;
@@ -525,7 +515,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: color-mix(in srgb, var(--xf-res-acento) 45%, var(--pulso-surface));
+  background: color-mix(in srgb, var(--xf-res-acento) 62%, var(--pulso-surface));
 }
 
 .pulso-xf-res-tabla tr.is-pesada .pulso-xf-res-peso i {
@@ -551,6 +541,22 @@
   flex: 0 0 auto;
 }
 
+/* Tabla angosta (1366): el peso queda como barra; su porcentaje sigue en el title de la fila. */
+@container (max-width: 640px) {
+  .pulso-xf-res-peso-pct {
+    display: none;
+  }
+
+  .pulso-xf-res-peso {
+    width: 100%;
+    margin-right: 0;
+  }
+
+  .pulso-xf-res-tabla td.is-peso {
+    min-width: 72px;
+  }
+}
+
 @container (max-width: 980px) {
   .pulso-xf-res-tabla .is-tipo {
     display: none;
@@ -563,6 +569,128 @@
 
 /* ── Compacto: columnas apiladas, un solo dueño de scroll ──────────────── */
 
+/* ── Recorrido en el tiempo ────────────────────────────────────────────── */
+
+.pulso-xf-res-tiempo {
+  flex: 0 0 auto;
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+
+.pulso-xf-res-tiempo-cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  margin-bottom: var(--pulso-space-2);
+}
+
+.pulso-xf-res-tiempo-cabeza h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-xf-res-tiempo-cabeza span {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.pulso-xf-res-tiempo-barra {
+  display: flex;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-xf-res-tiempo-barra li {
+  flex-basis: 0;
+  min-width: 4px;
+  container-type: inline-size;
+}
+
+/* Un tramo angosto no escribe su nombre a medias: lo dice al pasar el puntero o al enfocarlo. */
+@container (max-width: 44px) {
+  .pulso-xf-res-tramo span {
+    display: none;
+  }
+}
+
+.pulso-xf-res-tramo {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 30px;
+  padding: 0 6px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--xf-res-acento) 30%, var(--pulso-surface));
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  transition: filter var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-xf-res-tramo.is-par {
+  background: color-mix(in srgb, var(--xf-res-acento) 18%, var(--pulso-surface));
+}
+
+.pulso-xf-res-tramo.is-pesada {
+  background: var(--xf-res-acento);
+  color: var(--pulso-surface);
+}
+
+.pulso-xf-res-tramo span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-xf-res-tramo:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+.pulso-xf-res-tramo:focus-visible {
+  outline: 2px solid var(--xf-res-acento);
+  outline-offset: 2px;
+}
+
+.pulso-xf-res-tiempo-marcas {
+  position: relative;
+  height: 18px;
+  margin-top: 4px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-xf-res-tiempo-marcas span {
+  position: absolute;
+  top: 0;
+  padding-top: 4px;
+  border-left: 1px solid var(--pulso-border-strong);
+  padding-left: 4px;
+  white-space: nowrap;
+}
+
+.pulso-xf-res-tiempo-marcas span.is-final {
+  transform: translateX(-100%);
+  border-left: 0;
+  border-right: 1px solid var(--pulso-border-strong);
+  padding-left: 0;
+  padding-right: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xf-res-tramo { transition: none; }
+}
+
 @media (max-width: 1180px), (max-height: 720px) {
   .pulso-xf-res {
     overflow-y: auto;
@@ -573,15 +701,21 @@
   }
 
   .pulso-xf-res-cuerpo {
-    grid-template-columns: minmax(0, 1fr);
     flex: 0 0 auto;
   }
 
-  .pulso-xf-res-cuerpo > .pulso-xf-res-lateral {
-    display: grid;
+  .pulso-xf-res-cuerpo {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
+  }
+
+  .pulso-xf-res-cuerpo > .pulso-xf-res-pendientes,
+  .pulso-xf-res-cuerpo > .pulso-xf-res-composicion {
     overflow: visible;
+  }
+
+  .pulso-xf-res-cuerpo > .pulso-xf-res-secciones {
+    grid-column: 1 / -1;
   }
 
   .pulso-xf-res-tabla-marco {
@@ -590,7 +724,7 @@
 }
 
 @media (max-width: 860px) {
-  .pulso-xf-res-cuerpo > .pulso-xf-res-lateral {
+  .pulso-xf-res-cuerpo {
     grid-template-columns: minmax(0, 1fr);
   }
 }

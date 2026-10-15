@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import type { BuilderNode, BuilderStructure, CatalogSummary, SectionMeta } from "../types";
 import {
   minutos,
+  marcasDeMinutos,
   ordenarSecciones,
   pendientesParaPublicar,
   porcentaje,
@@ -84,10 +85,17 @@ describe("resumen del formulario", () => {
 
   test("formatos", () => {
     expect(minutos(0)).toBe("0");
-    expect(minutos(30)).toBe("0,5");
+    expect(minutos(30)).toBe("< 1");
+    expect(minutos(89)).toBe("1");
     expect(minutos(2580)).toBe("43");
     expect(porcentaje(86, 87)).toBe("99 %");
     expect(porcentaje(1, 0)).toBe("0 %");
+  });
+
+  test("marcas del recorrido: cada 10 min (cada 5 si es corto), sin pasar del total", () => {
+    expect(marcasDeMinutos(2580)).toEqual([0, 10, 20, 30, 40]);
+    expect(marcasDeMinutos(15 * 60)).toEqual([0, 5, 10, 15]);
+    expect(marcasDeMinutos(0)).toEqual([]);
   });
 });
 

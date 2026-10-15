@@ -17,7 +17,8 @@ export function PendientesPublicar({ items, onAccion }: {
 }) {
   const abiertos = items.filter((i) => i.estado === "aviso" || i.estado === "error").length;
   return (
-    <section className="pulso-xf-res-panel pulso-xf-res-pendientes" aria-labelledby="xf-res-pendientes-titulo" data-qa-geometry-member="">
+    <section className="pulso-xf-res-panel pulso-xf-res-pendientes" aria-labelledby="xf-res-pendientes-titulo" data-qa-geometry-member=""
+      data-qa-geometry-capacity="owned">
       <header className="pulso-xf-res-panel-cabeza">
         <h3 id="xf-res-pendientes-titulo">Qué falta para publicar e imprimir</h3>
         <span className={`pulso-xf-res-contador${abiertos ? " is-aviso" : " is-listo"}`}>

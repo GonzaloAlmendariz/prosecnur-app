@@ -47,6 +47,9 @@ export function TablaSecciones({ filas, kindDe, onAbrir }: {
   const maxPeso = Math.max(0.0001, ...filas.map((f) => f.peso));
   const pesadas = filas.filter((f) => f.pesada).length;
   const cambiar = (c: ColumnaOrden) => setOrden((o) => siguienteOrden(o, c));
+  // Una columna toda en cero es ruido: se oculta y se dice en una línea.
+  const sinCondiciones = filas.every((f) => f.conCondiciones === 0);
+  const columnas = sinCondiciones ? COLUMNAS.filter((c) => c.columna !== "conCondiciones") : COLUMNAS;
 
   return (
     <section className="pulso-xf-res-panel pulso-xf-res-secciones" aria-labelledby="xf-res-secciones-titulo" data-qa-geometry-member="">
@@ -66,7 +69,7 @@ export function TablaSecciones({ filas, kindDe, onAbrir }: {
               <tr>
                 <Encabezado columna="orden" rotulo="Sección" clase="is-seccion" orden={orden} onOrden={cambiar} />
                 <th scope="col" className="is-peso">Peso</th>
-                {COLUMNAS.map((c) => <Encabezado key={c.columna} {...c} orden={orden} onOrden={cambiar} />)}
+                {columnas.map((c) => <Encabezado key={c.columna} {...c} orden={orden} onOrden={cambiar} />)}
                 <th scope="col" className="is-tipo">Tipo predominante</th>
               </tr>
             </thead>
@@ -86,7 +89,7 @@ export function TablaSecciones({ filas, kindDe, onAbrir }: {
                         {f.pesada && <span className="pulso-xf-res-pesada">Pesada</span>}
                       </button>
                     </th>
-                    <td className="is-peso">
+                    <td className="is-peso" title={`${Math.round(f.peso * 100)} % de las preguntas`}>
                       <span className="pulso-xf-res-peso" aria-hidden="true">
                         <i style={{ width: `${Math.max(2, (f.peso / maxPeso) * 100)}%` }} />
                       </span>
@@ -94,7 +97,7 @@ export function TablaSecciones({ filas, kindDe, onAbrir }: {
                     </td>
                     <td className="is-num">{f.preguntas}</td>
                     <td className="is-num">{f.obligatorias}</td>
-                    <td className="is-num">{f.conCondiciones}</td>
+                    {!sinCondiciones && <td className="is-num">{f.conCondiciones}</td>}
                     <td className="is-num">{minutos(f.segundos)}</td>
                     <td className="is-tipo" title={f.tipoPredominante ?? ""}>{f.tipoPredominante ?? "—"}</td>
                   </tr>
@@ -105,6 +108,7 @@ export function TablaSecciones({ filas, kindDe, onAbrir }: {
         </div>
       )}
       <p className="pulso-xf-res-criterio">
+        {sinCondiciones && filas.length > 0 ? "Ninguna sección tiene condiciones todavía. " : ""}
         Duración: {CRITERIO_DURACION} Pesada: {Math.round(UMBRAL_SECCION_PESADA * 100)} % o más de las preguntas.
       </p>
     </section>

@@ -21,6 +21,7 @@ import { buildCatalogs } from "../parsing/buildIndex";
 import { BarraComposicion } from "../resumen/BarraComposicion";
 import { PendientesPublicar } from "../resumen/PendientesPublicar";
 import { TablaSecciones } from "../resumen/TablaSecciones";
+import { LineaTiempo } from "../resumen/LineaTiempo";
 import {
   minutos,
   pendientesParaPublicar,
@@ -120,13 +121,13 @@ export function FormSummaryView({
       clave: "preguntas",
       rotulo: "Preguntas",
       valor: String(resumen.preguntas),
-      detalle: resumen.notas ? `y ${resumen.notas} ${resumen.notas === 1 ? "nota" : "notas"} para quien encuesta` : "sin notas aparte",
+      detalle: resumen.notas ? `y ${resumen.notas} ${resumen.notas === 1 ? "nota" : "notas"}` : "sin notas aparte",
     },
     {
       clave: "secciones",
       rotulo: "Secciones",
       valor: String(resumen.secciones),
-      detalle: masLarga && masLarga.preguntas ? `la más larga: ${masLarga.rotulo}, con ${masLarga.preguntas} ${masLarga.preguntas === 1 ? "pregunta" : "preguntas"}` : "sin secciones",
+      detalle: masLarga && masLarga.preguntas ? `la más larga: ${masLarga.name || masLarga.rotulo} (${masLarga.preguntas})` : "sin secciones",
     },
     {
       clave: "obligatorias",
@@ -140,7 +141,7 @@ export function FormSummaryView({
       valor: String(resumen.conCondiciones),
       detalle: resumen.conCondiciones
         ? `${porcentaje(resumen.conCondiciones, resumen.preguntas)} aparecen sólo si se cumple su condición`
-        : contexto.logica.pendiente ? "la lógica importada aún no se revisa" : "todas aparecen siempre",
+        : contexto.logica.pendiente ? "la lógica está por revisar" : "todas aparecen siempre",
     },
     {
       clave: "listas",
@@ -201,10 +202,16 @@ export function FormSummaryView({
           ))}
         </section>
 
+        <LineaTiempo
+          filas={resumen.filasSecciones}
+          segundos={resumen.segundos}
+          onAbrir={(fila) => { if (fila.name) contexto.onIrAPregunta(fila.name); }}
+        />
+
         <div className="pulso-xf-res-cuerpo" data-qa-geometry-group="xlsform/resumen-cuerpo" data-qa-geometry-contract="intrinsic">
-          <div className="pulso-xf-res-lateral" data-qa-geometry-member="">
             <PendientesPublicar items={pendientes} onAccion={irA} />
-            <section className="pulso-xf-res-panel pulso-xf-res-composicion" aria-labelledby="xf-res-composicion-titulo">
+            <section className="pulso-xf-res-panel pulso-xf-res-composicion" aria-labelledby="xf-res-composicion-titulo" data-qa-geometry-member=""
+              data-qa-geometry-capacity="owned">
               <header className="pulso-xf-res-panel-cabeza">
                 <h3 id="xf-res-composicion-titulo">Composición</h3>
                 <span className="pulso-xf-res-panel-nota">{resumen.preguntas} preguntas</span>
@@ -237,7 +244,6 @@ export function FormSummaryView({
                 </div>
               )}
             </section>
-          </div>
           <TablaSecciones
             filas={resumen.filasSecciones}
             kindDe={(id) => structure?.sections.get(id)?.kind ?? "root"}
