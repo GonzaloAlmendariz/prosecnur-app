@@ -298,9 +298,13 @@
   for (cc in cb$cols) .lam_txt(lz, cc$rotulo, cc$x - hr, y - (rotulo_sobre %||% 0.45), wcol + 2 * hr, 0.26, .std_pt("rotulo_top_two_box"), cc$color,
                                bold = TRUE, align = "center", nombre = paste0(cc$prefijo, ":rotulo"))
   ytop <- y
+  # El filete separa los bloques de actores de cada tema; con un solo público cada premisa es una barra y la línea
+  # sólo corta la lectura (Gonzalo, 2026-10-14: «en el caso que todas las barras sean de un público es mejor no
+  # agregar líneas grises dividiéndolas»).
+  con_filete <- !.lam_escala_sin_actor(premisas)
   for (i in seq_along(premisas)) {
     p <- premisas[[i]]; a <- altos[i]; hp <- .lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE); hn <- .lam_premisa_alto(p, wp)
-    if (i > 1) .lam_caja(lz, ML, y - gap / 2, W - ML - MR, 0.008, .std_color("filete"), nombre = "filete")
+    if (i > 1 && con_filete) .lam_caja(lz, ML, y - gap / 2, W - ML - MR, 0.008, .std_color("filete"), nombre = "filete")
     .lam_txt(lz, p$texto, L$x_premisa, y + (a - hn) / 2, wp, hp, .std_pt("pregunta"), azul, bold = TRUE, nombre = "premisa")
     if (!is.null(p$nota)) .lam_txt(lz, p$nota, L$x_premisa, y + (a - hn) / 2 + hp - 0.04, wp, 0.26, .std_pt("n"), .std_color("texto_tenue"),
                                    nombre = "premisa:n")

@@ -44,10 +44,9 @@ test_that("la batería ocupa las columnas del recetario: barra en 5.2 in de 6 in
   box <- .formas(o$doc, "box:cifra")
   expect_true(all(abs(box$x - 11.4) < 0.01))
   expect_identical(box$texto, unname(e$box$cifras[e$orden$aplicado]))
-  # un filete entre premisas, de margen a margen
-  fil <- .formas(o$doc, "filete")
-  expect_equal(nrow(fil), 4L)
-  expect_true(all(abs(fil$x - .std_geom("margen_izq")) < 0.01))
+  # Una batería de un solo público va sin filetes entre premisas (Gonzalo, 2026-10-14: «en el caso que todas las
+  # barras sean de un público es mejor no agregar líneas grises dividiéndolas»); con actores sí los lleva.
+  expect_equal(nrow(.formas(o$doc, "filete")), 0L)
 })
 
 test_that("con base menor que 30 cada Top Two Box dice sus casos", {
