@@ -27,4 +27,12 @@ describe("Informe · maquetas en vez de miniaturas", () => {
     expect(maqueta).toContain("coloresDeEscala(");
     expect(maqueta).not.toContain("<button");
   });
+
+  // I2. Mata: volver a la fila de íconos de gráfico al pie (los glifos viven en su ranura) o perder el tipo de lámina
+  // en la cabecera.
+  it("la cabecera lleva el ícono y el nombre del tipo de lámina; el pie ya no repite íconos de gráfico", () => {
+    const tarjeta = leer("TarjetaLamina.tsx");
+    expect(tarjeta).toMatch(/pulso-f6-vg-cabeza[\s\S]*<IconoTipo clase="lamina"/);
+    expect(tarjeta).not.toContain('clase="grafico"');
+  });
 });
