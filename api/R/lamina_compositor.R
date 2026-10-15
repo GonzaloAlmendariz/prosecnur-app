@@ -200,6 +200,7 @@
     pie <- nota_de(p, el_plot$overrides$nota_pie %||% el_plot$nota_pie %||% NULL)
   }
   if (!is.null(attr(p, "pulso_multilista"))) {
+    .multiapiladas_aviso_tope(sum(vapply(attr(p, "pulso_multilista")$bloques %||% list(), function(b) NROW(b$espec$filas), 0)))   # M1
     return(.lam_multilista_slide_1(doc, p, titulo, subtitulo, base, pie, antetitulo, layout = layout, master = master,
                                    por_lamina = por_lamina)$doc)
   }
@@ -340,6 +341,7 @@
   if (identical(el_plot$.element_type, "barras_multiapiladas") && identical(el_plot$modo %||% "var", "var")) {
     espec <- .espec_ordenar_por_box(espec)
   }
+  if (identical(el_plot$.element_type, "barras_multiapiladas")) .multiapiladas_aviso_tope(sum(!(espec$filas$es_total %in% TRUE)))   # M1
   # Con fila Total o Bottom Two Box la pregunta encabeza el bloque (lámina 77) cuando la lámina tiene su
   # propio título; si no lo tiene, su título ya es la pregunta y no se repite.
   if (.lam_escala_modo_filas(espec) && !is.null(slide$title) && is.function(titulo_de_var) && !is.null(el_plot$var)) {

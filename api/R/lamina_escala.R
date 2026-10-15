@@ -121,6 +121,9 @@
   sum(vapply(premisas, function(p) max(.lam_premisa_alto(p, wp), length(p$filas) * geo$fila), 0)) +
     geo$gap * (length(premisas) - 1)
 }
+#' Barras de un juego de premisas (o de bloques de la multilista, que traen las suyas en `$premisas`)
+#' @keywords internal
+.lam_escala_n_barras <- function(x) sum(vapply(x, function(p) if (!is.null(p$filas)) length(p$filas) else .lam_escala_n_barras(p$premisas %||% list()), 0))
 .lam_escala_alto_util <- function() (.std_geom("zona_datos_y1") - 0.15) - (.std_geom("zona_datos_y0") + 0.1)
 
 #' Partición en «(cont.)» (recetario.R:319-332)
@@ -134,6 +137,9 @@
 .lam_escala_partir <- function(premisas, disponible = .lam_escala_alto_util(), alto_fn = .lam_escala_alto) {
   n <- length(premisas)
   if (n <= 1L || alto_fn(premisas) <= disponible) return(list(premisas))
+  # M1: seis barras caben en una lámina (Gonzalo, 2026-10-14). Si se pasan por poco —el aire entre temas de dos o tres
+  # públicos—, el bloque se compacta lo justo al dibujarse en vez de partirse en «(cont.)».
+  if (.lam_escala_n_barras(premisas) <= .MULTIAPILADAS_MAX_BARRAS && alto_fn(premisas) <= 1.15 * disponible) return(list(premisas))
   cabe <- function(ix) all(vapply(split(premisas, ix), alto_fn, 0) <= disponible)
   for (k in 2:n) {
     mejor <- NULL; mejor_v <- Inf
@@ -269,6 +275,9 @@
     altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
   } else if (tot < 0.88 * disp) {   # pocas filas: se reparte el alto, el grosor no cambia
     f_ <- min(2.0, 0.93 * disp / tot); fila <- fila * f_; gap <- gap * f_
+    altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
+  } else if (tot > disp) {   # M1: hasta seis barras se compactan para caber en vez de partirse (`.lam_escala_partir`)
+    f_ <- disp / tot; fila <- fila * f_; gap <- gap * f_
     altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
   }
   nb <- sum(vapply(premisas, function(p) length(p$filas), 0)); extra <- max(0, 0.34 - (fila - g))

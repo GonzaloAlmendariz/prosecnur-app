@@ -78,7 +78,11 @@
 # bien. Es que el techo sea POR PALETA, como lo es en el aprobado —hasta doce por
 # lamina en dicotomicas azules, siete por grafico en rampa—, en vez de un solo
 # numero para las dos.
-.PARTICION_MAX_BARRAS <- 7L
+#
+# 2026-10-14 (Gonzalo): «creo que el máximo pueden ser 6 barras para seguir asegurando que se vea bien […] mejor
+# limitamos multiapiladas a 6 barras únicamente». El techo de escala baja de 7 a 6 y es el mismo del editor y del
+# compositor (`graficos_multiapiladas_tope.R`): una pieza del plan ya no vuelve a partirse al dibujarse.
+.PARTICION_MAX_BARRAS <- .MULTIAPILADAS_MAX_BARRAS
 
 # Techo para las laminas DICOTOMICAS, las de dos categorias por barra.
 #

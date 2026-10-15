@@ -108,12 +108,14 @@ test_that("una multilista que se parte avisa una vez con sus partes", {
   list(avisos = av, n = length(.pptx_slide_paths(out)) - 1L)                 # menos la lámina de texto
 }
 
-test_that("una escala partida por el plan y otra vez por el compositor avisa una vez con las láminas reales", {
+test_that("una escala partida por el plan avisa una vez con las láminas reales y sus piezas ya no se vuelven a partir", {
   r <- .al_mazo(.al_cruce())
-  expect_gt(r$n, 3L)                                                         # 3 piezas del plan, alguna partida otra vez
+  # M1 (Gonzalo, 2026-10-14): el techo del plan y el del compositor son el mismo (seis barras); una pieza de hasta
+  # seis se compacta lo justo en vez de partirse otra vez en «(cont.)». Antes salían más de tres láminas.
+  expect_equal(r$n, 3L)
   sobre <- grep("BIENESTAR", r$avisos, value = TRUE, fixed = TRUE)
   expect_length(sobre, 1L)
-  expect_match(sobre, sprintf("^Lámina 2 · “BIENESTAR UNIVERSITARIO”: las premisas ocupan hasta [0-9]+ líneas; salió en %d partes \\(14 barras; el máximo legible por lámina es 7\\)$", r$n))
+  expect_match(sobre, sprintf("^Lámina 2 · “BIENESTAR UNIVERSITARIO”: las premisas ocupan hasta [0-9]+ líneas; salió en %d partes \\(14 barras; el máximo legible por lámina es 6\\)$", r$n))
   expect_false(any(grepl("se partió en", r$avisos, fixed = TRUE)))           # el aviso previo se fusiona
 })
 
@@ -121,7 +123,7 @@ test_that("una escala partida sólo por el plan también avisa, con sus piezas",
   r <- .al_mazo(.al_cruce(largas = FALSE))
   sobre <- grep("BIENESTAR", r$avisos, value = TRUE, fixed = TRUE)
   expect_length(sobre, 1L)
-  expect_match(sobre, sprintf("^Lámina 2 · .*salió en %d partes \\(14 barras; el máximo legible por lámina es 7\\)$", r$n))
+  expect_match(sobre, sprintf("^Lámina 2 · .*salió en %d partes \\(14 barras; el máximo legible por lámina es 6\\)$", r$n))
 })
 
 test_that("el Word avisa la partición del plan una vez, con sus figuras", {
@@ -130,7 +132,7 @@ test_that("el Word avisa la partición del plan una vez, con sus figuras", {
     presets_ppt = do.call(p_presets, .PRESETS_DEFAULT_PULSO), mensajes_progreso = FALSE)))
   sobre <- grep("BIENESTAR", av, value = TRUE, fixed = TRUE)
   expect_length(sobre, 1L)
-  expect_match(sobre, "Lámina 2 · “BIENESTAR UNIVERSITARIO”: salió en 3 partes (14 barras; el máximo legible por lámina es 7)", fixed = TRUE)
+  expect_match(sobre, "Lámina 2 · “BIENESTAR UNIVERSITARIO”: salió en 3 partes (14 barras; el máximo legible por lámina es 6)", fixed = TRUE)
 })
 
 test_that("un mazo que falla a mitad no deja el registro tomado: el compositor llamado solo vuelve a avisar", {
