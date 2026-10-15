@@ -239,7 +239,9 @@
     if (identical(espec$tipo, "histograma") && nzchar(unidad_valor) && is.finite(espec$mediana %||% NA_real_)) {
       espec$texto_mediana <- sprintf("Mediana: %s %s", .cifra_mediana(espec$mediana, espec$enteros %||% FALSE), unidad_valor)
     }
-    encabezado_eje <- if (identical(unidad_valor, "años")) "Edad, en años" else NULL
+    # Sin unidad de edad, el eje dice lo que mide con la etiqueta corta de la pregunta («Meses hasta conseguir el primer
+    # empleo»): un eje de números sin nombre no se lee (Gonzalo, 2026-10-15, media y rango «muy simplón»).
+    encabezado_eje <- if (identical(unidad_valor, "años")) "Edad, en años" else if (nzchar(etiqueta_var %||% "")) etiqueta_var else NULL
     comunes <- list(doc = doc, espec = espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                     base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
                     layout = layout, master = master, por_lamina = por_lamina)

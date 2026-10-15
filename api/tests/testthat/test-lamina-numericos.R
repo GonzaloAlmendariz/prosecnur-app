@@ -82,6 +82,25 @@ test_that("media y rango nativo: punto en la media, barra del rango con sus extr
   expect_true(all(pt$x + pt$w / 2 > rg$x & pt$x + pt$w / 2 < rg$x + rg$w))
 })
 
+test_that("media y rango: un rótulo de dos líneas en cinco grupos baja a 12 pt en vez de mandar la lámina al gráfico anterior", {
+  # Lámina 84 del catálogo (2026-10-15): «Dependiente e independiente» no cabía a 13 pt por 0.016 in y la lámina entera
+  # salía en ggplot. Mata: exigir 13 pt en la regla de «cabe» o que el dibujo use otro tamaño que la regla.
+  grupos <- c("Dependiente", "Independiente", "Dependiente e independiente", "Busca empleo", "No trabaja ni busca")
+  d <- data.frame(categoria = factor(rep(grupos, each = 4), levels = grupos), valor = c(1, 4, 5, 13, 0, 3, 4, 11, 1, 4, 5, 9, 0, 4, 5, 16, 1, 6, 7, 18))
+  e <- attr(suppressWarnings(graficar_media_rango(d, "categoria", "valor", tipo_rango = "minmax")), "pulso_espec")
+  expect_true(.lam_numericos_cabe(e))
+  o <- .lam_laminas_media_rango(.nm_doc(), e, "Meses", folio = 84, encabezado = "Meses hasta conseguir el primer empleo")
+  xml <- .nm_xml(.nm_print(o$doc), length(o$doc))
+  expect_identical(.nm_txt(xml, "media_rango:rotulo"), grupos)
+  expect_identical(.nm_txt(xml, "media_rango:encabezado"), "Meses hasta conseguir el primer empleo")
+  # El máximo 18 caía en el borde del eje: el eje sigue un paso más y su número va al costado, no encima de la barra.
+  expect_true("20" %in% .nm_txt(xml, "media_rango:eje"))
+  mx <- .nm_ext(xml, "media_rango:maximo"); rg <- .nm_ext(xml, "media_rango:rango")
+  expect_true(all(mx$x >= rg$x + rg$w - 1e-6))
+  # A 13 pt la geometría es la de siempre: dos grupos cortos no cambian de tamaño.
+  expect_identical(.lam_media_rango_rotulo_pt(c("Docentes", "Estudiantes"), 2), 13)
+})
+
 test_that("en la ruta real p_histograma, p_numerico, p_boxplot y p_media_rango salen nativos con rótulos del instrumento", {
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
   set.seed(5); N <- 120
