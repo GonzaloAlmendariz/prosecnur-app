@@ -1187,6 +1187,9 @@ graficar_barras_apiladas <- function(
     titulo                = NULL,
     subtitulo             = NULL,
     nota_pie              = NULL,
+    # Marca del plan con la nota de redondeo (texto y si va solo cuando una
+    # barra no suma 100 %): ver `.calculos_nota_resolver()`.
+    nota_redondeo_pie     = NULL,
     nota_pie_derecha      = NULL,
     pos_titulo            = c("centro", "izquierda", "derecha"),
     pos_nota_pie          = c("derecha", "izquierda", "centro"),
@@ -1696,6 +1699,12 @@ graficar_barras_apiladas <- function(
     dplyr::mutate(.pct_units = .pulso_pct_unidades(.valor_pct_real, decimales,
                                                    metodo_redondeo)) |>
     dplyr::ungroup()
+  # La nota de redondeo se decide con estas mismas cifras, barra por barra.
+  # Sin cifras rotuladas no hay suma que pueda faltar.
+  nota_pie_previa <- nota_pie
+  nota_pie <- .calculos_nota_resolver(nota_pie, nota_redondeo_pie, isTRUE(mostrar_valores) && any(vapply(
+    split(df_long$.valor_pct_real, df_long[[var_categoria]], drop = TRUE),
+    .calculos_no_cierra, logical(1), dec = decimales, metodo = metodo_redondeo)))
 
   # Un segmento que se rotularía 0 % NO se dibuja (decisión de Gonzalo,
   # 2026-08-14). El razonamiento: el segmento existe en función de lo que la
@@ -2913,6 +2922,7 @@ graficar_barras_apiladas <- function(
       ggplot2::labs(title = titulo, subtitle = subtitulo, caption = caption_text)
 
     attr(out, "pulso_espec") <- espec_escala
+    out <- .calculos_nota_al_grafico(out, nota_pie_previa, nota_pie)
     if (exportar == "rplot") return(out)
 
     # EXPORT PNG / PPT / WORD (sin canvas): se exporta el ggplot directamente
@@ -4087,6 +4097,7 @@ graficar_barras_apiladas <- function(
     # mensajes y el objeto no siempre vuelve a quien mide.
     .traza_grosor_apiladas(n_categorias, y_axis_max, grosor_eff, h_bars_area * as.numeric(alto) / den, h_total_in, alto)
     attr(canvas, "pulso_espec") <- espec_escala
+    canvas <- .calculos_nota_al_grafico(canvas, nota_pie_previa, nota_pie)
     return(canvas)
   }
 

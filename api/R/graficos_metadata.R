@@ -2337,6 +2337,16 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "nota_redondeo",     label = "Declarar el redondeo al pie", tipo_input = "bool", grupo = "valores",
            default = FALSE,
            descripcion = "Añade al pie de las láminas de porcentaje una línea que declara cómo se redondearon las cifras. Con el redondeo estándar es lo que explica que una barra sume 99 % o 101 %, que es la objeción más común al revisar contra las tablas. Si la lámina ya trae una nota, se anexa; si esa nota ya habla del redondeo, no se repite."),
+      list(name = "nota_redondeo_modo", label = "Cuándo va la nota de redondeo", tipo_input = "choice", grupo = "valores",
+           choices = list(
+             list(value = "nunca", label = "Nunca"),
+             list(value = "si_no_cierra", label = "Sólo si una barra no suma 100 %"),
+             list(value = "siempre", label = "Siempre")
+           ),
+           descripcion = "Nunca: sin nota. Sólo si una barra no suma 100 %: la nota va únicamente en las láminas donde alguna barra de categorías que cierran a 100 queda, con las cifras tal como se rotulan, en 99 % o 101 %; con el reparto a 100 % nunca hace falta. Siempre: en todas las láminas de porcentaje. Si falta, se deduce de «Declarar el redondeo al pie» (encendido = Siempre)."),
+      list(name = "nota_redondeo_texto", label = "Texto de la nota de redondeo", tipo_input = "string", grupo = "valores",
+           default = "",
+           descripcion = "Vacío: el texto automático, que dice el método y los decimales del gráfico. Con texto, se usa tal cual en su lugar, con las mismas reglas: va después de la nota de la lámina y no se añade si esa nota ya habla del redondeo."),
 
       # --- Tamaños (pt) ---------------------------------------------------
       list(name = "size_titulo",       label = "Tamaño del título",      tipo_input = "number", grupo = "estilo",
