@@ -272,13 +272,6 @@
   paste0(prefijo, .notas_pie_unir_es(partes), " sin correspondencia en la escala.")
 }
 
-# Cuando algún año pondera, la columna N del comparativo simple no cuenta casos.
-.comparativo_linea_n_ponderado <- function(pond) {
-  if (any(vapply(pond %||% list(), function(p) isTRUE(p$pondera), logical(1)))) {
-    "La columna N muestra el N ponderado."
-  } else ""
-}
-
 # «n.a.: no aplica, 2025 sin respuestas válidas (3 casos No sabe y No responde).»
 # Los especiales se nombran con la etiqueta que traen en el instrumento de
 # ESA base (o su código si no la tienen), no con un rótulo fijo.
@@ -500,7 +493,6 @@ reporte_comparativo_simple <- function(modelo, path, rotulos, notas = NULL, extr
     lineas <- c(
       linea_fuente,
       paste0("Base: ", .notas_pie_cerrar(.comparativo_base(notas, q, periodos))),
-      .comparativo_linea_n_ponderado(modelo$ponderacion),
       if (length(nc_decl)) .comparativo_linea_nc(unname(q$notas[nc_decl])) else character(0),
       .comparativo_linea_sin_variable(lapply(sv_periodos, function(b) list(periodo = b, elemento = "")),
                                       periodos, rotulos),
