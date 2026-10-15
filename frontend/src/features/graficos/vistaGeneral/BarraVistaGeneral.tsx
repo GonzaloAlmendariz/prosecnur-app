@@ -6,6 +6,13 @@ import { InterruptorOtros } from "./InterruptorOtros";
 import { ResumenInforme } from "./ResumenInforme";
 import type { FiltroInforme } from "./estadoTarjetas";
 import type { CoberturaInforme } from "./modeloVistaGeneral";
+import type { TamanoTarjeta } from "./vistaGeneralStore";
+
+const TAMANOS: readonly { clave: TamanoTarjeta; rotulo: string }[] = [
+  { clave: "grande", rotulo: "Grande" },
+  { clave: "medio", rotulo: "Medio" },
+  { clave: "chico", rotulo: "Chico" },
+];
 
 
 type Props = {
@@ -14,9 +21,11 @@ type Props = {
   filtro: FiltroInforme;
   onFiltro: (f: FiltroInforme) => void;
   seleccionadas: number;
+  tamano: TamanoTarjeta;
+  onTamano: (t: TamanoTarjeta) => void;
 };
 
-export function BarraVistaGeneral({ cobertura, conteos, filtro, onFiltro, seleccionadas }: Props) {
+export function BarraVistaGeneral({ cobertura, conteos, filtro, onFiltro, seleccionadas, tamano, onTamano }: Props) {
   return (
     <header className="pulso-f6-vg-barra">
       <div className="pulso-f6-vg-cobertura" aria-label="Cobertura del informe"
@@ -30,6 +39,15 @@ export function BarraVistaGeneral({ cobertura, conteos, filtro, onFiltro, selecc
       <span className="pulso-f6-col-sp" />
       {/* I7: las acciones sobre la selección viven en la barra flotante (BarraSeleccion); aquí sólo cómo elegir. */}
       {seleccionadas === 0 && <span className="pulso-f6-vg-seleccion">Clic para elegir · Mayús o Ctrl/⌘ para varias</span>}
+      {/* I10: el tamaño de las tarjetas; la maqueta escala sola (cqw) y las filas de un capítulo se llenan solas. */}
+      <div className="pulso-f6-vg-tamano" role="radiogroup" aria-label="Tamaño de las tarjetas">
+        {TAMANOS.map(({ clave, rotulo }) => (
+          <button key={clave} type="button" role="radio" aria-checked={tamano === clave}
+            className={`pulso-f6-vg-tamano-op${tamano === clave ? " is-activo" : ""}`} onClick={() => onTamano(clave)}>
+            {rotulo}
+          </button>
+        ))}
+      </div>
     </header>
   );
 }

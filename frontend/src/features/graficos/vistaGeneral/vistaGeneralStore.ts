@@ -5,6 +5,18 @@
 import { create } from "zustand";
 import type { Arrastre, MarcaSoltar } from "./modeloVistaGeneral";
 import type { FiltroInforme } from "./estadoTarjetas";
+
+/** I10: tamaño de las tarjetas del Informe. Es preferencia de quien mira, no del proyecto: se recuerda en el navegador. */
+export type TamanoTarjeta = "grande" | "medio" | "chico";
+const CLAVE_TAMANO = "pulso.graficos.informe.tamano";
+function tamanoGuardado(): TamanoTarjeta {
+  try {
+    const v = globalThis.localStorage?.getItem(CLAVE_TAMANO);
+    return v === "grande" || v === "chico" ? v : "medio";
+  } catch {
+    return "medio";   // almacenamiento bloqueado (ventana privada): el tamaño de siempre
+  }
+}
 import { SELECCION_VACIA, type SeleccionVistaGeneral } from "./seleccionVistaGeneral";
 
 type VistaGeneralStore = {
@@ -19,6 +31,8 @@ type VistaGeneralStore = {
   setFiltro: (f: FiltroInforme) => void;
   /** I5: capítulos y bloques plegados (por id de fila). */
   plegados: ReadonlySet<string>;
+  tamano: TamanoTarjeta;
+  setTamano: (t: TamanoTarjeta) => void;
   alternarPlegado: (filaId: string) => void;
   setSeleccion: (s: SeleccionVistaGeneral) => void;
   setArrastre: (a: Arrastre | null) => void;
@@ -38,6 +52,11 @@ export const useVistaGeneralUi = create<VistaGeneralStore>((set) => ({
   filtro: "todas",
   setFiltro: (filtro) => set({ filtro }),
   plegados: new Set<string>(),
+  tamano: tamanoGuardado(),
+  setTamano: (tamano) => {
+    try { globalThis.localStorage?.setItem(CLAVE_TAMANO, tamano); } catch { /* sin almacenamiento: vale para esta sesión */ }
+    set({ tamano });
+  },
   alternarPlegado: (filaId) => set((s) => {
     const plegados = new Set(s.plegados);
     if (!plegados.delete(filaId)) plegados.add(filaId);
