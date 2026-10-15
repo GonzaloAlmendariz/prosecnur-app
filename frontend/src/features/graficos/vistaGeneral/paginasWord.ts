@@ -11,7 +11,7 @@
 // anterior numeraba con los números de la app y desde 1, y el Word real no.
 
 export type ElementoWord =
-  | { clase: "seccion"; nivel: 1 | 2; titulo: string }
+  | { clase: "seccion"; nivel: 1 | 2; titulo: string; entrada?: string }
   | { clase: "texto"; titulo: string }
   | { clase: "tabla"; titulo: string }
   | { clase: "grafico"; graficador: string; pregunta: string; base: string | null }
@@ -25,7 +25,8 @@ export type OpcionesWord = {
 
 export type FiguraWord = { numero: number; graficador: string; pregunta: string; base: string | null };
 export type EntradaIndice = { numero: string; titulo: string; nivel: 1 | 2 };
-type PaginaCapitulo = { clase: "capitulo"; encabezado: string; titulos: string[]; texto: boolean; figuras: FiguraWord[]; folio: number };
+/** `apertura`: la página que abre un capítulo (su número, título y entrada, como `.word_apertura`). */
+type PaginaCapitulo = { clase: "capitulo"; encabezado: string; titulos: string[]; texto: boolean; figuras: FiguraWord[]; folio: number; apertura?: { numero: number; titulo: string; entrada: string } };
 
 export type PaginaWord =
   | { clase: "portada"; titulo: string; sub: string; fecha: string }
@@ -80,10 +81,10 @@ export function paginasWord(elementos: readonly ElementoWord[], op: OpcionesWord
     pagina = p;
     return p;
   };
-  const abrirCapitulo = (titulo: string) => {
+  const abrirCapitulo = (titulo: string, entrada = "") => {
     cap += 1; sec = 0; capTitulo = titulo;
     entradas.push({ numero: `${cap}.`, titulo, nivel: 1 });
-    nueva([`${cap}. ${titulo}`]);
+    nueva([`${cap}. ${titulo}`]).apertura = { numero: cap, titulo, entrada };
   };
   const abrirIntro = () => { if (capTitulo === null) abrirCapitulo("Introducción"); };
   const ponerComoLeer = () => {
@@ -111,7 +112,7 @@ export function paginasWord(elementos: readonly ElementoWord[], op: OpcionesWord
   for (const e of elementos) {
     if (e.clase === "seccion") {
       const titulo = sinNumero(e.titulo);
-      if (e.nivel === 1) { ponerComoLeer(); abrirCapitulo(titulo); } else titular(subtitulo(titulo), false);
+      if (e.nivel === 1) { ponerComoLeer(); abrirCapitulo(titulo, e.entrada ?? ""); } else titular(subtitulo(titulo), false);
       continue;
     }
     if (e.clase === "texto") { abrirIntro(); titular(subtitulo(oracion(e.titulo)), true); continue; }

@@ -1,5 +1,5 @@
-// Maqueta de la portada del Word en sus tres variantes (W3 del rediseño, 2026-10-15), con los datos que pinta el motor
-// (`datosPortada`, espejo de `.word_portada`). La usan Informe › Word y Word › «Así queda».
+// Maquetas de la portada (W3) y de la apertura de capítulo (W4) del Word, con lo que pinta el motor (`datosPortada`,
+// espejo de `.word_portada`; `.word_apertura`). Las usan Informe › Word y Word › «Así queda».
 
 import { usePlanStore } from "../store";
 import { datosPortada, fichaPortada } from "../word/modeloPortadaWord";
@@ -27,4 +27,16 @@ export function PortadaMaqueta({ titulo, sub, fecha }: { titulo: string; sub: st
       )}
     </span>
   </>);
+}
+
+/** Apertura de capítulo como `.word_apertura`: B, el número grande en azul claro; A, «CAPÍTULO N». Título y entrada. */
+export function AperturaMaqueta({ numero, titulo, entrada }: { numero: number; titulo: string; entrada: string }) {
+  const variante = usePlanStore((s) => s.documentoWord.apertura) ?? "B";
+  return (
+    <span className={`pulso-f6-vg-pag-apertura is-${variante.toLowerCase()}`}>
+      {variante === "B" ? <span className="pulso-f6-vg-pag-ap-num">{numero}</span> : <span className="pulso-f6-vg-pag-ap-k">Capítulo {numero}</span>}
+      <span className="pulso-f6-vg-pag-h1">{titulo}</span>
+      {entrada && <span className="pulso-f6-vg-pag-ap-ent">{entrada}</span>}
+    </span>
+  );
 }

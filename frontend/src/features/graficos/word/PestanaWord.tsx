@@ -17,6 +17,7 @@ import { PaginaMaqueta, useArmadoWord } from "../vistaGeneral/VistaWordInforme";
 import { contarFiguras, tituloCortoWord } from "../vistaGeneral/paginasWord";
 import { DetalleDocumento } from "./DetalleDocumento";
 import { DetallePortada } from "./DetallePortada";
+import { DetalleCapitulos } from "./DetalleCapitulos";
 import { WordPresetsEditor } from "../WordPresetsEditor";
 import { PartesWord } from "./PartesWord";
 import { PARTES_WORD, paginaDeParte, resumenDeParte, type ParteWord } from "./modeloPestanaWord";
@@ -45,6 +46,7 @@ function DetalleParte({ parte, resumen, tituloInforme, portada }: {
 }) {
   if (parte === "documento") return <DetalleDocumento tituloInforme={tituloInforme} resumen={resumen} />;
   if (parte === "portada") return <DetallePortada desdeLamina={portada} />;
+  if (parte === "capitulos") return <DetalleCapitulos />;
   if (parte === "graficos") {
     return (
       <section className="pulso-f6-informe-seccion" aria-label="Ajustes por tipo de gráfico" data-qa-geometry-member data-seccion="word-graficos">
@@ -52,8 +54,7 @@ function DetalleParte({ parte, resumen, tituloInforme, portada }: {
       </section>
     );
   }
-  const textos: Record<Exclude<ParteWord, "graficos" | "documento" | "portada">, { titulo: string; cuerpo: string; vinculo?: { pestana: string; foco?: string; texto: string } }> = {
-    capitulos: { titulo: "Capítulos", cuerpo: `Cada capítulo abre con su número y su título (${resumen}).` },
+  const textos: Record<Exclude<ParteWord, "graficos" | "documento" | "portada" | "capitulos">, { titulo: string; cuerpo: string; vinculo?: { pestana: string; foco?: string; texto: string } }> = {
     cierre: { titulo: "Cierre", cuerpo: "La contraportada lleva el logo y el contacto al centro.", vinculo: { pestana: "identidad", foco: "logos", texto: "Identidad › Logos" } },
   };
   const t = textos[parte];

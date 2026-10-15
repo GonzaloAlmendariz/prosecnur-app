@@ -21,7 +21,8 @@ export function paginaDeParte(paginas: readonly PaginaWord[], parte: ParteWord):
   switch (parte) {
     case "documento": return primera((p) => p.clase === "indice");
     case "portada": return primera((p) => p.clase === "portada");
-    case "capitulos": return primera((p) => p.clase === "capitulo");
+    // La apertura de un capítulo del plan (no la «Introducción» que el Word arma con los textos previos).
+    case "capitulos": return primera((p) => p.clase === "capitulo" && !!p.apertura && p.apertura.titulo !== "Introducción") ?? primera((p) => p.clase === "capitulo");
     case "graficos": return primera((p) => p.clase === "capitulo" && p.figuras.length > 0);
     case "cierre": return primera((p) => p.clase === "contraportada");
   }
