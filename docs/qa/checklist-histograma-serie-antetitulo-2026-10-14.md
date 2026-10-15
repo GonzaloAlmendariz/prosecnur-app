@@ -19,5 +19,5 @@ sean el dibujo por defecto del histograma por grupos.
 |---|---|---|---|
 | G1 | Histograma por grupos con el dibujo de Ing. Civil por defecto: cifras en la cima en dos líneas por grupo, composición en el subtítulo, sin eje Y ni bins vacíos, leyenda abajo | `graficos_histograma_grupos.R` (estilo), `p_histograma` lo aplica con grupo; la paleta del estudio gana al preset en `.render_histograma` | hecho, por verificar: sin eje Y ni grilla, cifras «H n(%)» en dos líneas, composición en el subtítulo, colores de la paleta del sexo |
 | G2 | El recetario y su catálogo lo muestran (lámina «Histograma por grupos») | `catalogo_recetario_plan.R` | pendiente |
-| G3 | Serie temporal: la leyenda va abajo, elegante, en lugar del nombre de cada serie al final de su línea | `graficador_serie_recetario.R` | pendiente |
+| G3 | Serie temporal: la leyenda va abajo, elegante, en lugar del nombre de cada serie al final de su línea | `graficador_serie_recetario.R` (honra «Posición de la leyenda», que el estilo del recetario ignoraba) | hecho, por verificar: abajo por defecto, línea con punto hueco y sin título; «Derecha» conserva el nombre al final de la línea. De paso: dos cifras del mismo período y casi a la misma altura ya no se tapan («74%» bajo «73%») |
 | G4 | Antetítulo con los colores de los públicos o perfiles, que hace de leyenda | lámina nativa (cabecera) | pendiente |

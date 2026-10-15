@@ -43,6 +43,17 @@
     d$vj[i] <- if (sgn > 0) -1.15 else 2.0
     if (nx && !pr) { d$hj[i] <- 1; d$dx[i] <- -0.1 } else if (pr && !nx) { d$hj[i] <- 0; d$dx[i] <- 0.1 } else if (pr && nx) d$vj[i] <- 0.5
   }
+  # Dos cifras del mismo período, del mismo lado y casi a la misma altura se tapan («74%» bajo «73%» en el catálogo,
+  # 2026-10-14): la de arriba sube y la de abajo baja.
+  for (xi in unique(d$x)) {
+    k <- which(d$x == xi & is.finite(d$v) & d$hj == 0.5 & d$vj != 0.5)
+    if (length(k) < 2L) next
+    k <- k[order(d$v[k])]
+    for (j in seq_along(k)[-1]) {
+      a <- k[j - 1]; b <- k[j]
+      if (d$vj[a] == d$vj[b] && abs(d$v[b] - d$v[a]) < 0.08 * rng) { d$vj[a] <- 2.0; d$vj[b] <- -1.15 }
+    }
+  }
   d
 }
 
@@ -56,7 +67,13 @@
                              textos_negrita = character(0), font_family = .std_pt("fuente"),
                              color_titulo = .std_color("azul"), size_titulo = 11,
                              color_subtitulo = .std_color("azul"), size_subtitulo = 9,
-                             color_nota_pie = .std_color("azul"), size_nota_pie = 8) {
+                             color_nota_pie = .std_color("azul"), size_nota_pie = 8,
+                             leyenda = "abajo", size_leyenda = 13) {
+  # Gonzalo (2026-10-14, G3): «se ve aún bastante mal con la leyenda al lado cuando debería estar abajo de forma
+  # elegante». Abajo o arriba: una leyenda de línea y punto hueco, sin título, en una fila. «derecha» conserva el
+  # nombre de cada serie al final de su línea; «ninguna», sin leyenda.
+  al_final <- identical(leyenda, "derecha")
+  pos_leyenda <- switch(leyenda, arriba = "top", izquierda = "left", "bottom")
   cara <- function(token) if (token %in% textos_negrita) "bold" else "plain"
   periodos <- levels(df$.periodo)
   # Se conservan las columnas de la tabla preparada (`.serie`, `.periodo`, `.y`):
@@ -82,12 +99,13 @@
   if (!is.null(ultimo)) ultimo$.lab <- NULL
   # Nombres que terminan cerca se separan en vertical para no pisarse (en el
   # mazo de referencia, «Estados Financieros» caía sobre «Tributación»).
+  if (!al_final) ultimo <- NULL
   if (!is.null(ultimo) && nrow(ultimo) > 1L) ultimo$y_nombre <- .serie_separar_nombres(ultimo$v, lim)
   else if (!is.null(ultimo)) ultimo$y_nombre <- ultimo$v
   # El eje se alarga lo que mide el nombre más largo, para que quepa dentro del
   # lienzo (el auditor de composición mide contra el rango del eje).
   largo_nombre <- max(nchar(as.character(ultimo$g %||% "")), 0)
-  x_max <- np_ + 0.3 + largo_nombre * 0.075
+  x_max <- if (al_final) np_ + 0.3 + largo_nombre * 0.075 else np_ + 0.45
   margen_der <- 16
   p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$x, y = .data$v, colour = .data$g)) +
     ggplot2::geom_line(linewidth = 1.5, na.rm = TRUE) +
@@ -114,7 +132,13 @@
     ggplot2::labs(title = titulo, subtitle = subtitulo, caption = nota_pie, x = NULL, y = NULL) +
     ggplot2::theme_minimal(base_family = font_family) +
     ggplot2::theme(
-      legend.position = "none", panel.grid = ggplot2::element_blank(),
+      legend.position = if (al_final || identical(leyenda, "ninguna")) "none" else pos_leyenda,
+      legend.title = ggplot2::element_blank(),
+      legend.text = ggplot2::element_text(size = size_leyenda, colour = .std_color("azul"), face = cara("leyenda"),
+                                          margin = ggplot2::margin(r = 18, l = 4)),
+      legend.key.width = ggplot2::unit(1.1, "cm"),
+      legend.margin = ggplot2::margin(t = 6),
+      panel.grid = ggplot2::element_blank(),
       panel.grid.major.y = ggplot2::element_line(colour = "#DCE1E8", linewidth = 0.35),
       axis.text.y = ggplot2::element_text(size = 10, colour = .std_color("texto_tenue")),
       axis.text.x = ggplot2::element_text(size = 13, colour = .std_color("azul"), face = "bold"),

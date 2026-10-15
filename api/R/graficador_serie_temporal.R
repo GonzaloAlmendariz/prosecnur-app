@@ -223,7 +223,8 @@ graficar_serie_temporal <- function(
                           textos_negrita = textos_negrita, font_family = font_family,
                           color_titulo = color_titulo, size_titulo = size_titulo,
                           color_subtitulo = color_subtitulo, size_subtitulo = size_subtitulo,
-                          color_nota_pie = color_nota_pie, size_nota_pie = size_nota_pie)
+                          color_nota_pie = color_nota_pie, size_nota_pie = size_nota_pie,
+                          leyenda = if (isTRUE(mostrar_leyenda)) leyenda_posicion else "ninguna")
     attr(p, "pulso_serie_periodos") <- niveles_periodo
     attr(p, "pulso_serie_series") <- niveles_serie
     attr(p, "pulso_serie_cifras_omitidas") <- isTRUE(mostrar_valores) && !cifras_r
