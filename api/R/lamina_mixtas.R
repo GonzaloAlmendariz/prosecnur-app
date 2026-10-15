@@ -117,28 +117,28 @@
 }
 .lam_es_cifra <- function(e) is.list(e) && identical(e$tipo, "cifra")
 
-#' Filas de una leyenda acotada a un panel: una si cabe a lo ancho del panel, dos si no
+#' Filas de una leyenda acotada a un panel: una si cabe a lo ancho del panel; si no, filas equilibradas que sí caben
+#'
+#' El reparto es el de `.lam_leyenda_plan()` (leyenda_plan.R, O8b): antes, la segunda fila de cinco rótulos largos de escala
+#' se salía ~0,5 in de un panel de media columna (6,01 in) y ninguna compuerta lo veía. `.lam_panel_geo()` reserva el alto
+#' de estas filas y exige que quepan.
+#' @return Lista de índices por fila; el plan entero en `attr(, "plan")`.
 #' @keywords internal
 .lam_leyenda_filas <- function(labels, w) {
-  ws <- 0.22 + .lam_ancho_tinta(labels, .std_pt("leyenda"))
-  if (sum(ws) + 0.3 * (length(ws) - 1) <= w) return(list(seq_along(labels)))
-  k <- ceiling(length(labels) / 2)
-  list(seq_len(k), setdiff(seq_along(labels), seq_len(k)))
+  plan <- .lam_leyenda_plan(labels, w, panel = TRUE)
+  structure(plan$filas, plan = plan)
 }
 
 #' Leyenda de un panel: centrada bajo sus barras y sin salir del panel (no cruza el filete vecino)
 #' @keywords internal
 .lam_leyenda_panel <- function(lz, y, labels, cols, centro, x0, x1) {
-  size <- .std_pt("leyenda")
-  for (r in .lam_leyenda_filas(labels, x1 - x0)) {
-    wk <- .lam_ancho_tinta(labels[r], size); ws <- 0.22 + wk; gap <- 0.3
-    tot <- sum(ws) + gap * (length(ws) - 1)
-    if (tot > x1 - x0 && length(ws) > 1) { gap <- max(0.15, (x1 - x0 - sum(ws)) / (length(ws) - 1)); tot <- sum(ws) + gap * (length(ws) - 1) }
-    x <- min(max(centro - tot / 2, x0), x1 - tot)
-    for (k in seq_along(r)) {
-      .lam_caja(lz, x, y + 0.07, 0.15, 0.15, cols[r[k]], nombre = "leyenda:cuadro")
-      .lam_txt(lz, labels[r[k]], x + 0.12, y, wk[k] + 0.3, 0.3, size, .std_color("azul"), nombre = "leyenda:texto")
-      x <- x + ws[k] + gap
+  plan <- .leyenda_avisar(attr(.lam_leyenda_filas(labels, x1 - x0), "plan"))
+  for (r in seq_along(plan$filas)) {
+    x <- .leyenda_x_fila(plan$totales[r], centro, x0, x1)
+    for (i in plan$filas[[r]]) {
+      .lam_caja(lz, x, y + 0.07, 0.15, 0.15, cols[i], nombre = "leyenda:cuadro")
+      .lam_txt(lz, labels[i], x + 0.12, y, plan$anchos[i] + 0.3, 0.3, plan$size, .std_color("azul"), nombre = "leyenda:texto")
+      x <- x + plan$items[i] + plan$gaps[r]
     }
     y <- y + 0.3
   }
@@ -181,14 +181,15 @@
     fila <- min(tope_fila, (fin - y0) * (if (alto) 0.95 else 0.9) / n)
     g <- min(.std_grosor(n, "categorias"), fila * 0.7)
     tope <- min(2.6, w * 0.45)
-    size <- if (max(.lam_ancho_tinta(espec$rotulos, 12)) + 0.3 > tope) 11 else 12
-    wlab <- min(tope, max(rb$wlab %||% 1.2, max(.lam_ancho_tinta(espec$rotulos, size)) + 0.3))
+    nb <- .std_negrita_forzada("categorias")   # O8a: con «todas en negrita» el rótulo se mide con su negrita
+    size <- if (max(.lam_ancho_tinta(espec$rotulos, 12, nb)) + 0.3 > tope) 11 else 12
+    wlab <- min(tope, max(rb$wlab %||% 1.2, max(.lam_ancho_tinta(espec$rotulos, size, nb)) + 0.3))
     # Alto con la tinta medida: la estimación por carácter partía en dos «Secretario(a) académico(a)», que en la
     # lámina 193 del recetario cabe en una línea, y mandaba la cuadrícula entera a la ruta anterior.
     # Lo que debe caber en la fila es la tinta del rótulo (el cuadro menos sus 0.1 in de márgenes internos, que
     # `.lam_barras_h` centra en la fila): la lámina 162 deja «Departamento de Ciencias Contables» en dos líneas de
     # 11 pt dentro de una fila de 0.42 in. Medir el cuadro entero mandaba esa cuadrícula a la ruta anterior.
-    altos <- vapply(espec$rotulos, function(r) .lam_alto_tinta(r, wlab, size), 0)
+    altos <- vapply(espec$rotulos, function(r) .lam_alto_tinta(r, wlab, size, nb), 0)
     barras <- list(tipo = "barras", x = x, w = w, y0 = y0, fila = fila, g = g, wlab = wlab, size = size, receta = receta,
                    cabe = length(espec$largos) >= 1L && fila >= 0.3 && all(altos - 0.1 <= fila - 0.02))
     if (isTRUE(barras$cabe)) return(barras)
@@ -214,12 +215,13 @@
   wlab <- min(1.6, max(1.2, max(.lam_ancho_tinta(rot, 11, TRUE)) + 0.25))
   size_lab <- if (n >= 3L) 10.5 else 11
   ttb <- if (!is.null(espec$box$unidades)) .std_geom("columna_top_two_box") + 0.1 else 0
-  ley <- espec$leyenda; n_ley <- if (isTRUE(leyenda)) length(.lam_leyenda_filas(espec$categorias$rotulo[ley], w)) else 0L
+  ley <- espec$leyenda; filas_ley <- if (isTRUE(leyenda)) .lam_leyenda_filas(espec$categorias$rotulo[ley], w) else list()
+  n_ley <- length(filas_ley); ley_cabe <- !isTRUE(leyenda) || isTRUE(attr(filas_ley, "plan")$cabe)
   disp <- fin - (y0 + 0.3) - (if (isTRUE(leyenda)) 0.15 + 0.3 * n_ley else 0.35)
   fila <- min(c(0.85, 0.66, 0.5)[min(n, 3L)], disp / n); g <- max(0.24, round(fila * 0.58, 2))
   altos <- vapply(rot, function(r) .lam_alto_txt(r, wlab, size_lab, TRUE), 0)
   list(tipo = "escala", filas = filas, y0 = y0, fila = fila, g = g, wlab = wlab, size_lab = size_lab, ttb = ttb,
-       cabe = fila >= 0.4 && all(altos <= fila + 0.05))
+       cabe = fila >= 0.4 && all(altos <= fila + 0.05) && ley_cabe)   # la leyenda no sale del panel (O8b)
 }
 
 #' Un panel de lámina mixta: pregunta, público y el gráfico que afirma su especificación

@@ -78,6 +78,7 @@
                      align = c("left", "center", "right"), nombre = "texto") {
   align <- match.arg(align)
   algn <- c(left = "l", center = "ctr", right = "r")[[align]]
+  bold <- .lam_negrita(nombre, bold)   # negrita por elemento (O8a): el rol sale del nombre de la pieza, estilo_negrita.R
   fuente <- .std_pt("fuente")
   xml <- paste0(
     '<p:sp><p:nvSpPr><p:cNvPr id="0" name="', .lam_xml_esc(nombre), '"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr>',

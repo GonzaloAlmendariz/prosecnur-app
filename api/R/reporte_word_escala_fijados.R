@@ -32,9 +32,8 @@
 #' @keywords internal
 .WORD_ESCALA_CABE_PCT <- 7
 
-#' Suma de caracteres de los rótulos de la leyenda desde la que se parte en dos filas
-#' @keywords internal
-.WORD_ESCALA_LEYENDA_DOS_FILAS <- 90L
+# La leyenda ya no se parte por suma de caracteres (antes, 90): la mide `.word_leyenda_plan()` contra el ancho de la
+# figura con el modo de Identidad › Letra (leyenda_plan.R, O8b).
 
 #' Presets del editor cuya figura Word dibuja `.word_g_escala()` (verificado por renderer real: las apiladas simples y los
 #' bloques multiapilados, también multiactor, cuelgan espec `escala`)
@@ -72,8 +71,7 @@
     e("legend_key_cm", "el cuadrito de la leyenda mide 8 pt", round(.WORD_ESCALA_PT$leyenda_clave * 2.54 / 72.27, 3), "cm"),   # «pt» de grid: 1/72.27 in
     e("leyenda_posicion", "la leyenda va abajo", "abajo"),
     e("mostrar_leyenda", "la leyenda siempre se muestra", TRUE),
-    e("legend_n_por_fila", paste0("una fila de leyenda; dos si los rótulos suman más de ", .WORD_ESCALA_LEYENDA_DOS_FILAS,
-                                  " caracteres")),
+    e("legend_n_por_fila", "la leyenda va en una fila si cabe a lo ancho de la figura y, si no, en filas equilibradas; se cambia en Identidad, Letra"),
     # Cifras de los segmentos
     e("size_texto_barras", "la cifra dentro del segmento sale a ese tamaño", pt("cifra_dentro"), "pt"),
     e("size_texto_barras_peq", "la cifra de un segmento chico sale a ese tamaño", pt("cifra_chica"), "pt"),
@@ -81,7 +79,7 @@
     e("color_texto_barras_fuera", "la cifra encima de un segmento chico va en el azul de títulos", navy),
     e("mostrar_valores", "todas las cifras se escriben", TRUE),
     e("mostrar_n_en_etiquetas", "la cifra va sin frecuencia", FALSE),
-    e("textos_negrita", "las cifras y los rótulos van siempre en negrita"),
+    e("textos_negrita", "la negrita de cifras, rótulos, box y leyenda se elige para todo el informe en Identidad, Letra"),
     e("umbral_ocultar_etiqueta", "ninguna cifra se oculta", 0, "proporción"),
     e("umbral_mostrar_etiqueta", paste0("la cifra va dentro desde el ", .WORD_ESCALA_CABE_PCT, " % y encima por debajo"), cabe, "proporción"),
     e("umbral_etiqueta_normal", paste0("la cifra va dentro desde el ", .WORD_ESCALA_CABE_PCT, " % y encima por debajo"), cabe, "proporción"),

@@ -78,7 +78,10 @@ test_that("un autosave sin estilo_cliente lo conserva y `{}` vuelve al recetario
 test_that("POST /config rechaza un estilo_cliente inválido con 400 E_BAD_ESTILO_CLIENTE; lo guardado inválido se descarta con aviso", {
   sid <- .ec_sesion()
   for (malo in list(list(ambito = "global"), list(letra = list(paso = "enorme")), list(letra = list(roles = list(colores = "grande"))),
-                    list(logos = list(lomo = list(file_id = "x"))), list(logos = list(contraportada = list(file_id = "x", path = "/tmp/a.png"))))) {
+                    list(logos = list(lomo = list(file_id = "x"))), list(logos = list(contraportada = list(file_id = "x", path = "/tmp/a.png"))),
+                    # O8: negrita por elemento y modo de la leyenda (estilo_negrita.R)
+                    list(letra = list(negrita = list(categorias = "algunas"))), list(letra = list(negrita = list(cifras = "si"))),
+                    list(letra = list(negrita = "todo")), list(letra = list(leyenda = "tres_filas")))) {
     e <- .ec_fallo(.ec_endpoint(mount_graficos, "/api/graficos/config", list(config = list(plan = .ec_plan(), estilo_cliente = malo)), sid))
     expect_identical(e$code, "E_BAD_ESTILO_CLIENTE")
     expect_identical(as.integer(e$status), 400L)
