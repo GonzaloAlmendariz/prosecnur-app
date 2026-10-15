@@ -2750,6 +2750,7 @@ p_histograma <- function(
     overrides$modo <- overrides$modo %||% modo
   }
   overrides <- .ppt_slot_override(overrides, "limite_superior", limite_superior, "numero")
+  if (!is.null(grupo)) overrides <- .histograma_con_estilo_grupos(overrides)   # G1: el dibujo de Ing. Civil por defecto
   if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)
 

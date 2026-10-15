@@ -6412,7 +6412,7 @@ reporte_ppt_plan <- function(
           pal[[lab]] %||% pal[[raw]] %||% NA_character_
         }, character(1))
         ok <- !is.na(vals) & nzchar(vals)
-        if (any(ok)) colores_grupos <- stats::setNames(vals[ok], unname(lab_levels[ok]))
+        if (any(ok)) { colores_grupos <- stats::setNames(vals[ok], unname(lab_levels[ok])); preset_args$colores_grupos <- NULL }  # la paleta del estudio gana al preset (ADR 0097)
       }
     }
 
