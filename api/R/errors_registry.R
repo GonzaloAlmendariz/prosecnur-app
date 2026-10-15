@@ -410,6 +410,7 @@ errores_registrados <- function() {
     "E_EQUIV_SIN_READXL",                                    "equivalencias_importar_bloques.R",  "500",
     # Armonización en la fila de la matriz e importador por bloques (contrato E4-E7, R3).
     "E_EQUIV_ARMONIZACION_INVALIDA",                         "equivalencias_armonizacion.R",      "400",
+    "E_EQUIV_DERIVADA_INVALIDA",                             "equivalencias_derivadas.R",         "400",
     "E_EQUIV_ARMONIZACION_SIN_VARIABLE",                     "equivalencias_armonizacion.R",      "409",
     "E_EQUIV_ARMONIZACION_VARIABLE_AUSENTE",                 "equivalencias_armonizacion.R",      "409",
     "E_EQUIV_BASE_DESCONOCIDA",                              "equivalencias_armonizacion.R",      "400",

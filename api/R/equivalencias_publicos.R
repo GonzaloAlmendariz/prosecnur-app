@@ -115,6 +115,8 @@
     lab <- as.character(fila$etiqueta_estandar %||% "")
     if (!nzchar(lab)) next
     for (b in names(fila$variables %||% list())) {
+      # ADR 0105: la expresión de un indicador compuesto no es una variable de Analítica.
+      if (!is.null(.equiv_deriv_entrada(fila, b))) next
       out[[b]][[fila$variables[[b]]]] <- lab
     }
   }
@@ -132,7 +134,8 @@
     sv <- (inst %||% list())$survey
     reales <- if (!is.null(sv) && "name" %in% names(sv)) as.character(sv$name) else character(0)
     reales <- reales[!is.na(reales) & nzchar(reales)]
-    declaradas <- unique(unlist(lapply(equiv$filas, function(f) f$variables[[b]] %||% NULL)))
+    # ADR 0105: de un indicador compuesto cuentan sus componentes, no la expresión.
+    declaradas <- unique(unlist(lapply(equiv$filas, function(f) .equiv_deriv_variables_reales(f, b))))
     declaradas <- declaradas[!is.na(declaradas) & nzchar(declaradas)]
     huerfanas <- setdiff(declaradas, reales)
     out[[b]] <- list(
@@ -376,6 +379,8 @@
     if (!is.null(f$armonizacion)) {
       parte <- paste(parte, .equiv_armon_canonico(f$armonizacion), sep = "\u001e")
     }
+    # ADR 0105: los códigos que cuentan como «sí» cambian el indicador.
+    if (!is.null(f$derivada)) parte <- paste(parte, .equiv_deriv_canonico(f$derivada), sep = "\u001e")
     parte
   }, character(1))
   periodos <- as.character(unlist((equiv %||% list())$armonizacion_periodos %||% character(0)))

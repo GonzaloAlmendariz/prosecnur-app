@@ -1,0 +1,245 @@
+/* Indicador compuesto de la matriz de equivalencias (ADR 0105).
+ *
+ * Sólo tokens `--pulso-*` y el acento del módulo. La cáscara del sideover
+ * (velo, cabecera, cuerpo con el único scroll, pie) es la de armonización
+ * (`ArmonizacionFilaEditor.css`); aquí sólo va lo propio del indicador.
+ *
+ * Geometría (Contrato de Superficie):
+ * - C2: una base con 0 o 12 preguntas no mueve el marco; la lista envuelve.
+ * - C3: la base sin preguntas muestra su vacío dentro de su sección.
+ * - C4: los resultados de búsqueda no tienen scroll propio: se muestran ocho y
+ *   el resto se alcanza afinando la búsqueda.
+ */
+
+.pulso-compuesto-datos {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+}
+
+@media (max-width: 720px) {
+  .pulso-compuesto-datos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.pulso-compuesto-campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-compuesto-campo input,
+.pulso-compuesto-buscar input {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.pulso-compuesto-campo input:focus-visible,
+.pulso-compuesto-buscar input:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 1px;
+}
+
+.pulso-compuesto-campo input[aria-invalid="true"] {
+  border-color: var(--pulso-warn-border);
+}
+
+.pulso-compuesto-base.is-vacia {
+  border-style: dashed;
+}
+
+.pulso-compuesto-elegidas,
+.pulso-compuesto-resultados {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-compuesto-elegidas li {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: 4px 4px 4px 8px;
+  border: 1px solid var(--module-accent-border);
+  border-radius: var(--pulso-radius);
+  background: var(--module-accent-soft);
+  font-size: 12.5px;
+}
+
+.pulso-compuesto-elegidas code,
+.pulso-compuesto-resultados code,
+.pulso-compuesto-opcion code {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-compuesto-etiqueta {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-compuesto-busqueda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-compuesto-buscar {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pulso-compuesto-buscar > svg {
+  position: absolute;
+  left: 8px;
+  color: var(--pulso-text-soft);
+  pointer-events: none;
+}
+
+.pulso-compuesto-buscar input {
+  flex: 1 1 auto;
+  padding-left: 26px;
+}
+
+.pulso-compuesto-resultados button {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pulso-compuesto-resultados button:hover {
+  border-color: var(--module-accent-border);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-compuesto-resultados button:focus-visible,
+.pulso-compuesto-opcion:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 1px;
+}
+
+.pulso-compuesto-codigos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-compuesto-codigos .pulso-compuesto-campo {
+  flex: 0 0 160px;
+}
+
+.pulso-compuesto-ayuda {
+  flex: 1 1 240px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-compuesto-opcion {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.pulso-compuesto-opcion[aria-pressed="true"] {
+  border-color: var(--module-accent-border);
+  background: var(--module-accent-soft);
+  color: var(--pulso-text);
+}
+
+.pulso-compuesto-conteos {
+  margin: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
+
+/* --- En la tabla de equivalencias ---------------------------------------- */
+
+.pulso-compuesto-acciones-tabla {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-compuesto-celda {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px dashed var(--module-accent-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 11.5px;
+  line-height: 1.35;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.pulso-compuesto-celda > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--module-accent);
+}
+
+.pulso-compuesto-celda.is-sin-declarar {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-compuesto-celda:hover:not(:disabled) {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-compuesto-celda:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pulso-compuesto-celda:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+}
