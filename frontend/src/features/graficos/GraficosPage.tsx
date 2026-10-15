@@ -49,7 +49,6 @@ import "./v2/styles/editor-v2.css";
 import "./graficosPestanas.css";
 import { resolverPestanaGraficos, PESTANAS_GRAFICOS, type GraficosTabId } from "./pestanaGraficos";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
-import { conDisponibilidadEstilo } from "./estilo/disponibilidadEstilo";
 const VistaGeneral = lazyWithReload(() => import("./vistaGeneral/VistaGeneral"), "graficos-vista-general");
 const PestanaEstilo = lazyWithReload(() => import("./estilo/PestanaEstilo"), "graficos-estilo");
 const PestanaEstiloInforme = lazyWithReload(() => import("./estiloInforme/PestanaEstiloInforme"), "graficos-estilo-informe");
@@ -423,7 +422,7 @@ export default function GraficosPage() {
               <ContextTabRail
                 ariaLabel="Pestañas de gráficos"
                 activeKey={pestana}
-                items={conDisponibilidadEstilo(PESTANAS_GRAFICOS, reportScope)}
+                items={PESTANAS_GRAFICOS}
                 panelId="graficos-panel"
                 tabId={(key) => `graficos-tab-${key}`}
                 onChange={irPestana}

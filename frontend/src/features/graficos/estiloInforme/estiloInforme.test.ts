@@ -3,7 +3,6 @@ import type { PresetMetadata } from "../../../api/graficos";
 import { nodoPorClave } from "../../../lib/navegacion/manifiesto";
 import { parsearDireccionDesdeHref } from "../../../lib/navegacion/direccion";
 import { buildGraficosConfigFromStore } from "../configSnapshot";
-import { conDisponibilidadEstilo } from "../estilo/disponibilidadEstilo";
 import { PESTANAS_GRAFICOS, resolverPestanaGraficos } from "../pestanaGraficos";
 import { usePlanStore, type GraficosConfig } from "../store";
 import { AMBITO_COMPARTIDO, MOTIVO_WORD_EN_COMPARTIDO, disponibilidadInforme } from "./disponibilidadInforme";
@@ -252,10 +251,9 @@ describe("dirección y disponibilidad (decisión 28)", () => {
     expect(parsearDireccionDesdeHref(nodo?.href ?? "")?.pestana).toBe("estilo-informe");
   });
 
+  // L2 (2026-10-14): ninguna pestaña del rail se deshabilita en el compartido; Identidad explica pieza por pieza.
   it("habilitada también en el informe compartido; sólo el Word dice por qué no se ajusta ahí", () => {
-    const rail = conDisponibilidadEstilo(PESTANAS_GRAFICOS, "consolidated");
-    expect(rail.find((p) => p.key === "estilo-informe")).not.toHaveProperty("disabled", true);
-    expect(rail.find((p) => p.key === "estilo")).toHaveProperty("disabled", true);
+    expect(PESTANAS_GRAFICOS.some((p) => "disabled" in p && p.disabled)).toBe(false);
     expect(disponibilidadInforme("consolidated")).toEqual({ disponible: true, ambito: AMBITO_COMPARTIDO, motivoWord: MOTIVO_WORD_EN_COMPARTIDO });
     expect(disponibilidadInforme("active").motivoWord).toBeNull();
   });

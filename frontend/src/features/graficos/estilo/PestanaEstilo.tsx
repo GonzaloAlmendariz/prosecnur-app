@@ -18,7 +18,7 @@ import {
 import { useSession } from "../../../lib/SessionContext";
 import { useGraficosReportScope } from "../reportScope";
 import { usePlanStore } from "../store";
-import { motivoEstiloNoDisponible } from "./disponibilidadEstilo";
+import { motivoPiezaNoDisponible } from "./disponibilidadEstilo";
 import { useEstiloUi } from "./estiloUiStore";
 import {
   conAmbito,
@@ -68,7 +68,7 @@ export default function PestanaEstilo() {
   const [sub, setSub] = useSubpestana(SUB_IDENTIDAD);
   const location = useLocation();
   const scope = useGraficosReportScope(location.search);
-  const motivoNoDisponible = motivoEstiloNoDisponible(scope);
+  const motivoPieza = motivoPiezaNoDisponible(scope, sub);
   const { state } = useSession();
   const prepOk = !!state?.analitica_prep_ok;
 
@@ -86,24 +86,24 @@ export default function PestanaEstilo() {
 
   // El catálogo no cambia con la base: se pide una vez por sesión de la app.
   useEffect(() => {
-    if (motivoNoDisponible || opciones) return;
+    if (opciones) return;
     let vigente = true;
     apiGraficosEstiloOpciones()
       .then((o) => { if (vigente) setOpciones(o); })
       .catch((error: unknown) => { if (vigente) setOpciones(null, mensajeDe(error, "No se pudo leer el estilo por defecto.")); });
     return () => { vigente = false; };
-  }, [motivoNoDisponible, opciones, setOpciones]);
+  }, [opciones, setOpciones]);
 
   // Los defaults dependen del perfil y del ámbito por defecto de la base. El autosave ya los publica con cada GET de la
   // config (también al cambiar de base); sólo se piden aquí si todavía no llegaron por esa vía.
   useEffect(() => {
-    if (motivoNoDisponible || defaults) return;
+    if (defaults) return;
     let vigente = true;
     apiGraficosEstiloDefaults()
       .then((d) => { if (vigente) setDefaults(d); })
       .catch(() => { /* Sin defaults del backend se compara contra el recetario (`referenciaEstilo`). */ });
     return () => { vigente = false; };
-  }, [motivoNoDisponible, defaults, setDefaults, state?.active_base, state?.session_id]);
+  }, [defaults, setDefaults, state?.active_base, state?.session_id]);
 
   const ref = referenciaEstilo(defaults);
   const decisiones = useMemo(() => decisionesEstilo(estilo, defaults), [estilo, defaults]);
@@ -124,16 +124,6 @@ export default function PestanaEstilo() {
     }
   }, [cambiar, setErrorLogo, setSubiendo]);
 
-  if (motivoNoDisponible) {
-    return (
-      <div className="pulso-f6-estilo" data-audit-ready="graficos-estilo" data-qa-surface="graficos/f6-estilo">
-        <div className="pulso-f6-estilo-cuerpo is-vacio" data-qa-scroll-owner="estilo">
-          <p className="pulso-f6-estilo-no-disponible" role="status">{motivoNoDisponible}</p>
-        </div>
-      </div>
-    );
-  }
-
   const ambito: EstiloAmbito = estilo.ambito ?? ref.ambito ?? "proyecto";
   const paso = pasoEfectivo(estilo, ref);
   const listo = !!opciones || !!opcionesError;
@@ -148,7 +138,8 @@ export default function PestanaEstilo() {
         <div className="pulso-f6-estilo-columnas">
           <div className="pulso-f6-estilo-secciones" data-qa-geometry-group="graficos/f6-estilo-secciones" data-qa-geometry-contract="intrinsic">
             {opcionesError ? <p className="pulso-f6-estilo-error" role="alert">{opcionesError}</p> : null}
-            {sub === "logos" && (<>
+            {motivoPieza ? <p className="pulso-f6-estilo-no-disponible" role="status">{motivoPieza}</p> : null}
+            {sub === "logos" && !motivoPieza && (<>
             <SeccionAmbito
               ambito={ambito}
               ambitoDefault={ref.ambito}
@@ -186,7 +177,7 @@ export default function PestanaEstilo() {
             </section>
             </>)}
 
-            {sub === "letra" && <SeccionLetra
+            {sub === "letra" && !motivoPieza && <SeccionLetra
               paso={paso}
               procedenciaPaso={procedenciaPaso(decisiones)}
               pasoRol={(rol) => pasoEfectivoRol(estilo, ref, rol)}

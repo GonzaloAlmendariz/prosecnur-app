@@ -1,24 +1,20 @@
-// Cuándo se puede usar la pestaña «Estilo del cliente» y su vista previa. Puro: GraficosPage y la pestaña lo consultan.
+// Qué piezas de Identidad se pueden ajustar y su vista previa. Puro: la pestaña y GraficosPage lo consultan.
 //
-// Hoy el estilo del cliente sólo lo aplica el Word (decisión 16: el PPT lo tomará por la plantilla en una rebanada
-// posterior) y el informe compartido no exporta Word (`GraficosPage.onExport`). Por eso, en el compartido, la pestaña
-// queda deshabilitada con su motivo en vez de ofrecer ajustes que no llegarían a ningún archivo.
+// L2 del rediseño (2026-10-14): Identidad ya no se deshabilita entera en el informe compartido. Los colores de las
+// respuestas y los íconos viven en el plan y el PPT compartido los usa; sólo logos y letra —que hoy aplica únicamente
+// el Word, y el compartido no exporta Word (`GraficosPage.onExport`)— dicen por qué no se ajustan ahí. Cuando logos y
+// letra lleguen al PPT (ID9, decisión D5) este motivo desaparece.
 
 import type { GraficosReportScope } from "../reportScope";
 
 export const MOTIVO_ESTILO_EN_COMPARTIDO =
-  "El informe compartido todavía no sale en Word, y el estilo del cliente hoy sólo se aplica al Word. Ajústalo desde cada base.";
+  "Los logos y la letra hoy sólo se aplican al Word, y el informe compartido todavía no sale en Word. Ajústalos desde cada base.";
 
-export function motivoEstiloNoDisponible(scope: GraficosReportScope): string | null {
-  return scope === "consolidated" ? MOTIVO_ESTILO_EN_COMPARTIDO : null;
-}
+export type PiezaIdentidad = "logos" | "letra" | "iconos" | "colores";
 
-type ItemRail = { key: string; description?: string; disabled?: boolean };
-
-/** Las pestañas del rail con «Estilo del cliente» deshabilitada (y su motivo en el tooltip) donde no aplica. */
-export function conDisponibilidadEstilo<T extends ItemRail>(items: readonly T[], scope: GraficosReportScope): T[] {
-  const motivo = motivoEstiloNoDisponible(scope);
-  return items.map((item) => (item.key === "estilo" && motivo ? { ...item, disabled: true, description: motivo } : item));
+/** Motivo por el que una pieza no se ajusta en este informe, o `null` si se ajusta. */
+export function motivoPiezaNoDisponible(scope: GraficosReportScope, pieza: PiezaIdentidad): string | null {
+  return scope === "consolidated" && (pieza === "logos" || pieza === "letra") ? MOTIVO_ESTILO_EN_COMPARTIDO : null;
 }
 
 /** Motivo por el que todavía no se puede regenerar el Word para ver el estilo, o `null` si se puede. */
