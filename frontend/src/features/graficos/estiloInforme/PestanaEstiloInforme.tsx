@@ -37,7 +37,9 @@ import {
 import { SeccionCalculos, type AccionesCalculos } from "./SeccionCalculos";
 import { SeccionTextoBase } from "./SeccionTextoBase";
 import { SeccionCasos } from "./SeccionCasos";
-import { Subpestanas, useSubpestana, type Subpestana } from "../subpestanas/Subpestanas";
+import { useEffect } from "react";
+import { useSeccion } from "../../../lib/navegacion/useDireccion";
+import { NivelesReglas } from "./NivelesReglas";
 import { conCasosJunto, leerCasosJunto } from "./casosJunto";
 import { ARG_SUFIJO_POR_BASE, conSufijoDeBase, leerSufijosPorBase } from "./sufijoPorBase";
 import { useVariables } from "../useVariables";
@@ -45,16 +47,12 @@ import { useVariables } from "../useVariables";
 import "../estilo/estilo.css";
 import "./estiloInforme.css";
 
-// D3 (ID2, 2026-10-14): la línea visual se mudó a Identidad.
-type SubInforme = "base" | "calculos" | "casos";
-const SUB_INFORME: readonly Subpestana<SubInforme>[] = [
-  { key: "base", label: "Base y notas" },
-  { key: "calculos", label: "Cálculos" },
-  { key: "casos", label: "Casos" },
-];
+// R1 del rediseño (2026-10-15): una sola página con las reglas apiladas (antes subpestañas Base y notas · Cálculos ·
+// Casos). El `foco` de un enlace viejo (`calculos`, `casos`, `base`) lleva a su regla. La línea visual vive en Identidad (D3).
+const REGLA_DE_FOCO: Readonly<Record<string, string>> = { calculos: "redondeo", redondeo: "redondeo", casos: "casos", base: "base" };
 
 export default function PestanaEstiloInforme() {
-  const [sub, setSub] = useSubpestana(SUB_INFORME);
+  const { foco } = useSeccion("procesamiento");
   const location = useLocation();
   const scope = useGraficosReportScope(location.search);
   const sesion = useOptionalSession();
@@ -95,6 +93,12 @@ export default function PestanaEstiloInforme() {
   };
 
   const cargando = cargandoCatalogo || cargandoDefaults;
+  // Un enlace con `foco` lleva a su regla una vez montada (sin robar el foco del teclado).
+  useEffect(() => {
+    const id = foco ? REGLA_DE_FOCO[foco] : undefined;
+    if (!id || cargando) return;
+    document.getElementById(`regla-${id}`)?.scrollIntoView({ block: "start" });
+  }, [foco, cargando]);
   const estadoCatalogo = cargandoCatalogo
     ? "Cargando…"
     : errorCatalogo
@@ -110,9 +114,8 @@ export default function PestanaEstiloInforme() {
       data-scope={scope}
     >
       <header className="pulso-f6-informe-barra">
-        <h2 className="pulso-f6-informe-titulo">Reglas</h2>
+        <h2 className="pulso-f6-informe-titulo">Reglas del informe</h2>
         <p className="pulso-f6-informe-ayuda" role="note">{disponibilidad.ambito}</p>
-        <Subpestanas opciones={SUB_INFORME} actual={sub} onCambiar={setSub} etiqueta="Reglas" />
       </header>
       <div className="pulso-f6-informe-cuerpo" data-qa-scroll-owner="estilo-informe">
         <div
@@ -120,7 +123,14 @@ export default function PestanaEstiloInforme() {
           data-qa-geometry-group="graficos/f6-estilo-informe-secciones"
           data-qa-geometry-contract="intrinsic"
         >
-          {sub === "base" && (
+          <NivelesReglas />
+          <div id="regla-redondeo" className="pulso-f6-regla" data-qa-geometry-member>
+            <SeccionCalculos filas={filas} nota={nota} acciones={acciones} estado={estadoCalculos} />
+          </div>
+          <div id="regla-casos" className="pulso-f6-regla" data-qa-geometry-member>
+            <SeccionCasos casos={leerCasosJunto(presets)} onCambiar={(c) => cambiarPresets((p) => conCasosJunto(p, c))} />
+          </div>
+          <div id="regla-base" className="pulso-f6-regla" data-qa-geometry-member>
           <SeccionTextoBase
             texto={texto}
             onCambiar={(arg, valor) => cambiarPresets((p) => conArg(p, PRESET_BASE, arg, valor, defaultBase(arg)))}
@@ -130,9 +140,7 @@ export default function PestanaEstiloInforme() {
             sufijosPorBase={leerSufijosPorBase(presets)}
             onSufijoDeBase={(base, palabra) => cambiarPresets((p) => conSufijoDeBase(p, base, palabra))}
           />
-          )}
-          {sub === "calculos" && <SeccionCalculos filas={filas} nota={nota} acciones={acciones} estado={estadoCalculos} />}
-          {sub === "casos" && <SeccionCasos casos={leerCasosJunto(presets)} onCambiar={(c) => cambiarPresets((p) => conCasosJunto(p, c))} />}
+          </div>
         </div>
       </div>
     </div>

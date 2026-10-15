@@ -65,9 +65,9 @@ vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => undefined, r
 const { default: PestanaEstiloInforme } = await import("./PestanaEstiloInforme");
 
 // Las secciones viven en subpestañas (I9): el markup de la pestaña es el de sus cuatro subpestañas juntas.
-function pintar(search = "?pestana=estilo-informe") {
-  return ["base", "calculos", "casos", "linea"].map((foco) =>
-    renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/graficos${search}&foco=${foco}`] }, createElement(PestanaEstiloInforme)))).join("\n");
+// R1 (2026-10-15): Reglas es una sola página; ya no se pinta una vez por subpestaña.
+function pintar(search = "?pestana=reglas") {
+  return renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/graficos${search}`] }, createElement(PestanaEstiloInforme)));
 }
 
 beforeEach(() => {
@@ -89,12 +89,14 @@ describe("PestanaEstiloInforme · markup", () => {
     const html = pintar();
     expect(html).toContain('data-audit-ready="graficos-estilo-informe"');
     expect(html).toContain('data-qa-surface="graficos/f6-estilo-informe"');
-    expect(html.match(/data-qa-scroll-owner=/g)).toHaveLength(4);   // uno por subpestaña dibujada
+    expect(html.match(/data-qa-scroll-owner=/g)).toHaveLength(1);   // una sola página, un solo dueño
+    expect(html).toContain('aria-label="Quién manda en las reglas"');
+    for (const regla of ["redondeo", "casos", "base"]) expect(html).toContain(`id="regla-${regla}"`);
     for (const grupo of ["f6-estilo-informe-secciones", "f6-estilo-informe-texto-base"]) {
       expect(html).toContain(`data-qa-geometry-group="graficos/${grupo}"`);
     }
     // Cinco secciones: texto de la base, cálculos, casos junto al porcentaje, línea visual y paletas.
-    expect(html.match(/class="pulso-f6-informe-seccion"/g)).toHaveLength(4);   // los colores pasaron a Identidad
+    expect(html.match(/class="pulso-f6-informe-seccion"/g)).toHaveLength(3);   // colores y línea visual pasaron a Identidad
   });
 
   it("mientras carga el catálogo o los defaults, la readiness queda en false", () => {
@@ -110,8 +112,8 @@ describe("PestanaEstiloInforme · markup", () => {
 
   it("sellos «Propio» donde hay decisión y «Del recetario» en lo demás", () => {
     const html = pintar();
-    // Sufijo propio, método de apiladas propio, línea visual aplicada, paletas con color.
-    expect(html.match(/pulso-f6-estilo-sello is-propio/g)).toHaveLength(3);   // sin la sección de colores
+    // Sufijo propio y método de apiladas propio (la línea visual aplicada se ve ahora en Identidad).
+    expect(html.match(/pulso-f6-estilo-sello is-propio/g)).toHaveLength(2);
     expect(html).toContain("Por defecto");
     expect(html).toContain("Base: 120 docentes");
     expect(html).toContain("Empieza con");
