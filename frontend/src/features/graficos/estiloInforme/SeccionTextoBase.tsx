@@ -8,6 +8,8 @@ import { RotateCcw } from "../../../vendor/lucide-react";
 import { SelloProcedencia } from "../estilo/SelloProcedencia";
 import { CabeceraSeccion } from "./CabeceraSeccion";
 import { SufijosPorBase } from "./SufijosPorBase";
+import { ExcepcionesRegla } from "./ExcepcionesRegla";
+import type { Excepcion } from "./excepcionesPlan";
 import { formatoDesdePartes, N_EJEMPLO, partesFormato, type CampoBase, type TextoBase } from "./modeloEstiloInforme";
 
 function CampoTexto({
@@ -73,8 +75,11 @@ export function SeccionTextoBase({
   bases = [],
   sufijosPorBase = {},
   onSufijoDeBase,
+  excepciones = [],
 }: {
   texto: TextoBase;
+  /** R6: gráficos que nombran a sus públicos con otra palabra en su tarjeta. */
+  excepciones?: readonly Excepcion[];
   /** Bases del informe; con más de una, cada base lleva su palabra después del número. */
   bases?: readonly string[];
   sufijosPorBase?: Record<string, string>;
@@ -128,6 +133,8 @@ export function SeccionTextoBase({
           <output className="pulso-f6-informe-ejemplo-texto">{texto.ejemplo}</output>
         </p>
       )}
+      <ExcepcionesRegla excepciones={excepciones}
+        ayuda="«Nombre de cada público» en la tarjeta del gráfico cambia la palabra sólo en ese gráfico." />
     </section>
   );
 }

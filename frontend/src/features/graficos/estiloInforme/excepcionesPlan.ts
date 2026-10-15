@@ -26,3 +26,16 @@ export function excepcionesDelPlan(
   });
   return out;
 }
+
+/**
+ * R6: el «Nombre de cada público» de la tarjeta (`tabla_encabezados`, líneas `clave=Título`) dicho como excepción:
+ * «Profesores» en vez de «docentes». Sin nombres propios (o iguales al de la base), `null`.
+ */
+export function nombresPropiosDeBase(args: Record<string, unknown>, parse: (v: unknown) => Record<string, string>): string | null {
+  const ov = args.overrides && typeof args.overrides === "object" ? (args.overrides as Record<string, unknown>) : {};
+  const nombres = parse(args.tabla_encabezados ?? ov.tabla_encabezados);
+  const partes = Object.entries(nombres)
+    .filter(([clave, titulo]) => titulo && titulo.toLowerCase() !== clave.replace(/_+/g, " ").toLowerCase())
+    .map(([clave, titulo]) => `«${titulo}» en vez de «${clave.replace(/_+/g, " ")}»`);
+  return partes.length ? partes.join(", ") : null;
+}
