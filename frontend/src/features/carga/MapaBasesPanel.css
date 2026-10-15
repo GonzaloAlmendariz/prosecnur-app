@@ -1,0 +1,283 @@
+/* Mapa de bases (G1). Sólo tokens `--pulso-*` y el acento del módulo, dentro
+ * de la cáscara del sideover de armonización (`ArmonizacionFilaEditor.css`).
+ *
+ * Geometría (Contrato de Superficie):
+ * - C1: grupo `carga-mapa-bases` (intrínseco) con dos miembros, el resumen por
+ *   base y la sección activa; las tarjetas de base forman `carga-mapa-bases-base`
+ *   (iguales).
+ * - C2: 1 o 400 variables no mueven el marco: la lista crece hacia abajo.
+ * - C3: cada sección pinta su vacío dentro de su caja.
+ * - C4: un único dueño de scroll, `.pulso-armon-cuerpo`. La tabla sólo se vuelve
+ *   dueña del eje horizontal cuando no cabe; la búsqueda queda pegada arriba.
+ */
+
+.pulso-mapa-resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-mapa-resumen li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+
+.pulso-mapa-resumen li.is-activa {
+  border-color: var(--module-accent-border);
+  background: var(--module-accent-soft);
+}
+
+.pulso-mapa-resumen strong {
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-mapa-resumen-total {
+  font-size: 12.5px;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-mapa-resumen-reparto {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-mapa-resumen-ir {
+  align-self: flex-start;
+  margin-top: var(--pulso-space-1);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--module-accent);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.pulso-mapa-resumen-ir:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pulso-mapa-resumen-ir:disabled {
+  color: var(--pulso-text-soft);
+  font-weight: inherit;
+  cursor: default;
+}
+
+.pulso-mapa-resumen-ir:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+  border-radius: var(--pulso-radius-chip);
+}
+
+.pulso-mapa-filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-mapa-filtro input {
+  margin: 0;
+  accent-color: var(--module-accent);
+}
+
+/* --- Matriz por base --------------------------------------------------------- */
+
+.pulso-mapa-tabla-wrap {
+  min-width: 0;
+}
+
+.pulso-mapa-tabla-wrap.is-desborda {
+  overflow-x: auto;
+}
+
+.pulso-mapa-tabla-wrap:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+}
+
+.pulso-mapa-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.pulso-mapa-tabla th,
+.pulso-mapa-tabla td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--pulso-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.pulso-mapa-tabla thead th {
+  position: sticky;
+  top: calc(-1 * var(--pulso-space-4));
+  z-index: 1;
+  background: var(--pulso-surface);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-mapa-tabla tbody th {
+  font-weight: inherit;
+  overflow-wrap: anywhere;
+}
+
+.pulso-mapa-tabla tr:last-child > * {
+  border-bottom: 0;
+}
+
+.pulso-mapa-presencia {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.pulso-mapa-presencia > svg {
+  flex: 0 0 auto;
+}
+
+.pulso-mapa-presencia.is-presente {
+  color: var(--pulso-text);
+}
+
+.pulso-mapa-presencia.is-presente > svg {
+  color: var(--pulso-success-fg);
+}
+
+.pulso-mapa-presencia.is-falta {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-mapa-presencia.is-no-comparable {
+  color: var(--pulso-text-soft);
+}
+
+/* --- Variables fuera de la matriz ---------------------------------------------- */
+
+.pulso-mapa-buscar {
+  position: sticky;
+  top: calc(-1 * var(--pulso-space-4));
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) 0;
+  background: var(--pulso-surface);
+}
+
+.pulso-mapa-buscar > svg {
+  flex: 0 0 auto;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-mapa-buscar input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.pulso-mapa-buscar input:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 1px;
+}
+
+.pulso-mapa-buscar-conteo {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-mapa-fuera {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+}
+
+.pulso-mapa-fuera li {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.pulso-mapa-fuera li + li {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-mapa-fuera code {
+  flex: 0 0 auto;
+  min-width: 9ch;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.pulso-mapa-fuera-texto {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.pulso-mapa-fuera-texto small {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-mapa-fuera .pulso-armon-btn {
+  flex: 0 0 auto;
+}
+
+/* Metadatos plegados al final: existen pero no se comparan entre mediciones. */
+.pulso-mapa-metadatos {
+  margin-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+  padding-top: var(--pulso-space-2);
+}
+
+.pulso-mapa-metadatos > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-mapa-metadatos > summary:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+}

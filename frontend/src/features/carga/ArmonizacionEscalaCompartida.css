@@ -1,0 +1,107 @@
+/* Armonizar por escala (G3). Sólo tokens `--pulso-*` y el acento del módulo,
+ * dentro de la cáscara del sideover de armonización.
+ *
+ * C2: el aviso es una línea que envuelve; la lista crece hacia abajo dentro del
+ * único dueño de scroll del panel (`.pulso-armon-cuerpo`). C4: sin scroll propio.
+ */
+
+.pulso-armon-compartida {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--module-accent-border);
+  border-radius: var(--pulso-radius);
+  background: var(--module-accent-soft);
+  font-size: 12.5px;
+  color: var(--pulso-text);
+}
+
+.pulso-armon-compartida > svg {
+  flex: 0 0 auto;
+  color: var(--module-accent);
+}
+
+.pulso-armon-compartida > span {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.pulso-armon-compartida-todas {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-armon-compartida-lista {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+}
+
+.pulso-armon-compartida-lista li + li {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-armon-compartida-lista li.is-marcado {
+  background: var(--module-accent-soft);
+}
+
+.pulso-armon-compartida-lista label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  cursor: pointer;
+}
+
+.pulso-armon-compartida-lista input,
+.pulso-armon-compartida-todas input {
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+  accent-color: var(--module-accent);
+}
+
+.pulso-armon-compartida-lista input:focus-visible,
+.pulso-armon-compartida-todas input:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+}
+
+.pulso-armon-compartida-texto {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-armon-compartida-nombre {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.pulso-armon-compartida-texto small {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.pulso-armon-compartida-chip {
+  flex: 0 0 auto;
+  padding: 1px 8px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 11px;
+  white-space: nowrap;
+}

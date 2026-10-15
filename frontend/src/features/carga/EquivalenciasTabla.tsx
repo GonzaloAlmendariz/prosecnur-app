@@ -146,7 +146,7 @@ export function EquivalenciasTabla({
           {filas.map((fila, indice) => {
             const contexto = fila.etiqueta_estandar.trim() || `la fila ${indice + 1}`;
             return (
-            <tr key={fila.id} className={fila.sugerida ? "is-sugerida" : undefined}>
+            <tr key={fila.id} className={fila.sugerida ? "is-sugerida" : undefined} data-equiv-fila={fila.id}>
               <td>
                 <div className="pulso-equiv-celda-etiqueta">
                   {/* Sólo una matriz de una versión anterior trae propuestas sin
