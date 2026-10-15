@@ -147,14 +147,18 @@
 #' barra: emparejar cifra y frecuencia es una opcion que el analista enciende,
 #' no un default. Solo se aplican si no los declaro en overrides.
 #'
+#' Los decimales del conteo ceden también ante el preset del tipo (O7c): «Aplicar a todos los gráficos del tipo»
+#' escribe `decimales` en el preset, y un 0 inyectado como override lo pisaba siempre.
+#'
 #' @param overrides Lista de overrides del elemento.
 #' @param metrica Una de `.NUMERICO_METRICAS`.
+#' @param preset_args Lista del preset del tipo.
 #' @return La lista de overrides con los defaults inyectados.
 #' @keywords internal
-.numerico_overrides_editoriales <- function(overrides, metrica) {
+.numerico_overrides_editoriales <- function(overrides, metrica, preset_args = list()) {
   if (!(metrica %in% c("N", "pct"))) return(overrides)
 
-  if (identical(metrica, "N") && is.null(overrides$decimales)) overrides$decimales <- 0
+  if (identical(metrica, "N") && is.null(overrides$decimales) && is.null(preset_args$decimales)) overrides$decimales <- 0
   if (is.null(overrides$mostrar_n_sobre_barras)) overrides$mostrar_n_sobre_barras <- FALSE
   overrides
 }
@@ -183,7 +187,7 @@
 
   list(
     preset_args = preset_args,
-    overrides   = .numerico_overrides_editoriales(overrides, metrica)
+    overrides   = .numerico_overrides_editoriales(overrides, metrica, preset_args)
   )
 }
 

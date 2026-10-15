@@ -278,7 +278,11 @@ test_that("los decimales mandan sobre el vertice y sobre la tabla a la vez", {
   # celda y el vertice dicen cosas distintas.
   expect_equal(.radar_mb_decimales(NULL), 0L)
   expect_equal(attr(.radar_mb_tabla(d, "T2B"), "decimales"), 0L)
-  expect_equal(p_radar_publicos(vars = list(A = list("a$b")), corte = "3")$decimales, 0L)
+  # O7c: el constructor ya no escribe ese 0 —un elemento que no opina deja decidir al preset—; el defecto lo pone el
+  # render cuando ni el gráfico ni el preset dicen nada.
+  el_sin <- p_radar_publicos(vars = list(A = list("a$b")), corte = "3")
+  expect_null(el_sin$decimales)
+  expect_equal(.radar_mb_resolver(el_sin)$decimales, 0L)
 })
 
 test_that("el piso del eje estira la banda alta sin recortar ningun dato", {

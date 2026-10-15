@@ -409,6 +409,35 @@
   args_familia
 }
 
+#' Tipos de elemento cuyos decimales NO gobierna la pestaña «Cálculos».
+#'
+#' Decisión O7c (checklist-revamp-informe-graficos-2026-10-14): el saneo quita
+#' los decimales del gráfico para que mande la configuración general, pero esa
+#' configuración sólo existe para las familias de `.PRESETS_CALCULOS`. El radar,
+#' el indicador numérico, el histograma, el box plot y la media con rango no
+#' están en esa lista —la pestaña no les ofrece decimales—, así que el saneo los
+#' dejaba sin ningún dueño: el «Decimales» de su tarjeta escribía un valor que
+#' moría aquí y el control no hacía nada. Para ellos los decimales vuelven a la
+#' cascada normal `preset del tipo -> gráfico`.
+#'
+#' Es una lista de EXENCIÓN explícita y no «todo lo que no esté en
+#' `.PRESETS_CALCULOS`» a propósito: un tipo nuevo, o un bloque sin tipo, queda
+#' gobernado hasta que alguien decida lo contrario. Las familias de porcentajes
+#' (apiladas, multi, categóricas, torta, dona, agrupadas, divergentes, puntos,
+#' dumbbell, lollipop y serie temporal) siguen gobernadas: sus decimales propios
+#' piden `calculos_propios = TRUE`.
+#' @keywords internal
+.CALCULOS_TIPOS_SIN_GOBIERNO <- c(
+  "radar_tabla", "radar_publicos", "numerico", "histograma", "boxplot", "media_rango"
+)
+
+#' ¿El elemento pertenece a un tipo que la pestaña «Cálculos» no gobierna?
+#' @keywords internal
+.calculos_tipo_sin_gobierno <- function(el) {
+  tipo <- el[[".element_type"]]
+  is.character(tipo) && length(tipo) == 1L && tipo %in% .CALCULOS_TIPOS_SIN_GOBIERNO
+}
+
 #' Sanea un elemento del plan completo: sus overrides y los de sus bloques.
 #'
 #' Los bloques de una multiapilada `multilista` se renderizan cada uno con SUS
@@ -425,6 +454,12 @@
 #' @keywords internal
 .calculos_sanear_elemento <- function(el) {
   if (!is.list(el) || isTRUE(el[[".calculos_saneado"]])) return(el)
+  if (.calculos_tipo_sin_gobierno(el)) {
+    # Sin gobierno general: sólo se consume la marca, que nunca llega al graficador.
+    if (is.list(el[["overrides"]])) el[["overrides"]][["calculos_propios"]] <- NULL
+    el[[".calculos_saneado"]] <- TRUE
+    return(el)
+  }
   propios <- .calculos_campos_propios(el[["overrides"]])
   if (!is.null(el[["overrides"]])) el[["overrides"]] <- .calculos_sanear_overrides(el[["overrides"]])
   bloques <- el[["bloques"]]

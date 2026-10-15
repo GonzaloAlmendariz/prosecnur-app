@@ -94,11 +94,7 @@
     .plan_spec_abort("p_dumbbell(): `grupos` debe traer los dos grupos del cruce que se comparan.")
   }
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
-  ov <- overrides
-  ov$orden <- orden
-  ov$mostrar_brecha <- isTRUE(mostrar_brecha)
-  ov$umbral_brecha_pct <- suppressWarnings(as.numeric(umbral_brecha_pct)[1])
-  ov <- .ppt_slot_override(ov, "etiqueta_brecha", etiqueta_brecha, "texto")
+  ov <- .dumbbell_slot_overrides(overrides, orden, mostrar_brecha, umbral_brecha_pct, etiqueta_brecha)   # O7c
   el <- list(
     .element_type = "dumbbell",
     var = NULL,

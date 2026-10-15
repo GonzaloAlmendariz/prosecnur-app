@@ -100,25 +100,31 @@
 #'   declaracion de las fuentes.
 #' @param titulos_grupo Titulos de los temas, `clave -> titulo`; reemplazan la
 #'   clave de `vars` como etiqueta de la linea.
+#' @param mostrar_valores,valores_decimales,destacar_ultimo,max_series_con_cifras,mostrar_puntos,mostrar_grid_y,mostrar_leyenda
+#'   Ajustes del dibujo que viajan por `overrides`. `NULL` no opina (O7c): rige el
+#'   preset del tipo y, sin el, el defecto de `graficar_serie_temporal()` (los
+#'   mismos que tenia este constructor). `valores_decimales` lo gobierna la
+#'   pestaña «Cálculos» salvo `calculos_propios = TRUE` en `overrides`.
 #' @export
 p_serie_temporal <- function(
     vars,
     corte,
     corte_etiqueta = NULL,
     orden_periodos = NULL,
-    mostrar_valores = TRUE,
-    valores_decimales = 0L,
-    destacar_ultimo = TRUE,
+    mostrar_valores = NULL,
+    valores_decimales = NULL,
+    destacar_ultimo = NULL,
     colores_series = NULL,
     limite_y = NULL,
     titulo = NULL,
     overrides = list(),
     base = list(),
     filtros = list(),
-    max_series_con_cifras = 5L,
-    mostrar_puntos = TRUE,
-    mostrar_grid_y = TRUE,
-    titulos_grupo = NULL
+    max_series_con_cifras = NULL,
+    mostrar_puntos = NULL,
+    mostrar_grid_y = NULL,
+    titulos_grupo = NULL,
+    mostrar_leyenda = NULL
 ) {
   vars <- .graf_aplicar_titulos_grupo(vars, titulos_grupo, "p_serie_temporal()")
   if (!is.list(vars) || !length(vars)) {
@@ -153,16 +159,26 @@ p_serie_temporal <- function(
   # Los knobs del elemento viajan por `overrides` porque el render los pasa tal
   # cual al graficador; declararlos ademas como campos sueltos obligaria a
   # mantener dos listas sincronizadas.
+  #
+  # O7c: antes se escribian SIEMPRE (con los defectos TRUE/5/0), y como el render
+  # mezcla `preset -> overrides`, el preset del tipo nunca llegaba: «Aplicar a
+  # todos los graficos del tipo» no tenia efecto. Ahora solo escribe lo que el
+  # slot declara; un override explicito manda sobre el formal.
   ov <- overrides
   if (!is.null(orden_declarado)) ov$orden_periodos <- orden_declarado
   if (!is.null(colores_series)) ov$colores_series <- colores_series
   if (!is.null(limite_y)) ov$limite_y <- limite_y
-  ov$mostrar_valores <- isTRUE(mostrar_valores)
-  ov$max_series_con_cifras <- suppressWarnings(as.integer(max_series_con_cifras)[1])
-  ov$destacar_ultimo <- isTRUE(destacar_ultimo)
-  ov$mostrar_puntos <- isTRUE(mostrar_puntos)
-  ov$mostrar_grid_y <- isTRUE(mostrar_grid_y)
-  ov$valores_decimales <- .radar_mb_decimales(valores_decimales)
+  ov <- .ppt_slot_override(ov, "mostrar_valores", mostrar_valores, "bool")
+  if (!is.null(max_series_con_cifras) && is.null(ov$max_series_con_cifras)) {
+    ov$max_series_con_cifras <- suppressWarnings(as.integer(max_series_con_cifras)[1])
+  }
+  ov <- .ppt_slot_override(ov, "destacar_ultimo", destacar_ultimo, "bool")
+  ov <- .ppt_slot_override(ov, "mostrar_puntos", mostrar_puntos, "bool")
+  ov <- .ppt_slot_override(ov, "mostrar_grid_y", mostrar_grid_y, "bool")
+  ov <- .ppt_slot_override(ov, "mostrar_leyenda", mostrar_leyenda, "bool")
+  if (!is.null(valores_decimales) && is.null(ov$valores_decimales)) {
+    ov$valores_decimales <- .radar_mb_decimales(valores_decimales)
+  }
 
   el <- list(
     .element_type  = "serie_temporal",
