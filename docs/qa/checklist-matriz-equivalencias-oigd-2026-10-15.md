@@ -43,3 +43,10 @@ los cruces», y luego «lánzala» (prueba real con 2024, 2025 y 2026 en una cop
 | F10 | Las etiquetas de Kobo se muestran con su marcado (`*de la PUCP*`) en los buscadores | buscadores de Equivalencias | ☐ menor |
 | F11 | Pie del comparativo distinto de la maqueta: falta el año en «Fuente», falta «Base: …» por pregunta y sigue la línea de ponderación que Gonzalo pidió no poner | `reporte_comparativo.R` | ☑ «Fuente: Pulso PUCP 2026.», «Base: …» por pregunta (declarada o calculada), sin línea de ponderación por año; verificado sobre la matriz real |
 | F12 | El título de cada tabla del comparativo es el nombre estándar; la maqueta usa el enunciado de la pregunta | `reporte_comparativo.R` | ☑ título = enunciado declarado (campo «Enunciado en el informe»), sin marcado de Kobo |
+
+## Decisión de Gonzalo (2026-10-15): estándar de N y ponderación
+
+«Sigamos ese mismo estándar»: como en las tablas entregadas en 2024 y 2025, el total de cada tabla es el N
+ponderado (2025 cierra en 2 500 con n real 2 471; 2024 en 2 267,97) y el pie no lleva ninguna nota de
+ponderación, ni por año ni sobre el N ponderado. Sólo «Fuente: Pulso PUCP <año>.» y «Base: …». Commits
+d7085e93f y 5ab1dfcad.
