@@ -439,7 +439,7 @@ test_that("contrato HTTP de /api/carga/segmentos: montado, payload del GET/POST 
   p <- .bv_call(mount_segmentos, "POST", "/api/carga/segmentos", sid, body = .sg_edad())
   expect_true(isTRUE(p$ok))
   seg <- p$segmentos[[1]]
-  expect_identical(names(seg), c("clave", "nombre", "etiqueta", "escala", "por_base", "fila_ref"))
+  expect_identical(names(seg), c("clave", "nombre", "etiqueta", "nota", "escala", "por_base", "fila_ref"))
   expect_identical(names(seg$por_base[["2026"]]),
                    c("origen", "mapa", "estado", "n_sin_mapa", "codigos_sin_mapa"))
   json <- jsonlite::toJSON(p, auto_unbox = TRUE, null = "null")
@@ -504,4 +504,38 @@ test_that("reguardar un segmento con otra calculada en la base no choca con su p
   # Una calculada que se reemplaza tampoco ve las de después.
   expect_no_error(base_variables_guardar_calculada(sid, "2026", list(
     nombre = "edad_en_5", etiqueta = "Edad dentro de cinco años", regla = "formula", expresion = "P1 + 5")))
+})
+
+test_that("la nota de un segmento va al pie de todas las tablas que cruza (y sólo si se usa)", {
+  skip_if_not_installed("haven")
+  sid <- .sg_estudio()
+  on.exit(session_delete(sid), add = TRUE)
+  nota <- "Sexo: \"¿Cuál es tu sexo biológico?\"."
+  out <- segmentos_guardar(sid, c(.sg_sexo, list(nota = paste0("  ", nota, " "))))
+  expect_identical(.sg_seg(out, "sexo")$nota, nota)
+  segmentos_guardar(sid, .sg_edad())
+  expect_identical(segmentos_notas_de_cruces(sid, list("SEG-sexo", "SEG-edad")), nota)
+  expect_identical(segmentos_notas_de_cruces(sid, list("SEG-edad")), character(0))
+  r <- .sg_cruces_sin_cruces(sid, list(cruces = list("SEG-sexo"), notas_generales = list("Nota libre.")))
+  expect_identical(r$input$extras$notas_generales, c(nota, "Nota libre."))
+  xlsx <- session_get(sid)$files[[r$public$file_id]]$path
+  celdas <- unlist(openxlsx::read.xlsx(xlsx, colNames = FALSE, skipEmptyRows = FALSE))
+  expect_true(any(grepl("sexo biológico", celdas, fixed = TRUE)))
+  # Sin el segmento como cruce, su nota no aparece.
+  r2 <- .sg_cruces_sin_cruces(sid, list(cruces = list("SEG-edad")))
+  expect_false(nota %in% r2$input$extras$notas_generales)
+})
+
+test_that("la variable de un segmento no se edita ni se quita desde Variables de la base", {
+  skip_if_not_installed("haven")
+  sid <- .sg_estudio()
+  on.exit(session_delete(sid), add = TRUE)
+  segmentos_guardar(sid, .sg_sexo)
+  expect_identical(.sg_code(base_variables_quitar_calculada(sid, "2026", "cruce_sexo")), "E_BASE_VARIABLE_DE_SEGMENTO")
+  expect_identical(.sg_code(base_variables_guardar_calculada(sid, "2026", list(
+    nombre = "cruce_sexo", regla = "formula", expresion = "P1 + 1"))), "E_BASE_VARIABLE_DE_SEGMENTO")
+  # El segmento sí la quita al quitarse.
+  segmentos_quitar(sid, "sexo")
+  nombres <- vapply(session_get(sid)$estudio$bases[["2026"]]$variables_calculadas %||% list(), `[[`, "", "nombre")
+  expect_false("cruce_sexo" %in% nombres)
 })

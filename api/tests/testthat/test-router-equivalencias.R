@@ -99,6 +99,30 @@ test_that("una edición manual previa se conserva y se reporta, no se pisa", {
   expect_equal(resumen$estudiantes$aplicadas, 2L)
 })
 
+test_that("una etiqueta que escribió la matriz se actualiza al renombrar la fila; la manual se conserva", {
+  sid <- .req_setup("separate")
+  on.exit(session_delete(sid), add = TRUE)
+  antes <- .req_equiv()
+  .equiv_aplicar_a_analitica(sid, antes)
+  despues <- antes
+  despues$filas[[1]]$etiqueta_estandar <- "Nombre nuevo de la fila"
+  var_doc <- despues$filas[[1]]$variables[["docentes"]]
+  resumen <- .equiv_aplicar_a_analitica(sid, despues, antes)
+  s <- session_get(sid)
+  # La había escrito la matriz: se actualiza, no se cuenta como edición manual.
+  expect_equal(s$analitica_config_por_base$docentes$datos$variable_labels[[var_doc]], "Nombre nuevo de la fila")
+  expect_equal(resumen$docentes$conservadas, 0L)
+  # Una edición manual posterior sí se conserva en el siguiente renombre.
+  cfg <- s$analitica_config_por_base
+  cfg$docentes$datos$variable_labels[[var_doc]] <- "Escrita a mano"
+  session_set(sid, "analitica_config_por_base", cfg)
+  otra <- despues
+  otra$filas[[1]]$etiqueta_estandar <- "Tercer nombre"
+  r3 <- .equiv_aplicar_a_analitica(sid, otra, despues)
+  expect_equal(session_get(sid)$analitica_config_por_base$docentes$datos$variable_labels[[var_doc]], "Escrita a mano")
+  expect_equal(r3$docentes$conservadas, 1L)
+})
+
 test_that("el estado reporta desfase cuando el instrumento cambió tras importar", {
   sid <- .req_setup("separate")
   on.exit(session_delete(sid), add = TRUE)

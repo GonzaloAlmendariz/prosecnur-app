@@ -15,6 +15,7 @@ import { avisoNoListable } from "../codigosObservadosModel";
 import { observadosListos, type LecturaCodigosObservados } from "../useCodigosObservados";
 import { PreguntaOrigen } from "../variablesBase/SelectorPreguntas";
 import { MapaPorRangos } from "../MapaPorRangos";
+import { hrefVariablesBase } from "../variablesBase/variablesBaseModel";
 import { EstadoChip } from "./EstadoChip";
 import {
   TEXTO_ESTADO_BORRADOR,
@@ -195,7 +196,11 @@ export function SegmentoEnBase({
 
       {!origen ? (
         // C3: el vacío es de esta base y dice qué significa.
-        <p className="pulso-armon-ayuda">Sin origen, el segmento queda vacío en {base}.</p>
+        <p className="pulso-armon-ayuda">
+          Sin origen, el segmento queda vacío en {base}. ¿{base} no tiene la variable? Créala con una fórmula o una
+          recodificación en <a className="pulso-vb-enlace" href={hrefVariablesBase(base)}>Variables de la base de {base}</a> y
+          vuelve aquí.
+        </p>
       ) : (
         <>
           {ausente && (

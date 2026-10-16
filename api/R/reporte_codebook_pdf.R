@@ -323,8 +323,14 @@
     as.character(lb)
   }
   blocks <- list()
+  # Las preguntas sin lista también entran, con su línea de contenido
+  # (reporte_codebook_sin_lista.R), igual que en el Excel.
+  sin_lista <- .codebook_vars_sin_lista(df)
   for (v in names(df)) {
     vl <- .panel_codebook_value_labels(df, v, ord = ord, codigos_cond_chr = codigos_cond_chr)
+    if ((is.null(vl) || !length(vl$codes)) && v %in% sin_lista) {
+      vl <- list(codes = "", labels = codebook_descripcion_sin_lista(df[[v]]))
+    }
     if (is.null(vl) || !length(vl$codes)) next
     blocks[[length(blocks) + 1L]] <- list(
       name   = v,

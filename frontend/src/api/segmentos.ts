@@ -41,6 +41,8 @@ export type Segmento = {
   /** Nombre estándar en todas las bases: `cruce_<clave>`. */
   nombre: string;
   etiqueta: string;
+  /** Nota al pie de toda tabla cruzada por el segmento («» si no tiene). */
+  nota?: string;
   escala: CategoriaSegmento[];
   por_base: Record<string, SegmentoEnBase>;
   /** Fila de la matriz que lo representa (id o índice), si existe. */
@@ -133,6 +135,7 @@ export function normalizarSegmento(raw: Record<string, unknown>): Segmento | nul
     clave,
     nombre,
     etiqueta: texto(raw.etiqueta) || nombre,
+    nota: texto(raw.nota),
     escala: normalizarEscala(raw.escala),
     por_base: normalizarPorBase(raw.por_base),
     fila_ref: texto(raw.fila_ref),
@@ -171,6 +174,8 @@ export type SegmentoEnBaseADeclarar = { origen: string; mapa: Record<string, str
 export type SegmentoADeclarar = {
   clave: string;
   etiqueta: string;
+  /** Nota al pie de toda tabla cruzada por el segmento. */
+  nota?: string;
   escala: CategoriaSegmento[];
   por_base: Record<string, SegmentoEnBaseADeclarar>;
 };

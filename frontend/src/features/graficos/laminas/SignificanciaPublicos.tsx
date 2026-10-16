@@ -11,10 +11,11 @@ type Props = { args: Record<string, unknown>; onCambio: (patch: Record<string, u
 
 /**
  * Los temas de la matriz que se pueden comparar: confirmados y en dos públicos o más. Un indicador compuesto (ADR 0105)
- * no entra: su columna sólo existe en los comparativos, no en los datos de Gráficos.
+ * no entra: su columna sólo existe en los comparativos, no en los datos de Gráficos. Un segmento de cruce (ADR 0107)
+ * tampoco: es una variable de cruce, no un tema, igual que en los comparativos.
  */
 export function temasComparables(filas: readonly EquivalenciaFila[]): EquivalenciaFila[] {
-  return filas.filter((f) => !f.sugerida && !f.derivada && f.etiqueta_estandar.trim() && Object.values(f.variables).filter(Boolean).length >= 2);
+  return filas.filter((f) => !f.sugerida && !f.derivada && !f.cruce && f.etiqueta_estandar.trim() && Object.values(f.variables).filter(Boolean).length >= 2);
 }
 
 /** Las preguntas de un tema, una por público, como las guarda el gráfico (`base$variable`). */

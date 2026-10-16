@@ -1956,7 +1956,8 @@ isTRUE_vec <- function(x) {
                           (tipo == "select_multiple" && nzchar(text_col)) ||
                           (tipo == "text")) &&
                          !nzchar(.codif_columna_faltante(r, names(data_df))$motivo),
-      motivo_omision = .codif_motivo_plan(r, names(data_df))$mensaje
+      motivo_omision = .codif_motivo_plan(r, names(data_df))$mensaje,
+      motivo_codigo = .codif_motivo_plan(r, names(data_df))$motivo
     )
   }
 
@@ -2068,7 +2069,8 @@ isTRUE_vec <- function(x) {
   invisible(s)
 }
 
-.codif_apply_complete <- function(sid, base_name, paths) {
+.codif_apply_complete <- function(sid, base_name, paths, data_fid_partida = NULL) {
+  codificacion_verificar_respuestas_de_partida(sid, base_name, data_fid_partida)
   data_meta <- .register_output_file(sid, "data_adaptada", paths$data_out)
   inst_meta <- .register_output_file(sid, "instrumento_adaptado", paths$inst_out)
   inst_adaptado <- reporte_instrumento(path = inst_meta$path)
@@ -2104,6 +2106,8 @@ isTRUE_vec <- function(x) {
     codif_set(sid, "data", NULL, source = target_base)
     codif_set(sid, "inst", NULL, source = target_base)
     codif_set(sid, "aplicado", TRUE, source = target_base)
+    # Recién adaptada: ya no hay cambio de base pendiente (codificacion_readaptar.R).
+    codif_set(sid, "readaptar_desde", NULL, source = target_base)
   }
   # Migra proyectos creados antes del estado scoped: si una base ya conserva
   # un par adaptado válido, su estado por base se reconstruye desde los archivos.
@@ -2497,12 +2501,14 @@ mount_codificacion <- function(pr) {
           else "select_one_sin_modo"
         } else tipo
         recoded <- codif_get(sid, "respuestas_recod", source = source)[[parent]] %||% list()
-        n_cod <- length(recoded)
         # La regla vive en codificacion_decisiones.R: `/aplicar` la necesita
         # igual y recalcularla allá crearía una segunda taxonomía (ADR 0078).
+        mat <- .codif_material_de_pregunta(r, data_df, stats, length(recoded),
+                                           en_otro = .codif_textos_en_otro_todos(sid, source = source)[[parent]])
+        n_cod <- mat$n_codificadas
         status <- .codif_status_de_pregunta(
           tipo = tipo, modo_so = modo_so, use_flag = use_flag,
-          n_respuestas = stats$n_respuestas, n_unicas = stats$n_unicas,
+          n_respuestas = mat$n_respuestas, n_unicas = mat$n_unicas,
           n_codificadas = n_cod
         )
 
@@ -3124,7 +3130,7 @@ mount_codificacion <- function(pr) {
       # plan vacío mostrando "No hay preguntas con grupos codificados", y
       # el campo `warning` queda disponible para debug.
       sid <- session_header(req)
-      tryCatch(.compute_plan_adaptacion(sid), error = function(e) {
+      plan <- tryCatch(.compute_plan_adaptacion(sid), error = function(e) {
         list(
           ok = TRUE, preguntas = list(),
           totales = list(
@@ -3134,6 +3140,8 @@ mount_codificacion <- function(pr) {
           warning = conditionMessage(e)
         )
       })
+      plan$respuestas_cambiaron <- codificacion_respuestas_cambiaron(sid)
+      plan
     })) |>
     plumber::pr_post("/api/codificacion/aplicar", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
@@ -3265,6 +3273,9 @@ mount_codificacion <- function(pr) {
       # Capturar ahora: el analista puede cambiar la base activa mientras el
       # job trabaja. La finalización debe reemplazar la base que lanzó el job.
       target_base <- codif_source_active(sid)
+      # Y las respuestas de las que parte: si se reemplazan mientras corre, el
+      # resultado ya no corresponde y no debe pisar la base nueva.
+      data_fid_partida <- as.character((((s$estudio %||% list())$bases %||% list())[[target_base]] %||% list())$data_file_id %||% "")
 
       job_id <- job_submit(
         sid = sid,
@@ -3285,7 +3296,7 @@ mount_codificacion <- function(pr) {
           agrupaciones = codif_agrupaciones_para_aplicar(sid, target_base)
         ),
         on_complete = function(j) {
-          .codif_apply_complete(j$sid, target_base, j$result_data)
+          .codif_apply_complete(j$sid, target_base, j$result_data, data_fid_partida = data_fid_partida)
         }
       )
       # ADR 0078, invariante 5: aplicar deja constancia de qué variables se
@@ -3316,7 +3327,8 @@ mount_codificacion <- function(pr) {
         error = diag_fallo("las preguntas omitidas")
       )
       textos_sin_codigo <- tryCatch(
-        .codif_textos_sin_codigo(bridge$patched, grupos_map, draft$rows, data_adapt_df),
+        .codif_textos_sin_codigo(bridge$patched, grupos_map, draft$rows, data_adapt_df,
+                                 en_otro = .codif_textos_en_otro_todos(sid, source = target_base)),
         error = diag_fallo("los textos sin código")
       )
 

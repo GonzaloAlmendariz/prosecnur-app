@@ -24,6 +24,7 @@ const control = (estado: Partial<EstadoVariablesBase>): ControlVariablesBase => 
   declarar: sinAccion,
   guardarCalculada: sinAccion,
   quitarCalculada: async () => undefined,
+  recargar: async () => undefined,
   marcarCodificada: async () => undefined,
 });
 const cuerpo = (estado: Partial<EstadoVariablesBase>) =>
@@ -39,7 +40,9 @@ describe("Variables de la base", () => {
   it("base sin nada propio: cada sección contiene su vacío (C3) y el grupo se declara (C1)", () => {
     const html = cuerpo({ carga: { tipo: "listo", datos: datos() } });
     expect(html).toContain('data-qa-geometry-group="carga/variables-base"');
-    expect((html.match(/data-qa-geometry-member/g) ?? []).length).toBe(3);
+    // Columnas propias, columnas desde otro archivo, calculadas y «ya viene codificada».
+    expect((html.match(/data-qa-geometry-member/g) ?? []).length).toBe(4);
+    expect(html).toContain("Columnas desde otro archivo");
     expect(html).toContain("La base no trae columnas fuera del formulario.");
     expect(html).toContain("Ninguna todavía. Combina varias preguntas, recodifica una o escribe una fórmula.");
     expect(html).toContain("Esta base ya viene codificada");

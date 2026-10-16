@@ -1,0 +1,21 @@
+/* Codificación › Adaptar: preguntas que quedan fuera, con su acción. Sólo tokens `--pulso-*`. */
+.pulso-codif-omitidas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+}
+
+.pulso-codif-omitida-motivo {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-codif-omitida-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-top: 4px;
+}
