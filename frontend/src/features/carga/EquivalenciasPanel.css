@@ -608,6 +608,28 @@ button.pulso-equiv-chip-escala:hover,
 
 button.pulso-equiv-escala { cursor: pointer; }
 
+/* La escala común bajo el estado: cómo quedó armonizada la fila, en dos líneas
+   como mucho; la lista entera va en el `title`. */
+.pulso-equiv-escala-celda {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pulso-equiv-escala-resumen {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--pulso-text-faint);
+  overflow-wrap: anywhere;
+}
+
 button.pulso-equiv-escala:hover:not(:disabled) { border-color: var(--module-accent-border); }
 
 button.pulso-equiv-escala:disabled {

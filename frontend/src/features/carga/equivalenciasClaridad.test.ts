@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 import type { Armonizacion } from "../../api/equivalencias";
-import { estadoArmonizacion, estadoDeBase, explicacionArmonizacion } from "./armonizacionModel";
+import { estadoArmonizacion, estadoDeBase, explicacionArmonizacion, resumenDeEscala } from "./armonizacionModel";
 import { anchoColumnaPublico, anchoMinimoLista, coberturaDeBases } from "./equivalenciasAnchos";
 import { basesNombranAnio, nombreDeSerie, nombreDeSerieDeBases, pareceAnio, rotuloPorDefecto } from "./nombreDeSerie";
 
@@ -64,6 +64,19 @@ describe("chip de armonización", () => {
     ]) {
       expect(t).not.toMatch(/[—·;]/);
     }
+  });
+
+  test("la escala común se resume en una línea para leerla bajo el estado", () => {
+    const tramos: Armonizacion = {
+      escala: [
+        { codigo: "0", etiqueta: "Primer año" },
+        { codigo: "1", etiqueta: "1 a 2 años" },
+        { codigo: "5", etiqueta: " " },
+      ],
+      por_base: {},
+    };
+    expect(resumenDeEscala({ armonizacion: tramos })).toBe("Primer año · 1 a 2 años · 5");
+    expect(resumenDeEscala({ armonizacion: null })).toBe("");
   });
 
   test("estado de una base en el índice del editor", () => {

@@ -109,6 +109,17 @@ export function explicacionArmonizacion(estado: EstadoArmonizacion, serie: Nombr
   }
 }
 
+/**
+ * La escala común de una fila armonizada, en una línea: «Primer año · 1 a 2
+ * años · …». Va bajo el estado para que se vea CÓMO quedó armonizada sin abrir
+ * el editor: «Año de ingreso» armonizada como tramos de antigüedad decía sólo
+ * «Armonizada» y se leía como si comparara años (2026-10-16).
+ */
+export function resumenDeEscala(fila: { armonizacion?: Armonizacion | null }): string {
+  const escala = fila.armonizacion?.escala ?? [];
+  return escala.map((o) => o.etiqueta.trim() || o.codigo).join(" · ");
+}
+
 /** Estado de cada base dentro del borrador, para el índice del editor. */
 export type EstadoBaseBorrador = "comparable" | "no-comparable" | "sin-declarar";
 
