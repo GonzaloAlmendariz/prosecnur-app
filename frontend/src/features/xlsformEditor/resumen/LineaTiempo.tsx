@@ -1,13 +1,16 @@
 // «Recorrido en el tiempo»: la duración estimada partida en un tramo por sección, proporcional a sus minutos, con
 // marcas de minuto debajo. Las secciones pesadas resaltan; el resto alterna dos tonos para que los tramos vecinos se
-// distingan. Cada tramo dice su sección y sus minutos al pasar el puntero o al enfocarlo, y abre la sección.
+// distingan. Cada tramo dice su sección y sus minutos al pasar el puntero o al enfocarlo; el clic resalta su fila en
+// la tabla de secciones y la trae a la vista, sin salir de «Resumen» (ítem 50).
 
 import { duracion, marcasDeMinutos, type FilaSeccion } from "./modeloResumen";
 
-export function LineaTiempo({ filas, segundos, onAbrir }: {
+export function LineaTiempo({ filas, segundos, resaltada, onResaltar }: {
   filas: readonly FilaSeccion[];
   segundos: number;
-  onAbrir: (fila: FilaSeccion) => void;
+  /** Id de la sección cuyo tramo está resaltado, o null. */
+  resaltada: string | null;
+  onResaltar: (fila: FilaSeccion) => void;
 }) {
   const tramos = filas.filter((f) => f.segundos > 0);
   const marcas = marcasDeMinutos(segundos);
@@ -25,11 +28,11 @@ export function LineaTiempo({ filas, segundos, onAbrir }: {
             <li key={f.id} style={{ flexGrow: f.segundos }} data-qa-geometry-member="">
               <button
                 type="button"
-                className={`pulso-xf-res-tramo${f.pesada ? " is-pesada" : i % 2 ? " is-par" : ""}`}
+                className={`pulso-xf-res-tramo${f.pesada ? " is-pesada" : i % 2 ? " is-par" : ""}${resaltada === f.id ? " is-resaltado" : ""}`}
                 title={texto}
-                aria-label={`${texto}. Abrir en el Constructor`}
-                onClick={() => onAbrir(f)}
-                disabled={!f.name}
+                aria-label={`${texto}. Ver su fila en la tabla de secciones`}
+                aria-pressed={resaltada === f.id}
+                onClick={() => onResaltar(f)}
               >
                 <span>{f.name || f.rotulo}</span>
               </button>

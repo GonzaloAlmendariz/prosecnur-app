@@ -9,13 +9,14 @@
 //     previa del impreso), con su enlace;
 //   - la composición en barras apiladas de UN sistema de color;
 //   - las secciones como tabla ordenable con su peso, dueña de su scroll.
-// Las cifras salen de `resumen/modeloResumen.ts`. Elegir una sección o una
-// pregunta lleva al Constructor (`onSelectRow` / `onIrAPregunta`).
+// Las cifras salen de `resumen/modeloResumen.ts`. Su propósito es DIAGNOSTICAR
+// (ítem 50): una fila de la tabla se despliega ahí mismo con sus preguntas (la
+// abierta es el `foco`), un tramo del recorrido resalta su fila, y al
+// Constructor sólo se va con el «Editar» de cada pregunta o con los botones de
+// «Qué falta», que ya dicen adónde llevan. Una pestaña no se cierra.
 // =============================================================================
 
-import { useEffect, useMemo } from "react";
-import { createPortal } from "react-dom";
-import { ChevronLeft, X } from "../../../vendor/lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import type { BuilderDiagnostic, BuilderStructure, XlsformEditorWorkbook } from "../types";
 import { buildCatalogs } from "../parsing/buildIndex";
 import { BarraComposicion } from "../resumen/BarraComposicion";
@@ -29,7 +30,9 @@ import {
   resumirFormulario,
   type AccionPendiente,
 } from "../resumen/modeloResumen";
+import { claveSeccion, preguntasDeSeccion } from "../resumen/preguntasDeSeccion";
 import { usePreviaImpreso } from "../impreso/storePrevia";
+import { alternarFicha } from "./detalleEnSitio";
 import "../styles/xf-summary.css";
 
 /** Lo que el editor sabe fuera de la estructura: lógica, listas, impreso y adónde llevar cada cosa. */
@@ -46,15 +49,15 @@ export type ContextoResumen = {
 };
 
 export type FormSummaryViewProps = {
-  open: boolean;
-  onClose: () => void;
   workbook: XlsformEditorWorkbook;
   structure: BuilderStructure | null;
   diagnostics: BuilderDiagnostic[];
+  /** «Ir al primero» de los avisos en «Qué falta»: una acción explícita hacia el Constructor. */
   onSelectRow?: (rowIndex: number) => void;
   contexto: ContextoResumen;
-  /** Dentro de una pestaña del editor: sin portal, sin «Volver» ni «Cerrar», y Esc no cierra. */
-  embebido?: boolean;
+  /** Clave de la sección desplegada en la tabla (el `foco` de la dirección), o null. */
+  seccionAbierta: string | null;
+  onSeccionAbierta: (clave: string | null) => void;
 };
 
 function readFormTitle(workbook: XlsformEditorWorkbook): string {
@@ -66,29 +69,23 @@ function readFormTitle(workbook: XlsformEditorWorkbook): string {
 type Cifra = { clave: string; rotulo: string; valor: string; detalle: string };
 
 export function FormSummaryView({
-  open,
-  onClose,
-  embebido = false,
   workbook,
   structure,
   diagnostics,
   onSelectRow,
   contexto,
+  seccionAbierta,
+  onSeccionAbierta,
 }: FormSummaryViewProps) {
-  useEffect(() => {
-    if (!open || embebido) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, embebido, onClose]);
-
   const formTitle = useMemo(() => readFormTitle(workbook), [workbook]);
-  const resumen = useMemo(
-    () => resumirFormulario(structure, buildCatalogs(workbook.choices)),
-    [structure, workbook],
+  const catalogos = useMemo(() => buildCatalogs(workbook.choices), [workbook]);
+  const resumen = useMemo(() => resumirFormulario(structure, catalogos), [structure, catalogos]);
+  const preguntasDe = useCallback(
+    (seccionId: string) => preguntasDeSeccion(structure, catalogos, seccionId),
+    [structure, catalogos],
   );
+  // El tramo pedido en el «Recorrido en el tiempo»: su fila se resalta y se trae a la vista.
+  const [resaltada, setResaltada] = useState<{ id: string; clave: string } | null>(null);
 
   const previa = usePreviaImpreso();
   const estadoImpreso: "sin-previa" | "al-dia" | "vieja" =
@@ -159,35 +156,20 @@ export function FormSummaryView({
     },
   ];
 
-  if (!open) return null;
-
-  const vista = (
+  return (
     <div
-      className={`pulso-graph-overlay pulso-xfsum-overlay${embebido ? " is-embebido" : " pulso-xf-overlay-enter"}`}
-      role={embebido ? "region" : "dialog"}
-      aria-modal={embebido ? undefined : true}
+      className="pulso-graph-overlay pulso-xfsum-overlay is-embebido"
+      role="region"
       aria-label="Resumen del formulario"
       data-audit-ready="xlsform-resumen"
     >
       <header className="pulso-graph-header">
         <div className="pulso-graph-header-left">
-          {!embebido && (
-            <button type="button" className="pulso-graph-back" onClick={onClose}>
-              <ChevronLeft size={14} /> Volver al editor
-            </button>
-          )}
           <div className="pulso-graph-header-title">
             <strong>Resumen</strong>
             <span>{formTitle || "Formulario sin título"}</span>
           </div>
         </div>
-        {!embebido && (
-          <div className="pulso-graph-header-right">
-            <button type="button" className="pulso-icon" onClick={onClose} aria-label="Cerrar resumen" title="Cerrar">
-              <X size={14} />
-            </button>
-          </div>
-        )}
       </header>
 
       <div className="pulso-xf-res" data-qa-scroll-owner="resumen">
@@ -205,7 +187,8 @@ export function FormSummaryView({
         <LineaTiempo
           filas={resumen.filasSecciones}
           segundos={resumen.segundos}
-          onAbrir={(fila) => { if (fila.name) contexto.onIrAPregunta(fila.name); }}
+          resaltada={resaltada?.id ?? null}
+          onResaltar={(fila) => setResaltada({ id: fila.id, clave: claveSeccion(fila) })}
         />
 
         <div className="pulso-xf-res-cuerpo" data-qa-geometry-group="xlsform/resumen-cuerpo" data-qa-geometry-contract="intrinsic">
@@ -247,11 +230,17 @@ export function FormSummaryView({
           <TablaSecciones
             filas={resumen.filasSecciones}
             kindDe={(id) => structure?.sections.get(id)?.kind ?? "root"}
-            onAbrir={(fila) => { if (fila.name) contexto.onIrAPregunta(fila.name); }}
+            abierta={seccionAbierta}
+            onAlternar={(clave) => {
+              setResaltada(null);
+              onSeccionAbierta(alternarFicha(seccionAbierta, clave));
+            }}
+            resaltada={resaltada?.clave ?? null}
+            preguntasDe={preguntasDe}
+            onEditarPregunta={contexto.onIrAPregunta}
           />
         </div>
       </div>
     </div>
   );
-  return embebido ? vista : createPortal(vista, document.body);
 }

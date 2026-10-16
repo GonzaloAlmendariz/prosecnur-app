@@ -647,7 +647,8 @@ export default function XlsformEditorPage() {
    *  dirección manda (`?pestana=`). Constructor y Hojas leen el mismo
    *  workbook, así que un cambio en una se ve en la otra. */
   const pestanaEditor = usePestanaEditor();
-  const { pestana, ir: irPestana, irAPregunta } = pestanaEditor;
+  const { pestana, ir: irPestana, irAPregunta, fijarFoco } = pestanaEditor; // ítem 50: una ficha abierta es el `foco`, sin apilar historial
+  const fijarFocoEnSitio = useCallback((valor: string | null) => fijarFoco(valor, { replace: true }), [fijarFoco]);
   /** Editor de listas (ContextLens de catálogos): panel direccionable. */
   const catalogosPanel = usePanelDireccionable(PANEL_CATALOGOS);
   const catalogsLensOpen = catalogosPanel.abierto;
@@ -3513,7 +3514,9 @@ export default function XlsformEditorPage() {
                 structure={structure}
                 logicaPendiente={deriveEditorHeaderStatus(diagnostics, activeFormId ? publicationUi.byFormId[activeFormId] ?? null : null, source).logicStepPending}
                 onRevisarLogica={activeFormId ? () => { void openFormLogicReview(activeFormId); } : undefined}
-                onIrAPregunta={irAPregunta}
+                abierta={pestanaEditor.foco}
+                onAbrir={fijarFocoEnSitio}
+                onEditar={irAPregunta}
               />
             )}
             {/* El mapa queda montado aunque se cambie de pestaña: conserva zoom y
@@ -3521,10 +3524,9 @@ export default function XlsformEditorPage() {
             <LogicCanvas
               embebido
               open={pestana === "logica"}
-              onClose={() => irPestana("constructor")}
               structure={structure}
               catalogs={catalogs}
-              onSelectRow={irAFila}
+              onEditarEnConstructor={irAFila}
               acciones={(
                 <button
                   type="button"
@@ -3555,20 +3557,17 @@ export default function XlsformEditorPage() {
             />
             {pestana === "filtros" && (
               <ChoiceFiltersView
-                embebido
                 open
-                onClose={() => irPestana("constructor")}
                 structure={structure}
                 choicesColumns={workbook.choices.columns}
                 choicesRows={workbook.choices.rows}
-                onSelectRow={irAFila}
+                seleccionada={pestanaEditor.foco}
+                onSeleccionar={fijarFocoEnSitio}
+                onEditar={irAFila}
               />
             )}
             {pestana === "probar" && (
               <FormSimulator
-                embebido
-                open
-                onClose={() => irPestana("constructor")}
                 workbook={workbook}
                 structure={structure}
                 onEditRow={irAFila}
@@ -3576,13 +3575,12 @@ export default function XlsformEditorPage() {
             )}
             {pestana === "resumen" && (
               <FormSummaryView
-                embebido
-                open
-                onClose={() => irPestana("constructor")}
                 workbook={workbook}
                 structure={structure}
                 diagnostics={diagnostics}
                 onSelectRow={irAFila}
+                seccionAbierta={pestanaEditor.foco}
+                onSeccionAbierta={fijarFocoEnSitio}
                 contexto={contextoResumen(
                   deriveEditorHeaderStatus(diagnostics, activeFormId ? publicationUi.byFormId[activeFormId] ?? null : null, source),
                   {
@@ -3610,6 +3608,7 @@ export default function XlsformEditorPage() {
                 onParte={(parte) => pestanaEditor.fijarFoco(parte)}
                 onExportar={(formato, opciones) => { void onExportForm(formato, opciones); }}
                 onIrAPregunta={irAPregunta}
+                onCampoPapel={updateSurveyField}
                 ocupado={busy}
               />
             )}

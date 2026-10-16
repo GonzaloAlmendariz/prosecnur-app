@@ -5,6 +5,8 @@
 // Plegado por defecto; abierto si la fila ya trae algún ajuste. El padre lo
 // monta con `key` por fila para que el plegado se recalcule al cambiar de nodo.
 // Cada input toma su nombre accesible del rótulo de `InspectorField`.
+// Con `plegable={false}` (la fila abierta de «Impreso › Papel por pregunta»,
+// ítem 50) los campos van sueltos: ahí la ficha entera ya es «ajustes de papel».
 // =============================================================================
 
 import { useState } from "react";
@@ -17,11 +19,15 @@ import { opcionesLayoutImpreso } from "./paperLayout";
 export function PaperSettingsBlock({
   node,
   onFieldChange,
+  plegable = true,
 }: {
   node: BuilderNode;
   onFieldChange: (field: string, value: string) => void;
+  plegable?: boolean;
 }) {
   const [open, setOpen] = useState(() => hasPaperOverrides(node));
+  const campos = <CamposPapel node={node} onFieldChange={onFieldChange} />;
+  if (!plegable) return <InspectorBlock>{campos}</InspectorBlock>;
 
   return (
     <InspectorBlock>
@@ -31,6 +37,21 @@ export function PaperSettingsBlock({
         onToggle={(event) => setOpen(event.currentTarget.open)}
       >
         <summary>Ajustes de papel</summary>
+        {campos}
+      </details>
+    </InspectorBlock>
+  );
+}
+
+function CamposPapel({
+  node,
+  onFieldChange,
+}: {
+  node: BuilderNode;
+  onFieldChange: (field: string, value: string) => void;
+}) {
+  return (
+    <>
         <InspectorField
           label={<>Número visible <TechTerm t="paper_number" /></>}
           hint="Vacío = el PDF lo numera solo."
@@ -139,7 +160,6 @@ export function PaperSettingsBlock({
             </select>
           )}
         </InspectorField>
-      </details>
-    </InspectorBlock>
+    </>
   );
 }

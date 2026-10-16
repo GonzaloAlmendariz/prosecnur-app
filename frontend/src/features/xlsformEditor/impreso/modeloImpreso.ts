@@ -85,6 +85,28 @@ export function filasConPapel(structure: BuilderStructure | null): FilaConPapel[
   return filas;
 }
 
+/**
+ * Filas que muestra «Papel por pregunta»: las que traen ajustes y, además, la abierta (ítem 50) aunque todavía no
+ * tenga ninguno o acabe de borrar el último: la ficha que se está editando no desaparece bajo el cursor.
+ */
+export function filasPapelVisibles(structure: BuilderStructure | null, abierta: number | null): FilaConPapel[] {
+  const filas = filasConPapel(structure);
+  if (abierta == null || filas.some((f) => f.rowIndex === abierta)) return filas;
+  const nodo = structure?.byRow.get(abierta);
+  if (!nodo) return filas;
+  return [...filas, { rowIndex: nodo.rowIndex, name: nodo.name, label: nodo.label, columnas: [] }]
+    .sort((a, b) => a.rowIndex - b.rowIndex);
+}
+
+/** Filas que todavía no traen ajustes de papel: las que se pueden ajustar desde «Impreso». Los cálculos no se imprimen. */
+export function filasSinPapel(structure: BuilderStructure | null): Omit<FilaConPapel, "columnas">[] {
+  if (!structure) return [];
+  const conPapel = new Set(filasConPapel(structure).map((f) => f.rowIndex));
+  return structure.outline
+    .filter((n) => n.kind !== "calculate" && n.name && !conPapel.has(n.rowIndex))
+    .map((n) => ({ rowIndex: n.rowIndex, name: n.name, label: n.label }));
+}
+
 // ── Resúmenes de una línea ──────────────────────────────────────────────────
 
 function columnasCorto(columns: PdfDialogState["columns"]): string {

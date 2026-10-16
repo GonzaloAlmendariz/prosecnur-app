@@ -13,7 +13,8 @@
 //   * Drag fondo            → pan.
 //   * Wheel sobre lienzo    → zoom.
 //   * Click sección         → toggle expandir/colapsar.
-//   * Click pregunta        → la selecciona y atenúa los no relacionados.
+//   * Click pregunta        → la selecciona, atenúa los no relacionados y abre
+//                            su panel (`DetalleNodo`); nunca sale del Mapa.
 //   * Click fondo           → deselecciona.
 //   * Drag desde anchor →   → escribe `relevant` en el destino con
 //                            `${source} != ''`. Sin picker (solo hay un
@@ -46,18 +47,21 @@ import { GraphNodeCard } from "./GraphNodeCard";
 import { CanvasToolbar } from "./CanvasToolbar";
 import { ConnectionConditionPicker } from "./ConnectionConditionPicker";
 import { GraphEdgeArrow, GraphEdgeMarkers } from "./GraphEdgeArrow";
-import { stripMarkdown } from "../helpers/markdown";
+import { DetalleNodo, compactTitle, nodeDisplayName } from "./DetalleNodo";
+import { desplazamientoParaMostrar } from "./encuadreNodo";
 import "../styles/xf-graph.css";
 
 export type LogicCanvasProps = {
   open: boolean;
-  onClose: () => void;
+  /** Sólo el overlay (Carga) se cierra; embebido en una pestaña del editor no hay «Cerrar» (ítem 50). */
+  onClose?: () => void;
   structure: BuilderStructure | null;
   catalogs: CatalogSummary[];
   readOnly?: boolean;
   title?: string;
   backLabel?: string;
-  onSelectRow?: (rowIndex: number) => void;
+  /** «Editar en Constructor» del panel del nodo: la única salida del Mapa al Constructor. */
+  onEditarEnConstructor?: (rowIndex: number) => void;
   /** Escribe la expresión de visibilidad (`relevant`) cuando el usuario
    *  declara una nueva conexión via drag-arrow. */
   onSetRelevant?: (rowIndex: number, expression: string) => void;
@@ -75,7 +79,7 @@ export function LogicCanvas({
   readOnly = false,
   title = "Mapa de lógica",
   backLabel = "Volver al editor",
-  onSelectRow,
+  onEditarEnConstructor,
   onSetRelevant,
   embebido = false,
   acciones,
@@ -245,7 +249,7 @@ export function LogicCanvas({
             setSelectedId(null);
           } else if (legendOpen) {
             setLegendOpen(false);
-          } else if (!embebido) {
+          } else if (!embebido && onClose) {
             onClose();
           }
           event.preventDefault();
@@ -310,25 +314,22 @@ export function LogicCanvas({
     setConfirmingDelete(false);
   }, [selectedEdgeIdx]);
 
-  // Al seleccionar un nodo, si su card quedó fuera (o casi fuera) del
-  // viewport, desplazamos para centrarlo — así "saltar" a un nodo del
-  // detalle o del editor siempre lo trae a la vista. Si ya está cómodo
-  // en pantalla, no movemos nada (evita re-centrados molestos al click).
+  // Al seleccionar un nodo, si su card no se ve completa —fuera del lienzo o
+  // bajo el panel del nodo, que se superpone arriba a la derecha—, el lienzo
+  // se desplaza lo justo para dejarla entera a la izquierda del panel, con
+  // aire. Si ya se ve, no se mueve (`encuadreNodo.ts`).
   useEffect(() => {
     if (!selectedId || !layout || !svgRef.current) return;
     const n = layout.nodes.find((nd) => nd.node.id === selectedId && nd.visible);
     if (!n) return;
     const rect = svgRef.current.getBoundingClientRect();
-    const sx = n.x * zoom + pan.x;
-    const sy = n.y * zoom + pan.y;
-    const sw = n.width * zoom;
-    const sh = Math.min(n.height, 88) * zoom;
-    const m = 48;
-    const offscreen =
-      sx < m || sy < m || sx + sw > rect.width - m || sy + sh > rect.height - m;
-    if (offscreen) {
+    const panel = svgRef.current.closest(".pulso-graph-body")?.querySelector(".pulso-graph-detail");
+    const panelIzq = panel ? panel.getBoundingClientRect().left - rect.left : rect.width;
+    const nodo = { x: n.x * zoom + pan.x, y: n.y * zoom + pan.y, ancho: n.width * zoom, alto: Math.min(n.height, 88) * zoom };
+    const mover = desplazamientoParaMostrar(nodo, { x: 0, y: 0, ancho: Math.max(0, panelIzq), alto: rect.height }, 40);
+    if (mover) {
       triggerSmooth();
-      centerOnNode(selectedId);
+      setPan((p) => ({ x: p.x + mover.dx, y: p.y + mover.dy }));
     }
     // Solo al cambiar la selección: pan/zoom se leen del closure actual a
     // propósito (no queremos re-centrar en cada pan).
@@ -425,14 +426,6 @@ export function LogicCanvas({
       .replace(/\s+/g, " ")
       .trim();
     return s.length > 52 ? `${s.slice(0, 52)}…` : s;
-  };
-  // Título humano LIMPIO (sin markdown crudo `**…**` ni el `(name)`
-  // embutido). El `name` técnico se muestra aparte en su propia línea
-  // mono para no mezclar identidad legible con referencia XLSForm.
-  const nodeDisplayName = (node: GraphNode): string => {
-    const title = stripMarkdown(node.title || "").replace(/\s+/g, " ").trim();
-    if (!title || title === node.name) return node.name;
-    return title;
   };
   const nodeKindLabel = (node: GraphNode): string =>
     node.kind === "section" ? "Sección" : "Pregunta";
@@ -762,16 +755,6 @@ export function LogicCanvas({
   /** Desplaza (sin cambiar el zoom) para dejar el nodo `id` en el centro
    *  del viewport. Para secciones altas, centra su HEADER, no el bloque
    *  entero. */
-  const centerOnNode = (id: string) => {
-    if (!layout || !svgRef.current) return;
-    const n = layout.nodes.find((nd) => nd.node.id === id && nd.visible);
-    if (!n) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const cx = n.x + n.width / 2;
-    const cy = n.y + Math.min(n.height, 88) / 2;
-    setPan({ x: rect.width / 2 - cx * zoom, y: rect.height / 2 - cy * zoom });
-  };
-
   // Lookup a "está condicional" para el badge en el header.
   const isConditional = (id: string): boolean => {
     if (!structure) return false;
@@ -801,7 +784,7 @@ export function LogicCanvas({
     >
       <header className="pulso-graph-header">
         <div className="pulso-graph-header-left">
-          {!embebido && (
+          {!embebido && onClose && (
             <button type="button" className="pulso-graph-back" onClick={onClose}>
               <ChevronLeft size={14} /> {backLabel}
             </button>
@@ -884,7 +867,7 @@ export function LogicCanvas({
               <Info size={14} />
             </button>
           </div>
-          {!embebido && (
+          {!embebido && onClose && (
             <button
               type="button"
               className="pulso-icon pulso-icon-danger"
@@ -1689,192 +1672,16 @@ export function LogicCanvas({
           </aside>
         )}
 
-        {selectedNode && (() => {
-          // Listas de "alimentadores" (lo que condiciona a este nodo)
-          // y "consumidores" (a quién afecta este nodo). Se calculan a
-          // partir de los edges del grafo. Click en una fila navega al
-          // nodo correspondiente.
-          const incoming = (graph?.edges ?? []).filter(
-            (e) => e.target === selectedNode.id,
-          );
-          const outgoing = (graph?.edges ?? []).filter(
-            (e) => e.source === selectedNode.id,
-          );
-          return (
-            <aside className="pulso-graph-detail">
-              <header>
-                <span
-                  className="pulso-graph-detail-avatar"
-                  style={{
-                    background:
-                      selectedNode.kind === "section"
-                        ? "rgba(15, 118, 110, 0.12)"
-                        : "rgba(36, 87, 214, 0.12)",
-                    color:
-                      selectedNode.kind === "section"
-                        ? "#0f766e"
-                        : "var(--pulso-primary)",
-                  }}
-                  aria-hidden="true"
-                >
-                  {selectedNode.kind === "section" ? (
-                    <Folder size={16} strokeWidth={2.2} />
-                  ) : (
-                    <CircleDot size={16} strokeWidth={2.2} />
-                  )}
-                </span>
-                <div className="pulso-graph-detail-title">
-                  <strong title={nodeDisplayName(selectedNode)}>
-                    {nodeDisplayName(selectedNode)}
-                  </strong>
-                  <span>
-                    {selectedNode.kind === "section" ? "Sección" : "Pregunta"}
-                    {" · "}
-                    <code>{selectedNode.name}</code>
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="pulso-icon"
-                  onClick={() => setSelectedId(null)}
-                  title="Cerrar detalle (Esc)"
-                  aria-label="Cerrar detalle"
-                >
-                  <X size={12} />
-                </button>
-              </header>
-              {/* El catálogo de la lista (listName · N opciones) es info
-                  de DATOS, no de lógica: no vive en el Mapa de lógica
-                  (mismo criterio que el chip del nodo). */}
-
-              {/* Si este nodo tiene un relevant, mostramos la
-                  expresión humanizada estilo `SeccionesPanel`. */}
-              {selectedNode.relevantExpression && (
-                <div className="pulso-graph-detail-block">
-                  <span className="pulso-graph-detail-block-label">
-                    Aparece si
-                  </span>
-                  <code className="pulso-graph-detail-block-code">
-                    {humanize(selectedNode.relevantExpression)}
-                  </code>
-                </div>
-              )}
-
-              {/* Visibilidad HEREDADA de secciones ancestro. Lista la
-                  cadena de condiciones implícitas que afectan a este
-                  nodo aunque él no tenga `relevant` propio. Click en
-                  una sección padre navega a ella. */}
-              {selectedNode.inheritedRelevant.length > 0 && (
-                <div className="pulso-graph-detail-block">
-                  <span className="pulso-graph-detail-block-label">
-                    {selectedNode.relevantExpression
-                      ? "También hereda de"
-                      : "Hereda visibilidad de"}
-                  </span>
-                  <ul className="pulso-graph-detail-list">
-                    {selectedNode.inheritedRelevant.map((parent, i) => (
-                      <li key={i}>
-                        <button
-                          type="button"
-                          className="pulso-graph-detail-link"
-                          onClick={() => setSelectedId(parent.fromSectionId)}
-                          title={`Ver sección ${parent.fromSectionLabel}`}
-                        >
-                          <code>{parent.fromSectionName}</code>
-                          <span>
-                            si{" "}
-                            <em
-                              style={{
-                                fontStyle: "normal",
-                                fontFamily: "ui-monospace, monospace",
-                              }}
-                            >
-                              {humanize(parent.expression)}
-                            </em>
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* "Depende de": los nodos cuyo valor decide la
-                  visibilidad de este. */}
-              {incoming.length > 0 && (
-                <div className="pulso-graph-detail-block">
-                  <span className="pulso-graph-detail-block-label">
-                    Depende de
-                  </span>
-                  <ul className="pulso-graph-detail-list">
-                    {incoming.map((e, i) => {
-                      const src = graph?.byId.get(e.source);
-                      if (!src) return null;
-                      return (
-                        <li key={i}>
-                          <button
-                            type="button"
-                            className="pulso-graph-detail-link"
-                            onClick={() => setSelectedId(src.id)}
-                            title={stripMarkdown(src.title || "") || src.name}
-                          >
-                            <code>{src.name}</code>
-                            {src.title && src.title !== src.name && (
-                              <span>· {compactTitle(src.title)}</span>
-                            )}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              )}
-
-              {/* "Condiciona a": nodos cuyo relevant referencia a este. */}
-              {outgoing.length > 0 && (
-                <div className="pulso-graph-detail-block">
-                  <span className="pulso-graph-detail-block-label">
-                    Condiciona a
-                  </span>
-                  <ul className="pulso-graph-detail-list">
-                    {outgoing.map((e, i) => {
-                      const tgt = graph?.byId.get(e.target);
-                      if (!tgt) return null;
-                      return (
-                        <li key={i}>
-                          <button
-                            type="button"
-                            className="pulso-graph-detail-link"
-                            onClick={() => setSelectedId(tgt.id)}
-                            title={stripMarkdown(tgt.title || "") || tgt.name}
-                          >
-                            <code>{tgt.name}</code>
-                            {tgt.title && tgt.title !== tgt.name && (
-                              <span>· {compactTitle(tgt.title)}</span>
-                            )}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              )}
-
-              {onSelectRow && (
-                <button
-                  type="button"
-                  className="pulso-graph-detail-go"
-                  onClick={() => {
-                    onSelectRow(selectedNode.rowIndex);
-                    onClose();
-                  }}
-                >
-                  Abrir en el editor →
-                </button>
-              )}
-            </aside>
-          );
-        })()}
+        {selectedNode && (
+          <DetalleNodo
+            node={selectedNode}
+            graph={graph}
+            humanize={humanize}
+            onElegir={setSelectedId}
+            onCerrar={() => setSelectedId(null)}
+            onEditar={onEditarEnConstructor}
+          />
+        )}
 
         {/* Panel de RELACIÓN LÓGICA — bundle-aware.
             Cuando se selecciona una flecha, identificamos TODOS los
@@ -2353,16 +2160,6 @@ function stripOuterParens(value: string): string {
     }
   }
   return s;
-}
-
-/** Referencia compacta de una pregunta para la narrativa de condiciones:
- *  limpia el markdown crudo (`**…**`) y trunca prompts largos a un incipit
- *  reconocible. La condición REFERENCIA la pregunta, no la transcribe —
- *  antes volcaba el párrafo completo (ej. el texto de consentimiento). */
-function compactTitle(raw: string, max = 46): string {
-  const clean = stripMarkdown(raw).replace(/\s+/g, " ").trim();
-  if (clean.length <= max) return clean;
-  return `${clean.slice(0, max - 1).trimEnd()}…`;
 }
 
 type SameVariableOptionsSummary = {

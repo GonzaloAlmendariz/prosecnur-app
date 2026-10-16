@@ -8,9 +8,11 @@
 // preguntas del resumen del motor); exporta Word y PDF por `onExportForm`.
 //
 // La parte elegida es el `foco` de la dirección (`?pestana=impreso&foco=matrices`).
+// En «Papel por pregunta» una fila abre sus ajustes de papel ahí mismo (ítem 50);
+// al Constructor sólo se va con «Editar en Constructor».
 // =============================================================================
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ListaPartes, type GrupoDePartes } from "../../../components/ListaPartes";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { FileText } from "../../../vendor/lucide-react";
@@ -27,6 +29,8 @@ import {
   PARTES_IMPRESO,
   esParteImpreso,
   filasConPapel,
+  filasPapelVisibles,
+  filasSinPapel,
   resumenCabecera,
   resumenDeParte,
   separarCandidatas,
@@ -54,7 +58,10 @@ export type PestanaImpresoProps = {
   onParte: (parte: ParteImpreso) => void;
   /** Exportar de verdad: guarda en el proyecto y avisa (el `onExportForm` del editor). */
   onExportar: (formato: "pdf" | "word", opciones: XlsformPaperExportOptions) => void;
+  /** «Editar en Constructor» de la ficha de papel: la única salida al Constructor. */
   onIrAPregunta: (name: string) => void;
+  /** Escribe un ajuste `paper_*` de la fila en el workbook, igual que «Datos › Ajustes de papel» del Constructor. */
+  onCampoPapel: (rowIndex: number, campo: string, valor: string) => void;
   /** Texto del trabajo en curso del editor (exportando…), o vacío. */
   ocupado: string;
 };
@@ -71,11 +78,19 @@ export function PestanaImpreso({
   onParte,
   onExportar,
   onIrAPregunta,
+  onCampoPapel,
   ocupado,
 }: PestanaImpresoProps) {
   const { estado, actualizar, actualizarMatriz } = useEstadoImpreso(storageKey, candidatas);
   const parte: ParteImpreso = esParteImpreso(partePedida) ? partePedida : "formato";
   const filas = useMemo(() => filasConPapel(structure), [structure]);
+  // La fila de «Papel por pregunta» con sus ajustes abiertos (una a la vez).
+  const [papelAbierto, setPapelAbierto] = useState<number | null>(null);
+  const filasPapel = useMemo(() => filasPapelVisibles(structure, papelAbierto), [structure, papelAbierto]);
+  const sinPapel = useMemo(
+    () => filasSinPapel(structure).filter((f) => f.rowIndex !== papelAbierto),
+    [structure, papelAbierto],
+  );
   const nombresConsent = useMemo(() => consentimiento.map((q) => q.name), [consentimiento]);
   const opciones = useMemo(
     () => buildPaperExportOptions(estado, candidatas, nombresConsent),
@@ -149,7 +164,17 @@ export function PestanaImpreso({
             {parte === "logica" && <DetalleLogica estado={estado} actualizar={actualizar} consentimiento={consentimiento} />}
             {parte === "contenido" && <DetalleContenido estado={estado} actualizar={actualizar} />}
             {parte === "matrices" && <DetalleMatrices candidatas={candidatas} matrices={estado.matrices} onCambiar={actualizarMatriz} />}
-            {parte === "papel" && <DetallePapel filas={filas} onIrAPregunta={onIrAPregunta} />}
+            {parte === "papel" && (
+              <DetallePapel
+                filas={filasPapel}
+                sinPapel={sinPapel}
+                nodoDe={(rowIndex) => structure?.byRow.get(rowIndex)}
+                abierta={papelAbierto}
+                onAbrir={setPapelAbierto}
+                onCampo={onCampoPapel}
+                onEditar={onIrAPregunta}
+              />
+            )}
           </div>
           <PreviaImpreso previa={previa} vieja={vieja} motivo={motivo} onGenerar={generar} />
         </div>

@@ -6,7 +6,10 @@
 // (`ListaPartes`, con seguimiento de lectura); al centro una columna de lectura
 // con cada pregunta numerada, su enunciado completo, su ayuda, sus opciones como
 // se ven (círculo, cuadrado, línea, recuadro), las notas, las matrices y la
-// lógica en contexto. Cada pregunta abre su lugar en el Constructor.
+// lógica en contexto. El clic en una pregunta despliega su ficha de solo
+// lectura bajo ella (una a la vez; Enter/Espacio la abren, Escape la cierra);
+// la ficha abierta es el `foco` de la dirección. Al Constructor sólo se va con
+// «Editar en Constructor» (ítem 50: un clic nunca saca de la pestaña).
 //
 // Un solo dueño de scroll: el documento. El índice queda fijo a la izquierda.
 // Las cifras de la cabecera usan la regla del Resumen (una sola definición).
@@ -28,6 +31,9 @@ import {
   type PreguntaDoc,
   type SeccionDoc,
 } from "../cuestionario/modeloCuestionario";
+import { FichaPregunta, idFicha } from "../cuestionario/FichaPregunta";
+import { textoRango } from "../cuestionario/modeloFicha";
+import { alternarFicha } from "./detalleEnSitio";
 import "../cuestionario/cuestionario.css";
 
 export type VistaCuestionarioProps = {
@@ -36,7 +42,18 @@ export type VistaCuestionarioProps = {
   /** La lógica importada espera revisión (el mismo estado que anuncia la cabecera). */
   logicaPendiente: boolean;
   onRevisarLogica?: () => void;
-  onIrAPregunta: (name: string) => void;
+  /** `name` de la pregunta con la ficha abierta (el `foco` de la dirección), o null. */
+  abierta: string | null;
+  onAbrir: (name: string | null) => void;
+  /** La única salida al Constructor: «Editar en Constructor» de la ficha. */
+  onEditar: (name: string) => void;
+};
+
+/** Lo que cada pregunta necesita para abrir, cerrar y editar su ficha. */
+type Fichas = {
+  abierta: string | null;
+  alternar: (name: string) => void;
+  onEditar: (name: string) => void;
 };
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
@@ -75,11 +92,7 @@ function Opciones({ pregunta }: { pregunta: PreguntaDoc }) {
     return (
       <div className="pulso-xf-cue-respuesta">
         <span className="pulso-xf-cue-caja" aria-hidden="true" />
-        {rango && (
-          <span className="pulso-xf-cue-rango">
-            {rango.min && rango.max ? `entre ${rango.min} y ${rango.max}` : rango.min ? `desde ${rango.min}` : `hasta ${rango.max}`}
-          </span>
-        )}
+        {rango && <span className="pulso-xf-cue-rango">{textoRango(rango)}</span>}
       </div>
     );
   }
@@ -96,25 +109,41 @@ function abrirConTeclado(e: KeyboardEvent<HTMLElement>, abrir: () => void) {
   }
 }
 
-function Pregunta({ pregunta, marcarOpcionales: opcionales, onAbrir }: {
+/** Escape cierra la ficha abierta del bloque y devuelve el foco a quien la abrió. */
+function cerrarConEscape(e: KeyboardEvent<HTMLElement>, abierta: string | null, fichas: Fichas) {
+  if (e.key !== "Escape" || !abierta) return;
+  e.stopPropagation();
+  const origen = e.currentTarget.querySelector<HTMLElement>(`[aria-controls="${idFicha(abierta)}"]`);
+  fichas.alternar(abierta);
+  origen?.focus();
+}
+
+function Pregunta({ pregunta, marcarOpcionales: opcionales, fichas }: {
   pregunta: PreguntaDoc;
   marcarOpcionales: boolean;
-  onAbrir: (name: string) => void;
+  fichas: Fichas;
 }) {
   const { nodo, numero, condicion } = pregunta;
-  const abrir = () => onAbrir(nodo.name);
+  const abierta = fichas.abierta === nodo.name;
+  const alternar = () => fichas.alternar(nodo.name);
   const marca = opcionales ? (!nodo.required ? "opcional" : null) : nodo.required ? "*" : null;
   return (
-    <article className="pulso-xf-cue-pregunta" data-qa-geometry-member="">
+    <article
+      className={`pulso-xf-cue-pregunta${abierta ? " is-abierta" : ""}`}
+      data-qa-geometry-member=""
+      data-pregunta={nodo.name}
+      onKeyDown={(e) => cerrarConEscape(e, abierta ? nodo.name : null, fichas)}
+    >
       {condicion && <p className="pulso-xf-cue-condicion">Aparece si {condicion}</p>}
       <div
         className="pulso-xf-cue-cabeza"
         role="button"
         tabIndex={0}
-        onClick={abrir}
-        onKeyDown={(e) => abrirConTeclado(e, abrir)}
-        aria-label={`Abrir la pregunta ${numero} en el Constructor`}
-        title="Abrir en el Constructor"
+        onClick={alternar}
+        onKeyDown={(e) => abrirConTeclado(e, alternar)}
+        aria-expanded={abierta}
+        aria-controls={abierta ? idFicha(nodo.name) : undefined}
+        title={abierta ? "Cerrar la ficha" : "Ver la ficha de la pregunta"}
       >
         <span className="pulso-xf-cue-numero">
           {numero}.
@@ -124,19 +153,27 @@ function Pregunta({ pregunta, marcarOpcionales: opcionales, onAbrir }: {
         {marca === "opcional" && <span className="pulso-xf-cue-opcional">opcional</span>}
       </div>
       {nodo.hint.trim() && <Markdown como="p" className="pulso-xf-cue-ayuda" texto={nodo.hint} />}
-      <Opciones pregunta={pregunta} />
+      {/* Abierta, la línea de respuesta de una pregunta abierta sobra: la ficha va justo debajo. */}
+      {!(abierta && (pregunta.forma === "texto" || pregunta.forma === "otra")) && <Opciones pregunta={pregunta} />}
+      {abierta && <FichaPregunta pregunta={pregunta} onEditar={fichas.onEditar} />}
     </article>
   );
 }
 
-function Matriz({ bloque, marcarOpcionales: opcionales, onAbrir }: {
+function Matriz({ bloque, marcarOpcionales: opcionales, fichas }: {
   bloque: Extract<BloqueDoc, { tipo: "matriz" }>;
   marcarOpcionales: boolean;
-  onAbrir: (name: string) => void;
+  fichas: Fichas;
 }) {
   const forma = bloque.filas[0]?.forma === "varias" ? "varias" : "una";
+  const filaAbierta = bloque.filas.find((f) => f.nodo.name === fichas.abierta) ?? null;
   return (
-    <article className="pulso-xf-cue-pregunta is-matriz" data-qa-geometry-member="">
+    <article
+      className="pulso-xf-cue-pregunta is-matriz"
+      data-qa-geometry-member=""
+      data-pregunta={filaAbierta?.nodo.name}
+      onKeyDown={(e) => cerrarConEscape(e, filaAbierta?.nodo.name ?? null, fichas)}
+    >
       <div className="pulso-xf-cue-matriz-marco">
         <table className="pulso-xf-cue-matriz">
           <thead>
@@ -149,10 +186,11 @@ function Matriz({ bloque, marcarOpcionales: opcionales, onAbrir }: {
           </thead>
           <tbody>
             {bloque.filas.map((f) => (
-              <tr key={f.nodo.name} onClick={() => onAbrir(f.nodo.name)} title="Abrir en el Constructor">
+              <tr key={f.nodo.name} className={f === filaAbierta ? "is-abierta" : undefined}
+                onClick={() => fichas.alternar(f.nodo.name)} title="Ver la ficha de la pregunta">
                 <th scope="row">
-                  <button type="button" className="pulso-xf-cue-matriz-fila" onClick={(e) => { e.stopPropagation(); onAbrir(f.nodo.name); }}
-                    aria-label={`Abrir la pregunta ${f.numero} en el Constructor`}>
+                  <button type="button" className="pulso-xf-cue-matriz-fila" onClick={(e) => { e.stopPropagation(); fichas.alternar(f.nodo.name); }}
+                    aria-expanded={f === filaAbierta} aria-controls={f === filaAbierta ? idFicha(f.nodo.name) : undefined}>
                     <span className="pulso-xf-cue-numero">
                       {f.numero}.
                       {!opcionales && f.nodo.required && <span className="pulso-xf-cue-obligatoria" aria-label="obligatoria">*</span>}
@@ -168,14 +206,15 @@ function Matriz({ bloque, marcarOpcionales: opcionales, onAbrir }: {
           </tbody>
         </table>
       </div>
+      {filaAbierta && <FichaPregunta pregunta={filaAbierta} onEditar={fichas.onEditar} />}
     </article>
   );
 }
 
-function Seccion({ seccion, marcarOpcionales: opcionales, onAbrir, registrar }: {
+function Seccion({ seccion, marcarOpcionales: opcionales, fichas, registrar }: {
   seccion: SeccionDoc;
   marcarOpcionales: boolean;
-  onAbrir: (name: string) => void;
+  fichas: Fichas;
   registrar: (clave: string, el: HTMLElement | null) => void;
 }) {
   return (
@@ -201,15 +240,15 @@ function Seccion({ seccion, marcarOpcionales: opcionales, onAbrir, registrar }: 
               </aside>
             );
           }
-          if (b.tipo === "matriz") return <Matriz key={b.clave} bloque={b} marcarOpcionales={opcionales} onAbrir={onAbrir} />;
-          return <Pregunta key={b.pregunta.nodo.name} pregunta={b.pregunta} marcarOpcionales={opcionales} onAbrir={onAbrir} />;
+          if (b.tipo === "matriz") return <Matriz key={b.clave} bloque={b} marcarOpcionales={opcionales} fichas={fichas} />;
+          return <Pregunta key={b.pregunta.nodo.name} pregunta={b.pregunta} marcarOpcionales={opcionales} fichas={fichas} />;
         })}
       </div>
     </section>
   );
 }
 
-export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevisarLogica, onIrAPregunta }: VistaCuestionarioProps) {
+export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevisarLogica, abierta, onAbrir, onEditar }: VistaCuestionarioProps) {
   const catalogos = useMemo(() => buildCatalogs(workbook.choices), [workbook]);
   const resumen = useMemo(() => resumirFormulario(structure, catalogos), [structure, catalogos]);
   const secciones = useMemo(
@@ -243,6 +282,18 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
     raiz.addEventListener("scroll", alDesplazar, { passive: true });
     return () => raiz.removeEventListener("scroll", alDesplazar);
   }, [secciones]);
+
+  const fichas: Fichas = { abierta, alternar: (name) => onAbrir(alternarFicha(abierta, name)), onEditar };
+
+  // Una dirección con `foco` llega con la ficha abierta: el documento se desplaza hasta esa pregunta, una vez.
+  const focoInicial = useRef(abierta);
+  useEffect(() => {
+    const raiz = documento.current;
+    const name = focoInicial.current;
+    if (!raiz || !name) return;
+    const el = raiz.querySelector<HTMLElement>(`[data-pregunta="${CSS.escape(name)}"]`);
+    if (el) raiz.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top - raiz.getBoundingClientRect().top + raiz.scrollTop - 24) });
+  }, []);
 
   const irASeccion = (clave: string) => {
     setActual(clave);
@@ -297,7 +348,7 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
                 {opcionales
                   ? <span>Todas son obligatorias salvo las marcadas <span className="pulso-xf-cue-opcional">opcional</span>.</span>
                   : <span><span className="pulso-xf-cue-obligatoria">*</span> obligatoria</span>}
-                <span>Toca una pregunta para abrirla en el Constructor.</span>
+                <span>Toca una pregunta para ver su ficha.</span>
               </div>
               {logicaPendiente && (
                 <div className="pulso-xf-cue-aviso" role="note">
@@ -311,7 +362,7 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
                 </div>
               )}
               {secciones.map((s) => (
-                <Seccion key={s.clave} seccion={s} marcarOpcionales={opcionales} onAbrir={onIrAPregunta} registrar={registrar} />
+                <Seccion key={s.clave} seccion={s} marcarOpcionales={opcionales} fichas={fichas} registrar={registrar} />
               ))}
             </div>
           </div>

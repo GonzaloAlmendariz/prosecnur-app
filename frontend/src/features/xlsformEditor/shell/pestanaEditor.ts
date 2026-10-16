@@ -43,8 +43,8 @@ export type ControlPestanaEditor = {
   ir: (pestana: EditorFormulariosPestanaId, opciones?: { replace?: boolean }) => void;
   /** Lleva al Constructor con `foco=<name>`: la pregunta queda seleccionada. */
   irAPregunta: (name: string) => void;
-  /** Reescribe el `foco` sin cambiar de pestaña (p. ej. la parte elegida de «Impreso»). */
-  fijarFoco: (valor: string | null) => void;
+  /** Reescribe el `foco` sin cambiar de pestaña (la parte elegida de «Impreso», la ficha abierta del Cuestionario…). */
+  fijarFoco: (valor: string | null, opciones?: { replace?: boolean }) => void;
 };
 
 export function usePestanaEditor(): ControlPestanaEditor {
@@ -64,8 +64,11 @@ export function usePestanaEditor(): ControlPestanaEditor {
     const search = conNivel(searchConNivel(location.search, "pestana", "constructor"), "foco", name);
     navigate({ pathname: location.pathname, search });
   }, [location.pathname, location.search, navigate]);
-  const fijarFoco = useCallback((valor: string | null) => {
-    navigate({ pathname: location.pathname, search: conNivel(location.search, "foco", valor) });
+  const fijarFoco = useCallback((valor: string | null, opciones?: { replace?: boolean }) => {
+    navigate(
+      { pathname: location.pathname, search: conNivel(location.search, "foco", valor) },
+      { replace: opciones?.replace ?? false },
+    );
   }, [location.pathname, location.search, navigate]);
   return { pestana, foco: control.foco, panel: control.panel, ir, irAPregunta, fijarFoco };
 }

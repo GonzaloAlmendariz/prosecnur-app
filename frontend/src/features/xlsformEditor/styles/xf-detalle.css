@@ -1,0 +1,162 @@
+/* =============================================================================
+ * xf-detalle.css — fichas de detalle de las pestañas del editor (ítem 50)
+ * =============================================================================
+ * Una sola superficie para el detalle que se despliega en sitio: la ficha de
+ * la pregunta (Vista del cuestionario), el detalle del filtro (Filtros de
+ * opciones), la sección desplegada (Resumen) y los ajustes de papel (Impreso).
+ * Mismo radio, borde y acento del módulo; la selección se marca con el acento,
+ * distinta del hover. Transición corta que se apaga con movimiento reducido.
+ * Solo tokens --pulso-* y el acento del módulo; cero hex.
+ * ========================================================================= */
+
+@keyframes pulso-xf-ficha-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.pulso-xf-ficha {
+  --xf-ficha-acento: var(--module-accent, var(--pulso-primary));
+  --xf-ficha-acento-suave: var(--module-accent-soft, var(--pulso-primary-soft));
+  --xf-ficha-acento-borde: var(--module-accent-border, var(--pulso-primary-border));
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--xf-ficha-acento-borde);
+  border-left: 3px solid var(--xf-ficha-acento);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  color: var(--pulso-text);
+  animation: pulso-xf-ficha-in var(--motion-dur-fast) var(--motion-ease-out) both;
+}
+
+/* Anatomía común: título (13 px semibold) → contenido → pie con «Editar en Constructor». */
+.pulso-xf-ficha-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+}
+
+/* Datos de la ficha: rótulo a la izquierda, valor a la derecha; se apila en angosto. */
+.pulso-xf-ficha-datos {
+  display: grid;
+  grid-template-columns: minmax(96px, max-content) minmax(0, 1fr);
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.pulso-xf-ficha-datos dt {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-medium);
+}
+
+.pulso-xf-ficha-datos dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-xf-ficha-datos code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font-family: var(--pulso-font-mono, ui-monospace, monospace);
+  font-size: 12px;
+}
+
+/* La regla técnica bajo su lectura llana: cuerpo menor, monoespaciada, en su propia línea. */
+.pulso-xf-ficha-datos .pulso-xf-ficha-regla {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: var(--pulso-space-1);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+
+.pulso-xf-ficha-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: var(--pulso-space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-xf-ficha-lista li {
+  display: grid;
+  grid-template-columns: minmax(36px, max-content) minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+}
+
+.pulso-xf-ficha-lista code {
+  justify-self: start;
+}
+
+.pulso-xf-ficha-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+/* El pie: la salida explícita al Constructor, siempre abajo a la derecha. */
+.pulso-xf-editar-pie {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-editar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pulso-xf-editar-discreto {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--module-accent, var(--pulso-primary));
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pulso-xf-editar-discreto:hover {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+}
+
+.pulso-xf-editar-discreto:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: 1px;
+}
+
+/* Estado seleccionado común a filas y cabezas: acento del módulo, no el gris del hover. */
+.pulso-xf-seleccionable.is-seleccionada,
+.pulso-xf-seleccionable[aria-expanded="true"],
+.pulso-xf-seleccionable[aria-current="true"] {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  box-shadow: inset 3px 0 0 var(--module-accent, var(--pulso-primary));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xf-ficha {
+    animation: none;
+  }
+}

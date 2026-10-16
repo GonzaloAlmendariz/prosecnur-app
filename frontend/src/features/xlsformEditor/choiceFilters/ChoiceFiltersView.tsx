@@ -1,119 +1,91 @@
 // =============================================================================
-// choiceFilters/ChoiceFiltersView.tsx — overlay «Filtros de opciones»
+// choiceFilters/ChoiceFiltersView.tsx — pestaña «Filtros de opciones»
 // =============================================================================
-// Vista hermana e independiente del Mapa de lógica (spec §4): explica, en
-// lenguaje humano y de solo lectura, qué respuesta previa habilita qué opción
-// posterior. Se monta como overlay a pantalla completa portaleado a body,
-// igual que LogicCanvas, y se oculta con `open`.
+// Vista hermana del Mapa de lógica (spec §4): explica, en lenguaje humano, qué
+// respuesta previa habilita qué opción posterior. Su propósito es GESTIONAR
+// (ítem 50): a la izquierda la lista de preguntas con filtro, a la derecha el
+// detalle de la elegida: su tabla «Si la persona reportó… → puede elegir». Un clic
+// selecciona y muestra; nada navega. La única
+// salida al Constructor es «Editar en Constructor», al pie del detalle. La
+// pregunta elegida es el `foco` de la dirección.
 //
 // Registra `data-audit-ready` cuando las fichas terminaron de componerse, para
 // que el QA visual la capture de forma estable (spec §10).
 // =============================================================================
 
-import { useEffect, useMemo } from "react";
-import { createPortal } from "react-dom";
-import { ChevronLeft, SlidersHorizontal, X } from "../../../vendor/lucide-react";
+import { useMemo } from "react";
+import { SlidersHorizontal } from "../../../vendor/lucide-react";
 import type { BuilderStructure } from "../types";
+import { EditarEnConstructor } from "../shell/EditarEnConstructor";
 import { buildChoiceFilterModel } from "./buildChoiceFilterModel";
 import { ChoiceFilterCard } from "./ChoiceFilterCard";
-import { ChoiceFilterOverview } from "./ChoiceFilterOverview";
+import { filtroElegido } from "./seleccionFiltro";
 import "../styles/xf-choice-filters.css";
+
+const ID_DETALLE = "xf-xcf-detalle";
 
 export type ChoiceFiltersViewProps = {
   open: boolean;
-  onClose: () => void;
   structure: BuilderStructure | null;
   /** Columnas crudas de la hoja `choices` (incluye las `filter_*`). */
   choicesColumns: string[];
   /** Filas crudas de la hoja `choices`. */
   choicesRows: string[][];
-  /** Deep-link a una pregunta en el editor (spec §8). */
-  onSelectRow?: (rowIndex: number) => void;
-  title?: string;
-  backLabel?: string;
-  /** Dentro de una pestaña del editor (2026-10-15): sin portal, sin «Volver» ni «Cerrar», y Esc no cierra. */
-  embebido?: boolean;
+  /** `name` de la pregunta elegida (el `foco` de la dirección); sin elegir, la primera. */
+  seleccionada: string | null;
+  onSeleccionar: (name: string) => void;
+  /** La única salida al Constructor: «Editar en Constructor» del detalle. */
+  onEditar?: (rowIndex: number) => void;
 };
 
 export function ChoiceFiltersView({
   open,
-  onClose,
   structure,
   choicesColumns,
   choicesRows,
-  onSelectRow,
-  title = "Filtros de opciones",
-  backLabel = "Volver al editor",
-  embebido = false,
+  seleccionada,
+  onSeleccionar,
+  onEditar,
 }: ChoiceFiltersViewProps) {
-  // El modelo puede ser caro en formularios grandes; solo se calcula cuando el
-  // overlay está abierto (mismo patrón que LogicCanvas con su grafo).
+  // El modelo puede ser caro en formularios grandes; solo se calcula cuando la
+  // pestaña está abierta (mismo patrón que LogicCanvas con su grafo).
   const model = useMemo(() => {
     if (!open) return null;
     return buildChoiceFilterModel({ structure, choicesColumns, choicesRows });
   }, [open, structure, choicesColumns, choicesRows]);
 
-  // Esc cierra el overlay.
-  useEffect(() => {
-    if (!open || embebido) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, embebido, onClose]);
-
   if (!open) return null;
 
   const cards = model?.cards ?? [];
   const ready = model !== null;
+  const actual = filtroElegido(cards, seleccionada);
+  const filasConFiltro = new Set(cards.map((c) => c.rowIndex));
+  const esElegible = (rowIndex: number) => filasConFiltro.has(rowIndex);
+  const elegirFila = (rowIndex: number) => {
+    const card = cards.find((c) => c.rowIndex === rowIndex);
+    if (card) onSeleccionar(card.questionCode);
+  };
 
-  const jumpTo = onSelectRow
-    ? (rowIndex: number) => {
-        onSelectRow(rowIndex);
-        onClose();
-      }
-    : undefined;
-
-  const overlay = (
+  return (
     <div
-      className={`pulso-xcf-overlay${embebido ? " is-embebido" : ""}`}
-      role={embebido ? "region" : "dialog"}
+      className="pulso-xcf-overlay is-embebido"
+      role="region"
       aria-label="Filtros de opciones del formulario"
       data-audit-ready={ready ? "true" : "false"}
     >
       <header className="pulso-xcf-header">
         <div className="pulso-xcf-header-left">
-          {!embebido && (
-            <button type="button" className="pulso-xcf-back" onClick={onClose}>
-              <ChevronLeft size={14} /> {backLabel}
-            </button>
-          )}
           <div className="pulso-xcf-header-title">
-            <strong>{title}</strong>
+            <strong>Filtros de opciones</strong>
             <span>
               {cards.length}{" "}
               {cards.length === 1 ? "pregunta condiciona sus opciones" : "preguntas condicionan sus opciones"}
             </span>
           </div>
         </div>
-        {!embebido && (
-          <button
-            type="button"
-            className="pulso-xcf-close"
-            onClick={onClose}
-            title="Cerrar (Esc)"
-            aria-label="Cerrar"
-          >
-            <X size={14} />
-          </button>
-        )}
       </header>
 
-      <div className="pulso-xcf-body">
+      <div className="pulso-xcf-body" data-qa-scroll-owner="filtros">
         {cards.length === 0 ? (
           <div className="pulso-xcf-empty">
             <span className="pulso-xcf-empty-icon" aria-hidden="true">
@@ -129,22 +101,54 @@ export function ChoiceFiltersView({
           <div className="pulso-xcf-intro">
             <p>
               Algunas preguntas ofrecen solo las opciones que la persona habilitó con sus respuestas
-              anteriores. Aquí se explica cada una sin fórmulas: qué respuesta previa habilita qué
-              opción.
+              anteriores. Elige una para ver, sin fórmulas, qué respuesta previa habilita qué opción.
             </p>
           </div>
         )}
 
-        {cards.length > 0 && <ChoiceFilterOverview cards={cards} onJumpToRow={jumpTo} />}
-
-        <div className="pulso-xcf-stack">
-          {cards.map((card) => (
-            <ChoiceFilterCard key={card.rowIndex} card={card} onJumpToRow={jumpTo} />
-          ))}
-        </div>
+        {actual && (
+          <div className="pulso-xcf-gestion" data-qa-geometry-group="xlsform/filtros-gestion" data-qa-geometry-contract="intrinsic">
+            <nav className="pulso-xcf-lista" aria-labelledby="xf-xcf-lista-titulo" data-qa-geometry-member="">
+              <h3 id="xf-xcf-lista-titulo" className="pulso-xcf-lista-titulo">
+                Preguntas con filtro <span>{cards.length}</span>
+              </h3>
+              <ul>
+              {cards.map((card) => {
+                const elegida = card.rowIndex === actual.rowIndex;
+                return (
+                  <li key={card.rowIndex}>
+                    <button
+                      type="button"
+                      className={`pulso-xcf-fila pulso-xf-seleccionable${elegida ? " is-seleccionada" : ""}`}
+                      aria-current={elegida ? "true" : undefined}
+                      aria-controls={ID_DETALLE}
+                      onClick={() => onSeleccionar(card.questionCode)}
+                    >
+                      <code className="pulso-xcf-fila-codigo">{card.questionCode}</code>
+                      <span className="pulso-xcf-fila-texto" title={card.questionLabel}>{card.questionLabel}</span>
+                      <span className="pulso-xcf-fila-meta">
+                        {card.antecedents.length}{" "}
+                        {card.antecedents.length === 1 ? "respuesta previa" : "respuestas previas"}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+              </ul>
+            </nav>
+            <div id={ID_DETALLE} className="pulso-xcf-detalle" role="region" aria-label={`Filtro de ${actual.questionCode}`}
+              data-qa-geometry-member="">
+              <ChoiceFilterCard
+                key={actual.rowIndex}
+                card={actual}
+                onElegirAntecedente={elegirFila}
+                esElegible={esElegible}
+                pie={onEditar ? <EditarEnConstructor onEditar={() => onEditar(actual.rowIndex)} /> : null}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
-
-  return embebido ? overlay : createPortal(overlay, document.body);
 }

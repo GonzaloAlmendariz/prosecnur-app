@@ -433,3 +433,27 @@
     max-height: none;
   }
 }
+
+/* ── Ficha de la pregunta (ítem 50) ────────────────────────────────────────
+   La pregunta abierta se marca con el acento del módulo, distinto del gris del hover; su ficha se despliega debajo,
+   alineada con el texto de la pregunta. La superficie de la ficha es la común (`styles/xf-detalle.css`). */
+
+.pulso-xf-cue-cabeza[aria-expanded="true"],
+.pulso-xf-cue-cabeza[aria-expanded="true"]:hover {
+  background: var(--xf-cue-acento-suave);
+  box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border));
+}
+
+.pulso-xf-cue-matriz tbody tr.is-abierta,
+.pulso-xf-cue-matriz tbody tr.is-abierta:hover {
+  background: var(--xf-cue-acento-suave);
+  box-shadow: inset 3px 0 0 var(--xf-cue-acento);
+}
+
+.pulso-xf-cue-ficha {
+  margin: var(--pulso-space-3) 0 0 32px;
+}
+
+.pulso-xf-cue-pregunta.is-matriz > .pulso-xf-cue-ficha {
+  margin-left: 0;
+}
