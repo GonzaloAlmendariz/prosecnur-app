@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useReducer } from "react";
 import { getBaseVariables, type BaseVariables } from "../../../api/baseVariables";
-import { getPonderacionBaseActiva, type PonderacionDeBase } from "../../../api/ponderacionBases";
+import { getPonderacionBases, type PonderacionPorBase } from "../../../api/ponderacionBases";
 import { getSegmentos, type SegmentosEstado } from "../../../api/segmentos";
 import { EVENTO_SEGMENTOS } from "../panelesCarga";
 import { EVENTO_VARIABLES_BASE, type DetalleVariablesBase } from "../variablesBase/variablesBaseModel";
@@ -16,13 +16,13 @@ import type { Lectura } from "./recorridoSerieModel";
 export type LecturasRecorrido = {
   variables: Record<string, Lectura<BaseVariables>>;
   segmentos: Lectura<SegmentosEstado>;
-  ponderacionActiva: Lectura<PonderacionDeBase>;
+  ponderacionActiva: Lectura<PonderacionPorBase>;
 };
 
 type Accion =
   | { tipo: "variables"; base: string; lectura: Lectura<BaseVariables> }
   | { tipo: "segmentos"; lectura: Lectura<SegmentosEstado> }
-  | { tipo: "ponderacion"; lectura: Lectura<PonderacionDeBase> };
+  | { tipo: "ponderacion"; lectura: Lectura<PonderacionPorBase> };
 
 const INICIAL: LecturasRecorrido = {
   variables: {},
@@ -62,7 +62,7 @@ export function useRecorridoSerie(clavesBases: string, activa: string | null): L
   }, []);
 
   const leerPonderacion = useCallback((vivo: () => boolean) => {
-    getPonderacionBaseActiva()
+    getPonderacionBases()
       .then((datos) => { if (vivo()) dispatch({ tipo: "ponderacion", lectura: { tipo: "listo", datos } }); })
       .catch((e: unknown) => { if (vivo()) dispatch({ tipo: "ponderacion", lectura: { tipo: "error", mensaje: mensaje(e) } }); });
   }, []);

@@ -5,7 +5,7 @@
 // generar). Una sola lectura para las dos vistas: si dijeran cosas distintas de
 // la misma base, el analista no sabría a cuál creerle.
 
-import type { PonderacionDeBase } from "../../api/ponderacionBases";
+import type { PonderacionDeBase, PonderacionPorBase } from "../../api/ponderacionBases";
 import { serializarDireccion } from "../../lib/navegacion/direccion";
 
 export const DIRECCION_PONDERACION_SERIE = serializarDireccion({
@@ -17,18 +17,22 @@ export const DIRECCION_PONDERACION_SERIE = serializarDireccion({
 export type PonderacionEnSerie = { base: string; ponderacion: PonderacionDeBase };
 
 /**
- * Estado de cada base de la serie. Hoy sólo se lee la base activa; las demás
- * quedan «sin leer» (ver `api/ponderacionBases.ts`). `lecturaActiva` nula: la
- * lectura falló o no terminó, y la activa tampoco se supone.
+ * Estado de cada base de la serie. Con la lectura de todas las bases
+ * (`PonderacionPorBase`) cada una trae lo suyo; con la de la base activa sola,
+ * las demás quedan «sin leer». Lectura nula: falló o no terminó, y nada se supone.
  */
 export function ponderacionDeLaSerie(
   bases: readonly string[],
   activa: string | null | undefined,
-  lecturaActiva: PonderacionDeBase | null,
+  lectura: PonderacionDeBase | PonderacionPorBase | null,
 ): PonderacionEnSerie[] {
+  const porBase = lectura && !("tipo" in lectura) ? (lectura as PonderacionPorBase) : null;
+  const activaSola = lectura && "tipo" in lectura ? (lectura as PonderacionDeBase) : null;
   return bases.map((base) => ({
     base,
-    ponderacion: base === activa && lecturaActiva ? lecturaActiva : { tipo: "sin_leer" },
+    ponderacion: porBase
+      ? porBase[base] ?? { tipo: "sin_leer" }
+      : base === activa && activaSola ? activaSola : { tipo: "sin_leer" },
   }));
 }
 

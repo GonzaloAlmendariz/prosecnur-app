@@ -3,7 +3,7 @@
 // cambia la base activa.
 
 import { useEffect, useMemo, useState } from "react";
-import { getPonderacionBaseActiva, type PonderacionDeBase } from "../../api/ponderacionBases";
+import { getPonderacionBases, type PonderacionPorBase } from "../../api/ponderacionBases";
 import { useOptionalSession } from "../../lib/SessionContext";
 import { ponderacionDeLaSerie, type PonderacionEnSerie } from "./ponderacionSerieModel";
 
@@ -14,12 +14,12 @@ export type LecturaPonderacionSerie =
 export function usePonderacionDeLaSerie(bases: readonly string[]): LecturaPonderacionSerie {
   const activa = useOptionalSession()?.state?.active_base ?? null;
   // `null` mientras lee; `false` si la lectura falló (ninguna base se supone).
-  const [lectura, setLectura] = useState<PonderacionDeBase | false | null>(null);
+  const [lectura, setLectura] = useState<PonderacionPorBase | false | null>(null);
 
   useEffect(() => {
     let vivo = true;
     const leer = () => {
-      getPonderacionBaseActiva()
+      getPonderacionBases()
         .then((p) => { if (vivo) setLectura(p); })
         .catch(() => { if (vivo) setLectura(false); });
     };
