@@ -55,7 +55,8 @@ export function PestanaCalculos({ structure, scope, seleccionada, onSeleccionar,
       grupos={grupos}
       seleccionada={actual?.node.name ?? null}
       onSeleccionar={onSeleccionar}
-      vacio="Este formulario no tiene cálculos. Un cálculo no se pregunta: se obtiene de otras respuestas y queda como columna en la base."
+      vacio="Este formulario todavía no tiene cálculos."
+      vacioDetalle={<CalculosVacio />}
       pie="Un cálculo no se pregunta: se obtiene de otras respuestas y queda como columna en la base."
     >
       {actual ? (
@@ -96,5 +97,41 @@ export function PestanaCalculos({ structure, scope, seleccionada, onSeleccionar,
         </>
       ) : null}
     </PestanaReglas>
+  );
+}
+
+const EJEMPLOS = [
+  { titulo: "Tramo de edad", formula: "if(${edad} < 25, '18 a 24', '25 o más')", lee: "Agrupa la edad en tramos para cruzar resultados." },
+  { titulo: "Índice promedio", formula: "round((${p8_1} + ${p8_2} + ${p8_3}) div 3, 1)", lee: "Resume una tabla de satisfacción en un solo número." },
+  { titulo: "Cuántas marcó", formula: "count-selected(${servicios})", lee: "Cuenta las opciones elegidas en una pregunta múltiple." },
+  { titulo: "Años desde el egreso", formula: "format-date(today(), '%Y') - ${anio_egreso}", lee: "Convierte un año en tiempo transcurrido." },
+  { titulo: "Nombre completo", formula: "concat(${nombres}, ' ', ${apellidos})", lee: "Une dos textos para listados y fichas." },
+  { titulo: "Duración", formula: "decimal-date-time(${fin}) - decimal-date-time(${inicio})", lee: "Mide cuánto tardó la entrevista." },
+];
+
+function CalculosVacio() {
+  return (
+    <>
+      <div className="xfp-encabezado">
+        <span className="xfp-encabezado__ruta"><TypeIcon baseType="calculate" boxed /> Cálculos</span>
+        <h2 className="xfp-encabezado__titulo">Este formulario todavía no tiene cálculos</h2>
+      </div>
+      <PanelCard title="Qué es un cálculo" flush>
+        <ReadsAs label="Qué hace">Se obtiene de otras respuestas, no se pregunta. Queda como columna en la base y puede decidir qué preguntas aparecen.</ReadsAs>
+        <ReadsAs label="En XLSForm">Una fila de tipo <span className="xfk-mono">calculate</span> con su fórmula en la columna <span className="xfk-mono">calculation</span>.</ReadsAs>
+        <ReadsAs label="Cómo crearlo">En el Constructor, añade una pieza «Cálculo» donde la necesites; aparecerá aquí con su lectura y quién lo usa.</ReadsAs>
+      </PanelCard>
+      <PanelCard title="Cálculos frecuentes en encuestas" meta="ejemplos" fill flush>
+        <ul className="xfp-ejemplos">
+          {EJEMPLOS.map((e) => (
+            <li key={e.titulo}>
+              <span className="xfp-ejemplos__titulo">{e.titulo}</span>
+              <span className="xfp-ejemplos__lee">{e.lee}</span>
+              <code className="xfp-ejemplos__formula">{e.formula}</code>
+            </li>
+          ))}
+        </ul>
+      </PanelCard>
+    </>
   );
 }
