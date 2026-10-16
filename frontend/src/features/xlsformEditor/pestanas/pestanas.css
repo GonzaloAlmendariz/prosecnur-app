@@ -17,6 +17,7 @@
 }
 .xfp-reglas__lista-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
@@ -24,7 +25,7 @@
   border-bottom: 1px solid var(--pulso-border);
 }
 .xfp-reglas__lista-titulo { font-size: 13.5px; font-weight: 600; color: var(--pulso-text); }
-.xfp-reglas__lista-total { font-size: 12px; color: var(--pulso-text-faint); white-space: nowrap; }
+.xfp-reglas__lista-total { font-size: 12px; color: var(--pulso-text-faint); }
 .xfp-reglas__lista-cuerpo { flex: 1; overflow: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
 .xfp-reglas__lista-pie {
   padding: 10px 14px;
@@ -139,3 +140,6 @@
 .xfp-ejemplos__titulo { grid-area: titulo; font-size: 13px; font-weight: 600; color: var(--pulso-text); }
 .xfp-ejemplos__lee { grid-area: lee; font-size: 13px; color: var(--pulso-text-soft); }
 .xfp-ejemplos__formula { grid-area: formula; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--pulso-text-muted); overflow-wrap: anywhere; }
+
+/* El editor de la regla vive dentro de un contenedor: sus bloques internos no repiten caja. */
+.xfp-editor .xfk-card__body { display: flex; flex-direction: column; gap: 12px; }

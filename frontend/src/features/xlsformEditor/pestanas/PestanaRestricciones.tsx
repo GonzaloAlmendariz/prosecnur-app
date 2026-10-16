@@ -4,6 +4,7 @@ import type { BuilderStructure } from "../types";
 import { describeValidation } from "../canvas/reglasHumanas";
 import { PanelCard, QuestionToken, ReadsAs, TypeIcon } from "../kit";
 import { EditarEnConstructor } from "../shell/EditarEnConstructor";
+import { EditorValidacion } from "../canvas/constructor/EditorValidacion";
 import { PestanaReglas, type ReglaListaGrupo } from "./PestanaReglas";
 import { restriccionesDelFormulario } from "./reglasModel";
 
@@ -17,9 +18,12 @@ export type PestanaRestriccionesProps = {
   seleccionada: string | null;
   onSeleccionar: (variable: string | null) => void;
   onEditar: (rowIndex: number) => void;
+  /** Escritura de la regla en la fila (constraint / constraint_message): el mismo camino que usa el Constructor. */
+  onCampo: (rowIndex: number, field: string, value: string) => void;
+  onCampos: (rowIndex: number, updates: Record<string, string>) => void;
 };
 
-export function PestanaRestricciones({ structure, scope, seleccionada, onSeleccionar, onEditar }: PestanaRestriccionesProps) {
+export function PestanaRestricciones({ structure, scope, seleccionada, onSeleccionar, onEditar, onCampo, onCampos }: PestanaRestriccionesProps) {
   const items = useMemo(() => restriccionesDelFormulario(structure), [structure]);
   const con = items.filter((i) => i.estado === "con");
   const sugeridas = items.filter((i) => i.estado === "sugerida");
@@ -69,6 +73,14 @@ export function PestanaRestricciones({ structure, scope, seleccionada, onSelecci
             <h2 className="xfp-encabezado__titulo">{actual.node.label || actual.node.name}</h2>
             <span className="xfp-encabezado__accion"><EditarEnConstructor onEditar={() => onEditar(actual.node.rowIndex)} que={`la pregunta ${numero(actual.node)}`} /></span>
           </div>
+          <PanelCard title="Regla" meta="mismo editor que en el Constructor" className="xfp-editor">
+            <EditorValidacion
+              node={actual.node}
+              scope={scope}
+              onFieldChange={(field, value) => onCampo(actual.node.rowIndex, field, value)}
+              onFieldsChange={(updates) => onCampos(actual.node.rowIndex, updates)}
+            />
+          </PanelCard>
           <PanelCard title="Cómo se interpreta" meta={actual.estado === "con" ? "regla vigente" : "sin regla"} flush>
             <ReadsAs label="Se lee">{lectura?.summary ?? "Acepta cualquier valor: todavía no tiene restricción."}</ReadsAs>
             <ReadsAs label="Mensaje">{actual.node.constraint_message?.trim() || "Sin mensaje: quien se equivoque verá un aviso genérico."}</ReadsAs>
