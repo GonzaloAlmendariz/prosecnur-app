@@ -1,6 +1,9 @@
 # Diagnóstico: material de campo, Ser Adolescente 2026 contra los módulos de la app
 
-Fecha: 2026-10-16 · Rama 8 (Gobernar) · Decisión que sostiene: [ADR 0108](../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) (Propuesto)
+Tipo: Diagnóstico QA fechado
+Estado: Vigente
+Fecha: 2026-10-16
+Autoridad: Evidencia del [ADR 0108](../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) (Aceptado); la decisión vive en el ADR
 Checklist vivo: [checklist-material-de-campo-2026-10-16.md](checklist-material-de-campo-2026-10-16.md)
 
 ## Por qué existe este documento
@@ -169,7 +172,7 @@ La propuesta completa, con navegación, identidad visual y etapas, está en el A
 
 ## Evidencia de UI (2026-10-16)
 
-Capturas en `tmp/qa-material-campo-2026-10-16/` (no versionadas), con `ui-quick-check` en 1440x1000 y 1024x600; 8
+Capturas locales no versionadas, con `ui-quick-check` en 1440x1000 y 1024x600; 8
 capturas distintas por md5.
 
 - **Recopiladores > Materiales (hsvg2026).** Editor semántico de 8 bloques (cabecera, título `unit.operational_code`,
