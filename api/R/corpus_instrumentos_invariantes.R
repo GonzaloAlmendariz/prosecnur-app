@@ -334,7 +334,18 @@
       unlist(lapply(bl, function(b) c(b$name, vapply(b$items %||% list(), function(it) it$name %||% "", ""),
                                        unlist(lapply(b$options %||% list(), function(o) o$especifique)))))))
     avisos <- paste(model$warnings, collapse = " ")
-    captura <- preg[!preg %in% en_papel & !vapply(preg, function(v) grepl(v, avisos, fixed = TRUE), logical(1))]
+    # Lo impreso con su etiqueta `[var]` (un «Especifique» en la instruccion de
+    # una fila o en la ayuda de un campo codificado) tiene lugar en el papel.
+    impreso <- paste(unlist(lapply(bl, function(b) c(b$hint, b$skip,
+      vapply(b$items %||% list(), function(it) it$skip %||% "", ""),
+      vapply(b$options %||% list(), function(o) o$paper_skip %||% "", "")))), collapse = " ")
+    # Reglas del papel §44: la fila `appearance=label` es la cabecera de un
+    # table-list y se omite EN SILENCIO; no es una captura perdida.
+    apar <- if ("appearance" %in% names(sc)) as.character(sc$appearance) else rep("", nrow(sc))
+    cabeceras <- as.character(sc$name)[grepl("(^|\\s)label(\\s|$)", apar)]
+    captura <- preg[!preg %in% c(en_papel, cabeceras) &
+                    !vapply(preg, function(v) grepl(v, avisos, fixed = TRUE) ||
+                                               grepl(sprintf("[%s]", v), impreso, fixed = TRUE), logical(1))]
   }
   list(
     selects_sin_opciones = length(sin_op), selects_sin_opciones_ej = paste(utils::head(sin_op, 5), collapse = "|"),
