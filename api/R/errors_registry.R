@@ -295,6 +295,8 @@ errores_registrados <- function() {
     "E_BASE_VARIABLE_MAPA_INVALIDO",                         "base_variables_calculadas.R",       "422",
     "E_BASE_VARIABLE_TIPO_INVALIDO",                         "base_variables_servicio.R",         "422",
     "E_BASE_VARIABLE_NO_ENCONTRADA",                         "base_variables_servicio.R",         "404",
+    # Códigos observados de una variable de una base.
+    "E_CODIGOS_VARIABLE_NOT_FOUND",                          "codigos_observados.R",              "404",
     "E_CODIF_BASE_YA_CODIFICADA",                            "base_variables_servicio.R",         "409",
     # Segmentos de cruce del estudio (ADR 0107).
     "E_SEGMENTO_CLAVE_INVALIDA",                             "segmentos_cruce.R",                 "400",
