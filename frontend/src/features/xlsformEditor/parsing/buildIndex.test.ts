@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { XlsformEditorSheet, XlsformEditorWorkbook } from "../types";
-import { buildXlsformIndex, parseBuilderStructure } from "./buildIndex";
+import { buildXlsformIndex, extractChoiceItems, parseBuilderStructure } from "./buildIndex";
 
 describe("parseBuilderStructure", () => {
   test("preserva constraint_message en el nodo visual", () => {
@@ -115,5 +115,16 @@ describe("buildXlsformIndex", () => {
     ]);
     expect(index.catalogsByName.get("lista_vacia")?.items).toEqual([]);
     expect(index.questionsByCatalog.get("lista_vacia")?.[0]?.name).toBe("pregunta_1");
+  });
+});
+
+describe("etiquetas de opciones en formularios multilingües", () => {
+  test("sin columna label, la opción toma el texto del idioma (español primero)", () => {
+    const choices: XlsformEditorSheet = {
+      columns: ["list_name", "name", "label::English (en)", "label::Spanish (es)"],
+      rows: [["yn", "1", "Yes", "Sí"], ["yn", "2", "No", ""]],
+    };
+    const items = extractChoiceItems(choices, "yn");
+    expect(items.map((i) => i.label)).toEqual(["Sí", "No"]);
   });
 });
