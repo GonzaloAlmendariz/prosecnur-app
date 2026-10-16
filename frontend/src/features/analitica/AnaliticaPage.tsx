@@ -40,6 +40,7 @@ import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
 import { ProcessingReleasePanel } from "./ProcessingReleasePanel";
 import { PanelVariablesExcluidas } from "./PanelVariablesExcluidas";
+import { PanelUniverso } from "./PanelUniverso";
 import { useAnaliticaStore } from "./store";
 import "./analitica-v2.css";
 
@@ -314,6 +315,7 @@ export default function AnaliticaPage() {
       {/* Panel direccionable `?panel=excluidas`: vive a nivel de página para
           abrirse desde cualquier pestaña y desde un enlace de Carga. */}
       {prereqOk && prepOk ? <PanelVariablesExcluidas /> : null}
+      {prereqOk && prepOk ? <PanelUniverso /> : null}
     </PageFrame>
   );
 }

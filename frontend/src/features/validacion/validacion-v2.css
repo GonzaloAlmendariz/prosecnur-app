@@ -2663,3 +2663,4 @@
 .pulso-cvm-valores small { font-size: 10.5px; color: var(--pulso-text-soft); }
 .pulso-cvm-acciones { display: flex; gap: 6px; }
 .pulso-cvm-error { color: var(--pulso-danger-fg); }
+.pulso-cvm-ir { display: inline-block; margin-top: 6px; font-size: 12px; font-weight: 600; color: var(--pulso-primary); }
