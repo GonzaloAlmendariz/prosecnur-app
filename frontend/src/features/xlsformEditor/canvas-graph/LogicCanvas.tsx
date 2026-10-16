@@ -49,7 +49,7 @@ import { ConnectionConditionPicker } from "./ConnectionConditionPicker";
 import { GraphEdgeArrow, GraphEdgeMarkers } from "./GraphEdgeArrow";
 import { DetalleNodo, compactTitle, nodeDisplayName } from "./DetalleNodo";
 import { desplazamientoParaMostrar } from "./encuadreNodo";
-import "../styles/xf-graph.css";
+import "../styles/xfGraph";
 import { splitLogicalGroups, splitTopLevelLogical, stripOuterParens, summarizeSameVariableOptions, nameToRef, humanizeRelevantWithLabels } from "./logicaTexto";
 import type { LabelLookup, VarTitleLookup } from "./logicaTexto";
 

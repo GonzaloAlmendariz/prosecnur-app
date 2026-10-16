@@ -24,7 +24,7 @@ import {
 import { leerVistaPrevia, motivoNoElegible } from "./campanaComplementariaModel";
 import { CampanaVistaPreviaResumen } from "./CampanaVistaPreviaResumen";
 import { leerIdEncuesta, smSurveyMatchesQuery, smSurveyMetaParts, smSurveyTitle } from "./surveyMonkeySurveySearch";
-import "../styles/xf-campana.css";
+import "../styles/xfCampana";
 
 /** Encuestas del catálogo a la vista; el resto se alcanza afinando la búsqueda. */
 const MAX_ENCUESTAS_VISIBLES = 8;

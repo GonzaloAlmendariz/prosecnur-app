@@ -234,7 +234,10 @@ describe("sugerencia al importar", () => {
 describe("geometría del selector de encuestas (U15)", () => {
   test("el campo no lleva base flexible fuera de la fila de entrada: en la columna del catálogo era un alto", async () => {
     const { readFileSync } = await import("node:fs");
-    const css = readFileSync(new URL("../styles/xf-campana.css", import.meta.url), "utf8");
+    // La hoja se partió en partes (revamp EM): se leen concatenadas en el orden del índice.
+    const css = ["01-campana-complementaria-adr-0.css", "02-leyenda-del-umbral-junto-al.css"]
+      .map((parte) => readFileSync(new URL(`../styles/xf-campana/${parte}`, import.meta.url), "utf8"))
+      .join("");
     const bloqueCampo = css.match(/\n\.pulso-xf-campana-campo \{[^}]*\}/)?.[0] ?? "";
     expect(bloqueCampo).not.toMatch(/flex:/);
     expect(css).toMatch(/\.pulso-xf-campana-entrada > \.pulso-xf-campana-campo \{\s*flex: 1 1 220px;/);

@@ -10,7 +10,7 @@ import { SmConteo } from "./SmConteo";
 import { SmPerfilesRescate } from "./SmPerfilesRescate";
 import { SmSurveyPicker, type SmSurveyMeta } from "./SmSurveyPicker";
 import { textoSeccionesSm } from "./smImportModel";
-import "../styles/xf-sm-import.css";
+import "../styles/xfSmImport";
 
 // Conexión con SurveyMonkey y elección de la encuesta. El estado de la prueba
 // se dice en el mismo renglón del token; si falla, la salida (otro perfil o

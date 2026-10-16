@@ -52,7 +52,7 @@ import { SmLogicaSugerencias } from "./SmLogicaSugerencias";
 import { useSmSugerenciasLogica } from "./useSmSugerenciasLogica";
 import type { SmSurveyMeta } from "./SmSurveyPicker";
 import "../styles/xf-surveymonkey-dialog.css";
-import "../styles/xf-sm-import.css";
+import "../styles/xfSmImport";
 
 // Modal de importación SurveyMonkey. El flujo usa sólo la API:
 //   1. Conecta el token y elige la encuesta.
