@@ -3373,6 +3373,9 @@ export default function XlsformEditorPage() {
             {pestana === "hojas" && (
               <SheetsView
                 workbook={workbook}
+                scope={logicScope}
+                structure={structure}
+                diagnostics={diagnostics}
                 onUpdateCell={sheetsUpdateCell}
                 onAddRow={sheetsAddRow}
                 onDeleteRow={sheetsDeleteRow}
