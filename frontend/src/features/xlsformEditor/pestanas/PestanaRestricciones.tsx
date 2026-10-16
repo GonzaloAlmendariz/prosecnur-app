@@ -7,6 +7,7 @@ import { EditarEnConstructor } from "../shell/EditarEnConstructor";
 import { EditorValidacion } from "../canvas/constructor/EditorValidacion";
 import { PestanaReglas, type ReglaListaGrupo } from "./PestanaReglas";
 import { restriccionesDelFormulario } from "./reglasModel";
+import { ProbarRestriccion } from "./ProbarRestriccion";
 
 // Pestaña Restricciones (revamp 2026-10-16): todas las reglas de «qué acepta» del formulario
 // en un solo lugar. El Constructor edita la misma regla en línea; aquí hay más espacio para
@@ -21,9 +22,11 @@ export type PestanaRestriccionesProps = {
   /** Escritura de la regla en la fila (constraint / constraint_message): el mismo camino que usa el Constructor. */
   onCampo: (rowIndex: number, field: string, value: string) => void;
   onCampos: (rowIndex: number, updates: Record<string, string>) => void;
+  /** Opciones de cada lista, para probar reglas de preguntas de selección. */
+  catalogs: { listName: string; items: { name: string; label: string }[] }[];
 };
 
-export function PestanaRestricciones({ structure, scope, seleccionada, onSeleccionar, onEditar, onCampo, onCampos }: PestanaRestriccionesProps) {
+export function PestanaRestricciones({ structure, scope, seleccionada, onSeleccionar, onEditar, onCampo, onCampos, catalogs }: PestanaRestriccionesProps) {
   const items = useMemo(() => restriccionesDelFormulario(structure), [structure]);
   const con = items.filter((i) => i.estado === "con");
   const sugeridas = items.filter((i) => i.estado === "sugerida");
@@ -86,6 +89,7 @@ export function PestanaRestricciones({ structure, scope, seleccionada, onSelecci
             <ReadsAs label="Mensaje">{actual.node.constraint_message?.trim() || "Sin mensaje: quien se equivoque verá un aviso genérico."}</ReadsAs>
             <ReadsAs label="XLSForm" code>{actual.node.constraint.trim() ? `constraint = ${actual.node.constraint.trim()}` : "constraint vacío"}</ReadsAs>
           </PanelCard>
+          {actual.estado === "con" ? <ProbarRestriccion node={actual.node} opciones={catalogs.find((c) => c.listName === actual.node.typeInfo.listName)?.items ?? []} /> : null}
           <div className="xfp-fila2">
             <PanelCard title="Depende de" meta={actual.usa.length ? `${actual.usa.length} pregunta${actual.usa.length === 1 ? "" : "s"}` : undefined} fill>
               {actual.usa.length ? (
