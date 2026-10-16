@@ -751,6 +751,19 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         mat_full <- mat_total_cols > 6L  # umbral de legibilidad en una columna
       }
       mat_number <- numbers[i]
+      # Item 44: el «Especifique» de una fila de matriz no tiene opcion propia
+      # donde ir; entra en la instruccion de la fila para no perderse del papel.
+      lbl_mat <- stats::setNames(
+        vapply(mat_opts, function(o) .form_pdf_clean_text(o$label), character(1)),
+        vapply(mat_opts, function(o) .form_pdf_chr(o$code), character(1)))
+      esp_item <- function(r, skip_r) {
+        esp_r <- especifique[[.form_pdf_chr(survey$name[r])]] %||% list()
+        if (!length(esp_r)) return(skip_r)
+        txt <- vapply(names(esp_r), function(cod) sprintf(
+          "Si responde «%s», especifique: __________ [%s]", lbl_mat[[cod]] %||% cod, esp_r[[cod]]),
+          character(1))
+        paste(c(if (nzchar(skip_r %||% "")) skip_r, txt), collapse = "  ·  ")
+      }
       # Salto por-FILA de matriz (lenguaje "saltos"): si la fila es un filtro
       # (su opcion negativa dispara un salto), se enuncia inline "Si responde
       # «No», salto a la N", como la referencia. En condiciones va vacio (el
@@ -789,7 +802,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
             name = .form_pdf_chr(survey$name[r]),
             label = .form_pdf_paper_text_enfasis(.form_pdf_strip_leading_number(
               .form_pdf_first_nonempty(survey$paper_label[r], survey$label[r]), item_num)),
-            skip = mk_item_skip(r)
+            skip = esp_item(r, mk_item_skip(r))
           )
         })
       } else {
@@ -812,7 +825,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
             name = .form_pdf_chr(survey$name[r]),
             label = .form_pdf_paper_text_enfasis(.form_pdf_strip_leading_number(
               .form_pdf_first_nonempty(survey$paper_label[r], survey$label[r]), item_num)),
-            skip = mk_item_skip(r)
+            skip = esp_item(r, mk_item_skip(r))
           )
         })
       }
@@ -909,6 +922,26 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         .form_pdf_chr(survey$name[i]), list_name))
       opts <- list()
       coded_list <- TRUE
+    }
+    # Una lista que no existe en `choices` es un error del instrumento: se avisa
+    # con su nombre y la pregunta queda como campo codificado, con un lugar
+    # donde anotar la respuesta en vez de un enunciado sin donde responder.
+    if (!dinamica && base %in% c("select_one", "select_multiple") && !length(opts)) {
+      warnings <- c(warnings, sprintf(
+        "La pregunta `%s` pide la lista `%s`, que no existe en la hoja choices: se imprime como campo codificado.",
+        .form_pdf_chr(survey$name[i]), list_name))
+      coded_list <- TRUE
+    }
+    if (coded_list && length(esp_i)) {
+      # Item 44: sin lista impresa no hay opcion donde colgar el «Especifique»;
+      # va en la ayuda para que la variable no desaparezca del papel.
+      lbl_cod <- stats::setNames(
+        vapply(opts, function(o) .form_pdf_clean_text(o$label), character(1)),
+        vapply(opts, function(o) .form_pdf_chr(o$code), character(1)))
+      esp_hint <- vapply(names(esp_i), function(cod) sprintf(
+        "Si responde «%s» (%s), especifique: __________ [%s]",
+        lbl_cod[[cod]] %||% cod, cod, esp_i[[cod]]), character(1))
+      hint <- paste(c(if (nzchar(hint)) hint, esp_hint), collapse = "  ·  ")
     }
     if (coded_list && !dinamica) {
       warnings <- c(warnings, sprintf(
@@ -1081,6 +1114,28 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   words <- strsplit(text, " +")[[1]]
   words <- words[nzchar(words)]
   if (!length(words)) return(character(0))
+  # Una palabra mas ancha que la linea (la etiqueta `[var]` de una variable
+  # larga, p. ej. `[Information_to_give_reasons_not_reporting_other]`) no se
+  # partia y salia del marco. Se parte en los `_` y, si aun no cabe, por letras.
+  partir <- function(word) {
+    if (!is.finite(meas(word)) || meas(word) <= w) return(word)
+    trozos <- regmatches(word, gregexpr("[^_]+_?|_", word))[[1]]
+    out <- character(0); cur <- ""
+    for (t in trozos) {
+      cand <- paste0(cur, t)
+      if (nzchar(cur) && meas(cand) > w) { out <- c(out, cur); cur <- t } else cur <- cand
+    }
+    if (nzchar(cur)) out <- c(out, cur)
+    unlist(lapply(out, function(p) {
+      if (meas(p) <= w) return(p)
+      letras <- strsplit(p, "")[[1]]; res <- character(0); acc <- ""
+      for (ch in letras) {
+        if (nzchar(acc) && meas(paste0(acc, ch)) > w) { res <- c(res, acc); acc <- ch } else acc <- paste0(acc, ch)
+      }
+      c(res, acc)
+    }), use.names = FALSE)
+  }
+  words <- unlist(lapply(words, partir), use.names = FALSE)
   lines <- character(0)
   cur <- ""; cur_w <- 0
   for (word in words) {
@@ -1588,14 +1643,18 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   n_code <- length((cm$code_lineas %||% list())[[.form_pdf_clean_text_safe(opt$code %||% "")]] %||% "")
   n_lines <- max(n_lines, n_code)
   chip_below <- has_skip && !chip_right
+  # Bajo la opcion la instruccion se envuelve al ancho real: de una linea, un
+  # «Especifique» con una etiqueta `[var]` larga salia del marco.
+  chip_lines <- if (chip_below) .form_pdf_wrap_fit(skip, label_area, 6.9, "italic") else skip
   # DENSIDAD (L6). Medido contra el .docx sobre el mismo instrumento: el PDF
   # gastaba 61,4 pt por pregunta frente a 51,6 del Word, un 19 % mas, y el
   # exceso estaba aqui — 0,021 npc de alto minimo de fila son 17,7 pt en A4,
   # contra los ~14 que usa el .docx. Un formulario en papel no es un documento
   # de oficina: la densidad ES la funcion.
-  h <- max(0.0178, n_lines * 0.0125 + (if (chip_below) 0.014 else 0) + 0.0055)
+  h <- max(0.0178, n_lines * 0.0125 +
+             (if (chip_below) 0.014 + (max(1L, length(chip_lines)) - 1L) * 0.0105 else 0) + 0.0055)
   list(skip = skip, has_skip = has_skip, chip_w = chip_w, chip_right = chip_right,
-       chip_below = chip_below, lbl_w = lbl_w, label_chars = label_chars, lay = lay,
+       chip_below = chip_below, chip_lines = chip_lines, lbl_w = lbl_w, label_chars = label_chars, lay = lay,
        n_lines = n_lines, h = h)
 }
 
@@ -1685,8 +1744,11 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       if (geom$chip_right) {
         .form_pdf_draw_skip_chip(geom$skip, x + w - geom$chip_w - 0.004, y - 0.008, geom$chip_w, tk)
       } else {
-        .form_pdf_draw_skip_chip(geom$skip, xx + code_w + 0.004,
-                                 y - geom$n_lines * 0.013 - 0.010, geom$chip_w, tk)
+        y_chip <- y - geom$n_lines * 0.013 - 0.010
+        for (li in seq_along(geom$chip_lines)) {
+          .form_pdf_draw_skip_chip(geom$chip_lines[[li]], xx + code_w + 0.004,
+                                   y_chip - (li - 1L) * 0.0105, geom$chip_w, tk)
+        }
       }
     }
     y <- y - h

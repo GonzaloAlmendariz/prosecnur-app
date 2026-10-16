@@ -479,3 +479,65 @@ test_that("simulador (auto-verificacion): ve un salto equivocado", {
   expect_gt(nrow(sim), 0L)
   expect_true(any(sim$origen == "A6" & sim$opcion == "2"))
 })
+
+# --- Corte del corpus: lo que la re-corrida de contenido encontró ------------
+
+test_that("item 44: el «Especifique» de un campo codificado va en la ayuda, no se pierde", {
+  opciones <- as.character(1:25)
+  sv <- data.frame(
+    type = c("select_one larga", "text"),
+    name = c("p10", "p10_other"),
+    label = c("Sector de la empresa", "Otro (especifique):"),
+    relevant = c("", "${p10} = '25'"),
+    stringsAsFactors = FALSE)
+  ch <- data.frame(list_name = "larga", name = opciones,
+                   label = c(paste("Sector", 1:24), "Otro"), stringsAsFactors = FALSE)
+  m <- formulario_pdf_build_model(sv, ch, list(form_title = "Codificado"))
+  q <- Filter(function(b) identical(b$name, "p10"), m$blocks)[[1]]
+  expect_true(isTRUE(q$coded_list))
+  expect_match(q$hint, "Si responde «Otro» (25), especifique: __________ [p10_other]", fixed = TRUE)
+  expect_false(any(vapply(m$blocks, function(b) identical(b$name, "p10_other"), logical(1))))
+})
+
+test_that("item 44: el «Especifique» de una fila de matriz va en la instruccion de la fila", {
+  sv <- data.frame(
+    type = c("select_one acuerdo", "select_one acuerdo", "select_one acuerdo", "text"),
+    name = c("p43_1", "p43_2", "p43_3", "p43_3_otro"),
+    label = c("Radio", "Prensa", "Otro medio", "ESPECIFICAR"),
+    relevant = c("", "", "", "${p43_3} = '4'"),
+    stringsAsFactors = FALSE)
+  ch <- data.frame(list_name = "acuerdo", name = c("1", "2", "3", "4"),
+                   label = c("Nada", "Poco", "Bastante", "Mucho"), stringsAsFactors = FALSE)
+  m <- formulario_pdf_build_model(sv, ch, list(form_title = "Matriz"))
+  mat <- Filter(function(b) identical(b$kind, "matrix"), m$blocks)
+  skip_if(!length(mat), "el detector no armo matriz con dos filas")
+  fila <- Filter(function(it) identical(it$name, "p43_3"), mat[[1]]$items)[[1]]
+  expect_match(fila$skip, "Si responde «Mucho», especifique: __________ [p43_3_otro]", fixed = TRUE)
+})
+
+test_that("una lista que no existe en choices se avisa y la pregunta queda como campo codificado", {
+  sv <- data.frame(type = "select_one lista_inexistente", name = "p6", label = "¿Cuál?",
+                   stringsAsFactors = FALSE)
+  ch <- data.frame(list_name = "otra", name = "1", label = "Uno", stringsAsFactors = FALSE)
+  m <- formulario_pdf_build_model(sv, ch, list(form_title = "Lista rota"))
+  q <- Filter(function(b) identical(b$name, "p6"), m$blocks)[[1]]
+  expect_true(isTRUE(q$coded_list))
+  expect_true(any(grepl("pide la lista `lista_inexistente`", m$warnings, fixed = TRUE)))
+})
+
+test_that("una etiqueta [var] mas ancha que la linea se parte y no sale del marco", {
+  skip_if_not(nzchar(.t3_pdftotext()))
+  largo <- "Information_to_give_reasons_not_reporting_other"
+  sv <- data.frame(
+    type = c("select_one motivos", "text"),
+    name = c("motivo", largo),
+    label = c("¿Por qué no reportó?", "Otro, por favor especificar"),
+    relevant = c("", "${motivo} = '9'"),
+    stringsAsFactors = FALSE)
+  ch <- data.frame(list_name = "motivos", name = c("1", "2", "9"),
+                   label = c("No sabía", "No quiso", "Otro"), stringsAsFactors = FALSE)
+  pdf <- tempfile(fileext = ".pdf"); on.exit(unlink(pdf), add = TRUE)
+  reporte_formulario_pdf(sv, ch, list(form_title = "Var larga"), output_file = pdf, options = list(columns = 2))
+  inv <- .corpus_invariantes_pdf(pdf)
+  expect_identical(as.integer(inv$n_fuera_marco), 0L, info = inv$fuera_marco)
+})
