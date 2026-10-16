@@ -408,6 +408,13 @@ collection_deployment_validate <- function(deployment, plan = NULL) {
     problems <- .cc_require_string(deployment, field, "deployment", problems)
   }
   problems <- .cc_require_fingerprint(deployment, "plan_fingerprint", "deployment", problems)
+  # `adapter_id` es opcional (los deployments guardados antes de H21 no lo
+  # traen), pero si viene es el id del adapter que lo armo.
+  if (!is.null(deployment$adapter_id) && !.cc_is_scalar_string(deployment$adapter_id)) {
+    problems[[length(problems) + 1L]] <- .cc_problem(
+      "deployment.adapter_id", "bad_adapter_id", "`adapter_id` debe ser un texto."
+    )
+  }
 
   status <- deployment$status
   if (.cc_is_scalar_string(status) && !(status %in% COLLECTION_DEPLOYMENT_STATUSES)) {
@@ -426,7 +433,7 @@ collection_deployment_validate <- function(deployment, plan = NULL) {
     problems <- .cc_require_string(target, "provider", "deployment.target", problems)
     # `connection_profile_id` es una REFERENCIA al perfil, no la credencial. Un
     # token acá violaría el ADR 0005 y viajaría dentro del `.pulso`.
-    for (prohibido in c("token", "access_token", "api_key", "password", "secret")) {
+    for (prohibido in c("token", "api_token", "access_token", "api_key", "password", "secret")) {
       if (!is.null(target[[prohibido]])) {
         problems[[length(problems) + 1L]] <- .cc_problem(
           paste0("deployment.target.", prohibido), "secret_in_state",

@@ -434,6 +434,38 @@ collection_capability_preflight <- function(adapter_id, operation = NULL, target
   )
 }
 
+# Lo que el target de un deployment conserva para que Accesos lo rehidrate al
+# reabrir (H21): la configuracion NO secreta que escribio quien armo los
+# accesos. Lista blanca explicita: el target del adapter puede traer un token o
+# un perfil completo y nada de eso entra al estado ni al .pulso (ADR 0005).
+# `connection_profile_id` es una referencia al perfil, no la credencial.
+#
+# Estos campos son configuracion, no identidad del despliegue: lo que cambia el
+# enlace ya cambia los `bindings`. Por eso `.collection_deployment_fingerprint`
+# los excluye y la huella de un despliegue no cambia al empezar a guardarlos.
+COLLECTION_DEPLOYMENT_TARGET_CONFIG_FIELDS <- c(
+  "base_access_url", "asset_type", "deployment_active", "prefill_field",
+  "connection_profile_id"
+)
+
+COLLECTION_DEPLOYMENT_TARGET_FIELDS <- c(
+  "provider", "remote_ref", "return_url", COLLECTION_DEPLOYMENT_TARGET_CONFIG_FIELDS
+)
+
+# Solo la configuracion presente y no vacia: un escalar vacio no es dato.
+.ca_deployment_target_config <- function(target) {
+  config <- .ca_target_ref(target, COLLECTION_DEPLOYMENT_TARGET_CONFIG_FIELDS)
+  Filter(function(value) !(is.character(value) && length(value) == 1L && !nzchar(value)), config)
+}
+
+# Poda un target a la lista blanca. Se indexa por nombre y no con
+# `.ca_target_ref` para conservar la forma exacta de lo que ya habia (un
+# `return_url = NULL` sigue siendo una entrada): de esa forma depende la huella.
+.ca_deployment_target_whitelist <- function(target) {
+  if (!is.list(target) || is.null(names(target))) return(target)
+  target[names(target) %in% COLLECTION_DEPLOYMENT_TARGET_FIELDS]
+}
+
 .ca_preview_deployment <- function(adapter_id, plan, target) {
   plan <- .ca_normalize_plan(plan, adapter_id)
   if (!is.list(target)) target <- list()
@@ -464,12 +496,16 @@ collection_capability_preflight <- function(adapter_id, operation = NULL, target
   return_url <- .ca_text(target$return_url)
   list(
     schema = "collection_deployment/v1",
+    adapter_id = adapter_id,
     deployment_id = .ca_id("deployment", paste(.ca_text(plan$plan_id, "plan"), adapter_id, sep = "-")),
     plan_id = .ca_text(plan$plan_id),
     plan_fingerprint = .ca_text(plan$input_fingerprint),
-    target = list(
-      provider = provider, remote_ref = remote_ref,
-      return_url = if (nzchar(return_url)) return_url else NULL
+    target = c(
+      list(
+        provider = provider, remote_ref = remote_ref,
+        return_url = if (nzchar(return_url)) return_url else NULL
+      ),
+      .ca_deployment_target_config(target)
     ),
     capabilities = list(remote_write = list(observed = FALSE, source = "disabled_v1")),
     capability_preflight = local_preflight,

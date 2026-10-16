@@ -51,8 +51,9 @@
 #' front hacia cualquier cosa. Es el mismo defecto que este loop lleva corrigiendo
 #' todo el dia: se anadio el dato donde se miro, no en todas las salidas.
 .collection_con_vigencia <- function(payload, sid) {
-  payload$source_vigente <- .collection_source_vigente(session_get(sid), payload$state)
-  payload
+  session <- session_get(sid)
+  payload$source_vigente <- .collection_source_vigente(session, payload$state)
+  .collection_receipts_con_disponibilidad(payload, session)
 }
 
 .collection_payload <- function(state, noop = FALSE, seeded = FALSE,
@@ -269,8 +270,22 @@
   collection_fingerprint(input)
 }
 
+# La huella es la IDENTIDAD del despliegue: `adapter_id` y la configuracion del
+# target que Accesos rehidrata (COLLECTION_DEPLOYMENT_TARGET_CONFIG_FIELDS) no
+# entran, para que un despliegue guardado antes de conservarlos tenga la misma
+# huella que el mismo despliegue guardado despues. Lo que cambia un enlace ya
+# cambia los `bindings`, que si entran.
+.collection_deployment_target_identity <- function(target) {
+  if (!is.list(target)) return(target)
+  target[setdiff(names(target), COLLECTION_DEPLOYMENT_TARGET_CONFIG_FIELDS)]
+}
+
 .collection_deployment_fingerprint <- function(deployment) {
   material <- deployment
+  material$adapter_id <- NULL
+  if (is.list(material$target)) {
+    material$target <- .collection_deployment_target_identity(material$target)
+  }
   material$deployment_fingerprint <- NULL
   material$status <- NULL
   material$handoff <- NULL
@@ -605,13 +620,14 @@ collection_state_migrate_legacy <- function(s) {
 collection_state_get <- function(sid) {
   s <- session_get(sid)
   estado <- .collection_current(s)
-  .collection_payload(
+  payload <- .collection_payload(
     estado,
     noop = TRUE,
     seed_available = is.null(s$collection_state) &&
       length(.collection_seed_source(s)$rows) > 0L,
     source_vigente = .collection_source_vigente(s, estado)
   )
+  .collection_receipts_con_disponibilidad(payload, s)
 }
 
 collection_state_seed <- function(sid) {
@@ -705,6 +721,11 @@ collection_plan_put <- function(sid, plan, expected_revision) {
 .collection_deployment_normalize <- function(deployment, plan) {
   candidate <- deployment
   if (!is.list(candidate)) return(candidate)
+  # Lista blanca: un target llegado por HTTP no mete en el estado (ni en el
+  # .pulso) un token ni nada fuera de lo que Accesos necesita rehidratar.
+  if (is.list(candidate$target)) {
+    candidate$target <- .ca_deployment_target_whitelist(candidate$target)
+  }
   candidate$deployment_fingerprint <- NULL
   candidate$deployment_fingerprint <- .collection_deployment_fingerprint(candidate)
   if (!identical(candidate$plan_fingerprint, plan$input_fingerprint)) {
@@ -822,7 +843,7 @@ collection_deployment_prepare <- function(sid, expected_revision, deployment = N
     provider = deployment$target$provider,
     remote_ref = observed$remote_ref
   ))
-  expected_target <- collection_fingerprint(deployment$target)
+  expected_target <- collection_fingerprint(.collection_deployment_target_identity(deployment$target))
   if (.cc_is_scalar_string(observed_target) && !identical(observed_target, expected_target)) {
     reasons <- c(reasons, "target_remote_changed")
   }
