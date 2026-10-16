@@ -23,7 +23,7 @@ export function EstadoChip({ tono, texto, detalle }: { tono: TonoCelda; texto: s
         {icono}
         <span>{texto}</span>
       </span>
-      {detalle && <small>{detalle}</small>}
+      {detalle && <small title={detalle}>{detalle}</small>}
     </span>
   );
 }

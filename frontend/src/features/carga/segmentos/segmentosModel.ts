@@ -278,7 +278,7 @@ export type FilaCodigo = {
 };
 
 /** A partir de cuántos enteros sin etiqueta la tabla los agrupa en tramos. */
-export const UMBRAL_AGRUPAR = 30;
+export const UMBRAL_AGRUPAR = 10;
 
 function conPendiente(f: Omit<FilaCodigo, "sinMapa" | "sinCasos">): FilaCodigo {
   const sinCasos = f.destino === null && f.n === 0;
@@ -292,9 +292,10 @@ function destinoDe(mapa: Readonly<Record<string, string>>, codigo: string, escal
 }
 
 /**
- * Cada código del origen y su destino. Con muchos enteros sin etiqueta (una
- * edad, un año), los consecutivos con el mismo destino se leen como un tramo
- * («18 a 20»); asignar el tramo asigna todos sus códigos.
+ * Cada código del origen y su destino. Con diez o más números sin etiqueta (una
+ * edad, un año, una fórmula), los valores seguidos —en el orden en que la data
+ * los trae, aunque falte alguno entre ellos— con el mismo destino se leen como
+ * un tramo («21 a 67»); asignar el tramo asigna todos sus códigos.
  */
 export function filasDeCodigos(
   codigos: readonly CodigoDeOrigen[],
@@ -308,10 +309,14 @@ export function filasDeCodigos(
   });
   if (codigos.length < UMBRAL_AGRUPAR || !sonNumericos(codigos) || !sinEtiquetas(codigos)) return sueltas;
   const out: FilaCodigo[] = [];
-  for (const f of sueltas) {
+  const orden = [...sueltas].sort((a, b) => Number(a.codigos[0]) - Number(b.codigos[0]));
+  for (const f of orden) {
     const previa = out[out.length - 1];
     const ultimo = previa ? Number(previa.codigos[previa.codigos.length - 1]) : NaN;
-    if (previa && previa.destino === f.destino && Number(f.codigos[0]) === ultimo + 1) {
+    // Asignados: basta el mismo destino. Sin mapa: sólo enteros seguidos, para
+    // no esconder en un tramo un valor que nadie decidió.
+    const seguido = f.destino !== null || Number(f.codigos[0]) === ultimo + 1;
+    if (previa && previa.destino === f.destino && seguido) {
       previa.codigos.push(f.codigos[0]);
       previa.rotulo = `${previa.codigos[0]} a ${f.codigos[0]}`;
       previa.n = previa.n === null || f.n === null ? null : previa.n + f.n;

@@ -5,7 +5,6 @@
 // los lee el editor (para todas las bases a la vez) y llegan en `lectura`;
 // «Emparejar todas por etiqueta» vive en la sección de la escala estándar.
 
-import { useState } from "react";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import type { VariableDeBase } from "../../../api/equivalencias";
 import type { CategoriaSegmento, SegmentoEnBase as SegmentoEnBaseGuardado } from "../../../api/segmentos";
@@ -15,7 +14,7 @@ import { DESTINO_SIN_MAPA, textoMarcados } from "../armonizacionMasaModel";
 import { avisoNoListable } from "../codigosObservadosModel";
 import { observadosListos, type LecturaCodigosObservados } from "../useCodigosObservados";
 import { PreguntaOrigen } from "../variablesBase/SelectorPreguntas";
-import { AyudaMapa, BotonesAyudaMapa } from "./AyudaMapa";
+import { MapaPorRangos } from "../MapaPorRangos";
 import { EstadoChip } from "./EstadoChip";
 import {
   TEXTO_ESTADO_BORRADOR,
@@ -29,7 +28,6 @@ import {
   textoResumenMapa,
   textoSinDatoObservado,
   type AccionSegmento,
-  type AyudaMapa as TipoAyuda,
   type DestinoCodigo,
   type EntradaBorrador,
 } from "./segmentosModel";
@@ -70,7 +68,6 @@ export function SegmentoEnBase({
   despachar,
   lectura,
 }: SegmentoEnBaseProps) {
-  const [ayuda, setAyuda] = useState<TipoAyuda | null>(null);
   const origen = entrada.origen;
   const obs = observadosListos(lectura);
   // Texto, identificador o tipo desconocido: una línea en lugar de ayudas y tabla.
@@ -86,6 +83,87 @@ export function SegmentoEnBase({
   const ausente = Boolean(guardado?.origen_ausente && guardado.origen === origen);
   const casosFaltan = casosSinMapa(filas);
   const conCasos = obs !== null;
+  // Un origen numérico (una edad, un año, una fórmula) se asigna por rangos; el
+  // valor por valor queda plegado como detalle.
+  const numerica = ayudas.includes("rangos") && escala.length > 0;
+  const mapaParaRangos = Object.fromEntries(
+    Object.entries(entrada.mapa).map(([c, d]) => [c, d === "" ? VALOR_SIN_DATO : d]),
+  );
+  const conEtiquetas = filas.some((f) => f.etiqueta);
+
+  const tablaValores = (<>
+      <ArmonizacionAsignarEnMasa
+        base={base}
+        escala={escala}
+        nMarcados={marcadas.length}
+        nSinMapa={sinMapa.length}
+        opcionesExtra={[{ valor: VALOR_SIN_DATO, rotulo: "Sin dato" }]}
+        onAsignar={(eleccion) => despachar({ tipo: "destino", base, codigos: codigosMarcados, destino: destinoDeValor(eleccion) })}
+        onMarcarSinMapa={() => despachar({ tipo: "marcar", base, codigos: sinMapa, marcado: true })}
+        onLimpiar={() => despachar({ tipo: "limpiar-marcas", base })}
+      />
+      {obs?.truncado && (
+        <p className="pulso-armon-nota">Se muestran los primeros {formatoConteo(obs.codigos.length)} valores de {origen}.</p>
+      )}
+      <div className="pulso-armon-tabla-wrap">
+        <table className="pulso-armon-tabla pulso-vb-recod">
+          <caption className="pulso-sr-only">
+            Códigos de {origen} en {base} y su categoría estándar. {textoMarcados(marcadas.length)}.
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col"><span className="pulso-sr-only">Marcar</span></th>
+              <th scope="col">Código</th>
+              {conEtiquetas && <th scope="col">Respuesta en {base}</th>}
+              {conCasos && <th scope="col" className="is-num">Casos</th>}
+              <th scope="col">Categoría estándar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map((f) => {
+              const marcado = f.codigos.every((c) => entrada.marcados.includes(c));
+              return (
+                <tr
+                  key={f.codigos[0]}
+                  className={[marcado ? "is-marcado" : "", f.sinMapa ? "is-sin-mapa" : "", f.sinCasos ? "is-sin-casos" : ""].filter(Boolean).join(" ") || undefined}
+                >
+                  <td className="pulso-armon-marca">
+                    <input
+                      type="checkbox"
+                      checked={marcado}
+                      aria-label={`Marcar ${f.codigos.length > 1 ? "los códigos" : "el código"} ${f.rotulo}`}
+                      onChange={(e) => despachar({ tipo: "marcar", base, codigos: f.codigos, marcado: e.currentTarget.checked })}
+                    />
+                  </td>
+                  <td className="pulso-armon-codigo">{f.rotulo}</td>
+                  {conEtiquetas && <td>{f.etiqueta || <span className="pulso-armon-tenue">{f.codigos.length > 1 ? `${f.codigos.length} valores` : "Sin etiqueta"}</span>}</td>}
+                  {conCasos && (
+                    <td className="is-num">
+                      {f.n === null
+                        ? <span className="pulso-armon-tenue">sin conteo</span>
+                        : f.sinCasos ? <span className="pulso-armon-tenue">sin casos</span> : formatoConteo(f.n)}
+                    </td>
+                  )}
+                  <td>
+                    <select
+                      value={valorDeDestino(f.destino)}
+                      aria-label={`Categoría estándar de ${f.rotulo}`}
+                      onChange={(e) => despachar({ tipo: "destino", base, codigos: f.codigos, destino: destinoDeValor(e.target.value) })}
+                    >
+                      <option value="">Sin mapa</option>
+                      {escala.map((c) => (
+                        <option key={c.codigo} value={c.codigo}>{c.etiqueta || c.codigo}</option>
+                      ))}
+                      <option value={VALOR_SIN_DATO}>Sin dato</option>
+                    </select>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>);
 
   return (
     <section className="pulso-armon-seccion pulso-armon-base" aria-labelledby={anclaId} data-qa-geometry-member>
@@ -111,7 +189,7 @@ export function SegmentoEnBase({
           soloConLista={false}
           rotulo={`Variable de origen en ${base}`}
           etiquetaBuscar={`Buscar la variable de origen en ${base}`}
-          onElegir={(variable) => { setAyuda(null); despachar({ tipo: "origen", base, variable }); }}
+          onElegir={(variable) => despachar({ tipo: "origen", base, variable })}
         />
       )}
 
@@ -138,7 +216,6 @@ export function SegmentoEnBase({
 
           {!noListable && (<>
           <div className="pulso-armon-base-acciones">
-            <BotonesAyudaMapa ayudas={ayudas} abierta={ayuda} onAlternar={(a) => setAyuda(ayuda === a ? null : a)} />
             {resumen.total > 0 && (
               <span className={`pulso-armon-base-resumen${resumen.sinMapa ? " is-aviso" : ""}`} aria-live="polite">
                 {[textoResumenMapa(resumen), casosFaltan ? textoFaltanCasos(casosFaltan) : ""].filter(Boolean).join(" · ")}
@@ -149,18 +226,6 @@ export function SegmentoEnBase({
             )}
           </div>
 
-          {ayuda && (
-            <AyudaMapa
-              key={ayuda}
-              tipo={ayuda}
-              origen={origen}
-              escala={escala}
-              codigos={codigos}
-              onAplicar={(mapa) => { despachar({ tipo: "aplicar-mapa", base, mapa }); setAyuda(null); }}
-              onCerrar={() => setAyuda(null)}
-            />
-          )}
-
           {escala.length === 0 ? (
             <p className="pulso-armon-vacio">Define la escala estándar para asignar los códigos de {origen}.</p>
           ) : filas.length === 0 ? (
@@ -170,80 +235,30 @@ export function SegmentoEnBase({
                 {obs ? `${origen} no trae valores en ${base}.` : `${origen} no trae lista de respuestas.`}
               </p>
             )
+          ) : numerica ? (
+            <MapaPorRangos
+              key={`${base}:${origen}`}
+              base={base}
+              origen={origen}
+              valores={codigos}
+              escala={escala}
+              mapa={mapaParaRangos}
+              opcionesExtra={[{ valor: VALOR_SIN_DATO, rotulo: "Sin dato" }]}
+              onAsignar={(cambios) => {
+                const porDestino = new Map<string, string[]>();
+                for (const [codigo, valor] of Object.entries(cambios)) {
+                  const clave = valor ?? "";
+                  porDestino.set(clave, [...(porDestino.get(clave) ?? []), codigo]);
+                }
+                for (const [valor, cods] of porDestino) {
+                  despachar({ tipo: "destino", base, codigos: cods, destino: valor === "" ? null : destinoDeValor(valor) });
+                }
+              }}
+              detalle={tablaValores}
+              nValores={codigos.length}
+            />
           ) : (
-            <>
-              <ArmonizacionAsignarEnMasa
-                base={base}
-                escala={escala}
-                nMarcados={marcadas.length}
-                nSinMapa={sinMapa.length}
-                opcionesExtra={[{ valor: VALOR_SIN_DATO, rotulo: "Sin dato" }]}
-                onAsignar={(eleccion) => despachar({ tipo: "destino", base, codigos: codigosMarcados, destino: destinoDeValor(eleccion) })}
-                onMarcarSinMapa={() => despachar({ tipo: "marcar", base, codigos: sinMapa, marcado: true })}
-                onLimpiar={() => despachar({ tipo: "limpiar-marcas", base })}
-              />
-              {obs?.truncado && (
-                <p className="pulso-armon-nota">Se muestran los primeros {formatoConteo(obs.codigos.length)} valores de {origen}.</p>
-              )}
-              <div className="pulso-armon-tabla-wrap">
-                <table className="pulso-armon-tabla pulso-vb-recod">
-                  <caption className="pulso-sr-only">
-                    Códigos de {origen} en {base} y su categoría estándar. {textoMarcados(marcadas.length)}.
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th scope="col"><span className="pulso-sr-only">Marcar</span></th>
-                      <th scope="col">Código</th>
-                      <th scope="col">Respuesta en {base}</th>
-                      {conCasos && <th scope="col" className="is-num">Casos</th>}
-                      <th scope="col">Categoría estándar</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filas.map((f) => {
-                      const marcado = f.codigos.every((c) => entrada.marcados.includes(c));
-                      return (
-                        <tr
-                          key={f.codigos[0]}
-                          className={[marcado ? "is-marcado" : "", f.sinMapa ? "is-sin-mapa" : "", f.sinCasos ? "is-sin-casos" : ""].filter(Boolean).join(" ") || undefined}
-                        >
-                          <td className="pulso-armon-marca">
-                            <input
-                              type="checkbox"
-                              checked={marcado}
-                              aria-label={`Marcar ${f.codigos.length > 1 ? "los códigos" : "el código"} ${f.rotulo}`}
-                              onChange={(e) => despachar({ tipo: "marcar", base, codigos: f.codigos, marcado: e.currentTarget.checked })}
-                            />
-                          </td>
-                          <td className="pulso-armon-codigo">{f.rotulo}</td>
-                          <td>{f.etiqueta || <span className="pulso-armon-tenue">{f.codigos.length > 1 ? `${f.codigos.length} valores` : "Sin etiqueta"}</span>}</td>
-                          {conCasos && (
-                            <td className="is-num">
-                              {f.n === null
-                                ? <span className="pulso-armon-tenue">sin conteo</span>
-                                : f.sinCasos ? <span className="pulso-armon-tenue">sin casos</span> : formatoConteo(f.n)}
-                            </td>
-                          )}
-                          <td>
-                            <select
-                              value={valorDeDestino(f.destino)}
-                              aria-label={`Categoría estándar de ${f.rotulo}`}
-                              onChange={(e) => despachar({ tipo: "destino", base, codigos: f.codigos, destino: destinoDeValor(e.target.value) })}
-                            >
-                              <option value="">Sin mapa</option>
-                              {escala.map((c) => (
-                                <option key={c.codigo} value={c.codigo}>{c.codigo} {c.etiqueta}</option>
-                              ))}
-                              <option value={VALOR_SIN_DATO}>Sin dato</option>
-                            </select>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
+            tablaValores
           )}
           </>)}
         </>

@@ -19,17 +19,22 @@ describe("barra «asignar en masa»", () => {
     onLimpiar: sinAccion,
   }));
 
-  it("el mismo marco con 0 y con muchos marcados; sólo cambia lo habilitado", () => {
+  it("sin marcados explica para qué son las casillas y ofrece marcar los sin mapa", () => {
     const cero = render(0, 25);
-    expect(cero).toContain("Ningún código marcado");
-    expect(cero).toContain("Marcar todos los sin mapa");
-    expect(cero).toContain("Limpiar");
-    expect(cero).toContain("2 Provincias");
-    expect(cero).toContain("Sin mapa");
+    expect(cero).toContain("Marca varios códigos para asignarlos juntos a una categoría.");
+    expect(cero).toContain("Marcar los 25 sin mapa");
+    expect(cero).not.toContain("<select");
     expect(cero).toContain('aria-label="Asignar varios códigos de b2025"');
+    expect(render(0, 0)).not.toContain("<button");
+  });
+
+  it("con marcados pide la categoría y permite desmarcar", () => {
     const muchos = render(26, 0);
     expect(muchos).toContain("26 marcados");
-    expect((cero.match(/<button/g) ?? []).length).toBe((muchos.match(/<button/g) ?? []).length);
+    expect(muchos).toContain("2 Provincias");
+    expect(muchos).toContain("Sin mapa");
+    expect(muchos).toContain(">Asignar<");
+    expect(muchos).toContain("Desmarcar");
   });
 });
 
