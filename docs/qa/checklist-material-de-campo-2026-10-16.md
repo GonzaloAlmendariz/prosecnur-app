@@ -19,6 +19,8 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | A5 | Ícono del módulo: `Backpack` (mochila) | ADR 0108 §7, `frontend/src/lib/icons.ts` | hecho (decidido 2026-10-16) |
 | A6 | La lista de fichas de cuota nace en Hojas de ruta, en un modo sin marco | ADR 0108 §6 | hecho (decidido 2026-10-16) |
 | A9 | ADR propio del modo `cuotas` de Hojas de ruta (secciones, contrato de la asignación, migración) | `docs/adrs/` | pendiente; frena E4 |
+| A10 | Imprenta como sección propia; Accesos solo con canal digital; Componer a medida en el alcance | ADR 0109 §3 a §5 | hecho (decidido 2026-10-16) |
+| A11 | Canvas de E1 aprobado como referencia visual | artifact `W7xx1vTeBZE2tkdJtQCcSy` | hecho (aprobado 2026-10-16) |
 | A7 | «Entrega» de Hojas de ruta se renombra «Selección» y conserva Cuotas, Titulares y Reemplazos | ADR 0108 §5 | hecho (confirmado 2026-10-16) |
 | A8 | Aceptar el ADR 0108 | `docs/adrs/` | hecho (aceptado 2026-10-16) |
 
@@ -86,7 +88,12 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 |---|---|---|---|
 | E0a | Renombre, ruta, secciones, redirección con query, migración del slug y de `active_stage`, home, bóveda, agentic OS | rama `feat/material-campo-e0a` | en revisión: verificador APROBADO CON PENDIENTES (ninguno del diff); falta que Gonzalo lo dé por cerrado y decida el merge |
 | E0b | Token Musgo, alias, ícono `Backpack`, `branding/` (identidad 1.4.0) | `tokens.css`, `boot.css`, `branding/identity.json`, `lib/icons.ts` | en revisión: verificador APROBADO CON PENDIENTES (ninguno del diff); falta que Gonzalo lo dé por cerrado |
-| E1 | Catálogo, `compatible_unit_types`, dos registros de adapters, `collection_state/v2`, revamp «pliego de imprenta» | `collection_*.R`, `features/recopiladores/` | pendiente |
+| E1 | Reemplazada por E1a a E1d del ADR 0109 | ADR 0109 §8 | hecho (decidido 2026-10-16) |
+| E1a | Secciones por modo (Imprenta nueva, Accesos solo con canal digital), catálogo con miniaturas reales, cuatro capas en la unidad, `compatible_unit_types`, dos registros de adapters, `collection_state/v2` | `modules.ts`, `collection_*.R`, `features/recopiladores/` | pendiente |
+| E1b | Editor sobre la página real, con zonas por bloque y caras | `features/recopiladores/`, compilador | pendiente |
+| E1c | Componer a medida con bloques parametrizados | registro de bloques, editor | pendiente |
+| E1d | Imprenta: carpeta numerada, imposición dúplex y dos por hoja, pliego físico, conteo y LEEME | job de render, `features/recopiladores/` | pendiente |
+| E6 | Pedido de cambios en palabras | ADR 0109 §6 | **bloqueado**: proveedor del modelo, credencial y modo sin conexión |
 | E2 | `ump_territorial_v1` y salidas de Hojas de ruta como layout legacy | archivo nuevo junto a `collection_adapters.R` | pendiente |
 | E3 | Bloques `quota_grid`, `unit_map`, `place_checklist`, `route_instructions`; port; retiro del legacy | registro de bloques | pendiente |
 | E4 | `fichas_cuota_v1`, hojas comunes, alerta en Monitoreo, golden de Ser Adolescente | archivo nuevo, `monitoreo_engine.R` | **bloqueado** (A9, H5) |
