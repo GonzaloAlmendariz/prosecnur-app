@@ -5,7 +5,8 @@
 // 77–99 o negativos con su etiqueta real) más lo ya configurado; nada se marca
 // solo y se puede agregar un código propio (Gonzalo, 2026-10-16).
 
-import type { CodigoEspecialSugerido } from "../../../api/analitica";
+import type { CodigoEspecialSugerido, UsoCodigoEnBase } from "../../../api/analitica";
+import { formatoConteoDe } from "../../../lib/formatoNumero";
 
 export type OpcionCodigoEspecial = {
   code: number;
@@ -17,7 +18,38 @@ export type OpcionCodigoEspecial = {
   ambiguo: boolean;
   /** Las demás etiquetas del código en el estudio (la principal va en `label`). */
   otras: string[];
+  /** Uso por base; vacío si no se pudo contar. */
+  porBase: UsoCodigoEnBase[];
 };
+
+/** «En 14 preguntas · elegido en 5»; sin uso, cadena vacía. */
+export function textoUso(o: Pick<OpcionCodigoEspecial, "porBase">): string {
+  if (!o.porBase.length) return "";
+  const preguntas = o.porBase.reduce((s, u) => s + u.n_preguntas, 0);
+  if (!preguntas) return "";
+  const conCasos = o.porBase.every((u) => u.n_con_casos !== null)
+    ? o.porBase.reduce((s, u) => s + (u.n_con_casos ?? 0), 0)
+    : null;
+  const base = `En ${formatoConteoDe(preguntas, "pregunta", "preguntas")}`;
+  return conCasos === null ? base : `${base} · elegido en ${conCasos}`;
+}
+
+/** Qué hace marcarlo: «Se omitirá en 9 preguntas donde nadie lo eligió». */
+export function textoEfecto(o: Pick<OpcionCodigoEspecial, "porBase" | "marcado">): string {
+  if (!o.marcado || !o.porBase.length || o.porBase.some((u) => u.n_con_casos === null)) return "";
+  const sinCasos = o.porBase.reduce((s, u) => s + (u.n_preguntas - (u.n_con_casos ?? 0)), 0);
+  return sinCasos > 0
+    ? `Se omitirá en ${formatoConteoDe(sinCasos, "pregunta", "preguntas")} donde nadie lo eligió`
+    : "Se muestra en todas: en cada pregunta alguien lo eligió";
+}
+
+/** Desglose por base para el `title`: «2024: 4 preguntas, elegido en 3 · 2026: …». */
+export function textoPorBase(o: Pick<OpcionCodigoEspecial, "porBase">): string {
+  return o.porBase
+    .filter((u) => u.n_preguntas > 0)
+    .map((u) => `${u.base}: ${formatoConteoDe(u.n_preguntas, "pregunta", "preguntas")}${u.n_con_casos === null ? "" : `, elegido en ${u.n_con_casos}`}`)
+    .join(" · ");
+}
 
 /** El default de fábrica de versiones anteriores: nadie lo eligió. */
 const DEFAULT_HEREDADO = [96, 97, 98, 99];
@@ -51,10 +83,11 @@ export function opcionesCodigosEspeciales(
       marcado: marcados.includes(code),
       ambiguo: etiquetas.length > 1,
       otras: etiquetas.slice(1),
+      porBase: s.por_base ?? [],
     });
   }
   for (const code of marcados) {
-    if (!out.has(code)) out.set(code, { code, label: "No se usa en este estudio", origen: "configurado", marcado: true, ambiguo: false, otras: [] });
+    if (!out.has(code)) out.set(code, { code, label: "No se usa en este estudio", origen: "configurado", marcado: true, ambiguo: false, otras: [], porBase: [] });
   }
   return [...out.values()].sort((a, b) => a.code - b.code);
 }

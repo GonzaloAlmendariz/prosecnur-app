@@ -1,6 +1,6 @@
 // Códigos especiales del libro: sugerencias del estudio, no una lista fija (2026-10-16).
 import { describe, expect, it } from "vitest";
-import { codigoEscrito, opcionesCodigosEspeciales, sinDefaultHeredado } from "./codigosEspecialesModel";
+import { codigoEscrito, opcionesCodigosEspeciales, sinDefaultHeredado, textoEfecto, textoPorBase, textoUso } from "./codigosEspecialesModel";
 
 const sug = (codigo: string, etiqueta: string) => ({ codigo, etiqueta, etiquetas: [etiqueta], n_listas: 1 });
 
@@ -34,5 +34,24 @@ describe("default heredado y códigos ambiguos", () => {
     expect(o[0].label).toBe("Ninguna");
     expect(o[0].otras).toEqual(["No sabe"]);
     expect(o[0].ambiguo).toBe(true);
+  });
+});
+
+describe("uso de cada código en las bases", () => {
+  const porBase = [
+    { base: "2024", n_preguntas: 4, n_con_casos: 3 },
+    { base: "2026", n_preguntas: 10, n_con_casos: 2 },
+  ];
+  it("dice dónde aparece, qué pasa al marcarlo y el desglose por base", () => {
+    const o = { porBase, marcado: true };
+    expect(textoUso(o)).toBe("En 14 preguntas · elegido en 5");
+    expect(textoEfecto(o)).toBe("Se omitirá en 9 preguntas donde nadie lo eligió");
+    expect(textoEfecto({ porBase, marcado: false })).toBe("");
+    expect(textoPorBase(o)).toBe("2024: 4 preguntas, elegido en 3 · 2026: 10 preguntas, elegido en 2");
+  });
+  it("sin conteo no inventa el efecto", () => {
+    const o = { porBase: [{ base: "2026", n_preguntas: 3, n_con_casos: null }], marcado: true };
+    expect(textoUso(o)).toBe("En 3 preguntas");
+    expect(textoEfecto(o)).toBe("");
   });
 });
