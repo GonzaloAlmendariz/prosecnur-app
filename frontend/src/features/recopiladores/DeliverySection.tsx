@@ -102,7 +102,7 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
           </article>
         ) : <div className="rec-contained-empty">El recibo aparece aquí cuando se entregan unos accesos ya preparados.</div>}
 
-        <div className="rec-artifact-list" data-qa-geometry-group="recopiladores/artefactos" data-qa-geometry-contract="intrinsic">
+        <div className="rec-artifact-list" data-qa-geometry-group="material-campo/artefactos" data-qa-geometry-contract="intrinsic">
           {/* El aviso va ARRIBA de la lista: se descarga desde cada fila, así que
               enterarse después de haber bajado el archivo no sirve de nada. */}
           {desfasados ? (

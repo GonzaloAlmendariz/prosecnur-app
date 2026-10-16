@@ -67,13 +67,17 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | H9 | El fixture hsvg2026 no tiene estado de Recopiladores: ningún proyecto de referencia prueba un plan con accesos | `api/inst/reference_projects/` | pendiente (antes de E1) |
 | H10 | Entrega > Reemplazos esconde 250 px a la derecha sin indicio y el runner dice `desplazamientoH=0` | `.hojas-ruta-review-table-wrap.is-delivery`, `scripts/ui-quick-check.mjs` | pendiente: detector y tabla |
 | H11 | En 1024x600 dos ítems del outline de Materiales desbordan (173 y 182 px en 166) | `features/recopiladores/` | pendiente (E1) |
+| H12 | Hojas de ruta > Selección no declara ningún grupo geométrico (C1); el outline del Catálogo tampoco | `features/hojasRuta/HojasRutaPage.tsx`, editor de Materiales | pendiente (preexistente; QA E0a 2026-10-16) |
+| H13 | Selección a 1024x600: scroll anidado con 173 px de ventana interior; alcanzable pero estrecho (C4) | `.hojas-ruta-stage-shell.is-delivery-stage` | pendiente (preexistente) |
+| H14 | Los botones de sección de Material de campo no exponen `aria-current`; el tile «Agregar» del dock lleva `aria-current="page"` | top bar de módulo, dock | pendiente (probablemente preexistente) |
+| H15 | El ítem 7 del outline repite el rótulo («Registro de aplicación Registro de aplicacion») | editor de Materiales | pendiente (E1) |
 | H8 | El cronograma de Ser Adolescente dice 1,400 casos; el estudio es de 1.000 | cronograma del estudio (fuera del repo) | pendiente: aviso, no es de la app |
 
 ## Etapas (solo después de A8)
 
 | # | Etapa | Dónde vive | Estado |
 |---|---|---|---|
-| E0a | Renombre, ruta, modos, secciones, redirección con query, migración del slug y de `active_stage`, home | `modules.ts`, `App.tsx`, `direccion.ts`, `project_overview.R`, `router_diseno_estudio.R`, `router_hojas_ruta.R` | en curso (rama `feat/material-campo-e0a`) |
+| E0a | Renombre, ruta, secciones, redirección con query, migración del slug y de `active_stage`, home, bóveda, agentic OS | rama `feat/material-campo-e0a` | en revisión: gates y QA visual verdes; falta el verificador |
 | E0b | Token Musgo, alias, ícono `Backpack`, `branding/` | `tokens.css`, `boot.css`, `branding/identity/tokens.css`, `lib/icons.ts` | pendiente (depende de E0a) |
 | E1 | Catálogo, `compatible_unit_types`, dos registros de adapters, `collection_state/v2`, revamp «pliego de imprenta» | `collection_*.R`, `features/recopiladores/` | pendiente |
 | E2 | `ump_territorial_v1` y salidas de Hojas de ruta como layout legacy | archivo nuevo junto a `collection_adapters.R` | pendiente |
