@@ -167,6 +167,30 @@ codif_no_categorizar_unset <- function(sid, parent, source = NULL) {
   "completo"
 }
 
+# Lo que hay que codificar de una pregunta. En una cerrada que se recodifica
+# con sus opciones (opción única «padre» o múltiple) con su texto «Otro»
+# emparejado, las opciones ya tienen código: el material son los textos de
+# «Otro». Comparar los textos codificados con los valores de la pregunta
+# mezclaba dos cosas (HSyVbG 2026: P8 con sus 8 textos codificados figuraba
+# «en curso» frente a 10 años; P26, 12 de 12 frente a 381 combinaciones).
+.codif_material_de_pregunta <- function(row, data_df, stats, n_codificadas) {
+  tipo <- as.character(row$tipo %||% "")
+  modo_so <- as.character(row$modo_so %||% "")
+  tc <- as.character(row$text_col %||% "")[1]
+  cerrada <- identical(tipo, "select_multiple") || (identical(tipo, "select_one") && identical(modo_so, "padre"))
+  if (!cerrada || is.na(tc) || !nzchar(tc) || !is.data.frame(data_df) || !(tc %in% names(data_df))) {
+    return(list(n_respuestas = as.integer(stats$n_respuestas %||% 0L),
+                n_unicas = as.integer(stats$n_unicas %||% 0L),
+                n_codificadas = as.integer(n_codificadas)))
+  }
+  v <- trimws(as.character(data_df[[tc]]))
+  v <- v[!is.na(v) & nzchar(v)]
+  u <- unique(.normalize_text(v))
+  u <- u[nzchar(u)]
+  list(n_respuestas = length(v), n_unicas = length(u),
+       n_codificadas = as.integer(min(as.integer(n_codificadas), length(u))))
+}
+
 # Las decisiones de todas las preguntas del draft, sin pasar por el endpoint
 # que arma el payload completo (que además lee etiquetas, secciones y
 # candidatos de texto que acá no hacen falta).
@@ -182,7 +206,10 @@ codif_no_categorizar_unset <- function(sid, parent, source = NULL) {
     tipo <- as.character(r$tipo %||% "")
     modo_so <- as.character(r$modo_so %||% "")
     stats <- .pregunta_stats(r, data_df)
-    n_cod <- length(recod_todas[[parent]] %||% list())
+    mat <- .codif_material_de_pregunta(r, data_df, stats, length(recod_todas[[parent]] %||% list()))
+    n_cod <- mat$n_codificadas
+    stats$n_respuestas <- mat$n_respuestas
+    stats$n_unicas <- mat$n_unicas
     status <- .codif_status_de_pregunta(
       tipo = tipo, modo_so = modo_so, use_flag = isTRUE(r$use),
       n_respuestas = stats$n_respuestas, n_unicas = stats$n_unicas, n_codificadas = n_cod
