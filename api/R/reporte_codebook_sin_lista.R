@@ -40,7 +40,8 @@ codebook_descripcion_sin_lista <- function(x) {
   if (n == 0L) return("Sin respuestas en la base")
   num <- suppressWarnings(as.numeric(chr[con_dato]))
   if (!anyNA(num)) {
-    redondo <- function(z) if (z == round(z)) .codebook_formato_n(round(z)) else .codebook_formato_n(round(z, 2))
+    # Los valores van sin separador de miles: un año es «2017», no «2,017».
+    redondo <- function(z) if (z == round(z)) format(round(z), scientific = FALSE, trim = TRUE) else format(round(z, 2), scientific = FALSE, trim = TRUE)
     rango <- if (min(num) == max(num)) redondo(min(num)) else paste("de", redondo(min(num)), "a", redondo(max(num)))
     return(sprintf("Numérica · %s · %s con dato", rango, .codebook_formato_n(n)))
   }
