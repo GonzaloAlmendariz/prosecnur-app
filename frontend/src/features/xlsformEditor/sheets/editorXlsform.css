@@ -31,3 +31,5 @@
 .xfx-diag__fix { all: unset; cursor: pointer; align-self: flex-start; margin-top: 2px; padding: 3px 8px; border: 1px solid var(--pulso-border-strong); border-radius: 6px; background: var(--pulso-surface); font-size: 12px; color: var(--pulso-text); }
 .xfx-diag__fix:hover { background: var(--pulso-surface-2); }
 .xfx-diag__fix:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.pulso-xfs-colhead { flex-wrap: wrap; row-gap: 1px; }
+.xfx-colayuda { flex-basis: 100%; font-size: 10.5px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--pulso-text-faint); white-space: nowrap; }
