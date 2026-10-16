@@ -53,3 +53,13 @@ test_that("el PDF arma bloque también para las preguntas sin lista", {
   expect_identical(nombres, c("P1", "P2", "P8_otro", "indice"))
   expect_identical(b[[1]]$labels, "Numérica · de 18 a 67 · 3 con dato")
 })
+
+test_that("la exportación repone las preguntas sin lista que el filtro de Frecuencias quita, salvo excluidas", {
+  full <- .cbs_df()
+  filtrada <- full[, c("P2"), drop = FALSE]
+  attr(filtrada, "instrumento_reporte") <- attr(full, "instrumento_reporte")
+  out <- .codebook_con_sin_lista(full, filtrada, excluidas = "P8_otro")
+  expect_identical(names(out), c("P1", "P2", "indice"))
+  expect_identical(attr(out$P1, "label"), "¿Cuál es tu edad?")
+  expect_false(is.null(attr(out, "instrumento_reporte")))
+})
