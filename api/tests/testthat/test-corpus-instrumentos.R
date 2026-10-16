@@ -10,7 +10,10 @@
 #   [PULSO_CORPUS_SOLO=familia1,familia2] \
 #   Rscript -e 'pkgload::load_all("api"); testthat::test_file("api/tests/testthat/test-corpus-instrumentos.R")'
 #
-# Grano: instrumento canonico x modo (pdf|docx x columnas 1|2|auto).
+# Grano: instrumento canonico x modo (pdf|docx x columnas 1|2|auto). Ademas de
+# los invariantes de formato, los de CONTENIDO del item 48 (selects con opciones,
+# numeracion, simulador de recorrido, sin XPath ni `_x_`, una escritura, toda
+# variable con lugar en el papel).
 
 .cp_fixture <- function(label = "¿Cuál es tu edad?") {
   list(
@@ -135,11 +138,19 @@ test_that("corpus real: PDF y Word no fallan y cumplen sus invariantes en los 6 
         if (!isTRUE(fila$ok)) next
         checks <- if (fmt == "pdf") c("fuente_ok", "marcado_ok", "marco_ok", "pie_ok")
                   else c("xml_ok", "fuente_ok", "escape_ok")
+        checks <- c(checks, "contenido_ok")   # item 48: lo que el papel DICE
         for (ck in checks) {
           detalle <- switch(ck,
             fuente_ok = if (fmt == "pdf") fila$fuente_ajena else fila$fuentes,
             marcado_ok = fila$marcado, marco_ok = fila$fuera_marco, pie_ok = fila$pie_mal,
-            xml_ok = fila$xml_malos, escape_ok = fila$escape)
+            xml_ok = fila$xml_malos, escape_ok = fila$escape,
+            contenido_ok = paste(sprintf("%s=%s", c("selects_sin_opciones", "numeros_duplicados",
+              "numeros_huecos", "numeros_mayores_que_N", "saltos_discrepancias", "saltos_destinos_rotos",
+              "xpath_literal", "cursiva_literal", "escritura_ajena", "captura_sin_lugar", "contenido_error"),
+              vapply(c("selects_sin_opciones", "numeros_duplicados", "numeros_huecos", "numeros_mayores_que_N",
+                       "saltos_discrepancias", "saltos_destinos_rotos", "xpath_literal", "cursiva_literal",
+                       "escritura_ajena", "captura_sin_lugar", "contenido_error"),
+                     function(k) as.character(fila[[k]] %||% ""), "")), collapse = " "))
           expect_true(isTRUE(fila[[ck]]), label = sprintf("%s %s: %s", etiqueta, ck, detalle))
         }
         unlink(art)
@@ -147,4 +158,24 @@ test_that("corpus real: PDF y Word no fallan y cumplen sus invariantes en los 6 
     }
     session_delete(ab$sid)
   }
+})
+
+test_that("item 48 (auto-verificacion): los invariantes de contenido ven cada defecto", {
+  skip_if_not(nzchar(Sys.which("pdftotext")))
+  fx <- .cp_fixture()
+  m <- formulario_pdf_build_model(fx$survey, fx$choices, fx$settings)
+  ok <- .corpus_invariantes_contenido(m, "Texto limpio del papel")
+  expect_true(ok$contenido_ok)
+  # Rojos fabricados, uno por invariante.
+  malo <- m
+  for (bi in seq_along(malo$blocks)) if (identical(malo$blocks[[bi]]$name, "trabaja")) malo$blocks[[bi]]$options <- list()
+  expect_identical(.corpus_invariantes_contenido(malo, "x")$selects_sin_opciones, 1L)
+  r <- .corpus_invariantes_contenido(m, "si ${edad} != '' y selected(x) _palabra_ ال")
+  expect_identical(r$xpath_literal, 3L)
+  expect_identical(r$cursiva_literal, 1L)
+  expect_true(nzchar(r$escritura_ajena))
+  expect_false(r$contenido_ok)
+  dup <- m
+  for (bi in seq_along(dup$blocks)) if (identical(dup$blocks[[bi]]$name, "trabaja")) dup$blocks[[bi]]$number <- "1"
+  expect_identical(.corpus_invariantes_contenido(dup, "x")$numeros_duplicados, "1")
 })

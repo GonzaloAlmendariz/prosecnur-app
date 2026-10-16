@@ -82,7 +82,12 @@ test_that("paper model skips metadata rows and collapses long catalogs", {
   question <- Filter(function(block) identical(block$name, "p1_pais"), model$blocks)[[1]]
 
   expect_identical(question$number, "1")
-  expect_identical(question$label, "Pais de nacimiento")
+  # Item 39: el numero (1) no coincide con la variable (`p1_pais` -> 1.pais no
+  # sigue el esquema), asi que el rotulo lleva la etiqueta `[var]`.
+  expect_identical(question$label, "Pais de nacimiento [p1_pais]")
+  # Item 44: `start`/`end` son campos de control que se anotan a mano.
+  ctrl <- Filter(function(b) isTRUE(b$control), model$blocks)
+  expect_identical(vapply(ctrl, `[[`, "", "name"), c("start", "end"))
   expect_true(isTRUE(question$coded_list))
   expect_length(question$options, 0L)
   expect_match(paste(model$warnings, collapse = " "), "campo codificado")
@@ -114,7 +119,9 @@ test_that("complex relevant generates a warning and PDF renders", {
   expect_true(file.exists(tmp))
   expect_gt(file.info(tmp)$size, 1000)
   expect_gte(qpdf::pdf_length(tmp), 1)
-  expect_match(paste(result$warnings, collapse = " "), "relevant complejo")
+  # Tercera tanda (§41): ninguna condicion se pierde. `${otro}` no existe en el
+  # instrumento: se asume cumplida y se avisa; la de `p1` se imprime.
+  expect_match(paste(result$warnings, collapse = " "), "no existen\\): otro")
 
   pdftotext <- Sys.which("pdftotext")
   if (nzchar(pdftotext)) {
@@ -434,11 +441,12 @@ test_that("xlsform_coalesce_label prefers spanish and falls back defensively", {
   expect_identical(out[1], "Español uno")   # español gana sobre inglés
   expect_identical(out[2], "English two")   # coalesce a la unica no vacia
 
-  # Columna plana `label` tiene prioridad cuando existe y esta llena.
-  df2 <- data.frame(label = c("Plano", ""), `label::es` = c("Loc A", "Loc B"),
+  # Item 43 (tercera tanda): el idioma por defecto manda sobre la columna plana
+  # `label`; la plana solo rellena lo que el idioma por defecto deja vacio.
+  df2 <- data.frame(label = c("Plano", "Plano dos"), `label::es` = c("Loc A", ""),
                     check.names = FALSE, stringsAsFactors = FALSE)
   out2 <- xlsform_coalesce_label(df2, lang = "es", kind = "label")
-  expect_identical(out2, c("Plano", "Loc B"))
+  expect_identical(as.character(out2), c("Loc A", "Plano dos"))
 })
 
 test_that("logic_language saltos uses 'pase a la pregunta' wording", {
@@ -477,10 +485,10 @@ test_that("logic_language condiciones emits openings and suppresses skips", {
   expect_identical(model$logic_language, "condiciones")
   q2 <- Filter(function(b) identical(b$name, "p2"), model$blocks)[[1]]
   q3 <- Filter(function(b) identical(b$name, "p3"), model$blocks)[[1]]
-  # p2 abre la condicion; p3 (misma relevant en corrida) NO la repite.
-  expect_match(q2$opening_condition, "En caso de haber respondido")
-  expect_match(q2$opening_condition, "Si")
-  expect_match(q2$opening_condition, "en la pregunta 1", fixed = TRUE)
+  # p2 abre la condicion con alcance cerrado sobre la corrida (§41.3); p3 (misma
+  # relevant) NO la repite.
+  expect_match(q2$opening_condition, "^FILTRO")
+  expect_match(q2$opening_condition, "Aplique P2 a P3 s\u00f3lo si P1 = 1 \u00abSi\u00bb", fixed = TRUE)
   expect_identical(q3$opening_condition, "")
 
   tmp <- tempfile(fileext = ".pdf")
@@ -489,7 +497,7 @@ test_that("logic_language condiciones emits openings and suppresses skips", {
   pdftotext <- Sys.which("pdftotext")
   skip_if_not(nzchar(pdftotext))
   txt <- paste(system2(pdftotext, c(tmp, "-"), stdout = TRUE), collapse = " ")
-  expect_true(grepl("En caso de", txt))
+  expect_true(grepl("FILTRO", txt))
   expect_false(grepl("pase a la pregunta", txt))
 })
 
@@ -509,7 +517,7 @@ test_that("condiciones dedups group-inherited relevant on questions", {
   h1 <- Filter(function(b) identical(b$name, "hijo1"), model$blocks)[[1]]
   h2 <- Filter(function(b) identical(b$name, "hijo2"), model$blocks)[[1]]
   # La seccion enuncia la condicion UNA vez; las hijas que la heredan NO la repiten.
-  expect_match(sec$opening_condition, "En caso de haber respondido")
+  expect_match(sec$opening_condition, "Aplique este m\u00f3dulo s\u00f3lo si P1 = 1", fixed = TRUE)
   expect_identical(h1$opening_condition, "")
   expect_identical(h2$opening_condition, "")
 })
@@ -583,8 +591,9 @@ test_that("condiciones wording uses 'en la pregunta N' (full word)", {
   model <- formulario_pdf_build_model(survey, choices, data.frame(form_title = "T"),
                                       options = list(logic_language = "condiciones"))
   q2 <- Filter(function(b) identical(b$name, "p2"), model$blocks)[[1]]
-  expect_match(q2$opening_condition, "en la pregunta 1", fixed = TRUE)
-  expect_false(grepl("P.1", q2$opening_condition, fixed = TRUE))
+  # §41.3: la condicion nombra la pregunta por su numero impreso, sin XPath.
+  expect_match(q2$opening_condition, "P1 = 1 \u00abS\u00ed\u00bb", fixed = TRUE)
+  expect_false(grepl("${", q2$opening_condition, fixed = TRUE))
 })
 
 test_that("consent_var: omits consent opening (condiciones) and terminates (saltos)", {
@@ -607,14 +616,17 @@ test_that("consent_var: omits consent opening (condiciones) and terminates (salt
   sec_g1 <- Filter(function(b) identical(b$kind, "section") && grepl("Bloque 1", b$title), m_cond$blocks)[[1]]
   sec_g2 <- Filter(function(b) identical(b$kind, "section") && grepl("Bloque 2", b$title), m_cond$blocks)[[1]]
   expect_identical(sec_g1$opening_condition, "")                       # consentimiento omitido
-  expect_match(sec_g2$opening_condition, "En caso de haber respondido") # otra condicion sí
+  expect_match(sec_g2$opening_condition, "Aplique este m\u00f3dulo s\u00f3lo si") # otra condicion si
 
-  # SALTOS: la negativa del consentimiento termina la encuesta.
+  # SALTOS (§40.8): sin heuristica de consentimiento. La negativa salta al primer
+  # destino no excluido: `otra` no depende del consentimiento, asi que es
+  # «pase a» esa pregunta, no Fin (Fin solo si todo lo posterior queda excluido).
   m_skip <- formulario_pdf_build_model(survey, choices, data.frame(form_title = "T"),
     options = list(logic_language = "saltos", consent_var = "consent"))
   consent <- Filter(function(b) identical(b$name, "consent"), m_skip$blocks)[[1]]
   no_consent <- Filter(function(c) identical(c$code, "2"), consent$options)[[1]]
-  expect_identical(no_consent$paper_skip, "Fin de la encuesta")
+  otra <- Filter(function(b) identical(b$name, "otra"), m_skip$blocks)[[1]]
+  expect_identical(no_consent$paper_skip, sprintf("pase a la pregunta %s", otra$number))
 })
 
 test_that("OPS consent no longer emits the false 'pase a la pregunta 4'", {
@@ -641,7 +653,7 @@ test_that("OPS consent no longer emits the false 'pase a la pregunta 4'", {
   expect_false(any(skips2 == "pase a la pregunta 4"))
 })
 
-test_that("matrix rows are numbered sequentially (not subnumbered N.j)", {
+test_that("a matrix consumes ONE number and its rows are X.1..X.k (item 39)", {
   # Dos preguntas simples, luego una matriz de 3 items, luego otra pregunta.
   survey <- data.frame(
     type = c("integer", "select_one acuerdo", "select_one acuerdo", "select_one acuerdo", "text"),
@@ -662,13 +674,12 @@ test_that("matrix rows are numbered sequentially (not subnumbered N.j)", {
 
   N <- as.integer(matrix$number)
   expect_equal(length(matrix$items), 3L)
-  # Cada fila toma el siguiente entero correlativo: N, N+1, N+2 (sin subnumeros).
-  expect_identical(matrix$items[[1]]$number, as.character(N))
-  expect_identical(matrix$items[[2]]$number, as.character(N + 1L))
-  expect_identical(matrix$items[[3]]$number, as.character(N + 2L))
-  expect_false(grepl("\\.", matrix$items[[1]]$number))
-  # La pregunta siguiente continua tras la ultima fila: N+3.
-  expect_identical(q3$number, as.character(N + 3L))
+  # §39.6 (reglas-papel-numeracion-saltos-2026-10-15): con o sin tenor, la
+  # matriz consume UN numero X y sus filas son X.1..X.k; la siguiente es X+1.
+  expect_identical(matrix$items[[1]]$number, paste0(N, ".1"))
+  expect_identical(matrix$items[[2]]$number, paste0(N, ".2"))
+  expect_identical(matrix$items[[3]]$number, paste0(N, ".3"))
+  expect_identical(q3$number, as.character(N + 1L))
 })
 
 test_that("explicit matrix_groups override autodetection", {
@@ -756,23 +767,23 @@ test_that("matrix tenor drives subnumbering X.1..X.k, next question X+1", {
   expect_identical(mat$items[[3]]$number, "1.3")
   expect_identical(q2$number, "2")  # X+1
 
-  # (b) SIN tenor (misma forma-objeto, tenor vacio): filas secuenciales X..X+k-1.
+  # (b) SIN tenor: tambien UN numero (§39.6), filas X.1..X.k, siguiente X+1.
   m_seq <- formulario_pdf_build_model(survey, choices, settings, options = list(
     matrix_groups = list(list(members = c("q1_a", "q1_b", "q1_c"), tenor = ""))
   ))
   mat2 <- Filter(function(b) identical(b$kind, "matrix"), m_seq$blocks)[[1]]
   q2b <- Filter(function(b) identical(b$name, "q2"), m_seq$blocks)[[1]]
-  expect_identical(mat2$items[[1]]$number, "1")
-  expect_identical(mat2$items[[3]]$number, "3")
-  expect_identical(q2b$number, "4")  # X+k
+  expect_identical(mat2$items[[1]]$number, "1.1")
+  expect_identical(mat2$items[[3]]$number, "1.3")
+  expect_identical(q2b$number, "2")  # X+1
 
-  # (c) forma vieja [[names]] (retrocompat): sin tenor, secuencial.
+  # (c) forma vieja [[names]] (retrocompat): sin tenor, X.1..X.k.
   m_old <- formulario_pdf_build_model(survey, choices, settings, options = list(
     matrix_groups = list(c("q1_a", "q1_b", "q1_c"))
   ))
   mat3 <- Filter(function(b) identical(b$kind, "matrix"), m_old$blocks)[[1]]
-  expect_identical(mat3$items[[1]]$number, "1")
-  expect_identical(mat3$items[[3]]$number, "3")
+  expect_identical(mat3$items[[1]]$number, "1.1")
+  expect_identical(mat3$items[[3]]$number, "1.3")
   expect_identical(mat3$tenor, "")
 })
 
@@ -1658,9 +1669,8 @@ test_that("PDF: el pie dice «N de M» y M es el total real de paginas", {
 })
 
 test_that("PDF: el numero del item vive en su columna, no pegado a la etiqueta", {
-  # Fixture SIN tenor: los items se numeran 6..15, con una y dos cifras. Con
-  # tenor se subnumeran 1.1/1.2 y todos los numeros miden lo mismo, con lo que
-  # el defecto no se puede ver.
+  # Fixture SIN tenor de 10 filas: desde el item 39 se numeran 1.1..1.10, con
+  # anchos distintos («1.1» contra «1.10»), que es lo que hace ver el defecto.
   n <- 10L
   survey <- data.frame(
     type = rep("select_one sino", n),
@@ -1693,7 +1703,7 @@ test_that("PDF: el numero del item vive en su columna, no pegado a la etiqueta",
                  abs(pal$y0 - etiq$y0[i]) < 0.004 &
                  pal$x1 <= etiq$x0[i], , drop = FALSE]
     expect_gt(nrow(izq), 0L)
-    expect_true(grepl("^[0-9]{1,2}$", izq$texto[which.max(izq$x1)]),
+    expect_true(grepl("^[0-9]+\\.[0-9]{1,2}$", izq$texto[which.max(izq$x1)]),
                 label = sprintf("lo que precede a la etiqueta en la fila %d", i))
   }
 })
@@ -2013,10 +2023,11 @@ test_that("B2: n_questions cuenta los numeros de primer nivel que imprime el ins
   # test dejaria de probar que no cuenta).
   expect_true(any(vapply(model$blocks, function(b) identical(b$type, "note"), logical(1))))
 
-  # tenor = 1, sin tenor = 3, la abierta = 1, la nota = 0.
-  expect_identical(model$summary$n_questions, 5L)
+  # Item 39 (§39.6): una matriz consume UN numero con o sin tenor.
+  # tenor = 1, sin tenor = 1, la abierta = 1, la nota = 0.
+  expect_identical(model$summary$n_questions, 3L)
   expect_identical(.form_pdf_numeros_impresos(mats[1]), "1")
-  expect_length(.form_pdf_numeros_impresos(mats[2]), 3L)
+  expect_length(.form_pdf_numeros_impresos(mats[2]), 1L)
   expect_identical(model$summary$n_matrices, 2L)
 })
 

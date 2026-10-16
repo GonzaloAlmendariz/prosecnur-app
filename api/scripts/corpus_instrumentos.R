@@ -147,19 +147,12 @@ paso_manifiesto <- function() {
   grupos <- split(seq_len(nrow(ok)), ok$huella)
   reps <- vapply(grupos, function(ix) ix[.corpus_orden_canonico(ok$relativa[ix], as.POSIXct(ok$mtime[ix], format = "%Y-%m-%dT%H:%M:%S"))][1], integer(1))
 
-  # Versiones: union-find sobre representantes con Jaccard de nombres >= umbral.
-  padre <- seq_along(reps)
-  raiz <- function(k) { while (padre[k] != k) k <- padre[k]; k }
+  # Versiones: union-find por Jaccard de nombres >= umbral, sin fundir
+  # ediciones de anos distintos (item 49; corpus_instrumentos_lectura.R).
   nombres <- lapply(reps, function(r) lecturas[[ok$copia[r]]]$nombres)
-  sims <- list()
-  for (a in seq_along(reps)) for (b in seq_along(reps)) if (a < b) {
-    j <- .corpus_jaccard(nombres[[a]], nombres[[b]])
-    if (j >= umbral) {
-      padre[raiz(b)] <- raiz(a)
-      sims[[length(sims) + 1L]] <- c(a, b, j)
-    }
-  }
-  cluster <- vapply(seq_along(reps), raiz, integer(1))
+  agr <- .corpus_agrupar_versiones(ok$relativa[reps], nombres, umbral)
+  cluster <- agr$cluster
+  sims <- agr$sims
 
   sel <- list(); destino <- character(nrow(ok)); rol <- character(nrow(ok))
   for (cl in unique(cluster)) {

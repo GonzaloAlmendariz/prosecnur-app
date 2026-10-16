@@ -51,7 +51,7 @@
       if (identical(formato, "docx")) formulario_word_render(model, out_file)
       else formulario_pdf_render(model, out_file)
       list(ok = TRUE, error = NA_character_, summary = model$summary,
-           warnings = as.character(unlist(model$warnings %||% character(0))))
+           warnings = as.character(unlist(model$warnings %||% character(0))), model = model)
     }, error = function(e) {
       list(ok = FALSE, error = .corpus_causa(e), summary = list(), warnings = character(0))
     }),
@@ -269,7 +269,87 @@
     if (identical(formato, "pdf")) .corpus_invariantes_pdf(out_file, r$warnings)
     else c(list(paginas = .corpus_docx_paginas(out_file)), .corpus_invariantes_docx(out_file)),
     error = function(e) list(invariantes_error = .corpus_causa(e)))
-  c(fila, inv)
+  cont <- tryCatch(.corpus_invariantes_contenido(r$model, .corpus_texto_artefacto(out_file, formato)),
+                   error = function(e) list(contenido_ok = FALSE, contenido_error = .corpus_causa(e)))
+  c(fila, inv, cont)
+}
+
+# --- Item 48: invariantes de CONTENIDO ------------------------------------------
+#
+# Los de formato daban 264/264 conformes mientras 154 preguntas salian sin
+# opciones, `censo_2025` se imprimia como P2025 y los saltos apuntaban mal. Estos
+# miran lo que el papel DICE:
+#   selects    toda pregunta de seleccion imprime opciones o un campo codificado
+#   numeros    unicos; en secuencial sin huecos; ninguno mayor que N (+10 % en
+#              derivado, los faltantes que la regla admite)
+#   saltos     simulador de recorrido sin discrepancias ni destinos inexistentes
+#   xpath      ni `${`, ni `selected(`, ni `!=` en el texto del artefacto
+#   cursiva    ningun `_palabra_` literal (regla de palabra del editor)
+#   escritura  todas las letras en la escritura del idioma por defecto
+#   captura    toda variable que se pregunta tiene lugar en el papel o figura
+#              en un aviso de omitidas
+
+.corpus_texto_artefacto <- function(path, formato) {
+  if (identical(formato, "pdf")) {
+    return(paste(.corpus_sys(.corpus_bin("pdftotext"), c(shQuote(path), "-")), collapse = "\n"))
+  }
+  d <- tempfile("corpus_txt_"); on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  utils::unzip(path, files = "word/document.xml", exdir = d)
+  x <- xml2::read_xml(file.path(d, "word", "document.xml"))
+  paste(xml2::xml_text(xml2::xml_find_all(x, "//w:t", xml2::xml_ns(x))), collapse = " ")
+}
+
+.corpus_invariantes_contenido <- function(model, texto) {
+  bl <- model$blocks %||% list()
+  # selects
+  sin_op <- vapply(Filter(function(b) identical(b$kind, "question") &&
+                            (b$type %||% "") %in% c("select_one", "select_multiple") &&
+                            !isTRUE(b$coded_list) && !length(b$options %||% list()), bl),
+                   function(b) b$name %||% "", "")
+  # numeros
+  nums <- unlist(lapply(bl, function(b) if (b$kind %in% c("question", "matrix") && nzchar(b$number %||% "")) b$number))
+  dups <- unique(nums[duplicated(nums)])
+  modo <- model$.logica$modo %||% "secuencial"
+  N <- length(nums)
+  enteros <- suppressWarnings(as.integer(nums[grepl("^[0-9]+$", nums)]))
+  huecos <- if (identical(modo, "secuencial") && length(enteros)) setdiff(seq_len(max(enteros)), enteros) else integer(0)
+  tope <- if (identical(modo, "derivado")) N + ceiling(0.1 * N) else N
+  mayores <- enteros[enteros > tope]
+  # saltos
+  sim <- .form_pdf_simular(model)
+  rotos <- attr(sim, "destinos_rotos") %||% character(0)
+  # texto del artefacto
+  xpath <- regmatches(texto, gregexpr("\\$\\{|selected\\(|!=", texto, perl = TRUE))[[1]]
+  cursiva <- regmatches(texto, gregexpr(.FORM_RT_CURSIVA_RX, texto, perl = TRUE))[[1]]
+  letras <- gsub("[^[:alpha:]]", "", texto)
+  ajenas <- gsub("[A-Za-z\u00c0-\u024f\u1e00-\u1eff\u00aa\u00ba]", "", letras, perl = TRUE)
+  ajenas <- unique(strsplit(ajenas, "")[[1]])
+  # captura
+  sc <- model$.logica$survey_completo
+  captura <- character(0)
+  if (!is.null(sc)) {
+    tipos <- vapply(sc$type, .form_pdf_type_base, "", USE.NAMES = FALSE)
+    preg <- as.character(sc$name)[tipos %in% c(.form_pdf_question_bases(), "start", "end", "today")]
+    en_papel <- unique(c(
+      unlist(lapply(bl, function(b) c(b$name, vapply(b$items %||% list(), function(it) it$name %||% "", ""),
+                                       unlist(lapply(b$options %||% list(), function(o) o$especifique)))))))
+    avisos <- paste(model$warnings, collapse = " ")
+    captura <- preg[!preg %in% en_papel & !vapply(preg, function(v) grepl(v, avisos, fixed = TRUE), logical(1))]
+  }
+  list(
+    selects_sin_opciones = length(sin_op), selects_sin_opciones_ej = paste(utils::head(sin_op, 5), collapse = "|"),
+    numeracion = modo, numeros_impresos = N,
+    numeros_duplicados = paste(dups, collapse = "|"), numeros_huecos = length(huecos),
+    numeros_mayores_que_N = paste(utils::head(mayores, 5), collapse = "|"),
+    saltos_recorridos = attr(sim, "recorridos") %||% 0L, saltos_discrepancias = nrow(sim),
+    saltos_discrepancias_ej = if (nrow(sim)) paste(utils::head(sprintf("%s=%s->%s", sim$origen, sim$opcion, sim$pregunta), 4), collapse = "|") else "",
+    saltos_destinos_rotos = paste(rotos, collapse = "|"),
+    xpath_literal = length(xpath), cursiva_literal = length(cursiva),
+    escritura_ajena = paste(utils::head(ajenas, 10), collapse = ""),
+    captura_sin_lugar = paste(utils::head(captura, 6), collapse = "|"), n_captura_sin_lugar = length(captura),
+    contenido_ok = !length(sin_op) && !length(dups) && !length(huecos) && !length(mayores) &&
+      !nrow(sim) && !length(rotos) && !length(xpath) && !length(cursiva) && !length(ajenas) && !length(captura)
+  )
 }
 
 # Veredicto de una fila: TRUE si no fallo y todos los invariantes del formato pasan.
@@ -277,5 +357,6 @@
   if (!isTRUE(as.logical(fila$ok))) return(FALSE)
   checks <- if (identical(fila$formato, "pdf")) c("fuente_ok", "marcado_ok", "marco_ok", "pie_ok")
             else c("xml_ok", "fuente_ok", "escape_ok")
+  checks <- c(checks, "contenido_ok")   # item 48
   all(vapply(checks, function(k) isTRUE(as.logical(fila[[k]])), logical(1)))
 }
