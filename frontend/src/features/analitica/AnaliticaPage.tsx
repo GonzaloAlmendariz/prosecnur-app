@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { UniversoAnalisis } from "./UniversoAnalisis";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
 import {
@@ -244,6 +245,8 @@ export default function AnaliticaPage() {
                 <div className="pulso-analitica-panel-copy">
                   <h2>{activeMeta.label}</h2>
                   <p>{activeMeta.desc}</p>
+                  {/* Cuántos casos cuentan si Validación declara «Qué caso cuenta». */}
+                  <UniversoAnalisis />
                 </div>
                 <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} variant="panel" />
               </header>
