@@ -199,3 +199,17 @@
 .rec-plan-huerfana td {
   color: var(--pulso-text-soft);
 }
+
+/* Recibo cuyo archivo ya no está en la sesión (el `.pulso` no guarda
+   entregables): queda como evidencia, sin descarga, y lleva a Paquetes. */
+.rec-artifact-list article.is-no-disponible {
+  border-style: dashed;
+}
+
+.rec-artifact-list article.is-no-disponible > svg {
+  color: var(--pulso-text-soft);
+}
+
+.rec-artifact-list article span.rec-artifact-no-disponible {
+  color: var(--pulso-text);
+}

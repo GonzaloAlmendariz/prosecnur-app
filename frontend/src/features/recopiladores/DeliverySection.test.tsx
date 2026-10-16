@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { CollectionDeployment, CollectionStatePayload } from "../../api/recopiladores";
+import type { CollectionArtifactReceipt, CollectionDeployment, CollectionStatePayload } from "../../api/recopiladores";
 import { DeliverySection } from "./DeliverySection";
 
 function payloadWithDeployment(deployment: CollectionDeployment | null): CollectionStatePayload {
@@ -51,5 +51,78 @@ describe("proveedor del target, capitalizado igual que en Accesos", () => {
       <DeliverySection payload={payloadWithDeployment(deployment)} latestArtifact={null} onState={() => undefined} />,
     );
     expect(markup).toContain(">un_proveedor_futuro<");
+  });
+});
+
+/**
+ * H23 — un recibo cuyo archivo ya no está en la sesión no promete descarga.
+ *
+ * `build_pulso` sólo copia inputs: al reabrir el proyecto, el recibo sigue en
+ * `artifact_receipts` y el archivo no (GET /api/files/<id>/download → 404
+ * E_NO_FILE). El backend marca cada recibo con `file_available` (derivado, no
+ * persistido); la UI lo muestra como evidencia «no disponible en esta sesión»
+ * que se regenera desde Paquetes, sin enlace de descarga.
+ */
+function receipt(id: string, overrides: Partial<CollectionArtifactReceipt> & { file_available?: boolean } = {}) {
+  return {
+    schema: "collection_artifact_receipt/v1",
+    receipt_id: `receipt-${id}`,
+    artifact_id: `artifact-${id}`,
+    deployment_id: "dep-1",
+    plan_fingerprint: "fp",
+    deployment_fingerprint: "fp-dep",
+    file_id: `file-${id}`,
+    media_type: "application/pdf",
+    filename: `fichas-${id}.pdf`,
+    sha256: `sha256:${"a".repeat(64)}`,
+    size_bytes: 2048,
+    page_count: 1,
+    ...overrides,
+  } as CollectionArtifactReceipt;
+}
+
+function payloadWithReceipts(receipts: CollectionArtifactReceipt[]): CollectionStatePayload {
+  const state = {
+    schema: "collection_state/v1" as const,
+    state_revision: 4,
+    plan: null,
+    deployment: BASE_DEPLOYMENT,
+    artifact_receipts: receipts,
+  };
+  return { ok: true, noop: true, seed_available: false, ...state, state } as unknown as CollectionStatePayload;
+}
+
+function renderReceipts(receipts: CollectionArtifactReceipt[]) {
+  return renderToStaticMarkup(
+    <DeliverySection payload={payloadWithReceipts(receipts)} latestArtifact={null} onState={() => undefined} />,
+  );
+}
+
+describe("H23 — recibo sin archivo en la sesión", () => {
+  // `downloadUrl` lee el sid de localStorage; en node no hay uno usable.
+  beforeEach(() => {
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => undefined, removeItem: () => undefined });
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it("file_available:false no pinta enlace de descarga y dice que se regenera", () => {
+    const markup = renderReceipts([receipt("viejo", { file_available: false })]);
+    expect(markup).toContain("fichas-viejo.pdf");
+    expect(markup).not.toContain("file-viejo");
+    expect(markup).not.toContain('aria-label="Descargar fichas-viejo.pdf"');
+    expect(markup).toMatch(/no disponible en esta sesi[oó]n/i);
+    expect(markup).toMatch(/regener/i);
+  });
+
+  it("el recibo disponible conserva su descarga", () => {
+    const markup = renderReceipts([receipt("nuevo", { file_available: true })]);
+    expect(markup).toContain('aria-label="Descargar fichas-nuevo.pdf"');
+    expect(markup).toContain("file-nuevo");
+  });
+
+  it("page_count 1 dice «1 página», en singular", () => {
+    const markup = renderReceipts([receipt("uno", { file_available: true, page_count: 1 })]);
+    expect(markup).toContain("1 página");
+    expect(markup).not.toContain("1 páginas");
   });
 });
