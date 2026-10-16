@@ -26,7 +26,7 @@ export function opcionesCodigosEspeciales(
     out.set(code, { code, label: s.etiqueta || "Sin etiqueta", origen: "estudio", marcado: marcados.includes(code) });
   }
   for (const code of marcados) {
-    if (!out.has(code)) out.set(code, { code, label: "No aparece en los instrumentos", origen: "configurado", marcado: true });
+    if (!out.has(code)) out.set(code, { code, label: "No está en el estudio", origen: "configurado", marcado: true });
   }
   return [...out.values()].sort((a, b) => a.code - b.code);
 }
