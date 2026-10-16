@@ -289,9 +289,9 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
     # una ficha sin titulo seria peor que una titulada con el nombre academico.
     operational_code = .crf_txt(
       dims$legacy_ref %||% unit$operational_code,
-      .crf_txt(unit$label, "Unidad de aplicacion")
+      .crf_txt(unit$label, "Unidad de aplicaci\u00f3n")
     ),
-    label = .crf_txt(unit$label, "Unidad de aplicacion"),
+    label = .crf_txt(unit$label, "Unidad de aplicaci\u00f3n"),
     # Los DOS codigos juntos, que es como se titula la ficha: «CH 1 MAT202_0591».
     #
     # Por separado ninguno basta. El academico solo —«mat202_0591»— era el titulo
@@ -981,7 +981,7 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
     }
   }
   pulso_pdf_header(
-    titulo = .crf_txt(heading$value %||% page$unit$label, "Unidad de aplicacion"),
+    titulo = .crf_txt(heading$value %||% page$unit$label, "Unidad de aplicaci\u00f3n"),
     subtitulo = .crf_txt(page$unit$faculty %||% page$project$name, ""),
     tokens = tokens, geo = geo,
     y_titulo = L$y_header, y_subtitulo = L$y_header_sub, y_regla = L$y_header_rule
@@ -1122,7 +1122,7 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
       log_block <- .crf_block(page, "application_log")
       rows_n <- as.integer(log_block$rows %||% 3L)
       grid::grid.text(
-        .crf_txt(log_block$text, "Registro de aplicacion"), x = L$x_left, y = item$y_top,
+        .crf_txt(log_block$text, "Registro de aplicaci\u00f3n"), x = L$x_left, y = item$y_top,
         just = "left", default.units = "npc",
         gp = grid::gpar(col = tokens$navy, fontsize = type$caption, fontface = "bold")
       )

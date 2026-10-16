@@ -68,15 +68,16 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | H7 | El script de la hoja de ruta de Ser Adolescente lee la cartografía de la app por ruta absoluta | `Campo/Generadores/mapa.py` (fuera del repo) | pendiente: desaparece con E2 a E4 |
 | H9 | El fixture hsvg2026 no tiene estado de Recopiladores: ningún proyecto de referencia prueba un plan con accesos | `api/inst/reference_projects/` | pendiente (antes de E1) |
 | H10 | Entrega > Reemplazos esconde 250 px a la derecha sin indicio y el runner dice `desplazamientoH=0` | `.hojas-ruta-review-table-wrap.is-delivery`, `scripts/ui-quick-check.mjs` | pendiente: detector y tabla |
-| H11 | En 1024x600 dos ítems del outline de Materiales desbordan (173 y 182 px en 166) | `features/recopiladores/` | pendiente (E1) |
-| H12 | Hojas de ruta > Selección no declara ningún grupo geométrico (C1); el outline del Catálogo tampoco | `features/hojasRuta/HojasRutaPage.tsx`, editor de Materiales | pendiente (preexistente; QA E0a 2026-10-16) |
+| H11 | En 1024x600 dos ítems del outline de Materiales desbordan (173 y 182 px en 166) | `features/recopiladores/` | hecho en la rama (5 mejoras, 2026-10-16): filas alineadas, sin overflow a 1024 |
+| H12 | Hojas de ruta > Selección no declara ningún grupo geométrico (C1); el outline del Catálogo tampoco | `features/hojasRuta/HojasRutaPage.tsx`, editor de Materiales | outline hecho en la rama (`material-catalogo-outline`, equal); Selección de Hojas de ruta sigue pendiente |
 | H13 | Selección a 1024x600: scroll anidado con 173 px de ventana interior; alcanzable pero estrecho (C4) | `.hojas-ruta-stage-shell.is-delivery-stage` | pendiente (preexistente) |
-| H14 | Los botones de sección de Material de campo no exponen `aria-current`; el tile «Agregar» del dock lleva `aria-current="page"` | top bar de módulo, dock | pendiente (probablemente preexistente) |
-| H15 | El ítem 7 del outline repite el rótulo («Registro de aplicación Registro de aplicacion») | editor de Materiales | pendiente (E1) |
-| H16 | La card del home dice «Material» (etiqueta corta), su subtítulo se corta y el cuerpo habla solo de aulas | `features/home/moduleCardModel.ts`, `ModuleStatusCard.tsx` | pendiente: propuesto corregir en la rama |
+| H14 | Los botones de sección de Material de campo no exponen `aria-current`; el tile «Agregar» del dock lleva `aria-current="page"` | top bar de módulo, dock | hecho en la rama: `aria-current="step"` en la sección activa; el tile «Agregar» del dock sigue pendiente |
+| H15 | El ítem 7 del outline repite el rótulo («Registro de aplicación Registro de aplicacion») | editor de Materiales | hecho en la rama: sin subtítulo repetido y con tilde (también en la ficha impresa) |
+| H16 | La card del home dice «Material» (etiqueta corta), su subtítulo se corta y el cuerpo habla solo de aulas | `features/home/moduleCardModel.ts`, `ModuleStatusCard.tsx` | hecho en la rama: «Material de campo», «Fichas, accesos y paquetes», cuerpo por unidades |
 | H17 | Los íconos de sección declarados (QR en Accesos, plantilla en Catálogo) no los dibuja ninguna vista: el top bar usa chips numerados | `lib/modules.ts` | pendiente (E1) |
 | H18 | Musgo queda a ΔE76 18.2 del verde de éxito `--pulso-success-fg` #166534; ningún gate mide esa cercanía | `branding/identity.json` | pendiente: vigilar en E1 junto a los estados |
-| H19 | Las pestañas de Accesos (Canales, Vinculación) son píldoras horizontales, no el rail de pestañas de la casa | `features/recopiladores/AccessSection.tsx` | pendiente (preexistente; E1) |
+| H19 | Las pestañas de Accesos (Canales, Vinculación) son píldoras horizontales, no el rail de pestañas de la casa | `features/recopiladores/AccessSection.tsx` | hecho en la rama: Accesos usa `ContextTabRail` |
+| H20 | Los vacíos sin plan (Unidades, Accesos, Paquetes, Entrega) eran cajas punteadas de una frase | `VacioSinPlanCard.tsx`, `vacioSinPlan.ts` | hecho en la rama: título, qué falta y una acción al paso que lo resuelve |
 | H8 | El cronograma de Ser Adolescente dice 1,400 casos; el estudio es de 1.000 | cronograma del estudio (fuera del repo) | pendiente: aviso, no es de la app |
 
 ## Etapas (solo después de A8)

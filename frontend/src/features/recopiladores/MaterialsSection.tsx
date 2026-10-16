@@ -44,6 +44,9 @@ import {
 } from "../../vendor/lucide-react";
 import type { RecopiladoresPestana } from "./navegacion";
 import { deploymentStatusLabel } from "./providerRules";
+import { subtituloDelBloque } from "./outlineDelBloque";
+import { VacioSinPlanCard } from "./VacioSinPlanCard";
+import { vacioSinPlan } from "./vacioSinPlan";
 import {
   createTemplateHistory,
   templateHistoryReducer,
@@ -62,6 +65,8 @@ type Props = {
       declaraba lista con el panel aún en «Leyendo plantilla semántica…», y el QA
       visual medía el esqueleto. */
   onCargando?: (cargando: boolean) => void;
+  /** Navega a una dirección de la app (la acción del vacío sin plan). */
+  onIr?: (to: string) => void;
 };
 
 /**
@@ -76,11 +81,6 @@ type Props = {
  * hay nada útil que decir, no se dice**: la clave vive en el inspector, que es
  * donde se edita y donde sirve para seguir un binding.
  */
-function descripcionDelBloque(block: { text?: string | null }): string {
-  const texto = (block.text ?? "").trim();
-  if (!texto) return "";
-  return texto.length > 44 ? `${texto.slice(0, 44)}…` : texto;
-}
 
 const BLOCK_LABELS: Record<CollectionBlockType, string> = {
   brand_header: "Cabecera de marca",
@@ -225,7 +225,7 @@ function MaterialCanvas({ template, selectedId, onSelect }: {
   );
 }
 
-export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifact, onCargando }: Props) {
+export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifact, onCargando, onIr }: Props) {
   const [history, dispatch] = useReducer(templateHistoryReducer, TEMPLATE_PLACEHOLDER, createTemplateHistory);
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -472,6 +472,12 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
     }
   };
 
+  // Sin plan no hay unidades que empaquetar: el armado entero (fichas, PNG,
+  // PDF, paquete, ficha de ensayo) quedaba pintado con todo apagado.
+  if (activeTab === "armado" && !payload?.state.plan) {
+    return <VacioSinPlanCard vacio={vacioSinPlan("paquetes")} icono={<Archive size={18} />} onIr={onIr} />;
+  }
+
   if (loading) return <div className="rec-loading">Leyendo la plantilla de la ficha…</div>;
 
   if (activeTab === "armado") {
@@ -624,11 +630,17 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
       <aside className="rec-outline" aria-label="Estructura de bloques">
         {/* «Outline» es la palabra del editor, no la de quien arma una ficha. */}
         <header><span>La ficha, por partes</span><strong>{blocks.length} bloques</strong></header>
-        <ol>{blocks.map((block, index) => (
+        {/* C1: las filas del outline son pares del mismo rol y miden lo mismo
+            en alto; el subtítulo opcional cabe dentro de esa caja. */}
+        <ol data-qa-geometry-group="material-catalogo-outline" data-qa-geometry-contract="equal">{blocks.map((block, index) => {
+          const rotulo = BLOCK_LABELS[block.type];
+          const subtitulo = subtituloDelBloque(block.text, rotulo);
+          return (
           <li key={block.block_id} className="rec-outline-item">
             <button
               type="button"
-              className={selected?.block_id === block.block_id ? "is-selected" : ""}
+              className={`rec-outline-select${selected?.block_id === block.block_id ? " is-selected" : ""}`}
+              title={subtitulo ? `${rotulo}: ${subtitulo}` : rotulo}
               aria-current={selected?.block_id === block.block_id ? "true" : undefined}
               onClick={() => setSelectedId(block.block_id)}
             >
@@ -637,12 +649,10 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
                   binding. Aquí, debajo de «Cabecera de marca», sólo repite en
                   inglés lo que el rótulo ya dice. Se enseña QUÉ PINTA, que es lo
                   que distingue dos bloques del mismo tipo. */}
-              <span>{index + 1}</span>
-              <div>
-                <strong>{BLOCK_LABELS[block.type]}</strong>
-                {descripcionDelBloque(block)
-                  ? <small>{descripcionDelBloque(block)}</small>
-                  : null}
+              <span className="rec-outline-num">{index + 1}</span>
+              <div className="rec-outline-text">
+                <strong>{rotulo}</strong>
+                {subtitulo ? <small>{subtitulo}</small> : null}
               </div>
             </button>
             <div className="rec-outline-reorder">
@@ -658,7 +668,8 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
               ><ChevronDown size={14} /></PulsoButton>
             </div>
           </li>
-        ))}</ol>
+          );
+        })}</ol>
       </aside>
       <main className="rec-canvas-wrap" data-qa-geometry-capacity="owned">
         <MaterialCanvas template={template} selectedId={selected?.block_id ?? ""} onSelect={setSelectedId} />

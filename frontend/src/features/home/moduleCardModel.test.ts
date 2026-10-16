@@ -331,6 +331,40 @@ describe("moduleCardModel", () => {
     expect(JSON.stringify(qr)).not.toContain("0/0");
   });
 
+  it("Material de campo sin plan habla de unidades, no de aulas titulares", () => {
+    const overview = makeOverview();
+    overview.facts["material-campo"] = {
+      ...overview.facts["material-campo"],
+      total: 0,
+      titulares: 0,
+      with_link: 0,
+      without_link: 0,
+      faculties_count: 0,
+    };
+    overview.facts.calc = { ...overview.facts.calc, mode: "territorial" };
+
+    const qr = view("material-campo", overview);
+    expect(qr.viz).toMatchObject({ kind: "stat", value: "Sin unidades", label: "en el plan" });
+    const texto = JSON.stringify(qr);
+    expect(texto).not.toMatch(/aulas|titulares en el plan|Sin titulares/);
+    // «facultades» es vocabulario de un plan de aulas: fuera de él no se enseña.
+    expect((qr.facts ?? []).map((f) => f.label)).toEqual(["unidades en el plan"]);
+  });
+
+  it("Material de campo con plan de aulas conserva sus facultades", () => {
+    const labels = (view("material-campo").facts ?? []).map((f) => f.label);
+    expect(labels).toEqual(["unidades en el plan", "facultades"]);
+  });
+
+  it("la tarjeta de Material de campo lleva el nombre entero y una tagline corta", () => {
+    const module = PROSECNUR_PRIMARY_ACTIVE_MODULES.find((item) => item.slug === "material-campo");
+    expect(module?.cardTitle).toBe("Material de campo");
+    // El rail y los tiles del chrome siguen con el corto: ahí manda el ancho.
+    expect(module?.shortLabel).toBe("Material");
+    // Comparte la cabecera con el chip «Por iniciar»: tiene que caber entera.
+    expect(module?.tagline.length).toBeLessThanOrEqual(28);
+  });
+
   it("abre directamente el cronograma cuando la acción lo nombra", () => {
     const overview = makeOverview();
     overview.facts.bitacora = {

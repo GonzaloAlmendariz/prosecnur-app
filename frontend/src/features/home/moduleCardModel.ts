@@ -590,6 +590,7 @@ export function buildModuleCardView(
       const collectors = facts["material-campo"];
       const total = Math.max(0, collectors.titulares);
       const current = Math.max(0, collectors.with_link);
+      const planDeAulas = facts.calc.mode === "aulas";
       const state: ModuleStatusState = nodeState === "warning"
         ? "warning"
         : total === 0
@@ -623,11 +624,14 @@ export function buildModuleCardView(
               // 2.616» alla, las dos correctas y la misma palabra.
               label: "titulares con enlace",
             }
-          : { kind: "stat", value: "Sin titulares", label: "lista de unidades" },
+          : { kind: "stat", value: "Sin unidades", label: "en el plan" },
         emphasis: total > 0 ? undefined : "activity",
+        // Neutral al tipo de campo: la tarjeta habla de unidades. «Aulas» y
+        // «facultades» son vocabulario de un plan de aulas y solo aparecen
+        // cuando el cálculo del estudio lo es.
         sub:
           total === 0
-            ? "Aún no hay aulas titulares en el plan"
+            ? "Espera la selección de la muestra"
             : collectors.without_link > 0
               ? `${formatCount(collectors.without_link)} titulares requieren enlace`
               : "Todos los titulares tienen enlace",
@@ -645,7 +649,9 @@ export function buildModuleCardView(
         // es peor que un hueco.
         facts: [
           { label: "unidades en el plan", value: formatCount(collectors.total) },
-          { label: "facultades", value: formatCount(collectors.faculties_count) },
+          ...(planDeAulas
+            ? [{ label: "facultades", value: formatCount(collectors.faculties_count) }]
+            : []),
         ],
         action: moduleAction(
           module,
