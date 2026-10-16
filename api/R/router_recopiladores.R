@@ -96,6 +96,20 @@ mount_recopiladores <- function(pr) {
         expected_revision = body$expected_revision
       )
     })) |>
+    # Catálogo › Tipos (ADR 0109 E1a): los tipos de material y su miniatura,
+    # compilada por el MISMO motor del PDF contra una unidad de prueba. Lectura
+    # pura: no toca el estado ni necesita expected_revision.
+    plumber::pr_get("/api/recopiladores/material-catalog", wrap_endpoint(function(req, res, ...) {
+      collection_material_catalog_get(session_header(req))
+    })) |>
+    plumber::pr_post("/api/recopiladores/material-catalog/preview", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_material_catalog_preview(
+        session_header(req),
+        preset_id = body$preset_id,
+        page = body$page %||% 1L
+      )
+    })) |>
     plumber::pr_post("/api/recopiladores/materials/instances", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_material_instance_create(

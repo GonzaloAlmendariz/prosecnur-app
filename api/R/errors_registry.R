@@ -113,6 +113,10 @@ errores_registrados <- function() {
     "E_MINIATURAS_SIN_LAMINAS",                              "graficos_miniaturas_jobs.R",        "400",
     "E_MINIATURA_FALLIDA",                                   "graficos_miniaturas_jobs.R",        "indirecto",
     "E_MINIATURA_TIPO_INVALIDO",                             "graficos_miniaturas_jobs.R",        "indirecto",
+    # Catálogo de tipos de material y su miniatura (ADR 0109 E1a).
+    "E_COLLECTION_MATERIAL_PRESET_UNKNOWN",                  "collection_material_catalog.R",     "422",
+    "E_COLLECTION_MATERIAL_PREVIEW_PAGE",                    "collection_material_catalog.R",     "422",
+    "E_COLLECTION_MATERIAL_PREVIEW_UNAVAILABLE",             "collection_material_catalog.R",     "503",
     "E_COLLECTION_PRUEBA_CODIGO",                            "collection_material_prueba.R",      "422",
     "E_COLLECTION_PRUEBA_SIN_ENLACE",                        "collection_material_prueba.R",      "422",
     "E_COLLECTION_SIN_ORIGEN",                               "collection_engine.R",              "409",
