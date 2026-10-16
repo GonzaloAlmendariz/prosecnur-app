@@ -374,6 +374,40 @@ export async function apiEstudioAddBase(payload: {
   );
 }
 
+/** Qué cambió al cargar la versión nueva de las respuestas de una base. */
+export type CambiosDeRespuestas = {
+  casos: { antes: number; despues: number; clave: string; se_mantienen?: number; nuevos?: number; ya_no_vienen?: number };
+  columnas_nuevas: string[];
+  columnas_que_no_vienen: string[];
+};
+
+/**
+ * Carga una versión nueva del archivo de respuestas de una base (ADR 0100 D1):
+ * conserva su formulario, su nombre y lo que declara. `data_file_id` sale de
+ * `apiUpload`.
+ */
+export async function apiEstudioReemplazarRespuestas(payload: { nombre: string; data_file_id: string }) {
+  const raw = await handle<{ ok: true; base: EstudioBase; cambios?: Partial<CambiosDeRespuestas>; archivo?: string }>(
+    await apiFetch("/api/estudio/base/respuestas", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+  const c = raw.cambios ?? {};
+  const lista = (x: unknown): string[] => (Array.isArray(x) ? x.map(String) : x == null ? [] : [String(x)]);
+  const casos = c.casos ?? { antes: 0, despues: 0, clave: "" };
+  return {
+    base: raw.base,
+    archivo: typeof raw.archivo === "string" ? raw.archivo : "",
+    cambios: {
+      casos: { ...casos, clave: Array.isArray(casos.clave) ? String(casos.clave[0] ?? "") : String(casos.clave ?? "") },
+      columnas_nuevas: lista(c.columnas_nuevas),
+      columnas_que_no_vienen: lista(c.columnas_que_no_vienen),
+    } satisfies CambiosDeRespuestas,
+  };
+}
+
 /** Lo que el backend sintetizó como instrumento desde las etiquetas del .sav. */
 export type BaseSavSintesis = {
   n_variables: number;
