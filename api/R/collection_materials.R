@@ -1210,7 +1210,8 @@ collection_material_instance_create <- function(sid, expected_revision, unit_ref
 #' Los activos son archivos del `.pulso` (kind `brand_logo`), no assets del
 #' binario: la co-marca pertenece al estudio, no a la app. El match es por slug
 #' del nombre original, de modo que la plantilla nombre `logo-unsa` y el
-#' proyecto aporte `LOGO_UNSA.png`.
+#' proyecto aporte `LOGO_UNSA.png`. Si hay dos con el mismo slug, el más
+#' reciente por `uploaded_at`.
 #'
 #' @param session sesion viva.
 #' @param asset_ids ids declarados por la plantilla.
@@ -1219,15 +1220,9 @@ collection_material_instance_create <- function(sid, expected_revision, unit_ref
 .cm_brand_assets_map <- function(session, asset_ids) {
   ids <- as.character(asset_ids %||% character(0))
   if (!length(ids)) return(list())
-  out <- list()
-  for (meta in session$files %||% list()) {
-    if (!is.list(meta) || !identical(as.character(meta$kind %||% "")[1], "brand_logo")) next
-    path <- as.character(meta$path %||% "")[1]
-    if (!nzchar(path) || !file.exists(path)) next
-    slug <- .cm_brand_slug(meta$original_name)
-    if (slug %in% ids && is.null(out[[slug]])) out[[slug]] <- path
-  }
-  out
+  # Re-subido con el mismo nombre: vale el más reciente (collection_brand_assets.R).
+  latest <- .cm_brand_logo_latest(session$files)
+  lapply(latest[intersect(ids, names(latest))], function(meta) as.character(meta$path)[1])
 }
 
 collection_material_render_snapshot <- function(sid, instance_id, resolved_access = NULL) {

@@ -84,7 +84,7 @@ test_that("los correos no entran a collection_state ni al .pulso (scan del estad
   collection_mail_template_put(sid, .cmail_template_normalize(.cmail_preset_invitacion()), g$state_revision)
   .cmail_fx_import(sid)
   collection_mail_preview(sid, "preview", recipient_index = 1L)
-  collection_mail_export(sid)
+  collection_mail_export(sid, .cmail_fx_rev(sid))
 
   state_json <- jsonlite::toJSON(session_get(sid)$collection_state, auto_unbox = TRUE, null = "null")
   expect_false(grepl("@ejemplo.org|QUISPE|Quispe|Ana Lucia", state_json))
@@ -143,7 +143,7 @@ test_that("revisión: cifras de asunto, peso, imágenes, pie, etiquetas con colu
   expect_identical(by2$tags_have_columns$status, "error")
   expect_match(by2$tags_have_columns$detail, "ENLACE", fixed = TRUE)
   expect_false(r2$ready)
-  expect_identical(.cmail_e_code(collection_mail_export(sid)), "E_COLLECTION_MAIL_REVIEW_BLOCKING")
+  expect_identical(.cmail_e_code(collection_mail_export(sid, .cmail_fx_rev(sid))), "E_COLLECTION_MAIL_REVIEW_BLOCKING")
 })
 
 test_that("revisión del banner: 1200 x 600 o error", {
@@ -162,7 +162,7 @@ test_that("export: ZIP fuera del .pulso con plantilla, audiencia e imágenes; ar
   skip_if_not_installed("zip")
   sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
   .cmail_fx_import(sid)
-  res <- collection_mail_export(sid)
+  res <- collection_mail_export(sid, .cmail_fx_rev(sid))
 
   # Patrón expect_report_artifacts_registered (test-audit-projects.R).
   file_ids <- vapply(res$artifacts, function(a) a$file_id %||% "", character(1))

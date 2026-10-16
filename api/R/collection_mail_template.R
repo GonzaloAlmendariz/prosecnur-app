@@ -521,8 +521,23 @@ collection_mail_template_validate <- function(template) {
   .cmail_template_normalize(.cmail_preset_recuperacion())
 }
 
-.cmail_template_of <- function(state) {
-  state$mail_template %||% .cmail_builtin_template()
+# Plantilla activa. La guardada se vuelve a validar al leerla: un state.rds de
+# otra versión o editado a mano no llega al render sin pasar el contrato.
+# `strict = FALSE` la devuelve igual con sus problemas (para que GET la muestre
+# y PUT la pueda reemplazar).
+.cmail_template_of <- function(state, strict = TRUE) {
+  stored <- state$mail_template
+  if (is.null(stored)) return(.cmail_builtin_template())
+  valid <- collection_mail_template_validate(stored)
+  if (!isTRUE(valid$ok)) {
+    if (!strict) return(structure(stored, problems = valid$problems))
+    stop_api(
+      409, "E_COLLECTION_MAIL_TEMPLATE_STORED_INVALID",
+      "La plantilla de correo guardada no cumple collection_mail_template/v1; ábrela en el editor y vuelve a guardarla.",
+      details = list(problems = valid$problems)
+    )
+  }
+  stored
 }
 
 # ---- API ----------------------------------------------------------------------
@@ -548,12 +563,17 @@ collection_mail_presets_get <- function(sid) {
 #' @keywords internal
 collection_mail_template_get <- function(sid) {
   state <- .collection_current(session_get(sid))
-  list(
+  tpl <- .cmail_template_of(state, strict = FALSE)
+  problems <- attr(tpl, "problems")
+  attr(tpl, "problems") <- NULL
+  out <- list(
     ok = TRUE,
     state_revision = as.integer(state$state_revision),
     builtin = is.null(state$mail_template),
-    template = .cmc_drop_nulls_deep(.cmail_template_of(state))
+    template = .cmc_drop_nulls_deep(tpl)
   )
+  if (length(problems)) out$stored_problems <- problems
+  out
 }
 
 .cmail_template_or_stop <- function(template) {
@@ -576,7 +596,8 @@ collection_mail_template_get <- function(sid) {
 collection_mail_template_put <- function(sid, template, expected_revision) {
   current <- .collection_current(session_get(sid))
   .collection_assert_revision(current, expected_revision)
-  previous <- .cmail_template_of(current)
+  previous <- .cmail_template_of(current, strict = FALSE)
+  attr(previous, "problems") <- NULL
   candidate <- .cmail_template_or_stop(template)
   if (!is.null(current$mail_template) &&
       identical(.cmail_template_material(candidate), .cmail_template_material(previous))) {
