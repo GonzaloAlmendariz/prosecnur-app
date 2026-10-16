@@ -128,3 +128,20 @@ describe("etiquetas de opciones en formularios multilingües", () => {
     expect(items.map((i) => i.label)).toEqual(["Sí", "No"]);
   });
 });
+
+describe("lista declarada en una columna aparte", () => {
+  test("select_one sin lista en type toma select_from_list_name o list_name", () => {
+    const survey: XlsformEditorSheet = {
+      columns: ["type", "name", "label", "select_from_list_name", "list_name"],
+      rows: [
+        ["select_one", "a", "A", "colores", ""],
+        ["select_multiple", "b", "B", "", "frutas"],
+        ["select_one sexo", "c", "C", "", "otra"],
+        ["text", "d", "D", "", "ignorada"],
+      ],
+    };
+    const s = parseBuilderStructure(survey);
+    expect(s.outline.map((n) => n.typeInfo.listName)).toEqual(["colores", "frutas", "sexo", ""]);
+    expect(s.outline[0].typeInfo.raw).toBe("select_one");
+  });
+});
