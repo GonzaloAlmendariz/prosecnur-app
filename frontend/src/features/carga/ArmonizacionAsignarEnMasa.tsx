@@ -16,6 +16,8 @@ export type ArmonizacionAsignarEnMasaProps = {
   onAsignar: (eleccion: string) => void;
   onMarcarSinMapa: () => void;
   onLimpiar: () => void;
+  /** Destinos además de la escala y «Sin mapa» (los segmentos de cruce ofrecen «Sin dato»). */
+  opcionesExtra?: readonly { valor: string; rotulo: string }[];
 };
 
 export function ArmonizacionAsignarEnMasa({
@@ -26,6 +28,7 @@ export function ArmonizacionAsignarEnMasa({
   onAsignar,
   onMarcarSinMapa,
   onLimpiar,
+  opcionesExtra = [],
 }: ArmonizacionAsignarEnMasaProps) {
   const [eleccion, setEleccion] = useState("");
   const idSelector = `pulso-armon-masa-${base.replace(/[^A-Za-z0-9_-]/g, "_")}`;
@@ -43,6 +46,9 @@ export function ArmonizacionAsignarEnMasa({
             <option key={c.codigo} value={c.codigo}>
               {c.codigo} {c.etiqueta}
             </option>
+          ))}
+          {opcionesExtra.map((o) => (
+            <option key={o.valor} value={o.valor}>{o.rotulo}</option>
           ))}
           <option value={DESTINO_SIN_MAPA}>Sin mapa</option>
         </select>

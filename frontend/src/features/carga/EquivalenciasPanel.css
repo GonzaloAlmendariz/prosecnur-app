@@ -287,6 +287,35 @@
   font-weight: 600;
 }
 
+/* ADR 0107: fila de un segmento de cruce. La marca va en texto y en el mismo
+   formato que «Sin confirmar»; la fila no se edita aquí, se lee. */
+.pulso-equiv-chip-cruce {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.pulso-equiv-etiqueta-fija {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+
+.pulso-equiv-variable-fija {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+
 .pulso-equiv-tabla input,
 .pulso-equiv-tabla select {
   width: 100%;

@@ -497,12 +497,13 @@ export function opcionesDeOrigen(
 
 /**
  * Nombre técnico propuesto desde la etiqueta: minúsculas, sin tildes, palabras
- * unidas por «_», sin conectores, a lo sumo 32 caracteres y empezando por letra.
+ * unidas por «_», sin conectores, a lo sumo `max` caracteres (32) y empezando por
+ * letra. Los segmentos de cruce (ADR 0107) lo usan con menos, para su prefijo.
  * «VBG: recurrió a alguna instancia de la PUCP» → «vbg_recurrio_alguna_instancia».
  */
 const CONECTORES = new Set(["a", "al", "de", "del", "la", "las", "el", "los", "en", "y", "o", "u", "e", "con", "por", "para", "que", "se", "su", "sus"]);
 
-export function nombreDesdeEtiqueta(etiqueta: string): string {
+export function nombreDesdeEtiqueta(etiqueta: string, max = 32): string {
   const palabras = etiqueta
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -512,9 +513,9 @@ export function nombreDesdeEtiqueta(etiqueta: string): string {
   let out = "";
   for (const w of palabras) {
     const siguiente = out ? `${out}_${w}` : w;
-    if (siguiente.length > 32) break;
+    if (siguiente.length > max) break;
     out = siguiente;
   }
   if (!out) return "";
-  return /^[a-z]/.test(out) ? out : `v_${out}`.slice(0, 32);
+  return /^[a-z]/.test(out) ? out : `v_${out}`.slice(0, max);
 }

@@ -1,0 +1,184 @@
+/* Segmentos de cruce (ADR 0107). Sólo tokens `--pulso-*` y el acento del
+ * módulo, dentro de la cáscara de `PanelLateralFuentes`. Reusa las secciones de
+ * armonización (`pulso-armon-*`), los campos y editores de «Variables de la
+ * base» (`pulso-vb-*`) y la tabla e indicador del Mapa de bases
+ * (`pulso-mapa-*`); aquí sólo vive lo propio.
+ *
+ * Geometría (Contrato de Superficie):
+ * - C1: grupo `carga/segmentos` (intrínseco); en la lista, un miembro (la
+ *   tabla segmento × base); en el editor, el segmento, la escala y una sección
+ *   por base.
+ * - C2: 0 o 20 segmentos, 1 o 6 bases, no mueven el marco: la tabla crece hacia
+ *   abajo y, si no cabe a lo ancho, su marco es dueño del eje horizontal.
+ * - C3: cada sección pinta su vacío dentro de su caja.
+ * - C4: un único dueño de scroll, `.pulso-plf-cuerpo`. El pie del editor queda
+ *   pegado abajo para que «Guardar segmento» se alcance sin bajar hasta el final.
+ */
+
+/* --- Tabla segmento × base ------------------------------------------------- */
+
+.pulso-seg-tabla tbody th,
+.pulso-seg-tabla td {
+  vertical-align: middle;
+}
+
+.pulso-seg-fila-nombre {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pulso-seg-fila-nombre strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-seg-fila-nombre code,
+.pulso-seg-estado small {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  overflow-wrap: anywhere;
+}
+
+.pulso-seg-estado {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pulso-seg-acciones {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pulso-seg-acciones .pulso-vb-confirmar {
+  justify-content: flex-end;
+  white-space: normal;
+}
+
+/* --- Editor ------------------------------------------------------------------- */
+
+.pulso-seg-nombre {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.pulso-seg-prefijo {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-right: 0;
+  border-radius: var(--pulso-radius) 0 0 var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.pulso-seg-nombre input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.pulso-seg-partir,
+.pulso-seg-ayuda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--module-accent-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-bg);
+}
+
+.pulso-seg-partir-cabeza {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-seg-partir-base {
+  flex: 0 1 240px;
+  min-width: 0;
+}
+
+.pulso-seg-anio {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-seg-anio input {
+  width: 7ch;
+  height: 28px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.pulso-seg-tramos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-seg-tramos li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-seg-tramos input {
+  width: 8ch;
+  height: 28px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.pulso-seg-unidad {
+  min-width: 4ch;
+}
+
+.pulso-seg-tramo-destino {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.pulso-seg-tramo-destino select {
+  width: 100%;
+  height: 28px;
+}
+
+.pulso-seg-ayuda-pie {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
+
+/* El pie se pega al borde inferior del dueño de scroll (sobre su padding). */
+.pulso-seg-pie {
+  position: sticky;
+  bottom: calc(-1 * var(--pulso-space-7));
+  z-index: 1;
+  margin: 0 calc(-1 * var(--pulso-space-6)) calc(-1 * var(--pulso-space-7));
+  padding: var(--pulso-space-3) var(--pulso-space-6);
+  background: var(--pulso-surface);
+}
