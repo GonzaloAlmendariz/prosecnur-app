@@ -119,15 +119,18 @@
 
 .pulso-xf-cue-banda h2 {
   display: inline-flex;
+  flex: 1 1 0;
   align-items: center;
   gap: var(--pulso-space-2);
   margin: 0;
   min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 15px;
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-xf-cue-banda > span {
+  flex: none;
   color: var(--pulso-text-soft);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -145,6 +148,8 @@
 
 .pulso-xf-cue-pregunta {
   min-width: 0;
+  /* El fondo de hover de la cabeza ocupa este relleno en vez de salirse con margen negativo. */
+  padding-inline: var(--pulso-space-2);
 }
 
 .pulso-xf-cue-condicion {
@@ -168,6 +173,8 @@
   gap: var(--pulso-space-1);
   margin: 0 calc(-1 * var(--pulso-space-2));
   padding: var(--pulso-space-1) var(--pulso-space-2);
+  width: calc(100% + 2 * var(--pulso-space-2));
+  box-sizing: border-box;
   border-radius: var(--pulso-radius-chip);
   cursor: pointer;
 }
@@ -264,14 +271,19 @@
 }
 
 .pulso-xf-cue-salto {
-  flex: none;
+  /* Un salto a 21 preguntas («→ P254, P255, …», tipo 3 del corpus) se parte en líneas y no se come la etiqueta. */
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 50%;
   padding: 0 6px;
-  border-radius: 999px;
-  background: var(--xf-cue-acento-suave);
+  border: 1px solid var(--pulso-border);
+  border-radius: 5px;
+  background: var(--pulso-surface-2);
   color: var(--xf-cue-acento);
   font-size: 11.5px;
   font-weight: var(--pulso-weight-semibold);
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .pulso-xf-cue-respuesta {
@@ -325,6 +337,10 @@
 /* ── Matriz ────────────────────────────────────────────────────────────── */
 
 .pulso-xf-cue-matriz-marco {
+  /* Una matriz ancha (25 departamentos en el tipo 2 del corpus) se desplaza dentro de su marco; el marco no
+     estira la página. */
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
 }
 
@@ -366,6 +382,8 @@
 
 .pulso-xf-cue-matriz tbody th {
   width: 48%;
+  /* Con 25 columnas de escala la fila no puede quedar en 56 px: el marco se desplaza, el enunciado se lee. */
+  min-width: 200px;
   font-weight: inherit;
   text-align: left;
 }
