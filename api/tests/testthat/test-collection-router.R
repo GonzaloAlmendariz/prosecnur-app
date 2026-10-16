@@ -1,4 +1,4 @@
-test_that("router de Recopiladores declara exactamente las diecisiete rutas V1", {
+test_that("router de Recopiladores declara exactamente las diecinueve rutas V1", {
   source_path <- test_path("..", "..", "R", "router_recopiladores.R")
   text <- paste(readLines(source_path, warn = FALSE), collapse = "\n")
   routes <- regmatches(
@@ -19,6 +19,9 @@ test_that("router de Recopiladores declara exactamente las diecisiete rutas V1",
     "/api/recopiladores/reconcile",
     "/api/recopiladores/handoff",
     "/api/recopiladores/material-template",
+    # Catálogo › Tipos (ADR 0109 E1a): tipos de material y su miniatura real.
+    "/api/recopiladores/material-catalog",
+    "/api/recopiladores/material-catalog/preview",
     "/api/recopiladores/materials/instances",
     "/api/recopiladores/materials/render",
     # B6(b): subir al Drive del operativo un artefacto YA renderizado, por su
