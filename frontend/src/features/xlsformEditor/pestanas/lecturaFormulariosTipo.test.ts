@@ -8,6 +8,7 @@ import { buildXlsformIndex } from "../parsing/buildIndex";
 import { describeExpression, describeValidation } from "../canvas/reglasHumanas";
 import type { LogicScope } from "../logic";
 import type { XlsformEditorWorkbook } from "../types";
+import { evaluarRestriccion, valoresDeEjemplo } from "../logic/probarRestriccion";
 
 const DIR = process.env.PULSO_CORPUS_DIR ? path.join(process.env.PULSO_CORPUS_DIR.replace(/^~/, process.env.HOME ?? ""), "formularios_tipo_json") : "";
 const activo = Boolean(DIR && existsSync(DIR));
@@ -30,6 +31,9 @@ describe.skipIf(!activo)("lectura humana sobre los seis formularios tipo", () =>
     const filas: string[] = [];
     const porFuncion = new Map<string, { n: number; ejemplo: string }>();
     const muestras = new Map<string, string[]>();
+    let restricciones = 0;
+    let probables = 0;
+    const fueraPorTipo = new Map<string, number>();
     let total = 0;
     let tecnicas = 0;
     let mayuscula = 0;
@@ -39,6 +43,12 @@ describe.skipIf(!activo)("lectura humana sobre los seis formularios tipo", () =>
       const c = { constraint: [0, 0], relevant: [0, 0], calculation: [0, 0] } as Record<string, [number, number]>;
       for (const n of idx.structure.outline) {
         const casos: [string, string, string][] = [];
+        if (n.constraint.trim()) {
+          restricciones++;
+          const vals = valoresDeEjemplo(n, idx.catalogs.find((c) => c.listName === n.typeInfo.listName)?.items.map((i) => i.name) ?? []);
+          if (vals.length && vals.some((v) => evaluarRestriccion(n.constraint, v) !== "no-evaluable")) probables++;
+          else fueraPorTipo.set(`${n.typeInfo.base}${vals.length ? " (no evaluable)" : " (sin valores)"}`, (fueraPorTipo.get(`${n.typeInfo.base}${vals.length ? " (no evaluable)" : " (sin valores)"}`) ?? 0) + 1);
+        }
         if (n.constraint.trim()) casos.push(["constraint", n.constraint, describeValidation(n.constraint, n, scope)?.summary ?? ""]);
         if (n.relevant.trim()) casos.push(["relevant", n.relevant, describeExpression(n.relevant, scope).summary]);
         if (n.calculation.trim()) casos.push(["calculation", n.calculation, describeExpression(n.calculation, scope).summary]);
@@ -62,7 +72,7 @@ describe.skipIf(!activo)("lectura humana sobre los seis formularios tipo", () =>
     }
     const top = [...porFuncion.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 25).map(([k, v]) => `  ${String(v.n).padStart(4)}  ${k.padEnd(34)} ${v.ejemplo}`);
     if (process.env.PULSO_MUESTRAS) console.log([...muestras.entries()].map(([k, v]) => `${k}\n      ${v.join("\n      ")}`).join("\n"));
-    console.log(["", ...filas, `TOTAL técnicas ${tecnicas}/${total} (${Math.round((100 * tecnicas) / Math.max(total, 1))} %) · «y La» ${mayuscula}`, "Por función:", ...top].join("\n"));
+    console.log(["", ...filas, `PROBAR VALORES: ${probables}/${restricciones} restricciones se pueden probar en el editor · fuera: ${[...fueraPorTipo.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(", ")}`, `TOTAL técnicas ${tecnicas}/${total} (${Math.round((100 * tecnicas) / Math.max(total, 1))} %) · «y La» ${mayuscula}`, "Por función:", ...top].join("\n"));
     expect(total).toBeGreaterThan(0);
   });
 });
