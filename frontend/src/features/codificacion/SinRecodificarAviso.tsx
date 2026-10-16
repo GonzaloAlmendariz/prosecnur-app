@@ -11,6 +11,7 @@ import { PulsoButton } from "../../components/PulsoButton";
 import { formatoConteoDe } from "../../lib/formatoNumero";
 import { textoPlano } from "../../lib/textoPlano";
 import { urlCodificarPregunta } from "./codificarDireccion";
+import { DejarEnOtroBoton } from "./DejarEnOtroBoton";
 import "./SinRecodificarAviso.css";
 
 export function SinRecodificarAviso({ variables }: { variables: readonly CodifSinRecodificar[] }) {
@@ -93,6 +94,7 @@ function FilaPendiente({ v, onDecidida }: { v: CodifSinRecodificar; onDecidida: 
       {motivo === null ? (
         <div className="pulso-sinrecod-acciones">
           {conRouter ? <BotonCodificar pregunta={v.parent} /> : null}
+          {v.con_texto_otro ? <DejarEnOtroBoton pregunta={v.parent} /> : null}
           <PulsoButton variant="ghost" size="sm" onClick={() => setMotivo("")}>No se codifica…</PulsoButton>
         </div>
       ) : (

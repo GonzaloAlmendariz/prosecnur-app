@@ -145,7 +145,9 @@ codif_no_categorizar_unset <- function(sid, parent, source = NULL) {
       decision = dec,
       motivo = as.character((p$no_categorizar %||% list())$motivo %||% ""),
       n_respuestas = as.integer(p$n_respuestas %||% 0L),
-      deliberado = identical(dec, "no_categorizar")
+      deliberado = identical(dec, "no_categorizar"),
+      # Cerrada con su «Otro» emparejado: sus textos pueden quedar en «Otro».
+      con_texto_otro = isTRUE(p$con_texto_otro)
     )
   })
 }
@@ -220,10 +222,13 @@ codif_no_categorizar_unset <- function(sid, parent, source = NULL) {
     )
     marcada <- nzchar(as.character(r$text_col %||% "")) || isTRUE(marcadas_set[[parent]])
     no_cat <- no_cat_todas[[parent]]
+    tc <- as.character(r$text_col %||% "")[1]
     list(
       parent = parent,
       parent_label = as.character(r$parent_label %||% parent),
       marcada = marcada,
+      con_texto_otro = (identical(tipo, "select_multiple") || (identical(tipo, "select_one") && identical(modo_so, "padre"))) &&
+        !is.na(tc) && nzchar(tc),
       n_respuestas = as.integer(stats$n_respuestas %||% 0L),
       n_unicas = as.integer(stats$n_unicas %||% 0L),
       n_codificadas = as.integer(n_cod),
