@@ -8,7 +8,7 @@ import { useSession } from "../../lib/SessionContext";
 import { AdaptarAplicacion, AdaptarAplicacionResumen } from "./AdaptarAplicacion";
 import { claveAplicar } from "./aplicarAvisosStore";
 import { useBaseYaCodificada } from "./useBaseYaCodificada";
-import { motivoNoSoportado } from "./planAdaptacionModel";
+import { AdaptarOmitidas } from "./AdaptarOmitidas";
 import { formatoConteo } from "../../lib/formatoNumero";
 
 type Props = {
@@ -127,24 +127,8 @@ export function AdaptarPane({ base, onBackToCodificar, onBackToMatrices }: Props
         </Panel>
       )}
 
-      {/* No soportadas (text sin pareja, SM sin dummy, etc) */}
-      {preguntasNoSoportadas.length > 0 && (
-        <Alert kind="warn">
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>
-            {preguntasNoSoportadas.length} {preguntasNoSoportadas.length === 1 ? "pregunta quedará" : "preguntas quedarán"} fuera de la adaptación
-          </div>
-          <div style={{ fontSize: 12 }}>
-            Estas preguntas tienen grupos codificados, pero sus ajustes no permiten aplicarlas automáticamente todavía:
-          </div>
-          <ul style={{ marginTop: 6, marginBottom: 0, fontSize: 12, paddingLeft: 20 }}>
-            {preguntasNoSoportadas.map((p) => (
-              <li key={p.parent}>
-                <code style={{ fontFamily: "monospace" }}>{p.parent}</code> — {p.parent_label} ({motivoNoSoportado(p)})
-              </li>
-            ))}
-          </ul>
-        </Alert>
-      )}
+      {/* No soportadas: cada una con su motivo y, si se puede, la acción que la destraba. */}
+      <AdaptarOmitidas preguntas={preguntasNoSoportadas} onCambio={() => void load()} onIrAPreguntas={onBackToCodificar} />
 
       <AdaptarAplicacion
         clave={clave}

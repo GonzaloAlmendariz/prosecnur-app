@@ -38,7 +38,9 @@ test_that("P29_10 sin modo y P66 sin su columna de texto se declaran con su moti
 
   expect_length(out, 2L)
   por <- stats::setNames(out, vapply(out, `[[`, "", "pregunta"))
-  expect_identical(por$P29_10$motivo, "sin_modo")
+  # Sin texto emparejado: grupos de un emparejamiento que se deshizo (2026-10-16).
+  expect_identical(por$P29_10$motivo, "sin_texto_emparejado")
+  expect_match(por$P29_10$mensaje, "emparejamiento anterior", fixed = TRUE)
   expect_identical(por$P66$motivo, "sin_columna_texto")
   expect_match(por$P66$mensaje, "P66_otro", fixed = TRUE)
 })
@@ -116,7 +118,10 @@ test_that("el plan da a P29_10 el mismo motivo que el aviso de /aplicar", {
   rows <- .omit_rows()
   plan <- .codif_motivo_plan(rows[[1]], c("P29_10"))
   aviso <- .codif_omitidas("P29_10", .omit_grupos(), rows, c("P29_10"))[[1]]
-  expect_identical(plan$motivo, "sin_modo")
+  expect_identical(plan$motivo, "sin_texto_emparejado")
   expect_identical(plan$mensaje, aviso$mensaje)
+  # Con texto emparejado pero sin modo, sigue siendo «sin_modo».
+  con_texto <- utils::modifyList(rows[[1]], list(text_col = "P29_10_otro"))
+  expect_identical(.codif_motivo_plan(con_texto, c("P29_10", "P29_10_otro"))$motivo, "sin_modo")
   expect_identical(.codif_motivo_plan(rows[[3]], c("P4", "P4_otro"))$motivo, "")
 })
