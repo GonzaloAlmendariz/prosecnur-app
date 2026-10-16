@@ -13,6 +13,7 @@ import { apiCodifGrupos, apiCodifPareja } from "../../api/codificacion";
 import { Alert } from "../../components/Alert";
 import { PulsoButton } from "../../components/PulsoButton";
 import { formatoConteoDe } from "../../lib/formatoNumero";
+import { textoPlano } from "../../lib/textoPlano";
 import { motivoNoSoportado } from "./planAdaptacionModel";
 import "./AdaptarOmitidas.css";
 
@@ -62,7 +63,7 @@ function OmitidaFila({ p, onCambio, onIrAPreguntas }: { p: PlanPregunta; onCambi
   return (
     <li>
       <div>
-        <code>{p.parent}</code> — {p.parent_label}
+        <code>{p.parent}</code> — {textoPlano(p.parent_label)}
       </div>
       <div className="pulso-codif-omitida-motivo">{motivoNoSoportado(p)}</div>
       {p.motivo_codigo === "sin_texto_emparejado" && (

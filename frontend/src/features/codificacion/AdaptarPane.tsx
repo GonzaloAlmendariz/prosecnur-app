@@ -10,6 +10,7 @@ import { claveAplicar } from "./aplicarAvisosStore";
 import { useBaseYaCodificada } from "./useBaseYaCodificada";
 import { AdaptarOmitidas } from "./AdaptarOmitidas";
 import { formatoConteo } from "../../lib/formatoNumero";
+import { textoPlano } from "../../lib/textoPlano";
 
 type Props = {
   /** Base activa de codificación: los avisos de la última aplicación van por base. */
@@ -159,8 +160,8 @@ function Divider() {
 
 function PreguntaPlanCard({ p }: { p: PlanPregunta }) {
   const arqLabel =
-    p.tipo === "select_one" && p.modo_so === "hijo" ? "SO · texto codificado aparte" :
-    p.tipo === "select_one" && p.modo_so === "padre" ? "SO · pregunta original codificada" :
+    p.tipo === "select_one" && p.modo_so === "hijo" ? "Opción única · texto codificado aparte" :
+    p.tipo === "select_one" && p.modo_so === "padre" ? "Opción única · pregunta original codificada" :
     p.tipo === "integer" ? "Numérica · rangos" :
     p.tipo === "text" ? "Texto abierto" :
     p.tipo === "select_multiple" ? "Opción múltiple" : p.tipo;
@@ -178,7 +179,7 @@ function PreguntaPlanCard({ p }: { p: PlanPregunta }) {
         <code style={{ fontFamily: "monospace", fontSize: 14, fontWeight: 700, color: "var(--pulso-primary)" }}>
           {p.parent}
         </code>
-        <span style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>{p.parent_label}</span>
+        <span style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>{textoPlano(p.parent_label)}</span>
         <div style={{ flex: 1 }} />
         <span
           style={{
@@ -231,7 +232,7 @@ function PreguntaPlanCard({ p }: { p: PlanPregunta }) {
       {p.codigos_reutilizados.length > 0 && (
         <div style={{ marginTop: 10 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
-            {p.codigos_reutilizados.length} opción{p.codigos_reutilizados.length === 1 ? "" : "es"} existente{p.codigos_reutilizados.length === 1 ? "" : "s"} reutilizada{p.codigos_reutilizados.length === 1 ? "" : "s"}
+            {p.codigos_reutilizados.length === 1 ? "1 opción existente reutilizada" : `${p.codigos_reutilizados.length} opciones existentes reutilizadas`}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {p.codigos_reutilizados.map((c) => (
