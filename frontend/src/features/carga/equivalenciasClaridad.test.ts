@@ -7,18 +7,24 @@ import { describe, expect, test } from "vitest";
 import type { Armonizacion } from "../../api/equivalencias";
 import { estadoArmonizacion, estadoDeBase, explicacionArmonizacion } from "./armonizacionModel";
 import { anchoColumnaPublico, anchoMinimoLista, coberturaDeBases } from "./equivalenciasAnchos";
-import { nombreDeSerie, nombreDeSerieDeBases, pareceAnio, rotuloPorDefecto } from "./nombreDeSerie";
+import { basesNombranAnio, nombreDeSerie, nombreDeSerieDeBases, pareceAnio, rotuloPorDefecto } from "./nombreDeSerie";
 
 const SIETE = ["a", "b", "c", "d", "e", "f", "g"];
 const MEDICIONES = nombreDeSerie(["docentes"]);
 
 describe("nombre de la serie: una sola regla para toda la UI", () => {
-  test("«años» sólo si todos los rótulos son años", () => {
-    expect(nombreDeSerie(["2022", "2024"]).plural).toBe("años");
-    expect(nombreDeSerie(["2022", "docentes"]).plural).toBe("mediciones");
-    expect(nombreDeSerie([]).plural).toBe("mediciones");
-    expect(nombreDeSerieDeBases(["b2022", "b2024"]).todas).toBe("todos los años");
-    expect(nombreDeSerieDeBases(["sede_norte", "sede_sur"]).todas).toBe("todas las mediciones");
+  test("siempre «bases», se llamen como se llamen (2026-10-16)", () => {
+    expect(nombreDeSerie(["2022", "2024"]).plural).toBe("bases");
+    expect(nombreDeSerie(["2022", "docentes"]).plural).toBe("bases");
+    expect(nombreDeSerie([]).plural).toBe("bases");
+    expect(nombreDeSerieDeBases(["b2022", "b2024"]).todas).toBe("todas las bases");
+    expect(nombreDeSerieDeBases(["sede_norte", "sede_sur"]).todas).toBe("todas las bases");
+  });
+
+  test("el lector de bloques sí sabe si las bases nombran un año", () => {
+    expect(basesNombranAnio(["b2022", "b2024"])).toBe(true);
+    expect(basesNombranAnio(["2022", "docentes"])).toBe(false);
+    expect(basesNombranAnio([])).toBe(false);
   });
 
   test("el rótulo por defecto sale del nombre de la base y no se inventa", () => {
@@ -46,8 +52,8 @@ describe("chip de armonización", () => {
     const e = estadoArmonizacion({ armonizacion: arm, variables: Object.fromEntries(SIETE.map((b) => [b, `p_${b}`])) });
     expect(explicacionArmonizacion(e, MEDICIONES)).toContain("b, c, d, e, f y g");
     const anios = nombreDeSerie(["2022", "2024"]);
-    expect(explicacionArmonizacion({ tipo: "sin_armonizar", texto: "Sin armonizar" }, anios)).toContain("entre años");
-    expect(explicacionArmonizacion({ tipo: "sin_armonizar", texto: "Sin armonizar" }, MEDICIONES)).toContain("entre mediciones");
+    expect(explicacionArmonizacion({ tipo: "sin_armonizar", texto: "Sin armonizar" }, anios)).toContain("entre bases");
+    expect(explicacionArmonizacion({ tipo: "sin_armonizar", texto: "Sin armonizar" }, MEDICIONES)).toContain("entre bases");
   });
 
   test("cada estado se explica sin raya, sin punto medio y sin punto y coma", () => {
@@ -102,7 +108,6 @@ describe("Importar por bloques no supone que la serie sea de años (P-A7)", () =
       /encabezadas por un año/g,
       /no se nombran por año/g,
       /serieDeAnios \? "Año" : "Columna"/g,
-      /serie\.singular === "año"/g,
     ];
     let resto = fuente;
     for (const re of permitidas) resto = resto.replace(re, "");

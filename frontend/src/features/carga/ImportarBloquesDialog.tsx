@@ -33,7 +33,7 @@ import {
   mapaPeriodosParaEnviar,
   mapaPeriodosValido,
 } from "./armonizacionModel";
-import { nombreDeSerieDeBases } from "./nombreDeSerie";
+import { basesNombranAnio, nombreDeSerieDeBases } from "./nombreDeSerie";
 import { PulsoButton } from "../../components/PulsoButton";
 import "./ImportarBloquesDialog.css";
 
@@ -142,9 +142,9 @@ export function ImportarBloquesDialog({ bases, onAplicado }: ImportarBloquesDial
   };
 
   const validez = paso.tipo === "archivo" ? null : mapaPeriodosValido(paso.mapa);
-  // Cómo se llaman las mediciones del estudio: «años» sólo si todas sus bases lo son.
   const serie = nombreDeSerieDeBases(bases);
-  const serieDeAnios = serie.singular === "año";
+  // El lector sólo reconoce columnas encabezadas por un año.
+  const serieDeAnios = basesNombranAnio(bases);
 
   return (
     <Dialog.Root open={panel.abierto} onOpenChange={(abierto) => { if (!abierto) cerrar(); }}>

@@ -93,35 +93,93 @@
   align-self: center;
 }
 
-/* Rótulos: una caja por medición, todas del mismo ancho (C2). La grilla
- * acomoda N mediciones: con siete bases envuelve a filas nuevas y cada caja
- * conserva su ancho mínimo, no se aprietan siete en una fila. */
-.pulso-comparativos-rotulos {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: var(--pulso-space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.pulso-comparativos-rotulos > li {
-  display: flex;
-  min-width: 0;
-}
-
-.pulso-comparativos-rotulo-pos {
+/* Columnas del comparativo: una fila por base (orden, base, título, ponderación).
+ * Ancho fijo por columna (C2); el nombre de la base envuelve en vez de recortar
+ * y la tabla nunca se desplaza en horizontal (C4). */
+.pulso-comparativos-columnas-enlace {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-width: 16px;
-  height: 16px;
-  margin-right: 6px;
+  gap: 4px;
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-primary);
+  text-decoration: none;
+}
+
+.pulso-comparativos-columnas-enlace:hover {
+  text-decoration: underline;
+}
+
+.pulso-comparativos-columnas-enlace:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
   border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface-2);
+}
+
+.pulso-comparativos-columnas {
+  width: 100%;
+  max-width: 880px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.pulso-comparativos-columnas col.is-pos { width: 32px; }
+.pulso-comparativos-columnas col.is-base { width: 30%; }
+.pulso-comparativos-columnas col.is-titulo { width: 34%; }
+
+.pulso-comparativos-columnas thead th {
+  padding: 0 var(--pulso-space-2) 6px;
+  border-bottom: 1px solid var(--pulso-border);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-columnas tbody th,
+.pulso-comparativos-columnas tbody td {
+  padding: 6px var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+  vertical-align: middle;
+  text-align: left;
+}
+
+.pulso-comparativos-columnas tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.pulso-comparativos-columnas-pos {
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-variant-numeric: tabular-nums;
+}
+
+.pulso-comparativos-columnas-base {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.pulso-comparativos-columnas input {
+  width: 100%;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.pulso-comparativos-columnas-peso {
+  overflow-wrap: anywhere;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-columnas-peso.is-sin-declarar {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-comparativos-columnas-peso.is-sin-leer {
+  color: var(--pulso-text-faint);
 }
 
 .pulso-comparativos-rotulos-aviso {
@@ -135,26 +193,6 @@
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
   font-size: 12px;
-}
-
-.pulso-comparativos-rotulo {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.pulso-comparativos-rotulo-base {
-  overflow-wrap: anywhere;
-  font-size: 12px;
-  color: var(--pulso-text-soft);
-}
-
-.pulso-comparativos-rotulo input {
-  width: 100%;
-  min-width: 0;
-  font-size: 13px;
 }
 
 /* Listas de filas armonizadas. */
