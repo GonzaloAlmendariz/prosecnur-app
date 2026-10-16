@@ -600,7 +600,7 @@
 
 .pulso-xf-res-tiempo-barra {
   display: flex;
-  gap: 2px;
+  gap: 1px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -608,7 +608,8 @@
 
 .pulso-xf-res-tiempo-barra li {
   flex-basis: 0;
-  min-width: 4px;
+  /* Con 50+ secciones (formularios tipo del corpus) 4 px de mínimo más el hueco desbordaban la barra. */
+  min-width: 2px;
   container-type: inline-size;
 }
 
@@ -616,6 +617,10 @@
 @container (max-width: 44px) {
   .pulso-xf-res-tramo span {
     display: none;
+  }
+  /* Sin nombre no hace falta el relleno lateral: un tramo de 4 px medía 12 por su padding. */
+  .pulso-xf-res-tiempo-barra .pulso-xf-res-tramo {
+    padding: 0;
   }
 }
 
