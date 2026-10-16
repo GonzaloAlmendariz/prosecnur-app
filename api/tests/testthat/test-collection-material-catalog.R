@@ -206,3 +206,53 @@ test_that("HTTP: GET del catálogo y POST del preview responden el contrato", {
   expect_identical(e$status, 422L)
   expect_match(paste(unlist(e$body), collapse = " "), "E_COLLECTION_MATERIAL_PRESET_UNKNOWN")
 })
+
+# Recorrido completo de «Usar este tipo»: la receta que el GET sirve por HTTP,
+# serializada con EL MISMO serializador de la app, vuelve tal cual por el PUT.
+# Un NULL de R que viaja como `{}` rompe el validador (lines/note/binding).
+.cmcat_call_app <- function(pr, sid, method, path, body = "") {
+  raw_body <- charToRaw(body)
+  input <- list(
+    read = function(...) raw_body, rewind = function() invisible(0),
+    read_lines = function(...) body
+  )
+  req <- as.environment(list(
+    REQUEST_METHOD = method, PATH_INFO = path, QUERY_STRING = "",
+    CONTENT_TYPE = "application/json",
+    HTTP_X_PULSO_SESSION = sid, HEADERS = c(`x-pulso-session` = sid), rook.input = input
+  ))
+  r <- pr$call(req)
+  list(status = as.integer(r$status), raw = as.character(r$body),
+       body = jsonlite::fromJSON(as.character(r$body), simplifyVector = FALSE))
+}
+
+test_that("HTTP: la plantilla de cada preset del GET se re-envía por el PUT sin 422", {
+  testthat::skip_if_not_installed("plumber")
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  collection_state_seed(sid)
+  # El serializador de producción (plumber_app.R), no el default de plumber.
+  pr <- mount_recopiladores(plumber::pr() |> plumber::pr_set_serializer(.api_serializer()))
+
+  g <- .cmcat_call_app(pr, sid, "GET", "/api/recopiladores/material-catalog")
+  expect_identical(g$status, 200L)
+  # Ningún NULL de R serializado como objeto vacío dentro de la receta.
+  expect_false(grepl('"(lines|note|binding)":\\{\\}', g$raw))
+  presets <- setNames(g$body$presets, vapply(g$body$presets, function(p) unlist(p$preset_id), ""))
+  expect_setequal(names(presets), c("ficha_aplicacion_a4_v1", "ficha_campo_qr_a4_v1", "afiche_qr_a4_v1"))
+
+  # El orden evita el noop: la sesión arranca con la ficha de aplicación
+  # built-in, así que cada PUT cambia de verdad la plantilla y pasa el validador.
+  for (preset_id in c("ficha_campo_qr_a4_v1", "afiche_qr_a4_v1", "ficha_aplicacion_a4_v1")) {
+    cur <- .cmcat_call_app(pr, sid, "GET", "/api/recopiladores/material-template")
+    expect_identical(cur$status, 200L)
+    body <- jsonlite::toJSON(
+      list(template = presets[[preset_id]]$template,
+           expected_revision = unlist(cur$body$state_revision)),
+      auto_unbox = TRUE, null = "null", na = "null", digits = NA
+    )
+    put <- .cmcat_call_app(pr, sid, "PUT", "/api/recopiladores/material-template", as.character(body))
+    expect_identical(put$status, 200L, info = paste(preset_id, substr(put$raw, 1, 600)))
+    expect_false(isTRUE(unlist(put$body$noop)), info = preset_id)
+    expect_identical(unlist(put$body$template$preset_id), preset_id)
+  }
+})
