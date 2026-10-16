@@ -233,19 +233,18 @@ empezar.
 El petróleo actual estaba a ΔE 25.0 de Procesamiento; los tres se separan más. **Gonzalo eligió Musgo `#4F752C` el
 2026-10-16**: equilibra sus dos vecinos más cercanos y es el que menos se confunde con un estado de éxito.
 
-**El ícono queda bloqueado hasta que Gonzalo elija.** Se descartan `ClipboardList` (ya es el de Bitácora) y los íconos
-de archivo (`Files`, `FileStack`), que chocan con el `FilePen` de Formularios. Candidatos, vía el shim de lucide:
-`Backpack` (lo que el equipo se lleva a campo; recomendado), `Stamp`, `PackageOpen`, `Layers2`, `Tickets` y `Printer`.
-Reemplaza a `IconCollector = QrCode` en `frontend/src/lib/icons.ts`; el QR sigue como ícono de la sección Accesos. Tokens: `--pulso-module-fieldkit`, `-soft`, `-border`; `--pulso-module-collectors` queda como alias
-deprecado en los tres lugares que lo definen (`frontend/src/app/tokens.css`, `frontend/src/app/boot.css`,
-`branding/identity/tokens.css`) hasta retirar sus consumidores.
+**Ícono: `Backpack` (mochila), elegido por Gonzalo el 2026-10-16**: lo que el equipo se lleva a campo, sin parecido
+con ningún otro ícono del dock. Se descartaron `ClipboardList` (ya es el de Bitácora), los íconos de archivo (`Files`,
+`FileStack`, que chocan con el `FilePen` de Formularios), `Stamp`, `PackageOpen`, `Layers2`, `Tickets` y `Printer`.
+Entra vía el shim de lucide y reemplaza a `IconCollector = QrCode` en `frontend/src/lib/icons.ts`; el QR sigue como
+ícono de la sección Accesos.
 
 ### 8. Etapas, cada una entregable sola
 
 | Etapa | Contenido | Depende de |
 |---|---|---|
 | E0a | Renombre de módulo y ruta, modos y secciones en `modules.ts` y `App.tsx`, componente de redirección con query, migración del slug persistido, `active_stage` de Hojas de ruta, cards del home, contratos de navegación. Sin color nuevo | aceptación |
-| E0b | Token Musgo `#4F752C` con su alias, ícono, `branding/` | E0a, ícono elegido |
+| E0b | Token Musgo `#4F752C` con su alias, ícono `Backpack`, `branding/` | E0a |
 | E1 | Catálogo, `compatible_unit_types`, bindings por `unit_type`, dos registros de adapters, `collection_state/v2`, deriva de 9 a 13 bloques, presets ocultos expuestos. Revamp «pliego de imprenta» con geometría congelada antes | E0a |
 | E2 | `ump_territorial_v1` y salidas de Hojas de ruta envueltas como layout legacy con paridad visual | E1 |
 | E3 | Bloques `quota_grid`, `unit_map`, `place_checklist`, `route_instructions`; port de la ficha de manzana; retiro del layout legacy; retiro de `hojas_ruta_generar_zip` (`@export`, roxygenise, test) con doble confirmación | E2 |
