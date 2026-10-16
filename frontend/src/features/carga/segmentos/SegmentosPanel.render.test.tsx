@@ -97,6 +97,21 @@ describe("Segmentos de cruce", () => {
     expect(html).toContain("Guardar segmento");
   });
 
+  it("«Emparejar todas por etiqueta» vive en la escala estándar, una vez, y no en cada base", () => {
+    const html = cuerpo({
+      ...listo([edad]),
+      catalogo: {
+        tipo: "listo",
+        variables: {
+          "2025": [{ name: "P1_recod", label: "Edad", seccion: "", opciones: [{ codigo: "1", etiqueta: "18–20 años" }, { codigo: "2", etiqueta: "21 años a más" }] }],
+        },
+      },
+    }, "edad");
+    expect((html.match(/Emparejar todas por etiqueta/g) ?? []).length).toBe(1);
+    expect(html).toContain('title="Lleva 1 código sin mapa en 2025 a la categoría con su misma etiqueta. No toca lo ya asignado."');
+    expect(html).not.toContain(">Emparejar por etiqueta<");
+  });
+
   it("un `foco` que no existe lo dice y ofrece volver", () => {
     const html = cuerpo(listo([edad]), "sexo");
     expect(html).toContain("El estudio no tiene un segmento «sexo».");
@@ -149,7 +164,7 @@ describe("una base del editor con los valores observados", () => {
     n_validos: 46, n_sin_dato: 5, truncado: false,
     ...extra,
   });
-  const render = (lectura: Parameters<typeof SegmentoEnBaseVista>[0]["observados"], mapa: Record<string, string> = { "18": "1" }) =>
+  const render = (lectura: Parameters<typeof SegmentoEnBaseVista>[0]["lectura"], mapa: Record<string, string> = { "18": "1" }) =>
     renderToStaticMarkup(createElement(SegmentoEnBaseVista, {
       base: "2026",
       anclaId: "a",
@@ -160,7 +175,7 @@ describe("una base del editor con los valores observados", () => {
       escala: edad.escala,
       anio: 2026,
       despachar: () => undefined,
-      observados: lectura,
+      lectura,
     }));
 
   it("la tabla son los valores de la data, con su columna de casos; el sin dato es un dato", () => {
@@ -172,6 +187,21 @@ describe("una base del editor con los valores observados", () => {
     expect(html).toContain("Sin dato: 5 casos");
     expect(html).toContain("Rangos");
     expect(html).not.toContain("Tramos de antigüedad");
+  });
+
+  it("un código con 0 casos y sin mapa se lee tenue («sin casos») y no cuenta como pendiente", () => {
+    const html = render(
+      { tipo: "listo", datos: observados({ codigos: [{ codigo: "1", etiqueta: "18–20 años", n: 40 }, { codigo: "99", etiqueta: "No sé", n: 0 }] }) },
+      { "1": "1" },
+    );
+    expect(html).toContain("1 de 2 códigos asignados · 1 sin casos");
+    expect(html).not.toContain("is-sin-mapa");
+    expect(html).not.toContain("Faltan");
+    expect(html).toContain('class="is-sin-casos"');
+    expect(html).toContain(">sin casos<");
+    expect(html).toContain(">Definido<");
+    // «Emparejar por etiqueta» ya no vive en cada base: es «Emparejar todas», en la escala.
+    expect(html).not.toContain("Emparejar");
   });
 
   it("un año de ingreso ofrece los tramos de antigüedad", () => {

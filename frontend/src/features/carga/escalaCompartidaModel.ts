@@ -25,21 +25,14 @@ import type {
   OpcionDeEscala,
   VariableDeBase,
 } from "../../api/equivalencias";
-import { sinEnfasis } from "../../lib/enfasisTexto";
 import type { FilaEditor } from "./equivalenciasEditorModel";
+import { etiquetaTolerante } from "./etiquetaTolerante";
 import { esCompuesta } from "./indicadorCompuestoModel";
 
 // ---- Firma tolerante ----------------------------------------------------------
 
-/** «¿Dos a tres veces?» y «dos a tres veces» son la misma etiqueta. */
-export function etiquetaTolerante(s: string | null | undefined): string {
-  return sinEnfasis(s ?? "")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLocaleLowerCase("es")
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim();
-}
+// La normalización vive en `etiquetaTolerante.ts`; se reexporta para sus usuarios de siempre.
+export { etiquetaTolerante };
 
 function clavesTolerantes(opciones: readonly OpcionDeEscala[]): string[] {
   return opciones
