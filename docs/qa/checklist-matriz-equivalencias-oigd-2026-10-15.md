@@ -80,3 +80,19 @@ Fuente: `01_Estudios/2026_PUCP_HSyVbG/Procesamiento/Segunda semana/Prosecnur_Tex
 |---|---|---|---|
 | H1 | Una pregunta con texto «Otro» vinculado y CERO grupos de codificación pierde todos sus textos al preparar la codificación (P11_otro 2, P27_otro 12; en la muestra de 2 500 faltan 10) | Codificación (preparar / plantilla / adaptar) | ☑ arreglado: lectura de datos Excel con guess_max de toda la hoja (`.read_excel_data`) en todas las lecturas de datos, y el reparador no reescribe el archivo si una columna ajena perdería valores. Sobre la base del 09/10: P11_otro 0 → 2, P27_otro 0 → 12. Los .pulso ya guardados conservan la pérdida: se restaura desde la base limpia por `_uuid` |
 | H2 | La base adaptada no trae las 130 columnas dicotómicas de las opciones múltiples (p. ej. P26/1); la información sigue en la columna principal | Codificación › adaptar / exportes | ☑ diseño: `normalize_data_for_xlsform` pliega 129 dummies en 10 madres (data_normalizer.R:873, 960-979); los exportes de BBDD las regeneran (`.expand_multiselect`) |
+
+## Tercera tanda (Gonzalo, 2026-10-15): la app se explica sola
+
+Pedidos textuales: «¿no se pueden llamar de una forma estandarizada como PX_cruce?»; «a Ulises no hay que prepararle un
+Word ni nada sino dejarle la app súper fina, entendible y didáctica y sobre todo consistente».
+
+| # | Indicación | Dónde vive | Estado |
+|---|---|---|---|
+| I1 | Segmentos de cruce del estudio con nombre estándar `cruce_<clave>` en todas las bases | ADR 0107 (Propuesto) | ◐ backend en construcción; panel después |
+| I2 | Recorrido de la serie: pasos, estado y dónde se hace cada uno | Equivalencias (banda superior) | ◐ en construcción |
+| I3 | Comparativos dicen el estado de la ponderación por base y avisan si falta | Analítica › Comparativos | ◐ en construcción |
+| I4 | Pasada de consistencia sobre las superficies nuevas y tocadas | Carga, Equivalencias, Analítica | ☐ al cerrar I1–I3 |
+| I5 | Sin guía externa para el equipo: la app se explica sola | criterio | ☑ registrado |
+
+Aprendido: las `_recod` de 2026 (`P3_recod`, `P4_recod`, `P8_recod`, `P23_recod`, `P52_recod`) las agregó Codificación al
+adaptar; son la pregunta con los «Otro» codificados, no segmentos. `indice_vbg`/`indice_hs` son `calculate` del Kobo.
