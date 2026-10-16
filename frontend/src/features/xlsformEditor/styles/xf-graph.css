@@ -123,7 +123,7 @@
 }
 
 .pulso-graph-edge.is-fresh path:not([stroke="transparent"]) {
-  animation: pulso-graph-edge-fresh 600ms ease-out both;
+  animation: pulso-graph-edge-fresh var(--motion-dur-base) var(--motion-ease-out) both;
 }
 
 .pulso-graph-condpicker > header {
@@ -359,12 +359,12 @@
 }
 
 .pulso-graph-edge {
-  animation: pulso-graph-edge-appear 320ms cubic-bezier(0.18, 0.89, 0.32, 1.18) both;
+  animation: pulso-graph-edge-appear var(--motion-dur-base) var(--motion-ease-out) both;
 }
 
 /* La pulse de "fresh" tiene precedencia visual sobre la appear. */
 .pulso-graph-edge.is-fresh path:not([stroke="transparent"]) {
-  animation: pulso-graph-edge-fresh 600ms ease-out both;
+  animation: pulso-graph-edge-fresh var(--motion-dur-base) var(--motion-ease-out) both;
 }
 
 /* Edge clickeable: hover con leve subida de luminosidad. */
@@ -433,7 +433,7 @@
   max-width: 420px;
   text-align: center;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.10);
-  animation: pulso-graph-empty-in 280ms cubic-bezier(0.18, 0.89, 0.32, 1.18) both;
+  animation: pulso-graph-empty-in var(--motion-dur-base) var(--motion-ease-out) both;
   pointer-events: none;
 }
 
@@ -509,7 +509,7 @@
   z-index: 35;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  animation: pulso-edge-panel-in 240ms cubic-bezier(0.18, 0.89, 0.32, 1.18) both;
+  animation: pulso-edge-panel-in 240ms var(--motion-ease-out) both;
 }
 
 .pulso-graph-minimap svg {
@@ -791,7 +791,7 @@
 
 /* Aparición con fade (el stagger viene del animation-delay inline). */
 .pulso-graph-overlay .pulso-graph-edge {
-  animation: pulso-xfg-edge-in 280ms ease backwards;
+  animation: pulso-xfg-edge-in var(--motion-dur-base) var(--motion-ease-out) backwards;
 }
 
 /* Dash-flow sutil sobre el edge seleccionado (overlay blanco punteado
