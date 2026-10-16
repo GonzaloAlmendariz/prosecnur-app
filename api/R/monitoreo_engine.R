@@ -2551,7 +2551,7 @@ monitoreo_territorial_phase_source_status <- function(tcfg = list(), phase = NUL
     header_row <- which.max(row_scores)
     if (!length(header_row) || !is.finite(row_scores[[header_row]]) || row_scores[[header_row]] < 8) header_row <- 1L
     df <- tryCatch(
-      readxl::read_excel(path, sheet = sheet, skip = header_row - 1L, col_names = TRUE, .name_repair = "minimal"),
+      .read_excel_data(path, sheet = sheet, skip = header_row - 1L, col_names = TRUE, .name_repair = "minimal"),
       error = function(e) NULL
     )
     if (is.null(df) || !nrow(df) || !ncol(df)) next

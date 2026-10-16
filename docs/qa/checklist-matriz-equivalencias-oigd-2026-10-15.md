@@ -78,5 +78,5 @@ Fuente: `01_Estudios/2026_PUCP_HSyVbG/Procesamiento/Segunda semana/Prosecnur_Tex
 
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
-| H1 | Una pregunta con texto «Otro» vinculado y CERO grupos de codificación pierde todos sus textos al preparar la codificación (P11_otro 2, P27_otro 12; en la muestra de 2 500 faltan 10) | Codificación (preparar / plantilla / adaptar) | ☐ diagnosticando |
-| H2 | La base adaptada no trae las 130 columnas dicotómicas de las opciones múltiples (p. ej. P26/1); la información sigue en la columna principal | Codificación › adaptar / exportes | ☐ por evaluar si es defecto o diseño |
+| H1 | Una pregunta con texto «Otro» vinculado y CERO grupos de codificación pierde todos sus textos al preparar la codificación (P11_otro 2, P27_otro 12; en la muestra de 2 500 faltan 10) | Codificación (preparar / plantilla / adaptar) | ☑ arreglado: lectura de datos Excel con guess_max de toda la hoja (`.read_excel_data`) en todas las lecturas de datos, y el reparador no reescribe el archivo si una columna ajena perdería valores. Sobre la base del 09/10: P11_otro 0 → 2, P27_otro 0 → 12. Los .pulso ya guardados conservan la pérdida: se restaura desde la base limpia por `_uuid` |
+| H2 | La base adaptada no trae las 130 columnas dicotómicas de las opciones múltiples (p. ej. P26/1); la información sigue en la columna principal | Codificación › adaptar / exportes | ☑ diseño: `normalize_data_for_xlsform` pliega 129 dummies en 10 madres (data_normalizer.R:873, 960-979); los exportes de BBDD las regeneran (`.expand_multiselect`) |

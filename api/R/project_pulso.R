@@ -717,7 +717,7 @@
 .pulso_read_data_file <- function(path, ext = NULL) {
   ext <- tolower(as.character(ext %||% tools::file_ext(path)))
   if (ext %in% c("xlsx", "xls")) {
-    return(as.data.frame(readxl::read_excel(path), stringsAsFactors = FALSE, check.names = FALSE))
+    return(as.data.frame(.read_excel_data(path), stringsAsFactors = FALSE, check.names = FALSE))
   }
   if (identical(ext, "csv")) {
     return(utils::read.csv(path, stringsAsFactors = FALSE, fileEncoding = "UTF-8", check.names = FALSE))
@@ -1434,7 +1434,7 @@
     sheets <- tryCatch(readxl::excel_sheets(data_meta$path), error = function(e) character(0))
     if (!length(sheets)) next
     sheets_data <- stats::setNames(lapply(sheets, function(sheet) {
-      as.data.frame(readxl::read_excel(data_meta$path, sheet = sheet), stringsAsFactors = FALSE, check.names = FALSE)
+      as.data.frame(.read_excel_data(data_meta$path, sheet = sheet), stringsAsFactors = FALSE, check.names = FALSE)
     }), sheets)
 
     data_changed <- FALSE
@@ -1447,11 +1447,16 @@
       }
       sheets_data[[sheet]] <- df
     }
+    # Salvaguarda (project_pulso_recod_salvaguarda.R): si escribir perderia valores fuera de las
+    # `<parent>_recod` que el reparador reconstruye, no se toca la data ni se memoiza (se reintenta y avisa).
+    bloqueada <- isTRUE(data_changed) && !.pulso_recod_escritura_segura(
+      data_meta$path, sheets_data, excluir = .pulso_recod_columnas_destino(repairs))
+    if (bloqueada) data_changed <- FALSE
     if (isTRUE(data_changed) && .pulso_write_xlsx_sheets(data_meta$path, sheets_data)) {
       changed <- TRUE
     }
 
-    if (!isTRUE(base_changed) && !isTRUE(data_changed)) {
+    if (!isTRUE(base_changed) && !isTRUE(data_changed) && !bloqueada) {
       .pulso_recod_memo_set(sid, base_name, firma)
     }
     if (isTRUE(data_changed)) {

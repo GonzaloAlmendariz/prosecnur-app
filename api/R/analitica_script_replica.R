@@ -382,7 +382,7 @@
     "  ext <- tolower(tools::file_ext(ruta))",
     "  if (ext %in% c(\"xlsx\", \"xls\")) {",
     "    if (!requireNamespace(\"readxl\", quietly = TRUE)) stop(\"Instala el paquete 'readxl' para leer el export .xlsx de Kobo.\")",
-    "    df <- as.data.frame(readxl::read_excel(ruta), check.names = FALSE, stringsAsFactors = FALSE)",
+    "    df <- as.data.frame(readxl::read_excel(ruta, guess_max = 1048576), check.names = FALSE, stringsAsFactors = FALSE)",
     "  } else if (ext == \"csv\") {",
     "    df <- utils::read.csv(ruta, stringsAsFactors = FALSE, check.names = FALSE, fileEncoding = \"UTF-8\")",
     "  } else {",

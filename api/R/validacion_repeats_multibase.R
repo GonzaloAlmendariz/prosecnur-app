@@ -28,8 +28,8 @@
                      path %||% "<vacío>"))
   }
   df <- switch(ext,
-    xlsx = readxl::read_excel(path),
-    xls  = readxl::read_excel(path),
+    xlsx = .read_excel_data(path),
+    xls  = .read_excel_data(path),
     csv  = utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE),
     sav  = haven::read_sav(path),
     stop_api(400, "E_VALIDACION_REPEAT_EXT",

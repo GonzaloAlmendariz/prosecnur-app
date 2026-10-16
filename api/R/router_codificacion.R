@@ -75,8 +75,8 @@
 
 .read_data_any <- function(meta) {
   switch(meta$ext,
-    xlsx = readxl::read_excel(meta$path),
-    xls  = readxl::read_excel(meta$path),
+    xlsx = .read_excel_data(meta$path),
+    xls  = .read_excel_data(meta$path),
     csv  = utils::read.csv(meta$path, stringsAsFactors = FALSE),
     sav  = haven::read_sav(meta$path),
     stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Extensión no soportada: %s", meta$ext))

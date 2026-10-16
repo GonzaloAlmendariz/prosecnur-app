@@ -763,7 +763,7 @@ leer_datos <- function(path, sheet = NULL){
     suppressWarnings(readr::read_csv(path, show_col_types = FALSE))
   } else {
     # Excel: no tocar tipos; hoja opcional
-    suppressWarnings(readxl::read_excel(path, sheet = sheet))
+    suppressWarnings(.read_excel_data(path, sheet = sheet))
   }
 
   orig  <- names(raw)

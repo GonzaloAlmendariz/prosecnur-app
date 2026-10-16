@@ -129,7 +129,7 @@ leer_datos_generico <- function(path_data, sheet = NULL){
     return(suppressWarnings(readr::read_csv(path_data, show_col_types = FALSE)))
   }
   if (ext %in% c("xlsx", "xls")) {
-    return(readxl::read_excel(path_data, sheet = sheet %||% 1))
+    return(.read_excel_data(path_data, sheet = sheet %||% 1))
   }
   if (ext == "sav") {
     if (!requireNamespace("haven", quietly = TRUE)) {
@@ -169,7 +169,7 @@ read_sheet_ci <- function(path_xlsx, sheet_name){
   sh <- readxl::excel_sheets(path_xlsx)
   i  <- match(tolower(sheet_name), tolower(sh))
   if (is.na(i)) stop("No existe la hoja '", sheet_name, "' en: ", path_xlsx)
-  df <- readxl::read_excel(path_xlsx, sheet = sh[i])
+  df <- .read_excel_data(path_xlsx, sheet = sh[i])
   .ensure_unique_names(df)
 }
 

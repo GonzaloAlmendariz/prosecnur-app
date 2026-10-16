@@ -82,7 +82,7 @@
 
 .sm_wb_read_sheet <- function(path, sheet) {
   if (!requireNamespace("readxl", quietly = TRUE)) stop("Se requiere readxl.", call. = FALSE)
-  df <- suppressWarnings(readxl::read_excel(path, sheet = sheet, .name_repair = "minimal"))
+  df <- suppressWarnings(.read_excel_data(path, sheet = sheet, .name_repair = "minimal"))
   as.data.frame(df, stringsAsFactors = FALSE, check.names = FALSE)
 }
 

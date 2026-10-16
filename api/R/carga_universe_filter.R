@@ -158,7 +158,7 @@ normalize_carga_universe_filter <- function(config = NULL, require_real_values =
   df <- if (exists(".read_data_any_path", mode = "function")) {
     .read_data_any_path(meta$path, ext)
   } else if (ext %in% c("xlsx", "xls")) {
-    suppressWarnings(readxl::read_excel(meta$path))
+    suppressWarnings(.read_excel_data(meta$path))
   } else if (identical(ext, "csv")) {
     utils::read.csv(meta$path, stringsAsFactors = FALSE, check.names = FALSE)
   } else if (identical(ext, "sav")) {

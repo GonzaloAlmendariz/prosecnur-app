@@ -77,7 +77,7 @@ catalogo_recetario_dir <- function() {
     df <- .cr_escribir_xlsx(file.path(dir, paste0(b, "_data.xlsx")), list(data = data))
     xmeta <- save_upload(sid, "xlsform", basename(xf), readBin(xf, "raw", n = file.info(xf)$size))
     dmeta <- save_upload(sid, "data", basename(df), readBin(df, "raw", n = file.info(df)$size))
-    raw <- as.data.frame(readxl::read_excel(dmeta$path), stringsAsFactors = FALSE, check.names = FALSE)
+    raw <- as.data.frame(.read_excel_data(dmeta$path), stringsAsFactors = FALSE, check.names = FALSE)
     norm <- normalize_data_for_xlsform(raw, inst)
     .carga_assert_data_xlsform_compatible(norm, inst)
     rp_data <- reporte_data(norm, instrumento = inst)
