@@ -2500,12 +2500,13 @@ mount_codificacion <- function(pr) {
           else "select_one_sin_modo"
         } else tipo
         recoded <- codif_get(sid, "respuestas_recod", source = source)[[parent]] %||% list()
-        n_cod <- length(recoded)
         # La regla vive en codificacion_decisiones.R: `/aplicar` la necesita
         # igual y recalcularla allá crearía una segunda taxonomía (ADR 0078).
+        mat <- .codif_material_de_pregunta(r, data_df, stats, length(recoded))
+        n_cod <- mat$n_codificadas
         status <- .codif_status_de_pregunta(
           tipo = tipo, modo_so = modo_so, use_flag = use_flag,
-          n_respuestas = stats$n_respuestas, n_unicas = stats$n_unicas,
+          n_respuestas = mat$n_respuestas, n_unicas = mat$n_unicas,
           n_codificadas = n_cod
         )
 
