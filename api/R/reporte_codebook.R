@@ -208,7 +208,7 @@ reporte_codebook <- function(data,
   )
   # Las preguntas sin lista (numéricas, texto, calculadas) también se documentan:
   # con su etiqueta y una línea de contenido (reporte_codebook_sin_lista.R).
-  sin_lista <- setdiff(.codebook_vars_sin_lista(df), vars_all[vars_with_labels])
+  sin_lista <- .codebook_vars_sin_lista(df)
   vars_to_write <- vars_all[vars_with_labels | vars_all %in% sin_lista]
 
   if (length(vars_to_write) == 0L) {
@@ -237,7 +237,8 @@ reporte_codebook <- function(data,
 
     varlabel <- get_var_label(v)
     vl <- get_value_labels(v)
-    es_sin_lista <- is.null(vl) && v %in% sin_lista
+    # Sin lista también si trae un orden vacío (un `calculate` sin opciones).
+    es_sin_lista <- (is.null(vl) || !length(vl$codes)) && v %in% sin_lista
     if (es_sin_lista) vl <- list(codes = "", labels = codebook_descripcion_sin_lista(df[[v]]))
     if (is.null(vl)) next
 

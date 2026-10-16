@@ -63,3 +63,16 @@ test_that("la exportación repone las preguntas sin lista que el filtro de Frecu
   expect_identical(attr(out$P1, "label"), "¿Cuál es tu edad?")
   expect_false(is.null(attr(out, "instrumento_reporte")))
 })
+
+test_that("un calculate con orden vacío entra como sin lista y un año no lleva separador de miles", {
+  skip_if_not_installed("openxlsx")
+  df <- .cbs_df()
+  out <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(out), add = TRUE)
+  # El orden del instrumento trae una entrada vacía para el calculate.
+  .write_codebook_from_df(df, ord = list(indice = list(names = character(0), labels = character(0))),
+                          outfile = out, ficha_tecnica = FALSE)
+  m <- as.matrix(openxlsx::read.xlsx(out, colNames = FALSE, skipEmptyRows = FALSE))
+  expect_true("indice" %in% m[, 1])
+  expect_identical(codebook_descripcion_sin_lista(c("1999", "2017")), "Numérica · de 1999 a 2017 · 2 con dato")
+})
