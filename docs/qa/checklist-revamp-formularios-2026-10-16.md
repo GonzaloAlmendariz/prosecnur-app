@@ -16,6 +16,7 @@ Indicaciones del usuario que gobiernan todo el revamp:
 - «debe ser igual de sólido en el constructor que en la subpestaña, sólo que la subpestaña sirve para tener mayor espacio, más detalle visual»
 - «contenedores profesionales … orden, coherencia»; nada «vacío, plano, suelto, no simétrico, con espacio en blanco irregular en altura»; «ojo fino con los desbordes»
 - «trata de modular el módulo para que los archivos estén bien balanceados y no sean gigantes»
+- «resúmelos en 6 formularios tipo que engloben todos esos 23»: toda verificación usa `~/Documents/Pulso/90_Pruebas/corpus_instrumentos/pulso/formularios-tipo.pulso`, nunca acrconta.
 - Lógica: distinguir «lógica aplicada a toda una sección» de «lógica aplicada a una pregunta en particular».
 
 | # | Ítem | Dónde vive | Estado |
@@ -23,6 +24,7 @@ Indicaciones del usuario que gobiernan todo el revamp:
 | E0 | Rama, worktree, dependencias, checklist y encargo del loop | rama `feat/revamp-formularios` | ☑ |
 | E1 | Kit visual: tarjeta con cabecera y pie, filas de propiedad, segmentado, ficha de pregunta, iconos por tipo, filas de condición; sólo tokens `--pulso-*` | `xlsformEditor/kit/` (nuevo) — commit 744aef6ec | ☑ |
 | E2 | Marco del módulo: rail con Constructor, Editor XLSForm, Leer, Lógica, Restricciones (nueva), Cálculos (nueva), Probar, Resumen, Impreso | `navegacion/catalogos/editorFormularios.ts`, rail y contratos de navegación — commits 4ec17c806 (refactor), d861cbe66, 604c1a206 (vacíos contenidos); verificado con proyecto real a 1440×1000 y 1366×768 | ☑ |
+| EH | Lectura humana de reglas medida sobre `formularios-tipo.pulso` (6 tipos que resumen los 23 proyectos): 1642 reglas, técnicas 374 (23 %) → meta ≤ 5 %; comillas tipográficas como error con arreglo | `canvas/reglasHumanas.ts`, `parsing/diagnostics.ts`; sonda `pestanas/lecturaFormulariosTipo.test.ts` (opt-in) — 1fbc959df | ◐ |
 | E3 | Constructor en tarjetas: pregunta y respuestas, «Cuándo aparece» con la regla heredada de la sección, «Qué acepta» junto a «Así se imprime», propiedades y relaciones | `canvas/` — corte previo d09cb2e37: `FocusedWorkspace` 4176→1067, pestañas internas en `canvas/constructor/Tab*.tsx` | ◐ |
 | E4 | Lógica: lista por sección con reglas de sección y de pregunta, filtro Todas/Sección/Pregunta, editor en tarjetas; el mapa se conserva | `canvas-graph/`, `inspector/logic/` | ☐ |
 | E5 | Pestaña Restricciones: punto de partida, regla, mensaje, vista del teléfono, probar valores, antes de guardar | nueva | ☐ |
