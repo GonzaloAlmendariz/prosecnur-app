@@ -853,6 +853,7 @@
     }
   }
   finalize_sources <- function(src) {
+    src <- .graficos_aplicar_caso_valido(sid, src)   # el universo de Analítica (analitica_universo.R)
     src <- .graficos_aplicar_dimensiones(sid, src)   # las dimensiones de Analítica (graficos_dimensiones_fuente.R)
     src <- .graficos_repeat_enrich_sources(sid, src)
     src <- normalize_sources(src)

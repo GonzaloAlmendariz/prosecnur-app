@@ -49,3 +49,29 @@ mount_analitica_universo <- function(pr) {
       list(ok = TRUE, bases = out)
     }))
 }
+
+#' Gráficos trabaja con el mismo universo que Analítica.
+#'
+#' Gráficos lee las fuentes de la sesión (`estudio_data_sources()`), que no
+#' pasan por `.analitica_aplicar_caso_valido()`: con «seleccionado es 1» las
+#' tablas decían 2,500 y los gráficos habrían dicho 3,318 (HSyVbG 2026). Se
+#' filtra cada base con su criterio y se conservan los atributos de la fuente
+#' (instrumento, normalización), que un subset de filas pierde.
+#' @keywords internal
+.graficos_aplicar_caso_valido <- function(sid, src) {
+  s <- session_get(sid, required = FALSE)
+  bases <- ((s %||% list())$estudio %||% list())$bases %||% list()
+  if (!length(bases) || !length(src$data_sources)) return(src)
+  for (nm in names(src$data_sources)) {
+    meta <- bases[[nm]]
+    dat <- src$data_sources[[nm]]
+    if (is.null(meta) || !is.data.frame(dat)) next
+    filtrada <- tryCatch(.analitica_aplicar_caso_valido(dat, meta), error = function(e) dat)
+    if (!is.data.frame(filtrada) || nrow(filtrada) == nrow(dat)) next
+    for (a in setdiff(names(attributes(dat)), c("names", "row.names", "class"))) {
+      if (is.null(attr(filtrada, a, exact = TRUE))) attr(filtrada, a) <- attr(dat, a, exact = TRUE)
+    }
+    src$data_sources[[nm]] <- filtrada
+  }
+  src
+}
