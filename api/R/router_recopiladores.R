@@ -96,6 +96,50 @@ mount_recopiladores <- function(pr) {
         expected_revision = body$expected_revision
       )
     })) |>
+    # Correos para Mailchimp (ADR 0110 §2, E1f). La plantilla persiste en
+    # collection_state$mail_template; los destinatarios viven solo en el
+    # tempdir de la sesión (datos personales: nunca en el .pulso).
+    plumber::pr_get("/api/recopiladores/mail-presets", wrap_endpoint(function(req, res, ...) {
+      collection_mail_presets_get(session_header(req))
+    })) |>
+    plumber::pr_get("/api/recopiladores/mail-template", wrap_endpoint(function(req, res, ...) {
+      collection_mail_template_get(session_header(req))
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/mail-template", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_template_put(session_header(req), template = body$template,
+                                   expected_revision = body$expected_revision)
+    })) |>
+    plumber::pr_post("/api/recopiladores/mail-template/preview", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_preview(session_header(req), mode = body$mode %||% "preview",
+                              recipient_index = body$recipient_index, template = body$template)
+    })) |>
+    plumber::pr_post("/api/recopiladores/mail-template/review", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_review(session_header(req), template = body$template)
+    })) |>
+    plumber::pr_post("/api/recopiladores/mail-template/export", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_export(session_header(req), expected_revision = body$expected_revision)
+    })) |>
+    plumber::pr_post("/api/recopiladores/mail-recipients/import", wrap_endpoint(function(req, res, ...) {
+      input <- .cmail_import_request(req)
+      collection_mail_recipients_import(
+        session_header(req), file_raw = input$file_raw, file_name = input$file_name,
+        content_base64 = input$content_base64, mapping = input$mapping
+      )
+    })) |>
+    plumber::pr_get("/api/recopiladores/mail-recipients", wrap_endpoint(function(req, res, ...) {
+      collection_mail_recipients_get(session_header(req))
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/mail-recipients/mapping", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_recipients_mapping_put(session_header(req), mapping = body$mapping)
+    })) |>
+    plumber::pr_handle("DELETE", "/api/recopiladores/mail-recipients", wrap_endpoint(function(req, res, ...) {
+      collection_mail_recipients_delete(session_header(req))
+    })) |>
     # Catálogo › Tipos (ADR 0109 E1a): los tipos de material y su miniatura,
     # compilada por el MISMO motor del PDF contra una unidad de prueba. Lectura
     # pura: no toca el estado ni necesita expected_revision.
