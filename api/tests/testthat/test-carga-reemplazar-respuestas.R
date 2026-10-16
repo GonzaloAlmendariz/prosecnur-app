@@ -78,3 +78,21 @@ test_that("en el modo de una base el reemplazo compara con el archivo anterior",
   .session_env[[sid]] <- s
   expect_true(carga_cambios_contra_archivo_previo(sid, list(path = a$path, ext = a$ext), b)$codificacion_por_readaptar)
 })
+
+test_that("reemplazar las respuestas descarta el par adaptado global: Analítica no lee la base vieja", {
+  skip_if_not_installed("haven")
+  sid <- .bv_estudio()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  s$codif_aplicado <- TRUE
+  s$codif_data_adaptada_fid <- "fid_viejo"
+  s$codif_inst_adaptado_fid <- "fid_inst_viejo"
+  s$analitica_fuente <- "estudio:2026"
+  .session_env[[sid]] <- s
+  dmeta <- save_upload(sid, "data", "v2.xlsx", .bv_xlsx_bytes(list(data = .bv_data_2026()[1:20, ])))
+  carga_reemplazar_respuestas(sid, "2026", dmeta$file_id)
+  s2 <- session_get(sid)
+  expect_false(isTRUE(s2$codif_aplicado))
+  expect_null(s2$codif_data_adaptada_fid)
+  expect_null(s2$codif_inst_adaptado_fid)
+})

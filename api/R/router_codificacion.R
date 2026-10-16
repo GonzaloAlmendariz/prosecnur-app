@@ -3125,7 +3125,7 @@ mount_codificacion <- function(pr) {
       # plan vacío mostrando "No hay preguntas con grupos codificados", y
       # el campo `warning` queda disponible para debug.
       sid <- session_header(req)
-      tryCatch(.compute_plan_adaptacion(sid), error = function(e) {
+      plan <- tryCatch(.compute_plan_adaptacion(sid), error = function(e) {
         list(
           ok = TRUE, preguntas = list(),
           totales = list(
@@ -3135,6 +3135,8 @@ mount_codificacion <- function(pr) {
           warning = conditionMessage(e)
         )
       })
+      plan$respuestas_cambiaron <- codificacion_respuestas_cambiaron(sid)
+      plan
     })) |>
     plumber::pr_post("/api/codificacion/aplicar", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
