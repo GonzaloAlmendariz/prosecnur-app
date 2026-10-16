@@ -391,11 +391,13 @@
 
 .pulso-vb-reglas {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  /* Tres reglas: en una fila si caben; el texto envuelve dentro de su tarjeta. */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--pulso-space-2);
 }
 
 .pulso-vb-regla {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -418,6 +420,8 @@
 .pulso-vb-regla small {
   color: var(--pulso-text-soft);
   font-size: 12px;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .pulso-vb-regla:hover {
