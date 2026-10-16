@@ -49,8 +49,15 @@
 # si es anterior o posterior a esta importación, y destruir en silencio el
 # trabajo manual del analista es peor que dejar dos verdades visibles y dichas
 # (ADR 0062, regla 6).
-.equiv_aplicar_a_analitica <- function(sid, equiv) {
+#
+# Salvo que la escribiera la propia matriz: si la etiqueta vigente es la que la
+# declaración ANTERIOR ponía para esa variable, nadie la editó a mano y se
+# actualiza. Sin esto, renombrar una fila o un segmento («Discapacidad» →
+# «Presenta discapacidad») dejaba el nombre viejo en Analítica y en los
+# entregables, contado como «conservada por estar editada a mano» (2026-10-16).
+.equiv_aplicar_a_analitica <- function(sid, equiv, declaracion_previa = NULL) {
   labels_por_base <- .equiv_variable_labels_por_base(equiv)
+  labels_previos <- if (is.null(declaracion_previa)) list() else .equiv_variable_labels_por_base(declaracion_previa)
   s <- session_get(sid)
   configs <- s$analitica_config_por_base
   if (!is.list(configs)) configs <- list()
@@ -72,7 +79,8 @@
     conservadas <- 0L
     for (var in names(nuevas)) {
       previo <- actuales[[var]]
-      if (!is.null(previo) && nzchar(as.character(previo)) &&
+      de_la_matriz <- identical(as.character(previo), as.character((labels_previos[[b]] %||% list())[[var]] %||% NA))
+      if (!is.null(previo) && nzchar(as.character(previo)) && !de_la_matriz &&
           !identical(as.character(previo), as.character(nuevas[[var]]))) {
         conservadas <- conservadas + 1L
         next
@@ -228,7 +236,7 @@
   )
   if (length(periodos)) equiv$armonizacion_periodos <- as.character(periodos)
   session_set(sid, "equivalencias_publicos", equiv)
-  resumen <- .equiv_aplicar_a_analitica(sid, equiv)
+  resumen <- .equiv_aplicar_a_analitica(sid, equiv, previo)
   list(estado = .equiv_estado(sid), aplicacion = resumen)
 }
 
