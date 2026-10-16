@@ -23,7 +23,7 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| D1 | Capturas reales de Recopiladores > Materiales (hsvg2026) y Hojas de ruta > Entrega | `tmp/qa-material-campo-2026-10-16/` | en revisión |
+| D1 | Capturas reales de Recopiladores > Materiales (hsvg2026) y Hojas de ruta > Entrega (acnur_acg) | `tmp/qa-material-campo-2026-10-16/`, diagnóstico «Evidencia de UI» | hecho: confirma un solo preset sin catálogo; la ficha de dos caras sale dentro del ZIP |
 | D2 | Revisión de contratos del ADR | guardian-contratos | hecho: REQUIERE MIGRACIÓN; integrado (sección R) |
 | D3 | Revisión metodológica | revisor-metodologico | hecho: aprobado con supuestos E0–E3, rechazado E4 hasta A6; integrado (sección R) |
 | D4 | ¿`fichas_cuota_v1` es general? | diagnóstico §5.1 | hecho: el patrón es general, el contenido es del estudio |
@@ -63,6 +63,9 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | H5 | Monitoreo territorial salta en silencio una unidad sin márgenes de cuota | `api/R/monitoreo_engine.R:9642` | pendiente: hoy afecta a manzanas sin cuota; bloquea E4 |
 | H6 | `hojas-ruta/entrega` no tiene documento que la gobierne | `docs/sistema/direcciones/hojas-ruta.md:18` | pendiente (E0a) |
 | H7 | El script de la hoja de ruta de Ser Adolescente lee la cartografía de la app por ruta absoluta | `Campo/Generadores/mapa.py` (fuera del repo) | pendiente: desaparece con E2 a E4 |
+| H9 | El fixture hsvg2026 no tiene estado de Recopiladores: ningún proyecto de referencia prueba un plan con accesos | `api/inst/reference_projects/` | pendiente (antes de E1) |
+| H10 | Entrega > Reemplazos esconde 250 px a la derecha sin indicio y el runner dice `desplazamientoH=0` | `.hojas-ruta-review-table-wrap.is-delivery`, `scripts/ui-quick-check.mjs` | pendiente: detector y tabla |
+| H11 | En 1024x600 dos ítems del outline de Materiales desbordan (173 y 182 px en 166) | `features/recopiladores/` | pendiente (E1) |
 | H8 | El cronograma de Ser Adolescente dice 1,400 casos; el estudio es de 1.000 | cronograma del estudio (fuera del repo) | pendiente: aviso, no es de la app |
 
 ## Etapas (solo después de A8)

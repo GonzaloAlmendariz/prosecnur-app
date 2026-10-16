@@ -167,7 +167,23 @@ Los riesgos reales son tres:
 
 La propuesta completa, con navegación, identidad visual y etapas, está en el ADR 0108.
 
-## Evidencia de UI
+## Evidencia de UI (2026-10-16)
 
-Capturas de la oleada de descubrimiento en `tmp/qa-material-campo-2026-10-16/` (no versionadas). Ver el checklist,
-ítem D1, para el resultado.
+Capturas en `tmp/qa-material-campo-2026-10-16/` (no versionadas), con `ui-quick-check` en 1440x1000 y 1024x600; 8
+capturas distintas por md5.
+
+- **Recopiladores > Materiales (hsvg2026).** Editor semántico de 8 bloques (cabecera, título `unit.operational_code`,
+  curso, QR, campos Docente · Escuela · Aula · Horario · Estudiantes, separador, registro, pie). **No hay selector de
+  preset ni de tipo de material**: el frontend fija `preset_id: "ficha_aplicacion_a4_v1"`
+  (`MaterialsSection.tsx:172`) y `GET /api/recopiladores/material-template` no devuelve una lista. Confirma §2.1.
+- **Plan, Accesos y Paquetes (hsvg2026)** salen vacíos porque el fixture no tiene estado de Recopiladores
+  (`seeded:false`, `seed_available:false`). Es deuda del fixture, no desconexión: ningún proyecto de referencia prueba
+  hoy un plan con accesos.
+- **Hojas de ruta > Entrega (acnur_acg, el único proyecto de referencia con muestra territorial poblada: 150 manzanas y
+  150 reemplazos).** La ficha de dos caras no tiene botón propio: sale dentro de «Generar ZIP» como «PDF titular por
+  manzana», junto con el PDF de reemplazos, la hoja por zona, el Excel operativo y los metadatos. Aparte están «Generar
+  PDF unificado» (reemplazos puntuales) y «PDF aleatorio de prueba». Coincide con la tabla de endpoints del ADR §5.
+- **Menores vistos de paso:** en 1024x600 dos ítems del outline de Materiales desbordan unos píxeles; en Entrega >
+  Reemplazos la tabla esconde 250 px a la derecha sin indicio de scroll y el runner reporta `desplazamientoH=0`
+  (el detector se queda corto). C1: el outline sale `geometry-undeclared` y Entrega no tiene grupos geométricos; cobertura
+  pendiente, no un pase.
