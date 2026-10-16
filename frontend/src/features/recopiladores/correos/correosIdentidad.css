@@ -1,0 +1,94 @@
+/* Catálogo › Correos: la franja de logos tal como sale en el correo y el
+   enlace personal bajo el botón. Aparte de correos.css, que ya es grande. */
+
+.rec-mail-franja-vista {
+  align-items: center;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  justify-content: center;
+  min-height: 58px;
+  padding: 12px 16px;
+}
+
+.rec-mail-franja-vista.is-oscura {
+  border-color: transparent;
+  justify-content: flex-start;
+}
+
+.rec-mail-franja-vista.is-reserva {
+  opacity: 0.55;
+}
+
+.rec-mail-franja-vista-logo {
+  display: block;
+  height: 30px;
+  max-width: 132px;
+  object-fit: contain;
+  width: auto;
+}
+
+.rec-mail-franja-vista-sep {
+  align-self: stretch;
+  background: var(--pulso-border-strong);
+  flex: none;
+  width: 1px;
+}
+
+.rec-mail-franja-vista.is-oscura .rec-mail-franja-vista-sep {
+  background: color-mix(in srgb, var(--pulso-surface) 40%, transparent);
+}
+
+.rec-mail-franja-vista-hueco {
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: 4px;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  /* El alto sale del padding, no del line-height: el hueco abraza su texto. */
+  line-height: 1.25;
+  max-width: 132px;
+  overflow: hidden;
+  padding: 7px 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-mail-franja-vista.is-oscura .rec-mail-franja-vista-hueco {
+  border-color: color-mix(in srgb, var(--pulso-surface) 55%, transparent);
+  color: var(--pulso-surface);
+}
+
+.rec-mail-enlace-persona {
+  align-items: flex-start;
+  color: var(--pulso-text-muted);
+  display: flex;
+  font-size: 12px;
+  gap: 6px;
+  line-height: 1.45;
+  margin: 0;
+  min-width: 0;
+}
+
+.rec-mail-enlace-persona > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.rec-mail-enlace-persona b {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-mail-enlace-persona-url {
+  overflow-wrap: anywhere;
+}
+
+.rec-mail-enlace-persona-url .is-campo {
+  background: var(--pulso-module-fieldkit-soft);
+  border-radius: 3px;
+  color: var(--pulso-module-fieldkit);
+  padding: 0 2px;
+}

@@ -2,13 +2,14 @@ import { useState } from "react";
 
 import { MAIL_BLOCK_TYPES, type MailPreset, type MailTemplate } from "../../../api/materialMail";
 import { AlertCircle, Plus, X } from "../../../vendor/lucide-react";
-import { ICONO_DE_BLOQUE, ICONO_DE_PSEUDO } from "./iconos";
+import { ICONO_DE_BLOQUE, ICONO_DE_PSEUDO, iconoDeBloque } from "./iconos";
 import {
   CABECERA,
   ROTULO_DE_BLOQUE,
   SOBRE,
   origenDePreset,
   resumenDeBloque,
+  rotuloDeBloque,
   rotuloDeCabecera,
   textoPlano,
   type ProblemasPorDestino,
@@ -199,8 +200,8 @@ export function ColumnaDeBloques({
             <Fila
               key={block.block_id}
               id={block.block_id}
-              icono={ICONO_DE_BLOQUE[block.type]}
-              titulo={ROTULO_DE_BLOQUE[block.type]}
+              icono={iconoDeBloque(block)}
+              titulo={rotuloDeBloque(block)}
               resumen={resumenDeBloque(block)}
               elegido={seleccion === block.block_id}
               conProblemas={problemas.porBloque[block.block_id]?.length ?? 0}

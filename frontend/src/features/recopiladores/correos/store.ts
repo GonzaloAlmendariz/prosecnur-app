@@ -48,6 +48,8 @@ export type EstadoCorreos = {
   guardada: MailTemplate | null;
   stateRevision: number | null;
   builtin: boolean;
+  /** La plantilla guardada no cumple el contrato: hay que guardarla corregida. */
+  problemasGuardados: MailProblem[];
   borrador: MailTemplate | null;
   destinatarios: MailRecipients | null;
 
@@ -98,6 +100,8 @@ type Acciones = {
   setAviso: (aviso: Aviso | null) => void;
   setExportacion: (exportacion: MailExportPayload | null) => void;
   recordarImagen: (id: string, url: string) => void;
+  /** Pide de nuevo la vista previa (p. ej. tras reemplazar un archivo). */
+  refrescar: () => void;
   setMiniatura: (presetId: string, html: string | null) => void;
 };
 
@@ -108,6 +112,7 @@ const INICIAL: EstadoCorreos = {
   guardada: null,
   stateRevision: null,
   builtin: true,
+  problemasGuardados: [],
   borrador: null,
   destinatarios: null,
   vistaPrevia: null,
@@ -129,6 +134,12 @@ const INICIAL: EstadoCorreos = {
 };
 
 /** La primera persona importada, o la de ejemplo si no hay lista. */
+function revocar(url: string | undefined): void {
+  if (url && url.startsWith("blob:") && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
+    URL.revokeObjectURL(url);
+  }
+}
+
 function personaInicial(destinatarios: MailRecipients | null): number | null {
   return destinatarios?.loaded && (destinatarios.counts?.valid ?? 0) > 0 ? 1 : null;
 }
@@ -143,9 +154,7 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
   ...INICIAL,
 
   reiniciar: () => set((s) => {
-    for (const url of Object.values(s.imagenesLocales)) {
-      if (typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") URL.revokeObjectURL(url);
-    }
+    for (const url of Object.values(s.imagenesLocales)) revocar(url);
     return { ...INICIAL };
   }),
 
@@ -158,10 +167,12 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
     guardada: plantilla.template,
     stateRevision: plantilla.state_revision,
     builtin: plantilla.builtin,
+    problemasGuardados: plantilla.stored_problems,
     borrador: plantilla.template,
     destinatarios,
     persona: personaInicial(destinatarios),
-    problemas: [],
+    // Los problemas de la guardada se pintan junto a su bloque desde el inicio.
+    problemas: plantilla.stored_problems,
     exportacion: null,
     seleccion: seleccionVigente(s.seleccion, plantilla.template),
   })),
@@ -186,6 +197,7 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
       guardada: payload.template,
       stateRevision: payload.state_revision,
       builtin: false,
+      problemasGuardados: [],
       borrador: enviadoIgual || !s.borrador
         ? payload.template
         : { ...s.borrador, revision: payload.template.revision, template_sha256: payload.template.template_sha256 },
@@ -225,11 +237,10 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
   setExportacion: (exportacion) => set({ exportacion }),
   recordarImagen: (id, url) => set((s) => {
     const previa = s.imagenesLocales[id];
-    if (previa && previa !== url && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
-      URL.revokeObjectURL(previa);
-    }
+    if (previa !== url) revocar(previa);
     return { imagenesLocales: { ...s.imagenesLocales, [id]: url }, refresco: s.refresco + 1 };
   }),
+  refrescar: () => set((s) => ({ refresco: s.refresco + 1 })),
   setMiniatura: (presetId, html) => set((s) => ({ miniaturas: { ...s.miniaturas, [presetId]: html } })),
 }));
 
@@ -237,4 +248,12 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
 export function hayCambios(s: Pick<EstadoCorreos, "borrador" | "guardada">): boolean {
   if (!s.borrador) return false;
   return huellaDeEdicion(s.borrador) !== huellaDeEdicion(s.guardada);
+}
+
+/**
+ * ¿Hay que guardar? Hay cambios, o lo guardado es inválido y debe
+ * reemplazarse aunque el borrador sea idéntico (el backend lo revalida).
+ */
+export function hayQueGuardar(s: Pick<EstadoCorreos, "borrador" | "guardada" | "problemasGuardados">): boolean {
+  return Boolean(s.borrador) && (hayCambios(s) || s.problemasGuardados.length > 0);
 }

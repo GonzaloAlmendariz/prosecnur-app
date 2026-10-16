@@ -1,6 +1,7 @@
-import type { MailBlockType } from "../../../api/materialMail";
+import { isOpaqueMailBlock, type MailBlock, type MailBlockType } from "../../../api/materialMail";
 import {
   AlignLeft,
+  CircleHelp,
   Image,
   Info,
   List,
@@ -22,6 +23,10 @@ export const ICONO_DE_BLOQUE: Record<MailBlockType, LucideIcon> = {
   signature: PencilLine,
   footer_legal: ShieldCheck,
 };
+
+export function iconoDeBloque(block: MailBlock): LucideIcon {
+  return isOpaqueMailBlock(block) ? CircleHelp : ICONO_DE_BLOQUE[block.type];
+}
 
 export const ICONO_DE_PSEUDO: Record<typeof SOBRE | typeof CABECERA, LucideIcon> = {
   [SOBRE]: Mail,

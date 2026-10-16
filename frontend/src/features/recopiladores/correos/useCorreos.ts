@@ -17,14 +17,35 @@ import {
   type MailRecipientsMapping,
   type MailTemplate,
 } from "../../../api/materialMail";
-import { huellaDeEdicion, idLibre, renombrarImagen } from "./modeloCorreo";
-import { hayCambios, useCorreosStore } from "./store";
+import { huellaDeEdicion } from "./modeloCorreo";
+import { hayCambios, hayQueGuardar, useCorreosStore } from "./store";
+
+const GUARDADA_INVALIDA = "E_COLLECTION_MAIL_TEMPLATE_STORED_INVALID";
+
+/** Textos propios para los rechazos del import que la persona sí puede corregir. */
+const AVISO_DE_IMPORTACION: Record<string, string> = {
+  E_COLLECTION_MAIL_RECIPIENTS_NO_HEADER: "La primera fila parece un destinatario; agrega una fila de encabezados.",
+  E_COLLECTION_MAIL_RECIPIENTS_ENCODING: "No se reconoce la codificación del archivo. Guárdalo como «CSV UTF-8» o como XLSX.",
+};
+
+/** El aviso de un import rechazado; el motivo interno nunca llega a la vista. */
+export function avisoDeImportacion(cause: unknown): string {
+  if (cause instanceof MailApiError && AVISO_DE_IMPORTACION[cause.code]) return AVISO_DE_IMPORTACION[cause.code];
+  return mensajeDe(cause, "No se pudo leer la lista de destinatarios.");
+}
+const AVISO_GUARDADA_INVALIDA = "La plantilla guardada en el proyecto no es válida. Corrige lo marcado y guarda el correo para reemplazarla.";
 
 function mensajeDe(cause: unknown, fallback: string): string {
+  if (cause instanceof MailApiError && cause.code === GUARDADA_INVALIDA) return AVISO_GUARDADA_INVALIDA;
   return cause instanceof Error && cause.message ? cause.message : fallback;
 }
 
 const ESPERA_VISTA_MS = 280;
+
+/** `blob:` para mostrar el PNG recién subido; `null` donde no hay `URL.createObjectURL`. */
+function urlLocalDe(file: File): string | null {
+  return typeof URL !== "undefined" && typeof URL.createObjectURL === "function" ? URL.createObjectURL(file) : null;
+}
 const ESPERA_REVISION_MS = 650;
 
 /**
@@ -64,6 +85,7 @@ export function useCorreos() {
       ]);
       if (!vivo.current) return;
       s.getState().cargaLista({ presets: presets.presets, plantilla, destinatarios });
+      if (plantilla.stored_problems.length) s.getState().setAviso({ tono: "error", texto: AVISO_GUARDADA_INVALIDA });
       // Miniaturas de las plantillas reales: el mismo render, con la persona de ejemplo.
       for (const preset of presets.presets) {
         apiMailPreview({ mode: "preview", template: preset.template }).then(
@@ -144,7 +166,7 @@ export function useCorreos() {
   const guardar = useCallback(async (): Promise<boolean> => {
     const st = s.getState();
     if (!st.borrador || st.stateRevision === null) return false;
-    if (!hayCambios(st) && !st.builtin) return true;
+    if (!hayQueGuardar(st) && !st.builtin) return true;
     st.setOcupado("guardando");
     st.setAviso(null);
     try {
@@ -171,16 +193,19 @@ export function useCorreos() {
 
   /** `revision`: la revisión bloquea y hay que ir a verla; `error`: otro motivo, ya avisado. */
   const exportar = useCallback(async (): Promise<"ok" | "revision" | "error"> => {
-    if (hayCambios(s.getState())) {
+    if (hayQueGuardar(s.getState())) {
       const ok = await guardar();
       if (!ok) return "error";
     }
     const st = s.getState();
+    // El backend exige la revisión que esta vista vio: sin ella no se exporta.
+    const revision = st.stateRevision;
+    if (revision === null) return "error";
     st.setOcupado("exportando");
     st.setAviso(null);
     st.setExportacion(null);
     try {
-      const payload = await apiMailExport({ expected_revision: st.stateRevision });
+      const payload = await apiMailExport({ expected_revision: revision });
       if (vivo.current) s.getState().setExportacion(payload);
       return "ok";
     } catch (cause) {
@@ -218,14 +243,14 @@ export function useCorreos() {
 
   const importar = useCallback(async (file: File) => {
     // El mapeo adivinado lee los campos de la plantilla GUARDADA.
-    if (hayCambios(s.getState()) && !(await guardar())) return;
+    if (hayQueGuardar(s.getState()) && !(await guardar())) return;
     s.getState().setOcupado("importando");
     s.getState().setAviso(null);
     try {
       const destinatarios = await apiMailRecipientsImport(file);
       if (vivo.current) s.getState().setDestinatarios(destinatarios);
     } catch (cause) {
-      if (vivo.current) s.getState().setAviso({ tono: "error", texto: mensajeDe(cause, "No se pudo leer la lista de destinatarios.") });
+      if (vivo.current) s.getState().setAviso({ tono: "error", texto: avisoDeImportacion(cause) });
     } finally {
       if (vivo.current) s.getState().setOcupado(null);
     }
@@ -233,7 +258,7 @@ export function useCorreos() {
 
   const mapear = useCallback(async (mapping: MailRecipientsMapping) => {
     // Un campo nuevo sólo se puede mapear cuando la plantilla que lo declara está guardada.
-    if (hayCambios(s.getState()) && !(await guardar())) return;
+    if (hayQueGuardar(s.getState()) && !(await guardar())) return;
     s.getState().setOcupado("mapeando");
     try {
       const destinatarios = await apiMailRecipientsMapping(mapping);
@@ -258,27 +283,25 @@ export function useCorreos() {
   }, [s]);
 
   /**
-   * Sube el PNG de una imagen de la cabecera.
+   * Sube el PNG de una imagen de la cabecera con su mismo id.
    *
-   * El backend resuelve cada imagen por el nombre del archivo y se queda con el
-   * PRIMERO que encuentra; reemplazar una imagen que ya tiene archivo exige un
-   * id nuevo (`logo-cliente-2`), o seguiría viéndose la anterior.
+   * El backend resuelve cada imagen por el slug del nombre del archivo y se
+   * queda con el MÁS RECIENTE: volver a subir `logo-cliente` reemplaza al
+   * anterior sin tocar la plantilla. La vista local se recuerda con un
+   * `blob:` que el store revoca al reemplazarlo o al salir de la vista; si la
+   * vista ya no existe cuando termina la subida, no se crea ninguno.
    */
-  const subirImagen = useCallback(async (id: string, file: File, opts: { yaTieneArchivo: boolean }) => {
+  const subirImagen = useCallback(async (id: string, file: File) => {
     const st = s.getState();
     if (!st.borrador) return;
-    const destino = opts.yaTieneArchivo
-      ? idLibre(id, [...Object.keys(st.borrador.images), ...Object.keys(st.imagenesLocales)])
-      : id;
     st.setOcupado("subiendo");
     st.setAviso(null);
     try {
-      await apiMailImageUpload(file, destino);
+      await apiMailImageUpload(file, id);
       if (!vivo.current) return;
-      if (typeof URL !== "undefined" && typeof URL.createObjectURL === "function") {
-        s.getState().recordarImagen(destino, URL.createObjectURL(file));
-      }
-      s.getState().editar((t) => renombrarImagen(t, id, destino));
+      const local = urlLocalDe(file);
+      if (local) s.getState().recordarImagen(id, local);
+      else s.getState().refrescar();
     } catch (cause) {
       if (vivo.current) s.getState().setAviso({ tono: "error", texto: mensajeDe(cause, "No se pudo subir la imagen.") });
     } finally {

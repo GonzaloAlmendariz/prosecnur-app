@@ -4,7 +4,7 @@ import type { MailField, MailRecipients, MailRecipientsMapping, MailTemplate } f
 import { PulsoButton } from "../../../components/PulsoButton";
 import { FileUp, Plus, ShieldCheck, Trash2, Users } from "../../../vendor/lucide-react";
 import { Segmented } from "../../xlsformEditor/kit";
-import { nuevoCampo, problemaDeCampo, CUERPO_DEL_INSPECTOR } from "./modeloCorreo";
+import { notasDeLectura, nuevoCampo, problemaDeCampo, CUERPO_DEL_INSPECTOR } from "./modeloCorreo";
 
 type Props = {
   template: MailTemplate;
@@ -167,6 +167,7 @@ export function PanelDestinatarios({
   const mapping = destinatarios?.mapping ?? null;
   const columnas = destinatarios?.columns ?? [];
   const counts = destinatarios?.counts ?? null;
+  const notas = notasDeLectura(destinatarios?.encoding ?? null, counts);
   const fuera = counts ? counts.without_email + counts.invalid_email + counts.duplicated : 0;
 
   const cambiarMapeo = (patch: Partial<MailRecipientsMapping>) => {
@@ -202,6 +203,7 @@ export function PanelDestinatarios({
               counts.duplicated ? `${counts.duplicated} ${counts.duplicated === 1 ? "repetido" : "repetidos"}` : "",
             ].filter(Boolean).join(", ")}` : " · todas con correo válido"}
           </p>
+          {notas.length ? <p className="rec-mail-ayuda">{notas.join(" · ")}</p> : null}
           <div className="rec-mail-mapeo">
             <label className="rec-mail-mapeo-fila">
               <span>Correo</span>

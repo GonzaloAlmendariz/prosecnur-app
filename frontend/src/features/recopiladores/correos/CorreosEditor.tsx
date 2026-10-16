@@ -27,7 +27,7 @@ import { PanelMailchimp } from "./PanelMailchimp";
 import { PanelRevision } from "./PanelRevision";
 import { VistaPreviaDelCorreoConectada } from "./VistaPreviaDelCorreo";
 import { PANEL_CORREO_DESTINATARIOS, PANEL_CORREO_IDENTIDAD, PANEL_CORREO_REVISION } from "./panelesCorreos";
-import { hayCambios, useCorreosStore } from "./store";
+import { hayCambios, hayQueGuardar, useCorreosStore } from "./store";
 import { useCorreos } from "./useCorreos";
 import "./correos.css";
 
@@ -84,6 +84,7 @@ export function CorreosEditor({ onCargando }: Props) {
   const template = st.borrador;
   const problemas = useMemo(() => repartirProblemas(st.problemas, template), [st.problemas, template]);
   const cambios = hayCambios(st);
+  const porGuardar = hayQueGuardar(st);
   const miniaturasPendientes = st.presets.some((p) => !(p.preset_id in st.miniaturas));
   const cargando = st.carga === "inicial" || st.carga === "cargando"
     || (st.carga === "lista" && ((!st.vistaPrevia && !st.vistaPreviaError) || miniaturasPendientes));
@@ -201,11 +202,11 @@ export function CorreosEditor({ onCargando }: Props) {
             >
               Siguiente persona
             </PulsoButton>
-            <span className={`rec-mail-guardado${cambios ? " is-pendiente" : ""}`} role="status">
-              {st.ocupado === "guardando" ? <Loader2 size={13} className="pulso-spin" aria-hidden /> : cambios ? null : <Check size={13} aria-hidden />}
-              {cambios ? "Sin guardar" : st.builtin ? "Plantilla de fábrica" : "Guardado"}
+            <span className={`rec-mail-guardado${porGuardar ? " is-pendiente" : ""}`} role="status">
+              {st.ocupado === "guardando" ? <Loader2 size={13} className="pulso-spin" aria-hidden /> : porGuardar ? null : <Check size={13} aria-hidden />}
+              {cambios ? "Sin guardar" : st.problemasGuardados.length ? "Guardada inválida" : st.builtin ? "Plantilla de fábrica" : "Guardado"}
             </span>
-            <PulsoButton variant="primary" size="sm" disabled={!cambios || ocupado} onClick={() => { void acciones.guardar(); }}>
+            <PulsoButton variant="primary" size="sm" disabled={!porGuardar || ocupado} onClick={() => { void acciones.guardar(); }}>
               <Save size={14} aria-hidden /> Guardar
             </PulsoButton>
           </span>
@@ -276,6 +277,7 @@ export function CorreosEditor({ onCargando }: Props) {
                 template={template}
                 seleccion={st.seleccion}
                 problemas={problemas}
+                persona={persona ?? null}
                 onEditar={editar}
                 onEditarBloque={editarUnBloque}
                 onDestino={st.setDestino}
@@ -288,11 +290,12 @@ export function CorreosEditor({ onCargando }: Props) {
               <PanelIdentidad
                 template={template}
                 imagenesLocales={st.imagenesLocales}
+                htmlDeLaVista={st.vistaPrevia?.html ?? null}
                 sinArchivo={imagenesSinArchivo}
                 bannerCheck={bannerCheck}
                 ocupado={ocupado}
                 onEditar={editar}
-                onSubir={(id, file, opts) => { void acciones.subirImagen(id, file, opts); }}
+                onSubir={(id, file) => { void acciones.subirImagen(id, file); }}
               />
             ) : null}
             {pestana === "destinatarios" ? (

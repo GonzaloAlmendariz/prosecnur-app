@@ -3,7 +3,10 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { SESSION_KEY } from "./core";
 import {
   MailApiError,
+  apiMailExport,
+  apiMailRecipientsImport,
   apiMailTemplatePut,
+  normalizeMailTemplatePayload,
   normalizeMailPresets,
   normalizeMailPreview,
   normalizeMailProblems,
@@ -11,6 +14,7 @@ import {
   normalizeMailReview,
   normalizeMailTemplate,
   normalizeMailExport,
+  serializeMailTemplate,
   type MailTemplate,
 } from "./materialMail";
 
@@ -52,8 +56,14 @@ describe("normalizeMailTemplate", () => {
     expect(t.images.pulso).toEqual({ alt: "Pulso PUCP", url: "https://x.org/p.png" });
     expect(t.images["logo-cliente"]).toEqual({ alt: "[Unidad]" });
     expect(t.fields[1]).toEqual({ key: "enlace", tag: "ENLACE", label: "Enlace" });
-    // Un tipo fuera del registro y un id repetido no entran.
-    expect(t.blocks.map((b) => b.block_id)).toEqual(["saludo", "p1", "accion", "imp", "lista", "firma", "pie"]);
+    // Un id repetido no entra; un tipo fuera del registro entra opaco.
+    expect(t.blocks.map((b) => b.block_id)).toEqual(["saludo", "p1", "accion", "imp", "lista", "firma", "pie", "raro"]);
+    expect(t.blocks[7]).toEqual({
+      block_id: "raro",
+      type: "__no_reconocido",
+      original_type: "html_crudo",
+      raw: { block_id: "raro", type: "html_crudo", text: "<b>x</b>" },
+    });
     // Un vector de largo uno de R se lee como lista.
     expect(t.blocks[2]).toEqual({ block_id: "accion", type: "button", text: "Acceder", url: "{{enlace}}", note: ["ID: 1"] });
     expect(t.blocks[4]).toMatchObject({ type: "list", ordered: true });
@@ -77,6 +87,43 @@ describe("normalizeMailTemplate", () => {
     expect(Object.keys(pie).sort()).toEqual(["block_id", "text", "type"]);
     const saludo = t.blocks[0];
     expect(Object.keys(saludo).sort()).toEqual(["block_id", "fallback", "text", "type"]);
+  });
+});
+
+describe("bloques que este cliente no conoce", () => {
+  test("vuelven al backend intactos, en su lugar", () => {
+    const nuevo = { block_id: ["video"], type: "video_embed", src: "https://x.org/v", poster: { w: 600 } };
+    const t = normalizeMailTemplate({ ...PLANTILLA_R, blocks: [PLANTILLA_R.blocks[0], nuevo, PLANTILLA_R.blocks[1]] });
+    expect(t.blocks.map((b) => b.type)).toEqual(["greeting", "__no_reconocido", "paragraph"]);
+    const ida = serializeMailTemplate(t) as { blocks: unknown[] };
+    expect(ida.blocks[1]).toEqual(nuevo);
+    expect(ida.blocks[0]).toEqual(t.blocks[0]);
+    // Ida y vuelta: leer lo que se mandó da la misma plantilla.
+    expect(normalizeMailTemplate(ida)).toEqual(t);
+  });
+
+  test("sin type no es un bloque", () => {
+    const t = normalizeMailTemplate({ ...PLANTILLA_R, blocks: [{ block_id: "x", text: "y" }] });
+    expect(t.blocks).toEqual([]);
+  });
+});
+
+describe("plantilla guardada inválida", () => {
+  test("se lee igual con sus problemas, para poder reemplazarla", () => {
+    const p = normalizeMailTemplatePayload({
+      state_revision: 4,
+      builtin: false,
+      template: { ...PLANTILLA_R, schema: "collection_mail_template/v0" },
+      stored_problems: [{ path: "template.blocks[2].url", code: "missing_text", detail: "Falta el enlace." }],
+    });
+    expect(p.stored_problems).toEqual([{ path: "template.blocks[2].url", code: "missing_text", detail: "Falta el enlace." }]);
+    expect(p.template.schema).toBe("collection_mail_template/v1");
+    expect(p.template.blocks.length).toBeGreaterThan(0);
+  });
+
+  test("sin stored_problems, un schema ajeno sigue siendo un error", () => {
+    expect(() => normalizeMailTemplatePayload({ template: { ...PLANTILLA_R, schema: "otra/v1" } })).toThrow();
+    expect(normalizeMailTemplatePayload({ template: PLANTILLA_R }).stored_problems).toEqual([]);
   });
 });
 
@@ -139,6 +186,41 @@ describe("normalizeMailReview", () => {
     expect(r.checks[2].items).toEqual([{ key: "carrera", tag: "CARRERA", column: "Carrera" }]);
     expect(r.checks[3].value).toBe(2);
   });
+
+  test("duplicates_conflicting y fields_empty con usos: las listas de texto se conservan", () => {
+    const r = normalizeMailReview({
+      checks: [
+        { code: "duplicates_conflicting", status: "error", value: 1, detail: "1 correo repetido…", items: [{ row: 5, first_row: 2, tags: ["ENLACE"] }] },
+        { code: "fields_empty", status: "error", value: 1, detail: "ENLACE va dentro de un enlace…", items: [
+          { tag: "ENLACE", key: "enlace", empty: 1, uses: ["url"], in_url: true, fallback_covers: false },
+          { tag: "CARRERA", key: "carrera", empty: 0, uses: ["cuerpo", "asunto"], in_url: false, fallback_covers: true, fallback: "su carrera" },
+        ] },
+      ],
+    });
+    expect(r.errors).toBe(2);
+    expect(r.ready).toBe(false);
+    expect(r.checks[0].items).toEqual([{ row: 5, first_row: 2, tags: ["ENLACE"] }]);
+    expect(r.checks[1].items[0]).toEqual({ tag: "ENLACE", key: "enlace", empty: 1, uses: ["url"], in_url: true, fallback_covers: false });
+    expect(r.checks[1].items[1]).toMatchObject({ uses: ["cuerpo", "asunto"] });
+  });
+
+  test("un chequeo de un contrato más nuevo se conserva con su detalle", () => {
+    const r = normalizeMailReview({
+      checks: [
+        { code: "subject", status: "ok", value: 22, detail: "" },
+        { code: "dmarc_alignment", status: "error", value: { dominio: "x" }, detail: "El remitente no está alineado.", items: [{ anidado: { a: 1 } }, "pucp.edu.pe"] },
+        { code: "spam_words", status: "info", detail: "Dos palabras de riesgo." },
+      ],
+    });
+    expect(r.checks.map((c) => c.code)).toEqual(["subject", "dmarc_alignment", "spam_words"]);
+    expect(r.checks[1]).toMatchObject({ status: "error", value: null, detail: "El remitente no está alineado." });
+    // Una fila sin nada legible no se convierte en un renglón vacío.
+    expect(r.checks[1].items).toEqual(["pucp.edu.pe"]);
+    // Un estado que no se conoce no bloquea, pero tampoco se calla.
+    expect(r.checks[2].status).toBe("warning");
+    expect(r.errors).toBe(1);
+    expect(r.ready).toBe(false);
+  });
 });
 
 describe("normalizeMailRecipients", () => {
@@ -166,6 +248,36 @@ describe("normalizeMailRecipients", () => {
     expect(r.sample[0].fields).toEqual({ carrera: "Sociología" });
     expect(r.sample[1].nombre).toBe("");
     expect(JSON.stringify(r)).not.toMatch(/@ejemplo\.org/);
+  });
+
+  test("conteos nuevos del backend no rompen la lectura", () => {
+    const r = normalizeMailRecipients({
+      loaded: true,
+      columns: ["a"],
+      mapping: { email_column: "a", fields: {} },
+      counts: { total: [5], valid: 4, without_email: 1, bounced_before: 2, by_reason: { x: 1 }, names_unsplit: "0" },
+      sample: [],
+    });
+    expect(r.counts).toEqual({
+      total: 5, valid: 4, without_email: 1, invalid_email: 0, duplicated: 0, names_unsplit: 0,
+      duplicated_conflicting: 0, persons_with_any_empty: 0, rows_blank_dropped: 0,
+    });
+    expect(r.encoding).toBeNull();
+  });
+
+  test("contrato aditivo: codificación del CSV, conflictos, vacíos y filas descartadas", () => {
+    const r = normalizeMailRecipients({
+      loaded: true,
+      encoding: "windows-1252",
+      columns: ["Correo", "Nombre"],
+      mapping: { email_column: "Correo", fields: {} },
+      counts: { total: 4, valid: 3, duplicated: 1, duplicated_conflicting: [1], persons_with_any_empty: 2, rows_blank_dropped: 5 },
+      sample: [{ index: 1, nombre: "Andrea", fields: { contacto: "[correo oculto]" } }],
+    });
+    expect(r.encoding).toBe("windows-1252");
+    expect(r.counts).toMatchObject({ duplicated_conflicting: 1, persons_with_any_empty: 2, rows_blank_dropped: 5 });
+    expect(r.sample[0].fields.contacto).toBe("[correo oculto]");
+    expect(normalizeMailRecipients({ loaded: true, encoding: "latin9" }).encoding).toBeNull();
   });
 
   test("`{}` en fields del mapeo", () => {
@@ -203,6 +315,44 @@ describe("problemas del contrato", () => {
 describe("errores HTTP", () => {
   afterEach(() => { vi.unstubAllGlobals(); });
 
+  function sesion() {
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => (k === SESSION_KEY ? "sid-1" : null),
+      setItem: () => {},
+      removeItem: () => {},
+    });
+  }
+
+  function responde(status: number, body: unknown) {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify(body), {
+      status, headers: { "Content-Type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  test("exportar manda siempre expected_revision", async () => {
+    sesion();
+    const fetchMock = responde(200, { artifacts: [], manifest: {} });
+    await apiMailExport({ expected_revision: 9 });
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ expected_revision: 9 });
+  });
+
+  test("un archivo ilegible no muestra el motivo interno, sí la referencia", async () => {
+    sesion();
+    responde(422, { error: {
+      code: "E_COLLECTION_MAIL_RECIPIENTS_UNREADABLE",
+      message: "No se pudo leer el archivo de destinatarios.",
+      details: { reason: "parse_warning", error_id: "err-77" },
+    } });
+    const error = await apiMailRecipientsImport(new File(["x"], "lista.csv")).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(MailApiError);
+    const mail = error as MailApiError;
+    expect(mail.message).toContain("No se pudo leer el archivo de destinatarios.");
+    expect(mail.message).toContain("err-77");
+    expect(mail.message).not.toContain("parse_warning");
+  });
+
   test("un 422 trae sus problemas por ruta y la petición lleva la sesión", async () => {
     vi.stubGlobal("localStorage", {
       getItem: (k: string) => (k === SESSION_KEY ? "sid-1" : null),
@@ -229,6 +379,10 @@ describe("errores HTTP", () => {
     expect(url).toMatch(/\/api\/recopiladores\/mail-template$/);
     expect(init?.method).toBe("PUT");
     expect((init?.headers as Record<string, string>)["X-Pulso-Session"]).toBe("sid-1");
-    expect(JSON.parse(String(init?.body))).toMatchObject({ expected_revision: 3, template: { schema: "collection_mail_template/v1" } });
+    const body = JSON.parse(String(init?.body)) as { expected_revision: number; template: { schema: string; blocks: unknown[] } };
+    expect(body).toMatchObject({ expected_revision: 3, template: { schema: "collection_mail_template/v1" } });
+    // El bloque que el cliente no conoce viaja tal como llegó.
+    expect(body.template.blocks).toContainEqual({ block_id: "raro", type: "html_crudo", text: "<b>x</b>" });
+    expect(JSON.stringify(body)).not.toContain("__no_reconocido");
   });
 });
