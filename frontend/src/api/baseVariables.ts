@@ -14,7 +14,7 @@ import { booleano, codigo, enteroONulo, escalar, lista, registro, texto } from "
 export const TIPOS_COLUMNA = ["select_one", "integer", "decimal", "text", "date", "datetime"] as const;
 export type TipoColumna = (typeof TIPOS_COLUMNA)[number];
 
-export type ReglaCalculada = "alguna" | "recodificar";
+export type ReglaCalculada = "alguna" | "recodificar" | "formula";
 
 export type OpcionBase = { codigo: string; etiqueta: string };
 
@@ -37,6 +37,10 @@ export type VariableCalculada = {
   /** `código de origen -> código de la escala`; sólo en `recodificar`. */
   mapa: Record<string, string>;
   escala: OpcionBase[];
+  /** Sólo en `formula`: la expresión, p. ej. «2026 - P8». */
+  expresion?: string;
+  /** Sólo en `formula`: variables cuyos 80–99 cuentan como sin dato. */
+  especiales_na?: string[];
 };
 
 export type AvisoBaseVariables = { codigo: "no_declarada" | "codificacion_aplicada" | "otro"; mensaje: string };
@@ -56,6 +60,8 @@ export type ResumenCalculada = {
   por_codigo: { codigo: string; etiqueta: string; n: number }[];
   n_sin_dato: number;
   n_total: number;
+  /** Sólo en `formula` (un número, no una escala). */
+  numerico?: { n_validos: number; minimo: number | null; maximo: number | null } | null;
 };
 
 export type CalculadaGuardada = {
@@ -75,6 +81,7 @@ export type CalculadaADeclarar = {
   codigos?: string[];
   mapa?: Record<string, string>;
   escala?: OpcionBase[];
+  expresion?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -102,7 +109,14 @@ function tipoColumna(value: unknown): TipoColumna {
 }
 
 function regla(value: unknown): ReglaCalculada {
-  return texto(value) === "recodificar" ? "recodificar" : "alguna";
+  const t = texto(value);
+  return t === "recodificar" || t === "formula" ? t : "alguna";
+}
+
+function numeroONulo(value: unknown): number | null {
+  const v = escalar(value);
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : null;
 }
 
 /** Opciones sin código fuera; un código repetido cuenta una vez. */
@@ -145,6 +159,8 @@ export function normalizarCalculada(raw: unknown): VariableCalculada | null {
     escala: escala.length || reglaLeida !== "alguna"
       ? escala
       : [{ codigo: "1", etiqueta: "Sí" }, { codigo: "0", etiqueta: "No" }],
+    expresion: reglaLeida === "formula" ? texto(r.expresion) : "",
+    especiales_na: reglaLeida === "formula" ? textos(r.especiales_na) : [],
   };
 }
 
@@ -210,6 +226,9 @@ export function normalizarResumenCalculada(raw: unknown): ResumenCalculada {
       .filter((f) => f.codigo !== ""),
     n_sin_dato: entero(r.n_sin_dato),
     n_total: entero(r.n_total),
+    numerico: r.n_validos === undefined
+      ? null
+      : { n_validos: entero(r.n_validos), minimo: numeroONulo(r.minimo), maximo: numeroONulo(r.maximo) },
   };
 }
 

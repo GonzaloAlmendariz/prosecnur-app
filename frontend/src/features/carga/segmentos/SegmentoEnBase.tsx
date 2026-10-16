@@ -54,7 +54,6 @@ export type SegmentoEnBaseProps = {
   entrada: EntradaBorrador;
   guardado: SegmentoEnBaseGuardado | undefined;
   escala: readonly CategoriaSegmento[];
-  anio: number | null;
   despachar: (a: AccionSegmento) => void;
   /** Los códigos que el origen trae en la data de esta base, leídos por el editor. */
   lectura: LecturaCodigosObservados;
@@ -68,7 +67,6 @@ export function SegmentoEnBase({
   entrada,
   guardado,
   escala,
-  anio,
   despachar,
   lectura,
 }: SegmentoEnBaseProps) {
@@ -156,7 +154,6 @@ export function SegmentoEnBase({
               key={ayuda}
               tipo={ayuda}
               origen={origen}
-              anio={anio}
               escala={escala}
               codigos={codigos}
               onAplicar={(mapa) => { despachar({ tipo: "aplicar-mapa", base, mapa }); setAyuda(null); }}

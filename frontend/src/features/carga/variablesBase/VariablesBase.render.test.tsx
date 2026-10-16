@@ -41,7 +41,7 @@ describe("Variables de la base", () => {
     expect(html).toContain('data-qa-geometry-group="carga/variables-base"');
     expect((html.match(/data-qa-geometry-member/g) ?? []).length).toBe(3);
     expect(html).toContain("La base no trae columnas fuera del formulario.");
-    expect(html).toContain("Ninguna todavía. Combina varias preguntas o recodifica una.");
+    expect(html).toContain("Ninguna todavía. Combina varias preguntas, recodifica una o escribe una fórmula.");
     expect(html).toContain("Esta base ya viene codificada");
     expect(html).toContain("Codificación no la vuelve a codificar.");
     expect(html).toContain('role="switch"');

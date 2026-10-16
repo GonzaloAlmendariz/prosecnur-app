@@ -24,10 +24,14 @@ import {
   type OpcionDeOrigen,
 } from "./variablesBaseModel";
 import { PreguntaOrigen, PreguntasAlguna } from "./SelectorPreguntas";
+import { FormulaCampo } from "./FormulaCampo";
+import { AyudaMapa, BotonesAyudaMapa } from "../segmentos/AyudaMapa";
+import { ayudasDisponibles, type AyudaMapa as TipoAyuda } from "../segmentos/segmentosModel";
 
 const REGLAS: { id: ReglaCalculada; rotulo: string; ayuda: string }[] = [
   { id: "alguna", rotulo: "Alguna de varias preguntas", ayuda: "Sí si alguna tiene uno de los códigos indicados." },
-  { id: "recodificar", rotulo: "Recodificar una pregunta", ayuda: "Lleva sus códigos a una escala nueva." },
+  { id: "recodificar", rotulo: "Recodificar una pregunta", ayuda: "Lleva sus códigos o valores a una escala nueva." },
+  { id: "formula", rotulo: "Fórmula", ayuda: "Una operación con variables de la base, como 2026 − P8." },
 ];
 
 export type CalculadaEditorProps = {
@@ -123,6 +127,12 @@ export function CalculadaEditor({
       ) : catalogoError ? (
         // C5 categoría 3: el catálogo no llegó.
         <p className="pulso-armon-aviso" role="alert">No se pudieron leer las preguntas de la base.</p>
+      ) : b.regla === "formula" ? (
+        <FormulaCampo
+          expresion={b.formula.expresion}
+          opciones={lista}
+          onCambio={(valor) => despachar({ tipo: "expresion", valor })}
+        />
       ) : b.regla === "alguna" ? (
         <PreguntasAlguna
           opciones={lista}
@@ -181,6 +191,9 @@ function Recodificar({
   const filas = filasRecodificacion(origen, r);
   const escalaValida = r.escala.filter((c) => c.codigo.trim());
   const sinMapa = filas.filter((f) => f.sinMapa).map((f) => f.codigo);
+  // Una variable numérica (una edad, una fórmula) se agrupa en rangos.
+  const [ayuda, setAyuda] = useState<TipoAyuda | null>(null);
+  const ayudas = noListable ? [] : ayudasDisponibles(origen);
   return (
     <div className="pulso-vb-bloque">
       <PreguntaOrigen opciones={preguntas} variable={r.variable} onElegir={(variable) => despachar({ tipo: "origen", variable })} />
@@ -236,11 +249,31 @@ function Recodificar({
 
           <div className="pulso-vb-subtitulo">
             <h5>Cada código de {r.variable}</h5>
+            {ayudas.length > 0 && escalaValida.length > 0 && (
+              <span className="pulso-vb-subtitulo-acciones">
+                <BotonesAyudaMapa ayudas={ayudas} abierta={ayuda} onAlternar={(a) => setAyuda(ayuda === a ? null : a)} />
+              </span>
+            )}
             <span className="pulso-armon-ayuda">
               Un código sin mapa queda sin dato.
               {observados && observados.n_sin_dato > 0 ? ` Sin dato: ${formatoConteoDe(observados.n_sin_dato, "caso", "casos")}.` : ""}
             </span>
           </div>
+          {ayuda && (
+            <AyudaMapa
+              tipo={ayuda}
+              origen={r.variable}
+              escala={escalaValida.map((c) => ({ codigo: c.codigo.trim(), etiqueta: c.etiqueta }))}
+              codigos={origen}
+              onAplicar={(mapa) => {
+                const porDestino = new Map<string, string[]>();
+                for (const [codigo, destino] of Object.entries(mapa)) porDestino.set(destino, [...(porDestino.get(destino) ?? []), codigo]);
+                for (const [destino, codigos] of porDestino) despachar({ tipo: "destino", codigos, destino });
+                setAyuda(null);
+              }}
+              onCerrar={() => setAyuda(null)}
+            />
+          )}
           {lectura.tipo === "cargando" && (
             <p className="pulso-armon-nota" role="status">Leyendo los valores de {r.variable}…</p>
           )}

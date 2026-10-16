@@ -5,7 +5,6 @@ import type { Segmento, SegmentoEnBase, SegmentosEstado } from "../../../api/seg
 import { aFilasEditor } from "../equivalenciasEditorModel";
 import {
   atajosPartirDe,
-  aniosParaTramos,
   ayudasDisponibles,
   borradorDesde,
   casosSinMapa,
@@ -19,7 +18,6 @@ import {
   mapaPorEtiqueta,
   mapasPorEtiqueta,
   mapaPorRangos,
-  mapaPorTramos,
   normalizarClave,
   opcionesDeOrigen,
   ordenarBases,
@@ -32,7 +30,6 @@ import {
   textoEmparejarTodas,
   textoResumenMapa,
   textoSinDatoObservado,
-  tramosPorDefecto,
   validarSegmento,
   validarTramos,
   valoresParaRangos,
@@ -207,8 +204,11 @@ describe("variables de origen y sus códigos", () => {
     expect(codigosConocidos([], "P2", undefined, {}, { ...observados, tipo: "texto", codigos: [] })).toEqual([]);
   });
 
-  it("ofrece tramos para años y rangos para números sin etiqueta; sin códigos, ninguna", () => {
-    expect(ayudasDisponibles([{ codigo: "2019", etiqueta: "" }, { codigo: "2024", etiqueta: "" }])).toEqual(["tramos"]);
+  it("ofrece rangos para números sin etiqueta, años incluidos y con un especial etiquetado; sin códigos, ninguna", () => {
+    expect(ayudasDisponibles([{ codigo: "2019", etiqueta: "" }, { codigo: "2024", etiqueta: "" }])).toEqual(["rangos"]);
+    expect(ayudasDisponibles([{ codigo: "2019", etiqueta: "2019" }, { codigo: "88", etiqueta: "Otro" }])).toEqual(["rangos"]);
+    expect(ayudasDisponibles([{ codigo: "0.5", etiqueta: "" }, { codigo: "2.25", etiqueta: "" }])).toEqual(["rangos"]);
+    expect(ayudasDisponibles([{ codigo: "88", etiqueta: "Otro" }])).toEqual([]);
     expect(ayudasDisponibles([{ codigo: "18", etiqueta: "" }, { codigo: "40", etiqueta: "" }])).toEqual(["rangos"]);
     expect(ayudasDisponibles([{ codigo: "1", etiqueta: "Mujer" }])).toEqual([]);
     expect(ayudasDisponibles([])).toEqual([]);
@@ -404,22 +404,8 @@ describe("borrador y acciones", () => {
   });
 });
 
-describe("tramos de antigüedad y rangos", () => {
-  const escala3 = [{ codigo: "1", etiqueta: "0 a 2 años" }, { codigo: "2", etiqueta: "3 a 4 años" }, { codigo: "3", etiqueta: "5 años o más" }];
-
-  it("el mapa por tramos es relativo al año de la medición", () => {
-    const tramos = tramosPorDefecto(escala3);
-    expect(tramos.map((t) => [t.desde, t.hasta, t.destino])).toEqual([["0", "2", "1"], ["3", "4", "2"], ["5", "", "3"]]);
-    const anios = ["2026", "2024", "2023", "2022", "2021", "2010", "2027"];
-    expect(mapaPorTramos(anios, 2026, tramos)).toEqual({ "2026": "1", "2024": "1", "2023": "2", "2022": "2", "2021": "3", "2010": "3" });
-    // El mismo año de ingreso cae en otro tramo en otra medición.
-    expect(mapaPorTramos(["2022"], 2024, tramos)).toEqual({ "2022": "1" });
-  });
-
-  it("los tramos se aplican sólo a los años observados", () => {
-    expect(aniosParaTramos([])).toEqual([]);
-    expect(aniosParaTramos([{ codigo: "2020", etiqueta: "" }, { codigo: "x", etiqueta: "" }])).toEqual(["2020"]);
-  });
+describe("rangos", () => {
+  const escala3 = [{ codigo: "1", etiqueta: "0 a 2" }, { codigo: "2", etiqueta: "3 a 4" }, { codigo: "3", etiqueta: "5 o más" }];
 
   it("rangos de edad: extremos incluidos y «o más» sin tope", () => {
     const rangos = [
@@ -432,9 +418,8 @@ describe("tramos de antigüedad y rangos", () => {
     expect(valoresParaRangos([])).toEqual([]);
   });
 
-  it("valida extremos, categoría, superposición y el año", () => {
-    expect(validarTramos(tramosPorDefecto(escala3), escala3, 2026)).toEqual([]);
-    expect(validarTramos(tramosPorDefecto(escala3), escala3, null)).toContain("Indica el año de la medición.");
+  it("valida extremos, categoría y superposición", () => {
+    expect(validarTramos([{ clave: "t1", desde: "0", hasta: "2", destino: "1" }, { clave: "t2", desde: "3", hasta: "", destino: "2" }], escala3)).toEqual([]);
     expect(validarTramos([{ clave: "t1", desde: "5", hasta: "2", destino: "1" }], escala3)).toContain("En el tramo 1, «hasta» es menor que «desde».");
     expect(validarTramos([{ clave: "t1", desde: "0", hasta: "3", destino: "1" }, { clave: "t2", desde: "3", hasta: "", destino: "2" }], escala3))
       .toContain("Los tramos se superponen.");

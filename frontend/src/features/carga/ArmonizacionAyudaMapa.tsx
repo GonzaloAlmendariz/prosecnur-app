@@ -1,13 +1,12 @@
-// Armonizar › mapa de una base: las mismas ayudas que Segmentos de cruce
-// («Años transcurridos», «Rangos»). Una variable cuyos valores son años se
-// agrupa en tramos relativos al año de cada medición sin asignar año por año a
-// mano; una numérica, en rangos. Sólo asignan lo que cae en un tramo: lo demás
-// (un «Otro» 88, por ejemplo) queda como estaba y se ve en la tabla.
+// Armonizar › mapa de una base: la misma ayuda «Rangos» que Segmentos de cruce.
+// Una variable numérica (una edad, un conteo, una variable calculada por
+// fórmula) se agrupa en las categorías de la escala común sin asignar valor por
+// valor. Sólo asigna lo que cae en un rango: lo demás (un «Otro» 88, por
+// ejemplo) queda como estaba y se ve en la tabla.
 
 import { useState } from "react";
 import { AyudaMapa, BotonesAyudaMapa } from "./segmentos/AyudaMapa";
 import { ayudasDisponibles, type AyudaMapa as TipoAyuda } from "./segmentos/segmentosModel";
-import { anioDeBase } from "./nombreDeSerie";
 import type { CodigoBase } from "./armonizacionCodigosModel";
 import type { AccionArmonizacion } from "./armonizacionModel";
 import type { CategoriaEscalaComun } from "../../api/equivalencias";
@@ -56,7 +55,6 @@ export function ArmonizacionAyudaMapa({
           key={abierta}
           tipo={abierta}
           origen={origen}
-          anio={anioDeBase(base)}
           escala={escala.filter((c) => c.codigo).map((c) => ({ codigo: c.codigo, etiqueta: c.etiqueta }))}
           codigos={opciones}
           onAplicar={(mapa) => {

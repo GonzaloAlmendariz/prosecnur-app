@@ -173,7 +173,6 @@ describe("una base del editor con los valores observados", () => {
       entrada: { origen: "P1", mapa, marcados: [] },
       guardado: undefined,
       escala: edad.escala,
-      anio: 2026,
       despachar: () => undefined,
       lectura,
     }));
@@ -204,9 +203,10 @@ describe("una base del editor con los valores observados", () => {
     expect(html).not.toContain("Emparejar");
   });
 
-  it("un año de ingreso ofrece los tramos de antigüedad", () => {
+  it("un año no tiene una ayuda propia: ofrece rangos como cualquier número", () => {
     const html = render({ tipo: "listo", datos: observados({ codigos: [{ codigo: "2022", etiqueta: "", n: 9 }, { codigo: "2025", etiqueta: "", n: 3 }] }) }, {});
-    expect(html).toContain("Años transcurridos");
+    expect(html).toContain("Rangos");
+    expect(html).not.toContain("Años transcurridos");
   });
 
   it("texto libre lo dice en una línea y no ofrece tabla", () => {

@@ -1,23 +1,20 @@
-// Ayudas que arman el mapa de una base: «Años transcurridos» para una variable
-// cuyos valores son años (tramos relativos al año de la medición: tiempo desde
-// el ingreso, desde un evento, edad desde el año de nacimiento…) y «Rangos»
-// para una numérica como la edad. Los nombres no suponen un estudio: la
-// categoría la nombra la escala. Sólo asignan: lo ya asignado fuera de los
-// tramos no se toca. Las usan Segmentos de cruce (ADR 0107) y Armonizar (ADR
-// 0104). La lógica vive en `segmentosModel`.
+// Ayuda que arma el mapa de una base: «Rangos» agrupa los valores de una
+// variable numérica (una edad, un conteo, el resultado de una fórmula) en las
+// categorías de la escala. Es genérica a propósito: un caso como «años desde el
+// ingreso» se construye con una variable calculada por fórmula (ADR 0106) y
+// luego se agrupa aquí. Sólo asigna: lo ya asignado fuera de los rangos no se
+// toca. La usan Segmentos de cruce (ADR 0107), Armonizar (ADR 0104) y
+// Recodificar (ADR 0106). La lógica vive en `segmentosModel`.
 
 import { useId, useState } from "react";
 import type { OpcionBase } from "../../../api/baseVariables";
 import type { CategoriaSegmento } from "../../../api/segmentos";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { CalendarRange, Plus, Ruler, Trash2 } from "../../../vendor/lucide-react";
+import { Plus, Ruler, Trash2 } from "../../../vendor/lucide-react";
 import {
-  aniosParaTramos,
   mapaPorRangos,
-  mapaPorTramos,
   rangosPorDefecto,
   tramoNuevo,
-  tramosPorDefecto,
   validarTramos,
   valoresParaRangos,
   type AyudaMapa as TipoAyuda,
@@ -27,23 +24,18 @@ import {
 export type AyudaMapaProps = {
   tipo: TipoAyuda;
   origen: string;
-  /** El año de la medición, si el nombre de la base lo dice. */
-  anio: number | null;
   escala: readonly CategoriaSegmento[];
-  /** Los códigos observados del origen: las ayudas asignan sobre ellos. */
+  /** Los códigos observados del origen: la ayuda asigna sobre ellos. */
   codigos: readonly OpcionBase[];
   onAplicar: (mapa: Record<string, string>) => void;
   onCerrar: () => void;
 };
 
-export function AyudaMapa({ tipo, origen, anio, escala, codigos, onAplicar, onCerrar }: AyudaMapaProps) {
+export function AyudaMapa({ origen, escala, codigos, onAplicar, onCerrar }: AyudaMapaProps) {
   const id = useId();
-  const esTramos = tipo === "tramos";
-  const [tramos, setTramos] = useState<Tramo[]>(() => (esTramos ? tramosPorDefecto(escala) : rangosPorDefecto(escala)));
-  const [anioTexto, setAnioTexto] = useState(anio ? String(anio) : "");
+  const [tramos, setTramos] = useState<Tramo[]>(() => rangosPorDefecto(escala));
   const [intento, setIntento] = useState(false);
-  const anioNum = /^\d{4}$/.test(anioTexto.trim()) ? Number(anioTexto.trim()) : null;
-  const errores = validarTramos(tramos, escala, esTramos ? anioNum : undefined);
+  const errores = validarTramos(tramos, escala);
 
   const cambiar = (clave: string, campo: "desde" | "hasta" | "destino", valor: string) =>
     setTramos((ts) => ts.map((t) => (t.clave === clave ? { ...t, [campo]: valor } : t)));
@@ -51,34 +43,16 @@ export function AyudaMapa({ tipo, origen, anio, escala, codigos, onAplicar, onCe
   const aplicar = () => {
     setIntento(true);
     if (errores.length) return;
-    const mapa = esTramos && anioNum !== null
-      ? mapaPorTramos(aniosParaTramos(codigos), anioNum, tramos)
-      : mapaPorRangos(valoresParaRangos(codigos), tramos);
-    onAplicar(mapa);
+    onAplicar(mapaPorRangos(valoresParaRangos(codigos), tramos));
   };
 
-  const unidad = esTramos ? "años" : "";
   return (
     <div className="pulso-seg-ayuda" role="group" aria-labelledby={`${id}-titulo`}>
       <div className="pulso-vb-subtitulo">
-        <h5 id={`${id}-titulo`}>{esTramos ? "Años transcurridos" : "Rangos"}</h5>
-        {esTramos ? (
-          <label className="pulso-seg-anio">
-            <span>Año de la medición</span>
-            <input
-              value={anioTexto}
-              inputMode="numeric"
-              maxLength={4}
-              aria-invalid={intento && anioNum === null ? true : undefined}
-              onChange={(e) => setAnioTexto(e.target.value)}
-            />
-          </label>
-        ) : null}
+        <h5 id={`${id}-titulo`}>Rangos</h5>
       </div>
       <p className="pulso-armon-ayuda">
-        {esTramos
-          ? `Años transcurridos = ${anioNum ?? "año de la medición"} − ${origen}. Cada tramo va a una categoría de la escala. Deja «hasta» vacío para «o más».`
-          : `Valores de ${origen}, ambos extremos incluidos. Deja «hasta» vacío para «o más».`}
+        {`Valores de ${origen}, ambos extremos incluidos. Deja «hasta» vacío para «o más».`}
       </p>
       <ol className="pulso-seg-tramos">
         {tramos.map((t, i) => (
@@ -92,7 +66,6 @@ export function AyudaMapa({ tipo, origen, anio, escala, codigos, onAplicar, onCe
               <span className="pulso-sr-only">Hasta, tramo {i + 1}</span>
               <input value={t.hasta} inputMode="numeric" placeholder="o más" onChange={(e) => cambiar(t.clave, "hasta", e.target.value)} />
             </label>
-            {unidad && <span className="pulso-seg-unidad">{unidad}</span>}
             <span aria-hidden="true" className="pulso-armon-masa-flecha">→</span>
             <label className="pulso-seg-tramo-destino">
               <span className="pulso-sr-only">Categoría del tramo {i + 1}</span>
@@ -133,7 +106,7 @@ export function AyudaMapa({ tipo, origen, anio, escala, codigos, onAplicar, onCe
   );
 }
 
-/** Los botones que abren cada ayuda; la misma pareja en Segmentos y en Armonizar. */
+/** El botón que abre la ayuda; el mismo en Segmentos, Armonizar y Recodificar. */
 export function BotonesAyudaMapa({
   ayudas,
   abierta,
@@ -143,34 +116,18 @@ export function BotonesAyudaMapa({
   abierta: TipoAyuda | null;
   onAlternar: (ayuda: TipoAyuda) => void;
 }) {
+  if (!ayudas.includes("rangos")) return null;
   return (
-    <>
-      {ayudas.includes("tramos") && (
-        <PulsoButton
-          variant="secondary"
-          size="sm"
-          className="pulso-armon-btn"
-          aria-expanded={abierta === "tramos"}
-          title="Agrupa los años en tramos de tiempo transcurrido hasta el año de esta medición."
-          onClick={() => onAlternar("tramos")}
-        >
-          <CalendarRange size={13} aria-hidden="true" />
-          Años transcurridos
-        </PulsoButton>
-      )}
-      {ayudas.includes("rangos") && (
-        <PulsoButton
-          variant="secondary"
-          size="sm"
-          className="pulso-armon-btn"
-          aria-expanded={abierta === "rangos"}
-          title="Agrupa los valores en rangos."
-          onClick={() => onAlternar("rangos")}
-        >
-          <Ruler size={13} aria-hidden="true" />
-          Rangos
-        </PulsoButton>
-      )}
-    </>
+    <PulsoButton
+      variant="secondary"
+      size="sm"
+      className="pulso-armon-btn"
+      aria-expanded={abierta === "rangos"}
+      title="Agrupa los valores en rangos, cada uno a una categoría de la escala."
+      onClick={() => onAlternar("rangos")}
+    >
+      <Ruler size={13} aria-hidden="true" />
+      Rangos
+    </PulsoButton>
   );
 }
