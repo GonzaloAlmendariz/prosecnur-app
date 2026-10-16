@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { CodigosObservados } from "../../../api/codigosObservados";
 import { normalizarEstadoEquivalencias, type EquivalenciaFila, type EquivalenciasEstado } from "../../../api/equivalencias";
 import type { Segmento, SegmentoEnBase, SegmentosEstado } from "../../../api/segmentos";
 import { aFilasEditor } from "../equivalenciasEditorModel";
@@ -6,6 +7,7 @@ import {
   aniosParaTramos,
   ayudasDisponibles,
   borradorDesde,
+  casosSinMapa,
   claveDeFilaCruce,
   claveDesdeEtiqueta,
   codigosConocidos,
@@ -26,6 +28,7 @@ import {
   searchConSegmentos,
   segmentoParaGuardar,
   textoResumenMapa,
+  textoSinDatoObservado,
   tramosPorDefecto,
   validarSegmento,
   validarTramos,
@@ -174,22 +177,45 @@ describe("variables de origen y sus códigos", () => {
   it("lo guardado del mismo origen suma lo mapeado y lo que el backend vio sin mapa", () => {
     const codigos = codigosConocidos([], "P1_recod", segmento.por_base["2025"], {});
     expect(codigos.map((c) => c.codigo)).toEqual(["1", "2"]);
+    expect(codigos.every((c) => c.n === null)).toBe(true);
     // Otro origen: lo guardado no cuenta.
     expect(codigosConocidos([], "P2", segmento.por_base["2025"], {})).toEqual([]);
   });
 
-  it("ofrece tramos para años, rangos para números sin etiqueta y las dos si no hay lista", () => {
+  it("con los observados, la lista son los valores de la data con sus casos, más las opciones que nadie eligió", () => {
+    const observados: CodigosObservados = {
+      base: "2025", variable: "P8_recod", tipo: "categorica",
+      codigos: [{ codigo: "2", etiqueta: "", n: 40 }, { codigo: "1", etiqueta: "Antes de 2020", n: 12 }],
+      n_validos: 52, n_sin_dato: 3, truncado: false,
+    };
+    const codigos = codigosConocidos(
+      [{ codigo: "1", etiqueta: "Antes" }, { codigo: "2", etiqueta: "2020 o después" }, { codigo: "9", etiqueta: "No sabe" }],
+      "P8_recod",
+      segmento.por_base["2025"],
+      { "77": "1" },
+      observados,
+    );
+    expect(codigos).toEqual([
+      { codigo: "1", etiqueta: "Antes de 2020", n: 12 },
+      { codigo: "2", etiqueta: "2020 o después", n: 40 },
+      { codigo: "9", etiqueta: "No sabe", n: 0 },
+    ]);
+    // Texto libre: no hay observados que usar y queda lo que se conoce.
+    expect(codigosConocidos([], "P2", undefined, {}, { ...observados, tipo: "texto", codigos: [] })).toEqual([]);
+  });
+
+  it("ofrece tramos para años y rangos para números sin etiqueta; sin códigos, ninguna", () => {
     expect(ayudasDisponibles([{ codigo: "2019", etiqueta: "" }, { codigo: "2024", etiqueta: "" }])).toEqual(["tramos"]);
     expect(ayudasDisponibles([{ codigo: "18", etiqueta: "" }, { codigo: "40", etiqueta: "" }])).toEqual(["rangos"]);
     expect(ayudasDisponibles([{ codigo: "1", etiqueta: "Mujer" }])).toEqual([]);
-    expect(ayudasDisponibles([])).toEqual(["rangos", "tramos"]);
+    expect(ayudasDisponibles([])).toEqual([]);
   });
 });
 
 describe("filas de la tabla de códigos", () => {
   it("cada código con su destino: escala, sin dato explícito o sin mapa", () => {
     const filas = filasDeCodigos(
-      [{ codigo: "1", etiqueta: "Mujer" }, { codigo: "2", etiqueta: "Hombre" }, { codigo: "3", etiqueta: "Otro" }],
+      [{ codigo: "1", etiqueta: "Mujer", n: 10 }, { codigo: "2", etiqueta: "Hombre", n: 8 }, { codigo: "3", etiqueta: "Otro", n: 2 }],
       { "1": "2", "2": "", "3": "9" },
       ESCALA,
     );
@@ -199,14 +225,18 @@ describe("filas de la tabla de códigos", () => {
     expect(textoResumenMapa(r)).toBe("1 de 3 códigos asignados · 1 sin dato · 1 sin mapa");
     expect(estadoDeEntrada("P2", filas)).toBe("incompleto");
     expect(estadoDeEntrada("", filas)).toBe("sin_origen");
+    expect(casosSinMapa(filas)).toBe(2);
+    expect(textoSinDatoObservado(3)).toBe("Sin dato: 3 casos");
   });
 
   it("muchos enteros sin etiqueta se leen como tramos con el mismo destino", () => {
-    const codigos = Array.from({ length: 40 }, (_, i) => ({ codigo: String(16 + i), etiqueta: "" }));
+    const codigos = Array.from({ length: 40 }, (_, i) => ({ codigo: String(16 + i), etiqueta: "", n: 2 }));
     const mapa = Object.fromEntries(codigos.map((c) => [c.codigo, Number(c.codigo) <= 20 ? "1" : "2"]));
     const filas = filasDeCodigos(codigos, mapa, ESCALA);
     expect(filas.map((f) => f.rotulo)).toEqual(["16 a 20", "21 a 55"]);
     expect(filas[0].codigos).toHaveLength(5);
+    expect(filas.map((f) => f.n)).toEqual([10, 70]);
+    expect(casosSinMapa(filas)).toBe(0);
     expect(estadoDeEntrada("P1", filas)).toBe("definido");
   });
 });
@@ -272,11 +302,9 @@ describe("tramos de antigüedad y rangos", () => {
     expect(mapaPorTramos(["2022"], 2024, tramos)).toEqual({ "2022": "1" });
   });
 
-  it("sin lista del origen, los tramos cubren los últimos años hasta el de la medición", () => {
-    const anios = aniosParaTramos([], 2026);
-    expect(anios[0]).toBe("1966");
-    expect(anios[anios.length - 1]).toBe("2026");
-    expect(aniosParaTramos([{ codigo: "2020", etiqueta: "" }, { codigo: "x", etiqueta: "" }], 2026)).toEqual(["2020"]);
+  it("los tramos se aplican sólo a los años observados", () => {
+    expect(aniosParaTramos([])).toEqual([]);
+    expect(aniosParaTramos([{ codigo: "2020", etiqueta: "" }, { codigo: "x", etiqueta: "" }])).toEqual(["2020"]);
   });
 
   it("rangos de edad: extremos incluidos y «o más» sin tope", () => {
@@ -285,9 +313,9 @@ describe("tramos de antigüedad y rangos", () => {
       { clave: "t2", desde: "21", hasta: "", destino: "2" },
     ];
     expect(mapaPorRangos(["17", "18", "20", "21", "64"], rangos)).toEqual({ "18": "1", "20": "1", "21": "2", "64": "2" });
-    const valores = valoresParaRangos([], rangos);
-    expect(valores[0]).toBe("18");
-    expect(valores[valores.length - 1]).toBe("99");
+    expect(valoresParaRangos([{ codigo: "18", etiqueta: "" }, { codigo: "NS", etiqueta: "" }, { codigo: "64", etiqueta: "" }]))
+      .toEqual(["18", "64"]);
+    expect(valoresParaRangos([])).toEqual([]);
   });
 
   it("valida extremos, categoría, superposición y el año", () => {

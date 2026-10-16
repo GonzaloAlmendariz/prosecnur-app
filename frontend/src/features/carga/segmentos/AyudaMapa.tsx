@@ -9,7 +9,6 @@ import type { CategoriaSegmento } from "../../../api/segmentos";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Plus, Trash2 } from "../../../vendor/lucide-react";
 import {
-  ANIOS_HACIA_ATRAS,
   aniosParaTramos,
   mapaPorRangos,
   mapaPorTramos,
@@ -24,18 +23,17 @@ import {
 
 export type AyudaMapaProps = {
   tipo: TipoAyuda;
-  base: string;
   origen: string;
   /** El año de la medición, si el nombre de la base lo dice. */
   anio: number | null;
   escala: readonly CategoriaSegmento[];
-  /** Los códigos que se conocen del origen; vacío si no trae lista. */
+  /** Los códigos observados del origen: las ayudas asignan sobre ellos. */
   codigos: readonly OpcionBase[];
   onAplicar: (mapa: Record<string, string>) => void;
   onCerrar: () => void;
 };
 
-export function AyudaMapa({ tipo, base, origen, anio, escala, codigos, onAplicar, onCerrar }: AyudaMapaProps) {
+export function AyudaMapa({ tipo, origen, anio, escala, codigos, onAplicar, onCerrar }: AyudaMapaProps) {
   const id = useId();
   const esTramos = tipo === "tramos";
   const [tramos, setTramos] = useState<Tramo[]>(() => (esTramos ? tramosPorDefecto(escala) : rangosPorDefecto(escala)));
@@ -51,8 +49,8 @@ export function AyudaMapa({ tipo, base, origen, anio, escala, codigos, onAplicar
     setIntento(true);
     if (errores.length) return;
     const mapa = esTramos && anioNum !== null
-      ? mapaPorTramos(aniosParaTramos(codigos, anioNum), anioNum, tramos)
-      : mapaPorRangos(valoresParaRangos(codigos, tramos), tramos);
+      ? mapaPorTramos(aniosParaTramos(codigos), anioNum, tramos)
+      : mapaPorRangos(valoresParaRangos(codigos), tramos);
     onAplicar(mapa);
   };
 
@@ -79,14 +77,6 @@ export function AyudaMapa({ tipo, base, origen, anio, escala, codigos, onAplicar
           ? `Antigüedad = ${anioNum ?? "año de la medición"} − ${origen}. Deja «hasta» vacío para «o más».`
           : `Valores de ${origen}, ambos extremos incluidos. Deja «hasta» vacío para «o más».`}
       </p>
-      {codigos.length === 0 && (
-        <p className="pulso-armon-nota">
-          {esTramos
-            ? `${origen} no trae su lista en ${base}: se asignan los años de los últimos ${ANIOS_HACIA_ATRAS}.`
-            : `${origen} no trae su lista en ${base}: se asignan los valores enteros de los rangos.`}
-          {" "}Al guardar, lo que quede sin asignar aparece en la tabla.
-        </p>
-      )}
       <ol className="pulso-seg-tramos">
         {tramos.map((t, i) => (
           <li key={t.clave}>

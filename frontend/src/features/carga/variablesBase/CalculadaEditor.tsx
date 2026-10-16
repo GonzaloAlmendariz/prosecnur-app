@@ -9,6 +9,8 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { Copy, Plus, Save, Trash2 } from "../../../vendor/lucide-react";
 import { ArmonizacionAsignarEnMasa } from "../ArmonizacionAsignarEnMasa";
 import { DESTINO_SIN_MAPA, textoMarcados } from "../armonizacionMasaModel";
+import { observadosListos, useCodigosObservados, type LecturaCodigosObservados } from "../useCodigosObservados";
+import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import {
   borradorCalculadaDesde,
   calculadaParaGuardar,
@@ -18,6 +20,7 @@ import {
   validarCalculada,
   type AccionCalculada,
   type BorradorCalculada,
+  type OpcionDeOrigen,
 } from "./variablesBaseModel";
 import { PreguntaOrigen, PreguntasAlguna } from "./SelectorPreguntas";
 
@@ -27,6 +30,8 @@ const REGLAS: { id: ReglaCalculada; rotulo: string; ayuda: string }[] = [
 ];
 
 export type CalculadaEditorProps = {
+  /** La base de la calculada: de ella se leen los códigos observados del origen. */
+  base: string;
   inicial: VariableCalculada | null;
   /** `null` mientras llega el catálogo de la base. */
   preguntas: readonly VariableDeBase[] | null;
@@ -39,6 +44,7 @@ export type CalculadaEditorProps = {
 };
 
 export function CalculadaEditor({
+  base,
   inicial,
   preguntas,
   catalogoError,
@@ -52,9 +58,11 @@ export function CalculadaEditor({
   const [b, despachar] = useReducer(reducirCalculada, inicial, borradorCalculadaDesde);
   const [intento, setIntento] = useState(false);
   const lista = preguntas ?? [];
+  const lectura = useCodigosObservados(b.regla === "recodificar" ? base : "", b.recodificar.variable);
+  const observados = observadosListos(lectura);
   const origen = useMemo(
-    () => opcionesDeOrigen(lista, b.recodificar.variable, b.recodificar.mapa),
-    [lista, b.recodificar.variable, b.recodificar.mapa],
+    () => opcionesDeOrigen(lista, b.recodificar.variable, b.recodificar.mapa, observados),
+    [lista, b.recodificar.variable, b.recodificar.mapa, observados],
   );
   const errores = validarCalculada(b, ocupados, origen);
 
@@ -122,7 +130,7 @@ export function CalculadaEditor({
           despachar={(accion) => despachar({ tipo: "alguna", accion })}
         />
       ) : (
-        <Recodificar b={b} preguntas={lista} origen={origen} despachar={despachar} />
+        <Recodificar b={b} preguntas={lista} origen={origen} lectura={lectura} despachar={despachar} />
       )}
 
       <div className="pulso-vb-editor-pie">
@@ -155,13 +163,17 @@ function Recodificar({
   b,
   preguntas,
   origen,
+  lectura,
   despachar,
 }: {
   b: BorradorCalculada;
   preguntas: readonly VariableDeBase[];
-  origen: { codigo: string; etiqueta: string }[];
+  origen: OpcionDeOrigen[];
+  lectura: LecturaCodigosObservados;
   despachar: (a: AccionCalculada) => void;
 }) {
+  const observados = observadosListos(lectura);
+  const conCasos = observados !== null && observados.tipo !== "texto";
   const r = b.recodificar;
   const filas = filasRecodificacion(origen, r);
   const escalaValida = r.escala.filter((c) => c.codigo.trim());
@@ -221,9 +233,21 @@ function Recodificar({
 
           <div className="pulso-vb-subtitulo">
             <h5>Cada código de {r.variable}</h5>
-            <span className="pulso-armon-ayuda">Un código sin mapa queda sin dato.</span>
+            <span className="pulso-armon-ayuda">
+              Un código sin mapa queda sin dato.
+              {observados && observados.n_sin_dato > 0 ? ` Sin dato: ${formatoConteoDe(observados.n_sin_dato, "caso", "casos")}.` : ""}
+            </span>
           </div>
-          {origen.length === 0 ? (
+          {lectura.tipo === "cargando" && (
+            <p className="pulso-armon-nota" role="status">Leyendo los valores de {r.variable}…</p>
+          )}
+          {lectura.tipo === "error" && (
+            // C5 categoría 3: queda la lista del instrumento.
+            <p className="pulso-armon-aviso" role="alert">No se pudieron leer los valores de {r.variable}: {lectura.mensaje}</p>
+          )}
+          {observados?.tipo === "texto" ? (
+            <p className="pulso-armon-aviso" role="status">Variable de texto: elige una categórica o numérica.</p>
+          ) : origen.length === 0 ? (
             <p className="pulso-armon-nota">{r.variable} no trae lista de respuestas.</p>
           ) : (
             <>
@@ -246,6 +270,7 @@ function Recodificar({
                       <th scope="col"><span className="pulso-sr-only">Marcar</span></th>
                       <th scope="col">Código</th>
                       <th scope="col">Respuesta</th>
+                      {conCasos && <th scope="col" className="is-num">Casos</th>}
                       <th scope="col">Categoría nueva</th>
                     </tr>
                   </thead>
@@ -264,6 +289,7 @@ function Recodificar({
                           </td>
                           <td className="pulso-armon-codigo">{f.codigo}</td>
                           <td>{f.etiqueta || <span className="pulso-armon-tenue">Sin etiqueta</span>}</td>
+                          {conCasos && <td className="is-num">{f.n === null ? <span className="pulso-armon-tenue">sin conteo</span> : formatoConteo(f.n)}</td>}
                           <td>
                             <select
                               value={f.destino ?? ""}

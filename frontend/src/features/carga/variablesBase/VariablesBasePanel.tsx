@@ -130,6 +130,7 @@ export function VariablesBaseCuerpo({ control }: { control: ControlVariablesBase
       />
 
       <VariablesCalculadas
+        base={datos.base}
         calculadas={datos.calculadas}
         resumenes={resumenes}
         preguntas={preguntas}

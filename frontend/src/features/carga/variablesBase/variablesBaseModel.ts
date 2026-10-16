@@ -21,6 +21,8 @@ import type {
   VariableCalculada,
 } from "../../../api/baseVariables";
 import type { VariableDeBase } from "../../../api/equivalencias";
+import type { CodigosObservados } from "../../../api/codigosObservados";
+import { codigosConObservados } from "../codigosObservadosModel";
 import { conNivel } from "../../../lib/navegacion/direccion";
 import type { PanelDeclarado } from "../../../lib/navegacion/paneles";
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
@@ -384,11 +386,16 @@ export type FilaRecodificacion = {
   destino: string | null;
   etiquetaDestino: string | null;
   sinMapa: boolean;
+  /** Casos en la base, si se leyeron de la data. */
+  n: number | null;
 };
+
+/** Un código de la pregunta de origen; `n` si se leyó de la data. */
+export type OpcionDeOrigen = OpcionBase & { n?: number | null };
 
 /** Cada código de la pregunta de origen y la categoría en que cae. */
 export function filasRecodificacion(
-  origen: readonly OpcionBase[],
+  origen: readonly OpcionDeOrigen[],
   r: BorradorCalculada["recodificar"],
 ): FilaRecodificacion[] {
   return origen.map((o) => {
@@ -400,6 +407,7 @@ export function filasRecodificacion(
       destino: categoria ? d : null,
       etiquetaDestino: categoria ? categoria.etiqueta || categoria.codigo : null,
       sinMapa: !categoria,
+      n: o.n ?? null,
     };
   });
 }
@@ -484,13 +492,20 @@ export function nombresOcupados(
   ]));
 }
 
-/** Las opciones de la pregunta de origen; sin catálogo, los códigos del mapa guardado. */
+/**
+ * Los códigos de la pregunta de origen: los que la data trae, con sus casos
+ * (`GET /api/carga/codigos-observados`), más las opciones que nadie eligió.
+ * Sin observados, la lista del catálogo y, sin ella, los códigos del mapa guardado.
+ */
 export function opcionesDeOrigen(
   catalogo: readonly VariableDeBase[],
   variable: string,
   mapa: Readonly<Record<string, string>>,
-): OpcionBase[] {
+  observados: CodigosObservados | null = null,
+): OpcionDeOrigen[] {
   const delCatalogo = catalogo.find((o) => o.name === variable)?.opciones ?? [];
+  const reales = codigosConObservados(delCatalogo, observados);
+  if (reales) return reales;
   if (delCatalogo.length) return delCatalogo.map((o) => ({ codigo: o.codigo, etiqueta: o.etiqueta }));
   return Object.keys(mapa).map((codigo) => ({ codigo, etiqueta: "" }));
 }
