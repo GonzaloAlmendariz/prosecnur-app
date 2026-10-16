@@ -79,6 +79,18 @@ COLLECTION_MATERIAL_CATALOG_SCHEMA <- "collection_material_catalog/v1"
   sum(vapply(template$pages %||% list(), function(p) length(p$blocks %||% list()), integer(1)))
 }
 
+# Poda recursiva de NULL. La receta built-in declara campos opcionales como
+# `lines = NULL` / `note = NULL`; el serializador JSON los manda como `{}` y el
+# PUT de vuelta los lee como objetos, que el validador rechaza con razón. Un
+# campo ausente es lo que significa ese NULL, así que se quita antes de servir.
+.cmc_drop_nulls_deep <- function(x) {
+  if (!is.list(x)) return(x)
+  keep <- !vapply(x, is.null, logical(1))
+  x <- x[keep]
+  x[] <- lapply(x, .cmc_drop_nulls_deep)
+  x
+}
+
 #' Catálogo de tipos de material con su compatibilidad para el plan vigente.
 #'
 #' @param sid sesión.
@@ -114,8 +126,9 @@ collection_material_catalog_get <- function(sid) {
       active = identical(active_preset, preset_id),
       paper = as.character(template$page$size %||% "A4"),
       # La receta built-in viaja para que «Usar este tipo» la fije con el
-      # PUT /material-template de siempre; el frontend no arma bloques.
-      template = template
+      # PUT /material-template de siempre; el frontend no arma bloques. Sin
+      # NULL: tiene que volver por ese PUT tal como salió.
+      template = .cmc_drop_nulls_deep(template)
     )
   })
   list(schema = COLLECTION_MATERIAL_CATALOG_SCHEMA, presets = out)
