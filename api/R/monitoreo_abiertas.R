@@ -256,6 +256,10 @@ abiertas_candidatas <- function(data, survey = NULL, roles_declarados = characte
     v <- v[nzchar(v) & v != "NA"]
     if (!length(v)) next
     solo_numeros <- mean(grepl("^[0-9 .+-]+$", v))
+    # Una pregunta de texto que se respondió con números (una edad, un año, un
+    # teléfono) no es texto que vigilar: proponerla sólo agrega ruido
+    # (HSyVbG 2026: P1 edad, «alertaría en los 3318 casos»).
+    if (solo_numeros >= 0.9) next
     palabras <- mean(lengths(strsplit(v, "\\s+")))
     unicidad <- length(unique(v)) / length(v)
 
@@ -272,7 +276,7 @@ abiertas_candidatas <- function(data, survey = NULL, roles_declarados = characte
       probable_operativa = operativa,
       porque = if (operativa) sprintf(
         "Un valor distinto casi por caso y de %s. Parece captura operativa —un código, un teléfono, un nombre—, no una respuesta.",
-        if (solo_numeros > 0.5) "puros números" else "una sola palabra"
+        if (solo_numeros > 0.5) "casi sólo números" else "una sola palabra"
       ) else sprintf(
         "Respuestas de %.1f palabras en promedio y repetidas entre casos. Parece texto de contenido.",
         palabras
