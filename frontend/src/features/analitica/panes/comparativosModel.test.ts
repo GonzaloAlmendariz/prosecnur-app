@@ -19,6 +19,8 @@ import {
   describirNa,
   errorDesde,
   estadoInicial,
+  clavesCrucesPorDefecto,
+  clavesPreguntasPorDefecto,
   filasArmonizadas,
   motivoVacio,
   periodosDeSerie,
@@ -148,6 +150,56 @@ describe("filas candidatas y serie", () => {
     expect(comparativosDisponibles(undefined)).toBe(false);
     expect(comparativosDisponibles(1)).toBe(false);
     expect(comparativosDisponibles(2)).toBe(true);
+  });
+});
+
+describe("segmentos de cruce del estudio (ADR 0107): la UI arranca como el motor", () => {
+  // Fila `cruce: true` con id SEG-*: lo que guarda Carga › Segmentos.
+  const conSegmento = estado({
+    filas: [
+      fila({ id: "p1", etiqueta_estandar: "Acoso", seccion: "Clima", armonizacion: armon }),
+      fila({ id: "SEG-ciclo", etiqueta_estandar: "Ciclo", armonizacion: armon, cruce: true }),
+      fila({ id: "p2", etiqueta_estandar: "Violencia", armonizacion: armon }),
+    ],
+  });
+  const filas = filasArmonizadas(conSegmento);
+  const periodos = ["hsvg2024", "hsvg2025"];
+
+  it("el segmento viene elegido como variable de cruce y no como pregunta", () => {
+    expect(filas.map((f) => f.esSegmento)).toEqual([false, true, false]);
+    expect(clavesPreguntasPorDefecto(filas)).toEqual(["0", "2"]);
+    expect(clavesCrucesPorDefecto(filas)).toEqual(["1"]);
+    const ui = estadoInicial(filas, periodos);
+    expect(ui.preguntas).toEqual(["0", "2"]);
+    expect(ui.cruces).toEqual(["1"]);
+    expect(bloqueoDeGeneracion(ui, "cruces")).toBeNull();
+  });
+
+  it("sin tocar nada, el cuerpo coincide con el defecto del backend", () => {
+    const ui = estadoInicial(filas, periodos);
+    // Cruces: el segmento cruza y no se tabula como pregunta.
+    expect(construirBody(ui, "cruces", filas, periodos)).toMatchObject({ filas: ["p1", "p2"], cruces: ["SEG-ciclo"] });
+    // Simple: el segmento tampoco entra como pregunta.
+    const simple = construirBody(ui, "frecuencias", filas, periodos);
+    expect(simple.filas).toEqual(["p1", "p2"]);
+    expect(simple.cruces).toBeUndefined();
+  });
+
+  it("el usuario puede cambiarlo: soltar el segmento como cruce o pedirlo como pregunta", () => {
+    let ui = estadoInicial(filas, periodos);
+    ui = comparativosReducer(ui, { tipo: "alternar-pregunta", clave: "1" });
+    expect(construirBody(ui, "frecuencias", filas, periodos).filas).toEqual(["p1", "SEG-ciclo", "p2"]);
+    ui = comparativosReducer(ui, { tipo: "alternar-cruce", clave: "1" });
+    ui = comparativosReducer(ui, { tipo: "alternar-cruce", clave: "0" });
+    expect(construirBody(ui, "cruces", filas, periodos)).toMatchObject({ filas: ["SEG-ciclo", "p2"], cruces: ["p1"] });
+  });
+
+  it("un segmento no comparable en la serie no se preelige", () => {
+    const nada = { escala: armon.escala, por_base: { hsvg2024: { comparable: false, mapa: {} } } };
+    const f = filasArmonizadas(estado({
+      filas: [fila({ id: "SEG-x", etiqueta_estandar: "X", armonizacion: nada, cruce: true })],
+    }));
+    expect(estadoInicial(f, periodos).cruces).toEqual([]);
   });
 });
 

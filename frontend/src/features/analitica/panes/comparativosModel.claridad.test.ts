@@ -25,6 +25,7 @@ function fila(clave: string, parcial: Partial<FilaArmonizada> = {}): FilaArmoniz
     basesSinVariable: [],
     nCategorias: 3,
     seleccionable: true,
+    esSegmento: false,
     ...parcial,
   };
 }

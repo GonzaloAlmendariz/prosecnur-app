@@ -51,6 +51,8 @@ import {
   errorDesde,
   especialesSinMapa,
   estadoInicial,
+  clavesCrucesPorDefecto,
+  clavesPreguntasPorDefecto,
   filasArmonizadas,
   opcionesDeNotaComparativo,
   formatoBytes,
@@ -190,6 +192,10 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
 
   const opcionesDeNota = useMemo(() => opcionesDeNotaComparativo(filas, ui.preguntas), [filas, ui.preguntas]);
 
+  // Los segmentos de cruce del estudio no cuentan como preguntas armonizadas:
+  // entran como variables de cruce, igual que en el motor (ADR 0107).
+  const segmentos = useMemo(() => clavesCrucesPorDefecto(filas), [filas]);
+
   const bloqueoSimple = bloqueoDeGeneracion(ui, "frecuencias");
   const bloqueoCruces = bloqueoDeGeneracion(ui, "cruces");
 
@@ -203,7 +209,7 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
         ariaLabel="Cifras del comparativo"
         cifras={[
           { clave: "serie", etiqueta: mayuscula(serie.plural), valor: formatoConteo(periodos.length) },
-          { clave: "armonizadas", etiqueta: "Preguntas armonizadas", valor: formatoConteo(filas.length) },
+          { clave: "armonizadas", etiqueta: "Preguntas armonizadas", valor: formatoConteo(filas.filter((f) => !f.esSegmento).length) },
           { clave: "elegidas", etiqueta: "Preguntas elegidas", valor: formatoConteo(preguntasEfectivas(ui, "frecuencias").length) },
           { clave: "cruce", etiqueta: "Variables de cruce", valor: formatoConteo(ui.cruces.length) },
         ]}
@@ -234,7 +240,7 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
           onElegirVarias={(claves, valor) => dispatch({ tipo: "elegir-preguntas", claves, valor })}
           acciones={(
             <div className="pulso-comparativos-lista-acciones">
-              <PulsoButton variant="ghost" size="sm" onClick={() => dispatch({ tipo: "todas-las-preguntas", claves: filas.filter((f) => f.seleccionable).map((f) => f.clave) })}>
+              <PulsoButton variant="ghost" size="sm" onClick={() => dispatch({ tipo: "todas-las-preguntas", claves: clavesPreguntasPorDefecto(filas) })}>
                 Todas
               </PulsoButton>
               <PulsoButton variant="ghost" size="sm" onClick={() => dispatch({ tipo: "ninguna-pregunta" })}>
@@ -247,11 +253,11 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
         <ComparativosLista
           id="comparativos-cruces"
           titulo="Variables de cruce"
-          ayuda="Sólo para el comparativo de cruces. Cada pregunta se abre por las respuestas de la variable de cruce, y esa variable no se tabula como pregunta en ese archivo."
+          ayuda="Sólo para el comparativo de cruces. Cada pregunta se abre por las respuestas de la variable de cruce, y esa variable no se tabula como pregunta en ese archivo. Los segmentos de cruce del estudio vienen elegidos."
           filas={filas}
           elegidas={ui.cruces}
-          marcadas={[]}
-          marca=""
+          marcadas={segmentos}
+          marca="Segmento de cruce del estudio"
           periodos={periodos}
           rotulos={ui.rotulos}
           serie={serie}
