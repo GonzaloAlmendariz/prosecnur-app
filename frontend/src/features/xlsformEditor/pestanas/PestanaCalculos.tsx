@@ -7,6 +7,7 @@ import { EditarEnConstructor } from "../shell/EditarEnConstructor";
 import { PestanaReglas, type ReglaListaGrupo } from "./PestanaReglas";
 import { calculosDelFormulario } from "./reglasModel";
 import { ProbarCalculo } from "./ProbarCalculo";
+import { CatalogoFunciones } from "./CatalogoFunciones";
 import { CalculationRecipePanel } from "../canvas/constructor/CalculoRepeticionPaneles";
 
 // Pestaña Cálculos (revamp 2026-10-16): cada `calculate` del formulario con su fórmula leída
@@ -62,6 +63,7 @@ export function PestanaCalculos({ structure, scope, seleccionada, onSeleccionar,
       onSeleccionar={onSeleccionar}
       vacio="Este formulario todavía no tiene cálculos."
       vacioDetalle={<CalculosVacio />}
+      lateral={<CatalogoFunciones scope={scope} />}
       pie="Un cálculo no se pregunta: se obtiene de otras respuestas y queda como columna en la base."
     >
       {actual ? (
