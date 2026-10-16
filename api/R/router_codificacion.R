@@ -2105,6 +2105,8 @@ isTRUE_vec <- function(x) {
     codif_set(sid, "data", NULL, source = target_base)
     codif_set(sid, "inst", NULL, source = target_base)
     codif_set(sid, "aplicado", TRUE, source = target_base)
+    # Recién adaptada: ya no hay cambio de base pendiente (codificacion_readaptar.R).
+    codif_set(sid, "readaptar_desde", NULL, source = target_base)
   }
   # Migra proyectos creados antes del estado scoped: si una base ya conserva
   # un par adaptado válido, su estado por base se reconstruye desde los archivos.
