@@ -72,23 +72,23 @@ export function CalculadaEditor({
 
       <div className="pulso-vb-campos">
         <label className="pulso-compuesto-campo">
-          <span>Nombre</span>
-          <input
-            className="pulso-vb-mono"
-            value={b.nombre}
-            placeholder="p. ej. vbg_alguna"
-            disabled={b.editando}
-            spellCheck={false}
-            autoComplete="off"
-            onChange={(e) => despachar({ tipo: "nombre", valor: e.target.value })}
-          />
-        </label>
-        <label className="pulso-compuesto-campo">
           <span>Etiqueta</span>
           <input
             value={b.etiqueta}
             placeholder="Cómo se lee en tablas y gráficos"
             onChange={(e) => despachar({ tipo: "etiqueta", valor: e.target.value })}
+          />
+        </label>
+        <label className="pulso-compuesto-campo">
+          <span>Nombre en la base</span>
+          <input
+            className="pulso-vb-mono"
+            value={b.nombre}
+            placeholder="Se propone desde la etiqueta"
+            disabled={b.editando}
+            spellCheck={false}
+            autoComplete="off"
+            onChange={(e) => despachar({ tipo: "nombre", valor: e.target.value })}
           />
         </label>
       </div>

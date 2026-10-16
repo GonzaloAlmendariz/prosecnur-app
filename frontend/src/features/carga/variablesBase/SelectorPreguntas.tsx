@@ -41,6 +41,7 @@ function Buscador({
                 <button
                   type="button"
                   onClick={() => { onElegir(o.name); setConsulta(""); }}
+                  title={`${o.name} · ${etiquetaLegible(o.label)}`}
                   aria-label={`Elegir ${etiquetaLegible(o.label) || o.name} (${o.name})`}
                 >
                   <Plus size={12} aria-hidden="true" />
