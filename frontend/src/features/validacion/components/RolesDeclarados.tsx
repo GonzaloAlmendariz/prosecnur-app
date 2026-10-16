@@ -2,6 +2,8 @@ import { useEffect, useId, useState } from "react";
 import { Check, KeyRound, ListChecks, MessageSquare, Sparkles, User } from "lucide-react";
 import { apiV2RolesSugerencias } from "../../../api/client";
 import type { InstrumentoOperationalConfig, RolesSugerencias } from "../types";
+import { textoCondicion } from "../casoValidoManualModel";
+import { CasoValidoManual } from "./CasoValidoManual";
 
 // =============================================================================
 // RolesDeclarados — qué es un caso, quién lo recolectó y cuál cuenta
@@ -128,13 +130,13 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
       <RolBloque
         icono={<ListChecks size={13} aria-hidden="true" focusable="false" />}
         titulo="Qué caso cuenta"
-        ayuda="Las condiciones que hacen que un caso entre al análisis. Hoy suelen vivir repetidas dentro de cada pregunta del formulario; declararlas hace que el N sea defendible."
+        ayuda="Las condiciones que hacen que un caso entre al análisis: las que el formulario repetía en cada pregunta o una marca que ya trae la base, como la selección de una muestra. Declararlas hace que el N sea defendible."
         activo={validez.enabled}
         onToggle={(enabled) => setValidez({ enabled })}
         disabled={disabled}
         resumen={validez.condiciones.length
           ? validez.condiciones
-              .map((c) => `${c.variable} ${c.operador} ${c.valores.join(", ")}`)
+              .map((c) => textoCondicion(c))
               .join(" · ")
           : "sin declarar — cuenta toda la base"}
       >
@@ -172,6 +174,14 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
             disabled={disabled}
           />
         ) : null}
+        {/* Lo que no viene del formulario —una marca de selección, un filtro de
+            población— se declara a mano. */}
+        <CasoValidoManual
+          baseNombre={baseNombre}
+          condiciones={validez.condiciones}
+          disabled={disabled}
+          onCambiar={(condiciones) => setValidez({ enabled: condiciones.length > 0, condiciones })}
+        />
       </RolBloque>
 
       {/* --- Preguntas abiertas que se vigilan ----------------------------- */}

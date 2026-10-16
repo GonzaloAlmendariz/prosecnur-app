@@ -572,6 +572,66 @@ export async function apiV2ReglasCustomDelete(id: string, baseNombre?: string | 
  * campo, criterio de validez— con la evidencia que las sostiene. Read-only:
  * declarar sigue siendo un acto del analista.
  */
+/** Una columna con la que se puede declarar a mano qué caso cuenta. */
+export type CasoValidoColumna = {
+  variable: string;
+  etiqueta: string;
+  /** Pregunta del formulario o columna que llegó aparte (una marca, un filtro). */
+  del_formulario: boolean;
+  n_con_dato: number;
+  valores: { valor: string; etiqueta: string; n: number }[];
+};
+
+export type CasoValidoCondicion = { variable: string; operador: "==" | "!=" | "in" | "not_in"; valores: string[] };
+
+export type CasoValidoEfecto = { n_total: number; n_validos: number; n_excluidos: number; variables_ausentes: string[] };
+
+function numeroDe(x: unknown): number {
+  const v = Array.isArray(x) ? x[0] : x;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+function textoDe(x: unknown): string {
+  const v = Array.isArray(x) ? x[0] : x;
+  return v == null ? "" : String(v);
+}
+
+export async function apiV2CasoValidoColumnas(baseNombre?: string | null): Promise<{ nTotal: number; columnas: CasoValidoColumna[] }> {
+  const raw = await handle<{ ok: true; n_total?: unknown; columnas?: unknown }>(
+    await apiFetch("/api/validacion/v2/caso-valido/columnas", { headers: v2Headers(baseNombre) }),
+  );
+  const cols = Array.isArray(raw.columnas) ? raw.columnas : [];
+  const columnas = cols.map((c: Record<string, unknown>) => ({
+    variable: textoDe(c.variable),
+    etiqueta: textoDe(c.etiqueta),
+    del_formulario: (Array.isArray(c.del_formulario) ? c.del_formulario[0] : c.del_formulario) === true,
+    n_con_dato: numeroDe(c.n_con_dato),
+    valores: (Array.isArray(c.valores) ? c.valores : []).map((v: Record<string, unknown>) => ({
+      valor: textoDe(v.valor),
+      etiqueta: textoDe(v.etiqueta),
+      n: numeroDe(v.n),
+    })),
+  })).filter((c) => c.variable);
+  return { nTotal: numeroDe(raw.n_total), columnas };
+}
+
+export async function apiV2CasoValidoEfecto(baseNombre: string | null | undefined, condiciones: CasoValidoCondicion[]): Promise<CasoValidoEfecto> {
+  const raw = await handle<Record<string, unknown>>(
+    await apiFetch("/api/validacion/v2/caso-valido/efecto", {
+      method: "POST",
+      headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
+      body: JSON.stringify({ condiciones }),
+    }),
+  );
+  const aus = raw.variables_ausentes;
+  return {
+    n_total: numeroDe(raw.n_total),
+    n_validos: numeroDe(raw.n_validos),
+    n_excluidos: numeroDe(raw.n_excluidos),
+    variables_ausentes: Array.isArray(aus) ? aus.map(String) : aus ? [String(aus)] : [],
+  };
+}
+
 export async function apiV2RolesSugerencias(baseNombre?: string | null) {
   return handle<{ ok: true; base_nombre: string | null } & RolesSugerencias>(
     await apiFetch("/api/validacion/v2/roles/sugerencias", {
