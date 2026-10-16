@@ -16,6 +16,7 @@
 //     calculation/choice_filter.
 // =============================================================================
 
+import { COLUMNAS_EXPRESION, idComillas, tieneComillasTipograficas } from "./comillas";
 import type {
   BuilderDiagnostic,
   XlsformEditorWorkbook,
@@ -112,6 +113,18 @@ export function buildDiagnostics(
           rowIndex: node.rowIndex,
           title: "La lista asignada todavía no tiene opciones",
           detail: `La pregunta apunta a la lista "${node.typeInfo.listName}", pero esa lista aún no tiene opciones definidas.`,
+        });
+      }
+    }
+    for (const columna of COLUMNAS_EXPRESION) {
+      const valor = columna === "choice_filter" ? node.choiceFilter : node[columna];
+      if (valor && tieneComillasTipograficas(valor)) {
+        diagnostics.push({
+          id: idComillas(columna, node.rowIndex),
+          level: "error",
+          rowIndex: node.rowIndex,
+          title: `Comillas tipográficas en ${columna}`,
+          detail: "La expresión usa “ ” o ‘ ’ (las pone Word o Excel al escribir). ODK no las reconoce: hay que cambiarlas por comillas rectas.",
         });
       }
     }

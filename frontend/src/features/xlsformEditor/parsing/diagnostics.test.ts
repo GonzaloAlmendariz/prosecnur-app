@@ -81,3 +81,21 @@ describe("buildDiagnostics — estructura de secciones", () => {
     expect(unmatched?.level).toBe("warn");
   });
 });
+
+describe("comillas tipográficas en expresiones", () => {
+  test("una relevant con “OK” es error con arreglo, y rectificar la deja limpia", async () => {
+    const { buildXlsformIndex } = await import("./buildIndex");
+    const { rectificarComillas, columnaDeIdComillas } = await import("./comillas");
+    const workbook = {
+      survey: { columns: ["type", "name", "label", "relevant"], rows: [["text", "a", "A", ""], ["text", "b", "B", "${a} = “OK”"]] },
+      choices: { columns: ["list_name", "name", "label"], rows: [] },
+      settings: { columns: ["form_title", "form_id"], rows: [["T", "t"]] },
+    };
+    const diags = buildDiagnostics(workbook, buildXlsformIndex(workbook));
+    const d = diags.find((x) => x.id.startsWith("comillas-"));
+    expect(d?.level).toBe("error");
+    expect(d?.rowIndex).toBe(1);
+    expect(columnaDeIdComillas(d!.id)).toBe("relevant");
+    expect(rectificarComillas("${a} = “OK” or ${a} = ‘6’")).toBe(`\${a} = "OK" or \${a} = '6'`);
+  });
+});
