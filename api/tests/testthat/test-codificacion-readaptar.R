@@ -23,3 +23,16 @@ test_that("la marca vale hasta que se vuelve a adaptar", {
   codif_set(sid, "aplicado", TRUE, source = "default")
   expect_false(codificacion_respuestas_cambiaron(sid, source = "default"))
 })
+
+test_that("una adaptación que terminó sobre respuestas reemplazadas se descarta", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  s$estudio <- list(bases = list(default = list(data_file_id = "nuevo")))
+  .session_env[[sid]] <- s
+  expect_true(codificacion_verificar_respuestas_de_partida(sid, "default", "nuevo"))
+  expect_true(codificacion_verificar_respuestas_de_partida(sid, "default", NULL))
+  err <- tryCatch(codificacion_verificar_respuestas_de_partida(sid, "default", "viejo"), error = function(e) e)
+  expect_s3_class(err, "api_error")
+  expect_identical(err$code, "E_CODIF_RESPUESTAS_CAMBIARON")
+})
