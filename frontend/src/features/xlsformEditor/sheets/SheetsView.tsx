@@ -39,6 +39,7 @@ import { PanelFila } from "./PanelFila";
 import type { LogicScope } from "../logic";
 import type { BuilderDiagnostic, BuilderStructure } from "../types";
 import "./editorXlsform.css";
+import { columnaDeIdComillas, rectificarComillas } from "../parsing/comillas";
 
 export type SheetsViewProps = {
   workbook: XlsformEditorWorkbook;
@@ -241,6 +242,13 @@ export function SheetsView({
           celda={celda && celda.hoja === activeTab ? celda : null}
           diagnosticos={diagnostics}
           onIrAFila={(fila) => { setActiveTab("survey"); setCelda({ hoja: "survey", fila, columna: "name" }); }}
+          onArreglar={(d) => {
+            const columna = columnaDeIdComillas(d.id);
+            const survey = workbook.survey;
+            const ci = columna ? survey.columns.indexOf(columna) : -1;
+            if (!columna || ci < 0 || typeof d.rowIndex !== "number") return;
+            onUpdateCell("survey", d.rowIndex, columna, rectificarComillas(survey.rows[d.rowIndex]?.[ci] ?? ""));
+          }}
         />
       </div>
     </div>
