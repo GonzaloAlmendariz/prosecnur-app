@@ -13,7 +13,10 @@
 # un peso, con el mismo patrón que el selector del frontend
 # (`pareceraPeso` en PesoPorColumna.tsx). Es superconjunto de la regla que corta
 # el comparativo (`.armz_ponderar`: columna exacta `peso` sin declarar), así que
-# toda base que el comparativo bloquearía la trae no vacía. Vacía = la base no
+# toda base que el comparativo bloquearía la trae no vacía. Por eso una columna
+# llamada exactamente `peso` entra SIEMPRE —numérica o no, aunque esté vacía—:
+# `.armz_ponderar` bloquea por su sola existencia y la UI tiene que poder
+# ofrecer «sin ponderar» o «por columna» para esa base. Vacía = la base no
 # tiene peso que declarar: «sin declarar» equivale a «sin ponderar».
 #
 # NA (y no NULL) para los ausentes: el serializador de la API (`na = "null"`)
@@ -78,7 +81,8 @@
   df <- .analitica_read_pair(pair, meta)$data
   if (!is.data.frame(df) || !ncol(df)) return(character(0))
   cand <- names(df)[grepl(.PONDERACION_PATRON_COLUMNA_PESO, names(df), ignore.case = TRUE)]
-  cand[vapply(cand, function(n) .pond_bases_es_numerica(df[[n]]), logical(1))]
+  # `peso` exacta entra sin filtro: es la que corta el comparativo.
+  cand[cand == "peso" | vapply(cand, function(n) .pond_bases_es_numerica(df[[n]]), logical(1))]
 }
 
 #' Ponderación declarada de cada base del estudio (solo lectura).

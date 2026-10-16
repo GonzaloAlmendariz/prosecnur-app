@@ -161,3 +161,42 @@ test_that("contrato HTTP: ruta GET montada, JSON con null y sin sesión E_NO_SES
   expect_identical(jsonlite::fromJSON(sin$body)$error$code %||%
                      jsonlite::fromJSON(sin$body)$code, "E_NO_SESSION")
 })
+
+# Una base con una columna llamada exactamente `peso` que no es numérica (coma
+# decimal tecleada) u otra toda vacía: `.armz_ponderar` bloquea por su sola
+# existencia, así que `columnas_peso` tiene que traerla para que la UI ofrezca
+# declarar esa base.
+.pbs_session_peso_raro <- function(peso_25, peso_26) {
+  sid <- session_create()
+  inst <- list(
+    survey = data.frame(type = "select_one sexo", name = "sexo", label = "Sexo",
+                        stringsAsFactors = FALSE),
+    choices = data.frame(list_name = "sexo", name = c("1", "2"), label = c("Mujer", "Hombre"),
+                         stringsAsFactors = FALSE)
+  )
+  d25 <- data.frame(sexo = c("1", "2"), peso = peso_25, stringsAsFactors = FALSE)
+  d26 <- data.frame(sexo = c("1", "2"), peso = peso_26, stringsAsFactors = FALSE)
+  .bv_add_base(sid, "2025", inst, .bv_xlsx_bytes(list(data = d25)), "data_2025.xlsx", "xlsx")
+  .bv_add_base(sid, "2026", inst, .bv_xlsx_bytes(list(data = d26)), "data_2026.xlsx", "xlsx")
+  estudio_active_base_set(sid, "2026")
+  sid
+}
+
+test_that("columnas_peso trae la columna `peso` exacta aunque no sea numérica o esté vacía", {
+  skip_if_not_installed("openxlsx")
+  sid <- .pbs_session_peso_raro(c("1,25", "0,8"), c(NA, NA))
+  on.exit(session_delete(sid), add = TRUE)
+  out <- ponderacion_bases_estado(sid)
+  expect_identical(out$bases$`2025`$columnas_peso, list("peso"))
+  expect_identical(out$bases$`2026`$columnas_peso, list("peso"))
+  # Y son justo las bases que el comparativo bloquea sin declaración.
+  s <- session_get(sid)
+  for (b in c("2025", "2026")) {
+    df <- .analitica_read_pair(.analitica_pair_for_base(s, s$estudio$bases[[b]], "adaptados", b),
+                               s$estudio$bases[[b]])$data
+    expect_true("peso" %in% names(df))
+    err <- tryCatch(.armz_ponderar(sid, b, df, .analitica_default_config()),
+                    api_error = function(e) e)
+    expect_identical(err$code, "E_ARMONIZADA_PESO_NO_DECLARADO")
+  }
+})

@@ -17,6 +17,15 @@
 # por cada dos casos, o con algún valor largo— no devuelve valores. Excepción:
 # una `text` cuyos valores son todos números y no supera ese umbral (la edad
 # tecleada) sale `numerica` con sus códigos.
+#
+# Privacidad de lo numérico (ADR 0107, Notas): una columna numérica —declarada
+# integer/decimal/range, sin declarar, o `text` con sólo números— cuyos valores
+# parecen identificadores sale `tipo = "identificador"` sin códigos (sí con
+# n_validos y n_sin_dato). Parece identificador si algún valor, como entero,
+# tiene 7 o más dígitos (un teléfono, un DNI, un código de alumno) o si los
+# valores distintos superan la mitad de los casos válidos (un valor casi único
+# por caso). La edad, el año de ingreso o un conteo —pocos dígitos y repetidos—
+# siguen siendo `numerica` con sus códigos.
 
 .CODIGOS_OBSERVADOS_TOPE <- 500L
 .CODIGOS_OBSERVADOS_TIPOS_CATEGORICOS <- c("select_one", "select_multiple", "select_one_from_file",
@@ -92,26 +101,42 @@
   .codigos_observados_supera_umbral_libre(codigos, n_validos)
 }
 
-# Una pregunta `text` que sólo trae números con repetición (la edad tecleada
-# con constraint regex) es una escala numérica: el editor de segmentos necesita
-# sus códigos para armar rangos. Un número casi único por caso (un id, un DNI)
-# sigue siendo texto y no devuelve valores.
-.codigos_observados_text_numerico <- function(codigos, n_validos) {
-  .codigos_observados_todos_numericos(codigos) &&
-    !.codigos_observados_supera_umbral_libre(codigos, n_validos)
+# Umbral de dígitos de un identificador: un entero de 7 o más dígitos.
+.CODIGOS_OBSERVADOS_MIN_ENTERO_ID <- 1e6
+
+# ¿Los valores de una columna numérica parecen identificadores? Algún valor con
+# 7+ dígitos como entero, o más de un valor distinto por cada dos casos.
+.codigos_observados_parece_identificador <- function(codigos, n_validos) {
+  if (!length(codigos)) return(FALSE)
+  num <- suppressWarnings(as.numeric(codigos))
+  length(codigos) > 0.5 * n_validos ||
+    any(floor(abs(num[is.finite(num)])) >= .CODIGOS_OBSERVADOS_MIN_ENTERO_ID)
 }
 
+# Una escala numérica sale con sus códigos salvo que parezca identificador.
+.codigos_observados_numerica_o_id <- function(codigos, n_validos) {
+  if (.codigos_observados_parece_identificador(codigos, n_validos)) "identificador" else "numerica"
+}
+
+# Una pregunta `text` que sólo trae números (la edad tecleada con constraint
+# regex) es una escala numérica: el editor de segmentos necesita sus códigos
+# para armar rangos. Si parecen identificadores (un DNI, un teléfono) no
+# devuelve valores.
 .codigos_observados_tipo <- function(tipo_inst, x, codigos, n_validos, etiquetas) {
-  if (identical(tipo_inst, "text") && .codigos_observados_text_numerico(codigos, n_validos)) {
-    return("numerica")
+  if (identical(tipo_inst, "text") && .codigos_observados_todos_numericos(codigos)) {
+    return(.codigos_observados_numerica_o_id(codigos, n_validos))
   }
   if (tipo_inst %in% .CODIGOS_OBSERVADOS_TIPOS_TEXTO) return("texto")
   if (tipo_inst %in% .CODIGOS_OBSERVADOS_TIPOS_CATEGORICOS) return("categorica")
-  if (tipo_inst %in% .CODIGOS_OBSERVADOS_TIPOS_NUMERICOS) return("numerica")
+  if (tipo_inst %in% .CODIGOS_OBSERVADOS_TIPOS_NUMERICOS) {
+    return(.codigos_observados_numerica_o_id(codigos, n_validos))
+  }
   # Sin tipo declarado (columna no declarada, calculate, metadato): se infiere.
   if (length(etiquetas)) return("categorica")
   if (.codigos_observados_es_texto_libre(x, codigos, n_validos)) return("texto")
-  if (.codigos_observados_todos_numericos(codigos)) return("numerica")
+  if (is.numeric(haven::zap_labels(x)) || .codigos_observados_todos_numericos(codigos)) {
+    return(.codigos_observados_numerica_o_id(codigos, n_validos))
+  }
   "categorica"
 }
 
@@ -121,7 +146,8 @@
 #' @param base nombre de la base (obligatorio: no cae en la activa).
 #' @param variable nombre de la variable en la data de la base.
 #' @param tope máximo de códigos devueltos; por encima, `truncado = TRUE`.
-#' @return `list(base, variable, tipo, codigos = [{codigo, etiqueta, n}],
+#' @return `list(base, variable, tipo (categorica | numerica | texto |
+#'   identificador), codigos = [{codigo, etiqueta, n}],
 #'   n_validos, n_sin_dato, truncado)`. Conteos sin ponderar.
 #' @keywords internal
 codigos_observados_consultar <- function(sid, base, variable, tope = .CODIGOS_OBSERVADOS_TOPE) {
@@ -149,7 +175,7 @@ codigos_observados_consultar <- function(sid, base, variable, tope = .CODIGOS_OB
   codigos <- .equiv_armon_orden_codigos(names(conteo))
   etiquetas <- .codigos_observados_etiquetas(lectura$inst, sv$list_name, x)
   tipo <- .codigos_observados_tipo(sv$tipo, x, codigos, n_validos, etiquetas)
-  if (identical(tipo, "texto")) codigos <- character(0)
+  if (tipo %in% c("texto", "identificador")) codigos <- character(0)
   truncado <- length(codigos) > tope
   if (truncado) codigos <- codigos[seq_len(tope)]
   list(
