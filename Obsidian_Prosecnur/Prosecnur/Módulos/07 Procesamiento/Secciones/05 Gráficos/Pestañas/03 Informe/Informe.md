@@ -3,8 +3,8 @@ tipo: pestana
 padres: ["[[Gráficos]]"]
 orden: 2
 documentacion: parcial
-ruta_app: "/graficos?pestana=vista-general"
-nodo: "procesamiento/graficos/vista-general"
+ruta_app: "/graficos?pestana=informe"
+nodo: "procesamiento/graficos/informe"
 verificado_contra: ""
 tags:
   - Pestaña
@@ -14,7 +14,7 @@ fuentes:
   - "frontend/src/features/graficos/vistaGeneral/VistaGeneral.tsx"
 ---
 
-# Vista general
+# Informe
 
 > El informe por capítulos, para ordenarlo de un vistazo.
 
