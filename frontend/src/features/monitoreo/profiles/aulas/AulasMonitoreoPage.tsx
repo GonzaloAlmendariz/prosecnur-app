@@ -2200,7 +2200,7 @@ export default function AulasMonitoreoPage() {
               secondaryAction={{ to: AULAS_SAMPLE_ROUTE, label: "Ver muestra de cursos-horario" }}
               // Con su sección: el botón promete fichas y «/material-campo» a
               // secas aterriza en la lista de unidades.
-              action={{ to: "/material-campo?seccion=catalogo", label: "Abrir fichas QR" }}
+              action={{ to: "/material-campo?seccion=catalogo&pestana=editor", label: "Abrir fichas QR" }}
             />
           ) : null}
           <div

@@ -23,15 +23,17 @@ const ATAJOS = [
   {
     donde: "features/calcMuestra/universidad/aulas/ClassroomAuditPanels.tsx",
     label: "Abrir fichas QR",
-    seccion: "/material-campo?seccion=catalogo",
+    seccion: "/material-campo?seccion=catalogo&pestana=editor",
   },
   {
     donde: "features/monitoreo/profiles/aulas/AulasMonitoreoPage.tsx",
     label: "Abrir fichas QR",
-    seccion: "/material-campo?seccion=catalogo",
+    seccion: "/material-campo?seccion=catalogo&pestana=editor",
   },
 ];
 
+// «Abrir fichas QR» lleva al editor de la ficha, donde aterrizaba antes de que
+// Catálogo ganara la galería de Tipos como su primera pestaña (ADR 0109 §3).
 describe("los atajos entre módulos llevan a su sección, no al módulo pelado", () => {
   for (const atajo of ATAJOS) {
     it(`«${atajo.label}» desde ${path.basename(atajo.donde)}`, () => {
@@ -57,5 +59,6 @@ describe("los atajos entre módulos llevan a su sección, no al módulo pelado",
     // a una sección inexistente. El manifiesto es quien manda.
     const manifiesto = fs.readFileSync(path.join(raiz, "lib/modules.ts"), "utf8");
     expect(manifiesto).toContain('to: "/material-campo?seccion=catalogo"');
+    expect(manifiesto).toContain('to: "/material-campo?seccion=catalogo&pestana=editor"');
   });
 });

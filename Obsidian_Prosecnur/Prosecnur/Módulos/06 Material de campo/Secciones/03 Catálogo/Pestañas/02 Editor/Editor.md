@@ -2,7 +2,7 @@
 tipo: pestana
 padres:
   - "[[Catálogo]]"
-orden: 1
+orden: 2
 documentacion: parcial
 ruta_app: "/material-campo?seccion=catalogo&pestana=editor"
 nodo: "material-campo/catalogo/editor"

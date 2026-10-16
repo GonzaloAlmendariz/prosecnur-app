@@ -25,7 +25,8 @@ export type RecopiladoresSeccion = (typeof SECCIONES)[number];
 export const PESTANAS_POR_SECCION = {
   unidades: ["lista"],
   accesos: ["canales", "vinculacion"],
-  catalogo: ["editor"],
+  // Tipos primero: es el aterrizaje de Catálogo (ADR 0109 §3).
+  catalogo: ["tipos", "editor"],
   paquetes: ["armado"],
   entrega: ["traspaso"],
 } as const satisfies Record<RecopiladoresSeccion, readonly string[]>;
@@ -72,15 +73,19 @@ const ALIAS_PESTANA: Record<string, DireccionRecopiladores> = {
 /**
  * Secciones viejas → sección canónica. `paquete` cae en Paquetes: lo que hacía
  * era generar el PDF, que hoy es el armado del paquete.
+ *
+ * Materiales y Fichas nombran también la pestaña: aterrizaban en el editor de
+ * la ficha y un enlace guardado debe seguir llevando ahí, no a la galería de
+ * Tipos que Catálogo ganó después (ADR 0109).
  */
-const ALIAS_SECCION: Record<string, RecopiladoresSeccion> = {
+const ALIAS_SECCION: Record<string, RecopiladoresSeccion | DireccionRecopiladores> = {
   // Secciones de Recopiladores (ADR 0046).
   "plan-recoleccion": "unidades",
-  materiales: "catalogo",
+  materiales: { seccion: "catalogo", pestana: "editor" },
   "entrega-campo": "entrega",
   // Secciones de Fichas QR.
   preparacion: "unidades",
-  fichas: "catalogo",
+  fichas: { seccion: "catalogo", pestana: "editor" },
   paquete: "paquetes",
   // El módulo se registraba con una única sección homónima.
   recopiladores: "unidades",
@@ -131,8 +136,12 @@ export function resolverDireccion(
     if (alias && (!seccionCanonica || seccionCanonica === alias.seccion)) return alias;
   }
 
-  const seccion = seccionCanonica ?? seccionAlias;
-  if (seccion) return { seccion, pestana: primeraPestana(seccion) };
+  if (seccionCanonica) return { seccion: seccionCanonica, pestana: primeraPestana(seccionCanonica) };
+  if (seccionAlias) {
+    return typeof seccionAlias === "string"
+      ? { seccion: seccionAlias, pestana: primeraPestana(seccionAlias) }
+      : seccionAlias;
+  }
   return DIRECCION_INICIAL;
 }
 

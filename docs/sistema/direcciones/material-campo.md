@@ -6,17 +6,18 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `material-campo` · ruta `/material-campo` · 12 direcciones.
+Módulo `material-campo` · ruta `/material-campo` · 13 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `material-campo` | modulo | Material de campo | sí | f23ad73f | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
+| `material-campo` | modulo | Material de campo | sí | 3b8c131e | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
 | `material-campo/unidades` | seccion | Unidades | sí | 94c24c9b | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
 | `material-campo/unidades/lista` | pestana | Lista | sí | a4e54dda | sí | — |
 | `material-campo/accesos` | seccion | Accesos | sí | 5ceb64ec | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
 | `material-campo/accesos/canales` | pestana | Canales | sí | 2bd8040c | sí | — |
 | `material-campo/accesos/vinculacion` | pestana | Vinculación | sí | e3e1df04 | sí | — |
-| `material-campo/catalogo` | seccion | Catálogo | sí | 7682582f | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
+| `material-campo/catalogo` | seccion | Catálogo | sí | d3d97159 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
+| `material-campo/catalogo/tipos` | pestana | Tipos | sí | f972a5a5 | sí | — |
 | `material-campo/catalogo/editor` | pestana | Editor | sí | b8532def | sí | — |
 | `material-campo/paquetes` | seccion | Paquetes | sí | 1373a07c | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
 | `material-campo/paquetes/armado` | pestana | Armado | sí | 95e3831c | sí | — |

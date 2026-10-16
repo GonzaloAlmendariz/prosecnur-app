@@ -5,7 +5,7 @@ padres:
 orden: 6
 documentacion: completa
 ruta_app: "/material-campo"
-verificado_contra: "f23ad73f"
+verificado_contra: "3b8c131e"
 tags:
   - Módulo
 fuentes:

@@ -18,13 +18,15 @@ describe("direcciones de Material de campo", () => {
   test("respeta una dirección canónica completa", () => {
     expect(resolverDireccion("paquetes", "armado")).toEqual({ seccion: "paquetes", pestana: "armado" });
     expect(resolverDireccion("catalogo", "editor")).toEqual({ seccion: "catalogo", pestana: "editor" });
+    expect(resolverDireccion("catalogo", "tipos")).toEqual({ seccion: "catalogo", pestana: "tipos" });
     expect(resolverDireccion("entrega", "traspaso")).toEqual({ seccion: "entrega", pestana: "traspaso" });
     expect(resolverDireccion("accesos", "vinculacion")).toEqual({ seccion: "accesos", pestana: "vinculacion" });
   });
 
   test("una sección sin pestaña cae en su primera pestaña", () => {
     expect(resolverDireccion("accesos")).toEqual({ seccion: "accesos", pestana: "canales" });
-    expect(resolverDireccion("catalogo")).toEqual({ seccion: "catalogo", pestana: "editor" });
+    // Tipos es el aterrizaje de Catálogo (ADR 0109 §3).
+    expect(resolverDireccion("catalogo")).toEqual({ seccion: "catalogo", pestana: "tipos" });
     expect(resolverDireccion("paquetes")).toEqual({ seccion: "paquetes", pestana: "armado" });
     expect(resolverDireccion("entrega")).toEqual({ seccion: "entrega", pestana: "traspaso" });
   });
@@ -46,6 +48,9 @@ describe("direcciones de Material de campo", () => {
     expect(resolverDireccion("preparacion", "agenda")).toEqual({ seccion: "unidades", pestana: "lista" });
     expect(resolverDireccion("preparacion", "enlaces")).toEqual({ seccion: "accesos", pestana: "canales" });
     expect(resolverDireccion("fichas", "vista")).toEqual({ seccion: "catalogo", pestana: "editor" });
+    // Fichas aterrizaba en el editor: el enlace guardado sigue llevando ahí.
+    expect(resolverDireccion("fichas")).toEqual({ seccion: "catalogo", pestana: "editor" });
+    expect(resolverDireccion(null, "vista")).toEqual({ seccion: "catalogo", pestana: "editor" });
     expect(resolverDireccion("paquete", "salida")).toEqual({ seccion: "paquetes", pestana: "armado" });
     expect(resolverDireccion("paquete")).toEqual({ seccion: "paquetes", pestana: "armado" });
     expect(resolverDireccion("paquete", "retorno")).toEqual({ seccion: "entrega", pestana: "traspaso" });
@@ -59,7 +64,7 @@ describe("direcciones de Material de campo", () => {
   });
 
   test("una sección válida no queda arrastrada por una pestaña ajena", () => {
-    expect(resolverDireccion("catalogo", "agenda")).toEqual({ seccion: "catalogo", pestana: "editor" });
+    expect(resolverDireccion("catalogo", "agenda")).toEqual({ seccion: "catalogo", pestana: "tipos" });
     expect(resolverDireccion("unidades", "paquetes")).toEqual({ seccion: "unidades", pestana: "lista" });
   });
 
@@ -70,6 +75,7 @@ describe("direcciones de Material de campo", () => {
 
   test("esDireccionCanonica distingue la forma nueva de los alias", () => {
     expect(esDireccionCanonica("catalogo", "editor")).toBe(true);
+    expect(esDireccionCanonica("catalogo", "tipos")).toBe(true);
     expect(esDireccionCanonica("paquetes", "armado")).toBe(true);
     expect(esDireccionCanonica("materiales", "vista")).toBe(false);
     expect(esDireccionCanonica("catalogo", null)).toBe(false);
