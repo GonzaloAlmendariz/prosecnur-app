@@ -1,0 +1,28 @@
+/* Adaptación › preguntas marcadas sin decidir (SinRecodificarAviso). */
+.pulso-sinrecod { display: flex; flex-direction: column; gap: 6px; }
+.pulso-sinrecod > p { margin: 0; font-size: 12px; }
+.pulso-sinrecod-lista {
+  margin: 4px 0 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.pulso-sinrecod-fila {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+}
+.pulso-sinrecod-pregunta {
+  display: flex; align-items: baseline; gap: 8px;
+  min-width: 0; flex: 1 1 320px;
+  font-size: 12px; color: var(--pulso-text);
+}
+.pulso-sinrecod-pregunta span {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pulso-sinrecod-pregunta small { flex: none; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+.pulso-sinrecod-acciones { display: flex; gap: 6px; flex: none; }
+.pulso-sinrecod-motivo { display: flex; gap: 6px; flex: 1 1 100%; }
+.pulso-sinrecod-motivo input { flex: 1 1 auto; min-width: 0; font-size: 12px; }
+.pulso-sinrecod-decididas summary { cursor: pointer; font-size: 12px; }
+.pulso-sinrecod-decididas ul { margin: 4px 0 0; padding-left: 18px; font-size: 12px; }

@@ -6,6 +6,7 @@ import { JobProgress } from "../../components/JobProgress";
 import { Panel } from "../../components/Panel";
 import { useSession } from "../../lib/SessionContext";
 import { AplicarOmitidasAviso, irAlAviso } from "./AplicarOmitidasAviso";
+import { SinRecodificarAviso } from "./SinRecodificarAviso";
 import { AvisoBaseYaCodificada } from "./AvisoBaseYaCodificada";
 import {
   type AplicarEntrada,
@@ -31,6 +32,8 @@ type Props = {
   onBackToMatrices: () => void;
   /** ADR 0106: la base marcada «ya viene codificada»; no se ofrece aplicar. */
   yaCodificadaEn?: string | null;
+  /** Preguntas que el bloque de arriba ya lista con sus acciones: no se repiten. */
+  yaListadas?: readonly string[];
 };
 
 const TEXTO_APLICANDO = "Revisando el catálogo contra la base; puede tardar un par de minutos.";
@@ -50,7 +53,7 @@ export function pulsarAdaptar(estado: Enfocable | null, adaptar: () => void): vo
   adaptar();
 }
 
-export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBackToMatrices, yaCodificadaEn = null }: Props) {
+export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBackToMatrices, yaCodificadaEn = null, yaListadas = [] }: Props) {
   const { refresh } = useSession();
   const entrada = useAplicarAvisosStore(selectAplicarEntrada(clave));
   const terminar = useAplicarAvisosStore((s) => s.terminar);
@@ -73,6 +76,7 @@ export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBack
       onBackToCodificar={onBackToCodificar}
       onBackToMatrices={onBackToMatrices}
       yaCodificadaEn={yaCodificadaEn}
+      yaListadas={yaListadas}
       onAdaptar={() => void aplicarCodificacion(clave, apiCodifAplicar)}
       onJobDone={(d) => {
         terminar(clave, { data: d.data_adaptada.file_id, inst: d.instrumento_adaptado.file_id });
@@ -97,6 +101,7 @@ type VistaProps = {
   onJobCancelled: () => void;
   onEnfocado: () => void;
   yaCodificadaEn?: string | null;
+  yaListadas?: readonly string[];
 };
 
 /** Presentación pura de la entrada del store; testeable sin DOM. */
@@ -111,6 +116,7 @@ export function AdaptarAplicacionVista({
   onJobCancelled,
   onEnfocado,
   yaCodificadaEn = null,
+  yaListadas = [],
 }: VistaProps) {
   const { aplicando, jobId, avisos, sinRecodificar, salida, error, enfocarPendiente } = entrada;
   const estadoRef = useRef<HTMLSpanElement>(null);
@@ -192,7 +198,7 @@ export function AdaptarAplicacionVista({
       {/* ADR 0100, P1: las preguntas del catálogo que no se aplicaron y los
           textos que quedaron sin código. Sin nada que decir, no pinta. */}
       <AplicarOmitidasAviso
-        omitidas={avisos.omitidas}
+        omitidas={avisos.omitidas.filter((o) => !yaListadas.includes(o.pregunta))}
         textosSinCodigo={avisos.textos_sin_codigo}
         incompletos={avisos.avisos_incompletos}
         enfocar={enfocarPendiente}
@@ -203,33 +209,7 @@ export function AdaptarAplicacionVista({
           y no antes, porque es el momento en que deja de ser reversible sin
           rehacer. Informa y no frena: bloquear acá se satisfaría desmarcando
           todo, que dejaría el módulo peor que ahora. */}
-      {sinRecodificar.length > 0 && (
-        <Alert kind="warn">
-          <div data-testid="codificacion-sin-recodificar">
-            <strong>
-              {sinRecodificar.length === 1
-                ? "1 variable se entrega sin recodificar"
-                : `${sinRecodificar.length} variables se entregan sin recodificar`}
-              .
-            </strong>
-            <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
-              {sinRecodificar.map((v) => (
-                <li key={v.parent} style={{ fontSize: 12, marginBottom: 2 }}>
-                  <code>{v.parent}</code>{" "}
-                  {v.deliberado ? (
-                    <>— decidido: {v.motivo}</>
-                  ) : (
-                    <>
-                      — {formatoConteo(v.n_respuestas)} {v.n_respuestas === 1 ? "respuesta" : "respuestas"} sin
-                      categorizar
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Alert>
-      )}
+      <SinRecodificarAviso variables={sinRecodificar} />
 
       {salida && (
         <Panel eyebrow="Resultado" title="Archivos adaptados listos para descargar">

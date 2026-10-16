@@ -1,0 +1,29 @@
+/* Analítica › «Cuentan 2,500 de 3,318 casos», bajo la descripción del reporte
+   (UniversoAnalisis). Una línea de texto: el encabezado es su lugar. */
+.pulso-universo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+.pulso-universo p { margin: 0; }
+.pulso-universo p.is-aviso { color: var(--pulso-warn-fg); }
+.pulso-universo-cambiar {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pulso-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pulso-universo-cambiar:hover { text-decoration: underline; }
+
+/* Panel «Qué casos cuentan»: una sección por base. */
+.pulso-universo-base { padding: 10px 0; border-bottom: 1px solid var(--pulso-border); }
+.pulso-universo-base:last-child { border-bottom: 0; }
+.pulso-universo-base h3 { margin: 0 0 4px; font-size: 13px; color: var(--pulso-text); }

@@ -11,8 +11,8 @@ import {
 // Diálogo de reconciliación de variables data ↔ XLSForm.
 //
 // Se muestra cuando la data trae variables que ya no existen en el formulario
-// (típicamente de versiones anteriores del XLSForm). Por defecto NO se incluyen
-// en la base; el analista marca las que quiera conservar. `onSave` persiste la
+// (restos de versiones anteriores del XLSForm o columnas agregadas a propósito).
+// Las completas vienen marcadas si aún no hay decisión (`initialIncluidas`). `onSave` persiste la
 // decisión (POST) y devuelve el estado fresco; el diálogo maneja su propio
 // estado de guardado y de error para que la página no cargue con eso.
 export function ReconciliacionExtraDialog({
@@ -73,9 +73,9 @@ export function ReconciliacionExtraDialog({
         <div className="pulso-recon-explain">
           <Info size={16} aria-hidden="true" />
           <p>
-            Estas variables vienen en tu data pero no están en el XLSForm actual, normalmente porque
-            son de versiones anteriores del formulario. Por defecto no se incluyen en la base. Marca
-            las que quieras conservar.
+            Vienen en las respuestas pero no son preguntas del formulario. Las completas suelen
+            agregarse a propósito, como una marca de selección, y vienen marcadas; las que tienen
+            datos sólo en parte suelen ser restos de una versión anterior.
           </p>
         </div>
 

@@ -400,6 +400,8 @@ export type BorradorSegmento = {
   editando: boolean;
   clave: string;
   etiqueta: string;
+  /** Nota al pie de toda tabla cruzada por el segmento. */
+  nota: string;
   escala: CategoriaBorrador[];
   porBase: Record<string, EntradaBorrador>;
 };
@@ -434,6 +436,7 @@ export function borradorDesde(s: Segmento | null, bases: readonly string[]): Bor
     editando: Boolean(s),
     clave: s?.clave ?? "",
     etiqueta: s?.etiqueta ?? "",
+    nota: s?.nota ?? "",
     escala: s ? escalaBorrador(s.escala) : [],
     porBase,
   };
@@ -442,6 +445,7 @@ export function borradorDesde(s: Segmento | null, bases: readonly string[]): Bor
 export type AccionSegmento =
   | { tipo: "etiqueta"; valor: string }
   | { tipo: "clave"; valor: string }
+  | { tipo: "nota"; valor: string }
   | { tipo: "categoria-agregar" }
   | { tipo: "categoria-codigo"; clave: string; valor: string }
   | { tipo: "categoria-etiqueta"; clave: string; valor: string }
@@ -471,6 +475,8 @@ export function reducirSegmento(b: BorradorSegmento, a: AccionSegmento): Borrado
     }
     case "clave":
       return b.editando ? b : { ...b, clave: normalizarClave(a.valor) };
+    case "nota":
+      return { ...b, nota: a.valor };
     case "categoria-agregar":
       return { ...b, escala: [...b.escala, { clave: claveNueva(b.escala), codigo: String(b.escala.length + 1), etiqueta: "" }] };
     case "categoria-codigo": {
@@ -766,7 +772,7 @@ export function segmentoParaGuardar(b: BorradorSegmento, bases: readonly string[
       mapa: Object.fromEntries(Object.entries(e.mapa).filter(([, d]) => d === "" || validos.has(d))),
     };
   }
-  return { clave: b.clave, etiqueta: b.etiqueta.trim(), escala, por_base };
+  return { clave: b.clave, etiqueta: b.etiqueta.trim(), nota: b.nota.trim(), escala, por_base };
 }
 
 // ---------------------------------------------------------------------------

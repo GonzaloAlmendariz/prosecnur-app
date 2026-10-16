@@ -16,6 +16,7 @@ import { rotuloBaseDeclarada, vinculoFormularioDeBase, type VinculoFormulario } 
 import { NuevaBaseFormularioPublicado } from "./NuevaBaseFormularioPublicado";
 import { useFormulariosPublicados } from "./useFormulariosPublicados";
 import { AbrirPanelFuentes } from "./AbrirPanelFuentes";
+import { NuevaVersionRespuestas } from "./NuevaVersionRespuestas";
 import { ArmonizacionBasePanel } from "./ArmonizacionBasePanel";
 import { CompararFuentesPanel } from "./CompararFuentesPanel";
 import { VariablesBasePanel } from "../variablesBase/VariablesBasePanel";
@@ -66,7 +67,7 @@ export function ordenarBasesDelEstudio(bases: readonly EstudioBase[], periodos: 
     .filter((b): b is EstudioBase => Boolean(b));
 }
 
-function TarjetaBase({ base, vinculo, comparables, ocupado, onRenombrar, onQuitar, onOtraFuente }: {
+function TarjetaBase({ base, vinculo, comparables, ocupado, onRenombrar, onQuitar, onOtraFuente, onCambio }: {
   base: EstudioBase;
   vinculo: VinculoFormulario | null;
   /** Otras bases ligadas a la misma revisión: habilitan «Comparar con…». */
@@ -75,6 +76,8 @@ function TarjetaBase({ base, vinculo, comparables, ocupado, onRenombrar, onQuita
   onOtraFuente?: () => void;
   onRenombrar: (nuevo: string) => Promise<void>;
   onQuitar: () => Promise<void>;
+  /** Sólo las bases que vienen de archivos reciben una versión nueva de sus respuestas desde aquí. */
+  onCambio?: (payload: EstudioPayload) => Promise<void> | void;
 }) {
   const [editando, setEditando] = useState(false);
   const [borrador, setBorrador] = useState(base.nombre);
@@ -156,6 +159,8 @@ function TarjetaBase({ base, vinculo, comparables, ocupado, onRenombrar, onQuita
           >
             <Columns3 size={13} aria-hidden="true" />Variables
           </AbrirPanelFuentes>
+          {/* ADR 0100 D1: lo decidido fuera se cambia allá y la base recibe su archivo nuevo. */}
+          {onCambio ? <NuevaVersionRespuestas base={base.nombre} ocupado={ocupado} onCambio={onCambio} /> : null}
           {/* M2: acciones secundarias con el mismo PulsoButton secundario de Carga. */}
           <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={() => setEditando(true)}><Pencil size={13} aria-hidden="true" />Renombrar</PulsoButton>
           <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={() => setConfirmando(true)}><Trash2 size={13} aria-hidden="true" />Quitar</PulsoButton>
@@ -257,6 +262,8 @@ export function BasesDelEstudio({
               ocupado={ocupado}
               onRenombrar={(nuevo) => correr(() => apiEstudioRenameBase(b.nombre, nuevo))}
               onQuitar={() => correr(async () => { await apiEstudioRemoveBase(b.nombre); return apiEstudioGet(); })}
+              // Kobo y SurveyMonkey se actualizan desde su plataforma.
+              onCambio={origenDeBase(b) === "Archivos" || origenDeBase(b) === "Excel" ? onCambio : undefined}
               // Sólo la vía SurveyMonkey clásica: una base nacida de un formulario
               // publicado suma sus campañas desde el formulario (ADR 0102), y
               // «Agregar fuente» regeneraría el XLSForm rompiendo el enlace.

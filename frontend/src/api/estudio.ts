@@ -374,6 +374,67 @@ export async function apiEstudioAddBase(payload: {
   );
 }
 
+/** Qué cambió al cargar la versión nueva de las respuestas de una base. */
+export type CambiosDeRespuestas = {
+  casos: { antes: number; despues: number; clave: string; se_mantienen?: number; nuevos?: number; ya_no_vienen?: number };
+  columnas_nuevas: string[];
+  columnas_que_no_vienen: string[];
+  /** La base tenía grupos de codificación: hay que volver a adaptarlos. */
+  codificacion_por_readaptar: boolean;
+};
+
+function primero(x: unknown): unknown {
+  return Array.isArray(x) ? x[0] : x;
+}
+function numeroOpcional(x: unknown): number | undefined {
+  const v = primero(x);
+  if (v == null || v === "") return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/** Normaliza `cambios` de los dos reemplazos (una base y varias); `null` si no vino. */
+export function normalizarCambiosDeRespuestas(raw: unknown): CambiosDeRespuestas | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const c = raw as Record<string, unknown>;
+  const casos = (c.casos && typeof c.casos === "object" ? c.casos : {}) as Record<string, unknown>;
+  const lista = (x: unknown): string[] => (Array.isArray(x) ? x.map(String) : x == null ? [] : [String(x)]);
+  return {
+    casos: {
+      antes: numeroOpcional(casos.antes) ?? 0,
+      despues: numeroOpcional(casos.despues) ?? 0,
+      clave: String(primero(casos.clave) ?? ""),
+      se_mantienen: numeroOpcional(casos.se_mantienen),
+      nuevos: numeroOpcional(casos.nuevos),
+      ya_no_vienen: numeroOpcional(casos.ya_no_vienen),
+    },
+    columnas_nuevas: lista(c.columnas_nuevas),
+    columnas_que_no_vienen: lista(c.columnas_que_no_vienen),
+    codificacion_por_readaptar: primero(c.codificacion_por_readaptar) === true,
+  };
+}
+
+/**
+ * Carga una versión nueva del archivo de respuestas de una base (ADR 0100 D1):
+ * conserva su formulario, su nombre y lo que declara. `data_file_id` sale de
+ * `apiUpload`.
+ */
+export async function apiEstudioReemplazarRespuestas(payload: { nombre: string; data_file_id: string }) {
+  const raw = await handle<{ ok: true; base: EstudioBase; cambios?: unknown; archivo?: string }>(
+    await apiFetch("/api/estudio/base/respuestas", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+  const vacio: CambiosDeRespuestas = { casos: { antes: 0, despues: 0, clave: "" }, columnas_nuevas: [], columnas_que_no_vienen: [], codificacion_por_readaptar: false };
+  return {
+    base: raw.base,
+    archivo: typeof raw.archivo === "string" ? raw.archivo : "",
+    cambios: normalizarCambiosDeRespuestas(raw.cambios) ?? vacio,
+  };
+}
+
 /** Lo que el backend sintetizó como instrumento desde las etiquetas del .sav. */
 export type BaseSavSintesis = {
   n_variables: number;
@@ -640,4 +701,50 @@ export async function apiUpload(file: File, kind: UploadKind) {
       body: fd,
     })
   );
+}
+
+// ---- Anexar columnas desde otro archivo (carga_columnas_anexadas.R) --------
+
+export type AnexarVista = {
+  archivo: string;
+  claves: { clave: string; n_base: number; n_archivo: number; n_coinciden: number; repetidas_en_archivo: number }[];
+  columnas: { nombre: string; ya_en_la_base: boolean; n_con_dato: number; n_valores: number }[];
+};
+
+function primeroDe(x: unknown): unknown {
+  return Array.isArray(x) ? x[0] : x;
+}
+const num = (x: unknown) => Number(primeroDe(x) ?? 0) || 0;
+
+export async function apiAnexarVista(nombre: string, file_id: string): Promise<AnexarVista> {
+  const r = await handle<Record<string, unknown>>(
+    await apiFetch("/api/estudio/base/anexar/vista", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ nombre, file_id }),
+    }),
+  );
+  const lista = (x: unknown) => (Array.isArray(x) ? (x as Record<string, unknown>[]) : []);
+  return {
+    archivo: String(primeroDe(r.archivo) ?? ""),
+    claves: lista(r.claves).map((c) => ({
+      clave: String(primeroDe(c.clave) ?? ""), n_base: num(c.n_base), n_archivo: num(c.n_archivo),
+      n_coinciden: num(c.n_coinciden), repetidas_en_archivo: num(c.repetidas_en_archivo),
+    })),
+    columnas: lista(r.columnas).map((c) => ({
+      nombre: String(primeroDe(c.nombre) ?? ""), ya_en_la_base: primeroDe(c.ya_en_la_base) === true,
+      n_con_dato: num(c.n_con_dato), n_valores: num(c.n_valores),
+    })),
+  };
+}
+
+export async function apiAnexarColumnas(nombre: string, file_id: string, clave: string, columnas: string[]) {
+  const r = await handle<Record<string, unknown>>(
+    await apiFetch("/api/estudio/base/anexar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ nombre, file_id, clave, columnas }),
+    }),
+  );
+  return { n_base: num(r.n_base), n_con_dato: num(r.n_con_dato) };
 }

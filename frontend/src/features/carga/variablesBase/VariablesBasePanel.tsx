@@ -7,6 +7,7 @@
 // marca «ya viene codificada». Cáscara: `PanelLateralFuentes` (un único dueño de
 // scroll, `.pulso-plf-cuerpo`).
 
+import { AnexarColumnas } from "./AnexarColumnas";
 import { useCallback, useId } from "react";
 import { Link, useInRouterContext, useLocation, useNavigate } from "react-router-dom";
 import { Switch } from "../../../components/Switch";
@@ -75,7 +76,7 @@ export function VariablesBasePanel(props: VariablesBasePanelProps) {
 
 /** Lo que va dentro del dueño de scroll. Aparte del diálogo para renderizarlo sin portal. */
 export function VariablesBaseCuerpo({ control }: { control: ControlVariablesBase }) {
-  const { estado, declarar, guardarCalculada, quitarCalculada, marcarCodificada } = control;
+  const { estado, declarar, guardarCalculada, quitarCalculada, marcarCodificada, recargar } = control;
   const idCodificada = useId();
   const enRouter = useInRouterContext();
   const { carga, catalogo, resumenes, ocupado, mensaje } = estado;
@@ -128,6 +129,8 @@ export function VariablesBaseCuerpo({ control }: { control: ControlVariablesBase
         onIncorporar={(columnas) => declarar(columnas)}
         onQuitar={(name) => void declarar([], [name])}
       />
+
+      <AnexarColumnas base={datos.base} onAnexadas={recargar} />
 
       <VariablesCalculadas
         base={datos.base}

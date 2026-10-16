@@ -543,3 +543,14 @@ test_that("Fase 3 completa sobre multibase nueva produce columnas y etiquetas es
   )))
   expect_equal(roles$target, c("p10_mexico_recod", "p10_peru_other_recod", "p_text_recod", "edad_recod"))
 })
+
+test_that("el zip multibase se nombra limpio, sin el uuid de su ruta temporal", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  f1 <- tempfile(fileext = ".xlsx"); writeLines("a", f1)
+  f2 <- tempfile(fileext = ".xlsx"); writeLines("b", f2)
+  outs <- list(list(path = f1, filename = "a.xlsx"), list(path = f2, filename = "b.xlsx"))
+  z <- .zip_outputs(sid, outs, "libro_de_codigos", "codebook_multi")
+  expect_false(grepl("^[0-9a-f]{8}-", z$filename))
+  expect_match(z$filename, "libro_de_codigos.*\\.zip$")
+})

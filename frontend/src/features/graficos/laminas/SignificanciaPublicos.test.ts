@@ -28,4 +28,9 @@ describe("temasComparables", () => {
     });
     expect(temasComparables([compuesta])).toHaveLength(0);
   });
+
+  it("deja fuera un segmento de cruce: es variable de cruce, no tema (ADR 0107)", () => {
+    const seg = fila({ etiqueta_estandar: "Sexo", variables: { b2024: "cruce_sexo", b2025: "cruce_sexo" }, cruce: true });
+    expect(temasComparables([seg, fila({})]).map((f) => f.etiqueta_estandar)).toEqual(["Recurrió a alguna instancia"]);
+  });
 });

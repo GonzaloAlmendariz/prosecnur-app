@@ -119,7 +119,16 @@ export function VariablesCalculadas({
                   <p className="pulso-vb-calculada-regla">{reglaLegible(c)}</p>
                   {resumenes[c.nombre] && <p className="pulso-vb-calculada-resumen">{textoResumen(resumenes[c.nombre])}</p>}
                 </div>
-                {confirmando === c.nombre ? (
+                {c.segmento ? (
+                  // Es la variable de un segmento de cruce (ADR 0107): editarla o quitarla
+                  // aquí desincronizaría el segmento entre las bases.
+                  <span className="pulso-vb-calculada-acciones">
+                    <span className="pulso-equiv-chip-cruce">Segmento de cruce</span>
+                    <a className="pulso-vb-enlace" href={`/carga?seccion=carga&pestana=equivalencias&panel=segmentos&foco=${encodeURIComponent(c.segmento)}`}>
+                      Editar en Segmentos
+                    </a>
+                  </span>
+                ) : confirmando === c.nombre ? (
                   <span className="pulso-vb-confirmar" role="alert">
                     <span>¿Quitar «{c.nombre}»?</span>
                     <PulsoButton

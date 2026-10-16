@@ -54,6 +54,9 @@
       .analitica_operational_metadata_vars(reviewed$inst)
     )
     data_out <- .analitica_filter_data(reviewed$data, reviewed$inst, numericas_arg, excluidas_eff)
+    # El libro documenta también las preguntas sin lista (edad, índices,
+    # calculadas): el filtro de Frecuencias las dejaba fuera.
+    data_out <- .codebook_con_sin_lista(reviewed$data, data_out, excluidas_eff)
 
     if (identical(formato, "pdf")) {
       reporte_codebook_pdf(

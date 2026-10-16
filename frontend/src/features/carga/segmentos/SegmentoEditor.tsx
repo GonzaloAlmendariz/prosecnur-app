@@ -153,6 +153,14 @@ export function SegmentoEditor({
             <span id={`${id}-nombre`} className="pulso-sr-only">Lleva delante «{PREFIJO_SEGMENTO}».</span>
           </label>
         </div>
+        <label className="pulso-compuesto-campo">
+          <span>Nota al pie <small className="pulso-armon-tenue">opcional</small></span>
+          <input
+            value={b.nota}
+            placeholder="Va al pie de toda tabla cruzada por este segmento"
+            onChange={(e) => despachar({ tipo: "nota", valor: e.target.value })}
+          />
+        </label>
       </section>
 
       <section className="pulso-armon-seccion" aria-labelledby={`${id}-escala`} data-qa-geometry-member>

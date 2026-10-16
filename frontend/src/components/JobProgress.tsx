@@ -56,8 +56,12 @@ function formatPhase(phase?: string) {
     case "pdf": return "Generando hojas";
     case "workbook": return "Generando reportes";
     case "zip": return "Empaquetando ZIP";
+    case "building": return "Calculando";
+    case "writing": return "Escribiendo";
     case "done": return "Listo";
-    default: return phase ?? "";
+    // Una etapa que no está aquí es un código interno del motor: no se muestra
+    // («writing» llegó a la pantalla así). El mensaje en español ya dice qué pasa.
+    default: return "";
   }
 }
 
