@@ -106,6 +106,10 @@ attr(armonizada_job_worker, "prosecnur_job_function_name") <- "armonizada_job_wo
              "Elige al menos una variable de cruce armonizada o declara un segmento de cruce del estudio.")
   }
   extras <- .armonizada_extras(body)
+  # ADR 0107: la nota de cada segmento usado como cruce va al pie de todas sus tablas.
+  if (identical(tipo, "cruces")) {
+    extras$notas_generales <- unique(c(segmentos_notas_de_cruces(sid, cruces_refs), extras$notas_generales))
+  }
   ap <- .armz_preparar(sid, cfg, filas_refs = body$filas,
                        cruces_refs = if (identical(tipo, "cruces")) cruces_refs else NULL)
   rotulos <- .armz_rotulos(ap$periodos, body$rotulos_periodos)

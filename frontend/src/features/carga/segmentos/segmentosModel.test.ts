@@ -455,6 +455,7 @@ describe("validación y cuerpo del POST", () => {
     expect(segmentoParaGuardar(b, BASES)).toEqual({
       clave: "edad",
       etiqueta: "Edad",
+      nota: "",
       escala: ESCALA,
       por_base: {
         "2024": { origen: "cruce_1", mapa: { "1": "1", "2": "2" } },
