@@ -45,6 +45,60 @@ test_that("una numérica 18..40 devuelve todos sus enteros en orden numérico, s
   expect_false(r$truncado)
 })
 
+# Base con preguntas `text` que sólo traen números (la edad de HSyVbG 2026 P1,
+# `text` con constraint regex), un id numérico por caso, un texto libre y una
+# fecha tecleada como número.
+.co_estudio_text_numerico <- function() {
+  sid <- session_create()
+  inst <- list(
+    survey = data.frame(type = c("text", "text", "text", "date"),
+                        name = c("p1_edad", "id_num", "opinion", "fecha"),
+                        label = c("Edad", "Id", "Opinión", "Fecha"), stringsAsFactors = FALSE),
+    choices = data.frame(list_name = character(0), name = character(0), label = character(0),
+                         stringsAsFactors = FALSE)
+  )
+  n <- 52L
+  data <- data.frame(
+    p1_edad = c(as.character(rep(c(40:18, 25L, 30L), 2L)), NA, NA),
+    id_num = as.character(70000000L + seq_len(n)),
+    opinion = c(sprintf("Me parece que %d", seq_len(n - 2L)), NA, NA),
+    fecha = rep(c("20260101", "20260102"), n / 2L),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  .bv_add_base(sid, "T", inst, .bv_xlsx_bytes(list(data = data)), "data_t.xlsx", "xlsx")
+  sid
+}
+
+test_that("una text con sólo números repetidos (la edad tecleada) sale numérica con códigos en orden numérico", {
+  sid <- .co_estudio_text_numerico()
+  on.exit(session_delete(sid), add = TRUE)
+  r <- codigos_observados_consultar(sid, "T", "p1_edad")
+  expect_identical(r$tipo, "numerica")
+  expect_identical(.co_codigos(r), as.character(18:40))
+  esperado <- stats::setNames(rep(2L, 23L), as.character(18:40))
+  esperado[c("25", "30")] <- 4L
+  expect_identical(.co_n(r), esperado)
+  expect_identical(r$n_validos, 50L)
+  expect_identical(r$n_sin_dato, 2L)
+  expect_false(r$truncado)
+})
+
+test_that("una text numérica casi única (un id por caso), la text libre y la date siguen siendo texto sin códigos", {
+  sid <- .co_estudio_text_numerico()
+  on.exit(session_delete(sid), add = TRUE)
+  id <- codigos_observados_consultar(sid, "T", "id_num")
+  expect_identical(id$tipo, "texto")
+  expect_length(id$codigos, 0L)
+  expect_identical(id$n_validos, 52L)
+  op <- codigos_observados_consultar(sid, "T", "opinion")
+  expect_identical(op$tipo, "texto")
+  expect_length(op$codigos, 0L)
+  expect_identical(op$n_validos, 50L)
+  fe <- codigos_observados_consultar(sid, "T", "fecha")
+  expect_identical(fe$tipo, "texto")
+  expect_length(fe$codigos, 0L)
+})
+
 test_that("una select_one trae la etiqueta del instrumento y cuenta los vacíos aparte", {
   sid <- .co_estudio_edad()
   on.exit(session_delete(sid), add = TRUE)
