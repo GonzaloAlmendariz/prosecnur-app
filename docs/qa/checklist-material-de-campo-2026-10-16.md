@@ -70,7 +70,11 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | H5 | Monitoreo territorial salta en silencio una unidad sin márgenes de cuota | `api/R/monitoreo_engine.R:9642` | pendiente: hoy afecta a manzanas sin cuota; bloquea E4 |
 | H6 | `hojas-ruta/entrega` no tiene documento que la gobierne | `docs/sistema/direcciones/hojas-ruta.md:18` | pendiente (E0a) |
 | H7 | El script de la hoja de ruta de Ser Adolescente lee la cartografía de la app por ruta absoluta | `Campo/Generadores/mapa.py` (fuera del repo) | pendiente: desaparece con E2 a E4 |
-| H9 | El fixture hsvg2026 no tiene estado de Recopiladores: ningún proyecto de referencia prueba un plan con accesos | `api/inst/reference_projects/` | pendiente (antes de E1) |
+| H9 | El fixture hsvg2026 no tiene estado de Recopiladores: ningún proyecto de referencia prueba un plan con accesos | `scripts/qa/material_campo_sembrar_plan.R` | hecho en la rama (5589e3cef): sembrador reproducible → `tmp/qa-material-campo/hsvg2026_con_plan.pulso` (2.373 unidades, accesos sintéticos, plantilla y paquete), sin tocar los proyectos de referencia |
+| H21 | Accesos no rehidrata el despliegue Kobo preparado (adapter y URL se pierden en `.ca_preview_deployment`) | `api/R/collection_adapters.R:465`, `AccessSection.tsx:144` | pendiente: diagnosticado, preexistente en main |
+| H22 | Paquetes dice «Fichas 0 de N» con las fichas creadas; cada visita crea una instancia nueva | `MaterialsSection.tsx:247,288,419` | pendiente: diagnosticado, preexistente en main |
+| H23 | Entrega ofrece descargar un recibo cuyo archivo no viaja en el `.pulso` (404 al reabrir); «1 páginas» | `DeliverySection.tsx:37,139`, payload de `collection_state` | pendiente: diagnosticado, preexistente en main |
+| H24 | El fixture anonimizado muestra facultades y cursos como nombres de persona | `api/inst/reference_projects/hsvg2026` | pendiente: trampa del anonimizador, no de la app |
 | H10 | Entrega > Reemplazos esconde 250 px a la derecha sin indicio y el runner dice `desplazamientoH=0` | `.hojas-ruta-review-table-wrap.is-delivery`, `scripts/ui-quick-check.mjs` | pendiente: detector y tabla |
 | H11 | En 1024x600 dos ítems del outline de Materiales desbordan (173 y 182 px en 166) | `features/recopiladores/` | hecho en la rama (5 mejoras, 2026-10-16): filas alineadas, sin overflow a 1024 |
 | H12 | Hojas de ruta > Selección no declara ningún grupo geométrico (C1); el outline del Catálogo tampoco | `features/hojasRuta/HojasRutaPage.tsx`, editor de Materiales | outline hecho en la rama (`material-catalogo-outline`, equal); Selección de Hojas de ruta sigue pendiente |
@@ -97,7 +101,7 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | E1d | Imprenta: carpeta numerada, imposición dúplex y dos por hoja, pliego físico, conteo y LEEME | job de render, `features/recopiladores/` | pendiente |
 | E6 | Pedido de cambios en palabras | ADR 0109 §6 | **bloqueado**: proveedor del modelo, credencial y modo sin conexión |
 | E1e | Unidades › Origen: huella, diferencias y «Actualizar desde la fuente» (aulas) | ADR 0110 §1 | pendiente |
-| E1f | Correos: editor, campos, vistas y exportación para Mailchimp | ADR 0110 §2 | en curso: backend hecho en la rama (7ee56e7ee, gate R 1722); frontend en construcción |
+| E1f | Correos: editor, campos, vistas y exportación para Mailchimp | ADR 0110 §2 | hecho en la rama: verificador APROBADO CON PENDIENTES (2026-10-16) sobre 7ee56e7ee…01ce8b57e; revisor-metodologico APROBADO CON SUPUESTOS (en ADR 0110); guardian-contratos cerrado. Gate R 1854, front 697; export en vivo con CSV CP1252, logos persisten al reabrir, `.pulso` sin correos. Pendiente: probar el HTML en Mailchimp real; chequeo de modo oscuro; sombra y ancho 640 px los decide Gonzalo |
 | E7 | API de Mailchimp para plantilla o campaña en borrador (opcional) | ADR 0110 §3 | **bloqueado**: credencial y autorización |
 | E2 | `ump_territorial_v1` y salidas de Hojas de ruta como layout legacy | archivo nuevo junto a `collection_adapters.R` | pendiente |
 | E3 | Bloques `quota_grid`, `unit_map`, `place_checklist`, `route_instructions`; port; retiro del legacy | registro de bloques | pendiente |
