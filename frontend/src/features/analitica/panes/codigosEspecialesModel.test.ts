@@ -13,7 +13,7 @@ describe("códigos especiales sugeridos", () => {
   it("un código marcado que no está en los instrumentos se conserva y lo dice", () => {
     const o = opcionesCodigosEspeciales([sug("99", "No responde")], [96, 99]);
     expect(o.map((x) => [x.code, x.origen, x.marcado])).toEqual([[96, "configurado", true], [99, "estudio", true]]);
-    expect(o[0].label).toBe("No aparece en los instrumentos");
+    expect(o[0].label).toBe("No está en el estudio");
   });
 
   it("un código escrito a mano es un entero", () => {

@@ -49,3 +49,9 @@
   cursor: default;
   color: var(--pulso-text-faint);
 }
+
+/* El código nunca se parte («9 / 6»): la etiqueta envuelve, el número no. */
+.analitica-codebook-code code {
+  flex: none;
+  white-space: nowrap;
+}
