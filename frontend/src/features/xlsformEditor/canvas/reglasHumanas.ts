@@ -234,9 +234,15 @@ export function describeExpr(
   options: { currentLabel?: string } = {},
 ): string {
   if (expr.kind === "logical") {
+    const rango = expr.op === "and" ? describeRange(expr.operands, scope, options) : null;
+    if (rango) return rango;
     const connector = expr.op === "and" ? " y " : " o ";
+    // Sólo la primera cláusula abre con mayúscula: «La respuesta es X y la respuesta no es Y».
     return expr.operands
-      .map((operand) => describeExpr(operand, scope, options))
+      .map((operand, i) => {
+        const frase = describeExpr(operand, scope, options);
+        return i > 0 && /^La /.test(frase) ? `la ${frase.slice(3)}` : frase;
+      })
       .join(connector);
   }
 
@@ -421,4 +427,23 @@ export function validationPresetsFor(node: BuilderNode): ValidationPreset[] {
     default:
       return [];
   }
+}
+
+/** «X >= a and X <= b» sobre el mismo sujeto se lee como un rango: «La respuesta está entre 18 y 100». */
+function describeRange(operands: Expr[], scope: LogicScope, options: { currentLabel?: string }): string | null {
+  if (operands.length !== 2) return null;
+  const [a, b] = operands;
+  if (a.kind !== "compare" || b.kind !== "compare") return null;
+  const mismoSujeto =
+    (a.left.kind === "current" && b.left.kind === "current") ||
+    (a.left.kind === "ref" && b.left.kind === "ref" && a.left.name === b.left.name);
+  if (!mismoSujeto) return null;
+  const bajo = [a, b].find((c) => c.op === ">=" || c.op === ">");
+  const alto = [a, b].find((c) => c.op === "<=" || c.op === "<");
+  if (!bajo || !alto) return null;
+  const sujeto = describeOperand(bajo.left, scope, options);
+  const min = describeOperand(bajo.right, scope, options);
+  const max = describeOperand(alto.right, scope, options);
+  if (bajo.op === ">=" && alto.op === "<=") return `${sujeto} está entre ${min} y ${max}`;
+  return `${sujeto} es ${bajo.op === ">" ? "mayor que" : "al menos"} ${min} y ${alto.op === "<" ? "menor que" : "como máximo"} ${max}`;
 }
