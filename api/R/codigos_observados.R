@@ -14,7 +14,9 @@
 #
 # Privacidad (mismo criterio que base_variables_detector.R): una variable de
 # texto libre —tipo `text` del instrumento, o texto con más de un valor distinto
-# por cada dos casos, o con algún valor largo— no devuelve valores.
+# por cada dos casos, o con algún valor largo— no devuelve valores. Excepción:
+# una `text` cuyos valores son todos números y no supera ese umbral (la edad
+# tecleada) sale `numerica` con sus códigos.
 
 .CODIGOS_OBSERVADOS_TOPE <- 500L
 .CODIGOS_OBSERVADOS_TIPOS_CATEGORICOS <- c("select_one", "select_multiple", "select_one_from_file",
@@ -70,23 +72,46 @@
   lapply(v, function(z) if (is.na(z)) NA_character_ else unique(strsplit(z, "[[:space:]]+")[[1]]))
 }
 
-# ¿Es texto libre? Mismo umbral que la propuesta de columnas propias.
-.codigos_observados_es_texto_libre <- function(x, codigos, n_validos) {
-  if (is.numeric(haven::zap_labels(x))) return(FALSE)
-  if (!length(codigos)) return(FALSE)
-  if (all(!is.na(suppressWarnings(as.numeric(codigos))))) return(FALSE)
+# ¿Todos los códigos observados son números finitos?
+.codigos_observados_todos_numericos <- function(codigos) {
+  length(codigos) > 0L && all(is.finite(suppressWarnings(as.numeric(codigos))))
+}
+
+# Umbral de texto libre de la propuesta de columnas propias: más de un valor
+# distinto por cada dos casos, o algún valor largo.
+.codigos_observados_supera_umbral_libre <- function(codigos, n_validos) {
   length(codigos) > 0.5 * n_validos ||
     any(nchar(codigos, type = "chars") > .BASE_VARIABLES_MAX_CHARS_OPCION)
 }
 
+# ¿Es texto libre? Mismo umbral que la propuesta de columnas propias.
+.codigos_observados_es_texto_libre <- function(x, codigos, n_validos) {
+  if (is.numeric(haven::zap_labels(x))) return(FALSE)
+  if (!length(codigos)) return(FALSE)
+  if (.codigos_observados_todos_numericos(codigos)) return(FALSE)
+  .codigos_observados_supera_umbral_libre(codigos, n_validos)
+}
+
+# Una pregunta `text` que sólo trae números con repetición (la edad tecleada
+# con constraint regex) es una escala numérica: el editor de segmentos necesita
+# sus códigos para armar rangos. Un número casi único por caso (un id, un DNI)
+# sigue siendo texto y no devuelve valores.
+.codigos_observados_text_numerico <- function(codigos, n_validos) {
+  .codigos_observados_todos_numericos(codigos) &&
+    !.codigos_observados_supera_umbral_libre(codigos, n_validos)
+}
+
 .codigos_observados_tipo <- function(tipo_inst, x, codigos, n_validos, etiquetas) {
+  if (identical(tipo_inst, "text") && .codigos_observados_text_numerico(codigos, n_validos)) {
+    return("numerica")
+  }
   if (tipo_inst %in% .CODIGOS_OBSERVADOS_TIPOS_TEXTO) return("texto")
   if (tipo_inst %in% .CODIGOS_OBSERVADOS_TIPOS_CATEGORICOS) return("categorica")
   if (tipo_inst %in% .CODIGOS_OBSERVADOS_TIPOS_NUMERICOS) return("numerica")
   # Sin tipo declarado (columna no declarada, calculate, metadato): se infiere.
   if (length(etiquetas)) return("categorica")
   if (.codigos_observados_es_texto_libre(x, codigos, n_validos)) return("texto")
-  if (length(codigos) && all(!is.na(suppressWarnings(as.numeric(codigos))))) return("numerica")
+  if (.codigos_observados_todos_numericos(codigos)) return("numerica")
   "categorica"
 }
 
