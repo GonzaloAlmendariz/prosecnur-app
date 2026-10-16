@@ -71,6 +71,8 @@ export type LogicCanvasProps = {
   embebido?: boolean;
   /** Acciones extra en la cabecera (p. ej. «Lógica de SurveyMonkey» en el editor). */
   acciones?: ReactNode;
+  /** Fila a enfocar desde fuera (la lista de lógica de la pestaña): selecciona su nodo y lo encuadra. */
+  seleccionFila?: number | null;
 };
 
 export function LogicCanvas({
@@ -84,12 +86,16 @@ export function LogicCanvas({
   onEditarEnConstructor,
   onSetRelevant,
   embebido = false,
+  seleccionFila = null,
   acciones,
 }: LogicCanvasProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  useEffect(() => {
+    if (seleccionFila != null) setSelectedId(`q:${seleccionFila}`);
+  }, [seleccionFila]);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(),
   );

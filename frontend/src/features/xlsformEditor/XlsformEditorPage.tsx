@@ -209,6 +209,7 @@ import "./styles/xlsform-v2.css";
 import "./styles/xf-logic.css";
 import { PestanaRestricciones } from "./pestanas/PestanaRestricciones";
 import { PestanaCalculos } from "./pestanas/PestanaCalculos";
+import { ListaLogica } from "./canvas-graph/ListaLogica";
 
 /**
  * Posición 1-indexed de una fila dentro del outline, contando solo
@@ -3001,6 +3002,13 @@ export default function XlsformEditorPage() {
   // que una pregunta dependa de sí misma), y excepto secciones/repeats
   // (esos no producen valores comparables). Los catálogos se indexan por
   // listName para lookup O(1) en el ValueInput.
+  // Foco de la lista de lógica → fila a enfocar en el mapa: «seccion:<fila>» o el nombre de la variable.
+  const filaFocoLogica = useMemo(() => {
+    const foco = pestana === "logica" ? pestanaEditor.foco : null;
+    if (!foco || !structure) return null;
+    if (foco.startsWith("seccion:")) return Number(foco.slice(8));
+    return structure.outline.find((n) => n.name === foco)?.rowIndex ?? null;
+  }, [pestana, pestanaEditor.foco, structure]);
   const logicScope = useMemo<LogicScope>(() => {
     const variables: LogicVariable[] = (structure?.outline ?? [])
       .filter(
@@ -3523,40 +3531,46 @@ export default function XlsformEditorPage() {
             )}
             {/* El mapa queda montado aunque se cambie de pestaña: conserva zoom y
                 encuadre entre visitas (como hacía el overlay). */}
-            <LogicCanvas
-              embebido
-              open={pestana === "logica"}
-              structure={structure}
-              catalogs={catalogs}
-              onEditarEnConstructor={irAFila}
-              acciones={(
-                <button
-                  type="button"
-                  className="pulso-graph-allbutton"
-                  onClick={() => {
-                    setLogicReviewFormId(null);
-                    smLogicPanel.abrir();
-                  }}
-                  title="Editar, agregar o reutilizar reglas de salto de SurveyMonkey sin regenerar el XLSForm"
-                >
-                  Lógica de SurveyMonkey
-                </button>
+            <div className={pestana === "logica" ? "xfl-logica" : "xfl-logica is-oculta"}>
+              {pestana === "logica" && (
+                <ListaLogica structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} />
               )}
-              onSetRelevant={(rowIndex, expression) => {
-                // El canvas declara/edita/elimina relaciones de visibilidad
-                // (relevant). Una expresión vacía ELIMINA la condición (el
-                // elemento pasa a mostrarse siempre); una no vacía la crea/edita.
-                updateSurveyField(rowIndex, "relevant", expression);
-                const cleared = expression.trim() === "";
-                toasts.push({
-                  kind: "success",
-                  title: cleared ? "Relación eliminada" : "Conexión creada",
-                  detail: cleared
-                    ? "Se quitó la condición de visibilidad; el elemento se mostrará siempre."
-                    : "Se condicionó la visibilidad. Refínala en el inspector si quieres precisar el valor.",
-                });
-              }}
-            />
+              <LogicCanvas
+                embebido
+                seleccionFila={filaFocoLogica}
+                open={pestana === "logica"}
+                structure={structure}
+                catalogs={catalogs}
+                onEditarEnConstructor={irAFila}
+                acciones={(
+                  <button
+                    type="button"
+                    className="pulso-graph-allbutton"
+                    onClick={() => {
+                      setLogicReviewFormId(null);
+                      smLogicPanel.abrir();
+                    }}
+                    title="Editar, agregar o reutilizar reglas de salto de SurveyMonkey sin regenerar el XLSForm"
+                  >
+                    Lógica de SurveyMonkey
+                  </button>
+                )}
+                onSetRelevant={(rowIndex, expression) => {
+                  // El canvas declara/edita/elimina relaciones de visibilidad
+                  // (relevant). Una expresión vacía ELIMINA la condición (el
+                  // elemento pasa a mostrarse siempre); una no vacía la crea/edita.
+                  updateSurveyField(rowIndex, "relevant", expression);
+                  const cleared = expression.trim() === "";
+                  toasts.push({
+                    kind: "success",
+                    title: cleared ? "Relación eliminada" : "Conexión creada",
+                    detail: cleared
+                      ? "Se quitó la condición de visibilidad; el elemento se mostrará siempre."
+                      : "Se condicionó la visibilidad. Refínala en el inspector si quieres precisar el valor.",
+                  });
+                }}
+              />
+            </div>
             {pestana === "restricciones" && (
               <PestanaRestricciones structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} />
             )}
