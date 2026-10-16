@@ -535,3 +535,11 @@
 .pulso-vb-formula-usadas span {
   overflow-wrap: anywhere;
 }
+
+/* Anexar columnas desde otro archivo (AnexarColumnas). */
+.pulso-vb-anexar { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.pulso-vb-anexar p { margin: 0; }
+.pulso-vb-anexar-lista { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow: auto; }
+.pulso-vb-anexar-lista label { display: flex; align-items: baseline; gap: 6px; }
+.pulso-vb-anexar-lista small { color: var(--pulso-text-soft); }
+.pulso-vb-anexar-acciones { display: flex; gap: 6px; }
