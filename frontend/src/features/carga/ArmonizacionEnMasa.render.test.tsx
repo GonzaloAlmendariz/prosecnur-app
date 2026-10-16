@@ -31,7 +31,7 @@ describe("barra «asignar en masa»", () => {
   it("con marcados pide la categoría y permite desmarcar", () => {
     const muchos = render(26, 0);
     expect(muchos).toContain("26 marcados");
-    expect(muchos).toContain("2 Provincias");
+    expect(muchos).toContain(">Provincias<");
     expect(muchos).toContain("Sin mapa");
     expect(muchos).toContain(">Asignar<");
     expect(muchos).toContain("Desmarcar");

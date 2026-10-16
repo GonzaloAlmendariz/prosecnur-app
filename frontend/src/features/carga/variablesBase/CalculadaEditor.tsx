@@ -334,7 +334,7 @@ function Recodificar({
                             >
                               <option value="">Sin mapa</option>
                               {escalaValida.map((c) => (
-                                <option key={c.clave} value={c.codigo}>{c.codigo} {c.etiqueta}</option>
+                                <option key={c.clave} value={c.codigo}>{c.etiqueta || c.codigo}</option>
                               ))}
                             </select>
                           </td>

@@ -56,7 +56,7 @@ export function ArmonizacionAsignarEnMasa({
           <option value="">Elige una categoría</option>
           {escala.filter((c) => c.codigo).map((c) => (
             <option key={c.codigo} value={c.codigo}>
-              {c.codigo} {c.etiqueta}
+              {c.etiqueta || c.codigo}
             </option>
           ))}
           {opcionesExtra.map((o) => (
