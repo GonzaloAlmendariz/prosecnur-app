@@ -39,14 +39,17 @@ test_that("lee la ponderación de todas las bases sin cambiar la activa ni mutar
   expect_setequal(names(out$bases), c("b2024", "b2025", "b2026"))
   expect_identical(out$bases$b2024, list(declarada = TRUE, enabled = TRUE,
                                          modo = "columna",
-                                         peso_columna = "factor_ponderacion"))
+                                         peso_columna = "factor_ponderacion",
+                                         columnas_peso = list()))
   # La activa (b2025) no declara: no hereda de b2024.
   expect_identical(out$bases$b2025, list(declarada = FALSE, enabled = NA,
                                          modo = NA_character_,
-                                         peso_columna = NA_character_))
+                                         peso_columna = NA_character_,
+                                         columnas_peso = list()))
   expect_identical(out$bases$b2026, list(declarada = TRUE, enabled = FALSE,
                                          modo = NA_character_,
-                                         peso_columna = NA_character_))
+                                         peso_columna = NA_character_,
+                                         columnas_peso = list()))
 
   despues <- session_get(sid)
   expect_identical(estudio_active_base(sid), "b2025")
@@ -71,6 +74,47 @@ test_that("la activa con columna declarada se lee igual; calibración sin modo",
   expect_true(is.na(out$bases$b2025$peso_columna))
   expect_false(out$bases$b2026$declarada)
   expect_identical(estudio_active_base(sid), "b2024")
+})
+
+# Dos bases con data real: «2025» trae `factor_ponderacion` numérica sin
+# declarar (y una `pond_nota` de texto que no es peso); «2026» no trae peso.
+.pbs_session_con_data <- function() {
+  sid <- session_create()
+  inst <- list(
+    survey = data.frame(type = c("select_one sexo", "text"), name = c("sexo", "pond_nota"),
+                        label = c("Sexo", "Nota"), stringsAsFactors = FALSE),
+    choices = data.frame(list_name = "sexo", name = c("1", "2"), label = c("Mujer", "Hombre"),
+                         stringsAsFactors = FALSE)
+  )
+  d25 <- data.frame(sexo = rep(c("1", "2"), 5L), pond_nota = rep(c("alto", "bajo"), 5L),
+                    factor_ponderacion = seq(0.5, 1.4, by = 0.1), stringsAsFactors = FALSE)
+  d26 <- data.frame(sexo = rep(c("1", "2"), 5L), pond_nota = rep(c("alto", "bajo"), 5L),
+                    stringsAsFactors = FALSE)
+  .bv_add_base(sid, "2025", inst, .bv_xlsx_bytes(list(data = d25)), "data_2025.xlsx", "xlsx")
+  .bv_add_base(sid, "2026", inst, .bv_xlsx_bytes(list(data = d26)), "data_2026.xlsx", "xlsx")
+  estudio_active_base_set(sid, "2026")
+  sid
+}
+
+test_that("columnas_peso: la columna numérica con nombre de peso sin declarar, y [] si la base no la trae", {
+  skip_if_not_installed("openxlsx")
+  sid <- .pbs_session_con_data()
+  on.exit(session_delete(sid), add = TRUE)
+  antes <- digest::digest(session_get(sid))
+
+  out <- ponderacion_bases_estado(sid)
+
+  expect_false(out$bases$`2025`$declarada)
+  expect_identical(out$bases$`2025`$columnas_peso, list("factor_ponderacion"))
+  expect_false(out$bases$`2026`$declarada)
+  expect_identical(out$bases$`2026`$columnas_peso, list())
+  # Arreglo JSON también con uno o cero elementos.
+  json <- jsonlite::toJSON(out, auto_unbox = TRUE, null = "null", na = "null")
+  expect_match(json, '"columnas_peso":["factor_ponderacion"]', fixed = TRUE)
+  expect_match(json, '"columnas_peso":[]', fixed = TRUE)
+  # Lee las dos bases sin cambiar la activa ni mutar la sesión.
+  expect_identical(.estudio_active_base_name(session_get(sid)), "2026")
+  expect_identical(digest::digest(session_get(sid)), antes)
 })
 
 test_that("contrato HTTP: ruta GET montada, JSON con null y sin sesión E_NO_SESSION", {
@@ -104,6 +148,7 @@ test_that("contrato HTTP: ruta GET montada, JSON con null y sin sesión E_NO_SES
   expect_true(j$ok)
   expect_identical(j$bases$b2024$modo, "columna")
   expect_identical(j$bases$b2024$peso_columna, "factor_ponderacion")
+  expect_identical(j$bases$b2024$columnas_peso, list())
   expect_false(j$bases$b2025$declarada)
   expect_null(j$bases$b2025$enabled)
   expect_true("enabled" %in% names(j$bases$b2025))
