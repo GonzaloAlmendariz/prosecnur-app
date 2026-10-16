@@ -1,0 +1,512 @@
+/* Fila con campo numérico (tope de opciones): misma caja que el switch. */
+.pulso-xf-pdf-number-row {
+  cursor: default;
+}
+
+.pulso-xf-pdf-number-row .pulso-xf-pdf-switch-text {
+  cursor: pointer;
+}
+
+.pulso-xf-pdf-number {
+  flex: 0 0 auto;
+  width: 72px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-xf-pdf-switch-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pulso-xf-pdf-switch-text strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-pdf-switch-text em {
+  font-style: normal;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-xf-pdf-switch {
+  flex: 0 0 auto;
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--pulso-border-strong);
+  transition: background var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-pdf-switch.is-on {
+  background: var(--pulso-primary);
+}
+
+.pulso-xf-pdf-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-xf-pdf-switch.is-on .pulso-xf-pdf-switch-thumb {
+  transform: translateX(16px);
+}
+
+/* ── Matrices ──────────────────────────────────────────────────────────── */
+
+.pulso-xf-pdf-matrix-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pulso-xf-pdf-matrix {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  overflow: hidden;
+  transition: border-color var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-pdf-matrix.is-active {
+  border-color: var(--pulso-primary-border);
+}
+
+.pulso-xf-pdf-matrix-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.pulso-xf-pdf-matrix-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+}
+
+.pulso-xf-pdf-matrix.is-active .pulso-xf-pdf-matrix-badge {
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+
+.pulso-xf-pdf-matrix-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pulso-xf-pdf-matrix-info strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-pdf-matrix-info em {
+  font-style: normal;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--pulso-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-xf-pdf-matrix-toggle-label {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-pdf-matrix-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 4px 14px 14px;
+  border-top: 1px solid var(--pulso-border-soft);
+}
+
+/* El Tenor ocupa la fila completa; Columna especial y Cabecera la comparten. */
+.pulso-xf-pdf-control--tenor {
+  grid-column: 1 / -1;
+}
+
+.pulso-xf-pdf-control {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+/* Selector de consentimiento: control ancho al pie de la sección Lógica. */
+.pulso-xf-pdf-control--consent {
+  margin-top: 14px;
+}
+
+.pulso-xf-pdf-control--consent label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pulso-xf-pdf-control label {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-pdf-control-hint {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-xf-pdf-input {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  transition: border-color var(--motion-dur-fast) ease, box-shadow var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-pdf-input:focus {
+  outline: none;
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-xf-pdf-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pulso-xf-pdf-select {
+  width: 100%;
+  height: 28px;
+  padding: 0 30px 0 10px;
+  font-size: 13px;
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) ease, box-shadow var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-pdf-select:focus {
+  outline: none;
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-xf-pdf-select-caret {
+  position: absolute;
+  right: 9px;
+  color: var(--pulso-text-muted);
+  pointer-events: none;
+}
+
+.pulso-xf-pdf-card:focus-visible,
+.pulso-xf-pdf-switch-row:focus-visible,
+.pulso-xf-pdf-matrix-head:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* ── Responsivo compacto ───────────────────────────────────────────────── */
+
+@media (max-width: 620px) {
+  .pulso-xf-pdf-cards {
+    grid-template-columns: 1fr;
+  }
+  .pulso-xf-pdf-matrix-controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xf-pdf-switch-thumb {
+    transition: none;
+  }
+}
+
+/* ── Conmutador rápido de formularios (command bar, grupo document) ─────── */
+
+.pulso-xlsform-frame .pulso-xf-form-switcher {
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-trigger {
+  gap: 6px;
+  max-width: 240px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-menu {
+  /* El trigger vive al extremo IZQUIERDO del command bar, así que el menú se
+     ancla a la izquierda y se abre hacia la derecha. El base
+     `.pulso-more-views-menu` usa `right:0` (pensado para triggers a la
+     derecha) y hacía desbordar el borde izquierdo del viewport. */
+  left: 0;
+  right: auto;
+  min-width: 260px;
+  max-width: 340px;
+  transform-origin: top left;
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-empty {
+  display: block;
+  padding: 6px 10px 8px;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+}
+
+/* Los items del conmutador llevan un dato del usuario —el nombre del
+   formulario— y un nombre largo sin espacios desbordaba el popover por el
+   borde derecho. `.pulso-more-views-item` hereda `white-space: nowrap`, así
+   que la salida no es quebrar el texto sino recortarlo: el `strong` pasa a
+   bloque (el `flex` de base no admite `text-overflow`) y el texto se reparte
+   el ancho restante del item. */
+.pulso-xlsform-frame .pulso-xf-form-switcher-item .pulso-more-views-item-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-item .pulso-more-views-item-text strong,
+.pulso-xlsform-frame .pulso-xf-form-switcher-item .pulso-more-views-item-text em {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-item.is-active {
+  background: var(--pulso-primary-soft);
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-item.is-active strong {
+  color: var(--pulso-primary-strong);
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-divider {
+  height: 1px;
+  margin: 6px 8px;
+  background: var(--pulso-border);
+}
+
+/* Acción "Nuevo formulario" deshabilitada al alcanzar el tope: nota sutil, sin
+   hover ni cursor de acción. */
+.pulso-xlsform-frame .pulso-xf-form-switcher-item:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-item:disabled:hover {
+  background: transparent;
+  transform: none;
+}
+
+/* ── Overlays de vista completa (mapa de lógica, cuestionario, resumen) ── */
+
+.pulso-xf-overlay-enter {
+  animation: pulso-xf-overlay-in var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-overlay-enter > main,
+.pulso-xf-overlay-enter > .pulso-xf-overlay-body {
+  animation: pulso-xf-sheet-in var(--motion-dur-base) var(--motion-ease-out);
+}
+
+/* ── Commandbar: breakpoint intermedio ─────────────────────────────────── */
+/* Entre 1101 y 1520px las acciones siguen bajando a fila propia. Se probó
+   devolverlas a su columna tras recoger los seis controles en tres, y a 1280px
+   el resultado era peor: el selector de formulario tapaba las métricas y el
+   badge de avisos quedaba bajo el menú de ingreso. La zona de contexto por sí
+   sola —selector, métricas y dos chips de estado— ya no deja sitio. Dos filas
+   ordenadas leen mejor que una fila que se pisa. */
+
+@media (min-width: 1101px) and (max-width: 1520px) {
+  .pulso-xlsform-commandbar {
+    grid-template-columns: minmax(200px, 1fr) auto;
+  }
+
+  .pulso-xlsform-commandbar-group--modes {
+    justify-content: flex-end;
+  }
+
+  .pulso-xlsform-commandbar-group--actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+/* ── Focus ring coherente para el chrome nuevo ─────────────────────────── */
+
+.pulso-xlsform-frame .pulso-mode-toggle button:focus-visible,
+.pulso-xlsform-frame .pulso-xlsform-toolbar-button:focus-visible,
+.pulso-xlsform-frame .pulso-more-views-trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* ── Accesibilidad de movimiento ───────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xlsform-frame .pulso-more-views-menu,
+  .pulso-xlsform-frame .pulso-more-views-item,
+  .pulso-xf-overlay-enter,
+  .pulso-xf-overlay-enter > main,
+  .pulso-xf-overlay-enter > .pulso-xf-overlay-body {
+    animation: none;
+  }
+  .pulso-xlsform-frame .pulso-mode-toggle button,
+  .pulso-xlsform-frame .pulso-xlsform-toolbar-button,
+  .pulso-xlsform-frame .pulso-xlsform-history-button,
+  .pulso-xlsform-frame .pulso-more-views-trigger,
+  .pulso-xlsform-frame .pulso-more-views-item {
+    transition-duration: 1ms;
+  }
+}
+
+/* ── El editor llena el alto disponible del viewport ────────────────────────
+ * El body del frame (flex column) ocupa toda la altura, pero el panel de
+ * contenido y el grid del constructor se dimensionaban al contenido y dejaban
+ * un hueco en blanco abajo (más visible tras compactar la command bar). Aquí
+ * los hacemos crecer y que cada columna (outline / lienzo) haga scroll interno
+ * en lugar de dejar espacio muerto. Todo scopeado a `.pulso-xlsform-frame`. */
+.pulso-xlsform-frame .pulso-panel--content {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pulso-xlsform-frame .pulso-builder-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.pulso-xlsform-frame .pulso-outline-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* =========================================================================
+   Movido desde app/theme.css (refactor 2026-07: theme.css = tokens + kit).
+   Bloques byte-idénticos; append: sin solape de selectores con el resto del archivo.
+   ========================================================================= */
+
+.pulso-form-surface {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+}
+
+.pulso-toast-in {
+  animation: pulso-toast-in-kf var(--motion-dur-base) var(--motion-ease-out) both;
+}
+
+.pulso-toast-out {
+  animation: pulso-toast-out-kf var(--motion-dur-fast) var(--motion-ease-in-out) both;
+}
+
+.pulso-outline-drop-slot {
+  position: relative;
+  z-index: 4;
+  height: 0;
+  min-height: 0;
+  display: block;
+  margin: 0 10px 0 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-primary);
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.pulso-outline-drop-slot-rail {
+  position: absolute;
+  top: -1px;
+  right: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--pulso-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-primary) 11%, transparent);
+}
+
+.pulso-outline-drop-slot-copy {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 0;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-primary-soft) 72%, #ffffff);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--pulso-primary) 8%, transparent),
+    0 2px 7px rgba(0, 36, 87, 0.12);
+}
+
+.pulso-outline-drop-slot-copy strong {
+  overflow: hidden;
+  color: var(--pulso-primary);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-outline-code {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 0 4px;
+  border-radius: 3px;
+  color: var(--pulso-text-soft);
+}
+

@@ -1,0 +1,469 @@
+.pulso-questionnaire-section-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(180deg, #fff, color-mix(in srgb, var(--pulso-primary-soft) 46%, #fff 54%));
+  color: var(--pulso-primary);
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--pulso-border));
+  flex-shrink: 0;
+}
+
+.pulso-questionnaire-section-copy {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 3px;
+}
+
+.pulso-questionnaire-section-copy strong {
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: var(--pulso-weight-heavy);
+  overflow-wrap: anywhere;
+}
+
+.pulso-questionnaire-section-copy span {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: var(--pulso-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.pulso-questionnaire-section-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pulso-questionnaire-section-badges .is-conditional,
+.pulso-questionnaire-question-flags em {
+  border-color: color-mix(in srgb, #b45309 28%, var(--pulso-border));
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.pulso-questionnaire-section-empty {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px;
+  border: 1px dashed color-mix(in srgb, var(--pulso-border) 84%, #fff 16%);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-surface-2) 72%, #fff 28%);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.pulso-questionnaire-question-list {
+  display: grid;
+  /* `max-content` es imprescindible: sin él, cuando la lista topa el
+   * `max-height` con muchas filas, el grid encoge las pistas `auto` hasta
+   * su min-height (~28px) para caber y recorta los labels de 2 líneas.
+   * Con `max-content` cada fila conserva su alto natural y el sobrante
+   * hace scroll. */
+  grid-auto-rows: max-content;
+  gap: 6px;
+  /* Secciones largas (20+ preguntas) hacían crecer la tarjeta sin
+   * límite y estiraban toda la vista. Acotamos la lista y le damos
+   * scroll interno propio: la tarjeta queda a una altura legible y el
+   * recorrido no se vuelve una columna gigante. El tope es relativo al
+   * alto del viewport para aprovechar pantallas altas sin desbordar en
+   * las cortas. */
+  max-height: clamp(260px, 52vh, 680px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.pulso-questionnaire-question {
+  --question-accent: var(--pulso-primary);
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(34px, auto) 26px minmax(0, 1fr) auto;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 86%, #fff 14%);
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease,
+    transform 120ms ease;
+}
+
+.pulso-questionnaire-question:hover {
+  border-color: color-mix(in srgb, var(--question-accent) 34%, var(--pulso-border));
+  background: color-mix(in srgb, var(--question-accent) 5%, #fff 95%);
+  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.06);
+}
+
+.pulso-questionnaire-question.is-active {
+  border-color: color-mix(in srgb, var(--question-accent) 60%, var(--pulso-primary));
+  background: color-mix(in srgb, var(--question-accent) 9%, #fff 91%);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--question-accent) 12%, transparent),
+    0 7px 18px rgba(15, 23, 42, 0.075);
+}
+
+.pulso-questionnaire-question-ref {
+  min-width: 34px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--pulso-surface-2) 76%, #fff 24%);
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 78%, #fff 22%);
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.pulso-questionnaire-question-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--question-accent);
+  background: color-mix(in srgb, var(--question-accent) 10%, #fff 90%);
+  flex-shrink: 0;
+}
+
+.pulso-questionnaire-question-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-questionnaire-question-copy strong {
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  line-height: 1.35;
+  font-weight: var(--pulso-weight-heavy);
+  overflow-wrap: anywhere;
+  /* `.pulso-questionnaire-question` es un <button>: el título heredaba
+     `white-space: nowrap` del reset de botones y no envolvía, desbordando
+     su columna y corriendo por debajo de los badges. Forzamos el wrap y
+     acotamos a 2 líneas. */
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pulso-questionnaire-question-copy span {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: normal;
+}
+
+.pulso-questionnaire-question-flags {
+  display: inline-flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .pulso-questionnaire-overview,
+  .pulso-questionnaire-summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pulso-questionnaire-quality {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 680px) {
+  .pulso-questionnaire-shell {
+    padding: 12px;
+  }
+
+  .pulso-questionnaire-header-stats {
+    display: none;
+  }
+
+  .pulso-questionnaire-overview,
+  .pulso-questionnaire-summary-grid,
+  .pulso-questionnaire-section-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pulso-questionnaire-map-header {
+    flex-direction: column;
+  }
+
+  .pulso-questionnaire-question {
+    grid-template-columns: minmax(34px, auto) 26px minmax(0, 1fr);
+  }
+
+  .pulso-questionnaire-question-flags {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    padding-left: 68px;
+  }
+}
+
+/* ============================================================================
+ * MarkdownField — editor + preview de campos con subset XLSForm de markdown
+ * ========================================================================= */
+.pulso-md-field {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  overflow: hidden;
+  background: white;
+}
+
+.pulso-md-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-md-toolbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.pulso-md-toolbar-btn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 7px;
+  cursor: pointer;
+  color: var(--pulso-text-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.pulso-md-toolbar-btn:hover:not(:disabled) {
+  background: white;
+  color: var(--pulso-primary);
+}
+
+.pulso-md-toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Selector de color: botón de la toolbar + popover de swatches. */
+.pulso-md-color {
+  position: relative;
+  display: inline-flex;
+}
+
+.pulso-md-color-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: white;
+  box-shadow: var(--pulso-shadow-popover, 0 8px 24px rgba(15, 23, 42, 0.16));
+}
+
+.pulso-md-color-swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 100ms ease, box-shadow 100ms ease;
+}
+
+.pulso-md-color-swatch:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 0 2px var(--pulso-primary-soft);
+}
+
+.pulso-md-color-swatch[data-clear="true"] {
+  background:
+    linear-gradient(45deg, transparent 44%, #e11d48 44%, #e11d48 56%, transparent 56%),
+    white;
+}
+
+/* === FormCanvas empty state (form sin contenido editable) === */
+.pulso-form-canvas-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 56px 24px;
+  gap: 12px;
+  background: linear-gradient(180deg, rgba(15, 118, 110, 0.04) 0%, transparent 80%);
+  border: 1px dashed var(--pulso-border);
+  border-radius: 14px;
+  min-height: 380px;
+}
+
+.pulso-form-canvas-empty-illustration {
+  margin-bottom: 8px;
+}
+
+.pulso-form-canvas-empty-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+  letter-spacing: -0.2px;
+}
+
+.pulso-form-canvas-empty-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pulso-text-soft);
+  max-width: 460px;
+  line-height: 1.6;
+}
+
+.pulso-form-canvas-empty-text strong {
+  color: var(--pulso-text);
+}
+
+.pulso-form-canvas-empty-text em {
+  font-style: italic;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-form-canvas-empty-text-secondary {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  max-width: 460px;
+  line-height: 1.55;
+}
+
+.pulso-form-canvas-empty-text-secondary code {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--pulso-text);
+}
+
+.pulso-form-canvas-empty-cta {
+  margin-top: 8px;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+  color: white;
+  background: #0f766e;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.pulso-form-canvas-empty-cta:hover {
+  background: #0d6660;
+  transform: translateY(-1px);
+}
+
+/* === FormCanvas: lienzo único scrollable con todo el formulario === */
+.pulso-form-canvas {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 2px 24px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.pulso-form-canvas-card-wrapper {
+  position: relative;
+  transition: padding-left 160ms ease;
+}
+
+.pulso-form-canvas-trailing {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+}
+
+.pulso-canvas-section-conditional {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(247, 175, 0, 0.12);
+  color: var(--pulso-warn-fg, #aa7300);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-canvas-section-name {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.pulso-canvas-addbetween-menu-eyebrow {
+  display: block;
+  padding: 6px 10px 0;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-canvas-addbetween-group {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 64%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-surface-2, #f4f7fb) 62%, #ffffff);
+}
+
+.pulso-canvas-addbetween-group-title {
+  padding: 2px 5px 4px;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.2;
+}
+
