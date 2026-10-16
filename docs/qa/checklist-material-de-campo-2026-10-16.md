@@ -88,16 +88,16 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 
 | # | Etapa | Dónde vive | Estado |
 |---|---|---|---|
-| E0a | Renombre, ruta, secciones, redirección con query, migración del slug y de `active_stage`, home, bóveda, agentic OS | rama `feat/material-campo-e0a` | en revisión: verificador APROBADO CON PENDIENTES (ninguno del diff); falta que Gonzalo lo dé por cerrado y decida el merge |
-| E0b | Token Musgo, alias, ícono `Backpack`, `branding/` (identidad 1.4.0) | `tokens.css`, `boot.css`, `branding/identity.json`, `lib/icons.ts` | en revisión: verificador APROBADO CON PENDIENTES (ninguno del diff); falta que Gonzalo lo dé por cerrado |
+| E0a | Renombre, ruta, secciones, redirección con query, migración del slug y de `active_stage`, home, bóveda, agentic OS | rama `feat/material-campo-e0a` | hecho en la rama (Gonzalo lo dio por cerrado el 2026-10-16); merge a main pendiente, no se hace mientras se publica la 0.9.3 |
+| E0b | Token Musgo, alias, ícono `Backpack`, `branding/` (identidad 1.4.0) | `tokens.css`, `boot.css`, `branding/identity.json`, `lib/icons.ts` | hecho en la rama (Gonzalo lo dio por cerrado el 2026-10-16) |
 | E1 | Reemplazada por E1a a E1d del ADR 0109 | ADR 0109 §8 | hecho (decidido 2026-10-16) |
-| E1a | Secciones por modo (Imprenta nueva, Accesos solo con canal digital), catálogo con miniaturas reales, cuatro capas en la unidad, `compatible_unit_types`, dos registros de adapters, `collection_state/v2` | `modules.ts`, `collection_*.R`, `features/recopiladores/` | pendiente |
+| E1a | Secciones por modo (Imprenta nueva, Accesos solo con canal digital), catálogo con miniaturas reales, cuatro capas en la unidad, `compatible_unit_types`, dos registros de adapters, `collection_state/v2` | `modules.ts`, `collection_*.R`, `features/recopiladores/` | en revisión: Catálogo › Tipos con fix del 422 (1d479fc32), rótulos (14d4b09c9) y secciones sin numeral (454a8860c); re-gate del verificador en curso |
 | E1b | Editor sobre la página real, con zonas por bloque y caras | `features/recopiladores/`, compilador | pendiente |
 | E1c | Componer a medida con bloques parametrizados | registro de bloques, editor | pendiente |
 | E1d | Imprenta: carpeta numerada, imposición dúplex y dos por hoja, pliego físico, conteo y LEEME | job de render, `features/recopiladores/` | pendiente |
 | E6 | Pedido de cambios en palabras | ADR 0109 §6 | **bloqueado**: proveedor del modelo, credencial y modo sin conexión |
 | E1e | Unidades › Origen: huella, diferencias y «Actualizar desde la fuente» (aulas) | ADR 0110 §1 | pendiente |
-| E1f | Correos: editor, campos, vistas y exportación para Mailchimp | ADR 0110 §2 | pendiente |
+| E1f | Correos: editor, campos, vistas y exportación para Mailchimp | ADR 0110 §2 | en curso: backend hecho en la rama (7ee56e7ee, gate R 1722); frontend en construcción |
 | E7 | API de Mailchimp para plantilla o campaña en borrador (opcional) | ADR 0110 §3 | **bloqueado**: credencial y autorización |
 | E2 | `ump_territorial_v1` y salidas de Hojas de ruta como layout legacy | archivo nuevo junto a `collection_adapters.R` | pendiente |
 | E3 | Bloques `quota_grid`, `unit_map`, `place_checklist`, `route_instructions`; port; retiro del legacy | registro de bloques | pendiente |
