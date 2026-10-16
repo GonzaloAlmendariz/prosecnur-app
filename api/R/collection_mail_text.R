@@ -109,7 +109,9 @@
     return(list(name = .cmail_title_case(gsub(",", " ", value, fixed = TRUE)), unsplit = TRUE))
   }
   if (identical(toupper(value), value) || identical(tolower(value), value)) value <- .cmail_title_case(value)
-  list(name = value, unsplit = FALSE)
+  # Formato «nombre» con una coma: probablemente «APELLIDOS, NOMBRES» mal
+  # declarado; el saludo usa la cadena entera y se cuenta como sin separar.
+  list(name = value, unsplit = grepl(",", value, fixed = TRUE))
 }
 
 #' Formato del nombre: por el encabezado («apellido») o por el contenido (la
@@ -117,7 +119,8 @@
 #' @keywords internal
 .cmail_name_format <- function(name_column, values = NULL) {
   if (is.null(name_column)) return("nombre")
-  if (grepl("apellido", .cmail_norm_header(name_column))) return("apellidos_coma_nombres")
+  # Anclado al inicio: «Apellidos y nombres» sí; «Nombres y apellidos» no.
+  if (grepl("^apellido", .cmail_norm_header(name_column))) return("apellidos_coma_nombres")
   v <- .cmail_value(values %||% character(0))
   v <- v[nzchar(v)]
   if (length(v) && mean(.cmail_comma_count(v) == 1L) >= 0.5) return("apellidos_coma_nombres")
