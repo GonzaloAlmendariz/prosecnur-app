@@ -2503,7 +2503,8 @@ mount_codificacion <- function(pr) {
         recoded <- codif_get(sid, "respuestas_recod", source = source)[[parent]] %||% list()
         # La regla vive en codificacion_decisiones.R: `/aplicar` la necesita
         # igual y recalcularla allá crearía una segunda taxonomía (ADR 0078).
-        mat <- .codif_material_de_pregunta(r, data_df, stats, length(recoded))
+        mat <- .codif_material_de_pregunta(r, data_df, stats, length(recoded),
+                                           en_otro = .codif_textos_en_otro_todos(sid, source = source)[[parent]])
         n_cod <- mat$n_codificadas
         status <- .codif_status_de_pregunta(
           tipo = tipo, modo_so = modo_so, use_flag = use_flag,
@@ -3326,7 +3327,8 @@ mount_codificacion <- function(pr) {
         error = diag_fallo("las preguntas omitidas")
       )
       textos_sin_codigo <- tryCatch(
-        .codif_textos_sin_codigo(bridge$patched, grupos_map, draft$rows, data_adapt_df),
+        .codif_textos_sin_codigo(bridge$patched, grupos_map, draft$rows, data_adapt_df,
+                                 en_otro = .codif_textos_en_otro_todos(sid, source = target_base)),
         error = diag_fallo("los textos sin código")
       )
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useInRouterContext } from "react-router-dom";
 import { BotonCodificar } from "./SinRecodificarAviso";
+import { DejarEnOtroBoton } from "./DejarEnOtroBoton";
 import { AlertTriangle, Tags } from "lucide-react";
 import type { CodifOmitida, CodifTextosSinCodigo } from "../../api/codificacion";
 import "./AplicarOmitidasAviso.css";
@@ -152,10 +153,13 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, incompletos = 
                 className="pulso-codif-omitidas-titulo"
               >
                 {textosSinCodigo.length === 1
-                  ? "1 pregunta tiene textos sin código"
-                  : `${textosSinCodigo.length} preguntas tienen textos sin código`}
+                  ? "1 pregunta tiene textos que quedarán en «Otro»"
+                  : `${textosSinCodigo.length} preguntas tienen textos que quedarán en «Otro»`}
               </strong>
-              <p>No están en ningún grupo de su pregunta. Agrégalos a un grupo y vuelve a adaptar.</p>
+              <p>
+                No encajan en ningún grupo y se entregan en «Otro», que es válido. Si alguno sí encaja, codifícalo; si
+                no, confírmalo para que deje de avisarse.
+              </p>
             </div>
           </div>
           <ul
@@ -188,7 +192,10 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, incompletos = 
                       </ul>
                     )}
                   </div>
-                  {conRouter ? <BotonCodificar pregunta={t.pregunta} texto={`Codificar ${t.pregunta}`} /> : null}
+                  <span className="pulso-codif-omitidas-acciones-fila">
+                    {conRouter ? <BotonCodificar pregunta={t.pregunta} texto={`Codificar ${t.pregunta}`} /> : null}
+                    <DejarEnOtroBoton pregunta={t.pregunta} />
+                  </span>
                 </li>
               );
             })}
