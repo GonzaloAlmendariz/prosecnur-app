@@ -4399,28 +4399,6 @@ button.pulso-focus-calculation-recipe {
   cursor: not-allowed;
 }
 
-.pulso-focus-quicklook-grid {
-  grid-auto-rows: 1fr;
-}
-
-.pulso-focus-quicklook-item.is-accent .pulso-focus-quicklook-icon {
-  border-color: color-mix(in srgb, var(--pulso-primary) 22%, var(--xls-border));
-  background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
-  color: var(--pulso-primary);
-}
-
-.pulso-focus-quicklook-item.is-success .pulso-focus-quicklook-icon {
-  border-color: color-mix(in srgb, var(--pulso-success-fg) 22%, var(--xls-border));
-  background: color-mix(in srgb, var(--pulso-success-bg) 62%, #ffffff);
-  color: var(--pulso-success-fg);
-}
-
-.pulso-focus-quicklook-item.is-warn .pulso-focus-quicklook-icon {
-  border-color: color-mix(in srgb, var(--pulso-warn-fg) 26%, var(--xls-border));
-  background: color-mix(in srgb, var(--pulso-warn-bg) 62%, #ffffff);
-  color: var(--pulso-warn-fg);
-}
-
 .pulso-focus-rule-section-head.is-visibility .pulso-focus-rule-section-icon {
   color: var(--pulso-primary);
   background: color-mix(in srgb, var(--pulso-primary) 12%, transparent);

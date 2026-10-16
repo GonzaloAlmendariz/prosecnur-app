@@ -395,7 +395,6 @@ button.pulso-secondary:hover:not(:disabled) {
 }
 /* /PulsoButton */
 
-
 input, textarea, select {
   font-family: inherit;
   color: var(--pulso-text);
@@ -26079,105 +26078,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-section-boundary-hint strong {
   color: #324157;
   font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-focus-quicklook {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 9px;
-  border: 1px solid color-mix(in srgb, var(--xls-border) 86%, #ffffff 14%);
-  border-radius: 12px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 250, 253, 0.82)),
-    var(--xls-content-soft);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
-}
-
-.pulso-focus-quicklook-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  min-width: 0;
-}
-
-.pulso-focus-quicklook-head strong {
-  min-width: 0;
-  overflow: hidden;
-  color: #5c6675;
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-bold);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pulso-focus-quicklook-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
-}
-
-.pulso-focus-quicklook-item {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
-  gap: 7px;
-  align-items: flex-start;
-  padding: 7px;
-  border: 1px solid color-mix(in srgb, var(--xls-border) 88%, transparent);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.72);
-}
-
-.pulso-focus-quicklook-icon {
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid color-mix(in srgb, var(--xls-border) 72%, transparent);
-  border-radius: 8px;
-  background: #ffffff;
-  color: #667386;
-}
-
-.pulso-focus-quicklook-copy {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.pulso-focus-quicklook-copy em {
-  color: #667386;
-  font-size: 10px;
-  font-style: normal;
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0.08em;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
-.pulso-focus-quicklook-copy strong {
-  overflow: hidden;
-  color: #1f2a3d;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pulso-focus-quicklook-copy small {
-  display: -webkit-box;
-  overflow: hidden;
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  line-height: 1.3;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
 }
 
 .pulso-focus-config-pane {
