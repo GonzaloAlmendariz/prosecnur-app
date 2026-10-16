@@ -13,8 +13,10 @@ export type OpcionCodigoEspecial = {
   /** `estudio`: aparece en los instrumentos; `configurado`: marcado pero no está en ellos. */
   origen: "estudio" | "configurado";
   marcado: boolean;
-  /** El código significa cosas distintas en distintas listas («Ninguna» / «No sabe»). */
+  /** El código tiene etiquetas distintas según la pregunta («Ninguna» / «No sabe»). */
   ambiguo: boolean;
+  /** Las demás etiquetas del código en el estudio (la principal va en `label`). */
+  otras: string[];
 };
 
 /** El default de fábrica de versiones anteriores: nadie lo eligió. */
@@ -44,14 +46,15 @@ export function opcionesCodigosEspeciales(
     const etiquetas = (s.etiquetas.length ? s.etiquetas : [s.etiqueta]).filter(Boolean);
     out.set(code, {
       code,
-      label: etiquetas.length ? etiquetas.join(" / ") : "Sin etiqueta",
+      label: etiquetas[0] ?? "Sin etiqueta",
       origen: "estudio",
       marcado: marcados.includes(code),
       ambiguo: etiquetas.length > 1,
+      otras: etiquetas.slice(1),
     });
   }
   for (const code of marcados) {
-    if (!out.has(code)) out.set(code, { code, label: "No está en el estudio", origen: "configurado", marcado: true, ambiguo: false });
+    if (!out.has(code)) out.set(code, { code, label: "No se usa en este estudio", origen: "configurado", marcado: true, ambiguo: false, otras: [] });
   }
   return [...out.values()].sort((a, b) => a.code - b.code);
 }
