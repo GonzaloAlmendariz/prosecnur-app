@@ -29,7 +29,7 @@
   incluir_secciones <- isTRUE(fc$incluir_secciones %||% TRUE)
 
   numericas_arg <- .analitica_declared_numericas(cfg, override_frecuencias = TRUE)
-  codes_codebook <- .as_int_vec((cfg$codebook %||% list())$codigos_solo_si_presentes)
+  codes_codebook <- analitica_codigos_especiales_efectivos(.as_int_vec((cfg$codebook %||% list())$codigos_solo_si_presentes))
   excluidas <- .as_chr_vec(cfg$variables_excluidas)
   # Notas al pie (fuente y base por pregunta). Sin bloque `notas` queda
   # «Fuente: Pulso PUCP», como siempre.

@@ -130,7 +130,7 @@ export function CodebookPane() {
         <Section
           title="Códigos especiales"
           subtitle={<>
-            Sugeridos a partir de las listas de respuestas del estudio. Un código marcado va al bloque de valores especiales y solo aparece si alguien lo respondió. Aplica a todos los formatos.
+            Sugeridos a partir de las listas de respuestas del estudio; ninguno se marca solo. Un código marcado solo aparece en una pregunta si alguien lo respondió, en todas las preguntas que lo usan. Si un código tiene varias etiquetas, significa cosas distintas según la pregunta.
           </>}
         >
           <div className="analitica-codebook-code-grid">
@@ -141,8 +141,8 @@ export function CodebookPane() {
             {codigosMeta.map((c) => (
               <label
                 key={c.code}
-                title={c.label}
-                className={`analitica-codebook-code ${c.marcado ? "is-active" : ""} ${c.origen === "configurado" ? "is-ajeno" : ""}`}
+                title={c.ambiguo ? `Este código significa cosas distintas según la pregunta: ${c.label}. Marcarlo lo trata como especial en todas.` : c.label}
+                className={`analitica-codebook-code ${c.marcado ? "is-active" : ""} ${c.origen === "configurado" ? "is-ajeno" : ""} ${c.ambiguo ? "is-ambiguo" : ""}`}
               >
                 <input type="checkbox" checked={c.marcado} onChange={() => toggle(c.code)} />
                 <code>{c.code}</code>

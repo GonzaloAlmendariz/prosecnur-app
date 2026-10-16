@@ -3945,7 +3945,7 @@ mount_analitica <- function(pr) {
       }
       cfg <- .analitica_get_config(sid)
       cb_cfg <- cfg$codebook %||% list()
-      codes <- .as_int_vec(cb_cfg$codigos_solo_si_presentes)
+      codes <- analitica_codigos_especiales_efectivos(.as_int_vec(cb_cfg$codigos_solo_si_presentes))
       excluidas <- .as_chr_vec(cfg$variables_excluidas)
       numericas_arg <- .analitica_declared_numericas(cfg, override_frecuencias = FALSE)
 

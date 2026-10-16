@@ -25,3 +25,10 @@ test_that("negativos sí, decimales y vacíos no; sin instrumentos, lista vacía
   expect_identical(analitica_codigos_especiales(list()), list())
   expect_identical(analitica_codigos_especiales(list(list(choices = NULL))), list())
 })
+
+test_that("el default heredado 96–99 se trata como sin elegir; otra elección se respeta", {
+  expect_identical(analitica_codigos_especiales_efectivos(c(96, 97, 98, 99)), integer(0))
+  expect_identical(analitica_codigos_especiales_efectivos(c(99, 98, 97, 96)), integer(0))
+  expect_identical(analitica_codigos_especiales_efectivos(c(97, 99)), c(97L, 99L))
+  expect_identical(analitica_codigos_especiales_efectivos(NULL), integer(0))
+})
