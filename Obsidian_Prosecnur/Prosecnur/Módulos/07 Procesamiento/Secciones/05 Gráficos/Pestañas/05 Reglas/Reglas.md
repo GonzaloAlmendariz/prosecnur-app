@@ -3,8 +3,8 @@ tipo: pestana
 padres: ["[[Gráficos]]"]
 orden: 4
 documentacion: parcial
-ruta_app: "/graficos?pestana=estilo-informe"
-nodo: "procesamiento/graficos/estilo-informe"
+ruta_app: "/graficos?pestana=reglas"
+nodo: "procesamiento/graficos/reglas"
 verificado_contra: ""
 tags:
   - Pestaña
@@ -14,7 +14,7 @@ fuentes:
   - "frontend/src/features/graficos/estiloInforme/PestanaEstiloInforme.tsx"
 ---
 
-# Estilo del informe
+# Reglas
 
 > Texto de la base, cálculos, paletas y línea visual del informe.
 
