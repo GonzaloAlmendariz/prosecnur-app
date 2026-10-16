@@ -50,6 +50,9 @@
   paste0("(?i)<!--.*?-->|<(/?)(", nombres, ")(", attr, "*)\\s*/?>")
 }
 
+# `_cursiva_` fuera de una palabra (misma regla que el editor).
+.FORM_RT_CURSIVA_RX <- "(?<![\\p{L}\\p{N}_])_([^_\n]+?)_(?![\\p{L}\\p{N}_])"
+
 # Encabezado markdown al INICIO DE CADA LINEA.
 .FORM_RT_MD_RX <- "^[ \t]*(?:(#{1,6})[ \t]+|(#{2,6})(?=\\p{L}))(.*)$"
 
@@ -165,6 +168,23 @@
   emitir <- function(t) {
     if (!nzchar(t)) return(invisible())
     e <- estilo()
+    # Item 46: `_cursiva_` con la regla de palabra del editor
+    # (frontend/src/features/xlsformEditor/helpers/markdown.ts): el `_` solo
+    # marca enfasis fuera de una palabra; en `p14_1` o `nota_pag1_1` es nombre.
+    if (enfasis && grepl("_", t, fixed = TRUE)) {
+      m <- gregexpr(.FORM_RT_CURSIVA_RX, t, perl = TRUE)[[1]]
+      if (m[1] > 0) {
+        fin <- m + attr(m, "match.length") - 1L
+        cursor <- 1L
+        for (k in seq_along(m)) {
+          if (m[k] > cursor) runs[[length(runs) + 1L]] <<- .form_rt_run(substr(t, cursor, m[k] - 1L), e$b, e$i, e$u, e$s)
+          runs[[length(runs) + 1L]] <<- .form_rt_run(substr(t, m[k] + 1L, fin[k] - 1L), e$b, TRUE, e$u, e$s)
+          cursor <- fin[k] + 1L
+        }
+        if (cursor <= nchar(t)) runs[[length(runs) + 1L]] <<- .form_rt_run(substr(t, cursor, nchar(t)), e$b, e$i, e$u, e$s)
+        return(invisible())
+      }
+    }
     runs[[length(runs) + 1L]] <<- .form_rt_run(t, e$b, e$i, e$u, e$s)
   }
   salto <- function() runs[[length(runs) + 1L]] <<- .FORM_RT_BR

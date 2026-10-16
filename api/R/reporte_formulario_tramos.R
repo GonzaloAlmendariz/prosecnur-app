@@ -197,34 +197,42 @@ formulario_tramos_plan <- function(blocks,
 # mismo plan, el .docx cerraba el instrumento de ejemplo en 1 pagina y el PDF
 # necesitaba 2, con media pagina en blanco a la derecha.
 #
-# Devuelve los INDICES de bloque que deben ABRIR la segunda columna. Se calcula
-# por corrida de bloques contiguos que no son de ancho completo:
+# Item 45 (tercera tanda): el corte se recalcula EN CADA PAGINA. El corte de
+# arriba se decide una vez por corrida y renuncia si la corrida no cabe en una
+# pagina; la cola de una corrida larga (OPS_INST_FINAL p. 2: 12 bloques a la
+# izquierda y 2 a la derecha) quedaba sin equilibrar.
 #
-#   - Si la corrida no cabe en dos columnas de una pagina, NO se equilibra: se
-#     deja el llenado de siempre, que es lo correcto cuando el contenido continua
-#     en la pagina siguiente.
-#   - Si cabe, se corta en el primer bloque cuyo acumulado pase la mitad del alto
-#     total. El corte cae siempre ENTRE bloques: un bloque no se parte.
-.form_pdf_corte_equilibrado <- function(blocks, alturas, alto_col) {
+# Desde el bloque `desde` (primero de la corrida en ESTA pagina) y con
+# `alto_disp` de alto libre en las dos columnas: toma los bloques que el llenado
+# normal pondria en esta pagina (izquierda hasta que no quepa, luego derecha) y
+# devuelve el indice del bloque que debe abrir la segunda columna para que las
+# dos queden lo mas parejas posible sin que ninguna desborde. NA si no hay corte
+# util (un solo bloque, o un bloque mas alto que la columna).
+.form_pdf_corte_pagina <- function(blocks, alturas, desde, alto_disp) {
   n <- length(blocks)
-  if (!n || length(alturas) != n) return(integer(0))
-  anchos <- vapply(blocks, function(b) isTRUE(b$full_width), logical(1))
-  cortes <- integer(0)
-  i <- 1L
-  while (i <= n) {
-    if (anchos[i]) { i <- i + 1L; next }
-    j <- i
-    while (j < n && !anchos[j + 1L]) j <- j + 1L
-    idx <- seq.int(i, j)
-    h <- alturas[idx]
-    total <- sum(h)
-    if (total <= alto_col * 2 && length(idx) > 1L) {
-      acum <- cumsum(h)
-      k <- which(acum >= total / 2)[1]
-      # `k` es el ultimo bloque de la izquierda; la derecha abre en el siguiente.
-      if (!is.na(k) && k < length(idx)) cortes <- c(cortes, idx[k + 1L])
+  if (desde > n || isTRUE(blocks[[desde]]$full_width)) return(NA_integer_)
+  fin <- desde
+  while (fin < n && !isTRUE(blocks[[fin + 1L]]$full_width)) fin <- fin + 1L
+  # Llenado normal: que bloques caen en esta pagina.
+  col <- 1L; usado <- c(0, 0); ultimo <- desde - 1L
+  for (k in seq.int(desde, fin)) {
+    h <- alturas[k]
+    if (usado[col] + h > alto_disp) {
+      if (col == 1L && h <= alto_disp) { col <- 2L } else break
     }
-    i <- j + 1L
+    if (usado[col] + h > alto_disp) break
+    usado[col] <- usado[col] + h
+    ultimo <- k
   }
-  cortes
+  if (ultimo <= desde) return(NA_integer_)
+  idx <- seq.int(desde, ultimo)
+  h <- alturas[idx]
+  acum <- cumsum(h)
+  total <- acum[length(acum)]
+  ks <- seq_len(length(idx) - 1L)
+  ok <- acum[ks] <= alto_disp & (total - acum[ks]) <= alto_disp
+  if (!any(ok)) return(NA_integer_)
+  ks <- ks[ok]
+  mejor <- ks[which.min(pmax(acum[ks], total - acum[ks]))]
+  idx[mejor + 1L]
 }

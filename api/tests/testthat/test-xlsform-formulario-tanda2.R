@@ -422,7 +422,9 @@ test_that("item 17: en hsvg2026 la nota que introduce la matriz va a todo el anc
     paste(vapply(x$items %||% list(), function(it) it$number %||% "", ""), collapse = ","), sep = "|"), "")
   expect_identical(firma(m$blocks), firma(m0$blocks))
   expect_identical(m$summary$n_questions, m0$summary$n_questions)
-  expect_identical(m$summary$n_questions, 118L)
+  # 118 hasta la tercera tanda; desde el item 39 (§39.6) cada una de las 4
+  # matrices consume UN numero en vez de uno por fila: 84.
+  expect_identical(m$summary$n_questions, 84L)
   expect_identical(.form_pdf_numeros_impresos(m$blocks), .form_pdf_numeros_impresos(m0$blocks))
   # Lo unico que cambia es el ancho de notas.
   cambia <- which(vapply(seq_along(b), function(k)

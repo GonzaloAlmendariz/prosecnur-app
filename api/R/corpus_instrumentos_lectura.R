@@ -259,3 +259,44 @@
   })
   list(sid = r$session_id, forms = forms)
 }
+
+# Ano de la edicion de un instrumento segun su ruta: el ultimo `20xx` del nombre
+# del archivo; si no tiene, el de la carpeta mas cercana. NA si no hay.
+.corpus_anio <- function(rel) {
+  partes <- rev(strsplit(rel, "/", fixed = TRUE)[[1]])
+  partes[1] <- tools::file_path_sans_ext(partes[1])
+  for (p in partes) {
+    m <- regmatches(p, gregexpr("(?<![0-9])20[12][0-9](?![0-9])", p, perl = TRUE))[[1]]
+    if (!length(m)) {
+      # fechas pegadas (`20260901`, `bak-20260803`): el ano son sus 4 primeras cifras
+      m <- regmatches(p, gregexpr("(?<![0-9])20[12][0-9](?=[01][0-9][0-3][0-9](?![0-9]))", p, perl = TRUE))[[1]]
+    }
+    if (length(m)) return(as.integer(m[length(m)]))
+  }
+  NA_integer_
+}
+
+# Agrupa representantes en instrumentos: union-find por Jaccard de nombres >=
+# `umbral`. Item 49 (tercera tanda): dos EDICIONES de anos distintos no se
+# funden aunque compartan casi todos los nombres (HSyVbG 2024, 2025 y 2026
+# compartian el 97 %): un grupo nunca reune mas de un ano conocido, tampoco por
+# cadena a traves de un archivo sin ano. Devuelve list(cluster, sims, anio).
+.corpus_agrupar_versiones <- function(rel, nombres, umbral) {
+  n <- length(rel)
+  anio <- vapply(rel, .corpus_anio, integer(1))
+  padre <- seq_len(n)
+  anios <- lapply(anio, function(a) if (is.na(a)) integer(0) else a)
+  raiz <- function(k) { while (padre[k] != k) k <- padre[k]; k }
+  sims <- list()
+  for (a in seq_len(n)) for (b in seq_len(n)) if (a < b) {
+    j <- .corpus_jaccard(nombres[[a]], nombres[[b]])
+    if (j < umbral) next
+    ra <- raiz(a); rb <- raiz(b)
+    if (ra == rb) { sims[[length(sims) + 1L]] <- c(a, b, j); next }
+    if (length(unique(c(anios[[ra]], anios[[rb]]))) > 1L) next
+    padre[rb] <- ra
+    anios[[ra]] <- unique(c(anios[[ra]], anios[[rb]]))
+    sims[[length(sims) + 1L]] <- c(a, b, j)
+  }
+  list(cluster = vapply(seq_len(n), raiz, integer(1)), sims = sims, anio = unname(anio))
+}
