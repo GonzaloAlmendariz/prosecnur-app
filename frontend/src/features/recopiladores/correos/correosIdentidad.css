@@ -23,6 +23,14 @@
   opacity: 0.55;
 }
 
+/* Flex, no inline: sin la holgura de la línea de base bajo la imagen. */
+.rec-mail-franja-vista-item {
+  align-items: center;
+  display: flex;
+  flex: none;
+  max-width: 132px;
+}
+
 .rec-mail-franja-vista-logo {
   display: block;
   height: 30px;

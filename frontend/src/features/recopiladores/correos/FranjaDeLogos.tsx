@@ -45,11 +45,15 @@ export function FranjaDeLogos({ logoIds, images, fondo, acento, imagenesLocales,
         return (
           <Fragment key={id}>
             {i > 0 ? <span className="rec-mail-franja-vista-sep" aria-hidden /> : null}
-            {src ? (
-              <img className="rec-mail-franja-vista-logo" src={src} alt="" />
-            ) : (
-              <span className="rec-mail-franja-vista-hueco">{images[id]?.alt || id}</span>
-            )}
+            {/* C1: los miembros son los logos, no los separadores; la caja de
+                cada uno abraza su imagen o su hueco. */}
+            <span className="rec-mail-franja-vista-item" data-qa-geometry-member>
+              {src ? (
+                <img className="rec-mail-franja-vista-logo" src={src} alt="" />
+              ) : (
+                <span className="rec-mail-franja-vista-hueco">{images[id]?.alt || id}</span>
+              )}
+            </span>
           </Fragment>
         );
       })}
