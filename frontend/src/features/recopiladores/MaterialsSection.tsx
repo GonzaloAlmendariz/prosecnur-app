@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { downloadUrl } from "../../api/core";
 import {
   apiRecopiladoresMaterialDrive,
-  COLLECTION_BLOCK_TYPES,
   apiRecopiladoresMaterialInstances,
   apiRecopiladoresMaterialPrueba,
   apiRecopiladoresMaterialPruebas,
@@ -45,6 +44,7 @@ import {
 import type { RecopiladoresPestana } from "./navegacion";
 import { deploymentStatusLabel } from "./providerRules";
 import { subtituloDelBloque } from "./outlineDelBloque";
+import { opcionesDeTipo, resumenDelBloque, rotuloDeBloque, TIPOS_QUE_SE_AGREGAN } from "./bloquesDeMaterial";
 import { VacioSinPlanCard } from "./VacioSinPlanCard";
 import { vacioSinPlan } from "./vacioSinPlan";
 import {
@@ -82,17 +82,7 @@ type Props = {
  * donde se edita y donde sirve para seguir un binding.
  */
 
-const BLOCK_LABELS: Record<CollectionBlockType, string> = {
-  brand_header: "Cabecera de marca",
-  heading: "Título",
-  body: "Texto",
-  access_qr: "QR de acceso",
-  field_grid: "Campos de la unidad",
-  instructions: "Instrucciones",
-  application_log: "Registro de aplicación",
-  divider: "Separador",
-  footer: "Pie de página",
-};
+// Los rótulos de los 13 tipos viven en `bloquesDeMaterial.ts`.
 
 // Todo binding que un preset del backend pueda dejar en un bloque `heading`/
 // `body`/`footer` (binding suelto, sin `label` propio) tiene que estar acá:
@@ -125,7 +115,29 @@ const BINDING_LABELS: Record<string, string> = {
   "deployment.deployment_id": "Código de la entrega",
   "project.name": "Nombre del proyecto",
   "project.period": "Periodo del proyecto",
+  // Los que los presets nuevos usan y no estaban: el título de la ficha de
+  // aula salía como «unit.operational_code».
+  "unit.unit_id": "Identificador de la unidad",
+  "unit.operational_code": "Código del aula",
+  "unit.codigo_ficha": "Código de la ficha",
+  "unit.replacement_for": "Aula a la que reemplaza",
+  "unit.group": "Grupo",
+  "unit.faculty": "Facultad",
+  "unit.program": "Escuela o programa",
+  "unit.teacher": "Docente",
+  "unit.sample_label": "Rótulo de la muestra",
+  "unit.eligible_n": "Estudiantes elegibles",
+  "deployment.provider": "Plataforma de la entrega",
+  "access.access_id": "Identificador del acceso",
+  "access.logical_collector_id": "Colector del acceso",
 };
+
+/** Las opciones del «Dato que muestra»: si el bloque trae un binding fuera de
+    la lista, va también; sin su opción el <select> pinta la primera y afirma
+    un dato que el bloque no muestra. */
+function opcionesDeBinding(actual: string | null | undefined): string[] {
+  return actual && !BINDING_OPTIONS.includes(actual) ? [...BINDING_OPTIONS, actual] : BINDING_OPTIONS;
+}
 
 /**
  * Cuántas fichas hay hechas, de cuántas hacen falta.
@@ -190,8 +202,9 @@ function blockSeed(type: CollectionBlockType, ordinal: number): CollectionMateri
   const shared = { block_id: `${type}-${ordinal}`, type };
   if (type === "access_qr") return { ...shared, binding: "access.qr_payload", required: true };
   if (type === "field_grid") return { ...shared, fields: ["unit.label", "unit.schedule", "unit.venue"] };
-  if (["heading", "body", "instructions"].includes(type)) return { ...shared, text: BLOCK_LABELS[type] };
+  if (["heading", "body", "instructions"].includes(type)) return { ...shared, text: rotuloDeBloque(type) };
   if (type === "footer") return { ...shared, binding: "deployment.deployment_id" };
+  if (type === "status_tag") return { ...shared, text: "Titular" };
   return shared;
 }
 
@@ -212,8 +225,9 @@ function MaterialCanvas({ template, selectedId, onSelect }: {
             aria-current={selectedId === block.block_id ? "true" : undefined}
             onClick={() => onSelect(block.block_id)}
           >
-            <span>{BLOCK_LABELS[block.type]}</span>
+            <span>{rotuloDeBloque(block.type)}</span>
             {block.type === "access_qr" ? <strong>QR generado por Pulso</strong> : null}
+            {resumenDelBloque(block) ? <small>{resumenDelBloque(block)}</small> : null}
             {block.text ? <strong>{block.text}</strong> : null}
             {block.fields?.length ? <small>{block.fields.map(materialFieldCanvasLabel).join(" · ")}</small> : null}
             {block.binding && block.type !== "access_qr" ? <small>{bindingLabel(block.binding)}</small> : null}
@@ -258,7 +272,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   // así que ni se avisa que sobra. Se oculta la opción en vez de dejar crear
   // un bloque que jamás va a imprimirse.
   const presentBlockTypes = new Set(blocks.map((block) => block.type));
-  const addableBlockTypes = COLLECTION_BLOCK_TYPES.filter((type) => !presentBlockTypes.has(type));
+  const addableBlockTypes = TIPOS_QUE_SE_AGREGAN.filter((type) => !presentBlockTypes.has(type));
   const deployment = payload?.state.deployment ?? null;
   // Las aulas que se van a visitar: son las fichas que hay que llegar a tener.
   // El denominador es lo que el botón de al lado va a crear: `createInstances`
@@ -614,7 +628,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
       <div className="rec-editor-toolbar" role="toolbar" aria-label="Herramientas de plantilla">
         <select aria-label="Añadir bloque semántico" defaultValue="" onChange={(event) => { if (event.target.value) addBlock(event.target.value as CollectionBlockType); event.target.value = ""; }}>
           <option value="" disabled>Añadir bloque…</option>
-          {addableBlockTypes.map((type) => <option key={type} value={type}>{BLOCK_LABELS[type]}</option>)}
+          {addableBlockTypes.map((type) => <option key={type} value={type}>{rotuloDeBloque(type)}</option>)}
         </select>
         <PulsoButton variant="icon" size="sm" aria-label="Deshacer" title="Deshacer (Cmd/Ctrl+Z)" disabled={!history.past.length} onClick={() => dispatch({ type: "undo" })}><Undo2 size={15} /></PulsoButton>
         <PulsoButton variant="icon" size="sm" aria-label="Rehacer" title="Rehacer (Shift+Cmd/Ctrl+Z o Ctrl+Y)" disabled={!history.future.length} onClick={() => dispatch({ type: "redo" })}><Redo2 size={15} /></PulsoButton>
@@ -633,7 +647,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
         {/* C1: las filas del outline son pares del mismo rol y miden lo mismo
             en alto; el subtítulo opcional cabe dentro de esa caja. */}
         <ol data-qa-geometry-group="material-catalogo-outline" data-qa-geometry-contract="equal">{blocks.map((block, index) => {
-          const rotulo = BLOCK_LABELS[block.type];
+          const rotulo = rotuloDeBloque(block.type);
           const subtitulo = subtituloDelBloque(block.text, rotulo);
           return (
           <li key={block.block_id} className="rec-outline-item">
@@ -657,12 +671,12 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
             </button>
             <div className="rec-outline-reorder">
               <PulsoButton
-                variant="icon" size="sm" aria-label={`Subir ${BLOCK_LABELS[block.type]}`}
+                variant="icon" size="sm" aria-label={`Subir ${rotulo}`}
                 title="Subir un lugar" disabled={index === 0}
                 onClick={() => moveBlock(block.block_id, -1)}
               ><ChevronUp size={14} /></PulsoButton>
               <PulsoButton
-                variant="icon" size="sm" aria-label={`Bajar ${BLOCK_LABELS[block.type]}`}
+                variant="icon" size="sm" aria-label={`Bajar ${rotulo}`}
                 title="Bajar un lugar" disabled={index === blocks.length - 1}
                 onClick={() => moveBlock(block.block_id, 1)}
               ><ChevronDown size={14} /></PulsoButton>
@@ -675,13 +689,14 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
         <MaterialCanvas template={template} selectedId={selected?.block_id ?? ""} onSelect={setSelectedId} />
       </main>
       <aside className="rec-inspector" aria-label="Inspector del bloque">
-        <header><span>Inspector</span><strong>{selected ? BLOCK_LABELS[selected.type] : "Sin selección"}</strong></header>
+        <header><span>Inspector</span><strong>{selected ? rotuloDeBloque(selected.type) : "Sin selección"}</strong></header>
         {selected ? (
           <div className="rec-inspector-fields">
             <label>ID del bloque<input value={selected.block_id} readOnly /></label>
-            <label>Tipo<select value={selected.type} disabled>{COLLECTION_BLOCK_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
+            <label>Tipo<select value={selected.type} disabled>{opcionesDeTipo(selected.type).map((opcion) => <option key={opcion.value} value={opcion.value}>{opcion.label}</option>)}</select></label>
+            {resumenDelBloque(selected) ? <p className="rec-inspector-resumen">{resumenDelBloque(selected)}</p> : null}
             {selected.text !== undefined ? <label>Texto<textarea value={selected.text ?? ""} onChange={(event) => updateBlock({ text: event.target.value })} rows={5} /></label> : null}
-            {selected.binding !== undefined ? <label>Dato que muestra<select value={selected.binding ?? ""} onChange={(event) => updateBlock({ binding: event.target.value })}>{BINDING_OPTIONS.map((binding) => <option key={binding} value={binding}>{bindingLabel(binding)}</option>)}</select></label> : null}
+            {selected.binding !== undefined ? <label>Dato que muestra<select value={selected.binding ?? ""} onChange={(event) => updateBlock({ binding: event.target.value })}>{opcionesDeBinding(selected.binding).map((binding) => <option key={binding} value={binding}>{bindingLabel(binding)}</option>)}</select></label> : null}
             {selected.fields !== undefined ? <fieldset><legend>Campos permitidos</legend>{BINDING_OPTIONS.filter((item) => item.startsWith("unit.")).map((field) => (
               <label className="rec-check" key={field}><input type="checkbox" aria-label={bindingLabel(field)} checked={selected.fields?.some((item) => materialFieldBinding(item) === field) ?? false} onChange={(event) => updateBlock({ fields: event.target.checked ? [...(selected.fields ?? []), field] : (selected.fields ?? []).filter((item) => materialFieldBinding(item) !== field) })} /> {bindingLabel(field)}</label>
             ))}</fieldset> : null}

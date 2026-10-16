@@ -86,6 +86,16 @@ describe("InspectorDeTipo", () => {
     expect(html).not.toMatch(/<button[^>]*disabled[^>]*>.*Usar este tipo/);
   });
 
+  it("las páginas mandan el ancho: una sola a todo el inspector, dos lado a lado", () => {
+    // Con `auto-fill` y 124 px una página sola quedaba en media columna
+    // (~128 px). El número de páginas decide la rejilla, no un mínimo.
+    const una = renderToStaticMarkup(<InspectorDeTipo {...base} paginas={1} />);
+    expect(una).toContain('data-paginas="1"');
+    const dos = renderToStaticMarkup(<InspectorDeTipo {...base} />);
+    expect(dos).toContain('data-paginas="2"');
+    expect(dos).toContain('data-qa-geometry-group="material-campo/catalogo/tipos-inspector-paginas"');
+  });
+
   it("el tipo en uso o incompatible no se puede volver a fijar y dice por qué", () => {
     const enUso = renderToStaticMarkup(<InspectorDeTipo {...base} preset={{ ...CROQUIS, active: true }} />);
     expect(enUso).toContain('title="Es la plantilla en uso."');

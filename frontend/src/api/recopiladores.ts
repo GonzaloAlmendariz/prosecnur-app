@@ -183,16 +183,25 @@ export type CollectionDeploymentPreview = {
   preview?: CollectionDeployment | { deployment?: CollectionDeployment | null } | null;
 };
 
+// Espejo de `COLLECTION_MATERIAL_BLOCK_TYPES` (api/R/collection_materials.R),
+// en el mismo orden. Se quedó en 9 cuando el backend ya aceptaba 13, y los
+// bloques de los presets nuevos —la careta `brand_strip` del afiche y de la
+// ficha de campo— salían sin rótulo en el editor y el inspector los rotulaba
+// «brand_header» (el <select> caía a su primera opción).
 export const COLLECTION_BLOCK_TYPES = [
   "brand_header",
+  "brand_strip",
+  "status_tag",
   "heading",
   "body",
   "access_qr",
   "field_grid",
+  "form_lines",
   "instructions",
   "application_log",
   "divider",
   "footer",
+  "campus_map",
 ] as const;
 export type CollectionBlockType = (typeof COLLECTION_BLOCK_TYPES)[number];
 
