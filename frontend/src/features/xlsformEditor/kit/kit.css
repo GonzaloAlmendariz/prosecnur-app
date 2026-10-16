@@ -1,0 +1,176 @@
+/* Kit visual del módulo Formularios (revamp 2026-10-16).
+   Lenguaje Linear/Airtable: tinta sobre blanco, línea fina, un solo acento (el del módulo),
+   color sólo en los íconos de tipo. Sólo tokens; nada de hex. Movimiento: ≤ 240 ms, una curva,
+   sólo opacidad y posición, y nada si el sistema pide reducir movimiento. */
+
+.xfk-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.xfk-over {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+
+/* — Contenedor — */
+.xfk-card {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-width: 0;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  box-shadow: var(--pulso-shadow-low);
+  overflow: hidden;
+}
+.xfk-card--fill { flex: 1 0 auto; }
+.xfk-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--pulso-border);
+  flex: none;
+}
+.xfk-card__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+.xfk-card__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
+.xfk-card__body { padding: 12px 16px; min-width: 0; }
+.xfk-card__body--flush { padding: 0; }
+.xfk-card__foot {
+  margin-top: auto;
+  padding: 10px 16px;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+  flex: none;
+}
+
+/* — Fila de propiedad — */
+.xfk-prow {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: var(--pulso-radius-chip);
+  font-size: 13px;
+  color: var(--pulso-text);
+  text-align: left;
+}
+.xfk-prow--action { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: grid; grid-template-columns: 104px minmax(0, 1fr); align-items: center; gap: 10px; min-height: 32px; padding: 0 10px; border-radius: var(--pulso-radius-chip); font-size: 13px; color: var(--pulso-text); transition: background-color var(--motion-dur-fast) var(--motion-ease-out); }
+.xfk-prow--action:hover { background: var(--pulso-surface-2); }
+.xfk-prow--action:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: -2px; }
+.xfk-prow__label { color: var(--pulso-text-muted); font-size: 12.5px; }
+.xfk-prow__value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* — Segmentado — */
+.xfk-seg {
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 7px;
+  background: var(--pulso-surface-3);
+}
+.xfk-seg__opt {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 10px;
+  border-radius: 5px;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out), color var(--motion-dur-fast) var(--motion-ease-out);
+}
+.xfk-seg--md .xfk-seg__opt { height: 24px; }
+.xfk-seg--sm .xfk-seg__opt { height: 22px; font-size: 12px; padding: 0 8px; }
+.xfk-seg__opt.is-on { background: var(--pulso-surface); color: var(--pulso-text); box-shadow: var(--pulso-shadow-low); }
+.xfk-seg__opt:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.xfk-seg__count { color: var(--pulso-text-faint); }
+
+/* — Ícono de tipo enmarcado — */
+.xfk-typebox {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  flex: none;
+}
+
+/* — Referencia a pregunta — */
+.xfk-tok {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  height: 22px;
+  padding: 0 7px 0 5px;
+  border-radius: 5px;
+  background: var(--pulso-surface-3);
+  font-size: 12.5px;
+  color: var(--pulso-text);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.xfk-tok b { font-weight: 600; }
+.xfk-tok i { font-style: normal; color: var(--pulso-text-muted); overflow: hidden; text-overflow: ellipsis; }
+.xfk-tok.is-on { background: var(--module-accent-soft, var(--pulso-primary-soft)); }
+
+/* — Fila de definición (Se lee / En el papel / XLSForm) — */
+.xfk-def {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 14px;
+  align-items: baseline;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+.xfk-def:last-child { border-bottom: 0; }
+.xfk-def__value { font-size: 13.5px; line-height: 1.55; color: var(--pulso-text); min-width: 0; overflow-wrap: anywhere; }
+.xfk-def__code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  padding: 7px 9px;
+  word-break: break-all;
+}
+
+/* — Movimiento — */
+@keyframes xfk-aparece { from { opacity: 0; } to { opacity: 1; } }
+.xfk-aparece { animation: xfk-aparece var(--motion-dur-fast) var(--motion-ease-out); }
+@media (prefers-reduced-motion: reduce) {
+  .xfk-aparece { animation: none; }
+  .xfk-seg__opt, .xfk-prow--action { transition: none; }
+}
