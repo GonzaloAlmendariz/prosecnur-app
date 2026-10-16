@@ -101,6 +101,7 @@ import {
   SURVEY_COLUMNS_WITH_VAR_REFS,
 } from "./parsing/sheetUtils";
 import { SheetsView } from "./sheets/SheetsView";
+import { crearManejadoresHojas } from "./state/manejadoresHojas";
 import {
   buildType,
   cleanFilename,
@@ -2034,91 +2035,16 @@ export default function XlsformEditorPage() {
     });
   }
 
-  type EditableSheetKey = "survey" | "choices" | "settings" | "paper";
-
-  function editableSheet(draft: XlsformEditorWorkbook, sheetName: EditableSheetKey) {
-    if (sheetName === "paper" && !draft.paper) draft.paper = makeSheet("paper", PAPER_COLUMNS);
-    return draft[sheetName]!;
-  }
-
-  // ── Handlers del modo Hojas (sheets) — operan a nivel de celda raw ──
-  function sheetsUpdateCell(
-    sheetName: EditableSheetKey,
-    rowIndex: number,
-    columnName: string,
-    value: string,
-  ) {
-    updateWorkbook((draft) => {
-      // Si es la columna `name` de survey, también propagamos referencias
-      // (mismo refactor que en updateSurveyField). Sheets no debería ser
-      // un escape hatch silencioso para romper referencias.
-      if (sheetName === "survey" && columnName === "name") {
-        const oldName = getCell(draft.survey, rowIndex, "name");
-        const newName = value;
-        const NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
-        if (
-          oldName &&
-          newName &&
-          oldName !== newName &&
-          NAME_RE.test(oldName) &&
-          NAME_RE.test(newName)
-        ) {
-          const cellsChanged = replaceVarReferences(
-            draft.survey,
-            oldName,
-            newName,
-            [...SURVEY_COLUMNS_WITH_VAR_REFS],
-          );
-          if (cellsChanged > 0) {
-            queueMicrotask(() => {
-              toasts.push({
-                kind: "info",
-                title: "Referencias actualizadas",
-                detail: `${cellsChanged} ${cellsChanged === 1 ? "celda" : "celdas"} con \${${oldName}} → \${${newName}}.`,
-              });
-            });
-          }
-        }
-      }
-      setCell(editableSheet(draft, sheetName), rowIndex, columnName, value);
-    });
-  }
-  function sheetsAddRow(sheetName: EditableSheetKey) {
-    updateWorkbook((draft) => {
-      const sheet = editableSheet(draft, sheetName);
-      sheet.rows.push(new Array(sheet.columns.length).fill(""));
-    });
-  }
-  function sheetsDeleteRow(
-    sheetName: EditableSheetKey,
-    rowIndex: number,
-  ) {
-    updateWorkbook((draft) => {
-      deleteRow(editableSheet(draft, sheetName), rowIndex);
-    });
-  }
-  function sheetsMoveRow(
-    sheetName: EditableSheetKey,
-    rowIndex: number,
-    direction: "up" | "down",
-  ) {
-    updateWorkbook((draft) => {
-      const sheet = editableSheet(draft, sheetName);
-      const target = direction === "up" ? rowIndex - 1 : rowIndex + 1;
-      if (target < 0 || target >= sheet.rows.length) return;
-      const next = [...sheet.rows];
-      [next[rowIndex], next[target]] = [next[target]!, next[rowIndex]!];
-      sheet.rows = next;
-    });
-  }
-  function sheetsAddColumn(
-    sheetName: EditableSheetKey,
-    columnName: string,
-  ) {
-    updateWorkbook((draft) => {
-      ensureColumn(editableSheet(draft, sheetName), columnName);
-    });
-  }
+  // Editor XLSForm: celdas, filas y columnas en bruto (state/manejadoresHojas.ts).
+  const { sheetsUpdateCell, sheetsAddRow, sheetsDeleteRow, sheetsMoveRow, sheetsAddColumn } = crearManejadoresHojas(
+    updateWorkbook,
+    (cambiadas, anterior, nuevo) =>
+      toasts.push({
+        kind: "info",
+        title: "Referencias actualizadas",
+        detail: `${cambiadas} ${cambiadas === 1 ? "celda" : "celdas"} con \${${anterior}} → \${${nuevo}}.`,
+      }),
+  );
 
   function updateQuestionType(rowIndex: number, nextBaseType: string) {
     updateWorkbook((draft) => {
