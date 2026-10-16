@@ -490,3 +490,18 @@ test_that("un segmento sale de una variable calculada por fórmula, agrupada en 
   expect_identical(orden, c("edad_en_5", "cruce_edad5"))
   expect_identical(.sg_code(base_variables_quitar_calculada(sid, "2026", "edad_en_5")), "E_BASE_VARIABLE_EN_USO")
 })
+
+test_that("reguardar un segmento con otra calculada en la base no choca con su propio nombre", {
+  skip_if_not_installed("haven")
+  sid <- .sg_estudio()
+  on.exit(session_delete(sid), add = TRUE)
+  base_variables_guardar_calculada(sid, "2026", list(
+    nombre = "edad_en_5", etiqueta = "Edad dentro de cinco años", regla = "formula", expresion = "P1 + 5"))
+  segmentos_guardar(sid, .sg_sexo)
+  # Antes, `modifyList` no reemplazaba la lista y materializaba cruce_sexo: E_SEGMENTO_NOMBRE_OCUPADO.
+  out <- segmentos_guardar(sid, .sg_sexo)
+  expect_identical(.sg_seg(out, "sexo")$por_base[["2026"]]$estado, "definido")
+  # Una calculada que se reemplaza tampoco ve las de después.
+  expect_no_error(base_variables_guardar_calculada(sid, "2026", list(
+    nombre = "edad_en_5", etiqueta = "Edad dentro de cinco años", regla = "formula", expresion = "P1 + 5")))
+})
