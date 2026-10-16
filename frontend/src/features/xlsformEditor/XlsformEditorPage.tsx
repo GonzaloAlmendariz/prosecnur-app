@@ -205,7 +205,7 @@ import { LogicCanvas } from "./canvas-graph/LogicCanvas";
 import { ChoiceFiltersView } from "./choiceFilters/ChoiceFiltersView";
 import { FormSimulator } from "./shell/FormSimulator";
 import { FormSummaryView } from "./shell/FormSummaryView";
-import "./styles/xlsform-v2.css";
+import "./styles/xlsformV2";
 import "./styles/xf-logic.css";
 import { PestanaRestricciones } from "./pestanas/PestanaRestricciones";
 import { PestanaCalculos } from "./pestanas/PestanaCalculos";

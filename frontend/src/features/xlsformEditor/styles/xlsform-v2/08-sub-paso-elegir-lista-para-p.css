@@ -1,0 +1,487 @@
+/* Sub-paso "elegir lista" para preguntas de selección */
+.pulso-canvas-addbetween-listpick {
+  min-width: 280px;
+}
+
+.pulso-canvas-addbetween-listpick-divider {
+  display: block;
+  padding: 8px 10px 4px;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--pulso-text-soft);
+  border-top: 1px dashed var(--pulso-border);
+  margin-top: 4px;
+}
+
+.pulso-choices-edit-shared {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(247, 175, 0, 0.08);
+  border: 1px solid rgba(247, 175, 0, 0.3);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--pulso-warn-fg, #8a5a00);
+}
+
+.pulso-choices-edit-shared-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pulso-choices-edit-shared-head svg {
+  flex-shrink: 0;
+}
+
+.pulso-choices-edit-shared-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* Con muchas preguntas compartidas (ej. 21) el aviso crecía sin
+   * límite; lo acotamos con scroll interno propio. */
+  max-height: 96px;
+  overflow-y: auto;
+}
+
+.pulso-choices-edit-shared-list li {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.pulso-choices-edit-shared-chip {
+  /* inline-block (no inline-flex) para que text-overflow: ellipsis
+   * funcione: en un contenedor flex el truncado no se aplica y el
+   * texto se corta a la fuerza. */
+  display: inline-block;
+  max-width: 132px;
+  padding: 2px 8px;
+  border: 1px solid rgba(247, 175, 0, 0.4);
+  background: white;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  color: var(--pulso-text);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-choices-edit-shared-chip:hover {
+  border-color: var(--pulso-warn-fg, #aa7300);
+  background: rgba(247, 175, 0, 0.06);
+}
+
+.pulso-choices-edit-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pulso-choices-edit-empty {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 9px;
+  align-items: flex-start;
+  padding: 10px;
+  border: 1px dashed color-mix(in srgb, var(--pulso-primary) 24%, var(--xls-border, var(--pulso-border)));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 253, 0.84)),
+    color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
+  color: #253149;
+}
+
+.pulso-choices-edit-empty-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-choices-edit-empty strong {
+  display: block;
+  color: #1f2a3d;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.2;
+}
+
+.pulso-choices-edit-empty p {
+  margin: 3px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.4;
+}
+
+.pulso-choice-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 120ms ease;
+}
+
+.pulso-choice-edit-row:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.pulso-choice-edit-row .pulso-choice-edit-remove {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.pulso-choice-edit-row:hover .pulso-choice-edit-remove,
+.pulso-choice-edit-row:focus-within .pulso-choice-edit-remove {
+  opacity: 1;
+}
+
+.pulso-choice-edit-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.pulso-choice-code-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pulso-choice-edit-code {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  width: 130px;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--pulso-text-soft);
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.pulso-choice-code-hint {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  font-size: 10px;
+  color: var(--pulso-text-soft);
+  background: white;
+  border: 1px solid var(--pulso-border);
+  border-radius: 4px;
+  padding: 3px 6px;
+  white-space: nowrap;
+  z-index: 5;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+.pulso-choice-code-assistant {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: 8;
+  width: min(230px, 72vw);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 253, 0.9)),
+    #ffffff;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+  pointer-events: none;
+}
+
+.pulso-choice-code-assistant-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #566172;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.25;
+  pointer-events: none;
+}
+
+.pulso-choice-code-assistant-head svg {
+  flex: 0 0 auto;
+  color: var(--pulso-primary);
+}
+
+.pulso-choice-code-assistant button {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 6px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 20%, var(--xls-border));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--pulso-primary) 6%, #ffffff);
+  color: var(--pulso-primary);
+  cursor: pointer;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-heavy);
+  pointer-events: auto;
+}
+
+.pulso-choice-code-assistant code {
+  min-width: 0;
+  max-width: 140px;
+  overflow: hidden;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-choice-edit-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pulso-choice-edit-remove:hover {
+  background: rgba(220, 38, 38, 0.1);
+  color: rgb(220, 38, 38);
+}
+
+.pulso-choice-edit-add-row {
+  list-style: none;
+  margin-top: 4px;
+}
+
+.pulso-choice-edit-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px dashed var(--pulso-border);
+  background: transparent;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.pulso-choice-edit-add:hover {
+  border-color: var(--pulso-primary);
+  color: var(--pulso-primary);
+}
+
+.pulso-choices-edit-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--pulso-border);
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.pulso-listname-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pulso-listname-input {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--pulso-text);
+  width: 160px;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.pulso-listname-input:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.pulso-listname-input:focus {
+  outline: none;
+  background: white;
+  border-color: var(--pulso-primary);
+}
+
+.pulso-listname-input:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.pulso-choices-edit-open-lens {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.pulso-choices-edit-open-lens:hover {
+  color: var(--pulso-primary);
+  text-decoration: underline;
+}
+
+/* === Coachmarks (tour de primer uso) === */
+.pulso-coachmarks-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  background: transparent;
+  animation: pulso-coachmarks-fade-in var(--motion-dur-fast) var(--motion-ease-out) both;
+}
+
+.pulso-coachmarks-spotlight {
+  position: absolute;
+  border-radius: 12px;
+  background: transparent;
+  box-shadow:
+    0 0 0 9999px rgba(8, 22, 44, 0.38),
+    0 0 0 1px rgba(255, 255, 255, 0.78),
+    0 0 0 3px rgba(255, 255, 255, 0.14),
+    0 16px 38px rgba(8, 22, 44, 0.18);
+  pointer-events: none;
+}
+
+.pulso-coachmarks-callout {
+  position: absolute;
+  width: min(360px, calc(100vw - 24px));
+  background: white;
+  border: 1px solid rgba(0, 36, 87, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 18px 44px rgba(8, 22, 44, 0.16);
+  padding: 16px;
+  pointer-events: auto;
+  animation: pulso-coachmarks-callout-in var(--motion-dur-base) var(--motion-ease-out) both;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pulso-coachmarks-callout-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.55px;
+  color: var(--pulso-primary);
+}
+
+.pulso-coachmarks-callout-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: -0.2px;
+  color: var(--pulso-text);
+}
+
+.pulso-coachmarks-callout-body {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pulso-text-soft);
+  line-height: 1.55;
+}
+
+.pulso-coachmarks-callout-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  gap: 8px;
+}
+
+.pulso-coachmarks-skip {
+  border: none;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.pulso-coachmarks-skip:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--pulso-text);
+}
+
+.pulso-coachmarks-next {
+  background: var(--pulso-primary);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-coachmarks-next:hover {
+  background: #013371;
+}
+
+.pulso-coachmarks-next:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 720px) {
+  .pulso-coachmarks-callout {
+    left: 12px !important;
+    right: 12px;
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-coachmarks-overlay,
+  .pulso-coachmarks-callout {
+    animation: none;
+  }
+  .pulso-coachmarks-spotlight {
+    transition: none;
+  }
+}
+

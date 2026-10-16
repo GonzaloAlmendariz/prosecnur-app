@@ -1,0 +1,563 @@
+.pulso-focus-data-contract-head {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 9px;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.pulso-focus-data-contract-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-data-contract-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-focus-data-contract-head strong {
+  color: #1f2a3d;
+  font-size: 12.8px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.25;
+}
+
+.pulso-focus-data-contract-head p,
+.pulso-focus-data-principle {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.4px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.45;
+}
+
+.pulso-focus-data-contract-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+  gap: 7px;
+}
+
+.pulso-focus-data-contract .pulso-focus-fact {
+  min-height: 50px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.pulso-focus-data-principle {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 7px;
+  padding-top: 2px;
+}
+
+.pulso-focus-data-principle svg {
+  margin-top: 1px;
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-select-data-guide {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-success-fg) 16%, var(--xls-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 252, 249, 0.78)),
+    color-mix(in srgb, var(--pulso-success-bg) 28%, #ffffff);
+}
+
+.pulso-focus-select-data-guide-head {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  color: color-mix(in srgb, var(--pulso-success-fg) 72%, #253149);
+}
+
+.pulso-focus-select-data-guide-head svg {
+  flex: 0 0 auto;
+}
+
+.pulso-focus-select-data-guide-head strong {
+  color: #1f2a3d;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.25;
+}
+
+.pulso-focus-select-data-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
+  gap: 7px;
+}
+
+.pulso-focus-select-data-guide-grid strong {
+  color: #253149;
+  font-size: 11.2px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.2;
+}
+
+.pulso-focus-select-data-guide-grid em {
+  color: var(--pulso-text-soft);
+  font-size: 10.8px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.32;
+}
+
+.pulso-focus-name-assistant {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 15%, var(--xls-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 253, 0.84)),
+    color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
+}
+
+.pulso-focus-name-assistant.is-warning {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 22%, var(--xls-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 251, 235, 0.74)),
+    color-mix(in srgb, var(--pulso-warn-bg) 26%, #ffffff);
+}
+
+.pulso-focus-name-assistant-head {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 9px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.pulso-focus-name-assistant-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-name-assistant.is-warning .pulso-focus-name-assistant-icon {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 22%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 42%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-warn-fg) 78%, #253149);
+}
+
+.pulso-focus-name-assistant-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-focus-name-assistant-head strong {
+  color: #1f2a3d;
+  font-size: 12.7px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.25;
+}
+
+.pulso-focus-name-assistant-head p,
+.pulso-focus-name-tip {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.2px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.42;
+}
+
+.pulso-focus-name-checks {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pulso-focus-name-checks span.is-ok {
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 16%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-success-bg) 48%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-success-fg) 76%, #253149);
+}
+
+.pulso-focus-name-checks span.is-pending {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 16%, var(--xls-border));
+  background: rgba(255, 255, 255, 0.76);
+  color: color-mix(in srgb, var(--pulso-warn-fg) 72%, #566172);
+}
+
+.pulso-focus-disclosure {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pulso-focus-disclosure summary {
+  cursor: pointer;
+  color: #253149;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.pulso-focus-disclosure[open] summary {
+  margin-bottom: 10px;
+}
+
+/* El contenido de un <details> no participa del flex de su caja (va en el
+   slot interno del elemento), así que el `gap` de arriba no separaba los
+   campos: la ayuda de uno quedaba pegada al rótulo del siguiente. Mismo
+   espaciado que el resto de bloques del inspector (`.pulso-inspector-block`). */
+.pulso-focus-disclosure > :not(summary) + :not(summary) {
+  margin-top: 10px;
+}
+
+.pulso-focus-overview {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: 58px 24px 72px;
+  border: 1px solid var(--xls-border);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.07) 1px, transparent 0),
+    color-mix(in srgb, var(--xls-bg) 72%, #ffffff 28%);
+  background-size: 24px 24px;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+.pulso-focus-overview-toolbar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 32px);
+  padding: 6px 8px;
+  border: 1px solid var(--xls-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, #ffffff 88%, transparent);
+  box-shadow: var(--xls-shadow-hairline);
+  transform: translateX(-50%);
+  backdrop-filter: blur(12px) saturate(1.08);
+  -webkit-backdrop-filter: blur(12px) saturate(1.08);
+}
+
+.pulso-focus-overview-toolbar span,
+.pulso-focus-overview-toolbar strong {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 7px;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.pulso-focus-overview-toolbar span {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.pulso-focus-overview-toolbar strong {
+  border: 1px solid var(--xls-border);
+  background: #ffffff;
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-focus-overview-stage {
+  width: min(980px, 100%);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--xls-border) 82%, #ffffff 18%);
+  border-radius: 14px;
+  background: color-mix(in srgb, #ffffff 96%, transparent);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9),
+    0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.pulso-focus-catalog-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pulso-focus-empty {
+  height: 100%;
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px dashed var(--xls-border);
+  border-radius: 12px;
+  background: var(--xls-content-soft);
+  color: var(--pulso-text-soft);
+  text-align: center;
+}
+
+.pulso-focus-empty-icon {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--pulso-primary) 8%, white);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-empty strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+}
+
+.pulso-focus-empty p {
+  max-width: 360px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pulso-add-element-menu-head-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-add-element-menu-head-copy small {
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 10.8px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-add-element-menu-close:hover,
+.pulso-add-element-menu-close:focus-visible {
+  color: var(--pulso-text);
+  background: color-mix(in srgb, var(--pulso-surface-2) 54%, #ffffff);
+}
+
+.pulso-add-element-menu-searchbox:focus-within {
+  border-color: color-mix(in srgb, var(--pulso-primary) 34%, var(--xls-border));
+  box-shadow: var(--xls-ring);
+}
+
+.pulso-add-element-menu-search::placeholder {
+  color: color-mix(in srgb, var(--pulso-text-soft) 76%, transparent);
+}
+
+.pulso-add-element-menu-group-title {
+  padding: 1px 3px 0;
+  color: #667386;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.pulso-add-element-menu-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.pulso-add-element-menu-item-topline {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+}
+
+.pulso-add-element-menu-copy strong {
+  display: block;
+  font-size: 12.8px;
+  color: var(--pulso-text);
+  line-height: 1.15;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.pulso-add-element-menu-chip {
+  flex: 0 0 auto;
+  max-width: 112px;
+  overflow: hidden;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-primary-soft) 48%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-primary) 88%, #253149);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-add-element-menu-copy > span:not(.pulso-add-element-menu-item-topline) {
+  display: block;
+  font-size: 10.5px;
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.34;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.pulso-add-element-menu-copy .pulso-add-element-menu-item-topline {
+  display: flex;
+}
+
+.pulso-add-element-menu-copy .pulso-add-element-menu-chip {
+  display: inline-flex;
+  align-items: center;
+}
+
+.pulso-add-element-menu-copy small {
+  display: block;
+  color: #596679;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.34;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.pulso-add-element-menu-item.is-choice .pulso-add-element-menu-icon,
+.pulso-add-element-menu-item.is-choice .pulso-add-element-menu-chip {
+  background: color-mix(in srgb, var(--pulso-primary) 10%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-add-element-menu-item.is-evidence .pulso-add-element-menu-icon,
+.pulso-add-element-menu-item.is-evidence .pulso-add-element-menu-chip {
+  background: color-mix(in srgb, var(--pulso-info-bg) 48%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-info-fg) 82%, var(--pulso-primary));
+}
+
+.pulso-add-element-menu-item.is-logic .pulso-add-element-menu-icon,
+.pulso-add-element-menu-item.is-logic .pulso-add-element-menu-chip {
+  background: color-mix(in srgb, var(--pulso-success-bg) 48%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-success-fg) 78%, var(--pulso-primary));
+}
+
+.pulso-add-element-menu-empty {
+  grid-column: 1 / -1;
+  min-height: 150px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  padding: 18px;
+  border: 1px dashed color-mix(in srgb, var(--xls-border) 80%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--xls-content-soft) 86%, #ffffff);
+  color: var(--pulso-text-soft);
+  text-align: center;
+}
+
+.pulso-add-element-menu-empty strong {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.pulso-add-element-menu-empty span {
+  max-width: 360px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.4;
+}
+
+.pulso-add-element-menu-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 0 2px 1px;
+  color: #667386;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-add-element-menu-footer span {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #eef2f8 72%, #ffffff);
+}
+
+/* ---------------------------------------------------------------------------
+ * Header del workspace en foco: se apila por ancho de COLUMNA, no de viewport.
+ *
+ * La rejilla es `minmax(0, 1fr) auto` y los controles (toggle de modo +
+ * acciones) piden ~419 px fijos. En un viewport de 1024 el workspace mide 665
+ * px, así que al título le quedaban 162 px y se truncaba con elipsis a media
+ * palabra —"Nueva pregunta de sele…"— pese a que el header tenía sitio de
+ * sobra. La regla que apila el header existía, pero colgaba de
+ * `@media (max-width: 900px)`: miraba el viewport (1024 > 900) y nunca
+ * disparaba para una columna que ya estaba por debajo de ese umbral.
+ *
+ * Con el contenedor, el mismo umbral se evalúa contra los 665 px reales y el
+ * título recupera el ancho completo.
+ * ------------------------------------------------------------------------- */
+
+.pulso-focus-workspace {
+  container-type: inline-size;
+  container-name: pulso-focus-workspace;
+}
+
+/* Los selectores van prefijados con `.pulso-xlsform-frame` —el mismo idioma que
+ * usa theme.css para lo específico del editor— para ganarle a la regla base por
+ * ESPECIFICIDAD (0-2-0 contra 0-1-0), sin depender del orden de carga.
+ * `@container` no aporta especificidad por sí solo, así que sin el prefijo la
+ * consulta queda inerte donde el tema cargue después: medido en el bundle de
+ * dev, xlsform-v2 es la hoja 30 y theme la 33, y así fue como se detectó. */
+@container pulso-focus-workspace (max-width: 900px) {
+  .pulso-xlsform-frame .pulso-focus-workspace-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-xlsform-frame .pulso-focus-workspace-controls {
+    justify-content: flex-start;
+  }
+
+  .pulso-xlsform-frame .pulso-focus-title-copy h3,
+  .pulso-xlsform-frame .pulso-focus-title-copy p {
+    white-space: normal;
+  }
+}

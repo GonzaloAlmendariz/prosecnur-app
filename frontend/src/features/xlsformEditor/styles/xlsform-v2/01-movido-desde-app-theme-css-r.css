@@ -1,0 +1,522 @@
+/* =========================================================================
+   Movido desde app/theme.css (refactor 2026-07: theme.css = tokens + kit).
+   Bloques byte-idénticos; prepend para conservar el orden de cascada (theme.css cargaba antes que este archivo).
+   ========================================================================= */
+
+.pulso-more-views-switch {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 20px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--pulso-border);
+  transition: background 140ms ease;
+}
+.pulso-more-views-switch.is-on .pulso-more-views-switch-thumb {
+  transform: translateX(14px);
+}
+
+.pulso-xlsform-history-button:not(:disabled) {
+  color: var(--pulso-text);
+}
+
+.pulso-xlsform-history-button:disabled .pulso-xlsform-history-icon {
+  color: var(--pulso-text-muted);
+  background: color-mix(in srgb, var(--pulso-surface-2) 70%, transparent);
+}
+
+.pulso-xlsform-history-button svg {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  color: currentColor;
+}
+
+.pulso-xlsform-toolbar-button img {
+  display: block;
+  object-fit: contain;
+}
+
+/* =============================================================================
+ * xlsform-v2.css — capa visual v2 del editor XLSForm
+ * =============================================================================
+ * Lleva el chrome del editor al lenguaje del generador de gráficos
+ * (editor-v2.css, .pulso-gv2-*): pills, segmented, glass, popovers con entrada
+ * origin-aware y feedback de presión. Reusa tokens --pulso-* / --xls-* del
+ * theme global; acá solo viven keyframes propios, el estilo de término técnico
+ * y overrides scoped a .pulso-xlsform-frame para no tocar otros módulos.
+ *
+ * Convención de prefijo: `.pulso-xf-*`.
+ * ========================================================================= */
+
+/* ── Keyframes compartidos del módulo ──────────────────────────────────── */
+
+@keyframes pulso-xf-popover-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pulso-xf-fade-in-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulso-xf-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pulso-xf-sheet-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Término técnico XLSForm ───────────────────────────────────────────── */
+/* "Condición para mostrarse (relevant)" — el paréntesis lo pone el CSS. */
+
+.pulso-xf-tech {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88em;
+  font-weight: var(--pulso-weight-medium);
+  font-style: normal;
+  color: var(--pulso-text-muted, #9aa4b2);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.pulso-xf-tech::before { content: "("; }
+.pulso-xf-tech::after  { content: ")"; }
+
+/* ── Selector de modo (Constructor | Hojas) → segmented pill gv2 ───────── */
+
+.pulso-xlsform-frame .pulso-mode-toggle {
+  padding: 3px;
+  gap: 3px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-primary-border);
+  box-shadow: var(--pulso-shadow-low);
+  backdrop-filter: blur(8px) saturate(1.06);
+  -webkit-backdrop-filter: blur(8px) saturate(1.06);
+}
+
+.pulso-xlsform-frame .pulso-mode-toggle button {
+  min-height: 26px;
+  padding: 4px 13px;
+  border-radius: 999px;
+  font-weight: var(--pulso-weight-semibold);
+  transition:
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xlsform-frame .pulso-mode-toggle button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pulso-xlsform-frame .pulso-mode-toggle button.is-on {
+  background: var(--pulso-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+
+/* ── Botones del commandbar → pills con feedback de presión ────────────── */
+
+/* ── Jerarquía de los controles de la banda ────────────────────────────── */
+/* Solo la acción principal (Exportar .xlsx, .pulso-primary) lleva relleno. El
+   resto vive sin borde en reposo y lo gana al pasar por encima: así la banda
+   tiene un único punto focal en vez de nueve cajas compitiendo. El contorno
+   sigue apareciendo en hover y foco, de modo que nada pierde affordance. */
+.pulso-xlsform-frame .pulso-xlsform-toolbar-button:not(.pulso-primary),
+.pulso-xlsform-frame .pulso-xf-intake-trigger,
+.pulso-xlsform-frame .pulso-more-views-trigger {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pulso-xlsform-frame .pulso-xlsform-toolbar-button:not(.pulso-primary):hover:not(:disabled),
+.pulso-xlsform-frame .pulso-xf-intake-trigger:hover:not(:disabled),
+.pulso-xlsform-frame .pulso-more-views-trigger:hover:not(:disabled),
+.pulso-xlsform-frame .pulso-more-views-wrapper.is-open .pulso-more-views-trigger {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.pulso-xlsform-frame .pulso-xlsform-toolbar-button {
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-weight: var(--pulso-weight-semibold);
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xlsform-frame .pulso-xlsform-toolbar-button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pulso-xlsform-frame .pulso-xlsform-toolbar-button.pulso-primary {
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xlsform-frame .pulso-xlsform-toolbar-button:hover:not(:disabled) {
+    border-color: var(--pulso-primary-border);
+    box-shadow: var(--pulso-shadow-soft);
+  }
+}
+
+/* ── Zona de contexto en una sola línea ────────────────────────────────── */
+/* Identidad del formulario (selector · métricas · estado) leída de corrido.
+   Antes el estado caía a un segundo renglón bajo el selector y el bloque
+   quedaba descolgado, con la cápsula del selector cortada arriba. Con las
+   etiquetas de procedencia abreviadas el conjunto entra de una vez; el
+   separador marca dónde termina el documento y empieza su estado. */
+
+.pulso-xlsform-frame .pulso-xlsform-commandbar-group--document {
+  align-items: center;
+  gap: 8px;
+}
+
+.pulso-xlsform-frame .pulso-xlsform-state-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 10px;
+  border-left: 1px solid var(--pulso-border);
+}
+
+/* ── Estado del formulario: dato, no control ───────────────────────────── */
+/* Procedencia y guardado se leen como texto con un punto de color. Sin
+   cápsula: una pastilla con borde los ponía al mismo nivel visual que los
+   botones y la banda entera se volvía indistinguible. */
+
+.pulso-xlsform-frame .pulso-xf-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-xf-status-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.pulso-xlsform-frame .pulso-xf-status.is-info .pulso-xf-status-dot {
+  background: var(--pulso-info-fg);
+  opacity: 0.7;
+}
+
+.pulso-xlsform-frame .pulso-xf-status.is-success .pulso-xf-status-dot {
+  background: var(--pulso-success-fg);
+  opacity: 0.85;
+}
+
+/* El único estado que sí debe llamar la atención: hay algo sin guardar. */
+.pulso-xlsform-frame .pulso-xf-status.is-warn {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-xlsform-frame .pulso-xf-status.is-warn .pulso-xf-status-dot {
+  background: var(--pulso-warn-fg);
+  opacity: 1;
+}
+
+/* «Sin avisos» es la ausencia de un problema: no merece una cápsula verde
+   compitiendo con la acción principal. Queda como texto con su check y
+   recupera todo el peso —fondo y borde— en cuanto hay algo que revisar. */
+.pulso-xlsform-frame .pulso-diagnostics-badge.tone-ok {
+  border-color: transparent;
+  background: transparent;
+}
+
+.pulso-xlsform-frame .pulso-diagnostics-badge.tone-ok:hover {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+}
+
+/* Cluster de salida: la casilla es una opción del .xlsx, no una acción
+   hermana, así que comparten una misma cápsula y se leen como un solo control
+   con su ajuste. Antes la casilla flotaba entre botones del mismo peso y la
+   banda se leía como un mosaico de piezas sin relación. */
+.pulso-xlsform-frame .pulso-xf-export-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 2px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-surface) 72%, transparent);
+}
+
+/* El selector de destino vive dentro de la cápsula del cluster, así que no
+   trae la suya: dos contenedores anidados para un solo control se leen como
+   ruido. Los segmentos conservan su pastilla activa, que es la señal útil.
+   Lleva las dos clases en el selector a propósito: .pulso-mode-toggle se
+   redeclara más tarde en theme.css y con una sola clase perdería. */
+.pulso-xlsform-frame .pulso-mode-toggle.pulso-xf-target-toggle {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.pulso-xlsform-frame .pulso-xf-target-toggle button {
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-xlsform-toolbar-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-xlsform-toolbar-check input {
+  accent-color: var(--pulso-primary);
+  cursor: pointer;
+}
+
+.pulso-xlsform-frame .pulso-xlsform-toolbar-check:has(input:disabled) {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.pulso-xlsform-frame .pulso-xlsform-history-button {
+  transition:
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xlsform-frame .pulso-xlsform-history-button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* ── Menú "Más vistas" → popover glass animado ─────────────────────────── */
+
+/* Geometría del trigger. El fondo y el borde los gobierna la jerarquía de la
+   banda (más arriba): transparentes en reposo, visibles en hover y foco. */
+.pulso-xlsform-frame .pulso-more-views-trigger {
+  min-height: 26px;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xlsform-frame .pulso-more-views-trigger:active {
+  transform: scale(0.97);
+}
+
+.pulso-xlsform-frame .pulso-more-views-menu {
+  border-radius: 16px;
+  border-color: var(--pulso-primary-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), color-mix(in srgb, var(--pulso-surface-2) 30%, #ffffff)),
+    #ffffff;
+  box-shadow: var(--pulso-shadow-popover);
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+  transform-origin: top right;
+  animation: pulso-xf-popover-in var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-xlsform-frame .pulso-more-views-item {
+  border-radius: 10px;
+  transition: background var(--motion-dur-fast) ease, transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xlsform-frame .pulso-more-views-item:active {
+  transform: scale(0.985);
+}
+
+/* Stagger sutil de los ítems al abrir el menú. */
+.pulso-xlsform-frame .pulso-more-views-item {
+  animation: pulso-xf-fade-in-up var(--motion-dur-fast) var(--motion-ease-out) backwards;
+}
+.pulso-xlsform-frame .pulso-more-views-item:nth-child(2) { animation-delay: 30ms; }
+.pulso-xlsform-frame .pulso-more-views-item:nth-child(3) { animation-delay: 60ms; }
+.pulso-xlsform-frame .pulso-more-views-item:nth-child(4) { animation-delay: 90ms; }
+.pulso-xlsform-frame .pulso-more-views-item:nth-child(5) { animation-delay: 120ms; }
+.pulso-xlsform-frame .pulso-more-views-item:nth-child(6) { animation-delay: 150ms; }
+
+/* ── Controles del impreso (pestaña «Impreso») ──────────────────────────── */
+/* Tarjetas de opción, interruptores, matrices y selects que nacieron en el
+   diálogo «Configurar PDF» y hoy usa la pestaña «Impreso» (2026-10-15). El
+   marco del diálogo se retiró con él. Todo con tokens `--pulso-*`. */
+
+.pulso-xf-pdf-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pulso-xf-pdf-section-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-xf-pdf-section-note {
+  margin: -4px 0 2px;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-pdf-empty {
+  margin: 0;
+  padding: 14px;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+  text-align: center;
+  border: 1px dashed var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+/* ── Campo con etiqueta izquierda (Columnas) ───────────────────────────── */
+
+.pulso-xf-pdf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pulso-xf-pdf-field-label {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+/* ── Tarjetas de opción (radios) ───────────────────────────────────────── */
+
+.pulso-xf-pdf-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Tarjeta que ocupa la fila entera. El grupo «Columnas» tiene TRES opciones en
+   una rejilla de dos, asi que la tercera caia sola en una segunda fila ocupando
+   media anchura: se leia como un descuadre y no como una opcion del mismo
+   rango. A tres columnas no cabria —su descripcion es la mas larga de las
+   tres—, asi que ocupa el ancho completo. En el breakpoint estrecho la rejilla
+   ya es de una columna y esto no cambia nada. */
+.pulso-xf-pdf-card--ancha {
+  grid-column: 1 / -1;
+}
+
+.pulso-xf-pdf-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  text-align: left;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    background var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-pdf-card:hover {
+  border-color: var(--pulso-border-strong);
+}
+
+.pulso-xf-pdf-card.is-active {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+  box-shadow: inset 0 0 0 1px var(--pulso-primary-border);
+}
+
+.pulso-xf-pdf-card-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-xf-pdf-card.is-active .pulso-xf-pdf-card-icon {
+  color: var(--pulso-primary);
+}
+
+.pulso-xf-pdf-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-xf-pdf-card-text strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-pdf-card.is-active .pulso-xf-pdf-card-text strong {
+  color: var(--pulso-primary-strong);
+}
+
+.pulso-xf-pdf-card-text em {
+  font-style: normal;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--pulso-text-muted);
+}
+
+/* ── Fila con switch (N.º de cuestionario) ─────────────────────────────── */
+
+.pulso-xf-pdf-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  text-align: left;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) ease, background var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-pdf-switch-row:hover {
+  border-color: var(--pulso-border-strong);
+}
+

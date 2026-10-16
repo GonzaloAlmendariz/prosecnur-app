@@ -1,0 +1,546 @@
+/* === CatalogInfoBlock (sección dinámica del catálogo en ContextPanel) === */
+.pulso-catalog-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 2px;
+}
+
+.pulso-catalog-info-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-catalog-info-listname {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--pulso-text);
+}
+
+.pulso-catalog-info-value {
+  font-size: 13px;
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-catalog-info-muted {
+  font-weight: var(--pulso-weight-regular);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.pulso-catalog-info-shared {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(247, 175, 0, 0.06);
+  border: 1px solid rgba(247, 175, 0, 0.25);
+  border-radius: 6px;
+}
+
+.pulso-catalog-info-shared-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--pulso-warn-fg, #8a5a00);
+}
+
+.pulso-catalog-info-shared-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-catalog-info-shared-link {
+  display: inline-block;
+  padding: 3px 6px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: var(--pulso-text);
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.pulso-catalog-info-shared-link:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--pulso-primary);
+}
+
+.pulso-catalog-info-shared-link:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.pulso-catalog-info-shared-note {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+
+.pulso-catalog-info-open-lens {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--pulso-border);
+  background: white;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--pulso-text);
+  cursor: pointer;
+  align-self: flex-start;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.pulso-catalog-info-open-lens:hover {
+  border-color: var(--pulso-primary);
+  color: var(--pulso-primary);
+}
+
+/* === ContextPanel (sidebar lineal sin tabs) === */
+.pulso-context-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pulso-context-panel-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 4px 12px;
+  border-bottom: 1px solid var(--pulso-border);
+  margin-bottom: 4px;
+}
+
+.pulso-context-panel-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.pulso-context-panel-header-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pulso-context-panel-header-meta strong {
+  font-size: 13px;
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.pulso-context-panel-header-sub {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  line-height: 1.3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+}
+
+.pulso-context-panel-header-sub code {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 0 4px;
+  border-radius: 3px;
+  margin-left: 2px;
+}
+
+.pulso-more-views-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.pulso-more-views-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-more-views-item-text strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+}
+
+.pulso-more-views-item-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  border-radius: 999px;
+}
+
+.pulso-more-views-item-text em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  line-height: 1.45;
+}
+
+/* Item con toggle on/off en vez de radio: el texto ocupa el ancho y el switch
+   se ancla a la derecha. */
+.pulso-more-views-switch-item .pulso-more-views-item-text {
+  flex: 1 1 auto;
+}
+/* Separa el rótulo de la columna especial del input de tenor que lo precede. */
+.pulso-inspector-conditional-required-body {
+  padding: 10px 12px;
+  background: rgba(247, 175, 0, 0.06);
+  border: 1px solid rgba(247, 175, 0, 0.3);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pulso-inspector-conditional-required-body p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text);
+  line-height: 1.55;
+}
+
+.pulso-logic-tree-group.is-root {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.pulso-logic-tree-multi > svg {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  margin-top: 2px;
+  color: var(--pulso-primary);
+}
+
+/* Caja read-only para fragmentos no parseables */
+.pulso-logic-tree-raw {
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.02);
+  font-size: 12px;
+}
+
+.pulso-logic-tree-raw-eyebrow {
+  display: block;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--pulso-text-soft);
+  margin-bottom: 4px;
+}
+
+.pulso-logic-tree-raw pre {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--pulso-text);
+}
+
+.pulso-logic-tree-raw p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+
+.pulso-xlsform-history-controls {
+  padding-left: 0;
+}
+
+.pulso-xlsform-document-metric strong {
+  color: #1f2a3d;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.pulso-xlsform-document-metric span {
+  color: inherit;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-xlsform-outline-chrome > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-xlsform-outline-chrome strong {
+  overflow: hidden;
+  color: #162135;
+  font-size: 13.5px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-xlsform-outline-chrome small {
+  overflow: hidden;
+  color: #667386;
+  font-size: 11.5px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-xlsform-workbench-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pulso-xlsform-outline-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.pulso-focus-status-chip > span:last-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pulso-focus-status-chip.is-accent {
+  border-color: color-mix(in srgb, var(--pulso-primary) 20%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-primary) 76%, #253149); /* AA en texto chico sobre soft (patrón del scope) */
+}
+
+.pulso-focus-status-chip.is-success {
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 20%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-success-bg) 42%, #ffffff);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-focus-status-chip.is-warn {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 22%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 42%, #ffffff);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-focus-section-boundary p {
+  margin: 0;
+  color: #5f6b7d;
+  font-size: 12px;
+  line-height: 1.38;
+}
+
+.pulso-focus-section-boundary-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--pulso-primary) 44%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
+  color: var(--pulso-primary);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.pulso-focus-section-boundary-button.is-primary {
+  border-color: color-mix(in srgb, var(--pulso-primary) 28%, var(--xls-border));
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-section-boundary-button:disabled {
+  opacity: 0.46;
+  cursor: not-allowed;
+}
+
+.pulso-focus-rule-section-head.is-visibility .pulso-focus-rule-section-icon {
+  color: var(--pulso-primary);
+  background: color-mix(in srgb, var(--pulso-primary) 12%, transparent);
+}
+
+.pulso-focus-rule-section-head.is-validation .pulso-focus-rule-section-icon {
+  color: #1f8a5b;
+  background: color-mix(in srgb, #1f8a5b 12%, transparent);
+}
+
+.pulso-focus-rule-item-copy p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.pulso-focus-rule-item-copy p b {
+  color: #142033;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.pulso-focus-validation-message-status.is-ok {
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 16%, var(--xls-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 252, 249, 0.74)),
+    color-mix(in srgb, var(--pulso-success-bg) 34%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-success-fg) 78%, #253149);
+}
+
+.pulso-focus-validation-message-status svg {
+  width: 24px;
+  height: 24px;
+  padding: 5px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, var(--xls-border));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.pulso-focus-guided-validation > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-focus-required-message-block > summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  color: #253149;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.pulso-focus-required-message-block > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pulso-focus-required-message-block > summary::before {
+  content: "＋";
+  font-size: 12px;
+  line-height: 1;
+  color: color-mix(in srgb, var(--pulso-primary) 70%, #253149);
+}
+
+.pulso-focus-required-message-block[open] > summary::before {
+  content: "−";
+}
+
+.pulso-focus-required-message-block > summary small {
+  margin-left: auto;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pulso-focus-required-message-block[open] > summary {
+  margin-bottom: 9px;
+}
+
+.pulso-focus-guided-validation p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.pulso-focus-custom-validation summary {
+  cursor: pointer;
+  color: #253149;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.pulso-focus-custom-validation p {
+  margin: 8px 0 10px;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.pulso-focus-custom-validation textarea {
+  min-height: 74px;
+  resize: vertical;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pulso-focus-note-authoring {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 14%, var(--xls-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 253, 0.82)),
+    color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
+}
+
+.pulso-focus-note-authoring-head {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 9px;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.pulso-focus-note-authoring-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
+  color: var(--pulso-primary);
+}
+
