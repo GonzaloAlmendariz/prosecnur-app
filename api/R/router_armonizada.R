@@ -9,8 +9,11 @@
 #
 #   POST /api/analitica/armonizada/frecuencias {filas?, rotulos_periodos?,
 #        notas_pregunta?, notas_generales?}
-#   POST /api/analitica/armonizada/cruces      {filas?, cruces, rotulos_periodos?,
+#   POST /api/analitica/armonizada/cruces      {filas?, cruces?, rotulos_periodos?,
 #        notas_pregunta?, notas_generales?}
+#
+# Sin `cruces`, el comparativo de cruces usa las filas de la matriz marcadas
+# `cruce` (segmentos del estudio, ADR 0107).
 #
 # `notas_pregunta` es {<id|etiqueta|variable de la fila>: "texto"} y se imprime
 # bajo el pie de esa pregunta. `notas_generales` es ["texto", ...] y se imprime
@@ -94,9 +97,13 @@ attr(armonizada_job_worker, "prosecnur_job_function_name") <- "armonizada_job_wo
   cfg <- .analitica_get_config(sid)
   cc <- cfg$cruces %||% list()
   cruces_refs <- body$cruces
+  # ADR 0107: sin `cruces`, los segmentos de cruce del estudio.
+  if (identical(tipo, "cruces") && !length(.armz_refs(cruces_refs))) {
+    cruces_refs <- segmentos_cruces_por_defecto(sid)
+  }
   if (identical(tipo, "cruces") && !length(.armz_refs(cruces_refs))) {
     stop_api(400, "E_ARMONIZADA_SIN_CRUCES",
-             "Elige al menos una variable de cruce armonizada.")
+             "Elige al menos una variable de cruce armonizada o declara un segmento de cruce del estudio.")
   }
   extras <- .armonizada_extras(body)
   ap <- .armz_preparar(sid, cfg, filas_refs = body$filas,

@@ -131,8 +131,10 @@ base_variables_declarar <- function(sid, base, declarar = list(), quitar = list(
 }
 
 #' Crea o reemplaza (por `nombre`) una variable calculada de la base.
+#' @param marca campos que se agregan a la calculada ya validada; los segmentos
+#'   de cruce (ADR 0107) la marcan `segmento = <clave>` para saber cuál es suya.
 #' @keywords internal
-base_variables_guardar_calculada <- function(sid, base, cuerpo) {
+base_variables_guardar_calculada <- function(sid, base, cuerpo, marca = list()) {
   s <- session_get(sid)
   nombre_base <- .base_variables_base(s, base)
   meta <- s$estudio$bases[[nombre_base]]
@@ -141,6 +143,7 @@ base_variables_guardar_calculada <- function(sid, base, cuerpo) {
                     function(p) .origen_externo_chr(p[["name"]]), character(1))
   ocupados <- unique(c(.base_variables_nombres_instrumento(par$inst), names(par$data), propias))
   cv <- base_variables_validar_calculada(cuerpo, columnas = names(par$data), ocupados = ocupados)
+  if (length(marca)) cv[names(marca)] <- marca
   calcs <- meta[["variables_calculadas"]] %||% list()
   previas <- vapply(calcs, function(x) .origen_externo_chr(x[["nombre"]]), character(1))
   calcs <- c(calcs[previas != cv$nombre], list(cv))

@@ -663,7 +663,10 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
   filas <- if (length(refs)) {
     .armz_resolver(equiv, refs)
   } else {
-    Filter(function(f) !any(vapply(cruces, function(x) .armz_misma_fila(f, x), logical(1))), con_arm)
+    # ADR 0107: en un comparativo de cruces, un segmento es variable de cruce y
+    # no entra como pregunta por defecto aunque no se haya pedido como cruce.
+    preguntas <- if (length(cruces)) Filter(function(f) !isTRUE(f$cruce), con_arm) else con_arm
+    Filter(function(f) !any(vapply(cruces, function(x) .armz_misma_fila(f, x), logical(1))), preguntas)
   }
   if (!length(filas)) {
     stop_api(409, "E_ARMONIZADA_SIN_FILAS",
