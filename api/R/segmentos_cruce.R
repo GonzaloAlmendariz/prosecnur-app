@@ -327,7 +327,10 @@ segmentos_quitar <- function(sid, clave) {
   meta <- s$estudio$bases[[base]] %||% list()
   propias <- Filter(function(cv) !nzchar(.segmentos_chr(cv[["segmento"]])), meta[["variables_calculadas"]] %||% list())
   if (length(propias)) {
-    par$data <- base_variables_materializar(par$data, utils::modifyList(meta, list(variables_calculadas = propias)))
+    # Asignación directa y no `modifyList`: con una lista sin nombres no
+    # reemplaza nada y se materializarían también las de los segmentos.
+    meta$variables_calculadas <- propias
+    par$data <- base_variables_materializar(par$data, meta)
   }
   par
 }

@@ -149,7 +149,9 @@ base_variables_guardar_calculada <- function(sid, base, cuerpo, marca = list()) 
   # podrían depender de ésta): se materializan en orden y sus columnas cuentan.
   posicion <- match(nuevo, previas)
   anteriores <- if (is.na(posicion)) calcs else calcs[seq_len(posicion - 1L)]
-  datos <- base_variables_materializar(par$data, utils::modifyList(meta, list(variables_calculadas = anteriores)))
+  meta_previa <- meta
+  meta_previa$variables_calculadas <- anteriores
+  datos <- base_variables_materializar(par$data, meta_previa)
   listas <- .base_variables_con_lista(par$inst, meta[["variables_propias"]], anteriores)
   cv <- base_variables_validar_calculada(cuerpo, columnas = names(datos), ocupados = ocupados,
                                          con_lista = listas$con_lista, multiples = listas$multiples)
