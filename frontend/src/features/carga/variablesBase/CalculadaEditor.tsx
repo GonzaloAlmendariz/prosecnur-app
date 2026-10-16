@@ -25,8 +25,9 @@ import {
 } from "./variablesBaseModel";
 import { PreguntaOrigen, PreguntasAlguna } from "./SelectorPreguntas";
 import { FormulaCampo } from "./FormulaCampo";
-import { AyudaMapa, BotonesAyudaMapa } from "../segmentos/AyudaMapa";
-import { ayudasDisponibles, type AyudaMapa as TipoAyuda } from "../segmentos/segmentosModel";
+import { ayudasDisponibles } from "../segmentos/segmentosModel";
+import { MapaPorRangos } from "../MapaPorRangos";
+import { PlegableValorPorValor } from "../ArmonizacionAyudaMapa";
 
 const REGLAS: { id: ReglaCalculada; rotulo: string; ayuda: string }[] = [
   { id: "alguna", rotulo: "Alguna de varias preguntas", ayuda: "Sí si alguna tiene uno de los códigos indicados." },
@@ -192,8 +193,7 @@ function Recodificar({
   const escalaValida = r.escala.filter((c) => c.codigo.trim());
   const sinMapa = filas.filter((f) => f.sinMapa).map((f) => f.codigo);
   // Una variable numérica (una edad, una fórmula) se agrupa en rangos.
-  const [ayuda, setAyuda] = useState<TipoAyuda | null>(null);
-  const ayudas = noListable ? [] : ayudasDisponibles(origen);
+  const numerica = !noListable && escalaValida.length > 0 && ayudasDisponibles(origen.filter((o) => o.n !== 0)).includes("rangos");
   return (
     <div className="pulso-vb-bloque">
       <PreguntaOrigen opciones={preguntas} variable={r.variable} onElegir={(variable) => despachar({ tipo: "origen", variable })} />
@@ -249,29 +249,28 @@ function Recodificar({
 
           <div className="pulso-vb-subtitulo">
             <h5>Cada código de {r.variable}</h5>
-            {ayudas.length > 0 && escalaValida.length > 0 && (
-              <span className="pulso-vb-subtitulo-acciones">
-                <BotonesAyudaMapa ayudas={ayudas} abierta={ayuda} onAlternar={(a) => setAyuda(ayuda === a ? null : a)} />
-              </span>
-            )}
             <span className="pulso-armon-ayuda">
               Un código sin mapa queda sin dato.
               {observados && observados.n_sin_dato > 0 ? ` Sin dato: ${formatoConteoDe(observados.n_sin_dato, "caso", "casos")}.` : ""}
             </span>
           </div>
-          {ayuda && (
-            <AyudaMapa
-              tipo={ayuda}
+          {numerica && (
+            // Origen numérico (una fórmula, una edad): rangos en línea, como en Segmentos y Armonizar.
+            <MapaPorRangos
+              key={r.variable}
+              base={r.variable}
               origen={r.variable}
+              valores={origen}
               escala={escalaValida.map((c) => ({ codigo: c.codigo.trim(), etiqueta: c.etiqueta }))}
-              codigos={origen}
-              onAplicar={(mapa) => {
+              mapa={r.mapa}
+              onAsignar={(cambios) => {
                 const porDestino = new Map<string, string[]>();
-                for (const [codigo, destino] of Object.entries(mapa)) porDestino.set(destino, [...(porDestino.get(destino) ?? []), codigo]);
-                for (const [destino, codigos] of porDestino) despachar({ tipo: "destino", codigos, destino });
-                setAyuda(null);
+                for (const [codigo, destino] of Object.entries(cambios)) {
+                  const k = destino ?? "";
+                  porDestino.set(k, [...(porDestino.get(k) ?? []), codigo]);
+                }
+                for (const [k, codigos] of porDestino) despachar({ tipo: "destino", codigos, destino: k === "" ? null : k });
               }}
-              onCerrar={() => setAyuda(null)}
             />
           )}
           {lectura.tipo === "cargando" && (
@@ -286,7 +285,7 @@ function Recodificar({
           ) : origen.length === 0 ? (
             <p className="pulso-armon-nota">{r.variable} no trae lista de respuestas.</p>
           ) : (
-            <>
+            <PlegableValorPorValor plegado={numerica} n={origen.length} base={r.variable}>
               <ArmonizacionAsignarEnMasa
                 base={r.variable}
                 escala={escalaValida}
@@ -344,7 +343,7 @@ function Recodificar({
                   </tbody>
                 </table>
               </div>
-            </>
+            </PlegableValorPorValor>
           )}
         </>
       )}
