@@ -93,6 +93,7 @@ describe("Segmentos de cruce", () => {
     expect(html).toContain("Por completar");
     expect(html).toContain("1 de 2 códigos asignados · 1 sin mapa");
     expect(html).toContain("Sin origen, el segmento queda vacío en 2026.");
+    expect(html).toContain("Variables de la base de 2026");
     expect(html).toContain("Sin dato");
     expect(html).toContain("Guardar segmento");
   });
