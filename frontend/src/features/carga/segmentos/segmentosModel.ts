@@ -27,7 +27,7 @@ import { conNivel } from "../../../lib/navegacion/direccion";
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import type { FilaEditor } from "../equivalenciasEditorModel";
 import { aFilasEditor } from "../equivalenciasEditorModel";
-import { etiquetaTolerante, indicePorEtiqueta } from "../etiquetaTolerante";
+import { etiquetaTolerante, etiquetasAmbiguas, indicePorEtiqueta } from "../etiquetaTolerante";
 import { PANEL_SEGMENTOS } from "../panelesCarga";
 import { nombreDesdeEtiqueta, type CategoriaBorrador } from "../variablesBase/variablesBaseModel";
 
@@ -553,7 +553,8 @@ export function escalaDeBorrador(b: Pick<BorradorSegmento, "escala">): Categoria
  * «Emparejar por etiqueta»: cada código sin mapa va a la categoría de la
  * escala con su misma etiqueta tolerante (`etiquetaTolerante`, la misma de la
  * armonización de una fila: sin mayúsculas, tildes, puntuación ni marcado, así
- * que «18–20 años» casa con «18-20 años»). No toca lo asignado.
+ * que «18–20 años» casa con «18-20 años», pero «<18» no casa con «18»). No toca
+ * lo asignado ni empareja dos códigos de la base que dicen lo mismo.
  */
 export function mapaPorEtiqueta(
   codigos: readonly OpcionBase[],
@@ -561,10 +562,13 @@ export function mapaPorEtiqueta(
   escala: readonly CategoriaSegmento[],
 ): Record<string, string> {
   const porEtiqueta = indicePorEtiqueta(escala);
+  const ambiguas = etiquetasAmbiguas(codigos);
   const out: Record<string, string> = {};
   for (const c of codigos) {
     if (c.codigo in mapa) continue;
-    const destino = porEtiqueta.get(etiquetaTolerante(c.etiqueta));
+    const clave = etiquetaTolerante(c.etiqueta);
+    if (ambiguas.has(clave)) continue;
+    const destino = porEtiqueta.get(clave);
     if (destino) out[c.codigo] = destino;
   }
   return out;

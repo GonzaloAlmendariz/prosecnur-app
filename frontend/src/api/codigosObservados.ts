@@ -3,7 +3,10 @@
 //
 // `GET /api/carga/codigos-observados?base=&variable=`. Lee la base pedida sin
 // cambiar la activa e incluye las columnas propias y las calculadas (ADR 0106).
-// Una variable de texto libre no devuelve valores (`tipo: "texto"`). Lo
+// Una variable de texto libre no devuelve valores (`tipo: "texto"`), y una que
+// parece un identificador —valores casi únicos o de 7 dígitos o más— tampoco
+// (`tipo: "identificador"`, por privacidad). Un tipo que esta versión no
+// conoce se lee como no listable (`"desconocido"`), nunca como categórica. Lo
 // consumen los editores que mapean códigos a una escala: los segmentos de
 // cruce (ADR 0107) y «Recodificar una pregunta».
 //
@@ -13,7 +16,12 @@
 import { apiFetch, handle, headers } from "./core";
 import { booleano, codigo, enteroONulo, lista, registro, texto } from "./normalizarR";
 
-export type TipoCodigosObservados = "categorica" | "numerica" | "texto";
+export type TipoCodigosObservados = "categorica" | "numerica" | "texto" | "identificador" | "desconocido";
+
+/** Sólo las categóricas y las numéricas traen sus valores; el resto llega sin códigos. */
+export function codigosListables(tipo: TipoCodigosObservados): boolean {
+  return tipo === "categorica" || tipo === "numerica";
+}
 
 export type CodigoObservado = {
   codigo: string;
@@ -36,8 +44,9 @@ export type CodigosObservados = {
 
 function tipoDe(value: unknown): TipoCodigosObservados {
   const t = texto(value);
-  // Un tipo que esta versión no conoce no se trata como texto libre: se leen sus códigos.
-  return t === "numerica" || t === "texto" ? t : "categorica";
+  // Un tipo que esta versión no conoce no se lista: leerlo como categórica
+  // pintaría valores que el backend quizá no quiso mostrar.
+  return t === "categorica" || t === "numerica" || t === "texto" || t === "identificador" ? t : "desconocido";
 }
 
 /** R puede serializar `NA_character_` como «NA»: es etiqueta ausente. */
@@ -51,7 +60,7 @@ export function normalizarCodigosObservados(raw: unknown): CodigosObservados {
   const tipo = tipoDe(r.tipo);
   const vistos = new Set<string>();
   const codigos: CodigoObservado[] = [];
-  if (tipo !== "texto") {
+  if (codigosListables(tipo)) {
     for (const fila of lista(r.codigos)) {
       const c = codigo(fila.codigo);
       if (!c || vistos.has(c)) continue;

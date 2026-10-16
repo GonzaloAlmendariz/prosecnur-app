@@ -9,6 +9,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { Copy, Plus, Save, Trash2 } from "../../../vendor/lucide-react";
 import { ArmonizacionAsignarEnMasa } from "../ArmonizacionAsignarEnMasa";
 import { DESTINO_SIN_MAPA, textoMarcados } from "../armonizacionMasaModel";
+import { avisoNoListable } from "../codigosObservadosModel";
 import { observadosListos, useCodigosObservados, type LecturaCodigosObservados } from "../useCodigosObservados";
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import {
@@ -173,7 +174,9 @@ function Recodificar({
   despachar: (a: AccionCalculada) => void;
 }) {
   const observados = observadosListos(lectura);
-  const conCasos = observados !== null && observados.tipo !== "texto";
+  // Texto, identificador o tipo desconocido: una línea en lugar de la tabla.
+  const noListable = observados ? avisoNoListable(observados.tipo) : null;
+  const conCasos = observados !== null && !noListable;
   const r = b.recodificar;
   const filas = filasRecodificacion(origen, r);
   const escalaValida = r.escala.filter((c) => c.codigo.trim());
@@ -245,8 +248,8 @@ function Recodificar({
             // C5 categoría 3: queda la lista del instrumento.
             <p className="pulso-armon-aviso" role="alert">No se pudieron leer los valores de {r.variable}: {lectura.mensaje}</p>
           )}
-          {observados?.tipo === "texto" ? (
-            <p className="pulso-armon-aviso" role="status">Variable de texto: elige una categórica o numérica.</p>
+          {noListable ? (
+            <p className="pulso-armon-aviso" role="status">{noListable}</p>
           ) : origen.length === 0 ? (
             <p className="pulso-armon-nota">{r.variable} no trae lista de respuestas.</p>
           ) : (

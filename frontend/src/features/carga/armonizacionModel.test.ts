@@ -141,6 +141,26 @@ describe("reducirArmonizacion", () => {
     expect(normalizarEtiqueta("18–20 años")).toBe(etiquetaTolerante("18-20 años"));
   });
 
+  test("emparejar no confunde signos: «<18» no casa con «18» ni «A-» con «A»", () => {
+    let b = borradorDesde({ escala: [{ codigo: "1", etiqueta: "18" }, { codigo: "2", etiqueta: "A" }], por_base: {} }, ["x"]);
+    b = reducirArmonizacion(b, {
+      tipo: "emparejar",
+      base: "x",
+      opciones: [{ codigo: "5", etiqueta: "<18" }, { codigo: "6", etiqueta: "A-" }, { codigo: "7", etiqueta: "18." }],
+    });
+    expect(b.porBase.x.mapa).toEqual({ "7": "1" });
+  });
+
+  test("emparejar no elige al azar entre dos códigos de la base que dicen lo mismo", () => {
+    let b = borradorDesde({ escala: [{ codigo: "1", etiqueta: "Otro" }, { codigo: "2", etiqueta: "Sí" }], por_base: {} }, ["x"]);
+    b = reducirArmonizacion(b, {
+      tipo: "emparejar",
+      base: "x",
+      opciones: [{ codigo: "8", etiqueta: "Otro" }, { codigo: "9", etiqueta: "otro." }, { codigo: "3", etiqueta: "si" }],
+    });
+    expect(b.porBase.x.mapa).toEqual({ "3": "2" });
+  });
+
   test("sembrar copia una lista sólo sobre una escala vacía", () => {
     let b = borradorDesde(null, ["x"]);
     b = reducirArmonizacion(b, { tipo: "sembrar", opciones: [{ codigo: "1", etiqueta: "Sí" }] });

@@ -166,8 +166,11 @@ export type ComparativosUi = {
 };
 
 /**
- * Preguntas por defecto: las seleccionables que no son segmento de cruce. Es lo
- * que el motor tabula cuando el cuerpo no trae `filas` (`.armz_preparar`).
+ * Preguntas por defecto: las seleccionables que no son segmento de cruce. Es la
+ * selección inicial de la UI, que siempre envía `filas` (`construirBody`). Sin
+ * `filas`, el motor (`.armz_preparar`) aplica la misma regla de segmentos: deja
+ * fuera las filas `cruce`, en el comparativo simple y en el de cruces —y en
+ * éste, también las variables de cruce elegidas—.
  */
 export function clavesPreguntasPorDefecto(filas: readonly FilaArmonizada[]): string[] {
   return filas.filter((f) => f.seleccionable && !f.esSegmento).map((f) => f.clave);

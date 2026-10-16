@@ -87,6 +87,24 @@ describe("codigosDeBase: de dónde salen los códigos de una base (F4)", () => {
     expect(v.vacio).toBe("«comentario» es texto libre en 2024: no es una variable comparable por categorías.");
   });
 
+  it("un identificador no lista sus valores: una línea sobria, sin tabla ni ayudas", () => {
+    const id = observadosDesde(normalizarCodigosObservados({ tipo: "identificador", codigos: [{ codigo: "70123456", n: 1 }], n_validos: 812 }));
+    const v = codigosDeBase(sinPreview(id), [], "2024", "dni", false);
+    expect(v.fuente).toBe("no-listable");
+    expect(v.codigos).toEqual([]);
+    expect(v.conConteos).toBe(false);
+    expect(v.nota).toBeNull();
+    expect(v.vacio).toBe("Parece un identificador: sus valores no se listan.");
+  });
+
+  it("un tipo que esta versión no conoce tampoco se lista como categórica", () => {
+    const raro = observadosDesde(normalizarCodigosObservados({ tipo: "geopunto", codigos: [{ codigo: "1", n: 3 }] }));
+    const v = codigosDeBase(sinPreview(raro), [], "2024", "gps", false);
+    expect(v.fuente).toBe("no-listable");
+    expect(v.codigos).toEqual([]);
+    expect(v.vacio).toMatch(/no se listan/);
+  });
+
   it("C5: un fallo de lectura no se presenta como base vacía", () => {
     const v = codigosDeBase(sinPreview({ estado: "error", mensaje: "Sin conexión" }), [], "2024", "x", false);
     expect(v.fuente).toBe("sin-lectura");

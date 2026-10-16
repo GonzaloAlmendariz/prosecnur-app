@@ -338,6 +338,24 @@ describe("borrador y acciones", () => {
     expect(mapaPorEtiqueta(codigos, {}, escala)).toEqual({ "1": "1", "2": "2", "9": "99" });
   });
 
+  it("dos códigos de la base que dicen lo mismo no se emparejan: tampoco en el origen se elige al azar", () => {
+    const escala = [{ codigo: "1", etiqueta: "Otro" }, { codigo: "2", etiqueta: "Sí" }];
+    const codigos = [{ codigo: "5", etiqueta: "Otro" }, { codigo: "6", etiqueta: "*otro*" }, { codigo: "7", etiqueta: "SI" }];
+    expect(mapaPorEtiqueta(codigos, {}, escala)).toEqual({ "7": "2" });
+  });
+
+  it("emparejar conserva los signos que cambian la categoría", () => {
+    const escala = [{ codigo: "1", etiqueta: "18" }, { codigo: "2", etiqueta: "60" }, { codigo: "3", etiqueta: "5" }, { codigo: "4", etiqueta: "1-2" }];
+    const codigos = [
+      { codigo: "a", etiqueta: "+18" },
+      { codigo: "b", etiqueta: "≥ 60" },
+      { codigo: "c", etiqueta: "5%" },
+      { codigo: "d", etiqueta: "1/2" },
+      { codigo: "e", etiqueta: "1–2" },
+    ];
+    expect(mapaPorEtiqueta(codigos, {}, escala)).toEqual({ e: "4" });
+  });
+
   it("dos categorías que dicen lo mismo con otro código no se emparejan: sería elegir al azar", () => {
     const escala = [{ codigo: "1", etiqueta: "Otro" }, { codigo: "2", etiqueta: "otro." }];
     expect(mapaPorEtiqueta([{ codigo: "5", etiqueta: "Otro" }], {}, escala)).toEqual({});
