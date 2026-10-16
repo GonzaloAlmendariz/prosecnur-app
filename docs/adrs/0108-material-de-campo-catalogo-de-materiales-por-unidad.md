@@ -76,7 +76,7 @@ renombre toca solo el módulo.
    |---|---|---|
    | `aulas_v1` | Cálculo de muestra y Monitoreo de aulas (como hoy) | `classroom_course_schedule` |
    | `ump_territorial_v1` | `hojas_ruta_runs[[fase]]` en el servidor, solo lectura | `territorial_ump` |
-   | `fichas_cuota_v1` | asignación de fichas de cuota producida por el módulo de diseño (ver §6, bloqueado) | `quota_sheet` |
+   | `fichas_cuota_v1` | asignación de fichas de cuota producida por Hojas de ruta en su modo sin marco (§6) | `quota_sheet` |
    | `manual_v1` | lista libre, para hojas comunes sin fuente | `generic` |
 
    Los **provider adapters** actuales (`aulas_v1` de accesos, `manual_links_v1`, `kobo_existing_v1` y los de SurveyMonkey,
@@ -161,8 +161,8 @@ determina así, sin clic:
 `PROSECNUR_NAVIGATION_CONTRACT.modosCoverage` suma `material-campo-v1`. La enumeración «solo Monitoreo y Cálculo de
 muestra tienen modos» del ADR 0044 §1 pasa a incluir Material de campo.
 
-**Hojas de ruta** queda con Territorio · Población · Muestra · Manzanas · **Selección**. «Entrega» se renombra
-«Selección» y conserva Cuotas, Titulares y Reemplazos, que dependen de Manzanas y no son material.
+**Hojas de ruta** queda con Territorio · Población · Muestra · Manzanas · **Selección** (confirmado por Gonzalo el
+2026-10-16). «Entrega» se renombra «Selección» y conserva Cuotas, Titulares y Reemplazos, que dependen de Manzanas y no son material.
 `hojas_ruta_ui_state.active_stage = "entrega"` se migra a `"seleccion"` en `.hojas_ruta_ui_state_normalize`, junto con
 la profundidad de restauración de la muestra (`HojasRutaPage.tsx:6662`); un valor desconocido no puede volver a caer en
 Territorio sin muestra.
@@ -198,12 +198,16 @@ Los consumidores que hoy escriben direcciones viejas (`ClassroomAuditPanels.tsx:
 
 **Modo público:** Material de campo no existe en `isPublicMode()`.
 
-### 6. Decisión pendiente: dónde nace la lista de fichas de cuota
+### 6. La lista de fichas de cuota nace en Hojas de ruta
 
-`fichas_cuota_v1` necesita una fuente dueña de la asignación (cuántas fichas por sede y distrito, su eje fijado, la meta
-por celda, la lista de lugares y sus topes). No puede ser Material de campo. Lo natural es **Hojas de ruta en un modo sin
-marco**, porque el catálogo ya manda los estudios `territorial_hogares` a Hojas de ruta y fuera del calculador. Queda
-**bloqueado hasta decisión de Gonzalo**; E4 no empieza sin ella.
+Decidido por Gonzalo el 2026-10-16. `fichas_cuota_v1` lee una asignación cuya dueña es **Hojas de ruta, en un modo sin
+marco**: cuántas fichas por sede y distrito, su eje fijado, la meta por celda, la lista de lugares y sus topes. El
+catálogo ya manda los estudios `territorial_hogares` a Hojas de ruta y fuera del calculador. Material de campo no la
+crea ni la edita.
+
+Consecuencia: Hojas de ruta pasa a tener modos (`marco`, el de hoy con manzanas INEI, y `cuotas`, sin marco). El
+detalle de ese modo (secciones, contrato de la asignación, migración) es un ADR propio, que E4 necesita antes de
+empezar.
 
 ### 7. Identidad visual
 
@@ -223,14 +227,16 @@ marco**, porque el catálogo ya manda los estudios `territorial_hogares` a Hojas
 | Candidato | Hex | OKLCH (L · C · H) | Contraste sobre blanco | ΔE76 al vecino más cercano |
 |---|---|---|---|---|
 | Oliva | `#647119` | 0.520 · 0.110 · 118° | 5.36 | Bitácora 38.0 · Procesamiento 48.8 |
-| **Musgo** (recomendado) | `#4F752C` | 0.516 · 0.111 · 132° | 5.37 | Procesamiento 38.7 · Bitácora 49.9 |
+| **Musgo** (elegido) | `#4F752C` | 0.516 · 0.111 · 132° | 5.37 | Procesamiento 38.7 · Bitácora 49.9 |
 | Helecho | `#3A783E` | 0.516 · 0.110 · 145° | 5.34 | Procesamiento 29.5 · Bitácora 59.7 |
 
-El petróleo actual estaba a ΔE 25.0 de Procesamiento; los tres se separan más. Musgo equilibra sus dos vecinos más
-cercanos y es el que menos se confunde con un estado de éxito.
+El petróleo actual estaba a ΔE 25.0 de Procesamiento; los tres se separan más. **Gonzalo eligió Musgo `#4F752C` el
+2026-10-16**: equilibra sus dos vecinos más cercanos y es el que menos se confunde con un estado de éxito.
 
-**El color y el ícono quedan bloqueados hasta que Gonzalo elija** (ícono: `Printer`, `Files` o `ClipboardList`, vía el
-shim de lucide). Tokens: `--pulso-module-fieldkit`, `-soft`, `-border`; `--pulso-module-collectors` queda como alias
+**El ícono queda bloqueado hasta que Gonzalo elija.** Se descartan `ClipboardList` (ya es el de Bitácora) y los íconos
+de archivo (`Files`, `FileStack`), que chocan con el `FilePen` de Formularios. Candidatos, vía el shim de lucide:
+`Backpack` (lo que el equipo se lleva a campo; recomendado), `Stamp`, `PackageOpen`, `Layers2`, `Tickets` y `Printer`.
+Reemplaza a `IconCollector = QrCode` en `frontend/src/lib/icons.ts`; el QR sigue como ícono de la sección Accesos. Tokens: `--pulso-module-fieldkit`, `-soft`, `-border`; `--pulso-module-collectors` queda como alias
 deprecado en los tres lugares que lo definen (`frontend/src/app/tokens.css`, `frontend/src/app/boot.css`,
 `branding/identity/tokens.css`) hasta retirar sus consumidores.
 
@@ -239,11 +245,11 @@ deprecado en los tres lugares que lo definen (`frontend/src/app/tokens.css`, `fr
 | Etapa | Contenido | Depende de |
 |---|---|---|
 | E0a | Renombre de módulo y ruta, modos y secciones en `modules.ts` y `App.tsx`, componente de redirección con query, migración del slug persistido, `active_stage` de Hojas de ruta, cards del home, contratos de navegación. Sin color nuevo | aceptación |
-| E0b | Token de color nuevo con su alias, ícono, `branding/` | E0a, color e ícono elegidos |
+| E0b | Token Musgo `#4F752C` con su alias, ícono, `branding/` | E0a, ícono elegido |
 | E1 | Catálogo, `compatible_unit_types`, bindings por `unit_type`, dos registros de adapters, `collection_state/v2`, deriva de 9 a 13 bloques, presets ocultos expuestos. Revamp «pliego de imprenta» con geometría congelada antes | E0a |
 | E2 | `ump_territorial_v1` y salidas de Hojas de ruta envueltas como layout legacy con paridad visual | E1 |
 | E3 | Bloques `quota_grid`, `unit_map`, `place_checklist`, `route_instructions`; port de la ficha de manzana; retiro del layout legacy; retiro de `hojas_ruta_generar_zip` (`@export`, roxygenise, test) con doble confirmación | E2 |
-| E4 | `fichas_cuota_v1`, hojas comunes, alerta en lugar del `next` de Monitoreo, validación por celda y por eje fijado, golden de Ser Adolescente | E3 y §6 decidido |
+| E4 | `fichas_cuota_v1`, hojas comunes, alerta en lugar del `next` de Monitoreo, validación por celda y por eje fijado, golden de Ser Adolescente | E3 y ADR del modo `cuotas` de Hojas de ruta |
 | E5 (opcional) | Seguimiento por ficha desde la misma lista de unidades | Monitoreo |
 
 ## Consecuencias
