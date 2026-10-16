@@ -160,6 +160,31 @@ function evaluateCall(name: string, args: Expr[], answers: SimAnswers): EvalValu
     }
   }
   if (fn === "if" && args.length === 3) return toBoolean(arg(0)) ? arg(1) : arg(2);
+  // Funciones de los cálculos reales (sonda de formularios tipo): se evalúan con su semántica ODK simple.
+  if (fn === "once" && args.length === 1) return arg(0);
+  if (fn === "now" && args.length === 0) return new Date().toISOString();
+  if ((fn === "string" || fn === "normalize-space") && args.length === 1) return String(arg(0)).trim();
+  if (fn === "concat") return args.map((_, i) => String(arg(i))).join("");
+  if (fn === "coalesce" && args.length === 2) {
+    const a = arg(0);
+    return String(a) === "" ? arg(1) : a;
+  }
+  if (fn === "boolean" && args.length === 1) return toBoolean(arg(0));
+  if (fn === "decimal-date-time" && args.length === 1) {
+    const t = Date.parse(String(arg(0)));
+    return Number.isNaN(t) ? Number.NaN : t / 86_400_000;
+  }
+  if ((fn === "format-date" || fn === "format-date-time") && args.length === 2) {
+    const fecha = String(arg(0));
+    const fmt = String(arg(1));
+    if (!FECHA.test(fecha)) return "";
+    return fmt
+      .replace("%Y", fecha.slice(0, 4))
+      .replace("%m", fecha.slice(5, 7))
+      .replace("%n", String(Number(fecha.slice(5, 7))))
+      .replace("%d", fecha.slice(8, 10))
+      .replace("%e", String(Number(fecha.slice(8, 10))));
+  }
   throw new UnsupportedExpressionError(`función ${name}()`);
 }
 
