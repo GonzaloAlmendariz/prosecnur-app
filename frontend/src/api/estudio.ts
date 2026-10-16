@@ -379,7 +379,40 @@ export type CambiosDeRespuestas = {
   casos: { antes: number; despues: number; clave: string; se_mantienen?: number; nuevos?: number; ya_no_vienen?: number };
   columnas_nuevas: string[];
   columnas_que_no_vienen: string[];
+  /** La base tenía grupos de codificación: hay que volver a adaptarlos. */
+  codificacion_por_readaptar: boolean;
 };
+
+function primero(x: unknown): unknown {
+  return Array.isArray(x) ? x[0] : x;
+}
+function numeroOpcional(x: unknown): number | undefined {
+  const v = primero(x);
+  if (v == null || v === "") return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/** Normaliza `cambios` de los dos reemplazos (una base y varias); `null` si no vino. */
+export function normalizarCambiosDeRespuestas(raw: unknown): CambiosDeRespuestas | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const c = raw as Record<string, unknown>;
+  const casos = (c.casos && typeof c.casos === "object" ? c.casos : {}) as Record<string, unknown>;
+  const lista = (x: unknown): string[] => (Array.isArray(x) ? x.map(String) : x == null ? [] : [String(x)]);
+  return {
+    casos: {
+      antes: numeroOpcional(casos.antes) ?? 0,
+      despues: numeroOpcional(casos.despues) ?? 0,
+      clave: String(primero(casos.clave) ?? ""),
+      se_mantienen: numeroOpcional(casos.se_mantienen),
+      nuevos: numeroOpcional(casos.nuevos),
+      ya_no_vienen: numeroOpcional(casos.ya_no_vienen),
+    },
+    columnas_nuevas: lista(c.columnas_nuevas),
+    columnas_que_no_vienen: lista(c.columnas_que_no_vienen),
+    codificacion_por_readaptar: primero(c.codificacion_por_readaptar) === true,
+  };
+}
 
 /**
  * Carga una versión nueva del archivo de respuestas de una base (ADR 0100 D1):
@@ -387,24 +420,18 @@ export type CambiosDeRespuestas = {
  * `apiUpload`.
  */
 export async function apiEstudioReemplazarRespuestas(payload: { nombre: string; data_file_id: string }) {
-  const raw = await handle<{ ok: true; base: EstudioBase; cambios?: Partial<CambiosDeRespuestas>; archivo?: string }>(
+  const raw = await handle<{ ok: true; base: EstudioBase; cambios?: unknown; archivo?: string }>(
     await apiFetch("/api/estudio/base/respuestas", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
     }),
   );
-  const c = raw.cambios ?? {};
-  const lista = (x: unknown): string[] => (Array.isArray(x) ? x.map(String) : x == null ? [] : [String(x)]);
-  const casos = c.casos ?? { antes: 0, despues: 0, clave: "" };
+  const vacio: CambiosDeRespuestas = { casos: { antes: 0, despues: 0, clave: "" }, columnas_nuevas: [], columnas_que_no_vienen: [], codificacion_por_readaptar: false };
   return {
     base: raw.base,
     archivo: typeof raw.archivo === "string" ? raw.archivo : "",
-    cambios: {
-      casos: { ...casos, clave: Array.isArray(casos.clave) ? String(casos.clave[0] ?? "") : String(casos.clave ?? "") },
-      columnas_nuevas: lista(c.columnas_nuevas),
-      columnas_que_no_vienen: lista(c.columnas_que_no_vienen),
-    } satisfies CambiosDeRespuestas,
+    cambios: normalizarCambiosDeRespuestas(raw.cambios) ?? vacio,
   };
 }
 

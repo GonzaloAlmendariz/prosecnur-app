@@ -1855,12 +1855,16 @@ mount_carga <- function(pr) {
 		        preview$normalizacion$choice_code_maps %||% list(),
 		        confirmed = FALSE
 		      )
+		      previa_meta <- session_get(sid)$data_raw_meta
 		      session_set(sid, "data_raw_meta", list(file_id = file_id, path = meta$path, ext = meta$ext))
 		      # Si ya hay xlsform subido, este punto cierra el par y auto-crea la
 		      # base "default" — el caso típico cuando el user va Carga →
 		      # Validación sin pasar por Analítica primero.
 		      estudio_init_default_base(sid)
-		      list(ok = TRUE, preview = preview)
+		      # Reemplazo: qué cambió y si la codificación debe volver a adaptarse.
+		      cambios <- tryCatch(carga_cambios_contra_archivo_previo(sid, previa_meta, meta),
+		                          error = function(e) NULL)
+		      list(ok = TRUE, preview = preview, cambios = cambios)
 		    })) |>
     plumber::pr_post("/api/carga/choice-mapping/confirm", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)

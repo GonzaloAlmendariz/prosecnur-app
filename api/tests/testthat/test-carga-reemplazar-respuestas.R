@@ -59,3 +59,22 @@ test_that("una base inexistente responde 404", {
   estudio_ensure(sid)
   expect_error(carga_reemplazar_respuestas(sid, "nada", "x"), class = "api_error")
 })
+
+test_that("en el modo de una base el reemplazo compara con el archivo anterior", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  a <- save_upload(sid, "data", "a.xlsx", .bv_xlsx_bytes(list(data = .bv_data_2026())))
+  nueva <- .bv_data_2026()[1:25, ]
+  nueva$seleccionado <- 1L
+  b <- save_upload(sid, "data", "b.xlsx", .bv_xlsx_bytes(list(data = nueva)))
+  expect_null(carga_cambios_contra_archivo_previo(sid, NULL, b))
+  r <- carga_cambios_contra_archivo_previo(sid, list(path = a$path, ext = a$ext), b)
+  expect_identical(c(r$casos$antes, r$casos$despues, r$casos$ya_no_vienen), c(40L, 25L, 15L))
+  expect_identical(unlist(r$columnas_nuevas), "seleccionado")
+  expect_false(r$codificacion_por_readaptar)
+  # Con grupos de codificación, avisa que hay que volver a adaptar.
+  s <- session_get(sid)
+  s$codif_por_base <- list(default = list(grupos_recod = list(P3 = list(list(label = "x")))))
+  .session_env[[sid]] <- s
+  expect_true(carga_cambios_contra_archivo_previo(sid, list(path = a$path, ext = a$ext), b)$codificacion_por_readaptar)
+})

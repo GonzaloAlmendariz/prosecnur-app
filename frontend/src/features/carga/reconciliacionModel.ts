@@ -4,8 +4,14 @@
 import type { ReconciliacionExtra, ReconciliacionInfo } from "../../api/client";
 
 // Nombres marcados como "incluida" en el estado que trae el backend.
+// Una columna completa casi siempre se agregó a propósito (una marca de
+// selección, un factor de expansión); un resto de una versión anterior del
+// formulario sólo tiene datos en parte de los casos. Si todavía no se conservó
+// ninguna, las completas vienen marcadas; si ya hay una decisión, se respeta.
 export function initialIncluidas(info: ReconciliacionInfo): string[] {
-  return info.extra.filter((extra) => extra.incluida).map((extra) => extra.name);
+  const decididas = info.extra.filter((extra) => extra.incluida);
+  if (decididas.length) return decididas.map((extra) => extra.name);
+  return info.extra.filter((extra) => extra.kind === "con_datos" && extra.fill_pct >= 100).map((extra) => extra.name);
 }
 
 // Etiqueta del relleno para mostrar en la fila. fill_pct viene 0-100.

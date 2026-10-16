@@ -364,3 +364,13 @@
   opacity: 0.6;
   cursor: progress;
 }
+
+.pulso-bde-version-siguiente {
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+/* En la tarjeta de respuestas del modo «Una base» el resumen es una grilla. */
+.pulso-upload-summary > .pulso-bde-version-resultado {
+  grid-column: 1 / -1;
+}

@@ -1,7 +1,6 @@
 // El resumen de «Nueva versión» de las respuestas: qué cambió en casos y en
-// columnas, y qué falta hacer. Sin cambios, se dice; una columna nueva invita a
-// declararla en Variables de la base, y menos casos recuerda que, si la versión
-// marca qué casos cuentan, eso se declara en Validación.
+// columnas. El paso siguiente (volver a adaptar la codificación) lo dice el
+// aviso, que sabe si la base tenía codificación.
 
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import type { CambiosDeRespuestas } from "../../../api/estudio";
@@ -25,12 +24,10 @@ export function resumenCambiosDeRespuestas(c: CambiosDeRespuestas): string[] {
     lineas.push(`Por ${clave}: ${partes.join(" y ")}.`);
   }
   if (c.columnas_nuevas.length) {
-    const una = c.columnas_nuevas.length === 1;
-    lineas.push(`${una ? "Columna nueva" : "Columnas nuevas"}: ${listaCorta(c.columnas_nuevas)}. ${una ? "Declárala" : "Decláralas"} en Variables para usarla${una ? "" : "s"} en el análisis.`);
+    lineas.push(`${c.columnas_nuevas.length === 1 ? "Columna nueva" : "Columnas nuevas"}: ${listaCorta(c.columnas_nuevas)}.`);
   }
   if (c.columnas_que_no_vienen.length) {
     lineas.push(`${c.columnas_que_no_vienen.length === 1 ? "Ya no viene" : "Ya no vienen"}: ${listaCorta(c.columnas_que_no_vienen)}.`);
   }
-  lineas.push("Si la base tenía codificación, vuelve a aplicarla para que llegue a las respuestas nuevas.");
   return lineas;
 }
