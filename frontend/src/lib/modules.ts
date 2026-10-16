@@ -9,6 +9,7 @@ import {
   ClipboardList,
   FileText,
   Link2,
+  LayoutGrid,
   ListChecks,
   MapPinned,
   Network,
@@ -573,7 +574,16 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         icon: IconTemplate,
         to: "/material-campo?seccion=catalogo",
         layoutPolicy: "viewport",
+        // Tipos es el aterrizaje de Catálogo: la galería de materiales con su
+        // página real (ADR 0109 §3). El editor trabaja sobre el tipo en uso.
         tabs: [
+          {
+            id: "tipos",
+            label: "Tipos",
+            icon: LayoutGrid,
+            to: "/material-campo?seccion=catalogo&pestana=tipos",
+            layoutPolicy: "viewport",
+          },
           {
             id: "editor",
             label: "Editor",

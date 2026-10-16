@@ -46,7 +46,7 @@ export function ClassroomOperationalHandoffPanel({
         // A la sección donde se preparan las fichas, no al módulo a secas:
         // «/material-campo» aterriza en la lista de unidades y el botón promete
         // fichas. Medido el 2026-08-23: llevaba a la lista de las 193 aulas.
-        action={{ to: "/material-campo?seccion=catalogo", label: "Abrir fichas QR", disabled: !hasSelection }}
+        action={{ to: "/material-campo?seccion=catalogo&pestana=editor", label: "Abrir fichas QR", disabled: !hasSelection }}
       />
     </div>
   );

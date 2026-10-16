@@ -1,0 +1,395 @@
+/* Catálogo › Tipos (ADR 0109 §7). Fondo neutro, superficies blancas con filete,
+   el acento del módulo sólo en la selección, la acción principal y «En uso».
+   Sólo tokens; movimiento ≤ 240 ms y nada con reduced-motion. */
+
+/* — Dueño del scroll —
+   Ancho y alto suficientes: cada columna es dueña de su scroll y el panel queda
+   quieto. En compacto el layout se apila y el panel vuelve a ser el dueño (C4),
+   igual que el editor. */
+.rec-tab-panel:has(> .rec-cat-contenedor) {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.rec-cat-contenedor {
+  container: rec-cat / inline-size;
+  min-height: 0;
+  min-width: 0;
+}
+
+.rec-cat {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(168px, 200px) minmax(0, 1fr) minmax(260px, 320px);
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.rec-cat > * {
+  min-height: 0;
+  min-width: 0;
+}
+
+.rec-cat-galeria > .xfk-card__body,
+.rec-cat-inspector > .xfk-card__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+/* — (a) Familias — */
+.rec-cat-familias {
+  align-self: start;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  box-shadow: var(--pulso-shadow-low);
+  display: grid;
+  gap: 6px;
+  padding: 10px 8px;
+}
+
+.rec-cat-familias-titulo {
+  padding: 0 8px;
+}
+
+.rec-cat-familias ul {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-cat-familia {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 13px;
+  gap: 8px;
+  justify-content: space-between;
+  min-height: 32px;
+  padding: 0 8px;
+  text-align: left;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out);
+  width: 100%;
+}
+
+.rec-cat-familia:hover {
+  background: var(--pulso-surface-2);
+}
+
+.rec-cat-familia.is-active {
+  background: var(--module-accent-soft, var(--pulso-surface-3));
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-cat-familia:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: -2px;
+}
+
+.rec-cat-familia-cuenta {
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-regular);
+}
+
+/* — (b) Galería — */
+.rec-cat-grilla {
+  display: grid;
+  gap: 12px;
+  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 14px;
+}
+
+.rec-cat-grilla > li {
+  display: flex;
+  min-width: 0;
+}
+
+.rec-cat-tarjeta {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 10px;
+  grid-template-rows: auto 1fr;
+  padding: 8px;
+  text-align: left;
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+  width: 100%;
+}
+
+.rec-cat-tarjeta:hover {
+  border-color: var(--pulso-border-strong);
+}
+
+.rec-cat-tarjeta.is-selected {
+  border-color: var(--module-accent, var(--pulso-primary));
+  box-shadow: 0 0 0 3px var(--module-accent-soft, var(--pulso-surface-3));
+}
+
+.rec-cat-tarjeta:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 2px;
+}
+
+.rec-cat-tarjeta.is-incompatible .rec-cat-escenario {
+  filter: grayscale(0.7);
+  opacity: 0.55;
+}
+
+.rec-cat-tarjeta.is-incompatible .rec-cat-tarjeta-titulo strong {
+  color: var(--pulso-text-muted);
+}
+
+.rec-cat-tarjeta-texto {
+  align-content: start;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 4px 4px;
+}
+
+.rec-cat-tarjeta-titulo {
+  align-items: baseline;
+  display: flex;
+  gap: 6px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.rec-cat-tarjeta-titulo strong {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rec-cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.rec-cat-chip {
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 18px;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.rec-cat-en-uso {
+  border: 1px solid var(--module-accent-border, var(--pulso-border));
+  border-radius: var(--pulso-radius-chip);
+  color: var(--module-accent, var(--pulso-primary));
+  flex: none;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 18px;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.rec-cat-motivo {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* — Escenario: la página real con su sombra — */
+.rec-cat-escenario {
+  aspect-ratio: 4 / 3;
+  background: var(--pulso-surface-3);
+  border-radius: var(--pulso-radius-chip);
+  display: block;
+  overflow: hidden;
+  position: relative;
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+  width: 100%;
+}
+
+.rec-cat-hoja {
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-med);
+  display: grid;
+  left: 50%;
+  object-fit: contain;
+  place-items: center;
+  position: absolute;
+  z-index: 1;
+}
+
+/* Vertical: manda el alto; apaisada: manda el ancho. */
+.rec-cat-escenario.is-portrait .rec-cat-hoja {
+  aspect-ratio: 210 / 297;
+  bottom: 8%;
+  top: 8%;
+  transform: translateX(-50%);
+}
+
+.rec-cat-escenario.is-landscape .rec-cat-hoja {
+  aspect-ratio: 297 / 210;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 76%;
+}
+
+/* El dorso asoma detrás, rotado; el frente se corre un poco para dejarlo ver. */
+.rec-cat-escenario.con-dorso .rec-cat-hoja--detras {
+  box-shadow: var(--pulso-shadow-low);
+  z-index: 0;
+}
+
+.rec-cat-escenario.is-portrait.con-dorso .rec-cat-hoja--detras {
+  transform: translateX(-38%) rotate(6deg);
+}
+
+.rec-cat-escenario.is-portrait.con-dorso .rec-cat-hoja:not(.rec-cat-hoja--detras) {
+  transform: translateX(-60%);
+}
+
+.rec-cat-escenario.is-landscape.con-dorso .rec-cat-hoja--detras {
+  transform: translate(-44%, -54%) rotate(4deg);
+}
+
+.rec-cat-escenario.is-landscape.con-dorso .rec-cat-hoja:not(.rec-cat-hoja--detras) {
+  transform: translate(-55%, -47%);
+}
+
+.rec-cat-hoja--vacia {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  text-align: center;
+}
+
+/* — (c) Inspector — */
+.rec-cat-paginas {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.rec-cat-paginas > li {
+  display: grid;
+  gap: 4px;
+}
+
+.rec-cat-pagina-rotulo {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+}
+
+.rec-cat-props {
+  display: grid;
+  gap: 2px;
+  margin: 0 -10px;
+}
+
+.rec-cat-motivo--inspector {
+  margin: 10px 0 0;
+}
+
+.rec-cat-acciones {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rec-cat-acciones .rec-inline-error {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+/* — Regímenes por ancho del contenedor — */
+@container rec-cat (max-width: 940px) {
+  .rec-cat {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .rec-cat-familias {
+    align-items: center;
+    grid-column: 1 / -1;
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 6px 8px;
+  }
+
+  .rec-cat-familias ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .rec-cat-familia {
+    width: auto;
+  }
+}
+
+@container rec-cat (max-width: 620px) {
+  .rec-cat {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+
+  .rec-cat-familias {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Compacto (1024×600 de la matriz): una columna de scroll —el panel— en vez de
+   tres cajas de 400 px compitiendo por el alto. */
+@media (max-width: 780px), (max-height: 680px) {
+  .rec-tab-panel:has(> .rec-cat-contenedor) {
+    display: block;
+    overflow-y: auto;
+  }
+
+  .rec-cat {
+    height: auto;
+    grid-template-rows: auto;
+  }
+
+  .rec-cat-galeria > .xfk-card__body,
+  .rec-cat-inspector > .xfk-card__body {
+    overflow: visible;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-cat-familia,
+  .rec-cat-tarjeta,
+  .rec-cat-escenario {
+    transition: none;
+  }
+}

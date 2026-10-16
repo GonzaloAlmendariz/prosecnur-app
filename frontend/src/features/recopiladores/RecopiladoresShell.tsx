@@ -11,6 +11,7 @@ import { PageFrame } from "../../components/PageFrame";
 import { PROSECNUR_MODULES } from "../../lib/modules";
 import { RefreshCw } from "../../vendor/lucide-react";
 import { AccessSection } from "./AccessSection";
+import { CatalogoTipos } from "./catalogo/CatalogoTipos";
 import { DeliverySection } from "./DeliverySection";
 import { MaterialsSection } from "./MaterialsSection";
 import { PlanSection } from "./PlanSection";
@@ -23,6 +24,7 @@ import {
 } from "./navegacion";
 import { deploymentStatusLabel } from "./providerRules";
 import { origenDelPlan } from "./vacioSinPlan";
+import { TIPO_DE_UNIDAD } from "./tipoDeUnidad";
 import { useProjectModules } from "../project/ProjectModulesContext";
 import "./styles/recopiladores-shell.css";
 
@@ -45,21 +47,7 @@ const MODULE = PROSECNUR_MODULES.find((item) => item.slug === "material-campo")!
  * cursos-horario necesarios» o «nombre, cliente y alcance»: el dominio, no la
  * arquitectura. Ver `docs/qa/roles-del-operativo-de-aulas-2026-08-22.md`.
  */
-/**
- * El tipo de unidad, dicho como se dice.
- *
- * La barra enseñaba `classroom_course_schedule` —la clave del adaptador— junto a
- * «TIPO». Es el nombre con el que el motor distingue una familia de plan, no
- * algo que nadie diga: en la app, en el libro y en campo son «cursos-horario».
- *
- * Una clave que no esté aquí se muestra tal cual: inventarle un nombre sería
- * peor que enseñar la clave, porque el lector no podría contrastarla con nada.
- */
-export const TIPO_DE_UNIDAD: Record<string, string> = {
-  classroom_course_schedule: "Cursos-horario",
-  household: "Viviendas",
-  person: "Personas",
-};
+export { TIPO_DE_UNIDAD } from "./tipoDeUnidad";
 
 const SECTION_COPY: Record<RecopiladoresSeccion, { title: string; lead: string }> = {
   unidades: {
@@ -316,7 +304,15 @@ export function RecopiladoresShell() {
       {!loading && direction.seccion === "accesos" ? (
         <AccessSection payload={payload} activeTab={direction.pestana} onState={aplicarMutacion} onIr={irA} />
       ) : null}
-      {!loading && (direction.seccion === "catalogo" || direction.seccion === "paquetes") ? (
+      {!loading && direction.seccion === "catalogo" && direction.pestana === "tipos" ? (
+        <CatalogoTipos
+          payload={payload}
+          onStateRefresh={refreshSilent}
+          onCargando={setSeccionCargando}
+          onIr={irA}
+        />
+      ) : null}
+      {!loading && ((direction.seccion === "catalogo" && direction.pestana === "editor") || direction.seccion === "paquetes") ? (
         <MaterialsSection
           payload={payload}
           activeTab={direction.pestana}
