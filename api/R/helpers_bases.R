@@ -1494,7 +1494,12 @@
       textos <- textos[!dup]
       if (length(codigos) > 0L) {
         labs_new <- stats::setNames(codigos, textos)
-        x_num <- suppressWarnings(as.numeric(x))
+        # Un `haven_labelled` con datos de texto (códigos guardados como texto
+        # en el .sav de origen) no se deja convertir con as.numeric(): vctrs
+        # aborta y el SAV entero caía (HSyVbG 2025, 2026-10-16). Se toman los
+        # datos crudos primero.
+        x_crudo <- if (inherits(x, "haven_labelled")) vctrs::vec_data(x) else x
+        x_num <- suppressWarnings(as.numeric(as.character(x_crudo)))
         df2[[v]] <- haven::labelled_spss(x_num, labels = labs_new)
       }
     }
