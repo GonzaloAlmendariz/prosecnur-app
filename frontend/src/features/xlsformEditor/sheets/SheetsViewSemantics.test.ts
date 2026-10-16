@@ -5,8 +5,11 @@ import { describe, expect, it } from "vitest";
 describe("SheetsView tab semantics", () => {
   it("associates every XLSForm sheet tab with the active table panel", () => {
     const source = fs.readFileSync(path.join(__dirname, "SheetsView.tsx"), "utf8");
+    // El id del panel vive en el modelo de hojas desde el corte del revamp (2026-10-16).
+    const modelo = fs.readFileSync(path.join(__dirname, "hojasModel.ts"), "utf8");
 
-    expect(source).toContain('const SHEET_PANEL_ID = "xlsform-sheet-panel";');
+    expect(modelo).toContain('export const SHEET_PANEL_ID = "xlsform-sheet-panel";');
+    expect(source).toMatch(/import \{[^}]*SHEET_PANEL_ID[^}]*\} from "\.\/hojasModel";/);
     expect(source).toMatch(
       /id=\{`xlsform-sheet-tab-\$\{tab\}`\}[\s\S]*?aria-controls=\{SHEET_PANEL_ID\}/,
     );
