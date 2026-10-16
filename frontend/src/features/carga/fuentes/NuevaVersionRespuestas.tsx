@@ -9,7 +9,7 @@ import { apiUpload, uploadKindForDataFile } from "../../../api/client";
 import { apiEstudioGet, apiEstudioReemplazarRespuestas, type CambiosDeRespuestas, type EstudioPayload } from "../../../api/estudio";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { RefreshCw } from "../../../vendor/lucide-react";
-import { resumenCambiosDeRespuestas } from "./nuevaVersionRespuestasModel";
+import { CambiosDeRespuestasAviso } from "./CambiosDeRespuestasAviso";
 
 export function NuevaVersionRespuestas({
   base,
@@ -73,11 +73,7 @@ export function NuevaVersionRespuestas({
   return (
     <>
       {resultado ? (
-        <div className="pulso-bde-version-resultado" role="status">
-          <strong>Respuestas actualizadas desde {resultado.archivo}</strong>
-          {resumenCambiosDeRespuestas(resultado.cambios).map((linea) => <span key={linea}>{linea}</span>)}
-          <PulsoButton variant="ghost" size="sm" onClick={() => setResultado(null)}>Entendido</PulsoButton>
-        </div>
+        <CambiosDeRespuestasAviso cambios={resultado.cambios} archivo={resultado.archivo} onCerrar={() => setResultado(null)} />
       ) : null}
       <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={() => setAbierto(true)}>
         <RefreshCw size={13} aria-hidden="true" />Nueva versión

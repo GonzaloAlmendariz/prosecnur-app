@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { CambiosDeRespuestas } from "../../api/estudio";
+import { CambiosDeRespuestasAviso } from "./fuentes/CambiosDeRespuestasAviso";
 import {
   AlertTriangle, ArrowRight, ArrowRightLeft, CheckCircle2, ClipboardCheck, CloudDownload,
   Database, FileSpreadsheet, FileWarning, Download, Info, Loader2, RefreshCw, Search, ShieldCheck,
@@ -247,6 +249,8 @@ export default function CargaPage() {
   const setPlannedInputCount = useCargaStore((store) => store.setPlannedInputCount);
   const [instrumento, setInstrumento] = useState<InstrumentoResumen | null>(null);
   const [dataPreview, setDataPreview] = useState<DataPreview | null>(null);
+  // Al reemplazar las respuestas: qué cambió y si hay que volver a adaptar.
+  const [cambiosRespuestas, setCambiosRespuestas] = useState<CambiosDeRespuestas | null>(null);
   const [choiceMappingReview, setChoiceMappingReview] = useState<ChoiceCodeMapReview | null>(null);
   const [estructura, setEstructura] = useState<{ secciones: Seccion[]; preguntas: Pregunta[] } | null>(null);
   // Base cuyo esquema se muestra en la inspección multibase (madre↔hija). En
@@ -358,6 +362,7 @@ export default function CargaPage() {
       } else {
         const r = await apiCargaData(up.file_id);
         setDataPreview(r.preview);
+        setCambiosRespuestas(r.cambios);
         const review = choiceMappingReviewFromPreview(r.preview);
         setChoiceMappingReview(review?.requires_confirmation ? review : null);
       }
@@ -1802,6 +1807,9 @@ export default function CargaPage() {
               disabledHint="Disponible después de cargar el formulario"
               resumen={dataPreview && (
                 <>
+                  {cambiosRespuestas ? (
+                    <CambiosDeRespuestasAviso cambios={cambiosRespuestas} onCerrar={() => setCambiosRespuestas(null)} />
+                  ) : null}
                   <ResumenStat label="Filas" value={dataPreview.n_filas} />
                   <ResumenStat label="Columnas" value={dataPreview.n_columnas} />
                   <div className="pulso-upload-normalizacion">

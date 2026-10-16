@@ -47,6 +47,30 @@ carga_comparar_respuestas <- function(previa, nueva, claves = .codif_key_candida
   )
 }
 
+# La base tiene grupos de codificación: reemplazar descartó su adaptación
+# (ADR 0100 D3) y hay que volver a confirmarla.
+.carga_codificacion_por_readaptar <- function(sid, base) {
+  cb <- ((session_get(sid, required = FALSE) %||% list())$codif_por_base %||% list())[[base]]
+  length((cb %||% list())$grupos_recod %||% list()) > 0L
+}
+
+#' Qué cambió al reemplazar las respuestas en el modo de una base.
+#'
+#' `previa` es la `data_raw_meta` anterior de la sesión; sin ella (primera
+#' carga) no hay nada que comparar y devuelve NULL.
+#' @keywords internal
+carga_cambios_contra_archivo_previo <- function(sid, previa, nueva, base = "default") {
+  ruta <- as.character((previa %||% list())$path %||% "")
+  if (!length(ruta) || !nzchar(ruta[1]) || !file.exists(ruta[1])) return(NULL)
+  if (identical(ruta[1], as.character(nueva$path %||% ""))) return(NULL)
+  datos_previos <- tryCatch(.read_data_from_path(ruta[1], previa$ext), error = function(e) NULL)
+  datos_nuevos <- tryCatch(.read_data_from_path(nueva$path, nueva$ext), error = function(e) NULL)
+  if (is.null(datos_previos) || is.null(datos_nuevos)) return(NULL)
+  out <- carga_comparar_respuestas(datos_previos, datos_nuevos)
+  out$codificacion_por_readaptar <- .carga_codificacion_por_readaptar(sid, base)
+  out
+}
+
 #' Reemplaza el archivo de respuestas de una base y devuelve qué cambió.
 #' @keywords internal
 carga_reemplazar_respuestas <- function(sid, nombre, data_file_id) {
@@ -79,6 +103,7 @@ carga_reemplazar_respuestas <- function(sid, nombre, data_file_id) {
   rp_inst <- reporte_instrumento(path = xls_meta$path)
   data_df <- .read_data_from_path(dat_meta$path, dat_meta$ext)
   cambios <- carga_comparar_respuestas(previa, data_df)
+  cambios$codificacion_por_readaptar <- .carga_codificacion_por_readaptar(sid, nombre)
   data_df <- normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = mapas)
   # ADR 0106: una pregunta que falta se retira (pendiente de motivo), no rechaza la base.
   retiro <- base_variables_carga_retiradas(data_df, rp_inst, xls_meta$path, data_file_id)

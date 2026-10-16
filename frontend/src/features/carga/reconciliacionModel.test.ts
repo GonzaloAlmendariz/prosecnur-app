@@ -40,6 +40,17 @@ describe("initialIncluidas", () => {
     );
     expect(result).toEqual(["a", "c"]);
   });
+
+  test("sin decisión previa marca las columnas completas y deja las parciales", () => {
+    const result = initialIncluidas(
+      info([
+        extra({ name: "seleccionado", fill_pct: 100 }),
+        extra({ name: "p_vieja", fill_pct: 35 }),
+        extra({ name: "vacia", fill_pct: 0, n_fill: 0, kind: "vacia" }),
+      ]),
+    );
+    expect(result).toEqual(["seleccionado"]);
+  });
 });
 
 describe("fillLabel", () => {
