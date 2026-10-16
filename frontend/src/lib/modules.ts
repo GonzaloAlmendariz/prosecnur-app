@@ -10,6 +10,7 @@ import {
   FileText,
   Link2,
   LayoutGrid,
+  Mail,
   ListChecks,
   MapPinned,
   Network,
@@ -589,6 +590,14 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
             label: "Editor",
             icon: IconTemplate,
             to: "/material-campo?seccion=catalogo&pestana=editor",
+            layoutPolicy: "viewport",
+          },
+          {
+            // ADR 0110 §2: el correo se compone aquí y sale para Mailchimp.
+            id: "correos",
+            label: "Correos",
+            icon: Mail,
+            to: "/material-campo?seccion=catalogo&pestana=correos",
             layoutPolicy: "viewport",
           },
         ],

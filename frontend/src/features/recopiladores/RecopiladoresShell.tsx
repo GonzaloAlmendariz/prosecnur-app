@@ -12,6 +12,7 @@ import { PROSECNUR_MODULES } from "../../lib/modules";
 import { RefreshCw } from "../../vendor/lucide-react";
 import { AccessSection } from "./AccessSection";
 import { CatalogoTipos } from "./catalogo/CatalogoTipos";
+import { CorreosEditor } from "./correos/CorreosEditor";
 import { DeliverySection } from "./DeliverySection";
 import { MaterialsSection } from "./MaterialsSection";
 import { PlanSection } from "./PlanSection";
@@ -273,6 +274,9 @@ export function RecopiladoresShell() {
           onCargando={setSeccionCargando}
           onIr={irA}
         />
+      ) : null}
+      {!loading && direction.seccion === "catalogo" && direction.pestana === "correos" ? (
+        <CorreosEditor onCargando={setSeccionCargando} />
       ) : null}
       {!loading && ((direction.seccion === "catalogo" && direction.pestana === "editor") || direction.seccion === "paquetes") ? (
         <MaterialsSection

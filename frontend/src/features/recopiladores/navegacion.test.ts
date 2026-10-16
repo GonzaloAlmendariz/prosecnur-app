@@ -23,6 +23,15 @@ describe("direcciones de Material de campo", () => {
     expect(resolverDireccion("accesos", "vinculacion")).toEqual({ seccion: "accesos", pestana: "vinculacion" });
   });
 
+  test("Correos es una pestaña de Catálogo (ADR 0110 §2) y sus alias a mano llegan ahí", () => {
+    expect(resolverDireccion("catalogo", "correos")).toEqual({ seccion: "catalogo", pestana: "correos" });
+    expect(esDireccionCanonica("catalogo", "correos")).toBe(true);
+    expect(resolverDireccion(null, "mailchimp")).toEqual({ seccion: "catalogo", pestana: "correos" });
+    expect(resolverDireccion("catalogo", "correo")).toEqual({ seccion: "catalogo", pestana: "correos" });
+    const catalogo = PROSECNUR_MODULES.find((m) => m.slug === "material-campo")!.sections.find((s) => s.id === "catalogo");
+    expect(catalogo?.tabs?.map((t) => t.id)).toEqual(["tipos", "editor", "correos"]);
+  });
+
   test("una sección sin pestaña cae en su primera pestaña", () => {
     expect(resolverDireccion("accesos")).toEqual({ seccion: "accesos", pestana: "canales" });
     // Tipos es el aterrizaje de Catálogo (ADR 0109 §3).
