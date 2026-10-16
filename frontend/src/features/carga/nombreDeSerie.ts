@@ -79,6 +79,11 @@ function anioDe(base: string, rotulos?: Readonly<Record<string, string>>): numbe
   return anio ? Number(anio) : null;
 }
 
+/** El año que nombra una base (en su rótulo o en su nombre), o `null`. */
+export function anioDeBase(base: string, rotulos?: Readonly<Record<string, string>>): number | null {
+  return anioDe(base, rotulos);
+}
+
 /** Las bases en orden cronológico, o `null` si alguna no nombra un año. */
 export function ordenPorAnio(
   bases: readonly string[],

@@ -49,6 +49,12 @@ export type EquivalenciaFila = {
    * la expresión `alguna(V1,V2,...)`, que es la columna que se materializa.
    */
   derivada?: Derivada;
+  /**
+   * Fila de un segmento de cruce del estudio (ADR 0107, `id = "SEG-<clave>"`).
+   * La escribe el panel de segmentos; el editor de la matriz no la edita como
+   * fila suelta. Ausente al guardar conserva la marca previa.
+   */
+  cruce?: boolean;
 };
 
 /** Componentes de un indicador compuesto en una base (ADR 0105). */
@@ -243,6 +249,13 @@ function normalizarFila(x: unknown): EquivalenciaFila | null {
   // ADR 0105: la derivada viaja normalizada. Si no se reconoce, se conserva la
   // forma cruda que trajo el spread de arriba: borrarla aquí la quitaría del
   // backend en el próximo guardado sin que nadie lo decida.
+  // ADR 0107: R puede mandar `[true]`. Sólo se conserva el verdadero; un falso
+  // ausente es lo mismo para el backend (conserva la marca previa, que no hay).
+  if ("cruce" in x) {
+    const crudo = Array.isArray(x.cruce) ? x.cruce[0] : x.cruce;
+    if (crudo === true || crudo === "true" || crudo === "TRUE") fila.cruce = true;
+    else delete fila.cruce;
+  }
   if ("derivada" in x) {
     const derivada = normalizarDerivada(x.derivada);
     if (derivada) fila.derivada = derivada;

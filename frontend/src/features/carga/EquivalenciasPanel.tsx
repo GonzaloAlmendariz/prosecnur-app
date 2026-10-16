@@ -61,6 +61,10 @@ import { VariablesBasePanel } from "./variablesBase/VariablesBasePanel";
 import { EVENTO_VARIABLES_BASE } from "./variablesBase/variablesBaseModel";
 import { filasConMismaEscalaConfirmada, indicesDeMismaEscala } from "./mismaEscalaModel";
 import { RecorridoSerie } from "./recorridoSerie/RecorridoSerie";
+import { EVENTO_SEGMENTOS } from "./panelesCarga";
+import { SegmentosBoton, SegmentosPanel } from "./segmentos/SegmentosPanel";
+import { fusionarFilasCruce, searchConSegmentos } from "./segmentos/segmentosModel";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./EquivalenciasPanel.css";
 import { PulsoButton } from "../../components/PulsoButton";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
@@ -125,6 +129,14 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
   }, []);
 
   const abrirArmonizacion = useAbrirArmonizacion();
+  const location = useLocation();
+  const navigate = useNavigate();
+  // ADR 0107: la fila de un segmento se edita en su panel, no como fila suelta.
+  const abrirSegmento = useCallback(
+    (clave: string) =>
+      navigate({ pathname: location.pathname, search: searchConSegmentos(location.search, clave || null) }, { replace: true }),
+    [location.pathname, location.search, navigate],
+  );
   const abrirCompuesto = useAbrirIndicadorCompuesto();
 
   // ADR 0105: el indicador compuesto se guarda desde su panel, sobre la
@@ -226,6 +238,28 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
     window.addEventListener(EVENTO_VARIABLES_BASE, releer);
     return () => window.removeEventListener(EVENTO_VARIABLES_BASE, releer);
   }, [disponible]);
+
+  // ADR 0107: guardar o quitar un segmento reescribe su fila `SEG-*`. Se relee
+  // sin esqueleto y sólo cambian las filas de cruce: lo demás que se esté
+  // editando sigue como estaba.
+  const filasGuardadas = useRef<readonly EquivalenciaFila[]>(SIN_FILAS);
+  filasGuardadas.current = estado?.filas ?? SIN_FILAS;
+  useEffect(() => {
+    if (!disponible) return undefined;
+    const releer = () => {
+      getEquivalencias()
+        .then((est) => {
+          const antes = filasGuardadas.current;
+          setEstado(est);
+          setFilas((prev) => fusionarFilasCruce(prev, antes, est.filas ?? []));
+          onDeclaradas?.(est.n_filas ?? 0);
+        })
+        // Si falla, la próxima lectura completa trae la fila.
+        .catch(() => undefined);
+    };
+    window.addEventListener(EVENTO_SEGMENTOS, releer);
+    return () => window.removeEventListener(EVENTO_SEGMENTOS, releer);
+  }, [disponible, onDeclaradas]);
 
   const onGuardar = useCallback(async () => {
     setOcupado("guardar");
@@ -342,6 +376,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
         onAnadir={onAnadirDesdeMapa}
       />
       <VariablesBasePanel antetitulo="Carga › Equivalencias" />
+      <SegmentosPanel ordenBases={basesDeSerie} />
       <ImportarBloquesDialog bases={bases} onAplicado={onBloquesAplicados} />
       <IndicadorCompuestoEditor
         estado={estado}
@@ -398,6 +433,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
         {/* ADR 0104: la única importación que queda, y sólo para series de mediciones. */}
         <div className="pulso-equiv-actions">
           {basesDeTabla.length > 0 && <MapaBasesBoton />}
+          {basesDeTabla.length > 0 && <SegmentosBoton />}
           <ImportarBloquesBoton disabled={ocupado !== ""} />
         </div>
       </header>
@@ -454,6 +490,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
               onArmonizar={basesDeTabla.length > 1 ? abrirArmonizacion : undefined}
               onAgregarFila={onAgregarFila}
               onIndicadorCompuesto={abrirCompuesto}
+              onSegmento={abrirSegmento}
             />
             <div className="pulso-equiv-pie-editor">
               <SaveStatusIndicator

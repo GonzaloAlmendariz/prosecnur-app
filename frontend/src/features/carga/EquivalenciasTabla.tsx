@@ -12,7 +12,7 @@
 // La lógica vive en `equivalenciasEditorModel` y `preguntaEquivalenteModel`;
 // aquí sólo hay render y eventos.
 
-import { CheckCircle2, Check, GitCompareArrows, Minus, Plus, Trash2 } from "../../vendor/lucide-react";
+import { CheckCircle2, Check, GitCompareArrows, Minus, Pencil, Plus, Trash2 } from "../../vendor/lucide-react";
 import type { VariableDeBase } from "../../api/equivalencias";
 import { variablesTomadas, type FilaEditor } from "./equivalenciasEditorModel";
 import { focoDeFila } from "./armonizacionModel";
@@ -26,6 +26,7 @@ import { PulsoButton } from "../../components/PulsoButton";
 import { esCompuesta } from "./indicadorCompuestoModel";
 import { IndicadorCompuestoCelda } from "./IndicadorCompuestoCelda";
 import { AnadirIndicadorCompuestoBoton } from "./IndicadorCompuestoEditor";
+import { claveDeFilaCruce } from "./segmentos/segmentosModel";
 
 export type EquivalenciasTablaProps = {
   bases: string[];
@@ -41,6 +42,12 @@ export type EquivalenciasTablaProps = {
   onArmonizar?: (foco: string) => void;
   /** ADR 0105: abre el editor del indicador compuesto; sin `foco`, uno nuevo. */
   onIndicadorCompuesto?: (foco?: string) => void;
+  /**
+   * ADR 0107: abre el segmento de cruce de la fila en su panel. Una fila de
+   * cruce no se edita aquí: su nombre, su escala y su variable en cada base
+   * salen del segmento.
+   */
+  onSegmento?: (clave: string) => void;
 };
 
 /**
@@ -92,6 +99,81 @@ function EscalaDeFila({
   );
 }
 
+/**
+ * Fila de un segmento de cruce (ADR 0107): se lee igual que las demás, con la
+ * marca «Cruce», y su edición remite al panel de segmentos.
+ */
+function FilaCruce({
+  fila,
+  clave,
+  bases,
+  conEscala,
+  onSegmento,
+}: {
+  fila: FilaEditor;
+  clave: string;
+  bases: readonly string[];
+  conEscala: boolean;
+  onSegmento?: (clave: string) => void;
+}) {
+  const nombre = fila.etiqueta_estandar || clave || "el segmento";
+  const editar = onSegmento ? () => onSegmento(clave) : undefined;
+  return (
+    <tr className="is-cruce" data-equiv-fila={fila.id}>
+      <td>
+        <div className="pulso-equiv-celda-etiqueta">
+          <span className="pulso-equiv-chip-cruce" title="Segmento de cruce del estudio: se edita en «Segmentos de cruce».">
+            Cruce
+          </span>
+          <span className="pulso-equiv-etiqueta-fija" title={fila.etiqueta_estandar || undefined}>
+            {fila.etiqueta_estandar || <span className="pulso-armon-tenue">Sin nombre estándar</span>}
+          </span>
+        </div>
+      </td>
+      {conEscala && (
+        <td className="pulso-equiv-col-estado">
+          <button
+            type="button"
+            className="pulso-equiv-escala is-ok"
+            disabled={!editar}
+            aria-label={`Escala estándar. Editar el segmento ${nombre}`}
+            onClick={editar}
+          >
+            <CheckCircle2 size={11} aria-hidden="true" />
+            <span>Escala estándar</span>
+          </button>
+        </td>
+      )}
+      {bases.map((base) => (
+        <td key={base}>
+          {fila.variables[base] ? (
+            <code className="pulso-equiv-variable-fija">{fila.variables[base]}</code>
+          ) : (
+            <span className="pulso-armon-tenue">Sin origen</span>
+          )}
+        </td>
+      ))}
+      <td className="pulso-equiv-col-n">
+        <CoberturaBases bases={bases} variables={fila.variables} />
+      </td>
+      <td>
+        <div className="pulso-equiv-acciones-fila">
+          <button
+            type="button"
+            className="pulso-icon"
+            title="Editar el segmento"
+            aria-label={`Editar el segmento ${nombre}`}
+            disabled={!editar}
+            onClick={editar}
+          >
+            <Pencil size={12} />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 export function EquivalenciasTabla({
   bases,
   filas,
@@ -103,6 +185,7 @@ export function EquivalenciasTabla({
   onAgregarFila,
   onArmonizar,
   onIndicadorCompuesto,
+  onSegmento,
 }: EquivalenciasTablaProps) {
   const [marcoRef, desborda] = useDesbordeHorizontal();
   const serie = nombreDeSerieDeBases(bases);
@@ -145,6 +228,19 @@ export function EquivalenciasTabla({
         <tbody>
           {filas.map((fila, indice) => {
             const contexto = fila.etiqueta_estandar.trim() || `la fila ${indice + 1}`;
+            const claveCruce = claveDeFilaCruce(fila);
+            if (claveCruce !== null) {
+              return (
+                <FilaCruce
+                  key={fila.id}
+                  fila={fila}
+                  clave={claveCruce}
+                  bases={bases}
+                  conEscala={Boolean(onArmonizar)}
+                  onSegmento={onSegmento}
+                />
+              );
+            }
             return (
             <tr key={fila.id} className={fila.sugerida ? "is-sugerida" : undefined} data-equiv-fila={fila.id}>
               <td>

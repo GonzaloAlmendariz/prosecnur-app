@@ -1,0 +1,376 @@
+import { describe, expect, it } from "vitest";
+import { normalizarEstadoEquivalencias, type EquivalenciaFila, type EquivalenciasEstado } from "../../../api/equivalencias";
+import type { Segmento, SegmentoEnBase, SegmentosEstado } from "../../../api/segmentos";
+import { aFilasEditor } from "../equivalenciasEditorModel";
+import {
+  aniosParaTramos,
+  ayudasDisponibles,
+  borradorDesde,
+  claveDeFilaCruce,
+  claveDesdeEtiqueta,
+  codigosConocidos,
+  estadoCelda,
+  estadoDeEntrada,
+  filasDeCodigos,
+  fusionarFilasCruce,
+  mapaPorEtiqueta,
+  mapaPorRangos,
+  mapaPorTramos,
+  normalizarClave,
+  opcionesDeOrigen,
+  ordenarBases,
+  readinessSegmentos,
+  reducirSegmento,
+  resumenMapa,
+  resumenSegmentos,
+  searchConSegmentos,
+  segmentoParaGuardar,
+  textoResumenMapa,
+  tramosPorDefecto,
+  validarSegmento,
+  validarTramos,
+  valoresParaRangos,
+  type AccionSegmento,
+  type BorradorSegmento,
+} from "./segmentosModel";
+
+const BASES = ["2024", "2025", "2026"];
+
+const enBase = (extra: Partial<SegmentoEnBase> = {}): SegmentoEnBase => ({
+  origen: "cruce_1",
+  mapa: { "1": "1", "2": "2" },
+  estado: "definido",
+  n_sin_mapa: 0,
+  codigos_sin_mapa: [],
+  ...extra,
+});
+
+const ESCALA = [
+  { codigo: "1", etiqueta: "18 a 20 años" },
+  { codigo: "2", etiqueta: "21 años a más" },
+];
+
+const segmento: Segmento = {
+  clave: "edad",
+  nombre: "cruce_edad",
+  etiqueta: "Edad",
+  escala: ESCALA,
+  por_base: {
+    "2024": enBase(),
+    "2025": enBase({ origen: "P1_recod", mapa: { "1": "2" }, estado: "incompleto", n_sin_mapa: 37, codigos_sin_mapa: ["2"] }),
+    "2026": enBase({ origen: "", mapa: {}, estado: "sin_origen" }),
+  },
+  fila_ref: "SEG-edad",
+};
+
+function aplicar(b: BorradorSegmento, ...acciones: AccionSegmento[]): BorradorSegmento {
+  return acciones.reduce(reducirSegmento, b);
+}
+
+describe("direcciones y readiness", () => {
+  it("abre el panel y, con clave, el segmento", () => {
+    expect(searchConSegmentos("?pestana=equivalencias")).toBe("?pestana=equivalencias&panel=segmentos");
+    expect(searchConSegmentos("?pestana=equivalencias", "edad")).toBe("?pestana=equivalencias&panel=segmentos&foco=edad");
+  });
+
+  it("false sólo mientras lee; los terminales sin contenido dicen por qué", () => {
+    const datos: SegmentosEstado = { disponible: true, bases: BASES, segmentos: [] };
+    expect(readinessSegmentos({ tipo: "cargando" })).toBe("false");
+    expect(readinessSegmentos({ tipo: "error", mensaje: "x" })).toBe("vacio:error");
+    expect(readinessSegmentos({ tipo: "listo", datos: { ...datos, disponible: false } })).toBe("vacio:no-disponible");
+    expect(readinessSegmentos({ tipo: "listo", datos })).toBe("vacio:sin-segmentos");
+    expect(readinessSegmentos({ tipo: "listo", datos: { ...datos, segmentos: [segmento] } })).toBe("true");
+  });
+
+  it("las bases siguen el orden de la serie y las que falten van al final", () => {
+    expect(ordenarBases(["2026", "2024", "otra", "2025"], ["2024", "2025", "2026"])).toEqual(["2024", "2025", "2026", "otra"]);
+  });
+});
+
+describe("estado de cada celda segmento × base", () => {
+  it("definido, incompleto con los casos por asignar y sin origen", () => {
+    expect(estadoCelda(segmento.por_base["2024"])).toEqual({ tono: "ok", texto: "Definido", detalle: "desde cruce_1" });
+    expect(estadoCelda(segmento.por_base["2025"])).toEqual({ tono: "aviso", texto: "Faltan 37 casos por asignar", detalle: "desde P1_recod" });
+    expect(estadoCelda(enBase({ estado: "incompleto", n_sin_mapa: 1 })).texto).toBe("Falta 1 caso por asignar");
+    expect(estadoCelda(segmento.por_base["2026"])).toEqual({ tono: "neutro", texto: "Sin origen", detalle: "" });
+    expect(estadoCelda(undefined).texto).toBe("Sin origen");
+  });
+
+  it("un origen que ya no está en la data es un aviso, no un «sin origen» tranquilo", () => {
+    expect(estadoCelda(enBase({ origen: "P8", estado: "sin_origen", origen_ausente: true }))).toEqual({
+      tono: "aviso",
+      texto: "Falta el origen",
+      detalle: "P8 ya no está en la base",
+    });
+  });
+
+  it("el resumen dice cuántas bases tienen algo por resolver", () => {
+    expect(resumenSegmentos({ disponible: true, bases: BASES, segmentos: [] })).toBe("Ninguno todavía.");
+    expect(resumenSegmentos({ disponible: true, bases: BASES, segmentos: [segmento] })).toBe("1 segmento · 1 base con algo por resolver");
+    const completo = { ...segmento, por_base: { "2024": enBase() } };
+    expect(resumenSegmentos({ disponible: true, bases: ["2024"], segmentos: [completo] })).toBe("1 segmento en la base");
+  });
+});
+
+describe("clave y nombre propuestos", () => {
+  it("la clave sale de la etiqueta, como el nombre de una calculada, sin el prefijo", () => {
+    expect(claveDesdeEtiqueta("Edad")).toBe("edad");
+    expect(claveDesdeEtiqueta("Año de ingreso a la PUCP")).toBe("ano_ingreso_pucp");
+    expect(claveDesdeEtiqueta("Cruce: sexo")).toBe("sexo");
+    expect(claveDesdeEtiqueta("Una etiqueta muy larga que no cabe en el nombre técnico").length).toBeLessThanOrEqual(26);
+  });
+
+  it("lo tecleado se normaliza a lo que acepta el backend", () => {
+    expect(normalizarClave("Año Ingreso")).toBe("ano_ingreso");
+    expect(normalizarClave("cruce_cruce_sexo")).toBe("sexo");
+    expect(normalizarClave("edad-2")).toBe("edad_2");
+  });
+
+  it("la clave acompaña a la etiqueta mientras siga siendo la propuesta", () => {
+    let b = borradorDesde(null, BASES);
+    b = aplicar(b, { tipo: "etiqueta", valor: "Sexo" });
+    expect(b.clave).toBe("sexo");
+    b = aplicar(b, { tipo: "etiqueta", valor: "Sexo declarado" });
+    expect(b.clave).toBe("sexo_declarado");
+    b = aplicar(b, { tipo: "clave", valor: "genero" }, { tipo: "etiqueta", valor: "Sexo" });
+    expect(b.clave).toBe("genero");
+  });
+
+  it("editando, la clave es la identidad y no cambia", () => {
+    const b = aplicar(borradorDesde(segmento, BASES), { tipo: "clave", valor: "otra" }, { tipo: "etiqueta", valor: "Edad 2" });
+    expect(b.clave).toBe("edad");
+  });
+
+  it("la clave de una fila de cruce sale de su id SEG-*", () => {
+    const [fila] = aFilasEditor([{ id: "SEG-edad", cruce: true, seccion: "", etiqueta_estandar: "Edad", variables: {}, cantidad: 0 }]);
+    expect(claveDeFilaCruce(fila)).toBe("edad");
+    const [otra] = aFilasEditor([{ id: "P1", seccion: "", etiqueta_estandar: "x", variables: {}, cantidad: 0 }]);
+    expect(claveDeFilaCruce(otra)).toBeNull();
+  });
+});
+
+describe("variables de origen y sus códigos", () => {
+  it("el catálogo más las columnas fuera del formulario, sin calculadas ni segmentos", () => {
+    const opciones = opcionesDeOrigen(
+      [
+        { name: "P1", label: "Edad", seccion: "A" },
+        { name: "vbg", label: "VBG", seccion: "" },
+        { name: "cruce_edad", label: "Edad", seccion: "" },
+      ],
+      {
+        calculadas: [{ nombre: "vbg", etiqueta: "VBG", regla: "alguna", variables: [], codigos: [], mapa: {}, escala: [] }],
+        extras: [
+          { name: "P8_recod", label: "Año de ingreso", tipo: "integer", opciones: [{ codigo: "2020", etiqueta: "2020" }], n_validos: 10, declarada: false },
+          { name: "P1", label: "Edad", tipo: "integer", opciones: [], n_validos: 10, declarada: true },
+        ],
+      },
+      ["cruce_edad"],
+    );
+    expect(opciones.map((o) => o.name)).toEqual(["P1", "P8_recod"]);
+    expect(opciones[1].seccion).toBe("Fuera del formulario");
+    expect(opciones[1].opciones).toEqual([{ codigo: "2020", etiqueta: "2020" }]);
+  });
+
+  it("lo guardado del mismo origen suma lo mapeado y lo que el backend vio sin mapa", () => {
+    const codigos = codigosConocidos([], "P1_recod", segmento.por_base["2025"], {});
+    expect(codigos.map((c) => c.codigo)).toEqual(["1", "2"]);
+    // Otro origen: lo guardado no cuenta.
+    expect(codigosConocidos([], "P2", segmento.por_base["2025"], {})).toEqual([]);
+  });
+
+  it("ofrece tramos para años, rangos para números sin etiqueta y las dos si no hay lista", () => {
+    expect(ayudasDisponibles([{ codigo: "2019", etiqueta: "" }, { codigo: "2024", etiqueta: "" }])).toEqual(["tramos"]);
+    expect(ayudasDisponibles([{ codigo: "18", etiqueta: "" }, { codigo: "40", etiqueta: "" }])).toEqual(["rangos"]);
+    expect(ayudasDisponibles([{ codigo: "1", etiqueta: "Mujer" }])).toEqual([]);
+    expect(ayudasDisponibles([])).toEqual(["rangos", "tramos"]);
+  });
+});
+
+describe("filas de la tabla de códigos", () => {
+  it("cada código con su destino: escala, sin dato explícito o sin mapa", () => {
+    const filas = filasDeCodigos(
+      [{ codigo: "1", etiqueta: "Mujer" }, { codigo: "2", etiqueta: "Hombre" }, { codigo: "3", etiqueta: "Otro" }],
+      { "1": "2", "2": "", "3": "9" },
+      ESCALA,
+    );
+    expect(filas.map((f) => [f.rotulo, f.destino, f.sinMapa])).toEqual([["1", "2", false], ["2", "", false], ["3", null, true]]);
+    const r = resumenMapa(filas);
+    expect(r).toEqual({ total: 3, asignados: 1, sinDato: 1, sinMapa: 1 });
+    expect(textoResumenMapa(r)).toBe("1 de 3 códigos asignados · 1 sin dato · 1 sin mapa");
+    expect(estadoDeEntrada("P2", filas)).toBe("incompleto");
+    expect(estadoDeEntrada("", filas)).toBe("sin_origen");
+  });
+
+  it("muchos enteros sin etiqueta se leen como tramos con el mismo destino", () => {
+    const codigos = Array.from({ length: 40 }, (_, i) => ({ codigo: String(16 + i), etiqueta: "" }));
+    const mapa = Object.fromEntries(codigos.map((c) => [c.codigo, Number(c.codigo) <= 20 ? "1" : "2"]));
+    const filas = filasDeCodigos(codigos, mapa, ESCALA);
+    expect(filas.map((f) => f.rotulo)).toEqual(["16 a 20", "21 a 55"]);
+    expect(filas[0].codigos).toHaveLength(5);
+    expect(estadoDeEntrada("P1", filas)).toBe("definido");
+  });
+});
+
+describe("borrador y acciones", () => {
+  it("desde lo guardado: escala, origen y mapa por base", () => {
+    const b = borradorDesde(segmento, BASES);
+    expect(b.editando).toBe(true);
+    expect(b.escala.map((c) => c.codigo)).toEqual(["1", "2"]);
+    expect(b.porBase["2025"]).toEqual({ origen: "P1_recod", mapa: { "1": "2" }, marcados: [] });
+    expect(b.porBase["2026"].origen).toBe("");
+  });
+
+  it("partir de las opciones de cruce_1 de 2024 arma la escala y, si la base no tiene origen, lo toma con identidad", () => {
+    const b = aplicar(borradorDesde(null, BASES), {
+      tipo: "partir-de",
+      opciones: ESCALA,
+      base: "2024",
+      variable: "cruce_1",
+    });
+    expect(b.escala.map((c) => [c.codigo, c.etiqueta])).toEqual([["1", "18 a 20 años"], ["2", "21 años a más"]]);
+    expect(b.porBase["2024"]).toEqual({ origen: "cruce_1", mapa: { "1": "1", "2": "2" }, marcados: [] });
+  });
+
+  it("cambiar un código de la escala arrastra lo asignado en todas las bases; quitarlo lo deja sin mapa", () => {
+    let b = borradorDesde(segmento, BASES);
+    const c2 = b.escala[1].clave;
+    b = aplicar(b, { tipo: "destino", base: "2025", codigos: ["2"], destino: "" });
+    b = aplicar(b, { tipo: "categoria-codigo", clave: c2, valor: "5" });
+    expect(b.porBase["2024"].mapa).toEqual({ "1": "1", "2": "5" });
+    expect(b.porBase["2025"].mapa).toEqual({ "1": "5", "2": "" });
+    b = aplicar(b, { tipo: "categoria-quitar", clave: c2 });
+    expect(b.porBase["2025"].mapa).toEqual({ "2": "" });
+  });
+
+  it("cambiar el origen limpia su mapa; marcar y asignar en masa", () => {
+    let b = aplicar(borradorDesde(segmento, BASES), { tipo: "origen", base: "2025", variable: "P1" });
+    expect(b.porBase["2025"]).toEqual({ origen: "P1", mapa: {}, marcados: [] });
+    b = aplicar(b, { tipo: "marcar", base: "2025", codigos: ["18", "19"], marcado: true });
+    expect(b.porBase["2025"].marcados).toEqual(["18", "19"]);
+    b = aplicar(b, { tipo: "destino", base: "2025", codigos: ["18", "19"], destino: "1" });
+    expect(b.porBase["2025"]).toEqual({ origen: "P1", mapa: { "18": "1", "19": "1" }, marcados: [] });
+    b = aplicar(b, { tipo: "destino", base: "2025", codigos: ["19"], destino: null });
+    expect(b.porBase["2025"].mapa).toEqual({ "18": "1" });
+  });
+
+  it("emparejar por etiqueta lleva a la escala lo que dice lo mismo, aunque el orden esté invertido", () => {
+    const codigos = [{ codigo: "1", etiqueta: "21 años a más" }, { codigo: "2", etiqueta: "18 a 20 AÑOS" }, { codigo: "3", etiqueta: "No sabe" }];
+    expect(mapaPorEtiqueta(codigos, {}, ESCALA)).toEqual({ "1": "2", "2": "1" });
+    expect(mapaPorEtiqueta(codigos, { "1": "1" }, ESCALA)).toEqual({ "2": "1" });
+  });
+});
+
+describe("tramos de antigüedad y rangos", () => {
+  const escala3 = [{ codigo: "1", etiqueta: "0 a 2 años" }, { codigo: "2", etiqueta: "3 a 4 años" }, { codigo: "3", etiqueta: "5 años o más" }];
+
+  it("el mapa por tramos es relativo al año de la medición", () => {
+    const tramos = tramosPorDefecto(escala3);
+    expect(tramos.map((t) => [t.desde, t.hasta, t.destino])).toEqual([["0", "2", "1"], ["3", "4", "2"], ["5", "", "3"]]);
+    const anios = ["2026", "2024", "2023", "2022", "2021", "2010", "2027"];
+    expect(mapaPorTramos(anios, 2026, tramos)).toEqual({ "2026": "1", "2024": "1", "2023": "2", "2022": "2", "2021": "3", "2010": "3" });
+    // El mismo año de ingreso cae en otro tramo en otra medición.
+    expect(mapaPorTramos(["2022"], 2024, tramos)).toEqual({ "2022": "1" });
+  });
+
+  it("sin lista del origen, los tramos cubren los últimos años hasta el de la medición", () => {
+    const anios = aniosParaTramos([], 2026);
+    expect(anios[0]).toBe("1966");
+    expect(anios[anios.length - 1]).toBe("2026");
+    expect(aniosParaTramos([{ codigo: "2020", etiqueta: "" }, { codigo: "x", etiqueta: "" }], 2026)).toEqual(["2020"]);
+  });
+
+  it("rangos de edad: extremos incluidos y «o más» sin tope", () => {
+    const rangos = [
+      { clave: "t1", desde: "18", hasta: "20", destino: "1" },
+      { clave: "t2", desde: "21", hasta: "", destino: "2" },
+    ];
+    expect(mapaPorRangos(["17", "18", "20", "21", "64"], rangos)).toEqual({ "18": "1", "20": "1", "21": "2", "64": "2" });
+    const valores = valoresParaRangos([], rangos);
+    expect(valores[0]).toBe("18");
+    expect(valores[valores.length - 1]).toBe("99");
+  });
+
+  it("valida extremos, categoría, superposición y el año", () => {
+    expect(validarTramos(tramosPorDefecto(escala3), escala3, 2026)).toEqual([]);
+    expect(validarTramos(tramosPorDefecto(escala3), escala3, null)).toContain("Indica el año de la medición.");
+    expect(validarTramos([{ clave: "t1", desde: "5", hasta: "2", destino: "1" }], escala3)).toContain("En el tramo 1, «hasta» es menor que «desde».");
+    expect(validarTramos([{ clave: "t1", desde: "0", hasta: "3", destino: "1" }, { clave: "t2", desde: "3", hasta: "", destino: "2" }], escala3))
+      .toContain("Los tramos se superponen.");
+    expect(validarTramos([{ clave: "t1", desde: "0", hasta: "", destino: "" }], escala3)).toContain("Elige la categoría del tramo 1.");
+  });
+});
+
+describe("validación y cuerpo del POST", () => {
+  it("dice lo que falta en el orden del editor", () => {
+    const b = borradorDesde(null, BASES);
+    expect(validarSegmento(b, BASES, [])).toEqual([
+      "Falta la etiqueta.",
+      "Falta el nombre del segmento.",
+      "Define al menos una categoría de la escala estándar.",
+      "Elige la variable de origen en al menos una base.",
+    ]);
+  });
+
+  it("una clave repetida, una base con origen sin ningún código asignado", () => {
+    let b = aplicar(borradorDesde(null, BASES), { tipo: "etiqueta", valor: "Edad" }, { tipo: "partir-de", opciones: ESCALA });
+    b = aplicar(b, { tipo: "origen", base: "2026", variable: "P1" });
+    expect(validarSegmento(b, BASES, ["edad"])).toEqual([
+      "Ya hay un segmento «cruce_edad».",
+      "En 2026, asigna al menos un código de P1 a la escala.",
+    ]);
+  });
+
+  it("el cuerpo lleva sólo las bases con origen y destinos de la escala o sin dato", () => {
+    let b = borradorDesde(segmento, BASES);
+    b = aplicar(b, { tipo: "destino", base: "2025", codigos: ["2"], destino: "" });
+    b = { ...b, porBase: { ...b.porBase, "2024": { ...b.porBase["2024"], mapa: { "1": "1", "2": "2", "3": "9" } } } };
+    expect(validarSegmento(b, BASES, [])).toEqual([]);
+    expect(segmentoParaGuardar(b, BASES)).toEqual({
+      clave: "edad",
+      etiqueta: "Edad",
+      escala: ESCALA,
+      por_base: {
+        "2024": { origen: "cruce_1", mapa: { "1": "1", "2": "2" } },
+        "2025": { origen: "P1_recod", mapa: { "1": "2", "2": "" } },
+      },
+    });
+  });
+});
+
+describe("la matriz tras guardar o quitar un segmento", () => {
+  const fila = (etiqueta: string, extra: Partial<EquivalenciaFila> = {}): EquivalenciaFila => ({
+    seccion: "",
+    etiqueta_estandar: etiqueta,
+    variables: { "2024": etiqueta },
+    cantidad: 1,
+    ...extra,
+  });
+
+  it("reemplaza sólo las filas de cruce y corrige la posición declarada de las demás", () => {
+    const antes = [fila("A"), fila("Edad", { id: "SEG-edad", cruce: true }), fila("B")];
+    const ahora = [fila("A"), fila("B"), fila("Sexo", { id: "SEG-sexo", cruce: true })];
+    const enEdicion = aFilasEditor(antes).map((f) => (f.etiqueta_estandar === "B" ? { ...f, etiqueta_estandar: "B editada" } : f));
+    const out = fusionarFilasCruce(enEdicion, antes, ahora);
+    expect(out.map((f) => [f.etiqueta_estandar, f.indice_declarado])).toEqual([["A", 0], ["B editada", 1], ["Sexo", 2]]);
+    expect(out[2].id_declarado).toBe("SEG-sexo");
+  });
+
+  it("el normalizador conserva la marca `cruce` (R la manda como arreglo de uno)", () => {
+    const raw = {
+      ok: true,
+      disponible: true,
+      declarada: true,
+      n_filas: 2,
+      bases: ["2024"],
+      cobertura: {},
+      desfasadas: [],
+      filas: [
+        { id: "SEG-edad", cruce: [true], seccion: "Segmentos de cruce", etiqueta_estandar: "Edad", variables: { "2024": "cruce_edad" } },
+        { seccion: "", etiqueta_estandar: "P1", variables: { "2024": "P1" }, cruce: false },
+      ],
+    } as unknown as EquivalenciasEstado;
+    const filas = normalizarEstadoEquivalencias(raw).filas ?? [];
+    expect(filas[0].cruce).toBe(true);
+    expect("cruce" in filas[1]).toBe(false);
+  });
+});

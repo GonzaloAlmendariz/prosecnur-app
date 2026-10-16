@@ -11,7 +11,8 @@ import { opcionesDeAyuda, parsearCodigos, resultadosBusqueda, type AccionCompues
 import { etiquetaLegible } from "../preguntaEquivalenteModel";
 import "../IndicadorCompuestoEditor.css";
 
-function Buscador({
+/** El buscador de preguntas de una base; también lo usan los segmentos de cruce (ADR 0107). */
+export function BuscadorPreguntas({
   opciones,
   elegidas,
   etiqueta,
@@ -97,7 +98,7 @@ export function PreguntasAlguna({
           ))}
         </ul>
       )}
-      <Buscador
+      <BuscadorPreguntas
         opciones={opciones}
         elegidas={variables}
         etiqueta="Buscar pregunta"
@@ -135,31 +136,45 @@ export function PreguntasAlguna({
   );
 }
 
-/** Regla «recodificar»: una sola pregunta, con lista de respuestas. */
+/**
+ * Regla «recodificar»: una sola pregunta, con lista de respuestas. Un segmento
+ * de cruce (ADR 0107) también sale de una numérica (edad, año): `soloConLista`
+ * en falso ofrece todas.
+ */
 export function PreguntaOrigen({
   opciones,
   variable,
   onElegir,
+  soloConLista = true,
+  etiquetaBuscar = "Buscar la pregunta que se recodifica",
+  rotulo = "Pregunta que se recodifica",
 }: {
   opciones: readonly VariableDeBase[];
   variable: string;
   onElegir: (nombre: string) => void;
+  soloConLista?: boolean;
+  etiquetaBuscar?: string;
+  rotulo?: string;
 }) {
-  const conLista = opciones.filter((o) => (o.opciones?.length ?? 0) > 0);
+  const conLista = soloConLista ? opciones.filter((o) => (o.opciones?.length ?? 0) > 0) : [...opciones];
   const elegida = opciones.find((o) => o.name === variable);
   if (variable) {
     return (
-      <ul className="pulso-compuesto-elegidas" aria-label="Pregunta que se recodifica">
+      <ul className="pulso-compuesto-elegidas" aria-label={rotulo}>
         <li>
           <code>{variable}</code>
           <span className="pulso-compuesto-etiqueta">{etiquetaLegible(elegida?.label)}</span>
-          <button type="button" className="pulso-vb-enlace" onClick={() => onElegir("")}>Cambiar</button>
+          <button type="button" className="pulso-vb-enlace" aria-label={`Cambiar ${variable}`} onClick={() => onElegir("")}>Cambiar</button>
         </li>
       </ul>
     );
   }
   if (conLista.length === 0) {
-    return <p className="pulso-armon-nota">La base no tiene preguntas con lista de respuestas.</p>;
+    return (
+      <p className="pulso-armon-nota">
+        {soloConLista ? "La base no tiene preguntas con lista de respuestas." : "La base no tiene variables que elegir."}
+      </p>
+    );
   }
-  return <Buscador opciones={conLista} elegidas={[]} etiqueta="Buscar la pregunta que se recodifica" onElegir={onElegir} />;
+  return <BuscadorPreguntas opciones={conLista} elegidas={[]} etiqueta={etiquetaBuscar} onElegir={onElegir} />;
 }
