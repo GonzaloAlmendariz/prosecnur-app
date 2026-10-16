@@ -35,6 +35,7 @@ import {
   type EquivalenciasImportacion,
   type VariableDeBase,
 } from "../../api/equivalencias";
+import { getCodigosObservados } from "../../api/codigosObservados";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { usePlegadoRecordado } from "../../lib/plegadoRecordado";
 import { formatoConteo } from "../../lib/formatoNumero";
@@ -78,6 +79,14 @@ import {
   textoAplicarA,
 } from "./escalaCompartidaModel";
 import type { FilaEditor } from "./equivalenciasEditorModel";
+import {
+  codigosDeBase,
+  conObservados,
+  observadosDesde,
+  type CargaBase,
+  type CodigoBase,
+  type CodigosDeBase,
+} from "./armonizacionCodigosModel";
 import "./ArmonizacionFilaEditor.css";
 import { PulsoButton } from "../../components/PulsoButton";
 
@@ -216,18 +225,6 @@ function PanelConDireccion({ estado, cargandoEstado, variablesPorBase, filasEdit
 
 // ---- Editor de una fila ------------------------------------------------------
 
-type CodigoBase = { codigo: string; etiqueta: string | null; n: number | null };
-
-type CargaBase =
-  | { tipo: "cargando" }
-  /** Conteos reales desde el preview, con lo guardado. */
-  | { tipo: "listo"; codigos: CodigoBase[]; nTotal: number }
-  /**
-   * Sin preview: la lista del instrumento, sin conteos, y el porqué. La lista se
-   * deriva al pintar porque el catálogo puede llegar después.
-   */
-  | { tipo: "instrumento"; motivo: string };
-
 function opcionesDelInstrumento(
   variablesPorBase: Record<string, VariableDeBase[]>,
   base: string,
@@ -249,16 +246,6 @@ function motivoSinPreview(e: unknown): string {
     default:
       return e instanceof Error ? e.message : String(e);
   }
-}
-
-function codigosDeBase(
-  carga: CargaBase | undefined,
-  variablesPorBase: Record<string, VariableDeBase[]>,
-  base: string,
-  variable: string,
-): CodigoBase[] {
-  if (!carga || carga.tipo === "cargando") return [];
-  return carga.tipo === "listo" ? carga.codigos : opcionesDelInstrumento(variablesPorBase, base, variable);
 }
 
 function EditorFila({
@@ -297,23 +284,39 @@ function EditorFila({
 
   const referencia = fila.id ?? String(indice);
   const clavesBases = conVariable.join("|");
+  const clavesVariables = conVariable.map((b) => fila.variables[b] ?? "").join("|");
   const tieneArmonizacion = Boolean(fila.armonizacion);
   useEffect(() => {
     let vigente = true;
     const bases = clavesBases ? clavesBases.split("|") : [];
-    const desdeInstrumento = (motivo: string): CargaBase => ({ tipo: "instrumento", motivo });
+    const variables = clavesVariables.split("|");
+    const desdeInstrumento = (motivo: string): CargaBase => ({ tipo: "instrumento", motivo, observados: { estado: "leyendo" } });
+    // F4: sin preview, los valores observados en la data dan los códigos y
+    // sus casos a una variable que el instrumento no lista.
+    const leerObservados = (base: string, variable: string) => {
+      getCodigosObservados(base, variable)
+        .then((d) => {
+          if (vigente) setCargas((prev) => conObservados(prev, base, observadosDesde(d)));
+        })
+        .catch((e: unknown) => {
+          const mensaje = e instanceof Error ? e.message : String(e);
+          if (vigente) setCargas((prev) => conObservados(prev, base, { estado: "error", mensaje }));
+        });
+    };
     if (!tieneArmonizacion) {
       // Sin armonización guardada el preview responde 409: no hay nada que
-      // contar todavía. Se muestra la lista del instrumento sin pedirlo.
+      // contar con la escala todavía. Se muestra la lista del instrumento, o
+      // lo observado en la data, sin pedirlo.
       setCargas(Object.fromEntries(bases.map((b) => [
         b,
         desdeInstrumento("Guarda la escala para ver cuántos casos caen en cada código."),
       ])));
+      bases.forEach((b, i) => leerObservados(b, variables[i] ?? ""));
       return () => {
         vigente = false;
       };
     }
-    for (const base of bases) {
+    bases.forEach((base, i) => {
       getArmonizacionPreview(referencia, base)
         .then((p) => {
           if (!vigente) return;
@@ -327,13 +330,15 @@ function EditorFila({
           }));
         })
         .catch((e: unknown) => {
-          if (vigente) setCargas((prev) => ({ ...prev, [base]: desdeInstrumento(motivoSinPreview(e)) }));
+          if (!vigente) return;
+          setCargas((prev) => ({ ...prev, [base]: desdeInstrumento(motivoSinPreview(e)) }));
+          leerObservados(base, variables[i] ?? "");
         });
-    }
+    });
     return () => {
       vigente = false;
     };
-  }, [clavesBases, referencia, tieneArmonizacion]);
+  }, [clavesBases, clavesVariables, referencia, tieneArmonizacion]);
 
   const despacharSucio: typeof despachar = (a) => {
     despachar(a);
@@ -341,7 +346,12 @@ function EditorFila({
   };
 
   const errores = validarArmonizacion(borrador);
-  const cargando = Object.values(cargas).some((c) => c.tipo === "cargando");
+  const vistas: Record<string, CodigosDeBase> = Object.fromEntries(conVariable.map((base) => {
+    const variable = fila.variables[base] ?? "";
+    const instrumento = opcionesDelInstrumento(variablesPorBase, base, variable);
+    return [base, codigosDeBase(cargas[base], instrumento, base, variable, tieneArmonizacion)];
+  }));
+  const cargando = Object.values(vistas).some((v) => v.fuente === "cargando");
   const [comoAbierto, setComoAbierto] = usePlegadoRecordado("armonizacion-como", false);
   const [guardadoAhora, setGuardadoAhora] = useState(false);
   const estadoGuardado: SaveState = guardando ? "saving"
@@ -505,8 +515,7 @@ function EditorFila({
             rotulo={rotuloDeVariable(fila, base)}
             entrada={borrador.porBase[base]}
             escala={borrador.escala}
-            carga={cargas[base] ?? { tipo: "cargando" }}
-            codigos={codigosDeBase(cargas[base], variablesPorBase, base, fila.variables[base] ?? "")}
+            vista={vistas[base] ?? codigosDeBase(undefined, [], base, "", tieneArmonizacion)}
             sucio={sucio}
             despachar={despacharSucio}
           />
@@ -731,22 +740,22 @@ function MapaDeBase({
   rotulo,
   entrada,
   escala,
-  carga,
-  codigos,
+  vista,
   sucio,
   despachar,
 }: {
   anclaId: string;
   base: string;
-  codigos: CodigoBase[];
+  /** Los códigos de la base y de dónde salen sus casos. */
+  vista: CodigosDeBase;
   /** «variable P12», o los componentes de un indicador compuesto (ADR 0105). */
   rotulo: string;
   entrada: EntradaBorrador | undefined;
   escala: readonly CategoriaEscalaComun[];
-  carga: CargaBase;
   sucio: boolean;
   despachar: (a: Parameters<typeof reducirArmonizacion>[1]) => void;
 }) {
+  const codigos = vista.codigos;
   const filas = filasDeMapa(codigos, entrada, escala);
   const resumen = resumenMapa(filas);
   // F2: lo marcado es estado de la pantalla, no del borrador; se descarta al
@@ -857,9 +866,9 @@ function MapaDeBase({
             )}
             {/* Mientras cuenta no se resume: con la tabla vacía el resumen afirmaría
                 «todos caen en su etiqueta» sin haberlo medido. */}
-            {carga.tipo !== "cargando" && (
+            {vista.fuente !== "cargando" && filas.length > 0 && (
               <span
-                className={`pulso-armon-base-resumen${resumenEsAviso(resumen, carga.tipo === "listo") ? " is-aviso" : ""}`}
+                className={`pulso-armon-base-resumen${resumenEsAviso(resumen, vista.conConteos) ? " is-aviso" : ""}`}
                 aria-live="polite"
               >
                 {textoResumenMapa(resumen, explicito)}
@@ -867,17 +876,16 @@ function MapaDeBase({
             )}
           </div>
 
-          {carga.tipo === "instrumento" && <p className="pulso-armon-aviso">{carga.motivo}</p>}
-          {carga.tipo === "listo" && sucio && (
+          {vista.aviso && <p className="pulso-armon-aviso">{vista.aviso}</p>}
+          {vista.nota && <p className="pulso-armon-nota">{vista.nota}</p>}
+          {vista.fuente === "preview" && sucio && (
             <p className="pulso-armon-nota">Los conteos son de lo guardado. Los destinos ya reflejan tus cambios.</p>
           )}
 
-          {carga.tipo === "cargando" ? (
+          {vista.fuente === "cargando" ? (
             <p className="pulso-armon-vacio">Contando casos en {base}…</p>
           ) : filas.length === 0 ? (
-            <p className="pulso-armon-vacio">
-              La variable no tiene lista de opciones ni valores observados en esta base.
-            </p>
+            <p className="pulso-armon-vacio">{vista.vacio}</p>
           ) : (
             <>
             {escala.length > 0 && (
