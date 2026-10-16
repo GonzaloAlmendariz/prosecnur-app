@@ -184,7 +184,7 @@ segmentos_validar <- function(sid, cuerpo) {
   pares <- list()
   por_base <- list()
   for (b in bases) {
-    pares[[b]] <- .base_variables_par_original(s, b)
+    pares[[b]] <- .segmentos_par_con_calculadas(s, b, clave)
     ocupados <- .segmentos_ocupados(pares[[b]], s$estudio$bases[[b]], clave)
     if (.segmentos_plano(nombre) %in% .segmentos_plano(ocupados)) {
       stop_api(409, "E_SEGMENTO_NOMBRE_OCUPADO", sprintf(
@@ -316,12 +316,26 @@ segmentos_quitar <- function(sid, clave) {
 
 # --- Estado ----------------------------------------------------------------------
 
+# El par original de la base con sus variables calculadas puestas: un segmento
+# puede salir de una calculada (una fórmula como «2026 - P8», luego en rangos).
+# Sin las calculadas de segmentos (ni la suya ni las de otros): un segmento no
+# sale de otro.
+.segmentos_par_con_calculadas <- function(s, base, clave) {
+  par <- .base_variables_par_original(s, base)
+  meta <- s$estudio$bases[[base]] %||% list()
+  propias <- Filter(function(cv) !nzchar(.segmentos_chr(cv[["segmento"]])), meta[["variables_calculadas"]] %||% list())
+  if (length(propias)) {
+    par$data <- base_variables_materializar(par$data, utils::modifyList(meta, list(variables_calculadas = propias)))
+  }
+  par
+}
+
 # Data de una base para mirar los códigos observados del origen: la fuente de
 # runtime si la trae y, si no (base hermana no cargada), el par original.
 .segmentos_data_base <- function(sid, s, base, origen) {
   df <- (s$rp_data_sources %||% list())[[base]]
   if (is.data.frame(df) && origen %in% names(df)) return(df)
-  tryCatch(.base_variables_par_original(s, base)$data, api_error = function(e) {
+  tryCatch(.segmentos_par_con_calculadas(s, base, "")$data, api_error = function(e) {
     # Una base sin par legible no tumba el estado de todo el estudio: su
     # segmento se informa sin origen (`origen_ausente`) y el motivo va a stderr.
     message(sprintf("[segmentos] base «%s» sin data legible: %s", base, conditionMessage(e)))

@@ -467,3 +467,25 @@ test_that("un estudio sin bases separadas no declara segmentos", {
   expect_length(g$segmentos, 0L)
   expect_identical(.sg_code(segmentos_guardar(sid, .sg_sexo)), "E_EQUIV_NO_APLICA")
 })
+
+test_that("un segmento sale de una variable calculada por fórmula, agrupada en rangos", {
+  skip_if_not_installed("haven")
+  sid <- .sg_estudio()
+  on.exit(session_delete(sid), add = TRUE)
+  # Una fórmula en la base; el segmento la agrupa en dos tramos.
+  base_variables_guardar_calculada(sid, "2026", list(
+    nombre = "edad_en_5", etiqueta = "Edad dentro de cinco años", regla = "formula", expresion = "P1 + 5"))
+  edades <- sort(unique(.sg_edades + 5))
+  mapa <- stats::setNames(as.list(ifelse(edades <= 25, "1", "2")), edades)
+  out <- segmentos_guardar(sid, list(
+    clave = "edad5", etiqueta = "Edad en cinco años", escala = .sg_opciones("1" = "Hasta 25", "2" = "26 o más"),
+    por_base = list(`2026` = list(origen = "edad_en_5", mapa = mapa))))
+  seg <- .sg_seg(out, "edad5")
+  expect_identical(seg$por_base[["2026"]]$estado, "definido")
+  datos <- session_get(sid)$rp_data_sources[["2026"]]
+  expect_identical(as.character(datos$cruce_edad5), ifelse(.sg_edades + 5 <= 25, "1", "2"))
+  # La calculada de la fórmula queda antes que la del segmento, y no se borra mientras la usa.
+  orden <- vapply(session_get(sid)$estudio$bases[["2026"]]$variables_calculadas, `[[`, "", "nombre")
+  expect_identical(orden, c("edad_en_5", "cruce_edad5"))
+  expect_identical(.sg_code(base_variables_quitar_calculada(sid, "2026", "edad_en_5")), "E_BASE_VARIABLE_EN_USO")
+})
