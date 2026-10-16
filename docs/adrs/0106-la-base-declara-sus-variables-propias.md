@@ -52,8 +52,9 @@ La app sólo analiza lo que declara el instrumento (XLSForm) de cada base. Medid
      calculadas: [{ nombre, etiqueta, regla, variables, codigos?, mapa?, escala }],
      retiradas: [name] }`
 - `POST /api/carga/base-variables/declarar` `{ base, declarar: [{ name, label, tipo, opciones? }], quitar?: [name] }`
-- `POST /api/carga/base-variables/calculada` `{ base, nombre, etiqueta, regla: "alguna"|"recodificar", variables,
-  codigos?, mapa?, escala }` (crea o reemplaza por `nombre`); `DELETE …/calculada?base=&nombre=`
+- `POST /api/carga/base-variables/calculada` `{ base, nombre, etiqueta, regla: "alguna"|"recodificar"|"formula",
+  variables, codigos?, mapa?, escala?, expresion? }` (crea o reemplaza por `nombre`, en su lugar);
+  `DELETE …/calculada?base=&nombre=` (409 `E_BASE_VARIABLE_EN_USO` si otra calculada parte de ella)
 - `POST /api/carga/base-variables/codificada` `{ base, ya_codificada: bool }`
 - Errores con `stop_api` y códigos `E_BASE_VARIABLE_*` registrados; `E_CODIF_BASE_YA_CODIFICADA` en Codificación.
 
@@ -89,3 +90,15 @@ La app sólo analiza lo que declara el instrumento (XLSForm) de cada base. Medid
 - **`alguna` sobre una opción múltiple.** Antes de evaluar, una celda con varios códigos («2 1») se reduce a uno: el
   primero que cuenta como «sí»; si no hay, el primero válido no especial; si no, el primero. Así «98 99» (sólo
   especiales) vale NA, mientras que el indicador compuesto del ADR 0105, que mira la celda entera, le da 0.
+- **Regla `formula` (2026-10-16).** Una calculada puede ser una expresión aritmética sobre columnas de su base
+  (`2026 - P8`, `(P10 / P11) * 100`): números, variables, `+ - * /`, paréntesis y signo menos. Se interpreta con un
+  parser propio (`base_variables_formula.R`); nunca se evalúa como código R. Sin dato: vacío, texto no numérico,
+  división por cero y, en una variable con lista de respuestas (select_one o calculada con escala), los códigos 80–99;
+  esas variables quedan en `especiales_na` al declarar. Da un número y entra al instrumento como `decimal`. Es la
+  herramienta general para construir una variable derivada sin una ayuda por caso: «años desde el ingreso» es
+  `<año> - P8` agrupado luego en rangos (en Recodificar, Armonizar o un segmento del ADR 0107). Gonzalo: «no se
+  supone que las variables de cruce se pueden armar desde cero de forma normal… estoy pensando una fórmula».
+- **Encadenamiento.** Una calculada puede partir de otra declarada ANTES que ella (se materializan en orden);
+  reemplazar una conserva su lugar y no se borra una de la que otra depende.
+- **Libro de códigos.** Las preguntas sin lista (numéricas, texto, calculadas por fórmula) se documentan con su
+  etiqueta y una línea de contenido (`reporte_codebook_sin_lista.R`).
