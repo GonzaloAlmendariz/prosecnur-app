@@ -17,7 +17,11 @@
 
 .codif_strip_applied_state <- function(entry) {
   if (!is.list(entry) || !length(entry)) return(entry)
-  entry[setdiff(names(entry), .codif_applied_cache_keys)]
+  habia_adaptacion <- isTRUE(entry$aplicado)
+  entry <- entry[setdiff(names(entry), .codif_applied_cache_keys)]
+  # Adaptación avisa que la base cambió después de adaptar (codificacion_readaptar.R).
+  if (habia_adaptacion) entry$readaptar_desde <- format(Sys.time(), "%Y-%m-%dT%H:%M:%S")
+  entry
 }
 
 .limpieza_invalidate_downstream <- function(sid, base_nombre = NULL) {

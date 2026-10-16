@@ -1061,6 +1061,12 @@ validacion_key_present_any <- function(s, key) {
     # contra `analitica_rp_*_sources` cuando se consulta el estado después.
     s[c("analitica_rp_data", "analitica_rp_inst", "analitica_fuente")] <-
       list(NULL, NULL, NULL)
+    # El par adaptado global salió de las respuestas anteriores: si sobrevive,
+    # Analítica sigue leyendo la base vieja después de reemplazarla (HSyVbG
+    # 2026-10-16). Mismo descarte que `.limpieza_invalidate_downstream()`;
+    # `.codif_apply_complete()` lo vuelve a fijar después de reemplazar.
+    s[c("codif_aplicado", "codif_data_adaptada_fid", "codif_inst_adaptado_fid")] <-
+      list(FALSE, NULL, NULL)
   }
 
   # Codificación y Analítica dependen de la pareja invalidada. Limpiar

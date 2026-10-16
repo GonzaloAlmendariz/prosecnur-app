@@ -73,6 +73,14 @@ export function AdaptarPane({ base, onBackToCodificar, onBackToMatrices }: Props
       {/* Tras una aplicación con avisos: lo dice arriba y lleva al aviso. */}
       <AdaptarAplicacionResumen clave={clave} />
 
+      {/* ADR 0100 D3: la base cambió y la adaptación anterior se descartó. */}
+      {plan.respuestas_cambiaron && !noHayNada ? (
+        <Alert kind="info">
+          La base cambió después de la última adaptación: las columnas <code>_recod</code> ya no están en ella. Los grupos se
+          conservaron; confirma abajo para volver a crearlas.
+        </Alert>
+      ) : null}
+
       {/* Header con totales */}
       <div className="pulso-codificacion-adaptar-stats">
         <Stat label="Preguntas" value={t.n_preguntas} />
