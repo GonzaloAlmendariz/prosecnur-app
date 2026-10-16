@@ -268,11 +268,27 @@
   unique(names0[types %in% .analitica_non_data_types & nzchar(names0)])
 }
 
+.analitica_calculate_names_for_inst <- function(rp_inst) {
+  sv <- rp_inst$survey %||% NULL
+  if (is.null(sv) || !nrow(sv) || !all(c("name", "type") %in% names(sv))) return(character(0))
+  names0 <- as.character(sv$name)
+  names0[is.na(names0)] <- ""
+  unique(names0[.analitica_type_base(sv$type) == "calculate" & nzchar(names0)])
+}
+
 .analitica_filter_data_to_inst <- function(data, rp_inst) {
   if (!is.data.frame(data) || !length(names(data))) return(data)
   data_names <- names(data)
   data_vars <- .analitica_data_names_for_inst(rp_inst)
   structural <- .analitica_structural_names_for_inst(rp_inst)
+  # Un `calculate` guarda su valor en la base: es dato, no estructura. Antes se
+  # descartaba junto con note/start/deviceid y los índices del estudio
+  # (HSyVbG 2026: indice_vbg, indice_hs) no llegaban a Analítica, al libro de
+  # códigos ni a la base entregada. Su uso lo deciden las reglas de siempre (no
+  # entra a Frecuencias si no es categórico ni se declara numérico).
+  calculados <- .analitica_calculate_names_for_inst(rp_inst)
+  data_vars <- unique(c(data_vars, calculados))
+  structural <- setdiff(structural, calculados)
   extras <- setdiff(data_names, c(data_vars, structural))
   extras <- extras[!grepl("^Pag[0-9]+$", extras)]
   extras <- extras[!grepl("^(nota|note)_", extras, ignore.case = TRUE)]
