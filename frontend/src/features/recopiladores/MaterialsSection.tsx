@@ -474,7 +474,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
 
   if (loading) return <div className="rec-loading">Leyendo la plantilla de la ficha…</div>;
 
-  if (activeTab === "paquetes") {
+  if (activeTab === "armado") {
     return (
       <div className="rec-package-layout">
         <Panel

@@ -233,7 +233,7 @@ export function PlanSection({ payload, onState }: Props) {
     return (
       <div className="rec-empty-state" data-qa-geometry-capacity="owned">
         <DatabaseZap size={28} aria-hidden />
-        <h2>No hay un plan propio de Recopiladores</h2>
+        <h2>Aún no hay unidades para Material de campo</h2>
         <p>{seedAvailable
           ? "Este proyecto conserva una selección o un plan de aulas compatible. Puedes adaptarlo una sola vez."
           : "Primero entrega una selección desde su módulo de origen para preparar la recolección."}</p>

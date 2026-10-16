@@ -248,9 +248,9 @@ test('el índice de direcciones es íntegramente generado', () => {
     'diseno-estudio.md',
     'editor-xlsform.md',
     'hojas-ruta.md',
+    'material-campo.md',
     'monitoreo.md',
     'procesamiento.md',
-    'recopiladores.md',
   ])
   for (const archivo of archivos) {
     assert.match(

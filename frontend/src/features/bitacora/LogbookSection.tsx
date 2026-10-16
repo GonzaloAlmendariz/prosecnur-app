@@ -16,6 +16,7 @@ import { toast } from "../../components/toasterStore";
 import { EntradaRapida } from "./logbook/EntradaRapida";
 import { FiltrosBitacora, type FiltroBitacora } from "./logbook/FiltrosBitacora";
 import { TimelinePorDia } from "./logbook/TimelinePorDia";
+import { slugCanonicoDeModulo } from "../../lib/navegacion/aliasDeModulo";
 import "./logbook/logbook.css";
 
 /**
@@ -205,7 +206,7 @@ function filtrarLocal(
   return entradas.filter((e) => {
     if (!filtro.mostrar_archivadas && e.archived_at) return false;
     if (filtro.tonos.length && !filtro.tonos.includes(e.tone)) return false;
-    if (filtro.modulos.length && !filtro.modulos.includes(e.module_id)) return false;
+    if (filtro.modulos.length && !filtro.modulos.includes(slugCanonicoDeModulo(e.module_id))) return false;
     if (filtro.etiquetas.length && !filtro.etiquetas.some((t) => e.tags.includes(t))) return false;
     if (texto) {
       const heno = `${sinAcentos(e.title)} ${sinAcentos(e.body)}`;

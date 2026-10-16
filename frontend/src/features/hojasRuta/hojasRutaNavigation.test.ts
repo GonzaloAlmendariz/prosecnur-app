@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildHojasRutaNavigation,
   buildHojasRutaNavigationSearch,
+  resolverEtapaHojasRuta,
 } from "./hojasRutaNavigation";
 import type { HojasRutaNavigationInput } from "./hojasRutaNavigation";
 
@@ -31,7 +32,7 @@ describe("HojasRuta navigation model", () => {
       "poblacion",
       "muestra",
       "manzanas",
-      "entrega",
+      "seleccion",
     ]);
     expect(model.deliveryTabs.map((tab) => tab.key)).toEqual([
       "cuotas",
@@ -63,7 +64,7 @@ describe("HojasRuta navigation model", () => {
       { key: "poblacion", done: false, disabled: true },
       { key: "muestra", done: false, disabled: true },
       { key: "manzanas", done: false, disabled: true },
-      { key: "entrega", done: true, disabled: true },
+      { key: "seleccion", done: true, disabled: true },
     ]);
     expect(model.deliveryTabs.map(({ key, disabled }) => ({
       key,
@@ -81,19 +82,19 @@ describe("HojasRuta navigation model", () => {
   it("uses the valid URL over persisted Zustand state", () => {
     const model = buildHojasRutaNavigation({
       ...READY_INPUT,
-      search: "?shell=v3&stage=entrega&tab=reemplazos",
+      search: "?shell=v3&stage=seleccion&tab=reemplazos",
       persistedStage: "poblacion",
       persistedDeliveryTab: "cuotas",
     });
 
-    expect(model.activeStage).toBe("entrega");
+    expect(model.activeStage).toBe("seleccion");
     expect(model.activeDeliveryTab).toBe("reemplazos");
-    expect(model.runtime.activeSectionId).toBe("entrega");
+    expect(model.runtime.activeSectionId).toBe("seleccion");
     expect(model.runtime.activeTabId).toBe("reemplazos");
     // Un enlace guardado con los nombres viejos sigue resolviendo, y de paso
     // sale migrado a la forma canónica.
     expect(model.normalizedSearch).toBe(
-      "?shell=v3&seccion=entrega&pestana=reemplazos",
+      "?shell=v3&seccion=seleccion&pestana=reemplazos",
     );
   });
 
@@ -102,7 +103,7 @@ describe("HojasRuta navigation model", () => {
     ["poblacion", "expanded"],
     ["muestra", "expanded"],
     ["manzanas", "collapsed"],
-    ["entrega", "expanded"],
+    ["seleccion", "expanded"],
   ] as const)("recommends the %s rail mode as %s", (stage, railMode) => {
     const model = buildHojasRutaNavigation({
       ...READY_INPUT,
@@ -115,11 +116,11 @@ describe("HojasRuta navigation model", () => {
   it("respects persisted state when the URL omits stage and tab", () => {
     const model = buildHojasRutaNavigation({
       ...READY_INPUT,
-      persistedStage: "entrega",
+      persistedStage: "seleccion",
       persistedDeliveryTab: "titulares",
     });
 
-    expect(model.activeStage).toBe("entrega");
+    expect(model.activeStage).toBe("seleccion");
     expect(model.activeDeliveryTab).toBe("titulares");
     expect(model.normalizedSearch).toBe("?shell=v3");
   });
@@ -131,7 +132,7 @@ describe("HojasRuta navigation model", () => {
     });
     const lockedStage = buildHojasRutaNavigation({
       ...READY_INPUT,
-      search: "?shell=v3&stage=entrega&tab=reemplazos",
+      search: "?shell=v3&stage=seleccion&tab=reemplazos",
       sampleExists: false,
       sampleOk: false,
       sampleBlockCount: 0,
@@ -139,15 +140,15 @@ describe("HojasRuta navigation model", () => {
     });
     const lockedTab = buildHojasRutaNavigation({
       ...READY_INPUT,
-      search: "?shell=v3&stage=entrega&tab=reemplazos",
+      search: "?shell=v3&stage=seleccion&tab=reemplazos",
       replacementCount: 0,
     });
 
     // Entra por el alias legacy y sale en forma canónica: normalizar una URL
     // vieja es exactamente el momento de migrarla.
-    expect(invalidStage.activeStage).toBe("entrega");
+    expect(invalidStage.activeStage).toBe("seleccion");
     expect(invalidStage.normalizedSearch).toBe(
-      "?shell=v3&seccion=entrega&pestana=reemplazos",
+      "?shell=v3&seccion=seleccion&pestana=reemplazos",
     );
     expect(lockedStage.activeStage).toBe("manzanas");
     expect(lockedStage.normalizedSearch).toBe(
@@ -155,18 +156,18 @@ describe("HojasRuta navigation model", () => {
     );
     expect(lockedTab.activeDeliveryTab).toBe("titulares");
     expect(lockedTab.normalizedSearch).toBe(
-      "?shell=v3&seccion=entrega&pestana=titulares",
+      "?shell=v3&seccion=seleccion&pestana=titulares",
     );
   });
 
   it("sigue entendiendo los enlaces guardados con stage/tab", () => {
     const legacy = buildHojasRutaNavigation({
       ...READY_INPUT,
-      search: "?stage=entrega&tab=reemplazos",
+      search: "?stage=seleccion&tab=reemplazos",
     });
     const canonico = buildHojasRutaNavigation({
       ...READY_INPUT,
-      search: "?seccion=entrega&pestana=reemplazos",
+      search: "?seccion=seleccion&pestana=reemplazos",
     });
 
     expect(legacy.activeStage).toBe(canonico.activeStage);
@@ -176,25 +177,68 @@ describe("HojasRuta navigation model", () => {
   it("el param canónico gana sobre su alias legacy", () => {
     const model = buildHojasRutaNavigation({
       ...READY_INPUT,
-      search: "?stage=poblacion&seccion=entrega",
+      search: "?stage=poblacion&seccion=seleccion",
     });
 
-    expect(model.activeStage).toBe("entrega");
+    expect(model.activeStage).toBe("seleccion");
   });
 
   it("escribe seccion/pestana canónicos sin perder shell v3", () => {
     expect(
       buildHojasRutaNavigationSearch(
-        "?shell=v3&stage=entrega&tab=cuotas",
+        "?shell=v3&stage=seleccion&tab=cuotas",
         "poblacion",
       ),
     ).toBe("?shell=v3&seccion=poblacion");
     expect(
       buildHojasRutaNavigationSearch(
         "?shell=v3&seccion=poblacion",
-        "entrega",
+        "seleccion",
         "titulares",
       ),
-    ).toBe("?shell=v3&seccion=entrega&pestana=titulares");
+    ).toBe("?shell=v3&seccion=seleccion&pestana=titulares");
+  });
+
+  // ADR 0108 §5: «Entrega» se renombró «Selección». La forma vieja se lee en la
+  // URL y en el estado guardado, y nunca se escribe.
+  describe("Entrega → Selección", () => {
+    it("lee ?seccion=entrega y la reescribe a seleccion conservando la pestaña", () => {
+      const model = buildHojasRutaNavigation({
+        ...READY_INPUT,
+        search: "?seccion=entrega&pestana=titulares",
+      });
+      expect(model.activeStage).toBe("seleccion");
+      expect(model.activeDeliveryTab).toBe("titulares");
+      expect(model.normalizedSearch).toBe("?seccion=seleccion&pestana=titulares");
+    });
+
+    it("lee stage=entrega y etapa=entrega como alias", () => {
+      for (const search of ["?stage=entrega&tab=cuotas", "?etapa=entrega&tab=cuotas"]) {
+        const model = buildHojasRutaNavigation({ ...READY_INPUT, search });
+        expect(model.activeStage, search).toBe("seleccion");
+        expect(model.normalizedSearch, search).toBe("?seccion=seleccion&pestana=cuotas");
+      }
+    });
+
+    it("resuelve un estado persistido «entrega» a Selección", () => {
+      const model = buildHojasRutaNavigation({
+        ...READY_INPUT,
+        search: "",
+        // Lo que llega de un `.pulso` guardado antes del renombre.
+        persistedStage: "entrega" as unknown as HojasRutaNavigationInput["persistedStage"],
+      });
+      expect(model.activeStage).toBe("seleccion");
+      expect(resolverEtapaHojasRuta("entrega")).toBe("seleccion");
+      expect(resolverEtapaHojasRuta("seleccion")).toBe("seleccion");
+      expect(resolverEtapaHojasRuta("otra")).toBeNull();
+      expect(resolverEtapaHojasRuta(undefined)).toBeNull();
+    });
+
+    it("nunca escribe la forma vieja", () => {
+      expect(buildHojasRutaNavigationSearch("?stage=entrega", "seleccion", "cuotas")).toBe(
+        "?seccion=seleccion&pestana=cuotas",
+      );
+      expect(buildHojasRutaNavigationSearch("?etapa=entrega", "muestra")).toBe("?seccion=muestra");
+    });
   });
 });

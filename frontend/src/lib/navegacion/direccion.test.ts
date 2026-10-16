@@ -33,8 +33,8 @@ describe("gramática de direcciones", () => {
     expect(parsearDireccion("/monitoreo", "?tab=avance")?.pestana).toBeUndefined();
 
     // …y en Hojas de ruta, una pestaña dentro de la sección `stage`.
-    const hojas = parsearDireccion("/hojas-ruta", "?stage=entrega&tab=cuotas");
-    expect(hojas?.seccion).toBe("entrega");
+    const hojas = parsearDireccion("/hojas-ruta", "?stage=seleccion&tab=cuotas");
+    expect(hojas?.seccion).toBe("seleccion");
     expect(hojas?.pestana).toBe("cuotas");
   });
 
@@ -49,8 +49,8 @@ describe("gramática de direcciones", () => {
 
   it("prefiere el param canónico sobre su alias", () => {
     expect(
-      parsearDireccion("/hojas-ruta", "?stage=muestra&seccion=entrega")?.seccion,
-    ).toBe("entrega");
+      parsearDireccion("/hojas-ruta", "?stage=muestra&seccion=seleccion")?.seccion,
+    ).toBe("seleccion");
   });
 
   it("trata las rutas hermanas de Procesamiento como secciones del módulo", () => {
@@ -85,7 +85,7 @@ describe("gramática de direcciones", () => {
   it("no permite que `extra` reinyecte params reservados al serializar", () => {
     const href = serializarDireccion({
       modulo: "hojas-ruta",
-      seccion: "entrega",
+      seccion: "seleccion",
       pestana: "titulares",
       panel: "filtros",
       extra: {
@@ -99,16 +99,16 @@ describe("gramática de direcciones", () => {
 
     expect(Object.fromEntries(url.searchParams)).toEqual({
       scope: "consolidado",
-      seccion: "entrega",
+      seccion: "seleccion",
       pestana: "titulares",
       panel: "filtros",
     });
   });
 
   it("escribe siempre la forma canónica, nunca el alias por el que entró", () => {
-    const direccion = parsearDireccion("/hojas-ruta", "?stage=entrega&tab=cuotas");
+    const direccion = parsearDireccion("/hojas-ruta", "?stage=seleccion&tab=cuotas");
     const href = serializarDireccion(direccion!);
-    expect(href).toBe("/hojas-ruta?seccion=entrega&pestana=cuotas");
+    expect(href).toBe("/hojas-ruta?seccion=seleccion&pestana=cuotas");
     expect(href).not.toContain("stage=");
     expect(href).not.toContain("tab=");
   });
@@ -129,7 +129,7 @@ describe("gramática de direcciones", () => {
   it("da la vuelta completa: parsear y serializar es idempotente", () => {
     const casos = [
       "/monitoreo?modo=territorial&seccion=avance",
-      "/hojas-ruta?seccion=entrega&pestana=titulares",
+      "/hojas-ruta?seccion=seleccion&pestana=titulares",
       "/carga",
       "/bitacora?seccion=cronograma",
       "/calc-muestra?modo=aulas",

@@ -66,8 +66,30 @@ export const HOJAS_RUTA_STAGE_ORDER: readonly HojasRutaStage[] = [
   "poblacion",
   "muestra",
   "manzanas",
-  "entrega",
+  "seleccion",
 ];
+
+/**
+ * Etapas que cambiaron de nombre. «Entrega» pasó a «Selección» con el ADR 0108
+ * §5: Cuotas, Titulares y Reemplazos son la selección de campo, y los impresos
+ * pasan a Material de campo. Se LEE en la URL y en el estado guardado; nunca se
+ * escribe.
+ */
+const ALIAS_ETAPA: Readonly<Record<string, HojasRutaStage>> = {
+  entrega: "seleccion",
+};
+
+/**
+ * La etapa vigente que nombra un valor de URL o de estado persistido, o `null`
+ * si no nombra ninguna. Un proyecto guardado con `active_stage = "entrega"`
+ * vuelve a Selección y no cae en Territorio.
+ */
+export function resolverEtapaHojasRuta(value: unknown): HojasRutaStage | null {
+  if (typeof value !== "string") return null;
+  const limpio = value.trim().toLowerCase();
+  if (HOJAS_RUTA_STAGE_ORDER.includes(limpio as HojasRutaStage)) return limpio as HojasRutaStage;
+  return ALIAS_ETAPA[limpio] ?? null;
+}
 
 export const HOJAS_RUTA_DELIVERY_TAB_ORDER: readonly HojasRutaDeliveryTab[] = [
   "cuotas",
@@ -99,10 +121,10 @@ const STAGE_PRESENTATION: Record<
     label: "Manzanas",
     hint: "Selección de campo",
   },
-  entrega: {
+  seleccion: {
     n: 5,
-    label: "Entrega",
-    hint: "Revisión y ZIP",
+    label: "Selección",
+    hint: "Cuotas, titulares y reemplazos",
   },
 };
 
@@ -113,9 +135,7 @@ const DELIVERY_TAB_LABELS: Record<HojasRutaDeliveryTab, string> = {
 };
 
 function asStage(value: string | null): HojasRutaStage | null {
-  return HOJAS_RUTA_STAGE_ORDER.includes(value as HojasRutaStage)
-    ? (value as HojasRutaStage)
-    : null;
+  return resolverEtapaHojasRuta(value);
 }
 
 function asDeliveryTab(value: string | null): HojasRutaDeliveryTab | null {
@@ -124,40 +144,48 @@ function asDeliveryTab(value: string | null): HojasRutaDeliveryTab | null {
     : null;
 }
 
-// Hojas de ruta nombraba sus niveles `stage` (sección) y `tab` (pestaña). La
-// gramática canónica los llama `seccion` y `pestana`; los nombres viejos se
-// siguen leyendo para no romper enlaces guardados, pero nunca se escriben.
-// Contrato: `lib/navegacion/direccion.ts`.
+// Hojas de ruta nombraba sus niveles `stage`/`etapa` (sección) y `tab`
+// (pestaña). La gramática canónica los llama `seccion` y `pestana`; los nombres
+// viejos se siguen leyendo para no romper enlaces guardados, pero nunca se
+// escriben. Contrato: `lib/navegacion/direccion.ts`.
 const PARAM_SECCION = "seccion";
 const PARAM_PESTANA = "pestana";
-const LEGACY_SECCION = "stage";
-const LEGACY_PESTANA = "tab";
+const LEGACY_SECCION: readonly string[] = ["stage", "etapa"];
+const LEGACY_PESTANA: readonly string[] = ["tab"];
 
 function leerNivel(
   params: URLSearchParams,
   canonico: string,
-  legacy: string,
+  legacy: readonly string[],
 ): string | null {
-  return params.get(canonico) ?? params.get(legacy);
+  for (const clave of [canonico, ...legacy]) {
+    const valor = params.get(clave);
+    if (valor !== null) return valor;
+  }
+  return null;
+}
+
+function tieneLegacy(params: URLSearchParams, legacy: readonly string[]): boolean {
+  return legacy.some((clave) => params.has(clave));
 }
 
 function fijarNivel(
   params: URLSearchParams,
   canonico: string,
-  legacy: string,
+  legacy: readonly string[],
   valor: string,
 ): void {
   params.set(canonico, valor);
-  params.delete(legacy);
+  for (const clave of legacy) params.delete(clave);
 }
 
 function borrarNivel(
   params: URLSearchParams,
   canonico: string,
-  legacy: string,
+  legacy: readonly string[],
 ): void {
   params.delete(canonico);
-  params.delete(legacy);
+  for (const clave of legacy) params.delete(clave);
 }
 
 function lastEnabled<T extends { key: string; disabled: boolean }>(
@@ -186,7 +214,7 @@ export function buildHojasRutaNavigationSearch(
     currentSearch.startsWith("?") ? currentSearch.slice(1) : currentSearch,
   );
   fijarNivel(params, PARAM_SECCION, LEGACY_SECCION, stage);
-  if (stage === "entrega" && deliveryTab) {
+  if (stage === "seleccion" && deliveryTab) {
     fijarNivel(params, PARAM_PESTANA, LEGACY_PESTANA, deliveryTab);
   } else {
     borrarNivel(params, PARAM_PESTANA, LEGACY_PESTANA);
@@ -243,8 +271,8 @@ export function buildHojasRutaNavigation(
       badge: input.sampleOk ? String(input.sampleBlockCount) : undefined,
     },
     {
-      key: "entrega",
-      ...STAGE_PRESENTATION.entrega,
+      key: "seleccion",
+      ...STAGE_PRESENTATION.seleccion,
       done: input.resultReady,
       disabled: !input.sampleOk,
       disabledReason: !input.sampleOk
@@ -292,11 +320,12 @@ export function buildHojasRutaNavigation(
   const requestedStageRaw = leerNivel(params, PARAM_SECCION, LEGACY_SECCION);
   const requestedStage = asStage(requestedStageRaw);
   const fallbackStage = lastEnabled(sections, "territorio") as HojasRutaStage;
+  const persistedStage = resolverEtapaHojasRuta(input.persistedStage) ?? fallbackStage;
   const persistedStageEnabled = !sections.find(
-    (section) => section.key === input.persistedStage,
+    (section) => section.key === persistedStage,
   )?.disabled;
   let activeStage = persistedStageEnabled
-    ? input.persistedStage
+    ? persistedStage
     : fallbackStage;
   let searchChanged = false;
 
@@ -306,7 +335,9 @@ export function buildHojasRutaNavigation(
     );
     if (requestedSection && !requestedSection.disabled) {
       activeStage = requestedSection.key;
-      if (params.has(LEGACY_SECCION)) {
+      // Un nombre viejo de parámetro (`stage=`) o de valor (`entrega`) se
+      // reescribe a la forma canónica aunque la etapa pedida sea válida.
+      if (tieneLegacy(params, LEGACY_SECCION) || requestedStageRaw !== activeStage) {
         fijarNivel(params, PARAM_SECCION, LEGACY_SECCION, activeStage);
         searchChanged = true;
       }
@@ -329,7 +360,7 @@ export function buildHojasRutaNavigation(
     : fallbackDeliveryTab;
   const requestedTabRaw = leerNivel(params, PARAM_PESTANA, LEGACY_PESTANA);
 
-  if (activeStage !== "entrega") {
+  if (activeStage !== "seleccion") {
     if (requestedTabRaw !== null) {
       borrarNivel(params, PARAM_PESTANA, LEGACY_PESTANA);
       searchChanged = true;
@@ -344,7 +375,7 @@ export function buildHojasRutaNavigation(
       // La pestaña pedida es válida y no hay nada que corregir, pero si llegó
       // por el alias legacy hay que migrarla igual: normalizar y dejar la URL
       // mitad `tab=` mitad `seccion=` es peor que no haberla tocado.
-      if (params.has(LEGACY_PESTANA)) {
+      if (tieneLegacy(params, LEGACY_PESTANA)) {
         fijarNivel(params, PARAM_PESTANA, LEGACY_PESTANA, activeDeliveryTab);
         searchChanged = true;
       }
@@ -386,7 +417,7 @@ export function buildHojasRutaNavigation(
     runtime: {
       moduleSlug: "hojas-ruta",
       activeSectionId: activeStage,
-      activeTabId: activeStage === "entrega"
+      activeTabId: activeStage === "seleccion"
         ? activeDeliveryTab
         : undefined,
       preferredRailMode: activeStage === "territorio" || activeStage === "manzanas"

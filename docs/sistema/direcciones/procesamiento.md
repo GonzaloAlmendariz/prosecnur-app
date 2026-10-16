@@ -10,7 +10,7 @@ Módulo `procesamiento` · ruta `/procesamiento` · 38 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `procesamiento` | modulo | Procesamiento | sí | f3e1e3ad | sí | — |
+| `procesamiento` | modulo | Procesamiento | sí | 67829bc1 | sí | — |
 | `procesamiento/carga` | seccion | Carga | sí | 54b0fe12 | sí | — |
 | `procesamiento/carga/plan` | pestana | Plan | sí | 15be26db | sí | — |
 | `procesamiento/carga/fuentes` | pestana | Fuentes | sí | 2af0cc2d | sí | — |
@@ -42,9 +42,9 @@ Módulo `procesamiento` · ruta `/procesamiento` · 38 direcciones.
 | `procesamiento/analitica/cruces` | pestana | Cruces | sí | ad686bdb | sí | — |
 | `procesamiento/analitica/orden` | pestana | Orden de categorías | sí | d37b6f2e | sí | — |
 | `procesamiento/analitica/dimensiones` | pestana | Dimensiones | sí | be5ac96f | sí | — |
-| `procesamiento/graficos` | seccion | Gráficos | sí | 92480910 | sí | — |
+| `procesamiento/graficos` | seccion | Gráficos | sí | e1ba41dd | sí | — |
 | `procesamiento/graficos/laminas` | pestana | Láminas | sí | f8f35675 | sí | — |
-| `procesamiento/graficos/vista-general` | pestana | Vista general | sí | a05a1f24 | sí | — |
-| `procesamiento/graficos/estilo` | pestana | Identidad | sí | 815dfc45 | sí | — |
-| `procesamiento/graficos/estilo-informe` | pestana | Estilo del informe | sí | ecd580a5 | sí | — |
 | `procesamiento/graficos/word` | pestana | Word | sí | 33458e75 | sí | — |
+| `procesamiento/graficos/informe` | pestana | Informe | sí | 7c58ad2b | **no** | — |
+| `procesamiento/graficos/identidad` | pestana | Identidad | sí | 34a343ac | **no** | — |
+| `procesamiento/graficos/reglas` | pestana | Reglas | sí | 047ee03f | **no** | — |

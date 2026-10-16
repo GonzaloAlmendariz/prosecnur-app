@@ -10,12 +10,12 @@ Módulo `hojas-ruta` · ruta `/hojas-ruta` · 9 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `hojas-ruta` | modulo | Hojas de ruta para campo | sí | cfc50b19 | sí | — |
+| `hojas-ruta` | modulo | Hojas de ruta para campo | sí | 8182ac84 | sí | — |
 | `hojas-ruta/territorio` | seccion | Territorio | sí | 412a7b5e | sí | — |
 | `hojas-ruta/poblacion` | seccion | Población | sí | e146504b | sí | — |
 | `hojas-ruta/muestra` | seccion | Muestra | sí | 71090d15 | sí | — |
 | `hojas-ruta/manzanas` | seccion | Manzanas | sí | ce906672 | sí | — |
-| `hojas-ruta/entrega` | seccion | Entrega | sí | e2f5f229 | sí | — |
-| `hojas-ruta/entrega/cuotas` | pestana | Cuotas | sí | 32d29053 | sí | — |
-| `hojas-ruta/entrega/titulares` | pestana | Titulares | sí | 02846dc9 | sí | — |
-| `hojas-ruta/entrega/reemplazos` | pestana | Reemplazos | sí | e33e7dc4 | sí | — |
+| `hojas-ruta/seleccion` | seccion | Selección | sí | 7bd9d8b9 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
+| `hojas-ruta/seleccion/cuotas` | pestana | Cuotas | sí | 620b5718 | sí | — |
+| `hojas-ruta/seleccion/titulares` | pestana | Titulares | sí | 92d6a2e1 | sí | — |
+| `hojas-ruta/seleccion/reemplazos` | pestana | Reemplazos | sí | d8297235 | sí | — |

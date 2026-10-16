@@ -21,7 +21,7 @@ const leads = [...copy.matchAll(/lead:\s*"([^"]+)"/g)].map((m) => m[1]);
 
 describe("las secciones se explican en el idioma de quien las usa", () => {
   it("hay un subtítulo por sección", () => {
-    expect(leads).toHaveLength(4);
+    expect(leads).toHaveLength(5);
   });
 
   it("ninguno usa jerga de arquitectura", () => {
@@ -44,8 +44,9 @@ describe("las secciones se explican en el idioma de quien las usa", () => {
   it("cada uno dice qué se hace ahí, no cómo está hecho", () => {
     expect(leads[0]).toContain("aulas que entran a campo");
     expect(leads[1]).toContain("enlace por el que responde cada aula");
-    expect(leads[2]).toContain("se imprimen y se llevan al aula");
-    expect(leads[3]).toContain("deja constancia");
+    expect(leads[2]).toContain("se imprime y se lleva al aula");
+    expect(leads[3]).toContain("agrupadas para el reparto");
+    expect(leads[4]).toContain("deja constancia");
   });
 });
 
