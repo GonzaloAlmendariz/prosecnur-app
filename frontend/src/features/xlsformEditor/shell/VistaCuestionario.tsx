@@ -73,8 +73,8 @@ function Opciones({ pregunta }: { pregunta: PreguntaDoc }) {
   if ((forma === "una" || forma === "varias" || forma === "orden") && opciones.length > 0) {
     return (
       <ul className={`pulso-xf-cue-opciones${opciones.length > 6 ? " is-columnas" : ""}`}>
-        {opciones.map((o) => (
-          <li key={o.codigo}>
+        {opciones.map((o, oi) => (
+          <li key={`${o.codigo}-${oi}`}>
             {forma === "orden" ? <span className="pulso-xf-cue-marca is-orden" aria-hidden="true" /> : <Marca forma={forma} />}
             <Markdown texto={o.etiqueta} />
             {o.habilita.length > 0 && (
@@ -179,14 +179,14 @@ function Matriz({ bloque, marcarOpcionales: opcionales, fichas }: {
           <thead>
             <tr>
               <th scope="col"><span className="pulso-xf-cue-sr">Pregunta</span></th>
-              {bloque.escala.map((o: OpcionDoc) => (
-                <th key={o.codigo} scope="col"><Markdown texto={o.etiqueta} /></th>
+              {bloque.escala.map((o: OpcionDoc, oi) => (
+                <th key={`${o.codigo}-${oi}`} scope="col"><Markdown texto={o.etiqueta} /></th>
               ))}
             </tr>
           </thead>
           <tbody>
             {bloque.filas.map((f) => (
-              <tr key={f.nodo.name} className={f === filaAbierta ? "is-abierta" : undefined}
+              <tr key={f.nodo.rowIndex} className={f === filaAbierta ? "is-abierta" : undefined}
                 onClick={() => fichas.alternar(f.nodo.name)} title="Ver la ficha de la pregunta">
                 <th scope="row">
                   <button type="button" className="pulso-xf-cue-matriz-fila" onClick={(e) => { e.stopPropagation(); fichas.alternar(f.nodo.name); }}
@@ -200,7 +200,7 @@ function Matriz({ bloque, marcarOpcionales: opcionales, fichas }: {
                   </button>
                   {f.condicion && <span className="pulso-xf-cue-condicion is-fila">Aparece si {f.condicion}</span>}
                 </th>
-                {bloque.escala.map((o) => <td key={o.codigo}><Marca forma={forma} /></td>)}
+                {bloque.escala.map((o, oi) => <td key={`${o.codigo}-${oi}`}><Marca forma={forma} /></td>)}
               </tr>
             ))}
           </tbody>
@@ -241,7 +241,7 @@ function Seccion({ seccion, marcarOpcionales: opcionales, fichas, registrar }: {
             );
           }
           if (b.tipo === "matriz") return <Matriz key={b.clave} bloque={b} marcarOpcionales={opcionales} fichas={fichas} />;
-          return <Pregunta key={b.pregunta.nodo.name} pregunta={b.pregunta} marcarOpcionales={opcionales} fichas={fichas} />;
+          return <Pregunta key={b.pregunta.nodo.rowIndex} pregunta={b.pregunta} marcarOpcionales={opcionales} fichas={fichas} />;
         })}
       </div>
     </section>
