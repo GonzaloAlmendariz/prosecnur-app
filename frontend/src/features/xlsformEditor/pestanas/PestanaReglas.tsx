@@ -50,9 +50,10 @@ export function PestanaReglas({ titulo, total, grupos, seleccionada, onSeleccion
                       <span>{g.titulo}</span>
                       <span className="xfp-grupo__k">{g.items.length}</span>
                     </header>
-                    {g.items.map((it) => (
+                    {g.items.map((it, i) => (
                       <button
-                        key={it.key}
+                        // Clave por posición: los formularios reales repiten nombres de variable (t4_P10 dos veces en el tipo 2).
+                        key={`${it.key}-${i}`}
                         type="button"
                         className={it.key === seleccionada ? "xfp-item is-on" : "xfp-item"}
                         aria-current={it.key === seleccionada ? "true" : undefined}
