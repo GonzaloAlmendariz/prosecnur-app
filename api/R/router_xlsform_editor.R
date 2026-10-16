@@ -59,14 +59,24 @@
   if (is.null(df)) return(.xlsform_editor_empty_df())
   out <- as.data.frame(df, stringsAsFactors = FALSE, check.names = FALSE)
   if (!ncol(out)) return(out)
-  names(out) <- as.character(names(out))
-  for (nm in names(out)) {
-    x <- out[[nm]]
+  nombres <- as.character(names(out))
+  nombres[is.na(nombres)] <- ""
+  # Una columna sin encabezado no es una columna de XLSForm: se ignora. Con
+  # contenido debajo, `out[[""]]` tumbaba la importación entera («replacement
+  # has 0 rows») en tres instrumentos reales del corpus.
+  con_nombre <- nzchar(trimws(nombres))
+  out <- out[, con_nombre, drop = FALSE]
+  names(out) <- nombres[con_nombre]
+  if (!ncol(out)) return(out)
+  # Por posición, no por nombre: con encabezados repetidos `out[[nm]]` leía y
+  # escribía siempre la primera columna de ese nombre.
+  for (j in seq_len(ncol(out))) {
+    x <- out[[j]]
     if (inherits(x, c("Date", "POSIXct", "POSIXt"))) x <- as.character(x)
     x <- as.character(x)
     x[is.na(x)] <- ""
     Encoding(x) <- "UTF-8"
-    out[[nm]] <- x
+    out[[j]] <- x
   }
   out
 }
