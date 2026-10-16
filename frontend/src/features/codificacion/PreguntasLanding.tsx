@@ -44,6 +44,7 @@ import {
   PreguntaAbierta,
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
+import { GruposTrasDesemparejar, type GruposPendientes } from "./GruposTrasDesemparejar";
 import { FilterChip } from "../../components/FilterChip";
 import { Switch } from "../../components/Switch";
 import { PairingDialog, PairingResult } from "./PairingDialog";
@@ -103,6 +104,7 @@ const TIPO_STYLE: Record<string, { bg: string; border: string; fg: string; label
 export function PreguntasLanding() {
   const [data, setData] = useState<PreguntaAbierta[] | null>(null);
   const [error, setError] = useState<string>("");
+  const [gruposPendientes, setGruposPendientes] = useState<GruposPendientes | null>(null);
   const [filter, setFilter] = useState<Filter>("todas");
   const [query, setQuery] = useState<string>("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -417,8 +419,11 @@ export function PreguntasLanding() {
 
   async function onDesemparejar(parent: string) {
     setBusyPair(parent);
+    // Lo agrupado mientras estuvo emparejada queda huérfano: se pregunta qué hacer.
+    const agrupadas = data?.find((p) => p.parent === parent)?.n_codificadas ?? 0;
     try {
       await apiCodifDesemparejar(parent);
+      if (agrupadas > 0) setGruposPendientes({ parent, n: agrupadas });
       await refresh();
     } catch (e) {
       setError((e as Error).message);
@@ -526,6 +531,11 @@ export function PreguntasLanding() {
           </span>
         </div>
       )}
+
+      <GruposTrasDesemparejar
+        pendiente={gruposPendientes}
+        onListo={() => { setGruposPendientes(null); void refresh(); }}
+      />
 
       {visibleSections.length === 0 && (
         <EstadoVacio
