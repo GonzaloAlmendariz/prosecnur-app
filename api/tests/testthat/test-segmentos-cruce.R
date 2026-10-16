@@ -154,6 +154,15 @@ test_that("cruce_edad sale de la edad numérica con un mapa por rangos; sin mapa
   out3 <- segmentos_guardar(sid, .sg_edad(c(.sg_mapa_edad(39), list(`40` = ""))))
   expect_identical(.sg_seg(out3, "edad")$por_base[["2026"]]$estado, "definido")
   expect_true(all(is.na(session_get(sid)$rp_data_sources[["2026"]]$cruce_edad[.sg_edades == 40])))
+
+  # Un código con 0 casos no se exige en el mapa: mapear sólo las edades
+  # observadas (sin 23, 24, 26..29, ...) deja el segmento definido.
+  obs <- as.character(sort(unique(.sg_edades)))
+  mapa_obs <- stats::setNames(as.list(ifelse(as.integer(obs) <= 20, "1", "2")), obs)
+  out4 <- segmentos_guardar(sid, .sg_edad(mapa_obs))
+  e4 <- .sg_seg(out4, "edad")$por_base[["2026"]]
+  expect_identical(e4$estado, "definido")
+  expect_identical(e4$n_sin_mapa, 0L)
 })
 
 test_that("quitar el origen de una base al reemplazar le borra la calculada y la saca de la fila", {
@@ -276,21 +285,56 @@ test_that("el comparativo de cruces sin `cruces` usa los segmentos del estudio",
 
   segmentos_guardar(sid, .sg_sexo)
   segmentos_guardar(sid, .sg_edad())
-  expect_identical(segmentos_cruces_por_defecto(sid), c("SEG-sexo", "SEG-edad"))
+  # La edad sólo existe en 2026: no es comparable en dos bases de la serie y no
+  # entra por defecto (sí si se pide explícita).
+  expect_identical(segmentos_cruces_por_defecto(sid), "SEG-sexo")
   r <- .sg_cruces_sin_cruces(sid)
   expect_identical(r$status, 200L)
   expect_true(isTRUE(r$out$ok))
   ap <- r$input$ap
-  expect_identical(vapply(ap$cruces, function(x) x$fila$id, ""), c("SEG-sexo", "SEG-edad"))
+  expect_identical(vapply(ap$cruces, function(x) x$fila$id, ""), "SEG-sexo")
   # Los segmentos no entran como preguntas: sólo VBG-01.
   expect_identical(vapply(ap$preguntas, function(x) x$fila$id, ""), "VBG-01")
-  expect_identical(unname(ap$cruces[[2]]$comparable), c(FALSE, TRUE))
+  r3 <- .sg_cruces_sin_cruces(sid, list(cruces = list("SEG-sexo", "SEG-edad")))
+  expect_identical(vapply(r3$input$ap$cruces, function(x) x$fila$id, ""), c("SEG-sexo", "SEG-edad"))
+  expect_identical(unname(r3$input$ap$cruces[[2]]$comparable), c(FALSE, TRUE))
   xlsx <- session_get(sid)$files[[r$public$file_id]]$path
   expect_true(file.exists(xlsx))
   expect_identical(openxlsx::getSheetNames(xlsx), "Comparativo cruces")
   # Con `cruces` explícito manda el body.
   r2 <- .sg_cruces_sin_cruces(sid, list(cruces = list("SEG-edad")))
   expect_identical(vapply(r2$input$ap$cruces, function(x) x$fila$id, ""), "SEG-edad")
+})
+
+test_that("el comparativo simple sin `filas` deja fuera las filas de cruce, como la UI", {
+  skip_if_not_installed("haven")
+  sid <- .sg_estudio()
+  on.exit(session_delete(sid), add = TRUE)
+  segmentos_guardar(sid, .sg_sexo)
+  segmentos_guardar(sid, .sg_edad())
+  ap <- .armz_preparar(sid, .analitica_get_config(sid))
+  expect_identical(vapply(ap$preguntas, function(x) x$fila$id, ""), "VBG-01")
+  expect_length(ap$cruces, 0L)
+  # Pedida explícita, la fila del segmento sí entra como pregunta.
+  ap2 <- .armz_preparar(sid, .analitica_get_config(sid), filas_refs = list("VBG-01", "SEG-sexo"))
+  expect_identical(vapply(ap2$preguntas, function(x) x$fila$id, ""), c("VBG-01", "SEG-sexo"))
+})
+
+test_that("el default de cruces sólo trae segmentos comparables en dos o más bases de la serie", {
+  skip_if_not_installed("haven")
+  sid <- .sg_estudio()
+  on.exit(session_delete(sid), add = TRUE)
+  segmentos_guardar(sid, .sg_edad())
+  expect_identical(segmentos_cruces_por_defecto(sid), character(0))
+  segmentos_guardar(sid, .sg_sexo)
+  expect_identical(segmentos_cruces_por_defecto(sid), "SEG-sexo")
+  # Declarar el sexo no comparable en 2024 lo saca del default.
+  filas <- lapply(session_get(sid)$equivalencias_publicos$filas, function(x) {
+    if (identical(x$id, "SEG-sexo")) x$armonizacion$por_base[["2024"]]$comparable <- FALSE
+    x
+  })
+  .equiv_guardar_declaracion(sid, filas)
+  expect_identical(segmentos_cruces_por_defecto(sid), character(0))
 })
 
 # --- Borrado ----------------------------------------------------------------------------
@@ -334,7 +378,9 @@ test_that("segmentos, calculadas y fila marcada viajan en el .pulso y reabrir da
   expect_identical(despues$segmentos, antes$segmentos)
   expect_true(isTRUE(.sg_fila(sid2, "SEG-sexo")$cruce))
   expect_identical(as.numeric(table(estudio_data_sources(sid2)[["2024"]]$cruce_sexo)), c(4, 4))
-  expect_identical(segmentos_cruces_por_defecto(sid2), c("SEG-sexo", "SEG-edad"))
+  expect_true(isTRUE(.sg_fila(sid2, "SEG-edad")$cruce))
+  # La edad sólo es comparable en 2026: no entra en el default.
+  expect_identical(segmentos_cruces_por_defecto(sid2), "SEG-sexo")
 })
 
 # --- Errores -------------------------------------------------------------------------------

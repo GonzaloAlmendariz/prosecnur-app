@@ -83,13 +83,14 @@ test_that("una text con sólo números repetidos (la edad tecleada) sale numéri
   expect_false(r$truncado)
 })
 
-test_that("una text numérica casi única (un id por caso), la text libre y la date siguen siendo texto sin códigos", {
+test_that("una text numérica casi única (un id por caso) es identificador; la text libre y la date siguen siendo texto sin códigos", {
   sid <- .co_estudio_text_numerico()
   on.exit(session_delete(sid), add = TRUE)
   id <- codigos_observados_consultar(sid, "T", "id_num")
-  expect_identical(id$tipo, "texto")
+  expect_identical(id$tipo, "identificador")
   expect_length(id$codigos, 0L)
   expect_identical(id$n_validos, 52L)
+  expect_identical(id$n_sin_dato, 0L)
   op <- codigos_observados_consultar(sid, "T", "opinion")
   expect_identical(op$tipo, "texto")
   expect_length(op$codigos, 0L)
@@ -138,7 +139,7 @@ test_that("en un .sav: la pregunta toma la etiqueta del instrumento y la columna
   expect_identical(.co_etiquetas(iv), c(`1` = "Bajo", `2` = "Medio", `3` = "Alto"))
 })
 
-test_that("una columna no declarada sin etiquetas: categórica si es texto corto, numérica con tope si es número", {
+test_that("una columna no declarada sin etiquetas: categórica si es texto corto, identificador si es un número distinto por caso", {
   skip_if_not_installed("haven")
   sid <- .bv_estudio()
   on.exit(session_delete(sid), add = TRUE)
@@ -146,14 +147,82 @@ test_that("una columna no declarada sin etiquetas: categórica si es texto corto
   expect_identical(f$tipo, "categorica")
   expect_identical(.co_codigos(f), c("Ciencias", "Derecho", "Letras"))
   expect_true(all(is.na(.co_etiquetas(f))))
+  # `indice` (seq/7) trae 40 valores distintos en 40 casos: más de un valor
+  # distinto por cada dos casos. Antes salía `numerica` con los 40 códigos; con
+  # la regla de privacidad un valor casi único por caso no se distingue de un
+  # identificador, así que no lista valores (sí sus conteos de casos).
   ix <- codigos_observados_consultar(sid, "2026", "indice")
-  expect_identical(ix$tipo, "numerica")
-  expect_length(ix$codigos, 40L)
+  expect_identical(ix$tipo, "identificador")
+  expect_length(ix$codigos, 0L)
   expect_false(ix$truncado)
-  ixt <- codigos_observados_consultar(sid, "2026", "indice", tope = 10L)
-  expect_true(ixt$truncado)
-  expect_length(ixt$codigos, 10L)
-  expect_identical(ixt$n_validos, 40L)
+  expect_identical(ix$n_validos, 40L)
+  expect_identical(ix$n_sin_dato, 0L)
+})
+
+test_that("el tope trunca los códigos de una escala numérica larga", {
+  sid <- .co_estudio_edad()
+  on.exit(session_delete(sid), add = TRUE)
+  r <- codigos_observados_consultar(sid, "E", "edad", tope = 10L)
+  expect_identical(r$tipo, "numerica")
+  expect_true(r$truncado)
+  expect_identical(.co_codigos(r), as.character(18:27))
+  expect_identical(r$n_validos, 46L)
+})
+
+# Base con números que parecen identificadores y números que son escalas:
+# teléfono (integer, con "0" como sin teléfono), DNI numérico único sin
+# declarar, edad 18..40 y año de ingreso 2007..2024 tecleado como text.
+.co_estudio_identificadores <- function() {
+  sid <- session_create()
+  inst <- list(
+    survey = data.frame(type = c("integer", "integer", "text"),
+                        name = c("telefono", "edad", "anio_ingreso"),
+                        label = c("Teléfono", "Edad", "Año de ingreso"), stringsAsFactors = FALSE),
+    choices = data.frame(list_name = character(0), name = character(0), label = character(0),
+                         stringsAsFactors = FALSE)
+  )
+  n <- 46L
+  data <- data.frame(
+    telefono = c(rep("0", 40L), "987654321", "912345678", "987654321", NA, NA, "0"),
+    dni = 40000000 + seq_len(n),
+    edad = rep(18:40, 2L),
+    anio_ingreso = as.character(c(rep(2007:2024, 2L), 2015:2024)),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  .bv_add_base(sid, "I", inst, .bv_xlsx_bytes(list(data = data)), "data_i.xlsx", "xlsx")
+  sid
+}
+
+test_that("un teléfono o un DNI numérico salen identificador sin códigos; la edad y el año de ingreso siguen numéricos", {
+  sid <- .co_estudio_identificadores()
+  on.exit(session_delete(sid), add = TRUE)
+  # Pocos distintos, pero un valor de 9 dígitos basta.
+  tel <- codigos_observados_consultar(sid, "I", "telefono")
+  expect_identical(tel$tipo, "identificador")
+  expect_length(tel$codigos, 0L)
+  expect_identical(tel$n_validos, 44L)
+  expect_identical(tel$n_sin_dato, 2L)
+  dni <- codigos_observados_consultar(sid, "I", "dni")
+  expect_identical(dni$tipo, "identificador")
+  expect_length(dni$codigos, 0L)
+  expect_identical(dni$n_validos, 46L)
+  ed <- codigos_observados_consultar(sid, "I", "edad")
+  expect_identical(ed$tipo, "numerica")
+  expect_identical(.co_codigos(ed), as.character(18:40))
+  an <- codigos_observados_consultar(sid, "I", "anio_ingreso")
+  expect_identical(an$tipo, "numerica")
+  expect_identical(.co_codigos(an), as.character(2007:2024))
+  expect_identical(an$n_validos, 46L)
+})
+
+test_that("contrato HTTP: un identificador sale con codigos vacío y sus conteos", {
+  sid <- .co_estudio_identificadores()
+  on.exit(session_delete(sid), add = TRUE)
+  g <- .bv_call(mount_codigos_observados, "GET", "/api/carga/codigos-observados", sid,
+                base = "I", variable = "telefono")
+  expect_true(isTRUE(g$ok))
+  json <- jsonlite::toJSON(g, auto_unbox = TRUE, null = "null", na = "null")
+  expect_match(json, '"tipo":"identificador","codigos":[],"n_validos":44,"n_sin_dato":2', fixed = TRUE)
 })
 
 test_that("una calculada del ADR 0106 se consulta con sus códigos y su escala", {

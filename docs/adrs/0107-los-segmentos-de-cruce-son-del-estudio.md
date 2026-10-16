@@ -50,3 +50,22 @@ qué segmento le falta a qué año, y cada comparativo exige elegir a mano la va
 
 - testthat: declarar, materializar en cada base, fila de matriz marcada, estados, borrado, ida y vuelta por `.pulso`,
   errores. Vitest del modelo y del panel; `make gate-area` del área equivalencias/carga y `make gate-front AREA=carga`.
+
+## Notas
+
+- **Defaults del comparativo (2026-10-15).** Sin `filas`, el comparativo armonizado —simple y de cruces— deja fuera
+  de las preguntas las filas marcadas `cruce: true`, igual que la UI; una fila de segmento entra como pregunta sólo si
+  se pide explícita. Sin `cruces`, el comparativo de cruces usa por defecto los segmentos marcados como cruce que son
+  comparables (entrada `comparable` con variable y escala) en **al menos dos bases de la serie**: un segmento que sólo
+  existe en una medición no compara nada y saldría «n.c.» en las demás. Pedido explícito, sí entra.
+  (`.armz_preparar` en `analitica_armonizada.R`, `segmentos_cruces_por_defecto` en `segmentos_cruce.R`.)
+- **Un código con 0 casos no se exige en el mapa.** El estado `definido`/`incompleto` de una base se mide contra los
+  códigos observados en su data, no contra la lista del instrumento: una opción que nadie marcó (o una edad que no
+  aparece) puede quedar fuera del mapa sin dejar el segmento incompleto.
+- **Privacidad de los valores numéricos.** `GET /api/carga/codigos-observados` no lista valores de una columna
+  numérica —declarada `integer`/`decimal`/`range`, sin declarar, o `text` con sólo números— cuyos valores parecen
+  identificadores: si algún valor no vacío, como entero, tiene 7 o más dígitos (teléfono, DNI, código), o si los
+  valores distintos superan 0,5 × `n_validos`. Responde `tipo: "identificador"` con `codigos: []` y conserva
+  `n_validos` y `n_sin_dato`. La edad, el año de ingreso o un conteo (pocos dígitos y repetidos) siguen `numerica`
+  con sus códigos. La regla vale también para todo editor que liste valores de una variable (segmentos, mapas de
+  códigos): un identificador no se muestra como opción a mapear.

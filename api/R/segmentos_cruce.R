@@ -371,15 +371,25 @@ segmentos_consultar <- function(sid) {
 
 # --- Consumidores ------------------------------------------------------------------
 
-#' Referencias (`id`) de las filas de la matriz marcadas como cruce y
-#' armonizadas: el cruce por defecto de los comparativos (ADR 0107, punto 5).
+# ¿La fila se armoniza en al menos dos bases de la serie? Un cruce que sólo
+# existe en una medición no compara nada: sale «n.c.» en las demás.
+.segmentos_comparable_en_serie <- function(f, periodos) {
+  sum(vapply(periodos, function(b) !is.null(.equiv_armon_spec(f, b)), logical(1))) >= 2L
+}
+
+#' Referencias (`id`) de las filas de la matriz marcadas como cruce,
+#' armonizadas y comparables en al menos dos bases de la serie: el cruce por
+#' defecto de los comparativos (ADR 0107, punto 5 y Notas).
 #' @keywords internal
 segmentos_cruces_por_defecto <- function(sid) {
-  filas <- (((session_get(sid, required = FALSE) %||% list())$equivalencias_publicos) %||% list())$filas %||% list()
+  equiv <- ((session_get(sid, required = FALSE) %||% list())$equivalencias_publicos) %||% list()
+  filas <- equiv$filas %||% list()
+  periodos <- .armz_periodos_estudio(sid, equiv)
   refs <- character(0)
   for (i in seq_along(filas)) {
     f <- filas[[i]]
     if (!isTRUE(f$cruce) || is.null(f$armonizacion)) next
+    if (!.segmentos_comparable_en_serie(f, periodos)) next
     id <- .segmentos_chr(f$id)
     refs <- c(refs, if (nzchar(id)) id else as.character(i - 1L))
   }
