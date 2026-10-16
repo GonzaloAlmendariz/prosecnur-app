@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Check, Search } from "../../../vendor/lucide-react";
 import type { SurveyMonkeyListItem } from "../../../api/multiIntegrado";
 import { smSurveyMatchesQuery, smSurveyMetaParts, smSurveyTitle } from "./surveyMonkeySurveySearch";
-import "../styles/xf-sm-import.css";
+import "../styles/xfSmImport";
 
 // Buscador del catálogo SurveyMonkey. Cada fila trae respuestas, preguntas y
 // fecha en tipografía secundaria (U5): así se distinguen dos encuestas

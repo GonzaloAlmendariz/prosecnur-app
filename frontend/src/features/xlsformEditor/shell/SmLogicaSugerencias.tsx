@@ -4,7 +4,7 @@ import type { SurveyMonkeyVisualLogicRule } from "../../../api/multiIntegrado";
 import type { SmSugerenciaLogica } from "../../../api/xlsformSmSugerencias";
 import type { VisualLogicQuestion } from "./RuleWizard";
 import { claveSugerencia, sugerenciaYaAplicada, textoSugerencia } from "./smImportModel";
-import "../styles/xf-sm-import.css";
+import "../styles/xfSmImport";
 
 // Aviso honesto de la sección de lógica (H4/U7) y las sugerencias del servidor
 // como tarjetas. Ninguna se aplica sola: «Aplicar» crea la regla en la lógica
