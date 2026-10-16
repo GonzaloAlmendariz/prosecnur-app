@@ -147,7 +147,8 @@ base_variables_xls_path <- function(path, base_meta) {
 }
 
 # survey/choices/settings del adaptado: sin las retiradas y con las propias y
-# las calculadas al final, en el nivel superior del formulario.
+# las calculadas junto a su variable de origen (o al final si no la hay o está
+# dentro de un grupo repetido).
 .base_variables_frames_adaptados <- function(path, decl) {
   survey <- .base_variables_leer_hoja(path, "survey")
   if (is.null(survey) || !all(c("type", "name") %in% names(survey))) return(NULL)
@@ -168,7 +169,8 @@ base_variables_xls_path <- function(path, base_meta) {
   usados <- unique(as.character(choices$list_name))
   nuevas_s <- list()
   nuevas_c <- list()
-  agregar <- function(nombre, etiqueta, tipo, opciones) {
+  anclas <- character(0)
+  agregar <- function(nombre, etiqueta, tipo, opciones, ancla = "") {
     if (nombre %in% as.character(survey$name)) return(invisible(NULL))  # ya viene (p. ej. adaptado de Codificación)
     if (identical(tipo, "select_one")) {
       ln <- .carga_sav_list_name(nombre, usados)
@@ -180,6 +182,7 @@ base_variables_xls_path <- function(path, base_meta) {
     }
     nuevas_s[[length(nuevas_s) + 1L]] <<- .base_variables_filas(
       survey, list(type = tipo, name = nombre, label = etiqueta), lab_s)
+    anclas[[length(nuevas_s)]] <<- ancla
   }
   for (p in decl$propias) {
     nombre <- .origen_externo_chr(p[["name"]])
@@ -194,12 +197,49 @@ base_variables_xls_path <- function(path, base_meta) {
     etiqueta <- .origen_externo_chr(cv[["etiqueta"]])
     # Una fórmula da un número; las demás reglas, una escala.
     es_formula <- identical(.origen_externo_chr(cv[["regla"]]), "formula")
+    # Junto a su origen: después de la última de sus variables en el
+    # formulario (Gonzalo, 2026-10-16: los cruces «al lado de sus variables
+    # originales»). El orden del instrumento es el de la base, el libro y las
+    # tablas.
+    origen <- as.character(unlist(cv[["variables"]] %||% list()))
+    previas <- vapply(nuevas_s, function(f) as.character(f$name)[1], character(1))
+    pos <- match(origen, c(as.character(survey$name), previas))
+    ancla <- if (any(!is.na(pos))) c(as.character(survey$name), previas)[max(pos, na.rm = TRUE)] else ""
     agregar(nombre, if (nzchar(etiqueta)) etiqueta else nombre,
-            if (es_formula) "decimal" else "select_one", base_variables_escala(cv))
+            if (es_formula) "decimal" else "select_one", base_variables_escala(cv), ancla = ancla)
   }
-  if (length(nuevas_s)) survey <- rbind(survey, do.call(rbind, nuevas_s))
+  if (length(nuevas_s)) survey <- .base_variables_insertar_junto_a(survey, nuevas_s, anclas)
   if (length(nuevas_c)) choices <- rbind(choices, do.call(rbind, nuevas_c))
   list(survey = survey, choices = choices, settings = settings)
+}
+
+# Inserta cada fila nueva después de su ancla (en el orden en que se
+# declararon); sin ancla, al final.
+.base_variables_insertar_junto_a <- function(survey, filas, anclas) {
+  anclas <- c(anclas, rep("", length(filas) - length(anclas)))
+  # Una por una contra el formulario ya ampliado: una calculada que parte de
+  # otra calculada (un cruce de «años desde el ingreso») queda junto a ella.
+  ultimo_junto_a <- list()
+  al_final <- list()
+  for (k in seq_along(filas)) {
+    a <- anclas[[k]]
+    nombres <- as.character(survey$name)
+    i <- if (nzchar(a)) match(a, nombres) else NA_integer_
+    if (!is.na(i)) {
+      tipos <- trimws(tolower(as.character(survey$type)))[seq_len(i)]
+      dentro_repeat <- sum(tipos %in% c("begin_repeat", "begin repeat")) > sum(tipos %in% c("end_repeat", "end repeat"))
+      if (dentro_repeat) i <- NA_integer_
+    }
+    if (is.na(i)) { al_final[[length(al_final) + 1L]] <- filas[[k]]; next }
+    # Después de las ya insertadas junto a la misma ancla, en su orden.
+    previa <- ultimo_junto_a[[a]]
+    if (!is.null(previa)) i <- match(previa, nombres)
+    survey <- rbind(survey[seq_len(i), , drop = FALSE], filas[[k]],
+                    survey[seq.int(i + 1L, length.out = nrow(survey) - i), , drop = FALSE])
+    ultimo_junto_a[[a]] <- as.character(filas[[k]]$name)[1]
+  }
+  if (length(al_final)) survey <- rbind(survey, do.call(rbind, al_final))
+  survey
 }
 
 #' Instrumento (`reporte_instrumento`) de la base con sus declaraciones.
