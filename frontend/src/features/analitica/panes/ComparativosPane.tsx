@@ -61,19 +61,16 @@ import {
   preguntasEfectivas,
   cantidad,
   rotuloDe,
-  rotuloPorDefecto,
-  rotulosPorDefecto,
-  rotulosRepetidos,
   totalSinMapa,
   type CeldaResumen,
-  type ComparativosUi,
   type ErrorComparativo,
   type MotivoVacio,
 } from "./comparativosModel";
 import { ComparativosLista } from "./ComparativosLista";
 import { ComparativosAvisos } from "./ComparativosAvisos";
 import { NotasPieEditor } from "./NotasPieEditor";
-import { AvisoPonderacionSerie, PonderacionDeLaSerieLinea } from "./ComparativosPonderacion";
+import { AvisoPonderacionSerie } from "./ComparativosPonderacion";
+import { ColumnasDelComparativo } from "./ComparativosColumnas";
 import { usePonderacionDeLaSerie } from "../usePonderacionDeLaSerie";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { rotuloDeMatriz } from "../../../lib/rotuloDeMatriz";
@@ -164,8 +161,7 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
   const ponderacion = usePonderacionDeLaSerie(periodos);
 
   const ocupado = ui.enviando !== null || ui.job !== null;
-  // Una sola decisión de cómo se nombra la serie, con los rótulos que vienen de
-  // los datos: «años» si todos lo son, «mediciones» si no.
+  // La serie se nombra siempre «bases» (`nombreDeSerie`).
   const serie = nombreDeSerie(periodos.map((p) => (ui.rotulos[p] ?? "").trim() || p));
 
   async function generar(tipo: ComparativoTipo) {
@@ -215,15 +211,18 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
         ]}
       />
 
-      {/* Cómo pondera cada base: el comparativo aplica la declarada de cada una. */}
-      <PonderacionDeLaSerieLinea lectura={ponderacion} />
-
       <div
         className="pulso-comparativos-secciones"
         data-qa-geometry-group="comparativos-secciones"
         data-qa-geometry-contract="intrinsic"
       >
-        <RotulosPeriodos periodos={periodos} ui={ui} serie={serie} onCambio={(base, valor) => dispatch({ tipo: "rotulo", base, valor })} />
+        {/* De qué base sale cada columna, cómo se titula y cómo pondera. */}
+        <ColumnasDelComparativo
+          periodos={periodos}
+          rotulos={ui.rotulos}
+          ponderacion={ponderacion}
+          onCambio={(base, valor) => dispatch({ tipo: "rotulo", base, valor })}
+        />
 
         <ComparativosLista
           id="comparativos-preguntas"
@@ -336,71 +335,6 @@ function Presentacion({ serie }: { serie: NombreDeSerie }) {
       <Link className="pulso-comparativos-enlace" to={DIRECCION_EQUIVALENCIAS}>
         Ir a Equivalencias <ArrowRight size={14} aria-hidden="true" />
       </Link>
-    </section>
-  );
-}
-
-function RotulosPeriodos({
-  periodos,
-  ui,
-  serie,
-  onCambio,
-}: {
-  periodos: string[];
-  ui: ComparativosUi;
-  serie: NombreDeSerie;
-  onCambio: (base: string, valor: string) => void;
-}) {
-  const porDefecto = rotulosPorDefecto(periodos);
-  const repetidos = rotulosRepetidos(ui.rotulos, periodos);
-  return (
-    <section className="pulso-comparativos-bloque" aria-labelledby="comparativos-rotulos-titulo" data-qa-geometry-member>
-      <header className="pulso-comparativos-bloque-head">
-        <h3 id="comparativos-rotulos-titulo">Rótulos de {serie.articulo} {serie.plural}</h3>
-        <p>
-          Así se titula cada columna del comparativo, en el orden de la serie. Si el nombre de la base
-          trae un año, se propone el año. Si no, se propone el nombre de la base.
-        </p>
-      </header>
-      <ol
-        className="pulso-comparativos-rotulos"
-        data-qa-geometry-group="comparativos-rotulos"
-        data-qa-geometry-contract="equal"
-      >
-        {periodos.map((base, i) => {
-          // El nombre de la base solo se repite encima si dice algo distinto
-          // de lo que ya muestra el campo (P-B3): con bases nombradas, el
-          // rótulo propuesto ES el nombre y salía dos veces.
-          const propuesto = porDefecto[base] ?? rotuloPorDefecto(base);
-          const valor = (ui.rotulos[base] ?? "").trim() || propuesto;
-          const mostrarBase = valor !== base;
-          return (
-          <li key={base} data-qa-geometry-member>
-            <label className="pulso-comparativos-rotulo">
-              <span className="pulso-comparativos-rotulo-base" title={base}>
-                <span className="pulso-comparativos-rotulo-pos" aria-hidden="true">{i + 1}</span>
-                {mostrarBase ? base : null}
-              </span>
-              <input
-                type="text"
-                value={ui.rotulos[base] ?? ""}
-                placeholder={propuesto}
-                onChange={(e) => onCambio(base, e.target.value)}
-                aria-label={`Rótulo de la columna ${i + 1}, base ${base}`}
-              />
-            </label>
-          </li>
-          );
-        })}
-      </ol>
-      {repetidos.length ? (
-        <p className="pulso-comparativos-rotulos-aviso" role="status">
-          <AlertTriangle size={13} aria-hidden="true" />
-          {repetidos.length === 1
-            ? `«${repetidos[0]}» titula a más de una columna. Cambia uno de los rótulos para que las columnas se distingan.`
-            : `${repetidos.map((r) => `«${r}»`).join(", ")} titulan a más de una columna. Cambia los rótulos para que las columnas se distingan.`}
-        </p>
-      ) : null}
     </section>
   );
 }

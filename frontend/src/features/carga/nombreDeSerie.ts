@@ -1,12 +1,12 @@
 /**
- * Cómo se nombran las mediciones de una serie en la UI (ronda de claridad, U3).
+ * Cómo se nombran las mediciones de una serie en la UI.
  *
  * Una serie puede ser de años («2024», «2025»), de públicos («docentes»,
- * «egresados»), de sedes o de cualquier otra cosa. Los textos no pueden suponer
- * cuál: una sola función mira los rótulos que vienen de los datos y decide si
- * se habla de «años» o de «mediciones». Toda la UI de Equivalencias y
- * Comparativos usa esta función, así no hay un texto que diga «año» a una serie
- * de públicos.
+ * «egresados»), de sedes o de cualquier otra cosa. La UI no adivina cuál: las
+ * llama siempre «bases», que es lo que son en Carga, en Ponderación y en
+ * Equivalencias. Antes se hablaba de «años» cuando todos los rótulos parecían
+ * años, y la misma pantalla cambiaba de vocabulario según los datos (Gonzalo,
+ * 2026-10-16: «la UI sigue asumiendo años cuando no siempre van a ser años»).
  */
 
 /** El año que trae el nombre de una base, o el nombre entero si no trae ninguno. */
@@ -19,38 +19,34 @@ export function pareceAnio(rotulo: string): boolean {
 }
 
 export type NombreDeSerie = {
-  /** «año» o «medición». */
+  /** «base». */
   singular: string;
-  /** «años» o «mediciones». */
+  /** «bases». */
   plural: string;
-  /** «todos los años» o «todas las mediciones». */
+  /** «todas las bases». */
   todas: string;
-  /** «ningún año» o «ninguna medición». */
+  /** «ninguna base». */
   ninguna: string;
-  /** «los» o «las», para «los rótulos de los años». */
+  /** «las». */
   articulo: string;
 };
 
-const ANIOS: NombreDeSerie = {
-  singular: "año",
-  plural: "años",
-  todas: "todos los años",
-  ninguna: "ningún año",
-  articulo: "los",
-};
-
-const MEDICIONES: NombreDeSerie = {
-  singular: "medición",
-  plural: "mediciones",
-  todas: "todas las mediciones",
-  ninguna: "ninguna medición",
+const BASES: NombreDeSerie = {
+  singular: "base",
+  plural: "bases",
+  todas: "todas las bases",
+  ninguna: "ninguna base",
   articulo: "las",
 };
 
-/** «Años» sólo si TODOS los rótulos son años. Con uno que no lo es, «mediciones». */
-export function nombreDeSerie(rotulos: readonly string[]): NombreDeSerie {
-  const llenos = rotulos.map((r) => r.trim()).filter(Boolean);
-  return llenos.length > 0 && llenos.every(pareceAnio) ? ANIOS : MEDICIONES;
+/** Siempre «bases»: el vocabulario no depende de cómo se llamen. */
+export function nombreDeSerie(_rotulos: readonly string[]): NombreDeSerie {
+  return BASES;
+}
+
+/** Si todas las bases nombran un año. Sólo para capacidades reales (un lector que exige años). */
+export function basesNombranAnio(bases: readonly string[]): boolean {
+  return bases.length > 0 && bases.map(rotuloPorDefecto).every(pareceAnio);
 }
 
 /** Igual que `nombreDeSerie`, a partir de los nombres de las bases. */
