@@ -3572,7 +3572,7 @@ export default function XlsformEditorPage() {
               />
             </div>
             {pestana === "restricciones" && (
-              <PestanaRestricciones structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} />
+              <PestanaRestricciones structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} onCampo={updateSurveyField} onCampos={updateSurveyFields} />
             )}
             {pestana === "calculos" && (
               <PestanaCalculos structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} />
