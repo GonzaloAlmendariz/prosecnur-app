@@ -130,6 +130,8 @@ errores_registrados <- function() {
     "E_COLLECTION_MAIL_RECIPIENTS_UNREADABLE",               "collection_mail_recipients.R",      "422",
     "E_COLLECTION_MAIL_RECIPIENTS_EMPTY",                    "collection_mail_recipients.R",      "422",
     "E_COLLECTION_MAIL_RECIPIENTS_TOO_MANY",                 "collection_mail_recipients.R",      "413",
+    "E_COLLECTION_MAIL_RECIPIENTS_ENCODING",                 "collection_mail_recipients.R",      "422",
+    "E_COLLECTION_MAIL_TEMPLATE_STORED_INVALID",             "collection_mail_template.R",        "409",
     "E_COLLECTION_PRUEBA_CODIGO",                           "collection_material_prueba.R",      "422",
     "E_COLLECTION_PRUEBA_SIN_ENLACE",                        "collection_material_prueba.R",      "422",
     "E_COLLECTION_SIN_ORIGEN",                               "collection_engine.R",              "409",

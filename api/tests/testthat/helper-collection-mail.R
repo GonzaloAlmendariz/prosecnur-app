@@ -60,3 +60,49 @@
 .cmail_fx_json <- function(x) {
   as.character(jsonlite::toJSON(x, auto_unbox = TRUE, null = "null", na = "null", digits = NA))
 }
+
+# Revisión vigente del estado de Recopiladores (el export la exige: M1).
+.cmail_fx_rev <- function(sid) collection_mail_template_get(sid)$state_revision
+
+# Importa bytes crudos (para probar codificaciones).
+.cmail_fx_import_raw <- function(sid, raw, file_name = "destinatarios.csv", mapping = NULL) {
+  collection_mail_recipients_import(sid, file_raw = raw, file_name = file_name, mapping = mapping)
+}
+
+# Llamada HTTP real con un cuerpo crudo y su Content-Type (multipart incluido).
+.cmail_fx_call_raw <- function(pr, sid, method, path, raw_body, content_type) {
+  input <- list(read = function(...) raw_body, rewind = function() invisible(0),
+                read_lines = function(...) rawToChar(raw_body))
+  req <- as.environment(list(
+    REQUEST_METHOD = method, PATH_INFO = path, QUERY_STRING = "",
+    CONTENT_TYPE = content_type, HTTP_CONTENT_TYPE = content_type,
+    HTTP_X_PULSO_SESSION = sid, HEADERS = c(`x-pulso-session` = sid, `content-type` = content_type),
+    rook.input = input
+  ))
+  r <- pr$call(req)
+  list(status = as.integer(r$status), raw = as.character(r$body),
+       body = jsonlite::fromJSON(as.character(r$body), simplifyVector = FALSE))
+}
+
+.cmail_fx_multipart <- function(boundary, file_raw, file_name, file_type, mapping_json = NULL) {
+  c(
+    charToRaw(paste0("--", boundary, "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"", file_name,
+                     "\"\r\nContent-Type: ", file_type, "\r\n\r\n")),
+    file_raw,
+    charToRaw("\r\n"),
+    if (!is.null(mapping_json)) charToRaw(enc2utf8(paste0(
+      "--", boundary, "\r\nContent-Disposition: form-data; name=\"mapping\"\r\n\r\n", mapping_json, "\r\n"
+    ))),
+    charToRaw(paste0("--", boundary, "--\r\n"))
+  )
+}
+
+# Logo con fecha de subida explícita (para «el más reciente gana»).
+.cmail_fx_logo_at <- function(sid, name, uploaded_at, width = 160L, height = 46L) {
+  path <- .cmail_fx_logo(sid, name, width = width, height = height)
+  files <- session_get(sid)$files
+  id <- names(files)[vapply(files, function(f) identical(f$path, path), NA)]
+  files[[id]]$uploaded_at <- uploaded_at
+  session_set(sid, "files", files)
+  invisible(list(file_id = id, path = path))
+}

@@ -5,21 +5,29 @@
 # solo en el directorio temporal de la sesión
 # (`<session$dir>/mail_recipients/recipients.rds`): ni en `collection_state`, ni
 # en `session$files` (que es persistible), ni en ninguna clave de session_schema.
-# Al cerrar la sesión desaparecen; para exportar otra vez se vuelven a importar.
+# Al cerrar la sesión desaparecen; al reemplazar la sesión con un `open
+# in_place` se borran (`.cmail_purge_personal_data`); para exportar otra vez se
+# vuelven a importar.
 #
 # La vista nunca recibe correos: el GET devuelve conteo, columnas, mapeo y una
-# muestra con nombre y campos, sin la columna de correo.
+# muestra con nombre y campos, sin la columna de correo y con todo valor con
+# forma de correo oculto (`.cmail_mask_pii`).
 #
-# Nombre de pila (FNAME). El mapeo es explícito: la persona elige la columna del
-# nombre. Si es una columna combinada («Apellidos y nombres», formato
-# «APELLIDOS, NOMBRES»), FNAME es lo que va después de la coma, en tipo título;
-# sin coma, FNAME es la cadena entera y la revisión lo cuenta como aviso. Es
-# cosmético (el saludo), no un dato de análisis.
+# Población y unidad (D1-D3). La lista importada ES la población: la app no la
+# cruza con la muestra. La unidad es la persona contactable, identificada por su
+# correo normalizado (collection_mail_text.R). Partición disjunta y exhaustiva
+# de las filas no vacías:
+#   total = valid + without_email + invalid_email + duplicated
+# `valid` (efectivos) = correo válido y primera aparición del correo. Las filas
+# totalmente vacías se descartan antes y se cuentan aparte
+# (`rows_blank_dropped`), fuera de `total`.
+#
+# Nombre de pila (FNAME): ver `.cmail_first_name`. Es cosmético (el saludo), no
+# un dato de análisis.
 
 .CMAIL_RECIPIENTS_MAX_BYTES <- 10 * 1024^2
 .CMAIL_RECIPIENTS_MAX_ROWS <- 50000L
 .CMAIL_SAMPLE_SIZE <- 5L
-.CMAIL_EMAIL_RE <- "^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$"
 
 .cmail_recipients_dir <- function(session) file.path(session$dir, "mail_recipients")
 .cmail_recipients_path <- function(session) file.path(.cmail_recipients_dir(session), "recipients.rds")
@@ -30,60 +38,112 @@
   gsub("^_+|_+$", "", x)
 }
 
-.cmail_title_case <- function(x) {
-  words <- strsplit(tolower(trimws(x)), "\\s+")[[1]]
-  words <- words[nzchar(words)]
-  paste(vapply(words, function(w) paste0(toupper(substr(w, 1L, 1L)), substr(w, 2L, nchar(w))), ""), collapse = " ")
-}
-
-.cmail_first_name <- function(value, format) {
-  value <- trimws(as.character(value %||% ""))
-  if (is.na(value) || !nzchar(value)) return(list(name = "", unsplit = FALSE))
-  if (identical(format, "apellidos_coma_nombres")) {
-    if (grepl(",", value, fixed = TRUE)) {
-      after <- trimws(sub("^[^,]*,", "", value))
-      return(list(name = .cmail_title_case(after), unsplit = FALSE))
-    }
-    return(list(name = .cmail_title_case(value), unsplit = TRUE))
-  }
-  if (identical(toupper(value), value)) value <- .cmail_title_case(value)
-  list(name = value, unsplit = FALSE)
-}
-
 # ---- lectura ------------------------------------------------------------------
+
+# Bytes de un CSV -> texto UTF-8. Excel en Windows guarda «CSV» en
+# Windows-1252; antes se leía como UTF-8 y la lectura se cortaba en la primera
+# «Ñ» sin error. Devuelve list(text, encoding).
+.cmail_decode_csv <- function(raw) {
+  enc_error <- function() {
+    stop_api(422, "E_COLLECTION_MAIL_RECIPIENTS_ENCODING",
+             "No se reconoce la codificación del archivo. Guárdalo como «CSV UTF-8» o como XLSX.")
+  }
+  b <- as.integer(raw[seq_len(min(3L, length(raw)))])
+  if (length(b) >= 2L && ((b[1] == 0xFF && b[2] == 0xFE) || (b[1] == 0xFE && b[2] == 0xFF))) {
+    from <- if (b[1] == 0xFF) "UTF-16LE" else "UTF-16BE"
+    text <- tryCatch(stringi::stri_encode(raw[-(1:2)], from = from, to = "UTF-8"), warning = function(w) NULL,
+                     error = function(e) NULL)
+    if (is.null(text)) enc_error()
+    return(list(text = text, encoding = "utf-16"))
+  }
+  if (length(b) >= 3L && b[1] == 0xEF && b[2] == 0xBB && b[3] == 0xBF) raw <- raw[-(1:3)]
+  if (any(raw == as.raw(0))) enc_error()
+  if (isTRUE(stringi::stri_enc_isutf8(raw))) {
+    text <- rawToChar(raw)
+    Encoding(text) <- "UTF-8"
+    return(list(text = text, encoding = "utf-8"))
+  }
+  # Bytes sin carácter en Windows-1252: no es ese juego, y adivinar otro
+  # fabricaría letras.
+  if (any(raw %in% as.raw(c(0x81, 0x8D, 0x8F, 0x90, 0x9D)))) enc_error()
+  text <- tryCatch(stringi::stri_encode(raw, from = "windows-1252", to = "UTF-8"),
+                   warning = function(w) NULL, error = function(e) NULL)
+  if (is.null(text)) enc_error()
+  list(text = text, encoding = "windows-1252")
+}
+
+# Un fallo de lectura: al cliente un motivo fijo y un error_id; el mensaje
+# original (con lo que el lector citó del archivo, enmascarado) a stderr.
+.cmail_unreadable <- function(reason, cond = NULL) {
+  error_id <- .api_error_id()
+  if (!is.null(cond)) {
+    message(sprintf("[collection_mail] %s %s: %s", reason, error_id,
+                    .cmail_mask_pii(substr(conditionMessage(cond), 1L, 300L))))
+  }
+  stop_api(422, "E_COLLECTION_MAIL_RECIPIENTS_UNREADABLE", "No se pudo leer el archivo de destinatarios.",
+           details = list(reason = reason, error_id = error_id))
+}
+
+.cmail_parse_csv <- function(raw) {
+  decoded <- .cmail_decode_csv(raw)
+  text <- gsub("\r\n?", "\n", decoded$text)
+  if (!endsWith(text, "\n")) text <- paste0(text, "\n")
+  first <- strsplit(substr(text, 1L, 20000L), "\n", fixed = TRUE)[[1]][1] %||% ""
+  seps <- c(",", ";", "\t")
+  counts <- vapply(seps, function(ch) lengths(regmatches(first, gregexpr(ch, first, fixed = TRUE))), integer(1))
+  sep <- if (any(counts > 0L)) seps[[which.max(counts)]] else ","
+  tmp <- tempfile(fileext = ".csv")
+  on.exit(unlink(tmp, force = TRUE), add = TRUE)
+  writeBin(charToRaw(enc2utf8(text)), tmp)
+  warned <- NULL
+  df <- withCallingHandlers(
+    tryCatch(
+      utils::read.csv(tmp, sep = sep, colClasses = "character", check.names = FALSE, encoding = "UTF-8",
+                      na.strings = character(0), strip.white = TRUE, blank.lines.skip = FALSE, quote = "\""),
+      error = function(e) .cmail_unreadable("parse_error", e)
+    ),
+    warning = function(w) {
+      if (is.null(warned)) warned <<- w
+      invokeRestart("muffleWarning")
+    }
+  )
+  # Un aviso del lector (comilla sin cerrar, fin de archivo a media fila) es
+  # una lectura parcial: nunca se acepta en silencio.
+  if (!is.null(warned)) .cmail_unreadable("parse_warning", warned)
+  list(df = df, encoding = decoded$encoding)
+}
 
 .cmail_read_table <- function(raw, file_name) {
   ext <- tolower(tools::file_ext(file_name %||% ""))
-  tmp <- tempfile(fileext = paste0(".", if (nzchar(ext)) ext else "bin"))
-  on.exit(unlink(tmp, force = TRUE), add = TRUE)
-  writeBin(raw, tmp)
-  df <- tryCatch({
-    if (ext %in% c("xlsx", "xls")) {
-      out <- readxl::read_excel(tmp, col_types = "text", .name_repair = "minimal")
-      as.data.frame(out, stringsAsFactors = FALSE, check.names = FALSE)
-    } else if (ext %in% c("csv", "txt")) {
-      first <- readLines(tmp, n = 1L, warn = FALSE, encoding = "UTF-8")
-      sep <- if (length(first) && lengths(regmatches(first, gregexpr(";", first))) >
-                 lengths(regmatches(first, gregexpr(",", first)))) ";" else ","
-      utils::read.csv(tmp, sep = sep, colClasses = "character", check.names = FALSE,
-                      fileEncoding = "UTF-8-BOM", na.strings = character(0), strip.white = TRUE)
-    } else {
-      NULL
-    }
-  }, error = function(e) e)
-  if (is.null(df)) {
+  if (!(ext %in% c("xlsx", "xls", "csv", "txt"))) {
     stop_api(415, "E_COLLECTION_MAIL_RECIPIENTS_FORMAT", "Los destinatarios se importan desde un CSV o un XLSX.")
   }
-  if (inherits(df, "error")) {
-    stop_api(422, "E_COLLECTION_MAIL_RECIPIENTS_UNREADABLE", "No se pudo leer el archivo de destinatarios.",
-             details = list(reason = conditionMessage(df)))
+  encoding <- NULL
+  if (ext %in% c("xlsx", "xls")) {
+    tmp <- tempfile(fileext = paste0(".", ext))
+    on.exit(unlink(tmp, force = TRUE), add = TRUE)
+    writeBin(raw, tmp)
+    df <- tryCatch({
+      out <- suppressWarnings(readxl::read_excel(tmp, col_types = "text", .name_repair = "minimal"))
+      as.data.frame(out, stringsAsFactors = FALSE, check.names = FALSE)
+    }, error = function(e) .cmail_unreadable("parse_error", e))
+  } else {
+    parsed <- .cmail_parse_csv(raw)
+    df <- parsed$df
+    encoding <- parsed$encoding
   }
-  names(df) <- trimws(enc2utf8(as.character(names(df))))
+  # Encabezado vacío o repetido: se queda la primera columna con ese nombre.
+  names(df) <- .cmail_clean_text(names(df))
   keep <- nzchar(names(df)) & !duplicated(names(df))
   df <- df[, keep, drop = FALSE]
-  df[] <- lapply(df, function(col) { col <- enc2utf8(as.character(col)); col[is.na(col)] <- ""; trimws(col) })
-  # Filas completamente vacías (el pie típico de una hoja de Excel) no cuentan.
-  if (nrow(df)) df <- df[apply(df, 1L, function(r) any(nzchar(r))), , drop = FALSE]
+  df[] <- lapply(df, .cmail_clean_text)
+  # Fila 1 = encabezado; la fila de datos i está en la fila i + 1 del archivo.
+  source_row <- seq_len(nrow(df)) + 1L
+  blank <- if (nrow(df) && ncol(df)) !apply(df, 1L, function(r) any(nzchar(r))) else rep(TRUE, nrow(df))
+  # Filas completamente vacías (el pie típico de una hoja de Excel): fuera de
+  # la población y contadas aparte.
+  df <- df[!blank, , drop = FALSE]
+  source_row <- source_row[!blank]
   if (!ncol(df) || !nrow(df)) {
     stop_api(422, "E_COLLECTION_MAIL_RECIPIENTS_EMPTY", "El archivo no trae destinatarios.")
   }
@@ -92,34 +152,49 @@
              sprintf("Máximo %d destinatarios por importación.", .CMAIL_RECIPIENTS_MAX_ROWS))
   }
   rownames(df) <- NULL
-  df
+  list(df = df, source_row = as.integer(source_row), rows_blank_dropped = as.integer(sum(blank)),
+       encoding = encoding)
 }
 
 # ---- mapeo --------------------------------------------------------------------
 
-.cmail_guess_mapping <- function(columns, template) {
+.cmail_guess_mapping <- function(df, template) {
+  columns <- names(df)
   norm <- .cmail_norm_header(columns)
   pick <- function(idx) if (length(idx)) columns[[idx[[1]]]] else NULL
   email <- pick(which(grepl("(^|_)(correo|email|e_mail|mail)($|_)", norm)))
-  exact_name <- which(norm %in% c("nombre", "nombres", "first_name", "primer_nombre"))
-  name <- pick(if (length(exact_name)) exact_name else which(grepl("nombre", norm)))
+  if (is.null(email)) {
+    share <- vapply(df, function(col) {
+      v <- .cmail_email_normalize(col); v <- v[nzchar(v)]
+      if (length(v)) mean(.cmail_email_valid(v)) else 0
+    }, numeric(1))
+    email <- pick(which(share >= 0.5))
+  }
+  free <- columns != (email %||% "")
+  # El nombre: un encabezado de persona («Nombre», «Apellidos y nombres»), nunca
+  # otro sustantivo que lleve la palabra («Nombre de la carrera»).
+  exact_name <- which(free & norm %in% c("nombre", "nombres", "first_name", "primer_nombre", "nombre_de_pila",
+                                         "name", "full_name", "nombre_completo", "nombres_completos"))
+  combo_name <- which(free & grepl("^(apellidos?_(y_)?nombres?|nombres?_(y_)?apellidos?)$", norm))
+  loose_name <- which(free & grepl("^nombres?($|_)", norm) & !grepl("_(de|del)_", norm))
+  person <- which(free & norm %in% c("estudiante", "alumno", "alumna", "participante", "docente", "persona",
+                                     "destinatario", "contacto", "encuestado", "encuestada"))
+  name <- pick(c(exact_name, combo_name, loose_name, person))
   fields <- list()
   for (f in template$fields %||% list()) {
     key <- as.character(f$key)
     label <- .cmail_norm_header(f$label %||% key)
-    hit <- which(norm == key | norm == label | norm == tolower(as.character(f$tag)))
-    if (!length(hit)) hit <- which(grepl(paste0("(^|_)", key, "($|_)"), norm))
+    hit <- which(free & (norm == key | norm == label | norm == tolower(as.character(f$tag))))
+    if (!length(hit)) hit <- which(free & grepl(paste0("(^|_)", key, "($|_)"), norm))
     col <- pick(hit)
     if (!is.null(col)) fields[[key]] <- col
   }
-  list(email_column = email, name_column = name, name_format = .cmail_name_format(name), fields = fields)
+  list(email_column = email, name_column = name,
+       name_format = .cmail_name_format(name, if (!is.null(name)) df[[name]]), fields = fields)
 }
 
-.cmail_name_format <- function(name_column) {
-  if (!is.null(name_column) && grepl("apellido", .cmail_norm_header(name_column))) "apellidos_coma_nombres" else "nombre"
-}
-
-.cmail_mapping_validate <- function(mapping, columns, template) {
+.cmail_mapping_validate <- function(mapping, df, template) {
+  columns <- names(df)
   if (!is.list(mapping)) {
     stop_api(422, "E_COLLECTION_MAIL_MAPPING_INVALID", "mapping debe ser un objeto {email_column, name_column, fields}.")
   }
@@ -135,7 +210,13 @@
   }
   email <- one_col(mapping$email_column, "email_column")
   name <- one_col(mapping$name_column, "name_column")
-  fmt <- .cmail_one(mapping$name_format) %||% .cmail_name_format(name)
+  # La columna del correo no puede alimentar otra etiqueta: el correo llegaría
+  # a la muestra, a la vista previa y al cuerpo del correo.
+  if (!is.null(email) && identical(name, email)) {
+    problems <- c(problems, "name_column: no puede ser la columna del correo.")
+    name <- NULL
+  }
+  fmt <- .cmail_one(mapping$name_format) %||% .cmail_name_format(name, if (!is.null(name)) df[[name]])
   if (!(fmt %in% c("apellidos_coma_nombres", "nombre"))) {
     problems <- c(problems, "name_format es apellidos_coma_nombres o nombre.")
   }
@@ -149,6 +230,10 @@
       next
     }
     col <- one_col(raw_fields[[k]], paste0("fields.", k))
+    if (!is.null(col) && !is.null(email) && identical(col, email)) {
+      problems <- c(problems, sprintf("fields.%s: no puede ser la columna del correo.", k))
+      next
+    }
     if (!is.null(col)) fields[[k]] <- col
   }
   if (length(problems)) {
@@ -172,67 +257,138 @@
   invisible(store)
 }
 
-#' Destinatarios efectivos: correo válido, sin duplicados, con FNAME y campos.
+#' Borra los datos personales de una sesión: los destinatarios importados y los
+#' ZIP exportados (sensitivity = personal_data). Se llama al reemplazar la
+#' sesión con `open in_place`; cerrar la sesión ya borra su directorio entero.
 #' @keywords internal
-.cmail_recipients_resolve <- function(store) {
+.cmail_purge_personal_data <- function(session) {
+  if (is.null(session) || is.null(session$dir)) return(invisible(FALSE))
+  unlink(.cmail_recipients_dir(session), recursive = TRUE, force = TRUE)
+  root <- normalizePath(session$dir, mustWork = FALSE)
+  for (meta in session$files %||% list()) {
+    if (!is.list(meta) || !identical(as.character(meta$sensitivity %||% "")[1], "personal_data")) next
+    path <- as.character(meta$path %||% "")[1]
+    if (nzchar(path) && startsWith(normalizePath(path, mustWork = FALSE), root)) unlink(path, force = TRUE)
+  }
+  invisible(TRUE)
+}
+
+# Claves de la plantilla con su etiqueta y columna; sin plantilla, todo lo mapeado.
+.cmail_mapped_keys <- function(m, template = NULL) {
+  fields <- if (!is.null(template)) .cmail_field_index(template) else list()
+  keys <- c(if (!is.null(m$name_column)) "nombre", names(m$fields %||% list()))
+  if (!is.null(template)) keys <- intersect(keys, .cmail_used_keys(template))
+  lapply(stats::setNames(keys, keys), function(k) {
+    if (identical(k, "nombre")) list(key = k, tag = "FNAME", column = m$name_column)
+    else list(key = k, tag = fields[[k]]$tag %||% toupper(k), column = m$fields[[k]])
+  })
+}
+
+.cmail_key_values <- function(store, first_name, k) {
+  if (identical(k$key, "nombre")) first_name else .cmail_value(store$rows[[k$column]])
+}
+
+#' Destinatarios efectivos y la partición de la población.
+#'
+#' @param template plantilla de trabajo: decide qué campos cuentan para
+#'   `duplicated_conflicting` y `persons_with_any_empty` (sin ella, todo lo
+#'   mapeado).
+#' @keywords internal
+.cmail_recipients_resolve <- function(store, template = NULL) {
   df <- store$rows
   m <- store$mapping
   n <- nrow(df)
-  email <- if (!is.null(m$email_column)) df[[m$email_column]] else rep("", n)
-  valid <- grepl(.CMAIL_EMAIL_RE, email)
-  dup <- duplicated(tolower(email)) & valid
+  source_row <- store$source_row %||% (seq_len(n) + 1L)
+  email <- if (!is.null(m$email_column)) .cmail_email_normalize(df[[m$email_column]]) else rep("", n)
+  has <- nzchar(email)
+  valid <- has & .cmail_email_valid(email)
+  key <- tolower(email)
+  dup <- rep(FALSE, n)
+  dup[valid] <- duplicated(key[valid])
+  keep <- valid & !dup
   names_info <- lapply(seq_len(n), function(i) {
     .cmail_first_name(if (!is.null(m$name_column)) df[[m$name_column]][[i]] else "", m$name_format)
   })
-  keep <- valid & !dup
+  first_name <- vapply(names_info, `[[`, "", "name")
+  unsplit <- vapply(names_info, `[[`, NA, "unsplit")
+
+  keys <- .cmail_mapped_keys(m, template)
+  values <- lapply(keys, function(k) .cmail_key_values(store, first_name, k))
+
+  # Mismo correo, otro dato en un campo usado: el que queda es la primera fila.
+  first_idx <- match(key, key[keep])
+  first_row <- which(keep)[first_idx]
+  conflicts <- list()
+  for (i in which(dup)) {
+    j <- first_row[[i]]
+    differ <- vapply(keys, function(k) !identical(values[[k$key]][[i]], values[[k$key]][[j]]), NA)
+    if (any(differ)) {
+      conflicts[[length(conflicts) + 1L]] <- list(
+        row = as.integer(source_row[[i]]), first_row = as.integer(source_row[[j]]),
+        tags = as.list(unname(vapply(keys[differ], `[[`, "", "tag"))), keys = as.list(names(keys)[differ])
+      )
+    }
+  }
+  any_empty <- if (length(keys)) Reduce(`|`, lapply(values, function(v) !nzchar(v))) else rep(FALSE, n)
+
   list(
     rows = which(keep),
     email = email,
-    first_name = vapply(names_info, `[[`, "", "name"),
-    unsplit = vapply(names_info, `[[`, NA, "unsplit"),
+    first_name = first_name,
+    unsplit = unsplit,
+    source_row = as.integer(source_row),
+    keys = keys,
+    values = values,
+    conflicts = conflicts,
     counts = list(
       total = as.integer(n),
       valid = as.integer(sum(keep)),
-      without_email = as.integer(sum(!nzchar(email))),
-      invalid_email = as.integer(sum(nzchar(email) & !valid)),
+      without_email = as.integer(sum(!has)),
+      invalid_email = as.integer(sum(has & !valid)),
       duplicated = as.integer(sum(dup)),
-      names_unsplit = as.integer(sum(vapply(names_info, `[[`, NA, "unsplit")[keep]))
+      duplicated_conflicting = as.integer(length(conflicts)),
+      names_unsplit = as.integer(sum(unsplit[keep])),
+      persons_with_any_empty = as.integer(sum(any_empty[keep])),
+      rows_blank_dropped = as.integer(store$rows_blank_dropped %||% 0L)
     )
   )
 }
 
 .cmail_recipient_values <- function(store, resolved, i) {
   m <- store$mapping
-  fields <- lapply(m$fields, function(col) store$rows[[col]][[i]])
+  fields <- lapply(m$fields, function(col) .cmail_value(store$rows[[col]][[i]]))
   list(nombre = resolved$first_name[[i]], fields = fields)
 }
 
-# Lo único que la UI ve: nunca la columna de correo.
-.cmail_recipients_public <- function(store) {
+# Lo único que la UI ve: nunca la columna de correo, nunca un valor con forma de correo.
+.cmail_recipients_public <- function(store, template = NULL) {
   if (is.null(store)) {
     return(list(ok = TRUE, loaded = FALSE, row_count = 0L, columns = list(), mapping = NULL,
                 counts = NULL, sample = list()))
   }
-  resolved <- .cmail_recipients_resolve(store)
+  resolved <- .cmail_recipients_resolve(store, template)
   rows <- utils::head(resolved$rows, .CMAIL_SAMPLE_SIZE)
   sample <- lapply(seq_along(rows), function(j) {
-    v <- .cmail_recipient_values(store, resolved, rows[[j]])
+    v <- .cmail_mask_pii(.cmail_recipient_values(store, resolved, rows[[j]]))
     list(index = as.integer(j), nombre = v$nombre, fields = if (length(v$fields)) v$fields else structure(list(), names = character(0)))
   })
   mapping <- store$mapping
   mapping$fields <- if (length(mapping$fields)) mapping$fields else structure(list(), names = character(0))
-  list(
+  .cmc_drop_nulls_deep(list(
     ok = TRUE,
     loaded = TRUE,
     file_name = store$file_name,
     imported_at = store$imported_at,
+    encoding = store$encoding,
     row_count = as.integer(nrow(store$rows)),
     columns = as.list(names(store$rows)),
     mapping = .cmc_drop_nulls_deep(mapping),
     counts = resolved$counts,
     sample = sample
-  )
+  ))
 }
+
+.cmail_template_for_session <- function(session) .cmail_template_of(.collection_current(session))
 
 # ---- API ----------------------------------------------------------------------
 
@@ -260,20 +416,24 @@
 collection_mail_recipients_import <- function(sid, file_raw = NULL, file_name = NULL,
                                               content_base64 = NULL, mapping = NULL) {
   session <- session_get(sid)
-  template <- .cmail_template_of(.collection_current(session))
+  template <- .cmail_template_for_session(session)
   payload <- .cmail_import_payload(file_raw, file_name, content_base64)
-  df <- .cmail_read_table(payload$raw, payload$name)
-  columns <- names(df)
-  mapping <- if (is.null(mapping)) .cmail_guess_mapping(columns, template) else .cmail_mapping_validate(mapping, columns, template)
+  read <- .cmail_read_table(payload$raw, payload$name)
+  df <- read$df
+  mapping <- if (is.null(mapping)) .cmail_guess_mapping(df, template) else .cmail_mapping_validate(mapping, df, template)
   store <- list(
     schema = "collection_mail_recipients/v1",
     file_name = payload$name,
     imported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    source_sha256 = paste0("sha256:", tolower(digest::digest(payload$raw, algo = "sha256", serialize = FALSE))),
+    encoding = read$encoding,
     rows = df,
+    source_row = read$source_row,
+    rows_blank_dropped = read$rows_blank_dropped,
     mapping = mapping
   )
   .cmail_recipients_save(session, store)
-  .cmail_recipients_public(store)
+  .cmail_recipients_public(store, template)
 }
 
 #' Cambia el mapeo de columnas sin volver a subir el archivo.
@@ -284,16 +444,18 @@ collection_mail_recipients_mapping_put <- function(sid, mapping) {
   if (is.null(store)) {
     stop_api(409, "E_COLLECTION_MAIL_NO_RECIPIENTS", "Primero importa los destinatarios.")
   }
-  template <- .cmail_template_of(.collection_current(session))
-  store$mapping <- .cmail_mapping_validate(mapping, names(store$rows), template)
+  template <- .cmail_template_for_session(session)
+  store$mapping <- .cmail_mapping_validate(mapping, store$rows, template)
   .cmail_recipients_save(session, store)
-  .cmail_recipients_public(store)
+  .cmail_recipients_public(store, template)
 }
 
 #' Resumen de los destinatarios, sin correos.
 #' @keywords internal
 collection_mail_recipients_get <- function(sid) {
-  .cmail_recipients_public(.cmail_recipients_load(session_get(sid)))
+  session <- session_get(sid)
+  store <- .cmail_recipients_load(session)
+  .cmail_recipients_public(store, if (!is.null(store)) .cmail_template_for_session(session))
 }
 
 #' Olvida los destinatarios de la sesión.
@@ -324,6 +486,7 @@ collection_mail_recipients_delete <- function(sid) {
     } else {
       NULL
     }
+    if (!is.null(map_txt)) Encoding(map_txt) <- "UTF-8"
     if (!is.null(map_txt) && nzchar(trimws(map_txt))) {
       mapping <- tryCatch(
         jsonlite::fromJSON(map_txt, simplifyVector = FALSE),

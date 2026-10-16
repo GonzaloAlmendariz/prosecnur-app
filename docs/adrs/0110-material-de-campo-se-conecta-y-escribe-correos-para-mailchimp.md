@@ -2,7 +2,7 @@
 
 Estado: Aceptado
 
-Implementacion: No iniciada
+Implementacion: En curso (E1f backend: plantilla, destinatarios, revisión y exportación; ver «Implementación de E1f»)
 
 Fecha: 2026-10-16
 
@@ -94,6 +94,53 @@ Los correos son un tipo de material de la familia «va al participante», con ca
 - La plantilla exportada contiene solo etiquetas que existen como columna en la audiencia (test de paridad).
 - El pie exportado contiene `*|UNSUB|*`; el peso queda bajo 102 KB con imágenes alojadas.
 - Ningún correo personal entra al `.pulso` (scan del estado).
+
+## Implementación de E1f (backend)
+
+Vive en `api/R/collection_mail_template.R` (contrato y presets), `collection_mail_render.R` (HTML),
+`collection_mail_text.R` (correo, vacío y nombre de pila), `collection_mail_usage.R` (dónde se usa cada campo),
+`collection_mail_recipients.R` (importación efímera), `collection_mail_export.R` (vista previa, revisión y ZIP) y
+`collection_brand_assets.R` (logos del proyecto). Tests: `test-collection-mail-template.R`,
+`test-collection-mail-export.R` y `test-collection-mail-recipients-hardening.R`.
+
+- **Lectura.** CSV en UTF-8 (con o sin BOM), UTF-16 con BOM o Windows-1252 (el «CSV» de Excel en Windows); otra
+  codificación responde `E_COLLECTION_MAIL_RECIPIENTS_ENCODING`. Un aviso del lector (comilla sin cerrar, fila a
+  medias) es error `E_COLLECTION_MAIL_RECIPIENTS_UNREADABLE` con motivo fijo y `error_id`; nunca una lectura parcial.
+  Espacios duros e invisibles se limpian en todas las celdas.
+- **Correo.** Validador estricto (parte local ASCII sin puntos al borde ni dobles, dominio con TLD de 2+ letras); se
+  quita `mailto:`; se compara en minúsculas y se exporta tal como quedó limpio.
+- **Partición.** `total = valid + without_email + invalid_email + duplicated` (efectivo = correo válido y primera
+  aparición). Además: `duplicated_conflicting` (mismo correo con otro dato en un campo usado), `names_unsplit`,
+  `persons_with_any_empty` y `rows_blank_dropped` (fuera de `total`).
+- **Sin dato.** Vacío = celda vacía, solo espacios o `NA`, `N/A`, `#N/A`, `-`, `s/d`; el denominador son los
+  efectivos. El respaldo se evalúa donde se usa el campo: en un enlace no existe y un vacío bloquea la exportación; en
+  asunto y preheader, y `{{nombre}}` fuera del saludo, tampoco se aplica. Un repetido con otro valor en un campo de
+  enlace también bloquea; en otro campo, avisa. En `audiencia.csv` el marcador sale vacío para que Mailchimp aplique el
+  respaldo.
+- **Datos personales.** Correos y nombres solo en `<sesión>/mail_recipients/` y dentro del ZIP. La vista, la vista
+  previa y el manifest ocultan cualquier valor con forma de correo; el mapeo no admite llevar la columna del correo a
+  otra etiqueta. Se borran con DELETE, al cerrar la sesión y al reemplazarla con `open in_place`.
+- **`.pulso`.** Viaja la plantilla; no los destinatarios. Viajan los logos `brand_logo` vigentes (el más reciente por
+  `uploaded_at` para cada nombre), que la cabecera y la careta del afiche resuelven al reabrir. Una plantilla guardada
+  que ya no cumple el contrato responde `E_COLLECTION_MAIL_TEMPLATE_STORED_INVALID` hasta que se guarda otra.
+- **Exportación** síncrona (tope 5 MB), con `expected_revision` obligatorio, nombre público de hasta 80 caracteres y
+  `manifest.json` con procedencia (archivo, fecha, huella, codificación, mapeo y formato del nombre), cifras completas
+  y resumen de la revisión, sin correos. `LEEME.txt` abre con una línea de cifras y trae la tabla de marcadores de
+  imagen.
+- **Pendiente.** La revisión de modo oscuro que pide §2 no existe todavía: el HTML declara `color-scheme: light only`,
+  pero ningún chequeo lo verifica contra un cliente real. Queda como pendiente de E1f.
+
+### Supuestos documentados
+
+- **La lista importada es la población.** La app no la cruza con la muestra ni con quienes ya respondieron: quien arma
+  la lista (por ejemplo, los no respondientes de las aulas sorteadas) decide a quién se escribe.
+- **Las filas totalmente vacías se descartan** y se informan aparte (`rows_blank_dropped`); no son personas.
+- **Encabezado repetido o vacío:** se queda la primera columna con ese nombre; las demás no se leen.
+- **Los alias de Gmail no se normalizan** (`ana.quispe@gmail.com` y `anaquispe+x@gmail.com` cuentan como dos
+  personas): la app no sabe qué proveedor ignora puntos o sufijos.
+- **El nombre de pila es cosmético.** El formato «APELLIDOS, NOMBRES» se reconoce por el encabezado («apellido») o
+  porque la mitad o más de los valores llevan exactamente una coma; con cero o varias comas el saludo usa el nombre
+  completo y se avisa.
 
 ## Notas
 
