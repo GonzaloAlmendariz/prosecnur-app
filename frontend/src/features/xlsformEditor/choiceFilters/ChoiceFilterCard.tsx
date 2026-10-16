@@ -7,20 +7,40 @@
 //   3. La explicación en una frase — lenguaje natural.
 //   4. La correspondencia — tabla semántica antecedente → opción habilitada,
 //      o, cuando no es derivable (spec §9), la lista de antecedentes.
-// Al pie, un único gesto opcional: «Ver regla técnica», plegado por defecto.
+// Al pie, «Ver regla técnica», plegado por defecto, y el `pie` que ponga la
+// pestaña («Editar en Constructor»). Un antecedente que también tiene filtro se
+// elige ahí mismo (ítem 50: nada de esta ficha navega al Constructor).
 // =============================================================================
 
-import { useState } from "react";
-import { ArrowRight, ChevronRight, ExternalLink, Filter } from "../../../vendor/lucide-react";
+import { useState, type ReactNode } from "react";
+import { ArrowRight, ChevronRight, Filter } from "../../../vendor/lucide-react";
 import type { ChoiceFilterCard as Card } from "./buildChoiceFilterModel";
 
 type Props = {
   card: Card;
-  /** Deep-link al antecedente en el editor (spec §8). */
-  onJumpToRow?: (rowIndex: number) => void;
+  /** Elige, en la misma pestaña, el filtro de un antecedente que también tiene uno. */
+  onElegirAntecedente?: (rowIndex: number) => void;
+  esElegible?: (rowIndex: number) => boolean;
+  /** Pie de la ficha: «Editar en Constructor». */
+  pie?: ReactNode;
 };
 
-export function ChoiceFilterCard({ card, onJumpToRow }: Props) {
+function Antecedente({ rowIndex, label, onElegir, esElegible }: {
+  rowIndex: number | null;
+  label: string;
+  onElegir?: (rowIndex: number) => void;
+  esElegible?: (rowIndex: number) => boolean;
+}) {
+  if (rowIndex == null || !onElegir || !esElegible?.(rowIndex)) return <span>{label}</span>;
+  return (
+    <button type="button" className="pulso-xcf-jump" onClick={() => onElegir(rowIndex)} title="Ver el filtro de esta pregunta">
+      {label}
+      <ChevronRight size={11} aria-hidden="true" />
+    </button>
+  );
+}
+
+export function ChoiceFilterCard({ card, onElegirAntecedente, esElegible, pie }: Props) {
   const [ruleOpen, setRuleOpen] = useState(false);
 
   return (
@@ -58,32 +78,18 @@ export function ChoiceFilterCard({ card, onJumpToRow }: Props) {
             </tr>
           </thead>
           <tbody>
-            {card.pairs.map((pair, idx) => {
-              const jumpable = onJumpToRow && pair.antecedent.rowIndex != null;
-              return (
+            {card.pairs.map((pair, idx) => (
                 <tr key={`${pair.optionName}-${idx}`} className="pulso-xcf-row">
                   <td className="pulso-xcf-cell-antecedent">
-                    {jumpable ? (
-                      <button
-                        type="button"
-                        className="pulso-xcf-jump"
-                        onClick={() => onJumpToRow!(pair.antecedent.rowIndex!)}
-                        title="Ir a esta pregunta en el editor"
-                      >
-                        {pair.antecedent.label}
-                        <ExternalLink size={11} aria-hidden="true" />
-                      </button>
-                    ) : (
-                      <span>{pair.antecedent.label}</span>
-                    )}
+                    <Antecedente rowIndex={pair.antecedent.rowIndex} label={pair.antecedent.label}
+                      onElegir={onElegirAntecedente} esElegible={esElegible} />
                   </td>
                   <td className="pulso-xcf-cell-arrow" aria-hidden="true">
                     <ArrowRight size={14} />
                   </td>
                   <td className="pulso-xcf-cell-option">{pair.optionLabel}</td>
                 </tr>
-              );
-            })}
+            ))}
           </tbody>
         </table>
       ) : (
@@ -94,26 +100,12 @@ export function ChoiceFilterCard({ card, onJumpToRow }: Props) {
               : "Depende de las respuestas a:"}
           </span>
           <ul className="pulso-xcf-antecedents-list">
-            {card.antecedents.map((antecedent) => {
-              const jumpable = onJumpToRow && antecedent.rowIndex != null;
-              return (
+            {card.antecedents.map((antecedent) => (
                 <li key={antecedent.varName}>
-                  {jumpable ? (
-                    <button
-                      type="button"
-                      className="pulso-xcf-jump"
-                      onClick={() => onJumpToRow!(antecedent.rowIndex!)}
-                      title="Ir a esta pregunta en el editor"
-                    >
-                      {antecedent.label}
-                      <ExternalLink size={11} aria-hidden="true" />
-                    </button>
-                  ) : (
-                    <span>{antecedent.label}</span>
-                  )}
+                  <Antecedente rowIndex={antecedent.rowIndex} label={antecedent.label}
+                    onElegir={onElegirAntecedente} esElegible={esElegible} />
                 </li>
-              );
-            })}
+            ))}
           </ul>
           {card.antecedents.length === 0 ? (
             <p className="pulso-xcf-antecedents-empty">
@@ -146,6 +138,7 @@ export function ChoiceFilterCard({ card, onJumpToRow }: Props) {
           </div>
         ) : null}
       </div>
+      {pie}
     </article>
   );
 }

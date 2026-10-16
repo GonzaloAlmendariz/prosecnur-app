@@ -1,17 +1,18 @@
 // =============================================================================
 // shell/FormSimulator.tsx — "Probar formulario": vista previa interactiva
 // =============================================================================
-// Overlay full-screen donde el usuario llena el formulario como encuestado
+// Pestaña «Probar» donde el usuario llena el formulario como encuestado
 // real, sección por sección (estilo KoboToolbox). Respeta la lógica de
 // visibilidad (`relevant`) evaluándola en vivo contra las respuestas con el
 // evaluador de logic/evaluate.ts; las expresiones que el evaluador no cubre
 // se tratan como visibles y se marcan con el badge "lógica avanzada".
 //
 // Estado 100% interno (sin persistencia): respuestas por `name` de variable.
+// Una pestaña no se cierra (ítem 50): sin «Volver» ni «Cerrar». La única salida
+// al Constructor es el lápiz «Editar en Constructor» de cada pregunta.
 // =============================================================================
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   Check,
@@ -22,7 +23,6 @@ import {
   Pencil,
   QrCode,
   RotateCcw,
-  X,
 } from "lucide-react";
 import type {
   BuilderNode,
@@ -40,13 +40,10 @@ import { appearanceTokens, rangeParamsForNode } from "../canvas/previewInputs";
 import "../styles/xf-simulator.css";
 
 export type FormSimulatorProps = {
-  open: boolean;
-  onClose: () => void;
   workbook: XlsformEditorWorkbook;
   structure: BuilderStructure | null;
+  /** «Editar en Constructor» del lápiz de cada pregunta: la única salida al Constructor. */
   onEditRow?: (rowIndex: number) => void;
-  /** Dentro de una pestaña del editor (2026-10-15): sin portal, sin «Volver» ni «Cerrar», y Esc no cierra. */
-  embebido?: boolean;
 };
 
 // -----------------------------------------------------------------------------
@@ -107,9 +104,6 @@ const ALWAYS_VISIBLE: VisState = { visible: true, advanced: false };
 // -----------------------------------------------------------------------------
 
 export function FormSimulator({
-  open,
-  onClose,
-  embebido = false,
   workbook,
   structure,
   onEditRow,
@@ -117,18 +111,6 @@ export function FormSimulator({
   const [answers, setAnswers] = useState<Record<string, SimValue>>({});
   const [pageIdx, setPageIdx] = useState(0);
 
-  useEffect(() => {
-    if (open) setPageIdx(0);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || embebido) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, embebido, onClose]);
 
   const formTitle = useMemo(() => readFormTitle(workbook), [workbook]);
 
@@ -249,15 +231,8 @@ export function FormSimulator({
     setPageIdx(0);
   }, []);
 
-  const handleEdit = useMemo(() => {
-    if (!onEditRow) return undefined;
-    return (rowIndex: number) => {
-      onEditRow(rowIndex);
-      onClose();
-    };
-  }, [onEditRow, onClose]);
+  const handleEdit = onEditRow;
 
-  if (!open) return null;
 
   const progressFraction = visiblePages.length
     ? (clampedIdx + 1) / visiblePages.length
@@ -265,18 +240,12 @@ export function FormSimulator({
 
   const vista = (
     <div
-      className={embebido ? "pulso-graph-overlay pulso-xfsim-overlay is-embebido" : "pulso-graph-overlay pulso-xfsim-overlay pulso-xf-overlay-enter"}
-      role={embebido ? "region" : "dialog"}
-      aria-modal={embebido ? undefined : true}
+      className="pulso-graph-overlay pulso-xfsim-overlay is-embebido"
+      role="region"
       aria-label="Probar formulario"
     >
       <header className="pulso-graph-header">
         <div className="pulso-graph-header-left">
-          {!embebido && (
-            <button type="button" className="pulso-graph-back" onClick={onClose}>
-              <ChevronLeft size={14} /> Volver al editor
-            </button>
-          )}
           <div className="pulso-graph-header-title">
             <strong>Probar formulario</strong>
             <span>
@@ -289,17 +258,6 @@ export function FormSimulator({
           <button type="button" className="pulso-xfsim-pill" onClick={reset}>
             <RotateCcw size={13} /> Reiniciar
           </button>
-          {!embebido && (
-            <button
-              type="button"
-              className="pulso-icon"
-              onClick={onClose}
-              aria-label="Cerrar simulador"
-              title="Cerrar"
-            >
-              <X size={14} />
-            </button>
-          )}
         </div>
       </header>
 
@@ -369,7 +327,7 @@ export function FormSimulator({
       </div>
     </div>
   );
-  return embebido ? vista : createPortal(vista, document.body);
+  return vista;
 }
 
 // -----------------------------------------------------------------------------
@@ -433,8 +391,9 @@ function QuestionSlot({
               <button
                 type="button"
                 className="pulso-xfsim-edit"
-                aria-label="Editar esta pregunta"
-                title="Editar esta pregunta"
+                aria-label="Editar en Constructor"
+                title="Editar en Constructor"
+                data-accion="editar-en-constructor"
                 tabIndex={visible ? 0 : -1}
                 onClick={() => onEdit(node.rowIndex)}
               >

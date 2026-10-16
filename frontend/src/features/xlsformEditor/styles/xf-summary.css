@@ -728,3 +728,114 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ── Sección desplegada y tramo resaltado (ítem 50) ────────────────────────
+   La fila abierta lleva el acento del módulo, distinto del gris del hover; debajo, sus preguntas en la superficie
+   común de detalle (`xf-detalle.css`). El tramo pedido en el recorrido resalta su fila con un anillo del acento. */
+
+.pulso-xf-res-seccion-chevron {
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-xf-res-seccion[aria-expanded="true"] .pulso-xf-res-seccion-chevron {
+  transform: rotate(90deg);
+  color: var(--xf-res-acento);
+}
+
+.pulso-xf-res-tabla tbody tr.is-desplegada,
+.pulso-xf-res-tabla tbody tr.is-desplegada:hover {
+  background: var(--xf-res-acento-suave);
+}
+
+.pulso-xf-res-tabla tbody tr.is-desplegada > th {
+  box-shadow: inset 3px 0 0 var(--xf-res-acento);
+}
+
+.pulso-xf-res-tabla tbody tr.is-resaltada > * {
+  background: var(--xf-res-acento-suave);
+  box-shadow: inset 0 2px 0 var(--xf-res-acento), inset 0 -2px 0 var(--xf-res-acento);
+}
+
+.pulso-xf-res-tabla tbody tr.pulso-xf-res-desplegada {
+  cursor: default;
+}
+
+.pulso-xf-res-tabla tbody tr.pulso-xf-res-desplegada:hover {
+  background: transparent;
+}
+
+.pulso-xf-res-tabla tbody tr.pulso-xf-res-desplegada > td {
+  padding: var(--pulso-space-2) var(--pulso-space-3) var(--pulso-space-3);
+}
+
+
+.pulso-xf-res-preguntas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-xf-res-preguntas li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) minmax(88px, max-content) 56px auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) 0;
+  font-size: 12.5px;
+}
+
+.pulso-xf-res-preguntas li + li {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-res-preg-num {
+  color: var(--xf-res-acento);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-xf-res-preg-texto {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-xf-res-preg-tipo,
+.pulso-xf-res-preg-min {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pulso-xf-res-preg-min {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.pulso-xf-res-tramo.is-resaltado {
+  outline: 2px solid var(--xf-res-acento);
+  outline-offset: 2px;
+}
+
+@container (max-width: 640px) {
+  .pulso-xf-res-preguntas li {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+
+  .pulso-xf-res-preg-tipo,
+  .pulso-xf-res-preg-min {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xf-res-seccion-chevron {
+    transition: none;
+  }
+}
+
+/* La cabecera de la tabla es fija: una fila traída a la vista (tramo del recorrido, foco del teclado) queda debajo
+   de ella, no tapada. */
+.pulso-xf-res-tabla-marco {
+  scroll-padding-top: var(--pulso-space-8);
+}

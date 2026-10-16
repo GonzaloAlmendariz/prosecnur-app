@@ -9,7 +9,9 @@
 // Es un resumen, no el detalle: la correspondencia 1:1 opción↔antecedente vive
 // en las fichas de abajo. Aquí se ve la forma de la dependencia (cuántas y qué
 // respuestas previas alimentan cada pregunta). Cada antecedente es hover-able
-// (title) para inspeccionar cuál es sin saturar el gráfico de texto.
+// (title) para inspeccionar cuál es sin saturar el gráfico de texto. Un clic
+// en un nodo (o en un antecedente que también tiene filtro) lo elige en la
+// misma pestaña; nunca navega (ítem 50).
 // =============================================================================
 
 import type { ChoiceFilterCard } from "./buildChoiceFilterModel";
@@ -32,12 +34,19 @@ function truncate(text: string, max: number): string {
   return `${cut}…`;
 }
 
+type Eleccion = {
+  onElegir?: (rowIndex: number) => void;
+  esElegible?: (rowIndex: number) => boolean;
+};
+
 function OverviewRow({
   card,
-  onJumpToRow,
-}: {
+  seleccionada,
+  onElegir,
+  esElegible,
+}: Eleccion & {
   card: ChoiceFilterCard;
-  onJumpToRow?: (rowIndex: number) => void;
+  seleccionada: boolean;
 }) {
   const n = card.antecedents.length;
   // Banda vertical de los antecedentes: 18px por punto, con techo para que el
@@ -79,7 +88,7 @@ function OverviewRow({
         {/* Puntos de antecedente (hover-able). */}
         {antYs.map((y, i) => {
           const ant = card.antecedents[i]!;
-          const jumpable = onJumpToRow && ant.rowIndex != null;
+          const jumpable = onElegir && ant.rowIndex != null && (esElegible?.(ant.rowIndex) ?? false);
           return (
             <circle
               key={`d-${ant.varName}-${i}`}
@@ -87,7 +96,7 @@ function OverviewRow({
               cx={DOT_X}
               cy={y}
               r={3.5}
-              onClick={jumpable ? () => onJumpToRow!(ant.rowIndex!) : undefined}
+              onClick={jumpable ? () => onElegir!(ant.rowIndex!) : undefined}
               style={jumpable ? { cursor: "pointer" } : undefined}
             >
               <title>{`${ant.varName} · ${ant.label}`}</title>
@@ -97,9 +106,9 @@ function OverviewRow({
 
         {/* Nodo de la pregunta condicionada. */}
         <g
-          className={onJumpToRow ? "pulso-xcf-ov-node is-jumpable" : "pulso-xcf-ov-node"}
-          onClick={onJumpToRow ? () => onJumpToRow(card.rowIndex) : undefined}
-          style={onJumpToRow ? { cursor: "pointer" } : undefined}
+          className={`pulso-xcf-ov-node${onElegir ? " is-jumpable" : ""}${seleccionada ? " is-seleccionada" : ""}`}
+          onClick={onElegir ? () => onElegir(card.rowIndex) : undefined}
+          style={onElegir ? { cursor: "pointer" } : undefined}
         >
           <rect
             className="pulso-xcf-ov-node-box"
@@ -131,10 +140,12 @@ function OverviewRow({
 
 export function ChoiceFilterOverview({
   cards,
-  onJumpToRow,
-}: {
+  seleccionada = null,
+  onElegir,
+  esElegible,
+}: Eleccion & {
   cards: ChoiceFilterCard[];
-  onJumpToRow?: (rowIndex: number) => void;
+  seleccionada?: number | null;
 }) {
   const withAntecedents = cards.filter((card) => card.antecedents.length > 0);
   if (withAntecedents.length === 0) return null;
@@ -144,7 +155,8 @@ export function ChoiceFilterOverview({
       <span className="pulso-xcf-ov-eyebrow">Cómo se relacionan</span>
       <div className="pulso-xcf-ov-rows">
         {withAntecedents.map((card) => (
-          <OverviewRow key={card.rowIndex} card={card} onJumpToRow={onJumpToRow} />
+          <OverviewRow key={card.rowIndex} card={card} seleccionada={card.rowIndex === seleccionada}
+            onElegir={onElegir} esElegible={esElegible} />
         ))}
       </div>
     </section>

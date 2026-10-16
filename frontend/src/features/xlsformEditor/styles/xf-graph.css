@@ -1003,18 +1003,6 @@
   border-color: var(--pulso-primary-border);
   box-shadow: var(--pulso-shadow-popover);
 }
-.pulso-graph-overlay .pulso-graph-detail-go {
-  min-height: 32px;
-  border-radius: 999px;
-  font-weight: var(--pulso-weight-semibold);
-  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
-  transition:
-    background var(--motion-dur-fast) ease,
-    transform var(--motion-dur-press) var(--motion-ease-out);
-}
-.pulso-graph-overlay .pulso-graph-detail-go:active {
-  transform: scale(0.97);
-}
 .pulso-graph-overlay .pulso-graph-edge-panel-btn {
   border-radius: 999px;
   font-weight: var(--pulso-weight-semibold);
@@ -1202,5 +1190,49 @@
 @media (prefers-reduced-motion: reduce) {
   .pulso-graph-body .pulso-graph-empty {
     animation: none;
+  }
+}
+
+/* ─── Panel del nodo elegido (DetalleNodo, ítem 50) ─────────────────
+ * Arriba a la derecha dentro del lienzo, superpuesto como ya hacía; su alto se
+ * detiene antes del minimapa (abajo a la derecha, ~128 px + 16 px de margen) y
+ * desplaza su propio contenido. El acento del módulo marca la selección. */
+.pulso-graph-overlay .pulso-graph-detail {
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4);
+  border-radius: var(--pulso-radius-card);
+  max-height: calc(100% - 18px - 160px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-color: var(--module-accent-border, var(--pulso-primary-border));
+  border-left: 3px solid var(--module-accent, var(--pulso-primary));
+}
+.pulso-graph-detail-avatar {
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+.pulso-graph-detail.is-section .pulso-graph-detail-avatar {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+}
+.pulso-graph-detail-expr {
+  font-family: var(--pulso-font-mono, ui-monospace, monospace);
+  font-style: normal;
+}
+.pulso-graph-detail-vacio {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-graph-detail {
+    animation: none;
+  }
+}
+/* El encuadre del nodo elegido (pan animado) se apaga con movimiento reducido; la cámara salta. */
+@media (prefers-reduced-motion: reduce) {
+  .pulso-graph-overlay svg > g {
+    transition: none !important;
   }
 }

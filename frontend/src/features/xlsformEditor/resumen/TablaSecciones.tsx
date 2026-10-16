@@ -1,9 +1,13 @@
 // Secciones del formulario como tabla: peso en el instrumento, preguntas, obligatorias, con condiciones, minutos y
-// tipo predominante. Ordenable por columna; cada fila abre su sección en el Constructor. La tabla es dueña de su
-// scroll dentro del panel, con cabecera fija.
+// tipo predominante. Ordenable por columna. El clic en una fila la despliega ahí mismo con sus preguntas (una a la
+// vez; la abierta es el `foco` de la dirección) y cada pregunta lleva un «Editar» discreto, la única salida al
+// Constructor (ítem 50). Un tramo del «Recorrido en el tiempo» resalta su fila y la trae a la vista. La tabla es
+// dueña de su scroll dentro del panel, con cabecera fija.
 
-import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, Folder, Repeat } from "../../../vendor/lucide-react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, Folder, Repeat } from "../../../vendor/lucide-react";
+import { EditarEnConstructor } from "../shell/EditarEnConstructor";
+import { claveSeccion, type PreguntaDeSeccion } from "./preguntasDeSeccion";
 import {
   CRITERIO_DURACION,
   UMBRAL_SECCION_PESADA,
@@ -37,12 +41,51 @@ function Encabezado({ columna, rotulo, clase, orden, onOrden }: {
   );
 }
 
-export function TablaSecciones({ filas, kindDe, onAbrir }: {
+function minutosDePregunta(segundos: number): string {
+  return `${(segundos / 60).toLocaleString("es-PE", { maximumFractionDigits: 1 })} min`;
+}
+
+function PreguntasDesplegadas({ preguntas, onEditar }: {
+  preguntas: readonly PreguntaDeSeccion[];
+  onEditar: (name: string) => void;
+}) {
+  if (preguntas.length === 0) {
+    return <p className="pulso-xf-ficha-nota">Esta sección no tiene preguntas propias: sólo notas, cálculos o subsecciones.</p>;
+  }
+  return (
+    <ol className="pulso-xf-res-preguntas">
+      {preguntas.map((p) => (
+        <li key={p.rowIndex}>
+          <span className="pulso-xf-res-preg-num">P{p.numero}</span>
+          <span className="pulso-xf-res-preg-texto" title={p.enunciado}>{p.enunciado}</span>
+          <span className="pulso-xf-res-preg-tipo">{p.tipo}</span>
+          <span className="pulso-xf-res-preg-min">{minutosDePregunta(p.segundos)}</span>
+          <EditarEnConstructor discreto que={`la pregunta ${p.numero}`} onEditar={() => onEditar(p.name)} />
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, preguntasDe, onEditarPregunta }: {
   filas: readonly FilaSeccion[];
   kindDe: (id: string) => "section" | "repeat" | "root";
-  onAbrir: (fila: FilaSeccion) => void;
+  /** Clave (`claveSeccion`) de la fila desplegada, o null. */
+  abierta: string | null;
+  onAlternar: (clave: string) => void;
+  /** Clave de la fila que pidió un tramo del recorrido: se resalta y se trae a la vista. */
+  resaltada: string | null;
+  preguntasDe: (seccionId: string) => PreguntaDeSeccion[];
+  onEditarPregunta: (name: string) => void;
 }) {
   const [orden, setOrden] = useState<Orden>({ columna: "orden", descendente: false });
+  const filasRef = useRef(new Map<string, HTMLTableRowElement>());
+  useEffect(() => {
+    const el = resaltada ? filasRef.current.get(resaltada) : null;
+    if (!el) return;
+    const quieto = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ block: "nearest", behavior: quieto ? "auto" : "smooth" });
+  }, [resaltada]);
   const ordenadas = useMemo(() => ordenarSecciones(filas, orden), [filas, orden]);
   const maxPeso = Math.max(0.0001, ...filas.map((f) => f.peso));
   const pesadas = filas.filter((f) => f.pesada).length;
@@ -50,6 +93,7 @@ export function TablaSecciones({ filas, kindDe, onAbrir }: {
   // Una columna toda en cero es ruido: se oculta y se dice en una línea.
   const sinCondiciones = filas.every((f) => f.conCondiciones === 0);
   const columnas = sinCondiciones ? COLUMNAS.filter((c) => c.columna !== "conCondiciones") : COLUMNAS;
+  const totalColumnas = columnas.length + 3;
 
   return (
     <section className="pulso-xf-res-panel pulso-xf-res-secciones" aria-labelledby="xf-res-secciones-titulo" data-qa-geometry-member="">
@@ -76,11 +120,19 @@ export function TablaSecciones({ filas, kindDe, onAbrir }: {
             <tbody>
               {ordenadas.map((f) => {
                 const Icono = kindDe(f.id) === "repeat" ? Repeat : Folder;
+                const clave = claveSeccion(f);
+                const desplegada = abierta === clave;
+                const idDetalle = `xf-res-seccion-${clave.replace(/[^A-Za-z0-9_-]/g, "_")}`;
+                const clases = [f.pesada && "is-pesada", desplegada && "is-desplegada", resaltada === clave && "is-resaltada"]
+                  .filter(Boolean).join(" ");
                 return (
-                  <tr key={f.id} className={f.pesada ? "is-pesada" : undefined} onClick={() => onAbrir(f)}>
+                  <Fragment key={f.id}>
+                  <tr className={clases || undefined} onClick={() => onAlternar(clave)}
+                    ref={(el) => { if (el) filasRef.current.set(clave, el); else filasRef.current.delete(clave); }}>
                     <th scope="row" className="is-seccion">
-                      <button type="button" className="pulso-xf-res-seccion" onClick={(e) => { e.stopPropagation(); onAbrir(f); }}
-                        aria-label={`Abrir ${f.rotulo} en el Constructor`} disabled={!f.name}>
+                      <button type="button" className="pulso-xf-res-seccion" onClick={(e) => { e.stopPropagation(); onAlternar(clave); }}
+                        aria-expanded={desplegada} aria-controls={desplegada ? idDetalle : undefined}>
+                        <ChevronRight size={13} aria-hidden="true" className="pulso-xf-res-seccion-chevron" />
                         <Icono size={14} aria-hidden="true" />
                         <span className="pulso-xf-res-seccion-texto">
                           <span title={f.rotulo}>{f.rotulo}</span>
@@ -101,6 +153,17 @@ export function TablaSecciones({ filas, kindDe, onAbrir }: {
                     <td className="is-num">{minutos(f.segundos)}</td>
                     <td className="is-tipo" title={f.tipoPredominante ?? ""}>{f.tipoPredominante ?? "—"}</td>
                   </tr>
+                  {desplegada && (
+                    <tr className="pulso-xf-res-desplegada">
+                      <td colSpan={totalColumnas}>
+                        <div id={idDetalle} className="pulso-xf-ficha pulso-xf-res-ficha" role="region" aria-labelledby={`${idDetalle}-titulo`}>
+                          <h4 id={`${idDetalle}-titulo`} className="pulso-xf-ficha-titulo">Preguntas de {f.rotulo}</h4>
+                          <PreguntasDesplegadas preguntas={preguntasDe(f.id)} onEditar={onEditarPregunta} />
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 );
               })}
             </tbody>

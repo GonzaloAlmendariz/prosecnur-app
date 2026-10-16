@@ -36,7 +36,7 @@ export function PendientesPublicar({ items, onAccion }: {
                 <span title={item.detalle}>{item.detalle}</span>
               </span>
               {item.accion ? (
-                <button type="button" className="pulso-xf-res-enlace" onClick={() => onAccion(item.accion!.destino)}>
+                <button type="button" className="pulso-xf-res-enlace" data-accion="ir-a-pendiente" onClick={() => onAccion(item.accion!.destino)}>
                   {item.accion.rotulo} <ArrowRight size={13} aria-hidden="true" />
                 </button>
               ) : <span aria-hidden="true" />}
