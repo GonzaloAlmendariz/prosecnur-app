@@ -119,7 +119,8 @@
 .xfp-check li.is-ok::before { content: "✓"; color: var(--pulso-success-fg); }
 .xfp-check li.is-aviso::before { content: "!"; color: var(--pulso-accent-amber); left: 4px; }
 .xfp-usos { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.xfp-usos li { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.xfp-usos li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; min-width: 0; }
+.xfp-usos li .xfk-tok { min-width: 0; }
 .xfp-usos__col { font-size: 12px; color: var(--pulso-text-faint); white-space: nowrap; }
 
 @media (max-width: 1100px) {
@@ -161,3 +162,13 @@
 .xfp-telefono__error { font-size: 12.5px; color: var(--pulso-danger-fg); }
 .xfp-telefono__ok { font-size: 12.5px; color: var(--pulso-text-muted); }
 .xfp-prueba__etq { margin-left: 8px; font-size: 12px; color: var(--pulso-text-muted); }
+
+.xfp-resultado { font-weight: 600; color: var(--pulso-text); overflow-wrap: anywhere; }
+.xfp-entradas { display: flex; flex-direction: column; }
+.xfp-entrada { display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: 10px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--pulso-border); }
+.xfp-entrada:last-child { border-bottom: 0; }
+.xfp-entrada__rot { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 7px; align-items: center; min-width: 0; font-size: 12.5px; color: var(--pulso-text); }
+.xfp-entrada__txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xfp-entrada__rot code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--pulso-text-faint); }
+.xfp-entrada input { box-sizing: border-box; width: 100%; height: 28px; padding: 0 8px; border: 1px solid var(--pulso-border-strong); border-radius: 6px; background: var(--pulso-surface); font: inherit; font-size: 12.5px; color: var(--pulso-text); }
+.xfp-entrada input:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 0; }

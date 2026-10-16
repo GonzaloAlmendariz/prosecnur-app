@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { LogicScope } from "../logic";
 import type { BuilderStructure } from "../types";
 import { describeExpression } from "../canvas/reglasHumanas";
@@ -6,6 +6,8 @@ import { PanelCard, QuestionToken, ReadsAs, TypeIcon } from "../kit";
 import { EditarEnConstructor } from "../shell/EditarEnConstructor";
 import { PestanaReglas, type ReglaListaGrupo } from "./PestanaReglas";
 import { calculosDelFormulario } from "./reglasModel";
+import { ProbarCalculo } from "./ProbarCalculo";
+import { CalculationRecipePanel } from "../canvas/constructor/CalculoRepeticionPaneles";
 
 // Pestaña Cálculos (revamp 2026-10-16): cada `calculate` del formulario con su fórmula leída
 // en español, de qué respuestas sale y quién lo usa después.
@@ -23,9 +25,12 @@ export type PestanaCalculosProps = {
   seleccionada: string | null;
   onSeleccionar: (variable: string | null) => void;
   onEditar: (rowIndex: number) => void;
+  onCampo: (rowIndex: number, field: string, value: string) => void;
+  catalogs: { listName: string; items: { name: string; label: string }[] }[];
 };
 
-export function PestanaCalculos({ structure, scope, seleccionada, onSeleccionar, onEditar }: PestanaCalculosProps) {
+export function PestanaCalculos({ structure, scope, seleccionada, onSeleccionar, onEditar, onCampo, catalogs }: PestanaCalculosProps) {
+  const opcionesDe = useCallback((listName: string) => catalogs.find((c) => c.listName === listName)?.items ?? [], [catalogs]);
   const items = useMemo(() => calculosDelFormulario(structure), [structure]);
   const actual = items.find((i) => i.node.name === seleccionada) ?? items[0] ?? null;
   const porNombre = (name: string) => structure?.outline.find((n) => n.name === name) ?? null;
@@ -66,10 +71,18 @@ export function PestanaCalculos({ structure, scope, seleccionada, onSeleccionar,
             <h2 className="xfp-encabezado__titulo">{actual.node.label || actual.node.name}</h2>
             <span className="xfp-encabezado__accion"><EditarEnConstructor onEditar={() => onEditar(actual.node.rowIndex)} que={`el cálculo ${actual.node.name}`} /></span>
           </div>
-          <PanelCard title="Fórmula" meta={actual.vacio ? "vacía" : undefined} flush>
+          <PanelCard title="Fórmula" meta="mismo editor que en el Constructor" className="xfp-editor">
+            <CalculationRecipePanel
+              expression={actual.node.calculation}
+              scope={scope}
+              onFieldChange={(field, value) => onCampo(actual.node.rowIndex, field, value)}
+            />
+          </PanelCard>
+          <PanelCard title="Cómo se interpreta" meta={actual.vacio ? "vacía" : undefined} flush>
             <ReadsAs label="Se lee">{actual.vacio ? "Sin fórmula: la columna quedará vacía en la base." : lectura?.summary ?? actual.node.calculation}</ReadsAs>
             <ReadsAs label="XLSForm" code>{actual.vacio ? "calculation vacío" : `calculation = ${actual.node.calculation.trim()}`}</ReadsAs>
           </PanelCard>
+          <ProbarCalculo node={actual.node} usa={actual.usa} structure={structure} opcionesDe={opcionesDe} />
           <div className="xfp-fila2">
             <PanelCard title="Usa" meta={actual.usa.length ? `${actual.usa.length}` : undefined} fill>
               {actual.usa.length ? (
