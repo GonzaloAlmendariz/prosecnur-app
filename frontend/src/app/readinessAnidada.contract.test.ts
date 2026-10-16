@@ -135,6 +135,8 @@ const FALSE_TRANSITORIO: Record<string, string> = {
     "panel «Ver preguntas»: cargando el endpoint o resolviendo la base; en error publica true",
   "features/analitica/panes/DataReviewPane.tsx":
     "`loading` de la revisión de datos; el error es terminal y publica true",
+  "features/carga/MapaBasesPanel.tsx":
+    "mapa de bases: sólo mientras lee lo que cada base tiene fuera de la matriz; al terminar (o fallar) publica true",
   "features/analitica/PanelUniverso.tsx":
     "panel «Qué casos cuentan»: sólo mientras lee el universo de las bases; el error es terminal y publica true",
   "features/analitica/PanelVariablesExcluidas.tsx":
