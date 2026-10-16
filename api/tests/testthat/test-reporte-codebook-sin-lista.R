@@ -1,0 +1,55 @@
+# Libro de códigos: las preguntas sin lista (numéricas, texto, calculadas) se
+# documentan con su etiqueta y una línea de contenido (2026-10-16).
+
+.cbs_df <- function() {
+  df <- data.frame(
+    `_uuid` = c("a", "b", "c", "d"),
+    P1 = c("18", "21", "67", NA),
+    P2 = c(1, 2, 1, 2),
+    P8_otro = c("", "fui a la daes", NA, "otro"),
+    indice = c(0.5, 1.25, 2, 2),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  attr(df$P1, "label") <- "¿Cuál es tu edad?"
+  attr(df$P2, "label") <- "Sexo"
+  attr(df$P2, "labels") <- c("1" = "Mujer", "2" = "Hombre")
+  attr(df$P8_otro, "label") <- "Otro (especifica)"
+  attr(df$indice, "label") <- "Índice"
+  attr(df, "instrumento_reporte") <- list(survey = data.frame(
+    type = c("text", "select_one sexo", "text", "calculate", "start"),
+    name = c("P1", "P2", "P8_otro", "indice", "inicio"), stringsAsFactors = FALSE))
+  df
+}
+
+test_that("la línea de contenido dice numérica con rango o texto, con sus casos", {
+  expect_identical(codebook_descripcion_sin_lista(c("18", "21", "67", NA)), "Numérica · de 18 a 67 · 3 con dato")
+  expect_identical(codebook_descripcion_sin_lista(c(0.5, 1.25, 2)), "Numérica · de 0.5 a 2 · 3 con dato")
+  expect_identical(codebook_descripcion_sin_lista(c("", "fui a la daes", NA)), "Texto abierto · 1 con dato")
+  expect_identical(codebook_descripcion_sin_lista(c(NA, "")), "Sin respuestas en la base")
+  expect_identical(codebook_descripcion_sin_lista(rep(1, 1500)), "Numérica · 1 · 1,500 con dato")
+})
+
+test_that("el Excel documenta las preguntas sin lista y deja fuera los metadatos", {
+  skip_if_not_installed("openxlsx")
+  df <- .cbs_df()
+  out <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(out), add = TRUE)
+  .write_codebook_from_df(df, outfile = out, ficha_tecnica = FALSE)
+  m <- as.matrix(openxlsx::read.xlsx(out, colNames = FALSE, skipEmptyRows = FALSE))
+  celdas <- as.character(m)
+  for (v in c("P1", "P2", "P8_otro", "indice")) expect_true(v %in% m[, 1], info = v)
+  expect_false("_uuid" %in% m[, 1])
+  expect_true("Numérica · de 18 a 67 · 3 con dato" %in% celdas)
+  expect_true("Texto abierto · 2 con dato" %in% celdas)
+  expect_true("Contenido" %in% m[, 1])
+  # La categórica sigue con su bloque de siempre.
+  expect_true("Valores válidos" %in% m[, 1])
+  expect_true("Mujer" %in% celdas)
+})
+
+test_that("el PDF arma bloque también para las preguntas sin lista", {
+  b <- .codebook_pdf_build_blocks(.cbs_df())
+  nombres <- vapply(b, `[[`, "", "name")
+  expect_identical(nombres, c("P1", "P2", "P8_otro", "indice"))
+  expect_identical(b[[1]]$labels, "Numérica · de 18 a 67 · 3 con dato")
+})

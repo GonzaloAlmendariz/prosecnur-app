@@ -206,7 +206,10 @@ reporte_codebook <- function(data,
     },
     logical(1)
   )
-  vars_to_write <- vars_all[vars_with_labels]
+  # Las preguntas sin lista (numéricas, texto, calculadas) también se documentan:
+  # con su etiqueta y una línea de contenido (reporte_codebook_sin_lista.R).
+  sin_lista <- setdiff(.codebook_vars_sin_lista(df), vars_all[vars_with_labels])
+  vars_to_write <- vars_all[vars_with_labels | vars_all %in% sin_lista]
 
   if (length(vars_to_write) == 0L) {
     stop("No se encontraron variables con value-labels ni entradas en `ord`.",
@@ -234,6 +237,8 @@ reporte_codebook <- function(data,
 
     varlabel <- get_var_label(v)
     vl <- get_value_labels(v)
+    es_sin_lista <- is.null(vl) && v %in% sin_lista
+    if (es_sin_lista) vl <- list(codes = "", labels = codebook_descripcion_sin_lista(df[[v]]))
     if (is.null(vl)) next
 
     codes  <- trimws(as.character(vl$codes))
@@ -292,7 +297,7 @@ reporte_codebook <- function(data,
 
     openxlsx::mergeCells(wb, sheet, cols = 1, rows = vals_start:vals_end)
     openxlsx::writeData(
-      wb, sheet, x = "Valores válidos",
+      wb, sheet, x = if (es_sin_lista) "Contenido" else "Valores válidos",
       startCol = 1, startRow = vals_start, colNames = FALSE
     )
     openxlsx::addStyle(
