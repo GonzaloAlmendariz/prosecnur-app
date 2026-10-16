@@ -164,6 +164,9 @@ arquitectura canónica.
 - [Checklist de `respondent_id` y decimales de Frecuencias](qa/checklist-respondent-id-decimales-2026-08-14.md):
   las tres barreras que dejaban el identificador de caso fuera de la BBDD y
   hasta dónde se decidió llevar la metadata de SurveyMonkey.
+- [Checklist del revamp visual del módulo Formularios](qa/checklist-revamp-formularios-2026-10-16.md):
+  revamp Linear/Airtable del editor (kit, pestañas Restricciones y Cálculos, lectura humana de reglas, Editor XLSForm),
+  verificado sobre los seis formularios tipo del corpus.
 - [Checklist de Identidad, Estilo del informe, índice y paletas de Gráficos](qa/checklist-graficos-identidad-estilo-2026-10-11.md):
   comentarios del 2026-10-11 sobre Identidad, texto de la base, subcapítulos del índice y paletas.
 - [Checklist de códigos de respuesta en imports SurveyMonkey por API](qa/checklist-codificacion-sm-2026-10-11.md):
