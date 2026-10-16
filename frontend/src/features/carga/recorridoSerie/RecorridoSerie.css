@@ -1,0 +1,199 @@
+/* Recorrido de la serie (Carga › Equivalencias).
+   Sólo tokens `--pulso-*` y el acento del módulo. Una fila de seis pasos de
+   igual marco (C2): el alto lo fija el paso más largo de la fila y los textos
+   del modelo vienen acotados, así que con 2 o con 6 bases la banda mide lo
+   mismo. Con poco ancho pasa a 3 x 2 en vez de desplazarse en horizontal (C4). */
+
+.pulso-recorrido {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.pulso-recorrido-head {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.pulso-recorrido-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pulso-recorrido-titulo > svg {
+  color: var(--module-accent);
+}
+
+.pulso-recorrido-resumen {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.pulso-recorrido-plegar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 2px var(--pulso-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.pulso-recorrido-plegar:hover {
+  border-color: var(--pulso-border);
+  color: var(--pulso-text);
+}
+
+.pulso-recorrido-plegar:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+}
+
+.pulso-recorrido-pasos {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  /* Marcos iguales en la fila: el grid estira el marco, no el texto. */
+  align-items: stretch;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@container (max-width: 760px) {
+  .pulso-recorrido-pasos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.pulso-recorrido-paso {
+  display: flex;
+  min-width: 0;
+}
+
+.pulso-recorrido-enlace {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.pulso-recorrido-enlace:hover {
+  border-color: var(--module-accent-border);
+  background: var(--pulso-surface-raised);
+}
+
+.pulso-recorrido-enlace:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+}
+
+.pulso-recorrido-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pulso-recorrido-numero {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-recorrido-nombre {
+  flex: 1;
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.pulso-recorrido-icono {
+  flex-shrink: 0;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-recorrido-detalle {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.4;
+  /* Los nombres de base y de columna no se cortan con elipsis: envuelven. */
+  overflow-wrap: anywhere;
+}
+
+/* Estado: el ícono y el número lo dicen; el borde sólo acompaña. */
+
+.pulso-recorrido-paso.is-hecho .pulso-recorrido-icono {
+  color: var(--pulso-success-fg);
+}
+
+.pulso-recorrido-paso.is-hecho .pulso-recorrido-numero {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-recorrido-paso.is-falta .pulso-recorrido-enlace {
+  border-color: var(--pulso-warn-border);
+}
+
+.pulso-recorrido-paso.is-falta .pulso-recorrido-icono {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-recorrido-paso.is-falta .pulso-recorrido-numero {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-recorrido-paso.is-falta .pulso-recorrido-detalle {
+  color: var(--pulso-text);
+}
+
+.pulso-recorrido-paso.is-no-empezado .pulso-recorrido-enlace {
+  border-style: dashed;
+  background: var(--pulso-surface);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-recorrido-enlace {
+    transition: none;
+  }
+}

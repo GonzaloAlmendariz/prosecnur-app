@@ -71,10 +71,13 @@ import {
 import { ComparativosLista } from "./ComparativosLista";
 import { ComparativosAvisos } from "./ComparativosAvisos";
 import { NotasPieEditor } from "./NotasPieEditor";
+import { AvisoPonderacionSerie, PonderacionDeLaSerieLinea } from "./ComparativosPonderacion";
+import { usePonderacionDeLaSerie } from "../usePonderacionDeLaSerie";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { rotuloDeMatriz } from "../../../lib/rotuloDeMatriz";
 import { mayuscula, nombreDeSerie, type NombreDeSerie } from "../../carga/nombreDeSerie";
 import "./ComparativosPane.css";
+import "./ComparativosPonderacion.css";
 
 type Carga =
   | { estado: "cargando" }
@@ -156,6 +159,7 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
   const filas = useMemo(() => filasArmonizadas(equivalencias), [equivalencias]);
   const periodos = useMemo(() => periodosDeSerie(equivalencias), [equivalencias]);
   const [ui, dispatch] = useReducer(comparativosReducer, undefined, () => estadoInicial(filas, periodos));
+  const ponderacion = usePonderacionDeLaSerie(periodos);
 
   const ocupado = ui.enviando !== null || ui.job !== null;
   // Una sola decisión de cómo se nombra la serie, con los rótulos que vienen de
@@ -204,6 +208,9 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
           { clave: "cruce", etiqueta: "Variables de cruce", valor: formatoConteo(ui.cruces.length) },
         ]}
       />
+
+      {/* Cómo pondera cada base: el comparativo aplica la declarada de cada una. */}
+      <PonderacionDeLaSerieLinea lectura={ponderacion} />
 
       <div
         className="pulso-comparativos-secciones"
@@ -262,6 +269,7 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
       </div>
 
       <div className="pulso-comparativos-generar">
+        <AvisoPonderacionSerie lectura={ponderacion} />
         <div className="pulso-comparativos-botones">
           <BotonGenerar
             etiqueta="Generar comparativo simple"
