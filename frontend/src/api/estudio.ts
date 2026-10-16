@@ -702,3 +702,49 @@ export async function apiUpload(file: File, kind: UploadKind) {
     })
   );
 }
+
+// ---- Anexar columnas desde otro archivo (carga_columnas_anexadas.R) --------
+
+export type AnexarVista = {
+  archivo: string;
+  claves: { clave: string; n_base: number; n_archivo: number; n_coinciden: number; repetidas_en_archivo: number }[];
+  columnas: { nombre: string; ya_en_la_base: boolean; n_con_dato: number; n_valores: number }[];
+};
+
+function primeroDe(x: unknown): unknown {
+  return Array.isArray(x) ? x[0] : x;
+}
+const num = (x: unknown) => Number(primeroDe(x) ?? 0) || 0;
+
+export async function apiAnexarVista(nombre: string, file_id: string): Promise<AnexarVista> {
+  const r = await handle<Record<string, unknown>>(
+    await apiFetch("/api/estudio/base/anexar/vista", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ nombre, file_id }),
+    }),
+  );
+  const lista = (x: unknown) => (Array.isArray(x) ? (x as Record<string, unknown>[]) : []);
+  return {
+    archivo: String(primeroDe(r.archivo) ?? ""),
+    claves: lista(r.claves).map((c) => ({
+      clave: String(primeroDe(c.clave) ?? ""), n_base: num(c.n_base), n_archivo: num(c.n_archivo),
+      n_coinciden: num(c.n_coinciden), repetidas_en_archivo: num(c.repetidas_en_archivo),
+    })),
+    columnas: lista(r.columnas).map((c) => ({
+      nombre: String(primeroDe(c.nombre) ?? ""), ya_en_la_base: primeroDe(c.ya_en_la_base) === true,
+      n_con_dato: num(c.n_con_dato), n_valores: num(c.n_valores),
+    })),
+  };
+}
+
+export async function apiAnexarColumnas(nombre: string, file_id: string, clave: string, columnas: string[]) {
+  const r = await handle<Record<string, unknown>>(
+    await apiFetch("/api/estudio/base/anexar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ nombre, file_id, clave, columnas }),
+    }),
+  );
+  return { n_base: num(r.n_base), n_con_dato: num(r.n_con_dato) };
+}

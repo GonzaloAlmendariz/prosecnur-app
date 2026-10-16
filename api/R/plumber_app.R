@@ -103,6 +103,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_multi_integrated(pr)
     pr <- mount_estudio(pr)
     pr <- mount_carga_reemplazar_respuestas(pr)
+    pr <- mount_carga_columnas_anexadas(pr)
     pr <- mount_validacion(pr)
     pr <- mount_validacion_caso_valido_manual(pr)
     pr <- mount_codificacion(pr)
