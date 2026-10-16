@@ -21,9 +21,9 @@ Indicaciones del usuario que gobiernan todo el revamp:
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
 | E0 | Rama, worktree, dependencias, checklist y encargo del loop | rama `feat/revamp-formularios` | ☑ |
-| E1 | Kit visual: tarjeta con cabecera y pie, filas de propiedad, segmentado, ficha de pregunta, iconos por tipo, filas de condición; sólo tokens `--pulso-*` | `xlsformEditor/kit/` (nuevo) | ☐ |
-| E2 | Marco del módulo: rail con Constructor, Editor XLSForm, Leer, Lógica, Restricciones (nueva), Cálculos (nueva), Probar, Resumen, Impreso | `navegacion/catalogos/editorFormularios.ts`, rail y contratos de navegación | ☐ |
-| E3 | Constructor en tarjetas: pregunta y respuestas, «Cuándo aparece» con la regla heredada de la sección, «Qué acepta» junto a «Así se imprime», propiedades y relaciones | `canvas/` (componentes nuevos; `FocusedWorkspace.tsx` no crece) | ☐ |
+| E1 | Kit visual: tarjeta con cabecera y pie, filas de propiedad, segmentado, ficha de pregunta, iconos por tipo, filas de condición; sólo tokens `--pulso-*` | `xlsformEditor/kit/` (nuevo) — commit 744aef6ec | ☑ |
+| E2 | Marco del módulo: rail con Constructor, Editor XLSForm, Leer, Lógica, Restricciones (nueva), Cálculos (nueva), Probar, Resumen, Impreso | `navegacion/catalogos/editorFormularios.ts`, rail y contratos de navegación — commits 4ec17c806 (refactor), d861cbe66, 604c1a206 (vacíos contenidos); verificado con proyecto real a 1440×1000 y 1366×768 | ☑ |
+| E3 | Constructor en tarjetas: pregunta y respuestas, «Cuándo aparece» con la regla heredada de la sección, «Qué acepta» junto a «Así se imprime», propiedades y relaciones | `canvas/` — corte previo d09cb2e37: `FocusedWorkspace` 4176→1067, pestañas internas en `canvas/constructor/Tab*.tsx` | ◐ |
 | E4 | Lógica: lista por sección con reglas de sección y de pregunta, filtro Todas/Sección/Pregunta, editor en tarjetas; el mapa se conserva | `canvas-graph/`, `inspector/logic/` | ☐ |
 | E5 | Pestaña Restricciones: punto de partida, regla, mensaje, vista del teléfono, probar valores, antes de guardar | nueva | ☐ |
 | E6 | Pestaña Cálculos: lista, editor de fórmula con `@`, catálogo de funciones, probar, relaciones | nueva | ☐ |
