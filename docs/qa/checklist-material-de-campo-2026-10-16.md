@@ -18,7 +18,7 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | A6 | La lista de fichas de cuota nace en Hojas de ruta, en un modo sin marco | ADR 0108 §6 | hecho (decidido 2026-10-16) |
 | A9 | ADR propio del modo `cuotas` de Hojas de ruta (secciones, contrato de la asignación, migración) | `docs/adrs/` | pendiente; frena E4 |
 | A7 | «Entrega» de Hojas de ruta se renombra «Selección» y conserva Cuotas, Titulares y Reemplazos | ADR 0108 §5 | hecho (confirmado 2026-10-16) |
-| A8 | Aceptar el ADR 0108 | `docs/adrs/` | **bloqueado**: decisión de Gonzalo |
+| A8 | Aceptar el ADR 0108 | `docs/adrs/` | hecho (aceptado 2026-10-16) |
 
 ## Diagnóstico y revisión
 
@@ -73,7 +73,7 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 
 | # | Etapa | Dónde vive | Estado |
 |---|---|---|---|
-| E0a | Renombre, ruta, modos, secciones, redirección con query, migración del slug y de `active_stage`, home | `modules.ts`, `App.tsx`, `direccion.ts`, `project_overview.R`, `router_diseno_estudio.R`, `router_hojas_ruta.R` | pendiente (depende de A8, D7) |
+| E0a | Renombre, ruta, modos, secciones, redirección con query, migración del slug y de `active_stage`, home | `modules.ts`, `App.tsx`, `direccion.ts`, `project_overview.R`, `router_diseno_estudio.R`, `router_hojas_ruta.R` | en curso (rama `feat/material-campo-e0a`) |
 | E0b | Token Musgo, alias, ícono `Backpack`, `branding/` | `tokens.css`, `boot.css`, `branding/identity/tokens.css`, `lib/icons.ts` | pendiente (depende de E0a) |
 | E1 | Catálogo, `compatible_unit_types`, dos registros de adapters, `collection_state/v2`, revamp «pliego de imprenta» | `collection_*.R`, `features/recopiladores/` | pendiente |
 | E2 | `ump_territorial_v1` y salidas de Hojas de ruta como layout legacy | archivo nuevo junto a `collection_adapters.R` | pendiente |
