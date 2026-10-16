@@ -283,7 +283,7 @@ segmentos_guardar <- function(sid, cuerpo) {
       base_variables_guardar_calculada(sid, b, .segmentos_calculada(seg, entrada),
                                        marca = list(segmento = seg$clave))
     } else if (.segmentos_calculada_propia(session_get(sid)$estudio$bases[[b]], seg)) {
-      base_variables_quitar_calculada(sid, b, seg$nombre)
+      base_variables_quitar_calculada(sid, b, seg$nombre, desde_segmento = TRUE)
     }
   }
   .segmentos_escribir_estudio(sid, seg$clave, seg)
@@ -304,7 +304,7 @@ segmentos_quitar <- function(sid, clave) {
   }
   for (b in .segmentos_bases(s)) {
     if (.segmentos_calculada_propia(s$estudio$bases[[b]], seg)) {
-      base_variables_quitar_calculada(sid, b, seg$nombre)
+      base_variables_quitar_calculada(sid, b, seg$nombre, desde_segmento = TRUE)
     }
   }
   s <- session_get(sid)
