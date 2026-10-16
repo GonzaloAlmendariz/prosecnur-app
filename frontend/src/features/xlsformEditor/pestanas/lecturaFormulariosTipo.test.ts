@@ -29,6 +29,7 @@ describe.skipIf(!activo)("lectura humana sobre los seis formularios tipo", () =>
   test("mide la proporción de reglas que caen en «técnica» por columna y formulario", () => {
     const filas: string[] = [];
     const porFuncion = new Map<string, { n: number; ejemplo: string }>();
+    const muestras = new Map<string, string[]>();
     let total = 0;
     let tecnicas = 0;
     let mayuscula = 0;
@@ -45,6 +46,9 @@ describe.skipIf(!activo)("lectura humana sobre los seis formularios tipo", () =>
           c[col][0]++;
           total++;
           if (/[ ](y|o) La /.test(lee)) mayuscula++;
+          const km = `${col}:${funcionDe(raw)}`;
+          const lm = muestras.get(km) ?? [];
+          if (lm.length < 2) muestras.set(km, [...lm, `${raw.slice(0, 90)}\n        → ${lee.slice(0, 160)}`]);
           if (/técnica/i.test(lee)) {
             c[col][1]++;
             tecnicas++;
@@ -57,6 +61,7 @@ describe.skipIf(!activo)("lectura humana sobre los seis formularios tipo", () =>
       filas.push(`${wb.titulo.padEnd(42)} constraint ${c.constraint[1]}/${c.constraint[0]} · relevant ${c.relevant[1]}/${c.relevant[0]} · calculation ${c.calculation[1]}/${c.calculation[0]}`);
     }
     const top = [...porFuncion.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 25).map(([k, v]) => `  ${String(v.n).padStart(4)}  ${k.padEnd(34)} ${v.ejemplo}`);
+    if (process.env.PULSO_MUESTRAS) console.log([...muestras.entries()].map(([k, v]) => `${k}\n      ${v.join("\n      ")}`).join("\n"));
     console.log(["", ...filas, `TOTAL técnicas ${tecnicas}/${total} (${Math.round((100 * tecnicas) / Math.max(total, 1))} %) · «y La» ${mayuscula}`, "Por función:", ...top].join("\n"));
     expect(total).toBeGreaterThan(0);
   });

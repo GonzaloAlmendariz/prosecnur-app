@@ -5,6 +5,9 @@
 import type { BuilderNode } from "../types";
 import { parseExpression, serializeExpression, tryFlattenConstraint, type Expr, type LogicScope } from "../logic";
 import { stripMarkdown } from "../helpers/markdown";
+import { describeCall, describeRaw, describeRegex } from "./reglasFunciones";
+
+const TECNICA = "Regla técnica importada";
 
 export type HumanizedExpression = {
   summary: string;
@@ -184,7 +187,7 @@ export function describeExpression(
     return { summary: "Regla vacía", raw, technical: false };
   }
 
-  const summary = describeExpr(ast, scope, options);
+  const summary = pulir(describeExpr(ast, scope, options));
   return {
     summary,
     raw: exprRaw(ast, raw),
@@ -281,7 +284,9 @@ export function describeExpr(
   }
 
   if (expr.kind === "not") {
-    return `No se cumple: ${describeExpr(expr.operand, scope, options)}`;
+    const exclusiva = opcionExclusiva(expr.operand, scope);
+    if (exclusiva) return exclusiva;
+    return `No puede pasar que ${describeExpr(expr.operand, scope, options).replace(/^La /, "la ")}`;
   }
 
   if (expr.kind === "call" && expr.name === "today") return "hoy";
@@ -289,7 +294,14 @@ export function describeExpr(
   if (expr.kind === "literal") return literalLabel(expr.value);
   if (expr.kind === "ref" || expr.kind === "current") return describeOperand(expr, scope, options);
 
-  return "Regla técnica importada";
+  const llamada = describeCall(expr, (e) => describeExpr(e, scope, options), scope);
+  if (llamada && !llamada.includes(TECNICA)) return llamada;
+  if (expr.kind === "raw") {
+    const crudo = describeRaw(expr.text, scope);
+    if (crudo) return crudo;
+  }
+
+  return TECNICA;
 }
 
 export function describeOperand(
@@ -381,7 +393,7 @@ export function knownValidation(expr: Expr, raw: string, baseType: string): stri
     if (pattern.includes("a-z") && pattern.includes("0-9") && pattern.includes("_-")) {
       return "La respuesta debe ser un código sin espacios.";
     }
-    if (pattern.includes("\\d") || pattern.includes("[0-9]")) return "La respuesta debe usar solo números.";
+    if (expr.args[1]?.kind === "literal") return describeRegex(String(expr.args[1].value));
   }
   if (baseType === "date" && normalized.includes("<=today()")) {
     return "La fecha no puede ser posterior a hoy.";
@@ -434,9 +446,7 @@ function describeRange(operands: Expr[], scope: LogicScope, options: { currentLa
   if (operands.length !== 2) return null;
   const [a, b] = operands;
   if (a.kind !== "compare" || b.kind !== "compare") return null;
-  const mismoSujeto =
-    (a.left.kind === "current" && b.left.kind === "current") ||
-    (a.left.kind === "ref" && b.left.kind === "ref" && a.left.name === b.left.name);
+  const mismoSujeto = JSON.stringify(a.left) === JSON.stringify(b.left);
   if (!mismoSujeto) return null;
   const bajo = [a, b].find((c) => c.op === ">=" || c.op === ">");
   const alto = [a, b].find((c) => c.op === "<=" || c.op === "<");
@@ -444,6 +454,27 @@ function describeRange(operands: Expr[], scope: LogicScope, options: { currentLa
   const sujeto = describeOperand(bajo.left, scope, options);
   const min = describeOperand(bajo.right, scope, options);
   const max = describeOperand(alto.right, scope, options);
-  if (bajo.op === ">=" && alto.op === "<=") return `${sujeto} está entre ${min} y ${max}`;
+  if (bajo.op === ">=" && alto.op === "<=") return min === max ? `${sujeto} es exactamente ${min}` : `${sujeto} está entre ${min} y ${max}`;
   return `${sujeto} es ${bajo.op === ">" ? "mayor que" : "al menos"} ${min} y ${alto.op === "<" ? "menor que" : "como máximo"} ${max}`;
+}
+
+/** not(selected(., 'x') and count-selected(.) > 1) — «“Ninguna” no se puede marcar junto con otras opciones». */
+function opcionExclusiva(expr: Expr, scope: LogicScope): string | null {
+  if (expr.kind !== "logical" || expr.op !== "and" || expr.operands.length !== 2) return null;
+  const sel = expr.operands.find((o) => o.kind === "call" && o.name === "selected" && o.args.length === 2);
+  const cuenta = expr.operands.find(
+    (o) => o.kind === "compare" && o.op === ">" && o.left.kind === "call" && o.left.name === "count-selected" && o.right.kind === "literal" && o.right.value === 1,
+  );
+  if (!sel || !cuenta || sel.kind !== "call") return null;
+  const valor = sel.args[1];
+  const nombre = valor.kind === "literal" ? String(valor.value) : "esa opción";
+  return `«${nombre}» no se puede marcar junto con otras opciones`;
+}
+
+/** Ortografía final de una lectura: mayúscula inicial y contracciones («de el» → «del»). */
+export function pulir(frase: string): string {
+  const t = frase
+    .replace(/\b(Si|si|que|y|o|cuando) La respuesta\b/g, "$1 la respuesta")
+    .replace(/\bde el\b/g, "del").replace(/\ba el\b/g, "al").replace(/\s+/g, " ").trim();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
 }
