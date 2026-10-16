@@ -309,8 +309,12 @@ export function reducirCalculada(b: BorradorCalculada, a: AccionCalculada): Borr
   switch (a.tipo) {
     case "nombre":
       return b.editando ? b : { ...b, nombre: a.valor };
-    case "etiqueta":
-      return { ...b, etiqueta: a.valor };
+    case "etiqueta": {
+      // Mientras el nombre siga siendo el propuesto (o esté vacío), acompaña a la
+      // etiqueta: la persona escribe cómo se lee y el nombre técnico sale solo.
+      const auto = !b.editando && (b.nombre === "" || b.nombre === nombreDesdeEtiqueta(b.etiqueta));
+      return { ...b, etiqueta: a.valor, nombre: auto ? nombreDesdeEtiqueta(a.valor) : b.nombre };
+    }
     case "regla":
       return { ...b, regla: a.valor };
     case "alguna":
@@ -489,4 +493,28 @@ export function opcionesDeOrigen(
   const delCatalogo = catalogo.find((o) => o.name === variable)?.opciones ?? [];
   if (delCatalogo.length) return delCatalogo.map((o) => ({ codigo: o.codigo, etiqueta: o.etiqueta }));
   return Object.keys(mapa).map((codigo) => ({ codigo, etiqueta: "" }));
+}
+
+/**
+ * Nombre técnico propuesto desde la etiqueta: minúsculas, sin tildes, palabras
+ * unidas por «_», sin conectores, a lo sumo 32 caracteres y empezando por letra.
+ * «VBG: recurrió a alguna instancia de la PUCP» → «vbg_recurrio_alguna_instancia».
+ */
+const CONECTORES = new Set(["a", "al", "de", "del", "la", "las", "el", "los", "en", "y", "o", "u", "e", "con", "por", "para", "que", "se", "su", "sus"]);
+
+export function nombreDesdeEtiqueta(etiqueta: string): string {
+  const palabras = etiqueta
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w && !CONECTORES.has(w));
+  let out = "";
+  for (const w of palabras) {
+    const siguiente = out ? `${out}_${w}` : w;
+    if (siguiente.length > 32) break;
+    out = siguiente;
+  }
+  if (!out) return "";
+  return /^[a-z]/.test(out) ? out : `v_${out}`.slice(0, 32);
 }
