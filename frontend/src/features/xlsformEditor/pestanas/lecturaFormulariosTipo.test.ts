@@ -9,6 +9,7 @@ import { describeExpression, describeValidation } from "../canvas/reglasHumanas"
 import type { LogicScope } from "../logic";
 import type { XlsformEditorWorkbook } from "../types";
 import { evaluarRestriccion, valoresDeEjemplo } from "../logic/probarRestriccion";
+import { evaluarCalculo } from "../logic/probarCalculo";
 
 const DIR = process.env.PULSO_CORPUS_DIR ? path.join(process.env.PULSO_CORPUS_DIR.replace(/^~/, process.env.HOME ?? ""), "formularios_tipo_json") : "";
 const activo = Boolean(DIR && existsSync(DIR));
@@ -31,6 +32,8 @@ describe.skipIf(!activo)("lectura humana sobre los seis formularios tipo", () =>
     const filas: string[] = [];
     const porFuncion = new Map<string, { n: number; ejemplo: string }>();
     const muestras = new Map<string, string[]>();
+    let calculos = 0;
+    let calcProbables = 0;
     let restricciones = 0;
     let probables = 0;
     const fueraPorTipo = new Map<string, number>();
@@ -43,6 +46,11 @@ describe.skipIf(!activo)("lectura humana sobre los seis formularios tipo", () =>
       const c = { constraint: [0, 0], relevant: [0, 0], calculation: [0, 0] } as Record<string, [number, number]>;
       for (const n of idx.structure.outline) {
         const casos: [string, string, string][] = [];
+        if (n.calculation.trim()) {
+          calculos++;
+          const refs = [...n.calculation.matchAll(/\$\{([^}]+)\}/g)].map((m) => m[1]);
+          if (evaluarCalculo(n.calculation, Object.fromEntries(refs.map((r) => [r, "3"]))).estado === "ok") calcProbables++;
+        }
         if (n.constraint.trim()) {
           restricciones++;
           const vals = valoresDeEjemplo(n, idx.catalogs.find((c) => c.listName === n.typeInfo.listName)?.items.map((i) => i.name) ?? []);
@@ -72,7 +80,7 @@ describe.skipIf(!activo)("lectura humana sobre los seis formularios tipo", () =>
     }
     const top = [...porFuncion.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 25).map(([k, v]) => `  ${String(v.n).padStart(4)}  ${k.padEnd(34)} ${v.ejemplo}`);
     if (process.env.PULSO_MUESTRAS) console.log([...muestras.entries()].map(([k, v]) => `${k}\n      ${v.join("\n      ")}`).join("\n"));
-    console.log(["", ...filas, `PROBAR VALORES: ${probables}/${restricciones} restricciones se pueden probar en el editor · fuera: ${[...fueraPorTipo.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(", ")}`, `TOTAL técnicas ${tecnicas}/${total} (${Math.round((100 * tecnicas) / Math.max(total, 1))} %) · «y La» ${mayuscula}`, "Por función:", ...top].join("\n"));
+    console.log(["", ...filas, `PROBAR CÁLCULOS: ${calcProbables}/${calculos} cálculos se evalúan en el editor`, `PROBAR VALORES: ${probables}/${restricciones} restricciones se pueden probar en el editor · fuera: ${[...fueraPorTipo.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(", ")}`, `TOTAL técnicas ${tecnicas}/${total} (${Math.round((100 * tecnicas) / Math.max(total, 1))} %) · «y La» ${mayuscula}`, "Por función:", ...top].join("\n"));
     expect(total).toBeGreaterThan(0);
   });
 });
