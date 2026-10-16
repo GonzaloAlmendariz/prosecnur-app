@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { CambiosDeRespuestas } from "../../api/estudio";
-import { CambiosDeRespuestasAviso } from "./fuentes/CambiosDeRespuestasAviso";
+import { RespuestasResumen, type DataPreview } from "./RespuestasResumen";
 import {
   AlertTriangle, ArrowRight, ArrowRightLeft, CheckCircle2, ClipboardCheck, CloudDownload,
   Database, FileSpreadsheet, FileWarning, Download, Info, Loader2, RefreshCw, Search, ShieldCheck,
@@ -123,7 +123,6 @@ import { Switch } from "../../components/Switch";
 // antes de pasar a Validación.
 
 type InstrumentoResumen = Awaited<ReturnType<typeof apiCargaInstrumento>>["resumen"];
-type DataPreview = Awaited<ReturnType<typeof apiCargaData>>["preview"];
 
 type IconCmp = typeof Database;
 export type SourceMode = "files" | "platform" | "monitoring";
@@ -1806,101 +1805,21 @@ export default function CargaPage() {
               disabled={!!busy || !hasXlsform}
               disabledHint="Disponible después de cargar el formulario"
               resumen={dataPreview && (
-                <>
-                  {cambiosRespuestas ? (
-                    <CambiosDeRespuestasAviso cambios={cambiosRespuestas} onCerrar={() => setCambiosRespuestas(null)} />
-                  ) : null}
-                  <ResumenStat label="Filas" value={dataPreview.n_filas} />
-                  <ResumenStat label="Columnas" value={dataPreview.n_columnas} />
-                  <div className="pulso-upload-normalizacion">
-                    {dataPreview.normalizacion?.applied
-                      ? (
-                        <>
-                          Preparación aplicada · {dataPreview.normalizacion.aliases} alias
-                          {dataPreview.normalizacion.select_multiple > 0
-                            ? ` · ${dataPreview.normalizacion.select_multiple} selección múltiple reconstruida`
-                            : ""}
-                          {(dataPreview.normalizacion.single_child_collapses ?? 0) > 0
-                            ? ` · ${dataPreview.normalizacion.single_child_collapses} escala(s) colapsada(s)`
-                            : ""}
-                          {typeof dataPreview.normalizacion.extra_columns === "number" && dataPreview.normalizacion.extra_columns > 0
-                            ? ` · ${dataPreview.normalizacion.extra_columns} columna(s) auxiliar(es) al final`
-                            : ""}
-                          {dataPreview.normalizacion.choice_code_maps?.applied
-                            ? ` · ${dataPreview.normalizacion.choice_code_maps.n_questions} mapeo(s) de códigos`
-                            : ""}
-                        </>
-                      )
-                      : "Preparación pendiente: se activa después de cargar el formulario"}
-                  </div>
-                  {choiceMappingReviewFromPreview(dataPreview) && (
-                    <div className={`pulso-choice-map-inline${dataPreview.normalizacion?.choice_code_maps?.requires_confirmation ? " needs-review" : ""}`}>
-                      <span aria-hidden="true" className="pulso-choice-map-inline-icon">
-                        <ArrowRightLeft size={13} />
-                      </span>
-                      <span>
-                        {dataPreview.normalizacion?.choice_code_maps?.requires_confirmation
-                          ? "Pulso detectó las mismas etiquetas con códigos distintos. Confirma cómo ajustar las respuestas antes de validar."
-                          : "Mapeo de códigos confirmado para estas respuestas."}
-                      </span>
-                      <button
-                        type="button"
-                        className="pulso-choice-map-inline-button"
-                        onClick={() => setChoiceMappingReview(choiceMappingReviewFromPreview(dataPreview))}
-                      >
-                        {dataPreview.normalizacion?.choice_code_maps?.requires_confirmation ? "Revisar" : "Ver mapeo"}
-                      </button>
-                    </div>
-                  )}
-                  {normalizationDetails.length > 0 && (
-                    <details className="pulso-normalization-details">
-                      <summary>Ver normalización</summary>
-                      <ul>
-                        {normalizationDetails.map((row, i) => (
-                          <li key={i}>{row}</li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
-                  {dataPreview.normalizacion?.applied && !pendingChoiceMapping && (
-                    <NormalizedExportActions
-                      busy={!!busy}
-                      onExport={(format) => void onExportNormalized(format)}
-                    />
-                  )}
-                  {dataPreview.compatibilidad?.applied && (
-                    <div className={`pulso-upload-compat ${dataPreview.compatibilidad.ok ? "is-ok" : "is-bad"}`}>
-                      {dataPreview.compatibilidad.ok ? "Compatible con el formulario" : "Incompatible con el formulario"}
-                      {typeof dataPreview.compatibilidad.expected_columns === "number"
-                        ? ` · ${dataPreview.compatibilidad.matched_columns}/${dataPreview.compatibilidad.expected_columns} variables`
-                        : ""}
-                      {(dataPreview.compatibilidad.n_missing ?? dataPreview.compatibilidad.missing_columns.length) > 0
-                        ? ` · faltan ${dataPreview.compatibilidad.missing_columns.slice(0, 6).join(", ")}`
-                        : ""}
-                      {(dataPreview.compatibilidad.n_extra ?? dataPreview.compatibilidad.extra_columns.length) > 0
-                        ? ` · ${dataPreview.compatibilidad.n_extra ?? dataPreview.compatibilidad.extra_columns.length} extra permitida(s)`
-                        : ""}
-                    </div>
-                  )}
-                  {dataPreview.columnas.length > 0 && (
-                    <details className="pulso-column-details">
-                      <summary>
-                        Ver columnas ({dataPreview.columnas.length})
-                      </summary>
-                      <ul>
-                        {dataPreview.columnas.map((c, i) => (
-                          <li key={i}>
-                            <code>{c.nombre}</code>{" "}
-                            <em>({c.tipo})</em>
-                            {c.origen === "extra" && (
-                              <span className="pulso-column-extra">extra</span>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
-                </>
+                <RespuestasResumen
+                  preview={dataPreview}
+                  cambios={cambiosRespuestas}
+                  onCerrarCambios={() => setCambiosRespuestas(null)}
+                  mapeo={choiceMappingReviewFromPreview(dataPreview)
+                    ? {
+                        pendiente: !!dataPreview.normalizacion?.choice_code_maps?.requires_confirmation,
+                        onRevisar: () => setChoiceMappingReview(choiceMappingReviewFromPreview(dataPreview)),
+                      }
+                    : null}
+                  detallesNormalizacion={normalizationDetails}
+                  exportar={dataPreview.normalizacion?.applied && !pendingChoiceMapping
+                    ? { busy: !!busy, onExport: (format) => void onExportNormalized(format) }
+                    : null}
+                />
               )}
               onPick={(file) => onPick("data", file)}
               onRemove={() => onQuitar("data")}
@@ -1998,31 +1917,6 @@ export default function CargaPage() {
 // `EstudioActivoBanner` (banner genérico multi-base que vivía acá) se
 // reemplazó por `BasesPanel` completo — ahora no solo muestra las bases
 // sino que permite renombrar, quitar y agregar.
-
-function NormalizedExportActions({
-  busy,
-  onExport,
-}: {
-  busy: boolean;
-  onExport: (format: NormalizedExportFormat) => void;
-}) {
-  return (
-    <div className="pulso-normalized-export-actions">
-      <span>Base normalizada</span>
-      {(["xlsx", "csv", "sav"] as NormalizedExportFormat[]).map((format) => (
-        <button
-          key={format}
-          type="button"
-          disabled={busy}
-          onClick={() => onExport(format)}
-        >
-          <Download size={12} />
-          .{format}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 // Etiqueta humana de la fase territorial (evita mostrar el valor técnico crudo).
 function faseTerritorialLabel(phase: string | null | undefined): string {

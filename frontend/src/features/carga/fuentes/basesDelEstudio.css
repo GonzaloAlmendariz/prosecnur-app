@@ -333,8 +333,9 @@
 
 .pulso-bde-version-resultado {
   align-items: flex-start;
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
+  border-color: var(--pulso-border);
+  border-left: 3px solid var(--pulso-primary);
+  background: var(--pulso-surface);
   color: var(--pulso-text);
 }
 
@@ -370,7 +371,56 @@
   color: var(--pulso-text);
 }
 
-/* En la tarjeta de respuestas del modo «Una base» el resumen es una grilla. */
-.pulso-upload-summary > .pulso-bde-version-resultado {
+
+
+/* Carga › Fuentes (una base): resumen de las respuestas (RespuestasResumen). */
+.pulso-upload-summary > .pulso-resp-resumen {
   grid-column: 1 / -1;
 }
+.pulso-resp-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+.pulso-resp-resumen > p { margin: 0; }
+.pulso-resp-cifras {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.pulso-resp-cifras strong { font-size: 15px; font-weight: 600; color: var(--pulso-text); }
+.pulso-resp-linea { line-height: 1.45; }
+.pulso-resp-linea.is-bad { color: var(--pulso-danger-fg); }
+.pulso-resp-descargas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.pulso-resp-descargas button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pulso-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pulso-resp-descargas button:hover:not(:disabled) { text-decoration: underline; }
+.pulso-resp-descargas button:disabled { opacity: 0.5; cursor: progress; }
+.pulso-resp-detalle summary { cursor: pointer; color: var(--pulso-text-soft); }
+.pulso-resp-detalle ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  max-height: 220px;
+  overflow: auto;
+}
+/* Qué cambió va primero: es lo que la persona acaba de hacer. */
+.pulso-resp-resumen > .pulso-bde-version-resultado { order: -1; margin-bottom: 4px; }
