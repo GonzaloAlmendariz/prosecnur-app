@@ -59,6 +59,7 @@ import { AppearancePicker } from "../inspector/AppearancePicker";
 import { CalculationBuilder } from "../inspector/logic/CalculationBuilder";
 import { LogicBuilder } from "../inspector/logic/LogicBuilder";
 import { ConstraintBuilder } from "../inspector/logic/ConstraintBuilder";
+import { ResumenPregunta } from "./constructor/ResumenPregunta";
 import { TextRuleSuite } from "../inspector/logic/TextRuleSuite";
 import {
   describeExpression,
@@ -595,6 +596,7 @@ function FocusedSurveyWorkspace({
           onReleaseLastFromSection={onReleaseLastFromSection}
           onSelectRow={onSelectRow}
           formCanvasProps={formCanvasProps}
+          onEditarPestana={setActiveTab}
         />
       </div>
 
@@ -725,6 +727,7 @@ function FocusedPreview({
   onIncludeNextInSection,
   onReleaseLastFromSection,
   onSelectRow,
+  onEditarPestana,
   formCanvasProps,
 }: {
   node: BuilderNode;
@@ -743,6 +746,7 @@ function FocusedPreview({
   onIncludeNextInSection: () => void;
   onReleaseLastFromSection: () => void;
   onSelectRow: (rowIndex: number) => void;
+  onEditarPestana: (pestana: "response" | "rules") => void;
   formCanvasProps: FormCanvasBundle;
 }) {
   if (node.kind === "section" || node.kind === "repeat") {
@@ -816,7 +820,7 @@ function FocusedPreview({
             : undefined
         }
       />
-      <FocusQuestionQuicklook
+      <ResumenPregunta
         node={node}
         section={section}
         choices={choices}
@@ -824,158 +828,10 @@ function FocusedPreview({
         catalogInfo={catalogInfo}
         conditionalContext={conditionalContext}
         logicScope={logicScope}
+        onEditar={onEditarPestana}
       />
     </div>
   );
-}
-
-function FocusQuestionQuicklook({
-  node,
-  section,
-  choices,
-  catalogUsageCount,
-  catalogInfo,
-  conditionalContext,
-  logicScope,
-}: {
-  node: BuilderNode;
-  section: SectionMeta | null;
-  choices: ChoiceItem[];
-  catalogUsageCount: number;
-  catalogInfo?: CatalogInfo;
-  conditionalContext?: ConditionalContext | null;
-  logicScope: LogicScope;
-}) {
-  const responseDetail = node.typeInfo.listName
-    ? `${choices.length} ${choices.length === 1 ? "opción" : "opciones"} en ${catalogInfo?.listName || node.typeInfo.listName}${
-        catalogUsageCount > 1 ? ` · usada por ${catalogUsageCount} preguntas` : ""
-      }`
-    : node.kind === "note"
-      ? "No guarda respuesta; solo muestra contenido de apoyo."
-    : node.kind === "calculate"
-      ? "Se completa con una fórmula del XLSForm."
-      : "Respuesta directa del encuestador.";
-  const hasVisibility = Boolean(node.relevant.trim()) || Boolean(conditionalContext?.ancestorRelevants.length);
-  const visibility = summarizeVisibilityForQuicklook(node, conditionalContext, logicScope);
-  const validation = node.kind === "note" ? null : describeValidation(node.constraint, node, logicScope);
-  const location = section && section.kind !== "root"
-    ? `Dentro de ${stripMarkdown(section.label || section.name || "la sección")}`
-    : "En el nivel principal del formulario";
-  const items: Array<{
-    label: string;
-    title: string;
-    detail: string;
-    icon: LucideIcon;
-    tone?: "accent" | "success" | "warn" | "muted";
-  }> = [
-    {
-      label: "Respuesta",
-      title: typeLabel(node.typeInfo.base),
-      detail: responseDetail,
-      icon: ListChecks,
-      tone: node.typeInfo.listName ? "accent" : node.kind === "note" ? "success" : "muted",
-    },
-    {
-      label: "Obligatoriedad",
-      title: node.kind === "note" ? "Sin captura" : node.required ? "Obligatoria" : "Opcional",
-      detail: node.kind === "note"
-        ? "La nota se muestra como apoyo y no pide entrada."
-        : node.required
-        ? hasVisibility
-          ? "Se exige solo cuando la pregunta aparece."
-          : "El encuestador debe responderla."
-        : "Puede quedar sin respuesta.",
-      icon: CheckCircle2,
-      tone: node.required || node.kind === "note" ? "success" : "muted",
-    },
-    {
-      label: "Visibilidad",
-      title: visibility.title,
-      detail: visibility.detail,
-      icon: IconConditionalLogic,
-      tone: hasVisibility ? "accent" : "muted",
-    },
-    {
-      label: "Validación",
-      title: node.kind === "note" ? "No aplica" : validation ? validation.status : "Sin validación",
-      detail: node.kind === "note"
-        ? "Las notas no validan respuestas."
-        : validation?.summary ?? "Acepta el valor propio del tipo seleccionado.",
-      icon: ShieldCheck,
-      tone: validation ? (validation.technical ? "warn" : "success") : "muted",
-    },
-  ];
-
-  return (
-    <aside className="pulso-focus-quicklook" aria-label="Resumen rápido de la pregunta">
-      <div className="pulso-focus-quicklook-head">
-        <span className="pulso-section-eyebrow">Resumen rápido</span>
-        <strong>{location}</strong>
-      </div>
-      <div
-        className="pulso-focus-quicklook-grid"
-        data-qa-geometry-group="xlsform/focus-quicklook"
-        data-qa-geometry-contract="equal"
-      >
-        {items.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div
-              key={item.label}
-              className={`pulso-focus-quicklook-item ${item.tone ? `is-${item.tone}` : ""}`}
-            >
-              <span className="pulso-focus-quicklook-icon" aria-hidden="true">
-                <Icon size={13} />
-              </span>
-              <span className="pulso-focus-quicklook-copy">
-                <em>{item.label}</em>
-                <strong>{item.title}</strong>
-                <small>{item.detail}</small>
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </aside>
-  );
-}
-
-
-function summarizeVisibilityForQuicklook(
-  node: BuilderNode,
-  conditionalContext: ConditionalContext | null | undefined,
-  scope: LogicScope,
-): { title: string; detail: string } {
-  const ownRelevant = node.relevant.trim();
-  const ancestors = conditionalContext?.ancestorRelevants ?? [];
-  if (!ownRelevant && ancestors.length === 0) {
-    return {
-      title: "Siempre visible",
-      detail: "No depende de otra respuesta ni de una sección condicionada.",
-    };
-  }
-
-  const parts: string[] = [];
-  if (ownRelevant) {
-    const own = describeRuleBreakdown(ownRelevant, scope, "Esta pregunta");
-    parts.push(own.technical ? "condición técnica propia" : pluralizeRule(own.items.length, "regla propia", "reglas propias"));
-  }
-  if (ancestors.length > 0) {
-    const labels = ancestors
-      .map((ancestor) => stripMarkdown(ancestor.sectionLabel || "sección"))
-      .slice(0, 2);
-    const suffix = ancestors.length > 2 ? ` y ${ancestors.length - 2} más` : "";
-    parts.push(`hereda de ${labels.join(", ")}${suffix}`);
-  }
-
-  return {
-    title: "Condicionada",
-    detail: parts.join(" · "),
-  };
-}
-
-function pluralizeRule(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
 }
 
 function FocusedSettingsWorkspace({
