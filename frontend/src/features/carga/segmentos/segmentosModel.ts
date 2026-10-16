@@ -121,8 +121,9 @@ export function resumenSegmentos(datos: SegmentosEstado): string {
 // Clave y nombre
 // ---------------------------------------------------------------------------
 
+/** Sin tildes; «ñ» pasa a «ni» para que «años» no quede «anos». */
 function sinTildes(s: string): string {
-  return s.normalize("NFD").replace(/[̀-ͯ]/g, "");
+  return s.replace(/ñ/gi, "ni").normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
 /** Lo que el backend acepta como clave: `[a-z0-9_]`, sin el prefijo `cruce_`. */
@@ -135,7 +136,7 @@ export function normalizarClave(texto: string): string {
     .slice(0, MAX_CLAVE);
 }
 
-/** «Año de ingreso» → «ano_ingreso»: la propuesta de `nombreDesdeEtiqueta` sin el prefijo. */
+/** «Año de ingreso» → «anio_ingreso»: la propuesta de `nombreDesdeEtiqueta` sin el prefijo. */
 export function claveDesdeEtiqueta(etiqueta: string): string {
   return normalizarClave(nombreDesdeEtiqueta(etiqueta, MAX_CLAVE));
 }
@@ -145,16 +146,17 @@ export function claveDesdeEtiqueta(etiqueta: string): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Lo que una base ofrece como origen: las preguntas del catálogo y las
- * columnas que la data trae fuera del formulario, sin las calculadas (el
- * backend sólo acepta columnas de la data).
+ * Lo que una base ofrece como origen: las preguntas del catálogo, sus variables
+ * calculadas (una fórmula como «2026 - P8» se agrupa aquí en rangos) y las
+ * columnas que la data trae fuera del formulario. Fuera, los segmentos: uno no
+ * sale de otro.
  */
 export function opcionesDeOrigen(
   catalogo: readonly VariableDeBase[],
   propias: Pick<BaseVariables, "extras" | "calculadas"> | undefined,
   nombresSegmentos: readonly string[] = [],
 ): VariableDeBase[] {
-  const fuera = new Set([...(propias?.calculadas ?? []).map((c) => c.nombre), ...nombresSegmentos]);
+  const fuera = new Set(nombresSegmentos);
   const delCatalogo = catalogo.filter((v) => !fuera.has(v.name));
   const nombres = new Set(delCatalogo.map((v) => v.name));
   const extras = (propias?.extras ?? [])

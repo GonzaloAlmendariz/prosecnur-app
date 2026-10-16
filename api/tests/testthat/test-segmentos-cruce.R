@@ -96,7 +96,8 @@
 test_that("la clave se normaliza a [a-z0-9_] sin tildes y sin repetir el prefijo", {
   expect_identical(segmentos_normalizar_clave("Edád del Estudiante"), "edad_del_estudiante")
   expect_identical(segmentos_normalizar_clave("cruce_sexo"), "sexo")
-  expect_identical(segmentos_normalizar_clave("Año-de ingreso"), "ano_de_ingreso")
+  expect_identical(segmentos_normalizar_clave("Año-de ingreso"), "anio_de_ingreso")
+  expect_identical(segmentos_normalizar_clave("AÑOS"), "anios")
   expect_identical(segmentos_normalizar_clave("  ¿?  "), "")
 })
 

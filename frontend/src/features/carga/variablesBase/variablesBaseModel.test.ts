@@ -300,7 +300,7 @@ describe("nombre propuesto desde la etiqueta", () => {
   it("minúsculas, sin tildes ni conectores, a lo sumo 32 caracteres", async () => {
     const { nombreDesdeEtiqueta } = await import("./variablesBaseModel");
     expect(nombreDesdeEtiqueta("VBG: recurrió a alguna instancia de la PUCP")).toBe("vbg_recurrio_alguna_instancia");
-    expect(nombreDesdeEtiqueta("Años de estudio")).toBe("anos_estudio");
+    expect(nombreDesdeEtiqueta("Años de estudio")).toBe("anios_estudio");
     expect(nombreDesdeEtiqueta("2 o más")).toBe("v_2_mas");
     expect(nombreDesdeEtiqueta("")).toBe("");
   });
