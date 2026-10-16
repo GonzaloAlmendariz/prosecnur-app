@@ -1,5 +1,8 @@
+import { useEffect, useState } from "react";
 import { BookOpen, CheckCircle2, Download, FileSpreadsheet, FileText, Info } from "lucide-react";
 import { apiAnaliticaCodebook, apiAnaliticaConfigPut, downloadUrl, type MultiBaseResult } from "../../../api/client";
+import { apiAnaliticaCodigosEspeciales, type CodigoEspecialSugerido } from "../../../api/analitica";
+import { codigoEscrito, opcionesCodigosEspeciales } from "./codigosEspecialesModel";
 import { Panel } from "../../../components/Panel";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import { CifrasPestana } from "../CifrasPestana";
@@ -58,13 +61,24 @@ export function CodebookPane() {
     });
   }
 
-  const codigosMeta: Array<{ code: number; label: string }> = [
-    { code: 95, label: "No contesta" },
-    { code: 96, label: "No aplica" },
-    { code: 97, label: "No sabe" },
-    { code: 98, label: "Otro" },
-    { code: 99, label: "Otros" },
-  ];
+  // Sugerencias del estudio, no una lista fija: los códigos especiales que traen
+  // los instrumentos, con su etiqueta, más los ya marcados.
+  const [sugeridos, setSugeridos] = useState<CodigoEspecialSugerido[] | null>(null);
+  const [nuevoCodigo, setNuevoCodigo] = useState("");
+  useEffect(() => {
+    let vivo = true;
+    apiAnaliticaCodigosEspeciales()
+      .then((c) => { if (vivo) setSugeridos(c); })
+      .catch(() => { if (vivo) setSugeridos([]); });
+    return () => { vivo = false; };
+  }, []);
+  const codigosMeta = opcionesCodigosEspeciales(sugeridos ?? [], codes);
+  const agregarCodigo = () => {
+    const n = codigoEscrito(nuevoCodigo);
+    if (n === null) return;
+    if (!codes.includes(n)) toggle(n);
+    setNuevoCodigo("");
+  };
 
   return (
     <Panel className="analitica-codebook-panel">
@@ -87,7 +101,7 @@ export function CodebookPane() {
             ariaLabel="Estado del libro de códigos"
             cifras={[
               { etiqueta: "Fuente", valor: fuenteLabel },
-              { etiqueta: "Códigos", valor: `${codes.length}/5 activos` },
+              { etiqueta: "Códigos especiales", valor: formatoConteo(codes.length) },
               {
                 etiqueta: "Excluidas",
                 valor: (
@@ -116,24 +130,38 @@ export function CodebookPane() {
         <Section
           title="Códigos especiales"
           subtitle={<>
-            Convenciones Pulso para NS/NR/NA: los códigos marcados solo aparecen si alguien los respondió, sin filas vacías en la tabla final. Aplica a todos los formatos.
+            Sugeridos a partir de las listas de respuestas del estudio. Un código marcado va al bloque de valores especiales y solo aparece si alguien lo respondió. Aplica a todos los formatos.
           </>}
         >
           <div className="analitica-codebook-code-grid">
-            {codigosMeta.map((c) => {
-              const active = codes.includes(c.code);
-              return (
-                <label
-                  key={c.code}
-                  title={c.label}
-                  className={`analitica-codebook-code ${active ? "is-active" : ""}`}
-                >
-                  <input type="checkbox" checked={active} onChange={() => toggle(c.code)} />
-                  <code>{c.code}</code>
-                  <span>{c.label}</span>
-                </label>
-              );
-            })}
+            {sugeridos === null && <span className="analitica-codebook-code-nota">Leyendo los instrumentos…</span>}
+            {sugeridos !== null && codigosMeta.length === 0 && (
+              <span className="analitica-codebook-code-nota">Los instrumentos no traen códigos que parezcan especiales.</span>
+            )}
+            {codigosMeta.map((c) => (
+              <label
+                key={c.code}
+                title={c.label}
+                className={`analitica-codebook-code ${c.marcado ? "is-active" : ""} ${c.origen === "configurado" ? "is-ajeno" : ""}`}
+              >
+                <input type="checkbox" checked={c.marcado} onChange={() => toggle(c.code)} />
+                <code>{c.code}</code>
+                <span>{c.label}</span>
+              </label>
+            ))}
+          </div>
+          <div className="analitica-codebook-code-agregar">
+            <input
+              value={nuevoCodigo}
+              inputMode="numeric"
+              placeholder="Otro código"
+              aria-label="Agregar un código especial"
+              onChange={(e) => setNuevoCodigo(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") agregarCodigo(); }}
+            />
+            <button type="button" className="analitica-codebook-code-agregar-btn" disabled={codigoEscrito(nuevoCodigo) === null} onClick={agregarCodigo}>
+              Agregar
+            </button>
           </div>
         </Section>
 

@@ -1002,3 +1002,22 @@ export async function apiAnaliticaComparativoFrecuencias(body: ComparativoBody =
 export async function apiAnaliticaComparativoCruces(body: ComparativoBody) {
   return iniciarComparativo("cruces", body);
 }
+
+/** Código que parece especial en las listas de respuestas del estudio (sugerencia, no regla). */
+export type CodigoEspecialSugerido = { codigo: string; etiqueta: string; etiquetas: string[]; n_listas: number };
+
+export async function apiAnaliticaCodigosEspeciales(): Promise<CodigoEspecialSugerido[]> {
+  const raw = await handle<{ ok: true; codigos?: unknown }>(
+    await apiFetch("/api/analitica/codigos-especiales", { headers: headers() })
+  );
+  const lista = Array.isArray(raw.codigos) ? raw.codigos : [];
+  return lista
+    .map((c) => (c && typeof c === "object" ? (c as Record<string, unknown>) : {}))
+    .map((c) => ({
+      codigo: String(c.codigo ?? "").trim(),
+      etiqueta: String(c.etiqueta ?? "").trim(),
+      etiquetas: Array.isArray(c.etiquetas) ? c.etiquetas.map((e) => String(e)) : [],
+      n_listas: Number(c.n_listas ?? 0) || 0,
+    }))
+    .filter((c) => c.codigo !== "");
+}

@@ -10,3 +10,42 @@
   overflow: auto;
   overscroll-behavior: contain;
 }
+
+/* Códigos especiales sugeridos desde el estudio. */
+.analitica-codebook-code.is-ajeno span {
+  color: var(--pulso-text-faint);
+}
+
+.analitica-codebook-code-nota {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.analitica-codebook-code-agregar {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-top: var(--pulso-space-2);
+}
+
+.analitica-codebook-code-agregar input {
+  width: 14ch;
+  height: 30px;
+}
+
+.analitica-codebook-code-agregar-btn {
+  height: 30px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.analitica-codebook-code-agregar-btn:disabled {
+  cursor: default;
+  color: var(--pulso-text-faint);
+}

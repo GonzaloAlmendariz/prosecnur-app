@@ -406,7 +406,8 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
     value_labels: {},
   },
   codebook: {
-    codigos_solo_si_presentes: [96, 97, 98, 99],
+    // Ninguno marcado: el libro sugiere los del estudio (CodebookPane), no los impone.
+    codigos_solo_si_presentes: [],
   },
   frecuencias: {
     secciones_activas: [],

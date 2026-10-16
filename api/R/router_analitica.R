@@ -3230,7 +3230,8 @@
 	      value_labels = list()
 	    ),
 	    codebook = list(
-      codigos_solo_si_presentes = as.list(c(96L, 97L, 98L, 99L))
+      # Ninguno: el libro sugiere los del estudio, no los impone (2026-10-16).
+      codigos_solo_si_presentes = list()
     ),
 	    bases = list(
 	      sav  = list(incluir_sps = FALSE),

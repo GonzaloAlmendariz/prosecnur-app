@@ -107,6 +107,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_analitica(pr)
     pr <- mount_armonizada(pr)
     pr <- mount_ponderacion_bases(pr)
+    pr <- mount_analitica_codigos_especiales(pr)
     pr <- mount_label_overrides(pr)
     pr <- mount_hojas_ruta(pr)
     pr <- mount_calc_muestra(pr)
