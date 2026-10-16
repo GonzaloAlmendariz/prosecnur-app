@@ -55,6 +55,7 @@ import {
 import "./styles/materials.css";
 import "./driveDeFichas.css";
 import { composicionDelPlan, unidadesDelPlan } from "./codigoOperativo";
+import { fichasHechasDelEstado, instanciaReutilizable } from "./fichasDelEstado";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -244,7 +245,6 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [instances, setInstances] = useState<CollectionMaterialInstance[]>([]);
   const [instanceBusy, setInstanceBusy] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobFormat, setJobFormat] = useState<"png" | "pdf" | "bundle" | null>(null);
@@ -285,7 +285,9 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   const motivoBloqueo = deployment
     ? null
     : "Todavia no hay accesos preparados, asi que la ficha no tiene enlace que codificar.";
-  const fichasHechas = cuentaDeFichas(instances.length, aulasDelPlan);
+  // Del estado persistido: una instancia cubre muchas unidades y sobrevive a
+  // la visita, así que contar las creadas en esta sesión daba «0 de 2,373».
+  const fichasHechas = cuentaDeFichas(fichasHechasDelEstado(payload?.state), aulasDelPlan);
   const activeAdapter = payload?.state.plan?.adapter.id ?? null;
   const adapterCompatible = activeAdapter ? template.compatible_adapters.includes(activeAdapter) : true;
 
@@ -394,7 +396,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
     }
   };
 
-  const createInstances = async () => {
+  const createInstances = async (): Promise<CollectionMaterialInstance[]> => {
     if (!payload || !deployment) return [];
     setInstanceBusy(true);
     setError("");
@@ -404,7 +406,9 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
         unit_refs: payload.state.plan?.units.map((unit) => unit.unit_id),
         locale: "es-PE",
       });
-      setInstances(result.instances);
+      // Crear sube `state_revision`: sin releer el estado, el siguiente guardado
+      // mandaría la revisión vieja y chocaría (409), y el contador no se movería.
+      await onStateRefresh();
       return result.instances;
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudieron crear las fichas.");
@@ -416,7 +420,10 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
 
   const render = async (format: "png" | "pdf" | "bundle") => {
     if (!deployment) return;
-    const readyInstances = instances.length ? instances : await createInstances();
+    // Reutiliza la instancia persistida: crear una en cada render hacía crecer
+    // `material_instances` en cada visita.
+    const persistida = instanciaReutilizable(payload?.state);
+    const readyInstances = persistida ? [persistida] : await createInstances();
     if (!readyInstances.length) return;
     setError("");
     setRenderResult(null);

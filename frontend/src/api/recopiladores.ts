@@ -268,6 +268,13 @@ export type CollectionArtifactReceipt = {
   page_map?: Array<Record<string, unknown>> | Record<string, unknown> | null;
   audience?: string | null;
   sensitivity?: string | null;
+  /**
+   * Si el archivo sigue en la sesión. Lo deriva el backend y no se persiste:
+   * el `.pulso` guarda el recibo pero no el entregable, así que al reabrir el
+   * proyecto el recibo queda como evidencia y su descarga daría 404. Ausente
+   * en payloads viejos: se trata como disponible.
+   */
+  file_available?: boolean | null;
 };
 
 export type CollectionMaterialTemplatePayload = {
@@ -298,6 +305,12 @@ export type CollectionMaterialRenderResult = {
 };
 
 type UnknownRecord = Record<string, unknown>;
+
+/** Conserva `file_available` sólo como booleano; cualquier otra cosa es «no dicho». */
+function normalizeArtifactReceipt(receipt: CollectionArtifactReceipt): CollectionArtifactReceipt {
+  const raw: unknown = (receipt as { file_available?: unknown }).file_available;
+  return { ...receipt, file_available: typeof raw === "boolean" ? raw : null };
+}
 
 function isRecord(value: unknown): value is UnknownRecord {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -348,7 +361,7 @@ export function normalizeCollectionStatePayload(value: unknown): CollectionState
       ? rawState.material_template as CollectionMaterialTemplate
       : null,
     material_instances: asArray<CollectionMaterialInstance>(rawState.material_instances),
-    artifact_receipts: asArray<CollectionArtifactReceipt>(rawState.artifact_receipts),
+    artifact_receipts: asArray<CollectionArtifactReceipt>(rawState.artifact_receipts).map(normalizeArtifactReceipt),
   };
   // El normalizador reconstruye el payload campo por campo, así que TODO campo
   // nuevo del backend hay que añadirlo aquí o se pierde en silencio. Costó un
