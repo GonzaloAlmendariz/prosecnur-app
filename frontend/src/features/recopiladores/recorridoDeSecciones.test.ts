@@ -25,34 +25,13 @@ describe("el selector de secciones dice qué falta", () => {
     expect(fuente).toContain("entrega: Boolean(payload?.handoff ?? state?.deployment?.handoff)");
   });
 
-  it("el siguiente paso es el primero que falta", () => {
-    expect(fuente).toContain("find((id) => !pasosHechos[id])");
-  });
-
-  it("con todos los pasos dados no se marca ninguno", () => {
-    // `find` devuelve undefined y `siguientePaso` queda en null: el recorrido
-    // terminó y señalar un paso inventaría trabajo.
-    expect(fuente).toContain("?? null");
-  });
-
-  it("el estado no es sólo color: va en texto y en el título", () => {
-    // Desde el 2026-08-28 el avance lo dibujan `is-done` e `is-next` de
-    // `pulso-phase-pillbar`, el mismo sistema que Cálculo de muestra, Hojas de
-    // ruta y Monitoreo. Un tinte en el círculo NO es una señal accesible, así
-    // que la palabra sigue viajando en el nombre accesible y en el tooltip.
-    expect(fuente).toContain("pulso-sr-only");
-    expect(fuente).toContain('"hecho"');
-    expect(fuente).toContain('"es lo siguiente"');
-    expect(fuente).toMatch(/title=\{estado/);
-  });
-
-  it("usa las píldoras de fase compartidas y no un selector propio", () => {
-    // Tres módulos con un lenguaje visual y éste con otro es lo que hacía que
-    // Recopiladores desentonara. El sistema vive en `app/theme.css`.
-    expect(fuente).toContain("pulso-phase-pillbar");
-    expect(fuente).toContain("pulso-phase-pill-list");
-    expect(fuente).toContain("pulso-phase-pill-number");
-    expect(fuente).toContain("is-done");
-    expect(fuente).toContain("is-next");
+  it("el avance va como marca no numérica del rail compartido", () => {
+    // Desde 2026-10-16 ningún módulo numera sus secciones. Lo hecho viaja en
+    // `done` de `SectionPillbar`; el numeral y «es lo siguiente» se retiraron.
+    expect(fuente).toContain("done: pasosHechos[id]");
+    expect(fuente).toContain("<SectionPillbar");
+    expect(fuente).not.toContain("pulso-phase-pill-number");
+    expect(fuente).not.toContain("is-next");
+    expect(fuente).not.toContain("index + 1");
   });
 });

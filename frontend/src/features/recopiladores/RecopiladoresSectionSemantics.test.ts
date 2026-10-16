@@ -2,26 +2,23 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-describe("Fichas QR section selector semantics", () => {
-  it("announces stages as pressed buttons, the active one as the current step, with arrow-key roving", () => {
+describe("Material de campo: semántica de secciones", () => {
+  it("usa el rail de secciones compartido: navegación con aria-current, sin numeral", () => {
     const source = fs.readFileSync(path.join(__dirname, "RecopiladoresShell.tsx"), "utf8");
-    const inicio = source.indexOf("<GlidingTabList");
-    const sectionSelector = source.slice(
-      inicio,
-      source.indexOf("</GlidingTabList>", inicio) + "</GlidingTabList>".length,
-    );
+    const inicio = source.indexOf("<SectionPillbar");
+    expect(inicio).toBeGreaterThan(-1);
+    const sectionSelector = source.slice(inicio, source.indexOf("/>\n  );", inicio));
 
-    expect(sectionSelector).toContain('role="group"');
-    expect(sectionSelector).toContain('mode="tabs"');
-    expect(sectionSelector).toContain("aria-pressed={active}");
-    expect(sectionSelector).not.toContain('as="nav"');
-    expect(sectionSelector).not.toContain('role="tablist"');
-    expect(sectionSelector).not.toContain('role="tab"');
-    expect(sectionSelector).not.toContain("aria-selected");
-    // Mismo patrón que las etapas de Hojas de ruta: un recorrido de pasos, no
-    // rutas; por eso `step` y no `page`.
-    expect(sectionSelector).toContain('aria-current={active ? "step" : undefined}');
-    expect(sectionSelector).not.toContain('aria-current={active ? "page"');
+    // `SectionPillbar` emite enlaces con `aria-current="page"` en la activa;
+    // el selector no repite roles ni estados de botón o de tab.
+    expect(sectionSelector).toContain("seccionActiva={direction.seccion}");
+    expect(sectionSelector).toContain('ariaLabel="Secciones de Material de campo"');
+    expect(sectionSelector).not.toContain("progreso=");
+    // La dirección es la canónica: `seccion` y su primera pestaña.
+    expect(sectionSelector).toContain("searchFor(location.search, id, PESTANAS_POR_SECCION[id][0]");
+    expect(source).not.toContain("pulso-phase-pill-number");
+    expect(source).not.toContain("aria-pressed");
+    expect(source).not.toContain('aria-current={active ? "step"');
   });
 
   it("keeps the nested local tabs associated with their real panel", () => {
