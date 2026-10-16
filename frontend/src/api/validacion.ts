@@ -632,6 +632,17 @@ export async function apiV2CasoValidoEfecto(baseNombre: string | null | undefine
   };
 }
 
+/** Guarda sólo «Qué caso cuenta» de la base; el resto de la config no cambia. */
+export async function apiV2CasoValidoGuardar(baseNombre: string | null | undefined, enabled: boolean, condiciones: CasoValidoCondicion[]) {
+  return handle<{ ok: true }>(
+    await apiFetch("/api/validacion/v2/caso-valido", {
+      method: "POST",
+      headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
+      body: JSON.stringify({ enabled, condiciones }),
+    }),
+  );
+}
+
 export async function apiV2RolesSugerencias(baseNombre?: string | null) {
   return handle<{ ok: true; base_nombre: string | null } & RolesSugerencias>(
     await apiFetch("/api/validacion/v2/roles/sugerencias", {
