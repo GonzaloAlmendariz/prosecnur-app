@@ -1258,6 +1258,9 @@
   columns <- lapply(names(df), function(v) {
     x <- df[[v]]
     storage <- .bases_sav_storage_kind(plain[[v]])
+    # Las fechas viajan por el CSV como texto: se marcan para volver a ser
+    # fecha en Python. Texto con formato DATE corrompe el .sav (no se relee).
+    if (inherits(x, "POSIXct")) storage <- "datetime" else if (inherits(x, "Date")) storage <- "date"
     label <- attr(x, "label", exact = TRUE) %||% ""
     if (!is.character(label) || !length(label) || is.na(label[1L]) || !nzchar(label[1L])) {
       label <- v
@@ -1314,6 +1317,10 @@
     "        continue",
     "    if storage == 'numeric':",
     "        df[name] = pd.to_numeric(df[name].replace('', pd.NA), errors='coerce')",
+    "    elif storage == 'datetime':",
+    "        df[name] = pd.to_datetime(df[name].replace('', pd.NA), errors='coerce')",
+    "    elif storage == 'date':",
+    "        df[name] = pd.to_datetime(df[name].replace('', pd.NA), errors='coerce').dt.date",
     "    else:",
     "        df[name] = df[name].astype(object)",
     "    label = spec.get('label') or ''",
@@ -1461,6 +1468,36 @@
 # Prepara + escribe el .sav. Devuelve el path. Si `incluir_sps` es TRUE,
 # también genera `niveles_medida.sps` en el mismo directorio.
 # `overrides` es opcional: lista `name -> list(measure?, format_spss?)`.
+# Toda columna con formato SPSS de fecha/hora queda como Date/POSIXct; la que
+# no se deja interpretar pasa a texto con formato de texto. Nunca texto con
+# formato de fecha, que corrompe el archivo.
+.bases_sav_fechas_coherentes <- function(df) {
+  for (v in names(df)) {
+    x <- df[[v]]
+    fmt <- as.character(attr(x, "format.spss", exact = TRUE) %||% "")[1]
+    if (is.na(fmt) || !grepl("^(A|E|S)?DATE|^DATETIME|^TIME|^DTIME|^YMDHMS", toupper(fmt))) next
+    if (inherits(x, c("Date", "POSIXct", "hms", "difftime")) || is.numeric(x)) next
+    texto <- trimws(as.character(x))
+    texto[!nzchar(texto)] <- NA_character_
+    es_hora <- grepl("DATETIME|YMDHMS", toupper(fmt))
+    conv <- if (es_hora) {
+      suppressWarnings(as.POSIXct(texto, tz = "UTC", tryFormats = c("%Y-%m-%d %H:%M:%OS", "%Y-%m-%dT%H:%M:%OS", "%Y/%m/%d %H:%M:%OS", "%Y-%m-%d")))
+    } else {
+      suppressWarnings(tryCatch(as.Date(texto, tryFormats = c("%Y-%m-%d", "%Y/%m/%d", "%d/%m/%Y")), error = function(e) rep(as.Date(NA), length(texto))))
+    }
+    lab <- attr(x, "label", exact = TRUE)
+    if (sum(!is.na(conv)) == sum(!is.na(texto))) {
+      attr(conv, "label") <- lab
+      attr(conv, "format.spss") <- fmt
+      df[[v]] <- conv
+    } else {
+      attr(x, "format.spss") <- sprintf("A%d", max(8L, min(255L, max(nchar(texto), na.rm = TRUE))))
+      df[[v]] <- x
+    }
+  }
+  df
+}
+
 .bases_export_sav <- function(df, rp_inst, path_sav, path_sps = NULL,
                               overrides = list()) {
   # Suprimir las llaves técnicas de enlace repeat ANTES del renombrado de "^_"
@@ -1546,6 +1583,11 @@
       if (!inherits(df2[[v]], "POSIXct")) df2[[v]] <- try(as.POSIXct(df2[[v]]), silent = TRUE)
     }
   }
+
+  # 4b) Una columna con formato de fecha tiene que ser fecha. Si quedó como
+  #     texto («2025-09-08»), el .sav no se puede releer (haven/pyreadstat
+  #     abortan; HSyVbG 2024 `fecha_envio`, 2025–2026 `date`).
+  df2 <- .bases_sav_fechas_coherentes(df2)
 
   # 5) Normalizar encoding antes de escribir (evita "Unable to convert
   #    string to the requested encoding" al releer el .sav).
