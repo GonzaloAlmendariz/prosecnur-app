@@ -118,13 +118,13 @@ describe("estado de cada celda segmento × base", () => {
 describe("clave y nombre propuestos", () => {
   it("la clave sale de la etiqueta, como el nombre de una calculada, sin el prefijo", () => {
     expect(claveDesdeEtiqueta("Edad")).toBe("edad");
-    expect(claveDesdeEtiqueta("Año de ingreso a la PUCP")).toBe("ano_ingreso_pucp");
+    expect(claveDesdeEtiqueta("Año de ingreso a la PUCP")).toBe("anio_ingreso_pucp");
     expect(claveDesdeEtiqueta("Cruce: sexo")).toBe("sexo");
     expect(claveDesdeEtiqueta("Una etiqueta muy larga que no cabe en el nombre técnico").length).toBeLessThanOrEqual(26);
   });
 
   it("lo tecleado se normaliza a lo que acepta el backend", () => {
-    expect(normalizarClave("Año Ingreso")).toBe("ano_ingreso");
+    expect(normalizarClave("Año Ingreso")).toBe("anio_ingreso");
     expect(normalizarClave("cruce_cruce_sexo")).toBe("sexo");
     expect(normalizarClave("edad-2")).toBe("edad_2");
   });
@@ -153,7 +153,7 @@ describe("clave y nombre propuestos", () => {
 });
 
 describe("variables de origen y sus códigos", () => {
-  it("el catálogo más las columnas fuera del formulario, sin calculadas ni segmentos", () => {
+  it("el catálogo, sus calculadas y las columnas fuera del formulario, sin segmentos", () => {
     const opciones = opcionesDeOrigen(
       [
         { name: "P1", label: "Edad", seccion: "A" },
@@ -169,9 +169,9 @@ describe("variables de origen y sus códigos", () => {
       },
       ["cruce_edad"],
     );
-    expect(opciones.map((o) => o.name)).toEqual(["P1", "P8_recod"]);
-    expect(opciones[1].seccion).toBe("Fuera del formulario");
-    expect(opciones[1].opciones).toEqual([{ codigo: "2020", etiqueta: "2020" }]);
+    expect(opciones.map((o) => o.name)).toEqual(["P1", "vbg", "P8_recod"]);
+    expect(opciones[2].seccion).toBe("Fuera del formulario");
+    expect(opciones[2].opciones).toEqual([{ codigo: "2020", etiqueta: "2020" }]);
   });
 
   it("lo guardado del mismo origen suma lo mapeado y lo que el backend vio sin mapa", () => {

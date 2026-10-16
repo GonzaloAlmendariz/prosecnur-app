@@ -576,7 +576,9 @@ export function opcionesDeOrigen(
 const CONECTORES = new Set(["a", "al", "de", "del", "la", "las", "el", "los", "en", "y", "o", "u", "e", "con", "por", "para", "que", "se", "su", "sus"]);
 
 export function nombreDesdeEtiqueta(etiqueta: string, max = 32): string {
+  // «ñ» pasa a «ni» antes de quitar tildes: «años» no puede quedar «anos».
   const palabras = etiqueta
+    .replace(/ñ/gi, "ni")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()

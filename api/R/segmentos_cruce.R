@@ -41,7 +41,9 @@
 #' @return clave normalizada ("" si no queda nada).
 #' @keywords internal
 segmentos_normalizar_clave <- function(x) {
-  k <- gsub(" ", "_", .bases_norm_text(.segmentos_chr(x)), fixed = TRUE)
+  # «ñ» se translitera a «ni» antes de quitar tildes: «años» no puede quedar «anos».
+  x <- gsub("[\u00f1\u00d1]", "ni", .segmentos_chr(x))
+  k <- gsub(" ", "_", .bases_norm_text(x), fixed = TRUE)
   k <- sub("^cruce_+", "", k)
   if (is.na(k)) "" else k
 }
