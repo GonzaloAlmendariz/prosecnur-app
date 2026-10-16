@@ -307,6 +307,20 @@ test_that("el sugeridor de agentes prefiere lo que parece un nombre de persona",
   expect_identical(agentes[1], "equipo")
 })
 
+test_that("una columna de sólo números o fechas no se propone como quien recolectó", {
+  # Encuesta autoadministrada: edad, año y fecha se repiten, pero nadie recolectó.
+  d <- data.frame(
+    edad = rep(18:27, 3),
+    date = rep(c("2026-09-01", "2026-09-02", "2026-09-03"), 10),
+    p5 = rep(c("1", "2", "15", "27"), length.out = 30),
+    cod_encuestador = rep(c("101", "102", "103"), 10),
+    stringsAsFactors = FALSE
+  )
+  agentes <- vapply(identidad_candidatas(d)$agentes, function(x) x$variable, character(1))
+  # Sólo pasa la columna numérica cuyo nombre dice que es el equipo.
+  expect_identical(agentes, "cod_encuestador")
+})
+
 # --- Lote 4 · continuidad de la secuencia de envíos -------------------------
 
 test_that("no propone continuidad cuando la secuencia está completa", {
