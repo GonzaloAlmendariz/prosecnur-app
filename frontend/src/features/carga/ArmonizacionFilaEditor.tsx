@@ -36,6 +36,7 @@ import {
   type VariableDeBase,
 } from "../../api/equivalencias";
 import { getCodigosObservados } from "../../api/codigosObservados";
+import { ArmonizacionAyudaMapa } from "./ArmonizacionAyudaMapa";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { usePlegadoRecordado } from "../../lib/plegadoRecordado";
 import { formatoConteo } from "../../lib/formatoNumero";
@@ -513,6 +514,7 @@ function EditorFila({
             anclaId={anclaDeBase(base)}
             base={base}
             rotulo={rotuloDeVariable(fila, base)}
+            origen={fila.variables[base] ?? ""}
             entrada={borrador.porBase[base]}
             escala={borrador.escala}
             vista={vistas[base] ?? codigosDeBase(undefined, [], base, "", tieneArmonizacion)}
@@ -738,6 +740,7 @@ function MapaDeBase({
   anclaId,
   base,
   rotulo,
+  origen,
   entrada,
   escala,
   vista,
@@ -750,6 +753,8 @@ function MapaDeBase({
   vista: CodigosDeBase;
   /** «variable P12», o los componentes de un indicador compuesto (ADR 0105). */
   rotulo: string;
+  /** La variable de la base, para las ayudas del mapa. */
+  origen: string;
   entrada: EntradaBorrador | undefined;
   escala: readonly CategoriaEscalaComun[];
   sucio: boolean;
@@ -875,6 +880,9 @@ function MapaDeBase({
               </span>
             )}
           </div>
+          {vista.fuente !== "cargando" && (
+            <ArmonizacionAyudaMapa base={base} origen={origen} codigos={codigos} escala={escala} despachar={despachar} />
+          )}
 
           {vista.aviso && <p className="pulso-armon-aviso">{vista.aviso}</p>}
           {vista.nota && <p className="pulso-armon-nota">{vista.nota}</p>}
