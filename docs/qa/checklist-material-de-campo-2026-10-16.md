@@ -73,6 +73,10 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | H13 | Selección a 1024x600: scroll anidado con 173 px de ventana interior; alcanzable pero estrecho (C4) | `.hojas-ruta-stage-shell.is-delivery-stage` | pendiente (preexistente) |
 | H14 | Los botones de sección de Material de campo no exponen `aria-current`; el tile «Agregar» del dock lleva `aria-current="page"` | top bar de módulo, dock | pendiente (probablemente preexistente) |
 | H15 | El ítem 7 del outline repite el rótulo («Registro de aplicación Registro de aplicacion») | editor de Materiales | pendiente (E1) |
+| H16 | La card del home dice «Material» (etiqueta corta), su subtítulo se corta y el cuerpo habla solo de aulas | `features/home/moduleCardModel.ts`, `ModuleStatusCard.tsx` | pendiente: propuesto corregir en la rama |
+| H17 | Los íconos de sección declarados (QR en Accesos, plantilla en Catálogo) no los dibuja ninguna vista: el top bar usa chips numerados | `lib/modules.ts` | pendiente (E1) |
+| H18 | Musgo queda a ΔE76 18.2 del verde de éxito `--pulso-success-fg` #166534; ningún gate mide esa cercanía | `branding/identity.json` | pendiente: vigilar en E1 junto a los estados |
+| H19 | Las pestañas de Accesos (Canales, Vinculación) son píldoras horizontales, no el rail de pestañas de la casa | `features/recopiladores/AccessSection.tsx` | pendiente (preexistente; E1) |
 | H8 | El cronograma de Ser Adolescente dice 1,400 casos; el estudio es de 1.000 | cronograma del estudio (fuera del repo) | pendiente: aviso, no es de la app |
 
 ## Etapas (solo después de A8)
@@ -80,7 +84,7 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | # | Etapa | Dónde vive | Estado |
 |---|---|---|---|
 | E0a | Renombre, ruta, secciones, redirección con query, migración del slug y de `active_stage`, home, bóveda, agentic OS | rama `feat/material-campo-e0a` | en revisión: verificador APROBADO CON PENDIENTES (ninguno del diff); falta que Gonzalo lo dé por cerrado y decida el merge |
-| E0b | Token Musgo, alias, ícono `Backpack`, `branding/` | `tokens.css`, `boot.css`, `branding/identity/tokens.css`, `lib/icons.ts` | pendiente (depende de E0a) |
+| E0b | Token Musgo, alias, ícono `Backpack`, `branding/` (identidad 1.4.0) | `tokens.css`, `boot.css`, `branding/identity.json`, `lib/icons.ts` | en revisión: verificador APROBADO CON PENDIENTES (ninguno del diff); falta que Gonzalo lo dé por cerrado |
 | E1 | Catálogo, `compatible_unit_types`, dos registros de adapters, `collection_state/v2`, revamp «pliego de imprenta» | `collection_*.R`, `features/recopiladores/` | pendiente |
 | E2 | `ump_territorial_v1` y salidas de Hojas de ruta como layout legacy | archivo nuevo junto a `collection_adapters.R` | pendiente |
 | E3 | Bloques `quota_grid`, `unit_map`, `place_checklist`, `route_instructions`; port; retiro del legacy | registro de bloques | pendiente |
