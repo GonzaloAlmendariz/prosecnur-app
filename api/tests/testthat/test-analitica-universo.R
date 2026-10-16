@@ -22,3 +22,18 @@ test_that("sin criterio cuentan todos, y un criterio que vaciaría la base no se
   expect_identical(vacio$n_validos, 10L)
   expect_true(nzchar(vacio$motivo_no_aplicado))
 })
+
+test_that("Gráficos filtra cada base con su criterio y conserva los atributos", {
+  skip_if_not_installed("haven")
+  sid <- .bv_estudio()
+  on.exit(session_delete(sid), add = TRUE)
+  caso_valido_guardar(sid, "2026", TRUE, list(list(variable = "q1", operador = "==", valores = list("1"))))
+  dat <- estudio_data_sources(sid)[["2026"]]
+  attr(dat, "marca_prueba") <- "x"
+  src <- .graficos_aplicar_caso_valido(sid, list(data_sources = list(`2026` = dat, `2024` = estudio_data_sources(sid)[["2024"]])))
+  esperados <- sum(as.character(dat$q1) %in% "1")
+  expect_identical(nrow(src$data_sources[["2026"]]), esperados)
+  expect_identical(attr(src$data_sources[["2026"]], "marca_prueba"), "x")
+  # La base sin criterio no cambia.
+  expect_identical(nrow(src$data_sources[["2024"]]), nrow(estudio_data_sources(sid)[["2024"]]))
+})
