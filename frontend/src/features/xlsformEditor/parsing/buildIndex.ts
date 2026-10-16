@@ -19,6 +19,7 @@
 // =============================================================================
 
 import type {
+  TypeInfo,
   BuilderNode,
   BuilderNodeKind,
   BuilderSelection,
@@ -133,6 +134,17 @@ function collectDependencies(node: BuilderNode): XlsformDependency[] {
 // Estructura jerárquica del survey
 // -----------------------------------------------------------------------------
 
+/**
+ * Kobo y algunos instrumentos propios dejan `type` = «select_one» y ponen la lista en otra columna de survey
+ * (`select_from_list_name` o `list_name`). Sin esto la pregunta se leía sin opciones (154 preguntas en el
+ * corpus de formularios tipo). `raw` no cambia: la hoja se escribe tal como vino.
+ */
+function conListaEnColumna(info: TypeInfo, record: Record<string, string>): TypeInfo {
+  if (info.listName || !/^(select_one|select_multiple|rank)$/.test(info.base)) return info;
+  const lista = (record.select_from_list_name ?? "").trim() || (record.list_name ?? "").trim();
+  return lista ? { ...info, listName: lista } : info;
+}
+
 export function parseBuilderStructure(survey: XlsformEditorSheet): BuilderStructure {
   const outline: BuilderNode[] = [];
   const byRow = new Map<number, BuilderNode>();
@@ -158,7 +170,7 @@ export function parseBuilderStructure(survey: XlsformEditorSheet): BuilderStruct
 
   survey.rows.forEach((_, rowIndex) => {
     const record = rowToRecord(survey, rowIndex);
-    const typeInfo = parseType(record.type ?? "");
+    const typeInfo = conListaEnColumna(parseType(record.type ?? ""), record);
     const label =
       (record.label ?? "").trim() ||
       (record.name ?? "").trim() ||
