@@ -145,6 +145,7 @@ export function AdaptarPane({ base, onBackToCodificar, onBackToMatrices }: Props
         onBackToCodificar={onBackToCodificar}
         onBackToMatrices={onBackToMatrices}
         yaCodificadaEn={yaCodificada ? base : null}
+        yaListadas={preguntasNoSoportadas.map((p) => p.parent)}
       />
     </section>
   );
