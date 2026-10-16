@@ -106,5 +106,5 @@ adaptar; son la pregunta con los «Otro» codificados, no segmentos. `indice_vbg
 | J3 | Comparar el Drive de Nadia con la matriz local | ☑ el archivo de Drive (id 1uddUe…) es un `.xlsx` de 90 183 bytes modificado el 01/10, igual en tamaño a la copia local del 13/10: no hay versión más nueva |
 | J4 | F4: valores observados sin guardar | ☑ 8d8d45896 |
 | J5 | Segmentos: códigos observados reales en el editor y en «Recodificar» | ☑ 5165de44f, 4bc4f7c8e (P1 de 2026, `text` con números, se trata como numérica) |
-| J6 | Pasada de consistencia y revisión en navegador | ◐ funcional hecho; verificador en curso |
+| J6 | Pasada de consistencia y revisión en navegador | ☑ verificador aprobó la tanda (1 449 R · 1 022 carga · 569 analítica); sus cuatro riesgos (signos en el emparejamiento, privacidad de identificadores, columna «peso», defaults del comparativo) cerrados en a6907326f y el commit siguiente |
 | J7 | Versión nueva para Ulises | ☐ se prepara; publicar requiere la confirmación de Gonzalo |
