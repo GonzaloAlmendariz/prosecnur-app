@@ -34,9 +34,20 @@ import { GlidingTabList } from "../../../components/GlidingTabList";
 import { SHEET_PANEL_ID, TAB_HELP, COLUMN_HELP, isEmptyColumn, isCollapsiblePdfColumn, EXPRESSION_COLUMNS } from "./hojasModel";
 import type { TabKey } from "./hojasModel";
 import { SheetCell, DraftNameCell, TypeCell } from "./HojaCeldas";
+import { BarraFormula, type CeldaElegida } from "./BarraFormula";
+import { PanelFila } from "./PanelFila";
+import type { LogicScope } from "../logic";
+import type { BuilderDiagnostic, BuilderStructure } from "../types";
+import "./editorXlsform.css";
 
 export type SheetsViewProps = {
   workbook: XlsformEditorWorkbook;
+  /** Para leer en español la celda elegida (barra de fórmula). */
+  scope?: LogicScope;
+  /** Estructura del survey: da el nodo de la fila elegida (lectura de constraint). */
+  structure?: BuilderStructure | null;
+  /** Revisión del archivo (los mismos avisos del encabezado del editor). */
+  diagnostics?: BuilderDiagnostic[];
   onUpdateCell: (
     sheetName: TabKey,
     rowIndex: number,
@@ -61,6 +72,9 @@ export type SheetsViewProps = {
 
 export function SheetsView({
   workbook,
+  scope,
+  structure = null,
+  diagnostics = [],
   onUpdateCell,
   onAddRow,
   onDeleteRow,
@@ -70,6 +84,7 @@ export function SheetsView({
   const [activeTab, setActiveTab] = useState<TabKey>("survey");
   const [newColInput, setNewColInput] = useState("");
   const [showAdvancedColumns, setShowAdvancedColumns] = useState(false);
+  const [celda, setCelda] = useState<CeldaElegida | null>(null);
 
   const sheet = workbook[activeTab] ?? { name: activeTab, columns: [], rows: [] };
   const collapsiblePdfColumns = sheet.columns.filter(
@@ -192,21 +207,40 @@ export function SheetsView({
         </span>
       )}
 
-      <div
-        id={SHEET_PANEL_ID}
-        role="tabpanel"
-        aria-labelledby={`xlsform-sheet-tab-${activeTab}`}
-        tabIndex={0}
-        className="pulso-xfs-table-wrap"
-        key={activeTab}
-      >
-        <SheetTable
-          sheet={sheet}
-          visibleColumns={visibleColumns}
-          sheetName={activeTab}
-          onUpdateCell={onUpdateCell}
-          onDeleteRow={onDeleteRow}
-          onMoveRow={onMoveRow}
+      <div className="xfx-cuerpo">
+        <div className="xfx-tabla">
+          <BarraFormula
+            celda={celda && celda.hoja === activeTab ? celda : null}
+            valor={celda && celda.hoja === activeTab ? sheet.rows[celda.fila]?.[sheet.columns.indexOf(celda.columna)] ?? "" : ""}
+            nodo={celda && activeTab === "survey" ? structure?.byRow.get(celda.fila) ?? null : null}
+            scope={scope}
+            onCambiar={(v) => celda && onUpdateCell(activeTab, celda.fila, celda.columna, v)}
+          />
+          <div
+            id={SHEET_PANEL_ID}
+            role="tabpanel"
+            aria-labelledby={`xlsform-sheet-tab-${activeTab}`}
+            tabIndex={0}
+            className="pulso-xfs-table-wrap"
+            key={activeTab}
+          >
+            <SheetTable
+              sheet={sheet}
+              visibleColumns={visibleColumns}
+              sheetName={activeTab}
+              onUpdateCell={onUpdateCell}
+              onDeleteRow={onDeleteRow}
+              onMoveRow={onMoveRow}
+              elegida={celda?.hoja === activeTab ? celda : null}
+              onElegir={(fila, columna) => setCelda({ hoja: activeTab, fila, columna })}
+            />
+          </div>
+        </div>
+        <PanelFila
+          hoja={sheet}
+          celda={celda && celda.hoja === activeTab ? celda : null}
+          diagnosticos={diagnostics}
+          onIrAFila={(fila) => { setActiveTab("survey"); setCelda({ hoja: "survey", fila, columna: "name" }); }}
         />
       </div>
     </div>
@@ -224,6 +258,8 @@ type SheetTableProps = {
   onUpdateCell: SheetsViewProps["onUpdateCell"];
   onDeleteRow: SheetsViewProps["onDeleteRow"];
   onMoveRow: SheetsViewProps["onMoveRow"];
+  elegida: CeldaElegida | null;
+  onElegir: (fila: number, columna: string) => void;
 };
 
 function SheetTable({
@@ -233,6 +269,8 @@ function SheetTable({
   onUpdateCell,
   onDeleteRow,
   onMoveRow,
+  elegida,
+  onElegir,
 }: SheetTableProps) {
   if (sheet.columns.length === 0) {
     return (
@@ -278,6 +316,8 @@ function SheetTable({
             onUpdateCell={onUpdateCell}
             onDeleteRow={onDeleteRow}
             onMoveRow={onMoveRow}
+            columnaElegida={elegida?.fila === rowIndex ? elegida.columna : null}
+            onElegir={(columna) => onElegir(rowIndex, columna)}
           />
         ))}
       </tbody>
@@ -296,6 +336,8 @@ type SheetRowProps = {
   onUpdateCell: SheetsViewProps["onUpdateCell"];
   onDeleteRow: SheetsViewProps["onDeleteRow"];
   onMoveRow: SheetsViewProps["onMoveRow"];
+  columnaElegida: string | null;
+  onElegir: (columna: string) => void;
 };
 
 function SheetRow({
@@ -309,6 +351,8 @@ function SheetRow({
   onUpdateCell,
   onDeleteRow,
   onMoveRow,
+  columnaElegida,
+  onElegir,
 }: SheetRowProps) {
   return (
     <tr>
@@ -356,7 +400,7 @@ function SheetRow({
         const colIdx = allColumns.indexOf(col);
         const value = colIdx >= 0 ? row[colIdx] ?? "" : "";
         return (
-          <td key={col}>
+          <td key={col} className={columnaElegida === col ? "is-elegida" : undefined} onFocusCapture={() => onElegir(col)}>
             {col === "type" ? (
               <TypeCell
                 value={value}
