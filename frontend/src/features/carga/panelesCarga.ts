@@ -16,6 +16,20 @@ export const PANEL_EMPAREJAMIENTO_FUENTE: PanelDeclarado = {
   clase: "sideover",
 };
 
+/**
+ * Carga › Equivalencias: segmentos de cruce del estudio (ADR 0107), la tabla
+ * segmento × base. `?panel=segmentos`; con `foco=<clave>`, ese segmento. El
+ * recorrido de la serie ya enlaza aquí; el panel lo monta su propio componente.
+ */
+export const PANEL_SEGMENTOS: PanelDeclarado = {
+  id: "segmentos",
+  label: "Segmentos de cruce",
+  clase: "sideover",
+};
+
+/** Lo emite quien guarda o quita un segmento; el recorrido de la serie relee. */
+export const EVENTO_SEGMENTOS = "pulso:segmentos-changed";
+
 export const PANELES_CARGA = [
   PANEL_EMPAREJAMIENTO_FUENTE,
   PANEL_ARMONIZACION,
@@ -29,4 +43,6 @@ export const PANELES_CARGA = [
   PANEL_MAPA_BASES,
   // ADR 0106: `foco=<base>`; columnas propias, calculadas y «ya viene codificada».
   PANEL_VARIABLES_BASE,
+  // ADR 0107: segmentos de cruce del estudio.
+  PANEL_SEGMENTOS,
 ] as const satisfies readonly PanelDeclarado[];

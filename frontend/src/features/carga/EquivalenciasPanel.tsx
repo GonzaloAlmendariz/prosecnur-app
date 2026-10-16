@@ -25,6 +25,7 @@ import {
   getEquivalencias,
   getVariablesEquivalencias,
   guardarEquivalencias,
+  type EquivalenciaFila,
   type EquivalenciasEstado,
   type EquivalenciasImportacion,
   type ImportacionBloques,
@@ -59,6 +60,7 @@ import { MapaBasesBoton, MapaBasesPanel } from "./MapaBasesPanel";
 import { VariablesBasePanel } from "./variablesBase/VariablesBasePanel";
 import { EVENTO_VARIABLES_BASE } from "./variablesBase/variablesBaseModel";
 import { filasConMismaEscalaConfirmada, indicesDeMismaEscala } from "./mismaEscalaModel";
+import { RecorridoSerie } from "./recorridoSerie/RecorridoSerie";
 import "./EquivalenciasPanel.css";
 import { PulsoButton } from "../../components/PulsoButton";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
@@ -74,6 +76,8 @@ export type EquivalenciasPanelProps = {
    */
   onDeclaradas?: (n: number | "error") => void;
 };
+
+const SIN_FILAS: readonly EquivalenciaFila[] = [];
 
 function resumenAplicacion(imp: EquivalenciasImportacion): {
   aplicadas: number;
@@ -283,6 +287,11 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
   // Antes de guardar la primera fila el estado aún no trae las bases: la tabla y su columna «Escala» las toman del
   // catálogo de variables, para que la escala se vea desde la primera pregunta elegida.
   const basesDeTabla = bases.length ? bases : Object.keys(variablesPorBase);
+  const clavesBasesDeTabla = basesDeTabla.join("|");
+  const basesDeSerie = useMemo(
+    () => ordenarBasesPorSerie(clavesBasesDeTabla ? clavesBasesDeTabla.split("|") : [], estado?.armonizacion_periodos),
+    [clavesBasesDeTabla, estado?.armonizacion_periodos],
+  );
 
   // F5: las filas guardadas de misma escala sin armonización se confirman de
   // una vez. Una fila con variables cambiadas sin guardar queda fuera.
@@ -358,6 +367,8 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
 
   const declarada = Boolean(estado?.declarada);
   const desfasadas = estado?.desfasadas ?? [];
+  // El editor del orden de la serie se monta con la matriz guardada (ArmonizacionPeriodos).
+  const ordenEditable = Boolean(estado) && declarada && bases.length > 1 && filas.length > 0;
 
   // C1: seccion independiente, no una coleccion de pares. Su alto es intrinseco
   // a proposito — medido, el contenedor de Carga usa filas `auto` con
@@ -379,7 +390,8 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
       data-qa-geometry-group="carga-equivalencias"
       data-qa-geometry-contract="intrinsic"
     >
-      {/* C1: los miembros son la cabecera y el cuerpo. El aviso y el error son
+      {/* C1: los miembros son la cabecera, el recorrido de la serie (con 2 o
+          más bases) y el cuerpo. El aviso y el error son
           estado transitorio de la última acción, no secciones de la superficie. */}
       <header className="pulso-equiv-head" data-qa-geometry-member>
         <EquivalenciasTitulo />
@@ -389,6 +401,14 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
           <ImportarBloquesBoton disabled={ocupado !== ""} />
         </div>
       </header>
+
+      {/* Estudios de varias mediciones: qué falta y dónde se hace, antes de la matriz. */}
+      <RecorridoSerie
+        bases={basesDeSerie}
+        ordenDeclarado={(estado?.armonizacion_periodos ?? []).length > 0}
+        ordenEditable={ordenEditable}
+        filas={estado?.filas ?? SIN_FILAS}
+      />
 
       {error && (
         <p className="pulso-equiv-error" role="alert">

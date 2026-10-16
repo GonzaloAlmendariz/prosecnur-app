@@ -1,0 +1,83 @@
+/* Analítica › Comparativos: línea de ponderación de la serie y aviso previo.
+   Sólo tokens `--pulso-*`. La línea envuelve con cualquier número de bases;
+   nunca se desplaza en horizontal (C4). */
+
+.pulso-comparativos-ponderacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  min-width: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-comparativos-ponderacion-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-text);
+  font-weight: 600;
+}
+
+.pulso-comparativos-ponderacion-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.pulso-comparativos-ponderacion-base {
+  overflow-wrap: anywhere;
+}
+
+.pulso-comparativos-ponderacion-base strong {
+  color: var(--pulso-text);
+  font-weight: 600;
+}
+
+.pulso-comparativos-ponderacion-base.is-sin-declarar {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-comparativos-ponderacion-base.is-sin-leer {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-comparativos-ponderacion-enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  color: var(--pulso-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.pulso-comparativos-ponderacion-enlace:hover {
+  text-decoration: underline;
+}
+
+.pulso-comparativos-ponderacion-enlace:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+  border-radius: var(--pulso-radius-chip);
+}
+
+.pulso-comparativos-ponderacion-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pulso-comparativos-ponderacion-aviso > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
