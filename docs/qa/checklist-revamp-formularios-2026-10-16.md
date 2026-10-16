@@ -55,8 +55,14 @@ alcance de esta rama**, anotadas como hallazgo para Gonzalo).
 | T1 Acreditación | 0 | 0 | 5 → corregido 9f15467cf | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | T2 Estudiantil sensible | 0 | 0 | 21 → corregido 9f15467cf | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | T3 ACNUR monitoreo | 0 | 0 | 0 (tras 9f15467cf; antes 10) | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| T4 ACNUR comunidad | pendiente | | | | | | | | | |
-| T5 Salud OPS | pendiente | | | | | | | | | |
-| T6 Opinión e institucional | pendiente | | | | | | | | | |
+| T4 ACNUR comunidad | 0 | 0 | 0 | 0 | 0 | 1 → corregido bf50df2e4 | 0 | 0 | 0 | 0 |
+| T5 Salud OPS | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| T6 Opinión e institucional | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
-Pendientes: T4–T6 a 1440×1000, la matriz a 1366×768 y `make ui-quick-check` sobre las pestañas nuevas.
+Pendientes: re-medir «cuestionario» de T1 y T2 tras 9f15467cf (T3 pasó de 10 a 0 con el mismo arreglo), la matriz a
+1366×768 y `make ui-quick-check` sobre las pestañas nuevas.
+
+Hallazgo fuera de alcance (a investigar aparte): con el proyecto reabierto varias veces en la misma sesión (deep link
+`?pulso=` de desarrollo), el selector de formularios lista cada formulario DOS veces y una de las copias apunta a un
+`form_id` viejo (GET a un id inexistente, 404): el cambio de formulario se vuelve errático. Falta saber si también ocurre
+al reabrir un proyecto desde la app.
