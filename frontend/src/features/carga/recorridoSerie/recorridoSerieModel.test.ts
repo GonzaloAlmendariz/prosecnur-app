@@ -196,19 +196,19 @@ describe("paso 4 · Matriz", () => {
 });
 
 describe("paso 5 · Ponderación", () => {
-  it("una base sin declarar es una falta, con su nombre", () => {
+  it("una base que trae columna de peso sin declarar es una falta, con su nombre y la columna", () => {
     const p = paso(pasosDelRecorrido(completa({
       ponderacion: {
         tipo: "listo",
         datos: [
-          { base: "2024", ponderacion: { tipo: "sin_declarar" } },
+          { base: "2024", ponderacion: { tipo: "sin_declarar", columnasPeso: ["factor_ponderacion"] } },
           { base: "2025", ponderacion: { tipo: "calibracion" } },
           { base: "2026", ponderacion: { tipo: "sin_leer" } },
         ],
       },
     })), "ponderacion");
     expect(p.estado).toBe("falta");
-    expect(p.detalle).toBe("2024 sin peso declarado");
+    expect(p.detalle).toBe("2024 trae «factor_ponderacion» sin declarar");
     expect(p.enlace).toMatchObject({ tipo: "direccion", etiqueta: "Ponderación" });
     expect(p.enlace.tipo === "direccion" && p.enlace.href).toContain("pestana=ponderacion");
   });
@@ -226,6 +226,27 @@ describe("paso 5 · Ponderación", () => {
     })), "ponderacion");
     expect(p.estado).toBe("sin-lectura");
     expect(p.detalle).toBe("2026: columna «peso» · 2 bases sin leer aquí");
+  });
+
+  it("sin declarar y sin columnas de peso es «sin ponderar»: un hecho, no una falta", () => {
+    const p = paso(pasosDelRecorrido(completa({
+      ponderacion: {
+        tipo: "listo",
+        datos: [
+          { base: "2025", ponderacion: { tipo: "columna", columna: "factor_ponderacion" } },
+          { base: "2026", ponderacion: { tipo: "sin_declarar", columnasPeso: [] } },
+        ],
+      },
+    })), "ponderacion");
+    expect(p.estado).toBe("hecho");
+    expect(p.detalle).toBe("2025: columna «factor_ponderacion» · 2026: sin ponderar");
+  });
+
+  it("si la lectura no dice las columnas de peso, sigue pendiente", () => {
+    const p = paso(pasosDelRecorrido(completa({
+      ponderacion: { tipo: "listo", datos: [{ base: "2024", ponderacion: { tipo: "sin_declarar", columnasPeso: null } }] },
+    })), "ponderacion");
+    expect(p).toMatchObject({ estado: "falta", detalle: "2024 sin peso declarado" });
   });
 
   it("con la serie entera declarada está hecho", () => {
@@ -267,11 +288,11 @@ describe("C2: el texto no crece con el número de bases", () => {
       bases: seis,
       variables: Object.fromEntries(seis.map((b) => [b, vars(b, { extras: [columna("x")] })])),
       segmentos: segs([segmento("edad", {})]),
-      ponderacion: { tipo: "listo", datos: seis.map((base) => ({ base, ponderacion: { tipo: "sin_declarar" as const } })) },
+      ponderacion: { tipo: "listo", datos: seis.map((base) => ({ base, ponderacion: { tipo: "sin_declarar" as const, columnasPeso: ["factor"] } })) },
     });
     expect(paso(pasos, "variables").detalle).toBe("b1: 1 columna sin incorporar · y 5 bases más");
     expect(paso(pasos, "segmentos").detalle).toBe("b1: falta 1 segmento · y 5 bases más");
-    expect(paso(pasos, "ponderacion").detalle).toBe("6 bases sin peso declarado");
+    expect(paso(pasos, "ponderacion").detalle).toBe("6 bases traen columnas de peso sin declarar");
     expect(Math.max(...pasos.map((p) => p.detalle.length))).toBeLessThanOrEqual(60);
   });
 });

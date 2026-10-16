@@ -17,9 +17,9 @@ import { conNivel, serializarDireccion } from "../../../lib/navegacion/direccion
 import { formatoConteo } from "../../../lib/formatoNumero";
 import {
   DIRECCION_PONDERACION_SERIE,
-  basesSinDeclarar,
   basesSinLeer,
   enPalabras,
+  pendientesEnPalabras,
   textoPonderacion,
   type PonderacionEnSerie,
 } from "../../analitica/ponderacionSerieModel";
@@ -234,16 +234,10 @@ function pasoPonderacion(e: EntradaRecorrido): PasoRecorrido {
   if (l.tipo === "cargando") return { ...base, estado: "leyendo", detalle: "Leyendo…" };
   if (l.tipo === "error") return { ...base, estado: "sin-lectura", detalle: "No se pudo leer" };
   const serie = l.datos;
-  const sinDeclarar = basesSinDeclarar(serie);
-  if (sinDeclarar.length) {
-    return {
-      ...base,
-      estado: "falta",
-      detalle: sinDeclarar.length <= 2
-        ? `${enPalabras(sinDeclarar)} sin peso declarado`
-        : `${conteo(sinDeclarar.length, "base", "bases")} sin peso declarado`,
-    };
-  }
+  // Falta sólo si una base trae columnas de peso sin declarar. Sin columnas de
+  // peso no hay nada que declarar: sale sin ponderar y el paso está hecho.
+  const pendientes = pendientesEnPalabras(serie);
+  if (pendientes) return { ...base, estado: "falta", detalle: pendientes };
   const leidas = serie.filter((s) => s.ponderacion.tipo !== "sin_leer");
   const sinLeer = basesSinLeer(serie);
   const textoLeidas = porBaseConTope(leidas.map((s) => `${s.base}: ${textoPonderacion(s.ponderacion)}`));

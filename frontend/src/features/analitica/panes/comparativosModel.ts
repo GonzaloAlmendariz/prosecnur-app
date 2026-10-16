@@ -42,6 +42,11 @@ export type FilaArmonizada = {
   nCategorias: number;
   /** Comparable en al menos una medición de la serie. Si no, no se ofrece. */
   seleccionable: boolean;
+  /**
+   * Fila de un segmento de cruce del estudio (`cruce: true`, ADR 0107): por
+   * defecto es variable de cruce y no pregunta, como en el motor.
+   */
+  esSegmento: boolean;
 };
 
 export function filasArmonizadas(estado: EquivalenciasEstado | null): FilaArmonizada[] {
@@ -64,6 +69,7 @@ export function filasArmonizadas(estado: EquivalenciasEstado | null): FilaArmoni
       basesSinVariable: [],
       nCategorias: arm.escala.length,
       seleccionable: false,
+      esSegmento: fila.cruce === true,
     });
     const ultima = out[out.length - 1];
     // Una base sin entrada en `por_base` es «n.c.» (contrato E4-E7). Sólo cuentan
@@ -145,9 +151,9 @@ export function motivoVacio(estado: EquivalenciasEstado | null): MotivoVacio | n
 export type ErrorComparativo = { mensaje: string; codigo: string | null };
 
 export type ComparativosUi = {
-  /** Claves de las preguntas elegidas. Arranca con todas. */
+  /** Claves de las preguntas elegidas. Arranca con todas menos los segmentos. */
   preguntas: string[];
-  /** Claves de las variables de cruce. */
+  /** Claves de las variables de cruce. Arranca con los segmentos de cruce. */
   cruces: string[];
   rotulos: Record<string, string>;
   notasPregunta: Record<string, string>;
@@ -159,10 +165,26 @@ export type ComparativosUi = {
   resultado: { tipo: ComparativoTipo; datos: ComparativoResultado } | null;
 };
 
+/**
+ * Preguntas por defecto: las seleccionables que no son segmento de cruce. Es lo
+ * que el motor tabula cuando el cuerpo no trae `filas` (`.armz_preparar`).
+ */
+export function clavesPreguntasPorDefecto(filas: readonly FilaArmonizada[]): string[] {
+  return filas.filter((f) => f.seleccionable && !f.esSegmento).map((f) => f.clave);
+}
+
+/**
+ * Variables de cruce por defecto: los segmentos de cruce del estudio. Es lo que
+ * el motor usa cuando el cuerpo no trae `cruces` (`segmentos_cruces_por_defecto`).
+ */
+export function clavesCrucesPorDefecto(filas: readonly FilaArmonizada[]): string[] {
+  return filas.filter((f) => f.seleccionable && f.esSegmento).map((f) => f.clave);
+}
+
 export function estadoInicial(filas: FilaArmonizada[], periodos: string[]): ComparativosUi {
   return {
-    preguntas: filas.filter((f) => f.seleccionable).map((f) => f.clave),
-    cruces: [],
+    preguntas: clavesPreguntasPorDefecto(filas),
+    cruces: clavesCrucesPorDefecto(filas),
     rotulos: rotulosPorDefecto(periodos),
     notasPregunta: {},
     notasGenerales: "",
