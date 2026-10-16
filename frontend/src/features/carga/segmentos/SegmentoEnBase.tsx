@@ -10,13 +10,12 @@ import { formatoConteo } from "../../../lib/formatoNumero";
 import type { VariableDeBase } from "../../../api/equivalencias";
 import type { CategoriaSegmento, SegmentoEnBase as SegmentoEnBaseGuardado } from "../../../api/segmentos";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { CalendarRange, Ruler } from "../../../vendor/lucide-react";
 import { ArmonizacionAsignarEnMasa } from "../ArmonizacionAsignarEnMasa";
 import { DESTINO_SIN_MAPA, textoMarcados } from "../armonizacionMasaModel";
 import { avisoNoListable } from "../codigosObservadosModel";
 import { observadosListos, type LecturaCodigosObservados } from "../useCodigosObservados";
 import { PreguntaOrigen } from "../variablesBase/SelectorPreguntas";
-import { AyudaMapa } from "./AyudaMapa";
+import { AyudaMapa, BotonesAyudaMapa } from "./AyudaMapa";
 import { EstadoChip } from "./EstadoChip";
 import {
   TEXTO_ESTADO_BORRADOR,
@@ -141,30 +140,7 @@ export function SegmentoEnBase({
 
           {!noListable && (<>
           <div className="pulso-armon-base-acciones">
-            {ayudas.includes("tramos") && (
-              <PulsoButton
-                variant="secondary"
-                size="sm"
-                className="pulso-armon-btn"
-                aria-expanded={ayuda === "tramos"}
-                onClick={() => setAyuda(ayuda === "tramos" ? null : "tramos")}
-              >
-                <CalendarRange size={13} aria-hidden="true" />
-                Tramos de antigüedad
-              </PulsoButton>
-            )}
-            {ayudas.includes("rangos") && (
-              <PulsoButton
-                variant="secondary"
-                size="sm"
-                className="pulso-armon-btn"
-                aria-expanded={ayuda === "rangos"}
-                onClick={() => setAyuda(ayuda === "rangos" ? null : "rangos")}
-              >
-                <Ruler size={13} aria-hidden="true" />
-                Rangos
-              </PulsoButton>
-            )}
+            <BotonesAyudaMapa ayudas={ayudas} abierta={ayuda} onAlternar={(a) => setAyuda(ayuda === a ? null : a)} />
             {resumen.total > 0 && (
               <span className={`pulso-armon-base-resumen${resumen.sinMapa ? " is-aviso" : ""}`} aria-live="polite">
                 {[textoResumenMapa(resumen), casosFaltan ? textoFaltanCasos(casosFaltan) : ""].filter(Boolean).join(" · ")}

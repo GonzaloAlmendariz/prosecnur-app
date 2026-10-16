@@ -6,7 +6,7 @@
 // - El borrador de un segmento (clave, etiqueta, escala estándar y, por base,
 //   la variable de origen y el mapa de sus códigos), su validación y el cuerpo
 //   del POST.
-// - Las ayudas que arman el mapa: «Tramos de antigüedad» para un año y
+// - Las ayudas que arman el mapa: «Años transcurridos» para un año y
 //   «Rangos» para una numérica.
 // - La fusión de las filas de cruce en la matriz que se está editando.
 //
@@ -222,8 +222,17 @@ export function codigosDeEntrada(
 
 const ANIO = /^(19|20)\d{2}$/;
 
+/** Códigos especiales que conviven con una lista de años: «Otro» 88, «No sabe» 98… */
+const ESPECIAL = /^(7[7-9]|8[0-9]|9[0-9])$/;
+
+/**
+ * Si los valores son años: todos lo son, salvo códigos especiales (77–99), y hay
+ * al menos un año. Un «Otro» 88 entre los años no le quita la ayuda a la variable:
+ * queda fuera de los tramos y se asigna a mano.
+ */
 export function sonAnios(codigos: readonly OpcionBase[]): boolean {
-  return codigos.length > 0 && codigos.every((c) => ANIO.test(c.codigo));
+  return codigos.some((c) => ANIO.test(c.codigo))
+    && codigos.every((c) => ANIO.test(c.codigo) || ESPECIAL.test(c.codigo));
 }
 
 export function sonNumericos(codigos: readonly OpcionBase[]): boolean {
@@ -643,7 +652,7 @@ export function atajosPartirDe(
 }
 
 // ---------------------------------------------------------------------------
-// Ayudas: tramos de antigüedad y rangos
+// Ayudas: años transcurridos y rangos
 // ---------------------------------------------------------------------------
 
 export type Tramo = { clave: string; desde: string; hasta: string; destino: string };
@@ -709,7 +718,7 @@ export function aniosParaTramos(codigos: readonly OpcionBase[]): string[] {
   return codigos.map((c) => c.codigo).filter((c) => ANIO.test(c));
 }
 
-/** Mapa relativo al año de la medición: antigüedad = año de la base − año del código. */
+/** Mapa relativo al año de la medición: años transcurridos = año de la base − año del código. */
 export function mapaPorTramos(anios: readonly string[], anio: number, tramos: readonly Tramo[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (const c of anios) {

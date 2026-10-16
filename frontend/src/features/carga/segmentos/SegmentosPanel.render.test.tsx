@@ -186,7 +186,7 @@ describe("una base del editor con los valores observados", () => {
     expect(html).toContain("1 de 3 códigos asignados · 2 sin mapa · Faltan 34 casos por asignar");
     expect(html).toContain("Sin dato: 5 casos");
     expect(html).toContain("Rangos");
-    expect(html).not.toContain("Tramos de antigüedad");
+    expect(html).not.toContain("Años transcurridos");
   });
 
   it("un código con 0 casos y sin mapa se lee tenue («sin casos») y no cuenta como pendiente", () => {
@@ -206,7 +206,7 @@ describe("una base del editor con los valores observados", () => {
 
   it("un año de ingreso ofrece los tramos de antigüedad", () => {
     const html = render({ tipo: "listo", datos: observados({ codigos: [{ codigo: "2022", etiqueta: "", n: 9 }, { codigo: "2025", etiqueta: "", n: 3 }] }) }, {});
-    expect(html).toContain("Tramos de antigüedad");
+    expect(html).toContain("Años transcurridos");
   });
 
   it("texto libre lo dice en una línea y no ofrece tabla", () => {
@@ -220,7 +220,7 @@ describe("una base del editor con los valores observados", () => {
     expect(html).toContain("Parece un identificador: sus valores no se listan.");
     expect(html).not.toContain("<table");
     expect(html).not.toContain("Rangos");
-    expect(html).not.toContain("Tramos de antigüedad");
+    expect(html).not.toContain("Años transcurridos");
   });
 
   it("leyendo, lo dice; si falla, lo dice y queda lo conocido", () => {
