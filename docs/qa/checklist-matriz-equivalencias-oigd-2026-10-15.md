@@ -71,3 +71,12 @@ Aprendido: lo que 2024 y 2025 traen «de más» no son indicadores compuestos si
 esos años: variables `_R` (P12_R, P13_R… con 100 = «Perdido»), dummies de opción múltiple `P25.1_R`…, sociodemográficas
 renombradas (Edad, Sexo, Identidad_genero, lugar_nacimiento, anio_ingreso), `facultad`, `unidad`/`unidad_value`,
 `Curso_horario`. 2024: 409 columnas, 100 casan con el XLSForm aplicado. 2025: 278, 115 casan.
+
+## Reporte de Ulises (2026-10-15): textos «Otro» borrados en P11 y P27
+
+Fuente: `01_Estudios/2026_PUCP_HSyVbG/Procesamiento/Segunda semana/Prosecnur_Textos borrados en Otros P11 y P27.docx`.
+
+| # | Indicación | Dónde vive | Estado |
+|---|---|---|---|
+| H1 | Una pregunta con texto «Otro» vinculado y CERO grupos de codificación pierde todos sus textos al preparar la codificación (P11_otro 2, P27_otro 12; en la muestra de 2 500 faltan 10) | Codificación (preparar / plantilla / adaptar) | ☐ diagnosticando |
+| H2 | La base adaptada no trae las 130 columnas dicotómicas de las opciones múltiples (p. ej. P26/1); la información sigue en la columna principal | Codificación › adaptar / exportes | ☐ por evaluar si es defecto o diseño |
