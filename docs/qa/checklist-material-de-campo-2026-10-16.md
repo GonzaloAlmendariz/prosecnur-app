@@ -91,3 +91,17 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | E3 | Bloques `quota_grid`, `unit_map`, `place_checklist`, `route_instructions`; port; retiro del legacy | registro de bloques | pendiente |
 | E4 | `fichas_cuota_v1`, hojas comunes, alerta en Monitoreo, golden de Ser Adolescente | archivo nuevo, `monitoreo_engine.R` | **bloqueado** (A9, H5) |
 | E5 | Seguimiento por ficha desde la lista de unidades (opcional) | Monitoreo | pendiente |
+
+## F. Coordinación con el revamp de Formularios (2026-10-16)
+
+Consultado a la sesión «Generador de formularios» (rama `feat/revamp-formularios`, canvas
+`XkpdPVxW4CN7Gthdx1HaQV`). Lo que quedó establecido:
+
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| F1 | Formularios no asume nada del generador de fichas ni del motor de materiales: su Impreso usa otro motor (`formulario_pdf_build_model`) | `api/R/collection_*.R` sigue siendo de Material de campo | hecho (confirmado) |
+| F2 | `consent_text` y cualquier bloque que lea el instrumento leen del modelo del formulario, sin reimplementar el parser (`parsing/detectConsentQuestions.ts`) | E4 | pendiente |
+| F3 | El kit de Formularios (`PanelCard`, `PropRow`, `Segmented`) se importa tal cual desde `xlsformEditor/kit/`; se promueve a `src/components/kit` una sola vez, en un commit aparte, según el orden de merge que decida Gonzalo | E1 | **bloqueado**: orden de merge, lo decide Gonzalo |
+| F4 | Reglas que se heredan: contenedor con cabecera y pie y dos niveles neutros; color solo en íconos y estados; `flex-shrink:0` dentro de columnas flex y último contenedor con fill; container queries para paneles; movimiento ≤ 240 ms sin rebote y apagado con reduced-motion; medir recortes por script contra datos reales a escala | E1 (canvas y gate) | pendiente |
+| F5 | No se heredan la barra ni el rail de su canvas (son de Formularios; el chrome sigue el ADR 0042) | — | hecho (decidido) |
+| F6 | Único choque posible al mergear: `frontend/src/app/theme.css` (su rama borra ~100 líneas muertas) | merge | pendiente: esta rama no toca `theme.css` |
