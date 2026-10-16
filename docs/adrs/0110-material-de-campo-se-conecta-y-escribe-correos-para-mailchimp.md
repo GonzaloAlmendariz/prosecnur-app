@@ -138,9 +138,21 @@ Vive en `api/R/collection_mail_template.R` (contrato y presets), `collection_mai
 - **Encabezado repetido o vacío:** se queda la primera columna con ese nombre; las demás no se leen.
 - **Los alias de Gmail no se normalizan** (`ana.quispe@gmail.com` y `anaquispe+x@gmail.com` cuentan como dos
   personas): la app no sabe qué proveedor ignora puntos o sufijos.
-- **El nombre de pila es cosmético.** El formato «APELLIDOS, NOMBRES» se reconoce por el encabezado («apellido») o
-  porque la mitad o más de los valores llevan exactamente una coma; con cero o varias comas el saludo usa el nombre
-  completo y se avisa.
+- **El nombre de pila es cosmético.** El formato «APELLIDOS, NOMBRES» se reconoce por un encabezado que empieza por
+  «apellido» («Apellidos y nombres» sí; «Nombres y apellidos» no) o porque la mitad o más de los valores llevan
+  exactamente una coma; con cero o varias comas el saludo usa el nombre completo y se avisa. En formato «nombre», un
+  valor con coma también cuenta en `names_unsplit`. Un encabezado de persona («Estudiante», «Participante»,
+  «Docente»…) cuyos valores son dígitos en su mayoría es un código, no el nombre.
+- **En un correo repetido gana la primera fila**, también para FNAME: el saludo usa el nombre de la primera aparición.
+- **El mapeo adivinado se confirma en la muestra.** La app propone columnas por el encabezado; quien importa revisa la
+  muestra y corrige el mapeo antes de exportar.
+- **La primera fila es el encabezado.** Si algún encabezado tiene forma de correo, la importación se rechaza
+  (`E_COLLECTION_MAIL_RECIPIENTS_NO_HEADER`) sin citar el valor: tomarlo como encabezado perdería una persona sin aviso.
+- **Del XLSX se lee solo la primera hoja.** Las filas vacías al inicio o al final de la hoja que `readxl` salta por su
+  cuenta no entran en `rows_blank_dropped`; solo se cuentan las vacías que quedan entre datos.
+- **El separador del CSV se infiere de la primera línea** (el más frecuente entre `,`, `;` y tabulador; empate o
+  ninguno → `,`).
+- **El correo se compara entero y en minúsculas**: no se separan ni se normalizan la parte local y el dominio.
 
 ## Notas
 

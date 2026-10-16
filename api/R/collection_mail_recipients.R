@@ -134,6 +134,13 @@
   }
   # Encabezado vacío o repetido: se queda la primera columna con ese nombre.
   names(df) <- .cmail_clean_text(names(df))
+  # Sin fila de encabezados, el primer destinatario se volvería «columnas»: se
+  # perdería una persona sin aviso y su correo saldría en la respuesta. No se
+  # cita el valor (D6).
+  if (any(grepl(.CMAIL_EMAIL_LIKE_RE, names(df)))) {
+    stop_api(422, "E_COLLECTION_MAIL_RECIPIENTS_NO_HEADER",
+             "La primera fila parece un destinatario; agrega una fila de encabezados.")
+  }
   keep <- nzchar(names(df)) & !duplicated(names(df))
   df <- df[, keep, drop = FALSE]
   df[] <- lapply(df, .cmail_clean_text)
@@ -179,6 +186,13 @@
   loose_name <- which(free & grepl("^nombres?($|_)", norm) & !grepl("_(de|del)_", norm))
   person <- which(free & norm %in% c("estudiante", "alumno", "alumna", "participante", "docente", "persona",
                                      "destinatario", "contacto", "encuestado", "encuestada"))
+  # Un encabezado de persona con valores que son solo dígitos es un código
+  # («Estudiante» = 20260001), no un nombre.
+  digits <- vapply(df, function(col) {
+    v <- .cmail_value(col); v <- v[nzchar(v)]
+    length(v) > 0L && mean(grepl("^[0-9]+$", v)) >= 0.5
+  }, NA)
+  person <- person[!digits[person]]
   name <- pick(c(exact_name, combo_name, loose_name, person))
   fields <- list()
   for (f in template$fields %||% list()) {
@@ -381,8 +395,9 @@
     imported_at = store$imported_at,
     encoding = store$encoding,
     row_count = as.integer(nrow(store$rows)),
-    columns = as.list(names(store$rows)),
-    mapping = .cmc_drop_nulls_deep(mapping),
+    # Defensa (D6): un encabezado con forma de correo nunca sale tal cual.
+    columns = as.list(.cmail_mask_pii(names(store$rows))),
+    mapping = .cmail_mask_pii(.cmc_drop_nulls_deep(mapping)),
     counts = resolved$counts,
     sample = sample
   ))

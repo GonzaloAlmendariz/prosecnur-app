@@ -383,3 +383,86 @@ test_that("M6: abrir otro proyecto in_place borra los datos personales de la ses
   expect_false(file.exists(zip_path))
   expect_false(collection_mail_recipients_get(sid)$loaded)
 })
+
+test_that("CSV y XLSX sin fila de encabezados: error propio, sin citar el correo", {
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  csv <- "QUISPE ANA,ana@e.org,https://e.org/1\nROJAS LUZ,luz@e.org,https://e.org/2"
+  e <- .cmh_err(.cmail_fx_import(sid, csv = csv))
+  expect_identical(e$code, "E_COLLECTION_MAIL_RECIPIENTS_NO_HEADER")
+  expect_false(grepl("@", conditionMessage(e), fixed = TRUE))
+  expect_false(grepl("QUISPE", conditionMessage(e), fixed = TRUE))
+  expect_false(grepl("@", paste(unlist(e$details), collapse = " "), fixed = TRUE))
+
+  df <- data.frame(a = c("QUISPE ANA", "ROJAS LUZ"), b = c("ana@e.org", "luz@e.org"))
+  path <- tempfile(fileext = ".xlsx"); on.exit(unlink(path), add = TRUE)
+  openxlsx::write.xlsx(df, path, colNames = FALSE)
+  ex <- .cmh_err(.cmail_fx_import_raw(sid, readBin(path, "raw", file.info(path)$size), file_name = "l.xlsx"))
+  expect_identical(ex$code, "E_COLLECTION_MAIL_RECIPIENTS_NO_HEADER")
+  expect_false(collection_mail_recipients_get(sid)$loaded)
+
+  # HTTP: el JSON del error tampoco trae el correo.
+  testthat::skip_if_not_installed("plumber")
+  pr <- mount_recopiladores(plumber::pr() |> plumber::pr_set_serializer(.api_serializer()))
+  r <- .cmail_fx_call(pr, sid, "POST", "/api/recopiladores/mail-recipients/import", .cmail_fx_json(list(
+    file_name = "l.csv", content_base64 = jsonlite::base64_enc(charToRaw(csv)))))
+  expect_identical(r$status, 422L)
+  expect_identical(unlist(r$body$error$code), "E_COLLECTION_MAIL_RECIPIENTS_NO_HEADER")
+  expect_false(grepl("@", r$raw, fixed = TRUE))
+})
+
+test_that("la vista pública enmascara columnas y mapeo con forma de correo (defensa)", {
+  store <- list(rows = data.frame(`x@y.org` = "a", Correo = "ana@e.org", check.names = FALSE),
+                mapping = list(email_column = "Correo", name_column = "x@y.org", name_format = "nombre", fields = list()))
+  pub <- .cmail_recipients_public(store)
+  expect_false(any(grepl("@", unlist(pub), fixed = TRUE)))
+})
+
+test_that("(d) un marcador N/A o #N/A en un campo con respaldo sale vacío en audiencia.csv", {
+  skip_if_not_installed("zip")
+  sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
+  csv <- paste(
+    "Apellidos y nombres,Correo institucional,Carrera,Código,Enlace",
+    "\"QUISPE, ANA\",ana@ejemplo.org,N/A,1,https://ejemplo.org/e/1",
+    "\"ROJAS, LUZ\",luz@ejemplo.org,#N/A,2,https://ejemplo.org/e/2",
+    "\"VEGA, EVA\",eva@ejemplo.org,Economía,3,https://ejemplo.org/e/3",
+    sep = "\n"
+  )
+  .cmail_fx_import(sid, csv = csv)
+  res <- collection_mail_export(sid, .cmail_fx_rev(sid))
+  ex <- tempfile("cmh-d-"); on.exit(unlink(ex, recursive = TRUE), add = TRUE)
+  utils::unzip(session_get(sid)$files[[res$zip$file_id]]$path, exdir = ex)
+  aud <- utils::read.csv(file.path(ex, "audiencia.csv"), check.names = FALSE, colClasses = "character", encoding = "UTF-8")
+  expect_identical(aud$CARRERA, c("", "", "Economía"))
+})
+
+test_that("(b) un encabezado de persona con valores de solo dígitos no es el nombre", {
+  df <- data.frame(Estudiante = c("20260001", "20260002", "20260003"), Correo = c("a@e.org", "b@e.org", "c@e.org"))
+  expect_null(.cmail_guess_mapping(df, .cmail_builtin_template())$name_column)
+  df$Estudiante <- c("Ana", "Luz", "Eva")
+  expect_identical(.cmail_guess_mapping(df, .cmail_builtin_template())$name_column, "Estudiante")
+})
+
+test_that("(e) el formato por encabezado se ancla a ^apellido; (c) una coma en formato nombre cuenta sin separar", {
+  expect_identical(.cmail_name_format("Nombres y apellidos", c("Ana Quispe", "Luz Rojas")), "nombre")
+  expect_identical(.cmail_name_format("Apellidos y nombres", c("Ana Quispe", "Luz Rojas")), "apellidos_coma_nombres")
+
+  sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
+  .cmail_fx_import(sid)
+  out <- collection_mail_recipients_mapping_put(sid, list(
+    email_column = "Correo institucional", name_column = "Apellidos y nombres", name_format = "nombre",
+    fields = list(carrera = "Carrera", enlace = "Enlace", codigo = "Código")
+  ))
+  # Efectivos: «QUISPE MAMANI, ANA LUCIA» y «ROJAS VEGA, CARLOS» traen coma; «LUZ TORRES» no.
+  expect_identical(out$counts$names_unsplit, 2L)
+  by <- .cmh_by(collection_mail_review(sid))
+  expect_identical(by$names_unsplit$status, "warning")
+  expect_identical(by$names_unsplit$value, 2L)
+})
+
+test_that("fields_empty sin destinatarios efectivos lo dice", {
+  sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
+  .cmail_fx_import(sid, csv = "Apellidos y nombres,Correo institucional,Carrera,Enlace\n\"A, B\",malo,X,https://e.org/1\n")
+  by <- .cmh_by(collection_mail_review(sid))
+  expect_match(by$fields_empty$detail, "Sin destinatarios efectivos", fixed = TRUE)
+  expect_identical(by$recipients$status, "error")
+})

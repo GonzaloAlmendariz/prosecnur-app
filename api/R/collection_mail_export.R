@@ -254,6 +254,8 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
       } else if (uncovered) {
         sprintf("%d destinatarios no tienen dato en un campo que se usa sin respaldo (asunto, preheader, {{nombre}} fuera del saludo o campo sin respaldo): verán el espacio vacío.",
                 as.integer(sum(uncovered_person)))
+      } else if (!cn$valid) {
+        "Sin destinatarios efectivos: no hay a quién revisar los campos."
       } else if (total_empty) {
         "Los destinatarios sin dato reciben el texto de respaldo en todos los lugares donde se usa el campo."
       } else {
@@ -279,11 +281,14 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
                  extra = lapply(conflicts, function(cf) list(row = cf$row, first_row = cf$first_row, tags = cf$tags)))
   })
 
+  n_unsplit <- resolved$counts$names_unsplit
   if (identical(m$name_format, "apellidos_coma_nombres")) {
-    n <- resolved$counts$names_unsplit
-    push(.cmail_check("names_unsplit", if (n > 0L) "warning" else "ok", as.integer(n),
-                      if (n > 0L) sprintf("%d nombres sin separar: el saludo usará el nombre completo.", n)
+    push(.cmail_check("names_unsplit", if (n_unsplit > 0L) "warning" else "ok", as.integer(n_unsplit),
+                      if (n_unsplit > 0L) sprintf("%d nombres sin separar: el saludo usará el nombre completo.", n_unsplit)
                       else "Todos los nombres se separaron en apellidos y nombres."))
+  } else if (n_unsplit > 0L) {
+    push(.cmail_check("names_unsplit", "warning", as.integer(n_unsplit),
+                      sprintf("%d nombres traen una coma: el saludo usará la cadena entera. Si son «APELLIDOS, NOMBRES», cambia el formato del nombre.", n_unsplit)))
   }
   list(checks = checks, rendered = rendered, images = images, store = store, resolved = resolved, tag_rows = tag_rows)
 }
