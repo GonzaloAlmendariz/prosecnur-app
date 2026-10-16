@@ -5,10 +5,11 @@
 // con sus casos. El efecto se ve antes de agregar la condición y, con las
 // condiciones puestas, cuántos casos cuentan en total.
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   apiV2CasoValidoColumnas,
   apiV2CasoValidoEfecto,
+  apiV2CasoValidoGuardar,
   type CasoValidoColumna,
   type CasoValidoCondicion,
   type CasoValidoEfecto,
@@ -20,11 +21,14 @@ import { casosQueCumplen, condicionDesdeBorrador, textoCondicion, type Sentido }
 
 export function CasoValidoManual({
   baseNombre,
+  enabled,
   condiciones,
   onCambiar,
   disabled,
 }: {
   baseNombre?: string | null;
+  /** El interruptor «Declarado» del bloque: se guarda junto con las condiciones. */
+  enabled: boolean;
   condiciones: readonly CasoValidoCondicion[];
   onCambiar: (siguientes: CasoValidoCondicion[]) => void;
   disabled?: boolean;
@@ -60,6 +64,22 @@ export function CasoValidoManual({
     return () => { vivo = false; };
     // `clave` resume las condiciones: el arreglo cambia de identidad en cada render.
   }, [clave, baseNombre]);
+
+  // Se guarda al cambiar (condición nueva, quitada, sugerencia adoptada o el
+  // interruptor): antes sólo «Construir plan» lo guardaba y Analítica no lo veía.
+  const [guardado, setGuardado] = useState<"" | "guardando" | "guardado" | "error">("");
+  const claveGuardar = JSON.stringify([enabled, condiciones]);
+  const ultimaGuardada = useRef(claveGuardar);
+  useEffect(() => {
+    if (claveGuardar === ultimaGuardada.current) return;
+    let vivo = true;
+    setGuardado("guardando");
+    apiV2CasoValidoGuardar(baseNombre, enabled, [...condiciones])
+      .then(() => { if (vivo) { ultimaGuardada.current = claveGuardar; setGuardado("guardado"); } })
+      .catch(() => { if (vivo) setGuardado("error"); });
+    return () => { vivo = false; };
+    // `claveGuardar` resume enabled + condiciones.
+  }, [claveGuardar, baseNombre]);
 
   const col = columnas?.find((c) => c.variable === variable);
   const nTotal = efecto?.n_total || nBase;
@@ -106,6 +126,9 @@ export function CasoValidoManual({
           </span>
           {efecto.n_excluidos ? <span className="pulso-cvm-fuera">{formatoConteo(efecto.n_excluidos)} fuera</span> : null}
           {efecto.variables_ausentes.length ? <span className="pulso-cvm-fuera">Falta en la base: {efecto.variables_ausentes.join(", ")}</span> : null}
+          {guardado === "guardando" ? <span className="pulso-cvm-fuera">Guardando…</span> : null}
+          {guardado === "guardado" ? <span className="pulso-cvm-fuera">Guardado</span> : null}
+          {guardado === "error" ? <span className="pulso-cvm-error" role="alert">No se pudo guardar</span> : null}
         </div>
       ) : null}
 

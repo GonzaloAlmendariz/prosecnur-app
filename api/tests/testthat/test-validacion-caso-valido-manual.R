@@ -47,3 +47,16 @@ test_that("el efecto cuenta los casos y avisa la variable que la base no trae", 
   # Una condición sin valores no cuenta como condición.
   expect_identical(caso_valido_efecto(.cvm_data(), list(list(variable = "p1", operador = "in", valores = list())))$n_validos, 12L)
 })
+
+test_that("guardar el criterio lo deja en la config de la base sin tocar el resto", {
+  skip_if_not_installed("haven")
+  sid <- .bv_estudio()
+  on.exit(session_delete(sid), add = TRUE)
+  caso_valido_guardar(sid, "2026", TRUE, list(list(variable = "q1", operador = "==", valores = list("1"))))
+  cfg <- .get_base_scope(sid, "2026")$operational_config
+  expect_true(cfg$caso_valido$enabled)
+  expect_identical(cfg$caso_valido$condiciones[[1]]$variable, "q1")
+  # Sin condiciones queda apagado.
+  caso_valido_guardar(sid, "2026", TRUE, list())
+  expect_false(.get_base_scope(sid, "2026")$operational_config$caso_valido$enabled)
+})

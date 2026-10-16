@@ -96,8 +96,30 @@ caso_valido_efecto <- function(data, condiciones) {
   list(data = as.data.frame(data, check.names = FALSE), inst = inst)
 }
 
+#' Guarda sólo «Qué caso cuenta» en la config operativa de la base.
+#'
+#' Antes se guardaba únicamente al reconstruir el plan, y el criterio recién
+#' declarado no llegaba a Analítica hasta entonces. El resto de la config queda
+#' como estaba.
+#' @keywords internal
+caso_valido_guardar <- function(sid, base, enabled, condiciones) {
+  scope <- .get_base_scope(sid, base)
+  cfg <- normalize_validation_operational_config(scope$operational_config %||% NULL)
+  conds <- lapply(condiciones %||% list(), function(c1) {
+    list(variable = as.character(c1$variable %||% "")[1],
+         operador = as.character(c1$operador %||% "==")[1],
+         valores = as.list(as.character(unlist(c1$valores %||% list()))))
+  })
+  conds <- Filter(function(c1) nzchar(c1$variable) && length(c1$valores), conds)
+  cfg$caso_valido <- list(enabled = isTRUE(enabled) && length(conds) > 0L, condiciones = conds)
+  cfg <- normalize_validation_operational_config(cfg)
+  validacion_scope_set(sid, base, "operational_config", cfg)
+  invisible(cfg$caso_valido)
+}
+
 # GET  /api/validacion/v2/caso-valido/columnas  (X-Base-Nombre) → {ok, n_total, columnas}
 # POST /api/validacion/v2/caso-valido/efecto    body {condiciones} → {ok, n_total, n_validos, n_excluidos, variables_ausentes}
+# POST /api/validacion/v2/caso-valido           body {enabled, condiciones} → {ok, caso_valido}
 mount_validacion_caso_valido_manual <- function(pr) {
   pr |>
     plumber::pr_get("/api/validacion/v2/caso-valido/columnas", wrap_endpoint(function(req, res) {
@@ -115,5 +137,16 @@ mount_validacion_caso_valido_manual <- function(pr) {
       } else list()
       d <- .caso_valido_manual_datos(sid, .get_base_nombre(req))
       c(list(ok = TRUE), caso_valido_efecto(d$data, parsed$condiciones))
+    })) |>
+    plumber::pr_post("/api/validacion/v2/caso-valido", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- if (nzchar(body_raw)) {
+        tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+                 error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e)))
+      } else list()
+      cv <- caso_valido_guardar(sid, .get_base_nombre(req), isTRUE(parsed$enabled), parsed$condiciones)
+      list(ok = TRUE, caso_valido = cv)
     }))
 }

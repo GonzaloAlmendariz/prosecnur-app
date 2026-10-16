@@ -173,6 +173,7 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
             población— se declara a mano. */}
         <CasoValidoManual
           baseNombre={baseNombre}
+          enabled={validez.enabled}
           condiciones={validez.condiciones}
           disabled={disabled}
           onCambiar={(condiciones) => setValidez({ enabled: condiciones.length > 0, condiciones })}
