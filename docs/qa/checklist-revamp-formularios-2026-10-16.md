@@ -35,13 +35,13 @@ Indicaciones del usuario que gobiernan todo el revamp:
 | E3 | Constructor en tarjetas: pregunta y respuestas, «Cuándo aparece» con la regla heredada de la sección, «Qué acepta» junto a «Así se imprime», propiedades y relaciones | `canvas/` — corte previo d09cb2e37: `FocusedWorkspace` 4176→1067, pestañas internas en `canvas/constructor/Tab*.tsx`; resumen en 4 contenedores 0c29a0d50, tarjeta con estilo kit 88646adf4, CSS muerto fuera 4469cb76f, panel derecho neutro y lista compartida sin derrame 2890417bc y 294a8f4e5 (medido a 1440×1000: el resumen pasa a una columna en el panel angosto) | ☑ |
 | E4 | Lógica: lista por sección con reglas de sección y de pregunta, filtro Todas/Sección/Pregunta, editor en tarjetas; el mapa se conserva | `canvas-graph/ListaLogica.tsx`, `listaLogicaModel.ts` — 33c6e5672 (corte), e9e9af15d (lista por sección junto al mapa, foco enlazable); verificado con el tipo 3: 69 secciones, 367 reglas | ☑ |
 | E5 | Pestaña Restricciones: punto de partida, regla, mensaje, vista del teléfono, probar valores, antes de guardar | `pestanas/PestanaRestricciones.tsx` + `canvas/constructor/EditorValidacion.tsx` — b3abb7507, 544024377 (edita con el mismo editor del Constructor), e5d699f70 (probar valores + teléfono; 305/318 restricciones del corpus se pueden probar) | ☑ |
-| E6 | Pestaña Cálculos: lista, editor de fórmula con `@`, catálogo de funciones, probar, relaciones | `pestanas/PestanaCalculos.tsx`, `ProbarCalculo.tsx`, `logic/probarCalculo.ts` — 6c61de0a1 (edita con el editor del Constructor y prueba con respuestas; 87/207 cálculos evaluables); falta catálogo de funciones | ◐ |
+| E6 | Pestaña Cálculos: lista, editor de fórmula con `@`, catálogo de funciones, probar, relaciones | `pestanas/PestanaCalculos.tsx`, `ProbarCalculo.tsx`, `logic/probarCalculo.ts` — 6c61de0a1 (edita con el editor del Constructor y prueba con respuestas), 19cf56b24 (catálogo de funciones; 108/207 cálculos del corpus evaluables) | ☑ |
 | E7 | Editor XLSForm: hojas survey/choices/settings con columnas reales, barra de fórmula, fila seleccionada, revisión con arreglos | `sheets/` — 95300bd4d (corte), 619283267 (barra de fórmula con «Se lee», panel de fila y revisión), 9c0442d17 (comillas tipográficas como error con arreglo; 15 celdas en el corpus), 53ec8650d (encabezados con ayuda, sin pastel) | ☑ |
 | E8 | Impreso: ajustes en tarjetas, dos páginas A4 | `impreso/` — ya seguía la gramática; medida a 1440×1000 con el tipo 1 sin desbordes; 1756ec8d7 (último fondo tintado); previa del tipo 2 generada (66 páginas, 308 preguntas) sin desbordes | ☑ |
 | E9 | Resumen: franja de cifras, organización, quién responde qué, escalas, antes de aplicar | `resumen/` — ya seguía la gramática; 00d57c02f (línea de tiempo con 54 secciones sin desborde); medido a 1440×1000 con el tipo 2 | ☑ |
 | E10 | Movimiento: duraciones ≤ 240 ms, una curva, sólo opacidad/posición, `prefers-reduced-motion` | kit + estilos del módulo — d26b7d110: 207 transiciones auditadas; 0 largas, 0 rebotes, 0 sin reduce-motion; 4 acordeones mueven layout a propósito | ☑ |
 | EM | Modularización: ningún archivo del módulo gigante (objetivo ≤ ~500 líneas .ts/.tsx, ≤ ~600 .css); cada etapa extrae primero (refactor puro, commit propio) y rediseña después. Hoy: XlsformEditorPage 4426, FocusedWorkspace 4585, LogicCanvas 2339, RuleWizard 1917, xlsform-v2.css 6229 | todo `xlsformEditor/` | ☐ |
-| E11 | QA visual en la matriz de viewports, `verificador`, commits por etapa | verificador: aprobado con pendientes (docs → a1c0fc4b8; QA visual pendiente); claves React únicas 21deeb5ff; Vista del cuestionario sin derrames 9f15467cf; matriz abajo | ◐ |
+| E11 | QA visual en la matriz de viewports, `verificador`, commits por etapa | verificador: aprobado con pendientes (docs → a1c0fc4b8); claves React únicas 21deeb5ff y en la ficha de la pregunta (opciones con código repetido por `choice_filter`); Vista del cuestionario sin derrames 9f15467cf; matrices 1440×1000 y 1366×768 en 0; `ui-quick-check` verde (abajo) | ☑ |
 
 ## Matriz E11 — derrames y recortes por pestaña (1440×1000, `formularios-tipo.pulso`)
 
@@ -59,8 +59,21 @@ alcance de esta rama**, anotadas como hallazgo para Gonzalo).
 | T5 Salud OPS | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | T6 Opinión e institucional | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
-Pendientes: re-medir «cuestionario» de T1 y T2 tras 9f15467cf (T3 pasó de 10 a 0 con el mismo arreglo), la matriz a
-1366×768 y `make ui-quick-check` sobre las pestañas nuevas.
+Re-medido tras 9f15467cf (2026-10-16, ya en `main`): «cuestionario» de T1 y T2 en 0 a 1440×1000 (con control
+positivo del detector).
+
+## Matriz E11 a 1366×768
+
+Las 10 pestañas × 6 tipos: **0 derrames y 0 recortes en las 60 vistas** (T1, T2, T3, T4, T5, T6; cada vista confirmada
+por `pestana` en la URL tras `__pulsoNav.ir("editor-xlsform/formularios/<pestaña>")`).
+
+## `ui-quick-check` (10 pestañas × 1440×1000 y 1366×768, `formularios-tipo.pulso`)
+
+Primera corrida: `ok=false` sólo por 94 errores de consola, todos «two children with the same key» en
+`cuestionario/FichaPregunta.tsx`: una lista con `choice_filter` repite códigos (uno por filtro) y la clave era el
+código. Arreglado con clave código + posición. Segunda corrida: `ok=true`, 20 capturas distintas (md5), 0 errores de
+consola, 0 derrames, solapes, desbordes, scroll jails, desvíos de ruta y problemas de geometría (202 grupos).
+`desplazamientoH=2` es la tabla del Resumen, que se desplaza en horizontal a propósito.
 
 Hallazgo fuera de alcance (a investigar aparte): con el proyecto reabierto varias veces en la misma sesión (deep link
 `?pulso=` de desarrollo), el selector de formularios lista cada formulario DOS veces y una de las copias apunta a un
