@@ -83,7 +83,11 @@ export function InspectorDeTipo({
           </li>
         ))}
       </ol>
-      <div className="rec-cat-props">
+      <div
+        className="rec-cat-props"
+        data-qa-geometry-group="material-campo/catalogo/tipos-inspector-filas"
+        data-qa-geometry-contract="equal"
+      >
         <PropRow label="Formato">{textoDeFormato(preset)}</PropRow>
         <PropRow label="Cuántos">{copias ?? "Sin declarar"}</PropRow>
         <PropRow label="Lee de">{textoDeLectura(preset.compatible_unit_types)}</PropRow>

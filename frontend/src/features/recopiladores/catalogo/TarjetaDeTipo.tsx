@@ -34,13 +34,15 @@ export function TarjetaDeTipo({ preset, seleccionado, frente, dorso, motivo, onS
         dorso={preset.faces === 2 ? dorso : undefined}
         orientation={preset.orientation}
         alt={preset.title}
+        etiqueta={preset.active ? <span className="rec-cat-en-uso">En uso</span> : null}
       />
       <span className="rec-cat-tarjeta-texto">
-        <span className="rec-cat-tarjeta-titulo">
-          <strong>{preset.title}</strong>
-          {preset.active ? <span className="rec-cat-en-uso">En uso</span> : null}
-        </span>
-        <span className="rec-cat-chips">
+        <strong className="rec-cat-tarjeta-titulo">{preset.title}</strong>
+        <span
+          className="rec-cat-chips"
+          data-qa-geometry-group={`material-campo/catalogo/tipos-chips/${preset.preset_id}`}
+          data-qa-geometry-contract="intrinsic"
+        >
           {chips.map((chip) => <span key={chip} className="rec-cat-chip">{chip}</span>)}
         </span>
         {motivo ? <span className="rec-cat-motivo">{motivo}</span> : null}
