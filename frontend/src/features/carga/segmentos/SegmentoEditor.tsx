@@ -8,19 +8,26 @@ import type { BaseVariables } from "../../../api/baseVariables";
 import type { VariableDeBase } from "../../../api/equivalencias";
 import type { Segmento, SegmentoADeclarar } from "../../../api/segmentos";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { Copy, Plus, Save, Trash2, X } from "../../../vendor/lucide-react";
+import { Copy, Plus, Save, Trash2, Wand2, X } from "../../../vendor/lucide-react";
 import { anioDeBase } from "../nombreDeSerie";
 import { etiquetaLegible } from "../preguntaEquivalenteModel";
+import { observadosListos, useCodigosObservadosPorBase } from "../useCodigosObservados";
 import { BuscadorPreguntas } from "../variablesBase/SelectorPreguntas";
 import { SegmentoEnBase } from "./SegmentoEnBase";
 import {
   PREFIJO_SEGMENTO,
+  atajosPartirDe,
   borradorDesde,
+  codigosDeEntrada,
   escalaDeBorrador,
+  mapasPorEtiqueta,
   opcionesDeOrigen,
   reducirSegmento,
   segmentoParaGuardar,
+  textoEmparejarTodas,
   validarSegmento,
+  type AtajoPartirDe,
+  type CodigoDeOrigen,
 } from "./segmentosModel";
 import type { CatalogoSegmentos } from "./useSegmentos";
 
@@ -71,6 +78,30 @@ export function SegmentoEditor({
     }
     return out;
   }, [bases, catalogo, propias, nombresSegmentos]);
+
+  // Los valores de cada origen se leen aquí, para todas las bases: cada sección
+  // los pinta y el editor los usa en «Emparejar todas» y en los atajos de «Partir de…».
+  const origenes = useMemo(
+    () => Object.fromEntries(bases.map((base) => [base, b.porBase[base]?.origen ?? ""])),
+    [bases, b.porBase],
+  );
+  const lecturas = useCodigosObservadosPorBase(origenes);
+  const codigosPorBase: Record<string, CodigoDeOrigen[]> = {};
+  for (const base of bases) {
+    const entrada = b.porBase[base];
+    if (!entrada?.origen) continue;
+    const obs = observadosListos(lecturas[base]);
+    // Una variable de texto no tiene códigos que emparejar ni copiar.
+    if (obs?.tipo === "texto") continue;
+    codigosPorBase[base] = codigosDeEntrada(opcionesPorBase[base] ?? null, entrada, inicial?.por_base[base], obs);
+  }
+  const emparejar = mapasPorEtiqueta(b, codigosPorBase, escala);
+  const atajos = atajosPartirDe(bases, b.porBase, opcionesPorBase, codigosPorBase, etiquetaLegible);
+
+  const partirDeAtajo = (a: AtajoPartirDe) => {
+    despachar({ tipo: "partir-de", opciones: a.opciones, base: a.base, variable: a.variable });
+    setPartirDe(null);
+  };
 
   const guardar = async () => {
     setIntento(true);
@@ -135,6 +166,18 @@ export function SegmentoEditor({
             <p className="pulso-armon-ayuda">Las categorías en que se lee el segmento en todas las bases.</p>
           </div>
           <span className="pulso-vb-subtitulo-acciones">
+            {emparejar.codigos > 0 && (
+              <PulsoButton
+                variant="secondary"
+                size="sm"
+                className="pulso-armon-btn"
+                title={textoEmparejarTodas(emparejar)}
+                onClick={() => despachar({ tipo: "aplicar-mapas", mapas: emparejar.mapas })}
+              >
+                <Wand2 size={13} aria-hidden="true" />
+                Emparejar todas por etiqueta
+              </PulsoButton>
+            )}
             <PulsoButton
               variant="ghost"
               size="sm"
@@ -154,6 +197,26 @@ export function SegmentoEditor({
 
         {partirDe !== null && (
           <div className="pulso-seg-partir" role="group" aria-label="Partir de las opciones de una variable">
+            {atajos.length > 0 && (
+              <fieldset className="pulso-seg-atajos">
+                <legend>Orígenes ya elegidos</legend>
+                <div className="pulso-seg-atajos-lista">
+                  {atajos.map((a) => (
+                    <PulsoButton
+                      key={a.base}
+                      variant="secondary"
+                      size="sm"
+                      className="pulso-armon-btn"
+                      title={`Copiar las opciones de ${a.variable} en ${a.base}`}
+                      onClick={() => partirDeAtajo(a)}
+                    >
+                      {a.rotulo}
+                    </PulsoButton>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+            {atajos.length > 0 && <p className="pulso-seg-partir-otra">U otra variable:</p>}
             <div className="pulso-seg-partir-cabeza">
               <label className="pulso-compuesto-campo pulso-seg-partir-base">
                 <span>Base</span>
@@ -235,6 +298,7 @@ export function SegmentoEditor({
           escala={escala}
           anio={anioDeBase(base)}
           despachar={despachar}
+          lectura={lecturas[base] ?? { tipo: "inactivo" }}
         />
       ))}
 

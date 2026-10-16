@@ -4,6 +4,7 @@ import { normalizarEstadoEquivalencias, type EquivalenciaFila, type Equivalencia
 import type { Segmento, SegmentoEnBase, SegmentosEstado } from "../../../api/segmentos";
 import { aFilasEditor } from "../equivalenciasEditorModel";
 import {
+  atajosPartirDe,
   aniosParaTramos,
   ayudasDisponibles,
   borradorDesde,
@@ -16,6 +17,7 @@ import {
   filasDeCodigos,
   fusionarFilasCruce,
   mapaPorEtiqueta,
+  mapasPorEtiqueta,
   mapaPorRangos,
   mapaPorTramos,
   normalizarClave,
@@ -27,6 +29,7 @@ import {
   resumenSegmentos,
   searchConSegmentos,
   segmentoParaGuardar,
+  textoEmparejarTodas,
   textoResumenMapa,
   textoSinDatoObservado,
   tramosPorDefecto,
@@ -221,12 +224,37 @@ describe("filas de la tabla de códigos", () => {
     );
     expect(filas.map((f) => [f.rotulo, f.destino, f.sinMapa])).toEqual([["1", "2", false], ["2", "", false], ["3", null, true]]);
     const r = resumenMapa(filas);
-    expect(r).toEqual({ total: 3, asignados: 1, sinDato: 1, sinMapa: 1 });
+    expect(r).toEqual({ total: 3, asignados: 1, sinDato: 1, sinCasos: 0, sinMapa: 1 });
     expect(textoResumenMapa(r)).toBe("1 de 3 códigos asignados · 1 sin dato · 1 sin mapa");
     expect(estadoDeEntrada("P2", filas)).toBe("incompleto");
     expect(estadoDeEntrada("", filas)).toBe("sin_origen");
     expect(casosSinMapa(filas)).toBe(2);
     expect(textoSinDatoObservado(3)).toBe("Sin dato: 3 casos");
+  });
+
+  it("un código con 0 casos y sin mapa no es pendiente: no impide «Definido» (como en el backend)", () => {
+    const filas = filasDeCodigos(
+      [{ codigo: "1", etiqueta: "18–20 años", n: 40 }, { codigo: "2", etiqueta: "21 a más", n: 12 }, { codigo: "99", etiqueta: "No sé", n: 0 }],
+      { "1": "1", "2": "2" },
+      ESCALA,
+    );
+    expect(filas.map((f) => [f.rotulo, f.sinMapa, f.sinCasos])).toEqual([["1", false, false], ["2", false, false], ["99", false, true]]);
+    const r = resumenMapa(filas);
+    expect(r).toEqual({ total: 3, asignados: 2, sinDato: 0, sinCasos: 1, sinMapa: 0 });
+    expect(textoResumenMapa(r)).toBe("2 de 3 códigos asignados · 1 sin casos");
+    expect(estadoDeEntrada("P1_recod", filas)).toBe("definido");
+    expect(casosSinMapa(filas)).toBe(0);
+    // Con destino deja de ser «sin casos»; sin conteo (`n` nulo) sigue siendo pendiente.
+    expect(filasDeCodigos([{ codigo: "99", etiqueta: "No sé", n: 0 }], { "99": "" }, ESCALA)[0].sinCasos).toBe(false);
+    const sinConteo = filasDeCodigos([{ codigo: "99", etiqueta: "No sé", n: null }], {}, ESCALA);
+    expect([sinConteo[0].sinMapa, sinConteo[0].sinCasos]).toEqual([true, false]);
+  });
+
+  it("en tramos, un tramo con casos sigue pendiente aunque alguno de sus códigos no tenga casos", () => {
+    const codigos = Array.from({ length: 40 }, (_, i) => ({ codigo: String(16 + i), etiqueta: "", n: i === 39 ? 0 : 2 }));
+    const filas = filasDeCodigos(codigos, {}, ESCALA);
+    expect(filas).toHaveLength(1);
+    expect([filas[0].sinMapa, filas[0].sinCasos]).toEqual([true, false]);
   });
 
   it("muchos enteros sin etiqueta se leen como tramos con el mismo destino", () => {
@@ -261,6 +289,17 @@ describe("borrador y acciones", () => {
     expect(b.porBase["2024"]).toEqual({ origen: "cruce_1", mapa: { "1": "1", "2": "2" }, marcados: [] });
   });
 
+  it("partir del origen YA elegido de una base la deja en identidad, sin tener que emparejarla", () => {
+    let b = aplicar(borradorDesde(null, BASES), { tipo: "origen", base: "2024", variable: "cruce_1" });
+    b = aplicar(b, { tipo: "destino", base: "2024", codigos: ["99"], destino: "" });
+    b = aplicar(b, { tipo: "partir-de", opciones: ESCALA, base: "2024", variable: "cruce_1" });
+    expect(b.porBase["2024"]).toEqual({ origen: "cruce_1", mapa: { "1": "1", "2": "2", "99": "" }, marcados: [] });
+    // Una base con OTRO origen no cambia de origen ni recibe identidad.
+    b = aplicar(b, { tipo: "origen", base: "2025", variable: "P1_recod" });
+    b = aplicar(b, { tipo: "partir-de", opciones: ESCALA, base: "2025", variable: "P9" });
+    expect(b.porBase["2025"]).toEqual({ origen: "P1_recod", mapa: {}, marcados: [] });
+  });
+
   it("cambiar un código de la escala arrastra lo asignado en todas las bases; quitarlo lo deja sin mapa", () => {
     let b = borradorDesde(segmento, BASES);
     const c2 = b.escala[1].clave;
@@ -287,6 +326,63 @@ describe("borrador y acciones", () => {
     const codigos = [{ codigo: "1", etiqueta: "21 años a más" }, { codigo: "2", etiqueta: "18 a 20 AÑOS" }, { codigo: "3", etiqueta: "No sabe" }];
     expect(mapaPorEtiqueta(codigos, {}, ESCALA)).toEqual({ "1": "2", "2": "1" });
     expect(mapaPorEtiqueta(codigos, { "1": "1" }, ESCALA)).toEqual({ "2": "1" });
+  });
+
+  it("emparejar por etiqueta es tolerante: raya y guion, puntuación y marcado Kobo casan", () => {
+    const escala = [{ codigo: "1", etiqueta: "18-20 años" }, { codigo: "2", etiqueta: "21 años a más" }, { codigo: "99", etiqueta: "No sé" }];
+    const codigos = [
+      { codigo: "1", etiqueta: "18–20 años" },
+      { codigo: "2", etiqueta: "*21 años a más.*" },
+      { codigo: "9", etiqueta: "¿No se?" },
+    ];
+    expect(mapaPorEtiqueta(codigos, {}, escala)).toEqual({ "1": "1", "2": "2", "9": "99" });
+  });
+
+  it("dos categorías que dicen lo mismo con otro código no se emparejan: sería elegir al azar", () => {
+    const escala = [{ codigo: "1", etiqueta: "Otro" }, { codigo: "2", etiqueta: "otro." }];
+    expect(mapaPorEtiqueta([{ codigo: "5", etiqueta: "Otro" }], {}, escala)).toEqual({});
+  });
+
+  it("emparejar todas: cada base con origen a la vez, sólo lo sin mapa", () => {
+    let b = aplicar(
+      borradorDesde(null, BASES),
+      { tipo: "origen", base: "2024", variable: "cruce_1" },
+      { tipo: "origen", base: "2025", variable: "P1_recod" },
+      { tipo: "destino", base: "2025", codigos: ["1"], destino: "2" },
+    );
+    const codigosPorBase = {
+      "2024": [{ codigo: "1", etiqueta: "18 a 20 años" }, { codigo: "2", etiqueta: "21 años a más" }],
+      "2025": [{ codigo: "1", etiqueta: "18 a 20 años" }, { codigo: "2", etiqueta: "21 años a más" }, { codigo: "3", etiqueta: "No sabe" }],
+      // Sin origen en 2026: no cuenta aunque traiga códigos.
+      "2026": [{ codigo: "1", etiqueta: "18 a 20 años" }],
+    };
+    const todas = mapasPorEtiqueta(b, codigosPorBase, ESCALA);
+    expect(todas).toEqual({ mapas: { "2024": { "1": "1", "2": "2" }, "2025": { "2": "2" } }, codigos: 3, bases: 2 });
+    expect(textoEmparejarTodas(todas)).toBe("Lleva 3 códigos sin mapa en 2 bases a la categoría con su misma etiqueta. No toca lo ya asignado.");
+    b = aplicar(b, { tipo: "aplicar-mapas", mapas: todas.mapas });
+    expect(b.porBase["2024"].mapa).toEqual({ "1": "1", "2": "2" });
+    expect(b.porBase["2025"].mapa).toEqual({ "1": "2", "2": "2" });
+    expect(b.porBase["2026"].mapa).toEqual({});
+    expect(mapasPorEtiqueta(b, codigosPorBase, ESCALA).codigos).toBe(0);
+  });
+
+  it("los orígenes ya elegidos son atajos de «Partir de…», con sus opciones o, sin lista, sus códigos", () => {
+    const b = aplicar(
+      borradorDesde(null, BASES),
+      { tipo: "origen", base: "2024", variable: "cruce_1" },
+      { tipo: "origen", base: "2025", variable: "P1_recod" },
+    );
+    const opcionesPorBase = {
+      "2024": [{ name: "cruce_1", label: "Edad", seccion: "", opciones: [{ codigo: "1", etiqueta: "*18-20 años*" }] }],
+      "2025": [{ name: "P1_recod", label: "Edad", seccion: "Fuera del formulario" }],
+      "2026": null,
+    };
+    const atajos = atajosPartirDe(BASES, b.porBase, opcionesPorBase, { "2025": [{ codigo: "1", etiqueta: "" }] }, (s) => s.replace(/\*/g, ""));
+    expect(atajos).toEqual([
+      { base: "2024", variable: "cruce_1", rotulo: "cruce_1 · 2024", opciones: [{ codigo: "1", etiqueta: "18-20 años" }] },
+      { base: "2025", variable: "P1_recod", rotulo: "P1_recod · 2025", opciones: [{ codigo: "1", etiqueta: "1" }] },
+    ]);
+    expect(atajosPartirDe(BASES, b.porBase, opcionesPorBase, {})).toHaveLength(1);
   });
 });
 

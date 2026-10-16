@@ -19,6 +19,7 @@ import {
   mapaPeriodosInicial,
   mapaPeriodosValido,
   moverEnLista,
+  normalizarEtiqueta,
   ordenEfectivo,
   reducirArmonizacion,
   resumenMapa,
@@ -27,6 +28,7 @@ import {
   validarArmonizacion,
 } from "./armonizacionModel";
 import { aFilasEditor, filasParaGuardar } from "./equivalenciasEditorModel";
+import { etiquetaTolerante } from "./etiquetaTolerante";
 import { ordenPorAnio, ordenPorDefectoDeSerie } from "./nombreDeSerie";
 
 const ARM: Armonizacion = {
@@ -126,6 +128,17 @@ describe("reducirArmonizacion", () => {
       ],
     });
     expect(b.porBase.x.mapa).toEqual({ "7": "1", "8": "1" });
+  });
+
+  test("emparejar usa la etiqueta tolerante de la escala compartida: raya y guion casan", () => {
+    let b = borradorDesde({ escala: [{ codigo: "1", etiqueta: "18-20 años" }, { codigo: "2", etiqueta: "21 años a más" }], por_base: {} }, ["x"]);
+    b = reducirArmonizacion(b, {
+      tipo: "emparejar",
+      base: "x",
+      opciones: [{ codigo: "5", etiqueta: "18–20 años" }, { codigo: "6", etiqueta: "*21 años a más.*" }],
+    });
+    expect(b.porBase.x.mapa).toEqual({ "5": "1", "6": "2" });
+    expect(normalizarEtiqueta("18–20 años")).toBe(etiquetaTolerante("18-20 años"));
   });
 
   test("sembrar copia una lista sólo sobre una escala vacía", () => {

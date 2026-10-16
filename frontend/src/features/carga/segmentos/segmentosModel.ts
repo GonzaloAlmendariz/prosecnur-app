@@ -27,6 +27,7 @@ import { conNivel } from "../../../lib/navegacion/direccion";
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import type { FilaEditor } from "../equivalenciasEditorModel";
 import { aFilasEditor } from "../equivalenciasEditorModel";
+import { etiquetaTolerante, indicePorEtiqueta } from "../etiquetaTolerante";
 import { PANEL_SEGMENTOS } from "../panelesCarga";
 import { nombreDesdeEtiqueta, type CategoriaBorrador } from "../variablesBase/variablesBaseModel";
 
@@ -203,6 +204,22 @@ export function codigosConocidos(
   return ordenarCodigos([...out.values()]);
 }
 
+/**
+ * Los códigos de la entrada de una base: `codigosConocidos` con las opciones de
+ * su variable de origen. Lo usan la sección de la base y, para «Emparejar
+ * todas» y los atajos de «Partir de…», el editor: las dos leen lo mismo.
+ */
+export function codigosDeEntrada(
+  opciones: readonly VariableDeBase[] | null,
+  entrada: Pick<EntradaBorrador, "origen" | "mapa">,
+  guardado: SegmentoEnBase | undefined,
+  observados: CodigosObservados | null,
+): CodigoDeOrigen[] {
+  if (!entrada.origen) return [];
+  const delOrigen = (opciones ?? []).find((o) => o.name === entrada.origen);
+  return codigosConocidos(delOrigen?.opciones ?? [], entrada.origen, guardado, entrada.mapa, observados);
+}
+
 const ANIO = /^(19|20)\d{2}$/;
 
 export function sonAnios(codigos: readonly OpcionBase[]): boolean {
@@ -242,13 +259,24 @@ export type FilaCodigo = {
   rotulo: string;
   etiqueta: string;
   destino: DestinoCodigo;
+  /** Sin destino y con casos (o sin conteo): lo que falta decidir. */
   sinMapa: boolean;
+  /**
+   * Sin destino y con 0 casos en la data: no queda nadie sin segmento, así que
+   * no es pendiente —el backend tampoco lo cuenta—. Se pinta tenue.
+   */
+  sinCasos: boolean;
   /** Casos de la fila (suma del tramo); `null` si no se leyeron de la data. */
   n: number | null;
 };
 
 /** A partir de cuántos enteros sin etiqueta la tabla los agrupa en tramos. */
 export const UMBRAL_AGRUPAR = 30;
+
+function conPendiente(f: Omit<FilaCodigo, "sinMapa" | "sinCasos">): FilaCodigo {
+  const sinCasos = f.destino === null && f.n === 0;
+  return { ...f, sinMapa: f.destino === null && !sinCasos, sinCasos };
+}
 
 function destinoDe(mapa: Readonly<Record<string, string>>, codigo: string, escala: ReadonlySet<string>): DestinoCodigo {
   if (!(codigo in mapa)) return null;
@@ -269,7 +297,7 @@ export function filasDeCodigos(
   const validos = new Set(escala.map((c) => c.codigo).filter(Boolean));
   const sueltas = codigos.map((c): FilaCodigo => {
     const destino = destinoDe(mapa, c.codigo, validos);
-    return { codigos: [c.codigo], rotulo: c.codigo, etiqueta: c.etiqueta, destino, sinMapa: destino === null, n: c.n };
+    return conPendiente({ codigos: [c.codigo], rotulo: c.codigo, etiqueta: c.etiqueta, destino, n: c.n });
   });
   if (codigos.length < UMBRAL_AGRUPAR || !sonNumericos(codigos) || !sinEtiquetas(codigos)) return sueltas;
   const out: FilaCodigo[] = [];
@@ -284,21 +312,24 @@ export function filasDeCodigos(
       out.push({ ...f, codigos: [...f.codigos], etiqueta: "" });
     }
   }
-  return out;
+  // Un tramo con casos deja de ser «sin casos» aunque alguno de sus códigos lo sea.
+  return out.map(conPendiente);
 }
 
-export type ResumenMapa = { total: number; asignados: number; sinDato: number; sinMapa: number };
+export type ResumenMapa = { total: number; asignados: number; sinDato: number; sinCasos: number; sinMapa: number };
 
 export function resumenMapa(filas: readonly FilaCodigo[]): ResumenMapa {
   let total = 0;
   let asignados = 0;
   let sinDato = 0;
+  let sinCasos = 0;
   for (const f of filas) {
     total += f.codigos.length;
     if (f.destino === "") sinDato += f.codigos.length;
     else if (f.destino !== null) asignados += f.codigos.length;
+    else if (f.sinCasos) sinCasos += f.codigos.length;
   }
-  return { total, asignados, sinDato, sinMapa: total - asignados - sinDato };
+  return { total, asignados, sinDato, sinCasos, sinMapa: total - asignados - sinDato - sinCasos };
 }
 
 export function textoResumenMapa(r: ResumenMapa): string {
@@ -306,6 +337,7 @@ export function textoResumenMapa(r: ResumenMapa): string {
   const partes = [`${formatoConteo(r.asignados)} de ${formatoConteoDe(r.total, "código", "códigos")} asignados`];
   if (r.sinDato) partes.push(`${formatoConteo(r.sinDato)} sin dato`);
   if (r.sinMapa) partes.push(`${formatoConteo(r.sinMapa)} sin mapa`);
+  if (r.sinCasos) partes.push(`${formatoConteo(r.sinCasos)} sin casos`);
   return partes.join(" · ");
 }
 
@@ -408,6 +440,8 @@ export type AccionSegmento =
   /** `null` quita el destino (sin mapa); `""` es sin dato explícito. */
   | { tipo: "destino"; base: string; codigos: readonly string[]; destino: DestinoCodigo }
   | { tipo: "aplicar-mapa"; base: string; mapa: Readonly<Record<string, string>> }
+  /** Varios mapas a la vez, uno por base (`mapasPorEtiqueta`). No pisa: sólo suma. */
+  | { tipo: "aplicar-mapas"; mapas: Readonly<Record<string, Readonly<Record<string, string>>>> }
   | { tipo: "marcar"; base: string; codigos: readonly string[]; marcado: boolean }
   | { tipo: "limpiar-marcas"; base: string };
 
@@ -464,10 +498,17 @@ export function reducirSegmento(b: BorradorSegmento, a: AccionSegmento): Borrado
         Object.entries(b.porBase).map(([base, e]) => [base, { ...e, mapa: mapaSin(e.mapa, (d) => d !== "" && !codigos.has(d)) }]),
       );
       const siguiente = { ...b, escala, porBase };
-      if (!a.base || !a.variable || entradaDe(b, a.base).origen) return siguiente;
-      return conEntrada(siguiente, a.base, () => ({
-        origen: a.variable ?? "",
-        mapa: Object.fromEntries(a.opciones.map((o) => [o.codigo, o.codigo])),
+      const variable = a.variable ?? "";
+      if (!a.base || !variable) return siguiente;
+      const previo = entradaDe(siguiente, a.base);
+      // Una base con OTRO origen no se toca: copiar opciones no cambia de dónde sale.
+      if (previo.origen && previo.origen !== variable) return siguiente;
+      // La base de la que salió la escala queda en identidad: cada código a sí mismo.
+      // Lo demás que ya tenía (un «sin dato», un código fuera de la lista) se conserva.
+      const identidad = Object.fromEntries(escala.map((c) => [c.codigo, c.codigo]));
+      return conEntrada(siguiente, a.base, (e) => ({
+        origen: variable,
+        mapa: previo.origen ? { ...e.mapa, ...identidad } : identidad,
         marcados: [],
       }));
     }
@@ -486,6 +527,11 @@ export function reducirSegmento(b: BorradorSegmento, a: AccionSegmento): Borrado
       });
     case "aplicar-mapa":
       return conEntrada(b, a.base, (e) => ({ ...e, mapa: { ...e.mapa, ...a.mapa }, marcados: [] }));
+    case "aplicar-mapas":
+      return Object.entries(a.mapas).reduce(
+        (acc, [base, mapa]) => (entradaDe(acc, base).origen ? reducirSegmento(acc, { tipo: "aplicar-mapa", base, mapa }) : acc),
+        b,
+      );
     case "marcar":
       return conEntrada(b, a.base, (e) => {
         const sin = e.marcados.filter((c) => !a.codigos.includes(c));
@@ -505,20 +551,89 @@ export function escalaDeBorrador(b: Pick<BorradorSegmento, "escala">): Categoria
 
 /**
  * «Emparejar por etiqueta»: cada código sin mapa va a la categoría de la
- * escala con su misma etiqueta (sin mayúsculas ni tildes). No toca lo asignado.
+ * escala con su misma etiqueta tolerante (`etiquetaTolerante`, la misma de la
+ * armonización de una fila: sin mayúsculas, tildes, puntuación ni marcado, así
+ * que «18–20 años» casa con «18-20 años»). No toca lo asignado.
  */
 export function mapaPorEtiqueta(
   codigos: readonly OpcionBase[],
   mapa: Readonly<Record<string, string>>,
   escala: readonly CategoriaSegmento[],
 ): Record<string, string> {
-  const plano = (s: string) => sinTildes(s).toLowerCase().replace(/\s+/g, " ").trim();
-  const porEtiqueta = new Map(escala.filter((c) => c.etiqueta).map((c) => [plano(c.etiqueta), c.codigo]));
+  const porEtiqueta = indicePorEtiqueta(escala);
   const out: Record<string, string> = {};
   for (const c of codigos) {
-    if (c.codigo in mapa || !c.etiqueta.trim()) continue;
-    const destino = porEtiqueta.get(plano(c.etiqueta));
+    if (c.codigo in mapa) continue;
+    const destino = porEtiqueta.get(etiquetaTolerante(c.etiqueta));
     if (destino) out[c.codigo] = destino;
+  }
+  return out;
+}
+
+export type EmparejarTodas = {
+  /** `base -> mapa` sólo de las bases con algo que emparejar. */
+  mapas: Record<string, Record<string, string>>;
+  codigos: number;
+  bases: number;
+};
+
+/**
+ * «Emparejar todas por etiqueta»: `mapaPorEtiqueta` en cada base con origen, a
+ * la vez. Sólo códigos sin mapa; lo asignado no se pisa.
+ */
+export function mapasPorEtiqueta(
+  b: Pick<BorradorSegmento, "porBase">,
+  codigosPorBase: Readonly<Record<string, readonly OpcionBase[]>>,
+  escala: readonly CategoriaSegmento[],
+): EmparejarTodas {
+  const mapas: Record<string, Record<string, string>> = {};
+  let codigos = 0;
+  for (const [base, lista] of Object.entries(codigosPorBase)) {
+    const e = b.porBase[base];
+    if (!e?.origen) continue;
+    const mapa = mapaPorEtiqueta(lista, e.mapa, escala);
+    const n = Object.keys(mapa).length;
+    if (!n) continue;
+    mapas[base] = mapa;
+    codigos += n;
+  }
+  return { mapas, codigos, bases: Object.keys(mapas).length };
+}
+
+/** El `title` del botón: qué hará, en llano. */
+export function textoEmparejarTodas(e: EmparejarTodas): string {
+  const en = e.bases === 1 ? `en ${Object.keys(e.mapas)[0]}` : `en ${formatoConteo(e.bases)} bases`;
+  return `Lleva ${formatoConteoDe(e.codigos, "código sin mapa", "códigos sin mapa")} ${en} a la categoría con su misma etiqueta. No toca lo ya asignado.`;
+}
+
+// ---------------------------------------------------------------------------
+// «Partir de las opciones de…»: los orígenes ya elegidos, como atajo
+// ---------------------------------------------------------------------------
+
+export type AtajoPartirDe = { base: string; variable: string; rotulo: string; opciones: OpcionBase[] };
+
+/**
+ * Los orígenes ya elegidos en las bases («cruce_1 · 2024»), con las opciones
+ * que copiarían: las de la lista de respuestas o, si la variable no trae lista,
+ * los códigos que se conocen de ella. Sin opciones, el atajo no se ofrece.
+ */
+export function atajosPartirDe(
+  bases: readonly string[],
+  porBase: Readonly<Record<string, EntradaBorrador>>,
+  opcionesPorBase: Readonly<Record<string, readonly VariableDeBase[] | null>>,
+  codigosPorBase: Readonly<Record<string, readonly OpcionBase[]>>,
+  legible: (etiqueta: string) => string = (s) => s,
+): AtajoPartirDe[] {
+  const out: AtajoPartirDe[] = [];
+  for (const base of bases) {
+    const variable = porBase[base]?.origen ?? "";
+    if (!variable) continue;
+    const lista = (opcionesPorBase[base] ?? []).find((v) => v.name === variable)?.opciones ?? [];
+    const fuente = lista.length ? lista : codigosPorBase[base] ?? [];
+    const opciones = fuente
+      .filter((o) => o.codigo.trim())
+      .map((o) => ({ codigo: o.codigo, etiqueta: legible(o.etiqueta) || o.codigo }));
+    if (opciones.length) out.push({ base, variable, rotulo: `${variable} · ${base}`, opciones });
   }
   return out;
 }

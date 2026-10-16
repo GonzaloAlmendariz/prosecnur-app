@@ -25,6 +25,7 @@ import type {
   TipoAdvertenciaBloques,
 } from "../../api/equivalencias";
 import type { PanelDeclarado } from "../../lib/navegacion/paneles";
+import { etiquetaTolerante, indicePorEtiqueta } from "./etiquetaTolerante";
 import { ordenPorDefectoDeSerie, type NombreDeSerie } from "./nombreDeSerie";
 
 // ---- Paneles direccionables -------------------------------------------------
@@ -256,13 +257,12 @@ function renombrarEnMapas(
   return out;
 }
 
+/**
+ * La misma etiqueta tolerante que la escala compartida y los segmentos de
+ * cruce: «18–20 años» y «18-20 años» casan; ver `etiquetaTolerante.ts`.
+ */
 export function normalizarEtiqueta(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+  return etiquetaTolerante(s);
 }
 
 /**
@@ -353,7 +353,7 @@ export function reducirArmonizacion(
       // La guía de la matriz manda recodificar POR ETIQUETA. Esto propone ese
       // emparejamiento y deja intacto lo que no casa: no inventa destinos.
       return conEntrada(b, a.base, (e) => {
-        const porEtiqueta = new Map(b.escala.map((c) => [normalizarEtiqueta(c.etiqueta), c.codigo]));
+        const porEtiqueta = indicePorEtiqueta(b.escala);
         const mapa: Record<string, string> = {};
         for (const [origen, destino] of Object.entries(e.mapa)) if (destino) mapa[origen] = destino;
         for (const o of a.opciones) {

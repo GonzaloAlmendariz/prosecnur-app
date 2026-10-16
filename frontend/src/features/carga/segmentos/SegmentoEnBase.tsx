@@ -1,17 +1,19 @@
 // De dónde sale un segmento en una base (ADR 0107): la variable de origen, sus
 // códigos y la categoría estándar de cada uno. Misma sección, barra de
 // asignación en masa y tabla que la armonización de una fila. La lógica vive
-// en `segmentosModel`; aquí sólo hay render y eventos.
+// en `segmentosModel`; aquí sólo hay render y eventos. Los valores observados
+// los lee el editor (para todas las bases a la vez) y llegan en `lectura`;
+// «Emparejar todas por etiqueta» vive en la sección de la escala estándar.
 
 import { useState } from "react";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import type { VariableDeBase } from "../../../api/equivalencias";
 import type { CategoriaSegmento, SegmentoEnBase as SegmentoEnBaseGuardado } from "../../../api/segmentos";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { CalendarRange, Ruler, Wand2 } from "../../../vendor/lucide-react";
+import { CalendarRange, Ruler } from "../../../vendor/lucide-react";
 import { ArmonizacionAsignarEnMasa } from "../ArmonizacionAsignarEnMasa";
 import { DESTINO_SIN_MAPA, textoMarcados } from "../armonizacionMasaModel";
-import { useCodigosObservados, observadosListos, type LecturaCodigosObservados } from "../useCodigosObservados";
+import { observadosListos, type LecturaCodigosObservados } from "../useCodigosObservados";
 import { PreguntaOrigen } from "../variablesBase/SelectorPreguntas";
 import { AyudaMapa } from "./AyudaMapa";
 import { EstadoChip } from "./EstadoChip";
@@ -19,10 +21,9 @@ import {
   TEXTO_ESTADO_BORRADOR,
   ayudasDisponibles,
   casosSinMapa,
-  codigosConocidos,
+  codigosDeEntrada,
   estadoDeEntrada,
   filasDeCodigos,
-  mapaPorEtiqueta,
   resumenMapa,
   textoFaltanCasos,
   textoResumenMapa,
@@ -55,8 +56,8 @@ export type SegmentoEnBaseProps = {
   escala: readonly CategoriaSegmento[];
   anio: number | null;
   despachar: (a: AccionSegmento) => void;
-  /** Sólo para renders estáticos: la lectura de los códigos observados ya hecha. */
-  observados?: LecturaCodigosObservados;
+  /** Los códigos que el origen trae en la data de esta base, leídos por el editor. */
+  lectura: LecturaCodigosObservados;
 };
 
 export function SegmentoEnBase({
@@ -69,23 +70,19 @@ export function SegmentoEnBase({
   escala,
   anio,
   despachar,
-  observados,
+  lectura,
 }: SegmentoEnBaseProps) {
   const [ayuda, setAyuda] = useState<TipoAyuda | null>(null);
   const origen = entrada.origen;
-  const leidos = useCodigosObservados(origen ? base : "", origen);
-  const lectura = observados ?? leidos;
   const obs = observadosListos(lectura);
   const esTexto = obs?.tipo === "texto";
-  const delOrigen = (opciones ?? []).find((o) => o.name === origen);
-  const codigos = codigosConocidos(delOrigen?.opciones ?? [], origen, guardado, entrada.mapa, obs);
+  const codigos = codigosDeEntrada(opciones, entrada, guardado, obs);
   const filas = filasDeCodigos(codigos, entrada.mapa, escala);
   const resumen = resumenMapa(filas);
   const estado = estadoDeEntrada(origen, filas);
   const marcadas = filas.filter((f) => f.codigos.every((c) => entrada.marcados.includes(c)));
   const codigosMarcados = marcadas.flatMap((f) => f.codigos);
   const sinMapa = filas.filter((f) => f.sinMapa).flatMap((f) => f.codigos);
-  const porEtiqueta = mapaPorEtiqueta(codigos, entrada.mapa, escala);
   const ayudas = ayudasDisponibles(codigos);
   const ausente = Boolean(guardado?.origen_ausente && guardado.origen === origen);
   const casosFaltan = casosSinMapa(filas);
@@ -142,18 +139,6 @@ export function SegmentoEnBase({
 
           {!esTexto && (<>
           <div className="pulso-armon-base-acciones">
-            {Object.keys(porEtiqueta).length > 0 && (
-              <PulsoButton
-                variant="secondary"
-                size="sm"
-                className="pulso-armon-btn"
-                title="Lleva cada código sin mapa a la categoría con su misma etiqueta. No toca lo ya asignado."
-                onClick={() => despachar({ tipo: "aplicar-mapa", base, mapa: porEtiqueta })}
-              >
-                <Wand2 size={13} aria-hidden="true" />
-                Emparejar por etiqueta
-              </PulsoButton>
-            )}
             {ayudas.includes("tramos") && (
               <PulsoButton
                 variant="secondary"
@@ -245,7 +230,7 @@ export function SegmentoEnBase({
                       return (
                         <tr
                           key={f.codigos[0]}
-                          className={[marcado ? "is-marcado" : "", f.sinMapa ? "is-sin-mapa" : ""].filter(Boolean).join(" ") || undefined}
+                          className={[marcado ? "is-marcado" : "", f.sinMapa ? "is-sin-mapa" : "", f.sinCasos ? "is-sin-casos" : ""].filter(Boolean).join(" ") || undefined}
                         >
                           <td className="pulso-armon-marca">
                             <input
@@ -257,7 +242,13 @@ export function SegmentoEnBase({
                           </td>
                           <td className="pulso-armon-codigo">{f.rotulo}</td>
                           <td>{f.etiqueta || <span className="pulso-armon-tenue">{f.codigos.length > 1 ? `${f.codigos.length} valores` : "Sin etiqueta"}</span>}</td>
-                          {conCasos && <td className="is-num">{f.n === null ? <span className="pulso-armon-tenue">sin conteo</span> : formatoConteo(f.n)}</td>}
+                          {conCasos && (
+                            <td className="is-num">
+                              {f.n === null
+                                ? <span className="pulso-armon-tenue">sin conteo</span>
+                                : f.sinCasos ? <span className="pulso-armon-tenue">sin casos</span> : formatoConteo(f.n)}
+                            </td>
+                          )}
                           <td>
                             <select
                               value={valorDeDestino(f.destino)}
