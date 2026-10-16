@@ -192,8 +192,10 @@ base_variables_xls_path <- function(path, base_meta) {
     nombre <- .origen_externo_chr(cv[["nombre"]])
     if (!nzchar(nombre)) next
     etiqueta <- .origen_externo_chr(cv[["etiqueta"]])
-    agregar(nombre, if (nzchar(etiqueta)) etiqueta else nombre, "select_one",
-            base_variables_escala(cv))
+    # Una fórmula da un número; las demás reglas, una escala.
+    es_formula <- identical(.origen_externo_chr(cv[["regla"]]), "formula")
+    agregar(nombre, if (nzchar(etiqueta)) etiqueta else nombre,
+            if (es_formula) "decimal" else "select_one", base_variables_escala(cv))
   }
   if (length(nuevas_s)) survey <- rbind(survey, do.call(rbind, nuevas_s))
   if (length(nuevas_c)) choices <- rbind(choices, do.call(rbind, nuevas_c))

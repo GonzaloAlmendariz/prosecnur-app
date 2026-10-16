@@ -10,12 +10,18 @@
 #   - `recodificar`: una variable y un `mapa` `codigo_origen -> codigo_destino`
 #     a una `escala` nueva (varios códigos a uno). Un código sin destino en el
 #     mapa queda NA: lo que no se declaró no se inventa.
+#   - `formula`: una expresión aritmética sobre columnas de la base
+#     (base_variables_formula.R). Da un número, no una escala: entra al
+#     instrumento como `decimal`.
+#
+# Una calculada puede partir de otra declarada antes (una fórmula y luego su
+# recodificación en tramos): se calculan en el orden en que se declararon.
 #
 # La declaración vive en `estudio$bases[[b]]$variables_calculadas`; el valor se
 # calcula al leer la base (la data original no se reescribe) y la variable entra
 # al instrumento adaptado como select_one con su escala.
 
-.BASE_VARIABLES_REGLAS <- c("alguna", "recodificar")
+.BASE_VARIABLES_REGLAS <- c("alguna", "recodificar", "formula")
 
 # Nombre de variable XLSForm: letra o guion bajo, luego letras, dígitos, `_`, `.`, `-`.
 .BASE_VARIABLES_NOMBRE_RE <- "^[A-Za-z_][A-Za-z0-9_.-]*$"
@@ -73,6 +79,9 @@ base_variables_calcular <- function(df, cv) {
     reducido <- df[vars]
     for (v in vars) reducido[[v]] <- .base_variables_reducir_multiple(df[[v]], codigos)
     .equiv_deriv_valor(reducido, vars, codigos)
+  } else if (identical(regla, "formula")) {
+    arbol <- base_variables_formula_parsear(cv[["expresion"]])
+    base_variables_formula_evaluar(arbol, df, .base_variables_lista(cv[["especiales_na"]]))
   } else if (identical(regla, "recodificar")) {
     mapa <- cv[["mapa"]] %||% list()
     destino <- stats::setNames(
@@ -84,7 +93,7 @@ base_variables_calcular <- function(df, cv) {
   } else {
     rep(NA_character_, n)
   }
-  out[!is.na(out) & !nzchar(out)] <- NA_character_
+  if (is.character(out)) out[!is.na(out) & !nzchar(out)] <- NA_character_
   codigos_escala <- vapply(base_variables_escala(cv), function(o) .origen_externo_chr(o[["codigo"]]), character(1))
   if (length(codigos_escala) && !anyNA(suppressWarnings(as.numeric(codigos_escala)))) {
     out <- suppressWarnings(as.numeric(out))
@@ -137,9 +146,13 @@ base_variables_materializar <- function(data, base_meta) {
 #' @param ocupados nombres que una calculada no puede tomar (preguntas del
 #'   instrumento, columnas de la data y columnas propias declaradas). No incluye
 #'   las calculadas: con el mismo nombre se reemplaza.
+#' @param con_lista variables con lista de respuestas (select_one o calculada
+#'   con escala): en una fórmula, sus códigos 80–99 cuentan como sin dato.
+#' @param multiples variables select_multiple: una fórmula no las admite.
 #' @return la calculada normalizada, lista para guardar.
 #' @keywords internal
-base_variables_validar_calculada <- function(cv, columnas, ocupados) {
+base_variables_validar_calculada <- function(cv, columnas, ocupados,
+                                             con_lista = character(0), multiples = character(0)) {
   cv <- cv %||% list()
   nombre <- .origen_externo_chr(cv[["nombre"]])
   if (!nzchar(nombre) || !grepl(.BASE_VARIABLES_NOMBRE_RE, nombre)) {
@@ -162,6 +175,11 @@ base_variables_validar_calculada <- function(cv, columnas, ocupados) {
       "La regla «%s» no existe: usa %s.", regla, paste(.BASE_VARIABLES_REGLAS, collapse = " o ")),
       list(regla = regla))
   }
+  if (identical(regla, "formula")) {
+    expresion <- trimws(.origen_externo_chr(cv[["expresion"]]))
+    arbol <- base_variables_formula_parsear(expresion)
+    cv[["variables"]] <- as.list(base_variables_formula_variables(arbol))
+  }
   vars <- .base_variables_lista(cv[["variables"]])
   if (!length(vars)) {
     stop_api(422, "E_BASE_VARIABLE_REGLA_INCOMPLETA",
@@ -181,6 +199,17 @@ base_variables_validar_calculada <- function(cv, columnas, ocupados) {
   etiqueta <- .origen_externo_chr(cv[["etiqueta"]])
   out <- list(nombre = nombre, etiqueta = if (nzchar(etiqueta)) etiqueta else nombre,
               regla = regla, variables = as.list(vars))
+  if (identical(regla, "formula")) {
+    if (length(intersect(vars, multiples))) {
+      stop_api(422, "E_BASE_VARIABLE_FORMULA_INVALIDA", sprintf(
+        "%s admite varias respuestas: una fórmula sólo opera con números. Usa la regla «alguna».",
+        paste(sprintf("«%s»", intersect(vars, multiples)), collapse = ", ")), list(expresion = expresion))
+    }
+    out$expresion <- expresion
+    out$especiales_na <- as.list(intersect(vars, con_lista))
+    out$escala <- list()
+    return(out)
+  }
   if (identical(regla, "alguna")) {
     codigos <- .base_variables_lista(cv[["codigos"]])
     if (!length(codigos)) {
@@ -227,6 +256,7 @@ base_variables_validar_calculada <- function(cv, columnas, ocupados) {
 #' Cuántos casos caen en cada código de la escala y cuántos sin dato.
 #' @keywords internal
 base_variables_resumen_calculada <- function(valores, cv) {
+  if (identical(.origen_externo_chr(cv[["regla"]]), "formula")) return(base_variables_resumen_numerico(valores))
   chr <- .codif_agrupar_codigo_chr(valores)
   esc <- base_variables_escala(cv)
   list(
