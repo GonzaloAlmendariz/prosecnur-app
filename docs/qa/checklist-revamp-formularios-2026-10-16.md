@@ -41,4 +41,22 @@ Indicaciones del usuario que gobiernan todo el revamp:
 | E9 | Resumen: franja de cifras, organización, quién responde qué, escalas, antes de aplicar | `resumen/` — ya seguía la gramática; 00d57c02f (línea de tiempo con 54 secciones sin desborde); medido a 1440×1000 con el tipo 2 | ☑ |
 | E10 | Movimiento: duraciones ≤ 240 ms, una curva, sólo opacidad/posición, `prefers-reduced-motion` | kit + estilos del módulo — d26b7d110: 207 transiciones auditadas; 0 largas, 0 rebotes, 0 sin reduce-motion; 4 acordeones mueven layout a propósito | ☑ |
 | EM | Modularización: ningún archivo del módulo gigante (objetivo ≤ ~500 líneas .ts/.tsx, ≤ ~600 .css); cada etapa extrae primero (refactor puro, commit propio) y rediseña después. Hoy: XlsformEditorPage 4426, FocusedWorkspace 4585, LogicCanvas 2339, RuleWizard 1917, xlsform-v2.css 6229 | todo `xlsformEditor/` | ☐ |
-| E11 | QA visual en la matriz de viewports, `verificador`, commits por etapa | — | ☐ |
+| E11 | QA visual en la matriz de viewports, `verificador`, commits por etapa | verificador: aprobado con pendientes (docs → a1c0fc4b8; QA visual pendiente); claves React únicas 21deeb5ff; Vista del cuestionario sin derrames 9f15467cf; matriz abajo | ◐ |
+
+## Matriz E11 — derrames y recortes por pestaña (1440×1000, `formularios-tipo.pulso`)
+
+Medición por script en la app (overflow `hidden` con contenido mayor que la caja sin `…`; overflow `visible` con
+`scrollWidth > clientWidth + 2`). Se excluyen el texto sólo para lector de pantalla y el chrome de la app
+(selector de módulos y etiqueta de la barra de comandos: 10 alertas constantes en todas las pestañas, **fuera del
+alcance de esta rama**, anotadas como hallazgo para Gonzalo).
+
+| Tipo | constructor | hojas | cuestionario | lógica | restricciones | cálculos | filtros | probar | resumen | impreso |
+|---|---|---|---|---|---|---|---|---|---|---|
+| T1 Acreditación | 0 | 0 | 5 → corregido 9f15467cf | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| T2 Estudiantil sensible | 0 | 0 | 21 → corregido 9f15467cf | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| T3 ACNUR monitoreo | 0 | 0 | 0 (tras 9f15467cf; antes 10) | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| T4 ACNUR comunidad | pendiente | | | | | | | | | |
+| T5 Salud OPS | pendiente | | | | | | | | | |
+| T6 Opinión e institucional | pendiente | | | | | | | | | |
+
+Pendientes: T4–T6 a 1440×1000, la matriz a 1366×768 y `make ui-quick-check` sobre las pestañas nuevas.
