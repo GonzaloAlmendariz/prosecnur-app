@@ -2,8 +2,7 @@
 // Una condición se arma con «cuenta si es» / «cuenta si no es» y uno o varios
 // valores; el operador guardado (==, !=, in, not_in) sale de esas dos cosas.
 
-import { formatoConteo, formatoConteoDe } from "../../lib/formatoNumero";
-import type { CasoValidoColumna, CasoValidoCondicion, CasoValidoEfecto } from "../../api/validacion";
+import type { CasoValidoColumna, CasoValidoCondicion } from "../../api/validacion";
 
 export type Sentido = "es" | "no_es";
 
@@ -34,12 +33,4 @@ export function textoCondicion(c: CasoValidoCondicion, col?: CasoValidoColumna):
 export function casosQueCumplen(col: CasoValidoColumna, sentido: Sentido, valores: readonly string[], nTotal: number): number {
   const elegidos = col.valores.filter((v) => valores.includes(v.valor)).reduce((s, v) => s + v.n, 0);
   return sentido === "es" ? elegidos : Math.max(0, nTotal - elegidos);
-}
-
-/** «Cuentan 2,500 de 3,318 casos; quedan fuera 818.» */
-export function textoEfecto(e: CasoValidoEfecto): string {
-  if (!e.n_total) return "";
-  if (e.n_validos === e.n_total) return `Cuentan los ${formatoConteoDe(e.n_total, "caso")} de la base.`;
-  if (e.n_validos === 0) return "Ningún caso cumple todas las condiciones: así no se aplicaría y contaría toda la base.";
-  return `Cuentan ${formatoConteo(e.n_validos)} de ${formatoConteoDe(e.n_total, "caso")}; quedan fuera ${formatoConteo(e.n_excluidos)}.`;
 }

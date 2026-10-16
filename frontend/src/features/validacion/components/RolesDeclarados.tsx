@@ -2,7 +2,6 @@ import { useEffect, useId, useState } from "react";
 import { Check, KeyRound, ListChecks, MessageSquare, Sparkles, User } from "lucide-react";
 import { apiV2RolesSugerencias } from "../../../api/client";
 import type { InstrumentoOperationalConfig, RolesSugerencias } from "../types";
-import { textoCondicion } from "../casoValidoManualModel";
 import { CasoValidoManual } from "./CasoValidoManual";
 
 // =============================================================================
@@ -130,15 +129,11 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
       <RolBloque
         icono={<ListChecks size={13} aria-hidden="true" focusable="false" />}
         titulo="Qué caso cuenta"
-        ayuda="Las condiciones que hacen que un caso entre al análisis: las que el formulario repetía en cada pregunta o una marca que ya trae la base, como la selección de una muestra. Declararlas hace que el N sea defendible."
+        ayuda="Lo que un caso debe cumplir para entrar al análisis."
         activo={validez.enabled}
         onToggle={(enabled) => setValidez({ enabled })}
         disabled={disabled}
-        resumen={validez.condiciones.length
-          ? validez.condiciones
-              .map((c) => textoCondicion(c))
-              .join(" · ")
-          : "sin declarar — cuenta toda la base"}
+        resumen={validez.condiciones.length ? "" : "Sin condiciones: cuenta toda la base"}
       >
         {!cargando && sug?.caso_valido.length ? (
           <Sugerencias
@@ -249,7 +244,7 @@ function RolBloque({
         <div className="pulso-rol-bloque-copy">
           <strong>{titulo}</strong>
           <small>{ayuda}</small>
-          <span className="pulso-rol-bloque-resumen">{resumen}</span>
+          {resumen ? <span className="pulso-rol-bloque-resumen">{resumen}</span> : null}
         </div>
         {!sinToggle && (
           <label className="pulso-rol-bloque-toggle">

@@ -16,7 +16,7 @@ import {
 import { PulsoButton } from "../../../components/PulsoButton";
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import { Plus, X } from "../../../vendor/lucide-react";
-import { casosQueCumplen, condicionDesdeBorrador, textoCondicion, textoEfecto, type Sentido } from "../casoValidoManualModel";
+import { casosQueCumplen, condicionDesdeBorrador, textoCondicion, type Sentido } from "../casoValidoManualModel";
 
 export function CasoValidoManual({
   baseNombre,
@@ -75,36 +75,43 @@ export function CasoValidoManual({
 
   return (
     <div className="pulso-cvm">
-      {condiciones.length ? (
-        <ul className="pulso-cvm-lista" aria-label="Condiciones declaradas">
+      {condiciones.length || !abierto ? (
+        <div className="pulso-cvm-linea">
           {condiciones.map((c) => (
-            <li key={c.variable}>
-              <span>Cuenta si {textoCondicion(c, colDe(c.variable))}</span>
+            <span key={c.variable} className="pulso-cvm-chip">
+              {textoCondicion(c, colDe(c.variable))}
               <button
                 type="button"
-                className="pulso-icon"
                 aria-label={`Quitar la condición sobre ${c.variable}`}
-                title="Quitar la condición"
+                title="Quitar"
                 disabled={disabled}
                 onClick={() => onCambiar(condiciones.filter((x) => x.variable !== c.variable))}
               >
-                <X size={12} aria-hidden="true" />
+                <X size={11} aria-hidden="true" />
               </button>
-            </li>
+            </span>
           ))}
-        </ul>
+          {!abierto ? (
+            <PulsoButton variant="ghost" size="sm" disabled={disabled} onClick={() => setAbierto(true)}>
+              <Plus size={13} aria-hidden="true" />{condiciones.length ? "Otra condición" : "Agregar condición"}
+            </PulsoButton>
+          ) : null}
+        </div>
       ) : null}
-      {efecto ? (
-        <p className="pulso-cvm-efecto" role="status">
-          {textoEfecto(efecto)}
-          {efecto.variables_ausentes.length ? ` La base no trae ${efecto.variables_ausentes.join(", ")}: esa condición no saca a nadie.` : ""}
-        </p>
+      {efecto && efecto.n_total ? (
+        <div className="pulso-cvm-efecto" role="status">
+          <span><strong>{formatoConteo(efecto.n_validos)}</strong> de {formatoConteoDe(efecto.n_total, "caso")}</span>
+          <span className="pulso-cvm-barra" aria-hidden="true">
+            <span style={{ width: `${Math.round((100 * efecto.n_validos) / efecto.n_total)}%` }} />
+          </span>
+          {efecto.n_excluidos ? <span className="pulso-cvm-fuera">{formatoConteo(efecto.n_excluidos)} fuera</span> : null}
+          {efecto.variables_ausentes.length ? <span className="pulso-cvm-fuera">Falta en la base: {efecto.variables_ausentes.join(", ")}</span> : null}
+        </div>
       ) : null}
 
       {abierto ? (
         <div className="pulso-cvm-editor" role="group" aria-labelledby={`${id}-t`}>
-          <p id={`${id}-t`} className="pulso-cvm-titulo">Nueva condición</p>
-          {columnas === null ? (
+                    {columnas === null ? (
             <p className="pulso-cvm-ayuda">Leyendo las columnas de la base…</p>
           ) : !columnas.length ? (
             <p className="pulso-cvm-ayuda">{errorColumnas || "La base no tiene columnas de pocos valores con las que declarar una condición."}</p>
@@ -154,7 +161,7 @@ export function CasoValidoManual({
                   </ul>
                   {borrador ? (
                     <p className="pulso-cvm-ayuda">
-                      Con esta condición sola cuentan {nTotal
+                      Cuentan {nTotal
                         ? `${formatoConteo(casosQueCumplen(col, sentido, valores, nTotal))} de ${formatoConteoDe(nTotal, "caso")}`
                         : formatoConteoDe(casosQueCumplen(col, sentido, valores, nTotal), "caso")}.
                     </p>
@@ -166,15 +173,11 @@ export function CasoValidoManual({
             </>
           )}
           <div className="pulso-cvm-acciones">
-            <PulsoButton variant="primary" size="sm" disabled={disabled || !borrador} onClick={agregar}>Agregar condición</PulsoButton>
+            <PulsoButton variant="primary" size="sm" disabled={disabled || !borrador} onClick={agregar}>Agregar</PulsoButton>
             <PulsoButton variant="ghost" size="sm" onClick={cerrar}>Cancelar</PulsoButton>
           </div>
         </div>
-      ) : (
-        <PulsoButton variant="secondary" size="sm" disabled={disabled} onClick={() => setAbierto(true)}>
-          <Plus size={13} aria-hidden="true" />Agregar condición
-        </PulsoButton>
-      )}
+      ) : null}
     </div>
   );
 }
