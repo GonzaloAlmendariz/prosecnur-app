@@ -26,7 +26,7 @@ import type {
   VariableDeBase,
 } from "../../api/equivalencias";
 import type { FilaEditor } from "./equivalenciasEditorModel";
-import { etiquetaTolerante } from "./etiquetaTolerante";
+import { etiquetaTolerante, indicePorEtiqueta } from "./etiquetaTolerante";
 import { esCompuesta } from "./indicadorCompuestoModel";
 
 // ---- Firma tolerante ----------------------------------------------------------
@@ -63,7 +63,8 @@ export function opcionesDe(
 /**
  * La entrada de la base de origen llevada a otra pregunta de esa misma base.
  * Cada código de la pregunta destino va a donde iba, en el origen, la opción
- * con su misma etiqueta tolerante. Un mapa vacío es identidad y se queda vacío:
+ * con su misma etiqueta tolerante (si esa etiqueta no la comparten dos
+ * códigos del origen). Un mapa vacío es identidad y se queda vacío:
  * con la firma igual, los códigos son los mismos. `null` si la base no está
  * declarada en el origen.
  */
@@ -77,11 +78,9 @@ export function traducirEntrada(
   const base: ArmonizacionBase = { comparable: origen.comparable, ...(nota ? { nota } : {}), mapa: {} };
   if (!origen.comparable) return base;
   if (!Object.values(origen.mapa).some(Boolean)) return base;
-  const porEtiqueta = new Map<string, string>();
-  for (const o of opcionesOrigen) {
-    const clave = etiquetaTolerante(o.etiqueta);
-    if (!porEtiqueta.has(clave)) porEtiqueta.set(clave, o.codigo.trim());
-  }
+  // Dos códigos del origen con la misma etiqueta tolerante no se traducen:
+  // elegir uno sería al azar.
+  const porEtiqueta = indicePorEtiqueta(opcionesOrigen);
   for (const d of opcionesDestino) {
     const codigo = d.codigo.trim();
     if (!codigo) continue;

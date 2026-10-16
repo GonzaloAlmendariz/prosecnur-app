@@ -13,6 +13,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { CalendarRange, Ruler } from "../../../vendor/lucide-react";
 import { ArmonizacionAsignarEnMasa } from "../ArmonizacionAsignarEnMasa";
 import { DESTINO_SIN_MAPA, textoMarcados } from "../armonizacionMasaModel";
+import { avisoNoListable } from "../codigosObservadosModel";
 import { observadosListos, type LecturaCodigosObservados } from "../useCodigosObservados";
 import { PreguntaOrigen } from "../variablesBase/SelectorPreguntas";
 import { AyudaMapa } from "./AyudaMapa";
@@ -75,7 +76,8 @@ export function SegmentoEnBase({
   const [ayuda, setAyuda] = useState<TipoAyuda | null>(null);
   const origen = entrada.origen;
   const obs = observadosListos(lectura);
-  const esTexto = obs?.tipo === "texto";
+  // Texto, identificador o tipo desconocido: una línea en lugar de ayudas y tabla.
+  const noListable = obs ? avisoNoListable(obs.tipo) : null;
   const codigos = codigosDeEntrada(opciones, entrada, guardado, obs);
   const filas = filasDeCodigos(codigos, entrada.mapa, escala);
   const resumen = resumenMapa(filas);
@@ -133,11 +135,11 @@ export function SegmentoEnBase({
             // C5 categoría 3: la lectura falló; queda lo que se conoce del instrumento y de lo guardado.
             <p className="pulso-armon-aviso" role="alert">No se pudieron leer los valores de {origen}: {lectura.mensaje}</p>
           )}
-          {esTexto && (
-            <p className="pulso-armon-aviso" role="status">Variable de texto: elige una categórica o numérica.</p>
+          {noListable && (
+            <p className="pulso-armon-aviso" role="status">{noListable}</p>
           )}
 
-          {!esTexto && (<>
+          {!noListable && (<>
           <div className="pulso-armon-base-acciones">
             {ayudas.includes("tramos") && (
               <PulsoButton

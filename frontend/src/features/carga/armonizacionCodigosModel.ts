@@ -11,10 +11,12 @@
 //    ve con sus valores desde la primera apertura, sin guardar antes una escala.
 //
 // Una variable de texto libre no se lista: se dice en una línea que no es
-// comparable por categorías.
+// comparable por categorías. Un identificador (valores casi únicos) tampoco
+// —el backend no los manda, por privacidad—, ni un tipo que esta versión no
+// conoce: una línea sobria en lugar de la tabla.
 
-import type { CodigosObservados, TipoCodigosObservados } from "../../api/codigosObservados";
-import { ordenarCodigos } from "./codigosObservadosModel";
+import { codigosListables, type CodigosObservados, type TipoCodigosObservados } from "../../api/codigosObservados";
+import { avisoNoListable, ordenarCodigos } from "./codigosObservadosModel";
 
 export type CodigoBase = { codigo: string; etiqueta: string | null; n: number | null };
 
@@ -44,7 +46,7 @@ export function observadosDesde(d: CodigosObservados): ObservadosBase {
   return {
     estado: "listo",
     tipo: d.tipo,
-    codigos: d.tipo === "texto"
+    codigos: !codigosListables(d.tipo)
       ? []
       // Años y otros enteros en orden numérico, como los lee quien mapea.
       : ordenarCodigos(d.codigos).map((c) => ({ codigo: c.codigo, etiqueta: c.etiqueta || null, n: c.n })),
@@ -64,7 +66,14 @@ export function conObservados(
   return { ...cargas, [base]: { ...actual, observados } };
 }
 
-export type FuenteCodigos = "cargando" | "preview" | "instrumento" | "observados" | "texto" | "sin-lectura";
+export type FuenteCodigos =
+  | "cargando"
+  | "preview"
+  | "instrumento"
+  | "observados"
+  | "texto"
+  | "no-listable"
+  | "sin-lectura";
 
 export type CodigosDeBase = {
   fuente: FuenteCodigos;
@@ -144,6 +153,8 @@ export function codigosDeBase(
   if (obs.tipo === "texto") {
     return vista({ fuente: "texto", vacio: textoVariableTexto(base, variable) });
   }
+  const noListable = avisoNoListable(obs.tipo);
+  if (noListable) return vista({ fuente: "no-listable", vacio: noListable });
   return vista({
     fuente: "observados",
     codigos: obs.codigos,

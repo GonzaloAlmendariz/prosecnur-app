@@ -100,6 +100,20 @@ describe("traducción del mapa", () => {
       .toEqual({ comparable: false, nota: "Otra redacción", mapa: {} });
   });
 
+  test("dos códigos del origen con la misma etiqueta tolerante no se traducen: sería elegir al azar", () => {
+    const origen = [op("1", "Otro"), op("2", "otro."), op("3", "Sí")];
+    const destino = [op("7", "OTRO"), op("8", "si")];
+    expect(traducirEntrada({ comparable: true, mapa: { "1": "1", "2": "2", "3": "3" } }, origen, destino))
+      .toEqual({ comparable: true, mapa: { "8": "3" } });
+  });
+
+  test("un signo que cambia la categoría no se traduce como la otra", () => {
+    const origen = [op("1", "<18"), op("2", "18"), op("3", "A+")];
+    const destino = [op("5", ">18"), op("6", "18"), op("7", "A")];
+    expect(traducirEntrada({ comparable: true, mapa: { "1": "1", "2": "2", "3": "3" } }, origen, destino))
+      .toEqual({ comparable: true, mapa: { "6": "2" } });
+  });
+
   test("una base sin declarar en el origen no se traduce", () => {
     expect(traducirEntrada(undefined, FREC_2024, FREC_2024)).toBeNull();
   });

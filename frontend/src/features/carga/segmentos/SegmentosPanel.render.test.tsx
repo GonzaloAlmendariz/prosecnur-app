@@ -215,6 +215,14 @@ describe("una base del editor con los valores observados", () => {
     expect(html).not.toContain("<table");
   });
 
+  it("un identificador lo dice en una línea sobria: sin tabla, sin ayudas", () => {
+    const html = render({ tipo: "listo", datos: observados({ tipo: "identificador", codigos: [] }) }, {});
+    expect(html).toContain("Parece un identificador: sus valores no se listan.");
+    expect(html).not.toContain("<table");
+    expect(html).not.toContain("Rangos");
+    expect(html).not.toContain("Tramos de antigüedad");
+  });
+
   it("leyendo, lo dice; si falla, lo dice y queda lo conocido", () => {
     expect(render({ tipo: "cargando" })).toContain("Leyendo los valores de P1 en 2026…");
     const html = render({ tipo: "error", mensaje: "No existe la variable · E_CODIGOS_VARIABLE_NOT_FOUND" });

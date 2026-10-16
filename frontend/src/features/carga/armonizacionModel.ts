@@ -25,7 +25,7 @@ import type {
   TipoAdvertenciaBloques,
 } from "../../api/equivalencias";
 import type { PanelDeclarado } from "../../lib/navegacion/paneles";
-import { etiquetaTolerante, indicePorEtiqueta } from "./etiquetaTolerante";
+import { etiquetaTolerante, etiquetasAmbiguas, indicePorEtiqueta } from "./etiquetaTolerante";
 import { ordenPorDefectoDeSerie, type NombreDeSerie } from "./nombreDeSerie";
 
 // ---- Paneles direccionables -------------------------------------------------
@@ -353,11 +353,16 @@ export function reducirArmonizacion(
       // La guía de la matriz manda recodificar POR ETIQUETA. Esto propone ese
       // emparejamiento y deja intacto lo que no casa: no inventa destinos.
       return conEntrada(b, a.base, (e) => {
+        // Ambigüedad en los dos lados: si dos códigos de la escala, o dos de la
+        // base, dicen lo mismo, ninguno se empareja por esa etiqueta.
         const porEtiqueta = indicePorEtiqueta(b.escala);
+        const ambiguas = etiquetasAmbiguas(a.opciones);
         const mapa: Record<string, string> = {};
         for (const [origen, destino] of Object.entries(e.mapa)) if (destino) mapa[origen] = destino;
         for (const o of a.opciones) {
-          const destino = porEtiqueta.get(normalizarEtiqueta(o.etiqueta));
+          const clave = normalizarEtiqueta(o.etiqueta);
+          if (ambiguas.has(clave)) continue;
+          const destino = porEtiqueta.get(clave);
           if (destino && !mapa[o.codigo]) mapa[o.codigo] = destino;
         }
         return { ...e, comparable: e.comparable ?? true, mapa };
