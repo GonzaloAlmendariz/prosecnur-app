@@ -8,7 +8,6 @@ import { parseExpression, type LogicScope } from "../../logic";
 import type { ConditionalContext } from "../../inspector/ContextPanel";
 import { InspectorField } from "../../inspector/InspectorPrimitives";
 import { ConstraintBuilder } from "../../inspector/logic/ConstraintBuilder";
-import { TextRuleSuite } from "../../inspector/logic/TextRuleSuite";
 import { describeRuleBreakdown, describeValidation, validationPresetsFor, type HumanizedExpression } from "../reglasHumanas";
 import { matchTextRule } from "../../inspector/logic/textRules";
 import { fieldMessageLooksTechnical } from "../constructor/compartido";
@@ -195,14 +194,10 @@ export function ValidationSummary({
 }) {
   const summary = describeValidation(node.constraint, node, scope);
   const presets = validationPresetsFor(node);
-  // Preguntas de texto: la galería de reglas humanas (textRules) reemplaza a
-  // los presets fijos. Solo en modo "elegir" — si el constraint actual ya es
-  // una receta reconocida, el ConstraintBuilder de abajo la muestra en modo
-  // humano y acá no se duplica.
+  // Si el constraint es una receta de texto, la lectura usa su título humano.
   const recognizedRule = node.constraint.trim()
     ? matchTextRule(parseExpression(node.constraint))
     : null;
-  const showTextRuleGallery = node.typeInfo.base === "text" && !recognizedRule;
   // La lectura superior usa el título humano de la receta cuando existe
   // ("Debe tener exactamente 8 dígitos" en vez de un resumen genérico).
   const summaryStatus = recognizedRule ? "Regla de texto" : rotuloDeEstado(summary?.status);
@@ -228,31 +223,14 @@ export function ValidationSummary({
       {/* El estado del mensaje lo marca la tarjeta «Mensaje Kobo» con sus chips;
           repetirlo aquí era el tercer aviso de la misma falta (0.9.4, R3). */}
 
-      {showTextRuleGallery && (
-        <div className="pulso-focus-validation-presets" aria-label="Reglas de texto">
-          <div className="pulso-focus-validation-presets-head">
-            <span className="pulso-section-eyebrow">Formato del texto</span>
-            <small>Elige un atajo: la regla y su mensaje se completan juntos.</small>
-          </div>
-          <TextRuleSuite
-            active={null}
-            onApply={(constraintExpr, message) => {
-              onFieldsChange({
-                constraint: constraintExpr,
-                constraint_message: message,
-              });
-            }}
-            onClear={() => {
-              onFieldsChange({ constraint: "", constraint_message: "" });
-            }}
-          />
-        </div>
-      )}
+      {/* La galería «Formato del texto» vive en el estado vacío del editor: con una regla ya puesta,
+          ofrecerla aquí encima del armador eran dos caminos para la misma regla (0.9.4, R4). «Quitar»
+          devuelve a la galería. */}
 
       {presets.length > 0 && (
         <div className="pulso-focus-validation-presets" aria-label="Validaciones sugeridas">
           <div className="pulso-focus-validation-presets-head">
-            <span className="pulso-section-eyebrow">Atajos Kobo</span>
+            <span className="pulso-section-eyebrow">Atajos</span>
             <strong>Aplicar una regla común</strong>
           </div>
           <div className="pulso-focus-validation-preset-grid">
@@ -271,7 +249,6 @@ export function ValidationSummary({
                   }
                   onFieldChange("constraint", preset.expression);
                 }}
-                title={preset.hint}
               >
                 <span className="pulso-focus-validation-preset-icon">
                   <CheckCircle2 size={12} />

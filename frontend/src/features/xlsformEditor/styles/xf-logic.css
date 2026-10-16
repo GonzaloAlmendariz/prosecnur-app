@@ -588,3 +588,12 @@
   flex: 1 1 80px;
   min-width: 0;
 }
+
+/* Salida al armador manual bajo las recetas de texto (0.9.4, R4): secundaria y en una línea. */
+.pulso-logic-builder-tomano {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
