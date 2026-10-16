@@ -67,7 +67,7 @@ los módulos navy.
 | Cálculo de muestra | `--pulso-module-sample` | `#7260AE` |
 | Formularios | `--pulso-module-editor` | `#7172C1` |
 | Hojas de ruta | `--pulso-module-routes` | `#AC563B` |
-| Fichas QR | `--pulso-module-collectors` | `#106E8C` |
+| Material de campo | `--pulso-module-fieldkit` | `#4F752C` |
 | Monitoreo | `--pulso-module-monitoring` | `#A0464E` |
 | Procesamiento | `--pulso-module-processing` | `#0F766E` |
 | Dashboard | `--pulso-module-dashboard` | `#4A6EB6` |
@@ -104,6 +104,21 @@ se probó y se descartó con evidencia: a 0.090 el carmesí de Monitoreo cae en
 iguala, se acota. Efecto colateral querido: Monitoreo dejó de coincidir con el
 carmesí semántico de peligro, que era una colisión de rol. **Un acento nuevo
 debe respetar el techo además del 4.5:1.**
+
+**Material de campo del 16 de octubre de 2026.** Recopiladores pasó a llamarse
+Material de campo ([ADR 0108](../docs/adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md))
+y su acento cambió de `#106E8C` a Musgo `#4F752C` (decisión
+`dec-acento-material-campo-musgo`, identidad 1.4.0), que reemplaza el valor de
+`dec-acento-collectors-aa`. Musgo mide OKLCH 0.516 · 0.111 · 132° y da 5.37:1
+sobre blanco, así que cumple el 4.5:1 y el techo de croma. Ocupa el hueco verde
+del espectro y se aleja de sus dos vecinos más cercanos: ΔE76 38.7 contra
+Procesamiento y 49.9 contra Bitácora, frente a los 25.0 que separaban al
+petróleo anterior de Procesamiento. Se prefirió a Oliva `#647119` y a Helecho
+`#3A783E` porque equilibra ambos vecinos y es el que menos se confunde con un
+estado de éxito. El token operativo es `--pulso-module-fieldkit`;
+`--pulso-module-collectors` queda como alias deprecado. El ícono del módulo
+pasa a `Backpack` y el QR se queda en la sección Accesos. Siguen siendo ocho
+acentos.
 
 **Roles permitidos:** contexto de módulo, rail y superficie de selección,
 icono modular, tintes y bordes de procedencia, y foco contextual cuando el

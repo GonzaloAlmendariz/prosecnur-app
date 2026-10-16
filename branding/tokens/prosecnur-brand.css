@@ -52,7 +52,11 @@
   --prosecnur-mod-rutas: #ac563b;
   --prosecnur-mod-muestra: #7260ae;
   --prosecnur-mod-bitacora: #a16207;
-  --prosecnur-mod-recopiladores: #106e8c;
+  /* Material de campo (ADR 0108, identidad 1.4.0): Musgo, 5.37:1 sobre
+   * blanco. Reemplaza al petróleo #106e8c de Recopiladores; el nombre
+   * viejo queda como alias deprecado. */
+  --prosecnur-mod-material-campo: #4f752c;
+  --prosecnur-mod-recopiladores: var(--prosecnur-mod-material-campo);
   --prosecnur-mod-monitoreo: #a0464e;
 
   /* --- Interacción ------------------------------------------ */

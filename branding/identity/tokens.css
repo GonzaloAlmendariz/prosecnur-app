@@ -3,9 +3,9 @@
  * ------------------------------------------------------------
  * Generador : prosecnur-identity-compiler v1.0.0 (branding/identity/generate.mjs)
  * Fuente    : branding/identity.json
- * Identidad : prosecnur-la-senal-ordenada v1.3.0 (frozen)
- * Manifest  : sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3
- * Input     : sha256:de47bf8c3037c9cf2b5293b42e0e85cff6d97a7910fe79285776555fc7e07b9f (digest del archivo identity.json)
+ * Identidad : prosecnur-la-senal-ordenada v1.4.0 (frozen)
+ * Manifest  : sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2
+ * Input     : sha256:2a6305fda90d8e3e00d651e09dfee1ada4fafd8425b4812c332301e05ac9bfdb (digest del archivo identity.json)
  * ------------------------------------------------------------
  * Derivado determinista del manifiesto congelado. El identificador
  * de generación es el input digest (sin timestamp, a propósito).
@@ -44,7 +44,7 @@
   --prosecnur-module-routes: #ac563b;
   --prosecnur-module-sample: #7260ae;
   --prosecnur-module-encyclopedia: #a16207;
-  --prosecnur-module-collectors: #106e8c;
+  --prosecnur-module-fieldkit: #4f752c;
   --prosecnur-module-monitoring: #a0464e;
   --prosecnur-accent-cyan: #0ea5b7;
   --prosecnur-accent-green: #16a34a;
@@ -113,7 +113,7 @@
   --prosecnur-mod-calc-muestra: #7260ae; /* Cálculo de muestra y marco muestral — operativo: --pulso-module-sample */
   --prosecnur-mod-diseno-estudio: #a16207; /* Bitácora — operativo: --pulso-module-encyclopedia */
   --prosecnur-mod-plan-trabajo: #a16207; /* Plan de trabajo (fusionado en Bitácora) — operativo: --pulso-module-workplan (alias de encyclopedia) */
-  --prosecnur-mod-recopiladores: #106e8c; /* Fichas QR para cursos-horario — operativo: --pulso-module-collectors */
+  --prosecnur-mod-material-campo: #4f752c; /* Material de campo — operativo: --pulso-module-fieldkit (--pulso-module-collectors queda como alias deprecado) */
   --prosecnur-mod-monitoreo: #a0464e; /* Monitoreo de campo — operativo: --pulso-module-monitoring */
 
   /* --- Tipografía · familias «Voz nativa»
