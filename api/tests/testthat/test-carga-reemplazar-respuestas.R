@@ -95,4 +95,13 @@ test_that("reemplazar las respuestas descarta el par adaptado global: Analítica
   expect_false(isTRUE(s2$codif_aplicado))
   expect_null(s2$codif_data_adaptada_fid)
   expect_null(s2$codif_inst_adaptado_fid)
+  # Adaptación avisará que la base cambió aunque la marca por base no existiera.
+  s3 <- session_get(sid)
+  s3$codif_por_base <- list(`2026` = list(grupos_recod = list(a = 1)))
+  s3$codif_aplicado <- TRUE
+  s3$codif_data_adaptada_fid <- "otro"
+  s3$analitica_fuente <- "estudio:2026"
+  .session_env[[sid]] <- s3
+  carga_reemplazar_respuestas(sid, "2026", dmeta$file_id)
+  expect_true(codificacion_respuestas_cambiaron(sid, source = "2026"))
 })

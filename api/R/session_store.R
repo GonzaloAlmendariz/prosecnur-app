@@ -1065,6 +1065,13 @@ validacion_key_present_any <- function(s, key) {
     # Analítica sigue leyendo la base vieja después de reemplazarla (HSyVbG
     # 2026-10-16). Mismo descarte que `.limpieza_invalidate_downstream()`;
     # `.codif_apply_complete()` lo vuelve a fijar después de reemplazar.
+    if (isTRUE(s$codif_aplicado) || !is.null(s$codif_data_adaptada_fid)) {
+      # Había adaptación: Adaptación debe decir que la base cambió
+      # (codificacion_readaptar.R).
+      for (bn in intersect(targets, names(s$codif_por_base %||% list()))) {
+        s$codif_por_base[[bn]]$readaptar_desde <- format(Sys.time(), "%Y-%m-%dT%H:%M:%S")
+      }
+    }
     s[c("codif_aplicado", "codif_data_adaptada_fid", "codif_inst_adaptado_fid")] <-
       list(FALSE, NULL, NULL)
   }
