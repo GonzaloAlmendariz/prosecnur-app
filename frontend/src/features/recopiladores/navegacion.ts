@@ -25,8 +25,9 @@ export type RecopiladoresSeccion = (typeof SECCIONES)[number];
 export const PESTANAS_POR_SECCION = {
   unidades: ["lista"],
   accesos: ["canales", "vinculacion"],
-  // Tipos primero: es el aterrizaje de Catálogo (ADR 0109 §3).
-  catalogo: ["tipos", "editor"],
+  // Tipos primero: es el aterrizaje de Catálogo (ADR 0109 §3). Correos es el
+  // material de canal digital: se compone aquí y sale para Mailchimp (ADR 0110 §2).
+  catalogo: ["tipos", "editor", "correos"],
   paquetes: ["armado"],
   entrega: ["traspaso"],
 } as const satisfies Record<RecopiladoresSeccion, readonly string[]>;
@@ -68,6 +69,9 @@ const ALIAS_PESTANA: Record<string, DireccionRecopiladores> = {
   // inventada (C5).
   validacion: { seccion: "entrega", pestana: "traspaso" },
   monitoreo: { seccion: "entrega", pestana: "traspaso" },
+  // Nombres que alguien escribiría a mano para llegar a los correos.
+  correo: { seccion: "catalogo", pestana: "correos" },
+  mailchimp: { seccion: "catalogo", pestana: "correos" },
 };
 
 /**
