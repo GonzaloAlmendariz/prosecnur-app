@@ -2069,7 +2069,8 @@ isTRUE_vec <- function(x) {
   invisible(s)
 }
 
-.codif_apply_complete <- function(sid, base_name, paths) {
+.codif_apply_complete <- function(sid, base_name, paths, data_fid_partida = NULL) {
+  codificacion_verificar_respuestas_de_partida(sid, base_name, data_fid_partida)
   data_meta <- .register_output_file(sid, "data_adaptada", paths$data_out)
   inst_meta <- .register_output_file(sid, "instrumento_adaptado", paths$inst_out)
   inst_adaptado <- reporte_instrumento(path = inst_meta$path)
@@ -3271,6 +3272,9 @@ mount_codificacion <- function(pr) {
       # Capturar ahora: el analista puede cambiar la base activa mientras el
       # job trabaja. La finalización debe reemplazar la base que lanzó el job.
       target_base <- codif_source_active(sid)
+      # Y las respuestas de las que parte: si se reemplazan mientras corre, el
+      # resultado ya no corresponde y no debe pisar la base nueva.
+      data_fid_partida <- as.character((((s$estudio %||% list())$bases %||% list())[[target_base]] %||% list())$data_file_id %||% "")
 
       job_id <- job_submit(
         sid = sid,
@@ -3291,7 +3295,7 @@ mount_codificacion <- function(pr) {
           agrupaciones = codif_agrupaciones_para_aplicar(sid, target_base)
         ),
         on_complete = function(j) {
-          .codif_apply_complete(j$sid, target_base, j$result_data)
+          .codif_apply_complete(j$sid, target_base, j$result_data, data_fid_partida = data_fid_partida)
         }
       )
       # ADR 0078, invariante 5: aplicar deja constancia de qué variables se
