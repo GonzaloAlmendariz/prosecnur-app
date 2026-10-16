@@ -81,6 +81,10 @@ describe("opciones y calculadas", () => {
       codigos: ["1"],
       mapa: {},
       escala: [{ codigo: "1", etiqueta: "Sí" }, { codigo: "0", etiqueta: "No" }],
+      // Campos de la regla «fórmula» y de los segmentos (ADR 0106/0107): vacíos aquí.
+      expresion: "",
+      especiales_na: [],
+      segmento: undefined,
     });
   });
 
@@ -99,7 +103,7 @@ describe("opciones y calculadas", () => {
 
   it("el resumen por código no inventa ceros donde no hay fila", () => {
     expect(normalizarResumenCalculada({ por_codigo: { codigo: 1, etiqueta: "Sí", n: [12] }, n_sin_dato: [3], n_total: 15 }))
-      .toEqual({ por_codigo: [{ codigo: "1", etiqueta: "Sí", n: 12 }], n_sin_dato: 3, n_total: 15 });
+      .toEqual({ por_codigo: [{ codigo: "1", etiqueta: "Sí", n: 12 }], n_sin_dato: 3, n_total: 15, numerico: null });
   });
 
   it("sin `calculada` en la respuesta, se busca en la lista y si no, se usa lo pedido", () => {
