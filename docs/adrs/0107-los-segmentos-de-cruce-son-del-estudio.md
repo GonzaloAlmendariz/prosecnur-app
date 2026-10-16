@@ -1,0 +1,52 @@
+# ADR 0107 — Los segmentos de cruce son del estudio y tienen nombre estándar en todas las bases
+
+- **Estado**: Propuesto — conversación con Gonzalo del 2026-10-15 («¿no se pueden llamar de una forma estandarizada como
+  PX_cruce?»; «a Ulises no hay que prepararle un Word ni nada sino dejarle la app súper fina, entendible y didáctica y
+  sobre todo consistente»).
+- **Ámbito**: Carga › Equivalencias (series de mediciones), Analítica (cruces y comparativos)
+- **Fecha**: 2026-10-15
+- **Relación**: usa las variables calculadas del [ADR 0106](0106-la-base-declara-sus-variables-propias.md) y la fila
+  armonizada de la matriz ([ADR 0104](0104-la-matriz-se-arma-en-la-app.md), contrato E4-E7). Checklist:
+  `docs/qa/checklist-matriz-equivalencias-oigd-2026-10-15.md` (sección I).
+
+## Contexto
+
+Medido en HSyVbG: cada año guardó los mismos cruces con otro nombre y otra escala. 2024 los trae como `cruce_1` a
+`cruce_9`; 2025 como `P1_recod`, `P4_recod2`, `P5_recod`, `P8_recod` (con el orden invertido), `P10_recod2` (0/1); 2026
+no los tiene (sus `_recod` son la pregunta con los «Otro» codificados, no el segmento). El analista no tiene cómo saber
+qué segmento le falta a qué año, y cada comparativo exige elegir a mano la variable de cruce de cada base.
+
+## Decisión
+
+1. **El estudio declara sus segmentos de cruce una vez**: clave, nombre estándar `cruce_<clave>`, etiqueta y escala
+   estándar (p. ej. `cruce_edad` «Edad»: 1 «18 a 20 años», 2 «21 años a más»).
+2. **Cada base dice de dónde sale cada segmento**: una variable de origen de esa base y el mapa de sus códigos a la
+   escala estándar (varios a uno). Para un año de ingreso, el mapa se arma relativo al año de la medición (ayuda «tramos
+   de antigüedad»).
+3. **La app materializa el segmento en cada base** como variable calculada `cruce_<clave>` (regla `recodificar` del ADR
+   0106) y mantiene su fila en la matriz armonizada (identidad sobre la escala estándar) marcada como cruce. El analista
+   no arma esa fila a mano.
+4. **Estado visible**: una tabla segmento × base dice qué está definido, qué falta y qué base no tiene variable de origen.
+5. **Uso**: los comparativos de cruces proponen por defecto los segmentos del estudio como variables de cruce, y las
+   tablas de una sola base los ofrecen con su nombre estándar.
+
+## Contrato (API)
+
+- `GET /api/carga/segmentos` → `{ ok, bases, segmentos: [{ clave, nombre, etiqueta, escala: [{codigo, etiqueta}],
+  por_base: { <base>: { origen, mapa, estado: "definido"|"sin_origen"|"incompleto", n_sin_mapa } }, fila_ref }] }`
+- `POST /api/carga/segmentos` `{ clave, etiqueta, escala, por_base: { <base>: { origen, mapa } } }` (crea o reemplaza
+  por `clave`; `nombre` = `cruce_<clave>` normalizado) → mismo payload que el GET.
+- `DELETE /api/carga/segmentos?clave=` → quita el segmento, sus variables calculadas y su fila de la matriz.
+- Errores `E_SEGMENTO_*` registrados (clave inválida o duplicada, escala vacía, base u origen inexistente, mapa a un
+  código fuera de la escala, nombre que choca con una columna existente de alguna base).
+
+## Consecuencias
+
+- Las tres mediciones quedan con los mismos nombres de cruce; la base entregada los lleva.
+- Los comparativos de cruces dejan de exigir elegir el cruce de cada base.
+- Un segmento depende de las variables de origen: si una base cambia, su estado lo dice.
+
+## Cumplimiento
+
+- testthat: declarar, materializar en cada base, fila de matriz marcada, estados, borrado, ida y vuelta por `.pulso`,
+  errores. Vitest del modelo y del panel; `make gate-area` del área equivalencias/carga y `make gate-front AREA=carga`.
