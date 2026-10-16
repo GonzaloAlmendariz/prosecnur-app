@@ -5,9 +5,9 @@ import { apiRecopiladoresState, type CollectionArtifactReceipt, type CollectionS
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { ContextTabRail, type ContextTabRailItem } from "../../components/ContextTabRail";
-import { GlidingTabList } from "../../components/GlidingTabList";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { PageFrame } from "../../components/PageFrame";
+import { SectionPillbar } from "../../components/SectionPillbar";
 import { PROSECNUR_MODULES } from "../../lib/modules";
 import { RefreshCw } from "../../vendor/lucide-react";
 import { AccessSection } from "./AccessSection";
@@ -165,10 +165,6 @@ export function RecopiladoresShell() {
     );
   }, [direction.pestana, direction.seccion, location.pathname, location.search, navigate, params]);
 
-  const selectSection = (section: RecopiladoresSeccion) => {
-    const tab = PESTANAS_POR_SECCION[section][0] as RecopiladoresPestana;
-    navigate(`${location.pathname}${searchFor(location.search, section, tab)}`);
-  };
   const selectTab = (tab: RecopiladoresPestana) => {
     navigate(`${location.pathname}${searchFor(location.search, direction.seccion, tab)}`);
   };
@@ -212,66 +208,32 @@ export function RecopiladoresShell() {
     paquetes: Boolean(state?.artifact_receipts?.length),
     entrega: Boolean(payload?.handoff ?? state?.deployment?.handoff),
   };
-  // El siguiente paso es el primero que falta. Con todos dados no se marca
-  // ninguno: el recorrido terminó y señalar uno inventaría trabajo.
-  const siguientePaso = (MODULE.sections
-    .map((s) => s.id as RecopiladoresSeccion)
-    .find((id) => !pasosHechos[id])) ?? null;
-
-  // **Las píldoras de fase compartidas, no un selector propio.**
+  // **El rail de secciones compartido, sin numeral.** Material de campo
+  // dibujaba su propio `<ol>` de píldoras con número (1 Unidades, 2 Accesos…)
+  // y estado «hecho / es lo siguiente», cuando el resto de los módulos ya usaba
+  // `SectionPillbar` limpio: «ahora las secciones ya no vienen numeradas en
+  // ningún módulo» (Gonzalo, 2026-10-16). El componente es navegación —cada
+  // sección es un enlace con `aria-current="page"`— y su dirección es la
+  // canónica de siempre (`?seccion=…&pestana=…`).
   //
-  // Esto dibujaba botones planos con `rec-section-selector` y su propio CSS,
-  // mientras Cálculo de muestra, Hojas de ruta y Monitoreo usan
-  // `pulso-phase-pillbar` de `theme.css`: mismo alto, mismo número en su
-  // círculo, mismo relieve en la activa y los mismos estados. Tres módulos con
-  // un lenguaje y éste con otro es justo lo que hace que Recopiladores «se vea
-  // peor» al lado de los demás (Gonzalo, 2026-08-28).
-  //
-  // La semántica de pasos que ya tenía —hecho / es lo siguiente— mapea sin
-  // traducción a `is-done` / `is-next`, así que no se pierde nada: el avance del
-  // recorrido se sigue viendo, ahora con la misma señal que el resto de la app.
+  // De la señal de avance queda `done`, que el componente admite como marca no
+  // numérica; «es lo siguiente» no tiene sitio en él y se retira.
   const sectionSelector = (
-    <GlidingTabList
-      className="pulso-phase-pillbar rec-section-selector"
-      activeKey={direction.seccion}
-      mode="tabs"
-      role="group"
-      aria-label="Secciones de Material de campo"
-      onRovingKeyChange={(key) => selectSection(key as RecopiladoresSeccion)}
-    >
-      <ol className="pulso-phase-pill-list">
-        {MODULE.sections.map((section, index) => {
-          const id = section.id as RecopiladoresSeccion;
-          const active = section.id === direction.seccion;
-          const hecho = pasosHechos[id];
-          const siguiente = section.id === siguientePaso;
-          const estado = hecho ? "hecho" : siguiente ? "es lo siguiente" : "";
-          return (
-            <li key={section.id} className="pulso-phase-pill-item">
-              <button
-                type="button"
-                data-gliding-key={section.id}
-                className={`pulso-phase-pill${active ? " is-active" : ""}${hecho ? " is-done" : ""}${siguiente ? " is-next" : ""}`}
-                aria-pressed={active}
-                // Las secciones son pasos de un recorrido, como las etapas de
-                // Hojas de ruta: la activa se anuncia como el paso actual.
-                aria-current={active ? "step" : undefined}
-                // El estado va en el `title` y en el nombre accesible, no sólo
-                // en el color del círculo: un tinte no es una señal accesible.
-                title={estado ? `${section.label} · ${estado}` : section.label}
-                onClick={() => selectSection(id)}
-              >
-                <span className="pulso-phase-pill-number" aria-hidden="true">{index + 1}</span>
-                <span className="pulso-phase-pill-stack">
-                  <span className="pulso-phase-pill-label">{section.label}</span>
-                </span>
-                {estado ? <span className="pulso-sr-only"> · {estado}</span> : null}
-              </button>
-            </li>
-          );
-        })}
-      </ol>
-    </GlidingTabList>
+    <SectionPillbar
+      modulo="material-campo"
+      ariaLabel="Secciones de Material de campo"
+      seccionActiva={direction.seccion}
+      className="rec-section-selector"
+      items={MODULE.sections.map((section) => {
+        const id = section.id as RecopiladoresSeccion;
+        return {
+          id,
+          label: section.label,
+          href: `${location.pathname}${searchFor(location.search, id, PESTANAS_POR_SECCION[id][0] as RecopiladoresPestana)}`,
+          done: pasosHechos[id],
+        };
+      })}
+    />
   );
 
   const panel = (
