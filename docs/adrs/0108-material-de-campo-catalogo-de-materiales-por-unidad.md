@@ -1,12 +1,12 @@
 # ADR 0108: Material de campo es un catálogo de materiales sobre una lista de unidades de campo
 
-Estado: Propuesto
+Estado: Aceptado
 
-Implementacion: No iniciada
+Implementacion: En curso (E0a)
 
 Fecha: 2026-10-16
 
-Fecha de decision: —
+Fecha de decision: 2026-10-16 (Gonzalo: «Acepto el ADR, arranca con E0a»)
 
 Reemplaza: parcialmente [ADR 0046](0046-recopiladores-despliegue-recoleccion.md) en el nombre, la ruta, las secciones
 (cláusula 9) y la suposición de que la unidad es un curso-horario; parcialmente
