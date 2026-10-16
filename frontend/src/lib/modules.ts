@@ -205,8 +205,7 @@ export const MODULE_TONES: Record<ProsecnurModuleSlug, ProsecnurModuleTone> = {
     accentSoft: "var(--pulso-module-encyclopedia-soft)",
     accentBorder: "var(--pulso-module-encyclopedia-border)",
   },
-  // El color propio de Material de campo llega en la etapa E0b (ADR 0108 §7);
-  // mientras tanto conserva el acento que tenía Recopiladores.
+  // Musgo #4F752C (ADR 0108 §7, decisión dec-acento-material-campo-musgo).
   "material-campo": {
     accent: "var(--pulso-module-fieldkit)",
     accentSoft: "var(--pulso-module-fieldkit-soft)",
