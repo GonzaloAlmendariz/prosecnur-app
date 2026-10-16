@@ -46,3 +46,24 @@ codebook_descripcion_sin_lista <- function(x) {
   }
   sprintf("Texto abierto · %s con dato", .codebook_formato_n(n))
 }
+
+#' La data del libro con las preguntas sin lista devueltas.
+#'
+#' `.analitica_filter_data()` deja sólo categóricas y numéricas declaradas (es
+#' el filtro de Frecuencias): el libro nunca recibía la edad ni los índices. Aquí
+#' se reponen las preguntas sin lista del instrumento que no estén excluidas,
+#' en el orden de la base y con los atributos de la data filtrada.
+#' @keywords internal
+.codebook_con_sin_lista <- function(data_full, data_out, excluidas = character(0)) {
+  faltan <- setdiff(.codebook_vars_sin_lista(data_full), names(data_out))
+  if (length(faltan) && exists(".analitica_excluded_data_cols", mode = "function")) {
+    faltan <- faltan[!.analitica_excluded_data_cols(faltan, excluidas)]
+  }
+  if (!length(faltan)) return(data_out)
+  cols <- names(data_full)[names(data_full) %in% c(names(data_out), faltan)]
+  out <- data_full[, cols, drop = FALSE]
+  for (nm in setdiff(names(attributes(data_out)), c("names", "row.names", "class"))) {
+    attr(out, nm) <- attr(data_out, nm)
+  }
+  out
+}
