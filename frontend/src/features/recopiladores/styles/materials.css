@@ -251,6 +251,7 @@
 }
 
 .rec-canvas-block.is-brand_header,
+.rec-canvas-block.is-brand_strip,
 .rec-canvas-block.is-footer {
   min-height: 54px;
 }
@@ -267,6 +268,15 @@
   display: grid;
   gap: 12px;
   padding: 12px;
+}
+
+/* Lo que pinta un bloque sin texto ni dato propio (careta, renglones,
+   croquis): se lee, no se edita aquí. */
+.rec-inspector-resumen {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
 }
 
 .rec-inspector fieldset {

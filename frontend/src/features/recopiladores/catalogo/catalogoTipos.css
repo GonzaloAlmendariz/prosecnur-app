@@ -348,18 +348,24 @@
 }
 
 /* — (c) Inspector — */
+/* Una página: todo el ancho. Dos o más: dos columnas iguales, lado a lado. */
 .rec-cat-paginas {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   list-style: none;
   margin: 0 0 12px;
   padding: 0;
 }
 
+.rec-cat-paginas[data-paginas="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .rec-cat-paginas > li {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .rec-cat-pagina-rotulo {

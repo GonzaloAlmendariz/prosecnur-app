@@ -70,7 +70,18 @@ export function InspectorDeTipo({
         </div>
       )}
     >
-      <ol className="rec-cat-paginas" aria-label="Páginas del tipo">
+      {/* Las páginas van grandes y arriba: una sola ocupa todo el ancho del
+          inspector; dos van lado a lado. El ancho de la columna lo fija el
+          número de páginas, no un mínimo en píxeles: con `auto-fill` y 124 px
+          una página sola quedaba en media columna (~128 px). C1: las páginas
+          son pares y miden lo mismo. */}
+      <ol
+        className="rec-cat-paginas"
+        aria-label="Páginas del tipo"
+        data-paginas={Math.min(paginas, 2)}
+        data-qa-geometry-group="material-campo/catalogo/tipos-inspector-paginas"
+        data-qa-geometry-contract="equal"
+      >
         {paginasLista.map((page) => (
           <li key={page}>
             <EscenarioDePagina
