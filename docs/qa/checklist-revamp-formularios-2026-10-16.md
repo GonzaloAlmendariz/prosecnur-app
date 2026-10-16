@@ -1,5 +1,10 @@
 # Checklist — revamp visual del módulo Formularios (2026-10-16)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-10-16
+Autoridad: Registro de alcance del revamp aprobado por Gonzalo; el comportamiento vigente lo fijan los componentes de `frontend/src/features/xlsformEditor/{kit,pestanas,canvas,canvas-graph,sheets,logic}` y sus tests
+
 Propuesta aprobada por el usuario («todo tiene mi aprobación»): canvas
 https://claude.ai/artifact/XkpdPVxW4CN7Gthdx1HaQV (privado). Rama
 `feat/revamp-formularios`, worktree `.claude/worktrees/revamp-formularios`.
