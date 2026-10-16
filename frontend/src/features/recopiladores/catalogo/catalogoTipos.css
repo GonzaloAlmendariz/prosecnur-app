@@ -66,6 +66,7 @@
 
 .rec-cat-familia {
   align-items: center;
+  box-shadow: none;
   background: transparent;
   border: 0;
   border-radius: var(--pulso-radius-chip);
@@ -109,7 +110,7 @@
   display: grid;
   gap: 12px;
   grid-auto-rows: 1fr;
-  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(208px, 1fr));
   list-style: none;
   margin: 0;
   padding: 14px;
@@ -120,8 +121,18 @@
   min-width: 0;
 }
 
+/* La tarjeta es un <button>: se anulan el centrado, el degradado y la sombra
+   del botón global, que centraban el contenido en una columna estrecha. */
 .rec-cat-tarjeta {
+  align-content: start;
   background: var(--pulso-surface);
+  box-shadow: none;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: stretch;
+  justify-items: stretch;
+  line-height: inherit;
+  min-height: 0;
+  white-space: normal;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-card);
   color: var(--pulso-text);
@@ -157,7 +168,7 @@
   opacity: 0.55;
 }
 
-.rec-cat-tarjeta.is-incompatible .rec-cat-tarjeta-titulo strong {
+.rec-cat-tarjeta.is-incompatible .rec-cat-tarjeta-titulo {
   color: var(--pulso-text-muted);
 }
 
@@ -170,14 +181,6 @@
 }
 
 .rec-cat-tarjeta-titulo {
-  align-items: baseline;
-  display: flex;
-  gap: 6px;
-  justify-content: space-between;
-  min-width: 0;
-}
-
-.rec-cat-tarjeta-titulo strong {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   display: -webkit-box;
@@ -186,9 +189,26 @@
   line-height: 1.35;
   min-width: 0;
   overflow: hidden;
+  white-space: normal;
+}
+
+.rec-cat-tarjeta-texto {
+  white-space: normal;
+}
+
+/* «En uso» va sobre el escenario, en su esquina: en la línea del título le
+   robaba el ancho y lo cortaba («Ficha de aula cc…»). */
+.rec-cat-escenario .rec-cat-en-uso {
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  z-index: 2;
 }
 
 .rec-cat-chips {
+  align-items: flex-start;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
@@ -200,8 +220,10 @@
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-text-soft);
   font-size: 11.5px;
-  line-height: 18px;
-  padding: 0 6px;
+  /* Interlineado ajustado al glifo y el alto en el padding: la caja del chip
+     mide su texto, sin interior sobrante (C3). */
+  line-height: 1.05;
+  padding: 3px 6px;
   white-space: nowrap;
 }
 
@@ -224,10 +246,11 @@
 }
 
 /* — Escenario: la página real con su sombra — */
+/* Casi cuadrado: la hoja vertical, que es la mayoría, se ve grande. */
 .rec-cat-escenario {
-  aspect-ratio: 4 / 3;
-  background: var(--pulso-surface-3);
-  border-radius: var(--pulso-radius-chip);
+  aspect-ratio: 1 / 1;
+  background: color-mix(in srgb, var(--pulso-surface-3) 70%, var(--pulso-border));
+  border-radius: var(--pulso-radius);
   display: block;
   overflow: hidden;
   position: relative;
@@ -246,41 +269,76 @@
   z-index: 1;
 }
 
-/* Vertical: manda el alto; apaisada: manda el ancho. */
+/* La hoja se ve ENTERA. Un <img> posicionado con `top`/`bottom` y alto
+   `auto` toma su alto natural (1052 px de un A4) y el escenario lo recorta: así
+   se veía sólo una franja. Se fija una sola dimensión explícita y la otra sale
+   de la proporción del papel, de modo que la hoja siempre cabe.
+   Vertical: manda el alto; apaisada: manda el ancho. */
 .rec-cat-escenario.is-portrait .rec-cat-hoja {
   aspect-ratio: 210 / 297;
-  bottom: 8%;
+  height: 84%;
   top: 8%;
   transform: translateX(-50%);
+  width: auto;
 }
 
 .rec-cat-escenario.is-landscape .rec-cat-hoja {
   aspect-ratio: 297 / 210;
+  height: auto;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 76%;
+  width: 72%;
 }
 
-/* El dorso asoma detrás, rotado; el frente se corre un poco para dejarlo ver. */
+/* El dorso asoma detrás, rotado; el frente se corre un poco para dejarlo ver.
+   Con dorso las hojas se achican un poco para que las dos quepan enteras. */
 .rec-cat-escenario.con-dorso .rec-cat-hoja--detras {
   box-shadow: var(--pulso-shadow-low);
   z-index: 0;
 }
 
+.rec-cat-escenario.is-portrait.con-dorso .rec-cat-hoja {
+  height: 78%;
+  top: 11%;
+}
+
 .rec-cat-escenario.is-portrait.con-dorso .rec-cat-hoja--detras {
-  transform: translateX(-38%) rotate(6deg);
+  transform: translateX(-30%) rotate(6deg);
 }
 
 .rec-cat-escenario.is-portrait.con-dorso .rec-cat-hoja:not(.rec-cat-hoja--detras) {
-  transform: translateX(-60%);
+  transform: translateX(-68%);
+}
+
+.rec-cat-escenario.is-landscape.con-dorso .rec-cat-hoja {
+  width: 62%;
 }
 
 .rec-cat-escenario.is-landscape.con-dorso .rec-cat-hoja--detras {
-  transform: translate(-44%, -54%) rotate(4deg);
+  transform: translate(-40%, -54%) rotate(4deg);
 }
 
 .rec-cat-escenario.is-landscape.con-dorso .rec-cat-hoja:not(.rec-cat-hoja--detras) {
-  transform: translate(-55%, -47%);
+  transform: translate(-58%, -46%);
+}
+
+/* Página del inspector: el escenario toma la proporción del papel y la hoja
+   ocupa casi todo, para que se lea grande. */
+.rec-cat-escenario--pagina.is-portrait {
+  aspect-ratio: 5 / 7;
+}
+
+.rec-cat-escenario--pagina.is-portrait .rec-cat-hoja {
+  height: 92%;
+  top: 4%;
+}
+
+.rec-cat-escenario--pagina.is-landscape {
+  aspect-ratio: 4 / 3;
+}
+
+.rec-cat-escenario--pagina.is-landscape .rec-cat-hoja {
+  width: 88%;
 }
 
 .rec-cat-hoja--vacia {
@@ -293,7 +351,7 @@
 .rec-cat-paginas {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
   list-style: none;
   margin: 0 0 12px;
   padding: 0;

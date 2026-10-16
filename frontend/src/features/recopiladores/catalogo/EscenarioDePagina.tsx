@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { materialPreviewSrc, type MaterialCatalogOrientation } from "../../../api/materialCatalog";
 import type { VistaDePagina } from "./estadoCatalogo";
 
@@ -10,6 +12,8 @@ type Props = {
   /** Texto alternativo de la página del frente. */
   alt: string;
   tamano?: "tarjeta" | "pagina";
+  /** Marca de estado en la esquina del escenario («En uso»). */
+  etiqueta?: ReactNode;
 };
 
 function Hoja({ vista, alt, detras }: { vista: VistaDePagina | undefined; alt: string; detras?: boolean }) {
@@ -43,13 +47,14 @@ function Hoja({ vista, alt, detras }: { vista: VistaDePagina | undefined; alt: s
  * cambia la proporción de la hoja, no el escenario: todas las tarjetas miden lo
  * mismo (C2).
  */
-export function EscenarioDePagina({ frente, dorso, orientation, alt, tamano = "tarjeta" }: Props) {
+export function EscenarioDePagina({ frente, dorso, orientation, alt, tamano = "tarjeta", etiqueta }: Props) {
   return (
     <span
       className={`rec-cat-escenario rec-cat-escenario--${tamano} is-${orientation}${dorso ? " con-dorso" : ""}`}
     >
       {dorso ? <Hoja vista={dorso} alt={alt} detras /> : null}
       <Hoja vista={frente} alt={alt} />
+      {etiqueta}
     </span>
   );
 }
