@@ -408,6 +408,18 @@ export async function apiCodifPreguntasAbiertas(base?: string) {
   );
 }
 
+// Un texto que no encaja en ningún grupo puede quedar en «Otro» por decisión:
+// se registran los textos sueltos actuales de la pregunta; `revertir` la deshace.
+export async function apiCodifTextosEnOtro(parent: string, opts?: { revertir?: boolean }) {
+  return handle<{ ok: true; parent: string; n_textos: number }>(
+    await apiFetch("/api/codificacion/textos-en-otro", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ parent, revertir: opts?.revertir }),
+    }),
+  );
+}
+
 // ADR 0078: «no categorizar» exige motivo. `revertir` la devuelve a pendiente.
 export async function apiCodifNoCategorizar(
   parent: string,
