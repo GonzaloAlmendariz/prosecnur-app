@@ -124,7 +124,7 @@ export function CasoValidoManual({
           <span className="pulso-cvm-barra" aria-hidden="true">
             <span style={{ width: `${Math.round((100 * efecto.n_validos) / efecto.n_total)}%` }} />
           </span>
-          {efecto.n_excluidos ? <span className="pulso-cvm-fuera">{formatoConteo(efecto.n_excluidos)} fuera</span> : null}
+          {efecto.n_excluidos ? <span className="pulso-cvm-fuera">{formatoConteoDe(efecto.n_excluidos, "no considerado", "no considerados")}</span> : null}
           {efecto.variables_ausentes.length ? <span className="pulso-cvm-fuera">Falta en la base: {efecto.variables_ausentes.join(", ")}</span> : null}
           {guardado === "guardando" ? <span className="pulso-cvm-fuera">Guardando…</span> : null}
           {guardado === "guardado" ? <span className="pulso-cvm-fuera">Guardado</span> : null}

@@ -26,3 +26,11 @@ test_that("una abierta o una cerrada sin texto emparejado se mide como antes", {
   mat <- .codif_material_de_pregunta(row, data_df, stats, n_codificadas = 1L)
   expect_identical(c(mat$n_respuestas, mat$n_unicas, mat$n_codificadas), c(3L, 2L, 1L))
 })
+
+test_that("lo que se entrega sin recodificar dice si la pregunta tiene texto «Otro»", {
+  sin <- .codif_sin_recodificar(list(
+    list(parent = "P11", decision = "pendiente", n_respuestas = 2L, con_texto_otro = TRUE),
+    list(parent = "P1", decision = "pendiente", n_respuestas = 9L)
+  ))
+  expect_identical(vapply(sin, function(x) x$con_texto_otro, logical(1)), c(TRUE, FALSE))
+})

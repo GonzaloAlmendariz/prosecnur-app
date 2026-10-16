@@ -202,6 +202,8 @@ export type CodifSinRecodificar = {
   motivo: string;
   n_respuestas: number;
   deliberado: boolean;
+  /** Cerrada con su «Otro» emparejado: sus textos pueden quedar en «Otro». */
+  con_texto_otro?: boolean;
 };
 
 // ---------- Lo que `/aplicar` no aplicó (ADR 0100, P1) ----------
