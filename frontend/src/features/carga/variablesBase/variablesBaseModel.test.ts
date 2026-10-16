@@ -267,8 +267,9 @@ describe("catálogo de la base", () => {
     { name: "vbg", label: "Calculada", seccion: "" },
   ];
 
-  it("una calculada no se usa como fuente de otra", () => {
-    expect(preguntasUsables(catalogo, [{ nombre: "vbg" }]).map((v) => v.name)).toEqual(["P8"]);
+  it("una calculada anterior sirve de fuente; la que se edita, no", () => {
+    expect(preguntasUsables(catalogo, [{ nombre: "vbg" }]).map((v) => v.name)).toEqual(["P8", "vbg"]);
+    expect(preguntasUsables(catalogo, [{ nombre: "vbg" }], "vbg").map((v) => v.name)).toEqual(["P8"]);
   });
 
   it("los nombres ocupados juntan catálogo, columnas y calculadas", () => {

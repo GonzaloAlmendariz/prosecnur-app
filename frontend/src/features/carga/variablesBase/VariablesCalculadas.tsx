@@ -8,6 +8,7 @@ import type { VariableDeBase } from "../../../api/equivalencias";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Pencil, Plus, Sigma, Trash2 } from "../../../vendor/lucide-react";
 import { CalculadaEditor } from "./CalculadaEditor";
+import { preguntasUsables } from "./variablesBaseModel";
 import type { MensajeVariablesBase } from "./useVariablesBase";
 import { reglaLegible, textoResumen } from "./variablesBaseModel";
 
@@ -88,7 +89,7 @@ export function VariablesCalculadas({
 
       {calculadas.length === 0 ? (
         // C3: el vacío es de esta sección y dice cómo se llena.
-        edicion === null && <p className="pulso-armon-vacio">Ninguna todavía. Combina varias preguntas o recodifica una.</p>
+        edicion === null && <p className="pulso-armon-vacio">Ninguna todavía. Combina varias preguntas, recodifica una o escribe una fórmula.</p>
       ) : (
         <ul className="pulso-vb-calculadas" aria-label="Variables calculadas de la base">
           {calculadas.map((c) =>
@@ -98,7 +99,7 @@ export function VariablesCalculadas({
                   key={c.nombre}
                   base={base}
                   inicial={enEdicion}
-                  preguntas={preguntas}
+                  preguntas={preguntas && preguntasUsables(preguntas, calculadas, c.nombre)}
                   catalogoError={catalogoError}
                   ocupados={ocupados}
                   guardando={guardando}

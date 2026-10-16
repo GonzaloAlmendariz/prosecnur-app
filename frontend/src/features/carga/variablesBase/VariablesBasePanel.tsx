@@ -98,7 +98,7 @@ export function VariablesBaseCuerpo({ control }: { control: ControlVariablesBase
   }
 
   const datos = carga.datos;
-  const preguntas = catalogo.tipo === "listo" ? preguntasUsables(catalogo.variables, datos.calculadas) : catalogo.tipo === "error" ? [] : null;
+  const preguntas = catalogo.tipo === "listo" ? catalogo.variables : catalogo.tipo === "error" ? [] : null;
   const ocupados = nombresOcupados(datos, catalogo.tipo === "listo" ? catalogo.variables : []);
   const pendientes = datos.retiradas_pendientes;
 

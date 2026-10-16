@@ -126,8 +126,9 @@ export function textoIncorporadas(n: number): string {
   return n === 1 ? "Se incorporó 1 columna." : `Se incorporaron ${formatoConteo(n)} columnas.`;
 }
 
-/** «Alguna de 9 preguntas · sí = 1» / «Recodifica P8 en 4 categorías». */
-export function reglaLegible(c: Pick<VariableCalculada, "regla" | "variables" | "codigos" | "escala">): string {
+/** «Alguna de 9 preguntas · sí = 1» / «Recodifica P8 en 4 categorías» / «= 2026 - P8». */
+export function reglaLegible(c: Pick<VariableCalculada, "regla" | "variables" | "codigos" | "escala" | "expresion">): string {
+  if (c.regla === "formula") return `= ${c.expresion ?? ""}`;
   if (c.regla === "recodificar") {
     const origen = c.variables[0] ?? "una pregunta";
     return `Recodifica ${origen} en ${formatoConteoDe(c.escala.length, "categoría", "categorías")}`;
@@ -136,8 +137,15 @@ export function reglaLegible(c: Pick<VariableCalculada, "regla" | "variables" | 
   return c.codigos.length ? `${cuantas} · sí = ${textoDeCodigos(c.codigos)}` : cuantas;
 }
 
-/** «Sí 120 · No 300 · Sin dato 5». */
+/** «Sí 120 · No 300 · Sin dato 5»; una fórmula: «Con valor 2.400 · de 0 a 19 · Sin dato 5». */
 export function textoResumen(r: ResumenCalculada): string {
+  if (r.numerico) {
+    const { n_validos, minimo, maximo } = r.numerico;
+    const rango = minimo === null || maximo === null
+      ? ""
+      : minimo === maximo ? ` · ${formatoNumeroCorto(minimo)}` : ` · de ${formatoNumeroCorto(minimo)} a ${formatoNumeroCorto(maximo)}`;
+    return `Con valor ${formatoConteo(n_validos)}${rango} · Sin dato ${formatoConteo(r.n_sin_dato)}`;
+  }
   const partes = r.por_codigo.map((f) => `${f.etiqueta || f.codigo} ${formatoConteo(f.n)}`);
   partes.push(`Sin dato ${formatoConteo(r.n_sin_dato)}`);
   return partes.join(" · ");
@@ -222,6 +230,32 @@ export function columnasADeclarar(extras: readonly ColumnaPropia[], b: BorradorC
 
 export type CategoriaBorrador = { clave: string; codigo: string; etiqueta: string };
 
+function formatoNumeroCorto(n: number): string {
+  return Number.isInteger(n) ? formatoConteo(n) : String(Math.round(n * 100) / 100);
+}
+
+/**
+ * Las variables que nombra una fórmula, en orden y sin repetir: nombres sueltos
+ * («P8», «P10.88») o entre comillas invertidas («`x-1`»). La sintaxis completa
+ * la valida el backend (`base_variables_formula.R`); aquí sólo se avisa de una
+ * variable que la base no tiene antes de enviar.
+ */
+export function variablesDeFormula(expresion: string): string[] {
+  const out: string[] = [];
+  for (const m of expresion.matchAll(/`([^`]+)`|([A-Za-z_][A-Za-z0-9_.]*)/g)) {
+    const v = (m[1] ?? m[2] ?? "").trim();
+    if (v && !out.includes(v)) out.push(v);
+  }
+  return out;
+}
+
+/** La expresión con una variable añadida al final (entre comillas invertidas si lleva guion). */
+export function insertarEnFormula(expresion: string, variable: string): string {
+  const nombre = /^[A-Za-z_][A-Za-z0-9_.]*$/.test(variable) ? variable : `\`${variable}\``;
+  const actual = expresion.trimEnd();
+  return actual ? `${actual} ${nombre}` : nombre;
+}
+
 export type BorradorCalculada = {
   /** Editando una guardada: el nombre es su clave y no cambia. */
   editando: boolean;
@@ -236,6 +270,7 @@ export type BorradorCalculada = {
     mapa: Record<string, string>;
     marcados: string[];
   };
+  formula: { expresion: string };
 };
 
 function claveNueva(escala: readonly CategoriaBorrador[]): string {
@@ -249,14 +284,15 @@ function escalaBorrador(opciones: readonly OpcionBase[]): CategoriaBorrador[] {
 
 export function borradorCalculadaDesde(c: VariableCalculada | null): BorradorCalculada {
   const recod = c?.regla === "recodificar";
+  const formula = c?.regla === "formula";
   return {
     editando: Boolean(c),
     nombre: c?.nombre ?? "",
     etiqueta: c?.etiqueta ?? "",
     regla: c?.regla ?? "alguna",
     alguna: {
-      variables: c && !recod ? [...c.variables] : [],
-      codigosTexto: c && !recod && c.codigos.length ? textoDeCodigos(c.codigos) : "1",
+      variables: c && !recod && !formula ? [...c.variables] : [],
+      codigosTexto: c && !recod && !formula && c.codigos.length ? textoDeCodigos(c.codigos) : "1",
     },
     recodificar: {
       variable: recod ? c?.variables[0] ?? "" : "",
@@ -264,6 +300,7 @@ export function borradorCalculadaDesde(c: VariableCalculada | null): BorradorCal
       mapa: recod && c ? { ...c.mapa } : {},
       marcados: [],
     },
+    formula: { expresion: c?.regla === "formula" ? c.expresion ?? "" : "" },
   };
 }
 
@@ -274,6 +311,7 @@ export type AccionCalculada =
   /** Las acciones del bloque «alguna» (`BaseCompuesta`); su `base` no importa aquí. */
   | { tipo: "alguna"; accion: AccionCompuesto }
   | { tipo: "origen"; variable: string }
+  | { tipo: "expresion"; valor: string }
   | { tipo: "categoria-agregar" }
   | { tipo: "categoria-codigo"; clave: string; valor: string }
   | { tipo: "categoria-etiqueta"; clave: string; valor: string }
@@ -321,6 +359,8 @@ export function reducirCalculada(b: BorradorCalculada, a: AccionCalculada): Borr
       return { ...b, regla: a.valor };
     case "alguna":
       return { ...b, alguna: reducirAlguna(b.alguna, a.accion) };
+    case "expresion":
+      return { ...b, formula: { expresion: a.valor } };
     case "origen":
       return a.variable === r.variable
         ? b
@@ -435,6 +475,16 @@ export function validarCalculada(
   else if (!NOMBRE_VALIDO.test(nombre)) errores.push("El nombre empieza con una letra y usa sólo letras, dígitos, «_», «.» o «-».");
   else if (!b.editando && ocupados.some((o) => plano(o) === plano(nombre))) errores.push(`«${nombre}» ya existe en la base.`);
   if (!b.etiqueta.trim()) errores.push("Falta la etiqueta.");
+  if (b.regla === "formula") {
+    const variables = variablesDeFormula(b.formula.expresion);
+    if (!b.formula.expresion.trim()) errores.push("Escribe la fórmula.");
+    else if (variables.length === 0) errores.push("La fórmula tiene que usar al menos una variable de la base.");
+    if (variables.some((v) => plano(v) === plano(nombre))) errores.push("La variable no puede calcularse a partir de sí misma.");
+    const conocidas = new Set(ocupados.map(plano));
+    const faltan = variables.filter((v) => !conocidas.has(plano(v)));
+    if (faltan.length) errores.push(`La base no tiene ${faltan.map((v) => `«${v}»`).join(", ")}.`);
+    return errores;
+  }
   if (b.regla === "alguna") {
     if (b.alguna.variables.length === 0) errores.push("Elige al menos una pregunta.");
     else if (parsearCodigos(b.alguna.codigosTexto).length === 0) errores.push("Indica qué códigos cuentan como «sí».");
@@ -457,6 +507,10 @@ export function validarCalculada(
 /** El cuerpo del POST. En `recodificar`, el mapa sólo lleva códigos con destino. */
 export function calculadaParaGuardar(b: BorradorCalculada): CalculadaADeclarar {
   const base = { nombre: b.nombre.trim(), etiqueta: b.etiqueta.trim() };
+  if (b.regla === "formula") {
+    const expresion = b.formula.expresion.trim();
+    return { ...base, regla: "formula", expresion, variables: variablesDeFormula(expresion) };
+  }
   if (b.regla === "alguna") {
     return { ...base, regla: "alguna", variables: [...b.alguna.variables], codigos: parsearCodigos(b.alguna.codigosTexto) };
   }
@@ -468,15 +522,18 @@ export function calculadaParaGuardar(b: BorradorCalculada): CalculadaADeclarar {
 }
 
 /**
- * Preguntas de la base que una calculada puede usar: las del catálogo, sin las
- * calculadas (no se calculan unas de otras: el backend sólo ve las columnas
- * de la data).
+ * Preguntas de la base que una calculada puede usar: las del catálogo, incluidas
+ * las calculadas declaradas antes (una fórmula y luego su recodificación en
+ * rangos), salvo la que se está editando y las declaradas después de ella: se
+ * calculan en orden y el backend sólo ve las anteriores.
  */
 export function preguntasUsables(
   catalogo: readonly VariableDeBase[],
   calculadas: readonly Pick<VariableCalculada, "nombre">[],
+  editando: string | null = null,
 ): VariableDeBase[] {
-  const fuera = new Set(calculadas.map((c) => c.nombre));
+  const posicion = editando ? calculadas.findIndex((c) => c.nombre === editando) : -1;
+  const fuera = new Set(posicion >= 0 ? calculadas.slice(posicion).map((c) => c.nombre) : []);
   return catalogo.filter((v) => !fuera.has(v.name));
 }
 

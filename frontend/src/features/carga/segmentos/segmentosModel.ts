@@ -6,8 +6,7 @@
 // - El borrador de un segmento (clave, etiqueta, escala estándar y, por base,
 //   la variable de origen y el mapa de sus códigos), su validación y el cuerpo
 //   del POST.
-// - Las ayudas que arman el mapa: «Años transcurridos» para un año y
-//   «Rangos» para una numérica.
+// - La ayuda que arma el mapa: «Rangos» para una variable numérica.
 // - La fusión de las filas de cruce en la matriz que se está editando.
 //
 // Los componentes sólo pintan; lo que decide vive aquí y tiene Vitest.
@@ -220,39 +219,36 @@ export function codigosDeEntrada(
   return codigosConocidos(delOrigen?.opciones ?? [], entrada.origen, guardado, entrada.mapa, observados);
 }
 
-const ANIO = /^(19|20)\d{2}$/;
-
-/** Códigos especiales que conviven con una lista de años: «Otro» 88, «No sabe» 98… */
-const ESPECIAL = /^(7[7-9]|8[0-9]|9[0-9])$/;
+/** Códigos especiales: «Otro» 88, «No sabe» 98, «No responde» 99… */
+const ESPECIAL = /^(8[0-9]|9[0-9])$/;
+const NUMERO = /^-?\d+(\.\d+)?$/;
 
 /**
- * Si los valores son años: todos lo son, salvo códigos especiales (77–99), y hay
- * al menos un año. Un «Otro» 88 entre los años no le quita la ayuda a la variable:
- * queda fuera de los tramos y se asigna a mano.
+ * Si los valores son números sin lista de respuestas propia: todos numéricos y
+ * sin etiqueta (o con la etiqueta igual al código), salvo los especiales 80–99,
+ * que pueden traer la suya («Otro»). Un año, una edad, un conteo o el resultado
+ * de una fórmula. Quedan fuera de los rangos que no los cubran y se asignan a mano.
  */
-export function sonAnios(codigos: readonly OpcionBase[]): boolean {
-  return codigos.some((c) => ANIO.test(c.codigo))
-    && codigos.every((c) => ANIO.test(c.codigo) || ESPECIAL.test(c.codigo));
-}
-
 export function sonNumericos(codigos: readonly OpcionBase[]): boolean {
-  return codigos.length > 0 && codigos.every((c) => ENTERO.test(c.codigo));
+  const normales = codigos.filter((c) => !ESPECIAL.test(c.codigo));
+  return normales.length > 0
+    && codigos.every((c) => NUMERO.test(c.codigo))
+    && normales.every((c) => !c.etiqueta.trim() || c.etiqueta.trim() === c.codigo);
 }
 
 function sinEtiquetas(codigos: readonly OpcionBase[]): boolean {
   return codigos.every((c) => !c.etiqueta.trim() || c.etiqueta.trim() === c.codigo);
 }
 
-export type AyudaMapa = "tramos" | "rangos";
+export type AyudaMapa = "rangos";
 
 /**
- * Qué ayudas se ofrecen sobre los códigos del origen: con años, los tramos;
- * con números sin etiquetas, los rangos. Sin códigos, ninguna.
+ * Qué ayudas se ofrecen sobre los códigos del origen: con números, los rangos.
+ * Una ayuda por caso (años transcurridos, tramos de edad…) no: eso se construye
+ * con una variable calculada por fórmula y luego se agrupa en rangos.
  */
 export function ayudasDisponibles(codigos: readonly OpcionBase[]): AyudaMapa[] {
-  if (sonAnios(codigos)) return ["tramos"];
-  if (sonNumericos(codigos) && sinEtiquetas(codigos)) return ["rangos"];
-  return [];
+  return sonNumericos(codigos) ? ["rangos"] : [];
 }
 
 // ---------------------------------------------------------------------------
@@ -652,16 +648,10 @@ export function atajosPartirDe(
 }
 
 // ---------------------------------------------------------------------------
-// Ayudas: años transcurridos y rangos
+// Ayuda: rangos
 // ---------------------------------------------------------------------------
 
 export type Tramo = { clave: string; desde: string; hasta: string; destino: string };
-
-/** 0–2, 3–4 y 5 o más años, a las primeras categorías de la escala. */
-export function tramosPorDefecto(escala: readonly CategoriaSegmento[]): Tramo[] {
-  const cortes: [string, string][] = [["0", "2"], ["3", "4"], ["5", ""]];
-  return cortes.map(([desde, hasta], i) => ({ clave: `t${i + 1}`, desde, hasta, destino: escala[i]?.codigo ?? "" }));
-}
 
 /** Un rango por categoría de la escala, por llenar. */
 export function rangosPorDefecto(escala: readonly CategoriaSegmento[]): Tramo[] {
@@ -681,11 +671,8 @@ function numero(s: string): number | null {
 }
 
 /** Lo que impide aplicar los tramos o rangos; vacío si se pueden aplicar. */
-export function validarTramos(tramos: readonly Tramo[], escala: readonly CategoriaSegmento[], anio?: number | null): string[] {
+export function validarTramos(tramos: readonly Tramo[], escala: readonly CategoriaSegmento[]): string[] {
   const errores: string[] = [];
-  if (anio !== undefined && (anio === null || !Number.isInteger(anio) || anio < 1900 || anio > 2100)) {
-    errores.push("Indica el año de la medición.");
-  }
   if (tramos.length === 0) errores.push("Agrega al menos un tramo.");
   const codigos = new Set(escala.map((c) => c.codigo));
   const intervalos: [number, number][] = [];
@@ -711,22 +698,6 @@ function tramoDe(valor: number, tramos: readonly Tramo[]): Tramo | undefined {
     const hasta = t.hasta.trim() ? numero(t.hasta) : Number.POSITIVE_INFINITY;
     return desde !== null && hasta !== null && valor >= desde && valor <= hasta;
   });
-}
-
-/** Los años del origen sobre los que se aplican los tramos: los observados. */
-export function aniosParaTramos(codigos: readonly OpcionBase[]): string[] {
-  return codigos.map((c) => c.codigo).filter((c) => ANIO.test(c));
-}
-
-/** Mapa relativo al año de la medición: años transcurridos = año de la base − año del código. */
-export function mapaPorTramos(anios: readonly string[], anio: number, tramos: readonly Tramo[]): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const c of anios) {
-    if (!ANIO.test(c)) continue;
-    const t = tramoDe(anio - Number(c), tramos);
-    if (t?.destino) out[c] = t.destino;
-  }
-  return out;
 }
 
 /** Los valores del origen sobre los que se aplican los rangos: los observados numéricos. */

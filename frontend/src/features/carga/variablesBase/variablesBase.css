@@ -504,3 +504,30 @@
     transition: none;
   }
 }
+
+/* Regla «fórmula»: las variables que usa, con su etiqueta. */
+.pulso-vb-formula-usadas {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-vb-formula-usadas li {
+  display: flex;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-vb-formula-usadas code {
+  flex: none;
+  color: var(--pulso-text);
+}
+
+.pulso-vb-formula-usadas span {
+  overflow-wrap: anywhere;
+}

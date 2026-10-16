@@ -9,7 +9,6 @@ import type { VariableDeBase } from "../../../api/equivalencias";
 import type { Segmento, SegmentoADeclarar } from "../../../api/segmentos";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Copy, Plus, Save, Trash2, Wand2, X } from "../../../vendor/lucide-react";
-import { anioDeBase } from "../nombreDeSerie";
 import { etiquetaLegible } from "../preguntaEquivalenteModel";
 import { observadosListos, useCodigosObservadosPorBase } from "../useCodigosObservados";
 import { BuscadorPreguntas } from "../variablesBase/SelectorPreguntas";
@@ -296,7 +295,6 @@ export function SegmentoEditor({
           entrada={b.porBase[base] ?? { origen: "", mapa: {}, marcados: [] }}
           guardado={inicial?.por_base[base]}
           escala={escala}
-          anio={anioDeBase(base)}
           despachar={despachar}
           lectura={lecturas[base] ?? { tipo: "inactivo" }}
         />
