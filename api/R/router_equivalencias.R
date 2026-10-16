@@ -160,6 +160,7 @@
   limpias <- list()
   ausentes <- logical(0)
   ausentes_der <- logical(0)
+  ausentes_cruce <- logical(0)
   for (f in (filas %||% list())) {
     vars <- list()
     for (b in bases) {
@@ -199,9 +200,13 @@
     ausentes <- c(ausentes, !("armonizacion" %in% names(f)))
     if (!is.null(der)) limpia$derivada <- der
     ausentes_der <- c(ausentes_der, !("derivada" %in% names(f)))
+    # ADR 0107: la fila de un segmento de cruce va marcada.
+    if (isTRUE(f$cruce)) limpia$cruce <- TRUE
+    ausentes_cruce <- c(ausentes_cruce, !("cruce" %in% names(f)))
     limpias[[length(limpias) + 1L]] <- limpia
   }
   limpias <- .equiv_armon_conservar(limpias, previo, solo_ausentes = ausentes)
+  limpias <- segmentos_conservar_marca(limpias, previo, solo_ausentes = ausentes_cruce)
   limpias <- .equiv_deriv_cerrar(limpias, previo, solo_ausentes = ausentes_der)
   periodos <- if (is.null(armonizacion_periodos)) {
     previo$armonizacion_periodos
