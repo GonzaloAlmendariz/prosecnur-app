@@ -1170,6 +1170,8 @@ export type PlanPregunta = {
   bridge_soportado: boolean;
   /** Con `bridge_soportado` falso: la causa en llano, la misma del aviso de `/aplicar` (ADR 0100, P1). */
   motivo_omision?: string;
+  /** Con `bridge_soportado` falso: el código del motivo (`sin_texto_emparejado`, `sin_modo`…), para ofrecer la acción. */
+  motivo_codigo?: string;
 };
 
 export type PlanAdaptacion = {

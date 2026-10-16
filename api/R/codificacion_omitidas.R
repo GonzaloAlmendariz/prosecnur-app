@@ -21,6 +21,7 @@
   sin_grupos = "La pregunta tiene catálogo vacío.",
   sin_fila = "La pregunta no figura en las familias del instrumento vigente.",
   sin_modo = "Es de opción única y no se declaró si el texto se integra a la variable original o va en una variable aparte.",
+  sin_texto_emparejado = "Ya no tiene un texto «Otro» emparejado: sus grupos quedaron de un emparejamiento anterior.",
   sin_columna_texto = "La columna de texto «%s» no está en la base.",
   sin_columna_padre = "La variable «%s» no está en la base.",
   tipo_no_soportado = "Codificación no aplica este tipo de pregunta (%s).",
@@ -67,6 +68,9 @@
         (identical(tipo, "select_one") && identical(modo_so, "hijo"))
       if (!tipo %in% c("text", "select_one", "select_multiple", "integer")) {
         motivo <- "tipo_no_soportado"; detalle <- if (nzchar(tipo)) tipo else "sin tipo"
+      } else if (identical(tipo, "select_one") && !modo_so %in% c("padre", "hijo") && !nzchar(text_col)) {
+        # Grupos de un emparejamiento que se deshizo (P29_10, 2026-10-16).
+        motivo <- "sin_texto_emparejado"
       } else if (identical(tipo, "select_one") && !modo_so %in% c("padre", "hijo")) {
         motivo <- "sin_modo"
       } else if (necesita_texto && !nzchar(text_col)) {
@@ -205,6 +209,9 @@
   if (!tipo %in% c("text", "select_one", "select_multiple", "integer")) {
     return(list(motivo = "tipo_no_soportado",
                 mensaje = .codif_omitida_texto("tipo_no_soportado", if (nzchar(tipo)) tipo else "sin tipo")))
+  }
+  if (identical(tipo, "select_one") && !modo_so %in% c("padre", "hijo") && !nzchar(text_col)) {
+    return(list(motivo = "sin_texto_emparejado", mensaje = .codif_omitida_texto("sin_texto_emparejado")))
   }
   if (identical(tipo, "select_one") && !modo_so %in% c("padre", "hijo")) {
     return(list(motivo = "sin_modo", mensaje = .codif_omitida_texto("sin_modo")))
