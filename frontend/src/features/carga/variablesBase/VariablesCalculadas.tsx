@@ -12,6 +12,8 @@ import type { MensajeVariablesBase } from "./useVariablesBase";
 import { reglaLegible, textoResumen } from "./variablesBaseModel";
 
 export type VariablesCalculadasProps = {
+  /** La base del panel: el editor lee de ella los códigos observados. */
+  base: string;
   calculadas: readonly VariableCalculada[];
   resumenes: Readonly<Record<string, ResumenCalculada>>;
   preguntas: readonly VariableDeBase[] | null;
@@ -28,6 +30,7 @@ export type VariablesCalculadasProps = {
 type Edicion = string | null;
 
 export function VariablesCalculadas({
+  base,
   calculadas,
   resumenes,
   preguntas,
@@ -71,6 +74,7 @@ export function VariablesCalculadas({
 
       {edicion === "" && (
         <CalculadaEditor
+          base={base}
           inicial={null}
           preguntas={preguntas}
           catalogoError={catalogoError}
@@ -92,6 +96,7 @@ export function VariablesCalculadas({
               <li key={c.nombre}>
                 <CalculadaEditor
                   key={c.nombre}
+                  base={base}
                   inicial={enEdicion}
                   preguntas={preguntas}
                   catalogoError={catalogoError}

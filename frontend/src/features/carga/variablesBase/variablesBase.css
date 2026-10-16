@@ -462,8 +462,9 @@
   gap: var(--pulso-space-1);
 }
 
-/* Cuatro columnas: marca, código, respuesta, categoría nueva. */
-.pulso-armon-tabla.pulso-vb-recod th:nth-child(4) {
+/* Marca, código, respuesta, casos (si se leyeron de la data) y categoría nueva:
+   la última columna, la del selector, es la que se reserva. */
+.pulso-armon-tabla.pulso-vb-recod th:last-child {
   width: 42%;
 }
 

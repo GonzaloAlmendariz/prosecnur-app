@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 import type { Segmento, SegmentoEnBase } from "../../../api/segmentos";
 import { EquivalenciasTabla } from "../EquivalenciasTabla";
 import { aFilasEditor } from "../equivalenciasEditorModel";
+import type { CodigosObservados } from "../../../api/codigosObservados";
+import { SegmentoEnBase as SegmentoEnBaseVista } from "./SegmentoEnBase";
 import { SegmentosCuerpo } from "./SegmentosPanel";
 import { ESTADO_INICIAL_SEGMENTOS, type ControlSegmentos, type EstadoSegmentos } from "./useSegmentos";
 
@@ -137,5 +139,56 @@ describe("fila de cruce en la matriz", () => {
     expect(cruce).not.toContain("<input");
     // Las filas sueltas siguen con su buscador y su botón de quitar.
     expect(html).toContain("Quitar Uso de salud");
+  });
+});
+
+describe("una base del editor con los valores observados", () => {
+  const observados = (extra: Partial<CodigosObservados> = {}): CodigosObservados => ({
+    base: "2026", variable: "P1", tipo: "numerica",
+    codigos: [{ codigo: "18", etiqueta: "", n: 12 }, { codigo: "19", etiqueta: "", n: 30 }, { codigo: "23", etiqueta: "", n: 4 }],
+    n_validos: 46, n_sin_dato: 5, truncado: false,
+    ...extra,
+  });
+  const render = (lectura: Parameters<typeof SegmentoEnBaseVista>[0]["observados"], mapa: Record<string, string> = { "18": "1" }) =>
+    renderToStaticMarkup(createElement(SegmentoEnBaseVista, {
+      base: "2026",
+      anclaId: "a",
+      opciones: [{ name: "P1", label: "Edad", seccion: "" }],
+      catalogoError: false,
+      entrada: { origen: "P1", mapa, marcados: [] },
+      guardado: undefined,
+      escala: edad.escala,
+      anio: 2026,
+      despachar: () => undefined,
+      observados: lectura,
+    }));
+
+  it("la tabla son los valores de la data, con su columna de casos; el sin dato es un dato", () => {
+    const html = render({ tipo: "listo", datos: observados() });
+    expect(html).toContain(">Casos<");
+    expect(html).toContain(">12<");
+    expect(html).toContain(">30<");
+    expect(html).toContain("1 de 3 códigos asignados · 2 sin mapa · Faltan 34 casos por asignar");
+    expect(html).toContain("Sin dato: 5 casos");
+    expect(html).toContain("Rangos");
+    expect(html).not.toContain("Tramos de antigüedad");
+  });
+
+  it("un año de ingreso ofrece los tramos de antigüedad", () => {
+    const html = render({ tipo: "listo", datos: observados({ codigos: [{ codigo: "2022", etiqueta: "", n: 9 }, { codigo: "2025", etiqueta: "", n: 3 }] }) }, {});
+    expect(html).toContain("Tramos de antigüedad");
+  });
+
+  it("texto libre lo dice en una línea y no ofrece tabla", () => {
+    const html = render({ tipo: "listo", datos: observados({ tipo: "texto", codigos: [] }) });
+    expect(html).toContain("Variable de texto: elige una categórica o numérica.");
+    expect(html).not.toContain("<table");
+  });
+
+  it("leyendo, lo dice; si falla, lo dice y queda lo conocido", () => {
+    expect(render({ tipo: "cargando" })).toContain("Leyendo los valores de P1 en 2026…");
+    const html = render({ tipo: "error", mensaje: "No existe la variable · E_CODIGOS_VARIABLE_NOT_FOUND" });
+    expect(html).toContain("No se pudieron leer los valores de P1");
+    expect(html).not.toContain(">Casos<");
   });
 });

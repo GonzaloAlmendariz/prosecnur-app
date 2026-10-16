@@ -13,6 +13,8 @@
 // Los componentes sólo pintan; lo que decide vive aquí y tiene Vitest.
 
 import type { BaseVariables, OpcionBase } from "../../../api/baseVariables";
+import type { CodigosObservados } from "../../../api/codigosObservados";
+import { codigosConObservados, ordenarCodigos, type CodigoDeOrigen } from "../codigosObservadosModel";
 import type { EquivalenciaFila, VariableDeBase } from "../../../api/equivalencias";
 import type {
   CategoriaSegmento,
@@ -168,33 +170,37 @@ export function opcionesDeOrigen(
 
 const ENTERO = /^-?\d+$/;
 
-function ordenarCodigos(codigos: OpcionBase[]): OpcionBase[] {
-  return codigos.every((c) => ENTERO.test(c.codigo))
-    ? [...codigos].sort((a, b) => Number(a.codigo) - Number(b.codigo))
-    : codigos;
-}
+export type { CodigoDeOrigen };
 
 /**
- * Los códigos que se conocen del origen en una base: la lista de respuestas,
- * y, si lo guardado salió del mismo origen, lo que ya se mapeó y lo que el
- * backend vio sin mapa. Más lo que el borrador ya asignó.
+ * Los códigos del origen en una base.
+ *
+ * Con los observados (`GET /api/carga/codigos-observados`), son los valores
+ * que la data trae, con sus casos; las opciones del instrumento que nadie
+ * eligió se suman con 0 casos, porque también hay que decidir a dónde van.
+ * Mientras no llegan (o si no se pudieron leer), los que se conocen: la lista
+ * de respuestas y, si lo guardado salió del mismo origen, lo mapeado y lo que
+ * el backend vio sin mapa.
  */
 export function codigosConocidos(
   opciones: readonly OpcionBase[],
   origen: string,
   guardado: SegmentoEnBase | undefined,
   mapa: Readonly<Record<string, string>>,
-): OpcionBase[] {
-  const out = new Map<string, string>();
-  for (const o of opciones) out.set(o.codigo, o.etiqueta);
+  observados: CodigosObservados | null = null,
+): CodigoDeOrigen[] {
+  const reales = codigosConObservados(opciones, observados);
+  if (reales) return reales;
+  const out = new Map<string, CodigoDeOrigen>();
+  for (const o of opciones) out.set(o.codigo, { codigo: o.codigo, etiqueta: o.etiqueta, n: null });
   const mismo = guardado && guardado.origen === origen;
   const extra = [
     ...(mismo ? Object.keys(guardado.mapa) : []),
     ...(mismo ? guardado.codigos_sin_mapa : []),
     ...Object.keys(mapa),
   ];
-  for (const c of extra) if (c && !out.has(c)) out.set(c, "");
-  return ordenarCodigos([...out].map(([codigo, etiqueta]) => ({ codigo, etiqueta })));
+  for (const c of extra) if (c && !out.has(c)) out.set(c, { codigo: c, etiqueta: "", n: null });
+  return ordenarCodigos([...out.values()]);
 }
 
 const ANIO = /^(19|20)\d{2}$/;
@@ -214,11 +220,10 @@ function sinEtiquetas(codigos: readonly OpcionBase[]): boolean {
 export type AyudaMapa = "tramos" | "rangos";
 
 /**
- * Qué ayudas se ofrecen: sin códigos conocidos (una numérica sin lista), las
- * dos; con años, los tramos; con números sin etiquetas, los rangos.
+ * Qué ayudas se ofrecen sobre los códigos del origen: con años, los tramos;
+ * con números sin etiquetas, los rangos. Sin códigos, ninguna.
  */
 export function ayudasDisponibles(codigos: readonly OpcionBase[]): AyudaMapa[] {
-  if (codigos.length === 0) return ["rangos", "tramos"];
   if (sonAnios(codigos)) return ["tramos"];
   if (sonNumericos(codigos) && sinEtiquetas(codigos)) return ["rangos"];
   return [];
@@ -238,6 +243,8 @@ export type FilaCodigo = {
   etiqueta: string;
   destino: DestinoCodigo;
   sinMapa: boolean;
+  /** Casos de la fila (suma del tramo); `null` si no se leyeron de la data. */
+  n: number | null;
 };
 
 /** A partir de cuántos enteros sin etiqueta la tabla los agrupa en tramos. */
@@ -255,14 +262,14 @@ function destinoDe(mapa: Readonly<Record<string, string>>, codigo: string, escal
  * («18 a 20»); asignar el tramo asigna todos sus códigos.
  */
 export function filasDeCodigos(
-  codigos: readonly OpcionBase[],
+  codigos: readonly CodigoDeOrigen[],
   mapa: Readonly<Record<string, string>>,
   escala: readonly CategoriaSegmento[],
 ): FilaCodigo[] {
   const validos = new Set(escala.map((c) => c.codigo).filter(Boolean));
   const sueltas = codigos.map((c): FilaCodigo => {
     const destino = destinoDe(mapa, c.codigo, validos);
-    return { codigos: [c.codigo], rotulo: c.codigo, etiqueta: c.etiqueta, destino, sinMapa: destino === null };
+    return { codigos: [c.codigo], rotulo: c.codigo, etiqueta: c.etiqueta, destino, sinMapa: destino === null, n: c.n };
   });
   if (codigos.length < UMBRAL_AGRUPAR || !sonNumericos(codigos) || !sinEtiquetas(codigos)) return sueltas;
   const out: FilaCodigo[] = [];
@@ -272,6 +279,7 @@ export function filasDeCodigos(
     if (previa && previa.destino === f.destino && Number(f.codigos[0]) === ultimo + 1) {
       previa.codigos.push(f.codigos[0]);
       previa.rotulo = `${previa.codigos[0]} a ${f.codigos[0]}`;
+      previa.n = previa.n === null || f.n === null ? null : previa.n + f.n;
     } else {
       out.push({ ...f, codigos: [...f.codigos], etiqueta: "" });
     }
@@ -299,6 +307,22 @@ export function textoResumenMapa(r: ResumenMapa): string {
   if (r.sinDato) partes.push(`${formatoConteo(r.sinDato)} sin dato`);
   if (r.sinMapa) partes.push(`${formatoConteo(r.sinMapa)} sin mapa`);
   return partes.join(" · ");
+}
+
+/** «Sin dato: 5 casos», lo que la data trae vacío en el origen. */
+export function textoSinDatoObservado(n: number): string {
+  return `Sin dato: ${formatoConteoDe(n, "caso", "casos")}`;
+}
+
+/** Casos que todavía no tienen destino, si se leyeron de la data. */
+export function casosSinMapa(filas: readonly FilaCodigo[]): number | null {
+  let total = 0;
+  for (const f of filas) {
+    if (!f.sinMapa) continue;
+    if (f.n === null) return null;
+    total += f.n;
+  }
+  return total;
 }
 
 export type EstadoBorradorBase = "sin_origen" | "incompleto" | "definido";
@@ -505,11 +529,6 @@ export function mapaPorEtiqueta(
 
 export type Tramo = { clave: string; desde: string; hasta: string; destino: string };
 
-/** Años hacia atrás que cubre un tramo abierto cuando el origen no trae su lista. */
-export const ANIOS_HACIA_ATRAS = 60;
-/** Tope de un rango abierto («21 a más») cuando el origen no trae su lista. */
-export const TOPE_RANGO_ABIERTO = 99;
-
 /** 0–2, 3–4 y 5 o más años, a las primeras categorías de la escala. */
 export function tramosPorDefecto(escala: readonly CategoriaSegmento[]): Tramo[] {
   const cortes: [string, string][] = [["0", "2"], ["3", "4"], ["5", ""]];
@@ -566,14 +585,9 @@ function tramoDe(valor: number, tramos: readonly Tramo[]): Tramo | undefined {
   });
 }
 
-/**
- * Años del origen para los tramos: los conocidos o, si el origen no trae su
- * lista, desde `anio - ANIOS_HACIA_ATRAS` hasta `anio`. Lo observado que quede
- * fuera lo dice el estado de la base al guardar.
- */
-export function aniosParaTramos(codigos: readonly OpcionBase[], anio: number): string[] {
-  if (codigos.length) return codigos.map((c) => c.codigo).filter((c) => ANIO.test(c));
-  return Array.from({ length: ANIOS_HACIA_ATRAS + 1 }, (_, i) => String(anio - ANIOS_HACIA_ATRAS + i));
+/** Los años del origen sobre los que se aplican los tramos: los observados. */
+export function aniosParaTramos(codigos: readonly OpcionBase[]): string[] {
+  return codigos.map((c) => c.codigo).filter((c) => ANIO.test(c));
 }
 
 /** Mapa relativo al año de la medición: antigüedad = año de la base − año del código. */
@@ -587,18 +601,9 @@ export function mapaPorTramos(anios: readonly string[], anio: number, tramos: re
   return out;
 }
 
-/** Valores del origen para los rangos: los conocidos o los enteros que cubren los rangos. */
-export function valoresParaRangos(codigos: readonly OpcionBase[], rangos: readonly Tramo[]): string[] {
-  if (codigos.length) return codigos.map((c) => c.codigo).filter((c) => numero(c) !== null);
-  const desdes = rangos.map((r) => numero(r.desde)).filter((n): n is number => n !== null);
-  if (!desdes.length) return [];
-  const hastas = rangos.map((r) => (r.hasta.trim() ? numero(r.hasta) : null));
-  const abierto = rangos.some((r) => !r.hasta.trim());
-  const min = Math.ceil(Math.min(...desdes));
-  const topes = hastas.filter((n): n is number => n !== null);
-  const max = Math.floor(Math.max(...topes, abierto ? Math.max(TOPE_RANGO_ABIERTO, ...desdes) : -Infinity));
-  if (!Number.isFinite(max) || max < min) return [];
-  return Array.from({ length: max - min + 1 }, (_, i) => String(min + i));
+/** Los valores del origen sobre los que se aplican los rangos: los observados numéricos. */
+export function valoresParaRangos(codigos: readonly OpcionBase[]): string[] {
+  return codigos.map((c) => c.codigo).filter((c) => numero(c) !== null);
 }
 
 export function mapaPorRangos(valores: readonly string[], rangos: readonly Tramo[]): Record<string, string> {

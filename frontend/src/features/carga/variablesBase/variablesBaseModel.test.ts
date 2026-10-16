@@ -304,3 +304,24 @@ describe("nombre propuesto desde la etiqueta", () => {
     expect(nombreDesdeEtiqueta("")).toBe("");
   });
 });
+
+describe("Recodificar con los valores observados", () => {
+  it("el origen son los valores de la data con sus casos, y la fila los lleva", () => {
+    const catalogo = [{ name: "P4", label: "Facultad", seccion: "", opciones: [{ codigo: "1", etiqueta: "Letras" }, { codigo: "2", etiqueta: "Ciencias" }] }];
+    const observados = {
+      base: "2026", variable: "P4", tipo: "categorica" as const,
+      codigos: [{ codigo: "2", etiqueta: "", n: 40 }, { codigo: "7", etiqueta: "Otra", n: 3 }],
+      n_validos: 43, n_sin_dato: 0, truncado: false,
+    };
+    const origen = opcionesDeOrigen(catalogo, "P4", {}, observados);
+    expect(origen).toEqual([
+      { codigo: "1", etiqueta: "Letras", n: 0 },
+      { codigo: "2", etiqueta: "Ciencias", n: 40 },
+      { codigo: "7", etiqueta: "Otra", n: 3 },
+    ]);
+    const b = borradorCalculadaDesde(null);
+    expect(filasRecodificacion(origen, b.recodificar).map((f) => f.n)).toEqual([0, 40, 3]);
+    // Sin observados, la lista del catálogo, sin conteo.
+    expect(filasRecodificacion(opcionesDeOrigen(catalogo, "P4", {}), b.recodificar).map((f) => f.n)).toEqual([null, null]);
+  });
+});
