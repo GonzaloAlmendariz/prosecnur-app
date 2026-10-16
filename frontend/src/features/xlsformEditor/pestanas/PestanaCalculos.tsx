@@ -73,7 +73,7 @@ export function PestanaCalculos({ structure, scope, seleccionada, onSeleccionar,
             <h2 className="xfp-encabezado__titulo">{actual.node.label || actual.node.name}</h2>
             <span className="xfp-encabezado__accion"><EditarEnConstructor onEditar={() => onEditar(actual.node.rowIndex)} que={`el cálculo ${actual.node.name}`} /></span>
           </div>
-          <PanelCard title="Fórmula" meta="mismo editor que en el Constructor" className="xfp-editor">
+          <PanelCard title="Fórmula" className="xfp-editor">
             <CalculationRecipePanel
               expression={actual.node.calculation}
               scope={scope}

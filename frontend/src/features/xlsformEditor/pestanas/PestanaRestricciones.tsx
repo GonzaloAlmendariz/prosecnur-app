@@ -76,7 +76,7 @@ export function PestanaRestricciones({ structure, scope, seleccionada, onSelecci
             <h2 className="xfp-encabezado__titulo">{actual.node.label || actual.node.name}</h2>
             <span className="xfp-encabezado__accion"><EditarEnConstructor onEditar={() => onEditar(actual.node.rowIndex)} que={`la pregunta ${numero(actual.node)}`} /></span>
           </div>
-          <PanelCard title="Regla" meta="mismo editor que en el Constructor" className="xfp-editor">
+          <PanelCard title="Regla" className="xfp-editor">
             <EditorValidacion
               node={actual.node}
               scope={scope}

@@ -144,6 +144,9 @@
 
 /* El editor de la regla vive dentro de un contenedor: sus bloques internos no repiten caja. */
 .xfp-editor .xfk-card__body { display: flex; flex-direction: column; gap: 12px; }
+/* A todo el ancho la regla se estiraba (un campo de 750 px para «Tu respuesta»):
+   el contenido del editor se lee a una medida acotada (0.9.4, R8). */
+.xfp-editor .xfk-card__body > * { max-width: 880px; width: 100%; }
 
 .xfp-nota--pad { padding: 12px 16px; }
 .xfp-prueba { width: 100%; border-collapse: collapse; font-size: 13px; }
