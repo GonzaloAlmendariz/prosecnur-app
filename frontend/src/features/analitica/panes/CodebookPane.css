@@ -55,3 +55,8 @@
   flex: none;
   white-space: nowrap;
 }
+
+/* Un código con varios significados en el estudio: se avisa antes de marcarlo. */
+.analitica-codebook-code.is-ambiguo span {
+  color: var(--pulso-warn-fg);
+}

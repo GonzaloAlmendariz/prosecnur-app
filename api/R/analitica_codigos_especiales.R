@@ -63,3 +63,14 @@ analitica_codigos_especiales <- function(insts) {
   if (!length(insts) && !is.null(s$analitica_rp_inst)) insts <- list(s$analitica_rp_inst)
   insts
 }
+
+#' Los códigos especiales configurados, sin el default heredado.
+#'
+#' Hasta 2026-10 todo proyecto nacía con 96–99 marcados aunque no
+#' correspondieran al estudio. Esa lista exacta se trata como «sin elegir»; una
+#' elección distinta se respeta.
+#' @keywords internal
+analitica_codigos_especiales_efectivos <- function(codes) {
+  codes <- as.integer(codes %||% integer(0))
+  if (length(codes) == 4L && setequal(codes, c(96L, 97L, 98L, 99L))) integer(0) else codes
+}

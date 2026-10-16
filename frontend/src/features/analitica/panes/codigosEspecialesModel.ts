@@ -13,7 +13,25 @@ export type OpcionCodigoEspecial = {
   /** `estudio`: aparece en los instrumentos; `configurado`: marcado pero no está en ellos. */
   origen: "estudio" | "configurado";
   marcado: boolean;
+  /** El código significa cosas distintas en distintas listas («Ninguna» / «No sabe»). */
+  ambiguo: boolean;
 };
+
+/** El default de fábrica de versiones anteriores: nadie lo eligió. */
+const DEFAULT_HEREDADO = [96, 97, 98, 99];
+
+/**
+ * Los códigos marcados, sin el default heredado. Hasta 2026-10 todo proyecto
+ * nacía con 96–99 marcados aunque no correspondieran al estudio; esa lista
+ * exacta se trata como «sin elegir» (Gonzalo: «se están asumiendo estos códigos
+ * y podría hacer overlap con códigos diferentes de proyectos diferentes»).
+ */
+export function sinDefaultHeredado(codes: readonly number[]): number[] {
+  const ordenados = [...codes].sort((a, b) => a - b);
+  return ordenados.length === DEFAULT_HEREDADO.length && ordenados.every((c, i) => c === DEFAULT_HEREDADO[i])
+    ? []
+    : [...codes];
+}
 
 export function opcionesCodigosEspeciales(
   sugeridos: readonly CodigoEspecialSugerido[],
@@ -23,10 +41,17 @@ export function opcionesCodigosEspeciales(
   for (const s of sugeridos) {
     const code = Number(s.codigo);
     if (!Number.isInteger(code)) continue;
-    out.set(code, { code, label: s.etiqueta || "Sin etiqueta", origen: "estudio", marcado: marcados.includes(code) });
+    const etiquetas = (s.etiquetas.length ? s.etiquetas : [s.etiqueta]).filter(Boolean);
+    out.set(code, {
+      code,
+      label: etiquetas.length ? etiquetas.join(" / ") : "Sin etiqueta",
+      origen: "estudio",
+      marcado: marcados.includes(code),
+      ambiguo: etiquetas.length > 1,
+    });
   }
   for (const code of marcados) {
-    if (!out.has(code)) out.set(code, { code, label: "No está en el estudio", origen: "configurado", marcado: true });
+    if (!out.has(code)) out.set(code, { code, label: "No está en el estudio", origen: "configurado", marcado: true, ambiguo: false });
   }
   return [...out.values()].sort((a, b) => a.code - b.code);
 }

@@ -1,6 +1,6 @@
 // Códigos especiales del libro: sugerencias del estudio, no una lista fija (2026-10-16).
 import { describe, expect, it } from "vitest";
-import { codigoEscrito, opcionesCodigosEspeciales } from "./codigosEspecialesModel";
+import { codigoEscrito, opcionesCodigosEspeciales, sinDefaultHeredado } from "./codigosEspecialesModel";
 
 const sug = (codigo: string, etiqueta: string) => ({ codigo, etiqueta, etiquetas: [etiqueta], n_listas: 1 });
 
@@ -20,5 +20,18 @@ describe("códigos especiales sugeridos", () => {
     expect(codigoEscrito(" 88 ")).toBe(88);
     expect(codigoEscrito("-99")).toBe(-99);
     expect(codigoEscrito("9a")).toBeNull();
+  });
+});
+
+describe("default heredado y códigos ambiguos", () => {
+  it("96–99 exacto es el default de fábrica: se trata como sin elegir", () => {
+    expect(sinDefaultHeredado([96, 97, 98, 99])).toEqual([]);
+    expect(sinDefaultHeredado([97, 99])).toEqual([97, 99]);
+  });
+
+  it("un código con varias etiquetas en el estudio se muestra con todas y se marca ambiguo", () => {
+    const o = opcionesCodigosEspeciales([{ codigo: "98", etiqueta: "Ninguna", etiquetas: ["Ninguna", "No sabe"], n_listas: 4 }], []);
+    expect(o[0].label).toBe("Ninguna / No sabe");
+    expect(o[0].ambiguo).toBe(true);
   });
 });

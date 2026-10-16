@@ -1,3 +1,4 @@
+import { sinDefaultHeredado } from "./panes/codigosEspecialesModel";
 import { create } from "zustand";
 import { DEFAULT_NOTAS_PIE, normalizeNotasPie, type NotasPieConfig } from "./panes/notasPieModel";
 
@@ -1068,7 +1069,11 @@ export function normalizeAnaliticaConfig(raw: AnaliticaConfig): AnaliticaConfig 
     listas_ordinales: coerceListasOrdinales((c as Partial<AnaliticaConfig>).listas_ordinales),
     ficha_tecnica: { ...DEFAULT_CONFIG.ficha_tecnica, ...((c as Partial<AnaliticaConfig>).ficha_tecnica ?? {}) },
     datos: { ...DEFAULT_CONFIG.datos, ...(c as Partial<AnaliticaConfig>).datos },
-    codebook: { ...DEFAULT_CONFIG.codebook, ...(c as Partial<AnaliticaConfig>).codebook },
+    codebook: (() => {
+      const cb = { ...DEFAULT_CONFIG.codebook, ...(c as Partial<AnaliticaConfig>).codebook };
+      // El default de fábrica anterior (96–99) no fue una elección: se trata como vacío.
+      return { ...cb, codigos_solo_si_presentes: sinDefaultHeredado(cb.codigos_solo_si_presentes ?? []) };
+    })(),
     frecuencias: { ...DEFAULT_CONFIG.frecuencias, ...(c as Partial<AnaliticaConfig>).frecuencias },
     multibase: {
       ...DEFAULT_CONFIG.multibase,
