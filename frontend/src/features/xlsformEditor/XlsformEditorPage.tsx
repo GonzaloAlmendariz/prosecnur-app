@@ -207,6 +207,8 @@ import { FormSimulator } from "./shell/FormSimulator";
 import { FormSummaryView } from "./shell/FormSummaryView";
 import "./styles/xlsform-v2.css";
 import "./styles/xf-logic.css";
+import { PestanaRestricciones } from "./pestanas/PestanaRestricciones";
+import { PestanaCalculos } from "./pestanas/PestanaCalculos";
 
 /**
  * Posición 1-indexed de una fila dentro del outline, contando solo
@@ -3555,6 +3557,12 @@ export default function XlsformEditorPage() {
                 });
               }}
             />
+            {pestana === "restricciones" && (
+              <PestanaRestricciones structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} />
+            )}
+            {pestana === "calculos" && (
+              <PestanaCalculos structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} />
+            )}
             {pestana === "filtros" && (
               <ChoiceFiltersView
                 open

@@ -4,9 +4,9 @@ import { PANELES_POR_MODULO } from "../../../lib/navegacion/manifiesto";
 import { PESTANAS_EDITOR, resolverPestanaEditor } from "./pestanaEditor";
 
 describe("pestañas del editor de formularios", () => {
-  test("ocho pestañas en el rail, en el orden de trabajo, con Impreso al final", () => {
+  test("diez pestañas en el rail, en el orden de trabajo, con Impreso al final", () => {
     expect(PESTANAS_EDITOR.map((p) => p.key)).toEqual([
-      "constructor", "hojas", "cuestionario", "logica", "filtros", "probar", "resumen", "impreso",
+      "constructor", "hojas", "cuestionario", "logica", "restricciones", "calculos", "filtros", "probar", "resumen", "impreso",
     ]);
     for (const p of PESTANAS_EDITOR) {
       expect(p.to).toBe(`/editor-xlsform?pestana=${p.key}`);
