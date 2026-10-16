@@ -166,6 +166,8 @@ arquitectura canónica.
   hasta dónde se decidió llevar la metadata de SurveyMonkey.
 - [Checklist de cifra destacada, media y rango y menús laterales](qa/checklist-cifra-media-rango-menus-2026-10-15.md):
   pedidos de la tanda posterior al revamp de Gráficos.
+- [Checklist de la UI de reglas del editor de Formularios (corte 0.9.4)](qa/checklist-ui-reglas-editor-formularios-0-9-4-2026-10-16.md):
+  lo que falta pulir en Visibilidad, Validación y Restricciones, por confirmar con Gonzalo.
 - [Checklist del revamp visual del módulo Formularios](qa/checklist-revamp-formularios-2026-10-16.md):
   revamp Linear/Airtable del editor (kit, pestañas Restricciones y Cálculos, lectura humana de reglas, Editor XLSForm),
   verificado sobre los seis formularios tipo del corpus.
