@@ -14,7 +14,7 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | A2 | Hojas de ruta diseña la muestra y no imprime | ADR 0108 §5 | hecho (decidido 2026-10-16) |
 | A3 | El tipo de campo es el modo (`aulas`, `territorial`, `cuotas`, `manual`) | ADR 0108 §5 | hecho (decidido 2026-10-16) |
 | A4 | Color nuevo: Musgo `#4F752C` | ADR 0108 §7, `branding/` | hecho (decidido 2026-10-16) |
-| A5 | Ícono del módulo: `Backpack` (recomendado), `Stamp`, `PackageOpen`, `Layers2`, `Tickets`, `Printer` | ADR 0108 §7, `frontend/src/lib/icons.ts` | **bloqueado**: decisión de Gonzalo |
+| A5 | Ícono del módulo: `Backpack` (mochila) | ADR 0108 §7, `frontend/src/lib/icons.ts` | hecho (decidido 2026-10-16) |
 | A6 | La lista de fichas de cuota nace en Hojas de ruta, en un modo sin marco | ADR 0108 §6 | hecho (decidido 2026-10-16) |
 | A9 | ADR propio del modo `cuotas` de Hojas de ruta (secciones, contrato de la asignación, migración) | `docs/adrs/` | pendiente; frena E4 |
 | A7 | «Entrega» de Hojas de ruta se renombra «Selección» y conserva Cuotas, Titulares y Reemplazos | ADR 0108 §5 | hecho (confirmado 2026-10-16) |
@@ -74,7 +74,7 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | # | Etapa | Dónde vive | Estado |
 |---|---|---|---|
 | E0a | Renombre, ruta, modos, secciones, redirección con query, migración del slug y de `active_stage`, home | `modules.ts`, `App.tsx`, `direccion.ts`, `project_overview.R`, `router_diseno_estudio.R`, `router_hojas_ruta.R` | pendiente (depende de A8, D7) |
-| E0b | Token Musgo, alias, ícono, `branding/` | `tokens.css`, `boot.css`, `branding/identity/tokens.css`, `lib/icons.ts` | pendiente (depende de A5) |
+| E0b | Token Musgo, alias, ícono `Backpack`, `branding/` | `tokens.css`, `boot.css`, `branding/identity/tokens.css`, `lib/icons.ts` | pendiente (depende de E0a) |
 | E1 | Catálogo, `compatible_unit_types`, dos registros de adapters, `collection_state/v2`, revamp «pliego de imprenta» | `collection_*.R`, `features/recopiladores/` | pendiente |
 | E2 | `ump_territorial_v1` y salidas de Hojas de ruta como layout legacy | archivo nuevo junto a `collection_adapters.R` | pendiente |
 | E3 | Bloques `quota_grid`, `unit_map`, `place_checklist`, `route_instructions`; port; retiro del legacy | registro de bloques | pendiente |
