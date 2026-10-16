@@ -32,3 +32,16 @@ test_that("el default heredado 96–99 se trata como sin elegir; otra elección 
   expect_identical(analitica_codigos_especiales_efectivos(c(97, 99)), c(97L, 99L))
   expect_identical(analitica_codigos_especiales_efectivos(NULL), integer(0))
 })
+
+test_that("cuenta por base en cuántas preguntas se ofrece cada código y en cuántas alguien lo eligió", {
+  inst <- list(orders_list = list(
+    p1 = list(names = c("1", "2", "99")),
+    p2 = list(names = c("1", "99")),
+    p3 = list(names = c("1", "2"))))
+  df <- data.frame(p1 = c("1", "99"), p2 = c("1", "1"), p3 = c("2", "1"), stringsAsFactors = FALSE)
+  u <- analitica_codigos_especiales_uso(list(b26 = inst), list(b26 = df), c("99", "2"))
+  expect_identical(u[["99"]][["b26"]], list(n_preguntas = 2L, n_con_casos = 1L))
+  expect_identical(u[["2"]][["b26"]], list(n_preguntas = 2L, n_con_casos = 1L))
+  # Sin data: sin conteo.
+  expect_identical(analitica_codigos_especiales_uso(list(b = inst), list(), "99")[["99"]][["b"]]$n_con_casos, NA_integer_)
+})

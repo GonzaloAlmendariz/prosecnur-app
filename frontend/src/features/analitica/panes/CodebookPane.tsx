@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { BookOpen, CheckCircle2, Download, FileSpreadsheet, FileText, Info } from "lucide-react";
 import { apiAnaliticaCodebook, apiAnaliticaConfigPut, downloadUrl, type MultiBaseResult } from "../../../api/client";
 import { apiAnaliticaCodigosEspeciales, type CodigoEspecialSugerido } from "../../../api/analitica";
-import { codigoEscrito, opcionesCodigosEspeciales } from "./codigosEspecialesModel";
+import { codigoEscrito, opcionesCodigosEspeciales, textoEfecto, textoPorBase, textoUso } from "./codigosEspecialesModel";
 import { Panel } from "../../../components/Panel";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import { CifrasPestana } from "../CifrasPestana";
@@ -141,13 +141,22 @@ export function CodebookPane() {
             {codigosMeta.map((c) => (
               <label
                 key={c.code}
-                title={c.ambiguo ? `Este código tiene etiquetas distintas según la pregunta: ${[c.label, ...c.otras].join(" / ")}. Si lo marcas, se aplica en todas.` : c.label}
+                title={[
+                  c.ambiguo ? `Etiquetas según la pregunta: ${[c.label, ...c.otras].join(" / ")}. Si lo marcas, se aplica en todas.` : c.label,
+                  textoPorBase(c),
+                ].filter(Boolean).join("\n")}
                 className={`analitica-codebook-code ${c.marcado ? "is-active" : ""} ${c.origen === "configurado" ? "is-ajeno" : ""} ${c.ambiguo ? "is-ambiguo" : ""}`}
               >
                 <input type="checkbox" checked={c.marcado} onChange={() => toggle(c.code)} />
                 <code>{c.code}</code>
-                <span>{c.label}</span>
-                {c.otras.length > 0 && <small className="analitica-codebook-code-otras">+{c.otras.length}</small>}
+                <span className="analitica-codebook-code-cuerpo">
+                  <span className="analitica-codebook-code-nombre">
+                    <span>{c.label}</span>
+                    {c.otras.length > 0 && <small className="analitica-codebook-code-otras">+{c.otras.length}</small>}
+                  </span>
+                  {textoUso(c) && <small className="analitica-codebook-code-uso" title={textoPorBase(c)}>{textoUso(c)}</small>}
+                  {textoEfecto(c) && <small className="analitica-codebook-code-efecto">{textoEfecto(c)}</small>}
+                </span>
               </label>
             ))}
           </div>

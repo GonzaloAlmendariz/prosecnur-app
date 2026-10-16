@@ -1004,7 +1004,15 @@ export async function apiAnaliticaComparativoCruces(body: ComparativoBody) {
 }
 
 /** Código que parece especial en las listas de respuestas del estudio (sugerencia, no regla). */
-export type CodigoEspecialSugerido = { codigo: string; etiqueta: string; etiquetas: string[]; n_listas: number };
+export type UsoCodigoEnBase = { base: string; n_preguntas: number; n_con_casos: number | null };
+export type CodigoEspecialSugerido = {
+  codigo: string;
+  etiqueta: string;
+  etiquetas: string[];
+  n_listas: number;
+  /** En cuántas preguntas de cada base se ofrece y en cuántas alguien lo eligió (sin data, `null`). */
+  por_base?: UsoCodigoEnBase[];
+};
 
 export async function apiAnaliticaCodigosEspeciales(): Promise<CodigoEspecialSugerido[]> {
   const raw = await handle<{ ok: true; codigos?: unknown }>(
@@ -1018,6 +1026,13 @@ export async function apiAnaliticaCodigosEspeciales(): Promise<CodigoEspecialSug
       etiqueta: String(c.etiqueta ?? "").trim(),
       etiquetas: Array.isArray(c.etiquetas) ? c.etiquetas.map((e) => String(e)) : [],
       n_listas: Number(c.n_listas ?? 0) || 0,
+      por_base: Array.isArray(c.por_base)
+        ? c.por_base.map((u) => {
+          const r = (u && typeof u === "object" ? u : {}) as Record<string, unknown>;
+          const n = Number(r.n_con_casos);
+          return { base: String(r.base ?? ""), n_preguntas: Number(r.n_preguntas ?? 0) || 0, n_con_casos: Number.isFinite(n) ? n : null };
+        }).filter((u) => u.base)
+        : undefined,
     }))
     .filter((c) => c.codigo !== "");
 }

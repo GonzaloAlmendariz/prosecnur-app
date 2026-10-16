@@ -74,3 +74,28 @@ analitica_codigos_especiales_efectivos <- function(codes) {
   codes <- as.integer(codes %||% integer(0))
   if (length(codes) == 4L && setequal(codes, c(96L, 97L, 98L, 99L))) integer(0) else codes
 }
+
+#' Por código especial y por base: en cuántas preguntas se ofrece y en cuántas
+#' alguien lo eligió. Es lo que la pantalla necesita para decir qué pasa al
+#' marcarlo («se mostrará en 5 preguntas y se omitirá en 9»).
+#'
+#' @param insts,datas listas nombradas por base (instrumento y data de reporte).
+#' @param codigos los códigos a contar.
+#' @return lista nombrada por código de `list(base = list(n_preguntas, n_con_casos))`.
+#' @keywords internal
+analitica_codigos_especiales_uso <- function(insts, datas, codigos) {
+  out <- stats::setNames(lapply(codigos, function(k) list()), codigos)
+  for (b in names(insts)) {
+    ord <- (insts[[b]] %||% list())$orders_list %||% list()
+    df <- (datas %||% list())[[b]]
+    for (k in codigos) {
+      vars <- names(ord)[vapply(ord, function(o) k %in% as.character(o$names %||% character(0)), logical(1))]
+      con_casos <- if (is.data.frame(df)) {
+        sum(vapply(vars, function(v) v %in% names(df) &&
+                     any(trimws(as.character(unclass(df[[v]]))) == k, na.rm = TRUE), logical(1)))
+      } else NA_integer_
+      out[[k]][[b]] <- list(n_preguntas = length(vars), n_con_casos = as.integer(con_casos))
+    }
+  }
+  out
+}

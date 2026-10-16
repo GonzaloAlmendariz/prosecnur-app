@@ -62,3 +62,29 @@
   color: var(--pulso-text-faint);
   font-size: 11px;
 }
+
+/* Cada código dice dónde aparece y qué pasa al marcarlo. */
+.analitica-codebook-code-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.analitica-codebook-code-nombre {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
+
+.analitica-codebook-code-uso,
+.analitica-codebook-code-efecto {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--pulso-text-soft);
+}
+
+.analitica-codebook-code-efecto {
+  color: var(--module-accent, var(--pulso-primary));
+}
