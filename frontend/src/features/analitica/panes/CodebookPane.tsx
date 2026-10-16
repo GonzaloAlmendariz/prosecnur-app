@@ -130,23 +130,24 @@ export function CodebookPane() {
         <Section
           title="Códigos especiales"
           subtitle={<>
-            Sugeridos a partir de las listas de respuestas del estudio; ninguno se marca solo. Un código marcado solo aparece en una pregunta si alguien lo respondió, en todas las preguntas que lo usan. Si un código tiene varias etiquetas, significa cosas distintas según la pregunta.
+            Códigos como «No sabe» o «No responde» que aparecen en las preguntas del estudio. Si marcas uno, el libro lo muestra en cada pregunta solo cuando alguien lo eligió.
           </>}
         >
           <div className="analitica-codebook-code-grid">
-            {sugeridos === null && <span className="analitica-codebook-code-nota">Leyendo los instrumentos…</span>}
+            {sugeridos === null && <span className="analitica-codebook-code-nota">Revisando las preguntas del estudio…</span>}
             {sugeridos !== null && codigosMeta.length === 0 && (
-              <span className="analitica-codebook-code-nota">Los instrumentos no traen códigos que parezcan especiales.</span>
+              <span className="analitica-codebook-code-nota">Las preguntas del estudio no usan códigos de este tipo.</span>
             )}
             {codigosMeta.map((c) => (
               <label
                 key={c.code}
-                title={c.ambiguo ? `Este código significa cosas distintas según la pregunta: ${c.label}. Marcarlo lo trata como especial en todas.` : c.label}
+                title={c.ambiguo ? `Este código tiene etiquetas distintas según la pregunta: ${[c.label, ...c.otras].join(" / ")}. Si lo marcas, se aplica en todas.` : c.label}
                 className={`analitica-codebook-code ${c.marcado ? "is-active" : ""} ${c.origen === "configurado" ? "is-ajeno" : ""} ${c.ambiguo ? "is-ambiguo" : ""}`}
               >
                 <input type="checkbox" checked={c.marcado} onChange={() => toggle(c.code)} />
                 <code>{c.code}</code>
                 <span>{c.label}</span>
+                {c.otras.length > 0 && <small className="analitica-codebook-code-otras">+{c.otras.length}</small>}
               </label>
             ))}
           </div>
@@ -154,8 +155,8 @@ export function CodebookPane() {
             <input
               value={nuevoCodigo}
               inputMode="numeric"
-              placeholder="Otro código"
-              aria-label="Agregar un código especial"
+              placeholder="Código"
+              aria-label="Agregar otro código"
               onChange={(e) => setNuevoCodigo(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") agregarCodigo(); }}
             />

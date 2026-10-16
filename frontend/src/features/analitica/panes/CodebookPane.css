@@ -56,7 +56,9 @@
   white-space: nowrap;
 }
 
-/* Un código con varios significados en el estudio: se avisa antes de marcarlo. */
-.analitica-codebook-code.is-ambiguo span {
-  color: var(--pulso-warn-fg);
+/* Un código con varias etiquetas en el estudio: la principal y «+N»; el detalle en el `title`. */
+.analitica-codebook-code-otras {
+  flex: none;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
 }

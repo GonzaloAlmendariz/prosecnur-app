@@ -13,7 +13,7 @@ describe("códigos especiales sugeridos", () => {
   it("un código marcado que no está en los instrumentos se conserva y lo dice", () => {
     const o = opcionesCodigosEspeciales([sug("99", "No responde")], [96, 99]);
     expect(o.map((x) => [x.code, x.origen, x.marcado])).toEqual([[96, "configurado", true], [99, "estudio", true]]);
-    expect(o[0].label).toBe("No está en el estudio");
+    expect(o[0].label).toBe("No se usa en este estudio");
   });
 
   it("un código escrito a mano es un entero", () => {
@@ -31,7 +31,8 @@ describe("default heredado y códigos ambiguos", () => {
 
   it("un código con varias etiquetas en el estudio se muestra con todas y se marca ambiguo", () => {
     const o = opcionesCodigosEspeciales([{ codigo: "98", etiqueta: "Ninguna", etiquetas: ["Ninguna", "No sabe"], n_listas: 4 }], []);
-    expect(o[0].label).toBe("Ninguna / No sabe");
+    expect(o[0].label).toBe("Ninguna");
+    expect(o[0].otras).toEqual(["No sabe"]);
     expect(o[0].ambiguo).toBe(true);
   });
 });
