@@ -206,6 +206,7 @@ segmentos_validar <- function(sid, cuerpo) {
   list(
     segmento = list(clave = clave, nombre = nombre,
                     etiqueta = if (nzchar(etiqueta)) etiqueta else clave,
+                    nota = trimws(.segmentos_chr(cuerpo$nota)),
                     escala = escala, por_base = por_base),
     pares = pares
   )
@@ -381,7 +382,8 @@ segmentos_consultar <- function(sid) {
       .segmentos_estado_base(entrada, df)
     }), bases)
     fila_id <- .segmentos_fila_id(seg$clave)
-    list(clave = seg$clave, nombre = seg$nombre, etiqueta = seg$etiqueta, escala = seg$escala,
+    list(clave = seg$clave, nombre = seg$nombre, etiqueta = seg$etiqueta,
+         nota = .segmentos_chr(seg$nota), escala = seg$escala,
          por_base = if (length(por_base)) por_base else .equiv_armon_mapa_vacio(),
          fila_ref = if (fila_id %in% ids) fila_id else "")
   })
@@ -389,6 +391,27 @@ segmentos_consultar <- function(sid) {
 }
 
 # --- Consumidores ------------------------------------------------------------------
+
+#' Notas al pie de los segmentos usados como cruce, en el orden de los cruces.
+#'
+#' Un segmento puede declarar una nota (p. ej. la pregunta original de la que
+#' sale, cuando su rótulo la abrevia). Toda tabla cruzada por ese segmento la
+#' lleva al pie: el comparativo de cruces la agrega a sus notas generales.
+#' @param cruces_refs ids `SEG-*`, índices o etiquetas de las filas de cruce.
+#' @keywords internal
+segmentos_notas_de_cruces <- function(sid, cruces_refs) {
+  s <- session_get(sid, required = FALSE) %||% list()
+  equiv <- s$equivalencias_publicos %||% list()
+  segs <- .segmentos_lista(s)
+  if (!length(segs)) return(character(0))
+  notas <- vapply(.armz_refs(cruces_refs), function(r) {
+    f <- tryCatch(.equiv_armon_resolver_fila(equiv, r), api_error = function(e) NULL)
+    id <- .segmentos_chr((f %||% list())$id)
+    seg <- Filter(function(x) identical(.segmentos_fila_id(x$clave), id), segs)
+    if (length(seg)) trimws(.segmentos_chr(seg[[1]]$nota)) else ""
+  }, character(1))
+  unique(notas[nzchar(notas)])
+}
 
 # ¿La fila se armoniza en al menos dos bases de la serie? Un cruce que sólo
 # existe en una medición no compara nada: sale «n.c.» en las demás.

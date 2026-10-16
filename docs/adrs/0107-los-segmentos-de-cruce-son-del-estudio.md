@@ -32,9 +32,9 @@ qué segmento le falta a qué año, y cada comparativo exige elegir a mano la va
 
 ## Contrato (API)
 
-- `GET /api/carga/segmentos` → `{ ok, bases, segmentos: [{ clave, nombre, etiqueta, escala: [{codigo, etiqueta}],
+- `GET /api/carga/segmentos` → `{ ok, bases, segmentos: [{ clave, nombre, etiqueta, nota, escala: [{codigo, etiqueta}],
   por_base: { <base>: { origen, mapa, estado: "definido"|"sin_origen"|"incompleto", n_sin_mapa } }, fila_ref }] }`
-- `POST /api/carga/segmentos` `{ clave, etiqueta, escala, por_base: { <base>: { origen, mapa } } }` (crea o reemplaza
+- `POST /api/carga/segmentos` `{ clave, etiqueta, nota?, escala, por_base: { <base>: { origen, mapa } } }` (crea o reemplaza
   por `clave`; `nombre` = `cruce_<clave>` normalizado) → mismo payload que el GET.
 - `DELETE /api/carga/segmentos?clave=` → quita el segmento, sus variables calculadas y su fila de la matriz.
 - Errores `E_SEGMENTO_*` registrados (clave inválida o duplicada, escala vacía, base u origen inexistente, mapa a un
@@ -69,3 +69,9 @@ qué segmento le falta a qué año, y cada comparativo exige elegir a mano la va
   `n_validos` y `n_sin_dato`. La edad, el año de ingreso o un conteo (pocos dígitos y repetidos) siguen `numerica`
   con sus códigos. La regla vale también para todo editor que liste valores de una variable (segmentos, mapas de
   códigos): un identificador no se muestra como opción a mapear.
+- **Nota al pie del segmento (2026-10-16).** Un segmento puede declarar `nota`: texto que va al pie de toda tabla
+  cruzada por él (el comparativo de cruces la antepone a las notas generales; un segmento que no se usa como cruce no
+  la agrega). Sirve cuando el rótulo abrevia la pregunta: en HSyVbG, "Presenta discapacidad" cita la pregunta del
+  carné del CONADIS (acuerdo con la OIGD del 9 y 13 de octubre). (`segmentos_notas_de_cruces`.)
+- **Origen calculado (2026-10-16).** El origen de un segmento puede ser una variable calculada de la base (ADR 0106),
+  p. ej. una fórmula «2026 - P8» agrupada en rangos; no puede serlo otro segmento.
