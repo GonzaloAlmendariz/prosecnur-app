@@ -96,3 +96,15 @@ Word ni nada sino dejarle la app súper fina, entendible y didáctica y sobre to
 
 Aprendido: las `_recod` de 2026 (`P3_recod`, `P4_recod`, `P8_recod`, `P23_recod`, `P52_recod`) las agregó Codificación al
 adaptar; son la pregunta con los «Otro» codificados, no segmentos. `indice_vbg`/`indice_hs` son `calculate` del Kobo.
+
+## Cierre de pendientes (2026-10-15, «haz todo lo que quedamos y no te detengas»)
+
+| # | Pendiente | Estado |
+|---|---|---|
+| J1 | Restaurar P11_otro y P27_otro en el proyecto de Ulises | ☑ `Segunda semana/Hostigamiento_Recodificacion2_textos_otro_restaurados.pulso`: 2 + 12 textos por `_uuid` desde la base del 09/10; las otras 264 columnas idénticas; la app lo abre con P11_otro 2 y P27_otro 12. Usarlo con la versión nueva (la 0.8.0 los volvería a perder) |
+| J2 | Entregable 10: script de selección en `.R` | ☑ `Segunda semana/seleccion_muestra_2500.R` (purl del `.qmd`, explicación como comentarios); corre de punta a punta: 2 500 de 3 318 con `Calculos_Muestrales.xlsx`, reproducible |
+| J3 | Comparar el Drive de Nadia con la matriz local | ☑ el archivo de Drive (id 1uddUe…) es un `.xlsx` de 90 183 bytes modificado el 01/10, igual en tamaño a la copia local del 13/10: no hay versión más nueva |
+| J4 | F4: valores observados sin guardar | ◐ en construcción (endpoint `codigos-observados`, d861b9349) |
+| J5 | Segmentos: códigos observados reales en el editor y en «Recodificar» | ◐ en construcción |
+| J6 | Pasada de consistencia y revisión en navegador | ☐ |
+| J7 | Versión nueva para Ulises | ☐ se prepara; publicar requiere la confirmación de Gonzalo |
