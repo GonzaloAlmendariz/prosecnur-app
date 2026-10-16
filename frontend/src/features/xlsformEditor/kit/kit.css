@@ -141,8 +141,11 @@
   white-space: nowrap;
   overflow: hidden;
 }
-.xfk-tok b { font-weight: 600; }
-.xfk-tok i { font-style: normal; color: var(--pulso-text-muted); overflow: hidden; text-overflow: ellipsis; }
+/* Un nombre de variable largo («Registered_person_available», corpus) no se come la descripción: los dos
+   se recortan con «…» y el nombre nunca pasa del 60 %. */
+.xfk-tok b { font-weight: 600; flex: 0 1 auto; min-width: 0; max-width: 60%; overflow: hidden; text-overflow: ellipsis; }
+.xfk-tok i { font-style: normal; color: var(--pulso-text-muted); flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.xfk-tok svg { flex: none; }
 .xfk-tok.is-on { background: var(--module-accent-soft, var(--pulso-primary-soft)); }
 
 /* — Fila de definición (Se lee / En el papel / XLSForm) — */
