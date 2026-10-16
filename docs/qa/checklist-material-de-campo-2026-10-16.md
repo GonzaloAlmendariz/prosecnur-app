@@ -13,10 +13,11 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | A1 | Nombre «Material de campo», ruta `/material-campo`, reemplaza «Preparación de campo» | ADR 0108 §1 | hecho (decidido 2026-10-16) |
 | A2 | Hojas de ruta diseña la muestra y no imprime | ADR 0108 §5 | hecho (decidido 2026-10-16) |
 | A3 | El tipo de campo es el modo (`aulas`, `territorial`, `cuotas`, `manual`) | ADR 0108 §5 | hecho (decidido 2026-10-16) |
-| A4 | Color nuevo: Oliva `#647119`, Musgo `#4F752C` (recomendado) o Helecho `#3A783E` | ADR 0108 §7, `branding/` | **bloqueado**: decisión de Gonzalo |
-| A5 | Ícono del módulo (`Printer`, `Files`, `ClipboardList`) | ADR 0108 §7 | **bloqueado**: decisión de Gonzalo |
-| A6 | Dónde nace la lista de fichas de cuota (propuesta: Hojas de ruta en un modo sin marco) | ADR 0108 §6 | **bloqueado**: decisión de Gonzalo; frena E4 |
-| A7 | «Entrega» de Hojas de ruta se renombra «Selección» y conserva Cuotas, Titulares y Reemplazos | ADR 0108 §5 | pendiente: lo resolvió el lead tras la revisión de contratos; Gonzalo confirma |
+| A4 | Color nuevo: Musgo `#4F752C` | ADR 0108 §7, `branding/` | hecho (decidido 2026-10-16) |
+| A5 | Ícono del módulo: `Backpack` (recomendado), `Stamp`, `PackageOpen`, `Layers2`, `Tickets`, `Printer` | ADR 0108 §7, `frontend/src/lib/icons.ts` | **bloqueado**: decisión de Gonzalo |
+| A6 | La lista de fichas de cuota nace en Hojas de ruta, en un modo sin marco | ADR 0108 §6 | hecho (decidido 2026-10-16) |
+| A9 | ADR propio del modo `cuotas` de Hojas de ruta (secciones, contrato de la asignación, migración) | `docs/adrs/` | pendiente; frena E4 |
+| A7 | «Entrega» de Hojas de ruta se renombra «Selección» y conserva Cuotas, Titulares y Reemplazos | ADR 0108 §5 | hecho (confirmado 2026-10-16) |
 | A8 | Aceptar el ADR 0108 | `docs/adrs/` | **bloqueado**: decisión de Gonzalo |
 
 ## Diagnóstico y revisión
@@ -73,9 +74,9 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | # | Etapa | Dónde vive | Estado |
 |---|---|---|---|
 | E0a | Renombre, ruta, modos, secciones, redirección con query, migración del slug y de `active_stage`, home | `modules.ts`, `App.tsx`, `direccion.ts`, `project_overview.R`, `router_diseno_estudio.R`, `router_hojas_ruta.R` | pendiente (depende de A8, D7) |
-| E0b | Token de color, alias, ícono, `branding/` | `tokens.css`, `boot.css`, `branding/identity/tokens.css` | pendiente (depende de A4, A5) |
+| E0b | Token Musgo, alias, ícono, `branding/` | `tokens.css`, `boot.css`, `branding/identity/tokens.css`, `lib/icons.ts` | pendiente (depende de A5) |
 | E1 | Catálogo, `compatible_unit_types`, dos registros de adapters, `collection_state/v2`, revamp «pliego de imprenta» | `collection_*.R`, `features/recopiladores/` | pendiente |
 | E2 | `ump_territorial_v1` y salidas de Hojas de ruta como layout legacy | archivo nuevo junto a `collection_adapters.R` | pendiente |
 | E3 | Bloques `quota_grid`, `unit_map`, `place_checklist`, `route_instructions`; port; retiro del legacy | registro de bloques | pendiente |
-| E4 | `fichas_cuota_v1`, hojas comunes, alerta en Monitoreo, golden de Ser Adolescente | archivo nuevo, `monitoreo_engine.R` | **bloqueado** (A6, H5) |
+| E4 | `fichas_cuota_v1`, hojas comunes, alerta en Monitoreo, golden de Ser Adolescente | archivo nuevo, `monitoreo_engine.R` | **bloqueado** (A9, H5) |
 | E5 | Seguimiento por ficha desde la lista de unidades (opcional) | Monitoreo | pendiente |
