@@ -2,14 +2,19 @@
 // inmutable de la plantilla, problemas por bloque, textos de la revisión y la
 // forma de la vista previa. Todo lo que aquí se decide se prueba con Vitest.
 
-import type {
-  MailBlock,
-  MailBlockType,
-  MailCheck,
-  MailField,
-  MailHeader,
-  MailProblem,
-  MailTemplate,
+import {
+  isOpaqueMailBlock,
+  type MailBlock,
+  type MailBlockType,
+  type MailCheck,
+  type MailCheckItem,
+  type MailField,
+  type MailHeader,
+  type MailProblem,
+  type MailRecipientView,
+  type MailRecipientsCounts,
+  type MailRecipientsEncoding,
+  type MailTemplate,
 } from "../../../api/materialMail";
 
 // ---- rótulos ------------------------------------------------------------------
@@ -33,6 +38,18 @@ export const DESCRIPCION_DE_BLOQUE: Record<MailBlockType, string> = {
   signature: "Firma institucional del estudio, igual en todos los correos.",
   footer_legal: "Por qué recibe el correo y la dirección. Mailchimp agrega la baja (*|UNSUB|*).",
 };
+
+export const ROTULO_DE_BLOQUE_OPACO = "Bloque no reconocido";
+
+export function rotuloDeBloque(block: MailBlock): string {
+  return isOpaqueMailBlock(block) ? ROTULO_DE_BLOQUE_OPACO : ROTULO_DE_BLOQUE[block.type];
+}
+
+export function descripcionDeBloque(block: MailBlock): string {
+  return isOpaqueMailBlock(block)
+    ? `Tipo «${block.original_type}»: esta versión de la app no sabe editarlo. Se conserva tal cual al guardar.`
+    : DESCRIPCION_DE_BLOQUE[block.type];
+}
 
 /**
  * C1: cada cuerpo del inspector es una pila de secciones independientes (campos,
@@ -65,6 +82,7 @@ export function textoPlano(text: string): string {
 
 /** Lo primero que dice el bloque, para reconocerlo en la lista. */
 export function resumenDeBloque(block: MailBlock): string {
+  if (isOpaqueMailBlock(block)) return block.original_type;
   switch (block.type) {
     case "greeting":
     case "paragraph":
@@ -171,7 +189,7 @@ export function esPropDeLista(prop: PropDeTexto): boolean {
   return PROPS_DE_LISTA.includes(prop);
 }
 
-export function propsDeTexto(type: MailBlockType): PropDeTexto[] {
+export function propsDeTexto(type: MailBlockType | MailBlock["type"]): PropDeTexto[] {
   switch (type) {
     case "greeting": return ["text", "fallback"];
     case "paragraph": return ["text"];
@@ -180,6 +198,7 @@ export function propsDeTexto(type: MailBlockType): PropDeTexto[] {
     case "list": return ["items"];
     case "signature": return ["closing", "name", "lines", "url"];
     case "footer_legal": return ["text", "address"];
+    default: return [];
   }
 }
 
@@ -230,6 +249,77 @@ export function insertarToken(valor: string, cursor: number | null, key: string)
   const sep = antes && !/\s$/.test(antes) ? " " : "";
   const out = `${antes}${sep}${token}${valor.slice(at)}`;
   return { valor: out, cursor: at + sep.length + token.length };
+}
+
+// ---- destinatarios -----------------------------------------------------------
+
+const NOMBRE_DE_CODIFICACION: Record<MailRecipientsEncoding, string> = {
+  "utf-8": "UTF-8",
+  "windows-1252": "Windows-1252",
+  "utf-16": "UTF-16",
+};
+
+/**
+ * Lo que conviene saber de cómo se leyó la lista, sin alarmar: la codificación
+ * del CSV (un Excel en Windows guarda en Windows-1252), las filas vacías que no
+ * cuentan y los repetidos que traen otro dato.
+ */
+export function notasDeLectura(encoding: MailRecipientsEncoding | null, counts: MailRecipientsCounts | null): string[] {
+  const notas: string[] = [];
+  if (encoding) notas.push(`Leído como ${NOMBRE_DE_CODIFICACION[encoding]}`);
+  if (counts?.rows_blank_dropped) {
+    notas.push(`${counts.rows_blank_dropped.toLocaleString("es-PE")} ${counts.rows_blank_dropped === 1 ? "fila vacía descartada" : "filas vacías descartadas"}`);
+  }
+  if (counts?.duplicated_conflicting) {
+    notas.push(`${counts.duplicated_conflicting.toLocaleString("es-PE")} ${counts.duplicated_conflicting === 1 ? "repetido trae" : "repetidos traen"} otro dato: va la primera fila`);
+  }
+  return notas;
+}
+
+// ---- enlace de cada persona --------------------------------------------------
+
+export type TramoDeEnlace = { texto: string; campo: boolean };
+export type EnlaceDeLaPersona = { personal: boolean; tramos: TramoDeEnlace[]; completo: string };
+
+const PARECE_CORREO = /[^\s@]+@[^\s@]+\.[^\s@]+/;
+const CORREO_OCULTO = "[correo oculto]";
+
+/**
+ * El enlace del botón resuelto para la persona que se está mirando.
+ *
+ * Los `{{campo}}` se reemplazan por el dato de la persona (o el respaldo del
+ * campo); un valor que parece un correo no se muestra. El origen
+ * (`https://host`) se abrevia a `…` cuando detrás queda ruta o consulta: lo
+ * que distingue a una persona de otra está ahí. Un enlace que es sólo un
+ * origen (`https://example.org/`) se muestra entero.
+ */
+export function enlaceParaLaPersona(
+  url: string,
+  persona: Pick<MailRecipientView, "nombre" | "fields"> | null | undefined,
+  campos: readonly MailField[],
+): EnlaceDeLaPersona {
+  const tramos: TramoDeEnlace[] = [];
+  let personal = false;
+  let desde = 0;
+  for (const m of url.matchAll(TOKEN)) {
+    const at = m.index ?? 0;
+    if (at > desde) tramos.push({ texto: url.slice(desde, at), campo: false });
+    const key = m[1];
+    personal = true;
+    const dato = key === CAMPO_NOMBRE ? persona?.nombre : persona?.fields[key];
+    const valor = dato?.trim() ? dato : campos.find((f) => f.key === key)?.fallback ?? `{{${key}}}`;
+    tramos.push({ texto: PARECE_CORREO.test(valor) ? CORREO_OCULTO : valor, campo: true });
+    desde = at + m[0].length;
+  }
+  if (desde < url.length) tramos.push({ texto: url.slice(desde), campo: false });
+  const completo = tramos.map((t) => t.texto).join("");
+  const primero = tramos[0];
+  if (primero) {
+    const corto = primero.texto.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/?#]+/i, "…");
+    // Si tras el origen no queda nada que distinga a la persona, va entero.
+    if (completo.length - primero.texto.length + corto.length > 2) tramos[0] = { ...primero, texto: corto };
+  }
+  return { personal, tramos: tramos.filter((t) => t.texto !== ""), completo };
 }
 
 // ---- edición de la plantilla --------------------------------------------------
@@ -355,6 +445,46 @@ export function logosDeLaFranja(template: MailTemplate): string[] {
   return Object.keys(template.images).filter((id) => id !== header.image_ref).slice(0, MAX_LOGOS);
 }
 
+/**
+ * Un atributo HTML escapado de vuelta a texto. `htmlEscape` de R escapa los
+ * saltos de línea que `base64_enc` mete en el data URI (`&#10;`); se quitan,
+ * porque dentro de un data URI no significan nada.
+ */
+function atributoSinEntidades(valor: string): string {
+  return valor
+    .replace(/&#(?:10|13);/g, "")
+    .replace(/&#(\d+);/g, (_m, d: string) => String.fromCharCode(Number(d)))
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
+/**
+ * Lo que la vista previa ya pinta de cada logo de la franja (data URI o URL).
+ *
+ * El render (`.cmail_header_html`) escribe la cabecera como la primera tabla
+ * del correo: una celda `<td valign="middle">` por logo —con su `<img>`, o un
+ * hueco con el alt si no hay archivo— y separadores con estilo propio. Si el
+ * número de celdas no calza con los logos, no se promete nada: mapa vacío.
+ */
+export function logosDeLaVistaPrevia(html: string | null | undefined, logoIds: readonly string[]): Record<string, string> {
+  if (!html || !logoIds.length) return {};
+  const inicio = html.search(/<td[^>]*valign="middle"/i);
+  if (inicio < 0) return {};
+  const fin = html.indexOf("</table>", inicio);
+  const cabecera = html.slice(inicio, fin < 0 ? undefined : fin);
+  const celdas = Array.from(cabecera.matchAll(/<td valign="middle">\s*(?:<img\b[^>]*?\ssrc="([^"]*)"|<span\b)/gi));
+  if (celdas.length !== logoIds.length) return {};
+  const out: Record<string, string> = {};
+  celdas.forEach((m, i) => {
+    const src = m[1] ? atributoSinEntidades(m[1]) : "";
+    if (src) out[logoIds[i]] = src;
+  });
+  return out;
+}
+
 export function usarBanner(template: MailTemplate, imageRef: string = BANNER_ID): MailTemplate {
   const images = { ...template.images };
   if (!images[imageRef]) images[imageRef] = { alt: "Banner del estudio" };
@@ -419,7 +549,44 @@ export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   tags_have_columns: "Etiquetas con columna en la audiencia",
   fields_empty: "Campos con dato para todos",
   names_unsplit: "Nombres separados del apellido",
+  duplicates_conflicting: "Correos repetidos con datos distintos",
 };
+
+/** Dónde se usa un campo (`uses` de `fields_empty`), en la voz de la vista. */
+const LUGAR_DE_USO: Record<string, string> = {
+  url: "enlace",
+  asunto: "asunto",
+  preheader: "vista previa",
+  saludo: "saludo",
+  saludo_sin_respaldo: "saludo sin respaldo",
+  cuerpo: "cuerpo",
+};
+
+function listaDe(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === "string");
+  return typeof value === "string" && value ? [value] : [];
+}
+
+/** Una fila del detalle de un chequeo, en una línea. */
+export function textoDeItem(item: MailCheckItem): string {
+  if (typeof item === "string") return item;
+  if ("row" in item && "first_row" in item) {
+    // duplicates_conflicting: filas del archivo, con el encabezado como fila 1.
+    const tags = listaDe(item.tags).map((t) => `*|${t}|*`).join(", ");
+    return `Fila ${String(item.row)} repite la ${String(item.first_row)}${tags ? `: otro ${tags}` : ""}`;
+  }
+  if ("tag" in item && "column" in item) return `*|${String(item.tag)}|* → ${String(item.column)}`;
+  if ("tag" in item && "empty" in item) {
+    const vacios = Number(item.empty) || 0;
+    const usos = listaDe(item.uses).map((u) => LUGAR_DE_USO[u] ?? u);
+    const donde = usos.length ? ` · en ${usos.join(", ")}` : "";
+    const respaldo = item.fallback && item.fallback_covers !== false ? ` → «${String(item.fallback)}»` : "";
+    const sinRespaldo = item.in_url === true ? " · sin respaldo posible" : item.fallback_covers === false && item.fallback ? " · el respaldo no alcanza" : "";
+    return `*|${String(item.tag)}|*: ${vacios} sin dato${respaldo}${donde}${sinRespaldo}`;
+  }
+  if ("tag" in item) return `*|${String(item.tag)}|* sin columna`;
+  return Object.values(item).map((v) => (Array.isArray(v) ? v.join(", ") : String(v))).join(" · ");
+}
 
 function kb(bytes: number): string {
   return `${Math.max(1, Math.round(bytes / 1024)).toLocaleString("es-PE")} KB`;
@@ -458,16 +625,38 @@ export function cifraDeChequeo(check: MailCheck): string {
       return total ? `${total - v} de ${total}` : "sin etiquetas";
     }
     case "fields_empty":
+      if (!v && SIN_EFECTIVOS.test(check.detail)) return "sin destinatarios";
       return v ? `${v.toLocaleString("es-PE")} sin dato` : "todos";
     case "names_unsplit":
       return v ? `${v.toLocaleString("es-PE")} sin separar` : "todos";
+    case "duplicates_conflicting":
+      return v ? `${v.toLocaleString("es-PE")} en conflicto` : "ninguno";
     default:
       return check.value === null ? "" : String(check.value);
   }
 }
 
+/** `fields_empty` sin nadie a quien revisar: «todos» sería falso. */
+const SIN_EFECTIVOS = /^Sin destinatarios efectivos/i;
+
+export function esChequeoConocido(check: Pick<MailCheck, "code">): boolean {
+  return Object.prototype.hasOwnProperty.call(ROTULO_DE_CHEQUEO, check.code);
+}
+
+/** Un chequeo que esta versión no conoce se nombra con su `code`; su `detail` lo explica. */
 export function rotuloDeChequeo(check: MailCheck): string {
-  return ROTULO_DE_CHEQUEO[check.code] ?? check.code;
+  return esChequeoConocido(check) ? ROTULO_DE_CHEQUEO[check.code] : check.code;
+}
+
+/**
+ * ¿Se muestra el `detail` del backend? Siempre que haya algo que corregir, y
+ * también en un chequeo desconocido: sin rótulo propio, el detalle es lo único
+ * que dice qué se revisó.
+ */
+export function muestraDetalle(check: MailCheck): boolean {
+  if (!check.detail) return false;
+  if (check.code === "fields_empty" && SIN_EFECTIVOS.test(check.detail)) return true;
+  return check.status !== "ok" || !esChequeoConocido(check);
 }
 
 /** Orden de lectura: primero lo que bloquea, después avisos, al final lo que está bien. */

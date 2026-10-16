@@ -1,19 +1,20 @@
-import type { MailBlock, MailProblem, MailTemplate } from "../../../api/materialMail";
+import { isOpaqueMailBlock, type MailBlock, type MailProblem, type MailRecipientView, type MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ArrowDown, ArrowUp, Image, Trash2 } from "../../../vendor/lucide-react";
 import { PropRow, Segmented } from "../../xlsformEditor/kit";
 import { CampoDeTexto } from "./CampoDeTexto";
+import { EnlaceDeLaPersona } from "./EnlaceDeLaPersona";
 import {
   CABECERA,
-  DESCRIPCION_DE_BLOQUE,
-  ROTULO_DE_BLOQUE,
   ROTULO_DE_PROP,
   SOBRE,
   conTexto,
+  descripcionDeBloque,
   esPropDeLista,
   propDelProblema,
   propsDeTexto,
   puedeMover,
+  rotuloDeBloque,
   rotuloDeCabecera,
   textoDe,
   type ProblemasPorDestino,
@@ -26,6 +27,8 @@ type Props = {
   template: MailTemplate;
   seleccion: string;
   problemas: ProblemasPorDestino;
+  /** La persona que se está mirando en la vista previa, sin su correo. */
+  persona: MailRecipientView | null;
   onEditar: (update: (t: MailTemplate) => MailTemplate) => void;
   onEditarBloque: (blockId: string, update: (b: MailBlock) => MailBlock) => void;
   onDestino: (destino: DestinoDelCampo) => void;
@@ -55,11 +58,52 @@ function Encabezado({ titulo, descripcion }: { titulo: string; descripcion: stri
   );
 }
 
+function AccionesDelBloque({
+  template,
+  blockId,
+  onMover,
+  onQuitar,
+}: Pick<Props, "template" | "onMover" | "onQuitar"> & { blockId: string }) {
+  return (
+    <div className="rec-mail-insp-acciones" role="group" aria-label="Mover o quitar el bloque">
+      <PulsoButton
+        variant="icon"
+        size="sm"
+        aria-label="Subir el bloque"
+        title="Subir"
+        disabled={!puedeMover(template, blockId, -1)}
+        onClick={() => onMover(blockId, -1)}
+      >
+        <ArrowUp size={14} aria-hidden />
+      </PulsoButton>
+      <PulsoButton
+        variant="icon"
+        size="sm"
+        aria-label="Bajar el bloque"
+        title="Bajar"
+        disabled={!puedeMover(template, blockId, 1)}
+        onClick={() => onMover(blockId, 1)}
+      >
+        <ArrowDown size={14} aria-hidden />
+      </PulsoButton>
+      <PulsoButton
+        variant="ghost"
+        size="sm"
+        disabled={template.blocks.length <= 1}
+        onClick={() => onQuitar(blockId)}
+      >
+        <Trash2 size={14} aria-hidden /> Quitar el bloque
+      </PulsoButton>
+    </div>
+  );
+}
+
 /** Pestaña «Bloque» del inspector: el sobre, la cabecera o el bloque elegido. */
 export function PanelDeBloque({
   template,
   seleccion,
   problemas,
+  persona,
   onEditar,
   onEditarBloque,
   onDestino,
@@ -140,6 +184,23 @@ export function PanelDeBloque({
     return <div className="rec-mail-insp-cuerpo rec-mail-vacio">Elige un bloque de la lista o del correo.</div>;
   }
   const propios = problemas.porBloque[block.block_id] ?? [];
+  if (isOpaqueMailBlock(block)) {
+    return (
+      <div {...CUERPO_DEL_INSPECTOR} className="rec-mail-insp-cuerpo">
+        <Encabezado titulo={rotuloDeBloque(block)} descripcion={descripcionDeBloque(block)} />
+        <div className="rec-mail-props">
+          <PropRow label="Tipo" mono>{block.original_type}</PropRow>
+          <PropRow label="Id" mono>{block.block_id}</PropRow>
+        </div>
+        {propios.length ? (
+          <ul className="rec-mail-problemas">
+            {propios.map((p, i) => <li key={`${p.path}-${i}`}>{p.detail}</li>)}
+          </ul>
+        ) : null}
+        <AccionesDelBloque template={template} blockId={block.block_id} onMover={onMover} onQuitar={onQuitar} />
+      </div>
+    );
+  }
   const props = propsDeTexto(block.type);
   const sueltos = propios.filter((p) => {
     const prop = propDelProblema(p.path);
@@ -149,7 +210,7 @@ export function PanelDeBloque({
 
   return (
     <div {...CUERPO_DEL_INSPECTOR} className="rec-mail-insp-cuerpo">
-      <Encabezado titulo={ROTULO_DE_BLOQUE[block.type]} descripcion={DESCRIPCION_DE_BLOQUE[block.type]} />
+      <Encabezado titulo={rotuloDeBloque(block)} descripcion={descripcionDeBloque(block)} />
       {block.type === "paragraph" ? (
         <div className="rec-mail-ajuste">
           <span>Alineación</span>
@@ -210,41 +271,13 @@ export function PanelDeBloque({
           onCursor={(cursor) => onDestino({ objetivo: block.block_id, prop, cursor })}
         />
       ))}
+      {block.type === "button" ? <EnlaceDeLaPersona url={block.url} persona={persona} campos={template.fields} /> : null}
       {sueltos.length ? (
         <ul className="rec-mail-problemas">
           {sueltos.map((p, i) => <li key={`${p.path}-${i}`}>{p.detail}</li>)}
         </ul>
       ) : null}
-      <div className="rec-mail-insp-acciones" role="group" aria-label="Mover o quitar el bloque">
-        <PulsoButton
-          variant="icon"
-          size="sm"
-          aria-label="Subir el bloque"
-          title="Subir"
-          disabled={!puedeMover(template, block.block_id, -1)}
-          onClick={() => onMover(block.block_id, -1)}
-        >
-          <ArrowUp size={14} aria-hidden />
-        </PulsoButton>
-        <PulsoButton
-          variant="icon"
-          size="sm"
-          aria-label="Bajar el bloque"
-          title="Bajar"
-          disabled={!puedeMover(template, block.block_id, 1)}
-          onClick={() => onMover(block.block_id, 1)}
-        >
-          <ArrowDown size={14} aria-hidden />
-        </PulsoButton>
-        <PulsoButton
-          variant="ghost"
-          size="sm"
-          disabled={template.blocks.length <= 1}
-          onClick={() => onQuitar(block.block_id)}
-        >
-          <Trash2 size={14} aria-hidden /> Quitar el bloque
-        </PulsoButton>
-      </div>
+      <AccionesDelBloque template={template} blockId={block.block_id} onMover={onMover} onQuitar={onQuitar} />
     </div>
   );
 }

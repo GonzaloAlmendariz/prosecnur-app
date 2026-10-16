@@ -61,7 +61,20 @@ export type MailSignatureBlock = {
 };
 export type MailFooterBlock = { block_id: string; type: "footer_legal"; text?: string; address?: string };
 
-export type MailBlock =
+/**
+ * Bloque de un tipo que este cliente no conoce (un backend más nuevo, o una
+ * plantilla escrita a mano). No se edita ni se resume aquí, pero tampoco se
+ * pierde: `raw` es el objeto tal como llegó y es lo que vuelve al backend.
+ */
+export const MAIL_OPAQUE_BLOCK = "__no_reconocido" as const;
+export type MailOpaqueBlock = {
+  block_id: string;
+  type: typeof MAIL_OPAQUE_BLOCK;
+  original_type: string;
+  raw: Record<string, unknown>;
+};
+
+export type MailKnownBlock =
   | MailGreetingBlock
   | MailParagraphBlock
   | MailButtonBlock
@@ -69,6 +82,12 @@ export type MailBlock =
   | MailListBlock
   | MailSignatureBlock
   | MailFooterBlock;
+
+export type MailBlock = MailKnownBlock | MailOpaqueBlock;
+
+export function isOpaqueMailBlock(block: MailBlock): block is MailOpaqueBlock {
+  return block.type === MAIL_OPAQUE_BLOCK;
+}
 
 export type MailHeader =
   | { kind: "logos"; logo_ids: string[]; background: "dark" | "light" }
@@ -107,6 +126,12 @@ export type MailTemplatePayload = {
   state_revision: number;
   builtin: boolean;
   template: MailTemplate;
+  /**
+   * Problemas de la plantilla GUARDADA cuando ya no cumple el contrato (un
+   * `.pulso` de otra versión o editado a mano). Vacío si es válida. Mientras
+   * haya, exportar e importar responden 409: hay que guardarla corregida.
+   */
+  stored_problems: MailProblem[];
 };
 
 export type MailTemplatePutPayload = {
@@ -148,11 +173,15 @@ export const MAIL_CHECK_CODES = [
   "tags_have_columns",
   "fields_empty",
   "names_unsplit",
+  "duplicates_conflicting",
 ] as const;
 export type MailCheckCode = (typeof MAIL_CHECK_CODES)[number];
 
+/** Un valor de una fila del detalle; las listas (`uses`, `tags`) llegan como texto. */
+export type MailCheckItemValue = string | number | boolean | string[];
+
 /** Un elemento del detalle: un id de imagen o una fila (etiqueta, columna, vacíos). */
-export type MailCheckItem = string | Record<string, string | number | boolean>;
+export type MailCheckItem = string | Record<string, MailCheckItemValue>;
 
 export type MailCheck = {
   code: string;
@@ -204,7 +233,15 @@ export type MailRecipientsCounts = {
   invalid_email: number;
   duplicated: number;
   names_unsplit: number;
+  /** Correos repetidos cuyas filas traen otro dato (se usa la primera). */
+  duplicated_conflicting: number;
+  /** Destinatarios efectivos con algún campo sin dato. */
+  persons_with_any_empty: number;
+  /** Filas vacías del archivo que se descartaron; NO cuentan en `total`. */
+  rows_blank_dropped: number;
 };
+
+export type MailRecipientsEncoding = "utf-8" | "windows-1252" | "utf-16";
 
 export type MailRecipientSample = { index: number; nombre: string; fields: Record<string, string> };
 
@@ -213,6 +250,8 @@ export type MailRecipients = {
   file_name: string | null;
   imported_at: string | null;
   row_count: number;
+  /** Cómo se leyó el CSV; `null` en un XLSX o si el backend no lo dice. */
+  encoding: MailRecipientsEncoding | null;
   columns: string[];
   mapping: MailRecipientsMapping | null;
   counts: MailRecipientsCounts | null;
@@ -296,8 +335,14 @@ function oneOf<T extends string>(value: unknown, options: readonly T[]): T | und
 export function normalizeMailBlock(value: unknown): MailBlock | null {
   if (!isRecord(value)) return null;
   const block_id = str(value.block_id);
+  if (!block_id) return null;
   const type = oneOf(value.type, MAIL_BLOCK_TYPES);
-  if (!block_id || !type) return null;
+  if (!type) {
+    // Fuera del registro que este cliente conoce: se conserva opaco para que
+    // guardar no lo borre. Sin `type` no es un bloque, es basura.
+    const original = str(value.type);
+    return original ? { block_id, type: MAIL_OPAQUE_BLOCK, original_type: original, raw: { ...value } } : null;
+  }
   switch (type) {
     case "greeting":
       return { block_id, type, text: str(value.text), ...(optStr(value.fallback) !== undefined ? { fallback: str(value.fallback) } : {}) };
@@ -383,15 +428,20 @@ function normalizeFields(value: unknown): MailField[] {
   return out;
 }
 
-export function normalizeMailTemplate(value: unknown): MailTemplate {
+/**
+ * `lenient`: para la plantilla guardada que el backend ya marcó inválida
+ * (`stored_problems`): se lee igual —si es un objeto— para poder corregirla y
+ * reemplazarla, en vez de dejar la vista sin correo.
+ */
+export function normalizeMailTemplate(value: unknown, opts: { lenient?: boolean } = {}): MailTemplate {
   if (!isRecord(value)) throw contractError("la plantilla no es un objeto.");
-  if (value.schema !== MAIL_TEMPLATE_SCHEMA) throw contractError(`la plantilla no cumple ${MAIL_TEMPLATE_SCHEMA}.`);
+  if (!opts.lenient && str(value.schema) !== MAIL_TEMPLATE_SCHEMA) throw contractError(`la plantilla no cumple ${MAIL_TEMPLATE_SCHEMA}.`);
   const blocks: MailBlock[] = [];
   const vistos = new Set<string>();
   for (const raw of list(value.blocks)) {
     const block = normalizeMailBlock(raw);
-    // Registro cerrado: un tipo desconocido no se puede editar ni renderizar
-    // aquí; un id repetido haría que dos bloques compartan selección.
+    // Un tipo desconocido llega opaco (ver `MailOpaqueBlock`); un id repetido
+    // haría que dos bloques compartan selección.
     if (!block || vistos.has(block.block_id)) continue;
     vistos.add(block.block_id);
     blocks.push(block);
@@ -446,10 +496,12 @@ export function normalizeMailPresets(value: unknown): MailPresetsPayload {
 
 export function normalizeMailTemplatePayload(value: unknown): MailTemplatePayload {
   if (!isRecord(value)) throw contractError("la respuesta no es un objeto.");
+  const stored_problems = normalizeMailProblems({ problems: value.stored_problems });
   return {
     state_revision: int(value.state_revision, 0),
     builtin: bool(value.builtin),
-    template: normalizeMailTemplate(value.template),
+    template: normalizeMailTemplate(value.template, { lenient: stored_problems.length > 0 }),
+    stored_problems,
   };
 }
 
@@ -483,16 +535,27 @@ export function normalizeMailPreview(value: unknown): MailPreview {
   };
 }
 
+const CHECK_ITEM_LISTS = new Set(["uses", "tags"]);
+
 function normalizeCheckItem(value: unknown): MailCheckItem | null {
   if (typeof value === "string") return value;
   if (Array.isArray(value) && value.length === 1) return normalizeCheckItem(value[0]);
   if (!isRecord(value)) return null;
-  const out: Record<string, string | number | boolean> = {};
+  const out: Record<string, MailCheckItemValue> = {};
   for (const [key, raw] of Object.entries(value)) {
+    // Listas de texto (`uses`, `tags`): siempre lista, aunque R mande un
+    // vector de largo uno como escalar.
+    if (CHECK_ITEM_LISTS.has(key)) {
+      out[key] = strings(raw);
+      continue;
+    }
     const v = Array.isArray(raw) && raw.length === 1 ? raw[0] : raw;
     if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") out[key] = v;
+    else if (Array.isArray(v)) out[key] = strings(v);
   }
-  return out;
+  // Una fila sin nada legible (sólo objetos anidados de un contrato más nuevo)
+  // no se pinta como un renglón vacío.
+  return Object.keys(out).length ? out : null;
 }
 
 export function normalizeMailCheck(value: unknown): MailCheck | null {
@@ -571,6 +634,9 @@ function normalizeCounts(value: unknown): MailRecipientsCounts | null {
     invalid_email: Math.max(0, int(value.invalid_email, 0)),
     duplicated: Math.max(0, int(value.duplicated, 0)),
     names_unsplit: Math.max(0, int(value.names_unsplit, 0)),
+    duplicated_conflicting: Math.max(0, int(value.duplicated_conflicting, 0)),
+    persons_with_any_empty: Math.max(0, int(value.persons_with_any_empty, 0)),
+    rows_blank_dropped: Math.max(0, int(value.rows_blank_dropped, 0)),
   };
 }
 
@@ -600,6 +666,7 @@ export function normalizeMailRecipients(value: unknown): MailRecipients {
     file_name: strOrNull(value.file_name),
     imported_at: strOrNull(value.imported_at),
     row_count: Math.max(0, int(value.row_count, 0)),
+    encoding: oneOf(value.encoding, ["utf-8", "windows-1252", "utf-16"] as const) ?? null,
     columns: strings(value.columns),
     mapping: loaded ? normalizeMapping(value.mapping) : null,
     counts: loaded ? normalizeCounts(value.counts) : null,
@@ -620,6 +687,17 @@ export function normalizeMailProblems(details: unknown): MailProblem[] {
     }
   }
   return out;
+}
+
+/**
+ * La plantilla como la espera el backend: cada bloque opaco vuelve a ser el
+ * objeto que llegó, intacto.
+ */
+export function serializeMailTemplate(template: MailTemplate): Record<string, unknown> {
+  return {
+    ...template,
+    blocks: template.blocks.map((block) => (isOpaqueMailBlock(block) ? block.raw : block)),
+  };
 }
 
 // ---- errores ------------------------------------------------------------------
@@ -665,7 +743,10 @@ async function handleMail(res: Response): Promise<unknown> {
   } catch (cause) {
     if (cause instanceof ApiError) {
       const plain = message || cause.message.replace(new RegExp(`\\s·\\s${cause.code}$`), "");
-      throw new MailApiError(cause.code, plain, res.status, details);
+      // `details.reason` es para el log, no para la persona; el error_id sí
+      // sirve para pedir ayuda.
+      const ref = isRecord(details) ? str(details.error_id) : "";
+      throw new MailApiError(cause.code, ref ? `${plain} (ref. ${ref})` : plain, res.status, details);
     }
     throw cause;
   }
@@ -696,7 +777,8 @@ export async function apiMailTemplatePut(input: {
   template: MailTemplate;
   expected_revision: number;
 }): Promise<MailTemplatePutPayload> {
-  return normalizeMailTemplatePut(await handleMail(await apiFetch(`${BASE}/mail-template`, json("PUT", input))));
+  const body = { template: serializeMailTemplate(input.template), expected_revision: input.expected_revision };
+  return normalizeMailTemplatePut(await handleMail(await apiFetch(`${BASE}/mail-template`, json("PUT", body))));
 }
 
 export async function apiMailPreview(input: {
@@ -706,19 +788,18 @@ export async function apiMailPreview(input: {
 }): Promise<MailPreview> {
   const body: Record<string, unknown> = { mode: input.mode };
   if (input.recipient_index) body.recipient_index = input.recipient_index;
-  if (input.template) body.template = input.template;
+  if (input.template) body.template = serializeMailTemplate(input.template);
   return normalizeMailPreview(await handleMail(await apiFetch(`${BASE}/mail-template/preview`, json("POST", body))));
 }
 
 export async function apiMailReview(input: { template?: MailTemplate | null } = {}): Promise<MailReview> {
-  const body = input.template ? { template: input.template } : {};
+  const body = input.template ? { template: serializeMailTemplate(input.template) } : {};
   return normalizeMailReview(await handleMail(await apiFetch(`${BASE}/mail-template/review`, json("POST", body))));
 }
 
-export async function apiMailExport(input: { expected_revision?: number | null } = {}): Promise<MailExportPayload> {
-  const body = input.expected_revision !== undefined && input.expected_revision !== null
-    ? { expected_revision: input.expected_revision }
-    : {};
+/** Exporta la plantilla GUARDADA; el backend exige la revisión que la vista vio. */
+export async function apiMailExport(input: { expected_revision: number }): Promise<MailExportPayload> {
+  const body = { expected_revision: input.expected_revision };
   return normalizeMailExport(await handleMail(await apiFetch(`${BASE}/mail-template/export`, json("POST", body))));
 }
 

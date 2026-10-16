@@ -4,6 +4,7 @@ import type { MailCheck, MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { AlertCircle, CheckCircle2, ImagePlus, Trash2, Upload } from "../../../vendor/lucide-react";
 import { Segmented } from "../../xlsformEditor/kit";
+import { FranjaDeLogos } from "./FranjaDeLogos";
 import {
   BANNER_ID,
   MAX_LOGOS,
@@ -18,12 +19,15 @@ import {
 type Props = {
   template: MailTemplate;
   imagenesLocales: Record<string, string>;
+  /** HTML de la vista previa del borrador: de ahí salen los logos que ya están en el proyecto. */
+  htmlDeLaVista: string | null;
   /** Ids que la revisión dice que no tienen archivo ni URL. */
   sinArchivo: readonly string[];
   bannerCheck: MailCheck | null;
   ocupado: boolean;
   onEditar: (update: (t: MailTemplate) => MailTemplate) => void;
-  onSubir: (id: string, file: File, opts: { yaTieneArchivo: boolean }) => void;
+  /** Sube el PNG con el id de la imagen; si ya tenía archivo, lo reemplaza. */
+  onSubir: (id: string, file: File) => void;
 };
 
 function SubirArchivo({ etiqueta, disabled, onArchivo }: { etiqueta: string; disabled: boolean; onArchivo: (file: File) => void }) {
@@ -52,7 +56,7 @@ function Imagen({ src, alt, banner }: { src: string | undefined; alt: string; ba
 }
 
 /** Pestaña «Identidad»: banner de mailing del cliente o franja de logos del estudio. */
-export function PanelIdentidad({ template, imagenesLocales, sinArchivo, bannerCheck, ocupado, onEditar, onSubir }: Props) {
+export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinArchivo, bannerCheck, ocupado, onEditar, onSubir }: Props) {
   const conBanner = template.header.kind === "banner";
   const bannerId = template.header.kind === "banner" ? template.header.image_ref : BANNER_ID;
   const logos = logosDeLaFranja(template);
@@ -84,12 +88,12 @@ export function PanelIdentidad({ template, imagenesLocales, sinArchivo, bannerCh
         header: { ...base.header, logo_ids: [...base.header.logo_ids, id] },
       };
     });
-    onSubir(id, file, { yaTieneArchivo: false });
+    onSubir(id, file);
   };
 
   const subirBanner = (file: File) => {
     if (!conBanner) onEditar((t) => usarBanner(t, bannerId));
-    onSubir(bannerId, file, { yaTieneArchivo: tieneArchivo(bannerId) });
+    onSubir(bannerId, file);
   };
 
   return (
@@ -137,6 +141,15 @@ export function PanelIdentidad({ template, imagenesLocales, sinArchivo, bannerCh
             />
           ) : null}
         </span>
+        <FranjaDeLogos
+          logoIds={logos}
+          images={template.images}
+          fondo={fondo}
+          acento={template.theme.accent}
+          imagenesLocales={imagenesLocales}
+          htmlDeLaVista={conBanner ? null : htmlDeLaVista}
+          enReserva={conBanner}
+        />
         <span className="rec-mail-ayuda">Cuando no hay banner, las instituciones del estudio van en la franja.</span>
         <ul className="rec-mail-logos" data-qa-geometry-group="material-campo/catalogo/correos-logos" data-qa-geometry-contract="equal">
           {logos.map((id) => {
@@ -150,7 +163,7 @@ export function PanelIdentidad({ template, imagenesLocales, sinArchivo, bannerCh
                   {falta ? <span className="rec-mail-chip is-warning">sin archivo</span> : null}
                 </span>
                 <span className="rec-mail-logo-acciones">
-                  <SubirArchivo etiqueta="PNG" disabled={ocupado || conBanner} onArchivo={(file) => onSubir(id, file, { yaTieneArchivo: tieneArchivo(id) })} />
+                  <SubirArchivo etiqueta="PNG" disabled={ocupado || conBanner} onArchivo={(file) => onSubir(id, file)} />
                   <PulsoButton
                     variant="icon"
                     size="sm"

@@ -1,10 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { normalizeMailRecipients, normalizeMailReview, type MailTemplate } from "../../../api/materialMail";
+import { normalizeMailRecipients, normalizeMailReview, normalizeMailTemplate, type MailTemplate } from "../../../api/materialMail";
 import { ColumnaDeBloques } from "./ColumnaDeBloques";
 import { repartirProblemas } from "./modeloCorreo";
+import { PanelDeBloque } from "./PanelDeBloque";
 import { PanelDestinatarios } from "./PanelDestinatarios";
+import { PanelIdentidad } from "./PanelIdentidad";
 import { PanelMailchimp } from "./PanelMailchimp";
 import { PanelRevision } from "./PanelRevision";
 
@@ -142,5 +144,184 @@ describe("PanelRevision y PanelMailchimp", () => {
     expect(html).toContain("*|CARRERA|*");
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>.*Exportar para Mailchimp/);
     expect(html).not.toMatch(/Enviar/);
+  });
+});
+
+describe("bloques que la app no conoce", () => {
+  const conRaro = normalizeMailTemplate({
+    ...PLANTILLA,
+    blocks: [...PLANTILLA.blocks, { block_id: "video", type: "video_embed", src: "https://x.org/v" }],
+  });
+
+  it("aparecen en la lista como «Bloque no reconocido» y el inspector no ofrece editarlos", () => {
+    const lista = renderToStaticMarkup(
+      <ColumnaDeBloques
+        presets={[]}
+        miniaturas={{}}
+        template={conRaro}
+        seleccion="video"
+        problemas={repartirProblemas([], conRaro)}
+        presetPendiente={null}
+        onElegirPreset={noop}
+        onConfirmarPreset={noop}
+        onCancelarPreset={noop}
+        onSeleccionar={noop}
+        onAgregar={noop}
+        onInsertarCampo={noop}
+        hayDestino={false}
+      />,
+    );
+    expect(lista).toContain("Bloque no reconocido");
+    expect(lista).toContain("video_embed");
+    const inspector = renderToStaticMarkup(
+      <PanelDeBloque
+        template={conRaro}
+        seleccion="video"
+        problemas={repartirProblemas([], conRaro)}
+        persona={null}
+        onEditar={noop}
+        onEditarBloque={noop}
+        onDestino={noop}
+        onMover={noop}
+        onQuitar={noop}
+        onAbrirIdentidad={noop}
+      />,
+    );
+    expect(inspector).toContain("Se conserva tal cual al guardar");
+    expect(inspector).not.toMatch(/<textarea|<input/);
+    expect(inspector).toContain("Quitar el bloque");
+  });
+});
+
+describe("PanelDeBloque › Botón de acción", () => {
+  const conBoton: MailTemplate = {
+    ...PLANTILLA,
+    fields: [...PLANTILLA.fields, { key: "codigo", tag: "CODIGO", label: "Código" }],
+    blocks: [{ block_id: "accion", type: "button", text: "Acceder", url: "https://x.org/r/encuesta?d[codigo]={{codigo}}" }],
+  };
+
+  it("muestra el enlace resuelto para la persona elegida, sin su correo", () => {
+    const html = renderToStaticMarkup(
+      <PanelDeBloque
+        template={conBoton}
+        seleccion="accion"
+        problemas={repartirProblemas([], conBoton)}
+        persona={{ source: "imported", index: 2, nombre: "Luis", fields: { codigo: "20206621", correo: "luis@x.org" } }}
+        onEditar={noop}
+        onEditarBloque={noop}
+        onDestino={noop}
+        onMover={noop}
+        onQuitar={noop}
+        onAbrirIdentidad={noop}
+      />,
+    );
+    expect(html).toContain("Enlace personal");
+    expect(html).toContain("Luis");
+    expect(html).toContain("…/r/encuesta?d[codigo]=");
+    expect(html).toContain("20206621");
+    expect(html).not.toContain("luis@x.org");
+  });
+});
+
+describe("PanelIdentidad › Franja de logos", () => {
+  it("pinta los logos que la vista previa ya tiene, sobre el fondo de la franja", () => {
+    const plantilla: MailTemplate = {
+      ...PLANTILLA,
+      header: { kind: "logos", logo_ids: ["facultad", "pulso"], background: "dark" },
+      images: { facultad: { alt: "Facultad" }, pulso: { alt: "Pulso PUCP" } },
+    };
+    const vista = '<tr><td bgcolor="#0b1f54"><table><tr>'
+      + '<td valign="middle"><img src="data:image/png;base64,QUJD" alt="Facultad"></td>'
+      + '<td valign="middle" style="padding:0 18px;"><div></div></td>'
+      + '<td valign="middle"><img src="data:image/png;base64,REVG" alt="Pulso PUCP"></td>'
+      + "</tr></table></td></tr>";
+    const html = renderToStaticMarkup(
+      <PanelIdentidad
+        template={plantilla}
+        imagenesLocales={{}}
+        htmlDeLaVista={vista}
+        sinArchivo={[]}
+        bannerCheck={null}
+        ocupado={false}
+        onEditar={noop}
+        onSubir={noop}
+      />,
+    );
+    expect(html).toContain("rec-mail-franja-vista is-oscura");
+    expect(html).toContain("background-color:#0b1f54");
+    expect(html).toContain('src="data:image/png;base64,QUJD"');
+    expect(html).toContain('src="data:image/png;base64,REVG"');
+    expect(html).toContain("Franja de logos sobre fondo oscuro: Facultad, Pulso PUCP");
+  });
+});
+
+describe("PanelRevision › chequeos de un contrato más nuevo", () => {
+  it("se muestran con su code y el detalle del backend", () => {
+    const revision = normalizeMailReview({
+      checks: [{ code: "dmarc_alignment", status: "ok", value: null, detail: "El remitente está alineado." }],
+    });
+    const html = renderToStaticMarkup(<PanelRevision revision={revision} cargando={false} />);
+    expect(html).toContain("dmarc_alignment");
+    expect(html).toContain("El remitente está alineado.");
+  });
+});
+
+describe("Revisión con un repetido que cambia el enlace y un enlace vacío", () => {
+  const revision = normalizeMailReview({
+    checks: [
+      { code: "duplicates_conflicting", status: "error", value: 1, detail: "1 correos repetidos traen otro valor en un campo de enlace: decide cuál vale y corrige el archivo.", items: [{ row: 4, first_row: 2, tags: ["ENLACE"] }] },
+      { code: "fields_empty", status: "error", value: 1, detail: "ENLACE va dentro de un enlace y le falta a algún destinatario: el enlace saldría roto.", items: [{ tag: "ENLACE", key: "enlace", empty: 1, uses: ["url"], in_url: true, fallback_covers: false }] },
+    ],
+  });
+
+  it("muestra los dos errores con sus filas y deja la exportación bloqueada", () => {
+    const html = renderToStaticMarkup(<PanelRevision revision={revision} cargando={false} />);
+    expect(html).toContain("Correos repetidos con datos distintos");
+    expect(html).toContain("Fila 4 repite la 2: otro *|ENLACE|*");
+    expect(html).toContain("*|ENLACE|*: 1 sin dato · en enlace · sin respaldo posible");
+    expect(html).toContain("2 por corregir");
+    const mc = renderToStaticMarkup(
+      <PanelMailchimp
+        template={PLANTILLA}
+        revision={revision}
+        exportacion={null}
+        exportando={false}
+        ocupado={false}
+        htmlActual="<p>x</p>"
+        onExportar={noop}
+        onGuardarJunto={noop}
+        onVerRevision={noop}
+      />,
+    );
+    expect(mc).toMatch(/<button[^>]*disabled=""[^>]*>.*Exportar para Mailchimp/);
+  });
+});
+
+describe("PanelDestinatarios › cómo se leyó la lista", () => {
+  it("dice la codificación y las filas vacías, sin alarmar", () => {
+    const destinatarios = normalizeMailRecipients({
+      loaded: true,
+      file_name: "lista.csv",
+      encoding: "windows-1252",
+      columns: ["Correo", "Nombre"],
+      mapping: { email_column: "Correo", name_column: "Nombre", fields: {} },
+      counts: { total: 3, valid: 3, rows_blank_dropped: 1 },
+      sample: [],
+    });
+    const html = renderToStaticMarkup(
+      <PanelDestinatarios
+        template={PLANTILLA}
+        destinatarios={destinatarios}
+        persona={1}
+        ocupado={false}
+        onEditar={noop}
+        onImportar={noop}
+        onMapear={noop}
+        onOlvidar={noop}
+        onVerComo={noop}
+      />,
+    );
+    expect(html).toContain("Leído como Windows-1252");
+    expect(html).toContain("1 fila vacía descartada");
   });
 });
