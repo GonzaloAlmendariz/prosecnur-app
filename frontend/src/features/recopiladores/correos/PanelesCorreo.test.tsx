@@ -252,6 +252,9 @@ describe("PanelIdentidad › Franja de logos", () => {
     expect(html).toContain('src="data:image/png;base64,QUJD"');
     expect(html).toContain('src="data:image/png;base64,REVG"');
     expect(html).toContain("Franja de logos sobre fondo oscuro: Facultad, Pulso PUCP");
+    // C1: los miembros del grupo son los logos (con su caja), no los separadores.
+    expect(html.match(/rec-mail-franja-vista-item" data-qa-geometry-member/g)).toHaveLength(2);
+    expect(html).not.toMatch(/rec-mail-franja-vista-sep"[^>]*data-qa-geometry-member/);
   });
 });
 

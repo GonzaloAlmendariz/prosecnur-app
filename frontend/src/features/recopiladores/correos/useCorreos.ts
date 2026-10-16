@@ -22,6 +22,9 @@ import { hayCambios, hayQueGuardar, useCorreosStore } from "./store";
 
 const GUARDADA_INVALIDA = "E_COLLECTION_MAIL_TEMPLATE_STORED_INVALID";
 
+/** Exportar exige la revisión que la vista leyó; sin ella no se sabe qué se exporta. */
+export const AVISO_SIN_REVISION = "No se sabe qué versión del correo está guardada. Vuelve a cargar el correo antes de exportar.";
+
 /** Textos propios para los rechazos del import que la persona sí puede corregir. */
 const AVISO_DE_IMPORTACION: Record<string, string> = {
   E_COLLECTION_MAIL_RECIPIENTS_NO_HEADER: "La primera fila parece un destinatario; agrega una fila de encabezados.",
@@ -200,7 +203,10 @@ export function useCorreos() {
     const st = s.getState();
     // El backend exige la revisión que esta vista vio: sin ella no se exporta.
     const revision = st.stateRevision;
-    if (revision === null) return "error";
+    if (revision === null) {
+      st.setAviso({ tono: "error", texto: AVISO_SIN_REVISION });
+      return "error";
+    }
     st.setOcupado("exportando");
     st.setAviso(null);
     st.setExportacion(null);
