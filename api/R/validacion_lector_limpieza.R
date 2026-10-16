@@ -321,7 +321,7 @@ lector_limpieza <- function(archivo,
   # que el ensamblador reusa toda esta maquinaria en lugar de duplicarla.
   if (is.null(hojas_override)) {
     hojas_nombres <- readxl::excel_sheets(archivo)
-    hojas <- purrr::map(hojas_nombres, ~ readxl::read_excel(archivo, sheet = .x))
+    hojas <- purrr::map(hojas_nombres, ~ .read_excel_data(archivo, sheet = .x))
     names(hojas) <- hojas_nombres
   } else {
     if (!is.list(hojas_override) || !length(hojas_override) ||

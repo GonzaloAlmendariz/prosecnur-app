@@ -115,3 +115,24 @@ parse_multipart_upload <- function(req) {
   if (is.character(raw_val)) return(as.character(raw_val[[1]]))
   ""
 }
+
+# Filas máximas de una hoja de Excel (xlsx y xls >= 2007). Se usa como
+# `guess_max` para que readxl adivine el tipo mirando la hoja ENTERA.
+.EXCEL_MAX_ROWS <- 1048576L
+
+# Lectura de Excel con inferencia de tipo sobre la hoja completa.
+#
+# `readxl::read_excel` adivina el tipo de cada columna con las primeras 1000
+# filas (`guess_max` por defecto). Una columna vacía en esas filas sale
+# `logical` y todo valor posterior se convierte en NA —un texto «Otro» se
+# pierde, un 7 disperso se vuelve TRUE—, sin más rastro que un warning que los
+# llamadores suelen silenciar. Con `guess_max` igual al tope de filas de Excel
+# la adivinanza recorre la hoja completa; por debajo de `.Machine$integer.max
+# %/% 100` readxl no avisa. Todo lo demás (sheet, col_names, na, col_types,
+# .name_repair…) pasa tal cual.
+#
+# Para toda lectura donde readxl INFIERE el tipo (datos de respuestas, y también
+# hojas de XLSForm leídas sin tipos fijos). No aporta nada donde se fija col_types.
+.read_excel_data <- function(path, sheet = NULL, ..., guess_max = .EXCEL_MAX_ROWS) {
+  readxl::read_excel(path, sheet = sheet, ..., guess_max = guess_max)
+}

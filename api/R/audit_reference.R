@@ -858,11 +858,11 @@ audit_reference_write_inputs <- function(dir = audit_reference_dir()) {
   )
 
   rp_inst <- reporte_instrumento(path = xmeta$path)
-  data_raw <- as.data.frame(readxl::read_excel(dmeta$path), stringsAsFactors = FALSE, check.names = FALSE)
+  data_raw <- as.data.frame(.read_excel_data(dmeta$path), stringsAsFactors = FALSE, check.names = FALSE)
   data_norm <- normalize_data_for_xlsform(data_raw, rp_inst)
   .carga_assert_data_xlsform_compatible(data_norm, rp_inst)
   rp_data <- reporte_data(data_norm, instrumento = rp_inst)
-  data_panel_raw <- as.data.frame(readxl::read_excel(d2meta$path), stringsAsFactors = FALSE, check.names = FALSE)
+  data_panel_raw <- as.data.frame(.read_excel_data(d2meta$path), stringsAsFactors = FALSE, check.names = FALSE)
   data_panel_norm <- normalize_data_for_xlsform(data_panel_raw, rp_inst)
   .carga_assert_data_xlsform_compatible(data_panel_norm, rp_inst)
   rp_data_panel <- reporte_data(data_panel_norm, instrumento = rp_inst)

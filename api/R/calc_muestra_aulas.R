@@ -661,7 +661,7 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
       skip_filas <- .cm_aulas_encabezado_skip(path, sheet_name)
       preview <- tryCatch(
         .cm_aulas_clean_table_names(as.data.frame(
-          suppressMessages(suppressWarnings(readxl::read_excel(path, sheet = sheet_name, n_max = max_rows, skip = skip_filas))),
+          suppressMessages(suppressWarnings(.read_excel_data(path, sheet = sheet_name, n_max = max_rows, skip = skip_filas))),
           stringsAsFactors = FALSE,
           check.names = FALSE
         )),
@@ -740,9 +740,9 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
           class = "cm_aulas_hoja_error"
         ))
       }
-      return(.cm_aulas_clean_table_names(as.data.frame(readxl::read_excel(path, sheet = sheet, skip = .cm_aulas_encabezado_skip(path, sheet)), stringsAsFactors = FALSE, check.names = FALSE)))
+      return(.cm_aulas_clean_table_names(as.data.frame(.read_excel_data(path, sheet = sheet, skip = .cm_aulas_encabezado_skip(path, sheet)), stringsAsFactors = FALSE, check.names = FALSE)))
     }
-    return(.cm_aulas_clean_table_names(as.data.frame(readxl::read_excel(path, skip = .cm_aulas_encabezado_skip(path)), stringsAsFactors = FALSE, check.names = FALSE)))
+    return(.cm_aulas_clean_table_names(as.data.frame(.read_excel_data(path, skip = .cm_aulas_encabezado_skip(path)), stringsAsFactors = FALSE, check.names = FALSE)))
   }
   if (ext %in% c("csv", "txt")) {
     return(.cm_aulas_clean_table_names(utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE)))

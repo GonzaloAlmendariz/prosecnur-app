@@ -327,8 +327,8 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL, c
   # que no perdemos datos, solo silencio.
   df <- switch(
     ext,
-    xlsx = suppressWarnings(readxl::read_excel(path)),
-    xls  = suppressWarnings(readxl::read_excel(path)),
+    xlsx = suppressWarnings(.read_excel_data(path)),
+    xls  = suppressWarnings(.read_excel_data(path)),
     csv  = utils::read.csv(path, stringsAsFactors = FALSE),
     sav  = haven::read_sav(path),
     stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Extensión de datos no soportada: %s. Usa CSV, XLSX, XLS o SAV.", ext))
@@ -515,7 +515,7 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL, c
 # es no-op (esperar a que ambos estén listos).
 .read_data_any_path <- function(path, ext) {
   ext <- tolower(ext %||% tools::file_ext(path))
-  if (ext %in% c("xlsx", "xls")) return(suppressWarnings(readxl::read_excel(path)))
+  if (ext %in% c("xlsx", "xls")) return(suppressWarnings(.read_excel_data(path)))
   if (ext == "csv") return(utils::read.csv(path, stringsAsFactors = FALSE, fileEncoding = "UTF-8"))
   if (ext == "sav") {
     if (!requireNamespace("haven", quietly = TRUE)) {

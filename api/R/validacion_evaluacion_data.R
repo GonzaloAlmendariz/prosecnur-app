@@ -339,7 +339,7 @@ cargar_plan_excel <- function(path, sheet = "Plan"){
   if (is.character(datos) && length(datos) == 1 && grepl("\\.xlsx?$", datos, ignore.case = TRUE)) {
     sheets <- readxl::excel_sheets(datos)
     hoja <- hoja_principal %||% (sheets[1] %||% "Sheet1")
-    df <- suppressMessages(readxl::read_excel(datos, sheet = hoja))
+    df <- suppressMessages(.read_excel_data(datos, sheet = hoja))
     return(list(principal = df, tablas = list(principal = df)))
   }
   stop("No pude convertir 'datos'. Pásame un data.frame, una lista (con $data o $datos_tablas) o ruta .xlsx.")

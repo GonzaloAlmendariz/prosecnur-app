@@ -2133,7 +2133,7 @@ validation_methodology_report_r <- function(model, path) {
     "  if (ext == 'rds') return(readRDS(path))",
     "  if (ext %in% c('xlsx', 'xls')) {",
     "    if (!requireNamespace('readxl', quietly = TRUE)) stop('Para leer Excel se requiere el paquete readxl.', call. = FALSE)",
-    "    return(as.data.frame(readxl::read_excel(path, sheet = sheet), check.names = FALSE))",
+    "    return(as.data.frame(readxl::read_excel(path, sheet = sheet, guess_max = 1048576), check.names = FALSE))",
     "  }",
     "  stop('Formato no admitido. Use CSV, RDS o Excel.', call. = FALSE)",
     "}",

@@ -482,7 +482,7 @@ audit_project_catalog <- function() {
       basename(data_path),
       readBin(data_path, "raw", n = file.info(data_path)$size)
     )
-    data_raw <- as.data.frame(readxl::read_excel(dmeta$path), stringsAsFactors = FALSE, check.names = FALSE)
+    data_raw <- as.data.frame(.read_excel_data(dmeta$path), stringsAsFactors = FALSE, check.names = FALSE)
     data_norm <- normalize_data_for_xlsform(data_raw, rp_inst)
     .carga_assert_data_xlsform_compatible(data_norm, rp_inst)
     rp_data <- reporte_data(data_norm, instrumento = rp_inst)

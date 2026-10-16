@@ -156,7 +156,7 @@ shutdown_requested <- function() isTRUE(.shutdown_flag$value)
 .read_data_from_path <- function(path, ext = NULL) {
   ext <- tolower(ext %||% tools::file_ext(path))
   if (ext %in% c("xlsx", "xls")) {
-    return(readxl::read_excel(path))
+    return(.read_excel_data(path))
   }
   if (ext == "sav") {
     if (!requireNamespace("haven", quietly = TRUE)) {

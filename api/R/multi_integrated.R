@@ -120,7 +120,7 @@
     return(out)
   }
   real <- sheets[match(tolower(sheet), tolower(sheets))]
-  out <- suppressWarnings(readxl::read_excel(path, sheet = real, .name_repair = "unique_quiet"))
+  out <- suppressWarnings(.read_excel_data(path, sheet = real, .name_repair = "unique_quiet"))
   out <- as.data.frame(out, stringsAsFactors = FALSE, check.names = FALSE)
   for (nm in default_cols) if (!(nm %in% names(out))) out[[nm]] <- character(nrow(out))
   out

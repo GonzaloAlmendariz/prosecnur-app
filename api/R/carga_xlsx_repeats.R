@@ -73,7 +73,7 @@
   sheets <- tryCatch(readxl::excel_sheets(data_meta$path), error = function(e) character(0))
   if (!length(sheets)) return(invisible(FALSE))
   parent_df <- tryCatch(
-    as.data.frame(readxl::read_excel(data_meta$path, sheet = sheets[[1]]),
+    as.data.frame(.read_excel_data(data_meta$path, sheet = sheets[[1]]),
                   stringsAsFactors = FALSE, check.names = FALSE),
     error = function(e) NULL
   )
@@ -83,7 +83,7 @@
   for (spec in specs) {
     if (!(spec$name %in% sheets) || !length(spec$leaf_vars)) next
     child_df <- tryCatch(
-      as.data.frame(readxl::read_excel(data_meta$path, sheet = spec$name),
+      as.data.frame(.read_excel_data(data_meta$path, sheet = spec$name),
                     stringsAsFactors = FALSE, check.names = FALSE),
       error = function(e) NULL
     )
