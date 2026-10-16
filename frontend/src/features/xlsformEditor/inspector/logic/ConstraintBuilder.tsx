@@ -153,10 +153,8 @@ export function ConstraintBuilder({
         {showShortcuts && (baseType === "text" || baseType === "") && (
           <div className="pulso-xftr-section">
             <div className="pulso-xftr-section-head">
-              <span className="pulso-section-eyebrow">
-                Formato del texto <TechTerm t="regex" />
-              </span>
-              <small>Reglas en lenguaje claro: longitud, contenido y formato.</small>
+              <span className="pulso-section-eyebrow">Formato del texto</span>
+              <small>Longitud, contenido o formato de la respuesta.</small>
             </div>
             <TextRuleSuite
               active={null}
@@ -179,9 +177,7 @@ export function ConstraintBuilder({
       <div className="pulso-logic-builder">
         <header className="pulso-logic-builder-header">
           <span className="pulso-section-eyebrow">{fieldLabel}</span>
-          <span className="pulso-logic-builder-status">
-            Formato del texto <TechTerm t="regex" />
-          </span>
+          <span className="pulso-logic-builder-status">Formato del texto</span>
         </header>
         <TextRuleSuite
           active={textRule}

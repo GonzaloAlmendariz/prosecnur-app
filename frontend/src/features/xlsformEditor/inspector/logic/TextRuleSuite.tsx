@@ -238,7 +238,6 @@ export function TextRuleSuite({ active, onApply, onClear, variant = "block" }: T
                         key={recipe.id}
                         className="pulso-xftr-chip"
                         onClick={() => pickRecipe(recipe)}
-                        title={recipe.buildMessage(recipe.defaults)}
                       >
                         <Icon size={13} aria-hidden="true" />
                         <span>{recipe.title()}</span>

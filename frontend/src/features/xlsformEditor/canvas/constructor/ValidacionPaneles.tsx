@@ -11,7 +11,6 @@ import { ConstraintBuilder } from "../../inspector/logic/ConstraintBuilder";
 import { TextRuleSuite } from "../../inspector/logic/TextRuleSuite";
 import { describeRuleBreakdown, describeValidation, validationPresetsFor, type HumanizedExpression } from "../reglasHumanas";
 import { matchTextRule } from "../../inspector/logic/textRules";
-import { TechTerm } from "../../helpers/TechTerm";
 import { fieldMessageLooksTechnical } from "../constructor/compartido";
 
 export function CustomValidationPanel({
@@ -196,9 +195,6 @@ export function ValidationSummary({
 }) {
   const summary = describeValidation(node.constraint, node, scope);
   const presets = validationPresetsFor(node);
-  const messageStatus = summary
-    ? validationMessageStatusFor(node.constraint_message ?? "")
-    : null;
   // Preguntas de texto: la galería de reglas humanas (textRules) reemplaza a
   // los presets fijos. Solo en modo "elegir" — si el constraint actual ya es
   // una receta reconocida, el ConstraintBuilder de abajo la muestra en modo
@@ -209,7 +205,7 @@ export function ValidationSummary({
   const showTextRuleGallery = node.typeInfo.base === "text" && !recognizedRule;
   // La lectura superior usa el título humano de la receta cuando existe
   // ("Debe tener exactamente 8 dígitos" en vez de un resumen genérico).
-  const summaryStatus = recognizedRule ? "Regla de texto" : summary?.status;
+  const summaryStatus = recognizedRule ? "Regla de texto" : rotuloDeEstado(summary?.status);
   const summaryText = recognizedRule
     ? recognizedRule.recipe.title(recognizedRule.params)
     : summary?.summary;
@@ -229,24 +225,14 @@ export function ValidationSummary({
           )}
         </div>
       </div>
-      {messageStatus && (
-        <div className={`pulso-focus-validation-message-status is-${messageStatus.tone}`}>
-          {messageStatus.tone === "ok" ? <CheckCircle2 size={12} /> : <Info size={12} />}
-          <span>
-            <strong>{messageStatus.title}</strong>
-            <small>{messageStatus.detail}</small>
-          </span>
-        </div>
-      )}
+      {/* El estado del mensaje lo marca la tarjeta «Mensaje Kobo» con sus chips;
+          repetirlo aquí era el tercer aviso de la misma falta (0.9.4, R3). */}
 
       {showTextRuleGallery && (
         <div className="pulso-focus-validation-presets" aria-label="Reglas de texto">
           <div className="pulso-focus-validation-presets-head">
-            <span className="pulso-section-eyebrow">
-              Formato del texto <TechTerm t="regex" />
-            </span>
-            <strong>Reglas en lenguaje claro</strong>
-            <small>La regla técnica y el mensaje para el encuestado se completan juntos.</small>
+            <span className="pulso-section-eyebrow">Formato del texto</span>
+            <small>Elige un atajo: la regla y su mensaje se completan juntos.</small>
           </div>
           <TextRuleSuite
             active={null}
@@ -268,7 +254,6 @@ export function ValidationSummary({
           <div className="pulso-focus-validation-presets-head">
             <span className="pulso-section-eyebrow">Atajos Kobo</span>
             <strong>Aplicar una regla común</strong>
-            <small>La regla técnica y el mensaje para el encuestado se completan juntos.</small>
           </div>
           <div className="pulso-focus-validation-preset-grid">
             {presets.map((preset) => (
@@ -306,6 +291,14 @@ export function ValidationSummary({
       )}
     </div>
   );
+}
+
+// El estado interno («Editable visualmente», «Regla técnica preservada») no es
+// un rótulo para quien diseña: se dice qué es la regla (0.9.4, R5).
+function rotuloDeEstado(status: string | undefined): string | undefined {
+  if (status === "Editable visualmente") return "Regla actual";
+  if (status === "Regla técnica preservada") return "Regla avanzada";
+  return status;
 }
 
 export function validationMessageStatusFor(value: string): {
