@@ -11,36 +11,6 @@
   min-width: 0;
 }
 
-.rec-tab-list {
-  align-items: center;
-  display: flex;
-  gap: 2px;
-  min-width: 0;
-}
-
-.rec-tab-list button {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: var(--pulso-radius-chip);
-  color: var(--pulso-text-soft);
-  cursor: pointer;
-  display: inline-flex;
-  font: inherit;
-  font-size: 13px;
-  font-weight: var(--pulso-weight-medium);
-  gap: 6px;
-  min-height: var(--pulso-control-height-md);
-  padding: 0 10px;
-  position: relative;
-  white-space: nowrap;
-  z-index: 1;
-}
-
-.rec-tab-list button[aria-selected="true"] {
-  color: var(--pulso-text);
-}
-
 /* El workbench ya declaraba `minmax(0, 1fr)` en su fila de contenido, o sea que
    estaba escrito para llenar el alto. Lo que faltaba es recibirlo: su padre
    —`pulso-page-frame-body--fill`— es flex y esto era `flex: 0 1 auto`, así que
@@ -62,21 +32,25 @@
    2026-08-23: 463px de panel dentro de un workbench de 825, con 380 en blanco
    debajo, mientras Accesos —que sí tiene pestañas— llenaba. Con la fila fija, la
    1 queda vacía cuando no hay lista y el contenido toma igual el `1fr`. */
-.rec-tab-list {
-  grid-row: 1;
-}
-
 .rec-tab-panel,
 .rec-editor {
   grid-row: 2;
 }
 
-.rec-tab-list {
-  background: var(--pulso-surface-2);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-panel);
-  justify-self: start;
-  padding: 3px;
+/* Con rail, el workbench es una sola fila: rail de pestañas + panel dentro del
+   marco de `AdaptiveSplitView`, el mismo encaje que Carga y Gráficos. */
+.rec-workbench--rail {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.rec-workbench--rail > .rec-workbench-split {
+  grid-row: 1;
+  min-height: 0;
+}
+
+.rec-workbench-split > .rec-tab-panel {
+  grid-row: auto;
+  padding: var(--pulso-rail-bubble-offset);
 }
 
 .rec-tab-panel {
@@ -104,9 +78,21 @@
   }
 }
 
+/* Vacío de una sección sin plan (VacioSinPlanCard). La receta es la de la casa
+   (`EstadoVacio`, tamaño normal): título, una línea y una acción. Alto
+   intrínseco y ancho de lectura; arranca arriba, donde empieza el contenido de
+   las demás secciones, en vez de flotar en una caja de pantalla entera. C3: la
+   caja es suya y no reclama el alto del panel. */
+.rec-vacio-sin-plan {
+  align-self: start;
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: var(--pulso-space-5) auto 0;
+  width: min(100%, 520px);
+}
+
 .rec-loading,
-.rec-contained-empty,
-.rec-empty-state {
+.rec-contained-empty {
   align-items: center;
   color: var(--pulso-text-soft);
   display: flex;
@@ -148,30 +134,8 @@
   padding: 8px 12px;
 }
 
-/* Mismo recipe glass que .pulso-panel (theme.css) — ver access.css. Es el
-   estado más visto del módulo (Recopiladores sin plan aún). */
-.rec-empty-state {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 46%),
-    color-mix(in srgb, var(--pulso-surface) 92%, transparent);
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 76%, var(--pulso-border-strong));
-  border-radius: var(--pulso-radius-card);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    var(--pulso-shadow-soft);
-  flex-direction: column;
-  gap: 10px;
-  min-height: var(--pulso-operational-min-panel);
-}
-
-.rec-empty-state h2,
-.rec-empty-state p,
 .rec-contained-empty {
   margin: 0;
-}
-
-.rec-empty-state p {
-  max-width: 600px;
 }
 
 .rec-contained-empty {

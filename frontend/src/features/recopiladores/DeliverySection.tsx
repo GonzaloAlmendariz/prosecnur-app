@@ -12,12 +12,16 @@ import { CheckCircle2, Download, FileCheck2, Loader2, Send, ShieldCheck } from "
 import { handoffReadiness } from "./handoffModel";
 import { juzgarMaterialesDelPlan } from "./materialesDelPlanVigente";
 import { providerLabel } from "./providerRules";
+import { VacioSinPlanCard } from "./VacioSinPlanCard";
+import { vacioSinPlan } from "./vacioSinPlan";
 import "./styles/delivery.css";
 
 type Props = {
   payload: CollectionStatePayload | null;
   latestArtifact: CollectionArtifactReceipt | null;
   onState: (payload: CollectionStatePayload) => void;
+  /** Navega a una dirección de la app (la acción del vacío sin plan). */
+  onIr?: (to: string) => void;
 };
 
 function shortFingerprint(value: string | null | undefined) {
@@ -25,7 +29,7 @@ function shortFingerprint(value: string | null | undefined) {
   return value.length > 24 ? `${value.slice(0, 18)}…${value.slice(-8)}` : value;
 }
 
-export function DeliverySection({ payload, latestArtifact, onState }: Props) {
+export function DeliverySection({ payload, latestArtifact, onState, onIr }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const deployment = payload?.state.deployment ?? null;
@@ -58,6 +62,13 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
       setBusy(false);
     }
   };
+
+  // Sin plan, sin accesos, sin recibo y sin materiales no hay nada que
+  // entregar ni que mostrar: el vacío lo dice y lleva a Unidades. Con
+  // cualquiera de ellos se pinta la mesa, porque hay algo que leer.
+  if (!payload?.state.plan && !deployment && !receipt && !artifacts.length) {
+    return <VacioSinPlanCard vacio={vacioSinPlan("entrega")} icono={<Send size={18} />} onIr={onIr} />;
+  }
 
   return (
     <div className="rec-delivery-layout">

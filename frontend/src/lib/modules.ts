@@ -155,6 +155,10 @@ export type ProsecnurModuleMeta = {
   slug: ProsecnurModuleSlug;
   title: string;
   shortLabel: string;
+  /** Nombre en la tarjeta del home cuando `shortLabel` lo recorta más de la
+      cuenta. `shortLabel` sigue gobernando el rail y los tiles del chrome,
+      donde el ancho sí manda; la tarjeta tiene sitio para el nombre entero. */
+  cardTitle?: string;
   tagline: string;
   blurb: string;
   features: string[];
@@ -504,7 +508,8 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     },
     title: "Material de campo",
     shortLabel: "Material",
-    tagline: "Lo que el equipo lleva a campo para cada unidad",
+    cardTitle: "Material de campo",
+    tagline: "Fichas, accesos y paquetes",
     blurb:
       "Produce y entrega el material de campo de cada unidad que otro módulo decidió: accesos, fichas imprimibles y paquetes listos para el equipo, con constancia de qué recibió cada unidad.",
     features: [

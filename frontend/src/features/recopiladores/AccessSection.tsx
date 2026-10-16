@@ -28,6 +28,8 @@ import {
 } from "./providerRules";
 import type { RecopiladoresPestana } from "./navegacion";
 import { TableScroll } from "./TableScroll";
+import { VacioSinPlanCard } from "./VacioSinPlanCard";
+import { vacioSinPlan } from "./vacioSinPlan";
 import { mapaDeCodigosDelPlan, titularesDelPlan } from "./codigoOperativo";
 import "./styles/access.css";
 
@@ -35,6 +37,8 @@ type Props = {
   payload: CollectionStatePayload | null;
   activeTab: RecopiladoresPestana;
   onState: (payload: CollectionStatePayload) => void;
+  /** Navega a una dirección de la app (la acción del vacío sin plan). */
+  onIr?: (to: string) => void;
 };
 
 const PROVIDER_BY_ADAPTER: Record<CollectionAdapterId, string> = {
@@ -134,7 +138,7 @@ function policyLabel(value: string | undefined): string | null {
   return POLICY_LABELS[value as CapabilityPolicy] ?? value;
 }
 
-export function AccessSection({ payload, activeTab, onState }: Props) {
+export function AccessSection({ payload, activeTab, onState, onIr }: Props) {
   const plan = payload?.state.plan ?? null;
   const currentDeployment = payload?.state.deployment ?? null;
   const [adapterId, setAdapterId] = useState<CollectionAdapterId>(
@@ -257,7 +261,7 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
   };
 
   if (!plan) {
-    return <div className="rec-contained-empty" data-qa-geometry-capacity="owned">Crea o adapta un plan antes de configurar accesos.</div>;
+    return <VacioSinPlanCard vacio={vacioSinPlan("accesos")} icono={<Link2 size={18} />} onIr={onIr} />;
   }
 
   return (

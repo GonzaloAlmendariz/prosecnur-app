@@ -589,7 +589,7 @@ collection_material_builtin_template <- function() {
         # mas gap— es sitio que el QR y los datos si aprovechan.
         list(block_id = "rule", type = "divider"),
         list(
-          block_id = "log", type = "application_log", text = "Registro de aplicacion",
+          block_id = "log", type = "application_log", text = "Registro de aplicaci\u00f3n",
           rows = 5L, labels = as.list(collection_material_application_log_labels())
         ),
         list(block_id = "footer", type = "footer", binding = "project.period")
@@ -653,7 +653,7 @@ collection_material_branded_sheet_template <- function(assets, status_tag = NULL
     if (nzchar(trimws(instructions))) {
       list(block_id = "instructions", type = "instructions", text = instructions, max_lines = 4L)
     } else NULL,
-    list(block_id = "log", type = "application_log", text = "Registro de aplicacion",
+    list(block_id = "log", type = "application_log", text = "Registro de aplicaci\u00f3n",
          rows = as.integer(log_rows),
          labels = as.list(utils::head(collection_material_application_log_labels(), log_rows))),
     list(block_id = "footer", type = "footer", binding = "project.period")

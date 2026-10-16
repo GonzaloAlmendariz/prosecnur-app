@@ -15,6 +15,8 @@ import {
 import { TableScroll } from "./TableScroll";
 import "./styles/plan.css";
 import { ComposicionPorFacultad } from "./ComposicionPorFacultad";
+import { VacioSinPlanCard } from "./VacioSinPlanCard";
+import { vacioSinPlan, type DestinoDelVacio } from "./vacioSinPlan";
 import { capitalizarDelMarco } from "./textoDelMarco";
 import { codigoOperativoDe } from "./codigoOperativo";
 import { formaDelOperativo, type FormaDelOperativo } from "./formaDelOperativo";
@@ -23,6 +25,10 @@ import { nombreCortoDeFacultad } from "./nombreDeFacultad";
 type Props = {
   payload: CollectionStatePayload | null;
   onState: (payload: CollectionStatePayload) => void;
+  /** Módulo de donde sale la lista de unidades; destino del vacío sin plan. */
+  origen?: DestinoDelVacio;
+  /** Navega a una dirección de la app (la acción del vacío). */
+  onIr?: (to: string) => void;
 };
 
 function value(value: unknown) {
@@ -194,7 +200,7 @@ export function fechaDeCorrida(runId: string | null | undefined) {
   return `${Number(d)} ${meses[mi]} ${a}, ${h}:${min}`;
 }
 
-export function PlanSection({ payload, onState }: Props) {
+export function PlanSection({ payload, onState, origen, onIr }: Props) {
   const [seeding, setSeeding] = useState(false);
   const [requestedPage, setRequestedPage] = useState(0);
   const [error, setError] = useState("");
@@ -230,21 +236,25 @@ export function PlanSection({ payload, onState }: Props) {
 
   if (!plan) {
     const seedAvailable = payload?.seed_available === true;
+    // Con semilla, la acción que resuelve el vacío está aquí mismo: adaptarla.
+    // Sin ella, la acción lleva al módulo de donde sale la selección.
     return (
-      <div className="rec-empty-state" data-qa-geometry-capacity="owned">
-        <DatabaseZap size={28} aria-hidden />
-        <h2>Aún no hay unidades para Material de campo</h2>
-        <p>{seedAvailable
-          ? "Este proyecto conserva una selección o un plan de aulas compatible. Puedes adaptarlo una sola vez."
-          : "Primero entrega una selección desde su módulo de origen para preparar la recolección."}</p>
-        {seedAvailable ? (
-          <PulsoButton variant="primary" onClick={() => { void seed(); }} disabled={seeding}>
-            {seeding ? <Loader2 size={15} className="pulso-spin" /> : <DatabaseZap size={15} />}
-            Adaptar fuente disponible
-          </PulsoButton>
-        ) : null}
+      <VacioSinPlanCard
+        vacio={vacioSinPlan("unidades", origen)}
+        icono={<DatabaseZap size={18} />}
+        onIr={onIr}
+        descripcion={seedAvailable
+          ? "El proyecto conserva una selección compatible."
+          : undefined}
+        accionPropia={seedAvailable ? {
+          label: "Adaptar fuente disponible",
+          icono: <DatabaseZap size={14} />,
+          ocupado: seeding,
+          onSelect: () => { void seed(); },
+        } : undefined}
+      >
         {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}
-      </div>
+      </VacioSinPlanCard>
     );
   }
 

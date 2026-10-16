@@ -50,7 +50,8 @@ describe("adaptación del plan legacy", () => {
       <PlanSection payload={emptyPayload(false)} onState={() => undefined} />,
     );
     expect(markup).not.toContain("Adaptar fuente disponible");
-    expect(markup).toContain("entrega una selección desde su módulo de origen");
+    expect(markup).toContain("Sin unidades en el plan");
+    expect(markup).toContain("Llegan de la selección de la muestra");
   });
 
   it("ofrece adaptación solo cuando el backend declara una semilla", () => {
@@ -58,7 +59,7 @@ describe("adaptación del plan legacy", () => {
       <PlanSection payload={emptyPayload(true)} onState={() => undefined} />,
     );
     expect(markup).toContain("Adaptar fuente disponible");
-    expect(markup).toContain("selección o un plan de aulas compatible");
+    expect(markup).toContain("conserva una selección compatible");
   });
 });
 
