@@ -271,7 +271,7 @@ function TablaSegmentos({
                   <th scope="row">
                     <span className="pulso-seg-fila-nombre">
                       <strong>{s.etiqueta}</strong>
-                      <code>{s.nombre}</code>
+                      <code title={s.nombre}>{s.nombre}</code>
                     </span>
                   </th>
                   {bases.map((b) => {
@@ -303,10 +303,10 @@ function TablaSegmentos({
                           size="sm"
                           className="pulso-armon-btn"
                           aria-label={`Editar ${s.nombre}`}
+                          title="Editar"
                           onClick={() => onEditar(s.clave)}
                         >
                           <Pencil size={13} aria-hidden="true" />
-                          Editar
                         </PulsoButton>
                         <PulsoButton
                           variant="ghost"
@@ -314,10 +314,10 @@ function TablaSegmentos({
                           className="pulso-armon-btn"
                           disabled={quitando}
                           aria-label={`Quitar ${s.nombre}`}
+                          title="Quitar"
                           onClick={() => setConfirmando(s.clave)}
                         >
                           <Trash2 size={13} aria-hidden="true" />
-                          Quitar
                         </PulsoButton>
                       </span>
                     )}

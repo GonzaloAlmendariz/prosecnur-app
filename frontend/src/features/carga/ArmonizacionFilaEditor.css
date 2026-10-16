@@ -384,15 +384,9 @@
   font-size: 12.5px;
 }
 
-/* «Sin mapa» resaltado: borde de aviso a la izquierda y fondo, nunca sólo color. */
-.pulso-armon-tabla tr.is-sin-mapa td {
-  background: var(--pulso-warn-bg);
-}
-
-.pulso-armon-tabla tr.is-sin-mapa td:first-child {
-  box-shadow: inset 3px 0 0 var(--pulso-warn-border);
-}
-
+/* «Sin mapa»: el aviso va en el selector (borde, color y el texto «Sin mapa»),
+   no en la fila entera: una base recién elegida tiene todo sin mapa y la tabla
+   no puede empezar pintada de amarillo. */
 .pulso-armon-tabla tr.is-sin-mapa select {
   border-color: var(--pulso-warn-border);
   color: var(--pulso-warn-fg);
@@ -660,6 +654,23 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
   font-size: 12.5px;
+}
+
+.pulso-armon-masa.is-vacia {
+  min-height: 46px;
+  background: transparent;
+  border-style: dashed;
+}
+
+.pulso-armon-masa-ayuda {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-armon-masa {
+  min-height: 46px;
 }
 
 .pulso-armon-masa-cuenta {

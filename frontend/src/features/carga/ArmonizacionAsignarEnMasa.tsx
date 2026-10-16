@@ -32,9 +32,21 @@ export function ArmonizacionAsignarEnMasa({
 }: ArmonizacionAsignarEnMasaProps) {
   const [eleccion, setEleccion] = useState("");
   const idSelector = `pulso-armon-masa-${base.replace(/[^A-Za-z0-9_-]/g, "_")}`;
+  // Sin nada marcado, la barra explica para qué sirven las casillas y ofrece el
+  // atajo; con algo marcado, pide la categoría. Mismo alto en los dos estados (C2).
+  if (nMarcados === 0) {
+    return (
+      <div className="pulso-armon-masa is-vacia" role="group" aria-label={`Asignar varios códigos de ${base}`}>
+        <span className="pulso-armon-masa-ayuda">Marca varios códigos para asignarlos juntos a una categoría.</span>
+        {nSinMapa > 0 && (
+          <PulsoButton variant="ghost" size="sm" className="pulso-armon-btn" onClick={onMarcarSinMapa}>
+            {nSinMapa === 1 ? "Marcar el sin mapa" : `Marcar los ${nSinMapa} sin mapa`}
+          </PulsoButton>
+        )}
+      </div>
+    );
+  }
   return (
-    // C1: miembro de la sección de la base; la barra mantiene su marco con 0
-    // o con todos los códigos marcados (C2), sólo cambian los habilitados.
     <div className="pulso-armon-masa" role="group" aria-label={`Asignar varios códigos de ${base}`}>
       <span className="pulso-armon-masa-cuenta" aria-live="polite">{textoMarcados(nMarcados)}</span>
       <span aria-hidden="true" className="pulso-armon-masa-flecha">→</span>
@@ -57,29 +69,14 @@ export function ArmonizacionAsignarEnMasa({
         variant="secondary"
         size="sm"
         className="pulso-armon-btn"
-        disabled={nMarcados === 0 || !eleccion}
+        disabled={!eleccion}
         onClick={() => onAsignar(eleccion)}
       >
         Asignar
       </PulsoButton>
       <span className="pulso-armon-masa-sep" aria-hidden="true" />
-      <PulsoButton
-        variant="ghost"
-        size="sm"
-        className="pulso-armon-btn"
-        disabled={nSinMapa === 0}
-        onClick={onMarcarSinMapa}
-      >
-        Marcar todos los sin mapa
-      </PulsoButton>
-      <PulsoButton
-        variant="ghost"
-        size="sm"
-        className="pulso-armon-btn"
-        disabled={nMarcados === 0}
-        onClick={onLimpiar}
-      >
-        Limpiar
+      <PulsoButton variant="ghost" size="sm" className="pulso-armon-btn" onClick={onLimpiar}>
+        Desmarcar
       </PulsoButton>
     </div>
   );
