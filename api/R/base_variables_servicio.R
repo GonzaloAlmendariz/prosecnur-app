@@ -142,11 +142,20 @@ base_variables_guardar_calculada <- function(sid, base, cuerpo, marca = list()) 
   propias <- vapply(meta[["variables_propias"]] %||% list(),
                     function(p) .origen_externo_chr(p[["name"]]), character(1))
   ocupados <- unique(c(.base_variables_nombres_instrumento(par$inst), names(par$data), propias))
-  cv <- base_variables_validar_calculada(cuerpo, columnas = names(par$data), ocupados = ocupados)
-  if (length(marca)) cv[names(marca)] <- marca
   calcs <- meta[["variables_calculadas"]] %||% list()
   previas <- vapply(calcs, function(x) .origen_externo_chr(x[["nombre"]]), character(1))
-  calcs <- c(calcs[previas != cv$nombre], list(cv))
+  nuevo <- .origen_externo_chr((cuerpo %||% list())[["nombre"]])
+  # Puede partir de las calculadas declaradas ANTES que ella (las de después
+  # podrían depender de ésta): se materializan en orden y sus columnas cuentan.
+  posicion <- match(nuevo, previas)
+  anteriores <- if (is.na(posicion)) calcs else calcs[seq_len(posicion - 1L)]
+  datos <- base_variables_materializar(par$data, utils::modifyList(meta, list(variables_calculadas = anteriores)))
+  listas <- .base_variables_con_lista(par$inst, meta[["variables_propias"]], anteriores)
+  cv <- base_variables_validar_calculada(cuerpo, columnas = names(datos), ocupados = ocupados,
+                                         con_lista = listas$con_lista, multiples = listas$multiples)
+  if (length(marca)) cv[names(marca)] <- marca
+  # Reemplazar en su lugar conserva el orden de cálculo.
+  if (is.na(posicion)) calcs <- c(calcs, list(cv)) else calcs[[posicion]] <- cv
   meta$variables_calculadas <- calcs
   s$estudio$bases[[nombre_base]] <- meta
   .session_env[[sid]] <- s
@@ -154,8 +163,24 @@ base_variables_guardar_calculada <- function(sid, base, cuerpo, marca = list()) 
   list(
     base = nombre_base,
     calculada = cv,
-    resumen = base_variables_resumen_calculada(base_variables_calcular(par$data, cv), cv),
+    resumen = base_variables_resumen_calculada(base_variables_calcular(datos, cv), cv),
     calculadas = calcs
+  )
+}
+
+# Qué variables tienen lista de respuestas (sus 80–99 son sin dato en una
+# fórmula) y cuáles admiten varias respuestas (una fórmula no las admite).
+.base_variables_con_lista <- function(inst, propias, calculadas) {
+  sv <- (inst %||% list())$survey %||% data.frame(type = character(0), name = character(0))
+  tipo <- trimws(as.character(sv$type))
+  nombre <- as.character(sv$name)
+  propias_one <- vapply(Filter(function(p) identical(.origen_externo_chr(p[["tipo"]]), "select_one"), propias %||% list()),
+                        function(p) .origen_externo_chr(p[["name"]]), character(1))
+  calc_lista <- vapply(Filter(function(cv) !identical(.origen_externo_chr(cv[["regla"]]), "formula"), calculadas %||% list()),
+                       function(cv) .origen_externo_chr(cv[["nombre"]]), character(1))
+  list(
+    con_lista = unique(c(nombre[grepl("^select_one\\b", tipo)], propias_one, calc_lista)),
+    multiples = unique(nombre[grepl("^select_multiple\\b", tipo)])
   )
 }
 
@@ -172,6 +197,13 @@ base_variables_quitar_calculada <- function(sid, base, nombre) {
     stop_api(404, "E_BASE_VARIABLE_NO_ENCONTRADA", sprintf(
       "La base «%s» no tiene una variable calculada «%s».", nombre_base, nombre),
       list(base = nombre_base, nombre = nombre))
+  }
+  dependen <- previas[vapply(calcs, function(cv) nombre %in% .base_variables_lista(cv[["variables"]]), logical(1))]
+  if (length(dependen)) {
+    stop_api(409, "E_BASE_VARIABLE_EN_USO", sprintf(
+      "«%s» se usa para calcular %s: quita primero %s.", nombre,
+      paste(sprintf("«%s»", dependen), collapse = ", "), if (length(dependen) == 1L) "esa variable" else "esas variables"),
+      list(nombre = nombre, dependen = as.list(dependen)))
   }
   meta$variables_calculadas <- calcs[previas != nombre]
   s$estudio$bases[[nombre_base]] <- meta
