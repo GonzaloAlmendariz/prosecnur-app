@@ -75,7 +75,7 @@ const SECTION_COPY: Record<RecopiladoresSeccion, { title: string; lead: string }
     lead: "Las fichas de todas las unidades, agrupadas para el reparto en campo.",
   },
   entrega: {
-    title: "Entrega a campo",
+    title: "Entrega",
     lead: "Cierra el plan y deja constancia de qué se entregó. Repetirla no duplica nada, y Monitoreo la lee de ahí.",
   },
 };
