@@ -15,7 +15,7 @@
 import { CheckCircle2, Check, GitCompareArrows, Minus, Pencil, Plus, Trash2 } from "../../vendor/lucide-react";
 import type { VariableDeBase } from "../../api/equivalencias";
 import { variablesTomadas, type FilaEditor } from "./equivalenciasEditorModel";
-import { focoDeFila } from "./armonizacionModel";
+import { focoDeFila, resumenDeEscala } from "./armonizacionModel";
 import { indicadorDeEscala, type IndicadorDeEscala } from "./preguntaEquivalenteModel";
 import { PreguntaCombobox } from "./PreguntaCombobox";
 import { CoberturaBases } from "./CoberturaBases";
@@ -83,7 +83,10 @@ function EscalaDeFila({
   }
   const foco = focoDeFila(fila);
   const nombre = fila.etiqueta_estandar || "esta pregunta";
+  // Con escala común declarada, se ve cuál es: el estado solo no dice cómo se armonizó.
+  const resumen = fila.armonizacion?.escala.length ? resumenDeEscala(fila) : "";
   return (
+    <div className="pulso-equiv-escala-celda">
     <button
       type="button"
       className={`pulso-equiv-escala is-${ind.tono}`}
@@ -96,6 +99,12 @@ function EscalaDeFila({
       {icono}
       <span>{ind.texto}</span>
     </button>
+    {resumen ? (
+      <span className="pulso-equiv-escala-resumen" title={`Escala común: ${resumen}`}>
+        {resumen}
+      </span>
+    ) : null}
+    </div>
   );
 }
 
