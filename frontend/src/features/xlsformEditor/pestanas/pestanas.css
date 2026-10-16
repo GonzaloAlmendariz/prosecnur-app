@@ -125,3 +125,17 @@
   .xfp-reglas { grid-template-columns: 240px minmax(0, 1fr); }
   .xfp-fila2 { grid-template-columns: minmax(0, 1fr); }
 }
+
+.xfp-ejemplos { margin: 0; padding: 0; list-style: none; }
+.xfp-ejemplos li {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  grid-template-areas: "titulo lee" "titulo formula";
+  gap: 4px 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+.xfp-ejemplos li:last-child { border-bottom: 0; }
+.xfp-ejemplos__titulo { grid-area: titulo; font-size: 13px; font-weight: 600; color: var(--pulso-text); }
+.xfp-ejemplos__lee { grid-area: lee; font-size: 13px; color: var(--pulso-text-soft); }
+.xfp-ejemplos__formula { grid-area: formula; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--pulso-text-muted); overflow-wrap: anywhere; }

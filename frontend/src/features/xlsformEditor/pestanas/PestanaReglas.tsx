@@ -24,11 +24,13 @@ export type PestanaReglasProps = {
   seleccionada: string | null;
   onSeleccionar: (key: string) => void;
   vacio: ReactNode;
+  /** Lo que ocupa el detalle cuando la lista está vacía: el vacío se explica, no se deja en blanco. */
+  vacioDetalle: ReactNode;
   pie?: ReactNode;
   children: ReactNode;
 };
 
-export function PestanaReglas({ titulo, total, grupos, seleccionada, onSeleccionar, vacio, pie, children }: PestanaReglasProps) {
+export function PestanaReglas({ titulo, total, grupos, seleccionada, onSeleccionar, vacio, vacioDetalle, pie, children }: PestanaReglasProps) {
   const hayItems = grupos.some((g) => g.items.length > 0);
   return (
     <div className="xfp-reglas">
@@ -67,9 +69,9 @@ export function PestanaReglas({ titulo, total, grupos, seleccionada, onSeleccion
               )
             : <div className="xfp-reglas__vacio">{vacio}</div>}
         </div>
-        {pie ? <footer className="xfp-reglas__lista-pie">{pie}</footer> : null}
+        {pie && hayItems ? <footer className="xfp-reglas__lista-pie">{pie}</footer> : null}
       </aside>
-      <main className="xfp-reglas__detalle">{children}</main>
+      <main className="xfp-reglas__detalle">{hayItems ? children : vacioDetalle}</main>
     </div>
   );
 }

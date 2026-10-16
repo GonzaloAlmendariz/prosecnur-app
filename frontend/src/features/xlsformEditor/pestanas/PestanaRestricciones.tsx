@@ -53,6 +53,13 @@ export function PestanaRestricciones({ structure, scope, seleccionada, onSelecci
       seleccionada={actual?.node.name ?? null}
       onSeleccionar={onSeleccionar}
       vacio="Este formulario no tiene preguntas de número ni de fecha, ni reglas de qué aceptan."
+      vacioDetalle={
+        <PanelCard title="Sin restricciones" fill flush>
+          <ReadsAs label="Qué es">Una regla de qué acepta una pregunta: un rango de edad, un formato de correo, un año que no puede ser futuro.</ReadsAs>
+          <ReadsAs label="En XLSForm">La columna <span className="xfk-mono">constraint</span>, con su mensaje en <span className="xfk-mono">constraint_message</span>.</ReadsAs>
+          <ReadsAs label="Dónde aparecen">Cada pregunta de número o fecha aparecerá aquí como sugerida, y las que tengan regla, con su lectura.</ReadsAs>
+        </PanelCard>
+      }
       pie="Una restricción no deja avanzar a quien responde fuera de la regla: le muestra tu mensaje."
     >
       {actual ? (
