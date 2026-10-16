@@ -1,4 +1,4 @@
-test_that("router de Recopiladores declara exactamente las diecinueve rutas V1", {
+test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve + ocho de correo)", {
   source_path <- test_path("..", "..", "R", "router_recopiladores.R")
   text <- paste(readLines(source_path, warn = FALSE), collapse = "\n")
   routes <- regmatches(
@@ -35,7 +35,17 @@ test_that("router de Recopiladores declara exactamente las diecinueve rutas V1",
     # Y su historico: que enlace tenia cada una y cuando se hizo.
     "/api/recopiladores/materials/pruebas",
     "/api/recopiladores/provider-preflight",
-    "/api/recopiladores/deployment/preview"
+    "/api/recopiladores/deployment/preview",
+    # Correos para Mailchimp (ADR 0110 §2, E1f): la plantilla persiste en
+    # collection_state; los destinatarios solo en el tempdir de la sesión.
+    "/api/recopiladores/mail-presets",
+    "/api/recopiladores/mail-template",
+    "/api/recopiladores/mail-template/preview",
+    "/api/recopiladores/mail-template/review",
+    "/api/recopiladores/mail-template/export",
+    "/api/recopiladores/mail-recipients/import",
+    "/api/recopiladores/mail-recipients",
+    "/api/recopiladores/mail-recipients/mapping"
   ))
   expect_false(grepl("httr|curl|POST.*https|PATCH.*https|DELETE.*https", text, ignore.case = TRUE))
   expect_match(text, 'pr_get\\("/api/recopiladores/material-template"')
