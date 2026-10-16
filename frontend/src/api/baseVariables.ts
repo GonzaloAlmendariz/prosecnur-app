@@ -41,6 +41,8 @@ export type VariableCalculada = {
   expresion?: string;
   /** Sólo en `formula`: variables cuyos 80–99 cuentan como sin dato. */
   especiales_na?: string[];
+  /** Clave del segmento de cruce que la materializa (ADR 0107): se edita en Segmentos, no aquí. */
+  segmento?: string;
 };
 
 export type AvisoBaseVariables = { codigo: "no_declarada" | "codificacion_aplicada" | "otro"; mensaje: string };
@@ -161,6 +163,7 @@ export function normalizarCalculada(raw: unknown): VariableCalculada | null {
       : [{ codigo: "1", etiqueta: "Sí" }, { codigo: "0", etiqueta: "No" }],
     expresion: reglaLeida === "formula" ? texto(r.expresion) : "",
     especiales_na: reglaLeida === "formula" ? textos(r.especiales_na) : [],
+    segmento: texto(r.segmento) || undefined,
   };
 }
 
