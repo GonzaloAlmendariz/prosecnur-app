@@ -1,4 +1,5 @@
 import "../styles/xf-canvas.css";
+import "./constructor/panelConfiguracion.css";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { GlidingTabList } from "../../../components/GlidingTabList";

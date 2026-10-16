@@ -174,6 +174,9 @@ export function ResponseTab({
   );
 }
 
+/** Cuántas preguntas que comparten la lista se muestran antes de «Ver las N restantes» (yesno: 33 en el corpus). */
+const MAX_COMPARTIDAS = 6;
+
 export function FocusedCatalogInfo({
   info,
   usageCount,
@@ -187,6 +190,7 @@ export function FocusedCatalogInfo({
   onSelectRow: (rowIndex: number) => void;
   onCloneCatalog?: () => void;
 }) {
+  const [verTodas, setVerTodas] = useState(false);
   return (
     <div className="pulso-focus-catalog-summary">
       <div className="pulso-focus-catalog-summary-grid">
@@ -198,7 +202,7 @@ export function FocusedCatalogInfo({
       {info.sharedWith.length > 0 && (
         <div className="pulso-focus-shared-list">
           <span className="pulso-section-eyebrow">También usa esta lista</span>
-          {info.sharedWith.map((question) => (
+          {(verTodas ? info.sharedWith : info.sharedWith.slice(0, MAX_COMPARTIDAS)).map((question) => (
             <button
               key={question.rowIndex}
               type="button"
@@ -207,6 +211,11 @@ export function FocusedCatalogInfo({
               {question.label || question.name || `fila ${question.rowIndex + 1}`}
             </button>
           ))}
+          {info.sharedWith.length > MAX_COMPARTIDAS && (
+            <button type="button" className="pulso-focus-shared-more" onClick={() => setVerTodas((v) => !v)}>
+              {verTodas ? "Ver menos" : `Ver las ${info.sharedWith.length - MAX_COMPARTIDAS} restantes`}
+            </button>
+          )}
           {onCloneCatalog && (
             <button type="button" className="pulso-focus-link-action" onClick={onCloneCatalog}>
               Crear copia exclusiva
