@@ -29,6 +29,7 @@ export { default as ArrowUpDown } from "lucide-react/dist/esm/icons/arrow-up-dow
 export { default as ArrowUpRight } from "lucide-react/dist/esm/icons/arrow-up-right.mjs";
 export { default as Asterisk } from "lucide-react/dist/esm/icons/asterisk.mjs";
 export { default as Award } from "lucide-react/dist/esm/icons/award.mjs";
+export { default as Backpack } from "lucide-react/dist/esm/icons/backpack.mjs";
 export { default as Ban } from "lucide-react/dist/esm/icons/ban.mjs";
 export { default as BarChart } from "lucide-react/dist/esm/icons/chart-no-axes-column-increasing.mjs";
 export { default as BarChart2 } from "lucide-react/dist/esm/icons/chart-no-axes-column.mjs";

@@ -62,9 +62,18 @@
   --pulso-module-workplan: var(--pulso-module-encyclopedia);
   --pulso-module-workplan-soft: var(--pulso-module-encyclopedia-soft);
   --pulso-module-workplan-border: var(--pulso-module-encyclopedia-border);
-  --pulso-module-collectors: #106e8c;
-  --pulso-module-collectors-soft: rgba(16, 110, 140, 0.13);
-  --pulso-module-collectors-border: rgba(16, 110, 140, 0.3);
+  /* Material de campo (ADR 0108): acento Musgo, OKLCH 0.516·0.111·132°,
+   * 5.37:1 sobre blanco. Reemplaza al petróleo #106e8c de Recopiladores. */
+  --pulso-module-fieldkit: #4f752c;
+  --pulso-module-fieldkit-soft: rgba(79, 117, 44, 0.13);
+  --pulso-module-fieldkit-border: rgba(79, 117, 44, 0.3);
+  /* Deprecado: alias de fieldkit para CSS heredado de Recopiladores. No usar
+   * en código nuevo; se retira cuando no quede consumidor. Vive sólo aquí
+   * porque boot.css es el chunk de entrada (global) y tokens.css está
+   * congelado a crecimiento. */
+  --pulso-module-collectors: var(--pulso-module-fieldkit);
+  --pulso-module-collectors-soft: var(--pulso-module-fieldkit-soft);
+  --pulso-module-collectors-border: var(--pulso-module-fieldkit-border);
   --pulso-module-monitoring: #a0464e;
   --pulso-module-monitoring-soft: rgba(160, 70, 78, 0.12);
   --pulso-module-monitoring-border: rgba(160, 70, 78, 0.3);

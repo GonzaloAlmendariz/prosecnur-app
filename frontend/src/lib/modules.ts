@@ -28,6 +28,7 @@ import {
   IconCollector,
   IconDashboard,
   IconEditor,
+  IconFieldKit,
   IconGpsValid,
   IconMonitor,
   IconOpen,
@@ -35,6 +36,7 @@ import {
   IconRoutes,
   IconSample,
   IconStudyDesign,
+  IconTemplate,
   IconWorkPlan,
 } from "./icons";
 import { MONITOREO_PESTANAS } from "./navegacion/catalogos/monitoreo";
@@ -206,9 +208,9 @@ export const MODULE_TONES: Record<ProsecnurModuleSlug, ProsecnurModuleTone> = {
   // El color propio de Material de campo llega en la etapa E0b (ADR 0108 §7);
   // mientras tanto conserva el acento que tenía Recopiladores.
   "material-campo": {
-    accent: "var(--pulso-module-collectors)",
-    accentSoft: "var(--pulso-module-collectors-soft)",
-    accentBorder: "var(--pulso-module-collectors-border)",
+    accent: "var(--pulso-module-fieldkit)",
+    accentSoft: "var(--pulso-module-fieldkit-soft)",
+    accentBorder: "var(--pulso-module-fieldkit-border)",
   },
   monitoreo: {
     accent: "var(--pulso-module-monitoring)",
@@ -513,7 +515,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
       "Paquetes agrupados para el reparto en campo",
       "Entrega registrada para Monitoreo",
     ],
-    icon: IconCollector,
+    icon: IconFieldKit,
     tone: MODULE_TONES["material-campo"],
     to: "/material-campo",
     landingKind: "section",
@@ -541,7 +543,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
       {
         id: "accesos",
         label: "Accesos",
-        icon: Link2,
+        icon: IconCollector,
         to: "/material-campo?seccion=accesos",
         layoutPolicy: "viewport",
         tabs: [
@@ -564,14 +566,14 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
       {
         id: "catalogo",
         label: "Catálogo",
-        icon: IconCollector,
+        icon: IconTemplate,
         to: "/material-campo?seccion=catalogo",
         layoutPolicy: "viewport",
         tabs: [
           {
             id: "editor",
             label: "Editor",
-            icon: IconCollector,
+            icon: IconTemplate,
             to: "/material-campo?seccion=catalogo&pestana=editor",
             layoutPolicy: "viewport",
           },

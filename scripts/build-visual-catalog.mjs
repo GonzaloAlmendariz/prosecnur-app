@@ -61,7 +61,8 @@ const MODULES = [
   {
     id: "material-campo",
     label: "Material de campo",
-    accent: "#106E8C",
+    // Musgo, = --pulso-module-fieldkit (ADR 0108 §7, identidad 1.4.0).
+    accent: "#4F752C",
     // La carpeta del feature conserva el nombre `recopiladores` (ADR 0108).
     aliases: ["recopiladores"],
   },

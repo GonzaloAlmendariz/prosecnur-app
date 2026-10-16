@@ -5,8 +5,8 @@
     "name": "Prosecnur — La señal ordenada (identidad visual v1.2)",
     "mode": "reconstruction",
     "status": "frozen",
-    "version": "1.3.0",
-    "manifest_hash": "sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3",
+    "version": "1.4.0",
+    "manifest_hash": "sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2",
     "owners": [
       "Gonzalo Almendáriz (PULSO PUCP)"
     ]
@@ -134,7 +134,7 @@
       "findings": [
         "MODULE_TONES: 9 slugs con triada accent/accentSoft/accentBorder vía var(--pulso-module-*); plan-trabajo aliasado al ámbar de Bitácora (encyclopedia)",
         "Inyección del acento por variable: moduleChromeVars() → --module-accent/-soft/-border, homeModuleVars() → --home-mod-accent/-soft/-border",
-        "Títulos de módulo canónicos: Bitácora, Cálculo de muestra y marco muestral, Editor de formularios, Hojas de ruta para campo, Fichas QR para cursos-horario, Monitoreo de campo, Procesamiento, Dashboard interactivo"
+        "Títulos de módulo canónicos: Bitácora, Cálculo de muestra y marco muestral, Editor de formularios, Hojas de ruta para campo, Material de campo, Monitoreo de campo, Procesamiento, Dashboard interactivo"
       ]
     },
     {
@@ -317,6 +317,19 @@
       "rationale": "La escala tipográfica de peso se reduce a seis escalones —400/500/600/700/800/900— y el manifiesto deja de prescribir valores intermedios: display pasa de 680 a 800 (heavy) y title de 640 a 700 (bold), que son los pesos que la app aplica realmente en esos tamaños (h1.pulso-page-title es 22px/700; los displays de 24-28px usan heavy). El motivo es que antes convivían 44 pesos distintos repartidos en ~4.800 declaraciones, con lo que dos elementos del mismo rango se veían distinto según el archivo que los definiera. Los 620/680 de la firma de motion de diagramas son milisegundos y no se tocan.",
       "evidence_ids": [
         "ev-theme-css"
+      ]
+    },
+    {
+      "id": "dec-acento-material-campo-musgo",
+      "gate": "change-request",
+      "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+      "timestamp": "2026-10-16T15:00:00Z",
+      "status": "approved",
+      "rationale": "Recopiladores se renombra Material de campo (ADR 0108) y su acento pasa de #106E8C a Musgo #4F752C: OKLCH 0.516 · 0.111 · 132°, 5.37:1 sobre blanco (AA para texto normal), croma bajo el techo de 0.12 de dec-techo-croma-modular. Reemplaza el valor fijado por dec-acento-collectors-aa, que se conserva como historia. El petróleo anterior quedaba a ΔE76 25.0 del teal de Procesamiento #0F766E; Musgo ocupa el hueco verde del espectro (tono 115-150°) y se separa de sus dos vecinos más cercanos: ΔE76 38.7 a Procesamiento y 49.9 a Bitácora #A16207. Se eligió frente a Oliva #647119 y Helecho #3A783E porque equilibra ambos vecinos y es el que menos se confunde con un estado de éxito. El token pasa a module-fieldkit (operativo --pulso-module-fieldkit); --pulso-module-collectors queda en el frontend como alias deprecado. El espectro sigue siendo de ocho acentos distintos. El ícono del módulo pasa a Backpack; el QR queda para la sección Accesos. Elegido por el usuario el 2026-10-16.",
+      "evidence_ids": [
+        "ev-direccion-creativa",
+        "ev-theme-css",
+        "ev-modules-ts"
       ]
     }
   ],
@@ -547,8 +560,8 @@
           "role": "accent"
         },
         {
-          "name": "module-collectors",
-          "value": "#106E8C",
+          "name": "module-fieldkit",
+          "value": "#4F752C",
           "role": "accent"
         },
         {
@@ -885,7 +898,7 @@
         "El rail superior YA es el recorrido: el pulido didáctico va dentro de cada pestaña, nunca como segunda barra de pasos",
         "Toda vista es enlazable: ruta = módulo, query = el resto (/monitoreo?modo=territorial&seccion=avance&pestana=ump&panel=filtros). Params canónicos modo/seccion/pestana/panel/foco; los nombres viejos (family, tab, stage, mesa, desk, step, reporte) se leen como alias pero nunca se escriben",
         "Un overlay nuevo se conecta con usePanelDireccionable, no con un useState suelto; el sidebar de objetos expande empujando el canvas por grid, nunca como overlay flotante",
-        "Módulos canónicos y sus rutas: Bitácora (/bitacora), Cálculo de muestra (/calc-muestra), Editor de formularios (/editor-xlsform), Hojas de ruta (/hojas-ruta), Fichas QR (/recopiladores), Monitoreo (/monitoreo), Procesamiento (/procesamiento), Dashboard (/tablero)"
+        "Módulos canónicos y sus rutas: Bitácora (/bitacora), Cálculo de muestra (/calc-muestra), Editor de formularios (/editor-xlsform), Hojas de ruta (/hojas-ruta), Material de campo (/material-campo), Monitoreo (/monitoreo), Procesamiento (/procesamiento), Dashboard (/tablero)"
       ]
     },
     "layouts": {
@@ -1000,8 +1013,8 @@
           "path": "branding/manual-identidad.html",
           "ownership": "manual_template",
           "status": "current",
-          "identity_version": "1.3.0",
-          "manifest_hash": "sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3"
+          "identity_version": "1.4.0",
+          "manifest_hash": "sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2"
         },
         {
           "id": "prosecnur-brand-css",
@@ -1009,8 +1022,8 @@
           "path": "branding/tokens/prosecnur-brand.css",
           "ownership": "manual_template",
           "status": "current",
-          "identity_version": "1.3.0",
-          "manifest_hash": "sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3"
+          "identity_version": "1.4.0",
+          "manifest_hash": "sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2"
         }
       ]
     },
@@ -1085,8 +1098,8 @@
       "path": "branding/identity/tokens.css",
       "ownership": "generated",
       "status": "current",
-      "identity_version": "1.3.0",
-      "manifest_hash": "sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3"
+      "identity_version": "1.4.0",
+      "manifest_hash": "sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2"
     },
     {
       "id": "identity-reference-doc",
@@ -1094,8 +1107,8 @@
       "path": "branding/identity/identity-reference.html",
       "ownership": "generated",
       "status": "current",
-      "identity_version": "1.3.0",
-      "manifest_hash": "sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3"
+      "identity_version": "1.4.0",
+      "manifest_hash": "sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2"
     }
   ],
   "extensions": {
@@ -1175,10 +1188,10 @@
           "css": "--pulso-module-workplan (alias de encyclopedia)",
           "titulo": "Plan de trabajo (fusionado en Bitácora)"
         },
-        "recopiladores": {
-          "accent": "#106E8C",
-          "css": "--pulso-module-collectors",
-          "titulo": "Fichas QR para cursos-horario"
+        "material-campo": {
+          "accent": "#4F752C",
+          "css": "--pulso-module-fieldkit (--pulso-module-collectors queda como alias deprecado)",
+          "titulo": "Material de campo"
         },
         "monitoreo": {
           "accent": "#A0464E",

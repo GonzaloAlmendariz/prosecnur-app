@@ -901,8 +901,8 @@ test("los ocho módulos mantienen sus acentos distintivos en el catálogo", () =
       calculo: "#7260AE",
       formularios: "#7172C1",
       hojas: "#AC563B",
-      // El color propio de Material de campo llega en E0b (ADR 0108 §7).
-      materialCampo: "#106E8C",
+      // Musgo, = --pulso-module-fieldkit (ADR 0108 §7).
+      materialCampo: "#4F752C",
       monitoreo: "#A0464E",
       procesamiento: "#0F766E",
       dashboard: "#4A6EB6",
