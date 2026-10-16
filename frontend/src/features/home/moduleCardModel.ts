@@ -584,8 +584,10 @@ export function buildModuleCardView(
       };
     }
 
-    case "recopiladores": {
-      const collectors = facts.recopiladores;
+    case "material-campo": {
+      // Un backend viejo publicaba este bloque como `recopiladores`;
+      // `normalizeProjectOverview` ya lo movió a su clave vigente.
+      const collectors = facts["material-campo"];
       const total = Math.max(0, collectors.titulares);
       const current = Math.max(0, collectors.with_link);
       const state: ModuleStatusState = nodeState === "warning"
@@ -621,7 +623,7 @@ export function buildModuleCardView(
               // 2.616» alla, las dos correctas y la misma palabra.
               label: "titulares con enlace",
             }
-          : { kind: "stat", value: "Sin titulares", label: "plan de recopilación" },
+          : { kind: "stat", value: "Sin titulares", label: "lista de unidades" },
         emphasis: total > 0 ? undefined : "activity",
         sub:
           total === 0
@@ -648,10 +650,10 @@ export function buildModuleCardView(
         action: moduleAction(
           module,
           state === "warning"
-            ? "Revisar recopiladores"
+            ? "Revisar material de campo"
             : collectors.without_link > 0
               ? "Completar enlaces"
-              : "Abrir recopiladores",
+              : "Abrir material de campo",
         ),
         alert: nodeAlert,
         summary,

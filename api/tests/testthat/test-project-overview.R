@@ -158,10 +158,10 @@ test_that("facts de campo/formulario/dashboard se extraen de sus claves de sesio
   expect_equal(facts$hojas$interviews_count, 300L)
   expect_true(facts$hojas$from_pilot)
 
-  expect_equal(facts$recopiladores$titulares, 2L)
-  expect_equal(facts$recopiladores$with_link, 1L)   # solo titulares con enlace
-  expect_equal(facts$recopiladores$without_link, 1L)
-  expect_equal(facts$recopiladores$faculties_count, 2L)
+  expect_equal(facts$`material-campo`$titulares, 2L)
+  expect_equal(facts$`material-campo`$with_link, 1L)   # solo titulares con enlace
+  expect_equal(facts$`material-campo`$without_link, 1L)
+  expect_equal(facts$`material-campo`$faculties_count, 2L)
 
   expect_equal(facts$editor$source_kind, "surveymonkey")
   expect_equal(facts$editor$questions_count, 2L)

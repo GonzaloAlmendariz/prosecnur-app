@@ -1,32 +1,33 @@
-// Navegación de Recopiladores: las cuatro secciones canónicas del ADR 0046 y el
-// puente desde las claves que el módulo usó mientras se llamaba "Fichas QR".
+// Navegación de Material de campo (ADR 0108 §5; antes Recopiladores, ADR 0046)
+// y el puente desde las claves que el módulo usó con sus nombres anteriores.
 //
 // Vive fuera de la página por dos razones. La primera es que la navegación de un
 // módulo es un contrato, no un detalle de render: se testea sin montar React. La
 // segunda es la regla de la casa de que un page-file grande no crece — cada
-// pieza que sale de RecopiladoresPage.tsx es una que ya no vuelve.
+// pieza que sale de la página es una que ya no vuelve.
 //
 // Las claves viejas se LEEN como alias y nunca se ESCRIBEN: un enlace guardado
-// con `?seccion=preparacion&pestana=agenda` sigue aterrizando donde debe, pero
-// la app reescribe la dirección a la forma canónica.
+// con `/recopiladores?seccion=materiales&pestana=paquetes` sigue aterrizando
+// donde debe, pero la app reescribe la dirección a la forma canónica.
+//
+// La carpeta conserva el nombre `recopiladores`: el renombre es del módulo, no
+// del código que lo implementa.
 
-// Los ids son únicos en TODO el manifiesto, no solo dentro del módulo: por eso
-// Plan y Entrega llevan sufijo — `plan` ya es de Plan de trabajo, `entrega` de
-// Hojas de ruta, `validacion` de Procesamiento y `monitoreo` del módulo
-// homónimo. Las etiquetas visibles sí conservan el vocabulario del ADR 0046.
 export const SECCIONES = [
-  "plan-recoleccion",
+  "unidades",
   "accesos",
-  "materiales",
-  "entrega-campo",
+  "catalogo",
+  "paquetes",
+  "entrega",
 ] as const;
 export type RecopiladoresSeccion = (typeof SECCIONES)[number];
 
 export const PESTANAS_POR_SECCION = {
-  "plan-recoleccion": ["unidades"],
+  unidades: ["lista"],
   accesos: ["canales", "vinculacion"],
-  materiales: ["vista", "paquetes"],
-  "entrega-campo": ["traspaso"],
+  catalogo: ["editor"],
+  paquetes: ["armado"],
+  entrega: ["traspaso"],
 } as const satisfies Record<RecopiladoresSeccion, readonly string[]>;
 
 export type RecopiladoresPestana =
@@ -39,43 +40,52 @@ export type DireccionRecopiladores = {
 
 /** Dónde aterriza el módulo cuando la dirección no dice nada. */
 export const DIRECCION_INICIAL: DireccionRecopiladores = {
-  seccion: "plan-recoleccion",
-  pestana: "unidades",
+  seccion: "unidades",
+  pestana: "lista",
 };
 
 /**
  * Pestañas viejas → dirección canónica. Cada una nombra su sección porque el
- * reparto cambió: `listado` era una pestaña de Fichas y hoy es la vinculación
- * entre unidad y acceso, que pertenece a Accesos.
+ * reparto cambió dos veces: `listado` era una pestaña de Fichas y hoy es la
+ * vinculación entre unidad y acceso; `paquetes` era pestaña de Materiales y hoy
+ * es una sección.
  */
 const ALIAS_PESTANA: Record<string, DireccionRecopiladores> = {
-  agenda: { seccion: "plan-recoleccion", pestana: "unidades" },
+  // Pestañas de Recopiladores (ADR 0046).
+  unidades: { seccion: "unidades", pestana: "lista" },
+  vista: { seccion: "catalogo", pestana: "editor" },
+  paquetes: { seccion: "paquetes", pestana: "armado" },
+  // Pestañas de Fichas QR.
+  agenda: { seccion: "unidades", pestana: "lista" },
   enlaces: { seccion: "accesos", pestana: "canales" },
   listado: { seccion: "accesos", pestana: "vinculacion" },
-  vista: { seccion: "materiales", pestana: "vista" },
-  salida: { seccion: "materiales", pestana: "paquetes" },
-  retorno: { seccion: "entrega-campo", pestana: "traspaso" },
+  salida: { seccion: "paquetes", pestana: "armado" },
+  retorno: { seccion: "entrega", pestana: "traspaso" },
   // Nombres cortos que un humano escribiría a mano en la barra de direcciones.
   // `validacion` apunta al traspaso mientras Entrega no tenga su propia
-  // pestaña de verificación: el ADR 0046 la prevé, pero crearla sin contenido
-  // sería una superficie vacía inventada (C5).
-  validacion: { seccion: "entrega-campo", pestana: "traspaso" },
-  monitoreo: { seccion: "entrega-campo", pestana: "traspaso" },
+  // pestaña de verificación: crearla sin contenido sería una superficie vacía
+  // inventada (C5).
+  validacion: { seccion: "entrega", pestana: "traspaso" },
+  monitoreo: { seccion: "entrega", pestana: "traspaso" },
 };
 
 /**
- * Secciones viejas → sección canónica. `paquete` cae en Materiales y no en
- * Entrega: lo que hacía era generar el PDF, no entregarlo.
+ * Secciones viejas → sección canónica. `paquete` cae en Paquetes: lo que hacía
+ * era generar el PDF, que hoy es el armado del paquete.
  */
 const ALIAS_SECCION: Record<string, RecopiladoresSeccion> = {
-  preparacion: "plan-recoleccion",
-  fichas: "materiales",
-  paquete: "materiales",
+  // Secciones de Recopiladores (ADR 0046).
+  "plan-recoleccion": "unidades",
+  materiales: "catalogo",
+  "entrega-campo": "entrega",
+  // Secciones de Fichas QR.
+  preparacion: "unidades",
+  fichas: "catalogo",
+  paquete: "paquetes",
   // El módulo se registraba con una única sección homónima.
-  recopiladores: "plan-recoleccion",
-  // Los nombres cortos del ADR, por si se escriben a mano.
-  plan: "plan-recoleccion",
-  entrega: "entrega-campo",
+  recopiladores: "unidades",
+  // Nombre corto del ADR 0046, por si se escribe a mano.
+  plan: "unidades",
 };
 
 function esSeccion(valor: string): valor is RecopiladoresSeccion {

@@ -40,7 +40,7 @@ test_that("cada fase apunta a una parte real de la app", {
   # concreta de la app. Una fase sin módulo sería una abstracción de cronograma,
   # que es justo lo que el ADR 0047 vino a evitar.
   slugs_reales <- c("diseno-estudio", "calc-muestra", "editor-xlsform", "hojas-ruta",
-                    "recopiladores", "monitoreo", "procesamiento", "dashboard")
+                    "material-campo", "monitoreo", "procesamiento", "dashboard")
   modulos <- vapply(.bit_fases_catalogo(), function(f) f$modulo, character(1))
 
   expect_true(all(nzchar(modulos)), info = "hay una fase sin módulo de identidad")
@@ -344,7 +344,7 @@ test_that("la vista agrega el rango de la fase y excluye las archivadas", {
 
 test_that("la evidencia de una fase se cumple con que cualquiera de sus módulos la tenga", {
   plan <- .bitcron_plan_con(list(activity = "Levantamiento", fase = "campo"))
-  # Campo cubre monitoreo, hojas-ruta y recopiladores: alcanza con uno.
+  # Campo cubre monitoreo, hojas-ruta y material-campo: alcanza con uno.
   sin <- Filter(function(f) f$id == "campo", .bit_cron_vista_fases(list(), plan))[[1]]
   expect_equal(sin$evidence_state, "planned_only")
 

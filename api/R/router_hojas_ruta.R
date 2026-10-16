@@ -29,9 +29,12 @@
   if (is.null(ui) || !is.list(ui)) ui <- list()
   if (is.null(cfg)) cfg <- hojas_ruta_integrada_normalize_config(list())
 
-  stages <- c("territorio", "poblacion", "muestra", "manzanas", "entrega")
+  stages <- c("territorio", "poblacion", "muestra", "manzanas", "seleccion")
   active_stage <- .hojas_ruta_scalar(ui$active_stage %||% ui$activeStage,
                                      "territorio")
+  # ADR 0108 §5: «Entrega» se renombró «Selección»; un .pulso viejo no cae a
+  # territorio.
+  if (identical(active_stage, "entrega")) active_stage <- "seleccion"
   if (!active_stage %in% stages) active_stage <- "territorio"
 
   if (is.null(frame_summary)) {
@@ -194,7 +197,7 @@
 
 .hojas_ruta_field_ui_from_pilot <- function(ui = list()) {
   out <- ui
-  if (out$active_stage %in% c("muestra", "manzanas", "entrega")) out$active_stage <- "muestra"
+  if (out$active_stage %in% c("muestra", "manzanas", "seleccion", "entrega")) out$active_stage <- "muestra"
   out
 }
 

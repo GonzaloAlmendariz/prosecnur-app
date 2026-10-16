@@ -35,7 +35,7 @@ const HOJAS_RUTA_STAGE_ORDER: Record<HojasRutaUiState["active_stage"], number> =
   poblacion: 1,
   muestra: 2,
   manzanas: 3,
-  entrega: 4,
+  seleccion: 4,
 };
 
 const HOJAS_RUTA_PHASES: HojasRutaPhase[] = ["pilot", "field"];
@@ -246,7 +246,7 @@ async function warmupHojasRutaRunData(api: WarmupApi, plan: ReturnType<typeof ho
   if (!territorios.length) return { phase: plan.phase, skipped: "sin territorios" };
 
   const depth = HOJAS_RUTA_STAGE_ORDER[plan.uiState.active_stage] ?? 0;
-  const fullDepth = Math.max(depth, HOJAS_RUTA_STAGE_ORDER.entrega);
+  const fullDepth = Math.max(depth, HOJAS_RUTA_STAGE_ORDER.seleccion);
   let population = plan.outputs.population ?? null;
   let sampleSize = plan.outputs.sample_size_preview ?? null;
   let quota = plan.outputs.quota ?? null;
@@ -261,7 +261,7 @@ async function warmupHojasRutaRunData(api: WarmupApi, plan: ReturnType<typeof ho
   if (!quota && fullDepth >= HOJAS_RUTA_STAGE_ORDER.manzanas && (sampleSize as { ok?: boolean } | null)?.ok) {
     quota = await api.apiHojasRutaQuotaPreview(plan.config).catch(() => null);
   }
-  if (!sample && fullDepth >= HOJAS_RUTA_STAGE_ORDER.entrega && (quota as { ok?: boolean } | null)?.ok) {
+  if (!sample && fullDepth >= HOJAS_RUTA_STAGE_ORDER.seleccion && (quota as { ok?: boolean } | null)?.ok) {
     sample = await api.apiHojasRutaSamplePreview(plan.config).catch(() => null);
   }
 
@@ -514,8 +514,8 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
     load: () => import("../features/bitacora/BitacoraPage"),
   },
   {
-    id: "recopiladores",
-    label: "Recopiladores",
+    id: "material_campo",
+    label: "Material de campo",
     load: () => import("../features/recopiladores/RecopiladoresPage"),
   },
   {

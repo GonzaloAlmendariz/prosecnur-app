@@ -534,7 +534,7 @@ audit_reference_write_inputs <- function(dir = audit_reference_dir()) {
     sample = sample
   ))
   ui_state <- .hojas_ruta_ui_state_normalize(
-    list(active_stage = if (!is.null(sample) && isTRUE(sample$ok)) "entrega" else "territorio"),
+    list(active_stage = if (!is.null(sample) && isTRUE(sample$ok)) "seleccion" else "territorio"),
     cfg
   )
   run <- .hojas_ruta_run_normalize(

@@ -17,10 +17,12 @@ const fuente = fs.readFileSync(
 
 describe("el selector de secciones dice qué falta", () => {
   it("cada paso se declara hecho por su propia evidencia", () => {
-    // No por la sección visitada: entrar en Materiales no genera materiales.
-    expect(fuente).toContain('"plan-recoleccion": Boolean(state?.plan?.units?.length)');
+    // No por la sección visitada: entrar en Paquetes no genera materiales.
+    expect(fuente).toContain("unidades: Boolean(state?.plan?.units?.length)");
     expect(fuente).toContain("accesos: Boolean(state?.deployment?.bindings?.length)");
-    expect(fuente).toContain("materiales: Boolean(state?.artifact_receipts?.length)");
+    expect(fuente).toContain("catalogo: Boolean(state?.artifact_receipts?.length)");
+    expect(fuente).toContain("paquetes: Boolean(state?.artifact_receipts?.length)");
+    expect(fuente).toContain("entrega: Boolean(payload?.handoff ?? state?.deployment?.handoff)");
   });
 
   it("el siguiente paso es el primero que falta", () => {

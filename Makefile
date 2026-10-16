@@ -273,7 +273,7 @@ audit-project-visual-matrix:
 	fi
 	@$(MAKE) ui-quick-check \
 	  PULSO="$(AUDIT_PROJECTS_DIR)/$(PROJECT)/$(PROJECT).pulso" \
-	  UI_QA_ARGS='--route /diseno-estudio --route /plan-trabajo --route /calc-muestra --route /editor-xlsform --route /hojas-ruta --route /recopiladores --route /monitoreo --route /carga --route /validacion --route /codificacion --route /analitica --route /graficos --route /tablero --viewport 1440x900 --viewport 1280x720 --viewport 1024x640 --layout-preset auto --fail-on-issues --prefetch-route-data $(UI_QA_ARGS)'
+	  UI_QA_ARGS='--route /diseno-estudio --route /plan-trabajo --route /calc-muestra --route /editor-xlsform --route /hojas-ruta --route /material-campo --route /monitoreo --route /carga --route /validacion --route /codificacion --route /analitica --route /graficos --route /tablero --viewport 1440x900 --viewport 1280x720 --viewport 1024x640 --layout-preset auto --fail-on-issues --prefetch-route-data $(UI_QA_ARGS)'
 
 audit-project-deliverables: audit-project-build
 	@test -n "$(PROJECT)" || (echo "uso: make audit-project-deliverables PROJECT=territorial_lima_manzanas"; exit 1)
@@ -339,7 +339,7 @@ reference-project-visual-matrix:
 	  fi; \
 	  $(MAKE) ui-quick-check \
 	    PULSO="$$PROJECT_PATH" \
-	    UI_QA_ARGS='--route /diseno-estudio --route /plan-trabajo --route /calc-muestra --route /editor-xlsform --route /hojas-ruta --route /recopiladores --route /monitoreo --route /carga --route /validacion --route /codificacion --route /analitica --route /graficos --route /tablero --viewport 1440x900 --viewport 1280x720 --viewport 1024x640 --layout-preset auto --fail-on-issues --prefetch-route-data $(UI_QA_ARGS)'
+	    UI_QA_ARGS='--route /diseno-estudio --route /plan-trabajo --route /calc-muestra --route /editor-xlsform --route /hojas-ruta --route /material-campo --route /monitoreo --route /carga --route /validacion --route /codificacion --route /analitica --route /graficos --route /tablero --viewport 1440x900 --viewport 1280x720 --viewport 1024x640 --layout-preset auto --fail-on-issues --prefetch-route-data $(UI_QA_ARGS)'
 
 build:
 	@started=$$(date +%s); \

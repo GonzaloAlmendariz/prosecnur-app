@@ -97,7 +97,7 @@ export type HojasRutaIntegratedConfig = {
   random_preference?: HojasRutaRandomPreference;
 };
 
-export type HojasRutaUiStage = "territorio" | "poblacion" | "muestra" | "manzanas" | "entrega";
+export type HojasRutaUiStage = "territorio" | "poblacion" | "muestra" | "manzanas" | "seleccion";
 
 export type HojasRutaUiState = {
   active_stage: HojasRutaUiStage;

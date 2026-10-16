@@ -89,7 +89,7 @@ const VIEWPORT_PATHS = new Set([
   "/tablero",
   "/calc-muestra",
   "/bitacora",
-  "/recopiladores",
+  "/material-campo",
   "/hojas-ruta",
   "/monitoreo",
 ]);

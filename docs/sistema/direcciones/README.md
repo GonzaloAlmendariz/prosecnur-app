@@ -12,7 +12,7 @@ la de producto explica qué hace una pantalla, la de sistema por qué existe.
 - [calc-muestra](calc-muestra.md)
 - [editor-xlsform](editor-xlsform.md)
 - [hojas-ruta](hojas-ruta.md)
-- [recopiladores](recopiladores.md)
+- [material-campo](material-campo.md)
 - [monitoreo](monitoreo.md)
 - [procesamiento](procesamiento.md)
 - [dashboard](dashboard.md)

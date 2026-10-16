@@ -46,7 +46,7 @@
          evidencia = c("editor-xlsform")),
     list(id = "campo", label = "Campo",
          modulo = "monitoreo", seccion = "",
-         evidencia = c("monitoreo", "hojas-ruta", "recopiladores")),
+         evidencia = c("monitoreo", "hojas-ruta", "material-campo")),
     # Procesamiento es la tubería que deja la base limpia y codificada: carga,
     # validación y codificación.
     list(id = "procesamiento", label = "Procesamiento",
@@ -105,6 +105,8 @@ BITACORA_FASES <- c("muestra", "instrumento", "campo", "procesamiento", "entrega
 .BIT_TARGET_A_FASE <- c(
   "monitoreo"      = "campo",
   "hojas-ruta"     = "campo",
+  "material-campo" = "campo",
+  # Slug viejo del módulo (ADR 0108 §1): se conserva para leer .pulso anteriores.
   "recopiladores"  = "campo",
   "reportes"       = "entregables",
   "graficos"       = "entregables",
@@ -161,7 +163,7 @@ BITACORA_FASES <- c("muestra", "instrumento", "campo", "procesamiento", "entrega
   switch(modulo,
     monitoreo      = !is.null(s$monitoreo_snapshot) || length(s$monitoreo_sources %||% list()) > 0L,
     `hojas-ruta`   = !is.null(s$hojas_ruta_config) || length(s$hojas_ruta_runs %||% list()) > 0L,
-    recopiladores  = !is.null(s$calc_muestra_aulas_export),
+    `material-campo` = !is.null(s$calc_muestra_aulas_export),
     reportes       = isTRUE(s$graficos_ppt_ok) || isTRUE(s$graficos_word_ok) || !is.null(s$monitoreo_publication),
     graficos       = isTRUE(s$graficos_ppt_ok) || isTRUE(s$graficos_word_ok),
     dashboard      = !is.null(s$dashboard_source),

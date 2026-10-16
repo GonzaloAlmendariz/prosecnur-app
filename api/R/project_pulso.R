@@ -2461,7 +2461,7 @@
     "calc-muestra"   = state_of("calc-muestra"),
     "editor-xlsform" = state_of("editor-xlsform"),
     "hojas-ruta"     = state_of("hojas-ruta"),
-    "recopiladores"  = state_of("recopiladores"),
+    "material-campo" = state_of("material-campo"),
     "monitoreo"      = state_of("monitoreo"),
     "procesamiento"  = state_of(c("carga", "validacion", "codificacion", "analitica", "graficos")),
     "dashboard"      = state_of("dashboard")

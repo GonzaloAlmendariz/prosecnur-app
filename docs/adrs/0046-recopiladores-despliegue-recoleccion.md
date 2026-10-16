@@ -6,6 +6,9 @@ Implementacion: Completa
 
 Fecha: 2026-07-27; aceptado el 2026-07-29; implementado el 2026-07-30
 
+Reemplazado parcialmente por: [ADR 0108](0108-material-de-campo-catalogo-de-materiales-por-unidad.md) (nombre, ruta,
+secciones de la cláusula 9 y la suposición de que la unidad es un curso-horario; el resto sigue vigente)
+
 ## Contexto
 
 La ruta `/recopiladores` funciona hoy como generador de enlaces Kobo, QR y
@@ -215,11 +218,6 @@ Relacionado con [ADR 0004](0004-monolito-modular-microkernel.md),
 
 ## Gobierna
 
-Direcciones del contrato de navegación que esta decisión explica
-(`scripts/vaults-check.mjs` las verifica contra `frontend/src/lib/modules.ts`):
-
-- `recopiladores`
-- `recopiladores/plan-recoleccion`
-- `recopiladores/accesos`
-- `recopiladores/materiales`
-- `recopiladores/entrega-campo`
+Desde el 2026-10-16 las direcciones de este módulo las gobierna el
+[ADR 0108](0108-material-de-campo-catalogo-de-materiales-por-unidad.md), que reemplazó en parte a este ADR (nombre,
+ruta y secciones). Las direcciones `recopiladores/*` solo se leen como alias.

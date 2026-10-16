@@ -22,7 +22,7 @@ import {
 import { deploymentStatusLabel } from "./providerRules";
 import "./styles/recopiladores-shell.css";
 
-const MODULE = PROSECNUR_MODULES.find((item) => item.slug === "recopiladores")!;
+const MODULE = PROSECNUR_MODULES.find((item) => item.slug === "material-campo")!;
 
 /**
  * Qué hace cada sección, en el idioma de quien la usa.
@@ -58,19 +58,23 @@ export const TIPO_DE_UNIDAD: Record<string, string> = {
 };
 
 const SECTION_COPY: Record<RecopiladoresSeccion, { title: string; lead: string }> = {
-  "plan-recoleccion": {
-    title: "Plan de recolección",
+  unidades: {
+    title: "Unidades",
     lead: "Las aulas que entran a campo y con qué versión del cuestionario se aplican.",
   },
   accesos: {
     title: "Accesos",
     lead: "El enlace por el que responde cada aula. Se prepara sobre un formulario que ya existe, sin tocar nada en la plataforma.",
   },
-  materiales: {
-    title: "Materiales",
-    lead: "Las fichas que se imprimen y se llevan al aula: código, QR, horario, salón y docente.",
+  catalogo: {
+    title: "Catálogo",
+    lead: "La ficha que se imprime y se lleva al aula: código, QR, horario, salón y docente.",
   },
-  "entrega-campo": {
+  paquetes: {
+    title: "Paquetes",
+    lead: "Las fichas de todas las unidades, agrupadas para el reparto en campo.",
+  },
+  entrega: {
     title: "Entrega a campo",
     lead: "Cierra el plan y deja constancia de qué se entregó. Repetirla no duplica nada, y Monitoreo la lee de ahí.",
   },
@@ -123,7 +127,7 @@ export function RecopiladoresShell() {
     try {
       setPayload(await apiRecopiladoresState());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo leer Recopiladores.");
+      setError(cause instanceof Error ? cause.message : "No se pudo leer Material de campo.");
     } finally {
       setLoading(false);
     }
@@ -138,7 +142,7 @@ export function RecopiladoresShell() {
     try {
       setPayload(await apiRecopiladoresState());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo leer Recopiladores.");
+      setError(cause instanceof Error ? cause.message : "No se pudo leer Material de campo.");
     }
   }, []);
 
@@ -193,12 +197,15 @@ export function RecopiladoresShell() {
    * navegación y no debe convertirse en un panel.
    */
   const pasosHechos: Record<RecopiladoresSeccion, boolean> = {
-    "plan-recoleccion": Boolean(state?.plan?.units?.length),
+    unidades: Boolean(state?.plan?.units?.length),
     accesos: Boolean(state?.deployment?.bindings?.length),
     // Un material renderizado deja su recibo: es la prueba de que existe algo
-    // que llevar, no de que se haya elegido una plantilla.
-    materiales: Boolean(state?.artifact_receipts?.length),
-    "entrega-campo": Boolean(payload?.handoff ?? state?.deployment?.handoff),
+    // que llevar, no de que se haya elegido una plantilla. Catálogo y Paquetes
+    // eran una sola sección y comparten esa prueba hasta que el catálogo tenga
+    // la suya (ADR 0108, E1).
+    catalogo: Boolean(state?.artifact_receipts?.length),
+    paquetes: Boolean(state?.artifact_receipts?.length),
+    entrega: Boolean(payload?.handoff ?? state?.deployment?.handoff),
   };
   // El siguiente paso es el primero que falta. Con todos dados no se marca
   // ninguno: el recorrido terminó y señalar uno inventaría trabajo.
@@ -224,7 +231,7 @@ export function RecopiladoresShell() {
       activeKey={direction.seccion}
       mode="tabs"
       role="group"
-      aria-label="Secciones de Recopiladores"
+      aria-label="Secciones de Material de campo"
       onRovingKeyChange={(key) => selectSection(key as RecopiladoresSeccion)}
     >
       <ol className="pulso-phase-pill-list">
@@ -268,18 +275,18 @@ export function RecopiladoresShell() {
       bodyMode="fill"
       headerMode="sr-only"
       resetScrollKey={`${direction.seccion}/${direction.pestana}`}
-      auditReady={loading || seccionCargando ? false : `recopiladores/${direction.seccion}/${direction.pestana}`}
+      auditReady={loading || seccionCargando ? false : `material-campo/${direction.seccion}/${direction.pestana}`}
       className="rec-page"
       chrome={(
         <ModuleCommandBar
-          modulo="recopiladores"
+          modulo="material-campo"
           contexto={state?.plan ? (
             // La zona de contexto lleva el dato, no el nombre del módulo: eso ya
             // lo dice el ícono activo del rail y repetirlo desperdicia el único
             // hueco donde los demás módulos ponen su cifra —Bitácora pone
             // entradas, Hojas de ruta distritos, Cálculo la mesa—. Aquí el dato
             // es la forma del plan: cuántas unidades y de qué tipo.
-            <ChromeIndicatorGroup ariaLabel="Contexto de Recopiladores">
+            <ChromeIndicatorGroup ariaLabel="Contexto de Material de campo">
               {/* Los cursos-horario que hay que visitar, no el total de filas
                   del plan. Decía «2 468 unidades» mientras el resumen de abajo
                   decía «175 cursos-horario»: la diferencia son las reservas y el
@@ -317,7 +324,7 @@ export function RecopiladoresShell() {
             label: deploymentStatusLabel(status),
             tone: status === "handed_off" ? "success" : status === "stale" ? "danger" : "neutral",
           }]}
-          ariaLabel="Controles de Recopiladores"
+          ariaLabel="Controles de Material de campo"
         />
       )}
       notices={error ? <div className="rec-notice is-error" role="alert">{error}</div> : null}
@@ -358,7 +365,7 @@ export function RecopiladoresShell() {
           className="rec-tab-panel"
           role={tabs.length > 1 ? "tabpanel" : undefined}
           aria-labelledby={tabs.length > 1 ? `rec-tab-${direction.pestana}` : undefined}
-          data-qa-geometry-group={`recopiladores/${direction.seccion}`}
+          data-qa-geometry-group={`material-campo/${direction.seccion}`}
           data-qa-geometry-contract="intrinsic"
         >
           {loading && !state ? (
@@ -376,13 +383,13 @@ export function RecopiladoresShell() {
               No había nada que guardar: lo que enviaste es igual a lo que ya estaba.
             </div>
           ) : null}
-          {!loading && direction.seccion === "plan-recoleccion" ? (
+          {!loading && direction.seccion === "unidades" ? (
             <PlanSection payload={payload} onState={aplicarMutacion} />
           ) : null}
           {!loading && direction.seccion === "accesos" ? (
             <AccessSection payload={payload} activeTab={direction.pestana} onState={aplicarMutacion} />
           ) : null}
-          {!loading && direction.seccion === "materiales" ? (
+          {!loading && (direction.seccion === "catalogo" || direction.seccion === "paquetes") ? (
             <MaterialsSection
               payload={payload}
               activeTab={direction.pestana}
@@ -391,7 +398,7 @@ export function RecopiladoresShell() {
               onCargando={setSeccionCargando}
             />
           ) : null}
-          {!loading && direction.seccion === "entrega-campo" ? (
+          {!loading && direction.seccion === "entrega" ? (
             <DeliverySection payload={payload} latestArtifact={latestArtifact} onState={aplicarMutacion} />
           ) : null}
         </section>

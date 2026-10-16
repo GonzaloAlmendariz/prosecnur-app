@@ -6,9 +6,17 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `editor-xlsform` · ruta `/editor-xlsform` · 2 direcciones.
+Módulo `editor-xlsform` · ruta `/editor-xlsform` · 10 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `editor-xlsform` | modulo | Editor de formularios | sí | c11aca82 | sí | — |
-| `editor-xlsform/formularios` | seccion | Formularios | sí | 3d4cc840 | sí | — |
+| `editor-xlsform` | modulo | Editor de formularios | sí | 61671f1d | sí | — |
+| `editor-xlsform/formularios` | seccion | Formularios | sí | af065e0d | sí | — |
+| `editor-xlsform/formularios/constructor` | pestana | Constructor | sí | 67e4c05a | **no** | — |
+| `editor-xlsform/formularios/hojas` | pestana | Hojas | sí | 5077c8a4 | **no** | — |
+| `editor-xlsform/formularios/cuestionario` | pestana | Vista del cuestionario | sí | 65de19c2 | **no** | — |
+| `editor-xlsform/formularios/logica` | pestana | Mapa de lógica | sí | 0de5e899 | **no** | — |
+| `editor-xlsform/formularios/filtros` | pestana | Filtros de opciones | sí | c0a92531 | **no** | — |
+| `editor-xlsform/formularios/probar` | pestana | Probar formulario | sí | 0f8388f7 | **no** | — |
+| `editor-xlsform/formularios/resumen` | pestana | Resumen | sí | 0ecb5b0a | **no** | — |
+| `editor-xlsform/formularios/impreso` | pestana | Impreso | sí | d0a4956a | **no** | — |
