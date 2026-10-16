@@ -22,3 +22,8 @@
   cursor: pointer;
 }
 .pulso-universo-cambiar:hover { text-decoration: underline; }
+
+/* Panel «Qué casos cuentan»: una sección por base. */
+.pulso-universo-base { padding: 10px 0; border-bottom: 1px solid var(--pulso-border); }
+.pulso-universo-base:last-child { border-bottom: 0; }
+.pulso-universo-base h3 { margin: 0 0 4px; font-size: 13px; color: var(--pulso-text); }
