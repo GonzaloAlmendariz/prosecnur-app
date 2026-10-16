@@ -446,6 +446,8 @@ function ColumnHeader({ columnName }: { columnName: string }) {
     >
       <span className="pulso-xfs-colcode">{columnName}</span>
       {help?.badge && <em className="pulso-xfs-col-badge">{help.badge}</em>}
+      {/* El nombre XLSForm no se traduce: la ayuda corta en español va debajo, y la larga en el title del <th>. */}
+      {help ? <span className="xfx-colayuda">{help.label}</span> : null}
     </span>
   );
 }
