@@ -1,5 +1,10 @@
 # Checklist: cifra destacada, media y rango, menús laterales (2026-10-15)
 
+Tipo: Checklist vivo
+Estado: En curso
+Fecha: 2026-10-15
+Autoridad: Pedidos de Gonzalo; sólo él da por terminado un ítem
+
 Pedidos de Gonzalo en la misma tanda, después del cierre de la fase del revamp de Gráficos. Sólo él da por terminado un
 ítem; lo más que se marca aquí es «hecho, por verificar».
 

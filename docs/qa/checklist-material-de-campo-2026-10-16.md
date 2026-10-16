@@ -1,5 +1,10 @@
 # Checklist: Material de campo (ADR 0108)
 
+Tipo: Checklist vivo
+Estado: En curso
+Fecha: 2026-10-16
+Autoridad: Pedidos de Gonzalo; sólo él da por terminado un ítem
+
 Fecha de apertura: 2026-10-16 · Solo Gonzalo da por terminado un ítem.
 Diagnóstico: [diagnostico-material-de-campo-2026-10-16.md](diagnostico-material-de-campo-2026-10-16.md) · ADR:
 [0108](../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md)
@@ -24,7 +29,7 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| D1 | Capturas reales de Recopiladores > Materiales (hsvg2026) y Hojas de ruta > Entrega (acnur_acg) | `tmp/qa-material-campo-2026-10-16/`, diagnóstico «Evidencia de UI» | hecho: confirma un solo preset sin catálogo; la ficha de dos caras sale dentro del ZIP |
+| D1 | Capturas reales de Recopiladores > Materiales (hsvg2026) y Hojas de ruta > Entrega (acnur_acg) | capturas locales no versionadas, diagnóstico «Evidencia de UI» | hecho: confirma un solo preset sin catálogo; la ficha de dos caras sale dentro del ZIP |
 | D2 | Revisión de contratos del ADR | guardian-contratos | hecho: REQUIERE MIGRACIÓN; integrado (sección R) |
 | D3 | Revisión metodológica | revisor-metodologico | hecho: aprobado con supuestos E0–E3, rechazado E4 hasta A6; integrado (sección R) |
 | D4 | ¿`fichas_cuota_v1` es general? | diagnóstico §5.1 | hecho: el patrón es general, el contenido es del estudio |
