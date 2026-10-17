@@ -113,6 +113,26 @@ export type CollectionState = {
   artifact_receipts?: CollectionArtifactReceipt[] | null;
 };
 
+/** Lo que rehacer el plan descarta del estado vigente (`.collection_reseed_descartado`). */
+export type CollectionReseedDescartado = {
+  plan_run_id: string;
+  unidades: number;
+  tenia_despliegue: boolean;
+  entregado: boolean;
+  fichas: { instancias: number; unidades_cubiertas: number };
+  recibos: number;
+  publicaciones_drive: number;
+  /** Campos presentes que el backend no clasifica: se pierden igual. */
+  otros_campos: string[];
+  /** Claves del estado que sobreviven (`material_template`, `pruebas`…). */
+  conservado: string[];
+};
+
+export type CollectionReseedPropuesto = {
+  plan_run_id: string;
+  unidades: number;
+};
+
 export type CollectionStatePayload = CollectionState & {
   ok: true;
   noop?: boolean;
@@ -130,14 +150,15 @@ export type CollectionStatePayload = CollectionState & {
     selection_run_id: string;
     desfasado: boolean;
   } | null;
-  /** Sólo tras rehacer el plan: qué quedó descartado al hacerlo. */
+  /**
+   * Rehacer el plan: `reseeded` sólo tras la escritura; `dry_run` en la
+   * previsualización, que no muta nada y trae el MISMO `descartado`.
+   */
   reseeded?: boolean;
-  descartado?: {
-    plan_run_id: string;
-    unidades: number;
-    tenia_despliegue: boolean;
-    entregado: boolean;
-  } | null;
+  dry_run?: boolean;
+  descartado?: CollectionReseedDescartado | null;
+  /** Cómo quedaría el plan nuevo (previsualización y escritura). */
+  propuesto?: CollectionReseedPropuesto | null;
   state: CollectionState;
   handoff?: CollectionHandoffReceipt | null;
   /**
@@ -363,6 +384,56 @@ function contractError(detail: string): Error {
   return new Error(`El backend devolvió un contrato inválido de Recopiladores: ${detail}`);
 }
 
+// R serializa un escalar como `[x]` cuando no se le pide `auto_unbox`; la
+// lectura acepta las dos formas y nada más.
+function escalar(value: unknown): unknown {
+  return Array.isArray(value) && value.length === 1 ? value[0] : value;
+}
+
+/** Un conteo: entero no negativo o 0. Nunca `NaN` en pantalla. */
+function conteo(value: unknown): number {
+  const n = Number(escalar(value));
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+}
+
+function textoPlano(value: unknown): string {
+  const v = escalar(value);
+  return typeof v === "string" ? v.trim() : "";
+}
+
+function listaDeTextos(value: unknown): string[] {
+  const lista = typeof value === "string" ? [value] : asArray<unknown>(value);
+  return [...new Set(lista.map(textoPlano).filter(Boolean))];
+}
+
+/**
+ * `descartado` del reseed, campo por campo. Un booleano que no sea `true` no
+ * cuenta: «tenía despliegue» o «entregado» no se afirman sin saberlo.
+ */
+export function normalizeReseedDescartado(value: unknown): CollectionReseedDescartado | null {
+  if (!isRecord(value)) return null;
+  const fichas = isRecord(value.fichas) ? value.fichas : {};
+  return {
+    plan_run_id: textoPlano(value.plan_run_id),
+    unidades: conteo(value.unidades),
+    tenia_despliegue: escalar(value.tenia_despliegue) === true,
+    entregado: escalar(value.entregado) === true,
+    fichas: {
+      instancias: conteo(fichas.instancias),
+      unidades_cubiertas: conteo(fichas.unidades_cubiertas),
+    },
+    recibos: conteo(value.recibos),
+    publicaciones_drive: conteo(value.publicaciones_drive),
+    otros_campos: listaDeTextos(value.otros_campos),
+    conservado: listaDeTextos(value.conservado),
+  };
+}
+
+export function normalizeReseedPropuesto(value: unknown): CollectionReseedPropuesto | null {
+  if (!isRecord(value)) return null;
+  return { plan_run_id: textoPlano(value.plan_run_id), unidades: conteo(value.unidades) };
+}
+
 export function normalizeCollectionStatePayload(value: unknown): CollectionStatePayload {
   if (!isRecord(value)) throw contractError("la respuesta no es un objeto.");
   const rawState = isRecord(value.state) ? value.state : value;
@@ -411,7 +482,6 @@ export function normalizeCollectionStatePayload(value: unknown): CollectionState
   // JSON —comprobado con curl contra la API— y no aparecía en pantalla, con el
   // backend, el endpoint y el componente los tres bien.
   const vigente = isRecord(value.source_vigente) ? value.source_vigente : null;
-  const descartado = isRecord(value.descartado) ? value.descartado : null;
   return {
     ok: true,
     noop: value.noop === true,
@@ -423,12 +493,9 @@ export function normalizeCollectionStatePayload(value: unknown): CollectionState
       desfasado: vigente.desfasado === true,
     },
     reseeded: value.reseeded === true,
-    descartado: descartado === null ? null : {
-      plan_run_id: String(descartado.plan_run_id ?? ""),
-      unidades: Number(descartado.unidades ?? 0),
-      tenia_despliegue: descartado.tenia_despliegue === true,
-      entregado: descartado.entregado === true,
-    },
+    dry_run: value.dry_run === true,
+    descartado: normalizeReseedDescartado(value.descartado),
+    propuesto: normalizeReseedPropuesto(value.propuesto),
     deployment_derived_fields: asArray<unknown>(value.deployment_derived_fields)
       .filter((campo): campo is string => typeof campo === "string" && campo.length > 0),
     ...state,
@@ -465,7 +532,15 @@ export function apiRecopiladoresSeed() {
  * respuesta trae `descartado` con lo que se pierde.
  */
 export function apiRecopiladoresReseed(expected_revision: number) {
-  return stateRequest("/api/recopiladores/reseed", json("POST", { expected_revision }));
+  return stateRequest("/api/recopiladores/reseed", json("POST", { expected_revision, dry_run: false }));
+}
+
+/**
+ * Previsualiza el reseed: mismo `descartado` y `propuesto`, sin tocar estado,
+ * revisión ni `project_dirty`. Es lo que se lee ANTES de confirmar.
+ */
+export function apiRecopiladoresReseedPreview(expected_revision: number) {
+  return stateRequest("/api/recopiladores/reseed", json("POST", { expected_revision, dry_run: true }));
 }
 
 export function apiRecopiladoresPlanPut(expected_revision: number, plan: CollectionPlan) {

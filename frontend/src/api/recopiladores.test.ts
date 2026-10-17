@@ -9,8 +9,12 @@ import {
   apiRecopiladoresMaterialTemplateGet,
   apiRecopiladoresPlanPut,
   apiRecopiladoresProviderPreflight,
+  apiRecopiladoresReseed,
+  apiRecopiladoresReseedPreview,
   apiRecopiladoresState,
   normalizeCollectionStatePayload,
+  normalizeReseedDescartado,
+  normalizeReseedPropuesto,
   type CollectionPlan,
 } from "./recopiladores";
 
@@ -256,5 +260,82 @@ describe("un recibo de traspaso sólo existe con su contrato", () => {
     const p = normalizeCollectionStatePayload(payload({ ...deployment, status: "handed_off", handoff: recibo }));
     expect(p.handoff).toEqual(recibo);
     expect(p.state.deployment?.handoff).toEqual(recibo);
+  });
+});
+
+/**
+ * H26 — rehacer el plan se previsualiza antes de escribir.
+ *
+ * Contrato del backend (83bbeb44a): `POST /api/recopiladores/reseed` con
+ * `{ expected_revision, dry_run }`. Con `dry_run: true` no muta y devuelve el
+ * mismo `descartado` que la escritura, más `propuesto`.
+ */
+describe("rehacer el plan: previsualización y escritura", () => {
+  const descartadoReal = {
+    plan_run_id: "sel_aulas_20260801211224_e32c240d",
+    unidades: 2373,
+    tenia_despliegue: true,
+    entregado: false,
+    fichas: { instancias: 1, unidades_cubiertas: 2373 },
+    recibos: 1,
+    publicaciones_drive: 0,
+    otros_campos: [],
+    conservado: ["material_template", "pruebas"],
+  };
+
+  it("la previsualización pide dry_run y no otra cosa", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(response({
+      ...emptyState, noop: true, dry_run: true, reseeded: false,
+      descartado: descartadoReal, propuesto: { plan_run_id: "sel_aulas_20260821160928_b", unidades: 2400 },
+    }));
+    const p = await apiRecopiladoresReseedPreview(7);
+    expect(lastRequest().path).toBe("/api/recopiladores/reseed");
+    expect(lastRequest().init?.method).toBe("POST");
+    expect(lastRequest().body).toEqual({ expected_revision: 7, dry_run: true });
+    expect(p.dry_run).toBe(true);
+    expect(p.reseeded).toBe(false);
+    expect(p.descartado?.fichas).toEqual({ instancias: 1, unidades_cubiertas: 2373 });
+    expect(p.descartado?.recibos).toBe(1);
+    expect(p.propuesto).toEqual({ plan_run_id: "sel_aulas_20260821160928_b", unidades: 2400 });
+  });
+
+  it("la escritura declara dry_run en falso: ausente sería ambiguo", async () => {
+    await apiRecopiladoresReseed(7);
+    expect(lastRequest().body).toEqual({ expected_revision: 7, dry_run: false });
+  });
+
+  it("normaliza escalares que R manda como vector de uno", () => {
+    const d = normalizeReseedDescartado({
+      plan_run_id: ["run-x"], unidades: [10], tenia_despliegue: [true], entregado: [false],
+      fichas: { instancias: [2], unidades_cubiertas: [9] }, recibos: [3], publicaciones_drive: [1],
+      otros_campos: "campo_raro", conservado: ["mail_template", "mail_template", ""],
+    });
+    expect(d).toEqual({
+      plan_run_id: "run-x", unidades: 10, tenia_despliegue: true, entregado: false,
+      fichas: { instancias: 2, unidades_cubiertas: 9 }, recibos: 3, publicaciones_drive: 1,
+      otros_campos: ["campo_raro"], conservado: ["mail_template"],
+    });
+  });
+
+  it("un conteo ilegible es cero y un booleano que no sea true no se afirma", () => {
+    const d = normalizeReseedDescartado({
+      unidades: "muchas", recibos: -2, publicaciones_drive: null,
+      tenia_despliegue: "true", entregado: 1, fichas: "x",
+    });
+    expect(d?.unidades).toBe(0);
+    expect(d?.recibos).toBe(0);
+    expect(d?.publicaciones_drive).toBe(0);
+    expect(d?.tenia_despliegue).toBe(false);
+    expect(d?.entregado).toBe(false);
+    expect(d?.fichas).toEqual({ instancias: 0, unidades_cubiertas: 0 });
+    expect(d?.otros_campos).toEqual([]);
+    expect(d?.conservado).toEqual([]);
+  });
+
+  it("sin objeto no hay descartado ni propuesto", () => {
+    expect(normalizeReseedDescartado(null)).toBeNull();
+    expect(normalizeReseedDescartado([])).toBeNull();
+    expect(normalizeReseedPropuesto(undefined)).toBeNull();
+    expect(normalizeReseedPropuesto({ unidades: [5] })).toEqual({ plan_run_id: "", unidades: 5 });
   });
 });
