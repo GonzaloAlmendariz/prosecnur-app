@@ -119,3 +119,32 @@ describe("contrato con el manifiesto de módulos", () => {
     for (const href of hrefs) expect(href.startsWith("/material-campo")).toBe(true);
   });
 });
+
+describe("Unidades › Origen (E1e)", () => {
+  test("es una pestaña canónica y Lista sigue siendo el aterrizaje", () => {
+    expect(PESTANAS_POR_SECCION.unidades).toEqual(["lista", "origen"]);
+    expect(resolverDireccion("unidades")).toEqual({ seccion: "unidades", pestana: "lista" });
+    expect(resolverDireccion("unidades", "origen")).toEqual({ seccion: "unidades", pestana: "origen" });
+    expect(esDireccionCanonica("unidades", "origen")).toBe(true);
+  });
+
+  test("el manifiesto la publica con su dirección", () => {
+    const unidades = PROSECNUR_MODULES.find((m) => m.slug === "material-campo")!.sections.find((s) => s.id === "unidades");
+    const origen = unidades?.tabs?.find((t) => t.id === "origen");
+    expect(origen?.label).toBe("Origen");
+    expect(origen?.to).toBe("/material-campo?seccion=unidades&pestana=origen");
+    expect(origen?.layoutPolicy).toBe("viewport");
+  });
+
+  test("un enlace guardado al diálogo de rehacer aterriza en Origen", () => {
+    expect(resolverDireccion("unidades", null, "rehacer-plan")).toEqual({ seccion: "unidades", pestana: "origen" });
+    expect(resolverDireccion("unidades", "lista", "rehacer-plan")).toEqual({ seccion: "unidades", pestana: "origen" });
+    expect(esDireccionCanonica("unidades", "lista", "rehacer-plan")).toBe(false);
+    expect(esDireccionCanonica("unidades", "origen", "rehacer-plan")).toBe(true);
+  });
+
+  test("el panel no arrastra a Origen desde otra sección", () => {
+    expect(resolverDireccion("accesos", "canales", "rehacer-plan")).toEqual({ seccion: "accesos", pestana: "canales" });
+    expect(esDireccionCanonica("accesos", "canales", "rehacer-plan")).toBe(true);
+  });
+});

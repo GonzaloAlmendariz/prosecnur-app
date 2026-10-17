@@ -10,6 +10,8 @@
 import { ArrowRight, CheckCircle2, Grid3X3, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { AulasApplicationFlow } from "../../../aulasFlow/AulasApplicationFlow";
+import { Alert } from "../../../../components/Alert";
+import { useAvisoMaterialCampo } from "./avisoMaterialCampo";
 import { fmtInt, fmtRatio } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import { CifraFila, CifraMotor, FlujoVertical, type FlujoEtapa } from "../ui";
@@ -58,6 +60,8 @@ export function SalidasMonitoreoTab({
   } = model;
 
   const reservasTotal = reserveRows.length + extraReserveRows.length;
+  // Lo que Material de campo tiene de esta selección (E1e). Sin plan, nada.
+  const avisoMaterial = useAvisoMaterialCampo(selectionReady);
   const methodLabel = selectionReady && selection
     ? classroomMethodLabel(String(selection.selector_engine_used ?? selection.selector_engine ?? ""))
     : comparisonReady
@@ -153,6 +157,15 @@ export function SalidasMonitoreoTab({
         secondaryAction={{ to: "/monitoreo", label: "Ver monitoreo" }}
         action={{ to: "/material-campo", label: "Preparar fichas QR", disabled: !selectionReady }}
       />
+
+      {avisoMaterial ? (
+        <div role="status" aria-label="Material de campo">
+          <Alert kind={avisoMaterial.tono}>
+            {avisoMaterial.texto}{" "}
+            <Link to={avisoMaterial.enlace.to}>{avisoMaterial.enlace.label}</Link>
+          </Alert>
+        </div>
+      ) : null}
 
       {selectionReady ? (
         <ClassroomSelectionTable rows={m1Rows.slice(0, 16)} />

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { apiRecopiladoresSeed, type CollectionStatePayload, type CollectionUnit } from "../../api/recopiladores";
 import { agruparEnCadenas, ordenarPorCadenaOperativa } from "../../lib/cadenaOperativa";
@@ -21,9 +22,7 @@ import { codigoOperativoDe } from "./codigoOperativo";
 import { formaDelOperativo, type FormaDelOperativo } from "./formaDelOperativo";
 import { nombreCortoDeFacultad } from "./nombreDeFacultad";
 import { fechaDeCorrida } from "./fechaDeCorrida";
-import { usePanelDireccionable } from "../../lib/navegacion/paneles";
-import { ConfirmarResembrado } from "./ConfirmarResembrado";
-import { PANEL_REHACER_PLAN } from "./resembrado";
+import { DIRECCION_ORIGEN } from "./origen";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -194,11 +193,9 @@ export function PlanSection({ payload, onState, origen, onIr }: Props) {
   const [error, setError] = useState("");
   const plan = payload?.state.plan ?? null;
   // El backend compara el run_id del plan con el de la selección vigente; aquí
-  // sólo se pinta su veredicto. Ausente = no hay con qué comparar.
+  // sólo se pinta su veredicto. Ausente = no hay con qué comparar. Qué cambió y
+  // la acción de actualizar viven en Unidades › Origen (E1e), no aquí.
   const desfase = payload?.source_vigente?.desfasado ? payload.source_vigente : null;
-  // Rehacer el plan NO escribe al pulsar: abre `?panel=rehacer-plan`, que
-  // previsualiza lo que se descarta y sólo confirma ahí (H26).
-  const panelRehacer = usePanelDireccionable(PANEL_REHACER_PLAN);
 
   const seed = async () => {
     setSeeding(true);
@@ -268,13 +265,6 @@ export function PlanSection({ payload, onState, origen, onIr }: Props) {
 
   return (
     <div className="rec-plan-layout">
-      {payload ? (
-        <ConfirmarResembrado
-          panel={panelRehacer}
-          expectedRevision={payload.state_revision}
-          onState={onState}
-        />
-      ) : null}
       {/* Los dos paneles de contexto van en una columna propia: el layout es de
           dos columnas y un tercer hijo suelto caeria bajo el resumen empujando
           la tabla a la fila siguiente. */}
@@ -324,33 +314,13 @@ export function PlanSection({ payload, onState, origen, onIr }: Props) {
           </div>
         </dl>
         {desfase ? (
-          <div className="rec-plan-desfase">
-            <p>
-              Este plan se armó con el <b>sorteo del {fechaDeCorrida(desfase.plan_run_id) || "una corrida anterior"}</b>,
-              y la selección vigente es <b>otra</b>{fechaDeCorrida(desfase.selection_run_id)
-                ? <> (del {fechaDeCorrida(desfase.selection_run_id)})</> : null}.
-              Los materiales que se generen ahora llevarán las aulas del plan, no las del sorteo actual.
-            </p>
-            {/* Rehacer descarta el despliegue y su entrega a campo, así que se
-                dice ANTES de pulsar y no en un aviso posterior. El plan está
-                congelado a propósito: rehacerlo es una decisión, no una
-                corrección automática. */}
-            <p className="rec-plan-desfase-coste">
-              Rehacerlo lo reemplaza por las {plan.units.length === 0 ? "aulas" : "aulas"} del sorteo vigente
-              y <b>descarta el despliegue preparado</b>{payload?.state.deployment?.status === "handed_off"
-                ? <>, incluida su <b>entrega a campo</b></> : null}. Las fichas ya impresas dejan de
-              corresponder al plan.
-            </p>
-            <button
-              type="button"
-              className="cmv2-ghost"
-              aria-haspopup="dialog"
-              aria-expanded={panelRehacer.abierto}
-              onClick={panelRehacer.abrir}
-            >
-              Rehacer el plan con el sorteo vigente
-            </button>
-          </div>
+          // Una línea: el aviso detallado, las diferencias y la acción están en
+          // Origen. Repetirlos aquí era dar dos sitios para la misma decisión.
+          <p className="rec-plan-desfase">
+            La selección vigente es de otro sorteo{fechaDeCorrida(desfase.selection_run_id)
+              ? <> (del {fechaDeCorrida(desfase.selection_run_id)})</> : null}.{" "}
+            <Link to={DIRECCION_ORIGEN}>Ver qué cambió</Link>
+          </p>
         ) : null}
       </Panel>
       {/* Con qué facultades se reparte el operativo. Va bajo el resumen y sobre

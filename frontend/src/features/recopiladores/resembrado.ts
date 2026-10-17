@@ -11,16 +11,28 @@ import type {
 } from "../../api/recopiladores";
 import type { PanelDeclarado } from "../../lib/navegacion/paneles";
 import { fechaDeCorrida } from "./fechaDeCorrida";
+import { lineaDelConteo } from "./origen";
 
-/** `?seccion=unidades&panel=rehacer-plan`: el diálogo que confirma el reseed. */
+/**
+ * `?seccion=unidades&pestana=origen&panel=rehacer-plan`: el diálogo que confirma
+ * el reseed. Vive en Origen (E1e); un enlace guardado sin pestaña aterriza ahí.
+ */
 export const PANEL_REHACER_PLAN: PanelDeclarado = {
   id: "rehacer-plan",
   label: "Rehacer el plan",
   clase: "dialogo",
 };
 
+/**
+ * `rehacer`: el diálogo histórico, sin huella de la fuente. `actualizar`: el de
+ * Unidades › Origen, que además dice cuántas unidades entran, salen y cambian.
+ */
+export type VarianteDelResembrado = "rehacer" | "actualizar";
+
 export type TextoDelResembrado = {
   titulo: string;
+  /** «Entran 2, salen 0, cambian 1.»; vacío si el backend no lo emitió. */
+  diferencias: string;
   /** Qué plan entra, con su cifra. */
   entra: string;
   /** Qué plan sale, con su cifra; vacío si no hay plan que reemplazar. */
@@ -64,6 +76,7 @@ export function rotulosConservados(claves: readonly string[]): string[] {
 export function textoDelResembrado(
   descartado: CollectionReseedDescartado | null,
   propuesto: CollectionReseedPropuesto | null,
+  variante: VarianteDelResembrado = "rehacer",
 ): TextoDelResembrado {
   const entra = propuesto
     ? `Entra el plan${delSorteo(propuesto.plan_run_id)}: ${plural(propuesto.unidades, "unidad", "unidades")}.`
@@ -97,17 +110,21 @@ export function textoDelResembrado(
     }
   }
 
+  const actualizar = variante === "actualizar";
   return {
-    titulo: "¿Rehacer el plan con el sorteo vigente?",
+    titulo: actualizar ? "¿Actualizar desde la fuente?" : "¿Rehacer el plan con el sorteo vigente?",
+    diferencias: propuesto?.diferencias ? `${lineaDelConteo(propuesto.diferencias)}.` : "",
     entra,
     sale,
     descarta,
     conserva: rotulosConservados(descartado?.conservado ?? []),
-    confirmar: "Rehacer el plan",
+    confirmar: actualizar ? "Actualizar desde la fuente" : "Rehacer el plan",
   };
 }
 
 const STALE = "E_COLLECTION_STATE_STALE";
+/** La fuente cambió entre revisar las diferencias y confirmar (E1e). */
+const ORIGEN_CAMBIO = "E_COLLECTION_ORIGEN_CAMBIO";
 
 /** Código del error de API, si lo trae (`ApiError.code`). */
 export function codigoDe(error: unknown): string {
@@ -126,6 +143,9 @@ export function mensajeDeErrorDelResembrado(error: unknown, accion: "leer" | "re
   if (codigo === STALE) {
     return "El plan cambió mientras lo revisabas. Actualiza Material de campo y vuelve a intentarlo.";
   }
+  if (codigo === ORIGEN_CAMBIO) {
+    return "La fuente cambió mientras revisabas las diferencias. Vuelve a revisarlas antes de confirmar.";
+  }
   if (codigo === "E_COLLECTION_SIN_ORIGEN") {
     return "No hay una selección de aulas vigente de la que rehacer el plan.";
   }
@@ -139,6 +159,10 @@ export function mensajeDeErrorDelResembrado(error: unknown, accion: "leer" | "re
 export const AVISO_PLAN_ACTUALIZADO =
   "El plan cambió mientras lo revisabas. Ya se muestra lo vigente: revísalo antes de confirmar.";
 
+/** Tras reponerse de un 409 de la fuente: las diferencias se releyeron. */
+export const AVISO_FUENTE_ACTUALIZADA =
+  "La fuente cambió mientras revisabas las diferencias. Ya se muestran las vigentes: revísalas antes de confirmar.";
+
 // ---------------------------------------------------------------------------
 // Flujo: previsualizar primero, escribir sólo al confirmar
 // ---------------------------------------------------------------------------
@@ -149,15 +173,17 @@ export const AVISO_PLAN_ACTUALIZADO =
 
 export type PreviaDelResembrado = {
   revision: number;
+  /** Huella de la fuente que se revisó; ausente en el diálogo sin huella. */
+  huella?: string;
   descartado: CollectionReseedDescartado | null;
   propuesto: CollectionReseedPropuesto | null;
 };
 
 export type PuertoDelResembrado = {
   /** `POST /reseed` con `dry_run: true`: no muta. */
-  previsualizar: (revision: number) => Promise<CollectionStatePayload>;
+  previsualizar: (revision: number, huella?: string | null) => Promise<CollectionStatePayload>;
   /** `POST /reseed` con `dry_run: false`: reemplaza el plan. */
-  rehacer: (revision: number) => Promise<CollectionStatePayload>;
+  rehacer: (revision: number, huella?: string | null) => Promise<CollectionStatePayload>;
   /** `GET /state`, para reponerse de un 409 por revisión vieja. */
   leerVigente: () => Promise<CollectionStatePayload>;
 };
@@ -166,11 +192,14 @@ export type ResultadoDeLaPrevia =
   | { tipo: "listo"; previa: PreviaDelResembrado }
   /** El estado cambió: se repinta con `payload` y se vuelve a previsualizar. */
   | { tipo: "refrescado"; payload: CollectionStatePayload }
+  /** La fuente cambió (409 de origen): hay que releer las diferencias. */
+  | { tipo: "fuente-cambio" }
   | { tipo: "error"; mensaje: string };
 
 export type ResultadoDeConfirmar =
   | { tipo: "hecho"; payload: CollectionStatePayload }
   | { tipo: "refrescado"; payload: CollectionStatePayload }
+  | { tipo: "fuente-cambio" }
   | { tipo: "error"; aviso: string };
 
 /** Tras un 409, el estado vigente si su revisión es otra; si no, nada. */
@@ -190,18 +219,24 @@ async function vigenteDistinto(
 export async function leerPreviaDelResembrado(
   puerto: PuertoDelResembrado,
   revision: number,
+  huella: string | null = null,
 ): Promise<ResultadoDeLaPrevia> {
   try {
-    const respuesta = await puerto.previsualizar(revision);
+    // Sin huella, la llamada es la de siempre: el backend no compara la fuente.
+    const respuesta = huella
+      ? await puerto.previsualizar(revision, huella)
+      : await puerto.previsualizar(revision);
     return {
       tipo: "listo",
       previa: {
         revision,
+        ...(huella ? { huella } : {}),
         descartado: respuesta.descartado ?? null,
         propuesto: respuesta.propuesto ?? null,
       },
     };
   } catch (error) {
+    if (codigoDe(error) === ORIGEN_CAMBIO) return { tipo: "fuente-cambio" };
     if (codigoDe(error) === STALE) {
       const fresco = await vigenteDistinto(puerto, revision);
       if (fresco) return { tipo: "refrescado", payload: fresco };
@@ -210,14 +245,18 @@ export async function leerPreviaDelResembrado(
   }
 }
 
-/** Escribe con la revisión que se previsualizó, nunca con otra. */
+/** Escribe con la revisión y la huella que se previsualizaron, nunca con otras. */
 export async function confirmarResembrado(
   puerto: PuertoDelResembrado,
   previa: PreviaDelResembrado,
 ): Promise<ResultadoDeConfirmar> {
   try {
-    return { tipo: "hecho", payload: await puerto.rehacer(previa.revision) };
+    const payload = previa.huella
+      ? await puerto.rehacer(previa.revision, previa.huella)
+      : await puerto.rehacer(previa.revision);
+    return { tipo: "hecho", payload };
   } catch (error) {
+    if (codigoDe(error) === ORIGEN_CAMBIO) return { tipo: "fuente-cambio" };
     if (codigoDe(error) === STALE) {
       const fresco = await vigenteDistinto(puerto, previa.revision);
       if (fresco) return { tipo: "refrescado", payload: fresco };

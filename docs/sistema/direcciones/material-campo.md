@@ -6,13 +6,14 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `material-campo` · ruta `/material-campo` · 14 direcciones.
+Módulo `material-campo` · ruta `/material-campo` · 15 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `material-campo` | modulo | Material de campo | sí | 63582b22 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
-| `material-campo/unidades` | seccion | Unidades | sí | 94c24c9b | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
+| `material-campo` | modulo | Material de campo | sí | 684e71b9 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
+| `material-campo/unidades` | seccion | Unidades | sí | f5cfbf38 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
 | `material-campo/unidades/lista` | pestana | Lista | sí | a4e54dda | sí | — |
+| `material-campo/unidades/origen` | pestana | Origen | sí | 9134f6f6 | sí | — |
 | `material-campo/accesos` | seccion | Accesos | sí | 5ceb64ec | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
 | `material-campo/accesos/canales` | pestana | Canales | sí | 2bd8040c | sí | — |
 | `material-campo/accesos/vinculacion` | pestana | Vinculación | sí | e3e1df04 | sí | — |

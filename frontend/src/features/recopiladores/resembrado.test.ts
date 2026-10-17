@@ -177,11 +177,16 @@ describe("el diálogo es un panel direccionable y el botón no escribe", () => {
     expect(PANEL_REHACER_PLAN.clase).toBe("dialogo");
   });
 
-  it("PlanSection no llama al reseed: sólo abre el panel", () => {
-    const fuente = leer("PlanSection.tsx");
-    expect(fuente).not.toMatch(/apiRecopiladoresReseed/);
-    expect(fuente).toMatch(/usePanelDireccionable\(PANEL_REHACER_PLAN\)/);
-    expect(fuente).toMatch(/onClick=\{panelRehacer\.abrir\}/);
+  it("la acción vive sólo en Origen (E1e): la Lista enlaza, Origen abre el panel", () => {
+    const lista = leer("PlanSection.tsx");
+    expect(lista).not.toMatch(/apiRecopiladoresReseed/);
+    expect(lista).not.toMatch(/PANEL_REHACER_PLAN|ConfirmarResembrado/);
+    expect(lista).toMatch(/DIRECCION_ORIGEN/);
+    const origen = leer("OrigenSection.tsx");
+    expect(origen).not.toMatch(/apiRecopiladoresReseed/);
+    expect(origen).toMatch(/usePanelDireccionable\(PANEL_REHACER_PLAN\)/);
+    expect(origen).toMatch(/onActualizar=\{panel\.abrir\}/);
+    expect(origen).toMatch(/expectedSourceFingerprint=\{origen\.fingerprint_actual\}/);
   });
 
   it("el diálogo sólo escribe desde confirmar", () => {
@@ -190,5 +195,53 @@ describe("el diálogo es un panel direccionable y el botón no escribe", () => {
     const usos = fuente.match(/confirmarResembrado\(PUERTO/g) ?? [];
     expect(usos).toHaveLength(1);
     expect(fuente.indexOf("confirmarResembrado(PUERTO")).toBeGreaterThan(fuente.indexOf("const confirmar = async"));
+  });
+});
+
+describe("actualizar desde la fuente (E1e)", () => {
+  const CONTEO = { altas: 2, bajas: 0, campos: 1, roles: 0 };
+
+  it("titula y confirma como «Actualizar desde la fuente» y da el conteo", () => {
+    const t = textoDelResembrado(HSVG, { plan_run_id: "sel_aulas_20260821160928_x", unidades: 2470, diferencias: CONTEO }, "actualizar");
+    expect(t.titulo).toBe("¿Actualizar desde la fuente?");
+    expect(t.confirmar).toBe("Actualizar desde la fuente");
+    expect(t.diferencias).toBe("Entran 2, salen 0, cambian 1.");
+  });
+
+  it("«cambian» son los datos; el rol no se cuenta dos veces", () => {
+    const t = textoDelResembrado(HSVG, { plan_run_id: "", unidades: 5, diferencias: { ...CONTEO, roles: 1, unidades_con_cambios: 2 } }, "actualizar");
+    expect(t.diferencias).toBe("Entran 2, salen 0, cambian 1, 1 de rol.");
+  });
+
+  it("sin conteo del backend no inventa uno", () => {
+    const t = textoDelResembrado(HSVG, { plan_run_id: "", unidades: 5 }, "actualizar");
+    expect(t.diferencias).toBe("");
+  });
+
+  it("previsualiza y escribe con la MISMA huella que se revisó", async () => {
+    const p = puerto({});
+    const r = await leerPreviaDelResembrado(p, 4, "sha256:abc");
+    expect(p.previsualizar).toHaveBeenCalledWith(4, "sha256:abc");
+    if (r.tipo !== "listo") throw new Error("debía quedar lista");
+    expect(r.previa.huella).toBe("sha256:abc");
+    await confirmarResembrado(p, r.previa);
+    expect(p.rehacer).toHaveBeenCalledWith(4, "sha256:abc");
+  });
+
+  it("un 409 de origen pide releer la fuente, no escribir", async () => {
+    const cambio = () => { throw new ApiError("E_COLLECTION_ORIGEN_CAMBIO", "La fuente cambió"); };
+    const p = puerto({
+      previsualizar: vi.fn(async () => cambio()),
+      rehacer: vi.fn(async () => cambio()),
+    });
+    expect((await leerPreviaDelResembrado(p, 4, "sha256:abc")).tipo).toBe("fuente-cambio");
+    expect((await confirmarResembrado(p, { revision: 4, huella: "sha256:abc", descartado: HSVG, propuesto: null })).tipo)
+      .toBe("fuente-cambio");
+    expect(p.leerVigente).not.toHaveBeenCalled();
+  });
+
+  it("el 409 de origen se dice en castellano", () => {
+    const m = mensajeDeErrorDelResembrado(new ApiError("E_COLLECTION_ORIGEN_CAMBIO", "x"), "rehacer");
+    expect(m).toContain("La fuente cambió mientras revisabas las diferencias");
   });
 });

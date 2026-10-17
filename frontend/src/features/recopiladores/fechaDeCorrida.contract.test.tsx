@@ -61,31 +61,33 @@ describe("fecha de la corrida que produjo el plan", () => {
   });
 });
 
+/**
+ * Desde E1e el aviso de la Lista es UNA línea que lleva a Unidades › Origen:
+ * las diferencias, lo que se descarta y la acción viven allí y sólo allí. Dos
+ * sitios para la misma decisión era una de las dos versiones envejeciendo.
+ */
 describe("el aviso de plan desfasado", () => {
-  it("avisa con las dos fechas cuando el plan viene de otro sorteo", () => {
+  it("dice de qué sorteo es el plan y cuál es el vigente", () => {
     const html = render(true);
     expect(html).toContain("1 ago 2026");
     expect(html).toContain("21 ago 2026");
-    expect(html).toContain("llevarán las aulas del plan");
+    expect(html).toContain("La selección vigente es de otro sorteo");
   });
 
-  it("ofrece la acción, no sólo el diagnóstico", () => {
-    expect(render(true)).toContain("Rehacer el plan con el sorteo vigente");
+  it("lleva a Origen, donde está qué cambió", () => {
+    const html = render(true);
+    expect(html).toContain("Ver qué cambió");
+    expect(html).toContain("pestana=origen");
   });
 
-  it("dice lo que se descarta ANTES de pulsar", () => {
-    // Rehacer no es gratis: el plan está congelado a propósito.
-    expect(render(true)).toContain("descarta el despliegue preparado");
+  it("no ofrece rehacer desde la Lista", () => {
+    expect(render(true)).not.toContain("Rehacer el plan");
+    expect(render(true, "handed_off")).not.toContain("Rehacer el plan");
   });
 
-  it("cuando ya se entregó a campo, lo dice aparte", () => {
-    expect(render(true, "handed_off")).toContain("entrega a campo");
-    expect(render(true, "draft")).not.toContain("entrega a campo");
-  });
-
-  it("sin desfase no avisa ni ofrece rehacer", () => {
+  it("sin desfase no avisa", () => {
     const html = render(false);
-    expect(html).not.toContain("llevarán las aulas del plan");
+    expect(html).not.toContain("Ver qué cambió");
     expect(html).not.toContain("Rehacer el plan");
   });
 });

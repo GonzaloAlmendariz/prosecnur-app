@@ -131,6 +131,11 @@ export type CollectionReseedDescartado = {
 export type CollectionReseedPropuesto = {
   plan_run_id: string;
   unidades: number;
+  /**
+   * Cuántas unidades entran, salen, cambian algún dato o cambian de rol: el
+   * mismo conteo que `GET /origen`. `null` en un backend que no lo emite.
+   */
+  diferencias?: CollectionOrigenConteo | null;
 };
 
 export type CollectionStatePayload = CollectionState & {
@@ -429,9 +434,26 @@ export function normalizeReseedDescartado(value: unknown): CollectionReseedDesca
   };
 }
 
+function normalizeOrigenConteo(value: unknown): CollectionOrigenConteo | null {
+  if (!isRecord(value)) return null;
+  return {
+    altas: conteo(value.altas),
+    bajas: conteo(value.bajas),
+    campos: conteo(value.campos),
+    roles: conteo(value.roles),
+    ...(escalar(value.unidades_con_cambios) == null ? {} : { unidades_con_cambios: conteo(value.unidades_con_cambios) }),
+  };
+}
+
 export function normalizeReseedPropuesto(value: unknown): CollectionReseedPropuesto | null {
   if (!isRecord(value)) return null;
-  return { plan_run_id: textoPlano(value.plan_run_id), unidades: conteo(value.unidades) };
+  const diferencias = normalizeOrigenConteo(value.diferencias);
+  return {
+    plan_run_id: textoPlano(value.plan_run_id),
+    unidades: conteo(value.unidades),
+    // Sólo si el backend lo emite: un backend previo no inventa «entran 0».
+    ...(diferencias ? { diferencias } : {}),
+  };
 }
 
 export function normalizeCollectionStatePayload(value: unknown): CollectionStatePayload {
@@ -531,16 +553,24 @@ export function apiRecopiladoresSeed() {
  * plan ya existe. Rehacer descarta el despliegue y su handoff, así que la
  * respuesta trae `descartado` con lo que se pierde.
  */
-export function apiRecopiladoresReseed(expected_revision: number) {
-  return stateRequest("/api/recopiladores/reseed", json("POST", { expected_revision, dry_run: false }));
+export function apiRecopiladoresReseed(expected_revision: number, expected_source_fingerprint?: string | null) {
+  return stateRequest("/api/recopiladores/reseed", json("POST", {
+    expected_revision,
+    dry_run: false,
+    ...(expected_source_fingerprint ? { expected_source_fingerprint } : {}),
+  }));
 }
 
 /**
  * Previsualiza el reseed: mismo `descartado` y `propuesto`, sin tocar estado,
  * revisión ni `project_dirty`. Es lo que se lee ANTES de confirmar.
  */
-export function apiRecopiladoresReseedPreview(expected_revision: number) {
-  return stateRequest("/api/recopiladores/reseed", json("POST", { expected_revision, dry_run: true }));
+export function apiRecopiladoresReseedPreview(expected_revision: number, expected_source_fingerprint?: string | null) {
+  return stateRequest("/api/recopiladores/reseed", json("POST", {
+    expected_revision,
+    dry_run: true,
+    ...(expected_source_fingerprint ? { expected_source_fingerprint } : {}),
+  }));
 }
 
 export function apiRecopiladoresPlanPut(expected_revision: number, plan: CollectionPlan) {
@@ -770,4 +800,245 @@ export async function apiRecopiladoresMaterialsRender(input: {
     throw contractError("materials/render no devolvió job_id.");
   }
   return raw as JobStart;
+}
+
+// ---------------------------------------------------------------------------
+// Origen de las unidades (E1e): de qué fuente sale el plan y qué cambió en ella
+// ---------------------------------------------------------------------------
+//
+// `GET /api/recopiladores/origen` es puro: compara el plan guardado con lo que
+// la fuente daría HOY, sin escribir estado ni marcar el proyecto. `nivel=resumen`
+// no construye unidades y sirve para avisos baratos (Cálculo de muestra);
+// `nivel=diferencias` trae las listas, con tope `limite`.
+
+export type CollectionOrigenEstado = "al_dia" | "cambio" | "sin_plan" | "sin_fuente";
+
+export type CollectionOrigenConteo = {
+  altas: number;
+  bajas: number;
+  /** Datos que cambiaron (filas), no unidades. */
+  campos: number;
+  roles: number;
+  /** Unidades con algún dato cambiado; ausente en un backend que no lo emite. */
+  unidades_con_cambios?: number;
+};
+
+/** Una unidad que entra o sale de la lista. */
+export type CollectionOrigenUnidad = {
+  clave: string;
+  unit_id: string;
+  codigo: string;
+  rol: string;
+  facultad: string;
+  curso: string;
+};
+
+/**
+ * Un dato que cambió en una unidad que sigue en la lista. Un campo sensible
+ * (el docente) llega con `antes`/`despues` en `null`: se dice que cambió, no a qué.
+ */
+export type CollectionOrigenCambio = {
+  clave: string;
+  unit_id: string;
+  codigo: string;
+  campo: string;
+  antes: string | null;
+  despues: string | null;
+  sensible: boolean;
+};
+
+export type CollectionOrigenResumen = CollectionOrigenConteo & {
+  unidades_con_cambios: number;
+  sin_cambio: number;
+  claves_repetidas: number;
+  afectadas: { unidades: number; fichas: number; unidades_con_ficha: number; accesos: number };
+  entregado: boolean;
+};
+
+export type CollectionOrigen = {
+  ok: true;
+  schema: "collection_origen/v1";
+  nivel: "diferencias" | "resumen";
+  state_revision: number;
+  adapter: string;
+  /** `fecha` = «AAAA-MM-DD» del sello del sorteo; "" en corridas sin fecha (QA). */
+  fuente: { modulo: string; origen: string; disponible: boolean; run_id: string; fecha: string; unidades: number | null };
+  plan: { existe: boolean; run_id: string; fecha: string; unidades: number; huella_registrada: string };
+  fingerprint_actual: string | null;
+  fingerprint_plan: string | null;
+  sorteo_vigente: { run_id: string; fecha: string; desfasado: boolean } | null;
+  /** La fuente que manda (Monitoreo) quedó atrás de la selección de Cálculo. */
+  fuente_intermedia_desfasada: boolean;
+  estado: CollectionOrigenEstado;
+  stale: boolean;
+  /** Cambió la corrida pero no las unidades. */
+  solo_corrida: boolean;
+  resumen: CollectionOrigenResumen;
+  /** `null` en `nivel=resumen`. */
+  cambios: {
+    altas: CollectionOrigenUnidad[];
+    bajas: CollectionOrigenUnidad[];
+    campos: CollectionOrigenCambio[];
+    roles: CollectionOrigenCambio[];
+  } | null;
+  truncado: { altas: boolean; bajas: boolean; campos: boolean; roles: boolean };
+  limite: number;
+};
+
+const ESTADOS_ORIGEN: readonly CollectionOrigenEstado[] = ["al_dia", "cambio", "sin_plan", "sin_fuente"];
+
+function verdadero(value: unknown): boolean {
+  return escalar(value) === true;
+}
+
+/** Texto, número como texto, o `null` si el backend no dio valor. */
+function textoOpcional(value: unknown): string | null {
+  const v = escalar(value);
+  if (typeof v === "string") return v.trim();
+  if (typeof v === "number" && Number.isFinite(v)) return String(v);
+  if (typeof v === "boolean") return v ? "sí" : "no";
+  return null;
+}
+
+function huellaOpcional(value: unknown): string | null {
+  const v = textoPlano(value);
+  return v ? v : null;
+}
+
+function normalizeOrigenUnidad(value: unknown): CollectionOrigenUnidad | null {
+  if (!isRecord(value)) return null;
+  const clave = textoPlano(value.clave);
+  if (!clave) return null;
+  return {
+    clave,
+    unit_id: textoPlano(value.unit_id),
+    codigo: textoPlano(value.codigo),
+    rol: textoPlano(value.rol),
+    facultad: textoPlano(value.facultad),
+    curso: textoPlano(value.curso),
+  };
+}
+
+function normalizeOrigenCambio(value: unknown): CollectionOrigenCambio | null {
+  if (!isRecord(value)) return null;
+  const clave = textoPlano(value.clave);
+  const campo = textoPlano(value.campo);
+  if (!clave || !campo) return null;
+  const sensible = verdadero(value.sensible);
+  return {
+    clave,
+    unit_id: textoPlano(value.unit_id),
+    codigo: textoPlano(value.codigo),
+    campo,
+    // Lo sensible no se pinta aunque el backend lo mandara por error.
+    antes: sensible ? null : textoOpcional(value.antes),
+    despues: sensible ? null : textoOpcional(value.despues),
+    sensible,
+  };
+}
+
+function listaDe<T>(value: unknown, normalizar: (item: unknown) => T | null): T[] {
+  return asArray<unknown>(value).map(normalizar).filter((item): item is T => item !== null);
+}
+
+export function normalizeCollectionOrigen(value: unknown): CollectionOrigen {
+  if (!isRecord(value)) throw contractError("origen no es un objeto.");
+  if (escalar(value.schema) !== "collection_origen/v1") throw contractError("schema de origen desconocido.");
+  const fuente = isRecord(value.fuente) ? value.fuente : {};
+  const plan = isRecord(value.plan) ? value.plan : {};
+  const sorteo = isRecord(value.sorteo_vigente) ? value.sorteo_vigente : null;
+  const resumen = isRecord(value.resumen) ? value.resumen : {};
+  const afectadas = isRecord(resumen.afectadas) ? resumen.afectadas : {};
+  const cambios = isRecord(value.cambios) ? value.cambios : null;
+  const truncado = isRecord(value.truncado) ? value.truncado : {};
+  const unidadesFuente = Number(escalar(fuente.unidades));
+
+  const planExiste = verdadero(plan.existe);
+  const fuenteDisponible = verdadero(fuente.disponible);
+  const stale = verdadero(value.stale);
+  const estadoCrudo = textoPlano(value.estado) as CollectionOrigenEstado;
+  // Un estado que este front no conoce se deduce de lo que sí sabe; nunca se
+  // afirma «al día» sin plan ni fuente.
+  const estado: CollectionOrigenEstado = ESTADOS_ORIGEN.includes(estadoCrudo)
+    ? estadoCrudo
+    : !planExiste ? "sin_plan" : !fuenteDisponible ? "sin_fuente" : stale ? "cambio" : "al_dia";
+
+  return {
+    ok: true,
+    schema: "collection_origen/v1",
+    nivel: textoPlano(value.nivel) === "resumen" ? "resumen" : "diferencias",
+    state_revision: conteo(value.state_revision),
+    adapter: textoPlano(value.adapter),
+    fuente: {
+      modulo: textoPlano(fuente.modulo),
+      origen: textoPlano(fuente.origen),
+      disponible: fuenteDisponible,
+      run_id: textoPlano(fuente.run_id),
+      fecha: textoPlano(fuente.fecha),
+      unidades: Number.isFinite(unidadesFuente) && unidadesFuente >= 0 && escalar(fuente.unidades) !== null
+        ? Math.floor(unidadesFuente) : null,
+    },
+    plan: {
+      existe: planExiste,
+      run_id: textoPlano(plan.run_id),
+      fecha: textoPlano(plan.fecha),
+      unidades: conteo(plan.unidades),
+      huella_registrada: textoPlano(plan.huella_registrada),
+    },
+    fingerprint_actual: huellaOpcional(value.fingerprint_actual),
+    fingerprint_plan: huellaOpcional(value.fingerprint_plan),
+    sorteo_vigente: sorteo === null ? null : {
+      run_id: textoPlano(sorteo.run_id),
+      fecha: textoPlano(sorteo.fecha),
+      desfasado: verdadero(sorteo.desfasado),
+    },
+    fuente_intermedia_desfasada: verdadero(value.fuente_intermedia_desfasada),
+    estado,
+    stale,
+    solo_corrida: verdadero(value.solo_corrida),
+    resumen: {
+      altas: conteo(resumen.altas),
+      bajas: conteo(resumen.bajas),
+      campos: conteo(resumen.campos),
+      roles: conteo(resumen.roles),
+      unidades_con_cambios: conteo(resumen.unidades_con_cambios),
+      sin_cambio: conteo(resumen.sin_cambio),
+      claves_repetidas: conteo(resumen.claves_repetidas),
+      afectadas: {
+        unidades: conteo(afectadas.unidades),
+        fichas: conteo(afectadas.fichas),
+        unidades_con_ficha: conteo(afectadas.unidades_con_ficha),
+        accesos: conteo(afectadas.accesos),
+      },
+      entregado: verdadero(resumen.entregado),
+    },
+    cambios: cambios === null ? null : {
+      altas: listaDe(cambios.altas, normalizeOrigenUnidad),
+      bajas: listaDe(cambios.bajas, normalizeOrigenUnidad),
+      campos: listaDe(cambios.campos, normalizeOrigenCambio),
+      roles: listaDe(cambios.roles, normalizeOrigenCambio),
+    },
+    truncado: {
+      altas: verdadero(truncado.altas),
+      bajas: verdadero(truncado.bajas),
+      campos: verdadero(truncado.campos),
+      roles: verdadero(truncado.roles),
+    },
+    limite: conteo(value.limite),
+  };
+}
+
+/**
+ * Lee el origen de las unidades. `resumen` es barato (no arma unidades) y es el
+ * único nivel que deben usar otros módulos; `diferencias` es el de la pestaña.
+ */
+export async function apiRecopiladoresOrigen(
+  nivel: "diferencias" | "resumen" = "diferencias",
+  limite = 200,
+): Promise<CollectionOrigen> {
+  const query = new URLSearchParams({ nivel, limite: String(limite) });
+  const raw = await handle<unknown>(await apiFetch(`/api/recopiladores/origen?${query.toString()}`, {
+    headers: headers(),
+  }));
+  return normalizeCollectionOrigen(raw);
 }

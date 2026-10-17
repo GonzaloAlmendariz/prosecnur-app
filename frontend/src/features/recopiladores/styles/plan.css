@@ -266,20 +266,27 @@
   width: 100%;
 }
 
+/* Desde E1e Unidades tiene dos pestañas y lleva rail: a 1024×600 la tabla
+   dispone de ~620 px y el mínimo genérico de 700 escondía «Reservas» a la
+   derecha. Cinco columnas caben en 600 sin recortar. */
+.rec-table-scroll table.rec-plan-tabla {
+  min-width: 600px;
+}
+
 .rec-plan-tabla th:nth-child(1),
 .rec-plan-tabla td:nth-child(1) { width: 15%; }
 
 .rec-plan-tabla th:nth-child(2),
-.rec-plan-tabla td:nth-child(2) { width: 31%; }
+.rec-plan-tabla td:nth-child(2) { width: 29%; }
 
 .rec-plan-tabla th:nth-child(3),
-.rec-plan-tabla td:nth-child(3) { width: 30%; }
+.rec-plan-tabla td:nth-child(3) { width: 27%; }
 
 .rec-plan-tabla th:nth-child(4),
-.rec-plan-tabla td:nth-child(4) { width: 10%; }
+.rec-plan-tabla td:nth-child(4) { width: 13%; }
 
 .rec-plan-tabla th:nth-child(5),
-.rec-plan-tabla td:nth-child(5) { width: 14%; }
+.rec-plan-tabla td:nth-child(5) { width: 16%; }
 
 .rec-plan-num {
   font-variant-numeric: tabular-nums;
@@ -340,7 +347,8 @@
  * distinguiera del párrafo de al lado. Es el aviso que evita imprimir 2.616
  * fichas de una corrida equivocada.
  *
- * `.rec-plan-desfase-coste` no tenía regla en ningún sitio.
+ * Desde E1e es una sola línea con enlace a Unidades › Origen, donde viven las
+ * diferencias y la acción.
  */
 .rec-plan-desfase {
   margin: 10px 0 0;
@@ -354,15 +362,7 @@
   color: var(--pulso-text);
 }
 
-.rec-plan-desfase p {
-  margin: 0;
-}
-
-/* El coste de rehacer va separado del hecho: son dos lecturas —qué pasa y qué
-   perderías— y corridas se leen como una sola advertencia larga. */
-.rec-plan-desfase-coste {
-  margin-top: 8px !important;
-  padding-top: 8px;
-  border-top: 1px solid var(--pulso-warn-border, var(--pulso-border));
-  color: var(--pulso-text-soft);
+.rec-plan-desfase a {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
 }

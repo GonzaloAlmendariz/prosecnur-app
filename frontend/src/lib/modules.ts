@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   ClipboardList,
+  DatabaseZap,
   FileText,
   Link2,
   LayoutGrid,
@@ -542,6 +543,14 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
             label: "Lista",
             icon: ClipboardList,
             to: "/material-campo?seccion=unidades&pestana=lista",
+            layoutPolicy: "viewport",
+          },
+          {
+            // De qué fuente sale la lista y qué cambió en ella (E1e).
+            id: "origen",
+            label: "Origen",
+            icon: DatabaseZap,
+            to: "/material-campo?seccion=unidades&pestana=origen",
             layoutPolicy: "viewport",
           },
         ],
