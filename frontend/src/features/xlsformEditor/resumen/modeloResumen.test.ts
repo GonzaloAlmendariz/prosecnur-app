@@ -130,7 +130,7 @@ describe("qué falta para publicar e imprimir", () => {
     expect(por.escalas).toMatchObject({ estado: "aviso", titulo: "3 escalas repetidas", accion: { destino: { tipo: "listas" } } });
     expect(por.avisos).toMatchObject({ estado: "error", titulo: "1 error y 2 avisos", accion: { destino: { tipo: "fila", rowIndex: 12 } } });
     expect(por["sin-lista"]).toMatchObject({ estado: "error", accion: { destino: { tipo: "pregunta", name: "p7" } } });
-    expect(por.impreso).toMatchObject({ estado: "listo", detalle: "8 páginas en A4, generada con la versión actual del formulario." });
+    expect(por.impreso).toMatchObject({ estado: "listo", detalle: "8 páginas en A4. Al día con el formulario." });
   });
 
   test("la lógica declarada fuera se informa en neutro, sin pedir revisión", () => {

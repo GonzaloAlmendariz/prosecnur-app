@@ -127,7 +127,7 @@ export function FormSummaryView({
       clave: "secciones",
       rotulo: "Secciones",
       valor: String(resumen.secciones),
-      detalle: masLarga && masLarga.preguntas ? `la más larga: ${masLarga.name || masLarga.rotulo} (${masLarga.preguntas})` : "sin secciones",
+      detalle: masLarga && masLarga.preguntas ? `la más larga tiene ${masLarga.preguntas}` : "sin secciones",
     },
     {
       clave: "obligatorias",
@@ -140,7 +140,7 @@ export function FormSummaryView({
       rotulo: "Con condición",
       valor: String(resumen.conCondiciones),
       detalle: resumen.conCondiciones
-        ? `${porcentaje(resumen.conCondiciones, resumen.preguntas)} aparecen sólo si se cumple su condición`
+        ? `${porcentaje(resumen.conCondiciones, resumen.preguntas)} son condicionales`
         : contexto.logica.pendiente ? "la lógica está por revisar" : "todas aparecen siempre",
     },
     {

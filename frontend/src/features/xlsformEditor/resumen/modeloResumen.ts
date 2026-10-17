@@ -209,11 +209,11 @@ export function pendientesParaPublicar(e: EntradaPendientes): Pendiente[] {
           clave: "logica",
           estado: "aviso",
           titulo: "Lógica por revisar",
-          detalle: "Los saltos importados todavía no se confirman; hasta entonces no se puede publicar.",
+          detalle: "Confirma los saltos importados antes de publicar.",
           accion: { rotulo: "Revisar la lógica", destino: { tipo: "revisar-logica" } },
         }
       : e.logica.externa
-        ? { clave: "logica", estado: "neutro", titulo: "Lógica hecha fuera de Prosecnur", detalle: e.logica.externa }
+        ? { clave: "logica", estado: "neutro", titulo: "Lógica externa", detalle: e.logica.externa }
         : { clave: "logica", estado: "listo", titulo: "Lógica sin pasos pendientes", detalle: "Nada que confirmar antes de publicar." },
   );
 
@@ -223,7 +223,7 @@ export function pendientesParaPublicar(e: EntradaPendientes): Pendiente[] {
           clave: "escalas",
           estado: "aviso",
           titulo: plural(e.escalasRepetidas, "escala repetida", "escalas repetidas"),
-          detalle: "La misma escala vive en listas distintas; unificarlas deja una sola, en el formulario y en la base.",
+          detalle: "Unificarlas deja una sola lista por escala.",
           accion: { rotulo: "Unificar", destino: { tipo: "listas" } },
         }
       : { clave: "escalas", estado: "listo", titulo: "Sin escalas repetidas", detalle: "Cada escala vive en una sola lista." },
@@ -248,11 +248,11 @@ export function pendientesParaPublicar(e: EntradaPendientes): Pendiente[] {
       ? {
           clave: "sin-lista",
           estado: "error",
-          titulo: `${plural(e.sinLista.length, "pregunta de selección", "preguntas de selección")} sin lista`,
-          detalle: "No tienen opciones que mostrar ni que imprimir.",
+          titulo: `${plural(e.sinLista.length, "pregunta", "preguntas")} sin lista`,
+          detalle: "Son de selección y no tienen opciones.",
           accion: { rotulo: "Abrir la primera", destino: { tipo: "pregunta", name: e.sinLista[0].name } },
         }
-      : { clave: "sin-lista", estado: "listo", titulo: "Toda pregunta de selección tiene su lista", detalle: "Nada que completar en las opciones." },
+      : { clave: "sin-lista", estado: "listo", titulo: "Ninguna pregunta sin lista", detalle: "Nada que completar en las opciones." },
   );
 
   const { estado, paginas } = e.impreso;
@@ -262,16 +262,16 @@ export function pendientesParaPublicar(e: EntradaPendientes): Pendiente[] {
           clave: "impreso",
           estado: "listo",
           titulo: "El impreso tiene previa",
-          detalle: `${paginas ? `${plural(paginas, "página", "páginas")} en A4, ` : ""}generada con la versión actual del formulario.`,
+          detalle: `${paginas ? `${plural(paginas, "página", "páginas")} en A4. ` : ""}Al día con el formulario.`,
           accion: { rotulo: "Ver", destino: { tipo: "impreso" } },
         }
       : {
           clave: "impreso",
           estado: estado === "vieja" ? "aviso" : "neutro",
-          titulo: estado === "vieja" ? "La previa del impreso quedó vieja" : "Impreso sin previa",
+          titulo: estado === "vieja" ? "Previa del impreso vieja" : "Impreso sin previa",
           detalle: estado === "vieja"
             ? "El formulario cambió después de generarla."
-            : "Genera la previa para ver páginas y cómo sale cada pregunta.",
+            : "El número de páginas sale con el PDF.",
           accion: { rotulo: "Abrir Impreso", destino: { tipo: "impreso" } },
         },
   );
