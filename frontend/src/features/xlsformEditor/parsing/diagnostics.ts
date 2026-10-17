@@ -14,6 +14,7 @@
 //     menos de 2 opciones.
 //   - Lógica: referencias a variables inexistentes en relevant/constraint/
 //     calculation/choice_filter.
+//   - Filas rotas: todas las columnas de regla repiten el name de la fila.
 // =============================================================================
 
 import { COLUMNAS_EXPRESION, idComillas, tieneComillasTipograficas } from "./comillas";
@@ -137,6 +138,24 @@ export function buildDiagnostics(
         detail:
           "La variable está marcada como cálculo, pero todavía no tiene una fórmula definida.",
       });
+    }
+    // Fila rota: todas las columnas de regla repiten el nombre de la fila (caso real REG02_Other_recod del Tipo 3,
+    // un relleno hacia la derecha en Excel). Ninguna de esas «reglas» significa nada para ODK.
+    const nombre = (node.name ?? "").trim();
+    if (nombre) {
+      const record = rowToRecord(workbook.survey, node.rowIndex);
+      const reglas = [node.relevant, node.constraint, node.calculation, node.choiceFilter, record.required ?? "", node.constraint_message ?? ""]
+        .map((x) => (x ?? "").trim())
+        .filter(Boolean);
+      if (reglas.length >= 2 && reglas.every((x) => x === nombre)) {
+        diagnostics.push({
+          id: `fila-rota-${node.rowIndex}`,
+          level: "warn",
+          rowIndex: node.rowIndex,
+          title: "Fila rota: las reglas repiten el nombre",
+          detail: `Condición, restricción, cálculo y demás reglas de esta fila dicen solo "${nombre}". Parece un relleno de Excel: revisa la fila en la vista Hojas.`,
+        });
+      }
     }
     // Diagnostic INFO: pregunta requerida con relevant condicional.
     // No es error — ODK sólo aplica `required` cuando `relevant` es

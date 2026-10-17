@@ -116,32 +116,7 @@ export function describeCall(expr: Expr, d: Describir, scope: LogicScope): strin
   }
 }
 
-/** Ejemplo legible de un patrón simple: ^[0-9]{2}[/][0-9]{4}$ → «99/9999». null si no se deja leer. */
-export function ejemploDePatron(patron: string): string | null {
-  let p = patron.replace(/^\^/, "").replace(/\$$/, "");
-  let out = "";
-  while (p.length) {
-    const m = p.match(/^(\[0-9\]|\\d|\[a-z\]|\[A-Z\]|\[a-zA-Z\]|\[[^\]]\]|\\.|[^[\\(){}+*?|])(\{(\d+)(?:,(\d+))?\}|\+)?/);
-    if (!m) return null;
-    const [todo, clase, cuant, n] = m;
-    const base = clase === "[0-9]" || clase === "\\d" ? "9" : /^\[[a-zA-Z-]+\]$/.test(clase) && clase.length > 3 ? "a" : clase.startsWith("[") ? clase.slice(1, -1) : clase.startsWith("\\") ? clase.slice(1) : clase;
-    out += cuant === "+" ? base + base + "…" : base.repeat(n ? Number(n) : 1);
-    p = p.slice(todo.length);
-  }
-  return out || null;
-}
-
-/** Lectura de una restricción regex sobre la propia respuesta. */
-export function describeRegex(patron: string): string {
-  const p = patron.trim();
-  const exacto = p.match(/^\^?(?:\[0-9\]|\\d)\{(\d+)\}\$?$/);
-  if (exacto) return `La respuesta debe tener exactamente ${exacto[1]} dígitos.`;
-  const rango = p.match(/^\^?(?:\[0-9\]|\\d)\{(\d+),(\d+)\}\$?$/);
-  if (rango) return `La respuesta debe tener entre ${rango[1]} y ${rango[2]} dígitos.`;
-  if (/^\^?(?:\[0-9\]|\\d)[+*]\$?$/.test(p)) return "La respuesta debe usar solo números.";
-  const ej = ejemploDePatron(p);
-  return ej ? `La respuesta debe seguir el formato ${ej}.` : `La respuesta debe seguir el patrón ${p}.`;
-}
+// La lectura de patrones regex vive en reglas/motor/regex.ts (analiza el patrón, no lo compara con textos fijos).
 
 const OPERADORES: Record<string, string> = { "+": "más", "-": "menos", "*": "por", div: "entre", mod: "módulo" };
 

@@ -3,9 +3,13 @@
 // Constructor y las pestañas Lógica, Restricciones y Cálculos lean las reglas con la misma voz.
 
 import type { BuilderNode } from "../types";
-import { parseExpression, serializeExpression, tryFlattenConstraint, type Expr, type LogicScope } from "../logic";
+import { parseExpression, parseExpressionLectura, serializeExpression, tryFlattenConstraint, type Expr, type LogicScope } from "../logic";
 import { stripMarkdown } from "../helpers/markdown";
-import { describeCall, describeRaw, describeRegex } from "./reglasFunciones";
+import { describeCall, describeRaw } from "./reglasFunciones";
+import { leerRegla } from "../reglas/leerRegla";
+import { leerConContexto } from "../reglas/motor";
+import { tocaActual } from "../reglas/motor/contexto";
+import { textoDePiezas } from "../reglas/piezas";
 
 const TECNICA = "Regla técnica importada";
 
@@ -172,26 +176,28 @@ export function ruleItemSentence(item: RuleBreakdownItem): string {
   return `${item.subject} ${item.relation}${item.value ?? ""}`.trim();
 }
 
+/**
+ * Lectura humana de una expresión sin pregunta dueña (condiciones, cálculos, ejemplos). El texto sale del motor de
+ * reglas en piezas (`reglas/motor`), así todas las vistas leen con la misma voz que el panel de cada marca.
+ */
 export function describeExpression(
   expression: string,
   scope: LogicScope,
-  options: { currentLabel?: string } = {},
+  _options: { currentLabel?: string } = {},
 ): HumanizedExpression {
   const raw = expression.trim();
   if (!raw) {
     return { summary: "Sin condición", raw, technical: false };
   }
-
   const ast = parseExpression(raw);
-  if (!ast) {
-    return { summary: "Regla vacía", raw, technical: false };
-  }
-
-  const summary = pulir(describeExpr(ast, scope, options));
+  // Una expresión sobre «.» es una restricción: se lee con la voz de lo que acepta.
+  const lectura0 = parseExpressionLectura(raw);
+  const columna = lectura0 && lectura0.kind !== "raw" && tocaActual(lectura0) ? "constraint" : "calculation";
+  const lectura = leerConContexto(columna, raw, { columna, scope, actual: null });
   return {
-    summary,
-    raw: exprRaw(ast, raw),
-    technical: summary === "Regla técnica importada",
+    summary: lectura.tecnica ? TECNICA : textoDePiezas(lectura.piezas),
+    raw: ast ? exprRaw(ast, raw) : raw,
+    technical: lectura.tecnica,
   };
 }
 
@@ -203,30 +209,19 @@ export function describeValidation(
   const raw = expression.trim();
   if (!raw) return null;
   const ast = parseExpression(raw);
-  if (!ast) {
-    return {
-      summary: "Validación técnica importada",
-      raw,
-      technical: true,
-      status: "Regla técnica preservada",
-    };
+  const lectura = leerRegla("constraint", raw, node, scope);
+  const summary = lectura.tecnica ? "Validación técnica importada" : textoDePiezas(lectura.piezas);
+  if (!ast || ast.kind === "raw") {
+    return { summary, raw, technical: true, status: "Regla técnica preservada" };
   }
-
-  const known = knownValidation(ast, raw, node.typeInfo.base);
-  if (known) {
-    return {
-      summary: known,
-      raw: exprRaw(ast, raw),
-      technical: false,
-      status: "Preset claro",
-    };
+  if (esPresetClaro(ast, node.typeInfo.base)) {
+    return { summary, raw: exprRaw(ast, raw), technical: false, status: "Preset claro" };
   }
-
   const editable = isConstraintVisuallyEditable(ast);
-  const described = describeExpression(raw, scope, { currentLabel: "La respuesta" });
   return {
-    ...described,
-    technical: !editable || described.technical,
+    summary,
+    raw: exprRaw(ast, raw),
+    technical: !editable || lectura.tecnica,
     status: editable ? "Editable visualmente" : "Regla técnica preservada",
   };
 }
@@ -384,23 +379,15 @@ export function isConstraintVisuallyEditable(expr: Expr): boolean {
   return expr.operands.every((operand) => Boolean(tryFlattenConstraint(operand)));
 }
 
-export function knownValidation(expr: Expr, raw: string, baseType: string): string | null {
-  const normalized = raw.toLowerCase().replace(/\s+/g, "");
-  if (expr.kind === "call" && expr.name === "regex" && expr.args[0]?.kind === "current") {
-    const pattern = expr.args[1]?.kind === "literal" ? String(expr.args[1].value).toLowerCase() : normalized;
-    if (pattern.includes("@")) return "La respuesta debe tener formato de correo electrónico.";
-    if (pattern.includes("http")) return "La respuesta debe ser un enlace web válido.";
-    if (pattern.includes("a-z") && pattern.includes("0-9") && pattern.includes("_-")) {
-      return "La respuesta debe ser un código sin espacios.";
-    }
-    if (expr.args[1]?.kind === "literal") return describeRegex(String(expr.args[1].value));
-  }
-  if (baseType === "date" && normalized.includes("<=today()")) {
-    return "La fecha no puede ser posterior a hoy.";
-  }
-  if (normalized === ".>=0") return "La respuesta debe ser cero o mayor.";
-  if (normalized === ".>0") return "La respuesta debe ser mayor que cero.";
-  return null;
+/**
+ * ¿La restricción es uno de los atajos que el editor muestra como aviso guiado («Preset claro») en lugar del
+ * constructor? Sólo clasifica la forma para la UI; la frase la redacta siempre el motor.
+ */
+export function esPresetClaro(expr: Expr, baseType: string): boolean {
+  if (expr.kind === "call" && expr.name === "regex" && expr.args[0]?.kind === "current" && expr.args[1]?.kind === "literal") return true;
+  if (expr.kind !== "compare" || expr.left.kind !== "current") return false;
+  if (baseType === "date" && expr.op === "<=" && expr.right.kind === "call" && expr.right.name === "today") return true;
+  return (expr.op === ">=" || expr.op === ">") && expr.right.kind === "literal" && expr.right.value === 0;
 }
 
 export function validationPresetsFor(node: BuilderNode): ValidationPreset[] {

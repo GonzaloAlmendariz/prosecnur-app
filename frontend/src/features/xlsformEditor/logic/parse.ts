@@ -37,10 +37,24 @@ class ParserError extends Error {
   }
 }
 
+/**
+ * Modo lectura (sólo para el motor que traduce reglas a frases, `reglas/motor/`): además del subset estricto acepta
+ * aritmética (`+ - * div mod`, que se codifica como `call` con el operador por nombre), `..` (`call "@padre"`) y nombres
+ * sueltos de columna como los de un choice_filter (`call "@campo"` con el nombre como literal). Nunca se usa para
+ * reescribir la expresión: el modo estricto sigue siendo el de `parseExpression`.
+ */
+export type ParserOptions = { lectura?: boolean };
+
+/** Operadores aritméticos que el modo lectura codifica como llamadas. */
+export const OPERADORES_ARITMETICOS = ["+", "-", "*", "div", "mod"] as const;
+
 class Parser {
   private pos = 0;
 
-  constructor(private readonly src: string) {}
+  constructor(
+    private readonly src: string,
+    private readonly options: ParserOptions = {},
+  ) {}
 
   // -- entry --------------------------------------------------------------
   parse(): Expr {
@@ -86,13 +100,50 @@ class Parser {
   }
 
   private parseCompare(): Expr {
-    const left = this.parsePrimary();
+    const left = this.parseOperand();
     this.skipWs();
     const op = this.tryConsumeCompareOp();
     if (!op) return left;
     this.skipWs();
-    const right = this.parsePrimary();
+    const right = this.parseOperand();
     return { kind: "compare", op, left, right };
+  }
+
+  private parseOperand(): Expr {
+    return this.options.lectura ? this.parseAdditive() : this.parsePrimary();
+  }
+
+  private parseAdditive(): Expr {
+    let left = this.parseMultiplicative();
+    for (;;) {
+      this.skipWs();
+      const ch = this.src[this.pos];
+      if (ch !== "+" && ch !== "-") return left;
+      this.pos += 1;
+      const right = this.parseMultiplicative();
+      left = { kind: "call", name: ch, args: [left, right] };
+    }
+  }
+
+  private parseMultiplicative(): Expr {
+    let left = this.parsePrimary();
+    for (;;) {
+      this.skipWs();
+      let name: string | null = null;
+      if (this.src[this.pos] === "*") {
+        this.pos += 1;
+        name = "*";
+      } else if (this.peekKeyword("div")) {
+        this.consumeKeyword("div");
+        name = "div";
+      } else if (this.peekKeyword("mod")) {
+        this.consumeKeyword("mod");
+        name = "mod";
+      }
+      if (!name) return left;
+      const right = this.parsePrimary();
+      left = { kind: "call", name, args: [left, right] };
+    }
   }
 
   private parsePrimary(): Expr {
@@ -117,6 +168,10 @@ class Parser {
     }
     if (this.isDigit(ch) || (ch === "-" && this.isDigit(this.src[this.pos + 1] ?? ""))) {
       return this.parseNumber();
+    }
+    if (ch === "." && this.options.lectura && this.src[this.pos + 1] === ".") {
+      this.pos += 2;
+      return { kind: "call", name: "@padre", args: [] };
     }
     if (ch === ".") {
       // `.` solo o `.something` (path) — solo soportamos `.` standalone.
@@ -246,6 +301,7 @@ class Parser {
     if (name === "true" || name === "false") {
       return { kind: "literal", value: name === "true" };
     }
+    if (this.options.lectura) return { kind: "call", name: "@campo", args: [{ kind: "literal", value: name }] };
     // No es un identificador válido como expresión completa — devolvemos
     // el texto crudo del nombre para que el caller lo trate como `raw`.
     throw new ParserError(
@@ -329,6 +385,19 @@ export function parseExpression(input: string | null | undefined): Expr | null {
   if (!text) return null;
   try {
     return new Parser(text).parse();
+  } catch {
+    return { kind: "raw", text };
+  }
+}
+
+/**
+ * Parseo en modo lectura (ver `ParserOptions`). Devuelve `raw` si ni así se deja estructurar. Sólo para leer.
+ */
+export function parseExpressionLectura(input: string | null | undefined): Expr | null {
+  const text = (input ?? "").trim();
+  if (!text) return null;
+  try {
+    return new Parser(text, { lectura: true }).parse();
   } catch {
     return { kind: "raw", text };
   }
