@@ -16,6 +16,7 @@
 // derecho refleje su contexto (lógica, validación, tipo).
 // =============================================================================
 
+import { esMetadato } from "../kit/tiposPregunta";
 import { useEffect, useRef, useState } from "react";
 import type { BuilderNode, BuilderStructure, ChoiceItem, XlsformEditorWorkbook } from "../types";
 import { extractChoiceItems } from "../parsing/buildIndex";
@@ -162,7 +163,7 @@ export function FormCanvas({
       n.kind === "repeat" ||
       // questions reales (no auto-meta como _start/_end/today/etc).
       ((n.kind === "question" || n.kind === "note" || n.kind === "calculate") &&
-        !["start", "end", "today", "deviceid", "username"].includes(n.typeInfo.base)),
+        !esMetadato(n.typeInfo.base)),
   );
 
   if (!hasEditableContent) {

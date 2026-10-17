@@ -20,6 +20,7 @@ import {
   FolderMinus,
   Hash,
   HelpCircle,
+  History,
   Image,
   ListChecks,
   ListOrdered,
@@ -75,6 +76,11 @@ export const TIPOS_PREGUNTA: readonly TipoPregunta[] = [
   { base: "today", nombre: "Fecha del día (automático)", familia: "metadato", grupo: "metadato", icono: Settings2 },
   { base: "deviceid", nombre: "Dispositivo (automático)", familia: "metadato", grupo: "metadato", icono: Settings2 },
   { base: "username", nombre: "Usuario (automático)", familia: "metadato", grupo: "metadato", icono: Settings2 },
+  { base: "start-geopoint", nombre: "Ubicación al abrir (automático)", familia: "metadato", grupo: "metadato", icono: MapPin },
+  { base: "audit", nombre: "Registro de la entrevista (automático)", familia: "metadato", grupo: "metadato", icono: History },
+  { base: "phonenumber", nombre: "Teléfono del equipo (automático)", familia: "metadato", grupo: "metadato", icono: Settings2 },
+  { base: "simserial", nombre: "Serie del chip (automático)", familia: "metadato", grupo: "metadato", icono: Settings2 },
+  { base: "subscriberid", nombre: "Suscriptor del chip (automático)", familia: "metadato", grupo: "metadato", icono: Settings2 },
 ];
 
 const POR_BASE = new globalThis.Map(TIPOS_PREGUNTA.map((t) => [t.base, t]));
@@ -83,6 +89,11 @@ const ALIAS: Record<string, string> = { select_one_from_file: "select_one", sele
 /** El tipo del catálogo; uno desconocido cae en «otro» con su propio nombre técnico. */
 export function tipoPregunta(base: string): TipoPregunta {
   return POR_BASE.get(ALIAS[base] ?? base) ?? { base, nombre: base || "Sin tipo", familia: "otro", grupo: "estructura", icono: HelpCircle };
+}
+
+/** Lo llena el dispositivo, no el encuestado: no se pregunta, no se imprime, no cuenta como contenido. */
+export function esMetadato(base: string): boolean {
+  return tipoPregunta(base).familia === "metadato";
 }
 
 export const TONO_FAMILIA: Record<FamiliaTipo, string> = {
@@ -96,7 +107,7 @@ export const TONO_FAMILIA: Record<FamiliaTipo, string> = {
   nota: "var(--pulso-text-muted)",
   calculo: "var(--pulso-accent-violet)",
   estructura: "var(--pulso-text-muted)",
-  metadato: "var(--pulso-text-faint)",
+  metadato: "var(--pulso-text-muted)",
   otro: "var(--pulso-text-muted)",
 };
 

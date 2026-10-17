@@ -8,4 +8,4 @@ export { ReadsAs } from "./ReadsAs";
 export { typeFamily, typeTone, type TypeFamily } from "./typeTone";
 export { MaquetaTipo } from "./MaquetaTipo";
 export { SelectorPregunta, type OpcionPregunta } from "./SelectorPregunta";
-export { TIPOS_PREGUNTA, NOMBRE_GRUPO, TONO_FAMILIA, tipoPregunta, type TipoPregunta, type FamiliaTipo, type GrupoTipo } from "./tiposPregunta";
+export { TIPOS_PREGUNTA, NOMBRE_GRUPO, TONO_FAMILIA, tipoPregunta, esMetadato, type TipoPregunta, type FamiliaTipo, type GrupoTipo } from "./tiposPregunta";

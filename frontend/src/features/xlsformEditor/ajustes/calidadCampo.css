@@ -1,0 +1,18 @@
+.xfcc { display: grid; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--pulso-border); }
+.xfcc__filas { display: grid; gap: 8px; }
+.xfcc__cab p { margin: 2px 0 0; font-size: 12px; color: var(--pulso-text-muted); }
+.xfcc__fila { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--pulso-border); border-radius: 10px; }
+.xfcc__maq { display: grid; place-items: center; width: 64px; height: 44px; border-radius: 8px; background: var(--pulso-surface-2); overflow: hidden; }
+.xfcc__maq .xfk-maqueta { display: block; max-width: 100%; max-height: 100%; }
+.xfcc__txt { display: grid; gap: 2px; min-width: 0; }
+.xfcc__txt strong { font-size: 13px; color: var(--pulso-text); }
+.xfcc__txt span { font-size: 12px; color: var(--pulso-text-muted); }
+.xfcc__txt code, .xfcc__nota code { justify-self: start; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; padding: 1px 6px; border-radius: 6px; background: var(--pulso-surface-2); color: var(--pulso-text-muted); overflow-wrap: anywhere; }
+.xfcc__niveles { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding-top: 10px; border-top: 1px solid var(--pulso-border); }
+.xfcc__nivel { display: grid; align-content: start; gap: 3px; text-align: left; padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 8px; background: var(--pulso-surface); cursor: pointer; transition: border-color 0.15s ease, background-color 0.15s ease; }
+.xfcc__nivel strong { font-size: 12.5px; color: var(--pulso-text); }
+.xfcc__nivel span { font-size: 11.5px; color: var(--pulso-text-muted); }
+.xfcc__nivel:hover { border-color: var(--pulso-border-strong); }
+.xfcc__nivel[aria-checked="true"] { border-color: var(--module-accent, var(--pulso-primary)); background: var(--pulso-surface-2); box-shadow: inset 0 0 0 1px var(--module-accent, var(--pulso-primary)); }
+.xfcc__nivel:focus-visible { outline: 2px solid var(--module-accent, var(--pulso-primary)); outline-offset: 2px; }
+.xfcc__nota { margin: 0; font-size: 11.5px; color: var(--pulso-text-muted); }
