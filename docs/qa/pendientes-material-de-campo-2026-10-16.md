@@ -78,7 +78,7 @@ canvas, con datos reales y capturas miradas, gates del área en verde y el verif
 
 ## Cómo retomar
 
-- Proyecto con plan para QA: `Rscript scripts/qa/material_campo_sembrar_plan.R --out tmp/qa-material-campo/hsvg2026_con_plan.pulso --render png` (~3 min; no se versiona).
+- Proyecto con plan para QA: `Rscript scripts/qa/material_campo_sembrar_plan.R --render png` (~3 min; deja un `.pulso` no versionado, la ruta sale por stdout).
 - Gate R del área: `Rscript scripts/gate-area.R material --patron "collection|mail|material-campo-qa"`.
 - Gate front: `make gate-front AREA=recopiladores`.
 - QA visual: `node scripts/ui-quick-check.mjs --project <pulso> --route "/material-campo?seccion=<s>" --viewport 1440x1000 --viewport 1024x600 --require-geometry --fail-on-issues --timeout-ms 420000`, en serie y nunca en el 8787.
