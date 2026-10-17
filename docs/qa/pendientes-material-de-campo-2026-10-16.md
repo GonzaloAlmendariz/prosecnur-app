@@ -88,3 +88,14 @@ canvas, con datos reales y capturas miradas, gates del área en verde y el verif
   `dominio-prosecnur` y `entregables-oficina`, o devuelven BLOCKED.
 - Un runner que arranca `launcher/launch.R` puede reinstalar `prosecnurapp` en la librería compartida si lo ve
   desactualizado; eso cambia el código que usan los jobs del backend del usuario.
+
+## Estado al cerrar el reloj (2026-10-17)
+
+| # | Qué | Estado |
+|---|---|---|
+| E1e | Unidades › Origen: diferencias aula por aula, una sola vigencia por huella en Origen, Lista y Cálculo de muestra | hecho en main (falta medir la geometría del aviso en Cálculo de muestra con `--post-click-wait-selector 'div[role="status"][aria-label="Material de campo"]'`) |
+| E1b | Editor sobre la página real: zonas por bloque, frente y dorso, unidad de prueba del plan | construido en main (8a38a2a31, c024cd669); el verificador lo rechazó por «Guardar» sin cambios y un id duplicado, ambos corregidos (24bfc10ad y el noop canónico del PUT). **Falta re-gate del verificador** |
+| — | `GET /material-template` sirve `{}` en los NULL de la ficha de campo (`lines`, `note`): si se edita y guarda esa receta, el PUT da 422 | pendiente: podar NULL en `collection_material_template_get` como hace el catálogo (`.cmc_drop_nulls_deep`) |
+| — | Filete de procedencia suelto en títulos centrados de ancho completo | decisión de diseño (subrayado exterior o bbox de tinta desde el backend) |
+| — | Logo de la careta cae sobre el QR en la ficha de campo con careta | pendiente (ningún preset de fábrica la trae) |
+| — | Afiche del catálogo usa el logo de la app; el render real solo logos del proyecto | pendiente |
