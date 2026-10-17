@@ -2,6 +2,7 @@ import "../styles/xf-canvas.css";
 import "./constructor/panelConfiguracion.css";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { ContenidoSeccion } from "./ContenidoSeccion";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import {
   ArrowDown,
@@ -751,7 +752,6 @@ function FocusedPreview({
   formCanvasProps: FormCanvasBundle;
 }) {
   if (node.kind === "section" || node.kind === "repeat") {
-    const sectionMeta = structure?.sections.get(`section-${node.rowIndex}`) ?? section;
     return (
       <div className="pulso-focus-section-preview">
         {/* El título ya está en la cabecera y se edita en «Contenido»: aquí
@@ -762,15 +762,13 @@ function FocusedPreview({
           data-qa-geometry-contract="equal"
         >
           <FocusFact
-            label="Dentro del bloque"
-            value={plural(sectionMeta?.itemCount ?? 0, "elemento", "elementos")}
-          />
-          <FocusFact
             label="Visibilidad"
             value={node.relevant?.trim() ? "Condicional" : "Siempre"}
           />
           <FocusFact label="Código" value={node.name || "sin código"} code />
         </div>
+        {/* M4: la lista de lo que hay dentro, en vez de sólo su número. */}
+        <ContenidoSeccion structure={structure} filaSeccion={node.rowIndex} onSelectRow={onSelectRow} />
         <SectionBoundaryControl
           boundary={sectionBoundary}
           onIncludeNext={onIncludeNextInSection}
