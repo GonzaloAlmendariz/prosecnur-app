@@ -2132,15 +2132,16 @@ export default function XlsformEditorPage() {
     nextBaseType = "text",
     afterRowIndex?: number | null,
     reuseListName?: string,
-  ) {
-    if (!workbook) return;
+  ): string | null {
+    if (!workbook) return null;
     // Si nos pasan un override (ej. desde el AddBetween del lienzo único),
     // calculamos el índice como si la selección fuera ese row — eso lleva
     // la inserción justo después, respetando límites de sección.
     const overrideSelection: BuilderSelection | null =
       afterRowIndex != null ? { kind: "survey", rowIndex: afterRowIndex } : selection;
     const insertionIndex = resolveInsertionIndex(structure, overrideSelection, workbook.survey);
-    const nextName = `pregunta_${workbook.survey.rows.length + 1}`;
+    // Un cálculo se nombra como cálculo (M5): `pregunta_N` no dice nada en la base ni en la pestaña Cálculos.
+    const nextName = `${nextBaseType === "calculate" ? "calculo" : "pregunta"}_${workbook.survey.rows.length + 1}`;
     const isSelect = nextBaseType === "select_one" || nextBaseType === "select_multiple";
     // Para selects: si el usuario eligió "reusar lista existente" desde
     // el AddBetween, vinculamos la pregunta a ese listName. Si no,
@@ -2185,6 +2186,7 @@ export default function XlsformEditorPage() {
     });
     if (isSelect) setCatalogFocus(listName);
     setSelection({ kind: "survey", rowIndex: insertionIndex });
+    return nextName;
   }
 
   /**
@@ -3148,7 +3150,8 @@ export default function XlsformEditorPage() {
               <PestanaRestricciones structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} onCampo={updateSurveyField} onCampos={updateSurveyFields} catalogs={catalogs} />
             )}
             {pestana === "calculos" && (
-              <PestanaCalculos structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} onCampo={updateSurveyField} catalogs={catalogs} />
+              <PestanaCalculos structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} onCampo={updateSurveyField} catalogs={catalogs}
+                onNuevo={workbook ? () => { const nombre = addQuestion("calculate", workbook.survey.rows.length - 1); if (nombre) fijarFocoEnSitio(nombre); } : undefined} />
             )}
             {pestana === "opciones" && workbook && (
               <PestanaOpciones
