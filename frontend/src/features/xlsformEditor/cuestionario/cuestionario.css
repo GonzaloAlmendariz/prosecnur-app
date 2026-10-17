@@ -168,7 +168,7 @@
 
 .pulso-xf-cue-cabeza {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) auto;
+  grid-template-columns: 32px minmax(0, 1fr) auto auto;
   align-items: baseline;
   gap: var(--pulso-space-1);
   margin: 0 calc(-1 * var(--pulso-space-2));
@@ -475,3 +475,8 @@
 .pulso-xf-cue-pregunta.is-matriz > .pulso-xf-cue-ficha {
   margin-left: 0;
 }
+
+/* Tipo de la pregunta, discreto (F3). */
+.pulso-xf-cue-tipo { display: inline-flex; align-self: center; opacity: 0.75; }
+.pulso-xf-cue-cabeza:hover .pulso-xf-cue-tipo, .pulso-xf-cue-pregunta.is-abierta .pulso-xf-cue-tipo { opacity: 1; }
+.pulso-xf-ficha-tipo { display: inline-flex; align-items: center; gap: 8px; }

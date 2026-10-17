@@ -34,6 +34,8 @@ import {
 import { FichaPregunta, idFicha } from "../cuestionario/FichaPregunta";
 import { textoRango } from "../cuestionario/modeloFicha";
 import { alternarFicha } from "./detalleEnSitio";
+import { TypeIcon } from "../kit";
+import { typeLabel } from "../parsing/parseType";
 import "../cuestionario/cuestionario.css";
 
 export type VistaCuestionarioProps = {
@@ -151,6 +153,8 @@ function Pregunta({ pregunta, marcarOpcionales: opcionales, fichas }: {
         </span>
         <Markdown como="h3" className="pulso-xf-cue-enunciado" texto={nodo.label || nodo.name} />
         {marca === "opcional" && <span className="pulso-xf-cue-opcional">opcional</span>}
+        {/* F3: el tipo, discreto a la derecha; su nombre al pasar el puntero (la ficha lo dice entero). */}
+        <span className="pulso-xf-cue-tipo" title={typeLabel(nodo.typeInfo.base)}><TypeIcon baseType={nodo.typeInfo.base} size={13} /></span>
       </div>
       {nodo.hint.trim() && <Markdown como="p" className="pulso-xf-cue-ayuda" texto={nodo.hint} />}
       {/* Abierta, la línea de respuesta de una pregunta abierta sobra: la ficha va justo debajo. */}
