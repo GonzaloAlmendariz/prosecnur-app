@@ -2619,7 +2619,7 @@ export default function XlsformEditorPage() {
     {
       key: "text",
       label: "Pregunta abierta",
-      hint: "Texto libre para respuestas cortas o comentarios.",
+      hint: "Respuesta escrita libre.",
       icon: addMenuIcon("text"),
       action: () => addQuestion("text"),
       group: "capture",
@@ -2627,7 +2627,7 @@ export default function XlsformEditorPage() {
     {
       key: "integer",
       label: "Número entero",
-      hint: "Edades, cantidades o puntajes sin decimales.",
+      hint: "Edad, cantidad o puntaje.",
       icon: addMenuIcon("integer"),
       action: () => addQuestion("integer"),
       group: "capture",
@@ -2635,7 +2635,7 @@ export default function XlsformEditorPage() {
     {
       key: "decimal",
       label: "Número decimal",
-      hint: "Montos, proporciones o medidas con decimales.",
+      hint: "Monto, proporción o medida.",
       icon: addMenuIcon("decimal"),
       action: () => addQuestion("decimal"),
       group: "capture",
@@ -2643,7 +2643,7 @@ export default function XlsformEditorPage() {
     {
       key: "date",
       label: "Fecha",
-      hint: "Fechas de visita, nacimiento o eventos.",
+      hint: "Día, mes y año.",
       icon: addMenuIcon("date"),
       action: () => addQuestion("date"),
       group: "capture",
@@ -2651,7 +2651,7 @@ export default function XlsformEditorPage() {
     {
       key: "select_one",
       label: "Selección única",
-      hint: "Una sola respuesta; deja una lista preparada para opciones reales.",
+      hint: "Una respuesta de una lista.",
       icon: addMenuIcon("select_one"),
       action: () => addQuestion("select_one"),
       group: "choices",
@@ -2659,7 +2659,7 @@ export default function XlsformEditorPage() {
     {
       key: "select_multiple",
       label: "Selección múltiple",
-      hint: "Varias respuestas; crea una lista reutilizable.",
+      hint: "Varias respuestas de una lista.",
       icon: addMenuIcon("select_multiple"),
       action: () => addQuestion("select_multiple"),
       group: "choices",
@@ -2667,7 +2667,7 @@ export default function XlsformEditorPage() {
     {
       key: "image",
       label: "Foto o imagen",
-      hint: "Evidencia visual desde cámara o archivo.",
+      hint: "Foto desde la cámara o la galería.",
       icon: addMenuIcon("image"),
       action: () => addQuestion("image"),
       group: "evidence",
@@ -2675,7 +2675,7 @@ export default function XlsformEditorPage() {
     {
       key: "audio",
       label: "Audio",
-      hint: "Grabación de voz o sonido.",
+      hint: "Grabación de voz.",
       icon: addMenuIcon("audio"),
       action: () => addQuestion("audio"),
       group: "evidence",
@@ -2683,7 +2683,7 @@ export default function XlsformEditorPage() {
     {
       key: "video",
       label: "Video",
-      hint: "Registro audiovisual corto.",
+      hint: "Clip de video.",
       icon: addMenuIcon("video"),
       action: () => addQuestion("video"),
       group: "evidence",
@@ -2691,7 +2691,7 @@ export default function XlsformEditorPage() {
     {
       key: "file",
       label: "Archivo",
-      hint: "Documento u otro adjunto.",
+      hint: "Documento adjunto.",
       icon: addMenuIcon("file"),
       action: () => addQuestion("file"),
       group: "evidence",
@@ -2699,7 +2699,7 @@ export default function XlsformEditorPage() {
     {
       key: "barcode",
       label: "Código de barras",
-      hint: "Lectura de código o QR.",
+      hint: "Escaneo de código o QR.",
       icon: addMenuIcon("barcode"),
       action: () => addQuestion("barcode"),
       group: "evidence",
@@ -2707,7 +2707,7 @@ export default function XlsformEditorPage() {
     {
       key: "geopoint",
       label: "Punto GPS",
-      hint: "Ubicación puntual.",
+      hint: "Coordenadas GPS.",
       icon: addMenuIcon("geopoint"),
       action: () => addQuestion("geopoint"),
       group: "evidence",
@@ -2715,7 +2715,7 @@ export default function XlsformEditorPage() {
     {
       key: "note",
       label: "Nota informativa",
-      hint: "Instrucciones, avisos o separadores sin guardar respuesta.",
+      hint: "Texto visible sin respuesta.",
       icon: addMenuIcon("note"),
       action: () => addQuestion("note"),
       group: "logic",
@@ -2723,7 +2723,7 @@ export default function XlsformEditorPage() {
     {
       key: "calculate",
       label: "Cálculo",
-      hint: "Variable automática basada en respuestas.",
+      hint: "Valor calculado con una fórmula.",
       icon: addMenuIcon("calculate"),
       action: () => addQuestion("calculate"),
       group: "logic",
@@ -2731,7 +2731,7 @@ export default function XlsformEditorPage() {
     {
       key: "section",
       label: "Sección",
-      hint: "Crea un grupo con su inicio y su cierre. El cierre lo puedes mover o borrar.",
+      hint: "Grupo de preguntas con inicio y cierre.",
       icon: addMenuIcon("begin_group"),
       action: addSection,
       group: "logic",
@@ -2739,7 +2739,7 @@ export default function XlsformEditorPage() {
     {
       key: "section_end",
       label: "Cerrar sección",
-      hint: "Inserta solo un cierre suelto, por si necesitas terminar un grupo en otro punto.",
+      hint: "Termina una sección en este punto.",
       icon: addMenuIcon("end_group"),
       action: addSectionClose,
       group: "logic",

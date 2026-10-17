@@ -10,6 +10,7 @@
 // =============================================================================
 
 import type { TypeInfo } from "../types";
+import { tipoPregunta } from "../kit/tiposPregunta";
 
 /** Parsea un campo `type` raw a `{raw, base, listName}`. */
 export function parseType(rawType: string): TypeInfo {
@@ -31,70 +32,9 @@ export function buildType(base: string, listName = ""): string {
   return normalizedBase;
 }
 
-/** Etiqueta humana en español para el tipo base. */
+/** Etiqueta humana en español para el tipo base: la del catálogo único del kit (M8, 2026-10-17). */
 export function typeLabel(baseType: string): string {
-  switch (baseType) {
-    case "text":
-      return "Texto corto";
-    case "integer":
-      return "Número entero";
-    case "decimal":
-      return "Número decimal";
-    case "date":
-      return "Fecha";
-    case "time":
-      return "Hora";
-    case "datetime":
-      return "Fecha y hora";
-    case "select_one":
-      return "Selección única";
-    case "select_multiple":
-      return "Selección múltiple";
-    case "note":
-      return "Nota informativa";
-    case "calculate":
-      return "Cálculo";
-    case "acknowledge":
-      return "Confirmación";
-    case "hidden":
-      return "Campo oculto";
-    case "image":
-      return "Imagen";
-    case "audio":
-      return "Audio";
-    case "video":
-      return "Video";
-    case "file":
-      return "Archivo";
-    case "barcode":
-      return "Código de barras";
-    case "geopoint":
-      return "Ubicación (punto)";
-    case "geotrace":
-      return "Ubicación (recorrido)";
-    case "geoshape":
-      return "Ubicación (área)";
-    case "begin_group":
-      return "Sección";
-    case "end_group":
-      return "Cierre de sección";
-    case "begin_repeat":
-      return "Bloque repetido";
-    case "end_repeat":
-      return "Cierre de bloque repetido";
-    case "start":
-      return "Inicio (auto)";
-    case "end":
-      return "Fin (auto)";
-    case "today":
-      return "Fecha de hoy (auto)";
-    case "deviceid":
-      return "ID del dispositivo (auto)";
-    case "username":
-      return "Usuario (auto)";
-    default:
-      return baseType || "Sin tipo";
-  }
+  return tipoPregunta(baseType).nombre;
 }
 
 // -----------------------------------------------------------------------------

@@ -8,6 +8,7 @@
 // =============================================================================
 
 import { useEffect, useRef, useState } from "react";
+import { MaquetaTipo } from "../kit";
 import {
   Plus,
   Type as TypeIcon,
@@ -75,22 +76,22 @@ const TYPES: Array<{
   hint: string;
   group: "capture" | "choices" | "evidence" | "logic";
 }> = [
-  { kind: "text", label: "Texto", icon: TypeIcon, hint: "Respuesta abierta, nombres, códigos o comentarios", group: "capture" },
-  { kind: "integer", label: "Número entero", icon: Hash, hint: "Cantidades, edades o puntajes sin decimales", group: "capture" },
-  { kind: "decimal", label: "Número decimal", icon: Hash, hint: "Montos, porcentajes o medidas con decimales", group: "capture" },
-  { kind: "date", label: "Fecha", icon: CalendarIcon, hint: "Día, periodo o hito del levantamiento", group: "capture" },
+  { kind: "text", label: "Texto", icon: TypeIcon, hint: "Respuesta escrita libre", group: "capture" },
+  { kind: "integer", label: "Número entero", icon: Hash, hint: "Edad, cantidad o puntaje", group: "capture" },
+  { kind: "decimal", label: "Número decimal", icon: Hash, hint: "Monto, proporción o medida", group: "capture" },
+  { kind: "date", label: "Fecha", icon: CalendarIcon, hint: "Día, mes y año", group: "capture" },
   { kind: "select_one", label: "Selección única", icon: CircleDot, hint: "Una opción de una lista", group: "choices" },
   { kind: "select_multiple", label: "Selección múltiple", icon: ListChecks, hint: "Varias opciones de una lista", group: "choices" },
-  { kind: "image", label: "Foto o imagen", icon: ImagePlus, hint: "Evidencia visual desde cámara o archivo", group: "evidence" },
-  { kind: "audio", label: "Audio", icon: Mic, hint: "Grabación de voz o sonido en campo", group: "evidence" },
-  { kind: "video", label: "Video", icon: Video, hint: "Registro audiovisual corto", group: "evidence" },
-  { kind: "file", label: "Archivo", icon: File, hint: "Documento u otro adjunto", group: "evidence" },
-  { kind: "barcode", label: "Código de barras", icon: QrCode, hint: "Lectura de código o QR", group: "evidence" },
-  { kind: "geopoint", label: "Punto GPS", icon: MapPin, hint: "Ubicación puntual del levantamiento", group: "evidence" },
-  { kind: "note", label: "Nota informativa", icon: MessageSquare, hint: "Instrucción visible sin guardar respuesta", group: "logic" },
-  { kind: "calculate", label: "Campo automático", icon: Calculator, hint: "Variable calculada con una fórmula XLSForm", group: "logic" },
-  { kind: "section", label: "Sección", icon: FolderPlus, hint: "Grupo con inicio y cierre; el cierre se puede mover", group: "logic" },
-  { kind: "section_end", label: "Cerrar sección", icon: FolderMinus, hint: "Inserta solo un cierre suelto", group: "logic" },
+  { kind: "image", label: "Foto o imagen", icon: ImagePlus, hint: "Foto desde la cámara o la galería", group: "evidence" },
+  { kind: "audio", label: "Audio", icon: Mic, hint: "Grabación de voz", group: "evidence" },
+  { kind: "video", label: "Video", icon: Video, hint: "Clip de video", group: "evidence" },
+  { kind: "file", label: "Archivo", icon: File, hint: "Documento adjunto", group: "evidence" },
+  { kind: "barcode", label: "Código de barras", icon: QrCode, hint: "Escaneo de código o QR", group: "evidence" },
+  { kind: "geopoint", label: "Punto GPS", icon: MapPin, hint: "Coordenadas GPS", group: "evidence" },
+  { kind: "note", label: "Nota informativa", icon: MessageSquare, hint: "Texto visible sin respuesta", group: "logic" },
+  { kind: "calculate", label: "Campo automático", icon: Calculator, hint: "Valor calculado con una fórmula", group: "logic" },
+  { kind: "section", label: "Sección", icon: FolderPlus, hint: "Grupo de preguntas con inicio y cierre", group: "logic" },
+  { kind: "section_end", label: "Cerrar sección", icon: FolderMinus, hint: "Termina una sección en este punto", group: "logic" },
 ];
 
 const GROUPS: Array<{ id: (typeof TYPES)[number]["group"]; label: string }> = [
@@ -172,7 +173,7 @@ export function AddBetween({
           {GROUPS.map((group) => (
             <div key={group.id} className="pulso-canvas-addbetween-group">
               <span className="pulso-canvas-addbetween-group-title">{group.label}</span>
-              {TYPES.filter((type) => type.group === group.id).map(({ kind, label, icon: Icon, hint }) => (
+              {TYPES.filter((type) => type.group === group.id).map(({ kind, label, hint }) => (
                 <button
                   key={kind}
                   type="button"
@@ -183,8 +184,9 @@ export function AddBetween({
                     handleTypeClick(kind);
                   }}
                 >
-                  <span className="pulso-canvas-addbetween-menu-icon">
-                    <Icon size={14} />
+                  {/* M8: la maqueta del catálogo único del kit, igual que en «Añadir pieza». */}
+                  <span className="pulso-canvas-addbetween-menu-icon is-maqueta">
+                    <MaquetaTipo baseType={kind === "section" ? "begin_group" : kind === "section_end" ? "end_group" : kind} ancho={46} />
                   </span>
                   <span>
                     <strong>{label}</strong>
