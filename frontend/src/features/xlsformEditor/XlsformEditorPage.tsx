@@ -3177,6 +3177,9 @@ export default function XlsformEditorPage() {
                 seleccionada={pestanaEditor.foco}
                 onSeleccionar={fijarFocoEnSitio}
                 onEditar={irAFila}
+                workbook={workbook}
+                catalogs={catalogs}
+                onWorkbookChange={(next) => { dispatch({ type: "SET", workbook: next }); setArtifact(null); }}
               />
             )}
             {pestana === "probar" && (
