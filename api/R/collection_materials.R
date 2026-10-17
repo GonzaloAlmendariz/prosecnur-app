@@ -850,6 +850,31 @@ collection_material_template_validate <- function(template) {
   candidate
 }
 
+# Forma canónica para decidir el noop del PUT. La receta que vuelve del GET pasó
+# por JSON y regresa con otros tipos pero el mismo contenido: un double entero
+# (`min_size_mm = 30`) llega como integer, un NULL llega como `{}` y un vector
+# como lista. `identical()` sobre eso daba FALSE, subía la revisión y marcaba
+# stale todas las fichas sin que nada cambiara. Aquí sólo se igualan esas
+# representaciones; un valor distinto sigue siendo distinto (sin tolerancia).
+.cm_template_comparable <- function(template) {
+  .cm_comparable_value(.cc_canonicalize(.cm_template_material(template)))
+}
+
+.cm_comparable_value <- function(x) {
+  if (is.list(x)) {
+    x <- lapply(x, .cm_comparable_value)
+    if (!is.null(names(x))) {
+      # En un objeto, ausente, NULL y `{}` significan lo mismo; en un array no.
+      vacio <- vapply(x, function(v) is.null(v) || (is.list(v) && !length(v) && !is.null(names(v))), logical(1))
+      x <- x[!vacio]
+    }
+    return(x)
+  }
+  if (is.atomic(x) && !length(x)) return(list())
+  if (is.integer(x)) return(as.double(x))
+  x
+}
+
 .cm_material_template <- function(state) {
   state$material_template %||% collection_material_builtin_template()
 }
@@ -1032,8 +1057,7 @@ collection_material_template_put <- function(sid, template, expected_revision) {
   previous <- .cm_material_template(current)
   comparable <- template
   comparable$revision <- previous$revision
-  comparable <- .cm_template_normalize(comparable)
-  if (identical(.cm_template_material(comparable), .cm_template_material(previous))) {
+  if (identical(.cm_template_comparable(comparable), .cm_template_comparable(previous))) {
     return(list(ok = TRUE, noop = TRUE, state_revision = current$state_revision, template = previous))
   }
   candidate <- .cm_template_normalize(template, revision = as.integer(previous$revision) + 1L)
