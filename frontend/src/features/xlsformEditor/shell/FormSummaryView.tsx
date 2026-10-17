@@ -33,7 +33,9 @@ import {
 import { claveSeccion, preguntasDeSeccion } from "../resumen/preguntasDeSeccion";
 import { usePreviaImpreso } from "../impreso/storePrevia";
 import { alternarFicha } from "./detalleEnSitio";
-import "../styles/xf-summary.css";
+// Hoja del Resumen partida en dos (revamp EM); el orden de estos imports es el de la cascada.
+import "../styles/xf-summary/01-el-overlay-de-antes-sigue-ex.css";
+import "../styles/xf-summary/02-secciones.css";
 
 /** Lo que el editor sabe fuera de la estructura: lógica, listas, impreso y adónde llevar cada cosa. */
 export type ContextoResumen = {

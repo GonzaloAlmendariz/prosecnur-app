@@ -1183,6 +1183,8 @@ export type PlanAdaptacion = {
     n_codigos_nuevos: number;
     n_codigos_reutilizados: number;
   };
+  /** La base cambió después de la última adaptación: hay que volver a adaptar. */
+  respuestas_cambiaron?: boolean;
 };
 
 export async function apiCodifPlanAdaptacion(): Promise<PlanAdaptacion> {
@@ -1190,8 +1192,10 @@ export async function apiCodifPlanAdaptacion(): Promise<PlanAdaptacion> {
     await apiFetch("/api/codificacion/plan-adaptacion", { headers: headers() })
   );
   const preguntas: PlanPregunta[] = Array.isArray(plan.preguntas) ? plan.preguntas : [];
+  const cambiaron: unknown = plan.respuestas_cambiaron;
   return {
     ...plan,
+    respuestas_cambiaron: (Array.isArray(cambiaron) ? cambiaron[0] : cambiaron) === true,
     preguntas: preguntas.map((p) => ({
       ...p,
       motivo_omision: normalizeCodifMotivoOmision(p.motivo_omision),

@@ -211,6 +211,24 @@ export const TEXT_RULE_RECIPES: TextRuleRecipe[] = [
     recognize: (source) => (source === "[^0-9]*" ? {} : null),
     examples: { ok: ["hola!", "sin cifras"], bad: ["tel 999", "4"] },
   },
+  {
+    // `.*X.*` no lo reconocen empieza-con ni termina-con: al quitarles su `.*`
+    // queda otro `.*` suelto y el literal no se desescapa.
+    id: "contiene",
+    category: "contenido",
+    title: (p) => `Debe contener “${readText(p, "texto", "@")}”`,
+    phrase: ["Debe contener ", { param: "texto" }],
+    params: [{ key: "texto", label: "texto", kind: "text", placeholder: "@" }],
+    defaults: { texto: "@" },
+    buildRegex: (p) => `.*${escapeRegexLiteral(readText(p, "texto", "@"))}.*`,
+    buildMessage: (p) => `La respuesta debe contener “${readText(p, "texto", "@")}”.`,
+    recognize: (source) => {
+      if (!source.startsWith(".*") || !source.endsWith(".*") || source.length <= 4) return null;
+      const texto = unescapeRegexLiteral(source.slice(2, -2));
+      return texto ? { texto } : null;
+    },
+    examples: { ok: ["ana@pucp.pe", "@"], bad: ["ana.pucp.pe", "sin arroba"] },
+  },
   // ── Formato ───────────────────────────────────────────────────────────────
   {
     id: "empieza-con",

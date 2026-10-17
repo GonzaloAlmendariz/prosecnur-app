@@ -13,7 +13,7 @@ import {
   type PageEntry,
 } from "./smImportPages";
 import { textoSeccionesSm } from "./smImportModel";
-import "../styles/xf-sm-import.css";
+import "../styles/xfSmImport";
 
 // Las páginas de SurveyMonkey que se crearán como secciones. Cada sección
 // muestra su conteo con el mismo par que el resto del diálogo (U8) y pliega su

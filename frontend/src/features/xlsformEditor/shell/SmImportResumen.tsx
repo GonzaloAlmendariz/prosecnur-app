@@ -4,7 +4,7 @@ import { XlsformTransferNotice } from "./XlsformTransferNotice";
 import { SmConteo } from "./SmConteo";
 import { SmDetallesTecnicos } from "./SmDetallesTecnicos";
 import { textoSaltosSm, textoSeccionesSm } from "./smImportModel";
-import "../styles/xf-sm-import.css";
+import "../styles/xfSmImport";
 
 // Resumen antes de crear el borrador. Dice lo que se va a crear con el mismo
 // par de conteos del resto del diálogo (U8), no promete saltos que no hay

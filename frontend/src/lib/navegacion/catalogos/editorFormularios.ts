@@ -1,9 +1,11 @@
 import {
+  Calculator,
   CirclePlay,
   FilePen,
   FileText,
   Gauge,
   Layers3,
+  ShieldCheck,
   SlidersHorizontal,
   Table2,
   Workflow,
@@ -22,6 +24,8 @@ export type EditorFormulariosPestanaId =
   | "hojas"
   | "cuestionario"
   | "logica"
+  | "restricciones"
+  | "calculos"
   | "filtros"
   | "probar"
   | "resumen"
@@ -59,9 +63,11 @@ function pestana(
 
 export const EDITOR_FORMULARIOS_PESTANAS: readonly PestanaEditorFormularios[] = [
   pestana("constructor", "Constructor", "Edición guiada, pregunta por pregunta", FilePen),
-  pestana("hojas", "Hojas", "Las hojas del XLSForm, celda por celda", Table2),
+  pestana("hojas", "Editor XLSForm", "Las hojas survey, choices y settings, celda por celda", Table2),
   pestana("cuestionario", "Vista del cuestionario", "El formulario completo, sección por sección", Layers3),
   pestana("logica", "Mapa de lógica", "Qué pregunta depende de cuál", Workflow),
+  pestana("restricciones", "Restricciones", "Qué respuesta acepta cada pregunta", ShieldCheck),
+  pestana("calculos", "Cálculos", "Variables que se obtienen de otras respuestas", Calculator),
   pestana("filtros", "Filtros de opciones", "Qué respuesta habilita qué opción", SlidersHorizontal),
   pestana("probar", "Probar formulario", "Llénalo como encuestado y sigue los saltos", CirclePlay),
   pestana("resumen", "Resumen", "Tipos de pregunta, secciones y salud", Gauge),

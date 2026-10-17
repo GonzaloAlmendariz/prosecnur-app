@@ -58,7 +58,7 @@
   gap: 6px 8px;
   padding: 8px 9px;
   border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip, 8px);
+  border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
   min-width: 0;
 }
@@ -465,7 +465,7 @@
   margin: 0;
   padding: 0;
   border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip, 8px);
+  border-radius: var(--pulso-radius-card);
   background: var(--pulso-border);
   overflow: hidden;
 }
@@ -567,11 +567,33 @@
   line-height: 1.25;
 }
 
+/* «Valor / Pregunta» va a la izquierda del campo, en la misma línea: encima
+   del campo desalineaba la fila contra Pregunta y Criterio (checklist 0.9.4, R2). */
 .pulso-xlsform-frame .pulso-logic-valueinput {
-  flex-wrap: wrap;
-  gap: 4px 6px;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.pulso-xlsform-frame .pulso-logic-valuemode {
+  flex: none;
+}
+
+.pulso-xlsform-frame .pulso-logic-valuemode-opt {
+  padding: 3px 7px;
+  font-size: 11px;
 }
 
 .pulso-xlsform-frame .pulso-logic-valueinput-control {
-  flex: 1 1 120px;
+  flex: 1 1 80px;
+  min-width: 0;
+}
+
+/* Salida al armador manual bajo las recetas de texto (0.9.4, R4): secundaria y en una línea. */
+.pulso-logic-builder-tomano {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
 }

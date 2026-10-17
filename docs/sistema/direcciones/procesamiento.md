@@ -45,6 +45,6 @@ Módulo `procesamiento` · ruta `/procesamiento` · 38 direcciones.
 | `procesamiento/graficos` | seccion | Gráficos | sí | e1ba41dd | sí | — |
 | `procesamiento/graficos/laminas` | pestana | Láminas | sí | f8f35675 | sí | — |
 | `procesamiento/graficos/word` | pestana | Word | sí | 33458e75 | sí | — |
-| `procesamiento/graficos/informe` | pestana | Informe | sí | 7c58ad2b | **no** | — |
-| `procesamiento/graficos/identidad` | pestana | Identidad | sí | 34a343ac | **no** | — |
-| `procesamiento/graficos/reglas` | pestana | Reglas | sí | 047ee03f | **no** | — |
+| `procesamiento/graficos/informe` | pestana | Informe | sí | 7c58ad2b | sí | — |
+| `procesamiento/graficos/identidad` | pestana | Identidad | sí | 34a343ac | sí | — |
+| `procesamiento/graficos/reglas` | pestana | Reglas | sí | 047ee03f | sí | — |

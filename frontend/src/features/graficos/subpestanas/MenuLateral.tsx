@@ -43,6 +43,7 @@ export function MenuLateral<K extends string>({ items, actual, onElegir, idPanel
   };
   return (
     <div ref={lista} className={`pulso-f6-menu${className ? ` ${className}` : ""}`} role="tablist" aria-orientation="vertical" aria-label={etiqueta}
+      data-gliding-opt-out="Menú vertical de piezas (Identidad, partes del Word) dentro de una subpestaña, no el recorrido del módulo: cada ítem trae título, resumen e ícono en varias líneas y marca el activo con su propio fondo; un indicador deslizante horizontal no aplica."
       onKeyDown={onTecla} data-qa-geometry-group={grupoQa} data-qa-geometry-contract={contratoQa}>
       {items.map(({ clave, titulo, resumen, icono: Icono, dato }) => {
         const activa = clave === actual;

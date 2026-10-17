@@ -7,7 +7,7 @@ import {
   type ConnectionProfileState,
 } from "../../../api/multiIntegrado";
 import { perfilesAlternativosSm } from "./smImportModel";
-import "../styles/xf-sm-import.css";
+import "../styles/xfSmImport";
 
 // Cuando SurveyMonkey rechaza el token, la salida está en el mismo lugar (U2):
 // los otros perfiles guardados se prueban antes de activarse; si no hay otro,

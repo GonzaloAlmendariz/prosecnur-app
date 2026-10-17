@@ -68,6 +68,10 @@ mkdir -p "$CACHE_DIR" "$DIST_ROOT" "$BUILD_RES"
 
 # ----- 1. frontend bundle ---------------------------------------------------
 echo "[Prosecnur] Build frontend..."
+# `tsc -b && vite build` pasa del heap por defecto de Node (~2 GB) en el runner
+# de macOS: el corte 0.9.3 murió con «JavaScript heap out of memory». Se sube
+# el tope sin pisar un NODE_OPTIONS que ya venga definido.
+export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=6144"
 make build
 
 # ----- 2. icon.icns desde el SVG --------------------------------------------

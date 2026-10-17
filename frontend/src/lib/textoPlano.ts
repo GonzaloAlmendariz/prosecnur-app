@@ -16,7 +16,7 @@ const ENTIDADES: Record<string, string> = {
   "&nbsp;": " ",
 };
 
-/** Quita etiquetas HTML, decodifica entidades básicas y compacta espacios. */
+/** Quita etiquetas HTML y énfasis markdown, decodifica entidades básicas y compacta espacios. */
 export function textoPlano(valor: string | null | undefined): string {
   if (!valor) return "";
   const sinEtiquetas = valor
@@ -26,5 +26,8 @@ export function textoPlano(valor: string | null | undefined): string {
   // Las entidades se decodifican al final y en una sola pasada: «&amp;lt;» es
   // el texto «&lt;», no una etiqueta.
   const decodificado = sinEtiquetas.replace(/&(?:amp|lt|gt|quot|apos|nbsp|#0?39);/g, (m) => ENTIDADES[m] ?? m);
-  return decodificado.replace(/\s+/g, " ").trim();
+  // Énfasis markdown del XLSForm («*¿quién fue…?*», «**NO PUCP**»): se muestra
+  // el texto, no los asteriscos.
+  const sinEnfasis = decodificado.replace(/\*{1,2}([^*\n]+?)\*{1,2}/g, "$1");
+  return sinEnfasis.replace(/\s+/g, " ").trim();
 }

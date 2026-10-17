@@ -1,0 +1,501 @@
+/* ── Secciones ─────────────────────────────────────────────────────────── */
+
+.pulso-xf-res-secciones {
+  min-height: 0;
+  container-type: inline-size;
+}
+
+.pulso-xf-res-tabla-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pulso-xf-res-tabla {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+}
+
+.pulso-xf-res-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.pulso-xf-res-tabla thead th.is-peso,
+.pulso-xf-res-tabla thead th.is-tipo {
+  padding: var(--pulso-space-2);
+}
+
+.pulso-xf-res-orden {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: var(--pulso-space-2);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pulso-xf-res-tabla th.is-num .pulso-xf-res-orden {
+  justify-content: flex-end;
+}
+
+.pulso-xf-res-orden.is-activa {
+  color: var(--pulso-text);
+}
+
+.pulso-xf-res-tabla tbody tr {
+  cursor: pointer;
+}
+
+.pulso-xf-res-tabla tbody tr:hover {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-xf-res-tabla tbody th,
+.pulso-xf-res-tabla tbody td {
+  padding: var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+  vertical-align: middle;
+  font-weight: inherit;
+  text-align: left;
+}
+
+.pulso-xf-res-tabla .is-num {
+  width: 1%;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pulso-xf-res-tabla td.is-tipo {
+  max-width: 180px;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-xf-res-seccion {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 0;
+  box-shadow: none;
+  border-radius: 0;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pulso-xf-res-seccion svg {
+  flex: none;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-res-seccion-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pulso-xf-res-seccion-texto > span {
+  overflow: hidden;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* El tipo predominante va en su columna; en una tabla angosta baja bajo el nombre. */
+.pulso-xf-res-seccion-texto > small {
+  display: none;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+}
+
+.pulso-xf-res-pesada {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--xf-res-acento-suave);
+  color: var(--xf-res-acento);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.pulso-xf-res-tabla td.is-peso {
+  width: 24%;
+  min-width: 100px;
+}
+
+.pulso-xf-res-tabla td.is-peso {
+  white-space: nowrap;
+}
+
+.pulso-xf-res-peso {
+  display: inline-block;
+  width: calc(100% - 44px);
+  height: 12px;
+  margin-right: 6px;
+  overflow: hidden;
+  vertical-align: middle;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-xf-res-peso i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--xf-res-acento) 62%, var(--pulso-surface));
+}
+
+.pulso-xf-res-tabla tr.is-pesada .pulso-xf-res-peso i {
+  background: var(--xf-res-acento);
+}
+
+.pulso-xf-res-peso-pct {
+  display: inline-block;
+  width: 38px;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  vertical-align: middle;
+}
+
+.pulso-xf-res-criterio {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  flex: 0 0 auto;
+}
+
+/* Tabla angosta (1366): el peso queda como barra; su porcentaje sigue en el title de la fila. */
+@container (max-width: 640px) {
+  .pulso-xf-res-peso-pct {
+    display: none;
+  }
+
+  .pulso-xf-res-peso {
+    width: 100%;
+    margin-right: 0;
+  }
+
+  .pulso-xf-res-tabla td.is-peso {
+    min-width: 72px;
+  }
+}
+
+@container (max-width: 980px) {
+  .pulso-xf-res-tabla .is-tipo {
+    display: none;
+  }
+
+  .pulso-xf-res-seccion-texto > small {
+    display: block;
+  }
+}
+
+/* ── Compacto: columnas apiladas, un solo dueño de scroll ──────────────── */
+
+/* ── Recorrido en el tiempo ────────────────────────────────────────────── */
+
+.pulso-xf-res-tiempo {
+  flex: 0 0 auto;
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+
+.pulso-xf-res-tiempo-cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  margin-bottom: var(--pulso-space-2);
+}
+
+.pulso-xf-res-tiempo-cabeza h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-xf-res-tiempo-cabeza span {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.pulso-xf-res-tiempo-barra {
+  display: flex;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-xf-res-tiempo-barra li {
+  flex-basis: 0;
+  /* Con 50+ secciones (formularios tipo del corpus) 4 px de mínimo más el hueco desbordaban la barra. */
+  min-width: 2px;
+  container-type: inline-size;
+}
+
+/* Un tramo angosto no escribe su nombre a medias: lo dice al pasar el puntero o al enfocarlo. */
+@container (max-width: 44px) {
+  .pulso-xf-res-tramo span {
+    display: none;
+  }
+  /* Sin nombre no hace falta el relleno lateral: un tramo de 4 px medía 12 por su padding. */
+  .pulso-xf-res-tiempo-barra .pulso-xf-res-tramo {
+    padding: 0;
+  }
+}
+
+.pulso-xf-res-tramo {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 30px;
+  padding: 0 6px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--xf-res-acento) 30%, var(--pulso-surface));
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  transition: filter var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-xf-res-tramo.is-par {
+  background: color-mix(in srgb, var(--xf-res-acento) 18%, var(--pulso-surface));
+}
+
+.pulso-xf-res-tramo.is-pesada {
+  background: var(--xf-res-acento);
+  color: var(--pulso-surface);
+}
+
+.pulso-xf-res-tramo span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-xf-res-tramo:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+.pulso-xf-res-tramo:focus-visible {
+  outline: 2px solid var(--xf-res-acento);
+  outline-offset: 2px;
+}
+
+.pulso-xf-res-tiempo-marcas {
+  position: relative;
+  height: 18px;
+  margin-top: 4px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-xf-res-tiempo-marcas span {
+  position: absolute;
+  top: 0;
+  padding-top: 4px;
+  border-left: 1px solid var(--pulso-border-strong);
+  padding-left: 4px;
+  white-space: nowrap;
+}
+
+.pulso-xf-res-tiempo-marcas span.is-final {
+  transform: translateX(-100%);
+  border-left: 0;
+  border-right: 1px solid var(--pulso-border-strong);
+  padding-left: 0;
+  padding-right: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xf-res-tramo { transition: none; }
+}
+
+@media (max-width: 1180px), (max-height: 720px) {
+  .pulso-xf-res {
+    overflow-y: auto;
+  }
+
+  .pulso-xf-res-cifras {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pulso-xf-res-cuerpo {
+    flex: 0 0 auto;
+  }
+
+  .pulso-xf-res-cuerpo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .pulso-xf-res-cuerpo > .pulso-xf-res-pendientes,
+  .pulso-xf-res-cuerpo > .pulso-xf-res-composicion {
+    overflow: visible;
+  }
+
+  .pulso-xf-res-cuerpo > .pulso-xf-res-secciones {
+    grid-column: 1 / -1;
+  }
+
+  .pulso-xf-res-tabla-marco {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 860px) {
+  .pulso-xf-res-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Sección desplegada y tramo resaltado (ítem 50) ────────────────────────
+   La fila abierta lleva el acento del módulo, distinto del gris del hover; debajo, sus preguntas en la superficie
+   común de detalle (`xf-detalle.css`). El tramo pedido en el recorrido resalta su fila con un anillo del acento. */
+
+.pulso-xf-res-seccion-chevron {
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-xf-res-seccion[aria-expanded="true"] .pulso-xf-res-seccion-chevron {
+  transform: rotate(90deg);
+  color: var(--xf-res-acento);
+}
+
+.pulso-xf-res-tabla tbody tr.is-desplegada,
+.pulso-xf-res-tabla tbody tr.is-desplegada:hover {
+  background: var(--xf-res-acento-suave);
+}
+
+.pulso-xf-res-tabla tbody tr.is-desplegada > th {
+  box-shadow: inset 3px 0 0 var(--xf-res-acento);
+}
+
+.pulso-xf-res-tabla tbody tr.is-resaltada > * {
+  background: var(--xf-res-acento-suave);
+  box-shadow: inset 0 2px 0 var(--xf-res-acento), inset 0 -2px 0 var(--xf-res-acento);
+}
+
+.pulso-xf-res-tabla tbody tr.pulso-xf-res-desplegada {
+  cursor: default;
+}
+
+.pulso-xf-res-tabla tbody tr.pulso-xf-res-desplegada:hover {
+  background: transparent;
+}
+
+.pulso-xf-res-tabla tbody tr.pulso-xf-res-desplegada > td {
+  padding: var(--pulso-space-2) var(--pulso-space-3) var(--pulso-space-3);
+}
+
+
+.pulso-xf-res-preguntas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-xf-res-preguntas li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) minmax(88px, max-content) 56px auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) 0;
+  font-size: 12.5px;
+}
+
+.pulso-xf-res-preguntas li + li {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-res-preg-num {
+  color: var(--xf-res-acento);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-xf-res-preg-texto {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-xf-res-preg-tipo,
+.pulso-xf-res-preg-min {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pulso-xf-res-preg-min {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.pulso-xf-res-tramo.is-resaltado {
+  outline: 2px solid var(--xf-res-acento);
+  outline-offset: 2px;
+}
+
+@container (max-width: 640px) {
+  .pulso-xf-res-preguntas li {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+
+  .pulso-xf-res-preg-tipo,
+  .pulso-xf-res-preg-min {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xf-res-seccion-chevron {
+    transition: none;
+  }
+}
+
+/* La cabecera de la tabla es fija: una fila traída a la vista (tramo del recorrido, foco del teclado) queda debajo
+   de ella, no tapada. */
+.pulso-xf-res-tabla-marco {
+  scroll-padding-top: var(--pulso-space-8);
+}

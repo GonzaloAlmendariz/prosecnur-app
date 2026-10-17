@@ -23,4 +23,10 @@ describe("textoPlano", () => {
     expect(textoPlano(null)).toBe("");
     expect(textoPlano(undefined)).toBe("");
   });
+
+  it("quita el énfasis markdown del formulario", () => {
+    expect(textoPlano("¿quién fue la *persona agresora*?")).toBe("¿quién fue la persona agresora?");
+    expect(textoPlano("Instancia **NO PUCP**")).toBe("Instancia NO PUCP");
+    expect(textoPlano("3 * 4")).toBe("3 * 4");
+  });
 });

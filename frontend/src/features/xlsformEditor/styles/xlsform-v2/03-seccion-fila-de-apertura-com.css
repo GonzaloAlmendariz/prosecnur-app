@@ -1,0 +1,432 @@
+/* ── Sección (fila de apertura) como cabecera del bloque ───────────────── */
+.pulso-outline-row--section,
+.pulso-outline-row--repeat {
+  background: color-mix(in srgb, var(--pulso-primary) 3%, white);
+}
+
+.pulso-outline-closelabel {
+  font-weight: var(--pulso-weight-bold);
+  color: color-mix(in srgb, var(--pulso-text) 78%, var(--pulso-text-soft));
+}
+
+.pulso-outline-closeicon {
+  color: color-mix(in srgb, var(--pulso-primary) 55%, var(--pulso-text-soft));
+}
+
+.pulso-outline-actions {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.pulso-diagnostics-badge-label {
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-diagnostics-popover-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.pulso-diagnostics-popover-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.pulso-diagnostics-popover-item.is-clickable {
+  cursor: pointer;
+}
+
+.pulso-diagnostics-popover-item.is-clickable:hover {
+  background: var(--pulso-surface);
+  border-color: var(--pulso-border);
+}
+
+.pulso-diagnostics-popover-item.is-active {
+  background: var(--pulso-primary-soft);
+  border-color: var(--pulso-primary-border);
+}
+
+.pulso-diagnostics-popover-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* -----------------------------------------------------------------------------
+ * CollapsibleSection (Sub-PR 4b) — usa el truco grid-template-rows: 0fr → 1fr
+ * --------------------------------------------------------------------------- */
+
+.pulso-collapsible {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: white;
+  overflow: hidden;
+}
+
+.pulso-collapsible.is-open {
+  background: var(--pulso-surface);
+}
+
+.pulso-collapsible-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+  color: var(--pulso-text);
+  transition: background 120ms ease;
+}
+
+.pulso-collapsible-trigger:hover {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-collapsible-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--pulso-text-soft);
+  transition: transform 200ms cubic-bezier(0.2, 0, 0, 1);
+  flex-shrink: 0;
+}
+
+.pulso-collapsible-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--pulso-text-soft);
+  flex-shrink: 0;
+}
+
+.pulso-collapsible-title {
+  font-weight: var(--pulso-weight-bold);
+  flex-shrink: 0;
+}
+
+.pulso-collapsible-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.pulso-collapsible-hint {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-regular);
+  margin-left: auto;
+  flex: 1;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pulso-collapsible-body {
+  display: grid;
+  transition: grid-template-rows var(--motion-dur-base) var(--motion-ease-out);
+}
+
+.pulso-collapsible-body-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.pulso-collapsible.is-open .pulso-collapsible-body-inner {
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--pulso-border);
+  padding-top: 14px;
+}
+
+/* -----------------------------------------------------------------------------
+ * Canvas live preview (Sub-PR 5)
+ * --------------------------------------------------------------------------- */
+
+.pulso-canvas-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Breadcrumb */
+.pulso-canvas-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-canvas-breadcrumb-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pulso-canvas-breadcrumb-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.pulso-canvas-breadcrumb-segment:hover:not(:disabled) {
+  background: var(--pulso-surface);
+  color: var(--pulso-primary);
+  border-color: var(--pulso-border);
+}
+
+.pulso-canvas-breadcrumb-segment:disabled {
+  cursor: default;
+}
+
+.pulso-canvas-breadcrumb-current {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+  background: var(--pulso-primary-soft);
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: 6px;
+}
+
+.pulso-canvas-breadcrumb-sep {
+  color: var(--pulso-text-soft);
+  opacity: 0.5;
+}
+
+.pulso-canvas-quickactions-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--pulso-border);
+  margin: 0 2px;
+}
+
+.pulso-inspector-media-fields input {
+  min-width: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.pulso-inspector-coming p {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+
+.pulso-typepicker-trigger-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pulso-typepicker-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-typepicker-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: var(--pulso-text);
+}
+
+.pulso-typepicker-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pulso-typepicker-family-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 6px;
+}
+
+.pulso-typepicker-family-header strong {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-typepicker-family-header span {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-typepicker-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.pulso-typepicker-item-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pulso-typepicker-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================================================
+ * AppearancePicker — pills toggleables de apariencia por tipo
+ * ========================================================================= */
+.pulso-appearance-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.pulso-appearance-pill:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.pulso-appearance-pill.is-active {
+  background: var(--pulso-primary-bg, rgba(36, 87, 214, 0.1));
+  border-color: var(--pulso-primary);
+  color: var(--pulso-primary);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-catalogchip-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.pulso-catalogchip-pop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.pulso-catalogchip-pop-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.pulso-catalogchip-pop-list li + li {
+  margin-top: 2px;
+}
+
+.pulso-catalogchip-pop-item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-catalogchip-pop-item-count {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-catalogchip-pop-item-count.is-empty {
+  color: color-mix(in srgb, var(--pulso-warn-fg) 82%, var(--pulso-text-soft));
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-catalogchip-pop-empty {
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-catalogchip-pop-footer {
+  padding: 8px 10px;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  font-size: 10.5px;
+  color: var(--pulso-text-soft);
+  text-align: center;
+  line-height: 1.4;
+}
+

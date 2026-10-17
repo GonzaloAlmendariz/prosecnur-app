@@ -101,7 +101,42 @@ export function ConstraintBuilder({
   });
 
   // Caso 1: vacío.
+  // En una respuesta de texto el camino es uno: las recetas de formato (que ya
+  // traen sus atajos de correo, dígitos y código) y, si ninguna sirve, armar la
+  // condición a mano. Antes convivían tres bloques con las mismas reglas y un
+  // armador que ofrecía «es» a un texto libre (0.9.4, R4 y R6).
   if (!ast) {
+    const startManual = () => {
+      onChange(serializeExpression(expandConstraint(buildEmpty())));
+    };
+    const isText = baseType === "text" || baseType === "";
+    if (isText && showShortcuts) {
+      return (
+        <div className="pulso-logic-builder">
+          <header className="pulso-logic-builder-header">
+            <span className="pulso-section-eyebrow">{fieldLabel}</span>
+          </header>
+          <div className="pulso-xftr-section">
+            <div className="pulso-xftr-section-head">
+              <span className="pulso-section-eyebrow">Formato del texto</span>
+              <small>Elige una regla: su mensaje para el encuestado se completa solo.</small>
+            </div>
+            <TextRuleSuite
+              active={null}
+              onApply={applyTextRule}
+              onClear={() => onChange("")}
+            />
+          </div>
+          <div className="pulso-logic-builder-tomano">
+            <span>¿Ninguna sirve?</span>
+            <button type="button" className="pulso-logic-builder-advanced" onClick={startManual}>
+              Armar la condición a mano
+            </button>
+          </div>
+          {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
+        </div>
+      );
+    }
     return (
       <div className="pulso-logic-builder">
         <header className="pulso-logic-builder-header">
@@ -109,23 +144,17 @@ export function ConstraintBuilder({
         </header>
         <div className="pulso-logic-builder-empty">
           <IconHint size={14} />
-          <span>Sin validación — la respuesta se acepta tal cual.</span>
-          <button
-            type="button"
-            className="pulso-logic-builder-add"
-            onClick={() => {
-              onChange(serializeExpression(expandConstraint(buildEmpty())));
-            }}
-          >
+          <span>Sin validación: la respuesta se acepta tal cual.</span>
+          <button type="button" className="pulso-logic-builder-add" onClick={startManual}>
             + Agregar validación
           </button>
         </div>
-        {showShortcuts && shortcutPresets.length > 0 && (
+        {showShortcuts && !isText && shortcutPresets.length > 0 && (
           <div className="pulso-constraint-shortcuts" aria-label="Atajos comunes de validación">
             <div className="pulso-constraint-shortcuts-head">
-              <span className="pulso-section-eyebrow">Atajos Kobo</span>
+              <span className="pulso-section-eyebrow">Atajos</span>
               <strong>Reglas frecuentes sin escribir fórmula</strong>
-              <small>Aplican la regla <TechTerm t="constraint" /> y su mensaje, listos para exportar.</small>
+              <small>La regla y su mensaje se completan juntos.</small>
             </div>
             <div className="pulso-constraint-shortcut-grid">
               {shortcutPresets.map((preset) => (
@@ -134,7 +163,6 @@ export function ConstraintBuilder({
                   type="button"
                   className="pulso-constraint-shortcut"
                   onClick={() => applyShortcut(preset)}
-                  title={preset.hint}
                 >
                   <span className="pulso-constraint-shortcut-icon" aria-hidden="true">
                     <CheckCircle2 size={12} />
@@ -148,21 +176,6 @@ export function ConstraintBuilder({
                 </button>
               ))}
             </div>
-          </div>
-        )}
-        {showShortcuts && (baseType === "text" || baseType === "") && (
-          <div className="pulso-xftr-section">
-            <div className="pulso-xftr-section-head">
-              <span className="pulso-section-eyebrow">
-                Formato del texto <TechTerm t="regex" />
-              </span>
-              <small>Reglas en lenguaje claro: longitud, contenido y formato.</small>
-            </div>
-            <TextRuleSuite
-              active={null}
-              onApply={applyTextRule}
-              onClear={() => onChange("")}
-            />
           </div>
         )}
         {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
@@ -179,9 +192,7 @@ export function ConstraintBuilder({
       <div className="pulso-logic-builder">
         <header className="pulso-logic-builder-header">
           <span className="pulso-section-eyebrow">{fieldLabel}</span>
-          <span className="pulso-logic-builder-status">
-            Formato del texto <TechTerm t="regex" />
-          </span>
+          <span className="pulso-logic-builder-status">Formato del texto</span>
         </header>
         <TextRuleSuite
           active={textRule}

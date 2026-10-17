@@ -1,0 +1,460 @@
+/* ==========================================================================
+   xf-home.css — hub / biblioteca de formularios del editor XLSForm
+   --------------------------------------------------------------------------
+   Homepage del módulo cuando no hay workbook abierto. Es la biblioteca de
+   formularios del proyecto: grilla de tarjetas + zona de creación + guía.
+   Colores SOLO con tokens --pulso-*. Prefijo de clase: .pulso-xf-home-*.
+   Acento del módulo editor: --pulso-module-editor.
+   ========================================================================== */
+
+.pulso-xf-home {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  /* Aprovecha el alto disponible: la grilla de slots es el área principal y la
+     guía compacta se ancla al fondo (margin-top:auto), sin zonas muertas. */
+  min-height: calc(100dvh - 126px);
+  /* Hijo de un cuerpo flex con scroll propio: sin esto se encoge a su
+     min-height y con seis formularios las tarjetas se salen del panel (C2). */
+  flex-shrink: 0;
+  padding: 26px 24px 28px;
+  border-radius: 16px;
+  background: linear-gradient(
+    180deg,
+    var(--pulso-module-editor-soft) 0%,
+    var(--pulso-surface) 62%
+  );
+  border: 1px solid var(--pulso-module-editor-border);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+/* --- Encabezado del hub ------------------------------------------------- */
+
+.pulso-xf-home-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pulso-xf-home-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pulso-xf-home-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--pulso-module-editor);
+}
+
+.pulso-xf-home-title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+  max-width: 720px;
+}
+
+.pulso-xf-home-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+
+.pulso-xf-home-resume {
+  margin: 0;
+}
+
+/* --- Grilla de slots (hasta MAX_FORMS formularios) --------------------- */
+/* Rejilla de 3 columnas: los 6 slots máximos forman una malla 3×2 balanceada
+   que aprovecha el ancho del canvas sin dejar el hub sparse en una sola fila.
+   Baja a 2 y 1 columnas en anchos compactos. */
+
+/* C2 (`xlsform-home-slots`, contrato `equal`): todas las filas miden lo que
+   la más alta (`grid-auto-rows: 1fr`), así que una tarjeta no cambia de alto
+   según con quién comparte fila. El espacio libre queda DENTRO de cada
+   tarjeta, entre la información y su cierre (estado + pie), y los pies se
+   alinean en toda la grilla. */
+.pulso-xf-home-slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 14px;
+  align-items: stretch;
+}
+
+@media (max-width: 1180px) {
+  .pulso-xf-home-slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .pulso-xf-home-slots {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Placeholder tenue de un slot libre: insinúa la capacidad total sin ruido. */
+.pulso-xf-home-slot-ghost {
+  min-height: 150px;
+  border-radius: 14px;
+  border: 1px dashed var(--pulso-border);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0,
+      transparent 10px,
+      var(--pulso-surface-2) 10px,
+      var(--pulso-surface-2) 11px
+    );
+  opacity: 0.5;
+}
+
+/* Placeholder de carga: ocupa el lugar de una tarjeta mientras el índice del
+   proyecto viaja. Su altura aproxima la de una FormCard con su bloque de
+   flujo y su estado de publicación, para que al llegar los datos la grilla se
+   llene en vez de estirarse. */
+.pulso-xf-home-slot-skeleton {
+  min-height: 248px;
+  border-radius: 14px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  opacity: 0.6;
+  animation: pulso-xf-home-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulso-xf-home-skeleton-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.65; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xf-home-slot-skeleton {
+    animation: none;
+  }
+}
+
+/* El índice del proyecto no se pudo leer. No es lo mismo que no tener
+   formularios, y la diferencia importa: el hub no puede ofrecer "crea tu
+   primer formulario" delante de un proyecto que quizá ya tiene seis. */
+.pulso-xf-home-load-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.pulso-xf-home-load-error svg {
+  flex: 0 0 auto;
+}
+
+.pulso-xf-home-load-error span {
+  flex: 1;
+  min-width: 0;
+}
+
+.pulso-xf-home-load-retry {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--pulso-warn-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-bold);
+  cursor: pointer;
+}
+
+.pulso-xf-home-load-retry:hover {
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-surface-2);
+}
+
+/* --- Tarjeta de formulario --------------------------------------------- */
+
+.pulso-xf-home-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 150px;
+  padding: 16px 16px 14px;
+  border-radius: 14px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  box-shadow: var(--pulso-shadow-low);
+  transition:
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  /* Acento por origen — inyectado como var por el componente. */
+  --xf-card-accent: var(--pulso-module-editor);
+  --xf-card-accent-soft: var(--pulso-module-editor-soft);
+}
+
+.pulso-xf-home-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--pulso-shadow-soft);
+  border-color: var(--pulso-border-strong);
+}
+
+/* Un popover abierto (menú o campañas) se pinta sobre las tarjetas vecinas:
+   el `transform` del hover crea un contexto de apilamiento por tarjeta. */
+.pulso-xf-home-card:has([aria-expanded="true"]) {
+  z-index: 5;
+}
+
+.pulso-xf-home-card.is-active {
+  border-color: var(--xf-card-accent);
+  box-shadow: 0 0 0 1px var(--xf-card-accent), var(--pulso-shadow-soft);
+}
+
+.pulso-xf-home-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.pulso-xf-home-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: var(--xf-card-accent-soft);
+  color: var(--xf-card-accent);
+}
+
+/* Cabecera de alto fijo: título hasta dos líneas + origen. Con un título de
+   una línea queda aire debajo, pero las métricas y etapas de toda la fila
+   arrancan a la misma altura. */
+.pulso-xf-home-card-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  min-height: calc(2 * 1.3 * 14px + 3px + 1.4 * 11.5px);
+  flex: 1;
+}
+
+/* Dos líneas antes de recortar: «Acreditación Arte y Diseño PUCP -
+   Estudiantes» se leía «…Estudiant…». El nombre completo queda en `title`. */
+.pulso-xf-home-card-name {
+  display: -webkit-box;
+  margin: 0;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+  letter-spacing: -0.1px;
+  line-height: 1.3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.pulso-xf-home-card-origin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.4;
+}
+
+.pulso-xf-home-card-active-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--xf-card-accent);
+  background: var(--xf-card-accent-soft);
+}
+
+/* Rename inline */
+.pulso-xf-home-card-name-input {
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+  padding: 3px 6px;
+  border-radius: 7px;
+  border: 1px solid var(--xf-card-accent);
+  background: var(--pulso-surface);
+  outline: none;
+  width: 100%;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-xf-home-card-metrics {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  /* Reserva el alto del chip de campañas (24 px + 2 de respiro): con o sin
+     campañas la fila mide lo mismo y las etapas no se mueven. */
+  box-sizing: border-box;
+  min-height: 26px;
+  padding-top: 2px;
+}
+
+.pulso-xf-home-card-metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.pulso-xf-home-card-metric-value {
+  font-size: 15px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-xf-home-card-metric-label {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+/* Público: opcional. Una fila rótulo + select; la sugerencia y los estados
+   del catálogo van debajo sólo cuando existen. */
+.pulso-xf-home-card-actor {
+  display: grid;
+  gap: 6px;
+}
+
+.pulso-xf-home-card-actor-fila {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.pulso-xf-home-card-actor-rotulo {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+}
+
+.pulso-xf-home-card-actor-rotulo small {
+  margin-left: 3px;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
+}
+
+/* El select se ve como select: chevron propio sobre `appearance: none`. */
+.pulso-xf-home-card-select {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.pulso-xf-home-card-select select {
+  width: 100%;
+  height: 30px;
+  padding: 3px 28px 3px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
+.pulso-xf-home-card-select select:hover:not(:disabled) {
+  border-color: var(--pulso-border-strong);
+}
+
+.pulso-xf-home-card-select select:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+  border-color: var(--pulso-module-editor-border);
+}
+
+.pulso-xf-home-card-select select:disabled {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-faint);
+  cursor: not-allowed;
+}
+
+.pulso-xf-home-card-select svg {
+  position: absolute;
+  top: 50%;
+  right: 9px;
+  transform: translateY(-50%);
+  color: var(--pulso-text-soft);
+  pointer-events: none;
+}
+
+.pulso-xf-home-card-sugerencia {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  justify-self: start;
+  gap: 5px;
+  max-width: 100%;
+  padding: 3px 9px;
+  border: 1px dashed var(--pulso-module-editor-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-module-editor);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.pulso-xf-home-card-sugerencia:hover:not(:disabled) {
+  border-style: solid;
+  background: var(--pulso-module-editor-soft);
+}
+
+.pulso-xf-home-card-sugerencia:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+.pulso-xf-home-card-sugerencia-origen {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-medium);
+}
+
+.pulso-xf-home-card-actor small {
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+

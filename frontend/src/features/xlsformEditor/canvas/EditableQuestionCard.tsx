@@ -20,6 +20,7 @@ import { RichInline } from "../helpers/RichInline";
 import { TechTerm } from "../helpers/TechTerm";
 import { typeLabel } from "../parsing/parseType";
 import { EditableChoiceList } from "./EditableChoiceList";
+import "./constructor/tarjetaPregunta.css";
 import { PreviewInputForType } from "./previewInputs";
 
 export type EditableQuestionCardProps = {
@@ -84,7 +85,15 @@ export function EditableQuestionCard({
   // Slot editable: solo para selects locales — el módulo compartido decide
   // dónde ubicarlo (reemplazo de la lista o debajo del mock de appearance).
   const isSelect = baseType === "select_one" || baseType === "select_multiple";
-  const choiceSlot: ReactNode = isSelect ? (
+  // `select_one ${var}`: ODK arma las opciones con lo anotado en un grupo repetido. No hay lista que editar
+  // aquí; decirlo evita que se lea como una lista vacía o rota.
+  const dinamica = node.typeInfo.listName.match(/^\$\{([^}]+)\}$/)?.[1] ?? null;
+  const choiceSlot: ReactNode = isSelect && dinamica ? (
+    <p className="pulso-canvas-dinamicas">
+      Las opciones salen de lo anotado en <code>{dinamica}</code>: cada nombre registrado en el grupo repetido aparece
+      como una opción. Se editan donde se anotan.
+    </p>
+  ) : isSelect ? (
     <EditableChoiceList
       items={choices}
       kind={baseType === "select_one" ? "radio" : "check"}

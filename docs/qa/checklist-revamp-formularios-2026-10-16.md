@@ -1,0 +1,81 @@
+# Checklist — revamp visual del módulo Formularios (2026-10-16)
+
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-10-16
+Autoridad: Registro de alcance del revamp aprobado por Gonzalo; el comportamiento vigente lo fijan los componentes de `frontend/src/features/xlsformEditor/{kit,pestanas,canvas,canvas-graph,sheets,logic}` y sus tests
+
+Propuesta aprobada por el usuario («todo tiene mi aprobación»): canvas
+https://claude.ai/artifact/XkpdPVxW4CN7Gthdx1HaQV (privado). Rama
+`feat/revamp-formularios`, worktree `.claude/worktrees/revamp-formularios`.
+Se implementa en un loop indefinido con descanso de 4 minutos.
+
+Indicaciones del usuario que gobiernan todo el revamp:
+
+- «Usa Linear y Airtable de referencia y rehaz todo»
+- «presta especial atención en cómo somos capaces de editar condiciones lógicas, validación, cálculos y restricciones de forma elegante y didáctica»
+- «el canvas de lógica siento que está increíblemente planteado»: el mapa se conserva.
+- «El editor de hojas debería llamarse Editor XLSForm y debería respetar los nombres de los campos de un xlsforms y embrace it, más ser capaz de ayudar al analista»
+- «cada vista es un subtab o pestaña del módulo»
+- «cálculo o restricción debe ser su propia vista de la misma forma que lógica tiene la suya»
+- «debe ser igual de sólido en el constructor que en la subpestaña, sólo que la subpestaña sirve para tener mayor espacio, más detalle visual»
+- «contenedores profesionales … orden, coherencia»; nada «vacío, plano, suelto, no simétrico, con espacio en blanco irregular en altura»; «ojo fino con los desbordes»
+- «trata de modular el módulo para que los archivos estén bien balanceados y no sean gigantes»
+- «resúmelos en 6 formularios tipo que engloben todos esos 23»: toda verificación usa `~/Documents/Pulso/90_Pruebas/corpus_instrumentos/pulso/formularios-tipo.pulso`, nunca acrconta.
+- Lógica: distinguir «lógica aplicada a toda una sección» de «lógica aplicada a una pregunta en particular».
+
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| E0 | Rama, worktree, dependencias, checklist y encargo del loop | rama `feat/revamp-formularios` | ☑ |
+| E1 | Kit visual: tarjeta con cabecera y pie, filas de propiedad, segmentado, ficha de pregunta, iconos por tipo, filas de condición; sólo tokens `--pulso-*` | `xlsformEditor/kit/` (nuevo) — commit 744aef6ec | ☑ |
+| E2 | Marco del módulo: rail con Constructor, Editor XLSForm, Leer, Lógica, Restricciones (nueva), Cálculos (nueva), Probar, Resumen, Impreso | `navegacion/catalogos/editorFormularios.ts`, rail y contratos de navegación — commits 4ec17c806 (refactor), d861cbe66, 604c1a206 (vacíos contenidos); verificado con proyecto real a 1440×1000 y 1366×768 | ☑ |
+| EH | Lectura humana de reglas medida sobre `formularios-tipo.pulso` (6 tipos que resumen los 23 proyectos): 1642 reglas, técnicas 374 (23 %) → meta ≤ 5 %; comillas tipográficas como error con arreglo | `canvas/reglasHumanas.ts`, `parsing/diagnostics.ts`; sonda `pestanas/lecturaFormulariosTipo.test.ts` (opt-in) — 1fbc959df, f30fcabed: técnicas 374 → 22 (1 %) | ☑ |
+| H1 | Hallazgo de la sonda: 154 preguntas de selección sin opciones en los tipos 1 y 4 porque el instrumento guarda la lista en una columna `list_name` o `select_from_list_name` de survey (no en `type`); el editor sólo la lee de `type` | `parsing/buildIndex.ts` (`parseBuilderStructure`), `parsing/parseType.ts`; `listas/listasModel.ts` ya la lee — 0d0429fd6: 154 → 0 | ☑ |
+| H2 | Hallazgo: `select_one ${var_de_repeat}` (opciones dinámicas desde un grupo repetido, válido en ODK) se ve como lista vacía; mostrar «opciones = respuestas de …». Además 7 preguntas del corpus apuntan a listas que no existen en el original (defecto del instrumento; la revisión ya lo marca) | `parsing/parseType.ts`, `canvas/EditableChoiceList.tsx` — 0c29a0d50 (resumen y papel), 88646adf4 (tarjeta) | ☑ |
+| E3 | Constructor en tarjetas: pregunta y respuestas, «Cuándo aparece» con la regla heredada de la sección, «Qué acepta» junto a «Así se imprime», propiedades y relaciones | `canvas/` — corte previo d09cb2e37: `FocusedWorkspace` 4176→1067, pestañas internas en `canvas/constructor/Tab*.tsx`; resumen en 4 contenedores 0c29a0d50, tarjeta con estilo kit 88646adf4, CSS muerto fuera 4469cb76f, panel derecho neutro y lista compartida sin derrame 2890417bc y 294a8f4e5 (medido a 1440×1000: el resumen pasa a una columna en el panel angosto) | ☑ |
+| E4 | Lógica: lista por sección con reglas de sección y de pregunta, filtro Todas/Sección/Pregunta, editor en tarjetas; el mapa se conserva | `canvas-graph/ListaLogica.tsx`, `listaLogicaModel.ts` — 33c6e5672 (corte), e9e9af15d (lista por sección junto al mapa, foco enlazable); verificado con el tipo 3: 69 secciones, 367 reglas | ☑ |
+| E5 | Pestaña Restricciones: punto de partida, regla, mensaje, vista del teléfono, probar valores, antes de guardar | `pestanas/PestanaRestricciones.tsx` + `canvas/constructor/EditorValidacion.tsx` — b3abb7507, 544024377 (edita con el mismo editor del Constructor), e5d699f70 (probar valores + teléfono; 305/318 restricciones del corpus se pueden probar) | ☑ |
+| E6 | Pestaña Cálculos: lista, editor de fórmula con `@`, catálogo de funciones, probar, relaciones | `pestanas/PestanaCalculos.tsx`, `ProbarCalculo.tsx`, `logic/probarCalculo.ts` — 6c61de0a1 (edita con el editor del Constructor y prueba con respuestas), 19cf56b24 (catálogo de funciones; 108/207 cálculos del corpus evaluables) | ☑ |
+| E7 | Editor XLSForm: hojas survey/choices/settings con columnas reales, barra de fórmula, fila seleccionada, revisión con arreglos | `sheets/` — 95300bd4d (corte), 619283267 (barra de fórmula con «Se lee», panel de fila y revisión), 9c0442d17 (comillas tipográficas como error con arreglo; 15 celdas en el corpus), 53ec8650d (encabezados con ayuda, sin pastel) | ☑ |
+| E8 | Impreso: ajustes en tarjetas, dos páginas A4 | `impreso/` — ya seguía la gramática; medida a 1440×1000 con el tipo 1 sin desbordes; 1756ec8d7 (último fondo tintado); previa del tipo 2 generada (66 páginas, 308 preguntas) sin desbordes | ☑ |
+| E9 | Resumen: franja de cifras, organización, quién responde qué, escalas, antes de aplicar | `resumen/` — ya seguía la gramática; 00d57c02f (línea de tiempo con 54 secciones sin desborde); medido a 1440×1000 con el tipo 2 | ☑ |
+| E10 | Movimiento: duraciones ≤ 240 ms, una curva, sólo opacidad/posición, `prefers-reduced-motion` | kit + estilos del módulo — d26b7d110: 207 transiciones auditadas; 0 largas, 0 rebotes, 0 sin reduce-motion; 4 acordeones mueven layout a propósito | ☑ |
+| EM | Modularización: ningún archivo del módulo gigante (objetivo ≤ ~500 líneas .ts/.tsx, ≤ ~600 .css); cada etapa extrae primero (refactor puro, commit propio) y rediseña después. Hoy: XlsformEditorPage 4426, FocusedWorkspace 4585, LogicCanvas 2339, RuleWizard 1917, xlsform-v2.css 6229 | todo `xlsformEditor/` | ☐ |
+| E11 | QA visual en la matriz de viewports, `verificador`, commits por etapa | verificador: aprobado con pendientes (docs → a1c0fc4b8); claves React únicas 21deeb5ff y en la ficha de la pregunta (opciones con código repetido por `choice_filter`); Vista del cuestionario sin derrames 9f15467cf; matrices 1440×1000 y 1366×768 en 0; `ui-quick-check` verde (abajo) | ☑ |
+
+## Matriz E11 — derrames y recortes por pestaña (1440×1000, `formularios-tipo.pulso`)
+
+Medición por script en la app (overflow `hidden` con contenido mayor que la caja sin `…`; overflow `visible` con
+`scrollWidth > clientWidth + 2`). Se excluyen el texto sólo para lector de pantalla y el chrome de la app
+(selector de módulos y etiqueta de la barra de comandos: 10 alertas constantes en todas las pestañas, **fuera del
+alcance de esta rama**, anotadas como hallazgo para Gonzalo).
+
+| Tipo | constructor | hojas | cuestionario | lógica | restricciones | cálculos | filtros | probar | resumen | impreso |
+|---|---|---|---|---|---|---|---|---|---|---|
+| T1 Acreditación | 0 | 0 | 5 → corregido 9f15467cf | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| T2 Estudiantil sensible | 0 | 0 | 21 → corregido 9f15467cf | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| T3 ACNUR monitoreo | 0 | 0 | 0 (tras 9f15467cf; antes 10) | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| T4 ACNUR comunidad | 0 | 0 | 0 | 0 | 0 | 1 → corregido bf50df2e4 | 0 | 0 | 0 | 0 |
+| T5 Salud OPS | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| T6 Opinión e institucional | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+Re-medido tras 9f15467cf (2026-10-16, ya en `main`): «cuestionario» de T1 y T2 en 0 a 1440×1000 (con control
+positivo del detector).
+
+## Matriz E11 a 1366×768
+
+Las 10 pestañas × 6 tipos: **0 derrames y 0 recortes en las 60 vistas** (T1, T2, T3, T4, T5, T6; cada vista confirmada
+por `pestana` en la URL tras `__pulsoNav.ir("editor-xlsform/formularios/<pestaña>")`).
+
+## `ui-quick-check` (10 pestañas × 1440×1000 y 1366×768, `formularios-tipo.pulso`)
+
+Primera corrida: `ok=false` sólo por 94 errores de consola, todos «two children with the same key» en
+`cuestionario/FichaPregunta.tsx`: una lista con `choice_filter` repite códigos (uno por filtro) y la clave era el
+código. Arreglado con clave código + posición. Segunda corrida: `ok=true`, 20 capturas distintas (md5), 0 errores de
+consola, 0 derrames, solapes, desbordes, scroll jails, desvíos de ruta y problemas de geometría (202 grupos).
+`desplazamientoH=2` es la tabla del Resumen, que se desplaza en horizontal a propósito.
+
+Hallazgo fuera de alcance (a investigar aparte): con el proyecto reabierto varias veces en la misma sesión (deep link
+`?pulso=` de desarrollo), el selector de formularios lista cada formulario DOS veces y una de las copias apunta a un
+`form_id` viejo (GET a un id inexistente, 404): el cambio de formulario se vuelve errático. Falta saber si también ocurre
+al reabrir un proyecto desde la app.

@@ -525,3 +525,17 @@ test_that("la nota de un segmento va al pie de todas las tablas que cruza (y só
   r2 <- .sg_cruces_sin_cruces(sid, list(cruces = list("SEG-edad")))
   expect_false(nota %in% r2$input$extras$notas_generales)
 })
+
+test_that("la variable de un segmento no se edita ni se quita desde Variables de la base", {
+  skip_if_not_installed("haven")
+  sid <- .sg_estudio()
+  on.exit(session_delete(sid), add = TRUE)
+  segmentos_guardar(sid, .sg_sexo)
+  expect_identical(.sg_code(base_variables_quitar_calculada(sid, "2026", "cruce_sexo")), "E_BASE_VARIABLE_DE_SEGMENTO")
+  expect_identical(.sg_code(base_variables_guardar_calculada(sid, "2026", list(
+    nombre = "cruce_sexo", regla = "formula", expresion = "P1 + 1"))), "E_BASE_VARIABLE_DE_SEGMENTO")
+  # El segmento sí la quita al quitarse.
+  segmentos_quitar(sid, "sexo")
+  nombres <- vapply(session_get(sid)$estudio$bases[["2026"]]$variables_calculadas %||% list(), `[[`, "", "nombre")
+  expect_false("cruce_sexo" %in% nombres)
+})

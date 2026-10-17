@@ -12,7 +12,7 @@ import { ChevronDown, Layers, X } from "../../../vendor/lucide-react";
 import { splitErrorDetail } from "../../../components/errorPresentation";
 import { apiCampanaQuitar, type CampanaDeclarada } from "../../../api/xlsformCampanas";
 import { resumenCampanas } from "./campanaComplementariaModel";
-import "../styles/xf-campana.css";
+import "../styles/xfCampana";
 
 type EstadoQuitar =
   | { fase: "reposo"; error: string }

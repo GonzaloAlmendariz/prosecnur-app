@@ -1387,17 +1387,22 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
     r_fin <- fila + nrow(body_rows) - 1
 
     # Zebra sutil: sombrea filas alternas (2, 4, ...) para seguir la fila a lo ancho.
-    for (k in seq_len(nrow(body_rows))) {
-      rr <- r_ini + k - 1L
-      z  <- (k %% 2L == 0L)
-      openxlsx::addStyle(wb, sheet, if (z) st$zebra_txt else st$body_txt,
-                         rows = rr, cols = start_col)
-      openxlsx::addStyle(wb, sheet, if (z) st$zebra_int else st$freq_body_int,
-                         rows = rr, cols = start_col + 1)
-      if (isTRUE(incluir_porcentajes)) {
-        openxlsx::addStyle(wb, sheet, if (z) st$zebra_pct else st$freq_body_pct,
-                           rows = rr, cols = start_col + 2)
-      }
+    # Una llamada por estilo y columna, no por fila: addStyle se encarece con
+    # cada estilo que ya tiene el libro, y fila a fila un estudio de 3 bases
+    # tardaba ~4 min (HSyVbG 2026-10-16). Cada celda recibe el mismo estilo.
+    k <- seq_len(nrow(body_rows))
+    filas_z <- r_ini + k[k %% 2L == 0L] - 1L
+    filas_n <- r_ini + k[k %% 2L == 1L] - 1L
+    estilo_filas <- function(estilo, filas, col) {
+      if (length(filas)) openxlsx::addStyle(wb, sheet, estilo, rows = filas, cols = col, gridExpand = TRUE)
+    }
+    estilo_filas(st$body_txt, filas_n, start_col)
+    estilo_filas(st$zebra_txt, filas_z, start_col)
+    estilo_filas(st$freq_body_int, filas_n, start_col + 1)
+    estilo_filas(st$zebra_int, filas_z, start_col + 1)
+    if (isTRUE(incluir_porcentajes)) {
+      estilo_filas(st$freq_body_pct, filas_n, start_col + 2)
+      estilo_filas(st$zebra_pct, filas_z, start_col + 2)
     }
 
     fila <- r_fin + 1

@@ -110,6 +110,9 @@ base_variables_calcular <- function(df, cv) {
 base_variables_materializar <- function(data, base_meta) {
   if (!is.data.frame(data)) return(data)
   data <- .base_variables_rellenar_retiradas(data, base_meta)
+  # Columnas anexadas desde otro archivo (carga_columnas_anexadas.R): antes de
+  # las calculadas, que pueden partir de ellas.
+  data <- .base_columnas_anexadas_unir(data, base_meta)
   calcs <- (base_meta %||% list())[["variables_calculadas"]] %||% list()
   if (!length(calcs)) return(data)
   for (cv in calcs) {

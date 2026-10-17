@@ -3,7 +3,7 @@
 // importan del barrel ./client; este módulo no cambia el contrato.
 
 import { ApiError, apiFetch, handle, headers } from "./core";
-import type { EstudioBase, EstudioLogicSyncResult, EstudioPayload } from "./estudio";
+import { normalizarCambiosDeRespuestas, type EstudioBase, type EstudioLogicSyncResult, type EstudioPayload } from "./estudio";
 import { type AsyncJobStart, jobResultDomainError, type JobStart } from "./jobs";
 import { normalizeShareArray } from "./graficos";
 import { type DeclaracionLogicaExterna, normalizeLogicaExternaSource } from "./xlsformLogicaExterna";
@@ -1149,7 +1149,7 @@ export type ChoiceCodeMapReview = {
 };
 
 export async function apiCargaData(file_id: string) {
-  return handle<{
+  const raw = await handle<{
     ok: true;
     preview: {
       n_filas: number;
@@ -1182,6 +1182,7 @@ export async function apiCargaData(file_id: string) {
       };
       preview_filas: Record<string, unknown>[];
     };
+    cambios?: unknown;
   }>(
     await apiFetch("/api/carga/data", {
       method: "POST",
@@ -1189,6 +1190,8 @@ export async function apiCargaData(file_id: string) {
       body: JSON.stringify({ file_id }),
     })
   );
+  // Al reemplazar: qué cambió y si hay que volver a adaptar la codificación.
+  return { ...raw, cambios: normalizarCambiosDeRespuestas(raw.cambios) };
 }
 
 export type CargaUniverseFilterConfig = {

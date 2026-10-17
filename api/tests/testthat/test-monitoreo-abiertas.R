@@ -186,3 +186,13 @@ test_that("el rol de abiertas se declara y viaja en la config operacional", {
     "no encontradas"
   )
 })
+
+test_that("una pregunta de texto respondida con números no se propone para vigilar", {
+  survey <- data.frame(type = c("text", "text"), name = c("P1", "comentario"),
+                       label = c("¿Cuál es tu edad?", "Comentario"), stringsAsFactors = FALSE)
+  d <- data.frame(P1 = as.character(rep(18:25, 3)),
+                  comentario = rep(c("me gustó mucho la atención", "faltan horarios en la tarde"), 12),
+                  stringsAsFactors = FALSE)
+  cand <- vapply(abiertas_candidatas(d, survey), function(c1) c1$variable, character(1))
+  expect_identical(cand, "comentario")
+})

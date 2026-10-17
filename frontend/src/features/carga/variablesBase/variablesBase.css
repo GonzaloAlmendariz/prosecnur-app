@@ -391,11 +391,13 @@
 
 .pulso-vb-reglas {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  /* Tres reglas: en una fila si caben; el texto envuelve dentro de su tarjeta. */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--pulso-space-2);
 }
 
 .pulso-vb-regla {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -418,6 +420,8 @@
 .pulso-vb-regla small {
   color: var(--pulso-text-soft);
   font-size: 12px;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .pulso-vb-regla:hover {
@@ -531,3 +535,11 @@
 .pulso-vb-formula-usadas span {
   overflow-wrap: anywhere;
 }
+
+/* Anexar columnas desde otro archivo (AnexarColumnas). */
+.pulso-vb-anexar { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.pulso-vb-anexar p { margin: 0; }
+.pulso-vb-anexar-lista { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow: auto; }
+.pulso-vb-anexar-lista label { display: flex; align-items: baseline; gap: 6px; }
+.pulso-vb-anexar-lista small { color: var(--pulso-text-soft); }
+.pulso-vb-anexar-acciones { display: flex; gap: 6px; }

@@ -13,7 +13,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Copy, X } from "../../../vendor/lucide-react";
 import type { CampanaDeclararResultado } from "../../../api/xlsformCampanas";
 import { CampanaComplementariaPanel } from "./CampanaComplementariaPanel";
-import "../styles/xf-campana.css";
+import "../styles/xfCampana";
 
 export type CampanaComplementariaDialogProps = {
   abierto: boolean;

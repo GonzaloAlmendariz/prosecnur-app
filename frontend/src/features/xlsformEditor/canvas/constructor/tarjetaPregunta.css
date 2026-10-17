@@ -1,0 +1,30 @@
+/* Tarjeta de la pregunta en el Constructor con el lenguaje del kit (revamp 2026-10-16).
+   Acotada a la vista de trabajo: el lienzo del formulario completo conserva su estilo.
+   La etiqueta de tipo deja el fondo pastel: el color vive sólo en el ícono. */
+.pulso-focus-question-preview .pulso-canvas-card {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+.pulso-focus-question-preview .pulso-canvas-card-typebadge {
+  background: transparent !important;
+  color: var(--pulso-text-soft) !important;
+  padding-left: 0;
+  font-weight: 500;
+}
+.pulso-focus-question-preview .pulso-canvas-card-typebadge svg { color: var(--card-accent); }
+.pulso-canvas-dinamicas {
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+.pulso-canvas-dinamicas code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--pulso-text);
+}

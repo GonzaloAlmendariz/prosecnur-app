@@ -1,0 +1,550 @@
+/* Toggle segmentado Valor / Pregunta (reemplaza el críptico botón "<>"). */
+.pulso-logic-valuemode {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-self: stretch;
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-logic-valuemode-opt {
+  padding: 3px 9px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+
+.pulso-logic-valuemode-opt:hover:not(:disabled):not(.is-on) {
+  color: var(--pulso-text);
+}
+
+.pulso-logic-valuemode-opt.is-on {
+  background: var(--pulso-surface);
+  color: var(--pulso-primary);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.pulso-logic-valuemode-opt:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pulso-logic-condition-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+
+.pulso-logic-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pulso-logic-group-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-logic-group-prompt {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-logic-group-copy p {
+  margin: 0;
+  color: #667386;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.pulso-logic-group-connector {
+  display: inline-flex;
+  flex: 0 0 auto;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-logic-group-connector button:active {
+  transform: scale(0.97);
+}
+
+.pulso-logic-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pulso-logic-group-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pulso-logic-group-sep {
+  align-self: flex-start;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--pulso-primary);
+  background: var(--pulso-primary-bg, rgba(36, 87, 214, 0.08));
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
+/* Footer del builder cuando hay una sola condición: aloja el CTA para
+   concatenar una segunda (promueve a AND/OR en el siguiente render). */
+.pulso-logic-builder-footer {
+  margin-top: 8px;
+  display: flex;
+}
+
+/* ============================================================================
+ * Constraint builder (F2-3) — chip read-only "Tu respuesta" en lugar del
+ * VariablePicker. El lhs de toda regla constraint es `.` (la respuesta de
+ * la pregunta misma), entonces solo mostramos un indicador visual del tipo.
+ * ========================================================================= */
+.pulso-logic-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  font-size: 12px;
+  color: var(--pulso-text);
+  min-width: 0;
+}
+
+.pulso-logic-current-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pulso-logic-current-text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-logic-calc-templates p {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pulso-logic-calc-templates p svg {
+  color: var(--pulso-primary);
+}
+
+button.pulso-focus-calculation-recipe {
+  cursor: pointer;
+}
+
+.pulso-focus-calculation-recipe.is-builder {
+  grid-column: 1 / -1;
+}
+
+/* IfBlock — bloque visual `if(cond, then, else)`.
+   Su geometría interna (los tres pasos) vive en xf-logic.css. Aquí quedan
+   `-cond`, `-branch` y `-branchlabel` retiradas: el bloque dejó de emitirlas
+   al pasar de "condición + dos ramas etiquetadas a la derecha" a tres pasos
+   con el mismo tratamiento. */
+.pulso-logic-ifblock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+}
+
+.pulso-logic-calc-textarea {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 12.5px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  resize: vertical;
+}
+
+.pulso-logic-calc-varempty {
+  padding: 12px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+/* ============================================================================
+ * Questionnaire view — full-screen reading surface for the XLSForm editor
+ * ========================================================================= */
+.pulso-questionnaire-overlay {
+  background:
+    linear-gradient(180deg, rgba(248, 251, 255, 0.96), rgba(242, 246, 252, 0.92)),
+    var(--pulso-surface);
+}
+
+.pulso-questionnaire-header-stats {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pulso-questionnaire-header-stats span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff 18%);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+}
+
+.pulso-questionnaire-shell {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 12px 12px, rgba(15, 23, 42, 0.05) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(180deg, #f8fafc, #f3f7fb 72%, #eef3f8);
+}
+
+.pulso-questionnaire-panel {
+  width: min(1320px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 12px;
+}
+
+.pulso-questionnaire-empty {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+  border: 1px dashed color-mix(in srgb, var(--pulso-primary) 26%, var(--pulso-border));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--pulso-text-soft);
+  box-shadow: var(--pulso-shadow-soft);
+}
+
+.pulso-questionnaire-empty-icon {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-primary-soft) 68%, #fff 32%);
+  color: var(--pulso-primary);
+  flex-shrink: 0;
+}
+
+.pulso-questionnaire-empty strong {
+  display: block;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.pulso-questionnaire-empty p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pulso-questionnaire-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 260px);
+  gap: 12px;
+  align-items: stretch;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 78%, #fff 22%);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(249, 252, 255, 0.88)),
+    var(--pulso-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 12px 28px rgba(15, 23, 42, 0.055);
+}
+
+.pulso-questionnaire-overview-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pulso-questionnaire-overview-copy strong {
+  color: var(--pulso-text);
+  font-size: 17px;
+  line-height: 1.22;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0;
+}
+
+.pulso-questionnaire-overview-copy p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.pulso-questionnaire-quality {
+  display: grid;
+  gap: 5px;
+  align-content: center;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 16%, var(--pulso-border));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(238, 247, 249, 0.82));
+}
+
+.pulso-questionnaire-quality strong {
+  font-size: 24px;
+  line-height: 1;
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.pulso-questionnaire-quality span {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-questionnaire-quality-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--pulso-border) 72%, #fff 28%);
+}
+
+.pulso-questionnaire-quality-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, var(--pulso-primary), #17a2a7);
+}
+
+.pulso-questionnaire-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pulso-questionnaire-summary-tile {
+  display: grid;
+  grid-template-columns: 30px minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff 18%);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 1px 2px rgba(15, 23, 42, 0.035);
+  min-width: 0;
+}
+
+.pulso-questionnaire-summary-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--pulso-primary-soft) 72%, #fff 28%);
+  color: var(--pulso-primary);
+  flex-shrink: 0;
+}
+
+.pulso-questionnaire-summary-tile strong {
+  color: var(--pulso-text);
+  font-size: 19px;
+  line-height: 1;
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-questionnaire-summary-tile span:not(.pulso-questionnaire-summary-icon) {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pulso-questionnaire-map {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 78%, #fff 22%);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(249, 251, 254, 0.86)),
+    var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-soft);
+}
+
+.pulso-questionnaire-map-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pulso-questionnaire-map-header strong {
+  display: block;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.pulso-questionnaire-map-header p {
+  margin: 2px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pulso-questionnaire-map-counts {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pulso-questionnaire-map-counts span,
+.pulso-questionnaire-section-badges span,
+.pulso-questionnaire-question-flags em {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff 18%);
+  background: color-mix(in srgb, var(--pulso-surface-2) 76%, #fff 24%);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  line-height: 1.1;
+  font-weight: var(--pulso-weight-heavy);
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.pulso-questionnaire-section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  /* `start` evita que una tarjeta corta (ej. "1 elemento") se estire a
+   * la altura de la sección más larga de su fila: sin esto el grid
+   * iguala las alturas y deja huecos enormes. */
+  align-items: start;
+  gap: 10px;
+}
+
+.pulso-questionnaire-section {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff 18%);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 3px 12px rgba(15, 23, 42, 0.045);
+}
+
+.pulso-questionnaire-section::before {
+  content: "";
+  position: absolute;
+  inset: 10px auto 10px 0;
+  width: 3px;
+  border-radius: 0 6px 6px 0;
+  background: var(--pulso-primary);
+  opacity: 0.7;
+}
+
+.pulso-questionnaire-section.is-repeat::before {
+  background: #0f9f8f;
+}
+
+.pulso-questionnaire-section.is-root::before {
+  background: #64748b;
+}
+
+.pulso-questionnaire-section-head {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.pulso-questionnaire-section-head:disabled {
+  cursor: default;
+}
+

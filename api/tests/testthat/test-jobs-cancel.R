@@ -184,3 +184,31 @@ test_that("cancelar un import de plataforma real no deja RDS de carga en jobs/in
   # Ni cancelado ni cosechado, el estudio recibió una base del job.
   expect_length(estudio_list_bases(sid), 0L)
 })
+
+test_that("un on_complete que falla deja el job en error con su mensaje, no en done", {
+  skip_if_not_installed("callr")
+  old_api_dir <- Sys.getenv("PULSO_API_DIR", unset = NA_character_)
+  Sys.setenv(PULSO_API_DIR = normalizePath(".", mustWork = TRUE))
+  on.exit({
+    if (is.na(old_api_dir)) Sys.unsetenv("PULSO_API_DIR") else Sys.setenv(PULSO_API_DIR = old_api_dir)
+    jobs_kill_all()
+  }, add = TRUE)
+  sid <- session_create()
+  job_id <- job_submit(
+    sid = sid,
+    kind = "unit.on_complete_falla",
+    func = function(value) list(ok = TRUE, value = value),
+    args = list(value = 1L),
+    on_complete = function(j) stop_api(409, "E_CODIF_RESPUESTAS_CAMBIARON", "Las respuestas cambiaron.")
+  )
+  deadline <- Sys.time() + 60
+  repeat {
+    j <- job_poll(job_id)
+    if (!identical(j$status, "running")) break
+    if (Sys.time() > deadline) fail("El worker de prueba no termino a tiempo.")
+    Sys.sleep(0.2)
+  }
+  expect_equal(j$status, "error")
+  expect_equal(j$error, "Las respuestas cambiaron.")
+  expect_null(j$result_public)
+})

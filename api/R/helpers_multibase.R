@@ -137,7 +137,9 @@ run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
   meta <- .register_output_file(sid, kind_multi, zip_path, original_name = zip_name)
   list(
     file_id  = meta$file_id,
-    filename = basename(zip_path),
+    # El nombre limpio, no el de la ruta temporal: ésa lleva un uuid delante y
+    # se veía en la pantalla («b26f3766-…_libro_de_codigos.zip»).
+    filename = zip_name,
     size     = meta$size
   )
 }

@@ -10,7 +10,6 @@ fuentes:
   - "frontend/src/features/graficos/GraficosPage.tsx"
   - "frontend/src/features/graficos/v2/inspector/FiltersPanel.tsx"
   - "frontend/src/features/graficos/SuggestedPlanButton.tsx"
-  - "frontend/src/features/graficos/PptStyleProfilesPanel.tsx"
   - "api/R/graficos_plan_coverage.R"
   - "api/R/graficos_share.R"
   - "api/R/graficos_consolidado.R"

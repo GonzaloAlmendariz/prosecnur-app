@@ -27,7 +27,7 @@ import {
   type ContadorDiferencia,
   type IdDiferencia,
 } from "./campanaComplementariaModel";
-import "../styles/xf-campana.css";
+import "../styles/xfCampana";
 
 export type CampanaVistaPreviaResumenProps = {
   vista: CampanaVistaPrevia;

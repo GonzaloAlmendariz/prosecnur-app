@@ -101,6 +101,7 @@ import {
   SURVEY_COLUMNS_WITH_VAR_REFS,
 } from "./parsing/sheetUtils";
 import { SheetsView } from "./sheets/SheetsView";
+import { crearManejadoresHojas } from "./state/manejadoresHojas";
 import {
   buildType,
   cleanFilename,
@@ -205,360 +206,20 @@ import { LogicCanvas } from "./canvas-graph/LogicCanvas";
 import { ChoiceFiltersView } from "./choiceFilters/ChoiceFiltersView";
 import { FormSimulator } from "./shell/FormSimulator";
 import { FormSummaryView } from "./shell/FormSummaryView";
-import "./styles/xlsform-v2.css";
+import "./styles/xlsformV2";
 import "./styles/xf-logic.css";
+import { PestanaRestricciones } from "./pestanas/PestanaRestricciones";
+import { PestanaCalculos } from "./pestanas/PestanaCalculos";
+import { ListaLogica } from "./canvas-graph/ListaLogica";
+import { computeQuestionPosition, workbookWithSurveyMonkeyLogic, refreshSurveyMonkeyAdvancedRules, extractExistingKoboLogic, visualActionCountForFooter, mergeAdvancedLogicRules, mergeVisualLogicRules, choiceCodeMapsWithOverrides, mergeChoiceCodeMaps, sectionIdForRow, findNextSiblingAfterSection, findLastDirectChildInSection, buildSectionBoundaryState } from "./state/editorHelpers";
+import { SurveyMonkeyLogicPopup } from "./shell/SurveyMonkeyLogicPopup";
+import { AddElementMenu } from "./shell/AddElementMenu";
 
 /**
  * Posición 1-indexed de una fila dentro del outline, contando solo
  * preguntas reales (question/note/calculate). Si la fila es una sección o
  * un marcador begin/end, devuelve `undefined`.
  */
-function computeQuestionPosition(
-  structure: BuilderStructure,
-  rowIndex: number,
-): number | undefined {
-  let count = 0;
-  for (const n of structure.outline) {
-    if (n.kind === "question" || n.kind === "note" || n.kind === "calculate") {
-      count += 1;
-    }
-    if (n.rowIndex === rowIndex) {
-      if (n.kind === "question" || n.kind === "note" || n.kind === "calculate") return count;
-      return undefined;
-    }
-  }
-  return undefined;
-}
-
-function workbookWithSurveyMonkeyLogic(
-  workbook: XlsformEditorWorkbook,
-  advancedRules: ConfirmedRule[],
-  visualRules: SurveyMonkeyVisualLogicRule[],
-  choiceOrderOverrides: Record<string, string[]>,
-  choiceCodeMaps: ChoiceCodeMap[] = workbook.surveyMonkeyLogic?.choice_code_maps ?? [],
-): XlsformEditorWorkbook {
-  const next = cloneWorkbook(workbook);
-  const overrides = Object.fromEntries(
-    Object.entries(choiceOrderOverrides).map(([key, labels]) => [key, [...labels]]),
-  );
-  const resolvedChoiceCodeMaps = choiceCodeMapsWithOverrides(next, overrides, choiceCodeMaps);
-  next.surveyMonkeyLogic = advancedRules.length || visualRules.length || Object.keys(overrides).length || resolvedChoiceCodeMaps.length
-    ? {
-        rules: advancedRules.map((rule) => ({ ...rule })),
-        advanced_rules: advancedRules.map((rule) => ({ ...rule })),
-        visual_rules: visualRules.map((rule) => ({
-          ...rule,
-          choices: rule.choices.map((choice) => ({ ...choice, action: { ...choice.action } })),
-        })),
-        choice_order_overrides: overrides,
-        choice_code_maps: cloneChoiceCodeMaps(resolvedChoiceCodeMaps),
-      }
-    : null;
-  return next;
-}
-
-async function refreshSurveyMonkeyAdvancedRules(
-  rules: ConfirmedRule[],
-  workbook: XlsformEditorWorkbook,
-  choiceOrderOverrides: Record<string, string[]>,
-): Promise<ConfirmedRule[]> {
-  if (!rules.length) return rules;
-  return Promise.all(rules.map(async (rule) => {
-    try {
-      const interp = await apiXlsformEditorSmInterpretRule(rule.texto, {
-        workbook,
-        choice_order_overrides: choiceOrderOverrides,
-        choice_code_maps: workbook.surveyMonkeyLogic?.choice_code_maps ?? [],
-      });
-      if (!interp.ok) return rule;
-      return {
-        ...rule,
-        texto_humano: interp.texto_humano,
-        kobo_expr: interp.resolucion.kobo_expr,
-      };
-    } catch {
-      return rule;
-    }
-  }));
-}
-
-function extractExistingKoboLogic(workbook: XlsformEditorWorkbook | null) {
-  if (!workbook) return [];
-  const nameIdx = workbook.survey.columns.indexOf("name");
-  const labelIdx = workbook.survey.columns.indexOf("label");
-  const relIdx = workbook.survey.columns.indexOf("relevant");
-  if (nameIdx < 0 || relIdx < 0) return [];
-  return workbook.survey.rows
-    .map((row) => ({
-      name: row[nameIdx] ?? "",
-      label: labelIdx >= 0 ? row[labelIdx] ?? "" : "",
-      relevant: row[relIdx] ?? "",
-    }))
-    .filter((item) => item.name && item.relevant.trim())
-    .slice(0, 80);
-}
-
-function visualActionCountForFooter(rules: SurveyMonkeyVisualLogicRule[]) {
-  return rules.reduce((sum, rule) => sum + rule.choices.filter((choice) => choice.action.kind !== "none").length, 0);
-}
-
-function actionSignature(choice: SurveyMonkeyVisualLogicRule["choices"][number]) {
-  return JSON.stringify({ choiceName: choice.choiceName, action: choice.action });
-}
-
-function mergeAdvancedLogicRules(current: ConfirmedRule[], incoming: ConfirmedRule[]) {
-  const seen = new Set(current.map((rule) => rule.texto.trim()));
-  const merged = [...current];
-  for (const rule of incoming) {
-    const key = rule.texto.trim();
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    merged.push(rule);
-  }
-  return merged;
-}
-
-function mergeVisualLogicRules(
-  current: SurveyMonkeyVisualLogicRule[],
-  incoming: SurveyMonkeyVisualLogicRule[],
-  warnings: SurveyMonkeyLogicPackWarning[],
-) {
-  const merged = current.map((rule) => ({
-    ...rule,
-    choices: rule.choices.map((choice) => ({ ...choice, action: { ...choice.action } })),
-  }));
-  for (const rule of incoming) {
-    const existing = merged.find((item) => item.variableRef === rule.variableRef);
-    if (!existing) {
-      merged.push({
-        ...rule,
-        choices: rule.choices.map((choice) => ({ ...choice, action: { ...choice.action } })),
-      });
-      continue;
-    }
-    const seen = new Set(existing.choices.map(actionSignature));
-    for (const choice of rule.choices) {
-      const sameChoice = existing.choices.find((item) => item.choiceName === choice.choiceName);
-      const sig = actionSignature(choice);
-      if (seen.has(sig)) continue;
-      if (sameChoice && JSON.stringify(sameChoice.action) !== JSON.stringify(choice.action)) {
-        warnings.push({
-          severity: "warn",
-          message: `La opción "${choice.choiceLabel}" en ${rule.variableLabel} ya tenía otro salto; se conservó el existente.`,
-        });
-        continue;
-      }
-      seen.add(sig);
-      existing.choices.push({ ...choice, action: { ...choice.action } });
-    }
-  }
-  return merged;
-}
-
-function cloneChoiceCodeMaps(maps: ChoiceCodeMap[] | undefined | null): ChoiceCodeMap[] {
-  return (maps ?? []).map((map) => ({
-    ...map,
-    mappings: map.mappings.map((item) => ({ ...item })),
-  }));
-}
-
-function normalizeChoiceMapLabel(label: string) {
-  return label
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .replace(/\s+/g, " ")
-    .toLowerCase();
-}
-
-function questionKeyFromVariable(ref: string) {
-  const match = ref.match(/^[pq]0*(\d+)/i);
-  return match ? String(Number(match[1])) : "";
-}
-
-function choiceCodeMapsWithOverrides(
-  workbook: XlsformEditorWorkbook,
-  overrides: Record<string, string[]>,
-  maps: ChoiceCodeMap[] | undefined | null,
-): ChoiceCodeMap[] {
-  const out = cloneChoiceCodeMaps(maps);
-  const existingKeys = new Set(out.map((map) => questionKeyFromVariable(map.variable)).filter(Boolean));
-  const surveyCols = workbook.survey.columns;
-  const choiceCols = workbook.choices.columns;
-  const nameIdx = surveyCols.indexOf("name");
-  const typeIdx = surveyCols.indexOf("type");
-  const labelIdx = surveyCols.indexOf("label::es") >= 0 ? surveyCols.indexOf("label::es") : surveyCols.indexOf("label");
-  const listIdx = choiceCols.indexOf("list_name");
-  const choiceNameIdx = choiceCols.indexOf("name");
-  const choiceLabelIdx = choiceCols.indexOf("label::es") >= 0 ? choiceCols.indexOf("label::es") : choiceCols.indexOf("label");
-  if (nameIdx < 0 || typeIdx < 0 || listIdx < 0 || choiceNameIdx < 0) return out;
-
-  for (const [qKey, labels] of Object.entries(overrides)) {
-    if (!labels.length || existingKeys.has(qKey)) continue;
-    const surveyRow = workbook.survey.rows.find((row) => questionKeyFromVariable(row[nameIdx] ?? "") === qKey);
-    if (!surveyRow) continue;
-    const typeRaw = surveyRow[typeIdx] ?? "";
-    const typeMatch = typeRaw.match(/^(select_one|select_multiple)\s+(\S+)/i);
-    if (!typeMatch) continue;
-    const listName = typeMatch[2];
-    const choices = workbook.choices.rows
-      .filter((row) => (row[listIdx] ?? "") === listName)
-      .map((row) => ({
-        name: row[choiceNameIdx] ?? "",
-        label: (choiceLabelIdx >= 0 ? row[choiceLabelIdx] ?? "" : "") || row[choiceNameIdx] || "",
-      }));
-    if (!choices.length) continue;
-    const choicesByLabel = new Map<string, typeof choices>();
-    for (const choice of choices) {
-      const key = normalizeChoiceMapLabel(choice.label);
-      const arr = choicesByLabel.get(key) ?? [];
-      arr.push(choice);
-      choicesByLabel.set(key, arr);
-    }
-    const mappings = labels.map((label, index) => {
-      const key = normalizeChoiceMapLabel(label);
-      const queue = choicesByLabel.get(key) ?? [];
-      const matched = queue.shift();
-      if (queue.length) choicesByLabel.set(key, queue);
-      else choicesByLabel.delete(key);
-      return {
-        source_code: String(index + 1),
-        source_column: "",
-        source_label: label,
-        xls_code: matched?.name ?? String(index + 1),
-        xls_label: matched?.label ?? label,
-        match: matched ? "manual_editor" : "manual_editor_fallback",
-      };
-    });
-    out.push({
-      variable: surveyRow[nameIdx] ?? `p${qKey}`,
-      label: labelIdx >= 0 ? surveyRow[labelIdx] ?? surveyRow[nameIdx] ?? `p${qKey}` : surveyRow[nameIdx] ?? `p${qKey}`,
-      type: typeMatch[1].toLowerCase() === "select_multiple" ? "select_multiple" : "select_one",
-      list_name: listName,
-      status: "manual_editor",
-      high_confidence: true,
-      requires_confirmation: false,
-      mappings,
-    });
-    existingKeys.add(qKey);
-  }
-  return out;
-}
-
-function choiceCodeMapKey(map: ChoiceCodeMap) {
-  return map.variable.trim().toLowerCase();
-}
-
-function mergeChoiceCodeMaps(
-  current: ChoiceCodeMap[] | undefined | null,
-  incoming: ChoiceCodeMap[] | undefined | null,
-  warnings: SurveyMonkeyLogicPackWarning[],
-) {
-  const merged = cloneChoiceCodeMaps(current);
-  const byVariable = new Map(merged.map((map) => [choiceCodeMapKey(map), map]));
-
-  for (const rawMap of incoming ?? []) {
-    const map = cloneChoiceCodeMaps([rawMap])[0];
-    if (!map) continue;
-    const key = choiceCodeMapKey(map);
-    const existing = byVariable.get(key);
-    if (!existing) {
-      merged.push(map);
-      byVariable.set(key, map);
-      continue;
-    }
-
-    const existingBySource = new Map(existing.mappings.map((item) => [item.source_code.trim(), item]));
-    for (const item of map.mappings) {
-      const sourceCode = item.source_code.trim();
-      const currentItem = existingBySource.get(sourceCode);
-      if (!currentItem) {
-        existing.mappings.push({ ...item });
-        existingBySource.set(sourceCode, item);
-        continue;
-      }
-      if (
-        currentItem.xls_code !== item.xls_code ||
-        currentItem.xls_label !== item.xls_label ||
-        currentItem.source_label !== item.source_label
-      ) {
-        warnings.push({
-          severity: "warn",
-          message: `El mapa interno ${map.variable} ${sourceCode} ya existía; se conservó el mapeo confirmado en este workbook.`,
-        });
-      }
-    }
-  }
-
-  return merged;
-}
-
-function sectionIdForRow(rowIndex: number): string {
-  return `section-${rowIndex}`;
-}
-
-function boundaryNodeLabel(node: BuilderNode | null | undefined): string {
-  if (!node) return "la pieza";
-  return node.label || node.name || previewKindLabel(node);
-}
-
-function findNextSiblingAfterSection(
-  structure: BuilderStructure | null,
-  sectionRowIndex: number,
-): BuilderNode | null {
-  const node = structure?.byRow.get(sectionRowIndex);
-  if (!structure || !node || (node.kind !== "section" && node.kind !== "repeat")) return null;
-  const section = structure.sections.get(sectionIdForRow(sectionRowIndex));
-  const span = structure.spans.get(sectionRowIndex);
-  const end = section?.endRowIndex ?? span?.end ?? sectionRowIndex;
-  return structure.outline.find(
-    (entry) => entry.sectionId === node.sectionId && entry.rowIndex > end,
-  ) ?? null;
-}
-
-function findLastDirectChildInSection(
-  structure: BuilderStructure | null,
-  sectionRowIndex: number,
-): BuilderNode | null {
-  if (!structure) return null;
-  const section = structure.sections.get(sectionIdForRow(sectionRowIndex));
-  const span = structure.spans.get(sectionRowIndex);
-  const end = section?.endRowIndex ?? span?.end ?? sectionRowIndex;
-  const children = structure.outline.filter(
-    (entry) =>
-      entry.sectionId === sectionIdForRow(sectionRowIndex) &&
-      entry.rowIndex > sectionRowIndex &&
-      entry.rowIndex < end,
-  );
-  return children[children.length - 1] ?? null;
-}
-
-function buildSectionBoundaryState(
-  structure: BuilderStructure | null,
-  node: BuilderNode | null,
-): SectionBoundaryState | null {
-  if (!structure || !node || (node.kind !== "section" && node.kind !== "repeat")) return null;
-  const section = structure.sections.get(sectionIdForRow(node.rowIndex));
-  if (!section) return null;
-  const itemCount = section.itemCount;
-  const next = findNextSiblingAfterSection(structure, node.rowIndex);
-  const lastChild = findLastDirectChildInSection(structure, node.rowIndex);
-  const closingType = node.kind === "repeat" ? "end_repeat" : "end_group";
-  return {
-    itemCount,
-    closeLabel: itemCount > 0
-      ? `${closingType} queda después de ${boundaryNodeLabel(lastChild)}`
-      : `${closingType} queda justo después del título`,
-    closeDetail: itemCount > 0
-      ? "El cierre del XLSForm se mueve automáticamente con estos controles; no necesitas crear una fila manual en Hojas."
-      : "El bloque está vacío: el cierre queda debajo del título y las piezas siguientes todavía están fuera.",
-    nextLabel: next ? boundaryNodeLabel(next) : null,
-    lastChildLabel: lastChild ? boundaryNodeLabel(lastChild) : null,
-    canIncludeNext: Boolean(next),
-    canReleaseLast: Boolean(lastChild),
-  };
-}
-
 export default function XlsformEditorPage() {
   // Detecta si hay un .pulso abierto — al exportar, decide entre guardar
   // al directorio del proyecto (vía /api/fs/save-to-project) o usar la
@@ -2374,91 +2035,16 @@ export default function XlsformEditorPage() {
     });
   }
 
-  type EditableSheetKey = "survey" | "choices" | "settings" | "paper";
-
-  function editableSheet(draft: XlsformEditorWorkbook, sheetName: EditableSheetKey) {
-    if (sheetName === "paper" && !draft.paper) draft.paper = makeSheet("paper", PAPER_COLUMNS);
-    return draft[sheetName]!;
-  }
-
-  // ── Handlers del modo Hojas (sheets) — operan a nivel de celda raw ──
-  function sheetsUpdateCell(
-    sheetName: EditableSheetKey,
-    rowIndex: number,
-    columnName: string,
-    value: string,
-  ) {
-    updateWorkbook((draft) => {
-      // Si es la columna `name` de survey, también propagamos referencias
-      // (mismo refactor que en updateSurveyField). Sheets no debería ser
-      // un escape hatch silencioso para romper referencias.
-      if (sheetName === "survey" && columnName === "name") {
-        const oldName = getCell(draft.survey, rowIndex, "name");
-        const newName = value;
-        const NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
-        if (
-          oldName &&
-          newName &&
-          oldName !== newName &&
-          NAME_RE.test(oldName) &&
-          NAME_RE.test(newName)
-        ) {
-          const cellsChanged = replaceVarReferences(
-            draft.survey,
-            oldName,
-            newName,
-            [...SURVEY_COLUMNS_WITH_VAR_REFS],
-          );
-          if (cellsChanged > 0) {
-            queueMicrotask(() => {
-              toasts.push({
-                kind: "info",
-                title: "Referencias actualizadas",
-                detail: `${cellsChanged} ${cellsChanged === 1 ? "celda" : "celdas"} con \${${oldName}} → \${${newName}}.`,
-              });
-            });
-          }
-        }
-      }
-      setCell(editableSheet(draft, sheetName), rowIndex, columnName, value);
-    });
-  }
-  function sheetsAddRow(sheetName: EditableSheetKey) {
-    updateWorkbook((draft) => {
-      const sheet = editableSheet(draft, sheetName);
-      sheet.rows.push(new Array(sheet.columns.length).fill(""));
-    });
-  }
-  function sheetsDeleteRow(
-    sheetName: EditableSheetKey,
-    rowIndex: number,
-  ) {
-    updateWorkbook((draft) => {
-      deleteRow(editableSheet(draft, sheetName), rowIndex);
-    });
-  }
-  function sheetsMoveRow(
-    sheetName: EditableSheetKey,
-    rowIndex: number,
-    direction: "up" | "down",
-  ) {
-    updateWorkbook((draft) => {
-      const sheet = editableSheet(draft, sheetName);
-      const target = direction === "up" ? rowIndex - 1 : rowIndex + 1;
-      if (target < 0 || target >= sheet.rows.length) return;
-      const next = [...sheet.rows];
-      [next[rowIndex], next[target]] = [next[target]!, next[rowIndex]!];
-      sheet.rows = next;
-    });
-  }
-  function sheetsAddColumn(
-    sheetName: EditableSheetKey,
-    columnName: string,
-  ) {
-    updateWorkbook((draft) => {
-      ensureColumn(editableSheet(draft, sheetName), columnName);
-    });
-  }
+  // Editor XLSForm: celdas, filas y columnas en bruto (state/manejadoresHojas.ts).
+  const { sheetsUpdateCell, sheetsAddRow, sheetsDeleteRow, sheetsMoveRow, sheetsAddColumn } = crearManejadoresHojas(
+    updateWorkbook,
+    (cambiadas, anterior, nuevo) =>
+      toasts.push({
+        kind: "info",
+        title: "Referencias actualizadas",
+        detail: `${cambiadas} ${cambiadas === 1 ? "celda" : "celdas"} con \${${anterior}} → \${${nuevo}}.`,
+      }),
+  );
 
   function updateQuestionType(rowIndex: number, nextBaseType: string) {
     updateWorkbook((draft) => {
@@ -2999,6 +2585,13 @@ export default function XlsformEditorPage() {
   // que una pregunta dependa de sí misma), y excepto secciones/repeats
   // (esos no producen valores comparables). Los catálogos se indexan por
   // listName para lookup O(1) en el ValueInput.
+  // Foco de la lista de lógica → fila a enfocar en el mapa: «seccion:<fila>» o el nombre de la variable.
+  const filaFocoLogica = useMemo(() => {
+    const foco = pestana === "logica" ? pestanaEditor.foco : null;
+    if (!foco || !structure) return null;
+    if (foco.startsWith("seccion:")) return Number(foco.slice(8));
+    return structure.outline.find((n) => n.name === foco)?.rowIndex ?? null;
+  }, [pestana, pestanaEditor.foco, structure]);
   const logicScope = useMemo<LogicScope>(() => {
     const variables: LogicVariable[] = (structure?.outline ?? [])
       .filter(
@@ -3363,6 +2956,9 @@ export default function XlsformEditorPage() {
             {pestana === "hojas" && (
               <SheetsView
                 workbook={workbook}
+                scope={logicScope}
+                structure={structure}
+                diagnostics={diagnostics}
                 onUpdateCell={sheetsUpdateCell}
                 onAddRow={sheetsAddRow}
                 onDeleteRow={sheetsDeleteRow}
@@ -3521,40 +3117,52 @@ export default function XlsformEditorPage() {
             )}
             {/* El mapa queda montado aunque se cambie de pestaña: conserva zoom y
                 encuadre entre visitas (como hacía el overlay). */}
-            <LogicCanvas
-              embebido
-              open={pestana === "logica"}
-              structure={structure}
-              catalogs={catalogs}
-              onEditarEnConstructor={irAFila}
-              acciones={(
-                <button
-                  type="button"
-                  className="pulso-graph-allbutton"
-                  onClick={() => {
-                    setLogicReviewFormId(null);
-                    smLogicPanel.abrir();
-                  }}
-                  title="Editar, agregar o reutilizar reglas de salto de SurveyMonkey sin regenerar el XLSForm"
-                >
-                  Lógica de SurveyMonkey
-                </button>
+            <div className={pestana === "logica" ? "xfl-logica" : "xfl-logica is-oculta"}>
+              {pestana === "logica" && (
+                <ListaLogica structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} />
               )}
-              onSetRelevant={(rowIndex, expression) => {
-                // El canvas declara/edita/elimina relaciones de visibilidad
-                // (relevant). Una expresión vacía ELIMINA la condición (el
-                // elemento pasa a mostrarse siempre); una no vacía la crea/edita.
-                updateSurveyField(rowIndex, "relevant", expression);
-                const cleared = expression.trim() === "";
-                toasts.push({
-                  kind: "success",
-                  title: cleared ? "Relación eliminada" : "Conexión creada",
-                  detail: cleared
-                    ? "Se quitó la condición de visibilidad; el elemento se mostrará siempre."
-                    : "Se condicionó la visibilidad. Refínala en el inspector si quieres precisar el valor.",
-                });
-              }}
-            />
+              <LogicCanvas
+                embebido
+                seleccionFila={filaFocoLogica}
+                open={pestana === "logica"}
+                structure={structure}
+                catalogs={catalogs}
+                onEditarEnConstructor={irAFila}
+                acciones={(
+                  <button
+                    type="button"
+                    className="pulso-graph-allbutton"
+                    onClick={() => {
+                      setLogicReviewFormId(null);
+                      smLogicPanel.abrir();
+                    }}
+                    title="Editar, agregar o reutilizar reglas de salto de SurveyMonkey sin regenerar el XLSForm"
+                  >
+                    Lógica de SurveyMonkey
+                  </button>
+                )}
+                onSetRelevant={(rowIndex, expression) => {
+                  // El canvas declara/edita/elimina relaciones de visibilidad
+                  // (relevant). Una expresión vacía ELIMINA la condición (el
+                  // elemento pasa a mostrarse siempre); una no vacía la crea/edita.
+                  updateSurveyField(rowIndex, "relevant", expression);
+                  const cleared = expression.trim() === "";
+                  toasts.push({
+                    kind: "success",
+                    title: cleared ? "Relación eliminada" : "Conexión creada",
+                    detail: cleared
+                      ? "Se quitó la condición de visibilidad; el elemento se mostrará siempre."
+                      : "Se condicionó la visibilidad. Refínala en el inspector si quieres precisar el valor.",
+                  });
+                }}
+              />
+            </div>
+            {pestana === "restricciones" && (
+              <PestanaRestricciones structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} onCampo={updateSurveyField} onCampos={updateSurveyFields} catalogs={catalogs} />
+            )}
+            {pestana === "calculos" && (
+              <PestanaCalculos structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} onCampo={updateSurveyField} catalogs={catalogs} />
+            )}
             {pestana === "filtros" && (
               <ChoiceFiltersView
                 open
@@ -3749,678 +3357,3 @@ export default function XlsformEditorPage() {
   );
 }
 
-function AddElementMenu({
-  items,
-  anchorElement,
-  onClose,
-}: {
-  items: AddMenuItem[];
-  anchorElement: HTMLElement | null;
-  onClose: () => void;
-}) {
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const [query, setQuery] = useState("");
-  const [activeGroup, setActiveGroup] = useState<"all" | NonNullable<AddMenuItem["group"]>>("all");
-  const groups = [
-    { id: "choices", label: "Opciones Kobo" },
-    { id: "capture", label: "Texto y captura" },
-    { id: "evidence", label: "Evidencia y ubicación" },
-    { id: "logic", label: "Estructura y lógica" },
-  ] as const;
-  const normalizedQuery = normalizeAddMenuSearch(query);
-  const visibleItems = items.filter((item) => {
-    const groupMatches = activeGroup === "all" || item.group === activeGroup;
-    if (!groupMatches) return false;
-    if (!normalizedQuery) return true;
-    const descriptor = describeAddMenuItem(item);
-    return normalizeAddMenuSearch([
-      item.label,
-      item.hint,
-      descriptor.tag,
-      descriptor.detail,
-      ...descriptor.searchTerms,
-    ].join(" ")).includes(normalizedQuery);
-  });
-
-  useLayoutEffect(() => {
-    menuRef.current?.querySelector<HTMLInputElement>(".pulso-add-element-menu-search")?.focus();
-  }, []);
-
-  useEffect(() => {
-    const menuButtons = () => Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>(".pulso-add-element-menu-item") ?? []);
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-        anchorElement?.focus();
-        return;
-      }
-      if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Enter") return;
-      const buttons = menuButtons();
-      if (!buttons.length) return;
-      const activeIndex = buttons.findIndex((button) => button === document.activeElement);
-      if (event.key === "Enter" && activeIndex < 0) {
-        if (!normalizedQuery) return;
-        event.preventDefault();
-        buttons[0]?.click();
-        return;
-      }
-      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
-      event.preventDefault();
-      const fallbackIndex = event.key === "ArrowDown" ? -1 : 0;
-      const index = activeIndex >= 0 ? activeIndex : fallbackIndex;
-      const nextIndex = event.key === "ArrowDown"
-        ? (index + 1) % buttons.length
-        : (index - 1 + buttons.length) % buttons.length;
-      buttons[nextIndex]?.focus();
-    }
-    function onPointerDown(event: MouseEvent) {
-      const target = event.target;
-      if (!(target instanceof Node)) return;
-      if (menuRef.current?.contains(target)) return;
-      if (anchorElement?.contains(target)) return;
-      onClose();
-    }
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("mousedown", onPointerDown);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("mousedown", onPointerDown);
-    };
-  }, [anchorElement, normalizedQuery, onClose]);
-
-  const viewportWidth = typeof window === "undefined" ? 1280 : window.innerWidth;
-  const viewportHeight = typeof window === "undefined" ? 800 : window.innerHeight;
-  const menuWidth = Math.min(980, viewportWidth - 36);
-  const menuHeight = Math.min(820, viewportHeight - 72);
-  const style = {
-    "--pulso-add-menu-width": `${menuWidth}px`,
-    "--pulso-add-menu-height": `${menuHeight}px`,
-  } as CSSProperties;
-
-  return createPortal((
-    <>
-    <button
-      type="button"
-      className="pulso-add-element-menu-scrim"
-      aria-label="Cerrar selector de piezas"
-      onClick={() => {
-        onClose();
-        anchorElement?.focus();
-      }}
-    />
-    <div
-      ref={menuRef}
-      className="pulso-add-element-menu"
-      style={style}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="pulso-add-element-menu-title"
-    >
-      <div className="pulso-add-element-menu-head">
-        <span className="pulso-add-element-menu-mark" aria-hidden="true">
-          <ListChecks size={14} />
-        </span>
-        <span className="pulso-add-element-menu-head-copy">
-          <strong id="pulso-add-element-menu-title">Añadir pieza al formulario</strong>
-          <small>Busca por tipo, evidencia, lógica o lista; Enter aplica la opción enfocada.</small>
-        </span>
-        <button
-          type="button"
-          className="pulso-add-element-menu-close"
-          onClick={() => {
-            onClose();
-            anchorElement?.focus();
-          }}
-          aria-label="Cerrar selector de piezas"
-          title="Cerrar"
-        >
-          <X size={15} />
-        </button>
-      </div>
-      <div className="pulso-add-element-menu-guidance" aria-label="Guía rápida">
-        <span><strong>Kobo limpio</strong> las selecciones dejan una lista preparada, sin opciones falsas.</span>
-        <span><strong>Secciones</strong> tienen inicio y cierre como piezas separadas; abre donde empieza y cierra donde termina.</span>
-        <span><strong>Atajo</strong> Cmd/Ctrl+N abre este selector sin crear campos por defecto.</span>
-      </div>
-      <div className="pulso-add-element-menu-tools">
-        <label className="pulso-add-element-menu-searchbox">
-          <IconSearch size={14} aria-hidden="true" />
-          <input
-            className="pulso-add-element-menu-search"
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.currentTarget.value)}
-            placeholder="Buscar: selección, GPS, cálculo, sección..."
-            aria-label="Buscar tipo de pieza"
-          />
-        </label>
-        <div className="pulso-add-element-menu-filters" aria-label="Filtrar familias de piezas">
-          <button
-            type="button"
-            className={activeGroup === "all" ? "is-active" : ""}
-            onClick={() => setActiveGroup("all")}
-          >
-            Todo <span>{items.length}</span>
-          </button>
-          {groups.map((group) => (
-            <button
-              key={group.id}
-              type="button"
-              className={activeGroup === group.id ? "is-active" : ""}
-              onClick={() => setActiveGroup(group.id)}
-            >
-              {group.label} <span>{items.filter((item) => item.group === group.id).length}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="pulso-add-element-menu-body">
-        {groups.map((group) => {
-          const groupItems = visibleItems.filter((item) => item.group === group.id);
-          if (!groupItems.length) return null;
-          return (
-            <div key={group.id} className={`pulso-add-element-menu-group${group.id === "choices" ? " is-primary" : ""}`}>
-              <span className="pulso-add-element-menu-group-title">{group.label}</span>
-              <div className="pulso-add-element-menu-group-grid">
-                {groupItems.map((item) => {
-                  const descriptor = describeAddMenuItem(item);
-                  return (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={() => {
-                        item.action();
-                        onClose();
-                      }}
-                      className={`pulso-add-element-menu-item is-${descriptor.tone}`}
-                      aria-describedby={`pulso-add-menu-${item.key}-detail`}
-                    >
-                      <span className="pulso-add-element-menu-icon">
-                        {item.icon}
-                      </span>
-                      <span className="pulso-add-element-menu-copy">
-                        <span className="pulso-add-element-menu-item-topline">
-                          <strong>{item.label}</strong>
-                          <span className="pulso-add-element-menu-chip">{descriptor.tag}</span>
-                        </span>
-                        <span>{item.hint}</span>
-                        <small id={`pulso-add-menu-${item.key}-detail`}>{descriptor.detail}</small>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-        {!visibleItems.length && (
-          <div className="pulso-add-element-menu-empty">
-            <IconSearch size={17} aria-hidden="true" />
-            <strong>Sin piezas con ese filtro</strong>
-            <span>Prueba con “selección”, “GPS”, “archivo”, “cálculo” o limpia la búsqueda.</span>
-          </div>
-        )}
-      </div>
-      <div className="pulso-add-element-menu-footer" aria-label="Atajos del selector">
-        <span>Flechas navegan</span>
-        <span>Enter añade la opción enfocada</span>
-        <span>Esc cierra</span>
-      </div>
-    </div>
-    </>
-  ), document.body);
-}
-
-function normalizeAddMenuSearch(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
-function describeAddMenuItem(item: AddMenuItem): {
-  tag: string;
-  detail: string;
-  tone: "choice" | "capture" | "evidence" | "logic";
-  searchTerms: string[];
-} {
-  switch (item.key) {
-    case "select_one":
-      return {
-        tag: "Catálogo Kobo",
-        detail: "No agrega opciones falsas; abre con una lista vacía para completar después.",
-        tone: "choice",
-        searchTerms: ["catalogo", "kobo", "opciones", "radio", "unica"],
-      };
-    case "select_multiple":
-      return {
-        tag: "Catálogo Kobo",
-        detail: "Crea una lista reutilizable para marcar varias respuestas reales.",
-        tone: "choice",
-        searchTerms: ["catalogo", "kobo", "opciones", "multiple", "checkbox"],
-      };
-    case "section":
-      return {
-        tag: "Inicio + cierre",
-        detail: "Crea el grupo con su apertura y su cierre. Luego puedes mover o borrar el cierre para ajustar el alcance.",
-        tone: "logic",
-        searchTerms: ["grupo", "seccion", "begin", "abrir", "bloque"],
-      };
-    case "section_end":
-      return {
-        tag: "Solo cierre",
-        detail: "Inserta un cierre suelto, por si necesitas terminar un grupo en un punto específico.",
-        tone: "logic",
-        searchTerms: ["grupo", "seccion", "end", "cerrar", "cierre", "bloque"],
-      };
-    case "note":
-      return {
-        tag: "Sin respuesta",
-        detail: "Inserta una nota visible que no guarda respuesta en Kobo.",
-        tone: "logic",
-        searchTerms: ["nota", "instruccion", "texto informativo"],
-      };
-    case "calculate":
-      return {
-        tag: "Automático",
-        detail: "Guarda una variable calculada con fórmula XLSForm.",
-        tone: "logic",
-        searchTerms: ["calculo", "formula", "variable"],
-      };
-    case "image":
-      return {
-        tag: "Evidencia",
-        detail: "Agrega captura de campo con el tipo técnico correcto para Kobo.",
-        tone: "evidence",
-        searchTerms: ["foto", "imagen", "camara", "evidencia"],
-      };
-    case "audio":
-      return {
-        tag: "Evidencia",
-        detail: "Agrega captura de campo con el tipo técnico correcto para Kobo.",
-        tone: "evidence",
-        searchTerms: ["audio", "voz", "sonido", "evidencia"],
-      };
-    case "video":
-      return {
-        tag: "Evidencia",
-        detail: "Agrega captura de campo con el tipo técnico correcto para Kobo.",
-        tone: "evidence",
-        searchTerms: ["video", "audiovisual", "evidencia"],
-      };
-    case "file":
-      return {
-        tag: "Evidencia",
-        detail: "Agrega captura de campo con el tipo técnico correcto para Kobo.",
-        tone: "evidence",
-        searchTerms: ["archivo", "adjunto", "documento", "evidencia"],
-      };
-    case "barcode":
-      return {
-        tag: "Lectura",
-        detail: "Agrega captura de campo con el tipo técnico correcto para Kobo.",
-        tone: "evidence",
-        searchTerms: ["codigo", "barras", "qr", "lectura", "scanner"],
-      };
-    case "geopoint":
-      return {
-        tag: "Ubicación",
-        detail: "Agrega captura de campo con el tipo técnico correcto para Kobo.",
-        tone: "evidence",
-        searchTerms: ["gps", "ubicacion", "geopoint", "punto", "coordenada"],
-      };
-    case "integer":
-    case "decimal":
-      return {
-        tag: "Número",
-        detail: "Después puedes aplicar rangos, mínimos, máximos y mensajes claros.",
-        tone: "capture",
-        searchTerms: ["numero", "edad", "cantidad", "monto", "rango"],
-      };
-    case "date":
-      return {
-        tag: "Fecha",
-        detail: "Compatible con reglas de visita, nacimiento o ventanas de levantamiento.",
-        tone: "capture",
-        searchTerms: ["fecha", "calendario", "dia"],
-      };
-    default:
-      return {
-        tag: "Campo",
-        detail: "Pieza base para capturar información directa del encuestador.",
-        tone: "capture",
-        searchTerms: ["texto", "respuesta", "pregunta"],
-      };
-  }
-}
-
-// =============================================================================
-// Helpers añadidos en Sub-PR 2 (estado + autosave + undo/redo)
-// =============================================================================
-
-
-function SurveyMonkeyLogicPopup({
-  workbook,
-  sourceName,
-  rules,
-  visualRules,
-  existingKoboLogic,
-  overrides,
-  busy,
-  reviewConfirmation,
-  alternativa,
-  onLogicDraftChange,
-  onRulesChange,
-  onVisualRulesChange,
-  onOverridesChange,
-  onClose,
-  onApply,
-}: {
-  workbook: XlsformEditorWorkbook;
-  sourceName: string | null;
-  rules: ConfirmedRule[];
-  visualRules: SurveyMonkeyVisualLogicRule[];
-  existingKoboLogic: Array<{ name: string; label: string; relevant: string }>;
-  overrides: Record<string, string[]>;
-  busy: boolean;
-  reviewConfirmation: boolean;
-  /** Segunda vía al confirmar: la lógica se hizo fuera de Prosecnur. */
-  alternativa?: ReactNode;
-  onLogicDraftChange: (
-    rules: ConfirmedRule[],
-    visualRules: SurveyMonkeyVisualLogicRule[],
-    overrides: Record<string, string[]>,
-    choiceCodeMaps?: ChoiceCodeMap[],
-  ) => void;
-  onRulesChange: (rules: ConfirmedRule[]) => void;
-  onVisualRulesChange: (rules: SurveyMonkeyVisualLogicRule[]) => void;
-  onOverridesChange: (next: Record<string, string[]>, nextChoiceCodeMaps?: ChoiceCodeMap[]) => void;
-  onClose: () => void;
-  onApply: () => void;
-}) {
-  const [logicPackWarnings, setLogicPackWarnings] = useState<SurveyMonkeyLogicPackWarning[]>([]);
-  const refreshedOnOpenRef = useRef(false);
-  const dialogRef = useRef<HTMLDivElement | null>(null);
-  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-  const onCloseRef = useRef(onClose);
-
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  // El diálogo es una superficie modal real: el primer foco entra en la X,
-  // Tab/Shift+Tab no escapan al editor que queda detrás y al cerrar devolvemos
-  // el foco al control que lo abrió. Escape comparte la misma ruta de cierre.
-  useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-    const focusTimer = window.setTimeout(() => closeButtonRef.current?.focus(), 0);
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onCloseRef.current();
-        return;
-      }
-      if (event.key !== "Tab" || !dialogRef.current) return;
-      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
-        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
-      )).filter((element) => element.getClientRects().length > 0);
-      if (focusable.length === 0) {
-        event.preventDefault();
-        dialogRef.current.focus();
-        return;
-      }
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      window.clearTimeout(focusTimer);
-      document.removeEventListener("keydown", onKey);
-      previousFocus?.focus();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (refreshedOnOpenRef.current || rules.length === 0) return;
-    refreshedOnOpenRef.current = true;
-    let cancelled = false;
-    const choiceCodeMaps = choiceCodeMapsWithOverrides(
-      workbook,
-      overrides,
-      workbook.surveyMonkeyLogic?.choice_code_maps ?? [],
-    );
-    const workbookForRefresh = workbookWithSurveyMonkeyLogic(
-      workbook,
-      rules,
-      visualRules,
-      overrides,
-      choiceCodeMaps,
-    );
-    void refreshSurveyMonkeyAdvancedRules(rules, workbookForRefresh, overrides).then((refreshedRules) => {
-      if (cancelled) return;
-      const changed = JSON.stringify(refreshedRules) !== JSON.stringify(rules);
-      const mapsChanged = JSON.stringify(choiceCodeMaps) !== JSON.stringify(workbook.surveyMonkeyLogic?.choice_code_maps ?? []);
-      if (changed || mapsChanged) onLogicDraftChange(refreshedRules, visualRules, overrides, choiceCodeMaps);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [onLogicDraftChange, overrides, rules, visualRules, workbook]);
-
-  async function exportLogicPack() {
-    const choiceCodeMaps = choiceCodeMapsWithOverrides(
-      workbook,
-      overrides,
-      workbook.surveyMonkeyLogic?.choice_code_maps ?? [],
-    );
-    return buildSurveyMonkeyLogicPack({
-      workbook,
-      advancedRules: rules,
-      visualRules,
-      choiceOrderOverrides: overrides,
-      choiceCodeMaps,
-      sourceName,
-    });
-  }
-
-  async function importLogicPack(parsed: unknown) {
-    const imported = importSurveyMonkeyLogicPack(parsed, workbook);
-    const warnings = [...imported.warnings];
-    const nextRules = mergeAdvancedLogicRules(rules, imported.advanced_rules);
-    const nextVisualRules = mergeVisualLogicRules(visualRules, imported.visual_rules, warnings);
-    const nextOverrides = { ...overrides };
-    for (const [key, labels] of Object.entries(imported.choice_order_overrides)) {
-      if (nextOverrides[key] && JSON.stringify(nextOverrides[key]) !== JSON.stringify(labels)) {
-        warnings.push({
-          severity: "warn",
-          message: `La pregunta ${key} ya tenía un orden de opciones personalizado; se conservó el existente.`,
-        });
-        continue;
-      }
-      nextOverrides[key] = labels;
-    }
-    const nextChoiceCodeMaps = mergeChoiceCodeMaps(
-      workbook.surveyMonkeyLogic?.choice_code_maps ?? [],
-      imported.choice_code_maps,
-      warnings,
-    );
-    const workbookForRefresh = workbookWithSurveyMonkeyLogic(
-      workbook,
-      nextRules,
-      nextVisualRules,
-      nextOverrides,
-      nextChoiceCodeMaps,
-    );
-    const refreshedRules = await refreshSurveyMonkeyAdvancedRules(
-      nextRules,
-      workbookForRefresh,
-      nextOverrides,
-    );
-    setLogicPackWarnings(warnings);
-    onLogicDraftChange(refreshedRules, nextVisualRules, nextOverrides, nextChoiceCodeMaps);
-    const total = imported.advanced_rules.length + visualActionCountForFooter(imported.visual_rules);
-    return `${total} salto${total === 1 ? "" : "s"} cargado${total === 1 ? "" : "s"} para revisar`;
-  }
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Lógica SurveyMonkey"
-      data-audit-ready="xlsform-logic"
-      style={{
-        position: "fixed",
-        inset: 0,
-        // El toolbar del PageFrame usa z-index 1000. Este diálogo vive en un
-        // portal y debe cubrirlo por completo para que encabezado, contenido y
-        // pie formen una sola superficie modal accesible.
-        zIndex: 2300,
-        background: "rgba(15, 23, 42, 0.45)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-      }}
-    >
-      <div
-        ref={dialogRef}
-        tabIndex={-1}
-        style={{
-          width: "min(980px, 100%)",
-          maxHeight: "min(860px, calc(100vh - 48px))",
-          overflow: "hidden",
-          borderRadius: 12,
-          background: "white",
-          boxShadow: "0 24px 80px rgba(15, 23, 42, 0.28)",
-          display: "grid",
-          gridTemplateRows: "auto minmax(0, 1fr) auto",
-        }}
-      >
-        <header
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--pulso-border, #e5e7eb)",
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: 16,
-          }}
-        >
-          <div>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Lógica SurveyMonkey</h2>
-            <p style={{ margin: "4px 0 0", color: "var(--pulso-muted, #6b7280)", fontSize: 13, lineHeight: 1.45 }}>
-              Configura saltos por opción sin ver código. Si necesitas condiciones complejas, usa ramificación avanzada.
-            </p>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
-              <ConfigIoButtons
-                filenamePrefix="pulso_surveymonkey_logic"
-                exportLabel="Exportar lógica JSON"
-                importLabel="Importar lógica JSON"
-                onExport={exportLogicPack}
-                onImport={importLogicPack}
-              />
-            </div>
-          </div>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar lógica SurveyMonkey"
-            style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
-          >
-            <X size={20} />
-          </button>
-        </header>
-        <div style={{ padding: 20, overflowY: "auto" }}>
-          {logicPackWarnings.length > 0 ? (
-            <div
-              role="status"
-              style={{
-                border: "1px solid #fde68a",
-                background: "#fffbeb",
-                color: "#854d0e",
-                borderRadius: 8,
-                padding: "10px 12px",
-                marginBottom: 14,
-                fontSize: 12,
-                lineHeight: 1.45,
-              }}
-            >
-              <strong>Revisión del paquete importado</strong>
-              <ul style={{ margin: "6px 0 0 16px", padding: 0 }}>
-                {logicPackWarnings.slice(0, 8).map((warning, index) => (
-                  <li key={`${warning.message}-${index}`}>{warning.message}</li>
-                ))}
-              </ul>
-              {logicPackWarnings.length > 8 ? (
-                <div style={{ marginTop: 6, fontWeight: 700 }}>
-                  +{logicPackWarnings.length - 8} aviso{logicPackWarnings.length - 8 === 1 ? "" : "s"} adicional{logicPackWarnings.length - 8 === 1 ? "" : "es"}.
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-          <RuleWizard
-            surveyId=""
-            workbook={workbook}
-            paginas={{}}
-            paginasLabels={{}}
-            confirmed={rules}
-            visualRules={visualRules}
-            existingKoboLogic={existingKoboLogic}
-            onAdd={(rule) => onRulesChange([...rules, rule])}
-            onUpdate={(id, rule) => onRulesChange(rules.map((current) => current.id === id ? rule : current))}
-            onRemove={(id) => onRulesChange(rules.filter((rule) => rule.id !== id))}
-            onClearAll={() => onRulesChange([])}
-            onVisualRulesChange={onVisualRulesChange}
-            overrides={overrides}
-            choiceCodeMaps={workbook.surveyMonkeyLogic?.choice_code_maps ?? []}
-            onOverridesChange={onOverridesChange}
-          />
-        </div>
-        <footer
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid var(--pulso-border, #e5e7eb)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 12,
-            background: "#f8fafc",
-          }}
-        >
-          <span style={{ color: "var(--pulso-muted, #6b7280)", fontSize: 12 }}>
-            {reviewConfirmation && visualActionCountForFooter(visualRules) + rules.length === 0
-              ? "Sin saltos configurados; confirma si ya verificaste que el formulario no los necesita."
-              : `${visualActionCountForFooter(visualRules) + rules.length} salto${visualActionCountForFooter(visualRules) + rules.length === 1 ? "" : "s"} configurado${visualActionCountForFooter(visualRules) + rules.length === 1 ? "" : "s"}`}
-          </span>
-          <div style={{ display: "inline-flex", gap: 8 }}>
-            {alternativa}
-            <button type="button" onClick={onClose} disabled={busy}>
-              Cancelar
-            </button>
-            <button
-              type="button"
-              className="pulso-primary"
-              onClick={onApply}
-              disabled={busy || (!reviewConfirmation && rules.length === 0 && visualActionCountForFooter(visualRules) === 0)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-            >
-              <CheckCircle2 size={14} /> {reviewConfirmation ? "Confirmar lógica revisada" : "Recalcular y aplicar"}
-            </button>
-          </div>
-        </footer>
-      </div>
-    </div>
-  );
-}

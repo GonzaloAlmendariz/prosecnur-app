@@ -114,6 +114,19 @@ export function useVariablesBase(base: string | null) {
     void leerCatalogo(nombre, secuencia.current);
   }, [leerCatalogo]);
 
+  // Tras un cambio hecho fuera del hook (columnas anexadas): volver a leer.
+  const recargar = useCallback(async () => {
+    if (!base) return;
+    const id = ++secuencia.current;
+    try {
+      const datos = await getBaseVariables(base);
+      if (id === secuencia.current) despachar({ tipo: "leida", datos });
+    } catch (e: unknown) {
+      if (id === secuencia.current) despachar({ tipo: "fallo-lectura", mensaje: mensajeDeError(e) });
+    }
+    trasMutar(base);
+  }, [base, trasMutar]);
+
   const declarar = useCallback(async (columnas: readonly ColumnaADeclarar[], quitar: readonly string[] = []) => {
     if (!base) return false;
     despachar({ tipo: "ocupado", ocupado: "declarar" });
@@ -181,7 +194,7 @@ export function useVariablesBase(base: string | null) {
     }
   }, [base]);
 
-  return { estado, declarar, guardarCalculada, quitarCalculada, marcarCodificada };
+  return { estado, declarar, guardarCalculada, quitarCalculada, marcarCodificada, recargar };
 }
 
 export type ControlVariablesBase = ReturnType<typeof useVariablesBase>;
