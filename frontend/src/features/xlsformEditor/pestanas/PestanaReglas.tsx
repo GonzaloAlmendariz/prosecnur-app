@@ -41,7 +41,7 @@ export function PestanaReglas({ titulo, total, grupos, seleccionada, onSeleccion
           <span className="xfp-reglas__lista-titulo">{titulo}</span>
           <span className="xfp-reglas__lista-total">{total}</span>
         </header>
-        <div className="xfp-reglas__lista-cuerpo">
+        <div className="xfp-reglas__lista-cuerpo" data-qa-geometry-group="xlsform/reglas-grupos" data-qa-geometry-contract="intrinsic">
           {hayItems
             ? grupos.map((g) =>
                 g.items.length ? (

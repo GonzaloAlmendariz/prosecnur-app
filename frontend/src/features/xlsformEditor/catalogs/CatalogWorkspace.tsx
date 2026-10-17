@@ -183,7 +183,7 @@ export function CatalogWorkspace({
             items={filteredItems.map((item) => item.rowIndex)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="pulso-catalogworkspace-list">
+            <div className="pulso-catalogworkspace-list" data-qa-geometry-group="xlsform/opciones-filas" data-qa-geometry-contract="intrinsic">
               {/* Encabezado de columnas para que el usuario entienda
                   qué campo es cuál antes de empezar a escribir. */}
               <div

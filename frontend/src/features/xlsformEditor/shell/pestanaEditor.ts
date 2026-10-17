@@ -21,6 +21,9 @@ const ALIAS_PESTANAS_EDITOR: Readonly<Record<string, EditorFormulariosPestanaId>
   "mapa-logica": "logica",
   "logic-canvas": "logica",
   "choice-filters": "filtros",
+  // El catálogo era un panel lateral (`?panel=catalogos`) y un diálogo (`?panel=listas-opciones`); hoy es pestaña.
+  catalogos: "opciones",
+  listas: "opciones",
   "questionnaire-view": "cuestionario",
   simulator: "probar",
   summary: "resumen",
