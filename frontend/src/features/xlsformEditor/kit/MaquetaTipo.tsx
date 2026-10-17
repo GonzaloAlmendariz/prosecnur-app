@@ -26,6 +26,13 @@ const campo = (x = 4, y = 13, w = 40, h = 12, punteado = false) => (
 const cifra = (x: number, y: number, t: string, fill: string, size = 7.4) => (
   <text x={x} y={y} fontSize={size} fontWeight={600} fill={fill} fontFamily="ui-sans-serif, system-ui, -apple-system" letterSpacing={0.2}>{t}</text>
 );
+/** Contador «×3» de la repetición: lleno al abrirla, en contorno al cerrarla. */
+const contador = (x: number, y: number, t: string, contorno = false) => (
+  <g>
+    <rect x={x} y={y} width={11.4} height={6.8} rx={3.4} fill={contorno ? PAPEL : t} stroke={t} strokeWidth={contorno ? W : 0} />
+    <text x={x + 5.7} y={y + 5} textAnchor="middle" fontSize={5.2} fontWeight={700} fill={contorno ? t : PAPEL} fontFamily="ui-sans-serif, system-ui, -apple-system">×3</text>
+  </g>
+);
 const pregunta = (control: ReactNode) => <g>{enunciado()}{control}</g>;
 const filas = [14, 20, 26];
 
@@ -214,13 +221,16 @@ function porTipo(base: string, t: string): ReactNode | null {
         </g>
       );
     case "begin_repeat":
+      // La sección (marco con cabecera) apilada: se llena varias veces. El contador dice cuántas.
       return (
         <g>
-          <rect x={9} y={3} width={33} height={20} rx={2.4} fill={SUAVE} stroke={TRAZO} strokeWidth={W} />
-          <rect x={5} y={8} width={33} height={20} rx={2.4} fill={PAPEL} stroke={TRAZO} strokeWidth={W} />
-          {linea(9, 15, 18)}{linea(9, 21, 12)}
-          <path d="M31.5 19.5 a3.4 3.4 0 1 1 -1 3.2" stroke={t} strokeWidth={W} fill="none" strokeLinecap="round" />
-          <path d="M29.8 21.6 l0.7 1.7 l1.8 -0.4" stroke={t} strokeWidth={W} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <rect x={10} y={2.6} width={34} height={20} rx={2.4} fill={SUAVE} stroke={LINEA} strokeWidth={W} />
+          <rect x={7} y={5.3} width={34} height={20} rx={2.4} fill={SUAVE} stroke={TRAZO} strokeWidth={W} />
+          <rect x={4} y={8} width={34} height={21} rx={2.4} fill={PAPEL} stroke={TRAZO} strokeWidth={W} />
+          <path d="M4 13.6 h34" stroke={TRAZO} strokeWidth={W} />
+          <rect x={7.6} y={9.9} width={12} height={1.8} rx={0.9} fill={t} />
+          {linea(8, 18.6, 16)}{linea(8, 23.6, 11)}
+          {contador(27.2, 20, t)}
         </g>
       );
     case "end_group":
@@ -230,7 +240,7 @@ function porTipo(base: string, t: string): ReactNode | null {
           <path d="M4 4 v21.6 a2.4 2.4 0 0 0 2.4 2.4 h35.2 a2.4 2.4 0 0 0 2.4 -2.4 v-21.6" fill="none" stroke={TRAZO} strokeWidth={W} strokeDasharray="2.6 2" />
           {linea(8, 10, 22)}{linea(8, 16, 16)}
           <rect x={4} y={26.6} width={40} height={1.8} rx={0.9} fill={t} />
-          {base === "end_repeat" ? <path d="M38.5 13 a3 3 0 1 1 -0.9 2.8" stroke={t} strokeWidth={W} fill="none" strokeLinecap="round" /> : null}
+          {base === "end_repeat" ? contador(31, 7, t, true) : null}
         </g>
       );
     case "start":
