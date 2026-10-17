@@ -78,3 +78,34 @@ algo rústico… podríamos mejorarlo con el constructor que tenemos ahora».
 | C25 | ACNUR sólo en español como banco de prueba | copia de trabajo fuera del repo: `scratchpad/form/acnur_es.pulso` | hecho: el Tipo 3 junta dos instrumentos con columnas de idioma distintas (`label::Español (es)` y `label::Spanish (ES)`) más EN/FR/AR/RU/PT; cada etiqueta, ayuda y opción toma la primera columna en español y se quitan las demás. Sin español quedan 10 filas internas (cálculos auxiliares y títulos de grupo del módulo hogar), que se muestran por su código |
 | C26 | Pasada de estrés por las subpestañas con el ACNUR en español: Restricciones, Filtros, Cálculos (pulldata, indexed-repeat, once, position), Lógica, Constructor, Cuestionario, Probar; medir qué sigue técnico y llevarlo a una UI profesional | todas las pestañas | pendiente: corre tras el gate del frente de identidad; sus hallazgos alimentan a los escritores del Constructor |
 | C27 | Filtro «por opción» del hostigamiento: cada opción la habilita una pregunta distinta (Tipo 2: `filter_P14=${P14} or … or name = '0'`, ~40 columnas `filter_P*` en choices). Editor de filtros con una tabla opción → pregunta que la habilita, que arma las columnas y la expresión solo | `choiceFilters/` | pendiente. Medido: el instrumento final `Instrumentofinal_HSTVG2026_UNSA.xlsx` no trae filtros (la columna está vacía); el patrón vive en el Tipo 2 del corpus. El editor actual sólo arma la cascada simple (una pregunta madre) |
+
+## Hallazgos del estrés con ACNUR en español (2026-10-17)
+
+Revisión independiente sobre `acnur_es.pulso` (form_id `ce69ae0a-…`), 9 pestañas × 1440/1024, 18 capturas distintas +
+50 detalles. Matriz PASS 3 · FAIL 15. Evidencia: `scratchpad/form/estres1-out/`. Clase: (a) rediseño del Constructor,
+(b) subpestaña, (c) motor de lectura.
+
+| # | Hallazgo | Clase | Oleada | Estado |
+|---|---|---|---|---|
+| S1 | «Lo usan» ignora referencias dentro de etiquetas: `countryname` «Ninguna pregunta lo lee» y lo usan IDP01, REF10b, REF16; igual `name_ppl` | c | 1 · motor | pendiente |
+| S2 | Filtro fijo `REF02CO= 'kk'` (REF02/04/05/07/08/14) se presenta como «dependen de respuestas que la persona dio antes», con «0 respuestas previas»: es un subconjunto fijo marcado en una columna | c | 1 · motor | pendiente |
+| S3 | Opciones de una lista dinámica del roster (`${HH01_2_aux}`) se presenta como «Sin opciones… Agrega la primera» | c/b | 1 · motor | pendiente |
+| S4 | «Probar valores» de Restricciones: IDP01 y REG02 dicen «sólo se evalúan en el teléfono» (falso: comillas tipográficas y fila rota); Spent_5th da «Pide corregir» en todas las opciones con las demás vacías | c | 1 · motor | pendiente |
+| S5 | La fila rota se lee distinto en cada vista (Constructor la marca, Restricciones «Validación técnica importada» con check verde de mensaje, Filtros inventa dependencia); ninguna dice que está rota | c | 1 · motor | pendiente |
+| S6 | Lógica: panel de detalle en semi-código monoespaciado, cortes a mitad de palabra; «Depende de / Condiciona a» en columnas de una sílaba | c/b | 1 · motor (lectura) + 2 · subpestañas (geometría) | pendiente |
+| S7 | Lecturas sólo con códigos: indexed-repeat «HH01 en la fila selected_below5 del grupo S1», grupo con etiqueta citado por código, join/sum con códigos; choice-name con la etiqueta duplicada; mayúsculas del instrumento metidas en la frase; aviso de comillas tipográficas dentro de la frase en vez de alerta; Lógica/Constructor dicen «Regla técnica importada» del filtro que Filtros sí lee | c | 1 · motor | pendiente |
+| S8 | Las preguntas dentro de una repetición no dicen que se repiten (HH06–08, EDU05); heredada duplicada en REG02 | a/c | 1 · motor (dato) + 2 · ficha | pendiente |
+| S9 | Panel del riel fuera de pantalla a 1024 (EDU05: termina en y=988 con viewport 600): voltear o limitar alto con scroll propio | a | 1 · estructura | pendiente |
+| S10 | Constructor a 1024: la Estructura muestra ~4 filas; cabecera «SI» se lee «sí» | a | 1 · estructura | pendiente |
+| S11 | Lógica: `?foco=` desde otra pestaña no abre el detalle ni desplaza la lista (22.109 px) ni centra el mapa | b | 2 · subpestañas | pendiente |
+| S12 | Restricciones: cada regla repite su código hasta 4 veces y ocupa 2–5 pantallas; insignias contradictorias («Regla avanzada» / «Regla técnica»); atajo «Fecha hasta hoy» ofrecido para `. = today()`; 1,2–2,4 s por elemento; código cortado a 4 caracteres; markdown crudo | b | 2 · subpestañas | pendiente |
+| S13 | Cálculos: tarjeta «Fórmula» vacía en todos; títulos repiten el código; `once(now())` en ISO/UTC crudo; contador «114» excluye cálculos de preguntas no calculadas; catálogo de funciones sin position/not/join/selected-at/choice-name/now/random | b | 2 · subpestañas | pendiente |
+| S14 | Resumen: eje del recorrido ilegible (rótulos montados) y sin contrato; contadores que no cuadran (7 vs 22 sin resolver, 69 vs 70 secciones, 256 vs 259 listas); duración ≈301 min implausible | b | 2 · subpestañas | pendiente |
+| S15 | Filtros: fila `Registered_person_reason` desborda; detalle no sticky; botones de alturas distintas; REF16 sin «Editar filtro» | b | 2 · subpestañas | pendiente |
+| S16 | Cuestionario: start/end como preguntas 1 y 2, `${HH01}` crudo, secciones con código por título | b | 2 · subpestañas | pendiente |
+| S17 | Ficha de un cálculo con marco de pregunta («La pregunta que verá el encuestado») | a | 2 · ficha (C24) | pendiente |
+| S18 | Nombre doble del formulario (biblioteca vs `form_title`); foco desconocido cae en silencio al primero; tour «Paso 1 de 3» en cada sesión | b | 2 · subpestañas | pendiente |
+
+Oleadas: 1 = motor que no afirma cosas falsas (S1–S8 lectura) + Estructura del Constructor (C1, C2, C14, C18, C20 teclado,
+C21, C22 marca, S9, S10). 2 = Ficha del Constructor (C3, C5–C11, C13, C15, C19, C20 acciones, C22 avisos, C23, C24, S8,
+S17, I7) + subpestañas (S6 geometría, S11–S16, S18, C27 filtro por opción).
