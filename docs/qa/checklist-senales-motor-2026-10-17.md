@@ -34,9 +34,9 @@ Línea base medida sobre los seis formularios tipo (1.914 reglas, motor actual):
 
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
-| M1 | Frase en piezas (`leerRegla` real, no cadena) y `describeExpression` derivado de ella | `reglas/leerRegla.ts`, `canvas/reglasHumanas.ts` | pendiente |
-| M2 | Normalizar antes de leer (`today() >= .` se lee como `. <= today()`) | `reglas/` | pendiente |
-| M3 | Vocabulario por tipo de pregunta: fechas («posterior a», fechas legibles), números, texto (caracteres), múltiple (opciones) | `reglas/` | pendiente |
-| M4 | Filtros de opciones: traducir los patrones de cascada; siempre lista + de qué depende | `reglas/` | pendiente |
-| M5 | Restricciones: subir de 42 % sin frases fijas por expresión exacta | `reglas/`, `canvas/reglasFunciones.ts` | pendiente |
-| M6 | Aviso de fila rota (todas las columnas repiten el nombre, p. ej. `REG02_Other_recod`) | `parsing/diagnostics.ts` | pendiente |
+| M1 | Frase en piezas (`leerRegla` real, no cadena) y `describeExpression` derivado de ella | `reglas/leerRegla.ts`, `reglas/motor/`, `canvas/reglasHumanas.ts` | hecho, por verificar: piezas pregunta/opción/valor/texto; `depende` siempre; describeExpression y describeValidation derivan del motor. Pendiente: `describeRuleBreakdown` (FocusedWorkspace, ValidacionPaneles) sigue con la voz vieja |
+| M2 | Normalizar antes de leer (`today() >= .` se lee como `. <= today()`) | `reglas/motor/normalizar.ts` | hecho, por verificar: voltea comparaciones, `${esta}` como `.`, aplana and/or, De Morgan, dos cotas como rango |
+| M3 | Vocabulario por tipo de pregunta: fechas («posterior a», fechas legibles), números, texto (caracteres), múltiple (opciones) | `reglas/motor/` | hecho, por verificar: «No acepta fechas futuras», «Desde hace 396 días hasta hoy», «De 18 a 100», «Máximo 9 caracteres», «Máximo 3 opciones»; regex leído por patrón; `knownValidation` eliminado |
+| M4 | Filtros de opciones: traducir los patrones de cascada; siempre lista + de qué depende | `reglas/motor/filtros.ts` | hecho, por verificar: 0 → 21 de 22 (el que queda es la fila rota) |
+| M5 | Restricciones: subir de 42 % sin frases fijas por expresión exacta | `reglas/motor/restricciones.ts` | hecho, por verificar: 132 → 317 de 318 (99,7 %). Por pulir: filtros de más de 15 cláusulas y listas largas de preguntas en if() |
+| M6 | Aviso de fila rota (todas las columnas repiten el nombre, p. ej. `REG02_Other_recod`) | `parsing/diagnostics.ts` | hecho, por verificar: `fila-rota-<fila>`, salta sólo en REG02_Other_recod |
