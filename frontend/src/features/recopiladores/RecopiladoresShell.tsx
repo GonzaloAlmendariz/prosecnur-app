@@ -14,6 +14,7 @@ import { AccessSection } from "./AccessSection";
 import { CatalogoTipos } from "./catalogo/CatalogoTipos";
 import { CorreosEditor } from "./correos/CorreosEditor";
 import { DeliverySection } from "./DeliverySection";
+import { EditorDeMaterial } from "./editor/EditorDeMaterial";
 import { MaterialsSection } from "./MaterialsSection";
 import { OrigenSection } from "./OrigenSection";
 import { PlanSection } from "./PlanSection";
@@ -282,7 +283,15 @@ export function RecopiladoresShell() {
       {!loading && direction.seccion === "catalogo" && direction.pestana === "correos" ? (
         <CorreosEditor onCargando={setSeccionCargando} />
       ) : null}
-      {!loading && ((direction.seccion === "catalogo" && direction.pestana === "editor") || direction.seccion === "paquetes") ? (
+      {!loading && direction.seccion === "catalogo" && direction.pestana === "editor" ? (
+        <EditorDeMaterial
+          payload={payload}
+          onStateRefresh={refreshSilent}
+          onCargando={setSeccionCargando}
+          onIr={irA}
+        />
+      ) : null}
+      {!loading && direction.seccion === "paquetes" ? (
         <MaterialsSection
           payload={payload}
           activeTab={direction.pestana}
