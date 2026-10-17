@@ -9,16 +9,21 @@
 // El handle de drag es el icono de la izquierda (cursor: grab). Click sobre la
 // fila = seleccionar. Botones up/down se conservan (caso accesibilidad y hábito
 // existente).
+//
+// Identidad «Señales» (2026-10-17): el tipo se pinta como sello y las marcas de la fila (obligatoria, condición
+// propia o heredada, restricción, cálculo, filtro) van en el riel fijo de cinco casillas, FUERA del cuerpo
+// seleccionable (cada casilla es un botón propio que abre su panel).
 // =============================================================================
 
-import type { KeyboardEvent, MouseEvent } from "react";
+import { useMemo, type KeyboardEvent, type MouseEvent } from "react";
 import { useSortable } from "@dnd-kit/sortable";
-import { ArrowDown, ArrowUp, FolderMinus, GripVertical } from "lucide-react";
-import { IconConditionalLogic, IconRequired } from "../../../lib/icons";
+import { ArrowDown, ArrowUp, GripVertical } from "../../../vendor/lucide-react";
 import type { BuilderNode } from "../types";
-import { iconForType } from "../helpers/icons";
 import { stripMarkdown } from "../helpers/markdown";
-import { paletteForType } from "../helpers/paletteForType";
+import { TypeIcon } from "../kit/TypeIcon";
+import { Riel } from "../kit/Riel";
+import { marcasNodo } from "../kit/marcasNodo";
+import { useContextoReglas } from "../kit/ContextoReglas";
 import { typeLabel } from "../parsing/parseType";
 import { previewKindLabel } from "../parsing/buildIndex";
 
@@ -82,7 +87,7 @@ export function OutlineCloseRow({
         style={{ paddingLeft: 2 + depth * 14 }}
       >
         <span aria-hidden="true" className="pulso-outline-typeicon pulso-outline-closeicon">
-          <FolderMinus size={14} />
+          <TypeIcon baseType={kind === "repeat" ? "end_repeat" : "end_group"} size={14} />
         </span>
         <span className="pulso-outline-text">
           <strong className="pulso-outline-title">Cierre de {kind === "repeat" ? "repetición" : "sección"}</strong>
@@ -113,7 +118,7 @@ export function OutlineCloseGhost({
       </span>
       <div className="pulso-outline-body">
         <span aria-hidden="true" className="pulso-outline-typeicon pulso-outline-closeicon">
-          <FolderMinus size={14} />
+          <TypeIcon baseType={info?.kind === "repeat" ? "end_repeat" : "end_group"} size={14} />
         </span>
         <span className="pulso-outline-text">
           <strong className="pulso-outline-title">
@@ -161,8 +166,12 @@ export function OutlineRow({
   // El handle es el grip a la izquierda. La lista no se reordena visualmente
   // durante el drag; un slot explícito muestra el destino real de caída.
 
-  const Icon = iconForType(node.typeInfo.base);
-  const accent = paletteForType(node.typeInfo.base);
+  const reglas = useContextoReglas();
+  const requiredRaw = reglas?.requiredRaw(node.rowIndex);
+  const marcas = useMemo(
+    () => marcasNodo(node, reglas?.structure, requiredRaw),
+    [node, reglas?.structure, requiredRaw],
+  );
   const isBlock = node.kind === "section" || node.kind === "repeat";
 
   function onKey(e: KeyboardEvent<HTMLDivElement>) {
@@ -207,12 +216,8 @@ export function OutlineRow({
         className="pulso-outline-body"
         style={{ paddingLeft: 2 + node.depth * 14 }}
       >
-        <span
-          aria-hidden="true"
-          className="pulso-outline-typeicon"
-          style={{ color: accent }}
-        >
-          <Icon size={14} />
+        <span aria-hidden="true" className="pulso-outline-typeicon">
+          <TypeIcon baseType={node.typeInfo.base} size={14} />
         </span>
         <span className="pulso-outline-text">
           {/* Jerarquía invertida: el LABEL humano va como título principal,
@@ -225,38 +230,20 @@ export function OutlineRow({
           >
             {stripMarkdown(node.label) || node.name || `fila_${node.rowIndex + 1}`}
           </strong>
-          <span className="pulso-outline-subtitle">
-            {node.kind === "question" ? typeLabel(node.typeInfo.base) : previewKindLabel(node)}
+          {/* El código va en su propio grupo: si no cabe entero en la línea, salta a una segunda línea que el
+              subtítulo recorta. Se lee entero o no se ve, nunca un fragmento con «…». */}
+          <span className="pulso-outline-subtitle pulso-outline-subtitle--codigo" title={node.name || undefined}>
+            <span className="pulso-outline-kind">
+              {node.kind === "question" ? typeLabel(node.typeInfo.base) : previewKindLabel(node)}
+            </span>
             {node.name && node.name !== stripMarkdown(node.label) ? (
-              <>
-                {" · "}
+              <span className="pulso-outline-codewrap">
+                <span aria-hidden="true">·</span>
                 <code className="pulso-outline-code">{node.name}</code>
-              </>
+              </span>
             ) : null}
           </span>
         </span>
-        {node.relevant && (
-          <span
-            className={`pulso-outline-conditional ${
-              isBlock ? "is-section" : "is-question"
-            }`}
-            title={
-              isBlock ? "Sección con visibilidad condicional" : "Pregunta condicional"
-            }
-            aria-label="Visibilidad condicional"
-          >
-            <IconConditionalLogic size={14} />
-          </span>
-        )}
-        {node.required && (
-          <span
-            aria-label="Pregunta obligatoria"
-            title="Obligatoria"
-            className="pulso-outline-required"
-          >
-            <IconRequired size={12} strokeWidth={2.4} aria-hidden="true" />
-          </span>
-        )}
       </div>
 
       {active && (
@@ -289,6 +276,9 @@ export function OutlineRow({
           </button>
         </span>
       )}
+
+      {/* El riel va al final para que su columna no se corra en la fila elegida (las flechas quedan antes). */}
+      <Riel nodo={node} marcas={marcas} scope={reglas?.scope} className="pulso-outline-riel" />
     </div>
   );
 }

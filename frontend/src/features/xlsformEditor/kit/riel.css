@@ -1,0 +1,136 @@
+/* Riel de marcas y su panel (identidad «Señales», 2026-10-17). Portado de la propuesta aprobada; colores sólo con
+ * tokens. El tono de cada casilla y del panel llega en --xfk-c. */
+
+.xfk-riel { display: inline-grid; grid-template-columns: repeat(5, 18px); gap: 3px; flex: none; align-items: center; }
+
+.xfk-casilla {
+  display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 5px;
+  background: color-mix(in srgb, var(--pulso-text) 5%, transparent); color: var(--xfk-c); cursor: pointer;
+  transition: transform 0.14s ease, background-color 0.14s ease, box-shadow 0.14s ease;
+}
+/* Las reglas globales de botón del editor (alto mínimo de 28 px) no deben estirar la casilla. */
+.xfk-riel > button.xfk-casilla { box-sizing: border-box; width: 18px; height: 18px; min-width: 0; min-height: 0; margin: 0; line-height: 0; }
+.xfk-casilla.is-on { background: color-mix(in srgb, var(--xfk-c) 16%, transparent); }
+.xfk-casilla:hover { transform: scale(1.12); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--xfk-c) 55%, transparent); }
+.xfk-casilla[aria-expanded="true"] { transform: none; box-shadow: 0 0 0 2px var(--xfk-c); background: color-mix(in srgb, var(--xfk-c) 22%, transparent); }
+.xfk-casilla:focus-visible { outline: 2px solid var(--pulso-primary); outline-offset: 2px; }
+.xfk-casilla .xfk-marca { --xfk-occ: color-mix(in srgb, var(--xfk-c) 16%, var(--pulso-surface)); }
+
+/* Cabecera de columnas: misma rejilla que el riel y el mismo margen derecho que la fila (7 px + 1 px de borde). */
+.xfk-riel-cab {
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 4px 8px 4px 27px; flex: none;
+  background: var(--xls-sidebar, var(--pulso-surface)); border-bottom: 1px solid var(--pulso-border);
+}
+.xfk-riel-cab__rotulo { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-faint); }
+.xfk-riel-cab__cols { display: grid; grid-template-columns: repeat(5, 18px); gap: 3px; }
+.xfk-riel-cab__col {
+  font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: 0.02em; text-align: center; text-decoration: none;
+  color: var(--pulso-text-faint); cursor: help;
+}
+
+/* Viewports compactos: el esquema mide ~245 px y el riel no debe comerse el título. */
+@media (max-width: 1180px) {
+  .xfk-riel { grid-template-columns: repeat(5, 15px); gap: 2px; }
+  .xfk-riel-cab__cols { grid-template-columns: repeat(5, 15px); gap: 2px; }
+  .xfk-riel-cab__col { font-size: 8.5px; }
+  .xfk-riel > button.xfk-casilla { width: 15px; height: 15px; border-radius: 4px; }
+  .xfk-riel > button.xfk-casilla svg { width: 10px; height: 10px; }
+  /* En el esquema, el riel baja a la línea del subtítulo y el título recupera el ancho de la fila (la fila no
+   * crece: 42 px de alto). Vale también para la fila elegida: sus flechas se achican y suben a la línea del
+   * título, así el título de esa fila no queda en dos letras. */
+  .pulso-outline-row > .xfk-riel.pulso-outline-riel { position: absolute; right: 7px; bottom: 5px; }
+  .pulso-outline-row:has(> .pulso-outline-riel) .pulso-outline-subtitle { margin-right: 88px; max-width: calc(100% - 88px); }
+  .pulso-xlsform-frame .pulso-outline-row.is-active > .pulso-outline-actions {
+    position: absolute; top: 4px; right: 7px; display: inline-flex; gap: 2px;
+  }
+  .pulso-xlsform-frame .pulso-outline-row.is-active > .pulso-outline-actions button.pulso-icon {
+    box-sizing: border-box; width: 18px; height: 18px; min-width: 0; min-height: 0; padding: 0;
+  }
+  .pulso-xlsform-frame .pulso-outline-row.is-active > .pulso-outline-actions button.pulso-icon svg { width: 11px; height: 11px; }
+  .pulso-xlsform-frame .pulso-outline-row.is-active:has(> .pulso-outline-actions) .pulso-outline-title {
+    margin-right: 40px; max-width: calc(100% - 40px);
+  }
+}
+
+/* Panel */
+.xfk-pop {
+  position: fixed; z-index: var(--pulso-z-flyout); box-sizing: border-box; color: var(--pulso-text); font-size: 13px; line-height: 1.5; text-align: left;
+  background: var(--pulso-surface); border: 1px solid var(--pulso-border-strong); border-radius: 14px;
+  box-shadow: var(--pulso-shadow-popover);
+  opacity: 0; transform: translateY(6px) scale(0.97); transform-origin: var(--xfk-flecha, 50%) top;
+  transition: opacity 0.17s ease, transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.xfk-pop[data-lado="arriba"] { transform: translateY(-6px) scale(0.97); transform-origin: var(--xfk-flecha, 50%) bottom; }
+.xfk-pop.is-vis { opacity: 1; transform: none; }
+.xfk-pop::before {
+  content: ""; position: absolute; left: calc(var(--xfk-flecha, 50%) - 6px); width: 12px; height: 12px;
+  background: var(--pulso-surface); border: 1px solid var(--pulso-border-strong); transform: rotate(45deg);
+}
+.xfk-pop[data-lado="abajo"]::before { top: -7px; border-right: 0; border-bottom: 0; }
+.xfk-pop[data-lado="arriba"]::before { bottom: -7px; border-left: 0; border-top: 0; }
+.xfk-pop__scroll { position: relative; max-height: calc(100dvh - 32px); overflow: auto; overscroll-behavior: contain; border-radius: inherit; }
+
+.xfk-pop__cab {
+  position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  padding: 14px 14px 10px; border-bottom: 1px solid var(--pulso-border);
+}
+.xfk-pop__icono { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: color-mix(in srgb, var(--xfk-c) 15%, transparent); }
+.xfk-pop__icono .xfk-marca { --xfk-occ: color-mix(in srgb, var(--xfk-c) 15%, var(--pulso-surface)); }
+.xfk-pop__titulos { display: grid; min-width: 0; }
+.xfk-pop__tipo { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--xfk-c); }
+.xfk-pop__preg { display: block; font-size: 12.5px; color: var(--pulso-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xfk-pop__x {
+  width: 26px; height: 26px; border: 0; border-radius: 7px; background: transparent; color: var(--pulso-text-faint);
+  font-size: 18px; line-height: 1; cursor: pointer;
+}
+.xfk-pop button.xfk-pop__x { min-width: 0; min-height: 0; padding: 0; box-shadow: none; }
+.xfk-pop__x:hover { background: color-mix(in srgb, var(--pulso-text) 6%, transparent); color: var(--pulso-text); }
+.xfk-pop__x:focus-visible { outline: 2px solid var(--pulso-primary); outline-offset: 1px; }
+
+.xfk-pop__cuerpo { display: grid; gap: 10px; padding: 12px 14px 14px; }
+.xfk-pop__bloque { display: grid; gap: 6px; }
+.xfk-pop__bloque + .xfk-pop__bloque { padding-top: 10px; border-top: 1px dashed var(--pulso-border-strong); }
+.xfk-pop__bloque strong { font-size: 14px; font-weight: 700; line-height: 1.35; }
+.xfk-pop__bloque.is-vacio strong { color: var(--pulso-text-muted); }
+.xfk-pop__sub { font-size: 11px; font-weight: 600; color: var(--pulso-text-faint); }
+.xfk-pop__msg { margin: 0; font-size: 12.5px; color: var(--pulso-text); }
+.xfk-pop__msg span { display: block; font-size: 11px; color: var(--pulso-text-faint); }
+.xfk-pop__nota { margin: 0; font-size: 12px; color: var(--pulso-text-muted); }
+.xfk-pop__lectura { margin: 0; font-size: 13.5px; line-height: 1.75; color: var(--pulso-text); overflow-wrap: anywhere; }
+.xfk-pop__tecnica {
+  margin: 0; font-size: 13px; color: var(--pulso-text-muted); padding: 8px 10px; border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-text) 5%, transparent);
+}
+.xfk-pop__ref {
+  display: inline-flex; align-items: baseline; gap: 5px; max-width: 100%; padding: 0 6px; margin: 1px 0; border-radius: 6px;
+  background: color-mix(in srgb, var(--pulso-text) 6%, transparent); color: var(--pulso-text); font-weight: 600; font-size: 12.5px;
+  line-height: 1.6; vertical-align: baseline; overflow-wrap: anywhere;
+}
+.xfk-pop__ref code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; font-weight: 400; color: var(--pulso-text-faint); }
+.xfk-pop__dep { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.xfk-pop__dep > span:first-child { font-size: 11px; font-weight: 600; color: var(--pulso-text-faint); margin-right: 2px; }
+
+.xfk-pop__codigo { border-top: 1px solid var(--pulso-border); padding-top: 8px; }
+.xfk-pop__codigo summary {
+  cursor: pointer; font-size: 11.5px; font-weight: 600; color: var(--pulso-text-faint); list-style: none;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.xfk-pop__codigo summary::-webkit-details-marker { display: none; }
+.xfk-pop__codigo summary::before {
+  content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg); transition: transform 0.15s ease;
+}
+.xfk-pop__codigo[open] summary::before { transform: rotate(45deg); }
+.xfk-pop__codigo summary:hover { color: var(--pulso-text); }
+.xfk-pop__codigo summary:focus-visible { outline: 2px solid var(--pulso-primary); outline-offset: 2px; border-radius: 4px; }
+.xfk-pop__code {
+  display: block; margin-top: 6px; padding: 7px 9px; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px; background: color-mix(in srgb, var(--pulso-text) 5%, transparent); color: var(--pulso-text); overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xfk-pop, .xfk-casilla, .xfk-pop__codigo summary::before { transition: none; }
+  .xfk-pop, .xfk-pop[data-lado="arriba"] { transform: none; }
+  .xfk-casilla:hover { transform: none; }
+}

@@ -40,6 +40,7 @@ import type {
   BuilderSelection,
   BuilderStructure,
 } from "../types";
+import { CabeceraRiel } from "../kit/CabeceraRiel";
 import { OutlineRow, OutlineCloseRow, OutlineCloseGhost } from "./OutlineRow";
 import { OutlineDragOverlay } from "./OutlineDragOverlay";
 import type { RowMovePlan } from "./outlineUtils";
@@ -330,6 +331,7 @@ export function SurveyOutline({
         data-qa-geometry-contract="intrinsic"
         data-qa-geometry-capacity="owned"
       >
+        {renderEntries.length ? <CabeceraRiel /> : null}
         {/* Item especial "Ajustes del formulario" — no participa del dnd. */}
         <div
           role="button"

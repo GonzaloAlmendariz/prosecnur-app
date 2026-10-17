@@ -1,0 +1,31 @@
+/* Sello del tipo y glifos de marca (identidad «Señales», 2026-10-17). Colores sólo con tokens --pulso-tipo-* y
+ * --pulso-marca-*; el tono de cada sello llega en --xfk-c. */
+
+.xfk-glifo { display: block; flex: none; overflow: visible; }
+.xfk-glifo .g-t { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.xfk-glifo .g-a { fill: currentColor; stroke: none; }
+.xfk-glifo .g-o { fill: var(--xfk-occ); stroke: currentColor; stroke-width: 2; }
+.xfk-glifo .g-k { fill: none; stroke: var(--xfk-occ); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.xfk-glifo .g-w { fill: var(--xfk-occ); stroke: none; }
+.xfk-glifo .g-s { fill: currentColor; fill-opacity: 0.22; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.xfk-glifo text { fill: currentColor; stroke: none; font-family: inherit; font-weight: 800; }
+
+/* Sello: silueta en tinta de sello sobre el color pleno; lo que tapa se pinta con el mismo color. */
+/* Selector reforzado: hay reglas de menú del tipo «.item svg { color: currentColor }» que no deben teñir el sello. */
+svg.xfk-sello.xfk-glifo:not(.is-cierre) { color: var(--pulso-tipo-sello-tinta); --xfk-occ: var(--xfk-c); }
+.xfk-sello .xfk-sello__fondo { fill: var(--xfk-c); stroke: none; }
+
+/* Cierre: el mismo tono en suave, con borde. */
+svg.xfk-sello.xfk-glifo.is-cierre { color: var(--xfk-c); --xfk-occ: color-mix(in srgb, var(--xfk-c) 15%, var(--pulso-surface)); }
+.xfk-sello.is-cierre .xfk-sello__fondo {
+  fill: color-mix(in srgb, var(--xfk-c) 15%, var(--pulso-surface));
+  stroke: color-mix(in srgb, var(--xfk-c) 45%, transparent);
+  stroke-width: 1.6;
+}
+
+/* Glifo de marca suelto (riel, panel): en el tono de la marca sobre la superficie. */
+svg.xfk-marca.xfk-glifo { color: var(--xfk-c); --xfk-occ: var(--pulso-surface); }
+
+/* Maqueta: el sello grande centrado en su lienzo. */
+.xfk-maqueta { display: block; flex: none; overflow: visible; }
+

@@ -115,17 +115,6 @@
 .xfk-seg__count { color: var(--pulso-text-faint); }
 
 /* — Ícono de tipo enmarcado — */
-.xfk-typebox {
-  display: inline-grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 6px;
-  background: var(--pulso-surface);
-  flex: none;
-}
-
 /* — Referencia a pregunta — */
 .xfk-tok {
   display: inline-flex;
@@ -177,9 +166,6 @@
   .xfk-aparece { animation: none; }
   .xfk-seg__opt, .xfk-prow--action { transition: none; }
 }
-
-/* Maqueta del tipo (MaquetaTipo.tsx). */
-.xfk-maqueta { display: block; flex: none; }
 
 /* Selector de pregunta (SelectorPregunta.tsx). */
 .xfk-selpreg { position: relative; min-width: 0; }

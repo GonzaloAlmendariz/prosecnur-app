@@ -74,10 +74,26 @@ export function parseSimpleCondition(
 // Otros helpers misceláneos heredados del monolito
 // -----------------------------------------------------------------------------
 
-/** Interpreta el campo `required` en su forma string como boolean. */
-export function asRequired(raw: string): boolean {
+/** Las tres lecturas posibles de la columna `required` de una fila XLSForm. */
+export type LecturaRequired = "siempre" | "nunca" | "expresion";
+
+const REQUIRED_SIEMPRE = new Set(["yes", "true", "1", "true()", "si", "sí"]);
+const REQUIRED_NUNCA = new Set(["", "no", "false", "0", "false()"]);
+
+/**
+ * Única lectura de `required` del editor: una constante afirmativa es «siempre», una negativa o el vacío es
+ * «nunca» y cualquier otra cosa es una expresión XPath. No distingue mayúsculas.
+ */
+export function lecturaRequired(raw: string | null | undefined): LecturaRequired {
   const value = (raw ?? "").trim().toLowerCase();
-  return value === "yes" || value === "true" || value === "1";
+  if (REQUIRED_SIEMPRE.has(value)) return "siempre";
+  if (REQUIRED_NUNCA.has(value)) return "nunca";
+  return "expresion";
+}
+
+/** Interpreta el campo `required` en su forma string como boolean: sólo la constante afirmativa cuenta. */
+export function asRequired(raw: string): boolean {
+  return lecturaRequired(raw) === "siempre";
 }
 
 /** Limpia un nombre de archivo, garantizando sufijo `_editado.xlsx`. */

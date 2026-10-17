@@ -1,11 +1,14 @@
-import { tipoPregunta } from "./tiposPregunta";
-import { typeTone } from "./typeTone";
+import { Sello } from "./Sello";
 import "./kit.css";
 
-// Ícono del tipo de pregunta en el color de su familia. `boxed` lo enmarca (cabeceras de tarjeta).
+// Fachada del tipo de pregunta junto a un texto (listas, esquema, referencias). Desde «Señales» (2026-10-17) pinta
+// el sello. `size` conserva su sentido de antes (el alto del ícono que acompañaba al texto): el sello mide 1,3 veces
+// eso para que su glifo se lea igual que el ícono viejo. `boxed` es el sello de 22 px de las cabeceras de tarjeta.
+
+export function selloDesdeIcono(size: number): number {
+  return Math.round(size * 1.3);
+}
 
 export function TypeIcon({ baseType, size = 14, boxed }: { baseType: string; size?: number; boxed?: boolean }) {
-  const Icon = tipoPregunta(baseType).icono;
-  const glyph = <Icon size={size} strokeWidth={1.9} aria-hidden="true" style={{ color: typeTone(baseType), flex: "none" }} />;
-  return boxed ? <span className="xfk-typebox">{glyph}</span> : glyph;
+  return <Sello baseType={baseType} size={boxed ? 22 : selloDesdeIcono(size)} />;
 }
