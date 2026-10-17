@@ -41,3 +41,60 @@
 .xfo-nota { margin: 0; color: var(--pulso-text-muted); font-size: 12.5px; line-height: 1.5; }
 .xfo-nota.is-aviso { color: var(--pulso-warn-fg); }
 .xfo-lateral .xfk-card__body { display: flex; flex-direction: column; gap: 10px; }
+
+/* Editor de la lista (EditorLista.tsx, OpcionFila.tsx). */
+.xfo-editor { display: flex; flex-direction: column; gap: 14px; }
+.xfo-editor__cab { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 16px; }
+.xfo-editor__codigo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.xfo-editor__codigo span { color: var(--pulso-text-muted); font-size: 11.5px; font-weight: var(--pulso-weight-semibold); }
+.xfo-editor__codigo input,
+.xfo-editor__busca input,
+.xfo-fila input {
+  box-sizing: border-box; height: 32px; padding: 0 10px; min-width: 0;
+  border: 1px solid var(--pulso-border-strong); border-radius: var(--pulso-radius);
+  background: var(--pulso-surface); color: var(--pulso-text); font: inherit; font-size: 13px;
+}
+.xfo-editor__codigo input { width: 220px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+.xfo-editor__codigo input:focus-visible, .xfo-editor__busca input:focus-visible, .xfo-fila input:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 0; border-color: var(--pulso-primary); }
+.xfo-editor__dato { padding-bottom: 7px; color: var(--pulso-text-muted); font-size: 12.5px; }
+.xfo-editor__borrar {
+  display: inline-flex; align-items: center; gap: 5px; margin-left: auto; height: 32px; padding: 0 10px;
+  border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius); background: var(--pulso-surface);
+  color: var(--pulso-danger-fg); font: inherit; font-size: 12.5px; cursor: pointer; box-shadow: none;
+}
+.xfo-editor__borrar:hover { border-color: var(--pulso-danger-fg); }
+.xfo-editor__busca { display: flex; align-items: center; gap: 8px; color: var(--pulso-text-muted); font-size: 12px; }
+.xfo-editor__busca input { flex: 1; }
+
+.xfo-tabla { display: flex; flex-direction: column; border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius); overflow: hidden; }
+.xfo-tabla__cuerpo { display: flex; flex-direction: column; }
+.xfo-fila {
+  display: grid; grid-template-columns: 28px 28px minmax(0, 1fr) 150px 32px; align-items: center; gap: 8px;
+  padding: 6px 8px; border-top: 1px solid var(--pulso-border); background: var(--pulso-surface);
+}
+.xfo-fila.is-cab { border-top: 0; padding-block: 8px; background: var(--pulso-surface-2); color: var(--pulso-text-muted); font-size: 11px; font-weight: var(--pulso-weight-semibold); letter-spacing: 0.04em; text-transform: uppercase; }
+.xfo-fila.is-arrastre { position: relative; z-index: 1; box-shadow: var(--pulso-shadow-popover); }
+.xfo-fila .xfo-fila__codigo { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+.xfo-fila__n { color: var(--pulso-text-muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; }
+.xfo-fila__asa, .xfo-fila__quitar {
+  display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--pulso-radius);
+  background: transparent; color: var(--pulso-text-faint); cursor: pointer; box-shadow: none; min-height: 0;
+}
+.xfo-fila__asa { cursor: grab; }
+.xfo-fila__asa:hover, .xfo-fila__quitar:hover { background: var(--pulso-surface-2); color: var(--pulso-text); }
+.xfo-fila__quitar:hover { color: var(--pulso-danger-fg); }
+.xfo-editor__agregar {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; align-self: flex-start;
+  height: 34px; padding: 0 14px; border: 1px dashed var(--pulso-border-strong); border-radius: var(--pulso-radius);
+  background: transparent; color: var(--pulso-text); font: inherit; font-size: 12.5px; cursor: pointer; box-shadow: none;
+}
+.xfo-editor__agregar:hover { border-color: var(--pulso-primary); color: var(--pulso-primary); }
+@media (max-width: 1100px) { .xfo-fila { grid-template-columns: 24px 22px minmax(0, 1fr) 110px 28px; } }
+.xfo-unificada { display: flex; flex-direction: column; gap: 4px; }
+.xfo-unificada span { color: var(--pulso-text-muted); font-size: 11.5px; font-weight: var(--pulso-weight-semibold); }
+.xfo-unificada input {
+  box-sizing: border-box; width: 100%; height: 32px; padding: 0 10px; border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius); background: var(--pulso-surface); color: var(--pulso-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
+}
+.xfo-unificada input:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 0; }

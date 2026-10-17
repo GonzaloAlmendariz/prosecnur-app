@@ -180,7 +180,6 @@ import { useLogicaExterna } from "./shell/useLogicaExterna";
 import { CollapsibleSection } from "./shell/CollapsibleSection";
 import {
   applyChoiceMove,
-  countCatalogUsage,
   deleteCatalog as deleteCatalogFromSheet,
 } from "./catalogs/catalogUtils";
 import { SurveyOutline } from "./outline/SurveyOutline";
@@ -1196,18 +1195,6 @@ export default function XlsformEditorPage() {
     () => buildSectionBoundaryState(structure, selectedNode),
     [structure, selectedNode],
   );
-
-  // Mapa nombre-de-catálogo → cuántas preguntas lo usan. Se calcula una vez
-  // y se pasa al CatalogLibrary para mostrar el badge "usado en N preguntas"
-  // y al CatalogWorkspace para habilitar/deshabilitar el botón "Borrar".
-  const usageByCatalog = useMemo(() => {
-    const map: Record<string, number> = {};
-    if (!workbook) return map;
-    for (const catalog of catalogs) {
-      map[catalog.listName] = countCatalogUsage(workbook.survey, catalog.listName);
-    }
-    return map;
-  }, [workbook, catalogs]);
 
   useEffect(() => {
     if (!selectedTypeInfo?.listName) return;
@@ -3169,7 +3156,6 @@ export default function XlsformEditorPage() {
                 onWorkbookChange={(next) => { dispatch({ type: "SET", workbook: next }); setArtifact(null); }}
                 structure={structure}
                 catalogs={catalogs}
-                usageByCatalog={usageByCatalog}
                 seleccionada={pestanaEditor.foco ?? activeCatalogName}
                 onSeleccionar={(name) => { setCatalogFocus(name); fijarFocoEnSitio(name); }}
                 onCrear={() => createCatalog(false)}
