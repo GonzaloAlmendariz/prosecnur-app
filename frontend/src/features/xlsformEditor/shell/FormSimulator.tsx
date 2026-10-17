@@ -38,6 +38,8 @@ import { TechTerm } from "../helpers/TechTerm";
 import { evaluateRelevance } from "../logic";
 import { appearanceTokens, rangeParamsForNode } from "../canvas/previewInputs";
 import "../styles/xf-simulator.css";
+import { RecorridoPrueba, RespuestasPrueba } from "./simulador/PanelesPrueba";
+import { respuestasDadas, seccionesDelRecorrido } from "./simulador/modeloRecorrido";
 
 export type FormSimulatorProps = {
   workbook: XlsformEditorWorkbook;
@@ -234,6 +236,16 @@ export function FormSimulator({
   const handleEdit = onEditRow;
 
 
+  // M1 (2026-10-17): recorrido y respuestas en las franjas que quedaban vacías a los lados de la hoja.
+  const esRespondible = (node: BuilderNode) => node.kind === "question" && node.name !== "" && ANSWERABLE_BASES.has(node.typeInfo.base);
+  const secciones = seccionesDelRecorrido(pages, visiblePages, currentPage?.id ?? null, esRespondible,
+    (node) => nodeState.get(node.rowIndex)?.visible ?? false, answers);
+  const respondidas = respuestasDadas(pages, answers, (lista) => choicesByList.get(lista) ?? []);
+  const irAPreguntaEnPrueba = (name: string) => {
+    const i = visiblePages.findIndex((page) => page.nodes.some((node) => node.name === name));
+    if (i >= 0) setPageIdx(i);
+  };
+
   const progressFraction = visiblePages.length
     ? (clampedIdx + 1) / visiblePages.length
     : 0;
@@ -265,7 +277,8 @@ export function FormSimulator({
         <i style={{ transform: `scaleX(${progressFraction})` }} />
       </div>
 
-      <div className="pulso-xfsim-main">
+      <div className="pulso-xfsim-main con-paneles" data-qa-geometry-group="xlsform/prueba-columnas" data-qa-geometry-contract="intrinsic">
+        {currentPage ? <RecorridoPrueba secciones={secciones} onIr={setPageIdx} /> : null}
         {currentPage ? (
           <div className="pulso-xfsim-sheet" key={currentPage.id}>
             <header className="pulso-xfsim-page-head">
@@ -324,6 +337,7 @@ export function FormSimulator({
             <span>Agrega preguntas en el constructor y vuelve a abrir esta vista.</span>
           </div>
         )}
+        {currentPage ? <RespuestasPrueba respuestas={respondidas} onIrPregunta={irAPreguntaEnPrueba} /> : null}
       </div>
     </div>
   );
