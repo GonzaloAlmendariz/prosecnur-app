@@ -13,6 +13,7 @@ import type {
   CollectionOrigenConteo,
   CollectionOrigenUnidad,
 } from "../../api/recopiladores";
+import { fechaDeCorrida } from "./fechaDeCorrida";
 
 export const DIRECCION_ORIGEN = "/material-campo?seccion=unidades&pestana=origen";
 export const DIRECCION_LISTA = "/material-campo?seccion=unidades&pestana=lista";
@@ -37,8 +38,9 @@ function plural(valor: number, uno: string, varios: string): string {
  * cuando la frase ya lo tiene claro («del 1/8»). Un id sin fecha no inventa una.
  */
 export function fechaDelSorteo(runId: string | null | undefined, conAnio = true): string {
-  // Acepta el sello del run (`…20260815093000…`) o la `fecha` del backend («2026-08-15»).
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(runId ?? "").trim())
+  // Acepta el sello del run (`…20260815093000…`), la `fecha` del backend
+  // («2026-08-15») o un instante ISO («2026-08-15T09:30:00Z», `generado_at`).
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ][\d:.]+(?:Z|[+-]\d{2}:?\d{2})?)?$/.exec(String(runId ?? "").trim())
     ?? /(\d{4})(\d{2})(\d{2})\d{4}/.exec(String(runId ?? ""));
   if (!m) return "";
   const [, anio, mes, dia] = m;
@@ -157,7 +159,9 @@ export function vigenciaDelOrigen(origen: CollectionOrigen): VigenciaDelOrigen {
       tono: "al-dia",
       etiqueta: "Vigente",
       titulo: "Al día con la fuente",
-      frases: ["La lista coincide con la huella de la fuente."],
+      frases: origen.solo_corrida
+        ? ["La lista coincide con la huella de la fuente.", "Hay un sorteo más reciente con las mismas unidades."]
+        : ["La lista coincide con la huella de la fuente."],
     };
   }
 
@@ -172,9 +176,10 @@ export function vigenciaDelOrigen(origen: CollectionOrigen): VigenciaDelOrigen {
     }
     if (resumen.roles) frases.push(`${plural(resumen.roles, "unidad cambia", "unidades cambian")} de rol.`);
   }
-  // Una ficha por unidad: lo que se desactualiza son las unidades con ficha,
-  // no los juegos generados (`afectadas.fichas` cuenta juegos).
-  const conFicha = resumen.afectadas.unidades_con_ficha;
+  // Una ficha por unidad: lo que se desactualiza son las unidades AFECTADAS
+  // con ficha, no los juegos generados (`afectadas.fichas` cuenta juegos) ni
+  // todas las fichas del plan (`fichas_cobertura`).
+  const conFicha = resumen.afectadas?.unidades_con_ficha ?? 0;
   if (conFicha > 0) {
     frases.push(conFicha === 1
       ? "1 ficha generada queda desactualizada."
@@ -244,9 +249,16 @@ export function delOtroLado(origen: CollectionOrigen): string {
   return "En Cálculo de muestra › Entrega se ve si Material de campo está al día con la selección.";
 }
 
-/** «Huella a3f2…19 · sorteo del 15/8/2026». */
+/**
+ * «a3f2…19 · sorteo del 15/8/2026». La fecha es la del sorteo del plan; si su
+ * corrida no la lleva en el id, la de generación de la selección vigente
+ * cuando el plan es de ese mismo sorteo.
+ */
 export function huellaYVigencia(origen: CollectionOrigen): { huella: string; cuando: string } {
-  const fecha = fechaDelSorteo(origen.plan.fecha || origen.plan.run_id);
+  const fecha = fechaDelSorteo(origen.plan.fecha || origen.plan.run_id)
+    // Sólo si el plan ES de ese sorteo: la fecha de otra corrida no es la suya.
+    || (origen.sorteo_vigente && !origen.sorteo_vigente.desfasado
+      ? fechaDelSorteo(origen.sorteo_vigente.generado_at) : "");
   return {
     huella: huellaCorta(origen.fingerprint_plan ?? origen.plan.huella_registrada),
     cuando: fecha ? `sorteo del ${fecha}` : "",
@@ -396,4 +408,36 @@ const VACIO_DEL_FILTRO: Readonly<Record<FiltroDeDiferencias, string>> = {
 export function vacioDeLaLista(origen: CollectionOrigen, filtro: FiltroDeDiferencias): string {
   if (filtro === "todas" && origen.solo_corrida) return "Las unidades son las mismas; sólo cambió la corrida.";
   return VACIO_DEL_FILTRO[filtro];
+}
+
+// ---------------------------------------------------------------------------
+// El aviso de Unidades › Lista
+// ---------------------------------------------------------------------------
+
+/**
+ * Una línea en el resumen del plan que manda a Origen. Dos lecturas, una
+ * decisión: `source_vigente` (del `/state`) dice si el plan es de OTRO sorteo;
+ * el origen (por huella) dice si la fuente cambió aunque el sorteo sea el
+ * mismo. Antes sólo leía lo primero y un aula cambiada en la misma corrida no
+ * avisaba aquí mientras Origen decía «La fuente cambió».
+ *
+ * `null` = nada que avisar. Sin origen leído todavía, sólo cuenta el sorteo.
+ */
+export function avisoDeLaLista(
+  sourceVigente: { selection_run_id: string; desfasado: boolean } | null | undefined,
+  origen: CollectionOrigen | null,
+): { texto: string; enlace: { label: string; to: string } } | null {
+  const enlace = { label: "Ver qué cambió", to: DIRECCION_ORIGEN };
+  if (sourceVigente?.desfasado) {
+    // Mismo formato que el «Origen · sorteo del …» de esa tarjeta, con hora.
+    const fecha = fechaDeCorrida(sourceVigente.selection_run_id);
+    return {
+      texto: fecha ? `La selección vigente es de otro sorteo (del ${fecha}).` : "La selección vigente es de otro sorteo.",
+      enlace,
+    };
+  }
+  if (origen && origen.plan.existe && origen.stale) {
+    return { texto: "La fuente cambió desde que se armó esta lista.", enlace };
+  }
+  return null;
 }

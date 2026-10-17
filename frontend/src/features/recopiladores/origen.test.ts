@@ -9,15 +9,17 @@
 import { describe, expect, it } from "vitest";
 
 import { normalizeCollectionOrigen } from "../../api/recopiladores";
-import { ORIGEN_CAMBIO_CRUDO, origenAlDia, origenDe } from "./origen.fixture";
+import { ORIGEN_CAMBIO_CRUDO, origenAlDia, origenDe, origenSinFuente } from "./origen.fixture";
 import {
   accionActualizar,
+  avisoDeLaLista,
   avisoDeTruncado,
   detalleDeLaFuente,
   enlacesDeLaFuente,
   fechaDelSorteo,
   filasDeDiferencias,
   huellaCorta,
+  huellaYVigencia,
   lineaDelConteo,
   opcionesDeFiltro,
   rotuloDelRol,
@@ -38,11 +40,32 @@ describe("normalizeCollectionOrigen", () => {
       run_id: "sel_aulas_20260821160928_bf10d14c",
       fecha: "",
       unidades: 2616,
+      error_id: null,
     });
     expect(o.plan.unidades).toBe(2468);
     expect(o.resumen.afectadas).toEqual({ unidades: 3, fichas: 1, unidades_con_ficha: 3, accesos: 3 });
+    expect(o.resumen.fichas_cobertura).toEqual({ juegos: 1, unidades_cubiertas: 2468 });
+    expect(o.veredicto).toBe("huella");
+    expect(o.sorteo_vigente?.generado_at).toBe("2026-08-21T16:09:28Z");
     expect(o.cambios?.altas).toHaveLength(2);
     expect(o.cambios?.roles[0]).toMatchObject({ codigo: "R 14.1", antes: "chain_reserve", despues: "titular", sensible: false });
+  });
+
+  it("sin fuente: `afectadas` en null, el id del error y ningún veredicto", () => {
+    const o = origenSinFuente();
+    expect(o.estado).toBe("sin_fuente");
+    expect(o.resumen.afectadas).toBeNull();
+    expect(o.fuente.error_id).toBe("err_5c1e");
+    expect(o.veredicto).toBeNull();
+    expect(o.cambios).toBeNull();
+    expect(vigenciaDelOrigen(o).tono).toBe("vacio");
+  });
+
+  it("un backend con sólo `fichas_total` no afirma unidades cubiertas", () => {
+    const resumen: Record<string, unknown> = { ...ORIGEN_CAMBIO_CRUDO.resumen, fichas_total: 4 };
+    delete resumen.fichas_cobertura;
+    const o = origenDe({ resumen });
+    expect(o.resumen.fichas_cobertura).toEqual({ juegos: 4, unidades_cubiertas: 0 });
   });
 
   it("rechaza un schema que no es el suyo", () => {
@@ -205,5 +228,51 @@ describe("la lista de diferencias", () => {
   it("conteo en una línea", () => {
     expect(lineaDelConteo({ altas: 2, bajas: 0, campos: 1, roles: 0 })).toBe("Entran 2, salen 0, cambian 1");
     expect(lineaDelConteo({ altas: 0, bajas: 1, campos: 0, roles: 3 })).toBe("Entran 0, salen 1, cambian 0, 3 de rol");
+  });
+});
+
+describe("huella y vigencia en una línea", () => {
+  it("usa la fecha del plan cuando la trae", () => {
+    const o = origenDe({ plan: { ...ORIGEN_CAMBIO_CRUDO.plan, fecha: "2026-08-01" } });
+    expect(huellaYVigencia(o)).toEqual({ huella: "a3f2…19", cuando: "sorteo del 1/8/2026" });
+  });
+
+  it("si el plan no la trae y es del sorteo vigente, la de generación de la selección", () => {
+    const o = origenAlDia();
+    expect(huellaYVigencia(o).cuando).toBe("sorteo del 1/8/2026");
+    const sinRun = origenDe({
+      plan: { ...ORIGEN_CAMBIO_CRUDO.plan, run_id: "sel_qa" },
+      sorteo_vigente: { run_id: "sel_qa", generado_at: "2026-09-03 10:15:00", desfasado: false },
+    });
+    expect(huellaYVigencia(sinRun).cuando).toBe("sorteo del 3/9/2026");
+  });
+
+  it("no presta la fecha de otro sorteo", () => {
+    const o = origenDe({
+      plan: { ...ORIGEN_CAMBIO_CRUDO.plan, run_id: "sel_qa" },
+      sorteo_vigente: { run_id: "sel_otro", generado_at: "2026-09-03T10:15:00Z", desfasado: true },
+    });
+    expect(huellaYVigencia(o).cuando).toBe("");
+  });
+});
+
+describe("el aviso de Unidades › Lista", () => {
+  it("otro sorteo: lo dice con su fecha y manda a Origen", () => {
+    expect(avisoDeLaLista({ selection_run_id: "sel_aulas_20260821160928_bf", desfasado: true }, null)).toEqual({
+      texto: "La selección vigente es de otro sorteo (del 21 ago 2026, 16:09).",
+      enlace: { label: "Ver qué cambió", to: "/material-campo?seccion=unidades&pestana=origen" },
+    });
+  });
+
+  it("mismo sorteo pero la huella cambió: avisa igual", () => {
+    const aviso = avisoDeLaLista({ selection_run_id: "x", desfasado: false }, origenDe());
+    expect(aviso?.texto).toBe("La fuente cambió desde que se armó esta lista.");
+    expect(aviso?.enlace.label).toBe("Ver qué cambió");
+  });
+
+  it("al día o sin leer: nada", () => {
+    expect(avisoDeLaLista({ selection_run_id: "x", desfasado: false }, origenAlDia())).toBeNull();
+    expect(avisoDeLaLista(null, null)).toBeNull();
+    expect(avisoDeLaLista(null, origenSinFuente())).toBeNull();
   });
 });

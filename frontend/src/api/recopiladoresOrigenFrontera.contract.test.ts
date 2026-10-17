@@ -24,14 +24,16 @@ const CLAVES = {
   raiz: [
     "schema", "nivel", "state_revision", "adapter", "fuente", "plan",
     "fingerprint_actual", "fingerprint_plan", "sorteo_vigente",
-    "fuente_intermedia_desfasada", "estado", "stale", "solo_corrida",
+    "fuente_intermedia_desfasada", "estado", "stale", "veredicto", "solo_corrida",
     "resumen", "cambios", "truncado", "limite",
   ],
-  fuente: ["modulo", "origen", "disponible", "run_id", "unidades"],
+  fuente: ["modulo", "origen", "disponible", "run_id", "unidades", "error_id"],
+  sorteo_vigente: ["generado_at", "desfasado"],
   plan: ["existe", "run_id", "unidades", "huella_registrada"],
   resumen: [
     "altas", "bajas", "campos", "roles", "unidades_con_cambios", "sin_cambio",
     "claves_repetidas", "afectadas", "entregado", "fichas", "unidades_con_ficha", "accesos",
+    "fichas_cobertura", "juegos", "unidades_cubiertas", "fichas_total",
   ],
   filas: ["clave", "unit_id", "codigo", "rol", "facultad", "curso", "campo", "antes", "despues", "sensible"],
 } as const;

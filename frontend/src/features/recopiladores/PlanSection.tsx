@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { apiRecopiladoresSeed, type CollectionStatePayload, type CollectionUnit } from "../../api/recopiladores";
@@ -22,7 +22,8 @@ import { codigoOperativoDe } from "./codigoOperativo";
 import { formaDelOperativo, type FormaDelOperativo } from "./formaDelOperativo";
 import { nombreCortoDeFacultad } from "./nombreDeFacultad";
 import { fechaDeCorrida } from "./fechaDeCorrida";
-import { DIRECCION_ORIGEN } from "./origen";
+import { avisoDeLaLista } from "./origen";
+import { useOrigen } from "./useOrigen";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -31,6 +32,11 @@ type Props = {
   origen?: DestinoDelVacio;
   /** Navega a una dirección de la app (la acción del vacío). */
   onIr?: (to: string) => void;
+  /**
+   * Avisa al shell mientras se lee el origen: hasta saber si la fuente cambió,
+   * la Lista no es juzgable (su aviso «Ver qué cambió» puede faltar).
+   */
+  onCargando?: (cargando: boolean) => void;
 };
 
 function value(value: unknown) {
@@ -187,15 +193,25 @@ export function paginatePlanUnits<T>(units: T[], requestedPage: number, pageSize
 
 export { fechaDeCorrida };
 
-export function PlanSection({ payload, onState, origen, onIr }: Props) {
+export function PlanSection({ payload, onState, origen, onIr, onCargando }: Props) {
   const [seeding, setSeeding] = useState(false);
   const [requestedPage, setRequestedPage] = useState(0);
   const [error, setError] = useState("");
   const plan = payload?.state.plan ?? null;
-  // El backend compara el run_id del plan con el de la selección vigente; aquí
-  // sólo se pinta su veredicto. Ausente = no hay con qué comparar. Qué cambió y
-  // la acción de actualizar viven en Unidades › Origen (E1e), no aquí.
-  const desfase = payload?.source_vigente?.desfasado ? payload.source_vigente : null;
+  // Dos veredictos del backend, ninguno calculado aquí: `source_vigente` dice
+  // si el plan es de otro sorteo y el origen (por huella) si la fuente cambió
+  // en el mismo. Qué cambió y la acción de actualizar viven en Unidades ›
+  // Origen (E1e), no aquí. El hook va antes de la guarda de «sin plan»: un hook
+  // bajo un `return` temprano rompe el orden de React al sembrar.
+  const { carga: cargaOrigen } = useOrigen(payload?.state_revision ?? null, {
+    nivel: "resumen",
+    reusar: true,
+    activo: Boolean(plan),
+  });
+  const desfase = avisoDeLaLista(payload?.source_vigente, cargaOrigen.origen);
+  const leyendoOrigen = Boolean(plan) && cargaOrigen.estado === "cargando";
+  useEffect(() => { onCargando?.(leyendoOrigen); }, [leyendoOrigen, onCargando]);
+  useEffect(() => () => onCargando?.(false), [onCargando]);
 
   const seed = async () => {
     setSeeding(true);
@@ -317,9 +333,8 @@ export function PlanSection({ payload, onState, origen, onIr }: Props) {
           // Una línea: el aviso detallado, las diferencias y la acción están en
           // Origen. Repetirlos aquí era dar dos sitios para la misma decisión.
           <p className="rec-plan-desfase">
-            La selección vigente es de otro sorteo{fechaDeCorrida(desfase.selection_run_id)
-              ? <> (del {fechaDeCorrida(desfase.selection_run_id)})</> : null}.{" "}
-            <Link to={DIRECCION_ORIGEN}>Ver qué cambió</Link>
+            {desfase.texto}{" "}
+            <Link to={desfase.enlace.to}>{desfase.enlace.label}</Link>
           </p>
         ) : null}
       </Panel>

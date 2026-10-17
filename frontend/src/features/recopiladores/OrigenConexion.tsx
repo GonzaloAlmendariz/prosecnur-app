@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 import type { CollectionOrigen } from "../../api/recopiladores";
 import { PulsoButton } from "../../components/PulsoButton";
-import { ArrowRight, RefreshCw } from "../../vendor/lucide-react";
+import { ArrowRight } from "../../vendor/lucide-react";
 import {
   accionActualizar,
   delOtroLado,
@@ -111,11 +111,13 @@ export function OrigenConexion({ origen, onActualizar, dialogoAbierto }: Props) 
                 aria-expanded={dialogoAbierto}
                 onClick={onActualizar}
               >
-                <RefreshCw size={14} aria-hidden /> Actualizar desde la fuente
+                {/* Sin ícono, como en el artboard: así cabe junto a «Abrir la selección»
+                    en el panel de 340 px, en la misma fila. */}
+                Actualizar desde la fuente
               </PulsoButton>
             ) : null}
             {seleccion ? (
-              <Link className="pulso-button pulso-button--secondary pulso-button--sm" to={seleccion.to}>
+              <Link className="pulso-button pulso-button--secondary pulso-button--sm rec-origen-boton" to={seleccion.to}>
                 {seleccion.label}
               </Link>
             ) : null}

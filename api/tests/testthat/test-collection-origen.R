@@ -285,24 +285,104 @@ test_that("la lectura es pura: ni revision, ni dirty, ni estado", {
   expect_identical(session_get(sid), antes)
 })
 
-test_that("resumen no construye unidades y responde por corrida", {
+# Fichas inyectadas sin pasar por el generador: la lectura no valida el estado.
+.org_con_fichas <- function(sid) {
+  s <- session_get(sid)
+  ids <- vapply(s$collection_state$plan$units, function(u) u$unit_id, "")
+  s$collection_state$material_instances <- list(
+    list(instance_id = "juego-todas", unit_refs = as.list(ids)),
+    list(instance_id = "juego-una", unit_refs = list(ids[[1]]))
+  )
+  .session_env[[sid]] <- s
+  ids
+}
+
+test_that("datos cambiados en la misma corrida: resumen y diferencias dan el mismo veredicto", {
+  sid <- .org_sid()
+  on.exit(session_delete(sid), add = TRUE)
+  .org_con_fichas(sid)
+  df <- .org_filas()
+  df$scheduled_venue <- NA_character_
+  df$scheduled_venue[[1]] <- "H-110"
+  .org_cambiar(sid, df)
+  d <- collection_origen_get(sid, "diferencias")
+  r <- collection_origen_get(sid, "resumen")
+  # Misma corrida: por corrida diria «al dia»; por huella, la fuente cambio.
+  expect_identical(d$fuente$run_id, d$plan$run_id)
+  expect_false(d$sorteo_vigente$desfasado)
+  expect_identical(d$estado, "cambio")
+  expect_identical(r$estado, d$estado)
+  expect_identical(r$stale, d$stale)
+  expect_true(r$stale)
+  expect_identical(r$veredicto, "huella")
+  expect_identical(d$veredicto, "huella")
+  expect_identical(r$fingerprint_actual, d$fingerprint_actual)
+  expect_identical(r$fingerprint_plan, d$fingerprint_plan)
+  expect_false(r$solo_corrida)
+  # Resumen trae las cifras pero no las listas.
+  expect_identical(r$resumen[c("altas", "bajas", "campos", "roles", "unidades_con_cambios", "sin_cambio")],
+                   d$resumen[c("altas", "bajas", "campos", "roles", "unidades_con_cambios", "sin_cambio")])
+  expect_equal(r$resumen$campos, 1L)
+  expect_true(is.na(r$cambios))
+  expect_true(is.na(r$truncado))
+  expect_length(d$cambios$campos, 1L)
+})
+
+test_that("afectadas significa lo mismo en los dos niveles; el total va en fichas_cobertura", {
+  sid <- .org_sid()
+  on.exit(session_delete(sid), add = TRUE)
+  .org_con_fichas(sid)
+  df <- .org_filas()
+  df$scheduled_venue <- NA_character_
+  df$scheduled_venue[[1]] <- "H-110"
+  .org_cambiar(sid, df)
+  for (nivel in c("diferencias", "resumen")) {
+    g <- collection_origen_get(sid, nivel)
+    # Una unidad afectada, con ficha, tocada por los dos juegos.
+    expect_identical(g$resumen$afectadas,
+                     list(unidades = 1L, fichas = 2L, unidades_con_ficha = 1L, accesos = 0L), info = nivel)
+    expect_identical(g$resumen$fichas_cobertura, list(juegos = 2L, unidades_cubiertas = 4L), info = nivel)
+    expect_identical(g$resumen$fichas_total, 2L, info = nivel)
+  }
+  # Al dia: nada afectado, la cobertura sigue entera.
+  .org_cambiar(sid, .org_filas())
+  for (nivel in c("diferencias", "resumen")) {
+    g <- collection_origen_get(sid, nivel)
+    expect_identical(g$estado, "al_dia", info = nivel)
+    expect_identical(g$resumen$afectadas$unidades_con_ficha, 0L, info = nivel)
+    expect_identical(g$resumen$fichas_cobertura$unidades_cubiertas, 4L, info = nivel)
+  }
+})
+
+test_that("resumen al dia por huella aunque la corrida cambie: solo_corrida", {
+  sid <- .org_sid()
+  on.exit(session_delete(sid), add = TRUE)
+  .org_cambiar(sid, .org_filas(run = "sel_aulas_20260821160928_bbbb2222"))
+  r <- collection_origen_get(sid, "resumen")
+  expect_identical(r$estado, "al_dia")
+  expect_false(r$stale)
+  expect_true(r$solo_corrida)
+  expect_true(r$sorteo_vigente$desfasado)
+  expect_identical(r$estado, collection_origen_get(sid)$estado)
+})
+
+test_that("si la fuente no se deja construir, ambos niveles dicen sin_fuente con error_id", {
   sid <- .org_sid()
   on.exit(session_delete(sid), add = TRUE)
   testthat::local_mocked_bindings(
-    .collection_legacy_unit = function(...) stop("resumen no debe construir unidades"),
-    .collection_origen_proyeccion = function(...) stop("resumen no debe proyectar")
+    .collection_legacy_unit = function(...) stop("fila corrupta")
   )
-  r <- collection_origen_get(sid, "resumen")
-  expect_identical(r$nivel, "resumen")
-  expect_identical(r$veredicto, "corrida")
-  expect_identical(r$estado, "al_dia")
-  expect_true(is.na(r$cambios))
-  expect_true(is.na(r$fingerprint_actual))
-  expect_equal(r$fuente$unidades, 4L)
-  expect_false(r$resumen$entregado)
+  for (nivel in c("diferencias", "resumen")) {
+    expect_message(g <- collection_origen_get(sid, nivel), "collection_origen fuente")
+    expect_identical(g$estado, "sin_fuente", info = nivel)
+    expect_false(g$stale, info = nivel)
+    expect_false(g$fuente$disponible, info = nivel)
+    expect_match(g$fuente$error_id, ".+", info = nivel)
+    expect_true(is.na(g$veredicto), info = nivel)
+  }
 })
 
-test_that("rendimiento: 2.400 filas se comparan en menos de 2 s", {
+test_that("rendimiento: 2.400 filas se comparan en menos de 2 s, tambien en resumen", {
   n <- 2400L
   sid <- .org_sid(.org_filas(n))
   on.exit(session_delete(sid), add = TRUE)
@@ -315,6 +395,9 @@ test_that("rendimiento: 2.400 filas se comparan en menos de 2 s", {
   # Medido en local: ~0,9 s con las 2.373 unidades de HSVG2026. El tope deja
   # margen para un runner de CI lento sin dejar pasar el validador completo (2 s+).
   expect_lt(t, 2)
-  tr <- system.time(collection_origen_get(sid, "resumen"))[["elapsed"]]
-  expect_lt(tr, 0.5)
+  # Resumen construye y proyecta igual (una sola definicion de vigencia): mismo tope.
+  tr <- system.time(r <- collection_origen_get(sid, "resumen"))[["elapsed"]]
+  expect_identical(r$estado, "cambio")
+  expect_equal(r$resumen$campos, 10L)
+  expect_lt(tr, 2)
 })

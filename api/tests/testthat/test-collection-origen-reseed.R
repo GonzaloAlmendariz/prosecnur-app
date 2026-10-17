@@ -124,7 +124,15 @@ test_that("HTTP: GET /origen esta montado y lee nivel y limite de la query", {
   expect_identical(r$status, 200L, info = substr(r$raw, 1, 400))
   expect_identical(r$body$nivel, "resumen")
   expect_null(r$body$cambios)
-  expect_null(r$body$fingerprint_actual)
+  expect_null(r$body$truncado)
+  # Una sola vigencia: resumen decide por huella, igual que diferencias.
+  expect_identical(r$body$veredicto, "huella")
+  expect_identical(r$body$estado, d$body$estado)
+  expect_identical(r$body$stale, d$body$stale)
+  expect_identical(r$body$fingerprint_actual, d$body$fingerprint_actual)
+  expect_identical(r$body$resumen$altas, 2L)
+  expect_identical(r$body$resumen$afectadas, d$body$resumen$afectadas)
+  expect_identical(names(r$body$resumen$fichas_cobertura), c("juegos", "unidades_cubiertas"))
 
   mal <- .orr_call(pr, sid, "GET", "/api/recopiladores/origen", query = "nivel=todo")
   expect_identical(mal$status, 400L)
