@@ -123,7 +123,7 @@ export function OrigenVista({ origen, filtro, onFiltro, onActualizar, dialogoAbi
               {vigencia.etiqueta}
             </span>
             {modulo ? (
-              <Link className="pulso-button pulso-button--secondary pulso-button--sm" to={modulo.to}>
+              <Link className="pulso-button pulso-button--secondary pulso-button--sm rec-origen-boton" to={modulo.to}>
                 {modulo.label}
               </Link>
             ) : null}

@@ -39,6 +39,7 @@
 }
 
 .rec-origen-principal {
+  container: rec-origen-principal / inline-size;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -54,6 +55,34 @@
 .rec-origen-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
+}
+
+/* Un enlace con forma de botón: navegar es un enlace (semántica de ruta), pero
+   se ve como el control secundario. `PulsoButton` pinta sólo `<button>`; el
+   marco (borde, alto, sin subrayado) que el `<a>` no hereda va aquí. */
+.rec-origen-boton {
+  align-items: center;
+  border-style: solid;
+  border-width: 1px;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-weight: var(--pulso-control-weight);
+  gap: 6px;
+  justify-content: center;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.rec-origen-boton:hover {
+  text-decoration: none;
+}
+
+.rec-origen-boton:focus-visible {
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: none;
 }
 
 /* — De dónde salen — */
@@ -396,10 +425,13 @@
   padding: 14px 18px;
 }
 
+/* El primario y «Abrir la selección» van en UNA fila (artboard Conexiones);
+   si un rótulo más largo no cupiera, envuelve antes que recortarse. */
 .rec-origen-acciones {
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .rec-origen-motivo {
@@ -407,6 +439,20 @@
   font-size: 12.5px;
   line-height: 1.45;
   margin: 0;
+}
+
+/* Columna principal angosta (1024 px): el título de la fuente se queda con el
+   ancho entero y el estado y el enlace bajan a su propia fila, en vez de partir
+   «Selección de cursos-horario · Cálculo de muestra» en tres líneas. */
+@container rec-origen-principal (max-width: 720px) {
+  .rec-origen-fuente {
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rec-origen-fuente-estado {
+    justify-content: space-between;
+  }
 }
 
 /* Ancho angosto: el panel pasa debajo de la lista. */

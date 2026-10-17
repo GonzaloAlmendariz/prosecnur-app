@@ -847,11 +847,24 @@ export type CollectionOrigenCambio = {
   sensible: boolean;
 };
 
+/**
+ * Lo que toca la diferencia: unidades que entran, salen o cambian; los juegos
+ * de fichas y los accesos que las cubren; `unidades_con_ficha` son las
+ * unidades AFECTADAS que ya tienen ficha (0 cuando está al día).
+ */
+export type CollectionOrigenAfectadas = { unidades: number; fichas: number; unidades_con_ficha: number; accesos: number };
+
 export type CollectionOrigenResumen = CollectionOrigenConteo & {
   unidades_con_cambios: number;
   sin_cambio: number;
   claves_repetidas: number;
-  afectadas: { unidades: number; fichas: number; unidades_con_ficha: number; accesos: number };
+  /** `null` sin plan o sin fuente: no hay diferencia de la que contar. */
+  afectadas: CollectionOrigenAfectadas | null;
+  /**
+   * Las fichas del plan, estén o no afectadas: `juegos` generados y unidades
+   * que cubren. Es lo que «N fichas listas» cuenta.
+   */
+  fichas_cobertura: { juegos: number; unidades_cubiertas: number };
   entregado: boolean;
 };
 
@@ -862,15 +875,30 @@ export type CollectionOrigen = {
   state_revision: number;
   adapter: string;
   /** `fecha` = «AAAA-MM-DD» del sello del sorteo; "" en corridas sin fecha (QA). */
-  fuente: { modulo: string; origen: string; disponible: boolean; run_id: string; fecha: string; unidades: number | null };
+  fuente: {
+    modulo: string;
+    origen: string;
+    disponible: boolean;
+    run_id: string;
+    fecha: string;
+    unidades: number | null;
+    /** Id correlacionable con stderr cuando la fuente no se pudo construir (`sin_fuente`). */
+    error_id: string | null;
+  };
   plan: { existe: boolean; run_id: string; fecha: string; unidades: number; huella_registrada: string };
   fingerprint_actual: string | null;
   fingerprint_plan: string | null;
-  sorteo_vigente: { run_id: string; fecha: string; desfasado: boolean } | null;
+  /** `generado_at`: cuándo se generó la selección vigente (texto ISO del backend; "" si no lo dice). */
+  sorteo_vigente: { run_id: string; fecha: string; generado_at: string; desfasado: boolean } | null;
   /** La fuente que manda (Monitoreo) quedó atrás de la selección de Cálculo. */
   fuente_intermedia_desfasada: boolean;
   estado: CollectionOrigenEstado;
   stale: boolean;
+  /**
+   * Con qué se decidió `estado`: `"huella"` (por datos, en los dos niveles) o
+   * `null` cuando no hubo comparación (sin plan o sin fuente).
+   */
+  veredicto: "huella" | null;
   /** Cambió la corrida pero no las unidades. */
   solo_corrida: boolean;
   resumen: CollectionOrigenResumen;
@@ -949,6 +977,10 @@ export function normalizeCollectionOrigen(value: unknown): CollectionOrigen {
   const sorteo = isRecord(value.sorteo_vigente) ? value.sorteo_vigente : null;
   const resumen = isRecord(value.resumen) ? value.resumen : {};
   const afectadas = isRecord(resumen.afectadas) ? resumen.afectadas : {};
+  const cobertura = isRecord(resumen.fichas_cobertura) ? resumen.fichas_cobertura : null;
+  // `afectadas.*` llegan en null sin plan o sin fuente: no se inventa «0 afectadas».
+  const hayAfectadas = ["unidades", "fichas", "unidades_con_ficha", "accesos"]
+    .some((clave) => escalar(afectadas[clave]) != null);
   const cambios = isRecord(value.cambios) ? value.cambios : null;
   const truncado = isRecord(value.truncado) ? value.truncado : {};
   const unidadesFuente = Number(escalar(fuente.unidades));
@@ -977,6 +1009,7 @@ export function normalizeCollectionOrigen(value: unknown): CollectionOrigen {
       fecha: textoPlano(fuente.fecha),
       unidades: Number.isFinite(unidadesFuente) && unidadesFuente >= 0 && escalar(fuente.unidades) !== null
         ? Math.floor(unidadesFuente) : null,
+      error_id: huellaOpcional(fuente.error_id),
     },
     plan: {
       existe: planExiste,
@@ -990,11 +1023,13 @@ export function normalizeCollectionOrigen(value: unknown): CollectionOrigen {
     sorteo_vigente: sorteo === null ? null : {
       run_id: textoPlano(sorteo.run_id),
       fecha: textoPlano(sorteo.fecha),
+      generado_at: textoPlano(sorteo.generado_at),
       desfasado: verdadero(sorteo.desfasado),
     },
     fuente_intermedia_desfasada: verdadero(value.fuente_intermedia_desfasada),
     estado,
     stale,
+    veredicto: textoPlano(value.veredicto) === "huella" ? "huella" : null,
     solo_corrida: verdadero(value.solo_corrida),
     resumen: {
       altas: conteo(resumen.altas),
@@ -1004,11 +1039,17 @@ export function normalizeCollectionOrigen(value: unknown): CollectionOrigen {
       unidades_con_cambios: conteo(resumen.unidades_con_cambios),
       sin_cambio: conteo(resumen.sin_cambio),
       claves_repetidas: conteo(resumen.claves_repetidas),
-      afectadas: {
+      afectadas: hayAfectadas ? {
         unidades: conteo(afectadas.unidades),
         fichas: conteo(afectadas.fichas),
         unidades_con_ficha: conteo(afectadas.unidades_con_ficha),
         accesos: conteo(afectadas.accesos),
+      } : null,
+      // Un backend previo sólo emitía `fichas_total` (juegos): sin cobertura
+      // de unidades no se afirma ninguna ficha lista.
+      fichas_cobertura: {
+        juegos: conteo(cobertura ? cobertura.juegos : resumen.fichas_total),
+        unidades_cubiertas: conteo(cobertura?.unidades_cubiertas),
       },
       entregado: verdadero(resumen.entregado),
     },

@@ -263,7 +263,7 @@ export function RecopiladoresShell() {
         </div>
       ) : null}
       {!loading && direction.seccion === "unidades" && direction.pestana === "lista" ? (
-        <PlanSection payload={payload} onState={aplicarMutacion} origen={origen} onIr={irA} />
+        <PlanSection payload={payload} onState={aplicarMutacion} origen={origen} onIr={irA} onCargando={setSeccionCargando} />
       ) : null}
       {!loading && direction.seccion === "unidades" && direction.pestana === "origen" ? (
         <OrigenSection payload={payload} onState={aplicarMutacion} onCargando={setSeccionCargando} />

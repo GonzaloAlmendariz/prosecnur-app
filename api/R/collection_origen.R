@@ -357,10 +357,46 @@ COLLECTION_ORIGEN_PROYECCION <- "origen_aulas/v1"
   list(items = if (length(x) > limite) x[seq_len(limite)] else x, truncado = length(x) > limite)
 }
 
+# Construye las unidades que sembraria hoy la fuente. Si la fuente no se deja
+# construir (fila corrupta, sorteo a medias) Origen no tira 500: responde
+# `sin_fuente` —no hay con que comparar— y deja el detalle en stderr con un
+# `error_id` que viaja en `fuente.error_id`. No es un `try()` silencioso: el
+# estado y el id dicen que la fuente fallo.
+.collection_origen_fuente <- function(s) {
+  tryCatch(
+    c(.collection_seed_units(s), list(error_id = NULL)),
+    error = function(e) {
+      id <- .api_error_id()
+      message(sprintf("[prosecnur-app] collection_origen fuente %s: %s", id, conditionMessage(e)))
+      list(units = list(), rows = list(), source = NULL, module = NULL,
+           run_id = NULL, rows_n = 0L, error_id = id)
+    }
+  )
+}
+
+# Cobertura de fichas del plan: juegos generados y unidades que cubren. No
+# depende de la comparacion; es lo que Calculo de muestra dice «N fichas listas».
+.collection_origen_cobertura <- function(state, hay_plan) {
+  if (!hay_plan) return(list(juegos = 0L, unidades_cubiertas = 0L))
+  f <- .collection_origen_fichas_total(state)
+  list(juegos = as.integer(f$fichas), unidades_cubiertas = as.integer(f$unidades))
+}
+
 #' GET /api/recopiladores/origen.
 #'
+#' Una sola definicion de vigencia: por huella de datos (`veredicto = "huella"`)
+#' en los dos niveles. `resumen` construye y proyecta igual que `diferencias`
+#' (~0,6 s con 2.373 unidades) y solo omite las listas (`cambios`/`truncado`
+#' nulos); sus cifras y su `estado`/`stale` son los mismos. Antes `resumen`
+#' decidia por corrida y, con datos cambiados en la misma corrida, Calculo de
+#' muestra decia «fichas listas» mientras Origen decia «la fuente cambio».
+#'
+#' `resumen.afectadas` cuenta SIEMPRE lo afectado por la diferencia (unidades
+#' que cambian o salen, mas altas; fichas y accesos tocados); el total de
+#' fichas del plan va en `resumen.fichas_cobertura`.
+#'
 #' @param sid sesion.
-#' @param nivel "diferencias" (defecto) o "resumen" (no construye unidades).
+#' @param nivel "diferencias" (defecto) o "resumen" (sin listas).
 #' @param limite tope por lista de cambios (1..5000, defecto 200).
 #' @return payload `collection_origen/v1`.
 collection_origen_get <- function(sid, nivel = "diferencias", limite = 200L) {
@@ -372,17 +408,7 @@ collection_origen_get <- function(sid, nivel = "diferencias", limite = 200L) {
   hay_plan <- is.list(plan) && length(plan)
   plan_run <- if (hay_plan) .cm_aulas_scalar(plan$source_ref$run_id, "") else ""
 
-  # Resumen: la fuente se cuenta pero no se construye.
-  fuente <- if (identical(nivel, "resumen")) {
-    src <- .collection_seed_source(s)
-    list(units = NULL, rows = src$rows, source = src$source, module = src$module,
-         rows_n = length(src$rows),
-         run_id = if (length(src$rows)) {
-           .collection_first_string(src$rows[[1]], c("selection_run_id", "run_id"), "legacy-monitoreo-aulas")
-         } else NULL)
-  } else {
-    .collection_seed_units(s)
-  }
+  fuente <- .collection_origen_fuente(s)
   hay_fuente <- fuente$rows_n > 0L
   run_fuente <- .cm_aulas_scalar(fuente$run_id, "")
   run_sorteo <- .collection_origen_run_selection(s)
@@ -390,25 +416,18 @@ collection_origen_get <- function(sid, nivel = "diferencias", limite = 200L) {
   intermedia <- .collection_origen_intermedia_desfasada(fuente, run_fuente, run_sorteo, circular, plan_run)
   vigencia <- if (hay_plan) .collection_source_vigente(s, state) else NULL
   entregado <- hay_plan && identical(.cm_aulas_scalar(state$deployment$status, ""), "handed_off")
-  fichas <- if (hay_plan) .collection_origen_fichas_total(state) else list(fichas = 0L, unidades = 0L)
+  cobertura <- .collection_origen_cobertura(state, hay_plan)
 
-  dif <- NULL
-  if (!identical(nivel, "resumen") && hay_plan && hay_fuente) {
-    dif <- .collection_origen_diferencias(state, fuente)
-  }
+  dif <- if (hay_plan && hay_fuente) .collection_origen_diferencias(state, fuente) else NULL
 
+  # Por datos: «al dia» = rehacer no cambiaria nada. Que Monitoreo tenga una
+  # copia vieja del sorteo lo dice `fuente_intermedia_desfasada`, no esto:
+  # rehacer desde aqui tampoco lo arreglaria.
   estado <- if (!hay_plan) {
     "sin_plan"
-  } else if (!hay_fuente) {
+  } else if (is.null(dif)) {
     "sin_fuente"
-  } else if (!is.null(dif)) {
-    # Por datos: «al dia» = rehacer no cambiaria nada. Que Monitoreo tenga una
-    # copia vieja del sorteo lo dice `fuente_intermedia_desfasada`, no esto:
-    # rehacer desde aqui tampoco lo arreglaria.
-    if (identical(dif$huella_plan, dif$huella_fuente)) "al_dia" else "cambio"
-  } else if (circular) {
-    "al_dia"
-  } else if (identical(run_fuente, plan_run)) {
+  } else if (identical(dif$huella_plan, dif$huella_fuente)) {
     "al_dia"
   } else {
     "cambio"
@@ -417,10 +436,10 @@ collection_origen_get <- function(sid, nivel = "diferencias", limite = 200L) {
   resumen <- list(
     altas = NA, bajas = NA, campos = NA, unidades_con_cambios = NA, roles = NA,
     sin_cambio = NA, claves_repetidas = NA,
-    afectadas = list(unidades = NA, fichas = as.integer(fichas$fichas),
-                     unidades_con_ficha = as.integer(fichas$unidades),
-                     accesos = if (hay_plan) length(state$deployment$bindings %||% list()) else 0L),
-    fichas_total = as.integer(fichas$fichas),
+    afectadas = list(unidades = NA, fichas = NA, unidades_con_ficha = NA, accesos = NA),
+    fichas_cobertura = cobertura,
+    # Alias de compatibilidad de `fichas_cobertura$juegos`.
+    fichas_total = cobertura$juegos,
     entregado = entregado
   )
   cambios <- NA
@@ -436,15 +455,17 @@ collection_origen_get <- function(sid, nivel = "diferencias", limite = 200L) {
     resumen$sin_cambio <- as.integer(cmp$sin_cambio)
     resumen$claves_repetidas <- length(union(dif$plan$repetidas, dif$fuente$repetidas))
     resumen$afectadas <- .collection_origen_afectadas(state, unique(afectadas_ids), length(cmp$altas))
-    listas <- list(
-      altas = lapply(cmp$altas, function(i) .collection_origen_unidad(dif$fuente, i)),
-      bajas = lapply(cmp$bajas, function(i) .collection_origen_unidad(dif$plan, i)),
-      campos = cmp$campos,
-      roles = cmp$roles
-    )
-    cortes <- lapply(listas, .collection_origen_cortar, limite = limite)
-    cambios <- lapply(cortes, `[[`, "items")
-    truncado <- lapply(cortes, `[[`, "truncado")
+    if (identical(nivel, "diferencias")) {
+      listas <- list(
+        altas = lapply(cmp$altas, function(i) .collection_origen_unidad(dif$fuente, i)),
+        bajas = lapply(cmp$bajas, function(i) .collection_origen_unidad(dif$plan, i)),
+        campos = cmp$campos,
+        roles = cmp$roles
+      )
+      cortes <- lapply(listas, .collection_origen_cortar, limite = limite)
+      cambios <- lapply(cortes, `[[`, "items")
+      truncado <- lapply(cortes, `[[`, "truncado")
+    }
   }
 
   na_si_vacio <- function(x) if (is.null(x) || !nzchar(x)) NA else x
@@ -461,7 +482,8 @@ collection_origen_get <- function(sid, nivel = "diferencias", limite = 200L) {
       run_id = na_si_vacio(run_fuente),
       fecha = .collection_origen_fecha_run(run_fuente),
       unidades = as.integer(fuente$rows_n),
-      circular = circular
+      circular = circular,
+      error_id = na_si_vacio(fuente$error_id %||% "")
     ),
     plan = list(
       existe = hay_plan,
@@ -483,7 +505,7 @@ collection_origen_get <- function(sid, nivel = "diferencias", limite = 200L) {
     stale = identical(estado, "cambio"),
     solo_corrida = !is.null(dif) && !circular && identical(dif$huella_plan, dif$huella_fuente) &&
       nzchar(run_fuente) && nzchar(plan_run) && !identical(run_fuente, plan_run),
-    veredicto = if (!is.null(dif)) "huella" else if (hay_plan && hay_fuente) "corrida" else NA,
+    veredicto = if (!is.null(dif)) "huella" else NA,
     resumen = resumen,
     cambios = cambios,
     truncado = truncado,

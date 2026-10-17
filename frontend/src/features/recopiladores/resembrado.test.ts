@@ -181,7 +181,9 @@ describe("el diálogo es un panel direccionable y el botón no escribe", () => {
     const lista = leer("PlanSection.tsx");
     expect(lista).not.toMatch(/apiRecopiladoresReseed/);
     expect(lista).not.toMatch(/PANEL_REHACER_PLAN|ConfirmarResembrado/);
-    expect(lista).toMatch(/DIRECCION_ORIGEN/);
+    // La Lista enlaza vía `avisoDeLaLista`, que lleva a `DIRECCION_ORIGEN`.
+    expect(lista).toMatch(/avisoDeLaLista\(/);
+    expect(leer("origen.ts")).toMatch(/export function avisoDeLaLista[\s\S]*?to: DIRECCION_ORIGEN/);
     const origen = leer("OrigenSection.tsx");
     expect(origen).not.toMatch(/apiRecopiladoresReseed/);
     expect(origen).toMatch(/usePanelDireccionable\(PANEL_REHACER_PLAN\)/);
