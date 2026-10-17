@@ -22,13 +22,15 @@ Línea base medida sobre los seis formularios tipo (1.914 reglas, motor actual):
 
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
-| I1 | Sello por tipo: glifo propio en rejilla de 24, silueta blanca sobre color pleno de la familia | `kit/` (glifos, Sello), tokens de familia en `app/tokens.css` | pendiente |
-| I2 | Sección y repetición en dos tonos de la misma familia; par `[ ]` para abrir y cerrar; el cierre en suave | `kit/` | pendiente |
-| I3 | El sello reemplaza a la maqueta y al ícono en todo el editor (vía `TypeIcon`, `MaquetaTipo`, `iconForType`) | `kit/`, `helpers/icons.tsx` | pendiente |
-| I4 | Riel fijo de 5 casillas (obligatoria, condición propia o heredada, restricción, cálculo, filtro) en el esquema | `kit/` (Riel), `outline/OutlineRow.tsx` | pendiente |
-| I5 | Panel animado al tocar una casilla: lectura del motor con chips, mensaje real, código plegado, «no la traduce» honesto | `kit/` (PanelMarca) consume `reglas/piezas.ts` | pendiente |
-| I6 | La condición heredada de la sección se ve en cada pregunta | `kit/` (marcas del nodo) | pendiente |
-| I7 | Una marca, una forma: fuera la mezcla rama/ojo y asterisco ícono/texto | `outline/`, `kit/`, `pestanas/PestanaReglas.tsx` | pendiente |
+| I1 | Sello por tipo: glifo propio en rejilla de 24, silueta blanca sobre color pleno de la familia | `kit/` (glifos, Sello), tokens de familia en `app/tokens.css` | hecho, en revisión: 36 glifos como datos tipados; tokens `--pulso-tipo-*` y `--pulso-marca-*` con tema oscuro (en oscuro la tinta del sello es oscura sobre tono claro, por contraste) |
+| I2 | Sección y repetición en dos tonos de la misma familia; par `[ ]` para abrir y cerrar; el cierre en suave | `kit/` | hecho, en revisión: pares [ ] de la propuesta; el cierre en suave también en las filas de cierre del esquema |
+| I3 | El sello reemplaza a la maqueta y al ícono en todo el editor (vía `TypeIcon`, `MaquetaTipo`, `iconForType`) | `kit/`, `helpers/icons.tsx` | hecho, en revisión: TypeIcon, MaquetaTipo e iconForType pintan el sello sin tocar consumidores; maquetas viejas borradas |
+| I4 | Riel fijo de 5 casillas (obligatoria, condición propia o heredada, restricción, cálculo, filtro) en el esquema | `kit/` (Riel), `outline/OutlineRow.tsx` | hecho, en revisión: riel de 5 casillas en el esquema, fila sigue en 42 px; bajo 1180 px el riel baja a la línea del subtítulo |
+| I5 | Panel animado al tocar una casilla: lectura del motor con chips, mensaje real, código plegado, «no la traduce» honesto | `kit/` (PanelMarca) consume `reglas/piezas.ts` | hecho, en revisión: panel en portal dentro del marco, flecha, 170/200 ms, Esc devuelve foco; texto sólo de leerRegla; obligatoria «La encuesta no se puede finalizar sin esta respuesta.». Sin pie «Editar en…» (sin navegación disponible: entra con el rediseño del Constructor) |
+| I6 | La condición heredada de la sección se ve en cada pregunta | `kit/` (marcas del nodo) | hecho, en revisión: bloque «Heredada de la sección» por ancestro; ProveedorReglas conectado en la página por el lead |
+| I7 | Una marca, una forma: fuera la mezcla rama/ojo y asterisco ícono/texto | `outline/`, `kit/`, `pestanas/PestanaReglas.tsx` | pendiente: en PestanaReglas no hay íconos de marca que reemplazar y cada ítem es un botón (el riel anidaría controles); se resuelve en el rediseño del Constructor |
+
+| I8 | El sello también llega a Carga (`features/carga/PreguntasPanel.tsx` usa `iconForType`) | `features/carga/` | decidido por Gonzalo («Haz lo que se vea más elegante»): una sola identidad en toda la app; si a 11 px el sello se ve recargado en la lista de Carga, ahí va el glifo sin fondo en el color de su familia. Pendiente de captura tras el corrector |
 
 ## Motor (frente M)
 
