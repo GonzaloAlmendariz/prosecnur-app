@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ESTADO_INICIAL_DEL_EDITOR, reducirEditor, type EstadoDelEditor } from "./estadoEditor";
 import { actualizarBloque, hayCambiosSinGuardar } from "./modeloEditor";
 import { TEMPLATE_FICHA_CAMPO } from "./preview.fixture";
+import { estadoDelGuardado, SIN_CAMBIOS_QUE_GUARDAR } from "./guardadoDeReceta";
 import { guardarReceta } from "./useRecetaDelEditor";
 
 function cargado(): EstadoDelEditor {
@@ -48,6 +49,28 @@ describe("la receta en el editor", () => {
   it("la unidad de prueba vive en el estado del editor", () => {
     const estado = reducirEditor(cargado(), { type: "unidad", unidad: "unit-ch1" });
     expect(estado.unidad).toBe("unit-ch1");
+  });
+});
+
+describe("estadoDelGuardado", () => {
+  const base = { hayBorrador: true, revision: 12, conCambios: true, guardando: false, fichasCreadas: 0 };
+
+  it("sin cambios no se guarda: el botón se apaga y el clic no hace nada", () => {
+    // Confiar en el `noop` del backend dejó 2.373 fichas viejas por un guardado vacío.
+    expect(estadoDelGuardado({ ...base, conCambios: false })).toEqual({ habilitado: false, motivo: SIN_CAMBIOS_QUE_GUARDAR, accion: null });
+    expect(estadoDelGuardado({ ...base, conCambios: false, fichasCreadas: 2373 }).accion).toBeNull();
+    expect(SIN_CAMBIOS_QUE_GUARDAR).toBe("Sin cambios que guardar");
+  });
+
+  it("con cambios guarda; con fichas creadas, primero avisa", () => {
+    expect(estadoDelGuardado(base)).toEqual({ habilitado: true, motivo: null, accion: "guardar" });
+    expect(estadoDelGuardado({ ...base, fichasCreadas: 5 }).accion).toBe("confirmar");
+  });
+
+  it("sin revisión, sin borrador o guardando no se guarda", () => {
+    expect(estadoDelGuardado({ ...base, revision: null }).habilitado).toBe(false);
+    expect(estadoDelGuardado({ ...base, hayBorrador: false }).habilitado).toBe(false);
+    expect(estadoDelGuardado({ ...base, guardando: true }).accion).toBeNull();
   });
 });
 

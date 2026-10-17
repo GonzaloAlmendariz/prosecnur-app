@@ -19,6 +19,8 @@ type Props = {
   onRehacer: () => void;
   guardando: boolean;
   puedeGuardar: boolean;
+  /** Por qué «Guardar receta» está apagado (p. ej. «Sin cambios que guardar»). */
+  motivoSinGuardar?: string | null;
   onGuardar: () => void;
   /** Texto del aviso antes de guardar, mientras se espera la confirmación. */
   confirmacion: string | null;
@@ -45,6 +47,7 @@ export function BarraDelEditor({
   onRehacer,
   guardando,
   puedeGuardar,
+  motivoSinGuardar = null,
   onGuardar,
   confirmacion,
   onConfirmar,
@@ -83,7 +86,13 @@ export function BarraDelEditor({
           <PulsoButton variant="secondary" size="sm" onClick={onCancelar}>Cancelar</PulsoButton>
         </span>
       ) : (
-        <PulsoButton variant="primary" size="sm" disabled={!puedeGuardar || guardando} onClick={onGuardar}>
+        <PulsoButton
+          variant="primary"
+          size="sm"
+          disabled={!puedeGuardar || guardando}
+          title={!puedeGuardar && motivoSinGuardar ? motivoSinGuardar : undefined}
+          onClick={onGuardar}
+        >
           {guardando ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Save size={14} aria-hidden />} Guardar receta
         </PulsoButton>
       )}

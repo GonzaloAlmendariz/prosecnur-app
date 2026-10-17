@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { normalizeMaterialPreview } from "../../../api/materialPreview";
 import type { CollectionUnit } from "../../../api/recopiladores";
 import { PANELES_POR_MODULO } from "../../../lib/navegacion/manifiesto";
+import { AjustesDelBloque } from "./AjustesDelBloque";
 import { BarraDelEditor } from "./BarraDelEditor";
 import { InspectorDeBloque } from "./InspectorDeBloque";
 import { notasDeLaCara, zonasPorBloque } from "./modeloEditor";
@@ -140,6 +141,7 @@ describe("InspectorDeBloque", () => {
   const zonas = zonasPorBloque(FRENTE, "ficha");
   const inspector = (blockId: string, extra: Partial<Parameters<typeof InspectorDeBloque>[0]> = {}) => renderToStaticMarkup(
     <InspectorDeBloque
+      pageId="ficha"
       block={FICHA.blocks.find((b) => b.block_id === blockId) ?? null}
       zona={zonas.get(blockId) ?? null}
       notas={SIN_NOTAS}
@@ -193,6 +195,43 @@ describe("InspectorDeBloque", () => {
     const html = inspector("qr", { notas: { noDibujado: null, avisos: [], problemas: ["Margen fuera de rango."] } });
     expect(html).toContain("Margen fuera de rango.");
     expect(html).toContain('role="alert"');
+  });
+});
+
+describe("AjustesDelBloque", () => {
+  // Todo lo que el inspector sabe editar, para que cada control se pinte.
+  const TODO = ["binding", "text", "fields", "rows", "labels", "max_lines", "correction", "quiet_zone", "assets", "align", "max_height_mm"];
+  const ajustes = (pageId: string) => {
+    const footer = (pageId === "ficha" ? FICHA : CROQUIS).blocks.find((b) => b.block_id === "footer")!;
+    return renderToStaticMarkup(<AjustesDelBloque pageId={pageId} block={{ ...footer, text: "Pie" }} editable={TODO} onCambiar={noop} />);
+  };
+  const ids = (html: string) => [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+
+  it("los ids son únicos por cara y bloque, y nunca interpolan un objeto", () => {
+    // `footer` está en frente y dorso: su block_id sólo es único dentro de la cara.
+    const todos = [...ids(ajustes("ficha")), ...ids(ajustes("croquis"))];
+    expect(todos.length).toBeGreaterThan(0);
+    expect(new Set(todos).size).toBe(todos.length);
+    for (const id of todos) expect(id).not.toMatch(/object|\s/);
+    expect(todos).toContain("rec-ed-ajuste-ficha-footer-text");
+    expect(todos).toContain("rec-ed-ajuste-croquis-footer-text");
+  });
+
+  it("cada control tiene nombre accesible: label asociado, aria-label o grupo rotulado", () => {
+    const html = ajustes("ficha");
+    const conId = new Set(ids(html));
+    const controles = [...html.matchAll(/<(textarea|select|input)\b([^>]*)>/g)];
+    expect(controles.some((m) => m[1] === "textarea")).toBe(true);
+    for (const [, tag, attrs] of controles) {
+      const id = /\sid="([^"]+)"/.exec(attrs)?.[1];
+      const conLabel = id ? html.includes(`for="${id}"`) : false;
+      const conAria = /aria-label="[^"]+"/.test(attrs);
+      // Los checkboxes van envueltos en su <label>.
+      const envuelto = tag === "input" && /type="checkbox"/.test(attrs);
+      expect(conLabel || conAria || envuelto, `${tag} ${attrs}`).toBe(true);
+    }
+    expect(html).toMatch(/<label[^>]*for="rec-ed-ajuste-ficha-footer-text"[^>]*>Texto<\/label>/);
+    for (const [, ref] of html.matchAll(/aria-labelledby="([^"]+)"/g)) expect(conId.has(ref)).toBe(true);
   });
 });
 
@@ -256,6 +295,12 @@ describe("BarraDelEditor", () => {
     expect(html).toContain("revisión 7");
     expect(html).toContain("cambios sin guardar");
     expect(html).toContain("Guardar receta");
+  });
+
+  it("sin cambios, «Guardar receta» se apaga y dice por qué", () => {
+    const html = barra({ conCambios: false, puedeGuardar: false, motivoSinGuardar: "Sin cambios que guardar" });
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*title="Sin cambios que guardar"[^>]*>.*Guardar receta/);
+    expect(barra()).not.toContain("Sin cambios que guardar");
   });
 
   it("sin cambios no hay insignia; con fichas creadas, guardar avisa antes", () => {

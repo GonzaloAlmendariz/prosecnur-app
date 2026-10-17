@@ -246,7 +246,8 @@ export function EditorDeMaterial({ payload, onStateRefresh, onCargando, onIr }: 
             onDeshacer={() => dispatch({ type: "deshacer" })}
             onRehacer={() => dispatch({ type: "rehacer" })}
             guardando={estado.guardando}
-            puedeGuardar={payload !== null}
+            puedeGuardar={payload !== null && receta.guardado.habilitado}
+            motivoSinGuardar={receta.guardado.motivo}
             onGuardar={receta.guardar}
             confirmacion={confirmacion}
             onConfirmar={() => { void receta.confirmarGuardado(); }}
@@ -295,6 +296,7 @@ export function EditorDeMaterial({ payload, onStateRefresh, onCargando, onIr }: 
           />
         </section>
         <InspectorDeBloque
+          pageId={cara.page_id}
           block={elegido}
           zona={zonaElegida}
           notas={elegido ? notasDe(notas.porBloque, elegido.block_id) : SIN_NOTAS}
