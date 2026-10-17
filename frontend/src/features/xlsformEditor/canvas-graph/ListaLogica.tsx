@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import type { BuilderStructure } from "../types";
-import type { LogicScope } from "../logic";
+import { enriquecerAlcance, type LogicScope } from "../logic";
 import { stripMarkdown } from "../helpers/markdown";
 import { Segmented, TypeIcon } from "../kit";
-import { describeExpression } from "../canvas/reglasHumanas";
+import { describeExpression, leerColumna } from "../canvas/reglasHumanas";
 import { dividirPorLogica, listaLogica, type TipoRegla } from "./listaLogicaModel";
 import "./listaLogica.css";
 
@@ -33,7 +33,9 @@ export type ListaLogicaProps = {
   onSeleccionar: (foco: string | null) => void;
 };
 
-export function ListaLogica({ structure, scope, seleccionada, onSeleccionar }: ListaLogicaProps) {
+export function ListaLogica({ structure, scope: scopeBase, seleccionada, onSeleccionar }: ListaLogicaProps) {
+  // Con la estructura, el motor cita grupos por su etiqueta; cada fila se lee con leerRegla en su propia columna.
+  const scope = useMemo(() => enriquecerAlcance(scopeBase, structure), [scopeBase, structure]);
   const lista = useMemo(() => listaLogica(structure), [structure]);
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const verSeccion = filtro !== "pregunta";
@@ -95,7 +97,9 @@ export function ListaLogica({ structure, scope, seleccionada, onSeleccionar }: L
                         <span className="xfl-item__txt">
                           <span className="xfl-item__titulo">{stripMarkdown(it.node.label || it.node.name)}</span>
                           <span className="xfl-item__lee">
-                            {describeExpression(it.node.relevant || it.node.choiceFilter, scope).summary}
+                            {(it.node.relevant
+                              ? leerColumna("relevant", it.node, it.node.relevant, scope)
+                              : leerColumna("choice_filter", it.node, it.node.choiceFilter, scope)).summary}
                           </span>
                         </span>
                         <span className="xfl-item__tipos">{it.tipos.map((t) => <IconoRegla key={t} tipo={t} />)}</span>

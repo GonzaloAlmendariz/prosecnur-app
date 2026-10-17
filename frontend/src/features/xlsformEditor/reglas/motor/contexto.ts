@@ -4,6 +4,7 @@
 import type { Expr, LogicScope } from "../../logic";
 import { stripMarkdown } from "../../helpers/markdown";
 import type { ColumnaRegla, Pieza } from "../piezas";
+import { normalizarMayusculas } from "./etiquetas";
 
 export type Clase = "fecha" | "hora" | "numero" | "texto" | "una" | "varias" | "otra";
 
@@ -31,8 +32,45 @@ export function variable(name: string, ctx: Contexto) {
   return ctx.scope.variables.find((x) => x.name === name);
 }
 
+export function grupo(name: string, ctx: Contexto) {
+  return ctx.scope.grupos?.find((g) => g.name === name);
+}
+
+const limpia = (s: string | undefined) => stripMarkdown(s ?? "").replace(/\s+/g, " ").trim();
+
+// Un cálculo sin etiqueta que sólo copia otra respuesta (`${x}` o `indexed-repeat(${x}, …)`) se nombra como ella:
+// HH01 = indexed-repeat(${HH01_2_aux}, …) es «Nombre del miembro del hogar» en esta fila.
+const COPIA = /^\s*(?:indexed-repeat\s*\(\s*)?\$\{([^}]+)\}\s*(?:,|$)/;
+
+function etiquetaCruda(name: string, ctx: Contexto, profundidad = 0): string {
+  const v = variable(name, ctx);
+  if (v) {
+    const propia = limpia(v.label);
+    if (propia && propia !== name) return propia;
+    const otra = v.calculation?.match(COPIA)?.[1]?.trim();
+    // Sólo se sigue la copia hasta otra VARIABLE: un grupo con el mismo nombre no es la misma cosa.
+    if (otra && otra !== name && profundidad < 3 && variable(otra, ctx)) {
+      const heredada = etiquetaCruda(otra, ctx, profundidad + 1);
+      if (heredada !== otra) return heredada;
+    }
+    return propia || name;
+  }
+  return name;
+}
+
+/**
+ * Pieza de un GRUPO o repetición en una posición que pide uno (`indexed-repeat(x, ${grupo}, …)`, `count(${grupo})`),
+ * citado por su etiqueta. En cualquier otra posición `${grupo}` no tiene valor y se deja como código: decir
+ * «‹Sobre hostigamiento sexual› es 1» sería afirmar algo que la regla no dice.
+ */
+export function piezaGrupo(name: string, ctx: Contexto): Pieza {
+  const g = variable(name, ctx) ? undefined : grupo(name, ctx);
+  return { tipo: "pregunta", name, etiqueta: g?.label ? normalizarMayusculas(limpia(g.label)) : etiquetaDe(name, ctx) };
+}
+
+/** Etiqueta con que se nombra una pregunta o grupo en la frase: limpia, en tipo oración, o el código si no hay. */
 export function etiquetaDe(name: string, ctx: Contexto): string {
-  return stripMarkdown(variable(name, ctx)?.label ?? "").replace(/\s+/g, " ").trim() || name;
+  return normalizarMayusculas(etiquetaCruda(name, ctx));
 }
 
 export function pregunta(name: string, ctx: Contexto): Pieza {
@@ -72,7 +110,7 @@ export function listaDe(e: Expr, ctx: Contexto): string | undefined {
 export function opcion(lista: string, valor: string, ctx: Contexto): Pieza | null {
   const item = ctx.scope.catalogsByListName.get(lista)?.items.find((c) => c.name === valor);
   if (!item) return null;
-  return { tipo: "opcion", lista, valor, etiqueta: stripMarkdown(item.label || "").replace(/\s+/g, " ").trim() || valor };
+  return { tipo: "opcion", lista, valor, etiqueta: normalizarMayusculas(limpia(item.label)) || valor };
 }
 
 /** ¿La expresión toca la respuesta actual? */

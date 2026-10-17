@@ -8,6 +8,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { Plus, Search, Trash2 } from "../../../vendor/lucide-react";
 import type { CatalogSummary } from "../types";
 import { OpcionFila } from "./OpcionFila";
+import { origenDeLista, textoOrigen, type OrigenLista } from "./opcionesModel";
 
 export type EditorListaProps = {
   lista: CatalogSummary;
@@ -18,9 +19,13 @@ export type EditorListaProps = {
   onQuitar: (rowIndex: number) => void;
   onMover: (listName: string, desde: number, hacia: number) => void;
   onBorrarLista: (listName: string) => void;
+  /** De dónde salen las opciones si la lista no vive en choices (con la estructura, cita etiquetas). */
+  origen?: OrigenLista | null;
 };
 
-export function EditorLista({ lista, usos, onRename, onAgregar, onCambio, onQuitar, onMover, onBorrarLista }: EditorListaProps) {
+export function EditorLista({ lista, usos, onRename, onAgregar, onCambio, onQuitar, onMover, onBorrarLista, origen: origenProp }: EditorListaProps) {
+  // Sin la estructura, el código de la lista basta para saber que sale de una respuesta (`${x}`), aunque se cite por código.
+  const origen = lista.items.length === 0 ? origenProp ?? origenDeLista(lista.listName, null) : null;
   const [codigo, setCodigo] = useState(lista.listName);
   const [busca, setBusca] = useState("");
   useEffect(() => { setCodigo(lista.listName); setBusca(""); }, [lista.listName]);
@@ -48,7 +53,7 @@ export function EditorLista({ lista, usos, onRename, onAgregar, onCambio, onQuit
             onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setCodigo(lista.listName); }} />
         </label>
         <span className="xfo-editor__dato">
-          {lista.items.length} {lista.items.length === 1 ? "opción" : "opciones"}, {usos === 0 ? "sin uso" : usos === 1 ? "en 1 pregunta" : `en ${usos} preguntas`}
+          {origen ? "opciones dinámicas" : `${lista.items.length} ${lista.items.length === 1 ? "opción" : "opciones"}`}, {usos === 0 ? "sin uso" : usos === 1 ? "en 1 pregunta" : `en ${usos} preguntas`}
         </span>
         {usos === 0 ? (
           <button type="button" className="xfo-editor__borrar" onClick={() => onBorrarLista(lista.listName)}>
@@ -65,7 +70,9 @@ export function EditorLista({ lista, usos, onRename, onAgregar, onCambio, onQuit
         </label>
       ) : null}
 
-      {lista.items.length === 0 ? (
+      {origen ? (
+        <p className="xfo-nota" role="note">{textoOrigen(origen)}</p>
+      ) : lista.items.length === 0 ? (
         <p className="xfo-nota">La lista no tiene opciones. Agrega la primera; salen en este orden en el formulario.</p>
       ) : (
         <div className="xfo-tabla" role="group" aria-label="Opciones de la lista">
@@ -86,9 +93,11 @@ export function EditorLista({ lista, usos, onRename, onAgregar, onCambio, onQuit
         </div>
       )}
 
-      <button type="button" className="xfo-editor__agregar" onClick={() => onAgregar(lista.listName)}>
-        <Plus size={14} aria-hidden="true" /> Agregar opción
-      </button>
+      {origen ? null : (
+        <button type="button" className="xfo-editor__agregar" onClick={() => onAgregar(lista.listName)}>
+          <Plus size={14} aria-hidden="true" /> Agregar opción
+        </button>
+      )}
     </div>
   );
 }

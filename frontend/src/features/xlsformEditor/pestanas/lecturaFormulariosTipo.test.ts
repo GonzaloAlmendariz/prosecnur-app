@@ -10,7 +10,7 @@ import { describe, expect, test } from "vitest";
 import { buildXlsformIndex } from "../parsing/buildIndex";
 import { rowToRecord } from "../parsing/sheetUtils";
 import { buildDiagnostics } from "../parsing/diagnostics";
-import type { LogicScope } from "../logic";
+import { enriquecerAlcance, type LogicScope } from "../logic";
 import type { XlsformEditorWorkbook } from "../types";
 import { leerRegla } from "../reglas/leerRegla";
 import { textoDePiezas, type ColumnaRegla } from "../reglas/piezas";
@@ -28,7 +28,8 @@ function scopeDe(wb: XlsformEditorWorkbook) {
     catalogsByListName: new Map(idx.catalogs.map((c) => [c.listName, { listName: c.listName, items: c.items }])),
     allowCurrent: false,
   };
-  return { idx, scope };
+  // Mismo alcance que ven las pestañas: con grupos, repeticiones y fórmulas (enriquecerAlcance).
+  return { idx, scope: enriquecerAlcance(scope, idx.structure) };
 }
 const funcionDe = (raw: string) => (raw.match(/^\s*([a-z][a-z:-]*)\s*\(/i)?.[1] ?? (/[+\-*]| div | mod /.test(raw) ? "aritmética" : /^\s*\./.test(raw) ? "punto" : "otra"));
 const esBooleano = (v: string) => /^(yes|no|true|false|1|0|si|sí)?$/i.test(v.trim()) || /^(true|false)\(\)$/i.test(v.trim());

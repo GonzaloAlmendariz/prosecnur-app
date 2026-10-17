@@ -12,7 +12,7 @@ import { PanelCard, QuestionToken } from "../kit";
 import { PestanaReglas } from "../pestanas/PestanaReglas";
 import { EditorLista } from "./EditorLista";
 import { useListasOpciones } from "../listas/useListasOpciones";
-import { gruposDeListas, nombreLegible, usosDeLista, usosPorLista } from "./opcionesModel";
+import { gruposDeListas, nombreDeOrigen, nombreLegible, origenDeLista, usosDeLista, usosPorLista } from "./opcionesModel";
 import "./opciones.css";
 
 export type PestanaOpcionesProps = {
@@ -104,9 +104,10 @@ export function PestanaOpciones(p: PestanaOpcionesProps) {
         ) : undefined}
       >
         {actual ? (
-          <PanelCard title={nombreLegible(actual.items, 2)} fill>
+          <PanelCard title={actual.items.length === 0 && origenDeLista(actual.listName, p.structure) ? nombreDeOrigen(origenDeLista(actual.listName, p.structure)!) : nombreLegible(actual.items, 2)} fill>
             <EditorLista
               lista={actual}
+              origen={origenDeLista(actual.listName, p.structure)}
               usos={usosLista[actual.listName] ?? 0}
               onRename={p.onRename}
               onAgregar={p.onAddChoice}

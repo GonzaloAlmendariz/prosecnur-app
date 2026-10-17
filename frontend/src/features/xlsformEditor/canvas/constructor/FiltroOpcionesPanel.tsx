@@ -10,6 +10,10 @@ import { stripMarkdown } from "../../helpers/markdown";
 import { InspectorField } from "../../inspector/InspectorPrimitives";
 import { variableLabel } from "../reglasHumanas";
 import { variableDisplayLabel } from "../constructor/compartido";
+import { clasificarFiltro } from "../../choiceFilters/buildChoiceFilterModel";
+import { leerConContexto, separarAviso } from "../../reglas/motor";
+import { LECTURA_FILA_ROTA } from "../../reglas/motor/filaRota";
+import { textoDePiezas } from "../../reglas/piezas";
 
 export function ChoiceFilterPanel({
   node,
@@ -33,7 +37,7 @@ export function ChoiceFilterPanel({
   const [draftVariable, setDraftVariable] = useState(controllingVariables[0]?.name ?? "");
   const variableOptionsKey = controllingVariables.map((variable) => variable.name).join("\u0000");
   const columnOptionsKey = choiceColumns.join("\u0000");
-  const status = describeChoiceFilter(currentFilter, scope, choiceColumns);
+  const status = describeChoiceFilter(currentFilter, scope, choiceColumns, node);
   const selectedVariable = controllingVariables.find((variable) => variable.name === draftVariable);
   const simpleFilter = parseSimpleChoiceFilter(currentFilter);
   const filterHasComparison = /(?:!=|<=|>=|=|<|>\b|\bselected\s*\()/i.test(currentFilter);
@@ -296,6 +300,7 @@ export function describeChoiceFilter(
   expression: string,
   scope: LogicScope,
   choiceColumns: string[],
+  node?: BuilderNode | null,
 ): {
   tone: "empty" | "ok" | "warn";
   title: string;
@@ -310,6 +315,18 @@ export function describeChoiceFilter(
       detail: "Todas las opciones de la lista aparecen cuando la pregunta se muestra.",
       references: [],
     };
+  }
+
+  // La clase del filtro decide qué se afirma: un subconjunto fijo no «depende de una respuesta previa» (S2) y una fila
+  // rota no es un filtro (S5). La frase sale del motor, la misma que en la pestaña Filtros.
+  const clase = clasificarFiltro(raw, node);
+  if (clase === "rota") {
+    return { tone: "warn", title: "Fila rota", detail: `${LECTURA_FILA_ROTA}: no filtra ninguna opción.`, references: [] };
+  }
+  const lectura = leerConContexto("choice_filter", raw, { columna: "choice_filter", scope, actual: null }, node?.typeInfo.listName || undefined);
+  const frase = lectura.tecnica ? null : `${textoDePiezas(separarAviso(lectura.piezas).piezas)}.`;
+  if (clase === "fijo") {
+    return { tone: "ok", title: "Subconjunto fijo", detail: frase ?? "Muestra siempre las mismas opciones: no depende de ninguna respuesta.", references: [] };
   }
 
   const variableNames = choiceFilterVariableNames(raw);
@@ -359,12 +376,13 @@ export function describeChoiceFilter(
   }
 
   return {
-    tone: references.length > 0 ? "ok" : "warn",
-    title: references.length > 0 ? "Filtro avanzado" : "Filtro técnico importado",
+    tone: references.length > 0 || frase ? "ok" : "warn",
+    title: references.length > 0 || frase ? "Filtro avanzado" : "Filtro técnico importado",
     detail:
-      references.length > 0
-        ? "La regla usa variables del formulario y se conservará al exportar."
-        : "No detecté referencias ${variable}; conserva la fórmula si viene de un XLSForm probado.",
+      frase ??
+      (references.length > 0
+        ? "La regla usa respuestas del formulario y se conservará al exportar."
+        : "El editor no sabe leer esta regla: se conserva tal cual al exportar."),
     references,
   };
 }

@@ -13,7 +13,7 @@
 // que el QA visual la capture de forma estable (spec §10).
 // =============================================================================
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Pencil, Plus, SlidersHorizontal } from "../../../vendor/lucide-react";
 import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
 import type { BuilderStructure, CatalogSummary } from "../types";
@@ -21,7 +21,7 @@ import { EditorFiltro } from "./EditorFiltro";
 import { TypeIcon } from "../kit";
 import { leerExpresionCascada } from "./cascada";
 import { EditarEnConstructor } from "../shell/EditarEnConstructor";
-import { buildChoiceFilterModel } from "./buildChoiceFilterModel";
+import { buildChoiceFilterModel, type ChoiceFilterCard as Ficha } from "./buildChoiceFilterModel";
 import { ChoiceFilterCard } from "./ChoiceFilterCard";
 import { filtroElegido } from "./seleccionFiltro";
 import "../styles/xf-choice-filters.css";
@@ -93,7 +93,7 @@ export function ChoiceFiltersView({
             <strong>Filtros de opciones</strong>
             <span>
               {cards.length}{" "}
-              {cards.length === 1 ? "pregunta condiciona sus opciones" : "preguntas condicionan sus opciones"}
+              {cards.length === 1 ? "pregunta filtra sus opciones" : "preguntas filtran sus opciones"}
             </span>
           </div>
         </div>
@@ -133,8 +133,8 @@ export function ChoiceFiltersView({
         ) : (
           <div className="pulso-xcf-intro">
             <p>
-              Algunas preguntas ofrecen solo las opciones que la persona habilitó con sus respuestas
-              anteriores. Elige una para ver, sin fórmulas, qué respuesta previa habilita qué opción.
+              Algunas preguntas no muestran toda su lista: unas según lo que la persona respondió antes y
+              otras porque usan siempre la misma parte de la lista. Elige una para ver, sin fórmulas, qué opciones ofrece.
             </p>
           </div>
         )}
@@ -160,10 +160,7 @@ export function ChoiceFiltersView({
                       <TypeIcon baseType={structure?.byRow.get(card.rowIndex)?.typeInfo.base ?? "select_one"} size={13} />
                       <code className="pulso-xcf-fila-codigo">{card.questionCode}</code>
                       <span className="pulso-xcf-fila-texto" title={card.questionLabel}>{card.questionLabel}</span>
-                      <span className="pulso-xcf-fila-meta">
-                        {card.antecedents.length}{" "}
-                        {card.antecedents.length === 1 ? "respuesta previa" : "respuestas previas"}
-                      </span>
+                      <span className="pulso-xcf-fila-meta">{card.meta}</span>
                     </button>
                   </li>
                 );
@@ -172,7 +169,9 @@ export function ChoiceFiltersView({
             </nav>
             <div id={ID_DETALLE} className="pulso-xcf-detalle" role="region" aria-label={`Filtro de ${actual.questionCode}`}
               data-qa-geometry-member="">
-              <ChoiceFilterCard
+              {actual.clase === "fijo" || actual.clase === "rota" ? (
+                <DetalleSinRespuestas card={actual} pie={onEditar ? <span className="pulso-xcf-pie"><EditarEnConstructor onEditar={() => onEditar(actual.rowIndex)} /></span> : null} />
+              ) : <ChoiceFilterCard
                 key={actual.rowIndex}
                 card={actual}
                 onElegirAntecedente={elegirFila}
@@ -187,11 +186,38 @@ export function ChoiceFiltersView({
                     {onEditar ? <EditarEnConstructor onEditar={() => onEditar(actual.rowIndex)} /> : null}
                   </span>
                 )}
-              />
+              />}
             </div>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Detalle de un filtro que no mira respuestas: un subconjunto fijo de la lista o una fila rota. No tiene «respuestas
+ * previas» que listar, así que no usa la ficha de antecedentes (que diría «Depende de las respuestas a:» vacía).
+ */
+function DetalleSinRespuestas({ card, pie }: { card: Ficha; pie: ReactNode }) {
+  return (
+    <article className="pulso-xcf-card">
+      <header className="pulso-xcf-card-head">
+        {card.sectionLabel ? <span className="pulso-xcf-eyebrow">{card.sectionLabel}</span> : null}
+        <h3 className="pulso-xcf-title">
+          <span className="pulso-xcf-title-text">{card.questionLabel}</span>
+          {card.questionCode ? <span className="pulso-xcf-code" aria-hidden="true">{card.questionCode}</span> : null}
+        </h3>
+        <p className="pulso-xcf-explanation">{card.explanation}</p>
+        {card.aviso ? <p className="pulso-xcf-explanation" role="note">{card.aviso}</p> : null}
+      </header>
+      <div className="pulso-xcf-rule">
+        <div className="pulso-xcf-rule-body">
+          <code className="pulso-xcf-rule-code">{card.rawExpression}</code>
+          <span className="pulso-xcf-rule-meta">lista de opciones: <code>{card.listName || "—"}</code></span>
+        </div>
+      </div>
+      {pie}
+    </article>
   );
 }

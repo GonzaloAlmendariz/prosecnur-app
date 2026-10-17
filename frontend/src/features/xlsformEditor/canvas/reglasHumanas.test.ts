@@ -47,7 +47,10 @@ describe("lectura humana de funciones del corpus real", () => {
     expect(leer("int((decimal-date-time(${edad}) - decimal-date-time(${edad})) * 24 * 60)")).toMatch(/^Los minutos entre/);
   });
   test("comillas tipográficas: se lee el sentido y se señala el error", () => {
-    expect(leer("${edad} = “OK”")).toBe("Edad es OK (escrita con comillas tipográficas, que ODK no acepta)");
+    // S7: el aviso va aparte de la frase, no metido en ella.
+    const l = describeExpression("${edad} = “OK”", scope);
+    expect(l.summary).toBe("Edad es OK");
+    expect(l.aviso).toMatch(/comillas tipográficas/);
   });
   test("mayúscula sólo al inicio y contracciones", () => {
     expect(leer("if(. = '1', ${edad} > 3, true())")).toBe("Si la respuesta es 1, Edad tiene que ser mayor que 3");

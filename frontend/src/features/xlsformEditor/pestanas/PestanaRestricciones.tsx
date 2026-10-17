@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import type { LogicScope } from "../logic";
+import { enriquecerAlcance, type LogicScope } from "../logic";
+import { LECTURA_FILA_ROTA, esFilaRota } from "../reglas/motor/filaRota";
 import type { BuilderStructure } from "../types";
 import { describeValidation } from "../canvas/reglasHumanas";
 import { PanelCard, QuestionToken, ReadsAs, TypeIcon } from "../kit";
@@ -26,8 +27,17 @@ export type PestanaRestriccionesProps = {
   catalogs: { listName: string; items: { name: string; label: string }[] }[];
 };
 
-export function PestanaRestricciones({ structure, scope, seleccionada, onSeleccionar, onEditar, onCampo, onCampos, catalogs }: PestanaRestriccionesProps) {
-  const items = useMemo(() => restriccionesDelFormulario(structure), [structure]);
+export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada, onSeleccionar, onEditar, onCampo, onCampos, catalogs }: PestanaRestriccionesProps) {
+  const scope = useMemo(() => enriquecerAlcance(scopeBase, structure), [scopeBase, structure]);
+  // Un «mensaje» que repite el nombre de la pregunta (fila rota) no es un mensaje: cuenta como que falta (S5).
+  const items = useMemo(
+    () => restriccionesDelFormulario(structure).map((i) => {
+      const mensaje = (i.node.constraint_message ?? "").trim();
+      const rota = esFilaRota(i.node);
+      return { ...i, rota, usa: rota ? [] : i.usa, sinMensaje: i.sinMensaje || (i.estado === "con" && mensaje === i.node.name) };
+    }),
+    [structure],
+  );
   const con = items.filter((i) => i.estado === "con");
   const sugeridas = items.filter((i) => i.estado === "sugerida");
   const actual = items.find((i) => i.node.name === seleccionada) ?? con[0] ?? sugeridas[0] ?? null;
@@ -37,8 +47,8 @@ export function PestanaRestricciones({ structure, scope, seleccionada, onSelecci
       titulo: "Con restricción",
       items: con.map((i) => ({
         key: i.node.name, baseType: i.node.typeInfo.base, numero: numero(i.node), titulo: i.node.label || i.node.name,
-        resumen: i.sinMensaje ? "Sin mensaje para quien se equivoca" : describeValidation(i.node.constraint, i.node, scope)?.summary ?? i.node.constraint,
-        aviso: i.sinMensaje,
+        resumen: i.rota ? LECTURA_FILA_ROTA : i.sinMensaje ? "Sin mensaje para quien se equivoca" : describeValidation(i.node.constraint, i.node, scope)?.summary ?? i.node.constraint,
+        aviso: i.sinMensaje || i.rota,
       })),
     },
     {
@@ -50,6 +60,7 @@ export function PestanaRestricciones({ structure, scope, seleccionada, onSelecci
     },
   ];
   const lectura = actual ? describeValidation(actual.node.constraint, actual.node, scope) : null;
+  const mensajeActual = (actual?.node.constraint_message ?? "").trim();
   const porNombre = (name: string) => structure?.outline.find((n) => n.name === name) ?? null;
 
   return (
@@ -86,7 +97,14 @@ export function PestanaRestricciones({ structure, scope, seleccionada, onSelecci
           </PanelCard>
           <PanelCard title="Cómo se interpreta" meta={actual.estado === "con" ? "regla vigente" : "sin regla"} flush>
             <ReadsAs label="Se lee">{lectura?.summary ?? "Acepta cualquier valor: todavía no tiene restricción."}</ReadsAs>
-            <ReadsAs label="Mensaje">{actual.node.constraint_message?.trim() || "Sin mensaje: quien se equivoque verá un aviso genérico."}</ReadsAs>
+            {lectura?.aviso ? <ReadsAs label="Aviso">{lectura.aviso}</ReadsAs> : null}
+            <ReadsAs label="Mensaje">
+              {mensajeActual && mensajeActual !== actual.node.name
+                ? mensajeActual
+                : mensajeActual
+                  ? "Sin mensaje: el de esta fila es el nombre de la pregunta repetido."
+                  : "Sin mensaje: quien se equivoque verá un aviso genérico."}
+            </ReadsAs>
             <ReadsAs label="XLSForm" code>{actual.node.constraint.trim() ? `constraint = ${actual.node.constraint.trim()}` : "constraint vacío"}</ReadsAs>
           </PanelCard>
           {actual.estado === "con" ? <ProbarRestriccion node={actual.node} opciones={catalogs.find((c) => c.listName === actual.node.typeInfo.listName)?.items ?? []} /> : null}
@@ -99,11 +117,11 @@ export function PestanaRestricciones({ structure, scope, seleccionada, onSelecci
                     return <QuestionToken key={v} baseType={n?.typeInfo.base ?? ""} label={n ? numero(n) : v} hint={n?.label} variable={v} />;
                   })}
                 </div>
-              ) : <p className="xfp-nota">Sólo mira la propia respuesta.</p>}
+              ) : <p className="xfp-nota">{actual.rota ? "Ninguna: la fila está rota y no tiene una regla real." : "Sólo mira la propia respuesta."}</p>}
             </PanelCard>
             <PanelCard title="Antes de aplicar" fill>
               <ul className="xfp-check">
-                <li className={actual.estado === "con" ? "is-ok" : "is-aviso"}>{actual.estado === "con" ? "Tiene una regla de qué acepta." : "Un número sin límites acepta errores de digitación."}</li>
+                <li className={actual.estado === "con" && !actual.rota ? "is-ok" : "is-aviso"}>{actual.rota ? "La fila está rota: su regla es el nombre de la pregunta repetido." : actual.estado === "con" ? "Tiene una regla de qué acepta." : "Un número sin límites acepta errores de digitación."}</li>
                 <li className={actual.sinMensaje || actual.estado !== "con" ? "is-aviso" : "is-ok"}>{actual.sinMensaje || actual.estado !== "con" ? "Falta un mensaje que diga qué escribir." : "Tiene mensaje para quien se equivoca."}</li>
               </ul>
             </PanelCard>

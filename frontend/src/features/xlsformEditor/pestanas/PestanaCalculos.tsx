@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { Plus } from "../../../vendor/lucide-react";
-import type { LogicScope } from "../logic";
+import { enriquecerAlcance, type LogicScope } from "../logic";
+import { DONDE_SE_USA, indiceDeUsos } from "../logic/usos";
 import type { BuilderStructure } from "../types";
 import { describeExpression } from "../canvas/reglasHumanas";
 import { PanelCard, QuestionToken, ReadsAs, TypeIcon } from "../kit";
@@ -14,13 +15,6 @@ import { CalculationRecipePanel } from "../canvas/constructor/CalculoRepeticionP
 // Pestaña Cálculos (revamp 2026-10-16): cada `calculate` del formulario con su fórmula leída
 // en español, de qué respuestas sale y quién lo usa después.
 
-const COLUMNA: Record<string, string> = {
-  relevant: "cuándo aparece",
-  constraint: "qué acepta",
-  calculation: "otro cálculo",
-  choice_filter: "opciones visibles",
-};
-
 export type PestanaCalculosProps = {
   structure: BuilderStructure | null;
   scope: LogicScope;
@@ -33,9 +27,16 @@ export type PestanaCalculosProps = {
   onNuevo?: () => void;
 };
 
-export function PestanaCalculos({ structure, scope, seleccionada, onSeleccionar, onEditar, onCampo, catalogs, onNuevo }: PestanaCalculosProps) {
+export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onSeleccionar, onEditar, onCampo, catalogs, onNuevo }: PestanaCalculosProps) {
   const opcionesDe = useCallback((listName: string) => catalogs.find((c) => c.listName === listName)?.items ?? [], [catalogs]);
-  const items = useMemo(() => calculosDelFormulario(structure), [structure]);
+  // Con la estructura el motor cita grupos y repeticiones por su etiqueta (indexed-repeat, sum, join).
+  const scope = useMemo(() => enriquecerAlcance(scopeBase, structure), [scopeBase, structure]);
+  // «Lo usan» cuenta TODAS las columnas: también la etiqueta, la ayuda, los mensajes y las opciones (S1).
+  const usos = useMemo(() => indiceDeUsos(structure, catalogs), [structure, catalogs]);
+  const items = useMemo(
+    () => calculosDelFormulario(structure).map((i) => ({ ...i, loUsan: usos.get(i.node.name) ?? [] })),
+    [structure, usos],
+  );
   const actual = items.find((i) => i.node.name === seleccionada) ?? items[0] ?? null;
   const porNombre = (name: string) => structure?.outline.find((n) => n.name === name) ?? null;
   const numero = (n: { paperNumber?: string; name: string }) => n.paperNumber || n.name;
@@ -103,13 +104,13 @@ export function PestanaCalculos({ structure, scope, seleccionada, onSeleccionar,
               {actual.loUsan.length ? (
                 <ul className="xfp-usos">
                   {actual.loUsan.map((u) => (
-                    <li key={`${u.node.rowIndex}-${u.columna}`}>
+                    <li key={`${u.node.rowIndex}-${u.columna}-${u.opcion?.valor ?? ""}`}>
                       <QuestionToken baseType={u.node.typeInfo.base} label={numero(u.node)} hint={u.node.label} variable={u.node.name} />
-                      <span className="xfp-usos__col">{COLUMNA[u.columna]}</span>
+                      <span className="xfp-usos__col">{u.opcion ? `en la opción «${u.opcion.etiqueta}»` : DONDE_SE_USA[u.columna]}</span>
                     </li>
                   ))}
                 </ul>
-              ) : <p className="xfp-nota">Ninguna pregunta lo lee: sólo queda como columna en la base.</p>}
+              ) : <p className="xfp-nota">Ninguna fila lo usa, ni en sus reglas ni en sus textos: sólo queda como columna en la base.</p>}
             </PanelCard>
           </div>
         </>
