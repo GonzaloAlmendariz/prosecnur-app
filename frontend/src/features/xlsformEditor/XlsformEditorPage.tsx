@@ -2779,7 +2779,6 @@ export default function XlsformEditorPage() {
           canRedo={canRedo}
           onUndo={() => dispatch({ type: "UNDO" })}
           onRedo={() => dispatch({ type: "REDO" })}
-          listas={{ repetidas: escalasRepetidas, onOpen: abrirPestanaListas }}
           diagnostics={diagnostics}
           publication={activeFormId ? publicationUi.byFormId[activeFormId] ?? null : null}
           selection={selection}
@@ -2934,7 +2933,7 @@ export default function XlsformEditorPage() {
                   header → popover floating al click.
                 - Índice → CollapsibleSection abajo, no en columna lateral. */}
 
-          <EditorPestanas pestana={pestana} onCambiar={(destino) => irPestana(destino)}>
+          <EditorPestanas pestana={pestana} onCambiar={(destino) => irPestana(destino)} listasRepetidas={escalasRepetidas}>
             {(pestana === "constructor" || pestana === "hojas") && (
                 <EditorSmImportNotice
                   formId={activeFormId}

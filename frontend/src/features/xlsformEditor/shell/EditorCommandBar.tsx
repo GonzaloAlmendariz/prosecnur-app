@@ -19,7 +19,6 @@
 import { IconRedo, IconUndo } from "../../../lib/icons";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ListChecks } from "../../../vendor/lucide-react";
-import { rotuloBotonListas } from "../listas";
 import type { XlsformFormPublication } from "../../../api/xlsformEditor";
 import type { XlsformFormSource } from "../../../api/multiIntegrado";
 import type { BuilderDiagnostic, BuilderSelection } from "../types";
@@ -43,7 +42,6 @@ export type EditorCommandBarProps = {
   onUndo: () => void;
   onRedo: () => void;
   /** H7: escalas repetidas y apertura del diálogo «Listas de opciones». */
-  listas: { repetidas: number; onOpen: () => void };
   diagnostics: BuilderDiagnostic[];
   publication: XlsformFormPublication | null;
   selection: BuilderSelection | null;
@@ -134,21 +132,6 @@ export function EditorCommandBar(props: EditorCommandBarProps) {
       </div>
 
       <div className="pulso-xlsform-commandbar-group pulso-xlsform-commandbar-group--modes">
-        <PulsoButton
-          variant="secondary"
-          size="sm"
-          className="pulso-xf-cmd-listas"
-          onClick={props.listas.onOpen}
-          aria-label={rotuloBotonListas(props.listas.repetidas)}
-          title={rotuloBotonListas(props.listas.repetidas)}
-        >
-          <ListChecks size={14} aria-hidden="true" />
-          <span className="pulso-xf-cmd-label pulso-xf-cmd-label--low">Listas de opciones</span>
-          <span className="pulso-xf-cmd-short" aria-hidden="true">Listas</span>
-          {props.listas.repetidas > 0 && (
-            <span className="pulso-xf-cmd-count" aria-hidden="true">{props.listas.repetidas}</span>
-          )}
-        </PulsoButton>
         <DiagnosticsBadge
           diagnostics={props.diagnostics}
           status={status}
