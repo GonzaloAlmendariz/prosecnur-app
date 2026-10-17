@@ -10,9 +10,9 @@ import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
 import type { BuilderStructure, CatalogSummary } from "../types";
 import { PanelCard, QuestionToken } from "../kit";
 import { PestanaReglas } from "../pestanas/PestanaReglas";
-import { CatalogWorkspace } from "../catalogs/CatalogWorkspace";
+import { EditorLista } from "./EditorLista";
 import { useListasOpciones } from "../listas/useListasOpciones";
-import { gruposDeListas, nombreLegible, usosDeLista } from "./opcionesModel";
+import { gruposDeListas, nombreLegible, usosDeLista, usosPorLista } from "./opcionesModel";
 import "./opciones.css";
 
 export type PestanaOpcionesProps = {
@@ -20,7 +20,6 @@ export type PestanaOpcionesProps = {
   onWorkbookChange: (next: XlsformEditorWorkbook) => void;
   structure: BuilderStructure | null;
   catalogs: CatalogSummary[];
-  usageByCatalog: Record<string, number>;
   seleccionada: string | null;
   onSeleccionar: (listName: string) => void;
   onCrear: () => void;
@@ -36,14 +35,17 @@ export type PestanaOpcionesProps = {
 export function PestanaOpciones(p: PestanaOpcionesProps) {
   const control = useListasOpciones(p.workbook, p.onWorkbookChange);
   const repetidas = control.analisis.grupos;
-  const grupos = useMemo(() => gruposDeListas(p.catalogs, p.usageByCatalog, repetidas, p.structure),
-    [p.catalogs, p.usageByCatalog, repetidas, p.structure]);
+  // Los usos salen de la estructura, no de `usageByCatalog`: así la lista y «Dónde se usa» dicen lo mismo.
+  const usosLista = useMemo(() => usosPorLista(p.structure, p.catalogs), [p.structure, p.catalogs]);
+  const grupos = useMemo(() => gruposDeListas(p.catalogs, usosLista, repetidas, p.structure),
+    [p.catalogs, usosLista, repetidas, p.structure]);
   // Sin `foco` (o con uno que ya no existe), la primera lista según el orden de los grupos.
   const primera = grupos.flatMap((g) => g.items)[0]?.key ?? null;
   const actual = p.catalogs.find((c) => c.listName === p.seleccionada) ?? p.catalogs.find((c) => c.listName === primera) ?? null;
   const usos = actual ? usosDeLista(p.structure, actual.listName) : [];
   const grupo = actual ? repetidas.find((g) => g.listas.includes(actual.listName)) ?? null : null;
   const [motivo, setMotivo] = useState<string | null>(null);
+  const [nombreUnificada, setNombreUnificada] = useState<Record<string, string>>({});
 
   const nueva = (
     <button type="button" className="xfo-nueva" onClick={p.onCrear}>
@@ -63,7 +65,7 @@ export function PestanaOpciones(p: PestanaOpcionesProps) {
         vacio={<div className="xfo-vacio"><ListChecks size={18} aria-hidden="true" /><p>Este formulario todavía no tiene listas.</p>{nueva}</div>}
         vacioDetalle={<div className="xfo-vacio"><p>Crea la primera lista para las preguntas de selección.</p></div>}
         lateral={actual ? (
-          <div className="xfo-lateral">
+          <div className="xfo-lateral" data-qa-geometry-group="xlsform/opciones-lateral" data-qa-geometry-contract="intrinsic">
             <PanelCard title="Dónde se usa" meta={usos.length ? String(usos.length) : undefined}>
               {usos.length ? (
                 <ul className="xfo-usos">
@@ -82,12 +84,17 @@ export function PestanaOpciones(p: PestanaOpcionesProps) {
             </PanelCard>
             {grupo ? (
               <PanelCard title="Se repite" icon={<Copy size={14} aria-hidden="true" />} meta={`${grupo.listas.length} listas`}>
-                <p className="xfo-nota">Las mismas opciones están en {grupo.listas.length} listas. Unificarlas deja una sola, con un nombre claro, para las {grupo.preguntas.length} preguntas.</p>
+                <p className="xfo-nota">Las mismas opciones están en {grupo.listas.length} listas. Unificarlas deja una sola, con un nombre claro, para todas las preguntas que las usan.</p>
                 <ul className="xfo-gemelas">
                   {grupo.listas.map((l) => <li key={l} className={l === actual.listName ? "is-actual" : undefined}><code>{l}</code></li>)}
                 </ul>
-                <button type="button" className="xfo-unificar" onClick={() => setMotivo(control.unificar(grupo, grupo.sugerencia))}>
-                  Unificar como {grupo.sugerencia}
+                <label className="xfo-unificada">
+                  <span>Nombre de la lista unificada</span>
+                  <input value={nombreUnificada[grupo.firma] ?? grupo.sugerencia} spellCheck={false}
+                    onChange={(e) => setNombreUnificada((m) => ({ ...m, [grupo.firma]: e.target.value }))} />
+                </label>
+                <button type="button" className="xfo-unificar" onClick={() => setMotivo(control.unificar(grupo, nombreUnificada[grupo.firma] ?? grupo.sugerencia))}>
+                  Unificar
                 </button>
                 {motivo ? <p className="xfo-nota is-aviso" role="status">{motivo}</p> : null}
               </PanelCard>
@@ -97,16 +104,16 @@ export function PestanaOpciones(p: PestanaOpcionesProps) {
         ) : undefined}
       >
         {actual ? (
-          <PanelCard title={nombreLegible(actual.items, 4)} meta={<code className="xfo-codigo">{actual.listName}</code>} fill>
-            <CatalogWorkspace
-              catalog={actual}
-              usageCount={p.usageByCatalog[actual.listName] ?? 0}
+          <PanelCard title={nombreLegible(actual.items, 2)} fill>
+            <EditorLista
+              lista={actual}
+              usos={usosLista[actual.listName] ?? 0}
               onRename={p.onRename}
-              onAddChoice={p.onAddChoice}
-              onChoiceChange={p.onChoiceChange}
-              onChoiceRemove={p.onChoiceRemove}
-              onChoiceMove={p.onChoiceMove}
-              onDeleteCatalog={p.onDeleteCatalog}
+              onAgregar={p.onAddChoice}
+              onCambio={p.onChoiceChange}
+              onQuitar={p.onChoiceRemove}
+              onMover={p.onChoiceMove}
+              onBorrarLista={p.onDeleteCatalog}
             />
           </PanelCard>
         ) : null}

@@ -26,6 +26,17 @@ export function tipoDeLista(structure: BuilderStructure | null, listName: string
   return usosDeLista(structure, listName)[0]?.typeInfo.base || "select_one";
 }
 
+/** Cuántas preguntas usan cada lista, leído de la estructura del editor: entiende la lista en `type` y también en
+ * una columna `list_name` o `select_from_list_name` aparte, que el conteo sobre la columna `type` no veía (H1). */
+export function usosPorLista(structure: BuilderStructure | null, catalogs: readonly CatalogSummary[]): Record<string, number> {
+  const usos: Record<string, number> = Object.fromEntries(catalogs.map((c) => [c.listName, 0]));
+  for (const n of structure?.outline ?? []) {
+    const l = n.typeInfo.listName;
+    if (l && l in usos) usos[l] += 1;
+  }
+  return usos;
+}
+
 function usosTexto(n: number): string {
   return n === 0 ? "sin uso" : n === 1 ? "en 1 pregunta" : `en ${n} preguntas`;
 }
