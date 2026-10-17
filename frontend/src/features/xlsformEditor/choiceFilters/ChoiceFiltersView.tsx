@@ -18,6 +18,7 @@ import { Pencil, Plus, SlidersHorizontal } from "../../../vendor/lucide-react";
 import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
 import type { BuilderStructure, CatalogSummary } from "../types";
 import { EditorFiltro } from "./EditorFiltro";
+import { TypeIcon } from "../kit";
 import { leerExpresionCascada } from "./cascada";
 import { EditarEnConstructor } from "../shell/EditarEnConstructor";
 import { buildChoiceFilterModel } from "./buildChoiceFilterModel";
@@ -156,6 +157,7 @@ export function ChoiceFiltersView({
                       aria-controls={ID_DETALLE}
                       onClick={() => onSeleccionar(card.questionCode)}
                     >
+                      <TypeIcon baseType={structure?.byRow.get(card.rowIndex)?.typeInfo.base ?? "select_one"} size={13} />
                       <code className="pulso-xcf-fila-codigo">{card.questionCode}</code>
                       <span className="pulso-xcf-fila-texto" title={card.questionLabel}>{card.questionLabel}</span>
                       <span className="pulso-xcf-fila-meta">

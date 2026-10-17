@@ -21,7 +21,7 @@ describe("editor del filtro de opciones", () => {
     );
     expect(html).toContain("Editar filtro de opciones");
     expect(html).toContain("Quitar filtro");
-    expect(html).toMatch(/<option value="departamento" selected="">/);
+    expect(html).toMatch(/xfk-selpreg__elegida[^]*?<b>departamento<\/b><span>Departamento<\/span>/);
     expect(html).toContain("Lima Metropolitana");
     expect(html).toMatch(/<option value="15" selected="">Lima<\/option>/);
     expect(html).toContain("2 de 2 asignadas");

@@ -6,3 +6,5 @@ export { TypeIcon } from "./TypeIcon";
 export { QuestionToken, type QuestionTokenProps } from "./QuestionToken";
 export { ReadsAs } from "./ReadsAs";
 export { typeFamily, typeTone, type TypeFamily } from "./typeTone";
+export { MaquetaTipo } from "./MaquetaTipo";
+export { SelectorPregunta, type OpcionPregunta } from "./SelectorPregunta";

@@ -5,7 +5,7 @@
 .xff-pasos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 @media (max-width: 1100px) { .xff-pasos { grid-template-columns: minmax(0, 1fr); } }
 .xff-campo { display: grid; grid-template-columns: 24px minmax(0, 1fr); grid-template-rows: auto auto; gap: 6px 8px; align-items: center; min-width: 0; }
-.xff-campo select { grid-column: 2; }
+.xff-campo > :last-child { grid-column: 2; }
 .xff-n {
   display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
   background: var(--pulso-primary-soft); color: var(--pulso-primary); font-size: 11.5px; font-weight: var(--pulso-weight-semibold);
@@ -55,3 +55,7 @@
 .pulso-xcf-nuevo.is-primario:hover { color: var(--pulso-surface); filter: brightness(1.05); }
 .pulso-xcf-nuevo:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
 .pulso-xcf-pie { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* Ícono del tipo en la lista de preguntas con filtro (F3). */
+.pulso-xcf-lista .pulso-xcf-fila { grid-template-columns: 14px auto minmax(0, 1fr); }
+.pulso-xcf-lista .pulso-xcf-fila > svg { grid-row: span 2; align-self: center; }
+.pulso-xcf-lista .pulso-xcf-fila-texto, .pulso-xcf-lista .pulso-xcf-fila-meta { grid-column: 3; }

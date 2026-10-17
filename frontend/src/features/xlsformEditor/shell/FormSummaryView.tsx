@@ -20,6 +20,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { BuilderDiagnostic, BuilderStructure, XlsformEditorWorkbook } from "../types";
 import { buildCatalogs } from "../parsing/buildIndex";
 import { BarraComposicion } from "../resumen/BarraComposicion";
+import { TiposConMaqueta } from "../resumen/TiposConMaqueta";
 import { PendientesPublicar } from "../resumen/PendientesPublicar";
 import { TablaSecciones } from "../resumen/TablaSecciones";
 import { LineaTiempo } from "../resumen/LineaTiempo";
@@ -205,11 +206,7 @@ export function FormSummaryView({
                 <p className="pulso-xf-res-vacio">Aún no hay preguntas: agrega la primera en el Constructor.</p>
               ) : (
                 <div className="pulso-xf-res-comp-pila" data-qa-geometry-group="xlsform/resumen-composicion" data-qa-geometry-contract="intrinsic">
-                  <BarraComposicion
-                    titulo="Tipos de pregunta"
-                    total={resumen.preguntas}
-                    segmentos={resumen.tipos.map((t) => ({ clave: t.base, rotulo: t.rotulo, valor: t.preguntas }))}
-                  />
+                  <TiposConMaqueta tipos={resumen.tipos} total={resumen.preguntas} />
                   <BarraComposicion
                     titulo="Obligatoriedad"
                     total={resumen.preguntas}
