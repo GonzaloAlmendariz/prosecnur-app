@@ -64,8 +64,8 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| H1 | Deriva front/back de bloques: el front lista 9, el back acepta 13 | `frontend/src/api/recopiladores.ts:186` vs `api/R/collection_materials.R:11` | pendiente (E1) |
-| H2 | `ficha_campo_qr_a4_v1` y `afiche_qr_a4_v1` solo los llaman los tests | `api/R/collection_materials.R:22-52` | pendiente (E1) |
+| H1 | Deriva front/back de bloques: el front lista 9, el back acepta 13 | `frontend/src/api/recopiladores.ts:186` vs `api/R/collection_materials.R:11` | hecho (E1a: `COLLECTION_BLOCK_TYPES` 13 con test de paridad R↔TS) |
+| H2 | `ficha_campo_qr_a4_v1` y `afiche_qr_a4_v1` solo los llaman los tests | `api/R/collection_materials.R:22-52` | hecho (E1a: los tres presets en Catálogo › Tipos con «Usar este tipo») |
 | H3 | `hojas_ruta_generar_zip` sin llamadores de producción, pero con `@export` y test | `api/R/hojas_ruta_engine.R:266`, `api/NAMESPACE`, `test-hojas-ruta-engine.R:58-81` | pendiente (E3, doble confirmación) |
 | H4 | Formularios `#7172C1` da 4.30:1 sobre blanco, bajo el 4.5 que exige la dirección creativa v3 | `branding/direccion-creativa-v3.md` | pendiente: no es de este ADR; medido el 2026-10-16 |
 | H5 | Monitoreo territorial salta en silencio una unidad sin márgenes de cuota | `api/R/monitoreo_engine.R:9642` | pendiente: hoy afecta a manzanas sin cuota; bloquea E4 |
@@ -76,8 +76,8 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | H22 | Paquetes dice «Fichas 0 de N» con las fichas creadas; cada visita crea una instancia nueva | `MaterialsSection.tsx:247,288,419` | hecho en la rama (7a8664488, 2072f1bf4; verificador APROBADO CON PENDIENTES 2026-10-16) |
 | H23 | Entrega ofrece descargar un recibo cuyo archivo no viaja en el `.pulso` (404 al reabrir); «1 páginas» | `DeliverySection.tsx:37,139`, payload de `collection_state` | hecho en la rama (7a8664488, 2072f1bf4; verificador APROBADO CON PENDIENTES 2026-10-16) |
 | H25 | En Entrega, la tarjeta «Recibo firmado» sale con Fecha, Revisión, Plan y Accesos vacíos sin que haya traspaso | `DeliverySection.tsx`, `readiness.receipt`/`payload.handoff` | hecho en la rama (59b601462, 7aeeb5662; verificador APROBADO CON PENDIENTES 2026-10-16) |
-| H26 | Volver a sembrar el plan borra en silencio plantilla, fichas y recibos; la UI no confirma ni lee `descartado` | `collection_engine.R:660-693`, `PlanSection.tsx:212-223` | pendiente: preexistente en main (b3cffca92) |
-| H27 | Accesos no distingue los campos derivados al leer (`deployment_derived_fields`) y los reenvía como observados | `AccessSection.tsx`, `providerRules.ts` | pendiente |
+| H26 | Volver a sembrar el plan borra en silencio plantilla, fichas y recibos; la UI no confirma ni lee `descartado` | `collection_engine.R:660-693`, `PlanSection.tsx:212-223` | hecho (83bbeb44a, e43e0ff81; verificador APROBADO CON PENDIENTES 2026-10-17: dry_run no muta, descartado idéntico al real, plantilla conservada) |
+| H27 | Accesos no distingue los campos derivados al leer (`deployment_derived_fields`) y los reenvía como observados | `AccessSection.tsx`, `providerRules.ts` | hecho (b13564464; verificador APROBADO CON PENDIENTES 2026-10-17) |
 | H24 | El fixture anonimizado muestra facultades y cursos como nombres de persona | `api/inst/reference_projects/hsvg2026` | pendiente: trampa del anonimizador, no de la app |
 | H10 | Entrega > Reemplazos esconde 250 px a la derecha sin indicio y el runner dice `desplazamientoH=0` | `.hojas-ruta-review-table-wrap.is-delivery`, `scripts/ui-quick-check.mjs` | pendiente: detector y tabla |
 | H11 | En 1024x600 dos ítems del outline de Materiales desbordan (173 y 182 px en 166) | `features/recopiladores/` | hecho en la rama (5 mejoras, 2026-10-16): filas alineadas, sin overflow a 1024 |
