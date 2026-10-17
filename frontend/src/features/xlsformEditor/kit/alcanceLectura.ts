@@ -1,4 +1,4 @@
-import type { LogicCatalog, LogicScope, LogicVariable } from "../logic";
+import { enriquecerAlcance, type LogicCatalog, type LogicScope, type LogicVariable } from "../logic";
 import type { BuilderStructure } from "../types";
 
 // Alcance de LECTURA del riel de marcas: todas las variables del formulario, sin depender de qué pregunta está
@@ -21,5 +21,6 @@ export function alcanceDeLectura(
     }));
   const catalogsByListName = new Map<string, LogicCatalog>();
   for (const c of catalogs) catalogsByListName.set(c.listName, { listName: c.listName, items: c.items });
-  return { variables, catalogsByListName, allowCurrent: false };
+  // Enriquecido con grupos y repeticiones: el motor cita las secciones por su etiqueta, no por su código.
+  return enriquecerAlcance({ variables, catalogsByListName, allowCurrent: false }, structure ?? null);
 }

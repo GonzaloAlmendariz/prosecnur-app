@@ -3,6 +3,7 @@
 // tiene, el `required` crudo de la fila (el nodo sólo guarda un booleano y una expresión cae como «no»).
 // No traduce reglas: eso lo hace el motor (reglas/leerRegla.ts) cuando se abre el panel.
 
+import { condicionesHeredadas } from "../logic";
 import { lecturaRequired } from "../parsing/parseType";
 import type { BuilderNode, BuilderStructure } from "../types";
 import type { ClaveMarca } from "./glifosMarca";
@@ -37,23 +38,8 @@ function obligDe(node: BuilderNode, requiredRaw: string | undefined): MarcaOblig
 }
 
 function heredadas(node: BuilderNode, structure: BuilderStructure | null | undefined): CondHeredada[] {
-  if (!structure) return [];
-  const out: CondHeredada[] = [];
-  const vistos = new Set<string>();
-  // La fila de apertura de una sección pertenece a la sección que la contiene (buildIndex), así que su propia
-  // condición nunca se cuenta como heredada.
-  let id: string | null = structure.rowToSectionId.get(node.rowIndex) ?? node.sectionId ?? null;
-  while (id && !vistos.has(id)) {
-    vistos.add(id);
-    const meta = structure.sections.get(id);
-    if (!meta || meta.kind === "root") break;
-    const apertura = meta.rowIndex != null ? structure.byRow.get(meta.rowIndex) : undefined;
-    if (apertura && apertura.rowIndex !== node.rowIndex && apertura.relevant.trim()) {
-      out.push({ nodo: apertura, etiqueta: apertura.label || apertura.name || meta.label, raw: apertura.relevant.trim() });
-    }
-    id = meta.parentId;
-  }
-  return out;
+  // Una sola fuente con el motor: la misma condición repetida en secciones anidadas se dice una vez.
+  return condicionesHeredadas(node, structure ?? null);
 }
 
 export function marcasNodo(node: BuilderNode, structure?: BuilderStructure | null, requiredRaw?: string): MarcasNodo {
@@ -95,8 +81,8 @@ export type InfoMarca = { nombre: string; tono: string; corto: string };
 
 export const INFO_MARCA: Readonly<Record<ClaveMarca, InfoMarca>> = {
   oblig: { nombre: "Obligatoria", tono: "var(--pulso-marca-oblig)", corto: "OB" },
-  cond: { nombre: "Condición propia", tono: "var(--pulso-marca-cond)", corto: "SI" },
-  hered: { nombre: "Condición de la sección", tono: "var(--pulso-marca-cond)", corto: "SI" },
+  cond: { nombre: "Condición propia", tono: "var(--pulso-marca-cond)", corto: "CO" },
+  hered: { nombre: "Condición de la sección", tono: "var(--pulso-marca-cond)", corto: "CO" },
   regla: { nombre: "Restricción", tono: "var(--pulso-marca-regla)", corto: "RE" },
   calc: { nombre: "Cálculo", tono: "var(--pulso-marca-calc)", corto: "ƒx" },
   filtro: { nombre: "Filtro de opciones", tono: "var(--pulso-marca-filtro)", corto: "FI" },

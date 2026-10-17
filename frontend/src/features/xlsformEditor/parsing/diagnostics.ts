@@ -24,6 +24,7 @@ import type {
   XlsformIndex,
 } from "../types";
 import { rowToRecord } from "./sheetUtils";
+import { LECTURA_FILA_ROTA, esFilaRota } from "../reglas/motor/filaRota";
 
 export function buildDiagnostics(
   workbook: XlsformEditorWorkbook | null,
@@ -144,16 +145,14 @@ export function buildDiagnostics(
     const nombre = (node.name ?? "").trim();
     if (nombre) {
       const record = rowToRecord(workbook.survey, node.rowIndex);
-      const reglas = [node.relevant, node.constraint, node.calculation, node.choiceFilter, record.required ?? "", node.constraint_message ?? ""]
-        .map((x) => (x ?? "").trim())
-        .filter(Boolean);
-      if (reglas.length >= 2 && reglas.every((x) => x === nombre)) {
+      // Misma regla que el motor de lectura (reglas/motor/filaRota.ts): una sola fuente para decir que está rota.
+      if (esFilaRota(node, [record.required])) {
         diagnostics.push({
           id: `fila-rota-${node.rowIndex}`,
           level: "warn",
           rowIndex: node.rowIndex,
           title: "Fila rota: las reglas repiten el nombre",
-          detail: `Condición, restricción, cálculo y demás reglas de esta fila dicen solo "${nombre}". Parece un relleno de Excel: revisa la fila en la vista Hojas.`,
+          detail: `${LECTURA_FILA_ROTA} («${nombre}»). Parece un relleno de Excel: revisa la fila en la vista Hojas.`,
         });
       }
     }

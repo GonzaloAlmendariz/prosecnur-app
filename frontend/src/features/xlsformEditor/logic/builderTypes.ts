@@ -27,6 +27,19 @@ export type LogicVariable = {
   /** Si es select_one/multiple, el nombre del catálogo asociado para
    *  desplegar las opciones en el value input. */
   listName?: string;
+  /** `name` de la repetición más interna que contiene la variable (lo llena `enriquecerAlcance`). */
+  repeticion?: string;
+  /** Fórmula, si es un cálculo (lo llena `enriquecerAlcance`): nombra un cálculo sin etiqueta que copia otra respuesta. */
+  calculation?: string;
+};
+
+/** Un grupo o repetición, para citar `${grupo}` por su etiqueta en una frase (lo llena `enriquecerAlcance`). */
+export type LogicGroup = {
+  name: string;
+  /** Etiqueta con que se cita (la propia o la de la repetición que cuenta); su código si no hay otra. */
+  label: string;
+  kind: "section" | "repeat";
+  repeatCount?: string;
 };
 
 /** Catálogo (lista de opciones) referenciable por nombre. */
@@ -44,4 +57,6 @@ export type LogicScope = {
   /** Si la expresión está dentro de un constraint, el operador `.` (valor
    *  actual) está habilitado como left-operand. En relevant/calculation no. */
   allowCurrent?: boolean;
+  /** Grupos y repeticiones del formulario (opcional: sin él, `${grupo}` se cita por su código). */
+  grupos?: LogicGroup[];
 };

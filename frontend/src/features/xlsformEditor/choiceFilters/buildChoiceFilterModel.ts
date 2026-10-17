@@ -19,6 +19,11 @@
 
 import type { BuilderNode, BuilderStructure } from "../types";
 import { stripMarkdown } from "../helpers/markdown";
+import { enriquecerAlcance, parseExpressionLectura, type Expr, type LogicCatalog, type LogicScope } from "../logic";
+import { leerRegla } from "../reglas/leerRegla";
+import { separarAviso } from "../reglas/motor";
+import { LECTURA_FILA_ROTA, esRellenoDeFilaRota } from "../reglas/motor/filaRota";
+import { textoDePiezas } from "../reglas/piezas";
 
 /**
  * Convierte una etiqueta cruda del instrumento en texto humano plano.
@@ -65,6 +70,17 @@ export type ChoiceFilterPair = {
  */
 export type ChoiceFilterMode = "matrix" | "simple" | "opaque";
 
+/**
+ * Qué clase de filtro es (S2, 2026-10-17). Decide qué se puede afirmar de él:
+ *  - `cascada`    → las opciones dependen de una respuesta previa (columna de la lista contra `${pregunta}`).
+ *  - `fijo`       → no mira ninguna respuesta: muestra siempre el mismo subconjunto (`REF02CO = 'kk'`).
+ *  - `por-opcion` → opciones nombradas una a una, según una condición sobre respuestas (`${pais}='PER' and name='1' …`).
+ *  - `mixto`      → combina respuestas previas con otra cosa.
+ *  - `rota`       → la columna repite el nombre de la pregunta (fila rota): no es un filtro.
+ *  - `opaca`      → no nombra columnas de la lista: el motor no sabe qué filtra.
+ */
+export type ChoiceFilterClase = "cascada" | "fijo" | "por-opcion" | "mixto" | "rota" | "opaca";
+
 export type ChoiceFilterCard = {
   /** Fila del survey de la pregunta filtrada (identidad + deep-link). */
   rowIndex: number;
@@ -87,6 +103,13 @@ export type ChoiceFilterCard = {
   mode: ChoiceFilterMode;
   /** Expresión cruda para el desplegable "Ver regla técnica". */
   rawExpression: string;
+  clase: ChoiceFilterClase;
+  /** Sólo en `fijo`: cuántas opciones de la lista quedan (null si no se pudo contar). */
+  opcionesFijas: number | null;
+  /** Lo que se dice en la fila de la lista: «2 respuestas previas», «siempre las mismas 8 opciones», «fila rota». */
+  meta: string;
+  /** Aviso aparte de la explicación (comillas tipográficas). */
+  aviso?: string;
 };
 
 export type ChoiceFilterModel = {
@@ -153,6 +176,122 @@ export function parseMatrixTerms(expression: string): MatrixTerm[] | null {
   return terms;
 }
 
+const campoDe = (e: Expr | undefined): string | null =>
+  e?.kind === "call" && e.name === "@campo" && e.args[0]?.kind === "literal" ? String(e.args[0].value) : null;
+
+function tieneCampo(e: Expr): boolean {
+  if (campoDe(e) !== null) return true;
+  if (e.kind === "compare") return tieneCampo(e.left) || tieneCampo(e.right);
+  if (e.kind === "logical") return e.operands.some(tieneCampo);
+  if (e.kind === "not") return tieneCampo(e.operand);
+  if (e.kind === "call") return e.args.some(tieneCampo);
+  return false;
+}
+
+function tieneRef(e: Expr): boolean {
+  if (e.kind === "ref") return true;
+  if (e.kind === "compare") return tieneRef(e.left) || tieneRef(e.right);
+  if (e.kind === "logical") return e.operands.some(tieneRef);
+  if (e.kind === "not") return tieneRef(e.operand);
+  if (e.kind === "call") return e.args.some(tieneRef);
+  return false;
+}
+
+/** Clase de un filtro por la forma de su árbol (ver ChoiceFilterClase). */
+export function clasificarFiltro(expression: string, node?: BuilderNode | null): ChoiceFilterClase {
+  const raw = expression.trim();
+  if (node && esRellenoDeFilaRota(node, raw)) return "rota";
+  const ast = parseExpressionLectura(raw.replace(/[“”]/g, '"').replace(/[‘’]/g, "'"));
+  if (!ast || ast.kind === "raw" || !tieneCampo(ast)) return "opaca";
+  if (!tieneRef(ast)) return "fijo";
+  let campoContraRef = false;
+  let opcionNombrada = false;
+  let campoContraLiteral = false;
+  let condicionSinCampo = false;
+  const visitar = (e: Expr) => {
+    if (!tieneCampo(e)) {
+      if (tieneRef(e)) condicionSinCampo = true;
+      return;
+    }
+    if (e.kind === "logical") return e.operands.forEach(visitar);
+    if (e.kind === "not") return visitar(e.operand);
+    if (e.kind === "compare") {
+      const col = campoDe(e.left) ?? campoDe(e.right);
+      const otro = campoDe(e.left) !== null ? e.right : e.left;
+      if (col !== null && otro.kind === "ref") campoContraRef = true;
+      else if (col === "name" && otro.kind === "literal") {
+        if (String(otro.value) !== "0") opcionNombrada = true; // name='0': el marcador «Selecciona…», no cuenta
+      } else campoContraLiteral = true;
+      return;
+    }
+    if (e.kind === "call" && e.name === "selected" && e.args[0]?.kind === "ref" && campoDe(e.args[1]) !== null) {
+      campoContraRef = true;
+      return;
+    }
+    campoContraLiteral = true;
+  };
+  visitar(ast);
+  if (campoContraRef && !opcionNombrada && !campoContraLiteral && !condicionSinCampo) return "cascada";
+  if (opcionNombrada && condicionSinCampo && !campoContraRef && !campoContraLiteral) return "por-opcion";
+  return "mixto";
+}
+
+/** Valor de una celda de la fila de choices para evaluar un filtro fijo. */
+type Celda = (columna: string) => string;
+
+/** Evalúa un filtro sin referencias contra una fila de choices. null si usa algo que no se sabe evaluar. */
+function evaluarFijo(e: Expr, celda: Celda): boolean | null {
+  const valor = (x: Expr): string | null => {
+    const col = campoDe(x);
+    if (col !== null) return celda(col);
+    if (x.kind === "literal") return String(x.value);
+    return null;
+  };
+  switch (e.kind) {
+    case "compare": {
+      if (e.op !== "=" && e.op !== "!=") return null;
+      const a = valor(e.left);
+      const b = valor(e.right);
+      if (a === null || b === null) return null;
+      return e.op === "=" ? a === b : a !== b;
+    }
+    case "logical": {
+      const rs = e.operands.map((o) => evaluarFijo(o, celda));
+      if (rs.some((r) => r === null)) return null;
+      return e.op === "and" ? rs.every(Boolean) : rs.some(Boolean);
+    }
+    case "not": {
+      const r = evaluarFijo(e.operand, celda);
+      return r === null ? null : !r;
+    }
+    case "literal":
+      return typeof e.value === "boolean" ? e.value : null;
+    default:
+      return null;
+  }
+}
+
+/** Cuántas opciones distintas de la lista deja un filtro fijo; null si no se pudo evaluar. */
+export function contarOpcionesFijas(expression: string, listName: string, choicesColumns: string[], choicesRows: string[][]): number | null {
+  const ast = parseExpressionLectura(expression.trim().replace(/[“”]/g, '"').replace(/[‘’]/g, "'"));
+  const iL = choicesColumns.indexOf("list_name");
+  const iN = choicesColumns.indexOf("name");
+  if (!ast || ast.kind === "raw" || iL < 0 || iN < 0 || !listName) return null;
+  const vistas = new Set<string>();
+  for (const row of choicesRows) {
+    if ((row[iL] ?? "").trim() !== listName) continue;
+    const r = evaluarFijo(ast, (col) => {
+      const i = choicesColumns.indexOf(col);
+      return i < 0 ? "" : (row[i] ?? "").trim();
+    });
+    if (r === null) return null;
+    if (r) vistas.add((row[iN] ?? "").trim());
+  }
+  return vistas.size;
+}
+
+const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+
 function buildExplanation(mode: ChoiceFilterMode, antecedents: ChoiceFilterAntecedent[]): string {
   if (mode === "matrix") {
     return "Cada opción aparece únicamente si la persona la indicó en la pregunta que le corresponde.";
@@ -163,7 +302,30 @@ function buildExplanation(mode: ChoiceFilterMode, antecedents: ChoiceFilterAntec
   if (antecedents.length === 1 && antecedents[0]) {
     return `Las opciones disponibles dependen de lo que la persona respondió en «${antecedents[0].label}».`;
   }
-  return "Las opciones disponibles dependen de respuestas que la persona dio antes.";
+  if (antecedents.length > 1) return "Las opciones disponibles dependen de respuestas que la persona dio antes.";
+  return "El editor no sabe leer qué opciones deja este filtro: revisa la regla técnica.";
+}
+
+/** Alcance de lectura armado con la estructura y las hojas crudas (el modelo no recibe el del editor). */
+function alcanceDelModelo(structure: BuilderStructure, choicesColumns: string[], choicesRows: string[][]): LogicScope {
+  const iL = choicesColumns.indexOf("list_name");
+  const iN = choicesColumns.indexOf("name");
+  const iE = choicesColumns.indexOf("label");
+  const catalogos = new Map<string, LogicCatalog>();
+  if (iL >= 0 && iN >= 0) {
+    choicesRows.forEach((row, rowIndex) => {
+      const lista = (row[iL] ?? "").trim();
+      const name = (row[iN] ?? "").trim();
+      if (!lista || !name) return;
+      const cat = catalogos.get(lista) ?? { listName: lista, items: [] };
+      if (!cat.items.some((i) => i.name === name)) cat.items.push({ rowIndex, name, label: iE >= 0 ? (row[iE] ?? "").trim() : "" });
+      catalogos.set(lista, cat);
+    });
+  }
+  const variables = structure.outline
+    .filter((n) => n.name && n.kind !== "section" && n.kind !== "repeat")
+    .map((n) => ({ rowIndex: n.rowIndex, name: n.name, label: n.label, baseType: n.typeInfo.base, listName: n.typeInfo.listName || undefined }));
+  return enriquecerAlcance({ variables, catalogsByListName: catalogos, allowCurrent: false }, structure);
 }
 
 /**
@@ -194,6 +356,7 @@ export function buildChoiceFilterModel(input: BuildChoiceFilterInput): ChoiceFil
   const labelIdx = choicesColumns.indexOf("label");
 
   const cards: ChoiceFilterCard[] = [];
+  let alcance: LogicScope | null = null;
 
   for (const node of structure.outline) {
     const expression = node.choiceFilter?.trim();
@@ -278,18 +441,49 @@ export function buildChoiceFilterModel(input: BuildChoiceFilterInput): ChoiceFil
     }
     // terms === null (forma no reconocida) o matriz que no cerró → opaque.
 
+    // ── Clase y explicación: nunca se afirma una dependencia que la regla no tiene (S2/S5) ──
+    const clase = clasificarFiltro(expression, node);
+    alcance ??= alcanceDelModelo(structure, choicesColumns, choicesRows);
+    const lectura = clase === "rota" ? null : leerRegla("choice_filter", expression, node, alcance);
+    const frase = lectura && !lectura.tecnica ? separarAviso(lectura.piezas) : null;
+    const textoMotor = frase ? textoDePiezas(frase.piezas) : null;
+    let explanation: string;
+    let opcionesFijas: number | null = null;
+    let meta: string;
+    if (clase === "rota") {
+      explanation = `${LECTURA_FILA_ROTA}: no filtra ninguna opción.`;
+      meta = "fila rota";
+    } else if (clase === "fijo") {
+      opcionesFijas = contarOpcionesFijas(expression, listName, choicesColumns, choicesRows);
+      const cuantas = opcionesFijas !== null ? `las mismas ${plural(opcionesFijas, "opción", "opciones")}` : "las mismas opciones";
+      const base = textoMotor
+        ? textoMotor.replace(/^Muestra siempre las mismas opciones/, `Muestra siempre ${cuantas}`)
+        : `Muestra siempre ${cuantas}: no depende de ninguna respuesta`;
+      explanation = listName ? `${base} de la lista ${listName}.` : `${base}.`;
+      meta = opcionesFijas !== null ? `siempre las mismas ${opcionesFijas}` : "siempre las mismas";
+    } else {
+      explanation = clase === "cascada" || !textoMotor ? buildExplanation(mode, antecedents) : `${textoMotor}.`;
+      meta = antecedents.length
+        ? plural(antecedents.length, "respuesta previa", "respuestas previas")
+        : "sin respuestas previas";
+    }
+
     cards.push({
       rowIndex: node.rowIndex,
       sectionLabel,
       questionLabel: humanizeLabel(node.label) || node.name,
       questionCode: node.name,
       listName,
-      explanation: buildExplanation(mode, antecedents),
-      antecedents,
+      explanation,
+      antecedents: clase === "rota" ? [] : antecedents,
       pairs,
       derivable,
       mode,
       rawExpression: expression,
+      clase,
+      opcionesFijas,
+      meta,
+      ...(frase?.aviso ? { aviso: frase.aviso } : {}),
     });
   }
 

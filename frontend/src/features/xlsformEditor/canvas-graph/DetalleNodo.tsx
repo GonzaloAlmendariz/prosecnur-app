@@ -53,6 +53,10 @@ export function DetalleNodo({
   const incoming = (graph?.edges ?? []).filter((e) => e.target === node.id);
   const outgoing = (graph?.edges ?? []).filter((e) => e.source === node.id);
   const tituloId = `xf-graph-detalle-${node.id.replace(/[^A-Za-z0-9_-]/g, "_")}`;
+  // Dos secciones anidadas con la MISMA condición (S4 dentro de S2 en el ACNUR) se leen una sola vez.
+  const heredadas = node.inheritedRelevant.filter(
+    (p, i, todas) => todas.findIndex((q) => q.expression.replace(/\s+/g, "") === p.expression.replace(/\s+/g, "")) === i,
+  );
   return (
     <aside className={`pulso-graph-detail is-${node.kind}`} aria-labelledby={tituloId}>
       <header>
@@ -95,13 +99,13 @@ export function DetalleNodo({
 
       {/* Visibilidad HEREDADA de secciones ancestro: la cadena de condiciones
           implícitas que afectan a este nodo aunque él no tenga `relevant` propio. */}
-      {node.inheritedRelevant.length > 0 && (
+      {heredadas.length > 0 && (
         <div className="pulso-graph-detail-block">
           <span className="pulso-graph-detail-block-label">
             {node.relevantExpression ? "También hereda de" : "Hereda visibilidad de"}
           </span>
           <ul className="pulso-graph-detail-list">
-            {node.inheritedRelevant.map((parent, i) => (
+            {heredadas.map((parent, i) => (
               <li key={i}>
                 <button
                   type="button"

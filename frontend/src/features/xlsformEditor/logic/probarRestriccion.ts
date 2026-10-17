@@ -4,20 +4,64 @@
 import type { BuilderNode } from "../types";
 import { RESPUESTA_ACTUAL, UnsupportedExpressionError, evaluateExpr, type SimAnswers } from "./evaluate";
 import { parseExpression } from "./parse";
+import { tieneComillasTipograficas } from "../parsing/comillas";
+import { LECTURA_FILA_ROTA, esFilaRota } from "../reglas/motor/filaRota";
 
 export type ResultadoPrueba = "acepta" | "rechaza" | "no-evaluable";
 
-export function evaluarRestriccion(expresion: string, valor: string, respuestas: SimAnswers = {}): ResultadoPrueba {
+/**
+ * `propio`: el nombre de la pregunta dueña. Una restricción puede nombrarse a sí misma como `${pregunta}` en vez de
+ * «.» (Spent_5th del ACNUR: `${Spent_5th} != ${Spent_4th} and …`); las dos son el valor que se prueba.
+ */
+export function evaluarRestriccion(expresion: string, valor: string, respuestas: SimAnswers = {}, propio?: string): ResultadoPrueba {
   const raw = expresion.trim();
   if (!raw) return "acepta";
   const ast = parseExpression(raw);
   if (!ast || ast.kind === "raw") return "no-evaluable";
   try {
-    const r = evaluateExpr(ast, { ...respuestas, [RESPUESTA_ACTUAL]: valor });
+    const r = evaluateExpr(ast, { ...respuestas, ...(propio ? { [propio]: valor } : {}), [RESPUESTA_ACTUAL]: valor });
     return (typeof r === "boolean" ? r : typeof r === "number" ? r !== 0 && !Number.isNaN(r) : r.length > 0) ? "acepta" : "rechaza";
   } catch (e) {
     if (e instanceof UnsupportedExpressionError) return "no-evaluable";
     throw e;
+  }
+}
+
+export type CausaSinPrueba =
+  | { tipo: "fila-rota" }
+  | { tipo: "comillas" }
+  | { tipo: "funcion"; funcion: string }
+  | { tipo: "sintaxis" };
+
+/** Por qué una restricción no se puede probar en el editor: la causa real, nunca una genérica. null si se puede. */
+export function causaSinPrueba(node: BuilderNode): CausaSinPrueba | null {
+  const raw = node.constraint.trim();
+  if (!raw) return null;
+  if (esFilaRota(node)) return { tipo: "fila-rota" };
+  if (tieneComillasTipograficas(raw)) return { tipo: "comillas" };
+  const ast = parseExpression(raw);
+  if (!ast || ast.kind === "raw") return { tipo: "sintaxis" };
+  try {
+    evaluateExpr(ast, { ...(node.name ? { [node.name]: "" } : {}), [RESPUESTA_ACTUAL]: "" });
+    return null;
+  } catch (e) {
+    if (!(e instanceof UnsupportedExpressionError)) throw e;
+    const fn = e.message.match(/función ([^\s(]+)\(\)/)?.[1];
+    return fn ? { tipo: "funcion", funcion: fn } : { tipo: "sintaxis" };
+  }
+}
+
+/** La causa en una frase para quien prueba la regla. */
+export function textoCausaSinPrueba(c: CausaSinPrueba): string {
+  switch (c.tipo) {
+    case "fila-rota":
+      return `${LECTURA_FILA_ROTA}: no hay una regla que probar.`;
+    case "comillas":
+      return "No se puede probar: la regla usa comillas tipográficas (‘ ’ “ ”), que ODK no acepta. Cámbialas por comillas rectas.";
+    case "funcion":
+      return `La regla usa ${c.funcion}(), que el editor no sabe evaluar: se comprueba en el teléfono.`;
+    case "sintaxis":
+      return "El editor no reconoce la forma de esta regla: revísala en el código XLSForm.";
   }
 }
 

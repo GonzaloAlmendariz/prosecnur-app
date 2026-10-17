@@ -7,17 +7,48 @@ import { parseExpression, parseExpressionLectura, serializeExpression, tryFlatte
 import { stripMarkdown } from "../helpers/markdown";
 import { describeCall, describeRaw } from "./reglasFunciones";
 import { leerRegla } from "../reglas/leerRegla";
-import { leerConContexto } from "../reglas/motor";
+import { leerConContexto, separarAviso } from "../reglas/motor";
 import { tocaActual } from "../reglas/motor/contexto";
-import { textoDePiezas } from "../reglas/piezas";
+import { textoDePiezas, type ColumnaRegla, type LecturaRegla } from "../reglas/piezas";
 
 const TECNICA = "Regla técnica importada";
 
 export type HumanizedExpression = {
+  /** La frase, sin avisos. */
   summary: string;
   raw: string;
   technical: boolean;
+  /** Aviso aparte de la frase (comillas tipográficas). */
+  aviso?: string;
 };
+
+/** ¿La expresión nombra columnas sueltas de la hoja choices? Sólo un choice_filter lo hace (`REF02CO = 'kk'`). */
+function nombraColumnas(e: Expr): boolean {
+  if (e.kind === "call") return e.name === "@campo" || e.args.some(nombraColumnas);
+  if (e.kind === "compare") return nombraColumnas(e.left) || nombraColumnas(e.right);
+  if (e.kind === "logical") return e.operands.some(nombraColumnas);
+  if (e.kind === "not") return nombraColumnas(e.operand);
+  return false;
+}
+
+/**
+ * Columna con que se lee una expresión sin pregunta dueña: una que nombra columnas de choices es un filtro de opciones,
+ * una que mira «.» es una restricción y el resto, un valor o una condición. Así Lógica y el Constructor leen el filtro
+ * igual que la pestaña Filtros, en vez de llamarlo «Regla técnica importada».
+ */
+export function columnaDeExpresion(raw: string): ColumnaRegla {
+  const ast = parseExpressionLectura(raw.replace(/[“”]/g, '"').replace(/[‘’]/g, "'"));
+  if (!ast || ast.kind === "raw") return "calculation";
+  if (nombraColumnas(ast)) return "choice_filter";
+  return tocaActual(ast) ? "constraint" : "calculation";
+}
+
+/** Una lectura del motor como frase plana con su aviso aparte. */
+export function fraseDeLectura(lectura: LecturaRegla, tecnica = TECNICA): { texto: string; aviso?: string } {
+  if (lectura.tecnica) return { texto: tecnica };
+  const { piezas, aviso } = separarAviso(lectura.piezas);
+  return aviso ? { texto: textoDePiezas(piezas), aviso } : { texto: textoDePiezas(piezas) };
+}
 
 export type RuleBreakdown = {
   title: string;
@@ -79,7 +110,9 @@ export function ruleItemsFromExpr(expr: Expr, scope: LogicScope): RuleBreakdownI
   if (expr.kind === "logical" && expr.op === "or") {
     const options = expr.operands.map((operand) => {
       const item = simpleRuleItem(operand, scope) ?? multiSelectedRuleItem(operand, scope);
-      return item ? ruleItemSentence(item) : describeExpr(operand, scope);
+      if (item) return ruleItemSentence(item);
+      const l = leerConContexto("relevant", exprRaw(operand, ""), { columna: "relevant", scope, actual: null });
+      return l.tecnica ? describeExpr(operand, scope) : fraseDeLectura(l).texto;
     });
     return [{
       subject: "Cualquiera de estas condiciones",
@@ -88,8 +121,11 @@ export function ruleItemsFromExpr(expr: Expr, scope: LogicScope): RuleBreakdownI
     }];
   }
 
+  // Lo que el desglose no parte en sujeto + relación lo lee el motor entero; sólo si tampoco sabe es técnica.
+  const lectura = leerConContexto("relevant", exprRaw(expr, ""), { columna: "relevant", scope, actual: null });
+  if (!lectura.tecnica) return [{ subject: fraseDeLectura(lectura).texto, relation: "" }];
   return [{
-    subject: "Regla técnica importada",
+    subject: TECNICA,
     relation: describeExpr(expr, scope),
   }];
 }
@@ -190,15 +226,23 @@ export function describeExpression(
     return { summary: "Sin condición", raw, technical: false };
   }
   const ast = parseExpression(raw);
-  // Una expresión sobre «.» es una restricción: se lee con la voz de lo que acepta.
-  const lectura0 = parseExpressionLectura(raw);
-  const columna = lectura0 && lectura0.kind !== "raw" && tocaActual(lectura0) ? "constraint" : "calculation";
+  // Una expresión sobre «.» es una restricción: se lee con la voz de lo que acepta; una con columnas sueltas, un filtro.
+  const columna = columnaDeExpresion(raw);
   const lectura = leerConContexto(columna, raw, { columna, scope, actual: null });
-  return {
-    summary: lectura.tecnica ? TECNICA : textoDePiezas(lectura.piezas),
-    raw: ast ? exprRaw(ast, raw) : raw,
-    technical: lectura.tecnica,
-  };
+  const { texto, aviso } = fraseDeLectura(lectura);
+  return { summary: texto, raw: ast ? exprRaw(ast, raw) : raw, technical: lectura.tecnica, ...(aviso ? { aviso } : {}) };
+}
+
+/**
+ * Lectura de una columna de una fila con el motor (`leerRegla`): la misma frase que el riel, la pestaña Filtros y
+ * Restricciones. La usan Lógica y el Mapa para no armar su propia lectura.
+ */
+export function leerColumna(columna: ColumnaRegla, node: BuilderNode, raw: string, scope: LogicScope): HumanizedExpression {
+  const expr = raw.trim();
+  if (!expr) return { summary: "Sin condición", raw: expr, technical: false };
+  const lectura = leerRegla(columna, expr, node, scope);
+  const { texto, aviso } = fraseDeLectura(lectura);
+  return { summary: texto, raw: expr, technical: lectura.tecnica, ...(aviso ? { aviso } : {}) };
 }
 
 export function describeValidation(
@@ -210,12 +254,13 @@ export function describeValidation(
   if (!raw) return null;
   const ast = parseExpression(raw);
   const lectura = leerRegla("constraint", raw, node, scope);
-  const summary = lectura.tecnica ? "Validación técnica importada" : textoDePiezas(lectura.piezas);
+  const { texto: summary, aviso } = fraseDeLectura(lectura, "Validación técnica importada");
+  const extra = aviso ? { aviso } : {};
   if (!ast || ast.kind === "raw") {
-    return { summary, raw, technical: true, status: "Regla técnica preservada" };
+    return { summary, raw, technical: true, status: "Regla técnica preservada", ...extra };
   }
   if (esPresetClaro(ast, node.typeInfo.base)) {
-    return { summary, raw: exprRaw(ast, raw), technical: false, status: "Preset claro" };
+    return { summary, raw: exprRaw(ast, raw), technical: false, status: "Preset claro", ...extra };
   }
   const editable = isConstraintVisuallyEditable(ast);
   return {
@@ -223,6 +268,7 @@ export function describeValidation(
     raw: exprRaw(ast, raw),
     technical: !editable || lectura.tecnica,
     status: editable ? "Editable visualmente" : "Regla técnica preservada",
+    ...extra,
   };
 }
 

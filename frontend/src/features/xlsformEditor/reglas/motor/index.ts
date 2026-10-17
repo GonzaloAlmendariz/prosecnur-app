@@ -2,7 +2,7 @@
 // Si algo no se reconoce, la lectura es técnica (piezas vacías) y `depende`/`lista` se llenan igual.
 
 import { lecturaRequired } from "../../parsing/parseType";
-import type { ColumnaRegla, LecturaRegla } from "../piezas";
+import type { ColumnaRegla, LecturaRegla, Pieza } from "../piezas";
 import { etiquetaDe, type Contexto } from "./contexto";
 import { capitalizar, t, type Frase } from "./frase";
 import { esBooleana, leerCondicion } from "./condicion";
@@ -10,6 +10,18 @@ import { leerFiltro } from "./filtros";
 import { normalizar, parsear, prepararTexto, referencias } from "./normalizar";
 import { leerRestriccion } from "./restricciones";
 import { leerValor } from "./valor";
+
+/** Aviso de comillas tipográficas: la última pieza de la frase. Las vistas que pueden lo sacan aparte con `separarAviso`. */
+export const AVISO_COMILLAS = "(con comillas tipográficas: ODK no las acepta)";
+
+/** Separa el aviso de comillas de la frase, para mostrarlo como alerta y no dentro de la oración. */
+export function separarAviso(piezas: readonly Pieza[]): { piezas: Pieza[]; aviso: string | null } {
+  const ultima = piezas[piezas.length - 1];
+  if (ultima?.tipo === "texto" && ultima.texto === AVISO_COMILLAS) {
+    return { piezas: piezas.slice(0, -1), aviso: "Usa comillas tipográficas (‘ ’ “ ”), que ODK no acepta: cámbialas por comillas rectas." };
+  }
+  return { piezas: [...piezas], aviso: null };
+}
 
 
 export function leerConContexto(columna: ColumnaRegla, raw: string, ctx: Contexto, lista?: string): LecturaRegla {
@@ -48,6 +60,9 @@ export function leerConContexto(columna: ColumnaRegla, raw: string, ctx: Context
   }
   if (!frase || !frase.length) return { ...base, piezas: [], tecnica: true, depende };
   const piezas = capitalizar(frase);
-  if (comillas) piezas.push(t("(escrita con comillas tipográficas, que ODK no acepta)"));
+  // El contrato no tiene un campo de avisos: va como última pieza, corta y entre paréntesis (ver AVISO_COMILLAS).
+  if (comillas) piezas.push(t(AVISO_COMILLAS));
   return { ...base, piezas, tecnica: false, depende };
 }
+
+export { LECTURA_FILA_ROTA, esFilaRota, esRellenoDeFilaRota } from "./filaRota";

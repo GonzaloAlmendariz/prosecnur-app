@@ -147,7 +147,7 @@ describe("M4 · filtros de opciones", () => {
     expect(texto("choice_filter", "selected(${gasto},filter_Spent)", cascada)).toBe("Muestra las opciones cuya columna filter_Spent está marcada en En qué gastó");
   });
   test("<columna> = literal", () => {
-    expect(texto("choice_filter", "REF05CO= 'pp'", cascada)).toBe("Muestra solo las opciones con REF05CO igual a pp");
+    expect(texto("choice_filter", "REF05CO= 'pp'", cascada)).toBe("Muestra siempre las mismas opciones: las marcadas con pp en la columna REF05CO");
   });
   test("name = … usa las etiquetas de la propia lista y la condición sin columna va al final", () => {
     const doc = nodo("doc", "select_one", "docs");
@@ -184,7 +184,7 @@ describe("M5 · restricciones del corpus que caían en técnica", () => {
     expect(texto("constraint", "(${sexo} = '1' and . = '1') or (${sexo} = '2' and . >= 2)", numero)).toBe("Si Sexo es Hombre, solo acepta 1. Si Sexo es Mujer, 2 o más");
   });
   test("comillas tipográficas: se lee el sentido y se avisa", () => {
-    expect(texto("constraint", "not(count-selected(.) > 1 and selected(., ‘99’))", varias)).toBe("Ninguno no se puede marcar junto con otras opciones (escrita con comillas tipográficas, que ODK no acepta)");
+    expect(texto("constraint", "not(count-selected(.) > 1 and selected(., ‘99’))", varias)).toBe("Ninguno no se puede marcar junto con otras opciones (con comillas tipográficas: ODK no las acepta)");
   });
 });
 

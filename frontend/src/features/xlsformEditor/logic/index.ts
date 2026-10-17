@@ -42,7 +42,9 @@ export {
   walk,
 } from "./inspect";
 
-export type { LogicCatalog, LogicScope, LogicVariable } from "./builderTypes";
+export type { LogicCatalog, LogicGroup, LogicScope, LogicVariable } from "./builderTypes";
+export type { CondicionHeredada, Repeticion } from "./repeticiones";
+export { condicionesHeredadas, enriquecerAlcance, etiquetaDeGrupo, gruposDeEstructura, repeticionesDe, textoSeRepite } from "./repeticiones";
 export type { PredicateKind } from "./operators";
 export {
   defaultPredicate,

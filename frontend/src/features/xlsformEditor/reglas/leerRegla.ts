@@ -6,8 +6,14 @@ import type { BuilderNode } from "../types";
 import type { LogicScope } from "../logic";
 import type { ColumnaRegla, LecturaRegla } from "./piezas";
 import { leerConContexto } from "./motor";
+import { LECTURA_FILA_ROTA, esRellenoDeFilaRota } from "./motor/filaRota";
 
 export function leerRegla(columna: ColumnaRegla, raw: string, nodo: BuilderNode, scope: LogicScope): LecturaRegla {
+  // Una fila rota no tiene reglas: lo que hay en la columna es su propio nombre repetido. Se dice eso, sin
+  // dependencias inventadas, en todas las vistas por igual.
+  if (esRellenoDeFilaRota(nodo, raw)) {
+    return { columna, raw: raw.trim(), piezas: [{ tipo: "texto", texto: LECTURA_FILA_ROTA }], tecnica: false, depende: [], lista: columna === "choice_filter" ? nodo.typeInfo?.listName || undefined : undefined };
+  }
   return leerConContexto(
     columna,
     raw,

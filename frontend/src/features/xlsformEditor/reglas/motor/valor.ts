@@ -2,7 +2,7 @@
 // funciones XLSForm. Cada lectura dice qué produce la expresión, no cómo está escrita. null = no se sabe leer.
 
 import type { Expr } from "../../logic";
-import { claseDe, pregunta, type Contexto } from "./contexto";
+import { claseDe, grupo, piezaGrupo, pregunta, variable, type Contexto } from "./contexto";
 import { cantidad, enumerar, oraciones, t, v, type Frase } from "./frase";
 import { literalLegible, numeroDe, textoDe } from "./valores";
 import { esBooleana, leerCondicion } from "./condicion";
@@ -13,6 +13,22 @@ const UNIDADES: Record<number, string> = { 1: "días", 24: "horas", 1440: "minut
 
 const esLlamada = (e: Expr | undefined, nombre: string): e is Extract<Expr, { kind: "call" }> => e?.kind === "call" && e.name === nombre;
 const esFila = (e: Expr | undefined) => esLlamada(e, "position");
+
+/** «en todas las filas de ‹Lista de los miembros del hogar›»: la repetición de la que sale una variable. */
+function filasDe(e: Expr | undefined, ctx: Contexto): Frase {
+  const rep = e?.kind === "ref" ? variable(e.name, ctx)?.repeticion : undefined;
+  return rep ? [t("en todas las filas de"), piezaGrupo(rep, ctx)] : [t("en todas las filas")];
+}
+
+/** ¿La expresión nombra la pregunta `q` en alguna parte? */
+function nombra(e: Expr, q: string): boolean {
+  if (e.kind === "ref") return e.name === q;
+  if (e.kind === "call") return e.args.some((a) => nombra(a, q));
+  if (e.kind === "compare") return nombra(e.left, q) || nombra(e.right, q);
+  if (e.kind === "logical") return e.operands.some((o) => nombra(o, q));
+  if (e.kind === "not") return nombra(e.operand, q);
+  return false;
+}
 
 /** Sumandos de una cadena de «+». */
 function sumandos(e: Expr): Expr[] {
@@ -183,10 +199,16 @@ function llamada(e: Extract<Expr, { kind: "call" }>, ctx: Contexto): Frase | nul
       const fx = L(a[0]);
       return fi && fx ? [t("la opción marcada en"), ...fx, t("en la posición"), ...fi] : null;
     }
-    case "sum":
-      return a.length === 1 ? con("la suma de", a[0], "en todas las filas") : null;
-    case "count":
-      return a.length === 1 ? con("cuántas filas tiene", a[0]) : null;
+    case "sum": {
+      const f = a.length === 1 ? L(a[0]) : null;
+      return f ? [t("la suma de"), ...f, ...filasDe(a[0], ctx)] : null;
+    }
+    case "count": {
+      if (a.length !== 1) return null;
+      // count(${repeticion}): cuántas filas se registraron en ella.
+      if (a[0]!.kind === "ref" && grupo(a[0]!.name, ctx)) return [t("cuántas filas se registraron en"), piezaGrupo(a[0]!.name, ctx)];
+      return con("cuántas filas tiene", a[0]);
+    }
     case "max":
     case "min": {
       const palabra = e.name === "max" ? "mayor" : "menor";
@@ -205,8 +227,10 @@ function llamada(e: Extract<Expr, { kind: "call" }>, ctx: Contexto): Frase | nul
       const fs = a.map(L);
       return fs.length && fs.every(Boolean) ? [...enumerar(fs as Frase[], "y"), t("unidos")] : null;
     }
-    case "join":
-      return a.length === 2 ? con("las respuestas de", a[1], "unidas en una sola línea") : null;
+    case "join": {
+      const f = a.length === 2 ? L(a[1]) : null;
+      return f ? [t("las respuestas de"), ...f, ...filasDe(a[1], ctx), t("unidas en una sola línea")] : null;
+    }
     case "position":
       return a.length === 0 || esLlamada(a[0], "@padre") ? [t("el número de esta fila")] : null;
     case "uuid":
@@ -228,18 +252,25 @@ function llamada(e: Extract<Expr, { kind: "call" }>, ctx: Contexto): Frase | nul
       if (a.length !== 2 || !m) return null;
       const q = m[1]!.trim();
       if (a[0]!.kind === "ref" && a[0]!.name === q) return [t("el texto de la opción elegida en"), pregunta(q, ctx)];
-      const f = L(a[0]);
-      return f ? [t("el texto de"), ...f, t("en las opciones de"), pregunta(q, ctx)] : null;
+      // selected-at(${q}, 0) en una pregunta de una sola respuesta es la opción elegida.
+      const x = a[0]!;
+      if (esLlamada(x, "selected-at") && x.args[0]?.kind === "ref" && x.args[0].name === q && numeroDe(x.args[1]) === 0 && claseDe(x.args[0], ctx) === "una") {
+        return [t("el texto de la opción elegida en"), pregunta(q, ctx)];
+      }
+      const f = L(x);
+      if (!f) return null;
+      // Si la expresión ya nombra la pregunta, no se repite «en las opciones de» la misma pregunta.
+      return nombra(x, q) ? [t("el texto de"), ...f] : [t("el texto de"), ...f, t("en las opciones de"), pregunta(q, ctx)];
     }
     case "indexed-repeat": {
+      // indexed-repeat(${x}, ${repeticion}, fila): la respuesta a x en una fila de la repetición, citada por su etiqueta.
       if (a.length !== 3) return null;
       const fx = L(a[0]);
-      const fg = L(a[1]);
-      const fila = esFila(a[2]) ? [t("esta misma fila")] : (() => {
-        const f = L(a[2]);
-        return f ? [t("la fila"), ...f] : null;
-      })();
-      return fx && fg && fila ? [...fx, t("en"), ...fila, t("del grupo"), ...fg] : null;
+      const fg = a[1]!.kind === "ref" ? [piezaGrupo(a[1]!.name, ctx)] : L(a[1]);
+      if (!fx || !fg) return null;
+      if (esFila(a[2])) return [...fx, t("de la misma fila en"), ...fg];
+      const fi = L(a[2]);
+      return fi ? [...fx, t("de la fila que indica"), ...fi, t("en"), ...fg] : null;
     }
     default:
       return null;

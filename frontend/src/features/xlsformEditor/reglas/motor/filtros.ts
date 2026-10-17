@@ -2,7 +2,7 @@
 // de la hoja choices (el parser de lectura los entrega como `call "@campo"`).
 //   Bureau = ${Bureau}                    → Muestra las opciones cuya columna Bureau coincide con la respuesta de ‹Bureau›
 //   selected(${gasto}, filter_Spent)      → Muestra las opciones cuya columna filter_Spent está marcada en ‹Gasto›
-//   REF05CO = 'pp'                        → Muestra solo las opciones con REF05CO igual a pp
+//   REF02CO = 'kk'                        → Muestra siempre las mismas opciones: las marcadas con kk en la columna REF02CO
 //   ${pais} = 'PER' and (name = '1' or …) → Muestra solo las opciones ‹A›, ‹B› … cuando ‹País› es ‹Perú›
 
 import type { Expr } from "../../logic";
@@ -89,13 +89,17 @@ function clausulas(e: Expr, op: "and" | "or"): Clausula[] | null {
   return agrupar((cs as Clausula[][]).flat());
 }
 
-function leerOpciones(e: Expr, ctx: Contexto, lista: string): Frase | null {
+/** `fijo`: el filtro no mira ninguna respuesta, así que muestra siempre el mismo subconjunto de la lista. */
+function leerOpciones(e: Expr, ctx: Contexto, lista: string, fijo: boolean): Frase | null {
   const cs = clausulas(e, e.kind === "logical" && e.op === "and" ? "and" : "or");
   if (!cs || !cs.length) return null;
   const y = e.kind === "logical" && e.op === "and";
   if (cs.length === 1) {
     const c = cs[0]!;
-    if (c.tipo === "opciones") return [t("muestra solo"), ...frasear(c, ctx, lista, true)];
+    if (c.tipo === "opciones") return [t(fijo ? "muestra siempre solo" : "muestra solo"), ...frasear(c, ctx, lista, true)];
+    if (c.tipo === "igual" && fijo) {
+      return [t(c.negada ? "muestra siempre las mismas opciones: las que no tienen" : "muestra siempre las mismas opciones: las marcadas con"), v(literalLegible(c.valor)), t("en la columna"), v(c.columna)];
+    }
     if (c.tipo === "igual") return [t("muestra solo las opciones"), ...frasear(c, ctx, lista, true)];
     return [t("muestra las opciones"), ...frasear(c, ctx, lista, true)];
   }
@@ -109,7 +113,7 @@ export function leerFiltro(e: Expr, ctx: Contexto, lista: string): Frase | null 
   const conCampo = operandos.filter(tieneCampo);
   const sinCampo = operandos.filter((o) => !tieneCampo(o));
   if (!conCampo.length) return null;
-  const opciones = leerOpciones(conCampo.length === 1 ? conCampo[0]! : { kind: "logical", op: "and", operands: conCampo }, ctx, lista);
+  const opciones = leerOpciones(conCampo.length === 1 ? conCampo[0]! : { kind: "logical", op: "and", operands: conCampo }, ctx, lista, !sinCampo.length);
   if (!opciones) return null;
   if (!sinCampo.length) return capitalizar(opciones);
   const cuando = leerCondicion(sinCampo.length === 1 ? sinCampo[0]! : { kind: "logical", op: "and", operands: sinCampo }, ctx);

@@ -53,6 +53,7 @@ import { desplazamientoParaMostrar } from "./encuadreNodo";
 import "../styles/xfGraph";
 import { splitLogicalGroups, splitTopLevelLogical, stripOuterParens, summarizeSameVariableOptions, nameToRef, humanizeRelevantWithLabels } from "./logicaTexto";
 import type { LabelLookup, VarTitleLookup } from "./logicaTexto";
+import { alcanceDelMapa, lecturaDelMapa } from "./lecturaMapa";
 
 export type LogicCanvasProps = {
   open: boolean;
@@ -398,6 +399,8 @@ export function LogicCanvas({
     };
   }, [structure, catalogs]);
 
+  const alcance = useMemo(() => alcanceDelMapa(structure, catalogs), [structure, catalogs]);
+
   /** Lookup para resolver el `name` interno de una variable (`q0027`)
    *  a su prompt humano (`¿Qué actividades laborales realiza?...`).
    *  En la narrativa de relación lógica mostramos `prompt (name)` para
@@ -421,9 +424,8 @@ export function LogicCanvas({
     return (varName: string) => nameToRef(varName) ?? varName;
   }, []);
 
-  /** Atajo para humanizar con labels resueltos. */
-  const humanize = (expr: string): string =>
-    humanizeRelevantWithLabels(expr, labelLookup, varTitleLookup);
+  /** Lectura en español del motor (la misma del riel y las pestañas); lo que no sabe leer se dice técnico. */
+  const humanize = (expr: string): string => lecturaDelMapa(expr, alcance, () => humanizeRelevantWithLabels(expr, labelLookup, varTitleLookup));
 
   /** Versión compacta para el chip sobre el edge: referencias cortas
    *  (P1) + labels de opción, en una línea y truncada. */
