@@ -5,6 +5,14 @@ import { createPortal } from "react-dom";
 import { ListChecks, X } from "lucide-react";
 import { IconSearch } from "../../../lib/icons";
 import type { AddMenuItem } from "../types";
+import { MaquetaTipo } from "../kit";
+
+// M6 (2026-10-17): la maqueta de cómo se ve cada tipo en vez del ícono suelto. La evidencia (foto, audio, video,
+// archivo, código) no tiene un dibujo propio y conserva su ícono en un recuadro del mismo tamaño.
+const MAQUETA_DE: Partial<Record<string, string>> = {
+  text: "text", integer: "integer", decimal: "decimal", date: "date", select_one: "select_one", select_multiple: "select_multiple",
+  geopoint: "geopoint", note: "note", calculate: "calculate", section: "begin_group", section_end: "end_group",
+};
 
 export function AddElementMenu({
   items,
@@ -135,11 +143,6 @@ export function AddElementMenu({
           <X size={15} />
         </button>
       </div>
-      <div className="pulso-add-element-menu-guidance" aria-label="Guía rápida">
-        <span><strong>Listas limpias</strong> las selecciones dejan una lista preparada, sin opciones falsas.</span>
-        <span><strong>Secciones</strong> tienen inicio y cierre como piezas separadas; abre donde empieza y cierra donde termina.</span>
-        <span><strong>Atajo</strong> Cmd/Ctrl+N abre este selector sin crear campos por defecto.</span>
-      </div>
       <div className="pulso-add-element-menu-tools">
         <label className="pulso-add-element-menu-searchbox">
           <IconSearch size={14} aria-hidden="true" />
@@ -191,10 +194,9 @@ export function AddElementMenu({
                         onClose();
                       }}
                       className={`pulso-add-element-menu-item is-${descriptor.tone}`}
-                      aria-describedby={`pulso-add-menu-${item.key}-detail`}
                     >
-                      <span className="pulso-add-element-menu-icon">
-                        {item.icon}
+                      <span className={MAQUETA_DE[item.key] ? "pulso-add-element-menu-maqueta" : "pulso-add-element-menu-icon"}>
+                        {MAQUETA_DE[item.key] ? <MaquetaTipo baseType={MAQUETA_DE[item.key]!} ancho={44} /> : item.icon}
                       </span>
                       <span className="pulso-add-element-menu-copy">
                         <span className="pulso-add-element-menu-item-topline">
@@ -202,7 +204,6 @@ export function AddElementMenu({
                           <span className="pulso-add-element-menu-chip">{descriptor.tag}</span>
                         </span>
                         <span>{item.hint}</span>
-                        <small id={`pulso-add-menu-${item.key}-detail`}>{descriptor.detail}</small>
                       </span>
                     </button>
                   );

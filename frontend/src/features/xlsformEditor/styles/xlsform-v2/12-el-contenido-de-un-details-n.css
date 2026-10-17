@@ -561,3 +561,14 @@
     white-space: normal;
   }
 }
+
+/* M6 (2026-10-17): la maqueta del tipo y el ícono de evidencia comparten un recuadro del mismo tamaño. */
+.pulso-add-element-menu .pulso-add-element-menu-item { grid-template-columns: 56px minmax(0, 1fr); gap: 12px; min-height: 0; align-items: center; }
+.pulso-add-element-menu-maqueta,
+.pulso-add-element-menu-item .pulso-add-element-menu-icon {
+  display: grid; place-items: center; width: 56px; height: 40px; border-radius: var(--pulso-radius);
+  border: 1px solid var(--pulso-border); background: var(--pulso-surface); flex-shrink: 0;
+}
+/* Resguardo: el dibujo nunca sale de su recuadro, aunque otra regla cambie la columna. */
+.pulso-add-element-menu-maqueta { overflow: hidden; }
+.pulso-add-element-menu-maqueta .xfk-maqueta { max-width: 100%; max-height: 100%; }
