@@ -499,3 +499,9 @@
 .pulso-xf-res-tabla-marco {
   scroll-padding-top: var(--pulso-space-8);
 }
+
+/* Sección sin título legible (M16): su rótulo técnico atenuado, el mismo criterio que la Vista del cuestionario. */
+.pulso-xf-res-seccion-texto > span.is-tecnico {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-medium, 500);
+}

@@ -6,6 +6,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, Folder, Repeat } from "../../../vendor/lucide-react";
+import { tituloTecnico } from "../cuestionario/modeloCuestionario";
 import { EditarEnConstructor } from "../shell/EditarEnConstructor";
 import { claveSeccion, type PreguntaDeSeccion } from "./preguntasDeSeccion";
 import {
@@ -135,7 +136,7 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
                         <ChevronRight size={13} aria-hidden="true" className="pulso-xf-res-seccion-chevron" />
                         <Icono size={14} aria-hidden="true" />
                         <span className="pulso-xf-res-seccion-texto">
-                          <span title={f.rotulo}>{f.rotulo}</span>
+                          <span title={f.rotulo} className={tituloTecnico(f.rotulo, f.name) ? "is-tecnico" : undefined}>{f.rotulo}</span>
                           <small>{f.tipoPredominante ?? "Sin preguntas"}</small>
                         </span>
                         {f.pesada && <span className="pulso-xf-res-pesada">Pesada</span>}
