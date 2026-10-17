@@ -146,7 +146,7 @@
 #' @param rows renglones compilados; cada uno con `fields` de `label` y `span`.
 #' @param L layout de la ficha de campo.
 #' @param tokens paleta Pulso.
-#' @return lista de warnings.
+#' @return lista de warnings, con el atributo `lineas` (renglones dibujados).
 #' @keywords internal
 .cfc_draw_form <- function(rows, L, tokens) {
   warnings <- list()
@@ -268,6 +268,9 @@
       cursor <- cursor + span
     }
   }
+  # Renglones que de verdad se dibujaron: la zona del bloque en el editor llega
+  # hasta el ultimo, con la misma cuenta que acaba de decidir el recorte.
+  attr(warnings, "lineas") <- as.integer(linea)
   warnings
 }
 
@@ -277,7 +280,7 @@
 #' @param page_no numero visible.
 #' @param total_pages total visible.
 #' @param brand_assets mapa efimero id -> ruta PNG de los logos de la careta.
-#' @return lista con `warnings` y `links`.
+#' @return lista con `warnings`, `links` y `zones` (npc, una por bloque dibujado).
 #' @export
 collection_material_draw_field_form <- function(page, page_no = 1L, total_pages = 1L,
                                                 brand_assets = list()) {
@@ -291,20 +294,27 @@ collection_material_draw_field_form <- function(page, page_no = 1L, total_pages 
   form <- .crf_block(page, "form_lines")
   footer <- .crf_block(page, "footer")
   warnings <- list()
+  zones <- list()
 
   grid::grid.newpage()
   grid::grid.rect(gp = grid::gpar(fill = "#ffffff", col = NA))
 
   if (!is.null(brand)) {
+    max_h_mm <- brand$max_height_mm %||% 11
     for (id in .cra_draw_brand_strip(
       brand$assets, brand_assets, y = L$y_brand,
-      max_height_mm = brand$max_height_mm %||% 11,
+      max_height_mm = max_h_mm,
       align = as.character(brand$align %||% "center")[[1]], geo = geo
     )) {
       warnings[[length(warnings) + 1L]] <- list(
         code = "brand_asset_missing", page = page_no, asset_id = id
       )
     }
+    h_brand <- (as.numeric(max_h_mm) / 25.4) / geo$page_h
+    zones[[length(zones) + 1L]] <- .cmz_zone(
+      brand$block_id, "brand_strip", L$x_left, L$x_right,
+      L$y_brand - h_brand / 2, L$y_brand + h_brand / 2
+    )
   }
 
   payload <- .crf_txt(qr$value, "")
@@ -315,16 +325,17 @@ collection_material_draw_field_form <- function(page, page_no = 1L, total_pages 
       # misma funcion: el relector del PNG la aplica a los tres presets.
       qz <- qr$quiet_zone %||% 4L
       mm <- collection_qr_matrix(payload, correction = qr$correction %||% "M", quiet_zone = qz)
-      grid::pushViewport(.crf_qr_viewport(
-        L$qr_x, L$qr_y, .crf_qr_lado_total(L$qr_side, nrow(mm), qz, L$x_right - L$x_left), geo
-      ))
+      lado_total <- .crf_qr_lado_total(L$qr_side, nrow(mm), qz, L$x_right - L$x_left)
+      grid::pushViewport(.crf_qr_viewport(L$qr_x, L$qr_y, lado_total, geo))
       .crf_draw_qr_modules(mm)
       grid::popViewport()
+      zones[[length(zones) + 1L]] <- .crf_qr_zona(qr$block_id, L, lado_total, nrow(mm), qz, geo)
     } else {
       grid::pushViewport(.crf_qr_viewport(L$qr_x, L$qr_y, L$qr_side, geo))
       grid::grid.rect(gp = grid::gpar(fill = NA, col = tokens$rule, lwd = 0.7))
       grid::grid.text("Sin enlace", gp = grid::gpar(col = tokens$faint, fontsize = type$body))
       grid::popViewport()
+      zones[[length(zones) + 1L]] <- .crf_qr_zona(qr$block_id, L, L$qr_side, 1L, 0L, geo)
     }
   }
 
@@ -339,18 +350,34 @@ collection_material_draw_field_form <- function(page, page_no = 1L, total_pages 
         code = "sheet_title_missing", page = page_no
       )
     }
+    titulo_lineas <- .crf_wrap(titulo, 40L, 2L)
     .cra_draw_centered(
-      .crf_wrap(titulo, 40L, 2L), L$y_title,
+      titulo_lineas, L$y_title,
       grid::gpar(col = tokens$navy, fontsize = L$title_size, fontface = "bold"),
       lineheight = 1.15
+    )
+    zones[[length(zones) + 1L]] <- .cmz_zone(
+      heading$block_id, "heading", L$x_left, L$x_right,
+      L$y_title - .cmz_alto_lineas(length(titulo_lineas), L$title_size, 1.15, geo), L$y_title + 0.002
     )
   }
 
   if (!is.null(form)) {
-    for (w in .cfc_draw_form(form$rows %||% list(), L, tokens)) {
+    form_warnings <- .cfc_draw_form(form$rows %||% list(), L, tokens)
+    for (w in form_warnings) {
       w$page <- page_no
+      if (identical(w$code, "form_lines_overflow")) w$block_id <- form$block_id
       warnings[[length(warnings) + 1L]] <- w
     }
+    # Del tope de la primera etiqueta (texto apoyado en su renglon) a la raya
+    # del ultimo renglon dibujado, con la segunda linea de un valor partido
+    # (`.cfc_partir`, 0.014 por debajo) incluida.
+    lineas <- max(1L, attr(form_warnings, "lineas") %||% 1L)
+    zones[[length(zones) + 1L]] <- .cmz_zone(
+      form$block_id, "form_lines", L$x_left, L$x_right,
+      L$form_top - (lineas - 1L) * L$form_step - 0.016,
+      L$form_top + .cmz_alto_lineas(1L, L$label_size, 1, geo) + 0.002
+    )
   }
 
   links <- list()
@@ -361,6 +388,10 @@ collection_material_draw_field_form <- function(page, page_no = 1L, total_pages 
       grid::gpar(col = tokens$navy, fontsize = L$link_size), lineheight = 1.05
     )
     link_h <- length(link_lines) * (L$link_size * 1.05 / 72) / geo$page_h
+    zones[[length(zones) + 1L]] <- .cmz_zone(
+      NA_character_, "link", L$x_left, L$x_right,
+      L$y_link - link_h - 0.002, L$y_link + 0.002, kind = "derived"
+    )
     links[[1]] <- list(
       page = page_no, url = payload, kind = "printed_url",
       x0 = L$x_left, x1 = L$x_right,
@@ -382,7 +413,8 @@ collection_material_draw_field_form <- function(page, page_no = 1L, total_pages 
   # de una pagina que se reparte suelta por aula ninguno de los dos identifica
   # nada, y el logo ya dice de quien es (dictado de Gonzalo, 2026-09-01).
   pulso_pdf_footer(page_no, periodo = "", tokens = tokens, geo = geo, pagina = FALSE)
-  list(warnings = warnings, links = links)
+  zones[[length(zones) + 1L]] <- .crf_footer_zona(footer, geo)
+  list(warnings = warnings, links = links, zones = .cmz_sin_solapes(zones))
 }
 
 #' Renglones por defecto de la ficha de campo, calcados de la hoja en uso.

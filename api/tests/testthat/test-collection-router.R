@@ -20,6 +20,9 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     "/api/recopiladores/reconcile",
     "/api/recopiladores/handoff",
     "/api/recopiladores/material-template",
+    # Editor sobre la página real (ADR 0109 E1b): la cara compilada con el
+    # borrador y una unidad del plan. Lectura pura.
+    "/api/recopiladores/material-template/preview",
     # Catálogo › Tipos (ADR 0109 E1a): tipos de material y su miniatura real.
     "/api/recopiladores/material-catalog",
     "/api/recopiladores/material-catalog/preview",

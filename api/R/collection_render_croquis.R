@@ -624,7 +624,7 @@ CCX_TONOS_DE_PABELLON <- 8L
 #' @param page_no numero visible.
 #' @param total_pages total visible.
 #' @param brand_assets ignorado (el verso no lleva careta); presente por firma.
-#' @return lista con `warnings` y `links`.
+#' @return lista con `warnings`, `links` y `zones` (npc, una por bloque dibujado).
 #' @export
 collection_material_draw_campus_croquis <- function(page, page_no = 1L,
                                                     total_pages = 1L,
@@ -636,7 +636,21 @@ collection_material_draw_campus_croquis <- function(page, page_no = 1L,
   # y preguntarle a esa cadena si hay aula responde que si SIEMPRE.
   warnings <- .ccx_dibujar_croquis(page$unit$venue_raw, page_no)
   pulso_pdf_footer(page_no, periodo = "", tokens = tokens, geo = geo, pagina = FALSE)
-  list(warnings = warnings, links = list())
+  # El croquis se dibuja entero haya o no bloque `campus_map`: del titulo
+  # (centrado en `y_title`) a la leyenda (`y_leyenda`, marcas de radio 0.0105),
+  # a lo ancho de la hoja —el recorte del mapa es solo vertical y los rotulos de
+  # puertas y avenidas viven a los costados del terreno—.
+  mapa <- .crf_block(page, "campus_map")
+  L <- .ccx_layout()
+  zones <- list(
+    .cmz_zone(
+      mapa$block_id, "campus_map", geo$margin, 1 - geo$margin,
+      L$y_leyenda - 0.013, L$y_title + .cmz_alto_lineas(1L, 15, 1, geo) / 2 + 0.003,
+      kind = if (is.null(mapa)) "derived" else "block"
+    ),
+    .crf_footer_zona(.crf_block(page, "footer"), geo)
+  )
+  list(warnings = warnings, links = list(), zones = .cmz_sin_solapes(zones))
 }
 
 #' Lamina suelta del croquis del campus (referencia general del operativo).

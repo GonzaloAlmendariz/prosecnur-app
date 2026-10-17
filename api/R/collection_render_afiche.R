@@ -111,10 +111,20 @@
 # Titulo" en el editor de verdad pone las instrucciones arriba del QR.
 .cra_flow_plan <- function(blocks, L, geo) {
   flow_types <- c("heading", "body", "divider", "instructions")
-  items <- Filter(function(b) b$type %in% flow_types, blocks %||% list())
-  qr_index <- which(vapply(blocks %||% list(), function(b) identical(b$type, "access_qr"), logical(1)))
+  blocks <- blocks %||% list()
+  qr_index <- which(vapply(blocks, function(b) identical(b$type, "access_qr"), logical(1)))
   qr_pos <- if (length(qr_index)) qr_index[[1]] else Inf
-  item_index <- which(vapply(blocks %||% list(), function(b) b$type %in% flow_types, logical(1)))
+  # Un sitio por tipo, como en la ficha (`.crf_flow_unicos`): el dibujante pinta
+  # el PRIMER bloque de cada tipo, asi que un segundo titulo reservaba alto para
+  # repetir el primero. El filete se puede repetir.
+  es_flujo <- vapply(blocks, function(b) b$type %in% flow_types, logical(1))
+  vistos <- character(0)
+  for (i in which(es_flujo)) {
+    tipo <- blocks[[i]]$type
+    if (!identical(tipo, "divider") && tipo %in% vistos) es_flujo[[i]] <- FALSE else vistos <- c(vistos, tipo)
+  }
+  items <- blocks[es_flujo]
+  item_index <- which(es_flujo)
 
   gap <- 0.020
   link_h <- 0.075
@@ -184,7 +194,8 @@
 #' @param page_no numero visible.
 #' @param total_pages total visible.
 #' @param brand_assets mapa efimero id -> ruta PNG de los logos de la careta.
-#' @return lista con `warnings` y `links` (rectangulos clicables en npc).
+#' @return lista con `warnings`, `links` (rectangulos clicables en npc) y
+#'   `zones` (una por bloque dibujado, en npc).
 #' @export
 collection_material_draw_poster <- function(page, page_no = 1L, total_pages = 1L,
                                             brand_assets = list()) {
@@ -196,14 +207,16 @@ collection_material_draw_poster <- function(page, page_no = 1L, total_pages = 1L
   qr <- .crf_block(page, "access_qr")
   footer <- .crf_block(page, "footer")
   warnings <- list()
+  zones <- list()
 
   grid::grid.newpage()
   grid::grid.rect(gp = grid::gpar(fill = "#ffffff", col = NA))
 
   if (!is.null(brand)) {
+    max_h_mm <- brand$max_height_mm %||% 14
     missing <- .cra_draw_brand_strip(
       brand$assets, brand_assets, y = L$y_brand,
-      max_height_mm = brand$max_height_mm %||% 14,
+      max_height_mm = max_h_mm,
       align = as.character(brand$align %||% "center")[[1]], geo = geo
     )
     for (id in missing) {
@@ -211,6 +224,12 @@ collection_material_draw_poster <- function(page, page_no = 1L, total_pages = 1L
         code = "brand_asset_missing", page = page_no, asset_id = id
       )
     }
+    # La careta llega hasta su filete: la regla de abajo la cierra.
+    h_brand <- (as.numeric(max_h_mm) / 25.4) / geo$page_h
+    zones[[length(zones) + 1L]] <- .cmz_zone(
+      brand$block_id, "brand_strip", L$x_left, L$x_right,
+      min(L$y_brand - h_brand / 2, L$y_brand_rule - 0.002), L$y_brand + h_brand / 2
+    )
   }
   pulso_pdf_hairline(L$x_left, L$x_right, L$y_brand_rule, tokens = tokens)
 
@@ -224,11 +243,11 @@ collection_material_draw_poster <- function(page, page_no = 1L, total_pages = 1L
       # simbolo desplazado—. Un afiche se escanea desde mas lejos que una ficha.
       qz <- qr$quiet_zone %||% 4L
       mm <- collection_qr_matrix(payload, correction = qr$correction %||% "M", quiet_zone = qz)
-      grid::pushViewport(.crf_qr_viewport(
-        L$qr_x, L$qr_y, .crf_qr_lado_total(L$qr_side, nrow(mm), qz, L$x_right - L$x_left), geo
-      ))
+      lado_total <- .crf_qr_lado_total(L$qr_side, nrow(mm), qz, L$x_right - L$x_left)
+      grid::pushViewport(.crf_qr_viewport(L$qr_x, L$qr_y, lado_total, geo))
       .crf_draw_qr_modules(mm)
       grid::popViewport()
+      zones[[length(zones) + 1L]] <- .crf_qr_zona(qr$block_id, L, lado_total, nrow(mm), qz, geo)
     } else {
       # Los otros dos presets (ficha, ficha_campo) pasan por un helper
       # compartido que avisa `access_missing` para cualquier bloque
@@ -245,6 +264,7 @@ collection_material_draw_poster <- function(page, page_no = 1L, total_pages = 1L
         "Sin enlace", gp = grid::gpar(col = tokens$faint, fontsize = type$body)
       )
       grid::popViewport()
+      zones[[length(zones) + 1L]] <- .crf_qr_zona(qr$block_id, L, L$qr_side, 1L, 0L, geo)
     }
   }
 
@@ -262,6 +282,9 @@ collection_material_draw_poster <- function(page, page_no = 1L, total_pages = 1L
         grid::gpar(col = tokens$navy, fontsize = L$title_size, fontface = "bold"),
         lineheight = L$title_lineheight
       )
+      zones[[length(zones) + 1L]] <- .cra_zona_flujo(
+        block$block_id, "heading", item, .cmz_alto_lineas(length(lines), L$title_size, L$title_lineheight, geo), L
+      )
     } else if (identical(item$type, "body")) {
       block <- .crf_block(page, "body")
       lines <- block$lines %||% character(0)
@@ -271,9 +294,13 @@ collection_material_draw_poster <- function(page, page_no = 1L, total_pages = 1L
         lines, if (just_top) y else y + length(lines) * (11 * 1.2 / 72) / geo$page_h,
         grid::gpar(col = tokens$soft, fontsize = 11), lineheight = 1.2
       )
+      zones[[length(zones) + 1L]] <- .cra_zona_flujo(
+        block$block_id, "body", item, .cmz_alto_lineas(length(lines), 11, 1.2, geo), L
+      )
     } else if (identical(item$type, "divider")) {
       y <- if (!is.null(item$y_top)) item$y_top - item$height * 0.5 else item$y_bottom + item$height * 0.5
       pulso_pdf_hairline(L$x_left, L$x_right, y, tokens = tokens)
+      zones[[length(zones) + 1L]] <- .cra_zona_flujo(item$block_id, "divider", item, item$height, L)
     } else if (identical(item$type, "instructions")) {
       block <- .crf_block(page, "instructions")
       lines <- block$lines %||% .crf_wrap(block$value, 72L, 3L)
@@ -282,6 +309,9 @@ collection_material_draw_poster <- function(page, page_no = 1L, total_pages = 1L
       .cra_draw_centered(
         lines, if (just_top) y else y + length(lines) * (11 * 1.2 / 72) / geo$page_h,
         grid::gpar(col = tokens$ink, fontsize = 11), lineheight = 1.2
+      )
+      zones[[length(zones) + 1L]] <- .cra_zona_flujo(
+        block$block_id, "instructions", item, .cmz_alto_lineas(length(lines), 11, 1.2, geo), L
       )
     } else if (identical(item$type, "link")) {
       grid::grid.text(
@@ -295,8 +325,12 @@ collection_material_draw_poster <- function(page, page_no = 1L, total_pages = 1L
         link_lines, link_y,
         grid::gpar(col = tokens$navy, fontsize = L$link_size), lineheight = L$link_lineheight
       )
+      link_h <- length(link_lines) * (L$link_size * L$link_lineheight / 72) / geo$page_h
+      zones[[length(zones) + 1L]] <- .cmz_zone(
+        NA_character_, "link", L$x_left, L$x_right,
+        link_y - link_h - 0.002, item$y_top + 0.002, kind = "derived"
+      )
       if (nzchar(payload)) {
-        link_h <- length(link_lines) * (L$link_size * L$link_lineheight / 72) / geo$page_h
         links[[length(links) + 1L]] <- list(
           page = page_no, url = payload, kind = "printed_url",
           x0 = L$x_left, x1 = L$x_right,
@@ -308,7 +342,21 @@ collection_material_draw_poster <- function(page, page_no = 1L, total_pages = 1L
 
   period <- .crf_txt(footer$value %||% page$project$period, "")
   pulso_pdf_footer(page_no, periodo = period, tokens = tokens, geo = geo)
-  list(warnings = warnings, links = links)
+  zones[[length(zones) + 1L]] <- .crf_footer_zona(footer, geo)
+  list(warnings = warnings, links = links, zones = .cmz_sin_solapes(zones))
+}
+
+# Zona de un item del flujo del afiche. Arriba del QR el item se apila hacia
+# arriba desde `y_bottom` y el texto se dibuja colgado de `y_bottom + alto`;
+# abajo, colgado de `y_top`. La zona cubre lo que el texto ocupa aunque el techo
+# del flujo le haya recortado la banda: el dibujo no respeta ese recorte.
+.cra_zona_flujo <- function(block_id, type, item, alto_tinta, L) {
+  alto <- max(as.numeric(item$height %||% 0), alto_tinta)
+  if (!is.null(item$y_top)) {
+    .cmz_zone(block_id, type, L$x_left, L$x_right, item$y_top - alto, item$y_top)
+  } else {
+    .cmz_zone(block_id, type, L$x_left, L$x_right, item$y_bottom, item$y_bottom + alto)
+  }
 }
 
 #' Plantilla built-in del afiche de acceso con careta de logos.
