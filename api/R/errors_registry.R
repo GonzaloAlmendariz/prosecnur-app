@@ -315,6 +315,13 @@ errores_registrados <- function() {
     "E_BASE_VARIABLE_MAPA_INVALIDO",                         "base_variables_calculadas.R",       "422",
     "E_BASE_VARIABLE_FORMULA_INVALIDA",                      "base_variables_formula.R",          "422",
     "E_BASE_VARIABLE_EN_USO",                                "base_variables_servicio.R",         "409",
+    "E_CODIF_RESPUESTAS_CAMBIARON",                          "codificacion_readaptar.R",          "409",
+    "E_ANEXAR_BASE_SIN_DATOS",                              "carga_columnas_anexadas.R",       "409",
+    "E_ANEXAR_CLAVE",                                       "carga_columnas_anexadas.R",       "422",
+    "E_ANEXAR_SIN_COLUMNAS",                                "carga_columnas_anexadas.R",       "422",
+    "E_ANEXAR_COLUMNA_OCUPADA",                             "carga_columnas_anexadas.R",       "409",
+    "E_BASE_SIN_FORMULARIO",                                 "carga_reemplazar_respuestas.R",     "422",
+    "E_BASE_VARIABLE_DE_SEGMENTO",                           "base_variables_servicio.R",         "409",
     "E_BASE_VARIABLE_TIPO_INVALIDO",                         "base_variables_servicio.R",         "422",
     "E_BASE_VARIABLE_NO_ENCONTRADA",                         "base_variables_servicio.R",         "404",
     # Códigos observados de una variable de una base.

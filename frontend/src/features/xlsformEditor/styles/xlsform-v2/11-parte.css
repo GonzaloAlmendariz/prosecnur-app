@@ -1,0 +1,550 @@
+.pulso-focus-required-message-checks {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pulso-focus-required-message-checks span.is-ok {
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 16%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-success-bg) 48%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-success-fg) 76%, #253149);
+}
+
+.pulso-focus-required-message-checks span.is-pending {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 16%, var(--xls-border));
+  background: rgba(255, 255, 255, 0.76);
+  color: color-mix(in srgb, var(--pulso-warn-fg) 72%, #566172);
+}
+
+.pulso-focus-message-preset-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-width: 0;
+  gap: 6px;
+}
+
+.pulso-focus-message-preset {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-success-fg) 16%, var(--xls-border));
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #253149;
+  text-align: left;
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-focus-message-preset-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-success-bg) 62%, #ffffff);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-focus-message-preset-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-focus-message-preset-copy strong,
+.pulso-focus-message-preset-copy small,
+.pulso-focus-message-preset-copy em {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.pulso-focus-message-preset-copy strong {
+  color: #1f2a3d;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.2;
+}
+
+.pulso-focus-message-preset-copy small {
+  color: #667386;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.25;
+}
+
+.pulso-focus-message-preset-copy em {
+  color: color-mix(in srgb, var(--pulso-success-fg) 74%, #253149);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.25;
+}
+
+.pulso-focus-required-message-assistant .pulso-focus-message-preset {
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 7px;
+  padding: 7px;
+  border-color: color-mix(in srgb, var(--pulso-primary) 14%, var(--xls-border));
+}
+
+.pulso-focus-required-message-assistant .pulso-focus-message-preset-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(178px, 100%), 1fr));
+  gap: 7px;
+}
+
+.pulso-focus-required-message-assistant .pulso-focus-message-preset-icon {
+  width: 22px;
+  height: 22px;
+  background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-required-message-assistant .pulso-focus-message-preset-copy {
+  gap: 4px;
+}
+
+.pulso-focus-required-message-assistant .pulso-focus-message-preset-copy small {
+  display: none;
+}
+
+.pulso-focus-required-message-assistant .pulso-focus-message-preset-copy em {
+  color: color-mix(in srgb, var(--pulso-primary) 74%, #253149);
+}
+
+.pulso-focus-required-message-alternatives {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pulso-focus-required-message-alternatives summary {
+  cursor: pointer;
+  color: color-mix(in srgb, var(--pulso-primary) 76%, #253149);
+  font-size: 11.2px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.3;
+}
+
+.pulso-focus-required-message-alternatives[open] summary {
+  margin-bottom: 8px;
+}
+
+.pulso-focus-repeat-panel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 14%, var(--xls-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 253, 0.82)),
+    color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
+}
+
+.pulso-focus-repeat-panel.is-warning {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 22%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 30%, #ffffff);
+}
+
+.pulso-focus-repeat-head {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.pulso-focus-repeat-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-repeat-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-focus-repeat-head strong {
+  color: #1f2a3d;
+  font-size: 12.8px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.25;
+}
+
+.pulso-focus-repeat-head p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.4px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.42;
+}
+
+.pulso-focus-repeat-clear-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-danger-fg) 18%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-danger-bg) 34%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-danger-fg) 78%, #23314a);
+  cursor: pointer;
+}
+
+.pulso-focus-repeat-builder {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(168px, 100%), 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.pulso-focus-repeat-builder label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid var(--xls-border);
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.pulso-focus-repeat-builder label > span {
+  color: #667386;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  text-transform: uppercase;
+}
+
+.pulso-focus-repeat-builder label > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pulso-focus-repeat-builder .pulso-focus-repeat-variable {
+  grid-column: 1 / -1;
+}
+
+.pulso-focus-repeat-builder input,
+.pulso-focus-repeat-builder select,
+.pulso-focus-repeat-formula {
+  min-width: 0;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 1px solid var(--xls-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--pulso-text);
+  font-size: 11.5px;
+}
+
+.pulso-focus-repeat-formula {
+  font-family: ui-monospace, monospace;
+}
+
+.pulso-focus-constraint-message-presets {
+  border-color: color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
+}
+
+.pulso-focus-constraint-message-presets .pulso-focus-message-preset {
+  border-color: color-mix(in srgb, var(--pulso-primary) 14%, var(--xls-border));
+}
+
+.pulso-focus-constraint-message-presets .pulso-focus-message-preset-icon {
+  background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-constraint-message-presets .pulso-focus-message-preset-copy em {
+  color: color-mix(in srgb, var(--pulso-primary) 78%, #253149);
+}
+
+.pulso-focus-constraint-message-assistant {
+  gap: 9px;
+  scroll-margin-top: 72px;
+  padding: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.93), rgba(248, 250, 253, 0.82)),
+    color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
+}
+
+.pulso-focus-constraint-message-assistant.is-warning {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 21%, var(--xls-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.93), rgba(255, 251, 235, 0.72)),
+    color-mix(in srgb, var(--pulso-warn-bg) 24%, #ffffff);
+}
+
+.pulso-focus-constraint-message-head {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 9px;
+  align-items: flex-start;
+}
+
+.pulso-focus-constraint-message-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-focus-constraint-message-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-constraint-message-assistant.is-warning .pulso-focus-constraint-message-icon {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 22%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 42%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-warn-fg) 78%, #253149);
+}
+
+.pulso-focus-constraint-message-guidance {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 9px;
+  border: 1px dashed color-mix(in srgb, var(--pulso-warn-fg) 18%, var(--xls-border));
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.pulso-focus-constraint-message-guidance strong {
+  color: #253149;
+  font-size: 11.2px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.2;
+}
+
+.pulso-focus-media-panel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 14%, var(--xls-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 250, 253, 0.82)),
+    color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
+}
+
+.pulso-focus-media-head {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 9px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.pulso-focus-media-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-media-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-focus-media-head strong {
+  color: #1f2a3d;
+  font-size: 12.8px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.25;
+}
+
+.pulso-focus-media-head p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.4px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.42;
+}
+
+.pulso-focus-media-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pulso-focus-media-field {
+  display: grid;
+  grid-template-columns: minmax(145px, 0.8fr) minmax(0, 1fr);
+  min-width: 0;
+  gap: 7px;
+  align-items: start;
+  padding: 9px;
+  border: 1px solid var(--xls-border);
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.pulso-focus-media-field.is-active {
+  border-color: color-mix(in srgb, var(--pulso-primary) 24%, var(--xls-border));
+  background: color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
+}
+
+.pulso-focus-media-field-head {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 7px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.pulso-focus-media-field-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pulso-focus-media-field-head strong {
+  color: #1f2a3d;
+  font-size: 11.8px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.2;
+}
+
+.pulso-focus-media-field-head small {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.28;
+}
+
+.pulso-focus-media-field input {
+  min-width: 0;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 1px solid var(--xls-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--pulso-text);
+  font-family: ui-monospace, monospace;
+  font-size: 11.5px;
+}
+
+.pulso-focus-media-examples {
+  grid-column: 1 / -1;
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pulso-focus-presentation-guide {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-info-fg) 18%, var(--xls-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 250, 253, 0.82)),
+    color-mix(in srgb, var(--pulso-info-bg) 32%, #ffffff);
+}
+
+.pulso-focus-presentation-guide-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-info-fg) 18%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-info-bg) 68%, #ffffff);
+  color: var(--pulso-info-fg);
+}
+
+.pulso-focus-presentation-guide > div:last-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pulso-focus-presentation-guide strong {
+  color: #1f2a3d;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.3;
+}
+
+.pulso-focus-presentation-guide p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.pulso-focus-presentation-badges {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.pulso-focus-data-contract {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 16%, var(--xls-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 253, 0.86)),
+    color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
+}
+

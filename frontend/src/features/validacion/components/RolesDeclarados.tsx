@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from "react";
 import { Check, KeyRound, ListChecks, MessageSquare, Sparkles, User } from "lucide-react";
 import { apiV2RolesSugerencias } from "../../../api/client";
 import type { InstrumentoOperationalConfig, RolesSugerencias } from "../types";
+import { textoCondicion } from "../casoValidoManualModel";
 
 // =============================================================================
 // RolesDeclarados — qué es un caso, quién lo recolectó y cuál cuenta
@@ -124,54 +125,22 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
         ) : null}
       </RolBloque>
 
-      {/* --- Criterio de validez ------------------------------------------- */}
+      {/* --- Qué caso cuenta: se define en Analítica (Gonzalo, 2026-10-16:
+          «debería ser algo de Analítica»). Validación lo respeta: no revisa
+          los casos que no cuentan. Aquí sólo se muestra. */}
       <RolBloque
         icono={<ListChecks size={13} aria-hidden="true" focusable="false" />}
-        titulo="Qué caso cuenta"
-        ayuda="Las condiciones que hacen que un caso entre al análisis. Hoy suelen vivir repetidas dentro de cada pregunta del formulario; declararlas hace que el N sea defendible."
+        titulo="Qué casos cuentan"
+        ayuda="Se define en Analítica. Las verificaciones no revisan los casos no considerados."
         activo={validez.enabled}
-        onToggle={(enabled) => setValidez({ enabled })}
+        onToggle={() => undefined}
         disabled={disabled}
-        resumen={validez.condiciones.length
-          ? validez.condiciones
-              .map((c) => `${c.variable} ${c.operador} ${c.valores.join(", ")}`)
-              .join(" · ")
-          : "sin declarar — cuenta toda la base"}
+        sinToggle
+        resumen={validez.enabled && validez.condiciones.length
+          ? validez.condiciones.map((c) => textoCondicion(c)).join(" y ")
+          : "Cuentan todos los casos"}
       >
-        {!cargando && sug?.caso_valido.length ? (
-          <Sugerencias
-            titulo="Lo que el formulario ya venía exigiendo"
-            items={sug.caso_valido.map((c) => ({
-              clave: c.variable,
-              etiqueta: `${c.variable} ${c.operador} «${c.valores.join(", ")}»`,
-              porque: c.porque,
-              // El efecto es lo que distingue un criterio de validez de una
-              // ruta del estudio, y por eso va en el rótulo, no escondido.
-              aviso: c.n_casos_excluiria > 0
-                ? `Sacaría ${c.n_casos_excluiria} caso${c.n_casos_excluiria === 1 ? "" : "s"} del análisis`
-                : "No saca ningún caso",
-              tono: c.probable_rama ? ("warn" as const) : ("ok" as const),
-              yaEsta: validez.condiciones.some((x) => x.variable === c.variable),
-            }))}
-            onUsar={(clave) => {
-              const c = sug.caso_valido.find((x) => x.variable === clave);
-              if (!c) return;
-              setValidez({
-                enabled: true,
-                condiciones: [
-                  ...validez.condiciones.filter((x) => x.variable !== c.variable),
-                  { variable: c.variable, operador: c.operador, valores: c.valores },
-                ],
-              });
-            }}
-            onQuitar={(clave) =>
-              setValidez({
-                condiciones: validez.condiciones.filter((x) => x.variable !== clave),
-              })
-            }
-            disabled={disabled}
-          />
-        ) : null}
+        <a className="pulso-cvm-ir" href="/analitica?panel=universo">Definir en Analítica</a>
       </RolBloque>
 
       {/* --- Preguntas abiertas que se vigilan ----------------------------- */}
@@ -239,7 +208,7 @@ function RolBloque({
         <div className="pulso-rol-bloque-copy">
           <strong>{titulo}</strong>
           <small>{ayuda}</small>
-          <span className="pulso-rol-bloque-resumen">{resumen}</span>
+          {resumen ? <span className="pulso-rol-bloque-resumen">{resumen}</span> : null}
         </div>
         {!sinToggle && (
           <label className="pulso-rol-bloque-toggle">

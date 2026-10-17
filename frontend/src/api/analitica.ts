@@ -1002,3 +1002,78 @@ export async function apiAnaliticaComparativoFrecuencias(body: ComparativoBody =
 export async function apiAnaliticaComparativoCruces(body: ComparativoBody) {
   return iniciarComparativo("cruces", body);
 }
+
+/** Código que parece especial en las listas de respuestas del estudio (sugerencia, no regla). */
+export type UsoCodigoEnBase = { base: string; n_preguntas: number; n_con_casos: number | null };
+export type CodigoEspecialSugerido = {
+  codigo: string;
+  etiqueta: string;
+  etiquetas: string[];
+  n_listas: number;
+  /** En cuántas preguntas de cada base se ofrece y en cuántas alguien lo eligió (sin data, `null`). */
+  por_base?: UsoCodigoEnBase[];
+};
+
+export async function apiAnaliticaCodigosEspeciales(): Promise<CodigoEspecialSugerido[]> {
+  const raw = await handle<{ ok: true; codigos?: unknown }>(
+    await apiFetch("/api/analitica/codigos-especiales", { headers: headers() })
+  );
+  const lista = Array.isArray(raw.codigos) ? raw.codigos : [];
+  return lista
+    .map((c) => (c && typeof c === "object" ? (c as Record<string, unknown>) : {}))
+    .map((c) => ({
+      codigo: String(c.codigo ?? "").trim(),
+      etiqueta: String(c.etiqueta ?? "").trim(),
+      etiquetas: Array.isArray(c.etiquetas) ? c.etiquetas.map((e) => String(e)) : [],
+      n_listas: Number(c.n_listas ?? 0) || 0,
+      por_base: Array.isArray(c.por_base)
+        ? c.por_base.map((u) => {
+          const r = (u && typeof u === "object" ? u : {}) as Record<string, unknown>;
+          const n = Number(r.n_con_casos);
+          return { base: String(r.base ?? ""), n_preguntas: Number(r.n_preguntas ?? 0) || 0, n_con_casos: Number.isFinite(n) ? n : null };
+        }).filter((u) => u.base)
+        : undefined,
+    }))
+    .filter((c) => c.codigo !== "");
+}
+
+/** Cuántos casos cuentan en una base según «Qué caso cuenta» (Validación). */
+export type UniversoDeBase = {
+  base: string;
+  declarado: boolean;
+  aplicado: boolean;
+  n_total: number;
+  n_validos: number;
+  motivo_no_aplicado: string;
+  condiciones: { variable: string; operador: "==" | "!=" | "in" | "not_in"; valores: string[] }[];
+};
+
+function unoDe(x: unknown): unknown {
+  return Array.isArray(x) ? x[0] : x;
+}
+
+export async function apiAnaliticaUniverso(): Promise<UniversoDeBase[]> {
+  const raw = await handle<{ ok: true; bases?: unknown }>(
+    await apiFetch("/api/analitica/universo", { headers: headers() }),
+  );
+  const bases = Array.isArray(raw.bases) ? raw.bases : [];
+  return bases.map((b: Record<string, unknown>) => {
+    const conds = Array.isArray(b.condiciones) ? b.condiciones : [];
+    return {
+      base: String(unoDe(b.base) ?? ""),
+      declarado: unoDe(b.declarado) === true,
+      aplicado: unoDe(b.aplicado) === true,
+      n_total: Number(unoDe(b.n_total) ?? 0) || 0,
+      n_validos: Number(unoDe(b.n_validos) ?? 0) || 0,
+      motivo_no_aplicado: String(unoDe(b.motivo_no_aplicado) ?? ""),
+      condiciones: conds.map((c: Record<string, unknown>) => {
+        const o = String(unoDe(c.operador) ?? "==");
+        return {
+          variable: String(unoDe(c.variable) ?? ""),
+          operador: (["==", "!=", "in", "not_in"].includes(o) ? o : "==") as "==" | "!=" | "in" | "not_in",
+          valores: Array.isArray(c.valores) ? c.valores.map(String) : c.valores == null ? [] : [String(c.valores)],
+        };
+      }),
+    };
+  });
+}

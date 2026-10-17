@@ -1,0 +1,481 @@
+/* Avisos de publicación (p. ej. un público que ya no está en el catálogo):
+   discretos, plegados y sin rojo; no impiden publicar. */
+.pulso-xf-home-card-avisos {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-home-card-avisos summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  list-style: none;
+}
+
+.pulso-xf-home-card-avisos summary::-webkit-details-marker {
+  display: none;
+}
+
+.pulso-xf-home-card-avisos summary span {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-medium);
+}
+
+.pulso-xf-home-card-avisos summary:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.pulso-xf-home-card-avisos ul {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-xf-home-card-avisos li {
+  display: grid;
+  gap: 1px;
+  padding: 5px 8px;
+  border-left: 2px solid var(--pulso-warn-border);
+  background: var(--pulso-surface-2);
+  line-height: 1.35;
+}
+
+.pulso-xf-home-card-avisos li strong {
+  color: var(--pulso-text);
+  font-size: 11px;
+}
+
+.pulso-xf-home-card-workflow {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 6px;
+}
+
+.pulso-xf-home-card-stage {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-xf-home-card-stage-title {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-xf-home-card-stage strong {
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  line-height: 1.3;
+}
+
+
+.pulso-xf-home-card-stage.is-success {
+  border-color: var(--pulso-success-border);
+}
+
+.pulso-xf-home-card-stage.is-warning {
+  border-color: var(--pulso-warn-border);
+}
+
+.pulso-xf-home-card-stage.is-danger {
+  border-color: var(--pulso-danger-border);
+}
+
+/* Borrador vacío: posee el espacio libre de la tarjeta (C3). Neutro. */
+.pulso-xf-home-card-vacio {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 72px;
+  padding: 12px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 9px;
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+  text-align: center;
+}
+
+.pulso-xf-home-card-vacio strong {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* Cierre de la tarjeta: estado de publicación + pie, anclados al fondo. */
+.pulso-xf-home-card-cierre {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.pulso-xf-home-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-home-card-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-xf-home-card-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--xf-card-accent);
+  background: var(--xf-card-accent-soft);
+  color: var(--xf-card-accent);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.pulso-xf-home-card-open:hover {
+  background: var(--xf-card-accent);
+  color: var(--pulso-surface);
+}
+
+/* Menú de acciones de la tarjeta (kebab) */
+.pulso-xf-home-card-menu {
+  position: relative;
+}
+
+.pulso-xf-home-card-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.pulso-xf-home-card-menu-trigger:hover {
+  background: var(--pulso-surface-3);
+  border-color: var(--pulso-border);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-home-card-menu-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 168px;
+  display: flex;
+  flex-direction: column;
+  padding: 5px;
+  border-radius: 10px;
+  background: var(--pulso-surface-raised);
+  border: 1px solid var(--pulso-border);
+  box-shadow: var(--pulso-shadow-popover);
+}
+
+.pulso-xf-home-card-menu-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-medium);
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.pulso-xf-home-card-menu-item:hover {
+  background: var(--pulso-surface-3);
+}
+
+.pulso-xf-home-card-menu-item.is-danger {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-xf-home-card-menu-item.is-danger:hover {
+  background: var(--pulso-danger-bg);
+}
+
+.pulso-xf-home-card-menu-item:disabled {
+  color: var(--pulso-text-faint);
+  background: var(--pulso-surface-2);
+  cursor: not-allowed;
+}
+
+.pulso-xf-home-card-menu-divider {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--pulso-border);
+}
+
+/* Confirmación de borrado inline */
+.pulso-xf-home-card-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--pulso-danger-bg);
+  border: 1px solid var(--pulso-danger-border);
+}
+
+.pulso-xf-home-card-confirm-text {
+  font-size: 12px;
+  color: var(--pulso-danger-fg);
+  line-height: 1.45;
+}
+
+.pulso-xf-home-card-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pulso-xf-home-card-confirm-btn {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-home-card-confirm-btn.is-danger {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-fg);
+  color: var(--pulso-surface);
+}
+
+/* --- Estado de publicación de la revisión XLSForm --------------------- */
+
+.pulso-xf-publication {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 9px;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-publication-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pulso-xf-publication-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-publication-label-detalle {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-medium);
+}
+
+.pulso-xf-publication.is-success .pulso-xf-publication-label {
+  color: var(--pulso-success-fg);
+}
+
+.pulso-xf-publication.is-warning .pulso-xf-publication-label {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-xf-publication.is-danger .pulso-xf-publication-label {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-xf-publication-action {
+  min-height: 28px;
+  padding: 4px 9px;
+  border-radius: 7px;
+  border: 1px solid var(--pulso-module-editor-border);
+  background: var(--pulso-module-editor-soft);
+  color: var(--pulso-module-editor);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.pulso-xf-publication-action:hover:not(:disabled) {
+  border-color: var(--pulso-module-editor);
+}
+
+.pulso-xf-publication-action:disabled {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-faint);
+  cursor: not-allowed;
+}
+
+.pulso-xf-publication-reason,
+.pulso-xf-publication-error {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.pulso-xf-publication-reason {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-publication-error {
+  color: var(--pulso-danger-fg);
+}
+
+/* Lista completa de lo que impide publicar. La tarjeta la muestra entera: la
+   versión anterior citaba solo el primer bloqueo y contaba el resto, así que
+   el usuario no sabía qué más corregir sin abrir el formulario a ciegas. */
+.pulso-xf-publication-blockers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 132px;
+  overflow-y: auto;
+}
+
+.pulso-xf-publication-blocker {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+}
+
+.pulso-xf-publication-blocker strong {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-xf-publication-blocker span {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-publication-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Tarjeta de creación (AddFormCard) --------------------------------- */
+
+/* Slot compacto "＋ Nuevo formulario" (biblioteca poblada, con cupo). */
+.pulso-xf-home-add--tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  min-height: 150px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1.5px dashed var(--pulso-module-editor-border);
+  background: color-mix(in srgb, var(--pulso-module-editor-soft) 45%, var(--pulso-surface));
+  color: var(--pulso-module-editor);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    background 160ms ease;
+}
+
+.pulso-xf-home-add--tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--pulso-module-editor);
+  background: var(--pulso-module-editor-soft);
+  box-shadow: var(--pulso-shadow-soft);
+}
+
+.pulso-xf-home-add-plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-module-editor-border);
+  color: var(--pulso-module-editor);
+}
+
+.pulso-xf-home-add-label {
+  font-size: 13.5px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+  letter-spacing: -0.1px;
+}
+
+.pulso-xf-home-add-hint {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.4;
+  max-width: 200px;
+}
+
+/* Mientras se elige cómo crear, las filas vuelven a su alto intrínseco: con
+   `1fr` la celda expandida heredaba el alto de una tarjeta (338 px con ~170
+   vacíos). Es un estado transitorio de la grilla. */
+.pulso-xf-home-slots:has(.pulso-xf-home-add--expanded) {
+  grid-auto-rows: auto;
+}
+

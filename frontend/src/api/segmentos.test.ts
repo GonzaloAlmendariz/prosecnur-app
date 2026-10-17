@@ -40,6 +40,7 @@ describe("normalizarSegmentos: lo que serializa Plumber (ADR 0107)", () => {
           "2026": { origen: "", mapa: {}, estado: "sin_origen", n_sin_mapa: 0, codigos_sin_mapa: [] },
         },
         fila_ref: "3",
+        nota: "",
       },
     ]);
   });

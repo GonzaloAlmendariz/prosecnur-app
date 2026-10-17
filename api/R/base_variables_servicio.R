@@ -153,6 +153,7 @@ base_variables_guardar_calculada <- function(sid, base, cuerpo, marca = list()) 
   meta_previa$variables_calculadas <- anteriores
   datos <- base_variables_materializar(par$data, meta_previa)
   listas <- .base_variables_con_lista(par$inst, meta[["variables_propias"]], anteriores)
+  .base_variables_no_es_de_segmento(calcs, nuevo, marca)
   cv <- base_variables_validar_calculada(cuerpo, columnas = names(datos), ocupados = ocupados,
                                          con_lista = listas$con_lista, multiples = listas$multiples)
   if (length(marca)) cv[names(marca)] <- marca
@@ -168,6 +169,20 @@ base_variables_guardar_calculada <- function(sid, base, cuerpo, marca = list()) 
     resumen = base_variables_resumen_calculada(base_variables_calcular(datos, cv), cv),
     calculadas = calcs
   )
+}
+
+# La calculada de un segmento de cruce (ADR 0107) sólo la toca el segmento: por
+# aquí se desincronizaría entre las bases. `marca` es la del propio segmento.
+.base_variables_no_es_de_segmento <- function(calcs, nombre, marca = list()) {
+  if (nzchar(.origen_externo_chr(marca[["segmento"]]))) return(invisible(TRUE))
+  hit <- Filter(function(cv) identical(.origen_externo_chr(cv[["nombre"]]), nombre) &&
+                  nzchar(.origen_externo_chr(cv[["segmento"]])), calcs %||% list())
+  if (length(hit)) {
+    stop_api(409, "E_BASE_VARIABLE_DE_SEGMENTO", sprintf(
+      "«%s» es la variable del segmento de cruce «%s»: se edita o se quita en Segmentos de cruce.",
+      nombre, .origen_externo_chr(hit[[1]][["segmento"]])), list(nombre = nombre))
+  }
+  invisible(TRUE)
 }
 
 # Qué variables tienen lista de respuestas (sus 80–99 son sin dato en una
@@ -188,7 +203,7 @@ base_variables_guardar_calculada <- function(sid, base, cuerpo, marca = list()) 
 
 #' Borra una variable calculada de la base.
 #' @keywords internal
-base_variables_quitar_calculada <- function(sid, base, nombre) {
+base_variables_quitar_calculada <- function(sid, base, nombre, desde_segmento = FALSE) {
   s <- session_get(sid)
   nombre_base <- .base_variables_base(s, base)
   meta <- s$estudio$bases[[nombre_base]]
@@ -200,6 +215,7 @@ base_variables_quitar_calculada <- function(sid, base, nombre) {
       "La base «%s» no tiene una variable calculada «%s».", nombre_base, nombre),
       list(base = nombre_base, nombre = nombre))
   }
+  if (!isTRUE(desde_segmento)) .base_variables_no_es_de_segmento(calcs, nombre)
   dependen <- previas[vapply(calcs, function(cv) nombre %in% .base_variables_lista(cv[["variables"]]), logical(1))]
   if (length(dependen)) {
     stop_api(409, "E_BASE_VARIABLE_EN_USO", sprintf(

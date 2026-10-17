@@ -328,12 +328,22 @@ job_poll <- function(job_id) {
     j$result_data <- result
     j$result_public <- result
     if (!is.null(j$on_complete)) {
+      # El error se captura y se aplica afuera: asignar `j$status` dentro del
+      # manejador sólo cambiaba su copia local, y un on_complete fallido se
+      # reportaba como «done» sin resultado (la UI se caía al leerlo).
+      fallo <- NULL
       public <- tryCatch(j$on_complete(j), error = function(e) {
-        j$status <- "error"
-        j$error <- sprintf("on_complete failed: %s", conditionMessage(e))
+        fallo <<- e
         NULL
       })
-      if (!is.null(public)) j$result_public <- public
+      if (!is.null(fallo)) {
+        j$status <- "error"
+        # Un error de dominio (stop_api) ya habla en el idioma de la persona.
+        j$error <- if (inherits(fallo, "api_error")) conditionMessage(fallo) else sprintf("on_complete failed: %s", conditionMessage(fallo))
+        j$result_public <- NULL
+      } else if (!is.null(public)) {
+        j$result_public <- public
+      }
     }
   }
   # Higiene en todo final cosechado (done o error del worker): los insumos

@@ -47,7 +47,7 @@ import {
   type LibraryEntry,
   type ProjectScope,
 } from "../state/persistence";
-import "../styles/xf-home.css";
+import "../styles/xfHome";
 
 export type FormsLibraryProps = {
   forms: LibraryEntry[];

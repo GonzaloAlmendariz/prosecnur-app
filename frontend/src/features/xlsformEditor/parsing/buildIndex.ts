@@ -19,6 +19,7 @@
 // =============================================================================
 
 import type {
+  TypeInfo,
   BuilderNode,
   BuilderNodeKind,
   BuilderSelection,
@@ -44,20 +45,32 @@ import { rowToRecord } from "./sheetUtils";
 // Choices: lista de opciones por listName
 // -----------------------------------------------------------------------------
 
+/** Índices de las columnas de etiqueta en orden de preferencia: label, label::es, el resto de idiomas. */
+function columnasDeEtiqueta(columns: string[]): number[] {
+  const idx = (pred: (c: string) => boolean) => columns.map((c, i) => (pred(c.toLowerCase()) ? i : -1)).filter((i) => i >= 0);
+  return [
+    ...idx((c) => c === "label"),
+    ...idx((c) => c.startsWith("label::") && /::(es|spanish|español)/.test(c)),
+    ...idx((c) => c.startsWith("label::") && !/::(es|spanish|español)/.test(c)),
+  ];
+}
+
 export function extractChoiceItems(
   choicesSheet: XlsformEditorSheet,
   listName: string,
 ): ChoiceItem[] {
   const listCol = choicesSheet.columns.indexOf("list_name");
   const nameCol = choicesSheet.columns.indexOf("name");
-  const labelCol = choicesSheet.columns.indexOf("label");
+  const labelCols = columnasDeEtiqueta(choicesSheet.columns);
   if (listCol < 0) return [];
   return choicesSheet.rows
     .map((row, rowIndex) => ({
       rowIndex,
       listName: row[listCol] ?? "",
       name: nameCol >= 0 ? (row[nameCol] ?? "") : "",
-      label: labelCol >= 0 ? (row[labelCol] ?? "") : "",
+      // `label` primero; si está vacía, el primer idioma con texto (español antes que el resto),
+      // igual que las preguntas. Sin esto, un formulario sólo con label::English leía códigos.
+      label: labelCols.map((c) => row[c] ?? "").find((v) => v.trim() !== "") ?? "",
     }))
     .filter((row) => row.listName === listName)
     .map(({ rowIndex, name, label }) => ({ rowIndex, name, label }));
@@ -121,6 +134,17 @@ function collectDependencies(node: BuilderNode): XlsformDependency[] {
 // Estructura jerárquica del survey
 // -----------------------------------------------------------------------------
 
+/**
+ * Kobo y algunos instrumentos propios dejan `type` = «select_one» y ponen la lista en otra columna de survey
+ * (`select_from_list_name` o `list_name`). Sin esto la pregunta se leía sin opciones (154 preguntas en el
+ * corpus de formularios tipo). `raw` no cambia: la hoja se escribe tal como vino.
+ */
+function conListaEnColumna(info: TypeInfo, record: Record<string, string>): TypeInfo {
+  if (info.listName || !/^(select_one|select_multiple|rank)$/.test(info.base)) return info;
+  const lista = (record.select_from_list_name ?? "").trim() || (record.list_name ?? "").trim();
+  return lista ? { ...info, listName: lista } : info;
+}
+
 export function parseBuilderStructure(survey: XlsformEditorSheet): BuilderStructure {
   const outline: BuilderNode[] = [];
   const byRow = new Map<number, BuilderNode>();
@@ -146,7 +170,7 @@ export function parseBuilderStructure(survey: XlsformEditorSheet): BuilderStruct
 
   survey.rows.forEach((_, rowIndex) => {
     const record = rowToRecord(survey, rowIndex);
-    const typeInfo = parseType(record.type ?? "");
+    const typeInfo = conListaEnColumna(parseType(record.type ?? ""), record);
     const label =
       (record.label ?? "").trim() ||
       (record.name ?? "").trim() ||

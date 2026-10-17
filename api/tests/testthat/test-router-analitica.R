@@ -172,3 +172,13 @@ test_that("analitica_scalar: coerción defensiva de payloads (NULL, vacío, NA, 
   expect_identical(.analitica_scalar(c("x", "y")), "x")
   expect_identical(.analitica_scalar(7L), "7")
 })
+
+test_that("un calculate del XLSForm llega a la data de Analítica: es dato, no estructura", {
+  inst <- list(survey = data.frame(
+    type = c("select_one sn", "calculate", "note", "start"),
+    name = c("p1", "indice", "aviso", "inicio"), stringsAsFactors = FALSE))
+  d <- data.frame(p1 = c(1, 2), indice = c(0.5, 1), aviso = NA, inicio = "x", stringsAsFactors = FALSE)
+  out <- .analitica_filter_data_to_inst(d, inst)
+  expect_true("indice" %in% names(out))
+  expect_false(any(c("aviso", "inicio") %in% names(out)))
+})

@@ -101,7 +101,7 @@
 #' @return lista de `list(pregunta, columna, casos, textos, ejemplos)`, sólo las
 #'   preguntas con al menos un texto sin código.
 #' @keywords internal
-.codif_textos_sin_codigo <- function(patched, grupos_map, rows, data_df, max_ejemplos = 5L) {
+.codif_textos_sin_codigo <- function(patched, grupos_map, rows, data_df, max_ejemplos = 5L, en_otro = list()) {
   patched <- unique(as.character(patched %||% character(0)))
   if (!length(patched) || !is.data.frame(data_df) || !nrow(data_df)) return(list())
   indexes <- .codif_group_row_indexes(rows %||% list())
@@ -119,8 +119,10 @@
     if (!length(valores)) next
     respuestas <- unlist(lapply((grupos_map %||% list())[[k]] %||% list(), function(g) unlist(g$respuestas)))
     codificados <- unique(.normalize_text(as.character(respuestas %||% character(0))))
+    # Los que la persona ya dejó en «Otro» a propósito (codificacion_textos_en_otro.R).
+    aceptados <- as.character(unlist((en_otro %||% list())[[k]] %||% character(0)))
     norm <- .normalize_text(valores)
-    sueltos <- !norm %in% codificados
+    sueltos <- !norm %in% c(codificados, aceptados)
     if (!any(sueltos)) next
     unicos <- unique(trimws(valores[sueltos]))
     out[[length(out) + 1L]] <- list(

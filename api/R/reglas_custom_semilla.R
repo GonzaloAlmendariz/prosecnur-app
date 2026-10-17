@@ -642,7 +642,7 @@ reglas_semilla_periodo <- function(data, config = NULL, reglas_existentes = list
 #' @return lista con `llaves` y `agentes`, cada uno con nombre y por qué.
 #' @family validacion
 #' @export
-identidad_candidatas <- function(data, max_por_rol = 6L) {
+identidad_candidatas <- function(data, max_por_rol = 3L) {
   vacio <- list(llaves = list(), agentes = list())
   if (!is.data.frame(data) || !nrow(data) || !ncol(data)) return(vacio)
   n <- nrow(data)
@@ -656,11 +656,27 @@ identidad_candidatas <- function(data, max_por_rol = 6L) {
     mean(grepl("^[[:alpha:]][[:alpha:][:space:].'-]+[[:space:]][[:alpha:].'-]+$", v))
   }
 
+  # Una columna de sólo números o fechas (edad, año, códigos de respuesta,
+  # `date`) no es quien recolectó: en una encuesta autoadministrada eran todas
+  # las candidatas (HSyVbG 2026: P1 edad, date, P5…). Se admite si su nombre
+  # dice que es el equipo de campo, que también se identifica con códigos.
+  .solo_numeros_o_fechas <- function(v) {
+    if (!length(v)) return(TRUE)
+    all(grepl("^-?[0-9]+([.,][0-9]+)?$|^[0-9]{4}-[0-9]{2}-[0-9]{2}", v))
+  }
+  .nombre_de_agente <- function(nm) {
+    grepl("encuest|entrevist|enumer|agente|operador|interviewer|username|submitted_by|supervis|aplicador",
+          tolower(nm))
+  }
+
   perfil <- lapply(names(data), function(nm) {
     v <- .semilla_valores_utiles(data[[nm]])
+    u <- unique(v)
     list(nombre = nm, cobertura = length(v) / n,
-         distintos = length(unique(v)), ratio = length(unique(v)) / max(n, 1L),
-         nominal = .parece_nombre(unique(v)))
+         distintos = length(u), ratio = length(u) / max(n, 1L),
+         nominal = .parece_nombre(u),
+         por_nombre = .nombre_de_agente(nm),
+         numerica = .solo_numeros_o_fechas(as.character(u)))
   })
   perfil <- Filter(function(p) p$cobertura >= 0.8 && p$distintos > 1L, perfil)
 
@@ -670,10 +686,11 @@ identidad_candidatas <- function(data, max_por_rol = 6L) {
   # entierra la columna del equipo. Un equipo de campo tiene varias personas, no
   # dos, así que se prefieren las de más valores dentro del rango plausible.
   agentes <- Filter(function(p) p$distintos >= 2L && p$distintos <= 50L &&
-                                p$ratio < 0.5, perfil)
+                                p$ratio < 0.5 && (isTRUE(p$por_nombre) || !isTRUE(p$numerica)), perfil)
   # Primero las que parecen nombres de persona; entre iguales, las de más
   # valores: un equipo de campo tiene varias personas, no dos.
   agentes <- agentes[order(
+    -vapply(agentes, function(p) as.numeric(p$por_nombre), numeric(1)),
     -vapply(agentes, function(p) p$nominal, numeric(1)),
     -vapply(agentes, function(p) p$distintos, numeric(1))
   )]
@@ -684,8 +701,12 @@ identidad_candidatas <- function(data, max_por_rol = 6L) {
     cobertura = round(p$cobertura, 3),
     porque = if (identical(rol, "llave")) {
       sprintf("%d valores distintos en %d casos: identifica casi uno a uno.", p$distintos, n)
+    } else if (isTRUE(p$por_nombre)) {
+      sprintf("El nombre de la columna lo indica; %d personas o códigos distintos.", p$distintos)
+    } else if (p$nominal >= 0.5) {
+      sprintf("Sus %d valores parecen nombres de personas.", p$distintos)
     } else {
-      sprintf("%d valores distintos en %d casos: se repite como lo haría un agente.", p$distintos, n)
+      sprintf("%d valores de texto que se repiten entre casos.", p$distintos)
     }
   )
   list(

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { AlertTriangle, Check, Cloud, KeyRound, Layers, ListChecks } from "../../../vendor/lucide-react";
 import { IconConditionalLogic } from "../../../lib/icons";
 import { AYUDA_CONTEO_SM, textoConteoSm, type EstadoConexionSm } from "./smImportModel";
-import "../styles/xf-sm-import.css";
+import "../styles/xfSmImport";
 
 // Cuatro pasos pares en la cabecera del diálogo. El de conexión refleja el
 // estado real apenas se prueba (U4); el de saltos no se marca hecho si no hay

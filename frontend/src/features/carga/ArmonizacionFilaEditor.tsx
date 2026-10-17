@@ -36,7 +36,7 @@ import {
   type VariableDeBase,
 } from "../../api/equivalencias";
 import { getCodigosObservados } from "../../api/codigosObservados";
-import { ArmonizacionAyudaMapa } from "./ArmonizacionAyudaMapa";
+import { ArmonizacionAyudaMapa, PlegableValorPorValor, esMapaNumerico } from "./ArmonizacionAyudaMapa";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { usePlegadoRecordado } from "../../lib/plegadoRecordado";
 import { formatoConteo } from "../../lib/formatoNumero";
@@ -881,7 +881,7 @@ function MapaDeBase({
             )}
           </div>
           {vista.fuente !== "cargando" && (
-            <ArmonizacionAyudaMapa base={base} origen={origen} codigos={codigos} escala={escala} despachar={despachar} />
+            <ArmonizacionAyudaMapa base={base} origen={origen} codigos={codigos} escala={escala} mapa={entrada?.mapa ?? {}} despachar={despachar} />
           )}
 
           {vista.aviso && <p className="pulso-armon-aviso">{vista.aviso}</p>}
@@ -895,7 +895,7 @@ function MapaDeBase({
           ) : filas.length === 0 ? (
             <p className="pulso-armon-vacio">{vista.vacio}</p>
           ) : (
-            <>
+            <PlegableValorPorValor plegado={esMapaNumerico(codigos, escala)} n={filas.length} base={base}>
             {escala.length > 0 && (
               <ArmonizacionAsignarEnMasa
                 base={base}
@@ -966,7 +966,7 @@ function MapaDeBase({
                           <option value="">Sin mapa</option>
                           {escala.filter((c) => c.codigo).map((c) => (
                             <option key={c.codigo} value={c.codigo}>
-                              {c.codigo} {c.etiqueta}
+                              {c.etiqueta || c.codigo}
                             </option>
                           ))}
                         </select>
@@ -984,7 +984,7 @@ function MapaDeBase({
                 </tbody>
               </table>
             </div>
-            </>
+            </PlegableValorPorValor>
           )}
         </>
       )}

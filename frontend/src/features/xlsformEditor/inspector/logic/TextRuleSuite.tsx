@@ -24,6 +24,7 @@ import {
   Pencil,
   Phone,
   Ruler,
+  Search,
   Sigma,
   Type,
   Wand2,
@@ -47,6 +48,7 @@ const RECIPE_ICONS: Record<string, LucideIcon> = {
   "solo-numeros": Sigma,
   "solo-letras": Type,
   "sin-numeros": CircleOff,
+  contiene: Search,
   "empieza-con": ArrowRight,
   "termina-con": ArrowLeft,
   "correo-electronico": Mail,
@@ -238,7 +240,6 @@ export function TextRuleSuite({ active, onApply, onClear, variant = "block" }: T
                         key={recipe.id}
                         className="pulso-xftr-chip"
                         onClick={() => pickRecipe(recipe)}
-                        title={recipe.buildMessage(recipe.defaults)}
                       >
                         <Icon size={13} aria-hidden="true" />
                         <span>{recipe.title()}</span>

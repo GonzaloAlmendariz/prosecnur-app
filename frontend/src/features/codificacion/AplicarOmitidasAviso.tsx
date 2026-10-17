@@ -1,4 +1,7 @@
 import { useEffect, useRef } from "react";
+import { useInRouterContext } from "react-router-dom";
+import { BotonCodificar } from "./SinRecodificarAviso";
+import { DejarEnOtroBoton } from "./DejarEnOtroBoton";
 import { AlertTriangle, Tags } from "lucide-react";
 import type { CodifOmitida, CodifTextosSinCodigo } from "../../api/codificacion";
 import "./AplicarOmitidasAviso.css";
@@ -64,6 +67,7 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, incompletos = 
   const seccionRef = useRef<HTMLElement>(null);
   const tituloRef = useRef<HTMLElement>(null);
   const hayAlgo = omitidas.length > 0 || textosSinCodigo.length > 0 || incompletos.length > 0;
+  const conRouter = useInRouterContext();
 
   useEffect(() => {
     if (!enfocar || !hayAlgo) return;
@@ -149,10 +153,13 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, incompletos = 
                 className="pulso-codif-omitidas-titulo"
               >
                 {textosSinCodigo.length === 1
-                  ? "1 pregunta tiene textos sin código"
-                  : `${textosSinCodigo.length} preguntas tienen textos sin código`}
+                  ? "1 pregunta tiene textos que quedarán en «Otro»"
+                  : `${textosSinCodigo.length} preguntas tienen textos que quedarán en «Otro»`}
               </strong>
-              <p>No están en ningún grupo de su pregunta. Agrégalos en Codificar y vuelve a adaptar.</p>
+              <p>
+                No encajan en ningún grupo y se entregan en «Otro», que es válido. Si alguno sí encaja, codifícalo; si
+                no, confírmalo para que deje de avisarse.
+              </p>
             </div>
           </div>
           <ul
@@ -163,7 +170,7 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, incompletos = 
             {textosSinCodigo.map((t, i) => {
               const restantes = t.textos - t.ejemplos.length;
               return (
-                <li key={`${t.pregunta}-${t.columna}-${i}`} className="pulso-codif-omitidas-fila">
+                <li key={`${t.pregunta}-${t.columna}-${i}`} className="pulso-codif-omitidas-fila pulso-codif-omitidas-fila--accion">
                   <code className="pulso-codif-omitidas-pregunta">{t.pregunta}</code>
                   <div className="pulso-codif-omitidas-detalle">
                     <span className="pulso-codif-omitidas-mensaje">
@@ -185,6 +192,10 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, incompletos = 
                       </ul>
                     )}
                   </div>
+                  <span className="pulso-codif-omitidas-acciones-fila">
+                    {conRouter ? <BotonCodificar pregunta={t.pregunta} texto={`Codificar ${t.pregunta}`} /> : null}
+                    <DejarEnOtroBoton pregunta={t.pregunta} />
+                  </span>
                 </li>
               );
             })}

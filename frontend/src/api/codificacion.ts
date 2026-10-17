@@ -202,6 +202,8 @@ export type CodifSinRecodificar = {
   motivo: string;
   n_respuestas: number;
   deliberado: boolean;
+  /** Cerrada con su «Otro» emparejado: sus textos pueden quedar en «Otro». */
+  con_texto_otro?: boolean;
 };
 
 // ---------- Lo que `/aplicar` no aplicó (ADR 0100, P1) ----------
@@ -405,6 +407,18 @@ export async function apiCodifPreguntasAbiertas(base?: string) {
     resumen_decisiones?: CodifResumenDecisiones;
   }>(
     await apiFetch(`/api/codificacion/preguntas-abiertas${query}`, { headers: headers() })
+  );
+}
+
+// Un texto que no encaja en ningún grupo puede quedar en «Otro» por decisión:
+// se registran los textos sueltos actuales de la pregunta; `revertir` la deshace.
+export async function apiCodifTextosEnOtro(parent: string, opts?: { revertir?: boolean }) {
+  return handle<{ ok: true; parent: string; n_textos: number }>(
+    await apiFetch("/api/codificacion/textos-en-otro", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ parent, revertir: opts?.revertir }),
+    }),
   );
 }
 

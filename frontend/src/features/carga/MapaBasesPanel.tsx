@@ -132,7 +132,7 @@ function PanelConDireccion({ cargando, bases, filas, variablesPorBase, onAnadir 
           {...panel.props}
           // Sin `false`: el panel se monta sobre una vista que ya publicó su
           // readiness; mientras la pestaña lee, su esqueleto la publica.
-          data-audit-ready={cargando ? undefined : "true"}
+          data-audit-ready={cargando ? "false" : "true"}
           data-mapa-estado={cargando ? "leyendo" : "listo"}
           aria-describedby={undefined}
           onCloseAutoFocus={(event) => {

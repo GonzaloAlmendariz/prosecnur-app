@@ -1,5 +1,8 @@
+import { useEffect, useState } from "react";
 import { BookOpen, CheckCircle2, Download, FileSpreadsheet, FileText, Info } from "lucide-react";
 import { apiAnaliticaCodebook, apiAnaliticaConfigPut, downloadUrl, type MultiBaseResult } from "../../../api/client";
+import { apiAnaliticaCodigosEspeciales, type CodigoEspecialSugerido } from "../../../api/analitica";
+import { codigoEscrito, opcionesCodigosEspeciales, textoEfecto, textoPorBase, textoUso } from "./codigosEspecialesModel";
 import { Panel } from "../../../components/Panel";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import { CifrasPestana } from "../CifrasPestana";
@@ -58,13 +61,24 @@ export function CodebookPane() {
     });
   }
 
-  const codigosMeta: Array<{ code: number; label: string }> = [
-    { code: 95, label: "No contesta" },
-    { code: 96, label: "No aplica" },
-    { code: 97, label: "No sabe" },
-    { code: 98, label: "Otro" },
-    { code: 99, label: "Otros" },
-  ];
+  // Sugerencias del estudio, no una lista fija: los códigos especiales que traen
+  // los instrumentos, con su etiqueta, más los ya marcados.
+  const [sugeridos, setSugeridos] = useState<CodigoEspecialSugerido[] | null>(null);
+  const [nuevoCodigo, setNuevoCodigo] = useState("");
+  useEffect(() => {
+    let vivo = true;
+    apiAnaliticaCodigosEspeciales()
+      .then((c) => { if (vivo) setSugeridos(c); })
+      .catch(() => { if (vivo) setSugeridos([]); });
+    return () => { vivo = false; };
+  }, []);
+  const codigosMeta = opcionesCodigosEspeciales(sugeridos ?? [], codes);
+  const agregarCodigo = () => {
+    const n = codigoEscrito(nuevoCodigo);
+    if (n === null) return;
+    if (!codes.includes(n)) toggle(n);
+    setNuevoCodigo("");
+  };
 
   return (
     <Panel className="analitica-codebook-panel">
@@ -87,7 +101,7 @@ export function CodebookPane() {
             ariaLabel="Estado del libro de códigos"
             cifras={[
               { etiqueta: "Fuente", valor: fuenteLabel },
-              { etiqueta: "Códigos", valor: `${codes.length}/5 activos` },
+              { etiqueta: "Códigos especiales", valor: formatoConteo(codes.length) },
               {
                 etiqueta: "Excluidas",
                 valor: (
@@ -116,24 +130,48 @@ export function CodebookPane() {
         <Section
           title="Códigos especiales"
           subtitle={<>
-            Convenciones Pulso para NS/NR/NA: los códigos marcados solo aparecen si alguien los respondió, sin filas vacías en la tabla final. Aplica a todos los formatos.
+            Códigos como «No sabe» o «No responde» que aparecen en las preguntas del estudio. Si marcas uno, el libro lo muestra en cada pregunta solo cuando alguien lo eligió.
           </>}
         >
           <div className="analitica-codebook-code-grid">
-            {codigosMeta.map((c) => {
-              const active = codes.includes(c.code);
-              return (
-                <label
-                  key={c.code}
-                  title={c.label}
-                  className={`analitica-codebook-code ${active ? "is-active" : ""}`}
-                >
-                  <input type="checkbox" checked={active} onChange={() => toggle(c.code)} />
-                  <code>{c.code}</code>
-                  <span>{c.label}</span>
-                </label>
-              );
-            })}
+            {sugeridos === null && <span className="analitica-codebook-code-nota">Revisando las preguntas del estudio…</span>}
+            {sugeridos !== null && codigosMeta.length === 0 && (
+              <span className="analitica-codebook-code-nota">Las preguntas del estudio no usan códigos de este tipo.</span>
+            )}
+            {codigosMeta.map((c) => (
+              <label
+                key={c.code}
+                title={[
+                  c.ambiguo ? `Etiquetas según la pregunta: ${[c.label, ...c.otras].join(" / ")}. Si lo marcas, se aplica en todas.` : c.label,
+                  textoPorBase(c),
+                ].filter(Boolean).join("\n")}
+                className={`analitica-codebook-code ${c.marcado ? "is-active" : ""} ${c.origen === "configurado" ? "is-ajeno" : ""} ${c.ambiguo ? "is-ambiguo" : ""}`}
+              >
+                <input type="checkbox" checked={c.marcado} onChange={() => toggle(c.code)} />
+                <code>{c.code}</code>
+                <span className="analitica-codebook-code-cuerpo">
+                  <span className="analitica-codebook-code-nombre">
+                    <span>{c.label}</span>
+                    {c.otras.length > 0 && <small className="analitica-codebook-code-otras">+{c.otras.length}</small>}
+                  </span>
+                  {textoUso(c) && <small className="analitica-codebook-code-uso" title={textoPorBase(c)}>{textoUso(c)}</small>}
+                  {textoEfecto(c) && <small className="analitica-codebook-code-efecto">{textoEfecto(c)}</small>}
+                </span>
+              </label>
+            ))}
+          </div>
+          <div className="analitica-codebook-code-agregar">
+            <input
+              value={nuevoCodigo}
+              inputMode="numeric"
+              placeholder="Código"
+              aria-label="Agregar otro código"
+              onChange={(e) => setNuevoCodigo(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") agregarCodigo(); }}
+            />
+            <button type="button" className="analitica-codebook-code-agregar-btn" disabled={codigoEscrito(nuevoCodigo) === null} onClick={agregarCodigo}>
+              Agregar
+            </button>
           </div>
         </Section>
 

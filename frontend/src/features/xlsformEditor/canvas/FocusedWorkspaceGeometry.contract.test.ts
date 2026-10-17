@@ -4,10 +4,12 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, test } from "vitest";
 
+// El resumen de la pregunta (antes «quicklook», revamp 2026-10-16) es una grilla de cuatro contenedores
+// que debe verse pareja: se declara como grupo de filas iguales y su CSS lo cumple.
 const canvasDir = path.dirname(fileURLToPath(import.meta.url));
-const workspace = fs.readFileSync(path.join(canvasDir, "FocusedWorkspace.tsx"), "utf8");
-const xlsformCss = fs
-  .readFileSync(path.resolve(canvasDir, "../styles/xlsform-v2.css"), "utf8")
+const resumen = fs.readFileSync(path.join(canvasDir, "constructor/ResumenPregunta.tsx"), "utf8");
+const css = fs
+  .readFileSync(path.join(canvasDir, "constructor/resumenPregunta.css"), "utf8")
   .replace(/\/\*[\s\S]*?\*\//g, "");
 
 function exactDeclaration(block: string, property: string): string | undefined {
@@ -17,23 +19,17 @@ function exactDeclaration(block: string, property: string): string | undefined {
   });
 }
 
-describe("contrato geométrico del quicklook XLSForm", () => {
-  test("declara el grid persistente como un grupo de filas iguales", () => {
-    const gridTag = workspace.match(
-      /<div\b(?=[^>]*\bclassName="pulso-focus-quicklook-grid")[^>]*>/,
-    )?.[0];
-
+describe("contrato geométrico del resumen de la pregunta", () => {
+  test("declara la grilla como un grupo de filas iguales", () => {
+    const gridTag = resumen.match(/<div\b(?=[^>]*\bclassName="xfr-resumen")[^>]*>/)?.[0];
     expect(gridTag).toBeDefined();
-    expect(gridTag).toContain('data-qa-geometry-group="xlsform/focus-quicklook"');
+    expect(gridTag).toContain('data-qa-geometry-group="xlsform/resumen-pregunta"');
     expect(gridTag).toContain('data-qa-geometry-contract="equal"');
   });
 
-  test("iguala las filas dentro de la regla CSS propia del quicklook", () => {
-    const gridRule = xlsformCss.match(/\.pulso-focus-quicklook-grid\s*\{([^{}]*)\}/)?.[1];
-
+  test("iguala las filas en su propia regla CSS", () => {
+    const gridRule = css.match(/\.xfr-resumen\s*\{([^{}]*)\}/)?.[1];
     expect(gridRule).toBeDefined();
-    expect(exactDeclaration(gridRule ?? "", "grid-auto-rows")?.trim()).toBe(
-      "grid-auto-rows: 1fr",
-    );
+    expect(exactDeclaration(gridRule ?? "", "grid-auto-rows")?.trim()).toBe("grid-auto-rows: 1fr");
   });
 });

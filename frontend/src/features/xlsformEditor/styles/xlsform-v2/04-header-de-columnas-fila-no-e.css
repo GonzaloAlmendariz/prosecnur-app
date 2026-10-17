@@ -1,0 +1,490 @@
+/* ============================================================================
+ * Catalogs v2 — library + workspace + sortable choice rows
+ * Edición de catálogos exclusivamente dentro del CatalogsContextLens.
+ * ========================================================================= */
+.pulso-cataloglibrary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.pulso-cataloglibrary-search,
+.pulso-catalogworkspace-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-cataloglibrary-search input,
+.pulso-catalogworkspace-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 12.5px;
+  color: var(--pulso-text);
+}
+
+.pulso-cataloglibrary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  max-height: 60vh;
+  padding-right: 2px;
+}
+
+.pulso-cataloglibrary-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.pulso-cataloglibrary-item:hover {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-cataloglibrary-item.is-active {
+  background: var(--pulso-primary-bg, rgba(36, 87, 214, 0.08));
+  border-color: var(--pulso-primary);
+}
+
+.pulso-cataloglibrary-item-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-primary);
+  flex-shrink: 0;
+}
+
+.pulso-cataloglibrary-item-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pulso-cataloglibrary-item-meta strong {
+  font-size: 12.5px;
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-cataloglibrary-item-meta span {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-cataloglibrary-item-unused {
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--pulso-warn-fg);
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border, rgba(217, 119, 6, 0.3));
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.pulso-cataloglibrary-empty,
+.pulso-catalogworkspace-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 16px;
+  text-align: center;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  min-height: 180px;
+}
+
+.pulso-cataloglibrary-empty strong,
+.pulso-catalogworkspace-empty strong {
+  font-size: 13px;
+  color: var(--pulso-text);
+}
+
+.pulso-cataloglibrary-empty p {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  margin: 0;
+  line-height: 1.5;
+  max-width: 240px;
+}
+
+.pulso-cataloglibrary-create {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border: none;
+  border-radius: 8px;
+  background: var(--pulso-primary);
+  color: white;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.pulso-cataloglibrary-create:hover {
+  background: var(--pulso-primary-hover, #1d4ed8);
+}
+
+.pulso-cataloglibrary-empty-search {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  padding: 14px 12px;
+  text-align: center;
+}
+
+.pulso-catalogworkspace {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.pulso-catalogworkspace-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.pulso-catalogworkspace-headertop {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pulso-catalogworkspace-listname {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.pulso-catalogworkspace-listname-label {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-catalogworkspace-name {
+  flex: 1;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid transparent;
+  padding: 6px 10px;
+  border-radius: 6px;
+  outline: none;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.pulso-catalogworkspace-name-editor {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.pulso-catalogworkspace-name-editor.is-dirty .pulso-catalogworkspace-name {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 36%, var(--pulso-border));
+  background: color-mix(in srgb, #ffffff 82%, var(--pulso-warn-bg) 18%);
+}
+
+.pulso-catalogworkspace-name-actions,
+.pulso-choice-row-draft-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
+.pulso-choice-row-draft-chip {
+  max-width: 128px;
+  padding: 4px 7px;
+  border: 1px solid color-mix(in srgb, var(--pulso-warn-fg) 20%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-warn-bg) 34%, #ffffff);
+  color: color-mix(in srgb, var(--pulso-warn-fg) 82%, #253149);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-catalogdraft-apply,
+.pulso-catalogdraft-revert {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-catalogdraft-apply {
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 34%, var(--pulso-border));
+  background: var(--pulso-primary);
+  color: #ffffff;
+}
+
+.pulso-catalogdraft-apply:hover:not(:disabled) {
+  background: var(--pulso-primary-hover, #1d4ed8);
+}
+
+.pulso-catalogdraft-apply:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pulso-catalogdraft-revert {
+  width: 28px;
+  padding: 0;
+  border: 1px solid var(--pulso-border);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-catalogdraft-revert:hover {
+  border-color: var(--pulso-border-strong);
+  color: var(--pulso-text);
+}
+
+.pulso-choice-row-discard {
+  width: auto;
+  padding: 0 9px;
+}
+
+.pulso-catalogdraft-apply:active:not(:disabled),
+.pulso-catalogdraft-revert:active {
+  transform: scale(0.97);
+}
+
+.pulso-catalogworkspace-draft-note {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 14%, var(--pulso-border));
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(246, 249, 253, 0.82)),
+    color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
+  color: #5b6677;
+  font-size: 11.8px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+}
+
+.pulso-catalogworkspace-draft-note svg {
+  flex: 0 0 auto;
+  color: var(--pulso-primary);
+}
+
+.pulso-catalogworkspace-draft-note strong {
+  color: #1f2a3d;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.pulso-catalogworkspace-name:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.pulso-catalogworkspace-name:focus {
+  background: white;
+  border-color: var(--pulso-primary);
+}
+
+.pulso-catalogworkspace-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 11px;
+  border: none;
+  border-radius: 7px;
+  background: var(--pulso-primary);
+  color: white;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 140ms ease;
+}
+
+.pulso-catalogworkspace-add:hover {
+  background: var(--pulso-primary-hover, #1d4ed8);
+}
+
+.pulso-catalogworkspace-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-catalogworkspace-delete {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  background: transparent;
+  border: 1px solid var(--pulso-danger-border, #fecaca);
+  border-radius: 5px;
+  color: var(--pulso-danger-fg, #b91c1c);
+  font-size: 10.5px;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.pulso-catalogworkspace-delete:hover {
+  background: var(--pulso-danger-bg, #fee2e2);
+}
+
+.pulso-catalogworkspace-search-count {
+  font-size: 10.5px;
+  color: var(--pulso-text-soft);
+  background: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--pulso-border);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-catalogworkspace-emptylist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 14px;
+  text-align: center;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.pulso-catalogworkspace-emptylist strong {
+  font-size: 13px;
+  color: var(--pulso-text);
+}
+
+.pulso-catalogworkspace-emptylist code {
+  font-family: ui-monospace, monospace;
+  font-size: 11.5px;
+  background: white;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-primary);
+}
+
+.pulso-catalogworkspace-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Header de columnas (fila no editable que rotula los inputs de las
+   filas siguientes con "Texto visible" y "Código"). */
+.pulso-choice-row.pulso-choice-row-header {
+  background: transparent;
+  border: none;
+  padding: 4px 8px 0;
+  cursor: default;
+}
+
+.pulso-choice-row.pulso-choice-row-header:hover {
+  border-color: transparent;
+}
+
+.pulso-choice-row-handle-spacer,
+.pulso-choice-row-delete-spacer {
+  width: 22px;
+  flex-shrink: 0;
+}
+
+.pulso-choice-row-position-label {
+  width: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--pulso-text-soft);
+  flex-shrink: 0;
+}
+
+.pulso-choice-row-fields-header {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+}
+
+.pulso-choice-row-fields-header span {
+  flex: 1;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--pulso-text-soft);
+  padding: 0 6px;
+}
+

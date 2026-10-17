@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { UniversoAnalisis } from "./UniversoAnalisis";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
 import {
@@ -39,6 +40,7 @@ import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
 import { ProcessingReleasePanel } from "./ProcessingReleasePanel";
 import { PanelVariablesExcluidas } from "./PanelVariablesExcluidas";
+import { PanelUniverso } from "./PanelUniverso";
 import { useAnaliticaStore } from "./store";
 import "./analitica-v2.css";
 
@@ -244,6 +246,8 @@ export default function AnaliticaPage() {
                 <div className="pulso-analitica-panel-copy">
                   <h2>{activeMeta.label}</h2>
                   <p>{activeMeta.desc}</p>
+                  {/* Cuántos casos cuentan si Validación declara «Qué caso cuenta». */}
+                  <UniversoAnalisis />
                 </div>
                 <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} variant="panel" />
               </header>
@@ -311,6 +315,7 @@ export default function AnaliticaPage() {
       {/* Panel direccionable `?panel=excluidas`: vive a nivel de página para
           abrirse desde cualquier pestaña y desde un enlace de Carga. */}
       {prereqOk && prepOk ? <PanelVariablesExcluidas /> : null}
+      {prereqOk && prepOk ? <PanelUniverso /> : null}
     </PageFrame>
   );
 }

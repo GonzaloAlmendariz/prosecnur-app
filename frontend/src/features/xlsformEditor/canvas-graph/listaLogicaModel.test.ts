@@ -1,0 +1,37 @@
+import { describe, expect, test } from "vitest";
+import { parseBuilderStructure } from "../parsing/buildIndex";
+import { listaLogica } from "./listaLogicaModel";
+
+const D = "$";
+const survey = {
+  columns: ["type", "name", "label", "relevant", "choice_filter"],
+  rows: [
+    ["select_one yn", "trabaja", "¿Trabaja?", "", ""],
+    ["begin_group", "g_empleo", "Empleo", `${D}{trabaja} = 'si'`, ""],
+    ["text", "sector", "Sector", "", ""],
+    ["integer", "horas", "Horas", `${D}{sector} != ''`, ""],
+    ["end_group", "", "", "", ""],
+    ["begin_group", "g_lugar", "Lugar", "", ""],
+    ["select_one dist", "distrito", "Distrito", "", "prov = ${D}{provincia}"],
+    ["end_group", "", "", "", ""],
+  ],
+};
+
+describe("lista de la lógica por sección", () => {
+  test("separa la regla de toda la sección de las reglas de cada pregunta", () => {
+    const l = listaLogica(parseBuilderStructure(survey));
+    const empleo = l.secciones.find((s) => s.nombre === "Empleo")!;
+    expect(empleo.regla).toBe(`${D}{trabaja} = 'si'`);
+    expect(empleo.preguntas).toBe(2);
+    expect(empleo.items.map((i) => [i.node.name, i.tipos])).toEqual([["horas", ["aparece"]]]);
+    const lugar = l.secciones.find((s) => s.nombre === "Lugar")!;
+    expect(lugar.regla).toBe("");
+    expect(lugar.items.map((i) => [i.node.name, i.tipos])).toEqual([["distrito", ["opciones"]]]);
+    expect(l.deSeccion).toBe(1);
+    expect(l.dePregunta).toBe(2);
+  });
+  test("las secciones llevan letra correlativa y el nivel principal sin lógica no aparece", () => {
+    const l = listaLogica(parseBuilderStructure(survey));
+    expect(l.secciones.map((s) => s.letra + ":" + s.nombre)).toEqual(["A:Empleo", "B:Lugar"]);
+  });
+});

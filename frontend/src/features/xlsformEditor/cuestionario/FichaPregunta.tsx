@@ -41,8 +41,9 @@ export function FichaPregunta({ pregunta, onEditar }: { pregunta: PreguntaDoc; o
                 : `${ficha.lista.opciones.length} ${ficha.lista.opciones.length === 1 ? "opción" : "opciones"}`}
               {ficha.lista.opciones.length > 0 && (
                 <ul className="pulso-xf-ficha-lista">
-                  {ficha.lista.opciones.map((o) => (
-                    <li key={o.codigo}><code>{o.codigo}</code><Texto texto={o.etiqueta} /></li>
+                  {/* Con choice_filter una lista repite códigos (uno por filtro): la clave lleva la posición. */}
+                  {ficha.lista.opciones.map((o, i) => (
+                    <li key={`${o.codigo}-${i}`}><code>{o.codigo}</code><Texto texto={o.etiqueta} /></li>
                   ))}
                 </ul>
               )}
