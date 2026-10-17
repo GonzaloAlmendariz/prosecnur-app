@@ -8,9 +8,10 @@ import type { AddMenuItem } from "../types";
 import { MaquetaTipo } from "../kit";
 
 // M6 (2026-10-17): la maqueta de cómo se ve cada tipo en vez del ícono suelto. La evidencia (foto, audio, video,
-// archivo, código) no tiene un dibujo propio y conserva su ícono en un recuadro del mismo tamaño.
+// archivo, código) tiene su dibujo propio desde M8 (catálogo único del kit).
 const MAQUETA_DE: Partial<Record<string, string>> = {
   text: "text", integer: "integer", decimal: "decimal", date: "date", select_one: "select_one", select_multiple: "select_multiple",
+  image: "image", audio: "audio", video: "video", file: "file", barcode: "barcode",
   geopoint: "geopoint", note: "note", calculate: "calculate", section: "begin_group", section_end: "end_group",
 };
 
@@ -42,7 +43,6 @@ export function AddElementMenu({
       item.label,
       item.hint,
       descriptor.tag,
-      descriptor.detail,
       ...descriptor.searchTerms,
     ].join(" ")).includes(normalizedQuery);
   });
@@ -196,7 +196,7 @@ export function AddElementMenu({
                       className={`pulso-add-element-menu-item is-${descriptor.tone}`}
                     >
                       <span className={MAQUETA_DE[item.key] ? "pulso-add-element-menu-maqueta" : "pulso-add-element-menu-icon"}>
-                        {MAQUETA_DE[item.key] ? <MaquetaTipo baseType={MAQUETA_DE[item.key]!} ancho={44} /> : item.icon}
+                        {MAQUETA_DE[item.key] ? <MaquetaTipo baseType={MAQUETA_DE[item.key]!} ancho={54} /> : item.icon}
                       </span>
                       <span className="pulso-add-element-menu-copy">
                         <span className="pulso-add-element-menu-item-topline">
@@ -240,7 +240,6 @@ export function normalizeAddMenuSearch(value: string): string {
 
 export function describeAddMenuItem(item: AddMenuItem): {
   tag: string;
-  detail: string;
   tone: "choice" | "capture" | "evidence" | "logic";
   searchTerms: string[];
 } {
@@ -248,84 +247,72 @@ export function describeAddMenuItem(item: AddMenuItem): {
     case "select_one":
       return {
         tag: "Lista de opciones",
-        detail: "No agrega opciones falsas; abre con una lista vacía para completar después.",
         tone: "choice",
         searchTerms: ["catalogo", "kobo", "opciones", "radio", "unica"],
       };
     case "select_multiple":
       return {
         tag: "Lista de opciones",
-        detail: "Crea una lista reutilizable para marcar varias respuestas reales.",
         tone: "choice",
         searchTerms: ["catalogo", "kobo", "opciones", "multiple", "checkbox"],
       };
     case "section":
       return {
         tag: "Inicio + cierre",
-        detail: "Crea el grupo con su apertura y su cierre. Luego puedes mover o borrar el cierre para ajustar el alcance.",
         tone: "logic",
         searchTerms: ["grupo", "seccion", "begin", "abrir", "bloque"],
       };
     case "section_end":
       return {
         tag: "Solo cierre",
-        detail: "Inserta un cierre suelto, por si necesitas terminar un grupo en un punto específico.",
         tone: "logic",
         searchTerms: ["grupo", "seccion", "end", "cerrar", "cierre", "bloque"],
       };
     case "note":
       return {
         tag: "Sin respuesta",
-        detail: "Inserta una nota visible que no guarda respuesta.",
         tone: "logic",
         searchTerms: ["nota", "instruccion", "texto informativo"],
       };
     case "calculate":
       return {
         tag: "Automático",
-        detail: "Guarda una variable calculada con fórmula XLSForm.",
         tone: "logic",
         searchTerms: ["calculo", "formula", "variable"],
       };
     case "image":
       return {
         tag: "Evidencia",
-        detail: "Agrega captura de campo con el tipo técnico correcto del XLSForm.",
         tone: "evidence",
         searchTerms: ["foto", "imagen", "camara", "evidencia"],
       };
     case "audio":
       return {
         tag: "Evidencia",
-        detail: "Agrega captura de campo con el tipo técnico correcto del XLSForm.",
         tone: "evidence",
         searchTerms: ["audio", "voz", "sonido", "evidencia"],
       };
     case "video":
       return {
         tag: "Evidencia",
-        detail: "Agrega captura de campo con el tipo técnico correcto del XLSForm.",
         tone: "evidence",
         searchTerms: ["video", "audiovisual", "evidencia"],
       };
     case "file":
       return {
         tag: "Evidencia",
-        detail: "Agrega captura de campo con el tipo técnico correcto del XLSForm.",
         tone: "evidence",
         searchTerms: ["archivo", "adjunto", "documento", "evidencia"],
       };
     case "barcode":
       return {
         tag: "Lectura",
-        detail: "Agrega captura de campo con el tipo técnico correcto del XLSForm.",
         tone: "evidence",
         searchTerms: ["codigo", "barras", "qr", "lectura", "scanner"],
       };
     case "geopoint":
       return {
         tag: "Ubicación",
-        detail: "Agrega captura de campo con el tipo técnico correcto del XLSForm.",
         tone: "evidence",
         searchTerms: ["gps", "ubicacion", "geopoint", "punto", "coordenada"],
       };
@@ -333,21 +320,18 @@ export function describeAddMenuItem(item: AddMenuItem): {
     case "decimal":
       return {
         tag: "Número",
-        detail: "Después puedes aplicar rangos, mínimos, máximos y mensajes claros.",
         tone: "capture",
         searchTerms: ["numero", "edad", "cantidad", "monto", "rango"],
       };
     case "date":
       return {
         tag: "Fecha",
-        detail: "Compatible con reglas de visita, nacimiento o ventanas de levantamiento.",
         tone: "capture",
         searchTerms: ["fecha", "calendario", "dia"],
       };
     default:
       return {
         tag: "Campo",
-        detail: "Pieza base para capturar información directa del encuestador.",
         tone: "capture",
         searchTerms: ["texto", "respuesta", "pregunta"],
       };

@@ -1,109 +1,14 @@
 // =============================================================================
-// helpers/icons.ts — icono lucide por tipo XLSForm
+// helpers/icons.ts — icono por tipo XLSForm
 // =============================================================================
-// Mapping centralizado tipo → componente de icono. Útil para:
-//   - Outline (icono al lado del label de cada fila).
-//   - TypePicker (icono en cada tarjeta de tipo).
-//   - Badges en el preview.
-//
-// La elección de iconos sigue convenciones reconocibles: CircleDot para
-// radio (single choice), ListChecks para multi, Type para texto, etc.
+// Desde M8 (2026-10-17) el ícono de cada tipo sale del catálogo único del kit (`kit/tiposPregunta.ts`): un solo
+// juego de íconos en todo el editor. Este helper queda como fachada para quien ya lo importaba.
 // =============================================================================
 
-import type { LucideIcon } from "lucide-react";
-import {
-  Calculator,
-  Calendar,
-  CheckCircle2,
-  CircleDot,
-  Clock,
-  EyeOff,
-  File,
-  Folder,
-  FolderMinus,
-  Hash,
-  Image as ImageIcon,
-  ListChecks,
-  MapPin,
-  MessageSquare,
-  Mic,
-  QrCode,
-  Repeat,
-  Sigma,
-  Type,
-  Video,
-  HelpCircle,
-} from "lucide-react";
-import { IconAI } from "../../../lib/icons";
+import type { LucideIcon } from "../../../vendor/lucide-react";
+import { tipoPregunta } from "../kit/tiposPregunta";
 
-/** Devuelve el componente de icono para un tipo base. Fallback: HelpCircle. */
+/** Devuelve el componente de icono para un tipo base. Fallback: ícono de ayuda. */
 export function iconForType(baseType: string): LucideIcon {
-  switch (baseType) {
-    case "select_one":
-      return CircleDot;
-    case "select_multiple":
-      return ListChecks;
-
-    case "integer":
-      return Hash;
-    case "decimal":
-      return Sigma;
-
-    case "text":
-      return Type;
-
-    case "date":
-      return Calendar;
-    case "time":
-      return Clock;
-    case "datetime":
-      return Calendar;
-
-    case "calculate":
-      return Calculator;
-
-    case "note":
-      return MessageSquare;
-    case "acknowledge":
-      return CheckCircle2;
-    case "hidden":
-      return EyeOff;
-
-    case "start":
-    case "end":
-    case "today":
-    case "deviceid":
-    case "username":
-      return IconAI;
-
-    case "begin_group":
-      return Folder;
-    case "end_group":
-    case "end_repeat":
-      // Cierre de sección: misma familia de carpeta pero con el signo "–"
-      // que comunica "aquí termina el grupo", distinto del inicio.
-      return FolderMinus;
-
-    case "begin_repeat":
-      return Repeat;
-
-    case "image":
-      return ImageIcon;
-    case "audio":
-      return Mic;
-    case "video":
-      return Video;
-    case "file":
-      return File;
-    case "barcode":
-      return QrCode;
-
-    case "geopoint":
-    case "geotrace":
-    case "geoshape":
-      return MapPin;
-
-    default:
-      return HelpCircle;
-  }
+  return tipoPregunta(baseType).icono;
 }

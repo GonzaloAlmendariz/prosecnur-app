@@ -268,3 +268,10 @@
     transform: none;
   }
 }
+
+/* M8: la maqueta del tipo en el menú del «+» entre tarjetas, en un recuadro como el de «Añadir pieza». */
+.pulso-canvas-addbetween-menu .pulso-canvas-addbetween-menu-icon.is-maqueta {
+  width: 48px; height: 34px; overflow: hidden; border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+.pulso-canvas-addbetween-menu-icon.is-maqueta .xfk-maqueta { max-width: 100%; max-height: 100%; }
