@@ -199,3 +199,15 @@
   .xfp-reglas.con-lateral { grid-template-columns: 240px minmax(0, 1fr); }
   .xfp-reglas.con-lateral .xfp-reglas__lateral { display: none; }
 }
+
+/* M5: «Nuevo cálculo» en la lista (pie y vacío). */
+.xfp-reglas__lista-pie { display: flex; flex-direction: column; gap: 8px; }
+.xfp-nuevo {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; height: 32px; padding: 0 12px;
+  border: 1px solid var(--pulso-border-strong); border-radius: var(--pulso-radius); background: var(--pulso-surface);
+  color: var(--pulso-text); font: inherit; font-size: 12.5px; font-weight: var(--pulso-weight-medium); cursor: pointer; box-shadow: none;
+}
+.xfp-nuevo:hover { border-color: var(--pulso-primary); color: var(--pulso-primary); }
+.xfp-nuevo:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.xfp-reglas__vacio .xfp-nuevo { margin-top: 10px; border-color: var(--pulso-primary); background: var(--pulso-primary); color: var(--pulso-surface); }
+.xfp-reglas__vacio .xfp-nuevo:hover { color: var(--pulso-surface); filter: brightness(1.05); }
