@@ -44,7 +44,7 @@ export function CatalogoFunciones({ scope }: { scope: LogicScope }) {
         <div className="xfp-catalogo__busca">
           <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar función" aria-label="Buscar función" />
         </div>
-        <div className="xfp-catalogo__lista">
+        <div className="xfp-catalogo__lista" data-qa-geometry-group="xlsform/catalogo-funciones" data-qa-geometry-contract="intrinsic">
           {grupos.map((g) => (
             <div key={g} className="xfp-catalogo__grupo">
               <span className="xfp-catalogo__gtit">{g}</span>

@@ -74,7 +74,7 @@ export function PestanaReglas({ titulo, total, grupos, seleccionada, onSeleccion
         </div>
         {pie && hayItems ? <footer className="xfp-reglas__lista-pie">{pie}</footer> : null}
       </aside>
-      <main className="xfp-reglas__detalle">{hayItems ? children : vacioDetalle}</main>
+      <main className="xfp-reglas__detalle" data-qa-geometry-group="xlsform/reglas-detalle" data-qa-geometry-contract="intrinsic">{hayItems ? children : vacioDetalle}</main>
       {lateral ? <div className="xfp-reglas__lateral">{lateral}</div> : null}
     </div>
   );

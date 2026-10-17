@@ -2657,7 +2657,7 @@ export default function XlsformEditorPage() {
     {
       key: "select_multiple",
       label: "Selección múltiple",
-      hint: "Varias respuestas; crea una lista Kobo reutilizable.",
+      hint: "Varias respuestas; crea una lista reutilizable.",
       icon: addMenuIcon("select_multiple"),
       action: () => addQuestion("select_multiple"),
       group: "choices",

@@ -133,7 +133,7 @@ export function LogicTab({ node, scope, onFieldChange }: LogicTabProps) {
             <InspectorField key={block.field} label={block.title} hint={block.hint}>
               <div className="pulso-inspector-logic-readout">
                 <span className="pulso-xfi-code-head" aria-hidden="true">
-                  Código Kobo <TechTerm t={block.field} />
+                  Código XLSForm <TechTerm t={block.field} />
                 </span>
                 <pre>{block.value}</pre>
                 <button

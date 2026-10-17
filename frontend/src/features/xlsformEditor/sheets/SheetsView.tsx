@@ -204,7 +204,7 @@ export function SheetsView({
 
       {showAdvancedColumns && pdfColumnCount > 0 && (
         <span className="pulso-xfs-hint" role="note">
-          Las columnas de papel/PDF solo afectan la versión impresa; Kobo no cambia.
+          Las columnas de papel/PDF solo afectan la versión impresa; el formulario digital no cambia.
         </span>
       )}
 

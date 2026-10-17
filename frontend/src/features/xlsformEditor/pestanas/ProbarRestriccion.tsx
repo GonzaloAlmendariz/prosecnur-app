@@ -16,7 +16,7 @@ export function ProbarRestriccion({ node, opciones = [] }: { node: BuilderNode; 
   const mensaje = stripMarkdown(node.constraint_message ?? "").trim();
   const noEvaluable = filas.length > 0 && filas.every((f) => f.r === "no-evaluable");
   return (
-    <div className="xfp-fila2">
+    <div className="xfp-fila2" data-qa-geometry-group="xlsform/probar-restriccion-fila" data-qa-geometry-contract="intrinsic">
       <PanelCard title="Probar valores" meta={filas.length ? `${filas.length} casos` : undefined} flush fill>
         {filas.length === 0 ? (
           <p className="xfp-nota xfp-nota--pad">Este tipo de pregunta no se prueba con valores escritos.</p>

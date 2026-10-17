@@ -28,7 +28,7 @@ export function PanelCard({ title, icon, meta, footer, fill, flush, className, c
         </span>
         {meta ? <span className="xfk-card__meta">{meta}</span> : null}
       </header>
-      <div className={flush ? "xfk-card__body xfk-card__body--flush" : "xfk-card__body"}>{children}</div>
+      <div className={flush ? "xfk-card__body xfk-card__body--flush" : "xfk-card__body"} data-qa-geometry-group="xlsform/card-cuerpo" data-qa-geometry-contract="intrinsic">{children}</div>
       {footer ? <footer className="xfk-card__foot">{footer}</footer> : null}
     </section>
   );

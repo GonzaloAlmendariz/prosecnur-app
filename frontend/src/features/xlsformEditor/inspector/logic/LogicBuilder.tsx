@@ -205,7 +205,7 @@ export function LogicBuilder({
         })}
         <div className="pulso-logic-builder-raw">
           <span className="pulso-xfi-code-head" aria-hidden="true">
-            Código Kobo{techTerm ? <> <TechTerm t={techTerm} /></> : null}
+            Código XLSForm{techTerm ? <> <TechTerm t={techTerm} /></> : null}
           </span>
           <pre>{ast.text}</pre>
           <p className="pulso-logic-builder-rawhint">

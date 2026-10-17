@@ -79,8 +79,8 @@ const TYPES: Array<{
   { kind: "integer", label: "Número entero", icon: Hash, hint: "Cantidades, edades o puntajes sin decimales", group: "capture" },
   { kind: "decimal", label: "Número decimal", icon: Hash, hint: "Montos, porcentajes o medidas con decimales", group: "capture" },
   { kind: "date", label: "Fecha", icon: CalendarIcon, hint: "Día, periodo o hito del levantamiento", group: "capture" },
-  { kind: "select_one", label: "Selección única", icon: CircleDot, hint: "Una opción desde una lista Kobo", group: "choices" },
-  { kind: "select_multiple", label: "Selección múltiple", icon: ListChecks, hint: "Varias opciones desde una lista Kobo", group: "choices" },
+  { kind: "select_one", label: "Selección única", icon: CircleDot, hint: "Una opción de una lista", group: "choices" },
+  { kind: "select_multiple", label: "Selección múltiple", icon: ListChecks, hint: "Varias opciones de una lista", group: "choices" },
   { kind: "image", label: "Foto o imagen", icon: ImagePlus, hint: "Evidencia visual desde cámara o archivo", group: "evidence" },
   { kind: "audio", label: "Audio", icon: Mic, hint: "Grabación de voz o sonido en campo", group: "evidence" },
   { kind: "video", label: "Video", icon: Video, hint: "Registro audiovisual corto", group: "evidence" },
@@ -95,7 +95,7 @@ const TYPES: Array<{
 
 const GROUPS: Array<{ id: (typeof TYPES)[number]["group"]; label: string }> = [
   { id: "capture", label: "Texto y captura" },
-  { id: "choices", label: "Opciones Kobo" },
+  { id: "choices", label: "Con opciones" },
   { id: "evidence", label: "Evidencia y ubicación" },
   { id: "logic", label: "Estructura y lógica" },
 ];

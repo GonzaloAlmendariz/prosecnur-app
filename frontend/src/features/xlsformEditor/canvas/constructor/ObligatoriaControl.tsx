@@ -196,12 +196,12 @@ export function RequiredMessageAssistant({
           {isReady ? <CheckCircle2 size={14} /> : <IconRequired size={14} />}
         </span>
         <div>
-          <span className="pulso-section-eyebrow">Mensaje Kobo</span>
+          <span className="pulso-section-eyebrow">Mensaje al encuestado</span>
           <strong>{isReady ? "Texto listo para campo" : "Define una frase amable y accionable"}</strong>
           <small>
             {hasCondition
-              ? "Kobo lo muestra solo si esta pregunta aparece y queda vacía."
-              : "Kobo lo muestra cuando la pregunta obligatoria queda vacía."}
+              ? "El formulario lo muestra solo si esta pregunta aparece y queda vacía."
+              : "El formulario lo muestra cuando la pregunta obligatoria queda vacía."}
           </small>
         </div>
       </div>

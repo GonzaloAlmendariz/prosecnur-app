@@ -132,10 +132,10 @@ export function ConstraintMessageAssistant({
           {isReady ? <CheckCircle2 size={14} /> : <Info size={14} />}
         </span>
         <div>
-          <span className="pulso-section-eyebrow">Mensaje Kobo</span>
+          <span className="pulso-section-eyebrow">Mensaje al encuestado</span>
           <strong>{isReady ? "Texto listo para campo" : "Completa una indicación clara"}</strong>
           <small>
-            Kobo lo muestra cuando la respuesta no cumple
+            El formulario lo muestra cuando la respuesta no cumple
             {validation?.summary ? " la regla resumida arriba." : " esta validación."}
           </small>
         </div>

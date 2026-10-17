@@ -93,7 +93,7 @@ function LeafRow({
 function RawBox({ tree }: { tree: Extract<LogicTree, { kind: "raw" }> }) {
   return (
     <div className="pulso-logic-tree-raw">
-      <span className="pulso-logic-tree-raw-eyebrow">Código Kobo</span>
+      <span className="pulso-logic-tree-raw-eyebrow">Código XLSForm</span>
       <pre>{serializeExpression(tree.expr)}</pre>
       <p>
         Se preserva al exportar; edítala desde la vista <strong>Hojas</strong>.
