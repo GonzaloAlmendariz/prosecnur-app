@@ -4,6 +4,7 @@
 import { renderMarkdownInline } from "../helpers/markdown";
 import { EditarEnConstructor } from "../shell/EditarEnConstructor";
 import { fichaDePregunta } from "./modeloFicha";
+import { MaquetaTipo } from "../kit";
 import type { PreguntaDoc } from "./modeloCuestionario";
 
 function Texto({ texto }: { texto: string }) {
@@ -23,7 +24,7 @@ export function FichaPregunta({ pregunta, onEditar }: { pregunta: PreguntaDoc; o
       <h4 id={`${id}-titulo`} className="pulso-xf-ficha-titulo">Ficha de la pregunta {ficha.numero}</h4>
       <dl className="pulso-xf-ficha-datos">
         <dt>Tipo</dt>
-        <dd>{ficha.tipo}</dd>
+        <dd><span className="pulso-xf-ficha-tipo"><MaquetaTipo baseType={pregunta.nodo.typeInfo.base} ancho={30} />{ficha.tipo}</span></dd>
         <dt>Variable</dt>
         <dd><code>{ficha.variable}</code></dd>
         <dt>Obligatoria</dt>
