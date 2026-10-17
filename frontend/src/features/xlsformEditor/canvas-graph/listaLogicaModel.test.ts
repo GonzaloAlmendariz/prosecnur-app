@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { parseBuilderStructure } from "../parsing/buildIndex";
-import { listaLogica } from "./listaLogicaModel";
+import { dividirPorLogica, listaLogica } from "./listaLogicaModel";
 
 const D = "$";
 const survey = {
@@ -33,5 +33,11 @@ describe("lista de la lógica por sección", () => {
   test("las secciones llevan letra correlativa y el nivel principal sin lógica no aparece", () => {
     const l = listaLogica(parseBuilderStructure(survey));
     expect(l.secciones.map((s) => s.letra + ":" + s.nombre)).toEqual(["A:Empleo", "B:Lugar"]);
+  });
+  test("las secciones sin ninguna regla se separan para listarlas juntas (M2)", () => {
+    const conVacia = { ...survey, rows: [...survey.rows, ["begin_group", "g_cierre", "Cierre", "", ""], ["note", "fin", "Gracias", "", ""], ["end_group", "", "", "", ""]] };
+    const { conLogica, sinLogica } = dividirPorLogica(listaLogica(parseBuilderStructure(conVacia)).secciones);
+    expect(conLogica.map((s) => s.nombre)).toEqual(["Empleo", "Lugar"]);
+    expect(sinLogica.map((s) => s.letra + ":" + s.nombre)).toEqual(["C:Cierre"]);
   });
 });
