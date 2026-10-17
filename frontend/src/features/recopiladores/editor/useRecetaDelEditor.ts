@@ -9,6 +9,7 @@ import {
 } from "../../../api/recopiladores";
 import { templateHistoryShortcut } from "../templateHistory";
 import { ESTADO_INICIAL_DEL_EDITOR, reducirEditor, type AccionDelEditor } from "./estadoEditor";
+import { estadoDelGuardado } from "./guardadoDeReceta";
 import { hayCambiosSinGuardar } from "./modeloEditor";
 
 const ESTADO_VIEJO = "E_COLLECTION_STATE_STALE";
@@ -104,26 +105,39 @@ export function useRecetaDelEditor(opts: {
     dispatch({ type: "editar", template });
   }, []);
 
+  const guardado = estadoDelGuardado({
+    hayBorrador: borrador !== null,
+    revision,
+    conCambios,
+    guardando: estado.guardando,
+    fichasCreadas,
+  });
+
   const confirmarGuardado = useCallback(async () => {
-    if (!borrador || revision === null) return;
+    // Sin cambios no sale el PUT (también si se deshizo todo mientras se
+    // esperaba la confirmación): guardar vacío dejaría viejas las fichas.
+    if (!borrador || revision === null || !conCambios) {
+      if (!conCambios) dispatch({ type: "cancelar-guardado" });
+      return;
+    }
     dispatch({ type: "guardado-inicio" });
     const resultado = await guardarReceta(revision, borrador);
     if (!vivo.current) return;
     dispatch(resultado);
     // Guardar sube `state_revision` y deja viejas las fichas: se relee.
     if (resultado.type === "guardado-ok") await onStateRefresh();
-  }, [borrador, onStateRefresh, revision]);
+  }, [borrador, conCambios, onStateRefresh, revision]);
 
-  /** «Guardar receta»: si hay fichas creadas, primero se avisa. */
+  /** «Guardar receta»: sin cambios no hace nada; con fichas creadas, primero avisa. */
   const guardar = useCallback(() => {
-    if (fichasCreadas > 0 && conCambios) {
+    if (guardado.accion === "confirmar") {
       dispatch({ type: "pedir-confirmacion" });
       return;
     }
-    void confirmarGuardado();
-  }, [conCambios, confirmarGuardado, fichasCreadas]);
+    if (guardado.accion === "guardar") void confirmarGuardado();
+  }, [confirmarGuardado, guardado.accion]);
 
-  return { estado, dispatch, borrador, conCambios, cargar, editar, guardar, confirmarGuardado };
+  return { estado, dispatch, borrador, conCambios, guardado, cargar, editar, guardar, confirmarGuardado };
 }
 
 export type RecetaDelEditor = ReturnType<typeof useRecetaDelEditor>;

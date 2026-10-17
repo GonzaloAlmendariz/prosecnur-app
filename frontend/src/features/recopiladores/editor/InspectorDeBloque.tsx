@@ -8,6 +8,8 @@ import { AjustesDelBloque } from "./AjustesDelBloque";
 import { loLlena, procedencia, puedeQuitar, siFalta, type NotasDeBloque } from "./modeloEditor";
 
 type Props = {
+  /** La cara del bloque: `block_id` sólo es único dentro de ella. */
+  pageId: string;
   block: CollectionMaterialBlock | null;
   /** La zona del bloque en la página, si la página ya lo dibujó. */
   zona: MaterialPreviewZone | null;
@@ -27,6 +29,7 @@ type Props = {
  * flechas sólo aparecen si el layout apila el bloque de verdad.
  */
 export function InspectorDeBloque({
+  pageId,
   block,
   zona,
   notas,
@@ -75,7 +78,7 @@ export function InspectorDeBloque({
           <PropRow label="Dueño del dato">{origen.dueno}</PropRow>
           <PropRow label="Si falta">{siFalta(block)}</PropRow>
         </div>
-        <AjustesDelBloque block={block} editable={zona?.editable ?? []} onCambiar={onCambiar} />
+        <AjustesDelBloque pageId={pageId} block={block} editable={zona?.editable ?? []} onCambiar={onCambiar} />
       </div>
       <footer className="rec-ed-columna-pie rec-ed-acciones">
         {movible ? (

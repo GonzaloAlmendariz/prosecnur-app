@@ -7,9 +7,11 @@ import {
   materialFieldBinding,
   opcionesDeBinding,
 } from "../bloquesDeMaterial";
-import { ajustesVisibles, type ClaveDeAjuste } from "./modeloAjustes";
+import { ajustesVisibles, type ClaveDeAjuste, type PropiedadEditable } from "./modeloAjustes";
 
 type Props = {
+  /** La cara del bloque: `block_id` sólo es único dentro de ella. */
+  pageId: string;
   block: CollectionMaterialBlock;
   /** Lo que el layout declara que cambia la tinta (`zone.editable`). */
   editable: readonly string[];
@@ -63,6 +65,19 @@ function Numero({ id, valor, min, max, onCambiar }: {
   );
 }
 
+/** Un id de HTML no admite espacios: cara y bloque vienen de la receta. */
+function segmentoDeId(valor: string): string {
+  return valor.trim().replace(/\s+/g, "_") || "_";
+}
+
+/**
+ * El id del control de un ajuste: único por cara, bloque y propiedad (el
+ * `block_id` se repite entre frente y dorso).
+ */
+export function idDeAjuste(pageId: string, blockId: string, propiedad: PropiedadEditable): string {
+  return `rec-ed-ajuste-${segmentoDeId(pageId)}-${segmentoDeId(blockId)}-${propiedad}`;
+}
+
 /** Los campos de la unidad que ofrece la grilla: los que ya trae y los habituales. */
 function camposOfrecidos(fields: readonly CollectionMaterialField[]): string[] {
   const salida: string[] = [];
@@ -90,10 +105,10 @@ function filasDe(rows: unknown): Fila[] {
  * propiedad que el dibujante ignora no se ofrece: moverla no cambiaría nada en
  * el papel.
  */
-export function AjustesDelBloque({ block, editable, onCambiar }: Props) {
+export function AjustesDelBloque({ pageId, block, editable, onCambiar }: Props) {
   const claves = ajustesVisibles(block.type, editable);
   if (!claves.length) return null;
-  const id = (clave: ClaveDeAjuste) => `rec-ed-ajuste-${block.block_id}-${clave}`;
+  const id = (clave: ClaveDeAjuste) => idDeAjuste(pageId, block.block_id, clave.propiedad);
 
   const control = (clave: ClaveDeAjuste) => {
     switch (clave.propiedad) {
