@@ -43,6 +43,7 @@ import type { BuilderStructure, CatalogSummary } from "../types";
 import { buildLogicGraph } from "./buildGraph";
 import type { GraphNode } from "./buildGraph";
 import { layoutLogicGraph } from "./autoLayout";
+import { reglasInternas } from "./reglasInternas";
 import { GraphNodeCard } from "./GraphNodeCard";
 import { CanvasToolbar } from "./CanvasToolbar";
 import { ConnectionConditionPicker } from "./ConnectionConditionPicker";
@@ -455,6 +456,9 @@ export function LogicCanvas({
   // internos a un mismo nodo colapsado (ambos extremos resueltos a él) no
   // cuentan — no entran ni salen. DEBE ir con el resto de hooks, antes del
   // early return `if (!open)`.
+  // M3: reglas internas por sección (plegadas no se dibujan) y qué desplegar para verlas.
+  const internas = useMemo(() => (graph ? reglasInternas(graph) : null), [graph]);
+
   const relationCountById = useMemo(() => {
     const m = new Map<string, number>();
     if (!layout) return m;
@@ -1033,6 +1037,7 @@ export function LogicCanvas({
                     expanded={expanded}
                     isConditional={isConditional(id)}
                     relationCount={relationCountById.get(id) ?? 0}
+                    reglasDentro={internas?.porSeccion.get(id) ?? 0}
                     draggingFrom={isDraggingFrom}
                     markedAsTarget={isMarkedTarget}
                     invalidTarget={isInvalidTarget}
@@ -1264,11 +1269,32 @@ export function LogicCanvas({
           layout.nodes.length > 0 &&
           layout.edges.length === 0 && (
             <div className="pulso-graph-empty pulso-graph-empty-no-edges">
-              <p>
-                Este formulario aún no tiene relaciones lógicas dibujadas.
-                Arrastra desde el círculo a la derecha de una card para crear
-                la primera conexión.
-              </p>
+              {internas && internas.total > 0 ? (
+                <>
+                  <p>
+                    Las reglas de este formulario unen preguntas de una misma sección: con las secciones plegadas
+                    no hay flechas entre ellas.
+                  </p>
+                  <button type="button" className="pulso-graph-empty-accion" onClick={() => {
+                    // Despliega y encuadra la primera sección con reglas (en el orden del formulario): la selección
+                    // dispara el encuadre de siempre, así las flechas quedan a la vista y no fuera de pantalla.
+                    setExpandedSections(new Set(internas.aDesplegar));
+                    const primera = [...internas.porSeccion.keys()]
+                      .map((id) => graph?.byId.get(id))
+                      .filter((nd): nd is NonNullable<typeof nd> => !!nd)
+                      .sort((a, b) => a.rowIndex - b.rowIndex)[0];
+                    if (primera) setSelectedId(primera.id);
+                  }}>
+                    Desplegar las secciones con reglas
+                  </button>
+                </>
+              ) : (
+                <p>
+                  Este formulario aún no tiene relaciones lógicas dibujadas.
+                  Arrastra desde el círculo a la derecha de una card para crear
+                  la primera conexión.
+                </p>
+              )}
             </div>
           )}
 

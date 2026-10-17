@@ -37,6 +37,9 @@ export type GraphNodeCardProps = {
    *  Solo se muestra en secciones COLAPSADAS, para anticipar cuánta
    *  lógica esconde el grupo sin tener que expandirlo. */
   relationCount?: number;
+  /** M3: reglas entre preguntas de esta misma sección. Plegada, el layout no puede dibujarlas (caen en un solo nodo):
+   *  se anuncian aquí para que el mapa no parezca vacío de lógica. */
+  reglasDentro?: number;
   /** Estados auxiliares para el modo edición (drag de edge). */
   markedAsTarget?: boolean;
   draggingFrom?: boolean;
@@ -68,6 +71,7 @@ export function GraphNodeCard({
   expanded,
   isConditional,
   relationCount = 0,
+  reglasDentro = 0,
   markedAsTarget,
   draggingFrom,
   invalidTarget,
@@ -391,6 +395,19 @@ export function GraphNodeCard({
               >
                 <IconConditionalLogic size={10} />
                 {relationCount} relaci{relationCount === 1 ? "ón" : "ones"}
+              </span>
+            )}
+            {isSection && !expanded && reglasDentro > 0 && (
+              <span
+                title={`${reglasDentro} regla${reglasDentro === 1 ? "" : "s"} entre preguntas de esta sección; despliégala para verla${reglasDentro === 1 ? "" : "s"}`}
+                style={{
+                  alignSelf: "flex-start", marginTop: 1, display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "1px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700, lineHeight: 1.4, whiteSpace: "nowrap",
+                  color: "var(--pulso-text-muted)", background: "var(--pulso-surface-2)", border: "1px solid var(--pulso-border)",
+                }}
+              >
+                <IconConditionalLogic size={10} />
+                {reglasDentro} regla{reglasDentro === 1 ? "" : "s"} dentro
               </span>
             )}
           </span>
