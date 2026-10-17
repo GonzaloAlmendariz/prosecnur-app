@@ -25,7 +25,7 @@ canvas, con datos reales y capturas miradas, gates del área en verde y el verif
 | H9 | Sembrador `scripts/qa/material_campo_sembrar_plan.R`: plan real sobre hsvg2026 para QA (2.373 unidades) | hecho |
 | H21–H23 | Accesos rehidrata Kobo, Paquetes cuenta las fichas guardadas, Entrega no ofrece recibos que no están en la sesión | hecho (eran defectos de main) |
 | H25 | Entrega no firma un recibo vacío antes del traspaso | hecho |
-| H26 | Volver a sembrar el plan conserva plantillas y cuenta lo que descarta (backend con `dry_run`) | backend hecho; diálogo de confirmación: ver abajo |
+| H26 | Volver a sembrar el plan conserva plantillas, cuenta lo que descarta y pide confirmar con un diálogo que previsualiza (`dry_run`) | hecho (falta el verificador sobre el diálogo y H27) |
 | H27 | Accesos marca lo deducido del último chequeo y no lo reenvía como observado | hecho |
 | — | `collection_state_validate` 7,25 s → 2,05 s con 2.373 unidades | hecho |
 
@@ -33,7 +33,9 @@ canvas, con datos reales y capturas miradas, gates del área en verde y el verif
 
 | # | Qué falta | Dónde vive | Nota |
 |---|---|---|---|
-| H26-UI | Diálogo que confirma ANTES de volver a sembrar, con cifras de `descartado` | `PlanSection.tsx` | si no entró en el merge, es lo primero |
+| V1 | Verificador sobre H26 (diálogo) y H27 (Accesos con lo deducido): construidos con gates en verde, sin gate independiente | `ConfirmarResembrado.tsx`, `AccessSection.tsx` | lo primero al retomar |
+| V2 | Nota de bóveda para la pestaña Catálogo › Correos (figura «no documentada» en `docs/sistema/direcciones/material-campo.md`) | bóveda de sistema | |
+| V3 | `th.rec-plan-num` («Elegibles») desborda a 1024x600 en Unidades | `PlanSection` | preexistente |
 | E1e | Unidades › Origen: huella de la fuente, diferencias y «Actualizar desde la fuente» (aulas) | ADR 0110 §1, artboards Unidades y Conexiones | siguiente etapa del plan |
 | E1b | Editor sobre la página real, con caras: hoy solo se edita `pages[0]` y el croquis del dorso no aparece | `MaterialsSection.tsx` | cierra también el último pendiente de E1a |
 | E1d | Imprenta: carpeta numerada, imposición dúplex y dos por hoja, conteo y LEEME | artboard Imprenta | depende de E1b |
