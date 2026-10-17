@@ -107,6 +107,19 @@ mount_recopiladores <- function(pr) {
         expected_revision = body$expected_revision
       )
     })) |>
+    # Editor sobre la página real (ADR 0109 E1b): la cara pedida, compilada con
+    # el borrador de la receta y una unidad del plan, más las zonas de cada
+    # bloque. Lectura pura: sin expected_revision y sin tocar el estado.
+    plumber::pr_post("/api/recopiladores/material-template/preview", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_material_template_preview(
+        session_header(req),
+        page = body$page %||% 1L,
+        template = body$template,
+        unit_id = body$unit_id,
+        dpi = body$dpi
+      )
+    })) |>
     # Correos para Mailchimp (ADR 0110 §2, E1f). La plantilla persiste en
     # collection_state$mail_template; los destinatarios viven solo en el
     # tempdir de la sesión (datos personales: nunca en el .pulso).

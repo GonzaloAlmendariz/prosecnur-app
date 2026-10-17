@@ -576,7 +576,7 @@ collection_material_compile <- function(template, instance, project, plan, deplo
 #' @param page_no numero visible.
 #' @param total_pages total visible.
 #' @param brand_assets mapa efimero id -> ruta PNG para layouts con careta.
-#' @return lista con `warnings` y `links` declarados por el layout.
+#' @return lista con `warnings`, `links` y `zones` declarados por el layout.
 #' @export
 collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
                                           brand_assets = list()) {
@@ -594,23 +594,48 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
 
 # Pildora navy arriba a la derecha: marca la hoja como piloto, reemplazo o
 # segunda visita sin robarle sitio al titulo.
-.crf_draw_status_tag <- function(text, L, tokens, geo) {
-  if (!nzchar(text)) return(invisible(NULL))
+#
+# La geometria vive aparte para que la zona del editor salga de la MISMA cuenta
+# que la pildora dibujada.
+.crf_status_tag_geom <- function(text, L, geo) {
   ty <- pulso_pdf_type()
   pad <- 0.011
   half_w <- (nchar(text, type = "width") * ty$caption * 0.62 / 72) / geo$page_w / 2 + pad
   half_h <- (ty$caption * 1.9 / 72) / geo$page_h / 2
-  cx <- L$x_right - half_w
-  cy <- L$y_header + 0.006
+  list(cx = L$x_right - half_w, cy = L$y_header + 0.006, half_w = half_w, half_h = half_h)
+}
+
+.crf_draw_status_tag <- function(text, L, tokens, geo) {
+  if (!nzchar(text)) return(invisible(NULL))
+  ty <- pulso_pdf_type()
+  g <- .crf_status_tag_geom(text, L, geo)
   grid::grid.roundrect(
-    x = cx, y = cy, width = half_w * 2, height = half_h * 2, r = grid::unit(2, "pt"),
+    x = g$cx, y = g$cy, width = g$half_w * 2, height = g$half_h * 2, r = grid::unit(2, "pt"),
     default.units = "npc", gp = grid::gpar(fill = tokens$navy, col = NA)
   )
   grid::grid.text(
-    text, x = cx, y = cy, default.units = "npc",
+    text, x = g$cx, y = g$cy, default.units = "npc",
     gp = grid::gpar(col = "#ffffff", fontsize = ty$caption, fontface = "bold")
   )
   invisible(NULL)
+}
+
+# **Un sitio por tipo en el flujo, salvo el filete.**
+#
+# El dibujante busca el contenido de cada item con `.crf_block(page, tipo)`, que
+# devuelve el PRIMER bloque de ese tipo. Un segundo `body` o `field_grid`
+# reservaba su propio alto y luego pintaba ahi el contenido del primero: la hoja
+# repetia el curso dos veces y el editor no tenia como decir cual era cual. El
+# segundo de un tipo ya ocupado no entra al flujo y el editor lo declara
+# `slot_taken`. El filete no tiene contenido, asi que varios son legitimos.
+.crf_flow_unicos <- function(items, repetibles = "divider") {
+  vistos <- character(0)
+  Filter(function(b) {
+    if (b$type %in% repetibles) return(TRUE)
+    if (b$type %in% vistos) return(FALSE)
+    vistos <<- c(vistos, b$type)
+    TRUE
+  }, items)
 }
 
 # Convierte el ORDEN de los bloques de contenido en posiciones verticales
@@ -630,7 +655,7 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
 # pase lo que pase con el orden de los demas bloques.
 .crf_flow_plan <- function(blocks, L, type, geo, payload = "") {
   flow_types <- c("body", "field_grid", "divider", "instructions", "application_log")
-  items <- Filter(function(b) b$type %in% flow_types, blocks %||% list())
+  items <- .crf_flow_unicos(Filter(function(b) b$type %in% flow_types, blocks %||% list()))
   gap <- 0.018
   # **El enlace pide lo que ocupa, no un alto de catalogo.**
   #
@@ -942,7 +967,7 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
 #' @param page_no numero visible.
 #' @param total_pages total visible.
 #' @param brand_assets mapa efimero id -> ruta PNG si la ficha lleva careta.
-#' @return lista con `warnings` y `links`.
+#' @return lista con `warnings`, `links` y `zones` (npc, una por bloque dibujado).
 #' @export
 collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
                                            brand_assets = list()) {
@@ -966,19 +991,28 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
   footer <- .crf_block(page, "footer")
   tag <- .crf_block(page, "status_tag")
   warnings <- list()
+  # Zonas del editor (E1b): cada una con las mismas variables con que se dibuja
+  # su bloque. Construirlas no dibuja nada ni consulta el device.
+  zones <- list()
 
   grid::grid.newpage()
   grid::grid.rect(gp = grid::gpar(fill = "#ffffff", col = NA))
   if (!is.null(brand)) {
+    max_h_mm <- brand$max_height_mm %||% 13
     for (id in .cra_draw_brand_strip(
       brand$assets, brand_assets, y = L$y_brand,
-      max_height_mm = brand$max_height_mm %||% 13,
+      max_height_mm = max_h_mm,
       align = as.character(brand$align %||% "left")[[1]], geo = geo
     )) {
       warnings[[length(warnings) + 1L]] <- list(
         code = "brand_asset_missing", page = page_no, asset_id = id
       )
     }
+    h_brand <- (as.numeric(max_h_mm) / 25.4) / geo$page_h
+    zones[[length(zones) + 1L]] <- .cmz_zone(
+      brand$block_id, "brand_strip", L$x_left, L$x_right,
+      L$y_brand - h_brand / 2, L$y_brand + h_brand / 2
+    )
   }
   pulso_pdf_header(
     titulo = .crf_txt(heading$value %||% page$unit$label, "Unidad de aplicaci\u00f3n"),
@@ -986,9 +1020,27 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
     tokens = tokens, geo = geo,
     y_titulo = L$y_header, y_subtitulo = L$y_header_sub, y_regla = L$y_header_rule
   )
+  # La cabecera se dibuja haya o no bloque de titulo; sin el es del layout.
+  zona_cabecera <- .cmz_zone(
+    heading$block_id, "heading", geo$margin, 1 - geo$margin,
+    L$y_header_rule - 0.004, L$y_header + 0.008,
+    kind = if (is.null(heading)) "derived" else "block"
+  )
   if (!is.null(tag)) {
-    .crf_draw_status_tag(.crf_txt(tag$value %||% tag$text, ""), L, tokens, geo)
+    tag_text <- .crf_txt(tag$value %||% tag$text, "")
+    .crf_draw_status_tag(tag_text, L, tokens, geo)
+    if (nzchar(tag_text)) {
+      g <- .crf_status_tag_geom(tag_text, L, geo)
+      zones[[length(zones) + 1L]] <- .cmz_zone(
+        tag$block_id, "status_tag", g$cx - g$half_w, g$cx + g$half_w,
+        g$cy - g$half_h, g$cy + g$half_h
+      )
+      # La pildora vive dentro de la banda de la cabecera, a la derecha: el
+      # titulo cede ese tramo en vez de partirse en vertical.
+      zona_cabecera$x1 <- min(zona_cabecera$x1, g$cx - g$half_w - 0.004)
+    }
   }
+  zones[[length(zones) + 1L]] <- zona_cabecera
 
   if (!is.null(qr)) {
     # **Ni marco ni margen: el sitio del QR es del QR.**
@@ -1007,20 +1059,24 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
     if (nzchar(payload)) {
       qz <- qr$quiet_zone %||% 4L
       mm <- collection_qr_matrix(payload, correction = qr$correction %||% "M", quiet_zone = qz)
-      grid::pushViewport(.crf_qr_viewport(
-        L$qr_x, L$qr_y, .crf_qr_lado_total(L$qr_side, nrow(mm), qz, L$x_right - L$x_left), geo
-      ))
+      lado_total <- .crf_qr_lado_total(L$qr_side, nrow(mm), qz, L$x_right - L$x_left)
+      grid::pushViewport(.crf_qr_viewport(L$qr_x, L$qr_y, lado_total, geo))
       .crf_draw_qr_modules(mm)
       grid::popViewport()
+      zones[[length(zones) + 1L]] <- .crf_qr_zona(qr$block_id, L, lado_total, nrow(mm), qz, geo)
     } else {
       grid::grid.text(
         "Sin enlace", x = L$qr_x, y = L$qr_y,
         gp = grid::gpar(col = tokens$faint, fontsize = type$body), default.units = "npc"
       )
+      zones[[length(zones) + 1L]] <- .crf_qr_zona(qr$block_id, L, L$qr_side, 1L, 0L, geo)
     }
   }
 
   plan <- .crf_flow_plan(page$blocks, L, type, geo, payload = .crf_txt(page$access$qr_payload, ""))
+  # Cuerpo de una linea de texto en npc de alto: la mitad sobresale por encima
+  # y por debajo de una `y` centrada.
+  em <- function(size) (size / 72) / geo$page_h
   links <- list()
   payload <- .crf_txt(page$access$qr_payload, "")
 
@@ -1047,13 +1103,26 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
       # cuerpo, el bloque ocuparia mas o menos de lo reservado y el desfase se
       # lo comeria el registro de abajo.
       chars <- .crf_flow_chars(item$right_edge, L$x_left, 46L)
-      aj <- .crf_ajuste_titulo(page$unit$course_name, chars, type$section)
+      # **Se dibuja el dato del BLOQUE, no siempre el curso.** Hasta E1b esta
+      # linea decia `page$unit$course_name` pasara lo que pasara: un `body`
+      # ligado a `unit.schedule` reservaba el alto del horario y pintaba el
+      # curso. Con la receta de fabrica (body -> unit.course_name) el texto es
+      # el mismo de antes, letra por letra; si el compilador lo recorto a
+      # `max_lines`, se dibuja lo recortado, que es lo que `fixed_h` reservo.
+      aj <- .crf_ajuste_titulo(.crf_body_texto(block), chars, type$section)
       .crf_draw_lines(
         aj$lines,
         L$x_left, item$y_top, grid::gpar(col = tokens$navy, fontsize = aj$size, fontface = "bold")
       )
+      zones[[length(zones) + 1L]] <- .cmz_zone(
+        block$block_id, "body", L$x_left, item$right_edge,
+        item$y_top - .cmz_alto_lineas(length(aj$lines), aj$size, 1.15, geo), item$y_top
+      )
     } else if (identical(item$type, "divider")) {
       pulso_pdf_hairline(L$x_left, item$right_edge, item$y_top - item$height * 0.5, tokens = tokens)
+      zones[[length(zones) + 1L]] <- .cmz_zone(
+        item$block_id, "divider", L$x_left, item$right_edge, item$y_top - item$height, item$y_top
+      )
     } else if (identical(item$type, "field_grid")) {
       fields <- .crf_block(page, "field_grid")
       rows <- fields$rows %||% list()
@@ -1072,16 +1141,25 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
       max_rows <- max(1L, as.integer(floor(band / L$row_step_min)) + 1L)
       if (length(pares) > max_rows) {
         warnings[[length(warnings) + 1L]] <- list(
-          code = "field_grid_overflow", page = page_no,
+          code = "field_grid_overflow", page = page_no, block_id = fields$block_id,
           rows = length(rows), visible_rows = max_rows * 2L
         )
         pares <- pares[seq_len(max_rows)]
       }
       row_step <- if (length(pares) > 1L) min(L$row_step, band / (length(pares) - 1L)) else 0
       medio <- L$x_left + (row_right - L$x_left) / 2
+      # Tinta del bloque: el valor arranca 0.008 por encima de su renglon y el
+      # ultimo renglon cuelga por debajo de la banda reservada.
+      tinta_top <- item$y_top + 0.008
+      tinta_bottom <- item$y_top
       for (i in seq_along(pares)) {
         y <- item$y_top - (i - 1L) * row_step
         par_i <- pares[[i]]
+        tinta_bottom <- min(tinta_bottom, y - em(type$caption) / 2, y - 0.005)
+        for (campo in par_i) {
+          n_val <- if (isTRUE(campo$blank)) 0L else max(1L, length(campo$lines %||% 1L))
+          tinta_bottom <- min(tinta_bottom, y + 0.008 - .cmz_alto_lineas(n_val, type$body, 1.05, geo))
+        }
         # Un campo solo en su renglon se queda con la hoja entera; dos la parten.
         arranques <- if (length(par_i) < 2L) L$x_left else c(L$x_left, medio + 0.012)
         topes <- if (length(par_i) < 2L) row_right else c(medio - 0.012, row_right)
@@ -1106,6 +1184,9 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
           )
         }
       }
+      zones[[length(zones) + 1L]] <- .cmz_zone(
+        fields$block_id, "field_grid", L$x_left, row_right, tinta_bottom, tinta_top
+      )
     } else if (identical(item$type, "instructions")) {
       block <- .crf_block(page, "instructions")
       chars <- .crf_flow_chars(item$right_edge, L$x_left, 75L)
@@ -1117,6 +1198,10 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
       .crf_draw_lines(
         lines, L$x_left, item$y_top,
         grid::gpar(col = tokens$soft, fontsize = type$body), lineheight = 1.12
+      )
+      zones[[length(zones) + 1L]] <- .cmz_zone(
+        block$block_id, "instructions", L$x_left, item$right_edge,
+        item$y_top - .cmz_alto_lineas(length(lines), type$body, 1.12, geo), item$y_top
       )
     } else if (identical(item$type, "application_log")) {
       log_block <- .crf_block(page, "application_log")
@@ -1132,12 +1217,20 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
       max_log <- max(1L, as.integer(floor(banda_log / L$log_row_step_min)) + 1L)
       if (rows_n > max_log) {
         warnings[[length(warnings) + 1L]] <- list(
-          code = "application_log_overflow", page = page_no,
+          code = "application_log_overflow", page = page_no, block_id = log_block$block_id,
           rows = rows_n, visible_rows = max_log
         )
         rows_n <- max_log
       }
       log_step <- if (rows_n > 1L) min(L$log_row_step, banda_log / (rows_n - 1L)) else 0
+      # El rotulo va centrado en `y_top`; el ultimo renglon termina en su raya,
+      # 0.006 por debajo de la linea de texto.
+      y_ultimo <- y0 - (max(1L, rows_n) - 1L) * log_step
+      zones[[length(zones) + 1L]] <- .cmz_zone(
+        log_block$block_id, "application_log", L$x_left, item$right_edge,
+        min(y_ultimo - 0.007, y_ultimo - em(type$caption) / 2),
+        item$y_top + em(type$caption) / 2 + 0.002
+      )
       for (i in seq_len(rows_n)) {
         y <- y0 - (i - 1L) * log_step
         # Con etiqueta, la linea dice que anotar y empieza donde termina el texto.
@@ -1200,8 +1293,13 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
         link_lines, L$x_left, text_top,
         grid::gpar(col = tokens$navy, fontsize = link_size), lineheight = 1.05
       )
+      link_h <- length(link_lines) * (link_size * 1.05 / 72) / geo$page_h
+      # El enlace no es un bloque de la receta: lo pone el layout.
+      zones[[length(zones) + 1L]] <- .cmz_zone(
+        NA_character_, "link", L$x_left, item$right_edge,
+        text_top - link_h - 0.002, item$y_top + 0.002, kind = "derived"
+      )
       if (nzchar(payload)) {
-        link_h <- length(link_lines) * (link_size * 1.05 / 72) / geo$page_h
         links[[length(links) + 1L]] <- list(
           page = page_no, url = payload, kind = "printed_url",
           x0 = L$x_left, x1 = item$right_edge,
@@ -1220,7 +1318,41 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
       gp = grid::gpar(col = tokens$faint, fontsize = type$caption)
     )
   }
-  list(warnings = warnings, links = links)
+  zones[[length(zones) + 1L]] <- .crf_footer_zona(footer, geo)
+  list(warnings = warnings, links = links, zones = .cmz_sin_solapes(zones))
+}
+
+# Texto que dibuja el bloque `body`: su valor entero, o lo que el compilador
+# dejo cuando lo recorto a `max_lines`. Comparar contra el envuelto completo es
+# lo que decide si hubo recorte; si no lo hubo, el valor va tal cual —asi la
+# receta de fabrica pinta exactamente la misma cadena que antes de E1b—.
+.crf_body_texto <- function(block) {
+  valor <- .crf_txt(block$value, "")
+  if (!nzchar(valor)) return(paste(block$lines %||% character(0), collapse = " "))
+  max_lines <- as.integer(block$max_lines %||% 3L)
+  if (length(.crf_wrap(valor, width = 46L)) > max_lines && length(block$lines %||% character(0))) {
+    return(paste(block$lines, collapse = " "))
+  }
+  valor
+}
+
+# Zona del simbolo QR, sin su zona de silencio: el blanco que se derrama sobre
+# la hoja no es sitio del bloque —el titulo de la ficha de campo vive dentro de
+# ese blanco— y una zona que lo incluyera pisaria a sus vecinos.
+.crf_qr_zona <- function(block_id, L, lado_total, n, qz, geo) {
+  util <- as.integer(n) - 2L * as.integer(qz)
+  lado <- if (is.na(util) || util < 1L) lado_total else lado_total * util / as.integer(n)
+  half_w <- lado / 2
+  half_h <- lado * geo$page_w / geo$page_h / 2
+  .cmz_zone(block_id, "access_qr", L$qr_x - half_w, L$qr_x + half_w, L$qr_y - half_h, L$qr_y + half_h)
+}
+
+# El pie del kit (`pulso_pdf_footer`): filete en 0.062, logo y textos en 0.038.
+.crf_footer_zona <- function(footer, geo) {
+  .cmz_zone(
+    footer$block_id, "footer", geo$margin, 1 - geo$margin, 0.012, 0.066,
+    kind = if (is.null(footer)) "derived" else "block"
+  )
 }
 
 .crf_open_device <- function(path, device, orientation, dpi) {
@@ -1271,6 +1403,7 @@ collection_material_render_compiled <- function(compiled, path, device = c("pdf"
   on.exit(if (device_open) grDevices::dev.off(), add = TRUE)
   draw_warnings <- list()
   links <- list()
+  zones <- list()
   for (position in seq_along(selected)) {
     index <- selected[[position]]
     drawn <- collection_material_draw_page(
@@ -1283,6 +1416,11 @@ collection_material_render_compiled <- function(compiled, path, device = c("pdf"
     links <- c(links, lapply(drawn$links %||% list(), function(link) {
       link$page <- position
       link
+    }))
+    # Las zonas siguen la misma regla que los enlaces: pagina del archivo.
+    zones <- c(zones, lapply(drawn$zones %||% list(), function(zone) {
+      zone$page <- position
+      zone
     }))
   }
   grDevices::dev.off()
@@ -1299,6 +1437,10 @@ collection_material_render_compiled <- function(compiled, path, device = c("pdf"
     # Se devuelven los rectangulos declarados para que el llamante pueda
     # comprobar que el material salio con enlace y no solo con el QR dibujado.
     links = links,
+    # Rectangulos de cada bloque dibujado, en npc y por pagina del archivo
+    # (E1b): el editor los pone encima del PNG. Salen del dibujante, asi que
+    # son los mismos en PNG y en PDF.
+    zones = zones,
     warnings = c(compiled$warnings, draw_warnings)
   )
 }

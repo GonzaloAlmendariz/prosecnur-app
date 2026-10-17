@@ -117,6 +117,9 @@ errores_registrados <- function() {
     "E_COLLECTION_MATERIAL_PRESET_UNKNOWN",                  "collection_material_catalog.R",     "422",
     "E_COLLECTION_MATERIAL_PREVIEW_PAGE",                    "collection_material_catalog.R",     "422",
     "E_COLLECTION_MATERIAL_PREVIEW_UNAVAILABLE",             "collection_material_catalog.R",     "503",
+    # Vista de la página real del editor (ADR 0109 E1b).
+    "E_COLLECTION_MATERIAL_PREVIEW_UNIT",                    "collection_material_preview.R",     "404",
+    "E_COLLECTION_MATERIAL_PREVIEW_DPI",                     "collection_material_preview.R",     "422",
     # Correos para Mailchimp (ADR 0110 §2, E1f).
     "E_COLLECTION_MAIL_TEMPLATE_INVALID",                    "collection_mail_template.R",        "422",
     "E_COLLECTION_MAIL_MODE",                                "collection_mail_export.R",          "422",
