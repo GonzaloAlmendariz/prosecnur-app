@@ -16,15 +16,19 @@ export function elementosDeSeccion(structure: BuilderStructure | null, filaSecci
   return structure.outline.filter((n) => n.rowIndex !== filaSeccion && structure.rowToSectionId.get(n.rowIndex) === id);
 }
 
+/** Número de cada pregunta en todo el formulario, como la Vista del cuestionario: notas y secciones van sin él. */
+export function numerosDePregunta(structure: BuilderStructure | null): Map<number, string> {
+  let n = 0;
+  return new Map((structure?.outline ?? []).map((e) => [e.rowIndex, e.kind === "question" ? String(++n) : ""]));
+}
+
 export function ContenidoSeccion({ structure, filaSeccion, onSelectRow }: {
   structure: BuilderStructure | null;
   filaSeccion: number;
   onSelectRow: (rowIndex: number) => void;
 }) {
   const elementos = elementosDeSeccion(structure, filaSeccion);
-  // Sólo las preguntas llevan número, como en la Vista del cuestionario; notas y subsecciones van sin él.
-  let n = 0;
-  const numero = new Map(elementos.map((e) => [e.rowIndex, e.kind === "question" ? String(++n) : ""]));
+  const numero = numerosDePregunta(structure);
   return (
     <section className="xfcs" aria-label="Contenido de la sección">
       <header className="xfcs__cab">
