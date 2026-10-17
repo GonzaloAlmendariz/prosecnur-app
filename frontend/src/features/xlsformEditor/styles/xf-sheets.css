@@ -432,7 +432,9 @@
   font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 12px;
   line-height: 1.45;
-  resize: vertical;
+  resize: none;
+  field-sizing: content;
+  max-height: 40vh;
   transition:
     border-color var(--motion-dur-fast) ease,
     background var(--motion-dur-fast) ease,
