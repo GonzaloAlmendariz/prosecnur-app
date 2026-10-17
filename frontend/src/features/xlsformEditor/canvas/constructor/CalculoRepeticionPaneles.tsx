@@ -61,13 +61,13 @@ export function CalculationRecipePanel({
           <Calculator size={14} />
         </span>
         <div>
-          <span className="pulso-section-eyebrow">Cálculo Kobo</span>
+          <span className="pulso-section-eyebrow">Cálculo</span>
           <strong>Recetas frecuentes sin escribir fórmula desde cero</strong>
           <p>Aplican una fórmula XLSForm válida y dejan el editor avanzado disponible para ajustes finos.</p>
         </div>
       </div>
 
-      <div className="pulso-focus-calculation-recipe-grid">
+      <div className="pulso-focus-calculation-recipe-grid" data-qa-geometry-group="xlsform/calculo-recetas" data-qa-geometry-contract="intrinsic">
         <button
           type="button"
           className="pulso-focus-calculation-recipe"
@@ -99,8 +99,8 @@ export function CalculationRecipePanel({
             </span>
             <div className="pulso-focus-calculation-recipe-row">
               <select value={copyVariable} onChange={(event) => setCopyVariable(event.target.value)}>
-                {variables.map((variable) => (
-                  <option key={variable.name} value={variable.name}>
+                {variables.map((variable, i) => (
+                  <option key={`${variable.name}-${i}`} value={variable.name}>
                     {variableDisplayLabel(variable)}
                   </option>
                 ))}
@@ -120,8 +120,8 @@ export function CalculationRecipePanel({
             </span>
             <div className="pulso-focus-calculation-recipe-row">
               <select value={multiVariable} onChange={(event) => setMultiVariable(event.target.value)}>
-                {multiVariables.map((variable) => (
-                  <option key={variable.name} value={variable.name}>
+                {multiVariables.map((variable, i) => (
+                  <option key={`${variable.name}-${i}`} value={variable.name}>
                     {variableDisplayLabel(variable)}
                   </option>
                 ))}
@@ -141,8 +141,8 @@ export function CalculationRecipePanel({
             </span>
             <div className="pulso-focus-calculation-recipe-row">
               <select value={numericVariable} onChange={(event) => setNumericVariable(event.target.value)}>
-                {numericVariables.map((variable) => (
-                  <option key={variable.name} value={variable.name}>
+                {numericVariables.map((variable, i) => (
+                  <option key={`${variable.name}-${i}`} value={variable.name}>
                     {variableDisplayLabel(variable)}
                   </option>
                 ))}
@@ -210,7 +210,7 @@ export function RepeatCountPanel({
           <Repeat size={14} />
         </span>
         <div>
-          <span className="pulso-section-eyebrow">Repeticiones Kobo</span>
+          <span className="pulso-section-eyebrow">Repeticiones</span>
           <strong>{status.title}</strong>
           <p>{status.detail}</p>
         </div>
@@ -256,8 +256,8 @@ export function RepeatCountPanel({
               {variables.length === 0 ? (
                 <option value="">Sin variables numéricas</option>
               ) : (
-                variables.map((variable) => (
-                  <option key={variable.name} value={variable.name}>
+                variables.map((variable, i) => (
+                  <option key={`${variable.name}-${i}`} value={variable.name}>
                     {variableDisplayLabel(variable)}
                   </option>
                 ))
@@ -299,7 +299,7 @@ export function describeRepeatCount(
     return {
       tone: "empty",
       title: "Cantidad decidida en campo",
-      detail: "Kobo preguntará al encuestador si desea agregar otra repetición.",
+      detail: "El formulario preguntará al encuestador si desea agregar otra repetición.",
     };
   }
   if (isPositiveInteger(value)) {

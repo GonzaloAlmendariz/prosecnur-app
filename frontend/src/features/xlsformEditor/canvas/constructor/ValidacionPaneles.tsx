@@ -288,7 +288,7 @@ export function validationMessageStatusFor(value: string): {
     return {
       tone: "warning",
       title: "Falta mensaje para campo",
-      detail: "Completa una frase clara para que Kobo explique cómo corregir la respuesta.",
+      detail: "Completa una frase clara para que el formulario explique cómo corregir la respuesta.",
     };
   }
   if (fieldMessageLooksTechnical(cleanValue)) {
@@ -301,6 +301,6 @@ export function validationMessageStatusFor(value: string): {
   return {
     tone: "ok",
     title: "Mensaje listo para campo",
-    detail: "Kobo mostrará una indicación entendible cuando la respuesta no cumpla la regla.",
+    detail: "El formulario mostrará una indicación entendible cuando la respuesta no cumpla la regla.",
   };
 }

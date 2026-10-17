@@ -24,7 +24,7 @@ export function ConstraintMessageField({
   return (
     <InspectorField
       label="Mensaje si la respuesta no es válida"
-      hint="Texto visible en Kobo cuando la respuesta no cumple la regla. Escríbelo como una indicación para campo."
+      hint="Texto que ve el encuestado cuando la respuesta no cumple la regla. Escríbelo como una indicación para campo."
     >
       {(campo) => (
         <>

@@ -26,7 +26,7 @@ export const TAB_HELP: Record<TabKey, { label: string; code: string; detail: str
   paper: {
     label: "Papel/PDF",
     code: "paper",
-    detail: "Ajustes opcionales de salida impresa, sin cambiar Kobo.",
+    detail: "Ajustes opcionales de salida impresa, sin cambiar el formulario digital.",
   },
 };
 
@@ -84,7 +84,7 @@ export const COLUMN_HELP: Record<string, { label: string; detail: string; badge?
   },
   appearance: {
     label: "Presentación",
-    detail: "Ajuste visual de Kobo/ODK, como minimal, search o field-list.",
+    detail: "Ajuste visual del formulario digital, como minimal, search o field-list.",
   },
   list_name: {
     label: "Catálogo",
@@ -92,7 +92,7 @@ export const COLUMN_HELP: Record<string, { label: string; detail: string; badge?
   },
   paper_number: {
     label: "N° en papel",
-    detail: "Numeración opcional para el PDF o cuestionario en papel. No afecta Kobo.",
+    detail: "Numeración opcional para el PDF o cuestionario en papel. No afecta al formulario digital.",
     badge: "Papel",
   },
   paper_label: {
@@ -107,7 +107,7 @@ export const COLUMN_HELP: Record<string, { label: string; detail: string; badge?
   },
   paper_group: {
     label: "Grupo en papel",
-    detail: "Agrupa piezas en la maqueta de papel sin cambiar la lógica Kobo.",
+    detail: "Agrupa piezas en la maqueta de papel sin cambiar la lógica del formulario.",
     badge: "Papel",
   },
   paper_subgroup: {
@@ -127,7 +127,7 @@ export const COLUMN_HELP: Record<string, { label: string; detail: string; badge?
   },
   paper_skip: {
     label: "Ocultar en papel",
-    detail: "Oculta esta pieza u opción en la versión PDF, sin ocultarla en Kobo.",
+    detail: "Oculta esta pieza u opción en la versión PDF, sin ocultarla en el formulario digital.",
     badge: "Papel",
   },
 };

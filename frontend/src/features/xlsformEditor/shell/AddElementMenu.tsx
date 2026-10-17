@@ -136,7 +136,7 @@ export function AddElementMenu({
         </button>
       </div>
       <div className="pulso-add-element-menu-guidance" aria-label="Guía rápida">
-        <span><strong>Kobo limpio</strong> las selecciones dejan una lista preparada, sin opciones falsas.</span>
+        <span><strong>Listas limpias</strong> las selecciones dejan una lista preparada, sin opciones falsas.</span>
         <span><strong>Secciones</strong> tienen inicio y cierre como piezas separadas; abre donde empieza y cierra donde termina.</span>
         <span><strong>Atajo</strong> Cmd/Ctrl+N abre este selector sin crear campos por defecto.</span>
       </div>
@@ -246,14 +246,14 @@ export function describeAddMenuItem(item: AddMenuItem): {
   switch (item.key) {
     case "select_one":
       return {
-        tag: "Catálogo Kobo",
+        tag: "Lista de opciones",
         detail: "No agrega opciones falsas; abre con una lista vacía para completar después.",
         tone: "choice",
         searchTerms: ["catalogo", "kobo", "opciones", "radio", "unica"],
       };
     case "select_multiple":
       return {
-        tag: "Catálogo Kobo",
+        tag: "Lista de opciones",
         detail: "Crea una lista reutilizable para marcar varias respuestas reales.",
         tone: "choice",
         searchTerms: ["catalogo", "kobo", "opciones", "multiple", "checkbox"],
@@ -275,7 +275,7 @@ export function describeAddMenuItem(item: AddMenuItem): {
     case "note":
       return {
         tag: "Sin respuesta",
-        detail: "Inserta una nota visible que no guarda respuesta en Kobo.",
+        detail: "Inserta una nota visible que no guarda respuesta.",
         tone: "logic",
         searchTerms: ["nota", "instruccion", "texto informativo"],
       };
@@ -289,42 +289,42 @@ export function describeAddMenuItem(item: AddMenuItem): {
     case "image":
       return {
         tag: "Evidencia",
-        detail: "Agrega captura de campo con el tipo técnico correcto para Kobo.",
+        detail: "Agrega captura de campo con el tipo técnico correcto del XLSForm.",
         tone: "evidence",
         searchTerms: ["foto", "imagen", "camara", "evidencia"],
       };
     case "audio":
       return {
         tag: "Evidencia",
-        detail: "Agrega captura de campo con el tipo técnico correcto para Kobo.",
+        detail: "Agrega captura de campo con el tipo técnico correcto del XLSForm.",
         tone: "evidence",
         searchTerms: ["audio", "voz", "sonido", "evidencia"],
       };
     case "video":
       return {
         tag: "Evidencia",
-        detail: "Agrega captura de campo con el tipo técnico correcto para Kobo.",
+        detail: "Agrega captura de campo con el tipo técnico correcto del XLSForm.",
         tone: "evidence",
         searchTerms: ["video", "audiovisual", "evidencia"],
       };
     case "file":
       return {
         tag: "Evidencia",
-        detail: "Agrega captura de campo con el tipo técnico correcto para Kobo.",
+        detail: "Agrega captura de campo con el tipo técnico correcto del XLSForm.",
         tone: "evidence",
         searchTerms: ["archivo", "adjunto", "documento", "evidencia"],
       };
     case "barcode":
       return {
         tag: "Lectura",
-        detail: "Agrega captura de campo con el tipo técnico correcto para Kobo.",
+        detail: "Agrega captura de campo con el tipo técnico correcto del XLSForm.",
         tone: "evidence",
         searchTerms: ["codigo", "barras", "qr", "lectura", "scanner"],
       };
     case "geopoint":
       return {
         tag: "Ubicación",
-        detail: "Agrega captura de campo con el tipo técnico correcto para Kobo.",
+        detail: "Agrega captura de campo con el tipo técnico correcto del XLSForm.",
         tone: "evidence",
         searchTerms: ["gps", "ubicacion", "geopoint", "punto", "coordenada"],
       };

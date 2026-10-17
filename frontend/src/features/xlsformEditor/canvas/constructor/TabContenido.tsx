@@ -123,7 +123,7 @@ export function NoteAuthoringPanel({
             <FileText size={14} />
           </span>
           <div>
-            <span className="pulso-section-eyebrow">Nota Kobo</span>
+            <span className="pulso-section-eyebrow">Nota</span>
             <strong>Insertar texto de apoyo sin capturar respuesta</strong>
             <p>Úsala para instrucciones, consentimiento, separadores o gráficos de referencia.</p>
           </div>
