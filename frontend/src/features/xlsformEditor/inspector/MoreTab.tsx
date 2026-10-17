@@ -177,7 +177,7 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
           <InspectorBlock>
             <InspectorField
               label={<>Mensaje cuando es obligatoria <TechTerm t="required_message" /></>}
-              hint="Se muestra al intentar avanzar sin responder."
+              hint="Se muestra si se intenta finalizar la encuesta sin responderla."
             >
               {(campo) => (
                 <input

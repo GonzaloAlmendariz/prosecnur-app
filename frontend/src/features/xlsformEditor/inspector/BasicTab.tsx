@@ -178,7 +178,7 @@ export function BasicTab({
             </span>
             <span>
               <strong>Pregunta obligatoria <TechTerm t="required" /></strong>
-              <em>No se puede avanzar sin responderla.</em>
+              <em>La encuesta no se puede finalizar sin esta respuesta.</em>
             </span>
           </label>
 
