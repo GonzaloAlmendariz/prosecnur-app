@@ -113,7 +113,7 @@ describe("cifras de la previa", () => {
   });
 
   test("la cabecera no inventa cifras sin previa", () => {
-    expect(resumenCabecera(null)).toBe("A4 · genera la previa para ver páginas y preguntas");
+    expect(resumenCabecera(null)).toBe("A4 · el número de páginas sale con el PDF");
     expect(resumenCabecera({ paginas: 12, preguntas: 87 })).toBe("A4 · 12 páginas · 87 preguntas");
     expect(resumenCabecera({ paginas: null, preguntas: 1 })).toBe("A4 · 1 pregunta");
   });
