@@ -37,5 +37,6 @@ bien concienciada de cómo mejorar al siguiente nivel esto». Una fila por mejor
 
 | # | Mejora | Dónde vive | Estado |
 |---|---|---|---|
-| M1 | Probar: usar el ancho en vez de una columna angosta con franjas muertas | `shell/FormSimulator.tsx` | siguiente |
+| M1 | Probar: usar el ancho en vez de una columna angosta con franjas muertas | `shell/FormSimulator.tsx`, `shell/simulador/` | hecho, por verificar (56328915f): medido, dos franjas vacías de unos 340 px a 1440. Ahora recorrido por secciones a la izquierda (actual, hechas con respondidas, pendientes, las que la lógica saltó, salto directo) y respuestas a la derecha (etiquetas, acceso a su sección). Bajo 1180 px queda la hoja sola. QA 1440 y 1024 ok=true |
+| M2 | Mapa de lógica: lienzo casi vacío y «Ninguna pregunta tiene lógica propia» repetido en cada sección | `canvas-graph/` | siguiente |
 
