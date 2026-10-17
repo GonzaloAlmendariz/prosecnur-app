@@ -216,6 +216,39 @@ Relacionado con [ADR 0004](0004-monolito-modular-microkernel.md),
 [ADR 0032](0032-handoff-instrumento-siempre-local.md) y
 [ADR 0045](0045-monitoreo-actores-modelo-telefonia-explicita.md).
 
+### Addendum 2026-10-16: qué entra en la huella del despliegue
+
+Desde H21 el `collection_deployment/v1` guarda `adapter_id` y la configuración
+no secreta del target que Accesos necesita para rehidratar el formulario:
+`base_access_url`, `asset_type`, `deployment_active`, `prefill_field`,
+`connection_profile_id` y `custom_variable`
+(`COLLECTION_DEPLOYMENT_TARGET_CONFIG_FIELDS`, `api/R/collection_adapters.R`).
+
+- **La huella (`deployment_fingerprint`) excluye `adapter_id` y esa
+  configuración.** Son configuración, no identidad: lo que cambia un enlace ya
+  cambia los `bindings` y el `remote_ref`, que sí entran. Así un despliegue
+  guardado antes de H21 tiene la misma huella que el mismo despliegue guardado
+  después, y su material no queda `deployment_changed` al reabrir. También
+  quedan fuera `status`, `handoff` y `stale`.
+- `recipients` no se guarda: es la lista de destinatarios (PII) y su enlace
+  individual ya vive en los bindings como referencia.
+- `connection_profile_id` es una referencia al perfil y solo se acepta con la
+  forma `^[A-Za-z0-9_-]{1,64}$`; cualquier otro valor (un token pegado, por
+  ejemplo) se rechaza con 422 `E_COLLECTION_DEPLOYMENT_INVALID` en la vista
+  previa, en el guardado y en la preparación, sin repetir el valor en el error
+  (ADR 0005).
+- Un deployment viejo sin `adapter_id` lo **deriva al leerse**, sin
+  persistirlo: siembra legacy (`remote_ref.source = "legacy_local"`) → adapter
+  del plan; si no, el `adapter_id` de su `capability_preflight` guardado; si no,
+  por proveedor. `deployment_active = TRUE` se deriva solo para un Kobo
+  `prepared` cuyo preflight `kobo_existing_v1` guardado no tiene bloqueos,
+  porque es ese preflight, y no la preparación, el que exige el formulario
+  activo. El payload declara qué salió derivado en `deployment_derived_fields`.
+- Compatibilidad hacia atrás: una versión anterior a este cambio calcula la
+  huella con esos campos dentro, así que al abrir un `.pulso` guardado con esta
+  versión marca el material como desactualizado (`deployment_changed`). No hay
+  pérdida de datos: los campos se conservan y basta regenerar el material.
+
 ## Gobierna
 
 Desde el 2026-10-16 las direcciones de este módulo las gobierna el

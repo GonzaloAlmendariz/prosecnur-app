@@ -108,40 +108,70 @@ collection_fingerprint <- function(value) {
   paste0("sha256:", tolower(digest::digest(canonical, algo = "sha256", serialize = FALSE)))
 }
 
+.CC_SECRET_NAME_PATTERN <- paste0(
+  "(^|_)(token|access_token|refresh_token|api_key|password|secret|authorization|",
+  "credential|private_key|client_secret)($|_)"
+)
+.CC_DATA_URL_PATTERN <- "^data:(image|application|audio|video)/"
+
+# Recorre el arbol buscando binarios, data-URLs y claves con pinta de credencial.
+#
+# Es la parte cara de validar un `collection_state` grande: con 2.373 unidades
+# el recorrido nodo a nodo (un `sprintf`, un `tolower` y un `grepl` por hoja,
+# tres veces porque plan y deployment se escanean solos y otra vez dentro del
+# estado) se llevaba ~6,7 de los 7,3 s de `collection_state_validate`. Ahora
+# cada nivel se evalua vectorizado y solo se arma la ruta de los hijos que
+# pueden aportar un problema (listas, binarios, textos con data-URL, nombres que
+# casan). Mismos problemas, mismas rutas y mismo orden que el recorrido anterior
+# (test-collection-validate-rendimiento.R lo compara contra esa version).
 .cc_security_problems <- function(x, path = "value") {
-  problems <- list()
   if (is.raw(x)) {
     return(list(.cc_problem(path, "binary_in_state", "El estado no puede contener binarios.")))
   }
   if (is.character(x) && length(x)) {
-    bad <- which(grepl("^data:(image|application|audio|video)/", x, ignore.case = TRUE))
-    for (i in bad) {
-      problems[[length(problems) + 1L]] <- .cc_problem(
-        sprintf("%s[%d]", path, i), "binary_in_state",
-        "Data-URLs y previews regenerables quedan fuera del .pulso."
-      )
+    bad <- which(grepl(.CC_DATA_URL_PATTERN, x, ignore.case = TRUE))
+    return(lapply(bad, function(i) .cc_problem(
+      sprintf("%s[%d]", path, i), "binary_in_state",
+      "Data-URLs y previews regenerables quedan fuera del .pulso."
+    )))
+  }
+  if (!is.list(x) || !length(x)) return(list())
+
+  n <- length(x)
+  nms <- names(x)
+  has_name <- if (is.null(nms)) rep(FALSE, n) else !is.na(nms) & nzchar(nms)
+  name_hit <- if (is.null(nms)) rep(FALSE, n) else {
+    has_name & grepl(.CC_SECRET_NAME_PATTERN, tolower(nms))
+  }
+
+  types <- vapply(x, typeof, character(1), USE.NAMES = FALSE)
+  child_hit <- types %in% c("list", "pairlist", "raw")
+  chars <- which(types == "character")
+  if (length(chars)) {
+    lens <- lengths(x[chars], use.names = FALSE)
+    flat <- unlist(x[chars], use.names = FALSE)
+    if (length(flat)) {
+      hit <- grepl(.CC_DATA_URL_PATTERN, flat, ignore.case = TRUE)
+      if (any(hit)) {
+        owner <- rep.int(chars, lens)
+        child_hit[unique(owner[hit])] <- TRUE
+      }
     }
   }
-  if (!is.list(x)) return(problems)
+  candidates <- which(name_hit | child_hit)
+  if (!length(candidates)) return(list())
 
-  nms <- names(x)
-  for (i in seq_along(x)) {
-    nm <- if (!is.null(nms) && !is.na(nms[[i]]) && nzchar(nms[[i]])) {
-      nms[[i]]
-    } else {
-      sprintf("[%d]", i)
-    }
+  problems <- list()
+  for (i in candidates) {
+    nm <- if (has_name[[i]]) nms[[i]] else sprintf("[%d]", i)
     child_path <- if (startsWith(nm, "[")) paste0(path, nm) else paste(path, nm, sep = ".")
-    if (grepl(
-      "(^|_)(token|access_token|refresh_token|api_key|password|secret|authorization|credential|private_key|client_secret)($|_)",
-      tolower(nm)
-    )) {
+    if (name_hit[[i]]) {
       problems[[length(problems) + 1L]] <- .cc_problem(
         child_path, "secret_in_state",
         sprintf("`%s` parece una credencial y no puede persistirse en collection_state.", nm)
       )
     }
-    problems <- c(problems, .cc_security_problems(x[[i]], child_path))
+    if (child_hit[[i]]) problems <- c(problems, .cc_security_problems(x[[i]], child_path))
   }
   problems
 }

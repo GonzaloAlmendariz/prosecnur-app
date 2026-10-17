@@ -53,7 +53,7 @@
 .collection_con_vigencia <- function(payload, sid) {
   session <- session_get(sid)
   payload$source_vigente <- .collection_source_vigente(session, payload$state)
-  .collection_receipts_con_disponibilidad(payload, session)
+  .collection_payload_de_lectura(payload, session)
 }
 
 .collection_payload <- function(state, noop = FALSE, seeded = FALSE,
@@ -627,7 +627,7 @@ collection_state_get <- function(sid) {
       length(.collection_seed_source(s)$rows) > 0L,
     source_vigente = .collection_source_vigente(s, estado)
   )
-  .collection_receipts_con_disponibilidad(payload, s)
+  .collection_payload_de_lectura(payload, s)
 }
 
 collection_state_seed <- function(sid) {
@@ -687,7 +687,9 @@ collection_state_reseed <- function(sid, expected_revision) {
   )
   payload$reseeded <- TRUE
   payload$descartado <- descartado
-  payload
+  # Misma salida que el resto del modulo: recibos con `file_available` y
+  # deployment con sus derivados de lectura.
+  .collection_payload_de_lectura(payload, session_get(sid))
 }
 
 collection_plan_put <- function(sid, plan, expected_revision) {
@@ -726,6 +728,7 @@ collection_plan_put <- function(sid, plan, expected_revision) {
   if (is.list(candidate$target)) {
     candidate$target <- .ca_deployment_target_whitelist(candidate$target)
   }
+  candidate <- .collection_deployment_handoff_vacio_fuera(candidate, solo_objeto_vacio = TRUE)
   candidate$deployment_fingerprint <- NULL
   candidate$deployment_fingerprint <- .collection_deployment_fingerprint(candidate)
   if (!identical(candidate$plan_fingerprint, plan$input_fingerprint)) {

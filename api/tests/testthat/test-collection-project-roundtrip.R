@@ -18,12 +18,17 @@ test_that("collection_state sobrevive build/load .pulso sin secretos ni binarios
   }, add = TRUE)
   session_set(sid, "monitoreo_aulas_plan", .collection_roundtrip_legacy())
   seeded <- collection_state_seed(sid)
+  # Lo que viaja es el estado PERSISTIDO, no el payload: el payload lleva
+  # derivados de lectura (`adapter_id` de la siembra legacy) que no se guardan.
+  persistido <- session_get(sid)$collection_state
+  expect_identical(unlist(seeded$deployment_derived_fields), "adapter_id")
+  expect_null(persistido$deployment$adapter_id)
   build_pulso(sid, tmp, project_name = "Recopiladores")
 
   loaded <- load_pulso(tmp)
   on.exit(session_delete(loaded$session_id), add = TRUE)
   restored <- session_get(loaded$session_id)
-  expect_identical(restored$collection_state, seeded$state)
+  expect_identical(restored$collection_state, persistido)
   expect_false(isTRUE(restored$project_dirty))
 
   state_json <- jsonlite::toJSON(restored$collection_state, auto_unbox = TRUE, null = "null")
