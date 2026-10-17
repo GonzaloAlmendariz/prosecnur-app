@@ -96,12 +96,39 @@
 
 #' Como se leeria el plan nuevo, para que la UI muestre el antes y el despues.
 #'
+#' `huella` y `diferencias` salen de la MISMA proyeccion que GET /origen
+#' (collection_origen.R), asi que «entran 2, salen 0, cambian 1» en la
+#' confirmacion coincide con lo que la pestaña Origen listaba. Sin `current` (o
+#' sin plan previo) las diferencias no se calculan.
+#'
+#' Una diferencia deliberada: aqui NO se toma el atajo del eco de Monitoreo
+#' (`.collection_origen_circular`). Origen compara el plan consigo mismo cuando
+#' la fuente es la copia que la entrega escribio desde el; rehacer, en cambio,
+#' SI construiria desde esa copia, y la confirmacion tiene que decir lo que va a
+#' pasar de verdad. `circular` lo avisa.
+#'
 #' @keywords internal
-.collection_reseed_propuesto <- function(nuevo) {
-  list(
-    plan_run_id = .cm_aulas_scalar(nuevo$plan$source_ref$run_id %||% "", ""),
-    unidades = length(nuevo$plan$units %||% list())
+.collection_reseed_propuesto <- function(sembrado, current = NULL) {
+  p_nuevo <- .collection_origen_proyeccion(sembrado$plan$units %||% list())
+  out <- list(
+    plan_run_id = .cm_aulas_scalar(sembrado$plan$source_ref$run_id %||% "", ""),
+    unidades = length(sembrado$plan$units %||% list()),
+    huella = .collection_origen_huella(p_nuevo),
+    diferencias = NA
   )
+  if (is.list(current) && is.list(current$plan)) {
+    cmp <- .collection_origen_comparar(
+      .collection_origen_proyeccion(current$plan$units %||% list()), p_nuevo
+    )
+    out$diferencias <- list(
+      altas = length(cmp$altas),
+      bajas = length(cmp$bajas),
+      campos = length(cmp$campos),
+      roles = length(cmp$roles),
+      unidades_con_cambios = length(cmp$unidades_con_cambios)
+    )
+  }
+  out
 }
 
 #' `dry_run` del body. Ausente o falso: escribe. Cualquier otro valor que no se
