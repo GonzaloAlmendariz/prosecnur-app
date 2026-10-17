@@ -27,3 +27,15 @@ formularios tipo), siempre sobre una copia.
 Línea base (2026-10-16, 1440×1000, tipo 1): Filtros es un vacío con texto y sin acción; el catálogo es un sideover
 (`?panel=catalogos`) con filas apretadas que se montan y códigos técnicos (`lst_p0003`) como nombre; «Listas de
 opciones» (`?panel=listas-opciones`) es otro diálogo con las escalas repetidas.
+
+## Mejoras por tick (desde 2026-10-17)
+
+Pedido (textual): «sigo pensando que hay muchísimas cosas que mejorar […] los espacios vacíos, los contenedores, los
+elementos, que se vean más profesionales, que no haya espacios muertos o columnas o filas muertas, que se entienda bien
+la estructura […] propongo que tengamos un loop cada 30 minutos […] y que en cada uno plantees una mejora realista y
+bien concienciada de cómo mejorar al siguiente nivel esto». Una fila por mejora.
+
+| # | Mejora | Dónde vive | Estado |
+|---|---|---|---|
+| M1 | Probar: usar el ancho en vez de una columna angosta con franjas muertas | `shell/FormSimulator.tsx` | siguiente |
+
