@@ -7,6 +7,7 @@
 // desde el principio en `dimensions.legacy_ref` —el `operational_code` del que
 // sale el propio `unit_id`— y no se pintaba.
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
 import type { CollectionPlan, CollectionStatePayload } from "../../api/recopiladores";
@@ -33,7 +34,7 @@ const plan = (units: CollectionPlan["units"]): CollectionStatePayload => {
 };
 
 const render = (units: CollectionPlan["units"]) =>
-  renderToStaticMarkup(<PlanSection payload={plan(units)} onState={() => undefined} />);
+  renderToStaticMarkup(<MemoryRouter><PlanSection payload={plan(units)} onState={() => undefined} /></MemoryRouter>);
 
 describe("la tabla del plan habla en códigos de campo", () => {
   it("enseña el código operativo y deja el hash fuera", () => {
