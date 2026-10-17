@@ -36,3 +36,14 @@ export function instanciaReutilizable(
 ): CollectionMaterialInstance | null {
   return vigentes(state)[0] ?? null;
 }
+
+/**
+ * Las fichas están al día cuando las instancias vigentes cubren TODAS las
+ * unidades del plan. «Crear las fichas» no tiene nada que añadir entonces:
+ * cada click sumaba otra instancia idéntica con «2,373 de 2,373» ya hechas.
+ * Con una instancia stale o con unidades sin cubrir, sí hay que crear.
+ */
+export function fichasAlDia(state: CollectionState | null | undefined): boolean {
+  const total = new Set((state?.plan?.units ?? []).map((unit) => unit.unit_id)).size;
+  return total > 0 && fichasHechasDelEstado(state) >= total;
+}

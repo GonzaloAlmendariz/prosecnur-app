@@ -322,6 +322,38 @@ function asArray<T>(value: unknown): T[] {
   return [value as T];
 }
 
+/**
+ * Un recibo de traspaso sólo existe si trae su contrato completo.
+ *
+ * El backend arma el despliegue con `handoff = NULL` y jsonlite serializa ese
+ * NULL como `{}`: un objeto vacío que `isRecord` acepta. Tomarlo como recibo
+ * pintaba «Recibo firmado» con Fecha, Revisión, Plan y Accesos en «—» sin que
+ * hubiera habido traspaso a Monitoreo (H25). Sin schema o sin sus campos
+ * obligatorios, no hay recibo.
+ */
+export function normalizeHandoffReceipt(value: unknown): CollectionHandoffReceipt | null {
+  if (!isRecord(value) || value.schema !== "collection_handoff/v1") return null;
+  const texto = (key: string) => (typeof value[key] === "string" ? (value[key] as string).trim() : "");
+  const revision = Number(value.state_revision);
+  const receipt: CollectionHandoffReceipt = {
+    schema: "collection_handoff/v1",
+    deployment_id: texto("deployment_id"),
+    deployment_fingerprint: texto("deployment_fingerprint"),
+    plan_fingerprint: texto("plan_fingerprint"),
+    handed_off_at: texto("handed_off_at"),
+    state_revision: revision,
+  };
+  if (
+    !receipt.deployment_id
+    || !receipt.deployment_fingerprint
+    || !receipt.plan_fingerprint
+    || !receipt.handed_off_at
+    || !Number.isInteger(revision)
+    || revision < 0
+  ) return null;
+  return receipt;
+}
+
 function contractError(detail: string): Error {
   return new Error(`El backend devolvió un contrato inválido de Recopiladores: ${detail}`);
 }
@@ -351,11 +383,16 @@ export function normalizeCollectionStatePayload(value: unknown): CollectionState
     throw contractError("deployment no cumple collection_deployment/v1.");
   }
 
+  // El `handoff` del despliegue pasa por el mismo filtro: `{}` no es recibo.
+  const normalizedDeployment: CollectionDeployment | null = deployment === null
+    ? null
+    : { ...(deployment as CollectionDeployment), handoff: normalizeHandoffReceipt((deployment as { handoff?: unknown }).handoff) };
+
   const state: CollectionState = {
     schema: "collection_state/v1",
     state_revision: revision,
     plan: plan as CollectionPlan | null,
-    deployment: deployment as CollectionDeployment | null,
+    deployment: normalizedDeployment,
     migration: isRecord(rawState.migration) ? rawState.migration : null,
     material_template: isRecord(rawState.material_template)
       ? rawState.material_template as CollectionMaterialTemplate
@@ -389,7 +426,7 @@ export function normalizeCollectionStatePayload(value: unknown): CollectionState
     },
     ...state,
     state,
-    handoff: isRecord(value.handoff) ? value.handoff as CollectionHandoffReceipt : state.deployment?.handoff ?? null,
+    handoff: normalizeHandoffReceipt(value.handoff) ?? state.deployment?.handoff ?? null,
   };
 }
 

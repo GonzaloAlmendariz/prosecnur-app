@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import {
   apiRecopiladoresHandoff,
+  normalizeHandoffReceipt,
   type CollectionArtifactReceipt,
   type CollectionStatePayload,
 } from "../../api/recopiladores";
@@ -10,7 +11,7 @@ import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { serializarDireccion } from "../../lib/navegacion/direccion";
 import { CheckCircle2, Download, FileCheck2, FileWarning, Loader2, Send, ShieldCheck } from "../../vendor/lucide-react";
-import { handoffReadiness } from "./handoffModel";
+import { handoffReadiness, type HandoffReadiness } from "./handoffModel";
 import { juzgarMaterialesDelPlan } from "./materialesDelPlanVigente";
 import { providerLabel } from "./providerRules";
 import { VacioSinPlanCard } from "./VacioSinPlanCard";
@@ -37,12 +38,26 @@ function shortFingerprint(value: string | null | undefined) {
   return value.length > 24 ? `${value.slice(0, 18)}…${value.slice(-8)}` : value;
 }
 
+/**
+ * Qué falta para que exista el recibo, dicho en el vacío que lo espera.
+ *
+ * Sin traspaso no hay Fecha, Revisión, Plan ni Accesos que mostrar: pintar
+ * «Recibo firmado» con cuatro «—» afirmaba una entrega que no ocurrió (H25).
+ */
+export function faltaParaElRecibo(readiness: HandoffReadiness): string {
+  if (readiness.ready && !readiness.delivered) {
+    return "Los accesos están listos: el recibo aparece aquí al pulsar «Entregar a Monitoreo».";
+  }
+  return `${readiness.reason} El recibo aparece aquí cuando se entreguen.`;
+}
+
 export function DeliverySection({ payload, latestArtifact, onState, onIr }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const deployment = payload?.state.deployment ?? null;
   const readiness = handoffReadiness(deployment);
-  const receipt = payload?.handoff ?? readiness.receipt;
+  // Mismo filtro que el normalizador: un `{}` (el NULL de R) no es recibo.
+  const receipt = normalizeHandoffReceipt(payload?.handoff) ?? normalizeHandoffReceipt(readiness.receipt);
   const artifacts = useMemo(() => {
     const stored = payload?.state.artifact_receipts ?? [];
     if (!latestArtifact) return stored;
@@ -119,7 +134,12 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr }: Prop
               <div><dt>Accesos</dt><dd title={receipt.deployment_fingerprint}>{shortFingerprint(receipt.deployment_fingerprint)}</dd></div>
             </dl>
           </article>
-        ) : <div className="rec-contained-empty">El recibo aparece aquí cuando se entregan unos accesos ya preparados.</div>}
+        ) : (
+          <div className="rec-contained-empty rec-receipt-empty" data-qa-geometry-capacity="owned" role="status">
+            <strong>Aún no se entrega a Monitoreo</strong>
+            <span>{faltaParaElRecibo(readiness)}</span>
+          </div>
+        )}
 
         <div className="rec-artifact-list" data-qa-geometry-group="material-campo/artefactos" data-qa-geometry-contract="intrinsic">
           {/* El aviso va ARRIBA de la lista: se descarga desde cada fila, así que

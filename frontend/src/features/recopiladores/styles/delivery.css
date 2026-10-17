@@ -213,3 +213,21 @@
 .rec-artifact-list article span.rec-artifact-no-disponible {
   color: var(--pulso-text);
 }
+
+/* H25 — sin traspaso, el recibo es un vacío que dice qué falta: dos lecturas
+   (qué pasa y qué hacer), apiladas; `.rec-contained-empty` es flex en fila. */
+.rec-receipt-card .rec-receipt-empty {
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  padding: 18px 20px;
+}
+
+.rec-receipt-card .rec-receipt-empty strong {
+  color: var(--pulso-text);
+  font-weight: 600;
+}
+
+.rec-receipt-card .rec-receipt-empty span {
+  max-width: 46ch;
+}
