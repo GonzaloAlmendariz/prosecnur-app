@@ -24,7 +24,7 @@ export {
   ref,
 } from "./ast";
 
-export { parseExpression, parseExpressionStrict } from "./parse";
+export { parseExpression, parseExpressionLectura, parseExpressionStrict } from "./parse";
 export type { RelevanceResult, SimAnswerValue, SimAnswers } from "./evaluate";
 export {
   evaluateExpr,

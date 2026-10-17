@@ -99,3 +99,30 @@ describe("comillas tipográficas en expresiones", () => {
     expect(rectificarComillas("${a} = “OK” or ${a} = ‘6’")).toBe(`\${a} = "OK" or \${a} = '6'`);
   });
 });
+
+describe("buildDiagnostics — fila rota (M6)", () => {
+  function conReglas(filas: string[][]): XlsformEditorWorkbook {
+    const wb = workbookFromSurvey([]);
+    wb.survey.columns = ["type", "name", "label", "relevant", "constraint", "calculation", "choice_filter", "required", "constraint_message"];
+    wb.survey.rows = filas;
+    return wb;
+  }
+
+  test("todas las columnas de regla repiten el name de la fila → aviso", () => {
+    const n = "REG02_Other_recod";
+    const wb = conReglas([["select_multiple docs", n, "Otro documento", n, n, n, n, n, n]]);
+    const d = buildDiagnostics(wb, buildXlsformIndex(wb)).find((x) => x.id === "fila-rota-0");
+    expect(d?.level).toBe("warn");
+    expect(d?.rowIndex).toBe(0);
+    expect(d?.title).toBe("Fila rota: las reglas repiten el nombre");
+  });
+
+  test("una regla real, o una sola columna con el nombre, no avisa", () => {
+    const wb = conReglas([
+      ["integer", "edad", "Edad", "", ". >= 0", "", "", "yes", ""],
+      ["text", "x", "X", "x", "", "", "", "", ""],
+      ["text", "y", "Y", "y", ". != ''", "", "", "", ""],
+    ]);
+    expect(buildDiagnostics(wb, buildXlsformIndex(wb)).some((x) => x.id.startsWith("fila-rota-"))).toBe(false);
+  });
+});

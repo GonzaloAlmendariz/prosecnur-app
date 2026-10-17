@@ -1,34 +1,17 @@
-// Lectura de una regla en piezas (contrato en piezas.ts). ADAPTADOR INICIAL del lead: envuelve el motor actual
-// (reglasHumanas.ts) en una sola pieza de texto y calcula `depende` desde las referencias ${…}. El frente del motor
-// reemplaza este cuerpo por la versión en piezas sin cambiar la firma.
+// Lectura de una regla en piezas (contrato en piezas.ts). El motor vive en reglas/motor/: parsea en modo lectura,
+// normaliza (today() >= . se lee como . <= today()) y redacta con el vocabulario del tipo de cada pregunta.
+// Nunca hay frases escritas por expresión exacta: lo que no se reconoce queda `tecnica` con su `depende`.
 
 import type { BuilderNode } from "../types";
 import type { LogicScope } from "../logic";
-import { describeExpression, describeValidation } from "../canvas/reglasHumanas";
 import type { ColumnaRegla, LecturaRegla } from "./piezas";
-
-function dependencias(raw: string, scope: LogicScope): LecturaRegla["depende"] {
-  const vistos = new Set<string>();
-  const out: LecturaRegla["depende"] = [];
-  for (const m of raw.matchAll(/\$\{([^}]+)\}/g)) {
-    const name = m[1]!.trim();
-    if (vistos.has(name)) continue;
-    vistos.add(name);
-    out.push({ name, etiqueta: scope.variables.find((v) => v.name === name)?.label || name });
-  }
-  return out;
-}
+import { leerConContexto } from "./motor";
 
 export function leerRegla(columna: ColumnaRegla, raw: string, nodo: BuilderNode, scope: LogicScope): LecturaRegla {
-  const expr = raw.trim();
-  const depende = dependencias(expr, scope);
-  const lista = columna === "choice_filter" ? nodo.typeInfo.listName || undefined : undefined;
-  if (!expr) return { columna, raw: expr, piezas: [], tecnica: true, depende, lista };
-  const d = columna === "constraint"
-    ? describeValidation(expr, nodo, { ...scope, allowCurrent: true })
-    : columna === "choice_filter"
-      ? null
-      : describeExpression(expr, scope);
-  const tecnica = !d || d.technical || /técnica/i.test(d.summary);
-  return { columna, raw: expr, piezas: tecnica ? [] : [{ tipo: "texto", texto: d!.summary }], tecnica, depende, lista };
+  return leerConContexto(
+    columna,
+    raw,
+    { columna, scope, actual: { name: nodo.name ?? "", base: nodo.typeInfo?.base ?? "", lista: nodo.typeInfo?.listName ?? "" } },
+    nodo.typeInfo?.listName || undefined,
+  );
 }
