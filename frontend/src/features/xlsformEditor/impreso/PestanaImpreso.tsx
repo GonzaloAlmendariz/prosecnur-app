@@ -35,6 +35,7 @@ import {
   resumenDeParte,
   separarCandidatas,
   type ParteImpreso,
+  matricesActivas,
 } from "./modeloImpreso";
 import { generarPrevia, previaVieja, usePreviaImpreso } from "./storePrevia";
 import { PreviaImpreso } from "./PreviaImpreso";
@@ -176,7 +177,7 @@ export function PestanaImpreso({
               />
             )}
           </div>
-          <PreviaImpreso previa={previa} vieja={vieja} motivo={motivo} onGenerar={generar} />
+          <PreviaImpreso previa={previa} vieja={vieja} motivo={motivo} onGenerar={generar} estado={estado} hayMatrices={matricesActivas(reales, estado.matrices) > 0} />
         </div>
       </div>
     </div>

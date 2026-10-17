@@ -209,7 +209,7 @@ export type CifrasPrevia = { paginas: number | null; preguntas: number };
 
 /** «A4 · 12 páginas · 87 preguntas». Sin previa, sólo el formato: no se inventan cifras. */
 export function resumenCabecera(cifras: CifrasPrevia | null): string {
-  if (!cifras) return "A4 · genera la previa para ver páginas y preguntas";
+  if (!cifras) return "A4 · el número de páginas sale con el PDF";
   const partes = ["A4"];
   if (cifras.paginas) partes.push(`${cifras.paginas} ${cifras.paginas === 1 ? "página" : "páginas"}`);
   partes.push(`${cifras.preguntas} ${cifras.preguntas === 1 ? "pregunta" : "preguntas"}`);

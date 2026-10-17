@@ -5,6 +5,8 @@
 import { AlertTriangle, Check, FileText, Loader2, RotateCcw } from "../../../vendor/lucide-react";
 import { PulsoButton } from "../../../components/PulsoButton";
 import type { EstadoPrevia } from "./storePrevia";
+import type { PdfDialogState } from "../shell/pdfExportPreference";
+import { MaquetaPagina } from "./MaquetaPagina";
 
 type Paso = { clave: string; rotulo: string; estado: "hecho" | "en-curso" | "pendiente" };
 
@@ -16,8 +18,11 @@ function pasosDe(previa: Pick<EstadoPrevia, "fase" | "detalle">): Paso[] {
   ];
 }
 
-export function PreviaImpreso({ previa, vieja, motivo, onGenerar }: {
+export function PreviaImpreso({ previa, vieja, motivo, onGenerar, estado, hayMatrices }: {
   previa: EstadoPrevia;
+  /** Opciones actuales: dibujan el esquema de página mientras no hay PDF. */
+  estado: PdfDialogState;
+  hayMatrices: boolean;
   vieja: boolean;
   /** Si no se puede previsualizar (p. ej. una exportación en curso), por qué. */
   motivo: string | null;
@@ -36,13 +41,14 @@ export function PreviaImpreso({ previa, vieja, motivo, onGenerar }: {
       </div>
       <div className="pulso-xf-imp-previa-marco" data-qa-geometry-capacity="owned">
         {previa.fase === "inactiva" && (
-          <div className="pulso-xf-imp-previa-vacia">
-            <span className="pulso-xf-imp-previa-icono" aria-hidden="true"><FileText size={22} /></span>
-            <strong>Todavía no hay previa</strong>
-            <p>«Previsualizar» genera el PDF con estas opciones y lo muestra aquí. Tarda lo mismo que exportar.</p>
-            <PulsoButton variant="secondary" size="sm" onClick={onGenerar} disabled={Boolean(motivo)} title={motivo ?? undefined}>
-              Previsualizar
-            </PulsoButton>
+          <div className="pulso-xf-imp-previa-esquema">
+            <MaquetaPagina estado={estado} hayMatrices={hayMatrices} />
+            <div className="pulso-xf-imp-previa-esquema-pie">
+              <p>Esquema de la primera página. El PDF real tarda lo mismo que exportar.</p>
+              <PulsoButton variant="secondary" size="sm" onClick={onGenerar} disabled={Boolean(motivo)} title={motivo ?? undefined}>
+                <FileText size={13} aria-hidden="true" /> Previsualizar
+              </PulsoButton>
+            </div>
           </div>
         )}
         {ocupada && (
