@@ -66,17 +66,18 @@ const EXPECTED_PRIMARY_NAVIGATION: Record<
       { id: "poblacion", label: "Población", to: "/hojas-ruta?seccion=poblacion", layoutPolicy: "viewport" },
       { id: "muestra", label: "Muestra", to: "/hojas-ruta?seccion=muestra", layoutPolicy: "viewport" },
       { id: "manzanas", label: "Manzanas", to: "/hojas-ruta?seccion=manzanas", layoutPolicy: "viewport" },
-      { id: "entrega", label: "Entrega", to: "/hojas-ruta?seccion=entrega", layoutPolicy: "viewport" },
+      { id: "seleccion", label: "Selección", to: "/hojas-ruta?seccion=seleccion", layoutPolicy: "viewport" },
     ],
   },
-  recopiladores: {
+  "material-campo": {
     landingKind: "section",
-    to: "/recopiladores",
+    to: "/material-campo",
     sections: [
-      { id: "plan-recoleccion", label: "Plan", to: "/recopiladores", layoutPolicy: "viewport" },
-      { id: "accesos", label: "Accesos", to: "/recopiladores?seccion=accesos", layoutPolicy: "viewport" },
-      { id: "materiales", label: "Materiales", to: "/recopiladores?seccion=materiales", layoutPolicy: "viewport" },
-      { id: "entrega-campo", label: "Entrega", to: "/recopiladores?seccion=entrega-campo", layoutPolicy: "viewport" },
+      { id: "unidades", label: "Unidades", to: "/material-campo", layoutPolicy: "viewport" },
+      { id: "accesos", label: "Accesos", to: "/material-campo?seccion=accesos", layoutPolicy: "viewport" },
+      { id: "catalogo", label: "Catálogo", to: "/material-campo?seccion=catalogo", layoutPolicy: "viewport" },
+      { id: "paquetes", label: "Paquetes", to: "/material-campo?seccion=paquetes", layoutPolicy: "viewport" },
+      { id: "entrega", label: "Entrega", to: "/material-campo?seccion=entrega", layoutPolicy: "viewport" },
     ],
   },
   monitoreo: {
@@ -181,11 +182,11 @@ describe("manifiesto primario de navegación", () => {
     expect(new Set(publishedRoutes).size).toBe(publishedRoutes.length);
   });
 
-  it("define las cinco etapas y los tres destinos subordinados de Entrega", () => {
+  it("define las cinco etapas y los tres destinos subordinados de Selección", () => {
     const routes = PROSECNUR_MODULES.find(
       (module) => module.slug === "hojas-ruta",
     );
-    const delivery = routes?.sections.find((section) => section.id === "entrega");
+    const delivery = routes?.sections.find((section) => section.id === "seleccion");
 
     expect(routes?.tone.accent).toBe("var(--pulso-module-routes)");
     expect(routes?.sections.map(({ id, label, to }) => ({ id, label, to }))).toEqual([
@@ -193,12 +194,12 @@ describe("manifiesto primario de navegación", () => {
       { id: "poblacion", label: "Población", to: "/hojas-ruta?seccion=poblacion" },
       { id: "muestra", label: "Muestra", to: "/hojas-ruta?seccion=muestra" },
       { id: "manzanas", label: "Manzanas", to: "/hojas-ruta?seccion=manzanas" },
-      { id: "entrega", label: "Entrega", to: "/hojas-ruta?seccion=entrega" },
+      { id: "seleccion", label: "Selección", to: "/hojas-ruta?seccion=seleccion" },
     ]);
     expect(delivery?.tabs?.map(({ id, label, to }) => ({ id, label, to }))).toEqual([
-      { id: "cuotas", label: "Cuotas", to: "/hojas-ruta?seccion=entrega&pestana=cuotas" },
-      { id: "titulares", label: "Titulares", to: "/hojas-ruta?seccion=entrega&pestana=titulares" },
-      { id: "reemplazos", label: "Reemplazos", to: "/hojas-ruta?seccion=entrega&pestana=reemplazos" },
+      { id: "cuotas", label: "Cuotas", to: "/hojas-ruta?seccion=seleccion&pestana=cuotas" },
+      { id: "titulares", label: "Titulares", to: "/hojas-ruta?seccion=seleccion&pestana=titulares" },
+      { id: "reemplazos", label: "Reemplazos", to: "/hojas-ruta?seccion=seleccion&pestana=reemplazos" },
     ]);
   });
 

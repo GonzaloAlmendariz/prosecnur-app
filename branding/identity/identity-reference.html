@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prosecnur — referencia técnica de identidad v1.3.0</title>
+<title>Prosecnur — referencia técnica de identidad v1.4.0</title>
 <meta name="generator" content="prosecnur-identity-compiler v1.0.0">
 <style>
 /* ============================================================
@@ -11,9 +11,9 @@
  * ------------------------------------------------------------
  * Generador : prosecnur-identity-compiler v1.0.0 (branding/identity/generate.mjs)
  * Fuente    : branding/identity.json
- * Identidad : prosecnur-la-senal-ordenada v1.3.0 (frozen)
- * Manifest  : sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3
- * Input     : sha256:de47bf8c3037c9cf2b5293b42e0e85cff6d97a7910fe79285776555fc7e07b9f (digest del archivo identity.json)
+ * Identidad : prosecnur-la-senal-ordenada v1.4.0 (frozen)
+ * Manifest  : sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2
+ * Input     : sha256:2a6305fda90d8e3e00d651e09dfee1ada4fafd8425b4812c332301e05ac9bfdb (digest del archivo identity.json)
  * ------------------------------------------------------------
  * Derivado determinista del manifiesto congelado. El identificador
  * de generación es el input digest (sin timestamp, a propósito).
@@ -52,7 +52,7 @@
   --prosecnur-module-routes: #ac563b;
   --prosecnur-module-sample: #7260ae;
   --prosecnur-module-encyclopedia: #a16207;
-  --prosecnur-module-collectors: #106e8c;
+  --prosecnur-module-fieldkit: #4f752c;
   --prosecnur-module-monitoring: #a0464e;
   --prosecnur-accent-cyan: #0ea5b7;
   --prosecnur-accent-green: #16a34a;
@@ -121,7 +121,7 @@
   --prosecnur-mod-calc-muestra: #7260ae; /* Cálculo de muestra y marco muestral — operativo: --pulso-module-sample */
   --prosecnur-mod-diseno-estudio: #a16207; /* Bitácora — operativo: --pulso-module-encyclopedia */
   --prosecnur-mod-plan-trabajo: #a16207; /* Plan de trabajo (fusionado en Bitácora) — operativo: --pulso-module-workplan (alias de encyclopedia) */
-  --prosecnur-mod-recopiladores: #106e8c; /* Fichas QR para cursos-horario — operativo: --pulso-module-collectors */
+  --prosecnur-mod-material-campo: #4f752c; /* Material de campo — operativo: --pulso-module-fieldkit (--pulso-module-collectors queda como alias deprecado) */
   --prosecnur-mod-monitoreo: #a0464e; /* Monitoreo de campo — operativo: --pulso-module-monitoring */
 
   /* --- Tipografía · familias «Voz nativa»
@@ -346,9 +346,9 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
 <main>
   <header class="doc">
     <h1>Prosecnur — La señal ordenada (identidad visual v1.2)</h1>
-    <p>Referencia técnica generada del manifiesto — prosecnur-la-senal-ordenada · v1.3.0 · status frozen</p>
-    <p><code>manifest_hash: sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3</code></p>
-    <p><code>input sha256: de47bf8c3037c9cf2b5293b42e0e85cff6d97a7910fe79285776555fc7e07b9f</code> · prosecnur-identity-compiler v1.0.0</p>
+    <p>Referencia técnica generada del manifiesto — prosecnur-la-senal-ordenada · v1.4.0 · status frozen</p>
+    <p><code>manifest_hash: sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2</code></p>
+    <p><code>input sha256: 2a6305fda90d8e3e00d651e09dfee1ada4fafd8425b4812c332301e05ac9bfdb</code> · prosecnur-identity-compiler v1.0.0</p>
     <p class="note" style="opacity:.7">Documento GENERADO (no editar): el mirror rico es branding/manual-identidad.html; la norma es branding/identity.json + branding/direccion-creativa.md. La marca se reproduce solo desde branding/logo/.</p>
   </header>
 
@@ -444,8 +444,8 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
         <div class="sw-meta"><code>--prosecnur-module-encyclopedia</code><span>#a16207</span></div>
       </div>
       <div class="sw">
-        <div class="sw-chip" style="background:#106e8c"></div>
-        <div class="sw-meta"><code>--prosecnur-module-collectors</code><span>#106e8c</span></div>
+        <div class="sw-chip" style="background:#4f752c"></div>
+        <div class="sw-meta"><code>--prosecnur-module-fieldkit</code><span>#4f752c</span></div>
       </div>
       <div class="sw">
         <div class="sw-chip" style="background:#a0464e"></div>
@@ -647,8 +647,8 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
         <div class="sw-meta"><code>--prosecnur-mod-plan-trabajo</code><span>#a16207</span><em>Plan de trabajo (fusionado en Bitácora) · --pulso-module-workplan (alias de encyclopedia)</em></div>
       </div>
       <div class="sw">
-        <div class="sw-chip" style="background:#106e8c"></div>
-        <div class="sw-meta"><code>--prosecnur-mod-recopiladores</code><span>#106e8c</span><em>Fichas QR para cursos-horario · --pulso-module-collectors</em></div>
+        <div class="sw-chip" style="background:#4f752c"></div>
+        <div class="sw-meta"><code>--prosecnur-mod-material-campo</code><span>#4f752c</span><em>Material de campo · --pulso-module-fieldkit (--pulso-module-collectors queda como alias deprecado)</em></div>
       </div>
       <div class="sw">
         <div class="sw-chip" style="background:#a0464e"></div>
@@ -776,7 +776,7 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
     <table><thead><tr><th>nivel</th><th>definición</th></tr></thead><tbody>
       <tr><td><code>nivel-1</code></td><td>Módulo (homepage, paleta propia; ruta)</td></tr><tr><td><code>nivel-2</code></td><td>Modo (opcional, lo determina el estudio; query modo)</td></tr><tr><td><code>nivel-3</code></td><td>Sección (top bar del módulo; query seccion)</td></tr><tr><td><code>nivel-4</code></td><td>Pestaña (rail de pestañas; query pestana)</td></tr><tr><td><code>nivel-5</code></td><td>Panel (popover/sideover/diálogo/inspector; query panel)</td></tr><tr><td><code>ortogonal</code></td><td>foco — entidad seleccionada dentro del nivel activo</td></tr>
     </tbody></table>
-    <ul class="rules"><li>Vocabulario oficial: Módulo (homepage, paleta propia) → Modo (opcional; reescribe el juego de secciones y lo determina el estudio, no un click — hoy Monitoreo y Cálculo de muestra) → Sección (top bar del módulo; en Procesamiento: Carga, Validación, Codificación, Analítica, Gráficos) → Pestaña → Panel (popover/sideover/diálogo/inspector); UI nueva se cuelga de uno de esos cinco niveles y nunca duplica la navegación de un nivel en otro</li><li>Anatomía de superficie del módulo: command bar material de 3 zonas (contexto · rail · acciones; sin H1 visible, la identidad vive ahí) · top bar de secciones tipo pillbar centrada · rail de pestañas · sidebar/outline compacto como inventario de objetos dentro de la sección activa (no es un nivel de navegación) · panel/inspector con las propiedades del objeto seleccionado, que edita y no navega</li><li>Al abrir un proyecto se aterriza en el homepage del proyecto (cards de avance), jamás en una ruta heredada de otro proyecto</li><li>El rail superior YA es el recorrido: el pulido didáctico va dentro de cada pestaña, nunca como segunda barra de pasos</li><li>Toda vista es enlazable: ruta = módulo, query = el resto (/monitoreo?modo=territorial&amp;seccion=avance&amp;pestana=ump&amp;panel=filtros). Params canónicos modo/seccion/pestana/panel/foco; los nombres viejos (family, tab, stage, mesa, desk, step, reporte) se leen como alias pero nunca se escriben</li><li>Un overlay nuevo se conecta con usePanelDireccionable, no con un useState suelto; el sidebar de objetos expande empujando el canvas por grid, nunca como overlay flotante</li><li>Módulos canónicos y sus rutas: Bitácora (/bitacora), Cálculo de muestra (/calc-muestra), Editor de formularios (/editor-xlsform), Hojas de ruta (/hojas-ruta), Fichas QR (/recopiladores), Monitoreo (/monitoreo), Procesamiento (/procesamiento), Dashboard (/tablero)</li></ul>
+    <ul class="rules"><li>Vocabulario oficial: Módulo (homepage, paleta propia) → Modo (opcional; reescribe el juego de secciones y lo determina el estudio, no un click — hoy Monitoreo y Cálculo de muestra) → Sección (top bar del módulo; en Procesamiento: Carga, Validación, Codificación, Analítica, Gráficos) → Pestaña → Panel (popover/sideover/diálogo/inspector); UI nueva se cuelga de uno de esos cinco niveles y nunca duplica la navegación de un nivel en otro</li><li>Anatomía de superficie del módulo: command bar material de 3 zonas (contexto · rail · acciones; sin H1 visible, la identidad vive ahí) · top bar de secciones tipo pillbar centrada · rail de pestañas · sidebar/outline compacto como inventario de objetos dentro de la sección activa (no es un nivel de navegación) · panel/inspector con las propiedades del objeto seleccionado, que edita y no navega</li><li>Al abrir un proyecto se aterriza en el homepage del proyecto (cards de avance), jamás en una ruta heredada de otro proyecto</li><li>El rail superior YA es el recorrido: el pulido didáctico va dentro de cada pestaña, nunca como segunda barra de pasos</li><li>Toda vista es enlazable: ruta = módulo, query = el resto (/monitoreo?modo=territorial&amp;seccion=avance&amp;pestana=ump&amp;panel=filtros). Params canónicos modo/seccion/pestana/panel/foco; los nombres viejos (family, tab, stage, mesa, desk, step, reporte) se leen como alias pero nunca se escriben</li><li>Un overlay nuevo se conecta con usePanelDireccionable, no con un useState suelto; el sidebar de objetos expande empujando el canvas por grid, nunca como overlay flotante</li><li>Módulos canónicos y sus rutas: Bitácora (/bitacora), Cálculo de muestra (/calc-muestra), Editor de formularios (/editor-xlsform), Hojas de ruta (/hojas-ruta), Material de campo (/material-campo), Monitoreo (/monitoreo), Procesamiento (/procesamiento), Dashboard (/tablero)</li></ul>
     <h3>Economía del chrome</h3>
     <ul class="rules"><li>Sin franjas de título: los módulos no llevan H1 visible (headerMode=&quot;sr-only&quot;); sin títulos interiores redundantes en paneles</li><li>Datos en el primer viewport: exploradores, filtros y resúmenes son herramientas subordinadas</li><li>Jerarquía de contenedores: Shell → PageFrame con layouts document (lectura/formularios con scroll de página), workbench (rail + área principal con scroll interno), canvas (superficie visual con área mínima preservada), data (tabla/grilla con scroll interno)</li><li>Dueños de scroll: page (el área principal scrollea) · body (el body del PageFrame scrollea) · panels (paneles internos, degradando a .pulso-main en compact/short)</li><li>Un solo dueño de scroll por pantalla (No Scroll Jail); overflow:hidden solo oculta contenido decorativo o delega a un descendiente scrollable</li></ul>
     <h3>Responsive</h3>
@@ -810,8 +810,8 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
   </section>
 
   <footer>
-    Derivado determinista de <code>branding/identity.json</code> · prosecnur-la-senal-ordenada v1.3.0 ·
-    <code>sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3</code> · prosecnur-identity-compiler v1.0.0
+    Derivado determinista de <code>branding/identity.json</code> · prosecnur-la-senal-ordenada v1.4.0 ·
+    <code>sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2</code> · prosecnur-identity-compiler v1.0.0
   </footer>
 </main>
 </body>

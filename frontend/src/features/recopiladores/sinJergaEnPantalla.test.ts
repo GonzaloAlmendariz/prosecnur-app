@@ -34,6 +34,8 @@ const leer = (archivo: string) => fs.readFileSync(path.join(aqui, archivo), "utf
 const SECCIONES = [
   "RecopiladoresShell.tsx",
   "PlanSection.tsx",
+  "ConfirmarResembrado.tsx",
+  "resembrado.ts",
   "AccessSection.tsx",
   "MaterialsSection.tsx",
   "DeliverySection.tsx",

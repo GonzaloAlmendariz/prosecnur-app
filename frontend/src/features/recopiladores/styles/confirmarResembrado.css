@@ -1,0 +1,133 @@
+/* Confirmar rehacer el plan (H26). Diálogo centrado en portal al `body`; el
+ * tono del módulo llega por `TonoDePortales`. Sólo tokens `--pulso-*`.
+ *
+ * Contrato de Superficie:
+ * - C2: ancho fijo por viewport y alto tope de la ventana; tener 0 o 6 cosas
+ *   que descartar no mueve el marco.
+ * - C4: un único dueño de scroll, `.rec-resembrar-cuerpo`; título y acciones
+ *   quedan fijos, así «Cancelar» siempre está a la vista en 1024x600.
+ */
+
+.rec-resembrar-velo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--pulso-z-modal);
+  background: color-mix(in srgb, var(--pulso-text) 30%, transparent);
+}
+
+.rec-resembrar {
+  position: fixed;
+  z-index: var(--pulso-z-modal);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(520px, calc(100vw - var(--pulso-space-6)));
+  max-height: calc(100vh - var(--pulso-space-6));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-high);
+  color: var(--pulso-text);
+}
+
+.rec-resembrar:focus {
+  outline: none;
+}
+
+.rec-resembrar-titulo {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: var(--pulso-space-5) var(--pulso-space-6) var(--pulso-space-3);
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-resembrar-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: 0 var(--pulso-space-6) var(--pulso-space-4);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rec-resembrar-entra {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+}
+
+.rec-resembrar-entra strong {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-resembrar-entra span {
+  color: var(--pulso-text-soft);
+}
+
+.rec-resembrar-bloque {
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-left-width: 3px;
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+
+.rec-resembrar-bloque.is-descarta {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.rec-resembrar-bloque h3 {
+  margin: 0 0 var(--pulso-space-1);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+}
+
+.rec-resembrar-bloque.is-descarta h3 {
+  color: var(--pulso-warn-fg);
+}
+
+.rec-resembrar-bloque ul {
+  margin: 0;
+  padding-left: var(--pulso-space-4);
+}
+
+.rec-resembrar-bloque p {
+  margin: 0;
+}
+
+.rec-resembrar-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-soft);
+}
+
+.rec-resembrar-error {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.rec-resembrar-acciones {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-6) var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-border);
+}

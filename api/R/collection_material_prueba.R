@@ -89,10 +89,10 @@ collection_material_prueba_snapshot <- function(sid, codigo, etiqueta = NULL) {
   if (is.na(etiqueta) || !nzchar(etiqueta)) etiqueta <- codigo
 
   # El enlace se CLONA de una unidad real y sólo se le cambia el valor del
-  # identificador. No se vuelve a pedir al adapter con el target guardado,
-  # porque ese target no conserva la URL base: `.collection_deployment_normalize()`
-  # la poda —vive dentro de cada `access_ref`, y duplicarla sería una segunda
-  # fuente de verdad—, así que reconstruirlo desde ahí daría un enlace vacío.
+  # identificador. No se vuelve a pedir al adapter con el target guardado: los
+  # deployments anteriores a H21 no conservan la URL base en el target (sólo
+  # vive dentro de cada `access_ref`), y aun en los nuevos el `access_ref` es la
+  # fuente de verdad del enlace que va a campo.
   #
   # Clonar además es lo que hace que la prueba PRUEBE: mismo servidor, misma
   # ruta, mismo nombre de parámetro de prefill, mismo `returnUrl`. Una ficha de

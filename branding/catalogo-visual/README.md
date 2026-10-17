@@ -179,7 +179,7 @@ Los colores semánticos mantienen sus propios tokens y señales no cromáticas.
 | Cálculo de muestra | `#7260AE` |
 | Editor de formularios | `#7172C1` |
 | Hojas de ruta | `#AC563B` |
-| Recopiladores | `#106E8C` |
+| Material de campo | `#4F752C` |
 | Monitoreo | `#A0464E` |
 | Procesamiento | `#0F766E` |
 | Dashboard | `#4A6EB6` |

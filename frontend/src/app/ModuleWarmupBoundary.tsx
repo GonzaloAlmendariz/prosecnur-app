@@ -122,10 +122,10 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
     messages: ["Revisando marco", "Preparando calculo", "Abriendo modulo"],
   },
   {
-    key: "recopiladores",
-    title: "Recopiladores",
-    moduleTo: "/recopiladores",
-    frontend: ["recopiladores"],
+    key: "material-campo",
+    title: "Material de campo",
+    moduleTo: "/material-campo",
+    frontend: ["material_campo"],
     backend: ["project", "monitoreo"],
     messages: ["Leyendo agenda", "Preparando fichas", "Abriendo modulo"],
   },
@@ -174,7 +174,9 @@ function warmupProfileForPath(pathname: string) {
   if (path === "/calc-muestra" || path === "/diseno-muestra") {
     return MODULE_PROFILES.find((profile) => profile.key === "calc-muestra") ?? null;
   }
-  if (path === "/recopiladores") return MODULE_PROFILES.find((profile) => profile.key === "recopiladores") ?? null;
+  if (path === "/material-campo" || path === "/recopiladores") {
+    return MODULE_PROFILES.find((profile) => profile.key === "material-campo") ?? null;
+  }
   if (path === "/bitacora" || path === "/plan-trabajo" || path === "/diseno-estudio") {
     return MODULE_PROFILES.find((profile) => profile.key === "bitacora") ?? null;
   }

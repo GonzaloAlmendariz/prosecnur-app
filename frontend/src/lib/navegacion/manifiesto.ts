@@ -27,6 +27,8 @@ import {
 import { PANELES_GRAFICOS } from "../../features/graficos/panelesGraficos";
 import { PANELES_CARGA } from "../../features/carga/panelesCarga";
 import { PANELES_ANALITICA } from "../../features/analitica/panelesAnalitica";
+import { PANELES_CORREOS } from "../../features/recopiladores/correos/panelesCorreos";
+import { PANEL_REHACER_PLAN } from "../../features/recopiladores/resembrado";
 import { PANEL_CAMPANA_COMPLEMENTARIA } from "../../features/xlsformEditor/shell/campanaComplementariaModel";
 import { PANEL_LISTAS_OPCIONES } from "../../features/xlsformEditor/listas/panelListas";
 import { PANEL_LOGICA_EXTERNA } from "../../features/xlsformEditor/shell/logicaExternaModel";
@@ -206,6 +208,9 @@ export const PANELES_POR_MODULO: Readonly<
     PANEL_LOGICA_SURVEYMONKEY,
   ],
   procesamiento: [...PANELES_GRAFICOS, ...PANELES_CARGA, ...PANELES_ANALITICA],
+  // Catálogo › Correos: el inspector del correo (ADR 0110 §2).
+  // Unidades: `?seccion=unidades&panel=rehacer-plan` confirma rehacer el plan (H26).
+  "material-campo": [...PANELES_CORREOS, PANEL_REHACER_PLAN],
 };
 
 export function nodosDe(modulo: ProsecnurModuleSlug): NodoNavegacion[] {

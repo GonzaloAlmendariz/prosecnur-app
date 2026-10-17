@@ -11,7 +11,7 @@
   --bk-danger:#be123c; --bk-danger-bg:#fef2f2; --bk-danger-fg:#991b1b;
   --bk-repeat:#c95f20; --bk-repeat-bg:#fdeede; --bk-repeat-fg:#9a4913;
   --bk-mod-editor:#7172c1; --bk-mod-proc:#0f766e; --bk-mod-dash:#4a6eb6; --bk-mod-rutas:#ac563b;
-  --bk-mod-muestra:#7260ae; --bk-mod-bitacora:#a16207; --bk-mod-recop:#106e8c; --bk-mod-monitoreo:#a0464e;
+  --bk-mod-muestra:#7260ae; --bk-mod-bitacora:#a16207; --bk-mod-recop:#4f752c; --bk-mod-monitoreo:#a0464e;
   --bk-focus:rgba(0,36,87,.15); --bk-navy-soft:rgba(0,36,87,.08); --bk-navy-border:rgba(0,36,87,.18);
   --bk-radius:10px; --bk-radius-card:14px; --bk-radius-panel:16px; --bk-radius-lens:20px; --bk-radius-chip:999px;
   --bk-ctrl-h:28px; --bk-ctrl-h-lg:36px; --bk-ctrl-weight:500;
@@ -1287,7 +1287,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
     <span class="c-chip c-chip--mod" style="--c-acc:var(--bk-mod-rutas)"><span class="c-dot"></span>Hojas de ruta</span>
     <span class="c-chip c-chip--mod" style="--c-acc:var(--bk-mod-muestra)"><span class="c-dot"></span>Muestra</span>
     <span class="c-chip c-chip--mod" style="--c-acc:var(--bk-mod-bitacora)"><span class="c-dot"></span>Bitácora</span>
-    <span class="c-chip c-chip--mod" style="--c-acc:var(--bk-mod-recop)"><span class="c-dot"></span>Recopiladores</span>
+    <span class="c-chip c-chip--mod" style="--c-acc:var(--bk-mod-recop)"><span class="c-dot"></span>Material de campo</span>
     <span class="c-chip c-chip--mod" style="--c-acc:var(--bk-mod-monitoreo)"><span class="c-dot"></span>Monitoreo</span>
   </div>
 </article>
@@ -1678,6 +1678,12 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
       <span class="c-alias-glyph">calculator</span>
     </div>
     <div class="c-alias">
+      <svg class="c-ic c-ic--18" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 10h8"/><path d="M8 18h8"/><path d="M8 22v-6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+      <span class="c-alias-name">IconFieldKit</span>
+      <svg class="c-ic c-ic--12 c-alias-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+      <span class="c-alias-glyph">backpack</span>
+    </div>
+    <div class="c-alias">
       <svg class="c-ic c-ic--18" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="16" y="3" width="5" height="5" rx="1"/><rect x="3" y="16" width="5" height="5" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
       <span class="c-alias-name">IconCollector</span>
       <svg class="c-ic c-ic--12 c-alias-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
@@ -1762,7 +1768,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
     <button type="button" class="c-swatch" style="--c-acc:var(--bk-mod-dash)" aria-label="Dashboard"></button>
     <button type="button" class="c-swatch" style="--c-acc:var(--bk-mod-rutas)" aria-label="Hojas de ruta"></button>
     <button type="button" class="c-swatch" style="--c-acc:var(--bk-mod-muestra)" aria-label="Muestra"></button>
-    <button type="button" class="c-swatch" style="--c-acc:var(--bk-mod-recop)" aria-label="Recopiladores"></button>
+    <button type="button" class="c-swatch" style="--c-acc:var(--bk-mod-recop)" aria-label="Material de campo"></button>
   </div>
   <p class="c-caption">Borde interior de vidrio (inset 1px blanco .35) · hover scale(1.08) fast/salida · activo: outline 2px navy + anillo de foco.</p>
 </article>
@@ -3516,10 +3522,10 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
             </div>
             <div class="p-mcard" style="--m:var(--bk-mod-recop);--i:5">
               <div class="p-mrow">
-                <span class="p-mtile"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M17.5 14.4A6 6 0 0 1 21 20"/></svg></span>
-                <span class="p-mname">Recopiladores</span>
+                <span class="p-mtile"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 10h8"/><path d="M8 18h8"/><path d="M8 22v-6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></span>
+                <span class="p-mname">Material de campo</span>
               </div>
-              <span class="p-mfact">18 activos en campo · 3 en pausa</span>
+              <span class="p-mfact">42 de 54 unidades con material · 3 por entregar</span>
               <span class="p-mprog" style="--w:78%"><i></i></span>
             </div>
           </div>
@@ -4068,7 +4074,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
     {name:"Hojas de ruta",hex:"#ac563b",icon:"M12 21s-6-5.2-6-10a6 6 0 0 1 12 0c0 4.8-6 10-6 10zM12 11.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"},
     {name:"Cálculo de muestra",hex:"#7260ae",icon:"M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4M9 15h6M12 12v6M16 3l5 5M21 3l-5 5"},
     {name:"Bitácora",hex:"#a16207",icon:"M4 4h13a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3zM8 8h8M8 12h6"},
-    {name:"Recopiladores · Fichas QR",hex:"#106e8c",icon:"M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"},
+    {name:"Material de campo",hex:"#4f752c",icon:"M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM8 10h8M8 18h8M8 22v-6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v6M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"},
     {name:"Monitoreo de campo",hex:"#a0464e",icon:"M22 12h-4l-3 8-6-16-3 8H2"}
   ];
   var mg=document.getElementById("bb-modules");

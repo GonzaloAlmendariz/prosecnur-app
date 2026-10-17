@@ -114,7 +114,7 @@ BITACORA_MAX_ENTRADAS_ARCHIVADAS <- 100L
   tonos <- unlist(filtro$tonos %||% list(), use.names = FALSE)
   if (length(tonos) && !(calc_str(e$tone, "") %in% tonos)) return(FALSE)
 
-  modulos <- unlist(filtro$modulos %||% list(), use.names = FALSE)
+  modulos <- .modulos_alias_aplicar(filtro$modulos %||% list())
   if (length(modulos) && !(calc_str(e$module_id, "") %in% modulos)) return(FALSE)
 
   etiquetas <- unlist(filtro$etiquetas %||% list(), use.names = FALSE)

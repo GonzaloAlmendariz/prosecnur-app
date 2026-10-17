@@ -496,7 +496,7 @@ describe("audit-ready route root contract", () => {
     );
   });
 
-  test("Recopiladores delegates its exact directional readiness to the shell", () => {
+  test("Material de campo delegates its exact directional readiness to the shell", () => {
     pageFunctionRoot(
       "features/recopiladores/RecopiladoresPage.tsx",
       "RecopiladoresShell",
@@ -512,13 +512,13 @@ describe("audit-ready route root contract", () => {
     ).toContain("rec-page");
 
     const value = readinessValue(tag, "auditReady", "Recopiladores");
-    expectSemanticReadiness(value, "Recopiladores", "recopiladores/");
+    expectSemanticReadiness(value, "Recopiladores", "material-campo/");
     // `seccionCargando` es parte del contrato desde 1eff7b4c: Materiales se
     // declaraba lista mientras leía su plantilla semántica, y el QA medía un
     // panel de carga como si fuera la superficie final. La readiness espera a
     // las DOS cargas —la del shell y la de la sección— antes de publicarse.
     expect(compactExpression(value), "Recopiladores exact directional readiness and polarity").toBe(
-      "loading||seccionCargando?false:`recopiladores/${direction.seccion}/${direction.pestana}`",
+      "loading||seccionCargando?false:`material-campo/${direction.seccion}/${direction.pestana}`",
     );
   });
 

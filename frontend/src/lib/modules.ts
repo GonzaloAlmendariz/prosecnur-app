@@ -9,6 +9,8 @@ import {
   ClipboardList,
   FileText,
   Link2,
+  LayoutGrid,
+  Mail,
   ListChecks,
   MapPinned,
   Network,
@@ -28,6 +30,7 @@ import {
   IconCollector,
   IconDashboard,
   IconEditor,
+  IconFieldKit,
   IconGpsValid,
   IconMonitor,
   IconOpen,
@@ -35,6 +38,7 @@ import {
   IconRoutes,
   IconSample,
   IconStudyDesign,
+  IconTemplate,
   IconWorkPlan,
 } from "./icons";
 import { MONITOREO_PESTANAS } from "./navegacion/catalogos/monitoreo";
@@ -55,7 +59,7 @@ export type ProsecnurModuleSlug =
   | "calc-muestra"
   | "plan-trabajo"
   | "diseno-estudio"
-  | "recopiladores"
+  | "material-campo"
   | "monitoreo";
 
 export type ProsecnurModuleTone = {
@@ -153,6 +157,10 @@ export type ProsecnurModuleMeta = {
   slug: ProsecnurModuleSlug;
   title: string;
   shortLabel: string;
+  /** Nombre en la tarjeta del home cuando `shortLabel` lo recorta más de la
+      cuenta. `shortLabel` sigue gobernando el rail y los tiles del chrome,
+      donde el ancho sí manda; la tarjeta tiene sitio para el nombre entero. */
+  cardTitle?: string;
   tagline: string;
   blurb: string;
   features: string[];
@@ -203,10 +211,11 @@ export const MODULE_TONES: Record<ProsecnurModuleSlug, ProsecnurModuleTone> = {
     accentSoft: "var(--pulso-module-encyclopedia-soft)",
     accentBorder: "var(--pulso-module-encyclopedia-border)",
   },
-  recopiladores: {
-    accent: "var(--pulso-module-collectors)",
-    accentSoft: "var(--pulso-module-collectors-soft)",
-    accentBorder: "var(--pulso-module-collectors-border)",
+  // Musgo #4F752C (ADR 0108 §7, decisión dec-acento-material-campo-musgo).
+  "material-campo": {
+    accent: "var(--pulso-module-fieldkit)",
+    accentSoft: "var(--pulso-module-fieldkit-soft)",
+    accentBorder: "var(--pulso-module-fieldkit-border)",
   },
   monitoreo: {
     accent: "var(--pulso-module-monitoring)",
@@ -460,31 +469,31 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         layoutPolicy: "viewport",
       },
       {
-        id: "entrega",
-        label: "Entrega",
+        id: "seleccion",
+        label: "Selección",
         icon: FileText,
-        to: "/hojas-ruta?seccion=entrega",
+        to: "/hojas-ruta?seccion=seleccion",
         layoutPolicy: "viewport",
         tabs: [
           {
             id: "cuotas",
             label: "Cuotas",
             icon: BarChart3,
-            to: "/hojas-ruta?seccion=entrega&pestana=cuotas",
+            to: "/hojas-ruta?seccion=seleccion&pestana=cuotas",
             layoutPolicy: "viewport",
           },
           {
             id: "titulares",
             label: "Titulares",
             icon: MapPinned,
-            to: "/hojas-ruta?seccion=entrega&pestana=titulares",
+            to: "/hojas-ruta?seccion=seleccion&pestana=titulares",
             layoutPolicy: "viewport",
           },
           {
             id: "reemplazos",
             label: "Reemplazos",
             icon: Shuffle,
-            to: "/hojas-ruta?seccion=entrega&pestana=reemplazos",
+            to: "/hojas-ruta?seccion=seleccion&pestana=reemplazos",
             layoutPolicy: "viewport",
           },
         ],
@@ -492,46 +501,47 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     ],
   },
   {
-    slug: "recopiladores",
+    slug: "material-campo",
     chrome: {
       progreso: "none",
       densidad: "normal",
       rail: true,
       chromeOwner: "page",
     },
-    title: "Recopiladores",
-    shortLabel: "Recopiladores",
-    tagline: "Canales, accesos y materiales de recolección",
+    title: "Material de campo",
+    shortLabel: "Material",
+    cardTitle: "Material de campo",
+    tagline: "Fichas, accesos y paquetes",
     blurb:
-      "Prepara el despliegue de la recolección: toma el plan ya decidido y la revisión publicada del instrumento, y produce los accesos, los enlaces con QR y los materiales de aplicación que el campo necesita, con trazabilidad de qué unidad recibió qué.",
+      "Produce y entrega el material de campo de cada unidad que otro módulo decidió: accesos, fichas imprimibles y paquetes listos para el equipo, con constancia de qué recibió cada unidad.",
     features: [
-      "Un acceso trazable por unidad de aplicación",
-      "Enlace personalizado y QR sin pedir códigos al encuestado",
-      "Materiales imprimibles con los datos de la unidad",
-      "Agrupación por bloque de reparto para el trabajo de campo",
-      "Entrega auditable de los accesos a Monitoreo",
+      "Lista de unidades tomada de la muestra decidida",
+      "Un acceso trazable por unidad",
+      "Fichas imprimibles con los datos de cada unidad",
+      "Paquetes agrupados para el reparto en campo",
+      "Entrega registrada para Monitoreo",
     ],
-    icon: IconCollector,
-    tone: MODULE_TONES.recopiladores,
-    to: "/recopiladores",
+    icon: IconFieldKit,
+    tone: MODULE_TONES["material-campo"],
+    to: "/material-campo",
     landingKind: "section",
-    // Las cuatro secciones canónicas del ADR 0046. El recorrido vive aquí y solo
-    // aquí: la página no vuelve a dibujar esta secuencia como barra de pasos.
+    // Secciones del ADR 0108 §5. El modo (tipo de campo) entra cuando exista un
+    // segundo juego de secciones; hasta entonces el módulo no declara modos.
+    // El recorrido vive aquí y solo aquí: la página no lo vuelve a dibujar.
     sections: [
       {
-        id: "plan-recoleccion",
-        // Plan es el aterrizaje del módulo: su `to` es la ruta desnuda, como en
-        // el resto de módulos con landing de sección.
-        label: "Plan",
+        id: "unidades",
+        // Unidades es el aterrizaje del módulo: su `to` es la ruta desnuda.
+        label: "Unidades",
         icon: ClipboardList,
-        to: "/recopiladores",
+        to: "/material-campo",
         layoutPolicy: "viewport",
         tabs: [
           {
-            id: "unidades",
-            label: "Unidades",
+            id: "lista",
+            label: "Lista",
             icon: ClipboardList,
-            to: "/recopiladores?seccion=plan-recoleccion&pestana=unidades",
+            to: "/material-campo?seccion=unidades&pestana=lista",
             layoutPolicy: "viewport",
           },
         ],
@@ -539,61 +549,87 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
       {
         id: "accesos",
         label: "Accesos",
-        icon: Link2,
-        to: "/recopiladores?seccion=accesos",
+        icon: IconCollector,
+        to: "/material-campo?seccion=accesos",
         layoutPolicy: "viewport",
         tabs: [
           {
             id: "canales",
             label: "Canales",
             icon: Link2,
-            to: "/recopiladores?seccion=accesos&pestana=canales",
+            to: "/material-campo?seccion=accesos&pestana=canales",
             layoutPolicy: "viewport",
           },
           {
             id: "vinculacion",
             label: "Vinculación",
             icon: Search,
-            to: "/recopiladores?seccion=accesos&pestana=vinculacion",
+            to: "/material-campo?seccion=accesos&pestana=vinculacion",
             layoutPolicy: "viewport",
           },
         ],
       },
       {
-        id: "materiales",
-        label: "Materiales",
-        icon: IconCollector,
-        to: "/recopiladores?seccion=materiales",
+        id: "catalogo",
+        label: "Catálogo",
+        icon: IconTemplate,
+        to: "/material-campo?seccion=catalogo",
+        layoutPolicy: "viewport",
+        // Tipos es el aterrizaje de Catálogo: la galería de materiales con su
+        // página real (ADR 0109 §3). El editor trabaja sobre el tipo en uso.
+        tabs: [
+          {
+            id: "tipos",
+            label: "Tipos",
+            icon: LayoutGrid,
+            to: "/material-campo?seccion=catalogo&pestana=tipos",
+            layoutPolicy: "viewport",
+          },
+          {
+            id: "editor",
+            label: "Editor",
+            icon: IconTemplate,
+            to: "/material-campo?seccion=catalogo&pestana=editor",
+            layoutPolicy: "viewport",
+          },
+          {
+            // ADR 0110 §2: el correo se compone aquí y sale para Mailchimp.
+            id: "correos",
+            label: "Correos",
+            icon: Mail,
+            to: "/material-campo?seccion=catalogo&pestana=correos",
+            layoutPolicy: "viewport",
+          },
+        ],
+      },
+      {
+        id: "paquetes",
+        label: "Paquetes",
+        icon: Archive,
+        to: "/material-campo?seccion=paquetes",
         layoutPolicy: "viewport",
         tabs: [
           {
-            id: "vista",
-            label: "Vista previa",
-            icon: IconCollector,
-            to: "/recopiladores?seccion=materiales&pestana=vista",
-            layoutPolicy: "viewport",
-          },
-          {
-            id: "paquetes",
-            label: "Paquetes",
+            id: "armado",
+            label: "Armado",
             icon: Archive,
-            to: "/recopiladores?seccion=materiales&pestana=paquetes",
+            to: "/material-campo?seccion=paquetes&pestana=armado",
             layoutPolicy: "viewport",
           },
         ],
       },
       {
-        id: "entrega-campo",
+        id: "entrega",
         label: "Entrega",
         icon: CheckCircle2,
-        to: "/recopiladores?seccion=entrega-campo",
+        to: "/material-campo?seccion=entrega",
         layoutPolicy: "viewport",
         tabs: [
           {
             id: "traspaso",
             label: "Monitoreo",
             icon: CalendarDays,
-            to: "/recopiladores?seccion=entrega-campo&pestana=traspaso",
+            to: "/material-campo?seccion=entrega&pestana=traspaso",
             layoutPolicy: "viewport",
           },
         ],

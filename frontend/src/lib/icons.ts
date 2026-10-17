@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Asterisk,
+  Backpack,
   BookOpen,
   Calculator,
   Check,
@@ -113,6 +114,9 @@ export const IconEditor = FilePen;
 export const IconProcessing = Workflow;
 export const IconDashboard = LayoutDashboard;
 export const IconRoutes = Map;
+// Material de campo (ADR 0108 §7): la mochila es el módulo; el QR queda para
+// lo que de verdad es un QR (sección Accesos).
+export const IconFieldKit = Backpack;
 export const IconCollector = QrCode;
 export const IconMonitor = Activity;
 export const IconHome = Home;

@@ -77,7 +77,7 @@ flowchart TB
 | [[Monitoreo]] | Cuando el campo ya tiene fuentes, metas o actividad que observar | Elegir el modo del estudio y revisar avance, calidad, incidencias y consultas | Un diagnóstico operativo del trabajo de campo |
 | [[Hojas de ruta]] | Cuando el equipo necesita convertir territorio y muestra en asignaciones de campo | Preparar población, manzanas, UMP y paquetes de entrega | Una distribución territorial accionable |
 | [[Calculador de muestras]] | Cuando falta definir tamaño, método, selección o sustento muestral | Elegir el modo adecuado, cargar el marco y evaluar resultados | Una muestra documentada y lista para su uso operativo |
-| [[Recopiladores]] | Cuando un levantamiento por cursos-horario requiere accesos individuales o impresos | Preparar enlaces, revisar fichas y producir el paquete QR | Material de acceso verificable para la aplicación |
+| [[Material de campo]] | Cuando un levantamiento por cursos-horario requiere accesos individuales o impresos | Preparar enlaces, revisar fichas y producir el paquete QR | Material de acceso verificable para la aplicación |
 | [[Procesamiento]] | Cuando ya existen instrumento y respuestas que deben convertirse en resultados | Cargar, validar, codificar, preparar análisis y construir gráficos | Bases revisadas y entregables analíticos |
 | [[Dashboard]] | Cuando necesitas explorar o comunicar resultados en un tablero | Seleccionar fuentes, revisar relaciones, configurar dimensiones y publicar | Una experiencia interactiva de consulta |
 

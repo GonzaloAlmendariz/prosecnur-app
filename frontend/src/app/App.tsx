@@ -1,5 +1,6 @@
 import { Suspense, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { RedireccionConQuery } from "./RedireccionConQuery";
 import { SessionProvider } from "../lib/SessionContext";
 import Layout from "./Layout";
 import { SessionLostBanner } from "./SessionLostBanner";
@@ -152,7 +153,8 @@ export default function App() {
                   <Route path="/hojas-ruta" element={<HojasRutaPage />} />
                   <Route path="/calc-muestra" element={<CalcMuestraPage />} />
                   <Route path="/bitacora" element={<BitacoraPage />} />
-                  <Route path="/recopiladores" element={<RecopiladoresPage />} />
+                  <Route path="/material-campo" element={<RecopiladoresPage />} />
+                  <Route path="/recopiladores" element={<RedireccionConQuery to="/material-campo" />} />
                   <Route path="/diseno-estudio" element={<Navigate to="/bitacora" replace />} />
                   <Route path="/plan-trabajo" element={<Navigate to="/bitacora?seccion=cronograma" replace />} />
                   <Route path="/diseno-muestra" element={<Navigate to="/calc-muestra" replace />} />

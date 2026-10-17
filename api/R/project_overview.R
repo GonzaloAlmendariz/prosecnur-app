@@ -13,12 +13,14 @@
 # con lib/modules.ts (PROSECNUR_MODULES). "diseno-estudio" es el modulo Bitacora.
 .PROJECT_PRIMARY_SLUGS <- c(
   "diseno-estudio", "procesamiento", "dashboard", "hojas-ruta",
-  "calc-muestra", "recopiladores", "monitoreo", "editor-xlsform"
+  "calc-muestra", "material-campo", "monitoreo", "editor-xlsform"
 )
 
 .project_normalize_modules <- function(value) {
   if (is.null(value)) return(NULL)
-  slugs <- as.character(unlist(value, use.names = FALSE))
+  # El alias va ANTES del filtro: un .pulso con "recopiladores" conserva el
+  # módulo como "material-campo" en vez de perderlo (ADR 0108 §1).
+  slugs <- .modulos_alias_aplicar(value)
   slugs <- slugs[slugs %in% .PROJECT_PRIMARY_SLUGS]
   as.list(unique(slugs))
 }
@@ -340,7 +342,7 @@
   )
 }
 
-# Fichas QR (recopiladores): del plan de aulas real, no de la seleccion de
+# Fichas QR (material-campo): del plan de aulas real, no de la seleccion de
 # calculo de muestra. Titulares, fichas con enlace, facultades, elegibles.
 .overview_fichas_facts <- function(s) {
   rows <- .overview_rows(s$monitoreo_aulas_plan %||% list())
@@ -582,9 +584,9 @@
                  list(phase = "", districts_count = 0L, n_objetivo = 0L, blocks_count = 0L,
                       replacement_blocks_count = 0L, interviews_count = 0L,
                       quota_assigned = 0L, from_pilot = FALSE)),
-    recopiladores = safe(.overview_fichas_facts(s),
-                         list(total = 0L, titulares = 0L, with_link = 0L, without_link = 0L,
-                              faculties_count = 0L, eligible_total = 0L)),
+    "material-campo" = safe(.overview_fichas_facts(s),
+                            list(total = 0L, titulares = 0L, with_link = 0L, without_link = 0L,
+                                 faculties_count = 0L, eligible_total = 0L)),
     editor = safe(.overview_form_facts(s),
                   list(source_kind = "", questions_count = 0L, sections_count = 0L,
                        catalogs_count = 0L, instruments_count = 0L)),

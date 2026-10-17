@@ -14,7 +14,7 @@ Fuente canónica: `.claude/skills/jobs-asincronos/SKILL.md`.
 ## Toca direcciones
 
 - `calc-muestra` — raíz; incluye sus descendientes.
-- `recopiladores` — raíz; incluye sus descendientes.
+- `material-campo` — raíz; incluye sus descendientes.
 - `monitoreo` — raíz; incluye sus descendientes.
 - `procesamiento` — raíz; incluye sus descendientes.
 - `dashboard` — raíz; incluye sus descendientes.

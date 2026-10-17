@@ -155,6 +155,9 @@ mount_proyecto <- function(pr) {
       if (isTRUE(in_place) && !is.null(current_sid) && nzchar(current_sid)) {
         loaded <- session_get(result$session_id, required = FALSE)
         if (!is.null(loaded)) {
+          # La sesión reemplazada deja de existir para el cliente: sus datos
+          # personales (destinatarios y ZIP de correo) no se quedan en disco.
+          .cmail_purge_personal_data(session_get(current_sid, required = FALSE))
           loaded$id <- current_sid
           .session_env[[current_sid]] <- loaded
           result$session_id <- current_sid

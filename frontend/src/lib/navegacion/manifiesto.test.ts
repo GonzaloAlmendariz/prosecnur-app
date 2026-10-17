@@ -223,9 +223,9 @@ describe("manifiesto de navegación", () => {
     ).toEqual(["plataforma", "cruces", "subsanacion"]);
   });
 
-  it("expone las pestañas de Entrega de Hojas de ruta", () => {
-    const entrega = nodoPorClave("hojas-ruta/entrega");
-    expect(hijosDe(entrega!.clave).map((n) => n.direccion.pestana)).toEqual([
+  it("expone las pestañas de Selección de Hojas de ruta", () => {
+    const seleccion = nodoPorClave("hojas-ruta/seleccion");
+    expect(hijosDe(seleccion!.clave).map((n) => n.direccion.pestana)).toEqual([
       "cuotas",
       "titulares",
       "reemplazos",

@@ -268,7 +268,7 @@ test("incluye todos los módulos canónicos y utilidades globales", () => {
     "calculo-muestra",
     "formularios",
     "hojas-ruta",
-    "recopiladores",
+    "material-campo",
     "monitoreo",
     "procesamiento",
     "dashboard",
@@ -314,27 +314,23 @@ test("documenta la jerarquía real de secciones y pestañas", () => {
     );
 
   assert.deepEqual(canonicalTabs("bitacora", "calendario"), ["Mes", "Semana"]);
-  assert.deepEqual(canonicalTabs("hojas-ruta", "entrega"), [
+  assert.deepEqual(canonicalTabs("hojas-ruta", "seleccion"), [
     "Cuotas",
     "Titulares",
     "Reemplazos",
   ]);
   assert.deepEqual(
-    moduleSections("recopiladores").map((section) => section.id),
-    ["plan-recoleccion", "accesos", "materiales", "entrega-campo"],
+    moduleSections("material-campo").map((section) => section.id),
+    ["unidades", "accesos", "catalogo", "paquetes", "entrega"],
   );
-  assert.deepEqual(canonicalTabs("recopiladores", "plan-recoleccion"), [
-    "Unidades",
-  ]);
-  assert.deepEqual(canonicalTabs("recopiladores", "accesos"), [
+  assert.deepEqual(canonicalTabs("material-campo", "unidades"), ["Lista"]);
+  assert.deepEqual(canonicalTabs("material-campo", "accesos"), [
     "Canales",
     "Vinculación",
   ]);
-  assert.deepEqual(canonicalTabs("recopiladores", "materiales"), [
-    "Vista previa",
-    "Paquetes",
-  ]);
-  assert.deepEqual(canonicalTabs("recopiladores", "entrega-campo"), [
+  assert.deepEqual(canonicalTabs("material-campo", "catalogo"), ["Editor"]);
+  assert.deepEqual(canonicalTabs("material-campo", "paquetes"), ["Armado"]);
+  assert.deepEqual(canonicalTabs("material-campo", "entrega"), [
     "Monitoreo",
   ]);
   assert.ok(
@@ -386,7 +382,7 @@ test("expande tuplas, records, factories y arrays de controles críticos", () =>
       "Muestra",
       "Formulario",
       "Rutas",
-      "Fichas QR",
+      "Material",
       "Monitoreo",
       "Carga",
       "Validación",
@@ -566,7 +562,7 @@ test("traza hosts polimórficos e iconos dinámicos hasta su proveedor", () => {
   assert.ok(selectedIcon.visualVariants.includes("icon-option=Sliders"));
 });
 
-test("materializa navegación y estados de Hojas, Recopiladores y Monitoreo", () => {
+test("materializa navegación y estados de Hojas, Material de campo y Monitoreo", () => {
   const hojasFile =
     "frontend/src/features/hojasRuta/hojasRutaNavigation.ts";
   const hojasSections = declared(hojasFile, "sections");
@@ -576,7 +572,7 @@ test("materializa navegación y estados de Hojas, Recopiladores y Monitoreo", ()
     "Población",
     "Muestra",
     "Manzanas",
-    "Entrega",
+    "Selección",
   ]);
   assert.deepEqual(labels(hojasTabs), [
     "Cuotas",
@@ -588,13 +584,16 @@ test("materializa navegación y estados de Hojas, Recopiladores y Monitoreo", ()
     assert.ok(entry.stateModel);
   }
 
+  // La carpeta conserva el nombre `recopiladores`; el módulo es Material de
+  // campo (ADR 0108).
   const recopiladoresNavigationFile =
     "frontend/src/features/recopiladores/navegacion.ts";
   assert.deepEqual(labels(declared(recopiladoresNavigationFile, "SECCIONES")), [
-    "plan-recoleccion",
+    "unidades",
     "accesos",
-    "materiales",
-    "entrega-campo",
+    "catalogo",
+    "paquetes",
+    "entrega",
   ]);
   const recopiladoresTabs = catalog.declarations.filter(
     (entry) =>
@@ -602,11 +601,11 @@ test("materializa navegación y estados de Hojas, Recopiladores y Monitoreo", ()
       entry.componentContext.startsWith("PESTANAS_POR_SECCION."),
   );
   assert.deepEqual(labels(recopiladoresTabs), [
-    "unidades",
+    "lista",
     "canales",
     "vinculacion",
-    "vista",
-    "paquetes",
+    "editor",
+    "armado",
     "traspaso",
   ]);
   assert.ok(
@@ -892,7 +891,7 @@ test("los ocho módulos mantienen sus acentos distintivos en el catálogo", () =
       calculo: tones["calculo-muestra"],
       formularios: tones.formularios,
       hojas: tones["hojas-ruta"],
-      recopiladores: tones.recopiladores,
+      materialCampo: tones["material-campo"],
       monitoreo: tones.monitoreo,
       procesamiento: tones.procesamiento,
       dashboard: tones.dashboard,
@@ -902,7 +901,8 @@ test("los ocho módulos mantienen sus acentos distintivos en el catálogo", () =
       calculo: "#7260AE",
       formularios: "#7172C1",
       hojas: "#AC563B",
-      recopiladores: "#106E8C",
+      // Musgo, = --pulso-module-fieldkit (ADR 0108 §7).
+      materialCampo: "#4F752C",
       monitoreo: "#A0464E",
       procesamiento: "#0F766E",
       dashboard: "#4A6EB6",

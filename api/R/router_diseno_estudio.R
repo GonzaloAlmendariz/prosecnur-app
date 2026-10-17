@@ -89,7 +89,7 @@
 .diseno_bitacora_modules <- c(
   "diseno-estudio", "editor-xlsform", "carga", "validacion", "codificacion",
   "analitica", "graficos", "dashboard", "calc-muestra", "hojas-ruta",
-  "plan-trabajo", "recopiladores", "monitoreo", "proyecto"
+  "plan-trabajo", "material-campo", "monitoreo", "proyecto"
 )
 
 .diseno_bitacora_entry <- function(entry = list()) {
@@ -97,6 +97,7 @@
   title <- .diseno_limit_text(entry$title %||% entry$titulo, 120L)
   body <- .diseno_limit_text(entry$body %||% entry$detalle %||% entry$text, 1600L)
   module_id <- .diseno_scalar(entry$module_id %||% entry$moduleId %||% entry$modulo, "diseno-estudio")
+  module_id <- .modulos_alias_aplicar(module_id)
   if (!(module_id %in% .diseno_bitacora_modules)) module_id <- "diseno-estudio"
   tone <- .diseno_scalar(entry$tone %||% entry$tipo, "nota")
   if (!(tone %in% .diseno_bitacora_tones)) tone <- "nota"
@@ -460,7 +461,7 @@
       category = "campo"
     ),
     .diseno_status(
-      "recopiladores", "Fichas QR", "/recopiladores", if (has_recop) "ready" else if (has_aulas) "active" else "pending",
+      "material-campo", "Material de campo", "/material-campo", if (has_recop) "ready" else if (has_aulas) "active" else "pending",
       if (has_recop) "Agenda o publicación de fichas de cursos-horario conectada." else if (has_aulas) "Selección de cursos-horario lista para preparar fichas." else "Requiere selección de cursos-horario.",
       c(if (has_recop) "Agenda de aulas" else "", if (has_aulas) "Plan desde Calculo de muestra" else ""),
       category = "campo"

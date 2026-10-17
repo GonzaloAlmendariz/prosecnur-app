@@ -434,6 +434,79 @@ collection_capability_preflight <- function(adapter_id, operation = NULL, target
   )
 }
 
+# Lo que el target de un deployment conserva para que Accesos lo rehidrate al
+# reabrir (H21): la configuracion NO secreta que escribio quien armo los
+# accesos. Lista blanca explicita: el target del adapter puede traer un token o
+# un perfil completo y nada de eso entra al estado ni al .pulso (ADR 0005).
+# `connection_profile_id` es una referencia al perfil, no la credencial.
+#
+# Estos campos son configuracion, no identidad del despliegue: lo que cambia el
+# enlace ya cambia los `bindings`. Por eso `.collection_deployment_fingerprint`
+# los excluye y la huella de un despliegue no cambia al empezar a guardarlos.
+#
+# `custom_variable` es el nombre de la Custom Variable de un Web Link de
+# SurveyMonkey (lo que en Kobo es `prefill_field`). `recipients` NO entra: es la
+# lista de destinatarios, PII, y su enlace individual ya vive en los bindings
+# como referencia.
+COLLECTION_DEPLOYMENT_TARGET_CONFIG_FIELDS <- c(
+  "base_access_url", "asset_type", "deployment_active", "prefill_field",
+  "connection_profile_id", "custom_variable"
+)
+
+# Forma de un id de perfil de conexion: lo que emite el manifiesto de perfiles.
+# Un token o una URL con credenciales pegados en ese campo no la cumplen
+# (llevan puntos, barras, `=` o pasan de 64 caracteres), y rechazarlos aqui es
+# lo que impide que lleguen al estado y al .pulso (ADR 0005).
+COLLECTION_CONNECTION_PROFILE_ID_PATTERN <- "^[A-Za-z0-9_-]{1,64}$"
+
+# Ausente o vacio es valido (no hay perfil). Cualquier otra cosa que no cumpla
+# el patron se rechaza con 422 y NO se repite el valor en el error: si era un
+# token, el mensaje tampoco debe llevarlo.
+.ca_assert_connection_profile_id <- function(target) {
+  if (!is.list(target)) return(invisible(TRUE))
+  value <- target$connection_profile_id
+  if (is.null(value)) return(invisible(TRUE))
+  if (is.character(value) && length(value) == 1L && !is.na(value) && !nzchar(value)) {
+    return(invisible(TRUE))
+  }
+  if (is.character(value) && length(value) == 1L && !is.na(value) &&
+      grepl(COLLECTION_CONNECTION_PROFILE_ID_PATTERN, value)) {
+    return(invisible(TRUE))
+  }
+  stop_api(
+    422, "E_COLLECTION_DEPLOYMENT_INVALID",
+    paste(
+      "El perfil de conexión no es un identificador válido (letras, números, '_' o '-',",
+      "hasta 64 caracteres). Elige un perfil de la lista; no pegues el token aquí."
+    ),
+    details = list(
+      field = "target.connection_profile_id",
+      problem = "connection_profile_id_format",
+      pattern = COLLECTION_CONNECTION_PROFILE_ID_PATTERN
+    )
+  )
+}
+
+COLLECTION_DEPLOYMENT_TARGET_FIELDS <- c(
+  "provider", "remote_ref", "return_url", COLLECTION_DEPLOYMENT_TARGET_CONFIG_FIELDS
+)
+
+# Solo la configuracion presente y no vacia: un escalar vacio no es dato.
+.ca_deployment_target_config <- function(target) {
+  .ca_assert_connection_profile_id(target)
+  config <- .ca_target_ref(target, COLLECTION_DEPLOYMENT_TARGET_CONFIG_FIELDS)
+  Filter(function(value) !(is.character(value) && length(value) == 1L && !nzchar(value)), config)
+}
+
+# Poda un target a la lista blanca. Se indexa por nombre y no con
+# `.ca_target_ref` para conservar la forma exacta de lo que ya habia (un
+# `return_url = NULL` sigue siendo una entrada): de esa forma depende la huella.
+.ca_deployment_target_whitelist <- function(target) {
+  if (!is.list(target) || is.null(names(target))) return(target)
+  .ca_assert_connection_profile_id(target)
+  target[names(target) %in% COLLECTION_DEPLOYMENT_TARGET_FIELDS]
+}
+
 .ca_preview_deployment <- function(adapter_id, plan, target) {
   plan <- .ca_normalize_plan(plan, adapter_id)
   if (!is.list(target)) target <- list()
@@ -464,12 +537,16 @@ collection_capability_preflight <- function(adapter_id, operation = NULL, target
   return_url <- .ca_text(target$return_url)
   list(
     schema = "collection_deployment/v1",
+    adapter_id = adapter_id,
     deployment_id = .ca_id("deployment", paste(.ca_text(plan$plan_id, "plan"), adapter_id, sep = "-")),
     plan_id = .ca_text(plan$plan_id),
     plan_fingerprint = .ca_text(plan$input_fingerprint),
-    target = list(
-      provider = provider, remote_ref = remote_ref,
-      return_url = if (nzchar(return_url)) return_url else NULL
+    target = c(
+      list(
+        provider = provider, remote_ref = remote_ref,
+        return_url = if (nzchar(return_url)) return_url else NULL
+      ),
+      .ca_deployment_target_config(target)
     ),
     capabilities = list(remote_write = list(observed = FALSE, source = "disabled_v1")),
     capability_preflight = local_preflight,
@@ -482,8 +559,10 @@ collection_capability_preflight <- function(adapter_id, operation = NULL, target
     sensitivity = list(
       access_urls = if (identical(adapter_id, "surveymonkey_recipient_existing_v1")) "sensitive" else "operational"
     ),
-    status = if (length(plan$units) > 0L && ready == length(plan$units)) "prepared" else "draft",
-    handoff = NULL
+    # Sin `handoff`: una vista previa nunca tiene recibo, y `handoff = NULL`
+    # dentro de `list()` se serializa como `{}` (un objeto vacio que el
+    # cliente devolvia en el PUT). La huella ya lo excluia.
+    status = if (length(plan$units) > 0L && ready == length(plan$units)) "prepared" else "draft"
   )
 }
 

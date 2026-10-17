@@ -151,7 +151,7 @@ export function SalidasMonitoreoTab({
           { label: "Siguiente", value: selectionReady ? "Fichas QR" : "seleccionar cursos-horario", tone: selectionReady ? "current" : "warning" },
         ]}
         secondaryAction={{ to: "/monitoreo", label: "Ver monitoreo" }}
-        action={{ to: "/recopiladores", label: "Preparar fichas QR", disabled: !selectionReady }}
+        action={{ to: "/material-campo", label: "Preparar fichas QR", disabled: !selectionReady }}
       />
 
       {selectionReady ? (

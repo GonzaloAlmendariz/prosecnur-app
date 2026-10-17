@@ -1,9 +1,9 @@
 # Diagnóstico: material de campo, Ser Adolescente 2026 contra los módulos de la app
 
 Tipo: Diagnóstico QA fechado
-Estado: En curso
+Estado: Vigente
 Fecha: 2026-10-16
-Autoridad: Evidencia del diagnóstico; la decisión vive en [ADR 0108](../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) (Propuesto). Rama 8 (Gobernar)
+Autoridad: Evidencia del [ADR 0108](../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) (Aceptado); la decisión vive en el ADR
 Checklist vivo: [checklist-material-de-campo-2026-10-16.md](checklist-material-de-campo-2026-10-16.md)
 
 ## Por qué existe este documento
@@ -11,7 +11,7 @@ Checklist vivo: [checklist-material-de-campo-2026-10-16.md](checklist-material-d
 Ser Adolescente en el Perú 2026 (12-2026, PULSO PUCP) fue un campo presencial, en papel, de puerta en puerta: 1.000
 encuestas autoaplicadas a jóvenes de 18 a 25 años en Lima, Cusco y San Martín, por cuotas de sexo × estudios superiores.
 Se organizó en 125 fichas de cuota de 8 encuestas, 2 por celda, todas exigibles y sin reemplazos. El estudio las rotula «UMP», pero no son unidades de muestreo: es un diseño no probabilístico con control de cuotas, y la app no debe tratarlas como conglomerados (sin `deff` ni margen de error). Todo el material de campo se hizo **fuera de la app**, con
-scripts de Python y Node en la carpeta `Campo/Generadores/` del estudio, Word y un Google
+scripts de Python y Node en `~/Documents/Pulso/01_Estudios/2026_Ser_Adolescente/Campo/Generadores/`, Word y un Google
 Sheets. La app solo aportó, por ruta absoluta, la cartografía de Lima de `api/inst/hojas_ruta/cartografia/`.
 
 La pregunta de Gonzalo: ¿es viable un módulo **Material de campo**, elegante y generalizable, que reemplace a

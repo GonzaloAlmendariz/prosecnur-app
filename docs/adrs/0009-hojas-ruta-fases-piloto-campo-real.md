@@ -4,6 +4,9 @@ Estado: Aceptado
 
 Fecha: 2026-06-04
 
+Reemplazado parcialmente por: [ADR 0108](0108-material-de-campo-catalogo-de-materiales-por-unidad.md) (Hojas de ruta deja
+de emitir los impresos de campo y su sección Entrega pasa a Selección; las fases piloto y campo siguen vigentes)
+
 ## Contexto
 
 Hojas de ruta se habia modelado como una sola corrida activa por proyecto,

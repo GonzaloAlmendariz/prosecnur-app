@@ -1,7 +1,7 @@
 // Un atajo lleva a donde dice que lleva.
 //
 // «Abrir fichas QR» apuntaba a `/recopiladores` —el módulo a secas— y
-// Recopiladores aterriza en su primera sección, que es el plan de recolección.
+// el módulo (hoy Material de campo, ADR 0108) aterriza en su primera sección.
 // Medido el 2026-08-23: el botón prometía fichas y dejaba al usuario en la lista
 // de las 193 aulas, dos secciones antes de donde se preparan.
 //
@@ -23,15 +23,17 @@ const ATAJOS = [
   {
     donde: "features/calcMuestra/universidad/aulas/ClassroomAuditPanels.tsx",
     label: "Abrir fichas QR",
-    seccion: "seccion=materiales",
+    seccion: "/material-campo?seccion=catalogo&pestana=editor",
   },
   {
     donde: "features/monitoreo/profiles/aulas/AulasMonitoreoPage.tsx",
     label: "Abrir fichas QR",
-    seccion: "seccion=materiales",
+    seccion: "/material-campo?seccion=catalogo&pestana=editor",
   },
 ];
 
+// «Abrir fichas QR» lleva al editor de la ficha, donde aterrizaba antes de que
+// Catálogo ganara la galería de Tipos como su primera pestaña (ADR 0109 §3).
 describe("los atajos entre módulos llevan a su sección, no al módulo pelado", () => {
   for (const atajo of ATAJOS) {
     it(`«${atajo.label}» desde ${path.basename(atajo.donde)}`, () => {
@@ -47,6 +49,8 @@ describe("los atajos entre módulos llevan a su sección, no al módulo pelado",
       // volviera a «/recopiladores» a secas seguiría conteniendo la palabra
       // «materiales» en cualquier otra parte de la línea y pasaría.
       expect(linea).not.toMatch(/to:\s*"\/[a-z-]+"/);
+      // Ni la ruta vieja del módulo (ADR 0108): se lee, nunca se escribe.
+      expect(linea).not.toContain("/recopiladores");
     });
   }
 
@@ -54,6 +58,7 @@ describe("los atajos entre módulos llevan a su sección, no al módulo pelado",
     // Si el slug cambiara, este test seguiría verde mientras el atajo apuntara
     // a una sección inexistente. El manifiesto es quien manda.
     const manifiesto = fs.readFileSync(path.join(raiz, "lib/modules.ts"), "utf8");
-    expect(manifiesto).toContain("materiales");
+    expect(manifiesto).toContain('to: "/material-campo?seccion=catalogo"');
+    expect(manifiesto).toContain('to: "/material-campo?seccion=catalogo&pestana=editor"');
   });
 });

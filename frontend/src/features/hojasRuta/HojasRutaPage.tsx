@@ -75,7 +75,7 @@ import {
   setHojasRutaWorkspaceSnapshot,
 } from "./configSnapshot";
 import { containerPointToLogical, paddedGeometryViewBoxFromExtents, uniformContainTransform } from "./cartographicViewport";
-import { buildHojasRutaNavigation, buildHojasRutaNavigationSearch } from "./hojasRutaNavigation";
+import { buildHojasRutaNavigation, buildHojasRutaNavigationSearch, resolverEtapaHojasRuta } from "./hojasRutaNavigation";
 import { useHojasRutaStore } from "./store";
 import type {
   HojasRutaBlockLayerMode,
@@ -108,7 +108,6 @@ type DistrictFeature = {
   };
   geometry: DistrictGeometry;
 };
-const HOJAS_RUTA_STAGES: HojasRutaStage[] = ["territorio", "poblacion", "muestra", "manzanas", "entrega"];
 const HOJAS_SAMPLE_LIST_PANEL_ID = "hojas-ruta-sample-list-panel";
 const HOJAS_DELIVERY_REVIEW_PANEL_ID = "hojas-ruta-delivery-review-panel";
 
@@ -125,7 +124,7 @@ const HOJAS_RUTA_STAGE_ORDER: Record<HojasRutaStage, number> = {
   poblacion: 1,
   muestra: 2,
   manzanas: 3,
-  entrega: 4,
+  seleccion: 4,
 };
 const DISTRICT_FEATURES = (districtCoverage as unknown as { features: DistrictFeature[] }).features;
 const DISTRICT_FEATURE_BY_UBIGEO = new Map(DISTRICT_FEATURES.map((feature) => [feature.properties.ubigeo, feature]));
@@ -327,9 +326,8 @@ function normalizeHojasRutaUiState(
   uiState: Partial<HojasRutaUiState> | null | undefined,
   fallbackTerritories: string[] = [],
 ): HojasRutaUiState {
-  const activeStage = HOJAS_RUTA_STAGES.includes(uiState?.active_stage as HojasRutaStage)
-    ? uiState?.active_stage as HojasRutaStage
-    : "territorio";
+  // `entrega` guardado antes del ADR 0108 vuelve a Selección, no a Territorio.
+  const activeStage = resolverEtapaHojasRuta(uiState?.active_stage) ?? "territorio";
   const draft = Array.isArray(uiState?.draft_territories)
     ? uiState?.draft_territories.filter((ubigeo): ubigeo is string => typeof ubigeo === "string" && ubigeo.length > 0)
     : fallbackTerritories;
@@ -6659,7 +6657,7 @@ export default function HojasRutaPage() {
       if (!restoredQuota && restoreDepth >= HOJAS_RUTA_STAGE_ORDER.manzanas && restoredSampleSizePreview?.ok) {
         restoredQuota = await apiHojasRutaQuotaPreview(restoredConfig).catch(() => null);
       }
-      if (!restoredSample && restoreDepth >= HOJAS_RUTA_STAGE_ORDER.entrega && restoredQuota?.ok) {
+      if (!restoredSample && restoreDepth >= HOJAS_RUTA_STAGE_ORDER.seleccion && restoredQuota?.ok) {
         restoredSample = await apiHojasRutaSamplePreview(restoredConfig).catch(() => null);
       }
       setState(s);
@@ -7695,7 +7693,7 @@ export default function HojasRutaPage() {
     setActiveStage(stage);
     navigate({
       pathname: location.pathname,
-      search: buildHojasRutaNavigationSearch(location.search, stage, stage === "entrega" ? currentDeliveryTab : undefined),
+      search: buildHojasRutaNavigationSearch(location.search, stage, stage === "seleccion" ? currentDeliveryTab : undefined),
       hash: location.hash,
     });
   }
@@ -7704,7 +7702,7 @@ export default function HojasRutaPage() {
     setDeliveryReviewTab(tab);
     navigate({
       pathname: location.pathname,
-      search: buildHojasRutaNavigationSearch(location.search, "entrega", tab),
+      search: buildHojasRutaNavigationSearch(location.search, "seleccion", tab),
       hash: location.hash,
     });
   }
@@ -8461,8 +8459,8 @@ export default function HojasRutaPage() {
                       </div>
                     )}
                     <div className="hojas-ruta-action-row hojas-ruta-sample-next">
-                      <button type="button" style={btnPrimary} onClick={() => selectStage("entrega")}>
-                        Revisar entrega
+                      <button type="button" style={btnPrimary} onClick={() => selectStage("seleccion")}>
+                        Revisar selección
                       </button>
                       <span className="hojas-ruta-soft-text">El ZIP final separará Titulares, Reemplazos y Zonas.</span>
                     </div>
@@ -8496,7 +8494,7 @@ export default function HojasRutaPage() {
             </section>
           )}
 
-          {currentStage === "entrega" && (
+          {currentStage === "seleccion" && (
             <div className="hojas-ruta-stage-shell is-delivery-stage">
               <div className="hojas-ruta-delivery-layout">
                 <div className="hojas-ruta-delivery-main">

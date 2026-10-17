@@ -1,0 +1,469 @@
+# collection_mail_export.R — vista previa, revisión y exportación del correo
+# para Mailchimp (ADR 0110 §2).
+#
+# Revisión antes de exportar: cada chequeo trae `code`, `status`
+# (ok | warning | error) y su cifra (`value`). Un `error` bloquea la
+# exportación; un `warning` se muestra y deja seguir.
+#
+# Exportación (síncrona: HTML + CSV + imágenes es pequeño; sobre 5 MB se
+# rechaza): un ZIP FUERA del `.pulso`, en `<session$dir>/downloads`, con
+#   mailchimp_template.html   etiquetas *|TAG|*, sin data: URIs
+#   audiencia.csv             Email Address, First Name, una columna por etiqueta usada
+#   imagenes/<id>.png         para subir a Content Studio
+#   LEEME.txt                 cómo reemplazar cada marcador IMAGEN_<id>.png
+#   manifest.json             huellas, conteos y procedencia (sin correos)
+# Se registran dos artefactos con `.register_output_file()`: el ZIP
+# (role = deliverable) y su manifest (role = manifest, exactamente uno).
+
+.CMAIL_GMAIL_CLIP_BYTES <- 102L * 1024L
+.CMAIL_EXPORT_MAX_BYTES <- 5L * 1024L * 1024L
+.CMAIL_BANNER_W <- 1200L
+.CMAIL_BANNER_H <- 600L
+.CMAIL_BANNER_MAX_BYTES <- 1024L * 1024L
+
+.cmail_check <- function(code, status, value = NULL, detail = "", extra = NULL) {
+  out <- list(code = code, status = status, value = value, detail = detail)
+  if (!is.null(extra)) out$items <- extra
+  .cmc_drop_nulls_deep(out)
+}
+
+# Plantilla de trabajo: la del cuerpo (borrador sin guardar) o la guardada.
+.cmail_working_template <- function(state, template = NULL) {
+  if (is.null(template)) return(.cmail_template_of(state))
+  .cmail_template_or_stop(template)
+}
+
+.cmail_synthetic_values <- function(template) {
+  used_in_url <- unique(unlist(lapply(template$blocks %||% list(), function(b) {
+    c(.cmail_tokens(.cmail_one(b$url) %||% ""))
+  }), use.names = FALSE))
+  fields <- list()
+  for (f in template$fields %||% list()) {
+    key <- as.character(f$key)
+    fields[[key]] <- if (key %in% used_in_url) "https://example.org/" else sprintf("[%s]", f$label %||% key)
+  }
+  list(nombre = "Ana", fields = fields)
+}
+
+#' Vista previa del correo.
+#'
+#' @param mode "preview" (campos resueltos, imágenes incrustadas) o "mailchimp".
+#' @param recipient_index posición (1..n) en la muestra de destinatarios; sin
+#'   destinatarios o sin índice se usa un destinatario sintético.
+#' @keywords internal
+collection_mail_preview <- function(sid, mode = "preview", recipient_index = NULL, template = NULL) {
+  mode <- .cmail_one(mode) %||% "preview"
+  if (!(mode %in% c("preview", "mailchimp"))) {
+    stop_api(422, "E_COLLECTION_MAIL_MODE", "mode es preview o mailchimp.")
+  }
+  session <- session_get(sid)
+  state <- .collection_current(session)
+  tpl <- .cmail_working_template(state, template)
+  images <- .cmail_images_resolve(session, tpl)
+  recipient <- list(source = "synthetic", index = NULL)
+  values <- .cmail_synthetic_values(tpl)
+  store <- .cmail_recipients_load(session)
+  if (identical(mode, "preview") && !is.null(store) && !is.null(recipient_index)) {
+    resolved <- .cmail_recipients_resolve(store, tpl)
+    idx <- suppressWarnings(as.integer(unlist(recipient_index)[[1]]))
+    if (is.na(idx) || idx < 1L || idx > length(resolved$rows)) {
+      stop_api(422, "E_COLLECTION_MAIL_RECIPIENT_INDEX",
+               sprintf("recipient_index va de 1 a %d.", length(resolved$rows)))
+    }
+    # D6: ningún valor con forma de correo llega a la vista, ni al HTML de la vista previa.
+    values <- .cmail_mask_pii(.cmail_recipient_values(store, resolved, resolved$rows[[idx]]))
+    recipient <- list(source = "imported", index = idx)
+  }
+  rendered <- collection_mail_render(tpl, mode = mode, values = values, images = images)
+  list(
+    ok = TRUE,
+    mode = mode,
+    html = rendered$html,
+    subject = rendered$subject,
+    preheader = rendered$preheader,
+    bytes = rendered$bytes,
+    recipient = .cmc_drop_nulls_deep(c(recipient, list(
+      nombre = values$nombre,
+      fields = if (length(values$fields)) values$fields else structure(list(), names = character(0))
+    )))
+  )
+}
+
+.cmail_review_checks <- function(session, tpl) {
+  images <- .cmail_images_resolve(session, tpl)
+  rendered <- collection_mail_render(tpl, mode = "mailchimp", images = images)
+  html <- rendered$html
+  checks <- list()
+  push <- function(x) checks[[length(checks) + 1L]] <<- x
+
+  subject <- trimws(as.character(tpl$subject %||% ""))
+  push(if (!nzchar(subject)) {
+    .cmail_check("subject", "error", 0L, "Falta el asunto.")
+  } else if (nchar(subject) > 80L) {
+    .cmail_check("subject", "warning", nchar(subject), "El asunto supera 80 caracteres; los clientes lo cortan.")
+  } else {
+    .cmail_check("subject", "ok", nchar(subject), "Asunto presente.")
+  })
+
+  pre <- trimws(as.character(tpl$preheader %||% ""))
+  push(if (!nzchar(pre)) {
+    .cmail_check("preheader", "warning", 0L, "Sin texto de vista previa, el cliente muestra el inicio del cuerpo.")
+  } else if (nchar(pre) > 140L) {
+    .cmail_check("preheader", "warning", nchar(pre), "El texto de vista previa supera 140 caracteres.")
+  } else {
+    .cmail_check("preheader", "ok", nchar(pre), "Texto de vista previa presente.")
+  })
+
+  push(if (rendered$bytes >= .CMAIL_GMAIL_CLIP_BYTES) {
+    .cmail_check("html_weight", "error", rendered$bytes, "El HTML supera 102 KB y Gmail lo recorta.")
+  } else {
+    .cmail_check("html_weight", "ok", rendered$bytes, "El HTML queda bajo el recorte de Gmail (102 KB).")
+  })
+
+  data_uris <- lengths(regmatches(html, gregexpr("data:[a-z]+/", html)))
+  placeholders <- vapply(images, function(i) is.null(i$url), NA)
+  push(if (data_uris > 0L) {
+    .cmail_check("images_hosted", "error", as.integer(data_uris), "Hay imágenes incrustadas (data:); deben ir alojadas.")
+  } else if (any(placeholders)) {
+    .cmail_check("images_hosted", "warning", as.integer(sum(placeholders)),
+                 "Imágenes con marcador: súbelas a Content Studio y reemplaza cada src por su URL (ver LEEME.txt).",
+                 extra = as.list(names(images)[placeholders]))
+  } else {
+    .cmail_check("images_hosted", "ok", 0L, "Todas las imágenes tienen URL pública.")
+  })
+
+  missing <- vapply(images, function(i) is.null(i$path) && is.null(i$url), NA)
+  push(if (any(missing)) {
+    .cmail_check("images_available", "error", as.integer(sum(missing)),
+                 "Imágenes que no están en el proyecto ni tienen URL.", extra = as.list(names(images)[missing]))
+  } else {
+    .cmail_check("images_available", "ok", 0L, "Todas las imágenes están disponibles.")
+  })
+
+  no_alt <- vapply(images, function(i) !nzchar(trimws(i$alt %||% "")), NA)
+  push(if (any(no_alt)) {
+    .cmail_check("images_alt", "error", as.integer(sum(no_alt)), "Imágenes sin texto alternativo.",
+                 extra = as.list(names(images)[no_alt]))
+  } else {
+    .cmail_check("images_alt", "ok", 0L, "Toda imagen lleva texto alternativo.")
+  })
+
+  if (identical(tpl$header$kind, "banner")) {
+    img <- images[[as.character(tpl$header$image_ref)]]
+    size <- img$size
+    push(if (is.null(size)) {
+      .cmail_check("banner_size", if (is.null(img$url)) "error" else "warning", NULL,
+                   "No se pudo medir el banner (se espera un PNG de 1200 × 600 en el proyecto).")
+    } else if (!identical(as.integer(size$width), .CMAIL_BANNER_W) || !identical(as.integer(size$height), .CMAIL_BANNER_H)) {
+      .cmail_check("banner_size", "error", sprintf("%d×%d", as.integer(size$width), as.integer(size$height)),
+                   "El banner de mailing mide 1200 × 600.")
+    } else if (isTRUE(img$bytes > .CMAIL_BANNER_MAX_BYTES)) {
+      .cmail_check("banner_size", "warning", as.integer(img$bytes), "El banner supera 1 MB; tarda en cargar.")
+    } else {
+      .cmail_check("banner_size", "ok", "1200×600", "Banner de 1200 × 600.")
+    })
+  }
+
+  footer_ok <- grepl("*|UNSUB|*", html, fixed = TRUE) && grepl("*|LIST:ADDRESSLINE|*", html, fixed = TRUE)
+  push(.cmail_check("footer_unsub", if (footer_ok) "ok" else "error", as.integer(footer_ok),
+                    if (footer_ok) "El pie lleva la baja (*|UNSUB|*) y la dirección de la lista." else "Falta *|UNSUB|* o *|LIST:ADDRESSLINE|* en el pie."))
+
+  # Audiencia.
+  store <- .cmail_recipients_load(session)
+  used <- .cmail_used_keys(tpl)
+  fields <- .cmail_field_index(tpl)
+  if (is.null(store)) {
+    push(.cmail_check("recipients", "error", 0L, "Importa los destinatarios para exportar la audiencia."))
+    return(list(checks = checks, rendered = rendered, images = images))
+  }
+  resolved <- .cmail_recipients_resolve(store, tpl)
+  m <- store$mapping
+  cn <- resolved$counts
+  blank_note <- if (cn$rows_blank_dropped > 0L) sprintf(" Se descartaron %d filas vacías.", cn$rows_blank_dropped) else ""
+  push(if (is.null(m$email_column)) {
+    .cmail_check("recipients", "error", 0L, "Elige la columna del correo.")
+  } else if (!cn$valid) {
+    .cmail_check("recipients", "error", 0L, "Ningún destinatario tiene un correo válido.")
+  } else if (cn$invalid_email + cn$without_email + cn$duplicated > 0L) {
+    .cmail_check("recipients", "warning", cn$valid,
+                 sprintf("%d de %d destinatarios reciben el correo; quedan fuera %d sin correo, %d con correo inválido y %d repetidos.%s",
+                         cn$valid, cn$total, cn$without_email, cn$invalid_email, cn$duplicated, blank_note))
+  } else {
+    .cmail_check("recipients", "ok", cn$valid, sprintf("%d destinatarios válidos.%s", cn$valid, blank_note))
+  })
+
+  tag_rows <- list()
+  missing_cols <- character(0)
+  for (k in used) {
+    if (identical(k, "nombre")) {
+      tag <- "FNAME"; col <- m$name_column
+    } else {
+      tag <- fields[[k]]$tag; col <- m$fields[[k]]
+    }
+    if (is.null(col)) missing_cols <- c(missing_cols, tag)
+    tag_rows[[length(tag_rows) + 1L]] <- list(key = k, tag = tag, column = col)
+  }
+  push(if (length(missing_cols)) {
+    .cmail_check("tags_have_columns", "error", length(missing_cols),
+                 sprintf("Etiquetas sin columna en la audiencia: %s.", paste(missing_cols, collapse = ", ")),
+                 extra = lapply(tag_rows, .cmc_drop_nulls_deep))
+  } else {
+    .cmail_check("tags_have_columns", "ok", 0L, "Cada etiqueta usada tiene su columna en la audiencia.",
+                 extra = lapply(tag_rows, .cmc_drop_nulls_deep))
+  })
+
+  # Sin dato (D4-D5), sobre los efectivos. El respaldo se evalúa donde se usa
+  # el campo (collection_mail_usage.R): en un enlace no hay respaldo y un vacío
+  # bloquea; en asunto/preheader y {{nombre}} fuera del saludo, tampoco.
+  usage <- .cmail_key_usage(tpl)
+  greeting_fb <- NULL
+  for (b in tpl$blocks %||% list()) if (identical(b$type, "greeting")) { greeting_fb <- .cmail_one(b$fallback); break }
+  empty_rows <- list()
+  url_blocking <- character(0)
+  uncovered <- FALSE
+  uncovered_person <- rep(FALSE, length(resolved$rows))
+  for (row in tag_rows) {
+    if (is.null(row$column)) next
+    values <- if (identical(row$key, "nombre")) resolved$first_name[resolved$rows] else .cmail_value(store$rows[[row$column]][resolved$rows])
+    empty <- as.integer(sum(!nzchar(values)))
+    uses <- usage[[row$key]] %||% character(0)
+    fallback <- if (identical(row$key, "nombre")) greeting_fb else fields[[row$key]]$fallback
+    covers <- .cmail_fallback_covers(row$key, uses, fallback)
+    in_url <- "url" %in% uses
+    if (empty > 0L && in_url) url_blocking <- c(url_blocking, row$tag)
+    if (empty > 0L && !covers) {
+      uncovered <- TRUE
+      uncovered_person <- uncovered_person | !nzchar(values)
+    }
+    empty_rows[[length(empty_rows) + 1L]] <- .cmc_drop_nulls_deep(list(
+      tag = row$tag, key = row$key, empty = empty, fallback = fallback,
+      uses = as.list(uses), in_url = in_url, fallback_covers = covers
+    ))
+  }
+  total_empty <- sum(vapply(empty_rows, function(r) r$empty, integer(1)))
+  rule <- sprintf(" Cuenta como vacío una celda vacía, solo espacios o %s; el denominador son los %d destinatarios efectivos.",
+                  .CMAIL_EMPTY_MARKERS_LABEL, cn$valid)
+  push(.cmail_check(
+    "fields_empty",
+    if (length(url_blocking)) "error" else if (uncovered) "warning" else "ok",
+    as.integer(total_empty),
+    paste0(
+      if (length(url_blocking)) {
+        sprintf("%s va dentro de un enlace y le falta a algún destinatario: el enlace saldría roto. Completa la columna o quita a esas personas.",
+                paste(url_blocking, collapse = ", "))
+      } else if (uncovered) {
+        sprintf("%d destinatarios no tienen dato en un campo que se usa sin respaldo (asunto, preheader, {{nombre}} fuera del saludo o campo sin respaldo): verán el espacio vacío.",
+                as.integer(sum(uncovered_person)))
+      } else if (!cn$valid) {
+        "Sin destinatarios efectivos: no hay a quién revisar los campos."
+      } else if (total_empty) {
+        "Los destinatarios sin dato reciben el texto de respaldo en todos los lugares donde se usa el campo."
+      } else {
+        "Todos los destinatarios tienen dato en cada campo."
+      },
+      rule
+    ),
+    extra = empty_rows
+  ))
+
+  # Mismo correo, otro dato: el correo sale con la primera fila. En un enlace
+  # (p. ej. un ENLACE personal) no se sabe cuál es el correcto: bloquea.
+  conflicts <- resolved$conflicts
+  url_keys <- names(Filter(function(u) "url" %in% u, usage))
+  conflict_url <- any(vapply(conflicts, function(cf) any(unlist(cf$keys) %in% url_keys), NA))
+  push(if (!length(conflicts)) {
+    .cmail_check("duplicates_conflicting", "ok", 0L,
+                 if (cn$duplicated) "Los correos repetidos traen los mismos datos; se usa la primera fila." else "No hay correos repetidos.")
+  } else {
+    .cmail_check("duplicates_conflicting", if (conflict_url) "error" else "warning", as.integer(length(conflicts)),
+                 if (conflict_url) sprintf("%d correos repetidos traen otro valor en un campo de enlace: decide cuál vale y corrige el archivo.", length(conflicts))
+                 else sprintf("%d correos repetidos traen datos distintos; se usa la primera fila de cada uno.", length(conflicts)),
+                 extra = lapply(conflicts, function(cf) list(row = cf$row, first_row = cf$first_row, tags = cf$tags)))
+  })
+
+  n_unsplit <- resolved$counts$names_unsplit
+  if (identical(m$name_format, "apellidos_coma_nombres")) {
+    push(.cmail_check("names_unsplit", if (n_unsplit > 0L) "warning" else "ok", as.integer(n_unsplit),
+                      if (n_unsplit > 0L) sprintf("%d nombres sin separar: el saludo usará el nombre completo.", n_unsplit)
+                      else "Todos los nombres se separaron en apellidos y nombres."))
+  } else if (n_unsplit > 0L) {
+    push(.cmail_check("names_unsplit", "warning", as.integer(n_unsplit),
+                      sprintf("%d nombres traen una coma: el saludo usará la cadena entera. Si son «APELLIDOS, NOMBRES», cambia el formato del nombre.", n_unsplit)))
+  }
+  list(checks = checks, rendered = rendered, images = images, store = store, resolved = resolved, tag_rows = tag_rows)
+}
+
+.cmail_review_summary <- function(checks) {
+  st <- vapply(checks, function(c) c$status, "")
+  list(ready = !any(st == "error"), errors = sum(st == "error"), warnings = sum(st == "warning"))
+}
+
+#' Revisión antes de exportar.
+#' @keywords internal
+collection_mail_review <- function(sid, template = NULL) {
+  session <- session_get(sid)
+  tpl <- .cmail_working_template(.collection_current(session), template)
+  r <- .cmail_review_checks(session, tpl)
+  c(list(ok = TRUE, template_sha256 = tpl$template_sha256), .cmail_review_summary(r$checks), list(checks = r$checks))
+}
+
+.cmail_csv_cell <- function(x) {
+  x <- enc2utf8(as.character(x))
+  x[is.na(x)] <- ""
+  paste0('"', gsub('"', '""', x, fixed = TRUE), '"')
+}
+
+.cmail_write_audience <- function(path, store, resolved, tag_rows) {
+  extra <- Filter(function(r) !identical(r$key, "nombre"), tag_rows)
+  header <- c("Email Address", "First Name", vapply(extra, function(r) r$tag, ""))
+  rows <- resolved$rows
+  cols <- list(resolved$email[rows], resolved$first_name[rows])
+  # Un marcador de «sin dato» sale vacío: así Mailchimp aplica el respaldo (*|IF:TAG|*).
+  for (r in extra) cols[[length(cols) + 1L]] <- .cmail_value(store$rows[[r$column]][rows])
+  lines <- c(
+    paste(.cmail_csv_cell(header), collapse = ","),
+    if (length(rows)) do.call(paste, c(lapply(cols, .cmail_csv_cell), sep = ","))
+  )
+  con <- file(path, open = "wb"); on.exit(close(con))
+  writeBin(charToRaw(enc2utf8(paste0(paste(lines, collapse = "\r\n"), "\r\n"))), con)
+  header
+}
+
+.cmail_leeme <- function(images, counts) {
+  pending <- Filter(function(i) is.null(i$url), images)
+  c(
+    "Correo para Mailchimp — cómo usar este paquete",
+    "",
+    sprintf(paste0("Cifras: %d destinatarios en audiencia.csv de %d filas importadas ",
+                   "(%d sin correo, %d con correo inválido, %d repetidos; %d filas vacías descartadas)."),
+            counts$valid, counts$total, counts$without_email, counts$invalid_email, counts$duplicated,
+            counts$rows_blank_dropped),
+    "",
+    "1. En Mailchimp, abre Audiencia > Importar contactos y sube audiencia.csv.",
+    "   Cada columna corresponde a una etiqueta de combinación (First Name = FNAME).",
+    "   Crea en la audiencia los campos que falten con la MISMA etiqueta del encabezado.",
+    "2. Sube la carpeta imagenes/ a Content Studio.",
+    if (length(pending)) c(
+      "3. Abre mailchimp_template.html y reemplaza cada marcador por la URL que te da Content Studio:",
+      "",
+      sprintf("   %-34s | %s", "Marcador en el HTML (src)", "Archivo a subir"),
+      sprintf("   %-34s-+-%s", strrep("-", 34), strrep("-", 30)),
+      vapply(pending, function(i) sprintf("   %-34s | imagenes/%s", i$placeholder, i$export_name), ""),
+      ""
+    ) else "3. Las imágenes ya apuntan a sus URL públicas; no hay marcadores que reemplazar.",
+    "4. Crea la plantilla en Mailchimp con «Code your own» > «Paste in code» y pega el HTML.",
+    "5. Envía una prueba antes de programar la campaña.",
+    "",
+    "audiencia.csv contiene datos personales: no lo compartas ni lo guardes dentro del proyecto .pulso."
+  )
+}
+
+#' Exporta el paquete para Mailchimp (ZIP fuera del `.pulso`).
+#' @keywords internal
+collection_mail_export <- function(sid, expected_revision = NULL) {
+  session <- session_get(sid)
+  state <- .collection_current(session)
+  # Se exporta lo GUARDADO: la revisión que la pantalla vio es obligatoria.
+  .collection_assert_revision(state, expected_revision)
+  tpl <- .cmail_template_of(state)
+  r <- .cmail_review_checks(session, tpl)
+  summary <- .cmail_review_summary(r$checks)
+  if (!isTRUE(summary$ready)) {
+    stop_api(422, "E_COLLECTION_MAIL_REVIEW_BLOCKING", "La revisión tiene errores; corrígelos antes de exportar.",
+             details = list(checks = Filter(function(c) identical(c$status, "error"), r$checks)))
+  }
+  work <- tempfile("cmail-export-", tmpdir = file.path(session$dir, "downloads"))
+  dir.create(file.path(work, "imagenes"), recursive = TRUE, showWarnings = FALSE)
+  on.exit(unlink(work, recursive = TRUE, force = TRUE), add = TRUE)
+
+  html_path <- file.path(work, "mailchimp_template.html")
+  writeBin(charToRaw(r$rendered$html), html_path)
+  audience_path <- file.path(work, "audiencia.csv")
+  columns <- .cmail_write_audience(audience_path, r$store, r$resolved, r$tag_rows)
+  image_entries <- character(0)
+  for (img in r$images) {
+    if (is.null(img$path)) next
+    dest <- file.path(work, "imagenes", img$export_name)
+    file.copy(img$path, dest, overwrite = TRUE)
+    image_entries <- c(image_entries, file.path("imagenes", img$export_name))
+  }
+  writeLines(enc2utf8(.cmail_leeme(r$images, r$resolved$counts)), file.path(work, "LEEME.txt"), useBytes = TRUE)
+
+  sha <- function(p) paste0("sha256:", tolower(digest::digest(file = p, algo = "sha256")))
+  entries <- c("mailchimp_template.html", "audiencia.csv", image_entries, "LEEME.txt")
+  manifest <- list(
+    schema = "collection_mail_export/v1",
+    generated_at = .collection_now_iso(),
+    audience = "client",
+    sensitivity = "personal_data",
+    locale = "es-PE",
+    generated_deliverables_outside_pulso = TRUE,
+    secrets_included = FALSE,
+    template = list(template_id = tpl$template_id, preset_id = tpl$preset_id %||% "",
+                    revision = as.integer(tpl$revision), template_sha256 = tpl$template_sha256),
+    html_bytes = r$rendered$bytes,
+    recipients = list(
+      rows = r$resolved$counts$valid,
+      excluded = r$resolved$counts$total - r$resolved$counts$valid,
+      source_file = r$store$file_name,
+      imported_at = r$store$imported_at,
+      source_sha256 = r$store$source_sha256,
+      encoding = r$store$encoding,
+      mapping = .cmc_drop_nulls_deep(r$store$mapping),
+      name_format = r$store$mapping$name_format,
+      counts = r$resolved$counts
+    ),
+    audience_columns = as.list(columns),
+    tags = as.list(vapply(r$tag_rows, function(t) t$tag, "")),
+    checks = r$checks,
+    files = lapply(entries, function(e) list(path = e, size_bytes = as.integer(file.info(file.path(work, e))$size),
+                                             sha256 = sha(file.path(work, e)))),
+    review = summary
+  )
+  # D6: el manifest nunca lleva un correo, venga de donde venga (p. ej. un encabezado).
+  manifest <- .cmail_mask_pii(manifest)
+  manifest_path <- file.path(work, "manifest.json")
+  writeLines(jsonlite::toJSON(manifest, auto_unbox = TRUE, pretty = TRUE, null = "null"), manifest_path, useBytes = TRUE)
+
+  stamp <- format(Sys.time(), "%Y%m%d-%H%M%S")
+  # Nombre público ≤ 80 caracteres (O2): el slug se corta en 40.
+  slug <- gsub("^-+|-+$", "", substr(gsub("[^a-z0-9]+", "-", tolower(tpl$template_id %||% "correo")), 1L, 40L))
+  if (!nzchar(slug)) slug <- "correo"
+  zip_name <- sprintf("%s_mailchimp_%s.zip", slug, stamp)
+  zip_path <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", zip_name))
+  zip::zip(zip_path, files = c(entries, "manifest.json"), root = work, mode = "mirror")
+  size <- file.info(zip_path)$size
+  if (size > .CMAIL_EXPORT_MAX_BYTES) {
+    unlink(zip_path, force = TRUE)
+    stop_api(413, "E_COLLECTION_MAIL_EXPORT_TOO_LARGE",
+             "El paquete supera 5 MB (revisa el peso de las imágenes).", details = list(size_bytes = as.integer(size)))
+  }
+  manifest_out <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", slug, "_mailchimp_manifest.json"))
+  file.copy(manifest_path, manifest_out, overwrite = TRUE)
+
+  register <- function(path, kind, name, role, media_type) {
+    meta <- .register_output_file(sid, kind, path, original_name = name)
+    files <- session_get(sid)$files
+    digest_value <- sha(path)
+    files[[meta$file_id]]$sha256 <- digest_value
+    files[[meta$file_id]]$media_type <- media_type
+    files[[meta$file_id]]$role <- role
+    files[[meta$file_id]]$audience <- "client"
+    files[[meta$file_id]]$sensitivity <- "personal_data"
+    session_set(sid, "files", files)
+    list(file_id = meta$file_id, role = role, filename = name, media_type = media_type,
+         size_bytes = as.integer(meta$size), sha256 = digest_value,
+         audience = "client", sensitivity = "personal_data")
+  }
+  artifacts <- list(
+    register(zip_path, "collection_mail_zip", zip_name, "deliverable", "application/zip"),
+    register(manifest_out, "collection_mail_manifest", sprintf("%s_mailchimp_manifest.json", slug), "manifest", "application/json")
+  )
+  list(
+    ok = TRUE,
+    artifacts = artifacts,
+    zip = artifacts[[1]],
+    manifest = manifest,
+    review = summary
+  )
+}

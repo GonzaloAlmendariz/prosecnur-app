@@ -156,6 +156,7 @@ export const ModuleStatusCard = forwardRef<
 >(function ModuleStatusCard({ module, view, index, onRequestRemove }, ref) {
   const navigate = useNavigate();
   const Icon = module.icon;
+  const cardTitle = module.cardTitle ?? module.shortLabel;
   const kebabRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [menuState, setMenuState] = useState<MissionControlMenuState>({ kind: "closed" });
@@ -190,7 +191,7 @@ export const ModuleStatusCard = forwardRef<
           <span className="home-mc-head-id">
             <span className="home-mc-badge" aria-hidden="true"><Icon size={17} /></span>
             <span className="home-mc-head-text">
-              <strong>{module.shortLabel}</strong>
+              <strong>{cardTitle}</strong>
               <span className="home-mc-tagline">{module.tagline}</span>
             </span>
           </span>
@@ -239,7 +240,7 @@ export const ModuleStatusCard = forwardRef<
             como pie discreto, al estilo del pie de Finder. El CTA se fue
             porque la tarjeta entera ya es el botón. */}
         {view.facts.length > 0 && (
-          <span className="home-mc-foot" aria-label={`Datos de ${module.shortLabel}`}>
+          <span className="home-mc-foot" aria-label={`Datos de ${cardTitle}`}>
             {view.facts.slice(0, 4).map((fact, index) => (
               <span className="home-mc-fact" key={fact.label}>
                 {index > 0 && <span className="home-mc-fact-dot" aria-hidden="true">·</span>}
@@ -272,7 +273,7 @@ export const ModuleStatusCard = forwardRef<
             ref={kebabRef}
             type="button"
             className="home-mc-kebab"
-            aria-label={`Opciones de ${module.shortLabel}`}
+            aria-label={`Opciones de ${cardTitle}`}
             title="Opciones"
           >
             <MoreHorizontal size={16} aria-hidden="true" />
@@ -285,7 +286,7 @@ export const ModuleStatusCard = forwardRef<
             sideOffset={6}
             collisionPadding={12}
           >
-            <div className="home-mc-menu-actions" role="menu" aria-label={`Opciones de ${module.shortLabel}`}>
+            <div className="home-mc-menu-actions" role="menu" aria-label={`Opciones de ${cardTitle}`}>
               {MISSION_CONTROL_MENU_ITEMS.map((item) => (
                 <button
                   type="button"
@@ -343,7 +344,7 @@ export const ModuleStatusCard = forwardRef<
             }}
           >
             <Dialog.Title asChild>
-              <strong>¿Quitar {module.shortLabel} del proyecto?</strong>
+              <strong>¿Quitar {cardTitle} del proyecto?</strong>
             </Dialog.Title>
             <Dialog.Description asChild>
               <p>

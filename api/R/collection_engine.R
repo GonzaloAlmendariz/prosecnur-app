@@ -51,8 +51,9 @@
 #' front hacia cualquier cosa. Es el mismo defecto que este loop lleva corrigiendo
 #' todo el dia: se anadio el dato donde se miro, no en todas las salidas.
 .collection_con_vigencia <- function(payload, sid) {
-  payload$source_vigente <- .collection_source_vigente(session_get(sid), payload$state)
-  payload
+  session <- session_get(sid)
+  payload$source_vigente <- .collection_source_vigente(session, payload$state)
+  .collection_payload_de_lectura(payload, session)
 }
 
 .collection_payload <- function(state, noop = FALSE, seeded = FALSE,
@@ -269,8 +270,22 @@
   collection_fingerprint(input)
 }
 
+# La huella es la IDENTIDAD del despliegue: `adapter_id` y la configuracion del
+# target que Accesos rehidrata (COLLECTION_DEPLOYMENT_TARGET_CONFIG_FIELDS) no
+# entran, para que un despliegue guardado antes de conservarlos tenga la misma
+# huella que el mismo despliegue guardado despues. Lo que cambia un enlace ya
+# cambia los `bindings`, que si entran.
+.collection_deployment_target_identity <- function(target) {
+  if (!is.list(target)) return(target)
+  target[setdiff(names(target), COLLECTION_DEPLOYMENT_TARGET_CONFIG_FIELDS)]
+}
+
 .collection_deployment_fingerprint <- function(deployment) {
   material <- deployment
+  material$adapter_id <- NULL
+  if (is.list(material$target)) {
+    material$target <- .collection_deployment_target_identity(material$target)
+  }
   material$deployment_fingerprint <- NULL
   material$status <- NULL
   material$handoff <- NULL
@@ -605,13 +620,14 @@ collection_state_migrate_legacy <- function(s) {
 collection_state_get <- function(sid) {
   s <- session_get(sid)
   estado <- .collection_current(s)
-  .collection_payload(
+  payload <- .collection_payload(
     estado,
     noop = TRUE,
     seed_available = is.null(s$collection_state) &&
       length(.collection_seed_source(s)$rows) > 0L,
     source_vigente = .collection_source_vigente(s, estado)
   )
+  .collection_payload_de_lectura(payload, s)
 }
 
 collection_state_seed <- function(sid) {
@@ -640,8 +656,10 @@ collection_state_seed <- function(sid) {
 #' Regenerar NO es gratis y por eso es explicito: el plan esta congelado a
 #' proposito —es lo que fue a imprenta— y rehacerlo descarta el despliegue y su
 #' handoff. La funcion devuelve que se descarto para que la UI pueda decirlo
-#' ANTES, no despues.
-collection_state_reseed <- function(sid, expected_revision) {
+#' ANTES, no despues: con `dry_run = TRUE` responde el mismo `descartado` sin
+#' tocar estado, revision ni `project_dirty`. Que se conserva y que se descarta
+#' vive en collection_reseed.R.
+collection_state_reseed <- function(sid, expected_revision, dry_run = FALSE) {
   s <- session_get(sid)
   current <- .collection_current(s)
   .collection_assert_revision(current, expected_revision)
@@ -652,16 +670,21 @@ collection_state_reseed <- function(sid, expected_revision) {
       "No hay seleccion de aulas vigente de la que rehacer el plan."
     )
   }
-  descartado <- list(
-    plan_run_id = .cm_aulas_scalar(current$plan$source_ref$run_id %||% "", ""),
-    unidades = length(current$plan$units %||% list()),
-    tenia_despliegue = is.list(current$deployment) && length(current$deployment) > 0L,
-    entregado = identical(.cm_aulas_scalar(current$deployment$status %||% "", ""), "handed_off")
-  )
+  descartado <- .collection_reseed_descartado(current)
   # Construye SIEMPRE: `.collection_seed_from_legacy_state()` devolveria aqui el
   # plan que estamos reemplazando, que es justo lo contrario de rehacer.
   seeded <- .collection_seed_build(s)
-  nuevo <- seeded$state
+  nuevo <- .collection_reseed_conservar(seeded$state, current)
+  if (.collection_reseed_dry_run(dry_run)) {
+    payload <- .collection_payload(
+      current, noop = TRUE, source_vigente = .collection_source_vigente(s, current)
+    )
+    payload$dry_run <- TRUE
+    payload$reseeded <- FALSE
+    payload$descartado <- descartado
+    payload$propuesto <- .collection_reseed_propuesto(nuevo)
+    return(.collection_payload_de_lectura(payload, s))
+  }
   # La revision sigue creciendo: rehacer no reinicia el contador, porque los
   # clientes lo usan para detectar escrituras concurrentes.
   nuevo$state_revision <- as.integer(current$state_revision) + 1L
@@ -669,9 +692,13 @@ collection_state_reseed <- function(sid, expected_revision) {
   payload <- .collection_payload(
     nuevo, seeded = TRUE, source_vigente = .collection_source_vigente(session_get(sid), nuevo)
   )
+  payload$dry_run <- FALSE
   payload$reseeded <- TRUE
   payload$descartado <- descartado
-  payload
+  payload$propuesto <- .collection_reseed_propuesto(nuevo)
+  # Misma salida que el resto del modulo: recibos con `file_available` y
+  # deployment con sus derivados de lectura.
+  .collection_payload_de_lectura(payload, session_get(sid))
 }
 
 collection_plan_put <- function(sid, plan, expected_revision) {
@@ -705,6 +732,12 @@ collection_plan_put <- function(sid, plan, expected_revision) {
 .collection_deployment_normalize <- function(deployment, plan) {
   candidate <- deployment
   if (!is.list(candidate)) return(candidate)
+  # Lista blanca: un target llegado por HTTP no mete en el estado (ni en el
+  # .pulso) un token ni nada fuera de lo que Accesos necesita rehidratar.
+  if (is.list(candidate$target)) {
+    candidate$target <- .ca_deployment_target_whitelist(candidate$target)
+  }
+  candidate <- .collection_deployment_handoff_vacio_fuera(candidate, solo_objeto_vacio = TRUE)
   candidate$deployment_fingerprint <- NULL
   candidate$deployment_fingerprint <- .collection_deployment_fingerprint(candidate)
   if (!identical(candidate$plan_fingerprint, plan$input_fingerprint)) {
@@ -822,7 +855,7 @@ collection_deployment_prepare <- function(sid, expected_revision, deployment = N
     provider = deployment$target$provider,
     remote_ref = observed$remote_ref
   ))
-  expected_target <- collection_fingerprint(deployment$target)
+  expected_target <- collection_fingerprint(.collection_deployment_target_identity(deployment$target))
   if (.cc_is_scalar_string(observed_target) && !identical(observed_target, expected_target)) {
     reasons <- c(reasons, "target_remote_changed")
   }

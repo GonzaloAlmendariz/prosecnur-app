@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
 import type { CollectionPlan, CollectionStatePayload } from "../../api/recopiladores";
@@ -47,25 +48,26 @@ const BASE_PLAN: CollectionPlan = {
 describe("adaptación del plan legacy", () => {
   it("no ofrece una acción que no puede producir un plan", () => {
     const markup = renderToStaticMarkup(
-      <PlanSection payload={emptyPayload(false)} onState={() => undefined} />,
+      <MemoryRouter><PlanSection payload={emptyPayload(false)} onState={() => undefined} /></MemoryRouter>,
     );
     expect(markup).not.toContain("Adaptar fuente disponible");
-    expect(markup).toContain("entrega una selección desde su módulo de origen");
+    expect(markup).toContain("Sin unidades en el plan");
+    expect(markup).toContain("Llegan de la selección de la muestra");
   });
 
   it("ofrece adaptación solo cuando el backend declara una semilla", () => {
     const markup = renderToStaticMarkup(
-      <PlanSection payload={emptyPayload(true)} onState={() => undefined} />,
+      <MemoryRouter><PlanSection payload={emptyPayload(true)} onState={() => undefined} /></MemoryRouter>,
     );
     expect(markup).toContain("Adaptar fuente disponible");
-    expect(markup).toContain("selección o un plan de aulas compatible");
+    expect(markup).toContain("conserva una selección compatible");
   });
 });
 
 describe("rol de cada unidad, traducido igual que la ficha impresa", () => {
   it("traduce las claves del motor y arma el «Reemplazo de» con el nombre de la unidad", () => {
     const markup = renderToStaticMarkup(
-      <PlanSection payload={payloadWithPlan(BASE_PLAN)} onState={() => undefined} />,
+      <MemoryRouter><PlanSection payload={payloadWithPlan(BASE_PLAN)} onState={() => undefined} /></MemoryRouter>,
     );
     // La columna «Rol» se fue: decía «Titular» en el 100% de las filas
     // principales —el código operativo «CH n» ya lo dice— y ese ancho hacía
@@ -108,7 +110,7 @@ describe("de quién es reemplazo cada reserva", () => {
       ],
     };
     const markup = renderToStaticMarkup(
-      <PlanSection payload={payloadWithPlan(plan)} onState={() => undefined} />,
+      <MemoryRouter><PlanSection payload={payloadWithPlan(plan)} onState={() => undefined} /></MemoryRouter>,
     );
     expect(markup).not.toContain("Reemplazo de urb209_0601");
 
@@ -135,7 +137,7 @@ describe("de quién es reemplazo cada reserva", () => {
       ],
     };
     const markup = renderToStaticMarkup(
-      <PlanSection payload={payloadWithPlan(plan)} onState={() => undefined} />,
+      <MemoryRouter><PlanSection payload={payloadWithPlan(plan)} onState={() => undefined} /></MemoryRouter>,
     );
     expect(markup).not.toContain("chain_reserve");
     const [titular, reserva] = plan.units;
@@ -154,7 +156,7 @@ describe("revisión del instrumento en la cabecera del plan", () => {
       instrument_ref: { revision_id: "legacy-instrument-unpinned", sha256: "sha" },
     };
     const markup = renderToStaticMarkup(
-      <PlanSection payload={payloadWithPlan(plan)} onState={() => undefined} />,
+      <MemoryRouter><PlanSection payload={payloadWithPlan(plan)} onState={() => undefined} /></MemoryRouter>,
     );
     expect(markup).toContain("sin instrumento fijado");
     expect(markup).not.toContain("legacy-instrument-unpinned");
@@ -162,7 +164,7 @@ describe("revisión del instrumento en la cabecera del plan", () => {
 
   it("una revisión real se muestra tal cual, no se inventa una etiqueta", () => {
     const markup = renderToStaticMarkup(
-      <PlanSection payload={payloadWithPlan(BASE_PLAN)} onState={() => undefined} />,
+      <MemoryRouter><PlanSection payload={payloadWithPlan(BASE_PLAN)} onState={() => undefined} /></MemoryRouter>,
     );
     expect(markup).toContain("rev-1");
   });

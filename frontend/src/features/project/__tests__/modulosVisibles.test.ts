@@ -29,11 +29,11 @@ describe("modulosVisibles", () => {
       overview({
         "calc-muestra": "ready",
         "editor-xlsform": "ready",
-        recopiladores: "ready",
+        "material-campo": "ready",
         monitoreo: "ready",
       }),
     );
-    expect(visto).toContain("recopiladores");
+    expect(visto).toContain("material-campo");
     expect(visto).toContain("monitoreo");
   });
 
@@ -49,10 +49,22 @@ describe("modulosVisibles", () => {
 
   it("no duplica un módulo que está en las dos listas", () => {
     const visto = modulosVisibles(
+      ["calc-muestra", "material-campo"],
+      overview({ "calc-muestra": "ready", "material-campo": "ready" }),
+    );
+    expect(visto.filter((s) => s === "material-campo")).toHaveLength(1);
+  });
+
+  // ADR 0108: un proyecto o un backend anterior al renombre publica
+  // `recopiladores`. Se lee como Material de campo y nunca se devuelve.
+  it("lee `recopiladores` como Material de campo, en la curación y en el avance", () => {
+    const visto = modulosVisibles(
       ["calc-muestra", "recopiladores"],
       overview({ "calc-muestra": "ready", recopiladores: "ready" }),
     );
-    expect(visto.filter((s) => s === "recopiladores")).toHaveLength(1);
+    expect(visto).toEqual(["calc-muestra", "material-campo"]);
+    const derivado = modulosVisibles(null, overview({ recopiladores: "ready" }));
+    expect(derivado).toEqual(["material-campo"]);
   });
 
   it("mantiene el orden canónico, no el de llegada", () => {
@@ -68,7 +80,7 @@ describe("modulosVisibles", () => {
   it("sin curación, deriva del avance", () => {
     const visto = modulosVisibles(
       null,
-      overview({ "calc-muestra": "ready", recopiladores: "pending" }),
+      overview({ "calc-muestra": "ready", "material-campo": "pending" }),
     );
     expect(visto).toEqual(["calc-muestra"]);
   });
@@ -92,11 +104,11 @@ describe("modulosVisibles · lo que NO puede colarse", () => {
       modules: [
         { id: "calc-muestra", state: "ready" },
         { id: "plan-trabajo", state: "pending" },
-        { id: "recopiladores", state: "ready" },
+        { id: "material-campo", state: "ready" },
       ],
     } as unknown as ProjectOverview;
     const visto = modulosVisibles(["calc-muestra"], enMarcha);
-    expect(visto).toContain("recopiladores");
+    expect(visto).toContain("material-campo");
     expect(visto).not.toContain("diseno-estudio");
   });
 

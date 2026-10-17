@@ -66,7 +66,7 @@ test_that("el endpoint /reseed esta montado y exige revision", {
   fuente <- readLines("../../R/router_recopiladores.R", warn = FALSE)
   expect_true(any(grepl("/api/recopiladores/reseed", fuente, fixed = TRUE)))
   bloque <- paste(fuente, collapse = "\n")
-  expect_true(grepl("collection_state_reseed\\(session_header\\(req\\), body\\$expected_revision\\)", bloque))
+  expect_true(grepl("collection_state_reseed\\(session_header\\(req\\), body\\$expected_revision, dry_run = body\\$dry_run\\)", bloque))
 })
 
 test_that("el error de origen ausente esta registrado", {

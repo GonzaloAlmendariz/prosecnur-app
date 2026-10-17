@@ -113,6 +113,26 @@ export type CollectionState = {
   artifact_receipts?: CollectionArtifactReceipt[] | null;
 };
 
+/** Lo que rehacer el plan descarta del estado vigente (`.collection_reseed_descartado`). */
+export type CollectionReseedDescartado = {
+  plan_run_id: string;
+  unidades: number;
+  tenia_despliegue: boolean;
+  entregado: boolean;
+  fichas: { instancias: number; unidades_cubiertas: number };
+  recibos: number;
+  publicaciones_drive: number;
+  /** Campos presentes que el backend no clasifica: se pierden igual. */
+  otros_campos: string[];
+  /** Claves del estado que sobreviven (`material_template`, `pruebas`…). */
+  conservado: string[];
+};
+
+export type CollectionReseedPropuesto = {
+  plan_run_id: string;
+  unidades: number;
+};
+
 export type CollectionStatePayload = CollectionState & {
   ok: true;
   noop?: boolean;
@@ -130,16 +150,22 @@ export type CollectionStatePayload = CollectionState & {
     selection_run_id: string;
     desfasado: boolean;
   } | null;
-  /** Sólo tras rehacer el plan: qué quedó descartado al hacerlo. */
+  /**
+   * Rehacer el plan: `reseeded` sólo tras la escritura; `dry_run` en la
+   * previsualización, que no muta nada y trae el MISMO `descartado`.
+   */
   reseeded?: boolean;
-  descartado?: {
-    plan_run_id: string;
-    unidades: number;
-    tenia_despliegue: boolean;
-    entregado: boolean;
-  } | null;
+  dry_run?: boolean;
+  descartado?: CollectionReseedDescartado | null;
+  /** Cómo quedaría el plan nuevo (previsualización y escritura). */
+  propuesto?: CollectionReseedPropuesto | null;
   state: CollectionState;
   handoff?: CollectionHandoffReceipt | null;
+  /**
+   * Rutas del deployment que el backend DEDUJO al leer y no están guardadas
+   * («adapter_id», «target.deployment_active»). `[]` si nada se dedujo.
+   */
+  deployment_derived_fields?: string[];
 };
 
 export type CapabilitySupport = "supported" | "unsupported" | "unknown";
@@ -183,16 +209,25 @@ export type CollectionDeploymentPreview = {
   preview?: CollectionDeployment | { deployment?: CollectionDeployment | null } | null;
 };
 
+// Espejo de `COLLECTION_MATERIAL_BLOCK_TYPES` (api/R/collection_materials.R),
+// en el mismo orden. Se quedó en 9 cuando el backend ya aceptaba 13, y los
+// bloques de los presets nuevos —la careta `brand_strip` del afiche y de la
+// ficha de campo— salían sin rótulo en el editor y el inspector los rotulaba
+// «brand_header» (el <select> caía a su primera opción).
 export const COLLECTION_BLOCK_TYPES = [
   "brand_header",
+  "brand_strip",
+  "status_tag",
   "heading",
   "body",
   "access_qr",
   "field_grid",
+  "form_lines",
   "instructions",
   "application_log",
   "divider",
   "footer",
+  "campus_map",
 ] as const;
 export type CollectionBlockType = (typeof COLLECTION_BLOCK_TYPES)[number];
 
@@ -259,6 +294,13 @@ export type CollectionArtifactReceipt = {
   page_map?: Array<Record<string, unknown>> | Record<string, unknown> | null;
   audience?: string | null;
   sensitivity?: string | null;
+  /**
+   * Si el archivo sigue en la sesión. Lo deriva el backend y no se persiste:
+   * el `.pulso` guarda el recibo pero no el entregable, así que al reabrir el
+   * proyecto el recibo queda como evidencia y su descarga daría 404. Ausente
+   * en payloads viejos: se trata como disponible.
+   */
+  file_available?: boolean | null;
 };
 
 export type CollectionMaterialTemplatePayload = {
@@ -290,6 +332,12 @@ export type CollectionMaterialRenderResult = {
 
 type UnknownRecord = Record<string, unknown>;
 
+/** Conserva `file_available` sólo como booleano; cualquier otra cosa es «no dicho». */
+function normalizeArtifactReceipt(receipt: CollectionArtifactReceipt): CollectionArtifactReceipt {
+  const raw: unknown = (receipt as { file_available?: unknown }).file_available;
+  return { ...receipt, file_available: typeof raw === "boolean" ? raw : null };
+}
+
 function isRecord(value: unknown): value is UnknownRecord {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -300,8 +348,90 @@ function asArray<T>(value: unknown): T[] {
   return [value as T];
 }
 
+/**
+ * Un recibo de traspaso sólo existe si trae su contrato completo.
+ *
+ * El backend arma el despliegue con `handoff = NULL` y jsonlite serializa ese
+ * NULL como `{}`: un objeto vacío que `isRecord` acepta. Tomarlo como recibo
+ * pintaba «Recibo firmado» con Fecha, Revisión, Plan y Accesos en «—» sin que
+ * hubiera habido traspaso a Monitoreo (H25). Sin schema o sin sus campos
+ * obligatorios, no hay recibo.
+ */
+export function normalizeHandoffReceipt(value: unknown): CollectionHandoffReceipt | null {
+  if (!isRecord(value) || value.schema !== "collection_handoff/v1") return null;
+  const texto = (key: string) => (typeof value[key] === "string" ? (value[key] as string).trim() : "");
+  const revision = Number(value.state_revision);
+  const receipt: CollectionHandoffReceipt = {
+    schema: "collection_handoff/v1",
+    deployment_id: texto("deployment_id"),
+    deployment_fingerprint: texto("deployment_fingerprint"),
+    plan_fingerprint: texto("plan_fingerprint"),
+    handed_off_at: texto("handed_off_at"),
+    state_revision: revision,
+  };
+  if (
+    !receipt.deployment_id
+    || !receipt.deployment_fingerprint
+    || !receipt.plan_fingerprint
+    || !receipt.handed_off_at
+    || !Number.isInteger(revision)
+    || revision < 0
+  ) return null;
+  return receipt;
+}
+
 function contractError(detail: string): Error {
   return new Error(`El backend devolvió un contrato inválido de Recopiladores: ${detail}`);
+}
+
+// R serializa un escalar como `[x]` cuando no se le pide `auto_unbox`; la
+// lectura acepta las dos formas y nada más.
+function escalar(value: unknown): unknown {
+  return Array.isArray(value) && value.length === 1 ? value[0] : value;
+}
+
+/** Un conteo: entero no negativo o 0. Nunca `NaN` en pantalla. */
+function conteo(value: unknown): number {
+  const n = Number(escalar(value));
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+}
+
+function textoPlano(value: unknown): string {
+  const v = escalar(value);
+  return typeof v === "string" ? v.trim() : "";
+}
+
+function listaDeTextos(value: unknown): string[] {
+  const lista = typeof value === "string" ? [value] : asArray<unknown>(value);
+  return [...new Set(lista.map(textoPlano).filter(Boolean))];
+}
+
+/**
+ * `descartado` del reseed, campo por campo. Un booleano que no sea `true` no
+ * cuenta: «tenía despliegue» o «entregado» no se afirman sin saberlo.
+ */
+export function normalizeReseedDescartado(value: unknown): CollectionReseedDescartado | null {
+  if (!isRecord(value)) return null;
+  const fichas = isRecord(value.fichas) ? value.fichas : {};
+  return {
+    plan_run_id: textoPlano(value.plan_run_id),
+    unidades: conteo(value.unidades),
+    tenia_despliegue: escalar(value.tenia_despliegue) === true,
+    entregado: escalar(value.entregado) === true,
+    fichas: {
+      instancias: conteo(fichas.instancias),
+      unidades_cubiertas: conteo(fichas.unidades_cubiertas),
+    },
+    recibos: conteo(value.recibos),
+    publicaciones_drive: conteo(value.publicaciones_drive),
+    otros_campos: listaDeTextos(value.otros_campos),
+    conservado: listaDeTextos(value.conservado),
+  };
+}
+
+export function normalizeReseedPropuesto(value: unknown): CollectionReseedPropuesto | null {
+  if (!isRecord(value)) return null;
+  return { plan_run_id: textoPlano(value.plan_run_id), unidades: conteo(value.unidades) };
 }
 
 export function normalizeCollectionStatePayload(value: unknown): CollectionStatePayload {
@@ -329,17 +459,22 @@ export function normalizeCollectionStatePayload(value: unknown): CollectionState
     throw contractError("deployment no cumple collection_deployment/v1.");
   }
 
+  // El `handoff` del despliegue pasa por el mismo filtro: `{}` no es recibo.
+  const normalizedDeployment: CollectionDeployment | null = deployment === null
+    ? null
+    : { ...(deployment as CollectionDeployment), handoff: normalizeHandoffReceipt((deployment as { handoff?: unknown }).handoff) };
+
   const state: CollectionState = {
     schema: "collection_state/v1",
     state_revision: revision,
     plan: plan as CollectionPlan | null,
-    deployment: deployment as CollectionDeployment | null,
+    deployment: normalizedDeployment,
     migration: isRecord(rawState.migration) ? rawState.migration : null,
     material_template: isRecord(rawState.material_template)
       ? rawState.material_template as CollectionMaterialTemplate
       : null,
     material_instances: asArray<CollectionMaterialInstance>(rawState.material_instances),
-    artifact_receipts: asArray<CollectionArtifactReceipt>(rawState.artifact_receipts),
+    artifact_receipts: asArray<CollectionArtifactReceipt>(rawState.artifact_receipts).map(normalizeArtifactReceipt),
   };
   // El normalizador reconstruye el payload campo por campo, así que TODO campo
   // nuevo del backend hay que añadirlo aquí o se pierde en silencio. Costó un
@@ -347,7 +482,6 @@ export function normalizeCollectionStatePayload(value: unknown): CollectionState
   // JSON —comprobado con curl contra la API— y no aparecía en pantalla, con el
   // backend, el endpoint y el componente los tres bien.
   const vigente = isRecord(value.source_vigente) ? value.source_vigente : null;
-  const descartado = isRecord(value.descartado) ? value.descartado : null;
   return {
     ok: true,
     noop: value.noop === true,
@@ -359,15 +493,14 @@ export function normalizeCollectionStatePayload(value: unknown): CollectionState
       desfasado: vigente.desfasado === true,
     },
     reseeded: value.reseeded === true,
-    descartado: descartado === null ? null : {
-      plan_run_id: String(descartado.plan_run_id ?? ""),
-      unidades: Number(descartado.unidades ?? 0),
-      tenia_despliegue: descartado.tenia_despliegue === true,
-      entregado: descartado.entregado === true,
-    },
+    dry_run: value.dry_run === true,
+    descartado: normalizeReseedDescartado(value.descartado),
+    propuesto: normalizeReseedPropuesto(value.propuesto),
+    deployment_derived_fields: asArray<unknown>(value.deployment_derived_fields)
+      .filter((campo): campo is string => typeof campo === "string" && campo.length > 0),
     ...state,
     state,
-    handoff: isRecord(value.handoff) ? value.handoff as CollectionHandoffReceipt : state.deployment?.handoff ?? null,
+    handoff: normalizeHandoffReceipt(value.handoff) ?? state.deployment?.handoff ?? null,
   };
 }
 
@@ -399,7 +532,15 @@ export function apiRecopiladoresSeed() {
  * respuesta trae `descartado` con lo que se pierde.
  */
 export function apiRecopiladoresReseed(expected_revision: number) {
-  return stateRequest("/api/recopiladores/reseed", json("POST", { expected_revision }));
+  return stateRequest("/api/recopiladores/reseed", json("POST", { expected_revision, dry_run: false }));
+}
+
+/**
+ * Previsualiza el reseed: mismo `descartado` y `propuesto`, sin tocar estado,
+ * revisión ni `project_dirty`. Es lo que se lee ANTES de confirmar.
+ */
+export function apiRecopiladoresReseedPreview(expected_revision: number) {
+  return stateRequest("/api/recopiladores/reseed", json("POST", { expected_revision, dry_run: true }));
 }
 
 export function apiRecopiladoresPlanPut(expected_revision: number, plan: CollectionPlan) {

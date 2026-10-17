@@ -1,4 +1,4 @@
-test_that("router de Recopiladores declara exactamente las diecisiete rutas V1", {
+test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve + ocho de correo)", {
   source_path <- test_path("..", "..", "R", "router_recopiladores.R")
   text <- paste(readLines(source_path, warn = FALSE), collapse = "\n")
   routes <- regmatches(
@@ -19,6 +19,9 @@ test_that("router de Recopiladores declara exactamente las diecisiete rutas V1",
     "/api/recopiladores/reconcile",
     "/api/recopiladores/handoff",
     "/api/recopiladores/material-template",
+    # Catálogo › Tipos (ADR 0109 E1a): tipos de material y su miniatura real.
+    "/api/recopiladores/material-catalog",
+    "/api/recopiladores/material-catalog/preview",
     "/api/recopiladores/materials/instances",
     "/api/recopiladores/materials/render",
     # B6(b): subir al Drive del operativo un artefacto YA renderizado, por su
@@ -32,7 +35,17 @@ test_that("router de Recopiladores declara exactamente las diecisiete rutas V1",
     # Y su historico: que enlace tenia cada una y cuando se hizo.
     "/api/recopiladores/materials/pruebas",
     "/api/recopiladores/provider-preflight",
-    "/api/recopiladores/deployment/preview"
+    "/api/recopiladores/deployment/preview",
+    # Correos para Mailchimp (ADR 0110 §2, E1f): la plantilla persiste en
+    # collection_state; los destinatarios solo en el tempdir de la sesión.
+    "/api/recopiladores/mail-presets",
+    "/api/recopiladores/mail-template",
+    "/api/recopiladores/mail-template/preview",
+    "/api/recopiladores/mail-template/review",
+    "/api/recopiladores/mail-template/export",
+    "/api/recopiladores/mail-recipients/import",
+    "/api/recopiladores/mail-recipients",
+    "/api/recopiladores/mail-recipients/mapping"
   ))
   expect_false(grepl("httr|curl|POST.*https|PATCH.*https|DELETE.*https", text, ignore.case = TRUE))
   expect_match(text, 'pr_get\\("/api/recopiladores/material-template"')
@@ -40,6 +53,9 @@ test_that("router de Recopiladores declara exactamente las diecisiete rutas V1",
   expect_match(text, 'pr_post\\("/api/recopiladores/provider-preflight"')
   expect_match(text, 'pr_post\\("/api/recopiladores/deployment/preview"')
   expect_match(text, 'pr_post\\("/api/recopiladores/reseed"')
+  # H26: la previsualizacion del descarte NO es ruta propia; es `dry_run` en el
+  # body de /reseed, y el handler tiene que reenviarlo (un `...` lo tragaria).
+  expect_match(text, "collection_state_reseed(session_header(req), body$expected_revision, dry_run = body$dry_run)", fixed = TRUE)
 })
 
 test_that("router parsea JSON y exige body explícito en PUT", {

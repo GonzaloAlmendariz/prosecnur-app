@@ -59,9 +59,11 @@ const MODULES = [
     aliases: ["hojasRuta"],
   },
   {
-    id: "recopiladores",
-    label: "Recopiladores",
-    accent: "#106E8C",
+    id: "material-campo",
+    label: "Material de campo",
+    // Musgo, = --pulso-module-fieldkit (ADR 0108 §7, identidad 1.4.0).
+    accent: "#4F752C",
+    // La carpeta del feature conserva el nombre `recopiladores` (ADR 0108).
     aliases: ["recopiladores"],
   },
   {
@@ -313,19 +315,19 @@ const HIERARCHY = [
       { id: "muestra", label: "Muestra", tabs: ["Piloto", "Campo real"] },
       { id: "manzanas", label: "Manzanas", tabs: ["Piloto", "Campo real"] },
       {
-        id: "entrega",
-        label: "Entrega",
+        id: "seleccion",
+        label: "Selección",
         tabs: ["Cuotas", "Titulares", "Reemplazos"],
       },
     ],
   },
   {
-    module: "recopiladores",
+    module: "material-campo",
     sections: [
       {
-        id: "plan-recoleccion",
-        label: "Plan",
-        tabs: ["Unidades"],
+        id: "unidades",
+        label: "Unidades",
+        tabs: ["Lista"],
       },
       {
         id: "accesos",
@@ -333,12 +335,17 @@ const HIERARCHY = [
         tabs: ["Canales", "Vinculación"],
       },
       {
-        id: "materiales",
-        label: "Materiales",
-        tabs: ["Vista previa", "Paquetes"],
+        id: "catalogo",
+        label: "Catálogo",
+        tabs: ["Editor"],
       },
       {
-        id: "entrega-campo",
+        id: "paquetes",
+        label: "Paquetes",
+        tabs: ["Armado"],
+      },
+      {
+        id: "entrega",
         label: "Entrega",
         tabs: ["Monitoreo"],
       },
@@ -720,17 +727,17 @@ const DECLARED_VISUAL_SURFACES = [
     "frontend/src/features/hojasRuta/HojasRutaPage.tsx",
   ),
   surface(
-    "recopiladores",
-    "materiales",
-    "Vista previa",
+    "material-campo",
+    "catalogo",
+    "Editor",
     "Código QR generado",
     "Bitmap asíncrono embebido como data URL, con estados cargando, generado, fallido y sin enlace.",
     "frontend/src/features/recopiladores/MaterialsSection.tsx",
   ),
   surface(
-    "recopiladores",
-    "materiales",
-    "Paquetes",
+    "material-campo",
+    "paquetes",
+    "Armado",
     "Documento paginado imprimible",
     "Portada y fichas por facultad con bloques ocultos en pantalla y visibles al imprimir.",
     "frontend/src/features/recopiladores/MaterialsSection.tsx",
@@ -931,7 +938,7 @@ const SOURCE_CONTEXT_RULES = [
   ),
   rule(/features\/xlsformEditor\//, "formularios", "constructor", null),
   rule(/features\/hojasRuta\//, "hojas-ruta", "territorio", null),
-  rule(/features\/recopiladores\//, "recopiladores", "plan-recoleccion", null),
+  rule(/features\/recopiladores\//, "material-campo", "unidades", null),
   rule(
     /features\/monitoreo\/profiles\/territorial\/TerritorialSourceConsole/,
     "monitoreo",
@@ -1725,14 +1732,14 @@ function refineContext(
       BlockCanvasMap: "manzanas",
       ZoneGeometryMap: "manzanas",
       BlockGeometryMap: "manzanas",
-      DeliveryTablePager: "entrega",
+      DeliveryTablePager: "seleccion",
     };
     const componentSection = componentSections[nearestComponent];
     if (componentSection) {
       next.section = componentSection;
       next.confidence = "exacta-por-componente";
     }
-    for (const id of ["territorio", "poblacion", "muestra", "manzanas", "entrega"]) {
+    for (const id of ["territorio", "poblacion", "muestra", "manzanas", "seleccion"]) {
       if (haystack.includes(id)) {
         next.section = id;
         next.confidence = "heurística-componente";
@@ -1743,22 +1750,25 @@ function refineContext(
     }
   }
 
-  if (context.module === "recopiladores") {
+  if (context.module === "material-campo") {
     const sectionMap = {
-      plan: "plan-recoleccion",
-      unidad: "plan-recoleccion",
+      plan: "unidades",
+      unidad: "unidades",
       access: "accesos",
       acceso: "accesos",
       canal: "accesos",
       vinculacion: "accesos",
-      material: "materiales",
-      preview: "materiales",
-      vista: "materiales",
-      paquete: "materiales",
-      pdf: "materiales",
-      delivery: "entrega-campo",
-      entrega: "entrega-campo",
-      traspaso: "entrega-campo",
+      material: "catalogo",
+      preview: "catalogo",
+      vista: "catalogo",
+      catalogo: "catalogo",
+      editor: "catalogo",
+      paquete: "paquetes",
+      pdf: "paquetes",
+      armado: "paquetes",
+      delivery: "entrega",
+      entrega: "entrega",
+      traspaso: "entrega",
     };
     for (const [needle, section] of Object.entries(sectionMap)) {
       if (haystack.includes(needle)) next.section = section;
@@ -2639,7 +2649,7 @@ function refineDeclaredContext(
       [/^\/calc-muestra|^\/muestra/, "calculo-muestra", "mesas"],
       [/^\/editor-xlsform/, "formularios", "biblioteca"],
       [/^\/hojas-ruta/, "hojas-ruta", url.searchParams.get("stage") || "territorio"],
-      [/^\/recopiladores/, "recopiladores", "plan-recoleccion"],
+      [/^\/material-campo|^\/recopiladores/, "material-campo", "unidades"],
       [/^\/monitoreo/, "monitoreo", "acreditacion-fuentes"],
       [/^\/carga/, "procesamiento", "carga"],
       [/^\/validacion/, "procesamiento", "validacion"],
@@ -2677,21 +2687,22 @@ function refineDeclaredContext(
         next.section = universidadSectionMap[seccion];
       }
     }
-    if (next.module === "recopiladores") {
-      const section = url.searchParams.get("seccion") || "plan-recoleccion";
+    if (next.module === "material-campo") {
+      const section = url.searchParams.get("seccion") || "unidades";
       const validSections = new Set([
-        "plan-recoleccion",
+        "unidades",
         "accesos",
-        "materiales",
-        "entrega-campo",
+        "catalogo",
+        "paquetes",
+        "entrega",
       ]);
       if (validSections.has(section)) next.section = section;
       const tabMap = {
-        unidades: "Unidades",
+        lista: "Lista",
         canales: "Canales",
         vinculacion: "Vinculación",
-        vista: "Vista previa",
-        paquetes: "Paquetes",
+        editor: "Editor",
+        armado: "Armado",
         traspaso: "Monitoreo",
       };
       next.tab = tabMap[url.searchParams.get("pestana")] ?? next.tab;
@@ -2769,7 +2780,7 @@ function refineDeclaredContext(
       poblacion: "poblacion",
       muestra: "muestra",
       manzanas: "manzanas",
-      entrega: "entrega",
+      seleccion: "seleccion",
     };
     const stageKey = Object.keys(stageMap).find(
       (key) =>
@@ -2786,20 +2797,20 @@ function refineDeclaredContext(
       next.confidence = "exacta-por-registro";
     }
     if (/delivery-tab|delivery-tab-label/.test(normalizedContainer)) {
-      next.section = "entrega";
+      next.section = "seleccion";
       next.tab = label;
       next.confidence = "exacta-por-registro";
     }
   }
 
-  if (next.module === "recopiladores") {
+  if (next.module === "material-campo") {
     const tabByToken = {
-      unidades: ["plan-recoleccion", "Unidades"],
+      lista: ["unidades", "Lista"],
       canales: ["accesos", "Canales"],
       vinculacion: ["accesos", "Vinculación"],
-      vista: ["materiales", "Vista previa"],
-      paquetes: ["materiales", "Paquetes"],
-      traspaso: ["entrega-campo", "Monitoreo"],
+      editor: ["catalogo", "Editor"],
+      armado: ["paquetes", "Armado"],
+      traspaso: ["entrega", "Monitoreo"],
     };
     const tabToken = Object.keys(tabByToken).find(
       (key) => normalizedLabel === key,
@@ -2808,7 +2819,7 @@ function refineDeclaredContext(
       [next.section, next.tab] = tabByToken[tabToken];
       next.confidence = "exacta-por-registro";
     } else if (
-      ["plan-recoleccion", "accesos", "materiales", "entrega-campo"].includes(
+      ["unidades", "accesos", "catalogo", "paquetes", "entrega"].includes(
         normalizedLabel,
       ) &&
       /secciones/.test(normalizedContainer)

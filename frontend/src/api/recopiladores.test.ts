@@ -9,8 +9,12 @@ import {
   apiRecopiladoresMaterialTemplateGet,
   apiRecopiladoresPlanPut,
   apiRecopiladoresProviderPreflight,
+  apiRecopiladoresReseed,
+  apiRecopiladoresReseedPreview,
   apiRecopiladoresState,
   normalizeCollectionStatePayload,
+  normalizeReseedDescartado,
+  normalizeReseedPropuesto,
   type CollectionPlan,
 } from "./recopiladores";
 
@@ -65,6 +69,16 @@ describe("cliente API de Recopiladores", () => {
       .toThrow(/schema de estado desconocido/);
     expect(() => normalizeCollectionStatePayload({ ...emptyState, state_revision: "uno", state: undefined }))
       .toThrow(/state_revision/);
+  });
+
+  it("H27: conserva deployment_derived_fields (sólo texto) y cae a [] sin él", () => {
+    expect(normalizeCollectionStatePayload({
+      ...emptyState,
+      deployment_derived_fields: ["adapter_id", "target.deployment_active", 3, "", null],
+    }).deployment_derived_fields).toEqual(["adapter_id", "target.deployment_active"]);
+    expect(normalizeCollectionStatePayload(emptyState).deployment_derived_fields).toEqual([]);
+    expect(normalizeCollectionStatePayload({ ...emptyState, deployment_derived_fields: [] }).deployment_derived_fields)
+      .toEqual([]);
   });
 
   it("guarda el plan con expected_revision sin renombrar el contrato", async () => {
@@ -191,5 +205,137 @@ describe("el normalizador no se come los campos nuevos", () => {
     expect(p.reseeded).toBe(true);
     expect(p.descartado?.unidades).toBe(2468);
     expect(p.descartado?.entregado).toBe(false);
+  });
+});
+
+/**
+ * H25 — `handoff = NULL` en R llega como `{}` y se tomaba por recibo.
+ *
+ * Payload real de hsvg2026_con_plan_v2.pulso (GET /api/recopiladores/state):
+ * sin `handoff` de primer nivel y `state.deployment.handoff: {}`, con el
+ * despliegue `prepared`. La tarjeta pintaba «Recibo firmado» con todo en «—».
+ */
+describe("un recibo de traspaso sólo existe con su contrato", () => {
+  const deployment = {
+    schema: "collection_deployment/v1",
+    deployment_id: "dep-1",
+    plan_id: "plan-1",
+    plan_fingerprint: "fp-plan",
+    deployment_fingerprint: "fp-dep",
+    target: { provider: "kobo" },
+    capabilities: {},
+    bindings: [],
+    coverage: { units_total: 1, units_with_access: 1, units_missing_access: 0 },
+    sensitivity: { access_urls: "operational" },
+    status: "prepared",
+  };
+  const payload = (dep: Record<string, unknown>, extra: Record<string, unknown> = {}) => ({
+    ok: true, noop: true, seed_available: false,
+    state: { schema: "collection_state/v1", state_revision: 4, plan: null, deployment: dep },
+    ...extra,
+  });
+  const recibo = {
+    schema: "collection_handoff/v1",
+    deployment_id: "dep-1",
+    deployment_fingerprint: "fp-dep",
+    plan_fingerprint: "fp-plan",
+    handed_off_at: "2026-10-16T10:00:00Z",
+    state_revision: 5,
+  };
+
+  it("sin traspaso, el {} del NULL de R no es recibo (ni arriba ni en el despliegue)", () => {
+    const p = normalizeCollectionStatePayload(payload({ ...deployment, handoff: {} }, { handoff: {} }));
+    expect(p.handoff).toBeNull();
+    expect(p.state.deployment?.handoff).toBeNull();
+  });
+
+  it("un recibo al que le falta un campo obligatorio tampoco cuenta", () => {
+    const incompleto: Record<string, unknown> = { ...recibo };
+    delete incompleto.handed_off_at;
+    const p = normalizeCollectionStatePayload(payload({ ...deployment, handoff: incompleto }));
+    expect(p.handoff).toBeNull();
+  });
+
+  it("con traspaso, el recibo llega entero desde el despliegue", () => {
+    const p = normalizeCollectionStatePayload(payload({ ...deployment, status: "handed_off", handoff: recibo }));
+    expect(p.handoff).toEqual(recibo);
+    expect(p.state.deployment?.handoff).toEqual(recibo);
+  });
+});
+
+/**
+ * H26 — rehacer el plan se previsualiza antes de escribir.
+ *
+ * Contrato del backend (83bbeb44a): `POST /api/recopiladores/reseed` con
+ * `{ expected_revision, dry_run }`. Con `dry_run: true` no muta y devuelve el
+ * mismo `descartado` que la escritura, más `propuesto`.
+ */
+describe("rehacer el plan: previsualización y escritura", () => {
+  const descartadoReal = {
+    plan_run_id: "sel_aulas_20260801211224_e32c240d",
+    unidades: 2373,
+    tenia_despliegue: true,
+    entregado: false,
+    fichas: { instancias: 1, unidades_cubiertas: 2373 },
+    recibos: 1,
+    publicaciones_drive: 0,
+    otros_campos: [],
+    conservado: ["material_template", "pruebas"],
+  };
+
+  it("la previsualización pide dry_run y no otra cosa", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(response({
+      ...emptyState, noop: true, dry_run: true, reseeded: false,
+      descartado: descartadoReal, propuesto: { plan_run_id: "sel_aulas_20260821160928_b", unidades: 2400 },
+    }));
+    const p = await apiRecopiladoresReseedPreview(7);
+    expect(lastRequest().path).toBe("/api/recopiladores/reseed");
+    expect(lastRequest().init?.method).toBe("POST");
+    expect(lastRequest().body).toEqual({ expected_revision: 7, dry_run: true });
+    expect(p.dry_run).toBe(true);
+    expect(p.reseeded).toBe(false);
+    expect(p.descartado?.fichas).toEqual({ instancias: 1, unidades_cubiertas: 2373 });
+    expect(p.descartado?.recibos).toBe(1);
+    expect(p.propuesto).toEqual({ plan_run_id: "sel_aulas_20260821160928_b", unidades: 2400 });
+  });
+
+  it("la escritura declara dry_run en falso: ausente sería ambiguo", async () => {
+    await apiRecopiladoresReseed(7);
+    expect(lastRequest().body).toEqual({ expected_revision: 7, dry_run: false });
+  });
+
+  it("normaliza escalares que R manda como vector de uno", () => {
+    const d = normalizeReseedDescartado({
+      plan_run_id: ["run-x"], unidades: [10], tenia_despliegue: [true], entregado: [false],
+      fichas: { instancias: [2], unidades_cubiertas: [9] }, recibos: [3], publicaciones_drive: [1],
+      otros_campos: "campo_raro", conservado: ["mail_template", "mail_template", ""],
+    });
+    expect(d).toEqual({
+      plan_run_id: "run-x", unidades: 10, tenia_despliegue: true, entregado: false,
+      fichas: { instancias: 2, unidades_cubiertas: 9 }, recibos: 3, publicaciones_drive: 1,
+      otros_campos: ["campo_raro"], conservado: ["mail_template"],
+    });
+  });
+
+  it("un conteo ilegible es cero y un booleano que no sea true no se afirma", () => {
+    const d = normalizeReseedDescartado({
+      unidades: "muchas", recibos: -2, publicaciones_drive: null,
+      tenia_despliegue: "true", entregado: 1, fichas: "x",
+    });
+    expect(d?.unidades).toBe(0);
+    expect(d?.recibos).toBe(0);
+    expect(d?.publicaciones_drive).toBe(0);
+    expect(d?.tenia_despliegue).toBe(false);
+    expect(d?.entregado).toBe(false);
+    expect(d?.fichas).toEqual({ instancias: 0, unidades_cubiertas: 0 });
+    expect(d?.otros_campos).toEqual([]);
+    expect(d?.conservado).toEqual([]);
+  });
+
+  it("sin objeto no hay descartado ni propuesto", () => {
+    expect(normalizeReseedDescartado(null)).toBeNull();
+    expect(normalizeReseedDescartado([])).toBeNull();
+    expect(normalizeReseedPropuesto(undefined)).toBeNull();
+    expect(normalizeReseedPropuesto({ unidades: [5] })).toEqual({ plan_run_id: "", unidades: 5 });
   });
 });

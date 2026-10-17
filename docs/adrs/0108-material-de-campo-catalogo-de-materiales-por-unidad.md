@@ -1,12 +1,12 @@
 # ADR 0108: Material de campo es un catálogo de materiales sobre una lista de unidades de campo
 
-Estado: Propuesto
+Estado: Aceptado
 
-Implementacion: No iniciada
+Implementacion: En curso (E0a)
 
 Fecha: 2026-10-16
 
-Fecha de decision: —
+Fecha de decision: 2026-10-16 (Gonzalo: «Acepto el ADR, arranca con E0a»)
 
 Reemplaza: parcialmente [ADR 0046](0046-recopiladores-despliegue-recoleccion.md) en el nombre, la ruta, las secciones
 (cláusula 9) y la suposición de que la unidad es un curso-horario; parcialmente
@@ -156,9 +156,12 @@ determina así, sin clic:
 | Accesos (`accesos`, solo `aulas`) | `canales` · `vinculacion` (como hoy) | — |
 | Catálogo (`catalogo`) | `tipos` · `editor` | inspector de bloque |
 | Paquetes (`paquetes`) | `armado` · `prueba` · `recibos` | diálogo de render |
-| Entrega (`entrega`) | `monitoreo` · `archivos` (ZIP y Drive) | — |
+| Entrega (`entrega`) | `traspaso` (rotulada «Monitoreo») · `archivos` (ZIP y Drive) | — |
 
-`PROSECNUR_NAVIGATION_CONTRACT.modosCoverage` suma `material-campo-v1`. La enumeración «solo Monitoreo y Cálculo de
+**El parámetro `modo` entra con el segundo modo (E2)**, decisión del lead al implementar E0a: mientras solo exista
+`aulas`, declarar modos vacíos sería una superficie sin contenido (C5) y las direcciones no llevan `modo`. Cuando E2
+agregue `territorial`, una dirección sin `modo` resuelve al del estudio. Ese día `PROSECNUR_NAVIGATION_CONTRACT.modosCoverage`
+suma `material-campo-v1`. La enumeración «solo Monitoreo y Cálculo de
 muestra tienen modos» del ADR 0044 §1 pasa a incluir Material de campo.
 
 **Hojas de ruta** queda con Territorio · Población · Muestra · Manzanas · **Selección** (confirmado por Gonzalo el
@@ -186,11 +189,11 @@ traduce valores por módulo, con test:
 
 | Dirección vieja | Dirección nueva |
 |---|---|
-| `/recopiladores`, `?seccion=plan-recoleccion` y `&pestana=unidades` | `/material-campo?modo=<del estudio>&seccion=unidades&pestana=lista` |
-| `?seccion=accesos` (con o sin pestaña) | `/material-campo?modo=aulas&seccion=accesos&pestana=<la misma o canales>` |
-| `?seccion=materiales` sin pestaña y `&pestana=vista` | `/material-campo?modo=aulas&seccion=catalogo&pestana=editor` |
-| `?seccion=materiales&pestana=paquetes` | `/material-campo?modo=aulas&seccion=paquetes&pestana=armado` |
-| `?seccion=entrega-campo` y `&pestana=traspaso` | `/material-campo?modo=aulas&seccion=entrega&pestana=monitoreo` |
+| `/recopiladores`, `?seccion=plan-recoleccion` y `&pestana=unidades` | `/material-campo?seccion=unidades&pestana=lista` |
+| `?seccion=accesos` (con o sin pestaña) | `/material-campo?seccion=accesos&pestana=<la misma o canales>` |
+| `?seccion=materiales` sin pestaña y `&pestana=vista` | `/material-campo?seccion=catalogo&pestana=editor` |
+| `?seccion=materiales&pestana=paquetes` | `/material-campo?seccion=paquetes&pestana=armado` |
+| `?seccion=entrega-campo` y `&pestana=traspaso` | `/material-campo?seccion=entrega&pestana=traspaso` |
 | `/hojas-ruta?seccion=entrega&pestana=cuotas\|titulares\|reemplazos` | `/hojas-ruta?seccion=seleccion&pestana=<la misma>` |
 
 Los consumidores que hoy escriben direcciones viejas (`ClassroomAuditPanels.tsx:49`, `AulasMonitoreoPage.tsx:2203`,
@@ -313,9 +316,8 @@ Alternativas descartadas:
 
 ## Notas
 
-Direcciones propuestas (no existen todavía en `frontend/src/lib/modules.ts`; pasan a `## Gobierna` cuando el ADR se
-acepte y E0a las cree): `material-campo`, `material-campo/unidades`, `material-campo/accesos`,
-`material-campo/catalogo`, `material-campo/paquetes`, `material-campo/entrega`, `hojas-ruta/seleccion`.
+Pestañas que este ADR prevé y E0a todavía no declara, porque aún no tienen contenido (C5): `unidades/origen`,
+`catalogo/tipos`, `paquetes/prueba`, `paquetes/recibos` y `entrega/archivos`. Entran con E1.
 
 Supuestos documentados: el esquema de 2024 de Ser Adolescente se repite en la lista de centros poblados, no hay
 evidencia de fichas de cuota en 2024; en Lima, «se controla en el análisis» no implica ponderación (por confirmar); la
@@ -324,3 +326,16 @@ definición de periurbano es del estudio, no de la app.
 Relacionado con [ADR 0005](0005-secretos-fuera-del-proyecto.md),
 [ADR 0043](0043-proyectos-de-referencia-reales-anonimizados.md),
 [ADR 0086](0086-el-eje-de-cuotas-lo-declara-el-estudio.md) y la dirección creativa v3 (`branding/`).
+
+## Gobierna
+
+Direcciones del contrato de navegación que esta decisión explica
+(`scripts/vaults-check.mjs` las verifica contra `frontend/src/lib/modules.ts`):
+
+- `material-campo`
+- `material-campo/unidades`
+- `material-campo/accesos`
+- `material-campo/catalogo`
+- `material-campo/paquetes`
+- `material-campo/entrega`
+- `hojas-ruta/seleccion`
