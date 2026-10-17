@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { normalizeProjectOverview } from "../../api/overview";
 import type {
   DisenoEstudioSource,
   ProjectOverview,
@@ -141,7 +142,7 @@ function makeOverview(): ProjectOverview {
         quota_assigned: 0,
         from_pilot: false,
       },
-      recopiladores: {
+      "material-campo": {
         total: 4,
         titulares: 4,
         with_link: 0,
@@ -175,7 +176,7 @@ function makeOverview(): ProjectOverview {
       source("calc-muestra", "/calc-muestra"),
       source("hojas-ruta", "/hojas-ruta"),
       source("plan-trabajo", "/bitacora?seccion=cronograma", "pending"),
-      source("recopiladores", "/recopiladores"),
+      source("material-campo", "/material-campo"),
       source("monitoreo", "/monitoreo"),
     ],
     added_modules: PROSECNUR_PRIMARY_ACTIVE_MODULES.map(({ slug }) => slug),
@@ -207,7 +208,7 @@ describe("moduleCardModel", () => {
       "calc-muestra",
       "editor-xlsform",
       "hojas-ruta",
-      "recopiladores",
+      "material-campo",
       "monitoreo",
       "procesamiento",
       "dashboard",
@@ -228,8 +229,17 @@ describe("moduleCardModel", () => {
     expect(JSON.stringify(card)).not.toContain("—");
   });
 
-  it("muestra progreso propio en Recopiladores y Dashboard", () => {
-    const qr = view("recopiladores");
+  it("lee los hechos de un backend anterior al ADR 0108 (`facts.recopiladores`)", () => {
+    const base = makeOverview();
+    const { "material-campo": bloque, ...resto } = base.facts;
+    const viejo = { ...base, facts: { ...resto, recopiladores: bloque } } as unknown as typeof base;
+    const qr = view("material-campo", normalizeProjectOverview(viejo));
+    expect(qr.viz.kind).toBe("progress");
+    expect(JSON.stringify(qr)).toContain("0/4");
+  });
+
+  it("muestra progreso propio en Material de campo y Dashboard", () => {
+    const qr = view("material-campo");
     expect(qr.viz.kind).toBe("progress");
     expect(JSON.stringify(qr)).toContain("0/4");
     expect(JSON.stringify(qr)).toContain("4");
@@ -267,7 +277,7 @@ describe("moduleCardModel", () => {
   it("conserva advertencias y dirige a la revisión que las resuelve", () => {
     const overview = makeOverview();
     overview.modules = overview.modules.map((item) =>
-      ["validacion", "recopiladores", "dashboard"].includes(item.id)
+      ["validacion", "material-campo", "dashboard"].includes(item.id)
         ? { ...item, state: "warning" }
         : item,
     );
@@ -280,7 +290,7 @@ describe("moduleCardModel", () => {
     });
     expect(procesamiento.alert).toBeTruthy();
 
-    for (const slug of ["recopiladores", "dashboard"] as const) {
+    for (const slug of ["material-campo", "dashboard"] as const) {
       expect(view(slug, overview)).toMatchObject({
         state: "warning",
         statusLabel: "Requiere atención",
@@ -306,19 +316,53 @@ describe("moduleCardModel", () => {
     expect(bitacora.facts.find(({ label }) => label === "fecha de cronograma")?.value).toContain("10");
   });
 
-  it("evita un progreso indeterminado 0/0 en Recopiladores", () => {
+  it("evita un progreso indeterminado 0/0 en Material de campo", () => {
     const overview = makeOverview();
-    overview.facts.recopiladores = {
-      ...overview.facts.recopiladores,
+    overview.facts["material-campo"] = {
+      ...overview.facts["material-campo"],
       total: 0,
       titulares: 0,
       with_link: 0,
       without_link: 0,
     };
 
-    const qr = view("recopiladores", overview);
+    const qr = view("material-campo", overview);
     expect(qr.viz.kind).toBe("stat");
     expect(JSON.stringify(qr)).not.toContain("0/0");
+  });
+
+  it("Material de campo sin plan habla de unidades, no de aulas titulares", () => {
+    const overview = makeOverview();
+    overview.facts["material-campo"] = {
+      ...overview.facts["material-campo"],
+      total: 0,
+      titulares: 0,
+      with_link: 0,
+      without_link: 0,
+      faculties_count: 0,
+    };
+    overview.facts.calc = { ...overview.facts.calc, mode: "territorial" };
+
+    const qr = view("material-campo", overview);
+    expect(qr.viz).toMatchObject({ kind: "stat", value: "Sin unidades", label: "en el plan" });
+    const texto = JSON.stringify(qr);
+    expect(texto).not.toMatch(/aulas|titulares en el plan|Sin titulares/);
+    // «facultades» es vocabulario de un plan de aulas: fuera de él no se enseña.
+    expect((qr.facts ?? []).map((f) => f.label)).toEqual(["unidades en el plan"]);
+  });
+
+  it("Material de campo con plan de aulas conserva sus facultades", () => {
+    const labels = (view("material-campo").facts ?? []).map((f) => f.label);
+    expect(labels).toEqual(["unidades en el plan", "facultades"]);
+  });
+
+  it("la tarjeta de Material de campo lleva el nombre entero y una tagline corta", () => {
+    const module = PROSECNUR_PRIMARY_ACTIVE_MODULES.find((item) => item.slug === "material-campo");
+    expect(module?.cardTitle).toBe("Material de campo");
+    // El rail y los tiles del chrome siguen con el corto: ahí manda el ancho.
+    expect(module?.shortLabel).toBe("Material");
+    // Comparte la cabecera con el chip «Por iniciar»: tiene que caber entera.
+    expect(module?.tagline.length).toBeLessThanOrEqual(28);
   });
 
   it("abre directamente el cronograma cuando la acción lo nombra", () => {
@@ -432,13 +476,13 @@ describe("moduleCardModel", () => {
 });
 
 describe("la tarjeta no gasta sus ranuras repitiendo el mismo dato", () => {
-  it("Recopiladores: los pies dicen lo que la barra NO dice", () => {
+  it("Material de campo: los pies dicen lo que la barra NO dice", () => {
     // Medido en HSVG2026 el 2026-08-23: la barra marcaba «0/193 fichas con
     // enlace», el subtítulo «193 fichas requieren enlace» y los pies «con
     // enlace 0 · faltantes 193 · facultades 15». La misma pareja de números
     // TRES veces, mientras `total` —las 2.616 unidades del plan— no se
     // enseñaba en ninguna parte.
-    const v = view("recopiladores");
+    const v = view("material-campo");
     const etiquetas = (v.facts ?? []).map((f) => f.label);
     expect(etiquetas).toContain("unidades en el plan");
     expect(etiquetas).not.toContain("con enlace");
@@ -447,11 +491,11 @@ describe("la tarjeta no gasta sus ranuras repitiendo el mismo dato", () => {
     expect(v.viz).toMatchObject({ kind: "progress", display: "0/4" });
   });
 
-  it("Recopiladores: no mete un segundo denominador de elegibles", () => {
+  it("Material de campo: no mete un segundo denominador de elegibles", () => {
     // `eligible_total` cuenta los elegibles de TODAS las unidades y la tarjeta
     // de Cálculo, a diez centímetros, cuenta los de las titulares. Dos
     // denominadores en la misma pantalla es peor que un hueco.
-    const etiquetas = (view("recopiladores").facts ?? []).map((f) => f.label);
+    const etiquetas = (view("material-campo").facts ?? []).map((f) => f.label);
     expect(etiquetas.some((l) => /elegible/i.test(l))).toBe(false);
   });
 });
@@ -514,19 +558,19 @@ describe("la tarjeta no se contradice consigo misma", () => {
  * operativo real —«las reservas son respaldo», dice el motor— y Materiales
  * cuenta lo que se va a imprimir. Lo que estaba mal era la palabra.
  */
-describe("la tarjeta de Recopiladores nombra lo que cuenta", () => {
+describe("la tarjeta de Material de campo nombra lo que cuenta", () => {
   // Se usa el mismo `view()` que el resto del archivo, con el overview base al
-  // que se le fija el bloque de recopiladores.
+  // que se le fija el bloque de Material de campo.
   const conFichas = (over: Partial<Record<string, number>> = {}) => {
     const overview = makeOverview();
     overview.facts = {
       ...(overview.facts ?? {}),
-      recopiladores: {
+      "material-campo": {
         total: 2616, titulares: 193, with_link: 0, without_link: 193,
         faculties_count: 15, eligible_total: 84110, ...over,
       },
     } as typeof overview.facts;
-    return view("recopiladores", overview);
+    return view("material-campo", overview);
   };
 
   it("la barra habla de titulares, no de fichas", () => {

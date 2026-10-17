@@ -127,6 +127,8 @@ describe("el puente y el runner aplican el mismo contrato", () => {
  * archivo aquí exige comprobar que el `false` es una carga, no un vacío.
  */
 const FALSE_TRANSITORIO: Record<string, string> = {
+  "features/recopiladores/ConfirmarResembrado.tsx":
+    "previsualización dry_run del resembrado: en error y con la previsualización cargada publica true",
   "components/PageFrame.tsx":
     "`auditReady={false}` de la página: la página lo levanta al terminar su lectura (Carga › Revisión)",
   "features/carga/EquivalenciasEsqueleto.tsx":

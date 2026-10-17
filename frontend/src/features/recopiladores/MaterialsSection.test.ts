@@ -20,6 +20,8 @@ describe("campos semánticos del material", () => {
     // Un binding desconocido (fixture vieja, dato no mapeado) cae al valor
     // crudo en vez de romper — mejor mostrar algo técnico que nada.
     expect(bindingLabel("algo.no_mapeado")).toBe("algo.no_mapeado");
+    // El título de la ficha de aula lo usa; salía crudo en el lienzo.
+    expect(bindingLabel("unit.operational_code")).toBe("Código del aula");
   });
 });
 

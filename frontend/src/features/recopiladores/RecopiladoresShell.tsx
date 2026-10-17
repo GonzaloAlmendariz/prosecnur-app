@@ -2,13 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { apiRecopiladoresState, type CollectionArtifactReceipt, type CollectionStatePayload } from "../../api/recopiladores";
+import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
-import { GlidingTabList } from "../../components/GlidingTabList";
+import { ContextTabRail, type ContextTabRailItem } from "../../components/ContextTabRail";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { PageFrame } from "../../components/PageFrame";
+import { SectionPillbar } from "../../components/SectionPillbar";
 import { PROSECNUR_MODULES } from "../../lib/modules";
 import { RefreshCw } from "../../vendor/lucide-react";
 import { AccessSection } from "./AccessSection";
+import { CatalogoTipos } from "./catalogo/CatalogoTipos";
+import { CorreosEditor } from "./correos/CorreosEditor";
 import { DeliverySection } from "./DeliverySection";
 import { MaterialsSection } from "./MaterialsSection";
 import { PlanSection } from "./PlanSection";
@@ -20,9 +24,12 @@ import {
   type RecopiladoresSeccion,
 } from "./navegacion";
 import { deploymentStatusLabel } from "./providerRules";
+import { origenDelPlan } from "./vacioSinPlan";
+import { TIPO_DE_UNIDAD } from "./tipoDeUnidad";
+import { useProjectModules } from "../project/ProjectModulesContext";
 import "./styles/recopiladores-shell.css";
 
-const MODULE = PROSECNUR_MODULES.find((item) => item.slug === "recopiladores")!;
+const MODULE = PROSECNUR_MODULES.find((item) => item.slug === "material-campo")!;
 
 /**
  * Qué hace cada sección, en el idioma de quien la usa.
@@ -41,37 +48,27 @@ const MODULE = PROSECNUR_MODULES.find((item) => item.slug === "recopiladores")!;
  * cursos-horario necesarios» o «nombre, cliente y alcance»: el dominio, no la
  * arquitectura. Ver `docs/qa/roles-del-operativo-de-aulas-2026-08-22.md`.
  */
-/**
- * El tipo de unidad, dicho como se dice.
- *
- * La barra enseñaba `classroom_course_schedule` —la clave del adaptador— junto a
- * «TIPO». Es el nombre con el que el motor distingue una familia de plan, no
- * algo que nadie diga: en la app, en el libro y en campo son «cursos-horario».
- *
- * Una clave que no esté aquí se muestra tal cual: inventarle un nombre sería
- * peor que enseñar la clave, porque el lector no podría contrastarla con nada.
- */
-export const TIPO_DE_UNIDAD: Record<string, string> = {
-  classroom_course_schedule: "Cursos-horario",
-  household: "Viviendas",
-  person: "Personas",
-};
+export { TIPO_DE_UNIDAD } from "./tipoDeUnidad";
 
 const SECTION_COPY: Record<RecopiladoresSeccion, { title: string; lead: string }> = {
-  "plan-recoleccion": {
-    title: "Plan de recolección",
+  unidades: {
+    title: "Unidades",
     lead: "Las aulas que entran a campo y con qué versión del cuestionario se aplican.",
   },
   accesos: {
     title: "Accesos",
     lead: "El enlace por el que responde cada aula. Se prepara sobre un formulario que ya existe, sin tocar nada en la plataforma.",
   },
-  materiales: {
-    title: "Materiales",
-    lead: "Las fichas que se imprimen y se llevan al aula: código, QR, horario, salón y docente.",
+  catalogo: {
+    title: "Catálogo",
+    lead: "La ficha que se imprime y se lleva al aula: código, QR, horario, salón y docente.",
   },
-  "entrega-campo": {
-    title: "Entrega a campo",
+  paquetes: {
+    title: "Paquetes",
+    lead: "Las fichas de todas las unidades, agrupadas para el reparto en campo.",
+  },
+  entrega: {
+    title: "Entrega",
     lead: "Cierra el plan y deja constancia de qué se entregó. Repetirla no duplica nada, y Monitoreo la lee de ahí.",
   },
 };
@@ -90,6 +87,13 @@ function searchFor(
 export function RecopiladoresShell() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { overview, addedSlugs } = useProjectModules();
+  // De dónde sale la lista de unidades: el destino del vacío de Unidades.
+  const origen = useMemo(
+    () => origenDelPlan({ modoDelCalculo: overview?.facts.calc.mode, modulos: addedSlugs }),
+    [overview?.facts.calc.mode, addedSlugs],
+  );
+  const irA = useCallback((to: string) => navigate(to), [navigate]);
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const direction = resolverDireccion(params.get("seccion"), params.get("pestana"));
   const [payload, setPayload] = useState<CollectionStatePayload | null>(null);
@@ -123,7 +127,7 @@ export function RecopiladoresShell() {
     try {
       setPayload(await apiRecopiladoresState());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo leer Recopiladores.");
+      setError(cause instanceof Error ? cause.message : "No se pudo leer Material de campo.");
     } finally {
       setLoading(false);
     }
@@ -138,7 +142,7 @@ export function RecopiladoresShell() {
     try {
       setPayload(await apiRecopiladoresState());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo leer Recopiladores.");
+      setError(cause instanceof Error ? cause.message : "No se pudo leer Material de campo.");
     }
   }, []);
 
@@ -162,16 +166,18 @@ export function RecopiladoresShell() {
     );
   }, [direction.pestana, direction.seccion, location.pathname, location.search, navigate, params]);
 
-  const selectSection = (section: RecopiladoresSeccion) => {
-    const tab = PESTANAS_POR_SECCION[section][0] as RecopiladoresPestana;
-    navigate(`${location.pathname}${searchFor(location.search, section, tab)}`);
-  };
   const selectTab = (tab: RecopiladoresPestana) => {
     navigate(`${location.pathname}${searchFor(location.search, direction.seccion, tab)}`);
   };
 
   const activeMeta = MODULE.sections.find((section) => section.id === direction.seccion);
   const tabs = activeMeta?.tabs ?? [];
+  const conRail = tabs.length > 1;
+  const railItems: readonly ContextTabRailItem<RecopiladoresPestana>[] = tabs.map((tab) => ({
+    key: tab.id as RecopiladoresPestana,
+    label: tab.label,
+    icon: tab.icon,
+  }));
   const copy = SECTION_COPY[direction.seccion];
   const state = payload?.state ?? null;
   // «sin deployment» es la palabra del motor para «los accesos todavía no están
@@ -193,70 +199,99 @@ export function RecopiladoresShell() {
    * navegación y no debe convertirse en un panel.
    */
   const pasosHechos: Record<RecopiladoresSeccion, boolean> = {
-    "plan-recoleccion": Boolean(state?.plan?.units?.length),
+    unidades: Boolean(state?.plan?.units?.length),
     accesos: Boolean(state?.deployment?.bindings?.length),
     // Un material renderizado deja su recibo: es la prueba de que existe algo
-    // que llevar, no de que se haya elegido una plantilla.
-    materiales: Boolean(state?.artifact_receipts?.length),
-    "entrega-campo": Boolean(payload?.handoff ?? state?.deployment?.handoff),
+    // que llevar, no de que se haya elegido una plantilla. Catálogo y Paquetes
+    // eran una sola sección y comparten esa prueba hasta que el catálogo tenga
+    // la suya (ADR 0108, E1).
+    catalogo: Boolean(state?.artifact_receipts?.length),
+    paquetes: Boolean(state?.artifact_receipts?.length),
+    entrega: Boolean(payload?.handoff ?? state?.deployment?.handoff),
   };
-  // El siguiente paso es el primero que falta. Con todos dados no se marca
-  // ninguno: el recorrido terminó y señalar uno inventaría trabajo.
-  const siguientePaso = (MODULE.sections
-    .map((s) => s.id as RecopiladoresSeccion)
-    .find((id) => !pasosHechos[id])) ?? null;
-
-  // **Las píldoras de fase compartidas, no un selector propio.**
+  // **El rail de secciones compartido, sin numeral.** Material de campo
+  // dibujaba su propio `<ol>` de píldoras con número (1 Unidades, 2 Accesos…)
+  // y estado «hecho / es lo siguiente», cuando el resto de los módulos ya usaba
+  // `SectionPillbar` limpio: «ahora las secciones ya no vienen numeradas en
+  // ningún módulo» (Gonzalo, 2026-10-16). El componente es navegación —cada
+  // sección es un enlace con `aria-current="page"`— y su dirección es la
+  // canónica de siempre (`?seccion=…&pestana=…`).
   //
-  // Esto dibujaba botones planos con `rec-section-selector` y su propio CSS,
-  // mientras Cálculo de muestra, Hojas de ruta y Monitoreo usan
-  // `pulso-phase-pillbar` de `theme.css`: mismo alto, mismo número en su
-  // círculo, mismo relieve en la activa y los mismos estados. Tres módulos con
-  // un lenguaje y éste con otro es justo lo que hace que Recopiladores «se vea
-  // peor» al lado de los demás (Gonzalo, 2026-08-28).
-  //
-  // La semántica de pasos que ya tenía —hecho / es lo siguiente— mapea sin
-  // traducción a `is-done` / `is-next`, así que no se pierde nada: el avance del
-  // recorrido se sigue viendo, ahora con la misma señal que el resto de la app.
+  // De la señal de avance queda `done`, que el componente admite como marca no
+  // numérica; «es lo siguiente» no tiene sitio en él y se retira.
   const sectionSelector = (
-    <GlidingTabList
-      className="pulso-phase-pillbar rec-section-selector"
-      activeKey={direction.seccion}
-      mode="tabs"
-      role="group"
-      aria-label="Secciones de Recopiladores"
-      onRovingKeyChange={(key) => selectSection(key as RecopiladoresSeccion)}
+    <SectionPillbar
+      modulo="material-campo"
+      ariaLabel="Secciones de Material de campo"
+      seccionActiva={direction.seccion}
+      className="rec-section-selector"
+      items={MODULE.sections.map((section) => {
+        const id = section.id as RecopiladoresSeccion;
+        return {
+          id,
+          label: section.label,
+          href: `${location.pathname}${searchFor(location.search, id, PESTANAS_POR_SECCION[id][0] as RecopiladoresPestana)}`,
+          done: pasosHechos[id],
+        };
+      })}
+    />
+  );
+
+  const panel = (
+    <section
+      id={tabs.length > 1 ? `rec-tab-panel-${direction.pestana}` : undefined}
+      className="rec-tab-panel"
+      role={tabs.length > 1 ? "tabpanel" : undefined}
+      aria-labelledby={tabs.length > 1 ? `rec-tab-${direction.pestana}` : undefined}
+      data-qa-geometry-group={`material-campo/${direction.seccion}`}
+      data-qa-geometry-contract="intrinsic"
     >
-      <ol className="pulso-phase-pill-list">
-        {MODULE.sections.map((section, index) => {
-          const id = section.id as RecopiladoresSeccion;
-          const active = section.id === direction.seccion;
-          const hecho = pasosHechos[id];
-          const siguiente = section.id === siguientePaso;
-          const estado = hecho ? "hecho" : siguiente ? "es lo siguiente" : "";
-          return (
-            <li key={section.id} className="pulso-phase-pill-item">
-              <button
-                type="button"
-                data-gliding-key={section.id}
-                className={`pulso-phase-pill${active ? " is-active" : ""}${hecho ? " is-done" : ""}${siguiente ? " is-next" : ""}`}
-                aria-pressed={active}
-                // El estado va en el `title` y en el nombre accesible, no sólo
-                // en el color del círculo: un tinte no es una señal accesible.
-                title={estado ? `${section.label} · ${estado}` : section.label}
-                onClick={() => selectSection(id)}
-              >
-                <span className="pulso-phase-pill-number" aria-hidden="true">{index + 1}</span>
-                <span className="pulso-phase-pill-stack">
-                  <span className="pulso-phase-pill-label">{section.label}</span>
-                </span>
-                {estado ? <span className="pulso-sr-only"> · {estado}</span> : null}
-              </button>
-            </li>
-          );
-        })}
-      </ol>
-    </GlidingTabList>
+      {loading && !state ? (
+        <div className="rec-loading" data-qa-geometry-capacity="owned">
+          Leyendo el estado del despliegue…
+        </div>
+      ) : null}
+      {sinCambios ? (
+        <div
+          data-testid="recopiladores-sin-cambios"
+          role="status"
+          className="rec-sin-cambios"
+          data-qa-geometry-capacity="owned"
+        >
+          No había nada que guardar: lo que enviaste es igual a lo que ya estaba.
+        </div>
+      ) : null}
+      {!loading && direction.seccion === "unidades" ? (
+        <PlanSection payload={payload} onState={aplicarMutacion} origen={origen} onIr={irA} />
+      ) : null}
+      {!loading && direction.seccion === "accesos" ? (
+        <AccessSection payload={payload} activeTab={direction.pestana} onState={aplicarMutacion} onIr={irA} />
+      ) : null}
+      {!loading && direction.seccion === "catalogo" && direction.pestana === "tipos" ? (
+        <CatalogoTipos
+          payload={payload}
+          onStateRefresh={refreshSilent}
+          onCargando={setSeccionCargando}
+          onIr={irA}
+        />
+      ) : null}
+      {!loading && direction.seccion === "catalogo" && direction.pestana === "correos" ? (
+        <CorreosEditor onCargando={setSeccionCargando} />
+      ) : null}
+      {!loading && ((direction.seccion === "catalogo" && direction.pestana === "editor") || direction.seccion === "paquetes") ? (
+        <MaterialsSection
+          payload={payload}
+          activeTab={direction.pestana}
+          onStateRefresh={refreshSilent}
+          onArtifact={setLatestArtifact}
+          onCargando={setSeccionCargando}
+          onIr={irA}
+        />
+      ) : null}
+      {!loading && direction.seccion === "entrega" ? (
+        <DeliverySection payload={payload} latestArtifact={latestArtifact} onState={aplicarMutacion} onIr={irA} />
+      ) : null}
+    </section>
   );
 
   return (
@@ -268,18 +303,18 @@ export function RecopiladoresShell() {
       bodyMode="fill"
       headerMode="sr-only"
       resetScrollKey={`${direction.seccion}/${direction.pestana}`}
-      auditReady={loading || seccionCargando ? false : `recopiladores/${direction.seccion}/${direction.pestana}`}
+      auditReady={loading || seccionCargando ? false : `material-campo/${direction.seccion}/${direction.pestana}`}
       className="rec-page"
       chrome={(
         <ModuleCommandBar
-          modulo="recopiladores"
+          modulo="material-campo"
           contexto={state?.plan ? (
             // La zona de contexto lleva el dato, no el nombre del módulo: eso ya
             // lo dice el ícono activo del rail y repetirlo desperdicia el único
             // hueco donde los demás módulos ponen su cifra —Bitácora pone
             // entradas, Hojas de ruta distritos, Cálculo la mesa—. Aquí el dato
             // es la forma del plan: cuántas unidades y de qué tipo.
-            <ChromeIndicatorGroup ariaLabel="Contexto de Recopiladores">
+            <ChromeIndicatorGroup ariaLabel="Contexto de Material de campo">
               {/* Los cursos-horario que hay que visitar, no el total de filas
                   del plan. Decía «2 468 unidades» mientras el resumen de abajo
                   decía «175 cursos-horario»: la diferencia son las reservas y el
@@ -317,84 +352,35 @@ export function RecopiladoresShell() {
             label: deploymentStatusLabel(status),
             tone: status === "handed_off" ? "success" : status === "stale" ? "danger" : "neutral",
           }]}
-          ariaLabel="Controles de Recopiladores"
+          ariaLabel="Controles de Material de campo"
         />
       )}
       notices={error ? <div className="rec-notice is-error" role="alert">{error}</div> : null}
     >
-      <div className="rec-workbench">
-        {tabs.length > 1 ? (
-          <GlidingTabList
-            className="rec-tab-list"
-            activeKey={direction.pestana}
-            mode="tabs"
-            role="tablist"
-            aria-label={`Pestañas de ${copy.title}`}
-            onRovingKeyChange={(key) => selectTab(key as RecopiladoresPestana)}
+      <div className={`rec-workbench${conRail ? " rec-workbench--rail" : ""}`}>
+        {conRail ? (
+          // **El rail de la casa, no píldoras propias.** Toda sección con dos o
+          // más pestañas las lleva en el rail de íconos compartido, igual que
+          // Carga, Gráficos y Cálculo de muestra. Una sección de una sola
+          // pestaña no dibuja rail: un ítem no es una elección.
+          <AdaptiveSplitView
+            ariaLabel={`Mesa de ${copy.title}`}
+            railLabel={`Pestañas de ${copy.title}`}
+            className="rec-workbench-split pulso-context-tab-layout"
+            rail={(
+              <ContextTabRail
+                ariaLabel={`Pestañas de ${copy.title}`}
+                activeKey={direction.pestana}
+                items={railItems}
+                panelId={(key) => `rec-tab-panel-${key}`}
+                tabId={(key) => `rec-tab-${key}`}
+                onChange={selectTab}
+              />
+            )}
           >
-            {tabs.map((tab) => {
-              const active = tab.id === direction.pestana;
-              return (
-                <button
-                  key={tab.id}
-                  id={`rec-tab-${tab.id}`}
-                  type="button"
-                  role="tab"
-                  data-gliding-key={tab.id}
-                  aria-selected={active}
-                  aria-controls={`rec-tab-panel-${tab.id}`}
-                  tabIndex={active ? 0 : -1}
-                  onClick={() => selectTab(tab.id as RecopiladoresPestana)}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </GlidingTabList>
-        ) : null}
-
-        <section
-          id={tabs.length > 1 ? `rec-tab-panel-${direction.pestana}` : undefined}
-          className="rec-tab-panel"
-          role={tabs.length > 1 ? "tabpanel" : undefined}
-          aria-labelledby={tabs.length > 1 ? `rec-tab-${direction.pestana}` : undefined}
-          data-qa-geometry-group={`recopiladores/${direction.seccion}`}
-          data-qa-geometry-contract="intrinsic"
-        >
-          {loading && !state ? (
-            <div className="rec-loading" data-qa-geometry-capacity="owned">
-              Leyendo el estado del despliegue…
-            </div>
-          ) : null}
-          {sinCambios ? (
-            <div
-              data-testid="recopiladores-sin-cambios"
-              role="status"
-              className="rec-sin-cambios"
-              data-qa-geometry-capacity="owned"
-            >
-              No había nada que guardar: lo que enviaste es igual a lo que ya estaba.
-            </div>
-          ) : null}
-          {!loading && direction.seccion === "plan-recoleccion" ? (
-            <PlanSection payload={payload} onState={aplicarMutacion} />
-          ) : null}
-          {!loading && direction.seccion === "accesos" ? (
-            <AccessSection payload={payload} activeTab={direction.pestana} onState={aplicarMutacion} />
-          ) : null}
-          {!loading && direction.seccion === "materiales" ? (
-            <MaterialsSection
-              payload={payload}
-              activeTab={direction.pestana}
-              onStateRefresh={refreshSilent}
-              onArtifact={setLatestArtifact}
-              onCargando={setSeccionCargando}
-            />
-          ) : null}
-          {!loading && direction.seccion === "entrega-campo" ? (
-            <DeliverySection payload={payload} latestArtifact={latestArtifact} onState={aplicarMutacion} />
-          ) : null}
-        </section>
+            {panel}
+          </AdaptiveSplitView>
+        ) : panel}
       </div>
     </PageFrame>
   );

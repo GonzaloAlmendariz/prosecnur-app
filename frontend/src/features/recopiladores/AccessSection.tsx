@@ -19,15 +19,23 @@ import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { CheckCircle2, Eye, Link2, Loader2, Save, ShieldCheck } from "../../vendor/lucide-react";
 import {
+  CAMPO_ACTIVO_DERIVADO,
+  CAMPO_ADAPTER_DERIVADO,
   COLLECTION_ADAPTER_LABELS,
   accessKindLabel,
   adapterOperation,
   bindingStatusLabel,
+  cuerpoDeVistaPrevia,
   deploymentFromPreview,
+  deploymentParaEnviar,
+  derivadosPendientes,
   localProviderBlocking,
+  targetParaEnviar,
 } from "./providerRules";
 import type { RecopiladoresPestana } from "./navegacion";
 import { TableScroll } from "./TableScroll";
+import { VacioSinPlanCard } from "./VacioSinPlanCard";
+import { vacioSinPlan } from "./vacioSinPlan";
 import { mapaDeCodigosDelPlan, titularesDelPlan } from "./codigoOperativo";
 import "./styles/access.css";
 
@@ -35,6 +43,8 @@ type Props = {
   payload: CollectionStatePayload | null;
   activeTab: RecopiladoresPestana;
   onState: (payload: CollectionStatePayload) => void;
+  /** Navega a una dirección de la app (la acción del vacío sin plan). */
+  onIr?: (to: string) => void;
 };
 
 const PROVIDER_BY_ADAPTER: Record<CollectionAdapterId, string> = {
@@ -44,6 +54,56 @@ const PROVIDER_BY_ADAPTER: Record<CollectionAdapterId, string> = {
   surveymonkey_weblink_existing_v1: "surveymonkey",
   surveymonkey_recipient_existing_v1: "surveymonkey",
 };
+
+function remoteRefString(target: CollectionTarget | undefined, key: string): string | null {
+  const value = target?.remote_ref?.[key];
+  return typeof value === "string" && value ? value : null;
+}
+
+/**
+ * El adapter con que se armó un deployment guardado. Los deployments previos
+ * a que el backend emitiera `adapter_id` sólo traen `target.provider`; sin
+ * inferirlo, Accesos caía en el adapter del plan («Aulas (compatibilidad)»)
+ * aunque los enlaces fueran de Kobo.
+ */
+export function adapterDelDeployment(
+  deployment: CollectionDeployment | null,
+  fallback: CollectionAdapterId,
+): CollectionAdapterId {
+  if (!deployment) return fallback;
+  if (deployment.adapter_id) return deployment.adapter_id;
+  switch (deployment.target.provider) {
+    case "kobo":
+      return "kobo_existing_v1";
+    case "surveymonkey":
+      return deployment.bindings.some((binding) => binding.access_kind === "recipient_link")
+        ? "surveymonkey_recipient_existing_v1"
+        : "surveymonkey_weblink_existing_v1";
+    default:
+      return fallback;
+  }
+}
+
+/**
+ * URL base guardada; en deployments viejos, la del primer enlace
+ * parametrizado (base común a todas las unidades, el prefill va aparte). Un
+ * enlace manual es propio de su unidad y no sirve de base.
+ */
+export function urlBaseDelDeployment(deployment: CollectionDeployment | null): string {
+  if (deployment?.target.base_access_url) return deployment.target.base_access_url;
+  const primero = deployment?.bindings[0];
+  return primero?.access_kind === "parameterized_link" ? primero.access_ref ?? "" : "";
+}
+
+/** Asset UID o Collector ID: en el primer nivel o dentro de `remote_ref`. */
+export function idRemotoDelDeployment(deployment: CollectionDeployment | null): string {
+  const target = deployment?.target;
+  return target?.asset_uid
+    ?? remoteRefString(target, "asset_uid")
+    ?? target?.collector_id
+    ?? remoteRefString(target, "collector_id")
+    ?? "";
+}
 
 function targetFromFields(
   adapterId: CollectionAdapterId,
@@ -134,17 +194,15 @@ function policyLabel(value: string | undefined): string | null {
   return POLICY_LABELS[value as CapabilityPolicy] ?? value;
 }
 
-export function AccessSection({ payload, activeTab, onState }: Props) {
+export function AccessSection({ payload, activeTab, onState, onIr }: Props) {
   const plan = payload?.state.plan ?? null;
   const currentDeployment = payload?.state.deployment ?? null;
   const [adapterId, setAdapterId] = useState<CollectionAdapterId>(
-    currentDeployment?.adapter_id ?? plan?.adapter.id ?? "manual_links_v1",
+    () => adapterDelDeployment(currentDeployment, plan?.adapter.id ?? "manual_links_v1"),
   );
   const [profile, setProfile] = useState(currentDeployment?.target.connection_profile_id ?? "");
-  const [baseUrl, setBaseUrl] = useState(currentDeployment?.target.base_access_url ?? "");
-  const [remoteId, setRemoteId] = useState(
-    currentDeployment?.target.asset_uid ?? currentDeployment?.target.collector_id ?? "",
-  );
+  const [baseUrl, setBaseUrl] = useState(() => urlBaseDelDeployment(currentDeployment));
+  const [remoteId, setRemoteId] = useState(() => idRemotoDelDeployment(currentDeployment));
   const [assetType, setAssetType] = useState(currentDeployment?.target.asset_type ?? "survey");
   const [active, setActive] = useState(currentDeployment?.target.deployment_active === true);
   const [customVariable, setCustomVariable] = useState(currentDeployment?.target.custom_variable ?? "");
@@ -155,12 +213,26 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
   const [preview, setPreview] = useState<CollectionDeploymentPreview | null>(null);
   const [busy, setBusy] = useState<"preflight" | "preview" | "save" | "prepare" | null>(null);
   const [error, setError] = useState("");
+  // H27: lo que el usuario tocó deja de ser un deducido del backend y se envía.
+  const [tocados, setTocados] = useState<ReadonlySet<string>>(() => new Set());
+  const tocar = (ruta: string) => setTocados((prev) => (prev.has(ruta) ? prev : new Set([...prev, ruta])));
+  const pendientes = useMemo(
+    () => derivadosPendientes(payload?.deployment_derived_fields, tocados),
+    [payload?.deployment_derived_fields, tocados],
+  );
+  const activoDeducido = adapterId === "kobo_existing_v1" && active && pendientes.includes(CAMPO_ACTIVO_DERIVADO);
 
   const target = useMemo(() => targetFromFields(adapterId, {
     profile, baseUrl, remoteId, assetType, active, customVariable, recipientJson, prefillField, returnUrl,
   }), [active, adapterId, assetType, baseUrl, customVariable, prefillField, profile, recipientJson, remoteId, returnUrl]);
-  const localBlocking = useMemo(() => localProviderBlocking(adapterId, target), [adapterId, target]);
-  const candidate = deploymentFromPreview(preview) ?? currentDeployment;
+  const localBlocking = useMemo(
+    () => localProviderBlocking(adapterId, target, pendientes),
+    [adapterId, pendientes, target],
+  );
+  // El deployment del estado sale sin sus deducidos; el de una vista previa
+  // nueva ya es observación del backend y va tal cual.
+  const candidate = deploymentFromPreview(preview)
+    ?? (currentDeployment ? deploymentParaEnviar(currentDeployment, pendientes) : null);
   // El plan es de dónde salen las aulas y su código de campo: la vinculación
   // sólo guarda `unit_id`, que es un hash.
   const codigosDeUnidad = useMemo(() => mapaDeCodigosDelPlan(payload?.state.plan), [payload?.state.plan]);
@@ -180,6 +252,8 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
 
   const changeAdapter = (next: CollectionAdapterId) => {
     setAdapterId(next);
+    tocar(CAMPO_ADAPTER_DERIVADO);
+    tocar(CAMPO_ACTIVO_DERIVADO);
     // `remoteId`/`baseUrl` etc. son inputs compartidos entre proveedores
     // (misma variable de estado, distinta etiqueta: "Asset UID" en Kobo,
     // "Collector ID" en SurveyMonkey) — sin este reseteo, cambiar de
@@ -207,7 +281,7 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
         adapter_id: adapterId,
         operation: adapterOperation(adapterId),
         connection_ref: profile ? { connection_profile_id: profile } : {},
-        target_ref: target,
+        target_ref: targetParaEnviar(target, pendientes),
       }));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo comprobar la conexión.");
@@ -221,7 +295,7 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
     setBusy("preview");
     setError("");
     try {
-      setPreview(await apiRecopiladoresDeploymentPreview({ adapter_id: adapterId, plan, target }));
+      setPreview(await apiRecopiladoresDeploymentPreview(cuerpoDeVistaPrevia({ adapterId, plan, target, pendientes })));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo construir la vista previa.");
     } finally {
@@ -257,17 +331,22 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
   };
 
   if (!plan) {
-    return <div className="rec-contained-empty" data-qa-geometry-capacity="owned">Crea o adapta un plan antes de configurar accesos.</div>;
+    return <VacioSinPlanCard vacio={vacioSinPlan("accesos")} icono={<Link2 size={18} />} onIr={onIr} />;
   }
 
   return (
     <div className="rec-access-layout">
       <Panel
         className="rec-target-panel"
+        // C1: los grupos de campos son secciones independientes de un mismo
+        // formulario (Kobo muestra tres, SurveyMonkey dos): cada encabezado
+        // mide lo suyo y ninguno se estira para igualar a otro.
+        data-qa-geometry-group="material-campo/canal-campos"
+        data-qa-geometry-contract="intrinsic"
         eyebrow="Canal de acceso"
         title={<><Link2 size={18} aria-hidden /> Origen existente</>}
       >
-        <span className="rec-field-group-heading">Conexión</span>
+        <span className="rec-field-group-heading" data-qa-geometry-member>Conexión</span>
         <label>Tipo de acceso
           <select value={adapterId} onChange={(event) => changeAdapter(event.target.value as CollectionAdapterId)}>
             {Object.entries(COLLECTION_ADAPTER_LABELS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
@@ -283,15 +362,31 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
         ) : null}
         {adapterId === "kobo_existing_v1" ? (
           <>
-            <span className="rec-field-group-heading">Identidad del asset</span>
+            <span className="rec-field-group-heading" data-qa-geometry-member>Identidad del asset</span>
             <label>Asset UID<input value={remoteId} onChange={(event) => setRemoteId(event.target.value)} /></label>
             <label>Tipo observado
               <select value={assetType} onChange={(event) => setAssetType(event.target.value)}>
                 <option value="survey">survey</option><option value="collection">collection</option><option value="unknown">unknown</option>
               </select>
             </label>
-            <label className="rec-check"><input type="checkbox" aria-label="El formulario acepta respuestas" checked={active} onChange={(event) => setActive(event.target.checked)} /> El formulario acepta respuestas</label>
-            <span className="rec-field-group-heading">Personalización del enlace</span>
+            <label className="rec-check">
+              <input
+                type="checkbox"
+                aria-label="El formulario acepta respuestas"
+                aria-describedby={activoDeducido ? "rec-activo-deducido" : undefined}
+                checked={active}
+                onChange={(event) => { tocar(CAMPO_ACTIVO_DERIVADO); setActive(event.target.checked); }}
+              /> El formulario acepta respuestas
+            </label>
+            {/* H27: el visto lo dedujo el backend del último chequeo guardado;
+                no es una observación nueva y no se reenvía hasta confirmarlo. */}
+            {activoDeducido ? (
+              <p className="rec-policy-note" id="rec-activo-deducido" data-procedencia="deducido">
+                Deducido del último chequeo.
+                <PulsoButton variant="ghost" size="sm" onClick={() => tocar(CAMPO_ACTIVO_DERIVADO)}>Confirmar</PulsoButton>
+              </p>
+            ) : null}
+            <span className="rec-field-group-heading" data-qa-geometry-member>Personalización del enlace</span>
             <label>Campo de personalización (avanzado)
               <input
                 value={prefillField}
@@ -316,7 +411,7 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
         ) : null}
         {adapterId.startsWith("surveymonkey") ? (
           <>
-            <span className="rec-field-group-heading">Identidad del collector</span>
+            <span className="rec-field-group-heading" data-qa-geometry-member>Identidad del collector</span>
             <label>Collector ID<input value={remoteId} onChange={(event) => setRemoteId(event.target.value)} /></label>
           </>
         ) : null}

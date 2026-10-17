@@ -14,7 +14,7 @@ const moduleAccentTokens = [
   "routes",
   "sample",
   "encyclopedia",
-  "collectors",
+  "fieldkit",
   "monitoring",
 ] as const;
 

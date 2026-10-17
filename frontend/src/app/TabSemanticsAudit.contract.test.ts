@@ -383,13 +383,10 @@ const REAL_TABSETS: readonly TabsetCase[] = [
     rootMarker: 'className="mon-gs-report-tabs"',
     relationStem: "mon-gs-report",
   },
-  {
-    name: "B11 RecopiladoresShell",
-    file: "features/recopiladores/RecopiladoresShell.tsx",
-    rootMarker: 'className="rec-tab-list"',
-    relationStem: "rec-tab",
-    singleOptionGuard: true,
-  },
+  // B11 «RecopiladoresShell» RETIRADA, no perdida, por la misma razón que B08:
+  // el 2026-10-16 las pestañas de Material de campo pasaron a `ContextTabRail`
+  // y `className="rec-tab-list"` dejó de existir. La semántica la pone el rail
+  // compartido y la prueba `ContextTabRail.test.tsx`.
   {
     name: "B12 FocusedWorkspace · configuración",
     file: "features/xlsformEditor/canvas/FocusedWorkspace.tsx",

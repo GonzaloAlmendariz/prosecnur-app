@@ -14,6 +14,7 @@
 // permite en este repo.
 
 import type { DisenoEstudioBitacoraTone } from "../../../api/disenoEstudio";
+import { slugCanonicoDeModulo } from "../../../lib/navegacion/aliasDeModulo";
 
 export const TONOS: ReadonlyArray<{ id: DisenoEstudioBitacoraTone; label: string }> = [
   { id: "nota", label: "Nota" },
@@ -42,7 +43,7 @@ export const MODULOS_BITACORA: ReadonlyArray<{ id: string; label: string }> = [
   { id: "calc-muestra", label: "Muestra" },
   { id: "editor-xlsform", label: "Formulario" },
   { id: "hojas-ruta", label: "Rutas" },
-  { id: "recopiladores", label: "Fichas QR" },
+  { id: "material-campo", label: "Material" },
   { id: "monitoreo", label: "Monitoreo" },
   { id: "carga", label: "Carga" },
   { id: "validacion", label: "Validación" },
@@ -61,8 +62,11 @@ const ALIAS_MODULO: Readonly<Record<string, string>> = {
   xlsform: "editor-xlsform",
   rutas: "hojas-ruta",
   "hojas-ruta": "hojas-ruta",
-  qr: "recopiladores",
-  recopiladores: "recopiladores",
+  qr: "material-campo",
+  material: "material-campo",
+  "material-campo": "material-campo",
+  // El módulo se llamaba Recopiladores (ADR 0108): se lee, nunca se escribe.
+  recopiladores: "material-campo",
   monitoreo: "monitoreo",
   campo: "monitoreo",
   carga: "carga",
@@ -161,5 +165,6 @@ export function etiquetaTono(tono: string): string {
 }
 
 export function etiquetaModulo(id: string): string {
-  return MODULOS_BITACORA.find((m) => m.id === id)?.label ?? id;
+  const vigente = slugCanonicoDeModulo(id);
+  return MODULOS_BITACORA.find((m) => m.id === vigente)?.label ?? id;
 }

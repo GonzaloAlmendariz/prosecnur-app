@@ -16,6 +16,7 @@ import {
   type ProsecnurModuleSectionMeta,
 } from "../../lib/modules";
 import type { LucideIcon } from "../../vendor/lucide-react";
+import { slugCanonicoDeModulo } from "../../lib/navegacion/aliasDeModulo";
 import { resolverDestino, type NivelApp } from "./arbolDeLaApp";
 
 export type IdentidadDeFase = {
@@ -62,7 +63,9 @@ export function identidadDeFase(
   seccionId?: string,
 ): IdentidadDeFase {
   if (!moduloSlug) return SIN_IDENTIDAD;
-  const modulo = PROSECNUR_MODULES.find((m) => m.slug === moduloSlug);
+  // Un slug guardado antes de un renombre (`recopiladores`) sigue resolviendo.
+  const vigente = slugCanonicoDeModulo(moduloSlug);
+  const modulo = PROSECNUR_MODULES.find((m) => m.slug === vigente);
   if (!modulo) return SIN_IDENTIDAD;
 
   const seccion = seccionId

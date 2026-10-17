@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { apiRecopiladoresReseed,
-  apiRecopiladoresSeed, type CollectionStatePayload, type CollectionUnit } from "../../api/recopiladores";
+import { apiRecopiladoresSeed, type CollectionStatePayload, type CollectionUnit } from "../../api/recopiladores";
 import { agruparEnCadenas, ordenarPorCadenaOperativa } from "../../lib/cadenaOperativa";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
@@ -15,14 +14,24 @@ import {
 import { TableScroll } from "./TableScroll";
 import "./styles/plan.css";
 import { ComposicionPorFacultad } from "./ComposicionPorFacultad";
+import { VacioSinPlanCard } from "./VacioSinPlanCard";
+import { vacioSinPlan, type DestinoDelVacio } from "./vacioSinPlan";
 import { capitalizarDelMarco } from "./textoDelMarco";
 import { codigoOperativoDe } from "./codigoOperativo";
 import { formaDelOperativo, type FormaDelOperativo } from "./formaDelOperativo";
 import { nombreCortoDeFacultad } from "./nombreDeFacultad";
+import { fechaDeCorrida } from "./fechaDeCorrida";
+import { usePanelDireccionable } from "../../lib/navegacion/paneles";
+import { ConfirmarResembrado } from "./ConfirmarResembrado";
+import { PANEL_REHACER_PLAN } from "./resembrado";
 
 type Props = {
   payload: CollectionStatePayload | null;
   onState: (payload: CollectionStatePayload) => void;
+  /** Módulo de donde sale la lista de unidades; destino del vacío sin plan. */
+  origen?: DestinoDelVacio;
+  /** Navega a una dirección de la app (la acción del vacío). */
+  onIr?: (to: string) => void;
 };
 
 function value(value: unknown) {
@@ -177,24 +186,9 @@ export function paginatePlanUnits<T>(units: T[], requestedPage: number, pageSize
   };
 }
 
-/**
- * La fecha de la corrida que produjo el plan, sacada de su `run_id`.
- *
- * Los identificadores son `sel_aulas_AAAAMMDDHHMMSS_hash`: dentro está la fecha,
- * pero el hash la vuelve ilegible. Sin ella, «Origen: calc-muestra» no distingue
- * un plan de hoy de uno de hace tres semanas.
- */
-export function fechaDeCorrida(runId: string | null | undefined) {
-  const m = /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/.exec(String(runId ?? ""));
-  if (!m) return "";
-  const [, a, mes, d, h, min] = m;
-  const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-  const mi = Number(mes) - 1;
-  if (mi < 0 || mi > 11) return "";
-  return `${Number(d)} ${meses[mi]} ${a}, ${h}:${min}`;
-}
+export { fechaDeCorrida };
 
-export function PlanSection({ payload, onState }: Props) {
+export function PlanSection({ payload, onState, origen, onIr }: Props) {
   const [seeding, setSeeding] = useState(false);
   const [requestedPage, setRequestedPage] = useState(0);
   const [error, setError] = useState("");
@@ -202,19 +196,9 @@ export function PlanSection({ payload, onState }: Props) {
   // El backend compara el run_id del plan con el de la selección vigente; aquí
   // sólo se pinta su veredicto. Ausente = no hay con qué comparar.
   const desfase = payload?.source_vigente?.desfasado ? payload.source_vigente : null;
-  const [rehaciendo, setRehaciendo] = useState(false);
-  const rehacer = async () => {
-    if (!payload) return;
-    setRehaciendo(true);
-    setError("");
-    try {
-      onState(await apiRecopiladoresReseed(payload.state_revision));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo rehacer el plan.");
-    } finally {
-      setRehaciendo(false);
-    }
-  };
+  // Rehacer el plan NO escribe al pulsar: abre `?panel=rehacer-plan`, que
+  // previsualiza lo que se descarta y sólo confirma ahí (H26).
+  const panelRehacer = usePanelDireccionable(PANEL_REHACER_PLAN);
 
   const seed = async () => {
     setSeeding(true);
@@ -230,21 +214,25 @@ export function PlanSection({ payload, onState }: Props) {
 
   if (!plan) {
     const seedAvailable = payload?.seed_available === true;
+    // Con semilla, la acción que resuelve el vacío está aquí mismo: adaptarla.
+    // Sin ella, la acción lleva al módulo de donde sale la selección.
     return (
-      <div className="rec-empty-state" data-qa-geometry-capacity="owned">
-        <DatabaseZap size={28} aria-hidden />
-        <h2>No hay un plan propio de Recopiladores</h2>
-        <p>{seedAvailable
-          ? "Este proyecto conserva una selección o un plan de aulas compatible. Puedes adaptarlo una sola vez."
-          : "Primero entrega una selección desde su módulo de origen para preparar la recolección."}</p>
-        {seedAvailable ? (
-          <PulsoButton variant="primary" onClick={() => { void seed(); }} disabled={seeding}>
-            {seeding ? <Loader2 size={15} className="pulso-spin" /> : <DatabaseZap size={15} />}
-            Adaptar fuente disponible
-          </PulsoButton>
-        ) : null}
+      <VacioSinPlanCard
+        vacio={vacioSinPlan("unidades", origen)}
+        icono={<DatabaseZap size={18} />}
+        onIr={onIr}
+        descripcion={seedAvailable
+          ? "El proyecto conserva una selección compatible."
+          : undefined}
+        accionPropia={seedAvailable ? {
+          label: "Adaptar fuente disponible",
+          icono: <DatabaseZap size={14} />,
+          ocupado: seeding,
+          onSelect: () => { void seed(); },
+        } : undefined}
+      >
         {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}
-      </div>
+      </VacioSinPlanCard>
     );
   }
 
@@ -280,6 +268,13 @@ export function PlanSection({ payload, onState }: Props) {
 
   return (
     <div className="rec-plan-layout">
+      {payload ? (
+        <ConfirmarResembrado
+          panel={panelRehacer}
+          expectedRevision={payload.state_revision}
+          onState={onState}
+        />
+      ) : null}
       {/* Los dos paneles de contexto van en una columna propia: el layout es de
           dos columnas y un tercer hijo suelto caeria bajo el resumen empujando
           la tabla a la fila siguiente. */}
@@ -346,8 +341,14 @@ export function PlanSection({ payload, onState }: Props) {
                 ? <>, incluida su <b>entrega a campo</b></> : null}. Las fichas ya impresas dejan de
               corresponder al plan.
             </p>
-            <button type="button" className="cmv2-ghost" disabled={rehaciendo} onClick={rehacer}>
-              {rehaciendo ? "Rehaciendo…" : "Rehacer el plan con el sorteo vigente"}
+            <button
+              type="button"
+              className="cmv2-ghost"
+              aria-haspopup="dialog"
+              aria-expanded={panelRehacer.abierto}
+              onClick={panelRehacer.abrir}
+            >
+              Rehacer el plan con el sorteo vigente
             </button>
           </div>
         ) : null}

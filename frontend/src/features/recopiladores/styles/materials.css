@@ -130,6 +130,50 @@
   min-width: 0;
 }
 
+/* Fila del outline: número en caja fija, rótulo a la izquierda y las flechas
+   a la derecha. El `button` global centra su contenido; aquí no, porque los
+   rótulos de largo distinto quedaban cada uno en su propia columna. */
+.rec-outline-item > .rec-outline-select {
+  justify-content: flex-start;
+  min-height: 44px;
+}
+
+.rec-outline-select > .rec-outline-num {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-outline-select.is-selected > .rec-outline-num {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 16%, var(--pulso-surface));
+  color: var(--pulso-primary-strong);
+}
+
+.rec-outline-select > .rec-outline-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+}
+
+.rec-outline-select > .rec-outline-text > strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sin subtítulo, el rótulo ajusta a dos líneas: en la columna angosta de
+   1024 px «Registro de aplicación» se lee entero en vez de cortarse. Cabe en
+   el alto de la fila (lo fijan las dos flechas), así que el grupo sigue
+   midiendo lo mismo (C2). El `title` del botón conserva el nombre completo. */
+.rec-outline-select > .rec-outline-text > strong:only-child {
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-height: 1.25;
+  white-space: normal;
+}
+
 .rec-outline-reorder {
   display: flex;
   flex: 0 0 auto;
@@ -207,6 +251,7 @@
 }
 
 .rec-canvas-block.is-brand_header,
+.rec-canvas-block.is-brand_strip,
 .rec-canvas-block.is-footer {
   min-height: 54px;
 }
@@ -223,6 +268,15 @@
   display: grid;
   gap: 12px;
   padding: 12px;
+}
+
+/* Lo que pinta un bloque sin texto ni dato propio (careta, renglones,
+   croquis): se lee, no se edita aquí. */
+.rec-inspector-resumen {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
 }
 
 .rec-inspector fieldset {

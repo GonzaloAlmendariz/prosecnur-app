@@ -3,6 +3,7 @@ import type {
   CollectionAdapterId,
   CollectionDeployment,
   CollectionDeploymentPreview,
+  CollectionPlan,
   CollectionTarget,
 } from "../../api/recopiladores";
 
@@ -91,16 +92,83 @@ function captureUrlIssue(value: string | null | undefined): string | null {
   return null;
 }
 
+/**
+ * Campos que el backend DEDUJO al leer el deployment (H27): vienen en
+ * `deployment_derived_fields` con su ruta («adapter_id»,
+ * «target.deployment_active») y no están guardados. Se pintan, pero no se
+ * reenvían como si alguien los hubiera observado.
+ */
+export const CAMPO_ACTIVO_DERIVADO = "target.deployment_active";
+export const CAMPO_ADAPTER_DERIVADO = "adapter_id";
+
+/** Los derivados que siguen siéndolo: el que el usuario tocó pasa a ser suyo. */
+export function derivadosPendientes(
+  derivados: readonly string[] | null | undefined,
+  tocados: ReadonlySet<string>,
+): string[] {
+  return (derivados ?? []).filter((ruta) => !tocados.has(ruta));
+}
+
+function esObjeto(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+/** Copia sin las rutas dadas («a» o «a.b»); no muta el original. */
+export function sinCampos<T extends object>(objeto: T, rutas: readonly string[]): T {
+  const copia: Record<string, unknown> = { ...(objeto as Record<string, unknown>) };
+  for (const ruta of rutas) {
+    const [cabeza, ...resto] = ruta.split(".");
+    if (!cabeza || !(cabeza in copia)) continue;
+    if (!resto.length) {
+      delete copia[cabeza];
+      continue;
+    }
+    const hijo = copia[cabeza];
+    if (esObjeto(hijo)) copia[cabeza] = sinCampos(hijo, [resto.join(".")]);
+  }
+  return copia as T;
+}
+
+/** El target que sale hacia el backend, sin los `target.*` aún deducidos. */
+export function targetParaEnviar(target: CollectionTarget, pendientes: readonly string[]): CollectionTarget {
+  const rutas = pendientes
+    .filter((ruta) => ruta.startsWith("target."))
+    .map((ruta) => ruta.slice("target.".length));
+  return sinCampos(target, rutas);
+}
+
+/** El deployment leído del estado, listo para PUT/prepare sin sus deducidos. */
+export function deploymentParaEnviar(
+  deployment: CollectionDeployment,
+  pendientes: readonly string[],
+): CollectionDeployment {
+  return sinCampos(deployment, pendientes);
+}
+
+/** Cuerpo de `deployment/preview`: el `adapter_id` es el del selector, no un deducido. */
+export function cuerpoDeVistaPrevia(input: {
+  adapterId: CollectionAdapterId;
+  plan: CollectionPlan;
+  target: CollectionTarget;
+  pendientes: readonly string[];
+}): { adapter_id: CollectionAdapterId; plan: CollectionPlan; target: CollectionTarget } {
+  return { adapter_id: input.adapterId, plan: input.plan, target: targetParaEnviar(input.target, input.pendientes) };
+}
+
 /** Bloqueos visibles antes del preflight autoritativo del backend. */
 export function localProviderBlocking(
   adapterId: CollectionAdapterId,
   target: CollectionTarget,
+  pendientes: readonly string[] = [],
 ): string[] {
   if (adapterId === "kobo_existing_v1") {
+    const activoDeducido = pendientes.includes(CAMPO_ACTIVO_DERIVADO) && target.deployment_active === true;
     return [
       captureUrlIssue(target.base_access_url),
       target.asset_type === "survey" ? null : "Kobo exige un asset_type survey observado.",
-      target.deployment_active === true ? null : "Kobo exige un formulario publicado y activo.",
+      activoDeducido
+        ? "Confirma que el formulario sigue aceptando respuestas."
+        : target.deployment_active === true ? null : "Kobo exige un formulario publicado y activo.",
     ].filter((item): item is string => Boolean(item));
   }
   if (adapterId === "surveymonkey_weblink_existing_v1") {

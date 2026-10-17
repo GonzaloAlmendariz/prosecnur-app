@@ -233,9 +233,9 @@
   --pulso-module-workplan: var(--pulso-module-encyclopedia);
   --pulso-module-workplan-soft: var(--pulso-module-encyclopedia-soft);
   --pulso-module-workplan-border: var(--pulso-module-encyclopedia-border);
-  --pulso-module-collectors: #106e8c;
-  --pulso-module-collectors-soft: rgba(16, 110, 140, 0.13);
-  --pulso-module-collectors-border: rgba(16, 110, 140, 0.3);
+  --pulso-module-fieldkit: #4f752c;
+  --pulso-module-fieldkit-soft: rgba(79, 117, 44, 0.13);
+  --pulso-module-fieldkit-border: rgba(79, 117, 44, 0.3);
   --pulso-module-monitoring: #a0464e;
   --pulso-module-monitoring-soft: rgba(160, 70, 78, 0.12);
   --pulso-module-monitoring-border: rgba(160, 70, 78, 0.3);
@@ -517,9 +517,9 @@
 }
 
 .rec-page {
-  --module-accent: var(--pulso-module-collectors);
-  --module-accent-soft: var(--pulso-module-collectors-soft);
-  --module-accent-border: var(--pulso-module-collectors-border);
+  --module-accent: var(--pulso-module-fieldkit);
+  --module-accent-soft: var(--pulso-module-fieldkit-soft);
+  --module-accent-border: var(--pulso-module-fieldkit-border);
 }
 
 .hojas-ruta-frame {

@@ -1,13 +1,12 @@
 # Checklist: Material de campo (ADR 0108)
 
-Tipo: Checklist vivo
+Tipo: Checklist QA vivo
 Estado: En curso
 Fecha: 2026-10-16
-Autoridad: Pedidos de Gonzalo; sólo él da por terminado un ítem
-
-Fecha de apertura: 2026-10-16 · Solo Gonzalo da por terminado un ítem.
-Diagnóstico: [diagnostico-material-de-campo-2026-10-16.md](diagnostico-material-de-campo-2026-10-16.md) · ADR:
-[0108](../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md)
+Autoridad: Seguimiento del [ADR 0108](../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md); solo Gonzalo da por terminado un ítem
+Diagnóstico: [diagnostico-material-de-campo-2026-10-16.md](diagnostico-material-de-campo-2026-10-16.md)
+Plan de acción: [plan-material-de-campo-2026-10-16.md](plan-material-de-campo-2026-10-16.md)
+Pendientes al integrar a main: [pendientes-material-de-campo-2026-10-16.md](pendientes-material-de-campo-2026-10-16.md)
 
 Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en revisión**.
 
@@ -22,14 +21,17 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | A5 | Ícono del módulo: `Backpack` (mochila) | ADR 0108 §7, `frontend/src/lib/icons.ts` | hecho (decidido 2026-10-16) |
 | A6 | La lista de fichas de cuota nace en Hojas de ruta, en un modo sin marco | ADR 0108 §6 | hecho (decidido 2026-10-16) |
 | A9 | ADR propio del modo `cuotas` de Hojas de ruta (secciones, contrato de la asignación, migración) | `docs/adrs/` | pendiente; frena E4 |
+| A10 | Imprenta como sección propia; Accesos solo con canal digital; Componer a medida en el alcance | ADR 0109 §3 a §5 | hecho (decidido 2026-10-16) |
+| A11 | Canvas de E1 aprobado como referencia visual | artifact `W7xx1vTeBZE2tkdJtQCcSy` | hecho (aprobado 2026-10-16) |
+| A12 | Conexiones con los vecinos y correos para Mailchimp | ADR 0110 | hecho (decidido 2026-10-16) |
 | A7 | «Entrega» de Hojas de ruta se renombra «Selección» y conserva Cuotas, Titulares y Reemplazos | ADR 0108 §5 | hecho (confirmado 2026-10-16) |
-| A8 | Aceptar el ADR 0108 | `docs/adrs/` | **bloqueado**: decisión de Gonzalo |
+| A8 | Aceptar el ADR 0108 | `docs/adrs/` | hecho (aceptado 2026-10-16) |
 
 ## Diagnóstico y revisión
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| D1 | Capturas reales de Recopiladores > Materiales (hsvg2026) y Hojas de ruta > Entrega (acnur_acg) | capturas locales no versionadas, diagnóstico «Evidencia de UI» | hecho: confirma un solo preset sin catálogo; la ficha de dos caras sale dentro del ZIP |
+| D1 | Capturas reales de Recopiladores > Materiales (hsvg2026) y Hojas de ruta > Entrega (acnur_acg) | diagnóstico «Evidencia de UI» (capturas locales no versionadas) | hecho: confirma un solo preset sin catálogo; la ficha de dos caras sale dentro del ZIP |
 | D2 | Revisión de contratos del ADR | guardian-contratos | hecho: REQUIERE MIGRACIÓN; integrado (sección R) |
 | D3 | Revisión metodológica | revisor-metodologico | hecho: aprobado con supuestos E0–E3, rechazado E4 hasta A6; integrado (sección R) |
 | D4 | ¿`fichas_cuota_v1` es general? | diagnóstico §5.1 | hecho: el patrón es general, el contenido es del estudio |
@@ -69,19 +71,57 @@ Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en r
 | H5 | Monitoreo territorial salta en silencio una unidad sin márgenes de cuota | `api/R/monitoreo_engine.R:9642` | pendiente: hoy afecta a manzanas sin cuota; bloquea E4 |
 | H6 | `hojas-ruta/entrega` no tiene documento que la gobierne | `docs/sistema/direcciones/hojas-ruta.md:18` | pendiente (E0a) |
 | H7 | El script de la hoja de ruta de Ser Adolescente lee la cartografía de la app por ruta absoluta | `Campo/Generadores/mapa.py` (fuera del repo) | pendiente: desaparece con E2 a E4 |
-| H9 | El fixture hsvg2026 no tiene estado de Recopiladores: ningún proyecto de referencia prueba un plan con accesos | `api/inst/reference_projects/` | pendiente (antes de E1) |
+| H9 | El fixture hsvg2026 no tiene estado de Recopiladores: ningún proyecto de referencia prueba un plan con accesos | `scripts/qa/material_campo_sembrar_plan.R` | hecho en la rama (5589e3cef): sembrador reproducible → un `.pulso` no versionado (2.373 unidades, accesos sintéticos, plantilla y paquete), sin tocar los proyectos de referencia |
+| H21 | Accesos no rehidrata el despliegue Kobo preparado (adapter y URL se pierden en `.ca_preview_deployment`) | `api/R/collection_adapters.R:465`, `AccessSection.tsx:144` | hecho en la rama (7a8664488, 2072f1bf4; verificador APROBADO CON PENDIENTES 2026-10-16) |
+| H22 | Paquetes dice «Fichas 0 de N» con las fichas creadas; cada visita crea una instancia nueva | `MaterialsSection.tsx:247,288,419` | hecho en la rama (7a8664488, 2072f1bf4; verificador APROBADO CON PENDIENTES 2026-10-16) |
+| H23 | Entrega ofrece descargar un recibo cuyo archivo no viaja en el `.pulso` (404 al reabrir); «1 páginas» | `DeliverySection.tsx:37,139`, payload de `collection_state` | hecho en la rama (7a8664488, 2072f1bf4; verificador APROBADO CON PENDIENTES 2026-10-16) |
+| H25 | En Entrega, la tarjeta «Recibo firmado» sale con Fecha, Revisión, Plan y Accesos vacíos sin que haya traspaso | `DeliverySection.tsx`, `readiness.receipt`/`payload.handoff` | hecho en la rama (59b601462, 7aeeb5662; verificador APROBADO CON PENDIENTES 2026-10-16) |
+| H26 | Volver a sembrar el plan borra en silencio plantilla, fichas y recibos; la UI no confirma ni lee `descartado` | `collection_engine.R:660-693`, `PlanSection.tsx:212-223` | pendiente: preexistente en main (b3cffca92) |
+| H27 | Accesos no distingue los campos derivados al leer (`deployment_derived_fields`) y los reenvía como observados | `AccessSection.tsx`, `providerRules.ts` | pendiente |
+| H24 | El fixture anonimizado muestra facultades y cursos como nombres de persona | `api/inst/reference_projects/hsvg2026` | pendiente: trampa del anonimizador, no de la app |
 | H10 | Entrega > Reemplazos esconde 250 px a la derecha sin indicio y el runner dice `desplazamientoH=0` | `.hojas-ruta-review-table-wrap.is-delivery`, `scripts/ui-quick-check.mjs` | pendiente: detector y tabla |
-| H11 | En 1024x600 dos ítems del outline de Materiales desbordan (173 y 182 px en 166) | `features/recopiladores/` | pendiente (E1) |
+| H11 | En 1024x600 dos ítems del outline de Materiales desbordan (173 y 182 px en 166) | `features/recopiladores/` | hecho en la rama (5 mejoras, 2026-10-16): filas alineadas, sin overflow a 1024 |
+| H12 | Hojas de ruta > Selección no declara ningún grupo geométrico (C1); el outline del Catálogo tampoco | `features/hojasRuta/HojasRutaPage.tsx`, editor de Materiales | outline hecho en la rama (`material-catalogo-outline`, equal); Selección de Hojas de ruta sigue pendiente |
+| H13 | Selección a 1024x600: scroll anidado con 173 px de ventana interior; alcanzable pero estrecho (C4) | `.hojas-ruta-stage-shell.is-delivery-stage` | pendiente (preexistente) |
+| H14 | Los botones de sección de Material de campo no exponen `aria-current`; el tile «Agregar» del dock lleva `aria-current="page"` | top bar de módulo, dock | hecho en la rama: `aria-current="step"` en la sección activa; el tile «Agregar» del dock sigue pendiente |
+| H15 | El ítem 7 del outline repite el rótulo («Registro de aplicación Registro de aplicacion») | editor de Materiales | hecho en la rama: sin subtítulo repetido y con tilde (también en la ficha impresa) |
+| H16 | La card del home dice «Material» (etiqueta corta), su subtítulo se corta y el cuerpo habla solo de aulas | `features/home/moduleCardModel.ts`, `ModuleStatusCard.tsx` | hecho en la rama: «Material de campo», «Fichas, accesos y paquetes», cuerpo por unidades |
+| H17 | Los íconos de sección declarados (QR en Accesos, plantilla en Catálogo) no los dibuja ninguna vista: el top bar usa chips numerados | `lib/modules.ts` | pendiente (E1) |
+| H18 | Musgo queda a ΔE76 18.2 del verde de éxito `--pulso-success-fg` #166534; ningún gate mide esa cercanía | `branding/identity.json` | pendiente: vigilar en E1 junto a los estados |
+| H19 | Las pestañas de Accesos (Canales, Vinculación) son píldoras horizontales, no el rail de pestañas de la casa | `features/recopiladores/AccessSection.tsx` | hecho en la rama: Accesos usa `ContextTabRail` |
+| H20 | Los vacíos sin plan (Unidades, Accesos, Paquetes, Entrega) eran cajas punteadas de una frase | `VacioSinPlanCard.tsx`, `vacioSinPlan.ts` | hecho en la rama: título, qué falta y una acción al paso que lo resuelve |
 | H8 | El cronograma de Ser Adolescente dice 1,400 casos; el estudio es de 1.000 | cronograma del estudio (fuera del repo) | pendiente: aviso, no es de la app |
 
 ## Etapas (solo después de A8)
 
 | # | Etapa | Dónde vive | Estado |
 |---|---|---|---|
-| E0a | Renombre, ruta, modos, secciones, redirección con query, migración del slug y de `active_stage`, home | `modules.ts`, `App.tsx`, `direccion.ts`, `project_overview.R`, `router_diseno_estudio.R`, `router_hojas_ruta.R` | pendiente (depende de A8, D7) |
-| E0b | Token Musgo, alias, ícono `Backpack`, `branding/` | `tokens.css`, `boot.css`, `branding/identity/tokens.css`, `lib/icons.ts` | pendiente (depende de E0a) |
-| E1 | Catálogo, `compatible_unit_types`, dos registros de adapters, `collection_state/v2`, revamp «pliego de imprenta» | `collection_*.R`, `features/recopiladores/` | pendiente |
+| E0a | Renombre, ruta, secciones, redirección con query, migración del slug y de `active_stage`, home, bóveda, agentic OS | rama `feat/material-campo-e0a` | hecho en la rama (Gonzalo lo dio por cerrado el 2026-10-16); merge a main pendiente, no se hace mientras se publica la 0.9.3 |
+| E0b | Token Musgo, alias, ícono `Backpack`, `branding/` (identidad 1.4.0) | `tokens.css`, `boot.css`, `branding/identity.json`, `lib/icons.ts` | hecho en la rama (Gonzalo lo dio por cerrado el 2026-10-16) |
+| E1 | Reemplazada por E1a a E1d del ADR 0109 | ADR 0109 §8 | hecho (decidido 2026-10-16) |
+| E1a | Secciones por modo (Imprenta nueva, Accesos solo con canal digital), catálogo con miniaturas reales, cuatro capas en la unidad, `compatible_unit_types`, dos registros de adapters, `collection_state/v2` | `modules.ts`, `collection_*.R`, `features/recopiladores/` | Catálogo › Tipos hecho en la rama: verificador APROBADO CON PENDIENTES (2026-10-16; gate R 1722, front 628, «Usar este tipo» con PUT 200 en los 3 presets, capturas miradas). Pendiente: captura del editor con la ficha de campo (form_lines, croquis) en árbol limpio. El resto de E1a (cuatro capas, `collection_state/v2`, Imprenta) sigue pendiente |
+| E1b | Editor sobre la página real, con zonas por bloque y caras | `features/recopiladores/`, compilador | pendiente |
+| E1c | Componer a medida con bloques parametrizados | registro de bloques, editor | pendiente |
+| E1d | Imprenta: carpeta numerada, imposición dúplex y dos por hoja, pliego físico, conteo y LEEME | job de render, `features/recopiladores/` | pendiente |
+| E6 | Pedido de cambios en palabras | ADR 0109 §6 | **bloqueado**: proveedor del modelo, credencial y modo sin conexión |
+| E1e | Unidades › Origen: huella, diferencias y «Actualizar desde la fuente» (aulas) | ADR 0110 §1 | pendiente |
+| E1f | Correos: editor, campos, vistas y exportación para Mailchimp | ADR 0110 §2 | hecho en la rama: verificador APROBADO CON PENDIENTES (2026-10-16) sobre 7ee56e7ee…01ce8b57e; revisor-metodologico APROBADO CON SUPUESTOS (en ADR 0110); guardian-contratos cerrado. Gate R 1854, front 697; export en vivo con CSV CP1252, logos persisten al reabrir, `.pulso` sin correos. Pendiente: probar el HTML en Mailchimp real; chequeo de modo oscuro; sombra y ancho 640 px los decide Gonzalo |
+| E7 | API de Mailchimp para plantilla o campaña en borrador (opcional) | ADR 0110 §3 | **bloqueado**: credencial y autorización |
 | E2 | `ump_territorial_v1` y salidas de Hojas de ruta como layout legacy | archivo nuevo junto a `collection_adapters.R` | pendiente |
 | E3 | Bloques `quota_grid`, `unit_map`, `place_checklist`, `route_instructions`; port; retiro del legacy | registro de bloques | pendiente |
 | E4 | `fichas_cuota_v1`, hojas comunes, alerta en Monitoreo, golden de Ser Adolescente | archivo nuevo, `monitoreo_engine.R` | **bloqueado** (A9, H5) |
 | E5 | Seguimiento por ficha desde la lista de unidades (opcional) | Monitoreo | pendiente |
+
+## F. Coordinación con el revamp de Formularios (2026-10-16)
+
+Consultado a la sesión «Generador de formularios» (rama `feat/revamp-formularios`, canvas
+`XkpdPVxW4CN7Gthdx1HaQV`). Lo que quedó establecido:
+
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| F1 | Formularios no asume nada del generador de fichas ni del motor de materiales: su Impreso usa otro motor (`formulario_pdf_build_model`) | `api/R/collection_*.R` sigue siendo de Material de campo | hecho (confirmado) |
+| F2 | `consent_text` y cualquier bloque que lea el instrumento leen del modelo del formulario, sin reimplementar el parser (`parsing/detectConsentQuestions.ts`) | E4 | pendiente |
+| F3 | El kit de Formularios (`PanelCard`, `PropRow`, `Segmented`) se importa tal cual desde `xlsformEditor/kit/`; se promueve a `src/components/kit` una sola vez, en un commit aparte, según el orden de merge que decida Gonzalo | E1 | **bloqueado**: orden de merge, lo decide Gonzalo |
+| F4 | Reglas que se heredan: contenedor con cabecera y pie y dos niveles neutros; color solo en íconos y estados; `flex-shrink:0` dentro de columnas flex y último contenedor con fill; container queries para paneles; movimiento ≤ 240 ms sin rebote y apagado con reduced-motion; medir recortes por script contra datos reales a escala | E1 (canvas y gate) | pendiente |
+| F5 | No se heredan la barra ni el rail de su canvas (son de Formularios; el chrome sigue el ADR 0042) | — | hecho (decidido) |
+| F6 | Único choque posible al mergear: `frontend/src/app/theme.css` (su rama borra ~100 líneas muertas) | merge | pendiente: esta rama no toca `theme.css` |

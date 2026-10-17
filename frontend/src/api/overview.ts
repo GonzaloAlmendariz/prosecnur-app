@@ -3,6 +3,7 @@
 // importan del barrel ./client; este módulo no cambia el contrato.
 
 import { apiFetch, handle, headers } from "./core";
+import { rutaCanonicaDeModulo, slugCanonicoDeModulo, slugsCanonicosDeModulo } from "../lib/navegacion/aliasDeModulo";
 import type { DisenoEstudioNextAction, DisenoEstudioProtocol, DisenoEstudioRisk, DisenoEstudioSource } from "./disenoEstudio";
 
 // ============================================================================
@@ -98,7 +99,9 @@ export type ProjectOverviewFacts = {
     quota_assigned: number;
     from_pilot: boolean;
   };
-  recopiladores: {
+  /** Fichas del plan de unidades. Un backend anterior al ADR 0108 la publicaba
+      como `recopiladores`; `normalizeProjectOverview` la mueve aquí. */
+  "material-campo": {
     total: number;
     titulares: number;
     with_link: number;
@@ -160,9 +163,52 @@ export type ProjectOverview = {
   risks: DisenoEstudioRisk[];
 };
 
+/**
+ * Lee los slugs y rutas de módulo con sus alias resueltos.
+ *
+ * Un backend o un proyecto anterior al ADR 0108 publica `recopiladores` como id
+ * de módulo, en `added_modules`, en las rutas `/recopiladores…` y como clave
+ * de `facts`. Se traducen
+ * aquí, en la frontera, para que ningún consumidor vuelva a escribirlos. Las
+ * listas que no llegan como arreglo se dejan vacías en vez de reventar el home.
+ */
+type FactsConClaveVieja = ProjectOverviewFacts & {
+  recopiladores?: ProjectOverviewFacts["material-campo"];
+};
+
+/** Mueve el bloque `recopiladores` de un backend viejo a `material-campo`. */
+function normalizeOverviewFacts(raw: ProjectOverviewFacts | undefined): ProjectOverviewFacts {
+  if (!raw || typeof raw !== "object") return raw as unknown as ProjectOverviewFacts;
+  const { recopiladores, ...resto } = raw as FactsConClaveVieja;
+  if (resto["material-campo"] || !recopiladores) return resto;
+  return { ...resto, "material-campo": recopiladores };
+}
+
+export function normalizeProjectOverview(raw: ProjectOverview): ProjectOverview {
+  const modules = Array.isArray(raw.modules) ? raw.modules : [];
+  const nextActions = Array.isArray(raw.next_actions) ? raw.next_actions : [];
+  const risks = Array.isArray(raw.risks) ? raw.risks : [];
+  return {
+    ...raw,
+    facts: normalizeOverviewFacts(raw.facts),
+    modules: modules.map((module) => ({
+      ...module,
+      id: slugCanonicoDeModulo(module.id),
+      route: rutaCanonicaDeModulo(module.route),
+    })),
+    added_modules: Array.isArray(raw.added_modules)
+      ? slugsCanonicosDeModulo(raw.added_modules.filter((slug): slug is string => typeof slug === "string"))
+      : null,
+    next_actions: nextActions.map((action) => ({ ...action, route: rutaCanonicaDeModulo(action.route) })),
+    risks: risks.map((risk) => ({ ...risk, route: rutaCanonicaDeModulo(risk.route) })),
+  };
+}
+
 export async function apiProjectOverview() {
-  return handle<ProjectOverview>(
-    await apiFetch("/api/project/overview", { headers: headers() }),
+  return normalizeProjectOverview(
+    await handle<ProjectOverview>(
+      await apiFetch("/api/project/overview", { headers: headers() }),
+    ),
   );
 }
 

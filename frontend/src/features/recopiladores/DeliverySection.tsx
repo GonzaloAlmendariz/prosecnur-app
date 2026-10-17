@@ -2,35 +2,62 @@ import { useMemo, useState } from "react";
 
 import {
   apiRecopiladoresHandoff,
+  normalizeHandoffReceipt,
   type CollectionArtifactReceipt,
   type CollectionStatePayload,
 } from "../../api/recopiladores";
 import { downloadUrl } from "../../api/core";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
-import { CheckCircle2, Download, FileCheck2, Loader2, Send, ShieldCheck } from "../../vendor/lucide-react";
-import { handoffReadiness } from "./handoffModel";
+import { serializarDireccion } from "../../lib/navegacion/direccion";
+import { CheckCircle2, Download, FileCheck2, FileWarning, Loader2, Send, ShieldCheck } from "../../vendor/lucide-react";
+import { handoffReadiness, type HandoffReadiness } from "./handoffModel";
 import { juzgarMaterialesDelPlan } from "./materialesDelPlanVigente";
 import { providerLabel } from "./providerRules";
+import { VacioSinPlanCard } from "./VacioSinPlanCard";
+import { vacioSinPlan } from "./vacioSinPlan";
 import "./styles/delivery.css";
 
 type Props = {
   payload: CollectionStatePayload | null;
   latestArtifact: CollectionArtifactReceipt | null;
   onState: (payload: CollectionStatePayload) => void;
+  /** Navega a una dirección de la app (la acción del vacío sin plan). */
+  onIr?: (to: string) => void;
 };
+
+/** Donde se regenera un material cuyo archivo ya no está en la sesión. */
+const A_PAQUETES = serializarDireccion({ modulo: "material-campo", seccion: "paquetes" });
+
+function paginas(n: number): string {
+  return n === 1 ? "1 página" : `${n.toLocaleString("es-PE")} páginas`;
+}
 
 function shortFingerprint(value: string | null | undefined) {
   if (!value) return "—";
   return value.length > 24 ? `${value.slice(0, 18)}…${value.slice(-8)}` : value;
 }
 
-export function DeliverySection({ payload, latestArtifact, onState }: Props) {
+/**
+ * Qué falta para que exista el recibo, dicho en el vacío que lo espera.
+ *
+ * Sin traspaso no hay Fecha, Revisión, Plan ni Accesos que mostrar: pintar
+ * «Recibo firmado» con cuatro «—» afirmaba una entrega que no ocurrió (H25).
+ */
+export function faltaParaElRecibo(readiness: HandoffReadiness): string {
+  if (readiness.ready && !readiness.delivered) {
+    return "Los accesos están listos: el recibo aparece aquí al pulsar «Entregar a Monitoreo».";
+  }
+  return `${readiness.reason} El recibo aparece aquí cuando se entreguen.`;
+}
+
+export function DeliverySection({ payload, latestArtifact, onState, onIr }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const deployment = payload?.state.deployment ?? null;
   const readiness = handoffReadiness(deployment);
-  const receipt = payload?.handoff ?? readiness.receipt;
+  // Mismo filtro que el normalizador: un `{}` (el NULL de R) no es recibo.
+  const receipt = normalizeHandoffReceipt(payload?.handoff) ?? normalizeHandoffReceipt(readiness.receipt);
   const artifacts = useMemo(() => {
     const stored = payload?.state.artifact_receipts ?? [];
     if (!latestArtifact) return stored;
@@ -58,6 +85,13 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
       setBusy(false);
     }
   };
+
+  // Sin plan, sin accesos, sin recibo y sin materiales no hay nada que
+  // entregar ni que mostrar: el vacío lo dice y lleva a Unidades. Con
+  // cualquiera de ellos se pinta la mesa, porque hay algo que leer.
+  if (!payload?.state.plan && !deployment && !receipt && !artifacts.length) {
+    return <VacioSinPlanCard vacio={vacioSinPlan("entrega")} icono={<Send size={18} />} onIr={onIr} />;
+  }
 
   return (
     <div className="rec-delivery-layout">
@@ -100,9 +134,14 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
               <div><dt>Accesos</dt><dd title={receipt.deployment_fingerprint}>{shortFingerprint(receipt.deployment_fingerprint)}</dd></div>
             </dl>
           </article>
-        ) : <div className="rec-contained-empty">El recibo aparece aquí cuando se entregan unos accesos ya preparados.</div>}
+        ) : (
+          <div className="rec-contained-empty rec-receipt-empty" data-qa-geometry-capacity="owned" role="status">
+            <strong>Aún no se entrega a Monitoreo</strong>
+            <span>{faltaParaElRecibo(readiness)}</span>
+          </div>
+        )}
 
-        <div className="rec-artifact-list" data-qa-geometry-group="recopiladores/artefactos" data-qa-geometry-contract="intrinsic">
+        <div className="rec-artifact-list" data-qa-geometry-group="material-campo/artefactos" data-qa-geometry-contract="intrinsic">
           {/* El aviso va ARRIBA de la lista: se descarga desde cada fila, así que
               enterarse después de haber bajado el archivo no sirve de nada. */}
           {desfasados ? (
@@ -115,24 +154,48 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
               antes de llevarlos a campo.
             </p>
           ) : null}
-          {juzgados.map(({ material: artifact, desfasado }) => (
-            <article
-              key={artifact.receipt_id}
-              className={desfasado ? "is-desfasado" : undefined}
-              data-desfasado={desfasado || undefined}
-            >
-              <FileCheck2 size={17} />
-              <div>
-                <strong>{artifact.filename}</strong>
-                <span>
-                  {artifact.media_type} · {artifact.page_count} páginas · {artifact.size_bytes} bytes
-                  {desfasado ? <em className="rec-artifact-stale"> · de un plan anterior</em> : null}
-                </span>
-                <code>{shortFingerprint(artifact.sha256)}</code>
-              </div>
-              <a href={downloadUrl(artifact.file_id)} aria-label={`Descargar ${artifact.filename}`}><Download size={15} /></a>
-            </article>
-          ))}
+          {juzgados.map(({ material: artifact, desfasado }) => {
+            // El `.pulso` guarda el recibo, no el archivo: al reabrir, el
+            // recibo queda como evidencia y su descarga daría 404. Sólo un
+            // `false` explícito lo apaga; un payload viejo no lo dice.
+            const disponible = artifact.file_available !== false;
+            const clases = [desfasado ? "is-desfasado" : "", disponible ? "" : "is-no-disponible"].filter(Boolean).join(" ");
+            return (
+              <article
+                key={artifact.receipt_id}
+                className={clases || undefined}
+                data-desfasado={desfasado || undefined}
+                data-disponible={disponible ? undefined : "false"}
+              >
+                {disponible ? <FileCheck2 size={17} aria-hidden /> : <FileWarning size={17} aria-hidden />}
+                <div>
+                  <strong>{artifact.filename}</strong>
+                  <span>
+                    {artifact.media_type} · {paginas(artifact.page_count)} · {artifact.size_bytes.toLocaleString("es-PE")} bytes
+                    {desfasado ? <em className="rec-artifact-stale"> · de un plan anterior</em> : null}
+                  </span>
+                  {disponible ? null : (
+                    <span className="rec-artifact-no-disponible">
+                      No disponible en esta sesión: el archivo no viaja en el proyecto. Se regenera desde Paquetes.
+                    </span>
+                  )}
+                  <code>{shortFingerprint(artifact.sha256)}</code>
+                </div>
+                {disponible ? (
+                  <a href={downloadUrl(artifact.file_id)} aria-label={`Descargar ${artifact.filename}`}><Download size={15} /></a>
+                ) : onIr ? (
+                  <PulsoButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onIr(A_PAQUETES)}
+                    aria-label={`Regenerar ${artifact.filename} en Paquetes`}
+                  >
+                    Ir a Paquetes
+                  </PulsoButton>
+                ) : null}
+              </article>
+            );
+          })}
           {!artifacts.length ? (
             <div className="rec-contained-empty" data-qa-geometry-capacity="owned">
               Todavía no se ha generado ningún material en esta sesión.

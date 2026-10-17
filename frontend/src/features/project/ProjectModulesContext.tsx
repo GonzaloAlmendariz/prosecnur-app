@@ -15,6 +15,7 @@ import {
   type ProjectOverview,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
+import { slugCanonicoDeModulo, slugsCanonicosDeModulo } from "../../lib/navegacion/aliasDeModulo";
 
 // Slugs de módulos primarios que un proyecto puede agregar (coincide con
 // lib/modules.ts y el backend). "diseno-estudio" es Bitácora.
@@ -24,7 +25,7 @@ export const PRIMARY_MODULE_SLUGS = [
   "calc-muestra",
   "editor-xlsform",
   "hojas-ruta",
-  "recopiladores",
+  "material-campo",
   "monitoreo",
   "dashboard",
 ] as const;
@@ -34,7 +35,7 @@ const PROCESAMIENTO_SUBMODULES = ["carga", "validacion", "codificacion", "analit
 // Cuando el proyecto nunca curó su lista de módulos, derivamos un default a
 // partir del avance real: solo los módulos que ya tienen trabajo.
 export function deriveDefaultAdded(overview: ProjectOverview): string[] {
-  const byId = new Map(overview.modules.map((m) => [m.id, m] as const));
+  const byId = new Map(overview.modules.map((m) => [slugCanonicoDeModulo(m.id), m] as const));
   const hasWork = (id: string) => {
     const m = byId.get(id);
     return !!m && m.state !== "pending";
@@ -44,14 +45,19 @@ export function deriveDefaultAdded(overview: ProjectOverview): string[] {
     out.push("diseno-estudio");
   }
   if (PROCESAMIENTO_SUBMODULES.some(hasWork)) out.push("procesamiento");
-  for (const slug of ["calc-muestra", "editor-xlsform", "hojas-ruta", "recopiladores", "monitoreo", "dashboard"]) {
+  for (const slug of ["calc-muestra", "editor-xlsform", "hojas-ruta", "material-campo", "monitoreo", "dashboard"]) {
     if (hasWork(slug)) out.push(slug);
   }
   return out;
 }
 
+/**
+ * Orden canónico de una lista de slugs. Un slug viejo —`recopiladores`, de un
+ * proyecto o un backend anterior al ADR 0108— se lee como el vigente.
+ */
 export function canonicalOrder(slugs: string[]): string[] {
-  return PRIMARY_MODULE_SLUGS.filter((slug) => slugs.includes(slug));
+  const vigentes = slugsCanonicosDeModulo(slugs);
+  return PRIMARY_MODULE_SLUGS.filter((slug) => vigentes.includes(slug));
 }
 
 /**
@@ -97,7 +103,7 @@ function tieneTrabajo(overview: ProjectOverview, slug: string): boolean {
 }
 
 function estadoDe(overview: ProjectOverview, id: string): string {
-  return overview.modules.find((m) => m.id === id)?.state ?? "pending";
+  return overview.modules.find((m) => slugCanonicoDeModulo(m.id) === id)?.state ?? "pending";
 }
 
 type ProjectModulesValue = {

@@ -4,7 +4,8 @@
  * componentes que nadie importa.
  *
  * Nace de un caso medido el 2026-08-23: `.rec-plan-desfase` vivía en
- * `recopiladores.css` —un marcador de compatibilidad que NADIE importa— y su
+ * `features/recopiladores/recopiladores.css` (módulo Material de campo, antes
+ * Recopiladores) —un marcador de compatibilidad que NADIE importa— y su
  * aviso, el que evita imprimir 2.616 fichas de una corrida equivocada, se
  * pintaba como texto corrido.
  *

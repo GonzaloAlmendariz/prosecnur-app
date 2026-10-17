@@ -589,7 +589,7 @@ collection_material_builtin_template <- function() {
         # mas gap— es sitio que el QR y los datos si aprovechan.
         list(block_id = "rule", type = "divider"),
         list(
-          block_id = "log", type = "application_log", text = "Registro de aplicacion",
+          block_id = "log", type = "application_log", text = "Registro de aplicaci\u00f3n",
           rows = 5L, labels = as.list(collection_material_application_log_labels())
         ),
         list(block_id = "footer", type = "footer", binding = "project.period")
@@ -653,7 +653,7 @@ collection_material_branded_sheet_template <- function(assets, status_tag = NULL
     if (nzchar(trimws(instructions))) {
       list(block_id = "instructions", type = "instructions", text = instructions, max_lines = 4L)
     } else NULL,
-    list(block_id = "log", type = "application_log", text = "Registro de aplicacion",
+    list(block_id = "log", type = "application_log", text = "Registro de aplicaci\u00f3n",
          rows = as.integer(log_rows),
          labels = as.list(utils::head(collection_material_application_log_labels(), log_rows))),
     list(block_id = "footer", type = "footer", binding = "project.period")
@@ -1210,7 +1210,8 @@ collection_material_instance_create <- function(sid, expected_revision, unit_ref
 #' Los activos son archivos del `.pulso` (kind `brand_logo`), no assets del
 #' binario: la co-marca pertenece al estudio, no a la app. El match es por slug
 #' del nombre original, de modo que la plantilla nombre `logo-unsa` y el
-#' proyecto aporte `LOGO_UNSA.png`.
+#' proyecto aporte `LOGO_UNSA.png`. Si hay dos con el mismo slug, el más
+#' reciente por `uploaded_at`.
 #'
 #' @param session sesion viva.
 #' @param asset_ids ids declarados por la plantilla.
@@ -1219,15 +1220,9 @@ collection_material_instance_create <- function(sid, expected_revision, unit_ref
 .cm_brand_assets_map <- function(session, asset_ids) {
   ids <- as.character(asset_ids %||% character(0))
   if (!length(ids)) return(list())
-  out <- list()
-  for (meta in session$files %||% list()) {
-    if (!is.list(meta) || !identical(as.character(meta$kind %||% "")[1], "brand_logo")) next
-    path <- as.character(meta$path %||% "")[1]
-    if (!nzchar(path) || !file.exists(path)) next
-    slug <- .cm_brand_slug(meta$original_name)
-    if (slug %in% ids && is.null(out[[slug]])) out[[slug]] <- path
-  }
-  out
+  # Re-subido con el mismo nombre: vale el más reciente (collection_brand_assets.R).
+  latest <- .cm_brand_logo_latest(session$files)
+  lapply(latest[intersect(ids, names(latest))], function(meta) as.character(meta$path)[1])
 }
 
 collection_material_render_snapshot <- function(sid, instance_id, resolved_access = NULL) {
