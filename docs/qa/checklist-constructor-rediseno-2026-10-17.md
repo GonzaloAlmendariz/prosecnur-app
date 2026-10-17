@@ -26,7 +26,7 @@ hacerlo, hazme todas las preguntas que consideres necesarias». Depende del trab
 ## Decisiones de Gonzalo
 
 - Edición: «Lo básico aquí».
-- Diseño: «Evaluemos dos o tres columnas»: la propuesta muestra las dos variantes sobre las mismas preguntas.
+- Diseño: «Se queda la versión de dos columnas» (después de comparar dos y tres en la propuesta, versión 4: https://claude.ai/artifact/EyjSwf3hNwhSY2buDvTdmx).
 - Nombre: «Estructura».
 - Apariencia: la de plataforma se edita en el Constructor (no tiene pestaña); la impresa vive en Impreso.
 - Proceso: «Propuesta primero»: página HTML navegable con preguntas reales; se aprueba y luego se implementa.
