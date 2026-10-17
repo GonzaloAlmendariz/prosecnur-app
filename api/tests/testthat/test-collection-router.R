@@ -13,6 +13,7 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     # vivio varios commits porque los gates iban filtrados por area y este
     # archivo no entraba en ninguno de los filtros que se usaron.
     "/api/recopiladores/reseed",
+    "/api/recopiladores/origen",
     "/api/recopiladores/plan",
     "/api/recopiladores/deployment",
     "/api/recopiladores/deployment/prepare",

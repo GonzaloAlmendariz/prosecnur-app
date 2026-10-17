@@ -10,6 +10,7 @@
 #     --project hsvg2026 \
 #     --out tmp/qa-material-campo/hsvg2026_con_plan.pulso \
 #     --render png          # png (defecto) | pdf | none
+#     --simular-cambio      # tras sembrar, cambia la selección (Unidades › Origen)
 #
 # Imprime en stdout la ruta del manifiesto JSON que deja junto al `.pulso`
 # (`<out>.json`), con las cifras del plan y el md5 de `state.rds`.
@@ -146,6 +147,52 @@
   ))
 }
 
+# --simular-cambio (E1e, Unidades › Origen): DESPUES de sembrar, la selección
+# de Cálculo de muestra se toca como la tocaría la vida real, para que Origen
+# tenga diferencias que enseñar. El plan sembrado no se toca —es lo que fue a
+# imprenta— y el `run_id` tampoco: Origen tiene que ver el cambio por los
+# DATOS, no por la corrida.
+#
+#   - el aula de un titular: `scheduled_venue` (el aula pactada con el docente,
+#     que manda sobre la del catálogo) pasa a «QA-AULA-SIMULADA»;
+#   - entran 2 filas: copias de dos del banco con curso-horario y código nuevos;
+#   - sale 1: la última del banco;
+#   - un rol: la primera reserva de cadena pasa a titular.
+.mcqa_simular_cambio <- function(sid) {
+  s <- session_get(sid)
+  sel <- s$calc_muestra_aulas_selection
+  df <- sel$selection
+  rol <- as.character(df$sample_role)
+  titular <- which(rol == "titular")[[1]]
+  reserva <- which(rol == "chain_reserve")[[1]]
+  banco <- which(rol == "extra_reserve_pool")
+  if (length(banco) < 3L) stop("La selección no tiene banco suficiente para simular.", call. = FALSE)
+  if (!"scheduled_venue" %in% names(df)) df$scheduled_venue <- NA_character_
+  df$scheduled_venue[[titular]] <- "QA-AULA-SIMULADA"
+  df$sample_role[[reserva]] <- "titular"
+  sale <- banco[[length(banco)]]
+  altas <- df[banco[1:2], , drop = FALSE]
+  altas$classroom_id <- c("qa_simulada_0001", "qa_simulada_0002")
+  altas$operational_code <- c("EXTRA 9001", "EXTRA 9002")
+  altas$selection_slot_id <- paste0("qa-slot-", 1:2)
+  altas$operational_sequence <- max(df$operational_sequence, na.rm = TRUE) + 1:2
+  quien <- list(
+    aula_cambiada = list(classroom_id = df$classroom_id[[titular]], codigo = df$operational_code[[titular]],
+                         campo = "aula", despues = "QA-AULA-SIMULADA"),
+    rol_cambiado = list(classroom_id = df$classroom_id[[reserva]], codigo = df$operational_code[[reserva]],
+                        antes = "chain_reserve", despues = "titular"),
+    sale = list(classroom_id = df$classroom_id[[sale]], codigo = df$operational_code[[sale]]),
+    entran = lapply(seq_len(nrow(altas)), function(i) {
+      list(classroom_id = altas$classroom_id[[i]], codigo = altas$operational_code[[i]])
+    })
+  )
+  df <- rbind(df[-sale, , drop = FALSE], altas)
+  rownames(df) <- NULL
+  sel$selection <- df
+  session_set(sid, "calc_muestra_aulas_selection", sel)
+  quien
+}
+
 #' Siembra el plan, los accesos, la plantilla y el paquete y graba el `.pulso`.
 #'
 #' @param fixture ruta del `.pulso` de referencia (se abre, nunca se escribe).
@@ -154,7 +201,8 @@
 #' @param target target sintético del adapter Kobo.
 #' @return lista con las cifras del plan y el md5 de `state.rds`.
 material_campo_qa_sembrar <- function(fixture, destino, render = c("png", "pdf", "none"),
-                                      target = .mcqa_default_target()) {
+                                      target = .mcqa_default_target(),
+                                      simular_cambio = FALSE) {
   render <- match.arg(render)
   if (!file.exists(fixture)) stop(sprintf("No existe el fixture: %s", fixture), call. = FALSE)
   if (normalizePath(fixture, mustWork = TRUE) ==
@@ -204,6 +252,7 @@ material_campo_qa_sembrar <- function(fixture, destino, render = c("png", "pdf",
          paste(collection_contract_problem_lines(valid), collapse = "; "), call. = FALSE)
   }
   activo <- Filter(function(p) isTRUE(p$active), collection_material_catalog_get(sid)$presets)
+  simulacion <- if (isTRUE(simular_cambio)) .mcqa_simular_cambio(sid) else NULL
 
   dir.create(dirname(destino), recursive = TRUE, showWarnings = FALSE)
   if (file.exists(destino)) unlink(destino)
@@ -260,7 +309,9 @@ material_campo_qa_sembrar <- function(fixture, destino, render = c("png", "pdf",
     state_revision = final$state_revision,
     state_valid = TRUE,
     state_md5 = state_md5,
-    state_md5_estable = FALSE
+    state_md5_estable = FALSE,
+    simular_cambio = isTRUE(simular_cambio),
+    simulacion = simulacion
   )
 }
 
@@ -290,7 +341,9 @@ if (sys.nframe() == 0L) {
                                         sprintf("%s_con_plan.pulso", slug)))
   render <- arg_valor("render", "png")
 
-  resumen <- material_campo_qa_sembrar(fixture, destino, render = render)
+  simular <- "--simular-cambio" %in% args
+
+  resumen <- material_campo_qa_sembrar(fixture, destino, render = render, simular_cambio = simular)
   manifest_path <- paste0(destino, ".json")
   writeLines(jsonlite::toJSON(resumen, auto_unbox = TRUE, pretty = TRUE, null = "null"),
              manifest_path)

@@ -136,6 +136,8 @@ errores_registrados <- function() {
     "E_COLLECTION_PRUEBA_CODIGO",                           "collection_material_prueba.R",      "422",
     "E_COLLECTION_PRUEBA_SIN_ENLACE",                        "collection_material_prueba.R",      "422",
     "E_COLLECTION_SIN_ORIGEN",                               "collection_engine.R",              "409",
+    "E_COLLECTION_ORIGEN_CAMBIO",                            "collection_origen.R",               "409",
+    "E_COLLECTION_ORIGEN_PARAMETRO",                         "collection_origen.R",               "400",
     "E_AULAS_LIBRO_SIN_ORIGEN",                              "router_monitoreo.R",                "400",
     "E_AULAS_SIN_PLAN",                                      "monitoreo_aulas_reemplazos.R",      "409",
     "E_AULA_NO_ENCONTRADA",                                  "monitoreo_aulas_reemplazos.R",      "404",

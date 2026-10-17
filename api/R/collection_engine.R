@@ -155,7 +155,12 @@
 
 .collection_rows <- function(value) {
   if (is.data.frame(value)) {
-    return(lapply(seq_len(nrow(value)), function(i) as.list(value[i, , drop = FALSE])))
+    # Por columnas y no `as.list(value[i, , drop = FALSE])`: indexar un
+    # data.frame fila a fila costaba 0,45 s con las 2.373 filas de HSVG2026 y
+    # lo pagaba cada lectura de Origen. `[` conserva clase y atributos de cada
+    # columna (factor, Date, lista), asi que cada fila sale identica.
+    columnas <- as.list(value)
+    return(lapply(seq_len(nrow(value)), function(i) lapply(columnas, `[`, i)))
   }
   if (!is.list(value)) return(list())
   if (is.list(value$plan)) return(.collection_rows(value$plan))
@@ -206,14 +211,25 @@
   list(rows = list(), source = NULL, module = NULL)
 }
 
+# `trimws()` exacto (mismos espacios, ambos extremos) sin su `match.arg()` ni
+# sus dos pasadas: era el 65 % de construir las unidades.
+.collection_trim <- function(x) gsub("^[\t\r\n ]+|[\t\r\n ]+$", "", x, perl = TRUE)
+
 .collection_first_string <- function(x, fields, default = "") {
   for (field in fields) {
     value <- x[[field]]
+    if (!length(value)) next
     if (is.factor(value)) value <- as.character(value)
-    if (is.character(value) && length(value) && !is.na(value[[1]]) && nzchar(trimws(value[[1]]))) {
-      return(trimws(value[[1]]))
+    if (is.character(value)) {
+      # Un solo `trimws()` por candidato y ninguno sobre el vacio: es la funcion
+      # mas llamada al construir 2.400 unidades y `trimws()` es una regex.
+      v <- value[[1]]
+      if (is.na(v) || !nzchar(v)) next
+      v <- .collection_trim(v)
+      if (nzchar(v)) return(v)
+      next
     }
-    if (is.numeric(value) && length(value) && !is.na(value[[1]])) return(as.character(value[[1]]))
+    if (is.numeric(value) && !is.na(value[[1]])) return(as.character(value[[1]]))
   }
   default
 }
@@ -568,15 +584,41 @@
 #' Construye el estado de recoleccion desde la fuente vigente, SIN mirar si ya
 #' hay uno. Todo el que quiera respetar el plan congelado usa
 #' `.collection_seed_from_legacy_state()`, que pone la guarda delante.
-.collection_seed_build <- function(s) {
+#' Las unidades que sembraria la fuente vigente, sin desplegar ni validar.
+#'
+#' Es la mitad barata de `.collection_seed_build()` y la comparten la siembra y
+#' la lectura de Origen (collection_origen.R): si cada una armara sus unidades,
+#' «al dia» dejaria de significar «rehacer no cambiaria nada».
+#'
+#' @return lista con `units` (en orden operativo), `rows`, `source`, `module`,
+#'   `run_id` y `rows_n`.
+#' @keywords internal
+.collection_seed_units <- function(s) {
   seed_source <- .collection_seed_source(s)
+  rows <- seed_source$rows
+  if (!length(rows)) {
+    return(list(units = list(), rows = list(), source = NULL, module = NULL,
+                run_id = NULL, rows_n = 0L))
+  }
+  units <- lapply(seq_along(rows), function(i) .collection_legacy_unit(rows[[i]], i))
+  list(
+    units = .collection_orden_operativo(units),
+    rows = rows,
+    source = seed_source$source,
+    module = seed_source$module,
+    run_id = .collection_first_string(rows[[1]], c("selection_run_id", "run_id"), "legacy-monitoreo-aulas"),
+    rows_n = length(rows)
+  )
+}
+
+.collection_seed_build <- function(s) {
+  seed_source <- .collection_seed_units(s)
   rows <- seed_source$rows
   if (!length(rows)) return(list(state = .collection_empty_state(1L), seeded = TRUE))
   provider <- .collection_provider_from_rows(rows)
-  units <- lapply(seq_along(rows), function(i) .collection_legacy_unit(rows[[i]], i))
-  units <- .collection_orden_operativo(units)
+  units <- seed_source$units
   source_fp <- collection_fingerprint(units)
-  run_id <- .collection_first_string(rows[[1]], c("selection_run_id", "run_id"), "legacy-monitoreo-aulas")
+  run_id <- seed_source$run_id
   plan <- list(
     schema = COLLECTION_PLAN_SCHEMA,
     plan_id = .collection_stable_id("plan-aulas", source_fp),
@@ -682,7 +724,7 @@ collection_state_reseed <- function(sid, expected_revision, dry_run = FALSE) {
     payload$dry_run <- TRUE
     payload$reseeded <- FALSE
     payload$descartado <- descartado
-    payload$propuesto <- .collection_reseed_propuesto(nuevo)
+    payload$propuesto <- .collection_reseed_propuesto(nuevo, current)
     return(.collection_payload_de_lectura(payload, s))
   }
   # La revision sigue creciendo: rehacer no reinicia el contador, porque los
@@ -695,7 +737,7 @@ collection_state_reseed <- function(sid, expected_revision, dry_run = FALSE) {
   payload$dry_run <- FALSE
   payload$reseeded <- TRUE
   payload$descartado <- descartado
-  payload$propuesto <- .collection_reseed_propuesto(nuevo)
+  payload$propuesto <- .collection_reseed_propuesto(nuevo, current)
   # Misma salida que el resto del modulo: recibos con `file_available` y
   # deployment con sus derivados de lectura.
   .collection_payload_de_lectura(payload, session_get(sid))

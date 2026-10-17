@@ -36,9 +36,19 @@ mount_recopiladores <- function(pr) {
     # plan de la primera corrida para siempre (medido: veinte dias de desfase en
     # HSVG2026). Exige `expected_revision` como el resto de escrituras.
     # `dry_run: true` previsualiza: el mismo `descartado`, sin mutar nada.
+    # `expected_source_fingerprint` (opcional, E1e) es el `fingerprint_actual`
+    # que Origen enseño: si la fuente cambio desde entonces, 409
+    # E_COLLECTION_ORIGEN_CAMBIO en vez de rehacer con otra cosa.
     plumber::pr_post("/api/recopiladores/reseed", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
+      collection_origen_assert_huella(session_header(req), body$expected_source_fingerprint)
       collection_state_reseed(session_header(req), body$expected_revision, dry_run = body$dry_run)
+    })) |>
+    # Unidades › Origen (E1e): de donde salen las unidades y que cambio en la
+    # fuente desde que se sembro el plan. Lectura pura.
+    plumber::pr_get("/api/recopiladores/origen", wrap_endpoint(function(req, res, nivel = "diferencias",
+                                                                  limite = "200", ...) {
+      collection_origen_get(session_header(req), nivel = nivel, limite = limite)
     })) |>
     plumber::pr_handle("PUT", "/api/recopiladores/plan", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
