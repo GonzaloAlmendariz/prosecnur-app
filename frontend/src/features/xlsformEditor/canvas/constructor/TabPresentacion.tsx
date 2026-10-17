@@ -213,7 +213,7 @@ export function presentationGuideFor(baseType: string): {
       return {
         kicker: "Captura rápida",
         title: "Código de barras o QR",
-        body: "El encuestador escanea un código y Kobo guarda el valor leído. Es útil para formularios con identificadores físicos.",
+        body: "El encuestador escanea un código y el formulario guarda el valor leído. Es útil para formularios con identificadores físicos.",
         badges: ["barcode", "qr"],
       };
     case "geopoint":

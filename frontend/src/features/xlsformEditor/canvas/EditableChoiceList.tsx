@@ -412,10 +412,10 @@ function suggestChoiceCode(
 }
 
 function choiceCodeStatusLabel(isEmpty: boolean, hasCanonicalFormat: boolean, isDuplicate: boolean): string {
-  if (isEmpty) return "Falta código Kobo";
+  if (isEmpty) return "Falta el código";
   if (isDuplicate) return "Código repetido en la lista";
   if (!hasCanonicalFormat) return "Conviene limpiar el código";
-  return "Código listo para Kobo";
+  return "Código listo";
 }
 
 // -----------------------------------------------------------------------------

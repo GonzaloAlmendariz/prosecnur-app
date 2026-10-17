@@ -224,8 +224,8 @@ export function selectDataGuideFor(
     {
       title: isMulti ? "Guarda varias marcas" : "Guarda una marca",
       detail: isMulti
-        ? "Kobo guarda los códigos elegidos en la misma columna, separados por espacios."
-        : "Kobo guarda un solo código de opción en esta columna.",
+        ? "El formulario guarda los códigos elegidos en la misma columna, separados por espacios."
+        : "El formulario guarda un solo código de opción en esta columna.",
     },
     {
       title: "Lista de opciones",
@@ -308,7 +308,7 @@ export function KoboNameAssistant({
   const showSuggestions = suggestions.length > 0 && (!isReady || isGenericName);
   const statusCopy = isReady
     ? {
-        title: "Listo para Kobo",
+        title: "Listo para exportar",
         body: "Este nombre ya funciona para lógica, exportación y bases.",
       }
     : {
@@ -345,7 +345,7 @@ export function KoboNameAssistant({
         </div>
       </div>
 
-      <div className="pulso-focus-name-checks" aria-label="Revisión rápida del nombre Kobo">
+      <div className="pulso-focus-name-checks" aria-label="Revisión rápida del nombre de la variable">
         {checks.map((check) => (
           <span key={check.key} className={check.ok ? "is-ok" : "is-pending"}>
             {check.ok ? <CheckCircle2 size={11} /> : <Info size={11} />}
