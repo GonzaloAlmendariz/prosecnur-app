@@ -6,6 +6,7 @@ Fecha: 2026-10-16
 Autoridad: Seguimiento del [ADR 0108](../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md); solo Gonzalo da por terminado un ítem
 Diagnóstico: [diagnostico-material-de-campo-2026-10-16.md](diagnostico-material-de-campo-2026-10-16.md)
 Plan de acción: [plan-material-de-campo-2026-10-16.md](plan-material-de-campo-2026-10-16.md)
+Pendientes al integrar a main: [pendientes-material-de-campo-2026-10-16.md](pendientes-material-de-campo-2026-10-16.md)
 
 Estados: **hecho** · **pendiente** · **bloqueado** (exige decisión) · **en revisión**.
 
