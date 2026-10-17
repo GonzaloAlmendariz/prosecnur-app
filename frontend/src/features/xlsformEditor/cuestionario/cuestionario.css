@@ -480,3 +480,54 @@
 .pulso-xf-cue-tipo { display: inline-flex; align-self: center; opacity: 0.75; }
 .pulso-xf-cue-cabeza:hover .pulso-xf-cue-tipo, .pulso-xf-cue-pregunta.is-abierta .pulso-xf-cue-tipo { opacity: 1; }
 .pulso-xf-ficha-tipo { display: inline-flex; align-items: center; gap: 8px; }
+
+/* Sección sin título legible (M13): el rótulo técnico atenuado y la acción para titularla ahí mismo. */
+.pulso-xf-cue-sintitulo {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-xf-cue-sintitulo-rotulo {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-medium, 500);
+}
+
+.pulso-xf-cue-titular-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-medium, 500);
+  cursor: pointer;
+}
+
+.pulso-xf-cue-titular-btn:hover {
+  border-style: solid;
+  border-color: var(--xf-cue-acento);
+  color: var(--xf-cue-acento);
+}
+
+.pulso-xf-cue-titular-btn:focus-visible,
+.pulso-xf-cue-titular:focus-visible {
+  outline: 2px solid var(--xf-cue-acento);
+  outline-offset: 2px;
+}
+
+.pulso-xf-cue-titular {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--xf-cue-acento);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+}

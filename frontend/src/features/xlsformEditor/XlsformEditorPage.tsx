@@ -3103,6 +3103,7 @@ export default function XlsformEditorPage() {
                 abierta={pestanaEditor.foco}
                 onAbrir={fijarFocoEnSitio}
                 onEditar={irAPregunta}
+                onTitular={(fila, texto) => updateSurveyField(fila, "label", texto)}
               />
             )}
             {/* El mapa queda montado aunque se cambie de pestaña: conserva zoom y
