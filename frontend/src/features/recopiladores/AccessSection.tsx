@@ -19,12 +19,18 @@ import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { CheckCircle2, Eye, Link2, Loader2, Save, ShieldCheck } from "../../vendor/lucide-react";
 import {
+  CAMPO_ACTIVO_DERIVADO,
+  CAMPO_ADAPTER_DERIVADO,
   COLLECTION_ADAPTER_LABELS,
   accessKindLabel,
   adapterOperation,
   bindingStatusLabel,
+  cuerpoDeVistaPrevia,
   deploymentFromPreview,
+  deploymentParaEnviar,
+  derivadosPendientes,
   localProviderBlocking,
+  targetParaEnviar,
 } from "./providerRules";
 import type { RecopiladoresPestana } from "./navegacion";
 import { TableScroll } from "./TableScroll";
@@ -207,12 +213,26 @@ export function AccessSection({ payload, activeTab, onState, onIr }: Props) {
   const [preview, setPreview] = useState<CollectionDeploymentPreview | null>(null);
   const [busy, setBusy] = useState<"preflight" | "preview" | "save" | "prepare" | null>(null);
   const [error, setError] = useState("");
+  // H27: lo que el usuario tocó deja de ser un deducido del backend y se envía.
+  const [tocados, setTocados] = useState<ReadonlySet<string>>(() => new Set());
+  const tocar = (ruta: string) => setTocados((prev) => (prev.has(ruta) ? prev : new Set([...prev, ruta])));
+  const pendientes = useMemo(
+    () => derivadosPendientes(payload?.deployment_derived_fields, tocados),
+    [payload?.deployment_derived_fields, tocados],
+  );
+  const activoDeducido = adapterId === "kobo_existing_v1" && active && pendientes.includes(CAMPO_ACTIVO_DERIVADO);
 
   const target = useMemo(() => targetFromFields(adapterId, {
     profile, baseUrl, remoteId, assetType, active, customVariable, recipientJson, prefillField, returnUrl,
   }), [active, adapterId, assetType, baseUrl, customVariable, prefillField, profile, recipientJson, remoteId, returnUrl]);
-  const localBlocking = useMemo(() => localProviderBlocking(adapterId, target), [adapterId, target]);
-  const candidate = deploymentFromPreview(preview) ?? currentDeployment;
+  const localBlocking = useMemo(
+    () => localProviderBlocking(adapterId, target, pendientes),
+    [adapterId, pendientes, target],
+  );
+  // El deployment del estado sale sin sus deducidos; el de una vista previa
+  // nueva ya es observación del backend y va tal cual.
+  const candidate = deploymentFromPreview(preview)
+    ?? (currentDeployment ? deploymentParaEnviar(currentDeployment, pendientes) : null);
   // El plan es de dónde salen las aulas y su código de campo: la vinculación
   // sólo guarda `unit_id`, que es un hash.
   const codigosDeUnidad = useMemo(() => mapaDeCodigosDelPlan(payload?.state.plan), [payload?.state.plan]);
@@ -232,6 +252,8 @@ export function AccessSection({ payload, activeTab, onState, onIr }: Props) {
 
   const changeAdapter = (next: CollectionAdapterId) => {
     setAdapterId(next);
+    tocar(CAMPO_ADAPTER_DERIVADO);
+    tocar(CAMPO_ACTIVO_DERIVADO);
     // `remoteId`/`baseUrl` etc. son inputs compartidos entre proveedores
     // (misma variable de estado, distinta etiqueta: "Asset UID" en Kobo,
     // "Collector ID" en SurveyMonkey) — sin este reseteo, cambiar de
@@ -259,7 +281,7 @@ export function AccessSection({ payload, activeTab, onState, onIr }: Props) {
         adapter_id: adapterId,
         operation: adapterOperation(adapterId),
         connection_ref: profile ? { connection_profile_id: profile } : {},
-        target_ref: target,
+        target_ref: targetParaEnviar(target, pendientes),
       }));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo comprobar la conexión.");
@@ -273,7 +295,7 @@ export function AccessSection({ payload, activeTab, onState, onIr }: Props) {
     setBusy("preview");
     setError("");
     try {
-      setPreview(await apiRecopiladoresDeploymentPreview({ adapter_id: adapterId, plan, target }));
+      setPreview(await apiRecopiladoresDeploymentPreview(cuerpoDeVistaPrevia({ adapterId, plan, target, pendientes })));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo construir la vista previa.");
     } finally {
@@ -347,7 +369,23 @@ export function AccessSection({ payload, activeTab, onState, onIr }: Props) {
                 <option value="survey">survey</option><option value="collection">collection</option><option value="unknown">unknown</option>
               </select>
             </label>
-            <label className="rec-check"><input type="checkbox" aria-label="El formulario acepta respuestas" checked={active} onChange={(event) => setActive(event.target.checked)} /> El formulario acepta respuestas</label>
+            <label className="rec-check">
+              <input
+                type="checkbox"
+                aria-label="El formulario acepta respuestas"
+                aria-describedby={activoDeducido ? "rec-activo-deducido" : undefined}
+                checked={active}
+                onChange={(event) => { tocar(CAMPO_ACTIVO_DERIVADO); setActive(event.target.checked); }}
+              /> El formulario acepta respuestas
+            </label>
+            {/* H27: el visto lo dedujo el backend del último chequeo guardado;
+                no es una observación nueva y no se reenvía hasta confirmarlo. */}
+            {activoDeducido ? (
+              <p className="rec-policy-note" id="rec-activo-deducido" data-procedencia="deducido">
+                Deducido del último chequeo.
+                <PulsoButton variant="ghost" size="sm" onClick={() => tocar(CAMPO_ACTIVO_DERIVADO)}>Confirmar</PulsoButton>
+              </p>
+            ) : null}
             <span className="rec-field-group-heading" data-qa-geometry-member>Personalización del enlace</span>
             <label>Campo de personalización (avanzado)
               <input

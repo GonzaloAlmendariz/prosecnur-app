@@ -140,6 +140,11 @@ export type CollectionStatePayload = CollectionState & {
   } | null;
   state: CollectionState;
   handoff?: CollectionHandoffReceipt | null;
+  /**
+   * Rutas del deployment que el backend DEDUJO al leer y no están guardadas
+   * («adapter_id», «target.deployment_active»). `[]` si nada se dedujo.
+   */
+  deployment_derived_fields?: string[];
 };
 
 export type CapabilitySupport = "supported" | "unsupported" | "unknown";
@@ -424,6 +429,8 @@ export function normalizeCollectionStatePayload(value: unknown): CollectionState
       tenia_despliegue: descartado.tenia_despliegue === true,
       entregado: descartado.entregado === true,
     },
+    deployment_derived_fields: asArray<unknown>(value.deployment_derived_fields)
+      .filter((campo): campo is string => typeof campo === "string" && campo.length > 0),
     ...state,
     state,
     handoff: normalizeHandoffReceipt(value.handoff) ?? state.deployment?.handoff ?? null,
