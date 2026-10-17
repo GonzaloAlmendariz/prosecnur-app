@@ -23,7 +23,8 @@ export const SECCIONES = [
 export type RecopiladoresSeccion = (typeof SECCIONES)[number];
 
 export const PESTANAS_POR_SECCION = {
-  unidades: ["lista"],
+  // Lista es el aterrizaje; Origen dice de qué fuente sale y qué cambió (E1e).
+  unidades: ["lista", "origen"],
   accesos: ["canales", "vinculacion"],
   // Tipos primero: es el aterrizaje de Catálogo (ADR 0109 §3). Correos es el
   // material de canal digital: se compone aquí y sale para Mailchimp (ADR 0110 §2).
@@ -97,6 +98,15 @@ const ALIAS_SECCION: Record<string, RecopiladoresSeccion | DireccionRecopiladore
   plan: "unidades",
 };
 
+/**
+ * Paneles que viven en una pestaña concreta. `rehacer-plan` se abría sobre la
+ * lista; desde E1e la acción vive sólo en Origen, así que un enlace guardado
+ * `?seccion=unidades&panel=rehacer-plan` aterriza ahí con el diálogo abierto.
+ */
+const PESTANA_DEL_PANEL: Readonly<Record<string, DireccionRecopiladores>> = {
+  "rehacer-plan": { seccion: "unidades", pestana: "origen" },
+};
+
 function esSeccion(valor: string): valor is RecopiladoresSeccion {
   return (SECCIONES as readonly string[]).includes(valor);
 }
@@ -115,6 +125,20 @@ function primeraPestana(seccion: RecopiladoresSeccion): RecopiladoresPestana {
  * pestaña), después la sección, y al final el aterrizaje por defecto.
  */
 export function resolverDireccion(
+  seccionCruda?: string | null,
+  pestanaCruda?: string | null,
+  panelCrudo?: string | null,
+): DireccionRecopiladores {
+  const delPanel = PESTANA_DEL_PANEL[(panelCrudo ?? "").trim().toLowerCase()];
+  if (delPanel) {
+    const base = resolverSinPanel(seccionCruda, pestanaCruda);
+    if (base.seccion === delPanel.seccion) return delPanel;
+    return base;
+  }
+  return resolverSinPanel(seccionCruda, pestanaCruda);
+}
+
+function resolverSinPanel(
   seccionCruda?: string | null,
   pestanaCruda?: string | null,
 ): DireccionRecopiladores {
@@ -153,9 +177,12 @@ export function resolverDireccion(
 export function esDireccionCanonica(
   seccionCruda?: string | null,
   pestanaCruda?: string | null,
+  panelCrudo?: string | null,
 ): boolean {
   const seccion = (seccionCruda ?? "").trim().toLowerCase();
   const pestana = (pestanaCruda ?? "").trim().toLowerCase();
   if (!esSeccion(seccion)) return false;
-  return (pestanasDe(seccion) as readonly string[]).includes(pestana);
+  if (!(pestanasDe(seccion) as readonly string[]).includes(pestana)) return false;
+  const delPanel = PESTANA_DEL_PANEL[(panelCrudo ?? "").trim().toLowerCase()];
+  return !delPanel || delPanel.seccion !== seccion || delPanel.pestana === pestana;
 }

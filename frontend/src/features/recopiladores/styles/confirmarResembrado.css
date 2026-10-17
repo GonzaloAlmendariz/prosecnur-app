@@ -131,3 +131,9 @@
   padding: var(--pulso-space-3) var(--pulso-space-6) var(--pulso-space-4);
   border-top: 1px solid var(--pulso-border);
 }
+
+/* Desde Origen: el conteo de diferencias va primero y con el color del texto. */
+.rec-resembrar-entra .rec-resembrar-diferencias {
+  color: var(--pulso-text);
+  font-size: 14px;
+}

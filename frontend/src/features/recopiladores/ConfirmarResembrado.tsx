@@ -11,9 +11,14 @@
 // Es un panel direccionable (`?panel=rehacer-plan`): se enlaza y el QA lo abre
 // por su dirección. Diálogo de alerta (Radix): el foco entra en «Cancelar», la
 // opción segura; Escape y el velo cancelan.
+//
+// Desde Unidades › Origen (E1e) el mismo diálogo se titula «Actualizar desde la
+// fuente», dice cuántas unidades entran, salen y cambian, y manda la huella de
+// la fuente que se revisó: si cambió en medio (409 de origen), se releen las
+// diferencias en vez de escribir sobre algo que nadie vio.
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   apiRecopiladoresReseed,
@@ -25,12 +30,14 @@ import { PulsoButton } from "../../components/PulsoButton";
 import type { ControlPanel } from "../../lib/navegacion/paneles";
 import { Loader2, RotateCcw } from "../../vendor/lucide-react";
 import {
+  AVISO_FUENTE_ACTUALIZADA,
   AVISO_PLAN_ACTUALIZADO,
   confirmarResembrado,
   leerPreviaDelResembrado,
   textoDelResembrado,
   type PreviaDelResembrado,
   type PuertoDelResembrado,
+  type VarianteDelResembrado,
 } from "./resembrado";
 import "./styles/confirmarResembrado.css";
 
@@ -45,21 +52,48 @@ type Props = {
   panel: ControlPanel;
   /** `state_revision` vigente: la que se previsualiza y la que se confirma. */
   expectedRevision: number;
+  /** Huella de la fuente que el usuario revisó (`fingerprint_actual`). */
+  expectedSourceFingerprint?: string | null;
+  variante?: VarianteDelResembrado;
   onState: (payload: CollectionStatePayload) => void;
+  /** Releer las diferencias tras un 409 de origen. */
+  onFuenteCambio?: () => Promise<void>;
 };
 
 const PUERTO: PuertoDelResembrado = {
-  previsualizar: apiRecopiladoresReseedPreview,
-  rehacer: apiRecopiladoresReseed,
+  previsualizar: (revision, huella) => apiRecopiladoresReseedPreview(revision, huella),
+  rehacer: (revision, huella) => apiRecopiladoresReseed(revision, huella),
   leerVigente: apiRecopiladoresState,
 };
 
 const avisoDe = (fase: Fase) => (fase.tipo === "leyendo" || fase.tipo === "listo" ? fase.aviso : "");
 
-export function ConfirmarResembrado({ panel, expectedRevision, onState }: Props) {
+export function ConfirmarResembrado({
+  panel,
+  expectedRevision,
+  expectedSourceFingerprint = null,
+  variante = "rehacer",
+  onState,
+  onFuenteCambio,
+}: Props) {
   const [fase, setFase] = useState<Fase>({ tipo: "leyendo", aviso: "" });
+  // Releer tras un 409 de origen aunque la huella nueva sea igual a la vieja.
+  const [intento, setIntento] = useState(0);
   const cancelarRef = useRef<HTMLButtonElement>(null);
   const { abierto, cerrar } = panel;
+
+  // Tras un 409 de origen: releer las diferencias y volver a previsualizar.
+  const reponerFuente = useCallback(async () => {
+    if (!onFuenteCambio) {
+      setFase({ tipo: "error", mensaje: AVISO_FUENTE_ACTUALIZADA });
+      return;
+    }
+    try {
+      await onFuenteCambio();
+    } finally {
+      setIntento((n) => n + 1);
+    }
+  }, [onFuenteCambio]);
 
   // Abrir SÓLO previsualiza. Si el estado cambió (409), se repinta con el
   // vigente; su revisión nueva vuelve a disparar este efecto.
@@ -70,9 +104,12 @@ export function ConfirmarResembrado({ panel, expectedRevision, onState }: Props)
     }
     let vigente = true;
     setFase((previa) => ({ tipo: "leyendo", aviso: avisoDe(previa) }));
-    void leerPreviaDelResembrado(PUERTO, expectedRevision).then((resultado) => {
+    void leerPreviaDelResembrado(PUERTO, expectedRevision, expectedSourceFingerprint).then((resultado) => {
       if (!vigente) return;
-      if (resultado.tipo === "refrescado") {
+      if (resultado.tipo === "fuente-cambio") {
+        setFase({ tipo: "leyendo", aviso: AVISO_FUENTE_ACTUALIZADA });
+        void reponerFuente();
+      } else if (resultado.tipo === "refrescado") {
         setFase({ tipo: "leyendo", aviso: AVISO_PLAN_ACTUALIZADO });
         onState(resultado.payload);
       } else if (resultado.tipo === "error") {
@@ -82,7 +119,7 @@ export function ConfirmarResembrado({ panel, expectedRevision, onState }: Props)
       }
     });
     return () => { vigente = false; };
-  }, [abierto, expectedRevision, onState]);
+  }, [abierto, expectedRevision, expectedSourceFingerprint, intento, onState, reponerFuente]);
 
   const confirmar = async (previa: PreviaDelResembrado) => {
     setFase({ tipo: "rehaciendo", previa });
@@ -93,13 +130,17 @@ export function ConfirmarResembrado({ panel, expectedRevision, onState }: Props)
     } else if (resultado.tipo === "refrescado") {
       setFase({ tipo: "leyendo", aviso: AVISO_PLAN_ACTUALIZADO });
       onState(resultado.payload);
+    } else if (resultado.tipo === "fuente-cambio") {
+      setFase({ tipo: "leyendo", aviso: AVISO_FUENTE_ACTUALIZADA });
+      void reponerFuente();
     } else {
       setFase({ tipo: "listo", previa, aviso: resultado.aviso });
     }
   };
 
   const previa = fase.tipo === "listo" || fase.tipo === "rehaciendo" ? fase.previa : null;
-  const texto = previa ? textoDelResembrado(previa.descartado, previa.propuesto) : null;
+  const texto = previa ? textoDelResembrado(previa.descartado, previa.propuesto, variante) : null;
+  const titulo = textoDelResembrado(null, null, variante).titulo;
   const rehaciendo = fase.tipo === "rehaciendo";
 
   return (
@@ -116,9 +157,7 @@ export function ConfirmarResembrado({ panel, expectedRevision, onState }: Props)
           aria-busy={fase.tipo === "leyendo" || rehaciendo}
           onOpenAutoFocus={(e) => { e.preventDefault(); cancelarRef.current?.focus({ preventScroll: true }); }}
         >
-          <Dialog.Title className="rec-resembrar-titulo">
-            ¿Rehacer el plan con el sorteo vigente?
-          </Dialog.Title>
+          <Dialog.Title className="rec-resembrar-titulo">{titulo}</Dialog.Title>
           <div
             className="rec-resembrar-cuerpo"
             data-qa-geometry-group="recopiladores-rehacer-plan"
@@ -135,6 +174,9 @@ export function ConfirmarResembrado({ panel, expectedRevision, onState }: Props)
             {texto ? (
               <>
                 <Dialog.Description className="rec-resembrar-entra" data-qa-geometry-member>
+                  {variante === "actualizar" && texto.diferencias ? (
+                    <strong className="rec-resembrar-diferencias">{texto.diferencias}</strong>
+                  ) : null}
                   <strong>{texto.entra}</strong>
                   {texto.sale ? <span>{texto.sale}</span> : null}
                 </Dialog.Description>
@@ -171,7 +213,9 @@ export function ConfirmarResembrado({ panel, expectedRevision, onState }: Props)
               {rehaciendo
                 ? <Loader2 size={14} className="pulso-spin" aria-hidden />
                 : <RotateCcw size={14} aria-hidden />}
-              {rehaciendo ? "Rehaciendo…" : (texto?.confirmar ?? "Rehacer el plan")}
+              {rehaciendo
+                ? (variante === "actualizar" ? "Actualizando…" : "Rehaciendo…")
+                : (texto?.confirmar ?? textoDelResembrado(null, null, variante).confirmar)}
             </PulsoButton>
           </div>
         </Dialog.Content>

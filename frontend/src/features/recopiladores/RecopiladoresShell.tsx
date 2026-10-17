@@ -15,6 +15,7 @@ import { CatalogoTipos } from "./catalogo/CatalogoTipos";
 import { CorreosEditor } from "./correos/CorreosEditor";
 import { DeliverySection } from "./DeliverySection";
 import { MaterialsSection } from "./MaterialsSection";
+import { OrigenSection } from "./OrigenSection";
 import { PlanSection } from "./PlanSection";
 import {
   PESTANAS_POR_SECCION,
@@ -95,7 +96,7 @@ export function RecopiladoresShell() {
   );
   const irA = useCallback((to: string) => navigate(to), [navigate]);
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
-  const direction = resolverDireccion(params.get("seccion"), params.get("pestana"));
+  const direction = resolverDireccion(params.get("seccion"), params.get("pestana"), params.get("panel"));
   const [payload, setPayload] = useState<CollectionStatePayload | null>(null);
   const [loading, setLoading] = useState(true);
   // Una sección puede seguir cargando lo suyo cuando el shell ya tiene el plan.
@@ -159,7 +160,7 @@ export function RecopiladoresShell() {
   }, [refresh]);
 
   useEffect(() => {
-    if (esDireccionCanonica(params.get("seccion"), params.get("pestana"))) return;
+    if (esDireccionCanonica(params.get("seccion"), params.get("pestana"), params.get("panel"))) return;
     navigate(
       `${location.pathname}${searchFor(location.search, direction.seccion, direction.pestana)}`,
       { replace: true },
@@ -261,8 +262,11 @@ export function RecopiladoresShell() {
           No había nada que guardar: lo que enviaste es igual a lo que ya estaba.
         </div>
       ) : null}
-      {!loading && direction.seccion === "unidades" ? (
+      {!loading && direction.seccion === "unidades" && direction.pestana === "lista" ? (
         <PlanSection payload={payload} onState={aplicarMutacion} origen={origen} onIr={irA} />
+      ) : null}
+      {!loading && direction.seccion === "unidades" && direction.pestana === "origen" ? (
+        <OrigenSection payload={payload} onState={aplicarMutacion} onCargando={setSeccionCargando} />
       ) : null}
       {!loading && direction.seccion === "accesos" ? (
         <AccessSection payload={payload} activeTab={direction.pestana} onState={aplicarMutacion} onIr={irA} />
