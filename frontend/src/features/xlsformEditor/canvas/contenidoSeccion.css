@@ -1,0 +1,19 @@
+/* Contenido de la sección en la vista de trabajo (ContenidoSeccion.tsx). */
+.xfcs { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-card); background: var(--pulso-surface); overflow: hidden; }
+.xfcs__cab { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--pulso-border); background: var(--pulso-surface-2); }
+.xfcs__tit { color: var(--pulso-text-muted); font-size: 11px; font-weight: var(--pulso-weight-semibold); letter-spacing: 0.06em; text-transform: uppercase; }
+.xfcs__n { color: var(--pulso-text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.xfcs__lista { display: flex; flex-direction: column; margin: 0; padding: 4px; list-style: none; }
+.xfcs__fila {
+  display: grid; grid-template-columns: 16px 28px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%;
+  padding: 8px 10px; border: 0; border-radius: var(--pulso-radius); background: transparent;
+  color: var(--pulso-text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; box-shadow: none; min-height: 0;
+}
+.xfcs__fila:hover { background: var(--pulso-surface-2); }
+.xfcs__fila:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: -2px; }
+.xfcs__num { color: var(--pulso-text-muted); font-size: 12px; font-weight: var(--pulso-weight-semibold); font-variant-numeric: tabular-nums; }
+.xfcs__txt { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.xfcs__marcas { display: inline-flex; align-items: center; gap: 6px; }
+.xfcs__cond { display: inline-flex; color: var(--pulso-accent-violet); }
+.xfcs__obl { color: var(--pulso-warn-fg); font-weight: var(--pulso-weight-bold); }
+.xfcs__vacio { margin: 0; padding: 12px 14px; color: var(--pulso-text-muted); font-size: 12.5px; line-height: 1.45; }
