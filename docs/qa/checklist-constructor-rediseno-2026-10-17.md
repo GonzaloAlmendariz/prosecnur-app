@@ -64,3 +64,17 @@ Contrato entre E y F (props nuevas de `SurveyOutline`, que F cablea en la págin
 - Elegir una sección usa el `onSelect` existente con la fila de la sección.
 
 Cierre: revisión visual y de contratos en paralelo → `verificador` → commits por nombre.
+
+## Banco de prueba: ACNUR y el filtro de hostigamiento (Gonzalo, 2026-10-17)
+
+«Un cuestionario de ACNUR, al tener tantos elementos bastante complejos como cálculos, pulldata y un montón de cosas, es
+una buena oportunidad para ver qué tan bien se ven las subpestañas, trasladando todo ese contenido extremadamente
+técnico a un contenido más profesional»; «que solo utilice el idioma español, porque está mezclando varios idiomas»;
+«el formulario de hostigamiento 2026 tiene un buen ejemplo de cómo se hacen los filtros… se hizo utilizando un método
+algo rústico… podríamos mejorarlo con el constructor que tenemos ahora».
+
+| # | Indicación | Dónde vive | Estado |
+|---|---|---|---|
+| C25 | ACNUR sólo en español como banco de prueba | copia de trabajo fuera del repo: `scratchpad/form/acnur_es.pulso` | hecho: el Tipo 3 junta dos instrumentos con columnas de idioma distintas (`label::Español (es)` y `label::Spanish (ES)`) más EN/FR/AR/RU/PT; cada etiqueta, ayuda y opción toma la primera columna en español y se quitan las demás. Sin español quedan 10 filas internas (cálculos auxiliares y títulos de grupo del módulo hogar), que se muestran por su código |
+| C26 | Pasada de estrés por las subpestañas con el ACNUR en español: Restricciones, Filtros, Cálculos (pulldata, indexed-repeat, once, position), Lógica, Constructor, Cuestionario, Probar; medir qué sigue técnico y llevarlo a una UI profesional | todas las pestañas | pendiente: corre tras el gate del frente de identidad; sus hallazgos alimentan a los escritores del Constructor |
+| C27 | Filtro «por opción» del hostigamiento: cada opción la habilita una pregunta distinta (Tipo 2: `filter_P14=${P14} or … or name = '0'`, ~40 columnas `filter_P*` en choices). Editor de filtros con una tabla opción → pregunta que la habilita, que arma las columnas y la expresión solo | `choiceFilters/` | pendiente. Medido: el instrumento final `Instrumentofinal_HSTVG2026_UNSA.xlsx` no trae filtros (la columna está vacía); el patrón vive en el Tipo 2 del corpus. El editor actual sólo arma la cascada simple (una pregunta madre) |
