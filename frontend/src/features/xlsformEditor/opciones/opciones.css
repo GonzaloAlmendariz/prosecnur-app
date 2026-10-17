@@ -1,0 +1,43 @@
+/* Pestaña «Listas de opciones» (PestanaOpciones.tsx). El marco es el de las pestañas de reglas (pestanas.css). */
+.xfo { height: 100%; min-height: 0; }
+
+.xfo-nueva,
+.xfo-unificar {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: var(--pulso-control-height-md); padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border-strong); border-radius: var(--pulso-radius);
+  background: var(--pulso-surface); color: var(--pulso-text);
+  font: inherit; font-size: 12.5px; font-weight: var(--pulso-weight-medium); cursor: pointer;
+}
+.xfo-nueva { width: 100%; }
+.xfo-nueva:hover, .xfo-unificar:hover { border-color: var(--pulso-primary); color: var(--pulso-primary); }
+.xfo-nueva:focus-visible, .xfo-unificar:focus-visible, .xfo-uso:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.xfo-unificar { align-self: flex-start; border-color: var(--pulso-primary); background: var(--pulso-primary); color: var(--pulso-surface); }
+.xfo-unificar:hover { color: var(--pulso-surface); filter: brightness(1.05); }
+
+.xfo-vacio { display: flex; flex-direction: column; align-items: flex-start; gap: var(--pulso-space-2); color: var(--pulso-text-muted); font-size: 13px; line-height: 1.5; }
+.xfo-vacio p { margin: 0; }
+
+.xfo-codigo { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--pulso-text-muted); }
+
+.xfo-lateral { display: flex; flex-direction: column; gap: 14px; }
+.xfo-usos { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.xfo-usos li { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.xfo-uso {
+  display: flex; justify-content: flex-start; width: 100%; min-width: 0; padding: 6px 8px; border: 0; border-radius: var(--pulso-radius); box-shadow: none;
+  background: transparent; text-align: left; cursor: pointer;
+}
+.xfo-uso:hover { background: var(--pulso-surface-2); }
+.xfo-uso .xfk-tok { min-width: 0; max-width: 100%; }
+.xfo-uso-filtro { padding: 0 8px 4px 30px; color: var(--pulso-text-muted); font-size: 11.5px; }
+
+.xfo-gemelas { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.xfo-gemelas li code {
+  display: inline-block; padding: 2px 8px; border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-chip);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--pulso-text-muted);
+}
+.xfo-gemelas li.is-actual code { border-color: var(--pulso-primary); color: var(--pulso-primary); }
+
+.xfo-nota { margin: 0; color: var(--pulso-text-muted); font-size: 12.5px; line-height: 1.5; }
+.xfo-nota.is-aviso { color: var(--pulso-warn-fg); }
+.xfo-lateral .xfk-card__body { display: flex; flex-direction: column; gap: 10px; }

@@ -172,15 +172,12 @@ import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { EditorCommandBar } from "./shell/EditorCommandBar";
 import { EditorSmImportNotice } from "./shell/EditorSmImportNotice";
 import { useActivePublicationRefresh } from "./shell/useActivePublicationRefresh";
-import { ListasOpcionesDialog, contarEscalasRepetidas, useListasOpcionesPanel } from "./listas";
+import { contarEscalasRepetidas, useListasOpcionesPanel } from "./listas";
 import { buildSuiteMetrics, formatFieldSectionPair } from "./shell/editorMetrics";
 import { RestoreOfferBanner } from "./shell/RestoreOfferBanner";
 import { LogicaExternaDialogo, LogicaExternaDisparador } from "./shell/LogicaExterna";
 import { useLogicaExterna } from "./shell/useLogicaExterna";
 import { CollapsibleSection } from "./shell/CollapsibleSection";
-import CatalogsContextLens from "./catalogs/CatalogsContextLens";
-import { CatalogLibrary as CatalogLibraryV2 } from "./catalogs/CatalogLibrary";
-import { CatalogWorkspace as CatalogWorkspaceV2 } from "./catalogs/CatalogWorkspace";
 import {
   applyChoiceMove,
   countCatalogUsage,
@@ -204,6 +201,7 @@ import type {
 } from "./logic";
 import { LogicCanvas } from "./canvas-graph/LogicCanvas";
 import { ChoiceFiltersView } from "./choiceFilters/ChoiceFiltersView";
+import { PestanaOpciones } from "./opciones/PestanaOpciones";
 import { FormSimulator } from "./shell/FormSimulator";
 import { FormSummaryView } from "./shell/FormSummaryView";
 import "./styles/xlsformV2";
@@ -1012,7 +1010,6 @@ export default function XlsformEditorPage() {
   const activeCatalogName = catalogsLensOpen
     ? (catalogFocus || selectedTypeInfo?.listName || catalogs[0]?.listName || null)
     : (selectedTypeInfo?.listName || catalogFocus || catalogs[0]?.listName || null);
-  const activeCatalog = catalogs.find((catalog) => catalog.listName === activeCatalogName) ?? null;
   // Cuántas preguntas usan cada catálogo. Lo usa el FormCanvas para
   // marcar listas compartidas (badge "Lista compartida con N preguntas").
   const catalogUsage = useMemo(() => {
@@ -1181,6 +1178,12 @@ export default function XlsformEditorPage() {
   }, [localDiagnostics, remoteDiagnostics]);
   useActivePublicationRefresh(workbook ? activeFormId : null, lastSavedAt, refreshBackendFormIndex);
   const listasPanel = useListasOpcionesPanel();
+  // 2026-10-16: el catálogo es la pestaña «Listas de opciones». Lo que abría el panel lateral o el diálogo lleva ahí,
+  // y un enlace viejo con `?panel=catalogos` o `?panel=listas-opciones` aterriza en la pestaña.
+  const abrirPestanaListas = useCallback(() => irPestana("opciones"), [irPestana]);
+  useEffect(() => {
+    if (catalogosPanel.abierto || listasPanel.abierto) irPestana("opciones", { replace: true });
+  }, [catalogosPanel.abierto, listasPanel.abierto, irPestana]);
   const escalasRepetidas = useMemo(() => contarEscalasRepetidas(workbook), [workbook]);
   const suiteMetrics = useMemo(
     () => buildSuiteMetrics(structure, catalogs.length, diagnostics),
@@ -1205,9 +1208,6 @@ export default function XlsformEditorPage() {
     }
     return map;
   }, [workbook, catalogs]);
-  const activeCatalogUsage = activeCatalogName
-    ? usageByCatalog[activeCatalogName] ?? 0
-    : 0;
 
   useEffect(() => {
     if (!selectedTypeInfo?.listName) return;
@@ -2789,14 +2789,14 @@ export default function XlsformEditorPage() {
           canRedo={canRedo}
           onUndo={() => dispatch({ type: "UNDO" })}
           onRedo={() => dispatch({ type: "REDO" })}
-          listas={{ repetidas: escalasRepetidas, onOpen: listasPanel.abrir }}
+          listas={{ repetidas: escalasRepetidas, onOpen: abrirPestanaListas }}
           diagnostics={diagnostics}
           publication={activeFormId ? publicationUi.byFormId[activeFormId] ?? null : null}
           selection={selection}
           onSelectRow={irAFila}
           onFocusCatalog={(name) => {
             setCatalogFocus(name);
-            catalogosPanel.abrir();
+            irPestana("opciones");
           }}
           onReviewLogic={activeFormId ? () => { void openFormLogicReview(activeFormId); } : undefined}
           logicaExterna={activeFormId ? { formId: activeFormId, acciones: logicaExterna } : undefined}
@@ -2950,7 +2950,7 @@ export default function XlsformEditorPage() {
                   formId={activeFormId}
                   source={source}
                   repetidas={escalasRepetidas}
-                  onOpenListas={listasPanel.abrir}
+                  onOpenListas={abrirPestanaListas}
                 />
             )}
             {pestana === "hojas" && (
@@ -3066,7 +3066,7 @@ export default function XlsformEditorPage() {
                     onCatalogCreate={() => createCatalog(true)}
                     onOpenCatalogLens={(focusListName) => {
                       if (focusListName) setCatalogFocus(focusListName);
-                      catalogosPanel.abrir();
+                      irPestana("opciones");
                     }}
                     onCloneCatalog={
                       selectedNode
@@ -3096,7 +3096,7 @@ export default function XlsformEditorPage() {
                       existingLists: existingListsForAdd,
                       onOpenCatalogLens: (listName) => {
                         if (listName) setCatalogFocus(listName);
-                        catalogosPanel.abrir();
+                        irPestana("opciones");
                       },
                     }}
                   />
@@ -3163,6 +3163,25 @@ export default function XlsformEditorPage() {
             {pestana === "calculos" && (
               <PestanaCalculos structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} onCampo={updateSurveyField} catalogs={catalogs} />
             )}
+            {pestana === "opciones" && workbook && (
+              <PestanaOpciones
+                workbook={workbook}
+                onWorkbookChange={(next) => { dispatch({ type: "SET", workbook: next }); setArtifact(null); }}
+                structure={structure}
+                catalogs={catalogs}
+                usageByCatalog={usageByCatalog}
+                seleccionada={pestanaEditor.foco ?? activeCatalogName}
+                onSeleccionar={(name) => { setCatalogFocus(name); fijarFocoEnSitio(name); }}
+                onCrear={() => createCatalog(false)}
+                onRename={renameCatalog}
+                onAddChoice={addCatalogChoice}
+                onChoiceChange={updateChoiceFields}
+                onChoiceRemove={removeChoice}
+                onChoiceMove={moveChoice}
+                onDeleteCatalog={deleteCatalogAction}
+                onIrAPregunta={irAPregunta}
+              />
+            )}
             {pestana === "filtros" && (
               <ChoiceFiltersView
                 open
@@ -3195,7 +3214,7 @@ export default function XlsformEditorPage() {
                     formId: activeFormId,
                     escalasRepetidas,
                     onRevisarLogica: activeFormId ? () => { void openFormLogicReview(activeFormId); } : undefined,
-                    onAbrirListas: listasPanel.abrir,
+                    onAbrirListas: abrirPestanaListas,
                     onIrAPregunta: irAPregunta,
                     onIrImpreso: () => irPestana("impreso"),
                   },
@@ -3228,54 +3247,12 @@ export default function XlsformEditorPage() {
         </>
       )}
 
-      {workbook && (
-        <ListasOpcionesDialog
-          panel={listasPanel}
-          workbook={workbook}
-          proyecto={{ scope: projectScope, activoId: activeFormId, formularios: forms }}
-          onWorkbookChange={(next) => {
-            dispatch({ type: "SET", workbook: next });
-            setArtifact(null);
-          }}
-        />
-      )}
 
       {/* Coachmarks de primer uso — solo aparecen cuando hay workbook con
           contenido editable y el flag `firstUseDone` no está seteado. */}
       {workbook && hasEditableContent && <Coachmarks />}
 
-      {/* ContextLens del editor de catálogos — se abre desde el header del
-          constructor o cuando un diagnostic apunta a un catálogo. */}
-      <CatalogsContextLens
-        open={catalogsLensOpen}
-        onClose={catalogosPanel.cerrar}
-        listsCount={catalogs.length}
-        readyListsCount={readyCatalogsCount}
-        onCreate={() => createCatalog(false)}
-        library={(
-          <CatalogLibraryV2
-            catalogs={catalogs}
-            activeCatalogName={activeCatalogName}
-            usageByCatalog={usageByCatalog}
-            onFocus={setCatalogFocus}
-            onCreate={() => createCatalog(false)}
-          />
-        )}
-        workspace={(
-          <CatalogWorkspaceV2
-            catalog={activeCatalog}
-            usageCount={activeCatalogUsage}
-            onRename={renameCatalog}
-            onAddChoice={addCatalogChoice}
-            onChoiceChange={updateChoiceFields}
-            onChoiceRemove={removeChoice}
-            onChoiceMove={moveChoice}
-            onDeleteCatalog={deleteCatalogAction}
-          />
-        )}
-      />
-
-	      <LogicaExternaDialogo control={logicaExterna} formName={forms.find((f) => f.id === logicaExterna.formId)?.name ?? null} />
+      <LogicaExternaDialogo control={logicaExterna} formName={forms.find((f) => f.id === logicaExterna.formId)?.name ?? null} />
 	      {smLogicDialogOpen && workbook ? createPortal((
 	        <SurveyMonkeyLogicPopup
 	          workbook={workbook}
