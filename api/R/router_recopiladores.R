@@ -35,9 +35,10 @@ mount_recopiladores <- function(pr) {
     # nada si el plan ya existe, y sin este camino un proyecto se queda con el
     # plan de la primera corrida para siempre (medido: veinte dias de desfase en
     # HSVG2026). Exige `expected_revision` como el resto de escrituras.
+    # `dry_run: true` previsualiza: el mismo `descartado`, sin mutar nada.
     plumber::pr_post("/api/recopiladores/reseed", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
-      collection_state_reseed(session_header(req), body$expected_revision)
+      collection_state_reseed(session_header(req), body$expected_revision, dry_run = body$dry_run)
     })) |>
     plumber::pr_handle("PUT", "/api/recopiladores/plan", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)

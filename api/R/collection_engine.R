@@ -656,8 +656,10 @@ collection_state_seed <- function(sid) {
 #' Regenerar NO es gratis y por eso es explicito: el plan esta congelado a
 #' proposito —es lo que fue a imprenta— y rehacerlo descarta el despliegue y su
 #' handoff. La funcion devuelve que se descarto para que la UI pueda decirlo
-#' ANTES, no despues.
-collection_state_reseed <- function(sid, expected_revision) {
+#' ANTES, no despues: con `dry_run = TRUE` responde el mismo `descartado` sin
+#' tocar estado, revision ni `project_dirty`. Que se conserva y que se descarta
+#' vive en collection_reseed.R.
+collection_state_reseed <- function(sid, expected_revision, dry_run = FALSE) {
   s <- session_get(sid)
   current <- .collection_current(s)
   .collection_assert_revision(current, expected_revision)
@@ -668,16 +670,21 @@ collection_state_reseed <- function(sid, expected_revision) {
       "No hay seleccion de aulas vigente de la que rehacer el plan."
     )
   }
-  descartado <- list(
-    plan_run_id = .cm_aulas_scalar(current$plan$source_ref$run_id %||% "", ""),
-    unidades = length(current$plan$units %||% list()),
-    tenia_despliegue = is.list(current$deployment) && length(current$deployment) > 0L,
-    entregado = identical(.cm_aulas_scalar(current$deployment$status %||% "", ""), "handed_off")
-  )
+  descartado <- .collection_reseed_descartado(current)
   # Construye SIEMPRE: `.collection_seed_from_legacy_state()` devolveria aqui el
   # plan que estamos reemplazando, que es justo lo contrario de rehacer.
   seeded <- .collection_seed_build(s)
-  nuevo <- seeded$state
+  nuevo <- .collection_reseed_conservar(seeded$state, current)
+  if (.collection_reseed_dry_run(dry_run)) {
+    payload <- .collection_payload(
+      current, noop = TRUE, source_vigente = .collection_source_vigente(s, current)
+    )
+    payload$dry_run <- TRUE
+    payload$reseeded <- FALSE
+    payload$descartado <- descartado
+    payload$propuesto <- .collection_reseed_propuesto(nuevo)
+    return(.collection_payload_de_lectura(payload, s))
+  }
   # La revision sigue creciendo: rehacer no reinicia el contador, porque los
   # clientes lo usan para detectar escrituras concurrentes.
   nuevo$state_revision <- as.integer(current$state_revision) + 1L
@@ -685,8 +692,10 @@ collection_state_reseed <- function(sid, expected_revision) {
   payload <- .collection_payload(
     nuevo, seeded = TRUE, source_vigente = .collection_source_vigente(session_get(sid), nuevo)
   )
+  payload$dry_run <- FALSE
   payload$reseeded <- TRUE
   payload$descartado <- descartado
+  payload$propuesto <- .collection_reseed_propuesto(nuevo)
   # Misma salida que el resto del modulo: recibos con `file_available` y
   # deployment con sus derivados de lectura.
   .collection_payload_de_lectura(payload, session_get(sid))
