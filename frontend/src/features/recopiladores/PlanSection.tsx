@@ -193,6 +193,9 @@ export function paginatePlanUnits<T>(units: T[], requestedPage: number, pageSize
 
 export { fechaDeCorrida };
 
+/** Referencia estable para el plan ausente: el `useMemo` no se recalcula en cada render. */
+const SIN_UNIDADES: CollectionUnit[] = [];
+
 export function PlanSection({ payload, onState, origen, onIr, onCargando }: Props) {
   const [seeding, setSeeding] = useState(false);
   const [requestedPage, setRequestedPage] = useState(0);
@@ -212,6 +215,35 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
   const leyendoOrigen = Boolean(plan) && cargaOrigen.estado === "cargando";
   useEffect(() => { onCargando?.(leyendoOrigen); }, [leyendoOrigen, onCargando]);
   useEffect(() => () => onCargando?.(false), [onCargando]);
+
+  // **Todos los hooks van aquí, antes de cualquier `return`.** Un hook bajo la
+  // guarda de «sin plan» cambia el número de hooks entre renders cuando el plan
+  // se siembra en el mismo montaje y React tira #310. Lo fija
+  // `PlanSection.hooks.test.ts`.
+  const unidades = plan?.units ?? SIN_UNIDADES;
+  // **La lista primaria son las TITULARES.** Antes eran 700 filas —193 titulares
+  // y 507 reservas al mismo nivel—, que es tanto como decir que hay 700 aulas
+  // que atender. No las hay: hay 193, y las reservas son contingencias que
+  // pueden no usarse nunca. Se paginan cadenas, no unidades, así que una cadena
+  // no se parte entre dos páginas.
+  const operativo = useMemo(
+    () => agruparEnCadenas(unidades, (unit) => ({
+      rol: unit.role,
+      secuencia: unit.dimensions?.operational_sequence,
+      orden: unit.dimensions?.replacement_order,
+      codigo: typeof unit.dimensions?.legacy_ref === "string" ? unit.dimensions.legacy_ref : "",
+      reemplazaA: typeof unit.dimensions?.replacement_for === "string"
+        ? unit.dimensions.replacement_for : "",
+      // El `replacement_for` de un plan venido del libro apunta al NOMBRE del
+      // aula, no a su código operativo.
+      alias: unit.label,
+    })),
+    [unidades],
+  );
+  const forma = useMemo(() => formaDelOperativo(unidades), [unidades]);
+  // Qué cadenas están desplegadas. Colapsadas por defecto: la reserva importa
+  // el día que su titular se cae, no antes.
+  const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
 
   const seed = async () => {
     setSeeding(true);
@@ -249,30 +281,7 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
     );
   }
 
-  // **La lista primaria son las TITULARES.** Antes eran 700 filas —193 titulares
-  // y 507 reservas al mismo nivel—, que es tanto como decir que hay 700 aulas
-  // que atender. No las hay: hay 193, y las reservas son contingencias que
-  // pueden no usarse nunca. Se paginan cadenas, no unidades, así que una cadena
-  // no se parte entre dos páginas.
-  const operativo = useMemo(
-    () => agruparEnCadenas(plan.units, (unit) => ({
-      rol: unit.role,
-      secuencia: unit.dimensions?.operational_sequence,
-      orden: unit.dimensions?.replacement_order,
-      codigo: typeof unit.dimensions?.legacy_ref === "string" ? unit.dimensions.legacy_ref : "",
-      reemplazaA: typeof unit.dimensions?.replacement_for === "string"
-        ? unit.dimensions.replacement_for : "",
-      // El `replacement_for` de un plan venido del libro apunta al NOMBRE del
-      // aula, no a su código operativo.
-      alias: unit.label,
-    })),
-    [plan.units],
-  );
   const pagination = paginatePlanUnits(operativo.cadenas, requestedPage);
-  const forma = useMemo(() => formaDelOperativo(plan.units), [plan.units]);
-  // Qué cadenas están desplegadas. Colapsadas por defecto: la reserva importa
-  // el día que su titular se cae, no antes.
-  const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
   const alternar = (id: string) => setAbiertas((previas) => {
     const siguiente = new Set(previas);
     if (siguiente.has(id)) siguiente.delete(id); else siguiente.add(id);
