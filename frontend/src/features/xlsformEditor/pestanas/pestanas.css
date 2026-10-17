@@ -35,7 +35,7 @@
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
-.xfp-reglas__vacio { padding: 16px 6px; font-size: 13px; line-height: 1.5; color: var(--pulso-text-muted); }
+.xfp-reglas__vacio { padding: 16px 6px; font-size: 13px; line-height: 1.35; color: var(--pulso-text-muted); }
 
 .xfp-grupo {
   flex-shrink: 0;

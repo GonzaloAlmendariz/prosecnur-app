@@ -93,7 +93,7 @@ export function LogicGroupBlock({
         )}
       </header>
 
-      <div className="pulso-logic-group-body">
+      <div className="pulso-logic-group-body" data-qa-geometry-group="xlsform/logica-grupo" data-qa-geometry-contract="intrinsic">
         {conditions.map((cond, idx) => (
           <div className="pulso-logic-group-item" key={idx}>
             {idx > 0 && (

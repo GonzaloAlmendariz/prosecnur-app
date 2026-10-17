@@ -57,7 +57,7 @@ export function ListaLogica({ structure, scope, seleccionada, onSeleccionar }: L
           ]}
         />
       </header>
-      <div className="xfl-lista__cuerpo">
+      <div className="xfl-lista__cuerpo" data-qa-geometry-group="xlsform/logica-secciones" data-qa-geometry-contract="intrinsic">
         {secciones.length === 0 ? (
           <p className="xfl-vacio">Este formulario no tiene reglas de cuándo aparece una pregunta ni de qué opciones se muestran.</p>
         ) : (

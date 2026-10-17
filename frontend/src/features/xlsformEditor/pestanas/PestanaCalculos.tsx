@@ -85,7 +85,7 @@ export function PestanaCalculos({ structure, scope, seleccionada, onSeleccionar,
             <ReadsAs label="XLSForm" code>{actual.vacio ? "calculation vacío" : `calculation = ${actual.node.calculation.trim()}`}</ReadsAs>
           </PanelCard>
           <ProbarCalculo node={actual.node} usa={actual.usa} structure={structure} opcionesDe={opcionesDe} />
-          <div className="xfp-fila2">
+          <div className="xfp-fila2" data-qa-geometry-group="xlsform/calculos-fila" data-qa-geometry-contract="intrinsic">
             <PanelCard title="Usa" meta={actual.usa.length ? `${actual.usa.length}` : undefined} fill>
               {actual.usa.length ? (
                 <div className="xfp-toks">

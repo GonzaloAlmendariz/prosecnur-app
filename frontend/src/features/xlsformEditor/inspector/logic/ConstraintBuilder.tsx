@@ -212,7 +212,7 @@ export function ConstraintBuilder({
       </header>
       <div className="pulso-logic-builder-raw">
         <span className="pulso-xfi-code-head" aria-hidden="true">
-          Código Kobo{techTerm ? <> <TechTerm t={techTerm} /></> : null}
+          Código XLSForm{techTerm ? <> <TechTerm t={techTerm} /></> : null}
         </span>
         <pre>{raw}</pre>
         <p className="pulso-logic-builder-rawhint">
@@ -389,7 +389,7 @@ export function ConstraintBuilder({
                 </button>
               </span>
             </header>
-            <div className="pulso-logic-group-body">
+            <div className="pulso-logic-group-body" data-qa-geometry-group="xlsform/restriccion-grupo" data-qa-geometry-contract="intrinsic">
               {flatChildren.map((c, idx) => (
                 <div className="pulso-logic-group-item" key={idx}>
                   {idx > 0 && (
@@ -503,7 +503,7 @@ export function ConstraintBuilder({
                   todas deben cumplirse
                 </span>
               </header>
-              <div className="pulso-logic-group-body">
+              <div className="pulso-logic-group-body" data-qa-geometry-group="xlsform/restriccion-grupo" data-qa-geometry-contract="intrinsic">
                 {children.map((child, idx) => (
                   <div className="pulso-logic-group-item" key={idx}>
                     {idx > 0 && (

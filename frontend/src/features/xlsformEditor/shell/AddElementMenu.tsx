@@ -19,7 +19,7 @@ export function AddElementMenu({
   const [query, setQuery] = useState("");
   const [activeGroup, setActiveGroup] = useState<"all" | NonNullable<AddMenuItem["group"]>>("all");
   const groups = [
-    { id: "choices", label: "Opciones Kobo" },
+    { id: "choices", label: "Con opciones" },
     { id: "capture", label: "Texto y captura" },
     { id: "evidence", label: "Evidencia y ubicación" },
     { id: "logic", label: "Estructura y lógica" },

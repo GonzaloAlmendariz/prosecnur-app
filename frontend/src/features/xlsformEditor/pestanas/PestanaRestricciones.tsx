@@ -90,7 +90,7 @@ export function PestanaRestricciones({ structure, scope, seleccionada, onSelecci
             <ReadsAs label="XLSForm" code>{actual.node.constraint.trim() ? `constraint = ${actual.node.constraint.trim()}` : "constraint vacío"}</ReadsAs>
           </PanelCard>
           {actual.estado === "con" ? <ProbarRestriccion node={actual.node} opciones={catalogs.find((c) => c.listName === actual.node.typeInfo.listName)?.items ?? []} /> : null}
-          <div className="xfp-fila2">
+          <div className="xfp-fila2" data-qa-geometry-group="xlsform/restricciones-fila" data-qa-geometry-contract="intrinsic">
             <PanelCard title="Depende de" meta={actual.usa.length ? `${actual.usa.length} pregunta${actual.usa.length === 1 ? "" : "s"}` : undefined} fill>
               {actual.usa.length ? (
                 <div className="xfp-toks">

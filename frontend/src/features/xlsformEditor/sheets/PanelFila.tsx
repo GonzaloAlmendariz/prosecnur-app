@@ -40,7 +40,7 @@ export function PanelFila({ hoja, celda, diagnosticos, onIrAFila, onArreglar }: 
         {diagnosticos.length === 0 ? (
           <p className="xfx-panel__nada">Sin problemas detectados.</p>
         ) : (
-          <ul className="xfx-diag">
+          <ul className="xfx-diag" data-qa-geometry-group="xlsform/hojas-diagnostico" data-qa-geometry-contract="intrinsic">
             {[...deLaFila, ...resto].slice(0, 40).map((d) => (
               <li key={d.id} className={`is-${d.level}${deLaFila.includes(d) ? " is-fila" : ""}`}>
                 <span className="xfx-diag__marca" aria-hidden="true" />
