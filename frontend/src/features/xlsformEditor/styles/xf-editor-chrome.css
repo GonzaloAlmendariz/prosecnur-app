@@ -139,6 +139,41 @@
   --pulso-gliding-active-color: var(--module-accent, var(--pulso-primary));
 }
 
+/* Pestañas del inspector en UNA fila: con `auto-fit, minmax(104px)` la quinta («Presentación») caía sola a una
+   segunda fila en el panel de ~460 px. Columnas parejas por cantidad; si el panel se angosta, el ícono sube sobre
+   el nombre en vez de partir la fila (M11, 2026-10-17). */
+.pulso-xlsform-frame .pulso-focus-config-pane {
+  container-type: inline-size;
+  container-name: xf-inspector;
+}
+
+.pulso-xlsform-frame .pulso-focus-tabs.pulso-gliding-tab-list {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+
+.pulso-xlsform-frame .pulso-focus-tabs.pulso-gliding-tab-list button {
+  min-width: 0;
+  justify-content: center;
+}
+
+.pulso-xlsform-frame .pulso-focus-tabs.pulso-gliding-tab-list button > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@container xf-inspector (max-width: 520px) {
+  .pulso-xlsform-frame .pulso-focus-tabs.pulso-gliding-tab-list button {
+    flex-direction: column;
+    gap: 3px;
+    min-height: 44px;
+    padding: 6px 2px;
+    font-size: 10.5px;
+  }
+}
+
 .pulso-xlsform-frame .pulso-focus-mode-toggle.pulso-gliding-tab-list button.is-on {
   background: var(--pulso-surface);
   color: var(--module-accent, var(--pulso-primary));
