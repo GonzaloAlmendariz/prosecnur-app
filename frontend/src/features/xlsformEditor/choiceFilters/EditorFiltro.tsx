@@ -5,7 +5,7 @@
 import { useMemo, useState } from "react";
 import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
 import type { BuilderNode, BuilderStructure, CatalogSummary } from "../types";
-import { PanelCard, QuestionToken } from "../kit";
+import { PanelCard, QuestionToken, SelectorPregunta, type OpcionPregunta } from "../kit";
 import { aplicarCascada, asignacionesActuales, columnaSugerida, leerExpresionCascada, quitarCascada } from "./cascada";
 import "./editorFiltro.css";
 
@@ -20,7 +20,7 @@ type Props = {
 };
 
 const esSeleccion = (n: BuilderNode) => n.kind === "question" && !!n.typeInfo.listName && /^select_(one|multiple)$/.test(n.typeInfo.base);
-const rotulo = (n: BuilderNode) => `${n.paperNumber || n.name}  ${n.label || ""}`.trim();
+const opcion = (n: BuilderNode, valor: string): OpcionPregunta => ({ valor, numero: n.paperNumber || n.name, texto: n.label || n.name, baseType: n.typeInfo.base });
 
 export function EditorFiltro({ workbook, structure, catalogs, filaInicial = null, onGuardar, onCancelar }: Props) {
   const seleccion = useMemo(() => (structure?.outline ?? []).filter(esSeleccion), [structure]);
@@ -51,24 +51,22 @@ export function EditorFiltro({ workbook, structure, catalogs, filaInicial = null
     <div className="xff" data-qa-geometry-group="xlsform/filtro-editor" data-qa-geometry-contract="intrinsic">
       <PanelCard title={inicial ? "Editar filtro de opciones" : "Nuevo filtro de opciones"}
         meta={<span className="xff-paso">Las opciones de una pregunta dependen de la respuesta a otra anterior</span>}>
-        <div className="xff-pasos">
-          <label className="xff-campo">
+        <div className="xff-pasos" data-qa-geometry-group="xlsform/filtro-pasos" data-qa-geometry-contract="intrinsic">
+          <div className="xff-campo">
             <span className="xff-n">1</span>
             <span className="xff-campo__rot">Pregunta cuyas opciones se filtran</span>
-            <select value={filaHija ?? ""} disabled={!!inicial}
-              onChange={(e) => { setFilaHija(e.target.value ? Number(e.target.value) : null); setMadre(""); setAsignaciones({}); }}>
-              <option value="">Elige una pregunta de selección</option>
-              {seleccion.map((n) => <option key={n.rowIndex} value={n.rowIndex}>{rotulo(n)}</option>)}
-            </select>
-          </label>
-          <label className="xff-campo">
+            <SelectorPregunta etiqueta="Pregunta cuyas opciones se filtran" placeholder="Elige una pregunta de selección"
+              opciones={seleccion.map((n) => opcion(n, String(n.rowIndex)))} valor={filaHija === null ? "" : String(filaHija)} deshabilitado={!!inicial}
+              onCambio={(v) => { setFilaHija(v ? Number(v) : null); setMadre(""); setAsignaciones({}); }} />
+          </div>
+          <div className="xff-campo">
             <span className="xff-n">2</span>
             <span className="xff-campo__rot">Depende de la respuesta a</span>
-            <select value={madre} disabled={!hija} onChange={(e) => { setMadre(e.target.value); setAsignaciones({}); }}>
-              <option value="">{hija ? (candidatasMadre.length ? "Elige una pregunta anterior" : "No hay preguntas de selección antes") : "Primero elige la pregunta"}</option>
-              {candidatasMadre.map((n) => <option key={n.rowIndex} value={n.name}>{rotulo(n)}</option>)}
-            </select>
-          </label>
+            <SelectorPregunta etiqueta="Pregunta de la que depende" deshabilitado={!hija}
+              placeholder={hija ? (candidatasMadre.length ? "Elige una pregunta anterior" : "No hay preguntas de selección antes") : "Primero elige la pregunta"}
+              opciones={candidatasMadre.map((n) => opcion(n, n.name))} valor={madre}
+              onCambio={(v) => { setMadre(v); setAsignaciones({}); }} />
+          </div>
         </div>
         {hija && nodoMadre ? (
           <div className="xff-mapa">
