@@ -193,3 +193,58 @@ describe("el normalizador no se come los campos nuevos", () => {
     expect(p.descartado?.entregado).toBe(false);
   });
 });
+
+/**
+ * H25 — `handoff = NULL` en R llega como `{}` y se tomaba por recibo.
+ *
+ * Payload real de hsvg2026_con_plan_v2.pulso (GET /api/recopiladores/state):
+ * sin `handoff` de primer nivel y `state.deployment.handoff: {}`, con el
+ * despliegue `prepared`. La tarjeta pintaba «Recibo firmado» con todo en «—».
+ */
+describe("un recibo de traspaso sólo existe con su contrato", () => {
+  const deployment = {
+    schema: "collection_deployment/v1",
+    deployment_id: "dep-1",
+    plan_id: "plan-1",
+    plan_fingerprint: "fp-plan",
+    deployment_fingerprint: "fp-dep",
+    target: { provider: "kobo" },
+    capabilities: {},
+    bindings: [],
+    coverage: { units_total: 1, units_with_access: 1, units_missing_access: 0 },
+    sensitivity: { access_urls: "operational" },
+    status: "prepared",
+  };
+  const payload = (dep: Record<string, unknown>, extra: Record<string, unknown> = {}) => ({
+    ok: true, noop: true, seed_available: false,
+    state: { schema: "collection_state/v1", state_revision: 4, plan: null, deployment: dep },
+    ...extra,
+  });
+  const recibo = {
+    schema: "collection_handoff/v1",
+    deployment_id: "dep-1",
+    deployment_fingerprint: "fp-dep",
+    plan_fingerprint: "fp-plan",
+    handed_off_at: "2026-10-16T10:00:00Z",
+    state_revision: 5,
+  };
+
+  it("sin traspaso, el {} del NULL de R no es recibo (ni arriba ni en el despliegue)", () => {
+    const p = normalizeCollectionStatePayload(payload({ ...deployment, handoff: {} }, { handoff: {} }));
+    expect(p.handoff).toBeNull();
+    expect(p.state.deployment?.handoff).toBeNull();
+  });
+
+  it("un recibo al que le falta un campo obligatorio tampoco cuenta", () => {
+    const incompleto: Record<string, unknown> = { ...recibo };
+    delete incompleto.handed_off_at;
+    const p = normalizeCollectionStatePayload(payload({ ...deployment, handoff: incompleto }));
+    expect(p.handoff).toBeNull();
+  });
+
+  it("con traspaso, el recibo llega entero desde el despliegue", () => {
+    const p = normalizeCollectionStatePayload(payload({ ...deployment, status: "handed_off", handoff: recibo }));
+    expect(p.handoff).toEqual(recibo);
+    expect(p.state.deployment?.handoff).toEqual(recibo);
+  });
+});

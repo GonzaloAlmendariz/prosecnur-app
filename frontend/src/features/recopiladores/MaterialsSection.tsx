@@ -27,6 +27,7 @@ import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import {
   Archive,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
   Download,
@@ -55,7 +56,7 @@ import {
 import "./styles/materials.css";
 import "./driveDeFichas.css";
 import { composicionDelPlan, unidadesDelPlan } from "./codigoOperativo";
-import { fichasHechasDelEstado, instanciaReutilizable } from "./fichasDelEstado";
+import { fichasAlDia, fichasHechasDelEstado, instanciaReutilizable } from "./fichasDelEstado";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -288,6 +289,8 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   // Del estado persistido: una instancia cubre muchas unidades y sobrevive a
   // la visita, así que contar las creadas en esta sesión daba «0 de 2,373».
   const fichasHechas = cuentaDeFichas(fichasHechasDelEstado(payload?.state), aulasDelPlan);
+  // Con todas las unidades cubiertas, crear de nuevo sólo duplicaría la instancia.
+  const alDia = fichasAlDia(payload?.state);
   const activeAdapter = payload?.state.plan?.adapter.id ?? null;
   const adapterCompatible = activeAdapter ? template.compatible_adapters.includes(activeAdapter) : true;
 
@@ -398,6 +401,11 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
 
   const createInstances = async (): Promise<CollectionMaterialInstance[]> => {
     if (!payload || !deployment) return [];
+    // Con el plan entero cubierto no se crea otra: cada click duplicaba.
+    if (fichasAlDia(payload.state)) {
+      const vigente = instanciaReutilizable(payload.state);
+      return vigente ? [vigente] : [];
+    }
     setInstanceBusy(true);
     setError("");
     try {
@@ -537,8 +545,14 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
             </div>
             <div><dt>Estado</dt><dd>{deployment ? deploymentStatusLabel(deployment.status) : "sin preparar"}</dd></div>
           </dl>
-          <PulsoButton variant="secondary" onClick={() => { void createInstances(); }} disabled={!deployment || instanceBusy}>
-            {instanceBusy ? <Loader2 size={15} className="pulso-spin" /> : <Layers size={15} />} Crear las fichas
+          <PulsoButton
+            variant="secondary"
+            onClick={() => { void createInstances(); }}
+            disabled={!deployment || instanceBusy || alDia}
+            title={alDia ? "Las fichas vigentes ya cubren todas las unidades del plan." : undefined}
+          >
+            {instanceBusy ? <Loader2 size={15} className="pulso-spin" /> : alDia ? <CheckCircle2 size={15} /> : <Layers size={15} />}
+            {alDia ? " Fichas al día" : " Crear las fichas"}
           </PulsoButton>
         </Panel>
         <Panel

@@ -4,7 +4,7 @@ import type { CollectionMaterialInstance, CollectionPlan, CollectionState } from
 import { unidadesDelPlan } from "./codigoOperativo";
 // H22 — módulo PROPUESTO, aún no existe: el implementador lo crea con estos
 // nombres (`frontend/src/features/recopiladores/fichasDelEstado.ts`).
-import { fichasHechasDelEstado, instanciaReutilizable } from "./fichasDelEstado";
+import { fichasAlDia, fichasHechasDelEstado, instanciaReutilizable } from "./fichasDelEstado";
 import { cuentaDeFichas } from "./MaterialsSection";
 
 /**
@@ -93,5 +93,24 @@ describe("H22 — generar reutiliza la instancia persistida en vez de crear otra
   it("sin instancias vigentes devuelve null (y sólo entonces se crea una)", () => {
     expect(instanciaReutilizable(estado([instancia("inst-stale", ["u-1"], "stale")]))).toBeNull();
     expect(instanciaReutilizable(null)).toBeNull();
+  });
+});
+
+describe("«Crear las fichas» no duplica una instancia que ya cubre el plan", () => {
+  it("con todas las unidades cubiertas por una vigente, están al día", () => {
+    expect(fichasAlDia(estado([instancia("inst-1", ["u-1", "u-2", "u-3"])]))).toBe(true);
+  });
+
+  it("si la que las cubre está stale, hay que crear", () => {
+    expect(fichasAlDia(estado([instancia("inst-1", ["u-1", "u-2", "u-3"], "stale")]))).toBe(false);
+  });
+
+  it("si faltan unidades, hay que crear", () => {
+    expect(fichasAlDia(estado([instancia("inst-1", ["u-1", "u-2"])]))).toBe(false);
+  });
+
+  it("sin plan o sin instancias no se da por al día", () => {
+    expect(fichasAlDia(null)).toBe(false);
+    expect(fichasAlDia(estado([]))).toBe(false);
   });
 });
