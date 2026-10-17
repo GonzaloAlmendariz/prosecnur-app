@@ -53,6 +53,9 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
   expect_match(text, 'pr_post\\("/api/recopiladores/provider-preflight"')
   expect_match(text, 'pr_post\\("/api/recopiladores/deployment/preview"')
   expect_match(text, 'pr_post\\("/api/recopiladores/reseed"')
+  # H26: la previsualizacion del descarte NO es ruta propia; es `dry_run` en el
+  # body de /reseed, y el handler tiene que reenviarlo (un `...` lo tragaria).
+  expect_match(text, "collection_state_reseed(session_header(req), body$expected_revision, dry_run = body$dry_run)", fixed = TRUE)
 })
 
 test_that("router parsea JSON y exige body explícito en PUT", {
