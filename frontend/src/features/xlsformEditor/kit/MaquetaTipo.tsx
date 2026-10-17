@@ -248,16 +248,28 @@ function porTipo(base: string, t: string): ReactNode | null {
     case "today":
     case "deviceid":
     case "username":
+    case "start-geopoint":
+    case "audit":
+    case "phonenumber":
+    case "simserial":
+    case "subscriberid":
       return (
         <g>
-          <rect x={4} y={9} width={40} height={14} rx={7} fill={PAPEL} stroke={TRAZO} strokeWidth={W} strokeDasharray="2.6 2" />
+          <rect x={3} y={7} width={42} height={18} rx={9} fill={PAPEL} stroke={TRAZO} strokeWidth={W} strokeDasharray="2.6 2" />
+          <g transform="translate(13 16) scale(1.45) translate(-12 -16)">
           <circle cx={12} cy={16} r={4.2} fill={t} />
           {base === "start" ? <path d="M11 13.8 v4.4 l3.4 -2.2 z" fill={PAPEL} /> : null}
           {base === "end" ? <rect x={10.4} y={14.4} width={3.2} height={3.2} rx={0.6} fill={PAPEL} /> : null}
           {base === "today" ? <g><rect x={10} y={14} width={4} height={4} rx={0.7} fill="none" stroke={PAPEL} strokeWidth={0.9} /><path d="M10 15.3 h4" stroke={PAPEL} strokeWidth={0.9} /></g> : null}
           {base === "deviceid" ? <rect x={10.6} y={13.6} width={2.8} height={4.8} rx={0.6} fill="none" stroke={PAPEL} strokeWidth={0.9} /> : null}
           {base === "username" ? <g><circle cx={12} cy={15} r={1.2} fill={PAPEL} /><path d="M9.8 18.2 a2.2 1.6 0 0 1 4.4 0" fill={PAPEL} /></g> : null}
-          {linea(19, 16, 20)}
+          {base === "start-geopoint" ? <g><path d="M12 18.7 c-1.5 -1.8 -2.2 -2.9 -2.2 -3.8 a2.2 2.2 0 0 1 4.4 0 c0 0.9 -0.7 2 -2.2 3.8z" fill={PAPEL} /><circle cx={12} cy={14.9} r={0.75} fill={t} /></g> : null}
+          {base === "audit" ? <g><circle cx={12} cy={16} r={2.4} fill="none" stroke={PAPEL} strokeWidth={0.9} /><path d="M12 14.6 v1.5 l1 0.7" stroke={PAPEL} strokeWidth={0.8} fill="none" strokeLinecap="round" /></g> : null}
+          {base === "phonenumber" ? <path d="M10.4 13.6 c0.4 2.6 1.4 3.8 3.4 4.6 l0.6 -1 l-1.2 -0.8 l-0.6 0.5 c-0.6 -0.4 -1 -0.9 -1.3 -1.5 l0.5 -0.6 l-0.8 -1.2z" fill={PAPEL} /> : null}
+          {base === "simserial" ? <path d="M10.4 13.6 h2.4 l1.2 1.2 v3.6 h-3.6z" fill="none" stroke={PAPEL} strokeWidth={0.9} strokeLinejoin="round" /> : null}
+          {base === "subscriberid" ? <g><path d="M10.4 13.6 h2.4 l1.2 1.2 v3.6 h-3.6z" fill="none" stroke={PAPEL} strokeWidth={0.9} strokeLinejoin="round" /><circle cx={12.2} cy={16.4} r={0.8} fill={PAPEL} /></g> : null}
+          </g>
+          {base === "audit" ? <g>{linea(22, 16, 6, t)}{linea(30, 16, 4, t)}{linea(36, 16, 5, t)}</g> : linea(22, 16, 18)}
         </g>
       );
     default:

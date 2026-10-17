@@ -3,6 +3,7 @@ import "./constructor/panelConfiguracion.css";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ContenidoSeccion } from "./ContenidoSeccion";
+import { CalidadCampo } from "../ajustes/CalidadCampo";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import {
   ArrowDown,
@@ -119,6 +120,8 @@ export type FocusedWorkspaceProps = {
   onMoveDown: () => void;
   onDelete: () => void;
   onSettingsChange: (field: string, value: string) => void;
+  /** Edición directa del formulario (Calidad de campo en Ajustes). */
+  onEditarFormulario: (mutar: (draft: XlsformEditorWorkbook) => void) => void;
   onFieldChange: (field: string, value: string) => void;
   onFieldsChange: (updates: Record<string, string>) => void;
   onTypeChange: (next: string) => void;
@@ -156,6 +159,7 @@ export function FocusedWorkspace({
   onMoveDown,
   onDelete,
   onSettingsChange,
+  onEditarFormulario,
   onFieldChange,
   onFieldsChange,
   onTypeChange,
@@ -278,7 +282,7 @@ export function FocusedWorkspace({
             formCanvasProps={formCanvasProps}
           />
         ) : selection?.kind === "settings" ? (
-          <FocusedSettingsWorkspace values={settingsRecord} onChange={onSettingsChange} />
+          <FocusedSettingsWorkspace values={settingsRecord} onChange={onSettingsChange} workbook={workbook} onEditar={onEditarFormulario} />
         ) : node ? (
           <FocusedSurveyWorkspace
             node={node}
@@ -836,9 +840,13 @@ function FocusedPreview({
 function FocusedSettingsWorkspace({
   values,
   onChange,
+  workbook,
+  onEditar,
 }: {
   values: Record<string, string> | null;
   onChange: (field: string, value: string) => void;
+  workbook: XlsformEditorWorkbook | null;
+  onEditar: (mutar: (draft: XlsformEditorWorkbook) => void) => void;
 }) {
   const items = [
     { label: "Título visible", value: values?.form_title || "Sin título" },
@@ -853,11 +861,12 @@ function FocusedSettingsWorkspace({
           <span className="pulso-section-eyebrow">Identidad</span>
           <strong>Formulario</strong>
         </div>
-        <div className="pulso-focus-settings-summary">
+        <div className="pulso-focus-settings-summary" data-qa-geometry-group="xlsform/ajustes-resumen" data-qa-geometry-contract="equal">
           {items.map((item) => (
             <FocusFact key={item.label} label={item.label} value={item.value} />
           ))}
         </div>
+        <CalidadCampo workbook={workbook} onEditar={onEditar} />
       </div>
       <div className="pulso-focus-config-pane">
         <div className="pulso-focus-config-body">
@@ -876,7 +885,7 @@ function FocusedSettingsWorkspace({
           <InspectorBlock>
             <InspectorField label="Versión">
               {(campo) => (
-                <input id={campo.id} value={values?.version ?? ""} onChange={(event) => onChange("version", event.target.value)} />
+                <input id={campo.id} value={values?.version ?? ""} placeholder="1" onChange={(event) => onChange("version", event.target.value)} />
               )}
             </InspectorField>
             <InspectorField label="Idioma por defecto">

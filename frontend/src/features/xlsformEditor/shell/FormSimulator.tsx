@@ -12,6 +12,7 @@
 // al Constructor es el lápiz «Editar en Constructor» de cada pregunta.
 // =============================================================================
 
+import { esMetadato } from "../kit/tiposPregunta";
 import { useCallback, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import {
@@ -65,7 +66,7 @@ type SimPage = {
 };
 
 /** Tipos auto-capturados que el encuestado nunca ve. */
-const AUTO_BASES = new Set(["start", "end", "today", "deviceid", "username", "hidden"]);
+const esAutomatico = (b: string) => esMetadato(b) || b === "hidden";
 
 /** Tipos con control editable en el simulador. */
 const ANSWERABLE_BASES = new Set([
@@ -85,7 +86,7 @@ const ANSWERABLE_BASES = new Set([
 
 function isRenderable(node: BuilderNode): boolean {
   if (node.kind !== "question" && node.kind !== "note") return false;
-  return !AUTO_BASES.has(node.typeInfo.base);
+  return !esAutomatico(node.typeInfo.base);
 }
 
 function hasAnswer(value: SimValue | undefined): boolean {

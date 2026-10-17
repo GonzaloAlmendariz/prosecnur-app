@@ -1,3 +1,4 @@
+import { esMetadato } from "./kit/tiposPregunta";
 import {
   useCallback,
   useEffect,
@@ -1106,7 +1107,7 @@ export default function XlsformEditorPage() {
         n.kind === "section" ||
         n.kind === "repeat" ||
         ((n.kind === "question" || n.kind === "note" || n.kind === "calculate") &&
-          !["start", "end", "today", "deviceid", "username"].includes(n.typeInfo.base)),
+          !esMetadato(n.typeInfo.base)),
     );
   }, [structure]);
   // Diagnostics locales (cliente): integridad estructural calculada al vuelo
@@ -3032,6 +3033,7 @@ export default function XlsformEditorPage() {
                     onMoveDown={() => moveSelection("down")}
                     onDelete={deleteCurrentSelection}
                     onSettingsChange={updateSettingsField}
+                    onEditarFormulario={updateWorkbook}
                     onFieldChange={(field, value) => {
                       if (!selectedNode) return;
                       updateSurveyField(selectedNode.rowIndex, field, value);

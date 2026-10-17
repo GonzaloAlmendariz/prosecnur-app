@@ -3,7 +3,7 @@ import type { LogicScope } from "../../logic";
 import type { CatalogInfo, ConditionalContext } from "../../inspector/ContextPanel";
 import { stripMarkdown } from "../../helpers/markdown";
 import { typeLabel } from "../../parsing/parseType";
-import { PanelCard, PropRow } from "../../kit";
+import { PanelCard, PropRow, esMetadato } from "../../kit";
 import { describeExpression, describeValidation } from "../reglasHumanas";
 import "./resumenPregunta.css";
 
@@ -26,7 +26,7 @@ export type ResumenPreguntaProps = {
 const MAX_OPCIONES_PAPEL = 4;
 
 /** Campos que llena el dispositivo o la fórmula: no se preguntan ni se imprimen. */
-const AUTOMATICOS = new Set(["start", "end", "today", "deviceid", "username", "phonenumber", "simserial", "subscriberid", "audit", "calculate", "hidden", "start-geopoint", "background-geopoint"]);
+const esAutomatico = (b: string) => esMetadato(b) || b === "calculate" || b === "hidden" || b === "background-geopoint";
 
 function esDinamica(listName: string): string | null {
   const m = listName.match(/^\$\{([^}]+)\}$/);
@@ -35,7 +35,7 @@ function esDinamica(listName: string): string | null {
 
 export function ResumenPregunta({ node, section, choices, catalogUsageCount, catalogInfo, conditionalContext, logicScope, onEditar }: ResumenPreguntaProps) {
   const esNota = node.kind === "note";
-  const automatico = AUTOMATICOS.has(node.typeInfo.base);
+  const automatico = esAutomatico(node.typeInfo.base);
   const heredadas = conditionalContext?.ancestorRelevants ?? [];
   const propia = node.relevant.trim();
   const validacion = esNota ? null : describeValidation(node.constraint, node, logicScope);
