@@ -343,3 +343,12 @@
 .pulso-xf-res .is-tono-5 { background: color-mix(in srgb, var(--xf-res-acento) 14%, var(--pulso-surface)); }
 .pulso-xf-res .is-tono-6 { background: var(--pulso-border-strong); }
 
+
+/* Sin recortes con «…» (M15, 2026-10-17): el detalle de cada cifra baja a una segunda línea en vez de esconder
+   justo el dato. El título de un pendiente sigue en una línea (alto fijo, C2): sus textos se escriben cortos. */
+.pulso-xf-res-cifra-detalle {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+}
