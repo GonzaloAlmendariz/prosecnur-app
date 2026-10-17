@@ -14,6 +14,7 @@ import {
   COLLECTION_BLOCK_TYPES,
   type CollectionBlockType,
   type CollectionMaterialBlock,
+  type CollectionMaterialField,
 } from "../../api/recopiladores";
 
 export const ROTULOS_DE_BLOQUE: Record<CollectionBlockType, string> = {
@@ -91,4 +92,75 @@ export function resumenDelBloque(block: Pick<CollectionMaterialBlock, "type"> & 
   }
   if (block.type === "campus_map") return "El pabellón del aula, resaltado";
   return "";
+}
+
+// Todo binding que un preset del backend pueda dejar en un bloque `heading`/
+// `body`/`footer` (binding suelto, sin `label` propio) tiene que estar acá:
+// si falta uno, ese bloque vuelve a mostrar la ruta técnica cruda. Ver
+// `collection_materials.R`/`collection_render_afiche.R`/
+// `collection_render_ficha_campo.R` para la lista real de bindings en uso.
+//
+// Vivían dentro de `MaterialsSection.tsx`; los usa también el editor de la
+// página real (E1b), así que viven con el resto del vocabulario de bloques.
+export const BINDING_OPTIONS: readonly string[] = [
+  "access.qr_payload",
+  "unit.label",
+  "unit.course_name",
+  "unit.schedule",
+  "unit.venue",
+  "unit.role",
+  "deployment.deployment_id",
+  "project.name",
+  "project.period",
+];
+
+// El binding (`unit.schedule`, `access.qr_payload`…) es el identificador que
+// viaja al backend; esta tabla es solo cómo se lo nombra en la UI del
+// analista, para no obligarlo a leer rutas con puntos para saber qué está
+// agregando a la ficha.
+const BINDING_LABELS: Record<string, string> = {
+  "access.qr_payload": "Código QR de acceso",
+  "unit.label": "Nombre de la unidad",
+  "unit.course_name": "Nombre del curso",
+  "unit.schedule": "Horario",
+  "unit.venue": "Aula o lugar",
+  "unit.role": "Rol (titular / reemplazo)",
+  "deployment.deployment_id": "Código de la entrega",
+  "project.name": "Nombre del proyecto",
+  "project.period": "Periodo del proyecto",
+  // Los que los presets nuevos usan y no estaban: el título de la ficha de
+  // aula salía como «unit.operational_code».
+  "unit.unit_id": "Identificador de la unidad",
+  "unit.operational_code": "Código del aula",
+  "unit.codigo_ficha": "Código de la ficha",
+  "unit.replacement_for": "Aula a la que reemplaza",
+  "unit.group": "Grupo",
+  "unit.faculty": "Facultad",
+  "unit.program": "Escuela o programa",
+  "unit.teacher": "Docente",
+  "unit.sample_label": "Rótulo de la muestra",
+  "unit.eligible_n": "Estudiantes elegibles",
+  "deployment.provider": "Plataforma de la entrega",
+  "access.access_id": "Identificador del acceso",
+  "access.logical_collector_id": "Colector del acceso",
+};
+
+export function bindingLabel(binding: string): string {
+  return BINDING_LABELS[binding] ?? binding;
+}
+
+/** Las opciones del «Dato que muestra»: si el bloque trae un binding fuera de
+    la lista, va también; sin su opción el <select> pinta la primera y afirma
+    un dato que el bloque no muestra. */
+export function opcionesDeBinding(actual: string | null | undefined): string[] {
+  return actual && !BINDING_OPTIONS.includes(actual) ? [...BINDING_OPTIONS, actual] : [...BINDING_OPTIONS];
+}
+
+export function materialFieldBinding(field: CollectionMaterialField): string {
+  return typeof field === "string" ? field : field.binding;
+}
+
+export function materialFieldCanvasLabel(field: CollectionMaterialField): string {
+  if (typeof field === "string") return bindingLabel(field);
+  return field.label ?? bindingLabel(field.binding);
 }

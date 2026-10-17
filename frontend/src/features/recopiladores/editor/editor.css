@@ -1,0 +1,820 @@
+/* Catálogo › Editor (E1b): la receta sobre su página real.
+   «Pliego de imprenta» (ADR 0108 §7): fondo neutro, columnas blancas con
+   filete, la página al centro con su sombra. El acento Musgo marca procedencia
+   —lo que llena la unidad— y la selección; el texto fijo queda neutro.
+   Sólo tokens; movimiento ≤ 240 ms y nada con reduced-motion. */
+
+/* — Dueño del scroll —
+   Ancho: cada columna es dueña de su scroll y el panel queda quieto. En
+   compacto (1024×600) el editor se apila a su alto natural y el panel vuelve a
+   ser el único dueño (C4). */
+.rec-tab-panel:has(> .rec-ed-contenedor) {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.rec-ed-contenedor {
+  container: rec-ed / inline-size;
+  min-height: 0;
+  min-width: 0;
+}
+
+.rec-ed {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 268px minmax(0, 1fr) 312px;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.rec-ed > * {
+  min-height: 0;
+  min-width: 0;
+}
+
+.rec-ed-cabeza {
+  display: grid;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+/* — Barra — */
+.rec-ed-barra {
+  align-items: center;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  box-shadow: var(--pulso-shadow-low);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  min-height: 52px;
+  padding: 8px 12px 8px 16px;
+}
+
+.rec-ed-miga {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rec-ed-miga-raiz {
+  color: var(--pulso-text-muted);
+  font-size: 13px;
+}
+
+.rec-ed-miga-sep {
+  color: var(--pulso-border-strong);
+}
+
+.rec-ed-miga-actual {
+  font-size: 14.5px;
+  font-weight: var(--pulso-weight-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-ed-barra-hueco {
+  flex: 1 1 0;
+}
+
+.rec-ed-revision {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rec-ed-insignia {
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 999px;
+  color: var(--pulso-warn-fg);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 18px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.rec-ed-historia {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.rec-ed-confirmar {
+  align-items: center;
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-panel);
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 4px 4px 10px;
+}
+
+.rec-ed-confirmar-texto {
+  color: var(--pulso-warn-fg);
+  font-size: 12.5px;
+}
+
+/* Un enlace de texto: se anulan el relleno, el degradado y la sombra del
+   botón global. */
+.rec-ed-enlace,
+.rec-ed-enlace:hover {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  color: var(--pulso-module-fieldkit);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  min-height: 0;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: var(--pulso-module-fieldkit-border);
+  text-underline-offset: 3px;
+  transform: none;
+}
+
+.rec-ed-enlace:focus-visible {
+  border-radius: 3px;
+  box-shadow: none;
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 2px;
+}
+
+.rec-ed-miga-raiz.rec-ed-enlace {
+  color: var(--pulso-text-muted);
+  text-decoration: none;
+}
+
+.rec-ed-miga-raiz.rec-ed-enlace:hover {
+  color: var(--pulso-module-fieldkit);
+}
+
+/* — Unidad de prueba — */
+.rec-ed-unidad {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rec-ed-unidad-rotulo {
+  color: var(--pulso-text-muted);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.rec-ed-unidad.is-ejemplo .rec-ed-unidad-rotulo {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* — Avisos — */
+.rec-ed-avisos {
+  display: grid;
+  gap: 6px;
+}
+
+.rec-ed-aviso {
+  align-items: center;
+  border: 1px solid var(--pulso-info-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+  display: flex;
+  font-size: 12.5px;
+  gap: 10px;
+  margin: 0;
+  padding: 7px 12px;
+}
+
+.rec-ed-aviso.is-error {
+  background: var(--pulso-danger-bg);
+  border-color: var(--pulso-danger-border);
+  color: var(--pulso-danger-fg);
+}
+
+.rec-ed-aviso.is-ok {
+  background: var(--pulso-success-bg);
+  border-color: var(--pulso-success-border);
+  color: var(--pulso-success-fg);
+}
+
+/* — Columnas — */
+.rec-ed-columna {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  box-shadow: var(--pulso-shadow-low);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rec-ed-columna-cabecera {
+  border-bottom: 1px solid var(--pulso-border);
+  display: grid;
+  gap: 3px;
+  padding: 14px 16px 12px;
+}
+
+.rec-ed-columna-cabecera > strong {
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-ed-sobre {
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rec-ed-columna-pie {
+  border-top: 1px solid var(--pulso-border);
+  display: grid;
+  flex: none;
+  gap: 10px;
+  margin-top: auto;
+  padding: 12px 16px;
+}
+
+/* — (a) Bloques de la cara — */
+.rec-ed-filas {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 2px;
+  grid-auto-rows: 52px;
+  list-style: none;
+  margin: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+  scrollbar-gutter: stable;
+}
+
+.rec-ed-filas > li {
+  display: flex;
+  min-width: 0;
+}
+
+.rec-ed-fila {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius-panel);
+  box-shadow: none;
+  color: var(--pulso-text);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 10px minmax(0, 1fr);
+  height: 100%;
+  justify-content: stretch;
+  min-height: 0;
+  padding: 0 10px;
+  text-align: left;
+  white-space: normal;
+  width: 100%;
+}
+
+.rec-ed-fila:where(:hover:not(:disabled)) {
+  background: var(--pulso-surface-2);
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.rec-ed-fila.is-elegida {
+  background: var(--pulso-module-fieldkit-soft);
+  border-color: var(--pulso-module-fieldkit-border);
+}
+
+.rec-ed-fila:focus-visible {
+  box-shadow: none;
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: -2px;
+}
+
+.rec-ed-fila-texto {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.rec-ed-fila-rotulo {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-ed-fila.is-elegida .rec-ed-fila-rotulo {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-ed-fila-sub {
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-ed-fila-sub.is-problema {
+  color: var(--pulso-danger-fg);
+}
+
+.rec-ed-fila-sub.is-nota {
+  color: var(--pulso-warn-fg);
+}
+
+.rec-ed-fila.is-problema {
+  border-color: var(--pulso-danger-border);
+}
+
+.rec-ed-fila.is-no-dibujado .rec-ed-fila-rotulo {
+  color: var(--pulso-text-muted);
+}
+
+/* El punto de procedencia: lleno con el acento si lo llena la unidad,
+   hueco y neutro si es texto fijo. */
+.rec-ed-procedencia {
+  border: 1.5px solid var(--pulso-border-strong);
+  border-radius: 999px;
+  display: inline-block;
+  flex: none;
+  height: 10px;
+  width: 10px;
+}
+
+.rec-ed-procedencia.is-unidad {
+  background: var(--pulso-module-fieldkit);
+  border-color: var(--pulso-module-fieldkit);
+}
+
+.rec-ed-leyenda {
+  color: var(--pulso-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 6px 14px;
+}
+
+.rec-ed-leyenda > span {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+/* — Controles — */
+.rec-ed-control,
+.rec-ed-agregar {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  min-height: 30px;
+  padding: 4px 8px;
+  width: 100%;
+}
+
+.rec-ed-control:focus-visible,
+.rec-ed-agregar:focus-visible {
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: none;
+}
+
+textarea.rec-ed-control {
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.rec-ed-control--numero {
+  width: 88px;
+}
+
+.rec-ed-control--compacto {
+  max-width: 220px;
+  min-height: 28px;
+  width: auto;
+}
+
+/* — (b) La página real — */
+.rec-ed-escenario {
+  background: color-mix(in srgb, var(--pulso-surface-3) 70%, var(--pulso-border));
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  container: rec-ed-escena / size;
+  display: grid;
+  overflow: auto;
+  padding: 18px;
+  place-items: center;
+}
+
+.rec-ed-pliego {
+  --rec-ed-ancho: min(100cqw, calc(100cqh * var(--rec-ed-papel-w) / var(--rec-ed-papel-h)));
+  aspect-ratio: var(--rec-ed-papel-w) / var(--rec-ed-papel-h);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-med);
+  position: relative;
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+  width: var(--rec-ed-ancho);
+}
+
+.rec-ed-hoja {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  user-select: none;
+  width: 100%;
+}
+
+.rec-ed-hoja--vacia {
+  color: var(--pulso-text-muted);
+  display: grid;
+  font-size: 12.5px;
+  padding: 24px;
+  place-items: center;
+  text-align: center;
+}
+
+.rec-ed-hoja-aviso {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  max-width: 260px;
+}
+
+.rec-ed-pliego.is-desactualizada .rec-ed-hoja {
+  filter: grayscale(0.6);
+  opacity: 0.55;
+}
+
+.rec-ed-pliego-estado {
+  align-items: center;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  box-shadow: var(--pulso-shadow-low);
+  color: var(--pulso-text-muted);
+  display: inline-flex;
+  font-size: 11.5px;
+  gap: 5px;
+  line-height: 20px;
+  padding: 0 9px;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 2;
+}
+
+.rec-ed-pliego-estado.is-desactualizada {
+  background: var(--pulso-warn-bg);
+  border-color: var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
+}
+
+.rec-ed-zonas {
+  inset: 0;
+  position: absolute;
+}
+
+/* La zona es un <button>: se anulan el relleno, el degradado, la sombra y el
+   salto al pasar del botón global. Su caja la fija la vista (left/top/width/
+   height en % de la página).
+
+   **Ninguna marca se pinta sobre la tinta.** El bbox arranca justo donde
+   empieza lo dibujado; un borde hacia adentro tapaba la primera letra de cada
+   rótulo («URSO», «OCENTE»). Toda marca va AFUERA: `outline` con desfase
+   positivo, sombra exterior o un filete en el margen. El interior queda
+   transparente y la geometría declarada no cambia. */
+.rec-ed-zona,
+.rec-ed-zona:where(:hover:not(:disabled)) {
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  box-shadow: none;
+  cursor: pointer;
+  display: block;
+  margin: 0;
+  max-width: none;
+  min-height: 0;
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  padding: 0;
+  position: absolute;
+  transform: none;
+  transition:
+    outline-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Procedencia: lo que llena la unidad lleva un filete Musgo en el margen
+   izquierdo, fuera de la caja. */
+.rec-ed-zona.is-unidad::before {
+  background: var(--pulso-module-fieldkit-border);
+  border-radius: 2px;
+  bottom: 0;
+  content: "";
+  left: -8px;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  width: 3px;
+}
+
+.rec-ed-zona.is-unidad:hover {
+  outline-color: var(--pulso-module-fieldkit-border);
+}
+
+.rec-ed-zona.is-fijo:hover {
+  outline-color: var(--pulso-border-strong);
+}
+
+.rec-ed-zona.is-elegida,
+.rec-ed-zona.is-elegida:hover {
+  box-shadow: 0 0 0 6px var(--pulso-module-fieldkit-soft);
+  outline-color: var(--pulso-module-fieldkit);
+}
+
+.rec-ed-zona.is-elegida.is-unidad::before {
+  background: var(--pulso-module-fieldkit);
+}
+
+.rec-ed-zona.is-problema,
+.rec-ed-zona.is-problema:hover {
+  outline: 2px dashed var(--pulso-danger-fg);
+  outline-offset: 3px;
+}
+
+.rec-ed-zona:focus-visible {
+  box-shadow: 0 0 0 6px var(--pulso-primary-focus);
+  outline-color: var(--pulso-primary-border);
+}
+
+.rec-ed-zona-etiqueta {
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 999px;
+  bottom: 6px;
+  color: var(--pulso-warn-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  left: 50%;
+  line-height: 18px;
+  padding: 0 8px;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* — (c) El bloque elegido — */
+.rec-ed-origen {
+  color: var(--pulso-text-muted);
+  font-size: 12.5px;
+}
+
+.rec-ed-origen.is-unidad {
+  color: var(--pulso-module-fieldkit);
+}
+
+.rec-ed-cuerpo {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 14px;
+  align-content: start;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 12px 14px;
+  scrollbar-gutter: stable;
+}
+
+/* Filas pares (C1 equal): alto fijo para dos líneas, de modo que un valor
+   largo se lee entero en vez de cortarse con «…» en la columna angosta. */
+.rec-ed-props {
+  display: grid;
+  gap: 0;
+  grid-auto-rows: 46px;
+}
+
+.rec-ed-props > .xfk-prow {
+  border-bottom: 1px solid var(--pulso-surface-3);
+  border-radius: 0;
+  grid-template-columns: 96px minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.rec-ed-props .xfk-prow__value {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  line-height: 1.3;
+  overflow: hidden;
+  white-space: normal;
+}
+
+.rec-ed-notas {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.rec-ed-notas > li {
+  border-radius: var(--pulso-radius-chip);
+  font-size: 12.5px;
+  line-height: 1.4;
+  padding: 6px 10px;
+}
+
+.rec-ed-notas > .is-problema {
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.rec-ed-notas > .is-nota {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.rec-ed-ajustes {
+  display: grid;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.rec-ed-ajuste {
+  display: grid;
+  gap: 6px;
+}
+
+.rec-ed-ajuste-rotulo {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.rec-ed-checks,
+.rec-ed-renglones {
+  display: grid;
+  gap: 6px;
+}
+
+.rec-ed-renglon {
+  display: grid;
+  gap: 6px;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+}
+
+.rec-ed-check {
+  align-items: center;
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+}
+
+.rec-ed-logos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-ed-logos > li {
+  align-items: center;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 2px;
+  padding: 0 2px 0 10px;
+}
+
+.rec-ed-icono,
+.rec-ed-icono:where(:hover:not(:disabled)) {
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: none;
+  height: 24px;
+  min-height: 0;
+  padding: 0;
+  transform: none;
+  width: 24px;
+}
+
+.rec-ed-acciones {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.rec-ed-mover {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.rec-ed-acciones > :last-child {
+  margin-left: auto;
+}
+
+/* — Regímenes por ancho del contenedor — */
+@container rec-ed (max-width: 1040px) {
+  .rec-ed {
+    grid-template-columns: 220px minmax(0, 1fr) 272px;
+  }
+
+  /* La barra cabe en una línea: el rótulo de la unidad queda para el lector
+     de pantalla (el <label> sigue nombrando al <select>). */
+  .rec-ed-unidad:not(.is-ejemplo) .rec-ed-unidad-rotulo {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+}
+
+/* Angosto: una columna. El editor mismo es el único dueño del scroll, y la
+   página toma el ancho de su columna (sin alto definido no hay `cqh`). */
+@container rec-ed (max-width: 760px) {
+  .rec-ed {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    overflow-y: auto;
+  }
+
+  .rec-ed-columna,
+  .rec-ed-filas,
+  .rec-ed-cuerpo {
+    overflow: visible;
+  }
+
+  .rec-ed-escenario {
+    container: rec-ed-escena / inline-size;
+    overflow: visible;
+  }
+
+  .rec-ed-pliego {
+    --rec-ed-ancho: min(100cqw, 620px);
+  }
+}
+
+/* Compacto (1024×600 de la matriz) o angosto: una sola columna de scroll —el
+   panel— y cada caja a su alto natural. La página toma el ancho de su
+   columna, no el alto de la ventana. */
+@media (max-width: 780px), (max-height: 680px) {
+  .rec-tab-panel:has(> .rec-ed-contenedor) {
+    display: block;
+    overflow-y: auto;
+  }
+
+  .rec-ed {
+    grid-template-rows: auto auto;
+    height: auto;
+  }
+
+  .rec-ed-columna,
+  .rec-ed-filas,
+  .rec-ed-cuerpo {
+    overflow: visible;
+  }
+
+  .rec-ed-escenario {
+    container: rec-ed-escena / inline-size;
+    overflow: visible;
+  }
+
+  .rec-ed-pliego {
+    --rec-ed-ancho: min(100cqw, 620px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-ed-zona,
+  .rec-ed-pliego,
+  .rec-ed-fila {
+    transition: none;
+  }
+}

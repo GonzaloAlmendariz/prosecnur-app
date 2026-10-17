@@ -42,6 +42,20 @@ const SECCIONES = [
   "handoffModel.ts",
   "providerRules.ts",
   "navegacion.ts",
+  // Catálogo › Editor sobre la página real (E1b): pantallas y los modelos que
+  // escriben su texto.
+  "editor/EditorDeMaterial.tsx",
+  "editor/BarraDelEditor.tsx",
+  "editor/OutlineDeCara.tsx",
+  "editor/PliegoReal.tsx",
+  "editor/InspectorDeBloque.tsx",
+  "editor/AjustesDelBloque.tsx",
+  "editor/SelectorDeUnidad.tsx",
+  "editor/modeloEditor.ts",
+  "editor/modeloAjustes.ts",
+  "editor/planificadorDeVista.ts",
+  "editor/useRecetaDelEditor.ts",
+  "editor/unidadesDePrueba.ts",
 ];
 
 describe("ninguna pantalla de Recopiladores habla en jerga", () => {
@@ -54,5 +68,6 @@ describe("ninguna pantalla de Recopiladores habla en jerga", () => {
     // Sin esto, un extractor roto daría verde en las cinco por no mirar nada.
     expect(textoVisibleDe(leer("PlanSection.tsx")).length).toBeGreaterThan(5);
     expect(textoVisibleDe(leer("AccessSection.tsx")).length).toBeGreaterThan(5);
+    expect(textoVisibleDe(leer("editor/InspectorDeBloque.tsx")).length).toBeGreaterThan(3);
   });
 });
