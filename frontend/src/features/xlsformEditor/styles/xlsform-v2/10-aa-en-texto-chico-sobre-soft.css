@@ -323,7 +323,9 @@
 
 .pulso-focus-choice-filter textarea {
   min-height: 56px;
-  resize: vertical;
+  resize: none;
+  field-sizing: content;
+  max-height: 40vh;
   padding: 7px 8px;
   font-family: ui-monospace, monospace;
   font-size: 12px;

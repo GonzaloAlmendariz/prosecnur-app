@@ -476,3 +476,11 @@
     padding-block: 4px;
   }
 }
+
+/* Los campos de texto crecen con lo que se escribe, sin asa de tamaño (Gonzalo, 2026-10-17: «debería crecer
+   conforme el párrafo crece»). Electron es Chromium: field-sizing basta. Tope para expresiones muy largas. */
+.pulso-xlsform-frame textarea {
+  resize: none;
+  field-sizing: content;
+  max-height: 40vh;
+}

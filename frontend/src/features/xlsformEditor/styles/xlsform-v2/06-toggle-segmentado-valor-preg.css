@@ -203,7 +203,9 @@ button.pulso-focus-calculation-recipe {
   border-radius: 8px;
   border: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
-  resize: vertical;
+  resize: none;
+  field-sizing: content;
+  max-height: 40vh;
 }
 
 .pulso-logic-calc-varempty {

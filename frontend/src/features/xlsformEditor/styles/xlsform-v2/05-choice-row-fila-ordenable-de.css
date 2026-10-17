@@ -280,7 +280,9 @@
 
 .pulso-logic-builder-manual textarea {
   min-height: 50px;
-  resize: vertical;
+  resize: none;
+  field-sizing: content;
+  max-height: 40vh;
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.88);

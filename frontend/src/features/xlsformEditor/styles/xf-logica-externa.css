@@ -259,7 +259,9 @@
 }
 
 .pulso-xf-logica-externa-campo textarea {
-  resize: vertical;
+  resize: none;
+  field-sizing: content;
+  max-height: 40vh;
   min-height: 52px;
 }
 

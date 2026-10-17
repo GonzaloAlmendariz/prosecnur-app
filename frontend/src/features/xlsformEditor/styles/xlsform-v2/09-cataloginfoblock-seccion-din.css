@@ -505,7 +505,9 @@
 
 .pulso-focus-custom-validation textarea {
   min-height: 74px;
-  resize: vertical;
+  resize: none;
+  field-sizing: content;
+  max-height: 40vh;
   font-family: ui-monospace, monospace;
   font-size: 12px;
   line-height: 1.45;
