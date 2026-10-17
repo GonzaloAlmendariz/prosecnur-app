@@ -83,3 +83,29 @@ describe("target Kobo — enlace personalizado", () => {
     expect(markup).not.toContain('placeholder="/aNNuP72AedZ886EoAUeV5o/collectorID"');
   });
 });
+
+describe("H27 — procedencia del deployment_active deducido", () => {
+  function renderDerivado(derived: string[]) {
+    const deployment: CollectionDeployment = {
+      ...deploymentWithAssetUid("aX"),
+      status: "prepared",
+      target: { provider: "kobo", asset_uid: "aX", asset_type: "survey", deployment_active: true },
+    };
+    const payload: CollectionStatePayload = { ...payloadWith(deployment), deployment_derived_fields: derived };
+    return renderToStaticMarkup(<AccessSection payload={payload} activeTab="canales" onState={() => undefined} />);
+  }
+
+  it("con target.deployment_active deducido, la casilla sale marcada y con su procedencia", () => {
+    const markup = renderDerivado(["target.deployment_active"]);
+    expect(markup).toMatch(/aria-describedby="rec-activo-deducido" checked=""/);
+    expect(markup).toContain("Deducido del último chequeo.");
+    expect(markup).toContain(">Confirmar<");
+  });
+
+  it("sin derivados, la casilla marcada es un dato observado y no lleva marca", () => {
+    const markup = renderDerivado([]);
+    expect(markup).toContain('checked=""');
+    expect(markup).not.toContain("Deducido del último chequeo");
+    expect(markup).not.toContain("rec-activo-deducido");
+  });
+});

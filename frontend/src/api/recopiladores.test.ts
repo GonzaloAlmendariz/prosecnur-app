@@ -67,6 +67,16 @@ describe("cliente API de Recopiladores", () => {
       .toThrow(/state_revision/);
   });
 
+  it("H27: conserva deployment_derived_fields (sólo texto) y cae a [] sin él", () => {
+    expect(normalizeCollectionStatePayload({
+      ...emptyState,
+      deployment_derived_fields: ["adapter_id", "target.deployment_active", 3, "", null],
+    }).deployment_derived_fields).toEqual(["adapter_id", "target.deployment_active"]);
+    expect(normalizeCollectionStatePayload(emptyState).deployment_derived_fields).toEqual([]);
+    expect(normalizeCollectionStatePayload({ ...emptyState, deployment_derived_fields: [] }).deployment_derived_fields)
+      .toEqual([]);
+  });
+
   it("guarda el plan con expected_revision sin renombrar el contrato", async () => {
     await apiRecopiladoresPlanPut(7, plan);
     expect(lastRequest()).toMatchObject({
