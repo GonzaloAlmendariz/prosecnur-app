@@ -43,14 +43,14 @@ export function PestanaCalculos({ structure, scope, seleccionada, onSeleccionar,
     {
       titulo: "En uso",
       items: items.filter((i) => i.loUsan.length > 0).map((i) => ({
-        key: i.node.name, baseType: "calculate", numero: "ƒ", titulo: i.node.name,
+        key: i.node.name, baseType: "calculate", numero: "", titulo: i.node.name,
         resumen: i.node.label || `lo usan ${i.loUsan.length}`, aviso: i.vacio,
       })),
     },
     {
       titulo: "Sólo para la base",
       items: items.filter((i) => i.loUsan.length === 0).map((i) => ({
-        key: i.node.name, baseType: "calculate", numero: "ƒ", titulo: i.node.name,
+        key: i.node.name, baseType: "calculate", numero: "", titulo: i.node.name,
         resumen: i.vacio ? "Sin fórmula: quedará vacío" : i.node.label || "columna en la base", aviso: i.vacio,
       })),
     },

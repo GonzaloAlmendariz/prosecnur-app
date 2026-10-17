@@ -5,7 +5,8 @@
 // dueña de su scroll dentro del panel, con cabecera fija.
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, Folder, Repeat } from "../../../vendor/lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight } from "../../../vendor/lucide-react";
+import { Sello } from "../kit/Sello";
 import { tituloTecnico } from "../cuestionario/modeloCuestionario";
 import { EditarEnConstructor } from "../shell/EditarEnConstructor";
 import { claveSeccion, type PreguntaDeSeccion } from "./preguntasDeSeccion";
@@ -120,7 +121,6 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
             </thead>
             <tbody>
               {ordenadas.map((f) => {
-                const Icono = kindDe(f.id) === "repeat" ? Repeat : Folder;
                 const clave = claveSeccion(f);
                 const desplegada = abierta === clave;
                 const idDetalle = `xf-res-seccion-${clave.replace(/[^A-Za-z0-9_-]/g, "_")}`;
@@ -134,7 +134,7 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
                       <button type="button" className="pulso-xf-res-seccion" onClick={(e) => { e.stopPropagation(); onAlternar(clave); }}
                         aria-expanded={desplegada} aria-controls={desplegada ? idDetalle : undefined}>
                         <ChevronRight size={13} aria-hidden="true" className="pulso-xf-res-seccion-chevron" />
-                        <Icono size={14} aria-hidden="true" />
+                        <Sello baseType={kindDe(f.id) === "repeat" ? "begin_repeat" : "begin_group"} size={16} />
                         <span className="pulso-xf-res-seccion-texto">
                           <span title={f.rotulo} className={tituloTecnico(f.rotulo, f.name) ? "is-tecnico" : undefined}>{f.rotulo}</span>
                           <small>{f.tipoPredominante ?? "Sin preguntas"}</small>

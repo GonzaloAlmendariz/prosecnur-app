@@ -1,0 +1,26 @@
+/* tokens-formularios.css — paleta propia del editor de Formularios (sello «Señales», 2026-10-17).
+ * Vive aparte porque tokens.css está congelado a crecimiento. Un solo tema: la app no tiene superficies oscuras. */
+:root {
+  /* Familias de tipo de pregunta. Diez familias, diez tonos: el color dice la familia y el glifo dice el tipo.
+   * Sección y repetición son dos tonos de la misma familia estructural. */
+  --pulso-tipo-opciones: #4b4fb8;
+  --pulso-tipo-texto: #c2620a;
+  --pulso-tipo-numero: #15803d;
+  --pulso-tipo-fecha: #0e8a9a;
+  --pulso-tipo-evidencia: #c2416b;
+  --pulso-tipo-ubicacion: #3f6fb5;
+  --pulso-tipo-nota: #64748b;
+  --pulso-tipo-calculo: #7c3aed;
+  --pulso-tipo-seccion: #46566f;
+  --pulso-tipo-repeticion: #2c6e78;
+  --pulso-tipo-metadato: #8a94a6;
+  /* Sello: silueta sobre el color pleno de la familia. */
+  --pulso-tipo-sello-tinta: #ffffff;
+  /* Marcas de cada pregunta (riel OB · SI · RE · ƒx · FI). */
+  --pulso-marca-oblig: #d1344b;
+  --pulso-marca-cond: #7c3aed;
+  --pulso-marca-regla: #0f766e;
+  --pulso-marca-calc: #b45309;
+  --pulso-marca-filtro: #0369a1;
+  --pulso-marca-repite: #475569;
+}

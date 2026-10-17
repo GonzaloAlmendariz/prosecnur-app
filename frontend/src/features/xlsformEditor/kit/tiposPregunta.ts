@@ -1,86 +1,54 @@
 // Catálogo de tipos de pregunta del editor (M8, 2026-10-17). Pedido de Gonzalo: «es importante que al igual que en
 // Gráficos tengas el kit visual completo bien definido». Una sola fuente para cada tipo XLSForm: nombre visible,
-// familia (de la que sale el tono), grupo en los menús de alta e ícono. La maqueta (MaquetaTipo.tsx) dibuja cada tipo.
+// familia (de la que sale el tono) y grupo en los menús de alta. El glifo de cada tipo vive en glifosTipo.ts.
 //
-// Regla de uso del kit:
-// - Ícono (TypeIcon): donde el tipo acompaña un texto: listas, esquema, fichas pequeñas, referencias dentro de reglas.
-// - Maqueta (MaquetaTipo): donde se elige o se explica un tipo: menú de alta, Resumen, ficha de la pregunta.
-// El color de la familia va sólo en el acento (el glifo del ícono, la marca de la maqueta); lo demás en tinta.
+// Identidad «Señales» (2026-10-17, propuesta aprobada): todo tipo se pinta como SELLO (Sello.tsx), la silueta del
+// glifo sobre el color pleno de su familia. El color dice la familia y la forma dice el tipo. Sección y repetición
+// son dos tonos de la misma familia estructural y su cierre va en suave. Las fachadas TypeIcon, MaquetaTipo e
+// iconForType pintan el mismo sello en el tamaño que pide cada sitio.
 
-import {
-  Calculator,
-  Calendar,
-  CalendarClock,
-  CheckCircle2,
-  CircleDot,
-  Clock,
-  EyeOff,
-  File,
-  Folder,
-  FolderMinus,
-  Hash,
-  HelpCircle,
-  History,
-  Image,
-  ListChecks,
-  ListOrdered,
-  Map,
-  MapPin,
-  MessageSquare,
-  Mic,
-  QrCode,
-  Repeat,
-  Route,
-  Settings2,
-  Sigma,
-  SlidersHorizontal,
-  Type,
-  Video,
-  type LucideIcon,
-} from "../../../vendor/lucide-react";
-
-export type FamiliaTipo = "unica" | "multiple" | "numero" | "texto" | "fecha" | "evidencia" | "ubicacion" | "nota" | "calculo" | "estructura" | "metadato" | "otro";
+export type FamiliaTipo = "opciones" | "texto" | "numero" | "fecha" | "evidencia" | "ubicacion" | "nota" | "calculo" | "seccion" | "repeticion" | "metadato" | "otro";
 export type GrupoTipo = "opciones" | "captura" | "fecha" | "evidencia" | "ubicacion" | "estructura" | "metadato";
 
-export type TipoPregunta = { base: string; nombre: string; familia: FamiliaTipo; grupo: GrupoTipo; icono: LucideIcon };
+export type TipoPregunta = { base: string; nombre: string; familia: FamiliaTipo; grupo: GrupoTipo };
 
 export const TIPOS_PREGUNTA: readonly TipoPregunta[] = [
-  { base: "select_one", nombre: "Selección única", familia: "unica", grupo: "opciones", icono: CircleDot },
-  { base: "select_multiple", nombre: "Selección múltiple", familia: "multiple", grupo: "opciones", icono: ListChecks },
-  { base: "rank", nombre: "Ordenar opciones", familia: "unica", grupo: "opciones", icono: ListOrdered },
-  { base: "text", nombre: "Texto corto", familia: "texto", grupo: "captura", icono: Type },
-  { base: "integer", nombre: "Número entero", familia: "numero", grupo: "captura", icono: Hash },
-  { base: "decimal", nombre: "Número decimal", familia: "numero", grupo: "captura", icono: Sigma },
-  { base: "range", nombre: "Escala numérica", familia: "numero", grupo: "captura", icono: SlidersHorizontal },
-  { base: "date", nombre: "Fecha", familia: "fecha", grupo: "fecha", icono: Calendar },
-  { base: "time", nombre: "Hora", familia: "fecha", grupo: "fecha", icono: Clock },
-  { base: "datetime", nombre: "Fecha y hora", familia: "fecha", grupo: "fecha", icono: CalendarClock },
-  { base: "image", nombre: "Imagen", familia: "evidencia", grupo: "evidencia", icono: Image },
-  { base: "audio", nombre: "Audio", familia: "evidencia", grupo: "evidencia", icono: Mic },
-  { base: "video", nombre: "Video", familia: "evidencia", grupo: "evidencia", icono: Video },
-  { base: "file", nombre: "Archivo", familia: "evidencia", grupo: "evidencia", icono: File },
-  { base: "barcode", nombre: "Código de barras", familia: "evidencia", grupo: "evidencia", icono: QrCode },
-  { base: "geopoint", nombre: "Ubicación (punto)", familia: "ubicacion", grupo: "ubicacion", icono: MapPin },
-  { base: "geotrace", nombre: "Ubicación (recorrido)", familia: "ubicacion", grupo: "ubicacion", icono: Route },
-  { base: "geoshape", nombre: "Ubicación (área)", familia: "ubicacion", grupo: "ubicacion", icono: Map },
-  { base: "note", nombre: "Nota informativa", familia: "nota", grupo: "estructura", icono: MessageSquare },
-  { base: "acknowledge", nombre: "Confirmación", familia: "nota", grupo: "estructura", icono: CheckCircle2 },
-  { base: "calculate", nombre: "Cálculo", familia: "calculo", grupo: "estructura", icono: Calculator },
-  { base: "hidden", nombre: "Campo oculto", familia: "calculo", grupo: "estructura", icono: EyeOff },
-  { base: "begin_group", nombre: "Sección", familia: "estructura", grupo: "estructura", icono: Folder },
-  { base: "begin_repeat", nombre: "Repetición", familia: "estructura", grupo: "estructura", icono: Repeat },
-  { base: "end_group", nombre: "Cierre de sección", familia: "estructura", grupo: "estructura", icono: FolderMinus },
-  { base: "end_repeat", nombre: "Cierre de repetición", familia: "estructura", grupo: "estructura", icono: FolderMinus },
-  { base: "start", nombre: "Inicio (automático)", familia: "metadato", grupo: "metadato", icono: Settings2 },
-  { base: "end", nombre: "Fin (automático)", familia: "metadato", grupo: "metadato", icono: Settings2 },
-  { base: "today", nombre: "Fecha del día (automático)", familia: "metadato", grupo: "metadato", icono: Settings2 },
-  { base: "deviceid", nombre: "Dispositivo (automático)", familia: "metadato", grupo: "metadato", icono: Settings2 },
-  { base: "username", nombre: "Usuario (automático)", familia: "metadato", grupo: "metadato", icono: Settings2 },
-  { base: "start-geopoint", nombre: "Ubicación al abrir (automático)", familia: "metadato", grupo: "metadato", icono: MapPin },
-  { base: "audit", nombre: "Registro de la entrevista (automático)", familia: "metadato", grupo: "metadato", icono: History },
-  { base: "phonenumber", nombre: "Teléfono del equipo (automático)", familia: "metadato", grupo: "metadato", icono: Settings2 },
-  { base: "simserial", nombre: "Serie del chip (automático)", familia: "metadato", grupo: "metadato", icono: Settings2 },
-  { base: "subscriberid", nombre: "Suscriptor del chip (automático)", familia: "metadato", grupo: "metadato", icono: Settings2 },
+  { base: "select_one", nombre: "Selección única", familia: "opciones", grupo: "opciones" },
+  { base: "select_multiple", nombre: "Selección múltiple", familia: "opciones", grupo: "opciones" },
+  { base: "rank", nombre: "Ordenar opciones", familia: "opciones", grupo: "opciones" },
+  { base: "text", nombre: "Texto corto", familia: "texto", grupo: "captura" },
+  { base: "integer", nombre: "Número entero", familia: "numero", grupo: "captura" },
+  { base: "decimal", nombre: "Número decimal", familia: "numero", grupo: "captura" },
+  { base: "range", nombre: "Escala numérica", familia: "numero", grupo: "captura" },
+  { base: "date", nombre: "Fecha", familia: "fecha", grupo: "fecha" },
+  { base: "time", nombre: "Hora", familia: "fecha", grupo: "fecha" },
+  { base: "datetime", nombre: "Fecha y hora", familia: "fecha", grupo: "fecha" },
+  { base: "image", nombre: "Imagen", familia: "evidencia", grupo: "evidencia" },
+  { base: "audio", nombre: "Audio", familia: "evidencia", grupo: "evidencia" },
+  { base: "video", nombre: "Video", familia: "evidencia", grupo: "evidencia" },
+  { base: "file", nombre: "Archivo", familia: "evidencia", grupo: "evidencia" },
+  { base: "barcode", nombre: "Código de barras", familia: "evidencia", grupo: "evidencia" },
+  { base: "geopoint", nombre: "Ubicación (punto)", familia: "ubicacion", grupo: "ubicacion" },
+  { base: "geotrace", nombre: "Ubicación (recorrido)", familia: "ubicacion", grupo: "ubicacion" },
+  { base: "geoshape", nombre: "Ubicación (área)", familia: "ubicacion", grupo: "ubicacion" },
+  { base: "note", nombre: "Nota informativa", familia: "nota", grupo: "estructura" },
+  { base: "acknowledge", nombre: "Confirmación", familia: "nota", grupo: "estructura" },
+  { base: "calculate", nombre: "Cálculo", familia: "calculo", grupo: "estructura" },
+  { base: "hidden", nombre: "Campo oculto", familia: "calculo", grupo: "estructura" },
+  { base: "begin_group", nombre: "Sección", familia: "seccion", grupo: "estructura" },
+  { base: "begin_repeat", nombre: "Repetición", familia: "repeticion", grupo: "estructura" },
+  { base: "end_group", nombre: "Cierre de sección", familia: "seccion", grupo: "estructura" },
+  { base: "end_repeat", nombre: "Cierre de repetición", familia: "repeticion", grupo: "estructura" },
+  { base: "start", nombre: "Inicio (automático)", familia: "metadato", grupo: "metadato" },
+  { base: "end", nombre: "Fin (automático)", familia: "metadato", grupo: "metadato" },
+  { base: "today", nombre: "Fecha del día (automático)", familia: "metadato", grupo: "metadato" },
+  { base: "deviceid", nombre: "Dispositivo (automático)", familia: "metadato", grupo: "metadato" },
+  { base: "username", nombre: "Usuario (automático)", familia: "metadato", grupo: "metadato" },
+  { base: "start-geopoint", nombre: "Ubicación al abrir (automático)", familia: "metadato", grupo: "metadato" },
+  { base: "audit", nombre: "Registro de la entrevista (automático)", familia: "metadato", grupo: "metadato" },
+  { base: "phonenumber", nombre: "Teléfono del equipo (automático)", familia: "metadato", grupo: "metadato" },
+  { base: "simserial", nombre: "Serie del chip (automático)", familia: "metadato", grupo: "metadato" },
+  { base: "subscriberid", nombre: "Suscriptor del chip (automático)", familia: "metadato", grupo: "metadato" },
 ];
 
 const POR_BASE = new globalThis.Map(TIPOS_PREGUNTA.map((t) => [t.base, t]));
@@ -88,7 +56,7 @@ const ALIAS: Record<string, string> = { select_one_from_file: "select_one", sele
 
 /** El tipo del catálogo; uno desconocido cae en «otro» con su propio nombre técnico. */
 export function tipoPregunta(base: string): TipoPregunta {
-  return POR_BASE.get(ALIAS[base] ?? base) ?? { base, nombre: base || "Sin tipo", familia: "otro", grupo: "estructura", icono: HelpCircle };
+  return POR_BASE.get(ALIAS[base] ?? base) ?? { base, nombre: base || "Sin tipo", familia: "otro", grupo: "estructura" };
 }
 
 /** Lo llena el dispositivo, no el encuestado: no se pregunta, no se imprime, no cuenta como contenido. */
@@ -97,19 +65,25 @@ export function esMetadato(base: string): boolean {
 }
 
 export const TONO_FAMILIA: Record<FamiliaTipo, string> = {
-  unica: "var(--module-accent, var(--pulso-primary))",
-  multiple: "var(--pulso-accent-sky)",
-  numero: "var(--pulso-accent-green)",
-  texto: "var(--pulso-accent-amber)",
-  fecha: "var(--pulso-accent-cyan)",
-  evidencia: "var(--pulso-accent-rose)",
-  ubicacion: "var(--pulso-accent-steel)",
-  nota: "var(--pulso-text-muted)",
-  calculo: "var(--pulso-accent-violet)",
-  estructura: "var(--pulso-text-muted)",
-  metadato: "var(--pulso-text-muted)",
-  otro: "var(--pulso-text-muted)",
+  opciones: "var(--pulso-tipo-opciones)",
+  texto: "var(--pulso-tipo-texto)",
+  numero: "var(--pulso-tipo-numero)",
+  fecha: "var(--pulso-tipo-fecha)",
+  evidencia: "var(--pulso-tipo-evidencia)",
+  ubicacion: "var(--pulso-tipo-ubicacion)",
+  nota: "var(--pulso-tipo-nota)",
+  calculo: "var(--pulso-tipo-calculo)",
+  seccion: "var(--pulso-tipo-seccion)",
+  repeticion: "var(--pulso-tipo-repeticion)",
+  metadato: "var(--pulso-tipo-metadato)",
+  otro: "var(--pulso-tipo-metadato)",
 };
+
+/** El cierre de una sección o repetición: mismo tono que su apertura, en suave y con borde. */
+export function esCierre(base: string): boolean {
+  const b = tipoPregunta(base).base;
+  return b === "end_group" || b === "end_repeat";
+}
 
 export const NOMBRE_GRUPO: Record<GrupoTipo, string> = {
   opciones: "Con opciones",

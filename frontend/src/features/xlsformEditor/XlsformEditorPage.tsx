@@ -1,4 +1,6 @@
 import { esMetadato } from "./kit/tiposPregunta";
+import { ProveedorReglas } from "./kit";
+import { alcanceDeLectura } from "./kit/alcanceLectura";
 import {
   useCallback,
   useEffect,
@@ -2607,6 +2609,7 @@ export default function XlsformEditorPage() {
     }
     return { variables, catalogsByListName, allowCurrent: false };
   }, [selectedNode?.rowIndex, structure, catalogs]);
+  const alcanceLectura = useMemo(() => alcanceDeLectura(structure, catalogs), [structure, catalogs]);
   // Helper local — construye el icono del menú "+" reusando el mismo
   // mapping (iconForType + paletteForType) que el outline. Así el usuario
   // ve idéntico el "tipo" cuando lo agrega y cuando lo navega después.
@@ -2987,16 +2990,18 @@ export default function XlsformEditorPage() {
                         )}
                       </div>
                     </div>
-                    <SurveyOutline
-                      structure={structure}
-                      selection={selection}
-                      onSelect={selectBuilderFocus}
-                      onMoveUp={() => moveSelection("up")}
-                      onMoveDown={() => moveSelection("down")}
-                      canMoveUp={!!movement.prevRow}
-                      canMoveDown={!!movement.nextRow}
-                      onApplyMove={applyOutlineMove}
-                    />
+                    <ProveedorReglas structure={structure} scope={alcanceLectura} survey={workbook?.survey ?? null}>
+                      <SurveyOutline
+                        structure={structure}
+                        selection={selection}
+                        onSelect={selectBuilderFocus}
+                        onMoveUp={() => moveSelection("up")}
+                        onMoveDown={() => moveSelection("down")}
+                        canMoveUp={!!movement.prevRow}
+                        canMoveDown={!!movement.nextRow}
+                        onApplyMove={applyOutlineMove}
+                      />
+                    </ProveedorReglas>
                   </Panel>
                 </div>
 

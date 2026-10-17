@@ -1,6 +1,7 @@
 // Motor de lectura de reglas: parsea en modo lectura, normaliza y elige la voz según la columna.
 // Si algo no se reconoce, la lectura es técnica (piezas vacías) y `depende`/`lista` se llenan igual.
 
+import { lecturaRequired } from "../../parsing/parseType";
 import type { ColumnaRegla, LecturaRegla } from "../piezas";
 import { etiquetaDe, type Contexto } from "./contexto";
 import { capitalizar, t, type Frase } from "./frase";
@@ -10,15 +11,14 @@ import { normalizar, parsear, prepararTexto, referencias } from "./normalizar";
 import { leerRestriccion } from "./restricciones";
 import { leerValor } from "./valor";
 
-const SI = /^(yes|true|true\(\)|1|si|sí)$/i;
-const NO = /^(no|false|false\(\)|0)$/i;
 
 export function leerConContexto(columna: ColumnaRegla, raw: string, ctx: Contexto, lista?: string): LecturaRegla {
   const expr = raw.trim();
   const base = { columna, raw: expr, lista: columna === "choice_filter" ? lista || undefined : undefined };
   if (!expr) return { ...base, piezas: [], tecnica: true, depende: [] };
-  if (columna === "required" && (SI.test(expr) || NO.test(expr))) {
-    return { ...base, piezas: [t(SI.test(expr) ? "Obligatoria" : "Opcional")], tecnica: false, depende: [] };
+  const constante = columna === "required" ? lecturaRequired(expr) : "expresion";
+  if (constante !== "expresion") {
+    return { ...base, piezas: [t(constante === "siempre" ? "Obligatoria" : "Opcional")], tecnica: false, depende: [] };
   }
   const { texto, comillas } = prepararTexto(expr);
   const ast = parsear(texto);

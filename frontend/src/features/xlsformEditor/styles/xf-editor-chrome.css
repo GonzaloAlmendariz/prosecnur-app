@@ -375,15 +375,39 @@
 
 /* ── Outline ─────────────────────────────────────────────────────────────── */
 
-/* Obligatoria: asterisco con el color de texto secundario. La estrella naranja
-   usaba el tono de alerta para algo que no es un problema. */
-.pulso-xlsform-frame .pulso-outline-row .pulso-outline-required {
-  display: inline-flex;
+/* Subtítulo de una fila: tipo y código. El código no se recorta: si no cabe entero salta a una segunda línea
+   que el alto fijo del subtítulo deja fuera de la vista (la fila sigue en 42 px). */
+.pulso-xlsform-frame .pulso-outline-row .pulso-outline-subtitle--codigo {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  color: var(--pulso-text-soft);
+  column-gap: 4px;
+  height: 15px;
+  overflow: hidden;
+}
+
+.pulso-xlsform-frame .pulso-outline-subtitle--codigo .pulso-outline-kind {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 15px;
+}
+
+.pulso-xlsform-frame .pulso-outline-subtitle--codigo .pulso-outline-codewrap {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  max-width: none;
+  height: 15px;
+  white-space: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-outline-subtitle--codigo .pulso-outline-code {
+  flex: none;
+  line-height: 11px;
 }
 
 /* El cierre de sección usa el mismo borde que el resto de filas; su guía

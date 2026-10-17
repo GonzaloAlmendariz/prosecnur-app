@@ -2,6 +2,7 @@
    cabecera de tokens en este punto exacto de la cascada. No mover ni convertir
    en import JS (docs/plan-saneamiento-repo-2026-07.md, Fase 1). */
 @import "./tokens.css";
+@import "./tokens-formularios.css";
 
 @keyframes pulso-route-enter-kf {
   from {
