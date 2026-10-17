@@ -4,7 +4,7 @@ import type { LogicScope } from "../logic";
 import { stripMarkdown } from "../helpers/markdown";
 import { Segmented, TypeIcon } from "../kit";
 import { describeExpression } from "../canvas/reglasHumanas";
-import { listaLogica, type TipoRegla } from "./listaLogicaModel";
+import { dividirPorLogica, listaLogica, type TipoRegla } from "./listaLogicaModel";
 import "./listaLogica.css";
 
 // Lista de la lógica junto al mapa (revamp 2026-10-16). Cada sección es un contenedor: arriba la regla que
@@ -38,7 +38,10 @@ export function ListaLogica({ structure, scope, seleccionada, onSeleccionar }: L
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const verSeccion = filtro !== "pregunta";
   const verPregunta = filtro !== "seccion";
-  const secciones = lista.secciones.filter((s) => (filtro === "seccion" ? Boolean(s.regla) : true));
+  // M2: las secciones sin ninguna regla no ocupan una tarjeta cada una; van juntas y compactas al final.
+  const { conLogica, sinLogica } = useMemo(() => dividirPorLogica(lista.secciones), [lista.secciones]);
+  const secciones = conLogica.filter((s) => (filtro === "seccion" ? Boolean(s.regla) : filtro === "pregunta" ? s.items.length > 0 : true));
+  const [verSinLogica, setVerSinLogica] = useState(false);
   const total = lista.deSeccion + lista.dePregunta;
 
   return (
@@ -58,7 +61,7 @@ export function ListaLogica({ structure, scope, seleccionada, onSeleccionar }: L
         />
       </header>
       <div className="xfl-lista__cuerpo" data-qa-geometry-group="xlsform/logica-secciones" data-qa-geometry-contract="intrinsic">
-        {secciones.length === 0 ? (
+        {secciones.length === 0 && (filtro !== "todas" || sinLogica.length === 0) ? (
           <p className="xfl-vacio">Este formulario no tiene reglas de cuándo aparece una pregunta ni de qué opciones se muestran.</p>
         ) : (
           secciones.map((s) => {
@@ -99,13 +102,37 @@ export function ListaLogica({ structure, scope, seleccionada, onSeleccionar }: L
                       </button>
                     ))}
                   </div>
-                ) : verPregunta && !(verSeccion && s.regla) ? (
-                  <p className="xfl-sec__nada">Ninguna pregunta tiene lógica propia.</p>
                 ) : null}
               </section>
             );
           })
         )}
+        {filtro === "todas" && sinLogica.length ? (
+          <section className="xfl-sin">
+            <button type="button" className="xfl-sin__head" aria-expanded={verSinLogica} onClick={() => setVerSinLogica((v) => !v)}>
+              <span className="xfl-sin__tit">Sin lógica propia</span>
+              <span className="xfl-sin__n">{sinLogica.length} {sinLogica.length === 1 ? "sección" : "secciones"}</span>
+              <span className="xfl-sin__chev" aria-hidden="true">{verSinLogica ? "−" : "+"}</span>
+            </button>
+            <p className="xfl-sin__nota">Sus preguntas aparecen siempre y muestran todas sus opciones.</p>
+            {verSinLogica ? (
+              <ul className="xfl-sin__lista" data-qa-geometry-group="xlsform/logica-sin" data-qa-geometry-contract="intrinsic">
+                {sinLogica.map((s) => {
+                  const foco = s.rowIndex != null ? `seccion:${s.rowIndex}` : null;
+                  return (
+                    <li key={s.id}>
+                      <button type="button" className={seleccionada === foco ? "xfl-sin__sec is-on" : "xfl-sin__sec"} onClick={() => onSeleccionar(foco)}>
+                        <span className="xfl-sec__letra">{s.letra}</span>
+                        <span className="xfl-sin__nombre">{stripMarkdown(s.nombre)}</span>
+                        <span className="xfl-sin__preg">{s.preguntas}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+          </section>
+        ) : null}
       </div>
       <footer className="xfl-lista__pie">
         <span><IconoRegla tipo="aparece" /> Cuándo aparece</span>

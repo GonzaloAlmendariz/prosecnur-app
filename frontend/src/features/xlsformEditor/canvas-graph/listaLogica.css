@@ -41,3 +41,25 @@
 .xfl-regla--aparece { color: var(--pulso-accent-violet); }
 .xfl-regla--opciones { color: var(--pulso-accent-cyan); }
 @media (prefers-reduced-motion: reduce) { .xfl-toda, .xfl-item { transition: none; } }
+
+/* M2: secciones sin lógica propia, juntas y compactas al final de la lista. */
+.xfl-sin { flex-shrink: 0; border: 1px dashed var(--pulso-border-strong); border-radius: 8px; background: var(--pulso-surface); }
+.xfl-sin__head {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto 18px; align-items: center; gap: 8px; width: 100%;
+  padding: 10px 12px; border: 0; background: transparent; color: var(--pulso-text); font: inherit; text-align: left; cursor: pointer; box-shadow: none; min-height: 0;
+}
+.xfl-sin__head:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: -2px; border-radius: 8px; }
+.xfl-sin__tit { font-size: 13px; font-weight: var(--pulso-weight-semibold); }
+.xfl-sin__n { color: var(--pulso-text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.xfl-sin__chev { color: var(--pulso-text-muted); font-size: 15px; text-align: center; }
+.xfl-sin__nota { margin: 0; padding: 0 12px 10px; color: var(--pulso-text-muted); font-size: 12px; line-height: 1.4; }
+.xfl-sin__lista { display: flex; flex-direction: column; gap: 1px; margin: 0; padding: 0 6px 8px; list-style: none; border-top: 1px solid var(--pulso-border); padding-top: 6px; }
+.xfl-sin__sec {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%;
+  padding: 5px 6px; border: 0; border-radius: 6px; background: transparent; color: var(--pulso-text);
+  font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; box-shadow: none; min-height: 0;
+}
+.xfl-sin__sec:hover { background: var(--pulso-surface-2); }
+.xfl-sin__sec.is-on { background: var(--pulso-primary-soft); }
+.xfl-sin__nombre { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.xfl-sin__preg { color: var(--pulso-text-muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }

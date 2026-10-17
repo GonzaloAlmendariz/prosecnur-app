@@ -89,3 +89,10 @@ export function listaLogica(structure: BuilderStructure | null): ListaLogica {
     dePregunta: secciones.reduce((n, s) => n + s.items.length, 0),
   };
 }
+
+/** M2 (2026-10-17): las secciones sin regla propia ni preguntas con regla ocupaban una tarjeta cada una con «Ninguna
+ * pregunta tiene lógica propia» (6 de 8 en pantalla en el tipo 1). Se separan para listarlas juntas, compactas. */
+export function dividirPorLogica(secciones: readonly SeccionLogica[]): { conLogica: SeccionLogica[]; sinLogica: SeccionLogica[] } {
+  const tiene = (s: SeccionLogica) => Boolean(s.regla) || s.items.length > 0;
+  return { conLogica: secciones.filter(tiene), sinLogica: secciones.filter((s) => !tiene(s)) };
+}
