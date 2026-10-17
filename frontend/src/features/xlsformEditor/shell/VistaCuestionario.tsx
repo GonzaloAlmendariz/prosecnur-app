@@ -15,6 +15,7 @@
 // Las cifras de la cabecera usan la regla del Resumen (una sola definición).
 // =============================================================================
 
+import { TituloSeccion } from "./TituloSeccion";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { ListaPartes, type GrupoDePartes } from "../../../components/ListaPartes";
 import { AlertTriangle, ArrowRight, Repeat } from "../../../vendor/lucide-react";
@@ -49,6 +50,8 @@ export type VistaCuestionarioProps = {
   onAbrir: (name: string | null) => void;
   /** La única salida al Constructor: «Editar en Constructor» de la ficha. */
   onEditar: (name: string) => void;
+  /** Escribe el título de una sección sin título legible (su etiqueta). */
+  onTitular?: (fila: number, texto: string) => void;
 };
 
 /** Lo que cada pregunta necesita para abrir, cerrar y editar su ficha. */
@@ -215,8 +218,9 @@ function Matriz({ bloque, marcarOpcionales: opcionales, fichas }: {
   );
 }
 
-function Seccion({ seccion, marcarOpcionales: opcionales, fichas, registrar }: {
+function Seccion({ seccion, marcarOpcionales: opcionales, fichas, registrar, onTitular }: {
   seccion: SeccionDoc;
+  onTitular?: (fila: number, texto: string) => void;
   marcarOpcionales: boolean;
   fichas: Fichas;
   registrar: (clave: string, el: HTMLElement | null) => void;
@@ -227,7 +231,9 @@ function Seccion({ seccion, marcarOpcionales: opcionales, fichas, registrar }: {
       <header className="pulso-xf-cue-banda">
         <h2 id={`xf-cue-${seccion.clave}`}>
           {seccion.repite && <Repeat size={14} aria-hidden="true" />}
-          <Markdown texto={seccion.rotulo} />
+          {seccion.sinTitulo && onTitular
+            ? <TituloSeccion rotulo={seccion.rotulo} onTitular={(t) => onTitular(seccion.fila, t)} />
+            : <Markdown texto={seccion.rotulo} />}
         </h2>
         <span>
           {seccion.repite ? "Se repite · " : ""}{plural(seccion.preguntas, "pregunta", "preguntas")}
@@ -252,7 +258,7 @@ function Seccion({ seccion, marcarOpcionales: opcionales, fichas, registrar }: {
   );
 }
 
-export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevisarLogica, abierta, onAbrir, onEditar }: VistaCuestionarioProps) {
+export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevisarLogica, abierta, onAbrir, onEditar, onTitular }: VistaCuestionarioProps) {
   const catalogos = useMemo(() => buildCatalogs(workbook.choices), [workbook]);
   const resumen = useMemo(() => resumirFormulario(structure, catalogos), [structure, catalogos]);
   const secciones = useMemo(
@@ -260,6 +266,7 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
     [structure, catalogos, workbook],
   );
   const opcionales = marcarOpcionales(resumen.preguntas, resumen.obligatorias);
+  const sinTitulo = secciones.filter((s) => s.sinTitulo).length;
 
   const documento = useRef<HTMLDivElement>(null);
   const anclas = useRef(new Map<string, HTMLElement>());
@@ -334,6 +341,7 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
             <span>
               {plural(resumen.preguntas, "pregunta", "preguntas")} · {plural(resumen.secciones, "sección", "secciones")}
               {resumen.preguntas ? ` · ≈ ${minutos(resumen.segundos)} min` : ""}
+              {sinTitulo > 0 && onTitular ? ` · ${plural(sinTitulo, "sección sin título", "secciones sin título")}` : ""}
             </span>
           </div>
         </div>
@@ -366,7 +374,7 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
                 </div>
               )}
               {secciones.map((s) => (
-                <Seccion key={s.clave} seccion={s} marcarOpcionales={opcionales} fichas={fichas} registrar={registrar} />
+                <Seccion key={s.clave} seccion={s} marcarOpcionales={opcionales} fichas={fichas} registrar={registrar} onTitular={onTitular} />
               ))}
             </div>
           </div>

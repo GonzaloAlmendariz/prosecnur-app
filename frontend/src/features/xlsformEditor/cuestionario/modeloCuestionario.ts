@@ -56,6 +56,10 @@ export type SeccionDoc = {
   clave: string;
   name: string;
   rotulo: string;
+  /** Fila del begin_group/begin_repeat (-1 en el inicio, que no es una sección del XLSForm). */
+  fila: number;
+  /** Sin título legible: vacío, igual al nombre o un rótulo de página importado («Pag1 (p1)»). */
+  sinTitulo: boolean;
   repite: boolean;
   preguntas: number;
   segundos: number;
@@ -121,8 +125,20 @@ export function rangoDe(constraint: string): PreguntaDoc["rango"] {
 
 // ── Documento ───────────────────────────────────────────────────────────────
 
+/**
+ * Un título de sección que no le dice nada a quien lee: vacío, igual al `name` o el rótulo de página que deja la
+ * importación («Pag1 (p1)», «Página 3»). En el corpus: 43 de 68 secciones en el tipo 1. No se inventa uno: se marca
+ * y se deja escribir (M13, 2026-10-17).
+ */
+export function tituloTecnico(label: string, name: string): boolean {
+  if ((label ?? "").trim() === name.trim()) return true;
+  const t = (label ?? "").replace(/[*_#`]/g, "").trim();
+  if (!t) return true;
+  return /^p(a|á)g(ina)?\.?\s*\d+(\s*\([^)]*\))?$/i.test(t);
+}
+
 const PREGUNTA_INICIAL: SeccionDoc = {
-  clave: "inicio", name: "", rotulo: "Inicio del formulario", repite: false, preguntas: 0, segundos: 0, conCondicion: 0, bloques: [],
+  clave: "inicio", name: "", rotulo: "Inicio del formulario", fila: -1, sinTitulo: false, repite: false, preguntas: 0, segundos: 0, conCondicion: 0, bloques: [],
 };
 
 export function armarDocumento(
@@ -193,6 +209,8 @@ export function armarDocumento(
         clave: `${nodo.name || "seccion"}-${i}`,
         name: nodo.name,
         rotulo: nodo.label || nodo.name,
+        fila: nodo.rowIndex,
+        sinTitulo: tituloTecnico(nodo.label, nodo.name),
         repite: nodo.kind === "repeat",
         preguntas: 0,
         segundos: 0,
