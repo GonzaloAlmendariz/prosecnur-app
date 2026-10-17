@@ -361,33 +361,8 @@
   background: transparent;
 }
 
-/* ── Listas de opciones (H7) en la banda ─────────────────────────────────── */
-
-.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-cmd-listas {
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.pulso-xlsform-frame .pulso-xf-cmd-short {
-  display: none;
-}
-
-.pulso-xlsform-frame .pulso-xf-cmd-count {
-  display: inline-block;
-  min-width: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-bold);
-  line-height: 18px;
-  text-align: center;
-}
-
 /* Hasta 1520 px los rótulos de menor prioridad («Más vistas», «Nuevo
-   formulario», «Listas de opciones») se recogen; el número de repetidas y el
-   rótulo corto «Listas» quedan visibles. */
+   formulario») se recogen. */
 @media (max-width: 1520px) {
   .pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-cmd-label--low {
     position: absolute;
@@ -397,10 +372,6 @@
     clip: rect(0 0 0 0);
     clip-path: inset(50%);
     white-space: nowrap;
-  }
-
-  .pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-cmd-short {
-    display: inline;
   }
 
   .pulso-xlsform-frame .pulso-xf-cmdbar .pulso-more-views-trigger {

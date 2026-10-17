@@ -11,17 +11,24 @@
 import type { ReactNode } from "react";
 import { AdaptiveSplitView } from "../../../components/AdaptiveSplitView";
 import { ContextTabRail } from "../../../components/ContextTabRail";
+import { estadoListasRepetidas } from "../listas";
 import { PESTANAS_EDITOR, type EditorFormulariosPestanaId } from "./pestanaEditor";
 import "../styles/xf-pestanas.css";
 
 export const ID_PANEL_PESTANA_EDITOR = "xf-pestana-panel";
 export const idPestanaEditor = (key: EditorFormulariosPestanaId) => `xf-pestana-${key}`;
 
-export function EditorPestanas({ pestana, onCambiar, children }: {
+export function EditorPestanas({ pestana, onCambiar, listasRepetidas = 0, children }: {
   pestana: EditorFormulariosPestanaId;
   onCambiar: (pestana: EditorFormulariosPestanaId) => void;
+  /** Escalas repetidas: el aviso viaja en la pestaña Listas de opciones (antes era un botón propio en la banda). */
+  listasRepetidas?: number;
   children: ReactNode;
 }) {
+  const aviso = estadoListasRepetidas(listasRepetidas);
+  const items = aviso
+    ? PESTANAS_EDITOR.map((p) => (p.key === "opciones" ? { ...p, estado: "parcial" as const, estadoLabel: aviso } : p))
+    : PESTANAS_EDITOR;
   return (
     <AdaptiveSplitView
       ariaLabel="Mesa de trabajo del formulario"
@@ -31,7 +38,7 @@ export function EditorPestanas({ pestana, onCambiar, children }: {
         <ContextTabRail
           ariaLabel="Pestañas del formulario"
           activeKey={pestana}
-          items={PESTANAS_EDITOR}
+          items={items}
           panelId={ID_PANEL_PESTANA_EDITOR}
           tabId={idPestanaEditor}
           onChange={onCambiar}

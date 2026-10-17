@@ -9,8 +9,8 @@ export const PANEL_LISTAS_OPCIONES: PanelDeclarado = {
   clase: "dialogo",
 };
 
-/** Rótulo del botón del editor: «Listas de opciones (3 repetidas)». */
-export function rotuloBotonListas(repetidas: number): string {
-  if (repetidas <= 0) return "Listas de opciones";
-  return `Listas de opciones (${repetidas} ${repetidas === 1 ? "repetida" : "repetidas"})`;
+/** Estado de la pestaña Listas de opciones en el rail: «3 listas repetidas» o nada. */
+export function estadoListasRepetidas(repetidas: number): string {
+  if (repetidas <= 0) return "";
+  return `${repetidas} ${repetidas === 1 ? "lista repetida" : "listas repetidas"}`;
 }

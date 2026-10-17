@@ -3,7 +3,7 @@ export { ListasOpcionesDialog, type ListasOpcionesDialogProps } from "./ListasOp
 export { ListasOpcionesPanel, TEXTO_DIDACTICO_LISTAS } from "./ListasOpcionesPanel";
 export { useListasOpciones, type ControlListasOpciones } from "./useListasOpciones";
 export { useListasOpcionesPanel } from "./useListasOpcionesPanel";
-export { PANEL_LISTAS_OPCIONES, rotuloBotonListas } from "./panelListas";
+export { PANEL_LISTAS_OPCIONES, estadoListasRepetidas } from "./panelListas";
 export {
   analizarListas,
   contarEscalasRepetidas,
