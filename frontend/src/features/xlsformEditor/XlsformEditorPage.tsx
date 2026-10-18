@@ -121,7 +121,7 @@ import {
   previewKindLabel,
   resolveInsertionIndex,
 } from "./parsing/buildIndex";
-import { buildDiagnostics } from "./parsing/diagnostics";
+import { buildDiagnostics, fusionarDiagnosticos } from "./parsing/diagnostics";
 import { detectMatrixCandidates } from "./parsing/detectMatrixCandidates";
 import { detectConsentQuestions } from "./parsing/detectConsentQuestions";
 import {
@@ -176,7 +176,7 @@ import { EditorCommandBar } from "./shell/EditorCommandBar";
 import { EditorSmImportNotice } from "./shell/EditorSmImportNotice";
 import { useActivePublicationRefresh } from "./shell/useActivePublicationRefresh";
 import { contarEscalasRepetidas, useListasOpcionesPanel } from "./listas";
-import { buildSuiteMetrics, formatFieldSectionPair } from "./shell/editorMetrics";
+import { buildSuiteMetrics } from "./shell/editorMetrics";
 import { RestoreOfferBanner } from "./shell/RestoreOfferBanner";
 import { LogicaExternaDialogo, LogicaExternaDisparador } from "./shell/LogicaExterna";
 import { useLogicaExterna } from "./shell/useLogicaExterna";
@@ -185,7 +185,10 @@ import {
   applyChoiceMove,
   deleteCatalog as deleteCatalogFromSheet,
 } from "./catalogs/catalogUtils";
-import { SurveyOutline } from "./outline/SurveyOutline";
+import { SurveyOutline, type AvisoFila } from "./outline/SurveyOutline";
+import { TIPOS_INSERTABLES } from "./outline/tiposInsertables";
+import { subtituloEstructura } from "./outline/modeloEstructura";
+import { insertarEn, type DestinoInsercion } from "./state/accionesConstructor";
 import type { RowMovePlan } from "./outline/outlineUtils";
 import { applyRowMove } from "./outline/outlineUtils";
 import {
@@ -220,6 +223,8 @@ import { AddElementMenu } from "./shell/AddElementMenu";
  * preguntas reales (question/note/calculate). Si la fila es una sección o
  * un marcador begin/end, devuelve `undefined`.
  */
+const SIN_DIAGNOSTICOS: BuilderDiagnostic[] = [];
+
 export default function XlsformEditorPage() {
   // Detecta si hay un .pulso abierto — al exportar, decide entre guardar
   // al directorio del proyecto (vía /api/fs/save-to-project) o usar la
@@ -1124,7 +1129,14 @@ export default function XlsformEditorPage() {
   // de names, refs de catálogos, slug de form_id. Se invocan debounced ~1s
   // tras cualquier edición. Usamos un useRef + useEffect para debouncear
   // sin librerías extras.
-  const [remoteDiagnostics, setRemoteDiagnostics] = useState<BuilderDiagnostic[]>([]);
+  // Los remotos llevan el formulario del que vinieron: al abrir otro, los del anterior no se pegan a sus filas
+  // mientras llega la respuesta nueva.
+  const [remoteState, setRemoteState] = useState<{ formId: string | null; items: BuilderDiagnostic[] }>({ formId: null, items: [] });
+  const setRemoteDiagnostics = useCallback(
+    (items: BuilderDiagnostic[], formId: string | null = activeFormIdRef.current) => setRemoteState({ formId, items }),
+    [],
+  );
+  const remoteDiagnostics = remoteState.formId === activeFormId ? remoteState.items : SIN_DIAGNOSTICOS;
   const validateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const validateRequestIdRef = useRef(0);
 
@@ -1136,6 +1148,7 @@ export default function XlsformEditorPage() {
     if (validateTimerRef.current) clearTimeout(validateTimerRef.current);
     validateTimerRef.current = setTimeout(() => {
       const requestId = ++validateRequestIdRef.current;
+      const formIdPedido = activeFormIdRef.current;
       apiXlsformEditorValidate(workbook)
         .then((result) => {
           // Si llegó otro request mientras este iba en vuelo, descartamos.
@@ -1150,7 +1163,7 @@ export default function XlsformEditorPage() {
               catalogName: d.catalogName,
             }),
           );
-          setRemoteDiagnostics(remote);
+          setRemoteDiagnostics(remote, formIdPedido);
         })
         .catch(() => {
           // Si el endpoint falla no rompemos la UI — los locales son suficientes.
@@ -1160,24 +1173,25 @@ export default function XlsformEditorPage() {
     return () => {
       if (validateTimerRef.current) clearTimeout(validateTimerRef.current);
     };
-  }, [workbook]);
+  }, [workbook, setRemoteDiagnostics]);
 
-  // Merge local + remote, deduplicando por id (los locales pueden coincidir
-  // con los remotos en patrones obvios — preferimos los del cliente porque
-  // se calculan al vuelo y son más frescos).
-  const diagnostics = useMemo<BuilderDiagnostic[]>(() => {
-    const seen = new Set<string>();
-    const out: BuilderDiagnostic[] = [];
-    for (const d of localDiagnostics) {
-      seen.add(d.id);
-      out.push(d);
+  // Una sola lista para el punto de la Estructura, el filtro «Con aviso» y la cabecera (I1): lo que el servidor
+  // repite de lo local (con otra lectura de las listas o con otro id) no entra dos veces.
+  const diagnostics = useMemo<BuilderDiagnostic[]>(
+    () => fusionarDiagnosticos(localDiagnostics, remoteDiagnostics),
+    [localDiagnostics, remoteDiagnostics],
+  );
+  // Marca de aviso en cada fila de la Estructura (C22). Contrato con la ficha: no cambiar la forma.
+  const avisosPorFila = useMemo(() => {
+    const out = new Map<number, AvisoFila[]>();
+    for (const d of diagnostics) {
+      if (d.rowIndex == null || d.level === "info") continue;
+      const lista = out.get(d.rowIndex) ?? [];
+      lista.push({ nivel: d.level, titulo: d.title });
+      out.set(d.rowIndex, lista);
     }
-    for (const d of remoteDiagnostics) {
-      if (seen.has(d.id)) continue;
-      out.push(d);
-    }
-    return out;
-  }, [localDiagnostics, remoteDiagnostics]);
+    return out as ReadonlyMap<number, AvisoFila[]>;
+  }, [diagnostics]);
   useActivePublicationRefresh(workbook ? activeFormId : null, lastSavedAt, refreshBackendFormIndex);
   const listasPanel = useListasOpcionesPanel();
   // 2026-10-16: el catálogo es la pestaña «Listas de opciones». Lo que abría el panel lateral o el diálogo lleva ahí,
@@ -2211,6 +2225,19 @@ export default function XlsformEditorPage() {
     else addQuestion(kind, afterRowIndex, reuseListName);
   }
 
+  /** «+» de la Estructura (C18): inserta la pieza en el lugar exacto y la deja elegida. */
+  function insertarDesdeEstructura(destino: DestinoInsercion, baseType: string) {
+    if (!workbook || !structure) return;
+    let resultado: ReturnType<typeof insertarEn> | null = null;
+    updateWorkbook((draft) => {
+      resultado = insertarEn(draft, structure, destino, baseType, { listasExistentes: catalogs.map((c) => c.listName) });
+    });
+    const r = resultado as ReturnType<typeof insertarEn> | null;
+    if (!r) return;
+    if (r.listName) setCatalogFocus(r.listName);
+    selectBuilderFocus({ kind: "survey", rowIndex: r.rowIndex });
+  }
+
   /**
    * Clona el catálogo asignado a una pregunta a un listName nuevo y
    * reasigna el `type` de la pregunta. Se invoca desde
@@ -2291,7 +2318,7 @@ export default function XlsformEditorPage() {
 
   /**
    * Aplica un plan de drag-drop calculado por el outline. El plan ya valida
-   * que el destino sea legal (ver `outline/outlineUtils.ts::computeRowMove`)
+   * que el destino sea legal (ver `outline/modeloEstructura.ts::planMoverA`)
    * y trae el rango fuente, count y posición de inserción ajustada.
    */
   function mapSurveyRowAfterMove(rowIndex: number, plan: RowMovePlan): number {
@@ -2330,11 +2357,14 @@ export default function XlsformEditorPage() {
     }
   }
 
-  function moveSelection(direction: "up" | "down") {
-    if (!workbook || !selection || selection.kind !== "survey" || !structure) return;
-    const currentRow = selection.rowIndex;
+  /** Mueve la fila elegida (o `rowIndex`, desde el teclado de la Estructura) un lugar entre sus hermanas. */
+  function moveSelection(direction: "up" | "down", rowIndex?: number) {
+    if (!workbook || !structure) return;
+    if (rowIndex == null && (!selection || selection.kind !== "survey")) return;
+    const currentRow = rowIndex ?? (selection?.kind === "survey" ? selection.rowIndex : -1);
     const currentSpan = structure.spans.get(currentRow);
-    const targetRow = direction === "up" ? movement.prevRow : movement.nextRow;
+    const vecinas = rowIndex == null ? movement : getSiblingRows(structure, currentRow);
+    const targetRow = direction === "up" ? vecinas.prevRow : vecinas.nextRow;
     const targetSpan = targetRow != null ? structure.spans.get(targetRow) : null;
     if (!currentSpan || !targetSpan || targetRow == null) return;
 
@@ -2619,127 +2649,17 @@ export default function XlsformEditorPage() {
     return <Ico size={16} color={accent} />;
   };
 
+  // Un solo catálogo de tipos (outline/tiposInsertables.ts) para este menú y el «+» de la Estructura; aquí se suma
+  // el cierre suelto de sección, que en la Estructura no existe (el cierre es el borde de la sección).
   const addMenuItems: AddMenuItem[] = [
-    {
-      key: "text",
-      label: "Pregunta abierta",
-      hint: "Respuesta escrita libre.",
-      icon: addMenuIcon("text"),
-      action: () => addQuestion("text"),
-      group: "capture",
-    },
-    {
-      key: "integer",
-      label: "Número entero",
-      hint: "Edad, cantidad o puntaje.",
-      icon: addMenuIcon("integer"),
-      action: () => addQuestion("integer"),
-      group: "capture",
-    },
-    {
-      key: "decimal",
-      label: "Número decimal",
-      hint: "Monto, proporción o medida.",
-      icon: addMenuIcon("decimal"),
-      action: () => addQuestion("decimal"),
-      group: "capture",
-    },
-    {
-      key: "date",
-      label: "Fecha",
-      hint: "Día, mes y año.",
-      icon: addMenuIcon("date"),
-      action: () => addQuestion("date"),
-      group: "capture",
-    },
-    {
-      key: "select_one",
-      label: "Selección única",
-      hint: "Una respuesta de una lista.",
-      icon: addMenuIcon("select_one"),
-      action: () => addQuestion("select_one"),
-      group: "choices",
-    },
-    {
-      key: "select_multiple",
-      label: "Selección múltiple",
-      hint: "Varias respuestas de una lista.",
-      icon: addMenuIcon("select_multiple"),
-      action: () => addQuestion("select_multiple"),
-      group: "choices",
-    },
-    {
-      key: "image",
-      label: "Foto o imagen",
-      hint: "Foto desde la cámara o la galería.",
-      icon: addMenuIcon("image"),
-      action: () => addQuestion("image"),
-      group: "evidence",
-    },
-    {
-      key: "audio",
-      label: "Audio",
-      hint: "Grabación de voz.",
-      icon: addMenuIcon("audio"),
-      action: () => addQuestion("audio"),
-      group: "evidence",
-    },
-    {
-      key: "video",
-      label: "Video",
-      hint: "Clip de video.",
-      icon: addMenuIcon("video"),
-      action: () => addQuestion("video"),
-      group: "evidence",
-    },
-    {
-      key: "file",
-      label: "Archivo",
-      hint: "Documento adjunto.",
-      icon: addMenuIcon("file"),
-      action: () => addQuestion("file"),
-      group: "evidence",
-    },
-    {
-      key: "barcode",
-      label: "Código de barras",
-      hint: "Escaneo de código o QR.",
-      icon: addMenuIcon("barcode"),
-      action: () => addQuestion("barcode"),
-      group: "evidence",
-    },
-    {
-      key: "geopoint",
-      label: "Punto GPS",
-      hint: "Coordenadas GPS.",
-      icon: addMenuIcon("geopoint"),
-      action: () => addQuestion("geopoint"),
-      group: "evidence",
-    },
-    {
-      key: "note",
-      label: "Nota informativa",
-      hint: "Texto visible sin respuesta.",
-      icon: addMenuIcon("note"),
-      action: () => addQuestion("note"),
-      group: "logic",
-    },
-    {
-      key: "calculate",
-      label: "Cálculo",
-      hint: "Valor calculado con una fórmula.",
-      icon: addMenuIcon("calculate"),
-      action: () => addQuestion("calculate"),
-      group: "logic",
-    },
-    {
-      key: "section",
-      label: "Sección",
-      hint: "Grupo de preguntas con inicio y cierre.",
-      icon: addMenuIcon("begin_group"),
-      action: addSection,
-      group: "logic",
-    },
+    ...TIPOS_INSERTABLES.map((t): AddMenuItem => ({
+      key: t.key,
+      label: t.label,
+      hint: t.hint,
+      icon: addMenuIcon(t.base),
+      action: t.key === "section" ? addSection : () => addQuestion(t.base),
+      group: t.group,
+    })),
     {
       key: "section_end",
       label: "Cerrar sección",
@@ -2967,17 +2887,20 @@ export default function XlsformEditorPage() {
                   >
                     <div className="pulso-xlsform-outline-chrome">
                       <div>
-                        <span className="pulso-section-eyebrow">Outline maestro</span>
                         <strong>Estructura</strong>
-                        <small>{formatFieldSectionPair(suiteMetrics.fields, suiteMetrics.sections)}</small>
+                        <small>{subtituloEstructura(suiteMetrics.fields, suiteMetrics.sections)}</small>
                       </div>
                       <div className="pulso-xlsform-outline-actions" style={{ position: "relative" }}>
                         <button
                           ref={addMenuButtonRef}
                           type="button"
                           className="pulso-icon"
-                          onClick={() => setShowAddMenu((value) => !value)}
+                          onClick={(e) => {
+                            addMenuButtonRef.current = e.currentTarget;
+                            setShowAddMenu((value) => !value);
+                          }}
                           title="Añadir pieza (Cmd/Ctrl+N)"
+                          aria-label="Añadir pieza"
                         >
                           <Plus size={14} />
                         </button>
@@ -3000,6 +2923,36 @@ export default function XlsformEditorPage() {
                         canMoveUp={!!movement.prevRow}
                         canMoveDown={!!movement.nextRow}
                         onApplyMove={applyOutlineMove}
+                        avisosPorFila={avisosPorFila}
+                        onInsertar={insertarDesdeEstructura}
+                        onMoverFila={(rowIndex, direccion) => moveSelection(direccion, rowIndex)}
+                        formularioId={activeFormId}
+                        accionBarra={
+                          // En pantallas bajas la cabecera «Estructura» se esconde para dar alto a la lista (I2) y
+                          // «Añadir pieza» pasa a la barra de búsqueda.
+                          <button
+                            type="button"
+                            className="xfe-barra__icono xfe-barra__solo-bajo"
+                            onClick={(e) => {
+                              addMenuButtonRef.current = e.currentTarget;
+                              setShowAddMenu((value) => !value);
+                            }}
+                            title="Añadir pieza (Cmd/Ctrl+N)"
+                            aria-label="Añadir pieza"
+                          >
+                            <Plus size={14} aria-hidden="true" />
+                          </button>
+                        }
+                        limiteSeccion={
+                          sectionBoundary
+                            ? {
+                                puedeIncluir: sectionBoundary.canIncludeNext,
+                                puedeSacar: sectionBoundary.canReleaseLast,
+                                onIncluirSiguiente: includeNextInSelectedSection,
+                                onSacarUltima: releaseLastFromSelectedSection,
+                              }
+                            : undefined
+                        }
                       />
                     </ProveedorReglas>
                   </Panel>

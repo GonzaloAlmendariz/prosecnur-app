@@ -34,4 +34,9 @@ describe("resumen de la pregunta en el Constructor", () => {
   test("cuatro contenedores, siempre", () => {
     expect(render(base).match(/class="xfk-card[ "]/g)?.length).toBe(4);
   });
+  test("el aviso de comillas tipográficas se muestra (viaja en `aviso`, no en la frase)", () => {
+    const html = render({ ...base, typeInfo: { raw: "integer", base: "integer", listName: "" }, constraint: ". > ‘5’", relevant: "${nombres} = ‘a’" });
+    expect(html).toContain("Aviso");
+    expect(html).toMatch(/comillas/i);
+  });
 });

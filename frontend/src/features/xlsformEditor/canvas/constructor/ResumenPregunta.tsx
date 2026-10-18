@@ -39,6 +39,8 @@ export function ResumenPregunta({ node, section, choices, catalogUsageCount, cat
   const heredadas = conditionalContext?.ancestorRelevants ?? [];
   const propia = node.relevant.trim();
   const validacion = esNota ? null : describeValidation(node.constraint, node, logicScope);
+  // El aviso de una lectura (p. ej. comillas tipográficas) viaja en `aviso`, aparte de la frase (`summary`).
+  const lecturaPropia = propia ? describeExpression(propia, logicScope) : null;
   const dinamica = node.typeInfo.listName ? esDinamica(node.typeInfo.listName) : null;
   const etiquetaDe = (name: string) => stripMarkdown(logicScope.variables.find((v) => v.name === name)?.label || name);
   const opcionesTexto = dinamica
@@ -67,7 +69,8 @@ export function ResumenPregunta({ node, section, choices, catalogUsageCount, cat
           {propia ? (
             <>
               <span className="xfr-propia__tit">Condición propia</span>
-              <span>{describeExpression(propia, logicScope).summary}</span>
+              <span>{lecturaPropia?.summary}</span>
+              {lecturaPropia?.aviso ? <span className="xfr-propia__aviso" role="note">Aviso: {lecturaPropia.aviso}</span> : null}
             </>
           ) : (
             <span className="xfr-propia__nada">{heredadas.length ? "Sin condición propia: aparece cuando aparece su sección." : "Sin condición: se muestra a todas las personas."}</span>
@@ -80,6 +83,7 @@ export function ResumenPregunta({ node, section, choices, catalogUsageCount, cat
           <PropRow label="Obligatoria">{esNota ? "No aplica" : node.required ? (heredadas.length || propia ? "Sí, cuando aparece" : "Sí") : "No"}</PropRow>
           <PropRow label="Restricción">{esNota ? "No aplica" : node.constraint.trim() ? (validacion?.technical ? "Fórmula propia" : "Regla guiada") : "Ninguna"}</PropRow>
           <PropRow label="Mensaje">{node.constraint_message?.trim() ? stripMarkdown(node.constraint_message) : node.constraint.trim() ? "Falta: verá un aviso genérico" : "—"}</PropRow>
+          {validacion?.aviso ? <PropRow label="Aviso">{validacion.aviso}</PropRow> : null}
         </div>
       </PanelCard>
 

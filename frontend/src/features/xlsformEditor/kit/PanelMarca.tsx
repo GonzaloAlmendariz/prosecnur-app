@@ -20,6 +20,46 @@ export type PanelMarcaProps = {
 const MARGEN = 16;
 const SEPARACION = 10;
 
+export type PosicionPanel = {
+  lado: "abajo" | "arriba";
+  left: number;
+  /** Borde superior en la ventana (abriendo hacia abajo). */
+  top: number;
+  /** Borde inferior en la ventana (abriendo hacia arriba). */
+  fondo: number;
+  /** Alto máximo cuando el panel no cabe entero en ningún lado: se desplaza por dentro. */
+  maxAlto: number | null;
+};
+
+/**
+ * Dónde abre el panel (S9, 2026-10-17). Abajo si cabe; si no, arriba si cabe; si no cabe en ningún lado, del lado con
+ * más espacio y con el alto limitado a ese espacio (scroll propio). Siempre a 10 px de la casilla y a 16 px de los
+ * bordes de la ventana, con la flecha apuntando al centro de la casilla.
+ */
+export function posicionPanel({
+  ancla,
+  alto,
+  ancho,
+  vw,
+  vh,
+}: {
+  ancla: { top: number; bottom: number; centro: number };
+  alto: number;
+  ancho: number;
+  vw: number;
+  vh: number;
+}): PosicionPanel {
+  const left = Math.max(MARGEN, Math.min(ancla.centro - ancho / 2, vw - ancho - MARGEN));
+  const top = ancla.bottom + SEPARACION;
+  const fondo = ancla.top - SEPARACION;
+  const espacioAbajo = vh - MARGEN - top;
+  const espacioArriba = fondo - MARGEN;
+  if (alto <= espacioAbajo) return { lado: "abajo", left, top, fondo, maxAlto: null };
+  if (alto <= espacioArriba) return { lado: "arriba", left, top, fondo, maxAlto: null };
+  const lado = espacioAbajo >= espacioArriba ? "abajo" : "arriba";
+  return { lado, left, top, fondo, maxAlto: Math.max(0, Math.floor(lado === "abajo" ? espacioAbajo : espacioArriba)) };
+}
+
 /**
  * Dónde caen, en la ventana, los bordes izquierdo, superior e inferior del bloque contenedor de `position: fixed`
  * para los hermanos de `el` (la ventana, salvo que un ancestro con transform o filter cree uno propio).
@@ -53,27 +93,26 @@ export function PanelMarca({ ancla, tono, etiquetaId, visible, onCerrar, childre
     const r = { top: cy - medio, bottom: cy + medio, centro: cx };
     const ancho = Math.min(360, window.innerWidth - MARGEN * 2);
     el.style.width = `${ancho}px`;
-    // offsetHeight ignora el transform de entrada (escala .97), así que mide el alto final del panel.
-    const alto = el.offsetHeight;
-    let left = r.centro - ancho / 2;
-    left = Math.max(MARGEN, Math.min(left, window.innerWidth - ancho - MARGEN));
-    const abajo = r.bottom + alto + SEPARACION + 2 < window.innerHeight || r.top - alto - SEPARACION < MARGEN;
+    // Sin tope previo: se mide el alto natural del panel. offsetHeight ignora el transform de entrada (escala .97).
+    el.style.removeProperty("--xfk-pop-max");
+    const pos = posicionPanel({ ancla: r, alto: el.offsetHeight, ancho, vw: window.innerWidth, vh: window.innerHeight });
+    if (pos.maxAlto != null) el.style.setProperty("--xfk-pop-max", `${pos.maxAlto}px`);
 
     // Si un ancestro crea su propio bloque contenedor (transform, filter), `fixed` no mide desde la ventana. El
     // origen se mide con un sondeo de ancho cero hermano del panel: el transform de entrada del propio panel no
     // lo desplaza, así que la corrección es exacta.
     const origen = origenFijo(el);
-    el.style.left = `${left - origen.x}px`;
+    el.style.left = `${pos.left - origen.x}px`;
     // Abriendo hacia arriba se ancla por el borde inferior: el hueco no depende de redondear el alto del panel.
-    if (abajo) {
-      el.style.top = `${r.bottom + SEPARACION - origen.y}px`;
+    if (pos.lado === "abajo") {
+      el.style.top = `${pos.top - origen.y}px`;
       el.style.bottom = "";
     } else {
       el.style.top = "auto";
-      el.style.bottom = `${origen.abajo - (r.top - SEPARACION)}px`;
+      el.style.bottom = `${origen.abajo - pos.fondo}px`;
     }
-    el.dataset.lado = abajo ? "abajo" : "arriba";
-    el.style.setProperty("--xfk-flecha", `${r.centro - left}px`);
+    el.dataset.lado = pos.lado;
+    el.style.setProperty("--xfk-flecha", `${r.centro - pos.left}px`);
   }, [ancla]);
 
   useEffect(() => {

@@ -11,19 +11,53 @@ import { INFO_MARCA, VACIO_MARCA, claveVisible, tieneCasilla, type CasillaRiel, 
 // en reglas/piezas.ts): si el motor no traduce una regla, el panel lo dice y muestra el código. Nunca se escribe una
 // frase propia por regla.
 
-const corto = (t: string, n = 34) => {
+/** Recorte para un rótulo en prosa: corta en el último espacio antes del límite, nunca a mitad de palabra (M5). */
+export const corto = (t: string, n = 34) => {
   const x = stripMarkdown(t).replace(/\s+/g, " ").trim();
-  return x.length > n ? `${x.slice(0, n - 1)}…` : x;
+  if (x.length <= n) return x;
+  const corte = x.lastIndexOf(" ", n - 1);
+  return `${x.slice(0, corte > n * 0.5 ? corte : n - 1).replace(/[\s,.;:¿¡(«-]+$/, "")}…`;
 };
 
+/**
+ * Chip de una pregunta u opción citada. El texto largo se recorta con elipsis de CSS (el completo va en el tooltip),
+ * y sin etiqueta el chip es el código UNA vez: antes un cálculo sin etiqueta mostraba su código recortado y, al lado,
+ * el código entero (M5).
+ */
 function Chip({ etiqueta, codigo }: { etiqueta: string; codigo: string }) {
-  const visible = corto(etiqueta || codigo);
+  const texto = stripMarkdown(etiqueta).replace(/\s+/g, " ").trim();
+  const conTexto = texto !== "" && texto !== codigo;
   return (
-    <span className="xfk-pop__ref" title={stripMarkdown(etiqueta) || codigo}>
-      {visible}
-      {codigo && codigo !== visible ? <code>{codigo}</code> : null}
+    <span className="xfk-pop__ref" title={conTexto ? `${tituloPlano(texto)} · ${codigo}` : codigo}>
+      {conTexto ? <span className="xfk-pop__ref-txt"><TituloLegible texto={texto} /></span> : null}
+      {codigo ? <code className={conTexto ? undefined : "is-solo"}>{codigo}</code> : null}
     </span>
   );
+}
+
+const REF = /\$\{\s*([^}\s]+)\s*\}/g;
+
+/** Un título con `${x}` adentro: cada referencia se cita como chip (su código), nunca como `${x}` crudo (M5). */
+export function TituloLegible({ texto }: { texto: string }) {
+  const limpio = stripMarkdown(texto).replace(/\s+/g, " ").trim();
+  const partes: ReactNode[] = [];
+  let desde = 0;
+  for (const m of limpio.matchAll(REF)) {
+    const i = m.index ?? 0;
+    if (i > desde) partes.push(limpio.slice(desde, i));
+    partes.push(<code key={i} className="xfk-pop__var">{m[1]}</code>);
+    desde = i + m[0].length;
+  }
+  if (desde < limpio.length) partes.push(limpio.slice(desde));
+  return <>{partes}</>;
+}
+
+/** El mismo título en texto plano (tooltip, nombre accesible): `${x}` pasa a «etiqueta de x» o, sin ella, a «x». */
+export function tituloPlano(texto: string, etiquetaDe?: (name: string) => string | null | undefined): string {
+  return stripMarkdown(texto)
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(REF, (_m, n: string) => `«${(etiquetaDe?.(n) ?? "").trim() || n}»`);
 }
 
 export function PiezasLectura({ piezas }: { piezas: readonly Pieza[] }) {
@@ -78,7 +112,8 @@ export type CuerpoPanelMarcaProps = {
 export function CuerpoPanelMarca({ clave, marcas, nodo, scope, idTitulo, onCerrar }: CuerpoPanelMarcaProps) {
   const kk = claveVisible(marcas, clave);
   const info = INFO_MARCA[kk];
-  const titulo = stripMarkdown(nodo.label) || nodo.name;
+  const etiqueta = stripMarkdown(nodo.label).trim();
+  const titulo = etiqueta || nodo.name;
   const leer = (col: ColumnaRegla, raw: string, n: BuilderNode = nodo) => leerRegla(col, raw, n, scope);
   const partes: ReactNode[] = [];
   const lineas: string[] = [];
@@ -142,7 +177,7 @@ export function CuerpoPanelMarca({ clave, marcas, nodo, scope, idTitulo, onCerra
         <span className="xfk-pop__icono"><GlifoMarca clave={kk} size={16} /></span>
         <span className="xfk-pop__titulos">
           <span className="xfk-pop__tipo" id={idTitulo}>{info.nombre}</span>
-          <span className="xfk-pop__preg" title={titulo}>{titulo}</span>
+          <span className="xfk-pop__preg" title={tituloPlano(titulo)}>{etiqueta ? <TituloLegible texto={etiqueta} /> : <code className="xfk-pop__var">{nodo.name}</code>}</span>
         </span>
         <button type="button" className="xfk-pop__x" aria-label="Cerrar" onClick={onCerrar}>×</button>
       </header>

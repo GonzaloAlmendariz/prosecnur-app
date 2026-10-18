@@ -2,6 +2,8 @@ import { useCallback, useMemo } from "react";
 import { Plus } from "../../../vendor/lucide-react";
 import { enriquecerAlcance, type LogicScope } from "../logic";
 import { DONDE_SE_USA, indiceDeUsos } from "../logic/usos";
+import { tituloPlano } from "../kit/CuerpoPanelMarca";
+import { stripMarkdown } from "../helpers/markdown";
 import type { BuilderStructure } from "../types";
 import { describeExpression } from "../canvas/reglasHumanas";
 import { PanelCard, QuestionToken, ReadsAs, TypeIcon } from "../kit";
@@ -39,6 +41,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
   );
   const actual = items.find((i) => i.node.name === seleccionada) ?? items[0] ?? null;
   const porNombre = (name: string) => structure?.outline.find((n) => n.name === name) ?? null;
+  const etiquetaDe = (name: string) => stripMarkdown(porNombre(name)?.label ?? "");
   const numero = (n: { paperNumber?: string; name: string }) => n.paperNumber || n.name;
   const grupos: ReglaListaGrupo[] = [
     {
@@ -105,8 +108,11 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
                 <ul className="xfp-usos">
                   {actual.loUsan.map((u) => (
                     <li key={`${u.node.rowIndex}-${u.columna}-${u.opcion?.valor ?? ""}`}>
-                      <QuestionToken baseType={u.node.typeInfo.base} label={numero(u.node)} hint={u.node.label} variable={u.node.name} />
-                      <span className="xfp-usos__col">{u.opcion ? `en la opción «${u.opcion.etiqueta}»` : DONDE_SE_USA[u.columna]}</span>
+                      <QuestionToken baseType={u.node.typeInfo.base} label={numero(u.node)} hint={tituloPlano(u.node.label, etiquetaDe)} variable={u.node.name} />
+                      {/* M2: el sufijo es corto para no comerse el título; qué opción, en el tooltip y sin `${x}` crudo. */}
+                      <span className="xfp-usos__col" title={u.opcion ? `En la opción «${tituloPlano(u.opcion.etiqueta, etiquetaDe)}» de la lista ${u.opcion.lista}` : undefined}>
+                        {DONDE_SE_USA[u.columna]}
+                      </span>
                     </li>
                   ))}
                 </ul>

@@ -19,10 +19,13 @@ export function AddElementMenu({
   items,
   anchorElement,
   onClose,
+  destino,
 }: {
   items: AddMenuItem[];
   anchorElement: HTMLElement | null;
   onClose: () => void;
+  /** Dónde cae la pieza («Se agrega debajo de «…»»). Opcional: sin él, el menú se ve como siempre. */
+  destino?: string;
 }) {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [query, setQuery] = useState("");
@@ -121,6 +124,7 @@ export function AddElementMenu({
       role="dialog"
       aria-modal="true"
       aria-labelledby="pulso-add-element-menu-title"
+      aria-describedby={destino ? "pulso-add-element-menu-destino" : undefined}
     >
       <div className="pulso-add-element-menu-head">
         <span className="pulso-add-element-menu-mark" aria-hidden="true">
@@ -128,7 +132,11 @@ export function AddElementMenu({
         </span>
         <span className="pulso-add-element-menu-head-copy">
           <strong id="pulso-add-element-menu-title">Añadir pieza al formulario</strong>
-          <small>Busca por tipo, evidencia, lógica o lista; Enter aplica la opción enfocada.</small>
+          {destino ? (
+            <small id="pulso-add-element-menu-destino" className="pulso-add-element-menu-destino" data-destino="">{destino}</small>
+          ) : (
+            <small>Busca por tipo, evidencia, lógica o lista; Enter aplica la opción enfocada.</small>
+          )}
         </span>
         <button
           type="button"

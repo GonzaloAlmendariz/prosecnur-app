@@ -112,3 +112,14 @@ S17, I7) + subpestañas (S6 geometría, S11–S16, S18, C27 filtro por opción).
 
 - Cobertura de lectura tras S1–S8 en los seis formularios tipo: relevant 1117/1117, calculation 207/207, constraint 318/318, choice_filter 22/22, required 1/1 (la fila rota se lee como rota).
 - Pendientes que deja el motor: ampliar el contrato `piezas.ts` con `avisos?` y `rota?` (hoy van como piezas de texto); `ChoiceFilterCard.tsx` y `ProbarCalculo.tsx` («Se calcula en el teléfono» para choice-name, join y sum); sitios que leen sin la fila: FocusedWorkspace, ObligatoriaControl, ResumenPregunta, TabRespuesta, ValidacionPaneles, BarraFormula y el chip compacto del Mapa. Van a la oleada 2.
+
+## Generalidad y armado de patrones (Gonzalo, 2026-10-17)
+
+«¿No te parece que estás generando redacción muy específica para un tipo de formulario cuando esta app va a recibir
+XLSForms de todo tipo?» y «Todos estos regex conocidos y útiles nos van a servir sobremanera para tener una forma
+didáctica en la UI de poder armarlos».
+
+| # | Indicación | Dónde vive | Estado |
+|---|---|---|---|
+| G1 | Auditoría de generalidad del motor: corpus variado (proyectos de referencia, formularios tipo, importados de SurveyMonkey, plantillas públicas de Kobo/ODK con pulldata, jr:choice-name, coalesce, once, position, cascadas de 3 niveles). Medir por columna: traducidas, «no la traduce» honesto con su código, y lecturas falsas (meta 0). Pruebas que no dependan del ACNUR | `reglas/motor/`, corpus fuera del repo | pendiente: propuesto, espera visto bueno. Revisado en código: el motor no tiene frases por formulario (dos fijas: fila rota y comillas), el ACNUR sólo aparece en comentarios; el riesgo real es que 5 suites dependen del ACNUR y los patrones salieron del corpus que ya había |
+| G2 | Armar patrones de forma didáctica en Restricciones: galería de formatos comunes y genéricos (DNI 8 dígitos, celular de 9 que empieza en 9, RUC 11, año, hora HH:MM, correo, solo letras con tildes, código «2 letras + 4 dígitos») más un armador por bloques (dígitos × N, letras, separador, «uno de estos»), con la frase del motor en vivo y prueba con ejemplos que pasan y que no | `pestanas/` (Restricciones), lectura con `reglas/motor/regex.ts` | pendiente: propuesta HTML primero. Una sola fuente: el armador produce el regex y el MISMO lector (`regex.ts`, analizador, no lista de patrones) lo traduce, así lo que se arma y lo que se lee nunca divergen. La galería es de formatos genéricos, nunca de un formulario. Ojo con el dialecto: ODK usa regex de Java, el lector hoy rechaza `\w`, `\s` y clases negadas (las devuelve como técnicas) |
