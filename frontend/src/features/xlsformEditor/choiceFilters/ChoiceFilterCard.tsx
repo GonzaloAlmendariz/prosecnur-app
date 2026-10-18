@@ -15,6 +15,7 @@
 import { useState, type ReactNode } from "react";
 import { ArrowRight, ChevronRight, Filter } from "../../../vendor/lucide-react";
 import type { ChoiceFilterCard as Card } from "./buildChoiceFilterModel";
+import { TituloLegible } from "../kit/CuerpoPanelMarca";
 
 type Props = {
   card: Card;
@@ -31,10 +32,10 @@ function Antecedente({ rowIndex, label, onElegir, esElegible }: {
   onElegir?: (rowIndex: number) => void;
   esElegible?: (rowIndex: number) => boolean;
 }) {
-  if (rowIndex == null || !onElegir || !esElegible?.(rowIndex)) return <span>{label}</span>;
+  if (rowIndex == null || !onElegir || !esElegible?.(rowIndex)) return <span><TituloLegible texto={label} /></span>;
   return (
     <button type="button" className="pulso-xcf-jump" onClick={() => onElegir(rowIndex)} title="Ver el filtro de esta pregunta">
-      {label}
+      <TituloLegible texto={label} />
       <ChevronRight size={11} aria-hidden="true" />
     </button>
   );
@@ -53,7 +54,7 @@ export function ChoiceFilterCard({ card, onElegirAntecedente, esElegible, pie }:
           <span className="pulso-xcf-title-icon" aria-hidden="true">
             <Filter size={15} />
           </span>
-          <span className="pulso-xcf-title-text">{card.questionLabel}</span>
+          <span className="pulso-xcf-title-text"><TituloLegible texto={card.questionLabel} /></span>
           {card.questionCode ? (
             <span className="pulso-xcf-code" aria-hidden="true">
               {card.questionCode}
@@ -61,6 +62,8 @@ export function ChoiceFilterCard({ card, onElegirAntecedente, esElegible, pie }:
           ) : null}
         </h3>
         <p className="pulso-xcf-explanation">{card.explanation}</p>
+        {/* El aviso del motor (comillas tipográficas…) va aparte de la frase, igual que en el detalle sin respuestas. */}
+        {card.aviso ? <p className="pulso-xcf-explanation pulso-xcf-aviso-motor" role="note">{card.aviso}</p> : null}
       </header>
 
       {card.mode === "matrix" && card.pairs.length > 0 ? (
@@ -87,7 +90,7 @@ export function ChoiceFilterCard({ card, onElegirAntecedente, esElegible, pie }:
                   <td className="pulso-xcf-cell-arrow" aria-hidden="true">
                     <ArrowRight size={14} />
                   </td>
-                  <td className="pulso-xcf-cell-option">{pair.optionLabel}</td>
+                  <td className="pulso-xcf-cell-option"><TituloLegible texto={pair.optionLabel} /></td>
                 </tr>
             ))}
           </tbody>

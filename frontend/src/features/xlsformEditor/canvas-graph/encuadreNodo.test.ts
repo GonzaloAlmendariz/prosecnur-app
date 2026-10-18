@@ -1,5 +1,5 @@
-import { describe, expect, test } from "vitest";
-import { desplazamientoParaMostrar } from "./encuadreNodo";
+import { describe, expect, it, test } from "vitest";
+import { desplazamientoParaMostrar, seccionesQueContienen } from "./encuadreNodo";
 
 // Lienzo de 1000 x 600 cuyo tercio derecho tapa el panel del nodo: el área útil son los 700 px de la izquierda.
 const AREA = { x: 0, y: 0, ancho: 700, alto: 600 };
@@ -19,5 +19,20 @@ describe("encuadre del nodo elegido en el Mapa", () => {
 
   test("un nodo más ancho que el área alinea su comienzo", () => {
     expect(desplazamientoParaMostrar({ x: 400, y: 100, ancho: 900, alto: 88 }, AREA, 32)).toEqual({ dx: -368, dy: 0 });
+  });
+});
+
+describe("secciones que contienen al nodo (S11)", () => {
+  const raices = [
+    { id: "q:1", children: [] },
+    { id: "q:2", children: [{ id: "q:3", children: [{ id: "q:4", children: [] }] }, { id: "q:5", children: [] }] },
+  ];
+  it("devuelve el camino de secciones, de afuera hacia adentro", () => {
+    expect(seccionesQueContienen(raices, "q:4")).toEqual(["q:2", "q:3"]);
+    expect(seccionesQueContienen(raices, "q:5")).toEqual(["q:2"]);
+  });
+  it("un nodo raíz o inexistente no abre nada", () => {
+    expect(seccionesQueContienen(raices, "q:1")).toEqual([]);
+    expect(seccionesQueContienen(raices, "q:9")).toEqual([]);
   });
 });

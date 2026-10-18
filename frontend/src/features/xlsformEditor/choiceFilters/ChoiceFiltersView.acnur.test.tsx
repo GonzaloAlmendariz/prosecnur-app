@@ -28,3 +28,14 @@ describe("Filtros con el ACNUR", () => {
     expect(html).not.toContain("Depende de las respuestas a:");
   });
 });
+
+describe("S15: todo filtro se puede editar", () => {
+  it("REF16 (condición + opciones fijas) ofrece «Editar filtro»", () => {
+    const html = renderToStaticMarkup(
+      <ChoiceFiltersView open structure={A.structure} choicesColumns={A.workbook.choices.columns} choicesRows={A.workbook.choices.rows}
+        seleccionada="REF16" onSeleccionar={() => {}} onEditar={() => {}} workbook={A.workbook} onWorkbookChange={() => {}} />,
+    );
+    expect(html).toContain("Editar filtro");
+    expect(html).not.toContain("No hay un filtro en");
+  });
+});

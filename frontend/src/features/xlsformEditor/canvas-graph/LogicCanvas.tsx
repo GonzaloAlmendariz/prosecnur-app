@@ -49,7 +49,7 @@ import { CanvasToolbar } from "./CanvasToolbar";
 import { ConnectionConditionPicker } from "./ConnectionConditionPicker";
 import { GraphEdgeArrow, GraphEdgeMarkers } from "./GraphEdgeArrow";
 import { DetalleNodo, compactTitle, nodeDisplayName } from "./DetalleNodo";
-import { desplazamientoParaMostrar } from "./encuadreNodo";
+import { desplazamientoParaMostrar, seccionesQueContienen } from "./encuadreNodo";
 import "../styles/xfGraph";
 import { splitLogicalGroups, splitTopLevelLogical, stripOuterParens, summarizeSameVariableOptions, nameToRef, humanizeRelevantWithLabels } from "./logicaTexto";
 import type { LabelLookup, VarTitleLookup } from "./logicaTexto";
@@ -324,34 +324,14 @@ export function LogicCanvas({
     setConfirmingDelete(false);
   }, [selectedEdgeIdx]);
 
-  // Al seleccionar un nodo, si su card no se ve completa —fuera del lienzo o
-  // bajo el panel del nodo, que se superpone arriba a la derecha—, el lienzo
-  // se desplaza lo justo para dejarla entera a la izquierda del panel, con
-  // aire. Si ya se ve, no se mueve (`encuadreNodo.ts`).
-  useEffect(() => {
-    if (!selectedId || !layout || !svgRef.current) return;
-    const n = layout.nodes.find((nd) => nd.node.id === selectedId && nd.visible);
-    if (!n) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const panel = svgRef.current.closest(".pulso-graph-body")?.querySelector(".pulso-graph-detail");
-    const panelIzq = panel ? panel.getBoundingClientRect().left - rect.left : rect.width;
-    const nodo = { x: n.x * zoom + pan.x, y: n.y * zoom + pan.y, ancho: n.width * zoom, alto: Math.min(n.height, 88) * zoom };
-    const mover = desplazamientoParaMostrar(nodo, { x: 0, y: 0, ancho: Math.max(0, panelIzq), alto: rect.height }, 40);
-    if (mover) {
-      triggerSmooth();
-      setPan((p) => ({ x: p.x + mover.dx, y: p.y + mover.dy }));
-    }
-    // Solo al cambiar la selección: pan/zoom se leen del closure actual a
-    // propósito (no queremos re-centrar en cada pan).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId]);
 
-  // Reset al abrir.
+  // Reset al abrir. Si se llega con `foco` (un enlace desde otra pestaña), la selección se conserva: antes el reset la
+  // borraba en el mismo ciclo y el detalle no se abría (S11).
   useEffect(() => {
     if (open) {
       setZoom(1);
       setPan({ x: 0, y: 0 });
-      setSelectedId(null);
+      setSelectedId(seleccionFila != null ? `q:${seleccionFila}` : null);
       setExpandedSections(new Set());
       setNodePositions(new Map());
       setSnapToGrid(false);
@@ -361,6 +341,7 @@ export function LogicCanvas({
       setLegendOpen(false);
       setSelectedEdgeIdx(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // El grafo y su layout pueden ser caros para formularios grandes (RMS:
@@ -372,10 +353,47 @@ export function LogicCanvas({
     return buildLogicGraph(structure, catalogs);
   }, [open, structure, catalogs]);
 
+  // El nodo elegido dentro de secciones plegadas las despliega: un `foco` a EDU05 lo deja a la vista (S11).
+  useEffect(() => {
+    if (!graph || !selectedId) return;
+    const faltan = seccionesQueContienen(graph.rootNodes, selectedId).filter((id) => !expandedSections.has(id));
+    if (faltan.length) setExpandedSections((prev) => new Set([...prev, ...faltan]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [graph, selectedId]);
+
   const layout = useMemo(() => {
     if (!open || !graph) return null;
     return layoutLogicGraph(graph, expandedSections, nodePositions);
   }, [open, graph, expandedSections, nodePositions]);
+  // Lo que se encuadra: el nodo elegido o, si vive en una subsección que el mapa muestra como una tarjeta (sólo hay
+  // dos niveles), la tarjeta visible más cercana que lo contiene.
+  const objetivoEncuadre = useMemo(() => {
+    if (!selectedId || !layout || !graph) return null;
+    const candidatos = [selectedId, ...seccionesQueContienen(graph.rootNodes, selectedId).reverse()];
+    return candidatos.find((id) => layout.nodes.some((nd) => nd.node.id === id && nd.visible)) ?? null;
+  }, [selectedId, layout, graph]);
+
+  // Al seleccionar un nodo, si su card no se ve completa —fuera del lienzo o
+  // bajo el panel del nodo, que se superpone arriba a la derecha—, el lienzo
+  // se desplaza lo justo para dejarla entera a la izquierda del panel, con
+  // aire. Si ya se ve, no se mueve (`encuadreNodo.ts`).
+  useEffect(() => {
+    if (!objetivoEncuadre || !layout || !svgRef.current) return;
+    const n = layout.nodes.find((nd) => nd.node.id === objetivoEncuadre && nd.visible);
+    if (!n) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const panel = svgRef.current.closest(".pulso-graph-body")?.querySelector(".pulso-graph-detail");
+    const panelIzq = panel ? panel.getBoundingClientRect().left - rect.left : rect.width;
+    const nodo = { x: n.x * zoom + pan.x, y: n.y * zoom + pan.y, ancho: n.width * zoom, alto: Math.min(n.height, 88) * zoom };
+    const mover = desplazamientoParaMostrar(nodo, { x: 0, y: 0, ancho: Math.max(0, panelIzq), alto: rect.height }, 40);
+    if (mover) {
+      triggerSmooth();
+      setPan((p) => ({ x: p.x + mover.dx, y: p.y + mover.dy }));
+    }
+    // Solo al cambiar la selección (o cuando el nodo pasa a verse, al desplegar su sección): pan/zoom se leen del
+    // closure actual a propósito (no queremos re-centrar en cada pan).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, objetivoEncuadre]);
 
   /** Lookup para resolver `${X} = 'code'` → `'label legible'` usando
    *  el catálogo de la pregunta X. Memo para no recalcular en cada

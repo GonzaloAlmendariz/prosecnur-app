@@ -2,7 +2,7 @@
 // filtran, la pregunta anterior de la que depende y, por cada opción, qué respuesta la habilita, eligiendo por
 // etiqueta (nunca por código). Escribe la forma estándar de XLSForm con `cascada.ts`.
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
 import type { BuilderNode, BuilderStructure, CatalogSummary } from "../types";
 import { PanelCard, QuestionToken, SelectorPregunta, type OpcionPregunta } from "../kit";
@@ -17,12 +17,14 @@ type Props = {
   filaInicial?: number | null;
   onGuardar: (wb: XlsformEditorWorkbook, preguntaHija: string) => void;
   onCancelar: () => void;
+  /** Cambiar al editor por opción (sólo al crear). */
+  alternar?: ReactNode;
 };
 
 const esSeleccion = (n: BuilderNode) => n.kind === "question" && !!n.typeInfo.listName && /^select_(one|multiple)$/.test(n.typeInfo.base);
 const opcion = (n: BuilderNode, valor: string): OpcionPregunta => ({ valor, numero: n.paperNumber || n.name, texto: n.label || n.name, baseType: n.typeInfo.base });
 
-export function EditorFiltro({ workbook, structure, catalogs, filaInicial = null, onGuardar, onCancelar }: Props) {
+export function EditorFiltro({ workbook, structure, catalogs, filaInicial = null, onGuardar, onCancelar, alternar }: Props) {
   const seleccion = useMemo(() => (structure?.outline ?? []).filter(esSeleccion), [structure]);
   const inicial = filaInicial !== null ? seleccion.find((n) => n.rowIndex === filaInicial) ?? null : null;
   const previa = inicial ? leerExpresionCascada(inicial.choiceFilter) : null;
@@ -51,6 +53,7 @@ export function EditorFiltro({ workbook, structure, catalogs, filaInicial = null
     <div className="xff" data-qa-geometry-group="xlsform/filtro-editor" data-qa-geometry-contract="intrinsic">
       <PanelCard title={inicial ? "Editar filtro de opciones" : "Nuevo filtro de opciones"}
         meta={<span className="xff-paso">Las opciones de una pregunta dependen de la respuesta a otra anterior</span>}>
+        {alternar}
         <div className="xff-pasos" data-qa-geometry-group="xlsform/filtro-pasos" data-qa-geometry-contract="intrinsic">
           <div className="xff-campo">
             <span className="xff-n">1</span>

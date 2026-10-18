@@ -1,0 +1,74 @@
+/* Pestaña Filtros — subpestañas, oleada 2 (2026-10-17). Sólo tokens; se apoya en styles/xf-choice-filters.css. */
+
+/* S15: un código largo (Registered_person_reason) no empuja la fila fuera de la lista: se recorta y el completo va en
+   el tooltip de la fila. */
+.pulso-xcf-lista .pulso-xcf-fila { grid-template-columns: 14px minmax(0, max-content) minmax(0, 1fr); }
+.pulso-xcf-lista .pulso-xcf-fila-codigo { max-width: 9.5em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pulso-xcf-lista .pulso-xcf-fila-texto .xfk-pop__var { font-size: 11px; }
+
+/* S15: el detalle acompaña a la lista al desplazarse (la lista es la que se recorre). Si es más alto que la ventana,
+   tiene su propio desplazamiento para que su pie («Editar filtro») siga alcanzable. */
+@media (min-width: 861px) {
+  .pulso-xcf-gestion .pulso-xcf-detalle {
+    position: sticky;
+    top: 0;
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* S15: los botones del pie, a la misma altura y en la misma línea. El pie de «Editar en Constructor» trae su propio
+   borde y aire arriba (pensado para ir solo): dentro del pie de la ficha la línea es una sola, la del pie. */
+.pulso-xcf-pie { width: 100%; padding-top: var(--pulso-space-3); border-top: 1px solid var(--pulso-border); }
+.pulso-xcf-pie .pulso-xf-editar-pie { padding-top: 0; border-top: 0; }
+.pulso-xcf-pie .pulso-xcf-nuevo,
+.pulso-xcf-pie .pulso-xf-editar { box-sizing: border-box; height: 32px; min-height: 32px; }
+
+.pulso-xcf-aviso {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 8px;
+  background: var(--pulso-warn-bg);
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+}
+.pulso-xcf-aviso code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+.pulso-xcf-aviso-motor { color: var(--pulso-warn-fg); }
+
+/* C27: tabla opción → pregunta que la habilita → respuestas. */
+.xfo-tabla { width: 100%; table-layout: fixed; border-collapse: collapse; border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius); font-size: 13px; }
+.xfo-tabla th, .xfo-tabla td { padding: 8px 10px; border-top: 1px solid var(--pulso-border); text-align: left; vertical-align: top; }
+.xfo-tabla thead th { border-top: 0; background: var(--pulso-surface-2); color: var(--pulso-text-muted); font-size: 11px; font-weight: var(--pulso-weight-semibold); letter-spacing: 0.04em; text-transform: uppercase; }
+/* Una regla heredada del contenedor del editor vuelve flex a sus hijos directos: la tabla se declara tabla. */
+.xff .xfo-tabla { display: table; }
+.xff .xfo-tabla thead { display: table-header-group; }
+.xff .xfo-tabla tbody { display: table-row-group; }
+.xfo-tabla thead tr, .xfo-tabla tbody tr { display: table-row; }
+.xfo-tabla th, .xfo-tabla td { display: table-cell; }
+.xfo-col-op { width: 34%; }
+.xfo-col-quien { width: 28%; }
+.xfo-tabla select { width: 100%; }
+.xfo-op { font-weight: var(--pulso-weight-medium); color: var(--pulso-text); overflow-wrap: anywhere; }
+.xfo-resp { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.xfo-chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border: 1px solid var(--pulso-border);
+  border-radius: 999px; background: var(--pulso-surface); font-size: 12px; color: var(--pulso-text-soft); cursor: pointer;
+}
+.xfo-chip input { margin: 0; accent-color: var(--module-accent, var(--pulso-primary)); }
+.xfo-chip.is-on { border-color: var(--module-accent-border, var(--pulso-primary-border)); background: var(--module-accent-soft, var(--pulso-primary-soft)); color: var(--pulso-text); }
+.xfo-chip:focus-within { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.xfo-copiar { all: unset; cursor: pointer; margin-left: 4px; font-size: 12px; color: var(--pulso-primary); }
+.xfo-copiar:hover { text-decoration: underline; }
+.xfo-copiar:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 2px; border-radius: 3px; }
+.xfo-nota { font-size: 12px; color: var(--pulso-text-muted); }
+.xfo-xls { font-size: 12.5px; color: var(--pulso-text-muted); }
+.xfo-xls summary { cursor: pointer; width: max-content; }
+.xfo-xls p { margin: 6px 0 0; }
+.xfo-xls code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--pulso-text); overflow-wrap: anywhere; }
+.xff-expresion { box-sizing: border-box; width: 100%; padding: 8px 10px; border: 1px solid var(--pulso-border-strong); border-radius: 6px; background: var(--pulso-surface); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.5; color: var(--pulso-text); resize: vertical; }
+.xff-expresion:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 0; }
+.xff .xfk-seg { align-self: flex-start; }
+/* Un título largo (P21) se queda junto a su ícono y envuelve; antes saltaba entero a la línea de abajo. */
+.pulso-xcf-detalle .pulso-xcf-title-text { flex: 1 1 18em; min-width: 0; }

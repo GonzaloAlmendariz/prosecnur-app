@@ -57,3 +57,15 @@ describe("calculosDelFormulario", () => {
     expect(v.vacio).toBe(true);
   });
 });
+
+describe("S13: una pregunta con fórmula también es un cálculo", () => {
+  test("cuenta las preguntas con `calculation` y las marca aparte", () => {
+    const outline = [
+      nodo(1, "edad", "integer"),
+      nodo(2, "edad_calc", "integer", { calculation: `${D}{edad} + 1` }),
+      nodo(3, "tramo", "calculate", { calculation: `if(${D}{edad} < 25, 'a', 'b')` }),
+    ];
+    const items = calculosDelFormulario({ outline } as unknown as BuilderStructure);
+    expect(items.map((i) => [i.node.name, i.enPregunta])).toEqual([["edad_calc", true], ["tramo", false]]);
+  });
+});

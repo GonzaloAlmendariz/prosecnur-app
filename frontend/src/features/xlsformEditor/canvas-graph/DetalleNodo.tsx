@@ -13,6 +13,19 @@ import { CircleDot, Folder, X } from "../../../vendor/lucide-react";
 import { stripMarkdown } from "../helpers/markdown";
 import { EditarEnConstructor } from "../shell/EditarEnConstructor";
 import type { GraphNode, LogicGraph } from "./buildGraph";
+import "./detalleNodo.css";
+
+/** Una pregunta citada en el detalle: su título en prosa (dos líneas como mucho) y el código debajo, chico. Antes el
+ *  código mono se comía el ancho y el título caía en columnas de una sílaba (S6). */
+function Referencia({ nodo, prefijo }: { nodo: GraphNode; prefijo?: string }) {
+  const titulo = nodeDisplayName(nodo);
+  return (
+    <span className="xfg-ref">
+      <span className="xfg-ref__titulo">{prefijo}{titulo}</span>
+      {titulo !== nodo.name ? <code className="xfg-ref__codigo">{nodo.name}</code> : null}
+    </span>
+  );
+}
 
 /** Referencia compacta de una pregunta para la narrativa de condiciones:
  *  limpia el markdown crudo (`**…**`) y trunca prompts largos a un incipit
@@ -58,7 +71,7 @@ export function DetalleNodo({
     (p, i, todas) => todas.findIndex((q) => q.expression.replace(/\s+/g, "") === p.expression.replace(/\s+/g, "")) === i,
   );
   return (
-    <aside className={`pulso-graph-detail is-${node.kind}`} aria-labelledby={tituloId}>
+    <aside className={`pulso-graph-detail is-${node.kind}`} aria-labelledby={tituloId} data-qa-geometry-group="xlsform/logica-detalle" data-qa-geometry-contract="intrinsic">
       <header>
         <span className="pulso-graph-detail-avatar" aria-hidden="true">
           {node.kind === "section" ? (
@@ -93,7 +106,7 @@ export function DetalleNodo({
       {node.relevantExpression && (
         <div className="pulso-graph-detail-block">
           <span className="pulso-graph-detail-block-label">Aparece si</span>
-          <code className="pulso-graph-detail-block-code">{humanize(node.relevantExpression)}</code>
+          <p className="xfg-lectura">{humanize(node.relevantExpression)}</p>
         </div>
       )}
 
@@ -104,18 +117,18 @@ export function DetalleNodo({
           <span className="pulso-graph-detail-block-label">
             {node.relevantExpression ? "También hereda de" : "Hereda visibilidad de"}
           </span>
-          <ul className="pulso-graph-detail-list">
+          <ul className="pulso-graph-detail-list xfg-lista">
             {heredadas.map((parent, i) => (
               <li key={i}>
                 <button
                   type="button"
-                  className="pulso-graph-detail-link"
+                  className="xfg-link"
                   onClick={() => onElegir(parent.fromSectionId)}
-                  title={`Ver sección ${parent.fromSectionLabel}`}
+                  title={`Ver sección ${stripMarkdown(parent.fromSectionLabel || parent.fromSectionName)}`}
                 >
-                  <code>{parent.fromSectionName}</code>
-                  <span>
-                    si <em className="pulso-graph-detail-expr">{humanize(parent.expression)}</em>
+                  <span className="xfg-ref">
+                    <span className="xfg-ref__titulo">{compactTitle(parent.fromSectionLabel || parent.fromSectionName, 60)}</span>
+                    <span className="xfg-ref__lee">si {humanize(parent.expression)}</span>
                   </span>
                 </button>
               </li>
@@ -127,7 +140,7 @@ export function DetalleNodo({
       {incoming.length > 0 && (
         <div className="pulso-graph-detail-block">
           <span className="pulso-graph-detail-block-label">Depende de</span>
-          <ul className="pulso-graph-detail-list">
+          <ul className="pulso-graph-detail-list xfg-lista">
             {incoming.map((e, i) => {
               const src = graph?.byId.get(e.source);
               if (!src) return null;
@@ -135,12 +148,11 @@ export function DetalleNodo({
                 <li key={i}>
                   <button
                     type="button"
-                    className="pulso-graph-detail-link"
+                    className="xfg-link"
                     onClick={() => onElegir(src.id)}
                     title={stripMarkdown(src.title || "") || src.name}
                   >
-                    <code>{src.name}</code>
-                    {src.title && src.title !== src.name && <span>· {compactTitle(src.title)}</span>}
+                    <Referencia nodo={src} />
                   </button>
                 </li>
               );
@@ -152,7 +164,7 @@ export function DetalleNodo({
       {outgoing.length > 0 && (
         <div className="pulso-graph-detail-block">
           <span className="pulso-graph-detail-block-label">Condiciona a</span>
-          <ul className="pulso-graph-detail-list">
+          <ul className="pulso-graph-detail-list xfg-lista">
             {outgoing.map((e, i) => {
               const tgt = graph?.byId.get(e.target);
               if (!tgt) return null;
@@ -160,12 +172,11 @@ export function DetalleNodo({
                 <li key={i}>
                   <button
                     type="button"
-                    className="pulso-graph-detail-link"
+                    className="xfg-link"
                     onClick={() => onElegir(tgt.id)}
                     title={stripMarkdown(tgt.title || "") || tgt.name}
                   >
-                    <code>{tgt.name}</code>
-                    {tgt.title && tgt.title !== tgt.name && <span>· {compactTitle(tgt.title)}</span>}
+                    <Referencia nodo={tgt} />
                   </button>
                 </li>
               );

@@ -1,8 +1,10 @@
-import { useCallback, useMemo } from "react";
-import { Plus } from "../../../vendor/lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { Pencil, Plus } from "../../../vendor/lucide-react";
 import { enriquecerAlcance, type LogicScope } from "../logic";
 import { DONDE_SE_USA, indiceDeUsos } from "../logic/usos";
-import { tituloPlano } from "../kit/CuerpoPanelMarca";
+import { PiezasLectura, TituloLegible, tituloPlano } from "../kit/CuerpoPanelMarca";
+import { leerRegla } from "../reglas/leerRegla";
+import { EditorFormula } from "./EditorFormula";
 import { stripMarkdown } from "../helpers/markdown";
 import type { BuilderStructure } from "../types";
 import { describeExpression } from "../canvas/reglasHumanas";
@@ -43,28 +45,38 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
   const porNombre = (name: string) => structure?.outline.find((n) => n.name === name) ?? null;
   const etiquetaDe = (name: string) => stripMarkdown(porNombre(name)?.label ?? "");
   const numero = (n: { paperNumber?: string; name: string }) => n.paperNumber || n.name;
-  const grupos: ReglaListaGrupo[] = [
-    {
-      titulo: "En uso",
-      items: items.filter((i) => i.loUsan.length > 0).map((i) => ({
-        key: i.node.name, baseType: "calculate", numero: "", titulo: i.node.name,
-        resumen: i.node.label || `lo usan ${i.loUsan.length}`, aviso: i.vacio,
-      })),
-    },
-    {
-      titulo: "Sólo para la base",
-      items: items.filter((i) => i.loUsan.length === 0).map((i) => ({
-        key: i.node.name, baseType: "calculate", numero: "", titulo: i.node.name,
-        resumen: i.vacio ? "Sin fórmula: quedará vacío" : i.node.label || "columna en la base", aviso: i.vacio,
-      })),
-    },
-  ];
-  const lectura = actual ? describeExpression(actual.node.calculation, scope) : null;
+  // Título: la etiqueta o, sin ella, el código UNA vez; debajo, qué hace la fórmula leída por el motor (S13: antes el
+  // título repetía el código y el resumen era el mismo código otra vez).
+  const grupos: ReglaListaGrupo[] = useMemo(() => {
+    const item = (i: (typeof items)[number]) => {
+      const leida = i.vacio ? null : describeExpression(i.node.calculation, scope);
+      return {
+        key: i.node.name, baseType: i.enPregunta ? i.node.typeInfo.base : "calculate", numero: "", titulo: i.node.label || i.node.name,
+        resumen: i.vacio ? "Sin fórmula: quedará vacío" : leida && !leida.technical ? leida.summary : "Fórmula que el editor no traduce",
+        aviso: i.vacio,
+      };
+    };
+    return [
+      { titulo: "En uso", items: items.filter((i) => !i.enPregunta && i.loUsan.length > 0).map(item) },
+      { titulo: "Sólo para la base", items: items.filter((i) => !i.enPregunta && i.loUsan.length === 0).map(item) },
+      { titulo: "Preguntas con fórmula", items: items.filter((i) => i.enPregunta).map(item) },
+    ];
+  }, [items, scope]);
+  const lectura = useMemo(() => (actual && !actual.vacio ? leerRegla("calculation", actual.node.calculation, actual.node, scope) : null), [actual, scope]);
+  const enPreguntas = items.filter((i) => i.enPregunta).length;
+  const [editando, setEditando] = useState(false);
+  const clave = actual?.node.rowIndex ?? -1;
+  const [claveEditor, setClaveEditor] = useState(clave);
+  if (claveEditor !== clave) { setClaveEditor(clave); setEditando(false); }
+  const focoPerdido = seleccionada && actual && actual.node.name !== seleccionada
+    ? <>No hay un cálculo llamado <code>{seleccionada}</code>: se muestra el primero de la lista.</>
+    : null;
 
   return (
     <PestanaReglas
       titulo="Cálculos"
-      total={`${items.length} cálculo${items.length === 1 ? "" : "s"}`}
+      total={`${items.length} cálculo${items.length === 1 ? "" : "s"}${enPreguntas ? ` · ${enPreguntas} en preguntas` : ""}`}
+      aviso={focoPerdido}
       grupos={grupos}
       seleccionada={actual?.node.name ?? null}
       onSeleccionar={onSeleccionar}
@@ -76,20 +88,52 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
       {actual ? (
         <>
           <div className="xfp-encabezado">
-            <span className="xfp-encabezado__ruta"><TypeIcon baseType="calculate" boxed /> Cálculo · <span className="xfk-mono">{actual.node.name}</span></span>
-            <h2 className="xfp-encabezado__titulo">{actual.node.label || actual.node.name}</h2>
+            <span className="xfp-encabezado__ruta">
+              <TypeIcon baseType={actual.enPregunta ? actual.node.typeInfo.base : "calculate"} boxed /> {actual.enPregunta ? "Pregunta con fórmula" : "Cálculo"}
+              {actual.node.label ? <> · <code className="xfp-codigo">{actual.node.name}</code></> : null}
+            </span>
+            <h2 className="xfp-encabezado__titulo"><TituloLegible texto={actual.node.label || actual.node.name} /></h2>
             <span className="xfp-encabezado__accion"><EditarEnConstructor onEditar={() => onEditar(actual.node.rowIndex)} que={`el cálculo ${actual.node.name}`} /></span>
           </div>
-          <PanelCard title="Fórmula" className="xfp-editor">
-            <CalculationRecipePanel
-              expression={actual.node.calculation}
-              scope={scope}
-              onFieldChange={(field, value) => onCampo(actual.node.rowIndex, field, value)}
-            />
-          </PanelCard>
-          <PanelCard title="Cómo se interpreta" meta={actual.vacio ? "vacía" : undefined} flush>
-            <ReadsAs label="Se lee">{actual.vacio ? "Sin fórmula: la columna quedará vacía en la base." : lectura?.summary ?? actual.node.calculation}</ReadsAs>
-            <ReadsAs label="XLSForm" code>{actual.vacio ? "calculation vacío" : `calculation = ${actual.node.calculation.trim()}`}</ReadsAs>
+          <PanelCard
+            title="Fórmula"
+            meta={<span className={`xfp-insignia is-${actual.vacio ? "sin-regla" : lectura?.tecnica ? "sin-traducir" : "vigente"}`}>{actual.vacio ? "vacía" : lectura?.tecnica ? "sin traducir" : "vigente"}</span>}
+            footer={actual.vacio ? undefined : (
+              <button type="button" className="xfp-boton" aria-expanded={editando} onClick={() => setEditando((v) => !v)}>
+                <Pencil size={13} aria-hidden="true" /> {editando ? "Cerrar el editor" : "Editar la fórmula"}
+              </button>
+            )}
+          >
+            <div className="xfp-lectura-regla">
+              <p className="xfp-lectura" data-qa-geometry-group="xlsform/lectura-regla" data-qa-geometry-contract="intrinsic">
+                {actual.vacio
+                  ? "Sin fórmula: la columna quedará vacía en la base."
+                  : lectura?.tecnica
+                    ? "El motor todavía no traduce esta fórmula: se calcula tal como está escrita."
+                    : <PiezasLectura piezas={lectura?.piezas ?? []} />}
+              </p>
+              {actual.enPregunta ? <p className="xfp-nota">La respuesta de esta pregunta sale de la fórmula: quien encuesta no la escribe.</p> : null}
+              {!actual.vacio ? (
+                <details className="xfp-codigo-xls" open={Boolean(lectura?.tecnica)}>
+                  <summary>Expresión en XLSForm</summary>
+                  <code>{actual.node.calculation.trim()}</code>
+                </details>
+              ) : null}
+            </div>
+            {actual.vacio ? (
+              <CalculationRecipePanel
+                expression={actual.node.calculation}
+                scope={scope}
+                onFieldChange={(field, value) => onCampo(actual.node.rowIndex, field, value)}
+              />
+            ) : null}
+            {editando || actual.vacio ? (
+              <EditorFormula
+                key={actual.node.rowIndex}
+                valor={actual.node.calculation}
+                onGuardar={(v) => { onCampo(actual.node.rowIndex, "calculation", v); setEditando(false); }}
+              />
+            ) : null}
           </PanelCard>
           <ProbarCalculo node={actual.node} usa={actual.usa} structure={structure} opcionesDe={opcionesDe} />
           <div className="xfp-fila2" data-qa-geometry-group="xlsform/calculos-fila" data-qa-geometry-contract="equal">
@@ -98,7 +142,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
                 <div className="xfp-toks">
                   {actual.usa.map((v) => {
                     const n = porNombre(v);
-                    return <QuestionToken key={v} baseType={n?.typeInfo.base ?? ""} label={n ? numero(n) : v} hint={n?.label} variable={v} />;
+                    return <QuestionToken key={v} baseType={n?.typeInfo.base ?? ""} label={n ? numero(n) : v} hint={n?.label ? tituloPlano(n.label, etiquetaDe) : undefined} variable={v} />;
                   })}
                 </div>
               ) : <p className="xfp-nota">No lee ninguna respuesta.</p>}

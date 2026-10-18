@@ -23,3 +23,16 @@ describe("Cálculos con el ACNUR", () => {
     expect(html).toContain("El texto de la opción elegida en");
   });
 });
+
+describe("S13: la tarjeta Fórmula lee la fórmula y el contador no deja cálculos fuera", () => {
+  const pintar = (seleccionada: string) => renderToStaticMarkup(
+    <PestanaCalculos structure={A.structure} scope={A.base} seleccionada={seleccionada} onSeleccionar={nada} onEditar={nada} onCampo={nada} catalogs={A.catalogs} />,
+  );
+  it("countryname (choice-name): la fórmula se lee y la prueba dice por qué se calcula en el teléfono", () => {
+    const html = pintar("countryname");
+    expect(html).toContain("El texto de la opción elegida en");
+    expect(html).toContain("Editar la fórmula");
+    expect(html).toContain("Se calcula en el teléfono: toma el texto de la opción elegida");
+    expect(html).not.toContain("usa funciones que el editor no evalúa");
+  });
+});

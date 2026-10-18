@@ -4,7 +4,10 @@
 // la tabla de secciones y la trae a la vista, sin salir de «Resumen» (ítem 50).
 
 import { stripMarkdown } from "../helpers/markdown";
-import { duracion, marcasDeMinutos, type FilaSeccion } from "./modeloResumen";
+import { duracion, marcasDeMinutos, rotuloMinutos, type FilaSeccion } from "./modeloResumen";
+
+/** Un tramo más angosto que esta parte del total no lleva rótulo: «S2: …» montado sobre el vecino no se lee (S14). */
+const ANCHO_CON_ROTULO = 0.06;
 
 export function LineaTiempo({ filas, segundos, resaltada, onResaltar }: {
   filas: readonly FilaSeccion[];
@@ -35,16 +38,16 @@ export function LineaTiempo({ filas, segundos, resaltada, onResaltar }: {
                 aria-pressed={resaltada === f.id}
                 onClick={() => onResaltar(f)}
               >
-                <span>{stripMarkdown(f.rotulo) || f.name}</span>
+                {f.segundos / segundos >= ANCHO_CON_ROTULO ? <span>{stripMarkdown(f.rotulo) || f.name}</span> : null}
               </button>
             </li>
           );
         })}
       </ol>
-      <div className="pulso-xf-res-tiempo-marcas" aria-hidden="true">
+      <div className="pulso-xf-res-tiempo-marcas" aria-hidden="true" data-qa-geometry-group="xlsform/resumen-eje" data-qa-geometry-contract="intrinsic">
         {marcas.map((m) => {
           const pos = Math.min(100, (m * 60 * 100) / segundos);
-          return <span key={m} className={pos > 94 ? "is-final" : undefined} style={{ left: `${pos}%` }}>{m} min</span>;
+          return <span key={m} className={pos > 94 ? "is-final" : undefined} style={{ left: `${pos}%` }} data-qa-geometry-member="">{rotuloMinutos(m)}</span>;
         })}
       </div>
     </section>

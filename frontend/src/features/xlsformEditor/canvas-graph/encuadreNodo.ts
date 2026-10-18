@@ -20,3 +20,20 @@ export function desplazamientoParaMostrar(nodo: Caja, area: Caja, margen: number
   const dy = ajuste(nodo.y, nodo.alto, area.y, area.alto);
   return dx === 0 && dy === 0 ? null : { dx, dy };
 }
+
+/** Ids de las secciones que contienen al nodo, de la más externa a la más interna. Para que un `foco` que apunta a una
+ *  pregunta dentro de secciones plegadas la deje a la vista (S11). Vacío si el nodo es raíz o no existe. */
+export function seccionesQueContienen(raices: readonly { id: string; children: readonly unknown[] }[], id: string): string[] {
+  type N = { id: string; children: readonly N[] };
+  const buscar = (nodos: readonly N[], camino: string[]): string[] | null => {
+    for (const n of nodos) {
+      if (n.id === id) return camino;
+      if (n.children.length) {
+        const r = buscar(n.children, [...camino, n.id]);
+        if (r) return r;
+      }
+    }
+    return null;
+  };
+  return buscar(raices as readonly N[], []) ?? [];
+}
