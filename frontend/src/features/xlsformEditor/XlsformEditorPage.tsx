@@ -191,11 +191,8 @@ import { subtituloEstructura } from "./outline/modeloEstructura";
 import { insertarEn, type DestinoInsercion } from "./state/accionesConstructor";
 import type { RowMovePlan } from "./outline/outlineUtils";
 import { applyRowMove } from "./outline/outlineUtils";
-import {
-  FocusedWorkspace,
-  type FocusWorkspaceMode,
-  type SectionBoundaryState,
-} from "./canvas/FocusedWorkspace";
+import { FichaConstructor } from "./canvas/ficha/FichaConstructor";
+import { accionesNuevasFicha } from "./canvas/ficha/accionesNuevasFicha";
 import { Coachmarks } from "./shell/Coachmarks";
 import { iconForType } from "./helpers/icons";
 import { paletteForType } from "./helpers/paletteForType";
@@ -214,7 +211,7 @@ import "./styles/xf-logic.css";
 import { PestanaRestricciones } from "./pestanas/PestanaRestricciones";
 import { PestanaCalculos } from "./pestanas/PestanaCalculos";
 import { ListaLogica } from "./canvas-graph/ListaLogica";
-import { computeQuestionPosition, workbookWithSurveyMonkeyLogic, refreshSurveyMonkeyAdvancedRules, extractExistingKoboLogic, visualActionCountForFooter, mergeAdvancedLogicRules, mergeVisualLogicRules, choiceCodeMapsWithOverrides, mergeChoiceCodeMaps, sectionIdForRow, findNextSiblingAfterSection, findLastDirectChildInSection, buildSectionBoundaryState } from "./state/editorHelpers";
+import { workbookWithSurveyMonkeyLogic, refreshSurveyMonkeyAdvancedRules, extractExistingKoboLogic, visualActionCountForFooter, mergeAdvancedLogicRules, mergeVisualLogicRules, choiceCodeMapsWithOverrides, mergeChoiceCodeMaps, sectionIdForRow, findNextSiblingAfterSection, findLastDirectChildInSection, buildSectionBoundaryState } from "./state/editorHelpers";
 import { SurveyMonkeyLogicPopup } from "./shell/SurveyMonkeyLogicPopup";
 import { AddElementMenu } from "./shell/AddElementMenu";
 
@@ -321,8 +318,6 @@ export default function XlsformEditorPage() {
   // Los atajos de teclado se registran una vez: leen la pestaña por ref.
   const irPestanaRef = useRef(irPestana);
   irPestanaRef.current = irPestana;
-  const [builderWorkspaceMode, setBuilderWorkspaceMode] =
-    useState<FocusWorkspaceMode>("focus");
 	  /** Lógica de SurveyMonkey: borrador que se aplica o se descarta → panel. */
 	  const smLogicPanel = usePanelDireccionable(PANEL_LOGICA_SURVEYMONKEY);
 	  const smLogicDialogOpen = smLogicPanel.abierto;
@@ -973,7 +968,6 @@ export default function XlsformEditorPage() {
 
   const selectBuilderFocus = useCallback((next: BuilderSelection) => {
     setSelection(next);
-    setBuilderWorkspaceMode("focus");
   }, []);
 
   /** Desde otra pestaña (mapa, resumen, prueba, avisos): la fila queda elegida en el Constructor. */
@@ -1017,8 +1011,7 @@ export default function XlsformEditorPage() {
   const activeCatalogName = catalogsLensOpen
     ? (catalogFocus || selectedTypeInfo?.listName || catalogs[0]?.listName || null)
     : (selectedTypeInfo?.listName || catalogFocus || catalogs[0]?.listName || null);
-  // Cuántas preguntas usan cada catálogo. Lo usa el FormCanvas para
-  // marcar listas compartidas (badge "Lista compartida con N preguntas").
+  // Cuántas preguntas usan cada catálogo: la ficha dice «la usan N preguntas» y avisa si un cambio de tipo la deja sin uso.
   const catalogUsage = useMemo(() => {
     const map = new Map<string, number>();
     if (!xlsformIndex) return map;
@@ -1027,83 +1020,6 @@ export default function XlsformEditorPage() {
     });
     return map;
   }, [xlsformIndex]);
-  // Para cada catálogo, lista de preguntas que lo usan (rowIndex + label
-  // + name). El FormCanvas pasa esto al EditableChoiceList para mostrar
-  // los chips de "lista compartida".
-  const questionsByCatalog = useMemo(() => {
-    const map = new Map<string, Array<{ rowIndex: number; label: string; name: string }>>();
-    if (!xlsformIndex) return map;
-    xlsformIndex.questionsByCatalog.forEach((nodes, listName) => {
-      map.set(
-        listName,
-        nodes.map((n) => ({ rowIndex: n.rowIndex, label: n.label, name: n.name })),
-      );
-    });
-    return map;
-  }, [xlsformIndex]);
-  // Listas existentes que el AddBetween del lienzo ofrece reusar al
-  // crear una pregunta de selección. Mantenemos el shape liviano
-  // (listName + counts) — el menú es flotante y debe leerse en un
-  // vistazo.
-  const existingListsForAdd = useMemo(() => {
-    if (!xlsformIndex) return [];
-    return catalogs.map((catalog) => ({
-      listName: catalog.listName,
-      choicesCount: catalog.items.length,
-      usageCount: xlsformIndex.questionsByCatalog.get(catalog.listName)?.length ?? 0,
-    }));
-  }, [catalogs, xlsformIndex]);
-  // Cuando la pregunta seleccionada es obligatoria + tiene relevant
-  // (propio o heredado de alguna sección padre), el toggle "Pregunta
-  // obligatoria" muestra un aviso "obligatorio condicionado". Esto
-  // explica al usuario que la pregunta NO es obligatoria para todos:
-  // solo para quienes cumplan la condición de apertura.
-  const conditionalContext = useMemo(() => {
-    if (!selectedNode || !structure) return null;
-    const selfRelevant = selectedNode.relevant?.trim() || "";
-    const ancestors: Array<{ sectionLabel: string; relevant: string }> = [];
-    let sectionId: string | null = selectedNode.sectionId;
-    // Subir por la cadena de secciones padre. Tope en "root" para no
-    // bucle infinito si el grafo viene corrupto.
-    let safety = 32;
-    while (sectionId && sectionId !== "root" && safety-- > 0) {
-      const section = structure.sections.get(sectionId);
-      if (!section || section.rowIndex == null) break;
-      const sectionNode = structure.byRow.get(section.rowIndex);
-      const relevant = sectionNode?.relevant?.trim() || "";
-      if (relevant) {
-        ancestors.push({
-          sectionLabel: section.label || section.name || "Sección",
-          relevant,
-        });
-      }
-      sectionId = section.parentId ?? null;
-    }
-    return { selfRelevant, ancestorRelevants: ancestors };
-  }, [selectedNode, structure]);
-
-  // Info dinámica del catálogo asignado a la pregunta actualmente
-  // seleccionada — la usa el ContextPanel para mostrar la sección
-  // "Lista de opciones" con conteo + lista de preguntas que la
-  // comparten.
-  const selectedCatalogInfo = useMemo(() => {
-    if (!selectedNode || !selectedTypeInfo?.listName) return undefined;
-    const isSelect =
-      selectedTypeInfo.base === "select_one" ||
-      selectedTypeInfo.base === "select_multiple";
-    if (!isSelect) return undefined;
-    const listName = selectedTypeInfo.listName;
-    const usedBy = xlsformIndex?.questionsByCatalog.get(listName) ?? [];
-    const sharedWith = usedBy
-      .filter((n) => n.rowIndex !== selectedNode.rowIndex)
-      .map((n) => ({ rowIndex: n.rowIndex, label: n.label, name: n.name }));
-    return {
-      listName,
-      choicesCount: selectedChoices.length,
-      sharedWith,
-    };
-  }, [selectedNode, selectedTypeInfo, selectedChoices, xlsformIndex]);
-
   // Si el workbook tiene contenido editable (secciones o preguntas
   // reales, no solo auto-meta como _start/_end). Decide si mostramos el
   // empty state grande del lienzo o el contenido normal.
@@ -1257,7 +1173,6 @@ export default function XlsformEditorPage() {
       setRestoreOffer(null);
       // La pestaña no se resetea: es la dirección (un enlace a `?pestana=impreso`
       // abre el formulario restaurado en Impreso, no en el Constructor).
-      setBuilderWorkspaceMode("focus");
       setSmLogicRules(loadedWorkbook.surveyMonkeyLogic?.advanced_rules ?? loadedWorkbook.surveyMonkeyLogic?.rules ?? []);
       setSmVisualLogicRules(loadedWorkbook.surveyMonkeyLogic?.visual_rules ?? []);
       setSmLogicChoiceOverrides(loadedWorkbook.surveyMonkeyLogic?.choice_order_overrides ?? {});
@@ -2206,25 +2121,6 @@ export default function XlsformEditorPage() {
     return nextName;
   }
 
-  /**
-   * Inserta una pregunta o sección desde el botón "+" del lienzo único
-   * (`AddBetween`). `afterRowIndex` es el rowIndex de la pieza justo
-   * arriba del botón — el nuevo elemento queda inmediatamente debajo.
-   * Si `afterRowIndex` es null, inserta al final del survey.
-   * `reuseListName` solo aplica a select_one/select_multiple — la
-   * pregunta nueva queda vinculada a esa lista existente en lugar de
-   * crear una nueva.
-   */
-  function handleAddAfter(
-    afterRowIndex: number | null,
-    kind: "section" | "section_end" | "text" | "select_one" | "select_multiple" | "integer" | "decimal" | "date" | "image" | "audio" | "video" | "file" | "barcode" | "geopoint" | "note" | "calculate",
-    reuseListName?: string,
-  ) {
-    if (kind === "section") addSection(afterRowIndex);
-    else if (kind === "section_end") addSectionClose(afterRowIndex);
-    else addQuestion(kind, afterRowIndex, reuseListName);
-  }
-
   /** «+» de la Estructura (C18): inserta la pieza en el lugar exacto y la deja elegida. */
   function insertarDesdeEstructura(destino: DestinoInsercion, baseType: string) {
     if (!workbook || !structure) return;
@@ -2236,42 +2132,6 @@ export default function XlsformEditorPage() {
     if (!r) return;
     if (r.listName) setCatalogFocus(r.listName);
     selectBuilderFocus({ kind: "survey", rowIndex: r.rowIndex });
-  }
-
-  /**
-   * Clona el catálogo asignado a una pregunta a un listName nuevo y
-   * reasigna el `type` de la pregunta. Se invoca desde
-   * `EditableChoiceList` cuando el catálogo está compartido y el usuario
-   * quiere divergir solo para esta pregunta. El listName nuevo intenta
-   * `{old}_copy`, `{old}_copy_2`, ... hasta no chocar.
-   */
-  function cloneCatalogForQuestion(questionRowIndex: number) {
-    if (!workbook || !structure) return;
-    const node = structure.byRow.get(questionRowIndex);
-    if (!node || !node.typeInfo.listName) return;
-    const oldListName = node.typeInfo.listName;
-    const existingNames = new Set(catalogs.map((c) => c.listName));
-    let suffix = "_copy";
-    let attempt = 1;
-    let newListName = `${oldListName}${suffix}`;
-    while (existingNames.has(newListName)) {
-      attempt += 1;
-      newListName = `${oldListName}${suffix}_${attempt}`;
-    }
-    const oldChoices = extractChoiceItems(workbook.choices, oldListName);
-    updateWorkbook((draft) => {
-      // Insertar todas las filas del catálogo viejo con el nuevo list_name.
-      oldChoices.forEach((choice) => {
-        insertRecord(draft.choices, draft.choices.rows.length, {
-          list_name: newListName,
-          name: choice.name,
-          label: choice.label,
-        });
-      });
-      // Reasignar el tipo de la pregunta.
-      setCell(draft.survey, questionRowIndex, "type", buildType(node.typeInfo.base, newListName));
-    });
-    setCatalogFocus(newListName);
   }
 
   /**
@@ -2547,12 +2407,6 @@ export default function XlsformEditorPage() {
       });
     });
     setCatalogFocus(listName);
-  }
-
-  function updateChoice(rowIndex: number, field: "name" | "label", value: string) {
-    updateWorkbook((draft) => {
-      setCell(draft.choices, rowIndex, field, value);
-    });
   }
 
   function updateChoiceFields(rowIndex: number, next: { label: string; name: string }) {
@@ -2879,6 +2733,7 @@ export default function XlsformEditorPage() {
               />
             )}
             {pestana === "constructor" && (
+              <ProveedorReglas structure={structure} scope={alcanceLectura} survey={workbook?.survey ?? null}>
               <div className="pulso-builder-grid">
                 <div className="pulso-xlsform-workbench-column pulso-xlsform-workbench-column--outline">
                   <Panel
@@ -2913,7 +2768,6 @@ export default function XlsformEditorPage() {
                         )}
                       </div>
                     </div>
-                    <ProveedorReglas structure={structure} scope={alcanceLectura} survey={workbook?.survey ?? null}>
                       <SurveyOutline
                         structure={structure}
                         selection={selection}
@@ -2954,103 +2808,41 @@ export default function XlsformEditorPage() {
                             : undefined
                         }
                       />
-                    </ProveedorReglas>
                   </Panel>
                 </div>
 
                 <div className="pulso-xlsform-workbench-column pulso-xlsform-workbench-column--workspace">
-                  <FocusedWorkspace
-                    mode={builderWorkspaceMode}
-                    onModeChange={setBuilderWorkspaceMode}
+                  <FichaConstructor
                     workbook={workbook}
                     structure={structure}
                     selection={selection}
                     node={selectedNode}
-                    section={selectedSection}
                     settingsRecord={settingsRecord}
-                    selectedChoices={selectedChoices}
-                    selectedPosition={
-                      structure && selectedNode
-                        ? computeQuestionPosition(structure, selectedNode.rowIndex)
-                        : undefined
-                    }
-                    catalogUsageCount={
-                      selectedTypeInfo?.listName
-                        ? catalogUsage.get(selectedTypeInfo.listName) ?? 1
-                        : 1
-                    }
-                    catalogInfo={selectedCatalogInfo}
-                    conditionalContext={conditionalContext}
+                    choices={selectedChoices}
                     catalogs={catalogs}
-                    logicScope={logicScope}
-                    sectionBoundary={sectionBoundary}
-                    canMoveUp={!!movement.prevRow}
-                    canMoveDown={!!movement.nextRow}
-                    onMoveUp={() => moveSelection("up")}
-                    onMoveDown={() => moveSelection("down")}
-                    onDelete={deleteCurrentSelection}
-                    onSettingsChange={updateSettingsField}
-                    onEditarFormulario={updateWorkbook}
-                    onFieldChange={(field, value) => {
-                      if (!selectedNode) return;
-                      updateSurveyField(selectedNode.rowIndex, field, value);
-                    }}
-                    onFieldsChange={(updates) => {
-                      if (!selectedNode) return;
-                      updateSurveyFields(selectedNode.rowIndex, updates);
-                    }}
-                    onTypeChange={(value) => {
-                      if (!selectedNode) return;
-                      updateQuestionType(selectedNode.rowIndex, value);
-                    }}
-                    onRequiredChange={(checked) => {
-                      if (!selectedNode) return;
-                      toggleRequired(selectedNode.rowIndex, checked);
-                    }}
-                    onCatalogAssign={(listName) => {
-                      if (!selectedNode) return;
-                      assignCatalogToQuestion(selectedNode.rowIndex, listName);
-                    }}
-                    onCatalogCreate={() => createCatalog(true)}
-                    onOpenCatalogLens={(focusListName) => {
-                      if (focusListName) setCatalogFocus(focusListName);
-                      irPestana("opciones");
-                    }}
-                    onCloneCatalog={
-                      selectedNode
-                        ? () => cloneCatalogForQuestion(selectedNode.rowIndex)
-                        : undefined
-                    }
-                    onIncludeNextInSection={includeNextInSelectedSection}
-                    onReleaseLastFromSection={releaseLastFromSelectedSection}
-                    onSelectRow={(rowIndex) => selectBuilderFocus({ kind: "survey", rowIndex })}
-                    formCanvasProps={{
-                      catalogUsage,
-                      questionsByCatalog,
-                      onSelect: (rowIndex) => selectBuilderFocus({ kind: "survey", rowIndex }),
-                      onLabelChange: (rowIndex, value) => updateSurveyField(rowIndex, "label", value),
-                      onHintChange: (rowIndex, value) => updateSurveyField(rowIndex, "hint", value),
-                      onSectionLabelChange: (rowIndex, value) => updateSurveyField(rowIndex, "label", value),
-                      onChoiceLabelChange: (_listName, choiceRow, value) => updateChoice(choiceRow, "label", value),
-                      onChoiceNameChange: (_listName, choiceRow, value) => updateChoice(choiceRow, "name", value),
-                      onAddChoice: (listName) => addCatalogChoice(listName),
-                      onRemoveChoice: (_listName, choiceRow) => removeChoice(choiceRow),
-                      onRenameList: (oldListName, nextListName) => renameCatalog(oldListName, nextListName),
-                      onCloneCatalog: (questionRowIndex) => cloneCatalogForQuestion(questionRowIndex),
-                      onAddAfter: (rowIndex, kind, reuseListName) => {
-                        handleAddAfter(rowIndex, kind, reuseListName);
-                        setBuilderWorkspaceMode("focus");
-                      },
-                      existingLists: existingListsForAdd,
-                      onOpenCatalogLens: (listName) => {
-                        if (listName) setCatalogFocus(listName);
-                        irPestana("opciones");
-                      },
+                    usosPorLista={catalogUsage}
+                    diagnostics={diagnostics}
+                    acciones={{
+                      campo: (field, value) => selectedNode && updateSurveyField(selectedNode.rowIndex, field, value),
+                      tipo: (base) => selectedNode && updateQuestionType(selectedNode.rowIndex, base),
+                      obligatoria: (si) => selectedNode && toggleRequired(selectedNode.rowIndex, si),
+                      asignarLista: (lista) => selectedNode && assignCatalogToQuestion(selectedNode.rowIndex, lista),
+                      crearLista: () => createCatalog(true),
+                      ...accionesNuevasFicha({ structure, workbook, selection, updateWorkbook, seleccionar: selectBuilderFocus }),
+                      mover: (dir) => moveSelection(dir),
+                      eliminar: deleteCurrentSelection,
+                      seleccionarFila: (rowIndex) => selectBuilderFocus({ kind: "survey", rowIndex }),
+                      irPestana: pestanaEditor.irConFoco,
+                      ajuste: updateSettingsField,
+                      editarFormulario: updateWorkbook,
+                      puedeSubir: movement.prevRow != null,
+                      puedeBajar: movement.nextRow != null,
                     }}
                   />
 
                 </div>
               </div>
+              </ProveedorReglas>
             )}
             {pestana === "cuestionario" && (
               <VistaCuestionario

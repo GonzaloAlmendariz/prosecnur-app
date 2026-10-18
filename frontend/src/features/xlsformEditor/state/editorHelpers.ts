@@ -7,7 +7,16 @@ import { type SurveyMonkeyLogicPackWarning } from "../shell/surveyMonkeyLogicPac
 import type { BuilderNode, BuilderStructure, XlsformEditorWorkbook } from "../types";
 import { cloneWorkbook } from "../parsing/sheetUtils";
 import { previewKindLabel } from "../parsing/buildIndex";
-import { type SectionBoundaryState } from "../canvas/FocusedWorkspace";
+/** Alcance del cierre de una sección: qué puede incluir o soltar (lo usa la Estructura). */
+export type SectionBoundaryState = {
+  itemCount: number;
+  closeLabel: string;
+  closeDetail: string;
+  nextLabel: string | null;
+  lastChildLabel: string | null;
+  canIncludeNext: boolean;
+  canReleaseLast: boolean;
+};
 
 export function computeQuestionPosition(
   structure: BuilderStructure,

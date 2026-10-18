@@ -250,3 +250,26 @@
   .xfe-fantasma, .xfe-mas, .xfe-chev svg { transition: none; }
   .xfe-fantasma.is-alzado { transform: none; }
 }
+
+/* ── Aire horizontal y fila elegida sobria (Gonzalo, 2026-10-17: «no se aprovecha el espacio horizontal» y «el
+ * sombreado izquierdo es cliché») ──────────────────────────────────────────────────────────────────────────── */
+/* La fila elegida se distingue por fondo y borde finos, sin barra interna ni sombra (theme.css pone ambas). */
+.pulso-xlsform-frame .xfe-arbol .pulso-outline-row.is-active { box-shadow: none; border-color: var(--pulso-primary-border); }
+/* El asa ya no reserva 16 px en cada fila: aparece en la sangría, a la izquierda del sello. */
+.pulso-xlsform-frame .xfe-arbol .pulso-outline-row { position: relative; }
+.pulso-xlsform-frame .xfe-arbol .pulso-outline-grip:not(.is-decor) {
+  position: absolute; left: -13px; top: 50%; width: 12px; height: 22px; margin: 0; transform: translateY(-50%);
+}
+.pulso-xlsform-frame .xfe-arbol .pulso-outline-grip.is-decor { display: none; }
+.xfe-arbol { padding-left: 12px; }
+/* Sangría por nivel: una guía de 1 px y 12 px por nivel (antes 25). */
+.xfe-seccion__hijos { margin-left: 11px; padding-left: 0; border-left-width: 1px; border-left-color: var(--pulso-border); }
+.xfe-seccion.is-active > .xfe-seccion__hijos { border-left-color: color-mix(in srgb, var(--pulso-primary) 40%, transparent); }
+.xfe-seccion__hijos > * { margin-left: 4px; }
+.xfe-seccion__pie { margin-left: 11px; }
+.xfe-seccion__limite { margin-left: 15px; }
+@media (max-width: 1180px) {
+  .xfe-seccion__hijos { margin-left: 8px; padding-left: 0; }
+  .xfe-seccion__hijos > * { margin-left: 3px; }
+  .xfe-seccion__pie { margin-left: 8px; }
+}
