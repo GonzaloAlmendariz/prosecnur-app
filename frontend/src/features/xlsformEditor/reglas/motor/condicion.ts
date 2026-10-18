@@ -8,9 +8,10 @@
 import type { CompareOp, Expr } from "../../logic";
 import { claseDe, listaDe, opcion, type Clase, type Contexto } from "./contexto";
 import { enumerar, t, unir, v, type Frase } from "./frase";
+import { leerLapsoComparado } from "./lapso";
 import { negar } from "./normalizar";
 import { leerPatron } from "./regex";
-import { fechaLegible, literalLegible, textoDe } from "./valores";
+import { fechaLegible, literalLegible, numeroDe, textoDe } from "./valores";
 import { leerValor } from "./valor";
 
 export function esBooleana(e: Expr): boolean {
@@ -31,11 +32,27 @@ export function valorComparado(e: Expr, sujeto: Expr, ctx: Contexto): Frase | nu
     if (op) return [op];
     return [v(literalLegible(e.value))];
   }
+  const multiplo = multiploDe(e, ctx);
+  if (multiplo) return multiplo;
   if (e.kind === "call" && (e.name === "date" || e.name === "date-time") && e.args.length === 1) {
     const f = fechaLegible(textoDe(e.args[0]) ?? "");
     if (f) return [v(f)];
   }
   return leerValor(e, ctx);
+}
+
+const VECES: Record<number, string> = { 2: "el doble de", 3: "el triple de" };
+
+/** Cota proporcional a otra pregunta: ${x} * 2 → «el doble de ‹X›»; ${x} * 1.5 → «‹X› × 1.5». */
+function multiploDe(e: Expr, ctx: Contexto): Frase | null {
+  if (e.kind !== "call" || e.name !== "*" || e.args.length !== 2) return null;
+  const [a, b] = e.args as [Expr, Expr];
+  const ref = a.kind === "ref" ? a : b.kind === "ref" ? b : null;
+  const n = numeroDe(ref === a ? b : a);
+  if (!ref || n === null) return null;
+  const f = leerValor(ref, ctx);
+  if (!f) return null;
+  return VECES[n] ? [t(VECES[n]!), ...f] : [...f, t("×"), v(String(n))];
 }
 
 export function claseComparacion(c: Extract<Expr, { kind: "compare" }>, ctx: Contexto): Clase {
@@ -80,6 +97,8 @@ type Atomo = {
 
 function atomo(e: Expr, ctx: Contexto): Atomo | null {
   if (e.kind === "compare") {
+    const lapso = leerLapsoComparado(e, ctx);
+    if (lapso) return { clave: `lapso:${JSON.stringify(e)}`, sujeto: [], modo: "cmp", valor: [], pred: lapso };
     const sujeto = leerValor(e.left, ctx);
     if (!sujeto) return null;
     const clave = JSON.stringify(e.left);
@@ -198,7 +217,9 @@ export function leerCondicion(e: Expr, ctx: Contexto): Frase | null {
       if (e.name === "regex" && e.args.length === 2) {
         const sujeto = leerValor(e.args[0]!, ctx);
         const patron = leerPatron(textoDe(e.args[1]) ?? "");
-        return sujeto && patron ? [...sujeto, t("tiene la forma de"), ...patron] : null;
+        if (!sujeto || !patron) return null;
+        const sin = patron[0]?.tipo === "texto" && patron[0].texto === "sin";
+        return sin ? [...sujeto, t("no tiene"), ...patron.slice(1)] : [...sujeto, t("tiene la forma de"), ...patron];
       }
       if (e.name === "if") return leerValor(e, ctx);
       // number(${x}) usado como condición no es una condición legible.

@@ -14,7 +14,8 @@ import { type Clase, type Contexto, tocaActual } from "./contexto";
 import { cantidad, capitalizar, enumerar, oraciones, t, unir, v, type Frase } from "./frase";
 import { claseComparacion, leerCondicion, valorComparado } from "./condicion";
 import { negar } from "./normalizar";
-import { leerPatron } from "./regex";
+import { leerLapsoComparado } from "./lapso";
+import { clasePresente, leerPatron } from "./regex";
 import { numeroDe, textoDe } from "./valores";
 import { leerValor } from "./valor";
 
@@ -88,6 +89,8 @@ function sobreOtro(c: Comparacion, ctx: Contexto): Frase | null {
 }
 
 function comparacion(c: Comparacion, ctx: Contexto): Frase | null {
+  const lapso = leerLapsoComparado(c, ctx);
+  if (lapso) return lapso;
   const medida = medidaDe(c.left);
   if (medida === "caracteres" || medida === "opciones") {
     const n = numeroDe(c.right);
@@ -186,6 +189,12 @@ function exigencia(e: Expr, ctx: Contexto): Frase | null {
     case "not": {
       const ex = exclusiva(e, ctx);
       if (ex) return ex;
+      // not(regex(., '\s')): no aparece ningún espacio en ninguna parte.
+      const o = e.operand;
+      if (o.kind === "call" && o.name === "regex" && o.args.length === 2 && o.args[0]!.kind === "current") {
+        const buscada = clasePresente(textoDe(o.args[1]) ?? "");
+        if (buscada) return [t("sin"), t(buscada)];
+      }
       if (esSeleccionActual(e.operand)) {
         const val = valorComparado(e.operand.args[1]!, e.operand.args[0]!, ctx);
         return val ? [t("no acepta"), ...val] : null;
@@ -211,7 +220,8 @@ function exigencia(e: Expr, ctx: Contexto): Frase | null {
       if (e.name === "regex" && e.args.length === 2) {
         const patron = leerPatron(textoDe(e.args[1]) ?? "");
         if (!patron) return null;
-        if (e.args[0]!.kind === "current") return [t("solo acepta"), ...patron];
+        // «sin números» es una exclusión: «no acepta números», no «solo acepta sin números».
+        if (e.args[0]!.kind === "current") return esSin(patron) ? [t("no acepta"), ...patron.slice(1)] : [t("solo acepta"), ...patron];
         const sujeto = leerValor(e.args[0]!, ctx);
         return sujeto ? [...sujeto, t("tiene que ser"), ...patron] : null;
       }
@@ -249,8 +259,40 @@ function disyuncion(e: Extract<Expr, { kind: "logical" }>, ctx: Contexto): Frase
     return fc && fr ? [t("si"), ...fc, t(","), ...fr] : null;
   });
   if (casos.every(Boolean)) return oraciones(casos as Frase[]);
-  const fs = e.operands.map((o) => exigencia(o, ctx));
-  return fs.every(Boolean) ? unir(fs as Frase[], "o") : null;
+  return alternativas(e.operands, ctx);
+}
+
+const esSin = (f: Frase) => f[0]?.tipo === "texto" && f[0].texto === "sin";
+const esSoloAcepta = (f: Frase) => f[0]?.tipo === "texto" && f[0].texto === "solo acepta";
+
+/** Respuesta vacía: . = '' o string-length(.) = 0. */
+const esVacia = (o: Expr) =>
+  o.kind === "compare" && o.op === "=" && ((o.left.kind === "current" && o.right.kind === "literal" && o.right.value === "") || (esLlamadaSobreActual(o.left, "string-length") && numeroDe(o.right) === 0));
+
+/**
+ * a or b como ALTERNATIVAS de lo que se acepta: «Mayor que 0 y hasta 98, o 99», «8 dígitos o vacía». «Solo acepta»
+ * dentro de un «o» se contradice; va una vez al frente sólo si todas las alternativas lo llevaban.
+ */
+function alternativas(operands: Expr[], ctx: Contexto): Frase | null {
+  const fs: Frase[] = [];
+  let todasSolo = true;
+  for (const o of operands) {
+    if (esVacia(o)) {
+      fs.push([t("vacía")]);
+      todasSolo = false;
+      continue;
+    }
+    const f = exigencia(o, ctx);
+    if (!f) return null;
+    if (esSoloAcepta(f)) fs.push(f.slice(1));
+    else {
+      todasSolo = false;
+      fs.push(f);
+    }
+  }
+  const compuesta = fs.some((f) => f.some((p) => p.tipo === "texto" && (p.texto === "y" || p.texto === ",")));
+  const lista = unir(fs, compuesta ? ", o" : "o");
+  return todasSolo ? [t("solo acepta"), ...lista] : lista;
 }
 
 const textoPlano = (f: Frase) => f.map((p) => (p.tipo === "texto" || p.tipo === "valor" ? p.texto : p.etiqueta)).join(" ");
