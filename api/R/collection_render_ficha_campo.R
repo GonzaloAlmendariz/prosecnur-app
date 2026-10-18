@@ -19,8 +19,8 @@
 # Un campo con `binding` cuyo dato llegue vacio NO desaparece: cae a su raya, que
 # es lo que hace el aula cuando el catalogo no la trae.
 
-.cfc_layout <- function() {
-  list(
+.cfc_layout <- function(branded = FALSE, brand_mm = 11) {
+  L <- list(
     # 0.55 de simbolo UTIL, no 0.68 de matriz con su zona de silencio dentro:
     # con 33 modulos aquello dejaba 0.515 de simbolo real. El tope no es el ancho
     # de la hoja sino el titulo, que en este layout va DEBAJO del QR (`y_title`
@@ -71,6 +71,40 @@
     # que alguien va a teclear a mano, asi que tiene que leerse.
     link_size = 9
   )
+  # CON CARETA el QR no puede empezar casi en el borde: la careta va en
+  # `y_brand` y el simbolo llegaba hasta 0.969, asi que los logos se dibujaban
+  # ENCIMA del QR (medido el 2026-10-15 con los de la UNSA y la Catedra UNESCO).
+  # Se reserva la franja de la careta y el QR la respeta con su zona de
+  # silencio, que es parte del simbolo para el lector. El borde de ABAJO del
+  # simbolo no se mueve —titulo y formulario quedan donde estaban— y lo que se
+  # pierde es lado: el tope exacto depende de los modulos del QR y lo calcula
+  # `.cfc_qr_colocacion()`.
+  if (isTRUE(branded)) {
+    L$brand_max_height_mm <- as.numeric(brand_mm %||% 11)
+    L$qr_bottom <- L$qr_y - L$qr_side * (210 / 297) / 2
+    L$qr_top_max <- L$y_brand - (L$brand_max_height_mm / 297) / 2 - 0.008
+  }
+  L
+}
+
+# Lado y centro del QR para `n` modulos (con su zona de silencio).
+#
+# Sin careta devuelve el lado y el centro del layout tal cual. Con careta busca
+# el lado mayor que deja el borde inferior del simbolo en `qr_bottom` y la caja
+# ENTERA —simbolo mas zona de silencio— por debajo de `qr_top_max`:
+#
+#   tope = abajo + h/2 + h_total/2,  h = lado * aspecto,  h_total = h * n / util
+#
+# Render y relector la llaman con la misma `n`; si cada uno colocara el QR por
+# su cuenta, el verificador leeria el sitio equivocado y daria verde sin mirar.
+.cfc_qr_colocacion <- function(L, n, quiet_zone = 4L, aspecto = 210 / 297) {
+  if (is.null(L$qr_top_max)) return(list(side = L$qr_side, y = L$qr_y))
+  n <- as.integer(n[[1]]); qz <- as.integer(quiet_zone[[1]])
+  util <- n - 2L * qz
+  razon <- if (is.na(util) || util < 1L) 1 else n / util
+  lado <- (L$qr_top_max - L$qr_bottom) * 2 / (aspecto * (1 + razon))
+  lado <- min(L$qr_side, lado)
+  list(side = lado, y = L$qr_bottom + lado * aspecto / 2)
 }
 
 # Ancho real de un texto con su gpar, medido por el device en vez de estimado
@@ -287,8 +321,8 @@ collection_material_draw_field_form <- function(page, page_no = 1L, total_pages 
   tokens <- pulso_pdf_tokens()
   type <- pulso_pdf_type()
   geo <- pulso_pdf_geo(page$orientation %||% "portrait")
-  L <- .cfc_layout()
   brand <- .crf_block(page, "brand_strip")
+  L <- .cfc_layout(branded = !is.null(brand), brand_mm = brand$max_height_mm %||% 11)
   heading <- .crf_block(page, "heading")
   qr <- .crf_block(page, "access_qr")
   form <- .crf_block(page, "form_lines")
@@ -300,7 +334,9 @@ collection_material_draw_field_form <- function(page, page_no = 1L, total_pages 
   grid::grid.rect(gp = grid::gpar(fill = "#ffffff", col = NA))
 
   if (!is.null(brand)) {
-    max_h_mm <- brand$max_height_mm %||% 11
+    # Una sola altura de careta: la que reservo `.cfc_layout()` para la franja
+    # es la que se dibuja y la que se declara como zona.
+    max_h_mm <- L$brand_max_height_mm
     for (id in .cra_draw_brand_strip(
       brand$assets, brand_assets, y = L$y_brand,
       max_height_mm = max_h_mm,
@@ -325,11 +361,17 @@ collection_material_draw_field_form <- function(page, page_no = 1L, total_pages 
       # misma funcion: el relector del PNG la aplica a los tres presets.
       qz <- qr$quiet_zone %||% 4L
       mm <- collection_qr_matrix(payload, correction = qr$correction %||% "M", quiet_zone = qz)
-      lado_total <- .crf_qr_lado_total(L$qr_side, nrow(mm), qz, L$x_right - L$x_left)
-      grid::pushViewport(.crf_qr_viewport(L$qr_x, L$qr_y, lado_total, geo))
+      # Con careta el QR pierde lado y sube su centro (`.cfc_qr_colocacion`); la
+      # caja declarada usa ese mismo centro, no el `qr_y` del layout base.
+      lugar <- .cfc_qr_colocacion(L, nrow(mm), qz, geo$page_w / geo$page_h)
+      L_qr <- L
+      L_qr$qr_side <- lugar$side
+      L_qr$qr_y <- lugar$y
+      lado_total <- .crf_qr_lado_total(lugar$side, nrow(mm), qz, L$x_right - L$x_left)
+      grid::pushViewport(.crf_qr_viewport(L_qr$qr_x, L_qr$qr_y, lado_total, geo))
       .crf_draw_qr_modules(mm)
       grid::popViewport()
-      zones[[length(zones) + 1L]] <- .crf_qr_zona(qr$block_id, L, lado_total, nrow(mm), qz, geo)
+      zones[[length(zones) + 1L]] <- .crf_qr_zona(qr$block_id, L_qr, lado_total, nrow(mm), qz, geo)
     } else {
       grid::pushViewport(.crf_qr_viewport(L$qr_x, L$qr_y, L$qr_side, geo))
       grid::grid.rect(gp = grid::gpar(fill = NA, col = tokens$rule, lwd = 0.7))

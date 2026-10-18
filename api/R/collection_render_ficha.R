@@ -1554,11 +1554,18 @@ collection_qr_matrix_from_png <- function(png_path, n, dpi = 150,
   L <- switch(
     layout_preset,
     poster_qr = .cra_layout(),
-    field_form = .cfc_layout(),
+    field_form = .cfc_layout(branded = isTRUE(branded)),
     .crf_layout(branded = isTRUE(branded))
   )
   px_w <- ncol(grey)
   px_h <- nrow(grey)
+  if (identical(layout_preset, "field_form")) {
+    # La ficha de campo con careta coloca el QR segun sus modulos: misma
+    # funcion que el dibujante (`.cfc_qr_colocacion`), misma `n`.
+    lugar <- .cfc_qr_colocacion(L, n, quiet_zone, px_w / px_h)
+    L$qr_side <- lugar$side
+    L$qr_y <- lugar$y
+  }
   # El mismo lado que usa el dibujante, por la misma funcion. Antes esta linea
   # decia `L$qr_side * px_w` por su cuenta, y valia mientras la matriz entera
   # llenaba el hueco reservado; desde que la zona de silencio se derrama fuera,
