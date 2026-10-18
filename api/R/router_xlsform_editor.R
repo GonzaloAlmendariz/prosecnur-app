@@ -428,6 +428,35 @@
   grepl("^[a-zA-Z_][a-zA-Z0-9_-]*$", v)
 }
 
+# Columna aparte con el nombre de la lista (formularios que no lo escriben en
+# `type`). Acceso exacto con [[ ]] para no casar columnas por prefijo.
+.xlsform_editor_side_list_col <- function(survey, n) {
+  out <- character(n)
+  for (col in c("select_from_list_name", "list_name")) {
+    vals <- tryCatch(survey[[col]], error = function(e) NULL)
+    if (is.null(vals) || length(vals) != n) next
+    vals <- trimws(as.character(vals))
+    vals[is.na(vals)] <- ""
+    fill <- !nzchar(out) & nzchar(vals)
+    out[fill] <- vals[fill]
+  }
+  out
+}
+
+# Nombre de la lista de un select/rank: lo que sigue al tipo en `type` o, si
+# viene vacío, la columna aparte; sin el sufijo `or_other`.
+.xlsform_editor_select_list_ref <- function(parts, side_value = "") {
+  ref <- if (length(parts) >= 2) paste(parts[-1], collapse = " ") else ""
+  ref <- trimws(sub("\\s+or_other$", "", trimws(ref)))
+  if (identical(ref, "or_other")) ref <- ""
+  if (!nzchar(ref)) {
+    side <- as.character(side_value %||% "")[1]
+    if (is.na(side)) side <- ""
+    ref <- trimws(sub("\\s+or_other$", "", trimws(side)))
+  }
+  ref
+}
+
 xlsform_editor_validate <- function(survey, choices, settings) {
   diagnostics <- list()
 
@@ -490,13 +519,18 @@ xlsform_editor_validate <- function(survey, choices, settings) {
   } else {
     list_names <- character(0)
   }
+  # La lista puede venir en la columna aparte select_from_list_name/list_name;
+  # `${x}` es una lista dinámica (respuestas de una repetición) y los
+  # `*_from_file` leen un archivo: ninguno de los dos se busca en choices.
+  side_list_col <- .xlsform_editor_side_list_col(survey, length(type_col))
   for (i in seq_along(type_col)) {
     raw <- as.character(type_col[i] %||% "")
+    if (is.na(raw)) raw <- ""
     parts <- trimws(strsplit(raw, "\\s+")[[1]])
     base <- parts[1] %||% ""
-    if (base %in% c("select_one", "select_multiple")) {
-      list_ref <- if (length(parts) >= 2) paste(parts[-1], collapse = " ") else ""
-      list_ref <- trimws(list_ref)
+    if (base %in% c("select_one", "select_multiple", "rank")) {
+      list_ref <- .xlsform_editor_select_list_ref(parts, side_list_col[i])
+      if (startsWith(list_ref, "${")) next
       if (!nzchar(list_ref)) {
         diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
           id = paste0("select-no-list-", i - 1L),
