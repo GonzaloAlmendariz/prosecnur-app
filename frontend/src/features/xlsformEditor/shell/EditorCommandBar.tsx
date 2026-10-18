@@ -69,9 +69,12 @@ export function EditorCommandBar(props: EditorCommandBarProps) {
   const status = deriveEditorHeaderStatus(props.diagnostics, props.publication, source);
   const saveLabel = formatSaveStatus(dirty, lastSavedAt);
   const saveTone = dirty ? "warn" : lastSavedAt != null ? "info" : "success";
-  const listsLabel = metrics.catalogs === metrics.readyCatalogs
-    ? plural(metrics.catalogs, "lista", "listas")
-    : `${plural(metrics.catalogs, "lista", "listas")} preparadas`;
+  // Se cuentan las listas definidas en choices, igual que el Resumen; las referidas sin opciones van aparte (S14).
+  const listsLabel = plural(metrics.readyCatalogs, "lista", "listas");
+  const listasSinOpciones = metrics.catalogs - metrics.readyCatalogs;
+  const listsTitle = listasSinOpciones > 0
+    ? `${listsLabel} · ${plural(listasSinOpciones, "referida sin opciones", "referidas sin opciones")}`
+    : listsLabel;
 
   return (
     <div
@@ -87,7 +90,7 @@ export function EditorCommandBar(props: EditorCommandBarProps) {
           aria-label="Resumen del formulario"
           data-qa-geometry-group="xlsform/banda-metricas"
           data-qa-geometry-contract="intrinsic"
-          title={`${plural(metrics.fields, "campo", "campos")} (variables que reciben respuesta) · ${plural(metrics.sections, "sección", "secciones")} · ${listsLabel}`}
+          title={`${plural(metrics.fields, "campo", "campos")} (variables que reciben respuesta) · ${plural(metrics.sections, "sección", "secciones")} · ${listsTitle}`}
         >
           <span><strong>{metrics.fields}</strong> {metrics.fields === 1 ? "campo" : "campos"}</span>
           <span aria-hidden="true">·</span>

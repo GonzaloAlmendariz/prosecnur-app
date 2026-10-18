@@ -105,6 +105,7 @@ describe("S5 · la fila rota se lee igual en todas las vistas", () => {
       const { l, texto } = leer(col, n.name);
       expect(texto).toBe(LECTURA_FILA_ROTA);
       expect(l.depende).toEqual([]);
+      expect(l.rota).toBe(true);
     }
     expect(describeValidation(n.constraint, n, A.scope)?.summary).toBe(LECTURA_FILA_ROTA);
     expect(leerColumna("choice_filter", n, n.choiceFilter, A.scope).summary).toBe(LECTURA_FILA_ROTA);

@@ -96,3 +96,11 @@ export function dividirPorLogica(secciones: readonly SeccionLogica[]): { conLogi
   const tiene = (s: SeccionLogica) => Boolean(s.regla) || s.items.length > 0;
   return { conLogica: secciones.filter(tiene), sinLogica: secciones.filter((s) => !tiene(s)) };
 }
+
+/** ¿El `foco` de la dirección corresponde a una fila de la lista? «seccion:<fila>» o el nombre de una pregunta con regla.
+ *  Uno desconocido se avisa, como en Restricciones, Cálculos y Filtros (S18), en vez de caer en silencio. */
+export function focoEnLista(lista: ListaLogica, foco: string | null): boolean {
+  if (!foco) return true;
+  if (foco.startsWith("seccion:")) return lista.secciones.some((s) => s.rowIndex != null && `seccion:${s.rowIndex}` === foco);
+  return lista.secciones.some((s) => s.items.some((it) => it.node.name === foco));
+}

@@ -27,6 +27,7 @@ import { duracion, minutos, resumirFormulario } from "../resumen/modeloResumen";
 import {
   armarDocumento,
   marcarOpcionales,
+  rotuloDeIndice,
   type BloqueDoc,
   type OpcionDoc,
   type PreguntaDoc,
@@ -321,7 +322,7 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
     titulo: "Secciones",
     partes: secciones.map((s) => ({
       clave: s.clave,
-      rotulo: stripMarkdown(s.rotulo),
+      rotulo: stripMarkdown(rotuloDeIndice(s)),
       detalle: `${plural(s.preguntas, "pregunta", "preguntas")}${s.preguntas ? ` · ${duracion(s.segundos)}` : ""}`,
       ...(s.conCondicion > 0 ? { estado: { tono: "neutro" as const, texto: "condicional" } } : {}),
     })),

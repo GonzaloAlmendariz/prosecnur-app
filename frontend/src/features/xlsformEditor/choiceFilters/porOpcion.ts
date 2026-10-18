@@ -4,10 +4,11 @@
 //   choice_filter = filter_P14=${P14} or filter_P15=${P15} or … or name = '0'
 //   choices: la opción 1 lleva en filter_P14 la respuesta de P14 que la habilita; la 2, en filter_P15; …
 //
-// Si varias respuestas habilitan la misma opción (P14 = 2, 3, 4 o 5), XLSForm exige una fila por respuesta: la opción
-// se repite en `choices`, una vez por valor (lo que el formulario original hacía a mano). Este módulo lee ese patrón,
-// lo deja editar como una tabla «opción → pregunta que la habilita → respuestas» y lo vuelve a escribir solo. Es la
-// misma forma que el motor de lectura ya traduce (`coincide` + `opciones` en reglas/motor/filtros.ts).
+// Forma vieja: si varias respuestas habilitan la misma opción (P14 = 2, 3, 4 o 5), la opción se repetía en `choices`,
+// una fila por valor, y exigía `allow_choice_duplicates`. Se sigue leyendo.
+// Forma que escribe este módulo (compacta): una fila por opción y los valores separados por espacio en filter_P14,
+//   choice_filter = selected(filter_P14, ${P14}) or selected(filter_P15, ${P15}) or … or name = '0'
+// sin opciones repetidas. Ambas formas las traduce el motor de lectura (reglas/motor/filtros.ts).
 // Funciones puras: leen y devuelven un workbook nuevo.
 
 import type { XlsformEditorSheet, XlsformEditorWorkbook } from "../../../api/multiIntegrado";
@@ -24,6 +25,7 @@ export type LecturaPorOpcion = {
 export type AsignacionOpcion = { pregunta: string; valores: string[]; /** Sin pregunta y sin mostrarse nunca. */ oculta?: boolean };
 
 const TERMINO_COLUMNA = /^\s*\(?\s*([A-Za-z_][\w.-]*)\s*=\s*\$\{\s*([^}\s]+)\s*\}\s*\)?\s*$/;
+const TERMINO_COMPACTO = /^\s*\(?\s*selected\(\s*([A-Za-z_][\w.-]*)\s*,\s*\$\{\s*([^}\s]+)\s*\}\s*\)\s*\)?\s*$/;
 const TERMINO_NAME = /^\s*\(?\s*name\s*=\s*['"]([^'"]*)['"]\s*\)?\s*$/;
 
 /**
@@ -35,7 +37,14 @@ export function leerPorOpcion(expr: string): LecturaPorOpcion | null {
   if (!texto || /\band\b/.test(texto)) return null;
   const terminos: TerminoPorOpcion[] = [];
   const siempre: string[] = [];
+  let compacta = false;
   for (const parte of texto.split(/\s+or\s+/)) {
+    const s = TERMINO_COMPACTO.exec(parte);
+    if (s && s[1] !== "name") {
+      terminos.push({ columna: s[1], pregunta: s[2] });
+      compacta = true;
+      continue;
+    }
     const c = TERMINO_COLUMNA.exec(parte);
     if (c && c[1] !== "name") {
       terminos.push({ columna: c[1], pregunta: c[2] });
@@ -49,7 +58,8 @@ export function leerPorOpcion(expr: string): LecturaPorOpcion | null {
     return null;
   }
   if (terminos.length === 0) return null;
-  if (terminos.length === 1 && siempre.length === 0) return null;
+  // Un solo `columna=${madre}` es la cascada; un solo `selected(columna, ${madre})` ya es la forma por opción.
+  if (terminos.length === 1 && siempre.length === 0 && !compacta) return null;
   return { terminos, siempre };
 }
 
@@ -81,10 +91,11 @@ export function asignacionesPorOpcion(choices: XlsformEditorSheet, lista: string
     const codigo = (r[iN] ?? "").trim();
     const actual = out[codigo] ?? { pregunta: "", valores: [] };
     for (const t of cols) {
-      const v = (r[t.i] ?? "").trim();
-      if (!v) continue;
+      // Forma compacta: «2 3 4» en una celda. Forma vieja: un valor por fila repetida.
+      const vs = (r[t.i] ?? "").trim().split(/\s+/).filter(Boolean);
+      if (!vs.length) continue;
       if (!actual.pregunta) actual.pregunta = t.pregunta;
-      if (actual.pregunta === t.pregunta && !actual.valores.includes(v)) actual.valores.push(v);
+      if (actual.pregunta === t.pregunta) for (const v of vs) if (!actual.valores.includes(v)) actual.valores.push(v);
       break;
     }
     out[codigo] = actual;
@@ -111,7 +122,7 @@ export function expresionPorOpcion(orden: readonly string[], asignaciones: Recor
     }
   }
   const partes = [
-    ...preguntas.map((q) => `${columnaPara(q, previa)}=\${${q}}`),
+    ...preguntas.map((q) => `selected(${columnaPara(q, previa)}, \${${q}})`),
     ...siempre.map((c) => `name = '${c}'`),
   ];
   return partes.join(" or ");
@@ -123,18 +134,12 @@ function conColumnas(hoja: XlsformEditorSheet, columnas: readonly string[]): Xls
   return { ...hoja, columns: [...hoja.columns, ...faltan], rows: hoja.rows.map((r) => [...r, ...faltan.map(() => "")]) };
 }
 
-function conAjuste(settings: XlsformEditorSheet, columna: string, valor: string): XlsformEditorSheet {
-  const hoja = conColumnas(settings, [columna]);
-  const i = hoja.columns.indexOf(columna);
-  const filas = hoja.rows.length ? hoja.rows : [hoja.columns.map(() => "")];
-  return { ...hoja, rows: filas.map((r, k) => (k === 0 ? r.map((v, j) => (j === i ? valor : v)) : r)) };
-}
-
 /**
- * Escribe el filtro: reemplaza las filas de la lista (en el lugar de la primera) por una fila por opción, o una por
- * cada respuesta que la habilita, con su valor en la columna de su pregunta, y pone la expresión en la pregunta. Una
- * opción sin pregunta queda visible siempre (`name = '…'`); una con pregunta pero sin respuestas no se muestra nunca.
- * Si alguna opción se repite, activa `allow_choice_duplicates` en settings, que XLSForm exige para esa forma.
+ * Escribe el filtro en la forma compacta: reemplaza las filas de la lista (en el lugar de la primera) por una fila por
+ * opción, con las respuestas que la habilitan separadas por espacio en la columna de su pregunta, y pone la expresión
+ * `selected(columna, ${pregunta})` en la pregunta. Las filas repetidas de la forma vieja se funden en una. Una opción
+ * sin pregunta queda visible siempre (`name = '…'`); una con pregunta pero sin respuestas no se muestra nunca. No toca
+ * settings: sin opciones repetidas no hace falta `allow_choice_duplicates`.
  */
 export function aplicarPorOpcion(
   wb: XlsformEditorWorkbook,
@@ -159,15 +164,13 @@ export function aplicarPorOpcion(
     const codigo = (r[iN] ?? "").trim();
     if (!primeraPorCodigo.has(codigo)) primeraPorCodigo.set(codigo, r);
   });
-  let repite = false;
   const bloque: string[][] = [];
   for (const codigo of orden) {
     const base = (primeraPorCodigo.get(codigo) ?? []).map((v, j) => (iLimpiar.includes(j) ? "" : v));
     const a = asignaciones[codigo];
     if (a?.pregunta && a.valores.length) {
       const iC = choices.columns.indexOf(columnaPara(a.pregunta, previa));
-      if (a.valores.length > 1) repite = true;
-      for (const v of a.valores) bloque.push(base.map((x, j) => (j === iC ? v : x)));
+      bloque.push(base.map((x, j) => (j === iC ? a.valores.join(" ") : x)));
     } else {
       bloque.push(base);
     }
@@ -186,6 +189,5 @@ export function aplicarPorOpcion(
     ...wb,
     choices: { ...choices, rows: filas },
     survey: { ...survey, rows: filasSurvey },
-    settings: repite ? conAjuste(wb.settings, "allow_choice_duplicates", "yes") : wb.settings,
   };
 }

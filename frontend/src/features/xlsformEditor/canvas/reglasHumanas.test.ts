@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { LogicScope } from "../logic";
 import type { BuilderNode } from "../types";
-import { describeExpression, describeValidation } from "./reglasHumanas";
+import { describeExpression, describeValidation, validationPresetsFor } from "./reglasHumanas";
 
 const nodo = { typeInfo: { raw: "text", base: "text", listName: "" } } as BuilderNode;
 const scope: LogicScope = { variables: [{ rowIndex: 1, name: "edad", label: "Edad", baseType: "integer" }], catalogsByListName: new Map(), allowCurrent: false };
@@ -55,5 +55,13 @@ describe("lectura humana de funciones del corpus real", () => {
   test("mayúscula sólo al inicio y contracciones", () => {
     expect(leer("if(. = '1', ${edad} > 3, true())")).toBe("Si la respuesta es 1, Edad tiene que ser mayor que 3");
     expect(leer("int(format-date(${edad}, '%Y')) <= 2025")).toBe("El año de Edad es 2025 o menos");
+  });
+});
+
+describe("atajos de validación (S12)", () => {
+  const fecha = (constraint: string) => ({ name: "f", constraint, typeInfo: { raw: "date", base: "date", listName: "" } }) as BuilderNode;
+  test("«Fecha hasta hoy» no se ofrece a una regla que ya compara con today()", () => {
+    expect(validationPresetsFor(fecha(". = today()"))).toEqual([]);
+    expect(validationPresetsFor(fecha("")).map((p) => p.id)).toEqual(["not-future"]);
   });
 });

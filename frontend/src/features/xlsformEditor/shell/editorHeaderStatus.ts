@@ -81,7 +81,8 @@ export function deriveEditorHeaderStatus(
     return {
       ...base,
       tone: "error",
-      label: `${errorCount} sin resolver`,
+      // «error» y no «sin resolver»: el Resumen cuenta tareas «pendientes» y las dos cifras no se confundan (S14).
+      label: `${errorCount} ${errorCount === 1 ? "error" : "errores"}`,
       title: `${errorCount} ${errorCount === 1 ? "problema impide" : "problemas impiden"} publicar`,
     };
   }

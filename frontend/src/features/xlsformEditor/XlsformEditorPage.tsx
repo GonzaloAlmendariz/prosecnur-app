@@ -455,6 +455,9 @@ export default function XlsformEditorPage() {
   const activeFormName = useMemo(() => {
     if (!workbook) return source?.original_name ?? "Formulario activo";
     const idx = forms.findIndex((f) => f.id === activeFormId);
+    // Un solo nombre en todo el módulo: el de la biblioteca. El form_title queda como dato secundario del Resumen (S18).
+    const enBiblioteca = idx >= 0 ? forms[idx]?.name?.trim() : "";
+    if (enBiblioteca) return enBiblioteca;
     const ordinal = idx >= 0 ? idx + 1 : forms.length + 1;
     return deriveFormName(workbook, source, ordinal);
   }, [workbook, source, forms, activeFormId]);
@@ -1118,8 +1121,8 @@ export default function XlsformEditorPage() {
   }, [catalogosPanel.abierto, listasPanel.abierto, irPestana]);
   const escalasRepetidas = useMemo(() => contarEscalasRepetidas(workbook), [workbook]);
   const suiteMetrics = useMemo(
-    () => buildSuiteMetrics(structure, catalogs.length, diagnostics),
-    [structure, catalogs.length, diagnostics],
+    () => buildSuiteMetrics(structure, readyCatalogsCount, diagnostics),
+    [structure, readyCatalogsCount, diagnostics],
   );
   const movement = selection?.kind === "survey"
     ? getSiblingRows(structure, selection.rowIndex)
@@ -2946,6 +2949,7 @@ export default function XlsformEditorPage() {
             )}
             {pestana === "resumen" && (
               <FormSummaryView
+                nombre={activeFormName}
                 workbook={workbook}
                 structure={structure}
                 diagnostics={diagnostics}

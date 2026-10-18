@@ -75,6 +75,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
   return (
     <PestanaReglas
       titulo="Cálculos"
+      marca="calc"
       total={`${items.length} cálculo${items.length === 1 ? "" : "s"}${enPreguntas ? ` · ${enPreguntas} en preguntas` : ""}`}
       aviso={focoPerdido}
       grupos={grupos}

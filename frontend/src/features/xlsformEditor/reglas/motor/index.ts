@@ -14,11 +14,14 @@ import { leerValor } from "./valor";
 /** Aviso de comillas tipográficas: la última pieza de la frase. Las vistas que pueden lo sacan aparte con `separarAviso`. */
 export const AVISO_COMILLAS = "(con comillas tipográficas: ODK no las acepta)";
 
+/** Texto del aviso de comillas como alerta: el mismo en `LecturaRegla.avisos` y en `separarAviso`. */
+export const AVISO_COMILLAS_ALERTA = "Usa comillas tipográficas (‘ ’ “ ”), que ODK no acepta: cámbialas por comillas rectas.";
+
 /** Separa el aviso de comillas de la frase, para mostrarlo como alerta y no dentro de la oración. */
 export function separarAviso(piezas: readonly Pieza[]): { piezas: Pieza[]; aviso: string | null } {
   const ultima = piezas[piezas.length - 1];
   if (ultima?.tipo === "texto" && ultima.texto === AVISO_COMILLAS) {
-    return { piezas: piezas.slice(0, -1), aviso: "Usa comillas tipográficas (‘ ’ “ ”), que ODK no acepta: cámbialas por comillas rectas." };
+    return { piezas: piezas.slice(0, -1), aviso: AVISO_COMILLAS_ALERTA };
   }
   return { piezas: [...piezas], aviso: null };
 }
@@ -60,8 +63,11 @@ export function leerConContexto(columna: ColumnaRegla, raw: string, ctx: Context
   }
   if (!frase || !frase.length) return { ...base, piezas: [], tecnica: true, depende };
   const piezas = capitalizar(frase);
-  // El contrato no tiene un campo de avisos: va como última pieza, corta y entre paréntesis (ver AVISO_COMILLAS).
-  if (comillas) piezas.push(t(AVISO_COMILLAS));
+  // El aviso va en `avisos`; por compatibilidad sigue también como última pieza, corta y entre paréntesis (AVISO_COMILLAS).
+  if (comillas) {
+    piezas.push(t(AVISO_COMILLAS));
+    return { ...base, piezas, tecnica: false, depende, avisos: [AVISO_COMILLAS_ALERTA] };
+  }
   return { ...base, piezas, tecnica: false, depende };
 }
 

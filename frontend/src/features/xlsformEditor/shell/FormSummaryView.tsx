@@ -25,9 +25,9 @@ import { PendientesPublicar } from "../resumen/PendientesPublicar";
 import { TablaSecciones } from "../resumen/TablaSecciones";
 import { LineaTiempo } from "../resumen/LineaTiempo";
 import {
-  minutos,
   pendientesParaPublicar,
   porcentaje,
+  rangoMinutos,
   resumirFormulario,
   type AccionPendiente,
 } from "../resumen/modeloResumen";
@@ -52,6 +52,8 @@ export type ContextoResumen = {
 };
 
 export type FormSummaryViewProps = {
+  /** Nombre del formulario en la biblioteca (el mismo del selector). El form_title va como secundario si difiere. */
+  nombre?: string;
   workbook: XlsformEditorWorkbook;
   structure: BuilderStructure | null;
   diagnostics: BuilderDiagnostic[];
@@ -72,6 +74,7 @@ function readFormTitle(workbook: XlsformEditorWorkbook): string {
 type Cifra = { clave: string; rotulo: string; valor: string; detalle: string };
 
 export function FormSummaryView({
+  nombre,
   workbook,
   structure,
   diagnostics,
@@ -154,8 +157,10 @@ export function FormSummaryView({
     {
       clave: "duracion",
       rotulo: "Duración estimada",
-      valor: resumen.preguntas ? `≈ ${minutos(resumen.segundos)} min` : "—",
-      detalle: resumen.preguntas ? `unos ${Math.round(resumen.segundos / resumen.preguntas)} s por pregunta` : "sin preguntas",
+      valor: resumen.preguntas ? rangoMinutos(resumen.segundosSinCondicion, resumen.segundos) : "—",
+      detalle: resumen.preguntas
+        ? resumen.segundosSinCondicion < resumen.segundos ? "según cuántas condiciones se cumplan" : `unos ${Math.round(resumen.segundos / resumen.preguntas)} s por pregunta`
+        : "sin preguntas",
     },
   ];
 
@@ -170,7 +175,10 @@ export function FormSummaryView({
         <div className="pulso-graph-header-left">
           <div className="pulso-graph-header-title">
             <strong>Resumen</strong>
-            <span>{formTitle || "Formulario sin título"}</span>
+            <span>
+              {nombre?.trim() || formTitle || "Formulario sin título"}
+              {nombre?.trim() && formTitle && formTitle !== nombre.trim() ? ` · título en el formulario: ${formTitle}` : ""}
+            </span>
           </div>
         </div>
       </header>

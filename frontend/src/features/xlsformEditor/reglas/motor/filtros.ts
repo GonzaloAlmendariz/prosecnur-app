@@ -2,6 +2,7 @@
 // de la hoja choices (el parser de lectura los entrega como `call "@campo"`).
 //   Bureau = ${Bureau}                    → Muestra las opciones cuya columna Bureau coincide con la respuesta de ‹Bureau›
 //   selected(${gasto}, filter_Spent)      → Muestra las opciones cuya columna filter_Spent está marcada en ‹Gasto›
+//   selected(filter_Q, ${Q})              → Muestra las opciones cuya columna filter_Q incluye la respuesta de ‹Q›
 //   REF02CO = 'kk'                        → Muestra siempre las mismas opciones: las marcadas con kk en la columna REF02CO
 //   ${pais} = 'PER' and (name = '1' or …) → Muestra solo las opciones ‹A›, ‹B› … cuando ‹País› es ‹Perú›
 
@@ -14,6 +15,8 @@ import { literalLegible } from "./valores";
 type Clausula =
   | { tipo: "coincide"; columnas: string[]; ref: string; negada: boolean }
   | { tipo: "marcada"; columna: string; ref: string }
+  // La columna de la opción lista varios valores separados por espacio (forma compacta del filtro por opción).
+  | { tipo: "incluye"; columna: string; ref: string }
   | { tipo: "igual"; columna: string; valor: string; negada: boolean }
   | { tipo: "opciones"; valores: string[] };
 
@@ -44,6 +47,9 @@ function clausula(e: Expr): Clausula | null {
     const col = campo(e.args[1]);
     const q = e.args[0];
     if (col !== null && q?.kind === "ref") return { tipo: "marcada", columna: col, ref: q.name };
+    const colLista = campo(e.args[0]);
+    const r = e.args[1];
+    if (colLista !== null && r?.kind === "ref") return { tipo: "incluye", columna: colLista, ref: r.name };
   }
   return null;
 }
@@ -72,6 +78,8 @@ function frasear(c: Clausula, ctx: Contexto, lista: string, sola: boolean): Fras
     }
     case "marcada":
       return [...columna(c.columna), t("está marcada en"), pregunta(c.ref, ctx)];
+    case "incluye":
+      return [...columna(c.columna), t("incluye"), ...(sola ? [t("la respuesta de")] : []), pregunta(c.ref, ctx)];
     case "igual":
       return [t("con"), v(c.columna), t(c.negada ? "distinto de" : "igual a"), v(literalLegible(c.valor))];
     case "opciones": {
