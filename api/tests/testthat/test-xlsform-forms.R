@@ -340,6 +340,43 @@ test_that("el validador marca como error solo lo que rompe la identidad del inst
   }, logical(1))))
 })
 
+test_that("el validador resuelve la lista de un select sin falsos errores", {
+  survey <- data.frame(
+    type = c(
+      "select_one", "select_multiple", "select_one ${miembros}",
+      "select_one sexo or_other", "select_one_from_file lugares.csv",
+      "rank sexo", "select_one falta", "select_multiple"
+    ),
+    name = c("p_col", "p_list", "p_dyn", "p_other", "p_file", "p_rank", "p_falta", "p_vacia"),
+    label = c("Columna aparte", "list_name", "Dinámica", "Otro", "Archivo", "Rank", "Falta", "Vacía"),
+    select_from_list_name = c("sexo", "", "", "", "", "", "", ""),
+    list_name = c("", "sexo", "", "", "", "", "", ""),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = c("sexo", "sexo"),
+    name = c("1", "2"),
+    label = c("Hombre", "Mujer"),
+    stringsAsFactors = FALSE
+  )
+  settings <- data.frame(form_id = "f1", stringsAsFactors = FALSE)
+
+  diagnostics <- xlsform_editor_validate(survey, choices, settings)
+  by_id <- vapply(diagnostics, function(d) as.character(d$id)[1], character(1))
+  select_ids <- by_id[grepl("^select-(no|missing)-list-", by_id)]
+  level_of <- function(id) {
+    hit <- diagnostics[by_id == id]
+    if (!length(hit)) return(NA_character_)
+    as.character(hit[[1]]$level)[1]
+  }
+
+  # Columna aparte (0, 1), `${x}` (2), or_other (3), *_from_file (4) y rank (5): sin error.
+  # Lista que de verdad falta (6) y select sin lista en ningún lado (7): siguen en error.
+  expect_setequal(select_ids, c("select-missing-list-6-falta", "select-no-list-7"))
+  expect_equal(level_of("select-missing-list-6-falta"), "error")
+  expect_equal(level_of("select-no-list-7"), "error")
+})
+
 test_that("publicación exige al menos una pregunta sustantiva", {
   structural_only <- make_state("Sin preguntas")
   structural_only$workbook$survey <- list(
