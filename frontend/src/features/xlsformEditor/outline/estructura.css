@@ -262,14 +262,20 @@
 }
 .pulso-xlsform-frame .xfe-arbol .pulso-outline-grip.is-decor { display: none; }
 .xfe-arbol { padding-left: 12px; }
-/* Sangría por nivel: una guía de 1 px y 12 px por nivel (antes 25). */
-.xfe-seccion__hijos { margin-left: 11px; padding-left: 0; border-left-width: 1px; border-left-color: var(--pulso-border); }
-.xfe-seccion.is-active > .xfe-seccion__hijos { border-left-color: color-mix(in srgb, var(--pulso-primary) 40%, transparent); }
-.xfe-seccion__hijos > * { margin-left: 4px; }
-.xfe-seccion__pie { margin-left: 11px; }
-.xfe-seccion__limite { margin-left: 15px; }
-@media (max-width: 1180px) {
-  .xfe-seccion__hijos { margin-left: 8px; padding-left: 0; }
-  .xfe-seccion__hijos > * { margin-left: 3px; }
-  .xfe-seccion__pie { margin-left: 8px; }
+/* Sin sangría (Gonzalo, 2026-10-17: «la sangría hace que todo se vea desordenado»): todas las piezas alinean su sello
+ * en una sola columna. La jerarquía la dicen las cabeceras de sección: una banda tenue en el tono de la familia, y
+ * cada nivel de anidación corre sólo la cabecera 12 px. */
+.xfe-seccion__hijos { margin-left: 0; padding: 2px 0 2px; border-left: 0; }
+.xfe-seccion__hijos > * { margin-left: 0; }
+.xfe-seccion__pie { margin-left: 0; }
+.xfe-seccion__limite { margin-left: 8px; }
+.pulso-xlsform-frame .pulso-outline-row.xfe-sec-cab:not(.is-active):not(.is-dragging) {
+  background: color-mix(in srgb, var(--xfe-tono) 6%, transparent);
+}
+.pulso-xlsform-frame .pulso-outline-row.xfe-sec-cab:hover:not(.is-active) { background: color-mix(in srgb, var(--xfe-tono) 10%, transparent); }
+.pulso-xlsform-frame .pulso-outline-row.xfe-sec-cab[data-depth="1"]:not(.is-dragging) { padding-left: 15px; }
+.pulso-xlsform-frame .pulso-outline-row.xfe-sec-cab[data-depth="2"]:not(.is-dragging) { padding-left: 27px; }
+.pulso-xlsform-frame .pulso-outline-row.xfe-sec-cab[data-depth="3"]:not(.is-dragging) { padding-left: 39px; }
+.pulso-xlsform-frame .pulso-outline-row.xfe-sec-cab[data-depth="4"]:not(.is-dragging),
+.pulso-xlsform-frame .pulso-outline-row.xfe-sec-cab[data-depth="5"]:not(.is-dragging) { padding-left: 51px; }
 }
