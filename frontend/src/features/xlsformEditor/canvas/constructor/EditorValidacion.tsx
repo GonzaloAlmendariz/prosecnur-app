@@ -7,10 +7,8 @@ import { ConstraintMessageField } from "./MensajeValidacion";
 import { ArmadorFormatoEntrada } from "../../pestanas/armador/ArmadorFormatoEntrada";
 import { CustomValidationPanel, GuidedValidationNotice, ValidationSummary } from "./ValidacionPaneles";
 
-// Editor de «qué acepta» una pregunta (constraint + constraint_message). Lo usan la pestaña interna «Reglas»
-// del Constructor y la pestaña Restricciones del módulo: misma regla, mismo editor; la pestaña sólo le da más
-// espacio (pedido: «igual de sólido en el constructor que en la subpestaña»). Extraído de TabReglas (revamp
-// 2026-10-16) sin cambio de comportamiento.
+// Editor de «qué acepta» una pregunta (constraint + constraint_message) en la pestaña Restricciones.
+// La lectura de la regla ya está en la cabecera de la pestaña: el editor no la repite.
 
 export type EditorValidacionProps = {
   node: BuilderNode;
@@ -31,7 +29,7 @@ export function EditorValidacion({ node, scope, onFieldChange, onFieldsChange }:
   return (
     <>
       {hasConstraint && (
-        <ValidationSummary node={node} scope={scope} onFieldChange={onFieldChange} onFieldsChange={onFieldsChange} />
+        <ValidationSummary node={node} onFieldChange={onFieldChange} onFieldsChange={onFieldsChange} />
       )}
       {/* Armador de patrones (G2): sólo en preguntas de texto, escribe regex(., '^…$') al aplicar. */}
       {node.typeInfo.base === "text" && (
@@ -39,7 +37,6 @@ export function EditorValidacion({ node, scope, onFieldChange, onFieldsChange }:
       )}
       {isGuidedPreset && validation ? (
         <GuidedValidationNotice
-          summary={validation.summary}
           onClear={() => {
             onFieldChange("constraint", "");
             onFieldChange("constraint_message", "");
