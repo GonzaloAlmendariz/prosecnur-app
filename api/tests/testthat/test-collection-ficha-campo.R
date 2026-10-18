@@ -661,3 +661,92 @@ test_that("un curso largo envuelve a segunda linea en vez de recortarse", {
   expect_gt(render_franja(curso_largo), 50L)
   expect_lt(render_franja("CALCULO 1"), 5L)
 })
+
+# --- Careta: los logos no se dibujan encima del QR ---------------------------
+#
+# Medido el 2026-10-15 con los logos de la UNSA y de la Cátedra UNESCO: la
+# careta iba en `y_brand` = 0.955 y el QR de la ficha de campo llegaba hasta
+# 0.969, así que los logos quedaban sobre el símbolo. Con careta, el QR guarda
+# su borde de abajo (título y formulario no se mueven) y cede lado hasta que
+# él y su zona de silencio terminan debajo de la careta.
+
+.cfx_url_kobo <- "https://ee-eu.kobotoolbox.org/x/5rbcghMb?d%5B/afWqShr22MB4436VTsw32p/collectorID%5D=CH%20188"
+
+.cfx_con_careta <- function(dir, url = .cfx_url_kobo, mm = 11) {
+  t <- collection_material_field_sheet_template(assets = c("logo-uno", "logo-dos"))
+  t$pages[[1]]$blocks[[1]]$max_height_mm <- mm
+  compiled <- .cfx_compiled(t, url)
+  assets <- list(`logo-uno` = .cfx_logo(file.path(dir, "uno.png")),
+                 `logo-dos` = .cfx_logo(file.path(dir, "dos.png"), w = 60L, h = 60L))
+  png_path <- file.path(dir, "ficha.png")
+  collection_material_render_compiled(compiled, png_path, device = "png", page = 1L, dpi = 150,
+                                      brand_assets = assets)
+  png_path
+}
+
+test_that("con careta, entre los logos y el QR queda una franja en blanco", {
+  skip_if_not_installed("png")
+  dir <- tempfile("cfx-careta-"); dir.create(dir)
+  g <- .cfx_grey(.cfx_con_careta(dir))
+  # Columnas del centro, donde están a la vez los logos y el QR.
+  centro <- seq(round(ncol(g) * 0.35), round(ncol(g) * 0.65))
+  tinta <- apply(g[, centro] < 0.5, 1, any)
+  filas <- which(tinta)
+  # Tinta de la careta: el primer bloque de filas con tinta, arriba de todo.
+  corte <- which(diff(filas) > 1L)[1]
+  expect_false(is.na(corte))
+  careta_abajo <- filas[corte]
+  qr_arriba <- filas[corte + 1L]
+  # Ese primer bloque tiene que ser la careta y nada más: si los logos se
+  # fundieran con el QR, el corte caería entre el QR y el título y la franja
+  # medida sería otra.
+  L0 <- prosecnurapp:::.cfc_layout(branded = TRUE)
+  expect_lte(careta_abajo, ceiling((1 - L0$y_brand + (11 / 297) / 2) * nrow(g)) + 2L)
+  # Lo que hay entre los dos tiene que alcanzar para la zona de silencio del QR
+  # (4 módulos): medida en módulos reales del símbolo dibujado.
+  n <- nrow(collection_qr_matrix(.cfx_url_kobo, correction = "M", quiet_zone = 4L))
+  L <- prosecnurapp:::.cfc_layout(branded = TRUE)
+  lugar <- prosecnurapp:::.cfc_qr_colocacion(L, n, 4L, ncol(g) / nrow(g))
+  modulo_px <- lugar$side * ncol(g) / (n - 8L)
+  expect_gte(qr_arriba - careta_abajo, 4 * modulo_px)
+})
+
+test_that("con careta el QR conserva su borde de abajo: titulo y formulario no se mueven", {
+  n <- nrow(collection_qr_matrix(.cfx_url_kobo, correction = "M", quiet_zone = 4L))
+  sin <- prosecnurapp:::.cfc_layout()
+  con <- prosecnurapp:::.cfc_layout(branded = TRUE)
+  a <- prosecnurapp:::.cfc_qr_colocacion(sin, n)
+  b <- prosecnurapp:::.cfc_qr_colocacion(con, n)
+  asp <- 210 / 297
+  expect_equal(b$y - b$side * asp / 2, a$y - a$side * asp / 2, tolerance = 1e-9)
+  expect_lt(b$side, a$side)
+  # El costo en papel queda acotado: el símbolo sigue midiendo más de 100 mm.
+  expect_gt(b$side * 210, 100)
+  # Sin careta nada cambia respecto del layout.
+  expect_identical(a, list(side = sin$qr_side, y = sin$qr_y))
+})
+
+test_that("con careta el QR se relee con la misma colocacion que lo dibujo", {
+  skip_if_not_installed("png")
+  dir <- tempfile("cfx-careta-qr-"); dir.create(dir)
+  png_path <- .cfx_con_careta(dir)
+  esperada <- collection_qr_matrix(.cfx_url_kobo, correction = "M", quiet_zone = 4L)
+  expect_identical(
+    collection_qr_matrix_from_png(png_path, n = nrow(esperada), dpi = 150,
+                                  layout_preset = "field_form", branded = TRUE),
+    esperada
+  )
+  # Leerla con la geometria sin careta es leer el sitio equivocado.
+  expect_false(identical(
+    collection_qr_matrix_from_png(png_path, n = nrow(esperada), dpi = 150,
+                                  layout_preset = "field_form", branded = FALSE),
+    esperada
+  ))
+})
+
+test_that("una careta mas alta reserva mas franja", {
+  n <- nrow(collection_qr_matrix(.cfx_url_kobo, correction = "M", quiet_zone = 4L))
+  a <- prosecnurapp:::.cfc_qr_colocacion(prosecnurapp:::.cfc_layout(TRUE, brand_mm = 11), n)
+  b <- prosecnurapp:::.cfc_qr_colocacion(prosecnurapp:::.cfc_layout(TRUE, brand_mm = 16), n)
+  expect_lt(b$side, a$side)
+})
