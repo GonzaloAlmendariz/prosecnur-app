@@ -42,6 +42,7 @@ export function PestanaOpciones(p: PestanaOpcionesProps) {
   // Sin `foco` (o con uno que ya no existe), la primera lista según el orden de los grupos.
   const primera = grupos.flatMap((g) => g.items)[0]?.key ?? null;
   const actual = p.catalogs.find((c) => c.listName === p.seleccionada) ?? p.catalogs.find((c) => c.listName === primera) ?? null;
+  const origenActual = actual && actual.items.length === 0 ? origenDeLista(actual.listName, p.structure) : null;
   const usos = actual ? usosDeLista(p.structure, actual.listName) : [];
   const grupo = actual ? repetidas.find((g) => g.listas.includes(actual.listName)) ?? null : null;
   const [motivo, setMotivo] = useState<string | null>(null);
@@ -104,10 +105,12 @@ export function PestanaOpciones(p: PestanaOpcionesProps) {
         ) : undefined}
       >
         {actual ? (
-          <PanelCard title={actual.items.length === 0 && origenDeLista(actual.listName, p.structure) ? nombreDeOrigen(origenDeLista(actual.listName, p.structure)!) : nombreLegible(actual.items, 2)} fill>
+          // Una lista dinámica es una nota y su código: la tarjeta se ajusta a eso y el resto del alto queda en la
+          // columna (M1). Una lista de choices llena la columna, que es donde crecen sus opciones.
+          <PanelCard title={origenActual ? nombreDeOrigen(origenActual) : nombreLegible(actual.items, 2)} fill={!origenActual}>
             <EditorLista
               lista={actual}
-              origen={origenDeLista(actual.listName, p.structure)}
+              origen={origenActual}
               usos={usosLista[actual.listName] ?? 0}
               onRename={p.onRename}
               onAgregar={p.onAddChoice}

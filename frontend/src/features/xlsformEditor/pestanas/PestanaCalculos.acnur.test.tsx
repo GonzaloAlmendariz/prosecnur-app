@@ -16,7 +16,10 @@ describe("Cálculos con el ACNUR", () => {
     expect(html).not.toContain("Ninguna pregunta lo lee");
     expect(html).not.toContain("Ninguna fila lo usa");
     expect(html).toContain("en su etiqueta");
-    expect(html).toContain("en la opción «Nunca se ha mudado de casa mientras estaba en ${countryname}»");
+    // M2: sufijo corto; qué opción, en el tooltip y sin `${x}` crudo.
+    expect(html).toContain(">en una opción<");
+    expect(html).toContain("En la opción «Nunca se ha mudado de casa mientras estaba en «countryname»»");
+    expect(html).not.toContain("estaba en ${countryname}");
     expect(html).toContain("El texto de la opción elegida en");
   });
 });

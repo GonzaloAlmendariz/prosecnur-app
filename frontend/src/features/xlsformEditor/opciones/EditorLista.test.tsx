@@ -18,6 +18,9 @@ describe("EditorLista con opciones dinámicas", () => {
     expect(html).not.toContain("Agrega la primera");
     expect(html).not.toContain("Agregar opción");
     expect(html).toContain("opciones dinámicas");
+    // M1: el código de una lista dinámica no se edita.
+    expect(html).toContain('data-codigo-fijo=""');
+    expect(html).not.toMatch(/<input[^>]*value="\$\{HH01_2_aux\}"/);
   });
   it("sin la estructura, el código de la lista basta para no ofrecer escribirlas", () => {
     const html = renderToStaticMarkup(<EditorLista lista={{ listName: "${HH01_2_aux}", title: "", items: [] }} {...props} />);
@@ -28,5 +31,6 @@ describe("EditorLista con opciones dinámicas", () => {
     const html = renderToStaticMarkup(<EditorLista lista={{ listName: "nueva", title: "", items: [] }} {...props} />);
     expect(html).toContain("Agrega la primera");
     expect(html).toContain("Agregar opción");
+    expect(html).toMatch(/<input[^>]*value="nueva"/);
   });
 });

@@ -8,8 +8,10 @@ import { rowToRecord } from "../parsing/sheetUtils";
 import type { LogicScope } from "../logic";
 import type { XlsformEditorWorkbook } from "../types";
 import { leerRegla } from "../reglas/leerRegla";
-import { CuerpoPanelMarca, PiezasLectura } from "./CuerpoPanelMarca";
+import { CuerpoPanelMarca, PiezasLectura, TituloLegible, corto, tituloPlano } from "./CuerpoPanelMarca";
 import { Riel } from "./Riel";
+import { CabeceraRiel } from "./CabeceraRiel";
+import { posicionPanel } from "./PanelMarca";
 import { marcasNodo, type CasillaRiel } from "./marcasNodo";
 
 const wb: XlsformEditorWorkbook = {
@@ -126,8 +128,70 @@ describe("PanelMarca (contenido)", () => {
         ]}
       />,
     );
-    expect(html).toContain('<span class="xfk-pop__ref" title="¿Acepta participar en la encuesta de hogares del distrito?">¿Acepta participar en la encuesta…<code>acepta</code></span>');
+    // El texto entero, recortado por CSS (elipsis), nunca a mitad de palabra con «…» escrito (M5).
+    expect(html).toContain('<span class="xfk-pop__ref" title="¿Acepta participar en la encuesta de hogares del distrito? · acepta"><span class="xfk-pop__ref-txt">¿Acepta participar en la encuesta de hogares del distrito?</span><code>acepta</code></span>');
     expect(html).toContain(" es");
-    expect(html).toContain("Sí<code>1</code>");
+    expect(html).toContain('Sí</span><code>1</code>');
+  });
+
+  test("M5: sin etiqueta, el chip es el código una sola vez", () => {
+    const html = renderToStaticMarkup(
+      <PiezasLectura piezas={[{ tipo: "pregunta", name: "name_selectedchild_edu_calcul_nc_age", etiqueta: "" }]} />,
+    );
+    expect(html.match(/name_selectedchild_edu_calcul_nc_age/g)).toHaveLength(2); // el chip y su tooltip
+    expect(html).toContain('<code class="is-solo">name_selectedchild_edu_calcul_nc_age</code>');
+    expect(html).not.toContain("…");
+  });
+
+  test("M5: el título del panel cita `${x}` como código, no crudo", () => {
+    const html = renderToStaticMarkup(<TituloLegible texto="5. ¿Cuál es la fecha de nacimiento de ${HH01}?" />);
+    expect(html).toBe('5. ¿Cuál es la fecha de nacimiento de <code class="xfk-pop__var">HH01</code>?');
+    expect(tituloPlano("de ${HH01}?")).toBe("de «HH01»?");
+    expect(corto("Entrevistador(a): ¿alguien responde la llamada telefónica?", 34)).toBe("Entrevistador(a): ¿alguien…");
+  });
+});
+
+describe("CabeceraRiel", () => {
+  test("abreviaturas que no son palabras, con el nombre completo para leer", () => {
+    const html = renderToStaticMarkup(<CabeceraRiel />);
+    expect([...html.matchAll(/data-columna="[a-z]+"[^>]*>([^<]+)</g)].map((m) => m[1])).toEqual(["OB", "CO", "RE", "CA", "FI"]);
+    expect(html).not.toMatch(/>SI</);
+    expect(html).toContain('aria-label="Condición"');
+    expect(html).toContain('title="Cálculo"');
+  });
+});
+
+describe("posicionPanel (S9)", () => {
+  // Casilla de 18 px centrada en x = 200.
+  const ancla = (top: number) => ({ top, bottom: top + 18, centro: 200 });
+  const base = { ancho: 360, vw: 1024 };
+
+  test("abre abajo si cabe, a 10 px de la casilla", () => {
+    const p = posicionPanel({ ...base, ancla: ancla(100), alto: 300, vh: 1000 });
+    expect(p).toMatchObject({ lado: "abajo", top: 128, maxAlto: null });
+  });
+
+  test("voltea hacia arriba si abajo no cabe y arriba sí", () => {
+    const p = posicionPanel({ ...base, ancla: ancla(700), alto: 300, vh: 900 });
+    expect(p).toMatchObject({ lado: "arriba", fondo: 690, maxAlto: null });
+  });
+
+  test("EDU05 del ACNUR a 1024×600: 532 px de panel con la casilla en y = 456 abre arriba con el alto limitado", () => {
+    const p = posicionPanel({ ...base, ancla: ancla(438), alto: 532, vh: 600 });
+    expect(p.lado).toBe("arriba");
+    // Arriba hay 438 - 10 - 16 = 412 px; abajo, 600 - 16 - 466 = 118.
+    expect(p.maxAlto).toBe(412);
+    // Queda entero dentro de la ventana con 16 px de margen.
+    expect(p.fondo - (p.maxAlto ?? 0)).toBeGreaterThanOrEqual(16);
+  });
+
+  test("si abajo hay más espacio, se queda abajo y limita al alto de abajo", () => {
+    const p = posicionPanel({ ...base, ancla: ancla(80), alto: 700, vh: 600 });
+    expect(p).toMatchObject({ lado: "abajo", top: 108, maxAlto: 476 });
+  });
+
+  test("respeta los 16 px de los bordes laterales", () => {
+    expect(posicionPanel({ ...base, ancla: { top: 100, bottom: 118, centro: 20 }, alto: 100, vh: 800 }).left).toBe(16);
+    expect(posicionPanel({ ...base, ancla: { top: 100, bottom: 118, centro: 1010 }, alto: 100, vh: 800 }).left).toBe(1024 - 360 - 16);
   });
 });

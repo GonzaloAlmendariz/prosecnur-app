@@ -8,7 +8,8 @@ import { INFO_MARCA, RIEL, claveVisible, tieneCasilla, type CasillaRiel, type Ma
 import { PanelMarca } from "./PanelMarca";
 import "./riel.css";
 
-// Riel fijo de marcas (identidad «Señales», 2026-10-17): cinco casillas en orden fijo, OB · SI · RE · ƒx · FI.
+// Riel fijo de marcas (identidad «Señales», 2026-10-17): cinco casillas en orden fijo (obligatoria, condición,
+// restricción, cálculo y filtro; cabecera OB · CO · RE · CA · FI).
 // Una casilla con marca muestra su glifo sobre el tono de la marca; vacía queda como hueco neutro. Tocarla abre el
 // panel con lo que el motor sabe decir de esa regla.
 
@@ -19,9 +20,11 @@ export type RielProps = {
   marcas: MarcasNodo;
   scope?: LogicScope | null;
   className?: string;
+  /** -1 saca las casillas del recorrido con Tab (la Estructura deja una sola fila en el recorrido a la vez). */
+  tabIndex?: number;
 };
 
-export function Riel({ nodo, marcas, scope, className }: RielProps) {
+export function Riel({ nodo, marcas, scope, className, tabIndex }: RielProps) {
   const [abierta, setAbierta] = useState<CasillaRiel | null>(null);
   const [visible, setVisible] = useState(false);
   const botones = useRef<Partial<Record<CasillaRiel, HTMLButtonElement | null>>>({});
@@ -77,6 +80,7 @@ export function Riel({ nodo, marcas, scope, className }: RielProps) {
             type="button"
             className={on ? "xfk-casilla is-on" : "xfk-casilla"}
             style={{ "--xfk-c": info.tono } as CSSProperties}
+            tabIndex={tabIndex}
             data-casilla={k}
             data-marca={on ? kk : undefined}
             aria-haspopup="dialog"

@@ -26,11 +26,14 @@ export function BarraFormula({ celda, valor, nodo, scope, onCambiar }: {
     );
   }
   const ayuda = COLUMN_HELP[celda.columna];
-  const lee = scope && valor.trim() && LEIBLES.has(celda.columna)
+  const lectura = scope && valor.trim() && LEIBLES.has(celda.columna)
     ? celda.columna === "constraint" && nodo
-      ? describeValidation(valor, nodo, scope)?.summary
-      : describeExpression(valor, scope).summary
+      ? describeValidation(valor, nodo, scope)
+      : describeExpression(valor, scope)
     : null;
+  const lee = lectura?.summary ?? null;
+  // El aviso (comillas tipográficas que ODK no reconoce) viaja aparte de la frase: si sólo se lee `summary`, se pierde.
+  const aviso = lectura?.aviso ?? null;
   return (
     <div className="xfx-barra">
       <span className="xfx-barra__dir" title={ayuda?.detail}>
@@ -45,6 +48,7 @@ export function BarraFormula({ celda, valor, nodo, scope, onCambiar }: {
         spellCheck={false}
       />
       {lee ? <span className="xfx-barra__lee"><span className="xfk-over">Se lee</span> {lee}</span> : null}
+      {aviso ? <span className="xfx-barra__lee is-aviso" role="note"><span className="xfk-over">Aviso</span> {aviso}</span> : null}
     </div>
   );
 }

@@ -47,11 +47,19 @@ export function EditorLista({ lista, usos, onRename, onAgregar, onCambio, onQuit
   return (
     <div className="xfo-editor">
       <div className="xfo-editor__cab">
-        <label className="xfo-editor__codigo">
-          <span>Código de la lista</span>
-          <input value={codigo} spellCheck={false} onChange={(e) => setCodigo(e.target.value)} onBlur={renombrar}
-            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setCodigo(lista.listName); }} />
-        </label>
+        {origen ? (
+          // Una lista dinámica no se renombra aquí: su «código» es la referencia que escribe la pregunta (M1).
+          <div className="xfo-editor__codigo">
+            <span>Código de la lista</span>
+            <code data-codigo-fijo="" title="Lo escribe la pregunta que la usa: no se renombra aquí">{lista.listName}</code>
+          </div>
+        ) : (
+          <label className="xfo-editor__codigo">
+            <span>Código de la lista</span>
+            <input value={codigo} spellCheck={false} onChange={(e) => setCodigo(e.target.value)} onBlur={renombrar}
+              onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setCodigo(lista.listName); }} />
+          </label>
+        )}
         <span className="xfo-editor__dato">
           {origen ? "opciones dinámicas" : `${lista.items.length} ${lista.items.length === 1 ? "opción" : "opciones"}`}, {usos === 0 ? "sin uso" : usos === 1 ? "en 1 pregunta" : `en ${usos} preguntas`}
         </span>

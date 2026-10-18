@@ -37,20 +37,22 @@
   .xfk-riel > button.xfk-casilla { width: 15px; height: 15px; border-radius: 4px; }
   .xfk-riel > button.xfk-casilla svg { width: 10px; height: 10px; }
   /* En el esquema, el riel baja a la línea del subtítulo y el título recupera el ancho de la fila (la fila no
-   * crece: 42 px de alto). Vale también para la fila elegida: sus flechas se achican y suben a la línea del
-   * título, así el título de esa fila no queda en dos letras. */
+   * crece). La fila elegida tiene la MISMA geometría que las demás (M6): sus flechas no reservan ancho; aparecen
+   * sobre el final del título al pasar el puntero o con el foco adentro (Alt+↑ / Alt+↓ y las flechas de la ficha
+   * siguen a mano). */
   .pulso-outline-row > .xfk-riel.pulso-outline-riel { position: absolute; right: 7px; bottom: 5px; }
   .pulso-outline-row:has(> .pulso-outline-riel) .pulso-outline-subtitle { margin-right: 88px; max-width: calc(100% - 88px); }
   .pulso-xlsform-frame .pulso-outline-row.is-active > .pulso-outline-actions {
-    position: absolute; top: 4px; right: 7px; display: inline-flex; gap: 2px;
+    position: absolute; top: 3px; right: 6px; z-index: 1; display: inline-flex; gap: 2px; padding: 1px 1px 1px 6px; border-radius: 6px;
+    background: linear-gradient(90deg, transparent, var(--xls-sidebar-selected, var(--pulso-primary-soft)) 6px);
+    opacity: 0; pointer-events: none; transition: opacity var(--motion-dur-fast, 0.12s) ease;
   }
+  .pulso-xlsform-frame .pulso-outline-row.is-active:hover > .pulso-outline-actions,
+  .pulso-xlsform-frame .pulso-outline-row.is-active:focus-within > .pulso-outline-actions { opacity: 1; pointer-events: auto; }
   .pulso-xlsform-frame .pulso-outline-row.is-active > .pulso-outline-actions button.pulso-icon {
     box-sizing: border-box; width: 18px; height: 18px; min-width: 0; min-height: 0; padding: 0;
   }
   .pulso-xlsform-frame .pulso-outline-row.is-active > .pulso-outline-actions button.pulso-icon svg { width: 11px; height: 11px; }
-  .pulso-xlsform-frame .pulso-outline-row.is-active:has(> .pulso-outline-actions) .pulso-outline-title {
-    margin-right: 40px; max-width: calc(100% - 40px);
-  }
 }
 
 /* Panel */
@@ -69,7 +71,7 @@
 }
 .xfk-pop[data-lado="abajo"]::before { top: -7px; border-right: 0; border-bottom: 0; }
 .xfk-pop[data-lado="arriba"]::before { bottom: -7px; border-left: 0; border-top: 0; }
-.xfk-pop__scroll { position: relative; max-height: calc(100dvh - 32px); overflow: auto; overscroll-behavior: contain; border-radius: inherit; }
+.xfk-pop__scroll { position: relative; max-height: min(calc(100dvh - 32px), calc(var(--xfk-pop-max, 100dvh) - 2px)); overflow: auto; overscroll-behavior: contain; border-radius: inherit; }
 
 .xfk-pop__cab {
   position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center;
@@ -133,4 +135,15 @@
   .xfk-pop, .xfk-casilla, .xfk-pop__codigo summary::before { transition: none; }
   .xfk-pop, .xfk-pop[data-lado="arriba"] { transform: none; }
   .xfk-casilla:hover { transform: none; }
+}
+
+/* Chips y títulos del panel (M5): el texto largo se recorta con elipsis (nunca a mitad de palabra con «…» escrito),
+ * el código va una sola vez y una `${x}` del título se cita como código, no cruda. */
+.xfk-pop__ref { overflow-wrap: normal; }
+.xfk-pop__ref-txt { display: inline-block; max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.xfk-pop__ref code { display: inline-block; max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.xfk-pop__ref code.is-solo { font-size: 11.5px; color: var(--pulso-text); }
+.xfk-pop__var {
+  padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--pulso-text) 6%, transparent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; color: var(--pulso-text-soft);
 }
