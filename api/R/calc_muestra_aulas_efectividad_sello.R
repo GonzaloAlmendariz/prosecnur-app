@@ -254,6 +254,23 @@ calc_muestra_aulas_sellar_efectividad <- function(config, referencia = NULL) {
 #' humana queda abierta y explícita —`tau_origen = "manual"` se respeta— en vez
 #' de deducirse de que el campo esté lleno, que es lo que fallaba.
 #'
+#' **Y vuelve a 0 cuando el marco deja de publicarla** (2026-10-14). Medido en
+#' UNSA 2026: el estudio pasó de la calibración embebida a `tau_global = 0,50`,
+#' el marco dejó de publicar tasas y los dieciocho estratos siguieron
+#' dimensionando con las de la calibración anterior (0,45 a 0,64): 175 aulas en
+#' vez de 197, sin aviso. Por estrato, según su `tau_origen`:
+#'
+#' - `"manual"`: lo fijó el analista; no se toca, ni con `tau_global`.
+#' - `"marco"`: se reemplaza por la tasa vigente, o vuelve a 0 (y cae al τ
+#'   global) si el marco ya no la publica.
+#' - `""` (anterior al campo): se refresca si hay tasa vigente. Si no la hay se
+#'   respeta —no se sabe qué marco la escribió— salvo con `tau_global`, que
+#'   declara una sola tasa para todas las facultades: ahí cualquier τ no
+#'   manual contradice la declaración y vuelve a 0.
+#'
+#' Sin marco (`NULL`) o con un marco que no trae el campo de tasas y no declara
+#' `tau_global`, el estudio sale intacto: no hay con qué decidir.
+#'
 #' No altera ningún proyecto guardado: corre al recalcular. Y medido sobre
 #' HSVG2026 **no cambia el dimensionamiento** (165 aulas con la τ congelada y
 #' 165 con la refrescada): lo que arregla es la trazabilidad, no la cifra.
@@ -263,39 +280,105 @@ calc_muestra_aulas_sellar_efectividad <- function(config, referencia = NULL) {
 #' @return el estudio, con `tau` por estrato y su procedencia.
 #' @export
 calc_muestra_aulas_resolver_tau_estratos <- function(estudio, frame = NULL) {
-  filas <- frame$tasas_efectividad_facultad %||% NULL
-  if (!is.list(estudio) || !is.list(filas) || !length(filas)) return(estudio)
+  if (!is.list(estudio) || !is.list(frame)) return(estudio)
+  filas <- frame$tasas_efectividad_facultad
+  efectividad <- frame$config$efectividad %||% list()
+  tau_global <- identical(.cm_aulas_scalar(efectividad$fuente %||% "", ""), "tau_global")
+  # Con `tau_global` el respaldo es la tasa DECLARADA, no `parametros$tau`: es la
+  # que el marco usó para el rendimiento esperado de cada aula, y dimensionar
+  # con otra copia (que puede quedar vieja) haría que tamaño y marco discrepen.
+  tau_respaldo <- 0
+  if (tau_global) {
+    t <- suppressWarnings(as.numeric(efectividad$tau %||% NA_real_)[1])
+    if (is.finite(t) && t > 0 && t <= 1) tau_respaldo <- t
+  }
+  # Un marco que no trae el campo no dice nada: ni publica ni deja de publicar.
+  if (is.null(filas) && !tau_global) return(estudio)
   por_clave <- list()
-  for (f in filas) {
+  for (f in if (is.list(filas)) filas else list()) {
     if (!is.list(f)) next
     clave <- .cm_criterios_fac_key(f$facultad %||% "")
     tasa <- suppressWarnings(as.numeric(f$tasa %||% NA_real_)[1])
     if (!nzchar(clave) || !is.finite(tasa) || tasa <= 0 || tasa > 1) next
     por_clave[[clave]] <- tasa
   }
-  if (!length(por_clave)) return(estudio)
+  hash <- .cm_aulas_scalar(frame$frame_hash %||% "", "")
   comps <- estudio$componentes %||% list()
   for (i in seq_along(comps)) {
     estratos <- comps[[i]]$marco$estratos %||% list()
     if (!length(estratos)) next
     for (j in seq_along(estratos)) {
       e <- estratos[[j]]
+      origen <- .cm_aulas_scalar(e$tau_origen %||% "", "")
       # Sólo una declaración EXPLÍCITA frena el refresco. Que el campo esté
       # lleno no alcanza: lo llenó esta misma función la vez anterior.
-      if (identical(.cm_aulas_scalar(e$tau_origen %||% "", ""), "manual")) next
+      if (identical(origen, "manual")) {
+        if (!is.null(e$tau_reseteado_desde)) {
+          e$tau_reseteado_desde <- NULL
+          estratos[[j]] <- e
+        }
+        next
+      }
       clave <- .cm_criterios_fac_key(e$label %||% e$estrato %||% "")
       tasa <- por_clave[[clave]]
-      if (is.null(tasa)) next
-      e$tau <- tasa
-      e$tau_origen <- "marco"
-      # De QUÉ marco, para que una τ vieja se pueda reconocer sin recalcularla.
-      e$tau_frame_hash <- .cm_aulas_scalar(frame$frame_hash %||% "", "")
+      if (!is.null(tasa)) {
+        e$tau <- tasa
+        e$tau_origen <- "marco"
+        # De QUÉ marco, para que una τ vieja se pueda reconocer sin recalcularla.
+        e$tau_frame_hash <- hash
+        e$tau_reseteado_desde <- NULL
+        estratos[[j]] <- e
+        next
+      }
+      # El marco ya no publica tasa para esta facultad.
+      tau_actual <- suppressWarnings(as.numeric(e$tau %||% 0)[1])
+      if (!is.finite(tau_actual)) tau_actual <- 0
+      # Un τ anterior al campo se respeta salvo con `tau_global`.
+      if (!nzchar(origen) && !tau_global) next
+      # Ya estaba en el respaldo: no hay nada que deshacer.
+      if (abs(tau_actual - tau_respaldo) < 1e-9 &&
+          (nzchar(origen) == (tau_respaldo > 0))) next
+      # Se deja dicho el τ propio que se pierde, para que la UI lo avise
+      # (`resultado$tau_reseteados`). Persiste mientras el estrato siga en el
+      # respaldo; se borra cuando vuelve a tener tasa propia o una manual.
+      if (tau_actual > 0 && abs(tau_actual - tau_respaldo) >= 1e-9) {
+        e$tau_reseteado_desde <- tau_actual
+      }
+      e$tau <- tau_respaldo
+      e$tau_origen <- if (tau_respaldo > 0) "marco" else ""
+      e$tau_frame_hash <- if (tau_respaldo > 0) hash else ""
       estratos[[j]] <- e
     }
     comps[[i]]$marco$estratos <- estratos
   }
   estudio$componentes <- comps
   estudio
+}
+
+#' Los estratos que perdieron su τ propio porque el marco dejó de publicarlo.
+#'
+#' Lee `tau_reseteado_desde`, que escribe
+#' `calc_muestra_aulas_resolver_tau_estratos()`. Lo llaman los dos
+#' constructores de `aulas_por_estrato` del motor para publicarlo en
+#' `resultado$tau_reseteados`: un cambio de tasa que mueve aulas no puede
+#' ocurrir en silencio.
+#'
+#' @param estratos estratos normalizados del componente.
+#' @param tau_por_estrato τ efectivo con el que se dimensionó cada estrato.
+#' @return lista de `list(facultad, tau_anterior, tau_vigente)`.
+#' @noRd
+.cm_aulas_tau_reseteados <- function(estratos, tau_por_estrato) {
+  out <- list()
+  for (i in seq_along(estratos)) {
+    previo <- suppressWarnings(as.numeric(estratos[[i]]$tau_reseteado_desde %||% 0)[1])
+    if (!is.finite(previo) || previo <= 0) next
+    out[[length(out) + 1L]] <- list(
+      facultad = .cm_aulas_scalar(estratos[[i]]$label %||% "", ""),
+      tau_anterior = previo,
+      tau_vigente = as.numeric(tau_por_estrato[[i]])
+    )
+  }
+  out
 }
 
 #' Sella los tramos de rendimiento por tamano en la config del estudio.

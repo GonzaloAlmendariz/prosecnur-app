@@ -415,6 +415,11 @@ export type CalcMuestraEstrato = {
   tau_origen?: "" | "marco" | "manual";
   /** Marco del que salió la τ derivada, para reconocerla vieja sin recalcularla. */
   tau_frame_hash?: string;
+  /**
+   * τ propio que el estrato perdió porque el marco dejó de publicar su tasa;
+   * persiste mientras siga en el respaldo (calc_muestra_aulas_efectividad_sello.R).
+   */
+  tau_reseteado_desde?: number;
 };
 
 export type CalcMuestraMatrizOperativaCelda = {
@@ -598,6 +603,8 @@ export type CalcMuestraResultado = {
   aulas_total?: number;
   aulas_base_total?: number;
   aulas_extra_total?: number;
+  /** Estratos que volvieron al τ de respaldo porque el marco ya no publica su tasa. */
+  tau_reseteados?: CalcMuestraTauReseteado[];
   /** Auditoría I18: la UI la presenta, pero no reinterpreta ni recalcula. */
   alumnos_por_ch_decision?: Omit<CalcMuestraAlumnosPorChDecision, "por_facultad">;
   /** Payload crítico raw; solo el normalizador I19 acredita la variante ready. */
@@ -764,8 +771,26 @@ export type CalcMuestraAulasObjectiveConfig = {
   missing_policy?: string;
 };
 
+export type CalcMuestraTauReseteado = {
+  facultad: string;
+  tau_anterior: number;
+  tau_vigente: number;
+};
+
+/**
+ * De dónde sale la tasa de efectividad que convierte elegibles en encuestas
+ * (calc_muestra_aulas_efectividad.R). Sin declaración el motor usa la
+ * calibración embebida, medida en otro estudio; un estudio sin histórico
+ * propio declara `tau_global` y la misma tasa rige para todas las facultades.
+ */
+export type CalcMuestraEfectividadConfig =
+  | { fuente: "tau_global"; tau: number; periodo?: string }
+  | { fuente: "historico"; [clave: string]: unknown };
+
 export type CalcMuestraWorkspaceAulasConfig = {
   schema: "calc_muestra_workspace_aulas_v1" | string;
+  /** Vacío = calibración embebida. */
+  efectividad?: CalcMuestraEfectividadConfig | Record<string, never>;
   modalidad: CalcMuestraWorkspaceAulasModalidad;
   selector: CalcMuestraWorkspaceAulasSelector;
   /** Cursos-horario titulares calculados por R para el escenario elegido. */
