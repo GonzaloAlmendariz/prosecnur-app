@@ -4,6 +4,7 @@ import { ConstraintBuilder } from "../../inspector/logic/ConstraintBuilder";
 import { matchTextRule } from "../../inspector/logic/textRules";
 import { describeValidation } from "../reglasHumanas";
 import { ConstraintMessageField } from "./MensajeValidacion";
+import { ArmadorFormatoEntrada } from "../../pestanas/armador/ArmadorFormatoEntrada";
 import { CustomValidationPanel, GuidedValidationNotice, ValidationSummary } from "./ValidacionPaneles";
 
 // Editor de «qué acepta» una pregunta (constraint + constraint_message). Lo usan la pestaña interna «Reglas»
@@ -31,6 +32,10 @@ export function EditorValidacion({ node, scope, onFieldChange, onFieldsChange }:
     <>
       {hasConstraint && (
         <ValidationSummary node={node} scope={scope} onFieldChange={onFieldChange} onFieldsChange={onFieldsChange} />
+      )}
+      {/* Armador de patrones (G2): sólo en preguntas de texto, escribe regex(., '^…$') al aplicar. */}
+      {node.typeInfo.base === "text" && (
+        <ArmadorFormatoEntrada key={node.rowIndex} constraint={node.constraint} onAplicar={(next) => onFieldChange("constraint", next)} />
       )}
       {isGuidedPreset && validation ? (
         <GuidedValidationNotice

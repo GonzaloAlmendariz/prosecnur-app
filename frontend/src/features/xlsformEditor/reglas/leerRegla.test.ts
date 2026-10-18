@@ -238,7 +238,7 @@ describe("G1 · patrones que el corpus variado destapó", () => {
 
   test("un patrón con un lenguaje enorme no agota la memoria: se lee por su forma", () => {
     expect(g1("constraint", "regex(., '^[A-Z]{3}-\\d{3,4}$')")).toBe("Solo acepta el formato AAA-999 o AAA-9999");
-    expect(g1("constraint", "regex(., '^[a-z]{6}[0-9]{6}$')")).toBe("Solo acepta el formato aaaaaa999999");
+    expect(g1("constraint", "regex(., '^[a-z]{6}[0-9]{6}$')")).toBe("Solo acepta 6 letras minúsculas y 6 dígitos");
   });
 
   test("una resta de fechas son días, no una fecha; dividida entre 365.25, años", () => {
@@ -265,7 +265,7 @@ describe("G1 · patrones que el corpus variado destapó", () => {
 
   test("una clase de solo mayúsculas se ilustra en mayúscula", () => {
     expect(g1("constraint", "regex(., '^[A-Z]{2}-[0-9]{2}$')")).toBe("Solo acepta el formato AA-99");
-    expect(g1("constraint", "regex(., '^[a-z]{2}[0-9]$')")).toBe("Solo acepta el formato aa9");
+    expect(g1("constraint", "regex(., '^[a-z]{2}[0-9]$')")).toBe("Solo acepta 2 letras minúsculas y 1 dígito");
   });
 
   test("un código repetido en el survey se avisa, no se resuelve en silencio", () => {
@@ -276,9 +276,39 @@ describe("G1 · patrones que el corpus variado destapó", () => {
 
   test("clases negadas, \\s y \\w se traducen", () => {
     expect(g1("constraint", "regex(., '^[^0-9]*$')")).toBe("No acepta números");
-    expect(g1("constraint", "regex(., '^[A-Za-zÁÉÍÓÚáéíóúÑñ\\s]{2,60}$')")).toBe("Solo acepta de 2 a 60 letras o espacios");
+    expect(g1("constraint", "regex(., '^[A-Za-zÁÉÍÓÚáéíóúÑñ\\s]{2,60}$')")).toBe("Solo acepta de 2 a 60 letras con tildes y espacios");
     expect(g1("constraint", "regex(., '^\\w{4,12}$')")).toBe("Solo acepta de 4 a 12 letras o dígitos");
     expect(g1("constraint", "not(regex(., '\\s'))")).toBe("Sin espacios");
     expect(g1("constraint", "not(regex(., '[0-9]'))")).toBe("Sin números");
+  });
+});
+
+describe("G2 · lecturas que pide el armador de patrones", () => {
+  const g2 = (raw: string) => texto("constraint", raw, corto);
+
+  test("dígitos con un prefijo fijo: «9 dígitos que empiezan con 9»", () => {
+    expect(g2("regex(., '^9[0-9]{8}$')")).toBe("Solo acepta 9 dígitos que empiezan con 9");
+    expect(g2("regex(., '^(?:10|20)[0-9]{9}$')")).toBe("Solo acepta 11 dígitos que empiezan con 10 o 20");
+  });
+
+  test("un rango de horas se lee como hora, no como formato", () => {
+    expect(g2("regex(., '^(?:[0-1][0-9]|2[0-3]):[0-5][0-9]$')")).toBe("Solo acepta una hora de 00:00 a 23:59");
+    expect(g2("regex(., '^(0[8-9]|1[0-7]):[0-5][0-9]$')")).toBe("Solo acepta una hora de 08:00 a 17:59");
+  });
+
+  test("letras con tildes y espacios, sin «una o más»", () => {
+    expect(g2("regex(., '^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]+$')")).toBe("Solo acepta letras con tildes y espacios");
+    expect(g2("regex(., '^[A-Za-z]+$')")).toBe("Solo acepta letras");
+    expect(g2("regex(., '^[A-Za-zÁÉÍÓÚáéíóúÑñ]{2,4}$')")).toBe("Solo acepta de 2 a 4 letras con tildes");
+    expect(g2("regex(., '^[A-Z]{3}$')")).toBe("Solo acepta 3 letras mayúsculas");
+  });
+
+  test("un formato mixto de largo fijo se lee por partes", () => {
+    expect(g2("regex(., '^[A-Z]{2}[0-9]{4}$')")).toBe("Solo acepta 2 letras mayúsculas y 4 dígitos");
+  });
+
+  test("dígitos parciales se ilustran como 9 y el ejemplo no se repite", () => {
+    expect(g2("regex(., '^[0-5][0-9]/[0-9]{2}$')")).toBe("Solo acepta el formato 99/99");
+    expect(g2("regex(., '^(A|A)[0-9]-[0-9]{2}$')")).toBe("Solo acepta el formato A9-99");
   });
 });

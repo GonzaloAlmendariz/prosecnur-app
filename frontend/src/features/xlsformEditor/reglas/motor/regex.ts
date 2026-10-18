@@ -7,7 +7,7 @@ import { cantidad, t, v, type Frase } from "./frase";
 
 type Atomo =
   | { tipo: "car"; c: string }
-  | { tipo: "clase"; chars: string[]; nombre: NombreClase | null; mayus: boolean; negada: boolean }
+  | { tipo: "clase"; chars: string[]; nombre: NombreClase | null; mayus: boolean; minus: boolean; acentos: boolean; negada: boolean }
   | { tipo: "grupo"; alternativas: Nodo[][] };
 type Nodo = { atomo: Atomo; min: number; max: number };
 
@@ -151,7 +151,10 @@ function claseDe(chars: string[], negada: boolean): Atomo {
     else if (espacios.length && !letras.length && !digitos.length) nombre = "espacio";
   }
   const mayus = letras.length > 0 && letras.every((c) => c === c.toUpperCase() && c !== c.toLowerCase());
-  return { tipo: "clase", chars: unicos, nombre, mayus, negada };
+  const minus = letras.length > 0 && letras.every((c) => c === c.toLowerCase() && c !== c.toUpperCase());
+  // Letras fuera del alfabeto básico: «á», «ñ», «ü». Se nombran («con tildes») porque cambian lo que se acepta.
+  const acentos = letras.some((c) => !LETRAS.includes(c));
+  return { tipo: "clase", chars: unicos, nombre, mayus, minus, acentos, negada };
 }
 
 /** Todas las cadenas que acepta, o null si son infinitas o demasiadas. */
@@ -192,11 +195,70 @@ function rangoNumerico(cadenas: string[]): [number, number] | null {
   return [nums[0]!, nums[nums.length - 1]!];
 }
 
-/** Cuántas veces: «8», «entre 2 y 4», «1 o más». */
-function veces(n: Nodo, singular: string, plural: string): Frase {
+/** Rango de horas HH:MM sin huecos: «de 00:00 a 23:59». */
+function rangoHoras(cadenas: string[]): [string, string] | null {
+  if (cadenas.length < 2 || !cadenas.every((c) => /^([01]\d|2[0-3]):[0-5]\d$/.test(c))) return null;
+  const mins = cadenas.map((c) => Number(c.slice(0, 2)) * 60 + Number(c.slice(3))).sort((a, b) => a - b);
+  for (let k = 1; k < mins.length; k++) if (mins[k] !== mins[k - 1]! + 1) return null;
+  const hora = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  return [hora(mins[0]!), hora(mins[mins.length - 1]!)];
+}
+
+/** Singular y plural de una clase con nombre: «letra mayúscula», «letras con tildes y espacios». */
+function nombres(a: Extract<Atomo, { tipo: "clase" }>): [string, string, boolean] {
+  const nombre = a.nombre!;
+  if (nombre === "letra") {
+    if (a.mayus) return ["letra mayúscula", "letras mayúsculas", true];
+    if (a.minus) return ["letra minúscula", "letras minúsculas", true];
+    if (a.acentos) return ["letra", "letras con tildes", true];
+    return ["letra", "letras", true];
+  }
+  if (nombre === "letra o espacio" && a.acentos) return ["letra o espacio", "letras con tildes y espacios", true];
+  return [nombre, PLURAL[nombre], nombre !== "dígito" && nombre !== "espacio"];
+}
+
+/** Cuántas veces: «8», «de 2 a 4», «una o más». */
+function veces(n: Nodo, singular: string, plural: string, femenino = false): Frase {
   if (n.min === n.max) return [cantidad(String(n.min), singular, plural)];
-  if (!Number.isFinite(n.max)) return [v(`${n.min === 0 ? "cualquier cantidad de" : n.min === 1 ? "uno o más" : `${n.min} o más`} ${plural}`)];
+  if (!Number.isFinite(n.max)) {
+    const uno = femenino ? "una o más" : "uno o más";
+    return [v(`${n.min === 0 ? "cualquier cantidad de" : n.min === 1 ? uno : `${n.min} o más`} ${plural}`)];
+  }
   return [v(`de ${n.min} a ${n.max} ${plural}`)];
+}
+
+/** «9 dígitos que empiezan con 9», «11 dígitos que empiezan con 10 o 20»: un prefijo fijo y dígitos. */
+function prefijoDigitos(sec: Nodo[]): Frase | null {
+  if (sec.length < 2) return null;
+  const ult = sec[sec.length - 1]!;
+  if (ult.atomo.tipo !== "clase" || ult.atomo.nombre !== "dígito" || ult.atomo.negada || ult.min !== ult.max) return null;
+  const pref = enumerar([sec.slice(0, -1)]);
+  if (!pref || !pref.length || pref.length > 4 || !pref.every((p) => /^\d+$/.test(p) && p.length === pref[0]!.length)) return null;
+  const total = pref[0]!.length + ult.min;
+  return [v(`${total} dígitos`), t("que empiezan con"), ...pref.flatMap((x, i) => [...(i ? [t(i === pref.length - 1 ? "o" : ",")] : []), v(x)])];
+}
+
+/** «2 letras mayúsculas y 4 dígitos»: partes de largo fijo, todas clases con nombre. */
+function porPartes(sec: Nodo[]): Frase | null {
+  const partes: { a: Extract<Atomo, { tipo: "clase" }>; n: number }[] = [];
+  for (const n of sec) {
+    const a = n.atomo;
+    if (a.tipo !== "clase" || !a.nombre || a.negada || n.min !== n.max || !Number.isFinite(n.max)) return null;
+    const previa = partes[partes.length - 1];
+    if (previa && previa.a.chars.join("") === a.chars.join("")) previa.n += n.min;
+    else partes.push({ a, n: n.min });
+  }
+  if (partes.length < 2) return null;
+  return enumerarFrases(
+    partes.map(({ a, n }) => {
+      const [singular, plural] = nombres(a);
+      return [cantidad(String(n), singular, plural)];
+    }),
+  );
+}
+
+function enumerarFrases(frases: Frase[]): Frase {
+  return frases.flatMap((f, i) => [...(i ? [t(i === frases.length - 1 ? "y" : ",")] : []), ...f]);
 }
 
 /** Ejemplo de la forma: [0-9]{2}/[0-9]{4} → «99/9999». null si hay repeticiones abiertas o grupos complejos. */
@@ -209,19 +271,25 @@ function ejemplo(sec: Nodo[]): string[] | null {
     if (n.atomo.tipo === "car") trozo = [n.atomo.c];
     else if (n.atomo.tipo === "clase") {
       if (n.atomo.negada) return null;
-      // Una clase de solo mayúsculas se ilustra en mayúscula: [A-Z]{2} → «AA».
-      trozo = [n.atomo.nombre === "dígito" ? "9" : n.atomo.nombre === "letra" ? (n.atomo.mayus ? "A" : "a") : n.atomo.chars.length === 1 ? n.atomo.chars[0]! : ""];
+      // Una clase de solo mayúsculas se ilustra en mayúscula: [A-Z]{2} → «AA». Un tramo de dígitos ([0-5]) es «9».
+      const soloDigitos = n.atomo.chars.every((c) => DIGITOS.includes(c));
+      trozo = [n.atomo.chars.length === 1 ? n.atomo.chars[0]! : n.atomo.nombre === "dígito" || soloDigitos ? "9" : n.atomo.nombre === "letra" ? (n.atomo.mayus ? "A" : "a") : ""];
     }
     else {
       if (n.atomo.alternativas.length > 3) return null;
       const subs = n.atomo.alternativas.map(ejemplo);
       if (subs.some((s) => !s)) return null;
-      trozo = subs.flat() as string[];
+      trozo = [...new Set(subs.flat() as string[])];
     }
     if (trozo.some((x) => !x)) return null;
     const largos = n.min === n.max ? [n.min] : [n.min, n.max];
-    out = out.flatMap((o) => trozo.flatMap((x) => largos.map((k) => o + x.repeat(k))));
+    out = [...new Set(out.flatMap((o) => trozo.flatMap((x) => largos.map((k) => o + x.repeat(k)))))];
     if (out.length > 3) return null;
+  }
+  // Variantes que sólo difieren en los dígitos son una sola forma: (0[0-9]|1[0-9]):… → «99:99».
+  if (out.length > 1) {
+    const formas = [...new Set(out.map((x) => x.replace(/\d/g, "9")))];
+    if (formas.length === 1) return formas;
   }
   return out;
 }
@@ -243,15 +311,22 @@ export function leerPatron(patron: string): Frase | null {
     const nombre = unica.atomo.nombre;
     if (unica.atomo.negada) return unica.min === 0 && !Number.isFinite(unica.max) ? [t("sin"), t(PLURAL_LIBRE[nombre])] : null;
     if (nombre === "dígito" && !Number.isFinite(unica.max)) return [t("solo números")];
-    return veces(unica, nombre, PLURAL[nombre]);
+    const [singular, plural, femenino] = nombres(unica.atomo);
+    // «letras», no «una o más letras»: una o más es lo que ya dice el plural solo.
+    if (unica.min === 1 && !Number.isFinite(unica.max)) return [v(plural)];
+    return veces(unica, singular, plural, femenino);
   }
   const todas = enumerar(alts);
   if (todas) {
     const r = rangoNumerico(todas);
     if (r) return [t("un número de"), v(String(r[0])), t("a"), v(String(r[1]))];
+    const h = rangoHoras(todas);
+    if (h) return [t("una hora de"), v(h[0]), t("a"), v(h[1])];
     if (todas.length <= 5) return todas.length === 1 ? [t("solo"), v(todas[0]!)] : [t("solo"), ...todas.flatMap((x, i) => [...(i ? [t(i === todas.length - 1 ? "o" : ",")] : []), v(x)])];
   }
   if (alts.length === 1) {
+    const partes = prefijoDigitos(alts[0]!) ?? porPartes(alts[0]!);
+    if (partes) return partes;
     const ej = ejemplo(alts[0]!);
     if (ej) return [t("el formato"), ...ej.flatMap((x, i) => [...(i ? [t("o")] : []), v(x)])];
   }
