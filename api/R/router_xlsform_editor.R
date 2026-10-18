@@ -1269,8 +1269,11 @@ mount_xlsform_editor <- function(pr) {
       if (!nzchar(form_id) || is.null(.xlsform_forms_get(s, form_id))) {
         stop_api(404, "E_FORM_NOT_FOUND", sprintf("No existe el formulario '%s'.", form_id))
       }
+      # Sólo cambiar de formulario es una mutación: reabrir el que ya estaba activo (entrar desde la biblioteca)
+      # no deja el proyecto «sin guardar».
+      previo <- s$xlsform_active_form_id %||% ""
       s <- .xlsform_forms_set_active(s, form_id)
-      if (!is.null(s$project_path) && nzchar(s$project_path)) {
+      if (!identical(as.character(previo), form_id) && !is.null(s$project_path) && nzchar(s$project_path)) {
         s$project_dirty <- TRUE
       }
       .session_env[[sid]] <- s
