@@ -14,6 +14,19 @@
 import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
 import type { BuilderNode, BuilderStructure, CatalogSummary } from "../types";
 import { segundosDePregunta } from "../resumen/modeloResumen";
+import { esMetadato } from "../kit/tiposPregunta";
+import { stripMarkdown } from "../helpers/markdown";
+
+/**
+ * Un texto que cita otra respuesta (`${HH01}`) se lee como en un cuestionario impreso: «[Nombre del miembro del hogar]»
+ * con la etiqueta de esa pregunta si es corta, o «[HH01]» si no la tiene o es larga (S16: salía `${HH01}` crudo).
+ */
+export function conReferenciasLegibles(texto: string, etiquetaDe: (name: string) => string | undefined): string {
+  return (texto ?? "").replace(/\$\{\s*([^}\s]+)\s*\}/g, (_m, name: string) => {
+    const e = stripMarkdown(etiquetaDe(name) ?? "").replace(/\s+/g, " ").replace(/[?¿:]+$/g, "").trim();
+    return `[${e && e.length <= 48 && !e.includes("${") ? e : name}]`;
+  });
+}
 
 export type FormaRespuesta = "una" | "varias" | "numero" | "texto" | "fecha" | "hora" | "orden" | "acepta" | "otra";
 
@@ -150,10 +163,14 @@ export function armarDocumento(
   const porLista = new Map(catalogos.map((c) => [c.listName, c.items]));
   const tamanoLista = new Map(catalogos.map((c) => [c.listName, c.items.length]));
 
-  // Numeración de corrido: sólo las preguntas, como en el papel.
+  // Numeración de corrido: sólo las preguntas, como en el papel. Inicio, fin y demás automáticos los registra el
+  // teléfono: no se numeran ni se muestran (S16: start y end salían como preguntas 1 y 2).
   const numeroDe = new Map<string, number>();
   let n = 0;
-  for (const nodo of outline) if (nodo.kind === "question") numeroDe.set(nodo.name, ++n);
+  for (const nodo of outline) if (nodo.kind === "question" && !esMetadato(nodo.typeInfo.base)) numeroDe.set(nodo.name, ++n);
+  const etiquetaDeNombre = new Map(outline.map((nodo) => [nodo.name, nodo.label]));
+  const legible = (nodo: BuilderNode): BuilderNode =>
+    nodo.label.includes("${") ? { ...nodo, label: conReferenciasLegibles(nodo.label, (x) => etiquetaDeNombre.get(x)) } : nodo;
 
   const listaDe = new Map(outline.map((nodo) => [nodo.name, nodo.typeInfo.listName]));
   const refs: Referencias = {
@@ -176,12 +193,12 @@ export function armarDocumento(
   const preguntaDe = (nodo: BuilderNode): PreguntaDoc => {
     const forma = formaDe(nodo.typeInfo.base);
     return {
-      nodo,
+      nodo: legible(nodo),
       numero: numeroDe.get(nodo.name) ?? 0,
       forma,
       opciones: (porLista.get(nodo.typeInfo.listName) ?? []).map((o) => ({
         codigo: o.name,
-        etiqueta: o.label || o.name,
+        etiqueta: conReferenciasLegibles(o.label || o.name, (x) => etiquetaDeNombre.get(x)),
         habilita: habilita.get(`${nodo.name}\u0000${o.name}`) ?? [],
       })),
       condicion: nodo.relevant.trim() ? leerCondicion(nodo.relevant, refs) : null,
@@ -220,10 +237,10 @@ export function armarDocumento(
       return;
     }
     if (nodo.kind === "note") {
-      actual.bloques.push({ tipo: "nota", nodo, condicion: nodo.relevant.trim() ? leerCondicion(nodo.relevant, refs) : null });
+      actual.bloques.push({ tipo: "nota", nodo: legible(nodo), condicion: nodo.relevant.trim() ? leerCondicion(nodo.relevant, refs) : null });
       return;
     }
-    if (nodo.kind !== "question") return;
+    if (nodo.kind !== "question" || esMetadato(nodo.typeInfo.base)) return;
     actual.preguntas += 1;
     actual.segundos += segundosDePregunta(nodo, tamanoLista);
     if (nodo.relevant.trim()) actual.conCondicion += 1;

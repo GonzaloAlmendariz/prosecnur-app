@@ -1,5 +1,6 @@
 import { stripMarkdown } from "../helpers/markdown";
 import { PanelCard } from "../kit";
+import { TituloLegible } from "../kit/CuerpoPanelMarca";
 import type { BuilderNode } from "../types";
 import { causaSinPrueba, evaluarRestriccion, textoCausaSinPrueba, valoresDeEjemplo, type ResultadoPrueba } from "../logic/probarRestriccion";
 
@@ -20,7 +21,7 @@ export function ProbarRestriccion({ node, opciones = [] }: { node: BuilderNode; 
   const mensaje = mensajeCrudo === node.name ? "" : mensajeCrudo;
   const noEvaluable = filas.length > 0 && filas.every((f) => f.r === "no-evaluable");
   return (
-    <div className="xfp-fila2" data-qa-geometry-group="xlsform/probar-restriccion-fila" data-qa-geometry-contract="intrinsic">
+    <div className="xfp-fila2" data-qa-geometry-group="xlsform/probar-restriccion-fila" data-qa-geometry-contract="equal">
       <PanelCard title="Probar valores" meta={filas.length ? `${filas.length} casos` : undefined} flush fill>
         {causa ? (
           <p className="xfp-nota xfp-nota--pad">{textoCausaSinPrueba(causa)}</p>
@@ -44,7 +45,7 @@ export function ProbarRestriccion({ node, opciones = [] }: { node: BuilderNode; 
       </PanelCard>
       <PanelCard title="Así lo verá en el teléfono" flush fill>
         <div className="xfp-telefono">
-          <span className="xfp-telefono__enunciado">{stripMarkdown(node.label || node.name)}</span>
+          <span className="xfp-telefono__enunciado"><TituloLegible texto={node.label || node.name} /></span>
           <span className={rechazado ? "xfp-telefono__campo is-error" : "xfp-telefono__campo"}>{rechazado ? (opciones.length ? stripMarkdown(etiqueta(rechazado.v)) : rechazado.v) || " " : valores[0] ?? ""}</span>
           {causa ? (
             <span className="xfp-telefono__ok">Sin una regla que el editor pueda evaluar, no hay un aviso que mostrar.</span>

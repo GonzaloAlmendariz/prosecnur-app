@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { stripMarkdown } from "../helpers/markdown";
+import { tituloPlano } from "../kit/CuerpoPanelMarca";
+import { dependeDelMomento, motivosEnTelefono, textoEnTelefono, valorLegible } from "./calculoTelefono";
 import { PanelCard, TypeIcon } from "../kit";
 import type { BuilderNode, BuilderStructure } from "../types";
 import { evaluarCalculo } from "../logic/probarCalculo";
@@ -39,7 +40,9 @@ export function ProbarCalculo({ node, usa, structure, opcionesDe }: {
   );
   const [valores, setValores] = useState<Record<string, string>>(inicial);
   useEffect(() => setValores(inicial), [inicial]);
-  const resultado = evaluarCalculo(node.calculation, valores);
+  // Lo que sólo el teléfono resuelve se dice antes de intentar evaluarlo, con su porqué (choice-name, join, sum…).
+  const enTelefono = motivosEnTelefono(node.calculation).length > 0;
+  const resultado = enTelefono ? ({ estado: "no-evaluable" } as const) : evaluarCalculo(node.calculation, valores);
 
   return (
     <PanelCard
@@ -47,9 +50,12 @@ export function ProbarCalculo({ node, usa, structure, opcionesDe }: {
       meta={usa.length ? `${usa.length} pregunta${usa.length === 1 ? "" : "s"}` : undefined}
       footer={
         resultado.estado === "ok" ? (
-          <><span className="xfk-over">Resultado</span> <b className="xfp-resultado">{resultado.valor === "" ? "(vacío)" : resultado.valor}</b></>
+          <>
+            <span className="xfk-over">Resultado</span> <b className="xfp-resultado">{resultado.valor === "" ? "(vacío)" : valorLegible(resultado.valor)}</b>
+            {dependeDelMomento(node.calculation) ? <span className="xfp-nota"> · en el teléfono, el momento en que se abre la encuesta</span> : null}
+          </>
         ) : (
-          <><span className="xfk-over">Resultado</span> Se calcula en el teléfono: usa funciones que el editor no evalúa (por ejemplo, datos de una tabla o de un grupo repetido).</>
+          <><span className="xfk-over">Resultado</span> {textoEnTelefono(node.calculation)}</>
         )
       }
       flush
@@ -65,8 +71,8 @@ export function ProbarCalculo({ node, usa, structure, opcionesDe }: {
               <label key={v} className="xfp-entrada">
                 <span className="xfp-entrada__rot">
                   <TypeIcon baseType={n?.typeInfo.base ?? ""} size={12} />
-                  <span className="xfp-entrada__txt">{stripMarkdown(n?.label || v)}</span>
-                  <code>{v}</code>
+                  <span className="xfp-entrada__txt">{n?.label ? tituloPlano(n.label) : v}</span>
+                  {n?.label ? <code>{v}</code> : null}
                 </span>
                 <input
                   value={valores[v] ?? ""}

@@ -45,11 +45,17 @@ export type CalculoItem = {
   /** Filas que leen este cálculo en relevant, constraint, calculation o choice_filter. */
   loUsan: { node: BuilderNode; columna: "relevant" | "constraint" | "calculation" | "choice_filter" }[];
   vacio: boolean;
+  /** Pregunta (no `calculate`) cuya respuesta sale de una fórmula. */
+  enPregunta: boolean;
 };
 
 export function calculosDelFormulario(structure: BuilderStructure | null): CalculoItem[] {
   if (!structure) return [];
-  const calculos = structure.outline.filter((n) => n.kind === "calculate" || n.typeInfo.base === "calculate");
+  // También las preguntas con fórmula en `calculation` (un valor que el teléfono propone o fija): el contador de la
+  // pestaña no puede dejar fuera cálculos que el formulario sí hace (S13).
+  const calculos = structure.outline.filter(
+    (n) => n.kind === "calculate" || n.typeInfo.base === "calculate" || (n.kind === "question" && n.calculation.trim() !== ""),
+  );
   return calculos.map((node) => {
     const ref = "$" + "{" + node.name + "}";
     const loUsan: CalculoItem["loUsan"] = [];
@@ -60,6 +66,7 @@ export function calculosDelFormulario(structure: BuilderStructure | null): Calcu
       if (otro.calculation.includes(ref)) loUsan.push({ node: otro, columna: "calculation" });
       if (otro.choiceFilter.includes(ref)) loUsan.push({ node: otro, columna: "choice_filter" });
     }
-    return { node, usa: referenciasDe(node.calculation), loUsan, vacio: !node.calculation.trim() };
+    const enPregunta = !(node.kind === "calculate" || node.typeInfo.base === "calculate");
+    return { node, usa: referenciasDe(node.calculation), loUsan, vacio: !node.calculation.trim(), enPregunta };
   });
 }

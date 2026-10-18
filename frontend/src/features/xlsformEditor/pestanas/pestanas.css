@@ -64,7 +64,7 @@
   width: 100%;
   cursor: pointer;
   display: grid;
-  grid-template-columns: 14px 40px minmax(0, 1fr);
+  grid-template-columns: 14px auto minmax(0, 1fr);
   gap: 8px;
   align-items: center;
   padding: 7px 10px;
@@ -75,7 +75,10 @@
 .xfp-item:hover { background: var(--pulso-surface-2); }
 .xfp-item.is-on { background: var(--module-accent-soft, var(--pulso-primary-soft)); box-shadow: inset 2px 0 0 var(--module-accent, var(--pulso-primary)); }
 .xfp-item:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: -2px; }
-.xfp-item__num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--pulso-text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Sin número de papel no se reserva columna (antes 40 px en blanco o un código cortado a 4 caracteres). */
+.xfp-item.sin-num { grid-template-columns: 14px minmax(0, 1fr); }
+.xfp-item__num { max-width: 56px; font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--pulso-text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xfp-item__titulo .xfk-pop__var { font-size: 11px; }
 .xfp-item__txt { display: flex; flex-direction: column; min-width: 0; }
 .xfp-item__titulo, .xfp-item__resumen { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .xfp-item__titulo { font-size: 12.5px; color: var(--pulso-text); }
@@ -123,9 +126,10 @@
 .xfp-usos li .xfk-tok { min-width: 0; }
 .xfp-usos__col { font-size: 12px; color: var(--pulso-text-faint); white-space: nowrap; }
 
+/* En compacto la fila de dos sigue en dos columnas: apiladas, sus tarjetas no podían cumplir el contrato «equal». */
 @media (max-width: 1100px) {
   .xfp-reglas { grid-template-columns: 240px minmax(0, 1fr); }
-  .xfp-fila2 { grid-template-columns: minmax(0, 1fr); }
+  .xfp-fila2 { gap: 10px; }
 }
 
 .xfp-ejemplos { margin: 0; padding: 0; list-style: none; }
@@ -211,3 +215,37 @@
 .xfp-nuevo:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
 .xfp-reglas__vacio .xfp-nuevo { margin-top: 10px; border-color: var(--pulso-primary); background: var(--pulso-primary); color: var(--pulso-surface); }
 .xfp-reglas__vacio .xfp-nuevo:hover { color: var(--pulso-surface); filter: brightness(1.05); }
+
+/* S12/S13 (2026-10-17): la regla se lee primero, con una sola insignia; el código va una vez, plegado. */
+.xfp-aviso { margin: 0; padding: 8px 12px; border: 1px solid var(--pulso-warn-border); border-radius: 8px; background: var(--pulso-warn-bg); font-size: 12.5px; color: var(--pulso-text-soft); }
+.xfp-aviso code, .xfp-codigo { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--pulso-text-muted); }
+.xfp-insignia { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--pulso-border); background: var(--pulso-surface-2); font-size: 11.5px; color: var(--pulso-text-soft); }
+.xfp-insignia.is-vigente { border-color: var(--pulso-success-border); color: var(--pulso-success-fg); }
+.xfp-insignia.is-fila-rota, .xfp-insignia.is-sin-traducir { border-color: var(--pulso-warn-border); color: var(--pulso-accent-amber); }
+.xfp-lectura-regla { display: flex; flex-direction: column; gap: 10px; max-width: 880px; }
+.xfp-lectura { margin: 0; font-size: 14px; line-height: 1.55; color: var(--pulso-text); }
+.xfp-def { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13px; line-height: 1.5; }
+.xfp-def dt { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-faint); padding-top: 2px; }
+.xfp-def dd { margin: 0; color: var(--pulso-text-soft); overflow-wrap: anywhere; }
+.xfp-codigo-xls { font-size: 12.5px; color: var(--pulso-text-muted); }
+.xfp-codigo-xls summary { cursor: pointer; width: max-content; }
+.xfp-codigo-xls summary:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 2px; border-radius: 4px; }
+.xfp-codigo-xls code { display: block; margin-top: 6px; padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 6px; background: var(--pulso-surface-2); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.5; color: var(--pulso-text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.xfp-editor-regla { display: flex; flex-direction: column; gap: 12px; max-width: 880px; padding-top: 12px; border-top: 1px solid var(--pulso-border); }
+.xfp-boton {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 0 12px;
+  border: 1px solid var(--pulso-border-strong); border-radius: var(--pulso-radius); background: var(--pulso-surface);
+  color: var(--pulso-text); font: inherit; font-size: 12.5px; font-weight: var(--pulso-weight-medium); cursor: pointer; box-shadow: none;
+}
+.xfp-boton:hover:not(:disabled) { border-color: var(--pulso-primary); color: var(--pulso-primary); }
+.xfp-boton:disabled { opacity: 0.5; cursor: default; }
+.xfp-boton:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.xfp-boton.is-primario { border-color: var(--pulso-primary); background: var(--pulso-primary); color: var(--pulso-surface); }
+.xfp-boton.is-primario:hover:not(:disabled) { color: var(--pulso-surface); filter: brightness(1.05); }
+.xfp-formula { display: flex; flex-direction: column; gap: 6px; max-width: 880px; padding-top: 12px; border-top: 1px solid var(--pulso-border); }
+.xfp-formula__rot { font-size: 12px; color: var(--pulso-text-muted); }
+.xfp-formula__campo { box-sizing: border-box; width: 100%; padding: 8px 10px; border: 1px solid var(--pulso-border-strong); border-radius: 6px; background: var(--pulso-surface); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.5; color: var(--pulso-text); resize: vertical; }
+.xfp-formula__campo:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 0; }
+.xfp-formula__pie { display: flex; justify-content: flex-end; gap: 8px; }
+/* «Editar en Constructor» en la cabecera: sin el borde superior que trae para ir al pie de una ficha. */
+.xfp-encabezado__accion .pulso-xf-editar-pie { padding-top: 0; border-top: 0; }

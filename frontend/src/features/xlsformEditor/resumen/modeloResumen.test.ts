@@ -7,6 +7,7 @@ import {
   pendientesParaPublicar,
   porcentaje,
   resumirFormulario,
+  rotuloMinutos,
   siguienteOrden,
   type EntradaPendientes,
 } from "./modeloResumen";
@@ -137,5 +138,39 @@ describe("qué falta para publicar e imprimir", () => {
     const [logica] = pendientesParaPublicar({ ...base, logica: { pendiente: false, externa: "Lógica: fuera de Prosecnur · SPSS" } });
     expect(logica).toMatchObject({ estado: "neutro", detalle: "Lógica: fuera de Prosecnur · SPSS" });
     expect(logica.accion).toBeUndefined();
+  });
+});
+
+describe("S14: cifras que cuadran y eje legible", () => {
+  test("los automáticos (inicio, fin) no son preguntas ni suman tiempo, y no abren «Fuera de toda sección»", () => {
+    const outline = [
+      nodo(0, "root", "start", { name: "start", label: "" }),
+      nodo(1, "root", "end", { name: "end", label: "" }),
+      nodo(3, "s1", "integer"),
+    ];
+    const r = resumirFormulario(estructura(outline, [seccion("s1", "Pag1", 2)]), catalogos);
+    expect(r.preguntas).toBe(1);
+    expect(r.segundos).toBe(20);
+    expect(r.filasSecciones.map((f) => f.id)).toEqual(["s1"]);
+  });
+
+  test("el piso del recorrido deja fuera lo condicional, propio o heredado de la sección", () => {
+    const outline = [
+      { ...nodo(1, "root", "begin_group"), kind: "section" as const, relevant: "${p0} = '1'", name: "s2" },
+      nodo(2, "s1", "integer"),
+      nodo(3, "s1", "integer", { relevant: "${p2} > 1" }),
+      nodo(5, "s2", "integer"),
+    ];
+    const r = resumirFormulario(estructura(outline, [seccion("s1", "Pag1", 0), seccion("s2", "Pag2", 1)]), catalogos);
+    expect(r.condicionales).toBe(2);
+    expect(r.segundosSinCondicion).toBe(20);
+    expect(r.segundos).toBe(60);
+  });
+
+  test("301 minutos se rotulan por hora, sin amontonar", () => {
+    expect(marcasDeMinutos(301 * 60)).toEqual([0, 60, 120, 180, 240, 300]);
+    expect(rotuloMinutos(120)).toBe("2 h");
+    expect(rotuloMinutos(90)).toBe("1 h 30");
+    expect(rotuloMinutos(45)).toBe("45 min");
   });
 });

@@ -91,6 +91,7 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
   const ordenadas = useMemo(() => ordenarSecciones(filas, orden), [filas, orden]);
   const maxPeso = Math.max(0.0001, ...filas.map((f) => f.peso));
   const pesadas = filas.filter((f) => f.pesada).length;
+  const nSecciones = filas.filter((f) => f.id !== "root").length;
   const cambiar = (c: ColumnaOrden) => setOrden((o) => siguienteOrden(o, c));
   // Una columna toda en cero es ruido: se oculta y se dice en una línea.
   const sinCondiciones = filas.every((f) => f.conCondiciones === 0);
@@ -102,7 +103,8 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
       <header className="pulso-xf-res-panel-cabeza">
         <h3 id="xf-res-secciones-titulo">Secciones</h3>
         <span className="pulso-xf-res-panel-nota">
-          {filas.length} {filas.length === 1 ? "sección" : "secciones"}
+          {/* «Fuera de toda sección» es una fila, no una sección: el conteo cuadra con la cifra de arriba (S14). */}
+          {nSecciones} {nSecciones === 1 ? "sección" : "secciones"}{filas.length > nSecciones ? " y preguntas sueltas" : ""}
           {pesadas ? ` · ${pesadas} ${pesadas === 1 ? "pesada" : "pesadas"}` : ""}
         </span>
       </header>

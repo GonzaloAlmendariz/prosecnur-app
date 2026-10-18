@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { BuilderStructure } from "../types";
 import { enriquecerAlcance, type LogicScope } from "../logic";
 import { stripMarkdown } from "../helpers/markdown";
@@ -45,6 +45,21 @@ export function ListaLogica({ structure, scope: scopeBase, seleccionada, onSelec
   const secciones = conLogica.filter((s) => (filtro === "seccion" ? Boolean(s.regla) : filtro === "pregunta" ? s.items.length > 0 : true));
   const [verSinLogica, setVerSinLogica] = useState(false);
   const total = lista.deSeccion + lista.dePregunta;
+  // Un `foco` que llega de otra pestaña trae su fila a la vista (S11: antes la lista quedaba arriba, a 22.000 px).
+  const cuerpo = useRef<HTMLDivElement | null>(null);
+  const enSinLogica = Boolean(seleccionada?.startsWith("seccion:") && sinLogica.some((s) => `seccion:${s.rowIndex}` === seleccionada));
+  useEffect(() => {
+    if (enSinLogica) setVerSinLogica(true);
+  }, [enSinLogica]);
+  useEffect(() => {
+    const raiz = cuerpo.current;
+    if (!raiz || !seleccionada) return;
+    const el = raiz.querySelector<HTMLElement>(".is-on");
+    if (!el) return;
+    const r = raiz.getBoundingClientRect();
+    const q = el.getBoundingClientRect();
+    if (q.top < r.top || q.bottom > r.bottom) raiz.scrollTop += q.top - r.top - Math.max(16, (r.height - q.height) / 3);
+  }, [seleccionada, verSinLogica, secciones.length]);
 
   return (
     <aside className="xfl-lista" aria-label="Lógica del formulario">
@@ -62,7 +77,7 @@ export function ListaLogica({ structure, scope: scopeBase, seleccionada, onSelec
           ]}
         />
       </header>
-      <div className="xfl-lista__cuerpo" data-qa-geometry-group="xlsform/logica-secciones" data-qa-geometry-contract="intrinsic">
+      <div ref={cuerpo} className="xfl-lista__cuerpo" data-qa-geometry-group="xlsform/logica-secciones" data-qa-geometry-contract="intrinsic">
         {secciones.length === 0 && (filtro !== "todas" || sinLogica.length === 0) ? (
           <p className="xfl-vacio">Este formulario no tiene reglas de cuándo aparece una pregunta ni de qué opciones se muestran.</p>
         ) : (

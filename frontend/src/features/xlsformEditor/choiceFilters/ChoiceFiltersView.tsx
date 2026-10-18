@@ -18,13 +18,22 @@ import { Pencil, Plus, SlidersHorizontal } from "../../../vendor/lucide-react";
 import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
 import type { BuilderStructure, CatalogSummary } from "../types";
 import { EditorFiltro } from "./EditorFiltro";
-import { TypeIcon } from "../kit";
+import { EditorPorOpcion } from "./EditorPorOpcion";
+import { EditorExpresionFiltro } from "./EditorExpresionFiltro";
+import { leerPorOpcion } from "./porOpcion";
+import { Segmented, TypeIcon } from "../kit";
+import { TituloLegible, tituloPlano } from "../kit/CuerpoPanelMarca";
 import { leerExpresionCascada } from "./cascada";
 import { EditarEnConstructor } from "../shell/EditarEnConstructor";
 import { buildChoiceFilterModel, type ChoiceFilterCard as Ficha } from "./buildChoiceFilterModel";
 import { ChoiceFilterCard } from "./ChoiceFilterCard";
 import { filtroElegido } from "./seleccionFiltro";
 import "../styles/xf-choice-filters.css";
+import "./filtros.css";
+
+/** Qué editor abre «Editar filtro»: la cascada simple, el filtro por opción (C27) o la expresión directa (S15). */
+type ModoEditor = "cascada" | "opcion" | "expresion";
+const modoDe = (expr: string): ModoEditor => (leerExpresionCascada(expr) ? "cascada" : leerPorOpcion(expr) ? "opcion" : "expresion");
 
 const ID_DETALLE = "xf-xcf-detalle";
 
@@ -58,8 +67,8 @@ export function ChoiceFiltersView({
   catalogs = [],
   onWorkbookChange,
 }: ChoiceFiltersViewProps) {
-  // null: viendo; "nuevo": filtro nuevo; número: fila de la pregunta cuyo filtro se edita.
-  const [editando, setEditando] = useState<null | "nuevo" | number>(null);
+  // null: viendo; fila null: filtro nuevo; número: fila de la pregunta cuyo filtro se edita.
+  const [editando, setEditando] = useState<null | { fila: number | null; modo: ModoEditor }>(null);
   const puedeEditar = !!workbook && !!onWorkbookChange;
   // El modelo puede ser caro en formularios grandes; solo se calcula cuando la
   // pestaña está abierta (mismo patrón que LogicCanvas con su grafo).
@@ -75,6 +84,18 @@ export function ChoiceFiltersView({
   const actual = filtroElegido(cards, seleccionada);
   const filasConFiltro = new Set(cards.map((c) => c.rowIndex));
   const esElegible = (rowIndex: number) => filasConFiltro.has(rowIndex);
+  const focoPerdido = Boolean(seleccionada && actual && actual.questionCode !== seleccionada);
+  // Todo filtro tiene «Editar filtro»: cascada, por opción o, si combina condiciones, su expresión (S15: REF16 no lo tenía).
+  const pie = actual ? (
+    <span className="pulso-xcf-pie">
+      {puedeEditar ? (
+        <button type="button" className="pulso-xcf-nuevo" onClick={() => setEditando({ fila: actual.rowIndex, modo: modoDe(actual.rawExpression) })}>
+          <Pencil size={13} aria-hidden="true" /> Editar filtro
+        </button>
+      ) : null}
+      {onEditar ? <EditarEnConstructor onEditar={() => onEditar(actual.rowIndex)} /> : null}
+    </span>
+  ) : null;
   const elegirFila = (rowIndex: number) => {
     const card = cards.find((c) => c.rowIndex === rowIndex);
     if (card) onSeleccionar(card.questionCode);
@@ -98,7 +119,7 @@ export function ChoiceFiltersView({
           </div>
         </div>
         {puedeEditar && editando === null ? (
-          <button type="button" className="pulso-xcf-nuevo" onClick={() => setEditando("nuevo")}>
+          <button type="button" className="pulso-xcf-nuevo" onClick={() => setEditando({ fila: null, modo: "cascada" })}>
             <Plus size={14} aria-hidden="true" /> Nuevo filtro
           </button>
         ) : null}
@@ -106,11 +127,12 @@ export function ChoiceFiltersView({
 
       <div className="pulso-xcf-body" data-qa-scroll-owner="filtros">
         {editando !== null && workbook && onWorkbookChange ? (
-          <EditorFiltro
+          <EditorDeFiltro
+            editando={editando}
+            onModo={(modo) => setEditando({ fila: null, modo })}
             workbook={workbook}
             structure={structure}
             catalogs={catalogs}
-            filaInicial={editando === "nuevo" ? null : editando}
             onCancelar={() => setEditando(null)}
             onGuardar={(wb, hija) => { onWorkbookChange(wb); setEditando(null); onSeleccionar(hija); }}
           />
@@ -125,7 +147,7 @@ export function ChoiceFiltersView({
               antes, aparecerá aquí explicada en lenguaje simple.
             </p>
             {puedeEditar ? (
-              <button type="button" className="pulso-xcf-nuevo is-primario" onClick={() => setEditando("nuevo")}>
+              <button type="button" className="pulso-xcf-nuevo is-primario" onClick={() => setEditando({ fila: null, modo: "cascada" })}>
                 <Plus size={14} aria-hidden="true" /> Crear el primer filtro
               </button>
             ) : null}
@@ -159,7 +181,7 @@ export function ChoiceFiltersView({
                     >
                       <TypeIcon baseType={structure?.byRow.get(card.rowIndex)?.typeInfo.base ?? "select_one"} size={13} />
                       <code className="pulso-xcf-fila-codigo">{card.questionCode}</code>
-                      <span className="pulso-xcf-fila-texto" title={card.questionLabel}>{card.questionLabel}</span>
+                      <span className="pulso-xcf-fila-texto" title={tituloPlano(card.questionLabel)}><TituloLegible texto={card.questionLabel} /></span>
                       <span className="pulso-xcf-fila-meta">{card.meta}</span>
                     </button>
                   </li>
@@ -167,25 +189,17 @@ export function ChoiceFiltersView({
               })}
               </ul>
             </nav>
-            <div id={ID_DETALLE} className="pulso-xcf-detalle" role="region" aria-label={`Filtro de ${actual.questionCode}`}
+            <div id={ID_DETALLE} className="pulso-xcf-detalle" role="region" aria-label={`Filtro de ${actual.questionCode}`} data-qa-scroll-owner="filtros-detalle"
               data-qa-geometry-member="">
+              {focoPerdido ? <p className="pulso-xcf-aviso" role="status">No hay un filtro en <code>{seleccionada}</code>: se muestra el primero de la lista.</p> : null}
               {actual.clase === "fijo" || actual.clase === "rota" ? (
-                <DetalleSinRespuestas card={actual} pie={onEditar ? <span className="pulso-xcf-pie"><EditarEnConstructor onEditar={() => onEditar(actual.rowIndex)} /></span> : null} />
+                <DetalleSinRespuestas card={actual} pie={pie} />
               ) : <ChoiceFilterCard
                 key={actual.rowIndex}
                 card={actual}
                 onElegirAntecedente={elegirFila}
                 esElegible={esElegible}
-                pie={(
-                  <span className="pulso-xcf-pie">
-                    {puedeEditar && leerExpresionCascada(actual.rawExpression) ? (
-                      <button type="button" className="pulso-xcf-nuevo" onClick={() => setEditando(actual.rowIndex)}>
-                        <Pencil size={13} aria-hidden="true" /> Editar filtro
-                      </button>
-                    ) : null}
-                    {onEditar ? <EditarEnConstructor onEditar={() => onEditar(actual.rowIndex)} /> : null}
-                  </span>
-                )}
+                pie={pie}
               />}
             </div>
           </div>
@@ -205,7 +219,7 @@ function DetalleSinRespuestas({ card, pie }: { card: Ficha; pie: ReactNode }) {
       <header className="pulso-xcf-card-head">
         {card.sectionLabel ? <span className="pulso-xcf-eyebrow">{card.sectionLabel}</span> : null}
         <h3 className="pulso-xcf-title">
-          <span className="pulso-xcf-title-text">{card.questionLabel}</span>
+          <span className="pulso-xcf-title-text"><TituloLegible texto={card.questionLabel} /></span>
           {card.questionCode ? <span className="pulso-xcf-code" aria-hidden="true">{card.questionCode}</span> : null}
         </h3>
         <p className="pulso-xcf-explanation">{card.explanation}</p>
@@ -220,4 +234,36 @@ function DetalleSinRespuestas({ card, pie }: { card: Ficha; pie: ReactNode }) {
       {pie}
     </article>
   );
+}
+
+/** El editor que toca: al crear se elige la forma (una pregunta madre o cada opción por su pregunta). */
+function EditorDeFiltro({ editando, onModo, workbook, structure, catalogs, onCancelar, onGuardar }: {
+  editando: { fila: number | null; modo: ModoEditor };
+  onModo: (modo: ModoEditor) => void;
+  workbook: XlsformEditorWorkbook;
+  structure: BuilderStructure | null;
+  catalogs: CatalogSummary[];
+  onCancelar: () => void;
+  onGuardar: (wb: XlsformEditorWorkbook, pregunta: string) => void;
+}) {
+  const alternar = editando.fila === null ? (
+    <Segmented
+      aria-label="Forma del filtro"
+      size="sm"
+      value={editando.modo === "opcion" ? "opcion" : "cascada"}
+      onChange={(v) => onModo(v)}
+      options={[
+        { value: "cascada", label: "Según una pregunta anterior" },
+        { value: "opcion", label: "Cada opción según su pregunta" },
+      ]}
+    />
+  ) : null;
+  if (editando.modo === "opcion") {
+    return <EditorPorOpcion workbook={workbook} structure={structure} catalogs={catalogs} filaInicial={editando.fila} alternar={alternar} onCancelar={onCancelar} onGuardar={onGuardar} />;
+  }
+  if (editando.modo === "expresion" && editando.fila !== null) {
+    const nodo = structure?.byRow.get(editando.fila);
+    return <EditorExpresionFiltro workbook={workbook} fila={editando.fila} nombre={nodo?.name ?? ""} inicial={nodo?.choiceFilter ?? ""} onCancelar={onCancelar} onGuardar={onGuardar} />;
+  }
+  return <EditorFiltro workbook={workbook} structure={structure} catalogs={catalogs} filaInicial={editando.fila} alternar={alternar} onCancelar={onCancelar} onGuardar={onGuardar} />;
 }

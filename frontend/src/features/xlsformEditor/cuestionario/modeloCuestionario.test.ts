@@ -87,3 +87,27 @@ describe("piezas", () => {
     expect(marcarOpcionales(10, 3)).toBe(false);
   });
 });
+
+describe("S16: el documento no muestra lo que el teléfono registra solo ni referencias crudas", () => {
+  const conAutomaticos: BuilderNode[] = [
+    nodo(0, "start", "start", { sectionId: "root", label: "" }),
+    nodo(1, "end", "end", { sectionId: "root", label: "" }),
+    nodo(2, "s1", "begin_group", { label: "Hogar" }),
+    nodo(3, "HH01", "text", { label: "Nombre del miembro del hogar" }),
+    nodo(4, "HH03", "select_one", { label: "¿Cuál es la relación de ${HH01} con el jefe de hogar?" }),
+    nodo(5, "HH04", "integer", { label: "Edad de ${sin_etiqueta}" }),
+  ];
+  const doc = armarDocumento({ outline: conAutomaticos } as unknown as BuilderStructure, catalogos, []);
+
+  test("inicio y fin no se numeran ni ocupan el inicio del formulario", () => {
+    expect(doc.map((s) => s.rotulo)).toEqual(["Hogar"]);
+    const numeros = doc[0].bloques.map((b) => (b.tipo === "pregunta" ? [b.pregunta.nodo.name, b.pregunta.numero] : null));
+    expect(numeros).toEqual([["HH01", 1], ["HH03", 2], ["HH04", 3]]);
+  });
+
+  test("`${x}` se lee con la etiqueta corta de x entre corchetes, o con su código", () => {
+    const [, hh03, hh04] = doc[0].bloques;
+    expect(hh03.tipo === "pregunta" && hh03.pregunta.nodo.label).toBe("¿Cuál es la relación de [Nombre del miembro del hogar] con el jefe de hogar?");
+    expect(hh04.tipo === "pregunta" && hh04.pregunta.nodo.label).toBe("Edad de [sin_etiqueta]");
+  });
+});

@@ -9,6 +9,7 @@
 
 import type { BuilderNode, BuilderStructure, CatalogSummary } from "../types";
 import { typeLabel } from "../parsing/parseType";
+import { esMetadato } from "../kit/tiposPregunta";
 
 /** Tipos que se responden eligiendo entre opciones; el resto se escribe o anota. */
 const TIPOS_CERRADOS = new Set(["select_one", "select_multiple", "rank", "acknowledge"]);
@@ -55,6 +56,11 @@ export type ResumenFormulario = {
   abiertas: number;
   listas: number;
   segundos: number;
+  /** El recorrido de quien sólo ve lo que aparece para todos: sin preguntas con condición propia ni heredada de su
+   *  sección (S14: 301 min sumaba también lo que casi nadie ve). `segundos` es el máximo; esto, el piso. */
+  segundosSinCondicion: number;
+  /** Preguntas con condición propia o heredada de una sección. */
+  condicionales: number;
   tipos: FilaTipo[];
   filasSecciones: FilaSeccion[];
   /** Preguntas de selección sin lista o con una lista que no existe en `choices`. */
@@ -77,7 +83,8 @@ export function resumirFormulario(
   catalogos: readonly CatalogSummary[],
 ): ResumenFormulario {
   const outline = structure?.outline ?? [];
-  const preguntas = outline.filter((n) => n.kind === "question");
+  // Inicio, fin, dispositivo… los registra el teléfono: no son preguntas ni suman tiempo (S14/S16).
+  const preguntas = outline.filter((n) => n.kind === "question" && !esMetadato(n.typeInfo.base));
   const tamanoLista = new Map(catalogos.map((c) => [c.listName, c.items.length]));
   const listasConocidas = new Set(catalogos.map((c) => c.listName));
   const total = preguntas.length;
@@ -109,6 +116,21 @@ export function resumirFormulario(
   const enRaiz = preguntas.filter((n) => n.sectionId === "root");
   if (enRaiz.length > 0) filasSecciones.unshift(filaDe("root", "", "Fuera de toda sección", 0));
 
+  // Una pregunta es condicional si ella o alguna de sus secciones tiene `relevant`.
+  const seccionCondicional = new Map<string, boolean>();
+  const condicionalSeccion = (id: string | null | undefined): boolean => {
+    if (!id || id === "root") return false;
+    const previo = seccionCondicional.get(id);
+    if (previo !== undefined) return previo;
+    const meta = structure?.sections.get(id);
+    const propia = meta?.rowIndex != null && (structure?.byRow.get(meta.rowIndex)?.relevant ?? "").trim() !== "";
+    const r = propia || condicionalSeccion(meta?.parentId);
+    seccionCondicional.set(id, r);
+    return r;
+  };
+  const esCondicional = (n: BuilderNode) => n.relevant.trim() !== "" || condicionalSeccion(n.sectionId);
+  const siempre = preguntas.filter((n) => !esCondicional(n));
+
   return {
     preguntas: total,
     notas: outline.filter((n) => n.kind === "note").length,
@@ -119,6 +141,8 @@ export function resumirFormulario(
     abiertas: preguntas.filter((n) => !TIPOS_CERRADOS.has(n.typeInfo.base)).length,
     listas: catalogos.length,
     segundos: preguntas.reduce((acc, n) => acc + segundosDePregunta(n, tamanoLista), 0),
+    segundosSinCondicion: siempre.reduce((acc, n) => acc + segundosDePregunta(n, tamanoLista), 0),
+    condicionales: total - siempre.length,
     tipos: contarTipos(preguntas),
     filasSecciones,
     sinLista: preguntas
@@ -126,6 +150,14 @@ export function resumirFormulario(
       .filter((n) => !n.typeInfo.listName || !listasConocidas.has(n.typeInfo.listName))
       .map((n) => ({ rowIndex: n.rowIndex, name: n.name })),
   };
+}
+
+/** Rótulo de una marca del eje: «45 min», «1 h», «1 h 30». */
+export function rotuloMinutos(m: number): string {
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const r = Math.round(m % 60);
+  return r ? `${h} h ${String(r).padStart(2, "0")}` : `${h} h`;
 }
 
 /** Minutos para mostrar: enteros; bajo un minuto, «< 1». */
@@ -140,11 +172,15 @@ export function duracion(segundos: number): string {
   return m === "< 1" ? "< 1 min" : `~${m} min`;
 }
 
-/** Marcas del recorrido en el tiempo: cada 10 minutos (cada 5 si dura menos de 20), sin pasar del total. */
+/** Pasos posibles del eje, en minutos: se usa el menor que deja como mucho `MAX_MARCAS` rótulos. */
+const PASOS = [5, 10, 15, 20, 30, 60, 90, 120];
+const MAX_MARCAS = 6;
+
+/** Marcas del recorrido en el tiempo: un paso redondo que no amontona rótulos (S14: 31 rótulos montados en 301 min). */
 export function marcasDeMinutos(segundos: number): number[] {
   const total = segundos / 60;
   if (total <= 0) return [];
-  const paso = total < 20 ? 5 : 10;
+  const paso = PASOS.find((p) => total / p <= MAX_MARCAS) ?? Math.ceil(total / MAX_MARCAS / 60) * 60;
   const marcas: number[] = [];
   for (let m = 0; m <= total + 1e-9; m += paso) marcas.push(m);
   return marcas;
