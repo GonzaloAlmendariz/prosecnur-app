@@ -6,6 +6,7 @@ import { claseDe, grupo, piezaGrupo, pregunta, variable, type Contexto } from ".
 import { cantidad, enumerar, oraciones, t, v, type Frase } from "./frase";
 import { literalLegible, numeroDe, textoDe } from "./valores";
 import { esBooleana, leerCondicion } from "./condicion";
+import { lapsoDe, leerLapso } from "./lapso";
 
 const PALABRA_OPERADOR: Record<string, string> = { "+": "más", "-": "menos", "*": "por", div: "entre", mod: "módulo" };
 const ARITMETICA = new Set(Object.keys(PALABRA_OPERADOR));
@@ -73,7 +74,8 @@ function duracion(e: Expr, ctx: Contexto): Frase | null {
 function operando(e: Expr, ctx: Contexto, padre: string, izquierda: boolean): Frase | null {
   const f = leerValor(e, ctx);
   if (!f) return null;
-  if (e.kind !== "call" || !ARITMETICA.has(e.name) || f[0]?.tipo === "valor") return f;
+  // Un valor suelto («hace 30 días») no lleva paréntesis; una operación que EMPIEZA con un valor («hoy menos …») sí.
+  if (e.kind !== "call" || !ARITMETICA.has(e.name) || (f.length === 1 && f[0]?.tipo === "valor")) return f;
   const igual = e.name === padre && (padre === "+" || padre === "*" || izquierda);
   return igual ? f : [t("("), ...f, t(")")];
 }
@@ -81,6 +83,8 @@ function operando(e: Expr, ctx: Contexto, padre: string, izquierda: boolean): Fr
 function aritmetica(e: Extract<Expr, { kind: "call" }>, ctx: Contexto): Frase | null {
   const [a, b] = e.args;
   if (!a || !b) return null;
+  const lapso = e.name === "-" || e.name === "div" ? lapsoDe(e, ctx) : null;
+  if (lapso) return leerLapso(lapso, ctx);
   // today() - 30 → «hace 30 días»
   if ((e.name === "-" || e.name === "+") && esLlamada(a, "today")) {
     const n = numeroDe(b);
@@ -162,6 +166,8 @@ function llamada(e: Extract<Expr, { kind: "call" }>, ctx: Contexto): Frase | nul
     case "int": {
       if (a.length !== 1) return null;
       const x = a[0]!;
+      const lapso = lapsoDe(e, ctx);
+      if (lapso) return leerLapso(lapso, ctx);
       const dur = duracion(x, ctx);
       if (dur) return dur;
       const factoresAzar = factores(x);

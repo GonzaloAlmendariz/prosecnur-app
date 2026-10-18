@@ -220,3 +220,65 @@ describe("redondeos", () => {
     expect(texto("calculation", "round((${edad} div ${total}) * 100, 1)")).toBe("((Edad entre Total de personas) por 100) redondeado a 1 decimal");
   });
 });
+
+describe("G1 · patrones que el corpus variado destapó", () => {
+  const scopeG1: LogicScope = {
+    variables: [
+      { name: "nacio", label: "Nacimiento", baseType: "date" },
+      { name: "ingreso", label: "Ingreso mensual", baseType: "decimal" },
+      { name: "cod", label: "Código de tienda", baseType: "text" },
+      { name: "cod", label: "Código de almacén", baseType: "text" },
+    ],
+    catalogsByListName: new Map(),
+  };
+  const g1 = (columna: ColumnaRegla, raw: string, n: BuilderNode = corto) => {
+    const l = leerRegla(columna, raw, n, scopeG1);
+    return l.tecnica ? "TÉCNICA" : textoDePiezas(l.piezas);
+  };
+
+  test("un patrón con un lenguaje enorme no agota la memoria: se lee por su forma", () => {
+    expect(g1("constraint", "regex(., '^[A-Z]{3}-\\d{3,4}$')")).toBe("Solo acepta el formato AAA-999 o AAA-9999");
+    expect(g1("constraint", "regex(., '^[a-z]{6}[0-9]{6}$')")).toBe("Solo acepta el formato aaaaaa999999");
+  });
+
+  test("una resta de fechas son días, no una fecha; dividida entre 365.25, años", () => {
+    expect(g1("relevant", "(today() - ${nacio}) >= 365 * 18")).toBe("Han pasado al menos 6,570 días (18 años) desde Nacimiento");
+    expect(g1("calculation", "int((today() - ${nacio}) div 365.25)")).toBe("Los años cumplidos desde Nacimiento");
+    expect(g1("calculation", "int((decimal-date-time(today()) - decimal-date-time(${nacio})) div 365.25)")).toBe("Los años cumplidos desde Nacimiento");
+    expect(g1("relevant", "int((today() - ${nacio}) div 365.25) < 65")).toBe("Han pasado menos de 65 años desde Nacimiento");
+    // Sin forma de lapso, la precedencia se respeta con paréntesis.
+    expect(g1("calculation", "(today() - ${ingreso}) div 2")).toBe("(hoy menos Ingreso mensual) entre 2");
+  });
+
+  test("dentro de un «o» no hay «solo acepta» por alternativa", () => {
+    expect(g1("constraint", "(. > 0 and . <= 98) or . = 99", numero)).toBe("Mayor que 0 y hasta 98, o 99");
+    expect(g1("constraint", "regex(., '^[A-Z]{2}-[0-9]{2}$') or . = ''")).toBe("El formato AA-99 o vacía");
+    expect(g1("constraint", "string-length(.) = 0 or regex(., '^[0-9]+$')")).toBe("Vacía o solo números");
+    expect(g1("constraint", ". = 1 or . = 5", numero)).toBe("Solo acepta 1 o 5");
+  });
+
+  test("una cota proporcional a otra pregunta se lee como múltiplo", () => {
+    expect(g1("constraint", ". <= ${ingreso} * 2", numero)).toBe("No puede superar el doble de Ingreso mensual");
+    expect(g1("constraint", ". <= 3 * ${ingreso}", numero)).toBe("No puede superar el triple de Ingreso mensual");
+    expect(g1("constraint", ". <= ${ingreso} * 1.5", numero)).toBe("No puede superar Ingreso mensual × 1.5");
+  });
+
+  test("una clase de solo mayúsculas se ilustra en mayúscula", () => {
+    expect(g1("constraint", "regex(., '^[A-Z]{2}-[0-9]{2}$')")).toBe("Solo acepta el formato AA-99");
+    expect(g1("constraint", "regex(., '^[a-z]{2}[0-9]$')")).toBe("Solo acepta el formato aa9");
+  });
+
+  test("un código repetido en el survey se avisa, no se resuelve en silencio", () => {
+    const l = leerRegla("relevant", "${cod} != ''", corto, scopeG1);
+    expect(l.avisos).toEqual(["Hay dos preguntas con el código cod: la regla no dice a cuál se refiere."]);
+    expect(leerRegla("relevant", "${ingreso} > 0", corto, scopeG1).avisos).toBeUndefined();
+  });
+
+  test("clases negadas, \\s y \\w se traducen", () => {
+    expect(g1("constraint", "regex(., '^[^0-9]*$')")).toBe("No acepta números");
+    expect(g1("constraint", "regex(., '^[A-Za-zÁÉÍÓÚáéíóúÑñ\\s]{2,60}$')")).toBe("Solo acepta de 2 a 60 letras o espacios");
+    expect(g1("constraint", "regex(., '^\\w{4,12}$')")).toBe("Solo acepta de 4 a 12 letras o dígitos");
+    expect(g1("constraint", "not(regex(., '\\s'))")).toBe("Sin espacios");
+    expect(g1("constraint", "not(regex(., '[0-9]'))")).toBe("Sin números");
+  });
+});

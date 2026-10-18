@@ -91,6 +91,8 @@ export function claseDe(e: Expr, ctx: Contexto): Clase {
       const n = e.name;
       if (n === "today" || n === "now" || n === "date" || n === "date-time") return "fecha";
       if (n === "string-length" || n === "count-selected" || n === "count" || n === "sum" || n === "int" || n === "round" || n === "position") return "numero";
+      // fecha - fecha da días (un número); fecha ± número sigue siendo una fecha.
+      if (n === "-" && e.args[1] && (claseDe(e.args[1], ctx) === "fecha" || (e.args[1].kind === "call" && e.args[1].name === "decimal-date-time"))) return "numero";
       if ((n === "+" || n === "-") && e.args[0] && claseDe(e.args[0], ctx) === "fecha") return "fecha";
       if (n === "number" || n === "string" || n === "decimal" || n === "once" || n === "coalesce") return e.args[0] ? claseDe(e.args[0], ctx) : "otra";
       return "otra";

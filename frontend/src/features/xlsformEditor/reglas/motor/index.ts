@@ -27,6 +27,16 @@ export function separarAviso(piezas: readonly Pieza[]): { piezas: Pieza[]; aviso
 }
 
 
+const CUANTAS: Record<number, string> = { 2: "dos", 3: "tres", 4: "cuatro" };
+
+/** Un ${x} que nombra a varias preguntas es ambiguo: se avisa en vez de elegir la primera en silencio. */
+function avisosDeAmbiguedad(nombres: string[], ctx: Contexto): string[] {
+  return nombres.flatMap((name) => {
+    const n = ctx.scope.variables.filter((x) => x.name === name).length;
+    return n > 1 ? [`Hay ${CUANTAS[n] ?? n} preguntas con el código ${name}: la regla no dice a cuál se refiere.`] : [];
+  });
+}
+
 export function leerConContexto(columna: ColumnaRegla, raw: string, ctx: Contexto, lista?: string): LecturaRegla {
   const expr = raw.trim();
   const base = { columna, raw: expr, lista: columna === "choice_filter" ? lista || undefined : undefined };
@@ -39,7 +49,9 @@ export function leerConContexto(columna: ColumnaRegla, raw: string, ctx: Context
   const ast = parsear(texto);
   const norm = ast && ast.kind !== "raw" ? normalizar(ast, ctx) : null;
   const depende = referencias(norm ?? ast, texto).map((name) => ({ name, etiqueta: etiquetaDe(name, ctx) }));
-  if (!norm) return { ...base, piezas: [], tecnica: true, depende };
+  const ambiguas = avisosDeAmbiguedad(depende.map((d) => d.name), ctx);
+  const conAvisos = (extra: string[]) => (ambiguas.length || extra.length ? { avisos: [...extra, ...ambiguas] } : {});
+  if (!norm) return { ...base, piezas: [], tecnica: true, depende, ...conAvisos([]) };
 
   let frase: Frase | null;
   switch (columna) {
@@ -61,14 +73,14 @@ export function leerConContexto(columna: ColumnaRegla, raw: string, ctx: Context
       frase = esBooleana(norm) ? leerCondicion(norm, ctx) : leerValor(norm, ctx);
       break;
   }
-  if (!frase || !frase.length) return { ...base, piezas: [], tecnica: true, depende };
+  if (!frase || !frase.length) return { ...base, piezas: [], tecnica: true, depende, ...conAvisos([]) };
   const piezas = capitalizar(frase);
   // El aviso va en `avisos`; por compatibilidad sigue también como última pieza, corta y entre paréntesis (AVISO_COMILLAS).
   if (comillas) {
     piezas.push(t(AVISO_COMILLAS));
-    return { ...base, piezas, tecnica: false, depende, avisos: [AVISO_COMILLAS_ALERTA] };
+    return { ...base, piezas, tecnica: false, depende, ...conAvisos([AVISO_COMILLAS_ALERTA]) };
   }
-  return { ...base, piezas, tecnica: false, depende };
+  return { ...base, piezas, tecnica: false, depende, ...conAvisos([]) };
 }
 
 export { LECTURA_FILA_ROTA, esFilaRota, esRellenoDeFilaRota } from "./filaRota";
