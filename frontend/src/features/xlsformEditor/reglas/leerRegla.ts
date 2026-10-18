@@ -12,7 +12,7 @@ export function leerRegla(columna: ColumnaRegla, raw: string, nodo: BuilderNode,
   // Una fila rota no tiene reglas: lo que hay en la columna es su propio nombre repetido. Se dice eso, sin
   // dependencias inventadas, en todas las vistas por igual.
   if (esRellenoDeFilaRota(nodo, raw)) {
-    return { columna, raw: raw.trim(), piezas: [{ tipo: "texto", texto: LECTURA_FILA_ROTA }], tecnica: false, depende: [], lista: columna === "choice_filter" ? nodo.typeInfo?.listName || undefined : undefined };
+    return { columna, raw: raw.trim(), piezas: [{ tipo: "texto", texto: LECTURA_FILA_ROTA }], tecnica: false, rota: true, depende: [], lista: columna === "choice_filter" ? nodo.typeInfo?.listName || undefined : undefined };
   }
   return leerConContexto(
     columna,

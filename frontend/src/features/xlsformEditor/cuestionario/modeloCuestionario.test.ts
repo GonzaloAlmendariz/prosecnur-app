@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
 import type { BuilderNode, BuilderStructure, CatalogSummary } from "../types";
-import { armarDocumento, codigosQueHabilitan, formaDe, leerCondicion, marcarOpcionales, rangoDe } from "./modeloCuestionario";
+import { armarDocumento, codigosQueHabilitan, formaDe, leerCondicion, marcarOpcionales, rangoDe, rotuloDeIndice } from "./modeloCuestionario";
 
 function nodo(rowIndex: number, name: string, base: string, extra: Partial<BuilderNode> = {}): BuilderNode {
   const kind = base === "begin_group" ? "section" : base === "note" ? "note" : "question";
@@ -109,5 +109,13 @@ describe("S16: el documento no muestra lo que el teléfono registra solo ni refe
     const [, hh03, hh04] = doc[0].bloques;
     expect(hh03.tipo === "pregunta" && hh03.pregunta.nodo.label).toBe("¿Cuál es la relación de [Nombre del miembro del hogar] con el jefe de hogar?");
     expect(hh04.tipo === "pregunta" && hh04.pregunta.nodo.label).toBe("Edad de [sin_etiqueta]");
+  });
+});
+
+describe("índice del cuestionario (S16)", () => {
+  test("una sección sin título no muestra su código", () => {
+    expect(rotuloDeIndice({ rotulo: "grp_hh01", name: "grp_hh01" })).toBe("Sección sin título");
+    expect(rotuloDeIndice({ rotulo: "", name: "grp_hh01" })).toBe("Sección sin título");
+    expect(rotuloDeIndice({ rotulo: "Datos del hogar", name: "grp_hh01" })).toBe("Datos del hogar");
   });
 });

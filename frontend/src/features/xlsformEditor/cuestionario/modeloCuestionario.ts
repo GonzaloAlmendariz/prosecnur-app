@@ -150,6 +150,13 @@ export function tituloTecnico(label: string, name: string): boolean {
   return /^p(a|á)g(ina)?\.?\s*\d+(\s*\([^)]*\))?$/i.test(t);
 }
 
+/** Rótulo del índice: nunca el código de la sección. Un rótulo vacío o igual al `name` se lee «Sección sin título» (S16). */
+export function rotuloDeIndice(seccion: Pick<SeccionDoc, "rotulo" | "name">): string {
+  const rotulo = (seccion.rotulo ?? "").trim();
+  if (!rotulo || (seccion.name && rotulo === seccion.name.trim())) return "Sección sin título";
+  return rotulo;
+}
+
 const PREGUNTA_INICIAL: SeccionDoc = {
   clave: "inicio", name: "", rotulo: "Inicio del formulario", fila: -1, sinTitulo: false, repite: false, preguntas: 0, segundos: 0, conCondicion: 0, bloques: [],
 };

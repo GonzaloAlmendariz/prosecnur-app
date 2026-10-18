@@ -166,6 +166,13 @@ export function minutos(segundos: number): string {
   return segundos < 60 ? "< 1" : String(Math.round(segundos / 60));
 }
 
+/** Duración como rango: del piso (lo que todos ven) al máximo (si se abre cada condición). «12–18 min» o «≈ 12 min» si coinciden (S14). */
+export function rangoMinutos(piso: number, maximo: number): string {
+  const a = minutos(Math.min(piso, maximo));
+  const b = minutos(Math.max(piso, maximo));
+  return a === b ? `≈ ${b} min` : `${a}–${b} min`;
+}
+
 /** Duración legible: «< 1 min» o «~N min». */
 export function duracion(segundos: number): string {
   const m = minutos(segundos);

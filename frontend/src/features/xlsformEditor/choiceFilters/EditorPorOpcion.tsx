@@ -55,7 +55,6 @@ export function EditorPorOpcion({ workbook, structure, catalogs, filaInicial = n
   const porNombre = (name: string) => candidatas.find((n) => n.name === name) ?? null;
   const asignadas = orden.filter((c) => asignaciones[c]?.pregunta && asignaciones[c].valores.length).length;
   const expresion = expresionPorOpcion(orden, asignaciones, previa);
-  const filasResultantes = orden.reduce((acc, c) => acc + Math.max(1, asignaciones[c]?.pregunta ? asignaciones[c].valores.length : 1), 0);
   const listo = !!pregunta && asignadas > 0;
 
   const fijar = (codigo: string, a: AsignacionOpcion) => setAsignaciones((prev) => ({ ...prev, [codigo]: a }));
@@ -171,8 +170,7 @@ export function EditorPorOpcion({ workbook, structure, catalogs, filaInicial = n
                 <code>{expresion || "(sin filtro)"}</code>
               </p>
               <p className="xfo-nota">
-                {filasResultantes} filas en la lista <code>{lista}</code>
-                {filasResultantes > orden.length ? ": una opción se repite por cada respuesta que la habilita, y se activa allow_choice_duplicates en settings." : "."}
+                {orden.length} filas en la lista <code>{lista}</code>: una por opción, con sus respuestas separadas por espacio.
               </p>
             </details>
           </div>

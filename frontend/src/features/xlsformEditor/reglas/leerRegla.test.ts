@@ -143,6 +143,9 @@ describe("M4 · filtros de opciones", () => {
   test("con la pregunta a la izquierda se lee igual", () => {
     expect(texto("choice_filter", "${region} = filter_District", cascada)).toBe(texto("choice_filter", "filter_District = ${region}", cascada));
   });
+  test("selected(<columna>, ${pregunta}) → la columna incluye la respuesta (forma compacta)", () => {
+    expect(texto("choice_filter", "selected(filter_region, ${region})", cascada)).toBe("Muestra las opciones cuya columna filter_region incluye la respuesta de Región");
+  });
   test("selected(${pregunta}, <columna>) → marcada en la pregunta", () => {
     expect(texto("choice_filter", "selected(${gasto},filter_Spent)", cascada)).toBe("Muestra las opciones cuya columna filter_Spent está marcada en En qué gastó");
   });
@@ -185,6 +188,10 @@ describe("M5 · restricciones del corpus que caían en técnica", () => {
   });
   test("comillas tipográficas: se lee el sentido y se avisa", () => {
     expect(texto("constraint", "not(count-selected(.) > 1 and selected(., ‘99’))", varias)).toBe("Ninguno no se puede marcar junto con otras opciones (con comillas tipográficas: ODK no las acepta)");
+  });
+  test("el aviso de comillas también llega en `avisos`; sin comillas no hay avisos", () => {
+    expect(leerRegla("constraint", "not(count-selected(.) > 1 and selected(., ‘99’))", varias, scope).avisos).toEqual([expect.stringContaining("comillas tipográficas")]);
+    expect(leerRegla("constraint", ". >= 0", numero, scope).avisos).toBeUndefined();
   });
 });
 

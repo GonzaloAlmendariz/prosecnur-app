@@ -460,6 +460,9 @@ export function validationPresetsFor(node: BuilderNode): ValidationPreset[] {
         },
       ];
     case "date":
+      // Una regla que ya compara con today() («. = today()», «. <= today()») no recibe el atajo: ofrecerlo
+      // reemplazaría una regla más estricta por otra más laxa (S12).
+      if (/\btoday\(\)/.test(node.constraint ?? "")) return [];
       return [
         {
           id: "not-future",

@@ -30,6 +30,11 @@ export type LecturaRegla = {
   depende: { name: string; etiqueta: string }[];
   /** Sólo en choice_filter: la lista cuyas opciones se filtran. */
   lista?: string;
+  /** Avisos sobre la regla (p. ej. comillas tipográficas), ya redactados para mostrarse como alerta. Por compatibilidad
+   *  también siguen como última pieza de texto (`separarAviso`); los consumidores nuevos leen este campo. */
+  avisos?: string[];
+  /** La fila está rota: la columna repite el nombre de la pregunta y no hay regla que leer. La pieza de texto se conserva. */
+  rota?: boolean;
 };
 
 /** La frase como texto plano, para los sitios que todavía esperan una cadena (títulos, aria-label, impreso). */

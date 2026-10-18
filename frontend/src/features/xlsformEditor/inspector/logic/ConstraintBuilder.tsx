@@ -208,7 +208,8 @@ export function ConstraintBuilder({
     <div className="pulso-logic-builder">
       <header className="pulso-logic-builder-header">
         <span className="pulso-section-eyebrow">{fieldLabel}</span>
-        <span className="pulso-logic-builder-status">Regla técnica</span>
+        {/* Mismo rótulo que la tarjeta de ValidacionPaneles: una sola insignia para la regla sin traducir (S12). */}
+        <span className="pulso-logic-builder-status">Regla avanzada</span>
       </header>
       <div className="pulso-logic-builder-raw">
         <span className="pulso-xfi-code-head" aria-hidden="true">

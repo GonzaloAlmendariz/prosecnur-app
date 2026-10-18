@@ -50,7 +50,7 @@ describe("deriveEditorHeaderStatus (U10)", () => {
     const diag = { id: "x", level: "error", title: "t", detail: "d" } as BuilderDiagnostic;
     const status = deriveEditorHeaderStatus([diag], publication([logicPending]));
     expect(status.tone).toBe("error");
-    expect(status.label).toBe("1 sin resolver");
+    expect(status.label).toBe("1 error");
     expect(status.logicStepPending).toBe(true);
   });
 

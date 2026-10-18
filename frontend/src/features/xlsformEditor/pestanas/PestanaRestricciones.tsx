@@ -81,6 +81,7 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
   return (
     <PestanaReglas
       titulo="Restricciones"
+      marca="regla"
       total={`${con.length} con regla · ${sugeridas.length} sugeridas`}
       grupos={grupos}
       seleccionada={actual?.node.name ?? null}

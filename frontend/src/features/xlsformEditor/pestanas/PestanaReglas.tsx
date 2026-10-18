@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { TypeIcon } from "../kit";
+import { GlifoMarca, TypeIcon } from "../kit";
+import type { ClaveMarca } from "../kit/glifosMarca";
 import { TituloLegible } from "../kit/CuerpoPanelMarca";
 import "./pestanas.css";
 
@@ -22,6 +23,8 @@ export type ReglaListaGrupo = { titulo: string; items: ReglaListaItem[] };
 
 export type PestanaReglasProps = {
   titulo: string;
+  /** Marca de la pestaña: se dibuja con la misma forma que en la ficha y el riel (I7), no con un punto de color. */
+  marca?: ClaveMarca;
   total: string;
   grupos: ReglaListaGrupo[];
   seleccionada: string | null;
@@ -37,7 +40,7 @@ export type PestanaReglasProps = {
   children: ReactNode;
 };
 
-export function PestanaReglas({ titulo, total, grupos, seleccionada, onSeleccionar, vacio, vacioDetalle, aviso, pie, lateral, children }: PestanaReglasProps) {
+export function PestanaReglas({ titulo, marca, total, grupos, seleccionada, onSeleccionar, vacio, vacioDetalle, aviso, pie, lateral, children }: PestanaReglasProps) {
   const hayItems = grupos.some((g) => g.items.length > 0);
   // La elegida por la dirección (un enlace desde otra pestaña) se trae a la vista dentro de la lista, sin mover la página.
   const cuerpo = useRef<HTMLDivElement | null>(null);
@@ -53,7 +56,7 @@ export function PestanaReglas({ titulo, total, grupos, seleccionada, onSeleccion
     <div className={lateral ? "xfp-reglas con-lateral" : "xfp-reglas"}>
       <aside className="xfp-reglas__lista" aria-label={titulo}>
         <header className="xfp-reglas__lista-head">
-          <span className="xfp-reglas__lista-titulo">{titulo}</span>
+          <span className="xfp-reglas__lista-titulo">{marca ? <GlifoMarca clave={marca} size={13} /> : null}{titulo}</span>
           <span className="xfp-reglas__lista-total">{total}</span>
         </header>
         <div ref={cuerpo} className="xfp-reglas__lista-cuerpo" data-qa-geometry-group="xlsform/reglas-grupos" data-qa-geometry-contract="intrinsic">

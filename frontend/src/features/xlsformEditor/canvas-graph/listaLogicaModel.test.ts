@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { parseBuilderStructure } from "../parsing/buildIndex";
-import { dividirPorLogica, listaLogica } from "./listaLogicaModel";
+import { dividirPorLogica, focoEnLista, listaLogica } from "./listaLogicaModel";
 
 const D = "$";
 const survey = {
@@ -39,5 +39,14 @@ describe("lista de la lógica por sección", () => {
     const { conLogica, sinLogica } = dividirPorLogica(listaLogica(parseBuilderStructure(conVacia)).secciones);
     expect(conLogica.map((s) => s.nombre)).toEqual(["Empleo", "Lugar"]);
     expect(sinLogica.map((s) => s.letra + ":" + s.nombre)).toEqual(["C:Cierre"]);
+  });
+});
+
+describe("foco de la lista (S18)", () => {
+  test("un foco que no está en la lista se reconoce para avisarlo", () => {
+    const lista = listaLogica(parseBuilderStructure(survey));
+    expect(focoEnLista(lista, "horas")).toBe(true);
+    expect(focoEnLista(lista, "no_existe")).toBe(false);
+    expect(focoEnLista(lista, null)).toBe(true);
   });
 });

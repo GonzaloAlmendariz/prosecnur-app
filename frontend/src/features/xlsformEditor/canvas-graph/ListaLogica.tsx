@@ -4,7 +4,7 @@ import { enriquecerAlcance, type LogicScope } from "../logic";
 import { stripMarkdown } from "../helpers/markdown";
 import { Segmented, TypeIcon } from "../kit";
 import { describeExpression, leerColumna } from "../canvas/reglasHumanas";
-import { dividirPorLogica, listaLogica, type TipoRegla } from "./listaLogicaModel";
+import { dividirPorLogica, focoEnLista, listaLogica, type TipoRegla } from "./listaLogicaModel";
 import "./listaLogica.css";
 
 // Lista de la lógica junto al mapa (revamp 2026-10-16). Cada sección es un contenedor: arriba la regla que
@@ -45,6 +45,7 @@ export function ListaLogica({ structure, scope: scopeBase, seleccionada, onSelec
   const secciones = conLogica.filter((s) => (filtro === "seccion" ? Boolean(s.regla) : filtro === "pregunta" ? s.items.length > 0 : true));
   const [verSinLogica, setVerSinLogica] = useState(false);
   const total = lista.deSeccion + lista.dePregunta;
+  const focoDesconocido = !focoEnLista(lista, seleccionada);
   // Un `foco` que llega de otra pestaña trae su fila a la vista (S11: antes la lista quedaba arriba, a 22.000 px).
   const cuerpo = useRef<HTMLDivElement | null>(null);
   const enSinLogica = Boolean(seleccionada?.startsWith("seccion:") && sinLogica.some((s) => `seccion:${s.rowIndex}` === seleccionada));
@@ -77,6 +78,9 @@ export function ListaLogica({ structure, scope: scopeBase, seleccionada, onSelec
           ]}
         />
       </header>
+      {focoDesconocido && total > 0 && seleccionada ? (
+        <p className="xfl-aviso" role="status">No hay una regla de lógica para <code>{seleccionada}</code>: se muestra la lista completa.</p>
+      ) : null}
       <div ref={cuerpo} className="xfl-lista__cuerpo" data-qa-geometry-group="xlsform/logica-secciones" data-qa-geometry-contract="intrinsic">
         {secciones.length === 0 && (filtro !== "todas" || sinLogica.length === 0) ? (
           <p className="xfl-vacio">Este formulario no tiene reglas de cuándo aparece una pregunta ni de qué opciones se muestran.</p>

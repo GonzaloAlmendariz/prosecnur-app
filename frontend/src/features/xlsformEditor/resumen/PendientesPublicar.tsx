@@ -22,7 +22,7 @@ export function PendientesPublicar({ items, onAccion }: {
       <header className="pulso-xf-res-panel-cabeza">
         <h3 id="xf-res-pendientes-titulo">Qué falta para publicar e imprimir</h3>
         <span className={`pulso-xf-res-contador${abiertos ? " is-aviso" : " is-listo"}`}>
-          {abiertos ? `${abiertos} por resolver` : "Todo en orden"}
+          {abiertos ? `${abiertos} ${abiertos === 1 ? "tarea pendiente" : "tareas pendientes"}` : "Todo en orden"}
         </span>
       </header>
       <ul className="pulso-xf-res-pendientes-lista" data-qa-geometry-group="xlsform/resumen-pendientes" data-qa-geometry-contract="equal">

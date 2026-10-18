@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { BuilderNode, BuilderStructure, CatalogSummary, SectionMeta } from "../types";
 import {
+  rangoMinutos,
   minutos,
   marcasDeMinutos,
   ordenarSecciones,
@@ -172,5 +173,12 @@ describe("S14: cifras que cuadran y eje legible", () => {
     expect(rotuloMinutos(120)).toBe("2 h");
     expect(rotuloMinutos(90)).toBe("1 h 30");
     expect(rotuloMinutos(45)).toBe("45 min");
+  });
+});
+
+describe("duración como rango (S14)", () => {
+  test("del piso al máximo, y un solo valor si coinciden", () => {
+    expect(rangoMinutos(600, 1080)).toBe("10–18 min");
+    expect(rangoMinutos(600, 600)).toBe("≈ 10 min");
   });
 });
