@@ -7,6 +7,7 @@ import { seleccionActiva, seleccionVariable } from "../../dominio/criteriosMarco
 import { fmtInt, rowsFrom, safeNumber, type GuideStatus } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "./format";
 import { filtrosLegacyPayload, normalizeTeacherTypeOrden } from "./study";
+import { efectividadDesactualizada } from "./efectividadFuente";
 
 /** Un valor "vacío/ausente" a efectos de comparar selecciones. La selección que
  *  el frame ECHA desde el backend viene verbosa (`fromValue: "NA"`, `layer: null`,
@@ -179,6 +180,9 @@ export function marcoCriteriosDesactualizado(
   if (criteriosSeleccionDesactualizada(construido, configSeleccion)) return true;
   if (teacherTypeOrdenDesactualizado(frame, configTeacherTypeOrden)) return true;
   if (configVigente && filtrosEchoDesactualizado(frame, configVigente)) return true;
+  // La fuente de la tasa también vive en el marco: cada fila anota con cuál se
+  // construyó, y declarar otra no cambia nada hasta reconstruirlo.
+  if (configVigente && efectividadDesactualizada(configVigente.config.efectividad, frame.aula_frame)) return true;
   return false;
 }
 

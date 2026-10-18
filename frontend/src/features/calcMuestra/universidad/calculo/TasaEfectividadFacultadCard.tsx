@@ -38,6 +38,7 @@ export function TasaEfectividadFacultadCard({
   if (!filas.length) return null;
   const totalCupos = filas.reduce((s, f) => s + (f.cupos ?? 0), 0);
   const conCuenta = filas.filter((f) => f.cuota != null);
+  const conRazonPropia = filas.filter((f) => f.conResidual).length;
   // Ninguna facultad tiene cuota: no es que les falten datos, es que todavía
   // no se calculó la muestra. Se dice UNA vez y con el camino, en lugar de
   // repetir «sin estrato dimensionado» en cada fila — que se lee como si el
@@ -69,7 +70,15 @@ export function TasaEfectividadFacultadCard({
           el contraste entre chips se malinterpreta como «unas usan el
           histórico y otras no». */}
       <p className="cmv2-tasafac-regla" role="note">
-        <b>Todas las facultades usan el estudio anterior; seis lo usan dos veces.</b>{" "}
+        {/* El conteo sale de las filas: estaba escrito «seis» a mano, cierto
+            para HSVG 2026 y falso para cualquier otro estudio (UNSA 2026 no
+            tiene ninguna facultad con razón propia). */}
+        <b>
+          Todas las facultades usan el estudio anterior
+          {conRazonPropia === 0
+            ? "; ninguna tiene razón propia."
+            : `; ${fmtInt(conRazonPropia)} ${conRazonPropia === 1 ? "lo usa" : "lo usan"} dos veces.`}
+        </b>{" "}
         La <b>función de efectividad según tamaño</b> (cuánto rinde un aula de 12, de 30 o
         de 50 alumnos) se estima sobre el histórico completo, con las aulas de todas las
         facultades juntas, y se aplica a la <b>composición por tamaño</b> de cada una (qué

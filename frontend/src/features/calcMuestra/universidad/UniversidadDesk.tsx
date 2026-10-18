@@ -59,6 +59,8 @@ import { CalculoCertezaTab, CalculoCursosHorarioFacultadTab, CalculoDisenoTab, C
 import { DistribucionElegiblesCard } from "./calculo/DistribucionElegiblesCard";
 import { MuestraOperativaCard } from "./calculo/MuestraOperativaCard";
 import { TasaEfectividadFacultadCard } from "./calculo/TasaEfectividadFacultadCard";
+import { FuenteEfectividadCard } from "./calculo/FuenteEfectividadCard";
+import { contarTauManuales, declararTauGlobal, tauReseteados } from "./shared/efectividadFuente";
 import {
   AulasAuditoriaTab,
   AulasMetodoTab,
@@ -630,6 +632,23 @@ export function UniversidadDesk({
     },
     [compActivo, estratosPropiosDe, onComponente, onInvalidateAulasArtifacts],
   );
+  // La fuente de la tasa vive anotada en el marco: declararla sin reconstruir
+  // no cambiaría ningún número. Se escribe en el estudio y se reconstruye con
+  // ese mismo workspace, sin esperar a que el estado se propague.
+  const declararEfectividad = useCallback(
+    (efectividad: CalcMuestraWorkspaceAulasConfig["efectividad"]) => {
+      const siguiente = {
+        ...syncedWorkspace,
+        aulas_config: {
+          ...(syncedWorkspace.aulas_config as CalcMuestraWorkspaceAulasConfig),
+          efectividad,
+        },
+      };
+      onWorkspace(siguiente);
+      void onSourceBuild(siguiente);
+    },
+    [syncedWorkspace, onWorkspace, onSourceBuild],
+  );
   const onAjustarAulaFacultad = useCallback(
     (facultad: string, aulasActuales: number, delta: 1 | -1) => {
       if (!compActivo) return;
@@ -1014,6 +1033,19 @@ export function UniversidadDesk({
               </div>
               <div className="cmv2-recorrido-paso" data-paso="2">
                 <span className="cmv2-recorrido-kicker">Paso 2 · Qué rinde: la tasa que convierte cuota en titulares</span>
+                <FuenteEfectividadCard
+                  efectividad={(syncedWorkspace.aulas_config as CalcMuestraWorkspaceAulasConfig | undefined)?.efectividad}
+                  aulaFrame={aulasState?.frame?.aula_frame ?? null}
+                  tauDiseno={compActivo?.parametros?.tau ?? null}
+                  puedeReconstruir={puedeReconstruirMarco && !busy}
+                  onDeclararTauGlobal={(tau) => declararEfectividad(
+                    declararTauGlobal(tau, "Sin histórico propio: tasa del Diseño"),
+                  )}
+                  onVolverACalibracion={() => declararEfectividad({})}
+                  onReconstruir={() => void onSourceBuild(syncedWorkspace)}
+                  manuales={contarTauManuales(compActivo?.marco?.estratos)}
+                  reseteados={tauReseteados(compActivo?.resultado?.tau_reseteados)}
+                />
                 <TasaEfectividadFacultadCard
                   tasasRaw={(aulasState?.frame as Record<string, unknown> | undefined)?.tasas_efectividad_facultad}
                   estratos={(compActivo?.resultado?.aulas_por_estrato ?? null) as
