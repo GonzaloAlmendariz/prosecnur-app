@@ -5,7 +5,7 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import type { BuilderNode } from "../../types";
 import { type LogicScope } from "../../logic";
 import { stripMarkdown } from "../../helpers/markdown";
-import type { SectionBoundaryState } from "../FocusedWorkspace";
+import type { SectionBoundaryState } from "../../state/editorHelpers";
 
 export function SectionBoundaryControl({
   boundary,

@@ -29,6 +29,8 @@ export type NameFieldProps = {
   /** Id del input (lo entrega `InspectorField` para asociar su rótulo). */
   id?: string;
   ariaDescribedBy?: string;
+  /** Celdas que citan el código hoy: al aplicar se dice cuántas se reescriben (C23). */
+  referencias?: number;
 };
 
 export function NameField({
@@ -38,6 +40,7 @@ export function NameField({
   disabled,
   id,
   ariaDescribedBy,
+  referencias,
 }: NameFieldProps) {
   const committed = value ?? "";
   const [draft, setDraft] = useState(committed);
@@ -115,9 +118,20 @@ export function NameField({
       </div>
       {dirty && canApply && committed.trim() && (
         <span className="pulso-xfi-namefield-pending">
-          Al aplicar, las reglas que usan{" "}
-          <code>{"${" + committed.trim() + "}"}</code> pasan a{" "}
-          <code>{"${" + trimmed + "}"}</code>.
+          {referencias === undefined ? (
+            <>
+              Al aplicar, las reglas que usan{" "}
+              <code>{"${" + committed.trim() + "}"}</code> pasan a{" "}
+              <code>{"${" + trimmed + "}"}</code>.
+            </>
+          ) : referencias === 0 ? (
+            "Ninguna regla ni texto usa este código: sólo cambia el nombre en la base."
+          ) : (
+            <>
+              Al aplicar se {referencias === 1 ? "actualiza 1 referencia" : `actualizan ${referencias} referencias`} de{" "}
+              <code>{"${" + committed.trim() + "}"}</code> a <code>{"${" + trimmed + "}"}</code>.
+            </>
+          )}
         </span>
       )}
       {!isValid && reason && (

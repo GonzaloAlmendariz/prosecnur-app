@@ -316,12 +316,8 @@ const SELECTORS_WITHOUT_PANELS: readonly SelectorCase[] = [
     rootMarker: 'aria-label="Audiencia de salida"',
     semantics: "radio",
   },
-  {
-    name: "A10 FocusedWorkspace · foco/vista completa",
-    file: "features/xlsformEditor/canvas/FocusedWorkspace.tsx",
-    rootMarker: 'className="pulso-focus-mode-toggle"',
-    semantics: "radio",
-  },
+  // A10 «FocusedWorkspace · foco/vista completa» RETIRADA, no perdida: el 2026-10-17 el Constructor dejó la vista
+  // «Formulario completo» (C3 del checklist del rediseño) y FocusedWorkspace se reemplazó por `canvas/ficha/`.
 ] as const;
 
 const REAL_TABSETS: readonly TabsetCase[] = [
@@ -387,12 +383,8 @@ const REAL_TABSETS: readonly TabsetCase[] = [
   // el 2026-10-16 las pestañas de Material de campo pasaron a `ContextTabRail`
   // y `className="rec-tab-list"` dejó de existir. La semántica la pone el rail
   // compartido y la prueba `ContextTabRail.test.tsx`.
-  {
-    name: "B12 FocusedWorkspace · configuración",
-    file: "features/xlsformEditor/canvas/FocusedWorkspace.tsx",
-    rootMarker: 'className="pulso-focus-tabs"',
-    relationStem: "pulso-focus",
-  },
+  // B12 «FocusedWorkspace · configuración» RETIRADA, no perdida: la ficha del Constructor (`canvas/ficha/`, 2026-10-17)
+  // reemplazó las cinco pestañas por bloques apilados (C9). No hay tabset que auditar.
   // B13 auditaba el tabset de `inspector/Inspector.tsx`, un componente que
   // ningún sitio importaba ni renderizaba: la auditoría pasaba en verde sobre
   // una superficie que el usuario nunca veía. El inspector vivo es

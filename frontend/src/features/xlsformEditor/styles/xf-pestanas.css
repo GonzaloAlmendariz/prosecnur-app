@@ -32,6 +32,25 @@
   min-height: 0;
 }
 
+/* Más ancho para la Estructura (Gonzalo, 2026-10-17: «no se aprovecha el espacio horizontal»): pasa de ~26 % a ~44 %
+ * del ancho. La ficha conserva al menos 520 px y le sobraba aire. theme.css fija la grilla con !important. */
+.pulso-xlsform-frame .pulso-xf-pestana > .pulso-builder-grid,
+.pulso-main--viewport .pulso-xlsform-frame .pulso-xf-pestana > .pulso-builder-grid {
+  grid-template-columns: minmax(320px, 0.78fr) minmax(520px, 1fr) !important;
+}
+@media (max-width: 1280px) {
+  .pulso-xlsform-frame .pulso-xf-pestana > .pulso-builder-grid,
+  .pulso-main--viewport .pulso-xlsform-frame .pulso-xf-pestana > .pulso-builder-grid {
+    grid-template-columns: minmax(260px, 0.7fr) minmax(0, 1fr) !important;
+  }
+}
+@media (max-width: 900px) {
+  .pulso-xlsform-frame .pulso-xf-pestana > .pulso-builder-grid,
+  .pulso-main--viewport .pulso-xlsform-frame .pulso-xf-pestana > .pulso-builder-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
 /* Overlays de antes, ahora contenido de pestaña. */
 .pulso-xf-pestana .pulso-graph-overlay.is-embebido,
 .pulso-xf-pestana .pulso-xcf-overlay.is-embebido {
@@ -64,4 +83,23 @@
   flex: 1 1 auto;
   min-height: 0;
   max-height: none;
+}
+
+
+/* Un solo marco (Gonzalo, 2026-10-17: «bordes sobre bordes»): dentro del marco de la pestaña, la Estructura y la ficha
+ * ya no son tarjetas con borde, sombra y fondo propios. Las separa una línea vertical y la ficha se lee sobre el blanco. */
+.pulso-main--viewport .pulso-xlsform-frame .pulso-xf-pestana > .pulso-builder-grid,
+.pulso-xlsform-frame .pulso-xf-pestana > .pulso-builder-grid { gap: 0 !important; padding: 0; }
+.pulso-xlsform-frame .pulso-xf-pestana > .pulso-builder-grid .pulso-xlsform-sidebar-panel.pulso-panel,
+.pulso-xlsform-frame .pulso-xf-pestana > .pulso-builder-grid .pulso-focus-workspace.xfh {
+  border: 0; border-radius: 0; box-shadow: none; background: transparent;
+}
+.pulso-xlsform-frame .pulso-xf-pestana > .pulso-builder-grid .pulso-xlsform-sidebar-panel.pulso-panel {
+  border-right: 1px solid var(--pulso-border); background: color-mix(in srgb, var(--pulso-text) 1.5%, transparent);
+}
+.pulso-xlsform-frame .pulso-xf-pestana > .pulso-builder-grid .pulso-focus-workspace.xfh .xfh-caja { border: 0; border-radius: 0; }
+@media (max-width: 900px) {
+  .pulso-xlsform-frame .pulso-xf-pestana > .pulso-builder-grid .pulso-xlsform-sidebar-panel.pulso-panel {
+    border-right: 0; border-bottom: 1px solid var(--pulso-border);
+  }
 }
