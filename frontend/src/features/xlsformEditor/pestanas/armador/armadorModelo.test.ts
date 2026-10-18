@@ -69,6 +69,21 @@ describe("armador · regex", () => {
     expect(r?.bloques[4]).toMatchObject({ modo: "entre", min: 2, max: 4 });
   });
 
+  test("separadores fijos entre partes", () => {
+    const partes = (cuerpo: string) => bloquesDesdePatron(cuerpo)?.bloques.map((b) => [b.tipo, b.texto || b.opciones || b.n]);
+    expect(partes("[0-9]{2}/[0-9]{4}")).toEqual([["digitos", 2], ["fijo", "/"], ["digitos", 4]]);
+    expect(partes("[A-Z]{2}-[0-9]{2}")).toEqual([["letras", 2], ["fijo", "-"], ["digitos", 2]]);
+    expect(partes("MV[HV][0-9]{4}")).toEqual([["lista", "MVH, MVV"], ["digitos", 4]]);
+  });
+
+  test("[0-9] y \\d dan lo mismo, y el separador escapado también", () => {
+    const sinIds = (cuerpo: string) => sinId(bloquesDesdePatron(cuerpo)!.bloques);
+    expect(sinIds("\\d{2}/\\d{4}")).toEqual(sinIds("[0-9]{2}/[0-9]{4}"));
+    expect(sinIds("[0-9]{2}\\/[0-9]{4}")).toEqual(sinIds("[0-9]{2}/[0-9]{4}"));
+    expect(sinIds("[A-Z]{2}\\-\\d{2}")).toEqual(sinIds("[A-Z]{2}-[0-9]{2}"));
+    expect(estadoInicial("regex(., '^MV[HV]\\d{4}$')").reemplaza).toBe(false);
+  });
+
   test("lo que no sabe escribir no se reinterpreta", () => {
     expect(bloquesDesdePatron("[^@\\s]+@[^@\\s]+")).toBeNull();
     expect(bloquesDesdePatron("a|b")).toBeNull();

@@ -548,3 +548,36 @@
     color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
 }
 
+
+/* Mensajes sugeridos bajo «Mensaje si no pasa»: una línea cada uno, sin descripción. */
+.pulso-focus-message-sugerencias {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-focus-message-sugerencias button {
+  width: 100%;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-muted);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.pulso-focus-message-sugerencias button:hover,
+.pulso-focus-message-sugerencias button:focus-visible {
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-text);
+}

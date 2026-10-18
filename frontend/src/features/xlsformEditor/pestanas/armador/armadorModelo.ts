@@ -289,15 +289,28 @@ function rangoDe(trozo: string): { desde: number; hasta: number } | null {
   return null;
 }
 
+/** Escrituras equivalentes a las del armador: «\\d» es «[0-9]» y «\\/» o «\\-» son el carácter tal cual.
+ *  Dentro de un juego «[…]» no se toca: ahí «\\-» no es lo mismo que «-». */
+function normalizarAtomo(s: string): string {
+  if (s.includes("[")) return s;
+  return s.replace(/\\(.)/g, (m, c: string) => (c === "d" ? "[0-9]" : /[\w.*+?^${}()|[\]\\]/.test(c) ? m : c));
+}
+
 /** Bloques de un patrón que el armador sabe escribir; null si no lo entiende (se ofrece empezar de cero). */
 export function bloquesDesdePatron(cuerpo: string): { formato: string | null; bloques: Bloque[] } | null {
   for (const f of FORMATOS) {
     const bloques = f.bloques();
     if (cuerpoRegex(bloques) === cuerpo) return { formato: f.id, bloques };
   }
-  const toks = tokenizar(cuerpo);
+  const toks = tokenizar(cuerpo)?.map((t) => ({ atomo: normalizarAtomo(t.atomo), cuant: t.cuant }));
   if (!toks || !toks.length) return null;
   const bloques: Bloque[] = [];
+  // Lo que cada bloque debe escribir de vuelta: el armador nunca reescribe lo que no entiende.
+  const esperado: string[] = [];
+  const empujar = (b: Bloque, fuente: string) => {
+    bloques.push(b);
+    esperado.push(fuente);
+  };
   let j = 0;
   while (j < toks.length) {
     const tk = toks[j]!;
@@ -309,7 +322,7 @@ export function bloquesDesdePatron(cuerpo: string): { formato: string | null; bl
       for (let k = Math.min(4, toks.length - j); k >= 1; k--) {
         const r = rangoDe(unido(k));
         if (r) {
-          bloques.push(nuevoBloque("digitos", { modo: "rango", ...r }));
+          empujar(nuevoBloque("digitos", { modo: "rango", ...r }), unido(k));
           j += k;
           hallado = true;
           break;
@@ -317,10 +330,10 @@ export function bloquesDesdePatron(cuerpo: string): { formato: string | null; bl
       }
       if (hallado) continue;
     }
-    if (tk.atomo === "[0-9]" || tk.atomo === "\\d") {
+    if (tk.atomo === "[0-9]") {
       const c = cantidadDe(tk.cuant);
       if (!c) return null;
-      bloques.push(nuevoBloque("digitos", c));
+      empujar(nuevoBloque("digitos", c), unido(1));
       j++;
       continue;
     }
@@ -328,7 +341,21 @@ export function bloquesDesdePatron(cuerpo: string): { formato: string | null; bl
     if (clase) {
       const c = cantidadDe(tk.cuant);
       if (!c) return null;
-      bloques.push(nuevoBloque("letras", { ...c, clase }));
+      empujar(nuevoBloque("letras", { ...c, clase }), unido(1));
+      j++;
+      continue;
+    }
+    // Un carácter de un juego cerrado («[HV]») es «uno de»; si lo antecede un texto fijo, va con él: MV[HV] → MVH o MVV.
+    const juego = tk.cuant === "" ? tk.atomo.match(/^\[([A-Za-z0-9]+)\]$/) : null;
+    if (juego) {
+      const previo = bloques[bloques.length - 1];
+      const prefijo = previo?.tipo === "fijo" && /^[\p{L}\d]+$/u.test(previo.texto) ? previo.texto : "";
+      if (prefijo) {
+        bloques.pop();
+        esperado.pop();
+      }
+      const lista = nuevoBloque("lista", { opciones: [...new Set(juego[1]!)].map((ch) => prefijo + ch).join(", ") });
+      empujar(lista, bloqueRegex(lista));
       j++;
       continue;
     }
@@ -337,11 +364,11 @@ export function bloquesDesdePatron(cuerpo: string): { formato: string | null; bl
       if (tk.cuant === "?") {
         const lit = literal(inner);
         if (lit === null) return null;
-        bloques.push(nuevoBloque("opcional", { texto: lit }));
+        empujar(nuevoBloque("opcional", { texto: lit }), unido(1));
       } else if (tk.cuant === "") {
         const ops = inner.split("|").map(literal);
         if (ops.some((o) => o === null || o.includes(","))) return null;
-        bloques.push(nuevoBloque("lista", { opciones: ops.join(", ") }));
+        empujar(nuevoBloque("lista", { opciones: ops.join(", ") }), unido(1));
       } else return null;
       j++;
       continue;
@@ -349,12 +376,13 @@ export function bloquesDesdePatron(cuerpo: string): { formato: string | null; bl
     const lit = tk.cuant === "" ? literal(tk.atomo) : null;
     if (lit === null) return null;
     const previo = bloques[bloques.length - 1];
-    if (previo && previo.tipo === "fijo") previo.texto += lit;
-    else bloques.push(nuevoBloque("fijo", { texto: lit }));
+    if (previo && previo.tipo === "fijo") {
+      previo.texto += lit;
+      esperado[esperado.length - 1] += tk.atomo;
+    } else empujar(nuevoBloque("fijo", { texto: lit }), tk.atomo);
     j++;
   }
-  // Solo se acepta si escribirlo de vuelta da el mismo patrón: el armador nunca reescribe lo que no entiende.
-  return cuerpoRegex(bloques) === cuerpo ? { formato: null, bloques } : null;
+  return bloques.every((b, i) => bloqueRegex(b) === esperado[i]) ? { formato: null, bloques } : null;
 }
 
 // ─── Palabras ────────────────────────────────────────────────────────────────

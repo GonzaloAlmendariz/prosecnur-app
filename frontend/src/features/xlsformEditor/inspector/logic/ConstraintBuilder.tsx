@@ -153,8 +153,7 @@ export function ConstraintBuilder({
           <div className="pulso-constraint-shortcuts" aria-label="Atajos comunes de validación">
             <div className="pulso-constraint-shortcuts-head">
               <span className="pulso-section-eyebrow">Atajos</span>
-              <strong>Reglas frecuentes sin escribir fórmula</strong>
-              <small>La regla y su mensaje se completan juntos.</small>
+              <strong>Reglas frecuentes</strong>
             </div>
             <div className="pulso-constraint-shortcut-grid">
               {shortcutPresets.map((preset) => (
@@ -217,7 +216,7 @@ export function ConstraintBuilder({
         </span>
         <pre>{raw}</pre>
         <p className="pulso-logic-builder-rawhint">
-          Se preserva al exportar; reemplázala por una regla guiada para editarla.
+          Regla escrita a mano. Se exporta tal cual.
         </p>
         <div className="pulso-logic-builder-rawactions">
           <button
