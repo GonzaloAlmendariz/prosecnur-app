@@ -159,7 +159,14 @@ export type MailHeader =
 
 export type MailImage = { alt: string; url?: string };
 
-export type MailField = { key: string; tag: string; label: string; fallback?: string };
+export type MailField = {
+  key: string;
+  tag: string;
+  label: string;
+  fallback?: string;
+  /** Etiqueta de SurveyMonkey (addendum E1j): `SurveyLink`, `LastName` o `CustomDataN`. */
+  sm?: string;
+};
 
 export type MailTemplate = {
   schema: MailTemplateSchema;
@@ -579,11 +586,13 @@ function normalizeFields(value: unknown): MailField[] {
     const key = str(raw.key);
     if (!key) continue;
     const fallback = optStr(raw.fallback);
+    const sm = optStr(raw.sm);
     out.push({
       key,
       tag: str(raw.tag),
       label: str(raw.label) || key,
       ...(fallback !== undefined ? { fallback } : {}),
+      ...(sm ? { sm } : {}),
     });
   }
   return out;

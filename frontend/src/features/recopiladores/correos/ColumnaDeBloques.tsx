@@ -1,7 +1,20 @@
-import { useState } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 import { MAIL_BLOCK_TYPES, type MailPreset, type MailTemplate } from "../../../api/materialMail";
-import { AlertCircle, Plus, X } from "../../../vendor/lucide-react";
+import { AlertCircle, GripVertical, Plus, X } from "../../../vendor/lucide-react";
+import { ARRASTRE_DE_BLOQUE } from "./BibliotecaDeBloques";
+import { esMovible, tipoDisponible } from "./estructuraCorreo";
 import { ICONO_DE_BLOQUE, ICONO_DE_PSEUDO, iconoDeBloque } from "./iconos";
 import {
   CABECERA,
@@ -31,14 +44,12 @@ type Props = {
   onAgregar: (type: MailBlockType) => void;
   onInsertarCampo: (key: string) => void;
   hayDestino: boolean;
+  /** Mover un bloque a su índice final (arrastre o teclado en la lista). */
+  onMover?: (blockId: string, indice: number) => void;
 };
 
-/**
- * Tipos que se agregan desde esta lista. La imagen (E1g) necesita su panel de
- * subida y llega con la biblioteca de bloques; mientras tanto, una plantilla
- * que ya la trae la conserva y la muestra.
- */
-const SE_AGREGAN_AQUI: ReadonlySet<MailBlockType> = new Set(MAIL_BLOCK_TYPES.filter((t) => t !== "image"));
+/** Todos los tipos del registro se agregan desde aquí; la imagen abre su panel al elegirla. */
+const SE_AGREGAN_AQUI: ReadonlySet<MailBlockType> = new Set(MAIL_BLOCK_TYPES);
 
 function Miniatura({ html, titulo }: { html: string | null | undefined; titulo: string }) {
   if (!html) return <span className="rec-mail-mini rec-mail-mini--vacia" aria-hidden />;
@@ -55,6 +66,43 @@ function Miniatura({ html, titulo }: { html: string | null | undefined; titulo: 
   );
 }
 
+type PropsDeFila = {
+  id: string;
+  icono: typeof AlertCircle;
+  titulo: string;
+  resumen: string;
+  elegido: boolean;
+  conProblemas: number;
+  onSeleccionar: (id: string) => void;
+};
+
+/** Fila que se arrastra: la manija es la única que inicia el arrastre (y su teclado). */
+function FilaOrdenable(props: PropsDeFila) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: props.id });
+  const estilo: CSSProperties = { transform: CSS.Translate.toString(transform), transition };
+  return (
+    <Fila
+      {...props}
+      refDeFila={setNodeRef}
+      estilo={estilo}
+      arrastrando={isDragging}
+      manija={(
+        <button
+          type="button"
+          ref={setActivatorNodeRef}
+          className="rec-capa-lista-manija"
+          aria-label={`Mover ${props.titulo}`}
+          title="Arrastra para mover (o espacio y flechas)"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical size={13} aria-hidden />
+        </button>
+      )}
+    />
+  );
+}
+
 function Fila({
   id,
   icono: Icono,
@@ -63,17 +111,19 @@ function Fila({
   elegido,
   conProblemas,
   onSeleccionar,
-}: {
-  id: string;
-  icono: typeof AlertCircle;
-  titulo: string;
-  resumen: string;
-  elegido: boolean;
-  conProblemas: number;
-  onSeleccionar: (id: string) => void;
+  manija,
+  refDeFila,
+  estilo,
+  arrastrando,
+}: PropsDeFila & {
+  manija?: ReactNode;
+  refDeFila?: (node: HTMLElement | null) => void;
+  estilo?: CSSProperties;
+  arrastrando?: boolean;
 }) {
   return (
-    <li>
+    <li ref={refDeFila} style={estilo} className={`rec-capa-lista-fila${manija ? " is-movible" : ""}${arrastrando ? " is-arrastrando" : ""}`}>
+      {manija}
       <button
         type="button"
         className={`rec-mail-bloque${elegido ? " is-active" : ""}`}
@@ -112,8 +162,20 @@ export function ColumnaDeBloques({
   onAgregar,
   onInsertarCampo,
   hayDestino,
+  onMover,
 }: Props) {
   const [agregando, setAgregando] = useState(false);
+  const sensores = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const movibles = template.blocks.filter((b) => esMovible(template, b.block_id)).map((b) => b.block_id);
+  const soltar = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !onMover) return;
+    const destino = template.blocks.findIndex((b) => b.block_id === over.id);
+    if (destino >= 0) onMover(String(active.id), destino);
+  };
   const campos = [{ key: "nombre", label: "Nombre" }, ...template.fields.map((f) => ({ key: f.key, label: f.label }))];
   return (
     <aside className="rec-mail-col rec-mail-col--bloques" aria-label="Plantillas y bloques del correo">
@@ -169,13 +231,19 @@ export function ColumnaDeBloques({
         </span>
         {agregando ? (
           <div id="rec-mail-agregar" className="rec-mail-agregar" role="group" aria-label="Tipo de bloque a agregar">
-            {MAIL_BLOCK_TYPES.filter((t) => SE_AGREGAN_AQUI.has(t) && (t !== "footer_legal" || !template.blocks.some((b) => b.type === "footer_legal"))).map((type) => {
+            {MAIL_BLOCK_TYPES.filter((t) => SE_AGREGAN_AQUI.has(t) && tipoDisponible(template, t)).map((type) => {
               const Icono = ICONO_DE_BLOQUE[type];
               return (
                 <button
                   key={type}
                   type="button"
                   className="rec-mail-agregar-tipo"
+                  draggable
+                  title="Clic para agregar, o arrástralo al correo"
+                  onDragStart={(event) => {
+                    event.dataTransfer.setData(ARRASTRE_DE_BLOQUE, type);
+                    event.dataTransfer.effectAllowed = "copy";
+                  }}
                   onClick={() => { onAgregar(type); setAgregando(false); }}
                 >
                   <Icono size={13} aria-hidden /> {ROTULO_DE_BLOQUE[type]}
@@ -184,7 +252,13 @@ export function ColumnaDeBloques({
             })}
           </div>
         ) : null}
-        <ul className="rec-mail-bloques" data-qa-geometry-capacity="owned">
+        {/* C1: filas independientes de la lista (cada una con su resumen), alto intrínseco. */}
+        <ul
+          className="rec-mail-bloques"
+          data-qa-geometry-capacity="owned"
+          data-qa-geometry-group="material-campo/catalogo/correos-bloques"
+          data-qa-geometry-contract="intrinsic"
+        >
           <Fila
             id={SOBRE}
             icono={ICONO_DE_PSEUDO[SOBRE]}
@@ -203,18 +277,25 @@ export function ColumnaDeBloques({
             conProblemas={problemas.cabecera.length}
             onSeleccionar={onSeleccionar}
           />
-          {template.blocks.map((block) => (
-            <Fila
-              key={block.block_id}
-              id={block.block_id}
-              icono={iconoDeBloque(block)}
-              titulo={rotuloDeBloque(block)}
-              resumen={resumenDeBloque(block)}
-              elegido={seleccion === block.block_id}
-              conProblemas={problemas.porBloque[block.block_id]?.length ?? 0}
-              onSeleccionar={onSeleccionar}
-            />
-          ))}
+          <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={soltar}>
+            <SortableContext items={movibles} strategy={verticalListSortingStrategy}>
+              {template.blocks.map((block) => {
+                const props: PropsDeFila = {
+                  id: block.block_id,
+                  icono: iconoDeBloque(block),
+                  titulo: rotuloDeBloque(block),
+                  resumen: resumenDeBloque(block),
+                  elegido: seleccion === block.block_id,
+                  conProblemas: problemas.porBloque[block.block_id]?.length ?? 0,
+                  onSeleccionar,
+                };
+                // El pie queda fijo al final, como lo dibuja el render.
+                return onMover && esMovible(template, block.block_id)
+                  ? <FilaOrdenable key={block.block_id} {...props} />
+                  : <Fila key={block.block_id} {...props} />;
+              })}
+            </SortableContext>
+          </DndContext>
         </ul>
       </div>
 

@@ -1,33 +1,36 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import type { MailTemplate } from "../../../api/materialMail";
 import { AlertTriangle, Loader2 } from "../../../vendor/lucide-react";
 import {
   ANCHO_DE_VISTA,
   escalaParaCaber,
-  esZonaDelCorreo,
   htmlParaLaVista,
   type PaletaOscura,
   type VistaDelCorreo,
 } from "./modeloCorreo";
 import { useCorreosStore } from "./store";
 
+/** Lo que la capa de edición necesita para medirse sobre el correo. */
+export type MedidasDeLaHoja = {
+  doc: Document | null;
+  /** Sube con cada carga del iframe: hay que volver a medir. */
+  medida: number;
+  escala: number;
+  /** Tamaño de la hoja ya a escala. */
+  ancho: number;
+  alto: number;
+};
+
 type Props = {
   html: string | null;
   template: MailTemplate | null;
   vista: VistaDelCorreo;
-  seleccion: string;
   cargando: boolean;
   error: string;
-  onSeleccionar: (id: string) => void;
+  /** La capa de edición (E1g): se pinta dentro de la hoja, sobre el iframe. */
+  capa?: (medidas: MedidasDeLaHoja) => ReactNode;
 };
-
-/** Color del acento del módulo, leído del documento: el iframe no hereda tokens. */
-function acentoDelModulo(nodo: Element | null): string {
-  if (!nodo || typeof getComputedStyle !== "function") return "currentColor";
-  const valor = getComputedStyle(nodo).getPropertyValue("--pulso-module-fieldkit").trim();
-  return valor || "currentColor";
-}
 
 /** El modo oscuro con los colores del sistema visual, no con unos propios. */
 function paletaOscura(): PaletaOscura | undefined {
@@ -40,27 +43,6 @@ function paletaOscura(): PaletaOscura | undefined {
   return { papel, tinta, suave: `color-mix(in srgb, ${papel} 82%, ${tinta})` };
 }
 
-type Zonas = Map<string, HTMLElement>;
-
-/**
- * Encuentra la celda de cada bloque en el HTML del correo por las marcas que
- * pone el render en modo vista previa (`data-pulso-block`). La fila de un
- * bloque marca su `<tr>` y se resalta su celda; el pie marca la celda misma.
- * Sin marcas, el mapa queda vacío y la vista sigue siendo sólo lectura.
- */
-function zonasDelCorreo(doc: Document, template: MailTemplate): Zonas {
-  const zonas: Zonas = new Map();
-  doc.querySelectorAll<HTMLElement>("[data-pulso-block]").forEach((el) => {
-    const id = el.getAttribute("data-pulso-block");
-    if (!esZonaDelCorreo(id, template) || zonas.has(id)) return;
-    const celda = el instanceof HTMLTableRowElement || el.tagName === "TR"
-      ? ((el as HTMLTableRowElement).cells[0] ?? el)
-      : el;
-    zonas.set(id, celda);
-  });
-  return zonas;
-}
-
 /**
  * El correo tal como lo arma el backend, en un iframe aislado.
  *
@@ -69,11 +51,12 @@ function zonasDelCorreo(doc: Document, template: MailTemplate): Zonas {
  * no del iframe— y marcar el bloque elegido. Sin `allow-popups`, los enlaces
  * del correo no abren ventanas.
  */
-export function VistaPreviaDelCorreo({ html, template, vista, seleccion, cargando, error, onSeleccionar }: Props) {
+export function VistaPreviaDelCorreo({ html, template, vista, cargando, error, capa }: Props) {
   const marco = useRef<HTMLIFrameElement | null>(null);
   const lienzo = useRef<HTMLElement | null>(null);
   const medirLienzo = useRef<() => void>(() => {});
-  const zonas = useRef<Zonas>(new Map());
+  const [doc, setDoc] = useState<Document | null>(null);
+  const [medida, setMedida] = useState(0);
   const [alto, setAlto] = useState(720);
   const [disponible, setDisponible] = useState<number | null>(null);
   // Ancho que el correo pide de verdad: una franja de logos ancha puede exigir
@@ -82,41 +65,19 @@ export function VistaPreviaDelCorreo({ html, template, vista, seleccion, cargand
   const srcDoc = useMemo(() => (html ? htmlParaLaVista(html, vista, paletaOscura()) : ""), [html, vista]);
   const templateRef = useRef(template);
   templateRef.current = template;
-  const onSeleccionarRef = useRef(onSeleccionar);
-  onSeleccionarRef.current = onSeleccionar;
-  const seleccionRef = useRef(seleccion);
-  seleccionRef.current = seleccion;
 
-  const marcar = useCallback(() => {
-    const acento = acentoDelModulo(marco.current);
-    zonas.current.forEach((td, id) => {
-      const elegido = id === seleccionRef.current;
-      td.style.outline = elegido ? `2px solid ${acento}` : "";
-      td.style.outlineOffset = elegido ? "-2px" : "";
-    });
-  }, []);
-
+  // Cada vista previa reemplaza el documento del iframe (H-b): la capa vuelve a
+  // medir sobre el nuevo. Nada del documento recibe oyentes: la capa del padre
+  // lo cubre entero y es la que recibe los clics.
   const alCargar = useCallback(() => {
-    const doc = marco.current?.contentDocument;
-    const tpl = templateRef.current;
-    if (!doc || !tpl) return;
-    setAlto(Math.max(320, Math.ceil(doc.documentElement.scrollHeight)));
-    setAnchoContenido(Math.ceil(Math.max(doc.documentElement.scrollWidth, doc.body?.scrollWidth ?? 0)));
+    const d = marco.current?.contentDocument;
+    if (!d || !templateRef.current) return;
+    setAlto(Math.max(320, Math.ceil(d.documentElement.scrollHeight)));
+    setAnchoContenido(Math.ceil(Math.max(d.documentElement.scrollWidth, d.body?.scrollWidth ?? 0)));
     medirLienzo.current();
-    zonas.current = zonasDelCorreo(doc, tpl);
-    zonas.current.forEach((td, id) => {
-      td.style.cursor = "pointer";
-      td.addEventListener("click", (event) => {
-        event.preventDefault();
-        onSeleccionarRef.current(id);
-      });
-    });
-    // Un enlace del correo no navega dentro de la vista previa.
-    doc.querySelectorAll("a").forEach((a) => a.addEventListener("click", (event) => event.preventDefault()));
-    marcar();
-  }, [marcar]);
-
-  useEffect(() => { marcar(); }, [seleccion, marcar]);
+    setDoc(d);
+    setMedida((m) => m + 1);
+  }, []);
 
   // El ancho que deja el lienzo: si no alcanza, el correo se muestra a escala
   // en vez de recortarse o de reflujar como si fuera otro dispositivo.
@@ -137,6 +98,9 @@ export function VistaPreviaDelCorreo({ html, template, vista, seleccion, cargand
       window.removeEventListener("resize", medir);
     };
   }, []);
+
+  // Sin HTML no hay documento que medir.
+  useEffect(() => { if (!srcDoc) setDoc(null); }, [srcDoc]);
 
   // Al cambiar de vista el ancho pedido se vuelve a medir con el HTML nuevo.
   useEffect(() => { setAnchoContenido(0); }, [vista, html]);
@@ -165,6 +129,8 @@ export function VistaPreviaDelCorreo({ html, template, vista, seleccion, cargand
         >
           <iframe
             ref={marco}
+            tabIndex={-1}
+            aria-hidden={capa ? true : undefined}
             title={`Correo en vista ${vista === "telefono" ? "de teléfono" : vista === "oscuro" ? "de modo oscuro" : "de escritorio"}`}
             className="rec-mail-iframe"
             sandbox="allow-same-origin"
@@ -173,6 +139,7 @@ export function VistaPreviaDelCorreo({ html, template, vista, seleccion, cargand
             scrolling="no"
             style={{ width: ancho, height: alto, transform: escala < 1 ? `scale(${escala})` : undefined }}
           />
+          {capa ? capa({ doc, medida, escala, ancho: Math.round(ancho * escala), alto: Math.round(alto * escala) }) : null}
         </div>
       ) : (
         <div className="rec-mail-hoja rec-mail-hoja--vacia" style={{ width: ancho }}>
@@ -185,11 +152,10 @@ export function VistaPreviaDelCorreo({ html, template, vista, seleccion, cargand
 }
 
 /** La vista previa lee del store por su cuenta: re-renderiza sola al llegar el HTML. */
-export function VistaPreviaDelCorreoConectada({ onSeleccionar, conSeleccion }: { onSeleccionar: (id: string) => void; conSeleccion: boolean }) {
+export function VistaPreviaDelCorreoConectada({ capa }: { capa?: (medidas: MedidasDeLaHoja) => ReactNode }) {
   const html = useCorreosStore((s) => s.vistaPrevia?.html ?? null);
   const template = useCorreosStore((s) => s.borrador);
   const vista = useCorreosStore((s) => s.vista);
-  const seleccion = useCorreosStore((s) => s.seleccion);
   const cargando = useCorreosStore((s) => s.vistaPreviaCargando);
   const error = useCorreosStore((s) => s.vistaPreviaError);
   const conProblemas = useCorreosStore((s) => s.problemas.length > 0);
@@ -198,14 +164,13 @@ export function VistaPreviaDelCorreoConectada({ onSeleccionar, conSeleccion }: {
       html={html}
       template={template}
       vista={vista}
-      seleccion={conSeleccion ? seleccion : ""}
       cargando={cargando}
       error={error
         ? conProblemas
           ? "La vista previa no refleja el último cambio: hay bloques por corregir, marcados en la lista."
           : error
         : ""}
-      onSeleccionar={onSeleccionar}
+      capa={capa}
     />
   );
 }

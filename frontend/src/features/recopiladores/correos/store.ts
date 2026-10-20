@@ -20,6 +20,14 @@ import {
   type VistaDelCorreo,
 } from "./modeloCorreo";
 import { revisionEncadenada } from "./modeloCampanas";
+import {
+  HISTORIAL_VACIO,
+  cerrarGrupo,
+  deshacer as deshacerEnHistorial,
+  registrarCambio,
+  rehacer as rehacerEnHistorial,
+  type HistorialCorreo,
+} from "./historialCorreo";
 
 // =============================================================================
 // Store del editor de correos (ADR 0110 §2)
@@ -42,6 +50,28 @@ export type DestinoDelCampo = {
   prop: PropDeTexto | "subject" | "preheader";
   cursor: number | null;
 };
+
+/** El texto que se edita en el sitio, sobre el correo (E1g). */
+export type EdicionEnLinea = { zona: string; prop: string };
+
+const CLAVE_EXPLICACIONES = "pulso.correos.explicaciones";
+
+/** «Explicaciones» se recuerda en este equipo; no es un dato del proyecto ni personal. */
+function explicacionesGuardadas(): boolean {
+  try {
+    return typeof localStorage === "undefined" || localStorage.getItem(CLAVE_EXPLICACIONES) !== "0";
+  } catch {
+    return true;
+  }
+}
+
+function guardarExplicaciones(valor: boolean): void {
+  try {
+    if (typeof localStorage !== "undefined") localStorage.setItem(CLAVE_EXPLICACIONES, valor ? "1" : "0");
+  } catch {
+    // Sin almacenamiento (modo privado): el interruptor vale para esta sesión.
+  }
+}
 
 export type EstadoCorreos = {
   /** Campañas del proyecto (E1h): el resumen, sin la plantilla completa. */
@@ -87,6 +117,11 @@ export type EstadoCorreos = {
   refresco: number;
   /** HTML de muestra de cada plantilla real, o `null` si no se pudo armar. */
   miniaturas: Record<string, string | null>;
+  /** Deshacer y rehacer del borrador, por campaña (historialCorreo.ts). */
+  historial: HistorialCorreo;
+  edicion: EdicionEnLinea | null;
+  /** Modo didáctico: rótulos al pasar el cursor y la tarjeta «Qué hace». */
+  explicaciones: boolean;
 };
 
 type Acciones = {
@@ -109,7 +144,18 @@ type Acciones = {
   cargaInicio: () => void;
   cargaError: (mensaje: string) => void;
   cargaLista: (input: { presets: MailPreset[]; plantilla: MailTemplatePayload; destinatarios: MailRecipients }) => void;
-  editar: (update: (t: MailTemplate) => MailTemplate) => void;
+  /**
+   * Cambia el borrador. Con `grupo` (`bloque.prop`) el cambio es de texto y se
+   * agrupa en el historial con los siguientes del mismo texto; sin él es de
+   * estructura y entra solo.
+   */
+  editar: (update: (t: MailTemplate) => MailTemplate, grupo?: string) => void;
+  deshacer: () => void;
+  rehacer: () => void;
+  /** La próxima edición de texto abre su propia entrada. */
+  cortarGrupo: () => void;
+  setEdicion: (edicion: EdicionEnLinea | null) => void;
+  setExplicaciones: (valor: boolean) => void;
   reemplazarBorrador: (template: MailTemplate) => void;
   guardado: (payload: MailTemplatePutPayload) => void;
   seleccionar: (seleccion: string) => void;
@@ -165,6 +211,9 @@ const INICIAL: EstadoCorreos = {
   imagenesLocales: {},
   refresco: 0,
   miniaturas: {},
+  historial: HISTORIAL_VACIO,
+  edicion: null,
+  explicaciones: true,
 };
 
 /** La primera persona importada, o la de ejemplo si no hay lista. */
@@ -184,12 +233,18 @@ function seleccionVigente(seleccion: string, template: MailTemplate | null): str
   return template?.blocks.some((b) => b.block_id === seleccion) ? seleccion : SOBRE;
 }
 
+/** Lo que se restaura al deshacer: la plantilla anterior con la revisión de hoy. */
+function conRevisionVigente(template: MailTemplate, vigente: MailTemplate): MailTemplate {
+  return { ...template, revision: vigente.revision, template_sha256: vigente.template_sha256 };
+}
+
 export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
   ...INICIAL,
+  explicaciones: explicacionesGuardadas(),
 
   reiniciar: () => set((s) => {
     for (const url of Object.values(s.imagenesLocales)) revocar(url);
-    return { ...INICIAL };
+    return { ...INICIAL, explicaciones: s.explicaciones };
   }),
 
   reiniciarCampana: (campana) => set((s) => {
@@ -206,6 +261,7 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
       miniaturas: s.miniaturas,
       stateRevision: s.stateRevision,
       vista: s.vista,
+      explicaciones: s.explicaciones,
     };
   }),
   campanasInicio: () => set({ campanasCarga: "cargando", campanasError: "" }),
@@ -239,14 +295,48 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
     problemas: plantilla.stored_problems,
     exportacion: null,
     seleccion: seleccionVigente(s.seleccion, plantilla.template),
+    historial: HISTORIAL_VACIO,
+    edicion: null,
   })),
 
-  editar: (update) => set((s) => (s.borrador
-    ? { borrador: update(s.borrador), exportacion: null, aviso: null }
-    : {})),
+  editar: (update, grupo) => set((s) => {
+    if (!s.borrador) return {};
+    const siguiente = update(s.borrador);
+    if (siguiente === s.borrador || huellaDeEdicion(siguiente) === huellaDeEdicion(s.borrador)) return {};
+    return {
+      borrador: siguiente,
+      historial: registrarCambio(s.historial, s.borrador, grupo ? { texto: grupo, ahora: Date.now() } : null),
+      exportacion: null,
+      aviso: null,
+    };
+  }),
+
+  deshacer: () => set((s) => {
+    if (!s.borrador) return {};
+    const out = deshacerEnHistorial(s.historial, s.borrador);
+    if (!out) return {};
+    const borrador = conRevisionVigente(out.presente, s.borrador);
+    return { borrador, historial: out.historial, exportacion: null, aviso: null, seleccion: seleccionVigente(s.seleccion, borrador) };
+  }),
+
+  rehacer: () => set((s) => {
+    if (!s.borrador) return {};
+    const out = rehacerEnHistorial(s.historial, s.borrador);
+    if (!out) return {};
+    const borrador = conRevisionVigente(out.presente, s.borrador);
+    return { borrador, historial: out.historial, exportacion: null, aviso: null, seleccion: seleccionVigente(s.seleccion, borrador) };
+  }),
+
+  cortarGrupo: () => set((s) => ({ historial: cerrarGrupo(s.historial) })),
+  setEdicion: (edicion) => set({ edicion }),
+  setExplicaciones: (explicaciones) => {
+    guardarExplicaciones(explicaciones);
+    set({ explicaciones });
+  },
 
   reemplazarBorrador: (template) => set((s) => ({
     borrador: template,
+    historial: s.borrador ? registrarCambio(s.historial, s.borrador, null) : s.historial,
     exportacion: null,
     aviso: null,
     problemas: [],
