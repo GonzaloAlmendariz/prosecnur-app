@@ -1,5 +1,10 @@
 # Checklist · Rediseño completo del Constructor (2026-10-17)
 
+Tipo: Checklist vivo
+Estado: En curso
+Fecha: 2026-10-17
+Autoridad: Pedido de Gonzalo («rediseñar por completo todo el constructor»); sólo él da por terminado un ítem
+
 Pedido de Gonzalo: «En resumen creo que tenemos que rediseñar por completo todo el constructor, confío en ti para
 hacerlo, hazme todas las preguntas que consideres necesarias». Depende del trabajo conjunto en curso
 (`checklist-senales-motor-2026-10-17.md`: sello, riel y motor de reglas en piezas), que se reutiliza aquí.

@@ -61,6 +61,12 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Contrato de la maqueta de lámina](contrato-maqueta-lamina-2026-10-13.md): propuesta de ficha visual robusta para todos los tipos de gráfico.
 - [Etiquetas para los entregables desde Procesamiento](propuesta-etiquetas-entregables-2026-10-13.md): propuesta G18, la app detecta y el analista corrige.
 
+### Formularios (constructor, opciones y motor de reglas)
+
+- [Checklist de opciones, filtros e íconos de Formularios](checklist-formularios-opciones-filtros-2026-10-16.md): pedido de UI sobre tipos de pregunta, opciones y filtros.
+- [Checklist de señales del formulario y motor de reglas](checklist-senales-motor-2026-10-17.md): sello por tipo, riel de marcas y traducción de condiciones en piezas.
+- [Checklist del rediseño completo del Constructor](checklist-constructor-rediseno-2026-10-17.md): el constructor rehecho sobre el sello, el riel y el motor de reglas.
+
 ### Importación SurveyMonkey → Formularios → Procesamiento (Arte y Diseño 2026)
 
 - [Checklist de la importación SM de Arte](checklist-importacion-sm-arte-2026-10-14.md): hallazgos de API, UI y del paso a Procesamiento (ADR 0101–0102), con su estado.
