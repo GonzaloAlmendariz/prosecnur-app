@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { GlifoMarca, TypeIcon } from "../kit";
 import type { ClaveMarca } from "../kit/glifosMarca";
 import { TituloLegible } from "../kit/CuerpoPanelMarca";
+import { stripMarkdown } from "../helpers/markdown";
 import "./pestanas.css";
 
 // Marco común de las pestañas de reglas (Restricciones, Cálculos): lista agrupada a la
@@ -18,6 +19,14 @@ export type ReglaListaItem = {
   resumen: string;
   aviso?: boolean;
 };
+
+/** Texto plano de una fila del riel para su `title`: número, etiqueta legible y resumen. */
+export function tituloDeFilaRegla(it: Pick<ReglaListaItem, "numero" | "titulo" | "resumen">): string {
+  const titulo = stripMarkdown(it.titulo).replace(/\s+/g, " ").trim();
+  const cabeza = [it.numero.trim(), titulo].filter(Boolean).join(" ");
+  const resumen = it.resumen.replace(/\s+/g, " ").trim();
+  return resumen ? `${cabeza} — ${resumen}` : cabeza;
+}
 
 export type ReglaListaGrupo = { titulo: string; items: ReglaListaItem[] };
 
@@ -75,6 +84,8 @@ export function PestanaReglas({ titulo, marca, total, grupos, seleccionada, onSe
                         type="button"
                         className={`xfp-item${it.numero ? "" : " sin-num"}${it.key === seleccionada ? " is-on" : ""}`}
                         aria-current={it.key === seleccionada ? "true" : undefined}
+                        // La fila se corta con elipsis: el title devuelve el texto entero al pasar el puntero.
+                        title={tituloDeFilaRegla(it)}
                         onClick={() => onSeleccionar(it.key)}
                       >
                         <TypeIcon baseType={it.baseType} size={13} />

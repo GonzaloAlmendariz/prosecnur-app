@@ -3,8 +3,11 @@ import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
 import type { BuilderNode, BuilderStructure } from "../types";
 import { DEFAULT_PDF_DIALOG_STATE, buildPaperExportOptions, matrixSignature } from "../shell/pdfExportPreference";
 import {
+  candidatasSugeribles,
+  conSugerenciasApagadas,
   contarPaginasPdf,
   filasConPapel,
+  rotuloAjustesPapel,
   resumenCabecera,
   resumenDeParte,
   separarCandidatas,
@@ -42,12 +45,12 @@ describe("matrices del impreso", () => {
     expect(sueltas.map((c) => c.id)).toEqual(["a", "c", "e"]);
   });
 
-  test("el resumen cuenta las activas sobre el total (las de una sola vienen apagadas por defecto)", () => {
+  test("el resumen cuenta las activas sobre el total (las sugerencias nacen apagadas)", () => {
     const todas = [candidata("a", 1), candidata("b", 4), candidata("d", 6)];
     const ctx = { candidatas: todas, consentimiento: [], filasPapel: 0 };
-    expect(resumenDeParte("matrices", estado, ctx)).toBe("2 de 3 como tabla");
+    expect(resumenDeParte("matrices", estado, ctx)).toBe("0 de 3 como tabla");
     const conSuelta = { ...estado, matrices: { [matrixSignature(todas[0])]: { enabled: true } } };
-    expect(resumenDeParte("matrices", conSuelta, ctx)).toBe("3 de 3 como tabla");
+    expect(resumenDeParte("matrices", conSuelta, ctx)).toBe("1 de 3 como tabla");
     expect(resumenDeParte("matrices", estado, { ...ctx, candidatas: [] })).toBe("Ninguna detectada");
   });
 });
@@ -113,7 +116,7 @@ describe("cifras de la previa", () => {
   });
 
   test("la cabecera no inventa cifras sin previa", () => {
-    expect(resumenCabecera(null)).toBe("A4 · el número de páginas sale con el PDF");
+    expect(resumenCabecera(null)).toBe("A4");
     expect(resumenCabecera({ paginas: 12, preguntas: 87 })).toBe("A4 · 12 páginas · 87 preguntas");
     expect(resumenCabecera({ paginas: null, preguntas: 1 })).toBe("A4 · 1 pregunta");
   });
@@ -169,5 +172,34 @@ describe("layout impreso", () => {
     expect(opcionesLayoutImpreso(undefined)).toHaveLength(4);
     expect(opcionesLayoutImpreso("matrix").at(-1)).toEqual({ valor: "matrix", rotulo: "matrix (valor de la fila)" });
     expect(opcionesLayoutImpreso("horizontal").at(-1)).toEqual({ valor: "horizontal", rotulo: "horizontal (valor de la fila)" });
+  });
+});
+
+describe("sugerencias de matriz (E7)", () => {
+  test("una lista larga (Country) no se sugiere; 7 opciones o menos sí", () => {
+    const corta = candidata("corta", 3);
+    const larga = { ...candidata("pais", 2), listName: "Country",
+      scaleOptions: Array.from({ length: 250 }, (_, i) => ({ code: String(i), label: `País ${i}` })) };
+    const siete = { ...candidata("siete", 2),
+      scaleOptions: Array.from({ length: 7 }, (_, i) => ({ code: String(i), label: `${i}` })) };
+    expect(candidatasSugeribles([corta, larga, siete]).map((c) => c.id)).toEqual(["corta", "siete"]);
+  });
+
+  test("nacen apagadas, salvo lo que ya se eligió; no viajan al motor apagadas", () => {
+    const a = candidata("a", 3);
+    const b = candidata("b", 2);
+    const matrices = conSugerenciasApagadas([a, b], { [matrixSignature(b)]: { enabled: true, tenor: "T" } });
+    expect(matrices[matrixSignature(a)]).toEqual({ enabled: false });
+    expect(matrices[matrixSignature(b)]).toEqual({ enabled: true, tenor: "T" });
+    const opciones = buildPaperExportOptions({ ...estado, matrices }, [a, b], []);
+    expect(opciones.matrix_groups.map((g) => g.members)).toEqual([b.memberNames]);
+  });
+});
+
+describe("rótulo de ajustes de papel", () => {
+  test("con palabras, no con columnas", () => {
+    expect(rotuloAjustesPapel([])).toBe("Sin ajustes todavía");
+    expect(rotuloAjustesPapel(["paper_number"])).toBe("Número");
+    expect(rotuloAjustesPapel(["paper_number", "paper_skip", "paper_layout"])).toBe("Número, salto y ancho");
   });
 });

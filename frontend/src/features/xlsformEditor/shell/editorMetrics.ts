@@ -99,7 +99,7 @@ export function formatSaveStatus(dirty: boolean, lastSavedAt: number | null, now
     if (lastSavedAt == null) return "Cambios sin guardar";
     return `Cambios sin guardar · último guardado ${formatRelativeTime(lastSavedAt, now)}`;
   }
-  if (lastSavedAt == null) return "Sin cambios pendientes";
+  if (lastSavedAt == null) return "Sin cambios";
   return `Guardado ${formatRelativeTime(lastSavedAt, now)}`;
 }
 

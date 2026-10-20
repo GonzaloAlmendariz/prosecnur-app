@@ -236,7 +236,7 @@ describe("estado persistido del diálogo", () => {
 
   it("restaurar con matrices viejas: las firmas que ya no existen se ignoran", () => {
     const saved = parsePdfDialogState(
-      JSON.stringify({ matrices: { "q1|q2": { tenor: "viejo" }, "p1|p2": { tenor: "vigente" } } }),
+      JSON.stringify({ matrices: { "q1|q2": { tenor: "viejo" }, "p1|p2": { enabled: true, tenor: "vigente" } } }),
     );
     // El candidato vigente cambió de id (se insertó una fila arriba): la firma lo encuentra igual.
     const c = candidate("matrix_7", ["p1", "p2"]);
@@ -244,7 +244,7 @@ describe("estado persistido del diálogo", () => {
       { members: ["p1", "p2"], tenor: "vigente" },
     ]);
     // Al guardar, la firma vieja se poda.
-    expect(JSON.parse(serializePdfDialogState(saved, [c])).matrices).toEqual({ "p1|p2": { tenor: "vigente" } });
+    expect(JSON.parse(serializePdfDialogState(saved, [c])).matrices).toEqual({ "p1|p2": { enabled: true, tenor: "vigente" } });
     // Sin candidatos (workbook aún sin cargar) no se poda nada.
     expect(Object.keys(JSON.parse(serializePdfDialogState(saved, [])).matrices)).toHaveLength(2);
   });
@@ -256,8 +256,8 @@ describe("estado persistido del diálogo", () => {
     expect(matrixChoiceFor(c, { "p1|p2": { special: "none" } }).special).toBe("none");
   });
 
-  it("default de activación: 2+ preguntas activa, 1 pregunta apagada", () => {
-    expect(matrixChoiceFor(candidate("a", ["p1", "p2"]), {}).enabled).toBe(true);
+  it("default de activación: toda sugerencia nace apagada, como en Impreso", () => {
+    expect(matrixChoiceFor(candidate("a", ["p1", "p2"]), {}).enabled).toBe(false);
     expect(matrixChoiceFor(candidate("b", ["p9"]), {}).enabled).toBe(false);
     expect(matrixChoiceFor(candidate("b", ["p9"]), { p9: { enabled: true } }).enabled).toBe(true);
   });
@@ -291,9 +291,18 @@ describe("buildPaperExportOptions", () => {
       logic_language: "saltos",
       show_questionnaire_number: true,
       matrix_layout: "full",
-      matrix_groups: [{ members: ["p1", "p2"] }],
+      matrix_groups: [],
     });
     expect(opts).not.toHaveProperty("title");
+  });
+
+  it("sólo viajan matrices activadas con listas de 7 opciones o menos", () => {
+    const larga: MatrixCandidate = {
+      ...candidate("matrix_1", ["q1", "q2"]),
+      scaleOptions: Array.from({ length: 8 }, (_, i) => ({ code: String(i + 1), label: `Opción ${i + 1}` })),
+    };
+    const matrices = { "p1|p2": { enabled: true }, "q1|q2": { enabled: true } };
+    expect(buildMatrixGroupsFromChoices([c, larga], matrices)).toEqual([{ members: ["p1", "p2"] }]);
   });
 
   it("las envía sólo cuando difieren del default del motor", () => {
