@@ -5,7 +5,7 @@
 # Los estilos salen SOLO de las enumeraciones de collection_mail_styles.R:
 # nunca se copia CSS del autor. En preview, la primera fila del bloque lleva
 # `data-pulso-block`/`data-pulso-type` y cada texto su `data-pulso-prop`
-# (`.cmail_mark_row`, `.cmail_prop`); en mailchimp no sale ninguna marca.
+# (`.cmail_mark_row`, `.cmail_prop`); en export no sale ninguna marca.
 
 .cmail_text_td <- function(inner, padding = "0 46px 16px 46px", align = "left", size = 15L, line = 24L,
                            color = .CMAIL_TEXT_COLOR) {
@@ -26,8 +26,10 @@
 .cmail_block_paragraph <- function(b, ctx) {
   small <- identical(.cmail_style(b, "size", "normal"), "pequeno")
   soft <- identical(.cmail_style(b, "tone", "normal"), "suave")
+  # La apertura de un envío (E1k) es un párrafo cuyo valor vive en `send.opening`.
+  prop <- if (identical(b$block_id, .CMAIL_OPENING_ID)) "opening" else "text"
   .cmail_text_td(
-    sprintf('<p style="margin:0;"%s>%s</p>', .cmail_prop(ctx, "text"), .cmail_inline(b$text, ctx, links = TRUE)),
+    sprintf('<p style="margin:0;"%s>%s</p>', .cmail_prop(ctx, prop), .cmail_inline(b$text, ctx, links = TRUE)),
     align = .cmail_style(b, "align", "left"),
     size = if (small) 13L else 15L, line = if (small) 20L else 24L,
     color = if (soft) .CMAIL_MUTED else .CMAIL_TEXT_COLOR
@@ -155,10 +157,10 @@
   text <- as.character(b$text)
   uses_name <- "nombre" %in% .cmail_tokens(text)
   fallback <- .cmail_one(b$fallback)
-  if (identical(ctx$mode, "mailchimp") && uses_name && !is.null(fallback)) {
-    inner <- sprintf("*|IF:FNAME|*%s*|ELSE:|*%s*|END:IF|*", .cmail_inline(text, ctx), .cmail_inline(fallback, ctx))
+  if (isTRUE(ctx$export) && uses_name && !is.null(fallback)) {
+    inner <- .cmail_dialect(ctx)$conditional("FNAME", .cmail_inline(text, ctx), .cmail_inline(fallback, ctx))
     prop <- "text"
-  } else if (identical(ctx$mode, "preview") && uses_name && !nzchar(trimws(ctx$values$nombre %||% "")) && !is.null(fallback)) {
+  } else if (!isTRUE(ctx$export) && uses_name && !nzchar(trimws(ctx$values$nombre %||% "")) && !is.null(fallback)) {
     inner <- .cmail_inline(fallback, ctx)
     prop <- "fallback"
   } else {
@@ -202,5 +204,6 @@
     footer_legal = "",
     ""
   )
-  .cmail_mark_row(html, ctx, as.character(b$block_id %||% ""), type)
+  mark_type <- if (identical(b$block_id, .CMAIL_OPENING_ID)) "opening" else type
+  .cmail_mark_row(html, ctx, as.character(b$block_id %||% ""), mark_type)
 }

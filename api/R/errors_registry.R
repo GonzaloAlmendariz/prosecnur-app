@@ -145,6 +145,12 @@ errores_registrados <- function() {
     # Imágenes de línea gráfica y ZIP importable (ADR 0110 §B, E1g).
     "E_COLLECTION_MAIL_IMAGE_INVALID",                       "collection_mail_images.R",          "422",
     "E_COLLECTION_MAIL_IMPORT_ZIP_TOO_LARGE",                "collection_mail_import_zip.R",      "413",
+    # Plataforma por campaña, envíos e importación de HTML (ADR 0110, E1j-E1l).
+    "E_COLLECTION_MAIL_PLATFORM",                            "collection_mail_dialects.R",        "422",
+    "E_COLLECTION_MAIL_SEND_INVALID",                        "collection_mail_sends.R",           "422",
+    "E_COLLECTION_MAIL_SEND_NOT_FOUND",                      "collection_mail_sends.R",           "404",
+    "E_COLLECTION_MAIL_IMPORT_HTML_TOO_LARGE",               "collection_mail_import_html.R",     "413",
+    "E_COLLECTION_MAIL_IMPORT_HTML_INVALID",                 "collection_mail_import_html.R",     "422",
     "E_COLLECTION_PRUEBA_CODIGO",                           "collection_material_prueba.R",      "422",
     "E_COLLECTION_PRUEBA_SIN_ENLACE",                        "collection_material_prueba.R",      "422",
     "E_COLLECTION_SIN_ORIGEN",                               "collection_engine.R",              "409",

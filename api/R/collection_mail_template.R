@@ -10,11 +10,11 @@
 #
 #   schema, template_id, preset_id, revision, template_sha256,
 #   subject, preheader,
-#   theme  = { accent: "#rrggbb", link?: "#rrggbb" },
+#   theme  = { accent: "#rrggbb", link?: "#rrggbb", band?: "acento"|"suave" },
 #   header = { kind: "logos", logo_ids: [..], background: "dark"|"light" }
 #          | { kind: "banner", image_ref: "<id>" },
 #   images = { <image_id>: { alt, url? } },   # url pública opcional (https)
-#   fields = [ { key, tag, label, fallback? } ],
+#   fields = [ { key, tag, label, fallback?, sm? } ],   # sm: etiqueta SurveyMonkey (E1j)
 #   blocks = [ { block_id, type, ... } ]      # registro CERRADO
 #
 # Estilos: solo las enumeraciones de collection_mail_styles.R (`size`, `tone`,
@@ -31,6 +31,16 @@
 # `*|FNAME|*`. Los campos del estudio declaran su etiqueta de Mailchimp: A-Z,
 # 0-9 y `_`, de 1 a 10 caracteres (el tope de Mailchimp), y nunca una etiqueta
 # reservada del sistema (EMAIL, FNAME, LNAME, ADDRESS, PHONE, UNSUB, LIST, MC_*).
+# Para SurveyMonkey (E1j) cada campo puede declarar `sm`: SurveyLink, LastName o
+# CustomData1..50, única entre campos; `{{nombre}}` va siempre a [FirstName] y
+# [Email] no se admite (sería un dato personal en el texto). Ninguna etiqueta de
+# SurveyMonkey se escribe a mano en un texto (`raw_platform_tag`).
+#
+# **v2 ampliada sin cambio de esquema** (E1j): `fields[].sm` y `theme.band` son
+# opcionales y se suman a la v2 porque la v2 aún no se publicó (ADR 0110).
+#
+# **Ids reservados.** Los `block_id` que empiezan con `__` son de la app (la
+# apertura de un envío, `__apertura`): una plantilla del usuario no los usa.
 #
 # **Persistencia.** Cada plantilla (sin destinatarios) vive dentro de su campaña
 # en `collection_state$mail_campaigns` (E1h, collection_mail_campaigns.R), con
@@ -123,6 +133,12 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
       "Las etiquetas de Mailchimp se escriben como {{campo}}; la app las traduce."
     )
   }
+  if (grepl(.CMAIL_PLATFORM_TAG_RE, value, perl = TRUE)) {
+    out[[length(out) + 1L]] <- .cmail_problem(
+      path, "raw_platform_tag",
+      "Las etiquetas de SurveyMonkey ([SurveyLink], [FirstName]…) se escriben como {{campo}}; la app las traduce."
+    )
+  }
   rest <- gsub(.CMAIL_TOKEN_RE, "", value, perl = TRUE)
   if (grepl("{{", rest, fixed = TRUE) || grepl("}}", rest, fixed = TRUE)) {
     out[[length(out) + 1L]] <- .cmail_problem(path, "bad_token", "Un campo se escribe {{clave}} en minúsculas.")
@@ -200,12 +216,14 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
 
 # ---- validación ---------------------------------------------------------------
 
-#' Valida una plantilla `collection_mail_template/v1` contra el registro cerrado.
+#' Valida una plantilla `collection_mail_template/v2` contra el registro cerrado.
 #'
 #' @param template lista.
+#' @param allow_reserved_ids admite `block_id` que empiezan con `__` (solo la
+#'   plantilla efectiva de un envío, collection_mail_sends.R).
 #' @return list(ok, problems).
 #' @keywords internal
-collection_mail_template_validate <- function(template) {
+collection_mail_template_validate <- function(template, allow_reserved_ids = FALSE) {
   if (!is.list(template)) {
     return(list(ok = FALSE, problems = list(.cmail_problem("template", "not_object", "La plantilla debe ser un objeto."))))
   }
@@ -227,6 +245,7 @@ collection_mail_template_validate <- function(template) {
   fields <- template$fields %||% list()
   keys <- character(0)
   tags <- character(0)
+  sms <- character(0)
   if (!is.list(fields)) {
     add(list(.cmail_problem("template.fields", "not_list", "fields debe ser una lista.")))
     fields <- list()
@@ -235,7 +254,7 @@ collection_mail_template_validate <- function(template) {
     f <- fields[[i]]
     path <- sprintf("template.fields[%d]", i)
     if (!is.list(f)) { add(list(.cmail_problem(path, "not_object", "Cada campo es un objeto."))); next }
-    for (k in setdiff(names(f), c("key", "tag", "label", "fallback"))) {
+    for (k in setdiff(names(f), c("key", "tag", "label", "fallback", "sm"))) {
       add(list(.cmail_problem(paste0(path, ".", k), "unknown_key", sprintf("`%s` no pertenece a un campo.", k))))
     }
     key <- .cmail_one(f$key)
@@ -259,6 +278,17 @@ collection_mail_template_validate <- function(template) {
     } else {
       tags <- c(tags, tag)
     }
+    if (!is.null(f$sm)) {
+      sm <- .cmail_one(f$sm)
+      if (is.null(sm) || !grepl(.CMAIL_SM_FIELD_RE, sm)) {
+        add(list(.cmail_problem(paste0(path, ".sm"), "bad_sm",
+          "La etiqueta de SurveyMonkey es SurveyLink, LastName o CustomData1 a CustomData50.")))
+      } else if (sm %in% sms) {
+        add(list(.cmail_problem(paste0(path, ".sm"), "duplicate_sm", sprintf("[%s] está repetida.", sm))))
+      } else {
+        sms <- c(sms, sm)
+      }
+    }
     add(.cmail_text_problems(f$label, paste0(path, ".label"), character(0), required = TRUE))
     add(.cmail_text_problems(f$fallback, paste0(path, ".fallback"), character(0)))
   }
@@ -275,11 +305,14 @@ collection_mail_template_validate <- function(template) {
       add(list(.cmail_problem("template.theme.accent", "bad_color", "El color de acento es #rrggbb.")))
     }
     if (is.list(theme)) {
-      for (k in setdiff(names(theme), c("accent", "link"))) {
+      for (k in setdiff(names(theme), c("accent", "link", "band"))) {
         add(list(.cmail_problem(paste0("template.theme.", k), "unknown_key", sprintf("`%s` no pertenece al tema.", k))))
       }
       if (!is.null(theme$link) && !grepl("^#[0-9a-fA-F]{6}$", .cmail_one(theme$link) %||% "")) {
         add(list(.cmail_problem("template.theme.link", "bad_color", "El color de enlace es #rrggbb.")))
+      }
+      if (!is.null(theme$band) && !(.cmail_one(theme$band) %||% "") %in% c("acento", "suave")) {
+        add(list(.cmail_problem("template.theme.band", "bad_band", "La franja de cierre es acento o suave.")))
       }
     }
   }
@@ -359,6 +392,9 @@ collection_mail_template_validate <- function(template) {
     bid <- .cmail_one(b$block_id)
     if (is.null(bid) || !grepl("^[a-z0-9_-]{1,40}$", bid)) {
       add(list(.cmail_problem(paste0(path, ".block_id"), "bad_block_id", "block_id en minúsculas, hasta 40 caracteres.")))
+    } else if (startsWith(bid, "__") && !isTRUE(allow_reserved_ids)) {
+      add(list(.cmail_problem(paste0(path, ".block_id"), "reserved_block_id",
+        "Los block_id que empiezan con __ son de la app (p. ej. la apertura de un envío).")))
     } else if (bid %in% ids) {
       add(list(.cmail_problem(paste0(path, ".block_id"), "duplicate_block_id", sprintf("block_id '%s' repetido.", bid))))
     } else {
@@ -494,7 +530,7 @@ collection_mail_template_validate <- function(template) {
     fields = list(
       list(key = "carrera", tag = "CARRERA", label = "Carrera", fallback = "su carrera"),
       list(key = "codigo", tag = "CODIGO", label = "Código"),
-      list(key = "enlace", tag = "ENLACE", label = "Enlace a la encuesta")
+      list(key = "enlace", tag = "ENLACE", label = "Enlace a la encuesta", sm = "SurveyLink")
     ),
     blocks = list(
       list(block_id = "saludo", type = "greeting", text = "Estimado(a) {{nombre}}:", fallback = "Estimado(a) estudiante:"),
@@ -538,6 +574,8 @@ collection_mail_template_validate <- function(template) {
       pulso = list(alt = "Pulso PUCP")
     ),
     fields = list(
+      # Sin `sm`: el enlace es a la sala virtual, no a una encuesta; mandarlo
+      # como [SurveyLink] llevaría a la persona a otro sitio (E1j).
       list(key = "enlace", tag = "ENLACE", label = "Enlace a la sesión")
     ),
     blocks = list(
@@ -633,6 +671,9 @@ collection_mail_template_get <- function(sid, campaign_id = NULL) {
     state_revision = as.integer(state$state_revision),
     campaign_id = pick$campaign$campaign_id,
     builtin = isTRUE(pick$virtual),
+    # E1j/E1k: la plataforma y los envíos completos (asunto, apertura) del editor.
+    platform = .cmail_platform_of(pick$campaign),
+    sends = .cmail_sends_of(pick$campaign),
     template = .cmc_drop_nulls_deep(tpl)
   )
   if (length(problems)) out$stored_problems <- problems
@@ -654,12 +695,18 @@ collection_mail_template_get <- function(sid, campaign_id = NULL) {
   candidate
 }
 
-#' Guarda la plantilla de una campaña con revisión optimista.
+#' Guarda la plantilla de una campaña (y sus envíos) con revisión optimista.
 #'
 #' Sin campañas crea `correo-1`; con la migración pendiente, la persiste.
 #' `template_id` se fuerza a `campaign_id` (de ahí sale el nombre del ZIP).
+#' Plantilla y envíos se guardan juntos: UNA subida de `state_revision`;
+#' `template.revision` sube solo si cambió la plantilla y `noop` exige que no
+#' haya cambiado ninguno de los dos (E1k). Sin `template` se conservan la
+#' guardada y se actualizan solo los envíos. `import_id` (E1l) registra de qué
+#' HTML importado sale la plantilla.
 #' @keywords internal
-collection_mail_template_put <- function(sid, template, expected_revision, campaign_id = NULL) {
+collection_mail_template_put <- function(sid, template, expected_revision, campaign_id = NULL,
+                                         sends = NULL, import_id = NULL) {
   session <- session_get(sid)
   current <- .collection_current(session)
   .collection_assert_revision(current, expected_revision)
@@ -667,18 +714,33 @@ collection_mail_template_put <- function(sid, template, expected_revision, campa
   campaign <- pick$campaign
   previous <- .cmail_campaign_template_checked(campaign, strict = FALSE)
   attr(previous, "problems") <- NULL
+  if (is.null(template) && !is.null(sends)) template <- .cmail_campaign_template_checked(campaign)
   if (is.list(template)) template$template_id <- campaign$campaign_id
   candidate <- .cmail_template_or_stop(template)
-  if (!isTRUE(pick$virtual) &&
-      identical(.cmail_template_material(candidate), .cmail_template_material(previous))) {
+  imported <- if (!is.null(import_id)) .cmail_import_lookup(sid, import_id) else NULL
+  prev_sends <- .cmail_sends_of(campaign)
+  sv <- .cmail_sends_or_stop(sends %||% prev_sends, candidate, prev_sends, .cmail_send_seq(campaign))
+  template_same <- !isTRUE(pick$virtual) &&
+    identical(.cmail_template_material(candidate), .cmail_template_material(previous))
+  sends_same <- identical(sv$sends, prev_sends)
+  if (template_same && sends_same && is.null(imported)) {
     return(list(ok = TRUE, noop = TRUE, state_revision = as.integer(current$state_revision),
-                campaign_id = campaign$campaign_id, template = .cmc_drop_nulls_deep(previous)))
+                campaign_id = campaign$campaign_id, template = .cmc_drop_nulls_deep(previous),
+                sends = prev_sends, send_warnings = sv$warnings))
   }
-  revision <- if (isTRUE(pick$virtual)) 1L else as.integer(previous$revision %||% 0L) + 1L
-  candidate <- .cmail_template_normalize(candidate, revision = revision)
-  if (isTRUE(pick$virtual)) campaign$name <- substr(.cmail_one(candidate$title) %||% "Correo", 1L, 80L)
-  campaign$template <- candidate
+  if (!template_same) {
+    revision <- if (isTRUE(pick$virtual)) 1L else as.integer(previous$revision %||% 0L) + 1L
+    candidate <- .cmail_template_normalize(candidate, revision = revision)
+    if (isTRUE(pick$virtual)) campaign$name <- substr(.cmail_one(candidate$title) %||% "Correo", 1L, 80L)
+    campaign$template <- candidate
+  } else {
+    candidate <- previous
+  }
+  campaign$sends <- sv$sends
+  if (sv$seq > 0L) campaign$send_seq <- sv$seq
+  if (!is.null(imported)) campaign$imported_from <- imported
   next_state <- .cmail_campaigns_commit(sid, current, .cmail_campaigns_upsert(pick$set$campaigns, campaign))
   list(ok = TRUE, noop = FALSE, state_revision = next_state$state_revision,
-       campaign_id = campaign$campaign_id, template = .cmc_drop_nulls_deep(candidate))
+       campaign_id = campaign$campaign_id, template = .cmc_drop_nulls_deep(candidate),
+       sends = sv$sends, send_warnings = sv$warnings)
 }

@@ -1,5 +1,6 @@
 # collection_mail_export.R — vista previa, revisión y exportación del correo
-# para Mailchimp (ADR 0110 §2).
+# (ADR 0110 §2). Por campaña, por envío (E1k) y en el dialecto de la plataforma
+# de la campaña (E1j): Mailchimp aquí; SurveyMonkey en collection_mail_export_sm.R.
 #
 # Revisión antes de exportar: cada chequeo trae `code`, `status`
 # (ok | warning | error) y su cifra (`value`). Un `error` bloquea la
@@ -7,7 +8,7 @@
 #
 # Exportación (síncrona; sobre 5 MB se rechaza), FUERA del `.pulso`, en
 # `<session$dir>/downloads`. Con `scope = "completo"` (por defecto):
-#   <campaign_id>_mailchimp_<stamp>.zip      sensitivity personal_data
+#   <campaign_id>_<send_id>_mailchimp_<stamp>.zip   sensitivity personal_data
 #   ├── plantilla-mailchimp.zip              importable («Import ZIP»), sin datos personales
 #   │   ├── <campaign_id>.html               src relativos o URL https declarada
 #   │   └── <id>.png / <id>.jpg              en la raíz (collection_mail_import_zip.R)
@@ -32,12 +33,40 @@
 
 .CMAIL_SCOPES <- c("completo", "plantilla")
 
-.cmail_scope <- function(scope) {
-  value <- .cmail_one(as.list(scope %||% list("completo")))
+# Con SurveyMonkey no hay audiencia que exportar (los contactos viven en su
+# recopilador): el alcance por defecto es «plantilla» y «completo» es un 422.
+.cmail_scope <- function(scope, platform = .CMAIL_PLATFORM_DEFAULT, default = NULL) {
+  default <- default %||% if (identical(platform, "surveymonkey")) "plantilla" else "completo"
+  value <- .cmail_one(as.list(scope %||% list(default)))
   if (is.null(value) || !(value %in% .CMAIL_SCOPES)) {
     stop_api(422, "E_COLLECTION_MAIL_MODE", "scope es completo o plantilla.")
   }
+  if (identical(platform, "surveymonkey") && identical(value, "completo")) {
+    stop_api(422, "E_COLLECTION_MAIL_PLATFORM",
+             "Con SurveyMonkey los contactos viven en su recopilador: se exporta solo la plantilla (scope plantilla).",
+             details = list(platform = "surveymonkey"))
+  }
   value
+}
+
+# Campaña, plantilla y plataforma de una lectura (vista previa y revisión).
+# Con la plantilla en el cuerpo, sin campaign_id y con dos o más campañas, se
+# trabaja SIN campaña: es la miniatura de un preset (dialecto mailchimp, sin
+# destinatarios). Con cero o una campaña, como siempre.
+.cmail_work_for <- function(session, state, campaign_id, template) {
+  if (!is.null(template) && is.null(.cmail_campaign_arg(campaign_id)) &&
+      length(.cmail_campaigns_of(state)$campaigns) >= 2L) {
+    return(list(campaign = NULL, template = .cmail_template_or_stop(template), platform = .CMAIL_PLATFORM_DEFAULT))
+  }
+  pick <- .cmail_campaign_for(session, state, campaign_id)
+  list(campaign = pick$campaign, template = .cmail_working_template(pick$campaign, template),
+       platform = .cmail_platform_of(pick$campaign))
+}
+
+# Campo `campaign_id` de una respuesta (se omite al trabajar sin campaña).
+.cmail_with_campaign <- function(out, campaign) {
+  if (is.null(campaign)) return(out)
+  append(out, list(campaign_id = campaign$campaign_id), after = 1L)
 }
 
 # Plantilla de trabajo de una campaña: la del cuerpo (borrador sin guardar) o
@@ -69,23 +98,29 @@
 
 #' Vista previa del correo.
 #'
-#' @param mode "preview" (campos resueltos, imágenes incrustadas) o "mailchimp".
+#' @param mode "preview" (campos resueltos, imágenes incrustadas, pie del
+#'   dialecto simulado), "export" (el HTML que sale, en el dialecto de la
+#'   campaña) o "mailchimp" (alias: export en dialecto mailchimp).
 #' @param recipient_index posición (1..n) en la muestra de destinatarios; sin
 #'   destinatarios o sin índice se usa un destinatario sintético.
+#' @param send_id envío guardado (sin él, la invitación); `send` un borrador.
 #' @keywords internal
 collection_mail_preview <- function(sid, mode = "preview", recipient_index = NULL, template = NULL,
-                                    campaign_id = NULL) {
-  mode <- .cmail_one(mode) %||% "preview"
-  if (!(mode %in% c("preview", "mailchimp"))) {
-    stop_api(422, "E_COLLECTION_MAIL_MODE", "mode es preview o mailchimp.")
+                                    campaign_id = NULL, send_id = NULL, send = NULL) {
+  mode <- .cmail_one(as.list(mode %||% list("preview"))) %||% "preview"
+  if (!(mode %in% c("preview", "export", "mailchimp"))) {
+    stop_api(422, "E_COLLECTION_MAIL_MODE", "mode es preview, export o mailchimp.")
   }
   session <- session_get(sid)
-  pick <- .cmail_campaign_for(session, .cmail_read_state(session, template), campaign_id)
-  tpl <- .cmail_working_template(pick$campaign, template)
+  work <- .cmail_work_for(session, .cmail_read_state(session, template), campaign_id, template)
+  campaign <- work$campaign
+  sp <- .cmail_send_pick(campaign %||% list(), work$template, send_id, send)
+  tpl <- .cmail_template_for_send(work$template, sp$send)
+  dialect <- if (identical(mode, "mailchimp")) "mailchimp" else work$platform
   images <- .cmail_images_resolve(session, tpl)
   recipient <- list(source = "synthetic", index = NULL)
   values <- .cmail_synthetic_values(tpl)
-  store <- .cmail_recipients_load(session, pick$campaign$campaign_id)
+  store <- if (!is.null(campaign)) .cmail_recipients_load(session, campaign$campaign_id)
   if (identical(mode, "preview") && !is.null(store) && !is.null(recipient_index)) {
     resolved <- .cmail_recipients_resolve(store, tpl)
     idx <- suppressWarnings(as.integer(unlist(recipient_index)[[1]]))
@@ -97,11 +132,14 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
     values <- .cmail_mask_pii(.cmail_recipient_values(store, resolved, resolved$rows[[idx]]))
     recipient <- list(source = "imported", index = idx)
   }
-  rendered <- collection_mail_render(tpl, mode = mode, values = values, images = images)
-  list(
+  rendered <- collection_mail_render(tpl, mode = if (identical(mode, "preview")) "preview" else "export",
+                                     dialect = dialect, values = values, images = images)
+  .cmail_with_campaign(list(
     ok = TRUE,
-    campaign_id = pick$campaign$campaign_id,
     mode = mode,
+    platform = work$platform,
+    dialect = dialect,
+    send = .cmail_send_brief(sp$send),
     html = rendered$html,
     subject = rendered$subject,
     preheader = rendered$preheader,
@@ -110,33 +148,36 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
       nombre = values$nombre,
       fields = if (length(values$fields)) values$fields else structure(list(), names = character(0))
     )))
-  )
+  ), campaign)
 }
 
-.cmail_review_checks <- function(session, tpl, campaign_id, scope = "completo") {
+.cmail_text_check <- function(code, text, max_chars, empty_status, empty_detail, long_detail, ok_detail) {
+  value <- trimws(as.character(text %||% ""))
+  if (!nzchar(value)) return(.cmail_check(code, empty_status, 0L, empty_detail))
+  if (nchar(value) > max_chars) return(.cmail_check(code, "warning", nchar(value), long_detail))
+  .cmail_check(code, "ok", nchar(value), ok_detail)
+}
+
+#' Chequeos de la revisión de un envío.
+#'
+#' @param tpl plantilla EFECTIVA del envío (`.cmail_template_for_send`).
+#' @param campaign campaña (NULL al trabajar sin campaña): decide el dialecto y
+#'   de dónde se leen los destinatarios.
+#' @keywords internal
+.cmail_review_checks <- function(session, tpl, campaign, scope = "completo", send = NULL) {
+  dialect <- if (is.null(campaign)) .CMAIL_PLATFORM_DEFAULT else .cmail_platform_of(campaign)
+  campaign_id <- campaign$campaign_id
   images <- .cmail_images_resolve(session, tpl)
-  rendered <- collection_mail_render(tpl, mode = "mailchimp", images = images)
+  rendered <- collection_mail_render(tpl, mode = "export", dialect = dialect, images = images)
   html <- rendered$html
   checks <- list()
   push <- function(x) checks[[length(checks) + 1L]] <<- x
 
-  subject <- trimws(as.character(tpl$subject %||% ""))
-  push(if (!nzchar(subject)) {
-    .cmail_check("subject", "error", 0L, "Falta el asunto.")
-  } else if (nchar(subject) > 80L) {
-    .cmail_check("subject", "warning", nchar(subject), "El asunto supera 80 caracteres; los clientes lo cortan.")
-  } else {
-    .cmail_check("subject", "ok", nchar(subject), "Asunto presente.")
-  })
-
-  pre <- trimws(as.character(tpl$preheader %||% ""))
-  push(if (!nzchar(pre)) {
-    .cmail_check("preheader", "warning", 0L, "Sin texto de vista previa, el cliente muestra el inicio del cuerpo.")
-  } else if (nchar(pre) > 140L) {
-    .cmail_check("preheader", "warning", nchar(pre), "El texto de vista previa supera 140 caracteres.")
-  } else {
-    .cmail_check("preheader", "ok", nchar(pre), "Texto de vista previa presente.")
-  })
+  push(.cmail_text_check("subject", tpl$subject, 80L, "error", "Falta el asunto.",
+                         "El asunto supera 80 caracteres; los clientes lo cortan.", "Asunto presente."))
+  push(.cmail_text_check("preheader", tpl$preheader, 140L, "warning",
+                         "Sin texto de vista previa, el cliente muestra el inicio del cuerpo.",
+                         "El texto de vista previa supera 140 caracteres.", "Texto de vista previa presente."))
 
   push(if (rendered$bytes >= .CMAIL_GMAIL_CLIP_BYTES) {
     .cmail_check("html_weight", "error", rendered$bytes, "El HTML supera 102 KB y Gmail lo recorta.")
@@ -144,22 +185,39 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
     .cmail_check("html_weight", "ok", rendered$bytes, "El HTML queda bajo el recorte de Gmail (102 KB).")
   })
 
-  push <- .cmail_image_checks(tpl, images, html, rendered$bytes, push)
+  push <- .cmail_image_checks(tpl, images, html, rendered$bytes, push, dialect)
+  base <- list(rendered = rendered, images = images, dialect = dialect)
+  send_warn <- if (!is.null(campaign)) .cmail_sends_validate(.cmail_sends_of(campaign), tpl)$warnings else list()
+  push_send_dates <- function() {
+    if (length(send_warn)) {
+      push(.cmail_check("send_dates", "warning", length(send_warn),
+                        paste(vapply(send_warn, `[[`, "", "detail"), collapse = " "),
+                        extra = lapply(send_warn, function(w) list(send_id = w$send_id))))
+    }
+  }
+
+  if (identical(dialect, "surveymonkey")) {
+    push <- .cmail_sm_checks(tpl, html, push)
+    push(.cmail_accent_check(tpl))
+    push_send_dates()
+    return(c(list(checks = checks), base))
+  }
 
   footer_ok <- grepl("*|UNSUB|*", html, fixed = TRUE) && grepl("*|LIST:ADDRESSLINE|*", html, fixed = TRUE)
   push(.cmail_check("footer_unsub", if (footer_ok) "ok" else "error", as.integer(footer_ok),
                     if (footer_ok) "El pie lleva la baja (*|UNSUB|*) y la dirección de la lista." else "Falta *|UNSUB|* o *|LIST:ADDRESSLINE|* en el pie."))
 
   push(.cmail_accent_check(tpl))
+  push_send_dates()
 
-  # Audiencia: con scope «plantilla» no hay audiencia que revisar.
-  if (identical(scope, "plantilla")) return(list(checks = checks, rendered = rendered, images = images))
+  # Audiencia: con scope «plantilla» (o sin campaña) no hay audiencia que revisar.
+  if (identical(scope, "plantilla") || is.null(campaign)) return(c(list(checks = checks), base))
   store <- .cmail_recipients_load(session, campaign_id)
   used <- .cmail_used_keys(tpl)
   fields <- .cmail_field_index(tpl)
   if (is.null(store)) {
     push(.cmail_check("recipients", "error", 0L, "Importa los destinatarios para exportar la audiencia."))
-    return(list(checks = checks, rendered = rendered, images = images))
+    return(c(list(checks = checks), base))
   }
   resolved <- .cmail_recipients_resolve(store, tpl)
   m <- store$mapping
@@ -213,7 +271,7 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
     empty <- as.integer(sum(!nzchar(values)))
     uses <- usage[[row$key]] %||% character(0)
     fallback <- if (identical(row$key, "nombre")) greeting_fb else fields[[row$key]]$fallback
-    covers <- .cmail_fallback_covers(row$key, uses, fallback)
+    covers <- .cmail_fallback_covers(row$key, uses, fallback, dialect)
     in_url <- "url" %in% uses
     if (empty > 0L && in_url) url_blocking <- c(url_blocking, row$tag)
     if (empty > 0L && !covers) {
@@ -276,7 +334,7 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
     push(.cmail_check("names_unsplit", "warning", as.integer(n_unsplit),
                       sprintf("%d nombres traen una coma: el saludo usará la cadena entera. Si son «APELLIDOS, NOMBRES», cambia el formato del nombre.", n_unsplit)))
   }
-  list(checks = checks, rendered = rendered, images = images, store = store, resolved = resolved, tag_rows = tag_rows)
+  c(list(checks = checks), base, list(store = store, resolved = resolved, tag_rows = tag_rows))
 }
 
 .cmail_review_summary <- function(checks) {
@@ -284,15 +342,18 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
   list(ready = !any(st == "error"), errors = sum(st == "error"), warnings = sum(st == "warning"))
 }
 
-#' Revisión antes de exportar.
+#' Revisión antes de exportar, del envío pedido y en el dialecto de la campaña.
 #' @keywords internal
-collection_mail_review <- function(sid, template = NULL, campaign_id = NULL, scope = NULL) {
-  scope <- .cmail_scope(scope)
+collection_mail_review <- function(sid, template = NULL, campaign_id = NULL, scope = NULL,
+                                   send_id = NULL, send = NULL) {
   session <- session_get(sid)
-  pick <- .cmail_campaign_for(session, .cmail_read_state(session, template), campaign_id)
-  tpl <- .cmail_working_template(pick$campaign, template)
-  r <- .cmail_review_checks(session, tpl, pick$campaign$campaign_id, scope)
-  c(list(ok = TRUE, campaign_id = pick$campaign$campaign_id, scope = scope, template_sha256 = tpl$template_sha256),
+  work <- .cmail_work_for(session, .cmail_read_state(session, template), campaign_id, template)
+  scope <- .cmail_scope(scope, work$platform, default = if (is.null(work$campaign)) "plantilla")
+  sp <- .cmail_send_pick(work$campaign %||% list(), work$template, send_id, send)
+  r <- .cmail_review_checks(session, .cmail_template_for_send(work$template, sp$send), work$campaign, scope, sp$send)
+  c(.cmail_with_campaign(.cmc_drop_nulls_deep(list(ok = TRUE, platform = work$platform, send_id = sp$send$send_id,
+                                                  scope = scope, template_sha256 = work$template$template_sha256)),
+                         work$campaign),
     .cmail_review_summary(r$checks), list(checks = r$checks))
 }
 
@@ -318,11 +379,27 @@ collection_mail_review <- function(sid, template = NULL, campaign_id = NULL, sco
   header
 }
 
-.cmail_leeme <- function(images, counts = NULL, html_name) {
+.CMAIL_AUDIENCE_LABELS <- c(todos = "todos los contactos", sin_respuesta = "quienes no respondieron",
+                            parcial = "quienes dejaron la encuesta a medias", ambos = "quienes no respondieron o la dejaron a medias")
+
+# Líneas del LEEME que describen el envío (asunto, fecha prevista, a quién).
+.cmail_leeme_send <- function(send, subject) {
+  c(
+    sprintf("Envío: %s.", send$label %||% "Invitación"),
+    sprintf("Asunto: %s", subject %||% ""),
+    if (!is.null(send$date)) sprintf("Fecha prevista: %s (solo planificación: el envío se programa en la plataforma).", send$date),
+    sprintf("A quién: %s.", .CMAIL_AUDIENCE_LABELS[[send$audience %||% "todos"]] %||% send$audience),
+    ""
+  )
+}
+
+.cmail_leeme <- function(images, counts = NULL, html_name, send = NULL, subject = NULL) {
   hosted <- Filter(function(i) !is.null(i$url), images)
+  reminder <- identical(send$kind, "recordatorio")
   c(
     "Correo para Mailchimp — cómo usar este paquete",
     "",
+    if (!is.null(send)) .cmail_leeme_send(send, subject),
     if (!is.null(counts)) c(sprintf(paste0("Cifras: %d destinatarios en audiencia.csv de %d filas importadas ",
                    "(%d sin correo, %d con correo inválido, %d repetidos; %d filas vacías descartadas)."),
             counts$valid, counts$total, counts$without_email, counts$invalid_email, counts$duplicated,
@@ -337,39 +414,85 @@ collection_mail_review <- function(sid, template = NULL, campaign_id = NULL, sco
     sprintf("   Dentro va un único HTML (%s) con las imágenes en la raíz.", html_name),
     if (length(hosted)) sprintf("   %d imágenes ya apuntan a su URL pública y no van en el ZIP.", length(hosted)),
     "3. Envía una prueba antes de programar la campaña.",
+    if (reminder) c(
+      "",
+      "Recordatorio: Mailchimp no sabe quién ya respondió la encuesta. Envíalo a un segmento de la audiencia",
+      "que excluya a quienes ya respondieron (la app no cruza la audiencia con las respuestas)."
+    ),
     "",
     if (!is.null(counts)) "audiencia.csv contiene datos personales: no lo compartas ni lo guardes dentro del proyecto .pulso."
   )
 }
 
-#' Exporta el paquete para Mailchimp (fuera del `.pulso`).
+# Nombre público de un artefacto, ≤ 80 caracteres (O2): recorta el slug si hace falta.
+.cmail_export_name <- function(slug, send_id, suffix, ext = "zip", stamp = NULL) {
+  tail <- paste0("_", send_id, "_", suffix, if (!is.null(stamp)) paste0("_", stamp), ".", ext)
+  room <- max(1L, 80L - nchar(tail))
+  paste0(gsub("-+$", "", substr(slug, 1L, room)), tail)
+}
+
+# Registra un artefacto de la exportación con sus metadatos de entregable.
+.cmail_register_artifact <- function(sid, path, kind, name, role, media_type, sensitivity) {
+  meta <- .register_output_file(sid, kind, path, original_name = name)
+  files <- session_get(sid)$files
+  digest_value <- paste0("sha256:", tolower(digest::digest(file = path, algo = "sha256")))
+  files[[meta$file_id]]$sha256 <- digest_value
+  files[[meta$file_id]]$media_type <- media_type
+  files[[meta$file_id]]$role <- role
+  files[[meta$file_id]]$audience <- "client"
+  files[[meta$file_id]]$sensitivity <- sensitivity
+  session_set(sid, "files", files)
+  list(file_id = meta$file_id, role = role, filename = name, media_type = media_type,
+       size_bytes = as.integer(meta$size), sha256 = digest_value,
+       audience = "client", sensitivity = sensitivity)
+}
+
+# Bloque `send` del manifest: qué envío es y la huella de su definición.
+.cmail_manifest_send <- function(send, subject) {
+  .cmc_drop_nulls_deep(list(
+    send_id = send$send_id, kind = send$kind, label = send$label, date = send$date,
+    audience = send$audience, subject = subject, send_sha256 = collection_fingerprint(send)
+  ))
+}
+
+#' Exporta un envío de la campaña (fuera del `.pulso`): el paquete para
+#' Mailchimp o, si la campaña es de SurveyMonkey, el HTML personalizado
+#' (collection_mail_export_sm.R).
 #'
 #' @param scope "completo" (ZIP con el importable, la audiencia, LEEME y
 #'   manifest) o "plantilla" (solo el ZIP importable, sin chequeos de audiencia).
+#'   Con SurveyMonkey solo «plantilla».
+#' @param send_id envío (sin él, la invitación).
 #' @keywords internal
-collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = NULL, scope = NULL) {
-  scope <- .cmail_scope(scope)
+collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = NULL, scope = NULL, send_id = NULL) {
   session <- session_get(sid)
   state <- .collection_current(session)
   # Se exporta lo GUARDADO: la revisión que la pantalla vio es obligatoria.
   .collection_assert_revision(state, expected_revision)
   pick <- .cmail_campaign_for(session, state, campaign_id)
   campaign <- pick$campaign
-  tpl <- .cmail_campaign_template_checked(campaign)
-  r <- .cmail_review_checks(session, tpl, campaign$campaign_id, scope)
+  platform <- .cmail_platform_of(campaign)
+  scope <- .cmail_scope(scope, platform)
+  base_tpl <- .cmail_campaign_template_checked(campaign)
+  send <- .cmail_send_pick(campaign, base_tpl, send_id)$send
+  tpl <- .cmail_template_for_send(base_tpl, send)
+  r <- .cmail_review_checks(session, tpl, campaign, scope, send)
   summary <- .cmail_review_summary(r$checks)
   if (!isTRUE(summary$ready)) {
     stop_api(422, "E_COLLECTION_MAIL_REVIEW_BLOCKING", "La revisión tiene errores; corrígelos antes de exportar.",
              details = list(checks = Filter(function(c) identical(c$status, "error"), r$checks)))
+  }
+  # Nombre público ≤ 80 caracteres (O2): el slug es el campaign_id (≤ 40).
+  slug <- gsub("^-+|-+$", "", substr(gsub("[^a-z0-9]+", "-", tolower(campaign$campaign_id %||% "correo")), 1L, 40L))
+  if (!nzchar(slug)) slug <- "correo"
+  if (identical(platform, "surveymonkey")) {
+    return(.cmail_export_surveymonkey(sid, session, campaign, base_tpl, tpl, send, r, summary, slug))
   }
   completo <- identical(scope, "completo")
   work <- tempfile("cmail-export-", tmpdir = file.path(session$dir, "downloads"))
   dir.create(work, recursive = TRUE, showWarnings = FALSE)
   on.exit(unlink(work, recursive = TRUE, force = TRUE), add = TRUE)
 
-  # Nombre público ≤ 80 caracteres (O2): el slug es el campaign_id (≤ 40).
-  slug <- gsub("^-+|-+$", "", substr(gsub("[^a-z0-9]+", "-", tolower(campaign$campaign_id %||% "correo")), 1L, 40L))
-  if (!nzchar(slug)) slug <- "correo"
   html_name <- paste0(slug, ".html")
   importable <- .cmail_import_zip_build(work, r$rendered$html, r$images, html_name)
 
@@ -380,7 +503,7 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
     columns <- .cmail_write_audience(file.path(work, "audiencia.csv"), r$store, r$resolved, r$tag_rows)
     entries <- c(entries, "audiencia.csv")
   }
-  writeLines(enc2utf8(.cmail_leeme(r$images, if (completo) r$resolved$counts, html_name)),
+  writeLines(enc2utf8(.cmail_leeme(r$images, if (completo) r$resolved$counts, html_name, send, r$rendered$subject)),
              file.path(work, "LEEME.txt"), useBytes = TRUE)
   entries <- c(entries, "LEEME.txt")
   sensitivity <- if (completo) "personal_data" else "none"
@@ -391,12 +514,14 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
     audience = "client",
     sensitivity = sensitivity,
     scope = scope,
+    platform = "mailchimp",
     locale = "es-PE",
     generated_deliverables_outside_pulso = TRUE,
     secrets_included = FALSE,
     campaign = list(campaign_id = campaign$campaign_id, name = campaign$name %||% "", actor = campaign$actor %||% ""),
-    template = list(template_id = tpl$template_id, preset_id = tpl$preset_id %||% "",
-                    revision = as.integer(tpl$revision), template_sha256 = tpl$template_sha256),
+    send = .cmail_manifest_send(send, r$rendered$subject),
+    template = list(template_id = base_tpl$template_id, preset_id = base_tpl$preset_id %||% "",
+                    revision = as.integer(base_tpl$revision), template_sha256 = base_tpl$template_sha256),
     html_bytes = r$rendered$bytes,
     import_zip = list(path = .CMAIL_IMPORT_ZIP_NAME, size_bytes = importable$size_bytes,
                       sha256 = sha(importable$path), entries = importable$entries, html = html_name),
@@ -430,12 +555,12 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
 
   stamp <- format(Sys.time(), "%Y%m%d-%H%M%S")
   if (completo) {
-    zip_name <- sprintf("%s_mailchimp_%s.zip", slug, stamp)
+    zip_name <- .cmail_export_name(slug, send$send_id, "mailchimp", stamp = stamp)
     zip_path <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", zip_name))
     zip::zip(zip_path, files = c(entries, "manifest.json"), root = work, mode = "mirror")
   } else {
     # Solo la plantilla: el entregable ES el ZIP importable, tal cual se verificó.
-    zip_name <- sprintf("%s_plantilla-mailchimp_%s.zip", slug, stamp)
+    zip_name <- .cmail_export_name(slug, send$send_id, "plantilla-mailchimp", stamp = stamp)
     zip_path <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", zip_name))
     file.copy(importable$path, zip_path, overwrite = TRUE)
   }
@@ -445,31 +570,21 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
     stop_api(413, "E_COLLECTION_MAIL_EXPORT_TOO_LARGE",
              "El paquete supera 5 MB (revisa el peso de las imágenes).", details = list(size_bytes = as.integer(size)))
   }
-  manifest_out <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", slug, "_mailchimp_manifest.json"))
+  manifest_name <- .cmail_export_name(slug, send$send_id, "mailchimp_manifest", ext = "json")
+  manifest_out <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", manifest_name))
   file.copy(manifest_path, manifest_out, overwrite = TRUE)
 
-  register <- function(path, kind, name, role, media_type) {
-    meta <- .register_output_file(sid, kind, path, original_name = name)
-    files <- session_get(sid)$files
-    digest_value <- sha(path)
-    files[[meta$file_id]]$sha256 <- digest_value
-    files[[meta$file_id]]$media_type <- media_type
-    files[[meta$file_id]]$role <- role
-    files[[meta$file_id]]$audience <- "client"
-    files[[meta$file_id]]$sensitivity <- sensitivity
-    session_set(sid, "files", files)
-    list(file_id = meta$file_id, role = role, filename = name, media_type = media_type,
-         size_bytes = as.integer(meta$size), sha256 = digest_value,
-         audience = "client", sensitivity = sensitivity)
-  }
   artifacts <- list(
-    register(zip_path, if (completo) "collection_mail_zip" else "collection_mail_template_zip", zip_name,
-             "deliverable", "application/zip"),
-    register(manifest_out, "collection_mail_manifest", sprintf("%s_mailchimp_manifest.json", slug), "manifest", "application/json")
+    .cmail_register_artifact(sid, zip_path, if (completo) "collection_mail_zip" else "collection_mail_template_zip",
+                             zip_name, "deliverable", "application/zip", sensitivity),
+    .cmail_register_artifact(sid, manifest_out, "collection_mail_manifest", manifest_name, "manifest",
+                             "application/json", sensitivity)
   )
   list(
     ok = TRUE,
     campaign_id = campaign$campaign_id,
+    platform = "mailchimp",
+    send_id = send$send_id,
     scope = scope,
     artifacts = artifacts,
     zip = artifacts[[1]],

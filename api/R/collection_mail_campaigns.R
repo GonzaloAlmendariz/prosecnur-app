@@ -4,7 +4,16 @@
 # Contrato `collection_mail_campaigns/v1`, en `collection_state$mail_campaigns`:
 #
 #   { schema, campaigns: [ { campaign_id, name, actor, created_at, updated_at,
-#                            duplicated_from?, template } ] }
+#                            duplicated_from?, platform?, sends?, send_seq?,
+#                            imported_from?, template } ] }
+#
+# Claves opcionales de E1j/E1k/E1l (sin cambio de esquema, H-k2):
+# - `platform`: mailchimp | surveymonkey; sin ella, al leer vale mailchimp
+#   (collection_mail_dialects.R). Pasar a surveymonkey purga los destinatarios:
+#   los contactos viven en el recopilador de SurveyMonkey.
+# - `sends` y `send_seq`: la invitación y sus recordatorios (collection_mail_sends.R).
+# - `imported_from`: { sha256, imported_at, platform_detected, report } de un HTML
+#   importado (collection_mail_import_html.R). El HTML crudo nunca se guarda.
 #
 # - `campaign_id` sale del nombre (`^[a-z0-9][a-z0-9-]{0,39}$`), es único y no
 #   cambia al renombrar: es la llave de la carpeta de destinatarios y del ZIP.
@@ -105,11 +114,14 @@ COLLECTION_MAIL_CAMPAIGNS_SCHEMA <- "collection_mail_campaigns/v1"
 }
 
 # Una plantilla v1 guardada (E1h) se lee como v2: mismo contenido, huella nueva.
+# Sin `platform` (campañas anteriores a E1j) vale mailchimp. Es una lectura: no
+# se escribe nada.
 .cmail_campaign_upgrade <- function(campaign) {
   t <- campaign$template
   if (is.list(t) && identical(t$schema, COLLECTION_MAIL_TEMPLATE_SCHEMA_V1)) {
     campaign$template <- .cmail_template_normalize(t)
   }
+  campaign$platform <- .cmail_platform_of(campaign)
   campaign
 }
 
@@ -120,6 +132,7 @@ COLLECTION_MAIL_CAMPAIGNS_SCHEMA <- "collection_mail_campaigns/v1"
     campaign_id = .CMAIL_CAMPAIGN_DEFAULT_ID,
     name = tpl$title %||% "Correo",
     actor = "",
+    platform = .CMAIL_PLATFORM_DEFAULT,
     template = .cmail_campaign_template(tpl, .CMAIL_CAMPAIGN_DEFAULT_ID)
   )
 }
@@ -216,8 +229,11 @@ COLLECTION_MAIL_CAMPAIGNS_SCHEMA <- "collection_mail_campaigns/v1"
 }
 
 .cmail_campaign_public <- function(campaign, with_template = TRUE) {
-  out <- campaign[intersect(c("campaign_id", "name", "actor", "created_at", "updated_at", "duplicated_from", "template"),
+  out <- campaign[intersect(c("campaign_id", "name", "actor", "created_at", "updated_at", "duplicated_from",
+                              "imported_from", "template"),
                             names(campaign))]
+  out$platform <- .cmail_platform_of(campaign)
+  out$sends <- .cmail_sends_of(campaign)
   if (!with_template) out$template <- NULL
   .cmc_drop_nulls_deep(out)
 }
@@ -233,6 +249,8 @@ COLLECTION_MAIL_CAMPAIGNS_SCHEMA <- "collection_mail_campaigns/v1"
     blocks = length(t$blocks %||% list()),
     template_revision = as.integer(t$revision %||% 1L),
     template_sha256 = t$template_sha256,
+    platform = .cmail_platform_of(campaign),
+    sends = lapply(.cmail_sends_of(campaign), .cmail_send_brief, with_audience = FALSE),
     updated_at = campaign$updated_at,
     # Solo si existe el archivo: ni conteos ni nombres (datos personales).
     recipients_loaded = file.exists(.cmail_recipients_path(session, campaign$campaign_id))
@@ -256,27 +274,42 @@ collection_mail_campaigns_get <- function(sid) {
   )
 }
 
-#' Crea una campaña desde un preset (por defecto, el de recuperación).
+#' Crea una campaña desde un preset (por defecto, el de recuperación) o desde
+#' una plantilla del cuerpo (p. ej. un HTML importado, con su `import_id`).
 #' @keywords internal
-collection_mail_campaign_create <- function(sid, expected_revision, name, actor = NULL, preset_id = NULL) {
+collection_mail_campaign_create <- function(sid, expected_revision, name, actor = NULL, preset_id = NULL,
+                                            platform = NULL, template = NULL, import_id = NULL) {
   session <- session_get(sid)
   current <- .collection_current(session)
   .collection_assert_revision(current, expected_revision)
   name <- .cmail_campaign_text(name, "name", 1L, 80L)
   actor <- if (is.null(actor)) "" else .cmail_campaign_text(actor, "actor", 0L, 60L)
-  presets <- .cmail_presets()
-  preset <- .cmail_one(as.list(preset_id %||% list("recuperacion_estudiantes_v1")))
-  if (is.null(preset) || !(preset %in% names(presets))) {
-    stop_api(422, "E_COLLECTION_MAIL_TEMPLATE_INVALID", "preset_id no es un preset de correo.",
-             details = list(presets = as.list(names(presets))))
+  platform <- .cmail_platform_arg(platform) %||% .CMAIL_PLATFORM_DEFAULT
+  if (!is.null(template) && !is.null(preset_id)) {
+    stop_api(422, "E_COLLECTION_MAIL_TEMPLATE_INVALID", "Indica preset_id o template, no los dos.")
   }
+  presets <- .cmail_presets()
+  if (is.null(template)) {
+    preset <- .cmail_one(as.list(preset_id %||% list("recuperacion_estudiantes_v1")))
+    if (is.null(preset) || !(preset %in% names(presets))) {
+      stop_api(422, "E_COLLECTION_MAIL_TEMPLATE_INVALID", "preset_id no es un preset de correo.",
+               details = list(presets = as.list(names(presets))))
+    }
+  }
+  imported <- if (!is.null(import_id)) .cmail_import_lookup(sid, import_id) else NULL
   set <- .cmail_campaigns_of(current)
   campaigns <- set$campaigns
   .cmail_campaign_assert_room(campaigns)
   ids <- vapply(campaigns, function(c) as.character(c$campaign_id), "")
   id <- .cmail_campaign_unique_id(.cmail_campaign_slug(name), ids)
-  campaign <- list(campaign_id = id, name = name, actor = actor,
-                   template = .cmail_campaign_template(presets[[preset]](), id, revision = 1L))
+  base <- if (is.null(template)) presets[[preset]]() else {
+    if (is.list(template)) template$template_id <- id
+    .cmail_template_or_stop(template)
+  }
+  campaign <- list(campaign_id = id, name = name, actor = actor, platform = platform,
+                   sends = list(.cmail_send_invitation_default()),
+                   template = .cmail_campaign_template(base, id, revision = 1L))
+  if (!is.null(imported)) campaign$imported_from <- imported
   # Destinatarios importados con la campaña virtual `correo-1` (sin campañas
   # guardadas): al crear la primera campaña real se purgan y se dice, en vez de
   # adoptarlos en silencio en una campaña que no es la suya (decisión del lead).
@@ -315,8 +348,11 @@ collection_mail_campaign_duplicate <- function(sid, expected_revision, campaign_
   actor <- if (is.null(actor)) (source$actor %||% "") else .cmail_campaign_text(actor, "actor", 0L, 60L)
   ids <- vapply(campaigns, function(c) as.character(c$campaign_id), "")
   id <- .cmail_campaign_unique_id(.cmail_campaign_slug(name), ids)
+  # Copia plataforma y envíos; no copia imported_from ni destinatarios.
   campaign <- list(campaign_id = id, name = name, actor = actor, duplicated_from = source$campaign_id,
+                   platform = .cmail_platform_of(source), sends = .cmail_sends_of(source),
                    template = .cmail_campaign_template(source$template, id, revision = 1L))
+  if (.cmail_send_seq(source) > 0L) campaign$send_seq <- .cmail_send_seq(source)
   .cmail_recipients_forget(session, id)
   campaigns <- .cmail_campaigns_upsert(campaigns, campaign)
   next_state <- .cmail_campaigns_commit(sid, current, campaigns)
@@ -324,9 +360,11 @@ collection_mail_campaign_duplicate <- function(sid, expected_revision, campaign_
        campaign = .cmail_campaign_public(campaigns[[length(campaigns)]]), recipients_copied = FALSE)
 }
 
-#' Renombra una campaña o cambia su actor. El id y la plantilla no cambian.
+#' Renombra una campaña, cambia su actor o su plataforma. El id y la plantilla
+#' no cambian. Pasar a surveymonkey purga los destinatarios de la campaña.
 #' @keywords internal
-collection_mail_campaign_meta_put <- function(sid, expected_revision, campaign_id, name = NULL, actor = NULL) {
+collection_mail_campaign_meta_put <- function(sid, expected_revision, campaign_id, name = NULL, actor = NULL,
+                                              platform = NULL) {
   session <- session_get(sid)
   current <- .collection_current(session)
   .collection_assert_revision(current, expected_revision)
@@ -340,17 +378,29 @@ collection_mail_campaign_meta_put <- function(sid, expected_revision, campaign_i
   campaign <- pick$campaign
   next_name <- if (is.null(name)) campaign$name else .cmail_campaign_text(name, "name", 1L, 80L)
   next_actor <- if (is.null(actor)) (campaign$actor %||% "") else .cmail_campaign_text(actor, "actor", 0L, 60L)
-  if (pick$set$persisted && identical(next_name, campaign$name) && identical(next_actor, campaign$actor %||% "")) {
+  prev_platform <- .cmail_platform_of(campaign)
+  next_platform <- .cmail_platform_arg(platform) %||% prev_platform
+  if (pick$set$persisted && identical(next_name, campaign$name) && identical(next_actor, campaign$actor %||% "") &&
+      identical(next_platform, prev_platform)) {
     return(list(ok = TRUE, noop = TRUE, state_revision = as.integer(current$state_revision),
-                campaign = .cmail_campaign_public(campaign, with_template = FALSE)))
+                campaign = .cmail_campaign_public(campaign, with_template = FALSE), recipients_purged = FALSE))
   }
   campaign$name <- next_name
   campaign$actor <- next_actor
+  campaign$platform <- next_platform
   campaigns <- .cmail_campaigns_upsert(pick$set$campaigns, campaign)
   next_state <- .cmail_campaigns_commit(sid, current, campaigns)
+  # Datos personales mínimos: con SurveyMonkey los contactos viven en su
+  # recopilador, así que la carpeta de destinatarios de la campaña se borra.
+  purged <- FALSE
+  if (identical(next_platform, "surveymonkey") && !identical(prev_platform, "surveymonkey")) {
+    if (isTRUE(pick$legacy_migrated)) .cmail_recipients_adopt_legacy(session, campaign$campaign_id)
+    .cmail_recipients_forget(session, campaign$campaign_id)
+    purged <- TRUE
+  }
   saved <- campaigns[[match(campaign$campaign_id, vapply(campaigns, function(c) c$campaign_id, ""))]]
   list(ok = TRUE, noop = FALSE, state_revision = next_state$state_revision,
-       campaign = .cmail_campaign_public(saved, with_template = FALSE))
+       campaign = .cmail_campaign_public(saved, with_template = FALSE), recipients_purged = purged)
 }
 
 #' Borra una campaña y sus destinatarios. `confirm_name` debe ser idéntico al

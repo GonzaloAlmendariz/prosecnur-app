@@ -127,3 +127,58 @@
 .cmail_fx_mail_image <- function(sid, name, width = 600L, height = 200L, type = "png", noise = FALSE) {
   save_upload(sid, "mail_image", name, .cmail_fx_image_raw(width, height, type, noise))
 }
+
+# ---- E1j: paridad del dialecto mailchimp (huellas en fixtures/mail-import) ----
+# Casos sintéticos cuyo HTML de Mailchimp se capturó ANTES de introducir el
+# dialecto (commit bff880635). Las imágenes van resueltas a mano: sin archivos.
+.cmail_fx_parity_images <- function() {
+  list(
+    `logo-cliente` = list(id = "logo-cliente", path = NULL, type = "png", size = list(width = 320L, height = 92L),
+                          url = NULL, alt = "Unidad", export_name = "logo-cliente.png"),
+    pulso = list(id = "pulso", path = NULL, type = "png", size = list(width = 300L, height = 92L),
+                 url = "https://pulsopucp.github.io/correo-/pulso.png", alt = "Pulso PUCP", export_name = "pulso.png"),
+    `linea-cierre` = list(id = "linea-cierre", path = NULL, type = "jpeg", size = list(width = 1200L, height = 400L),
+                          url = NULL, alt = "", export_name = "linea-cierre.jpg"),
+    banner = list(id = "banner", path = NULL, type = "png", size = list(width = 1200L, height = 600L),
+                  url = "https://pulsopucp.github.io/correo-/Arte1-960.png", alt = "PULSO", export_name = "banner.png")
+  )
+}
+.cmail_fx_parity_cases <- function() {
+  rec <- .cmail_template_normalize(.cmail_preset_recuperacion())
+  inv <- .cmail_template_normalize(.cmail_preset_invitacion())
+  full <- rec
+  full$theme$link <- "#1a56b8"
+  full$blocks <- append(full$blocks, list(
+    list(block_id = "titulo", type = "heading", text = "Hola {{carrera}}", level = "subtitulo", align = "center"),
+    list(block_id = "sep", type = "divider", style = "linea", size = "l"),
+    list(block_id = "esp", type = "divider", style = "espacio", size = "s"),
+    list(block_id = "img-cierre", type = "image", image_ref = "linea-cierre", alt = "Gracias", width = 300L,
+         align = "right", url = "{{enlace}}"),
+    list(block_id = "img-sangre", type = "image", image_ref = "linea-cierre", alt = "Cierre", bleed = TRUE),
+    list(block_id = "lista", type = "list", ordered = TRUE, items = list("Uno [web](https://pulso.pucp.edu.pe/)", "Dos **{{codigo}}**")),
+    list(block_id = "tinte", type = "callout", variant = "tinte", title = "Nota", items = list("A", "B"))
+  ), after = 2L)
+  full$blocks[[2]]$text <- paste(full$blocks[[2]]$text, "Ver [la web](https://pulso.pucp.edu.pe/?a={{codigo}}).")
+  full$blocks[[2]]$size <- "pequeno"; full$blocks[[2]]$tone <- "suave"
+  full <- .cmail_template_normalize(full)
+  ban <- inv
+  ban$header <- list(kind = "banner", image_ref = "banner")
+  ban$images <- list(banner = list(alt = "PULSO", url = "https://pulsopucp.github.io/correo-/Arte1-960.png"))
+  ban$blocks[[8]]$fill <- "contorno"; ban$blocks[[8]]$size <- "compacto"; ban$blocks[[8]]$align <- "left"
+  ban <- .cmail_template_normalize(ban)
+  list(recuperacion = list(t = rec, images = list()),
+       invitacion = list(t = inv, images = list()),
+       recuperacion_img = list(t = rec, images = .cmail_fx_parity_images()),
+       completo = list(t = full, images = .cmail_fx_parity_images()),
+       banner = list(t = ban, images = .cmail_fx_parity_images()["banner"]))
+}
+
+.cmail_fx_sha <- function(x) paste0("sha256:", digest::digest(x, algo = "sha256", serialize = FALSE))
+
+.cmail_fx_mail_import_path <- function(name) test_path("fixtures", "mail-import", name)
+
+.cmail_fx_read_text <- function(path) {
+  txt <- rawToChar(readBin(path, "raw", file.info(path)$size))
+  Encoding(txt) <- "UTF-8"
+  txt
+}

@@ -31,8 +31,14 @@
 }
 
 #' Chequeos de imagen. `push` agrega un chequeo a la lista de la revisión.
+#'
+#' Comunes: `images_alt`, `image_width`, `image_weight`. Mailchimp suma
+#' `images_hosted`, `images_available`, `import_zip_weight` y `banner_size`;
+#' SurveyMonkey, `images_public_url` (no documenta subir imágenes para el HTML
+#' personalizado: cada una necesita su URL https).
 #' @keywords internal
-.cmail_image_checks <- function(tpl, images, html, html_bytes, push) {
+.cmail_image_checks <- function(tpl, images, html, html_bytes, push, dialect = .CMAIL_PLATFORM_DEFAULT) {
+  if (identical(dialect, "surveymonkey")) return(.cmail_image_checks_sm(tpl, images, push))
   # Alojamiento: cada imagen tiene URL https o va dentro del ZIP importable.
   data_uris <- lengths(regmatches(html, gregexpr("data:[a-z]+/", html)))
   in_zip <- vapply(images, function(i) is.null(i$url) && !is.null(i$path), NA)
@@ -55,6 +61,42 @@
     .cmail_check("images_available", "ok", 0L, "Todas las imágenes están disponibles.")
   })
 
+  push <- .cmail_image_checks_common(tpl, images, uses, push)
+
+  est <- .cmail_import_zip_estimate(html_bytes, images)
+  push(if (est$bytes >= .CMAIL_IMPORT_ZIP_MAX) {
+    .cmail_check("import_zip_weight", "error", est$bytes,
+                 "El ZIP importable pesaría 1 MB o más y Mailchimp lo rechaza. Da una URL https a las imágenes más pesadas: las que tienen URL no entran al ZIP.",
+                 extra = est$images)
+  } else if (est$bytes > .CMAIL_IMPORT_ZIP_WARN) {
+    .cmail_check("import_zip_weight", "warning", est$bytes,
+                 "El ZIP importable se acerca a 1 MB (el tope de Mailchimp). Considera dar una URL https a las imágenes más pesadas.",
+                 extra = est$images)
+  } else {
+    .cmail_check("import_zip_weight", "ok", est$bytes, "El ZIP importable queda bajo 1 MB.", extra = est$images)
+  })
+
+  if (identical(tpl$header$kind, "banner")) {
+    img <- images[[as.character(tpl$header$image_ref)]]
+    size <- img$size
+    push(if (is.null(size)) {
+      .cmail_check("banner_size", if (is.null(img$url)) "error" else "warning", NULL,
+                   "No se pudo medir el banner (se espera una imagen de 1200 × 600 en el proyecto).",
+                   targets = list(.cmail_target("__cabecera")))
+    } else if (!identical(as.integer(size$width), .CMAIL_BANNER_W) || !identical(as.integer(size$height), .CMAIL_BANNER_H)) {
+      .cmail_check("banner_size", "error", sprintf("%d×%d", as.integer(size$width), as.integer(size$height)),
+                   "El banner de mailing mide 1200 × 600.", targets = list(.cmail_target("__cabecera")))
+    } else if (isTRUE(img$bytes > .CMAIL_BANNER_MAX_BYTES)) {
+      .cmail_check("banner_size", "warning", as.integer(img$bytes), "El banner supera 1 MB; tarda en cargar.")
+    } else {
+      .cmail_check("banner_size", "ok", "1200×600", "Banner de 1200 × 600.")
+    })
+  }
+  push
+}
+
+# Chequeos de imagen comunes a los dos dialectos.
+.cmail_image_checks_common <- function(tpl, images, uses, push) {
   no_alt <- Filter(function(u) !nzchar(trimws(u$alt)), uses)
   push(if (length(no_alt)) {
     .cmail_check("images_alt", "error", length(no_alt), "Imágenes sin texto alternativo.",
@@ -90,33 +132,73 @@
                       extra = lapply(heavy, function(i) list(id = i$id, size_bytes = as.integer(i$bytes)))))
   }
 
-  est <- .cmail_import_zip_estimate(html_bytes, images)
-  push(if (est$bytes >= .CMAIL_IMPORT_ZIP_MAX) {
-    .cmail_check("import_zip_weight", "error", est$bytes,
-                 "El ZIP importable pesaría 1 MB o más y Mailchimp lo rechaza. Da una URL https a las imágenes más pesadas: las que tienen URL no entran al ZIP.",
-                 extra = est$images)
-  } else if (est$bytes > .CMAIL_IMPORT_ZIP_WARN) {
-    .cmail_check("import_zip_weight", "warning", est$bytes,
-                 "El ZIP importable se acerca a 1 MB (el tope de Mailchimp). Considera dar una URL https a las imágenes más pesadas.",
-                 extra = est$images)
-  } else {
-    .cmail_check("import_zip_weight", "ok", est$bytes, "El ZIP importable queda bajo 1 MB.", extra = est$images)
-  })
+  push
+}
 
-  if (identical(tpl$header$kind, "banner")) {
-    img <- images[[as.character(tpl$header$image_ref)]]
-    size <- img$size
-    push(if (is.null(size)) {
-      .cmail_check("banner_size", if (is.null(img$url)) "error" else "warning", NULL,
-                   "No se pudo medir el banner (se espera una imagen de 1200 × 600 en el proyecto).",
-                   targets = list(.cmail_target("__cabecera")))
-    } else if (!identical(as.integer(size$width), .CMAIL_BANNER_W) || !identical(as.integer(size$height), .CMAIL_BANNER_H)) {
-      .cmail_check("banner_size", "error", sprintf("%d×%d", as.integer(size$width), as.integer(size$height)),
-                   "El banner de mailing mide 1200 × 600.", targets = list(.cmail_target("__cabecera")))
-    } else if (isTRUE(img$bytes > .CMAIL_BANNER_MAX_BYTES)) {
-      .cmail_check("banner_size", "warning", as.integer(img$bytes), "El banner supera 1 MB; tarda en cargar.")
+# SurveyMonkey: cada imagen necesita su URL https (sin ella, `src=""`).
+.cmail_image_checks_sm <- function(tpl, images, push) {
+  uses <- .cmail_image_uses(tpl)
+  push <- .cmail_image_checks_common(tpl, images, uses, push)
+  no_url <- names(images)[vapply(images, function(i) {
+    u <- .cmail_one(i$url); is.null(u) || !grepl("^https://", u)
+  }, NA)]
+  push(if (length(no_url)) {
+    .cmail_check("images_public_url", "error", length(no_url),
+                 "SurveyMonkey necesita una URL https pública para cada imagen (no se sube con el HTML personalizado).",
+                 extra = as.list(no_url), targets = lapply(Filter(function(u) u$id %in% no_url, uses), `[[`, "target"))
+  } else {
+    .cmail_check("images_public_url", "ok", 0L, "Cada imagen apunta a su URL https pública.")
+  })
+  push
+}
+
+# Chequeos propios de SurveyMonkey sobre el HTML que sale (E1j).
+.cmail_sm_checks <- function(tpl, html, push) {
+  fields <- .cmail_field_index(tpl)
+  used <- setdiff(.cmail_used_keys(tpl), "nombre")
+  push(if (grepl('href="[SurveyLink]"', html, fixed = TRUE)) {
+    .cmail_check("survey_link", "ok", 1L, "El correo lleva el enlace a la encuesta ([SurveyLink]).")
+  } else {
+    .cmail_check("survey_link", "error", 0L,
+                 "SurveyMonkey exige [SurveyLink]: pon {{enlace}} (con etiqueta SurveyLink) en un botón o enlace.")
+  })
+  optout <- grepl('href="[OptOutLink]"', html, fixed = TRUE)
+  push(.cmail_check("footer_optout", if (optout) "ok" else "error", as.integer(optout),
+                    if (optout) "El pie lleva la baja ([OptOutLink]) y la privacidad ([PrivacyLink])." else "Falta [OptOutLink] en el pie."))
+  unmapped <- used[vapply(used, function(k) is.null(fields[[k]]$sm), NA)]
+  push(if (length(unmapped)) {
+    .cmail_check("sm_fields_mapped", "error", length(unmapped),
+                 sprintf("Campos sin etiqueta de SurveyMonkey: %s. Asigna a cada uno [SurveyLink], [LastName] o [CustomDataN].",
+                         paste(sprintf("{{%s}}", unmapped), collapse = ", ")),
+                 extra = as.list(unmapped), targets = .cmail_key_targets(tpl, unmapped))
+  } else {
+    .cmail_check("sm_fields_mapped", "ok", 0L, "Cada campo usado tiene su etiqueta de SurveyMonkey.",
+                 extra = lapply(used, function(k) list(key = k, sm = fields[[k]]$sm)))
+  })
+  name_used <- "nombre" %in% .cmail_used_keys(tpl)
+  with_fb <- used[vapply(used, function(k) !is.null(fields[[k]]$fallback) && nzchar(fields[[k]]$fallback), NA)]
+  fb_keys <- c(if (name_used) "nombre", with_fb)
+  push(if (length(fb_keys)) {
+    .cmail_check("sm_fallback", "warning", length(fb_keys),
+                 "SurveyMonkey no tiene respaldo: quien no tenga el dato en Contactos verá un espacio vacío.",
+                 extra = as.list(fb_keys), targets = .cmail_key_targets(tpl, fb_keys))
+  } else {
+    .cmail_check("sm_fallback", "ok", 0L, "Ningún campo depende de un texto de respaldo.")
+  })
+  custom <- vapply(used, function(k) {
+    sm <- fields[[k]]$sm %||% ""
+    if (grepl("^CustomData[0-9]+$", sm)) as.integer(sub("^CustomData", "", sm)) else 0L
+  }, integer(1))
+  if (any(custom > 0L)) {
+    over <- used[custom > .CMAIL_SM_CUSTOM_PLAN_LIMIT]
+    push(if (length(over)) {
+      .cmail_check("sm_custom_limit", "warning", length(over),
+                   sprintf("Se usa CustomData mayor que %d (%s): fuera de los planes Team/Enterprise SurveyMonkey ofrece solo CustomData1 a CustomData%d.",
+                           .CMAIL_SM_CUSTOM_PLAN_LIMIT, paste(vapply(over, function(k) fields[[k]]$sm, ""), collapse = ", "),
+                           .CMAIL_SM_CUSTOM_PLAN_LIMIT),
+                   extra = as.list(over), targets = .cmail_key_targets(tpl, over))
     } else {
-      .cmail_check("banner_size", "ok", "1200×600", "Banner de 1200 × 600.")
+      .cmail_check("sm_custom_limit", "ok", max(custom), sprintf("Los datos personalizados usados están entre CustomData1 y CustomData%d.", .CMAIL_SM_CUSTOM_PLAN_LIMIT))
     })
   }
   push

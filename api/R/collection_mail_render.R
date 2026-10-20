@@ -10,15 +10,20 @@
 # «bulletproof» (celda con color de fondo + enlace con padding, sin imagen),
 # `alt` en toda imagen y nada de JavaScript.
 #
-# Dos modos:
+# Dos modos y un dialecto (E1j; tabla en collection_mail_dialects.R):
 # - `preview`: para la vista de la app. Resuelve los campos con un destinatario
 #   (importado o sintético) y puede incrustar las imágenes en base64, porque ese
-#   HTML nunca sale de la app.
-# - `mailchimp`: deja las etiquetas `*|TAG|*`, el saludo con respaldo
-#   condicional (`*|IF:FNAME|*…*|ELSE:|*…*|END:IF|*`), referencia cada imagen por
-#   su URL https declarada o por su nombre de archivo RELATIVO dentro del ZIP
-#   importable (`logo-cliente.png`), y agrega el pie legal con
-#   `*|LIST:ADDRESSLINE|*` y `*|UNSUB|*`. Nunca lleva `data:` ni `data-pulso-*`.
+#   HTML nunca sale de la app. El pie es el del dialecto, con enlaces simulados.
+# - `export`: el HTML que sale de la app, con las etiquetas del dialecto.
+#   En `mailchimp`: `*|TAG|*`, el saludo con respaldo condicional
+#   (`*|IF:FNAME|*…*|ELSE:|*…*|END:IF|*`), cada imagen por su URL https declarada
+#   o por su nombre de archivo RELATIVO dentro del ZIP importable
+#   (`logo-cliente.png`), y el pie legal con `*|LIST:ADDRESSLINE|*` y `*|UNSUB|*`.
+#   En `surveymonkey`: `[FirstName]`/`[<sm>]` sin condicionales, imágenes solo por
+#   URL https y el pie con `[PrivacyLink]`/`[OptOutLink]`.
+#   Nunca lleva `data:` ni `data-pulso-*`.
+# `mode = "mailchimp"` es el alias de antes: `export` en dialecto mailchimp,
+# byte a byte igual (test de paridad con huella capturada antes del cambio).
 #
 # Marcas de edición (solo `preview`, E1g §1): cada fila de bloque lleva
 # `data-pulso-block`/`data-pulso-type`, la cabecera `__cabecera`, cada texto
@@ -33,7 +38,7 @@
 .CMAIL_MUTED <- "#555555"
 .CMAIL_FIELD_TINT <- "#eef3e8"
 
-# ` data-pulso-prop="…"` en preview; nada en mailchimp.
+# ` data-pulso-prop="…"` en preview; nada en export.
 .cmail_prop <- function(ctx, prop) {
   if (!isTRUE(ctx$marks)) return("")
   sprintf(' data-pulso-prop="%s"', .cmail_esc(prop))
@@ -55,25 +60,27 @@
     out[[as.character(f$key)]] <- list(
       key = as.character(f$key), tag = as.character(f$tag),
       label = as.character(f$label %||% f$key),
-      fallback = .cmail_one(f$fallback)
+      fallback = .cmail_one(f$fallback),
+      sm = .cmail_one(f$sm)
     )
   }
   out
 }
 
 # Valor de un campo en el modo pedido. `ctx$values` trae los valores del
-# destinatario en preview; en mailchimp sale la etiqueta.
+# destinatario en preview; en export sale la etiqueta del dialecto.
 .cmail_field_value <- function(key, ctx, in_url = FALSE) {
   if (identical(key, "nombre")) {
-    if (identical(ctx$mode, "mailchimp")) return("*|FNAME|*")
+    if (isTRUE(ctx$export)) return(.cmail_dialect(ctx)$name_tag())
     if (in_url) return(utils::URLencode(ctx$values$nombre %||% "", reserved = TRUE))
     return(.cmail_field_span("nombre", .cmail_esc(ctx$values$nombre %||% ""), ctx))
   }
   field <- ctx$fields[[key]]
-  if (identical(ctx$mode, "mailchimp")) {
-    tag <- sprintf("*|%s|*", field$tag)
+  if (isTRUE(ctx$export)) {
+    d <- .cmail_dialect(ctx)
+    tag <- d$field_tag(field)
     if (!in_url && !is.null(field$fallback) && nzchar(field$fallback)) {
-      return(sprintf("*|IF:%s|*%s*|ELSE:|*%s*|END:IF|*", field$tag, tag, .cmail_esc(field$fallback)))
+      return(d$conditional(field$tag, tag, .cmail_esc(field$fallback)))
     }
     return(tag)
   }
@@ -120,8 +127,8 @@
 .cmail_plain <- function(text, ctx) {
   out <- gsub("\\*\\*(.+?)\\*\\*", "\\1", as.character(text %||% ""), perl = TRUE)
   for (k in .cmail_tokens(out)) {
-    v <- if (identical(ctx$mode, "mailchimp")) {
-      if (identical(k, "nombre")) "*|FNAME|*" else sprintf("*|%s|*", ctx$fields[[k]]$tag)
+    v <- if (isTRUE(ctx$export)) {
+      if (identical(k, "nombre")) .cmail_dialect(ctx)$name_tag() else .cmail_dialect(ctx)$field_tag(ctx$fields[[k]])
     } else if (identical(k, "nombre")) {
       ctx$values$nombre %||% ""
     } else {
@@ -147,7 +154,7 @@
   for (k in .cmail_tokens(out)) {
     out <- gsub(sprintf("\\{\\{\\s*%s\\s*\\}\\}", k), .cmail_gsub_safe(.cmail_field_value(k, ctx, in_url = TRUE)), out, perl = TRUE)
   }
-  if (identical(ctx$mode, "preview") && !nzchar(trimws(out))) out <- "#"
+  if (!isTRUE(ctx$export) && !nzchar(trimws(out))) out <- "#"
   .cmail_esc(out)
 }
 
@@ -213,8 +220,9 @@
 
 # Bloques del cuerpo: collection_mail_blocks.R.
 
-# Pie legal. En mailchimp lleva SIEMPRE la dirección de la lista y la baja,
-# exista o no el bloque footer_legal: Mailchimp rechaza la campaña sin ellas.
+# Pie legal. En export lleva SIEMPRE el pie del dialecto, exista o no el bloque
+# footer_legal: Mailchimp rechaza la campaña sin la dirección de la lista y la
+# baja; SurveyMonkey exige [OptOutLink]. En preview, el mismo pie simulado.
 .cmail_footer_html <- function(template, ctx) {
   footer <- Filter(function(b) identical(b$type, "footer_legal"), template$blocks %||% list())
   footer <- if (length(footer)) footer[[1]] else list()
@@ -224,12 +232,8 @@
     if (!is.null(text)) sprintf("<span%s>%s</span>", .cmail_prop(ctx, "text"), .cmail_inline(text, ctx, links = TRUE)),
     if (!is.null(address)) sprintf("<span%s>%s</span>", .cmail_prop(ctx, "address"), .cmail_inline(address, ctx))
   )
-  if (identical(ctx$mode, "mailchimp")) {
-    parts <- c(parts, "*|LIST:ADDRESSLINE|*",
-               '<a href="*|UNSUB|*" target="_blank" style="color:#555555;text-decoration:underline;">Dejar de recibir estos correos</a>')
-  } else {
-    parts <- c(parts, '<span style="text-decoration:underline;">Dejar de recibir estos correos</span>')
-  }
+  d <- .cmail_dialect(ctx)
+  parts <- c(parts, if (isTRUE(ctx$export)) d$footer() else d$footer_preview())
   mark <- if (isTRUE(ctx$marks) && !is.null(footer$block_id)) {
     sprintf(' data-pulso-block="%s" data-pulso-type="footer_legal"', .cmail_esc(footer$block_id))
   } else ""
@@ -252,15 +256,21 @@
 #' Renderiza la plantilla a HTML de correo.
 #'
 #' @param template plantilla validada.
-#' @param mode "preview" o "mailchimp".
+#' @param mode "preview" o "export" ("mailchimp" = export en dialecto mailchimp).
+#' @param dialect "mailchimp" o "surveymonkey" (collection_mail_dialects.R).
 #' @param values list(nombre, fields = list(key = valor)) para preview.
 #' @param images salida de `.cmail_images_resolve()`.
 #' @return list(html, subject, preheader, bytes).
 #' @keywords internal
-collection_mail_render <- function(template, mode = c("preview", "mailchimp"), values = list(), images = list()) {
+collection_mail_render <- function(template, mode = c("preview", "export", "mailchimp"),
+                                   dialect = c("mailchimp", "surveymonkey"), values = list(), images = list()) {
   mode <- match.arg(mode)
+  dialect <- match.arg(dialect)
+  if (identical(mode, "mailchimp")) { mode <- "export"; dialect <- "mailchimp" }
   ctx <- list(
     mode = mode,
+    export = identical(mode, "export"),
+    dialect = dialect,
     values = values,
     fields = .cmail_field_index(template),
     images = images,
@@ -281,8 +291,7 @@ collection_mail_render <- function(template, mode = c("preview", "mailchimp"), v
     '<tr><td style="height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>',
     paste(body_rows, collapse = ""),
     sprintf('<tr><td bgcolor="%s" style="background-color:%s;height:20px;line-height:20px;font-size:0;">&nbsp;</td></tr>',
-            if (identical(template$header$background, "dark")) ctx$accent else "#f3f3f3",
-            if (identical(template$header$background, "dark")) ctx$accent else "#f3f3f3"),
+            .cmail_band_color(template, ctx), .cmail_band_color(template, ctx)),
     "</table>"
   )
   html <- paste0(
@@ -303,11 +312,21 @@ collection_mail_render <- function(template, mode = c("preview", "mailchimp"), v
   html <- enc2utf8(html)
   list(
     mode = mode,
+    dialect = dialect,
     html = html,
     subject = subject,
     preheader = preheader,
     bytes = as.integer(nchar(html, type = "bytes"))
   )
+}
+
+# Franja de cierre de la tarjeta (H-l2): `theme.band` = acento | suave; sin
+# declarar, acento con cabecera oscura y gris en el resto (lo de siempre).
+.cmail_band_color <- function(template, ctx) {
+  band <- .cmail_one(template$theme$band)
+  if (identical(band, "acento")) return(ctx$accent)
+  if (identical(band, "suave")) return("#f3f3f3")
+  if (identical(template$header$background, "dark")) ctx$accent else "#f3f3f3"
 }
 
 # Etiquetas que la plantilla usa de verdad (FNAME incluido si aparece {{nombre}}).

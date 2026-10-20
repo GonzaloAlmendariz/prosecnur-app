@@ -142,7 +142,6 @@ test_that("compatibilidad: con una campaña se usa esa; con dos o más se exige 
     .cmc_code(collection_mail_template_get(sid)),
     .cmc_code(collection_mail_template_put(sid, fx$a$template, .cmc_rev(sid))),
     .cmc_code(collection_mail_preview(sid)),
-    .cmc_code(collection_mail_review(sid, template = fx$a$template)),
     .cmc_code(collection_mail_export(sid, .cmc_rev(sid))),
     .cmc_code(.cmail_fx_import(sid)),
     .cmc_code(collection_mail_recipients_get(sid)),
@@ -150,6 +149,11 @@ test_that("compatibilidad: con una campaña se usa esa; con dos o más se exige 
   )) expect_identical(code, "E_COLLECTION_MAIL_CAMPAIGN_REQUIRED")
   e <- .cmc_err(collection_mail_template_get(sid))
   expect_equal(e$status, 422)
+  # E1jkl (agregado del lead): con la plantilla en el CUERPO y sin campaign_id
+  # se trabaja sin campaña (miniaturas de presets), en dialecto mailchimp.
+  rv <- collection_mail_review(sid, template = fx$a$template)
+  expect_true(rv$ok)
+  expect_null(rv$campaign_id)
 
   gb <- collection_mail_template_get(sid, campaign_id = fx$b$campaign_id)
   expect_identical(gb$template$preset_id, "invitacion_capacitacion_v1")
@@ -356,7 +360,7 @@ test_that("export por campaña: slug = campaign_id y manifest con campaign sin d
     content_base64 = jsonlite::base64_enc(charToRaw(enc2utf8(.cmail_fx_recipients_csv()))))
   ex <- collection_mail_export(sid, .cmc_rev(sid), campaign_id = fx$b$campaign_id)
   expect_identical(ex$campaign_id, fx$b$campaign_id)
-  expect_match(ex$zip$filename, "^invitacion-docentes_mailchimp_\\d{8}-\\d{6}\\.zip$")
+  expect_match(ex$zip$filename, "^invitacion-docentes_invitacion_mailchimp_\\d{8}-\\d{6}\\.zip$")
   expect_identical(ex$manifest$campaign, list(campaign_id = "invitacion-docentes", name = "Invitación docentes",
                                               actor = "Docentes"))
   expect_identical(ex$manifest$template$template_id, "invitacion-docentes")
