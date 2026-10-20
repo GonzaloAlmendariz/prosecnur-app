@@ -14,7 +14,7 @@ Reemplaza: —
 
 Enmienda: [ADR 0108](0108-material-de-campo-catalogo-de-materiales-por-unidad.md) §5.1 y §5.3 (el modo lo declaraba el
 estudio y un proyecto tenía un solo modo) y §2 «Persistencia» (`collection_state/v2` indexado por `unit_type`);
-[ADR 0044](0044-gramatica-de-navegacion-direcciones.md) §1 «Modo», solo para Material de campo.
+[ADR 0044](0044-jerarquia-y-direcciones-de-navegacion.md) §1 «Modo», solo para Material de campo.
 
 Extiende: [ADR 0110](0110-material-de-campo-se-conecta-y-escribe-correos-para-mailchimp.md) (las campañas de correo
 por actor de E1h pasan a ser campañas del proyecto).
