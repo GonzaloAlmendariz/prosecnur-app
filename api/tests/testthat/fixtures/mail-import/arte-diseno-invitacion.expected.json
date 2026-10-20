@@ -1,0 +1,114 @@
+{
+  "platform_detected": "surveymonkey",
+  "platform_evidence": {
+    "surveymonkey": 4,
+    "mailchimp": 0
+  },
+  "template": {
+    "schema": "collection_mail_template/v2",
+    "template_id": "arte-diseno-invitacion",
+    "title": "Encuesta de Autoevaluación",
+    "revision": 1,
+    "subject": "",
+    "preheader": "",
+    "theme": {
+      "accent": "#001f60",
+      "band": "acento"
+    },
+    "header": {
+      "kind": "banner",
+      "image_ref": "arte1-960"
+    },
+    "images": {
+      "arte1-960": {
+        "alt": "PULSO PUCP",
+        "url": "https://pulsopucp.github.io/correo-/Arte1-960.png"
+      }
+    },
+    "fields": [
+      {
+        "key": "enlace",
+        "tag": "ENLACE",
+        "label": "Enlace a la encuesta",
+        "sm": "SurveyLink"
+      }
+    ],
+    "blocks": [
+      {
+        "block_id": "saludo",
+        "type": "greeting",
+        "text": "**Estimado(a) {{nombre}},**",
+        "fallback": "**Estimado(a),**"
+      },
+      {
+        "block_id": "parrafo-1",
+        "type": "paragraph",
+        "text": "La **Facultad de Arte y Diseño de la Pontificia Universidad Católica del Perú** y el **Instituto de Analítica Social e Inteligencia Estratégica - PULSO PUCP** vienen realizando un estudio de opinión en el marco del proceso de autoevaluación de la etapa de Formación General, con la finalidad de contribuir a la mejora de la formación brindada a los(as) estudiantes.",
+        "align": "justify"
+      },
+      {
+        "block_id": "parrafo-2",
+        "type": "paragraph",
+        "text": "Por ello, le invitamos a responder la siguiente encuesta, que tomará **aproximadamente 15 minutos**, para conocer su percepción acerca de la misión, propósitos, malla curricular, actividades de investigación y otros aspectos vinculados con la formación. Agradecemos mucho su valioso aporte dentro de este proceso.",
+        "align": "justify"
+      },
+      {
+        "block_id": "parrafo-3",
+        "type": "paragraph",
+        "text": "Puede participar hasta el **viernes 18 de setiembre**.",
+        "align": "justify"
+      },
+      {
+        "block_id": "boton",
+        "type": "button",
+        "text": "Empezar aquí",
+        "url": "{{enlace}}"
+      },
+      {
+        "block_id": "importante",
+        "type": "callout",
+        "variant": "box",
+        "title": "Importante:",
+        "items": [
+          "La ruta de acceso a la encuesta es única y personal, por favor, no la reenvíe ni la comparta.",
+          "Se aconseja que, una vez iniciada la encuesta, la complete en su totalidad."
+        ]
+      },
+      {
+        "block_id": "firma",
+        "type": "signature",
+        "closing": "Saludos cordiales,",
+        "name": "PULSO PUCP",
+        "lines": [
+          "**Instituto de Analítica Social e Inteligencia Estratégica**"
+        ]
+      },
+      {
+        "block_id": "pie",
+        "type": "footer_legal"
+      }
+    ],
+    "template_sha256": "sha256:cdc6759a713a9183f214a51590e7918464a56490575300bb9df3af9bc8ff94fe"
+  },
+  "report_codes": [
+    "style_discarded",
+    "hover_ignored",
+    "subject_missing"
+  ],
+  "images": [
+    {
+      "id": "arte1-960",
+      "url": "https://pulsopucp.github.io/correo-/Arte1-960.png",
+      "alt": "PULSO PUCP",
+      "status": "url"
+    }
+  ],
+  "stats": {
+    "blocks": 8,
+    "dropped_empty": 0,
+    "discarded": [
+      "style",
+      "title"
+    ]
+  }
+}

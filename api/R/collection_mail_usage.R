@@ -42,10 +42,12 @@
   acc
 }
 
-#' ¿Cubre el respaldo todos los usos de `key`?
+#' ¿Cubre el respaldo todos los usos de `key`? En SurveyMonkey no hay
+#' respaldo (no tiene condicionales): solo cubre si el campo no se usa (H-j3).
 #' @keywords internal
-.cmail_fallback_covers <- function(key, uses, field_fallback) {
+.cmail_fallback_covers <- function(key, uses, field_fallback, dialect = .CMAIL_PLATFORM_DEFAULT) {
   if (!length(uses)) return(TRUE)
+  if (identical(dialect, "surveymonkey")) return(FALSE)
   if (any(uses %in% c("url", "asunto", "preheader"))) return(FALSE)
   if (identical(key, "nombre")) return(all(uses == "saludo"))
   !is.null(field_fallback) && nzchar(field_fallback)

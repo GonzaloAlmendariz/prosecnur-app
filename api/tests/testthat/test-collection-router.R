@@ -1,4 +1,4 @@
-test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve + ocho de correo)", {
+test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve + nueve de correo)", {
   source_path <- test_path("..", "..", "R", "router_recopiladores.R")
   text <- paste(readLines(source_path, warn = FALSE), collapse = "\n")
   routes <- regmatches(
@@ -53,6 +53,7 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     "/api/recopiladores/mail-template/preview",
     "/api/recopiladores/mail-template/review",
     "/api/recopiladores/mail-template/export",
+    "/api/recopiladores/mail-template/import-html",
     "/api/recopiladores/mail-recipients/import",
     "/api/recopiladores/mail-recipients",
     "/api/recopiladores/mail-recipients/mapping"

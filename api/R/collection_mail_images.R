@@ -168,11 +168,12 @@
   list(id = id, path = NULL, type = NULL, size = NULL, url = NULL, alt = "", export_name = sprintf("%s.png", id))
 }
 
-# `src` de una imagen. Mailchimp: la URL https declarada o el nombre RELATIVO del
-# archivo dentro del ZIP importable (Mailchimp lo sube y reescribe la ruta).
+# `src` de una imagen. En export lo decide el dialecto: Mailchimp usa la URL
+# https declarada o el nombre RELATIVO del archivo dentro del ZIP importable
+# (Mailchimp lo sube y reescribe la ruta); SurveyMonkey, solo la URL https.
 # Preview: data URI con el tipo real.
 .cmail_image_src <- function(img, ctx) {
-  if (identical(ctx$mode, "mailchimp")) return(img$url %||% img$export_name)
+  if (isTRUE(ctx$export)) return(.cmail_dialect(ctx)$img_src(img))
   if (!is.null(img$path) && file.exists(img$path)) {
     raw <- readBin(img$path, "raw", file.info(img$path)$size)
     mime <- if (identical(img$type, "jpeg")) "image/jpeg" else "image/png"

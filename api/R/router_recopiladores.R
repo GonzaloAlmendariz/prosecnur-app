@@ -120,7 +120,8 @@ mount_recopiladores <- function(pr) {
         dpi = body$dpi
       )
     })) |>
-    # Correos para Mailchimp (ADR 0110 §2, E1f; campañas E1h). Cada plantilla
+    # Correos para Mailchimp y SurveyMonkey (ADR 0110 §2, E1f; campañas E1h;
+    # plataforma, envíos e importación de HTML E1j-E1l). Cada plantilla
     # vive en su campaña de collection_state$mail_campaigns; los destinatarios
     # solo en el tempdir de la sesión, por campaña (datos personales: nunca en
     # el .pulso). `campaign_id` va por consulta en GET/DELETE, en el cuerpo en
@@ -134,7 +135,8 @@ mount_recopiladores <- function(pr) {
     plumber::pr_post("/api/recopiladores/mail-campaigns", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_mail_campaign_create(session_header(req), expected_revision = body$expected_revision,
-                                      name = body$name, actor = body$actor, preset_id = body$preset_id)
+                                      name = body$name, actor = body$actor, preset_id = body$preset_id,
+                                      platform = body$platform, template = body$template, import_id = body$import_id)
     })) |>
     plumber::pr_post("/api/recopiladores/mail-campaigns/duplicate", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
@@ -144,7 +146,8 @@ mount_recopiladores <- function(pr) {
     plumber::pr_handle("PUT", "/api/recopiladores/mail-campaigns/meta", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_mail_campaign_meta_put(session_header(req), expected_revision = body$expected_revision,
-                                        campaign_id = body$campaign_id, name = body$name, actor = body$actor)
+                                        campaign_id = body$campaign_id, name = body$name, actor = body$actor,
+                                        platform = body$platform)
     })) |>
     # Borrar es POST (no DELETE con cuerpo); confirm_name es la segunda confirmación.
     plumber::pr_post("/api/recopiladores/mail-campaigns/delete", wrap_endpoint(function(req, res, ...) {
@@ -158,23 +161,31 @@ mount_recopiladores <- function(pr) {
     plumber::pr_handle("PUT", "/api/recopiladores/mail-template", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_mail_template_put(session_header(req), template = body$template,
-                                   expected_revision = body$expected_revision, campaign_id = body$campaign_id)
+                                   expected_revision = body$expected_revision, campaign_id = body$campaign_id,
+                                   sends = body$sends, import_id = body$import_id)
     })) |>
     plumber::pr_post("/api/recopiladores/mail-template/preview", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_mail_preview(session_header(req), mode = body$mode %||% "preview",
                               recipient_index = body$recipient_index, template = body$template,
-                              campaign_id = body$campaign_id)
+                              campaign_id = body$campaign_id, send_id = body$send_id, send = body$send)
     })) |>
     plumber::pr_post("/api/recopiladores/mail-template/review", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_mail_review(session_header(req), template = body$template, campaign_id = body$campaign_id,
-                             scope = body$scope)
+                             scope = body$scope, send_id = body$send_id, send = body$send)
     })) |>
     plumber::pr_post("/api/recopiladores/mail-template/export", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_mail_export(session_header(req), expected_revision = body$expected_revision,
-                             campaign_id = body$campaign_id, scope = body$scope)
+                             campaign_id = body$campaign_id, scope = body$scope, send_id = body$send_id)
+    })) |>
+    # Importar un HTML existente (E1l): lectura pura, no escribe el estado. JSON
+    # {html, file_name, subject?} o multipart con la parte `file`.
+    plumber::pr_post("/api/recopiladores/mail-template/import-html", wrap_endpoint(function(req, res, ...) {
+      input <- .cmail_import_html_request(req)
+      collection_mail_import_html(session_header(req), html = input$html, file_name = input$file_name,
+                                  subject = input$subject, raw = input$raw)
     })) |>
     plumber::pr_post("/api/recopiladores/mail-recipients/import", wrap_endpoint(function(req, res, ...) {
       input <- .cmail_import_request(req)

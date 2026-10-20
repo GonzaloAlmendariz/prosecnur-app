@@ -154,6 +154,58 @@ Vive en `api/R/collection_mail_template.R` (contrato y presets), `collection_mai
   ninguno → `,`).
 - **El correo se compara entero y en minúsculas**: no se separan ni se normalizan la parte local y el dominio.
 
+## Implementación de E1j, E1k y E1l (backend)
+
+Plataforma por campaña, envíos y la importación de un HTML existente. Vive en `collection_mail_dialects.R` (tabla de
+dialectos y verificación del HTML de SurveyMonkey), `collection_mail_sends.R` (envíos y plantilla efectiva),
+`collection_mail_export_sm.R` (paquete de SurveyMonkey) y `collection_mail_import_html.R` (importador sobre `xml2`).
+Tests: `test-collection-mail-dialects.R`, `test-collection-mail-sends.R` y `test-collection-mail-import-html.R`, con
+fixtures en `tests/testthat/fixtures/mail-import/`.
+
+- **Un solo render con dialecto (E1j).** `collection_mail_render(template, mode = preview|export, dialect =
+  mailchimp|surveymonkey)`; `mode = "mailchimp"` sigue siendo el alias de export en Mailchimp. Lo que antes estaba
+  cableado a Mailchimp (etiquetas, condicional, pie, `src`) lo pide el render a `.CMAIL_DIALECTS`. La huella SHA256 del
+  HTML de Mailchimp se capturó antes del cambio (`paridad-mailchimp-sha256.json`, cinco casos con los dos presets) y el
+  test exige que no se mueva un byte.
+- **SurveyMonkey.** `{{nombre}}` → `[FirstName]`; cada campo declara `fields[].sm` (`SurveyLink`, `LastName`,
+  `CustomData1..50`, única); sin condicionales (el respaldo no existe: aviso `sm_fallback`); imágenes solo por URL https
+  (`images_public_url`); pie con `[PrivacyLink]` y `[OptOutLink]`. La revisión agrega `survey_link`, `footer_optout`,
+  `sm_fields_mapped` (con `targets`) y `sm_custom_limit` (aviso sobre CustomData6), y no tiene chequeos de audiencia.
+  El export es `<campaign_id>_<send_id>_surveymonkey_<stamp>.zip` (HTML para «HTML personalizado», LEEME y manifest,
+  `sensitivity: none`), verificado por `.cmail_sm_html_verify`. `scope = completo` con SurveyMonkey es 422
+  `E_COLLECTION_MAIL_PLATFORM`; el alcance por defecto es `plantilla`.
+- **Destinatarios.** Pasar una campaña a SurveyMonkey purga su carpeta de destinatarios (`recipients_purged: true`) e
+  importar destinatarios en ella responde 422 `E_COLLECTION_MAIL_PLATFORM`: los contactos viven en el recopilador.
+- **Envíos (E1k).** `campaign.sends` (1 a 6): la invitación primero e imborrable; los recordatorios con
+  `recordatorio-<k>` asignado por el servidor, estable y nunca reutilizado (`campaign.send_seq`). La plantilla efectiva
+  (`.cmail_template_for_send`) cambia asunto y preheader y suma la apertura como párrafo `__apertura` tras el saludo;
+  los `block_id` con `__` quedan reservados en las plantillas del usuario. `PUT mail-template` guarda plantilla y
+  envíos en una sola revisión. Los exports de Mailchimp llevan el `send_id` en el nombre y el manifest suma `platform`
+  y `send` (aditivo en `collection_mail_export/v1`).
+- **Importar un HTML (E1l).** `POST mail-template/import-html` es lectura pura: devuelve una plantilla v2 validada, el
+  informe y la plataforma detectada. El HTML crudo no se guarda en ninguna parte; la huella, la fecha, la plataforma y el
+  informe enmascarado (hasta 50 ítems, extractos de 160) quedan en memoria del proceso por sesión (hasta 5) y pasan a
+  `campaign.imported_from` al escribir con `import_id`. El golden es la invitación real de PULSO en SurveyMonkey.
+
+### Supuestos y desvíos documentados (E1j-E1l)
+
+- **v2 ampliada sin cambio de esquema.** `fields[].sm` y `theme.band` se suman a `collection_mail_template/v2` porque
+  la v2 no se había publicado. Una app anterior vería esas claves como `unknown_key`.
+- **El preset de capacitación no mapea su enlace a `[SurveyLink]`.** Es el enlace a una sala virtual, no a la encuesta;
+  mandarlo como `[SurveyLink]` llevaría a la persona a otro sitio. Solo el preset de recuperación lo declara.
+- **Sin campaña.** Con dos o más campañas, la vista previa y la revisión con la plantilla en el cuerpo y sin
+  `campaign_id` trabajan sin campaña (miniaturas de presets): dialecto Mailchimp y sin destinatarios.
+- **La caché de importaciones no vive en `session$…`** sino en un entorno del proceso por `sid`: una clave de sesión
+  nueva viajaría en el `state.rds` del `.pulso`.
+- **Texto literal con forma de HTML.** En lo importado, un «<» seguido de letra se cambia por «‹» (separarlo con un
+  espacio no basta para el contrato) y una entidad literal se separa: «& nbsp;». Se informa como `text_escaped`.
+- **Heurísticas del importador.** Además de los dos valores de estilo leídos (fondo del botón o separador, y
+  `text-align`), la presencia de un fondo o de un borde izquierdo en una celda solo se usa para reconocer un recuadro;
+  nunca se copia. Funcionan con el patrón de PULSO y con lo que la app exporta (ida y vuelta en los dos presets y los dos
+  dialectos); fuera de eso, lo no reconocido queda como párrafo y en el informe.
+- **Pendiente de verificar en un recopilador real:** que SurveyMonkey acepte imágenes por URL en «HTML personalizado»
+  (no documenta subirlas) y que el plan de PULSO tenga ese formato (Enterprise).
+
 ## Notas
 
 Relacionado con [ADR 0046](0046-recopiladores-despliegue-recoleccion.md), [ADR 0005](0005-secretos-fuera-del-proyecto.md)

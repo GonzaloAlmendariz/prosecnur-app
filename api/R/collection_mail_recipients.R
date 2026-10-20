@@ -438,7 +438,8 @@
 # Campaña del pedido y su plantilla guardada (validada).
 .cmail_campaign_template_for_session <- function(session, campaign_id = NULL) {
   pick <- .cmail_campaign_for(session, .collection_current(session), campaign_id)
-  list(campaign_id = pick$campaign$campaign_id, template = .cmail_campaign_template_checked(pick$campaign))
+  list(campaign_id = pick$campaign$campaign_id, template = .cmail_campaign_template_checked(pick$campaign),
+       platform = .cmail_platform_of(pick$campaign))
 }
 
 # ---- API ----------------------------------------------------------------------
@@ -468,6 +469,12 @@ collection_mail_recipients_import <- function(sid, file_raw = NULL, file_name = 
                                               content_base64 = NULL, mapping = NULL, campaign_id = NULL) {
   session <- session_get(sid)
   ct <- .cmail_campaign_template_for_session(session, campaign_id)
+  # E1j: con SurveyMonkey los contactos viven en su recopilador; la app no los guarda.
+  if (identical(ct$platform, "surveymonkey")) {
+    stop_api(422, "E_COLLECTION_MAIL_PLATFORM",
+             "Esta campaña se envía por SurveyMonkey: los contactos viven en su recopilador, no se importan aquí.",
+             details = list(campaign_id = ct$campaign_id, platform = "surveymonkey"))
+  }
   template <- ct$template
   payload <- .cmail_import_payload(file_raw, file_name, content_base64)
   read <- .cmail_read_table(payload$raw, payload$name)

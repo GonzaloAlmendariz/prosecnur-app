@@ -326,7 +326,7 @@ test_that("export scope plantilla: sin audiencia ni chequeos de audiencia; el en
   expect_true(rv$ready)
   res <- collection_mail_export(sid, 0L, scope = "plantilla")
   expect_identical(res$scope, "plantilla")
-  expect_match(res$zip$filename, "^correo-1_plantilla-mailchimp_\\d{8}-\\d{6}\\.zip$")
+  expect_match(res$zip$filename, "^correo-1_invitacion_plantilla-mailchimp_\\d{8}-\\d{6}\\.zip$")
   expect_identical(res$zip$sensitivity, "none")
   expect_identical(vapply(res$artifacts, `[[`, "", "role"), c("deliverable", "manifest"))
   path <- session_get(sid)$files[[res$zip$file_id]]$path
