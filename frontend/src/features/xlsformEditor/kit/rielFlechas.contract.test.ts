@@ -33,9 +33,9 @@ describe("flechas de la fila elegida frente al riel", () => {
   // Flechas: dos botones de 22 px, 2 px entre ellos y 2 px de padding.
   const rightFlechas = px(/is-active:has\(> \.pulso-outline-riel\) > \.pulso-outline-actions \{ right: (\d+)px/, riel);
 
-  test("el riel mide cinco columnas fijas de 22 px", () => {
-    expect([n, col]).toEqual([5, 22]);
-    expect(anchoRiel).toBe(129);
+  test("el riel mide cinco columnas fijas de 24 px", () => {
+    expect([n, col]).toEqual([5, 24]);
+    expect(anchoRiel).toBe(139);
   });
 
   test.each([["ancho", paddingFila], ["angosto", rightAngosto]])("en %s la caja de las flechas no toca la del riel", (_, finRiel) => {
