@@ -23,6 +23,11 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import type { ControlPanel } from "../../../lib/navegacion/paneles";
 import { AlertTriangle, Eye, FileCode2, FileUp, Loader2, Plus, RefreshCw, X } from "../../../vendor/lucide-react";
 import { Segmented } from "../../xlsformEditor/kit";
+import { AvisoDeNombreRepetido } from "../campanas/AvisoDeNombreRepetido";
+import { hrefDeCampana } from "../campanas/direccionDeCampanas";
+import { useFocoDeRetorno } from "../campanas/focoDeRetorno";
+import { idDeCorreo, tipoDelId } from "../campanas/modeloRegistro";
+import { campanaHomonima, type CampanaConNombre } from "../campanas/nombreUnico";
 import { NOMBRE_DE_PLATAFORMA } from "./dialectos";
 import { LARGO_NOMBRE, problemaDelNombre } from "./modeloCampanas";
 import { pesoLegible } from "./modeloCorreo";
@@ -59,10 +64,14 @@ export const ROTULO_DEL_INFORME: Record<string, string> = {
   image_needs_upload: "Imagen sin URL pública",
   image_http: "Imagen sin https",
   image_alt_missing: "Imagen sin texto alternativo",
+  greeting_trato_detected: "Saludo por sexo detectado",
 };
 
+/** Un código que esta versión no conoce no sale crudo: su motivo (del backend) dice qué pasó. */
+export const ROTULO_DEL_INFORME_DESCONOCIDO = "Aviso de la importación";
+
 export function rotuloDelInforme(item: Pick<MailImportReportItem, "code">): string {
-  return ROTULO_DEL_INFORME[item.code] ?? item.code;
+  return ROTULO_DEL_INFORME[item.code] ?? ROTULO_DEL_INFORME_DESCONOCIDO;
 }
 
 /** Marca el bloque que el informe pidió ver, sobre la vista previa, y lo trae a la vista. */
@@ -154,8 +163,10 @@ export function InformeDeImportacion({ resultado, visto, sinUrl, onVer }: {
 /** Nombre, asunto y plataforma de la campaña nueva, y las dos salidas: crear o reemplazar. */
 export function PieDeImportacion({
   nombre, asunto, plataforma, problemaNombre, problemaAsunto, error, activa, conCambios, trabajando, aplicando,
-  onNombre, onAsunto, onPlataforma, onOtra, onReemplazar, onCrear,
+  onNombre, onAsunto, onPlataforma, onOtra, onReemplazar, onCrear, homonima = null,
 }: {
+  /** La campaña que ya se llama así (F1): «Crear campaña» espera otro nombre. */
+  homonima?: CampanaConNombre | null;
   nombre: string;
   /** El asunto del correo: el HTML casi nunca lo trae y se pide aquí, a la vista. */
   asunto: string;
@@ -183,7 +194,8 @@ export function PieDeImportacion({
           <input
             value={nombre}
             maxLength={LARGO_NOMBRE}
-            aria-invalid={problemaNombre ? true : undefined}
+            aria-invalid={problemaNombre || homonima ? true : undefined}
+            aria-describedby={homonima ? `${ids}-repetido` : undefined}
             onChange={(e) => onNombre(e.target.value)}
           />
         </label>
@@ -215,6 +227,9 @@ export function PieDeImportacion({
         </fieldset>
       </span>
       {problemaNombre ? <p className="rec-camp-nueva-problema" role="alert">{problemaNombre}</p> : null}
+      {homonima && !problemaNombre ? (
+        <AvisoDeNombreRepetido id={`${ids}-repetido`} campana={homonima} href={homonima.archived ? null : hrefDeCampana({ id: homonima.id, tipo: tipoDelId(homonima.id) ?? "correo" })} />
+      ) : null}
       {problemaAsunto ? <p id={`${ids}-asunto`} className="rec-camp-nueva-problema" role="status">{problemaAsunto}</p> : null}
       {error ? <p className="rec-camp-mensaje is-error" role="alert">{error}</p> : null}
       {activa && conCambios ? (
@@ -234,7 +249,7 @@ export function PieDeImportacion({
             Reemplazar la plantilla de esta campaña
           </PulsoButton>
         ) : null}
-        <PulsoButton variant="primary" size="sm" disabled={trabajando || Boolean(problemaNombre) || Boolean(problemaAsunto)} onClick={onCrear}>
+        <PulsoButton variant="primary" size="sm" disabled={trabajando || Boolean(problemaNombre) || Boolean(problemaAsunto) || Boolean(homonima)} onClick={onCrear}>
           {aplicando ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Plus size={14} aria-hidden />}
           Crear campaña
         </PulsoButton>
@@ -256,6 +271,11 @@ type Props = {
   onReemplazar: (template: MailTemplate, importId: string) => void;
   /** Tras crear: abre la campaña nueva (y cierra el diálogo). */
   onAbrir: (campaignId: string, aviso: string | undefined, importada: MailTemplate) => void;
+  /**
+   * Todas las campañas del proyecto, si se conocen (también aulas y archivadas):
+   * el nombre de la nueva no repite ninguno. Sin ellas, se miran los correos.
+   */
+  registradas?: readonly CampanaConNombre[];
 };
 
 const FUENTES: { value: FuenteDelHtml; label: string }[] = [
@@ -263,7 +283,7 @@ const FUENTES: { value: FuenteDelHtml; label: string }[] = [
   { value: "pegar", label: "Pegar el código" },
 ];
 
-export function DialogoImportarHtml({ panel, activa, campanas, plataformaPorDefecto, conCambios, ocupado, onCrear, onReemplazar, onAbrir }: Props) {
+export function DialogoImportarHtml({ panel, activa, campanas, plataformaPorDefecto, conCambios, ocupado, onCrear, onReemplazar, onAbrir, registradas }: Props) {
   const ids = useId();
   const { abierto, cerrar } = panel;
   const { estado, despachar, leer } = useImportarHtml({
@@ -277,6 +297,10 @@ export function DialogoImportarHtml({ panel, activa, campanas, plataformaPorDefe
   const problemaNombre = r ? problemaDelNombre(estado.nombre) : null;
   const problemaAsunto = r ? problemaDelAsunto(estado.asunto) : null;
   const sinUrl = r ? r.images.filter((i) => i.status === "needs_upload") : [];
+  const existentes = registradas ?? campanas.map((c) => ({ id: idDeCorreo(c.campaign_id), name: c.name }));
+  const homonima = r ? campanaHomonima(estado.nombre, existentes) : null;
+  // Desde «Nueva campaña» el disparador ya no existe: el foco vuelve a «Nueva campaña».
+  const alCerrar = useFocoDeRetorno(abierto, ['[data-retorno="nueva-campana"]', ".rec-mail-barra .rec-campana-menu-boton"]);
 
   const alElegirArchivo = (event: ChangeEvent<HTMLInputElement>) => {
     despachar({ type: "archivo", archivo: event.target.files?.[0] ?? null });
@@ -288,7 +312,7 @@ export function DialogoImportarHtml({ panel, activa, campanas, plataformaPorDefe
   };
 
   const crear = async () => {
-    if (!r || problemaNombre || problemaAsunto) return;
+    if (!r || problemaNombre || problemaAsunto || homonima) return;
     despachar({ type: "aplicando" });
     const template = conAsunto(r.template, estado.asunto);
     const out = await onCrear({ name: estado.nombre, actor: "", platform: estado.plataforma, template, import_id: r.import_id });
@@ -316,6 +340,7 @@ export function DialogoImportarHtml({ panel, activa, campanas, plataformaPorDefe
           data-audit-ready="true"
           aria-busy={trabajando}
           aria-describedby={`${ids}-desc`}
+          onCloseAutoFocus={alCerrar}
         >
           <header className="rec-imp-cabeza">
             <span>
@@ -407,6 +432,7 @@ export function DialogoImportarHtml({ panel, activa, campanas, plataformaPorDefe
                 plataforma={estado.plataforma}
                 problemaNombre={problemaNombre}
                 problemaAsunto={problemaAsunto}
+                homonima={homonima}
                 onAsunto={(asunto) => despachar({ type: "asunto", asunto })}
                 error={estado.error}
                 activa={activa}

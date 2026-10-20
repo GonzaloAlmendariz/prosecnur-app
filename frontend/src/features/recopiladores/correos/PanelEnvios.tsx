@@ -28,6 +28,7 @@ import {
   avisosDeFechas,
   esIdLocal,
   fechaCorta,
+  marcaDeExportado,
   puedeAgregar,
 } from "./modeloEnvios";
 import "./correosEnvios.css";
@@ -46,6 +47,8 @@ type Props = {
   onQuitar: (sendId: string) => void;
   onEditar: (sendId: string, cambio: Partial<Omit<MailSend, "send_id" | "kind">>) => void;
   onExportar: () => void;
+  /** Cuándo se exportó cada envío (`send_id` → ISO), del registro de la campaña (F16). */
+  exportados?: Readonly<Record<string, string>>;
 };
 
 export function PanelEnvios({
@@ -61,6 +64,7 @@ export function PanelEnvios({
   onQuitar,
   onEditar,
   onExportar,
+  exportados = {},
 }: Props) {
   const ids = useId();
   const avisos = avisosDeFechas(envios);
@@ -96,11 +100,13 @@ export function PanelEnvios({
                   <b>{e.label}</b>
                   <span>
                     {fechaCorta(e.date) || "Sin fecha"} · {e.kind === "invitacion" ? "a todos" : ROTULO_DE_AUDIENCIA[e.audience].toLocaleLowerCase("es-PE")}
+                    {marcaDeExportado(exportados[e.send_id]) ? ` · ${marcaDeExportado(exportados[e.send_id])}` : ""}
                   </span>
                 </span>
                 <span className="rec-env-fila-chips">
                   {e.opening ? <span className="rec-mail-chip">con apertura</span> : null}
-                  {esIdLocal(e.send_id) ? <span className="rec-mail-chip is-warning">sin guardar</span> : null}
+                  {/* Un solo «sin guardar» en la vista: el de la barra (F6). Éste dice que el envío es nuevo. */}
+                  {esIdLocal(e.send_id) ? <span className="rec-mail-chip">nuevo</span> : null}
                   {conAviso ? <AlertTriangle size={13} aria-label="La fecha no viene después del envío anterior" className="rec-env-fila-aviso" /> : null}
                 </span>
               </button>

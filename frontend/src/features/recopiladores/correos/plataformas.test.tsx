@@ -19,7 +19,8 @@ import {
   problemaDeEtiquetas,
   smSugerido,
 } from "./dialectos";
-import { DialogoImportarHtml, InformeDeImportacion, PieDeImportacion, rotuloDelInforme } from "./DialogoImportarHtml";
+import { DialogoImportarHtml, InformeDeImportacion, PieDeImportacion, ROTULO_DEL_INFORME, rotuloDelInforme } from "./DialogoImportarHtml";
+import { PanelDestinatarios } from "./PanelDestinatarios";
 import { agregarRecordatorio, conApertura, enviosParaGuardar } from "./modeloEnvios";
 import { cabeceraSinAlt } from "./modeloCorreo";
 import { PanelEnvios } from "./PanelEnvios";
@@ -105,44 +106,73 @@ describe("dialectos: cómo sale cada bloque en cada plataforma", () => {
   });
 });
 
-describe("pie por plataforma", () => {
-  it("SurveyMonkey: copiar, paquete, pasos del envío y nota del plan Enterprise", () => {
+describe("«Exportar ▾» por plataforma (F7)", () => {
+  it("SurveyMonkey: copiar (principal), paquete, pasos del envío y nota del plan Enterprise", () => {
     const html = renderToStaticMarkup(
       <PanelSurveyMonkey
-        template={PLANTILLA}
         envio={{ send_id: "recordatorio-1", kind: "recordatorio", label: "Recordatorio 1", audience: "sin_respuesta", date: "2026-09-08" }}
         revision={null}
         exportacion={null}
         exportando={false}
         ocupado={false}
-        onEditar={noop}
         onHtml={async () => null}
         onExportar={noop}
         onGuardarJunto={noop}
-        onVerRevision={noop}
       />,
     );
     expect(html).toContain("Para SurveyMonkey · Recordatorio 1 · 08/09");
     expect(html).toContain("Copiar HTML para SurveyMonkey");
+    expect(html.match(/rec-mail-salida-principal/g)).toHaveLength(1);
     expect(html).toContain("Paquete del envío");
+    expect(html).toContain("lo que pegas en el mensaje del recopilador");
     expect(html).toContain("Seguimiento");
     expect(html).toContain("Enviar recordatorio");
     expect(html).toContain("Enterprise");
-    // La tabla editable: {{carrera}} sin etiqueta todavía; [SurveyLink] deshabilitado para {{web}}.
+    // La tabla de etiquetas ya no viaja en la salida: vive en Personas.
+    expect(html).not.toContain("Etiqueta de SurveyMonkey para");
+    expect(html).not.toContain("Mailchimp");
+  });
+
+  it("la tabla {{campo}} → [CustomData] se edita en Personas, con el dialecto de la campaña (F5)", () => {
+    const html = renderToStaticMarkup(
+      <PanelDestinatarios
+        template={PLANTILLA}
+        destinatarios={null}
+        persona={null}
+        ocupado={false}
+        dialecto="surveymonkey"
+        onEditar={noop}
+        onImportar={noop}
+        onMapear={noop}
+        onOlvidar={noop}
+        onVerComo={noop}
+      />,
+    );
+    // {{carrera}} sin etiqueta todavía; [SurveyLink] deshabilitado para {{web}}.
     expect(html).toContain("Etiqueta de SurveyMonkey para {{carrera}}");
     expect(html).toMatch(/<option value="SurveyLink" disabled=""[^>]*>\[SurveyLink\] · no aplica/);
     // {{web}} es un enlace sin destino: se pregunta antes de mapearlo.
     expect(html).toContain("¿Este enlace es la encuesta?");
+    expect(html).toContain("[FirstName]");
+    expect(html).not.toContain("FNAME");
     expect(html).not.toContain("Mailchimp");
+    expect(html).not.toContain("Etiqueta de Mailchimp");
+    expect(html).toContain("Opcional: carga la lista");
   });
 
   it("Mailchimp no cambia y nombra el envío cuando hay más de uno", () => {
     const html = renderToStaticMarkup(
-      <PanelMailchimp envio="Recordatorio 1" template={PLANTILLA} revision={null} exportacion={null} exportando={null} ocupado={false} htmlActual={null}
-        onExportar={noop} onGuardarJunto={noop} onVerRevision={noop} />,
+      <PanelMailchimp envio="Recordatorio 1" revision={null} exportacion={null} exportando={null} ocupado={false} htmlActual={null}
+        onExportar={noop} onGuardarJunto={noop} />,
     );
     expect(html).toContain("Para Mailchimp · Recordatorio 1");
-    expect(html).toContain("*|ENLACE|*");
+    expect(html).toContain("Plantilla para importar en Mailchimp");
+    const personas = renderToStaticMarkup(
+      <PanelDestinatarios template={PLANTILLA} destinatarios={null} persona={null} ocupado={false}
+        onEditar={noop} onImportar={noop} onMapear={noop} onOlvidar={noop} onVerComo={noop} />,
+    );
+    expect(personas).toContain("Etiqueta de Mailchimp de");
+    expect(personas).toContain("FNAME");
   });
 
   it("«Copiar HTML» copia el HTML de export, y pide mode export con el envío del borrador", async () => {
@@ -191,6 +221,7 @@ describe("panel de envíos", () => {
         onQuitar={noop}
         onEditar={noop}
         onExportar={noop}
+        exportados={{ invitacion: "2026-09-02T15:04:00Z" }}
       />,
     );
     expect(html).toContain('data-qa-geometry-group="material-campo/correo/envios"');
@@ -198,7 +229,11 @@ describe("panel de envíos", () => {
     expect(html).toContain("02/09 · a todos");
     expect(html).toContain("Sin fecha · sin respuesta");
     expect(html).toContain("con apertura");
-    expect(html).toContain("sin guardar");
+    // F6: un solo «sin guardar» en la vista, el de la barra; el envío dice que es nuevo.
+    expect(html).not.toContain("sin guardar");
+    expect(html).toContain(">nuevo<");
+    // F16: la fila del envío dice cuándo se exportó.
+    expect(html).toContain("exportado 02/09");
     expect(html).toContain('aria-label="Quitar Recordatorio 1"');
     expect(html).not.toContain('aria-label="Quitar Invitación"');
     expect(html).toContain("Recopilador");
@@ -249,6 +284,15 @@ describe("la apertura y los envíos en el store", () => {
   });
 });
 
+/** Los códigos de `.cmail_ih_report` en collection_mail_import_html.R / _zip.R (2026-10-20). */
+const CODIGOS_DEL_IMPORTADOR = [
+  "block_degraded", "button_without_link", "comments_discarded", "conditional_flattened", "element_discarded",
+  "email_tag_removed", "event_handler_discarded", "greeting_trato_detected", "header_missing", "hidden_discarded",
+  "hover_ignored", "image_alt_missing", "image_http", "image_needs_upload", "italic_plain", "link_discarded",
+  "moved_to_footer", "platform_footer_removed", "platform_link_removed", "platform_mixed", "strike_plain",
+  "style_discarded", "subject_missing", "text_degraded", "text_escaped", "unrecognized", "unsafe_link_discarded",
+];
+
 const IMPORTADA = normalizeMailImportHtml({
   import_id: "imp-1", sha256: "sha256:x", bytes: 3480, platform_detected: "surveymonkey",
   platform_evidence: { surveymonkey: 4, mailchimp: 0 },
@@ -279,10 +323,13 @@ describe("importar un correo existente", () => {
     expect(nombreSugerido({ template: { ...PLANTILLA, title: undefined } }, new File([""], "contabilidad-reacreditacion.html"))).toBe("contabilidad reacreditacion");
   });
 
-  it("rótulos del informe en es-PE; un código desconocido se nombra con su código", () => {
+  it("rótulos del informe en es-PE; un código desconocido no sale crudo (F9)", () => {
     expect(rotuloDelInforme({ code: "image_alt_missing" })).toBe("Imagen sin texto alternativo");
     expect(rotuloDelInforme({ code: "conditional_flattened" })).toBe("Condicional simplificado");
-    expect(rotuloDelInforme({ code: "codigo_futuro" })).toBe("codigo_futuro");
+    expect(rotuloDelInforme({ code: "greeting_trato_detected" })).toBe("Saludo por sexo detectado");
+    expect(rotuloDelInforme({ code: "codigo_futuro" })).toBe("Aviso de la importación");
+    // Todos los códigos que emite el importador del backend (collection_mail_import_*.R) tienen rótulo.
+    for (const code of CODIGOS_DEL_IMPORTADOR) expect(ROTULO_DEL_INFORME[code], code).toBeTruthy();
   });
 
   it("la cabecera importada sin descripción se pide", () => {
@@ -312,7 +359,8 @@ describe("importar un correo existente", () => {
     expect(html).toContain("4 de SurveyMonkey · 0 de Mailchimp");
     expect(html).toContain("Estilos descartados");
     expect(html).toContain("Imagen sin texto alternativo");
-    expect(html).toContain("codigo_futuro");
+    expect(html).not.toContain("codigo_futuro");
+    expect(html).toContain("Aviso de la importación");
     expect(html).toContain("Algo que esta versión no conoce.");
     expect(html.match(/rec-imp-ver/g)).toHaveLength(1);
     expect(html).toContain("rec-imp-item is-visto");

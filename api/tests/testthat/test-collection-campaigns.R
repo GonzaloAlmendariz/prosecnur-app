@@ -52,7 +52,7 @@ test_that("proyecto vacío: sin campañas, tipos con aulas y correo disponibles 
   expect_true(tipos$aulas$disponible)
   expect_true(tipos$correo$disponible)
   expect_false(tipos$territorial$disponible)
-  expect_identical(tipos$territorial$motivo, "Requiere leer las UMP de Hojas de ruta (E2)")
+  expect_identical(tipos$territorial$motivo, "Requiere leer las UMP de Hojas de ruta")
   # La virtual `correo-1` no es tarjeta, y leer no escribe nada.
   expect_null(session_get(sid)$material_campaigns)
 })

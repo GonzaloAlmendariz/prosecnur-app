@@ -31,14 +31,16 @@ import { DialogoRenombrarCampana } from "./DialogoRenombrarCampana";
 import { RUTA_MATERIAL_CAMPO, direccionDeApertura, hrefDeCampana, searchDeCampanas } from "./direccionDeCampanas";
 import { ListaDeCampanas, type AvisoDeLaLista } from "./ListaDeCampanas";
 import { useMiniaturasDeCorreo } from "./miniaturaDeCorreo";
-import { ID_CAMPANA_AULAS, campanaPorId, idDeCorreo, refDeCorreo } from "./modeloRegistro";
+import { ID_CAMPANA_AULAS, campanaPorId, exportadosDe, idDeCorreo, refDeCorreo } from "./modeloRegistro";
+import { subtituloDeCampana } from "./nombreUnico";
 import { PANEL_NUEVA_CAMPANA, PANEL_RENOMBRAR_CAMPANA } from "./panelesCampanas";
 import { resolverVistaDeCampanas } from "./redirecciones";
 import { useRegistroDeCampanas } from "./useRegistroDeCampanas";
 
 /** «Importar un correo existente» desde «Nueva campaña»: crea la campaña y la abre. */
-function ImportarDesdeLaLista({ campanasAcc, plataforma, onAbrir }: {
+function ImportarDesdeLaLista({ campanasAcc, plataforma, onAbrir, registradas }: {
   campanasAcc: AccionesDeCampanas;
+  registradas: readonly CampanaMaterial[];
   plataforma: MailPlatform;
   onAbrir: (campaignId: string, aviso: string | undefined, conPanelDeIdentidad: boolean) => void;
 }) {
@@ -54,6 +56,7 @@ function ImportarDesdeLaLista({ campanasAcc, plataforma, onAbrir }: {
       conCambios={false}
       ocupado={ocupado}
       onCrear={campanasAcc.crearImportada}
+      registradas={registradas}
       onReemplazar={() => undefined}
       onAbrir={(campaignId, aviso, importada) => {
         const sinAlt = cabeceraSinAlt(importada);
@@ -222,13 +225,26 @@ export function MaterialCampoShell() {
     return { ok: true };
   }, [campanasAcc, correos, navigate]);
 
-  const cabecera = abierta ? <CabeceraDeCampana campana={abierta} acciones={accionesDe(abierta)} onAccion={onAccion} /> : null;
+  // El asunto de cada correo, por id de campaña: distingue a dos homónimas sin actor (F1).
+  const asuntos = useMemo(
+    () => Object.fromEntries(correos.map((c) => [idDeCorreo(c.campaign_id), c.subject])),
+    [correos],
+  );
+  const cabecera = abierta ? (
+    <CabeceraDeCampana
+      campana={abierta}
+      acciones={accionesDe(abierta)}
+      onAccion={onAccion}
+      subtitulo={subtituloDeCampana(abierta, asuntos[abierta.id])}
+    />
+  ) : null;
 
   const dialogosComunes = registro ? (
     <>
       <DialogoRenombrarCampana
         panel={renombrar}
         campana={renombrar.abierto ? objetivo : null}
+        campanas={registro.campaigns}
         ocupado={reg.ocupado || ocupadoCorreos}
         onGuardar={guardarNombre}
         onCerrar={cerrarPanel}
@@ -254,7 +270,13 @@ export function MaterialCampoShell() {
   if (vista?.vista === "campana" && vista.modo === "correo") {
     return (
       <>
-        <CampanaCorreoShell nombre={vista.campana.name} cabecera={cabecera} campanasAcc={campanasAcc} onStateRefresh={onEscrito} />
+        <CampanaCorreoShell
+          nombre={vista.campana.name}
+          cabecera={cabecera}
+          campanasAcc={campanasAcc}
+          onStateRefresh={onEscrito}
+          exportados={exportadosDe(vista.campana)}
+        />
         {dialogosComunes}
       </>
     );
@@ -275,6 +297,7 @@ export function MaterialCampoShell() {
         onNueva={nueva.abrir}
         onReintentar={() => { void recargar(false); }}
         miniaturas={miniaturasDeCorreo}
+        asuntos={asuntos}
       />
       {vista ? (
         <>
@@ -294,6 +317,7 @@ export function MaterialCampoShell() {
           />
           <ImportarDesdeLaLista
             campanasAcc={campanasAcc}
+            registradas={registro?.campaigns ?? []}
             plataforma={plataformaImportar}
             onAbrir={(campaignId, avisoDeCreacion, conIdentidad) => {
               if (avisoDeCreacion) setAviso({ tono: "ok", texto: avisoDeCreacion });

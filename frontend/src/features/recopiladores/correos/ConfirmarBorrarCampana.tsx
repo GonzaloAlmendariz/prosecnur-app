@@ -16,6 +16,7 @@ import type { MailCampaignSummary } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import type { ControlPanel } from "../../../lib/navegacion/paneles";
 import { Loader2, Trash2 } from "../../../vendor/lucide-react";
+import { useFocoDeRetorno } from "../campanas/focoDeRetorno";
 import { BORRADO_INICIAL, nombreConfirmado, reducirBorrado, rotuloDeCampana } from "./modeloCampanas";
 import type { ResultadoDelBorrado } from "./useCampanas";
 
@@ -35,6 +36,8 @@ export function ConfirmarBorrarCampana({ panel, campana, onBorrar, onCancelar }:
   const campoRef = useRef<HTMLInputElement>(null);
   const borrando = fase.paso === "borrando";
   const { abierto } = panel;
+  // Tras cancelar, el foco vuelve al «⋯» de la campaña (el ítem del menú ya no existe).
+  const alCerrar = useFocoDeRetorno(abierto, campana ? [`[data-retorno="menu-correo.${campana.campaign_id}"]`] : []);
 
   useEffect(() => {
     if (!abierto) dispatch({ type: "reiniciar" });
@@ -66,6 +69,7 @@ export function ConfirmarBorrarCampana({ panel, campana, onBorrar, onCancelar }:
           aria-busy={borrando}
           aria-describedby={`${ids}-desc`}
           onOpenAutoFocus={(e) => { e.preventDefault(); cancelarRef.current?.focus({ preventScroll: true }); }}
+          onCloseAutoFocus={alCerrar}
         >
           <header className="rec-camp-dialogo-cabeza">
             <Dialog.Title className="rec-camp-dialogo-titulo">

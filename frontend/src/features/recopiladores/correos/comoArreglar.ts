@@ -25,7 +25,7 @@ const ARREGLO: Readonly<Record<string, string>> = {
   survey_link: "Pon en el botón el campo del enlace y dale [SurveyLink] en la tabla de SurveyMonkey.",
   footer_optout: "Deja el bloque de pie: la app agrega [OptOutLink].",
   images_public_url: "SurveyMonkey sólo muestra imágenes alojadas: ponle una URL https.",
-  sm_fields_mapped: "Elige su etiqueta en la tabla «Para SurveyMonkey».",
+  sm_fields_mapped: "Elige su etiqueta en Personas, en «Para SurveyMonkey».",
   sm_fallback: "Asegura que todos tengan el dato en Contactos de SurveyMonkey.",
   sm_custom_limit: "Usa [CustomData1] a [CustomData6] si el plan no es Team o Enterprise.",
   sm_link_field_empty: "Revisa que cada contacto tenga su enlace en SurveyMonkey.",
@@ -40,6 +40,9 @@ const ARREGLO: Readonly<Record<string, string>> = {
 export function comoArreglar(code: string): string | null {
   return ARREGLO[code] ?? null;
 }
+
+/** `data-foco` del selector de la columna de sexo del saludo (Bloque › Saludo). */
+export const FOCO_COLUMNA_DEL_TRATO = "trato-columna";
 
 /** Chequeos sin bloque que viven en «Asunto y vista previa». */
 const DEL_SOBRE: ReadonlySet<string> = new Set(["subject", "preheader"]);

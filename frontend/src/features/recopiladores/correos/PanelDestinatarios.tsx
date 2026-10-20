@@ -1,10 +1,14 @@
 import { useId, useState, type ChangeEvent } from "react";
 
-import type { MailField, MailRecipients, MailRecipientsMapping, MailTemplate } from "../../../api/materialMail";
+import type { MailField, MailPlatform, MailRecipients, MailRecipientsMapping, MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { FileUp, Plus, ShieldCheck, Trash2, Users } from "../../../vendor/lucide-react";
+import { ArrowRight, FileUp, Plus, ShieldCheck, Sparkles, Trash2, Users } from "../../../vendor/lucide-react";
 import { Segmented } from "../../xlsformEditor/kit";
+import { NOMBRE_DE_PLATAFORMA } from "./dialectos";
 import { notasDeLectura, nuevoCampo, problemaDeCampo, CUERPO_DEL_INSPECTOR } from "./modeloCorreo";
+import type { OfertaDelTrato } from "./modeloTrato";
+import { DestinatariosEnSurveyMonkey, MapeoSurveyMonkey } from "./PanelSurveyMonkey";
+import "./correosPersonas.css";
 
 type Props = {
   template: MailTemplate;
@@ -16,9 +20,29 @@ type Props = {
   onMapear: (mapping: MailRecipientsMapping) => void;
   onOlvidar: () => void;
   onVerComo: (index: number) => void;
+  /** La plataforma de la campaña: Personas habla su dialecto (F5). */
+  dialecto?: MailPlatform;
+  /** El saludo por sexo, ofrecido donde se carga la lista (F2). */
+  oferta?: OfertaDelTrato;
+  onUsarColumnaDeSexo?: (columna: string) => void;
+  onVerSaludo?: () => void;
 };
 
 const SIN_COLUMNA = "";
+
+/** Lo que Personas dice según la plataforma: dónde viajan los correos y qué falta sin lista. */
+const TEXTO_DE_PERSONAS: Record<MailPlatform, { nota: string; sinLista: string; nombre: string }> = {
+  mailchimp: {
+    nota: "Los correos se ven solo en la audiencia exportada para Mailchimp; aquí se muestran nombre y campos. La lista vive en esta sesión y no entra al proyecto.",
+    sinLista: "Sin destinatarios, la vista previa usa una persona de ejemplo y la audiencia no se puede exportar.",
+    nombre: "*|FNAME|*",
+  },
+  surveymonkey: {
+    nota: "Los correos sólo van en contactos_surveymonkey.csv, dentro del paquete; aquí se muestran nombre y campos. La lista vive en esta sesión y no entra al proyecto.",
+    sinLista: "Sin lista, la vista previa usa una persona de ejemplo y el paquete sale sin el archivo de contactos.",
+    nombre: "[FirstName]",
+  },
+};
 
 /** Lo que identifica a la persona en la muestra: sus campos, sin enlaces. */
 function datosDePersona(template: MailTemplate, fields: Record<string, string>): string {
@@ -86,10 +110,12 @@ function FilaDeCampo({
   columnas,
   cargados,
   ocupado,
+  dialecto,
   onCambiar,
   onQuitar,
   onColumna,
 }: {
+  dialecto: MailPlatform;
   field: MailField;
   otros: readonly MailField[];
   columna: string | null;
@@ -105,14 +131,21 @@ function FilaDeCampo({
     <li className="rec-mail-def-campo">
       <span className="rec-mail-def-campo-tags">
         <span className="rec-mail-token">{`{{${field.key}}}`}</span>
-        <span className="rec-mail-flecha" aria-hidden>→</span>
-        <input
-          className="rec-mail-input rec-mail-input--sm is-mono rec-mail-input--tag"
-          aria-label={`Etiqueta de Mailchimp de ${field.label}`}
-          value={field.tag}
-          maxLength={10}
-          onChange={(e) => onCambiar({ ...field, tag: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "") })}
-        />
+        {dialecto === "mailchimp" ? (
+          <>
+            <span className="rec-mail-flecha" aria-hidden>→</span>
+            <input
+              className="rec-mail-input rec-mail-input--sm is-mono rec-mail-input--tag"
+              aria-label={`Etiqueta de Mailchimp de ${field.label}`}
+              value={field.tag}
+              maxLength={10}
+              onChange={(e) => onCambiar({ ...field, tag: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "") })}
+            />
+          </>
+        ) : (
+          // En SurveyMonkey la etiqueta se elige abajo, en «Para SurveyMonkey».
+          <span className="rec-mail-def-campo-sm xfk-mono">{field.sm ? `[${field.sm}]` : "sin etiqueta"}</span>
+        )}
         <PulsoButton variant="icon" size="sm" aria-label={`Quitar el campo ${field.label}`} title="Quitar" onClick={onQuitar}>
           <Trash2 size={13} aria-hidden />
         </PulsoButton>
@@ -161,8 +194,13 @@ export function PanelDestinatarios({
   onMapear,
   onOlvidar,
   onVerComo,
+  dialecto = "mailchimp",
+  oferta = null,
+  onUsarColumnaDeSexo,
+  onVerSaludo,
 }: Props) {
   const [nuevo, setNuevo] = useState("");
+  const texto = TEXTO_DE_PERSONAS[dialecto];
   const cargados = Boolean(destinatarios?.loaded);
   const mapping = destinatarios?.mapping ?? null;
   const columnas = destinatarios?.columns ?? [];
@@ -184,6 +222,7 @@ export function PanelDestinatarios({
 
   return (
     <div {...CUERPO_DEL_INSPECTOR} className="rec-mail-insp-cuerpo">
+      {dialecto === "surveymonkey" && !cargados ? <DestinatariosEnSurveyMonkey /> : null}
       <div className="rec-mail-insp-cabeza">
         <h3>{cargados && counts ? `${counts.valid.toLocaleString("es-PE")} destinatarios` : "Destinatarios"}</h3>
         <p>
@@ -204,6 +243,25 @@ export function PanelDestinatarios({
             ].filter(Boolean).join(", ")}` : " · todas con correo válido"}
           </p>
           {notas.length ? <p className="rec-mail-ayuda">{notas.join(" · ")}</p> : null}
+          {oferta?.tipo === "ofrecer" && onUsarColumnaDeSexo ? (
+            <div className="rec-personas-trato" role="group" aria-label="Saludo según el sexo">
+              <Sparkles size={14} aria-hidden />
+              <span>La lista trae «{oferta.columna}»: el saludo puede decir Estimado o Estimada según cada persona.</span>
+              <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={() => onUsarColumnaDeSexo(oferta.columna)}>
+                Usar «{oferta.columna}» para el saludo
+              </PulsoButton>
+            </div>
+          ) : null}
+          {oferta?.tipo === "en-uso" ? (
+            <p className="rec-personas-trato is-en-uso" role="status">
+              <span>El saludo cambia según «{oferta.columna}».</span>
+              {onVerSaludo ? (
+                <button type="button" className="rec-mail-link" onClick={onVerSaludo}>
+                  Ver el saludo <ArrowRight size={12} aria-hidden />
+                </button>
+              ) : null}
+            </p>
+          ) : null}
           <div className="rec-mail-mapeo">
             <label className="rec-mail-mapeo-fila">
               <span>Correo</span>
@@ -263,8 +321,7 @@ export function PanelDestinatarios({
             ))}
           </ul>
           <p className="rec-mail-nota">
-            <ShieldCheck size={13} aria-hidden /> Los correos se ven solo en la audiencia exportada para Mailchimp;
-            aquí se muestran nombre y campos. La lista vive en esta sesión y no entra al proyecto.
+            <ShieldCheck size={13} aria-hidden /> {texto.nota}
           </p>
           <span className="rec-mail-botones">
             <ImportarArchivo etiqueta="Cambiar la lista" disabled={ocupado} onArchivo={onImportar} />
@@ -276,7 +333,7 @@ export function PanelDestinatarios({
       ) : (
         <div className="rec-mail-sin-lista" data-qa-geometry-capacity="owned">
           <Users size={18} aria-hidden />
-          <p>Sin destinatarios, la vista previa usa una persona de ejemplo y la audiencia no se puede exportar.</p>
+          <p>{texto.sinLista}</p>
           <ImportarArchivo etiqueta="Importar destinatarios" primario disabled={ocupado} onArchivo={onImportar} />
           <span className="rec-mail-ayuda">
             Una fila por persona con su correo; el nombre y los campos se eligen después. Los correos no se muestran aquí ni entran al proyecto.
@@ -295,7 +352,7 @@ export function PanelDestinatarios({
             <span className="rec-mail-def-campo-tags">
               <span className="rec-mail-token">{"{{nombre}}"}</span>
               <span className="rec-mail-flecha" aria-hidden>→</span>
-              <span className="xfk-mono">FNAME</span>
+              <span className="xfk-mono">{texto.nombre}</span>
             </span>
             <span className="rec-mail-ayuda">El nombre de pila, del mapeo de arriba. Reservado.</span>
           </li>
@@ -308,6 +365,7 @@ export function PanelDestinatarios({
               columnas={columnas}
               cargados={cargados}
               ocupado={ocupado}
+              dialecto={dialecto}
               onCambiar={(next) => onEditar((t) => ({ ...t, fields: t.fields.map((f, j) => (j === i ? next : f)) }))}
               onQuitar={() => onEditar((t) => ({ ...t, fields: t.fields.filter((_, j) => j !== i) }))}
               onColumna={(columna) => {
@@ -320,6 +378,13 @@ export function PanelDestinatarios({
             />
           ))}
         </ul>
+        {dialecto === "surveymonkey" ? (
+          <div className="rec-personas-sm">
+            <span className="xfk-over">Para {NOMBRE_DE_PLATAFORMA.surveymonkey}</span>
+            <span className="rec-mail-ayuda">Cada campo va en una etiqueta del recopilador.</span>
+            <MapeoSurveyMonkey template={template} onEditar={onEditar} />
+          </div>
+        ) : null}
         <form
           className="rec-mail-nuevo-campo"
           onSubmit={(e) => { e.preventDefault(); agregarCampo(); }}

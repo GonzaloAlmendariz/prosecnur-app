@@ -171,6 +171,14 @@ export function ponerEnRegistro(registro: RegistroDeCampanas, campana: CampanaMa
   return { ...registro, campaigns, tipos, registry_revision: registryRevision ?? registro.registry_revision };
 }
 
+/** Cuándo se exportó cada envío de un correo (`send_id` → ISO); vacío si no es un correo (F16). */
+export function exportadosDe(campana: CampanaMaterial): Record<string, string> {
+  if (campana.estado?.tipo !== "correo") return {};
+  return Object.fromEntries(
+    campana.estado.envios_detalle.flatMap((e) => (e.last_export_at ? [[e.send_id, e.last_export_at] as const] : [])),
+  );
+}
+
 /** Marca la exportación de un envío en la tarjeta, sin releer el registro (`export_recorded`). */
 export function conExportacion(
   registro: RegistroDeCampanas,

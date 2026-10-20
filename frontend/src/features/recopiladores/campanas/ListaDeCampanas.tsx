@@ -41,6 +41,8 @@ type Props = {
   onReintentar: () => void;
   /** Miniatura real de cada correo, por id de campaña. */
   miniaturas?: Record<string, MiniaturaDeCorreo | null>;
+  /** El asunto de cada correo, por id de campaña: subtítulo cuando no hay actor (F1). */
+  asuntos?: Record<string, string>;
 };
 
 /** La readiness de la lista: falsa mientras lee; el vacío se publica como tal. */
@@ -59,12 +61,12 @@ function Grilla({ campanas, grupo, children }: { campanas: readonly CampanaMater
 }
 
 export function ListaDeCampanas({
-  registro, carga, error, fuente, aviso, onCerrarAviso, hrefDe, accionesDe, onAccion, onNueva, onReintentar, miniaturas = {},
+  registro, carga, error, fuente, aviso, onCerrarAviso, hrefDe, accionesDe, onAccion, onNueva, onReintentar, miniaturas = {}, asuntos = {},
 }: Props) {
   const visibles = registro ? campanasVisibles(registro) : [];
   const archivadas = registro ? campanasArchivadas(registro) : [];
   const tarjeta = (c: CampanaMaterial) => (
-    <TarjetaDeCampana campana={c} href={hrefDe(c)} acciones={accionesDe(c)} onAccion={onAccion} miniatura={miniaturas[c.id] ?? null} />
+    <TarjetaDeCampana campana={c} href={hrefDe(c)} acciones={accionesDe(c)} onAccion={onAccion} miniatura={miniaturas[c.id] ?? null} asunto={asuntos[c.id] ?? null} />
   );
 
   return (
@@ -85,7 +87,7 @@ export function ListaDeCampanas({
           <div className="rec-campanas-cabeza-fila">
             {/* El h1 lo pone PageFrame (sr-only) con el mismo título: este no se repite al lector. */}
             <p className="rec-campanas-titulo" aria-hidden>Campañas</p>
-            <PulsoButton variant="primary" size="sm" onClick={onNueva} disabled={!registro}>
+            <PulsoButton variant="primary" size="sm" onClick={onNueva} disabled={!registro} data-retorno="nueva-campana">
               <Plus size={14} aria-hidden /> Nueva campaña
             </PulsoButton>
           </div>
@@ -125,7 +127,7 @@ export function ListaDeCampanas({
               icono={<Layers size={18} />}
               titulo="Todavía no hay campañas"
               descripcion="Un campo en aulas con fichas QR o un correo para un grupo: elige el tipo y empieza."
-              accion={<PulsoButton variant="primary" size="sm" onClick={onNueva}><Plus size={14} aria-hidden /> Nueva campaña</PulsoButton>}
+              accion={<PulsoButton variant="primary" size="sm" onClick={onNueva} data-retorno="nueva-campana"><Plus size={14} aria-hidden /> Nueva campaña</PulsoButton>}
             />
           </div>
         )}

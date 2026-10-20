@@ -1,0 +1,170 @@
+/* «Exportar ▾» de la barra del correo (F7). El botón tiene el porte de las
+   herramientas de la barra (32 px); el menú es un portal (tokens globales) de
+   ancho fijo, con alto tope de la ventana y un único dueño de scroll: él
+   mismo (C4). Cada salida es una fila: su rótulo, la marca «principal» y una
+   línea de para qué sirve. Sólo tokens; reduced-motion apaga la transición. */
+
+.rec-barra-exportar {
+  align-items: center;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  box-shadow: none;
+  color: var(--pulso-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  gap: 5px;
+  height: 32px;
+  min-height: 0;
+  padding: 0 var(--pulso-space-2);
+  position: relative;
+  transform: none;
+  transition: background var(--motion-dur-fast) var(--motion-ease-out);
+  white-space: nowrap;
+}
+
+.rec-barra-exportar:hover,
+.rec-barra-exportar.is-on {
+  background: var(--pulso-module-fieldkit-soft);
+  border-color: transparent;
+  color: var(--pulso-module-fieldkit);
+}
+
+.rec-barra-exportar:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+.rec-barra-exportar-listo {
+  background: var(--pulso-module-fieldkit);
+  border-radius: var(--pulso-radius-chip);
+  height: 7px;
+  width: 7px;
+}
+
+.rec-exp {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  box-shadow: var(--pulso-shadow-popover);
+  max-height: calc(var(--radix-popover-content-available-height, 100vh) - 8px);
+  overflow-y: auto;
+  width: min(380px, calc(100vw - 24px));
+  z-index: var(--pulso-z-flyout);
+}
+
+.rec-exp-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px 14px;
+}
+
+.rec-exp-salidas {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-exp-salida {
+  align-items: stretch;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  box-shadow: none;
+  color: var(--pulso-text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 2px;
+  height: auto;
+  min-height: 0;
+  padding: 8px 10px;
+  text-align: left;
+  transform: none;
+  white-space: normal;
+  width: 100%;
+}
+
+.rec-exp-salida.is-principal {
+  border-color: var(--pulso-module-fieldkit);
+}
+
+.rec-exp-salida:hover:not(:disabled) {
+  background: var(--pulso-module-fieldkit-soft);
+}
+
+.rec-exp-salida:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+.rec-exp-salida:disabled {
+  color: var(--pulso-text-faint);
+  cursor: default;
+}
+
+.rec-exp-salida-titulo {
+  align-items: center;
+  display: flex;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  gap: 6px;
+}
+
+.rec-exp-salida-para {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.4;
+  padding-left: 20px;
+}
+
+.rec-mail-salida-principal {
+  background: var(--pulso-module-fieldkit-soft);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-module-fieldkit);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  margin-left: 4px;
+  padding: 0 5px;
+}
+
+.rec-exp-bloqueo {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  margin: 0;
+}
+
+.rec-exp-respaldo {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.rec-exp-respaldo-html {
+  display: grid;
+  font-size: 12px;
+  gap: 4px;
+  width: 100%;
+}
+
+.rec-exp-respaldo-html textarea {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  padding: 6px 8px;
+  resize: vertical;
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-barra-exportar {
+    transition: none;
+  }
+}

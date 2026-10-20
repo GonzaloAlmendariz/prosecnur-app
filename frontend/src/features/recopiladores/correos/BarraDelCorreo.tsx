@@ -6,7 +6,9 @@
 //   plataforma en pequeño y el envío que se mira (selector).
 // - Centro: deshacer y rehacer, el dispositivo (escritorio, teléfono, oscuro)
 //   como íconos con su nombre en el título, y «Ver como».
-// - Derecha: el estado del guardado y Guardar.
+// - Derecha: UNA lectura del guardado (F6, patrón Láminas): «Guardar» cuando
+//   hay cambios, «Guardado» cuando no; y «Exportar ▾» (F7).
+// - En compacto, primero el botón del cajón de plantillas y bloques (F3).
 // - «Más» (⋯): explicaciones al pasar el cursor, siguiente persona y el asunto.
 //   El asunto vive en el inspector, en Bloque › «Asunto y vista previa».
 //
@@ -23,6 +25,7 @@ import { Check, Loader2, Monitor, Moon, MoreHorizontal, Redo2, Save, Smartphone,
 import { NOMBRE_DE_PLATAFORMA } from "./dialectos";
 import type { VistaDelCorreo } from "./modeloCorreo";
 import { SelectorDeEnvio } from "./SelectorDeEnvio";
+import { NOTA_DEL_PROYECTO } from "./store";
 import "./correosBarra.css";
 
 const DISPOSITIVOS: { value: VistaDelCorreo; label: string; icono: LucideIcon }[] = [
@@ -33,12 +36,17 @@ const DISPOSITIVOS: { value: VistaDelCorreo; label: string; icono: LucideIcon }[
 
 type Props = {
   cabecera?: ReactNode;
+  /** El cajón de plantillas y bloques, sólo en compacto. */
+  cajon?: ReactNode;
+  /** «Exportar ▾». */
+  exportar?: ReactNode;
   plataforma: MailPlatform;
   envios: readonly MailSend[];
   envio: MailSend;
   onElegirEnvio: (sendId: string) => void;
   onAgregarEnvio: () => void;
   onGestionarEnvios: () => void;
+  exportados?: Readonly<Record<string, string>>;
   puedeDeshacer: boolean;
   puedeRehacer: boolean;
   onDeshacer: () => void;
@@ -52,7 +60,7 @@ type Props = {
   onSiguientePersona: () => void;
   asunto: string;
   onIrAlAsunto: () => void;
-  /** «Sin guardar», «Guardado»… */
+  /** Lo que se dice sin cambios por guardar: «Guardado» o «Plantilla de fábrica». */
   estadoGuardado: string;
   guardando: boolean;
   porGuardar: boolean;
@@ -99,10 +107,12 @@ export function BarraDelCorreo(p: Props) {
           onElegir={p.onElegirEnvio}
           onAgregar={p.onAgregarEnvio}
           onGestionar={p.onGestionarEnvios}
+          exportados={p.exportados}
         />
       </span>
 
       <span className="rec-barra-herramientas" role="toolbar" aria-label="Herramientas del correo">
+        {p.cajon}
         <span className="rec-barra-grupo" role="group" aria-label="Deshacer y rehacer">
           <button type="button" className="rec-barra-icono" aria-label="Deshacer" title="Deshacer (⌘Z)" disabled={!p.puedeDeshacer} onClick={p.onDeshacer}>
             <Undo2 size={16} aria-hidden />
@@ -140,13 +150,25 @@ export function BarraDelCorreo(p: Props) {
       </span>
 
       <span className="rec-barra-der">
-        <span className={`rec-mail-guardado${p.porGuardar ? " is-pendiente" : ""}`} role="status">
-          {p.guardando ? <Loader2 size={13} className="pulso-spin" aria-hidden /> : p.porGuardar ? null : <Check size={13} aria-hidden />}
-          {p.estadoGuardado}
-        </span>
-        <PulsoButton variant="primary" size="sm" disabled={!p.puedeGuardar} onClick={p.onGuardar}>
-          <Save size={14} aria-hidden /> Guardar
-        </PulsoButton>
+        {p.porGuardar || p.guardando ? (
+          <PulsoButton
+            variant="primary"
+            size="sm"
+            disabled={!p.puedeGuardar}
+            title="Hay cambios sin guardar en este correo"
+            onClick={p.onGuardar}
+          >
+            {p.guardando ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Save size={14} aria-hidden />}
+            {p.guardando ? "Guardando…" : "Guardar"}
+            <span className="pulso-sr-only">: hay cambios sin guardar</span>
+          </PulsoButton>
+        ) : (
+          <span className="rec-mail-guardado" role="status" title={NOTA_DEL_PROYECTO}>
+            <Check size={13} aria-hidden />
+            {p.estadoGuardado}
+          </span>
+        )}
+        {p.exportar}
         <Popover.Root open={mas} onOpenChange={setMas}>
           <Popover.Trigger asChild>
             <button type="button" className="rec-barra-icono" aria-label="Más opciones del correo" title="Más">

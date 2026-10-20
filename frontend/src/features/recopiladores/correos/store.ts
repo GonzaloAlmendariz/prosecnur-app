@@ -138,6 +138,10 @@ export type EstadoCorreos = {
   edicion: EdicionEnLinea | null;
   /** Modo didáctico: rótulos al pasar el cursor y la tarjeta «Qué hace». */
   explicaciones: boolean;
+  /** En compacto, la columna de plantillas y bloques vive en un cajón: ¿está abierto? (F3) */
+  cajonAbierto: boolean;
+  /** «Exportar ▾» de la barra, abierto (F7). */
+  exportarAbierto: boolean;
 };
 
 type Acciones = {
@@ -174,7 +178,12 @@ type Acciones = {
   setExplicaciones: (valor: boolean) => void;
   reemplazarBorrador: (template: MailTemplate) => void;
   /** `enviados`: los envíos tal como se mandaron, para alinear los ids nuevos. */
-  guardado: (payload: MailTemplatePutPayload, enviados?: readonly MailSend[]) => void;
+  /**
+   * `enviada`: la plantilla tal como se mandó. Si el borrador no cambió desde
+   * entonces, se adopta lo que devolvió el backend (que la normaliza) y el
+   * correo queda guardado; sin ella se compara con lo devuelto.
+   */
+  guardado: (payload: MailTemplatePutPayload, enviados?: readonly MailSend[], enviada?: MailTemplate | null) => void;
   setEnvio: (sendId: string) => void;
   /** Cambia los envíos del borrador; no entran al historial de la plantilla. */
   editarEnvios: (update: (envios: MailSend[]) => MailSend[]) => void;
@@ -184,6 +193,8 @@ type Acciones = {
   setPedirAlt: (id: string | null) => void;
   seleccionar: (seleccion: string) => void;
   setVista: (vista: VistaDelCorreo) => void;
+  setCajonAbierto: (abierto: boolean) => void;
+  setExportarAbierto: (abierto: boolean) => void;
   setPersona: (persona: number | null) => void;
   siguientePersona: () => void;
   setDestino: (destino: DestinoDelCampo | null) => void;
@@ -244,6 +255,8 @@ const INICIAL: EstadoCorreos = {
   historial: HISTORIAL_VACIO,
   edicion: null,
   explicaciones: true,
+  cajonAbierto: false,
+  exportarAbierto: false,
 };
 
 /** La primera persona importada, o la de ejemplo si no hay lista. */
@@ -379,10 +392,12 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
     seleccion: seleccionVigente(s.seleccion, template),
   })),
 
-  guardado: (payload, enviados) => set((s) => {
+  guardado: (payload, enviados, enviada) => set((s) => {
     // Lo que se guardó es lo que el backend devolvió; si mientras tanto se
-    // siguió editando, el borrador conserva esos cambios encima.
-    const enviadoIgual = huellaDeEdicion(s.borrador) === huellaDeEdicion(payload.template);
+    // siguió editando, el borrador conserva esos cambios encima. «Mientras
+    // tanto» se mide contra lo que se mandó: el backend completa valores por
+    // defecto y, comparado con lo devuelto, el correo quedaba «sin guardar» (F6).
+    const enviadoIgual = huellaDeEdicion(s.borrador) === huellaDeEdicion(enviada ?? payload.template);
     // Los envíos: lo que devolvió el servidor, con los ids nuevos en lugar de
     // los locales. Si se siguieron editando mientras tanto, esa edición queda.
     const { envios: vueltos, ids } = reconciliarEnvios(enviados ?? s.envios, payload.sends);
@@ -433,6 +448,8 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
 
   seleccionar: (seleccion) => set({ seleccion }),
   setVista: (vista) => set({ vista }),
+  setCajonAbierto: (cajonAbierto) => set({ cajonAbierto }),
+  setExportarAbierto: (exportarAbierto) => set({ exportarAbierto }),
   setPersona: (persona) => set({ persona }),
   siguientePersona: () => set((s) => {
     const total = s.destinatarios?.counts?.valid ?? 0;
@@ -486,6 +503,10 @@ export function hayCambios(s: Pick<EstadoCorreos, "borrador" | "guardada"> & Est
 export function hayQueGuardar(s: Pick<EstadoCorreos, "borrador" | "guardada" | "problemasGuardados"> & EstadoDeEnvios): boolean {
   return Boolean(s.borrador) && (hayCambios(s) || s.problemasGuardados.length > 0);
 }
+
+/** Por qué el proyecto puede decir «sin guardar» aunque el correo esté guardado (F6). */
+export const NOTA_DEL_PROYECTO =
+  "El correo está guardado en la campaña. El proyecto .pulso se guarda aparte, desde su nombre arriba a la derecha.";
 
 /** El envío que se mira, completo. */
 export function envioElegido(s: Pick<EstadoCorreos, "envios" | "envio">): MailSend {

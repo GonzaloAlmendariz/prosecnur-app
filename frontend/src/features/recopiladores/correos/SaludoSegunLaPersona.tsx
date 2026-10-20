@@ -20,6 +20,7 @@ import {
   tratoDelSaludo,
   type CambioDeTrato,
 } from "./modeloTrato";
+import { FOCO_COLUMNA_DEL_TRATO } from "./comoArreglar";
 import "./correosTrato.css";
 
 type Props = {
@@ -70,6 +71,7 @@ export function SaludoSegunLaPersona({ block, destinatarios, plataforma, problem
               <span>Columna de sexo de la lista</span>
               <select
                 className="rec-mail-input"
+                data-foco={FOCO_COLUMNA_DEL_TRATO}
                 value={trato.columna ?? ""}
                 aria-invalid={fueraDeLista ? true : undefined}
                 onChange={(e) => cambiar({ columna: e.target.value || null })}
@@ -83,7 +85,7 @@ export function SaludoSegunLaPersona({ block, destinatarios, plataforma, problem
             <p className="rec-trato-sin-lista">
               {trato.columna ? <>Columna elegida: <b>{trato.columna}</b>. </> : null}
               Carga la lista en Personas para elegir la columna.
-              <button type="button" className="rec-mail-link" onClick={onIrAPersonas}>Ir a Personas</button>
+              <button type="button" className="rec-mail-link" data-foco={FOCO_COLUMNA_DEL_TRATO} onClick={onIrAPersonas}>Ir a Personas</button>
             </p>
           )}
 
