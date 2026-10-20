@@ -408,7 +408,7 @@
 }
 
 .pulso-xf-res-tabla tbody tr.is-desplegada > th {
-  box-shadow: inset 3px 0 0 var(--xf-res-acento);
+  box-shadow: none;
 }
 
 .pulso-xf-res-tabla tbody tr.is-resaltada > * {

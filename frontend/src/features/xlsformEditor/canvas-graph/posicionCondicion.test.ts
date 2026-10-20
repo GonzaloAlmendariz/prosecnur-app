@@ -29,4 +29,8 @@ describe("posicionCondicion", () => {
     expect(anchoCondicion(1440)).toBe(360);
     expect(anchoCondicion(300)).toBe(268);
   });
+
+  it("no sale del área del mapa: el borde izquierdo del área manda (E11b)", () => {
+    expect(encajarCondicion({ left: 100, top: 100, ancho: 360, alto: 300, vw: 1400, vh: 960, x0: 389, y0: 225 })).toEqual({ left: 405, top: 241 });
+  });
 });

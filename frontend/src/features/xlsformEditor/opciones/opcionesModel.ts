@@ -4,15 +4,19 @@
 
 import type { BuilderNode, BuilderStructure, CatalogSummary } from "../types";
 import { stripMarkdown } from "../helpers/markdown";
+import { textoPreguntaPlano } from "../helpers/markdownPregunta";
 import { repeticionesDe } from "../logic/repeticiones";
 import type { GrupoListasRepetidas } from "../listas/listasModel";
 import type { ReglaListaGrupo } from "../pestanas/PestanaReglas";
+
+const SIN_REFERENCIAS = { etiquetaDe: () => undefined };
 
 /** Las primeras etiquetas de la lista, para nombrarla por su contenido. */
 export function nombreLegible(items: readonly { label: string; name: string }[], max = 3): string {
   if (!items.length) return "Sin opciones";
   // Una opción recién agregada no tiene texto todavía: se nombra por su texto, no por el código que se le dio.
-  const etiquetas = items.map((i) => i.label.trim()).filter(Boolean);
+  // La etiqueta se lee como en el Cuestionario: `<br>` es un espacio y el markdown no sale crudo (E11b).
+  const etiquetas = items.map((i) => textoPreguntaPlano(i.label, SIN_REFERENCIAS)).filter(Boolean);
   if (!etiquetas.length) return "Opciones sin texto";
   const vistas = etiquetas.slice(0, max).join(", ");
   const resto = etiquetas.length - max;

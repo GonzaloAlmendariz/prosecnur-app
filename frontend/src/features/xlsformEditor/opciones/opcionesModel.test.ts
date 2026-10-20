@@ -26,4 +26,8 @@ describe("pestaña Listas de opciones", () => {
     const structure = { outline: [nodo("a"), nodo("a"), nodo("c"), nodo("zz")] } as unknown as BuilderStructure;
     expect(usosPorLista(structure, [lista("a", ["x"]), lista("b", ["y"]), lista("c", ["z"])])).toEqual({ a: 2, b: 0, c: 1 });
   });
+
+  it("nombra la lista sin <br> ni markdown crudos (E11b)", () => {
+    expect(nombreLegible([{ label: "Nada útil<br>1", name: "1" }, { label: "**2**", name: "2" }])).toBe("Nada útil 1, 2");
+  });
 });

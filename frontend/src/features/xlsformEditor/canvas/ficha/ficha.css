@@ -43,7 +43,8 @@
 }
 .xfh-cab__tipo:hover { background: color-mix(in srgb, var(--xfh-c, var(--pulso-text)) 9%, transparent); }
 .xfh-cab__tipo.is-fijo { cursor: default; background: none; margin: 0; padding: 0; }
-.xfh-cab__pos { font-size: 12.5px; color: var(--pulso-text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* La segunda línea parte en dos si no cabe (1024): «Pregunta 2 · en «Pag1»» no se corta a «Pregunta 2 · e…» (E11b). */
+.xfh-cab__pos { font-size: 12.5px; line-height: 1.35; color: var(--pulso-text-faint); overflow-wrap: anywhere; }
 .xfh-cab__der { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .xfh-cab__code {
   max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -60,6 +61,9 @@
 .xfh-icono:hover:not(:disabled) { background: var(--pulso-surface-3); color: var(--pulso-text); }
 .xfh-icono:disabled { opacity: 0.4; cursor: default; }
 .xfh-icono.is-peligro:hover:not(:disabled) { background: var(--pulso-danger-bg); color: var(--pulso-danger-fg); }
+/* Eliminar armado (E11b): el botón dice qué hará el segundo clic, como en Hojas. */
+.xfh-icono.is-armado { display: inline-flex; gap: 5px; width: auto; padding: 0 9px; background: var(--pulso-danger-bg); color: var(--pulso-danger-fg); font-size: 12px; font-weight: var(--pulso-weight-semibold); white-space: nowrap; }
+.xfh-boton.is-armado { border-color: var(--pulso-danger-border); background: var(--pulso-danger-bg); color: var(--pulso-danger-fg); }
 .xfh-cab__aviso {
   grid-column: 1 / -1; display: grid; gap: 10px; padding: 12px 14px; border-radius: 10px;
   background: var(--pulso-warn-bg); border: 1px solid var(--pulso-warn-border); color: var(--pulso-warn-fg); font-size: 13px;
@@ -205,7 +209,9 @@ textarea.xfh-texto { min-height: 38px; overflow: hidden; }
 .xfh-elegir { display: grid; gap: 6px; padding: 10px 12px; border-top: 1px dashed var(--pulso-border-strong); background: var(--pulso-surface-2); animation: xfh-entra var(--motion-dur-fast) var(--motion-ease-out); }
 .xfh-primera .xfh-elegir { margin-top: 10px; border: 1px dashed var(--pulso-border-strong); border-radius: 10px; }
 .xfh-elegir__buscar { display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--pulso-border-strong); border-radius: 8px; background: var(--pulso-surface); color: var(--pulso-text-faint); }
-.xfh-elegir__buscar input { flex: 1; min-width: 0; height: 32px; border: 0; background: none; font: inherit; font-size: 13px; color: var(--pulso-text); outline: none; }
+.xfh-elegir__buscar input { flex: 1; min-width: 0; height: 32px; min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; font: inherit; font-size: 13px; color: var(--pulso-text); outline: none; }
+/* Un solo marco: el input global trae borde y anillo propios, que dentro de la caja se veían como un segundo marco. */
+.xfh .xfh-elegir__buscar input, .xfh .xfh-elegir__buscar input:focus, .xfh .xfh-elegir__buscar input:focus-visible { border: 0; box-shadow: none; outline: none; background: none; padding: 0; }
 .xfh-elegir__buscar:focus-within { border-color: var(--pulso-primary); box-shadow: 0 0 0 3px var(--pulso-primary-focus); }
 .xfh-elegir__lista { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .xfh-elegir__lista button {
@@ -213,13 +219,16 @@ textarea.xfh-texto { min-height: 38px; overflow: hidden; }
   border: 1px solid var(--pulso-border); border-radius: 9px; background: var(--pulso-surface); font: inherit; cursor: pointer;
 }
 .xfh-elegir__lista button:hover, .xfh-elegir__lista button:focus-visible { border-color: var(--pulso-primary); outline: none; }
-.xfh-elegir__txt { font-size: 12px; color: var(--pulso-text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xfh-elegir__txt { display: grid; gap: 1px; min-width: 0; font-size: 12px; color: var(--pulso-text-faint); }
 .xfh-elegir__txt b { font-size: 13px; color: var(--pulso-text); }
+.xfh-elegir__txt > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .xfh-elegir__n { font-size: 12px; color: var(--pulso-text-faint); font-variant-numeric: tabular-nums; }
 .xfh-elegir__vacio { font-size: 12.5px; color: var(--pulso-text-faint); padding: 4px 2px; }
 .xfh-respuesta-campo { display: grid; gap: 8px; }
 .xfh-respuesta-campo small { font-size: 12px; color: var(--pulso-text-faint); }
-.xfh-input-falso { display: block; height: 36px; max-width: 260px; border-radius: 9px; border: 1px solid var(--pulso-border-strong); background: var(--pulso-surface-2); }
+/* Vista previa no editable (E11b): sin borde de input, menos contraste, para que no se confunda con un campo. */
+.xfh-muestra { display: block; max-width: 260px; padding: 8px 11px; border-radius: 9px; background: var(--pulso-surface-2); color: var(--pulso-text-faint); font-size: 13px; font-variant-numeric: tabular-nums; -webkit-user-select: none; user-select: none; }
+.xfh-respuesta-auto { margin: 0; font-size: 12.5px; color: var(--pulso-text-faint); }
 
 /* — Reglas — */
 .xfh-reglas { display: grid; margin: 0; padding: 0; list-style: none; border: 1px solid var(--pulso-border); border-radius: 10px; overflow: hidden; }

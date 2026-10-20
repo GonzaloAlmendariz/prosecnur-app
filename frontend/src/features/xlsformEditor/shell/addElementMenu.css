@@ -71,3 +71,9 @@
 @media (prefers-reduced-motion: reduce) {
   .xfe-alta .pulso-add-element-menu-item.xfe-alta__item { transition: none; }
 }
+
+/* E11b: el buscador lleva aire interno y un solo marco (el de la caja, no el del input). */
+.xfe-alta .pulso-add-element-menu-searchbox { height: 38px; padding: 0 12px; gap: 8px; }
+.xfe-alta .pulso-add-element-menu-searchbox .pulso-add-element-menu-search {
+  height: 100%; min-height: 0; padding: 0 4px; border: 0; border-radius: 0; background: transparent; box-shadow: none; outline: none;
+}

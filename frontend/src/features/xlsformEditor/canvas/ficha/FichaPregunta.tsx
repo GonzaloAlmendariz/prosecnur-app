@@ -6,7 +6,7 @@ import { AparienciaFicha } from "./AparienciaFicha";
 import { AvisosFicha } from "./AvisosFicha";
 import { CabeceraDesdeDatos, dondeEsta } from "./CabeceraFicha";
 import { CampoCodigo } from "./CampoCodigo";
-import { numeroDePregunta } from "./modeloFicha";
+import { avisosDeFicha, numeroDePregunta } from "./modeloFicha";
 import { BloqueFicha, CampoTexto } from "./piezasFicha";
 import { ReglasFicha } from "./ReglasFicha";
 import { RespuestaFicha } from "./RespuestaFicha";
@@ -22,7 +22,7 @@ export function FichaPregunta({ datos }: { datos: DatosFicha }) {
     <>
       <section className="xfh-caja" data-qa-geometry-group="xlsform/ficha-bloques" data-qa-geometry-contract="intrinsic">
         <CabeceraDesdeDatos datos={datos} posicion={posicion} conTipo />
-        <AvisosFicha avisos={avisos} />
+        <AvisosFicha avisos={avisosDeFicha(avisos, node.typeInfo.base)} />
         <BloqueFicha titulo="Texto">
           <CampoTexto etiqueta="Pregunta" valor={node.label} onCambio={(v) => acciones.campo("label", v)} multilinea grande placeholder="¿Qué se le pregunta al encuestado?" />
           <div className="xfh-dos-campos">

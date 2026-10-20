@@ -49,6 +49,13 @@ describe("Crear lista nueva", () => {
     expect(crearListaEnPregunta(libro, 0)).toBe("lst_acepta_2");
     expect(nombreListaNueva("9 edad", [])).toBe("lst_l_9_edad");
   });
+  test("si la pregunta ya cita una lista sin filas, la crea con ESE nombre y no inventa otro (E11b)", () => {
+    const libro = wb();
+    setCell(libro.survey, 0, "type", "select_multiple lista_pregunta_358");
+    expect(crearListaEnPregunta(libro, 0)).toBe("lista_pregunta_358");
+    expect(getCell(libro.survey, 0, "type")).toBe("select_multiple lista_pregunta_358");
+    expect(buildXlsformIndex(libro).catalogs.find((c) => c.listName === "lista_pregunta_358")?.items.length).toBe(1);
+  });
   test("una pregunta que no es de selección no recibe lista", () => {
     const libro = wb();
     setCell(libro.survey, 0, "type", "text");

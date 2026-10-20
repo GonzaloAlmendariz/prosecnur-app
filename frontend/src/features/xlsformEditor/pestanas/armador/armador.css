@@ -90,7 +90,6 @@
   gap: var(--pulso-space-2);
   padding: 6px var(--pulso-space-2);
   border: 1px solid var(--pulso-border);
-  border-left: 3px solid var(--xfa-tono);
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
   min-width: 0;

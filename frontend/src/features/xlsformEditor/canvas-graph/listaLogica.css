@@ -20,17 +20,17 @@
 
 .xfl-toda { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-bottom: 1px solid var(--pulso-border); background: var(--module-accent-soft, var(--pulso-primary-soft)); transition: background-color var(--motion-dur-fast) var(--motion-ease-out); }
 .xfl-toda:last-child { border-bottom: 0; }
-.xfl-toda.is-on { box-shadow: inset 2px 0 0 var(--module-accent, var(--pulso-primary)); }
+.xfl-toda.is-on { background: var(--module-accent-soft, var(--pulso-primary-soft)); box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border)); }
 .xfl-toda:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: -2px; }
 .xfl-toda__marca { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--module-accent, var(--pulso-primary)); }
 .xfl-toda__lee { font-size: 12.5px; line-height: 1.45; color: var(--pulso-text); overflow-wrap: anywhere; }
 .xfl-toda__nota { font-size: 11.5px; color: var(--pulso-text-muted); }
 
-.xfl-items.is-heredan { margin-left: 16px; border-left: 2px solid var(--module-accent-border, var(--pulso-primary-border)); }
+.xfl-items.is-heredan { margin-left: 16px; border-left: 1px solid var(--pulso-border); }
 .xfl-item { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 10px; border-top: 1px solid var(--pulso-border); transition: background-color var(--motion-dur-fast) var(--motion-ease-out); }
 .xfl-item:first-child { border-top: 0; }
 .xfl-item:hover { background: var(--pulso-surface-2); }
-.xfl-item.is-on { background: var(--module-accent-soft, var(--pulso-primary-soft)); box-shadow: inset 2px 0 0 var(--module-accent, var(--pulso-primary)); }
+.xfl-item.is-on { background: var(--module-accent-soft, var(--pulso-primary-soft)); box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border)); }
 .xfl-item:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: -2px; }
 .xfl-item__txt { display: flex; flex-direction: column; min-width: 0; }
 .xfl-item__titulo, .xfl-item__lee { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

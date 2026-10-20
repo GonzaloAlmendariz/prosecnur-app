@@ -99,7 +99,6 @@ function HallazgoItem({
         textAlign: "left",
         background: "transparent",
         border: "none",
-        borderLeft: `3px solid ${accent}`,
         padding: "10px 14px",
         cursor: "pointer",
         display: "flex",

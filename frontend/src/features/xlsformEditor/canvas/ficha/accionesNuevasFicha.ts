@@ -18,9 +18,18 @@ export function crearListaEnPregunta(draft: XlsformEditorWorkbook, fila: number)
   const tipo = parseType(getCell(draft.survey, fila, "type"));
   if (tipo.base !== "select_one" && tipo.base !== "select_multiple") return null;
   const listCol = draft.choices.columns.indexOf("list_name");
-  const ocupados = new Set(listCol < 0 ? [] : draft.choices.rows.map((r) => (r[listCol] ?? "").trim()));
-  draft.survey.rows.forEach((_, i) => { const l = parseType(getCell(draft.survey, i, "type")).listName; if (l) ocupados.add(l); });
-  const nombre = nombreListaNueva(getCell(draft.survey, fila, "name"), ocupados);
+  const enChoices = new Set(listCol < 0 ? [] : draft.choices.rows.map((r) => (r[listCol] ?? "").trim()));
+  // La pregunta ya cita una lista que todavía no tiene filas (`lista_pregunta_358`): se crea con ESE nombre, no con
+  // uno inventado que dejaría la cita huérfana (E11b).
+  const citada = (tipo.listName ?? "").trim();
+  let nombre: string;
+  if (citada && !enChoices.has(citada) && !citada.startsWith("${")) {
+    nombre = citada;
+  } else {
+    const ocupados = new Set(enChoices);
+    draft.survey.rows.forEach((_, i) => { const l = parseType(getCell(draft.survey, i, "type")).listName; if (l) ocupados.add(l); });
+    nombre = nombreListaNueva(getCell(draft.survey, fila, "name"), ocupados);
+  }
   insertRecord(draft.choices, draft.choices.rows.length, { list_name: nombre, name: "1", label: "Opción 1" });
   setCell(draft.survey, fila, "type", buildType(tipo.base, nombre));
   return nombre;
