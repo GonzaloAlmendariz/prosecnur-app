@@ -11,7 +11,7 @@ tags:
 fuentes:
   - "frontend/src/lib/navegacion/catalogos/editorFormularios.ts"
   - "frontend/src/features/xlsformEditor/XlsformEditorPage.tsx"
-  - "frontend/src/features/xlsformEditor/canvas/FormCanvas.tsx"
+  - "frontend/src/features/xlsformEditor/canvas/ficha/FichaConstructor.tsx"
 ---
 
 # Constructor

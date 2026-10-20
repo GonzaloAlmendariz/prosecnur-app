@@ -12,7 +12,7 @@ fuentes:
   - "frontend/src/features/xlsformEditor/XlsformEditorPage.tsx"
   - "frontend/src/api/xlsformEditor.ts"
   - "api/R/xlsform_forms.R"
-  - "frontend/src/features/xlsformEditor/canvas/FormCanvas.tsx"
+  - "frontend/src/features/xlsformEditor/canvas/ficha/FichaConstructor.tsx"
   - "frontend/src/features/xlsformEditor/catalogs"
   - "frontend/src/features/xlsformEditor/logic/serialize.ts"
   - "frontend/src/features/xlsformEditor/shell/RuleWizard.tsx"
