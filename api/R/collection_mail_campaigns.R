@@ -350,7 +350,8 @@ collection_mail_campaign_duplicate <- function(sid, expected_revision, campaign_
   id <- .cmail_campaign_unique_id(.cmail_campaign_slug(name), ids)
   # Copia plataforma y envíos; no copia imported_from ni destinatarios.
   campaign <- list(campaign_id = id, name = name, actor = actor, duplicated_from = source$campaign_id,
-                   platform = .cmail_platform_of(source), sends = .cmail_sends_of(source),
+                   platform = .cmail_platform_of(source),
+                   sends = .cmail_sends_without_exports(.cmail_sends_of(source)),
                    template = .cmail_campaign_template(source$template, id, revision = 1L))
   if (.cmail_send_seq(source) > 0L) campaign$send_seq <- .cmail_send_seq(source)
   .cmail_recipients_forget(session, id)

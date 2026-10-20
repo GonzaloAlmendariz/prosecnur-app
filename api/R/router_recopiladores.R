@@ -120,6 +120,27 @@ mount_recopiladores <- function(pr) {
         dpi = body$dpi
       )
     })) |>
+    # Campañas tipadas del módulo (ADR 0111): aulas, territorial y correo. La
+    # lista proyecta las de correo de mail_campaigns; crear y renombrar un
+    # correo delegan en su engine (collection_campaigns.R).
+    plumber::pr_get("/api/recopiladores/campaigns", wrap_endpoint(function(req, res, ...) {
+      collection_campaigns_get(session_header(req))
+    })) |>
+    plumber::pr_post("/api/recopiladores/campaigns", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_campaign_create(session_header(req), tipo = body$tipo, name = body$name, actor = body$actor,
+                                 platform = body$platform, preset_id = body$preset_id, template = body$template,
+                                 import_id = body$import_id,
+                                 expected_state_revision = body$expected_state_revision,
+                                 expected_registry_revision = body$expected_registry_revision)
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/campaigns/meta", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_campaign_meta_put(session_header(req), id = body$id, name = body$name, actor = body$actor,
+                                   platform = body$platform, archived = body$archived,
+                                   expected_state_revision = body$expected_state_revision,
+                                   expected_registry_revision = body$expected_registry_revision)
+    })) |>
     # Correos para Mailchimp y SurveyMonkey (ADR 0110 §2, E1f; campañas E1h;
     # plataforma, envíos e importación de HTML E1j-E1l). Cada plantilla
     # vive en su campaña de collection_state$mail_campaigns; los destinatarios

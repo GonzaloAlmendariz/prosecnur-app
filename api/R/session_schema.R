@@ -414,6 +414,7 @@ session_schema <- function() {
 
     # --- Recopiladores (ADR 0046: estado propio, aditivo al legado de aulas) ---
     "collection_state",           "literal", "persistible",    "collection_engine.R", "directa",     "schema collection_state/v1; load_pulso siembra aulas_v1 sin marcar dirty",
+    "material_campaigns",         "literal", "persistible",    "collection_campaigns.R", "session_set", "ADR 0111: registro material_campaigns/v1 de las campañas sin otro dueño (aulas); las de correo se proyectan de collection_state$mail_campaigns. Sin clave (.pulso viejo) la lista se proyecta al leer y no marca dirty",
 
     # --- Hojas de ruta ---
     "hojas_ruta_config",           "literal", "persistible",    "router_hojas_ruta.R", "session_set", "",

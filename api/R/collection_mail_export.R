@@ -518,7 +518,8 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
   slug <- gsub("^-+|-+$", "", substr(gsub("[^a-z0-9]+", "-", tolower(campaign$campaign_id %||% "correo")), 1L, 40L))
   if (!nzchar(slug)) slug <- "correo"
   if (identical(platform, "surveymonkey")) {
-    return(.cmail_export_surveymonkey(sid, session, campaign, base_tpl, tpl, send, r, summary, slug))
+    return(.cmail_export_with_record(sid, pick,
+                                     .cmail_export_surveymonkey(sid, session, campaign, base_tpl, tpl, send, r, summary, slug)))
   }
   completo <- identical(scope, "completo")
   work <- tempfile("cmail-export-", tmpdir = file.path(session$dir, "downloads"))
@@ -613,7 +614,8 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
     .cmail_register_artifact(sid, manifest_out, "collection_mail_manifest", manifest_name, "manifest",
                              "application/json", sensitivity)
   )
-  list(
+  # ADR 0111 §8: el envío anota cuándo y por dónde salió (collection_mail_export_registro.R).
+  .cmail_export_with_record(sid, pick, list(
     ok = TRUE,
     campaign_id = campaign$campaign_id,
     platform = "mailchimp",
@@ -624,5 +626,5 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
     import_zip = list(size_bytes = importable$size_bytes, entries = importable$entries, html = html_name),
     manifest = manifest,
     review = summary
-  )
+  ))
 }

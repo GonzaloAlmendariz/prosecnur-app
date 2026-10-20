@@ -584,9 +584,13 @@
                  list(phase = "", districts_count = 0L, n_objetivo = 0L, blocks_count = 0L,
                       replacement_blocks_count = 0L, interviews_count = 0L,
                       quota_assigned = 0L, from_pilot = FALSE)),
-    "material-campo" = safe(.overview_fichas_facts(s),
-                            list(total = 0L, titulares = 0L, with_link = 0L, without_link = 0L,
-                                 faculties_count = 0L, eligible_total = 0L)),
+    "material-campo" = c(
+      safe(.overview_fichas_facts(s),
+           list(total = 0L, titulares = 0L, with_link = 0L, without_link = 0L,
+                faculties_count = 0L, eligible_total = 0L)),
+      # ADR 0111 §9: las campañas del módulo con su avance (aditivo).
+      list(campaigns = safe(.collection_campaigns_overview(s), list()))
+    ),
     editor = safe(.overview_form_facts(s),
                   list(source_kind = "", questions_count = 0L, sections_count = 0L,
                        catalogs_count = 0L, instruments_count = 0L)),
