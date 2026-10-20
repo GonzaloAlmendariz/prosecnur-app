@@ -78,6 +78,79 @@ test_that("plan existente se proyecta como aulas.principal con su estado, sin es
   expect_false(tipos$aulas$disponible)
 })
 
+# Regresión (hsvg2026 sembrado, 2026-10-20): el resumen leía las cifras de
+# `monitoreo_aulas_plan` —la proyección de Monitoreo, que solo existe tras el
+# traspaso— y un plan con 30 titulares y 2.373 accesos `ready` salía con 0 y 0.
+# El fixture separa las dos fuentes: el plan tiene roles mixtos y un deployment
+# parcial; `monitoreo_aulas_plan` se borra o se llena con cifras que no casan.
+.mct_plan_mixto <- function() {
+  roles <- c("titular", "titular", "titular", "titular", "chain_reserve", "extra_reserve_pool")
+  con_link <- c(TRUE, TRUE, TRUE, FALSE, TRUE, FALSE)
+  filas <- lapply(seq_along(roles), function(i) list(
+    selection_run_id = "sel-mixto",
+    classroom_id = sprintf("AULA-%02d", i),
+    operational_code = sprintf("AULA %d", i),
+    label = sprintf("Aula %d", i),
+    sample_role = roles[[i]],
+    faculty = "Ingenieria",
+    link = if (con_link[[i]]) sprintf("https://kf.kobotoolbox.org/x/a?d%%5BcollectorID%%5D=AULA-%02d", i) else ""
+  ))
+  sid <- .cmail_fx_session()
+  session_set(sid, "monitoreo_aulas_plan", filas)
+  collection_state_seed(sid)
+  s <- session_get(sid)
+  # Deployment parcial: el titular 3 queda `blocked` (sin enlace).
+  bindings <- s$collection_state$deployment$bindings
+  ids <- vapply(s$collection_state$plan$units, `[[`, "", "unit_id")
+  bloqueado <- which(vapply(bindings, `[[`, "", "unit_id") == ids[[3]])
+  bindings[[bloqueado]]$status <- "blocked"
+  bindings[[bloqueado]]$access_ref <- NULL
+  s$collection_state$deployment$bindings <- bindings
+  .session_env[[sid]] <- s
+  sid
+}
+
+test_that("titulares y con enlace salen del plan y del deployment, no de la proyección de Monitoreo", {
+  sid <- .mct_plan_mixto(); on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  roles <- vapply(s$collection_state$plan$units, `[[`, "", "role")
+  expect_identical(as.vector(table(roles)[c("titular", "chain_reserve", "extra_reserve_pool")]), c(4L, 1L, 1L))
+  estados <- vapply(s$collection_state$deployment$bindings, `[[`, "", "status")
+  expect_identical(sort(estados), c("blocked", "ready", "ready", "ready"))
+
+  # Antes del traspaso: Monitoreo aún no tiene su proyección.
+  s$monitoreo_aulas_plan <- NULL
+  .session_env[[sid]] <- s
+  a <- collection_campaigns_get(sid)$campaigns[[1]]
+  expect_identical(a$estado$unidades, 6L)
+  expect_identical(a$estado$titulares, 4L)
+  # Titulares 1 y 2 con binding ready; el 3 está blocked, el 4 no tiene; la
+  # reserva 5 está ready pero no es titular.
+  expect_identical(a$estado$con_enlace, 2L)
+
+  # Una proyección de Monitoreo que dice otra cosa no altera el resumen.
+  s$monitoreo_aulas_plan <- lapply(1:9, function(i) list(wave = "M1", link = "https://x.example.org"))
+  .session_env[[sid]] <- s
+  a2 <- collection_campaigns_get(sid)$campaigns[[1]]
+  expect_identical(c(a2$estado$titulares, a2$estado$con_enlace), c(4L, 2L))
+})
+
+test_that("conteos de aulas: sin titulares la base son todas las unidades; sin deployment, 0 con enlace", {
+  plan <- list(units = list(
+    list(unit_id = "u1", role = "chain_reserve"),
+    list(unit_id = "u2", role = "chain_reserve"),
+    list(unit_id = "u3", role = NULL)
+  ))
+  dep <- list(bindings = list(
+    list(unit_id = "u1", status = "ready"),
+    list(unit_id = "u1", status = "ready"),
+    list(unit_id = "u2", status = "blocked")
+  ))
+  expect_identical(.mcamp_aulas_conteos(plan, dep), list(unidades = 3L, titulares = 0L, con_enlace = 1L))
+  expect_identical(.mcamp_aulas_conteos(plan, NULL), list(unidades = 3L, titulares = 0L, con_enlace = 0L))
+  expect_identical(.mcamp_aulas_conteos(NULL, dep), list(unidades = 0L, titulares = 0L, con_enlace = 0L))
+})
+
 test_that("plan desfasado contra el sorteo vigente se dice en el estado de aulas", {
   sid <- .mct_con_plan(); on.exit(session_delete(sid), add = TRUE)
   sel <- data.frame(selection_run_id = "sel-otra", classroom_id = "AULA-01", stringsAsFactors = FALSE)

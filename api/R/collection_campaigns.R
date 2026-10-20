@@ -76,14 +76,52 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
          "Campo en aulas")
 }
 
+# Conteos de la campaña de aulas, leídos del plan y del deployment de
+# `collection_state` (su único dueño). NO de `s$monitoreo_aulas_plan`: esa es
+# la proyección de Monitoreo y solo existe tras el traspaso, así que un plan
+# sembrado y con accesos preparados salía con 0 titulares y 0 con enlace.
+#
+# - titulares: unidades del plan con `role == "titular"`.
+# - con_enlace: unidades de la base (titulares; todas si el plan no tiene
+#   titulares, como el respaldo del cliente) con al menos un binding `ready`
+#   en el deployment. `ready` es la misma regla de
+#   `deployment$coverage$units_with_access` (Accesos/Entrega): un binding
+#   `blocked` no lleva `access_ref`.
+# Barato: recorre listas, no construye unidades.
+.mcamp_aulas_conteos <- function(plan, deployment) {
+  units <- if (is.list(plan)) plan$units %||% list() else list()
+  ids <- .mcamp_campo_texto(units, "unit_id")
+  titular <- .mcamp_campo_texto(units, "role") == "titular"
+  base <- if (any(titular)) ids[titular] else ids
+  bindings <- if (is.list(deployment)) deployment$bindings %||% list() else list()
+  ready <- .mcamp_campo_texto(bindings, "status") == "ready"
+  con_acceso <- .mcamp_campo_texto(bindings, "unit_id")[ready]
+  list(
+    unidades = length(units),
+    titulares = sum(titular),
+    con_enlace = sum(nzchar(base) & base %in% con_acceso)
+  )
+}
+
+# El campo de texto escalar `campo` de cada elemento de `xs`; "" donde no lo
+# es. Vectorial a propósito: `trimws` por elemento costaba ~40 ms en 2.373
+# unidades.
+.mcamp_campo_texto <- function(xs, campo) {
+  v <- vapply(xs, function(x) {
+    v <- if (is.list(x)) x[[campo]] else NULL
+    if (is.character(v) && length(v) == 1L && !is.na(v)) v else ""
+  }, character(1), USE.NAMES = FALSE)
+  trimws(v)
+}
+
 .mcamp_aulas_estado <- function(s, state) {
   plan <- state$plan
-  fichas <- tryCatch(.overview_fichas_facts(s), error = function(e) list())
+  conteos <- .mcamp_aulas_conteos(plan, state$deployment)
   vig <- tryCatch(.collection_source_vigente(s, state), error = function(e) NULL)
   list(
-    unidades = as.integer(if (is.list(plan)) length(plan$units %||% list()) else 0L),
-    titulares = as.integer(fichas$titulares %||% 0L),
-    con_enlace = as.integer(fichas$with_link %||% 0L),
+    unidades = as.integer(conteos$unidades),
+    titulares = as.integer(conteos$titulares),
+    con_enlace = as.integer(conteos$con_enlace),
     deployment_status = if (is.list(state$deployment)) .cm_aulas_scalar(state$deployment$status %||% "", "") else NA_character_,
     plan_desfasado = isTRUE(vig$desfasado)
   )
