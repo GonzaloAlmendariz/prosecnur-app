@@ -8,7 +8,7 @@ import {
   type CollectionMaterialTemplatePayload,
 } from "../../../api/recopiladores";
 import { templateHistoryShortcut } from "../templateHistory";
-import { ESTADO_INICIAL_DEL_EDITOR, reducirEditor, type AccionDelEditor } from "./estadoEditor";
+import { ESTADO_INICIAL_DEL_EDITOR, reducirEditor, revisionParaGuardar, type AccionDelEditor } from "./estadoEditor";
 import { estadoDelGuardado } from "./guardadoDeReceta";
 import { hayCambiosSinGuardar } from "./modeloEditor";
 
@@ -36,7 +36,10 @@ export async function guardarReceta(
 ): Promise<AccionDelEditor> {
   try {
     const result = await apiRecopiladoresMaterialTemplatePut({ expected_revision: revision, template: borrador });
-    return { type: "guardado-ok", template: result.template, noop: fueNoop(result) };
+    const stateRevision = typeof result.state_revision === "number" && Number.isFinite(result.state_revision)
+      ? result.state_revision
+      : null;
+    return { type: "guardado-ok", template: result.template, noop: fueNoop(result), stateRevision };
   } catch (cause) {
     return { type: "guardado-error", texto: mensajeDe(cause, "No se pudo guardar la receta.") };
   }
@@ -55,7 +58,10 @@ export function useRecetaDelEditor(opts: {
 }) {
   const [estado, dispatch] = useReducer(reducirEditor, ESTADO_INICIAL_DEL_EDITOR);
   const vivo = useRef(true);
-  const { revision, fichasCreadas, onStateRefresh } = opts;
+  const { fichasCreadas, onStateRefresh } = opts;
+  // El payload se relee después de guardar y tarda: hasta que alcance la
+  // revisión que devolvió el PUT, el siguiente guardado manda ésa.
+  const revision = revisionParaGuardar(opts.revision, estado.revisionDelGuardado);
 
   useEffect(() => {
     vivo.current = true;
@@ -123,6 +129,8 @@ export function useRecetaDelEditor(opts: {
     dispatch({ type: "guardado-inicio" });
     const resultado = await guardarReceta(revision, borrador);
     if (!vivo.current) return;
+    // «Guardando…» dura lo que el PUT; el refresco no lo retiene porque la
+    // revisión que devolvió ya queda en el estado para el siguiente guardado.
     dispatch(resultado);
     // Guardar sube `state_revision` y deja viejas las fichas: se relee.
     if (resultado.type === "guardado-ok") await onStateRefresh();

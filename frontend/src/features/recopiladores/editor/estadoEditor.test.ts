@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ESTADO_INICIAL_DEL_EDITOR, reducirEditor, type EstadoDelEditor } from "./estadoEditor";
+import { ESTADO_INICIAL_DEL_EDITOR, reducirEditor, revisionParaGuardar, type EstadoDelEditor } from "./estadoEditor";
 import { actualizarBloque, hayCambiosSinGuardar } from "./modeloEditor";
 import { TEMPLATE_FICHA_CAMPO } from "./preview.fixture";
 import { estadoDelGuardado, SIN_CAMBIOS_QUE_GUARDAR } from "./guardadoDeReceta";
@@ -49,6 +49,21 @@ describe("la receta en el editor", () => {
   it("la unidad de prueba vive en el estado del editor", () => {
     const estado = reducirEditor(cargado(), { type: "unidad", unidad: "unit-ch1" });
     expect(estado.unidad).toBe("unit-ch1");
+  });
+});
+
+describe("revisionParaGuardar", () => {
+  it("toma la mayor entre el payload y el último PUT, y no baja", () => {
+    expect(revisionParaGuardar(4, null)).toBe(4);
+    expect(revisionParaGuardar(null, 5)).toBe(5);
+    expect(revisionParaGuardar(4, 5)).toBe(5);
+    expect(revisionParaGuardar(7, 5)).toBe(7);
+    expect(revisionParaGuardar(null, null)).toBeNull();
+  });
+
+  it("recargar la receta olvida la revisión del PUT", () => {
+    const estado = reducirEditor(cargado(), { type: "guardado-ok", template: TEMPLATE_FICHA_CAMPO, noop: false, stateRevision: 5 });
+    expect(reducirEditor(estado, { type: "carga-inicio" }).revisionDelGuardado).toBeNull();
   });
 });
 
@@ -114,6 +129,52 @@ describe("guardarReceta", () => {
     respuesta = json({ error: { code: "E_COLLECTION_STATE_STALE", message: "stale" } }, 409);
     expect(await guardarReceta(12, TEMPLATE_FICHA_CAMPO)).toEqual({
       type: "guardado-error",
+      texto: "Otro cambio del módulo se guardó antes. Vuelve a cargar la receta para no pisarlo.",
+    });
+  });
+  it("dos guardados seguidos sin refresco: el segundo manda la revisión que devolvió el primero", async () => {
+    // El GET /state con 2.373 unidades tarda 6–10 s: el payload sigue en 4.
+    const delPayload = 4;
+    let estado = reducirEditor(cargado(), { type: "editar", template: actualizarBloque(TEMPLATE_FICHA_CAMPO, 0, "titulo", { max_lines: 1 }) });
+    estado = reducirEditor(estado, { type: "guardado-inicio" });
+    respuesta = json({ ok: true, template: estado.historia!.present, state_revision: 5 });
+    const primera = await guardarReceta(revisionParaGuardar(delPayload, estado.revisionDelGuardado)!, estado.historia!.present);
+    expect(enviado?.expected_revision).toBe(4);
+    estado = reducirEditor(estado, primera);
+    expect(estado.guardando).toBe(false);
+    expect(estado.revisionDelGuardado).toBe(5);
+
+    estado = reducirEditor(estado, { type: "editar", template: actualizarBloque(estado.historia!.present, 0, "titulo", { max_lines: 2 }) });
+    estado = reducirEditor(estado, { type: "guardado-inicio" });
+    respuesta = json({ ok: true, template: estado.historia!.present, state_revision: 6 });
+    const segunda = await guardarReceta(revisionParaGuardar(delPayload, estado.revisionDelGuardado)!, estado.historia!.present);
+    expect(enviado?.expected_revision).toBe(5);
+    expect(segunda).toMatchObject({ type: "guardado-ok", stateRevision: 6 });
+    estado = reducirEditor(estado, segunda);
+    expect(estado.aviso).toEqual({ tono: "ok", texto: "Receta guardada." });
+    expect(estado.revisionDelGuardado).toBe(6);
+  });
+
+  it("el noop también trae la revisión vigente", async () => {
+    respuesta = json({ ok: true, noop: true, template: TEMPLATE_FICHA_CAMPO, state_revision: 9 });
+    const accion = await guardarReceta(7, TEMPLATE_FICHA_CAMPO);
+    expect(accion).toMatchObject({ type: "guardado-ok", noop: true, stateRevision: 9 });
+    expect(reducirEditor(cargado(), accion).revisionDelGuardado).toBe(9);
+  });
+
+  it("un 409 real de otro escritor sigue avisando", async () => {
+    // Otro escritor llevó el módulo a 8; el payload ya lo sabe y gana a la del PUT.
+    let estado = reducirEditor(cargado(), { type: "guardado-ok", template: TEMPLATE_FICHA_CAMPO, noop: false, stateRevision: 5 });
+    expect(revisionParaGuardar(8, estado.revisionDelGuardado)).toBe(8);
+    // Y si escribió después de la última lectura, el backend rechaza y se avisa.
+    estado = reducirEditor(estado, { type: "guardado-inicio" });
+    respuesta = json({ error: { code: "E_COLLECTION_STATE_STALE", message: "stale" } }, 409);
+    const accion = await guardarReceta(revisionParaGuardar(5, estado.revisionDelGuardado)!, TEMPLATE_FICHA_CAMPO);
+    expect(enviado?.expected_revision).toBe(5);
+    estado = reducirEditor(estado, accion);
+    expect(estado.guardando).toBe(false);
+    expect(estado.aviso).toEqual({
+      tono: "error",
       texto: "Otro cambio del módulo se guardó antes. Vuelve a cargar la receta para no pisarlo.",
     });
   });
