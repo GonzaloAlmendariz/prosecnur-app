@@ -577,8 +577,14 @@
   # —y por eso llama a `.collection_seed_build()` y no a esta funcion. Durante
   # un tiempo llamo a esta, y rehacer devolvia intacto el plan que pretendia
   # reemplazar mientras respondia `reseeded = TRUE`.
-  if (!is.null(s$collection_state)) return(list(state = s$collection_state, seeded = FALSE))
-  .collection_seed_build(s)
+  # La guarda es «hay plan», no «hay estado»: una campana de correo creada antes
+  # de sembrar deja `collection_state` con `plan = NULL`, y eso no es un plan
+  # congelado que proteger (collection_reseed.R, `.collection_seed_sobre_existente`).
+  if (.collection_tiene_plan(s$collection_state)) {
+    return(list(state = s$collection_state, seeded = FALSE))
+  }
+  if (is.null(s$collection_state)) return(.collection_seed_build(s))
+  .collection_seed_sobre_existente(.collection_seed_build(s), s$collection_state)
 }
 
 #' Construye el estado de recoleccion desde la fuente vigente, SIN mirar si ya
@@ -653,7 +659,7 @@
 
 # Semilla pura usada por load_pulso: no toca dirty ni pisa el estado propio.
 collection_state_migrate_legacy <- function(s) {
-  if (is.null(s$collection_state) && !length(.collection_seed_source(s)$rows)) return(s)
+  if (.collection_tiene_plan(s$collection_state) || !length(.collection_seed_source(s)$rows)) return(s)
   seeded <- .collection_seed_from_legacy_state(s)
   if (isTRUE(seeded$seeded)) s$collection_state <- seeded$state
   s
@@ -665,7 +671,7 @@ collection_state_get <- function(sid) {
   payload <- .collection_payload(
     estado,
     noop = TRUE,
-    seed_available = is.null(s$collection_state) &&
+    seed_available = !.collection_tiene_plan(s$collection_state) &&
       length(.collection_seed_source(s)$rows) > 0L,
     source_vigente = .collection_source_vigente(s, estado)
   )
@@ -674,12 +680,12 @@ collection_state_get <- function(sid) {
 
 collection_state_seed <- function(sid) {
   s <- session_get(sid)
-  if (!is.null(s$collection_state)) {
+  if (.collection_tiene_plan(s$collection_state)) {
     return(.collection_con_vigencia(.collection_payload(.collection_current(s), noop = TRUE, seeded = FALSE), sid))
   }
   if (!length(.collection_seed_source(s)$rows)) {
     return(.collection_con_vigencia(.collection_payload(
-      .collection_empty_state(), noop = TRUE, seeded = FALSE, seed_available = FALSE
+      .collection_current(s), noop = TRUE, seeded = FALSE, seed_available = FALSE
     ), sid))
   }
   seeded <- .collection_seed_from_legacy_state(s)
