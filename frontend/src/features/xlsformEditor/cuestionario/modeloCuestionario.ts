@@ -15,17 +15,15 @@ import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
 import type { BuilderNode, BuilderStructure, CatalogSummary } from "../types";
 import { segundosDePregunta } from "../resumen/modeloResumen";
 import { esMetadato } from "../kit/tiposPregunta";
-import { stripMarkdown } from "../helpers/markdown";
+import { conReferencias, esNotaSinTexto } from "../helpers/markdownPregunta";
 
 /**
  * Un texto que cita otra respuesta (`${HH01}`) se lee como en un cuestionario impreso: «[Nombre del miembro del hogar]»
  * con la etiqueta de esa pregunta si es corta, o «[HH01]» si no la tiene o es larga (S16: salía `${HH01}` crudo).
+ * La regla vive en helpers/markdownPregunta.ts y la comparte Probar.
  */
 export function conReferenciasLegibles(texto: string, etiquetaDe: (name: string) => string | undefined): string {
-  return (texto ?? "").replace(/\$\{\s*([^}\s]+)\s*\}/g, (_m, name: string) => {
-    const e = stripMarkdown(etiquetaDe(name) ?? "").replace(/\s+/g, " ").replace(/[?¿:]+$/g, "").trim();
-    return `[${e && e.length <= 48 && !e.includes("${") ? e : name}]`;
-  });
+  return conReferencias(texto, { etiquetaDe });
 }
 
 export type FormaRespuesta = "una" | "varias" | "numero" | "texto" | "fecha" | "hora" | "orden" | "acepta" | "otra";
@@ -172,9 +170,39 @@ export function armarDocumento(
 
   // Numeración de corrido: sólo las preguntas, como en el papel. Inicio, fin y demás automáticos los registra el
   // teléfono: no se numeran ni se muestran (S16: start y end salían como preguntas 1 y 2).
+  // Matrices: las de 2+ preguntas, por su primer miembro.
+  const matrizPorInicio = new Map<string, MatrixCandidate>();
+  const enMatriz = new Set<string>();
+  for (const m of matrices) {
+    if (m.count < 2) continue;
+    matrizPorInicio.set(m.memberNames[0], m);
+    for (const name of m.memberNames) enMatriz.add(name);
+  }
+
+  // E6 (2026-10-20): se numera en el orden en que se lee y por fila, no por nombre. Una matriz pone juntas sus filas
+  // donde aparece la primera, y un nombre repetido pisaba el número de su homónimo (salía 423 → 443 → 425).
+  const filasDeMatriz = (m: MatrixCandidate, desde: number): BuilderNode[] => {
+    const out: BuilderNode[] = [];
+    for (const name of m.memberNames) {
+      const o = outline.find((x, k) => k >= desde && x.name === name) ?? outline.find((x) => x.name === name);
+      if (o) out.push(o);
+    }
+    return out;
+  };
+  const numeroPorFila = new Map<number, number>();
   const numeroDe = new Map<string, number>();
   let n = 0;
-  for (const nodo of outline) if (nodo.kind === "question" && !esMetadato(nodo.typeInfo.base)) numeroDe.set(nodo.name, ++n);
+  const numerar = (o: BuilderNode) => {
+    if (numeroPorFila.has(o.rowIndex)) return;
+    numeroPorFila.set(o.rowIndex, ++n);
+    if (!numeroDe.has(o.name)) numeroDe.set(o.name, n);
+  };
+  outline.forEach((nodo, i) => {
+    if (nodo.kind !== "question" || esMetadato(nodo.typeInfo.base)) return;
+    const matriz = matrizPorInicio.get(nodo.name);
+    if (matriz) filasDeMatriz(matriz, i).forEach(numerar);
+    else if (!enMatriz.has(nodo.name)) numerar(nodo);
+  });
   const etiquetaDeNombre = new Map(outline.map((nodo) => [nodo.name, nodo.label]));
   const legible = (nodo: BuilderNode): BuilderNode =>
     nodo.label.includes("${") ? { ...nodo, label: conReferenciasLegibles(nodo.label, (x) => etiquetaDeNombre.get(x)) } : nodo;
@@ -189,7 +217,7 @@ export function armarDocumento(
   // Qué opción habilita qué pregunta: «Si responde X → P12».
   const habilita = new Map<string, number[]>();
   for (const nodo of outline) {
-    const destino = numeroDe.get(nodo.name);
+    const destino = numeroPorFila.get(nodo.rowIndex);
     if (!destino || !nodo.relevant.trim()) continue;
     for (const { variable, codigo } of codigosQueHabilitan(nodo.relevant)) {
       const clave = `${variable}\u0000${codigo}`;
@@ -201,7 +229,7 @@ export function armarDocumento(
     const forma = formaDe(nodo.typeInfo.base);
     return {
       nodo: legible(nodo),
-      numero: numeroDe.get(nodo.name) ?? 0,
+      numero: numeroPorFila.get(nodo.rowIndex) ?? 0,
       forma,
       opciones: (porLista.get(nodo.typeInfo.listName) ?? []).map((o) => ({
         codigo: o.name,
@@ -213,14 +241,6 @@ export function armarDocumento(
     };
   };
 
-  // Matrices: las de 2+ preguntas, por su primer miembro.
-  const matrizPorInicio = new Map<string, MatrixCandidate>();
-  const enMatriz = new Set<string>();
-  for (const m of matrices) {
-    if (m.count < 2) continue;
-    matrizPorInicio.set(m.memberNames[0], m);
-    for (const name of m.memberNames) enMatriz.add(name);
-  }
 
   const secciones: SeccionDoc[] = [];
   let actual: SeccionDoc = { ...PREGUNTA_INICIAL, bloques: [] };
@@ -244,6 +264,8 @@ export function armarDocumento(
       return;
     }
     if (nodo.kind === "note") {
+      // Una nota sin texto (la imagen del logo) no se lee: no es un bloque del cuestionario.
+      if (esNotaSinTexto(nodo)) return;
       actual.bloques.push({ tipo: "nota", nodo: legible(nodo), condicion: nodo.relevant.trim() ? leerCondicion(nodo.relevant, refs) : null });
       return;
     }
@@ -253,10 +275,7 @@ export function armarDocumento(
     if (nodo.relevant.trim()) actual.conCondicion += 1;
     const matriz = matrizPorInicio.get(nodo.name);
     if (matriz) {
-      const filas = matriz.memberNames
-        .map((name) => outline.find((o) => o.name === name))
-        .filter((o): o is BuilderNode => Boolean(o))
-        .map(preguntaDe);
+      const filas = filasDeMatriz(matriz, i).map(preguntaDe);
       actual.bloques.push({ tipo: "matriz", clave: matriz.id, filas, escala: filas[0]?.opciones ?? [] });
       return;
     }

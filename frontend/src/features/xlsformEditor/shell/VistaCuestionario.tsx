@@ -16,18 +16,18 @@
 // =============================================================================
 
 import { TituloSeccion } from "./TituloSeccion";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { ListaPartes, type GrupoDePartes } from "../../../components/ListaPartes";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { AlertTriangle, ArrowRight, Repeat } from "../../../vendor/lucide-react";
 import type { BuilderStructure, XlsformEditorWorkbook } from "../types";
 import { buildCatalogs } from "../parsing/buildIndex";
 import { detectMatrixCandidates } from "../parsing/detectMatrixCandidates";
-import { renderMarkdownInline, stripMarkdown } from "../helpers/markdown";
+import { pistaLegible, type LectorReferencias } from "../helpers/markdownPregunta";
+import { TextoPregunta } from "../helpers/markdownTexto";
 import { duracion, minutos, resumirFormulario } from "../resumen/modeloResumen";
+import { IndiceCuestionario } from "../cuestionario/IndiceCuestionario";
 import {
   armarDocumento,
   marcarOpcionales,
-  rotuloDeIndice,
   type BloqueDoc,
   type OpcionDoc,
   type PreguntaDoc,
@@ -64,10 +64,11 @@ type Fichas = {
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
+/** Cómo se leen los `${x}` del documento: «[Etiqueta corta]» o el código (helpers/markdownPregunta.ts). */
+const Lector = createContext<LectorReferencias>({ etiquetaDe: () => undefined });
+
 function Markdown({ texto, como = "span", className }: { texto: string; como?: "span" | "p" | "h3"; className?: string }) {
-  const Tag = como;
-  // renderMarkdownInline escapa el texto y sólo emite el subconjunto de marcas del editor.
-  return <Tag className={className} dangerouslySetInnerHTML={{ __html: renderMarkdownInline(texto) }} />;
+  return <TextoPregunta texto={texto} lector={useContext(Lector)} como={como} className={className} />;
 }
 
 function Marca({ forma }: { forma: "una" | "varias" }) {
@@ -160,7 +161,7 @@ function Pregunta({ pregunta, marcarOpcionales: opcionales, fichas }: {
         {/* F3: el tipo, discreto a la derecha; su nombre al pasar el puntero (la ficha lo dice entero). */}
         <span className="pulso-xf-cue-tipo" title={typeLabel(nodo.typeInfo.base)}><TypeIcon baseType={nodo.typeInfo.base} size={13} /></span>
       </div>
-      {nodo.hint.trim() && <Markdown como="p" className="pulso-xf-cue-ayuda" texto={nodo.hint} />}
+      {pistaLegible(nodo) && <Markdown como="p" className="pulso-xf-cue-ayuda" texto={pistaLegible(nodo)} />}
       {/* Abierta, la línea de respuesta de una pregunta abierta sobra: la ficha va justo debajo. */}
       {!(abierta && (pregunta.forma === "texto" || pregunta.forma === "otra")) && <Opciones pregunta={pregunta} />}
       {abierta && <FichaPregunta pregunta={pregunta} onEditar={fichas.onEditar} />}
@@ -272,6 +273,9 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
   const documento = useRef<HTMLDivElement>(null);
   const anclas = useRef(new Map<string, HTMLElement>());
   const [actual, setActual] = useState<string>(secciones[0]?.clave ?? "");
+  const saltando = useRef<string | null>(null);
+  const etiquetaDeNombre = useMemo(() => new Map((structure?.outline ?? []).map((n) => [n.name, n.label])), [structure]);
+  const lector = useMemo<LectorReferencias>(() => ({ etiquetaDe: (n) => etiquetaDeNombre.get(n) }), [etiquetaDeNombre]);
   const registrar = (clave: string, el: HTMLElement | null) => {
     if (el) anclas.current.set(clave, el);
     else anclas.current.delete(clave);
@@ -284,15 +288,19 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
     const alDesplazar = () => {
       const tope = raiz.getBoundingClientRect().top + raiz.clientHeight / 3;
       let vigente = secciones[0]?.clave ?? "";
+      // Mientras viaja un salto del índice, el resaltado es el destino y no lo que pasa por debajo.
+      if (saltando.current) return;
       for (const s of secciones) {
         const el = anclas.current.get(s.clave);
         if (el && el.getBoundingClientRect().top <= tope) vigente = s.clave;
       }
       setActual(vigente);
     };
+    const finSalto = () => { saltando.current = null; };
     alDesplazar();
     raiz.addEventListener("scroll", alDesplazar, { passive: true });
-    return () => raiz.removeEventListener("scroll", alDesplazar);
+    raiz.addEventListener("scrollend", finSalto);
+    return () => { raiz.removeEventListener("scroll", alDesplazar); raiz.removeEventListener("scrollend", finSalto); };
   }, [secciones]);
 
   const fichas: Fichas = { abierta, alternar: (name) => onAbrir(alternarFicha(abierta, name)), onEditar };
@@ -307,26 +315,34 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
     if (el) raiz.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top - raiz.getBoundingClientRect().top + raiz.scrollTop - 24) });
   }, []);
 
-  const irASeccion = (clave: string) => {
-    setActual(clave);
-    // Se desplaza sólo el documento: scrollIntoView movería también los contenedores de la pestaña.
+  // E6 (2026-10-20): el salto lleva el encabezado arriba (su scroll-margin) y el resaltado sale del destino. Se mide
+  // con offsetTop respecto del documento (posicionado), que no cambia aunque haya otro desplazamiento en curso.
+  const desplazarA = (el: HTMLElement) => {
     const raiz = documento.current;
-    const el = anclas.current.get(clave);
-    if (!raiz || !el) return;
-    const destino = el.getBoundingClientRect().top - raiz.getBoundingClientRect().top + raiz.scrollTop - 20;
-    raiz.scrollTo({ top: Math.max(0, destino), behavior: "smooth" });
+    if (!raiz) return;
+    let top = 0;
+    for (let n: HTMLElement | null = el; n && n !== raiz; n = n.offsetParent as HTMLElement | null) top += n.offsetTop;
+    const margen = parseFloat(getComputedStyle(el).scrollMarginTop) || 0;
+    const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    raiz.scrollTo({ top: Math.max(0, top - margen), behavior: reducido ? "auto" : "smooth" });
   };
 
-  const grupos: GrupoDePartes<string>[] = [{
-    id: "secciones",
-    titulo: "Secciones",
-    partes: secciones.map((s) => ({
-      clave: s.clave,
-      rotulo: stripMarkdown(rotuloDeIndice(s)),
-      detalle: `${plural(s.preguntas, "pregunta", "preguntas")}${s.preguntas ? ` · ${duracion(s.segundos)}` : ""}`,
-      ...(s.conCondicion > 0 ? { estado: { tono: "neutro" as const, texto: "condicional" } } : {}),
-    })),
-  }];
+  const irASeccion = (clave: string) => {
+    const el = anclas.current.get(clave);
+    setActual(clave);
+    if (!el) return;
+    saltando.current = clave;
+    window.setTimeout(() => { if (saltando.current === clave) saltando.current = null; }, 1500);
+    desplazarA(el);
+  };
+
+  const irAPregunta = (name: string) => {
+    const el = documento.current?.querySelector<HTMLElement>(`[data-pregunta="${CSS.escape(name)}"]`);
+    const seccion = el?.closest<HTMLElement>("[data-seccion]")?.dataset.seccion;
+    if (!el) return;
+    if (seccion) { setActual(seccion); saltando.current = seccion; window.setTimeout(() => { if (saltando.current === seccion) saltando.current = null; }, 1500); }
+    desplazarA(el);
+  };
 
   return (
     <div
@@ -353,9 +369,7 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
           <p className="pulso-xf-cue-vacio">El cuestionario todavía no tiene preguntas: agrega la primera en el Constructor.</p>
         ) : (
           <div className="pulso-xf-cue-rejilla">
-            <nav className="pulso-xf-cue-indice" aria-label="Índice del cuestionario">
-              <ListaPartes etiqueta="Secciones del cuestionario" grupos={grupos} actual={actual} onElegir={irASeccion} prefijoId="xf-cue-indice" />
-            </nav>
+            <IndiceCuestionario secciones={secciones} actual={actual} onSeccion={irASeccion} onPregunta={irAPregunta} />
             <div className="pulso-xf-cue-pagina" lang="es" data-qa-geometry-group="xlsform/cuestionario-documento" data-qa-geometry-contract="intrinsic">
               <div className="pulso-xf-cue-leyenda">
                 {opcionales
@@ -374,9 +388,11 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
                   )}
                 </div>
               )}
-              {secciones.map((s) => (
-                <Seccion key={s.clave} seccion={s} marcarOpcionales={opcionales} fichas={fichas} registrar={registrar} onTitular={onTitular} />
-              ))}
+              <Lector.Provider value={lector}>
+                {secciones.map((s) => (
+                  <Seccion key={s.clave} seccion={s} marcarOpcionales={opcionales} fichas={fichas} registrar={registrar} onTitular={onTitular} />
+                ))}
+              </Lector.Provider>
             </div>
           </div>
         )}

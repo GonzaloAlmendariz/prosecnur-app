@@ -21,9 +21,11 @@ import {
 } from "../shell/pdfExportPreference";
 import { InterruptorImpreso, TarjetaImpreso } from "./TarjetaImpreso";
 
+const MIN_MAX_OPCIONES = MIN_MAX_OPTIONS_PER_QUESTION;
+
 type Actualizar = (patch: Partial<PdfDialogState>) => void;
 
-type OpcionTarjeta<V> = { valor: V; icono: LucideIcon; titulo: string; detalle: string; ancha?: boolean };
+type OpcionTarjeta<V> = { valor: V; icono: LucideIcon; titulo: string; detalle: string };
 
 function Opciones<V extends string | number>({ etiqueta, valor, opciones, onElegir }: {
   etiqueta: string;
@@ -32,7 +34,7 @@ function Opciones<V extends string | number>({ etiqueta, valor, opciones, onEleg
   onElegir: (v: V) => void;
 }) {
   return (
-    <div className="pulso-xf-pdf-cards" role="radiogroup" aria-label={etiqueta}>
+    <div className={`pulso-xf-pdf-cards${opciones.length === 3 ? " pulso-xf-pdf-cards--tres" : ""}`} role="radiogroup" aria-label={etiqueta}>
       {opciones.map((o) => {
         const Icono = o.icono;
         const activa = o.valor === valor;
@@ -42,7 +44,7 @@ function Opciones<V extends string | number>({ etiqueta, valor, opciones, onEleg
             type="button"
             role="radio"
             aria-checked={activa}
-            className={`pulso-xf-pdf-card${o.ancha ? " pulso-xf-pdf-card--ancha" : ""}${activa ? " is-active" : ""}`}
+            className={`pulso-xf-pdf-card${activa ? " is-active" : ""}`}
             onClick={() => onElegir(o.valor)}
           >
             <span className="pulso-xf-pdf-card-icon"><Icono size={18} /></span>
@@ -60,7 +62,7 @@ function Opciones<V extends string | number>({ etiqueta, valor, opciones, onEleg
 const COLUMNAS: readonly OpcionTarjeta<1 | 2 | "auto">[] = [
   { valor: 1, icono: Square, titulo: "Una columna", detalle: "Preguntas a lo ancho de la página." },
   { valor: 2, icono: Columns2, titulo: "Dos columnas", detalle: "Compacto, más preguntas por hoja." },
-  { valor: "auto", icono: LayoutTemplate, titulo: "Automáticas", detalle: "Una o dos según el tramo: las baterías anchas a toda la página.", ancha: true },
+  { valor: "auto", icono: LayoutTemplate, titulo: "Automáticas", detalle: "Una o dos según el tramo." },
 ];
 
 const ANCHO_MATRICES: readonly OpcionTarjeta<"full" | "column">[] = [
@@ -100,8 +102,9 @@ export function DetalleFormato({ estado, actualizar }: { estado: PdfDialogState;
   );
 }
 
-export function DetalleLogica({ estado, actualizar, consentimiento }: {
+export function DetalleLogica({ estado, actualizar, consentimiento, plano }: {
   estado: PdfDialogState;
+  plano: (texto: string) => string;
   actualizar: Actualizar;
   consentimiento: readonly ConsentQuestion[];
 }) {
@@ -129,7 +132,7 @@ export function DetalleLogica({ estado, actualizar, consentimiento }: {
             >
               <option value="">Ninguna</option>
               {consentimiento.map((q) => (
-                <option key={q.name} value={q.name}>{q.name} — {q.label}</option>
+                <option key={q.name} value={q.name}>{q.name} — {plano(q.label)}</option>
               ))}
             </select>
             <ChevronDown size={14} aria-hidden="true" className="pulso-xf-pdf-select-caret" />
@@ -142,6 +145,18 @@ export function DetalleLogica({ estado, actualizar, consentimiento }: {
 
 export function DetalleContenido({ estado, actualizar }: { estado: PdfDialogState; actualizar: Actualizar }) {
   const [borrador, setBorrador] = useState(String(estado.maxOptionsPerQuestion));
+  // Un valor bajo el mínimo no vuelve en silencio al anterior: se ajusta al mínimo y se avisa.
+  const [ajustado, setAjustado] = useState(false);
+  const confirmar = () => {
+    const n = Number(borrador.trim());
+    if (Number.isFinite(n) && borrador.trim() !== "" && n < MIN_MAX_OPCIONES) {
+      actualizar({ maxOptionsPerQuestion: MIN_MAX_OPCIONES });
+      setBorrador(String(MIN_MAX_OPCIONES));
+      setAjustado(true);
+      return;
+    }
+    setBorrador(String(parseMaxOptionsPerQuestion(borrador) ?? estado.maxOptionsPerQuestion));
+  };
   return (
     <>
       <TarjetaImpreso id="imp-instrucciones" titulo="Instrucciones" ayuda="La banda que abre el cuestionario.">
@@ -156,22 +171,27 @@ export function DetalleContenido({ estado, actualizar }: { estado: PdfDialogStat
         <div className="pulso-xf-pdf-switch-row pulso-xf-pdf-number-row">
           <label className="pulso-xf-pdf-switch-text" htmlFor="pulso-xf-imp-max-options">
             <strong>Máximo de opciones impresas</strong>
-            <em>Mínimo {MIN_MAX_OPTIONS_PER_QUESTION}.</em>
+            <em id="pulso-xf-imp-max-options-aviso" className={ajustado ? "pulso-xf-imp-aviso" : undefined} role={ajustado ? "status" : undefined}>
+              {ajustado ? `Mínimo ${MIN_MAX_OPCIONES}. Se ajustó.` : `Mínimo ${MIN_MAX_OPCIONES}.`}
+            </em>
           </label>
           <input
             id="pulso-xf-imp-max-options"
             type="number"
             inputMode="numeric"
-            min={MIN_MAX_OPTIONS_PER_QUESTION}
+            min={MIN_MAX_OPCIONES}
             step={1}
             className="pulso-xf-pdf-input pulso-xf-pdf-number"
+            aria-describedby="pulso-xf-imp-max-options-aviso"
             value={borrador}
             onChange={(e) => {
               setBorrador(e.target.value);
+              setAjustado(false);
               const n = parseMaxOptionsPerQuestion(e.target.value);
               if (n !== null) actualizar({ maxOptionsPerQuestion: n });
             }}
-            onBlur={() => setBorrador(String(estado.maxOptionsPerQuestion))}
+            onBlur={confirmar}
+            onKeyDown={(e) => { if (e.key === "Enter") confirmar(); }}
           />
         </div>
       </TarjetaImpreso>

@@ -51,3 +51,46 @@
 /* Con 60 secciones el recorrido no estira la columna: tiene su propio desplazamiento dentro del alto visible. */
 .xfsp-col { display: flex; flex-direction: column; max-height: calc(100vh - 300px); overflow: hidden; }
 .xfsp-col .xfk-card__body { min-height: 0; overflow: auto; }
+
+/* E8 (2026-10-20): secciones que la lógica salta, plegadas bajo la lista. */
+.xfsp-omitidas {
+  display: flex; align-items: center; gap: 6px; width: 100%; margin-top: 6px; padding: 6px 8px; border: 0; border-radius: var(--pulso-radius);
+  background: transparent; color: var(--pulso-text-muted); font: inherit; font-size: 12px; text-align: left; cursor: pointer; box-shadow: none; min-height: 0;
+}
+.xfsp-omitidas:hover { background: var(--pulso-surface-2); }
+.xfsp-omitidas svg { transition: transform var(--motion-dur-fast) ease; }
+.xfsp-omitidas[aria-expanded="true"] svg { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .xfsp-omitidas svg { transition: none; } }
+
+/* Finalizar: lo que falta, con enlace a cada pregunta. */
+.xfsp-faltan {
+  margin: 4px 0 12px; padding: 12px 14px; border: 1px solid var(--pulso-warn-border); border-radius: var(--pulso-radius-card);
+  background: var(--pulso-warn-bg); color: var(--pulso-warn-fg);
+}
+.xfsp-faltan header { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; }
+.xfsp-faltan header svg { flex: none; margin-top: 1px; }
+.xfsp-faltan ul { display: flex; flex-direction: column; gap: 2px; margin: 8px 0 0; padding: 0; list-style: none; max-height: 240px; overflow: auto; }
+.xfsp-faltan li button {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 8px; width: 100%; padding: 6px 8px;
+  border: 0; border-radius: var(--pulso-radius); background: transparent; color: var(--pulso-text); font: inherit; font-size: 12.5px;
+  text-align: left; cursor: pointer; box-shadow: none; min-height: 0;
+}
+.xfsp-faltan li button:hover { background: var(--pulso-surface); }
+.xfsp-faltan li button:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: -2px; }
+.xfsp-faltan li b { font-variant-numeric: tabular-nums; }
+.xfsp-faltan li span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.xfsp-faltan li em { color: var(--pulso-warn-fg); font-size: 11.5px; font-style: normal; font-weight: var(--pulso-weight-semibold); }
+
+.xfsp-fin { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 48px 16px; text-align: center; color: var(--pulso-text-soft); font-size: 13px; }
+.xfsp-fin svg { color: var(--pulso-success-fg); }
+.xfsp-fin strong { color: var(--pulso-text); font-size: 16px; }
+.xfsp-fin div { display: flex; gap: 8px; margin-top: 8px; }
+
+/* Pregunta que impide finalizar o cuya respuesta incumple su regla. */
+.pulso-xfsim-card.is-pendiente,
+.pulso-xfsim-card.is-error { border-color: var(--pulso-warn-border); border-left-color: var(--pulso-warn-fg); }
+.pulso-xfsim-error { margin: 8px 0 0 21px; color: var(--pulso-warn-fg); font-size: 12px; line-height: 1.4; }
+
+/* La opción se lee alineada a la izquierda, como en el teléfono (el estilo global de botón la centraba). */
+.pulso-xfsim-options .pulso-xfsim-option { justify-content: flex-start; text-align: left; }
+.pulso-xfsim-options .pulso-xfsim-option-label { flex: 1 1 auto; }

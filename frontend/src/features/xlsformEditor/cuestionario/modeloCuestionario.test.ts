@@ -119,3 +119,19 @@ describe("índice del cuestionario (S16)", () => {
     expect(rotuloDeIndice({ rotulo: "Datos del hogar", name: "grp_hh01" })).toBe("Datos del hogar");
   });
 });
+
+describe("numeración en orden de lectura (E6)", () => {
+  test("un nombre repetido no pisa el número de su homónimo y la nota sin texto no es bloque", () => {
+    const filas: BuilderNode[] = [
+      nodo(1, "logo", "note", { label: "", sectionId: "root", mediaImage: "logo.png" }),
+      nodo(2, "a", "integer", { sectionId: "root" }),
+      nodo(3, "dup", "integer", { sectionId: "root" }),
+      nodo(4, "b", "integer", { sectionId: "root" }),
+      nodo(5, "dup", "integer", { sectionId: "root" }),
+      nodo(6, "c", "integer", { sectionId: "root" }),
+    ];
+    const doc = armarDocumento({ outline: filas } as unknown as BuilderStructure, catalogos, []);
+    const numeros = doc.flatMap((s) => s.bloques.map((b) => (b.tipo === "pregunta" ? b.pregunta.numero : b.tipo)));
+    expect(numeros).toEqual([1, 2, 3, 4, 5]);
+  });
+});

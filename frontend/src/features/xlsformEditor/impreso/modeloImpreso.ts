@@ -11,7 +11,7 @@
 import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
 import type { ConsentQuestion } from "../parsing/detectConsentQuestions";
 import type { BuilderNode, BuilderStructure } from "../types";
-import { matrixChoiceFor, type PdfDialogState } from "../shell/pdfExportPreference";
+import { matrixChoiceFor, matrixSignature, type PdfDialogState } from "../shell/pdfExportPreference";
 
 export type ParteImpreso = "formato" | "logica" | "contenido" | "matrices" | "papel";
 
@@ -40,6 +40,30 @@ export function separarCandidatas(candidatas: readonly MatrixCandidate[]): {
   };
 }
 
+/** Una escala con más opciones no se sugiere como matriz: 250 países no caben como columnas. */
+export const MAX_OPCIONES_MATRIZ = 7;
+
+/** Sólo se sugieren las candidatas con lista corta. Las demás no se ofrecen ni viajan al motor. */
+export function candidatasSugeribles(candidatas: readonly MatrixCandidate[]): MatrixCandidate[] {
+  return candidatas.filter((c) => c.scaleOptions.length <= MAX_OPCIONES_MATRIZ);
+}
+
+/**
+ * Las sugerencias nacen apagadas: una candidata sin elección guardada se lee como `enabled: false`. Lo que la persona
+ * ya eligió se respeta.
+ */
+export function conSugerenciasApagadas(
+  candidatas: readonly MatrixCandidate[],
+  matrices: PdfDialogState["matrices"],
+): PdfDialogState["matrices"] {
+  const salida: PdfDialogState["matrices"] = { ...matrices };
+  for (const c of candidatas) {
+    const firma = matrixSignature(c);
+    if (salida[firma]?.enabled === undefined) salida[firma] = { ...salida[firma], enabled: false };
+  }
+  return salida;
+}
+
 export function matricesActivas(
   candidatas: readonly MatrixCandidate[],
   matrices: PdfDialogState["matrices"],
@@ -49,16 +73,24 @@ export function matricesActivas(
 
 // ── Papel por pregunta ──────────────────────────────────────────────────────
 
-const CAMPOS_PAPEL: readonly { campo: keyof BuilderNode; columna: string }[] = [
-  { campo: "paperNumber", columna: "paper_number" },
-  { campo: "paperLabel", columna: "paper_label" },
-  { campo: "paperSkip", columna: "paper_skip" },
-  { campo: "paperGroup", columna: "paper_group" },
-  { campo: "paperSubgroup", columna: "paper_subgroup" },
-  { campo: "paperSubletter", columna: "paper_subletter" },
-  { campo: "paperLayout", columna: "paper_layout" },
-  { campo: "paperOnly", columna: "paper_only" },
+const CAMPOS_PAPEL: readonly { campo: keyof BuilderNode; columna: string; rotulo: string }[] = [
+  { campo: "paperNumber", columna: "paper_number", rotulo: "número" },
+  { campo: "paperLabel", columna: "paper_label", rotulo: "texto" },
+  { campo: "paperSkip", columna: "paper_skip", rotulo: "salto" },
+  { campo: "paperGroup", columna: "paper_group", rotulo: "agrupación" },
+  { campo: "paperSubgroup", columna: "paper_subgroup", rotulo: "subsección" },
+  { campo: "paperSubletter", columna: "paper_subletter", rotulo: "letra" },
+  { campo: "paperLayout", columna: "paper_layout", rotulo: "ancho" },
+  { campo: "paperOnly", columna: "paper_only", rotulo: "sólo en papel" },
 ];
+
+/** «Número y salto»: los ajustes de una fila con palabras, no con sus columnas. */
+export function rotuloAjustesPapel(columnas: readonly string[]): string {
+  if (columnas.length === 0) return "Sin ajustes todavía";
+  const rotulos = columnas.map((col) => CAMPOS_PAPEL.find((c) => c.columna === col)?.rotulo ?? col);
+  const texto = rotulos.length === 1 ? rotulos[0] : `${rotulos.slice(0, -1).join(", ")} y ${rotulos[rotulos.length - 1]}`;
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
 
 export type FilaConPapel = {
   rowIndex: number;
@@ -209,7 +241,7 @@ export type CifrasPrevia = { paginas: number | null; preguntas: number };
 
 /** «A4 · 12 páginas · 87 preguntas». Sin previa, sólo el formato: no se inventan cifras. */
 export function resumenCabecera(cifras: CifrasPrevia | null): string {
-  if (!cifras) return "A4 · el número de páginas sale con el PDF";
+  if (!cifras) return "A4";
   const partes = ["A4"];
   if (cifras.paginas) partes.push(`${cifras.paginas} ${cifras.paginas === 1 ? "página" : "páginas"}`);
   partes.push(`${cifras.preguntas} ${cifras.preguntas === 1 ? "pregunta" : "preguntas"}`);
