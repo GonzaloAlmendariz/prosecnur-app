@@ -274,3 +274,12 @@
     transition: none;
   }
 }
+
+/* La biblioteca abierta desde «Bloques del correo» (popover en portal). */
+.rec-mail-bib-pop {
+  /* En ventanas bajas la biblioteca no se corta: el popover es su único dueño de scroll. */
+  max-height: calc(var(--radix-popover-content-available-height, 100vh) - 8px);
+  overflow-y: auto;
+  border-radius: var(--pulso-radius-panel);
+  z-index: var(--pulso-z-flyout);
+}

@@ -13,6 +13,7 @@ import {
   slugDeImagen,
   usarBanner,
   usarLogos,
+  altPendiente,
   CUERPO_DEL_INSPECTOR,
 } from "./modeloCorreo";
 
@@ -28,6 +29,9 @@ type Props = {
   onEditar: (update: (t: MailTemplate) => MailTemplate) => void;
   /** Sube el PNG o JPEG con el id de la imagen; si ya tenía archivo, lo reemplaza. */
   onSubir: (id: string, file: File) => void;
+  /** Imagen cuyo texto alternativo se pide (tras importar un correo): su campo toma el foco. */
+  pedirAlt?: string | null;
+  onAltListo?: () => void;
 };
 
 function SubirArchivo({ etiqueta, disabled, onArchivo }: { etiqueta: string; disabled: boolean; onArchivo: (file: File) => void }) {
@@ -56,7 +60,8 @@ function Imagen({ src, alt, banner }: { src: string | undefined; alt: string; ba
 }
 
 /** Pestaña «Identidad»: banner de mailing del cliente o franja de logos del estudio. */
-export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinArchivo, bannerCheck, ocupado, onEditar, onSubir }: Props) {
+export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinArchivo, bannerCheck, ocupado, onEditar, onSubir, pedirAlt = null, onAltListo }: Props) {
+  const ids = useId();
   const conBanner = template.header.kind === "banner";
   const bannerId = template.header.kind === "banner" ? template.header.image_ref : BANNER_ID;
   const logos = logosDeLaFranja(template);
@@ -96,20 +101,58 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
     onSubir(bannerId, file);
   };
 
+  // Tras importar un correo cuyo banner no traía descripción, se pide arriba de todo.
+  const altArriba = conBanner && pedirAlt === bannerId;
+  const datosDelBanner = (
+    <span className="rec-mail-logo-datos rec-ident-banner-datos">
+      <label htmlFor={`${ids}-alt`} className="rec-mail-campo-rotulo"><span>Texto alternativo del banner</span></label>
+      <input
+        id={`${ids}-alt`}
+        className={`rec-mail-input rec-mail-input--sm${altPendiente(template.images[bannerId]?.alt) ? " is-error" : ""}`}
+        placeholder="Qué muestra el banner"
+        aria-invalid={altPendiente(template.images[bannerId]?.alt) || undefined}
+        aria-describedby={altPendiente(template.images[bannerId]?.alt) ? `${ids}-alt-falta` : undefined}
+        // Se pide tras importar un correo cuyo banner no traía descripción.
+        autoFocus={pedirAlt === bannerId}
+        value={template.images[bannerId]?.alt ?? ""}
+        onChange={(e) => editarImagen(bannerId, { alt: e.target.value })}
+        onBlur={() => { if (pedirAlt === bannerId && !altPendiente(template.images[bannerId]?.alt)) onAltListo?.(); }}
+      />
+      {altPendiente(template.images[bannerId]?.alt) ? (
+        <span className="rec-mail-problema-linea" id={`${ids}-alt-falta`}>
+          Describe el banner: es lo que lee quien no ve imágenes y lo que muestra el correo si no carga.
+        </span>
+      ) : null}
+      <input
+        className="rec-mail-input rec-mail-input--sm"
+        aria-label="URL pública del banner (opcional)"
+        placeholder="URL pública, si ya está alojado"
+        value={template.images[bannerId]?.url ?? ""}
+        onChange={(e) => editarImagen(bannerId, { url: e.target.value.trim() })}
+      />
+    </span>
+  );
+
   return (
     <div {...CUERPO_DEL_INSPECTOR} className="rec-mail-insp-cuerpo">
       <div className="rec-mail-insp-cabeza">
         <h3>Identidad del correo</h3>
         <p>El cuerpo lo arma Pulso; el banner lo entrega el cliente.</p>
       </div>
+      {altArriba ? (
+        <section className="rec-ident-pide-alt" aria-label="Falta describir el banner">
+          {datosDelBanner}
+        </section>
+      ) : null}
 
       <section className={`rec-mail-banner${conBanner ? " is-active" : ""}`} aria-label="Banner de mailing">
-        <Imagen src={imagenesLocales[bannerId]} alt="Banner de mailing" banner />
+        <Imagen src={imagenesLocales[bannerId] ?? template.images[bannerId]?.url} alt={template.images[bannerId]?.alt || "Banner de mailing"} banner />
         <span className="rec-mail-banner-fila">
           <b>Banner de mailing</b>
           <span className="xfk-mono">1200 × 600</span>
         </span>
         <span className="rec-mail-ayuda">Lo envía el cliente; va como cabecera del correo.</span>
+        {conBanner && !altArriba ? datosDelBanner : null}
         {bannerCheck && conBanner ? (
           <span className={`rec-mail-estado-linea is-${bannerCheck.status}`}>
             {bannerCheck.status === "ok" ? <CheckCircle2 size={13} aria-hidden /> : <AlertCircle size={13} aria-hidden />}
@@ -141,6 +184,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
             />
           ) : null}
         </span>
+{logos.length ? (
         <FranjaDeLogos
           logoIds={logos}
           images={template.images}
@@ -150,8 +194,12 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
           htmlDeLaVista={conBanner ? null : htmlDeLaVista}
           enReserva={conBanner}
         />
+        ) : (
+          <p className="rec-mail-vacio">La cabecera es el banner. Si vuelves a la franja, aquí van los logos del estudio.</p>
+        )}
         <span className="rec-mail-ayuda">Cuando no hay banner, las instituciones del estudio van en la franja.</span>
-        <ul className="rec-mail-logos" data-qa-geometry-group="material-campo/catalogo/correos-logos" data-qa-geometry-contract="equal">
+        {/* C3: sin logos (cabecera de banner) no queda una lista vacía reclamando alto. */}
+        {logos.length ? <ul className="rec-mail-logos" data-qa-geometry-group="material-campo/catalogo/correos-logos" data-qa-geometry-contract="equal">
           {logos.map((id) => {
             const img = template.images[id] ?? { alt: "" };
             const falta = !tieneArchivo(id) && !img.url;
@@ -177,9 +225,11 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
                 </span>
                 <span className="rec-mail-logo-datos">
                   <input
-                    className="rec-mail-input rec-mail-input--sm"
+                    className={`rec-mail-input rec-mail-input--sm${altPendiente(img.alt) ? " is-error" : ""}`}
                     aria-label={`Texto alternativo de ${id}`}
+                    aria-invalid={altPendiente(img.alt) || undefined}
                     placeholder="Texto alternativo"
+                    autoFocus={pedirAlt === id}
                     value={img.alt}
                     onChange={(e) => editarImagen(id, { alt: e.target.value })}
                   />
@@ -194,7 +244,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
               </li>
             );
           })}
-        </ul>
+        </ul> : null}
         {!conBanner && logos.length < MAX_LOGOS ? (
           <SubirArchivo etiqueta="Agregar un logo" disabled={ocupado} onArchivo={agregarLogo} />
         ) : null}

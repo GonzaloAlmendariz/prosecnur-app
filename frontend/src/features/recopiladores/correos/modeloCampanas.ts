@@ -12,10 +12,14 @@
 // `foco=<campaign_id>~<block_id>`.
 
 import {
+  MAIL_PLATFORM_DEFAULT,
   MailApiError,
+  mailSendInvitation,
   type MailBlock,
   type MailCampaign,
   type MailCampaignSummary,
+  type MailSend,
+  type MailSendBrief,
   type MailTemplate,
 } from "../../../api/materialMail";
 import { SEPARADOR_FOCO } from "../editor/modeloEditor";
@@ -160,12 +164,19 @@ export function nombreDeCopia(nombre: string, campanas: readonly Pick<MailCampai
 // ---------------------------------------------------------------------------
 
 /** El resumen de una campaña recién escrita, sin volver a pedir la lista. */
+/** El resumen de un envío (lo que lista el selector): sin asunto ni apertura. */
+export function resumenDeEnvio(e: MailSend): MailSendBrief {
+  return { send_id: e.send_id, kind: e.kind, label: e.label, ...(e.date ? { date: e.date } : {}), audience: e.audience };
+}
+
 export function resumenDeCampana(c: MailCampaign, previo?: MailCampaignSummary | null): MailCampaignSummary {
   const t = c.template;
   return {
     campaign_id: c.campaign_id,
     name: c.name,
     actor: c.actor,
+    platform: c.platform ?? previo?.platform ?? MAIL_PLATFORM_DEFAULT,
+    sends: c.sends.length ? c.sends.map(resumenDeEnvio) : previo?.sends ?? [resumenDeEnvio(mailSendInvitation())],
     preset_id: t ? t.preset_id ?? null : previo?.preset_id ?? null,
     subject: t ? t.subject : previo?.subject ?? "",
     blocks: t ? t.blocks.length : previo?.blocks ?? 0,
@@ -193,10 +204,12 @@ export function conPlantillaGuardada(
   campanas: readonly MailCampaignSummary[],
   campaignId: string,
   template: MailTemplate,
+  sends?: readonly MailSend[],
 ): MailCampaignSummary[] {
   return campanas.map((c) => (c.campaign_id === campaignId
     ? {
       ...c,
+      ...(sends ? { sends: sends.map(resumenDeEnvio) } : {}),
       preset_id: template.preset_id ?? c.preset_id,
       subject: template.subject,
       blocks: template.blocks.length,

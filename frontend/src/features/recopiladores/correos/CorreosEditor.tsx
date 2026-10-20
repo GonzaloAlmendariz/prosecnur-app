@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { MailBlock, MailBlockType, MailPreset, MailTemplate } from "../../../api/materialMail";
+import type { MailBlock, MailBlockType, MailPlatform, MailPreset, MailTemplate } from "../../../api/materialMail";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { PulsoButton } from "../../../components/PulsoButton";
@@ -14,6 +14,7 @@ import {
   CAMPO_NOMBRE,
   SOBRE,
   agregarBloque,
+  cabeceraSinAlt,
   conTexto,
   editarBloque,
   idLibre,
@@ -21,12 +22,21 @@ import {
   moverBloque,
   quitarBloque,
   repartirProblemas,
+  rotuloDeBloque,
   slugDeImagen,
   textoDe,
   type VistaDelCorreo,
 } from "./modeloCorreo";
+import { AvisoDeshacer, type Deshacible } from "./AvisoDeshacer";
+import { destinoDelChequeo } from "./comoArreglar";
 import { CapaDeEdicion } from "./CapaDeEdicion";
-import type { Dialecto } from "./comoSaleEnLaPlataforma";
+import { GuiaDelEditor } from "./GuiaDelEditor";
+import { NOMBRE_DE_PLATAFORMA, etiquetaDeCampo } from "./dialectos";
+import { DialogoImportarHtml } from "./DialogoImportarHtml";
+import { agregarRecordatorio, asuntoDelEnvio, cerrarApertura, conApertura, editarEnvio, quitarEnvio } from "./modeloEnvios";
+import { PanelEnvios } from "./PanelEnvios";
+import { DestinatariosEnSurveyMonkey, PanelSurveyMonkey } from "./PanelSurveyMonkey";
+import { SelectorDeEnvio } from "./SelectorDeEnvio";
 import {
   APERTURA,
   bloqueParaInsertar,
@@ -55,18 +65,22 @@ import {
   PANEL_CORREO_CAMPANAS,
   PANEL_CORREO_CAMPANA_BORRAR,
   PANEL_CORREO_DESTINATARIOS,
+  PANEL_CORREO_ENVIOS,
   PANEL_CORREO_IDENTIDAD,
+  PANEL_CORREO_IMPORTAR,
   PANEL_CORREO_REVISION,
 } from "./panelesCorreos";
 import { SelectorDeCampana } from "./SelectorDeCampana";
 import { SinCampanas } from "./SinCampanas";
-import { hayCambios, hayQueGuardar, useCorreosStore } from "./store";
+import { envioElegido, hayCambios, hayQueGuardar, useCorreosStore } from "./store";
 import { useCampanaDelFoco } from "./useCampanaDelFoco";
 import { useCampanas } from "./useCampanas";
 import { useCorreos } from "./useCorreos";
 import "./correos.css";
 import "./correosCampanas.css";
 import "./correosCapa.css";
+import "./correosEnvios.css";
+import "./correosGuia.css";
 
 type Props = {
   /** Avisa al shell mientras el correo o su vista previa no han llegado. */
@@ -79,13 +93,7 @@ type Props = {
   onStateRefresh?: () => void | Promise<void>;
 };
 
-type Pestana = "bloque" | "identidad" | "destinatarios" | "revision";
-
-/**
- * Dialecto de la campaña para el modo didáctico. Hoy toda campaña sale por
- * Mailchimp; cuando la campaña declare `platform` (addendum E1j), se lee aquí.
- */
-const DIALECTO: Dialecto = "mailchimp";
+type Pestana = "bloque" | "envios" | "identidad" | "destinatarios" | "revision";
 
 const PARECE_CORREO = /[^\s@]+@[^\s@]+/;
 
@@ -102,6 +110,7 @@ const VISTAS: { value: VistaDelCorreo; label: string }[] = [
  */
 export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
   const onEscrito = useCallback(() => { void onStateRefresh?.(); }, [onStateRefresh]);
+  const cerrarDeshacible = useCallback(() => setDeshacible(null), []);
   const campanasAcc = useCampanas({ onEscrito });
   const acciones = useCorreos({ onEscrito });
   const st = useCorreosStore();
@@ -109,26 +118,34 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
   const campanasPanel = usePanelDireccionable(PANEL_CORREO_CAMPANAS);
   const borrarPanel = usePanelDireccionable(PANEL_CORREO_CAMPANA_BORRAR);
   const [creandoPrimera, setCreandoPrimera] = useState<string | null>(null);
+  const [deshacible, setDeshacible] = useState<Deshacible | null>(null);
   const identidad = usePanelDireccionable(PANEL_CORREO_IDENTIDAD);
   const destinatariosPanel = usePanelDireccionable(PANEL_CORREO_DESTINATARIOS);
   const revisionPanel = usePanelDireccionable(PANEL_CORREO_REVISION);
+  const enviosPanel = usePanelDireccionable(PANEL_CORREO_ENVIOS);
+  const importarPanel = usePanelDireccionable(PANEL_CORREO_IMPORTAR);
   const [presetPendiente, setPresetPendiente] = useState<MailPreset | null>(null);
 
-  const pestana: Pestana = identidad.abierto
-    ? "identidad"
-    : destinatariosPanel.abierto
-      ? "destinatarios"
-      : revisionPanel.abierto
-        ? "revision"
-        : "bloque";
-  const panelAbierto = identidad.abierto ? identidad : destinatariosPanel.abierto ? destinatariosPanel : revisionPanel.abierto ? revisionPanel : null;
+  const pestana: Pestana = enviosPanel.abierto
+    ? "envios"
+    : identidad.abierto
+      ? "identidad"
+      : destinatariosPanel.abierto
+        ? "destinatarios"
+        : revisionPanel.abierto
+          ? "revision"
+          : "bloque";
+  const panelAbierto = enviosPanel.abierto
+    ? enviosPanel
+    : identidad.abierto ? identidad : destinatariosPanel.abierto ? destinatariosPanel : revisionPanel.abierto ? revisionPanel : null;
 
   const irAPestana = useCallback((p: Pestana) => {
     if (p === "bloque") panelAbierto?.cerrar();
+    else if (p === "envios") enviosPanel.abrir();
     else if (p === "identidad") identidad.abrir();
     else if (p === "destinatarios") destinatariosPanel.abrir();
     else revisionPanel.abrir();
-  }, [destinatariosPanel, identidad, panelAbierto, revisionPanel]);
+  }, [destinatariosPanel, enviosPanel, identidad, panelAbierto, revisionPanel]);
 
   const seleccionar = useCallback((id: string) => {
     // Un campo se inserta en el texto del bloque que se está mirando, no en el
@@ -150,6 +167,9 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
       st.carga === "inicial" || st.carga === "cargando"
       || (st.carga === "lista" && ((!st.vistaPrevia && !st.vistaPreviaError) || miniaturasPendientes))));
   const campanaActiva = st.campanas.find((c) => c.campaign_id === st.campana) ?? null;
+  // La plataforma de la campaña decide el dialecto de todo lo que se muestra (E1j).
+  const dialecto: MailPlatform = st.plataforma;
+  const envio = envioElegido(st);
   const borrarId = st.borrarPedido?.campaignId ?? st.campana;
   const campanaABorrar = st.campanas.find((c) => c.campaign_id === borrarId) ?? null;
   const listaLista = st.campanasCarga === "lista" || st.campanasCarga === "error";
@@ -178,10 +198,10 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
     if (!template) return [];
     const ejemplo = (v: string | undefined) => (v && !PARECE_CORREO.test(v) ? v : undefined);
     return [
-      { key: CAMPO_NOMBRE, label: "Nombre", etiqueta: "*|FNAME|*", ejemplo: ejemplo(persona?.nombre) },
-      ...template.fields.map((f) => ({ key: f.key, label: f.label, etiqueta: `*|${f.tag}|*`, ejemplo: ejemplo(persona?.fields[f.key]) })),
+      { key: CAMPO_NOMBRE, label: "Nombre", etiqueta: etiquetaDeCampo({ key: CAMPO_NOMBRE, tag: "FNAME" }, dialecto) ?? "", ejemplo: ejemplo(persona?.nombre) },
+      ...template.fields.map((f) => ({ key: f.key, label: f.label, etiqueta: etiquetaDeCampo(f, dialecto) ?? "sin etiqueta", ejemplo: ejemplo(persona?.fields[f.key]) })),
     ];
-  }, [persona, template]);
+  }, [dialecto, persona, template]);
   const textoDeCampo = useMemo(() => {
     const porClave = new Map(camposDelMenu.map((c) => [c.key, c]));
     return {
@@ -235,11 +255,17 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
         chequeos={chequeos}
         campos={camposDelMenu}
         textoDeCampo={textoDeCampo}
-        apertura={null}
+        apertura={envio.opening ?? null}
+        envioDeApertura={envio.label}
         onSeleccionar={seleccionar}
         onEditar={st.setEdicion}
         onTexto={(zona, prop, valor) => {
-          if (zona === APERTURA) return;
+          if (zona === APERTURA) {
+            // La apertura es del envío, no de la plantilla: se escribe en `send.opening`.
+            const id = useCorreosStore.getState().envio;
+            st.editarEnvios((lista) => conApertura(lista, id, valor));
+            return;
+          }
           st.editar((t) => editarBloque(t, zona, (b) => conTextoDeZona(b, prop, valor)), `${zona}.${prop}`);
         }}
         onSiguientePunto={(zona, prop) => {
@@ -258,7 +284,13 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
           st.setEdicion({ zona, prop: out.prop });
         }}
         onTerminar={(zona, prop) => {
-          if (zona !== APERTURA) st.editar((t) => editarBloque(t, zona, (b) => sinPuntosVacios(b, prop)), `${zona}.${prop}`);
+          if (zona === APERTURA) {
+            // Vacía, la apertura se quita: el envío vuelve al cuerpo común.
+            const id = useCorreosStore.getState().envio;
+            st.editarEnvios((lista) => cerrarApertura(lista, id));
+          } else {
+            st.editar((t) => editarBloque(t, zona, (b) => sinPuntosVacios(b, prop)), `${zona}.${prop}`);
+          }
           st.cortarGrupo();
         }}
         onMover={(id, indice) => st.editar((t) => moverBloqueA(t, id, indice))}
@@ -269,7 +301,7 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
           st.reemplazarBorrador(out.template);
           seleccionar(out.block_id);
         }}
-        onQuitar={(id) => { st.editar((t) => quitarBloque(t, id)); st.seleccionar(SOBRE); }}
+        onQuitar={quitarConAviso}
         onArchivoDeImagen={subirImagenDeBloque}
         onDeshacer={st.deshacer}
         onRehacer={st.rehacer}
@@ -349,10 +381,10 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
     ir({ panel: desdeDialogo ? PANEL_CORREO_CAMPANAS.id : null });
   };
 
-  const crearPrimera = async (origen: string, nombre: string) => {
+  const crearPrimera = async (origen: string, nombre: string, platform: MailPlatform) => {
     setCreandoPrimera(origen);
     st.setAvisoCampanas(null);
-    const out = await campanasAcc.crear({ name: nombre, actor: "", origen });
+    const out = await campanasAcc.crear({ name: nombre, actor: "", origen, platform });
     setCreandoPrimera(null);
     if (!out.ok) {
       st.setAvisoCampanas({ tono: "error", texto: out.mensaje });
@@ -362,9 +394,84 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
     abrirCampana(out.campaignId);
   };
 
+  const avisarDeshacer = useCallback((texto: string, deshacer: () => void) => {
+    setDeshacible((previo) => ({ texto, deshacer, clave: (previo?.clave ?? 0) + 1 }));
+  }, []);
+
+  /** Quitar un bloque, desde el correo o el inspector: se anuncia con su «Deshacer». */
+  function quitarConAviso(id: string) {
+    const block = useCorreosStore.getState().borrador?.blocks.find((b) => b.block_id === id);
+    st.editar((t) => quitarBloque(t, id));
+    st.seleccionar(SOBRE);
+    avisarDeshacer(`${block ? rotuloDeBloque(block) : "Bloque"} quitado`, () => useCorreosStore.getState().deshacer());
+  }
+
+  /** Elige el bloque del chequeo: lo marca en el correo y muestra su inspector. */
+  const irAlBloque = (id: string) => {
+    const t = useCorreosStore.getState().borrador;
+    // Una cabecera sin descripción se corrige donde se escribe: en Identidad, con el campo listo.
+    const sinAlt = id === CABECERA && t ? cabeceraSinAlt(t) : null;
+    if (sinAlt) {
+      st.setPedirAlt(sinAlt);
+      identidad.abrir();
+      return;
+    }
+    if (id !== CABECERA && id !== SOBRE && !t?.blocks.some((b) => b.block_id === id)) {
+      irAPestana("revision");
+      return;
+    }
+    seleccionar(id);
+    panelAbierto?.cerrar();
+    // El foco cae en lo que hay que corregir: lo marcado, o el primer texto del inspector.
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      const insp = document.getElementById("rec-mail-inspector");
+      const campo = insp?.querySelector<HTMLElement>('[aria-invalid="true"]') ?? insp?.querySelector<HTMLElement>("input, textarea");
+      campo?.focus();
+    }));
+  };
+
+  /** «Ver qué falta corregir»: directo al primer bloque con error; si ninguno tiene bloque, a Revisión. */
+  const irAlPrimerError = () => {
+    const errores = st.revision?.checks.filter((c) => c.status === "error") ?? [];
+    const destino = errores.map((c) => destinoDelChequeo(c, SOBRE)).find((d): d is string => d !== null);
+    if (destino) irAlBloque(destino);
+    else irAPestana("revision");
+  };
+
+  const agregarEnvio = () => {
+    const out = agregarRecordatorio(useCorreosStore.getState().envios);
+    if (!out.sendId) return;
+    st.editarEnvios(() => out.envios);
+    st.setEnvio(out.sendId);
+    enviosPanel.abrir();
+  };
+
   // Los diálogos esperan la lista: sin ella no saben qué campaña nombrar.
   const dialogos = !listaLista ? null : (
     <>
+      <DialogoImportarHtml
+        panel={importarPanel}
+        activa={campanaActiva}
+        campanas={st.campanas}
+        plataformaPorDefecto={campanaActiva?.platform ?? "mailchimp"}
+        conCambios={porGuardar}
+        ocupado={st.ocupado === "campanas"}
+        onCrear={campanasAcc.crearImportada}
+        onReemplazar={(t, importId) => {
+          st.reemplazarPorImportada(t, importId);
+          const sinAlt = cabeceraSinAlt(t);
+          st.setPedirAlt(sinAlt);
+          st.setAviso({ tono: "info", texto: "La plantilla se reemplazó por el correo importado. Guarda para conservarla; ⌘Z la deshace." });
+          // Una cabecera sin descripción se pide en el acto, en Identidad.
+          ir({ panel: sinAlt ? PANEL_CORREO_IDENTIDAD.id : null });
+        }}
+        onAbrir={(campaignId, aviso, importada) => {
+          if (aviso) st.setAvisoCampanas({ tono: "info", texto: aviso });
+          const sinAlt = importada ? cabeceraSinAlt(importada) : null;
+          st.setPedirAlt(sinAlt);
+          ir({ foco: campaignId, panel: sinAlt ? PANEL_CORREO_IDENTIDAD.id : null });
+        }}
+      />
       <DialogoCampanas
         panel={campanasPanel}
         campanas={st.campanas}
@@ -373,6 +480,7 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
         ocupado={st.ocupado === "campanas"}
         conCambios={porGuardar}
         acciones={campanasAcc}
+        onImportar={() => ir({ panel: PANEL_CORREO_IMPORTAR.id })}
         onAbrir={abrirCampana}
         onBorrar={pedirBorrar}
       />
@@ -418,7 +526,8 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
           miniaturas={st.miniaturas}
           creando={creandoPrimera}
           aviso={st.avisoCampanas?.tono === "error" ? st.avisoCampanas.texto : null}
-          onCrear={(origen, nombre) => { void crearPrimera(origen, nombre); }}
+          onCrear={(origen, nombre, platform) => { void crearPrimera(origen, nombre, platform); }}
+          onImportar={importarPanel.abrir}
         />
         {dialogos}
       </>
@@ -465,14 +574,17 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
     : null;
   const tabs: { id: Pestana; label: string; cuenta?: number }[] = [
     { id: "bloque", label: "Bloque" },
+    // Sin cuenta: la cuenta roja de las pestañas es de lo que falta corregir, no de cuántos envíos hay.
+    { id: "envios", label: "Envíos" },
     { id: "identidad", label: "Identidad" },
-    { id: "destinatarios", label: "Destinatarios" },
+    { id: "destinatarios", label: "Personas" },
     { id: "revision", label: "Revisión", cuenta: st.revision ? st.revision.errors : undefined },
   ];
 
   return (
     <>
     {dialogos}
+    <AvisoDeshacer key={deshacible?.clave} aviso={deshacible} onCerrar={cerrarDeshacible} />
     <div className="rec-mail-contenedor">
       <div
         className="rec-mail"
@@ -483,6 +595,7 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
           <span className="rec-mail-barra-id">
             <span className="rec-mail-barra-icono" aria-hidden><Mail size={15} /></span>
             <span className="rec-mail-barra-textos">
+              <span className="rec-env-barra-campana">
               <SelectorDeCampana
                 campanas={st.campanas}
                 activa={campanaActiva}
@@ -490,14 +603,25 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
                 onElegir={abrirCampana}
                 onGestionar={campanasPanel.abrir}
               />
-              <button
-                type="button"
-                className="rec-mail-asunto"
-                title={`Asunto: ${template.subject || "sin asunto"}`}
-                onClick={() => seleccionar(SOBRE)}
-              >
-                Asunto: {template.subject || "sin asunto"}
-              </button>
+              <span className="rec-guia-plataforma" title={`Esta campaña sale por ${NOMBRE_DE_PLATAFORMA[dialecto]}`}>{NOMBRE_DE_PLATAFORMA[dialecto]}</span>
+              </span>
+              <span className="rec-env-barra-linea">
+                <SelectorDeEnvio
+                  envios={st.envios}
+                  activo={envio}
+                  onElegir={st.setEnvio}
+                  onAgregar={agregarEnvio}
+                  onGestionar={() => irAPestana("envios")}
+                />
+                <button
+                  type="button"
+                  className="rec-mail-asunto"
+                  title={`Asunto: ${asuntoDelEnvio(envio, template) || "sin asunto"}`}
+                  onClick={() => { if (envio.subject?.trim()) irAPestana("envios"); else seleccionar(SOBRE); }}
+                >
+                  Asunto: {asuntoDelEnvio(envio, template) || "sin asunto"}
+                </button>
+              </span>
             </span>
           </span>
           <span className="rec-mail-barra-acciones">
@@ -509,7 +633,7 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
                 <Redo2 size={14} aria-hidden />
               </PulsoButton>
             </span>
-            <span className="rec-capa-explicaciones" title="Explicaciones: qué hace cada bloque y cómo sale en Mailchimp">
+            <span className="rec-capa-explicaciones" title={`Explicaciones: qué hace cada bloque y cómo sale en ${NOMBRE_DE_PLATAFORMA[dialecto]}`}>
               <Switch
                 id="rec-mail-explicaciones"
                 checked={st.explicaciones}
@@ -565,8 +689,11 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
           onAgregar={agregar}
           onInsertarCampo={insertarCampo}
           hayDestino={Boolean(st.destino) && pestana === "bloque"}
+          ejemploDeNombre={persona?.nombre && !PARECE_CORREO.test(persona.nombre) ? persona.nombre : undefined}
           onMover={(id, indice) => st.editar((t) => moverBloqueA(t, id, indice))}
         />
+
+        {!st.aviso ? <GuiaDelEditor /> : null}
 
         <VistaPreviaDelCorreoConectada capa={capa} />
 
@@ -596,6 +723,8 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
             ))}
           </GlidingTabList>
           <div
+            // Otra pestaña empieza arriba: no hereda el scroll de la anterior.
+            key={pestana}
             id="rec-mail-inspector"
             role="tabpanel"
             aria-labelledby={`rec-mail-tab-${pestana}`}
@@ -613,10 +742,10 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
                 onEditarBloque={editarUnBloque}
                 onDestino={st.setDestino}
                 onMover={(id, delta) => st.editar((t) => moverBloque(t, id, delta))}
-                onQuitar={(id) => { st.editar((t) => quitarBloque(t, id)); st.seleccionar(SOBRE); }}
+                onQuitar={quitarConAviso}
                 onAbrirIdentidad={() => irAPestana("identidad")}
                 explicaciones={st.explicaciones}
-                dialecto={DIALECTO}
+                dialecto={dialecto}
                 chequeos={chequeos[st.seleccion === CABECERA ? CABECERA : st.seleccion]?.chequeos ?? []}
                 vistaDeImagen={imagenDelBloque}
                 ocupado={ocupado}
@@ -633,9 +762,37 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
                 ocupado={ocupado}
                 onEditar={editar}
                 onSubir={(id, file) => { void acciones.subirImagen(id, file); }}
+                pedirAlt={st.pedirAlt}
+                onAltListo={() => st.setPedirAlt(null)}
               />
             ) : null}
-            {pestana === "destinatarios" ? (
+            {pestana === "envios" ? (
+              <PanelEnvios
+                envios={st.envios}
+                activo={envio}
+                template={template}
+                plataforma={dialecto}
+                porGuardar={porGuardar}
+                ocupado={ocupado}
+                exportando={st.ocupado === "exportando-plantilla"}
+                onElegir={st.setEnvio}
+                onAgregar={agregarEnvio}
+                onQuitar={(id) => {
+                  const antes = useCorreosStore.getState().envios;
+                  const quitado = antes.find((e) => e.send_id === id);
+                  st.editarEnvios((lista) => quitarEnvio(lista, id));
+                  avisarDeshacer(`${quitado?.label ?? "Recordatorio"} quitado`, () => st.editarEnvios(() => antes));
+                }}
+                onEditar={(id, cambio) => st.editarEnvios((lista) => editarEnvio(lista, id, cambio))}
+                onExportar={() => {
+                  void acciones.exportar("plantilla").then((resultado) => { if (resultado === "revision") irAPestana("revision"); });
+                }}
+              />
+            ) : null}
+            {pestana === "destinatarios" && dialecto === "surveymonkey" ? (
+              <DestinatariosEnSurveyMonkey />
+            ) : null}
+            {pestana === "destinatarios" && dialecto !== "surveymonkey" ? (
               <PanelDestinatarios
                 template={template}
                 destinatarios={st.destinatarios}
@@ -648,9 +805,27 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
                 onVerComo={st.setPersona}
               />
             ) : null}
-            {pestana === "revision" ? <PanelRevision revision={st.revision} cargando={st.revisionCargando} /> : null}
+            {pestana === "revision" ? <PanelRevision revision={st.revision} cargando={st.revisionCargando} onIrAlBloque={irAlBloque} /> : null}
           </div>
+          {dialecto === "surveymonkey" ? (
+            <PanelSurveyMonkey
+              template={template}
+              envio={envio}
+              revision={st.revision}
+              exportacion={st.exportacion}
+              exportando={st.ocupado === "exportando-plantilla"}
+              ocupado={ocupado}
+              onEditar={editar}
+              onHtml={acciones.htmlParaLaPlataforma}
+              onExportar={() => {
+                void acciones.exportar("plantilla").then((resultado) => { if (resultado === "revision") irAPestana("revision"); });
+              }}
+              onGuardarJunto={() => { void acciones.guardarJuntoAlProyecto(); }}
+              onVerRevision={irAlPrimerError}
+            />
+          ) : (
           <PanelMailchimp
+            envio={st.envios.length > 1 ? envio.label : null}
             template={template}
             revision={st.revision}
             exportacion={st.exportacion}
@@ -661,8 +836,9 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
               void acciones.exportar(scope).then((resultado) => { if (resultado === "revision") irAPestana("revision"); });
             }}
             onGuardarJunto={() => { void acciones.guardarJuntoAlProyecto(); }}
-            onVerRevision={() => irAPestana("revision")}
+            onVerRevision={irAlPrimerError}
           />
+          )}
         </aside>
       </div>
     </div>

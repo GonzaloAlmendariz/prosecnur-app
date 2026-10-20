@@ -1,0 +1,498 @@
+/* Catálogo › Correos · plataforma y envíos (E1j·E1k).
+   Selector de envío en la barra, panel de envíos del inspector, salida para
+   SurveyMonkey y la elección de plataforma en campañas. Sólo tokens; el
+   movimiento es corto y desaparece con reduced-motion. `correos.css` no crece. */
+
+/* — Barra: la campaña con su plataforma, y debajo el envío con su asunto — */
+.rec-env-barra-campana,
+.rec-env-barra-linea {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--pulso-space-2);
+  min-width: 0;
+}
+
+.rec-env-selector {
+  align-items: baseline;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius);
+  box-shadow: none;
+  color: var(--pulso-text);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font: inherit;
+  gap: var(--pulso-space-1);
+  justify-content: flex-start;
+  margin: 0 0 0 -6px;
+  min-height: 0;
+  padding: 1px 6px;
+  transform: none;
+}
+
+.rec-env-selector:hover,
+.rec-env-selector[data-state="open"] {
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-border);
+}
+
+.rec-env-selector:focus-visible {
+  outline: 2px solid var(--pulso-module-fieldkit);
+  outline-offset: 1px;
+}
+
+.rec-env-selector-rotulo {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+}
+
+.rec-env-selector-nombre {
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.rec-env-selector-flecha {
+  align-self: center;
+  color: var(--pulso-text-muted);
+}
+
+.rec-env-menu {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-panel);
+  box-shadow: var(--pulso-shadow-popover);
+  color: var(--pulso-text);
+  display: flex;
+  flex-direction: column;
+  max-height: min(420px, calc(100vh - var(--pulso-space-8)));
+  min-height: 0;
+  width: min(320px, calc(100vw - var(--pulso-space-6)));
+  z-index: var(--pulso-z-flyout);
+}
+
+.rec-env-menu-lista {
+  flex: 1 1 auto;
+  list-style: none;
+  margin: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--pulso-space-1);
+}
+
+.rec-env-menu-item,
+.rec-env-menu-accion {
+  align-items: flex-start;
+  background: transparent;
+  border: 0;
+  border-radius: var(--pulso-radius);
+  box-shadow: none;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: var(--pulso-space-2);
+  justify-content: flex-start;
+  min-height: 0;
+  padding: var(--pulso-space-2);
+  text-align: left;
+  transform: none;
+  white-space: normal;
+  width: 100%;
+}
+
+.rec-env-menu-item:hover,
+.rec-env-menu-item:focus-visible,
+.rec-env-menu-accion:hover:not(:disabled),
+.rec-env-menu-accion:focus-visible {
+  background: var(--pulso-surface-2);
+  outline: none;
+}
+
+.rec-env-menu-item.is-active {
+  background: var(--pulso-module-fieldkit-soft);
+}
+
+.rec-env-menu-marca {
+  color: var(--pulso-module-fieldkit);
+  display: grid;
+  flex: none;
+  height: 18px;
+  place-items: center;
+  width: 16px;
+}
+
+.rec-env-menu-textos {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rec-env-menu-textos b {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-env-menu-textos span {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+}
+
+.rec-env-menu-pie {
+  border-top: 1px solid var(--pulso-border);
+  display: flex;
+  flex-direction: column;
+  padding: var(--pulso-space-1);
+}
+
+.rec-env-menu-accion {
+  align-items: center;
+  color: var(--pulso-module-fieldkit);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-medium);
+}
+
+/* — Panel de envíos — */
+.rec-env-filas {
+  display: grid;
+  gap: var(--pulso-space-1);
+  grid-auto-rows: minmax(48px, auto);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-env-fila {
+  align-items: center;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  display: grid;
+  gap: var(--pulso-space-1);
+  grid-template-columns: minmax(0, 1fr) 30px;
+  padding-right: var(--pulso-space-1);
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.rec-env-fila.is-active {
+  border-color: var(--pulso-module-fieldkit);
+  box-shadow: 0 0 0 1px var(--pulso-module-fieldkit-border);
+}
+
+.rec-env-fila-elegir {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: var(--pulso-space-2);
+  height: 100%;
+  justify-content: space-between;
+  min-height: 0;
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  text-align: left;
+  transform: none;
+  white-space: normal;
+}
+
+.rec-env-fila-elegir:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: -2px;
+}
+
+.rec-env-fila-textos {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rec-env-fila-textos b {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-env-fila-textos span {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+}
+
+.rec-env-fila-chips {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+.rec-env-fila-aviso {
+  color: var(--pulso-warn-accent);
+}
+
+.rec-env-quitar {
+  justify-self: center;
+}
+
+.rec-env-agregar {
+  align-self: flex-start;
+  display: flex;
+}
+
+.rec-env-detalle {
+  border-top: 1px solid var(--pulso-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding-top: var(--pulso-space-3);
+}
+
+.rec-env-detalle-titulo {
+  font-size: 13.5px;
+  font-weight: var(--pulso-weight-semibold);
+  margin: 0;
+}
+
+.rec-env-par {
+  display: grid;
+  gap: var(--pulso-space-2);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.rec-env-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rec-env-fijo {
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  padding: 6px 0;
+}
+
+.rec-env-exportar {
+  align-self: flex-start;
+  display: flex;
+}
+
+/* — Salida para SurveyMonkey — */
+.rec-sm-fila {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+.rec-sm-fila dd {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rec-sm-select {
+  min-width: 0;
+  width: 100%;
+}
+
+.rec-sm-select.is-error {
+  border-color: var(--pulso-danger-border);
+}
+
+.rec-sm-falta {
+  color: var(--pulso-danger-fg);
+}
+
+.rec-sm-problema {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+}
+
+.rec-sm-pasos {
+  color: var(--pulso-text-soft);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 2px 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-sm-pasos li + li::before {
+  color: var(--pulso-text-muted);
+  content: "›";
+  padding: 0 6px;
+}
+
+/* — Plataforma en Campañas — */
+.rec-camp-plataforma {
+  border: 0;
+  display: grid;
+  gap: var(--pulso-space-2);
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.rec-camp-plataforma legend {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  margin-bottom: 3px;
+  padding: 0;
+}
+
+.rec-camp-renombrar .rec-camp-plataforma {
+  flex: 1 1 100%;
+}
+
+.rec-camp-origen-importar {
+  align-items: flex-start;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  justify-content: flex-start;
+  min-height: 0;
+  text-align: left;
+  transform: none;
+  white-space: normal;
+}
+
+.rec-camp-origen-importar > svg {
+  color: var(--pulso-module-fieldkit);
+  margin-top: 2px;
+}
+
+.rec-camp-mensaje.is-warning {
+  background: var(--pulso-warn-bg);
+  border-color: var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
+}
+
+.rec-camp-aviso-plataforma {
+  flex: 1 1 100%;
+}
+
+.rec-camp-chip.is-plataforma {
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-border);
+  color: var(--pulso-text-soft);
+}
+
+.rec-camp-vacio-accion {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.rec-camp-vacio-plataforma {
+  align-items: center;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-camp-vacio-plataforma legend {
+  color: var(--pulso-text-soft);
+  float: left;
+  font-size: 12.5px;
+  margin-right: var(--pulso-space-1);
+}
+
+.rec-camp-vacio-plataforma label {
+  align-items: center;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  gap: 6px;
+  padding: 3px 12px 3px 8px;
+}
+
+.rec-camp-vacio-plataforma label.is-on {
+  border-color: var(--pulso-module-fieldkit);
+  box-shadow: 0 0 0 1px var(--pulso-module-fieldkit-border);
+}
+
+.rec-camp-vacio-plataforma input {
+  accent-color: var(--pulso-module-fieldkit);
+  margin: 0;
+}
+
+/* Identidad: el texto alternativo del banner. */
+.rec-ident-banner-datos {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+@media (max-height: 760px) {
+  .rec-camp-plataforma small {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-env-fila {
+    transition: none;
+  }
+}
+
+.rec-sm-pregunta {
+  align-items: baseline;
+  background: var(--pulso-info-bg);
+  border: 1px solid var(--pulso-info-border);
+  border-radius: var(--pulso-radius);
+  color: var(--pulso-info-fg);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 4px var(--pulso-space-2);
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  padding: 4px 8px;
+}
+
+/* Cinco pestañas en el inspector (Bloque, Envíos, Identidad, Destinatarios,
+   Revisión): en tres columnas el inspector gana el ancho que les hace caber,
+   a costa del lienzo, que escala el correo si hace falta. */
+@container rec-mail (min-width: 821px) {
+  /* Dos clases: gana a correos.css sin depender del orden del bundle. */
+  .rec-mail-contenedor .rec-mail {
+    grid-template-columns: minmax(220px, 250px) minmax(0, 1fr) minmax(320px, 372px);
+  }
+}
+
+/* La marca «Sólo en Recordatorio 1» va sobre el borde superior de la zona,
+   no encima de su texto. */
+.rec-capa .rec-capa-zona-chip {
+  bottom: calc(100% - 7px);
+  top: auto;
+  z-index: 2;
+}
+
+.rec-ident-pide-alt {
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius);
+  padding: var(--pulso-space-3);
+}
+
+/* Cinco pestañas: un poco menos de aire para que la última no se corte. */
+.rec-mail-col--inspector .rec-mail-tab {
+  padding: 0 6px;
+}

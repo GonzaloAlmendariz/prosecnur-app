@@ -118,6 +118,21 @@ export function rotuloDeCabecera(header: MailHeader): string {
 
 // ---- campos de cada persona ---------------------------------------------------
 
+/** El marcador que deja una imagen nueva o importada sin descripción: cuenta como alt vacío. */
+export const ALT_DE_RELLENO = "[Describe la imagen]";
+
+/** ¿Falta describir la imagen? Vacía o con el marcador de relleno. */
+export function altPendiente(alt: string | undefined): boolean {
+  const t = (alt ?? "").trim();
+  return !t || t === ALT_DE_RELLENO;
+}
+
+/** La primera imagen de la cabecera que no tiene texto alternativo, o `null`. */
+export function cabeceraSinAlt(template: Pick<MailTemplate, "header" | "images">): string | null {
+  const ids = template.header.kind === "banner" ? [template.header.image_ref] : template.header.logo_ids;
+  return ids.find((id) => altPendiente(template.images[id]?.alt)) ?? null;
+}
+
 export const CAMPO_NOMBRE = "nombre";
 const TOKEN = /\{\{\s*([a-z][a-z0-9_]*)\s*\}\}/g;
 
@@ -574,6 +589,17 @@ export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   accent_contrast: "Contraste del texto sobre el acento",
   image_width: "Resolución de las imágenes",
   image_weight: "Peso de cada imagen",
+  // SurveyMonkey (E1j) y envíos (E1k).
+  survey_link: "Enlace a la encuesta ([SurveyLink])",
+  footer_optout: "Pie con la baja ([OptOutLink])",
+  images_public_url: "Imágenes con URL pública https",
+  sm_fields_mapped: "Campos con etiqueta de SurveyMonkey",
+  sm_fallback: "Datos que faltan en SurveyMonkey",
+  sm_custom_limit: "CustomData dentro del plan",
+  sm_link_field_empty: "Enlace de cada persona con dato",
+  sm_destination_mismatch: "Destino del enlace",
+  send_dates: "Fechas de los envíos",
+  reminder_audience: "A quién va el recordatorio",
 };
 
 /** Dónde se usa un campo (`uses` de `fields_empty`), en la voz de la vista. */

@@ -23,6 +23,13 @@ import {
   normalizeMailTemplate,
   normalizeMailExport,
   serializeMailTemplate,
+  apiMailImportHtml,
+  mailSendInvitation,
+  normalizeMailImportHtml,
+  normalizeMailPlatform,
+  normalizeMailSends,
+  normalizeMailTemplatePut,
+  serializeMailSend,
   type MailTemplate,
 } from "./materialMail";
 
@@ -430,6 +437,9 @@ describe("campañas de correo (E1h)", () => {
       campaign_id: "recuperacion", name: "Recuperación", actor: "Estudiantes", preset_id: "recuperacion_estudiantes_v1",
       subject: "Asunto", blocks: 9, template_revision: 3, template_sha256: "sha256:x", updated_at: "2026-10-20T11:00:00Z",
       recipients_loaded: true,
+      // Sin plataforma ni envíos (campaña anterior a E1j/E1k): Mailchimp y sólo la invitación.
+      platform: "mailchimp",
+      sends: [{ send_id: "invitacion", kind: "invitacion", label: "Invitación", audience: "todos" }],
     }]);
     // Un único objeto donde se esperaba una lista (unboxing de R).
     expect(normalizeMailCampaigns({ state_revision: 1, campaigns: { campaign_id: "sola", name: "Sola" } }).campaigns).toHaveLength(1);
@@ -527,5 +537,150 @@ describe("plantilla v2 (E1g)", () => {
     const exp = normalizeMailExport({ scope: "plantilla", artifacts: [], import_zip: { size_bytes: 1200, entries: ["c.html", "logo.png"], html: "c.html" } });
     expect(exp.scope).toBe("plantilla");
     expect(exp.import_zip).toEqual({ size_bytes: 1200, entries: ["c.html", "logo.png"], html: "c.html" });
+  });
+});
+
+describe("plataforma, envíos e importación (E1j·E1k·E1l)", () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  function sesionYRespuesta(status: number, body: unknown) {
+    vi.stubGlobal("localStorage", { getItem: (k: string) => (k === SESSION_KEY ? "sid-1" : null), setItem: () => {}, removeItem: () => {} });
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify(body), {
+      status, headers: { "Content-Type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  test("la plataforma desconocida o ausente es Mailchimp", () => {
+    expect(normalizeMailPlatform("surveymonkey")).toBe("surveymonkey");
+    expect(normalizeMailPlatform(["surveymonkey"])).toBe("surveymonkey");
+    expect(normalizeMailPlatform(undefined)).toBe("mailchimp");
+    expect(normalizeMailPlatform("constant_contact")).toBe("mailchimp");
+  });
+
+  test("los envíos: la invitación siempre primera, sin repetidos, con valores por defecto", () => {
+    expect(normalizeMailSends(undefined)).toEqual([mailSendInvitation()]);
+    const sends = normalizeMailSends([
+      { send_id: "recordatorio-1", kind: "recordatorio", label: "", audience: "otra", date: "2026-9-8", opening: "Aún puede **responder**." },
+      { send_id: "recordatorio-1", kind: "recordatorio", label: "Repetido" },
+      { send_id: "invitacion", kind: "invitacion", label: "Tarde" },
+    ]);
+    expect(sends.map((s) => s.send_id)).toEqual(["invitacion", "recordatorio-1"]);
+    expect(sends[1]).toEqual({ send_id: "recordatorio-1", kind: "recordatorio", label: "Recordatorio 1", audience: "sin_respuesta", opening: "Aún puede **responder**." });
+    // Un único objeto (unboxing de R).
+    expect(normalizeMailSends({ send_id: "invitacion", kind: "invitacion", label: "Invitación", audience: "todos", date: "2026-09-02" })[0].date).toBe("2026-09-02");
+  });
+
+  test("serializar un envío omite vacíos y el id de uno sin guardar", () => {
+    expect(serializeMailSend({ send_id: "", kind: "recordatorio", label: "Recordatorio 1", audience: "ambos", subject: "  ", opening: "Hola" }))
+      .toEqual({ kind: "recordatorio", label: "Recordatorio 1", audience: "ambos", opening: "Hola" });
+  });
+
+  test("la plantilla conserva theme.band y fields[].destino/sm", () => {
+    const t = normalizeMailTemplate({
+      ...PLANTILLA_R,
+      theme: { accent: "#001f60", band: "acento" },
+      fields: [{ key: "enlace", tag: "ENLACE", label: "Enlace", sm: "SurveyLink", destino: "encuesta" }, { key: "web", tag: "WEB", label: "Web", destino: "raro" }],
+    });
+    expect(t.theme.band).toBe("acento");
+    expect(t.fields[0]).toMatchObject({ sm: "SurveyLink", destino: "encuesta" });
+    expect(t.fields[1].destino).toBeUndefined();
+  });
+
+  test("GET y PUT de la plantilla traen plataforma, envíos y avisos de fechas", () => {
+    const get = normalizeMailTemplatePayload({ state_revision: 5, platform: "surveymonkey", sends: [{ send_id: "invitacion", kind: "invitacion", label: "Invitación" }], template: PLANTILLA_R });
+    expect(get.platform).toBe("surveymonkey");
+    expect(get.sends).toHaveLength(1);
+    const put = normalizeMailTemplatePut({
+      noop: false, state_revision: 6, template: PLANTILLA_R,
+      sends: [{ send_id: "invitacion", kind: "invitacion", label: "Invitación" }, { send_id: "recordatorio-3", kind: "recordatorio", label: "Recordatorio 1" }],
+      send_warnings: [{ code: "send_dates", send_id: "recordatorio-3", detail: "Recordatorio 1 tiene fecha…" }, { code: "x" }],
+    });
+    expect(put.sends[1].send_id).toBe("recordatorio-3");
+    expect(put.send_warnings).toEqual([{ code: "send_dates", send_id: "recordatorio-3", detail: "Recordatorio 1 tiene fecha…" }]);
+  });
+
+  test("vista previa, revisión, exportación y meta leen plataforma, envío y purga", () => {
+    const prev = normalizeMailPreview({ mode: "export", platform: "surveymonkey", dialect: "surveymonkey", send: { send_id: "recordatorio-1", kind: "recordatorio", label: "R1", audience: "parcial" }, html: "<p/>" });
+    expect(prev).toMatchObject({ mode: "export", platform: "surveymonkey", dialect: "surveymonkey", send: { send_id: "recordatorio-1", audience: "parcial" } });
+    expect(normalizeMailReview({ platform: "surveymonkey", send_id: "invitacion", checks: [] })).toMatchObject({ platform: "surveymonkey", send_id: "invitacion" });
+    const exp = normalizeMailExport({ platform: "surveymonkey", send_id: "recordatorio-1", scope: "plantilla", html: { name: "a-r1.html", bytes: 3400 }, artifacts: [] });
+    expect(exp).toMatchObject({ platform: "surveymonkey", send_id: "recordatorio-1", html: { name: "a-r1.html", bytes: 3400 } });
+    expect(normalizeMailCampaignMeta({ state_revision: 3, campaign: { campaign_id: "c", platform: "surveymonkey" }, recipients_purged: true }))
+      .toMatchObject({ recipients_purged: true, campaign: { platform: "surveymonkey" } });
+  });
+
+  test("un chequeo nuevo del backend se conserva con su detalle", () => {
+    const r = normalizeMailReview({ checks: [{ code: "reminder_audience", status: "warning", value: 12, detail: "Mailchimp no sabe quién respondió." }] });
+    expect(r.checks[0]).toMatchObject({ code: "reminder_audience", value: 12, detail: "Mailchimp no sabe quién respondió." });
+  });
+
+  test("la importación: nulos omitidos, códigos desconocidos conservados, plantilla válida", () => {
+    const imp = normalizeMailImportHtml({
+      ok: true, import_id: "imp-abc", sha256: "sha256:1", bytes: 3480,
+      platform_evidence: { surveymonkey: 4 },
+      template: PLANTILLA_R,
+      report: [
+        { code: "style_discarded", selector: "head > style", excerpt: ".button {…}", reason: "Los estilos los pone la plantilla." },
+        { code: "codigo_nuevo", excerpt: "x", reason: "Algo nuevo", block_id: "p1" },
+        {},
+      ],
+      images: [{ id: "arte1-960", url: "https://x.github.io/a.png", alt: "PULSO", status: "url" }, { id: "logo", alt: "", status: "needs_upload" }],
+      stats: { blocks: 9, dropped_empty: 0, discarded: ["style", "title"] },
+    });
+    expect(imp.platform_detected).toBeNull();
+    expect(imp.platform_evidence).toEqual({ mailchimp: 0, surveymonkey: 4 });
+    expect(imp.report).toHaveLength(2);
+    expect(imp.report[0].block_id).toBeNull();
+    expect(imp.report[1]).toMatchObject({ code: "codigo_nuevo", block_id: "p1" });
+    expect(imp.images.map((i) => i.status)).toEqual(["url", "needs_upload"]);
+    expect(imp.stats.discarded).toEqual(["style", "title"]);
+    expect(() => normalizeMailImportHtml({ template: PLANTILLA_R })).toThrow();
+  });
+
+  test("PUT manda plantilla y envíos juntos, e import_id si lo hay", async () => {
+    const fetchMock = sesionYRespuesta(200, { noop: false, state_revision: 2, template: PLANTILLA_R, sends: [] });
+    await apiMailTemplatePut({
+      template: normalizeMailTemplate(PLANTILLA_R), expected_revision: 1, campaign_id: "c",
+      sends: [mailSendInvitation(), { send_id: "", kind: "recordatorio", label: "Recordatorio 1", audience: "sin_respuesta" }],
+      import_id: "imp-1",
+    });
+    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    expect(body.sends).toEqual([
+      { send_id: "invitacion", kind: "invitacion", label: "Invitación", audience: "todos" },
+      { kind: "recordatorio", label: "Recordatorio 1", audience: "sin_respuesta" },
+    ]);
+    expect(body).toMatchObject({ import_id: "imp-1", campaign_id: "c", expected_revision: 1 });
+  });
+
+  test("crear con plantilla importada no manda preset_id; exportar manda send_id", async () => {
+    const fetchMock = sesionYRespuesta(200, { state_revision: 2, campaign: { campaign_id: "c" } });
+    await apiMailCampaignCreate({ expected_revision: 1, name: "Arte", platform: "surveymonkey", template: normalizeMailTemplate(PLANTILLA_R), preset_id: "x", import_id: "imp-1" });
+    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    expect(body.preset_id).toBeUndefined();
+    expect(body).toMatchObject({ platform: "surveymonkey", import_id: "imp-1" });
+    expect(body.template.schema).toBe("collection_mail_template/v2");
+    const exp = sesionYRespuesta(200, { artifacts: [] });
+    await apiMailExport({ expected_revision: 3, campaign_id: "c", scope: "plantilla", send_id: "recordatorio-1" });
+    expect(JSON.parse(String(exp.mock.calls[0][1]?.body))).toEqual({ expected_revision: 3, campaign_id: "c", scope: "plantilla", send_id: "recordatorio-1" });
+  });
+
+  test("leer un HTML va en JSON (pegado) o multipart (archivo)", async () => {
+    const r = { import_id: "imp-1", template: PLANTILLA_R };
+    const json = sesionYRespuesta(200, r);
+    await apiMailImportHtml({ html: "<p>Hola</p>", file_name: "a.html", subject: " Asunto " });
+    expect(JSON.parse(String(json.mock.calls[0][1]?.body))).toEqual({ html: "<p>Hola</p>", file_name: "a.html", subject: "Asunto" });
+    const multi = sesionYRespuesta(200, r);
+    await apiMailImportHtml({ file: new File(["<p/>"], "arte.html", { type: "text/html" }) });
+    expect(multi.mock.calls[0][1]?.body).toBeInstanceOf(FormData);
+  });
+
+  test("el 413 del importador llega como MailApiError con su código", async () => {
+    sesionYRespuesta(413, { error: { code: "E_COLLECTION_MAIL_IMPORT_HTML_TOO_LARGE", message: "El HTML supera 512 KB." } });
+    const e = await apiMailImportHtml({ html: "x", file_name: "a.html" }).catch((x: unknown) => x);
+    expect(e).toBeInstanceOf(MailApiError);
+    expect((e as MailApiError).code).toBe("E_COLLECTION_MAIL_IMPORT_HTML_TOO_LARGE");
+    expect((e as MailApiError).status).toBe(413);
   });
 });

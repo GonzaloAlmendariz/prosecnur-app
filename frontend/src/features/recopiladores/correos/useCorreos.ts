@@ -20,7 +20,8 @@ import {
 } from "../../../api/materialMail";
 import { conDestinatarios, conPlantillaGuardada } from "./modeloCampanas";
 import { huellaDeEdicion } from "./modeloCorreo";
-import { hayCambios, hayQueGuardar, useCorreosStore } from "./store";
+import { enviosParaGuardar, huellaDeEnvios, rotuloDeEnvio } from "./modeloEnvios";
+import { envioElegido, hayCambios, hayQueGuardar, useCorreosStore, type EstadoCorreos } from "./store";
 
 const GUARDADA_INVALIDA = "E_COLLECTION_MAIL_TEMPLATE_STORED_INVALID";
 
@@ -29,6 +30,7 @@ export const AVISO_SIN_REVISION = "No se sabe qué versión del correo está gua
 
 /** Textos propios para los rechazos del import que la persona sí puede corregir. */
 const AVISO_DE_IMPORTACION: Record<string, string> = {
+  E_COLLECTION_MAIL_PLATFORM: "Esta campaña sale por SurveyMonkey: los contactos se cargan en su recopilador, no aquí.",
   E_COLLECTION_MAIL_RECIPIENTS_NO_HEADER: "La primera fila parece un destinatario; agrega una fila de encabezados.",
   E_COLLECTION_MAIL_RECIPIENTS_ENCODING: "No se reconoce la codificación del archivo. Guárdalo como «CSV UTF-8» o como XLSX.",
 };
@@ -60,6 +62,18 @@ const AVISO_GUARDADA_INVALIDA = "La plantilla guardada en el proyecto no es vál
 function mensajeDe(cause: unknown, fallback: string): string {
   if (cause instanceof MailApiError && cause.code === GUARDADA_INVALIDA) return AVISO_GUARDADA_INVALIDA;
   return cause instanceof Error && cause.message ? cause.message : fallback;
+}
+
+/**
+ * El pedido del HTML que se pega en la plataforma: `mode: "export"` (las
+ * etiquetas reales del dialecto de la campaña), sobre el borrador y con el
+ * envío que se mira. Nunca la vista previa, que resuelve los campos.
+ */
+export function pedidoDelHtmlDeLaPlataforma(
+  st: Pick<EstadoCorreos, "borrador" | "campana" | "envios" | "envio">,
+): Parameters<typeof apiMailPreview>[0] | null {
+  if (!st.borrador || !st.campana) return null;
+  return { mode: "export", template: st.borrador, campaign_id: st.campana, envio: { send: envioElegido(st) } };
 }
 
 const ESPERA_VISTA_MS = 280;
@@ -97,6 +111,10 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
     ? `${st.destinatarios.imported_at ?? ""}|${JSON.stringify(st.destinatarios.mapping)}`
     : ""));
   const refresco = useCorreosStore((st) => st.refresco);
+  // El envío que se mira entra a la vista previa y a la revisión como borrador:
+  // su asunto o su apertura se ven antes de guardar.
+  const huellaDelEnvio = useCorreosStore((st) => huellaDeEnvios([envioElegido(st)]));
+  const plataforma = useCorreosStore((st) => st.plataforma);
   const huella = huellaDeEdicion(borrador);
   const turnoVista = useRef(0);
   const turnoRevision = useRef(0);
@@ -143,7 +161,8 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
     const turno = ++turnoVista.current;
     const timer = window.setTimeout(() => {
       s.getState().vistaPreviaInicio();
-      apiMailPreview({ mode: "preview", recipient_index: persona, template, campaign_id: s.getState().campana }).then(
+      const envio = envioElegido(s.getState());
+      apiMailPreview({ mode: "preview", recipient_index: persona, template, campaign_id: s.getState().campana, envio: { send: envio } }).then(
         (preview) => { if (vivo.current && turno === turnoVista.current) s.getState().vistaPreviaLista(preview); },
         (cause: unknown) => {
           if (!vivo.current || turno !== turnoVista.current) return;
@@ -157,14 +176,15 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
       );
     }, ESPERA_VISTA_MS);
     return () => window.clearTimeout(timer);
-  }, [campana, carga, huella, persona, refresco, s]);
+  }, [campana, carga, huella, huellaDelEnvio, persona, plataforma, refresco, s]);
 
   // Revisión del borrador: también depende de la lista de destinatarios.
   const revisar = useCallback(async (template: MailTemplate | null) => {
     const turno = ++turnoRevision.current;
     s.getState().revisionInicio();
     try {
-      const review = await apiMailReview({ template, campaign_id: s.getState().campana });
+      const st = s.getState();
+      const review = await apiMailReview({ template, campaign_id: st.campana, envio: { send: envioElegido(st) } });
       if (vivo.current && turno === turnoRevision.current) s.getState().revisionLista(review);
     } catch (cause) {
       // Un borrador inválido no se puede revisar: sus problemas ya los pinta la
@@ -182,7 +202,7 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
     if (!template) return;
     const timer = window.setTimeout(() => { void revisar(template); }, ESPERA_REVISION_MS);
     return () => window.clearTimeout(timer);
-  }, [campana, carga, huella, destinatariosHuella, refresco, revisar, s]);
+  }, [campana, carga, huella, huellaDelEnvio, plataforma, destinatariosHuella, refresco, revisar, s]);
 
   /** Guarda el borrador. Devuelve `false` si no se pudo. */
   const guardar = useCallback(async (): Promise<boolean> => {
@@ -192,19 +212,34 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
     if (!hayQueGuardar(st) && !st.builtin) return true;
     st.setOcupado("guardando");
     st.setAviso(null);
+    // Plantilla y envíos viajan juntos: una sola subida de revisión (E1k).
+    const enviados = st.envios;
+    const plantillaCambio = huellaDeEdicion(st.borrador) !== huellaDeEdicion(st.guardada);
     try {
-      const payload = await apiMailTemplatePut({ template: st.borrador, expected_revision: st.stateRevision, campaign_id: id });
+      const payload = await apiMailTemplatePut({
+        template: st.borrador,
+        expected_revision: st.stateRevision,
+        campaign_id: id,
+        sends: enviosParaGuardar(enviados),
+        import_id: plantillaCambio ? st.importPendiente : null,
+      });
       // La revisión nueva vale para todo el estado, aunque ya se mire otra campaña.
       s.getState().anotarRevision(payload.state_revision);
       if (!payload.noop) onEscrito.current?.();
       if (!vigente(id)) return true;
-      s.getState().guardado(payload);
-      s.getState().setCampanas((lista) => conPlantillaGuardada(lista, id, payload.template));
-      s.getState().setAviso({ tono: "ok", texto: payload.noop ? "No había cambios que guardar." : "Correo guardado." });
+      s.getState().guardado(payload, enviados);
+      s.getState().setCampanas((lista) => conPlantillaGuardada(lista, id, payload.template, payload.sends));
+      const fechas = payload.send_warnings.map((w) => w.detail).join(" ");
+      s.getState().setAviso(fechas
+        ? { tono: "info", texto: `Correo guardado. ${fechas}` }
+        : { tono: "ok", texto: payload.noop ? "No había cambios que guardar." : "Correo guardado." });
       return true;
     } catch (cause) {
       if (!vivo.current) return false;
-      if (cause instanceof MailApiError && cause.problems.length) {
+      if (cause instanceof MailApiError && cause.code === "E_COLLECTION_MAIL_SEND_INVALID") {
+        const detalle = cause.problems.map((p) => p.detail).filter(Boolean).join(" ");
+        s.getState().setAviso({ tono: "error", texto: `Hay envíos por corregir antes de guardar.${detalle ? ` ${detalle}` : ""}` });
+      } else if (cause instanceof MailApiError && cause.problems.length) {
         s.getState().setProblemas(cause.problems);
         s.getState().setAviso({ tono: "error", texto: "Hay bloques por corregir antes de guardar: están marcados en la lista." });
       } else if (cause instanceof MailApiError && cause.code === "E_COLLECTION_STATE_STALE") {
@@ -219,6 +254,7 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
   }, [s, vigente]);
 
   /** `revision`: la revisión bloquea y hay que ir a verla; `error`: otro motivo, ya avisado. */
+  /** Exporta el envío que se mira (lo GUARDADO: si hay cambios, se guardan antes). */
   const exportar = useCallback(async (scope: MailExportScope = "completo"): Promise<"ok" | "revision" | "error"> => {
     if (hayQueGuardar(s.getState())) {
       const ok = await guardar();
@@ -235,7 +271,8 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
     st.setAviso(null);
     st.setExportacion(null);
     try {
-      const payload = await apiMailExport({ expected_revision: revision, campaign_id: st.campana, scope });
+      // Tras guardar, el envío elegido ya tiene su id del servidor.
+      const payload = await apiMailExport({ expected_revision: revision, campaign_id: st.campana, scope, send_id: st.envio });
       if (vivo.current) s.getState().setExportacion(payload);
       return "ok";
     } catch (cause) {
@@ -256,6 +293,26 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
       if (vivo.current) s.getState().setOcupado(null);
     }
   }, [guardar, revisar, s]);
+
+  /**
+   * El HTML del envío que se mira, tal como se pega en la plataforma
+   * (`mode: "export"`, con sus etiquetas), no el de la vista previa. Se arma
+   * sobre el borrador: es lo que la persona está viendo.
+   */
+  const htmlParaLaPlataforma = useCallback(async (): Promise<string | null> => {
+    const pedido = pedidoDelHtmlDeLaPlataforma(s.getState());
+    if (!pedido) return null;
+    try {
+      const preview = await apiMailPreview(pedido);
+      return preview.html;
+    } catch (cause) {
+      if (vivo.current) {
+        const envio = envioElegido(s.getState());
+        s.getState().setAviso({ tono: "error", texto: mensajeDe(cause, `No se pudo armar el HTML de ${rotuloDeEnvio(envio)}.`) });
+      }
+      return null;
+    }
+  }, [s]);
 
   const guardarJuntoAlProyecto = useCallback(async () => {
     const zip = s.getState().exportacion?.zip;
@@ -348,7 +405,7 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
     }
   }, [s]);
 
-  return { cargar, guardar, exportar, guardarJuntoAlProyecto, importar, mapear, olvidar, subirImagen };
+  return { cargar, guardar, exportar, htmlParaLaPlataforma, guardarJuntoAlProyecto, importar, mapear, olvidar, subirImagen };
 }
 
 export type AccionesDeCorreos = ReturnType<typeof useCorreos>;

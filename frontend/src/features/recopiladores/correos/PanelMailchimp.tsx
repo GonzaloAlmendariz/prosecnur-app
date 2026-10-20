@@ -7,6 +7,8 @@ import { Check, Copy, Download, FolderOpen, Loader2, Upload } from "../../../ven
 import { etiquetasDeMailchimp, pesoLegible, revisionBloquea } from "./modeloCorreo";
 
 type Props = {
+  /** Rótulo del envío que se exporta, si la campaña tiene más de uno. */
+  envio?: string | null;
   template: MailTemplate;
   revision: MailReview | null;
   exportacion: MailExportPayload | null;
@@ -46,6 +48,7 @@ async function copiarHtml(html: string): Promise<void> {
  * en CSV. «Copiar para Outlook» queda como salida secundaria.
  */
 export function PanelMailchimp({
+  envio = null,
   template,
   revision,
   exportacion,
@@ -75,7 +78,7 @@ export function PanelMailchimp({
 
   return (
     <footer className="rec-mail-mc" aria-label="Para Mailchimp">
-      <span className="xfk-over">Para Mailchimp</span>
+      <span className="xfk-over">Para Mailchimp{envio ? ` · ${envio}` : ""}</span>
       <dl
         className="rec-mail-mc-etiquetas"
         data-qa-geometry-group="material-campo/catalogo/correos-etiquetas"

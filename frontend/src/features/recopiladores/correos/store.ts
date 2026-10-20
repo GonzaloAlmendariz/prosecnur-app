@@ -1,16 +1,20 @@
 import { create } from "zustand";
 
-import type {
-  MailCampaignSummary,
-  MailExportPayload,
-  MailPreset,
-  MailPreview,
-  MailProblem,
-  MailRecipients,
-  MailReview,
-  MailTemplate,
-  MailTemplatePayload,
-  MailTemplatePutPayload,
+import {
+  MAIL_PLATFORM_DEFAULT,
+  mailSendInvitation,
+  type MailCampaignSummary,
+  type MailExportPayload,
+  type MailPlatform,
+  type MailPreset,
+  type MailPreview,
+  type MailProblem,
+  type MailRecipients,
+  type MailReview,
+  type MailSend,
+  type MailTemplate,
+  type MailTemplatePayload,
+  type MailTemplatePutPayload,
 } from "../../../api/materialMail";
 import {
   CABECERA,
@@ -20,6 +24,7 @@ import {
   type VistaDelCorreo,
 } from "./modeloCorreo";
 import { revisionEncadenada } from "./modeloCampanas";
+import { enviosCambiados, envioRecordado, envioVigente, reconciliarEnvios, recordarEnvio } from "./modeloEnvios";
 import {
   HISTORIAL_VACIO,
   cerrarGrupo,
@@ -95,6 +100,17 @@ export type EstadoCorreos = {
   problemasGuardados: MailProblem[];
   borrador: MailTemplate | null;
   destinatarios: MailRecipients | null;
+  /** Plataforma de la campaña abierta (E1j): decide el dialecto de todo lo que se muestra. */
+  plataforma: MailPlatform;
+  /** Envíos de la campaña (E1k): lo guardado y la copia de trabajo, que se guardan con la plantilla. */
+  enviosGuardados: MailSend[];
+  envios: MailSend[];
+  /** El envío que se mira; se recuerda por campaña en sessionStorage. */
+  envio: string;
+  /** La plantilla del borrador salió de un HTML importado: el próximo guardado lo cita. */
+  importPendiente: string | null;
+  /** Imagen cuyo texto alternativo hay que pedir (llegó vacío al importar). Sobrevive al cambio de campaña. */
+  pedirAlt: string | null;
 
   vistaPrevia: MailPreview | null;
   vistaPreviaCargando: boolean;
@@ -157,7 +173,15 @@ type Acciones = {
   setEdicion: (edicion: EdicionEnLinea | null) => void;
   setExplicaciones: (valor: boolean) => void;
   reemplazarBorrador: (template: MailTemplate) => void;
-  guardado: (payload: MailTemplatePutPayload) => void;
+  /** `enviados`: los envíos tal como se mandaron, para alinear los ids nuevos. */
+  guardado: (payload: MailTemplatePutPayload, enviados?: readonly MailSend[]) => void;
+  setEnvio: (sendId: string) => void;
+  /** Cambia los envíos del borrador; no entran al historial de la plantilla. */
+  editarEnvios: (update: (envios: MailSend[]) => MailSend[]) => void;
+  /** Reemplaza la plantilla por la de un HTML importado (entra al historial). */
+  reemplazarPorImportada: (template: MailTemplate, importId: string) => void;
+  setPlataforma: (plataforma: MailPlatform) => void;
+  setPedirAlt: (id: string | null) => void;
   seleccionar: (seleccion: string) => void;
   setVista: (vista: VistaDelCorreo) => void;
   setPersona: (persona: number | null) => void;
@@ -195,6 +219,12 @@ const INICIAL: EstadoCorreos = {
   problemasGuardados: [],
   borrador: null,
   destinatarios: null,
+  plataforma: MAIL_PLATFORM_DEFAULT,
+  enviosGuardados: [mailSendInvitation()],
+  envios: [mailSendInvitation()],
+  envio: "invitacion",
+  importPendiente: null,
+  pedirAlt: null,
   vistaPrevia: null,
   vistaPreviaCargando: false,
   vistaPreviaError: "",
@@ -262,6 +292,7 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
       stateRevision: s.stateRevision,
       vista: s.vista,
       explicaciones: s.explicaciones,
+      pedirAlt: s.pedirAlt,
     };
   }),
   campanasInicio: () => set({ campanasCarga: "cargando", campanasError: "" }),
@@ -281,6 +312,11 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
   cargaInicio: () => set({ carga: "cargando", errorCarga: "" }),
   cargaError: (mensaje) => set({ carga: "error", errorCarga: mensaje }),
   cargaLista: ({ presets, plantilla, destinatarios }) => set((s) => ({
+    plataforma: plantilla.platform,
+    enviosGuardados: plantilla.sends,
+    envios: plantilla.sends,
+    envio: envioVigente(plantilla.sends, s.campana ? envioRecordado(s.campana) : null).send_id,
+    importPendiente: null,
     carga: "lista",
     errorCarga: "",
     presets: presets.length ? presets : s.presets,
@@ -343,11 +379,22 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
     seleccion: seleccionVigente(s.seleccion, template),
   })),
 
-  guardado: (payload) => set((s) => {
+  guardado: (payload, enviados) => set((s) => {
     // Lo que se guardó es lo que el backend devolvió; si mientras tanto se
     // siguió editando, el borrador conserva esos cambios encima.
     const enviadoIgual = huellaDeEdicion(s.borrador) === huellaDeEdicion(payload.template);
+    // Los envíos: lo que devolvió el servidor, con los ids nuevos en lugar de
+    // los locales. Si se siguieron editando mientras tanto, esa edición queda.
+    const { envios: vueltos, ids } = reconciliarEnvios(enviados ?? s.envios, payload.sends);
+    const enviosIguales = !enviados || !enviosCambiados(enviados, s.envios);
+    const renombrar = (e: MailSend) => (ids[e.send_id] ? { ...e, send_id: ids[e.send_id] } : e);
+    const envio = ids[s.envio] ?? s.envio;
+    if (s.campana) recordarEnvio(s.campana, envio);
     return {
+      enviosGuardados: vueltos,
+      envios: enviosIguales ? vueltos : s.envios.map(renombrar),
+      envio,
+      importPendiente: null,
       guardada: payload.template,
       stateRevision: revisionEncadenada(s.stateRevision, payload.state_revision),
       builtin: false,
@@ -358,6 +405,31 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
       problemas: [],
     };
   }),
+
+  setEnvio: (envio) => set((s) => {
+    if (envio === s.envio || !s.envios.some((e) => e.send_id === envio)) return {};
+    if (s.campana) recordarEnvio(s.campana, envio);
+    return { envio, exportacion: null, edicion: null };
+  }),
+  editarEnvios: (update) => set((s) => {
+    const envios = update(s.envios);
+    if (!enviosCambiados(envios, s.envios)) return {};
+    // Si el envío elegido se quitó, se vuelve a la invitación.
+    const envio = envios.some((e) => e.send_id === s.envio) ? s.envio : envios[0]?.send_id ?? "invitacion";
+    return { envios, envio, exportacion: null, aviso: null };
+  }),
+  reemplazarPorImportada: (template, importId) => set((s) => ({
+    borrador: { ...template, revision: s.borrador?.revision ?? template.revision, template_sha256: s.borrador?.template_sha256 },
+    historial: s.borrador ? registrarCambio(s.historial, s.borrador, null) : s.historial,
+    importPendiente: importId,
+    exportacion: null,
+    aviso: null,
+    problemas: [],
+    seleccion: SOBRE,
+    edicion: null,
+  })),
+  setPedirAlt: (pedirAlt) => set({ pedirAlt }),
+  setPlataforma: (plataforma) => set((s) => (s.plataforma === plataforma ? {} : { plataforma, exportacion: null, refresco: s.refresco + 1 })),
 
   seleccionar: (seleccion) => set({ seleccion }),
   setVista: (vista) => set({ vista }),
@@ -398,16 +470,24 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
   setMiniatura: (presetId, html) => set((s) => ({ miniaturas: { ...s.miniaturas, [presetId]: html } })),
 }));
 
-/** ¿El borrador difiere de lo guardado? */
-export function hayCambios(s: Pick<EstadoCorreos, "borrador" | "guardada">): boolean {
+type EstadoDeEnvios = Partial<Pick<EstadoCorreos, "envios" | "enviosGuardados">>;
+
+/** ¿El borrador (plantilla o envíos) difiere de lo guardado? */
+export function hayCambios(s: Pick<EstadoCorreos, "borrador" | "guardada"> & EstadoDeEnvios): boolean {
   if (!s.borrador) return false;
-  return huellaDeEdicion(s.borrador) !== huellaDeEdicion(s.guardada);
+  return huellaDeEdicion(s.borrador) !== huellaDeEdicion(s.guardada)
+    || (s.envios !== undefined && enviosCambiados(s.envios, s.enviosGuardados));
 }
 
 /**
  * ¿Hay que guardar? Hay cambios, o lo guardado es inválido y debe
  * reemplazarse aunque el borrador sea idéntico (el backend lo revalida).
  */
-export function hayQueGuardar(s: Pick<EstadoCorreos, "borrador" | "guardada" | "problemasGuardados">): boolean {
+export function hayQueGuardar(s: Pick<EstadoCorreos, "borrador" | "guardada" | "problemasGuardados"> & EstadoDeEnvios): boolean {
   return Boolean(s.borrador) && (hayCambios(s) || s.problemasGuardados.length > 0);
+}
+
+/** El envío que se mira, completo. */
+export function envioElegido(s: Pick<EstadoCorreos, "envios" | "envio">): MailSend {
+  return envioVigente(s.envios, s.envio);
 }

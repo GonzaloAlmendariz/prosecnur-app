@@ -14,10 +14,11 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useId, useState, type FormEvent } from "react";
 
-import type { MailCampaignSummary, MailPreset } from "../../../api/materialMail";
+import { MAIL_PLATFORMS, type MailCampaignSummary, type MailPlatform, type MailPreset } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import type { ControlPanel } from "../../../lib/navegacion/paneles";
-import { Copy, FolderOpen, Loader2, Pencil, Plus, Trash2, Users, X } from "../../../vendor/lucide-react";
+import { Copy, FileCode2, FolderOpen, Loader2, Pencil, Plus, Send, Trash2, Users, X } from "../../../vendor/lucide-react";
+import { NOMBRE_DE_PLATAFORMA, RESUMEN_DE_PLATAFORMA } from "./dialectos";
 import { origenDePreset } from "./modeloCorreo";
 import {
   LARGO_ACTOR,
@@ -29,14 +30,33 @@ import {
   problemaDelNombre,
 } from "./modeloCampanas";
 import type { AccionesDeCampanas } from "./useCampanas";
+import "./correosEnvios.css";
 
 type Edicion =
   | { tipo: "ninguna" }
-  | { tipo: "renombrar"; id: string; name: string; actor: string }
+  | { tipo: "renombrar"; id: string; name: string; actor: string; platform: MailPlatform }
   /** Abrir otra campaña con cambios sin guardar: se confirma en la fila. */
   | { tipo: "abrir"; id: string };
 
-type Nueva = { name: string; actor: string; origen: string };
+type Nueva = { name: string; actor: string; origen: string; platform: MailPlatform };
+
+/** Elegir la plataforma: dos opciones con su consecuencia en una línea. */
+function ElegirPlataforma({ nombre, valor, onCambio }: { nombre: string; valor: MailPlatform; onCambio: (p: MailPlatform) => void }) {
+  return (
+    <fieldset className="rec-camp-plataforma">
+      <legend>Sale por</legend>
+      {MAIL_PLATFORMS.map((p) => (
+        <label key={p} className={`rec-camp-origen-op${valor === p ? " is-on" : ""}`}>
+          <input type="radio" name={nombre} value={p} checked={valor === p} onChange={() => onCambio(p)} />
+          <span>
+            <b>{NOMBRE_DE_PLATAFORMA[p]}</b>
+            <small>{RESUMEN_DE_PLATAFORMA[p]}</small>
+          </span>
+        </label>
+      ))}
+    </fieldset>
+  );
+}
 
 type Props = {
   panel: ControlPanel;
@@ -47,6 +67,8 @@ type Props = {
   /** La campaña abierta tiene cambios sin guardar que se perderían al abrir otra. */
   conCambios: boolean;
   acciones: Pick<AccionesDeCampanas, "crear" | "duplicar" | "renombrar">;
+  /** Abre «Importar un correo existente». */
+  onImportar: () => void;
   /** Abre la campaña (y cierra el diálogo). */
   onAbrir: (campaignId: string) => void;
   /** Pide borrar: abre el diálogo de dos pasos. */
@@ -61,10 +83,10 @@ function cuando(iso: string | null): string {
   return Number.isNaN(d.getTime()) ? "" : fecha.format(d);
 }
 
-export function DialogoCampanas({ panel, campanas, activa, presets, ocupado, conCambios, acciones, onAbrir, onBorrar }: Props) {
+export function DialogoCampanas({ panel, campanas, activa, presets, ocupado, conCambios, acciones, onImportar, onAbrir, onBorrar }: Props) {
   const ids = useId();
   const [edicion, setEdicion] = useState<Edicion>({ tipo: "ninguna" });
-  const [nueva, setNueva] = useState<Nueva>({ name: "", actor: "", origen: presets[0]?.preset_id ?? ORIGEN_EN_BLANCO });
+  const [nueva, setNueva] = useState<Nueva>({ name: "", actor: "", origen: presets[0]?.preset_id ?? ORIGEN_EN_BLANCO, platform: "mailchimp" });
   const [mensaje, setMensaje] = useState<{ tono: "ok" | "error"; texto: string } | null>(null);
   const { abierto, cerrar } = panel;
   const lleno = campanas.length >= LIMITE_CAMPANAS;
@@ -92,7 +114,7 @@ export function DialogoCampanas({ panel, campanas, activa, presets, ocupado, con
       return;
     }
     setMensaje(null);
-    const out = await acciones.crear({ name: nombreLibre(nombre, campanas), actor: nueva.actor, origen: nueva.origen });
+    const out = await acciones.crear({ name: nombreLibre(nombre, campanas), actor: nueva.actor, origen: nueva.origen, platform: nueva.platform });
     if (!out.ok) {
       setMensaje({ tono: "error", texto: out.mensaje });
       return;
@@ -117,12 +139,12 @@ export function DialogoCampanas({ panel, campanas, activa, presets, ocupado, con
       setMensaje({ tono: "error", texto: problema });
       return;
     }
-    const out = await acciones.renombrar(edicion.id, edicion.name, edicion.actor);
+    const out = await acciones.renombrar(edicion.id, edicion.name, edicion.actor, edicion.platform);
     if (!out.ok) {
       setMensaje({ tono: "error", texto: out.mensaje });
       return;
     }
-    setMensaje(null);
+    setMensaje(out.aviso ? { tono: "ok", texto: out.aviso } : null);
     setEdicion({ tipo: "ninguna" });
   };
 
@@ -142,7 +164,7 @@ export function DialogoCampanas({ panel, campanas, activa, presets, ocupado, con
             <span>
               <Dialog.Title className="rec-camp-dialogo-titulo">Campañas de correo</Dialog.Title>
               <Dialog.Description id={`${ids}-desc`} className="rec-camp-dialogo-desc">
-                Cada campaña es un correo con su plantilla, sus destinatarios y su paquete para Mailchimp.
+                Cada campaña es un correo con su plantilla, sus envíos y su salida para Mailchimp o SurveyMonkey.
               </Dialog.Description>
             </span>
             <Dialog.Close asChild>
@@ -163,6 +185,8 @@ export function DialogoCampanas({ panel, campanas, activa, presets, ocupado, con
                 {campanas.map((c) => {
                   const actual = c.campaign_id === activa;
                   const editando = edicion.tipo === "renombrar" && edicion.id === c.campaign_id ? edicion : null;
+                  // Pasar a SurveyMonkey borra la lista de destinatarios: se dice ANTES de guardar.
+                  const borraLista = editando ? editando.platform === "surveymonkey" && c.platform !== "surveymonkey" : false;
                   const porAbrir = edicion.tipo === "abrir" && edicion.id === c.campaign_id;
                   return (
                     <li key={c.campaign_id} className={`rec-camp-fila${actual ? " is-active" : ""}`} data-qa-geometry-member>
@@ -198,12 +222,23 @@ export function DialogoCampanas({ panel, campanas, activa, presets, ocupado, con
                               onChange={(e) => setEdicion({ ...editando, actor: e.target.value })}
                             />
                           </label>
+                          <ElegirPlataforma
+                            nombre={`${ids}-plataforma-${c.campaign_id}`}
+                            valor={editando.platform}
+                            onCambio={(platform) => setEdicion({ ...editando, platform })}
+                          />
+                          {borraLista ? (
+                            <p className="rec-camp-mensaje is-warning rec-camp-aviso-plataforma" role="alert">
+                              Con SurveyMonkey los contactos viven en su recopilador: al guardar se borra
+                              {c.recipients_loaded ? " la lista de destinatarios importada en esta campaña." : " cualquier lista de destinatarios de esta campaña."}
+                            </p>
+                          ) : null}
                           <span className="rec-camp-fila-acciones">
                             <PulsoButton variant="secondary" size="sm" type="button" onClick={() => setEdicion({ tipo: "ninguna" })}>
                               Cancelar
                             </PulsoButton>
-                            <PulsoButton variant="primary" size="sm" type="submit" disabled={ocupado || !editando.name.trim()}>
-                              Guardar
+                            <PulsoButton variant={borraLista ? "danger" : "primary"} size="sm" type="submit" disabled={ocupado || !editando.name.trim()}>
+                              {borraLista ? "Guardar y borrar la lista" : "Guardar"}
                             </PulsoButton>
                           </span>
                         </form>
@@ -212,10 +247,12 @@ export function DialogoCampanas({ panel, campanas, activa, presets, ocupado, con
                           <span className="rec-camp-fila-textos">
                             <span className="rec-camp-fila-nombre">
                               <b>{c.name}</b>
+                              <span className="rec-camp-chip is-plataforma">{NOMBRE_DE_PLATAFORMA[c.platform]}</span>
                               {c.recipients_loaded ? <span className="rec-camp-chip">Con destinatarios</span> : null}
                             </span>
                             <span className="rec-camp-fila-meta">
                               {c.actor ? <span><Users size={12} aria-hidden /> {c.actor}</span> : <span className="is-suave">Sin actor</span>}
+                              {c.sends.length > 1 ? <span><Send size={12} aria-hidden /> {c.sends.length} envíos</span> : null}
                               {c.subject ? <span className="rec-camp-fila-asunto" title={`Asunto: ${c.subject}`}>Asunto: {c.subject}</span> : null}
                               {cuando(c.updated_at) ? <span className="is-suave">Editada {cuando(c.updated_at)}</span> : null}
                             </span>
@@ -238,7 +275,7 @@ export function DialogoCampanas({ panel, campanas, activa, presets, ocupado, con
                               aria-label={`Renombrar ${c.name}`}
                               title="Renombrar"
                               disabled={ocupado}
-                              onClick={() => { setMensaje(null); setEdicion({ tipo: "renombrar", id: c.campaign_id, name: c.name, actor: c.actor }); }}
+                              onClick={() => { setMensaje(null); setEdicion({ tipo: "renombrar", id: c.campaign_id, name: c.name, actor: c.actor, platform: c.platform }); }}
                             >
                               <Pencil size={14} aria-hidden />
                             </PulsoButton>
@@ -339,7 +376,15 @@ export function DialogoCampanas({ panel, campanas, activa, presets, ocupado, con
                       <small>Saludo, un párrafo, firma y pie</small>
                     </span>
                   </label>
+                  <button type="button" className="rec-camp-origen-op rec-camp-origen-importar" disabled={ocupado} onClick={onImportar}>
+                    <FileCode2 size={16} aria-hidden />
+                    <span>
+                      <b>Desde un correo existente…</b>
+                      <small>Un HTML de Mailchimp, SurveyMonkey u otro</small>
+                    </span>
+                  </button>
                 </fieldset>
+                <ElegirPlataforma nombre={`${ids}-plataforma-nueva`} valor={nueva.platform} onCambio={(platform) => setNueva({ ...nueva, platform })} />
                 <span className="rec-camp-nueva-acciones">
                   {conCambios && !problemaNueva ? (
                     <span className="rec-camp-nueva-nota">La campaña abierta tiene cambios sin guardar: se descartan al abrir la nueva.</span>
