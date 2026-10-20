@@ -5,15 +5,11 @@ import { createPortal } from "react-dom";
 import { ListChecks, X } from "lucide-react";
 import { IconSearch } from "../../../lib/icons";
 import type { AddMenuItem } from "../types";
-import { MaquetaTipo } from "../kit";
+import { Sello } from "../kit";
+import { agruparAlta, baseDeClave } from "./familiasAlta";
+import "./addElementMenu.css";
 
-// M6 (2026-10-17): la maqueta de cómo se ve cada tipo en vez del ícono suelto. La evidencia (foto, audio, video,
-// archivo, código) tiene su dibujo propio desde M8 (catálogo único del kit).
-const MAQUETA_DE: Partial<Record<string, string>> = {
-  text: "text", integer: "integer", decimal: "decimal", date: "date", select_one: "select_one", select_multiple: "select_multiple",
-  image: "image", audio: "audio", video: "video", file: "file", barcode: "barcode",
-  geopoint: "geopoint", note: "note", calculate: "calculate", section: "begin_group", section_end: "end_group",
-};
+// 2026-10-20: cada tipo con su sello solo (sin recuadro), agrupado por familia con un rótulo chico (familiasAlta.ts).
 
 export function AddElementMenu({
   items,
@@ -29,17 +25,8 @@ export function AddElementMenu({
 }) {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [query, setQuery] = useState("");
-  const [activeGroup, setActiveGroup] = useState<"all" | NonNullable<AddMenuItem["group"]>>("all");
-  const groups = [
-    { id: "choices", label: "Con opciones" },
-    { id: "capture", label: "Texto y captura" },
-    { id: "evidence", label: "Evidencia y ubicación" },
-    { id: "logic", label: "Estructura y lógica" },
-  ] as const;
   const normalizedQuery = normalizeAddMenuSearch(query);
   const visibleItems = items.filter((item) => {
-    const groupMatches = activeGroup === "all" || item.group === activeGroup;
-    if (!groupMatches) return false;
     if (!normalizedQuery) return true;
     const descriptor = describeAddMenuItem(item);
     return normalizeAddMenuSearch([
@@ -75,6 +62,7 @@ export function AddElementMenu({
       }
       if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
       event.preventDefault();
+      if (activeIndex < 0 && event.key === "ArrowUp") return;
       const fallbackIndex = event.key === "ArrowDown" ? -1 : 0;
       const index = activeIndex >= 0 ? activeIndex : fallbackIndex;
       const nextIndex = event.key === "ArrowDown"
@@ -99,7 +87,7 @@ export function AddElementMenu({
 
   const viewportWidth = typeof window === "undefined" ? 1280 : window.innerWidth;
   const viewportHeight = typeof window === "undefined" ? 800 : window.innerHeight;
-  const menuWidth = Math.min(980, viewportWidth - 36);
+  const menuWidth = Math.min(820, viewportWidth - 36);
   const menuHeight = Math.min(820, viewportHeight - 72);
   const style = {
     "--pulso-add-menu-width": `${menuWidth}px`,
@@ -119,7 +107,7 @@ export function AddElementMenu({
     />
     <div
       ref={menuRef}
-      className="pulso-add-element-menu"
+      className="pulso-add-element-menu xfe-alta"
       style={style}
       role="dialog"
       aria-modal="true"
@@ -163,63 +151,32 @@ export function AddElementMenu({
             aria-label="Buscar tipo de pieza"
           />
         </label>
-        <div className="pulso-add-element-menu-filters" aria-label="Filtrar familias de piezas">
-          <button
-            type="button"
-            className={activeGroup === "all" ? "is-active" : ""}
-            onClick={() => setActiveGroup("all")}
-          >
-            Todo <span>{items.length}</span>
-          </button>
-          {groups.map((group) => (
-            <button
-              key={group.id}
-              type="button"
-              className={activeGroup === group.id ? "is-active" : ""}
-              onClick={() => setActiveGroup(group.id)}
-            >
-              {group.label} <span>{items.filter((item) => item.group === group.id).length}</span>
-            </button>
-          ))}
-        </div>
       </div>
-      <div className="pulso-add-element-menu-body">
-        {groups.map((group) => {
-          const groupItems = visibleItems.filter((item) => item.group === group.id);
-          if (!groupItems.length) return null;
-          return (
-            <div key={group.id} className={`pulso-add-element-menu-group${group.id === "choices" ? " is-primary" : ""}`}>
-              <span className="pulso-add-element-menu-group-title">{group.label}</span>
-              <div className="pulso-add-element-menu-group-grid">
-                {groupItems.map((item) => {
-                  const descriptor = describeAddMenuItem(item);
-                  return (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={() => {
-                        item.action();
-                        onClose();
-                      }}
-                      className={`pulso-add-element-menu-item is-${descriptor.tone}`}
-                    >
-                      <span className={MAQUETA_DE[item.key] ? "pulso-add-element-menu-maqueta" : "pulso-add-element-menu-icon"}>
-                        {MAQUETA_DE[item.key] ? <MaquetaTipo baseType={MAQUETA_DE[item.key]!} ancho={54} /> : item.icon}
-                      </span>
-                      <span className="pulso-add-element-menu-copy">
-                        <span className="pulso-add-element-menu-item-topline">
-                          <strong>{item.label}</strong>
-                          <span className="pulso-add-element-menu-chip">{descriptor.tag}</span>
-                        </span>
-                        <span>{item.hint}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+      <div className="pulso-add-element-menu-body xfe-alta__cuerpo">
+        {agruparAlta(visibleItems).map((grupo) => (
+          <section key={grupo.id} className="xfe-alta__grupo" aria-labelledby={`xfe-alta-${grupo.id}`}>
+            <h4 id={`xfe-alta-${grupo.id}`} className="xfe-alta__rotulo">{grupo.nombre}</h4>
+            <div className="xfe-alta__lista">
+              {grupo.items.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => {
+                    item.action();
+                    onClose();
+                  }}
+                  className="pulso-add-element-menu-item xfe-alta__item"
+                >
+                  <Sello baseType={baseDeClave(item.key)} size={24} />
+                  <span className="xfe-alta__texto">
+                    <strong>{item.label}</strong>
+                    <span>{item.hint}</span>
+                  </span>
+                </button>
+              ))}
             </div>
-          );
-        })}
+          </section>
+        ))}
         {!visibleItems.length && (
           <div className="pulso-add-element-menu-empty">
             <IconSearch size={17} aria-hidden="true" />
@@ -229,8 +186,8 @@ export function AddElementMenu({
         )}
       </div>
       <div className="pulso-add-element-menu-footer" aria-label="Atajos del selector">
-        <span>Flechas navegan</span>
-        <span>Enter añade la opción enfocada</span>
+        <span>↑↓ recorre</span>
+        <span>Enter añade</span>
         <span>Esc cierra</span>
       </div>
     </div>

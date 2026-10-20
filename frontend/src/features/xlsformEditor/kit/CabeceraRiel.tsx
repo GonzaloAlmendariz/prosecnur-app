@@ -1,3 +1,4 @@
+import { GlifoMarca } from "./GlifoMarca";
 import { INFO_MARCA, RIEL, type CasillaRiel } from "./marcasNodo";
 import "./riel.css";
 
@@ -5,6 +6,8 @@ import "./riel.css";
 // hacer scroll. Cada rótulo corto lleva su nombre completo para el lector de pantalla y al pasar el puntero.
 // S10 (2026-10-17): «SI» se leía «sí» y «ƒx» como fórmula suelta; las cinco abreviaturas son dos letras del nombre
 // (Obligatoria, Condición, Restricción, Cálculo, Filtro) y ninguna es una palabra.
+// Estilo A (2026-10-20): la cabecera pinta los mismos glifos que las marcas, en gris tenue; las siglas quedan
+// exportadas para quien las cite, pero ya no se dibujan.
 
 export const ABREVIATURA_COLUMNA: Readonly<Record<CasillaRiel, string>> = {
   oblig: "OB",
@@ -34,9 +37,9 @@ export function CabeceraRiel({ className }: { className?: string }) {
         data-qa-geometry-contract="equal"
       >
         {RIEL.map((k) => (
-          <abbr key={k} role="listitem" className="xfk-riel-cab__col" data-columna={k} title={NOMBRE_COLUMNA[k]} aria-label={NOMBRE_COLUMNA[k]}>
-            {ABREVIATURA_COLUMNA[k]}
-          </abbr>
+          <span key={k} role="listitem" className="xfk-riel-cab__col" data-columna={k} title={NOMBRE_COLUMNA[k]} aria-label={NOMBRE_COLUMNA[k]}>
+            <GlifoMarca clave={k} size={12} />
+          </span>
         ))}
       </span>
     </div>

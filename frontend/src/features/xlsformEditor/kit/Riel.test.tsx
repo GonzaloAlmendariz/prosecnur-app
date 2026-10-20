@@ -54,7 +54,8 @@ describe("Riel", () => {
     expect(html).toContain('aria-label="Cálculo: no en edad"');
     expect(html.match(/xfk-casilla is-on/g)).toHaveLength(3);
     expect(html).toContain('data-marca="hered"');
-    expect(html).not.toContain('data-marca="calc"');
+    // La casilla vacía lleva su glifo (asoma en gris al pasar el puntero, estilo A), pero el botón no se marca.
+    expect(html).not.toMatch(/data-casilla="calc"[^>]*data-marca=/);
   });
 });
 
@@ -152,10 +153,10 @@ describe("PanelMarca (contenido)", () => {
 });
 
 describe("CabeceraRiel", () => {
-  test("abreviaturas que no son palabras, con el nombre completo para leer", () => {
+  test("estilo A: los glifos de las marcas en orden, sin siglas, con el nombre completo para leer", () => {
     const html = renderToStaticMarkup(<CabeceraRiel />);
-    expect([...html.matchAll(/data-columna="[a-z]+"[^>]*>([^<]+)</g)].map((m) => m[1])).toEqual(["OB", "CO", "RE", "CA", "FI"]);
-    expect(html).not.toMatch(/>SI</);
+    expect([...html.matchAll(/data-marca="([a-z]+)"/g)].map((m) => m[1])).toEqual(["oblig", "cond", "regla", "calc", "filtro"]);
+    expect(html).not.toMatch(/>(OB|CO|RE|CA|FI|SI)</);
     expect(html).toContain('aria-label="Condición"');
     expect(html).toContain('title="Cálculo"');
   });

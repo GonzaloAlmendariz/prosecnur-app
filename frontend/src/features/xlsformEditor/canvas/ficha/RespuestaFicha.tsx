@@ -7,7 +7,7 @@ import { Search } from "../../../../vendor/lucide-react";
 import { Sello, tipoPregunta } from "../../kit";
 import type { BuilderNode, CatalogSummary, ChoiceItem } from "../../types";
 import { esSeleccion, plural } from "./modeloFicha";
-import { EnlaceIr } from "./piezasFicha";
+import { BotonIr, EnlaceIr } from "./piezasFicha";
 
 /** Hasta aquí la lista se muestra entera; más larga, se abre a pedido. */
 const VISIBLES = 24;
@@ -33,18 +33,20 @@ export function RespuestaFicha({ node, choices, catalogs, usosDeLaLista, onAsign
   const elegir = eligiendo ? (
     <ElegirLista catalogs={conOpciones} actual={lista} onElegir={(l) => { onAsignarLista(l); setEligiendo(false); }} onCerrar={() => setEligiendo(false)} />
   ) : null;
+  const vacia = !lista || choices.length === 0;
   const acciones = (
-    <div className="xfh-lista__acc">
+    <div className={vacia ? "xfh-acciones" : "xfh-lista__acc xfh-acciones"}>
       {conOpciones.length > 0 ? (
         <button type="button" className="xfh-boton" aria-expanded={eligiendo} onClick={() => setEligiendo((v) => !v)}>
           {lista ? "Cambiar de lista" : "Usar una lista existente"}
         </button>
       ) : null}
       <button type="button" className="xfh-boton" onClick={onCrearLista}>Crear lista nueva</button>
+      {vacia && lista ? <BotonIr onClick={() => onIrListas(lista)}>Agregar opciones</BotonIr> : null}
     </div>
   );
 
-  if (!lista || choices.length === 0) {
+  if (vacia) {
     const primera = conOpciones.length === 0;
     return (
       <div className="xfh-primera">
@@ -56,10 +58,7 @@ export function RespuestaFicha({ node, choices, catalogs, usosDeLaLista, onAsign
               ? "Una lista guarda las respuestas posibles con un código para la base y un texto para el encuestado. Varias preguntas pueden usar la misma lista, como «Sí / No»."
               : "Elige una de las listas del formulario o crea una nueva. Las opciones se escriben en «Listas de opciones»."}
           </p>
-          <div className="xfh-primera__acc">
-            {acciones}
-            {lista ? <EnlaceIr onClick={() => onIrListas(lista)}>Agregar opciones en Listas de opciones</EnlaceIr> : null}
-          </div>
+          <div className="xfh-primera__acc">{acciones}</div>
           {elegir}
         </div>
       </div>

@@ -1,10 +1,11 @@
 // Piezas comunes de la ficha del Constructor: el bloque con su rótulo, el campo de texto que crece con su contenido
 // (sin asa, C9) y el botón que lleva a otra pestaña.
 
-import { useId, type ReactNode } from "react";
+import { useEffect, useId, useReducer, type ReactNode } from "react";
 import { ArrowRight } from "../../../../vendor/lucide-react";
 import type { ColumnaRegla, LecturaRegla } from "../../reglas/piezas";
 import { PiezasLectura } from "../../kit/CuerpoPanelMarca";
+import { borradorCampo } from "./modeloFicha";
 
 export function BloqueFicha({ titulo, accion, children, className }: { titulo: string; accion?: ReactNode; children: ReactNode; className?: string }) {
   const id = useId();
@@ -37,20 +38,23 @@ export function CampoTexto({
   ayuda?: ReactNode;
 }) {
   const id = useId();
+  const [borrador, enviar] = useReducer(borradorCampo, { texto: valor, enFoco: false });
+  useEffect(() => enviar({ tipo: "valor", valor }), [valor]);
+  const comun = {
+    id,
+    value: borrador.texto,
+    placeholder,
+    onFocus: () => enviar({ tipo: "foco" }),
+    onBlur: () => enviar({ tipo: "desenfoque" }),
+    onChange: (e: { target: { value: string } }) => { enviar({ tipo: "tecleo", texto: e.target.value }); onCambio(e.target.value); },
+  };
   return (
     <div className="xfh-campo">
       <label htmlFor={id}>{etiqueta}</label>
       {multilinea ? (
-        <textarea
-          id={id}
-          className={grande ? "xfh-texto is-grande" : "xfh-texto"}
-          value={valor}
-          rows={1}
-          placeholder={placeholder}
-          onChange={(e) => onCambio(e.target.value)}
-        />
+        <textarea {...comun} className={grande ? "xfh-texto is-grande" : "xfh-texto"} rows={1} />
       ) : (
-        <input id={id} className="xfh-texto" value={valor} placeholder={placeholder} onChange={(e) => onCambio(e.target.value)} />
+        <input {...comun} className="xfh-texto" />
       )}
       {ayuda ? <small className="xfh-campo__ayuda">{ayuda}</small> : null}
     </div>
