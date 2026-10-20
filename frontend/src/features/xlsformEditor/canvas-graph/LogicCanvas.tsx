@@ -56,6 +56,8 @@ import type { LabelLookup, VarTitleLookup } from "./logicaTexto";
 import { alcanceDelMapa, lecturaDelMapa } from "./lecturaMapa";
 import { useFormaLogica } from "./formaLogica";
 import { VistaListaLogica } from "./VistaListaLogica";
+import { listaLogica } from "./listaLogicaModel";
+import { lecturaPlana, type LectorReferencias } from "../helpers/markdownPregunta";
 
 export type LogicCanvasProps = {
   open: boolean;
@@ -192,6 +194,9 @@ export function LogicCanvas({
   /** Id del edge que acaba de aparecer — para reproducir la animación
    *  de pulse una sola vez. Limpiamos a los 600ms. */
   const [freshEdgeKey, setFreshEdgeKey] = useState<string | null>(null);
+  /** «Condición combinada con O/Y»: se dibuja sobre la arista nueva, donde entra a su destino (su tramo medio corre
+   *  por el carril de arriba, bajo la barra flotante), no en el deck de arriba encima de otro nodo (E11b). */
+  const [insignia, setInsignia] = useState<{ key: string; texto: string } | null>(null);
   /** La leyenda "Cómo leer las flechas" arranca colapsada (solo icono).
    *  El usuario la expande con click. Por defecto colapsada porque la
    *  versión expandida ocupaba demasiado espacio en el lienzo. */
@@ -403,6 +408,12 @@ export function LogicCanvas({
   /** Lookup para resolver `${X} = 'code'` → `'label legible'` usando
    *  el catálogo de la pregunta X. Memo para no recalcular en cada
    *  render. */
+  /** `${x}` dentro de las etiquetas que cita una lectura: «[Etiqueta corta]», nunca crudo (E11b). */
+  const lectorRefs = useMemo<LectorReferencias>(() => {
+    const etiquetas = new Map((structure?.outline ?? []).map((n) => [n.name, n.label] as const));
+    return { etiquetaDe: (n) => etiquetas.get(n) };
+  }, [structure]);
+
   const labelLookup = useMemo<LabelLookup>(() => {
     if (!structure) return () => null;
     return (varName: string, code: string) => {
@@ -448,7 +459,8 @@ export function LogicCanvas({
   }, []);
 
   /** Lectura en español del motor (la misma del riel y las pestañas); lo que no sabe leer se dice técnico. */
-  const humanize = (expr: string): string => lecturaDelMapa(expr, alcance, () => humanizeRelevantWithLabels(expr, labelLookup, varTitleLookup));
+  const humanize = (expr: string): string =>
+    lecturaPlana(lecturaDelMapa(expr, alcance, () => humanizeRelevantWithLabels(expr, labelLookup, varTitleLookup)), lectorRefs);
 
   /** Versión compacta para el chip sobre el edge: referencias cortas
    *  (P1) + labels de opción, en una línea y truncada. */
@@ -813,6 +825,14 @@ export function LogicCanvas({
     : { visible: 0, edges: 0 };
 
 
+  // En la forma Lista, la cabecera cuenta las reglas de la lista, no los nodos del mapa (E11b).
+  const listaReglas = forma === "lista" ? listaLogica(structure) : null;
+  const reglasLista = listaReglas ? listaReglas.deSeccion + listaReglas.dePregunta : 0;
+
+  const insigniaArista = insignia
+    ? layout?.edges.find((e) => `${e.edge.source}->${e.edge.target}` === insignia.key) ?? null
+    : null;
+
   const overlay = (
     <div
       className={`pulso-graph-overlay${embebido ? " is-embebido" : ""}`}
@@ -829,8 +849,14 @@ export function LogicCanvas({
           <div className="pulso-graph-header-title">
             <strong>{title}</strong>
             <span>
-              {stats.visible} {stats.visible === 1 ? "nodo visible" : "nodos visibles"} ·{" "}
-              {stats.edges} {stats.edges === 1 ? "conexión" : "conexiones"}
+              {forma === "lista" ? (
+                <>{reglasLista} {reglasLista === 1 ? "regla" : "reglas"} en el formulario</>
+              ) : (
+                <>
+                  {stats.visible} {stats.visible === 1 ? "nodo visible" : "nodos visibles"} ·{" "}
+                  {stats.edges} {stats.edges === 1 ? "conexión" : "conexiones"}
+                </>
+              )}
               {readOnly ? " · solo lectura" : ""}
             </span>
           </div>
@@ -842,16 +868,18 @@ export function LogicCanvas({
             className="pulso-graph-allbutton"
             onClick={expandAll}
             title="Expandir todas las secciones (E)"
+            aria-label="Expandir todo"
           >
-            <ChevronsDown size={13} /> Expandir todo
+            <ChevronsDown size={13} /> <span className="pulso-graph-allbutton__txt">Expandir todo</span>
           </button>
           <button
             type="button"
             className="pulso-graph-allbutton"
             onClick={collapseAll}
             title="Colapsar todas las secciones (C)"
+            aria-label="Colapsar todo"
           >
-            <ChevronsUp size={13} /> Colapsar todo
+            <ChevronsUp size={13} /> <span className="pulso-graph-allbutton__txt">Colapsar todo</span>
           </button>
           <div
             className="pulso-graph-iconseg"
@@ -1034,6 +1062,18 @@ export function LogicCanvas({
                 />
               );
             })}
+
+            {insignia && insigniaArista ? (
+              <foreignObject
+                x={insigniaArista.toBBox.x + insigniaArista.toBBox.width / 2 - 90}
+                y={insigniaArista.toBBox.y - 40}
+                width={180}
+                height={28}
+                pointerEvents="none"
+              >
+                <div className="xfg-insignia" role="status">{insignia.texto}</div>
+              </foreignObject>
+            ) : null}
 
             {/* (Tooltip de hover eliminado — el detalle de la
                 relación ahora se ve en el panel fijo a la derecha
@@ -1336,8 +1376,11 @@ export function LogicCanvas({
 
         {/* Deck de toasts efímeros — top-right del overlay, fuera del
             SVG y de los paneles de detalle. Cada toast vive ~2.4s. */}
-        {toasts.length > 0 && (
+        {(toasts.length > 0 || (insignia && !insigniaArista)) && (
           <div className="pulso-graph-toasts" aria-live="polite">
+            {insignia && !insigniaArista ? (
+              <div className="pulso-graph-toast pulso-graph-toast-success" role="status">{insignia.texto}</div>
+            ) : null}
             {toasts.map((t) => (
               <div
                 key={t.id}
@@ -1456,6 +1499,8 @@ export function LogicCanvas({
               screenY={connectPicker.screenY}
               sourceCatalog={source.catalogContext}
               existingExpression={target.relevantExpression ?? undefined}
+              leer={humanize}
+              area={() => svgRef.current?.getBoundingClientRect() ?? null}
               onCancel={() => setConnectPicker(null)}
               onConfirm={(expression, combiner) => {
                 // Si el target ya tiene `relevant`, el picker hizo
@@ -1496,9 +1541,9 @@ export function LogicCanvas({
                 // Toast de confirmación. Texto distinto si fue
                 // combinación (Y/O) o creación nueva.
                 if (combiner) {
-                  pushToast(
-                    `Condición combinada con "${combiner === "and" ? "Y" : "O"}"`,
-                  );
+                  const key = `${source.id}->${target.id}`;
+                  setInsignia({ key, texto: `Combinada con «${combiner === "and" ? "Y" : "O"}»` });
+                  setTimeout(() => setInsignia((v) => (v?.key === key ? null : v)), 2400);
                 } else if (existing && existing === combined) {
                   pushToast("La condición ya existía", "info");
                 } else {

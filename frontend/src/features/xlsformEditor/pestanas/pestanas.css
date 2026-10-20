@@ -73,7 +73,7 @@
 }
 .xfp-item:first-of-type { border-top: 0; }
 .xfp-item:hover { background: var(--pulso-surface-2); }
-.xfp-item.is-on { background: var(--module-accent-soft, var(--pulso-primary-soft)); box-shadow: inset 2px 0 0 var(--module-accent, var(--pulso-primary)); }
+.xfp-item.is-on { background: var(--module-accent-soft, var(--pulso-primary-soft)); box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border)); }
 .xfp-item:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: -2px; }
 /* Sin número de papel no se reserva columna (antes 40 px en blanco o un código cortado a 4 caracteres). */
 .xfp-item.sin-num { grid-template-columns: 14px minmax(0, 1fr); }

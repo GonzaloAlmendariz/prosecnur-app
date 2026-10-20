@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { BuilderStructure } from "../types";
 import { enriquecerAlcance, type LogicScope } from "../logic";
 import { stripMarkdown } from "../helpers/markdown";
+import { lecturaPlana, textoPreguntaPlano, type LectorReferencias } from "../helpers/markdownPregunta";
 import { Segmented, TypeIcon } from "../kit";
 import { describeExpression, leerColumna } from "../canvas/reglasHumanas";
 import { dividirPorLogica, focoEnLista, listaLogica, type TipoRegla } from "./listaLogicaModel";
@@ -37,6 +38,10 @@ export function ListaLogica({ structure, scope: scopeBase, seleccionada, onSelec
   // Con la estructura, el motor cita grupos por su etiqueta; cada fila se lee con leerRegla en su propia columna.
   const scope = useMemo(() => enriquecerAlcance(scopeBase, structure), [scopeBase, structure]);
   const lista = useMemo(() => listaLogica(structure), [structure]);
+  const lector = useMemo<LectorReferencias>(() => {
+    const etiquetas = new Map((structure?.outline ?? []).map((n) => [n.name, n.label] as const));
+    return { etiquetaDe: (n) => etiquetas.get(n) };
+  }, [structure]);
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const verSeccion = filtro !== "pregunta";
   const verPregunta = filtro !== "seccion";
@@ -98,7 +103,7 @@ export function ListaLogica({ structure, scope: scopeBase, seleccionada, onSelec
                 {verSeccion && s.regla ? (
                   <button type="button" className={seleccionada === focoSeccion ? "xfl-toda is-on" : "xfl-toda"} onClick={() => onSeleccionar(focoSeccion)}>
                     <span className="xfl-toda__marca">Toda la sección</span>
-                    <span className="xfl-toda__lee">{describeExpression(s.regla, scope).summary}</span>
+                    <span className="xfl-toda__lee">{lecturaPlana(describeExpression(s.regla, scope).summary, lector)}</span>
                     <span className="xfl-toda__nota">La heredan sus {s.preguntas} preguntas</span>
                   </button>
                 ) : null}
@@ -114,11 +119,11 @@ export function ListaLogica({ structure, scope: scopeBase, seleccionada, onSelec
                       >
                         <TypeIcon baseType={it.node.typeInfo.base} size={13} />
                         <span className="xfl-item__txt">
-                          <span className="xfl-item__titulo">{stripMarkdown(it.node.label || it.node.name)}</span>
+                          <span className="xfl-item__titulo">{textoPreguntaPlano(it.node.label || it.node.name, lector) || it.node.name}</span>
                           <span className="xfl-item__lee">
-                            {(it.node.relevant
+                            {lecturaPlana((it.node.relevant
                               ? leerColumna("relevant", it.node, it.node.relevant, scope)
-                              : leerColumna("choice_filter", it.node, it.node.choiceFilter, scope)).summary}
+                              : leerColumna("choice_filter", it.node, it.node.choiceFilter, scope)).summary, lector)}
                           </span>
                         </span>
                         <span className="xfl-item__tipos">{it.tipos.map((t) => <IconoRegla key={t} tipo={t} />)}</span>

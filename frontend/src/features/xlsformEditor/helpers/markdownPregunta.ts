@@ -59,3 +59,8 @@ export function pistaLegible(nodo: Pick<BuilderNode, "hint" | "name">): string {
   const h = (nodo.hint ?? "").trim();
   return h && h !== (nodo.name ?? "").trim() ? h : "";
 }
+
+/** Una lectura del motor que cita etiquetas con `${x}` o `<br>` adentro, en una línea legible (Mapa de lógica, E11b). */
+export function lecturaPlana(texto: string, lector: LectorReferencias): string {
+  return conSaltos(conReferencias(texto, lector)).replace(/\s*\n\s*/g, " ").trim();
+}

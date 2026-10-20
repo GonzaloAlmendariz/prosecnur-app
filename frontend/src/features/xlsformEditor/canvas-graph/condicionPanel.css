@@ -23,7 +23,10 @@
 .xfc-cab__tit { font-size: 11px; font-weight: var(--pulso-weight-semibold); letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-muted); }
 .xfc-cab__tit .pulso-xf-tech { text-transform: none; letter-spacing: 0; }
 .xfc-cab__par { display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--pulso-text-faint); }
-.xfc-cab__par code { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pulso-primary); font-weight: var(--pulso-weight-semibold); }
+.xfc-cab__par { flex-wrap: wrap; row-gap: 2px; font-size: 12.5px; }
+.xfc-rot { display: inline-flex; align-items: baseline; gap: 5px; min-width: 0; }
+.xfc-rot__txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
+.xfc-rot code { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10.5px; color: var(--pulso-text-faint); }
 .xfc-cab__x {
   display: inline-grid; place-items: center; width: 28px; height: 28px; min-height: 0; padding: 0;
   border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--pulso-text-soft); box-shadow: none; cursor: pointer;
@@ -69,7 +72,7 @@
 
 .xfc-lectura { display: flex; align-items: baseline; gap: 8px; min-width: 0; padding: 6px 10px; border: 1px solid var(--pulso-border); border-radius: 7px; background: var(--pulso-surface-2); }
 .xfc-lectura > span { flex-shrink: 0; font-size: 11px; font-weight: var(--pulso-weight-semibold); text-transform: uppercase; letter-spacing: 0.04em; color: var(--pulso-text-muted); }
-.xfc-lectura > code { min-width: 0; overflow-wrap: anywhere; font-family: inherit; font-size: 12.5px; color: var(--pulso-text); }
+.xfc-lectura > p { margin: 0; min-width: 0; overflow-wrap: anywhere; font-size: 12.5px; color: var(--pulso-text); }
 
 .xfc-pie { flex-shrink: 0; display: flex; justify-content: flex-end; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--pulso-border); background: var(--pulso-surface-2); }
 .xfc-pie button { display: inline-flex; align-items: center; gap: 5px; }
@@ -78,3 +81,12 @@
 .xfc-panel .xfc-buscar input:focus, .xfc-panel .xfc-buscar input:focus-visible { outline: 0; border: 0; box-shadow: none; }
 /* El lienzo recibe el foco al cerrar el panel (tabindex -1): sin anillo, no es un control. */
 .pulso-graph-svg:focus { outline: none; }
+/* Insignia sobre la arista recién combinada (E11b): marca la regla nueva en su lugar, no encima de otro nodo. */
+.xfg-insignia {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 100%; height: 100%;
+  padding: 0 10px; border: 1px solid var(--pulso-success-border); border-radius: 999px;
+  background: var(--pulso-success-bg); color: var(--pulso-success-fg); font-size: 11.5px; font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap; box-shadow: var(--pulso-shadow-low); animation: xfg-insignia-in var(--motion-dur-fast) var(--motion-ease-out) both;
+}
+@keyframes xfg-insignia-in { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .xfg-insignia { animation: none; } }

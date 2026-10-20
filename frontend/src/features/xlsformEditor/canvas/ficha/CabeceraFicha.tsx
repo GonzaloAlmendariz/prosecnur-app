@@ -2,13 +2,14 @@
 // uso), dónde está la pieza, su código y las acciones: mover, duplicar, llevar a otra sección y eliminar.
 
 import { useRef, useState, type CSSProperties } from "react";
-import { ArrowDown, ArrowRightLeft, ArrowUp, ChevronDown, Copy, Trash2 } from "../../../../vendor/lucide-react";
+import { ArrowDown, ArrowRightLeft, ArrowUp, ChevronDown, Copy } from "../../../../vendor/lucide-react";
 import { Sello, TIPOS_PREGUNTA, TONO_FAMILIA, tipoPregunta } from "../../kit";
-import { seccionesDestino, type SeccionDestino } from "../../state/accionesConstructor";
+import { referenciasRotasAlEliminar, seccionesDestino, type SeccionDestino } from "../../state/accionesConstructor";
 import { corto } from "../../kit/CuerpoPanelMarca";
 import { etiquetaDeGrupo } from "../../logic";
 import type { DatosFicha } from "./tiposFicha";
 import { MenuFlotante } from "./MenuFlotante";
+import { BotonEliminarFicha } from "./BotonEliminarFicha";
 import { listaQueSePierde } from "./modeloFicha";
 import type { BuilderNode, BuilderStructure } from "../../types";
 
@@ -28,9 +29,11 @@ export type CabeceraFichaProps = {
   onDuplicar: () => void;
   onMoverASeccion: (fila: number | null) => void;
   onEliminar: () => void;
+  /** Otras filas que citan la pieza: el botón Eliminar armado lo advierte. */
+  referencias?: number;
 };
 
-export function CabeceraFicha({ node, posicion, usosDeLaLista, destinos, puedeSubir, puedeBajar, onTipo, onMover, onDuplicar, onMoverASeccion, onEliminar }: CabeceraFichaProps) {
+export function CabeceraFicha({ node, posicion, usosDeLaLista, destinos, puedeSubir, puedeBajar, onTipo, onMover, onDuplicar, onMoverASeccion, onEliminar, referencias = 0 }: CabeceraFichaProps) {
   const base = node.kind === "repeat" ? "begin_repeat" : node.kind === "section" ? "begin_group" : node.typeInfo.base;
   const tipo = tipoPregunta(base);
   const [menu, setMenu] = useState<"tipo" | "mover" | null>(null);
@@ -121,7 +124,7 @@ export function CabeceraFicha({ node, posicion, usosDeLaLista, destinos, puedeSu
               </MenuFlotante>
             ) : null}
           </span>
-          <button type="button" className="xfh-icono is-peligro" onClick={onEliminar} aria-label="Eliminar" title="Eliminar"><Trash2 size={14} aria-hidden="true" /></button>
+          <BotonEliminarFicha onEliminar={onEliminar} referencias={referencias} />
         </div>
       </div>
       {pierde && pendiente ? (
@@ -157,6 +160,7 @@ export function CabeceraDesdeDatos({ datos, posicion, conTipo }: { datos: DatosF
       onDuplicar={acciones.duplicar}
       onMoverASeccion={acciones.moverASeccion}
       onEliminar={acciones.eliminar}
+      referencias={datos.survey ? referenciasRotasAlEliminar(datos.survey, structure, node.rowIndex) : 0}
     />
   );
 }

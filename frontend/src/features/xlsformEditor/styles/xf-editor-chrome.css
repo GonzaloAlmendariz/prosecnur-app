@@ -447,7 +447,6 @@
   margin: 12px 12px 0;
   padding: 8px 10px 8px 14px;
   border: 1px solid var(--pulso-border);
-  border-left: 3px solid var(--pulso-warn-border);
   border-radius: 10px;
   background: var(--pulso-surface);
   font-size: 12.5px;

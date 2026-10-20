@@ -227,6 +227,12 @@ export function describeAddMenuItem(item: AddMenuItem): {
         tone: "logic",
         searchTerms: ["grupo", "seccion", "begin", "abrir", "bloque"],
       };
+    case "repeat":
+      return {
+        tag: "Inicio + cierre",
+        tone: "logic",
+        searchTerms: ["repeticion", "repeat", "repetir", "miembros", "registro", "bucle"],
+      };
     case "section_end":
       return {
         tag: "Solo cierre",

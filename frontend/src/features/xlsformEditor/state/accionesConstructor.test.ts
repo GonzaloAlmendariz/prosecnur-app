@@ -5,7 +5,7 @@ import { describe, expect, test } from "vitest";
 import { parseBuilderStructure } from "../parsing/buildIndex";
 import { rowToRecord } from "../parsing/sheetUtils";
 import type { XlsformEditorWorkbook } from "../types";
-import { alternarRepeticion, duplicarFila, indiceInsercion, insertarEn, planMoverASeccion, seccionesDestino } from "./accionesConstructor";
+import { alternarRepeticion, duplicarFila, indiceInsercion, insertarEn, planMoverASeccion, referenciasRotasAlEliminar, seccionesDestino } from "./accionesConstructor";
 import { applyRowMove } from "../outline/outlineUtils";
 
 function libro(): XlsformEditorWorkbook {
@@ -156,5 +156,34 @@ describe("acciones de la ficha", () => {
     expect(tipos(wb)[4]).toBe("end_repeat");
     expect(alternarRepeticion(wb, parseBuilderStructure(wb.survey), 1)).toBe("group");
     expect(tipos(wb)[4]).toBe("end_group");
+  });
+});
+
+describe("piezas nuevas y eliminar (E11b)", () => {
+  test("una repetición nace con su cierre y una nota se llama nota_N", () => {
+    const wb = libro();
+    const r = insertarEn(wb, parseBuilderStructure(wb.survey), { despuesDeFila: 0, seccionFila: null }, "begin_repeat");
+    expect(rowToRecord(wb.survey, r.rowIndex).type).toBe("begin_repeat");
+    expect(rowToRecord(wb.survey, r.rowIndex + 1).type).toBe("end_repeat");
+    expect(r.name).toMatch(/^repeticion_\d+$/);
+    const n = insertarEn(wb, parseBuilderStructure(wb.survey), { despuesDeFila: 0, seccionFila: null }, "note");
+    expect(n.name).toMatch(/^nota_\d+$/);
+  });
+  test("eliminar cuenta sólo las citas desde otras filas", () => {
+    const wb: XlsformEditorWorkbook = {
+      ...libro(),
+      survey: { name: "survey", columns: ["type", "name", "label", "relevant"], rows: [
+        ["integer", "edad", "Edad", ""],
+        ["text", "a", "A", "${edad} > 18"],
+        ["begin_group", "g", "G", ""],
+        ["text", "b", "B ${edad}", "${b} != ''"],
+        ["end_group", "", "", ""],
+        ["text", "c", "C", "${b} = 'x'"],
+      ] },
+    };
+    const st = parseBuilderStructure(wb.survey);
+    expect(referenciasRotasAlEliminar(wb.survey, st, 0)).toBe(2);
+    // La sección: `${b}` se cita desde adentro (no cuenta) y desde «c» (cuenta). `${edad}` no es de la sección.
+    expect(referenciasRotasAlEliminar(wb.survey, st, 2)).toBe(1);
   });
 });

@@ -20,7 +20,7 @@
   transition: background-color var(--motion-dur-fast) var(--motion-ease-out);
 }
 .xfv-fila:hover { background: var(--pulso-surface-2); }
-.xfv-fila.is-on { background: var(--module-accent-soft, var(--pulso-primary-soft)); box-shadow: inset 2px 0 0 var(--module-accent, var(--pulso-primary)); }
+.xfv-fila.is-on { background: var(--module-accent-soft, var(--pulso-primary-soft)); box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border)); }
 .xfv-fila:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: -2px; }
 .xfv-fila__sello { display: inline-grid; place-items: center; color: var(--pulso-text-muted); }
 .xfv-fila__preg, .xfv-fila__lee, .xfv-fila__dep { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

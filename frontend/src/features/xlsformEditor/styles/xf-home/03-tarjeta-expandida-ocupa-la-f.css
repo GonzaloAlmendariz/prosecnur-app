@@ -97,7 +97,6 @@
   align-items: center;
   padding: 11px 13px;
   border-radius: 11px;
-  border-left: 3px solid var(--xf-action-accent, var(--pulso-module-editor));
 }
 
 .pulso-xf-home-action:hover {

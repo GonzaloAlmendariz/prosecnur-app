@@ -29,6 +29,7 @@
 
 import type { BuilderStructure, CatalogSummary, ChoiceItem } from "../types";
 import { collectRefs, parseExpression } from "../logic";
+import { textoPreguntaPlano } from "../helpers/markdownPregunta";
 
 export type GraphNodeKind = "question" | "section";
 
@@ -193,6 +194,9 @@ export function buildLogicGraph(
   // -- 1. Crear todos los nodes (sin parent), con catalogContext donde aplique --
   const byId = new Map<string, GraphNode>();
   const nodeByVarName = new Map<string, GraphNode>();
+  // El título que se lee en el Mapa: `${x}` como «[Etiqueta corta]» y `<br>` como espacio, nunca crudos (E11b).
+  const etiquetas = new Map(structure.outline.map((n) => [n.name, n.label] as const));
+  const lector = { etiquetaDe: (n: string) => etiquetas.get(n) };
   for (const node of structure.outline) {
     if (!node.name) continue;
     const isSection = node.kind === "section" || node.kind === "repeat";
@@ -201,7 +205,7 @@ export function buildLogicGraph(
       id,
       kind: isSection ? "section" : "question",
       name: node.name,
-      title: node.label || node.name,
+      title: textoPreguntaPlano(node.label || node.name, lector) || node.name,
       subtitle: node.name,
       baseType: node.typeInfo.base,
       rowIndex: node.rowIndex,

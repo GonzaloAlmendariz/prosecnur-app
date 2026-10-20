@@ -201,3 +201,9 @@ export function contenidoDeBloque(structure: BuilderStructure | null, filaBloque
 }
 
 export const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+
+/** Avisos que la ficha muestra arriba. En una selección, «sin lista» y «lista sin opciones» ya los dice la tarjeta de
+ * Respuesta con sus acciones: repetirlos en rojo encima es ruido (E11b). */
+export function avisosDeFicha<T extends { id: string }>(avisos: readonly T[], base: string): readonly T[] {
+  return esSeleccion(base) ? avisos.filter((a) => !/^catalog-(empty|missing)-/.test(a.id)) : avisos;
+}

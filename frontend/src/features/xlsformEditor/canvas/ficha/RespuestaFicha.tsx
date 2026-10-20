@@ -8,6 +8,9 @@ import { Sello, tipoPregunta } from "../../kit";
 import type { BuilderNode, CatalogSummary, ChoiceItem } from "../../types";
 import { esSeleccion, plural } from "./modeloFicha";
 import { BotonIr, EnlaceIr } from "./piezasFicha";
+import { textoPreguntaPlano } from "../../helpers/markdownPregunta";
+
+const SIN_REFERENCIAS = { etiquetaDe: () => undefined };
 
 /** Hasta aquí la lista se muestra entera; más larga, se abre a pedido. */
 const VISIBLES = 24;
@@ -84,7 +87,7 @@ export function RespuestaFicha({ node, choices, catalogs, usosDeLaLista, onAsign
         {visibles.map((o) => (
           <li key={o.rowIndex} data-qa-geometry-member="">
             <code>{o.name}</code>
-            <span>{o.label || o.name}</span>
+            <span>{textoPreguntaPlano(o.label, SIN_REFERENCIAS) || o.name}</span>
           </li>
         ))}
       </ul>
@@ -97,11 +100,26 @@ export function RespuestaFicha({ node, choices, catalogs, usosDeLaLista, onAsign
   );
 }
 
+/** Lo que se ve en la vista previa de un campo según su familia. Sin caja que parezca un input editable (E11b). */
+const MUESTRA_CAMPO: Readonly<Partial<Record<string, string>>> = {
+  texto: "Respuesta escrita",
+  numero: "123",
+  fecha: "dd/mm/aaaa",
+  ubicacion: "Coordenadas",
+  evidencia: "Adjunto",
+};
+
 function RespuestaCampo({ base }: { base: string }) {
+  const tipo = tipoPregunta(base);
+  // Un tipo automático (start, end, today…) lo llena el dispositivo: no tiene caja que mostrar.
+  if (tipo.grupo === "metadato") {
+    return <p className="xfh-respuesta-auto">{tipo.nombre}. Lo registra el dispositivo, nadie lo responde.</p>;
+  }
+  const muestra = MUESTRA_CAMPO[tipo.familia];
   return (
     <div className="xfh-respuesta-campo">
-      <span className="xfh-input-falso" aria-hidden="true" />
-      <small>{tipoPregunta(base).nombre}. Lo que acepta está en Reglas.</small>
+      {muestra ? <span className="xfh-muestra" aria-hidden="true">{muestra}</span> : null}
+      <small>{tipo.nombre}. Lo que acepta está en Reglas.</small>
     </div>
   );
 }
@@ -124,7 +142,10 @@ function ElegirLista({ catalogs, actual, onElegir, onCerrar }: { catalogs: Catal
         {candidatas.slice(0, 40).map((c) => (
           <li key={c.listName}>
             <button type="button" onClick={() => onElegir(c.listName)}>
-              <span className="xfh-elegir__txt"><b>{c.listName}</b> · {c.items.map((i) => i.label || i.name).join(", ")}</span>
+              <span className="xfh-elegir__txt">
+                <b>{c.listName}</b>
+                <span>{c.items.map((i) => textoPreguntaPlano(i.label, SIN_REFERENCIAS) || i.name).join(", ")}</span>
+              </span>
               <span className="xfh-elegir__n">{c.items.length}</span>
             </button>
           </li>

@@ -7,8 +7,8 @@
 // =============================================================================
 
 import { buildType } from "../parsing/parseType";
-import { insertRecord, rowToRecord } from "../parsing/sheetUtils";
-import type { BuilderStructure, XlsformEditorWorkbook } from "../types";
+import { SURVEY_COLUMNS_WITH_VAR_REFS, findVarReferences, insertRecord, rowToRecord } from "../parsing/sheetUtils";
+import type { BuilderStructure, XlsformEditorSheet, XlsformEditorWorkbook } from "../types";
 
 /**
  * Dónde cae una pieza nueva agregada con el «+» de la Estructura.
@@ -28,7 +28,13 @@ export type ResultadoInsercion = {
   listName: string;
 };
 
-const ES_SECCION = new Set(["begin_group", "section"]);
+const ES_SECCION = new Set(["begin_group", "section", "begin_repeat", "repeat"]);
+const ES_REPETICION = new Set(["begin_repeat", "repeat"]);
+
+/** Prefijo del código de una pieza nueva: un cálculo es `calculo_N`, una nota `nota_N` y el resto `pregunta_N`. */
+export function prefijoCodigo(baseType: string): string {
+  return baseType === "calculate" ? "calculo" : baseType === "note" ? "nota" : "pregunta";
+}
 
 /** Índice del survey donde se inserta una pieza nueva para el destino dado. */
 export function indiceInsercion(structure: BuilderStructure, destino: DestinoInsercion, totalFilas: number): number {
@@ -93,13 +99,14 @@ export function insertarEn(
   const siguiente = draft.survey.rows.length + 1;
 
   if (ES_SECCION.has(baseType)) {
-    const name = libre("seccion", usados, siguiente);
-    insertRecord(draft.survey, indice, { type: "begin_group", name, label: "Nueva sección", relevant: "" });
-    insertRecord(draft.survey, indice + 1, { type: "end_group" });
+    const rep = ES_REPETICION.has(baseType);
+    const name = libre(rep ? "repeticion" : "seccion", usados, siguiente);
+    insertRecord(draft.survey, indice, { type: rep ? "begin_repeat" : "begin_group", name, label: rep ? "Nueva repetición" : "Nueva sección", relevant: "" });
+    insertRecord(draft.survey, indice + 1, { type: rep ? "end_repeat" : "end_group" });
     return { rowIndex: indice, name, listName: "" };
   }
 
-  const name = libre(baseType === "calculate" ? "calculo" : "pregunta", usados, siguiente);
+  const name = libre(prefijoCodigo(baseType), usados, siguiente);
   const esSeleccion = baseType === "select_one" || baseType === "select_multiple";
   let listName = "";
   if (esSeleccion) {
@@ -232,4 +239,25 @@ export function alternarRepeticion(draft: XlsformEditorWorkbook, structure: Buil
     draft.survey.rows[end] = filaCierre;
   }
   return nuevo;
+}
+
+/**
+ * Referencias `${x}` que quedan rotas al eliminar la pieza de `fila`: las que la citan desde OTRAS filas. En una
+ * sección o repetición cuentan todos los códigos de adentro, y las citas internas se van con el bloque (E11b: la ficha
+ * lo advierte en el botón «¿Eliminar?» y la página lo avisa después, sin window.confirm).
+ */
+export function referenciasRotasAlEliminar(survey: XlsformEditorSheet, structure: BuilderStructure | null, fila: number): number {
+  const nodo = structure?.byRow.get(fila);
+  if (!nodo) return 0;
+  const bloque = nodo.kind === "section" || nodo.kind === "repeat";
+  const fin = bloque ? structure?.sections.get(`section-${fila}`)?.endRowIndex ?? fila : fila;
+  const nombres: string[] = [];
+  for (let r = fila; r <= fin; r += 1) {
+    const n = structure?.byRow.get(r)?.name;
+    if (n) nombres.push(n);
+  }
+  return nombres.reduce(
+    (total, name) => total + findVarReferences(survey, name, SURVEY_COLUMNS_WITH_VAR_REFS).filter((ref) => ref.rowIndex < fila || ref.rowIndex > fin).length,
+    0,
+  );
 }

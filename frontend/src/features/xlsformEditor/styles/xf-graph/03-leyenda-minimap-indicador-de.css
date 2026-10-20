@@ -182,7 +182,6 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   border-color: var(--module-accent-border, var(--pulso-primary-border));
-  border-left: 3px solid var(--module-accent, var(--pulso-primary));
 }
 .pulso-graph-detail-avatar {
   background: var(--pulso-primary-soft);
@@ -224,3 +223,25 @@
 .pulso-graph-empty-accion:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 2px; }
 /* El aviso queda por encima del lienzo: con una acción adentro, el SVG se tragaba el clic. */
 .pulso-graph-body .pulso-graph-empty.pulso-graph-empty-no-edges { z-index: 6; pointer-events: auto; }
+
+/* E11b: a 1024 el título va en una línea y los botones en una fila. «Expandir/Colapsar todo» quedan como íconos
+ * (con nombre accesible) y el detalle abre bajo la barra flotante Mapa/Lista, sin que esta tape su cabecera. */
+.pulso-graph-overlay .pulso-graph-header-title strong,
+.pulso-graph-overlay .pulso-graph-header-title span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pulso-graph-overlay .pulso-graph-header-right { flex-wrap: nowrap; }
+.pulso-graph-overlay .pulso-graph-body > .pulso-graph-detail {
+  top: 64px;
+  max-height: calc(100% - 64px - 160px);
+}
+.pulso-graph-overlay .pulso-graph-body.is-lista > .pulso-graph-detail { max-height: calc(100% - 80px); }
+@media (max-height: 700px) {
+  .pulso-graph-overlay .pulso-graph-body > .pulso-graph-detail { top: 56px; max-height: calc(100% - 66px); }
+}
+@media (max-width: 1280px) {
+  .pulso-graph-overlay .pulso-graph-allbutton { padding: 5px 8px; }
+  .pulso-graph-overlay .pulso-graph-allbutton__txt { display: none; }
+}

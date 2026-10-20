@@ -5,6 +5,7 @@
 import type { BuilderNode, BuilderStructure } from "../types";
 import type { LogicScope } from "../logic";
 import { leerRegla } from "../reglas/leerRegla";
+import { lecturaPlana, textoPreguntaPlano, type LectorReferencias } from "../helpers/markdownPregunta";
 import { textoDePiezas, type ColumnaRegla } from "../reglas/piezas";
 import { dividirPorLogica, listaLogica, type TipoRegla } from "./listaLogicaModel";
 
@@ -37,32 +38,36 @@ export type GrupoVistaLista = {
 
 export type VistaLista = { grupos: GrupoVistaLista[]; sinLogica: number; total: number };
 
-function leer(columna: ColumnaRegla, tipo: TipoRegla, raw: string, nodo: BuilderNode, scope: LogicScope): LecturaFila {
+function leer(columna: ColumnaRegla, tipo: TipoRegla, raw: string, nodo: BuilderNode, scope: LogicScope, lector: LectorReferencias): LecturaFila {
   const lectura = leerRegla(columna, raw, nodo, scope);
-  const texto = lectura.tecnica ? raw.trim() : textoDePiezas(lectura.piezas);
-  const depende = [...new Set(lectura.depende.map((d) => d.etiqueta.trim() || d.name))];
+  const texto = lectura.tecnica ? raw.trim() : lecturaPlana(textoDePiezas(lectura.piezas), lector);
+  const depende = [...new Set(lectura.depende.map((d) => textoPreguntaPlano(d.etiqueta, lector) || d.name))];
   return { tipo, texto, tecnica: lectura.tecnica, depende };
 }
 
 export function vistaListaLogica(structure: BuilderStructure | null, scope: LogicScope): VistaLista {
   const lista = listaLogica(structure);
+  // Títulos con `${x}` y `<br>` se leen como en el Cuestionario, nunca crudos (E11b).
+  const etiquetas = new Map((structure?.outline ?? []).map((n) => [n.name, n.label] as const));
+  const lector = { etiquetaDe: (n: string) => etiquetas.get(n) };
+  const plano = (t: string, respaldo: string) => textoPreguntaPlano(t, lector) || respaldo;
   const { conLogica, sinLogica } = dividirPorLogica(lista.secciones);
   const grupos = conLogica.map((s): GrupoVistaLista => {
     const nodoSeccion = s.rowIndex != null ? structure?.byRow.get(s.rowIndex) : undefined;
     return {
       id: s.id,
       letra: s.letra,
-      nombre: s.nombre,
+      nombre: plano(s.nombre, s.nombre),
       rowIndex: s.rowIndex,
-      regla: s.regla && nodoSeccion ? leer("relevant", "aparece", s.regla, nodoSeccion, scope) : null,
+      regla: s.regla && nodoSeccion ? leer("relevant", "aparece", s.regla, nodoSeccion, scope, lector) : null,
       filas: s.items.map(({ node }) => ({
         rowIndex: node.rowIndex,
         name: node.name,
-        etiqueta: node.label || node.name,
+        etiqueta: plano(node.label || node.name, node.name),
         base: node.typeInfo.base,
         lecturas: [
-          ...(node.relevant.trim() ? [leer("relevant", "aparece", node.relevant, node, scope)] : []),
-          ...(node.choiceFilter.trim() ? [leer("choice_filter", "opciones", node.choiceFilter, node, scope)] : []),
+          ...(node.relevant.trim() ? [leer("relevant", "aparece", node.relevant, node, scope, lector)] : []),
+          ...(node.choiceFilter.trim() ? [leer("choice_filter", "opciones", node.choiceFilter, node, scope, lector)] : []),
         ],
       })),
     };

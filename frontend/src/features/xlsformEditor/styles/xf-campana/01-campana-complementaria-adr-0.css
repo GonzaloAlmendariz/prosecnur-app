@@ -314,7 +314,7 @@
 
 .pulso-xf-campana-encuesta[aria-pressed="true"] {
   border-color: var(--module-accent);
-  box-shadow: inset 3px 0 0 var(--module-accent);
+  box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border));
 }
 
 .pulso-xf-campana-encuesta:focus-visible {

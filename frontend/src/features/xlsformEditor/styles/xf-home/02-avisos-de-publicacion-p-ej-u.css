@@ -42,7 +42,8 @@
   display: grid;
   gap: 1px;
   padding: 5px 8px;
-  border-left: 2px solid var(--pulso-warn-border);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 6px;
   background: var(--pulso-surface-2);
   line-height: 1.35;
 }

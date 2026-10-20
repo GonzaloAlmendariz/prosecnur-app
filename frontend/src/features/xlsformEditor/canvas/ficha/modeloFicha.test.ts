@@ -2,7 +2,7 @@
 // (`horizontal`) que no se reconoce como «En una fila», un cambio de tipo que no avisa que la lista queda sin uso y un
 // conteo de referencias que no coincide con lo que reescribe el renombre.
 import { describe, expect, test } from "vitest";
-import { aparienciaActiva, aparienciaAjena, aparienciasDe, conApariencia, contarReferencias, focoParaPestana, listaQueSePierde } from "./modeloFicha";
+import { aparienciaActiva, aparienciaAjena, aparienciasDe, avisosDeFicha, conApariencia, contarReferencias, focoParaPestana, listaQueSePierde } from "./modeloFicha";
 
 describe("apariencia en la plataforma", () => {
   test("cada tipo ofrece sus opciones; uno sin variantes, ninguna", () => {
@@ -37,5 +37,15 @@ describe("cambiar el tipo y renombrar", () => {
   test("la Lógica abre una sección por su fila", () => {
     expect(focoParaPestana("logica", { kind: "section", name: "s", rowIndex: 4 })).toBe("seccion:4");
     expect(focoParaPestana("restricciones", { kind: "question", name: "edad", rowIndex: 2 })).toBe("edad");
+  });
+});
+
+describe("avisos de la ficha (E11b)", () => {
+  const avisos = [{ id: "catalog-empty-3" }, { id: "catalog-missing-3" }, { id: "duplicate-name-p1" }];
+  test("en una selección, la tarjeta de Respuesta ya dice que falta la lista o sus opciones", () => {
+    expect(avisosDeFicha(avisos, "select_multiple").map((a) => a.id)).toEqual(["duplicate-name-p1"]);
+  });
+  test("en otro tipo se muestran todos", () => {
+    expect(avisosDeFicha(avisos, "text")).toHaveLength(3);
   });
 });

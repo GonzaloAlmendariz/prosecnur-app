@@ -93,7 +93,6 @@ import {
   createBlankWorkbook,
   deleteRow,
   ensureColumn,
-  findVarReferences,
   getCell,
   insertRecord,
   makeSheet,
@@ -188,7 +187,7 @@ import {
 import { SurveyOutline, type AvisoFila } from "./outline/SurveyOutline";
 import { TIPOS_INSERTABLES } from "./outline/tiposInsertables";
 import { subtituloEstructura } from "./outline/modeloEstructura";
-import { insertarEn, type DestinoInsercion } from "./state/accionesConstructor";
+import { insertarEn, prefijoCodigo, referenciasRotasAlEliminar, type DestinoInsercion } from "./state/accionesConstructor";
 import type { RowMovePlan } from "./outline/outlineUtils";
 import { applyRowMove } from "./outline/outlineUtils";
 import { FichaConstructor } from "./canvas/ficha/FichaConstructor";
@@ -2090,7 +2089,7 @@ export default function XlsformEditorPage() {
       afterRowIndex != null ? { kind: "survey", rowIndex: afterRowIndex } : selection;
     const insertionIndex = resolveInsertionIndex(structure, overrideSelection, workbook.survey);
     // Un cálculo se nombra como cálculo (M5): `pregunta_N` no dice nada en la base ni en la pestaña Cálculos.
-    const nextName = `${nextBaseType === "calculate" ? "calculo" : "pregunta"}_${workbook.survey.rows.length + 1}`;
+    const nextName = `${prefijoCodigo(nextBaseType)}_${workbook.survey.rows.length + 1}`;
     const isSelect = nextBaseType === "select_one" || nextBaseType === "select_multiple";
     // Para selects: si el usuario eligió "reusar lista existente" desde
     // el AddBetween, vinculamos la pregunta a ese listName. Si no,
@@ -2158,20 +2157,20 @@ export default function XlsformEditorPage() {
    * (arrastrar, sin cruzar antes de su begin) o eliminar. Así la sección
    * nace válida y el autor ajusta su alcance después.
    */
-  function addSection(afterRowIndex?: number | null) {
+  function addSection(afterRowIndex?: number | null, base = "begin_group") {
     if (!workbook) return;
     const overrideSelection: BuilderSelection | null =
       afterRowIndex != null ? { kind: "survey", rowIndex: afterRowIndex } : selection;
     const insertionIndex = resolveInsertionIndex(structure, overrideSelection, workbook.survey);
-    const nextName = `seccion_${workbook.survey.rows.length + 1}`;
+    const nextName = `${base === "begin_repeat" ? "repeticion" : "seccion"}_${workbook.survey.rows.length + 1}`;
     updateWorkbook((draft) => {
       insertRecord(draft.survey, insertionIndex, {
-        type: "begin_group",
+        type: base,
         name: nextName,
-        label: "Nueva sección",
+        label: base === "begin_repeat" ? "Nueva repetición" : "Nueva sección",
         relevant: "",
       });
-      insertRecord(draft.survey, insertionIndex + 1, { type: "end_group" });
+      insertRecord(draft.survey, insertionIndex + 1, { type: base === "begin_repeat" ? "end_repeat" : "end_group" });
     });
     setSelection({ kind: "survey", rowIndex: insertionIndex });
   }
@@ -2308,7 +2307,7 @@ export default function XlsformEditorPage() {
     // usuario decide dónde poner el nuevo cierre.
     if (!currentNode) {
       if (!sectionEndRows.has(currentRow)) return;
-      if (!window.confirm("¿Eliminar este cierre de sección? La sección quedará abierta hasta que agregues un nuevo cierre.")) return;
+      // La confirmación vive en el propio botón de la ficha («¿Eliminar?», E11b): aquí ya se confirmó.
       const nextRow = currentRow > 0 ? currentRow - 1 : null;
       updateWorkbook((draft) => {
         deleteRow(draft.survey, currentRow);
@@ -2316,63 +2315,9 @@ export default function XlsformEditorPage() {
       setSelection(nextRow != null ? { kind: "survey", rowIndex: nextRow } : { kind: "settings" });
       return;
     }
-    const question =
-      currentNode.kind === "section" || currentNode.kind === "repeat"
-        ? "esta sección"
-        : "este elemento";
-
-    // Antes de pedir confirmación, escaneamos referencias `${name}` que
-    // viven en otras filas. Para secciones/repeats, recolectamos todos
-    // los names interiores. Si hay referencias, advertimos
-    // explícitamente cuántas y dónde — el usuario debe entender que va
-    // a romper lógica antes de aceptar.
-    const isContainer =
-      currentNode.kind === "section" || currentNode.kind === "repeat";
-    const namesAtRisk: string[] = [];
-    if (isContainer) {
-      const draftStructure = structure;
-      const section = draftStructure?.sections.get(`section-${currentRow}`);
-      const end = section?.endRowIndex ?? currentRow;
-      for (let r = currentRow; r <= end; r += 1) {
-        const node = draftStructure?.byRow.get(r);
-        if (node?.name) namesAtRisk.push(node.name);
-      }
-    } else if (currentNode.name) {
-      namesAtRisk.push(currentNode.name);
-    }
-    const allRefs = namesAtRisk.flatMap((name) =>
-      findVarReferences(
-        workbook.survey,
-        name,
-        SURVEY_COLUMNS_WITH_VAR_REFS,
-        // Excluir filas que se van a borrar — esas referencias se irán
-        // junto con el bloque, no son "referencias rotas".
-        undefined,
-      ).filter((ref) => {
-        if (isContainer) {
-          const section = structure?.sections.get(`section-${currentRow}`);
-          const end = section?.endRowIndex ?? currentRow;
-          return ref.rowIndex < currentRow || ref.rowIndex > end;
-        }
-        return ref.rowIndex !== currentRow;
-      }),
-    );
-
-    let confirmMsg: string;
-    if (allRefs.length === 0) {
-      confirmMsg = `¿Eliminar ${question} del formulario?`;
-    } else {
-      const lines = allRefs.slice(0, 6).map((ref) => {
-        const refNode = structure?.byRow.get(ref.rowIndex);
-        const refLabel = refNode?.name || `Fila ${ref.rowIndex + 1}`;
-        return `  · ${refLabel} (${ref.column}): ${ref.snippet}`;
-      });
-      const overflow =
-        allRefs.length > 6 ? `\n  · …y ${allRefs.length - 6} más` : "";
-      confirmMsg =
-        `Esta acción eliminará ${question}, pero queda referenciada en ${allRefs.length} ${allRefs.length === 1 ? "lugar" : "lugares"} del formulario:\n\n${lines.join("\n")}${overflow}\n\nSi continúas, esas referencias quedarán rotas. ¿Eliminar de todas formas?`;
-    }
-    if (!window.confirm(confirmMsg)) return;
+    // La confirmación vive en el propio botón de la ficha: «¿Eliminar?» y, si la pieza está citada en otras filas,
+    // cuántas referencias rompe (E11b). Antes era un window.confirm.
+    const rotas = referenciasRotasAlEliminar(workbook.survey, structure, currentRow);
 
     const nextRow = currentRow > 0 ? currentRow - 1 : null;
     updateWorkbook((draft) => {
@@ -2385,11 +2330,11 @@ export default function XlsformEditorPage() {
         deleteRow(draft.survey, currentRow);
       }
     });
-    if (allRefs.length > 0) {
+    if (rotas > 0) {
       toasts.push({
         kind: "warn",
         title: "Eliminado con referencias rotas",
-        detail: `${allRefs.length} ${allRefs.length === 1 ? "celda" : "celdas"} ahora apuntan a un nombre inexistente. Revisa los diagnostics.`,
+        detail: `${rotas} ${rotas === 1 ? "celda" : "celdas"} ahora apuntan a un nombre inexistente. Revisa los diagnostics.`,
       });
     }
     setSelection(
@@ -2528,7 +2473,7 @@ export default function XlsformEditorPage() {
       label: t.label,
       hint: t.hint,
       icon: addMenuIcon(t.base),
-      action: t.key === "section" ? addSection : () => addQuestion(t.base),
+      action: t.key === "section" || t.key === "repeat" ? () => addSection(undefined, t.base) : () => addQuestion(t.base),
       group: t.group,
     })),
     {

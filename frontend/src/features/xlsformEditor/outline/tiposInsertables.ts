@@ -7,7 +7,7 @@ import type { AddMenuItem } from "../types";
 type TipoInsertable = { key: string; base: string; label: string; hint: string; group: NonNullable<AddMenuItem["group"]> };
 
 export const TIPOS_INSERTABLES: readonly TipoInsertable[] = [
-  { key: "text", base: "text", label: "Pregunta abierta", hint: "Respuesta escrita libre.", group: "capture" },
+  { key: "text", base: "text", label: "Texto corto", hint: "Respuesta escrita libre.", group: "capture" },
   { key: "integer", base: "integer", label: "Número entero", hint: "Edad, cantidad o puntaje.", group: "capture" },
   { key: "decimal", base: "decimal", label: "Número decimal", hint: "Monto, proporción o medida.", group: "capture" },
   { key: "date", base: "date", label: "Fecha", hint: "Día, mes y año.", group: "capture" },
@@ -22,6 +22,7 @@ export const TIPOS_INSERTABLES: readonly TipoInsertable[] = [
   { key: "note", base: "note", label: "Nota informativa", hint: "Texto visible sin respuesta.", group: "logic" },
   { key: "calculate", base: "calculate", label: "Cálculo", hint: "Valor calculado con una fórmula.", group: "logic" },
   { key: "section", base: "begin_group", label: "Sección", hint: "Grupo de preguntas con inicio y cierre.", group: "logic" },
+  { key: "repeat", base: "begin_repeat", label: "Repetición", hint: "Preguntas que se repiten por cada registro.", group: "logic" },
 ];
 
 /** Ítems del menú de tipos; elegir uno llama `alElegir` con el tipo base. */

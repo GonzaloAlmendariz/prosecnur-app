@@ -4,10 +4,12 @@
 
 import "./ficha.css";
 
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { FolderMinus, Layers3 } from "../../../../vendor/lucide-react";
 import { useContextoReglas } from "../../kit";
 import { ALCANCE_VACIO } from "../../kit/ContextoReglas";
 import type { BuilderDiagnostic, BuilderNode, BuilderSelection, BuilderStructure, CatalogSummary, ChoiceItem, XlsformEditorWorkbook } from "../../types";
+import { BotonEliminarFicha } from "./BotonEliminarFicha";
 import { FichaAjustes } from "./FichaAjustes";
 import { FichaCalculo } from "./FichaCalculo";
 import { FichaNota } from "./FichaNota";
@@ -59,7 +61,7 @@ export function FichaConstructor({ workbook, structure, selection, node, setting
         <FolderMinus size={18} aria-hidden="true" />
         <strong>Cierre de sección</strong>
         <p>Esta fila marca dónde termina la sección.</p>
-        <button type="button" className="xfh-boton is-peligro" onClick={acciones.eliminar}>Eliminar el cierre</button>
+        <BotonEliminarFicha className="xfh-boton is-peligro" texto="Eliminar el cierre" onEliminar={acciones.eliminar} />
       </div>
     );
   } else {
@@ -74,11 +76,23 @@ export function FichaConstructor({ workbook, structure, selection, node, setting
   const clave = selection?.kind === "survey" ? `f${selection.rowIndex}` : selection?.kind ?? "nada";
   return (
     <section className="pulso-focus-workspace xfh" aria-label="Ficha del elemento elegido">
-      <div className="xfh-cuerpo" data-qa-scroll-owner="ficha">
-        <div className="xfh-pila" key={clave}>
-          {contenido}
-        </div>
-      </div>
+      <CuerpoFicha clave={clave}>{contenido}</CuerpoFicha>
     </section>
+  );
+}
+
+/** Cuerpo con scroll de la ficha. Al elegir otra pieza vuelve arriba: antes abría donde quedó la anterior, ya en
+ * Ayuda o Respuesta (E11b). */
+function CuerpoFicha({ clave, children }: { clave: string; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    if (ref.current) ref.current.scrollTop = 0;
+  }, [clave]);
+  return (
+    <div ref={ref} className="xfh-cuerpo" data-qa-scroll-owner="ficha">
+      <div className="xfh-pila" key={clave}>
+        {children}
+      </div>
+    </div>
   );
 }

@@ -14,7 +14,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { Check, GripVertical, Search, X } from "../../../vendor/lucide-react";
-import { TechTerm } from "../helpers/TechTerm";
+import { compactTitle, nodeDisplayName } from "./DetalleNodo";
 import type { CatalogContext, GraphNode } from "./buildGraph";
 import {
   altoMaximoCondicion,
@@ -38,6 +38,10 @@ export type ConnectionConditionPickerProps = {
   sourceCatalog?: CatalogContext;
   /** `relevant` que el destino ya tenía: activa el paso de combinar (Y / O). */
   existingExpression?: string;
+  /** Lectura en español del motor (la misma del detalle): ACTUAL y NUEVA nunca se muestran crudas. */
+  leer: (expresion: string) => string;
+  /** Área del mapa en la ventana: el panel no sale de ella al abrir ni al arrastrarlo. */
+  area?: () => DOMRect | null;
   onConfirm: (expression: string, combiner?: Combiner) => void;
   onCancel: () => void;
 };
@@ -67,9 +71,13 @@ export function ConnectionConditionPicker({
   screenY,
   sourceCatalog,
   existingExpression,
+  leer,
+  area,
   onConfirm,
   onCancel,
 }: ConnectionConditionPickerProps) {
+  const areaRef = useRef(area);
+  areaRef.current = area;
   const ref = useRef<HTMLDivElement | null>(null);
   const tituloId = useId();
   const listaId = useId();
@@ -109,7 +117,7 @@ export function ConnectionConditionPicker({
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const medidas = () => ({ ancho: el.offsetWidth, alto: el.offsetHeight, vw: window.innerWidth, vh: window.innerHeight });
+    const medidas = () => ({ ancho: el.offsetWidth, alto: el.offsetHeight, ...limitesDe(areaRef.current?.() ?? null) });
     origen.current = origenFijo(destino);
     setCaja(posicionInicialCondicion({ x: screenX, y: screenY, ...medidas() }));
     const reencajar = () => {
@@ -174,8 +182,7 @@ export function ConnectionConditionPicker({
       top: e.clientY - a.dy,
       ancho: el.offsetWidth,
       alto: el.offsetHeight,
-      vw: window.innerWidth,
-      vh: window.innerHeight,
+      ...limitesDe(areaRef.current?.() ?? null),
     }));
   };
   const soltarArrastre = (e: ReactPointerEvent<HTMLElement>) => {
@@ -249,13 +256,11 @@ export function ConnectionConditionPicker({
       >
         <GripVertical size={14} className="xfc-cab__asa" aria-hidden="true" />
         <div className="xfc-cab__txt">
-          <span id={tituloId} className="xfc-cab__tit">
-            Condición para mostrarse <TechTerm t="relevant" />
-          </span>
+          <span id={tituloId} className="xfc-cab__tit">Condición para mostrarse</span>
           <span className="xfc-cab__par">
-            <code>{source.name}</code>
+            <Rotulo nodo={source} />
             <span aria-hidden="true">→</span>
-            <code>{target.name}</code>
+            <Rotulo nodo={target} />
           </span>
         </div>
         <button type="button" className="xfc-cab__x" onClick={onCancel} aria-label="Cancelar">
@@ -268,13 +273,13 @@ export function ConnectionConditionPicker({
           <>
             <fieldset className="xfc-ops">
               <legend className="xfc-pregunta">
-                ¿Cuándo aparece <code>{target.name}</code>?
+                ¿Cuándo aparece «{corto(target)}»?
               </legend>
               {OPERADORES.map(({ op: valor, texto }) => (
                 <label key={valor} className={op === valor ? "xfc-op is-on" : "xfc-op"}>
                   <input type="radio" name={`${tituloId}-op`} checked={op === valor} onChange={() => setOp(valor)} />
                   <span>
-                    Cuando <code>{source.name}</code> {texto}
+                    Cuando «{corto(source)}» {texto}
                   </span>
                 </label>
               ))}
@@ -372,15 +377,15 @@ export function ConnectionConditionPicker({
         ) : (
           <>
             <p className="xfc-pregunta">
-              <code>{target.name}</code> ya depende de otra condición. ¿Cómo se combinan?
+              «{corto(target)}» ya depende de otra condición. ¿Cómo se combinan?
             </p>
             <div className="xfc-lectura">
               <span>Actual</span>
-              <code>{humanize(existingExpression ?? "")}</code>
+              <p>{leer(existingExpression ?? "")}</p>
             </div>
             <div className="xfc-lectura">
               <span>Nueva</span>
-              <code>{humanize(buildExpression())}</code>
+              <p>{leer(buildExpression())}</p>
             </div>
             <fieldset className="xfc-ops">
               <legend className="xfc-oculto">Cómo combinar</legend>
@@ -413,13 +418,24 @@ export function ConnectionConditionPicker({
   );
 }
 
-// Lectura mínima para el paso de combinar: `${X}` como X y los operadores básicos en palabras.
-function humanize(expr: string): string {
-  return expr
-    .replace(/\$\{([^}]+)\}/g, "$1")
-    .replace(/\s*!=\s*''/g, " tiene valor")
-    .replace(/\s*=\s*''/g, " está vacío")
-    .replace(/\s+!=\s+/g, " ≠ ")
-    .replace(/\s+\band\b\s+/g, " y ")
-    .replace(/\s+\bor\b\s+/g, " o ");
+/** Rótulo corto de un nodo: su etiqueta en prosa, recortada. */
+function corto(nodo: GraphNode): string {
+  return compactTitle(nodeDisplayName(nodo), 36);
+}
+
+/** La etiqueta corta y, si es distinta, el código chico al lado. */
+function Rotulo({ nodo }: { nodo: GraphNode }) {
+  const texto = corto(nodo);
+  return (
+    <span className="xfc-rot" title={nodeDisplayName(nodo)}>
+      <span className="xfc-rot__txt">{texto}</span>
+      {texto !== nodo.name ? <code>{nodo.name}</code> : null}
+    </span>
+  );
+}
+
+/** Límites donde vive el panel: el área del mapa si se conoce, si no la ventana. */
+function limitesDe(r: DOMRect | null): { vw: number; vh: number; x0: number; y0: number } {
+  if (!r || r.width <= 0 || r.height <= 0) return { vw: window.innerWidth, vh: window.innerHeight, x0: 0, y0: 0 };
+  return { vw: Math.min(r.right, window.innerWidth), vh: Math.min(r.bottom, window.innerHeight), x0: Math.max(0, r.left), y0: Math.max(0, r.top) };
 }
