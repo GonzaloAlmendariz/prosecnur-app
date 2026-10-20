@@ -6,7 +6,9 @@
 # efectiva sale de `.cmail_template_for_send()` sin un segundo render.
 #
 # Modelo (`campaign.sends`, entre 1 y 6):
-#   { send_id, kind, label, date?, audience, subject?, preheader?, opening?, collector_label? }
+#   { send_id, kind, label, date?, audience, subject?, preheader?, opening?, collector_label?,
+#     last_export_at?, last_export_platform? }   (las dos últimas, del servidor: ADR 0111 §8,
+#                                                 collection_mail_export_registro.R)
 #
 # - El primero es siempre la invitación (`send_id = kind = "invitacion"`): no
 #   se borra ni se mueve.
@@ -74,7 +76,9 @@
   if (!is.list(s) || (length(s) && is.null(names(s)))) {
     return(list(send = NULL, problems = list(.cmail_problem(path, "not_object", "Cada envío es un objeto."))))
   }
-  for (k in setdiff(names(s), .CMAIL_SEND_KEYS)) {
+  # Las claves de servidor (registro de exportación) se aceptan y se descartan:
+  # las arrastra `.cmail_sends_validate()` desde lo guardado.
+  for (k in setdiff(names(s), c(.CMAIL_SEND_KEYS, .CMAIL_SEND_SERVER_KEYS))) {
     add(list(.cmail_problem(paste0(path, ".", k), "unknown_key", sprintf("`%s` no pertenece a un envío.", k))))
   }
   invitation <- i == 1L
@@ -205,6 +209,7 @@
     used <- c(used, s$send_id)
     out[[length(out) + 1L]] <- s
   }
+  out <- .cmail_sends_carry_exports(out, previous)
   # La apertura es un bloque más del envío: tiene que caber bajo el tope.
   if (any(vapply(out, function(s) !is.null(s$opening), NA)) && length(template$blocks %||% list()) >= .CMAIL_MAX_BLOCKS) {
     problems <- c(problems, list(.cmail_problem("sends", "opening_no_room",

@@ -43,6 +43,9 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     # Correos para Mailchimp (ADR 0110 §2, E1f): la plantilla persiste en
     # collection_state; los destinatarios solo en el tempdir de la sesión.
     "/api/recopiladores/mail-presets",
+    # Campañas tipadas (ADR 0111): lista, crear y meta (renombrar/archivar).
+    "/api/recopiladores/campaigns",
+    "/api/recopiladores/campaigns/meta",
     # Campañas (E1h): lista, crear, duplicar, renombrar y borrar (POST con
     # confirm_name; no DELETE con cuerpo).
     "/api/recopiladores/mail-campaigns",
