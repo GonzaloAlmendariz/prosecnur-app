@@ -1038,13 +1038,17 @@ collection_artifact_receipt_validate <- function(receipt) {
   list(ok = length(problems) == 0L, problems = problems)
 }
 
+# La receta se sirve sin sus NULL (`lines`, `note` opcionales): el serializador
+# los manda como `{}` y el editor, al editar y hacer PUT, los devolvía como
+# objetos que el validador rechaza. Ausente es lo que ese NULL significa; lo
+# persistido y su template_sha256 no se tocan (el noop compara sin vacíos).
 collection_material_template_get <- function(sid) {
   state <- .collection_current(session_get(sid))
   list(
     ok = TRUE,
     state_revision = as.integer(state$state_revision),
     builtin = is.null(state$material_template),
-    template = .cm_material_template(state)
+    template = .cmc_drop_nulls_deep(.cm_material_template(state))
   )
 }
 
@@ -1058,7 +1062,8 @@ collection_material_template_put <- function(sid, template, expected_revision) {
   comparable <- template
   comparable$revision <- previous$revision
   if (identical(.cm_template_comparable(comparable), .cm_template_comparable(previous))) {
-    return(list(ok = TRUE, noop = TRUE, state_revision = current$state_revision, template = previous))
+    # Se responde sin NULL, igual que el GET: el editor reusa esta receta en el próximo PUT.
+    return(list(ok = TRUE, noop = TRUE, state_revision = current$state_revision, template = .cmc_drop_nulls_deep(previous)))
   }
   candidate <- .cm_template_normalize(template, revision = as.integer(previous$revision) + 1L)
   .collection_assert_valid(
@@ -1083,7 +1088,7 @@ collection_material_template_put <- function(sid, template, expected_revision) {
   next_state$material_instances <- instances
   next_state$state_revision <- as.integer(current$state_revision) + 1L
   .collection_store(sid, next_state)
-  list(ok = TRUE, noop = FALSE, state_revision = next_state$state_revision, template = candidate)
+  list(ok = TRUE, noop = FALSE, state_revision = next_state$state_revision, template = .cmc_drop_nulls_deep(candidate))
 }
 
 .cm_instance_freshness <- function(instance, state) {
