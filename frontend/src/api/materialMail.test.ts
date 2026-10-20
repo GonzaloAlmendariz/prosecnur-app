@@ -3,8 +3,16 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { SESSION_KEY } from "./core";
 import {
   MailApiError,
+  apiMailCampaignCreate,
+  apiMailCampaignDelete,
   apiMailExport,
+  apiMailRecipients,
+  apiMailRecipientsDelete,
   apiMailRecipientsImport,
+  normalizeMailCampaignDelete,
+  normalizeMailCampaignMeta,
+  normalizeMailCampaignWrite,
+  normalizeMailCampaigns,
   apiMailTemplatePut,
   normalizeMailTemplatePayload,
   normalizeMailPresets,
@@ -117,7 +125,7 @@ describe("plantilla guardada inválida", () => {
       stored_problems: [{ path: "template.blocks[2].url", code: "missing_text", detail: "Falta el enlace." }],
     });
     expect(p.stored_problems).toEqual([{ path: "template.blocks[2].url", code: "missing_text", detail: "Falta el enlace." }]);
-    expect(p.template.schema).toBe("collection_mail_template/v1");
+    expect(p.template.schema).toBe("collection_mail_template/v2");
     expect(p.template.blocks.length).toBeGreaterThan(0);
   });
 
@@ -380,9 +388,144 @@ describe("errores HTTP", () => {
     expect(init?.method).toBe("PUT");
     expect((init?.headers as Record<string, string>)["X-Pulso-Session"]).toBe("sid-1");
     const body = JSON.parse(String(init?.body)) as { expected_revision: number; template: { schema: string; blocks: unknown[] } };
-    expect(body).toMatchObject({ expected_revision: 3, template: { schema: "collection_mail_template/v1" } });
+    expect(body).toMatchObject({ expected_revision: 3, template: { schema: "collection_mail_template/v2" } });
     // El bloque que el cliente no conoce viaja tal como llegó.
     expect(body.template.blocks).toContainEqual({ block_id: "raro", type: "html_crudo", text: "<b>x</b>" });
     expect(JSON.stringify(body)).not.toContain("__no_reconocido");
+  });
+});
+
+describe("campañas de correo (E1h)", () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  function captura(body: unknown) {
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => (k === SESSION_KEY ? "sid-1" : null),
+      setItem: () => {},
+      removeItem: () => {},
+    });
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify(body), {
+      status: 200, headers: { "Content-Type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  test("la lista se lee con la forma de R y sin repetidos", () => {
+    const out = normalizeMailCampaigns({
+      ok: true,
+      state_revision: [41],
+      legacy_migrated: [true],
+      campaigns: [
+        { campaign_id: "recuperacion", name: "Recuperación", actor: "Estudiantes", preset_id: "recuperacion_estudiantes_v1",
+          subject: "Asunto", blocks: [9], template_revision: 3, template_sha256: "sha256:x", updated_at: "2026-10-20T11:00:00Z",
+          recipients_loaded: [true] },
+        { campaign_id: "recuperacion", name: "repetida" },
+        { name: "sin id" },
+      ],
+    });
+    expect(out.state_revision).toBe(41);
+    expect(out.legacy_migrated).toBe(true);
+    expect(out.campaigns).toEqual([{
+      campaign_id: "recuperacion", name: "Recuperación", actor: "Estudiantes", preset_id: "recuperacion_estudiantes_v1",
+      subject: "Asunto", blocks: 9, template_revision: 3, template_sha256: "sha256:x", updated_at: "2026-10-20T11:00:00Z",
+      recipients_loaded: true,
+    }]);
+    // Un único objeto donde se esperaba una lista (unboxing de R).
+    expect(normalizeMailCampaigns({ state_revision: 1, campaigns: { campaign_id: "sola", name: "Sola" } }).campaigns).toHaveLength(1);
+  });
+
+  test("crear, renombrar y borrar: revisión, campaña y aviso aditivo", () => {
+    const creada = normalizeMailCampaignWrite({
+      ok: true, state_revision: 42,
+      campaign: { campaign_id: "invitacion", name: "Invitación", actor: "Docentes", created_at: "a", updated_at: "b", template: PLANTILLA_R },
+    });
+    expect(creada.state_revision).toBe(42);
+    expect(creada.campaign.template?.blocks.length).toBeGreaterThan(0);
+    expect(creada.recipients_purged_virtual).toBe(false);
+    expect(normalizeMailCampaignWrite({ state_revision: 1, campaign: { campaign_id: "c" }, recipients_purged_virtual: true })
+      .recipients_purged_virtual).toBe(true);
+    const meta = normalizeMailCampaignMeta({ ok: true, noop: false, state_revision: 44, campaign: { campaign_id: "c", name: "C" } });
+    expect(meta.campaign.template).toBeNull();
+    expect(normalizeMailCampaignDelete({ state_revision: 45, deleted: "c", recipients_purged: true }))
+      .toEqual({ state_revision: 45, deleted: "c", recipients_purged: true });
+    expect(() => normalizeMailCampaignDelete({ state_revision: 45 })).toThrow();
+  });
+
+  test("campaign_id va por consulta en GET/DELETE y en el cuerpo en POST/PUT", async () => {
+    const vacia = { loaded: false };
+    let fetchMock = captura(vacia);
+    await apiMailRecipients("invitacion-docentes");
+    expect(fetchMock.mock.calls[0][0]).toMatch(/\/mail-recipients\?campaign_id=invitacion-docentes$/);
+    await apiMailRecipientsDelete("invitacion-docentes");
+    expect(fetchMock.mock.calls[1][0]).toMatch(/\/mail-recipients\?campaign_id=invitacion-docentes$/);
+    expect(fetchMock.mock.calls[1][1]?.method).toBe("DELETE");
+
+    fetchMock = captura({ artifacts: [] });
+    await apiMailExport({ expected_revision: 9, campaign_id: "recordatorio" });
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ expected_revision: 9, campaign_id: "recordatorio" });
+
+    fetchMock = captura({ ok: true, state_revision: 45, deleted: "recordatorio", recipients_purged: true });
+    await apiMailCampaignDelete({ expected_revision: 44, campaign_id: "recordatorio", confirm_name: "Recordatorio directores" });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toMatch(/\/mail-campaigns\/delete$/);
+    expect(init?.method).toBe("POST");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      expected_revision: 44, campaign_id: "recordatorio", confirm_name: "Recordatorio directores",
+    });
+
+    fetchMock = captura({ ok: true, state_revision: 42, campaign: { campaign_id: "x", template: PLANTILLA_R } });
+    await apiMailCampaignCreate({ expected_revision: 41, name: "X" });
+    // Sin preset no se manda: el backend parte del de fábrica.
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ expected_revision: 41, name: "X", actor: "" });
+  });
+
+  test("el import manda la campaña como parte del multipart", async () => {
+    const fetchMock = captura({ loaded: false });
+    await apiMailRecipientsImport(new File(["a"], "lista.csv"), null, "recuperacion");
+    const fd = fetchMock.mock.calls[0][1]?.body as FormData;
+    expect(fd.get("campaign_id")).toBe("recuperacion");
+  });
+});
+
+describe("plantilla v2 (E1g)", () => {
+  test("lee v1 y v2, conserva los bloques y estilos nuevos y deja opaco lo desconocido", () => {
+    const t = normalizeMailTemplate({
+      ...PLANTILLA_R,
+      schema: "collection_mail_template/v2",
+      theme: { accent: "#0b1f54", link: "#123456" },
+      blocks: [
+        { block_id: "t", type: "heading", text: "Sesiones", level: "subtitulo", align: "center" },
+        { block_id: "p", type: "paragraph", text: "Hola", size: "pequeno", tone: "suave" },
+        { block_id: "b", type: "button", text: "Ir", url: "https://x.pe", align: "left", size: "grande", fill: "contorno" },
+        { block_id: "c", type: "callout", items: ["a"], variant: "tinte" },
+        { block_id: "d", type: "divider", style: "espacio", size: "l" },
+        { block_id: "i", type: "image", image_ref: "linea-cierre", alt: "Gracias", width: [600], align: "center", bleed: [true] },
+        { block_id: "x", type: "columnas", cols: 2 },
+      ],
+    });
+    expect(t.schema).toBe("collection_mail_template/v2");
+    expect(t.theme).toEqual({ accent: "#0b1f54", link: "#123456" });
+    expect(t.blocks).toEqual([
+      { block_id: "t", type: "heading", text: "Sesiones", level: "subtitulo", align: "center" },
+      { block_id: "p", type: "paragraph", text: "Hola", size: "pequeno", tone: "suave" },
+      { block_id: "b", type: "button", text: "Ir", url: "https://x.pe", align: "left", size: "grande", fill: "contorno" },
+      { block_id: "c", type: "callout", items: ["a"], variant: "tinte" },
+      { block_id: "d", type: "divider", style: "espacio", size: "l" },
+      { block_id: "i", type: "image", image_ref: "linea-cierre", alt: "Gracias", width: 600, align: "center", bleed: true },
+      { block_id: "x", type: "__no_reconocido", original_type: "columnas", raw: { block_id: "x", type: "columnas", cols: 2 } },
+    ]);
+    expect(() => normalizeMailTemplate({ ...PLANTILLA_R, schema: "collection_mail_template/v9" })).toThrow();
+  });
+
+  test("los chequeos traen dónde se ven y la exportación su alcance", () => {
+    const review = normalizeMailReview({ ready: false, checks: [{
+      code: "accent_contrast", status: "warning", value: 3.9, detail: "x",
+      targets: [{ block_id: "accion", prop: "fill" }, { block_id: "__cabecera" }, { prop: "sin bloque" }],
+    }] });
+    expect(review.checks[0].targets).toEqual([{ block_id: "accion", prop: "fill" }, { block_id: "__cabecera" }]);
+    const exp = normalizeMailExport({ scope: "plantilla", artifacts: [], import_zip: { size_bytes: 1200, entries: ["c.html", "logo.png"], html: "c.html" } });
+    expect(exp.scope).toBe("plantilla");
+    expect(exp.import_zip).toEqual({ size_bytes: 1200, entries: ["c.html", "logo.png"], html: "c.html" });
   });
 });

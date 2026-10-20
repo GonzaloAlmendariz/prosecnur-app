@@ -4,9 +4,8 @@ import type { MailTemplate } from "../../../api/materialMail";
 import { AlertTriangle, Loader2 } from "../../../vendor/lucide-react";
 import {
   ANCHO_DE_VISTA,
-  bloqueDelPie,
   escalaParaCaber,
-  filasDeLaTarjeta,
+  esZonaDelCorreo,
   htmlParaLaVista,
   type PaletaOscura,
   type VistaDelCorreo,
@@ -44,29 +43,21 @@ function paletaOscura(): PaletaOscura | undefined {
 type Zonas = Map<string, HTMLElement>;
 
 /**
- * Encuentra la celda de cada bloque en el HTML del correo.
- *
- * Depende de la forma del render (ver `filasDeLaTarjeta`). Si la forma no
- * calza, devuelve un mapa vacío y la vista sigue siendo sólo lectura.
+ * Encuentra la celda de cada bloque en el HTML del correo por las marcas que
+ * pone el render en modo vista previa (`data-pulso-block`). La fila de un
+ * bloque marca su `<tr>` y se resalta su celda; el pie marca la celda misma.
+ * Sin marcas, el mapa queda vacío y la vista sigue siendo sólo lectura.
  */
 function zonasDelCorreo(doc: Document, template: MailTemplate): Zonas {
   const zonas: Zonas = new Map();
-  const exterior = doc.body?.querySelector(":scope > table") as HTMLTableElement | null;
-  const celda = exterior?.rows[0]?.cells[0];
-  if (!celda) return zonas;
-  const tablas = Array.from(celda.children).filter((el): el is HTMLTableElement => el.tagName === "TABLE");
-  const tarjeta = tablas[0];
-  if (!tarjeta) return zonas;
-  const esperadas = filasDeLaTarjeta(template);
-  if (tarjeta.rows.length !== esperadas.length) return zonas;
-  esperadas.forEach((id, i) => {
-    const fila = tarjeta.rows[i];
-    const td = fila?.cells[0];
-    if (id && td) zonas.set(id, td);
+  doc.querySelectorAll<HTMLElement>("[data-pulso-block]").forEach((el) => {
+    const id = el.getAttribute("data-pulso-block");
+    if (!esZonaDelCorreo(id, template) || zonas.has(id)) return;
+    const celda = el instanceof HTMLTableRowElement || el.tagName === "TR"
+      ? ((el as HTMLTableRowElement).cells[0] ?? el)
+      : el;
+    zonas.set(id, celda);
   });
-  const pie = bloqueDelPie(template);
-  const tdPie = tablas[1]?.rows[0]?.cells[0];
-  if (pie && tdPie) zonas.set(pie, tdPie);
   return zonas;
 }
 

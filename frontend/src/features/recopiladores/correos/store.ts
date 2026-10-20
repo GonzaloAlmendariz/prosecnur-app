@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import type {
+  MailCampaignSummary,
   MailExportPayload,
   MailPreset,
   MailPreview,
@@ -18,6 +19,7 @@ import {
   type PropDeTexto,
   type VistaDelCorreo,
 } from "./modeloCorreo";
+import { revisionEncadenada } from "./modeloCampanas";
 
 // =============================================================================
 // Store del editor de correos (ADR 0110 §2)
@@ -30,7 +32,7 @@ import {
 // **Los destinatarios sólo en memoria.** El resumen que llega no trae correos,
 // y aun así este store no usa `persist`: nada de esto toca localStorage.
 
-export type Ocupacion = "guardando" | "exportando" | "importando" | "subiendo" | "mapeando" | "olvidando";
+export type Ocupacion = "campanas" | "guardando" | "exportando" | "exportando-plantilla" | "importando" | "subiendo" | "mapeando" | "olvidando";
 
 export type Aviso = { tono: "ok" | "error" | "info"; texto: string };
 
@@ -42,6 +44,17 @@ export type DestinoDelCampo = {
 };
 
 export type EstadoCorreos = {
+  /** Campañas del proyecto (E1h): el resumen, sin la plantilla completa. */
+  campanasCarga: "inicial" | "cargando" | "lista" | "error";
+  campanasError: string;
+  campanas: MailCampaignSummary[];
+  /** La campaña cuya plantilla está cargada; la elige el `foco`. */
+  campana: string | null;
+  /** Aviso de una escritura de campañas: sobrevive al cambio de campaña. */
+  avisoCampanas: Aviso | null;
+  /** Qué campaña pide borrar el diálogo; sin pedido, la del foco. */
+  borrarPedido: { campaignId: string; desdeDialogo: boolean } | null;
+
   carga: "inicial" | "cargando" | "lista" | "error";
   errorCarga: string;
   presets: MailPreset[];
@@ -78,6 +91,21 @@ export type EstadoCorreos = {
 
 type Acciones = {
   reiniciar: () => void;
+  /**
+   * Cambio de campaña: se olvida todo lo de la anterior (borrador, historial
+   * de selección, destinatarios, vista previa, revisión, export) y se
+   * conservan la lista de campañas, los presets, la revisión y cómo se mira.
+   */
+  reiniciarCampana: (campana: string | null) => void;
+  campanasInicio: () => void;
+  campanasFallo: (mensaje: string) => void;
+  campanasLista: (campanas: MailCampaignSummary[], stateRevision: number) => void;
+  setCampanas: (update: (campanas: MailCampaignSummary[]) => MailCampaignSummary[]) => void;
+  setPresets: (presets: MailPreset[]) => void;
+  setAvisoCampanas: (aviso: Aviso | null) => void;
+  setBorrarPedido: (pedido: EstadoCorreos["borrarPedido"]) => void;
+  /** Toda escritura devuelve la revisión nueva: la siguiente la usa (nunca baja). */
+  anotarRevision: (stateRevision: number | null | undefined) => void;
   cargaInicio: () => void;
   cargaError: (mensaje: string) => void;
   cargaLista: (input: { presets: MailPreset[]; plantilla: MailTemplatePayload; destinatarios: MailRecipients }) => void;
@@ -106,6 +134,12 @@ type Acciones = {
 };
 
 const INICIAL: EstadoCorreos = {
+  campanasCarga: "inicial",
+  campanasError: "",
+  campanas: [],
+  campana: null,
+  avisoCampanas: null,
+  borrarPedido: null,
   carga: "inicial",
   errorCarga: "",
   presets: [],
@@ -158,14 +192,44 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
     return { ...INICIAL };
   }),
 
+  reiniciarCampana: (campana) => set((s) => {
+    for (const url of Object.values(s.imagenesLocales)) revocar(url);
+    return {
+      ...INICIAL,
+      campanasCarga: s.campanasCarga,
+      campanasError: s.campanasError,
+      campanas: s.campanas,
+      campana,
+      avisoCampanas: s.avisoCampanas,
+      borrarPedido: s.borrarPedido,
+      presets: s.presets,
+      miniaturas: s.miniaturas,
+      stateRevision: s.stateRevision,
+      vista: s.vista,
+    };
+  }),
+  campanasInicio: () => set({ campanasCarga: "cargando", campanasError: "" }),
+  campanasFallo: (mensaje) => set({ campanasCarga: "error", campanasError: mensaje }),
+  campanasLista: (campanas, stateRevision) => set((s) => ({
+    campanasCarga: "lista",
+    campanasError: "",
+    campanas,
+    stateRevision: revisionEncadenada(s.stateRevision, stateRevision),
+  })),
+  setCampanas: (update) => set((s) => ({ campanas: update(s.campanas) })),
+  setPresets: (presets) => set({ presets }),
+  setAvisoCampanas: (avisoCampanas) => set({ avisoCampanas }),
+  setBorrarPedido: (borrarPedido) => set({ borrarPedido }),
+  anotarRevision: (stateRevision) => set((s) => ({ stateRevision: revisionEncadenada(s.stateRevision, stateRevision) })),
+
   cargaInicio: () => set({ carga: "cargando", errorCarga: "" }),
   cargaError: (mensaje) => set({ carga: "error", errorCarga: mensaje }),
   cargaLista: ({ presets, plantilla, destinatarios }) => set((s) => ({
     carga: "lista",
     errorCarga: "",
-    presets,
+    presets: presets.length ? presets : s.presets,
     guardada: plantilla.template,
-    stateRevision: plantilla.state_revision,
+    stateRevision: revisionEncadenada(s.stateRevision, plantilla.state_revision),
     builtin: plantilla.builtin,
     problemasGuardados: plantilla.stored_problems,
     borrador: plantilla.template,
@@ -195,7 +259,7 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
     const enviadoIgual = huellaDeEdicion(s.borrador) === huellaDeEdicion(payload.template);
     return {
       guardada: payload.template,
-      stateRevision: payload.state_revision,
+      stateRevision: revisionEncadenada(s.stateRevision, payload.state_revision),
       builtin: false,
       problemasGuardados: [],
       borrador: enviadoIgual || !s.borrador

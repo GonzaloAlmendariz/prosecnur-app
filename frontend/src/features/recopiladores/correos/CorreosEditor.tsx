@@ -26,14 +26,34 @@ import { PanelIdentidad } from "./PanelIdentidad";
 import { PanelMailchimp } from "./PanelMailchimp";
 import { PanelRevision } from "./PanelRevision";
 import { VistaPreviaDelCorreoConectada } from "./VistaPreviaDelCorreo";
-import { PANEL_CORREO_DESTINATARIOS, PANEL_CORREO_IDENTIDAD, PANEL_CORREO_REVISION } from "./panelesCorreos";
+import { ConfirmarBorrarCampana } from "./ConfirmarBorrarCampana";
+import { DialogoCampanas } from "./DialogoCampanas";
+import { campanaTrasBorrar } from "./modeloCampanas";
+import {
+  PANEL_CORREO_CAMPANAS,
+  PANEL_CORREO_CAMPANA_BORRAR,
+  PANEL_CORREO_DESTINATARIOS,
+  PANEL_CORREO_IDENTIDAD,
+  PANEL_CORREO_REVISION,
+} from "./panelesCorreos";
+import { SelectorDeCampana } from "./SelectorDeCampana";
+import { SinCampanas } from "./SinCampanas";
 import { hayCambios, hayQueGuardar, useCorreosStore } from "./store";
+import { useCampanaDelFoco } from "./useCampanaDelFoco";
+import { useCampanas } from "./useCampanas";
 import { useCorreos } from "./useCorreos";
 import "./correos.css";
+import "./correosCampanas.css";
 
 type Props = {
   /** Avisa al shell mientras el correo o su vista previa no han llegado. */
   onCargando?: (cargando: boolean) => void;
+  /**
+   * Cada escritura (guardar, crear, duplicar, renombrar, borrar) sube la
+   * revisión global del estado: el shell la relee para que las otras secciones
+   * no escriban con una vieja (H-f).
+   */
+  onStateRefresh?: () => void | Promise<void>;
 };
 
 type Pestana = "bloque" | "identidad" | "destinatarios" | "revision";
@@ -49,9 +69,15 @@ const VISTAS: { value: VistaDelCorreo; label: string }[] = [
  * registro cerrado y sale como insumo para Mailchimp. El envío masivo se hace
  * en Mailchimp; esta vista no envía nada.
  */
-export function CorreosEditor({ onCargando }: Props) {
-  const acciones = useCorreos();
+export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
+  const onEscrito = useCallback(() => { void onStateRefresh?.(); }, [onStateRefresh]);
+  const campanasAcc = useCampanas({ onEscrito });
+  const acciones = useCorreos({ onEscrito });
   const st = useCorreosStore();
+  const { ir } = useCampanaDelFoco();
+  const campanasPanel = usePanelDireccionable(PANEL_CORREO_CAMPANAS);
+  const borrarPanel = usePanelDireccionable(PANEL_CORREO_CAMPANA_BORRAR);
+  const [creandoPrimera, setCreandoPrimera] = useState<string | null>(null);
   const identidad = usePanelDireccionable(PANEL_CORREO_IDENTIDAD);
   const destinatariosPanel = usePanelDireccionable(PANEL_CORREO_DESTINATARIOS);
   const revisionPanel = usePanelDireccionable(PANEL_CORREO_REVISION);
@@ -86,8 +112,15 @@ export function CorreosEditor({ onCargando }: Props) {
   const cambios = hayCambios(st);
   const porGuardar = hayQueGuardar(st);
   const miniaturasPendientes = st.presets.some((p) => !(p.preset_id in st.miniaturas));
-  const cargando = st.carga === "inicial" || st.carga === "cargando"
-    || (st.carga === "lista" && ((!st.vistaPrevia && !st.vistaPreviaError) || miniaturasPendientes));
+  const sinCampanas = st.campanasCarga === "lista" && st.campanas.length === 0;
+  const cargando = st.campanasCarga === "inicial" || st.campanasCarga === "cargando"
+    || (st.campanasCarga === "lista" && !sinCampanas && (
+      st.carga === "inicial" || st.carga === "cargando"
+      || (st.carga === "lista" && ((!st.vistaPrevia && !st.vistaPreviaError) || miniaturasPendientes))));
+  const campanaActiva = st.campanas.find((c) => c.campaign_id === st.campana) ?? null;
+  const borrarId = st.borrarPedido?.campaignId ?? st.campana;
+  const campanaABorrar = st.campanas.find((c) => c.campaign_id === borrarId) ?? null;
+  const listaLista = st.campanasCarga === "lista" || st.campanasCarga === "error";
 
   useEffect(() => { onCargando?.(cargando); }, [cargando, onCargando]);
   useEffect(() => () => onCargando?.(false), [onCargando]);
@@ -137,6 +170,110 @@ export function CorreosEditor({ onCargando }: Props) {
     seleccionar(out.block_id);
   };
 
+  const abrirCampana = (campaignId: string) => {
+    ir({ foco: campaignId, panel: null });
+  };
+
+  const pedirBorrar = (campaignId: string) => {
+    st.setBorrarPedido({ campaignId, desdeDialogo: true });
+    ir({ panel: PANEL_CORREO_CAMPANA_BORRAR.id });
+  };
+
+  const borrar = async (campaignId: string, confirmName: string) => {
+    const antes = useCorreosStore.getState().campanas;
+    const abierta = useCorreosStore.getState().campana;
+    const out = await campanasAcc.borrar(campaignId, confirmName);
+    if (!out.ok) return out;
+    const desdeDialogo = useCorreosStore.getState().borrarPedido?.desdeDialogo ?? false;
+    const siguiente = campanaTrasBorrar(antes, campaignId, abierta);
+    st.setBorrarPedido(null);
+    st.setAvisoCampanas({ tono: "ok", texto: "Campaña borrada con su plantilla y sus destinatarios." });
+    ir({ foco: siguiente, panel: desdeDialogo && siguiente ? PANEL_CORREO_CAMPANAS.id : null });
+    return out;
+  };
+
+  const cancelarBorrado = () => {
+    const desdeDialogo = st.borrarPedido?.desdeDialogo ?? false;
+    st.setBorrarPedido(null);
+    ir({ panel: desdeDialogo ? PANEL_CORREO_CAMPANAS.id : null });
+  };
+
+  const crearPrimera = async (origen: string, nombre: string) => {
+    setCreandoPrimera(origen);
+    st.setAvisoCampanas(null);
+    const out = await campanasAcc.crear({ name: nombre, actor: "", origen });
+    setCreandoPrimera(null);
+    if (!out.ok) {
+      st.setAvisoCampanas({ tono: "error", texto: out.mensaje });
+      return;
+    }
+    if (out.aviso) st.setAvisoCampanas({ tono: "info", texto: out.aviso });
+    abrirCampana(out.campaignId);
+  };
+
+  // Los diálogos esperan la lista: sin ella no saben qué campaña nombrar.
+  const dialogos = !listaLista ? null : (
+    <>
+      <DialogoCampanas
+        panel={campanasPanel}
+        campanas={st.campanas}
+        activa={st.campana}
+        presets={st.presets}
+        ocupado={st.ocupado === "campanas"}
+        conCambios={porGuardar}
+        acciones={campanasAcc}
+        onAbrir={abrirCampana}
+        onBorrar={pedirBorrar}
+      />
+      <ConfirmarBorrarCampana
+        panel={borrarPanel}
+        campana={campanaABorrar}
+        onBorrar={borrar}
+        onCancelar={cancelarBorrado}
+      />
+    </>
+  );
+
+  const avisoCampanas = st.avisoCampanas ? (
+    <p className={`rec-mail-aviso is-${st.avisoCampanas.tono}`} role={st.avisoCampanas.tono === "error" ? "alert" : "status"}>
+      {st.avisoCampanas.texto}
+      <button type="button" className="rec-mail-link" onClick={() => st.setAvisoCampanas(null)}>Entendido</button>
+    </p>
+  ) : null;
+
+  if (st.campanasCarga === "error") {
+    return (
+      <div className="rec-vacio-sin-plan" data-qa-geometry-capacity="owned">
+        <EstadoVacio
+          tamano="normal"
+          icono={<AlertTriangle size={18} />}
+          titulo="No se pudieron leer las campañas de correo"
+          descripcion={st.campanasError}
+          accion={(
+            <PulsoButton variant="secondary" size="sm" onClick={() => { void campanasAcc.cargarCampanas(); }}>
+              <RefreshCw size={14} aria-hidden /> Reintentar
+            </PulsoButton>
+          )}
+        />
+      </div>
+    );
+  }
+
+  if (sinCampanas) {
+    return (
+      <>
+        <SinCampanas
+          presets={st.presets}
+          miniaturas={st.miniaturas}
+          creando={creandoPrimera}
+          aviso={st.avisoCampanas?.tono === "error" ? st.avisoCampanas.texto : null}
+          onCrear={(origen, nombre) => { void crearPrimera(origen, nombre); }}
+        />
+        {dialogos}
+      </>
+    );
+  }
+
   if (st.carga === "error") {
     return (
       <div className="rec-vacio-sin-plan" data-qa-geometry-capacity="owned">
@@ -155,7 +292,16 @@ export function CorreosEditor({ onCargando }: Props) {
     );
   }
 
-  if (!template) return <div className="rec-loading" data-qa-geometry-capacity="owned">Leyendo el correo…</div>;
+  if (!template) {
+    return (
+      <>
+        <div className="rec-loading" data-qa-geometry-capacity="owned">
+          {st.campanasCarga === "lista" ? "Leyendo el correo…" : "Leyendo las campañas de correo…"}
+        </div>
+        {dialogos}
+      </>
+    );
+  }
 
   const persona = st.vistaPrevia?.recipient;
   const totalPersonas = st.destinatarios?.loaded ? st.destinatarios.counts?.valid ?? 0 : 0;
@@ -171,6 +317,8 @@ export function CorreosEditor({ onCargando }: Props) {
   ];
 
   return (
+    <>
+    {dialogos}
     <div className="rec-mail-contenedor">
       <div
         className="rec-mail"
@@ -181,8 +329,19 @@ export function CorreosEditor({ onCargando }: Props) {
           <span className="rec-mail-barra-id">
             <span className="rec-mail-barra-icono" aria-hidden><Mail size={15} /></span>
             <span className="rec-mail-barra-textos">
-              <b>Correo · {template.title || "Sin título"}</b>
-              <button type="button" className="rec-mail-asunto" onClick={() => seleccionar(SOBRE)}>
+              <SelectorDeCampana
+                campanas={st.campanas}
+                activa={campanaActiva}
+                conCambios={porGuardar}
+                onElegir={abrirCampana}
+                onGestionar={campanasPanel.abrir}
+              />
+              <button
+                type="button"
+                className="rec-mail-asunto"
+                title={`Asunto: ${template.subject || "sin asunto"}`}
+                onClick={() => seleccionar(SOBRE)}
+              >
                 Asunto: {template.subject || "sin asunto"}
               </button>
             </span>
@@ -217,7 +376,7 @@ export function CorreosEditor({ onCargando }: Props) {
             {st.aviso.texto}
             {st.aviso.texto.includes("Vuelve a cargar") ? (
               <button type="button" className="rec-mail-link" onClick={() => { void acciones.cargar(); }}>Volver a cargar</button>
-            ) : null}
+            ) : avisoCampanas}
           </p>
         ) : null}
 
@@ -317,11 +476,11 @@ export function CorreosEditor({ onCargando }: Props) {
             template={template}
             revision={st.revision}
             exportacion={st.exportacion}
-            exportando={st.ocupado === "exportando"}
+            exportando={st.ocupado === "exportando" ? "completo" : st.ocupado === "exportando-plantilla" ? "plantilla" : null}
             ocupado={ocupado}
             htmlActual={st.vistaPrevia?.html ?? null}
-            onExportar={() => {
-              void acciones.exportar().then((resultado) => { if (resultado === "revision") irAPestana("revision"); });
+            onExportar={(scope) => {
+              void acciones.exportar(scope).then((resultado) => { if (resultado === "revision") irAPestana("revision"); });
             }}
             onGuardarJunto={() => { void acciones.guardarJuntoAlProyecto(); }}
             onVerRevision={() => irAPestana("revision")}
@@ -329,5 +488,6 @@ export function CorreosEditor({ onCargando }: Props) {
         </aside>
       </div>
     </div>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 // materialMail.ts — correos para Mailchimp de Material de campo (ADR 0110 §2,
 // etapa E1f: «Correos: componer aquí, enviar en Mailchimp»).
 //
-// Contrato `collection_mail_template/v1`, todo bajo /api/recopiladores/:
+// Contrato `collection_mail_template/v2` (lee también v1), todo bajo /api/recopiladores/:
 //   GET    mail-presets                 plantillas reales y registro de bloques
 //   GET    mail-template                plantilla activa (o la de fábrica)
 //   PUT    mail-template                guarda con revisión optimista
@@ -12,6 +12,17 @@
 //   GET    mail-recipients              resumen sin correos
 //   PUT    mail-recipients/mapping      columnas → campos
 //   DELETE mail-recipients              olvidar la lista
+//
+// Campañas (E1h, `collection_mail_campaigns/v1`): un proyecto tiene varios
+// correos, cada uno con su plantilla y sus destinatarios.
+//   GET    mail-campaigns               resumen de cada campaña (sin plantilla)
+//   POST   mail-campaigns               crea desde un preset
+//   POST   mail-campaigns/duplicate     copia la plantilla, nunca los destinatarios
+//   PUT    mail-campaigns/meta          renombra o cambia el actor
+//   POST   mail-campaigns/delete        borra con `confirm_name` idéntico al nombre
+// Todo `mail-*` acepta `campaign_id` (consulta en GET/DELETE, cuerpo en
+// POST/PUT, parte del multipart en el import). Con dos o más campañas es
+// obligatorio: sin él el backend responde 422 E_COLLECTION_MAIL_CAMPAIGN_REQUIRED.
 //
 // Vive aparte de `recopiladores.ts` porque es un dominio propio. Los
 // normalizadores son defensivos: R serializa un vector de largo uno como
@@ -24,25 +35,75 @@
 
 import { ApiError, apiFetch, handle, headers } from "./core";
 
-export const MAIL_TEMPLATE_SCHEMA = "collection_mail_template/v1";
+/**
+ * Esquema que escribe este cliente. El backend lee v1 y la sube a v2 sin
+ * cambiar su contenido (E1g); PUT, vista previa y revisión aceptan las dos.
+ */
+export const MAIL_TEMPLATE_SCHEMA = "collection_mail_template/v2";
+export const MAIL_TEMPLATE_SCHEMAS = ["collection_mail_template/v1", MAIL_TEMPLATE_SCHEMA] as const;
+export type MailTemplateSchema = (typeof MAIL_TEMPLATE_SCHEMAS)[number];
 
 export const MAIL_BLOCK_TYPES = [
   "greeting",
+  "heading",
   "paragraph",
   "button",
   "callout",
   "list",
+  "divider",
+  "image",
   "signature",
   "footer_legal",
 ] as const;
 export type MailBlockType = (typeof MAIL_BLOCK_TYPES)[number];
 
 export type MailAlign = "left" | "justify" | "center";
-export type MailCalloutVariant = "box" | "bar";
+export type MailCalloutVariant = "box" | "bar" | "tinte";
 
 export type MailGreetingBlock = { block_id: string; type: "greeting"; text: string; fallback?: string };
-export type MailParagraphBlock = { block_id: string; type: "paragraph"; text: string; align?: MailAlign };
-export type MailButtonBlock = { block_id: string; type: "button"; text: string; url: string; note?: string[] };
+export type MailHeadingBlock = {
+  block_id: string;
+  type: "heading";
+  text: string;
+  level?: "titulo" | "subtitulo";
+  align?: "left" | "center";
+};
+export type MailParagraphBlock = {
+  block_id: string;
+  type: "paragraph";
+  text: string;
+  align?: MailAlign;
+  size?: "normal" | "pequeno";
+  tone?: "normal" | "suave";
+};
+export type MailButtonBlock = {
+  block_id: string;
+  type: "button";
+  text: string;
+  url: string;
+  note?: string[];
+  align?: "center" | "left";
+  size?: "compacto" | "normal" | "grande";
+  fill?: "solido" | "contorno";
+};
+export type MailDividerBlock = {
+  block_id: string;
+  type: "divider";
+  style?: "linea" | "espacio";
+  size?: "s" | "m" | "l";
+};
+export type MailImageBlock = {
+  block_id: string;
+  type: "image";
+  image_ref: string;
+  alt: string;
+  /** 40 a 600 px; sin él, el ancho natural / 2. */
+  width?: number;
+  align?: "left" | "center" | "right";
+  url?: string;
+  /** A todo el ancho, sin margen. */
+  bleed?: boolean;
+};
 export type MailCalloutBlock = {
   block_id: string;
   type: "callout";
@@ -76,10 +137,13 @@ export type MailOpaqueBlock = {
 
 export type MailKnownBlock =
   | MailGreetingBlock
+  | MailHeadingBlock
   | MailParagraphBlock
   | MailButtonBlock
   | MailCalloutBlock
   | MailListBlock
+  | MailDividerBlock
+  | MailImageBlock
   | MailSignatureBlock
   | MailFooterBlock;
 
@@ -98,7 +162,7 @@ export type MailImage = { alt: string; url?: string };
 export type MailField = { key: string; tag: string; label: string; fallback?: string };
 
 export type MailTemplate = {
-  schema: typeof MAIL_TEMPLATE_SCHEMA;
+  schema: MailTemplateSchema;
   template_id: string;
   preset_id?: string;
   title?: string;
@@ -106,7 +170,7 @@ export type MailTemplate = {
   template_sha256?: string;
   subject: string;
   preheader: string;
-  theme: { accent: string };
+  theme: { accent: string; link?: string };
   header: MailHeader;
   images: Record<string, MailImage>;
   fields: MailField[];
@@ -124,6 +188,8 @@ export type MailPresetsPayload = {
 
 export type MailTemplatePayload = {
   state_revision: number;
+  /** Campaña a la que pertenece la plantilla; `null` si el backend no lo dice. */
+  campaign_id?: string | null;
   builtin: boolean;
   template: MailTemplate;
   /**
@@ -137,6 +203,7 @@ export type MailTemplatePayload = {
 export type MailTemplatePutPayload = {
   noop: boolean;
   state_revision: number;
+  campaign_id?: string | null;
   template: MailTemplate;
 };
 
@@ -174,6 +241,10 @@ export const MAIL_CHECK_CODES = [
   "fields_empty",
   "names_unsplit",
   "duplicates_conflicting",
+  "import_zip_weight",
+  "accent_contrast",
+  "image_width",
+  "image_weight",
 ] as const;
 export type MailCheckCode = (typeof MAIL_CHECK_CODES)[number];
 
@@ -183,13 +254,20 @@ export type MailCheckItemValue = string | number | boolean | string[];
 /** Un elemento del detalle: un id de imagen o una fila (etiqueta, columna, vacíos). */
 export type MailCheckItem = string | Record<string, MailCheckItemValue>;
 
+/** Dónde se ve un chequeo en el correo: un bloque (o `__cabecera`) y, si aplica, su propiedad. */
+export type MailCheckTarget = { block_id: string; prop?: string };
+
 export type MailCheck = {
   code: string;
   status: MailCheckStatus;
   value: string | number | null;
   detail: string;
   items: MailCheckItem[];
+  targets: MailCheckTarget[];
 };
+
+/** `completo`: plantilla + audiencia; `plantilla`: sólo el ZIP importable, sin datos personales. */
+export type MailExportScope = "completo" | "plantilla";
 
 export type MailReview = {
   template_sha256: string;
@@ -211,6 +289,9 @@ export type MailArtifact = {
 };
 
 export type MailExportPayload = {
+  scope?: MailExportScope;
+  /** El ZIP que se importa en Mailchimp, dentro del paquete. */
+  import_zip?: { size_bytes: number; entries: string[]; html: string } | null;
   artifacts: MailArtifact[];
   zip: MailArtifact | null;
   review: { ready: boolean; errors: number; warnings: number } | null;
@@ -259,6 +340,52 @@ export type MailRecipients = {
 };
 
 export type MailProblem = { path: string; code: string; detail: string };
+
+/** Resumen de una campaña: lo que lista el selector, sin la plantilla completa. */
+export type MailCampaignSummary = {
+  campaign_id: string;
+  name: string;
+  actor: string;
+  preset_id: string | null;
+  subject: string;
+  blocks: number;
+  template_revision: number;
+  template_sha256: string | null;
+  updated_at: string | null;
+  /** Hay una lista importada en esta sesión (no dice cuántas personas ni quiénes). */
+  recipients_loaded: boolean;
+};
+
+export type MailCampaignsPayload = {
+  state_revision: number;
+  /** La lista viene de una plantilla única anterior, todavía sin escribir. */
+  legacy_migrated: boolean;
+  campaigns: MailCampaignSummary[];
+};
+
+export type MailCampaign = {
+  campaign_id: string;
+  name: string;
+  actor: string;
+  created_at: string | null;
+  updated_at: string | null;
+  duplicated_from: string | null;
+  /** `null` cuando la respuesta no trae plantilla (renombrar). */
+  template: MailTemplate | null;
+};
+
+export type MailCampaignWrite = {
+  state_revision: number;
+  campaign: MailCampaign;
+  /** Al crear la primera campaña se olvidó la lista de la campaña provisional. */
+  recipients_purged_virtual: boolean;
+};
+
+export type MailCampaignDuplicate = MailCampaignWrite & { recipients_copied: boolean };
+
+export type MailCampaignMeta = { noop: boolean; state_revision: number; campaign: MailCampaign };
+
+export type MailCampaignDelete = { state_revision: number; deleted: string; recipients_purged: boolean };
 
 // ---- normalización ------------------------------------------------------------
 
@@ -346,16 +473,50 @@ export function normalizeMailBlock(value: unknown): MailBlock | null {
   switch (type) {
     case "greeting":
       return { block_id, type, text: str(value.text), ...(optStr(value.fallback) !== undefined ? { fallback: str(value.fallback) } : {}) };
+    case "heading": {
+      const level = oneOf(value.level, ["titulo", "subtitulo"] as const);
+      const align = oneOf(value.align, ["left", "center"] as const);
+      return { block_id, type, text: str(value.text), ...(level ? { level } : {}), ...(align ? { align } : {}) };
+    }
     case "paragraph": {
       const align = oneOf(value.align, ["left", "justify", "center"] as const);
-      return { block_id, type, text: str(value.text), ...(align ? { align } : {}) };
+      const size = oneOf(value.size, ["normal", "pequeno"] as const);
+      const tone = oneOf(value.tone, ["normal", "suave"] as const);
+      return {
+        block_id, type, text: str(value.text),
+        ...(align ? { align } : {}), ...(size ? { size } : {}), ...(tone ? { tone } : {}),
+      };
     }
     case "button": {
       const note = strings(value.note);
-      return { block_id, type, text: str(value.text), url: str(value.url), ...(note.length ? { note } : {}) };
+      const align = oneOf(value.align, ["center", "left"] as const);
+      const size = oneOf(value.size, ["compacto", "normal", "grande"] as const);
+      const fill = oneOf(value.fill, ["solido", "contorno"] as const);
+      return {
+        block_id, type, text: str(value.text), url: str(value.url),
+        ...(note.length ? { note } : {}),
+        ...(align ? { align } : {}), ...(size ? { size } : {}), ...(fill ? { fill } : {}),
+      };
+    }
+    case "divider": {
+      const style = oneOf(value.style, ["linea", "espacio"] as const);
+      const size = oneOf(value.size, ["s", "m", "l"] as const);
+      return { block_id, type, ...(style ? { style } : {}), ...(size ? { size } : {}) };
+    }
+    case "image": {
+      const align = oneOf(value.align, ["left", "center", "right"] as const);
+      const url = optStr(value.url);
+      const width = value.width === undefined || value.width === null ? undefined : int(value.width, 0) || undefined;
+      return {
+        block_id, type, image_ref: str(value.image_ref), alt: str(value.alt),
+        ...(width !== undefined ? { width } : {}),
+        ...(align ? { align } : {}),
+        ...(url !== undefined ? { url } : {}),
+        ...(value.bleed !== undefined ? { bleed: bool(value.bleed) } : {}),
+      };
     }
     case "callout": {
-      const variant = oneOf(value.variant, ["box", "bar"] as const);
+      const variant = oneOf(value.variant, ["box", "bar", "tinte"] as const);
       const title = optStr(value.title);
       return {
         block_id,
@@ -435,7 +596,9 @@ function normalizeFields(value: unknown): MailField[] {
  */
 export function normalizeMailTemplate(value: unknown, opts: { lenient?: boolean } = {}): MailTemplate {
   if (!isRecord(value)) throw contractError("la plantilla no es un objeto.");
-  if (!opts.lenient && str(value.schema) !== MAIL_TEMPLATE_SCHEMA) throw contractError(`la plantilla no cumple ${MAIL_TEMPLATE_SCHEMA}.`);
+  if (!opts.lenient && !oneOf(value.schema, MAIL_TEMPLATE_SCHEMAS)) {
+    throw contractError(`la plantilla no cumple ${MAIL_TEMPLATE_SCHEMAS.join(" ni ")}.`);
+  }
   const blocks: MailBlock[] = [];
   const vistos = new Set<string>();
   for (const raw of list(value.blocks)) {
@@ -459,7 +622,7 @@ export function normalizeMailTemplate(value: unknown, opts: { lenient?: boolean 
     ...(sha !== undefined ? { template_sha256: sha } : {}),
     subject: str(value.subject),
     preheader: str(value.preheader),
-    theme: { accent: str(theme.accent) || "#0b1f54" },
+    theme: { accent: str(theme.accent) || "#0b1f54", ...(optStr(theme.link) !== undefined ? { link: str(theme.link) } : {}) },
     header: normalizeHeader(value.header),
     images: normalizeImages(value.images),
     fields: normalizeFields(value.fields),
@@ -499,6 +662,7 @@ export function normalizeMailTemplatePayload(value: unknown): MailTemplatePayloa
   const stored_problems = normalizeMailProblems({ problems: value.stored_problems });
   return {
     state_revision: int(value.state_revision, 0),
+    campaign_id: strOrNull(value.campaign_id),
     builtin: bool(value.builtin),
     template: normalizeMailTemplate(value.template, { lenient: stored_problems.length > 0 }),
     stored_problems,
@@ -510,7 +674,100 @@ export function normalizeMailTemplatePut(value: unknown): MailTemplatePutPayload
   return {
     noop: bool(value.noop),
     state_revision: int(value.state_revision, 0),
+    campaign_id: strOrNull(value.campaign_id),
     template: normalizeMailTemplate(value.template),
+  };
+}
+
+function normalizeCampaignSummary(value: unknown): MailCampaignSummary | null {
+  if (!isRecord(value)) return null;
+  const campaign_id = str(value.campaign_id).trim();
+  if (!campaign_id) return null;
+  return {
+    campaign_id,
+    name: str(value.name) || campaign_id,
+    actor: str(value.actor),
+    preset_id: strOrNull(value.preset_id),
+    subject: str(value.subject),
+    blocks: Math.max(0, int(value.blocks, 0)),
+    template_revision: Math.max(1, int(value.template_revision, 1)),
+    template_sha256: strOrNull(value.template_sha256),
+    updated_at: strOrNull(value.updated_at),
+    recipients_loaded: bool(value.recipients_loaded),
+  };
+}
+
+export function normalizeMailCampaigns(value: unknown): MailCampaignsPayload {
+  if (!isRecord(value)) throw contractError("las campañas no son un objeto.");
+  const campaigns: MailCampaignSummary[] = [];
+  const vistos = new Set<string>();
+  for (const raw of list(value.campaigns)) {
+    const c = normalizeCampaignSummary(raw);
+    if (!c || vistos.has(c.campaign_id)) continue;
+    vistos.add(c.campaign_id);
+    campaigns.push(c);
+  }
+  return {
+    state_revision: int(value.state_revision, 0),
+    legacy_migrated: bool(value.legacy_migrated),
+    campaigns,
+  };
+}
+
+export function normalizeMailCampaign(value: unknown): MailCampaign {
+  if (!isRecord(value)) throw contractError("la campaña no es un objeto.");
+  const campaign_id = str(value.campaign_id).trim();
+  if (!campaign_id) throw contractError("la campaña no trae campaign_id.");
+  let template: MailTemplate | null = null;
+  if (isRecord(value.template)) {
+    try {
+      template = normalizeMailTemplate(value.template);
+    } catch {
+      template = null;
+    }
+  }
+  return {
+    campaign_id,
+    name: str(value.name) || campaign_id,
+    actor: str(value.actor),
+    created_at: strOrNull(value.created_at),
+    updated_at: strOrNull(value.updated_at),
+    duplicated_from: strOrNull(value.duplicated_from),
+    template,
+  };
+}
+
+export function normalizeMailCampaignWrite(value: unknown): MailCampaignWrite {
+  if (!isRecord(value)) throw contractError("la respuesta no es un objeto.");
+  return {
+    state_revision: int(value.state_revision, 0),
+    campaign: normalizeMailCampaign(value.campaign),
+    recipients_purged_virtual: bool(value.recipients_purged_virtual),
+  };
+}
+
+export function normalizeMailCampaignDuplicate(value: unknown): MailCampaignDuplicate {
+  const base = normalizeMailCampaignWrite(value);
+  return { ...base, recipients_copied: isRecord(value) && bool(value.recipients_copied) };
+}
+
+export function normalizeMailCampaignMeta(value: unknown): MailCampaignMeta {
+  if (!isRecord(value)) throw contractError("la respuesta no es un objeto.");
+  return {
+    noop: bool(value.noop),
+    state_revision: int(value.state_revision, 0),
+    campaign: normalizeMailCampaign(value.campaign),
+  };
+}
+
+export function normalizeMailCampaignDelete(value: unknown): MailCampaignDelete {
+  if (!isRecord(value)) throw contractError("la respuesta no es un objeto.");
+  const deleted = str(value.deleted).trim();
+  if (!deleted) throw contractError("el borrado no dice qué campaña borró.");
+  return {
+    state_revision: int(value.state_revision, 0),
+    deleted,
+    recipients_purged: bool(value.recipients_purged),
   };
 }
 
@@ -570,6 +827,13 @@ export function normalizeMailCheck(value: unknown): MailCheck | null {
     value: typeof rawValue === "number" || typeof rawValue === "string" ? rawValue : null,
     detail: str(value.detail),
     items: list(value.items).map(normalizeCheckItem).filter((i): i is MailCheckItem => i !== null),
+    targets: list(value.targets).flatMap((raw): MailCheckTarget[] => {
+      if (!isRecord(raw)) return [];
+      const block_id = str(raw.block_id);
+      if (!block_id) return [];
+      const prop = optStr(raw.prop);
+      return [prop !== undefined ? { block_id, prop } : { block_id }];
+    }),
   };
 }
 
@@ -612,7 +876,16 @@ export function normalizeMailExport(value: unknown): MailExportPayload {
   const review = isRecord(value.review)
     ? { ready: bool(value.review.ready), errors: int(value.review.errors, 0), warnings: int(value.review.warnings, 0) }
     : null;
-  return { artifacts, zip, review, manifest: isRecord(value.manifest) ? value.manifest : null };
+  const scope = oneOf(value.scope, ["completo", "plantilla"] as const);
+  const iz = isRecord(value.import_zip) ? value.import_zip : null;
+  return {
+    ...(scope ? { scope } : {}),
+    import_zip: iz ? { size_bytes: Math.max(0, int(iz.size_bytes, 0)), entries: strings(iz.entries), html: str(iz.html) } : null,
+    artifacts,
+    zip,
+    review,
+    manifest: isRecord(value.manifest) ? value.manifest : null,
+  };
 }
 
 function normalizeMapping(value: unknown): MailRecipientsMapping | null {
@@ -713,10 +986,13 @@ export class MailApiError extends ApiError {
   readonly status: number;
   readonly problems: MailProblem[];
   readonly checks: MailCheck[];
+  /** `details.reason` del rechazo (p. ej. `too_large` de una imagen); sólo para elegir el aviso. */
+  readonly reason: string;
   constructor(code: string, message: string, status: number, details: unknown) {
     super(code, message);
     this.name = "MailApiError";
     this.status = status;
+    this.reason = isRecord(details) ? str(details.reason) : "";
     this.problems = normalizeMailProblems(details);
     this.checks = isRecord(details)
       ? list(details.checks).map(normalizeMailCheck).filter((c): c is MailCheck => c !== null)
@@ -765,19 +1041,78 @@ function json(method: string, body: unknown): RequestInit {
 
 // ---- API ----------------------------------------------------------------------
 
+/** `?campaign_id=` para los GET y DELETE; vacío si no hay campaña. */
+function conCampana(path: string, campaignId?: string | null): string {
+  return campaignId ? `${path}?campaign_id=${encodeURIComponent(campaignId)}` : path;
+}
+
+/** Suma `campaign_id` al cuerpo sólo si hay uno: sin él, el backend decide como antes. */
+function cuerpoConCampana(body: Record<string, unknown>, campaignId?: string | null): Record<string, unknown> {
+  return campaignId ? { ...body, campaign_id: campaignId } : body;
+}
+
 export async function apiMailPresets(): Promise<MailPresetsPayload> {
   return normalizeMailPresets(await handleMail(await apiFetch(`${BASE}/mail-presets`, { headers: headers() })));
 }
 
-export async function apiMailTemplate(): Promise<MailTemplatePayload> {
-  return normalizeMailTemplatePayload(await handleMail(await apiFetch(`${BASE}/mail-template`, { headers: headers() })));
+export async function apiMailCampaigns(): Promise<MailCampaignsPayload> {
+  return normalizeMailCampaigns(await handleMail(await apiFetch(`${BASE}/mail-campaigns`, { headers: headers() })));
+}
+
+export async function apiMailCampaignCreate(input: {
+  expected_revision: number;
+  name: string;
+  actor?: string;
+  preset_id?: string | null;
+}): Promise<MailCampaignWrite> {
+  const body: Record<string, unknown> = { expected_revision: input.expected_revision, name: input.name, actor: input.actor ?? "" };
+  if (input.preset_id) body.preset_id = input.preset_id;
+  return normalizeMailCampaignWrite(await handleMail(await apiFetch(`${BASE}/mail-campaigns`, json("POST", body))));
+}
+
+export async function apiMailCampaignDuplicate(input: {
+  expected_revision: number;
+  campaign_id: string;
+  name?: string;
+  actor?: string;
+}): Promise<MailCampaignDuplicate> {
+  const body: Record<string, unknown> = { expected_revision: input.expected_revision, campaign_id: input.campaign_id };
+  if (input.name !== undefined) body.name = input.name;
+  if (input.actor !== undefined) body.actor = input.actor;
+  return normalizeMailCampaignDuplicate(await handleMail(await apiFetch(`${BASE}/mail-campaigns/duplicate`, json("POST", body))));
+}
+
+export async function apiMailCampaignMeta(input: {
+  expected_revision: number;
+  campaign_id: string;
+  name: string;
+  actor: string;
+}): Promise<MailCampaignMeta> {
+  return normalizeMailCampaignMeta(await handleMail(await apiFetch(`${BASE}/mail-campaigns/meta`, json("PUT", input))));
+}
+
+/** Borra con la segunda confirmación del lado del servidor: `confirm_name` idéntico al nombre. */
+export async function apiMailCampaignDelete(input: {
+  expected_revision: number;
+  campaign_id: string;
+  confirm_name: string;
+}): Promise<MailCampaignDelete> {
+  return normalizeMailCampaignDelete(await handleMail(await apiFetch(`${BASE}/mail-campaigns/delete`, json("POST", input))));
+}
+
+export async function apiMailTemplate(campaignId?: string | null): Promise<MailTemplatePayload> {
+  return normalizeMailTemplatePayload(await handleMail(await apiFetch(conCampana(`${BASE}/mail-template`, campaignId), { headers: headers() })));
 }
 
 export async function apiMailTemplatePut(input: {
   template: MailTemplate;
   expected_revision: number;
+  campaign_id?: string | null;
 }): Promise<MailTemplatePutPayload> {
-  const body = { template: serializeMailTemplate(input.template), expected_revision: input.expected_revision };
+  const body = cuerpoConCampana(
+    { template: serializeMailTemplate(input.template), expected_revision: input.expected_revision },
+    input.campaign_id,
+  );
   return normalizeMailTemplatePut(await handleMail(await apiFetch(`${BASE}/mail-template`, json("PUT", body))));
 }
 
@@ -785,28 +1120,49 @@ export async function apiMailPreview(input: {
   mode: MailPreviewMode;
   recipient_index?: number | null;
   template?: MailTemplate | null;
+  campaign_id?: string | null;
 }): Promise<MailPreview> {
   const body: Record<string, unknown> = { mode: input.mode };
   if (input.recipient_index) body.recipient_index = input.recipient_index;
   if (input.template) body.template = serializeMailTemplate(input.template);
-  return normalizeMailPreview(await handleMail(await apiFetch(`${BASE}/mail-template/preview`, json("POST", body))));
+  return normalizeMailPreview(await handleMail(await apiFetch(
+    `${BASE}/mail-template/preview`,
+    json("POST", cuerpoConCampana(body, input.campaign_id)),
+  )));
 }
 
-export async function apiMailReview(input: { template?: MailTemplate | null } = {}): Promise<MailReview> {
-  const body = input.template ? { template: serializeMailTemplate(input.template) } : {};
+export async function apiMailReview(input: {
+  template?: MailTemplate | null;
+  campaign_id?: string | null;
+  scope?: MailExportScope;
+} = {}): Promise<MailReview> {
+  const base: Record<string, unknown> = input.template ? { template: serializeMailTemplate(input.template) } : {};
+  if (input.scope) base.scope = input.scope;
+  const body = cuerpoConCampana(base, input.campaign_id);
   return normalizeMailReview(await handleMail(await apiFetch(`${BASE}/mail-template/review`, json("POST", body))));
 }
 
 /** Exporta la plantilla GUARDADA; el backend exige la revisión que la vista vio. */
-export async function apiMailExport(input: { expected_revision: number }): Promise<MailExportPayload> {
-  const body = { expected_revision: input.expected_revision };
+export async function apiMailExport(input: {
+  expected_revision: number;
+  campaign_id?: string | null;
+  scope?: MailExportScope;
+}): Promise<MailExportPayload> {
+  const base: Record<string, unknown> = { expected_revision: input.expected_revision };
+  if (input.scope) base.scope = input.scope;
+  const body = cuerpoConCampana(base, input.campaign_id);
   return normalizeMailExport(await handleMail(await apiFetch(`${BASE}/mail-template/export`, json("POST", body))));
 }
 
-export async function apiMailRecipientsImport(file: File, mapping?: MailRecipientsMapping | null): Promise<MailRecipients> {
+export async function apiMailRecipientsImport(
+  file: File,
+  mapping?: MailRecipientsMapping | null,
+  campaignId?: string | null,
+): Promise<MailRecipients> {
   const fd = new FormData();
   fd.append("file", file, file.name);
   if (mapping) fd.append("mapping", JSON.stringify(mapping));
+  if (campaignId) fd.append("campaign_id", campaignId);
   return normalizeMailRecipients(await handleMail(await apiFetch(`${BASE}/mail-recipients/import`, {
     method: "POST",
     headers: headers(),
@@ -814,31 +1170,47 @@ export async function apiMailRecipientsImport(file: File, mapping?: MailRecipien
   })));
 }
 
-export async function apiMailRecipients(): Promise<MailRecipients> {
-  return normalizeMailRecipients(await handleMail(await apiFetch(`${BASE}/mail-recipients`, { headers: headers() })));
+export async function apiMailRecipients(campaignId?: string | null): Promise<MailRecipients> {
+  return normalizeMailRecipients(await handleMail(await apiFetch(conCampana(`${BASE}/mail-recipients`, campaignId), { headers: headers() })));
 }
 
-export async function apiMailRecipientsMapping(mapping: MailRecipientsMapping): Promise<MailRecipients> {
-  return normalizeMailRecipients(await handleMail(await apiFetch(`${BASE}/mail-recipients/mapping`, json("PUT", { mapping }))));
+export async function apiMailRecipientsMapping(mapping: MailRecipientsMapping, campaignId?: string | null): Promise<MailRecipients> {
+  return normalizeMailRecipients(await handleMail(await apiFetch(
+    `${BASE}/mail-recipients/mapping`,
+    json("PUT", cuerpoConCampana({ mapping }, campaignId)),
+  )));
 }
 
-export async function apiMailRecipientsDelete(): Promise<MailRecipients> {
-  return normalizeMailRecipients(await handleMail(await apiFetch(`${BASE}/mail-recipients`, {
+export async function apiMailRecipientsDelete(campaignId?: string | null): Promise<MailRecipients> {
+  return normalizeMailRecipients(await handleMail(await apiFetch(conCampana(`${BASE}/mail-recipients`, campaignId), {
     method: "DELETE",
     headers: headers(),
   })));
 }
 
+/** Extensión que el backend acepta para una imagen del correo (PNG o JPEG). */
+export function extensionDeImagen(file: Pick<File, "name" | "type">): "png" | "jpg" | null {
+  const tipo = file.type.toLowerCase();
+  const nombre = file.name.toLowerCase();
+  if (tipo === "image/png" || nombre.endsWith(".png")) return "png";
+  if (tipo === "image/jpeg" || /\.jpe?g$/.test(nombre)) return "jpg";
+  return null;
+}
+
 /**
- * Sube un PNG como logo del proyecto (`brand_logo`) bajo el nombre `<id>.png`.
+ * Sube una imagen del correo (`mail_image`, PNG o JPEG hasta 1 MB y de 40 a
+ * 1.200 px de ancho) bajo el nombre `<id>.<ext>`.
  *
  * El backend resuelve cada imagen del correo por el slug del nombre original
- * del archivo; subirlo con el id de la plantilla es lo que los une.
+ * del archivo y se queda con la más reciente; subirla con el id de la
+ * plantilla es lo que las une. Un rechazo llega como 422
+ * `E_COLLECTION_MAIL_IMAGE_INVALID` con `details.reason`.
  */
 export async function apiMailImageUpload(file: File, imageId: string): Promise<{ file_id: string; original_name: string }> {
+  const ext = extensionDeImagen(file) ?? "png";
   const fd = new FormData();
-  fd.append("file", new File([file], `${imageId}.png`, { type: "image/png" }));
-  const raw = await handleMail(await apiFetch(`/api/files/upload?kind=brand_logo`, {
+  fd.append("file", new File([file], `${imageId}.${ext}`, { type: ext === "jpg" ? "image/jpeg" : "image/png" }));
+  const raw = await handleMail(await apiFetch(`/api/files/upload?kind=mail_image`, {
     method: "POST",
     headers: headers(),
     body: fd,

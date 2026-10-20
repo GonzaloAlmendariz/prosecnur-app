@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { MailApiError } from "../../../api/materialMail";
-import { avisoDeImportacion } from "./useCorreos";
+import { avisoDeImagen, avisoDeImportacion } from "./useCorreos";
 
 describe("avisoDeImportacion", () => {
   test("una lista sin encabezados se explica en la voz de la vista", () => {
@@ -31,3 +31,14 @@ describe("avisoDeImportacion", () => {
     expect(avisoDeImportacion(e)).not.toContain("parse_error");
   });
 });
+
+describe("avisoDeImagen", () => {
+  test("dice el motivo del rechazo de una imagen sin el detalle interno", () => {
+    const err = (reason: string) => new MailApiError("E_COLLECTION_MAIL_IMAGE_INVALID", "interno", 422, { reason });
+    expect(avisoDeImagen(err("too_large"))).toMatch(/1 MB/);
+    expect(avisoDeImagen(err("width"))).toMatch(/1\.200 px/);
+    expect(avisoDeImagen(err("format"))).toMatch(/PNG o JPEG/);
+    expect(avisoDeImagen(err("otro"))).not.toContain("interno");
+  });
+});
+

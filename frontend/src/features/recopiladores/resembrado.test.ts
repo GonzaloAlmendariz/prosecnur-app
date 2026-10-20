@@ -89,6 +89,8 @@ describe("texto del diálogo", () => {
     ]);
     for (const rotulo of t.conserva) expect(rotulo).not.toMatch(/_/);
     expect(rotulosConservados(["clave_nueva", "otra_nueva"])).toEqual(["Otra configuración"]);
+    // E1h: las campañas de correo se conservan con su propio rótulo.
+    expect(rotulosConservados(["mail_campaigns", "material_template"])).toEqual(["Campañas de correo", "Plantilla de la ficha"]);
   });
 
   it("sin previsualización no inventa cifras", () => {

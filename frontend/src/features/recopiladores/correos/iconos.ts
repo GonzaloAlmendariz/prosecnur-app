@@ -1,6 +1,8 @@
 import { isOpaqueMailBlock, type MailBlock, type MailBlockType } from "../../../api/materialMail";
 import {
   AlignLeft,
+  Type,
+  Minus,
   CircleHelp,
   Image,
   Info,
@@ -16,10 +18,13 @@ import { CABECERA, SOBRE } from "./modeloCorreo";
 
 export const ICONO_DE_BLOQUE: Record<MailBlockType, LucideIcon> = {
   greeting: MessageSquareText,
+  heading: Type,
   paragraph: AlignLeft,
   button: MousePointer2,
   callout: Info,
   list: List,
+  divider: Minus,
+  image: Image,
   signature: PencilLine,
   footer_legal: ShieldCheck,
 };

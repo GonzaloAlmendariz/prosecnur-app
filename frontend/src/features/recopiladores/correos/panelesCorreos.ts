@@ -25,8 +25,30 @@ export const PANEL_CORREO_REVISION: PanelDeclarado = {
   clase: "inspector",
 };
 
+/**
+ * Campañas de correo (E1h): crear, duplicar, renombrar y borrar.
+ * `?panel=correo-campanas`; la campaña abierta la dice `foco`.
+ */
+export const PANEL_CORREO_CAMPANAS: PanelDeclarado = {
+  id: "correo-campanas",
+  label: "Campañas de correo",
+  clase: "dialogo",
+};
+
+/**
+ * Borrar una campaña, en dos pasos (el segundo pide escribir su nombre).
+ * `?panel=correo-campana-borrar&foco=<campaign_id>` borra la del foco.
+ */
+export const PANEL_CORREO_CAMPANA_BORRAR: PanelDeclarado = {
+  id: "correo-campana-borrar",
+  label: "Borrar campaña de correo",
+  clase: "dialogo",
+};
+
 export const PANELES_CORREOS = [
   PANEL_CORREO_IDENTIDAD,
   PANEL_CORREO_DESTINATARIOS,
   PANEL_CORREO_REVISION,
+  PANEL_CORREO_CAMPANAS,
+  PANEL_CORREO_CAMPANA_BORRAR,
 ] as const;
