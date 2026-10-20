@@ -92,10 +92,10 @@ export function PestanaReglas({ titulo, marca, total, grupos, seleccionada, onSe
         </div>
         {pie && hayItems ? <footer className="xfp-reglas__lista-pie">{pie}</footer> : null}
       </aside>
-      <main className="xfp-reglas__detalle" data-qa-geometry-group="xlsform/reglas-detalle" data-qa-geometry-contract="intrinsic">
+      <section className="xfp-reglas__detalle" aria-label={`Detalle de ${titulo.toLowerCase()}`} data-qa-geometry-group="xlsform/reglas-detalle" data-qa-geometry-contract="intrinsic">
         {aviso && hayItems ? <p className="xfp-aviso" role="status">{aviso}</p> : null}
         {hayItems ? children : vacioDetalle}
-      </main>
+      </section>
       {lateral ? <div className="xfp-reglas__lateral">{lateral}</div> : null}
     </div>
   );

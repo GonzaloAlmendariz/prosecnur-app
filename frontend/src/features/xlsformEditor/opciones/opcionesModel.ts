@@ -10,8 +10,10 @@ import type { ReglaListaGrupo } from "../pestanas/PestanaReglas";
 
 /** Las primeras etiquetas de la lista, para nombrarla por su contenido. */
 export function nombreLegible(items: readonly { label: string; name: string }[], max = 3): string {
-  const etiquetas = items.map((i) => (i.label || i.name).trim()).filter(Boolean);
-  if (!etiquetas.length) return "Sin opciones";
+  if (!items.length) return "Sin opciones";
+  // Una opción recién agregada no tiene texto todavía: se nombra por su texto, no por el código que se le dio.
+  const etiquetas = items.map((i) => i.label.trim()).filter(Boolean);
+  if (!etiquetas.length) return "Opciones sin texto";
   const vistas = etiquetas.slice(0, max).join(", ");
   const resto = etiquetas.length - max;
   return resto > 0 ? `${vistas} y ${resto} más` : vistas;
@@ -93,6 +95,14 @@ export function nombreDeOrigen(o: OrigenLista): string {
   return o.tipo === "archivo" ? `Archivo ${o.archivo}` : "Búsqueda en archivo";
 }
 
+/** En la columna de cantidad, una lista dinámica no tiene número: lleva este glifo (sus opciones se calculan). */
+export const GLIFO_DINAMICA = "↻";
+
+/** El código de la lista para leerlo: una lista `${x}` se nombra por la pregunta de la que sale, sin `${}` crudo. */
+export function codigoLegible(listName: string, origen: OrigenLista | null): string {
+  return origen?.tipo === "repeticion" ? origen.etiquetaVariable : listName;
+}
+
 function usosTexto(n: number): string {
   return n === 0 ? "sin uso" : n === 1 ? "en 1 pregunta" : `en ${n} preguntas`;
 }
@@ -109,9 +119,9 @@ export function gruposDeListas(
     return {
     key: c.listName,
     baseType: tipoDeLista(structure, c.listName),
-    numero: origen ? "·" : String(c.items.length),
+    numero: origen ? GLIFO_DINAMICA : String(c.items.length),
     titulo: origen ? nombreDeOrigen(origen) : nombreLegible(c.items),
-    resumen: `${c.listName}, ${usosTexto(usos[c.listName] ?? 0)}`,
+    resumen: `${codigoLegible(c.listName, origen)}, ${usosTexto(usos[c.listName] ?? 0)}`,
     aviso: (usos[c.listName] ?? 0) === 0,
     };
   };

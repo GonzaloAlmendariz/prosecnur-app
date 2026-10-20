@@ -2,7 +2,7 @@
 // (catalogs/CatalogWorkspace.tsx), que repetía la cabecera, pedía «Aplicar» en cada fila y apretaba los campos:
 // aquí una tabla a todo el ancho, el código de la lista en la cabecera y «Agregar opción» al pie.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Plus, Search, Trash2 } from "../../../vendor/lucide-react";
@@ -21,9 +21,16 @@ export type EditorListaProps = {
   onBorrarLista: (listName: string) => void;
   /** De dónde salen las opciones si la lista no vive en choices (con la estructura, cita etiquetas). */
   origen?: OrigenLista | null;
+  /** Mueve una opción un lugar con el teclado (desde su asa). */
+  onMoverTecla?: (rowIndex: number, delta: -1 | 1) => void;
+  /** Fila y campo que deben tomar el foco (opción recién agregada o recién movida). */
+  enfocar?: { rowIndex: number; campo: "etiqueta" | "asa" } | null;
+  onEnfocado?: () => void;
+  /** Frase para la región aria-live tras mover una opción. */
+  anuncio?: string;
 };
 
-export function EditorLista({ lista, usos, onRename, onAgregar, onCambio, onQuitar, onMover, onBorrarLista, origen: origenProp }: EditorListaProps) {
+export function EditorLista({ lista, usos, onRename, onAgregar, onCambio, onQuitar, onMover, onBorrarLista, origen: origenProp, onMoverTecla, enfocar, onEnfocado, anuncio }: EditorListaProps) {
   // Sin la estructura, el código de la lista basta para saber que sale de una respuesta (`${x}`), aunque se cite por código.
   const origen = lista.items.length === 0 ? origenProp ?? origenDeLista(lista.listName, null) : null;
   const [codigo, setCodigo] = useState(lista.listName);
@@ -83,7 +90,9 @@ export function EditorLista({ lista, usos, onRename, onAgregar, onCambio, onQuit
       ) : lista.items.length === 0 ? (
         <p className="xfo-nota">La lista no tiene opciones. Agrega la primera; salen en este orden en el formulario.</p>
       ) : (
-        <div className="xfo-tabla" role="group" aria-label="Opciones de la lista">
+        // La columna # se ensancha con los dígitos del total: con 100 o más opciones el número no se parte (E2).
+        <div className="xfo-tabla" role="group" aria-label="Opciones de la lista"
+          style={{ "--xfo-n": `${String(lista.items.length).length + 1}ch` } as CSSProperties}>
           <div className="xfo-fila is-cab" aria-hidden="true">
             <span /><span>#</span><span>Texto</span><span>Código</span><span />
           </div>
@@ -92,7 +101,9 @@ export function EditorLista({ lista, usos, onRename, onAgregar, onCambio, onQuit
               <div className="xfo-tabla__cuerpo" data-qa-geometry-group="xlsform/opciones-filas" data-qa-geometry-contract="intrinsic">
                 {visibles.map((op) => (
                   <OpcionFila key={op.rowIndex} opcion={op} posicion={lista.items.indexOf(op) + 1}
-                    onCambio={(v) => onCambio(op.rowIndex, v)} onQuitar={() => onQuitar(op.rowIndex)} />
+                    onCambio={(v) => onCambio(op.rowIndex, v)} onQuitar={() => onQuitar(op.rowIndex)}
+                    onMoverTecla={onMoverTecla ? (d) => onMoverTecla(op.rowIndex, d) : undefined}
+                    enfocar={enfocar?.rowIndex === op.rowIndex ? enfocar.campo : null} onEnfocado={onEnfocado} />
                 ))}
               </div>
             </SortableContext>
@@ -101,6 +112,7 @@ export function EditorLista({ lista, usos, onRename, onAgregar, onCambio, onQuit
         </div>
       )}
 
+      <p className="xfo-anuncio" aria-live="polite">{anuncio ?? ""}</p>
       {origen ? null : (
         <button type="button" className="xfo-editor__agregar" onClick={() => onAgregar(lista.listName)}>
           <Plus size={14} aria-hidden="true" /> Agregar opción

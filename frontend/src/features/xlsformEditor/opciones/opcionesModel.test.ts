@@ -12,6 +12,8 @@ describe("pestaña Listas de opciones", () => {
     expect(nombreLegible(lista("si_no", ["Sí", "No"]).items)).toBe("Sí, No");
     expect(nombreLegible(lista("area", ["Académica", "Administrativa", "Campo", "Otro"]).items)).toBe("Académica, Administrativa, Campo y 1 más");
     expect(nombreLegible([])).toBe("Sin opciones");
+    // E2: una opción recién agregada no se nombra por su código.
+    expect(nombreLegible([{ label: "", name: "1" }])).toBe("Opciones sin texto");
   });
   it("cada lista cae en un solo grupo: repetidas, en uso o sin uso", () => {
     const cats = [lista("a", ["Sí", "No"]), lista("b", ["Sí", "No"]), lista("c", ["Uno"]), lista("d", ["Dos"])];
