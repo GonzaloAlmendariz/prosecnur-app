@@ -28,6 +28,12 @@ export type EstadoDelEditor = {
   /** Se pidió guardar y hay fichas que se quedarían viejas: falta confirmar. */
   confirmando: boolean;
   aviso: AvisoDelEditor | null;
+  /**
+   * `state_revision` que devolvió el último PUT (200 o noop). El payload del
+   * módulo la alcanza recién cuando llega el GET /state, segundos después;
+   * mientras tanto el siguiente guardado tiene que mandar ésta.
+   */
+  revisionDelGuardado: number | null;
 };
 
 export type AccionDelEditor =
@@ -41,7 +47,7 @@ export type AccionDelEditor =
   | { type: "pedir-confirmacion" }
   | { type: "cancelar-guardado" }
   | { type: "guardado-inicio" }
-  | { type: "guardado-ok"; template: CollectionMaterialTemplate | null; noop: boolean }
+  | { type: "guardado-ok"; template: CollectionMaterialTemplate | null; noop: boolean; stateRevision?: number | null }
   | { type: "guardado-error"; texto: string }
   | { type: "aviso"; aviso: AvisoDelEditor | null };
 
@@ -53,12 +59,25 @@ export const ESTADO_INICIAL_DEL_EDITOR: EstadoDelEditor = {
   guardando: false,
   confirmando: false,
   aviso: null,
+  revisionDelGuardado: null,
 };
+
+/**
+ * La revisión con la que sale el próximo PUT: la mayor entre la que trae el
+ * payload del módulo y la que devolvió el último guardado. Nunca baja: un
+ * payload viejo no hace retroceder lo que el backend ya confirmó.
+ */
+export function revisionParaGuardar(delPayload: number | null, delGuardado: number | null): number | null {
+  if (delPayload === null) return delGuardado;
+  if (delGuardado === null) return delPayload;
+  return Math.max(delPayload, delGuardado);
+}
 
 export function reducirEditor(estado: EstadoDelEditor, accion: AccionDelEditor): EstadoDelEditor {
   switch (accion.type) {
     case "carga-inicio":
-      return { ...estado, carga: { estado: "cargando" }, aviso: null };
+      // Recargar (o cambiar de proyecto) vuelve a la revisión del payload.
+      return { ...estado, carga: { estado: "cargando" }, aviso: null, revisionDelGuardado: null };
     case "carga-ok":
       return {
         ...estado,
@@ -94,6 +113,7 @@ export function reducirEditor(estado: EstadoDelEditor, accion: AccionDelEditor):
         // Guardar fija la receta: lo deshecho antes ya no es de esta revisión.
         historia: template ? createTemplateHistory(template) : estado.historia,
         guardada: template ?? estado.guardada,
+        revisionDelGuardado: revisionParaGuardar(accion.stateRevision ?? null, estado.revisionDelGuardado),
         aviso: { tono: "ok", texto: accion.noop ? "No había cambios que guardar." : "Receta guardada." },
       };
     }
