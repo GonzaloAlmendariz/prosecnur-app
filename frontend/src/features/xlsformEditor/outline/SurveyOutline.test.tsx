@@ -86,10 +86,11 @@ describe("SurveyOutline", () => {
     expect(html).toMatch(/role="group" aria-label="Estructura del formulario"/);
   });
 
-  test("buscador, filtro y cabecera del riel con abreviaturas que no son palabras", () => {
+  test("buscador, filtro y cabecera del riel con los glifos de las marcas (estilo A)", () => {
     expect(html).toContain('aria-label="Buscar por texto o código"');
     expect(html).toContain('aria-label="Filtrar por marca"');
-    expect(html).toContain(">CO<");
+    expect(html).toMatch(/data-columna="cond"[^>]*aria-label="Condición"/);
+    expect(html).not.toContain(">CO<");
     expect(html).not.toContain("Outline maestro");
   });
 });

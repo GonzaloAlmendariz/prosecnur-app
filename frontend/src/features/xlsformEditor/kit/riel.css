@@ -1,64 +1,73 @@
 /* Riel de marcas y su panel (identidad «Señales», 2026-10-17). Portado de la propuesta aprobada; colores sólo con
  * tokens. El tono de cada casilla y del panel llega en --xfk-c. */
 
-.xfk-riel { display: inline-grid; grid-template-columns: repeat(5, 18px); gap: 3px; flex: none; align-items: center; }
+/* Estilo A «Glifo limpio» (Gonzalo, 2026-10-20): cinco columnas fijas de 22 px; la marca es su glifo de 13 px en el
+ * tono de la marca, sin fondo; la casilla vacía no se ve pero sigue siendo botón; una línea tenue separa el riel del
+ * título con 10 px de aire. El fondo aparece sólo al pasar el puntero o con el panel abierto. */
+.xfk-riel {
+  display: inline-grid; grid-template-columns: repeat(5, 22px); gap: 2px; flex: none; align-items: center;
+  padding-left: 10px; border-left: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent);
+}
 
 .xfk-casilla {
-  display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 5px;
-  background: color-mix(in srgb, var(--pulso-text) 5%, transparent); color: var(--xfk-c); cursor: pointer;
-  transition: transform 0.14s ease, background-color 0.14s ease, box-shadow 0.14s ease;
+  display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px;
+  background: transparent; color: var(--xfk-c); cursor: pointer;
+  transition: background-color 0.14s ease;
 }
 /* Las reglas globales de botón del editor (alto mínimo de 28 px) no deben estirar la casilla. */
-.xfk-riel > button.xfk-casilla { box-sizing: border-box; width: 18px; height: 18px; min-width: 0; min-height: 0; margin: 0; line-height: 0; }
-.xfk-casilla.is-on { background: color-mix(in srgb, var(--xfk-c) 16%, transparent); }
-/* Casilla vacía: un punto tenue en su lugar. El riel conserva las columnas sin pintar cinco cajas grises por fila. */
-.xfk-casilla:not(.is-on) { background: transparent; }
-.xfk-casilla:not(.is-on)::after {
-  content: ""; width: 3px; height: 3px; border-radius: 50%; background: color-mix(in srgb, var(--pulso-text) 18%, transparent);
-}
-.xfk-casilla:not(.is-on) > * { display: none; }
-.xfk-casilla:hover { transform: scale(1.12); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--xfk-c) 55%, transparent); }
-.xfk-casilla[aria-expanded="true"] { transform: none; box-shadow: 0 0 0 2px var(--xfk-c); background: color-mix(in srgb, var(--xfk-c) 22%, transparent); }
-.xfk-casilla:focus-visible { outline: 2px solid var(--pulso-primary); outline-offset: 2px; }
-.xfk-casilla .xfk-marca { --xfk-occ: color-mix(in srgb, var(--xfk-c) 16%, var(--pulso-surface)); }
+.xfk-riel > button.xfk-casilla { box-sizing: border-box; width: 22px; height: 22px; min-width: 0; min-height: 0; margin: 0; line-height: 0; background: transparent; box-shadow: none; }
+.xfk-casilla .xfk-marca { --xfk-occ: var(--pulso-surface); }
+/* Vacía: el glifo está pero no se ve; al pasar el puntero asoma en gris sobre un fondo tenue. */
+.xfk-riel > button.xfk-casilla:not(.is-on) svg.xfk-marca { color: transparent; --xfk-occ: transparent; }
+.xfk-riel > button.xfk-casilla:not(.is-on):hover { background: color-mix(in srgb, var(--pulso-text) 6%, transparent); }
+.xfk-riel > button.xfk-casilla:not(.is-on):hover svg.xfk-marca,
+.xfk-riel > button.xfk-casilla:not(.is-on):focus-visible svg.xfk-marca,
+.xfk-riel > button.xfk-casilla:not(.is-on)[aria-expanded="true"] svg.xfk-marca { color: var(--pulso-text-faint); --xfk-occ: var(--pulso-surface); }
+.xfk-riel > button.xfk-casilla.is-on:hover,
+.xfk-riel > button.xfk-casilla[aria-expanded="true"] { background: color-mix(in srgb, var(--xfk-c) 14%, transparent); }
+.xfk-riel > button.xfk-casilla:not(.is-on)[aria-expanded="true"] { background: color-mix(in srgb, var(--pulso-text) 6%, transparent); }
+.xfk-casilla:focus-visible { outline: 2px solid var(--pulso-primary); outline-offset: 1px; }
 
-/* Cabecera de columnas: misma rejilla que el riel y el mismo margen derecho que la fila (7 px + 1 px de borde). */
+/* Cabecera de columnas: misma rejilla que el riel (línea + aire) y el mismo margen derecho que la fila. Los glifos
+ * de las marcas en gris tenue, con su nombre en title y aria-label. */
 .xfk-riel-cab {
   position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 4px 8px 4px 27px; flex: none;
   background: var(--xls-sidebar, var(--pulso-surface)); border-bottom: 1px solid var(--pulso-border);
 }
 .xfk-riel-cab__rotulo { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-faint); }
-.xfk-riel-cab__cols { display: grid; grid-template-columns: repeat(5, 18px); gap: 3px; }
-.xfk-riel-cab__col {
-  font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: 0.02em; text-align: center; text-decoration: none;
-  color: var(--pulso-text-faint); cursor: help;
-}
+.xfk-riel-cab__cols { display: grid; grid-template-columns: repeat(5, 22px); gap: 2px; padding-left: 11px; }
+.xfk-riel-cab__col { display: grid; place-items: center; height: 18px; cursor: help; }
+.xfk-riel-cab__col svg.xfk-marca { color: var(--pulso-text-faint); --xfk-occ: var(--xls-sidebar, var(--pulso-surface)); opacity: 0.8; }
 
-/* Viewports compactos: el esquema mide ~245 px y el riel no debe comerse el título. */
+/* Fila elegida: las flechas subir/bajar no reservan ancho ni empujan el riel o el conteo. Van en una capa flotante
+ * con el fondo de la fila y sombra leve, visibles al pasar el puntero o con el foco adentro (Alt+↑ / Alt+↓ y las
+ * flechas de la ficha siguen a mano). NUNCA sobre el riel (Gonzalo, 2026-10-20: con las cinco marcas encendidas las
+ * tapaban): en una fila con riel van a la izquierda de su línea separadora, sobre el final del título (que ya va con
+ * elipsis). La cuenta, en todos los anchos: el riel termina a 7 px del borde interior de la fila y mide
+ * 1 + 10 + 5 × 22 + 4 × 2 = 129 px; las flechas quedan a 7 + 129 + 8 = 144 px. Contrato: rielFlechas.contract.test.ts. */
+.pulso-xlsform-frame .pulso-outline-row.is-active > .pulso-outline-actions {
+  position: absolute; top: 50%; right: 6px; z-index: 3; display: inline-flex; gap: 2px; margin: 0; padding: 2px;
+  border-radius: 7px;
+  background: linear-gradient(var(--xls-sidebar-selected, var(--pulso-primary-soft)), var(--xls-sidebar-selected, var(--pulso-primary-soft))), var(--pulso-surface);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--pulso-text) 16%, transparent);
+  transform: translateY(-50%); opacity: 0; pointer-events: none; transition: opacity var(--motion-dur-fast, 0.12s) ease;
+}
+.pulso-xlsform-frame .pulso-outline-row.is-active:has(> .pulso-outline-riel) > .pulso-outline-actions { right: 144px; }
+.pulso-xlsform-frame .pulso-outline-row.is-active:hover > .pulso-outline-actions,
+.pulso-xlsform-frame .pulso-outline-row.is-active:focus-within > .pulso-outline-actions { opacity: 1; pointer-events: auto; }
+.pulso-xlsform-frame .pulso-outline-row.is-active > .pulso-outline-actions button.pulso-icon {
+  box-sizing: border-box; width: 22px; height: 22px; min-width: 0; min-height: 0; padding: 0; border-radius: 5px;
+}
+.pulso-xlsform-frame .pulso-outline-row.is-active > .pulso-outline-actions button.pulso-icon svg { width: 12px; height: 12px; }
+
+/* Viewports compactos: el esquema mide ~245 px y el riel no debe comerse el título. Las columnas siguen de 22 px;
+ * el riel baja a la línea del subtítulo con casillas de 16 px de alto y el título recupera el ancho de la fila. */
 @media (max-width: 1180px) {
-  .xfk-riel { grid-template-columns: repeat(5, 15px); gap: 2px; }
-  .xfk-riel-cab__cols { grid-template-columns: repeat(5, 15px); gap: 2px; }
-  .xfk-riel-cab__col { font-size: 8.5px; }
-  .xfk-riel > button.xfk-casilla { width: 15px; height: 15px; border-radius: 4px; }
-  .xfk-riel > button.xfk-casilla svg { width: 10px; height: 10px; }
-  /* En el esquema, el riel baja a la línea del subtítulo y el título recupera el ancho de la fila (la fila no
-   * crece). La fila elegida tiene la MISMA geometría que las demás (M6): sus flechas no reservan ancho; aparecen
-   * sobre el final del título al pasar el puntero o con el foco adentro (Alt+↑ / Alt+↓ y las flechas de la ficha
-   * siguen a mano). */
-  .pulso-outline-row > .xfk-riel.pulso-outline-riel { position: absolute; right: 7px; bottom: 5px; }
-  .pulso-outline-row:has(> .pulso-outline-riel) .pulso-outline-subtitle { margin-right: 88px; max-width: calc(100% - 88px); }
-  .pulso-xlsform-frame .pulso-outline-row.is-active > .pulso-outline-actions {
-    position: absolute; top: 3px; right: 6px; z-index: 1; display: inline-flex; gap: 2px; padding: 1px 1px 1px 6px; border-radius: 6px;
-    background: linear-gradient(90deg, transparent, var(--xls-sidebar-selected, var(--pulso-primary-soft)) 6px);
-    opacity: 0; pointer-events: none; transition: opacity var(--motion-dur-fast, 0.12s) ease;
-  }
-  .pulso-xlsform-frame .pulso-outline-row.is-active:hover > .pulso-outline-actions,
-  .pulso-xlsform-frame .pulso-outline-row.is-active:focus-within > .pulso-outline-actions { opacity: 1; pointer-events: auto; }
-  .pulso-xlsform-frame .pulso-outline-row.is-active > .pulso-outline-actions button.pulso-icon {
-    box-sizing: border-box; width: 18px; height: 18px; min-width: 0; min-height: 0; padding: 0;
-  }
-  .pulso-xlsform-frame .pulso-outline-row.is-active > .pulso-outline-actions button.pulso-icon svg { width: 11px; height: 11px; }
+  .pulso-outline-row > .xfk-riel.pulso-outline-riel { position: absolute; right: 7px; bottom: 4px; }
+  .xfk-riel > button.xfk-casilla { height: 16px; }
+  .xfk-riel > button.xfk-casilla svg { width: 11px; height: 11px; }
+  .pulso-outline-row:has(> .pulso-outline-riel) .pulso-outline-subtitle { margin-right: 130px; max-width: calc(100% - 130px); }
 }
 
 /* Panel */
@@ -140,7 +149,7 @@
 @media (prefers-reduced-motion: reduce) {
   .xfk-pop, .xfk-casilla, .xfk-pop__codigo summary::before { transition: none; }
   .xfk-pop, .xfk-pop[data-lado="arriba"] { transform: none; }
-  .xfk-casilla:hover { transform: none; }
+  .pulso-xlsform-frame .pulso-outline-row.is-active > .pulso-outline-actions { transition: none; }
 }
 
 /* Chips y títulos del panel (M5): el texto largo se recorta con elipsis (nunca a mitad de palabra con «…» escrito),

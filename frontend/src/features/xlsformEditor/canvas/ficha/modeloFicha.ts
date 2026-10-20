@@ -123,6 +123,55 @@ export function contarReferencias(survey: XlsformEditorSheet | null | undefined,
   return findVarReferences(survey, name, SURVEY_COLUMNS_WITH_VAR_REFS).length;
 }
 
+const CODIGO_VALIDO = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+export type EstadoCodigo = { limpio: string; cambio: boolean; puedeAplicar: boolean; problema: string | null };
+
+/** El borrador del código frente al aplicado: si cambió, si se puede aplicar y, si no es válido, por qué. */
+export function estadoCodigo(borrador: string, aplicado: string): EstadoCodigo {
+  const limpio = borrador.trim();
+  const cambio = limpio !== aplicado.trim();
+  const problema = !limpio || CODIGO_VALIDO.test(limpio)
+    ? null
+    : /^\d/.test(limpio) ? "No puede empezar con número."
+      : /\s/.test(limpio) ? "Sin espacios: usa guion bajo."
+        : "Solo letras sin tilde, números y guion bajo.";
+  return { limpio, cambio, puedeAplicar: cambio && !!limpio && !problema, problema };
+}
+
+/** Lo que pasa al aplicar el código nuevo, en una línea. */
+export function notaReferencias(n: number): string {
+  if (n <= 0) return "Nadie usa este código.";
+  return n === 1 ? "Se actualiza 1 referencia." : `Se actualizan ${n} referencias.`;
+}
+
+/** Nombre libre para una lista nueva, derivado del código de la pregunta y sin chocar con las que existen. */
+export function nombreListaNueva(codigo: string, ocupados: Iterable<string>): string {
+  const usados = new Set(ocupados);
+  const base = codigo.trim().replace(/[^a-zA-Z0-9_]+/g, "_").replace(/^_+|_+$/g, "") || "lista";
+  const raiz = /^[a-zA-Z_]/.test(base) ? base : `l_${base}`;
+  let nombre = `lst_${raiz}`;
+  for (let i = 2; usados.has(nombre); i += 1) nombre = `lst_${raiz}_${i}`;
+  return nombre;
+}
+
+/**
+ * Borrador de un campo de texto de la ficha. El nodo publica su texto recortado (y con el código si queda vacío), así
+ * que pintar el valor del nodo se comía el espacio recién tecleado al final: la barra espaciadora «no escribía».
+ * Mientras el campo tiene el foco manda lo tecleado; fuera de foco, el valor del nodo.
+ */
+export type BorradorCampo = { texto: string; enFoco: boolean };
+export type EventoCampo = { tipo: "tecleo"; texto: string } | { tipo: "valor"; valor: string } | { tipo: "foco" } | { tipo: "desenfoque" };
+
+export function borradorCampo(estado: BorradorCampo, evento: EventoCampo): BorradorCampo {
+  switch (evento.tipo) {
+    case "tecleo": return { ...estado, texto: evento.texto };
+    case "valor": return estado.enFoco || estado.texto === evento.valor ? estado : { ...estado, texto: evento.valor };
+    case "foco": return { ...estado, enFoco: true };
+    case "desenfoque": return { ...estado, enFoco: false };
+  }
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Posición y contenido
 // ---------------------------------------------------------------------------------------------------------------

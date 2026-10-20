@@ -80,6 +80,8 @@
 .pulso-xlsform-frame .xfe-ranura--ajustes > .pulso-outline-settings { margin-bottom: 0; }
 .xfe-ranura.is-origen, .xfe-seccion.is-origen { display: none; }
 .xfe-arbol .xfe-riel-cab, .xfe-arbol > .xfk-riel-cab { margin: 0 -4px 2px -6px; }
+/* El margen derecho de -4 px corre la cabecera: 12 px (8 de la fila + 4) dejan sus glifos sobre las columnas. */
+.xfe-arbol > .xfk-riel-cab { padding-right: 12px; }
 .xfe-sello { position: relative; }
 
 /* El asa aparece al pasar por la fila (propuesta): en reposo la lista es texto. */

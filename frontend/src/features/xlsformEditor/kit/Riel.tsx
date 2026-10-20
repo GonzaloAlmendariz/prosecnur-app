@@ -10,8 +10,9 @@ import "./riel.css";
 
 // Riel fijo de marcas (identidad «Señales», 2026-10-17): cinco casillas en orden fijo (obligatoria, condición,
 // restricción, cálculo y filtro; cabecera OB · CO · RE · CA · FI).
-// Una casilla con marca muestra su glifo sobre el tono de la marca; vacía queda como hueco neutro. Tocarla abre el
-// panel con lo que el motor sabe decir de esa regla.
+// Estilo A «Glifo limpio» (Gonzalo, 2026-10-20): la marca es sólo su glifo en el tono de la marca, sin fondo; la
+// casilla vacía no se ve (sigue siendo botón: al pasar el puntero asoma el glifo en gris). Tocarla abre el panel con
+// lo que el motor sabe decir de esa regla.
 
 const SALIDA_MS = 180;
 
@@ -93,7 +94,7 @@ export function Riel({ nodo, marcas, scope, className, tabIndex }: RielProps) {
             }}
             onKeyDown={(e) => e.stopPropagation()}
           >
-            {on ? <GlifoMarca clave={kk} size={12} /> : null}
+            <GlifoMarca clave={kk} size={13} />
           </button>
         );
       })}
