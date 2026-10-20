@@ -53,7 +53,7 @@ export const REGISTRO_CRUDO = {
   ],
   tipos: [
     { tipo: ["aulas"], disponible: [false], motivo: ["El proyecto ya tiene su campaña de aulas."] },
-    { tipo: ["territorial"], disponible: [false], motivo: ["Requiere leer las UMP de Hojas de ruta (E2)"] },
+    { tipo: ["territorial"], disponible: [false], motivo: ["Requiere leer las UMP de Hojas de ruta"] },
     { tipo: ["correo"], disponible: [true] },
   ],
 } as const;

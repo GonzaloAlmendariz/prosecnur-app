@@ -56,7 +56,7 @@ describe("normalizarRegistroDeCampanas", () => {
     const r = normalizarRegistroDeCampanas(REGISTRO_CRUDO);
     expect(r.tipos).toEqual([
       { tipo: "aulas", disponible: false, motivo: "El proyecto ya tiene su campaña de aulas." },
-      { tipo: "territorial", disponible: false, motivo: "Requiere leer las UMP de Hojas de ruta (E2)" },
+      { tipo: "territorial", disponible: false, motivo: "Requiere leer las UMP de Hojas de ruta" },
       { tipo: "correo", disponible: true, motivo: null },
     ]);
     // `ref` llega como objeto: se lee el nombre en su fuente.
