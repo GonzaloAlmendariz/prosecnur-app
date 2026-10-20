@@ -99,6 +99,33 @@
   nuevo
 }
 
+#' ¿El estado tiene un plan congelado?
+#'
+#' La guarda de sembrar y migrar. «Existe `collection_state`» no la sustituye:
+#' crear una campana de correo antes de sembrar deja el estado con `plan = NULL`.
+#'
+#' @keywords internal
+.collection_tiene_plan <- function(state) {
+  is.list(state) && !is.null(state$plan)
+}
+
+#' Siembra sobre un estado que ya existe pero no tiene plan.
+#'
+#' Conserva los hermanos con la misma clasificacion que rehacer
+#' (`.COLLECTION_RESEED_CONSERVA`) y avanza la revision desde la vigente en vez
+#' de reiniciarla a 1, que es lo que `.collection_store()` exige.
+#'
+#' @param sembrado salida de `.collection_seed_build()`.
+#' @param current collection_state vigente, sin plan.
+#' @keywords internal
+.collection_seed_sobre_existente <- function(sembrado, current) {
+  estado <- .collection_reseed_conservar(sembrado$state, current)
+  revision <- suppressWarnings(as.integer(current$state_revision %||% 0L)[1])
+  if (is.na(revision)) revision <- 0L
+  estado$state_revision <- revision + 1L
+  list(state = estado, seeded = isTRUE(sembrado$seeded))
+}
+
 #' Como se leeria el plan nuevo, para que la UI muestre el antes y el despues.
 #'
 #' `huella` y `diferencias` salen de la MISMA proyeccion que GET /origen
