@@ -70,6 +70,24 @@ test_that("rehacer conserva la plantilla de material y lo que no depende del pla
   expect_equal(guardado$plan$source_ref$run_id, "sel-nueva")
 })
 
+test_that("rehacer conserva las campañas de correo (E1h) y no toca sus destinatarios", {
+  fx <- .rsc_fixture()
+  on.exit(session_delete(fx$sid), add = TRUE)
+  a <- collection_mail_campaign_create(fx$sid, fx$rev, name = "Invitación docentes")
+  b <- collection_mail_campaign_create(fx$sid, a$state_revision, name = "Recuperación")
+  collection_mail_recipients_import(fx$sid, file_name = "d.csv", campaign_id = "recuperacion",
+    content_base64 = jsonlite::base64_enc(charToRaw(enc2utf8(.cmail_fx_recipients_csv()))))
+  antes <- session_get(fx$sid)$collection_state$mail_campaigns
+
+  vista <- collection_state_reseed(fx$sid, b$state_revision, dry_run = TRUE)
+  expect_true("mail_campaigns" %in% unlist(vista$descartado$conservado))
+  expect_length(vista$descartado$otros_campos, 0L)
+  re <- collection_state_reseed(fx$sid, b$state_revision)
+  expect_identical(session_get(fx$sid)$collection_state$mail_campaigns, antes)
+  expect_true(collection_mail_recipients_get(fx$sid, campaign_id = "recuperacion")$loaded)
+  expect_true("mail_campaigns" %in% prosecnurapp:::.COLLECTION_RESEED_CONSERVA)
+})
+
 test_that("rehacer descarta fichas, recibos y publicaciones, y los cuenta", {
   fx <- .rsc_fixture()
   on.exit(session_delete(fx$sid), add = TRUE)

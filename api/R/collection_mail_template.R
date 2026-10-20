@@ -27,10 +27,10 @@
 # 0-9 y `_`, de 1 a 10 caracteres (el tope de Mailchimp), y nunca una etiqueta
 # reservada del sistema (EMAIL, FNAME, LNAME, ADDRESS, PHONE, UNSUB, LIST, MC_*).
 #
-# **Persistencia.** La plantilla (sin destinatarios) vive en
-# `collection_state$mail_template` (singular, como `material_template`: una
-# plantilla de correo activa por proyecto) con revisión optimista. Los
-# destinatarios NO: ver collection_mail_recipients.R.
+# **Persistencia.** Cada plantilla (sin destinatarios) vive dentro de su campaña
+# en `collection_state$mail_campaigns` (E1h, collection_mail_campaigns.R), con
+# revisión optimista global; el `mail_template` singular de antes se migra al
+# leer. Los destinatarios NO: ver collection_mail_recipients.R.
 
 COLLECTION_MAIL_TEMPLATE_SCHEMA <- "collection_mail_template/v1"
 
@@ -521,23 +521,27 @@ collection_mail_template_validate <- function(template) {
   .cmail_template_normalize(.cmail_preset_recuperacion())
 }
 
-# Plantilla activa. La guardada se vuelve a validar al leerla: un state.rds de
-# otra versión o editado a mano no llega al render sin pasar el contrato.
-# `strict = FALSE` la devuelve igual con sus problemas (para que GET la muestre
-# y PUT la pueda reemplazar).
-.cmail_template_of <- function(state, strict = TRUE) {
-  stored <- state$mail_template
-  if (is.null(stored)) return(.cmail_builtin_template())
+# Plantilla de una campaña. La guardada se vuelve a validar al leerla: un
+# state.rds de otra versión o editado a mano no llega al render sin pasar el
+# contrato. `strict = FALSE` la devuelve igual con sus problemas (para que GET
+# la muestre y PUT la pueda reemplazar).
+.cmail_campaign_template_checked <- function(campaign, strict = TRUE) {
+  stored <- campaign$template
   valid <- collection_mail_template_validate(stored)
   if (!isTRUE(valid$ok)) {
     if (!strict) return(structure(stored, problems = valid$problems))
     stop_api(
       409, "E_COLLECTION_MAIL_TEMPLATE_STORED_INVALID",
       "La plantilla de correo guardada no cumple collection_mail_template/v1; ábrela en el editor y vuelve a guardarla.",
-      details = list(problems = valid$problems)
+      details = list(problems = valid$problems, campaign_id = campaign$campaign_id)
     )
   }
   stored
+}
+
+# Plantilla de la campaña pedida (sin campaign_id: ver .cmail_campaign_pick).
+.cmail_template_of <- function(state, strict = TRUE, campaign_id = NULL) {
+  .cmail_campaign_template_checked(.cmail_campaign_pick(state, campaign_id)$campaign, strict = strict)
 }
 
 # ---- API ----------------------------------------------------------------------
@@ -559,17 +563,20 @@ collection_mail_presets_get <- function(sid) {
   )
 }
 
-#' Plantilla de correo activa.
+#' Plantilla de correo de una campaña.
 #' @keywords internal
-collection_mail_template_get <- function(sid) {
-  state <- .collection_current(session_get(sid))
-  tpl <- .cmail_template_of(state, strict = FALSE)
+collection_mail_template_get <- function(sid, campaign_id = NULL) {
+  session <- session_get(sid)
+  state <- .collection_current(session)
+  pick <- .cmail_campaign_for(session, state, campaign_id)
+  tpl <- .cmail_campaign_template_checked(pick$campaign, strict = FALSE)
   problems <- attr(tpl, "problems")
   attr(tpl, "problems") <- NULL
   out <- list(
     ok = TRUE,
     state_revision = as.integer(state$state_revision),
-    builtin = is.null(state$mail_template),
+    campaign_id = pick$campaign$campaign_id,
+    builtin = isTRUE(pick$virtual),
     template = .cmc_drop_nulls_deep(tpl)
   )
   if (length(problems)) out$stored_problems <- problems
@@ -591,24 +598,31 @@ collection_mail_template_get <- function(sid) {
   candidate
 }
 
-#' Guarda la plantilla de correo con revisión optimista.
+#' Guarda la plantilla de una campaña con revisión optimista.
+#'
+#' Sin campañas crea `correo-1`; con la migración pendiente, la persiste.
+#' `template_id` se fuerza a `campaign_id` (de ahí sale el nombre del ZIP).
 #' @keywords internal
-collection_mail_template_put <- function(sid, template, expected_revision) {
-  current <- .collection_current(session_get(sid))
+collection_mail_template_put <- function(sid, template, expected_revision, campaign_id = NULL) {
+  session <- session_get(sid)
+  current <- .collection_current(session)
   .collection_assert_revision(current, expected_revision)
-  previous <- .cmail_template_of(current, strict = FALSE)
+  pick <- .cmail_campaign_for(session, current, campaign_id)
+  campaign <- pick$campaign
+  previous <- .cmail_campaign_template_checked(campaign, strict = FALSE)
   attr(previous, "problems") <- NULL
+  if (is.list(template)) template$template_id <- campaign$campaign_id
   candidate <- .cmail_template_or_stop(template)
-  if (!is.null(current$mail_template) &&
+  if (!isTRUE(pick$virtual) &&
       identical(.cmail_template_material(candidate), .cmail_template_material(previous))) {
     return(list(ok = TRUE, noop = TRUE, state_revision = as.integer(current$state_revision),
-                template = .cmc_drop_nulls_deep(previous)))
+                campaign_id = campaign$campaign_id, template = .cmc_drop_nulls_deep(previous)))
   }
-  candidate <- .cmail_template_normalize(candidate, revision = as.integer(previous$revision %||% 0L) + 1L)
-  next_state <- current
-  next_state$mail_template <- candidate
-  next_state$state_revision <- as.integer(current$state_revision) + 1L
-  .collection_store(sid, next_state)
+  revision <- if (isTRUE(pick$virtual)) 1L else as.integer(previous$revision %||% 0L) + 1L
+  candidate <- .cmail_template_normalize(candidate, revision = revision)
+  if (isTRUE(pick$virtual)) campaign$name <- substr(.cmail_one(candidate$title) %||% "Correo", 1L, 80L)
+  campaign$template <- candidate
+  next_state <- .cmail_campaigns_commit(sid, current, .cmail_campaigns_upsert(pick$set$campaigns, campaign))
   list(ok = TRUE, noop = FALSE, state_revision = next_state$state_revision,
-       template = .cmc_drop_nulls_deep(candidate))
+       campaign_id = campaign$campaign_id, template = .cmc_drop_nulls_deep(candidate))
 }

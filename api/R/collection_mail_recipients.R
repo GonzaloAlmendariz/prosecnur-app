@@ -2,8 +2,9 @@
 # Consecuencias).
 #
 # **Los destinatarios son datos personales y NO entran al `.pulso`.** Se guardan
-# solo en el directorio temporal de la sesión
-# (`<session$dir>/mail_recipients/recipients.rds`): ni en `collection_state`, ni
+# solo en el directorio temporal de la sesión, una carpeta por campaña
+# (`<session$dir>/mail_recipients/<campaign_id>/recipients.rds`, ver
+# collection_mail_campaigns.R): ni en `collection_state`, ni
 # en `session$files` (que es persistible), ni en ninguna clave de session_schema.
 # Al cerrar la sesión desaparecen; al reemplazar la sesión con un `open
 # in_place` se borran (`.cmail_purge_personal_data`); para exportar otra vez se
@@ -29,8 +30,36 @@
 .CMAIL_RECIPIENTS_MAX_ROWS <- 50000L
 .CMAIL_SAMPLE_SIZE <- 5L
 
-.cmail_recipients_dir <- function(session) file.path(session$dir, "mail_recipients")
-.cmail_recipients_path <- function(session) file.path(.cmail_recipients_dir(session), "recipients.rds")
+.cmail_recipients_root <- function(session) file.path(session$dir, "mail_recipients")
+
+# Carpeta de una campaña; sin campaign_id, la raíz (la purga borra el árbol).
+.cmail_recipients_dir <- function(session, campaign_id = NULL) {
+  root <- .cmail_recipients_root(session)
+  if (is.null(campaign_id)) return(root)
+  # El id entra a una ruta: nunca algo fuera del patrón (ni «..», ni «/»).
+  if (!.cmail_campaign_id_ok(campaign_id)) {
+    stop_api(404, "E_COLLECTION_MAIL_CAMPAIGN_NOT_FOUND", "La campaña de correo no existe en este proyecto.")
+  }
+  file.path(root, campaign_id)
+}
+.cmail_recipients_path <- function(session, campaign_id) {
+  file.path(.cmail_recipients_dir(session, campaign_id), "recipients.rds")
+}
+
+# Una sesión de la versión de una sola plantilla guardó en la raíz. Ese archivo
+# es de la única campaña (la migrada): se mueve a su carpeta.
+.cmail_recipients_adopt_legacy <- function(session, campaign_id) {
+  legacy <- file.path(.cmail_recipients_root(session), "recipients.rds")
+  if (is.null(session$dir) || !file.exists(legacy)) return(invisible(FALSE))
+  target <- .cmail_recipients_path(session, campaign_id)
+  if (file.exists(target)) return(invisible(FALSE))
+  dir.create(dirname(target), recursive = TRUE, showWarnings = FALSE)
+  invisible(file.rename(legacy, target))
+}
+
+.cmail_recipients_forget <- function(session, campaign_id) {
+  unlink(.cmail_recipients_dir(session, campaign_id), recursive = TRUE, force = TRUE)
+}
 
 .cmail_norm_header <- function(x) {
   x <- stringi::stri_trans_general(tolower(trimws(as.character(x))), "Latin-ASCII")
@@ -259,15 +288,15 @@
 
 # ---- almacenamiento efímero -----------------------------------------------------
 
-.cmail_recipients_load <- function(session) {
-  path <- .cmail_recipients_path(session)
+.cmail_recipients_load <- function(session, campaign_id) {
+  path <- .cmail_recipients_path(session, campaign_id)
   if (!file.exists(path)) return(NULL)
   readRDS(path)
 }
 
-.cmail_recipients_save <- function(session, store) {
-  dir.create(.cmail_recipients_dir(session), recursive = TRUE, showWarnings = FALSE)
-  saveRDS(store, .cmail_recipients_path(session))
+.cmail_recipients_save <- function(session, campaign_id, store) {
+  dir.create(.cmail_recipients_dir(session, campaign_id), recursive = TRUE, showWarnings = FALSE)
+  saveRDS(store, .cmail_recipients_path(session, campaign_id))
   invisible(store)
 }
 
@@ -277,7 +306,7 @@
 #' @keywords internal
 .cmail_purge_personal_data <- function(session) {
   if (is.null(session) || is.null(session$dir)) return(invisible(FALSE))
-  unlink(.cmail_recipients_dir(session), recursive = TRUE, force = TRUE)
+  unlink(.cmail_recipients_root(session), recursive = TRUE, force = TRUE)
   root <- normalizePath(session$dir, mustWork = FALSE)
   for (meta in session$files %||% list()) {
     if (!is.list(meta) || !identical(as.character(meta$sensitivity %||% "")[1], "personal_data")) next
@@ -375,10 +404,12 @@
 }
 
 # Lo único que la UI ve: nunca la columna de correo, nunca un valor con forma de correo.
-.cmail_recipients_public <- function(store, template = NULL) {
+.cmail_recipients_public <- function(store, template = NULL, campaign_id = NULL) {
   if (is.null(store)) {
-    return(list(ok = TRUE, loaded = FALSE, row_count = 0L, columns = list(), mapping = NULL,
-                counts = NULL, sample = list()))
+    out <- list(ok = TRUE, loaded = FALSE, row_count = 0L, columns = list(), mapping = NULL,
+                counts = NULL, sample = list())
+    if (!is.null(campaign_id)) out <- append(out, list(campaign_id = campaign_id), after = 1L)
+    return(out)
   }
   resolved <- .cmail_recipients_resolve(store, template)
   rows <- utils::head(resolved$rows, .CMAIL_SAMPLE_SIZE)
@@ -390,6 +421,7 @@
   mapping$fields <- if (length(mapping$fields)) mapping$fields else structure(list(), names = character(0))
   .cmc_drop_nulls_deep(list(
     ok = TRUE,
+    campaign_id = campaign_id,
     loaded = TRUE,
     file_name = store$file_name,
     imported_at = store$imported_at,
@@ -403,7 +435,11 @@
   ))
 }
 
-.cmail_template_for_session <- function(session) .cmail_template_of(.collection_current(session))
+# Campaña del pedido y su plantilla guardada (validada).
+.cmail_campaign_template_for_session <- function(session, campaign_id = NULL) {
+  pick <- .cmail_campaign_for(session, .collection_current(session), campaign_id)
+  list(campaign_id = pick$campaign$campaign_id, template = .cmail_campaign_template_checked(pick$campaign))
+}
 
 # ---- API ----------------------------------------------------------------------
 
@@ -429,9 +465,10 @@
 #' @param mapping mapeo opcional; sin él se adivina por los encabezados.
 #' @keywords internal
 collection_mail_recipients_import <- function(sid, file_raw = NULL, file_name = NULL,
-                                              content_base64 = NULL, mapping = NULL) {
+                                              content_base64 = NULL, mapping = NULL, campaign_id = NULL) {
   session <- session_get(sid)
-  template <- .cmail_template_for_session(session)
+  ct <- .cmail_campaign_template_for_session(session, campaign_id)
+  template <- ct$template
   payload <- .cmail_import_payload(file_raw, file_name, content_base64)
   read <- .cmail_read_table(payload$raw, payload$name)
   df <- read$df
@@ -447,38 +484,40 @@ collection_mail_recipients_import <- function(sid, file_raw = NULL, file_name = 
     rows_blank_dropped = read$rows_blank_dropped,
     mapping = mapping
   )
-  .cmail_recipients_save(session, store)
-  .cmail_recipients_public(store, template)
+  .cmail_recipients_save(session, ct$campaign_id, store)
+  .cmail_recipients_public(store, template, ct$campaign_id)
 }
 
 #' Cambia el mapeo de columnas sin volver a subir el archivo.
 #' @keywords internal
-collection_mail_recipients_mapping_put <- function(sid, mapping) {
+collection_mail_recipients_mapping_put <- function(sid, mapping, campaign_id = NULL) {
   session <- session_get(sid)
-  store <- .cmail_recipients_load(session)
+  ct <- .cmail_campaign_template_for_session(session, campaign_id)
+  store <- .cmail_recipients_load(session, ct$campaign_id)
   if (is.null(store)) {
     stop_api(409, "E_COLLECTION_MAIL_NO_RECIPIENTS", "Primero importa los destinatarios.")
   }
-  template <- .cmail_template_for_session(session)
-  store$mapping <- .cmail_mapping_validate(mapping, store$rows, template)
-  .cmail_recipients_save(session, store)
-  .cmail_recipients_public(store, template)
+  store$mapping <- .cmail_mapping_validate(mapping, store$rows, ct$template)
+  .cmail_recipients_save(session, ct$campaign_id, store)
+  .cmail_recipients_public(store, ct$template, ct$campaign_id)
 }
 
 #' Resumen de los destinatarios, sin correos.
 #' @keywords internal
-collection_mail_recipients_get <- function(sid) {
+collection_mail_recipients_get <- function(sid, campaign_id = NULL) {
   session <- session_get(sid)
-  store <- .cmail_recipients_load(session)
-  .cmail_recipients_public(store, if (!is.null(store)) .cmail_template_for_session(session))
+  ct <- .cmail_campaign_template_for_session(session, campaign_id)
+  store <- .cmail_recipients_load(session, ct$campaign_id)
+  .cmail_recipients_public(store, if (!is.null(store)) ct$template, ct$campaign_id)
 }
 
 #' Olvida los destinatarios de la sesión.
 #' @keywords internal
-collection_mail_recipients_delete <- function(sid) {
+collection_mail_recipients_delete <- function(sid, campaign_id = NULL) {
   session <- session_get(sid)
-  unlink(.cmail_recipients_dir(session), recursive = TRUE, force = TRUE)
-  .cmail_recipients_public(NULL)
+  pick <- .cmail_campaign_for(session, .collection_current(session), campaign_id)
+  .cmail_recipients_forget(session, pick$campaign$campaign_id)
+  .cmail_recipients_public(NULL, campaign_id = pick$campaign$campaign_id)
 }
 
 # Lectura del pedido de importación: multipart (`file` + `mapping` JSON
@@ -508,8 +547,27 @@ collection_mail_recipients_delete <- function(sid) {
         error = function(e) stop_api(422, "E_COLLECTION_MAIL_MAPPING_INVALID", "mapping no es JSON válido.")
       )
     }
-    return(list(file_raw = part$value, file_name = part$filename %||% "destinatarios.csv", mapping = mapping))
+    return(list(file_raw = part$value, file_name = part$filename %||% "destinatarios.csv", mapping = mapping,
+                campaign_id = .cmail_part_text(parts$campaign_id)))
   }
   body <- .collection_parse_body(req)
-  list(file_raw = NULL, file_name = body$file_name, content_base64 = body$content_base64, mapping = body$mapping)
+  list(file_raw = NULL, file_name = body$file_name, content_base64 = body$content_base64, mapping = body$mapping,
+       campaign_id = body$campaign_id)
+}
+
+# Texto de una parte del multipart (campo sin archivo), o NULL.
+.cmail_part_text <- function(part) {
+  txt <- if (is.list(part) && is.raw(part$value)) {
+    rawToChar(part$value)
+  } else if (is.raw(part)) {
+    rawToChar(part)
+  } else if (is.character(part) && length(part) == 1L) {
+    part
+  } else {
+    NULL
+  }
+  if (is.null(txt)) return(NULL)
+  Encoding(txt) <- "UTF-8"
+  txt <- trimws(txt)
+  if (nzchar(txt)) txt else NULL
 }

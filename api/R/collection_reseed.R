@@ -27,8 +27,13 @@
 .COLLECTION_RESEED_CONSERVA <- c(
   # Plantilla de material (decision del lead, H26): configuracion del usuario.
   "material_template",
-  # Plantilla de correo: misma naturaleza que la de material.
+  # Plantilla de correo: misma naturaleza que la de material. `mail_template`
+  # es la forma de antes de E1h (una sola); se conserva para que la migracion
+  # en lectura la encuentre despues de rehacer el plan.
   "mail_template",
+  # Campanas de correo (E1h): configuracion del usuario, no derivan del plan.
+  # Los destinatarios no viven aqui (tempdir de la sesion) y no se tocan.
+  "mail_campaigns",
   # Historico de fichas de prueba: no entra al plan; su `vigente` se recalcula
   # al leer contra el despliegue de hoy.
   "pruebas",
