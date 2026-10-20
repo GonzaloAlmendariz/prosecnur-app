@@ -13,6 +13,8 @@ import {
   loadSnapshot,
   migrateLegacySingleForm,
   reconcileSnapshotWithBackend,
+  renameForm,
+  syncFormToBackend,
   saveForm,
   saveSnapshot,
   scopeKey,
@@ -609,5 +611,28 @@ describe("migración desde la clave vieja de scope", () => {
     // Las claves viejas ajenas siguen intactas.
     expect(storage.getItem(libViejo)).not.toBeNull();
     expect(storage.getItem(wbViejo)).not.toBeNull();
+  });
+});
+
+describe("el nombre de la biblioteca no sigue al form_title (E11)", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  test("editar form_title no renombra; renombrar sí, y el sync manda el nombre de la biblioteca", async () => {
+    vi.stubGlobal("localStorage", makeStorage());
+    vi.stubGlobal("sessionStorage", makeStorage());
+    saveForm("proj-n", "form-n", untitledWorkbook("A"), { sourceName: "Encuesta base.xlsx", sourceKind: "xlsform" });
+    expect(listForms("proj-n")[0].name).toBe("Encuesta base");
+
+    // Primera edición con form_title: el título cambia, el nombre no.
+    saveForm("proj-n", "form-n", workbook("A"), { sourceName: "Encuesta base.xlsx", sourceKind: "xlsform" });
+    expect(listForms("proj-n")[0].name).toBe("Encuesta base");
+    vi.mocked(apiXlsformFormSave).mockClear();
+    await syncFormToBackend("form-n", workbook("A"), { sourceName: "Encuesta base.xlsx", sourceKind: "xlsform" });
+    expect(vi.mocked(apiXlsformFormSave).mock.calls[0]?.[0]).toMatchObject({ name: "Encuesta base" });
+
+    renameForm("proj-n", "form-n", "Encuesta final");
+    expect(listForms("proj-n")[0].name).toBe("Encuesta final");
+    saveForm("proj-n", "form-n", workbook("B"), { sourceName: "Encuesta base.xlsx", sourceKind: "xlsform" });
+    expect(listForms("proj-n")[0].name).toBe("Encuesta final");
   });
 });

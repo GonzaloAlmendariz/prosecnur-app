@@ -2,7 +2,7 @@
 // repetidas, avisos, preguntas sin lista, previa del impreso), con su estado y un enlace al lugar donde se resuelve.
 
 import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, Info } from "../../../vendor/lucide-react";
-import type { AccionPendiente, Pendiente } from "./modeloResumen";
+import { tareasPendientes, type AccionPendiente, type Pendiente } from "./modeloResumen";
 
 const ICONO = {
   listo: CheckCircle2,
@@ -15,7 +15,7 @@ export function PendientesPublicar({ items, onAccion }: {
   items: readonly Pendiente[];
   onAccion: (destino: AccionPendiente) => void;
 }) {
-  const abiertos = items.filter((i) => i.estado === "aviso" || i.estado === "error").length;
+  const abiertos = tareasPendientes(items);
   return (
     <section className="pulso-xf-res-panel pulso-xf-res-pendientes" aria-labelledby="xf-res-pendientes-titulo" data-qa-geometry-member=""
       data-qa-geometry-capacity="owned">

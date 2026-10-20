@@ -266,13 +266,24 @@ function readIndex(scope: ProjectScope): LibraryIndex {
       typeof parsed.activeFormId === "string" && forms.some((f) => f.id === parsed.activeFormId)
         ? parsed.activeFormId
         : null;
+    recordarNombres(forms);
     return { activeFormId, forms };
   } catch {
     return emptyIndex();
   }
 }
 
+// El nombre de la biblioteca de cada formulario, para que el sync al backend
+// mande el nombre que el usuario ve y no lo re-derive del form_title (E11).
+// Los ids son únicos entre proyectos, así que basta un mapa por id.
+const nombresDeBiblioteca = new Map<string, string>();
+
+function recordarNombres(forms: readonly LibraryEntry[]): void {
+  for (const f of forms) if (f.name) nombresDeBiblioteca.set(f.id, f.name);
+}
+
 function writeIndex(scope: ProjectScope, index: LibraryIndex): void {
+  recordarNombres(index.forms);
   try {
     localStorage.setItem(libraryKey(scope), JSON.stringify(index));
   } catch {
@@ -385,9 +396,11 @@ export function saveForm(
     const existingIdx = index.forms.findIndex((f) => f.id === formId);
     const ordinal = existingIdx >= 0 ? existingIdx + 1 : index.forms.length + 1;
     const existing = existingIdx >= 0 ? index.forms[existingIdx] : undefined;
+    // El nombre de la biblioteca sólo se deriva al crear la entrada: editar el
+    // form_title cambia el título del formulario, no su nombre (E11).
     const entry: LibraryEntry = {
       id: formId,
-      name: deriveFormName(workbook, source, ordinal),
+      name: existing?.name || deriveFormName(workbook, source, ordinal),
       savedAt,
       source,
       nQuestions: existing?.nQuestions,
@@ -473,9 +486,8 @@ function writeSettingValue(
   return { ...workbook, settings: { ...settings, columns, rows } };
 }
 
-/** Renombra un formulario. Actualiza la entrada del índice y —si hay copia
- *  local del workbook— escribe `settings.form_title` para que el nombre
- *  sobreviva a un futuro autosave (deriveFormName prioriza form_title). No
+/** Renombra un formulario: es lo único que cambia el nombre de la biblioteca.
+ *  Si hay copia local del workbook también escribe `settings.form_title`. No
  *  bloqueante: sincroniza el nombre al backend en segundo plano. Devuelve el
  *  índice resultante. */
 export function renameForm(
@@ -486,6 +498,8 @@ export function renameForm(
   const trimmed = name.trim();
   if (!trimmed) return readIndex(scope);
   const snap = loadForm(scope, formId);
+  const index = readIndex(scope);
+  writeIndex(scope, { ...index, forms: index.forms.map((f) => (f.id === formId ? { ...f, name: trimmed } : f)) });
   if (snap) {
     const workbook = writeSettingValue(snap.workbook, "form_title", trimmed);
     const meta = { sourceName: snap.sourceName, sourceKind: snap.sourceKind, source: snap.source };
@@ -493,10 +507,6 @@ export function renameForm(
     // Rename opera sobre un formulario existente: nunca dispara E_FORM_LIMIT,
     // pero blindamos el promise huérfano por si el re-throw del tope aflora.
     void syncFormToBackend(formId, workbook, meta).catch(() => {});
-  } else {
-    const index = readIndex(scope);
-    const forms = index.forms.map((f) => (f.id === formId ? { ...f, name: trimmed } : f));
-    writeIndex(scope, { ...index, forms });
   }
   return readIndex(scope);
 }
@@ -856,7 +866,7 @@ export async function syncFormToBackend(
     const source = sourceFromMeta(meta);
     await apiXlsformFormSave({
       id: formId,
-      name: deriveFormName(workbook, source),
+      name: nombresDeBiblioteca.get(formId) ?? deriveFormName(workbook, source),
       workbook,
       source,
       hallazgos: meta.hallazgos ?? [],

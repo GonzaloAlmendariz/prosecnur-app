@@ -1,0 +1,118 @@
+/* =============================================================================
+ * resumen/resumen.css — ajustes E9 de la pestaña «Resumen» (va después de xf-summary/*)
+ * =============================================================================
+ * 1. La tabla de secciones tiene columnas fijas: la sección toma el resto con
+ *    elipsis y las cifras van en columnas de ancho fijo, todas visibles.
+ * 2. El cuerpo crece hasta lo que piden «Qué falta» y Composición (alto
+ *    intrínseco, sin scroll interno): el dueño del scroll es la pestaña. La
+ *    tabla no empuja ese alto (contain: size) y es dueña de su propio scroll.
+ * 3. En compacto, si algo de la tabla no cabe, el desplazamiento lateral va
+ *    dentro de la tabla y nunca en la pestaña.
+ * ========================================================================= */
+
+.pulso-xf-res {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.pulso-xf-res-cuerpo {
+  flex: 1 0 auto;
+  align-items: stretch;
+}
+
+.pulso-xf-res-cuerpo > .pulso-xf-res-pendientes,
+.pulso-xf-res-cuerpo > .pulso-xf-res-composicion {
+  overflow: visible;
+}
+
+.pulso-xf-res-cuerpo > .pulso-xf-res-secciones {
+  contain: size;
+  min-height: 320px;
+}
+
+.pulso-xf-res-tabla {
+  table-layout: fixed;
+}
+
+.pulso-xf-res-tabla th.is-seccion {
+  width: auto;
+}
+
+.pulso-xf-res-tabla .is-num {
+  width: 96px;
+}
+
+.pulso-xf-res-tabla .is-col-minutos {
+  width: 80px;
+}
+
+.pulso-xf-res-tabla thead th.is-peso {
+  width: 128px;
+}
+
+.pulso-xf-res-tabla thead th.is-tipo {
+  width: 136px;
+}
+
+/* Los rótulos de las cifras parten en dos líneas antes que ensanchar la columna. */
+.pulso-xf-res-tabla thead th {
+  vertical-align: bottom;
+}
+
+.pulso-xf-res-tabla thead th.is-num {
+  white-space: normal;
+}
+
+.pulso-xf-res-tabla th.is-num .pulso-xf-res-orden {
+  padding-inline: 6px var(--pulso-space-2);
+  text-align: right;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.pulso-xf-res-tabla th.is-num .pulso-xf-res-orden svg {
+  flex: none;
+}
+
+.pulso-xf-res-tabla td.is-tipo {
+  max-width: none;
+}
+
+.pulso-xf-res-seccion-texto {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pulso-xf-res-seccion-texto > small {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-xf-res-tabla td.is-peso {
+  width: auto;
+  min-width: 0;
+}
+
+@container (max-width: 640px) {
+  .pulso-xf-res-tabla thead th.is-peso {
+    width: 72px;
+  }
+}
+
+@media (max-width: 1180px), (max-height: 720px) {
+  .pulso-xf-res-cuerpo {
+    flex: 0 0 auto;
+  }
+
+  .pulso-xf-res-cuerpo > .pulso-xf-res-secciones {
+    contain: none;
+    min-height: 0;
+  }
+
+  .pulso-xf-res-tabla-marco {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+}

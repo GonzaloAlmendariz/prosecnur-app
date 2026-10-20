@@ -48,9 +48,13 @@ describe("matrices del impreso", () => {
   test("el resumen cuenta las activas sobre el total (las sugerencias nacen apagadas)", () => {
     const todas = [candidata("a", 1), candidata("b", 4), candidata("d", 6)];
     const ctx = { candidatas: todas, consentimiento: [], filasPapel: 0 };
-    expect(resumenDeParte("matrices", estado, ctx)).toBe("0 de 3 como tabla");
+    // El total cuenta sólo las sugeribles (b y d): una suelta activada no suma.
+    expect(resumenDeParte("matrices", estado, ctx)).toBe("0 de 2 como tabla");
     const conSuelta = { ...estado, matrices: { [matrixSignature(todas[0])]: { enabled: true } } };
-    expect(resumenDeParte("matrices", conSuelta, ctx)).toBe("1 de 3 como tabla");
+    expect(resumenDeParte("matrices", conSuelta, ctx)).toBe("0 de 2 como tabla");
+    const conMatriz = { ...estado, matrices: { [matrixSignature(todas[1])]: { enabled: true } } };
+    expect(resumenDeParte("matrices", conMatriz, ctx)).toBe("1 de 2 como tabla");
+    expect(resumenDeParte("matrices", estado, { ...ctx, candidatas: [candidata("s", 1)] })).toBe("Ninguna detectada");
     expect(resumenDeParte("matrices", estado, { ...ctx, candidatas: [] })).toBe("Ninguna detectada");
   });
 });

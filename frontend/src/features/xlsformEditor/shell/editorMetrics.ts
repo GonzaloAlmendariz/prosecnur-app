@@ -11,13 +11,29 @@
 // sus filas si es matriz) y del calce de campañas en el backend
 // (`.sm_mb_alin_preguntas`: sin estructura, sin notas, sin `_other` con madre).
 // Antes el editor contaba también notas y `_other` (113 contra 92 en Docentes).
+//
+// La cabecera del editor y la pestaña Resumen dicen «preguntas» (E9): las
+// filas que se le hacen a quien responde, sin notas, cálculos, estructura ni
+// metadatos que registra el teléfono (inicio, fin, dispositivo). Es la misma
+// cifra en los dos sitios y sale de `esPreguntaDelFormulario`.
 // =============================================================================
 
 import type { BuilderDiagnostic, BuilderNode, BuilderStructure } from "../types";
+import { esMetadato } from "../kit/tiposPregunta";
+
+/** Una pregunta que se le hace a quien responde: ni nota, ni cálculo, ni estructura, ni metadato. */
+export function esPreguntaDelFormulario(node: Pick<BuilderNode, "kind" | "typeInfo">): boolean {
+  return node.kind === "question" && !esMetadato(node.typeInfo?.base ?? "");
+}
+
+export function contarPreguntas(nodes: readonly BuilderNode[]): number {
+  return nodes.filter(esPreguntaDelFormulario).length;
+}
 
 export type SuiteMetrics = {
   pieces: number;
-  /** Variables que reciben respuesta (ver cabecera). Es el número que se muestra. */
+  /** Preguntas del formulario (`esPreguntaDelFormulario`): la cifra que muestra la cabecera, la misma del Resumen.
+   *  Los «campos» (`countFieldsInOutline`) siguen para el import, las tarjetas y el calce de campañas. */
   fields: number;
   sections: number;
   questions: number;
@@ -67,7 +83,7 @@ export function buildSuiteMetrics(
   const nodes = structure?.outline ?? [];
   return {
     pieces: nodes.length,
-    fields: countFieldsInOutline(nodes),
+    fields: contarPreguntas(nodes),
     sections: nodes.filter(isSectionLike).length,
     questions: nodes.filter(isQuestionLike).length,
     catalogs: catalogsCount,

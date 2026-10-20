@@ -222,8 +222,7 @@ export function buildDiagnostics(
         level: "info",
         rowIndex: node.rowIndex,
         title: "Obligatoria solo cuando se muestra",
-        detail:
-          "Esta pregunta es obligatoria y tiene una condición de visibilidad. ODK la pedirá únicamente cuando la condición sea verdadera; si es falsa, la pregunta se omite del envío sin marcarla como faltante.",
+        detail: "Si la condición no se cumple, se omite sin contar como faltante.",
       });
     }
     if (node.kind === "repeat") {

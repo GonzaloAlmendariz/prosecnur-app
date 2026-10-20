@@ -6,6 +6,8 @@ import {
   marcasDeMinutos,
   ordenarSecciones,
   pendientesParaPublicar,
+  primerDiagnostico,
+  tareasPendientes,
   porcentaje,
   resumirFormulario,
   rotuloMinutos,
@@ -105,7 +107,7 @@ describe("qué falta para publicar e imprimir", () => {
   const base: EntradaPendientes = {
     logica: { pendiente: false, externa: null },
     escalasRepetidas: 0,
-    diagnosticos: { errores: 0, avisos: 0, primeraFila: null },
+    diagnosticos: { errores: 0, avisos: 0, correcciones: 0, primero: null },
     sinLista: [],
     impreso: { estado: "sin-previa", paginas: null },
   };
@@ -123,7 +125,7 @@ describe("qué falta para publicar e imprimir", () => {
       ...base,
       logica: { pendiente: true, externa: null },
       escalasRepetidas: 3,
-      diagnosticos: { errores: 1, avisos: 2, primeraFila: 12 },
+      diagnosticos: { errores: 1, avisos: 2, correcciones: 5, primero: { tipo: "fila", rowIndex: 12 } },
       sinLista: [{ rowIndex: 7, name: "p7" }],
       impreso: { estado: "al-dia", paginas: 8 },
     });
@@ -131,8 +133,28 @@ describe("qué falta para publicar e imprimir", () => {
     expect(por.logica).toMatchObject({ estado: "aviso", accion: { destino: { tipo: "revisar-logica" } } });
     expect(por.escalas).toMatchObject({ estado: "aviso", titulo: "3 escalas repetidas", accion: { destino: { tipo: "listas" } } });
     expect(por.avisos).toMatchObject({ estado: "error", titulo: "1 error y 2 avisos", accion: { destino: { tipo: "fila", rowIndex: 12 } } });
-    expect(por["sin-lista"]).toMatchObject({ estado: "error", accion: { destino: { tipo: "pregunta", name: "p7" } } });
+    expect(por["sin-lista"]).toMatchObject({ estado: "error", accion: { destino: { tipo: "pregunta", name: "p7", rowIndex: 7 } } });
     expect(por.impreso).toMatchObject({ estado: "listo", detalle: "8 páginas en A4. Al día con el formulario." });
+    // El contador sale de las filas que piden algo: lógica, escalas, avisos y sin lista (el impreso al día no).
+    expect(tareasPendientes(items)).toBe(4);
+  });
+
+  test("E9: el impreso sin previa cuenta como tarea y las correcciones van sólo sin errores, como en la cabecera", () => {
+    const items = pendientesParaPublicar({ ...base, escalasRepetidas: 3, diagnosticos: { errores: 0, avisos: 0, correcciones: 12, primero: null } });
+    const por = Object.fromEntries(items.map((i) => [i.clave, i]));
+    expect(por.avisos).toMatchObject({ estado: "error", titulo: "12 correcciones pendientes" });
+    expect(tareasPendientes(items)).toBe(2);
+    expect(items.filter((i) => i.estado !== "listo" && i.accion)).toHaveLength(2);
+  });
+
+  test("E9: «Ir al primero» va al primer error con nombre, en el orden del formulario", () => {
+    const d = (level: "error" | "warn" | "info", rowIndex: number) => ({ id: `${level}${rowIndex}`, level, title: "", detail: "", rowIndex });
+    const nombres = new Map([[4, "p4"], [9, "p9"], [2, "p2"]]);
+    const nombre = (r: number) => nombres.get(r) ?? null;
+    expect(primerDiagnostico([d("warn", 2), d("error", 9), d("error", 6), d("error", 4)], nombre)).toEqual({ tipo: "pregunta", name: "p4", rowIndex: 4 });
+    expect(primerDiagnostico([d("warn", 9), d("info", 2)], nombre)).toEqual({ tipo: "pregunta", name: "p2", rowIndex: 2 });
+    expect(primerDiagnostico([d("error", 7)], nombre)).toEqual({ tipo: "fila", rowIndex: 7 });
+    expect(primerDiagnostico([], nombre)).toBeNull();
   });
 
   test("la lógica declarada fuera se informa en neutro, sin pedir revisión", () => {

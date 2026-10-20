@@ -163,10 +163,10 @@ export function resumenDeParte(parte: ParteImpreso, estado: PdfDialogState, ctx:
     case "contenido":
       return `${estado.defaultIntro ? "Instrucciones" : "Sin instrucciones"} · ${estado.maxOptionsPerQuestion} opciones`;
     case "matrices": {
-      const { matrices, sueltas } = separarCandidatas(ctx.candidatas);
-      if (matrices.length === 0 && sueltas.length === 0) return "Ninguna detectada";
-      const activas = matricesActivas(ctx.candidatas, estado.matrices);
-      return `${activas} de ${ctx.candidatas.length} como tabla`;
+      // El total son las sugeribles (dos o más preguntas), el mismo número del contador de la parte.
+      const { matrices } = separarCandidatas(ctx.candidatas);
+      if (matrices.length === 0) return "Ninguna detectada";
+      return `${matricesActivas(matrices, estado.matrices)} de ${matrices.length} como tabla`;
     }
     case "papel":
       return ctx.filasPapel === 0

@@ -33,6 +33,10 @@ export type EditorHeaderStatus = {
   tone: EditorHeaderTone;
   label: string;
   title: string;
+  /** Diagnósticos `error` del workbook: el número de «N errores». El Resumen repite este mismo. */
+  errorCount: number;
+  /** Avisos e informaciones del workbook: el número de «N avisos». */
+  avisoCount: number;
   /** El paso de publicación pendiente que se resuelve revisando la lógica. */
   logicStepPending: boolean;
   /** La lógica y la limpieza se declararon hechas fuera de Prosecnur. */
@@ -75,7 +79,7 @@ export function deriveEditorHeaderStatus(
     .filter((b) => b.kind === "error" && !localIds.has(b.id))
     .map((b) => ({ id: b.id, title: b.title, detail: b.detail, rowIndex: b.rowIndex }));
 
-  const base = { logicStepPending, logicaExterna, publicationErrors };
+  const base = { logicStepPending, logicaExterna, publicationErrors, errorCount, avisoCount: warnCount + infoCount };
 
   if (errorCount > 0) {
     return {

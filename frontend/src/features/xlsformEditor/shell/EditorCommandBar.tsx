@@ -90,9 +90,9 @@ export function EditorCommandBar(props: EditorCommandBarProps) {
           aria-label="Resumen del formulario"
           data-qa-geometry-group="xlsform/banda-metricas"
           data-qa-geometry-contract="intrinsic"
-          title={`${plural(metrics.fields, "campo", "campos")} (variables que reciben respuesta) · ${plural(metrics.sections, "sección", "secciones")} · ${listsTitle}`}
+          title={`${plural(metrics.fields, "pregunta", "preguntas")} · ${plural(metrics.sections, "sección", "secciones")} · ${listsTitle}`}
         >
-          <span><strong>{metrics.fields}</strong> {metrics.fields === 1 ? "campo" : "campos"}</span>
+          <span><strong>{metrics.fields}</strong> {metrics.fields === 1 ? "pregunta" : "preguntas"}</span>
           <span aria-hidden="true">·</span>
           <span><strong>{metrics.sections}</strong> {metrics.sections === 1 ? "sección" : "secciones"}</span>
           <span className="pulso-xf-cmd-secondary" aria-hidden="true">·</span>
