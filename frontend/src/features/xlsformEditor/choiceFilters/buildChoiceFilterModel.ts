@@ -307,7 +307,7 @@ function buildExplanation(mode: ChoiceFilterMode, antecedents: ChoiceFilterAntec
 }
 
 /** Alcance de lectura armado con la estructura y las hojas crudas (el modelo no recibe el del editor). */
-function alcanceDelModelo(structure: BuilderStructure, choicesColumns: string[], choicesRows: string[][]): LogicScope {
+export function alcanceDelModelo(structure: BuilderStructure, choicesColumns: string[], choicesRows: string[][]): LogicScope {
   const iL = choicesColumns.indexOf("list_name");
   const iN = choicesColumns.indexOf("name");
   const iE = choicesColumns.indexOf("label");

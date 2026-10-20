@@ -1,41 +1,51 @@
-// S2/S5 en la pestaña Filtros con filas reales del ACNUR. Mata: «0 respuestas previas» y «dependen de respuestas que
-// la persona dio antes» para el subconjunto fijo REF02CO = 'kk', y una dependencia inventada para la fila rota.
+// La pestaña Filtros con filas reales del ACNUR. Mata: «respuestas previas» para el subconjunto fijo REF02CO = 'kk',
+// REF02 abierto como expresión combinada, una dependencia inventada para la fila rota, `${x}` crudo en un título y
+// un filtro sin «Editar filtro».
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { acnur } from "../reglas/acnurEs.fixture";
 import { LECTURA_FILA_ROTA } from "../reglas/motor";
 import { ChoiceFiltersView } from "./ChoiceFiltersView";
 
 const A = acnur();
-const pintar = (seleccionada: string) =>
+const pintar = (seleccionada: string, editable = false) =>
   renderToStaticMarkup(
-    <ChoiceFiltersView open structure={A.structure} choicesColumns={A.workbook.choices.columns} choicesRows={A.workbook.choices.rows}
-      seleccionada={seleccionada} onSeleccionar={() => {}} onEditar={() => {}} />,
+    <MemoryRouter>
+      <ChoiceFiltersView open structure={A.structure} choicesColumns={A.workbook.choices.columns} choicesRows={A.workbook.choices.rows}
+        seleccionada={seleccionada} onSeleccionar={() => {}} onEditar={() => {}}
+        {...(editable ? { workbook: A.workbook, onWorkbookChange: () => {} } : {})} />
+    </MemoryRouter>,
   );
 
 describe("Filtros con el ACNUR", () => {
-  it("REF02: subconjunto fijo, sin «respuestas previas»", () => {
-    const html = pintar("REF02");
+  it("REF02: subconjunto fijo editable como lista, sin «respuestas previas»", () => {
+    const html = pintar("REF02", true);
     expect(html).toContain("Muestra siempre las mismas 3 opciones: las marcadas con kk en la columna REF02CO de la lista Country.");
-    expect(html).not.toContain("0 respuestas previas");
-    expect(html).not.toContain("dependen de respuestas que la persona dio antes");
-    expect(html).not.toContain("Depende de las respuestas a:");
-    expect(html).toContain("siempre las mismas 3");
+    expect(html).toContain("Opciones que se muestran");
+    expect(html).toMatch(/type="checkbox"/);
+    expect(html).not.toContain("Expresión (choice_filter)");
+    expect(html).not.toMatch(/respuestas? previas?/);
   });
-  it("REG02_Other_recod: fila rota, sin dependencias", () => {
+  it("REG02_Other_recod: fila rota, en conflicto y sin dependencias", () => {
     const html = pintar("REG02_Other_recod");
     expect(html).toContain(LECTURA_FILA_ROTA);
-    expect(html).not.toContain("Depende de las respuestas a:");
+    expect(html).toContain("En conflicto");
+  });
+  it("lista: código, forma y estado de cada filtro", () => {
+    const html = pintar("REF02");
+    expect(html).toMatch(/xcf-item__codigo[^>]*>REF02</);
+    expect(html).toContain(">Fijo<");
+    expect(html).toContain('aria-current="true"');
+    expect(html).not.toMatch(/\$\{[A-Za-z_]+\}/);
   });
 });
 
-describe("S15: todo filtro se puede editar", () => {
-  it("REF16 (condición + opciones fijas) ofrece «Editar filtro»", () => {
-    const html = renderToStaticMarkup(
-      <ChoiceFiltersView open structure={A.structure} choicesColumns={A.workbook.choices.columns} choicesRows={A.workbook.choices.rows}
-        seleccionada="REF16" onSeleccionar={() => {}} onEditar={() => {}} workbook={A.workbook} onWorkbookChange={() => {}} />,
-    );
+describe("todo filtro se puede editar", () => {
+  it("REF16 (condición + opciones nombradas) ofrece «Editar filtro» y una vista previa", () => {
+    const html = pintar("REF16", true);
     expect(html).toContain("Editar filtro");
+    expect(html).toContain("Qué ve el encuestado");
     expect(html).not.toContain("No hay un filtro en");
   });
 });
