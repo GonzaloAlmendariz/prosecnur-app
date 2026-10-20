@@ -38,7 +38,8 @@ import type { LogicScope } from "../logic";
 import type { BuilderDiagnostic, BuilderStructure } from "../types";
 import "./editorXlsform.css";
 import { columnaDeIdComillas, rectificarComillas } from "../parsing/comillas";
-import { conNivel, PARAMS_DIRECCION } from "../../../lib/navegacion/direccion";
+import { conNivel } from "../../../lib/navegacion/direccion";
+import { useDireccion } from "../../../lib/navegacion/useDireccion";
 
 const PanelFila = memo(PanelFilaBase);
 
@@ -94,7 +95,7 @@ export function SheetsView({
   // La hoja activa vive en el `foco` de la dirección: recargar o compartir el enlace abre la misma hoja.
   const location = useLocation();
   const navigate = useNavigate();
-  const activeTab = hojaDesdeFoco(new URLSearchParams(location.search).get(PARAMS_DIRECCION.foco));
+  const activeTab = hojaDesdeFoco(useDireccion()?.foco ?? null);
   const [newColInput, setNewColInput] = useState("");
   const [showAdvancedColumns, setShowAdvancedColumns] = useState(false);
   const [celda, setCelda] = useState<CeldaElegida | null>(null);
