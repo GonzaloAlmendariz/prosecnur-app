@@ -20,6 +20,16 @@
 //   POST   mail-campaigns/duplicate     copia la plantilla, nunca los destinatarios
 //   PUT    mail-campaigns/meta          renombra o cambia el actor
 //   POST   mail-campaigns/delete        borra con `confirm_name` idéntico al nombre
+//
+// Plataforma, envíos e importación (E1j·E1k·E1l):
+//   - cada campaña sale para Mailchimp o SurveyMonkey (`platform`); pasar a
+//     SurveyMonkey olvida sus destinatarios (`recipients_purged`);
+//   - una campaña tiene de 1 a 6 envíos (`sends`): la invitación y sus
+//     recordatorios, con asunto, preheader y apertura propios. PUT
+//     mail-template guarda plantilla y envíos juntos; preview, review y export
+//     aceptan `send_id` (o `send`, un borrador);
+//   - POST mail-template/import-html lee un HTML existente y lo devuelve como
+//     plantilla con su informe (no escribe nada); `import_id` lo cita después.
 // Todo `mail-*` acepta `campaign_id` (consulta en GET/DELETE, cuerpo en
 // POST/PUT, parte del multipart en el import). Con dos o más campañas es
 // obligatorio: sin él el backend responde 422 E_COLLECTION_MAIL_CAMPAIGN_REQUIRED.
@@ -166,7 +176,14 @@ export type MailField = {
   fallback?: string;
   /** Etiqueta de SurveyMonkey (addendum E1j): `SurveyLink`, `LastName` o `CustomDataN`. */
   sm?: string;
+  /**
+   * A dónde lleva el campo cuando es un enlace: `encuesta` (el de la persona)
+   * u `otro` (un enlace fijo). Uno `otro` no puede ir a `[SurveyLink]`.
+   */
+  destino?: MailFieldDestino;
 };
+
+export type MailFieldDestino = "encuesta" | "otro";
 
 export type MailTemplate = {
   schema: MailTemplateSchema;
@@ -177,7 +194,8 @@ export type MailTemplate = {
   template_sha256?: string;
   subject: string;
   preheader: string;
-  theme: { accent: string; link?: string };
+  /** `band` (E1j): color de la franja de cierre, `suave` o `acento`. */
+  theme: { accent: string; link?: string; band?: MailBand };
   header: MailHeader;
   images: Record<string, MailImage>;
   fields: MailField[];
@@ -185,6 +203,44 @@ export type MailTemplate = {
 };
 
 export type MailPreset = { preset_id: string; title: string; template: MailTemplate };
+
+export type MailBand = "suave" | "acento";
+
+/** Plataforma de envío de una campaña (E1j). Sin ella, la campaña es de Mailchimp. */
+export const MAIL_PLATFORMS = ["mailchimp", "surveymonkey"] as const;
+export type MailPlatform = (typeof MAIL_PLATFORMS)[number];
+export const MAIL_PLATFORM_DEFAULT: MailPlatform = "mailchimp";
+
+/** A quién va un envío: la invitación a todos; un recordatorio, a los rótulos de «Send To» de SurveyMonkey. */
+export const MAIL_SEND_AUDIENCES = ["todos", "sin_respuesta", "parcial", "ambos"] as const;
+export type MailSendAudience = (typeof MAIL_SEND_AUDIENCES)[number];
+export type MailSendKind = "invitacion" | "recordatorio";
+
+/**
+ * Un envío de la campaña (E1k): la invitación o un recordatorio. El cuerpo es
+ * el de la plantilla; el envío cambia sólo su asunto, su preheader y suma una
+ * apertura. `send_id` lo asigna el servidor (`recordatorio-<k>`): un envío
+ * recién agregado, todavía sin guardar, lleva un id local (ver modeloEnvios).
+ */
+export type MailSend = {
+  send_id: string;
+  kind: MailSendKind;
+  label: string;
+  /** AAAA-MM-DD, sólo para planificar. */
+  date?: string;
+  audience: MailSendAudience;
+  subject?: string;
+  preheader?: string;
+  opening?: string;
+  /** Nombre o id del recopilador de SurveyMonkey por el que sale. */
+  collector_label?: string;
+};
+
+/** Lo que trae el resumen de campañas y la vista previa: sin asunto ni apertura. */
+export type MailSendBrief = Pick<MailSend, "send_id" | "kind" | "label" | "date"> & { audience?: MailSendAudience };
+
+/** Aviso de los envíos al guardar (no bloquea): hoy, `send_dates`. */
+export type MailSendWarning = { code: string; send_id: string | null; detail: string };
 
 export type MailPresetsPayload = {
   schema: typeof MAIL_TEMPLATE_SCHEMA;
@@ -199,6 +255,9 @@ export type MailTemplatePayload = {
   campaign_id?: string | null;
   builtin: boolean;
   template: MailTemplate;
+  platform: MailPlatform;
+  /** Los envíos completos de la campaña; al menos la invitación. */
+  sends: MailSend[];
   /**
    * Problemas de la plantilla GUARDADA cuando ya no cumple el contrato (un
    * `.pulso` de otra versión o editado a mano). Vacío si es válida. Mientras
@@ -212,9 +271,13 @@ export type MailTemplatePutPayload = {
   state_revision: number;
   campaign_id?: string | null;
   template: MailTemplate;
+  /** Los envíos como quedaron: los recordatorios nuevos ya traen su `send_id`. */
+  sends: MailSend[];
+  send_warnings: MailSendWarning[];
 };
 
-export type MailPreviewMode = "preview" | "mailchimp";
+/** `export`: el HTML de la plataforma de la campaña; `mailchimp` es su alias viejo. */
+export type MailPreviewMode = "preview" | "export" | "mailchimp";
 
 export type MailRecipientView = {
   source: "imported" | "synthetic";
@@ -225,6 +288,10 @@ export type MailRecipientView = {
 
 export type MailPreview = {
   mode: MailPreviewMode;
+  platform: MailPlatform;
+  dialect: MailPlatform;
+  /** El envío que se pintó (la invitación si no se pidió otro). */
+  send: MailSendBrief | null;
   html: string;
   subject: string;
   preheader: string;
@@ -252,6 +319,16 @@ export const MAIL_CHECK_CODES = [
   "accent_contrast",
   "image_width",
   "image_weight",
+  // SurveyMonkey (E1j) y envíos (E1k).
+  "survey_link",
+  "footer_optout",
+  "images_public_url",
+  "sm_fields_mapped",
+  "sm_fallback",
+  "sm_custom_limit",
+  "send_dates",
+  "reminder_audience",
+  "sm_link_field_empty",
 ] as const;
 export type MailCheckCode = (typeof MAIL_CHECK_CODES)[number];
 
@@ -277,6 +354,9 @@ export type MailCheck = {
 export type MailExportScope = "completo" | "plantilla";
 
 export type MailReview = {
+  /** Dialecto con el que se revisó; `null` si el backend no lo dice. */
+  platform: MailPlatform | null;
+  send_id: string | null;
   template_sha256: string;
   ready: boolean;
   errors: number;
@@ -297,6 +377,10 @@ export type MailArtifact = {
 
 export type MailExportPayload = {
   scope?: MailExportScope;
+  platform: MailPlatform;
+  send_id: string | null;
+  /** SurveyMonkey: el HTML que va dentro del ZIP. */
+  html: { name: string; bytes: number } | null;
   /** El ZIP que se importa en Mailchimp, dentro del paquete. */
   import_zip?: { size_bytes: number; entries: string[]; html: string } | null;
   artifacts: MailArtifact[];
@@ -353,6 +437,9 @@ export type MailCampaignSummary = {
   campaign_id: string;
   name: string;
   actor: string;
+  platform: MailPlatform;
+  /** Los envíos, sin asunto ni apertura; al menos la invitación. */
+  sends: MailSendBrief[];
   preset_id: string | null;
   subject: string;
   blocks: number;
@@ -377,6 +464,9 @@ export type MailCampaign = {
   created_at: string | null;
   updated_at: string | null;
   duplicated_from: string | null;
+  platform: MailPlatform;
+  /** Vacío si la respuesta no los trae. */
+  sends: MailSend[];
   /** `null` cuando la respuesta no trae plantilla (renombrar). */
   template: MailTemplate | null;
 };
@@ -390,7 +480,38 @@ export type MailCampaignWrite = {
 
 export type MailCampaignDuplicate = MailCampaignWrite & { recipients_copied: boolean };
 
-export type MailCampaignMeta = { noop: boolean; state_revision: number; campaign: MailCampaign };
+export type MailCampaignMeta = {
+  noop: boolean;
+  state_revision: number;
+  campaign: MailCampaign;
+  /** Pasar a SurveyMonkey olvidó la lista de destinatarios de la campaña. */
+  recipients_purged: boolean;
+};
+
+/** Un ítem del informe de importación: qué se descartó, se movió o no se reconoció. */
+export type MailImportReportItem = {
+  code: string;
+  selector: string | null;
+  excerpt: string;
+  reason: string;
+  /** El bloque donde quedó (o lo que lo reemplazó), si hay uno. */
+  block_id: string | null;
+};
+
+export type MailImportImage = { id: string; url: string | null; alt: string; status: "url" | "needs_upload" };
+
+export type MailImportHtml = {
+  import_id: string;
+  sha256: string;
+  bytes: number;
+  /** `null`: no se reconoció ninguna plataforma (el backend omite el campo). */
+  platform_detected: MailPlatform | null;
+  platform_evidence: Record<MailPlatform, number>;
+  template: MailTemplate;
+  report: MailImportReportItem[];
+  images: MailImportImage[];
+  stats: { blocks: number; dropped_empty: number; discarded: string[] };
+};
 
 export type MailCampaignDelete = { state_revision: number; deleted: string; recipients_purged: boolean };
 
@@ -587,12 +708,14 @@ function normalizeFields(value: unknown): MailField[] {
     if (!key) continue;
     const fallback = optStr(raw.fallback);
     const sm = optStr(raw.sm);
+    const destino = oneOf(raw.destino, ["encuesta", "otro"] as const);
     out.push({
       key,
       tag: str(raw.tag),
       label: str(raw.label) || key,
       ...(fallback !== undefined ? { fallback } : {}),
       ...(sm ? { sm } : {}),
+      ...(destino ? { destino } : {}),
     });
   }
   return out;
@@ -619,6 +742,7 @@ export function normalizeMailTemplate(value: unknown, opts: { lenient?: boolean 
     blocks.push(block);
   }
   const theme = isRecord(value.theme) ? value.theme : {};
+  const band = oneOf(theme.band, ["suave", "acento"] as const);
   const presetId = optStr(value.preset_id);
   const title = optStr(value.title);
   const sha = optStr(value.template_sha256);
@@ -631,7 +755,11 @@ export function normalizeMailTemplate(value: unknown, opts: { lenient?: boolean 
     ...(sha !== undefined ? { template_sha256: sha } : {}),
     subject: str(value.subject),
     preheader: str(value.preheader),
-    theme: { accent: str(theme.accent) || "#0b1f54", ...(optStr(theme.link) !== undefined ? { link: str(theme.link) } : {}) },
+    theme: {
+      accent: str(theme.accent) || "#0b1f54",
+      ...(optStr(theme.link) !== undefined ? { link: str(theme.link) } : {}),
+      ...(band ? { band } : {}),
+    },
     header: normalizeHeader(value.header),
     images: normalizeImages(value.images),
     fields: normalizeFields(value.fields),
@@ -666,6 +794,97 @@ export function normalizeMailPresets(value: unknown): MailPresetsPayload {
   };
 }
 
+/** Plataforma de la campaña; lo que no se reconoce (o falta) es Mailchimp, como en el backend. */
+export function normalizeMailPlatform(value: unknown): MailPlatform {
+  return oneOf(value, MAIL_PLATFORMS) ?? MAIL_PLATFORM_DEFAULT;
+}
+
+/** La invitación por defecto: lo que vale una campaña sin `sends` guardados. */
+export function mailSendInvitation(): MailSend {
+  return { send_id: "invitacion", kind: "invitacion", label: "Invitación", audience: "todos" };
+}
+
+const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Un envío completo. `null` si no se puede leer su id. `posicion` (0 = la
+ * invitación) sólo da el rótulo por defecto de un recordatorio sin etiqueta.
+ */
+export function normalizeMailSend(value: unknown, posicion: number): MailSend | null {
+  if (!isRecord(value)) return null;
+  const send_id = str(value.send_id).trim();
+  if (!send_id) return null;
+  const kind: MailSendKind = send_id === "invitacion" || str(value.kind) === "invitacion" ? "invitacion" : "recordatorio";
+  const audience = kind === "invitacion"
+    ? "todos"
+    : oneOf(value.audience, ["sin_respuesta", "parcial", "ambos"] as const) ?? "sin_respuesta";
+  const date = optStr(value.date);
+  const subject = optStr(value.subject);
+  const preheader = optStr(value.preheader);
+  const opening = optStr(value.opening);
+  const collector = optStr(value.collector_label);
+  return {
+    send_id,
+    kind,
+    label: str(value.label).trim() || (kind === "invitacion" ? "Invitación" : `Recordatorio ${Math.max(1, posicion)}`),
+    ...(date && FECHA_ISO.test(date) ? { date } : {}),
+    audience,
+    ...(subject !== undefined ? { subject } : {}),
+    ...(preheader !== undefined ? { preheader } : {}),
+    ...(opening !== undefined ? { opening } : {}),
+    ...(collector !== undefined ? { collector_label: collector } : {}),
+  };
+}
+
+/**
+ * Los envíos de una campaña: la invitación siempre primera (si no llega, se
+ * pone la de fábrica, como hace el backend al leer) y sin ids repetidos.
+ */
+export function normalizeMailSends(value: unknown): MailSend[] {
+  const out: MailSend[] = [];
+  const vistos = new Set<string>();
+  for (const raw of list(value)) {
+    const send = normalizeMailSend(raw, Math.max(1, out.length));
+    if (!send || vistos.has(send.send_id)) continue;
+    // La invitación es una sola y va primera; un recordatorio no la reemplaza.
+    if (send.kind === "invitacion" && out.length) continue;
+    if (!out.length && send.kind !== "invitacion") {
+      out.push(mailSendInvitation());
+      vistos.add("invitacion");
+    }
+    vistos.add(send.send_id);
+    out.push(send);
+  }
+  return out.length ? out : [mailSendInvitation()];
+}
+
+function normalizeSendBriefs(value: unknown): MailSendBrief[] {
+  return normalizeMailSends(value).map(({ send_id, kind, label, date, audience }) => ({
+    send_id, kind, label, ...(date ? { date } : {}), audience,
+  }));
+}
+
+function normalizeSendWarnings(value: unknown): MailSendWarning[] {
+  return list(value).flatMap((raw): MailSendWarning[] => {
+    if (!isRecord(raw)) return [];
+    const detail = str(raw.detail);
+    if (!detail) return [];
+    return [{ code: str(raw.code) || "send_dates", send_id: strOrNull(raw.send_id), detail }];
+  });
+}
+
+/** Un envío como lo espera el backend: sin vacíos (null = el de la plantilla). */
+export function serializeMailSend(send: MailSend): Record<string, unknown> {
+  // Sin `send_id`, el servidor le asigna uno (un recordatorio todavía sin guardar).
+  const out: Record<string, unknown> = { kind: send.kind, label: send.label, audience: send.audience };
+  if (send.send_id.trim()) out.send_id = send.send_id;
+  for (const key of ["date", "subject", "preheader", "opening", "collector_label"] as const) {
+    const v = send[key];
+    if (typeof v === "string" && v.trim()) out[key] = v;
+  }
+  return out;
+}
+
 export function normalizeMailTemplatePayload(value: unknown): MailTemplatePayload {
   if (!isRecord(value)) throw contractError("la respuesta no es un objeto.");
   const stored_problems = normalizeMailProblems({ problems: value.stored_problems });
@@ -674,6 +893,8 @@ export function normalizeMailTemplatePayload(value: unknown): MailTemplatePayloa
     campaign_id: strOrNull(value.campaign_id),
     builtin: bool(value.builtin),
     template: normalizeMailTemplate(value.template, { lenient: stored_problems.length > 0 }),
+    platform: normalizeMailPlatform(value.platform),
+    sends: normalizeMailSends(value.sends),
     stored_problems,
   };
 }
@@ -685,6 +906,8 @@ export function normalizeMailTemplatePut(value: unknown): MailTemplatePutPayload
     state_revision: int(value.state_revision, 0),
     campaign_id: strOrNull(value.campaign_id),
     template: normalizeMailTemplate(value.template),
+    sends: normalizeMailSends(value.sends),
+    send_warnings: normalizeSendWarnings(value.send_warnings),
   };
 }
 
@@ -696,6 +919,8 @@ function normalizeCampaignSummary(value: unknown): MailCampaignSummary | null {
     campaign_id,
     name: str(value.name) || campaign_id,
     actor: str(value.actor),
+    platform: normalizeMailPlatform(value.platform),
+    sends: normalizeSendBriefs(value.sends),
     preset_id: strOrNull(value.preset_id),
     subject: str(value.subject),
     blocks: Math.max(0, int(value.blocks, 0)),
@@ -742,6 +967,8 @@ export function normalizeMailCampaign(value: unknown): MailCampaign {
     created_at: strOrNull(value.created_at),
     updated_at: strOrNull(value.updated_at),
     duplicated_from: strOrNull(value.duplicated_from),
+    platform: normalizeMailPlatform(value.platform),
+    sends: value.sends === undefined ? [] : normalizeMailSends(value.sends),
     template,
   };
 }
@@ -766,6 +993,7 @@ export function normalizeMailCampaignMeta(value: unknown): MailCampaignMeta {
     noop: bool(value.noop),
     state_revision: int(value.state_revision, 0),
     campaign: normalizeMailCampaign(value.campaign),
+    recipients_purged: bool(value.recipients_purged),
   };
 }
 
@@ -786,8 +1014,13 @@ export function normalizeMailPreview(value: unknown): MailPreview {
   if (!html) throw contractError("la vista previa no trae HTML.");
   const recipient = isRecord(value.recipient) ? value.recipient : {};
   const index = recipient.index === undefined || recipient.index === null ? null : int(recipient.index, 0) || null;
+  const send = isRecord(value.send) ? normalizeMailSend(value.send, 1) : null;
+  const platform = normalizeMailPlatform(value.platform);
   return {
-    mode: str(value.mode) === "mailchimp" ? "mailchimp" : "preview",
+    mode: oneOf(value.mode, ["preview", "export", "mailchimp"] as const) ?? "preview",
+    platform,
+    dialect: value.dialect === undefined ? platform : normalizeMailPlatform(value.dialect),
+    send: send ? { send_id: send.send_id, kind: send.kind, label: send.label, ...(send.date ? { date: send.date } : {}), audience: send.audience } : null,
     html,
     subject: str(value.subject),
     preheader: str(value.preheader),
@@ -852,6 +1085,8 @@ export function normalizeMailReview(value: unknown): MailReview {
   const errors = checks.filter((c) => c.status === "error").length;
   const warnings = checks.filter((c) => c.status === "warning").length;
   return {
+    platform: oneOf(value.platform, MAIL_PLATFORMS) ?? null,
+    send_id: strOrNull(value.send_id),
     template_sha256: str(value.template_sha256),
     // Se recalcula desde los chequeos: un `ready` que contradiga la lista no
     // puede habilitar la exportación.
@@ -887,8 +1122,12 @@ export function normalizeMailExport(value: unknown): MailExportPayload {
     : null;
   const scope = oneOf(value.scope, ["completo", "plantilla"] as const);
   const iz = isRecord(value.import_zip) ? value.import_zip : null;
+  const html = isRecord(value.html) ? { name: str(value.html.name), bytes: Math.max(0, int(value.html.bytes, 0)) } : null;
   return {
     ...(scope ? { scope } : {}),
+    platform: normalizeMailPlatform(value.platform),
+    send_id: strOrNull(value.send_id),
+    html,
     import_zip: iz ? { size_bytes: Math.max(0, int(iz.size_bytes, 0)), entries: strings(iz.entries), html: str(iz.html) } : null,
     artifacts,
     zip,
@@ -969,6 +1208,59 @@ export function normalizeMailProblems(details: unknown): MailProblem[] {
     }
   }
   return out;
+}
+
+function normalizeImportReportItem(value: unknown): MailImportReportItem | null {
+  if (!isRecord(value)) return null;
+  const code = str(value.code);
+  const reason = str(value.reason);
+  // Un ítem sin código ni motivo no dice nada: no se pinta un renglón vacío.
+  if (!code && !reason) return null;
+  return {
+    code: code || "unrecognized",
+    selector: strOrNull(value.selector),
+    excerpt: str(value.excerpt),
+    reason,
+    block_id: strOrNull(value.block_id),
+  };
+}
+
+/**
+ * Resultado de leer un HTML existente (E1l). El backend omite los campos nulos
+ * (`platform_detected`, `url`, `block_id`): aquí se leen como ausentes. La
+ * plantilla tiene que ser válida: sin ella no hay nada que crear.
+ */
+export function normalizeMailImportHtml(value: unknown): MailImportHtml {
+  if (!isRecord(value)) throw contractError("la importación no es un objeto.");
+  const import_id = str(value.import_id).trim();
+  if (!import_id) throw contractError("la importación no trae import_id.");
+  const evidence = isRecord(value.platform_evidence) ? value.platform_evidence : {};
+  const stats = isRecord(value.stats) ? value.stats : {};
+  const template = normalizeMailTemplate(value.template);
+  return {
+    import_id,
+    sha256: str(value.sha256),
+    bytes: Math.max(0, int(value.bytes, 0)),
+    platform_detected: oneOf(value.platform_detected, MAIL_PLATFORMS) ?? null,
+    platform_evidence: {
+      mailchimp: Math.max(0, int(evidence.mailchimp, 0)),
+      surveymonkey: Math.max(0, int(evidence.surveymonkey, 0)),
+    },
+    template,
+    report: list(value.report).map(normalizeImportReportItem).filter((i): i is MailImportReportItem => i !== null),
+    images: list(value.images).flatMap((raw): MailImportImage[] => {
+      if (!isRecord(raw)) return [];
+      const id = str(raw.id);
+      if (!id) return [];
+      const url = strOrNull(raw.url);
+      return [{ id, url, alt: str(raw.alt), status: str(raw.status) === "url" && url ? "url" : "needs_upload" }];
+    }),
+    stats: {
+      blocks: Math.max(0, int(stats.blocks, template.blocks.length)),
+      dropped_empty: Math.max(0, int(stats.dropped_empty, 0)),
+      discarded: strings(stats.discarded),
+    },
+  };
 }
 
 /**
@@ -1068,14 +1360,24 @@ export async function apiMailCampaigns(): Promise<MailCampaignsPayload> {
   return normalizeMailCampaigns(await handleMail(await apiFetch(`${BASE}/mail-campaigns`, { headers: headers() })));
 }
 
+/**
+ * Crea una campaña desde un preset o desde una plantilla (la de un HTML
+ * importado, con su `import_id`). Mandar los dos es un 422: o uno o el otro.
+ */
 export async function apiMailCampaignCreate(input: {
   expected_revision: number;
   name: string;
   actor?: string;
   preset_id?: string | null;
+  platform?: MailPlatform;
+  template?: MailTemplate | null;
+  import_id?: string | null;
 }): Promise<MailCampaignWrite> {
   const body: Record<string, unknown> = { expected_revision: input.expected_revision, name: input.name, actor: input.actor ?? "" };
-  if (input.preset_id) body.preset_id = input.preset_id;
+  if (input.template) body.template = serializeMailTemplate(input.template);
+  else if (input.preset_id) body.preset_id = input.preset_id;
+  if (input.platform) body.platform = input.platform;
+  if (input.import_id) body.import_id = input.import_id;
   return normalizeMailCampaignWrite(await handleMail(await apiFetch(`${BASE}/mail-campaigns`, json("POST", body))));
 }
 
@@ -1091,11 +1393,13 @@ export async function apiMailCampaignDuplicate(input: {
   return normalizeMailCampaignDuplicate(await handleMail(await apiFetch(`${BASE}/mail-campaigns/duplicate`, json("POST", body))));
 }
 
+/** Renombra, cambia el actor o la plataforma. Pasar a SurveyMonkey olvida los destinatarios. */
 export async function apiMailCampaignMeta(input: {
   expected_revision: number;
   campaign_id: string;
   name: string;
   actor: string;
+  platform?: MailPlatform;
 }): Promise<MailCampaignMeta> {
   return normalizeMailCampaignMeta(await handleMail(await apiFetch(`${BASE}/mail-campaigns/meta`, json("PUT", input))));
 }
@@ -1113,16 +1417,33 @@ export async function apiMailTemplate(campaignId?: string | null): Promise<MailT
   return normalizeMailTemplatePayload(await handleMail(await apiFetch(conCampana(`${BASE}/mail-template`, campaignId), { headers: headers() })));
 }
 
+/**
+ * Guarda la plantilla y, si vienen, los envíos: una sola subida de revisión.
+ * Un recordatorio nuevo va sin `send_id` (o con uno local que el servidor no
+ * conoce) y vuelve con el suyo; `import_id` cita el HTML importado del que
+ * sale la plantilla.
+ */
 export async function apiMailTemplatePut(input: {
   template: MailTemplate;
   expected_revision: number;
   campaign_id?: string | null;
+  sends?: readonly MailSend[] | null;
+  import_id?: string | null;
 }): Promise<MailTemplatePutPayload> {
-  const body = cuerpoConCampana(
-    { template: serializeMailTemplate(input.template), expected_revision: input.expected_revision },
-    input.campaign_id,
-  );
+  const base: Record<string, unknown> = { template: serializeMailTemplate(input.template), expected_revision: input.expected_revision };
+  if (input.sends) base.sends = input.sends.map(serializeMailSend);
+  if (input.import_id) base.import_id = input.import_id;
+  const body = cuerpoConCampana(base, input.campaign_id);
   return normalizeMailTemplatePut(await handleMail(await apiFetch(`${BASE}/mail-template`, json("PUT", body))));
+}
+
+/** Envío de una vista previa o revisión: uno guardado (`send_id`) o un borrador (`send`). */
+export type MailSendPedido = { send_id: string } | { send: MailSend };
+
+function conEnvio(body: Record<string, unknown>, pedido: MailSendPedido | null | undefined): Record<string, unknown> {
+  if (!pedido) return body;
+  if ("send" in pedido) return { ...body, send: serializeMailSend(pedido.send) };
+  return { ...body, send_id: pedido.send_id };
 }
 
 export async function apiMailPreview(input: {
@@ -1130,8 +1451,9 @@ export async function apiMailPreview(input: {
   recipient_index?: number | null;
   template?: MailTemplate | null;
   campaign_id?: string | null;
+  envio?: MailSendPedido | null;
 }): Promise<MailPreview> {
-  const body: Record<string, unknown> = { mode: input.mode };
+  const body: Record<string, unknown> = conEnvio({ mode: input.mode }, input.envio);
   if (input.recipient_index) body.recipient_index = input.recipient_index;
   if (input.template) body.template = serializeMailTemplate(input.template);
   return normalizeMailPreview(await handleMail(await apiFetch(
@@ -1144,8 +1466,9 @@ export async function apiMailReview(input: {
   template?: MailTemplate | null;
   campaign_id?: string | null;
   scope?: MailExportScope;
+  envio?: MailSendPedido | null;
 } = {}): Promise<MailReview> {
-  const base: Record<string, unknown> = input.template ? { template: serializeMailTemplate(input.template) } : {};
+  const base: Record<string, unknown> = conEnvio(input.template ? { template: serializeMailTemplate(input.template) } : {}, input.envio);
   if (input.scope) base.scope = input.scope;
   const body = cuerpoConCampana(base, input.campaign_id);
   return normalizeMailReview(await handleMail(await apiFetch(`${BASE}/mail-template/review`, json("POST", body))));
@@ -1156,9 +1479,12 @@ export async function apiMailExport(input: {
   expected_revision: number;
   campaign_id?: string | null;
   scope?: MailExportScope;
+  /** Envío GUARDADO que se exporta; sin él, la invitación. */
+  send_id?: string | null;
 }): Promise<MailExportPayload> {
   const base: Record<string, unknown> = { expected_revision: input.expected_revision };
   if (input.scope) base.scope = input.scope;
+  if (input.send_id) base.send_id = input.send_id;
   const body = cuerpoConCampana(base, input.campaign_id);
   return normalizeMailExport(await handleMail(await apiFetch(`${BASE}/mail-template/export`, json("POST", body))));
 }
@@ -1195,6 +1521,31 @@ export async function apiMailRecipientsDelete(campaignId?: string | null): Promi
     method: "DELETE",
     headers: headers(),
   })));
+}
+
+/** Tope del HTML que se importa (el backend responde 413 por encima). */
+export const MAIL_IMPORT_HTML_MAX_BYTES = 512 * 1024;
+
+/**
+ * Lee un HTML existente y lo devuelve como plantilla con su informe (E1l). Es
+ * una lectura: no escribe el estado. Con `file` va como multipart; con
+ * `html`, en JSON.
+ */
+export async function apiMailImportHtml(
+  input: { html: string; file_name: string; subject?: string } | { file: File; subject?: string },
+): Promise<MailImportHtml> {
+  let init: RequestInit;
+  if ("file" in input) {
+    const fd = new FormData();
+    fd.append("file", input.file, input.file.name);
+    if (input.subject?.trim()) fd.append("subject", input.subject.trim());
+    init = { method: "POST", headers: headers(), body: fd };
+  } else {
+    const body: Record<string, unknown> = { html: input.html, file_name: input.file_name };
+    if (input.subject?.trim()) body.subject = input.subject.trim();
+    init = json("POST", body);
+  }
+  return normalizeMailImportHtml(await handleMail(await apiFetch(`${BASE}/mail-template/import-html`, init)));
 }
 
 /** Extensión que el backend acepta para una imagen del correo (PNG o JPEG). */

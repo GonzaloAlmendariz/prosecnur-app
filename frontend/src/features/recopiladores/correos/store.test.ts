@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { mailSendInvitation } from "../../../api/materialMail";
 import type { MailRecipients, MailTemplate } from "../../../api/materialMail";
 import { CABECERA, SOBRE } from "./modeloCorreo";
 import { hayCambios, hayQueGuardar, useCorreosStore } from "./store";
@@ -49,43 +50,43 @@ beforeEach(() => {
 
 describe("store del editor de correos", () => {
   test("la carga deja borrador = guardada y elige a la primera persona si hay lista", () => {
-    st().cargaLista({ presets: [], plantilla: { state_revision: 7, builtin: false, template: plantilla(), stored_problems: [] }, destinatarios: destinatarios(3) });
+    st().cargaLista({ presets: [], plantilla: { state_revision: 7, builtin: false, platform: "mailchimp", sends: [mailSendInvitation()], template: plantilla(), stored_problems: [] }, destinatarios: destinatarios(3) });
     expect(st().carga).toBe("lista");
     expect(st().stateRevision).toBe(7);
     expect(st().persona).toBe(1);
     expect(hayCambios(st())).toBe(false);
 
-    st().cargaLista({ presets: [], plantilla: { state_revision: 7, builtin: true, template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
+    st().cargaLista({ presets: [], plantilla: { state_revision: 7, builtin: true, platform: "mailchimp", sends: [mailSendInvitation()], template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
     expect(st().persona).toBeNull();
   });
 
   test("editar marca cambios y descarta la exportación anterior", () => {
-    st().cargaLista({ presets: [], plantilla: { state_revision: 1, builtin: false, template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
-    st().setExportacion({ artifacts: [], zip: null, review: null, manifest: null });
+    st().cargaLista({ presets: [], plantilla: { state_revision: 1, builtin: false, platform: "mailchimp", sends: [mailSendInvitation()], template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
+    st().setExportacion({ platform: "mailchimp", send_id: null, html: null, artifacts: [], zip: null, review: null, manifest: null });
     st().editar((t) => ({ ...t, subject: "Otro" }));
     expect(hayCambios(st())).toBe(true);
     expect(st().exportacion).toBeNull();
   });
 
   test("guardar adopta lo que devolvió el backend y conserva lo editado mientras tanto", () => {
-    st().cargaLista({ presets: [], plantilla: { state_revision: 1, builtin: true, template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
+    st().cargaLista({ presets: [], plantilla: { state_revision: 1, builtin: true, platform: "mailchimp", sends: [mailSendInvitation()], template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
     const enviado = { ...plantilla(), subject: "Nuevo" };
     st().editar(() => enviado);
-    st().guardado({ noop: false, state_revision: 2, template: { ...enviado, revision: 2, template_sha256: "sha256:n" } });
+    st().guardado({ noop: false, sends: [mailSendInvitation()], send_warnings: [], state_revision: 2, template: { ...enviado, revision: 2, template_sha256: "sha256:n" } });
     expect(st().stateRevision).toBe(2);
     expect(st().builtin).toBe(false);
     expect(hayCambios(st())).toBe(false);
 
     // Si se siguió escribiendo durante el PUT, eso no se pierde.
     st().editar((t) => ({ ...t, subject: "Nuevo y más" }));
-    st().guardado({ noop: false, state_revision: 3, template: { ...enviado, revision: 3 } });
+    st().guardado({ noop: false, sends: [mailSendInvitation()], send_warnings: [], state_revision: 3, template: { ...enviado, revision: 3 } });
     expect(st().borrador?.subject).toBe("Nuevo y más");
     expect(st().borrador?.revision).toBe(3);
     expect(hayCambios(st())).toBe(true);
   });
 
   test("siguiente persona da la vuelta y no se mueve sin lista", () => {
-    st().cargaLista({ presets: [], plantilla: { state_revision: 1, builtin: false, template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
+    st().cargaLista({ presets: [], plantilla: { state_revision: 1, builtin: false, platform: "mailchimp", sends: [mailSendInvitation()], template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
     st().siguientePersona();
     expect(st().persona).toBeNull();
     st().setDestinatarios(destinatarios(2));
@@ -97,7 +98,7 @@ describe("store del editor de correos", () => {
   });
 
   test("una lista más corta reubica a la persona; olvidarla vuelve al ejemplo", () => {
-    st().cargaLista({ presets: [], plantilla: { state_revision: 1, builtin: false, template: plantilla(), stored_problems: [] }, destinatarios: destinatarios(5) });
+    st().cargaLista({ presets: [], plantilla: { state_revision: 1, builtin: false, platform: "mailchimp", sends: [mailSendInvitation()], template: plantilla(), stored_problems: [] }, destinatarios: destinatarios(5) });
     st().setPersona(5);
     st().setDestinatarios(destinatarios(2));
     expect(st().persona).toBe(1);
@@ -106,7 +107,7 @@ describe("store del editor de correos", () => {
   });
 
   test("reemplazar el borrador por un preset conserva una selección que siga existiendo", () => {
-    st().cargaLista({ presets: [], plantilla: { state_revision: 1, builtin: false, template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
+    st().cargaLista({ presets: [], plantilla: { state_revision: 1, builtin: false, platform: "mailchimp", sends: [mailSendInvitation()], template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
     st().seleccionar("p");
     st().reemplazarBorrador(plantilla({ blocks: [{ block_id: "otro", type: "paragraph", text: "x" }] }));
     expect(st().seleccion).toBe(SOBRE);
@@ -120,7 +121,7 @@ describe("store del editor de correos", () => {
     st().vistaPreviaFallo("422");
     expect(st().problemas).toHaveLength(1);
     st().vistaPreviaLista({
-      mode: "preview", html: "<p/>", subject: "", preheader: "", bytes: 4,
+      mode: "preview", platform: "mailchimp", dialect: "mailchimp", send: null, html: "<p/>", subject: "", preheader: "", bytes: 4,
       recipient: { source: "synthetic", index: null, nombre: "Ana", fields: {} },
     });
     expect(st().problemas).toHaveLength(0);
@@ -175,13 +176,13 @@ describe("store del editor de correos", () => {
   test("una plantilla guardada inválida pide guardar aunque el borrador no cambie", () => {
     st().cargaLista({
       presets: [],
-      plantilla: { state_revision: 2, builtin: false, template: plantilla(), stored_problems: [{ path: "template.blocks[1].text", code: "missing_text", detail: "Falta." }] },
+      plantilla: { state_revision: 2, builtin: false, platform: "mailchimp", sends: [mailSendInvitation()], template: plantilla(), stored_problems: [{ path: "template.blocks[1].text", code: "missing_text", detail: "Falta." }] },
       destinatarios: SIN_LISTA,
     });
     expect(hayCambios(st())).toBe(false);
     expect(hayQueGuardar(st())).toBe(true);
     expect(st().problemas).toHaveLength(1);
-    st().guardado({ noop: false, state_revision: 3, template: plantilla() });
+    st().guardado({ noop: false, sends: [mailSendInvitation()], send_warnings: [], state_revision: 3, template: plantilla() });
     expect(hayQueGuardar(st())).toBe(false);
   });
 });
@@ -190,19 +191,19 @@ describe("campañas en el store (E1h)", () => {
   test("la revisión que devuelve cada escritura no baja con una lectura tardía", () => {
     st().campanasLista([], 10);
     st().anotarRevision(12);
-    st().cargaLista({ presets: [], plantilla: { state_revision: 11, builtin: false, template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
+    st().cargaLista({ presets: [], plantilla: { state_revision: 11, builtin: false, platform: "mailchimp", sends: [mailSendInvitation()], template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
     expect(st().stateRevision).toBe(12);
-    st().guardado({ noop: false, state_revision: 13, template: plantilla({ revision: 2 }) });
+    st().guardado({ noop: false, sends: [mailSendInvitation()], send_warnings: [], state_revision: 13, template: plantilla({ revision: 2 }) });
     expect(st().stateRevision).toBe(13);
   });
 
   test("cambiar de campaña olvida la anterior y conserva lista, presets y revisión", () => {
     const campanas = [
-      { campaign_id: "a", name: "A", actor: "", preset_id: null, subject: "", blocks: 2, template_revision: 1, template_sha256: null, updated_at: null, recipients_loaded: true },
+      { campaign_id: "a", name: "A", actor: "", platform: "mailchimp" as const, sends: [], preset_id: null, subject: "", blocks: 2, template_revision: 1, template_sha256: null, updated_at: null, recipients_loaded: true },
     ];
     st().campanasLista(campanas, 20);
     st().reiniciarCampana("a");
-    st().cargaLista({ presets: [], plantilla: { state_revision: 20, builtin: false, template: plantilla(), stored_problems: [] }, destinatarios: destinatarios(4) });
+    st().cargaLista({ presets: [], plantilla: { state_revision: 20, builtin: false, platform: "mailchimp", sends: [mailSendInvitation()], template: plantilla(), stored_problems: [] }, destinatarios: destinatarios(4) });
     st().editar((t) => ({ ...t, subject: "Sin guardar" }));
     st().seleccionar("p");
     st().setVista("telefono");

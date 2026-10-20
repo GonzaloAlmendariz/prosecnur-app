@@ -11,14 +11,15 @@ import {
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-import { MAIL_BLOCK_TYPES, type MailPreset, type MailTemplate } from "../../../api/materialMail";
+import type { MailPreset, MailTemplate } from "../../../api/materialMail";
 import { AlertCircle, GripVertical, Plus, X } from "../../../vendor/lucide-react";
-import { ARRASTRE_DE_BLOQUE } from "./BibliotecaDeBloques";
-import { esMovible, tipoDisponible } from "./estructuraCorreo";
-import { ICONO_DE_BLOQUE, ICONO_DE_PSEUDO, iconoDeBloque } from "./iconos";
+import * as Popover from "@radix-ui/react-popover";
+
+import { BibliotecaDeBloques } from "./BibliotecaDeBloques";
+import { esMovible } from "./estructuraCorreo";
+import { ICONO_DE_PSEUDO, iconoDeBloque } from "./iconos";
 import {
   CABECERA,
-  ROTULO_DE_BLOQUE,
   SOBRE,
   origenDePreset,
   resumenDeBloque,
@@ -46,10 +47,10 @@ type Props = {
   hayDestino: boolean;
   /** Mover un bloque a su índice final (arrastre o teclado en la lista). */
   onMover?: (blockId: string, indice: number) => void;
+  /** Nombre de la persona que se mira, para el ejemplo de los campos. */
+  ejemploDeNombre?: string;
 };
 
-/** Todos los tipos del registro se agregan desde aquí; la imagen abre su panel al elegirla. */
-const SE_AGREGAN_AQUI: ReadonlySet<MailBlockType> = new Set(MAIL_BLOCK_TYPES);
 
 function Miniatura({ html, titulo }: { html: string | null | undefined; titulo: string }) {
   if (!html) return <span className="rec-mail-mini rec-mail-mini--vacia" aria-hidden />;
@@ -163,6 +164,7 @@ export function ColumnaDeBloques({
   onInsertarCampo,
   hayDestino,
   onMover,
+  ejemploDeNombre,
 }: Props) {
   const [agregando, setAgregando] = useState(false);
   const sensores = useSensors(
@@ -217,41 +219,31 @@ export function ColumnaDeBloques({
       <div className="rec-mail-col-grupo rec-mail-col-grupo--lista">
         <span className="rec-mail-col-titulo">
           <span className="xfk-over">Bloques del correo</span>
-          <button
-            type="button"
-            className="rec-mail-icono-btn"
-            aria-expanded={agregando}
-            aria-controls="rec-mail-agregar"
-            aria-label={agregando ? "Cerrar la lista de bloques" : "Agregar un bloque"}
-            title={agregando ? "Cerrar" : "Agregar un bloque"}
-            onClick={() => setAgregando((v) => !v)}
-          >
-            {agregando ? <X size={14} aria-hidden /> : <Plus size={14} aria-hidden />}
-          </button>
+          {/* La MISMA biblioteca que abre el «+» entre bloques del correo: una sola forma de insertar. */}
+          <Popover.Root open={agregando} onOpenChange={setAgregando}>
+            <Popover.Trigger asChild>
+              <button
+                type="button"
+                className="rec-mail-icono-btn"
+                aria-label={agregando ? "Cerrar la biblioteca de bloques" : "Agregar un bloque después del elegido"}
+                title={agregando ? "Cerrar" : "Agregar un bloque"}
+              >
+                {agregando ? <X size={14} aria-hidden /> : <Plus size={14} aria-hidden />}
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content side="right" align="start" sideOffset={8} collisionPadding={12} className="rec-mail-bib-pop" aria-label="Biblioteca de bloques">
+                <BibliotecaDeBloques
+                  template={template}
+                  titulo="Agregar después del bloque elegido"
+                  estilo={{ position: "static", width: "min(560px, calc(100vw - 24px))" }}
+                  onElegir={(type) => { onAgregar(type); setAgregando(false); }}
+                  onCerrar={() => setAgregando(false)}
+                />
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
         </span>
-        {agregando ? (
-          <div id="rec-mail-agregar" className="rec-mail-agregar" role="group" aria-label="Tipo de bloque a agregar">
-            {MAIL_BLOCK_TYPES.filter((t) => SE_AGREGAN_AQUI.has(t) && tipoDisponible(template, t)).map((type) => {
-              const Icono = ICONO_DE_BLOQUE[type];
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  className="rec-mail-agregar-tipo"
-                  draggable
-                  title="Clic para agregar, o arrástralo al correo"
-                  onDragStart={(event) => {
-                    event.dataTransfer.setData(ARRASTRE_DE_BLOQUE, type);
-                    event.dataTransfer.effectAllowed = "copy";
-                  }}
-                  onClick={() => { onAgregar(type); setAgregando(false); }}
-                >
-                  <Icono size={13} aria-hidden /> {ROTULO_DE_BLOQUE[type]}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
         {/* C1: filas independientes de la lista (cada una con su resumen), alto intrínseco. */}
         <ul
           className="rec-mail-bloques"
@@ -301,6 +293,10 @@ export function ColumnaDeBloques({
 
       <div className="rec-mail-col-grupo rec-mail-col-grupo--campos">
         <span className="xfk-over">Campos de cada persona</span>
+        <span className="rec-mail-ayuda rec-mail-campos-ejemplo">
+          Cambian según quién recibe el correo: {"{{nombre}}"} sale «{ejemploDeNombre || "Ana"}» en el correo de {ejemploDeNombre || "Ana"}.
+          {hayDestino ? " Pulsa uno para ponerlo en el texto." : " Elige un texto del correo para ponerlo ahí."}
+        </span>
         <span className="rec-mail-campos" role="group" aria-label="Insertar un campo en el texto elegido">
           {campos.map((campo) => (
             <button

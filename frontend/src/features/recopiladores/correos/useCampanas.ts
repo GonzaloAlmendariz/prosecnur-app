@@ -9,8 +9,11 @@ import {
   apiMailPresets,
   apiMailPreview,
   apiMailTemplatePut,
+  normalizeMailRecipients,
   type MailCampaign,
   type MailCampaignSummary,
+  type MailPlatform,
+  type MailTemplate,
 } from "../../../api/materialMail";
 import {
   AVISO_LISTA_PROVISIONAL,
@@ -26,8 +29,11 @@ import {
 import { useCorreosStore } from "./store";
 
 export type ResultadoDeCampana =
-  | { ok: true; campaignId: string; aviso?: string }
+  | { ok: true; campaignId: string; aviso?: string; campana?: MailCampaign }
   | { ok: false; mensaje: string };
+
+/** Una campaña nueva desde un HTML importado (E1l): su plantilla y el `import_id` que la cita. */
+export type CampanaImportada = { name: string; actor: string; platform: MailPlatform; template: MailTemplate; import_id: string };
 
 export type ResultadoDelBorrado =
   | { ok: true }
@@ -52,7 +58,7 @@ const PUERTO_REAL: PuertoDeCreacion = { crear: apiMailCampaignCreate, guardarPla
  */
 export async function crearCampanaEncadenada(
   puerto: PuertoDeCreacion,
-  input: { expected_revision: number; name: string; actor: string; origen: string },
+  input: { expected_revision: number; name: string; actor: string; origen: string; platform?: MailPlatform },
   anotar: (revision: number) => void,
 ): Promise<{ campana: MailCampaign; aviso?: string }> {
   const enBlanco = input.origen === ORIGEN_EN_BLANCO;
@@ -61,6 +67,7 @@ export async function crearCampanaEncadenada(
     name: input.name.trim(),
     actor: input.actor.trim(),
     preset_id: enBlanco ? null : input.origen,
+    ...(input.platform ? { platform: input.platform } : {}),
   });
   anotar(creada.state_revision);
   let campana = creada.campaign;
@@ -164,20 +171,49 @@ export function useCampanas(opciones: { onEscrito?: () => void } = {}) {
   }, [s]);
 
   /** `origen`: un `preset_id` real o `ORIGEN_EN_BLANCO`. */
-  const crear = useCallback(async (input: { name: string; actor: string; origen: string }): Promise<ResultadoDeCampana> => {
+  const crear = useCallback(async (input: { name: string; actor: string; origen: string; platform?: MailPlatform }): Promise<ResultadoDeCampana> => {
     const revision = await revisionVigente();
     if (revision === null) return { ok: false, mensaje: "No se sabe qué versión del módulo está guardada. Vuelve a cargar." };
     s.getState().setOcupado("campanas");
     try {
       const { campana, aviso } = await crearCampanaEncadenada(
         PUERTO_REAL,
-        { expected_revision: revision, name: input.name, actor: input.actor, origen: input.origen },
+        { expected_revision: revision, name: input.name, actor: input.actor, origen: input.origen, platform: input.platform },
         escrito,
       );
       if (vivo.current) s.getState().setCampanas((lista) => ponerCampana(lista, resumenDeCampana(campana)));
       return { ok: true, campaignId: campana.campaign_id, aviso };
     } catch (cause) {
       return fallo(cause, "No se pudo crear la campaña.");
+    } finally {
+      if (vivo.current) s.getState().setOcupado(null);
+    }
+  }, [escrito, fallo, revisionVigente, s]);
+
+  /** Crea la campaña con la plantilla de un HTML importado; el backend la revalida entera. */
+  const crearImportada = useCallback(async (input: CampanaImportada): Promise<ResultadoDeCampana> => {
+    const revision = await revisionVigente();
+    if (revision === null) return { ok: false, mensaje: "No se sabe qué versión del módulo está guardada. Vuelve a cargar." };
+    s.getState().setOcupado("campanas");
+    try {
+      const creada = await apiMailCampaignCreate({
+        expected_revision: revision,
+        name: input.name.trim(),
+        actor: input.actor.trim(),
+        platform: input.platform,
+        template: input.template,
+        import_id: input.import_id,
+      });
+      escrito(creada.state_revision);
+      if (vivo.current) s.getState().setCampanas((lista) => ponerCampana(lista, resumenDeCampana(creada.campaign)));
+      return {
+        ok: true,
+        campaignId: creada.campaign.campaign_id,
+        campana: creada.campaign,
+        aviso: creada.recipients_purged_virtual ? AVISO_LISTA_PROVISIONAL : undefined,
+      };
+    } catch (cause) {
+      return fallo(cause, "No se pudo crear la campaña con el correo importado.");
     } finally {
       if (vivo.current) s.getState().setOcupado(null);
     }
@@ -204,20 +240,41 @@ export function useCampanas(opciones: { onEscrito?: () => void } = {}) {
     }
   }, [escrito, fallo, revisionVigente, s]);
 
-  const renombrar = useCallback(async (campaignId: string, name: string, actor: string): Promise<ResultadoDeCampana> => {
+  /**
+   * Renombra, cambia el actor o la plataforma. Pasar a SurveyMonkey olvida la
+   * lista de destinatarios en el servidor (`recipients_purged`): la vista lo
+   * dice antes y aquí se refleja en la campaña abierta.
+   */
+  const renombrar = useCallback(async (campaignId: string, name: string, actor: string, platform?: MailPlatform): Promise<ResultadoDeCampana> => {
     const revision = await revisionVigente();
     if (revision === null) return { ok: false, mensaje: "No se sabe qué versión del módulo está guardada. Vuelve a cargar." };
     s.getState().setOcupado("campanas");
     try {
-      const out = await apiMailCampaignMeta({ expected_revision: revision, campaign_id: campaignId, name: name.trim(), actor: actor.trim() });
+      const out = await apiMailCampaignMeta({
+        expected_revision: revision,
+        campaign_id: campaignId,
+        name: name.trim(),
+        actor: actor.trim(),
+        ...(platform ? { platform } : {}),
+      });
       if (!out.noop) escrito(out.state_revision);
       if (vivo.current) {
         s.getState().setCampanas((lista) => {
           const previo = lista.find((c) => c.campaign_id === campaignId) ?? null;
-          return ponerCampana(lista, resumenDeCampana(out.campaign, previo));
+          const resumen = resumenDeCampana(out.campaign, previo);
+          return ponerCampana(lista, out.recipients_purged ? { ...resumen, recipients_loaded: false } : resumen);
         });
+        if (s.getState().campana === campaignId) {
+          s.getState().setPlataforma(out.campaign.platform);
+          // La lista ya no existe en el servidor: la vista tampoco la muestra.
+          if (out.recipients_purged) s.getState().setDestinatarios(normalizeMailRecipients({ loaded: false }));
+        }
       }
-      return { ok: true, campaignId };
+      return {
+        ok: true,
+        campaignId,
+        aviso: out.recipients_purged ? "La campaña sale ahora por SurveyMonkey: su lista de destinatarios se olvidó." : undefined,
+      };
     } catch (cause) {
       return fallo(cause, "No se pudo renombrar la campaña.");
     } finally {
@@ -242,7 +299,7 @@ export function useCampanas(opciones: { onEscrito?: () => void } = {}) {
     }
   }, [escrito, fallo, revisionVigente, s]);
 
-  return { cargarCampanas, crear, duplicar, renombrar, borrar };
+  return { cargarCampanas, crear, crearImportada, duplicar, renombrar, borrar };
 }
 
 export type AccionesDeCampanas = ReturnType<typeof useCampanas>;

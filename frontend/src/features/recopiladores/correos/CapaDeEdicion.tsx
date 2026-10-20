@@ -52,6 +52,8 @@ type Props = {
   textoDeCampo: Pick<OpcionesDeTexto, "rotuloDeCampo" | "ayudaDeCampo">;
   /** Apertura del envío elegido (`send.opening`); `null` si no se edita aquí. */
   apertura: string | null;
+  /** Rótulo del envío dueño de la apertura, para su chip («Sólo en Recordatorio 1»). */
+  envioDeApertura?: string;
   onSeleccionar: (id: string) => void;
   onEditar: (edicion: EdicionEnLinea | null) => void;
   onTexto: (zona: string, prop: string, valor: string) => void;
@@ -147,6 +149,7 @@ export function CapaDeEdicion({
   campos,
   textoDeCampo,
   apertura,
+  envioDeApertura,
   onSeleccionar,
   onEditar,
   onTexto,
@@ -210,7 +213,8 @@ export function CapaDeEdicion({
     event.preventDefault();
     if (event.detail === 0) {
       // Teclado: el primer Enter elige; el segundo edita el primer texto.
-      const yaElegida = zona.id === seleccion;
+      // La apertura no es un bloque que se elija: su único texto se edita al primer Enter.
+      const yaElegida = zona.id === seleccion || zona.id === APERTURA;
       const primero = zona.props.find((p) => (zona.id === APERTURA ? apertura !== null : editableEnElSitio(porId.get(zona.id), p.prop)));
       empezar(zona, yaElegida && primero ? primero.prop : null);
       return;
@@ -417,7 +421,7 @@ export function CapaDeEdicion({
                 <span>{descripcionDeZona(zona, block)}</span>
               </span>
             ) : null}
-            {zona.id === APERTURA ? <span className="rec-capa-zona-chip">Sólo en este envío</span> : null}
+            {zona.id === APERTURA ? <span className="rec-capa-zona-chip">{envioDeApertura ? `Sólo en ${envioDeApertura}` : "Sólo en este envío"}</span> : null}
             {cuenta ? (
               <span
                 className={`rec-capa-zona-cuenta${cuenta.errores ? " is-error" : " is-aviso"}`}

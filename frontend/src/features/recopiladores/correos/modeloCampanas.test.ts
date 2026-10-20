@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
+import { mailSendInvitation } from "../../../api/materialMail";
 import {
   MailApiError,
   type MailCampaign,
@@ -38,6 +39,8 @@ function resumen(id: string, over: Partial<MailCampaignSummary> = {}): MailCampa
     campaign_id: id,
     name: id,
     actor: "",
+    platform: "mailchimp",
+    sends: [{ send_id: "invitacion", kind: "invitacion", label: "Invitación", audience: "todos" }],
     preset_id: null,
     subject: "",
     blocks: 3,
@@ -129,11 +132,11 @@ describe("revisión encadenada", () => {
   test("crear en blanco: la segunda escritura usa la revisión que devolvió la primera", async () => {
     const campana: MailCampaign = {
       campaign_id: "correo-nuevo", name: "Correo nuevo", actor: "", created_at: null, updated_at: null,
-      duplicated_from: null, template: { ...PLANTILLA, template_id: "correo-nuevo", revision: 1 },
+      duplicated_from: null, platform: "mailchimp", sends: [], template: { ...PLANTILLA, template_id: "correo-nuevo", revision: 1 },
     };
     const crear = vi.fn<PuertoDeCreacion["crear"]>(async () => ({ state_revision: 42, campaign: campana, recipients_purged_virtual: true }));
     const guardarPlantilla = vi.fn<PuertoDeCreacion["guardarPlantilla"]>(async (input) => ({
-      noop: false, state_revision: 43, campaign_id: "correo-nuevo", template: { ...input.template, revision: 2 },
+      noop: false, state_revision: 43, campaign_id: "correo-nuevo", template: { ...input.template, revision: 2 }, sends: [mailSendInvitation()], send_warnings: [],
     }));
     const anotadas: number[] = [];
     const out = await crearCampanaEncadenada(
@@ -152,7 +155,7 @@ describe("revisión encadenada", () => {
   test("desde un preset hay una sola escritura y se manda el preset", async () => {
     const campana: MailCampaign = {
       campaign_id: "invitacion", name: "Invitación", actor: "Docentes", created_at: null, updated_at: null,
-      duplicated_from: null, template: PLANTILLA,
+      duplicated_from: null, platform: "mailchimp", sends: [], template: PLANTILLA,
     };
     const crear = vi.fn<PuertoDeCreacion["crear"]>(async () => ({ state_revision: 9, campaign: campana, recipients_purged_virtual: false }));
     const guardarPlantilla = vi.fn<PuertoDeCreacion["guardarPlantilla"]>();
@@ -170,7 +173,7 @@ describe("revisión encadenada", () => {
 
   test("si la plantilla en blanco no se guarda, la revisión de la creación ya quedó anotada", async () => {
     const campana: MailCampaign = {
-      campaign_id: "c", name: "C", actor: "", created_at: null, updated_at: null, duplicated_from: null, template: PLANTILLA,
+      campaign_id: "c", name: "C", actor: "", created_at: null, updated_at: null, duplicated_from: null, platform: "mailchimp", sends: [], template: PLANTILLA,
     };
     const anotadas: number[] = [];
     const out = await crearCampanaEncadenada(
@@ -223,7 +226,7 @@ describe("la lista después de cada escritura", () => {
   test("crear agrega al final, renombrar reemplaza en su sitio y conserva lo que la respuesta no trae", () => {
     const creada: MailCampaign = {
       campaign_id: "nueva", name: "Nueva", actor: "Directores", created_at: null, updated_at: "2026-10-20T11:00:00Z",
-      duplicated_from: null, template: PLANTILLA,
+      duplicated_from: null, platform: "mailchimp", sends: [], template: PLANTILLA,
     };
     const conNueva = ponerCampana(TRES, resumenDeCampana(creada));
     expect(conNueva.map((c) => c.campaign_id)).toEqual(["recuperacion", "invitacion-docentes", "recordatorio", "nueva"]);

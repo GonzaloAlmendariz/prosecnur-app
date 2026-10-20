@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { mailSendInvitation } from "../../../api/materialMail";
 import type { MailCheck, MailTemplate } from "../../../api/materialMail";
 import { ajustesDe, anchoDeImagen, conAjuste, valorDeAjuste } from "./ajustesDeBloque";
 import { comoSaleEnLaPlataforma, textoEnLaPlataforma } from "./comoSaleEnLaPlataforma";
@@ -382,14 +383,14 @@ describe("store: historial por campaña", () => {
     s().reiniciar();
     s().cargaLista({
       presets: [],
-      plantilla: { state_revision: 3, builtin: false, template: PLANTILLA, stored_problems: [] },
+      plantilla: { state_revision: 3, builtin: false, platform: "mailchimp", sends: [mailSendInvitation()], template: PLANTILLA, stored_problems: [] },
       destinatarios: { loaded: false, file_name: null, imported_at: null, row_count: 0, encoding: null, columns: [], mapping: null, counts: null, sample: [] },
     });
     s().editar((t) => ({ ...t, subject: "A" }), "__sobre.subject");
     s().editar((t) => ({ ...t, subject: "AB" }), "__sobre.subject");
     s().editar((t) => moverBloqueA(t, "accion", 0));
     expect(s().historial.pasado).toHaveLength(2);
-    s().guardado({ noop: false, state_revision: 4, template: { ...s().borrador!, revision: 7 } });
+    s().guardado({ noop: false, sends: [mailSendInvitation()], send_warnings: [], state_revision: 4, template: { ...s().borrador!, revision: 7 } });
     s().deshacer();
     expect(s().borrador?.blocks[0].block_id).toBe("saludo");
     expect(s().borrador?.revision).toBe(7);
