@@ -37,7 +37,8 @@ test_that("golden: el ejemplo de PULSO en SurveyMonkey da la plantilla esperada"
   expect_identical(t$header, list(kind = "banner", image_ref = "arte1-960"))
   expect_identical(t$images$`arte1-960`$url, "https://pulsopucp.github.io/correo-/Arte1-960.png")
   expect_identical(t$theme, list(accent = "#001f60", band = "acento"))
-  expect_identical(t$fields, list(list(key = "enlace", tag = "ENLACE", label = "Enlace a la encuesta", sm = "SurveyLink")))
+  expect_identical(t$fields, list(list(key = "enlace", tag = "ENLACE", label = "Enlace a la encuesta", sm = "SurveyLink",
+                                       destino = "encuesta")))
   expect_identical(.cmi_types(t), c("greeting", "paragraph", "paragraph", "paragraph", "button", "callout", "signature", "footer_legal"))
   expect_identical(t$blocks[[1]]$text, "**Estimado(a) {{nombre}},**")
   expect_identical(t$blocks[[1]]$fallback, "**Estimado(a),**")
@@ -49,7 +50,8 @@ test_that("golden: el ejemplo de PULSO en SurveyMonkey da la plantilla esperada"
   expect_identical(t$blocks[[7]][c("closing", "name")], list(closing = "Saludos cordiales,", name = "PULSO PUCP"))
   expect_identical(t$blocks[[7]]$lines, list("**Instituto de Analítica Social e Inteligencia Estratégica**"))
   expect_identical(t$blocks[[8]]$block_id, "pie")
-  expect_true(all(c("style_discarded", "hover_ignored", "subject_missing") %in% .cmi_codes(r)))
+  expect_true(all(c("style_discarded", "hover_ignored", "subject_missing", "platform_link_removed",
+                    "platform_footer_removed") %in% .cmi_codes(r)))
   expect_identical(r$report[[1]]$selector, "head > style")
 })
 
@@ -269,4 +271,176 @@ test_that("HTTP: import-html por JSON y por multipart; no escribe", {
                         .cmail_fx_json(list(html = strrep("a", 600L * 1024L))))
   expect_identical(big$status, 413L)
   expect_identical(big$body$error$code, "E_COLLECTION_MAIL_IMPORT_HTML_TOO_LARGE")
+})
+
+
+# ---- revisión metodológica E1jkl: corpus A-F y propiedad reforzada -----------
+
+.cmi_words <- function(x) {
+  w <- stringi::stri_extract_all_regex(tolower(paste(x, collapse = " ")), "\\p{L}{2,}")[[1]]
+  w[!is.na(w)]
+}
+.cmi_is_subseq <- function(needle, hay) {
+  j <- 1L
+  for (w in needle) {
+    while (j <= length(hay) && !identical(hay[[j]], w)) j <- j + 1L
+    if (j > length(hay)) return(FALSE)
+    j <- j + 1L
+  }
+  TRUE
+}
+.cmi_block_texts <- function(t) {
+  c(t$preheader %||% "", unlist(lapply(t$blocks, function(b) {
+    unlist(b[intersect(names(b), c("text", "fallback", "title", "items", "closing", "name", "lines", "note", "alt", "url"))])
+  }), use.names = FALSE))
+}
+# Toda palabra visible (2+ letras) está en un bloque o en el informe; las que
+# quedan en los bloques y no se informan conservan su orden; todo enlace https
+# de la entrada está en la plantilla o en el informe.
+.cmi_expect_no_loss <- function(html, r, label) {
+  doc <- xml2::read_html(charToRaw(enc2utf8(html)))
+  xml2::xml_remove(xml2::xml_find_all(doc, paste0("//", .CMAIL_IH_DROP, collapse = " | ")))
+  visible <- paste(xml2::xml_text(xml2::xml_find_all(doc, "//body//text()")), collapse = " ")
+  # El respaldo de un campo de Mailchimp (*|IF:T|**|T|**|ELSE:|*Y*|END:IF|*)
+  # vive en la definición del campo, no en el bloque: se mira aparte.
+  visible <- gsub("\\*\\|IF:([A-Z0-9_]+)\\|\\*\\*\\|\\1\\|\\*\\*\\|ELSE:\\|\\*.*?\\*\\|END:IF\\|\\*", " ", visible, perl = TRUE)
+  # Las etiquetas de plataforma son vocabulario, no texto del autor.
+  visible <- gsub(paste0(.CMAIL_IH_SM_TAG_RE, "|", .CMAIL_IH_MC_TAG_RE), " ", visible, perl = TRUE)
+  input <- .cmi_words(visible)
+  out <- .cmi_words(gsub(.CMAIL_LINK_RE, "\\1", .cmi_block_texts(r$template), perl = TRUE))
+  rep_words <- .cmi_words(vapply(r$report, function(x) x$excerpt %||% "", ""))
+  lost <- setdiff(input, c(out, rep_words))
+  expect_identical(lost, character(0), label = paste(label, "palabras perdidas"))
+  ordered <- input[input %in% out & !(input %in% rep_words)]
+  expect_true(.cmi_is_subseq(ordered, out), label = paste(label, "orden"))
+  hrefs <- c(xml2::xml_attr(xml2::xml_find_all(doc, "//a[starts-with(@href, 'https://')]"), "href"),
+             xml2::xml_attr(xml2::xml_find_all(doc, "//img[starts-with(@src, 'https://')]"), "src"))
+  t <- r$template
+  have <- paste(c(unlist(t$blocks), unlist(t$images), vapply(r$report, function(x) x$excerpt %||% "", "")), collapse = " ")
+  for (h in hrefs) expect_true(grepl(h, have, fixed = TRUE), label = paste(label, "enlace", h))
+}
+
+.cmi_case <- function(name) .cmail_fx_read_text(.cmail_fx_mail_import_path(name))
+
+test_that("corpus A-F: cada cambio de sentido se informa con su código", {
+  expect_code <- function(name, code, n = 1L) {
+    r <- .cmi_parse(.cmi_case(name))
+    expect_true(collection_mail_template_validate(r$template)$ok, label = name)
+    expect_gte(sum(.cmi_codes(r) == code), n, label = paste(name, code))
+    r
+  }
+  # A: la política propia pasa al pie CON su enlace y se informa.
+  a <- expect_code("caso-a-privacidad-propia.html", "moved_to_footer")
+  pie <- Filter(function(b) b$type == "footer_legal", a$template$blocks)[[1]]$text
+  expect_identical(pie, "Sus datos se tratan según la [Política de Privacidad de la PUCP](https://www.pucp.edu.pe/privacidad). Para consultas escriba aquí.")
+  # B: IF/ELSE -> una rama para todos, las dos en el informe.
+  b <- expect_code("caso-b-if-else.html", "conditional_flattened")
+  ex <- Filter(function(x) x$code == "conditional_flattened", b$report)[[1]]$excerpt
+  expect_match(ex, "Ya empezó la encuesta", fixed = TRUE)
+  expect_match(ex, "No ha empezado la encuesta", fixed = TRUE)
+  expect_false("button" %in% .cmi_types(b$template))
+  # C: IFNOT sin concatenar las ramas contradictorias.
+  c <- expect_code("caso-c-ifnot.html", "conditional_flattened")
+  body <- paste(unlist(c$template$blocks), collapse = " ")
+  expect_match(body, "Aún no recibimos su respuesta.", fixed = TRUE)
+  expect_false(grepl("Gracias por responder", body, fixed = TRUE))
+  # D: [PrivacyLink] en el cuerpo.
+  d <- expect_code("caso-d-privacylink-cuerpo.html", "platform_link_removed", 2L)
+  expect_true(any(grepl("política de privacidad -> [PrivacyLink]", vapply(d$report, `[[`, "", "excerpt"), fixed = TRUE)))
+  # E: tachado.
+  expect_code("caso-e-tachado.html", "strike_plain", 2L)
+  # F: un párrafo con «darse de baja» pasa al pie, se conserva y se informa.
+  f <- expect_code("caso-f-baja-al-final.html", "moved_to_footer")
+  expect_identical(Filter(function(x) x$type == "footer_legal", f$template$blocks)[[1]]$text,
+                   "Si no desea participar, puede darse de baja aquí.")
+  # Una frase estándar solo se quita como línea o tramo entero, no como subcadena.
+  expect_identical(as.character(.cmail_ih_footer_clean("Privacidad | Si desea darse de baja de esta encuesta, haga clic aquí.")), "")
+  expect_identical(as.character(.cmail_ih_footer_clean("Lea la Política de Privacidad institucional.")), "Lea la Política de Privacidad institucional.")
+  # Un enlace que el bloque no admite se informa con su URL.
+  h <- .cmi_parse('<html><body><p>Hola [FirstName], <a href="https://x.org/y">vea</a>:</p><p>Texto.</p></body></html>')
+  expect_true("link_discarded" %in% .cmi_codes(h))
+})
+
+test_that("propiedad reforzada: sin pérdida, en orden y con sus enlaces en el corpus, el golden y los presets", {
+  for (name in c(sprintf("caso-%s", c("a-privacidad-propia", "b-if-else", "c-ifnot", "d-privacylink-cuerpo",
+                                     "e-tachado", "f-baja-al-final")), "arte-diseno-invitacion", "contabilidad-reacreditacion")) {
+    html <- .cmi_case(paste0(name, ".html"))
+    .cmi_expect_no_loss(html, .cmi_parse(html), name)
+  }
+  for (d in c("mailchimp", "surveymonkey")) {
+    t <- .cmi_mapped(.cmail_template_normalize(.cmail_preset_recuperacion()))
+    html <- collection_mail_render(t, "export", d)$html
+    .cmi_expect_no_loss(html, .cmi_parse(html), paste("recuperacion", d))
+  }
+})
+
+
+test_that("golden 2 (Contabilidad, SurveyMonkey real): alt ausente informado, negrita y cursiva, espacios y firma", {
+  html <- .cmi_case("contabilidad-reacreditacion.html")
+  r <- .cmi_parse(html, file_name = "contabilidad-reacreditacion.html")
+  expected <- jsonlite::fromJSON(.cmail_fx_mail_import_path("contabilidad-reacreditacion.expected.json"), simplifyVector = FALSE)
+  got <- jsonlite::fromJSON(jsonlite::toJSON(list(
+    platform_detected = r$platform_detected, platform_evidence = r$platform_evidence,
+    template = r$template, report_codes = as.list(.cmi_codes(r)), images = r$images, stats = r$stats
+  ), auto_unbox = TRUE, null = "null"), simplifyVector = FALSE)
+  expect_identical(got, expected)
+  t <- r$template
+  # (a) La cabecera sin alt: vacío, informado con block_id; la revisión lo marca.
+  expect_identical(t$header, list(kind = "banner", image_ref = "bannerc"))
+  expect_identical(t$images$bannerc$alt, "")
+  alt <- Filter(function(x) x$code == "image_alt_missing", r$report)
+  expect_length(alt, 1L)
+  expect_identical(alt[[1]]$block_id, "__cabecera")
+  # (b) negrita conservada y cursiva informada; (c) sin «** » roto; (d) espacios; (e) y/o.
+  p1 <- t$blocks[[2]]$text
+  expect_true(startsWith(p1, "La **Facultad de Ciencias Contables de la Pontificia Universidad Católica del Perú** y el **Instituto"))
+  expect_match(p1, "realizando un **estudio de opinión** en el marco", fixed = TRUE)
+  # Ninguna negrita abre con espacio («** Facultad»).
+  expect_false(any(grepl("(^|\\s)\\*\\*\\s", vapply(t$blocks, function(b) b$text %||% "", ""))))
+  expect_true("italic_plain" %in% .cmi_codes(r))
+  expect_identical(t$blocks[[4]]$text, "Puede participar hasta el 05 de junio")
+  expect_match(t$blocks[[6]]$items[[1]], "no la reenvíe y/o comparta.", fixed = TRUE)
+  # (f) firma tal cual se escribió; (g) sin espacios basura en ningún texto.
+  expect_identical(t$blocks[[7]]$name, "Pulso PUCP")
+  texts <- unlist(lapply(t$blocks, function(b) b[intersect(names(b), c("text", "items", "lines", "closing", "name", "title"))]))
+  expect_false(any(grepl("  |^\\s|\\s$", texts)))
+  # Revisión SurveyMonkey: el alt vacío lo marca images_alt sobre la cabecera.
+  sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
+  imp <- collection_mail_import_html(sid, html = html, file_name = "conta.html", subject = "Encuesta de Reacreditación")
+  collection_mail_campaign_create(sid, 0L, name = "Conta", platform = "surveymonkey", template = imp$template, import_id = imp$import_id)
+  by <- setNames(collection_mail_review(sid, campaign_id = "conta")$checks, NULL)
+  ia <- Filter(function(x) x$code == "images_alt", by)[[1]]
+  expect_identical(ia$status, "error")
+  expect_identical(ia$targets[[1]]$block_id, "__cabecera")
+  out <- collection_mail_render(imp$template, "export", "surveymonkey", images = .cmail_images_resolve(session_get(sid), imp$template))$html
+  expect_true(.cmail_sm_html_verify(out)$ok)
+})
+
+test_that("un bloque imagen sin alt lleva el marcador visible y se informa con su block_id", {
+  r <- .cmi_parse('<html><body><img src="https://x.org/logo.png" width="120" alt="Logo"><p>Hola,</p><p>Texto.</p><img src="https://x.org/foto.png" width="300"><p>Fin.</p></body></html>')
+  img <- Filter(function(b) b$type == "image", r$template$blocks)[[1]]
+  expect_identical(img$alt, .CMAIL_ALT_MARKER)
+  alt <- Filter(function(x) x$code == "image_alt_missing", r$report)
+  expect_identical(alt[[1]]$block_id, img$block_id)
+})
+
+test_that("images_alt: el marcador del importador cuenta como alt vacío (error con targets), pero se puede guardar", {
+  sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
+  imp <- collection_mail_import_html(sid, html = '<html><body><img src="https://x.org/logo.png" width="120" alt="Logo"><p>Hola,</p><p>Texto.</p><img src="https://x.org/foto.png" width="300"><p>Fin.</p><a class="button" href="https://x.org/e">Ir</a></body></html>',
+                                     file_name = "x.html", subject = "Asunto")
+  img <- Filter(function(b) b$type == "image", imp$template$blocks)[[1]]
+  expect_identical(img$alt, .CMAIL_ALT_MARKER)
+  expect_true(collection_mail_template_validate(imp$template)$ok)
+  c <- collection_mail_campaign_create(sid, 0L, name = "Uno", template = imp$template, import_id = imp$import_id)
+  by <- setNames(collection_mail_review(sid, campaign_id = "uno", scope = "plantilla")$checks, NULL)
+  ia <- Filter(function(x) x$code == "images_alt", by)[[1]]
+  expect_identical(ia$status, "error")
+  expect_identical(ia$targets[[1]]$block_id, img$block_id)
+  expect_identical(.cmi_code(collection_mail_export(sid, collection_mail_campaigns_get(sid)$state_revision, "uno", scope = "plantilla")),
+                   "E_COLLECTION_MAIL_REVIEW_BLOCKING")
+  # Con un alt real, pasa.
+  t <- c$campaign$template
+  for (i in seq_along(t$blocks)) if (identical(t$blocks[[i]]$type, "image")) t$blocks[[i]]$alt <- "Estudiantes en el campus"
+  by2 <- setNames(collection_mail_review(sid, template = t, campaign_id = "uno", scope = "plantilla")$checks, NULL)
+  expect_identical(Filter(function(x) x$code == "images_alt", by2)[[1]]$status, "ok")
 })

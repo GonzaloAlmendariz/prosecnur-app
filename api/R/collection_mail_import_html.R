@@ -33,7 +33,7 @@
 .CMAIL_IMPORT_EXCERPT_MAX <- 160L
 .CMAIL_IH_DROP <- c("script", "style", "noscript", "iframe", "object", "embed", "form", "input", "button",
                     "svg", "math", "template", "canvas", "select", "textarea")
-.CMAIL_IH_INLINE <- c("a", "strong", "b", "em", "i", "span", "br", "font", "u", "small", "sup", "sub", "label",
+.CMAIL_IH_INLINE <- c("a", "strong", "b", "em", "i", "s", "strike", "del", "ins", "span", "br", "font", "u", "small", "sup", "sub", "label",
                       "abbr", "code", "mark", "s", "strike", "big", "cite", "q", "wbr", "time", "img")
 .CMAIL_IH_HEADINGS <- paste0("h", 1:6)
 .CMAIL_IH_SM_TAG_RE <- "\\[(SurveyLink|OptOutLink|PrivacyLink|FooterLink|RemoveLink|FirstQuestion|FirstName|LastName|Email|CustomData[0-9]{1,2})\\]"
@@ -147,6 +147,7 @@
   ctx$accent <- NULL
   ctx$css_align <- list()
   ctx$em_reported <- FALSE
+  ctx$platform_labels <- character(0)
   ctx$escaped_reported <- FALSE
   ctx
 }
@@ -167,9 +168,9 @@
 
 # ---- campos de las plataformas ------------------------------------------------
 
-.cmail_ih_field <- function(ctx, key, tag, label, sm = NULL) {
+.cmail_ih_field <- function(ctx, key, tag, label, sm = NULL, destino = NULL) {
   if (is.null(ctx$fields[[key]])) {
-    ctx$fields[[key]] <- .cmc_drop_nulls_deep(list(key = key, tag = tag, label = label, sm = sm))
+    ctx$fields[[key]] <- .cmc_drop_nulls_deep(list(key = key, tag = tag, label = label, sm = sm, destino = destino))
   }
   key
 }
@@ -181,7 +182,7 @@
     name <- sm[[2]]
     if (identical(name, "FirstName")) return("nombre")
     if (identical(name, "LastName")) return(.cmail_ih_field(ctx, "apellido", "APELLIDO", "Apellido", "LastName"))
-    if (identical(name, "SurveyLink")) return(.cmail_ih_field(ctx, "enlace", "ENLACE", "Enlace a la encuesta", "SurveyLink"))
+    if (identical(name, "SurveyLink")) return(.cmail_ih_field(ctx, "enlace", "ENLACE", "Enlace a la encuesta", "SurveyLink", "encuesta"))
     if (grepl("^CustomData[0-9]+$", name)) {
       n <- as.integer(sub("^CustomData", "", name))
       if (n >= 1L && n <= 50L) {
@@ -211,7 +212,7 @@
     key <- substr(key, 1L, 30L)
     if (key %in% .CMAIL_RESERVED_KEYS) key <- paste0(key, "_1")
     tag_ok <- if (.cmail_tag_ok(t)) t else substr(gsub("[^A-Z0-9_]", "", toupper(key)), 1L, 10L)
-    if (identical(key, "enlace")) return(.cmail_ih_field(ctx, "enlace", "ENLACE", "Enlace a la encuesta", "SurveyLink"))
+    # Sin `sm` ni `destino`: en Mailchimp no se sabe si *|ENLACE|* es la encuesta.
     return(.cmail_ih_field(ctx, key, tag_ok, key))
   }
   ""
@@ -234,8 +235,7 @@
       ctx$fields[[key]]$fallback <- fallback
     }
   }
-  text <- gsub("\\*\\|IF:[A-Za-z0-9_]+\\|\\*(.*?)\\*\\|ELSE:\\|\\*.*?\\*\\|END:IF\\|\\*", "\\1", text, perl = TRUE)
-  text <- gsub("\\*\\|IF:[A-Za-z0-9_]+\\|\\*(.*?)\\*\\|END:IF\\|\\*", "\\1", text, perl = TRUE)
+  text <- .cmail_ih_flatten_conditionals(ctx, text, node)
   for (re in c(.CMAIL_IH_SM_TAG_RE, .CMAIL_IH_MC_TAG_RE)) {
     m <- gregexpr(re, text, perl = TRUE)
     hits <- regmatches(text, m)[[1]]
@@ -245,6 +245,33 @@
       if (nzchar(k)) paste0("\u0001", k, "\u0002") else ""
     }, ""))
   }
+  text
+}
+
+# Condicionales de Mailchimp. La plantilla no los tiene: queda la PRIMERA rama
+# para todos y se informa `conditional_flattened` con las dos ramas (revisión
+# metodológica E1jkl, casos B y C), salvo los dos que la plantilla sí
+# representa: el saludo con *|IF:FNAME|* (texto + respaldo) y el campo con
+# respaldo *|IF:T|**|T|**|ELSE:|*Y*|END:IF|*. IFNOT nunca concatena sus ramas.
+.CMAIL_IH_COND_RE <- "(?s)\\*\\|(IF|IFNOT):([A-Za-z0-9_]+)\\|\\*(.*?)(?:\\*\\|ELSE:\\|\\*(.*?))?\\*\\|END:IF\\|\\*"
+
+.cmail_ih_flatten_conditionals <- function(ctx, text, node = NULL) {
+  m <- gregexpr(.CMAIL_IH_COND_RE, text, perl = TRUE)
+  hits <- regmatches(text, m)[[1]]
+  if (!length(hits)) return(text)
+  plain <- function(x) trimws(gsub("[\u0001\u0002]|\\*\\*", "", .cmail_ih_ws(x)))
+  regmatches(text, m) <- list(vapply(hits, function(h) {
+    p <- regmatches(h, regexec(.CMAIL_IH_COND_RE, h, perl = TRUE))[[1]]
+    op <- p[[2]]; tag <- toupper(p[[3]]); then <- p[[4]]; other <- if (length(p) >= 5L) p[[5]] else ""
+    represented <- identical(op, "IF") && (identical(tag, "FNAME") || identical(trimws(then), sprintf("*|%s|*", tag)))
+    if (!represented) {
+      cond <- if (identical(op, "IF")) sprintf("Si %s", tag) else sprintf("Si NO %s", tag)
+      .cmail_ih_report(ctx, "conditional_flattened",
+        "La plantilla no tiene condicionales: la primera rama quedó para todos y la otra se descartó. Si la otra rama era para otro grupo, va en otro envío o en otra campaña.",
+        node, excerpt = sprintf("%s: «%s»%s", cond, plain(then), if (nzchar(other)) sprintf(" / si no: «%s»", plain(other)) else ""))
+    }
+    then
+  }, ""))
   text
 }
 
@@ -267,7 +294,15 @@
   }
   if (grepl(sprintf("^(%s|%s)$", .CMAIL_IH_SM_TAG_RE, .CMAIL_IH_MC_TAG_RE), href, perl = TRUE)) {
     k <- .cmail_ih_token(ctx, href, node)
-    return(if (nzchar(k)) paste0("\u0001", k, "\u0002") else "")
+    if (nzchar(k)) return(paste0("\u0001", k, "\u0002"))
+    label <- trimws(.cmail_ih_ws(xml2::xml_text(node)))
+    if (nzchar(label)) ctx$platform_labels <- unique(c(ctx$platform_labels, label))
+    footer_tag <- grepl("OptOutLink|PrivacyLink|FooterLink|RemoveLink|UNSUB|LIST:", href)
+    .cmail_ih_report(ctx, "platform_link_removed",
+      if (footer_tag) "Es un enlace de la plataforma: el pie del correo lo vuelve a poner; aquí quedó solo su texto."
+      else "Es un enlace de la plataforma sin equivalente en la plantilla: se quitó y quedó solo su texto.",
+      node, excerpt = sprintf("%s -> %s", label, href))
+    return("")
   }
   if (grepl("^(https?://|mailto:)", href, ignore.case = TRUE)) {
     return(.cmail_ih_tags_in(ctx, gsub("[\\s\"'<>()]", "", href, perl = TRUE), node))
@@ -291,6 +326,10 @@
     # La negrita no cruza saltos: cada línea lleva la suya.
     body <- gsub("\\s*\n\\s*", "**\n**", body)
     return(paste0(lead, "**", body, "**", tail))
+  }
+  if (nm %in% c("s", "strike", "del") && nzchar(trimws(inner))) {
+    .cmail_ih_report(ctx, "strike_plain",
+      "El tachado queda como texto normal y se lee igual que el resto: revisa si ese texto debía borrarse.", node)
   }
   if (nm %in% c("em", "i") && !isTRUE(ctx$em_reported)) {
     ctx$em_reported <- TRUE
@@ -348,7 +387,16 @@
   .cmail_ih_finish(ctx, raw, if (length(nodes)) nodes[[1]] else NULL)
 }
 
-.cmail_ih_strip_links <- function(text) gsub(.CMAIL_LINK_RE, "\\1", text, perl = TRUE)
+.cmail_ih_strip_links <- function(text, ctx = NULL, where = NULL) {
+  if (!is.null(ctx)) {
+    for (l in unlist(lapply(text, .cmail_links), recursive = FALSE)) {
+      .cmail_ih_report(ctx, "link_discarded",
+        sprintf("%s no admite enlaces: quedó el texto y se perdió la URL; ponla en un párrafo si hace falta.", where %||% "Este texto"),
+        excerpt = sprintf("%s -> %s", l$label, gsub("[\u0001\u0002]", "", l$url)))
+    }
+  }
+  gsub(.CMAIL_LINK_RE, "\\1", text, perl = TRUE)
+}
 .cmail_ih_unbold <- function(text) trimws(gsub("**", "", text, fixed = TRUE))
 .cmail_ih_all_bold <- function(text) grepl("^\\*\\*[^*]+\\*\\*$", trimws(text))
 
@@ -680,7 +728,20 @@
   list(id = id, width = if (length(width) && !is.na(width)) width else NULL, name = base, alt = alt_txt)
 }
 
+# Enlace del pie de la plataforma (baja, privacidad, pie).
+.cmail_ih_footer_link <- function(a) {
+  href <- .cmail_ih_na(xml2::xml_attr(a, "href"), "")
+  grepl("^(\\[(OptOutLink|PrivacyLink|FooterLink|RemoveLink)\\]|\\*\\|(UNSUB|LIST:[A-Z0-9_]+)\\|\\*)$", trimws(href))
+}
+
+.cmail_ih_alt_missing <- function(ctx, node, im, block_id) {
+  .cmail_ih_report(ctx, "image_alt_missing",
+    sprintf("La imagen no tiene texto alternativo: quedó «%s»; escribe qué dice.", .CMAIL_ALT_MARKER),
+    node, excerpt = ctx$images[[im$id]]$url %||% im$id, block_id = block_id)
+}
+
 .cmail_ih_is_button <- function(ctx, a, container) {
+  if (.cmail_ih_footer_link(a)) return(FALSE)
   cls <- .cmail_ih_classes(a)
   st <- .cmail_ih_style(a)
   href <- .cmail_ih_na(xml2::xml_attr(a, "href"), "")
@@ -754,7 +815,10 @@
   }
   if (length(lead)) {
     first <- .cmail_ih_image(ctx, lead[[1]]$node)
-    big <- (!is.null(first$width) && first$width >= 480L) || grepl("-(9[6-9][0-9]|1[0-9]{3})$", first$name)
+    in_header <- !inherits(xml2::xml_find_first(lead[[1]]$node,
+      "./ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' header ') or contains(@class, 'banner')][1]"), "xml_missing")
+    big <- (!is.null(first$width) && first$width >= 480L) || grepl("-(9[6-9][0-9]|1[0-9]{3})$", first$name) ||
+      grepl("banner|cabecera|encabezado", first$name, ignore.case = TRUE) || (length(lead) == 1L && in_header)
     if (big) {
       header <- list(kind = "banner", image_ref = first$id)
       rest <- lead[-1]
@@ -766,11 +830,20 @@
       }
       header <- list(kind = "logos", logo_ids = as.list(ids))
     }
+    # Sin alt no se inventa uno: queda vacío, se informa y la revisión (images_alt) lo marca.
+    for (id in unlist(c(header$image_ref, header$logo_ids))) {
+      if (!nzchar(ctx$images[[id]]$alt %||% "")) {
+        .cmail_ih_report(ctx, "image_alt_missing",
+          "La imagen no tiene texto alternativo: escribe qué dice (es lo que se lee con las imágenes bloqueadas).",
+          lead[[1]]$node, excerpt = ctx$images[[id]]$url %||% id, block_id = "__cabecera")
+      }
+    }
     for (s in rest) {
       im <- .cmail_ih_image(ctx, s$node)
       add(.cmc_drop_nulls_deep(list(block_id = next_id("imagen"), type = "image", image_ref = im$id,
-                                    alt = if (nzchar(im$alt)) im$alt else "Imagen",
+                                    alt = if (nzchar(im$alt)) im$alt else .CMAIL_ALT_MARKER,
                                     width = if (!is.null(im$width)) max(40L, min(600L, im$width)), url = s$link)))
+      if (!nzchar(im$alt)) .cmail_ih_alt_missing(ctx, s$node, im, blocks[[length(blocks)]]$block_id)
     }
   } else {
     ctx$images[["logo"]] <- list(alt = "Logo")
@@ -791,7 +864,16 @@
   if (is.na(footer_from)) {
     for (k in rev(seq_along(segs))) {
       s <- segs[[k]]
-      if (identical(s$kind, "text") && grepl(.CMAIL_IH_FOOTER_RE, s$text, perl = TRUE)) footer_from <- k else break
+      footer_like <- (identical(s$kind, "text") && grepl(.CMAIL_IH_FOOTER_RE, s$text, perl = TRUE)) ||
+        (identical(s$kind, "a_alone") && .cmail_ih_footer_link(s$node))
+      if (footer_like) footer_from <- k else break
+    }
+    if (!is.na(footer_from)) {
+      for (s in Filter(function(x) identical(x$kind, "text"), segs[footer_from:length(segs)])) {
+        .cmail_ih_report(ctx, "moved_to_footer",
+          "Este párrafo menciona la baja o la privacidad y pasó al pie legal (letra pequeña, al final). Si era parte del mensaje, devuélvelo al cuerpo.",
+          s$node, excerpt = s$text)
+      }
     }
   }
   footer_segs <- if (!is.na(footer_from)) segs[footer_from:length(segs)] else list()
@@ -817,10 +899,11 @@
     } else if (identical(kind, "img")) {
       im <- .cmail_ih_image(ctx, s$node)
       add(.cmc_drop_nulls_deep(list(block_id = next_id("imagen"), type = "image", image_ref = im$id,
-                                    alt = if (nzchar(im$alt)) im$alt else "Imagen",
+                                    alt = if (nzchar(im$alt)) im$alt else .CMAIL_ALT_MARKER,
                                     width = if (!is.null(im$width)) max(40L, min(600L, im$width)), url = s$link)))
+      if (!nzchar(im$alt)) .cmail_ih_alt_missing(ctx, s$node, im, blocks[[length(blocks)]]$block_id)
     } else if (identical(kind, "heading")) {
-      add(.cmc_drop_nulls_deep(list(block_id = next_id("titulo"), type = "heading", text = .cmail_ih_strip_links(s$text),
+      add(.cmc_drop_nulls_deep(list(block_id = next_id("titulo"), type = "heading", text = .cmail_ih_strip_links(s$text, ctx, "Un título"),
                                     level = if (s$level %in% c("h1", "h2")) "titulo" else "subtitulo",
                                     align = if (identical(s$align, "center")) "center")))
     } else if (identical(kind, "list")) {
@@ -847,7 +930,7 @@
       if (!is.null(last_button) && identical(kind, "text") && length(blocks) == last_button$index &&
           isTRUE(.cmail_ih_note_of(last_button$node, s$container))) {
         b <- blocks[[last_button$index]]
-        b$note <- as.list(c(unlist(b$note), .cmail_ih_strip_links(strsplit(.cmail_ih_unbold(text), "\n", fixed = TRUE)[[1]])))
+        b$note <- as.list(c(unlist(b$note), .cmail_ih_strip_links(strsplit(.cmail_ih_unbold(text), "\n", fixed = TRUE)[[1]], ctx, "La nota del botón")))
         blocks[[last_button$index]] <- b
         k <- k + 1L
         next
@@ -855,7 +938,7 @@
       if (!greeted && !length(Filter(function(b) b$type %in% c("paragraph", "callout", "list", "button"), blocks)) &&
           identical(kind, "text") && .cmail_ih_greeting(text)) {
         greeted <- TRUE
-        t <- .cmail_ih_strip_links(text)
+        t <- .cmail_ih_strip_links(text, ctx, "El saludo")
         fb <- if (grepl("{{nombre}}", t, fixed = TRUE)) .cmail_ih_greeting_fallback(t) else NULL
         # El respaldo de Mailchimp (*|IF:FNAME|*…*|ELSE:|*Y*|END:IF|*) manda sobre el derivado.
         mc_fb <- s$mc_fallback
@@ -874,8 +957,8 @@
         tail_line <- lines[[length(lines)]]
         lm <- regmatches(tail_line, regexec(sprintf("^%s$", .CMAIL_LINK_RE), tail_line, perl = TRUE))[[1]]
         if (length(lm) == 3L && identical(lm[[2]], lm[[3]])) { url <- lm[[3]]; lines <- lines[-length(lines)] }
-        add(.cmc_drop_nulls_deep(list(block_id = "firma", type = "signature", closing = .cmail_ih_strip_links(text),
-                                      name = .cmail_ih_unbold(.cmail_ih_strip_links(lines[[1]])),
+        add(.cmc_drop_nulls_deep(list(block_id = "firma", type = "signature", closing = .cmail_ih_strip_links(text, ctx, "La despedida"),
+                                      name = .cmail_ih_unbold(.cmail_ih_strip_links(lines[[1]], ctx, "El nombre de la firma")),
                                       lines = if (length(lines) > 1L) as.list(lines[-1]), url = url)))
         k <- k + 2L
         next
@@ -893,10 +976,18 @@
   }
 
   # Pie: el texto que queda al quitar el vocabulario de la plataforma.
+  removed <- character(0)
   footer_text <- paste(vapply(footer_segs, function(s) {
     t <- if (identical(s$kind, "a_alone")) .cmail_ih_text(ctx, list(s$node)) else s$text %||% ""
-    .cmail_ih_footer_clean(t)
+    clean <- .cmail_ih_footer_clean(t, ctx$platform_labels)
+    removed <<- c(removed, attr(clean, "removed"))
+    as.character(clean)
   }, ""), collapse = "\n")
+  if (length(removed)) {
+    .cmail_ih_report(ctx, "platform_footer_removed",
+      "Es el texto estándar del pie de la plataforma: la plantilla pone el pie de la plataforma de la campaña.",
+      excerpt = paste(unique(removed), collapse = " | "), selector = "footer")
+  }
   footer_text <- trimws(gsub("\n+", "\n", footer_text))
   add(.cmc_drop_nulls_deep(list(block_id = "pie", type = "footer_legal",
                                 text = if (nzchar(footer_text)) footer_text)))
@@ -913,17 +1004,24 @@
   grepl("/table", substr(bp, nchar(cp) + 1L, nchar(bp)), fixed = TRUE)
 }
 
-.cmail_ih_footer_clean <- function(t) {
-  # Enlaces de la plataforma (baja, privacidad, pie) y su texto estándar fuera.
-  t <- gsub(sprintf("\\[([^\\]\n]*)\\]\\(%s\\)", "[^)]*"), "\\1", t, perl = TRUE)
-  for (p in .CMAIL_IH_FOOTER_PHRASES) t <- gsub(p, "", t, fixed = TRUE)
-  t <- gsub("\\baqu\u00ed\\b\\.?", "", t, perl = TRUE)
-  t <- gsub("(^|\n)\\s*[|·\u2022-]\\s*", "\\1", t, perl = TRUE)
-  t <- gsub("\\s*[|·\u2022]\\s*(\n|$)", "\\1", t, perl = TRUE)
-  t <- gsub("^[\\s|.]+$", "", t, perl = TRUE)
-  lines <- trimws(strsplit(t, "\n", fixed = TRUE)[[1]])
-  lines <- lines[nzchar(gsub("[|.\\s]", "", lines, perl = TRUE))]
-  paste(lines, collapse = "\n")
+# Pie: se quitan SOLO las frases estándar de la plataforma y los textos de sus
+# enlaces, y solo cuando son una línea entera o un tramo entero entre «|». Un
+# enlace https propio (p. ej. la política de privacidad de la institución) se
+# conserva como [texto](url): el pie lo admite.
+.cmail_ih_footer_clean <- function(t, labels = character(0)) {
+  norm <- function(x) tolower(sub("[.:]$", "", trimws(x)))
+  std <- unique(norm(c(.CMAIL_IH_FOOTER_PHRASES, labels)))
+  keep <- character(0)
+  removed <- character(0)
+  for (l in strsplit(t, "\n", fixed = TRUE)[[1]]) {
+    parts <- trimws(strsplit(l, "\\s*[|\u00b7\u2022]\\s*", perl = TRUE)[[1]])
+    parts <- parts[nzchar(gsub("[.\\s]", "", parts, perl = TRUE))]
+    drop <- norm(parts) %in% std
+    removed <- c(removed, parts[drop])
+    parts <- parts[!drop]
+    if (length(parts)) keep <- c(keep, paste(parts, collapse = " | "))
+  }
+  structure(paste(keep, collapse = "\n"), removed = removed)
 }
 
 # ---- entrada ------------------------------------------------------------------
@@ -1091,13 +1189,21 @@
   template <- .cmail_ih_repair(ctx, template)
   list(
     template = template,
-    report = utils::head(lapply(ctx$report, .cmc_drop_nulls_deep), .CMAIL_IMPORT_REPORT_MAX),
+    report = utils::head(.cmail_ih_report_unique(ctx$report), .CMAIL_IMPORT_REPORT_MAX),
     images = ctx$image_list,
     stats = list(blocks = length(template$blocks), dropped_empty = as.integer(ctx$dropped_empty),
                  discarded = as.list(ctx$discarded)),
     platform_detected = platform,
     platform_evidence = evidence
   )
+}
+
+# Un mismo nodo se lee más de una vez (texto en línea, botón, pie): un ítem por
+# código, selector y extracto.
+.cmail_ih_report_unique <- function(report) {
+  items <- lapply(report, .cmc_drop_nulls_deep)
+  key <- vapply(items, function(x) paste(x$code, x$selector %||% "", x$excerpt %||% "", x$block_id %||% "", sep = "\u001f"), "")
+  items[!duplicated(key)]
 }
 
 # Normaliza y valida. Lo que no pase se degrada a párrafo de texto plano (y se

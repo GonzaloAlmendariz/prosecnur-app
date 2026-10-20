@@ -1,0 +1,120 @@
+{
+  "platform_detected": "surveymonkey",
+  "platform_evidence": {
+    "surveymonkey": 4,
+    "mailchimp": 0
+  },
+  "template": {
+    "schema": "collection_mail_template/v2",
+    "template_id": "contabilidad-reacreditacion",
+    "title": "Encuesta de Reacreditación",
+    "revision": 1,
+    "subject": "",
+    "preheader": "",
+    "theme": {
+      "accent": "#001f60",
+      "band": "acento"
+    },
+    "header": {
+      "kind": "banner",
+      "image_ref": "bannerc"
+    },
+    "images": {
+      "bannerc": {
+        "alt": "",
+        "url": "https://pulsopucp.github.io/correo-/BANNERC.png"
+      }
+    },
+    "fields": [
+      {
+        "key": "enlace",
+        "tag": "ENLACE",
+        "label": "Enlace a la encuesta",
+        "sm": "SurveyLink",
+        "destino": "encuesta"
+      }
+    ],
+    "blocks": [
+      {
+        "block_id": "saludo",
+        "type": "greeting",
+        "text": "**Estimado(a) {{nombre}},**",
+        "fallback": "**Estimado(a),**"
+      },
+      {
+        "block_id": "parrafo-1",
+        "type": "paragraph",
+        "text": "La **Facultad de Ciencias Contables de la Pontificia Universidad Católica del Perú** y el **Instituto de Analítica Social e Inteligencia Estratégica - PULSO PUCP** se encuentran realizando un **estudio de opinión** en el marco del proceso de acreditación de la carrera de Contabilidad con la finalidad de mejorar la formación brindada a los(as) estudiantes.",
+        "align": "justify"
+      },
+      {
+        "block_id": "parrafo-2",
+        "type": "paragraph",
+        "text": "Por ello, lo(a) invitamos a responder la siguiente encuesta que tomará **aproximadamente 15 minutos**, con la finalidad de conocer su percepción acerca del perfil de egreso, el plan de estudios, así como las fortalezas y elementos a mejorar de la carrera. Agradecemos mucho su valioso aporte dentro de este proceso.",
+        "align": "justify"
+      },
+      {
+        "block_id": "parrafo-3",
+        "type": "paragraph",
+        "text": "Puede participar hasta el 05 de junio",
+        "align": "justify"
+      },
+      {
+        "block_id": "boton",
+        "type": "button",
+        "text": "Empezar aquí",
+        "url": "{{enlace}}"
+      },
+      {
+        "block_id": "importante",
+        "type": "callout",
+        "variant": "box",
+        "title": "Importante:",
+        "items": [
+          "La ruta de acceso a la encuesta es única y personal, por favor, no la reenvíe y/o comparta.",
+          "Se aconseja que una vez iniciada la encuesta la complete en su totalidad."
+        ]
+      },
+      {
+        "block_id": "firma",
+        "type": "signature",
+        "closing": "Saludos cordiales,",
+        "name": "Pulso PUCP",
+        "lines": [
+          "**Instituto de Analítica Social e Inteligencia Estratégica**"
+        ]
+      },
+      {
+        "block_id": "pie",
+        "type": "footer_legal"
+      }
+    ],
+    "template_sha256": "sha256:39fc3e3ba4cfeebc6335a7cdaf0f1e8ecd386ef3e22b2255d0be8a6ee6acbeca"
+  },
+  "report_codes": [
+    "style_discarded",
+    "hover_ignored",
+    "italic_plain",
+    "platform_link_removed",
+    "platform_link_removed",
+    "image_alt_missing",
+    "platform_footer_removed",
+    "subject_missing"
+  ],
+  "images": [
+    {
+      "id": "bannerc",
+      "url": "https://pulsopucp.github.io/correo-/BANNERC.png",
+      "alt": "",
+      "status": "url"
+    }
+  ],
+  "stats": {
+    "blocks": 8,
+    "dropped_empty": 0,
+    "discarded": [
+      "style",
+      "title"
+    ]
+  }
+}

@@ -15,6 +15,15 @@
 .CMAIL_IMAGE_WARN_BYTES <- 200L * 1024L
 .CMAIL_IMAGE_MIN_W <- 40L
 .CMAIL_IMAGE_MAX_W <- 1200L
+# Marcador del alt que falta (lo deja el importador en un bloque imagen). Se
+# admite al guardar para no bloquear la edición, pero `images_alt` lo trata
+# como vacío: exportarlo sería publicar un alt falso.
+.CMAIL_ALT_MARKER <- "[Describe la imagen]"
+
+.cmail_alt_missing <- function(alt) {
+  a <- trimws(as.character(alt %||% ""))
+  !nzchar(a) || identical(a, .CMAIL_ALT_MARKER)
+}
 
 .cmail_image_id_ok <- function(x) {
   is.character(x) && length(x) == 1L && !is.na(x) && grepl(.CMAIL_IMAGE_ID_RE, x)

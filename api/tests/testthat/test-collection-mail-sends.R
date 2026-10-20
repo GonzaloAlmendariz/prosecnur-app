@@ -201,3 +201,33 @@ test_that("HTTP: PUT mail-template con sends y GET mail-campaigns con platform y
   expect_identical(bad$status, 422L)
   expect_identical(bad$body$error$code, "E_COLLECTION_MAIL_SEND_INVALID")
 })
+
+test_that("recordatorio en Mailchimp: reminder_audience avisa con N, parcial bloquea y el manifest dice audience_applied", {
+  skip_if_not_installed("zip")
+  sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
+  collection_state_seed(sid)
+  collection_mail_campaign_create(sid, .cms_rev(sid), name = "Mc")
+  .cmail_fx_import(sid)
+  collection_mail_template_put(sid, NULL, .cms_rev(sid), campaign_id = "mc",
+    sends = list(list(), list(label = "Recordatorio 1", audience = "sin_respuesta"), list(audience = "parcial")))
+  inv <- collection_mail_review(sid, campaign_id = "mc", scope = "completo")
+  expect_false("reminder_audience" %in% vapply(inv$checks, `[[`, "", "code"))
+  r <- collection_mail_review(sid, campaign_id = "mc", scope = "completo", send_id = "recordatorio-1")
+  by <- setNames(r$checks, vapply(r$checks, `[[`, "", "code"))
+  valid <- .cmail_recipients_resolve(.cmail_recipients_load(session_get(sid), "mc"),
+                                     collection_mail_template_get(sid, campaign_id = "mc")$template)$counts$valid
+  expect_identical(by$reminder_audience$status, "warning")
+  expect_identical(by$reminder_audience$value, valid)
+  expect_match(by$reminder_audience$detail, sprintf("audiencia.csv trae a los %d destinatarios", valid), fixed = TRUE)
+  p <- setNames(collection_mail_review(sid, campaign_id = "mc", scope = "plantilla", send_id = "recordatorio-2")$checks,
+                NULL)
+  expect_identical(Filter(function(x) x$code == "reminder_audience", p)[[1]]$status, "error")
+  if (isTRUE(r$ready)) {
+    ex <- collection_mail_export(sid, .cms_rev(sid), "mc", send_id = "recordatorio-1")
+    expect_identical(ex$manifest$send$audience_applied, "manual_en_plataforma")
+    expect_identical(ex$manifest$recipients$rows, valid)
+  } else {
+    errs <- vapply(Filter(function(x) x$status == "error", r$checks), `[[`, "", "code")
+    fail(paste("la revisión del recordatorio no quedó lista:", paste(errs, collapse = ", ")))
+  }
+})

@@ -279,3 +279,76 @@ test_that("con 2+ campañas, preview/review con la plantilla en el cuerpo y sin 
   # Sin plantilla en el cuerpo sigue exigiendo campaign_id.
   expect_identical(.cmd_code(collection_mail_preview(sid)), "E_COLLECTION_MAIL_CAMPAIGN_REQUIRED")
 })
+
+# ---- revisión metodológica E1jkl ------------------------------------------------
+
+test_that("destino: un enlace que no es la encuesta no puede ser [SurveyLink]; la revisión no lo sugiere", {
+  sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
+  c <- collection_mail_campaign_create(sid, 0L, name = "Capa", preset_id = "invitacion_capacitacion_v1", platform = "surveymonkey")
+  t <- c$campaign$template
+  expect_identical(t$fields[[1]]$destino, "otro")
+  t$images$`logo-cliente`$url <- "https://x.org/a.png"; t$images$pulso$url <- "https://x.org/b.png"
+  p <- collection_mail_template_put(sid, t, .cmd_rev(sid), campaign_id = "capa")
+  r <- collection_mail_review(sid, campaign_id = "capa")
+  expect_false(r$ready)
+  by <- .cmd_by(r)
+  expect_identical(by$survey_link$status, "error")
+  expect_match(by$survey_link$detail, "SurveyMonkey no es la plataforma de este correo", fixed = TRUE)
+  expect_false(grepl("con etiqueta SurveyLink)", by$sm_fields_mapped$detail, fixed = TRUE))
+  expect_false(grepl("[SurveyLink]", by$sm_fields_mapped$detail, fixed = TRUE))
+  expect_match(by$sm_fields_mapped$detail, "no es la plataforma", fixed = TRUE)
+  # Seguir el consejo viejo (mapear la sala a SurveyLink) ya no pasa.
+  t2 <- p$template; t2$fields[[1]]$sm <- "SurveyLink"
+  e <- .cmd_err(collection_mail_template_put(sid, t2, .cmd_rev(sid), campaign_id = "capa"))
+  expect_identical(e$code, "E_COLLECTION_MAIL_TEMPLATE_INVALID")
+  expect_true("sm_destination_mismatch" %in% vapply(e$details$problems, `[[`, "", "code"))
+  t3 <- t2; t3$fields[[1]]$destino <- "sitio"
+  expect_true("bad_destino" %in% .cmd_codes(t3))
+  # Un enlace vacío no pasa la verificación estructural.
+  ok_html <- '<a href="[SurveyLink]">x</a><a href="[OptOutLink]">b</a>'
+  expect_true(.cmail_sm_html_verify(ok_html)$ok)
+  expect_false(.cmail_sm_html_verify(paste0(ok_html, '<a href="">Ingresar</a>'))$ok)
+})
+
+test_that("sm_fallback cita cómo sale sin dato y que el respaldo se descarta; sm_link_field_empty para enlaces", {
+  sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
+  sm <- .cmd_sm_campaign(sid)
+  by <- .cmd_by(collection_mail_review(sid, campaign_id = sm$id))
+  expect_identical(by$sm_fallback$status, "warning")
+  expect_match(by$sm_fallback$detail, "El saludo saldrá «Estimado(a) :»", fixed = TRUE)
+  expect_match(by$sm_fallback$detail, "el respaldo «Estimado(a) estudiante:» no se usa", fixed = TRUE)
+  expect_match(by$sm_fallback$detail, "{{carrera}} saldrá vacío; el respaldo «su carrera» no se usa.", fixed = TRUE)
+  expect_false("enlace" %in% unlist(by$sm_fallback$items))
+  expect_null(by$sm_link_field_empty)
+  # Un dato del contacto dentro de una URL (sin respaldo): aviso propio.
+  t <- sm$template
+  t$fields <- c(t$fields, list(list(key = "dato", tag = "DATO", label = "Dato", sm = "CustomData3")))
+  t$blocks <- append(t$blocks, list(list(block_id = "otro-boton", type = "button", text = "Ver", url = "https://x.org/?c={{dato}}")), after = 5L)
+  by2 <- .cmd_by(collection_mail_review(sid, template = t, campaign_id = sm$id))
+  expect_identical(by2$sm_link_field_empty$status, "warning")
+  expect_identical(unlist(by2$sm_link_field_empty$items), "dato")
+  expect_identical(by2$sm_link_field_empty$targets[[1]]$block_id, "otro-boton")
+  expect_false("dato" %in% unlist(by2$sm_fallback$items))
+})
+
+test_that("manifest: app_version y audience_applied en los dos dialectos; collector_label sin PII", {
+  skip_if_not_installed("zip")
+  sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
+  sm <- .cmd_sm_campaign(sid)
+  p <- collection_mail_template_put(sid, NULL, .cmd_rev(sid), campaign_id = sm$id,
+    sends = list(list(collector_label = "Recopilador Arte FG 2026"), list(audience = "parcial")))
+  expect_identical(.cmd_code(collection_mail_template_put(sid, NULL, .cmd_rev(sid), campaign_id = sm$id,
+    sends = list(list(collector_label = "de ana@ejemplo.org")))), "E_COLLECTION_MAIL_SEND_INVALID")
+  ex <- collection_mail_export(sid, .cmd_rev(sid), sm$id)
+  version <- as.character(utils::packageVersion("prosecnurapp"))
+  expect_identical(ex$manifest$app_version, version)
+  expect_identical(ex$manifest$send$audience_applied, "recopilador")
+  expect_identical(ex$manifest$send$collector_label, "Recopilador Arte FG 2026")
+  rec <- collection_mail_export(sid, .cmd_rev(sid), sm$id, send_id = "recordatorio-1")
+  expect_identical(rec$manifest$send$audience_applied, "filtro_de_la_plataforma")
+  expect_false(grepl("@", paste(unlist(rec$manifest), collapse = " "), fixed = TRUE))
+  mc <- collection_mail_campaign_create(sid, .cmd_rev(sid), name = "Mc")
+  em <- collection_mail_export(sid, .cmd_rev(sid), "mc", scope = "plantilla")
+  expect_identical(em$manifest$app_version, version)
+  expect_identical(em$manifest$send$audience_applied, "lista_importada")
+})

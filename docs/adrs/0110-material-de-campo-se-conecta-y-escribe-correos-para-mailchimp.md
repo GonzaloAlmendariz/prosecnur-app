@@ -203,6 +203,28 @@ fixtures en `tests/testthat/fixtures/mail-import/`.
   `text-align`), la presencia de un fondo o de un borde izquierdo en una celda solo se usa para reconocer un recuadro;
   nunca se copia. Funcionan con el patrón de PULSO y con lo que la app exporta (ida y vuelta en los dos presets y los dos
   dialectos); fuera de eso, lo no reconocido queda como párrafo y en el informe.
+- **Ajustes de la revisión metodológica (E1jkl).**
+  - Cada campo de enlace declara `fields[].destino` (`encuesta | otro`). Uno con destino `otro` no puede ser
+    `[SurveyLink]` (`sm_destination_mismatch`): una invitación de SurveyMonkey lleva siempre a la encuesta del
+    recopilador. La revisión no sugiere SurveyLink para un enlace existente, y `.cmail_sm_html_verify` rechaza
+    `href=""`.
+  - `sm_fallback` dice cómo sale el texto sin el dato («Estimado(a) :») y que el respaldo declarado se descarta. Cubre
+    todos los campos salvo SurveyLink. Un dato del contacto dentro de una URL avisa aparte (`sm_link_field_empty`).
+  - El importador informa `conditional_flattened` (con las dos ramas; IFNOT ya no las concatena),
+    `platform_link_removed`, `platform_footer_removed`, `moved_to_footer`, `link_discarded` y `strike_plain`. En el
+    pie solo se quitan los enlaces de la plataforma y las frases estándar cuando son una línea o un tramo entero entre
+    «|»; un enlace https propio se conserva.
+  - El manifest suma `app_version`, `send.audience_applied` (`lista_importada`, `manual_en_plataforma`, `recopilador`
+    o `filtro_de_la_plataforma`) y `send.collector_label` (opcional, sin datos personales).
+- **SurveyMonkey ejecuta el filtro «Send To» y la app solo lo rotula.** Los rótulos «No response / Partial response /
+  Both» no están verificados contra la interfaz real.
+- **`parcial` exige un recopilador que deje retomar la respuesta.** En Mailchimp no tiene sentido (nadie sabe quién está
+  a medias) y la revisión lo bloquea (`reminder_audience` error).
+- **En Mailchimp, el recordatorio no excluye a quienes respondieron.** Su `audiencia.csv` es la población entera. La
+  revisión lo avisa con N (`reminder_audience` warning) y el manifest declara `audience_applied: manual_en_plataforma`.
+  Si el enlace no es de un solo uso, hay que deduplicar en la base.
+- **La app no envía.** «Cuándo» es `generated_at` más la fecha planificada del envío.
+- **`sm_fallback` no puede contar los vacíos.** Los contactos viven en SurveyMonkey.
 - **Pendiente de verificar en un recopilador real:** que SurveyMonkey acepte imágenes por URL en «HTML personalizado»
   (no documenta subirlas) y que el plan de PULSO tenga ese formato (Enterprise).
 
