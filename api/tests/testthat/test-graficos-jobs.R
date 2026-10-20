@@ -149,7 +149,7 @@ test_that(".graficos_job_rebuild_slides reporta progreso con el vocabulario del 
   )
 })
 
-test_that(".graficos_job_rebuild_slides prefija los errores con la base", {
+test_that(".graficos_job_rebuild_slides prefija los errores con la base y la lámina", {
   base_error <- .graficos_job_base_error("docentes")
 
   plan_sin_tipo <- list(slides = list(list(payload = list())))
@@ -158,7 +158,7 @@ test_that(".graficos_job_rebuild_slides prefija los errores con la base", {
       plan_sin_tipo, .gjobs_slide_registry(), .graf_names(), icon_registry = list(),
       base_error = base_error
     ),
-    "Base 'docentes': Slide sin tipo",
+    "Base 'docentes': Lámina 1: Slide sin tipo",
     fixed = TRUE
   )
 
@@ -168,7 +168,25 @@ test_that(".graficos_job_rebuild_slides prefija los errores con la base", {
       plan_tipo_malo, .gjobs_slide_registry(), .graf_names(), icon_registry = list(),
       base_error = base_error
     ),
-    "Base 'docentes': Tipo de slide no registrado: p_slide_inexistente",
+    "Base 'docentes': Lámina 1: Tipo de slide no registrado: p_slide_inexistente",
+    fixed = TRUE
+  )
+
+  # Con título, la lámina se nombra como en los avisos; en el Word es «Sección» (Arte, lámina 33, 2026-10-20).
+  plan_titulado <- list(slides = list(
+    list(tipo = "p_slide_portada", payload = list(titulo = "A")),
+    list(tipo = "p_slide_inexistente", payload = list(titulo = "Recursos"))
+  ))
+  expect_error(
+    .graficos_job_rebuild_slides(plan_titulado, .gjobs_slide_registry(), .graf_names(), icon_registry = list(),
+                                 base_error = base_error),
+    "Base 'docentes': Lámina 2 «Recursos»: Tipo de slide no registrado",
+    fixed = TRUE
+  )
+  expect_error(
+    .graficos_job_rebuild_slides(plan_titulado, .gjobs_slide_registry(), .graf_names(), icon_registry = list(),
+                                 base_error = identity, item_label = "la sección"),
+    "Sección 2 «Recursos»: Tipo de slide no registrado",
     fixed = TRUE
   )
 })

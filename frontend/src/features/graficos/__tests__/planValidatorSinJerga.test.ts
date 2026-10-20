@@ -225,9 +225,21 @@ describe("errores de exportación: casos reescritos", () => {
   test("lo que no se reconoce no se muestra crudo: va en `detalle`", () => {
     const crudo = "! in callr subprocess. Caused by error: ! algo raro en `p_dim_x()`";
     const h = humanizeGraficosExportError(`[E_INTERNAL] ${crudo}`, conGrupos);
-    expect(h.message).toBe("No se pudo generar el informe. Revisa la lámina indicada o vuelve a intentarlo; el detalle quedó en el registro.");
+    expect(h.message).toBe("No se pudo generar el informe. Vuelve a intentarlo.");
     expect(h.message).not.toContain("callr");
+    expect(h.slideRef).toBeUndefined();
     expect(h.detalle).toBe(crudo);
+  });
+
+  test("el motor nombra la lámina que falló: el aviso la nombra y lleva a ella (Arte, lámina 33)", () => {
+    const crudo = "! in callr subprocess. Caused by error: ! Base 'docentes': Lámina 6 «Comparación por tema»: p_radar_tabla(modo='box'): no usar `var`.";
+    const h = humanizeGraficosExportError(crudo, conGrupos);
+    expect(h.message).toBe("Lámina 6 · “Comparación por tema”: su gráfico no se puede dibujar como está configurado, y el informe se detuvo ahí.");
+    expect(h.message).not.toContain("p_radar");
+    expect(h.slideRef?.id).toBe("slide_grupos_7777");
+    expect(h.detalle).toBe(crudo);
+    // Un número que no está en el plan no inventa una lámina.
+    expect(humanizeGraficosExportError("Lámina 99: algo", conGrupos).slideRef).toBeUndefined();
   });
 
   test("ícono requerido: reconoce el texto actual del backend y el viejo", () => {
