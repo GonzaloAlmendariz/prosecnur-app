@@ -104,11 +104,11 @@ describe("editorMetrics (U8)", () => {
 
 describe("conteos de la cabecera que el Resumen repite (E9)", () => {
   const d = (level: "error" | "warn" | "info", id: string) => ({ id, level, title: id, detail: "" });
-  it("errores locales y avisos (warn + info) con el mismo número que el rótulo", () => {
+  it("errores locales y avisos con el mismo número que el rótulo (lo informativo no cuenta como aviso)", () => {
     const status = deriveEditorHeaderStatus([d("error", "a"), d("error", "b"), d("warn", "c"), d("info", "e")] as never, null);
     expect(status.label).toBe("2 errores");
     expect(status.errorCount).toBe(2);
-    expect(status.avisoCount).toBe(2);
+    expect(status.avisoCount).toBe(1);
   });
 });
 

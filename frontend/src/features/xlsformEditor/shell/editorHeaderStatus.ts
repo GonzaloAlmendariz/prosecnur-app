@@ -79,7 +79,7 @@ export function deriveEditorHeaderStatus(
     .filter((b) => b.kind === "error" && !localIds.has(b.id))
     .map((b) => ({ id: b.id, title: b.title, detail: b.detail, rowIndex: b.rowIndex }));
 
-  const base = { logicStepPending, logicaExterna, publicationErrors, errorCount, avisoCount: warnCount + infoCount };
+  const base = { logicStepPending, logicaExterna, publicationErrors, errorCount, avisoCount: warnCount };
 
   if (errorCount > 0) {
     return {
