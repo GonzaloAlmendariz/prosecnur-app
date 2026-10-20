@@ -2,6 +2,7 @@ import type { LogicScope } from "../logic";
 import type { BuilderNode } from "../types";
 import { describeExpression, describeValidation } from "../canvas/reglasHumanas";
 import { COLUMN_HELP } from "./hojasModel";
+import { aplicarInicioFin } from "./cursorTeclas";
 
 // Barra de fórmula del Editor XLSForm (revamp E7, 2026-10-16): la celda elegida con su dirección XLSForm
 // (fila · columna), editable a todo el ancho, y debajo «Se lee» para las columnas con expresiones.
@@ -10,12 +11,17 @@ const LEIBLES = new Set(["relevant", "constraint", "calculation", "choice_filter
 
 export type CeldaElegida = { hoja: string; fila: number; columna: string };
 
-export function BarraFormula({ celda, valor, nodo, scope, onCambiar }: {
+export function BarraFormula({ celda, valor, nodo, scope, pendiente = false, onCambiar, onConfirmar, onDescartar }: {
   celda: CeldaElegida | null;
+  /** Lo que se ve: el borrador compartido con la celda, o el valor guardado. */
   valor: string;
   nodo: BuilderNode | null;
   scope?: LogicScope;
+  /** Hay un borrador sin confirmar (se confirma al salir o con Enter; Esc lo descarta). */
+  pendiente?: boolean;
   onCambiar: (valor: string) => void;
+  onConfirmar?: () => void;
+  onDescartar?: () => void;
 }) {
   if (!celda) {
     return (
@@ -41,9 +47,15 @@ export function BarraFormula({ celda, valor, nodo, scope, onCambiar }: {
         {ayuda ? <span className="xfx-barra__ayuda">{ayuda.label}</span> : null}
       </span>
       <input
-        className="xfx-barra__valor"
+        className={`xfx-barra__valor${pendiente ? " is-pending" : ""}`}
         value={valor}
         onChange={(e) => onCambiar(e.target.value)}
+        onBlur={onConfirmar}
+        onKeyDown={(e) => {
+          if (aplicarInicioFin(e)) return;
+          if (e.key === "Enter") { e.preventDefault(); onConfirmar?.(); }
+          else if (e.key === "Escape" && pendiente) { e.preventDefault(); e.stopPropagation(); onDescartar?.(); }
+        }}
         aria-label={`Contenido de ${celda.columna}, fila ${celda.fila + 1}`}
         spellCheck={false}
       />

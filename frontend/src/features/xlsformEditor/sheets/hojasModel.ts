@@ -157,3 +157,34 @@ export const EXPRESSION_COLUMNS = new Set([
   "trigger",
   "repeat_count",
 ]);
+
+const HOJAS: readonly TabKey[] = ["survey", "choices", "settings", "paper"];
+
+/** La hoja activa vive en el `foco` de la dirección (`?pestana=hojas&foco=choices`); sin foco, o con uno ajeno, es survey. */
+export function hojaDesdeFoco(foco: string | null | undefined): TabKey {
+  return HOJAS.find((h) => h === foco) ?? "survey";
+}
+
+/** Lo que se escribe en el `foco` al elegir una hoja: survey es el default y no se escribe. */
+export function focoDeHoja(hoja: TabKey): string | null {
+  return hoja === "survey" ? null : hoja;
+}
+
+const COLUMNAS_FIJAS: Record<TabKey, readonly string[]> = {
+  survey: ["type", "name"],
+  choices: ["list_name", "name"],
+  settings: [],
+  paper: ["id", "kind"],
+};
+
+/** Columnas identificadoras que quedan fijas a la izquierda (tras #), en su orden canónico. */
+export function columnasFijas(hoja: TabKey, visibles: readonly string[]): string[] {
+  const fijas = COLUMNAS_FIJAS[hoja];
+  return fijas.filter((c) => visibles.includes(c));
+}
+
+/** Ordena las columnas visibles con las fijas primero (sticky exige que vayan pegadas a #). */
+export function ordenarConFijas(hoja: TabKey, visibles: readonly string[]): string[] {
+  const fijas = columnasFijas(hoja, visibles);
+  return [...fijas, ...visibles.filter((c) => !fijas.includes(c))];
+}
