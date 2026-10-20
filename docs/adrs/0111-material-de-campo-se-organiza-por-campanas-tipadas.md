@@ -2,7 +2,7 @@
 
 Estado: Aceptado
 
-Implementacion: Pendiente (contrato congelado; la oleada entra cuando cierre el frontend de E1j–E1l)
+Implementacion: Implementado (backend ff91e3baf, 7ac921859; frontend 35e0b11eb; arreglo previo del sembrado 7a9af3396); territorial pendiente de E2
 
 Fecha: 2026-10-20
 
@@ -85,7 +85,8 @@ propio selector. Con dos o tres operativos en el mismo proyecto, sus elementos s
 | `?seccion=catalogo&pestana=correos&foco=<cid>[~<bloque>]` | `?modo=correo&campana=correo.<cid>&seccion=correo&pestana=editor&foco=<bloque>`; si no existe, la lista |
 | `?seccion=catalogo&pestana=correos` sin foco | la única campaña de correo; con 0 o varias, la lista |
 | `?modo=aulas|correo` sin campaña | la única de ese tipo; si no, la lista |
-| `?panel=correo-campanas` | la lista con «Nueva campaña» abierto |
+| `?panel=correo-campanas` | la lista con «Nueva campaña» abierto (`?panel=nueva-campana`) |
+| `?campana=aulas.principal` sin plan | la campaña de aulas «naciente»: se abre mientras el tipo esté disponible y muestra el vacío con siembra de Unidades |
 
 Los enlaces que entran desde Cálculo de muestra, Monitoreo y Diseño de estudio emiten `?modo=aulas`.
 
@@ -102,6 +103,13 @@ Los enlaces que entran desde Cálculo de muestra, Monitoreo y Diseño de estudio
 - Pruebas a actualizar: `modulesNavigation`, `auditReadyRoutes`, `vaults-check`, `navegacion.test.ts`, contratos de
   dirección (`direccion`, `runtime`, `manifiesto`, `aliasLegacyNoSeEscribe`, `direccionesRenombradasNoSeEscriben`,
   `destinoDeLosAtajos`, `lectoresDeDireccion`) y el catálogo visual.
+
+## Cumplimiento
+
+- Backend: `test-collection-campaigns.R` (proyección sin dirty, ids, aulas única, territorial no disponible, archivar,
+  conteos desde el plan, registro de exportación, round-trip `.pulso`) y `test-collection-seed-tras-correo.R`.
+- Frontend: `campanas/redirecciones.test.ts` (tabla de redirecciones), `modeloRegistro.test.ts`, `ListaDeCampanas.test.tsx`,
+  `direccion.test.ts` y `runtime.test.ts` (`campana` como alcance), y los contratos de navegación.
 
 ## Alternativas descartadas
 
@@ -120,3 +128,7 @@ Direcciones del contrato de navegación que esta decisión explica
 - `material-campo/aulas`
 - `material-campo/correo`
 - `material-campo/correo/correo`
+
+## Notas
+
+Relacionado con [ADR 0108](0108-material-de-campo-catalogo-de-materiales-por-unidad.md), [ADR 0110](0110-material-de-campo-se-conecta-y-escribe-correos-para-mailchimp.md) y [ADR 0044](0044-jerarquia-y-direcciones-de-navegacion.md).
