@@ -97,7 +97,7 @@
 
 # Chequeos de imagen comunes a los dos dialectos.
 .cmail_image_checks_common <- function(tpl, images, uses, push) {
-  no_alt <- Filter(function(u) !nzchar(trimws(u$alt)), uses)
+  no_alt <- Filter(function(u) .cmail_alt_missing(u$alt), uses)
   push(if (length(no_alt)) {
     .cmail_check("images_alt", "error", length(no_alt), "Imágenes sin texto alternativo.",
                  extra = as.list(unique(vapply(no_alt, `[[`, "", "id"))), targets = lapply(no_alt, `[[`, "target"))
@@ -152,39 +152,64 @@
   push
 }
 
-# Chequeos propios de SurveyMonkey sobre el HTML que sale (E1j).
+# Chequeos propios de SurveyMonkey sobre el HTML que sale (E1j; ajustes de la
+# revisión metodológica E1jkl). Ningún texto prescribe [SurveyLink] para un
+# enlace que ya existe: si ese enlace no es la encuesta, SurveyMonkey no es la
+# plataforma del correo (`destino`, collection_mail_template.R).
+.CMAIL_SM_NOT_PLATFORM <- "Si el enlace de este correo no es la encuesta, SurveyMonkey no es la plataforma de este correo: envíalo por Mailchimp."
+
 .cmail_sm_checks <- function(tpl, html, push) {
   fields <- .cmail_field_index(tpl)
   used <- setdiff(.cmail_used_keys(tpl), "nombre")
+  usage <- .cmail_key_usage(tpl)
   push(if (grepl('href="[SurveyLink]"', html, fixed = TRUE)) {
     .cmail_check("survey_link", "ok", 1L, "El correo lleva el enlace a la encuesta ([SurveyLink]).")
   } else {
     .cmail_check("survey_link", "error", 0L,
-                 "SurveyMonkey exige [SurveyLink]: pon {{enlace}} (con etiqueta SurveyLink) en un botón o enlace.")
+                 paste("SurveyMonkey exige [SurveyLink]: el correo tiene que llevar a la encuesta del recopilador.",
+                       "Un campo cuyo enlace es la encuesta se declara con etiqueta SurveyLink.", .CMAIL_SM_NOT_PLATFORM))
   })
   optout <- grepl('href="[OptOutLink]"', html, fixed = TRUE)
   push(.cmail_check("footer_optout", if (optout) "ok" else "error", as.integer(optout),
                     if (optout) "El pie lleva la baja ([OptOutLink]) y la privacidad ([PrivacyLink])." else "Falta [OptOutLink] en el pie."))
   unmapped <- used[vapply(used, function(k) is.null(fields[[k]]$sm), NA)]
   push(if (length(unmapped)) {
+    in_url <- unmapped[vapply(unmapped, function(k) "url" %in% (usage[[k]] %||% character(0)), NA)]
     .cmail_check("sm_fields_mapped", "error", length(unmapped),
-                 sprintf("Campos sin etiqueta de SurveyMonkey: %s. Asigna a cada uno [SurveyLink], [LastName] o [CustomDataN].",
-                         paste(sprintf("{{%s}}", unmapped), collapse = ", ")),
+                 paste0(sprintf("Campos sin dato de SurveyMonkey: %s. Un dato del contacto se declara [LastName] o [CustomDataN].",
+                                paste(sprintf("{{%s}}", unmapped), collapse = ", ")),
+                        if (length(in_url)) paste0(" ", sprintf("%s va en un enlace. ", paste(sprintf("{{%s}}", in_url), collapse = ", ")),
+                                                   .CMAIL_SM_NOT_PLATFORM)),
                  extra = as.list(unmapped), targets = .cmail_key_targets(tpl, unmapped))
   } else {
     .cmail_check("sm_fields_mapped", "ok", 0L, "Cada campo usado tiene su etiqueta de SurveyMonkey.",
                  extra = lapply(used, function(k) list(key = k, sm = fields[[k]]$sm)))
   })
-  name_used <- "nombre" %in% .cmail_used_keys(tpl)
-  with_fb <- used[vapply(used, function(k) !is.null(fields[[k]]$fallback) && nzchar(fields[[k]]$fallback), NA)]
-  fb_keys <- c(if (name_used) "nombre", with_fb)
-  push(if (length(fb_keys)) {
-    .cmail_check("sm_fallback", "warning", length(fb_keys),
-                 "SurveyMonkey no tiene respaldo: quien no tenga el dato en Contactos verá un espacio vacío.",
-                 extra = as.list(fb_keys), targets = .cmail_key_targets(tpl, fb_keys))
+
+  # Sin respaldo: cómo sale cada texto para quien no tenga el dato en Contactos.
+  survey <- vapply(used, function(k) identical(fields[[k]]$sm, "SurveyLink"), NA)
+  body_keys <- c(
+    if ("nombre" %in% .cmail_used_keys(tpl) && any((usage$nombre %||% character(0)) != "url")) "nombre",
+    used[!survey & vapply(used, function(k) any((usage[[k]] %||% character(0)) != "url"), NA)]
+  )
+  if (length(body_keys)) {
+    push(.cmail_check("sm_fallback", "warning", length(body_keys),
+                      paste("SurveyMonkey no tiene respaldo: quien no tenga el dato en Contactos verá el espacio vacío.",
+                            paste(.cmail_sm_blank_lines(tpl, body_keys, fields), collapse = " ")),
+                      extra = as.list(body_keys), targets = .cmail_key_targets(tpl, body_keys)))
   } else {
-    .cmail_check("sm_fallback", "ok", 0L, "Ningún campo depende de un texto de respaldo.")
-  })
+    push(.cmail_check("sm_fallback", "ok", 0L, "Ningún texto depende de un dato del contacto."))
+  }
+  link_keys <- c(
+    if ("url" %in% (usage$nombre %||% character(0))) "nombre",
+    used[!survey & vapply(used, function(k) "url" %in% (usage[[k]] %||% character(0)), NA)]
+  )
+  if (length(link_keys)) {
+    push(.cmail_check("sm_link_field_empty", "warning", length(link_keys),
+                      sprintf("%s va dentro de un enlace: un contacto sin ese dato en SurveyMonkey recibe un enlace roto, y la app no puede contarlos (los contactos viven en el recopilador).",
+                              paste(sprintf("{{%s}}", link_keys), collapse = ", ")),
+                      extra = as.list(link_keys), targets = .cmail_key_targets(tpl, link_keys)))
+  }
   custom <- vapply(used, function(k) {
     sm <- fields[[k]]$sm %||% ""
     if (grepl("^CustomData[0-9]+$", sm)) as.integer(sub("^CustomData", "", sm)) else 0L
@@ -202,6 +227,32 @@
     })
   }
   push
+}
+
+# Frases «así sale sin el dato»: el saludo entero (con su respaldo descartado)
+# y cada campo con respaldo o sin él.
+.cmail_sm_blank_lines <- function(tpl, keys, fields) {
+  out <- character(0)
+  blank <- function(text) {
+    t <- gsub("**", "", as.character(text), fixed = TRUE)
+    t <- gsub(.CMAIL_TOKEN_RE, "", t, perl = TRUE)
+    gsub("[ ]+", " ", trimws(t))
+  }
+  for (b in tpl$blocks %||% list()) {
+    if (!identical(b$type, "greeting")) next
+    text <- .cmail_one(b$text) %||% ""
+    if (!length(intersect(.cmail_tokens(text), keys))) next
+    line <- sprintf("El saludo saldrá «%s»", blank(text))
+    fb <- .cmail_one(b$fallback)
+    out <- c(out, paste0(line, if (!is.null(fb)) sprintf("; el respaldo «%s» no se usa.", gsub("**", "", fb, fixed = TRUE)) else "."))
+  }
+  for (k in setdiff(keys, "nombre")) {
+    fb <- fields[[k]]$fallback
+    out <- c(out, if (!is.null(fb) && nzchar(fb)) sprintf("{{%s}} saldrá vacío; el respaldo «%s» no se usa.", k, fb)
+                  else sprintf("{{%s}} saldrá vacío.", k))
+  }
+  if ("nombre" %in% keys && !any(grepl("^El saludo", out))) out <- c(out, "{{nombre}} saldrá vacío.")
+  out
 }
 
 #' Contraste del texto blanco sobre el acento (botón sólido, cabecera oscura).

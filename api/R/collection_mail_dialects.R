@@ -91,7 +91,7 @@
 #' Verificación estructural del HTML para SurveyMonkey («HTML personalizado»).
 #'
 #' No confía en cómo se armó: sin `data:`, todo `src` https, `href="[SurveyLink]"`
-#' y `href="[OptOutLink]"` presentes y nada de `*|`, `{{` ni `data-pulso`.
+#' y `href="[OptOutLink]"` presentes, ningún `href=""` y nada de `*|`, `{{` ni `data-pulso`.
 #' @return list(ok, problems).
 #' @keywords internal
 .cmail_sm_html_verify <- function(html) {
@@ -103,6 +103,8 @@
   if (length(bad)) problems <- c(problems, sprintf("%d imágenes sin URL https.", length(bad)))
   if (!grepl('href="[SurveyLink]"', html, fixed = TRUE)) problems <- c(problems, 'falta href="[SurveyLink]".')
   if (!grepl('href="[OptOutLink]"', html, fixed = TRUE)) problems <- c(problems, 'falta href="[OptOutLink]".')
+  # Un campo sin etiqueta deja el enlace vacío: el botón no llevaría a ningún sitio.
+  if (grepl('href=""', html, fixed = TRUE)) problems <- c(problems, 'hay enlaces vacíos (href="").')
   if (grepl("*|", html, fixed = TRUE)) problems <- c(problems, "quedan etiquetas de Mailchimp (*|).")
   if (grepl("{{", html, fixed = TRUE)) problems <- c(problems, "quedan campos sin traducir ({{).")
   if (grepl("data-pulso", html, fixed = TRUE)) problems <- c(problems, "el HTML trae marcas de edición.")

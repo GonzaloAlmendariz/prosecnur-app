@@ -61,7 +61,8 @@
       key = as.character(f$key), tag = as.character(f$tag),
       label = as.character(f$label %||% f$key),
       fallback = .cmail_one(f$fallback),
-      sm = .cmail_one(f$sm)
+      sm = .cmail_one(f$sm),
+      destino = .cmail_one(f$destino)
     )
   }
   out

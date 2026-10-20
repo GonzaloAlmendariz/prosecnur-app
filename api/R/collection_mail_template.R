@@ -14,7 +14,7 @@
 #   header = { kind: "logos", logo_ids: [..], background: "dark"|"light" }
 #          | { kind: "banner", image_ref: "<id>" },
 #   images = { <image_id>: { alt, url? } },   # url pública opcional (https)
-#   fields = [ { key, tag, label, fallback?, sm? } ],   # sm: etiqueta SurveyMonkey (E1j)
+#   fields = [ { key, tag, label, fallback?, sm?, destino? } ],   # sm: etiqueta SurveyMonkey (E1j)
 #   blocks = [ { block_id, type, ... } ]      # registro CERRADO
 #
 # Estilos: solo las enumeraciones de collection_mail_styles.R (`size`, `tone`,
@@ -35,6 +35,10 @@
 # CustomData1..50, única entre campos; `{{nombre}}` va siempre a [FirstName] y
 # [Email] no se admite (sería un dato personal en el texto). Ninguna etiqueta de
 # SurveyMonkey se escribe a mano en un texto (`raw_platform_tag`).
+# `destino` (encuesta | otro) dice adónde lleva un campo de enlace: uno que NO
+# es la encuesta (una sala virtual, un formulario aparte) no puede ser
+# [SurveyLink] (`sm_destination_mismatch`): el correo llevaría a la persona a
+# otro sitio que el que promete su texto (revisión metodológica E1jkl).
 #
 # **v2 ampliada sin cambio de esquema** (E1j): `fields[].sm` y `theme.band` son
 # opcionales y se suman a la v2 porque la v2 aún no se publicó (ADR 0110).
@@ -254,7 +258,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
     f <- fields[[i]]
     path <- sprintf("template.fields[%d]", i)
     if (!is.list(f)) { add(list(.cmail_problem(path, "not_object", "Cada campo es un objeto."))); next }
-    for (k in setdiff(names(f), c("key", "tag", "label", "fallback", "sm"))) {
+    for (k in setdiff(names(f), c("key", "tag", "label", "fallback", "sm", "destino"))) {
       add(list(.cmail_problem(paste0(path, ".", k), "unknown_key", sprintf("`%s` no pertenece a un campo.", k))))
     }
     key <- .cmail_one(f$key)
@@ -283,11 +287,17 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
       if (is.null(sm) || !grepl(.CMAIL_SM_FIELD_RE, sm)) {
         add(list(.cmail_problem(paste0(path, ".sm"), "bad_sm",
           "La etiqueta de SurveyMonkey es SurveyLink, LastName o CustomData1 a CustomData50.")))
+      } else if (identical(sm, "SurveyLink") && identical(.cmail_one(f$destino), "otro")) {
+        add(list(.cmail_problem(paste0(path, ".sm"), "sm_destination_mismatch",
+          "Este enlace no lleva a la encuesta: no puede ser [SurveyLink]. Si el correo no lleva a la encuesta, SurveyMonkey no es su plataforma.")))
       } else if (sm %in% sms) {
         add(list(.cmail_problem(paste0(path, ".sm"), "duplicate_sm", sprintf("[%s] está repetida.", sm))))
       } else {
         sms <- c(sms, sm)
       }
+    }
+    if (!is.null(f$destino) && !(.cmail_one(f$destino) %||% "") %in% c("encuesta", "otro")) {
+      add(list(.cmail_problem(paste0(path, ".destino"), "bad_destino", "destino es encuesta u otro.")))
     }
     add(.cmail_text_problems(f$label, paste0(path, ".label"), character(0), required = TRUE))
     add(.cmail_text_problems(f$fallback, paste0(path, ".fallback"), character(0)))
@@ -530,7 +540,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
     fields = list(
       list(key = "carrera", tag = "CARRERA", label = "Carrera", fallback = "su carrera"),
       list(key = "codigo", tag = "CODIGO", label = "Código"),
-      list(key = "enlace", tag = "ENLACE", label = "Enlace a la encuesta", sm = "SurveyLink")
+      list(key = "enlace", tag = "ENLACE", label = "Enlace a la encuesta", sm = "SurveyLink", destino = "encuesta")
     ),
     blocks = list(
       list(block_id = "saludo", type = "greeting", text = "Estimado(a) {{nombre}}:", fallback = "Estimado(a) estudiante:"),
@@ -576,7 +586,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
     fields = list(
       # Sin `sm`: el enlace es a la sala virtual, no a una encuesta; mandarlo
       # como [SurveyLink] llevaría a la persona a otro sitio (E1j).
-      list(key = "enlace", tag = "ENLACE", label = "Enlace a la sesión")
+      list(key = "enlace", tag = "ENLACE", label = "Enlace a la sesión", destino = "otro")
     ),
     blocks = list(
       list(block_id = "saludo", type = "greeting", text = "Estimado(a) {{nombre}}:", fallback = "Estimado(a):"),

@@ -6,7 +6,7 @@
 # efectiva sale de `.cmail_template_for_send()` sin un segundo render.
 #
 # Modelo (`campaign.sends`, entre 1 y 6):
-#   { send_id, kind, label, date?, audience, subject?, preheader?, opening? }
+#   { send_id, kind, label, date?, audience, subject?, preheader?, opening?, collector_label? }
 #
 # - El primero es siempre la invitación (`send_id = kind = "invitacion"`): no
 #   se borra ni se mueve.
@@ -20,12 +20,15 @@
 #   se informa en el LEEME).
 # - `subject`/`preheader` null usan los de la plantilla; `opening` (≤ 600) sigue
 #   las reglas de `paragraph.text` (negrita, campos y enlaces).
+# - `collector_label` (≤ 80, sin correo ni campos): el nombre o id del
+#   recopilador de SurveyMonkey por el que sale el envío; queda en el manifest
+#   para saber «a quién» se mandó (no es dato personal).
 # - Sin `sends` guardados (campañas anteriores), la campaña tiene solo la
 #   invitación: es una lectura, no se escribe nada.
 
 .CMAIL_OPENING_ID <- "__apertura"
 .CMAIL_SENDS_MAX <- 6L
-.CMAIL_SEND_KEYS <- c("send_id", "kind", "label", "date", "audience", "subject", "preheader", "opening")
+.CMAIL_SEND_KEYS <- c("send_id", "kind", "label", "date", "audience", "subject", "preheader", "opening", "collector_label")
 .CMAIL_SEND_AUDIENCES <- c("sin_respuesta", "parcial", "ambos")
 .CMAIL_SEND_INVITATION <- "invitacion"
 .CMAIL_SEND_REMINDER_RE <- "^recordatorio-([0-9]{1,4})$"
@@ -134,6 +137,18 @@
     add(.cmail_text_problems(v, paste0(path, ".", k), keys))
     add(.cmail_link_problems(v, paste0(path, ".", k), keys, FALSE))
     out[[k]] <- v
+  }
+
+  collector <- .cmail_opt_text(s$collector_label)
+  if (!is.null(s$collector_label) && is.null(.cmail_one(s$collector_label))) {
+    add(list(.cmail_problem(paste0(path, ".collector_label"), "not_text", "Debe ser un texto.")))
+  } else if (!is.null(collector)) {
+    collector <- trimws(gsub("[[:cntrl:]]+", " ", collector))
+    if (nchar(collector) > 80L) add(list(.cmail_problem(paste0(path, ".collector_label"), "label_too_long", "El recopilador va de 1 a 80 caracteres.")))
+    if (grepl(.CMAIL_EMAIL_LIKE_RE, collector)) add(list(.cmail_problem(paste0(path, ".collector_label"), "label_email", "El recopilador no puede llevar una dirección de correo.")))
+    add(.cmail_text_problems(collector, paste0(path, ".collector_label"), character(0)))
+    if (length(.cmail_tokens(collector))) add(list(.cmail_problem(paste0(path, ".collector_label"), "label_field", "El recopilador no admite {{campos}}.")))
+    out$collector_label <- collector
   }
 
   opening <- .cmail_opt_text(s$opening)

@@ -30,7 +30,8 @@
         "key": "enlace",
         "tag": "ENLACE",
         "label": "Enlace a la encuesta",
-        "sm": "SurveyLink"
+        "sm": "SurveyLink",
+        "destino": "encuesta"
       }
     ],
     "blocks": [
@@ -88,11 +89,14 @@
         "type": "footer_legal"
       }
     ],
-    "template_sha256": "sha256:cdc6759a713a9183f214a51590e7918464a56490575300bb9df3af9bc8ff94fe"
+    "template_sha256": "sha256:19afc086d1c6f13a64a630fd43464c05f1b53ac67579fb63718d67ba5e27f22a"
   },
   "report_codes": [
     "style_discarded",
     "hover_ignored",
+    "platform_link_removed",
+    "platform_link_removed",
+    "platform_footer_removed",
     "subject_missing"
   ],
   "images": [

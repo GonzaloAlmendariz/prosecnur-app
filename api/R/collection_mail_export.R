@@ -63,6 +63,27 @@
        platform = .cmail_platform_of(pick$campaign))
 }
 
+# Recordatorio en Mailchimp (revisión metodológica E1jkl): la app no sabe quién
+# respondió, así que audiencia.csv trae la población entera; el filtro se hace a
+# mano en Mailchimp (un segmento). «parcial» no tiene sentido ahí: Mailchimp no
+# sabe quién dejó la encuesta a medias.
+.cmail_reminder_audience_check <- function(send, n_valid = NULL) {
+  if (identical(send$audience, "parcial")) {
+    return(.cmail_check("reminder_audience", "error", 0L,
+      "En Mailchimp no se puede saber quién dejó la encuesta a medias: elige «sin_respuesta» o «ambos» y arma el segmento en Mailchimp."))
+  }
+  who <- if (is.null(n_valid)) "la audiencia de Mailchimp" else sprintf("audiencia.csv trae a los %d destinatarios", as.integer(n_valid))
+  .cmail_check("reminder_audience", "warning", if (is.null(n_valid)) NULL else as.integer(n_valid),
+               sprintf("Es un recordatorio y %s: la app no cruza con las respuestas. Excluye en Mailchimp, con un segmento, a quienes ya respondieron; si el enlace no es de un solo uso, deduplica luego en la base.", who))
+}
+
+# Cómo se aplicó la audiencia del envío (manifest `send.audience_applied`).
+.cmail_audience_applied <- function(platform, send) {
+  if (identical(platform, "surveymonkey")) {
+    if (identical(send$kind, "recordatorio")) "filtro_de_la_plataforma" else "recopilador"
+  } else if (identical(send$kind, "recordatorio")) "manual_en_plataforma" else "lista_importada"
+}
+
 # Campo `campaign_id` de una respuesta (se omite al trabajar sin campaña).
 .cmail_with_campaign <- function(out, campaign) {
   if (is.null(campaign)) return(out)
@@ -209,6 +230,14 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
 
   push(.cmail_accent_check(tpl))
   push_send_dates()
+  if (identical(send$kind, "recordatorio")) {
+    n_valid <- NULL
+    if (!identical(scope, "plantilla") && !is.null(campaign)) {
+      st <- .cmail_recipients_load(session, campaign_id)
+      if (!is.null(st)) n_valid <- .cmail_recipients_resolve(st, tpl)$counts$valid
+    }
+    push(.cmail_reminder_audience_check(send, n_valid))
+  }
 
   # Audiencia: con scope «plantilla» (o sin campaña) no hay audiencia que revisar.
   if (identical(scope, "plantilla") || is.null(campaign)) return(c(list(checks = checks), base))
@@ -416,6 +445,7 @@ collection_mail_review <- function(sid, template = NULL, campaign_id = NULL, sco
     "3. Envía una prueba antes de programar la campaña.",
     if (reminder) c(
       "",
+      if (!is.null(counts)) sprintf("Recordatorio: audiencia.csv trae a los %d destinatarios de la lista, no solo a quienes faltan.", counts$valid),
       "Recordatorio: Mailchimp no sabe quién ya respondió la encuesta. Envíalo a un segmento de la audiencia",
       "que excluya a quienes ya respondieron (la app no cruza la audiencia con las respuestas)."
     ),
@@ -448,10 +478,12 @@ collection_mail_review <- function(sid, template = NULL, campaign_id = NULL, sco
 }
 
 # Bloque `send` del manifest: qué envío es y la huella de su definición.
-.cmail_manifest_send <- function(send, subject) {
+.cmail_manifest_send <- function(send, subject, platform = .CMAIL_PLATFORM_DEFAULT) {
   .cmc_drop_nulls_deep(list(
     send_id = send$send_id, kind = send$kind, label = send$label, date = send$date,
-    audience = send$audience, subject = subject, send_sha256 = collection_fingerprint(send)
+    audience = send$audience, audience_applied = .cmail_audience_applied(platform, send),
+    collector_label = send$collector_label,
+    subject = subject, send_sha256 = collection_fingerprint(send)
   ))
 }
 
@@ -515,11 +547,12 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
     sensitivity = sensitivity,
     scope = scope,
     platform = "mailchimp",
+    app_version = .audit_reference_app_version(),
     locale = "es-PE",
     generated_deliverables_outside_pulso = TRUE,
     secrets_included = FALSE,
     campaign = list(campaign_id = campaign$campaign_id, name = campaign$name %||% "", actor = campaign$actor %||% ""),
-    send = .cmail_manifest_send(send, r$rendered$subject),
+    send = .cmail_manifest_send(send, r$rendered$subject, "mailchimp"),
     template = list(template_id = base_tpl$template_id, preset_id = base_tpl$preset_id %||% "",
                     revision = as.integer(base_tpl$revision), template_sha256 = base_tpl$template_sha256),
     html_bytes = r$rendered$bytes,
