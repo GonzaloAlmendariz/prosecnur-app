@@ -7,9 +7,9 @@
 // más de 6 opciones, +10 s si es obligatoria).
 // =============================================================================
 
-import type { BuilderNode, BuilderStructure, CatalogSummary } from "../types";
+import type { BuilderDiagnostic, BuilderNode, BuilderStructure, CatalogSummary } from "../types";
 import { typeLabel } from "../parsing/parseType";
-import { esMetadato } from "../kit/tiposPregunta";
+import { esPreguntaDelFormulario } from "../shell/editorMetrics";
 
 /** Tipos que se responden eligiendo entre opciones; el resto se escribe o anota. */
 const TIPOS_CERRADOS = new Set(["select_one", "select_multiple", "rank", "acknowledge"]);
@@ -84,7 +84,8 @@ export function resumirFormulario(
 ): ResumenFormulario {
   const outline = structure?.outline ?? [];
   // Inicio, fin, dispositivo… los registra el teléfono: no son preguntas ni suman tiempo (S14/S16).
-  const preguntas = outline.filter((n) => n.kind === "question" && !esMetadato(n.typeInfo.base));
+  // Misma noción que la cabecera del editor (`editorMetrics.esPreguntaDelFormulario`).
+  const preguntas = outline.filter(esPreguntaDelFormulario);
   const tamanoLista = new Map(catalogos.map((c) => [c.listName, c.items.length]));
   const listasConocidas = new Set(catalogos.map((c) => c.listName));
   const total = preguntas.length;
@@ -222,7 +223,8 @@ export type AccionPendiente =
   | { tipo: "revisar-logica" }
   | { tipo: "listas" }
   | { tipo: "fila"; rowIndex: number }
-  | { tipo: "pregunta"; name: string }
+  /** `rowIndex`, si se conoce, es la fila que recibe el foco del teclado al llegar al Constructor. */
+  | { tipo: "pregunta"; name: string; rowIndex?: number }
   | { tipo: "impreso" };
 
 export type Pendiente = {
@@ -236,7 +238,9 @@ export type Pendiente = {
 export type EntradaPendientes = {
   logica: { pendiente: boolean; externa: string | null };
   escalasRepetidas: number;
-  diagnosticos: { errores: number; avisos: number; primeraFila: number | null };
+  /** Los mismos números de la cabecera (`deriveEditorHeaderStatus`). `correcciones` son las que pide la publicación
+   *  y la cabecera sólo las anuncia cuando no hay errores locales: el Resumen sigue esa misma regla. */
+  diagnosticos: { errores: number; avisos: number; correcciones: number; primero: AccionPendiente | null };
   sinLista: ResumenFormulario["sinLista"];
   impreso: { estado: "sin-previa" | "al-dia" | "vieja"; paginas: number | null };
 };
@@ -272,7 +276,8 @@ export function pendientesParaPublicar(e: EntradaPendientes): Pendiente[] {
       : { clave: "escalas", estado: "listo", titulo: "Sin escalas repetidas", detalle: "Cada escala vive en una sola lista." },
   );
 
-  const { errores, avisos, primeraFila } = e.diagnosticos;
+  const { errores, avisos, correcciones, primero } = e.diagnosticos;
+  const irAlPrimero = primero ? { accion: { rotulo: "Ir al primero", destino: primero } } : {};
   items.push(
     errores + avisos > 0
       ? {
@@ -281,9 +286,16 @@ export function pendientesParaPublicar(e: EntradaPendientes): Pendiente[] {
           titulo: [errores ? plural(errores, "error", "errores") : "", avisos ? plural(avisos, "aviso", "avisos") : ""]
             .filter(Boolean).join(" y "),
           detalle: errores > 0 ? "Un error impide publicar la revisión." : "No impiden publicar, pero conviene mirarlos.",
-          ...(primeraFila != null ? { accion: { rotulo: "Ir al primero", destino: { tipo: "fila", rowIndex: primeraFila } } } : {}),
+          ...irAlPrimero,
         }
-      : { clave: "avisos", estado: "listo", titulo: "Sin avisos del formulario", detalle: "La estructura y las referencias están en orden." },
+      : correcciones > 0
+        ? {
+            clave: "avisos",
+            estado: "error",
+            titulo: plural(correcciones, "corrección pendiente", "correcciones pendientes"),
+            detalle: "Las pide la publicación de la revisión.",
+          }
+        : { clave: "avisos", estado: "listo", titulo: "Sin avisos del formulario", detalle: "La estructura y las referencias están en orden." },
   );
 
   items.push(
@@ -293,7 +305,7 @@ export function pendientesParaPublicar(e: EntradaPendientes): Pendiente[] {
           estado: "error",
           titulo: `${plural(e.sinLista.length, "pregunta", "preguntas")} sin lista`,
           detalle: "Son de selección y no tienen opciones.",
-          accion: { rotulo: "Abrir la primera", destino: { tipo: "pregunta", name: e.sinLista[0].name } },
+          accion: { rotulo: "Abrir la primera", destino: { tipo: "pregunta", name: e.sinLista[0].name, rowIndex: e.sinLista[0].rowIndex } },
         }
       : { clave: "sin-lista", estado: "listo", titulo: "Ninguna pregunta sin lista", detalle: "Nada que completar en las opciones." },
   );
@@ -320,4 +332,24 @@ export function pendientesParaPublicar(e: EntradaPendientes): Pendiente[] {
   );
 
   return items;
+}
+
+/** Cuántas filas de «Qué falta» piden algo: las que no están listas y llevan adónde resolverlo. Es el número del
+ *  contador, contado sobre las mismas filas que se pintan. */
+export function tareasPendientes(items: readonly Pendiente[]): number {
+  return items.filter((i) => i.estado !== "listo" && i.accion).length;
+}
+
+/** Adónde lleva «Ir al primero»: el primer error en el orden del formulario (o el primer aviso si no hay errores).
+ *  Con nombre va a la pregunta por `foco`, que la deja elegida en el Constructor; si no, a la fila. */
+export function primerDiagnostico(
+  diagnosticos: readonly BuilderDiagnostic[],
+  nombreDeFila: (rowIndex: number) => string | null,
+): AccionPendiente | null {
+  const conFila = diagnosticos.filter((d): d is BuilderDiagnostic & { rowIndex: number } => d.rowIndex != null);
+  const errores = conFila.filter((d) => d.level === "error");
+  const candidatos = (errores.length ? errores : conFila).slice().sort((a, b) => a.rowIndex - b.rowIndex);
+  const conNombre = candidatos.find((d) => nombreDeFila(d.rowIndex));
+  if (conNombre) return { tipo: "pregunta", name: nombreDeFila(conNombre.rowIndex) as string, rowIndex: conNombre.rowIndex };
+  return candidatos[0] ? { tipo: "fila", rowIndex: candidatos[0].rowIndex } : null;
 }

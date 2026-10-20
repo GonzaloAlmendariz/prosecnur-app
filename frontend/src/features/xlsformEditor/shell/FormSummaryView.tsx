@@ -27,6 +27,7 @@ import { LineaTiempo } from "../resumen/LineaTiempo";
 import {
   pendientesParaPublicar,
   porcentaje,
+  primerDiagnostico,
   rangoMinutos,
   resumirFormulario,
   type AccionPendiente,
@@ -34,17 +35,20 @@ import {
 import { claveSeccion, preguntasDeSeccion } from "../resumen/preguntasDeSeccion";
 import { usePreviaImpreso } from "../impreso/storePrevia";
 import { alternarFicha } from "./detalleEnSitio";
+import { enfocarFilaDelConstructor } from "../resumen/enfocarFila";
 // Hoja del Resumen partida en dos (revamp EM); el orden de estos imports es el de la cascada.
 import "../styles/xf-summary/01-el-overlay-de-antes-sigue-ex.css";
 import "../styles/xf-summary/02-secciones.css";
+import "../resumen/resumen.css";
 
 /** Lo que el editor sabe fuera de la estructura: lógica, listas, impreso y adónde llevar cada cosa. */
 export type ContextoResumen = {
   formId: string | null;
   logica: { pendiente: boolean; externa: string | null };
   escalasRepetidas: number;
-  /** Correcciones que el backend exige para publicar y que no son diagnósticos locales. */
-  erroresPublicacion: number;
+  /** Los números de la cabecera (`deriveEditorHeaderStatus`): errores y avisos locales, y las correcciones que el
+   *  backend exige para publicar. El Resumen no los recuenta. */
+  conteos: { errores: number; avisos: number; correcciones: number };
   onRevisarLogica?: () => void;
   onAbrirListas: () => void;
   onIrAPregunta: (name: string) => void;
@@ -99,13 +103,11 @@ export function FormSummaryView({
       ? "sin-previa"
       : previa.workbook === workbook ? "al-dia" : "vieja";
 
-  const errores = diagnostics.filter((d) => d.level === "error").length + contexto.erroresPublicacion;
-  const avisos = diagnostics.filter((d) => d.level === "warn").length;
-  const primeraFila = diagnostics.find((d) => d.level !== "info" && d.rowIndex != null)?.rowIndex ?? null;
+  const primero = primerDiagnostico(diagnostics, (fila) => structure?.byRow.get(fila)?.name || null);
   const pendientes = pendientesParaPublicar({
     logica: contexto.logica,
     escalasRepetidas: contexto.escalasRepetidas,
-    diagnosticos: { errores, avisos, primeraFila },
+    diagnosticos: { ...contexto.conteos, primero },
     sinLista: resumen.sinLista,
     impreso: { estado: estadoImpreso, paginas: previa.cifras?.paginas ?? null },
   });
@@ -113,8 +115,14 @@ export function FormSummaryView({
   const irA = (destino: AccionPendiente) => {
     if (destino.tipo === "revisar-logica") contexto.onRevisarLogica?.();
     else if (destino.tipo === "listas") contexto.onAbrirListas();
-    else if (destino.tipo === "fila") onSelectRow?.(destino.rowIndex);
-    else if (destino.tipo === "pregunta") contexto.onIrAPregunta(destino.name);
+    else if (destino.tipo === "fila") {
+      onSelectRow?.(destino.rowIndex);
+      enfocarFilaDelConstructor(destino.rowIndex);
+    }
+    else if (destino.tipo === "pregunta") {
+      contexto.onIrAPregunta(destino.name);
+      if (destino.rowIndex != null) enfocarFilaDelConstructor(destino.rowIndex);
+    }
     else contexto.onIrImpreso();
   };
 

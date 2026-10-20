@@ -187,7 +187,7 @@ describe("ningún clic de las pestañas cambia de pestaña salvo «Editar en Con
       <FormSummaryView workbook={WORKBOOK_SIN_SALTO} structure={ESTRUCTURA_SIN_SALTO} diagnostics={[]}
         onSelectRow={salida} seccionAbierta="s1" onSeccionAbierta={enSitio}
         contexto={{
-          formId: "f1", logica: { pendiente: false, externa: null }, escalasRepetidas: 0, erroresPublicacion: 0,
+          formId: "f1", logica: { pendiente: false, externa: null }, escalasRepetidas: 0, conteos: { errores: 0, avisos: 0, correcciones: 0 },
           onAbrirListas: () => {}, onIrAPregunta: salida, onIrImpreso: irImpreso,
         }} />,
       salida,

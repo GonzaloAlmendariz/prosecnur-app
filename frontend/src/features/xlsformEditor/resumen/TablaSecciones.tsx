@@ -2,7 +2,8 @@
 // tipo predominante. Ordenable por columna. El clic en una fila la despliega ahí mismo con sus preguntas (una a la
 // vez; la abierta es el `foco` de la dirección) y cada pregunta lleva un «Editar» discreto, la única salida al
 // Constructor (ítem 50). Un tramo del «Recorrido en el tiempo» resalta su fila y la trae a la vista. La tabla es
-// dueña de su scroll dentro del panel, con cabecera fija.
+// dueña de su scroll dentro del panel, con cabecera fija. Sus columnas son fijas (E9, `resumen.css`): la sección
+// toma el resto con elipsis y las cifras nunca quedan tras un scroll lateral.
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight } from "../../../vendor/lucide-react";
@@ -21,21 +22,21 @@ import {
   type Orden,
 } from "./modeloResumen";
 
-const COLUMNAS: readonly { columna: ColumnaOrden; rotulo: string; clase: string }[] = [
-  { columna: "preguntas", rotulo: "Preguntas", clase: "is-num" },
-  { columna: "obligatorias", rotulo: "Obligatorias", clase: "is-num" },
-  { columna: "conCondiciones", rotulo: "Con condición", clase: "is-num" },
-  { columna: "segundos", rotulo: "Minutos", clase: "is-num" },
+const COLUMNAS: readonly { columna: ColumnaOrden; rotulo: string; clase: string; ayuda?: string }[] = [
+  { columna: "preguntas", rotulo: "Preguntas", clase: "is-num is-col-preguntas" },
+  { columna: "obligatorias", rotulo: "Obligatorias", clase: "is-num is-col-obligatorias" },
+  { columna: "conCondiciones", rotulo: "Con condición", clase: "is-num is-col-condicion" },
+  { columna: "segundos", rotulo: "Minutos", clase: "is-num is-col-minutos", ayuda: `Duración estimada: ${CRITERIO_DURACION}` },
 ];
 
-function Encabezado({ columna, rotulo, clase, orden, onOrden }: {
-  columna: ColumnaOrden; rotulo: string; clase?: string; orden: Orden; onOrden: (c: ColumnaOrden) => void;
+function Encabezado({ columna, rotulo, clase, ayuda, orden, onOrden }: {
+  columna: ColumnaOrden; rotulo: string; clase?: string; ayuda?: string; orden: Orden; onOrden: (c: ColumnaOrden) => void;
 }) {
   const activa = orden.columna === columna;
   const Icono = !activa ? ArrowUpDown : orden.descendente ? ArrowDown : ArrowUp;
   return (
     <th scope="col" className={clase} aria-sort={activa ? (orden.descendente ? "descending" : "ascending") : "none"}>
-      <button type="button" className={`pulso-xf-res-orden${activa ? " is-activa" : ""}`} onClick={() => onOrden(columna)}>
+      <button type="button" className={`pulso-xf-res-orden${activa ? " is-activa" : ""}`} title={ayuda} onClick={() => onOrden(columna)}>
         {rotulo}
         <Icono size={12} aria-hidden="true" />
       </button>
@@ -158,12 +159,15 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
                   </tr>
                   {desplegada && (
                     <tr className="pulso-xf-res-desplegada">
-                      <td colSpan={totalColumnas}>
+                      {/* La columna «Tipo predominante» se oculta en una tabla angosta: el detalle no la abarca y su
+                          celda propia se oculta con ella, así la tabla fija nunca suma una columna fantasma. */}
+                      <td colSpan={totalColumnas - 1}>
                         <div id={idDetalle} className="pulso-xf-ficha pulso-xf-res-ficha" role="region" aria-labelledby={`${idDetalle}-titulo`}>
                           <h4 id={`${idDetalle}-titulo`} className="pulso-xf-ficha-titulo">Preguntas de {f.rotulo}</h4>
                           <PreguntasDesplegadas preguntas={preguntasDe(f.id)} onEditar={onEditarPregunta} />
                         </div>
                       </td>
+                      <td className="is-tipo" aria-hidden="true" />
                     </tr>
                   )}
                   </Fragment>
@@ -175,7 +179,7 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
       )}
       <p className="pulso-xf-res-criterio">
         {sinCondiciones && filas.length > 0 ? "Ninguna sección tiene condiciones todavía. " : ""}
-        Duración: {CRITERIO_DURACION} Pesada: {Math.round(UMBRAL_SECCION_PESADA * 100)} % o más de las preguntas.
+        Pesada: {Math.round(UMBRAL_SECCION_PESADA * 100)} % o más de las preguntas.
       </p>
     </section>
   );

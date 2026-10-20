@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { XlsformFormPublication } from "../../../api/xlsformEditor";
 import type { BuilderDiagnostic } from "../types";
 import { deriveEditorHeaderStatus } from "./editorHeaderStatus";
-import { buildSuiteMetrics, formatFieldSectionPair } from "./editorMetrics";
+import { buildSuiteMetrics, countFieldsInOutline, formatFieldSectionPair } from "./editorMetrics";
 
 function publication(blockers: XlsformFormPublication["blockers"]): XlsformFormPublication {
   return {
@@ -85,8 +85,30 @@ describe("editorMetrics (U8)", () => {
       node("calculate", "c1", "calculate"),
     ];
     const metrics = buildSuiteMetrics({ outline } as never, 0, []);
-    expect(metrics.fields).toBe(5);
-    expect(formatFieldSectionPair(metrics.fields, metrics.sections)).toBe("5 campos · 1 sección");
+    expect(countFieldsInOutline(outline as never)).toBe(5);
+    expect(formatFieldSectionPair(5, metrics.sections)).toBe("5 campos · 1 sección");
+  });
+
+  it("preguntas (cabecera y Resumen): sin notas, cálculos ni metadatos, con el «Otro» que se pregunta", () => {
+    const node = (kind: string, name: string, base = "text") => ({ kind, name, typeInfo: { base } });
+    const outline = [
+      node("question", "inicio", "start"),
+      node("note", "n1", "note"),
+      node("question", "p1", "select_one"),
+      node("question", "p1_other"),
+      node("calculate", "c1", "calculate"),
+    ];
+    expect(buildSuiteMetrics({ outline } as never, 0, []).fields).toBe(2);
+  });
+});
+
+describe("conteos de la cabecera que el Resumen repite (E9)", () => {
+  const d = (level: "error" | "warn" | "info", id: string) => ({ id, level, title: id, detail: "" });
+  it("errores locales y avisos (warn + info) con el mismo número que el rótulo", () => {
+    const status = deriveEditorHeaderStatus([d("error", "a"), d("error", "b"), d("warn", "c"), d("info", "e")] as never, null);
+    expect(status.label).toBe("2 errores");
+    expect(status.errorCount).toBe(2);
+    expect(status.avisoCount).toBe(2);
   });
 });
 
