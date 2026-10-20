@@ -280,3 +280,8 @@
 .pulso-xlsform-frame .pulso-outline-row.xfe-sec-cab[data-depth="3"]:not(.is-dragging) { padding-left: 39px; }
 .pulso-xlsform-frame .pulso-outline-row.xfe-sec-cab[data-depth="4"]:not(.is-dragging),
 .pulso-xlsform-frame .pulso-outline-row.xfe-sec-cab[data-depth="5"]:not(.is-dragging) { padding-left: 51px; }
+
+/* Fondo que «tapa» el glifo de cada marca: el de la fila, para que no quede un halo blanco. */
+.pulso-xlsform-frame .xfe-arbol .pulso-outline-row { --xfk-fondo: var(--xls-sidebar, var(--pulso-surface)); }
+.pulso-xlsform-frame .xfe-arbol .pulso-outline-row:hover:not(.is-dragging) { --xfk-fondo: var(--pulso-surface); }
+.pulso-xlsform-frame .xfe-arbol .pulso-outline-row.is-active { --xfk-fondo: var(--xls-sidebar-selected, var(--pulso-primary-soft)); }

@@ -5,18 +5,20 @@
  * tono de la marca, sin fondo; la casilla vacía no se ve pero sigue siendo botón; una línea tenue separa el riel del
  * título con 10 px de aire. El fondo aparece sólo al pasar el puntero o con el panel abierto. */
 .xfk-riel {
-  display: inline-grid; grid-template-columns: repeat(5, 22px); gap: 2px; flex: none; align-items: center;
+  display: inline-grid; grid-template-columns: repeat(5, 24px); gap: 2px; flex: none; align-items: center;
   padding-left: 10px; border-left: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent);
 }
 
 .xfk-casilla {
-  display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px;
+  display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px;
   background: transparent; color: var(--xfk-c); cursor: pointer;
   transition: background-color 0.14s ease;
 }
 /* Las reglas globales de botón del editor (alto mínimo de 28 px) no deben estirar la casilla. */
-.xfk-riel > button.xfk-casilla { box-sizing: border-box; width: 22px; height: 22px; min-width: 0; min-height: 0; margin: 0; line-height: 0; background: transparent; box-shadow: none; }
-.xfk-casilla .xfk-marca { --xfk-occ: var(--pulso-surface); }
+.xfk-riel > button.xfk-casilla { box-sizing: border-box; width: 24px; height: 24px; min-width: 0; min-height: 0; margin: 0; line-height: 0; background: transparent; box-shadow: none; }
+.xfk-casilla .xfk-marca { --xfk-occ: var(--xfk-fondo, var(--xls-sidebar, var(--pulso-surface))); }
+/* El glifo a 16 px: legible sin caja. Lo que «tapa» toma el fondo de la fila (sin halo blanco alrededor). */
+.xfk-riel > button.xfk-casilla svg { width: 16px; height: 16px; }
 /* Vacía: el glifo está pero no se ve; al pasar el puntero asoma en gris sobre un fondo tenue. */
 .xfk-riel > button.xfk-casilla:not(.is-on) svg.xfk-marca { color: transparent; --xfk-occ: transparent; }
 .xfk-riel > button.xfk-casilla:not(.is-on):hover { background: color-mix(in srgb, var(--pulso-text) 6%, transparent); }
@@ -36,7 +38,7 @@
   background: var(--xls-sidebar, var(--pulso-surface)); border-bottom: 1px solid var(--pulso-border);
 }
 .xfk-riel-cab__rotulo { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-faint); }
-.xfk-riel-cab__cols { display: grid; grid-template-columns: repeat(5, 22px); gap: 2px; padding-left: 11px; }
+.xfk-riel-cab__cols { display: grid; grid-template-columns: repeat(5, 24px); gap: 2px; padding-left: 11px; }
 .xfk-riel-cab__col { display: grid; place-items: center; height: 18px; cursor: help; }
 .xfk-riel-cab__col svg.xfk-marca { color: var(--pulso-text-faint); --xfk-occ: var(--xls-sidebar, var(--pulso-surface)); opacity: 0.8; }
 
@@ -53,7 +55,7 @@
   box-shadow: 0 1px 3px color-mix(in srgb, var(--pulso-text) 16%, transparent);
   transform: translateY(-50%); opacity: 0; pointer-events: none; transition: opacity var(--motion-dur-fast, 0.12s) ease;
 }
-.pulso-xlsform-frame .pulso-outline-row.is-active:has(> .pulso-outline-riel) > .pulso-outline-actions { right: 144px; }
+.pulso-xlsform-frame .pulso-outline-row.is-active:has(> .pulso-outline-riel) > .pulso-outline-actions { right: 154px; }
 .pulso-xlsform-frame .pulso-outline-row.is-active:hover > .pulso-outline-actions,
 .pulso-xlsform-frame .pulso-outline-row.is-active:focus-within > .pulso-outline-actions { opacity: 1; pointer-events: auto; }
 .pulso-xlsform-frame .pulso-outline-row.is-active > .pulso-outline-actions button.pulso-icon {
@@ -65,9 +67,9 @@
  * el riel baja a la línea del subtítulo con casillas de 16 px de alto y el título recupera el ancho de la fila. */
 @media (max-width: 1180px) {
   .pulso-outline-row > .xfk-riel.pulso-outline-riel { position: absolute; right: 7px; bottom: 4px; }
-  .xfk-riel > button.xfk-casilla { height: 16px; }
-  .xfk-riel > button.xfk-casilla svg { width: 11px; height: 11px; }
-  .pulso-outline-row:has(> .pulso-outline-riel) .pulso-outline-subtitle { margin-right: 130px; max-width: calc(100% - 130px); }
+  .xfk-riel > button.xfk-casilla { height: 18px; }
+  .xfk-riel > button.xfk-casilla svg { width: 14px; height: 14px; }
+  .pulso-outline-row:has(> .pulso-outline-riel) .pulso-outline-subtitle { margin-right: 140px; max-width: calc(100% - 140px); }
 }
 
 /* Panel */
