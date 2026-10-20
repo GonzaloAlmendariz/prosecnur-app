@@ -160,6 +160,9 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
                                     template_pptx, template_id, auto_otros_slides,
                                     result_path, progress_path = NULL, estilo_cliente = list()) {
   report <- job_progress_writer(progress_path)
+  inicio <- Sys.time()
+  ms_desde <- function(t) as.integer(round(as.numeric(difftime(Sys.time(), t, units = "secs")) * 1000))
+  .graficos_job_sin_jit()   # el worker es su propio proceso: no hay que restaurarlo
   base_error <- .graficos_job_base_error(active_base)
   report("loading", percent = 2, message = "Cargando datos y plantilla...")
   ec <- .graficos_estilo_cliente_iniciar(estilo_cliente, "ppt", template_pptx)   # graficos_estilo_cliente_worker.R
@@ -170,6 +173,8 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
     plan, slide_registry, graficador_registry, icon_registry,
     report = report, base_error = base_error, item_label = "la lámina"
   )
+  armado_ms <- ms_desde(inicio)
+  t_render <- Sys.time()
   report("render", percent = 60, message = "Renderizando presentación...")
   tryCatch(
     reporte_ppt_plan(
@@ -189,9 +194,21 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
   .graficos_estilo_cliente_cerrar_ppt(ec, slides_r)
   for (m in graficos_avisos_ponderacion_mazo(slides_r, readRDS(rp_data_path))) .pulso_aviso(m)   # D-b/D-c (S1–S4): en el job, no en la vista previa
   report("export", percent = 96, message = "Guardando PPTX...")
-  list(path = result_path, n_slides = .graficos_laminas_entregadas(result_path, length(slides_r)))
+  # Fases para el log de la app (`.job_log_final`): en Windows el export tardaba ~10 min y nada decía dónde.
+  list(path = result_path, n_slides = .graficos_laminas_entregadas(result_path, length(slides_r)),
+       tiempos_ms = list(armado = armado_ms, render = ms_desde(t_render), worker = ms_desde(inicio)))
 }
 attr(graficos_job_worker_ppt, "prosecnur_job_function_name") <- "graficos_job_worker_ppt"
+
+#' Apaga la compilación JIT en el proceso del worker
+#'
+#' Los graficadores crean funciones anónimas en cada gráfico y el JIT las compilaba una por una: ~8-12 % del render del
+#' mazo de Arte (40 s → 36 s en Mac, 2026-10-20). El código del paquete ya viene compilado; lo que se crea al vuelo se
+#' usa una vez. Sólo en workers callr, que son procesos propios.
+#' @keywords internal
+.graficos_job_sin_jit <- function() {
+  invisible(tryCatch(compiler::enableJIT(0L), error = function(e) NA_integer_))
+}
 
 # Worker del job `graficos.ppt_all` (POST /api/graficos/ppt-all): exporta
 # el PPT de TODAS las bases de un multibase independiente en un ZIP.
