@@ -8,6 +8,7 @@ import {
   cuerpoRegex,
   estadoInicial,
   lecturaDe,
+  mensajeSugeridoDe,
   nuevoBloque,
   probar,
   rangoRegex,
@@ -134,5 +135,28 @@ describe("armador · estado", () => {
     expect(cuerpoRegex(e.bloques)).toBe("[0-9]{8}-");
     e = reducirArmador(e, { tipo: "mover", id: e.bloques[1]!.id, delta: -1 });
     expect(cuerpoRegex(e.bloques)).toBe("-[0-9]{8}");
+  });
+});
+
+describe("armador · cadenas reales de ACNUR", () => {
+  test("REF10b «[0-9]{2}[/][0-9]{4}» se lee como dos dígitos, «/» y cuatro dígitos", () => {
+    const e = estadoInicial("regex(., '^[0-9]{2}[/][0-9]{4}$')");
+    expect(e.reemplaza).toBe(false);
+    expect(e.bloques.map((b) => [b.tipo, b.texto || b.n])).toEqual([["digitos", 2], ["fijo", "/"], ["digitos", 4]]);
+  });
+
+  test("un espacio entre cifras se nombra como espacio, no como dígitos que faltan", () => {
+    const r = probar(formato("dni"), "4587 1236");
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.motivo).toBe("tiene un espacio");
+    const fin = probar(formato("dni"), "45871236 ");
+    if (!fin.ok) expect(fin.motivo).toBe("sobra un espacio al final");
+  });
+});
+
+describe("armador · mensaje sugerido", () => {
+  test("sale del ejemplo válido del formato", () => {
+    expect(mensajeSugeridoDe("regex(., '^[0-9]{2}[/][0-9]{4}$')")).toMatch(/^Escribe la respuesta como \d{2}\/\d{4}\.$/);
+    expect(mensajeSugeridoDe(". > 0")).toBeNull();
   });
 });

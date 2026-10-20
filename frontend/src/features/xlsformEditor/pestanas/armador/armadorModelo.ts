@@ -292,6 +292,9 @@ function rangoDe(trozo: string): { desde: number; hasta: number } | null {
 /** Escrituras equivalentes a las del armador: «\\d» es «[0-9]» y «\\/» o «\\-» son el carácter tal cual.
  *  Dentro de un juego «[…]» no se toca: ahí «\\-» no es lo mismo que «-». */
 function normalizarAtomo(s: string): string {
+  // Un juego de un solo símbolo es ese símbolo: «[/]» (la escritura de ACNUR para MM/AAAA) es «/».
+  const solo = s.match(/^\[\\?([^\]^\\A-Za-z0-9-])\]$/);
+  if (solo) return escapar(solo[1]!);
   if (s.includes("[")) return s;
   return s.replace(/\\(.)/g, (m, c: string) => (c === "d" ? "[0-9]" : /[\w.*+?^${}()|[\]\\]/.test(c) ? m : c));
 }
@@ -520,6 +523,8 @@ function diagnostico(b: Bloque, i: number, resto: string): Diagnostico {
   if (!resto) return { largo: 0, hueco: true, motivo: falta(nombreBloque(b)) };
   if (b.tipo === "digitos" && b.modo !== "rango") {
     const corrida = (resto.match(/^\d*/) ?? [""])[0]!.length;
+    // Un espacio entre las cifras no es «faltan dígitos»: «4587 1236» trae los ocho, con un espacio en medio.
+    if (/\s/.test(resto[corrida] ?? "")) return { parcial: corrida, largo: 1, motivo: "tiene un espacio" };
     const min = b.modo === "entre" ? b.min : b.modo === "mas" ? 1 : b.n;
     if (corrida > 0 && corrida < min) {
       const final = corrida === resto.length;
@@ -578,7 +583,7 @@ export function probar(bloques: readonly Bloque[], texto: string): Prueba {
   const sobra = texto.slice(previo);
   const ult = bloques[bloques.length - 1];
   if (!sobra) return { ok: false, tramos: [], k: 0, ini: 0, largo: texto.length, parcial: 0, hueco: false, motivo: "sin partes" };
-  const motivo = ult && ult.tipo === "letras" && /\d/.test(sobra[0]!) ? `«${sobra[0]}» no es una letra` : `sobra ${cita(sobra)}`;
+  const motivo = !sobra.trim() ? "sobra un espacio al final" : ult && ult.tipo === "letras" && /\d/.test(sobra[0]!) ? `«${sobra[0]}» no es una letra` : `sobra ${cita(sobra)}`;
   return { ok: false, tramos, k: bloques.length, ini: previo, largo: sobra.length, parcial: 0, hueco: false, motivo };
 }
 
@@ -637,4 +642,12 @@ export function reducirArmador(e: EstadoArmador, a: AccionArmador): EstadoArmado
     case "quitarEjemplo":
       return { ...e, ejemplos: e.ejemplos.filter((_x, i) => i !== a.indice) };
   }
+}
+
+/** El mensaje que corresponde a un formato del armador: «Escribe la respuesta como 08:30.»; null si no lo entiende. */
+export function mensajeSugeridoDe(constraint: string): string | null {
+  const cuerpo = cuerpoDeConstraint(constraint);
+  const leido = cuerpo !== null ? bloquesDesdePatron(cuerpo) : null;
+  const ej = leido ? ejemploValido(leido.bloques, leido.formato) : null;
+  return ej ? `Escribe la respuesta como ${ej.map((t) => t.texto).join("")}.` : null;
 }

@@ -4,17 +4,17 @@
 
 /** Funciones que sólo el teléfono puede resolver, con el porqué en palabras de quien diseña la encuesta. */
 const SOLO_EN_TELEFONO: { re: RegExp; porque: string }[] = [
-  { re: /\bjr:choice-name\s*\(/, porque: "toma el texto de la opción elegida, que el teléfono lee de la lista" },
-  { re: /\bjoin\s*\(/, porque: "une las respuestas de todas las filas de una repetición" },
-  { re: /\bsum\s*\(/, porque: "suma una pregunta en todas las filas de una repetición" },
+  { re: /\bjr:choice-name\s*\(/, porque: "lee el texto de la opción elegida" },
+  { re: /\bjoin\s*\(/, porque: "une las filas de una repetición" },
+  { re: /\bsum\s*\(/, porque: "suma las filas de una repetición" },
   { re: /\bcount\s*\(/, porque: "cuenta las filas de una repetición" },
-  { re: /\bindexed-repeat\s*\(/, porque: "lee la respuesta de una fila concreta de una repetición" },
-  { re: /\bposition\s*\(/, porque: "depende de la fila de la repetición en la que se responde" },
-  { re: /\bpulldata\s*\(/, porque: "trae un dato de una tabla adjunta al formulario" },
-  { re: /\binstance\s*\(/, porque: "lee una lista externa al formulario" },
-  { re: /\brandom\s*\(/, porque: "sortea un número al azar en cada entrevista" },
-  { re: /\bselected-at\s*\(/, porque: "toma una de las opciones marcadas por su posición" },
-  { re: /\b(max|min)\s*\(/, porque: "compara una pregunta en todas las filas de una repetición" },
+  { re: /\bindexed-repeat\s*\(/, porque: "lee una fila de una repetición" },
+  { re: /\bposition\s*\(/, porque: "depende de la fila de la repetición" },
+  { re: /\bpulldata\s*\(/, porque: "lee una tabla adjunta" },
+  { re: /\binstance\s*\(/, porque: "lee una lista externa" },
+  { re: /\brandom\s*\(/, porque: "sortea un número al azar" },
+  { re: /\bselected-at\s*\(/, porque: "toma una opción marcada por su posición" },
+  { re: /\b(max|min)\s*\(/, porque: "compara las filas de una repetición" },
 ];
 
 /** Los porqués de que un cálculo sólo se resuelva en el teléfono, sin repetir y en orden; vacío si no hay ninguno. */
@@ -24,12 +24,10 @@ export function motivosEnTelefono(expresion: string): string[] {
   return vistos;
 }
 
-/** La frase completa: «Se calcula en el teléfono: suma… y une…». */
+/** Una línea con el primer motivo, el que explica la fórmula: «Se calcula en el teléfono: suma las filas de una repetición.» */
 export function textoEnTelefono(expresion: string): string {
-  const m = motivosEnTelefono(expresion);
-  if (!m.length) return "Se calcula en el teléfono: usa partes de la fórmula que el editor no puede evaluar.";
-  const lista = m.length === 1 ? m[0] : `${m.slice(0, -1).join(", ")} y ${m[m.length - 1]}`;
-  return `Se calcula en el teléfono: ${lista}.`;
+  const m = motivosEnTelefono(expresion)[0];
+  return m ? `Se calcula en el teléfono: ${m}.` : "Se calcula en el teléfono: usa partes que el editor no evalúa.";
 }
 
 /** El valor depende del momento en que se abre la encuesta (now, today, once): lo que aquí se ve es el de ahora. */

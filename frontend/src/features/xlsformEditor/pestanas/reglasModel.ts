@@ -31,7 +31,7 @@ export function restriccionesDelFormulario(structure: BuilderStructure | null): 
     if (node.kind !== "question") continue;
     const constraint = node.constraint.trim();
     if (constraint) {
-      items.push({ node, estado: "con", usa: referenciasDe(constraint), sinMensaje: !(node.constraint_message ?? "").trim() });
+      items.push({ node, estado: "con", usa: referenciasDe(constraint).filter((v) => v !== node.name), sinMensaje: !(node.constraint_message ?? "").trim() });
     } else if (NUMERICOS.has(node.typeInfo.base) || FECHAS.has(node.typeInfo.base)) {
       items.push({ node, estado: "sugerida", usa: [], sinMensaje: false });
     }

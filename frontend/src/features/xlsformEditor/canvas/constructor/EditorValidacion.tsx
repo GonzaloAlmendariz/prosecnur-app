@@ -1,9 +1,12 @@
+import { useState } from "react";
 import type { BuilderNode } from "../../types";
 import { parseExpression, type LogicScope } from "../../logic";
 import { ConstraintBuilder } from "../../inspector/logic/ConstraintBuilder";
 import { matchTextRule } from "../../inspector/logic/textRules";
-import { describeValidation } from "../reglasHumanas";
-import { ConstraintMessageField } from "./MensajeValidacion";
+import { describeValidation, validationPresetsFor } from "../reglasHumanas";
+import { ConstraintMessageField, constraintMessagePresetsFor } from "./MensajeValidacion";
+import { mensajeSugeridoDe } from "../../pestanas/armador/armadorModelo";
+import { alAplicarFormato, cambiosAlQuitarAtajo } from "./edicionValidacion";
 import { ArmadorFormatoEntrada } from "../../pestanas/armador/ArmadorFormatoEntrada";
 import { CustomValidationPanel, GuidedValidationNotice, ValidationSummary } from "./ValidacionPaneles";
 
@@ -25,6 +28,19 @@ export function EditorValidacion({ node, scope, onFieldChange, onFieldsChange }:
   // editable (TextRuleSuite) — eso gana sobre el aviso «Preset claro» legado.
   const constraintTextRule = hasConstraint ? matchTextRule(parseExpression(node.constraint)) : null;
   const isGuidedPreset = validation?.status === "Preset claro" && !constraintTextRule;
+  // Sugerencia de mensaje tras aplicar un formato cuando el vigente es de otra regla. Se descarta al cambiar de fila.
+  const [oferta, setOferta] = useState<{ fila: number; mensaje: string } | null>(null);
+  const ofrecer = oferta && oferta.fila === node.rowIndex && oferta.mensaje !== constraintMessage.trim() ? oferta.mensaje : null;
+  const quitarAtajo = () => {
+    const sugeridos = [
+      ...validationPresetsFor(node).map((p) => p.message),
+      ...constraintMessagePresetsFor(node, validation).map((p) => p.message),
+      ...(constraintTextRule ? [constraintTextRule.recipe.buildMessage(constraintTextRule.params)] : []),
+      mensajeSugeridoDe(node.constraint) ?? "",
+    ].filter(Boolean);
+    // Un solo cambio: dos escrituras seguidas leían la fila vieja y la segunda devolvía la regla.
+    onFieldsChange(cambiosAlQuitarAtajo(constraintMessage, sugeridos));
+  };
 
   return (
     <>
@@ -33,15 +49,18 @@ export function EditorValidacion({ node, scope, onFieldChange, onFieldsChange }:
       )}
       {/* Armador de patrones (G2): sólo en preguntas de texto, escribe regex(., '^…$') al aplicar. */}
       {node.typeInfo.base === "text" && (
-        <ArmadorFormatoEntrada key={node.rowIndex} constraint={node.constraint} onAplicar={(next) => onFieldChange("constraint", next)} />
-      )}
-      {isGuidedPreset && validation ? (
-        <GuidedValidationNotice
-          onClear={() => {
-            onFieldChange("constraint", "");
-            onFieldChange("constraint_message", "");
+        <ArmadorFormatoEntrada
+          key={node.rowIndex}
+          constraint={node.constraint}
+          onAplicar={(next) => {
+            const r = alAplicarFormato(next, constraintMessage, mensajeSugeridoDe(next));
+            onFieldsChange(r.cambios);
+            setOferta(r.ofrecer ? { fila: node.rowIndex, mensaje: r.ofrecer } : null);
           }}
         />
+      )}
+      {isGuidedPreset && validation ? (
+        <GuidedValidationNotice onClear={quitarAtajo} />
       ) : (
         <ConstraintBuilder
           // Re-monta al cambiar de pregunta: descarta borradores internos de la fila previa.
@@ -59,6 +78,12 @@ export function EditorValidacion({ node, scope, onFieldChange, onFieldsChange }:
           showShortcuts={!hasConstraint}
         />
       )}
+      {ofrecer ? (
+        <p className="pulso-focus-aviso-mensaje" role="status">
+          El mensaje vigente es de otra regla.
+          <button type="button" onClick={() => { onFieldChange("constraint_message", ofrecer); setOferta(null); }}>Usar «{ofrecer}»</button>
+        </p>
+      ) : null}
       {(node.constraint || constraintMessage) && (
         <ConstraintMessageField node={node} validation={validation} value={constraintMessage} onFieldChange={onFieldChange} />
       )}

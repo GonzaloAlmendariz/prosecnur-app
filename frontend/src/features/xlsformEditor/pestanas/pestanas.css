@@ -249,3 +249,33 @@
 .xfp-formula__pie { display: flex; justify-content: flex-end; gap: 8px; }
 /* «Editar en Constructor» en la cabecera: sin el borde superior que trae para ir al pie de una ficha. */
 .xfp-encabezado__accion .pulso-xf-editar-pie { padding-top: 0; border-top: 0; }
+
+/* Variable dentro de una frase (E3–E4): la etiqueta con peso medio o, sin etiqueta, el código. */
+.xfp-var { font-weight: var(--pulso-weight-medium); color: var(--pulso-text); }
+.xfp-var.is-codigo { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; font-weight: 400; }
+.xfp-prueba__propio { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 9px 16px; border-top: 1px solid var(--pulso-border); font-size: 12.5px; color: var(--pulso-text-muted); }
+.xfp-prueba__propio input { min-width: 0; height: 30px; padding: 0 9px; border: 1px solid var(--pulso-border-strong); border-radius: 6px; background: var(--pulso-surface); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; color: var(--pulso-text); }
+.xfp-prueba__propio input:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.xfp-prueba__veredicto { min-width: 96px; font-weight: var(--pulso-weight-medium); }
+.xfp-prueba__veredicto.is-acepta { color: var(--pulso-success-fg); }
+.xfp-prueba__veredicto.is-rechaza { color: var(--pulso-danger-fg); }
+.xfp-telefono__opciones { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--pulso-text); }
+.xfp-telefono__opciones li { display: flex; align-items: center; gap: 8px; }
+.xfp-telefono__radio, .xfp-telefono__casilla { flex: none; width: 14px; height: 14px; border: 1.5px solid var(--pulso-border-strong); background: var(--pulso-surface); }
+.xfp-telefono__radio { border-radius: 50%; }
+.xfp-telefono__casilla { border-radius: 3px; }
+.xfp-telefono__opciones li.is-marcada .xfp-telefono__radio, .xfp-telefono__opciones li.is-marcada .xfp-telefono__casilla { border-color: var(--pulso-primary); box-shadow: inset 0 0 0 3px var(--pulso-surface); background: var(--pulso-primary); }
+
+/* «Escribir la regla a mano» (E3): el borrador se aplica con un botón o al salir del campo. */
+.pulso-focus-custom-validation-pie { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.pulso-focus-custom-validation-aplicar {
+  height: 28px; padding: 0 12px; border: 1px solid var(--pulso-primary); border-radius: var(--pulso-radius);
+  background: var(--pulso-primary); color: var(--pulso-surface); font: inherit; font-size: 12.5px; font-weight: var(--pulso-weight-medium); cursor: pointer;
+}
+.pulso-focus-custom-validation-aplicar:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.pulso-focus-aviso-mensaje { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; font-size: 12.5px; color: var(--pulso-text-muted); }
+.pulso-focus-aviso-mensaje button {
+  padding: 2px 8px; border: 1px solid var(--pulso-border-strong); border-radius: var(--pulso-radius); background: var(--pulso-surface);
+  color: var(--pulso-text); font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.pulso-focus-aviso-mensaje button:hover { border-color: var(--pulso-primary); color: var(--pulso-primary); }
