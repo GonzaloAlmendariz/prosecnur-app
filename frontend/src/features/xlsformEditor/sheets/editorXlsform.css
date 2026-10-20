@@ -33,3 +33,52 @@
 .xfx-diag__fix:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
 .pulso-xfs-colhead { flex-wrap: wrap; row-gap: 1px; }
 .xfx-colayuda { flex-basis: 100%; font-size: 10.5px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--pulso-text-faint); white-space: nowrap; }
+
+/* E10 (2026-10-20): hojas grandes, columnas fijas, eliminar en dos pasos y menos chrome en alturas bajas. */
+.pulso-xlsform-frame .pulso-xfs-view .xfx-cabecera { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; flex-shrink: 0; min-width: 0; }
+.pulso-xlsform-frame .pulso-xfs-view .xfx-cabecera .pulso-xfs-toolbar { flex: 1 1 360px; }
+.pulso-xlsform-frame .pulso-xfs-view .xfx-cabecera .pulso-xfs-meta { margin-left: auto; }
+/* Zebra por índice de fila: con la ventana de filas, nth-child cuenta los espaciadores. */
+.pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-table tbody tr:nth-child(even) td { background: transparent; }
+.pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-table tbody tr.is-par td { background: color-mix(in srgb, var(--pulso-surface-2) 55%, transparent); }
+.pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-table tbody tr.xfx-espaciador td { padding: 0; border: 0; background: transparent; }
+.pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-table tbody td.pulso-xfs-actions-col { background: var(--pulso-surface-2); }
+/* Columnas identificadoras fijas tras # (el `left` lo mide la tabla). Fondo opaco: por debajo pasan las demás. */
+.pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-table .xfx-fija { position: sticky; z-index: 1; background: var(--pulso-surface); }
+.pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-table tbody tr.is-par td.xfx-fija { background: color-mix(in srgb, var(--pulso-surface-2) 55%, var(--pulso-surface)); }
+.pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-table thead th.xfx-fija { z-index: 3; background: linear-gradient(180deg, var(--pulso-surface), var(--pulso-surface-2)); }
+.pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-table .xfx-fija--ultima { border-right: 1px solid var(--pulso-border); }
+.pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-table-wrap[data-desplazada-h] .xfx-fija--ultima { box-shadow: 6px 0 8px -6px color-mix(in srgb, var(--pulso-text) 22%, transparent); }
+.pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-table td.xfx-fija.is-elegida { box-shadow: inset 0 0 0 2px var(--module-accent, var(--pulso-primary)); }
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-table tbody tr:hover td.xfx-fija { background: color-mix(in srgb, var(--pulso-primary) 4%, var(--pulso-surface)); }
+}
+/* Textos largos: hasta 3 líneas en reposo; al editar se abren. */
+.pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-cell.is-multiline { min-height: 0; max-height: calc(3 * 1.45em + 12px); overflow: hidden; }
+.pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-cell.is-multiline:focus { max-height: 40vh; overflow: auto; }
+.xfx-barra__valor.is-pending { border-color: var(--pulso-warn-border); }
+/* Eliminar armado: el botón dice qué hará el segundo clic. */
+.pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-iconbtn.xfx-eliminar--armado { width: auto; gap: 4px; padding: 0 8px; opacity: 1; background: var(--pulso-danger-bg); border-color: var(--pulso-danger-border); color: var(--pulso-danger-fg); font-size: 11.5px; font-weight: var(--pulso-weight-semibold); white-space: nowrap; }
+@media (max-height: 760px) {
+  .pulso-xlsform-frame .pulso-xfs-view { gap: 8px; padding: 8px 10px 10px; }
+  .pulso-xlsform-frame .pulso-xfs-view .xfx-tabla { gap: 6px; }
+  .pulso-xlsform-frame .pulso-xfs-view .xfx-colayuda { display: none; }
+  .pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-table thead th { padding-block: 5px; }
+  .xfx-barra { padding: 4px 10px; }
+  .xfx-barra__valor { height: 26px; }
+}
+.pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-table-wrap { overflow-anchor: none; }
+/* Anchos de escritorio compactos: hojas y acciones en una sola franja. El código XLSForm de la hoja sigue en el title. */
+@media (max-width: 1180px), (max-height: 760px) {
+  .pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-tab .pulso-xf-tech { display: none; }
+  .pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-tab { padding-inline: 10px; gap: 6px; }
+  .pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-newcol-input { width: 180px; }
+  .pulso-xlsform-frame .pulso-xfs-view .xfx-cabecera .pulso-xfs-toolbar { flex-basis: auto; }
+  .pulso-xlsform-frame .pulso-xfs-view .xfx-cabecera .pulso-xfs-meta { display: none; }
+}
+@media (max-height: 760px) {
+  .pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-table tbody td { padding-block: 2px; }
+  .pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-cell { padding-block: 3px; }
+  .pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-type-chip { padding-block: 0; }
+}
+.pulso-xlsform-frame .pulso-xfs-view .pulso-xfs-row-num { flex: none; white-space: nowrap; min-width: 24px; }
