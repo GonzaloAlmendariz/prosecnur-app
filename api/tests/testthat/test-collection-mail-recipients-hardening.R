@@ -279,7 +279,7 @@ test_that("6: manifest con procedencia y cifras completas, sin correos; LEEME co
   expect_true("fields_empty" %in% vapply(man$checks, `[[`, "", "code"))
   leeme <- readLines(file.path(ex, "LEEME.txt"), encoding = "UTF-8", warn = FALSE)
   expect_true(any(grepl("^Cifras: 3 destinatarios en audiencia.csv de 5 filas", leeme)))
-  expect_true(any(grepl("IMAGEN_logo-cliente.png\\s+\\| imagenes/logo-cliente.png", leeme)))
+  expect_true(any(grepl("plantilla-mailchimp.zip", leeme, fixed = TRUE)))
 })
 
 test_that("M1 y M3: el export exige la revisión; una plantilla guardada inválida no llega al render", {

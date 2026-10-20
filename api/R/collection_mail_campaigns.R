@@ -86,7 +86,7 @@ COLLECTION_MAIL_CAMPAIGNS_SCHEMA <- "collection_mail_campaigns/v1"
 .cmail_campaigns_of <- function(state) {
   stored <- state$mail_campaigns
   if (is.list(stored)) {
-    campaigns <- Filter(is.list, unname(stored$campaigns %||% list()))
+    campaigns <- lapply(Filter(is.list, unname(stored$campaigns %||% list())), .cmail_campaign_upgrade)
     return(list(campaigns = campaigns, legacy_migrated = FALSE, persisted = TRUE))
   }
   legacy <- state$mail_template
@@ -102,6 +102,15 @@ COLLECTION_MAIL_CAMPAIGNS_SCHEMA <- "collection_mail_campaigns/v1"
     return(list(campaigns = list(campaign), legacy_migrated = TRUE, persisted = FALSE))
   }
   list(campaigns = list(), legacy_migrated = FALSE, persisted = FALSE)
+}
+
+# Una plantilla v1 guardada (E1h) se lee como v2: mismo contenido, huella nueva.
+.cmail_campaign_upgrade <- function(campaign) {
+  t <- campaign$template
+  if (is.list(t) && identical(t$schema, COLLECTION_MAIL_TEMPLATE_SCHEMA_V1)) {
+    campaign$template <- .cmail_template_normalize(t)
+  }
+  campaign
 }
 
 # La campaña virtual del proyecto sin correos: la plantilla de fábrica.
@@ -268,12 +277,21 @@ collection_mail_campaign_create <- function(sid, expected_revision, name, actor 
   id <- .cmail_campaign_unique_id(.cmail_campaign_slug(name), ids)
   campaign <- list(campaign_id = id, name = name, actor = actor,
                    template = .cmail_campaign_template(presets[[preset]](), id, revision = 1L))
+  # Destinatarios importados con la campaña virtual `correo-1` (sin campañas
+  # guardadas): al crear la primera campaña real se purgan y se dice, en vez de
+  # adoptarlos en silencio en una campaña que no es la suya (decisión del lead).
+  purged_virtual <- FALSE
+  if (!length(campaigns)) {
+    purged_virtual <- file.exists(.cmail_recipients_path(session, .CMAIL_CAMPAIGN_DEFAULT_ID))
+    .cmail_recipients_forget(session, .CMAIL_CAMPAIGN_DEFAULT_ID)
+  }
   # Una campaña nueva nunca hereda destinatarios de una carpeta vieja con su id.
   .cmail_recipients_forget(session, id)
   campaigns <- .cmail_campaigns_upsert(campaigns, campaign)
   next_state <- .cmail_campaigns_commit(sid, current, campaigns)
   created <- campaigns[[length(campaigns)]]
-  list(ok = TRUE, state_revision = next_state$state_revision, campaign = .cmail_campaign_public(created))
+  list(ok = TRUE, state_revision = next_state$state_revision, campaign = .cmail_campaign_public(created),
+       recipients_purged_virtual = purged_virtual)
 }
 
 #' Duplica una campaña: la plantilla sí, los destinatarios no.

@@ -168,12 +168,13 @@ mount_recopiladores <- function(pr) {
     })) |>
     plumber::pr_post("/api/recopiladores/mail-template/review", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
-      collection_mail_review(session_header(req), template = body$template, campaign_id = body$campaign_id)
+      collection_mail_review(session_header(req), template = body$template, campaign_id = body$campaign_id,
+                             scope = body$scope)
     })) |>
     plumber::pr_post("/api/recopiladores/mail-template/export", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_mail_export(session_header(req), expected_revision = body$expected_revision,
-                             campaign_id = body$campaign_id)
+                             campaign_id = body$campaign_id, scope = body$scope)
     })) |>
     plumber::pr_post("/api/recopiladores/mail-recipients/import", wrap_endpoint(function(req, res, ...) {
       input <- .cmail_import_request(req)

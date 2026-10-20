@@ -8,7 +8,7 @@
   vapply(v$problems, function(p) p$code, "")
 }
 
-test_that("los dos presets built-in cumplen collection_mail_template/v1", {
+test_that("los dos presets built-in cumplen collection_mail_template/v2", {
   sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
   out <- collection_mail_presets_get(sid)
   ids <- vapply(out$presets, `[[`, "", "preset_id")
@@ -18,7 +18,8 @@ test_that("los dos presets built-in cumplen collection_mail_template/v1", {
     expect_true(v$ok, info = paste(p$preset_id, paste(vapply(v$problems, `[[`, "", "detail"), collapse = "; ")))
   }
   expect_setequal(unlist(out$block_types),
-                  c("greeting", "paragraph", "button", "callout", "list", "signature", "footer_legal"))
+                  c("greeting", "heading", "paragraph", "button", "callout", "list", "divider", "image",
+                    "signature", "footer_legal"))
 })
 
 test_that("el registro cerrado rechaza HTML libre, etiquetas crudas, tipos y claves ajenas", {
@@ -85,7 +86,7 @@ test_that("preview resuelve los campos; mailchimp deja etiquetas, respaldo condi
   mc <- collection_mail_render(t, "mailchimp")
 
   expect_false(grepl("*|", pv$html, fixed = TRUE))
-  expect_match(pv$html, "Estimado(a) Ana:", fixed = TRUE)
+  expect_match(.cmail_fx_unmark(pv$html), "Estimado(a) Ana:", fixed = TRUE)
   expect_match(pv$html, "Sociología", fixed = TRUE)
   expect_match(pv$html, 'href="https://ejemplo.org/e/1"', fixed = TRUE)
 
@@ -99,7 +100,7 @@ test_that("preview resuelve los campos; mailchimp deja etiquetas, respaldo condi
   # Sin nombre, el preview usa el respaldo.
   sin_nombre <- collection_mail_render(t, "preview", values = list(nombre = "", fields = list()))
   expect_match(sin_nombre$html, "Estimado(a) estudiante:", fixed = TRUE)
-  expect_match(sin_nombre$html, "como estudiante de su carrera", fixed = TRUE)
+  expect_match(.cmail_fx_unmark(sin_nombre$html), "como estudiante de su carrera", fixed = TRUE)
 })
 
 test_that("el texto de usuario y los valores se escapan: el render es el único que escribe HTML", {
@@ -127,7 +128,9 @@ test_that("HTML de correo compatible: tablas de 600 px, botón bulletproof, alt 
     imgs <- regmatches(mc$html, gregexpr("<img [^>]*>", mc$html))[[1]]
     expect_length(imgs, 2L)
     expect_true(all(grepl('alt="[^"]+"', imgs)))
-    expect_true(all(grepl('src="IMAGEN_[a-z0-9-]+\\.png"', imgs)))
+    # E1g: src RELATIVO al ZIP importable, nunca un marcador IMAGEN_.
+    expect_true(all(grepl('src="(logo-cliente|pulso)\\.png"', imgs)))
+    expect_false(grepl("IMAGEN_", mc$html, fixed = TRUE))
     expect_false(grepl("data:", mc$html, fixed = TRUE))
     # El preview de la app sí incrusta: nunca sale de la app.
     expect_match(pv$html, "data:image/png;base64,", fixed = TRUE)

@@ -124,8 +124,11 @@ test_that("revisión: cifras de asunto, peso, imágenes, pie, etiquetas con colu
                     "footer_unsub", "recipients", "tags_have_columns", "fields_empty", "names_unsplit") %in% names(by)))
   expect_identical(by$html_weight$status, "ok")
   expect_lt(by$html_weight$value, 102L * 1024L)
-  expect_identical(by$images_hosted$status, "warning")
+  # E1g: sin URL, las imágenes van en el ZIP importable: ya no hay marcadores.
+  expect_identical(by$images_hosted$status, "ok")
   expect_identical(by$images_hosted$value, 2L)
+  expect_identical(by$import_zip_weight$status, "ok")
+  expect_identical(by$accent_contrast$status, "ok")
   expect_identical(by$footer_unsub$status, "ok")
   expect_identical(by$tags_have_columns$status, "ok")
   expect_identical(by$recipients$value, 3L)
@@ -180,15 +183,17 @@ test_that("export: ZIP fuera del .pulso con plantilla, audiencia e imágenes; ar
   expect_identical(meta$role, "deliverable")
   expect_identical(meta$sha256, res$zip$sha256)
   entries <- zip::zip_list(meta$path)$filename
-  expect_true(all(c("mailchimp_template.html", "audiencia.csv", "imagenes/logo-cliente.png",
-                    "imagenes/pulso.png", "LEEME.txt", "manifest.json") %in% entries))
+  expect_setequal(entries, c("plantilla-mailchimp.zip", "audiencia.csv", "LEEME.txt", "manifest.json"))
 
   ex <- tempfile("cmail-zip-"); on.exit(unlink(ex, recursive = TRUE), add = TRUE)
   utils::unzip(meta$path, exdir = ex)
-  html <- paste(readLines(file.path(ex, "mailchimp_template.html"), encoding = "UTF-8", warn = FALSE), collapse = "\n")
+  inner <- zip::zip_list(file.path(ex, "plantilla-mailchimp.zip"))$filename
+  expect_setequal(inner, c("correo-1.html", "logo-cliente.png", "pulso.png"))
+  utils::unzip(file.path(ex, "plantilla-mailchimp.zip"), exdir = file.path(ex, "imp"))
+  html <- paste(readLines(file.path(ex, "imp", "correo-1.html"), encoding = "UTF-8", warn = FALSE), collapse = "\n")
   expect_false(grepl("data:", html, fixed = TRUE))
   expect_match(html, "*|UNSUB|*", fixed = TRUE)
-  expect_lt(file.info(file.path(ex, "mailchimp_template.html"))$size, 102L * 1024L)
+  expect_lt(file.info(file.path(ex, "imp", "correo-1.html"))$size, 102L * 1024L)
 
   aud <- utils::read.csv(file.path(ex, "audiencia.csv"), check.names = FALSE, colClasses = "character", encoding = "UTF-8")
   # Paridad (ADR 0110 Cumplimiento): toda etiqueta del HTML tiene su columna, y nada más.
@@ -202,7 +207,8 @@ test_that("export: ZIP fuera del .pulso con plantilla, audiencia e imágenes; ar
   expect_identical(aud$CARRERA[[2]], "")
 
   leeme <- readLines(file.path(ex, "LEEME.txt"), encoding = "UTF-8", warn = FALSE)
-  expect_true(any(grepl("IMAGEN_pulso.png", leeme, fixed = TRUE)))
+  expect_true(any(grepl("Import ZIP", leeme, fixed = TRUE)))
+  expect_false(any(grepl("IMAGEN_", leeme, fixed = TRUE)))
   man <- jsonlite::fromJSON(file.path(ex, "manifest.json"), simplifyVector = FALSE)
   expect_identical(man$audience, "client")
   expect_false(isTRUE(man$secrets_included))
@@ -216,7 +222,7 @@ test_that("preview con destinatario importado y fuera de rango", {
   pv <- collection_mail_preview(sid, "preview", recipient_index = 2L)
   expect_identical(pv$recipient$source, "imported")
   expect_identical(pv$recipient$nombre, "Carlos")
-  expect_match(pv$html, "como estudiante de su carrera", fixed = TRUE)
+  expect_match(.cmail_fx_unmark(pv$html), "como estudiante de su carrera", fixed = TRUE)
   expect_false(grepl("carlos.rojas@", pv$html, fixed = TRUE))
   expect_identical(.cmail_e_code(collection_mail_preview(sid, "preview", recipient_index = 9L)),
                    "E_COLLECTION_MAIL_RECIPIENT_INDEX")
