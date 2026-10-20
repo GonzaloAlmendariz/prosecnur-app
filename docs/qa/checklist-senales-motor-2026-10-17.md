@@ -1,5 +1,10 @@
 # Checklist · Señales del formulario y motor de reglas (2026-10-17)
 
+Tipo: Checklist vivo
+Estado: En curso
+Fecha: 2026-10-17
+Autoridad: Pedido de Gonzalo (íconos e identidad junto con el motor de reglas); sólo él da por terminado un ítem
+
 Pedido de Gonzalo: «Entonces es un trabajo conjunto, hacer el cambio de íconos e identidad y a la vez el motor de
 traducción de estados y condiciones». Propuesta aprobada: https://claude.ai/artifact/YTdc4HLE3YqKhXDmE89pcf
 (elegidos: **sello** para los tipos y **riel fijo** para las marcas; textos «en términos humanos, no en regex, el
