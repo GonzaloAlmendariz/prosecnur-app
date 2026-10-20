@@ -1,11 +1,12 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Pencil } from "../../../vendor/lucide-react";
 import { enriquecerAlcance, type LogicScope } from "../logic";
 import { LECTURA_FILA_ROTA, esFilaRota } from "../reglas/motor/filaRota";
 import type { BuilderStructure } from "../types";
 import { describeValidation } from "../canvas/reglasHumanas";
 import { PanelCard, QuestionToken, ReadsAs, TypeIcon } from "../kit";
-import { PiezasLectura, TituloLegible, tituloPlano } from "../kit/CuerpoPanelMarca";
+import { EtiquetaLegible, LecturaPiezas } from "./LecturaPiezas";
+import { etiquetaPlana, textoLegible } from "./variablesLegibles";
 import { leerRegla } from "../reglas/leerRegla";
 import { Markdown } from "./Markdown";
 import { EditarEnConstructor } from "../shell/EditarEnConstructor";
@@ -46,27 +47,34 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
   const sugeridas = useMemo(() => items.filter((i) => i.estado === "sugerida"), [items]);
   const actual = items.find((i) => i.node.name === seleccionada) ?? con[0] ?? sugeridas[0] ?? null;
   const numero = (n: { paperNumber?: string; name: string }) => n.paperNumber || n.name;
-  const grupos: ReglaListaGrupo[] = useMemo(() => [
-    {
-      titulo: "Con restricción",
-      items: con.map((i) => ({
-        key: i.node.name, baseType: i.node.typeInfo.base, numero: i.node.paperNumber ?? "", titulo: i.node.label || i.node.name,
-        resumen: i.rota ? LECTURA_FILA_ROTA : i.sinMensaje ? "Sin mensaje para quien se equivoca" : describeValidation(i.node.constraint, i.node, scope)?.summary ?? i.node.constraint,
-        aviso: i.sinMensaje || i.rota,
-      })),
-    },
-    {
-      titulo: "Sugeridas",
-      items: sugeridas.map((i) => ({
-        key: i.node.name, baseType: i.node.typeInfo.base, numero: i.node.paperNumber ?? "", titulo: i.node.label || i.node.name,
-        resumen: "Acepta cualquier valor",
-      })),
-    },
-  ], [con, sugeridas, scope]);
+  const etq = useCallback((name: string) => structure?.outline.find((n) => n.name === name)?.label ?? "", [structure]);
+  const grupos: ReglaListaGrupo[] = useMemo(() => {
+    const tituloDe = (n: { label: string; name: string }) => (n.label ? etiquetaPlana(n.label, etq) : n.name);
+    const resumenDe = (i: (typeof items)[number]) => {
+      const l = leerRegla("constraint", i.node.constraint, i.node, scope);
+      return !l.tecnica && l.piezas.length ? textoLegible(l.piezas, etq) : describeValidation(i.node.constraint, i.node, scope)?.summary ?? i.node.constraint;
+    };
+    return [
+      {
+        titulo: "Con restricción",
+        items: con.map((i) => ({
+          key: i.node.name, baseType: i.node.typeInfo.base, numero: i.node.paperNumber ?? "", titulo: tituloDe(i.node),
+          resumen: i.rota ? LECTURA_FILA_ROTA : i.sinMensaje ? "Sin mensaje para quien se equivoca" : resumenDe(i),
+          aviso: i.sinMensaje || i.rota,
+        })),
+      },
+      {
+        titulo: "Sugeridas",
+        items: sugeridas.map((i) => ({
+          key: i.node.name, baseType: i.node.typeInfo.base, numero: i.node.paperNumber ?? "", titulo: tituloDe(i.node),
+          resumen: "Acepta cualquier valor",
+        })),
+      },
+    ];
+  }, [con, sugeridas, scope, etq]);
   const lectura = useMemo(() => (actual ? leerRegla("constraint", actual.node.constraint, actual.node, scope) : null), [actual, scope]);
   const mensajeActual = (actual?.node.constraint_message ?? "").trim();
   const porNombre = (name: string) => structure?.outline.find((n) => n.name === name) ?? null;
-  const etiquetaDe = (name: string) => porNombre(name)?.label ?? "";
   // Una sola insignia por regla, del mismo vocabulario en todas: antes convivían «Regla avanzada» y «Regla técnica» (S12).
   const estado = !actual ? "" : actual.rota ? "fila rota" : actual.estado !== "con" ? "sin regla" : lectura?.tecnica ? "sin traducir" : "vigente";
   const [editando, setEditando] = useState(false);
@@ -95,13 +103,12 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
         </PanelCard>
       }
       aviso={focoPerdido}
-      pie="Una restricción no deja avanzar a quien responde fuera de la regla: le muestra tu mensaje."
     >
       {actual ? (
         <>
           <div className="xfp-encabezado">
             <span className="xfp-encabezado__ruta"><TypeIcon baseType={actual.node.typeInfo.base} boxed /> Restricción{actual.node.label ? <> · <code className="xfp-codigo">{actual.node.name}</code></> : null}</span>
-            <h2 className="xfp-encabezado__titulo"><TituloLegible texto={actual.node.label || actual.node.name} /></h2>
+            <h2 className="xfp-encabezado__titulo">{actual.node.label ? <EtiquetaLegible texto={actual.node.label} etiquetaDe={etq} /> : <code className="xfp-var is-codigo">{actual.node.name}</code>}</h2>
             <span className="xfp-encabezado__accion"><EditarEnConstructor onEditar={() => onEditar(actual.node.rowIndex)} que={`la pregunta ${numero(actual.node)}`} /></span>
           </div>
           <PanelCard
@@ -121,16 +128,16 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
                     ? LECTURA_FILA_ROTA
                     : lectura?.tecnica
                       ? "El motor todavía no traduce esta regla: se aplica tal como está escrita."
-                      : <PiezasLectura piezas={lectura?.piezas ?? []} />}
+                      : <LecturaPiezas piezas={lectura?.piezas ?? []} etiquetaDe={etq} />}
               </p>
-              <dl className="xfp-def">
+              {actual.rota ? null : <dl className="xfp-def">
                 <dt>Mensaje</dt>
                 <dd>
                   {mensajeActual && mensajeActual !== actual.node.name
                     ? <Markdown texto={mensajeActual} />
-                    : <span className="xfp-nota">{mensajeActual ? "Sin mensaje: el de esta fila es el nombre de la pregunta repetido." : actual.estado === "con" ? "Sin mensaje: quien se equivoque verá un aviso genérico." : "Se escribe junto con la regla."}</span>}
+                    : <span className="xfp-nota">{actual.estado === "con" ? "Sin mensaje: quien se equivoque verá un aviso genérico." : "Se escribe junto con la regla."}</span>}
                 </dd>
-              </dl>
+              </dl>}
               {actual.node.constraint.trim() ? (
                 <details className="xfp-codigo-xls" open={Boolean(lectura?.tecnica)}>
                   <summary>Expresión en XLSForm</summary>
@@ -149,22 +156,28 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
               </div>
             ) : null}
           </PanelCard>
-          {actual.estado === "con" ? <ProbarRestriccion node={actual.node} opciones={catalogs.find((c) => c.listName === actual.node.typeInfo.listName)?.items ?? []} /> : null}
+          {actual.estado === "con" && !actual.rota ? <ProbarRestriccion key={actual.node.rowIndex} node={actual.node} etiquetaDe={etq} opciones={catalogs.find((c) => c.listName === actual.node.typeInfo.listName)?.items ?? []} /> : null}
           <div className="xfp-fila2" data-qa-geometry-group="xlsform/restricciones-fila" data-qa-geometry-contract="equal">
             <PanelCard title="Depende de" meta={actual.usa.length ? `${actual.usa.length} pregunta${actual.usa.length === 1 ? "" : "s"}` : undefined} fill>
               {actual.usa.length ? (
                 <div className="xfp-toks">
                   {actual.usa.map((v) => {
                     const n = porNombre(v);
-                    return <QuestionToken key={v} baseType={n?.typeInfo.base ?? ""} label={n ? numero(n) : v} hint={n?.label ? tituloPlano(n.label, etiquetaDe) : undefined} variable={v} />;
+                    return <QuestionToken key={v} baseType={n?.typeInfo.base ?? ""} label={n ? numero(n) : v} hint={n?.label ? etiquetaPlana(n.label, etq) : undefined} variable={v} />;
                   })}
                 </div>
-              ) : <p className="xfp-nota">{actual.rota ? "Ninguna: la fila está rota y no tiene una regla real." : "Sólo mira la propia respuesta."}</p>}
+              ) : <p className="xfp-nota">{actual.rota ? "Ninguna." : "Sólo mira la propia respuesta."}</p>}
             </PanelCard>
             <PanelCard title="Antes de aplicar" fill>
               <ul className="xfp-check" data-qa-geometry-group="xlsform/restricciones-checks" data-qa-geometry-contract="intrinsic">
-                <li className={actual.estado === "con" && !actual.rota ? "is-ok" : "is-aviso"}>{actual.rota ? "La fila está rota: su regla es el nombre de la pregunta repetido." : actual.estado === "con" ? "Tiene una regla de qué acepta." : "Un número sin límites acepta errores de digitación."}</li>
-                <li className={actual.sinMensaje || actual.estado !== "con" ? "is-aviso" : "is-ok"}>{actual.sinMensaje || actual.estado !== "con" ? "Falta un mensaje que diga qué escribir." : "Tiene mensaje para quien se equivoca."}</li>
+                {actual.rota ? (
+                  <li className="is-aviso">Reemplaza la regla por una real o quítala.</li>
+                ) : (
+                  <>
+                    <li className={actual.estado === "con" ? "is-ok" : "is-aviso"}>{actual.estado === "con" ? "Tiene una regla de qué acepta." : "Un número sin límites acepta errores de digitación."}</li>
+                    <li className={actual.sinMensaje || actual.estado !== "con" ? "is-aviso" : "is-ok"}>{actual.sinMensaje || actual.estado !== "con" ? "Falta un mensaje que diga qué escribir." : "Tiene mensaje para quien se equivoca."}</li>
+                  </>
+                )}
               </ul>
             </PanelCard>
           </div>

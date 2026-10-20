@@ -18,7 +18,8 @@ describe("Cálculos con el ACNUR", () => {
     expect(html).toContain("en su etiqueta");
     // M2: sufijo corto; qué opción, en el tooltip y sin `${x}` crudo.
     expect(html).toContain(">en una opción<");
-    expect(html).toContain("En la opción «Nunca se ha mudado de casa mientras estaba en «countryname»»");
+    expect(html).toContain(": Nunca se ha mudado de casa mientras estaba en countryname");
+    expect(html).not.toContain("${countryname}");
     expect(html).not.toContain("estaba en ${countryname}");
     expect(html).toContain("El texto de la opción elegida en");
   });
@@ -32,7 +33,7 @@ describe("S13: la tarjeta Fórmula lee la fórmula y el contador no deja cálcul
     const html = pintar("countryname");
     expect(html).toContain("El texto de la opción elegida en");
     expect(html).toContain("Editar la fórmula");
-    expect(html).toContain("Se calcula en el teléfono: toma el texto de la opción elegida");
+    expect(html).toContain("Se calcula en el teléfono: lee el texto de la opción elegida");
     expect(html).not.toContain("usa funciones que el editor no evalúa");
   });
 });

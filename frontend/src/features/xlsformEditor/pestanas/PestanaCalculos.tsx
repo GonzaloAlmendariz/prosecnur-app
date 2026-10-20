@@ -1,17 +1,18 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Pencil, Plus } from "../../../vendor/lucide-react";
 import { enriquecerAlcance, type LogicScope } from "../logic";
 import { DONDE_SE_USA, indiceDeUsos } from "../logic/usos";
-import { PiezasLectura, TituloLegible, tituloPlano } from "../kit/CuerpoPanelMarca";
 import { leerRegla } from "../reglas/leerRegla";
 import { EditorFormula } from "./EditorFormula";
 import { stripMarkdown } from "../helpers/markdown";
 import type { BuilderStructure } from "../types";
-import { describeExpression } from "../canvas/reglasHumanas";
 import { PanelCard, QuestionToken, ReadsAs, TypeIcon } from "../kit";
 import { EditarEnConstructor } from "../shell/EditarEnConstructor";
 import { PestanaReglas, type ReglaListaGrupo } from "./PestanaReglas";
-import { calculosDelFormulario } from "./reglasModel";
+import { calculosDelFormulario, referenciasDe } from "./reglasModel";
+import { EtiquetaLegible, LecturaPiezas } from "./LecturaPiezas";
+import { etiquetaPlana, textoLegible } from "./variablesLegibles";
+import { fragmentoDe, insertarEnCursor, type Funcion } from "./catalogoModelo";
 import { ProbarCalculo } from "./ProbarCalculo";
 import { CatalogoFunciones } from "./CatalogoFunciones";
 import { CalculationRecipePanel } from "../canvas/constructor/CalculoRepeticionPaneles";
@@ -48,11 +49,12 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
   // Título: la etiqueta o, sin ella, el código UNA vez; debajo, qué hace la fórmula leída por el motor (S13: antes el
   // título repetía el código y el resumen era el mismo código otra vez).
   const grupos: ReglaListaGrupo[] = useMemo(() => {
+    const etq = (name: string) => structure?.outline.find((n) => n.name === name)?.label ?? "";
     const item = (i: (typeof items)[number]) => {
-      const leida = i.vacio ? null : describeExpression(i.node.calculation, scope);
+      const leida = i.vacio ? null : leerRegla("calculation", i.node.calculation, i.node, scope);
       return {
-        key: i.node.name, baseType: i.enPregunta ? i.node.typeInfo.base : "calculate", numero: "", titulo: i.node.label || i.node.name,
-        resumen: i.vacio ? "Sin fórmula: quedará vacío" : leida && !leida.technical ? leida.summary : "Fórmula que el editor no traduce",
+        key: i.node.name, baseType: i.enPregunta ? i.node.typeInfo.base : "calculate", numero: "", titulo: i.node.label ? etiquetaPlana(i.node.label, etq) : i.node.name,
+        resumen: i.vacio ? "Sin fórmula: quedará vacío" : leida && !leida.tecnica ? textoLegible(leida.piezas, etq) : "Fórmula que el editor no traduce",
         aviso: i.vacio,
       };
     };
@@ -61,13 +63,39 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
       { titulo: "Sólo para la base", items: items.filter((i) => !i.enPregunta && i.loUsan.length === 0).map(item) },
       { titulo: "Preguntas con fórmula", items: items.filter((i) => i.enPregunta).map(item) },
     ];
-  }, [items, scope]);
+  }, [items, scope, structure]);
   const lectura = useMemo(() => (actual && !actual.vacio ? leerRegla("calculation", actual.node.calculation, actual.node, scope) : null), [actual, scope]);
   const enPreguntas = items.filter((i) => i.enPregunta).length;
   const [editando, setEditando] = useState(false);
   const clave = actual?.node.rowIndex ?? -1;
   const [claveEditor, setClaveEditor] = useState(clave);
-  if (claveEditor !== clave) { setClaveEditor(clave); setEditando(false); }
+  // El borrador de la fórmula vive aquí: lo evalúa «Probar con respuestas» y el catálogo inserta en él.
+  const [borrador, setBorrador] = useState<{ fila: number; texto: string } | null>(null);
+  if (claveEditor !== clave) { setClaveEditor(clave); setEditando(false); setBorrador(null); }
+  const guardada = actual?.node.calculation ?? "";
+  const editorAbierto = Boolean(actual) && (editando || Boolean(actual?.vacio));
+  const texto = borrador && borrador.fila === clave ? borrador.texto : guardada;
+  const formulaPrueba = editorAbierto ? texto : guardada;
+  const usaPrueba = useMemo(() => referenciasDe(formulaPrueba).filter((v) => v !== actual?.node.name), [formulaPrueba, actual?.node.name]);
+  const campoRef = useRef<HTMLTextAreaElement | null>(null);
+  const cursorPendiente = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const c = cursorPendiente.current;
+    if (c === null || !campoRef.current) return;
+    cursorPendiente.current = null;
+    campoRef.current.focus();
+    campoRef.current.setSelectionRange(c, c);
+  });
+  const insertar = (f: Funcion) => {
+    if (!actual) return;
+    const campo = campoRef.current;
+    const ini = campo ? campo.selectionStart : texto.length;
+    const fin = campo ? campo.selectionEnd : texto.length;
+    const r = insertarEnCursor(texto, ini, fin, fragmentoDe(f));
+    setEditando(true);
+    setBorrador({ fila: clave, texto: r.texto });
+    cursorPendiente.current = r.cursor;
+  };
   const focoPerdido = seleccionada && actual && actual.node.name !== seleccionada
     ? <>No hay un cálculo llamado <code>{seleccionada}</code>: se muestra el primero de la lista.</>
     : null;
@@ -83,8 +111,8 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
       onSeleccionar={onSeleccionar}
       vacio={<>Este formulario todavía no tiene cálculos.{onNuevo ? <NuevoCalculo onNuevo={onNuevo} /> : null}</>}
       vacioDetalle={<CalculosVacio />}
-      lateral={<CatalogoFunciones scope={scope} />}
-      pie={<>{onNuevo ? <NuevoCalculo onNuevo={onNuevo} /> : null}<span>Un cálculo no se pregunta: se obtiene de otras respuestas y queda como columna en la base.</span></>}
+      lateral={<CatalogoFunciones scope={scope} onInsertar={actual ? insertar : undefined} />}
+      pie={onNuevo ? <NuevoCalculo onNuevo={onNuevo} /> : undefined}
     >
       {actual ? (
         <>
@@ -93,7 +121,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
               <TypeIcon baseType={actual.enPregunta ? actual.node.typeInfo.base : "calculate"} boxed /> {actual.enPregunta ? "Pregunta con fórmula" : "Cálculo"}
               {actual.node.label ? <> · <code className="xfp-codigo">{actual.node.name}</code></> : null}
             </span>
-            <h2 className="xfp-encabezado__titulo"><TituloLegible texto={actual.node.label || actual.node.name} /></h2>
+            <h2 className="xfp-encabezado__titulo">{actual.node.label ? <EtiquetaLegible texto={actual.node.label} etiquetaDe={etiquetaDe} /> : <code className="xfp-var is-codigo">{actual.node.name}</code>}</h2>
             <span className="xfp-encabezado__accion"><EditarEnConstructor onEditar={() => onEditar(actual.node.rowIndex)} que={`el cálculo ${actual.node.name}`} /></span>
           </div>
           <PanelCard
@@ -111,10 +139,10 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
                   ? "Sin fórmula: la columna quedará vacía en la base."
                   : lectura?.tecnica
                     ? "El motor todavía no traduce esta fórmula: se calcula tal como está escrita."
-                    : <PiezasLectura piezas={lectura?.piezas ?? []} />}
+                    : <LecturaPiezas piezas={lectura?.piezas ?? []} etiquetaDe={etiquetaDe} />}
               </p>
               {actual.enPregunta ? <p className="xfp-nota">La respuesta de esta pregunta sale de la fórmula: quien encuesta no la escribe.</p> : null}
-              {!actual.vacio ? (
+              {!actual.vacio && !editorAbierto ? (
                 <details className="xfp-codigo-xls" open={Boolean(lectura?.tecnica)}>
                   <summary>Expresión en XLSForm</summary>
                   <code>{actual.node.calculation.trim()}</code>
@@ -128,22 +156,25 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
                 onFieldChange={(field, value) => onCampo(actual.node.rowIndex, field, value)}
               />
             ) : null}
-            {editando || actual.vacio ? (
+            {editorAbierto ? (
               <EditorFormula
                 key={actual.node.rowIndex}
-                valor={actual.node.calculation}
-                onGuardar={(v) => { onCampo(actual.node.rowIndex, "calculation", v); setEditando(false); }}
+                valor={guardada}
+                texto={texto}
+                campoRef={campoRef}
+                onTexto={(t) => setBorrador({ fila: clave, texto: t })}
+                onGuardar={(v) => { onCampo(actual.node.rowIndex, "calculation", v); setBorrador(null); setEditando(false); }}
               />
             ) : null}
           </PanelCard>
-          <ProbarCalculo node={actual.node} usa={actual.usa} structure={structure} opcionesDe={opcionesDe} />
+          <ProbarCalculo key={actual.node.rowIndex} node={actual.node} formula={formulaPrueba} usa={usaPrueba} structure={structure} opcionesDe={opcionesDe} />
           <div className="xfp-fila2" data-qa-geometry-group="xlsform/calculos-fila" data-qa-geometry-contract="equal">
             <PanelCard title="Usa" meta={actual.usa.length ? `${actual.usa.length}` : undefined} fill>
               {actual.usa.length ? (
                 <div className="xfp-toks">
                   {actual.usa.map((v) => {
                     const n = porNombre(v);
-                    return <QuestionToken key={v} baseType={n?.typeInfo.base ?? ""} label={n ? numero(n) : v} hint={n?.label ? tituloPlano(n.label, etiquetaDe) : undefined} variable={v} />;
+                    return <QuestionToken key={v} baseType={n?.typeInfo.base ?? ""} label={n ? numero(n) : v} hint={n?.label ? etiquetaPlana(n.label, etiquetaDe) : undefined} variable={v} />;
                   })}
                 </div>
               ) : <p className="xfp-nota">No lee ninguna respuesta.</p>}
@@ -153,9 +184,9 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
                 <ul className="xfp-usos">
                   {actual.loUsan.map((u) => (
                     <li key={`${u.node.rowIndex}-${u.columna}-${u.opcion?.valor ?? ""}`}>
-                      <QuestionToken baseType={u.node.typeInfo.base} label={numero(u.node)} hint={tituloPlano(u.node.label, etiquetaDe)} variable={u.node.name} />
+                      <QuestionToken baseType={u.node.typeInfo.base} label={numero(u.node)} hint={etiquetaPlana(u.node.label, etiquetaDe)} variable={u.node.name} />
                       {/* M2: el sufijo es corto para no comerse el título; qué opción, en el tooltip y sin `${x}` crudo. */}
-                      <span className="xfp-usos__col" title={u.opcion ? `En la opción «${tituloPlano(u.opcion.etiqueta, etiquetaDe)}» de la lista ${u.opcion.lista}` : undefined}>
+                      <span className="xfp-usos__col" title={u.opcion ? `Opción de la lista ${u.opcion.lista}: ${etiquetaPlana(u.opcion.etiqueta, etiquetaDe)}` : undefined}>
                         {DONDE_SE_USA[u.columna]}
                       </span>
                     </li>

@@ -1,6 +1,8 @@
 // Mensaje para quien no cumple la regla (constraint_message): el campo y, debajo, sugerencias en una línea.
 
+import { useEffect, useReducer } from "react";
 import type { BuilderNode } from "../../types";
+import { borradorCampo } from "../ficha/modeloFicha";
 import { InspectorField } from "../../inspector/InspectorPrimitives";
 import { type HumanizedExpression } from "../reglasHumanas";
 
@@ -16,6 +18,10 @@ export function ConstraintMessageField({
   onFieldChange: (field: string, value: string) => void;
 }) {
   const hasConstraint = node.constraint.trim().length > 0;
+  // Mientras el campo tiene el foco manda lo tecleado: la fila guarda el texto recortado y pintarlo se comía cada
+  // espacio («Escribelahora»). Se recorta al salir del campo.
+  const [borrador, enviar] = useReducer(borradorCampo, { texto: value, enFoco: false });
+  useEffect(() => enviar({ tipo: "valor", valor: value }), [value]);
   const actual = value.trim();
   const sugerencias = hasConstraint ? constraintMessagePresetsFor(node, validation).filter((p) => p.message !== actual) : [];
 
@@ -26,15 +32,25 @@ export function ConstraintMessageField({
           <input
             id={campo.id}
             type="text"
-            value={value}
-            onChange={(event) => onFieldChange("constraint_message", event.target.value)}
-            placeholder="Ej. Ingresa un correo electrónico válido."
+            value={borrador.texto}
+            onFocus={() => enviar({ tipo: "foco" })}
+            onBlur={() => {
+              const limpio = borrador.texto.trim();
+              enviar({ tipo: "tecleo", texto: limpio });
+              enviar({ tipo: "desenfoque" });
+              if (limpio !== value) onFieldChange("constraint_message", limpio);
+            }}
+            onChange={(event) => {
+              enviar({ tipo: "tecleo", texto: event.target.value });
+              onFieldChange("constraint_message", event.target.value);
+            }}
+            placeholder="Qué debe escribir quien responde"
           />
           {sugerencias.length > 0 && (
             <ul className="pulso-focus-message-sugerencias" aria-label="Mensajes sugeridos">
               {sugerencias.map((preset) => (
                 <li key={preset.id}>
-                  <button type="button" title={preset.message} onClick={() => onFieldChange("constraint_message", preset.message)}>
+                  <button type="button" title={preset.message} onClick={() => { enviar({ tipo: "tecleo", texto: preset.message }); onFieldChange("constraint_message", preset.message); }}>
                     {preset.message}
                   </button>
                 </li>

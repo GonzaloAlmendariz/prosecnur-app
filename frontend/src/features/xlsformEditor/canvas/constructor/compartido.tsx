@@ -77,7 +77,8 @@ export function fieldMessageLooksTechnical(value: string): boolean {
   );
 }
 export function variableDisplayLabel(variable: LogicScope["variables"][number]): string {
-  return stripMarkdown(variable.label || variable.name) || variable.name;
+  // Una opción de <select> no lleva marcado: `${x}` dentro de la etiqueta se lee como su código, sin llaves.
+  return stripMarkdown(variable.label || variable.name).replace(/\$\{\s*([^}\s]+)\s*\}/g, "$1").trim() || variable.name;
 }
 export function FocusFact({
   label,

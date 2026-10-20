@@ -38,6 +38,10 @@ describe("restriccionesDelFormulario", () => {
     expect(r[1].sinMensaje).toBe(true);
     expect(r[0].sinMensaje).toBe(false);
   });
+  test("«Depende de» no lista a la propia pregunta (age_est escrita como ${age_est})", () => {
+    const r = restriccionesDelFormulario(estructura([nodo(1, "age_est", "integer", { constraint: `${D}{age_est} >= 0 and ${D}{age_est} <= 110` })]));
+    expect(r[0]!.usa).toEqual([]);
+  });
   test("sin estructura no hay nada", () => {
     expect(restriccionesDelFormulario(null)).toEqual([]);
   });

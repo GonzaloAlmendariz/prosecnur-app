@@ -5,17 +5,19 @@ import { dependeDelMomento, motivosEnTelefono, textoEnTelefono, valorLegible } f
 
 describe("cálculos que se resuelven en el teléfono", () => {
   it("dice el porqué de choice-name, join y sum", () => {
-    expect(textoEnTelefono("jr:choice-name(${HH03}, '${HH03}')")).toBe("Se calcula en el teléfono: toma el texto de la opción elegida, que el teléfono lee de la lista.");
-    expect(textoEnTelefono("join(' ', ${HH01})")).toContain("une las respuestas de todas las filas de una repetición");
+    expect(textoEnTelefono("jr:choice-name(${HH03}, '${HH03}')")).toBe("Se calcula en el teléfono: lee el texto de la opción elegida.");
+    expect(textoEnTelefono("join(' ', ${HH01})")).toContain("une las filas de una repetición");
     expect(motivosEnTelefono("sum(${ingreso}) + count(${miembros})")).toEqual([
-      "suma una pregunta en todas las filas de una repetición",
+      "suma las filas de una repetición",
       "cuenta las filas de una repetición",
     ]);
-    expect(textoEnTelefono("sum(${a}) + count(${b})")).toContain(" y cuenta las filas");
+    // Una sola línea con el motivo principal: indexed-repeat no suma «y depende de la fila…».
+    expect(textoEnTelefono("sum(${a}) + count(${b})")).toBe("Se calcula en el teléfono: suma las filas de una repetición.");
+    expect(textoEnTelefono("indexed-repeat(${HH01_2_aux}, ${rpt}, position(..))")).toBe("Se calcula en el teléfono: lee una fila de una repetición.");
   });
   it("no confunde selected-at ni count-selected con count", () => {
     expect(motivosEnTelefono("count-selected(${a})")).toEqual([]);
-    expect(motivosEnTelefono("selected-at(${a}, 0)")).toEqual(["toma una de las opciones marcadas por su posición"]);
+    expect(motivosEnTelefono("selected-at(${a}, 0)")).toEqual(["toma una opción marcada por su posición"]);
   });
   it("una fórmula común no se manda al teléfono", () => {
     expect(motivosEnTelefono("${a} + ${b}")).toEqual([]);
