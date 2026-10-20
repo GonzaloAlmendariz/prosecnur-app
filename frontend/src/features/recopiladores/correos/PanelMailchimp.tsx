@@ -1,20 +1,21 @@
 import { useState } from "react";
 
 import { downloadUrl } from "../../../api/core";
-import type { MailExportPayload, MailReview, MailTemplate } from "../../../api/materialMail";
+import type { MailExportPayload, MailExportScope, MailReview, MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Check, Copy, Download, FolderOpen, Loader2, Upload } from "../../../vendor/lucide-react";
-import { etiquetasDeMailchimp, pesoLegible } from "./modeloCorreo";
+import { etiquetasDeMailchimp, pesoLegible, revisionBloquea } from "./modeloCorreo";
 
 type Props = {
   template: MailTemplate;
   revision: MailReview | null;
   exportacion: MailExportPayload | null;
-  exportando: boolean;
+  /** Qué salida se está armando, o `null`. */
+  exportando: MailExportScope | null;
   ocupado: boolean;
   /** HTML de la vista previa actual, para copiarlo a Outlook. */
   htmlActual: string | null;
-  onExportar: () => void;
+  onExportar: (scope: MailExportScope) => void;
   onGuardarJunto: () => void;
   onVerRevision: () => void;
 };
@@ -40,8 +41,9 @@ async function copiarHtml(html: string): Promise<void> {
  * Pie del inspector: qué etiqueta lleva cada campo y la salida para Mailchimp.
  *
  * El envío masivo se hace en Mailchimp, no desde la app (ADR 0110 §2): aquí no
- * hay botón de enviar. La salida es un ZIP con la plantilla, la audiencia y las
- * imágenes; «Copiar para Outlook» queda como salida secundaria.
+ * hay botón de enviar. Hay dos salidas (E1g): la plantilla sola, un ZIP que se
+ * importa en Mailchimp sin datos personales, y la plantilla con la audiencia
+ * en CSV. «Copiar para Outlook» queda como salida secundaria.
  */
 export function PanelMailchimp({
   template,
@@ -56,7 +58,8 @@ export function PanelMailchimp({
 }: Props) {
   const [copia, setCopia] = useState<"" | "ok" | "error">("");
   const etiquetas = etiquetasDeMailchimp(template);
-  const bloqueado = revision ? !revision.ready : false;
+  const bloqueaPlantilla = revisionBloquea(revision, "plantilla");
+  const bloqueaCompleto = revisionBloquea(revision, "completo");
   const zip = exportacion?.zip ?? null;
 
   const copiar = async () => {
@@ -86,26 +89,36 @@ export function PanelMailchimp({
         ))}
       </dl>
       <p className="rec-mail-ayuda">
-        Sale un ZIP con la plantilla HTML con sus etiquetas, la audiencia en CSV con una columna por etiqueta y las
-        imágenes para Content Studio: Mailchimp personaliza cada envío.
+        En Mailchimp: Plantillas › Crear › Code your own › Import zip; las imágenes se suben solas. La audiencia va
+        aparte, en CSV con una columna por etiqueta.
       </p>
       <span className="rec-mail-botones">
         <PulsoButton
           variant="primary"
           size="sm"
-          disabled={ocupado || bloqueado}
-          title={bloqueado ? "La revisión tiene puntos por corregir" : undefined}
-          onClick={onExportar}
+          disabled={ocupado || bloqueaPlantilla}
+          title={bloqueaPlantilla ? "La revisión tiene puntos por corregir" : "Sin datos personales"}
+          onClick={() => onExportar("plantilla")}
         >
-          {exportando ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Upload size={14} aria-hidden />}
-          Exportar para Mailchimp
+          {exportando === "plantilla" ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Upload size={14} aria-hidden />}
+          Plantilla para importar en Mailchimp
+        </PulsoButton>
+        <PulsoButton
+          variant="secondary"
+          size="sm"
+          disabled={ocupado || bloqueaCompleto}
+          title={bloqueaCompleto ? "La revisión tiene puntos por corregir" : "Incluye la audiencia: contiene datos personales"}
+          onClick={() => onExportar("completo")}
+        >
+          {exportando === "completo" ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Upload size={14} aria-hidden />}
+          Plantilla + audiencia
         </PulsoButton>
         <PulsoButton variant="ghost" size="sm" disabled={!htmlActual} onClick={() => { void copiar(); }}>
           {copia === "ok" ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
           {copia === "ok" ? "Copiado" : "Copiar para Outlook"}
         </PulsoButton>
       </span>
-      {bloqueado ? (
+      {bloqueaCompleto ? (
         <button type="button" className="rec-mail-link" onClick={onVerRevision}>
           Ver qué falta corregir ({revision?.errors ?? 0})
         </button>
@@ -115,7 +128,10 @@ export function PanelMailchimp({
         <div className="rec-mail-mc-listo" role="status">
           <span className="rec-mail-mc-listo-nombre">
             <b className="xfk-mono">{zip.filename}</b>
-            <span>{pesoLegible(zip.size_bytes)} · contiene datos personales</span>
+            <span>
+              {pesoLegible(zip.size_bytes)}
+              {exportacion?.scope === "plantilla" ? " · sin datos personales" : " · contiene datos personales"}
+            </span>
           </span>
           <span className="rec-mail-botones">
             <a className="pulso-button pulso-button--secondary pulso-button--sm" href={downloadUrl(zip.file_id)} download={zip.filename}>

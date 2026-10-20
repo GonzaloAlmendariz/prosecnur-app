@@ -47,6 +47,7 @@ export type TextoDelResembrado = {
 const ROTULO_CONSERVADO: Readonly<Record<string, string>> = {
   material_template: "Plantilla de la ficha",
   mail_template: "Plantilla del correo",
+  mail_campaigns: "Campañas de correo",
   pruebas: "Fichas de prueba",
   drive_fichas: "Carpeta de Drive",
 };

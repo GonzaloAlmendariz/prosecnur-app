@@ -185,3 +185,38 @@ describe("store del editor de correos", () => {
     expect(hayQueGuardar(st())).toBe(false);
   });
 });
+
+describe("campañas en el store (E1h)", () => {
+  test("la revisión que devuelve cada escritura no baja con una lectura tardía", () => {
+    st().campanasLista([], 10);
+    st().anotarRevision(12);
+    st().cargaLista({ presets: [], plantilla: { state_revision: 11, builtin: false, template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
+    expect(st().stateRevision).toBe(12);
+    st().guardado({ noop: false, state_revision: 13, template: plantilla({ revision: 2 }) });
+    expect(st().stateRevision).toBe(13);
+  });
+
+  test("cambiar de campaña olvida la anterior y conserva lista, presets y revisión", () => {
+    const campanas = [
+      { campaign_id: "a", name: "A", actor: "", preset_id: null, subject: "", blocks: 2, template_revision: 1, template_sha256: null, updated_at: null, recipients_loaded: true },
+    ];
+    st().campanasLista(campanas, 20);
+    st().reiniciarCampana("a");
+    st().cargaLista({ presets: [], plantilla: { state_revision: 20, builtin: false, template: plantilla(), stored_problems: [] }, destinatarios: destinatarios(4) });
+    st().editar((t) => ({ ...t, subject: "Sin guardar" }));
+    st().seleccionar("p");
+    st().setVista("telefono");
+    st().setAvisoCampanas({ tono: "ok", texto: "Campaña creada." });
+
+    st().reiniciarCampana("b");
+    expect(st().campana).toBe("b");
+    expect(st().borrador).toBeNull();
+    expect(st().destinatarios).toBeNull();
+    expect(st().seleccion).toBe(SOBRE);
+    expect(st().carga).toBe("inicial");
+    expect(st().campanas).toEqual(campanas);
+    expect(st().stateRevision).toBe(20);
+    expect(st().vista).toBe("telefono");
+    expect(st().avisoCampanas?.texto).toBe("Campaña creada.");
+  });
+});

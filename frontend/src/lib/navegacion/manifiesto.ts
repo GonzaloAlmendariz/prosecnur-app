@@ -209,7 +209,8 @@ export const PANELES_POR_MODULO: Readonly<
     PANEL_LOGICA_SURVEYMONKEY,
   ],
   procesamiento: [...PANELES_GRAFICOS, ...PANELES_CARGA, ...PANELES_ANALITICA],
-  // Catálogo › Correos: el inspector del correo (ADR 0110 §2).
+  // Catálogo › Correos: el inspector del correo (ADR 0110 §2) y las campañas
+  // (E1h): `?panel=correo-campanas` y `?panel=correo-campana-borrar&foco=<campaña>`.
   // Unidades: `?seccion=unidades&panel=rehacer-plan` confirma rehacer el plan (H26).
   // Catálogo › Editor: el inspector del bloque, siempre abierto; lo elige `foco` (E1b).
   "material-campo": [...PANELES_CORREOS, PANEL_REHACER_PLAN, PANEL_EDITOR_BLOQUE],

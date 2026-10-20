@@ -281,7 +281,7 @@ export function RecopiladoresShell() {
         />
       ) : null}
       {!loading && direction.seccion === "catalogo" && direction.pestana === "correos" ? (
-        <CorreosEditor onCargando={setSeccionCargando} />
+        <CorreosEditor onCargando={setSeccionCargando} onStateRefresh={refreshSilent} />
       ) : null}
       {!loading && direction.seccion === "catalogo" && direction.pestana === "editor" ? (
         <EditorDeMaterial

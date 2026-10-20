@@ -1,0 +1,787 @@
+/* Campañas de correo (E1h): selector en la barra, diálogo de campañas,
+ * borrado en dos pasos y el vacío de cero campañas. Sólo tokens `--pulso-*`;
+ * los diálogos y el menú van en portal y toman el tono del módulo por
+ * `TonoDePortales` (`--module-accent*`).
+ *
+ * Contrato de Superficie:
+ * - C1: `material-campo/catalogo/correos-campanas` (equal) en las filas del
+ *   diálogo y en las opciones del vacío.
+ * - C2: el diálogo tiene ancho fijo por viewport y alto tope de la ventana:
+ *   una campaña o veinte no mueven el marco.
+ * - C3: el vacío de cero campañas vive en su propia caja (`EstadoVacio`).
+ * - C4: un único dueño de scroll por diálogo (`.rec-camp-dialogo-cuerpo`);
+ *   cabecera y «Nueva campaña» quedan a la vista en 1024x600.
+ */
+
+/* ---- Selector en la barra ------------------------------------------------ */
+
+.rec-camp-selector {
+  align-items: baseline;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius);
+  color: var(--pulso-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: var(--pulso-space-1);
+  align-self: flex-start;
+  justify-content: flex-start;
+  margin: -3px 0 0 -6px;
+  max-width: calc(100% + 6px);
+  min-width: 0;
+  padding: 2px 6px;
+  text-align: left;
+}
+
+.rec-camp-selector:hover,
+.rec-camp-selector[data-state="open"] {
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-border);
+}
+
+.rec-camp-selector:focus-visible {
+  outline: 2px solid var(--pulso-module-fieldkit);
+  outline-offset: 1px;
+}
+
+.rec-camp-selector-rotulo {
+  color: var(--pulso-text-muted);
+  flex: none;
+  font-size: 12.5px;
+}
+
+.rec-camp-selector-nombre {
+  font-size: 14.5px;
+  font-weight: var(--pulso-weight-semibold);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-camp-selector-actor {
+  color: var(--pulso-text-soft);
+  flex: none;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.rec-camp-selector-flecha {
+  align-self: center;
+  color: var(--pulso-text-muted);
+  flex: none;
+}
+
+/* ---- Menú del selector (portal) ----------------------------------------- */
+
+.rec-camp-menu {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-panel);
+  box-shadow: var(--pulso-shadow-popover);
+  color: var(--pulso-text);
+  display: flex;
+  flex-direction: column;
+  max-height: min(440px, calc(100vh - var(--pulso-space-8)));
+  min-height: 0;
+  width: min(380px, calc(100vw - var(--pulso-space-6)));
+  z-index: var(--pulso-z-flyout);
+}
+
+.rec-camp-menu-lista {
+  flex: 1 1 auto;
+  list-style: none;
+  margin: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--pulso-space-1);
+}
+
+.rec-camp-menu-item {
+  white-space: normal;
+  justify-content: flex-start;
+  align-items: flex-start;
+  background: transparent;
+  border: 0;
+  border-radius: var(--pulso-radius);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2);
+  text-align: left;
+  width: 100%;
+}
+
+.rec-camp-menu-item:hover,
+.rec-camp-menu-item:focus-visible {
+  background: var(--pulso-surface-2);
+  outline: none;
+}
+
+.rec-camp-menu-item.is-active {
+  background: var(--module-accent-soft, var(--pulso-module-fieldkit-soft));
+}
+
+.rec-camp-menu-marca {
+  color: var(--module-accent, var(--pulso-module-fieldkit));
+  display: grid;
+  flex: none;
+  height: 18px;
+  place-items: center;
+  width: 16px;
+}
+
+.rec-camp-menu-textos {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rec-camp-menu-textos b {
+  overflow-wrap: anywhere;
+  font-size: 13.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-camp-menu-textos > span {
+  color: var(--pulso-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 2px var(--pulso-space-2);
+  min-width: 0;
+}
+
+.rec-camp-menu-actor {
+  align-items: center;
+  display: inline-flex;
+  gap: 3px;
+}
+
+.rec-camp-menu-asunto {
+  flex: 1 1 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-camp-menu-pie {
+  border-top: 1px solid var(--pulso-border);
+  flex: none;
+  padding: var(--pulso-space-1);
+}
+
+.rec-camp-menu-gestionar {
+  justify-content: flex-start;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--pulso-radius);
+  color: var(--module-accent, var(--pulso-module-fieldkit));
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-medium);
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2);
+  width: 100%;
+}
+
+.rec-camp-menu-gestionar:hover,
+.rec-camp-menu-gestionar:focus-visible {
+  background: var(--pulso-surface-2);
+  outline: none;
+}
+
+.rec-camp-menu-confirmar {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  gap: var(--pulso-space-3);
+  line-height: 1.45;
+  padding: var(--pulso-space-4);
+}
+
+.rec-camp-menu-confirmar p {
+  margin: 0;
+}
+
+.rec-camp-menu-confirmar-acciones {
+  display: flex;
+  gap: var(--pulso-space-2);
+  justify-content: flex-end;
+}
+
+/* ---- Diálogos (portal) --------------------------------------------------- */
+
+.rec-camp-velo {
+  background: color-mix(in srgb, var(--pulso-text) 30%, transparent);
+  inset: 0;
+  position: fixed;
+  z-index: var(--pulso-z-modal);
+}
+
+.rec-camp-dialogo {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-panel);
+  box-shadow: var(--pulso-shadow-high);
+  color: var(--pulso-text);
+  display: flex;
+  flex-direction: column;
+  left: 50%;
+  max-height: calc(100vh - var(--pulso-space-6));
+  min-height: 0;
+  position: fixed;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(760px, calc(100vw - var(--pulso-space-6)));
+  z-index: var(--pulso-z-modal);
+}
+
+.rec-camp-dialogo--borrar {
+  width: min(500px, calc(100vw - var(--pulso-space-6)));
+}
+
+.rec-camp-dialogo:focus {
+  outline: none;
+}
+
+.rec-camp-dialogo-cabeza {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--pulso-border);
+  display: flex;
+  flex: none;
+  gap: var(--pulso-space-3);
+  justify-content: space-between;
+  padding: var(--pulso-space-5) var(--pulso-space-5) var(--pulso-space-4) var(--pulso-space-6);
+}
+
+.rec-camp-dialogo-titulo {
+  font-size: 17px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.3;
+  margin: 0;
+}
+
+.rec-camp-dialogo-desc {
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: var(--pulso-space-1) 0 0;
+}
+
+.rec-camp-dialogo-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  font-size: 13px;
+  gap: var(--pulso-space-3);
+  line-height: 1.45;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--pulso-space-4) var(--pulso-space-6);
+}
+
+/* Filas: C2 equal, cada campaña mide lo mismo aunque no tenga actor. */
+.rec-camp-filas {
+  display: grid;
+  gap: var(--pulso-space-2);
+  grid-auto-rows: minmax(64px, auto);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-camp-fila {
+  align-items: center;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  display: flex;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-3) var(--pulso-space-3) var(--pulso-space-4);
+}
+
+.rec-camp-fila.is-active {
+  border-color: var(--module-accent-border, var(--pulso-module-fieldkit-border));
+  box-shadow: inset 3px 0 0 var(--module-accent, var(--pulso-module-fieldkit));
+}
+
+.rec-camp-fila-textos {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.rec-camp-fila-nombre {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
+
+.rec-camp-fila-nombre b {
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-camp-fila-meta {
+  color: var(--pulso-text-soft);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 2px var(--pulso-space-3);
+  min-width: 0;
+}
+
+.rec-camp-fila-meta > span {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rec-camp-fila-meta .is-suave {
+  color: var(--pulso-text-faint);
+}
+
+.rec-camp-fila-meta > .rec-camp-fila-asunto {
+  display: block;
+  max-width: 42ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-camp-fila-acciones {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: var(--pulso-space-1);
+}
+
+.rec-camp-borrar:not(:disabled):hover {
+  color: var(--pulso-danger-fg);
+}
+
+.rec-camp-fila-confirmar {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  justify-content: space-between;
+}
+
+.rec-camp-chip {
+  background: var(--pulso-success-bg);
+  border: 1px solid var(--pulso-success-border);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-success-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.5;
+  padding: 0 7px;
+}
+
+.rec-camp-sin-filas {
+  color: var(--pulso-text-soft);
+  margin: 0;
+}
+
+/* ---- Campos de texto ----------------------------------------------------- */
+
+.rec-camp-renombrar {
+  align-items: flex-end;
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.rec-camp-campo {
+  display: flex;
+  flex: 1 1 180px;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.rec-camp-campo > span {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+}
+
+.rec-camp-campo input {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13.5px;
+  min-height: 34px;
+  padding: 0 var(--pulso-space-3);
+}
+
+.rec-camp-campo input:focus-visible {
+  border-color: var(--module-accent, var(--pulso-module-fieldkit));
+  box-shadow: 0 0 0 3px var(--module-accent-soft, var(--pulso-module-fieldkit-soft));
+  outline: none;
+}
+
+.rec-camp-campo input[aria-invalid="true"] {
+  border-color: var(--pulso-danger-border);
+}
+
+/* ---- Nueva campaña ------------------------------------------------------- */
+
+.rec-camp-nueva {
+  background: var(--pulso-surface-2);
+  border-bottom-left-radius: var(--pulso-radius-panel);
+  border-bottom-right-radius: var(--pulso-radius-panel);
+  border-top: 1px solid var(--pulso-border);
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4) var(--pulso-space-6) var(--pulso-space-5);
+}
+
+.rec-camp-nueva-titulo {
+  font-size: 13.5px;
+  font-weight: var(--pulso-weight-semibold);
+  margin: 0;
+}
+
+.rec-camp-nueva-campos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-3);
+}
+
+.rec-camp-origen {
+  border: 0;
+  display: grid;
+  gap: var(--pulso-space-2);
+  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.rec-camp-origen legend {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  margin-bottom: 3px;
+  padding: 0;
+}
+
+.rec-camp-origen-op {
+  align-items: flex-start;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  cursor: pointer;
+  display: flex;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.rec-camp-origen-op input {
+  accent-color: var(--module-accent, var(--pulso-module-fieldkit));
+  margin: 3px 0 0;
+}
+
+.rec-camp-origen-op.is-on {
+  border-color: var(--module-accent, var(--pulso-module-fieldkit));
+  box-shadow: 0 0 0 1px var(--module-accent-border, var(--pulso-module-fieldkit-border));
+}
+
+.rec-camp-origen-op > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rec-camp-origen-op b {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-camp-origen-op small {
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+}
+
+.rec-camp-nueva-acciones {
+  align-items: center;
+  display: flex;
+  gap: var(--pulso-space-3);
+  justify-content: flex-end;
+}
+
+.rec-camp-nueva-problema {
+  color: var(--pulso-danger-fg);
+  font-size: 12.5px;
+  margin-right: auto;
+}
+
+.rec-camp-nueva-nota {
+  color: var(--pulso-warn-fg);
+  font-size: 12.5px;
+  margin-right: auto;
+}
+
+/* ---- Mensajes ------------------------------------------------------------ */
+
+.rec-camp-mensaje {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  font-size: 13px;
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.rec-camp-mensaje.is-error {
+  background: var(--pulso-danger-bg);
+  border-color: var(--pulso-danger-border);
+  color: var(--pulso-danger-fg);
+}
+
+.rec-camp-mensaje.is-ok {
+  background: var(--pulso-success-bg);
+  border-color: var(--pulso-success-border);
+  color: var(--pulso-success-fg);
+}
+
+.rec-camp-mensaje.is-info {
+  background: var(--pulso-info-bg);
+  border-color: var(--pulso-info-border);
+  color: var(--pulso-info-fg);
+}
+
+/* ---- Borrar en dos pasos ------------------------------------------------- */
+
+.rec-camp-borrar-texto {
+  margin: 0;
+}
+
+/* En una columna, la base de 180px del campo sería su alto. */
+.rec-camp-borrar-cuerpo .rec-camp-campo {
+  flex: none;
+}
+
+.rec-camp-borrar-bloque {
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  border-left-width: 3px;
+  border-radius: var(--pulso-radius);
+  color: var(--pulso-text);
+  padding: var(--pulso-space-3);
+}
+
+.rec-camp-borrar-bloque ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding-left: var(--pulso-space-4);
+}
+
+.rec-camp-borrar-acciones {
+  border-top: 1px solid var(--pulso-border);
+  display: flex;
+  flex: none;
+  gap: var(--pulso-space-2);
+  justify-content: flex-end;
+  padding: var(--pulso-space-3) var(--pulso-space-6) var(--pulso-space-4);
+}
+
+/* ---- Cero campañas ------------------------------------------------------- */
+
+.rec-camp-vacio {
+  align-content: start;
+  display: grid;
+  gap: var(--pulso-space-3);
+  justify-items: center;
+  margin: 0 auto;
+  max-width: 920px;
+  padding: var(--pulso-space-6) var(--pulso-space-4);
+  width: 100%;
+}
+
+.rec-camp-vacio .pulso-estado-vacio {
+  width: 100%;
+}
+
+/* Las opciones ocupan el ancho de la caja: tres pares, lado a lado. */
+.rec-camp-vacio .pulso-estado-vacio-accion {
+  align-self: stretch;
+}
+
+.rec-camp-vacio .pulso-estado-vacio-titulo {
+  font-size: 16px;
+}
+
+.rec-camp-vacio .pulso-estado-vacio-descripcion {
+  font-size: 13px;
+}
+
+.rec-camp-vacio-opciones {
+  display: grid;
+  gap: var(--pulso-space-3);
+  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  list-style: none;
+  margin: var(--pulso-space-3) 0 0;
+  padding: 0;
+  width: 100%;
+}
+
+.rec-camp-vacio-op {
+  white-space: normal;
+  justify-content: flex-start;
+  align-items: stretch;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  box-shadow: var(--pulso-shadow-low);
+  color: var(--pulso-text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  font: inherit;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  padding: var(--pulso-space-3);
+  position: relative;
+  text-align: left;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  width: 100%;
+}
+
+.rec-camp-vacio-op:hover:not(:disabled) {
+  border-color: var(--pulso-module-fieldkit-border);
+  box-shadow: var(--pulso-shadow-med);
+  transform: translateY(-1px);
+}
+
+.rec-camp-vacio-op:focus-visible {
+  outline: 2px solid var(--pulso-module-fieldkit);
+  outline-offset: 2px;
+}
+
+.rec-camp-vacio-op:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.rec-camp-vacio-op > .pulso-spin {
+  position: absolute;
+  right: var(--pulso-space-3);
+  top: var(--pulso-space-3);
+}
+
+.rec-camp-vacio-op-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rec-camp-vacio-op-texto b {
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-camp-vacio-op-texto small {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+}
+
+/* Miniatura del correo real: 600 px a 0,3, recortada por abajo. */
+.rec-camp-mini {
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  display: block;
+  height: 168px;
+  overflow: hidden;
+  position: relative;
+}
+
+.rec-camp-mini iframe {
+  border: 0;
+  height: 560px;
+  left: 50%;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%) scale(0.3);
+  transform-origin: top center;
+  width: 600px;
+}
+
+.rec-camp-mini.is-blanco {
+  align-items: center;
+  border-style: dashed;
+  color: var(--pulso-module-fieldkit);
+  display: flex;
+  justify-content: center;
+}
+
+.rec-camp-vacio-aviso {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-camp-vacio-op {
+    transition: none;
+  }
+
+  .rec-camp-vacio-op:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* Ventanas bajas (1024x600, 1280x720): «Nueva campaña» cede alto a la lista,
+ * que es la que crece con las campañas. */
+@media (max-height: 760px) {
+  .rec-camp-dialogo-cabeza {
+    padding-bottom: var(--pulso-space-3);
+    padding-top: var(--pulso-space-4);
+  }
+
+  .rec-camp-nueva {
+    gap: var(--pulso-space-2);
+    padding-bottom: var(--pulso-space-4);
+    padding-top: var(--pulso-space-3);
+  }
+
+  .rec-camp-origen {
+    grid-auto-rows: auto;
+  }
+
+  .rec-camp-origen-op small {
+    display: none;
+  }
+
+  .rec-camp-fila {
+    padding-bottom: var(--pulso-space-2);
+    padding-top: var(--pulso-space-2);
+  }
+}

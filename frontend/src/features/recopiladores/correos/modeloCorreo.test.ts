@@ -21,7 +21,8 @@ import {
   escalaParaCaber,
   etiquetaDesdeClave,
   etiquetasDeMailchimp,
-  filasDeLaTarjeta,
+  esZonaDelCorreo,
+  revisionBloquea,
   htmlParaLaVista,
   huellaDeEdicion,
   idLibre,
@@ -208,14 +209,18 @@ describe("problemas del 422", () => {
 
 describe("revisión", () => {
   const chk = (code: string, status: MailCheck["status"], value: MailCheck["value"], items: MailCheck["items"] = []): MailCheck => ({
-    code, status, value, detail: "", items,
+    code, status, value, detail: "", items, targets: [],
   });
 
   test("cifras en la voz de la vista", () => {
     expect(cifraDeChequeo(chk("subject", "ok", 58))).toBe("58 car.");
     expect(cifraDeChequeo(chk("preheader", "warning", 0))).toBe("falta");
     expect(cifraDeChequeo(chk("html_weight", "ok", 38 * 1024))).toBe("38 KB de 102 KB");
-    expect(cifraDeChequeo(chk("images_hosted", "warning", 2))).toBe("2 por subir");
+    // E1g: las imágenes van en el ZIP importable; sólo un `data:` incrustado es error.
+    expect(cifraDeChequeo(chk("images_hosted", "ok", 0))).toBe("en el ZIP o con URL");
+    expect(cifraDeChequeo(chk("images_hosted", "error", 1))).toBe("incrustadas");
+    expect(cifraDeChequeo(chk("import_zip_weight", "warning", 900 * 1024))).toBe("900 KB de 1.024 KB");
+    expect(cifraDeChequeo(chk("accent_contrast", "warning", 3.94))).toBe("3.9:1");
     expect(cifraDeChequeo(chk("tags_have_columns", "ok", 0, [{ tag: "A" }, { tag: "B" }, { tag: "C" }]))).toBe("3 de 3");
     expect(cifraDeChequeo(chk("tags_have_columns", "error", 1, [{ tag: "A" }, { tag: "B" }]))).toBe("1 de 2");
     expect(cifraDeChequeo(chk("recipients", "error", 0))).toBe("sin importar");
@@ -247,9 +252,15 @@ describe("vista previa", () => {
     expect(escalaParaCaber(100, 648)).toBe(0.4);
   });
 
-  test("las filas de la tarjeta siguen la forma del render: el pie va aparte", () => {
+  test("las zonas se leen de las marcas del render, no contando filas", () => {
     const t = plantilla();
-    expect(filasDeLaTarjeta(t)).toEqual([CABECERA, "", "saludo", "contexto", "accion", "importante", "firma", ""]);
+    expect(esZonaDelCorreo(CABECERA, t)).toBe(true);
+    expect(esZonaDelCorreo("accion", t)).toBe(true);
+    expect(esZonaDelCorreo("pie", t)).toBe(true);
+    // Una marca de un bloque que la plantilla ya no tiene, o vacía, no es zona.
+    expect(esZonaDelCorreo("otro", t)).toBe(false);
+    expect(esZonaDelCorreo("", t)).toBe(false);
+    expect(esZonaDelCorreo(null, t)).toBe(false);
     expect(bloqueDelPie(t)).toBe("pie");
   });
 });
@@ -336,7 +347,7 @@ describe("logos de la vista previa", () => {
 });
 
 describe("chequeos desconocidos", () => {
-  const nuevo: MailCheck = { code: "dmarc_alignment", status: "ok", value: null, detail: "Remitente alineado.", items: [] };
+  const nuevo: MailCheck = { code: "dmarc_alignment", status: "ok", value: null, detail: "Remitente alineado.", items: [], targets: [] };
 
   test("se nombran por su code y muestran su detalle aunque estén bien", () => {
     expect(rotuloDeChequeo(nuevo)).toBe("dmarc_alignment");
@@ -350,7 +361,7 @@ describe("chequeos desconocidos", () => {
 describe("detalle de los chequeos nuevos", () => {
   test("un repetido con otro dato dice qué filas y qué etiquetas", () => {
     expect(textoDeItem({ row: 5, first_row: 2, tags: ["ENLACE", "CARRERA"] })).toBe("Fila 5 repite la 2: otro *|ENLACE|*, *|CARRERA|*");
-    expect(cifraDeChequeo({ code: "duplicates_conflicting", status: "error", value: 1, detail: "", items: [] })).toBe("1 en conflicto");
+    expect(cifraDeChequeo({ code: "duplicates_conflicting", status: "error", value: 1, detail: "", items: [], targets: [] })).toBe("1 en conflicto");
   });
 
   test("un vacío dentro de un enlace no tiene respaldo posible", () => {
@@ -374,7 +385,7 @@ describe("notas de lectura de la lista", () => {
 });
 
 describe("fields_empty sin destinatarios efectivos", () => {
-  const check: MailCheck = { code: "fields_empty", status: "ok", value: 0, detail: "Sin destinatarios efectivos: no hay a quién revisar los campos.", items: [] };
+  const check: MailCheck = { code: "fields_empty", status: "ok", value: 0, detail: "Sin destinatarios efectivos: no hay a quién revisar los campos.", items: [], targets: [] };
 
   test("no dice «todos» y muestra el motivo", () => {
     expect(cifraDeChequeo(check)).toBe("sin destinatarios");
@@ -383,8 +394,20 @@ describe("fields_empty sin destinatarios efectivos", () => {
   });
 
   test("names_unsplit en formato «nombre» llega como aviso con su cifra", () => {
-    const n: MailCheck = { code: "names_unsplit", status: "warning", value: 3, detail: "3 nombres traen una coma…", items: [] };
+    const n: MailCheck = { code: "names_unsplit", status: "warning", value: 3, detail: "3 nombres traen una coma…", items: [], targets: [] };
     expect(cifraDeChequeo(n)).toBe("3 sin separar");
     expect(muestraDetalle(n)).toBe(true);
+  });
+});
+
+describe("salida para Mailchimp por alcance", () => {
+  const chk = (code: string, status: MailCheck["status"]): MailCheck => ({ code, status, value: null, detail: "", items: [], targets: [] });
+  test("la plantilla sola sólo la frenan los errores del correo, no los de la audiencia", () => {
+    const sinLista = { ready: false, checks: [chk("recipients", "error"), chk("subject", "ok")] };
+    expect(revisionBloquea(sinLista, "plantilla")).toBe(false);
+    expect(revisionBloquea(sinLista, "completo")).toBe(true);
+    const pesado = { ready: false, checks: [chk("import_zip_weight", "error")] };
+    expect(revisionBloquea(pesado, "plantilla")).toBe(true);
+    expect(revisionBloquea(null, "completo")).toBe(false);
   });
 });

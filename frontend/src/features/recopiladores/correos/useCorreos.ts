@@ -14,9 +14,11 @@ import {
   apiMailReview,
   apiMailTemplate,
   apiMailTemplatePut,
+  type MailExportScope,
   type MailRecipientsMapping,
   type MailTemplate,
 } from "../../../api/materialMail";
+import { conDestinatarios, conPlantillaGuardada } from "./modeloCampanas";
 import { huellaDeEdicion } from "./modeloCorreo";
 import { hayCambios, hayQueGuardar, useCorreosStore } from "./store";
 
@@ -30,6 +32,23 @@ const AVISO_DE_IMPORTACION: Record<string, string> = {
   E_COLLECTION_MAIL_RECIPIENTS_NO_HEADER: "La primera fila parece un destinatario; agrega una fila de encabezados.",
   E_COLLECTION_MAIL_RECIPIENTS_ENCODING: "No se reconoce la codificación del archivo. Guárdalo como «CSV UTF-8» o como XLSX.",
 };
+
+/** Por qué no se aceptó una imagen (`details.reason` de E_COLLECTION_MAIL_IMAGE_INVALID). */
+const AVISO_DE_IMAGEN: Record<string, string> = {
+  format: "La imagen tiene que ser PNG o JPEG.",
+  too_large: "La imagen pesa más de 1 MB: redúcela antes de subirla.",
+  unreadable: "No se pudo leer la imagen: vuelve a exportarla como PNG o JPEG.",
+  width: "La imagen tiene que medir entre 40 y 1.200 px de ancho.",
+  name: "El nombre de la imagen no sirve como archivo para Mailchimp: usa letras, números y guiones.",
+};
+
+/** El aviso de una subida de imagen rechazada, con el motivo en la voz de la vista. */
+export function avisoDeImagen(cause: unknown): string {
+  if (cause instanceof MailApiError && cause.code === "E_COLLECTION_MAIL_IMAGE_INVALID") {
+    return AVISO_DE_IMAGEN[cause.reason] ?? "La imagen no cumple lo que pide el correo (PNG o JPEG, hasta 1 MB, de 40 a 1.200 px).";
+  }
+  return mensajeDe(cause, "No se pudo subir la imagen.");
+}
 
 /** El aviso de un import rechazado; el motivo interno nunca llega a la vista. */
 export function avisoDeImportacion(cause: unknown): string {
@@ -58,9 +77,19 @@ const ESPERA_REVISION_MS = 650;
  * una plantilla sin guardar), con una espera corta para no llamar en cada
  * tecla. Exportar trabaja sobre la plantilla GUARDADA: si hay cambios, se
  * guardan antes.
+ *
+ * Todo trabaja sobre la campaña del store (`campana`, la que elige el foco):
+ * cada llamada lleva su `campaign_id`. Cambiar de campaña lo hace quien la
+ * elige (`reiniciarCampana`); aquí sólo se vuelve a cargar.
+ *
+ * `onEscrito` avisa al shell de cada escritura del estado (guardar): su
+ * revisión quedó vieja y otras secciones darían 409 (H-f).
  */
-export function useCorreos() {
+export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
   const s = useCorreosStore;
+  const campana = useCorreosStore((st) => st.campana);
+  const onEscrito = useRef(opciones.onEscrito);
+  onEscrito.current = opciones.onEscrito;
   const borrador = useCorreosStore((st) => st.borrador);
   const persona = useCorreosStore((st) => st.persona);
   const carga = useCorreosStore((st) => st.carga);
@@ -78,43 +107,33 @@ export function useCorreos() {
     return () => { vivo.current = false; };
   }, []);
 
+  /** ¿La respuesta es todavía de la campaña que se mira? */
+  const vigente = useCallback((id: string) => vivo.current && s.getState().campana === id, [s]);
+
   const cargar = useCallback(async () => {
+    const id = s.getState().campana;
+    if (!id) return;
     s.getState().cargaInicio();
     try {
+      const conocidos = s.getState().presets;
       const [presets, plantilla, destinatarios] = await Promise.all([
-        apiMailPresets(),
-        apiMailTemplate(),
-        apiMailRecipients(),
+        conocidos.length ? Promise.resolve(null) : apiMailPresets(),
+        apiMailTemplate(id),
+        apiMailRecipients(id),
       ]);
-      if (!vivo.current) return;
-      s.getState().cargaLista({ presets: presets.presets, plantilla, destinatarios });
+      if (!vigente(id)) return;
+      s.getState().cargaLista({ presets: presets?.presets ?? conocidos, plantilla, destinatarios });
+      s.getState().setCampanas((lista) => conDestinatarios(lista, id, destinatarios.loaded));
       if (plantilla.stored_problems.length) s.getState().setAviso({ tono: "error", texto: AVISO_GUARDADA_INVALIDA });
-      // Miniaturas de las plantillas reales: el mismo render, con la persona de ejemplo.
-      for (const preset of presets.presets) {
-        apiMailPreview({ mode: "preview", template: preset.template }).then(
-          (preview) => { if (vivo.current) s.getState().setMiniatura(preset.preset_id, preview.html); },
-          () => { if (vivo.current) s.getState().setMiniatura(preset.preset_id, null); },
-        );
-      }
     } catch (cause) {
-      if (vivo.current) s.getState().cargaError(mensajeDe(cause, "No se pudo leer el correo."));
+      if (vigente(id)) s.getState().cargaError(mensajeDe(cause, "No se pudo leer el correo."));
     }
-  }, [s]);
+  }, [s, vigente]);
 
+  // Cada campaña se carga al elegirla; el store ya olvidó la anterior.
   useEffect(() => {
-    s.getState().reiniciar();
-    void cargar();
-    const onSession = () => {
-      s.getState().reiniciar();
-      void cargar();
-    };
-    window.addEventListener("pulso:session-changed", onSession);
-    return () => {
-      window.removeEventListener("pulso:session-changed", onSession);
-      // Los destinatarios no sobreviven a la vista: al salir se olvida el resumen.
-      s.getState().reiniciar();
-    };
-  }, [cargar, s]);
+    if (campana) void cargar();
+  }, [campana, cargar]);
 
   // Vista previa del borrador, para la persona elegida.
   useEffect(() => {
@@ -124,7 +143,7 @@ export function useCorreos() {
     const turno = ++turnoVista.current;
     const timer = window.setTimeout(() => {
       s.getState().vistaPreviaInicio();
-      apiMailPreview({ mode: "preview", recipient_index: persona, template }).then(
+      apiMailPreview({ mode: "preview", recipient_index: persona, template, campaign_id: s.getState().campana }).then(
         (preview) => { if (vivo.current && turno === turnoVista.current) s.getState().vistaPreviaLista(preview); },
         (cause: unknown) => {
           if (!vivo.current || turno !== turnoVista.current) return;
@@ -138,14 +157,14 @@ export function useCorreos() {
       );
     }, ESPERA_VISTA_MS);
     return () => window.clearTimeout(timer);
-  }, [carga, huella, persona, refresco, s]);
+  }, [campana, carga, huella, persona, refresco, s]);
 
   // Revisión del borrador: también depende de la lista de destinatarios.
   const revisar = useCallback(async (template: MailTemplate | null) => {
     const turno = ++turnoRevision.current;
     s.getState().revisionInicio();
     try {
-      const review = await apiMailReview({ template });
+      const review = await apiMailReview({ template, campaign_id: s.getState().campana });
       if (vivo.current && turno === turnoRevision.current) s.getState().revisionLista(review);
     } catch (cause) {
       // Un borrador inválido no se puede revisar: sus problemas ya los pinta la
@@ -163,19 +182,24 @@ export function useCorreos() {
     if (!template) return;
     const timer = window.setTimeout(() => { void revisar(template); }, ESPERA_REVISION_MS);
     return () => window.clearTimeout(timer);
-  }, [carga, huella, destinatariosHuella, refresco, revisar, s]);
+  }, [campana, carga, huella, destinatariosHuella, refresco, revisar, s]);
 
   /** Guarda el borrador. Devuelve `false` si no se pudo. */
   const guardar = useCallback(async (): Promise<boolean> => {
     const st = s.getState();
-    if (!st.borrador || st.stateRevision === null) return false;
+    const id = st.campana;
+    if (!id || !st.borrador || st.stateRevision === null) return false;
     if (!hayQueGuardar(st) && !st.builtin) return true;
     st.setOcupado("guardando");
     st.setAviso(null);
     try {
-      const payload = await apiMailTemplatePut({ template: st.borrador, expected_revision: st.stateRevision });
-      if (!vivo.current) return true;
+      const payload = await apiMailTemplatePut({ template: st.borrador, expected_revision: st.stateRevision, campaign_id: id });
+      // La revisión nueva vale para todo el estado, aunque ya se mire otra campaña.
+      s.getState().anotarRevision(payload.state_revision);
+      if (!payload.noop) onEscrito.current?.();
+      if (!vigente(id)) return true;
       s.getState().guardado(payload);
+      s.getState().setCampanas((lista) => conPlantillaGuardada(lista, id, payload.template));
       s.getState().setAviso({ tono: "ok", texto: payload.noop ? "No había cambios que guardar." : "Correo guardado." });
       return true;
     } catch (cause) {
@@ -192,10 +216,10 @@ export function useCorreos() {
     } finally {
       if (vivo.current) s.getState().setOcupado(null);
     }
-  }, [s]);
+  }, [s, vigente]);
 
   /** `revision`: la revisión bloquea y hay que ir a verla; `error`: otro motivo, ya avisado. */
-  const exportar = useCallback(async (): Promise<"ok" | "revision" | "error"> => {
+  const exportar = useCallback(async (scope: MailExportScope = "completo"): Promise<"ok" | "revision" | "error"> => {
     if (hayQueGuardar(s.getState())) {
       const ok = await guardar();
       if (!ok) return "error";
@@ -207,11 +231,11 @@ export function useCorreos() {
       st.setAviso({ tono: "error", texto: AVISO_SIN_REVISION });
       return "error";
     }
-    st.setOcupado("exportando");
+    st.setOcupado(scope === "plantilla" ? "exportando-plantilla" : "exportando");
     st.setAviso(null);
     st.setExportacion(null);
     try {
-      const payload = await apiMailExport({ expected_revision: revision });
+      const payload = await apiMailExport({ expected_revision: revision, campaign_id: st.campana, scope });
       if (vivo.current) s.getState().setExportacion(payload);
       return "ok";
     } catch (cause) {
@@ -253,40 +277,49 @@ export function useCorreos() {
     s.getState().setOcupado("importando");
     s.getState().setAviso(null);
     try {
-      const destinatarios = await apiMailRecipientsImport(file);
-      if (vivo.current) s.getState().setDestinatarios(destinatarios);
+      const id = s.getState().campana;
+      const destinatarios = await apiMailRecipientsImport(file, null, id);
+      if (id && vigente(id)) {
+        s.getState().setDestinatarios(destinatarios);
+        s.getState().setCampanas((lista) => conDestinatarios(lista, id, destinatarios.loaded));
+      }
     } catch (cause) {
       if (vivo.current) s.getState().setAviso({ tono: "error", texto: avisoDeImportacion(cause) });
     } finally {
       if (vivo.current) s.getState().setOcupado(null);
     }
-  }, [guardar, s]);
+  }, [guardar, s, vigente]);
 
   const mapear = useCallback(async (mapping: MailRecipientsMapping) => {
     // Un campo nuevo sólo se puede mapear cuando la plantilla que lo declara está guardada.
     if (hayQueGuardar(s.getState()) && !(await guardar())) return;
     s.getState().setOcupado("mapeando");
     try {
-      const destinatarios = await apiMailRecipientsMapping(mapping);
-      if (vivo.current) s.getState().setDestinatarios(destinatarios);
+      const id = s.getState().campana;
+      const destinatarios = await apiMailRecipientsMapping(mapping, id);
+      if (id && vigente(id)) s.getState().setDestinatarios(destinatarios);
     } catch (cause) {
       if (vivo.current) s.getState().setAviso({ tono: "error", texto: mensajeDe(cause, "No se pudo cambiar la columna.") });
     } finally {
       if (vivo.current) s.getState().setOcupado(null);
     }
-  }, [guardar, s]);
+  }, [guardar, s, vigente]);
 
   const olvidar = useCallback(async () => {
     s.getState().setOcupado("olvidando");
     try {
-      const destinatarios = await apiMailRecipientsDelete();
-      if (vivo.current) s.getState().setDestinatarios(destinatarios);
+      const id = s.getState().campana;
+      const destinatarios = await apiMailRecipientsDelete(id);
+      if (id && vigente(id)) {
+        s.getState().setDestinatarios(destinatarios);
+        s.getState().setCampanas((lista) => conDestinatarios(lista, id, destinatarios.loaded));
+      }
     } catch (cause) {
       if (vivo.current) s.getState().setAviso({ tono: "error", texto: mensajeDe(cause, "No se pudo olvidar la lista.") });
     } finally {
       if (vivo.current) s.getState().setOcupado(null);
     }
-  }, [s]);
+  }, [s, vigente]);
 
   /**
    * Sube el PNG de una imagen de la cabecera con su mismo id.
@@ -309,7 +342,7 @@ export function useCorreos() {
       if (local) s.getState().recordarImagen(id, local);
       else s.getState().refrescar();
     } catch (cause) {
-      if (vivo.current) s.getState().setAviso({ tono: "error", texto: mensajeDe(cause, "No se pudo subir la imagen.") });
+      if (vivo.current) s.getState().setAviso({ tono: "error", texto: avisoDeImagen(cause) });
     } finally {
       if (vivo.current) s.getState().setOcupado(null);
     }

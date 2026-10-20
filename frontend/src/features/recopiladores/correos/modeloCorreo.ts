@@ -14,6 +14,8 @@ import {
   type MailRecipientView,
   type MailRecipientsCounts,
   type MailRecipientsEncoding,
+  type MailExportScope,
+  type MailReview,
   type MailTemplate,
 } from "../../../api/materialMail";
 
@@ -21,20 +23,26 @@ import {
 
 export const ROTULO_DE_BLOQUE: Record<MailBlockType, string> = {
   greeting: "Saludo",
+  heading: "Título",
   paragraph: "Párrafo",
   button: "Botón de acción",
   callout: "Recuadro",
   list: "Lista",
+  divider: "Separador",
+  image: "Imagen",
   signature: "Firma",
   footer_legal: "Pie legal",
 };
 
 export const DESCRIPCION_DE_BLOQUE: Record<MailBlockType, string> = {
   greeting: "Con el nombre de cada persona; si falta, va el texto de respaldo.",
+  heading: "Un título o subtítulo para ordenar el correo.",
   paragraph: "Texto con énfasis en negrita; los campos se tiñen para ver qué cambia por persona.",
   button: "Un enlace por persona, armado con su campo, o un enlace común para todos.",
   callout: "Para «Importante», las sesiones de una capacitación o las fechas.",
   list: "Una lista de puntos o numerada.",
+  divider: "Una línea o un espacio entre dos partes del correo.",
+  image: "Una imagen de la línea gráfica, con su texto alternativo; puede ir a todo el ancho.",
   signature: "Firma institucional del estudio, igual en todos los correos.",
   footer_legal: "Por qué recibe el correo y la dirección. Mailchimp agrega la baja (*|UNSUB|*).",
 };
@@ -85,9 +93,14 @@ export function resumenDeBloque(block: MailBlock): string {
   if (isOpaqueMailBlock(block)) return block.original_type;
   switch (block.type) {
     case "greeting":
+    case "heading":
     case "paragraph":
     case "button":
       return textoPlano(block.text);
+    case "divider":
+      return block.style === "espacio" ? "Espacio" : "Línea";
+    case "image":
+      return textoPlano(block.alt || block.image_ref);
     case "callout":
       return textoPlano(block.title ?? block.items[0] ?? "");
     case "list":
@@ -181,7 +194,8 @@ export type PropDeTexto =
   | "closing"
   | "name"
   | "lines"
-  | "address";
+  | "address"
+  | "alt";
 
 const PROPS_DE_LISTA: readonly PropDeTexto[] = ["note", "items", "lines"];
 
@@ -192,7 +206,9 @@ export function esPropDeLista(prop: PropDeTexto): boolean {
 export function propsDeTexto(type: MailBlockType | MailBlock["type"]): PropDeTexto[] {
   switch (type) {
     case "greeting": return ["text", "fallback"];
+    case "heading": return ["text"];
     case "paragraph": return ["text"];
+    case "image": return ["alt", "url"];
     case "button": return ["text", "url", "note"];
     case "callout": return ["title", "items"];
     case "list": return ["items"];
@@ -213,6 +229,7 @@ export const ROTULO_DE_PROP: Record<PropDeTexto, string> = {
   name: "Firma",
   lines: "Líneas",
   address: "Dirección",
+  alt: "Texto alternativo",
 };
 
 /** El texto de una propiedad como lo edita una caja: listas, una línea por punto. */
@@ -344,6 +361,9 @@ export function bloqueNuevo(type: MailBlockType, block_id: string): MailBlock {
     case "button": return { block_id, type, text: "Acceder a la encuesta", url: "https://" };
     case "callout": return { block_id, type, title: "Importante:", items: ["Primer punto."], variant: "box" };
     case "list": return { block_id, type, items: ["Primer punto."], ordered: false };
+    case "heading": return { block_id, type, text: "Título de la sección", level: "subtitulo" };
+    case "divider": return { block_id, type, style: "linea", size: "m" };
+    case "image": return { block_id, type, image_ref: "imagen", alt: "Describe la imagen" };
     case "signature": return { block_id, type, closing: "Atentamente,", name: "Pulso PUCP" };
     case "footer_legal": return { block_id, type, text: "Recibe este correo porque forma parte de la población del estudio." };
   }
@@ -540,7 +560,7 @@ export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   subject: "Asunto definido",
   preheader: "Texto de vista previa (preheader)",
   html_weight: "Peso del correo",
-  images_hosted: "Imágenes alojadas, no incrustadas",
+  images_hosted: "Imágenes sin incrustar",
   images_available: "Imágenes en el proyecto",
   images_alt: "Texto alternativo en las imágenes",
   banner_size: "Banner de 1200 × 600",
@@ -550,6 +570,10 @@ export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   fields_empty: "Campos con dato para todos",
   names_unsplit: "Nombres separados del apellido",
   duplicates_conflicting: "Correos repetidos con datos distintos",
+  import_zip_weight: "Peso del ZIP para importar",
+  accent_contrast: "Contraste del texto sobre el acento",
+  image_width: "Resolución de las imágenes",
+  image_weight: "Peso de cada imagen",
 };
 
 /** Dónde se usa un campo (`uses` de `fields_empty`), en la voz de la vista. */
@@ -607,9 +631,17 @@ export function cifraDeChequeo(check: MailCheck): string {
     case "html_weight":
       return `${kb(v)} de 102 KB`;
     case "images_hosted":
-      if (check.status === "ok") return "con URL pública";
-      if (check.status === "warning") return `${v} por subir`;
-      return "incrustadas";
+      // Desde E1g las imágenes viajan en el ZIP importable o con su URL:
+      // sólo es error un `data:` dentro del HTML de Mailchimp.
+      return check.status === "error" ? "incrustadas" : "en el ZIP o con URL";
+    case "import_zip_weight":
+      return `${kb(v)} de 1.024 KB`;
+    case "accent_contrast":
+      return v ? `${v.toLocaleString("es-PE", { maximumFractionDigits: 1 })}:1` : check.status === "ok" ? "suficiente" : "";
+    case "image_width":
+      return check.status === "ok" ? "nítidas" : `${v.toLocaleString("es-PE")} se verían borrosas`;
+    case "image_weight":
+      return check.status === "ok" ? "livianas" : `${v.toLocaleString("es-PE")} sobre 200 KB`;
     case "images_available":
       return check.status === "ok" ? "todas" : `${v} sin archivo`;
     case "images_alt":
@@ -713,21 +745,13 @@ export function htmlParaLaVista(html: string, vista: VistaDelCorreo, paleta?: Pa
 }
 
 /**
- * Qué fila de la tarjeta del correo corresponde a qué bloque.
- *
- * El render (`collection_mail_render.R`) escribe la tarjeta como una tabla:
- * cabecera, un separador, una fila por bloque —el pie legal no tiene fila ahí:
- * va en la tabla de abajo— y una franja de cierre. Si el HTML no tiene esa
- * forma, la vista no promete clics: devuelve `null` y la lista de la izquierda
- * sigue siendo el camino.
+ * ¿La marca `data-pulso-block` del HTML nombra una zona que el editor sabe
+ * elegir? La cabecera o un bloque de la plantilla. El render marca las zonas
+ * (E1g, H-a): ya no se cuentan filas, así un bloque nuevo no descuadra nada.
  */
-export function filasDeLaTarjeta(template: MailTemplate): string[] {
-  return [
-    CABECERA,
-    "",
-    ...template.blocks.filter((b) => b.type !== "footer_legal").map((b) => b.block_id),
-    "",
-  ];
+export function esZonaDelCorreo(id: string | null | undefined, template: Pick<MailTemplate, "blocks">): id is string {
+  if (!id) return false;
+  return id === CABECERA || template.blocks.some((b) => b.block_id === id);
 }
 
 export function bloqueDelPie(template: MailTemplate): string | null {
@@ -744,3 +768,25 @@ export function pesoLegible(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toLocaleString("es-PE", { maximumFractionDigits: 1 })} MB`;
   return kb(bytes);
 }
+
+// ---- salida para Mailchimp ----------------------------------------------------
+
+/** Chequeos de la audiencia: con `scope = "plantilla"` el backend no los corre. */
+const CHEQUEOS_DE_AUDIENCIA: ReadonlySet<string> = new Set([
+  "recipients",
+  "tags_have_columns",
+  "fields_empty",
+  "names_unsplit",
+  "duplicates_conflicting",
+]);
+
+/**
+ * ¿La revisión impide esta salida? La plantilla sola no depende de la lista de
+ * destinatarios: sólo la frenan los errores del correo mismo.
+ */
+export function revisionBloquea(review: Pick<MailReview, "ready" | "checks"> | null, scope: MailExportScope): boolean {
+  if (!review) return false;
+  if (scope === "completo") return !review.ready;
+  return review.checks.some((c) => c.status === "error" && !CHEQUEOS_DE_AUDIENCIA.has(c.code));
+}
+

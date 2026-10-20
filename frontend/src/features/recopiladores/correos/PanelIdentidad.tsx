@@ -26,7 +26,7 @@ type Props = {
   bannerCheck: MailCheck | null;
   ocupado: boolean;
   onEditar: (update: (t: MailTemplate) => MailTemplate) => void;
-  /** Sube el PNG con el id de la imagen; si ya tenía archivo, lo reemplaza. */
+  /** Sube el PNG o JPEG con el id de la imagen; si ya tenía archivo, lo reemplaza. */
   onSubir: (id: string, file: File) => void;
 };
 
@@ -39,7 +39,7 @@ function SubirArchivo({ etiqueta, disabled, onArchivo }: { etiqueta: string; dis
   };
   return (
     <span className={`rec-mail-subir${disabled ? " is-disabled" : ""}`}>
-      <input id={id} type="file" accept="image/png" className="pulso-sr-only" disabled={disabled} onChange={alElegir} />
+      <input id={id} type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" className="pulso-sr-only" disabled={disabled} onChange={alElegir} />
       <label htmlFor={id} className="pulso-button pulso-button--secondary pulso-button--sm">
         <Upload size={14} aria-hidden /> {etiqueta}
       </label>
@@ -163,7 +163,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
                   {falta ? <span className="rec-mail-chip is-warning">sin archivo</span> : null}
                 </span>
                 <span className="rec-mail-logo-acciones">
-                  <SubirArchivo etiqueta="PNG" disabled={ocupado || conBanner} onArchivo={(file) => onSubir(id, file)} />
+                  <SubirArchivo etiqueta="PNG o JPEG" disabled={ocupado || conBanner} onArchivo={(file) => onSubir(id, file)} />
                   <PulsoButton
                     variant="icon"
                     size="sm"

@@ -33,6 +33,13 @@ type Props = {
   hayDestino: boolean;
 };
 
+/**
+ * Tipos que se agregan desde esta lista. La imagen (E1g) necesita su panel de
+ * subida y llega con la biblioteca de bloques; mientras tanto, una plantilla
+ * que ya la trae la conserva y la muestra.
+ */
+const SE_AGREGAN_AQUI: ReadonlySet<MailBlockType> = new Set(MAIL_BLOCK_TYPES.filter((t) => t !== "image"));
+
 function Miniatura({ html, titulo }: { html: string | null | undefined; titulo: string }) {
   if (!html) return <span className="rec-mail-mini rec-mail-mini--vacia" aria-hidden />;
   return (
@@ -162,7 +169,7 @@ export function ColumnaDeBloques({
         </span>
         {agregando ? (
           <div id="rec-mail-agregar" className="rec-mail-agregar" role="group" aria-label="Tipo de bloque a agregar">
-            {MAIL_BLOCK_TYPES.filter((t) => t !== "footer_legal" || !template.blocks.some((b) => b.type === "footer_legal")).map((type) => {
+            {MAIL_BLOCK_TYPES.filter((t) => SE_AGREGAN_AQUI.has(t) && (t !== "footer_legal" || !template.blocks.some((b) => b.type === "footer_legal"))).map((type) => {
               const Icono = ICONO_DE_BLOQUE[type];
               return (
                 <button

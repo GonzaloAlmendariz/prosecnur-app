@@ -132,7 +132,7 @@ describe("PanelRevision y PanelMailchimp", () => {
         template={PLANTILLA}
         revision={revision}
         exportacion={null}
-        exportando={false}
+        exportando={null}
         ocupado={false}
         htmlActual="<p>x</p>"
         onExportar={noop}
@@ -142,7 +142,10 @@ describe("PanelRevision y PanelMailchimp", () => {
     );
     expect(html).toContain("*|FNAME|*");
     expect(html).toContain("*|CARRERA|*");
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>.*Exportar para Mailchimp/);
+    // Sin destinatarios la audiencia no sale; la plantilla sola sí (no depende de la lista).
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Plantilla \+ audiencia/);
+    expect(html).not.toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Plantilla para importar/);
+    expect(html).toContain("Code your own › Import zip");
     expect(html).not.toMatch(/Enviar/);
   });
 });
@@ -288,7 +291,7 @@ describe("Revisión con un repetido que cambia el enlace y un enlace vacío", ()
         template={PLANTILLA}
         revision={revision}
         exportacion={null}
-        exportando={false}
+        exportando={null}
         ocupado={false}
         htmlActual="<p>x</p>"
         onExportar={noop}
@@ -296,7 +299,7 @@ describe("Revisión con un repetido que cambia el enlace y un enlace vacío", ()
         onVerRevision={noop}
       />,
     );
-    expect(mc).toMatch(/<button[^>]*disabled=""[^>]*>.*Exportar para Mailchimp/);
+    expect(mc).toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Plantilla \+ audiencia/);
   });
 });
 
