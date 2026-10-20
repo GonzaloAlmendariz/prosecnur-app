@@ -1,0 +1,80 @@
+/* Panel de condición del Mapa de lógica (E1, 2026-10-20). Portal con posición fija, ancho fijo, alto con tope y scroll
+   propio. La lista de opciones tiene alto fijo: elegir o buscar no cambia el tamaño del panel ni del mapa. Sólo tokens. */
+.xfc-panel {
+  position: fixed; z-index: var(--pulso-z-flyout); box-sizing: border-box;
+  display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  color: var(--pulso-text); font-size: 13px; line-height: 1.45; text-align: left;
+  background: var(--pulso-surface); border: 1px solid var(--pulso-border-strong); border-radius: 14px;
+  box-shadow: var(--pulso-shadow-popover);
+  visibility: hidden; opacity: 0; transform: translateY(4px);
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out), transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+.xfc-panel.is-vis { visibility: visible; opacity: 1; transform: none; }
+.xfc-panel code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+
+.xfc-cab {
+  flex-shrink: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center;
+  padding: 10px 10px 10px 8px; border-bottom: 1px solid var(--pulso-border); background: var(--pulso-surface-2);
+  cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none;
+}
+.xfc-cab:active { cursor: grabbing; }
+.xfc-cab__asa { color: var(--pulso-text-faint); }
+.xfc-cab__txt { display: grid; gap: 3px; min-width: 0; }
+.xfc-cab__tit { font-size: 11px; font-weight: var(--pulso-weight-semibold); letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-muted); }
+.xfc-cab__tit .pulso-xf-tech { text-transform: none; letter-spacing: 0; }
+.xfc-cab__par { display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--pulso-text-faint); }
+.xfc-cab__par code { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pulso-primary); font-weight: var(--pulso-weight-semibold); }
+.xfc-cab__x {
+  display: inline-grid; place-items: center; width: 28px; height: 28px; min-height: 0; padding: 0;
+  border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--pulso-text-soft); box-shadow: none; cursor: pointer;
+}
+.xfc-cab__x:hover { background: var(--pulso-surface); color: var(--pulso-text); }
+
+.xfc-cuerpo { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.xfc-pregunta { margin: 0 0 4px; padding: 0; font-size: 12.5px; color: var(--pulso-text-soft); }
+.xfc-pregunta code { color: var(--pulso-primary); }
+.xfc-ops { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.xfc-op { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 7px; cursor: pointer; font-size: 12.5px; color: var(--pulso-text); }
+.xfc-op:hover { background: var(--pulso-surface-2); }
+.xfc-op.is-on { background: var(--pulso-primary-soft); }
+.xfc-op input { margin: 0; flex-shrink: 0; accent-color: var(--pulso-primary); }
+.xfc-op code { color: var(--pulso-primary); }
+.xfc-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.xfc-valor { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.xfc-buscar {
+  display: flex; align-items: center; gap: 6px; padding: 0 9px; min-height: 32px;
+  border: 1px solid var(--pulso-border); border-radius: 8px; background: var(--pulso-surface); color: var(--pulso-text-faint);
+}
+.xfc-buscar:focus-within { border-color: var(--pulso-primary); box-shadow: 0 0 0 3px var(--pulso-primary-focus); }
+.xfc-buscar input { flex: 1; min-width: 0; min-height: 0; padding: 6px 0; border: 0; outline: 0; background: transparent; box-shadow: none; font: inherit; font-size: 12.5px; color: var(--pulso-text); }
+.xfc-texto { box-sizing: border-box; width: 100%; padding: 7px 9px; border: 1px solid var(--pulso-border); border-radius: 8px; background: var(--pulso-surface); font: inherit; font-size: 12.5px; color: var(--pulso-text); }
+.xfc-texto:focus { outline: 0; border-color: var(--pulso-primary); box-shadow: 0 0 0 3px var(--pulso-primary-focus); }
+/* Alto fijo: 230 opciones o 2 ocupan lo mismo. */
+.xfc-opciones {
+  flex-shrink: 0; height: clamp(112px, 26vh, 208px); margin: 0; padding: 3px; list-style: none;
+  overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--pulso-border); border-radius: 8px; background: var(--pulso-surface-2);
+}
+.xfc-opcion {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto 14px; gap: 8px; align-items: center;
+  padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 12.5px; color: var(--pulso-text);
+}
+.xfc-opcion:hover, .xfc-opcion.is-activa { background: var(--pulso-surface); }
+.xfc-opcion.is-on { background: var(--pulso-primary-soft); color: var(--pulso-primary); }
+.xfc-opcion__txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xfc-opcion code { color: var(--pulso-text-faint); font-size: 11px; }
+.xfc-opciones__vacio { padding: 10px 8px; font-size: 12.5px; color: var(--pulso-text-muted); }
+.xfc-elegido { margin: 0; min-height: 18px; font-size: 12px; color: var(--pulso-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xfc-elegido strong { color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
+
+.xfc-lectura { display: flex; align-items: baseline; gap: 8px; min-width: 0; padding: 6px 10px; border: 1px solid var(--pulso-border); border-radius: 7px; background: var(--pulso-surface-2); }
+.xfc-lectura > span { flex-shrink: 0; font-size: 11px; font-weight: var(--pulso-weight-semibold); text-transform: uppercase; letter-spacing: 0.04em; color: var(--pulso-text-muted); }
+.xfc-lectura > code { min-width: 0; overflow-wrap: anywhere; font-family: inherit; font-size: 12.5px; color: var(--pulso-text); }
+
+.xfc-pie { flex-shrink: 0; display: flex; justify-content: flex-end; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--pulso-border); background: var(--pulso-surface-2); }
+.xfc-pie button { display: inline-flex; align-items: center; gap: 5px; }
+.xfc-cab__x:focus-visible, .xfc-pie button:focus-visible, .xfc-op:has(input:focus-visible) { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+@media (prefers-reduced-motion: reduce) { .xfc-panel { transition: none; transform: none; } }
+.xfc-panel .xfc-buscar input:focus, .xfc-panel .xfc-buscar input:focus-visible { outline: 0; border: 0; box-shadow: none; }
+/* El lienzo recibe el foco al cerrar el panel (tabindex -1): sin anillo, no es un control. */
+.pulso-graph-svg:focus { outline: none; }
