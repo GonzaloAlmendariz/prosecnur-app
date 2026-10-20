@@ -25,7 +25,6 @@
   min-width: 0;
   padding: var(--pulso-space-4);
   border: 1px solid var(--xf-ficha-acento-borde);
-  border-left: 3px solid var(--xf-ficha-acento);
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-low);
@@ -152,7 +151,6 @@
 .pulso-xf-seleccionable[aria-expanded="true"],
 .pulso-xf-seleccionable[aria-current="true"] {
   background: var(--module-accent-soft, var(--pulso-primary-soft));
-  box-shadow: inset 3px 0 0 var(--module-accent, var(--pulso-primary));
 }
 
 @media (prefers-reduced-motion: reduce) {

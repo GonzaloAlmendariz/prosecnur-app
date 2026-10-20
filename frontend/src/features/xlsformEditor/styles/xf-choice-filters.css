@@ -592,7 +592,6 @@
   flex-direction: column;
   padding: var(--pulso-space-4);
   border-color: var(--module-accent-border, var(--pulso-primary-border));
-  border-left: 3px solid var(--module-accent, var(--pulso-primary));
   animation-duration: var(--motion-dur-fast);
 }
 
