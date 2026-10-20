@@ -14,6 +14,10 @@
 # | conditional | *|IF:T|*…*|ELSE:|*…*|END:IF|*      | ninguno: sale la etiqueta sola      |
 # | footer      | *|LIST:ADDRESSLINE|* + *|UNSUB|*    | [PrivacyLink] + [OptOutLink]        |
 # | img_src     | URL https o nombre relativo (ZIP)  | solo URL https (sin URL, src="")    |
+# | trato       | *|IF:SALUDO|**|SALUDO|**|ELSE:|*respaldo*|END:IF|* | [CustomDataN]  |
+#
+# El trato (saludo por sexo) lo escribe collection_mail_trato.R; sin columna
+# declarada sale el respaldo literal en los dos dialectos.
 #
 # SurveyMonkey (ayuda pública, ver ADR 0110 §E1j): `[SurveyLink]` y
 # `[OptOutLink]` son obligatorias; en «HTML personalizado» van como URL de un

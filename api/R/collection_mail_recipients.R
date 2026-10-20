@@ -397,10 +397,13 @@
   )
 }
 
-.cmail_recipient_values <- function(store, resolved, i) {
+# `tres` (`.cmail_trato_resolve`) suma la palabra del saludo de esa persona.
+.cmail_recipient_values <- function(store, resolved, i, tres = NULL) {
   m <- store$mapping
   fields <- lapply(m$fields, function(col) .cmail_value(store$rows[[col]][[i]]))
-  list(nombre = resolved$first_name[[i]], fields = fields)
+  out <- list(nombre = resolved$first_name[[i]], fields = fields)
+  if (isTRUE(tres$presente)) out$trato <- tres$palabra[[i]]
+  out
 }
 
 # Lo único que la UI ve: nunca la columna de correo, nunca un valor con forma de correo.
@@ -412,10 +415,14 @@
     return(out)
   }
   resolved <- .cmail_recipients_resolve(store, template)
+  tres <- if (!is.null(template)) .cmail_trato_resolve(store, template, resolved)
   rows <- utils::head(resolved$rows, .CMAIL_SAMPLE_SIZE)
   sample <- lapply(seq_along(rows), function(j) {
-    v <- .cmail_mask_pii(.cmail_recipient_values(store, resolved, rows[[j]]))
-    list(index = as.integer(j), nombre = v$nombre, fields = if (length(v$fields)) v$fields else structure(list(), names = character(0)))
+    v <- .cmail_mask_pii(.cmail_recipient_values(store, resolved, rows[[j]], tres))
+    out <- list(index = as.integer(j), nombre = v$nombre)
+    if (!is.null(v$trato)) out$trato <- v$trato
+    out$fields <- if (length(v$fields)) v$fields else structure(list(), names = character(0))
+    out
   })
   mapping <- store$mapping
   mapping$fields <- if (length(mapping$fields)) mapping$fields else structure(list(), names = character(0))
@@ -431,6 +438,8 @@
     columns = as.list(.cmail_mask_pii(names(store$rows))),
     mapping = .cmail_mask_pii(.cmc_drop_nulls_deep(mapping)),
     counts = resolved$counts,
+    # Saludo por sexo: conteos y lectura de la columna, sin el sexo de nadie.
+    trato = .cmail_mask_pii(.cmail_trato_summary(tres)),
     sample = sample
   ))
 }
@@ -469,12 +478,8 @@ collection_mail_recipients_import <- function(sid, file_raw = NULL, file_name = 
                                               content_base64 = NULL, mapping = NULL, campaign_id = NULL) {
   session <- session_get(sid)
   ct <- .cmail_campaign_template_for_session(session, campaign_id)
-  # E1j: con SurveyMonkey los contactos viven en su recopilador; la app no los guarda.
-  if (identical(ct$platform, "surveymonkey")) {
-    stop_api(422, "E_COLLECTION_MAIL_PLATFORM",
-             "Esta campaña se envía por SurveyMonkey: los contactos viven en su recopilador, no se importan aquí.",
-             details = list(campaign_id = ct$campaign_id, platform = "surveymonkey"))
-  }
+  # Con SurveyMonkey la lista también se importa (pedido 2026-10-20): sirve para
+  # armar contactos_surveymonkey.csv con el trato ya escrito. Sigue en el tempdir.
   template <- ct$template
   payload <- .cmail_import_payload(file_raw, file_name, content_base64)
   read <- .cmail_read_table(payload$raw, payload$name)

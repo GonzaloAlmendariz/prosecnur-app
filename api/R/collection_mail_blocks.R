@@ -153,18 +153,22 @@
   as.integer(max(40L, min(.CMAIL_WIDTH, round(natural / 2))))
 }
 
+# El trato (`b$trato`, collection_mail_trato.R) cambia la palabra del saludo por
+# persona; sin trato activo, `.cmail_trato_inline` es `.cmail_inline`.
 .cmail_block_greeting <- function(b, ctx) {
   text <- as.character(b$text)
   uses_name <- "nombre" %in% .cmail_tokens(text)
   fallback <- .cmail_one(b$fallback)
+  tr <- .cmail_trato_of(b)
+  inline <- function(x) .cmail_trato_inline(x, tr, ctx)
   if (isTRUE(ctx$export) && uses_name && !is.null(fallback)) {
-    inner <- .cmail_dialect(ctx)$conditional("FNAME", .cmail_inline(text, ctx), .cmail_inline(fallback, ctx))
+    inner <- .cmail_dialect(ctx)$conditional("FNAME", inline(text), inline(fallback))
     prop <- "text"
   } else if (!isTRUE(ctx$export) && uses_name && !nzchar(trimws(ctx$values$nombre %||% "")) && !is.null(fallback)) {
-    inner <- .cmail_inline(fallback, ctx)
+    inner <- inline(fallback)
     prop <- "fallback"
   } else {
-    inner <- .cmail_inline(text, ctx)
+    inner <- inline(text)
     prop <- "text"
   }
   .cmail_text_td(sprintf('<p style="margin:0;"%s>%s</p>', .cmail_prop(ctx, prop), inner), padding = "28px 46px 18px 46px")

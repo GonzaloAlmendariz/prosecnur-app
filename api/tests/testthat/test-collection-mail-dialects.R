@@ -131,9 +131,11 @@ test_that("plataforma por campaña: por defecto mailchimp sin escribir; meta la 
   expect_true(m$recipients_purged)
   expect_identical(m$campaign$platform, "surveymonkey")
   expect_false(collection_mail_recipients_get(sid)$loaded)
-  e <- .cmd_err(.cmail_fx_import(sid))
-  expect_identical(e$code, "E_COLLECTION_MAIL_PLATFORM")
-  expect_equal(e$status, 422)
+  # Pedido 2026-10-20 (trato por sexo): con SurveyMonkey la lista también se
+  # importa, al tempdir, para armar contactos_surveymonkey.csv.
+  expect_true(.cmail_fx_import(sid)$loaded)
+  collection_mail_recipients_delete(sid, "uno")
+  expect_false(collection_mail_recipients_get(sid)$loaded)
   expect_identical(.cmd_code(collection_mail_campaign_meta_put(sid, .cmd_rev(sid), "uno", platform = "fax")),
                    "E_COLLECTION_MAIL_PLATFORM")
   # Volver a mailchimp no purga nada (no hay qué) y deja importar.
@@ -192,7 +194,7 @@ test_that("revisión SurveyMonkey: survey_link, footer_optout, images_public_url
   # Sin enlace a la encuesta -> survey_link error.
   t3 <- t; t3$blocks <- Filter(function(b) !identical(b$type, "button"), t3$blocks)
   expect_identical(.cmd_by(collection_mail_review(sid, template = t3, campaign_id = sm$id))$survey_link$status, "error")
-  # scope completo -> 422 E_COLLECTION_MAIL_PLATFORM (los contactos viven en SurveyMonkey).
+  # scope completo sin lista -> 422 E_COLLECTION_MAIL_PLATFORM (los contactos viven en SurveyMonkey).
   e <- .cmd_err(collection_mail_review(sid, campaign_id = sm$id, scope = "completo"))
   expect_identical(e$code, "E_COLLECTION_MAIL_PLATFORM")
   expect_equal(e$status, 422)
