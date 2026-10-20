@@ -40,7 +40,34 @@ export function humanizeGraficosExportError(raw: string, plan: PlanJson): Humani
       ...(detalle ? { detalle } : {}),
     };
   }
-  return { ...humanizar(sinEnvolturaCallr(detalle), plan), ...(detalle ? { detalle } : {}) };
+  const causa = sinEnvolturaCallr(detalle);
+  const h = humanizar(causa, plan);
+  // El motor nombra la lámina que falló («Lámina 33 «título»: …», graficos_jobs.R): sin ese número, «Revisa la lámina
+  // indicada» no indicaba ninguna y el analista buscaba entre 50 (Arte, 2026-10-20).
+  const nombrada = h.slideRef ? null : laminaNombrada(causa, plan);
+  if (nombrada) {
+    const generico = h.message === MENSAJE_SIN_PATRON;
+    return {
+      ...h,
+      message: generico ? `${nombrada.label}: su gráfico no se puede dibujar como está configurado, y el informe se detuvo ahí.` : h.message,
+      hint: generico ? "Ábrela y revisa su gráfico; en la tira de miniaturas aparece como «No se dibuja»." : h.hint,
+      slideRef: nombrada,
+      ...(detalle ? { detalle } : {}),
+    };
+  }
+  return { ...h, ...(detalle ? { detalle } : {}) };
+}
+
+// Sin lámina nombrada no se pide «revisa la lámina indicada»: no hay ninguna indicada.
+const MENSAJE_SIN_PATRON = "No se pudo generar el informe. Vuelve a intentarlo.";
+
+/** La lámina que el motor nombra en el error («Lámina 33 «…»: …», o «Sección 33» en el Word), si existe en el plan. */
+export function laminaNombrada(msg: string, plan: PlanJson): { id: string; label: string } | null {
+  const m = /(?:^|[\s:])(?:Lámina|Sección) (\d+)(?: «[^»]*»)?:/.exec(msg);
+  if (!m) return null;
+  const indice = Number(m[1]) - 1;
+  const slide = plan.slides[indice];
+  return slide ? { id: slide.id, label: rotuloLamina(slide, indice) } : null;
 }
 
 /**
@@ -164,7 +191,7 @@ function humanizar(msg: string, plan: PlanJson): HumanizedError {
 
   // Fallback: nunca el error crudo como texto principal; va en `detalle` ----
   return {
-    message: "No se pudo generar el informe. Revisa la lámina indicada o vuelve a intentarlo; el detalle quedó en el registro.",
+    message: MENSAJE_SIN_PATRON,
     hint: "Si se repite, copia el detalle técnico y envíalo a soporte.",
   };
 }

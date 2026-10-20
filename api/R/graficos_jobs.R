@@ -120,14 +120,22 @@
         message = sprintf("Armando %s %s de %s…", item_label, i, total_slides)
       )
     }
+    titulo_i <- .aviso_titulo_payload(slides[[i]])
     slides_r[[i]] <- tryCatch(
-      .aviso_con_lamina(i, .aviso_titulo_payload(slides[[i]]), .graficos_rebuild_slide_json(   # avisos «Lámina i · …»
+      .aviso_con_lamina(i, titulo_i, .graficos_rebuild_slide_json(   # avisos «Lámina i · …»
         slides[[i]],
         slide_registry = slide_registry,
         graficador_registry = graficador_registry,
         icon_registry = icon_registry
       )),
-      error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
+      # El error dice qué lámina, como el consolidado: «Revisa la lámina indicada» sin número dejaba al analista
+      # buscando entre 50 (Arte, lámina 33: un radar `box` con un `var` de su modo anterior, 2026-10-20).
+      error = function(e) {
+        rotulo <- sub("^la ", "", item_label)
+        rotulo <- paste0(toupper(substr(rotulo, 1, 1)), substring(rotulo, 2))
+        titulo_txt <- if (!is.na(titulo_i) && nzchar(titulo_i)) paste0(" «", titulo_i, "»") else ""
+        stop(base_error(sprintf("%s %s%s: %s", rotulo, i, titulo_txt, conditionMessage(e))), call. = FALSE)
+      }
     )
   }
   slides_r
