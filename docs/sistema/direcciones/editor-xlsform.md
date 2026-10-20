@@ -6,14 +6,15 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `editor-xlsform` · ruta `/editor-xlsform` · 12 direcciones.
+Módulo `editor-xlsform` · ruta `/editor-xlsform` · 13 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `editor-xlsform` | modulo | Editor de formularios | sí | 958925c6 | sí | — |
-| `editor-xlsform/formularios` | seccion | Formularios | sí | 40aba718 | sí | — |
+| `editor-xlsform` | modulo | Editor de formularios | sí | 9a28736e | sí | — |
+| `editor-xlsform/formularios` | seccion | Formularios | sí | 9706a887 | sí | — |
 | `editor-xlsform/formularios/constructor` | pestana | Constructor | sí | 67e4c05a | sí | — |
 | `editor-xlsform/formularios/hojas` | pestana | Editor XLSForm | sí | 168171cd | sí | — |
+| `editor-xlsform/formularios/opciones` | pestana | Listas de opciones | sí | 7d2549a6 | sí | — |
 | `editor-xlsform/formularios/cuestionario` | pestana | Vista del cuestionario | sí | 65de19c2 | sí | — |
 | `editor-xlsform/formularios/logica` | pestana | Mapa de lógica | sí | 0de5e899 | sí | — |
 | `editor-xlsform/formularios/restricciones` | pestana | Restricciones | sí | e58a47b8 | sí | — |

@@ -1,7 +1,7 @@
 ---
 tipo: pestana
 padres: ["[[Formularios]]"]
-orden: 5
+orden: 6
 documentacion: parcial
 ruta_app: "/editor-xlsform?seccion=formularios&pestana=restricciones"
 nodo: "editor-xlsform/formularios/restricciones"
