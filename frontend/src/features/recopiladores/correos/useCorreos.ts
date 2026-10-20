@@ -21,7 +21,7 @@ import {
 import { conDestinatarios, conPlantillaGuardada } from "./modeloCampanas";
 import { huellaDeEdicion } from "./modeloCorreo";
 import { enviosParaGuardar, huellaDeEnvios, rotuloDeEnvio } from "./modeloEnvios";
-import { envioElegido, hayCambios, hayQueGuardar, useCorreosStore, type EstadoCorreos } from "./store";
+import { NOTA_DEL_PROYECTO, envioElegido, hayCambios, hayQueGuardar, useCorreosStore, type EstadoCorreos } from "./store";
 
 const GUARDADA_INVALIDA = "E_COLLECTION_MAIL_TEMPLATE_STORED_INVALID";
 
@@ -69,6 +69,20 @@ function mensajeDe(cause: unknown, fallback: string): string {
  * etiquetas reales del dialecto de la campaña), sobre el borrador y con el
  * envío que se mira. Nunca la vista previa, que resuelve los campos.
  */
+const CLAVE_NOTA_DEL_PROYECTO = "pulso.correos.nota-del-proyecto";
+
+/** La nota del .pulso se dice una vez por sesión del navegador, no en cada guardado. */
+function primeraVezQueSeGuarda(): boolean {
+  try {
+    if (typeof sessionStorage === "undefined") return true;
+    if (sessionStorage.getItem(CLAVE_NOTA_DEL_PROYECTO)) return false;
+    sessionStorage.setItem(CLAVE_NOTA_DEL_PROYECTO, "1");
+    return true;
+  } catch {
+    return true;
+  }
+}
+
 export function pedidoDelHtmlDeLaPlataforma(
   st: Pick<EstadoCorreos, "borrador" | "campana" | "envios" | "envio">,
 ): Parameters<typeof apiMailPreview>[0] | null {
@@ -214,6 +228,7 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
     st.setAviso(null);
     // Plantilla y envíos viajan juntos: una sola subida de revisión (E1k).
     const enviados = st.envios;
+    const enviada = st.borrador;
     const plantillaCambio = huellaDeEdicion(st.borrador) !== huellaDeEdicion(st.guardada);
     try {
       const payload = await apiMailTemplatePut({
@@ -227,12 +242,17 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
       s.getState().anotarRevision(payload.state_revision);
       if (!payload.noop) onEscrito.current?.();
       if (!vigente(id)) return true;
-      s.getState().guardado(payload, enviados);
+      s.getState().guardado(payload, enviados, enviada);
       s.getState().setCampanas((lista) => conPlantillaGuardada(lista, id, payload.template, payload.sends));
       const fechas = payload.send_warnings.map((w) => w.detail).join(" ");
+      // F6: el estado lo dice la barra («Guardado»); aquí sólo lo que la barra no
+      // dice: un aviso de fechas, o —la primera vez— por qué el proyecto sigue
+      // «sin guardar» (el .pulso se guarda aparte).
       s.getState().setAviso(fechas
-        ? { tono: "info", texto: `Correo guardado. ${fechas}` }
-        : { tono: "ok", texto: payload.noop ? "No había cambios que guardar." : "Correo guardado." });
+        ? { tono: "info", texto: fechas }
+        : !payload.noop && primeraVezQueSeGuarda()
+          ? { tono: "info", texto: NOTA_DEL_PROYECTO }
+          : null);
       return true;
     } catch (cause) {
       if (!vivo.current) return false;
@@ -268,7 +288,8 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
       return "error";
     }
     st.setOcupado(scope === "plantilla" ? "exportando-plantilla" : "exportando");
-    st.setAviso(null);
+    // La nota del .pulso que dejó el guardado previo se queda (F6); el resto se limpia.
+    if (st.aviso?.texto !== NOTA_DEL_PROYECTO) st.setAviso(null);
     st.setExportacion(null);
     try {
       // Tras guardar, el envío elegido ya tiene su id del servidor.

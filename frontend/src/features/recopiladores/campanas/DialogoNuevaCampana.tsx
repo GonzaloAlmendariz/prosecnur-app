@@ -22,7 +22,11 @@ import { ArrowLeft, FileCode2, FilePlus2, Loader2, Plus, X } from "../../../vend
 import { NOMBRE_DE_PLATAFORMA, RESUMEN_DE_PLATAFORMA } from "../correos/dialectos";
 import { LARGO_ACTOR, LARGO_NOMBRE, ORIGEN_EN_BLANCO, problemaDelActor, problemaDelNombre } from "../correos/modeloCampanas";
 import { origenDePreset } from "../correos/modeloCorreo";
+import { AvisoDeNombreRepetido } from "./AvisoDeNombreRepetido";
+import { hrefDeCampana } from "./direccionDeCampanas";
+import { useFocoDeRetorno } from "./focoDeRetorno";
 import { NOMBRE_CAMPANA_AULAS, QUE_ES_EL_TIPO, ROTULO_DEL_TIPO, disponibilidadDe } from "./modeloRegistro";
+import { campanaHomonima } from "./nombreUnico";
 import { ICONO_DEL_TIPO } from "./TarjetaDeCampana";
 import type { FuenteDelRegistro } from "./useRegistroDeCampanas";
 import "../correos/correosCampanas.css";
@@ -123,10 +127,21 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
   };
 
   const problema = nombre.trim() ? problemaDelNombre(nombre) ?? (tipo === "correo" ? problemaDelActor(actor) : null) : null;
+  // F1: el nombre no se repite; la campaña que ya lo usa se ofrece para abrirla.
+  const homonima = tipo && registro ? campanaHomonima(nombre, registro.campaigns) : null;
+  // F12: por qué «Crear campaña» todavía no se puede pulsar, dicho junto al botón.
+  const motivo = !tipo
+    ? "Elige un tipo para seguir."
+    : !nombre.trim()
+      ? "Escribe el nombre de la campaña para crearla."
+      : homonima
+        ? "Cambia el nombre: ya lo usa otra campaña."
+        : null;
+  const alCerrar = useFocoDeRetorno(abierto, ['[data-retorno="nueva-campana"]']);
 
   const crear = async (e: FormEvent) => {
     e.preventDefault();
-    if (!tipo || problema || !nombre.trim()) return;
+    if (!tipo || problema || homonima || !nombre.trim()) return;
     setError("");
     const out = tipo === "aulas"
       ? await onCrearAulas(nombre)
@@ -145,6 +160,7 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
           data-audit-ready="true"
           aria-busy={ocupado}
           aria-describedby={`${ids}-desc`}
+          onCloseAutoFocus={alCerrar}
         >
           <header className="rec-nueva-cabeza">
             <span>
@@ -167,8 +183,16 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
               <div className="rec-nueva-paso">
                 <label className="rec-camp-campo rec-nueva-campo">
                   <span>Nombre de la campaña</span>
-                  <input value={nombre} maxLength={LARGO_NOMBRE} autoFocus onChange={(e) => setNombre(e.target.value)} />
+                  <input
+                    value={nombre}
+                    maxLength={LARGO_NOMBRE}
+                    autoFocus
+                    aria-invalid={homonima ? true : undefined}
+                    aria-describedby={homonima ? `${ids}-repetido` : undefined}
+                    onChange={(e) => setNombre(e.target.value)}
+                  />
                 </label>
+                {homonima ? <AvisoDeNombreRepetido id={`${ids}-repetido`} campana={homonima} href={homonima.archived ? null : hrefDeCampana(homonima)} /> : null}
                 <p className="rec-nueva-pie-nota">
                   Las unidades salen de la muestra decidida en Cálculo de muestra: al abrir la campaña se siembran desde Unidades.
                   {fuente === "derivada" ? " Esta versión del backend no guarda el nombre: la campaña se llama «Campo en aulas»." : ""}
@@ -186,7 +210,8 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
                       maxLength={LARGO_NOMBRE}
                       placeholder="Invitación egresados"
                       autoFocus
-                      aria-invalid={problema ? true : undefined}
+                      aria-invalid={problema || homonima ? true : undefined}
+                      aria-describedby={homonima ? `${ids}-repetido` : undefined}
                       onChange={(e) => setNombre(e.target.value)}
                     />
                   </label>
@@ -195,6 +220,7 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
                     <input value={actor} maxLength={LARGO_ACTOR} placeholder="Egresados" onChange={(e) => setActor(e.target.value)} />
                   </label>
                 </span>
+                {homonima ? <AvisoDeNombreRepetido id={`${ids}-repetido`} campana={homonima} href={homonima.archived ? null : hrefDeCampana(homonima)} /> : null}
                 <fieldset className="rec-nueva-plataformas">
                   <legend>Sale por</legend>
                   <span className="rec-nueva-plataformas-opciones">
@@ -248,7 +274,7 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
           <footer className="rec-nueva-pie">
             {problema ? <span className="rec-nueva-problema" role="alert">{problema}</span> : null}
             {error ? <span className="rec-nueva-problema" role="alert">{error}</span> : null}
-            {!tipo ? <span className="rec-nueva-pie-nota">Elige un tipo para seguir.</span> : null}
+            {motivo && !problema && !error ? <span className="rec-nueva-pie-motivo" id={`${ids}-motivo`}>{motivo}</span> : null}
             {tipo ? (
               <PulsoButton variant="ghost" size="sm" type="button" disabled={ocupado} onClick={() => setTipo(null)}>
                 <ArrowLeft size={14} aria-hidden /> Otro tipo
@@ -259,7 +285,8 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
               size="sm"
               type="submit"
               form={`${ids}-form`}
-              disabled={!tipo || ocupado || !nombre.trim() || Boolean(problema)}
+              disabled={!tipo || ocupado || !nombre.trim() || Boolean(problema) || Boolean(homonima)}
+              aria-describedby={motivo ? `${ids}-motivo` : undefined}
             >
               {ocupado ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Plus size={14} aria-hidden />}
               Crear campaña

@@ -129,7 +129,6 @@ describe("PanelRevision y PanelMailchimp", () => {
   it("no hay botón de enviar; exportar queda bloqueado mientras la revisión tenga errores", () => {
     const html = renderToStaticMarkup(
       <PanelMailchimp
-        template={PLANTILLA}
         revision={revision}
         exportacion={null}
         exportando={null}
@@ -137,11 +136,13 @@ describe("PanelRevision y PanelMailchimp", () => {
         htmlActual="<p>x</p>"
         onExportar={noop}
         onGuardarJunto={noop}
-        onVerRevision={noop}
       />,
     );
-    expect(html).toContain("*|FNAME|*");
-    expect(html).toContain("*|CARRERA|*");
+    // Las etiquetas viven en Personas (F5/F7): el menú de exportar no las repite.
+    expect(html).not.toContain("*|CARRERA|*");
+    // Lo que falta lo cuenta la pestaña Revisión; aquí no hay un segundo «Ver qué falta corregir».
+    expect(html).not.toContain("Ver qué falta corregir");
+    expect(html).toContain("La audiencia espera la lista");
     // Sin destinatarios la audiencia no sale; la plantilla sola sí (no depende de la lista).
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Plantilla \+ audiencia/);
     expect(html).not.toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Plantilla para importar/);
@@ -288,7 +289,6 @@ describe("Revisión con un repetido que cambia el enlace y un enlace vacío", ()
     expect(html).toContain("2 por corregir");
     const mc = renderToStaticMarkup(
       <PanelMailchimp
-        template={PLANTILLA}
         revision={revision}
         exportacion={null}
         exportando={null}
@@ -296,7 +296,6 @@ describe("Revisión con un repetido que cambia el enlace y un enlace vacío", ()
         htmlActual="<p>x</p>"
         onExportar={noop}
         onGuardarJunto={noop}
-        onVerRevision={noop}
       />,
     );
     expect(mc).toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Plantilla \+ audiencia/);

@@ -17,6 +17,7 @@ import type { AccionDeCampana, IdDeAccion } from "./accionesDeCampana";
 import type { MiniaturaDeCorreo } from "./miniaturaDeCorreo";
 import { MenuDeCampana } from "./MenuDeCampana";
 import { ROTULO_DEL_TIPO, resumenDeTarjeta } from "./modeloRegistro";
+import { subtituloDeCampana } from "./nombreUnico";
 
 export const ICONO_DEL_TIPO: Readonly<Record<CampanaMaterial["tipo"], LucideIcon>> = {
   aulas: Backpack,
@@ -30,10 +31,13 @@ type Props = {
   acciones: readonly AccionDeCampana[];
   onAccion: (accion: IdDeAccion, campana: CampanaMaterial) => void;
   miniatura?: MiniaturaDeCorreo | null;
+  /** El asunto del correo: distingue a dos campañas del mismo nombre cuando no hay actor (F1). */
+  asunto?: string | null;
 };
 
-export function TarjetaDeCampana({ campana, href, acciones, onAccion, miniatura = null }: Props) {
+export function TarjetaDeCampana({ campana, href, acciones, onAccion, miniatura = null, asunto = null }: Props) {
   const resumen = resumenDeTarjeta(campana);
+  const subtitulo = subtituloDeCampana(campana, asunto);
   const Icono = ICONO_DEL_TIPO[campana.tipo];
   const pct = resumen.avance && resumen.avance.total > 0
     ? Math.round((resumen.avance.actual / resumen.avance.total) * 100)
@@ -53,9 +57,9 @@ export function TarjetaDeCampana({ campana, href, acciones, onAccion, miniatura 
           <h3 className="rec-campana-nombre" title={campana.name}>
             {campana.archived ? campana.name : <Link className="rec-campana-abrir" to={href}>{campana.name}</Link>}
           </h3>
-          {campana.actor ? <span className="rec-campana-actor">{campana.actor}</span> : null}
+          {subtitulo ? <span className="rec-campana-actor" title={subtitulo}>{subtitulo}</span> : null}
         </span>
-        <MenuDeCampana campana={campana} acciones={acciones} onAccion={onAccion} />
+        <MenuDeCampana campana={campana} acciones={acciones} onAccion={onAccion} subtitulo={subtitulo} />
       </header>
 
       <span className={`rec-campana-estado is-${campana.archived ? "neutral" : resumen.tono}`}>

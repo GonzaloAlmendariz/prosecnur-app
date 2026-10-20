@@ -1,0 +1,146 @@
+/* Régimen de cajón (F3) y pestañas que no se van con el scroll (F8).
+
+   Por debajo de 1200 px de ancho útil (anchoDelEditor.ts) la columna de
+   plantillas y bloques sale de la grilla y se abre desde la barra: el lienzo
+   se queda con su ancho. A 1024 px el correo pasa de escala 0,5 a ≥ 0,8.
+   Tres clases ganan a los regímenes de correos.css y correosEnvios.css sin
+   depender del orden del bundle. Sólo tokens. */
+
+.rec-mail-contenedor .rec-mail.is-cajon {
+  grid-template-areas:
+    "barra barra"
+    "aviso aviso"
+    "lienzo insp";
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 352px);
+}
+
+@container rec-mail (max-width: 820px) {
+  .rec-mail-contenedor .rec-mail.is-cajon {
+    grid-template-areas:
+      "barra"
+      "aviso"
+      "lienzo"
+      "insp";
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* El botón del cajón: herramienta de la barra con su rótulo. */
+.rec-barra-cajon {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--pulso-radius);
+  box-shadow: none;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12.5px;
+  gap: 5px;
+  height: 32px;
+  min-height: 0;
+  padding: 0 var(--pulso-space-2);
+  transform: none;
+  white-space: nowrap;
+}
+
+.rec-barra-cajon:hover,
+.rec-barra-cajon.is-on {
+  background: var(--pulso-module-fieldkit-soft);
+  color: var(--pulso-module-fieldkit);
+}
+
+.rec-barra-cajon:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+.rec-barra-cajon-cuenta {
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-warn-fg);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1;
+  padding: 2px 5px;
+}
+
+/* El cajón: la misma columna, con alto tope de la ventana y un solo scroll. */
+.rec-cajon {
+  max-height: calc(var(--radix-popover-content-available-height, 100vh) - 8px);
+  overflow-y: auto;
+  width: min(300px, calc(100vw - 24px));
+  z-index: var(--pulso-z-flyout);
+}
+
+.rec-cajon > .rec-mail-col--bloques {
+  box-shadow: var(--pulso-shadow-popover);
+  max-height: none;
+  overflow: visible;
+}
+
+.rec-cajon .rec-mail-bloques {
+  max-height: none;
+  overflow: visible;
+}
+
+/* F8 — Cuando el panel es el único dueño del scroll (1024×600), las pestañas
+   del inspector quedan pegadas bajo la barra, que también es sticky. */
+@media (max-width: 780px), (max-height: 680px) {
+  /* Cuatro clases: gana a correosInspector.css (fondo transparente) sin
+     depender del orden del bundle. `top`: los 36 px de la barra compactada;
+     el aire de arriba es relleno (no margen) para que nada asome entre la
+     barra y las pestañas. */
+  .rec-mail .rec-mail-col--inspector .rec-mail-tabs.rec-mail-tabs--secciones {
+    background: var(--pulso-surface);
+    margin-top: 0;
+    padding-top: 8px;
+    position: sticky;
+    top: 36px;
+    z-index: 5;
+  }
+
+  /* El inspector acompaña al lienzo en todo su alto: sus pestañas siguen a la
+     vista mientras se recorre el correo. El hueco bajo un panel corto es del
+     inspector, dentro de su marco (C3). */
+  .rec-mail-contenedor .rec-mail .rec-mail-col--inspector {
+    align-self: stretch;
+  }
+}
+
+/* «Ver como» sigue a la vista en compacto (F3): cede el rótulo del cajón y el
+   de la persona se recorta antes que desaparecer. Dos clases ganan a la regla
+   de correosBarra.css que lo escondía. */
+@container rec-barra (max-width: 1000px) {
+  .rec-mail-barra--fina .rec-barra-ver-como {
+    display: inline-flex;
+    max-width: 150px;
+    overflow: hidden;
+    padding-left: var(--pulso-space-2);
+  }
+
+  .rec-mail-barra--fina .rec-barra-ver-como b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .rec-mail-barra--fina .rec-barra-cajon-rotulo,
+  .rec-mail-barra--fina .rec-barra-ver-como .rec-mail-chip,
+  .rec-mail-barra--fina .rec-campana-cabecera-sub {
+    display: none;
+  }
+
+  /* «Campañas» queda en la flecha (el enlace conserva su nombre accesible). */
+  .rec-mail-barra--fina .rec-campana-volver-rotulo {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+}

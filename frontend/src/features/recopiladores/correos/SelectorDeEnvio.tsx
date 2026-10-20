@@ -11,7 +11,7 @@ import { useState } from "react";
 
 import type { MailSend } from "../../../api/materialMail";
 import { Check, ChevronDown, Plus, Send } from "../../../vendor/lucide-react";
-import { ROTULO_DE_AUDIENCIA, puedeAgregar, rotuloDeEnvio } from "./modeloEnvios";
+import { ROTULO_DE_AUDIENCIA, marcaDeExportado, puedeAgregar, rotuloDeEnvio } from "./modeloEnvios";
 import "./correosEnvios.css";
 
 type Props = {
@@ -20,9 +20,11 @@ type Props = {
   onElegir: (sendId: string) => void;
   onAgregar: () => void;
   onGestionar: () => void;
+  /** Cuándo se exportó cada envío (`send_id` → ISO) (F16). */
+  exportados?: Readonly<Record<string, string>>;
 };
 
-export function SelectorDeEnvio({ envios, activo, onElegir, onAgregar, onGestionar }: Props) {
+export function SelectorDeEnvio({ envios, activo, onElegir, onAgregar, onGestionar, exportados = {} }: Props) {
   const [abierto, setAbierto] = useState(false);
   return (
     <Popover.Root open={abierto} onOpenChange={setAbierto}>
@@ -53,7 +55,10 @@ export function SelectorDeEnvio({ envios, activo, onElegir, onAgregar, onGestion
                     <span className="rec-env-menu-marca" aria-hidden>{actual ? <Check size={14} /> : null}</span>
                     <span className="rec-env-menu-textos">
                       <b>{rotuloDeEnvio(e)}</b>
-                      <span>{e.kind === "invitacion" ? "A todos" : `A: ${ROTULO_DE_AUDIENCIA[e.audience].toLocaleLowerCase("es-PE")}`}</span>
+                      <span>
+                        {e.kind === "invitacion" ? "A todos" : `A: ${ROTULO_DE_AUDIENCIA[e.audience].toLocaleLowerCase("es-PE")}`}
+                        {marcaDeExportado(exportados[e.send_id]) ? ` · ${marcaDeExportado(exportados[e.send_id])}` : ""}
+                      </span>
                     </span>
                   </button>
                 </li>

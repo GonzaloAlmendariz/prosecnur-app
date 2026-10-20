@@ -1,0 +1,67 @@
+/* Personas (revisión de usabilidad): la oferta del saludo por sexo donde se
+   carga la lista (F2), la tabla «Para SurveyMonkey» que antes vivía en el pie
+   (F5/F7) y la nota «Opcional» con el mismo margen que el resto del inspector
+   (F11). Sólo tokens. */
+
+.rec-personas-trato {
+  align-items: center;
+  background: var(--pulso-module-fieldkit-soft);
+  border-radius: var(--pulso-radius);
+  color: var(--pulso-text);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  gap: 6px var(--pulso-space-2);
+  line-height: 1.45;
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.rec-personas-trato > svg {
+  color: var(--pulso-module-fieldkit);
+  flex: none;
+}
+
+.rec-personas-trato > span {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.rec-personas-trato.is-en-uso {
+  background: var(--pulso-success-bg);
+  border: 1px solid var(--pulso-success-border);
+  color: var(--pulso-success-fg);
+}
+
+.rec-personas-trato .rec-mail-link {
+  align-items: center;
+  display: inline-flex;
+  gap: 3px;
+}
+
+.rec-personas-sm {
+  border-top: 1px solid var(--pulso-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--pulso-space-2);
+  padding-top: var(--pulso-space-3);
+}
+
+.rec-mail-def-campo-sm {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+/* La nota «Opcional» va dentro del cuerpo del inspector: hereda su margen. */
+.rec-mail-insp-cuerpo > .rec-sm-lista-opcional {
+  align-items: flex-start;
+  display: flex;
+  gap: 6px;
+  margin: 0;
+}
+
+.rec-mail-insp-cuerpo > .rec-sm-lista-opcional > svg {
+  flex: none;
+  margin-top: 2px;
+}

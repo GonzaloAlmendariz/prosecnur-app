@@ -83,12 +83,39 @@ export function puedeAgregar(envios: readonly MailSend[]): boolean {
  * Suma un recordatorio al final, para quienes no respondieron. Sin fecha: la
  * fecha prevista la pone quien planifica, no la app.
  */
-export function agregarRecordatorio(envios: readonly MailSend[]): { envios: MailSend[]; sendId: string | null } {
+export function agregarRecordatorio(
+  envios: readonly MailSend[],
+  asuntoBase: string | null = null,
+): { envios: MailSend[]; sendId: string | null } {
   const base = conInvitacion(envios);
   if (!puedeAgregar(base)) return { envios: base, sendId: null };
   const send_id = idLocalLibre(base);
-  const nuevo: MailSend = { send_id, kind: "recordatorio", label: rotuloPorDefecto(base.length), audience: "sin_respuesta" };
+  const subject = asuntoDeRecordatorio(asuntoBase);
+  const nuevo: MailSend = {
+    send_id, kind: "recordatorio", label: rotuloPorDefecto(base.length), audience: "sin_respuesta",
+    ...(subject ? { subject } : {}),
+  };
   return { envios: [...base, nuevo], sendId: send_id };
+}
+
+/** Largo máximo del asunto de un envío (el del campo en Envíos). */
+export const LARGO_ASUNTO = 80;
+
+/**
+ * El asunto con que nace un recordatorio (F16): «Recordatorio: <asunto>».
+ * Sin asunto de base no se inventa uno; si ya empieza así, no se repite.
+ */
+export function asuntoDeRecordatorio(asunto: string | null | undefined): string | null {
+  const limpio = (asunto ?? "").replace(/\s+/g, " ").trim();
+  if (!limpio || /^\[.*\]$/.test(limpio)) return null;
+  const texto = /^recordatorio\s*:/i.test(limpio) ? limpio : `Recordatorio: ${limpio}`;
+  return texto.length > LARGO_ASUNTO ? `${texto.slice(0, LARGO_ASUNTO - 1).trimEnd()}…` : texto;
+}
+
+/** «exportado 20/10» de un envío, o vacío si nunca se exportó (F16). */
+export function marcaDeExportado(iso: string | null | undefined): string {
+  const m = (iso ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `exportado ${m[3]}/${m[2]}` : "";
 }
 
 /** Quita un recordatorio (la invitación no se quita) y renumera los rótulos por defecto. */

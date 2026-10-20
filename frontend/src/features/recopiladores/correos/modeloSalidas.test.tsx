@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 
 import { MAIL_PLATFORMS } from "../../../api/materialMail";
 import { SALIDAS_DEL_ENVIO } from "./modeloSalidas";
-import { SalidasDelEnvio } from "./SalidasDelEnvio";
+import { PanelMailchimp } from "./PanelMailchimp";
+import { PanelSurveyMonkey } from "./PanelSurveyMonkey";
+
+const noop = () => undefined;
 
 describe("cada plataforma dice cuál es su salida principal y para qué sirve cada una", () => {
   it("una sola principal por plataforma, con su línea", () => {
@@ -11,7 +14,7 @@ describe("cada plataforma dice cuál es su salida principal y para qué sirve ca
       expect(SALIDAS_DEL_ENVIO[p].filter((s) => s.principal)).toHaveLength(1);
       for (const s of SALIDAS_DEL_ENVIO[p]) {
         expect(s.para.length).toBeGreaterThan(10);
-        // Una línea: cabe al pie del inspector sin quitarle alto al panel.
+        // Una línea: cabe bajo su rótulo en «Exportar ▾».
         expect(`${s.corto}: ${s.para}`.length).toBeLessThanOrEqual(80);
       }
     }
@@ -24,9 +27,23 @@ describe("cada plataforma dice cuál es su salida principal y para qué sirve ca
     expect(paquete.para).toContain("contactos con su saludo");
   });
 
-  it("los rótulos son los de los botones de los paneles", () => {
-    const sm = renderToStaticMarkup(<SalidasDelEnvio plataforma="surveymonkey" />);
-    expect(sm).toContain("principal");
-    expect(sm.match(/rec-mail-salida-principal/g)).toHaveLength(1);
+  it("los rótulos son los de los botones de «Exportar ▾», con una sola principal", () => {
+    const sm = renderToStaticMarkup(
+      <PanelSurveyMonkey
+        envio={{ send_id: "invitacion", kind: "invitacion", label: "Invitación", audience: "todos" }}
+        revision={null} exportacion={null} exportando={false} ocupado={false}
+        onHtml={async () => null} onExportar={noop} onGuardarJunto={noop}
+      />,
+    );
+    const mc = renderToStaticMarkup(
+      <PanelMailchimp revision={null} exportacion={null} exportando={null} ocupado={false} htmlActual={null} onExportar={noop} onGuardarJunto={noop} />,
+    );
+    for (const [html, p] of [[sm, "surveymonkey"], [mc, "mailchimp"]] as const) {
+      expect(html.match(/rec-mail-salida-principal/g)).toHaveLength(1);
+      for (const s of SALIDAS_DEL_ENVIO[p]) {
+        expect(html).toContain(s.accion);
+        expect(html).toContain(s.para);
+      }
+    }
   });
 });

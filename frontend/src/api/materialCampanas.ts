@@ -220,12 +220,22 @@ export function normalizarCampana(valor: unknown): CampanaMaterial | null {
   };
 }
 
+/**
+ * El motivo en el idioma de quien lo lee: sin la referencia interna del plan
+ * que lo decidió («… de Hojas de ruta (E2)» → «… de Hojas de ruta»).
+ */
+export function motivoSinCodigo(motivo: string | null): string | null {
+  if (!motivo) return motivo;
+  const limpio = motivo.replace(/\s*\((?:[A-Z]\d+[a-z]?)(?:\s*[,;·]\s*[A-Z]\d+[a-z]?)*\)/g, "").replace(/\s{2,}/g, " ").trim();
+  return limpio || null;
+}
+
 function normalizarTipo(valor: unknown): DisponibilidadDeTipo | null {
   if (!esRegistro(valor)) return null;
   const tipo = texto(valor.tipo).trim();
   if (!esTipoDeCampana(tipo)) return null;
   const disponible = logico(valor.disponible);
-  return { tipo, disponible, motivo: disponible ? null : textoONulo(valor.motivo) };
+  return { tipo, disponible, motivo: disponible ? null : motivoSinCodigo(textoONulo(valor.motivo)) };
 }
 
 export function normalizarRegistroDeCampanas(valor: unknown): RegistroDeCampanas {

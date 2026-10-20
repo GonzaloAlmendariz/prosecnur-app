@@ -430,7 +430,22 @@ export function huellaDeEdicion(template: MailTemplate | null): string {
   const { revision: _r, template_sha256: _s, ...resto } = template;
   void _r;
   void _s;
-  return JSON.stringify(resto);
+  return JSON.stringify(conClavesOrdenadas(resto));
+}
+
+/**
+ * El mismo valor con las claves de cada objeto en orden alfabético. La
+ * plantilla que devuelve el backend no trae las claves en el orden en que el
+ * editor las escribió (el saludo por sexo, sobre todo): sin esto, guardar
+ * dejaba el correo «sin guardar» para siempre (F6).
+ */
+function conClavesOrdenadas(valor: unknown): unknown {
+  if (Array.isArray(valor)) return valor.map(conClavesOrdenadas);
+  if (valor === null || typeof valor !== "object") return valor;
+  const fuente = valor as Record<string, unknown>;
+  return Object.fromEntries(
+    Object.keys(fuente).sort().filter((k) => fuente[k] !== undefined).map((k) => [k, conClavesOrdenadas(fuente[k])]),
+  );
 }
 
 // ---- imágenes -----------------------------------------------------------------

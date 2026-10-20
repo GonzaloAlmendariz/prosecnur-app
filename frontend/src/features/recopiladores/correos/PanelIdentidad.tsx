@@ -2,7 +2,7 @@ import { useId, type ChangeEvent } from "react";
 
 import type { MailCheck, MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { AlertCircle, CheckCircle2, ImagePlus, Trash2, Upload } from "../../../vendor/lucide-react";
+import { AlertCircle, Check, CheckCircle2, ImagePlus, Trash2, Upload } from "../../../vendor/lucide-react";
 import { Segmented } from "../../xlsformEditor/kit";
 import { FranjaDeLogos } from "./FranjaDeLogos";
 import {
@@ -140,8 +140,15 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
         <p>El cuerpo lo arma Pulso; el banner lo entrega el cliente.</p>
       </div>
       {altArriba ? (
-        <section className="rec-ident-pide-alt" aria-label="Falta describir el banner">
+        // F15: al llenarlo, el recuadro pasa a resuelto (y lo dice), sin esperar a salir del campo.
+        <section
+          className={`rec-ident-pide-alt${altPendiente(template.images[bannerId]?.alt) ? "" : " is-resuelto"}`}
+          aria-label={altPendiente(template.images[bannerId]?.alt) ? "Falta describir el banner" : "Banner descrito"}
+        >
           {datosDelBanner}
+          {!altPendiente(template.images[bannerId]?.alt) ? (
+            <span className="rec-ident-alt-listo" role="status"><Check size={13} aria-hidden /> Descrito: lo leen quienes no ven imágenes.</span>
+          ) : null}
         </section>
       ) : null}
 

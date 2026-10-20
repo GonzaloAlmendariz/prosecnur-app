@@ -17,8 +17,9 @@
 //
 // Es una explicación, no el export: el HTML real lo escribe siempre el render.
 
-import { isOpaqueMailBlock, type MailBlock, type MailField, type MailTemplate } from "../../../api/materialMail";
+import { isOpaqueMailBlock, type MailBlock, type MailField, type MailGreetingBlock, type MailTemplate } from "../../../api/materialMail";
 import { ROTULO_DE_PROP, propsDeTexto, textoDe, type PropDeTexto } from "./modeloCorreo";
+import { tratoDelSaludo } from "./modeloTrato";
 import { PATRON_CAMPO, PATRON_ENLACE } from "./serializarTexto";
 
 export type Dialecto = "mailchimp" | "surveymonkey";
@@ -85,6 +86,55 @@ export function textoEnLaPlataforma(
   return out.replace(PATRON_CAMPO, (_m, key: string) => campo(key, ctx, Boolean(opciones.enUrl)));
 }
 
+// ---- el saludo según la persona (F4) --------------------------------------------
+// Espejo de `.cmail_trato_html` / `.cmail_trato_inline` (collection_mail_trato.R)
+// en modo export: con el trato activo (por sexo y con columna), la primera
+// aparición de la palabra de respaldo se cambia por la etiqueta del dialecto.
+
+/** Etiqueta de Mailchimp del trato (`.CMAIL_TRATO_TAG`). */
+export const ETIQUETA_DEL_TRATO = "SALUDO";
+
+/** El dato personalizado de SurveyMonkey del trato: el declarado, o el primer CustomData libre. */
+export function ranuraDelTrato(trato: { sm?: string }, fields: readonly Pick<MailField, "sm">[]): string {
+  if (trato.sm) return trato.sm;
+  const usados = new Set(
+    fields.map((f) => /^CustomData(\d+)$/.exec(f.sm ?? "")?.[1]).filter((n): n is string => Boolean(n)).map(Number),
+  );
+  for (let i = 1; i <= 50; i += 1) if (!usados.has(i)) return `CustomData${i}`;
+  return "CustomData50";
+}
+
+const MARCA_DEL_TRATO = "\u0000trato\u0000";
+
+function saludoEnLaPlataforma(
+  texto: string,
+  block: MailGreetingBlock,
+  template: Pick<MailTemplate, "fields">,
+  dialecto: Dialecto,
+  notas: Set<string>,
+): string {
+  const trato = tratoDelSaludo(block);
+  const activo = trato.modo === "por_sexo" && Boolean(trato.columna);
+  if (!activo || !texto.includes(trato.respaldo)) return textoEnLaPlataforma(texto, template, dialecto, { notas });
+  const html = textoEnLaPlataforma(texto.replace(trato.respaldo, MARCA_DEL_TRATO), template, dialecto, { notas });
+  const palabra = dialecto === "surveymonkey"
+    ? `[${ranuraDelTrato(trato, template.fields)}]`
+    : `*|IF:${ETIQUETA_DEL_TRATO}|**|${ETIQUETA_DEL_TRATO}|**|ELSE:|*${trato.respaldo}*|END:IF|*`;
+  return html.replace(MARCA_DEL_TRATO, palabra);
+}
+
+function notasDelTrato(block: MailGreetingBlock, template: Pick<MailTemplate, "fields">, dialecto: Dialecto, notas: Set<string>): void {
+  const trato = tratoDelSaludo(block);
+  if (trato.modo !== "por_sexo") return;
+  if (!trato.columna) {
+    notas.add(`Sin columna de sexo el saludo dice «${trato.respaldo}» a todos: elígela en «Saludo según la persona».`);
+    return;
+  }
+  notas.add(dialecto === "surveymonkey"
+    ? `[${ranuraDelTrato(trato, template.fields)}] lleva «${trato.masculino}» o «${trato.femenino}»: lo trae escrito el archivo de contactos.`
+    : `*|${ETIQUETA_DEL_TRATO}|* lleva «${trato.masculino}» o «${trato.femenino}» desde la audiencia; sin dato, «${trato.respaldo}».`);
+}
+
 /** Propiedades que admiten `[texto](url)` (`.CMAIL_LINK_PROPS`). */
 const PROPS_CON_ENLACE: Partial<Record<MailBlock["type"], readonly PropDeTexto[]>> = {
   paragraph: ["text"],
@@ -129,12 +179,13 @@ export function comoSaleEnLaPlataforma(block: MailBlock, template: Pick<MailTemp
 
   if (block.type === "greeting") {
     const usaNombre = /\{\{\s*nombre\s*\}\}/.test(block.text);
-    const texto = textoEnLaPlataforma(block.text, template, dialecto, { notas });
+    const texto = saludoEnLaPlataforma(block.text, block, template, dialecto, notas);
+    notasDelTrato(block, template, dialecto, notas);
     if (dialecto === "mailchimp" && usaNombre && block.fallback) {
       lineas.push({
         rotulo: "Saludo",
         app: block.text,
-        plataforma: `*|IF:FNAME|*${texto}*|ELSE:|*${textoEnLaPlataforma(block.fallback, template, dialecto, { notas })}*|END:IF|*`,
+        plataforma: `*|IF:FNAME|*${texto}*|ELSE:|*${saludoEnLaPlataforma(block.fallback, block, template, dialecto, notas)}*|END:IF|*`,
       });
       notas.add("Quien no tiene nombre en la audiencia recibe el texto de respaldo.");
     } else {

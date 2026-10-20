@@ -100,3 +100,18 @@
   color: var(--pulso-module-fieldkit);
   padding: 0 2px;
 }
+
+/* F15: el recuadro que pide describir el banner queda resuelto al llenarlo. */
+.rec-ident-pide-alt.is-resuelto {
+  background: var(--pulso-success-bg);
+  border-color: var(--pulso-success-border);
+}
+
+.rec-ident-alt-listo {
+  align-items: center;
+  color: var(--pulso-success-fg);
+  display: inline-flex;
+  font-size: 12px;
+  gap: 4px;
+  margin-top: 6px;
+}

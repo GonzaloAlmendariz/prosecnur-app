@@ -103,3 +103,50 @@ export const LARGO_PALABRA_TRATO = 40;
 export function alcanceDelPaqueteSM(plataforma: string, conLista: boolean): "completo" | "plantilla" {
   return plataforma === "surveymonkey" && conLista ? "completo" : "plantilla";
 }
+
+// ---- la columna de sexo, ofrecida donde se carga la lista (F2) -------------------
+
+/** Rótulos de columna que suelen traer el sexo de la persona. */
+const PARECE_SEXO = /^(sexo|genero|gender|sex|sexo de la persona|sexo biologico)$/;
+
+function claveDeColumna(columna: string): string {
+  return columna
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLocaleLowerCase("es-PE")
+    .replace(/[_\-.]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** La primera columna de la lista que parece de sexo (Sexo, Género, Gender, sex…), o `null`. */
+export function columnaQuePareceSexo(columnas: readonly string[]): string | null {
+  return columnas.find((c) => PARECE_SEXO.test(claveDeColumna(c))) ?? null;
+}
+
+export type OfertaDelTrato =
+  | { tipo: "ofrecer"; columna: string }
+  | { tipo: "en-uso"; columna: string }
+  | null;
+
+/**
+ * Qué dice Personas del saludo por sexo: ofrecer la columna que parece de sexo
+ * (un clic), decir que ya se usa, o nada (no hay saludo, ni lista, ni columna).
+ */
+export function ofertaDelTrato(
+  saludo: Pick<MailGreetingBlock, "trato"> | null,
+  columnas: readonly string[],
+): OfertaDelTrato {
+  if (!saludo || !columnas.length) return null;
+  const trato = tratoDelSaludo(saludo);
+  if (trato.modo === "por_sexo" && trato.columna && columnas.includes(trato.columna)) {
+    return { tipo: "en-uso", columna: trato.columna };
+  }
+  const columna = columnaQuePareceSexo(columnas);
+  return columna ? { tipo: "ofrecer", columna } : null;
+}
+
+/** El saludo según el sexo con esa columna, en un solo cambio (un solo paso del historial). */
+export function conTratoPorSexo(block: MailGreetingBlock, columna: string): MailGreetingBlock {
+  return conTrato(conTrato(block, { modo: "por_sexo" }), { columna });
+}

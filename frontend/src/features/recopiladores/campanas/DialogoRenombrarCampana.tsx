@@ -14,19 +14,25 @@ import type { ControlPanel } from "../../../lib/navegacion/paneles";
 import { X } from "../../../vendor/lucide-react";
 import { NOMBRE_DE_PLATAFORMA } from "../correos/dialectos";
 import { LARGO_ACTOR, LARGO_NOMBRE, problemaDelActor, problemaDelNombre } from "../correos/modeloCampanas";
+import { AvisoDeNombreRepetido } from "./AvisoDeNombreRepetido";
 import type { Resultado } from "./DialogoNuevaCampana";
+import { hrefDeCampana } from "./direccionDeCampanas";
+import { useFocoDeRetorno } from "./focoDeRetorno";
+import { campanaHomonima } from "./nombreUnico";
 import "../correos/correosCampanas.css";
 import "./campanas.css";
 
 type Props = {
   panel: ControlPanel;
   campana: CampanaMaterial | null;
+  /** Las campañas del proyecto: el nombre nuevo no repite el de otra (F1). */
+  campanas: readonly CampanaMaterial[];
   ocupado: boolean;
   onGuardar: (campana: CampanaMaterial, cambio: { name: string; actor: string; platform?: MailPlatform }) => Promise<Resultado>;
   onCerrar: () => void;
 };
 
-export function DialogoRenombrarCampana({ panel, campana, ocupado, onGuardar, onCerrar }: Props) {
+export function DialogoRenombrarCampana({ panel, campana, campanas, ocupado, onGuardar, onCerrar }: Props) {
   const ids = useId();
   const plataformaActual = campana?.estado?.tipo === "correo" ? campana.estado.platform : null;
   const [nombre, setNombre] = useState("");
@@ -44,11 +50,13 @@ export function DialogoRenombrarCampana({ panel, campana, ocupado, onGuardar, on
 
   const esCorreo = campana?.tipo === "correo";
   const problema = problemaDelNombre(nombre) ?? (esCorreo ? problemaDelActor(actor) : null);
+  const homonima = campana ? campanaHomonima(nombre, campanas, campana.id) : null;
+  const alCerrar = useFocoDeRetorno(panel.abierto && campana !== null, campana ? [`[data-retorno="menu-${campana.id}"]`] : []);
   const borraLista = esCorreo && plataforma === "surveymonkey" && plataformaActual !== "surveymonkey";
 
   const guardar = async (e: FormEvent) => {
     e.preventDefault();
-    if (!campana || problema) return;
+    if (!campana || problema || homonima) return;
     const out = await onGuardar(campana, { name: nombre, actor, ...(esCorreo ? { platform: plataforma } : {}) });
     if (!out.ok) setError(out.mensaje);
   };
@@ -57,7 +65,7 @@ export function DialogoRenombrarCampana({ panel, campana, ocupado, onGuardar, on
     <Dialog.Root open={panel.abierto && campana !== null} onOpenChange={(siguiente) => { if (!siguiente && !ocupado) onCerrar(); }}>
       <Dialog.Portal>
         <Dialog.Overlay className="rec-camp-velo" />
-        <Dialog.Content className="rec-nueva" {...panel.props} data-audit-ready="true" aria-busy={ocupado} aria-describedby={`${ids}-desc`}>
+        <Dialog.Content className="rec-nueva" {...panel.props} data-audit-ready="true" aria-busy={ocupado} aria-describedby={`${ids}-desc`} onCloseAutoFocus={alCerrar}>
           <header className="rec-nueva-cabeza">
             <span>
               <Dialog.Title className="rec-nueva-titulo">Renombrar campaña</Dialog.Title>
@@ -73,7 +81,14 @@ export function DialogoRenombrarCampana({ panel, campana, ocupado, onGuardar, on
             <span className="rec-nueva-campos">
               <label className="rec-camp-campo rec-nueva-campo">
                 <span>Nombre</span>
-                <input autoFocus value={nombre} maxLength={LARGO_NOMBRE} aria-invalid={problema ? true : undefined} onChange={(e) => setNombre(e.target.value)} />
+                <input
+                  autoFocus
+                  value={nombre}
+                  maxLength={LARGO_NOMBRE}
+                  aria-invalid={problema || homonima ? true : undefined}
+                  aria-describedby={homonima ? `${ids}-repetido` : undefined}
+                  onChange={(e) => setNombre(e.target.value)}
+                />
               </label>
               {esCorreo ? (
                 <label className="rec-camp-campo rec-nueva-campo">
@@ -82,6 +97,7 @@ export function DialogoRenombrarCampana({ panel, campana, ocupado, onGuardar, on
                 </label>
               ) : null}
             </span>
+            {homonima ? <AvisoDeNombreRepetido id={`${ids}-repetido`} campana={homonima} href={homonima.archived ? null : hrefDeCampana(homonima)} /> : null}
             {esCorreo ? (
               <fieldset className="rec-nueva-plataformas">
                 <legend>Sale por</legend>
@@ -105,7 +121,7 @@ export function DialogoRenombrarCampana({ panel, campana, ocupado, onGuardar, on
             {problema ? <span className="rec-nueva-problema" role="alert">{problema}</span> : null}
             {error ? <span className="rec-nueva-problema" role="alert">{error}</span> : null}
             <PulsoButton variant="secondary" size="sm" type="button" disabled={ocupado} onClick={onCerrar}>Cancelar</PulsoButton>
-            <PulsoButton variant={borraLista ? "danger" : "primary"} size="sm" type="submit" form={`${ids}-form`} disabled={ocupado || Boolean(problema)}>
+            <PulsoButton variant={borraLista ? "danger" : "primary"} size="sm" type="submit" form={`${ids}-form`} disabled={ocupado || Boolean(problema) || Boolean(homonima)}>
               {borraLista ? "Guardar y borrar la lista" : "Guardar"}
             </PulsoButton>
           </footer>

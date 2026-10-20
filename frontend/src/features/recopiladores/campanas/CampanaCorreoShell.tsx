@@ -17,9 +17,11 @@ type Props = {
   cabecera: ReactNode;
   campanasAcc: AccionesDeCampanas;
   onStateRefresh: () => void | Promise<void>;
+  /** Cuándo se exportó cada envío (`send_id` → ISO), del registro (F16). */
+  exportados?: Readonly<Record<string, string>>;
 };
 
-export function CampanaCorreoShell({ nombre, cabecera, campanasAcc, onStateRefresh }: Props) {
+export function CampanaCorreoShell({ nombre, cabecera, campanasAcc, onStateRefresh, exportados }: Props) {
   const [cargando, setCargando] = useState(true);
   return (
     <PageFrame
@@ -39,7 +41,7 @@ export function CampanaCorreoShell({ nombre, cabecera, campanasAcc, onStateRefre
           data-qa-geometry-group="material-campo/correo"
           data-qa-geometry-contract="intrinsic"
         >
-          <CorreosEditor onCargando={setCargando} onStateRefresh={onStateRefresh} campanasAcc={campanasAcc} cabecera={cabecera} />
+          <CorreosEditor onCargando={setCargando} onStateRefresh={onStateRefresh} campanasAcc={campanasAcc} cabecera={cabecera} exportados={exportados} />
         </section>
       </div>
     </PageFrame>

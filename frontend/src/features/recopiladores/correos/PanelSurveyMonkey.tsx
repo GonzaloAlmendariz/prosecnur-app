@@ -1,12 +1,12 @@
 // Salida para SurveyMonkey (addendum E1j §1 y §5).
 //
 // En SurveyMonkey el correo se pega como «HTML personalizado» en el
-// recopilador. El pie del inspector da:
+// recopilador. «Exportar ▾» de la barra da (antes, el pie del inspector):
 // - «Copiar HTML para SurveyMonkey»: el HTML del envío que se mira con las
 //   etiquetas de la plataforma (`mode: "export"`), NO el de la vista previa;
 // - el paquete del envío (ZIP con el HTML, el LEEME y el manifiesto);
-// - los pasos en la plataforma y la tabla `{{campo}} → [CustomDataN]`, que se
-//   edita aquí mismo (`fields[].sm`).
+// - los pasos en la plataforma. La tabla `{{campo}} → [CustomDataN]`
+//   (`fields[].sm`) vive en Personas, junto a los campos (F5).
 //
 // Con SurveyMonkey los contactos viven en su recopilador: la pestaña
 // Destinatarios es un estado C5 legítimo (`DestinatariosEnSurveyMonkey`), sin
@@ -21,8 +21,9 @@ import { Check, Copy, Download, FolderOpen, Inbox, Loader2, Upload } from "../..
 import { camposDeEnlace, conDestino, conEtiquetaSurveyMonkey, etiquetasDePlataforma, motivoSinEtiqueta, opcionesSurveyMonkey, problemaDeEtiquetas } from "./dialectos";
 import { pesoLegible, revisionBloquea } from "./modeloCorreo";
 import { pasosEnSurveyMonkey, rotuloDeEnvio } from "./modeloEnvios";
+import { SALIDAS_DEL_ENVIO } from "./modeloSalidas";
 import "./correosEnvios.css";
-import { SalidasDelEnvio } from "./SalidasDelEnvio";
+import "./correosExportar.css";
 
 const SIN_ETIQUETA = "";
 
@@ -108,53 +109,112 @@ export function MapeoSurveyMonkey({
 }
 
 type Props = {
-  template: MailTemplate;
   envio: MailSend;
   revision: MailReview | null;
   exportacion: MailExportPayload | null;
   exportando: boolean;
   ocupado: boolean;
-  onEditar: (update: (t: MailTemplate) => MailTemplate) => void;
   /** El HTML del envío para pegar en SurveyMonkey (`mode: "export"`); `null` si no se pudo. */
   onHtml: () => Promise<string | null>;
   /** Con la lista cargada el paquete trae los contactos con su saludo (datos personales). */
   conLista?: boolean;
   onExportar: () => void;
   onGuardarJunto: () => void;
-  onVerRevision: () => void;
 };
 
+/**
+ * Lo que sale para SurveyMonkey, dentro de «Exportar ▾» de la barra (F7): la
+ * acción principal (copiar el HTML), el paquete de respaldo, dónde se pega y
+ * el ZIP listo. Lo que falta corregir lo dice la cuenta de la pestaña
+ * Revisión: aquí sólo se nombra por qué no se puede todavía.
+ */
 export function PanelSurveyMonkey({
-  template,
   envio,
   revision,
   exportacion,
   exportando,
   ocupado,
-  onEditar,
   onHtml,
   conLista = false,
   onExportar,
   onGuardarJunto,
-  onVerRevision,
 }: Props) {
   const [copia, setCopia] = useState<"" | "copiando" | "ok" | "error">("");
+  // F17: si el portapapeles no deja, el HTML queda a la vista para seleccionarlo.
+  const [htmlDeRespaldo, setHtmlDeRespaldo] = useState<string | null>(null);
   const bloquea = revisionBloquea(revision, "plantilla");
   const bloqueaPaquete = revisionBloquea(revision, conLista ? "completo" : "plantilla");
   const zip = exportacion?.zip ?? null;
   const pasos = pasosEnSurveyMonkey(envio);
+  const [principal, paquete] = SALIDAS_DEL_ENVIO.surveymonkey;
 
   const copiar = async () => {
     setCopia("copiando");
+    setHtmlDeRespaldo(null);
     const clip = typeof navigator !== "undefined" ? navigator.clipboard : undefined;
-    setCopia(await copiarHtmlParaPegar(onHtml, clip));
-    window.setTimeout(() => setCopia(""), 2400);
+    let html: string | null = null;
+    const out = await copiarHtmlParaPegar(async () => { html = await onHtml(); return html; }, clip);
+    setCopia(out);
+    if (out === "error") setHtmlDeRespaldo(html);
+    else window.setTimeout(() => setCopia(""), 2400);
   };
 
   return (
-    <footer className="rec-mail-mc rec-sm" aria-label="Para SurveyMonkey">
+    <div className="rec-exp-cuerpo" aria-label={`Para SurveyMonkey · ${rotuloDeEnvio(envio)}`}>
       <span className="xfk-over">Para SurveyMonkey · {rotuloDeEnvio(envio)}</span>
-      <MapeoSurveyMonkey template={template} onEditar={onEditar} />
+      <ul className="rec-exp-salidas" data-qa-geometry-group="material-campo/correo/salidas-surveymonkey" data-qa-geometry-contract="intrinsic">
+        <li data-qa-geometry-member>
+          <button
+            type="button"
+            className="rec-exp-salida is-principal"
+            disabled={ocupado || bloquea || copia === "copiando"}
+            onClick={() => { void copiar(); }}
+          >
+            <span className="rec-exp-salida-titulo">
+              {copia === "copiando" ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : copia === "ok" ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
+              {copia === "ok" ? "HTML copiado" : principal.accion}
+              <span className="rec-mail-salida-principal">principal</span>
+            </span>
+            <span className="rec-exp-salida-para">{principal.para}</span>
+          </button>
+        </li>
+        <li data-qa-geometry-member>
+          <button
+            type="button"
+            className="rec-exp-salida"
+            disabled={ocupado || bloqueaPaquete}
+            title={conLista
+              ? "HTML, LEEME, manifiesto y contactos_surveymonkey.csv con el saludo: contiene datos personales"
+              : "HTML, LEEME y manifiesto; sin datos personales"}
+            onClick={onExportar}
+          >
+            <span className="rec-exp-salida-titulo">
+              {exportando ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Upload size={14} aria-hidden />}
+              {paquete.accion}
+            </span>
+            <span className="rec-exp-salida-para">{paquete.para}</span>
+          </button>
+        </li>
+      </ul>
+      {bloquea || bloqueaPaquete ? (
+        <p className="rec-exp-bloqueo" role="status">
+          La revisión tiene {revision?.errors ?? 0} {revision?.errors === 1 ? "punto" : "puntos"} por corregir: están en la pestaña Revisión.
+        </p>
+      ) : null}
+      {copia === "error" ? (
+        <div className="rec-exp-respaldo" role="status">
+          <p className="rec-mail-problema-linea">No se pudo copiar al portapapeles.</p>
+          {htmlDeRespaldo ? (
+            <label className="rec-exp-respaldo-html">
+              <span>Selecciona el HTML y cópialo a mano</span>
+              <textarea readOnly rows={4} value={htmlDeRespaldo} onFocus={(e) => e.currentTarget.select()} />
+            </label>
+          ) : null}
+          <PulsoButton variant="secondary" size="sm" disabled={ocupado || bloqueaPaquete} onClick={onExportar}>
+            <Download size={14} aria-hidden /> Descargar el paquete
+          </PulsoButton>
+        </div>
+      ) : null}
       <ol className="rec-sm-pasos" aria-label="Dónde se pega en SurveyMonkey">
         {pasos.map((p, i) => <li key={`${i}-${p}`}>{p}</li>)}
       </ol>
@@ -163,39 +223,6 @@ export function PanelSurveyMonkey({
           ? "Pega el HTML en el formato «HTML personalizado», que requiere plan Enterprise."
           : "Pega el HTML en el mensaje del recordatorio; el formato «HTML personalizado» requiere plan Enterprise."}
       </p>
-      <span className="rec-mail-botones">
-        <PulsoButton
-          variant="primary"
-          size="sm"
-          disabled={ocupado || bloquea || copia === "copiando"}
-          title={bloquea ? "La revisión tiene puntos por corregir" : "Copia el código con las etiquetas de SurveyMonkey"}
-          onClick={() => { void copiar(); }}
-        >
-          {copia === "copiando" ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : copia === "ok" ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
-          {copia === "ok" ? "HTML copiado" : "Copiar HTML para SurveyMonkey"}
-        </PulsoButton>
-        <PulsoButton
-          variant="secondary"
-          size="sm"
-          disabled={ocupado || bloqueaPaquete}
-          title={bloqueaPaquete
-            ? "La revisión tiene puntos por corregir"
-            : conLista
-              ? "HTML, LEEME, manifiesto y contactos_surveymonkey.csv con el saludo: contiene datos personales"
-              : "HTML, LEEME y manifiesto; sin datos personales"}
-          onClick={onExportar}
-        >
-          {exportando ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Upload size={14} aria-hidden />}
-          Paquete del envío
-        </PulsoButton>
-      </span>
-      <SalidasDelEnvio plataforma="surveymonkey" />
-      {bloquea ? (
-        <button type="button" className="rec-mail-link" onClick={onVerRevision}>
-          Ver qué falta corregir ({revision?.errors ?? 0})
-        </button>
-      ) : null}
-      {copia === "error" ? <p className="rec-mail-problema-linea" role="status">No se pudo copiar el HTML al portapapeles.</p> : null}
       {zip ? (
         <div className="rec-mail-mc-listo" role="status">
           <span className="rec-mail-mc-listo-nombre">
@@ -212,7 +239,7 @@ export function PanelSurveyMonkey({
           </span>
         </div>
       ) : null}
-    </footer>
+    </div>
   );
 }
 

@@ -31,7 +31,7 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
 .MCAMP_ID_RE <- "^(aulas|territorial|correo)\\.[a-z0-9][a-z0-9-]{0,39}$"
 .MCAMP_TIPOS <- c("aulas", "territorial", "correo")
 .MCAMP_AULAS_ID <- "aulas.principal"
-.MCAMP_TERRITORIAL_MOTIVO <- "Requiere leer las UMP de Hojas de ruta (E2)"
+.MCAMP_TERRITORIAL_MOTIVO <- "Requiere leer las UMP de Hojas de ruta"
 .MCAMP_ENTRY_KEYS <- c("id", "tipo", "name", "created_at", "archived", "ref")
 
 # ---- lectura ------------------------------------------------------------------

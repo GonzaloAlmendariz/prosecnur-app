@@ -1,0 +1,57 @@
+/* El aviso del nombre repetido (F1): en línea, bajo el campo, con el tono de
+   peligro y el enlace para abrir la campaña que ya existe. Sólo tokens. */
+.rec-nombre-repetido {
+  align-items: flex-start;
+  color: var(--pulso-danger-fg);
+  display: flex;
+  font-size: 12.5px;
+  gap: 6px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.rec-nombre-repetido > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.rec-nombre-repetido-abrir {
+  color: inherit;
+  font-weight: var(--pulso-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rec-nombre-repetido-abrir:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid var(--pulso-module-fieldkit);
+  outline-offset: 2px;
+}
+
+/* Subtítulo que distingue a dos campañas (actor o asunto), en la barra. Cede
+   antes que el nombre: el nombre es lo que se busca. */
+.rec-campana-cabecera-sub {
+  color: var(--pulso-text-muted);
+  flex: 0 1 auto;
+  font-size: 12px;
+  max-width: 220px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-campana-cabecera .rec-campana-cabecera-nombre {
+  flex-shrink: 0;
+}
+
+/* El motivo por el que «Crear campaña» no se puede pulsar todavía (F12). */
+.rec-nueva-pie-motivo {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  margin-right: auto;
+}
+
+.rec-campana-cabecera > svg {
+  flex-shrink: 0;
+}

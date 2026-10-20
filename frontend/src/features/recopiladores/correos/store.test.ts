@@ -85,6 +85,18 @@ describe("store del editor de correos", () => {
     expect(hayCambios(st())).toBe(true);
   });
 
+  test("guardar sin editar durante el PUT deja el correo guardado aunque el backend normalice (F6)", () => {
+    st().cargaLista({ presets: [], plantilla: { state_revision: 1, builtin: false, platform: "surveymonkey", sends: [mailSendInvitation()], template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
+    // El saludo por sexo se escribe con sus claves en un orden; el backend lo devuelve en otro y con su ranura.
+    const enviada = plantilla({ blocks: [{ block_id: "saludo", type: "greeting", text: "Estimado(a) {{nombre}}", trato: { modo: "por_sexo", masculino: "Estimado", femenino: "Estimada", respaldo: "Estimado(a)", columna: "sexo" } }] });
+    st().editar(() => enviada);
+    expect(hayCambios(st())).toBe(true);
+    const devuelta = plantilla({ revision: 2, blocks: [{ type: "greeting", text: "Estimado(a) {{nombre}}", block_id: "saludo", trato: { columna: "sexo", respaldo: "Estimado(a)", femenino: "Estimada", masculino: "Estimado", modo: "por_sexo", sm: "CustomData1" } }] });
+    st().guardado({ noop: false, sends: [mailSendInvitation()], send_warnings: [], state_revision: 2, template: devuelta }, [mailSendInvitation()], enviada);
+    expect(hayCambios(st())).toBe(false);
+    expect(st().borrador).toEqual(devuelta);
+  });
+
   test("siguiente persona da la vuelta y no se mueve sin lista", () => {
     st().cargaLista({ presets: [], plantilla: { state_revision: 1, builtin: false, platform: "mailchimp", sends: [mailSendInvitation()], template: plantilla(), stored_problems: [] }, destinatarios: SIN_LISTA });
     st().siguientePersona();
