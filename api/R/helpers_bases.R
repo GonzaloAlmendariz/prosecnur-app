@@ -751,6 +751,14 @@
   if (!length(common)) {
     return(list(data_sources = data_sources, inst_sources = inst_sources))
   }
+  # Memo por huella de las entradas (helpers_bases_cache.R): cada pedido de Gráficos la repetía desde cero.
+  .bases_norm_cache_usar(
+    .bases_norm_cache_clave(data_sources, inst_sources, normalize_other),
+    function() .bases_normalize_source_contexts_calcular(data_sources, inst_sources, common, normalize_other)
+  )
+}
+
+.bases_normalize_source_contexts_calcular <- function(data_sources, inst_sources, common, normalize_other) {
   for (nm in common) {
     ctx <- .bases_normalize_report_context(
       data_sources[[nm]],

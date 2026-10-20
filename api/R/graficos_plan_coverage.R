@@ -1233,7 +1233,26 @@
 }
 
 .graficos_is_var_ref_in <- function(refs, source, name) {
-  any(vapply(refs, .graficos_ref_matches_var, logical(1), source = source, name = name))
+  # Es `any(.graficos_ref_matches_var(ref, source, name))` sobre cada ref. Se llama por variable × refs del plan y
+  # recorrer la lista cada vez era la mitad de /plan/coverage (1,2–1,9 s en Arte, 2026-10-20), que ocupa el único hilo
+  # de Plumber delante de la lectura de la escala del Top Two Box: quien pregunta muchas veces pasa un índice armado una
+  # sola vez (`.graficos_ref_indice`).
+  ind <- if (inherits(refs, "graficos_ref_indice")) refs else .graficos_ref_indice(refs)
+  name %in% ind$sueltos || paste(source, name, sep = "\u001f") %in% ind$calificados
+}
+
+#' Índice de refs para `.graficos_is_var_ref_in`: nombres sin base (casan con cualquier base) y pares base/nombre
+#' @keywords internal
+.graficos_ref_indice <- function(refs) {
+  r <- if (length(refs)) vapply(refs, .graficos_scalar_chr, character(1), default = "", USE.NAMES = FALSE) else character()
+  idx <- regexpr("$", r, fixed = TRUE)
+  con_base <- idx > 0L
+  fuente <- ifelse(con_base, substr(r, 1L, idx - 1L), "")
+  nombre <- ifelse(con_base, substring(r, idx + 1L), r)
+  suelto <- !nzchar(fuente)
+  structure(list(sueltos = unique(nombre[suelto]),
+                 calificados = unique(paste(fuente[!suelto], nombre[!suelto], sep = "\u001f"))),
+            class = "graficos_ref_indice")
 }
 
 .graficos_var_status <- function(v, source, included_refs, exclusions) {
@@ -1255,8 +1274,9 @@
   plan <- .normalize_plan(plan %||% (.graficos_config_get(sid)$plan %||% list(slides = list())))
   cfg <- if (isTRUE(resolver_config)) .graficos_effective_config(sid, config) else config
   payload <- .graficos_variables_sources_payload(sid, scoped = isTRUE(scoped))
-  included_refs <- .graficos_collect_plan_refs(plan)
-  exclusions <- .graficos_coverage_exclusions(cfg)
+  plan_refs <- .graficos_collect_plan_refs(plan)
+  included_refs <- .graficos_ref_indice(plan_refs)   # una vez, no por variable
+  exclusions <- .graficos_ref_indice(.graficos_coverage_exclusions(cfg))
 
   sources <- lapply(payload$sources %||% list(), function(src) {
     source_name <- .graficos_scalar_chr(src$name, "default")
@@ -1307,7 +1327,7 @@
       covered_by_recod = count_status("cubierta_por_recodificada"),
       integrated = count_status("integrada_en_otra_variable"),
       excluded_intentionally = count_status("excluida_intencionalmente"),
-      included_refs = length(included_refs)
+      included_refs = length(plan_refs)
     ),
     sources = sources,
     warnings = as.list(unique(warnings))

@@ -277,3 +277,56 @@ test_that("el override reescribe `label::es` además de `label`", {
   expect_equal(sv$label[1], "Percepción de seguridad")
   expect_equal(sv[["label::es"]][1], "Percepción de seguridad")
 })
+
+# --- Memo de la normalización (helpers_bases_cache.R) ------------------------
+# El memo existe por velocidad (Arte, 2026-10-20: la lectura del Top Two Box esperaba en la cola de Plumber). Su riesgo
+# es servir una normalización vieja: estos tests fijan que la huella cambia con los datos, con el instrumento y con el
+# override ambiente, que es por sesión (si no, una sesión leería las etiquetas curadas de otra).
+
+test_that("memo de normalización: igual que sin memo, y reusa en la segunda llamada", {
+  pair <- .lo_build_pair()
+  .bases_norm_cache_vaciar()
+  on.exit(.bases_norm_cache_vaciar(), add = TRUE)
+  .lo_with_ambient(NULL, {
+    a <- .bases_normalize_source_contexts(list(b = pair$data), list(b = pair$inst))
+    expect_length(ls(.bases_norm_cache), 1L)
+    b <- .bases_normalize_source_contexts(list(b = pair$data), list(b = pair$inst))
+    expect_length(ls(.bases_norm_cache), 1L)
+    expect_identical(a, b)
+    directo <- .bases_normalize_report_context(pair$data, pair$inst)
+    expect_identical(a$data_sources$b, directo$data)
+    expect_identical(a$inst_sources$b, directo$inst)
+  })
+})
+
+test_that("memo de normalización: datos o instrumento distintos se recalculan", {
+  pair <- .lo_build_pair()
+  .bases_norm_cache_vaciar()
+  on.exit(.bases_norm_cache_vaciar(), add = TRUE)
+  .lo_with_ambient(NULL, {
+    a <- .bases_normalize_source_contexts(list(b = pair$data), list(b = pair$inst))
+    otra <- pair$data
+    otra$seguridad[1] <- "3"
+    b <- .bases_normalize_source_contexts(list(b = otra), list(b = pair$inst))
+    expect_identical(as.character(b$data_sources$b$seguridad[1]), as.character(.bases_normalize_report_context(otra, pair$inst)$data$seguridad[1]))
+    expect_false(identical(a$data_sources$b$seguridad, b$data_sources$b$seguridad))
+    inst2 <- pair$inst
+    inst2$choices$label[inst2$choices$list_name == "seg_l" & inst2$choices$name == "1"] <- "Totalmente seguro"
+    c <- .bases_normalize_source_contexts(list(b = pair$data), list(b = inst2))
+    expect_false(identical(a$inst_sources$b, c$inst_sources$b))
+    expect_length(ls(.bases_norm_cache), 3L)
+  })
+})
+
+test_that("memo de normalización: el override ambiente de una sesión no se filtra a otra", {
+  pair <- .lo_build_pair()
+  .bases_norm_cache_vaciar()
+  on.exit(.bases_norm_cache_vaciar(), add = TRUE)
+  etiquetas <- function(r) unname(attr(r$data_sources$b$seguridad, "labels", exact = TRUE)["1"])
+  con <- .lo_with_ambient(.lo_override(), .bases_normalize_source_contexts(list(b = pair$data), list(b = pair$inst)))
+  sin <- .lo_with_ambient(NULL, .bases_normalize_source_contexts(list(b = pair$data), list(b = pair$inst)))
+  con2 <- .lo_with_ambient(.lo_override(), .bases_normalize_source_contexts(list(b = pair$data), list(b = pair$inst)))
+  expect_equal(etiquetas(con), "Muy seguro")
+  expect_false(identical(etiquetas(sin), "Muy seguro"))
+  expect_identical(con, con2)
+})
