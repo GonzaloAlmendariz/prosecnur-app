@@ -1,0 +1,562 @@
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
+
+import { isOpaqueMailBlock, type MailBlock, type MailBlockType, type MailTemplate } from "../../../api/materialMail";
+import { ArrowDown, ArrowUp, GripVertical, ImagePlus, Plus, Trash2 } from "../../../vendor/lucide-react";
+import { ARRASTRE_DE_BLOQUE, BibliotecaDeBloques } from "./BibliotecaDeBloques";
+import { admiteEnlaces } from "./comoSaleEnLaPlataforma";
+import { EditorEnLinea, type MotivoDeFin } from "./EditorEnLinea";
+import {
+  APERTURA,
+  editableEnElSitio,
+  esMovible,
+  esMultilinea,
+  huecoMasCercano,
+  huecoMueve,
+  huecosEntreZonas,
+  indiceDesdeHueco,
+  propConIndice,
+  propEnElPunto,
+  textoDeZona,
+  tipoDisponible,
+  zonasDeLaVista,
+  type ChequeosDeZona,
+  type Hueco,
+  type Rect,
+  type ZonaMedida,
+} from "./estructuraCorreo";
+import type { CampoDelMenu } from "./MenuDeCampos";
+import { CABECERA, DESCRIPCION_DE_BLOQUE, ROTULO_DE_BLOQUE, ROTULO_DE_PROP, puedeMover, rotuloDeBloque, rotuloDeChequeo, type PropDeTexto } from "./modeloCorreo";
+import type { OpcionesDeTexto } from "./serializarTexto";
+import type { EdicionEnLinea } from "./store";
+import "./correosCapa.css";
+
+/** Tipo MIME del arrastre de un bloque que ya está en el correo. */
+const ARRASTRE_DE_MOVER = "application/x-pulso-mover";
+const ANCHO_DE_BIBLIOTECA = 560;
+
+type Props = {
+  /** Documento del iframe de la vista previa (sin scripts, mismo origen). */
+  doc: Document | null;
+  /** Sube con cada carga del iframe o cambio de tamaño: hay que volver a medir. */
+  medida: number;
+  escala: number;
+  /** Tamaño de la hoja ya a escala. */
+  ancho: number;
+  alto: number;
+  template: MailTemplate;
+  seleccion: string;
+  edicion: EdicionEnLinea | null;
+  explicaciones: boolean;
+  chequeos: Record<string, ChequeosDeZona>;
+  campos: readonly CampoDelMenu[];
+  textoDeCampo: Pick<OpcionesDeTexto, "rotuloDeCampo" | "ayudaDeCampo">;
+  /** Apertura del envío elegido (`send.opening`); `null` si no se edita aquí. */
+  apertura: string | null;
+  onSeleccionar: (id: string) => void;
+  onEditar: (edicion: EdicionEnLinea | null) => void;
+  onTexto: (zona: string, prop: string, valor: string) => void;
+  onSiguientePunto: (zona: string, prop: string) => void;
+  onQuitarPunto: (zona: string, prop: string) => void;
+  onTerminar: (zona: string, prop: string) => void;
+  onMover: (blockId: string, indice: number) => void;
+  onInsertar: (type: MailBlockType, hueco: number) => void;
+  onQuitar: (blockId: string) => void;
+  onArchivoDeImagen: (blockId: string, file: File) => void;
+  onDeshacer: () => void;
+  onRehacer: () => void;
+};
+
+function estiloDeZona(r: Rect): CSSProperties {
+  return { left: r.x, top: r.y, width: r.w, height: r.h };
+}
+
+function rotuloDeZona(zona: ZonaMedida, block: MailBlock | undefined): string {
+  if (zona.id === CABECERA) return "Cabecera";
+  if (zona.id === APERTURA) return "Apertura del envío";
+  return block ? rotuloDeBloque(block) : zona.tipo;
+}
+
+function descripcionDeZona(zona: ZonaMedida, block: MailBlock | undefined): string {
+  if (zona.id === CABECERA) return "Logos o banner del estudio, siempre arriba.";
+  if (zona.id === APERTURA) return "Un párrafo que sólo lleva este envío.";
+  if (!block || isOpaqueMailBlock(block)) return "Se conserva tal cual.";
+  return DESCRIPCION_DE_BLOQUE[block.type];
+}
+
+/** Color de fondo efectivo de un elemento del iframe (sube hasta uno que no sea transparente). */
+function fondoDe(el: Element, ventana: Window): string {
+  let actual: Element | null = el;
+  while (actual) {
+    const bg = ventana.getComputedStyle(actual).backgroundColor;
+    if (bg && bg !== "transparent" && !/rgba\(\s*0,\s*0,\s*0,\s*0\s*\)/.test(bg)) return bg;
+    actual = actual.parentElement;
+  }
+  return "#ffffff";
+}
+
+function elementoDeProp(doc: Document, zona: string, prop: string): HTMLElement | null {
+  const fila = doc.querySelector<HTMLElement>(`[data-pulso-block="${CSS.escape(zona)}"]`);
+  if (!fila) return null;
+  if (fila.getAttribute("data-pulso-prop") === prop) return (fila as HTMLTableRowElement).cells?.[0] ?? fila;
+  return fila.querySelector<HTMLElement>(`[data-pulso-prop="${CSS.escape(prop)}"]`);
+}
+
+/** La tipografía del texto del correo, copiada al editor y llevada a escala. */
+function tipografiaDe(el: HTMLElement, escala: number): CSSProperties {
+  const ventana = el.ownerDocument.defaultView;
+  if (!ventana) return {};
+  const cs = ventana.getComputedStyle(el);
+  const px = (v: string) => (Number.isFinite(parseFloat(v)) ? `${parseFloat(v) * escala}px` : undefined);
+  return {
+    fontFamily: cs.fontFamily,
+    fontSize: px(cs.fontSize),
+    lineHeight: cs.lineHeight === "normal" ? "normal" : px(cs.lineHeight),
+    fontWeight: cs.fontWeight as CSSProperties["fontWeight"],
+    color: cs.color,
+    textAlign: cs.textAlign as CSSProperties["textAlign"],
+    letterSpacing: px(cs.letterSpacing),
+    paddingTop: px(cs.paddingTop),
+    paddingRight: px(cs.paddingRight),
+    paddingBottom: px(cs.paddingBottom),
+    paddingLeft: px(cs.paddingLeft),
+    background: fondoDe(el, ventana),
+  };
+}
+
+/**
+ * Capa de edición sobre el correo (E1g §1).
+ *
+ * Vive en el documento padre, dentro de `.rec-mail-hoja`, sobre el iframe de
+ * la vista previa. Cada zona que el render marca (`data-pulso-block`) es un
+ * botón medido con `getBoundingClientRect()` × escala; se vuelve a medir en
+ * cada carga del iframe, al cambiar de tamaño y al cambiar de vista. El
+ * HTML que se exporta lo sigue escribiendo sólo el render: la capa nunca toca
+ * el documento salvo para ocultar el texto que se está editando.
+ */
+export function CapaDeEdicion({
+  doc,
+  medida,
+  escala,
+  ancho,
+  alto,
+  template,
+  seleccion,
+  edicion,
+  explicaciones,
+  chequeos,
+  campos,
+  textoDeCampo,
+  apertura,
+  onSeleccionar,
+  onEditar,
+  onTexto,
+  onSiguientePunto,
+  onQuitarPunto,
+  onTerminar,
+  onMover,
+  onInsertar,
+  onQuitar,
+  onArchivoDeImagen,
+  onDeshacer,
+  onRehacer,
+}: Props) {
+  const raiz = useRef<HTMLDivElement | null>(null);
+  const archivo = useRef<HTMLInputElement | null>(null);
+  const imagenPedida = useRef<string | null>(null);
+  const [zonas, setZonas] = useState<ZonaMedida[]>([]);
+  const [biblioteca, setBiblioteca] = useState<Hueco | null>(null);
+  const [destino, setDestino] = useState<(Hueco & { tipo: "mover" | "insertar" }) | null>(null);
+  const [arrastrando, setArrastrando] = useState<string | null>(null);
+  const templateRef = useRef(template);
+  templateRef.current = template;
+
+  const porId = useMemo(() => new Map(template.blocks.map((b) => [b.block_id, b])), [template.blocks]);
+
+  // Medir: al cargar el iframe, al cambiar de escala o de vista.
+  useLayoutEffect(() => {
+    if (!doc) {
+      setZonas([]);
+      return;
+    }
+    setZonas(zonasDeLaVista(doc, templateRef.current, escala));
+  }, [doc, medida, escala]);
+
+  const huecos = useMemo(() => huecosEntreZonas(zonas, template), [template, zonas]);
+
+  // El texto que se edita se oculta en el iframe: el editor ocupa su lugar.
+  useEffect(() => {
+    if (!doc || !edicion) return;
+    const el = elementoDeProp(doc, edicion.zona, edicion.prop);
+    if (!el) return;
+    const previo = el.style.visibility;
+    el.style.visibility = "hidden";
+    return () => { el.style.visibility = previo; };
+  }, [doc, edicion, medida]);
+
+  const puntoLocal = useCallback((clientX: number, clientY: number) => {
+    const r = raiz.current?.getBoundingClientRect();
+    return r ? { x: clientX - r.left, y: clientY - r.top } : { x: 0, y: 0 };
+  }, []);
+
+  const empezar = (zona: ZonaMedida, prop: string | null) => {
+    const block = porId.get(zona.id);
+    const id = zona.id === APERTURA ? null : zona.id;
+    if (id && id !== seleccion) onSeleccionar(id);
+    if (prop && (zona.id === APERTURA ? apertura !== null : editableEnElSitio(block, prop))) onEditar({ zona: zona.id, prop });
+    else if (edicion) onEditar(null);
+  };
+
+  const alPulsarZona = (zona: ZonaMedida) => (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (event.detail === 0) {
+      // Teclado: el primer Enter elige; el segundo edita el primer texto.
+      const yaElegida = zona.id === seleccion;
+      const primero = zona.props.find((p) => (zona.id === APERTURA ? apertura !== null : editableEnElSitio(porId.get(zona.id), p.prop)));
+      empezar(zona, yaElegida && primero ? primero.prop : null);
+      return;
+    }
+    const { x, y } = puntoLocal(event.clientX, event.clientY);
+    empezar(zona, propEnElPunto(zona, x, y));
+  };
+
+  const alTeclaEnZona = (zona: ZonaMedida) => (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+    const delta = event.key === "ArrowUp" ? -1 : 1;
+    if (!esMovible(template, zona.id) || !puedeMover(template, zona.id, delta)) return;
+    event.preventDefault();
+    const i = template.blocks.findIndex((b) => b.block_id === zona.id);
+    onMover(zona.id, i + delta);
+  };
+
+  // ---- arrastre ----------------------------------------------------------------
+
+  const tipoDeArrastre = (event: DragEvent): "mover" | "insertar" | null => {
+    const tipos = Array.from(event.dataTransfer.types);
+    if (tipos.includes(ARRASTRE_DE_MOVER)) return "mover";
+    if (tipos.includes(ARRASTRE_DE_BLOQUE)) return "insertar";
+    return null;
+  };
+
+  const alArrastrarEncima = (event: DragEvent<HTMLDivElement>) => {
+    const tipo = tipoDeArrastre(event);
+    if (!tipo) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = tipo === "mover" ? "move" : "copy";
+    const { y } = puntoLocal(event.clientX, event.clientY);
+    const h = huecoMasCercano(huecos, y);
+    if (!h) return;
+    if (tipo === "mover" && arrastrando && !huecoMueve(template, arrastrando, h.hueco)) {
+      setDestino(null);
+      return;
+    }
+    if (!destino || destino.hueco !== h.hueco || destino.tipo !== tipo) setDestino({ ...h, tipo });
+  };
+
+  const alSoltar = (event: DragEvent<HTMLDivElement>) => {
+    const tipo = tipoDeArrastre(event);
+    if (!tipo) return;
+    event.preventDefault();
+    const { y } = puntoLocal(event.clientX, event.clientY);
+    const h = destino ?? huecoMasCercano(huecos, y);
+    setDestino(null);
+    setArrastrando(null);
+    if (!h) return;
+    if (tipo === "mover") {
+      const id = event.dataTransfer.getData(ARRASTRE_DE_MOVER);
+      if (id && huecoMueve(template, id, h.hueco)) onMover(id, indiceDesdeHueco(template, id, h.hueco));
+    } else {
+      const type = event.dataTransfer.getData(ARRASTRE_DE_BLOQUE) as MailBlockType;
+      if (type && tipoDisponible(template, type)) {
+        setBiblioteca(null);
+        onInsertar(type, h.hueco);
+      }
+    }
+  };
+
+  const alSalir = (event: DragEvent<HTMLDivElement>) => {
+    if (event.relatedTarget instanceof Node && raiz.current?.contains(event.relatedTarget)) return;
+    setDestino(null);
+  };
+
+  // ---- editor ------------------------------------------------------------------
+
+  const zonaEditada = edicion ? zonas.find((z) => z.id === edicion.zona) : undefined;
+  const bloqueEditado = edicion ? porId.get(edicion.zona) : undefined;
+  const rectDelEditor = useMemo((): Rect | null => {
+    if (!edicion || !zonaEditada) return null;
+    const propia = zonaEditada.props.find((p) => p.prop === edicion.prop);
+    if (propia) return propia.rect;
+    // Un punto recién creado todavía no está en la vista previa: va bajo el anterior.
+    const { base, indice } = propConIndice(edicion.prop);
+    if (indice !== null) {
+      const previo = [...zonaEditada.props].reverse().find((p) => {
+        const x = propConIndice(p.prop);
+        return x.base === base && x.indice !== null && x.indice < indice;
+      });
+      if (previo) return { ...previo.rect, y: previo.rect.y + previo.rect.h + 2 };
+    }
+    return zonaEditada.rect;
+  }, [edicion, zonaEditada]);
+
+  const estiloDelEditor = useMemo((): CSSProperties => {
+    if (!doc || !edicion) return {};
+    let el = elementoDeProp(doc, edicion.zona, edicion.prop);
+    if (!el) {
+      const { base } = propConIndice(edicion.prop);
+      el = doc.querySelector<HTMLElement>(`[data-pulso-block="${CSS.escape(edicion.zona)}"] [data-pulso-prop^="${CSS.escape(base)}."]`);
+    }
+    return el ? tipografiaDe(el, escala) : {};
+    // `medida`: con cada carga del iframe el elemento es otro.
+  }, [doc, edicion, escala, medida]);
+
+  const valorEditado = useMemo(() => {
+    if (!edicion) return "";
+    if (edicion.zona === APERTURA) return apertura ?? "";
+    return bloqueEditado ? textoDeZona(bloqueEditado, edicion.prop) : "";
+  }, [apertura, bloqueEditado, edicion]);
+
+  const opcionesDelEditor = useMemo((): OpcionesDeTexto | null => {
+    if (!edicion) return null;
+    const type = edicion.zona === APERTURA ? "paragraph" : bloqueEditado?.type ?? "";
+    const { base } = propConIndice(edicion.prop);
+    const enlaces = edicion.zona === APERTURA ? true : bloqueEditado ? admiteEnlaces(bloqueEditado.type, base) : false;
+    return { ...textoDeCampo, enlaces, multilinea: esMultilinea(type, edicion.prop) };
+  }, [bloqueEditado, edicion, textoDeCampo]);
+
+  // Si el bloque editado desapareció (deshacer, quitar), el editor se cierra.
+  useEffect(() => {
+    if (edicion && edicion.zona !== APERTURA && !porId.has(edicion.zona)) onEditar(null);
+  }, [edicion, onEditar, porId]);
+
+  const terminar = (motivo: MotivoDeFin) => {
+    if (!edicion) return;
+    const actual = edicion;
+    onTerminar(actual.zona, actual.prop);
+    onEditar(null);
+    if (motivo !== "fuera") {
+      requestAnimationFrame(() => raiz.current?.querySelector<HTMLButtonElement>(`[data-zona="${CSS.escape(actual.zona)}"]`)?.focus({ preventScroll: true }));
+    }
+  };
+
+  const etiquetaDelEditor = (() => {
+    if (!edicion) return "";
+    const { base, indice } = propConIndice(edicion.prop);
+    const prop = (ROTULO_DE_PROP as Record<string, string>)[base as PropDeTexto] ?? base;
+    const bloque = edicion.zona === APERTURA ? "Apertura" : bloqueEditado ? rotuloDeBloque(bloqueEditado) : "";
+    return `${bloque}: ${prop}${indice !== null ? ` ${indice + 1}` : ""}`;
+  })();
+
+  const pedirImagen = (blockId: string) => {
+    imagenPedida.current = blockId;
+    archivo.current?.click();
+  };
+
+  const abrirBiblioteca = (h: Hueco) => {
+    if (edicion) onEditar(null);
+    setBiblioteca(h);
+  };
+
+  // Un clic fuera de la biblioteca la cierra.
+  useEffect(() => {
+    if (!biblioteca) return;
+    const alPulsar = (event: globalThis.MouseEvent) => {
+      const t = event.target as Element | null;
+      if (t?.closest?.(".rec-bib, .rec-capa-hueco-btn")) return;
+      setBiblioteca(null);
+    };
+    document.addEventListener("mousedown", alPulsar, true);
+    return () => document.removeEventListener("mousedown", alPulsar, true);
+  }, [biblioteca]);
+
+  const anchoBib = Math.min(ANCHO_DE_BIBLIOTECA, Math.max(320, ancho - 16));
+  const bibArriba = biblioteca ? biblioteca.y > alto - 460 && biblioteca.y > 460 : false;
+  const elegida = zonas.find((z) => z.id === seleccion && !edicion);
+
+  return (
+    <div
+      ref={raiz}
+      className={`rec-capa${explicaciones ? " is-explicando" : ""}${arrastrando ? " is-arrastrando" : ""}`}
+      style={{ width: ancho, height: alto }}
+      data-qa-geometry-group="material-campo/catalogo/correos-zonas"
+      data-qa-geometry-contract="intrinsic"
+      onDragOver={alArrastrarEncima}
+      onDrop={alSoltar}
+      onDragLeave={alSalir}
+    >
+      {zonas.map((zona) => {
+        const block = porId.get(zona.id);
+        const rotulo = rotuloDeZona(zona, block);
+        const cuenta = chequeos[zona.id];
+        const esElegida = zona.id === seleccion;
+        const sinArchivo = block?.type === "image" && !zona.conImagen;
+        const editandoAqui = edicion?.zona === zona.id;
+        const soloDelEnvio = zona.id === APERTURA && apertura === null;
+        return (
+          <div key={zona.id} className="rec-capa-zona-marco" style={estiloDeZona(zona.rect)} data-qa-geometry-member>
+            <button
+              type="button"
+              className={[
+                "rec-capa-zona",
+                esElegida ? "is-elegida" : "",
+                editandoAqui ? "is-editando" : "",
+                arrastrando === zona.id ? "is-origen" : "",
+                cuenta?.errores ? "is-error" : cuenta?.avisos ? "is-aviso" : "",
+              ].filter(Boolean).join(" ")}
+              data-zona={zona.id}
+              data-qa-geometry-capacity="owned"
+              aria-label={`${rotulo}${cuenta ? `, ${cuenta.errores + cuenta.avisos} por revisar` : ""}`}
+              aria-current={esElegida ? "true" : undefined}
+              aria-describedby={explicaciones ? `rec-capa-desc-${zona.id}` : undefined}
+              disabled={soloDelEnvio}
+              onClick={alPulsarZona(zona)}
+              onKeyDown={alTeclaEnZona(zona)}
+            />
+            {explicaciones ? (
+              <span className="rec-capa-zona-rotulo" id={`rec-capa-desc-${zona.id}`} aria-hidden>
+                <b>{rotulo}</b>
+                <span>{descripcionDeZona(zona, block)}</span>
+              </span>
+            ) : null}
+            {zona.id === APERTURA ? <span className="rec-capa-zona-chip">Sólo en este envío</span> : null}
+            {cuenta ? (
+              <span
+                className={`rec-capa-zona-cuenta${cuenta.errores ? " is-error" : " is-aviso"}`}
+                title={cuenta.chequeos.map((c) => rotuloDeChequeo(c)).join(" · ")}
+                aria-hidden
+              >
+                {cuenta.errores + cuenta.avisos}
+              </span>
+            ) : null}
+            {sinArchivo && !editandoAqui ? (
+              <button type="button" className="rec-capa-subir" onClick={() => { onSeleccionar(zona.id); pedirImagen(zona.id); }}>
+                <ImagePlus size={14} aria-hidden /> Subir imagen
+              </button>
+            ) : null}
+          </div>
+        );
+      })}
+
+      {elegida && elegida.id !== CABECERA && elegida.id !== APERTURA && porId.has(elegida.id) ? (
+        <div
+          className={`rec-capa-acciones${elegida.rect.y < 34 ? " is-dentro" : ""}`}
+          style={{ left: elegida.rect.x + elegida.rect.w, top: elegida.rect.y }}
+          role="toolbar"
+          aria-label={`Acciones de ${rotuloDeZona(elegida, porId.get(elegida.id))}`}
+        >
+          <span className="rec-capa-acciones-rotulo">{ROTULO_DE_BLOQUE[porId.get(elegida.id)!.type as MailBlockType] ?? rotuloDeBloque(porId.get(elegida.id)!)}</span>
+          {esMovible(template, elegida.id) ? (
+            <>
+              <button
+                type="button"
+                className="rec-capa-accion rec-capa-manija"
+                draggable
+                aria-label="Arrastrar para mover (o Alt + flechas)"
+                title="Arrastra para mover"
+                onDragStart={(event) => {
+                  event.dataTransfer.setData(ARRASTRE_DE_MOVER, elegida.id);
+                  event.dataTransfer.setData("text/plain", elegida.id);
+                  event.dataTransfer.effectAllowed = "move";
+                  setArrastrando(elegida.id);
+                }}
+                onDragEnd={() => { setArrastrando(null); setDestino(null); }}
+              >
+                <GripVertical size={14} aria-hidden />
+              </button>
+              <button type="button" className="rec-capa-accion" aria-label="Subir el bloque" title="Subir" disabled={!puedeMover(template, elegida.id, -1)} onClick={() => onMover(elegida.id, template.blocks.findIndex((b) => b.block_id === elegida.id) - 1)}>
+                <ArrowUp size={14} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="rec-capa-accion"
+                aria-label="Bajar el bloque"
+                title="Bajar"
+                disabled={!puedeMover(template, elegida.id, 1) || template.blocks[template.blocks.findIndex((b) => b.block_id === elegida.id) + 1]?.type === "footer_legal"}
+                onClick={() => onMover(elegida.id, template.blocks.findIndex((b) => b.block_id === elegida.id) + 1)}
+              >
+                <ArrowDown size={14} aria-hidden />
+              </button>
+            </>
+          ) : null}
+          <button type="button" className="rec-capa-accion is-peligro" aria-label="Quitar el bloque" title="Quitar" disabled={template.blocks.length <= 1} onClick={() => onQuitar(elegida.id)}>
+            <Trash2 size={14} aria-hidden />
+          </button>
+        </div>
+      ) : null}
+
+      {!arrastrando && !edicion ? huecos.map((h) => (
+        <div key={`hueco-${h.hueco}`} className={`rec-capa-hueco${biblioteca?.hueco === h.hueco ? " is-abierto" : ""}`} style={{ top: h.y, left: h.x, width: h.w }}>
+          <button
+            type="button"
+            className="rec-capa-hueco-btn"
+            aria-label="Insertar un bloque aquí"
+            aria-expanded={biblioteca?.hueco === h.hueco}
+            title="Insertar un bloque aquí"
+            onClick={() => abrirBiblioteca(h)}
+          >
+            <Plus size={13} aria-hidden />
+          </button>
+        </div>
+      )) : null}
+
+      {destino ? (
+        <div className={`rec-capa-destino is-${destino.tipo}`} style={{ top: destino.y, left: destino.x, width: destino.w }} aria-hidden>
+          <span>{destino.tipo === "mover" ? "Soltar aquí" : "Insertar aquí"}</span>
+        </div>
+      ) : null}
+
+      {edicion && rectDelEditor && opcionesDelEditor ? (
+        <EditorEnLinea
+          key={`${edicion.zona}:${edicion.prop}`}
+          valor={valorEditado}
+          opciones={opcionesDelEditor}
+          campos={campos}
+          rect={rectDelEditor}
+          estilo={estiloDelEditor}
+          anchoDeLaCapa={ancho}
+          etiqueta={etiquetaDelEditor}
+          esPunto={propConIndice(edicion.prop).indice !== null}
+          onCambio={(valor) => onTexto(edicion.zona, edicion.prop, valor)}
+          onTerminar={terminar}
+          onSiguientePunto={() => onSiguientePunto(edicion.zona, edicion.prop)}
+          onQuitarPunto={() => onQuitarPunto(edicion.zona, edicion.prop)}
+          onDeshacer={onDeshacer}
+          onRehacer={onRehacer}
+        />
+      ) : null}
+
+      {biblioteca ? (
+        <BibliotecaDeBloques
+          template={template}
+          titulo="Insertar aquí"
+          arriba={bibArriba}
+          estilo={{ left: Math.max(8, (ancho - anchoBib) / 2), top: bibArriba ? biblioteca.y - 14 : biblioteca.y + 14, width: anchoBib }}
+          onElegir={(type) => {
+            const h = biblioteca.hueco;
+            setBiblioteca(null);
+            onInsertar(type, h);
+          }}
+          onCerrar={() => {
+            const h = biblioteca.hueco;
+            setBiblioteca(null);
+            requestAnimationFrame(() => raiz.current?.querySelectorAll<HTMLButtonElement>(".rec-capa-hueco-btn")[huecos.findIndex((x) => x.hueco === h)]?.focus());
+          }}
+        />
+      ) : null}
+
+      <input
+        ref={archivo}
+        type="file"
+        accept="image/png,image/jpeg"
+        className="pulso-sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          const id = imagenPedida.current;
+          event.target.value = "";
+          if (file && id) onArchivoDeImagen(id, file);
+        }}
+      />
+    </div>
+  );
+}

@@ -1,8 +1,12 @@
-import { isOpaqueMailBlock, type MailBlock, type MailProblem, type MailRecipientView, type MailTemplate } from "../../../api/materialMail";
+import { isOpaqueMailBlock, type MailBlock, type MailCheck, type MailProblem, type MailRecipientView, type MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ArrowDown, ArrowUp, Image, Trash2 } from "../../../vendor/lucide-react";
 import { PropRow, Segmented } from "../../xlsformEditor/kit";
+import { ajustesDe, conAjuste, valorDeAjuste } from "./ajustesDeBloque";
 import { CampoDeTexto } from "./CampoDeTexto";
+import type { Dialecto } from "./comoSaleEnLaPlataforma";
+import { PanelDeImagen } from "./PanelDeImagen";
+import { ChequeosDelBloque, TarjetaDidactica } from "./TarjetaDidactica";
 import { EnlaceDeLaPersona } from "./EnlaceDeLaPersona";
 import {
   CABECERA,
@@ -29,12 +33,22 @@ type Props = {
   problemas: ProblemasPorDestino;
   /** La persona que se está mirando en la vista previa, sin su correo. */
   persona: MailRecipientView | null;
-  onEditar: (update: (t: MailTemplate) => MailTemplate) => void;
-  onEditarBloque: (blockId: string, update: (b: MailBlock) => MailBlock) => void;
+  /** Con `grupo` (`bloque.prop`) el cambio es de texto y se agrupa en el historial. */
+  onEditar: (update: (t: MailTemplate) => MailTemplate, grupo?: string) => void;
+  onEditarBloque: (blockId: string, update: (b: MailBlock) => MailBlock, grupo?: string) => void;
   onDestino: (destino: DestinoDelCampo) => void;
   onMover: (blockId: string, delta: -1 | 1) => void;
   onQuitar: (blockId: string) => void;
   onAbrirIdentidad: () => void;
+  /** Modo didáctico: la tarjeta «Qué hace» y «Cómo sale en la plataforma». */
+  explicaciones?: boolean;
+  dialecto?: Dialecto;
+  /** Chequeos de la revisión que nombran el bloque elegido (`targets`). */
+  chequeos?: readonly MailCheck[];
+  /** Lo que ya se ve de la imagen del bloque (blob recién subido o src de la vista previa). */
+  vistaDeImagen?: string | null;
+  ocupado?: boolean;
+  onSubirImagen?: (blockId: string, file: File) => void;
 };
 
 const AYUDA_DE_PROP: Partial<Record<PropDeTexto, string>> = {
@@ -110,6 +124,12 @@ export function PanelDeBloque({
   onMover,
   onQuitar,
   onAbrirIdentidad,
+  explicaciones = false,
+  dialecto = "mailchimp",
+  chequeos = [],
+  vistaDeImagen = null,
+  ocupado = false,
+  onSubirImagen,
 }: Props) {
   if (seleccion === SOBRE) {
     return (
@@ -122,7 +142,7 @@ export function PanelDeBloque({
           label="Asunto"
           valor={template.subject}
           maximo={80}
-          onCambio={(subject) => onEditar((t) => ({ ...t, subject }))}
+          onCambio={(subject) => onEditar((t) => ({ ...t, subject }), "__sobre.subject")}
           onCursor={(cursor) => onDestino({ objetivo: SOBRE, prop: "subject", cursor })}
           problemas={problemas.sobre.filter((p) => p.path.startsWith("template.subject"))}
         />
@@ -133,7 +153,7 @@ export function PanelDeBloque({
           multilinea
           filas={3}
           ayuda="Va junto al asunto en la bandeja. Sin él, el cliente muestra el inicio del cuerpo."
-          onCambio={(preheader) => onEditar((t) => ({ ...t, preheader }))}
+          onCambio={(preheader) => onEditar((t) => ({ ...t, preheader }), "__sobre.preheader")}
           onCursor={(cursor) => onDestino({ objetivo: SOBRE, prop: "preheader", cursor })}
           problemas={problemas.sobre.filter((p) => p.path.startsWith("template.preheader"))}
         />
@@ -167,6 +187,7 @@ export function PanelDeBloque({
               : "Falta en alguna"}
           </PropRow>
         </div>
+        <ChequeosDelBloque chequeos={chequeos} />
         {problemas.cabecera.length ? (
           <ul className="rec-mail-problemas">
             {problemas.cabecera.map((p, i) => <li key={`${p.path}-${i}`}>{p.detail}</li>)}
@@ -206,58 +227,37 @@ export function PanelDeBloque({
     const prop = propDelProblema(p.path);
     return !prop || !(props as readonly string[]).includes(prop);
   });
-  const editar = (update: (b: MailBlock) => MailBlock) => onEditarBloque(block.block_id, update);
+  const editar = (update: (b: MailBlock) => MailBlock, grupo?: string) => onEditarBloque(block.block_id, update, grupo);
 
   return (
     <div {...CUERPO_DEL_INSPECTOR} className="rec-mail-insp-cuerpo">
       <Encabezado titulo={rotuloDeBloque(block)} descripcion={descripcionDeBloque(block)} />
-      {block.type === "paragraph" ? (
-        <div className="rec-mail-ajuste">
-          <span>Alineación</span>
+      <ChequeosDelBloque chequeos={chequeos} />
+      {block.type === "image" ? (
+        <PanelDeImagen
+          template={template}
+          block={block}
+          vista={vistaDeImagen}
+          problemas={propios}
+          ocupado={ocupado}
+          onEditarBloque={(update, grupo) => onEditarBloque(block.block_id, update, grupo)}
+          onEditar={onEditar}
+          onSubir={(file) => onSubirImagen?.(block.block_id, file)}
+        />
+      ) : null}
+      {block.type !== "image" ? ajustesDe(block).map((ajuste) => (
+        <div className="rec-mail-ajuste" key={ajuste.clave}>
+          <span>{ajuste.rotulo}</span>
           <Segmented
-            aria-label="Alineación del párrafo"
+            aria-label={`${ajuste.rotulo} del bloque`}
             size="sm"
-            value={block.align ?? "left"}
-            options={[
-              { value: "left", label: "Izquierda" },
-              { value: "justify", label: "Justificado" },
-              { value: "center", label: "Centrado" },
-            ]}
-            onChange={(align) => editar((b) => ({ ...b, align }) as MailBlock)}
+            value={valorDeAjuste(block, ajuste)}
+            options={ajuste.opciones.map((o) => ({ value: o.valor, label: o.rotulo }))}
+            onChange={(valor) => editar((b) => conAjuste(b, ajuste.clave, valor))}
           />
         </div>
-      ) : null}
-      {block.type === "callout" ? (
-        <div className="rec-mail-ajuste">
-          <span>Estilo</span>
-          <Segmented
-            aria-label="Estilo del recuadro"
-            size="sm"
-            value={block.variant ?? "box"}
-            options={[
-              { value: "box", label: "Borde fino" },
-              { value: "bar", label: "Franja lateral" },
-            ]}
-            onChange={(variant) => editar((b) => ({ ...b, variant }) as MailBlock)}
-          />
-        </div>
-      ) : null}
-      {block.type === "list" ? (
-        <div className="rec-mail-ajuste">
-          <span>Tipo</span>
-          <Segmented
-            aria-label="Tipo de lista"
-            size="sm"
-            value={block.ordered ? "si" : "no"}
-            options={[
-              { value: "no", label: "Viñetas" },
-              { value: "si", label: "Numerada" },
-            ]}
-            onChange={(v) => editar((b) => ({ ...b, ordered: v === "si" }) as MailBlock)}
-          />
-        </div>
-      ) : null}
-      {props.map((prop) => (
+      )) : null}
+      {block.type === "image" ? null : props.map((prop) => (
         <CampoDeTexto
           key={`${block.block_id}-${prop}`}
           label={ROTULO_DE_PROP[prop]}
@@ -267,10 +267,11 @@ export function PanelDeBloque({
           mono={prop === "url"}
           ayuda={AYUDA_DE_PROP[prop]}
           problemas={problemasDe(propios, prop)}
-          onCambio={(valor) => editar((b) => conTexto(b, prop, valor))}
+          onCambio={(valor) => editar((b) => conTexto(b, prop, valor), `${block.block_id}.${prop}`)}
           onCursor={(cursor) => onDestino({ objetivo: block.block_id, prop, cursor })}
         />
       ))}
+      {explicaciones ? <TarjetaDidactica block={block} template={template} dialecto={dialecto} /> : null}
       {block.type === "button" ? <EnlaceDeLaPersona url={block.url} persona={persona} campos={template.fields} /> : null}
       {sueltos.length ? (
         <ul className="rec-mail-problemas">

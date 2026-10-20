@@ -1,0 +1,276 @@
+/* Catálogo › Correos · biblioteca de bloques (E1g §2).
+   Cuadrícula de tipos agrupada: cada tarjeta trae su esquema, su nombre y
+   para qué sirve. Las tarjetas de una rejilla son pares (C1 `equal`): mismo
+   alto, la descripción se recorta a dos líneas. Sólo tokens. */
+
+.rec-bib {
+  --rec-bib-columnas: 3;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  box-shadow: var(--pulso-shadow-high);
+  color: var(--pulso-text);
+  display: flex;
+  flex-direction: column;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.4;
+  position: absolute;
+  text-align: left;
+  white-space: normal;
+  z-index: 8;
+  animation: rec-bib-aparecer var(--motion-dur-base) var(--motion-ease-out);
+}
+
+.rec-bib.is-arriba {
+  transform: translateY(-100%);
+  animation-name: rec-bib-aparecer-arriba;
+}
+
+@container rec-mail (max-width: 1080px) {
+  .rec-bib {
+    --rec-bib-columnas: 2;
+  }
+}
+
+.rec-bib-cabeza {
+  align-items: center;
+  border-bottom: 1px solid var(--pulso-border);
+  display: flex;
+  gap: 10px;
+  padding: 10px 10px 10px 14px;
+}
+
+.rec-bib-titulo {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-bib-pista {
+  color: var(--pulso-text-muted);
+  flex: 1;
+  font-size: 11.5px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-bib-cerrar {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: none;
+  color: var(--pulso-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 26px;
+  justify-content: center;
+  min-height: 0;
+  padding: 0;
+  transform: none;
+  width: 26px;
+}
+
+.rec-bib-cerrar:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.rec-bib-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px 14px;
+}
+
+.rec-bib-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rec-bib-grupo-titulo {
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.06em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.rec-bib-rejilla {
+  display: grid;
+  gap: 8px;
+  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(var(--rec-bib-columnas), minmax(0, 1fr));
+}
+
+.rec-bib-tipo {
+  align-items: stretch;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  box-shadow: none;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  font: inherit;
+  gap: 7px;
+  justify-content: flex-start;
+  min-height: 0;
+  padding: 8px;
+  text-align: left;
+  transform: none;
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-fast) var(--motion-ease-out);
+  white-space: normal;
+}
+
+.rec-bib-tipo:hover:not(:disabled),
+.rec-bib-tipo:focus-visible {
+  border-color: var(--pulso-module-fieldkit-border);
+  box-shadow: var(--pulso-shadow-low);
+  transform: translateY(-1px);
+}
+
+.rec-bib-tipo:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+.rec-bib-tipo:active:not(:disabled) {
+  transform: scale(0.98);
+  transition-duration: var(--motion-dur-press);
+}
+
+.rec-bib-tipo:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.rec-bib-tipo[draggable="true"] {
+  cursor: grab;
+}
+
+.rec-bib-esquema {
+  background: var(--pulso-surface-2);
+  border-radius: 6px;
+  display: block;
+  height: 64px;
+  padding: 6px 0;
+  width: 100%;
+}
+
+.rec-bib-papel {
+  fill: var(--pulso-surface);
+  stroke: var(--pulso-border);
+}
+
+.rec-bib-l {
+  fill: var(--pulso-text-soft);
+}
+
+.rec-bib-s {
+  fill: var(--pulso-border-strong);
+}
+
+.rec-bib-a {
+  fill: var(--pulso-module-fieldkit);
+}
+
+.rec-bib-claro {
+  fill: var(--pulso-surface);
+}
+
+.rec-bib-caja {
+  fill: var(--pulso-module-fieldkit-soft);
+  stroke: var(--pulso-module-fieldkit-border);
+}
+
+.rec-bib-img {
+  fill: var(--pulso-module-fieldkit-soft);
+}
+
+.rec-bib-montana {
+  fill: var(--pulso-module-fieldkit);
+  opacity: 0.55;
+}
+
+.rec-bib-sol {
+  fill: var(--pulso-module-fieldkit);
+}
+
+.rec-bib-franja {
+  fill: var(--pulso-surface-3);
+}
+
+.rec-bib-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rec-bib-nombre {
+  align-items: center;
+  display: flex;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  gap: 5px;
+}
+
+.rec-bib-nombre svg {
+  color: var(--pulso-module-fieldkit);
+  flex: none;
+}
+
+.rec-bib-desc {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--pulso-text-muted);
+  display: -webkit-box;
+  font-size: 11.5px;
+  line-height: 1.35;
+  overflow: hidden;
+}
+
+@keyframes rec-bib-aparecer {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes rec-bib-aparecer-arriba {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-bib,
+  .rec-bib.is-arriba {
+    animation: none;
+  }
+
+  .rec-bib-tipo,
+  .rec-bib-tipo:hover:not(:disabled),
+  .rec-bib-tipo:active:not(:disabled) {
+    transform: none;
+    transition: none;
+  }
+}

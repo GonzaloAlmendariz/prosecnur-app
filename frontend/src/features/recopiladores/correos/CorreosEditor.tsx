@@ -5,21 +5,43 @@ import { EstadoVacio } from "../../../components/EstadoVacio";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
-import { AlertTriangle, Check, Loader2, Mail, RefreshCw, Save } from "../../../vendor/lucide-react";
+import { Switch } from "../../../components/Switch";
+import { AlertTriangle, Check, Loader2, Mail, Redo2, RefreshCw, Save, Undo2 } from "../../../vendor/lucide-react";
 import { Segmented } from "../../xlsformEditor/kit";
 import { ColumnaDeBloques } from "./ColumnaDeBloques";
 import {
+  CABECERA,
+  CAMPO_NOMBRE,
   SOBRE,
   agregarBloque,
   conTexto,
   editarBloque,
+  idLibre,
   insertarToken,
   moverBloque,
   quitarBloque,
   repartirProblemas,
+  slugDeImagen,
   textoDe,
   type VistaDelCorreo,
 } from "./modeloCorreo";
+import { CapaDeEdicion } from "./CapaDeEdicion";
+import type { Dialecto } from "./comoSaleEnLaPlataforma";
+import {
+  APERTURA,
+  bloqueParaInsertar,
+  chequeosPorBloque,
+  conPuntoNuevo,
+  conTextoDeZona,
+  insertarBloqueEn,
+  moverBloqueA,
+  sinPunto,
+  sinPuntosVacios,
+  srcDeImagenDelBloque,
+} from "./estructuraCorreo";
+import { atajoDeHistorial, esCampoNativo } from "./historialCorreo";
+import type { CampoDelMenu } from "./MenuDeCampos";
+import type { MedidasDeLaHoja } from "./VistaPreviaDelCorreo";
 import { PanelDeBloque } from "./PanelDeBloque";
 import { PanelDestinatarios } from "./PanelDestinatarios";
 import { PanelIdentidad } from "./PanelIdentidad";
@@ -44,6 +66,7 @@ import { useCampanas } from "./useCampanas";
 import { useCorreos } from "./useCorreos";
 import "./correos.css";
 import "./correosCampanas.css";
+import "./correosCapa.css";
 
 type Props = {
   /** Avisa al shell mientras el correo o su vista previa no han llegado. */
@@ -57,6 +80,14 @@ type Props = {
 };
 
 type Pestana = "bloque" | "identidad" | "destinatarios" | "revision";
+
+/**
+ * Dialecto de la campaña para el modo didáctico. Hoy toda campaña sale por
+ * Mailchimp; cuando la campaña declare `platform` (addendum E1j), se lee aquí.
+ */
+const DIALECTO: Dialecto = "mailchimp";
+
+const PARECE_CORREO = /[^\s@]+@[^\s@]+/;
 
 const VISTAS: { value: VistaDelCorreo; label: string }[] = [
   { value: "escritorio", label: "Escritorio" },
@@ -103,6 +134,7 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
     // Un campo se inserta en el texto del bloque que se está mirando, no en el
     // último que tuvo el cursor.
     if (id !== st.seleccion) st.setDestino(null);
+    if (st.edicion && st.edicion.zona !== id) st.setEdicion(null);
     st.seleccionar(id);
     if (pestana !== "bloque") panelAbierto?.cerrar();
   }, [panelAbierto, pestana, st]);
@@ -123,12 +155,127 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
   const listaLista = st.campanasCarga === "lista" || st.campanasCarga === "error";
 
   useEffect(() => { onCargando?.(cargando); }, [cargando, onCargando]);
+
+  // Cmd+Z / Cmd+Shift+Z fuera de un campo: deshace en el correo. Dentro de un
+  // input manda su propio deshacer; el editor en línea captura el suyo.
+  useEffect(() => {
+    const alTeclear = (event: KeyboardEvent) => {
+      const atajo = atajoDeHistorial(event);
+      if (!atajo || esCampoNativo(event.target)) return;
+      const estado = useCorreosStore.getState();
+      if (!estado.borrador) return;
+      event.preventDefault();
+      if (atajo === "deshacer") estado.deshacer();
+      else estado.rehacer();
+    };
+    window.addEventListener("keydown", alTeclear);
+    return () => window.removeEventListener("keydown", alTeclear);
+  }, []);
+
+  const chequeos = useMemo(() => chequeosPorBloque(st.revision?.checks), [st.revision]);
+  const persona = st.vistaPrevia?.recipient;
+  const camposDelMenu = useMemo((): CampoDelMenu[] => {
+    if (!template) return [];
+    const ejemplo = (v: string | undefined) => (v && !PARECE_CORREO.test(v) ? v : undefined);
+    return [
+      { key: CAMPO_NOMBRE, label: "Nombre", etiqueta: "*|FNAME|*", ejemplo: ejemplo(persona?.nombre) },
+      ...template.fields.map((f) => ({ key: f.key, label: f.label, etiqueta: `*|${f.tag}|*`, ejemplo: ejemplo(persona?.fields[f.key]) })),
+    ];
+  }, [persona, template]);
+  const textoDeCampo = useMemo(() => {
+    const porClave = new Map(camposDelMenu.map((c) => [c.key, c]));
+    return {
+      rotuloDeCampo: (k: string) => porClave.get(k)?.label ?? k,
+      ayudaDeCampo: (k: string) => `{{${k}}} → ${porClave.get(k)?.etiqueta ?? "sin equivalente"}`,
+    };
+  }, [camposDelMenu]);
   useEffect(() => () => onCargando?.(false), [onCargando]);
 
-  const editar = useCallback((update: (t: MailTemplate) => MailTemplate) => st.editar(update), [st]);
-  const editarUnBloque = useCallback((id: string, update: (b: MailBlock) => MailBlock) => {
-    st.editar((t) => editarBloque(t, id, update));
+  const editar = useCallback((update: (t: MailTemplate) => MailTemplate, grupo?: string) => st.editar(update, grupo), [st]);
+  const editarUnBloque = useCallback((id: string, update: (b: MailBlock) => MailBlock, grupo?: string) => {
+    st.editar((t) => editarBloque(t, id, update), grupo);
   }, [st]);
+
+  /**
+   * Sube el archivo de un bloque imagen. El id sale del nombre del archivo
+   * (a-z, 0-9 y guiones: Mailchimp lo usa como nombre en el ZIP) y no choca
+   * con otra imagen del correo; el bloque pasa a nombrarlo.
+   */
+  const subirImagenDeBloque = (blockId: string, file: File) => {
+    const actual = useCorreosStore.getState().borrador;
+    const block = actual?.blocks.find((b) => b.block_id === blockId);
+    if (!actual || !block || block.type !== "image") return;
+    const usados = [
+      ...Object.keys(actual.images),
+      ...actual.blocks.flatMap((b) => (b.type === "image" && b.block_id !== blockId ? [b.image_ref] : [])),
+    ].filter((id) => id !== block.image_ref);
+    const id = idLibre(slugDeImagen(file.name), usados);
+    if (id !== block.image_ref) {
+      st.editar((t) => {
+        const images = { ...t.images };
+        if (images[block.image_ref]) {
+          images[id] = images[block.image_ref];
+          delete images[block.image_ref];
+        }
+        return { ...editarBloque(t, blockId, (b) => ({ ...b, image_ref: id }) as MailBlock), images };
+      });
+    }
+    void acciones.subirImagen(id, file);
+  };
+
+  const capa = (m: MedidasDeLaHoja) => {
+    if (!template) return null;
+    return (
+      <CapaDeEdicion
+        {...m}
+        template={template}
+        seleccion={pestana === "bloque" ? st.seleccion : ""}
+        edicion={st.edicion}
+        explicaciones={st.explicaciones}
+        chequeos={chequeos}
+        campos={camposDelMenu}
+        textoDeCampo={textoDeCampo}
+        apertura={null}
+        onSeleccionar={seleccionar}
+        onEditar={st.setEdicion}
+        onTexto={(zona, prop, valor) => {
+          if (zona === APERTURA) return;
+          st.editar((t) => editarBloque(t, zona, (b) => conTextoDeZona(b, prop, valor)), `${zona}.${prop}`);
+        }}
+        onSiguientePunto={(zona, prop) => {
+          const block = useCorreosStore.getState().borrador?.blocks.find((b) => b.block_id === zona);
+          if (!block) return;
+          const out = conPuntoNuevo(block, prop);
+          st.editar((t) => editarBloque(t, zona, () => out.block));
+          st.setEdicion({ zona, prop: out.prop });
+        }}
+        onQuitarPunto={(zona, prop) => {
+          const block = useCorreosStore.getState().borrador?.blocks.find((b) => b.block_id === zona);
+          if (!block) return;
+          const out = sinPunto(block, prop);
+          if (!out.prop) return;
+          st.editar((t) => editarBloque(t, zona, () => out.block));
+          st.setEdicion({ zona, prop: out.prop });
+        }}
+        onTerminar={(zona, prop) => {
+          if (zona !== APERTURA) st.editar((t) => editarBloque(t, zona, (b) => sinPuntosVacios(b, prop)), `${zona}.${prop}`);
+          st.cortarGrupo();
+        }}
+        onMover={(id, indice) => st.editar((t) => moverBloqueA(t, id, indice))}
+        onInsertar={(type, hueco) => {
+          const actual = useCorreosStore.getState().borrador;
+          const out = actual ? insertarBloqueEn(actual, type, hueco) : null;
+          if (!out) return;
+          st.reemplazarBorrador(out.template);
+          seleccionar(out.block_id);
+        }}
+        onQuitar={(id) => { st.editar((t) => quitarBloque(t, id)); st.seleccionar(SOBRE); }}
+        onArchivoDeImagen={subirImagenDeBloque}
+        onDeshacer={st.deshacer}
+        onRehacer={st.rehacer}
+      />
+    );
+  };
 
   const insertarCampo = (key: string) => {
     const destino = st.destino;
@@ -166,7 +313,11 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
     if (!template) return;
     const seleccionActual = template.blocks.some((b) => b.block_id === st.seleccion) ? st.seleccion : null;
     const out = agregarBloque(template, type, seleccionActual);
-    st.reemplazarBorrador(out.template);
+    // La imagen nombra su propio archivo: un id que no choque con otra.
+    const plantilla = type === "image"
+      ? editarBloque(out.template, out.block_id, (b) => ({ ...b, image_ref: (bloqueParaInsertar(template, "image") as { image_ref: string }).image_ref }) as MailBlock)
+      : out.template;
+    st.reemplazarBorrador(plantilla);
     seleccionar(out.block_id);
   };
 
@@ -303,12 +454,15 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
     );
   }
 
-  const persona = st.vistaPrevia?.recipient;
   const totalPersonas = st.destinatarios?.loaded ? st.destinatarios.counts?.valid ?? 0 : 0;
   const imagenesSinArchivo = st.revision?.checks.find((c) => c.code === "images_available")?.items
     .filter((i): i is string => typeof i === "string") ?? [];
   const bannerCheck = st.revision?.checks.find((c) => c.code === "banner_size") ?? null;
   const ocupado = st.ocupado !== null;
+  const bloqueElegido = template.blocks.find((b) => b.block_id === st.seleccion);
+  const imagenDelBloque = bloqueElegido?.type === "image"
+    ? st.imagenesLocales[bloqueElegido.image_ref] ?? srcDeImagenDelBloque(st.vistaPrevia?.html, bloqueElegido.block_id)
+    : null;
   const tabs: { id: Pestana; label: string; cuenta?: number }[] = [
     { id: "bloque", label: "Bloque" },
     { id: "identidad", label: "Identidad" },
@@ -347,6 +501,23 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
             </span>
           </span>
           <span className="rec-mail-barra-acciones">
+            <span className="rec-capa-historial" role="group" aria-label="Deshacer y rehacer">
+              <PulsoButton variant="icon" size="sm" aria-label="Deshacer" title="Deshacer (⌘Z)" disabled={!st.historial.pasado.length} onClick={st.deshacer}>
+                <Undo2 size={14} aria-hidden />
+              </PulsoButton>
+              <PulsoButton variant="icon" size="sm" aria-label="Rehacer" title="Rehacer (⌘⇧Z)" disabled={!st.historial.futuro.length} onClick={st.rehacer}>
+                <Redo2 size={14} aria-hidden />
+              </PulsoButton>
+            </span>
+            <span className="rec-capa-explicaciones" title="Explicaciones: qué hace cada bloque y cómo sale en Mailchimp">
+              <Switch
+                id="rec-mail-explicaciones"
+                checked={st.explicaciones}
+                ariaLabel="Explicaciones al pasar el cursor"
+                onToggle={() => st.setExplicaciones(!st.explicaciones)}
+              />
+              <label htmlFor="rec-mail-explicaciones">Explicaciones</label>
+            </span>
             <Segmented aria-label="Cómo se mira el correo" value={st.vista} options={VISTAS} onChange={st.setVista} />
             <span className="rec-mail-ver-como" aria-live="polite">
               Ver como <b>{persona?.nombre || "—"}</b>
@@ -394,9 +565,10 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
           onAgregar={agregar}
           onInsertarCampo={insertarCampo}
           hayDestino={Boolean(st.destino) && pestana === "bloque"}
+          onMover={(id, indice) => st.editar((t) => moverBloqueA(t, id, indice))}
         />
 
-        <VistaPreviaDelCorreoConectada onSeleccionar={seleccionar} conSeleccion={pestana === "bloque"} />
+        <VistaPreviaDelCorreoConectada capa={capa} />
 
         <aside className="rec-mail-col rec-mail-col--inspector" aria-label="Inspector del correo">
           <GlidingTabList
@@ -443,6 +615,12 @@ export function CorreosEditor({ onCargando, onStateRefresh }: Props) {
                 onMover={(id, delta) => st.editar((t) => moverBloque(t, id, delta))}
                 onQuitar={(id) => { st.editar((t) => quitarBloque(t, id)); st.seleccionar(SOBRE); }}
                 onAbrirIdentidad={() => irAPestana("identidad")}
+                explicaciones={st.explicaciones}
+                dialecto={DIALECTO}
+                chequeos={chequeos[st.seleccion === CABECERA ? CABECERA : st.seleccion]?.chequeos ?? []}
+                vistaDeImagen={imagenDelBloque}
+                ocupado={ocupado}
+                onSubirImagen={subirImagenDeBloque}
               />
             ) : null}
             {pestana === "identidad" ? (
