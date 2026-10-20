@@ -350,7 +350,30 @@ job_poll <- function(job_id) {
   # efímeros no sobreviven al job aunque on_complete no haya corrido.
   j <- .job_run_cleanup(j)
   .jobs[[job_id]] <- j
+  .job_log_final(j)
   j
+}
+
+#' Una línea en el log de la app al cosechar un job: tipo, estado, duración y, si falló, el error
+#'
+#' El stderr del worker va a un archivo por job, así que un export que fallaba o tardaba 10 minutos no dejaba rastro en
+#' el log que el usuario manda a soporte, aunque el aviso dijera «el detalle quedó en el registro» (Arte, 2026-10-20).
+#' Las miniaturas y vistas previas son constantes: sólo se registran si fallan. `tiempos_ms` (nombrado) del resultado,
+#' si el worker lo devuelve, se agrega por fase.
+#' @keywords internal
+.job_log_final <- function(j) {
+  kind <- as.character(j$kind %||% "")[1]
+  ok <- identical(j$status, "done")
+  if (ok && grepl("^graficos\\.(miniaturas|preview_slide)$", kind)) return(invisible(NULL))
+  ms <- tryCatch(as.integer(round(as.numeric(difftime(j$finished_at, j$started_at, units = "secs")) * 1000)),
+                 error = function(e) NA_integer_)
+  fases <- if (ok && is.list(j$result_data)) j$result_data$tiempos_ms else NULL
+  fases <- if (length(fases) && !is.null(names(fases))) {
+    paste0(" ", paste(sprintf("%s_ms=%s", names(fases), unlist(fases, use.names = FALSE)), collapse = " "))
+  } else ""
+  error <- if (ok) "" else sprintf(" error=%s", substr(gsub("\\s+", " ", as.character(j$error %||% "")[1]), 1L, 400L))
+  message(sprintf("[jobs] kind=%s status=%s total_ms=%s%s%s", kind, j$status, ms, fases, error))
+  invisible(NULL)
 }
 
 job_poll_all <- function() {

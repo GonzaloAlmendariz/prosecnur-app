@@ -388,11 +388,17 @@
   utiles <- (w_npc * ancho_in) - 0.06
   if (utiles <= 0) return(as.integer(minimo))
 
+  # Cada línea se mide una vez: al bajar `n` de uno en uno casi todas las líneas se repiten, y medir con la fuente del
+  # sistema es lo caro (en Windows, mucho más). Misma medición, sin repetirla (Arte, 2026-10-20).
+  medidas <- new.env(parent = emptyenv())
   mide <- function(x) {
-    tryCatch({
+    if (!is.null(hit <- medidas[[x]])) return(hit)
+    w <- tryCatch({
       g <- grid::textGrob(x, gp = grid::gpar(fontsize = size_pt, fontfamily = family))
       grid::convertWidth(grid::grobWidth(g), "in", valueOnly = TRUE)
     }, error = function(e) NA_real_)
+    if (nzchar(x)) assign(x, w, envir = medidas)
+    w
   }
 
   # Techo geometrico con el ancho medio: el punto de partida del bucle.

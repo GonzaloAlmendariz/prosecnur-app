@@ -25,6 +25,7 @@ Imports:
     httpuv,
     later,
     callr,
+    compiler,
     uuid,
     ps,
     readxl,
