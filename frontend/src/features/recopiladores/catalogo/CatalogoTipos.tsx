@@ -20,7 +20,7 @@ import { TarjetaDeTipo } from "./TarjetaDeTipo";
 import { useCatalogoDeMateriales } from "./useCatalogoDeMateriales";
 import "./catalogoTipos.css";
 
-export const DIRECCION_DEL_EDITOR = "/material-campo?seccion=catalogo&pestana=editor";
+export const DIRECCION_DEL_EDITOR = "/material-campo?modo=aulas&seccion=catalogo&pestana=editor";
 
 type Props = {
   payload: CollectionStatePayload | null;

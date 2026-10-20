@@ -54,6 +54,14 @@ export const PARAMS_DIRECCION = {
 /** Param de dev que abre un `.pulso` saltándose el BootGate. */
 export const PARAM_PROYECTO = "pulso";
 
+/**
+ * Param de ALCANCE, como `pulso`: no es una sexta dimensión. Dice qué campaña
+ * de Material de campo está abierta (ADR 0111 §4) y el modo es su tipo. Su
+ * valor es un id `<tipo>.<ref>` y viaja tal cual: no se normaliza como un
+ * token de la jerarquía, porque es identidad de una entidad.
+ */
+export const PARAM_CAMPANA = "campana";
+
 const PARAMS_CANONICOS: readonly string[] = [
   ...Object.values(PARAMS_DIRECCION),
 ];
@@ -65,6 +73,8 @@ export type DireccionProsecnur = {
   pestana?: string;
   panel?: string;
   foco?: string;
+  /** Campaña abierta (alcance, ADR 0111): `aulas.principal`, `correo.<id>`. */
+  campana?: string;
   /** Ruta absoluta al `.pulso`. Solo se honra en build de dev. */
   proyecto?: string;
   /** Params ajenos a la gramática que la dirección no debe perder. */
@@ -105,6 +115,7 @@ const ALIAS_LEGACY: Partial<Record<ProsecnurModuleSlug, AliasPorNivel>> = {
 const PARAMS_RESERVADOS = new Set<string>([
   ...PARAMS_CANONICOS,
   PARAM_PROYECTO,
+  PARAM_CAMPANA,
   "devPulso",
   "devProject",
   ...Object.values(ALIAS_LEGACY).flatMap((porNivel) =>
@@ -236,6 +247,7 @@ export function parsearDireccion(
   const pestana = leerParam(params, PARAMS_DIRECCION.pestana, alias.pestana);
   const panel = leerParam(params, PARAMS_DIRECCION.panel);
   const foco = leerParam(params, PARAMS_DIRECCION.foco);
+  const campana = leerParam(params, PARAM_CAMPANA);
   const proyecto = leerParam(params, PARAM_PROYECTO, [
     "devPulso",
     "devProject",
@@ -244,6 +256,7 @@ export function parsearDireccion(
   const consumidos = new Set<string>([
     ...PARAMS_CANONICOS,
     PARAM_PROYECTO,
+    PARAM_CAMPANA,
     "devPulso",
     "devProject",
     ...(alias.modo ?? []),
@@ -264,6 +277,7 @@ export function parsearDireccion(
     ...(pestana ? { pestana: normalizarToken(pestana) } : {}),
     ...(panel ? { panel: normalizarToken(panel) } : {}),
     ...(foco ? { foco } : {}),
+    ...(campana ? { campana } : {}),
     ...(proyecto ? { proyecto } : {}),
     ...(Object.keys(extra).length > 0 ? { extra } : {}),
   };
@@ -323,6 +337,8 @@ export function serializarDireccion(direccion: DireccionProsecnur): string {
   }
 
   if (direccion.modo) params.set(PARAMS_DIRECCION.modo, direccion.modo);
+  // El alcance va junto al modo que determina: `?modo=correo&campana=correo.x`.
+  if (direccion.campana) params.set(PARAM_CAMPANA, direccion.campana);
   if (direccion.seccion && !seccionImplicita) {
     params.set(PARAMS_DIRECCION.seccion, direccion.seccion);
   }
@@ -359,6 +375,20 @@ export function conNivel(
   return query ? `?${query}` : "";
 }
 
+/**
+ * Devuelve el `search` con la campaña abierta reescrita (o quitada con `null`),
+ * preservando todo lo demás. Es el único escritor del param de alcance.
+ */
+export function conCampana(search: string, valor: string | null): string {
+  const params = new URLSearchParams(
+    search.startsWith("?") ? search.slice(1) : search,
+  );
+  if (valor) params.set(PARAM_CAMPANA, valor);
+  else params.delete(PARAM_CAMPANA);
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
 /** El param de proyecto y sus alias históricos. */
 export const PARAMS_PROYECTO = [
   PARAM_PROYECTO,
@@ -382,7 +412,10 @@ export function hrefSinParamDeProyecto(href: string): string {
   return `${url.pathname}${query ? `?${query}` : ""}${url.hash}`;
 }
 
-/** Compara dos direcciones por sus cinco niveles (ignora `foco` y `extra`). */
+/**
+ * Compara dos direcciones por sus cinco niveles y su alcance (ignora `foco` y
+ * `extra`). La misma sección de dos campañas distintas no es la misma vista.
+ */
 export function mismaDireccion(
   a: DireccionProsecnur | null,
   b: DireccionProsecnur | null,
@@ -391,6 +424,7 @@ export function mismaDireccion(
   return (
     a.modulo === b.modulo &&
     a.modo === b.modo &&
+    a.campana === b.campana &&
     a.seccion === b.seccion &&
     a.pestana === b.pestana &&
     a.panel === b.panel

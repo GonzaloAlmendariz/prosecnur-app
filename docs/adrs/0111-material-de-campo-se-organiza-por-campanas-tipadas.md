@@ -110,3 +110,13 @@ Los enlaces que entran desde Cálculo de muestra, Monitoreo y Diseño de estudio
 - Correo como módulo aparte: separa lo que el equipo vive como un mismo campo.
 - Cuatro secciones para el correo (audiencia, correo, envíos, revisión): «Audiencia» no aplica igual en SurveyMonkey y
   una sección no puede aparecer según la plataforma.
+
+## Gobierna
+
+Direcciones del contrato de navegación que esta decisión explica
+(`scripts/vaults-check.mjs` las verifica contra `frontend/src/lib/modules.ts`):
+
+- `material-campo`
+- `material-campo/aulas`
+- `material-campo/correo`
+- `material-campo/correo/correo`

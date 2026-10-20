@@ -26,9 +26,10 @@ export const PESTANAS_POR_SECCION = {
   // Lista es el aterrizaje; Origen dice de qué fuente sale y qué cambió (E1e).
   unidades: ["lista", "origen"],
   accesos: ["canales", "vinculacion"],
-  // Tipos primero: es el aterrizaje de Catálogo (ADR 0109 §3). Correos es el
-  // material de canal digital: se compone aquí y sale para Mailchimp (ADR 0110 §2).
-  catalogo: ["tipos", "editor", "correos"],
+  // Tipos primero: es el aterrizaje de Catálogo (ADR 0109 §3). Correos salió
+  // de aquí: cada correo es una campaña propia (ADR 0111 §3) y sus enlaces
+  // viejos los resuelve `campanas/redirecciones.ts`.
+  catalogo: ["tipos", "editor"],
   paquetes: ["armado"],
   entrega: ["traspaso"],
 } as const satisfies Record<RecopiladoresSeccion, readonly string[]>;
@@ -70,10 +71,14 @@ const ALIAS_PESTANA: Record<string, DireccionRecopiladores> = {
   // inventada (C5).
   validacion: { seccion: "entrega", pestana: "traspaso" },
   monitoreo: { seccion: "entrega", pestana: "traspaso" },
-  // Nombres que alguien escribiría a mano para llegar a los correos.
-  correo: { seccion: "catalogo", pestana: "correos" },
-  mailchimp: { seccion: "catalogo", pestana: "correos" },
 };
+
+/**
+ * Pestañas que en el modo aulas llevaban al correo (`?seccion=catalogo&pestana=correos`
+ * y lo que alguien escribiría a mano). Ya no son de este juego de secciones:
+ * se leen para mandar a la campaña de correo (ADR 0111, «Redirecciones»).
+ */
+export const PESTANAS_DEL_CORREO_LEGADAS: readonly string[] = ["correos", "correo", "mailchimp"];
 
 /**
  * Secciones viejas → sección canónica. `paquete` cae en Paquetes: lo que hacía

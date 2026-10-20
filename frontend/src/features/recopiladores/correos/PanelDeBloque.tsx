@@ -1,4 +1,4 @@
-import { isOpaqueMailBlock, type MailBlock, type MailCheck, type MailProblem, type MailRecipientView, type MailTemplate } from "../../../api/materialMail";
+import { isOpaqueMailBlock, type MailBlock, type MailCheck, type MailProblem, type MailRecipients, type MailRecipientView, type MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ArrowDown, ArrowUp, Image, Trash2 } from "../../../vendor/lucide-react";
 import { PropRow, Segmented } from "../../xlsformEditor/kit";
@@ -8,6 +8,8 @@ import type { Dialecto } from "./comoSaleEnLaPlataforma";
 import { PanelDeImagen } from "./PanelDeImagen";
 import { ChequeosDelBloque, TarjetaDidactica } from "./TarjetaDidactica";
 import { EnlaceDeLaPersona } from "./EnlaceDeLaPersona";
+import { esProblemaDelTrato } from "./modeloTrato";
+import { SaludoSegunLaPersona } from "./SaludoSegunLaPersona";
 import {
   CABECERA,
   ROTULO_DE_PROP,
@@ -49,6 +51,9 @@ type Props = {
   vistaDeImagen?: string | null;
   ocupado?: boolean;
   onSubirImagen?: (blockId: string, file: File) => void;
+  /** La lista cargada en Personas: de ahí sale la columna del saludo por sexo (C8). */
+  destinatarios?: MailRecipients | null;
+  onIrAPersonas?: () => void;
 };
 
 const AYUDA_DE_PROP: Partial<Record<PropDeTexto, string>> = {
@@ -130,6 +135,8 @@ export function PanelDeBloque({
   vistaDeImagen = null,
   ocupado = false,
   onSubirImagen,
+  destinatarios = null,
+  onIrAPersonas,
 }: Props) {
   if (seleccion === SOBRE) {
     return (
@@ -223,7 +230,7 @@ export function PanelDeBloque({
     );
   }
   const props = propsDeTexto(block.type);
-  const sueltos = propios.filter((p) => {
+  const sueltos = propios.filter((p) => !esProblemaDelTrato(p)).filter((p) => {
     const prop = propDelProblema(p.path);
     return !prop || !(props as readonly string[]).includes(prop);
   });
@@ -273,6 +280,16 @@ export function PanelDeBloque({
       ))}
       {explicaciones ? <TarjetaDidactica block={block} template={template} dialecto={dialecto} /> : null}
       {block.type === "button" ? <EnlaceDeLaPersona url={block.url} persona={persona} campos={template.fields} /> : null}
+      {block.type === "greeting" ? (
+        <SaludoSegunLaPersona
+          block={block}
+          destinatarios={destinatarios}
+          plataforma={dialecto === "surveymonkey" ? "surveymonkey" : "mailchimp"}
+          problemas={propios.filter(esProblemaDelTrato)}
+          onEditar={(update, grupo) => editar((b) => (b.type === "greeting" ? update(b) : b), grupo)}
+          onIrAPersonas={() => onIrAPersonas?.()}
+        />
+      ) : null}
       {sueltos.length ? (
         <ul className="rec-mail-problemas">
           {sueltos.map((p, i) => <li key={`${p.path}-${i}`}>{p.detail}</li>)}

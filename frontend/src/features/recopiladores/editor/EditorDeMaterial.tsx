@@ -43,8 +43,8 @@ import { useRecetaDelEditor } from "./useRecetaDelEditor";
 import { useVistaDelPliego } from "./useVistaDelPliego";
 import "./editor.css";
 
-export const DIRECCION_DE_TIPOS = "/material-campo?seccion=catalogo&pestana=tipos";
-export const DIRECCION_DE_UNIDADES = "/material-campo?seccion=unidades&pestana=lista";
+export const DIRECCION_DE_TIPOS = "/material-campo?modo=aulas&seccion=catalogo&pestana=tipos";
+export const DIRECCION_DE_UNIDADES = "/material-campo?modo=aulas&seccion=unidades&pestana=lista";
 
 type Props = {
   payload: CollectionStatePayload | null;

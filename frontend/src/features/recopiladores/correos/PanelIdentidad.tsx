@@ -199,7 +199,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
         )}
         <span className="rec-mail-ayuda">Cuando no hay banner, las instituciones del estudio van en la franja.</span>
         {/* C3: sin logos (cabecera de banner) no queda una lista vacía reclamando alto. */}
-        {logos.length ? <ul className="rec-mail-logos" data-qa-geometry-group="material-campo/catalogo/correos-logos" data-qa-geometry-contract="equal">
+        {logos.length ? <ul className="rec-mail-logos" data-qa-geometry-group="material-campo/correo/logos" data-qa-geometry-contract="equal">
           {logos.map((id) => {
             const img = template.images[id] ?? { alt: "" };
             const falta = !tieneArchivo(id) && !img.url;

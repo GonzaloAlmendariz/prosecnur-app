@@ -333,9 +333,12 @@ Direcciones del contrato de navegación que esta decisión explica
 (`scripts/vaults-check.mjs` las verifica contra `frontend/src/lib/modules.ts`):
 
 - `material-campo`
-- `material-campo/unidades`
-- `material-campo/accesos`
-- `material-campo/catalogo`
-- `material-campo/paquetes`
-- `material-campo/entrega`
+- `material-campo/aulas/unidades`
+- `material-campo/aulas/accesos`
+- `material-campo/aulas/catalogo`
+- `material-campo/aulas/paquetes`
+- `material-campo/aulas/entrega`
+
+Desde el [ADR 0111](0111-material-de-campo-se-organiza-por-campanas-tipadas.md) estas secciones son del modo `aulas`
+(la campaña de aulas abierta).
 - `hojas-ruta/seleccion`

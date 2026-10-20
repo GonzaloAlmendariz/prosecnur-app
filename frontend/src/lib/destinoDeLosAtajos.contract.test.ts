@@ -23,12 +23,12 @@ const ATAJOS = [
   {
     donde: "features/calcMuestra/universidad/aulas/ClassroomAuditPanels.tsx",
     label: "Abrir fichas QR",
-    seccion: "/material-campo?seccion=catalogo&pestana=editor",
+    seccion: "/material-campo?modo=aulas&seccion=catalogo&pestana=editor",
   },
   {
     donde: "features/monitoreo/profiles/aulas/AulasMonitoreoPage.tsx",
     label: "Abrir fichas QR",
-    seccion: "/material-campo?seccion=catalogo&pestana=editor",
+    seccion: "/material-campo?modo=aulas&seccion=catalogo&pestana=editor",
   },
 ];
 
@@ -58,7 +58,7 @@ describe("los atajos entre módulos llevan a su sección, no al módulo pelado",
     // Si el slug cambiara, este test seguiría verde mientras el atajo apuntara
     // a una sección inexistente. El manifiesto es quien manda.
     const manifiesto = fs.readFileSync(path.join(raiz, "lib/modules.ts"), "utf8");
-    expect(manifiesto).toContain('to: "/material-campo?seccion=catalogo"');
-    expect(manifiesto).toContain('to: "/material-campo?seccion=catalogo&pestana=editor"');
+    expect(manifiesto).toContain('to: "/material-campo?modo=aulas&seccion=catalogo"');
+    expect(manifiesto).toContain('to: "/material-campo?modo=aulas&seccion=catalogo&pestana=editor"');
   });
 });

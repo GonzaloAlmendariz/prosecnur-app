@@ -8,6 +8,7 @@ import {
   type MailTemplate,
 } from "../../../api/materialMail";
 import { CABECERA, SOBRE } from "./modeloCorreo";
+import { focoCombinado, partirFocoCombinado } from "./modeloCampanas";
 import {
   BORRADO_INICIAL,
   ORIGEN_EN_BLANCO,
@@ -293,5 +294,20 @@ describe("borrar en dos pasos", () => {
     expect(reducirBorrado(fase, { type: "escribir", texto: "R" })).toEqual({ paso: "nombre", escrito: "R", error: "" });
     expect(reducirBorrado(fase, { type: "volver" })).toBe(BORRADO_INICIAL);
     expect(reducirBorrado(fase, { type: "reiniciar" })).toBe(BORRADO_INICIAL);
+  });
+});
+
+describe("el correo abierto en la dirección (ADR 0111 §4)", () => {
+  test("`campana` + `foco` se leen como la forma combinada del editor", () => {
+    expect(focoCombinado("correo.arte", "saludo")).toBe("arte~saludo");
+    expect(focoCombinado("correo.arte", null)).toBe("arte");
+    expect(focoCombinado("aulas.principal", "x")).toBe("");
+    expect(focoCombinado(undefined, "x")).toBe("");
+  });
+
+  test("y se escriben partidos: la campaña es alcance, el bloque es foco", () => {
+    expect(partirFocoCombinado("arte~saludo")).toEqual({ campana: "correo.arte", bloque: "saludo" });
+    expect(partirFocoCombinado("arte")).toEqual({ campana: "correo.arte", bloque: null });
+    expect(partirFocoCombinado(null)).toEqual({ campana: null, bloque: null });
   });
 });

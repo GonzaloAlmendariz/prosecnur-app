@@ -121,6 +121,20 @@
   top: 4px;
 }
 
+/* Sin sitio a la derecha de la primera línea, el chip sube al hueco entre
+   bloques (chipDeApertura.ts): nunca se monta sobre el texto del correo. */
+.rec-capa-zona-chip.is-arriba {
+  bottom: calc(100% + 2px);
+  right: 0;
+  top: auto;
+}
+
+/* La apertura es sólo de un envío: filete punteado aunque el chip no quepa. */
+.rec-capa-zona-marco.is-solo-del-envio {
+  outline: 1px dashed var(--pulso-info-border);
+  outline-offset: 2px;
+}
+
 /* La revisión junto al bloque: un punto con la cuenta. */
 .rec-capa-zona-cuenta {
   align-items: center;

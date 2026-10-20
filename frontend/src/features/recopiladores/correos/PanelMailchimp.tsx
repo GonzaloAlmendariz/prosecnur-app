@@ -5,6 +5,7 @@ import type { MailExportPayload, MailExportScope, MailReview, MailTemplate } fro
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Check, Copy, Download, FolderOpen, Loader2, Upload } from "../../../vendor/lucide-react";
 import { etiquetasDeMailchimp, pesoLegible, revisionBloquea } from "./modeloCorreo";
+import { SalidasDelEnvio } from "./SalidasDelEnvio";
 
 type Props = {
   /** Rótulo del envío que se exporta, si la campaña tiene más de uno. */
@@ -81,7 +82,7 @@ export function PanelMailchimp({
       <span className="xfk-over">Para Mailchimp{envio ? ` · ${envio}` : ""}</span>
       <dl
         className="rec-mail-mc-etiquetas"
-        data-qa-geometry-group="material-campo/catalogo/correos-etiquetas"
+        data-qa-geometry-group="material-campo/correo/etiquetas"
         data-qa-geometry-contract="equal"
       >
         {etiquetas.map((e) => (
@@ -121,6 +122,7 @@ export function PanelMailchimp({
           {copia === "ok" ? "Copiado" : "Copiar para Outlook"}
         </PulsoButton>
       </span>
+      <SalidasDelEnvio plataforma="mailchimp" />
       {bloqueaCompleto ? (
         <button type="button" className="rec-mail-link" onClick={onVerRevision}>
           Ver qué falta corregir ({revision?.errors ?? 0})

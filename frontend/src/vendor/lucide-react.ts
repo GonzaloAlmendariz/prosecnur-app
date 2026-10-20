@@ -188,8 +188,10 @@ export { default as MessageSquare } from "lucide-react/dist/esm/icons/message-sq
 export { default as Mic } from "lucide-react/dist/esm/icons/mic.mjs";
 export { default as Minimize2 } from "lucide-react/dist/esm/icons/minimize-2.mjs";
 export { default as Minus } from "lucide-react/dist/esm/icons/minus.mjs";
+export { default as Monitor } from "lucide-react/dist/esm/icons/monitor.mjs";
 export { default as MonitorCog } from "lucide-react/dist/esm/icons/monitor-cog.mjs";
 export { default as MonitorSmartphone } from "lucide-react/dist/esm/icons/monitor-smartphone.mjs";
+export { default as Moon } from "lucide-react/dist/esm/icons/moon.mjs";
 export { default as MoreHorizontal } from "lucide-react/dist/esm/icons/ellipsis.mjs";
 export { default as MousePointer2 } from "lucide-react/dist/esm/icons/mouse-pointer-2.mjs";
 export { default as MoveHorizontal } from "lucide-react/dist/esm/icons/move-horizontal.mjs";
@@ -241,6 +243,7 @@ export { default as Shuffle } from "lucide-react/dist/esm/icons/shuffle.mjs";
 export { default as Sigma } from "lucide-react/dist/esm/icons/sigma.mjs";
 export { default as Sliders } from "lucide-react/dist/esm/icons/sliders-vertical.mjs";
 export { default as SlidersHorizontal } from "lucide-react/dist/esm/icons/sliders-horizontal.mjs";
+export { default as Smartphone } from "lucide-react/dist/esm/icons/smartphone.mjs";
 export { default as Sparkles } from "lucide-react/dist/esm/icons/sparkles.mjs";
 export { default as Split } from "lucide-react/dist/esm/icons/split.mjs";
 export { default as Square } from "lucide-react/dist/esm/icons/square.mjs";

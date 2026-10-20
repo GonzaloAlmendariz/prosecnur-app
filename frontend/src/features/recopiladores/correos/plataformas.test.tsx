@@ -27,6 +27,8 @@ import { PanelMailchimp } from "./PanelMailchimp";
 import { DestinatariosEnSurveyMonkey, PanelSurveyMonkey, copiarHtmlParaPegar } from "./PanelSurveyMonkey";
 import { envioElegido, hayCambios, useCorreosStore } from "./store";
 import { pedidoDelHtmlDeLaPlataforma } from "./useCorreos";
+import { asuntoDeLaImportacion, conAsunto, problemaDelAsunto } from "./useImportarHtml";
+import { alcanceDelPaqueteSM } from "./modeloTrato";
 import { nombreSugerido, problemaDeLaFuente, reducirImportar, estadoInicialImportar } from "./useImportarHtml";
 
 const PLANTILLA: MailTemplate = {
@@ -156,13 +158,18 @@ describe("pie por plataforma", () => {
     expect(pedidoDelHtmlDeLaPlataforma({ borrador: null, campana: "arte", envios, envio: "invitacion" })).toBeNull();
   });
 
-  it("Destinatarios con SurveyMonkey es un vacío legítimo, sin importador", () => {
+  it("Personas con SurveyMonkey ya no es un vacío: la lista es opcional (C8)", () => {
     const html = renderToStaticMarkup(<DestinatariosEnSurveyMonkey />);
-    expect(html).toContain("Los contactos viven en el recopilador de SurveyMonkey");
+    expect(html).toContain("Opcional: carga la lista");
+    expect(html).toContain("archivo de contactos con el saludo");
+    // La nota no repite el importador: lo pone PanelDestinatarios debajo.
     expect(html).not.toContain('type="file"');
-    // La correspondencia no se duplica: vive en la tabla del pie.
-    expect(html).not.toContain("<select");
-    expect(html).toContain("Para SurveyMonkey");
+  });
+
+  it("con lista, el paquete de SurveyMonkey es completo; sin ella, la plantilla", () => {
+    expect(alcanceDelPaqueteSM("surveymonkey", true)).toBe("completo");
+    expect(alcanceDelPaqueteSM("surveymonkey", false)).toBe("plantilla");
+    expect(alcanceDelPaqueteSM("mailchimp", true)).toBe("plantilla");
   });
 });
 
@@ -186,7 +193,7 @@ describe("panel de envíos", () => {
         onExportar={noop}
       />,
     );
-    expect(html).toContain('data-qa-geometry-group="material-campo/catalogo/correos-envios"');
+    expect(html).toContain('data-qa-geometry-group="material-campo/correo/envios"');
     expect(html.match(/data-qa-geometry-member/g)).toHaveLength(2);
     expect(html).toContain("02/09 · a todos");
     expect(html).toContain("Sin fecha · sin respuesta");
@@ -316,8 +323,8 @@ describe("importar un correo existente", () => {
 
   it("el pie: «Crear campaña» siempre; «Reemplazar» sólo con una campaña abierta, y avisa si su plataforma es otra", () => {
     const base = {
-      nombre: "Arte", plataforma: "surveymonkey" as const, problemaNombre: null, error: "", conCambios: true,
-      trabajando: false, aplicando: false, onNombre: noop, onPlataforma: noop, onOtra: noop, onReemplazar: noop, onCrear: noop,
+      nombre: "Arte", asunto: "Te invitamos", plataforma: "surveymonkey" as const, problemaNombre: null, problemaAsunto: null, error: "", conCambios: true,
+      trabajando: false, aplicando: false, onNombre: noop, onAsunto: noop, onPlataforma: noop, onOtra: noop, onReemplazar: noop, onCrear: noop,
     };
     const sinActiva = renderToStaticMarkup(<PieDeImportacion {...base} activa={null} />);
     expect(sinActiva).toContain("Crear campaña");
@@ -330,6 +337,19 @@ describe("importar un correo existente", () => {
     expect(conActiva).toContain("Reemplazar la plantilla de esta campaña");
     expect(conActiva).toContain("sigue saliendo por Mailchimp");
     expect(conActiva).toContain("historial");
+    // El asunto se pide a la vista, no se descubre después como error.
+    expect(sinActiva).toContain("Asunto del correo");
+    const sinAsunto = renderToStaticMarkup(<PieDeImportacion {...base} asunto="" problemaAsunto={problemaDelAsunto("")} activa={null} />);
+    expect(sinAsunto).toContain("Escribe el asunto");
+    expect(sinAsunto).toMatch(/<button[^>]*disabled[^>]*>(?:(?!<\/button>).)*Crear campaña/);
+  });
+
+  it("el asunto de lo importado: el escrito manda, después el del HTML, nunca un marcador", () => {
+    expect(asuntoDeLaImportacion("  Escrito  ", { subject: "Del HTML" })).toBe("Escrito");
+    expect(asuntoDeLaImportacion("", { subject: "Del HTML" })).toBe("Del HTML");
+    expect(asuntoDeLaImportacion("", { subject: "[Asunto del correo]" })).toBe("");
+    expect(problemaDelAsunto(" ")).toMatch(/asunto/);
+    expect(conAsunto({ subject: "x", title: "t" }, "Nuevo")).toEqual({ subject: "Nuevo", title: "t" });
   });
 
   it("cómo arreglar cada error, sin inventar para un código desconocido", () => {

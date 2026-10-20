@@ -34,7 +34,7 @@ function Chequeo({ check, onIrAlBloque }: { check: MailCheck; onIrAlBloque?: (bl
         <span className="rec-mail-chk-texto">
           {detalle ? <span className="rec-mail-chk-detalle">{check.detail}</span> : null}
           {items.length ? (
-            <span className="rec-mail-chk-items" data-qa-geometry-group="material-campo/catalogo/correos-chequeo-items" data-qa-geometry-contract="intrinsic">
+            <span className="rec-mail-chk-items" data-qa-geometry-group="material-campo/correo/chequeo-items" data-qa-geometry-contract="intrinsic">
               {items.map((item, i) => <span key={i} className="xfk-mono">{textoDeItem(item)}</span>)}
             </span>
           ) : null}
@@ -70,7 +70,7 @@ export function PanelRevision({ revision, cargando, onIrAlBloque }: Props) {
         <ul
           className="rec-mail-chks"
           aria-label="Chequeos del correo"
-          data-qa-geometry-group="material-campo/catalogo/correos-chequeos"
+          data-qa-geometry-group="material-campo/correo/chequeos"
           data-qa-geometry-contract="intrinsic"
         >
           {chequeosOrdenados(revision.checks).map((check, i) => <Chequeo key={`${check.code}-${i}`} check={check} onIrAlBloque={onIrAlBloque} />)}

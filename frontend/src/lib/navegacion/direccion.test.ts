@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  conCampana,
   conNivel,
   describirDireccion,
   hrefSinParamDeProyecto,
@@ -197,5 +198,47 @@ describe("gramática de direcciones", () => {
     const base = { modulo: "monitoreo", seccion: "avance" } as const;
     expect(mismaDireccion(base, { ...base, foco: "abc" })).toBe(true);
     expect(mismaDireccion(base, { ...base, pestana: "mapa" })).toBe(false);
+  });
+
+  describe("`campana`: parámetro de alcance de Material de campo (ADR 0111 §4)", () => {
+    it("se lee tipado y sin normalizar, y no cae en `extra`", () => {
+      const d = parsearDireccion("/material-campo", "?modo=correo&campana=correo.egresados-2026&seccion=correo&pestana=editor&foco=saludo");
+      expect(d).toEqual({
+        modulo: "material-campo",
+        modo: "correo",
+        campana: "correo.egresados-2026",
+        seccion: "correo",
+        pestana: "editor",
+        foco: "saludo",
+      });
+    });
+
+    it("se serializa junto al modo y sobrevive al ida y vuelta", () => {
+      const href = serializarDireccion({
+        modulo: "material-campo",
+        modo: "aulas",
+        campana: "aulas.principal",
+        seccion: "accesos",
+        pestana: "canales",
+      });
+      expect(href).toBe("/material-campo?modo=aulas&campana=aulas.principal&seccion=accesos&pestana=canales");
+      const url = new URL(href, "http://x");
+      expect(parsearDireccion(url.pathname, url.search)?.campana).toBe("aulas.principal");
+    });
+
+    it("es reservado: un `extra` no puede escribirlo", () => {
+      expect(serializarDireccion({ modulo: "material-campo", extra: { campana: "correo.x" } })).toBe("/material-campo");
+    });
+
+    it("la misma sección de dos campañas no es la misma vista", () => {
+      const a = { modulo: "material-campo", modo: "correo", campana: "correo.a", seccion: "correo" } as const;
+      expect(mismaDireccion(a, { ...a })).toBe(true);
+      expect(mismaDireccion(a, { ...a, campana: "correo.b" })).toBe(false);
+    });
+
+    it("`conCampana` es su único escritor y conserva lo demás", () => {
+      expect(conCampana("?modo=correo&seccion=correo", "correo.a")).toBe("?modo=correo&seccion=correo&campana=correo.a");
+      expect(conCampana("?campana=correo.a&foco=x", null)).toBe("?foco=x");
+    });
   });
 });

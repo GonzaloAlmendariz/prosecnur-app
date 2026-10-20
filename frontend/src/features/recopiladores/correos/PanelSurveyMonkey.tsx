@@ -16,13 +16,13 @@ import { useId, useState } from "react";
 
 import { downloadUrl } from "../../../api/core";
 import type { MailExportPayload, MailReview, MailSend, MailTemplate } from "../../../api/materialMail";
-import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Check, Copy, Download, FolderOpen, Inbox, Loader2, Upload } from "../../../vendor/lucide-react";
 import { camposDeEnlace, conDestino, conEtiquetaSurveyMonkey, etiquetasDePlataforma, motivoSinEtiqueta, opcionesSurveyMonkey, problemaDeEtiquetas } from "./dialectos";
 import { pesoLegible, revisionBloquea } from "./modeloCorreo";
 import { pasosEnSurveyMonkey, rotuloDeEnvio } from "./modeloEnvios";
 import "./correosEnvios.css";
+import { SalidasDelEnvio } from "./SalidasDelEnvio";
 
 const SIN_ETIQUETA = "";
 
@@ -63,7 +63,7 @@ export function MapeoSurveyMonkey({
     <dl
       className="rec-mail-mc-etiquetas rec-sm-mapeo"
       // Intrínseco: una fila crece con su aviso o con la pregunta del destino.
-      data-qa-geometry-group="material-campo/catalogo/correos-etiquetas-surveymonkey"
+      data-qa-geometry-group="material-campo/correo/etiquetas-surveymonkey"
       data-qa-geometry-contract="intrinsic"
     >
       {filas.map((f) => {
@@ -117,6 +117,8 @@ type Props = {
   onEditar: (update: (t: MailTemplate) => MailTemplate) => void;
   /** El HTML del envío para pegar en SurveyMonkey (`mode: "export"`); `null` si no se pudo. */
   onHtml: () => Promise<string | null>;
+  /** Con la lista cargada el paquete trae los contactos con su saludo (datos personales). */
+  conLista?: boolean;
   onExportar: () => void;
   onGuardarJunto: () => void;
   onVerRevision: () => void;
@@ -131,12 +133,14 @@ export function PanelSurveyMonkey({
   ocupado,
   onEditar,
   onHtml,
+  conLista = false,
   onExportar,
   onGuardarJunto,
   onVerRevision,
 }: Props) {
   const [copia, setCopia] = useState<"" | "copiando" | "ok" | "error">("");
   const bloquea = revisionBloquea(revision, "plantilla");
+  const bloqueaPaquete = revisionBloquea(revision, conLista ? "completo" : "plantilla");
   const zip = exportacion?.zip ?? null;
   const pasos = pasosEnSurveyMonkey(envio);
 
@@ -173,14 +177,19 @@ export function PanelSurveyMonkey({
         <PulsoButton
           variant="secondary"
           size="sm"
-          disabled={ocupado || bloquea}
-          title={bloquea ? "La revisión tiene puntos por corregir" : "HTML, LEEME y manifiesto; sin datos personales"}
+          disabled={ocupado || bloqueaPaquete}
+          title={bloqueaPaquete
+            ? "La revisión tiene puntos por corregir"
+            : conLista
+              ? "HTML, LEEME, manifiesto y contactos_surveymonkey.csv con el saludo: contiene datos personales"
+              : "HTML, LEEME y manifiesto; sin datos personales"}
           onClick={onExportar}
         >
           {exportando ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Upload size={14} aria-hidden />}
           Paquete del envío
         </PulsoButton>
       </span>
+      <SalidasDelEnvio plataforma="surveymonkey" />
       {bloquea ? (
         <button type="button" className="rec-mail-link" onClick={onVerRevision}>
           Ver qué falta corregir ({revision?.errors ?? 0})
@@ -191,7 +200,7 @@ export function PanelSurveyMonkey({
         <div className="rec-mail-mc-listo" role="status">
           <span className="rec-mail-mc-listo-nombre">
             <b className="xfk-mono">{zip.filename}</b>
-            <span>{pesoLegible(zip.size_bytes)} · sin datos personales</span>
+            <span>{pesoLegible(zip.size_bytes)}{exportacion?.scope === "completo" ? " · contiene datos personales" : " · sin datos personales"}</span>
           </span>
           <span className="rec-mail-botones">
             <a className="pulso-button pulso-button--secondary pulso-button--sm" href={downloadUrl(zip.file_id)} download={zip.filename}>
@@ -213,18 +222,13 @@ export function PanelSurveyMonkey({
  * correspondencia de campos vive en un solo sitio: la tabla del pie.
  */
 export function DestinatariosEnSurveyMonkey() {
+  // C8: la lista ya no es un vacío en SurveyMonkey. Es opcional: los contactos
+  // viven en el recopilador, pero con la lista el paquete trae
+  // contactos_surveymonkey.csv con el saludo ya escrito para cada persona.
   return (
-    <div className="rec-mail-insp-cuerpo rec-sm-destinatarios" data-qa-geometry-capacity="owned">
-      <EstadoVacio
-        tamano="compacto"
-        icono={<Inbox size={18} />}
-        titulo="Los contactos viven en el recopilador de SurveyMonkey"
-        descripcion="Súbelos allí con una columna por dato. Esta campaña no guarda destinatarios."
-      />
-      <p className="rec-mail-ayuda">
-        Qué columna de Contactos lleva cada campo lo dice la tabla «Para SurveyMonkey», debajo. Quien no tenga el dato
-        verá un espacio vacío: SurveyMonkey no tiene respaldo.
-      </p>
-    </div>
+    <p className="rec-mail-ayuda rec-sm-lista-opcional" role="note">
+      <Inbox size={14} aria-hidden /> Opcional: carga la lista si quieres el archivo de contactos con el saludo listo para el
+      recopilador. La app no la envía; vive sólo en esta sesión.
+    </p>
   );
 }

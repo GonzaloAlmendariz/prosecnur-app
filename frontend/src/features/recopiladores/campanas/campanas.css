@@ -1,0 +1,849 @@
+/* Material de campo · Campañas (ADR 0111). La lista es el aterrizaje del
+   módulo: tarjetas iguales en una grilla (C2), el vacío dentro de su caja (C3)
+   y la página como único dueño del scroll (C4). Sólo tokens; el acento del
+   módulo marca el tipo y la acción principal. Movimiento corto y nada con
+   reduced-motion. Las piezas que van en portal (menú, diálogos) usan tokens
+   globales: los del módulo no llegan fuera de su árbol. */
+
+.rec-campanas {
+  display: grid;
+  gap: var(--pulso-space-5);
+  margin: 0 auto;
+  padding: var(--pulso-space-6) var(--pulso-space-5) var(--pulso-space-7);
+  width: min(100%, 1320px);
+}
+
+.rec-campanas-cabeza {
+  display: grid;
+  gap: 4px;
+}
+
+.rec-campanas-cabeza-fila {
+  align-items: center;
+  display: flex;
+  gap: var(--pulso-space-4);
+  justify-content: space-between;
+}
+
+.rec-campanas-titulo {
+  color: var(--pulso-text);
+  font-size: 24px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.rec-campanas-lead {
+  color: var(--pulso-text-soft);
+  font-size: 14px;
+  margin: 0;
+}
+
+.rec-campanas-nota {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.rec-campanas-aviso {
+  align-items: center;
+  border: 1px solid var(--pulso-info-border);
+  background: var(--pulso-info-bg);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-info-fg);
+  display: flex;
+  font-size: 13px;
+  gap: var(--pulso-space-3);
+  justify-content: space-between;
+  margin: 0;
+  padding: 8px 12px;
+}
+
+.rec-campanas-aviso.is-error {
+  background: var(--pulso-danger-bg);
+  border-color: var(--pulso-danger-border);
+  color: var(--pulso-danger-fg);
+}
+
+/* — Grilla de tarjetas: mismo marco para 1, 2 o 20 (C2) — */
+.rec-campanas-grilla {
+  display: grid;
+  gap: var(--pulso-space-4);
+  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* A 1024 la grilla baja a dos columnas; en angosto, a una. */
+@media (max-width: 1180px) {
+  .rec-campanas-grilla {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .rec-campanas-grilla {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.rec-campanas-grilla > li {
+  display: flex;
+  min-width: 0;
+}
+
+.rec-campana-tarjeta {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  box-shadow: var(--pulso-shadow-low);
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 18px 16px;
+  position: relative;
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Elevación sutil al pasar el cursor o con el foco dentro. */
+.rec-campana-tarjeta:not(.is-archivada):hover,
+.rec-campana-tarjeta:not(.is-archivada):has(.rec-campana-abrir:focus-visible) {
+  border-color: var(--pulso-module-fieldkit-border);
+  box-shadow: var(--pulso-shadow-med);
+  transform: translateY(-2px);
+}
+
+.rec-campana-tarjeta:has(.rec-campana-abrir:focus-visible) {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 2px;
+}
+
+.rec-campana-tarjeta.is-archivada {
+  background: var(--pulso-surface-2);
+  box-shadow: none;
+}
+
+/* La cabecera reserva dos líneas de nombre y una de actor: la fila de estado
+   arranca a la misma altura en todas las tarjetas. */
+.rec-campana-tarjeta-cabeza {
+  align-items: flex-start;
+  display: grid;
+  gap: var(--pulso-space-2);
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 70px;
+  min-width: 0;
+}
+
+/* El emblema del tipo: aulas en recuadro relleno del módulo, correo en
+   recuadro con filete; el ícono también cambia. Se distinguen de un vistazo. */
+.rec-campana-emblema {
+  align-items: center;
+  border-radius: 14px;
+  display: inline-flex;
+  height: 56px;
+  justify-content: center;
+  width: 56px;
+}
+
+.rec-campana-tarjeta.is-aulas .rec-campana-emblema {
+  background: var(--pulso-surface);
+  color: var(--pulso-module-fieldkit);
+}
+
+.rec-campana-tarjeta.is-correo .rec-campana-emblema {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-module-fieldkit-border);
+  color: var(--pulso-module-fieldkit);
+}
+
+.rec-campana-tarjeta.is-territorial .rec-campana-emblema,
+.rec-campana-tarjeta.is-archivada .rec-campana-emblema {
+  background: var(--pulso-surface-2);
+  border: 0;
+  color: var(--pulso-text-soft);
+}
+
+.rec-campana-titulos {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rec-campana-tipo {
+  align-items: center;
+  color: var(--pulso-text-soft);
+  display: inline-flex;
+  font-size: 12px;
+  gap: 5px;
+}
+
+.rec-campana-nombre {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  font-size: 15.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-clamp: 2;
+  line-height: 1.3;
+  margin: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* El nombre es el enlace; su `::after` cubre la tarjeta para que toda sea
+   clicable sin duplicar enlaces. El menú queda por encima. */
+.rec-campana-abrir {
+  color: inherit;
+  text-decoration: none;
+}
+
+.rec-campana-abrir::after {
+  border-radius: var(--pulso-radius-card);
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+
+.rec-campana-abrir:focus-visible {
+  outline: none;
+}
+
+.rec-campana-actor {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+/* Cifras grandes del dato real. */
+.rec-campana-cifras {
+  display: grid;
+  gap: var(--pulso-space-2);
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  margin: 0;
+}
+
+.rec-campana-cifra {
+  background: var(--pulso-surface-2);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  padding: 8px 10px;
+}
+
+.rec-campana-cifra dd {
+  color: var(--pulso-text);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.1;
+  margin: 0;
+}
+
+.rec-campana-cifra dt {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+}
+
+/* Cada envío en su línea, con su punto de estado. */
+.rec-campana-envios {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-campana-envios li {
+  align-items: center;
+  color: var(--pulso-text-soft);
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+}
+
+.rec-campana-punto {
+  background: var(--pulso-surface);
+  border: 1.5px solid var(--pulso-border-strong);
+  border-radius: 999px;
+  flex: none;
+  height: 8px;
+  width: 8px;
+}
+
+.rec-campana-envios li.is-exportado {
+  color: var(--pulso-text);
+}
+
+.rec-campana-envios li.is-exportado .rec-campana-punto {
+  background: var(--pulso-success-fg);
+  border-color: var(--pulso-success-fg);
+}
+
+.rec-campana-estado {
+  align-self: flex-start;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  padding: 1px 8px;
+}
+
+.rec-campana-estado.is-activo {
+  background: var(--pulso-info-bg);
+  border-color: var(--pulso-info-border);
+  color: var(--pulso-info-fg);
+}
+
+.rec-campana-estado.is-listo {
+  background: var(--pulso-success-bg);
+  border-color: var(--pulso-success-border);
+  color: var(--pulso-success-fg);
+}
+
+.rec-campana-estado.is-aviso {
+  background: var(--pulso-warn-bg);
+  border-color: var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
+}
+
+.rec-campana-avance {
+  display: grid;
+  gap: 4px;
+}
+
+.rec-campana-avance-barra {
+  background: var(--pulso-surface-2);
+  border-radius: 999px;
+  height: 6px;
+  overflow: hidden;
+}
+
+.rec-campana-avance-barra > span {
+  background: var(--module-accent, var(--pulso-primary));
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.rec-campana-avance-texto,
+.rec-campana-hechos {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rec-campana-hechos {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* La franja de arriba: la miniatura real o el emblema del tipo. Mismo alto en
+   todas las tarjetas (C2). */
+.rec-campana-franja {
+  align-items: center;
+  border-bottom: 1px solid var(--pulso-border);
+  display: flex;
+  height: 104px;
+  justify-content: center;
+  margin: 0 -18px;
+  overflow: hidden;
+}
+
+.rec-campana-franja img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  width: 100%;
+}
+
+.rec-campana-tarjeta.is-aulas .rec-campana-franja {
+  background: var(--pulso-module-fieldkit-soft);
+}
+
+.rec-campana-tarjeta.is-correo .rec-campana-franja {
+  background: var(--pulso-surface-2);
+}
+
+.rec-campana-hechos li {
+  overflow-wrap: anywhere;
+}
+
+/* El menú vive sobre el enlace extendido. */
+.rec-campana-menu-boton {
+  position: relative;
+  z-index: 1;
+}
+
+/* — Vacío (C3): la caja es suya y dice cómo se llena — */
+.rec-campanas-vacio {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  padding: var(--pulso-space-6) var(--pulso-space-4);
+}
+
+/* — Archivadas: cerradas, sólo el `summary` participa — */
+.rec-campanas-archivadas {
+  border-top: 1px solid var(--pulso-border);
+  padding-top: var(--pulso-space-3);
+}
+
+.rec-campanas-archivadas > summary {
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  font-size: 13px;
+  margin-bottom: var(--pulso-space-3);
+}
+
+/* — Menú de la campaña (portal: tokens globales) — */
+.rec-campana-menu {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  box-shadow: var(--pulso-shadow-popover);
+  display: grid;
+  min-width: 188px;
+  padding: 4px;
+  z-index: var(--pulso-z-flyout);
+}
+
+.rec-campana-menu-item {
+  background: transparent;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  box-shadow: none;
+  color: var(--pulso-text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  font-size: 13px;
+  gap: 1px;
+  justify-items: start;
+  min-height: 32px;
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.rec-campana-menu-item:hover:not(:disabled),
+.rec-campana-menu-item:focus-visible {
+  background: var(--pulso-surface-2);
+  outline: none;
+}
+
+.rec-campana-menu-item.is-peligrosa {
+  color: var(--pulso-danger-fg);
+}
+
+.rec-campana-menu-item:disabled {
+  color: var(--pulso-text-faint);
+  cursor: not-allowed;
+}
+
+.rec-campana-menu-item small {
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+}
+
+/* — Cabecera de la campaña abierta, en la zona de contexto de la barra — */
+.rec-campana-cabecera {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rec-campana-volver {
+  align-items: center;
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-text-soft);
+  display: inline-flex;
+  flex: none;
+  font-size: 13px;
+  gap: 4px;
+  padding: 3px 6px;
+  text-decoration: none;
+}
+
+.rec-campana-volver:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.rec-campana-volver:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+.rec-campana-cabecera-sep {
+  color: var(--pulso-text-faint);
+  flex: none;
+}
+
+.rec-campana-cabecera-nombre {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  max-width: 420px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* — Nueva campaña (portal) — */
+.rec-nueva {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  box-shadow: var(--pulso-shadow-high);
+  display: grid;
+  gap: var(--pulso-space-3);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  left: 50%;
+  max-height: min(720px, calc(100vh - 48px));
+  padding: 18px 20px;
+  position: fixed;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(760px, calc(100vw - 48px));
+  z-index: var(--pulso-z-modal);
+}
+
+.rec-nueva-cabeza {
+  align-items: start;
+  display: flex;
+  gap: var(--pulso-space-3);
+  justify-content: space-between;
+}
+
+.rec-nueva-titulo {
+  font-size: 16px;
+  font-weight: var(--pulso-weight-semibold);
+  margin: 0;
+}
+
+.rec-nueva-desc {
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  margin: 2px 0 0;
+}
+
+.rec-nueva-cuerpo {
+  display: grid;
+  gap: var(--pulso-space-4);
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.rec-nueva-tipos {
+  display: grid;
+  gap: var(--pulso-space-3);
+  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-nueva-tipos > li {
+  display: flex;
+  min-width: 0;
+}
+
+.rec-nueva-tipo {
+  align-content: start;
+  /* Es un <button>: se anulan el centrado del botón global. */
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: stretch;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  box-shadow: none;
+  color: var(--pulso-text);
+  cursor: pointer;
+  display: grid;
+  flex: 1 1 auto;
+  font: inherit;
+  gap: 6px;
+  justify-items: start;
+  line-height: 1.35;
+  min-width: 0;
+  padding: 14px;
+  text-align: left;
+  white-space: normal;
+}
+
+.rec-nueva-tipo:hover:not(:disabled) {
+  border-color: var(--pulso-module-fieldkit-border);
+}
+
+.rec-nueva-tipo:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 2px;
+}
+
+.rec-nueva-tipo[aria-pressed="true"] {
+  background: var(--pulso-module-fieldkit-soft);
+  border-color: var(--pulso-module-fieldkit);
+}
+
+.rec-nueva-tipo:disabled {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  cursor: not-allowed;
+}
+
+.rec-nueva-tipo-icono {
+  color: var(--pulso-module-fieldkit);
+}
+
+.rec-nueva-tipo b {
+  font-size: 14px;
+}
+
+.rec-nueva-tipo small {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.rec-nueva-motivo {
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+}
+
+.rec-nueva-paso {
+  border-top: 1px solid var(--pulso-border);
+  display: grid;
+  gap: var(--pulso-space-3);
+  padding-top: var(--pulso-space-3);
+}
+
+.rec-nueva-campos {
+  display: grid;
+  gap: var(--pulso-space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rec-nueva-campo {
+  display: grid;
+  font-size: 12.5px;
+  gap: 4px;
+}
+
+.rec-nueva-campo > span {
+  color: var(--pulso-text-soft);
+}
+
+.rec-nueva-campo input {
+  font: inherit;
+  font-size: 13.5px;
+}
+
+.rec-nueva-plataformas,
+.rec-nueva-origenes-marco {
+  border: 0;
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.rec-nueva-plataformas legend,
+.rec-nueva-origenes-marco legend {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.rec-nueva-plataformas-opciones {
+  display: grid;
+  gap: var(--pulso-space-2);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rec-nueva-plataforma {
+  align-items: start;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.rec-nueva-plataforma.is-on {
+  background: var(--pulso-module-fieldkit-soft);
+  border-color: var(--pulso-module-fieldkit);
+}
+
+.rec-nueva-plataforma span {
+  display: grid;
+  font-size: 13px;
+  gap: 1px;
+}
+
+.rec-nueva-plataforma small {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.rec-nueva-origenes {
+  display: grid;
+  gap: var(--pulso-space-2);
+  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-nueva-origenes > li {
+  display: flex;
+  min-width: 0;
+}
+
+.rec-nueva-origen {
+  align-content: start;
+  /* Es un <button>: se anulan el centrado del botón global. */
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: stretch;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  box-shadow: none;
+  color: var(--pulso-text);
+  cursor: pointer;
+  display: grid;
+  flex: 1 1 auto;
+  font: inherit;
+  gap: 6px;
+  justify-items: stretch;
+  min-width: 0;
+  padding: 8px;
+  text-align: left;
+  white-space: normal;
+}
+
+.rec-nueva-origen[aria-pressed="true"] {
+  background: var(--pulso-module-fieldkit-soft);
+  border-color: var(--pulso-module-fieldkit);
+}
+
+.rec-nueva-origen:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 2px;
+}
+
+.rec-nueva-origen b {
+  font-size: 13px;
+}
+
+.rec-nueva-origen small {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+}
+
+.rec-nueva-mini {
+  align-items: center;
+  aspect-ratio: 4 / 3;
+  background: var(--pulso-surface-2);
+  border-radius: 6px;
+  color: var(--pulso-text-faint);
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.rec-nueva-mini iframe {
+  border: 0;
+  height: 400%;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  transform: scale(0.25);
+  transform-origin: 0 0;
+  width: 400%;
+}
+
+.rec-nueva-pie {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  justify-content: flex-end;
+}
+
+.rec-nueva-pie-nota {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  margin-right: auto;
+}
+
+.rec-nueva-problema {
+  color: var(--pulso-danger-fg);
+  font-size: 12.5px;
+  margin-right: auto;
+}
+
+@media (max-width: 900px), (max-height: 680px) {
+  .rec-campanas {
+    padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-5);
+  }
+
+  .rec-nueva {
+    max-height: calc(100vh - 24px);
+    padding: 14px 16px;
+  }
+
+  /* Con un tipo elegido, los tres quedan en una fila corta: el paso del tipo
+     es lo que se completa y necesita el alto. */
+  .rec-nueva-tipos:has([aria-pressed="true"]) .rec-nueva-tipo small,
+  .rec-nueva-tipos:has([aria-pressed="true"]) .rec-nueva-motivo {
+    display: none;
+  }
+
+  .rec-nueva-tipo {
+    padding: 10px 12px;
+  }
+
+  .rec-campana-cabecera-nombre {
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 700px) {
+  .rec-nueva-tipos,
+  .rec-nueva-campos,
+  .rec-nueva-plataformas-opciones {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-campana-tarjeta {
+    transition: none;
+  }
+
+  .rec-campana-tarjeta:not(.is-archivada):hover,
+  .rec-campana-tarjeta:not(.is-archivada):has(.rec-campana-abrir:focus-visible) {
+    transform: none;
+  }
+}

@@ -8,7 +8,7 @@
 // campaña» o «Reemplazar la plantilla de esta campaña» (entra al historial).
 //
 // Contrato de Superficie:
-// - C1: `material-campo/catalogo/correos-importar`, contrato intrinsic; cada
+// - C1: `material-campo/correo/importar`, contrato intrinsic; cada
 //   ítem del informe es miembro.
 // - C2/C4: alto tope de la ventana. En ancho y alto suficientes, informe y
 //   vista previa son dos columnas, cada una dueña de su scroll; en compacto el
@@ -27,7 +27,7 @@ import { NOMBRE_DE_PLATAFORMA } from "./dialectos";
 import { LARGO_NOMBRE, problemaDelNombre } from "./modeloCampanas";
 import { pesoLegible } from "./modeloCorreo";
 import type { CampanaImportada, ResultadoDeCampana } from "./useCampanas";
-import { bytesDelTexto, problemaDeLaFuente, useImportarHtml, type FuenteDelHtml } from "./useImportarHtml";
+import { bytesDelTexto, conAsunto, problemaDeLaFuente, problemaDelAsunto, useImportarHtml, type FuenteDelHtml } from "./useImportarHtml";
 import { VistaPreviaDelCorreo, type MedidasDeLaHoja } from "./VistaPreviaDelCorreo";
 import "./correosImportar.css";
 
@@ -121,7 +121,7 @@ export function InformeDeImportacion({ resultado, visto, sinUrl, onVer }: {
       {resultado.report.length ? (
         <ul
           className="rec-imp-items"
-          data-qa-geometry-group="material-campo/catalogo/correos-importar"
+          data-qa-geometry-group="material-campo/correo/importar"
           data-qa-geometry-contract="intrinsic"
         >
           {resultado.report.map((item, i) => (
@@ -151,12 +151,16 @@ export function InformeDeImportacion({ resultado, visto, sinUrl, onVer }: {
   );
 }
 
-/** Nombre y plataforma de la campaña nueva, y las dos salidas: crear o reemplazar. */
+/** Nombre, asunto y plataforma de la campaña nueva, y las dos salidas: crear o reemplazar. */
 export function PieDeImportacion({
-  nombre, plataforma, problemaNombre, error, activa, conCambios, trabajando, aplicando,
-  onNombre, onPlataforma, onOtra, onReemplazar, onCrear,
+  nombre, asunto, plataforma, problemaNombre, problemaAsunto, error, activa, conCambios, trabajando, aplicando,
+  onNombre, onAsunto, onPlataforma, onOtra, onReemplazar, onCrear,
 }: {
   nombre: string;
+  /** El asunto del correo: el HTML casi nunca lo trae y se pide aquí, a la vista. */
+  asunto: string;
+  problemaAsunto: string | null;
+  onAsunto: (asunto: string) => void;
   plataforma: MailPlatform;
   problemaNombre: string | null;
   error: string;
@@ -183,6 +187,17 @@ export function PieDeImportacion({
             onChange={(e) => onNombre(e.target.value)}
           />
         </label>
+        <label className="rec-camp-campo">
+          <span>Asunto del correo</span>
+          <input
+            value={asunto}
+            maxLength={160}
+            placeholder="Lo que la persona lee en su bandeja"
+            aria-invalid={problemaAsunto ? true : undefined}
+            aria-describedby={problemaAsunto ? `${ids}-asunto` : undefined}
+            onChange={(e) => onAsunto(e.target.value)}
+          />
+        </label>
         <fieldset className="rec-imp-plataforma">
           <legend>Sale por</legend>
           {(["mailchimp", "surveymonkey"] as const).map((p) => (
@@ -200,6 +215,7 @@ export function PieDeImportacion({
         </fieldset>
       </span>
       {problemaNombre ? <p className="rec-camp-nueva-problema" role="alert">{problemaNombre}</p> : null}
+      {problemaAsunto ? <p id={`${ids}-asunto`} className="rec-camp-nueva-problema" role="status">{problemaAsunto}</p> : null}
       {error ? <p className="rec-camp-mensaje is-error" role="alert">{error}</p> : null}
       {activa && conCambios ? (
         <p className="rec-camp-nueva-nota">«{activa.name}» tiene cambios sin guardar: reemplazar su plantilla los deja en el historial (⌘Z).</p>
@@ -214,11 +230,11 @@ export function PieDeImportacion({
           <RefreshCw size={14} aria-hidden /> Leer otro
         </PulsoButton>
         {activa ? (
-          <PulsoButton variant="secondary" size="sm" disabled={trabajando} onClick={onReemplazar}>
+          <PulsoButton variant="secondary" size="sm" disabled={trabajando || Boolean(problemaAsunto)} onClick={onReemplazar}>
             Reemplazar la plantilla de esta campaña
           </PulsoButton>
         ) : null}
-        <PulsoButton variant="primary" size="sm" disabled={trabajando || Boolean(problemaNombre)} onClick={onCrear}>
+        <PulsoButton variant="primary" size="sm" disabled={trabajando || Boolean(problemaNombre) || Boolean(problemaAsunto)} onClick={onCrear}>
           {aplicando ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Plus size={14} aria-hidden />}
           Crear campaña
         </PulsoButton>
@@ -259,6 +275,7 @@ export function DialogoImportarHtml({ panel, activa, campanas, plataformaPorDefe
   const trabajando = estado.fase === "leyendo" || estado.fase === "aplicando" || ocupado;
   const problemaFuente = problemaDeLaFuente(estado);
   const problemaNombre = r ? problemaDelNombre(estado.nombre) : null;
+  const problemaAsunto = r ? problemaDelAsunto(estado.asunto) : null;
   const sinUrl = r ? r.images.filter((i) => i.status === "needs_upload") : [];
 
   const alElegirArchivo = (event: ChangeEvent<HTMLInputElement>) => {
@@ -271,19 +288,20 @@ export function DialogoImportarHtml({ panel, activa, campanas, plataformaPorDefe
   };
 
   const crear = async () => {
-    if (!r || problemaNombre) return;
+    if (!r || problemaNombre || problemaAsunto) return;
     despachar({ type: "aplicando" });
-    const out = await onCrear({ name: estado.nombre, actor: "", platform: estado.plataforma, template: r.template, import_id: r.import_id });
+    const template = conAsunto(r.template, estado.asunto);
+    const out = await onCrear({ name: estado.nombre, actor: "", platform: estado.plataforma, template, import_id: r.import_id });
     if (!out.ok) {
       despachar({ type: "aplicado-fallo", error: out.mensaje });
       return;
     }
-    onAbrir(out.campaignId, out.aviso, out.campana?.template ?? r.template);
+    onAbrir(out.campaignId, out.aviso, out.campana?.template ?? template);
   };
 
   const reemplazar = () => {
-    if (!r) return;
-    onReemplazar(r.template, r.import_id);
+    if (!r || problemaAsunto) return;
+    onReemplazar(conAsunto(r.template, estado.asunto), r.import_id);
     cerrar();
   };
 
@@ -347,14 +365,15 @@ export function DialogoImportarHtml({ panel, activa, campanas, plataformaPorDefe
                 </label>
               )}
               <label className="rec-imp-asunto">
-                <span className="rec-mail-campo-rotulo"><span>Asunto (opcional)</span></span>
+                <span className="rec-mail-campo-rotulo"><span>Asunto del correo</span></span>
                 <input
                   className="rec-mail-input"
                   value={estado.asunto}
                   maxLength={160}
-                  placeholder="El HTML no trae el asunto: escríbelo aquí o después"
+                  placeholder="Lo que la persona lee en su bandeja"
                   onChange={(e) => despachar({ type: "asunto", asunto: e.target.value })}
                 />
+                <span className="rec-mail-ayuda">El HTML casi nunca trae el asunto: escríbelo aquí. Si lo dejas en blanco, se pide antes de crear.</span>
               </label>
               {estado.error ? <p className="rec-camp-mensaje is-error" role="alert">{estado.error}</p> : null}
               <span className="rec-imp-acciones">
@@ -384,8 +403,11 @@ export function DialogoImportarHtml({ panel, activa, campanas, plataformaPorDefe
               </div>
               <PieDeImportacion
                 nombre={estado.nombre}
+                asunto={estado.asunto}
                 plataforma={estado.plataforma}
                 problemaNombre={problemaNombre}
+                problemaAsunto={problemaAsunto}
+                onAsunto={(asunto) => despachar({ type: "asunto", asunto })}
                 error={estado.error}
                 activa={activa}
                 conCambios={conCambios}

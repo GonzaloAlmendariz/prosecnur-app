@@ -2,6 +2,7 @@
 // Extraído de client.ts (split por dominio, 2026-07). Los consumidores
 // importan del barrel ./client; este módulo no cambia el contrato.
 
+import { normalizarCampanasDelInicio, type CampanaMaterial } from "./materialCampanas";
 import { apiFetch, handle, headers } from "./core";
 import { rutaCanonicaDeModulo, slugCanonicoDeModulo, slugsCanonicosDeModulo } from "../lib/navegacion/aliasDeModulo";
 import type { DisenoEstudioNextAction, DisenoEstudioProtocol, DisenoEstudioRisk, DisenoEstudioSource } from "./disenoEstudio";
@@ -108,6 +109,8 @@ export type ProjectOverviewFacts = {
     without_link: number;
     faculties_count: number;
     eligible_total: number;
+    /** Las campañas del módulo con su avance (ADR 0111 §9); ausente en un backend anterior. */
+    campaigns?: CampanaMaterial[];
   };
   editor: {
     /** "" (desde cero) | "xlsform" (importado) | "surveymonkey" (traducido). */
@@ -180,8 +183,12 @@ type FactsConClaveVieja = ProjectOverviewFacts & {
 function normalizeOverviewFacts(raw: ProjectOverviewFacts | undefined): ProjectOverviewFacts {
   if (!raw || typeof raw !== "object") return raw as unknown as ProjectOverviewFacts;
   const { recopiladores, ...resto } = raw as FactsConClaveVieja;
-  if (resto["material-campo"] || !recopiladores) return resto;
-  return { ...resto, "material-campo": recopiladores };
+  const material = resto["material-campo"] ?? recopiladores;
+  if (!material) return resto;
+  const campaigns = normalizarCampanasDelInicio((material as { campaigns?: unknown }).campaigns);
+  const { campaigns: _crudas, ...sinCampanas } = material;
+  void _crudas;
+  return { ...resto, "material-campo": campaigns ? { ...sinCampanas, campaigns } : sinCampanas };
 }
 
 export function normalizeProjectOverview(raw: ProjectOverview): ProjectOverview {

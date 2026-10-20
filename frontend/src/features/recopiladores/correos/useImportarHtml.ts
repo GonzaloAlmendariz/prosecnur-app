@@ -89,7 +89,18 @@ export function reducirImportar(s: EstadoImportar, a: AccionImportar): EstadoImp
     case "leyendo":
       return { ...s, fase: "leyendo", error: "" };
     case "leido":
-      return { ...s, fase: "listo", resultado: a.resultado, nombre: a.nombre, plataforma: a.plataforma, vista: null, vistaError: "", visto: null };
+      return {
+        ...s,
+        fase: "listo",
+        resultado: a.resultado,
+        nombre: a.nombre,
+        plataforma: a.plataforma,
+        // El asunto escrito manda; si no se escribió, el que trajo el HTML.
+        asunto: asuntoDeLaImportacion(s.asunto, a.resultado.template),
+        vista: null,
+        vistaError: "",
+        visto: null,
+      };
     case "fallo":
       return { ...s, fase: "fuente", error: a.error };
     case "vista":
@@ -115,6 +126,29 @@ export function reducirImportar(s: EstadoImportar, a: AccionImportar): EstadoImp
 /** Bytes del texto pegado, como los contará el backend (UTF-8). */
 export function bytesDelTexto(texto: string): number {
   return new TextEncoder().encode(texto).length;
+}
+
+/**
+ * El asunto de la campaña importada. Un HTML casi nunca lo trae (va en la
+ * plataforma, no en el cuerpo) y sin asunto la revisión no deja exportar: por
+ * eso se pide a la vista, en el mismo paso, y no se descubre después como error.
+ */
+export function asuntoDeLaImportacion(escrito: string, plantilla: Pick<MailImportHtml["template"], "subject">): string {
+  const propio = escrito.trim();
+  if (propio) return propio;
+  const traido = (plantilla.subject ?? "").trim();
+  return /^\[.*\]$/.test(traido) ? "" : traido;
+}
+
+/** Por qué el asunto no sirve todavía, o `null`. */
+export function problemaDelAsunto(asunto: string): string | null {
+  return asunto.trim() ? null : "Escribe el asunto: sin él el correo no se puede exportar.";
+}
+
+/** La plantilla importada con el asunto que se pidió en el diálogo. */
+export function conAsunto<T extends { subject: string }>(plantilla: T, asunto: string): T {
+  const limpio = asunto.trim();
+  return limpio ? { ...plantilla, subject: limpio } : plantilla;
 }
 
 /** Por qué no se puede leer todavía, o `null`. */

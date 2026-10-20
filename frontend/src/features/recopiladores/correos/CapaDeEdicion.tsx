@@ -24,6 +24,7 @@ import {
   type Rect,
   type ZonaMedida,
 } from "./estructuraCorreo";
+import { anchoDelChip, lugarDelChip, type LugarDelChip } from "./chipDeApertura";
 import type { CampoDelMenu } from "./MenuDeCampos";
 import { CABECERA, DESCRIPCION_DE_BLOQUE, ROTULO_DE_BLOQUE, ROTULO_DE_PROP, puedeMover, rotuloDeBloque, rotuloDeChequeo, type PropDeTexto } from "./modeloCorreo";
 import type { OpcionesDeTexto } from "./serializarTexto";
@@ -185,6 +186,32 @@ export function CapaDeEdicion({
   }, [doc, medida, escala]);
 
   const huecos = useMemo(() => huecosEntreZonas(zonas, template), [template, zonas]);
+
+  // El chip de la apertura va donde no tape el texto (chipDeApertura.ts).
+  const textoDelChip = envioDeApertura ? `Sólo en ${envioDeApertura}` : "Sólo en este envío";
+  const [primeraLinea, setPrimeraLinea] = useState<Rect | null>(null);
+  useLayoutEffect(() => {
+    const el = doc?.querySelector(`[data-pulso-block="${APERTURA}"]`);
+    if (!doc || !el) {
+      setPrimeraLinea(null);
+      return;
+    }
+    const rango = doc.createRange();
+    rango.selectNodeContents(el);
+    const linea = Array.from(rango.getClientRects()).find((r) => r.width > 0 && r.height > 0);
+    setPrimeraLinea(linea ? { x: linea.left * escala, y: linea.top * escala, w: linea.width * escala, h: linea.height * escala } : null);
+  }, [apertura, doc, escala, medida]);
+  const lugarDelChipDeApertura = useMemo((): LugarDelChip => {
+    const at = zonas.findIndex((z) => z.id === APERTURA);
+    if (at < 0) return null;
+    const previa = at > 0 ? zonas[at - 1].rect : null;
+    return lugarDelChip({
+      zona: zonas[at].rect,
+      primeraLinea,
+      bordeDeArriba: previa ? previa.y + previa.h : null,
+      anchoChip: anchoDelChip(textoDelChip),
+    });
+  }, [primeraLinea, textoDelChip, zonas]);
 
   // El texto que se edita se oculta en el iframe: el editor ocupa su lugar.
   useEffect(() => {
@@ -381,8 +408,10 @@ export function CapaDeEdicion({
       ref={raiz}
       className={`rec-capa${explicaciones ? " is-explicando" : ""}${arrastrando ? " is-arrastrando" : ""}`}
       style={{ width: ancho, height: alto }}
-      data-qa-geometry-group="material-campo/catalogo/correos-zonas"
-      data-qa-geometry-contract="intrinsic"
+      // El grupo se declara cuando sus zonas ya están medidas: antes de cargar el
+      // iframe la capa no tiene miembros y el QA lo leía como grupo vacío.
+      data-qa-geometry-group={zonas.length ? "material-campo/correo/zonas" : undefined}
+      data-qa-geometry-contract={zonas.length ? "intrinsic" : undefined}
       onDragOver={alArrastrarEncima}
       onDrop={alSoltar}
       onDragLeave={alSalir}
@@ -396,7 +425,13 @@ export function CapaDeEdicion({
         const editandoAqui = edicion?.zona === zona.id;
         const soloDelEnvio = zona.id === APERTURA && apertura === null;
         return (
-          <div key={zona.id} className="rec-capa-zona-marco" style={estiloDeZona(zona.rect)} data-qa-geometry-member>
+          <div
+            key={zona.id}
+            // La apertura es sólo de este envío: el marco lo dice aunque el chip no quepa.
+            className={`rec-capa-zona-marco${zona.id === APERTURA ? " is-solo-del-envio" : ""}`}
+            style={estiloDeZona(zona.rect)}
+            data-qa-geometry-member
+          >
             <button
               type="button"
               className={[
@@ -408,7 +443,8 @@ export function CapaDeEdicion({
               ].filter(Boolean).join(" ")}
               data-zona={zona.id}
               data-qa-geometry-capacity="owned"
-              aria-label={`${rotulo}${cuenta ? `, ${cuenta.errores + cuenta.avisos} por revisar` : ""}`}
+              aria-label={`${rotulo}${zona.id === APERTURA ? ` (${textoDelChip.toLocaleLowerCase("es-PE")})` : ""}${cuenta ? `, ${cuenta.errores + cuenta.avisos} por revisar` : ""}`}
+              title={zona.id === APERTURA && !lugarDelChipDeApertura ? textoDelChip : undefined}
               aria-current={esElegida ? "true" : undefined}
               aria-describedby={explicaciones ? `rec-capa-desc-${zona.id}` : undefined}
               disabled={soloDelEnvio}
@@ -421,7 +457,9 @@ export function CapaDeEdicion({
                 <span>{descripcionDeZona(zona, block)}</span>
               </span>
             ) : null}
-            {zona.id === APERTURA ? <span className="rec-capa-zona-chip">{envioDeApertura ? `Sólo en ${envioDeApertura}` : "Sólo en este envío"}</span> : null}
+            {zona.id === APERTURA && lugarDelChipDeApertura ? (
+              <span className={`rec-capa-zona-chip${lugarDelChipDeApertura === "arriba" ? " is-arriba" : ""}`}>{textoDelChip}</span>
+            ) : null}
             {cuenta ? (
               <span
                 className={`rec-capa-zona-cuenta${cuenta.errores ? " is-error" : " is-aviso"}`}

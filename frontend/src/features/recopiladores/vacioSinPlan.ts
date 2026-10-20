@@ -34,7 +34,7 @@ export type OrigenDelPlanEntrada = {
 
 const A_UNIDADES: DestinoDelVacio = {
   label: "Ir a Unidades",
-  to: "/material-campo?seccion=unidades",
+  to: "/material-campo?modo=aulas&seccion=unidades",
 };
 
 /** El módulo de donde sale la lista de unidades del plan. */

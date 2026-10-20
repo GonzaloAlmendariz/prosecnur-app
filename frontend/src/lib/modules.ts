@@ -11,6 +11,7 @@ import {
   FileText,
   Link2,
   LayoutGrid,
+  Layers,
   Mail,
   ListChecks,
   MapPinned,
@@ -147,7 +148,7 @@ export const PROSECNUR_NAVIGATION_CONTRACT = {
   version: 3,
   grammar: "modulo/modo/seccion/pestana/panel",
   coverage: "primary-routes-v1",
-  modosCoverage: "monitoring-profiles-v1+calc-muestra-v1",
+  modosCoverage: "monitoring-profiles-v1+calc-muestra-v1+material-campo-v1",
   tabsCoverage: "all-current-tabsets-v1",
   shellCoverage: "hojas-ruta-v1",
   consumableByShell: true,
@@ -526,120 +527,100 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     tone: MODULE_TONES["material-campo"],
     to: "/material-campo",
     landingKind: "section",
-    // Secciones del ADR 0108 §5. El modo (tipo de campo) entra cuando exista un
-    // segundo juego de secciones; hasta entonces el módulo no declara modos.
-    // El recorrido vive aquí y solo aquí: la página no lo vuelve a dibujar.
+    // ADR 0111: el módulo aterriza en la lista de campañas y el MODO es el tipo
+    // de la campaña abierta (`?modo=aulas&campana=aulas.principal`). La sección
+    // de primer nivel es la lista: es el landing, como «Monitoreo» lo es de su
+    // módulo. `territorial` no se declara hasta E2: en «Nueva campaña» aparece
+    // deshabilitado con su motivo.
     sections: [
       {
-        id: "unidades",
-        // Unidades es el aterrizaje del módulo: su `to` es la ruta desnuda.
-        label: "Unidades",
-        icon: ClipboardList,
+        id: "campanas",
+        label: "Campañas",
+        icon: Layers,
         to: "/material-campo",
         layoutPolicy: "viewport",
-        tabs: [
+      },
+    ],
+    modos: [
+      {
+        // Las secciones del ADR 0108 §5, sin Catálogo › Correos: el correo es
+        // una campaña propia. El recorrido vive aquí y solo aquí.
+        id: "aulas",
+        label: "Campo en aulas",
+        sections: [
           {
-            id: "lista",
-            label: "Lista",
+            id: "unidades",
+            label: "Unidades",
             icon: ClipboardList,
-            to: "/material-campo?seccion=unidades&pestana=lista",
+            to: "/material-campo?modo=aulas&seccion=unidades",
             layoutPolicy: "viewport",
+            tabs: [
+              { id: "lista", label: "Lista", icon: ClipboardList, to: "/material-campo?modo=aulas&seccion=unidades&pestana=lista", layoutPolicy: "viewport" },
+              // De qué fuente sale la lista y qué cambió en ella (E1e).
+              { id: "origen", label: "Origen", icon: DatabaseZap, to: "/material-campo?modo=aulas&seccion=unidades&pestana=origen", layoutPolicy: "viewport" },
+            ],
           },
           {
-            // De qué fuente sale la lista y qué cambió en ella (E1e).
-            id: "origen",
-            label: "Origen",
-            icon: DatabaseZap,
-            to: "/material-campo?seccion=unidades&pestana=origen",
+            id: "accesos",
+            label: "Accesos",
+            icon: IconCollector,
+            to: "/material-campo?modo=aulas&seccion=accesos",
             layoutPolicy: "viewport",
-          },
-        ],
-      },
-      {
-        id: "accesos",
-        label: "Accesos",
-        icon: IconCollector,
-        to: "/material-campo?seccion=accesos",
-        layoutPolicy: "viewport",
-        tabs: [
-          {
-            id: "canales",
-            label: "Canales",
-            icon: Link2,
-            to: "/material-campo?seccion=accesos&pestana=canales",
-            layoutPolicy: "viewport",
+            tabs: [
+              { id: "canales", label: "Canales", icon: Link2, to: "/material-campo?modo=aulas&seccion=accesos&pestana=canales", layoutPolicy: "viewport" },
+              { id: "vinculacion", label: "Vinculación", icon: Search, to: "/material-campo?modo=aulas&seccion=accesos&pestana=vinculacion", layoutPolicy: "viewport" },
+            ],
           },
           {
-            id: "vinculacion",
-            label: "Vinculación",
-            icon: Search,
-            to: "/material-campo?seccion=accesos&pestana=vinculacion",
-            layoutPolicy: "viewport",
-          },
-        ],
-      },
-      {
-        id: "catalogo",
-        label: "Catálogo",
-        icon: IconTemplate,
-        to: "/material-campo?seccion=catalogo",
-        layoutPolicy: "viewport",
-        // Tipos es el aterrizaje de Catálogo: la galería de materiales con su
-        // página real (ADR 0109 §3). El editor trabaja sobre el tipo en uso.
-        tabs: [
-          {
-            id: "tipos",
-            label: "Tipos",
-            icon: LayoutGrid,
-            to: "/material-campo?seccion=catalogo&pestana=tipos",
-            layoutPolicy: "viewport",
-          },
-          {
-            id: "editor",
-            label: "Editor",
+            id: "catalogo",
+            label: "Catálogo",
             icon: IconTemplate,
-            to: "/material-campo?seccion=catalogo&pestana=editor",
+            to: "/material-campo?modo=aulas&seccion=catalogo",
             layoutPolicy: "viewport",
+            // Tipos es el aterrizaje de Catálogo: la galería de materiales con su
+            // página real (ADR 0109 §3). El editor trabaja sobre el tipo en uso.
+            tabs: [
+              { id: "tipos", label: "Tipos", icon: LayoutGrid, to: "/material-campo?modo=aulas&seccion=catalogo&pestana=tipos", layoutPolicy: "viewport" },
+              { id: "editor", label: "Editor", icon: IconTemplate, to: "/material-campo?modo=aulas&seccion=catalogo&pestana=editor", layoutPolicy: "viewport" },
+            ],
           },
           {
-            // ADR 0110 §2: el correo se compone aquí y sale para Mailchimp.
-            id: "correos",
-            label: "Correos",
-            icon: Mail,
-            to: "/material-campo?seccion=catalogo&pestana=correos",
-            layoutPolicy: "viewport",
-          },
-        ],
-      },
-      {
-        id: "paquetes",
-        label: "Paquetes",
-        icon: Archive,
-        to: "/material-campo?seccion=paquetes",
-        layoutPolicy: "viewport",
-        tabs: [
-          {
-            id: "armado",
-            label: "Armado",
+            id: "paquetes",
+            label: "Paquetes",
             icon: Archive,
-            to: "/material-campo?seccion=paquetes&pestana=armado",
+            to: "/material-campo?modo=aulas&seccion=paquetes",
             layoutPolicy: "viewport",
+            tabs: [
+              { id: "armado", label: "Armado", icon: Archive, to: "/material-campo?modo=aulas&seccion=paquetes&pestana=armado", layoutPolicy: "viewport" },
+            ],
+          },
+          {
+            id: "entrega",
+            label: "Entrega",
+            icon: CheckCircle2,
+            to: "/material-campo?modo=aulas&seccion=entrega",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "traspaso", label: "Monitoreo", icon: CalendarDays, to: "/material-campo?modo=aulas&seccion=entrega&pestana=traspaso", layoutPolicy: "viewport" },
+            ],
           },
         ],
       },
       {
-        id: "entrega",
-        label: "Entrega",
-        icon: CheckCircle2,
-        to: "/material-campo?seccion=entrega",
-        layoutPolicy: "viewport",
-        tabs: [
+        // Una sola sección: el correo, con identidad, destinatarios, plataforma,
+        // envíos, revisión e importar como paneles (ADR 0111 §3).
+        id: "correo",
+        label: "Correo",
+        sections: [
           {
-            id: "traspaso",
-            label: "Monitoreo",
-            icon: CalendarDays,
-            to: "/material-campo?seccion=entrega&pestana=traspaso",
+            id: "correo",
+            label: "Correo",
+            icon: Mail,
+            to: "/material-campo?modo=correo&seccion=correo",
             layoutPolicy: "viewport",
+            tabs: [
+              { id: "editor", label: "Editor", icon: Mail, to: "/material-campo?modo=correo&seccion=correo&pestana=editor", layoutPolicy: "viewport" },
+            ],
           },
         ],
       },

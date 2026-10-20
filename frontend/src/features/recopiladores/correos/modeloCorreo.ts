@@ -64,7 +64,7 @@ export function descripcionDeBloque(block: MailBlock): string {
  * listas, notas) con alto intrínseco.
  */
 export const CUERPO_DEL_INSPECTOR = {
-  "data-qa-geometry-group": "material-campo/catalogo/correos-inspector",
+  "data-qa-geometry-group": "material-campo/correo/inspector",
   "data-qa-geometry-contract": "intrinsic",
 } as const;
 
@@ -600,6 +600,10 @@ export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   sm_destination_mismatch: "Destino del enlace",
   send_dates: "Fechas de los envíos",
   reminder_audience: "A quién va el recordatorio",
+  // Saludo por sexo (C8).
+  greeting_trato: "Saludo según la persona",
+  greeting_trato_word: "Palabra del saludo",
+  sm_trato_blank: "Saludo en SurveyMonkey sin dato",
 };
 
 /** Dónde se usa un campo (`uses` de `fields_empty`), en la voz de la vista. */

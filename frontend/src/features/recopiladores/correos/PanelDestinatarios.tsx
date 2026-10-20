@@ -242,7 +242,7 @@ export function PanelDestinatarios({
           <ul
             className="rec-mail-personas"
             aria-label="Muestra de destinatarios"
-            data-qa-geometry-group="material-campo/catalogo/correos-personas"
+            data-qa-geometry-group="material-campo/correo/personas"
             data-qa-geometry-contract="equal"
           >
             {destinatarios!.sample.map((p) => (
@@ -288,7 +288,7 @@ export function PanelDestinatarios({
         <span className="xfk-over">Campos de cada persona</span>
         <ul
           className="rec-mail-def-campos"
-          data-qa-geometry-group="material-campo/catalogo/correos-campos"
+          data-qa-geometry-group="material-campo/correo/campos"
           data-qa-geometry-contract="intrinsic"
         >
           <li className="rec-mail-def-campo rec-mail-def-campo--fijo">
