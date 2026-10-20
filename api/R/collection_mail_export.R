@@ -33,20 +33,28 @@
 
 .CMAIL_SCOPES <- c("completo", "plantilla")
 
-# Con SurveyMonkey no hay audiencia que exportar (los contactos viven en su
-# recopilador): el alcance por defecto es «plantilla» y «completo» es un 422.
-.cmail_scope <- function(scope, platform = .CMAIL_PLATFORM_DEFAULT, default = NULL) {
-  default <- default %||% if (identical(platform, "surveymonkey")) "plantilla" else "completo"
+# Con SurveyMonkey los contactos viven en su recopilador. Con la lista cargada
+# en la sesión, «completo» suma contactos_surveymonkey.csv (para importarla en
+# el recopilador, con el trato ya escrito) y es el alcance por defecto; sin
+# lista, el alcance es «plantilla» y «completo» es un 422.
+.cmail_scope <- function(scope, platform = .CMAIL_PLATFORM_DEFAULT, default = NULL, has_list = FALSE) {
+  sm <- identical(platform, "surveymonkey")
+  default <- default %||% if (sm && !isTRUE(has_list)) "plantilla" else "completo"
   value <- .cmail_one(as.list(scope %||% list(default)))
   if (is.null(value) || !(value %in% .CMAIL_SCOPES)) {
     stop_api(422, "E_COLLECTION_MAIL_MODE", "scope es completo o plantilla.")
   }
-  if (identical(platform, "surveymonkey") && identical(value, "completo")) {
+  if (sm && identical(value, "completo") && !isTRUE(has_list)) {
     stop_api(422, "E_COLLECTION_MAIL_PLATFORM",
-             "Con SurveyMonkey los contactos viven en su recopilador: se exporta solo la plantilla (scope plantilla).",
+             "Con SurveyMonkey el paquete completo trae contactos_surveymonkey.csv y necesita la lista importada; sin ella se exporta solo la plantilla (scope plantilla).",
              details = list(platform = "surveymonkey"))
   }
   value
+}
+
+# ¿Hay lista cargada para esta campaña? (decide el alcance por defecto en SurveyMonkey).
+.cmail_has_list <- function(session, campaign) {
+  !is.null(campaign) && file.exists(.cmail_recipients_path(session, campaign$campaign_id))
 }
 
 # Campaña, plantilla y plataforma de una lectura (vista previa y revisión).
@@ -150,7 +158,8 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
                sprintf("recipient_index va de 1 a %d.", length(resolved$rows)))
     }
     # D6: ningún valor con forma de correo llega a la vista, ni al HTML de la vista previa.
-    values <- .cmail_mask_pii(.cmail_recipient_values(store, resolved, resolved$rows[[idx]]))
+    tres <- .cmail_trato_resolve(store, tpl, resolved)
+    values <- .cmail_mask_pii(.cmail_recipient_values(store, resolved, resolved$rows[[idx]], tres))
     recipient <- list(source = "imported", index = idx)
   }
   rendered <- collection_mail_render(tpl, mode = if (identical(mode, "preview")) "preview" else "export",
@@ -167,6 +176,7 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
     bytes = rendered$bytes,
     recipient = .cmc_drop_nulls_deep(c(recipient, list(
       nombre = values$nombre,
+      trato = values$trato,
       fields = if (length(values$fields)) values$fields else structure(list(), names = character(0))
     )))
   ), campaign)
@@ -221,7 +231,16 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
     push <- .cmail_sm_checks(tpl, html, push)
     push(.cmail_accent_check(tpl))
     push_send_dates()
-    return(c(list(checks = checks), base))
+    # Con la lista (scope completo): la partición de la lista y el trato contra ella.
+    store <- if (identical(scope, "completo") && !is.null(campaign)) .cmail_recipients_load(session, campaign_id)
+    if (is.null(store)) {
+      push <- .cmail_trato_checks(tpl, push, dialect)
+      return(c(list(checks = checks), base))
+    }
+    resolved <- .cmail_recipients_resolve(store, tpl)
+    push(.cmail_recipients_check(store$mapping, resolved$counts))
+    push <- .cmail_trato_checks(tpl, push, dialect, store, resolved, with_list = TRUE)
+    return(c(list(checks = checks), base, list(store = store, resolved = resolved)))
   }
 
   footer_ok <- grepl("*|UNSUB|*", html, fixed = TRUE) && grepl("*|LIST:ADDRESSLINE|*", html, fixed = TRUE)
@@ -240,29 +259,22 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
   }
 
   # Audiencia: con scope «plantilla» (o sin campaña) no hay audiencia que revisar.
-  if (identical(scope, "plantilla") || is.null(campaign)) return(c(list(checks = checks), base))
+  if (identical(scope, "plantilla") || is.null(campaign)) {
+    push <- .cmail_trato_checks(tpl, push, dialect)
+    return(c(list(checks = checks), base))
+  }
   store <- .cmail_recipients_load(session, campaign_id)
   used <- .cmail_used_keys(tpl)
   fields <- .cmail_field_index(tpl)
   if (is.null(store)) {
     push(.cmail_check("recipients", "error", 0L, "Importa los destinatarios para exportar la audiencia."))
+    push <- .cmail_trato_checks(tpl, push, dialect)
     return(c(list(checks = checks), base))
   }
   resolved <- .cmail_recipients_resolve(store, tpl)
   m <- store$mapping
   cn <- resolved$counts
-  blank_note <- if (cn$rows_blank_dropped > 0L) sprintf(" Se descartaron %d filas vacías.", cn$rows_blank_dropped) else ""
-  push(if (is.null(m$email_column)) {
-    .cmail_check("recipients", "error", 0L, "Elige la columna del correo.")
-  } else if (!cn$valid) {
-    .cmail_check("recipients", "error", 0L, "Ningún destinatario tiene un correo válido.")
-  } else if (cn$invalid_email + cn$without_email + cn$duplicated > 0L) {
-    .cmail_check("recipients", "warning", cn$valid,
-                 sprintf("%d de %d destinatarios reciben el correo; quedan fuera %d sin correo, %d con correo inválido y %d repetidos.%s",
-                         cn$valid, cn$total, cn$without_email, cn$invalid_email, cn$duplicated, blank_note))
-  } else {
-    .cmail_check("recipients", "ok", cn$valid, sprintf("%d destinatarios válidos.%s", cn$valid, blank_note))
-  })
+  push(.cmail_recipients_check(m, cn))
 
   tag_rows <- list()
   missing_cols <- character(0)
@@ -363,7 +375,24 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
     push(.cmail_check("names_unsplit", "warning", as.integer(n_unsplit),
                       sprintf("%d nombres traen una coma: el saludo usará la cadena entera. Si son «APELLIDOS, NOMBRES», cambia el formato del nombre.", n_unsplit)))
   }
+  push <- .cmail_trato_checks(tpl, push, dialect, store, resolved, with_list = TRUE)
   c(list(checks = checks), base, list(store = store, resolved = resolved, tag_rows = tag_rows))
+}
+
+# La partición de la lista (D1-D3) como chequeo `recipients`.
+.cmail_recipients_check <- function(m, cn) {
+  blank_note <- if (cn$rows_blank_dropped > 0L) sprintf(" Se descartaron %d filas vacías.", cn$rows_blank_dropped) else ""
+  if (is.null(m$email_column)) {
+    .cmail_check("recipients", "error", 0L, "Elige la columna del correo.")
+  } else if (!cn$valid) {
+    .cmail_check("recipients", "error", 0L, "Ningún destinatario tiene un correo válido.")
+  } else if (cn$invalid_email + cn$without_email + cn$duplicated > 0L) {
+    .cmail_check("recipients", "warning", cn$valid,
+                 sprintf("%d de %d destinatarios reciben el correo; quedan fuera %d sin correo, %d con correo inválido y %d repetidos.%s",
+                         cn$valid, cn$total, cn$without_email, cn$invalid_email, cn$duplicated, blank_note))
+  } else {
+    .cmail_check("recipients", "ok", cn$valid, sprintf("%d destinatarios válidos.%s", cn$valid, blank_note))
+  }
 }
 
 .cmail_review_summary <- function(checks) {
@@ -377,7 +406,8 @@ collection_mail_review <- function(sid, template = NULL, campaign_id = NULL, sco
                                    send_id = NULL, send = NULL) {
   session <- session_get(sid)
   work <- .cmail_work_for(session, .cmail_read_state(session, template), campaign_id, template)
-  scope <- .cmail_scope(scope, work$platform, default = if (is.null(work$campaign)) "plantilla")
+  scope <- .cmail_scope(scope, work$platform, default = if (is.null(work$campaign)) "plantilla",
+                        has_list = .cmail_has_list(session, work$campaign))
   sp <- .cmail_send_pick(work$campaign %||% list(), work$template, send_id, send)
   r <- .cmail_review_checks(session, .cmail_template_for_send(work$template, sp$send), work$campaign, scope, sp$send)
   c(.cmail_with_campaign(.cmc_drop_nulls_deep(list(ok = TRUE, platform = work$platform, send_id = sp$send$send_id,
@@ -392,20 +422,31 @@ collection_mail_review <- function(sid, template = NULL, campaign_id = NULL, sco
   paste0('"', gsub('"', '""', x, fixed = TRUE), '"')
 }
 
-.cmail_write_audience <- function(path, store, resolved, tag_rows) {
+# `tres` (`.cmail_trato_resolve`): con la columna de sexo en la lista, suma
+# SALUDO con la palabra de cada persona (el respaldo si no se reconoce).
+.cmail_write_audience <- function(path, store, resolved, tag_rows, tres = NULL) {
   extra <- Filter(function(r) !identical(r$key, "nombre"), tag_rows)
   header <- c("Email Address", "First Name", vapply(extra, function(r) r$tag, ""))
   rows <- resolved$rows
   cols <- list(resolved$email[rows], resolved$first_name[rows])
   # Un marcador de «sin dato» sale vacío: así Mailchimp aplica el respaldo (*|IF:TAG|*).
   for (r in extra) cols[[length(cols) + 1L]] <- .cmail_value(store$rows[[r$column]][rows])
+  if (isTRUE(tres$presente)) {
+    header <- c(header, .CMAIL_TRATO_TAG)
+    cols[[length(cols) + 1L]] <- tres$palabra[rows]
+  }
+  .cmail_write_csv(path, header, cols, length(rows))
+  header
+}
+
+.cmail_write_csv <- function(path, header, cols, n) {
   lines <- c(
     paste(.cmail_csv_cell(header), collapse = ","),
-    if (length(rows)) do.call(paste, c(lapply(cols, .cmail_csv_cell), sep = ","))
+    if (n) do.call(paste, c(lapply(cols, .cmail_csv_cell), sep = ","))
   )
   con <- file(path, open = "wb"); on.exit(close(con))
   writeBin(charToRaw(enc2utf8(paste0(paste(lines, collapse = "\r\n"), "\r\n"))), con)
-  header
+  invisible(path)
 }
 
 .CMAIL_AUDIENCE_LABELS <- c(todos = "todos los contactos", sin_respuesta = "quienes no respondieron",
@@ -422,7 +463,7 @@ collection_mail_review <- function(sid, template = NULL, campaign_id = NULL, sco
   )
 }
 
-.cmail_leeme <- function(images, counts = NULL, html_name, send = NULL, subject = NULL) {
+.cmail_leeme <- function(images, counts = NULL, html_name, send = NULL, subject = NULL, tres = NULL) {
   hosted <- Filter(function(i) !is.null(i$url), images)
   reminder <- identical(send$kind, "recordatorio")
   c(
@@ -436,7 +477,8 @@ collection_mail_review <- function(sid, template = NULL, campaign_id = NULL, sco
     if (!is.null(counts)) c(
       "1. En Mailchimp, abre Audiencia > Importar contactos y sube audiencia.csv.",
       "   Cada columna corresponde a una etiqueta de combinación (First Name = FNAME).",
-      "   Crea en la audiencia los campos que falten con la MISMA etiqueta del encabezado."
+      "   Crea en la audiencia los campos que falten con la MISMA etiqueta del encabezado.",
+      .cmail_leeme_trato_mc(tres)
     ) else "1. Este paquete trae solo la plantilla: la audiencia se importa aparte.",
     sprintf("2. En Mailchimp, crea la plantilla con «Code your own» > «Import ZIP» y sube %s.", .CMAIL_IMPORT_ZIP_NAME),
     "   Mailchimp sube las imágenes a Content Studio y reescribe las rutas solo.",
@@ -504,7 +546,7 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
   pick <- .cmail_campaign_for(session, state, campaign_id)
   campaign <- pick$campaign
   platform <- .cmail_platform_of(campaign)
-  scope <- .cmail_scope(scope, platform)
+  scope <- .cmail_scope(scope, platform, has_list = .cmail_has_list(session, campaign))
   base_tpl <- .cmail_campaign_template_checked(campaign)
   send <- .cmail_send_pick(campaign, base_tpl, send_id)$send
   tpl <- .cmail_template_for_send(base_tpl, send)
@@ -532,11 +574,12 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
   sha <- function(p) paste0("sha256:", tolower(digest::digest(file = p, algo = "sha256")))
   entries <- .CMAIL_IMPORT_ZIP_NAME
   columns <- character(0)
+  tres <- if (completo) .cmail_trato_resolve(r$store, tpl, r$resolved)
   if (completo) {
-    columns <- .cmail_write_audience(file.path(work, "audiencia.csv"), r$store, r$resolved, r$tag_rows)
+    columns <- .cmail_write_audience(file.path(work, "audiencia.csv"), r$store, r$resolved, r$tag_rows, tres)
     entries <- c(entries, "audiencia.csv")
   }
-  writeLines(enc2utf8(.cmail_leeme(r$images, if (completo) r$resolved$counts, html_name, send, r$rendered$subject)),
+  writeLines(enc2utf8(.cmail_leeme(r$images, if (completo) r$resolved$counts, html_name, send, r$rendered$subject, tres)),
              file.path(work, "LEEME.txt"), useBytes = TRUE)
   entries <- c(entries, "LEEME.txt")
   sensitivity <- if (completo) "personal_data" else "none"
@@ -575,6 +618,7 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
       counts = r$resolved$counts
     ),
     audience_columns = as.list(columns),
+    trato = .cmail_trato_manifest(tpl, tres, "mailchimp"),
     tags = as.list(vapply(r$tag_rows %||% list(), function(t) t$tag, "")),
     checks = r$checks,
     files = lapply(entries, function(e) list(path = e, size_bytes = as.integer(file.info(file.path(work, e))$size),

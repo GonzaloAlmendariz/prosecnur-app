@@ -758,6 +758,24 @@
   grepl("[,:]$", plain) && (grepl(.CMAIL_IH_GREETING_RE, text, perl = TRUE) || grepl("{{nombre}}", text, fixed = TRUE))
 }
 
+# «Estimado(a)», «Estimado/a», «Querida(o)»…: la palabra inclusiva del saludo
+# pasa a trato por sexo SIN columna (collection_mail_trato.R): sigue diciendo el
+# texto original (el respaldo) hasta que se declare la columna, y se informa.
+.CMAIL_IH_TRATO_RE <- "(Estimad|Querid|Apreciad|Distinguid)([oa])\\s*(?:\\(\\s*([oa])\\s*\\)|/\\s*([oa]))"
+
+.cmail_ih_trato <- function(ctx, text) {
+  m <- regmatches(text, regexec(.CMAIL_IH_TRATO_RE, text, perl = TRUE))[[1]]
+  if (length(m) < 5L) return(NULL)
+  other <- if (nzchar(m[[4]])) m[[4]] else m[[5]]
+  if (identical(other, m[[3]])) return(NULL)
+  tr <- list(modo = "por_sexo", masculino = paste0(m[[2]], "o"), femenino = paste0(m[[2]], "a"), respaldo = m[[1]])
+  .cmail_ih_report(ctx, "greeting_trato_detected",
+    sprintf("El saludo «%s» quedó como trato por sexo: declara la columna de sexo de la lista para que diga «%s» o «%s»; mientras tanto dice «%s» a todos.",
+            tr$respaldo, tr$masculino, tr$femenino, tr$respaldo),
+    excerpt = tr$respaldo, block_id = "saludo")
+  tr
+}
+
 .cmail_ih_greeting_fallback <- function(text) {
   fb <- gsub("\\s*\\{\\{nombre\\}\\}\\s*", " ", text)
   fb <- gsub("\\s+([,:.;])", "\\1", fb)
@@ -942,7 +960,8 @@
         fb <- if (grepl("{{nombre}}", t, fixed = TRUE)) .cmail_ih_greeting_fallback(t) else NULL
         # El respaldo de Mailchimp (*|IF:FNAME|*…*|ELSE:|*Y*|END:IF|*) manda sobre el derivado.
         mc_fb <- s$mc_fallback
-        add(.cmc_drop_nulls_deep(list(block_id = "saludo", type = "greeting", text = t, fallback = mc_fb %||% fb)))
+        add(.cmc_drop_nulls_deep(list(block_id = "saludo", type = "greeting", text = t, fallback = mc_fb %||% fb,
+                                      trato = .cmail_ih_trato(ctx, t))))
       } else if (identical(kind, "text") && .cmail_ih_all_bold(text) && nchar(.cmail_ih_unbold(text)) <= 60L &&
                  grepl(":$", .cmail_ih_unbold(text)) && !is.null(nxt) && identical(nxt$kind, "list")) {
         title <- .cmail_ih_unbold(.cmail_ih_strip_links(text))
@@ -1070,6 +1089,10 @@
              details = list(size_bytes = length(raw)))
   }
   text <- .cmail_ih_decode(raw, ctx)
+  # El trato que escribe la app (*|IF:SALUDO|**|SALUDO|**|ELSE:|*X*|END:IF|*) vuelve a ser X:
+  # el saludo lo reconoce como trato por sexo (sin columna: la columna no viaja en el HTML).
+  text <- gsub(sprintf("\\*\\|IF:%s\\|\\*\\*\\|%s\\|\\*\\*\\|ELSE:\\|\\*(.*?)\\*\\|END:IF\\|\\*", .CMAIL_TRATO_TAG, .CMAIL_TRATO_TAG),
+               "\\1", text, perl = TRUE)
   if (!nzchar(trimws(text))) stop_api(422, "E_COLLECTION_MAIL_IMPORT_HTML_INVALID", "El HTML está vacío.")
   doc <- tryCatch(
     xml2::read_html(charToRaw(enc2utf8(text)), encoding = "UTF-8",

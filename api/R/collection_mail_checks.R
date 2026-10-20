@@ -210,8 +210,18 @@
                               paste(sprintf("{{%s}}", link_keys), collapse = ", ")),
                       extra = as.list(link_keys), targets = .cmail_key_targets(tpl, link_keys)))
   }
-  custom <- vapply(used, function(k) {
-    sm <- fields[[k]]$sm %||% ""
+  sm_of <- vapply(used, function(k) fields[[k]]$sm %||% "", "")
+  targets_of <- function(keys) .cmail_key_targets(tpl, keys)
+  # El trato por sexo con columna ocupa su propio CustomDataN (collection_mail_trato.R).
+  g <- .cmail_trato_greeting(tpl)
+  if (!is.null(g) && .cmail_trato_active(g$trato)) {
+    sm_of <- c(sm_of, trato = .cmail_trato_sm_slot(g$trato, tpl$fields))
+    used <- c(used, "trato")
+    base_targets <- targets_of
+    targets_of <- function(keys) c(base_targets(setdiff(keys, "trato")),
+                                   if ("trato" %in% keys) list(.cmail_target(as.character(g$block$block_id), "trato")))
+  }
+  custom <- vapply(sm_of, function(sm) {
     if (grepl("^CustomData[0-9]+$", sm)) as.integer(sub("^CustomData", "", sm)) else 0L
   }, integer(1))
   if (any(custom > 0L)) {
@@ -219,9 +229,9 @@
     push(if (length(over)) {
       .cmail_check("sm_custom_limit", "warning", length(over),
                    sprintf("Se usa CustomData mayor que %d (%s): fuera de los planes Team/Enterprise SurveyMonkey ofrece solo CustomData1 a CustomData%d.",
-                           .CMAIL_SM_CUSTOM_PLAN_LIMIT, paste(vapply(over, function(k) fields[[k]]$sm, ""), collapse = ", "),
+                           .CMAIL_SM_CUSTOM_PLAN_LIMIT, paste(unname(sm_of[custom > .CMAIL_SM_CUSTOM_PLAN_LIMIT]), collapse = ", "),
                            .CMAIL_SM_CUSTOM_PLAN_LIMIT),
-                   extra = as.list(over), targets = .cmail_key_targets(tpl, over))
+                   extra = as.list(over), targets = targets_of(over))
     } else {
       .cmail_check("sm_custom_limit", "ok", max(custom), sprintf("Los datos personalizados usados están entre CustomData1 y CustomData%d.", .CMAIL_SM_CUSTOM_PLAN_LIMIT))
     })

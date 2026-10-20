@@ -5,14 +5,17 @@
 #   <campaign_id>_<send_id>_surveymonkey_<stamp>.zip     sensitivity none, role deliverable
 #   ├── <campaign_id>-<send_id>.html   para pegar en «Formato HTML personalizado»; src https; [..] en href
 #   ├── LEEME.txt                      asunto, fecha prevista, a quién, pasos, campo → [CustomDataN], plan Enterprise
+#   ├── contactos_surveymonkey.csv     SOLO con scope completo (lista cargada): Email, FirstName, LastName?,
+#   │                                  CustomDataK de los campos y el del trato (collection_mail_trato.R)
 #   └── manifest.json                  además registrado aparte (role manifest, uno solo)
 #
-# No hay audiencia: los contactos viven en el recopilador de SurveyMonkey. El
-# HTML se verifica con `.cmail_sm_html_verify` antes de empaquetarlo.
+# Los contactos viven en el recopilador de SurveyMonkey; con la lista cargada en
+# la sesión el paquete trae el CSV para importarlos allí (sensitivity
+# personal_data). El HTML se verifica con `.cmail_sm_html_verify` antes de empaquetarlo.
 
 .CMAIL_SM_AUDIENCE_SEND_TO <- c(sin_respuesta = "No response", parcial = "Partial response", ambos = "Both")
 
-.cmail_leeme_sm <- function(tpl, send, subject, html_name) {
+.cmail_leeme_sm <- function(tpl, send, subject, html_name, tres = NULL, contacts = NULL) {
   fields <- .cmail_field_index(tpl)
   used <- setdiff(.cmail_used_keys(tpl), "nombre")
   rows <- vapply(used, function(k) sprintf("   {{%s}} (%s) -> [%s]", k, fields[[k]]$label %||% k, fields[[k]]$sm %||% "sin etiqueta"), "")
@@ -41,6 +44,7 @@
     "[OptOutLink] y [PrivacyLink] los exige SurveyMonkey en el pie.",
     if (length(rows)) c("Campos del correo y su dato en Contactos de SurveyMonkey:", rows),
     "SurveyMonkey no tiene texto de respaldo: un contacto sin el dato verá un espacio vacío.",
+    .cmail_leeme_trato_sm(tpl, tres, contacts),
     "",
     "Las imágenes se cargan desde su URL https pública; SurveyMonkey no las aloja para el HTML personalizado."
   )
@@ -61,8 +65,17 @@
   on.exit(unlink(work, recursive = TRUE, force = TRUE), add = TRUE)
   html_name <- paste0(substr(slug, 1L, 40L), "-", send$send_id, ".html")
   writeBin(charToRaw(enc2utf8(html)), file.path(work, html_name))
-  writeLines(enc2utf8(.cmail_leeme_sm(tpl, send, r$rendered$subject, html_name)), file.path(work, "LEEME.txt"), useBytes = TRUE)
-  entries <- c(html_name, "LEEME.txt")
+  completo <- !is.null(r$store)
+  tres <- if (completo) .cmail_trato_resolve(r$store, tpl, r$resolved)
+  contacts <- NULL
+  if (completo) {
+    header <- .cmail_write_sm_contacts(file.path(work, "contactos_surveymonkey.csv"), tpl, r$store, r$resolved, tres)
+    contacts <- list(header = header, rows = r$resolved$rows)
+  }
+  writeLines(enc2utf8(.cmail_leeme_sm(tpl, send, r$rendered$subject, html_name, tres, contacts)),
+             file.path(work, "LEEME.txt"), useBytes = TRUE)
+  entries <- c(html_name, "LEEME.txt", if (completo) "contactos_surveymonkey.csv")
+  sensitivity <- if (completo) "personal_data" else "none"
   sha <- function(p) paste0("sha256:", tolower(digest::digest(file = p, algo = "sha256")))
   fields <- .cmail_field_index(tpl)
   used <- setdiff(.cmail_used_keys(tpl), "nombre")
@@ -70,8 +83,8 @@
     schema = "collection_mail_export/v1",
     generated_at = .collection_now_iso(),
     audience = "client",
-    sensitivity = "none",
-    scope = "plantilla",
+    sensitivity = sensitivity,
+    scope = if (completo) "completo" else "plantilla",
     platform = "surveymonkey",
     app_version = .audit_reference_app_version(),
     locale = "es-PE",
@@ -87,6 +100,14 @@
       id = i$id, hosted_url = i$url, type = i$type, width = i$size$width, height = i$size$height
     )))),
     tags = lapply(used, function(k) list(key = k, sm = fields[[k]]$sm)),
+    trato = .cmail_trato_manifest(tpl, tres, "surveymonkey"),
+    recipients = if (completo) list(
+      rows = r$resolved$counts$valid,
+      excluded = r$resolved$counts$total - r$resolved$counts$valid,
+      source_file = r$store$file_name, imported_at = r$store$imported_at,
+      source_sha256 = r$store$source_sha256, encoding = r$store$encoding,
+      columns = as.list(contacts$header), counts = r$resolved$counts
+    ),
     checks = r$checks,
     files = lapply(entries, function(e) list(path = e, size_bytes = as.integer(file.info(file.path(work, e))$size),
                                              sha256 = sha(file.path(work, e)))),
@@ -104,15 +125,15 @@
   manifest_out <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", manifest_name))
   file.copy(manifest_path, manifest_out, overwrite = TRUE)
   artifacts <- list(
-    .cmail_register_artifact(sid, zip_path, "collection_mail_sm_zip", zip_name, "deliverable", "application/zip", "none"),
-    .cmail_register_artifact(sid, manifest_out, "collection_mail_manifest", manifest_name, "manifest", "application/json", "none")
+    .cmail_register_artifact(sid, zip_path, "collection_mail_sm_zip", zip_name, "deliverable", "application/zip", sensitivity),
+    .cmail_register_artifact(sid, manifest_out, "collection_mail_manifest", manifest_name, "manifest", "application/json", sensitivity)
   )
   list(
     ok = TRUE,
     campaign_id = campaign$campaign_id,
     platform = "surveymonkey",
     send_id = send$send_id,
-    scope = "plantilla",
+    scope = if (completo) "completo" else "plantilla",
     artifacts = artifacts,
     zip = artifacts[[1]],
     html = list(name = html_name, bytes = r$rendered$bytes),

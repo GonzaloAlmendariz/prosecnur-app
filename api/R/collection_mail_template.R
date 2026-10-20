@@ -16,6 +16,7 @@
 #   images = { <image_id>: { alt, url? } },   # url pública opcional (https)
 #   fields = [ { key, tag, label, fallback?, sm?, destino? } ],   # sm: etiqueta SurveyMonkey (E1j)
 #   blocks = [ { block_id, type, ... } ]      # registro CERRADO
+#   greeting.trato = { modo, columna?, masculino, femenino, respaldo, sm? }   # collection_mail_trato.R
 #
 # Estilos: solo las enumeraciones de collection_mail_styles.R (`size`, `tone`,
 # `fill`, `level`, `style`, `variant`, `align`). Enlaces `[texto](url)` solo en
@@ -55,7 +56,7 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA <- "collection_mail_template/v2"
 COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
 
 .CMAIL_BLOCK_KEYS <- list(
-  greeting     = c("text", "fallback"),
+  greeting     = c("text", "fallback", "trato"),
   heading      = c("text", "level", "align"),
   paragraph    = c("text", "align", "size", "tone"),
   button       = c("text", "url", "note", "align", "size", "fill"),
@@ -195,6 +196,8 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
       if (!is.null(b[[k]])) b[[k]] <- .cmail_strings(b[[k]]) %||% b[[k]]
     }
     if (!is.null(b$ordered)) b$ordered <- isTRUE(unlist(b$ordered))
+    # Saludo por sexo (collection_mail_trato.R): las palabras que falten, las de siempre.
+    if (identical(b$type, "greeting") && !is.null(b$trato)) b$trato <- .cmail_trato_normalize(b$trato)
     if (!is.null(b$bleed) && length(unlist(b$bleed)) == 1L && is.logical(unlist(b$bleed))) b$bleed <- isTRUE(unlist(b$bleed))
     if (!is.null(b$width) && length(unlist(b$width)) == 1L && is.numeric(unlist(b$width))) {
       w <- unlist(b$width)
@@ -436,6 +439,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
           add(list(.cmail_problem(paste0(path, ".fallback"), "missing_fallback",
             "Un saludo con campo necesita su texto de respaldo para quien no tiene el dato.")))
         }
+        if (!is.null(b$trato)) add(.cmail_trato_problems(b$trato, paste0(path, ".trato"), fields))
       },
       paragraph = add(.cmail_text_problems(b$text, paste0(path, ".text"), keys, required = TRUE)),
       heading = add(.cmail_text_problems(b$text, paste0(path, ".text"), keys, required = TRUE)),
@@ -503,6 +507,10 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
 
 # ---- presets ------------------------------------------------------------------
 
+# Saludo por sexo sin columna hasta que se declare: sale «Estimado(a)» (como
+# antes) y la revisión pide la columna (collection_mail_trato.R).
+.cmail_trato_preset <- function() c(list(modo = "por_sexo"), .CMAIL_TRATO_DEFAULTS)
+
 .cmail_signature_pulso <- function() {
   list(
     block_id = "firma", type = "signature", closing = "Atentamente,",
@@ -543,7 +551,8 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
       list(key = "enlace", tag = "ENLACE", label = "Enlace a la encuesta", sm = "SurveyLink", destino = "encuesta")
     ),
     blocks = list(
-      list(block_id = "saludo", type = "greeting", text = "Estimado(a) {{nombre}}:", fallback = "Estimado(a) estudiante:"),
+      list(block_id = "saludo", type = "greeting", text = "Estimado(a) {{nombre}}:", fallback = "Estimado(a) estudiante:",
+           trato = .cmail_trato_preset()),
       list(block_id = "contexto", type = "paragraph", align = "justify",
            text = "Pulso PUCP, por encargo de **[unidad solicitante]**, viene desarrollando el estudio **[nombre del estudio]**, cuyo objetivo es [objetivo del estudio]."),
       list(block_id = "motivo", type = "paragraph", align = "justify",
@@ -589,7 +598,8 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
       list(key = "enlace", tag = "ENLACE", label = "Enlace a la sesión", destino = "otro")
     ),
     blocks = list(
-      list(block_id = "saludo", type = "greeting", text = "Estimado(a) {{nombre}}:", fallback = "Estimado(a):"),
+      list(block_id = "saludo", type = "greeting", text = "Estimado(a) {{nombre}}:", fallback = "Estimado(a):",
+           trato = .cmail_trato_preset()),
       list(block_id = "invitacion", type = "paragraph", align = "justify",
            text = "Reciba un cordial saludo. Desde el Instituto de Analítica Social e Inteligencia Estratégica (Pulso PUCP) tenemos el agrado de invitarlo(a) a la **capacitación del equipo de campo** del **[nombre del estudio]**, que desarrollamos conjuntamente con **[institución socia]**."),
       list(block_id = "relevancia", type = "paragraph", align = "justify",

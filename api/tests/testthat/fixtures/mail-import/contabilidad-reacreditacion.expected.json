@@ -39,7 +39,13 @@
         "block_id": "saludo",
         "type": "greeting",
         "text": "**Estimado(a) {{nombre}},**",
-        "fallback": "**Estimado(a),**"
+        "fallback": "**Estimado(a),**",
+        "trato": {
+          "modo": "por_sexo",
+          "masculino": "Estimado",
+          "femenino": "Estimada",
+          "respaldo": "Estimado(a)"
+        }
       },
       {
         "block_id": "parrafo-1",
@@ -89,7 +95,7 @@
         "type": "footer_legal"
       }
     ],
-    "template_sha256": "sha256:39fc3e3ba4cfeebc6335a7cdaf0f1e8ecd386ef3e22b2255d0be8a6ee6acbeca"
+    "template_sha256": "sha256:9715bcbd9c09da47fe1a103d9d6de612e7b68497e089a5b38f77c21ce39d8f9b"
   },
   "report_codes": [
     "style_discarded",
@@ -98,6 +104,7 @@
     "platform_link_removed",
     "platform_link_removed",
     "image_alt_missing",
+    "greeting_trato_detected",
     "platform_footer_removed",
     "subject_missing"
   ],

@@ -172,10 +172,18 @@ fixtures en `tests/testthat/fixtures/mail-import/`.
   (`images_public_url`); pie con `[PrivacyLink]` y `[OptOutLink]`. La revisión agrega `survey_link`, `footer_optout`,
   `sm_fields_mapped` (con `targets`) y `sm_custom_limit` (aviso sobre CustomData6), y no tiene chequeos de audiencia.
   El export es `<campaign_id>_<send_id>_surveymonkey_<stamp>.zip` (HTML para «HTML personalizado», LEEME y manifest,
-  `sensitivity: none`), verificado por `.cmail_sm_html_verify`. `scope = completo` con SurveyMonkey es 422
-  `E_COLLECTION_MAIL_PLATFORM`; el alcance por defecto es `plantilla`.
-- **Destinatarios.** Pasar una campaña a SurveyMonkey purga su carpeta de destinatarios (`recipients_purged: true`) e
-  importar destinatarios en ella responde 422 `E_COLLECTION_MAIL_PLATFORM`: los contactos viven en el recopilador.
+  `sensitivity: none`), verificado por `.cmail_sm_html_verify`. Sin lista cargada el alcance por defecto es
+  `plantilla` y `completo` es 422 `E_COLLECTION_MAIL_PLATFORM`; con lista cargada el defecto es `completo` y el paquete
+  trae `contactos_surveymonkey.csv` (`sensitivity: personal_data`).
+- **Destinatarios.** Pasar una campaña a SurveyMonkey purga su carpeta de destinatarios (`recipients_purged: true`).
+  Enmienda 2026-10-20 (saludo por sexo, decisión de Gonzalo: «Columna de sexo, la app traduce»): una campaña
+  SurveyMonkey **sí** acepta una lista, solo en el tempdir de la sesión, para armar los contactos con el saludo en
+  `[CustomDataN]`; los contactos se siguen enviando desde el recopilador.
+- **Saludo por sexo** (`collection_mail_trato.R`). El bloque `greeting` lleva `trato {modo: fijo|por_sexo, columna,
+  masculino, femenino, respaldo, sm}`. Al `.pulso` solo entra el nombre de la columna. La lectura de «M» se decide con
+  el conjunto de valores de la columna (`m_f`, `h_m`, `m_ambigua`, `sin_m`); sin dato o con un valor no reconocido sale
+  el respaldo («Estimado(a)»), y la revisión lo cuenta. Mailchimp: columna `SALUDO` en `audiencia.csv` con
+  `*|IF:SALUDO|*`; SurveyMonkey: `[CustomDataN]` solo con columna declarada (sin ella, el respaldo literal).
 - **Envíos (E1k).** `campaign.sends` (1 a 6): la invitación primero e imborrable; los recordatorios con
   `recordatorio-<k>` asignado por el servidor, estable y nunca reutilizado (`campaign.send_seq`). La plantilla efectiva
   (`.cmail_template_for_send`) cambia asunto y preheader y suma la apertura como párrafo `__apertura` tras el saludo;
