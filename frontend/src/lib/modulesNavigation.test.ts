@@ -72,12 +72,9 @@ const EXPECTED_PRIMARY_NAVIGATION: Record<
   "material-campo": {
     landingKind: "section",
     to: "/material-campo",
+    // ADR 0111: el landing es la lista de campañas; las secciones son del modo.
     sections: [
-      { id: "unidades", label: "Unidades", to: "/material-campo", layoutPolicy: "viewport" },
-      { id: "accesos", label: "Accesos", to: "/material-campo?seccion=accesos", layoutPolicy: "viewport" },
-      { id: "catalogo", label: "Catálogo", to: "/material-campo?seccion=catalogo", layoutPolicy: "viewport" },
-      { id: "paquetes", label: "Paquetes", to: "/material-campo?seccion=paquetes", layoutPolicy: "viewport" },
-      { id: "entrega", label: "Entrega", to: "/material-campo?seccion=entrega", layoutPolicy: "viewport" },
+      { id: "campanas", label: "Campañas", to: "/material-campo", layoutPolicy: "viewport" },
     ],
   },
   monitoreo: {
@@ -113,7 +110,7 @@ describe("manifiesto primario de navegación", () => {
       version: 3,
       grammar: "modulo/modo/seccion/pestana/panel",
       coverage: "primary-routes-v1",
-      modosCoverage: "monitoring-profiles-v1+calc-muestra-v1",
+      modosCoverage: "monitoring-profiles-v1+calc-muestra-v1+material-campo-v1",
       tabsCoverage: "all-current-tabsets-v1",
       shellCoverage: "hojas-ruta-v1",
       consumableByShell: true,
@@ -282,6 +279,33 @@ describe("manifiesto primario de navegación", () => {
         ],
       },
     ]);
+  });
+
+  it("declara los modos de Material de campo: el tipo de la campaña abierta (ADR 0111)", () => {
+    const material = PROSECNUR_MODULES.find((module) => module.slug === "material-campo");
+    expect(material?.modos?.map((modo) => ({
+      id: modo.id,
+      sections: modo.sections.map(({ id, to, tabs }) => ({ id, to, tabs: (tabs ?? []).map((tab) => tab.to) })),
+    }))).toEqual([
+      {
+        id: "aulas",
+        sections: [
+          { id: "unidades", to: "/material-campo?modo=aulas&seccion=unidades", tabs: ["/material-campo?modo=aulas&seccion=unidades&pestana=lista", "/material-campo?modo=aulas&seccion=unidades&pestana=origen"] },
+          { id: "accesos", to: "/material-campo?modo=aulas&seccion=accesos", tabs: ["/material-campo?modo=aulas&seccion=accesos&pestana=canales", "/material-campo?modo=aulas&seccion=accesos&pestana=vinculacion"] },
+          { id: "catalogo", to: "/material-campo?modo=aulas&seccion=catalogo", tabs: ["/material-campo?modo=aulas&seccion=catalogo&pestana=tipos", "/material-campo?modo=aulas&seccion=catalogo&pestana=editor"] },
+          { id: "paquetes", to: "/material-campo?modo=aulas&seccion=paquetes", tabs: ["/material-campo?modo=aulas&seccion=paquetes&pestana=armado"] },
+          { id: "entrega", to: "/material-campo?modo=aulas&seccion=entrega", tabs: ["/material-campo?modo=aulas&seccion=entrega&pestana=traspaso"] },
+        ],
+      },
+      {
+        id: "correo",
+        sections: [
+          { id: "correo", to: "/material-campo?modo=correo&seccion=correo", tabs: ["/material-campo?modo=correo&seccion=correo&pestana=editor"] },
+        ],
+      },
+    ]);
+    // `territorial` no se declara hasta E2: aparece deshabilitado en «Nueva campaña».
+    expect(material?.modos?.some((modo) => modo.id === "territorial")).toBe(false);
   });
 
   it("adjunta a Monitoreo las mismas pestañas del catálogo canónico", () => {

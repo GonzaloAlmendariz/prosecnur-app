@@ -6,10 +6,10 @@
 // se manda en la siguiente escritura, qué nombre es válido, cómo queda la lista
 // después de crear, duplicar, renombrar o borrar, y los dos pasos del borrado.
 //
-// Dirección (§6 del contrato): la campaña es el `foco` de la pestaña Correos,
-// `?seccion=catalogo&pestana=correos&foco=<campaign_id>`, y el bloque elegido
-// va detrás del mismo separador que usa el editor de fichas:
-// `foco=<campaign_id>~<block_id>`.
+// Dirección (ADR 0111 §4): la campaña es el ALCANCE, `campana=correo.<campaign_id>`,
+// y el bloque elegido es el `foco`. Por dentro el editor sigue trabajando con
+// la forma combinada de antes, `<campaign_id>~<block_id>`, que `focoCombinado`
+// arma al leer y `partirFocoCombinado` deshace al escribir.
 
 import {
   MAIL_PLATFORM_DEFAULT,
@@ -48,6 +48,26 @@ export type FocoDelCorreoResuelto = {
   /** La URL dice otra cosa que la forma canónica: se reescribe con `replace`. */
   reescribir: boolean;
 };
+
+/** `campana=correo.x` + `foco=saludo` → `x~saludo` (la forma que lee `parseFocoCorreo`). */
+export function focoCombinado(campana: string | null | undefined, foco: string | null | undefined): string {
+  const id = (campana ?? "").trim();
+  if (!id.startsWith("correo.")) return "";
+  const cid = id.slice("correo.".length);
+  if (!cid) return "";
+  const bloque = (foco ?? "").trim();
+  return bloque ? `${cid}${SEPARADOR_FOCO}${bloque}` : cid;
+}
+
+/** `x~saludo` → `campana=correo.x` y `foco=saludo`; sin nada, quita los dos. */
+export function partirFocoCombinado(foco: string | null): { campana: string | null; bloque: string | null } {
+  const texto = (foco ?? "").trim();
+  if (!texto) return { campana: null, bloque: null };
+  const corte = texto.indexOf(SEPARADOR_FOCO);
+  const cid = corte >= 0 ? texto.slice(0, corte) : texto;
+  const bloque = corte >= 0 ? texto.slice(corte + SEPARADOR_FOCO.length) : "";
+  return { campana: cid ? `correo.${cid}` : null, bloque: bloque || null };
+}
 
 export function serializarFocoCorreo(foco: FocoDelCorreo): string {
   return foco.blockId ? `${foco.campaignId}${SEPARADOR_FOCO}${foco.blockId}` : foco.campaignId;

@@ -190,7 +190,7 @@ export function BibliotecaDeBloques({ template, estilo, titulo = "Agregar un blo
             <h4 className="rec-bib-grupo-titulo">{grupo.titulo}</h4>
             <div
               className="rec-bib-rejilla"
-              data-qa-geometry-group="material-campo/catalogo/correos-biblioteca"
+              data-qa-geometry-group="material-campo/correo/biblioteca"
               data-qa-geometry-contract="equal"
             >
               {grupo.tipos.filter((t) => MAIL_BLOCK_TYPES.includes(t)).map((type) => {

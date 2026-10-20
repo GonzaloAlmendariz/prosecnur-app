@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { apiRecopiladoresState, type CollectionArtifactReceipt, type CollectionStatePayload } from "../../api/recopiladores";
@@ -12,7 +12,6 @@ import { PROSECNUR_MODULES } from "../../lib/modules";
 import { RefreshCw } from "../../vendor/lucide-react";
 import { AccessSection } from "./AccessSection";
 import { CatalogoTipos } from "./catalogo/CatalogoTipos";
-import { CorreosEditor } from "./correos/CorreosEditor";
 import { DeliverySection } from "./DeliverySection";
 import { EditorDeMaterial } from "./editor/EditorDeMaterial";
 import { MaterialsSection } from "./MaterialsSection";
@@ -32,6 +31,8 @@ import { useProjectModules } from "../project/ProjectModulesContext";
 import "./styles/recopiladores-shell.css";
 
 const MODULE = PROSECNUR_MODULES.find((item) => item.slug === "material-campo")!;
+/** El juego de secciones del modo aulas (ADR 0111 §3): la campaña de aulas abierta. */
+const SECCIONES_AULAS = MODULE.modos?.find((modo) => modo.id === "aulas")?.sections ?? [];
 
 /**
  * Qué hace cada sección, en el idioma de quien la usa.
@@ -86,7 +87,16 @@ function searchFor(
   return `?${params.toString()}`;
 }
 
-export function RecopiladoresShell() {
+type Props = {
+  /**
+   * La cabecera de la campaña abierta —volver a la lista, su nombre y su
+   * menú—. Vive en la zona de contexto de la barra, antes de las cifras.
+   */
+  cabecera?: ReactNode;
+};
+
+/** La campaña de aulas abierta: sus cinco secciones (ADR 0108 §5, ADR 0111 §3). */
+export function RecopiladoresShell({ cabecera = null }: Props = {}) {
   const location = useLocation();
   const navigate = useNavigate();
   const { overview, addedSlugs } = useProjectModules();
@@ -172,7 +182,7 @@ export function RecopiladoresShell() {
     navigate(`${location.pathname}${searchFor(location.search, direction.seccion, tab)}`);
   };
 
-  const activeMeta = MODULE.sections.find((section) => section.id === direction.seccion);
+  const activeMeta = SECCIONES_AULAS.find((section) => section.id === direction.seccion);
   const tabs = activeMeta?.tabs ?? [];
   const conRail = tabs.length > 1;
   const railItems: readonly ContextTabRailItem<RecopiladoresPestana>[] = tabs.map((tab) => ({
@@ -227,7 +237,7 @@ export function RecopiladoresShell() {
       ariaLabel="Secciones de Material de campo"
       seccionActiva={direction.seccion}
       className="rec-section-selector"
-      items={MODULE.sections.map((section) => {
+      items={SECCIONES_AULAS.map((section) => {
         const id = section.id as RecopiladoresSeccion;
         return {
           id,
@@ -280,9 +290,6 @@ export function RecopiladoresShell() {
           onIr={irA}
         />
       ) : null}
-      {!loading && direction.seccion === "catalogo" && direction.pestana === "correos" ? (
-        <CorreosEditor onCargando={setSeccionCargando} onStateRefresh={refreshSilent} />
-      ) : null}
       {!loading && direction.seccion === "catalogo" && direction.pestana === "editor" ? (
         <EditorDeMaterial
           payload={payload}
@@ -321,7 +328,10 @@ export function RecopiladoresShell() {
       chrome={(
         <ModuleCommandBar
           modulo="material-campo"
-          contexto={state?.plan ? (
+          contexto={cabecera || state?.plan ? (
+            <>
+            {cabecera}
+            {state?.plan ? (
             // La zona de contexto lleva el dato, no el nombre del módulo: eso ya
             // lo dice el ícono activo del rail y repetirlo desperdicia el único
             // hueco donde los demás módulos ponen su cifra —Bitácora pone
@@ -348,6 +358,8 @@ export function RecopiladoresShell() {
                 />
               ) : null}
             </ChromeIndicatorGroup>
+            ) : null}
+            </>
           ) : null}
           secciones={sectionSelector}
           acciones={[{

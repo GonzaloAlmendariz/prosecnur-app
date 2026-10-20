@@ -316,6 +316,39 @@ describe("moduleCardModel", () => {
     expect(bitacora.facts.find(({ label }) => label === "fecha de cronograma")?.value).toContain("10");
   });
 
+  it("Material de campo resume por campaña cuando el inicio trae `campaigns` (ADR 0111 §9)", () => {
+    const crudo = makeOverview() as unknown as { facts: Record<string, Record<string, unknown>> };
+    crudo.facts["material-campo"] = {
+      ...crudo.facts["material-campo"],
+      campaigns: [
+        { id: "aulas.principal", tipo: "aulas", name: "Campo en aulas", archived: false, resumen: { unidades: 3, titulares: 3, con_enlace: 2, deployment_status: "draft", plan_desfasado: false } },
+        {
+          id: "correo.egresados-2026", tipo: "correo", name: "Egresados 2026", archived: false,
+          resumen: {
+            platform: "surveymonkey", envios: 2, bloques: 9, recipients_loaded: false,
+            envios_detalle: [
+              { send_id: "invitacion", label: "Invitación", last_export_at: "2026-10-20T15:30:38Z", last_export_platform: "surveymonkey" },
+              { send_id: "recordatorio-1", label: "Recordatorio 1", last_export_at: null, last_export_platform: null },
+            ],
+          },
+        },
+        { id: "correo.vieja", tipo: "correo", name: "Vieja", archived: true, resumen: null },
+      ],
+    };
+    const card = view("material-campo", normalizeProjectOverview(crudo as unknown as ProjectOverview));
+    expect(card.viz).toMatchObject({ kind: "progress", current: 2, total: 3, label: "titulares con enlace" });
+    expect(card.sub).toBe("2 campañas: campo en aulas y 1 correo");
+    expect(card.facts).toEqual([
+      { label: "Campo en aulas", value: "Accesos en borrador" },
+      { label: "Egresados 2026", value: "Invitación exportada 20/10 · Recordatorio 1 pendiente" },
+    ]);
+  });
+
+  it("sin `campaigns` la tarjeta de Material de campo sigue como antes", () => {
+    const card = view("material-campo", normalizeProjectOverview(makeOverview()));
+    expect(card.facts.map((f) => f.label)).toContain("unidades en el plan");
+  });
+
   it("evita un progreso indeterminado 0/0 en Material de campo", () => {
     const overview = makeOverview();
     overview.facts["material-campo"] = {

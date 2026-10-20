@@ -49,7 +49,7 @@ describe("aviso de Material de campo en Cálculo de muestra", () => {
     expect(aviso?.texto).toBe(
       `Material de campo tiene un plan del sorteo del 1/8 (${(2468).toLocaleString("es-PE")} unidades); esta selección es del 21/8.`,
     );
-    expect(aviso?.enlace).toEqual({ label: "Revisar diferencias", to: "/material-campo?seccion=unidades&pestana=origen" });
+    expect(aviso?.enlace).toEqual({ label: "Revisar diferencias", to: "/material-campo?modo=aulas&seccion=unidades&pestana=origen" });
   });
 
   const alDia = {

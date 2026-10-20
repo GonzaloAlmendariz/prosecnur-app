@@ -37,7 +37,7 @@ export function FranjaDeLogos({ logoIds, images, fondo, acento, imagenesLocales,
       style={oscura ? { backgroundColor: acento } : undefined}
       role="img"
       aria-label={`Franja de logos sobre fondo ${oscura ? "oscuro" : "claro"}: ${nombres || "sin logos"}`}
-      data-qa-geometry-group="material-campo/catalogo/correos-franja"
+      data-qa-geometry-group="material-campo/correo/franja"
       data-qa-geometry-contract="intrinsic"
     >
       {logoIds.map((id, i) => {

@@ -1,7 +1,8 @@
 import type { PanelDeclarado } from "../../../lib/navegacion/paneles";
 
 /**
- * Inspector del editor de correos (Catálogo › Correos, ADR 0110 §2).
+ * Inspector del editor de correos (la campaña de correo abierta, ADR 0111 §3;
+ * antes Catálogo › Correos, ADR 0110 §2).
  *
  * «Bloque» es el inspector por defecto y no escribe `panel`; las otras
  * vistas del inspector son enlazables: `?panel=correo-identidad`,
@@ -26,19 +27,14 @@ export const PANEL_CORREO_REVISION: PanelDeclarado = {
   clase: "inspector",
 };
 
-/**
- * Campañas de correo (E1h): crear, duplicar, renombrar y borrar.
- * `?panel=correo-campanas`; la campaña abierta la dice `foco`.
- */
-export const PANEL_CORREO_CAMPANAS: PanelDeclarado = {
-  id: "correo-campanas",
-  label: "Campañas de correo",
-  clase: "dialogo",
-};
+// `?panel=correo-campanas` («Gestionar campañas», E1h) se retiró con el ADR 0111:
+// crear, duplicar, renombrar y borrar viven en la lista de campañas, y el
+// enlace viejo aterriza en ella con «Nueva campaña» abierto (campanas/redirecciones.ts).
 
 /**
- * Borrar una campaña, en dos pasos (el segundo pide escribir su nombre).
- * `?panel=correo-campana-borrar&foco=<campaign_id>` borra la del foco.
+ * Borrar una campaña de correo, en dos pasos (el segundo pide escribir su
+ * nombre). Sobre la lista, `?panel=correo-campana-borrar&foco=correo.<id>`; en
+ * la campaña abierta, `?campana=correo.<id>&panel=correo-campana-borrar`.
  */
 export const PANEL_CORREO_CAMPANA_BORRAR: PanelDeclarado = {
   id: "correo-campana-borrar",
@@ -73,7 +69,6 @@ export const PANELES_CORREOS = [
   PANEL_CORREO_DESTINATARIOS,
   PANEL_CORREO_REVISION,
   PANEL_CORREO_ENVIOS,
-  PANEL_CORREO_CAMPANAS,
   PANEL_CORREO_CAMPANA_BORRAR,
   PANEL_CORREO_IMPORTAR,
 ] as const;

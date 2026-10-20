@@ -5,11 +5,14 @@ padres:
 orden: 6
 documentacion: completa
 ruta_app: "/material-campo"
-verificado_contra: "3b8c131e"
+verificado_contra: "ecbb0613"
 tags:
   - Módulo
 fuentes:
   - "frontend/src/lib/modules.ts"
+  - "frontend/src/features/recopiladores/campanas/MaterialCampoShell.tsx"
+  - "frontend/src/features/recopiladores/campanas/ListaDeCampanas.tsx"
+  - "frontend/src/features/recopiladores/campanas/redirecciones.ts"
   - "frontend/src/features/recopiladores/RecopiladoresShell.tsx"
   - "frontend/src/features/recopiladores/navegacion.ts"
   - "frontend/src/features/recopiladores/PlanSection.tsx"
@@ -18,11 +21,21 @@ fuentes:
   - "frontend/src/features/recopiladores/DeliverySection.tsx"
   - "docs/adrs/0046-recopiladores-despliegue-recoleccion.md"
   - "docs/adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md"
+  - "docs/adrs/0111-material-de-campo-se-organiza-por-campanas-tipadas.md"
 ---
 
 # Material de campo
 
 > Produce lo que el equipo lleva a campo para cada unidad, impreso o digital, y lo entrega a Monitoreo con recibo trazable. Antes se llamaba Recopiladores (ADR 0108).
+
+## La lista de campañas (ADR 0111)
+
+`/material-campo` aterriza en la **lista de campañas**: una tarjeta por campaña con su tipo, nombre, estado y avance, y **Nueva campaña**, donde se elige el tipo. Un proyecto puede tener, a la vez, un [[Campo en aulas]] (uno solo) y varias campañas de [[Correo]]; `territorial` aparece deshabilitado con su motivo hasta E2. Al abrir una campaña sólo se ven sus secciones y el **modo es su tipo**: `?modo=aulas&campana=aulas.principal` o `?modo=correo&campana=correo.<id>`. `campana` es un parámetro de alcance, no una sexta dimensión.
+
+- La tarjeta de aulas dice cuántos titulares tienen enlace y el estado de los accesos; la de correo, su plataforma, sus envíos y qué envío ya salió («Invitación exportada 20/10 · Recordatorio 1 pendiente»).
+- La campaña de aulas no se borra: se **archiva** y se reabre desde «Archivadas». Un correo se duplica, renombra o borra desde su tarjeta o desde la cabecera de la campaña abierta.
+- Sin campañas, la lista muestra su vacío con **Nueva campaña** dentro de su caja.
+- Los enlaces viejos (`?seccion=unidades`, `?seccion=catalogo&pestana=correos&foco=…`) se leen y se reescriben a la campaña que corresponde, o a la lista.
 
 ## Propósito del módulo
 
@@ -82,8 +95,9 @@ Queda un plan versionado, un acceso por unidad cuando corresponde, materiales li
 
 ## Dirección
 
-Las cuatro secciones son enlazables bajo `/recopiladores?seccion=<sección>&pestana=<pestaña>`. Los enlaces antiguos de Fichas QR se leen por compatibilidad y la aplicación los reescribe a las direcciones canónicas.
+La lista es `/material-campo`; cada campaña, `/material-campo?modo=<tipo>&campana=<id>&seccion=<sección>&pestana=<pestaña>`. Los enlaces antiguos de Recopiladores, Fichas QR y Catálogo › Correos se leen por compatibilidad y la aplicación los reescribe a las direcciones canónicas.
 
 ## Ubicación en la jerarquía
 
 - Padre: [[Prosecnur]].
+- Modos: [[Campo en aulas]] · [[Correo]].

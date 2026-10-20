@@ -250,6 +250,22 @@ function direccionActual(): DireccionProsecnur | null {
 }
 
 /**
+ * La campaña abierta sigue al salto mientras siga siendo la misma vista de
+ * alcance: mismo módulo y un modo que sea su tipo (ADR 0111 §4). Ir del correo
+ * a `material-campo/aulas/...` no puede arrastrar `campana=correo.x`: la
+ * campaña mandaría y el salto volvería al correo.
+ */
+export function campanaQueSigue(
+  destino: DireccionProsecnur,
+  actual: DireccionProsecnur | null,
+): string | undefined {
+  const campana = actual?.campana;
+  if (!campana || actual?.modulo !== destino.modulo) return undefined;
+  if (destino.modo && !campana.startsWith(`${destino.modo}.`)) return undefined;
+  return campana;
+}
+
+/**
  * Instala el puente. Devuelve la función de limpieza.
  *
  * `navegar` viene del router para que `ir()` haga una navegación real de la
@@ -317,6 +333,7 @@ export function instalarPuenteNavegacion(navegar: NavegadorRuntime): () => void 
       navegar(
         serializarDireccion({
           ...direccion,
+          campana: direccion.campana ?? campanaQueSigue(direccion, actual),
           proyecto: direccion.proyecto ?? actual?.proyecto,
         }),
       );

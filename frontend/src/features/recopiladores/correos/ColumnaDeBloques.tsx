@@ -183,7 +183,7 @@ export function ColumnaDeBloques({
     <aside className="rec-mail-col rec-mail-col--bloques" aria-label="Plantillas y bloques del correo">
       <div className="rec-mail-col-grupo">
         <span className="xfk-over">Plantillas reales</span>
-        <ul className="rec-mail-presets" data-qa-geometry-group="material-campo/catalogo/correos-plantillas" data-qa-geometry-contract="equal">
+        <ul className="rec-mail-presets" data-qa-geometry-group="material-campo/correo/plantillas" data-qa-geometry-contract="equal">
           {presets.map((preset) => {
             const activo = template.preset_id === preset.preset_id;
             const origen = origenDePreset(preset.preset_id);
@@ -248,7 +248,7 @@ export function ColumnaDeBloques({
         <ul
           className="rec-mail-bloques"
           data-qa-geometry-capacity="owned"
-          data-qa-geometry-group="material-campo/catalogo/correos-bloques"
+          data-qa-geometry-group="material-campo/correo/bloques"
           data-qa-geometry-contract="intrinsic"
         >
           <Fila

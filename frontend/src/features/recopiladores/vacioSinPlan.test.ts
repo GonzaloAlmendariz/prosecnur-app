@@ -27,7 +27,7 @@ describe("vacío sin plan por sección", () => {
     expect(vacioSinPlan("unidades", origen).accion).toBe(origen);
     for (const seccion of ["accesos", "paquetes", "entrega"] as const) {
       const { accion } = vacioSinPlan(seccion, origen);
-      expect(accion.to, seccion).toBe("/material-campo?seccion=unidades");
+      expect(accion.to, seccion).toBe("/material-campo?modo=aulas&seccion=unidades");
       const destino = new URLSearchParams(accion.to.split("?")[1]);
       expect(resolverDireccion(destino.get("seccion"), destino.get("pestana")).seccion).toBe("unidades");
     }

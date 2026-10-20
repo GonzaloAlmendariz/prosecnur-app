@@ -6,22 +6,25 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `material-campo` · ruta `/material-campo` · 15 direcciones.
+Módulo `material-campo` · ruta `/material-campo` · 18 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `material-campo` | modulo | Material de campo | sí | 684e71b9 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
-| `material-campo/unidades` | seccion | Unidades | sí | f5cfbf38 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
-| `material-campo/unidades/lista` | pestana | Lista | sí | a4e54dda | sí | — |
-| `material-campo/unidades/origen` | pestana | Origen | sí | 9134f6f6 | sí | — |
-| `material-campo/accesos` | seccion | Accesos | sí | 5ceb64ec | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
-| `material-campo/accesos/canales` | pestana | Canales | sí | 2bd8040c | sí | — |
-| `material-campo/accesos/vinculacion` | pestana | Vinculación | sí | e3e1df04 | sí | — |
-| `material-campo/catalogo` | seccion | Catálogo | sí | 82e8ccff | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
-| `material-campo/catalogo/tipos` | pestana | Tipos | sí | f972a5a5 | sí | — |
-| `material-campo/catalogo/editor` | pestana | Editor | sí | b8532def | sí | — |
-| `material-campo/catalogo/correos` | pestana | Correos | sí | f6c7c543 | **no** | — |
-| `material-campo/paquetes` | seccion | Paquetes | sí | 1373a07c | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
-| `material-campo/paquetes/armado` | pestana | Armado | sí | 95e3831c | sí | — |
-| `material-campo/entrega` | seccion | Entrega | sí | 82f06bb5 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
-| `material-campo/entrega/traspaso` | pestana | Monitoreo | sí | af3c0246 | sí | — |
+| `material-campo` | modulo | Material de campo | sí | ecbb0613 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md), [0111-material-de-campo-se-organiza-por-campanas-tipadas](../../adrs/0111-material-de-campo-se-organiza-por-campanas-tipadas.md) |
+| `material-campo/aulas` | modo | Campo en aulas | sí | 5660c63d | sí | [0111-material-de-campo-se-organiza-por-campanas-tipadas](../../adrs/0111-material-de-campo-se-organiza-por-campanas-tipadas.md) |
+| `material-campo/aulas/unidades` | seccion | Unidades | sí | dff2966f | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
+| `material-campo/aulas/unidades/lista` | pestana | Lista | sí | 06387e59 | sí | — |
+| `material-campo/aulas/unidades/origen` | pestana | Origen | sí | fb61aed7 | sí | — |
+| `material-campo/aulas/accesos` | seccion | Accesos | sí | 89683421 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
+| `material-campo/aulas/accesos/canales` | pestana | Canales | sí | 41721990 | sí | — |
+| `material-campo/aulas/accesos/vinculacion` | pestana | Vinculación | sí | 81e6886c | sí | — |
+| `material-campo/aulas/catalogo` | seccion | Catálogo | sí | 4d202a19 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
+| `material-campo/aulas/catalogo/tipos` | pestana | Tipos | sí | f9b55cce | sí | — |
+| `material-campo/aulas/catalogo/editor` | pestana | Editor | sí | 689f6147 | sí | — |
+| `material-campo/aulas/paquetes` | seccion | Paquetes | sí | 02e62102 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
+| `material-campo/aulas/paquetes/armado` | pestana | Armado | sí | a18b8bbb | sí | — |
+| `material-campo/aulas/entrega` | seccion | Entrega | sí | 5ebd2f88 | sí | [0108-material-de-campo-catalogo-de-materiales-por-unidad](../../adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md) |
+| `material-campo/aulas/entrega/traspaso` | pestana | Monitoreo | sí | 480c039e | sí | — |
+| `material-campo/correo` | modo | Correo | sí | 37d517ca | sí | [0111-material-de-campo-se-organiza-por-campanas-tipadas](../../adrs/0111-material-de-campo-se-organiza-por-campanas-tipadas.md) |
+| `material-campo/correo/correo` | seccion | Correo | sí | b2331791 | sí | [0111-material-de-campo-se-organiza-por-campanas-tipadas](../../adrs/0111-material-de-campo-se-organiza-por-campanas-tipadas.md) |
+| `material-campo/correo/correo/editor` | pestana | Editor | sí | 97b69a1b | sí | — |

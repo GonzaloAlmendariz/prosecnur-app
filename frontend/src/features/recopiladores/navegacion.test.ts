@@ -2,11 +2,14 @@ import { describe, expect, test } from "vitest";
 import { PROSECNUR_MODULES } from "../../lib/modules";
 import {
   DIRECCION_INICIAL,
+  PESTANAS_DEL_CORREO_LEGADAS,
   PESTANAS_POR_SECCION,
   SECCIONES,
   esDireccionCanonica,
   resolverDireccion,
 } from "./navegacion";
+
+const modoAulas = PROSECNUR_MODULES.find((m) => m.slug === "material-campo")?.modos?.find((m) => m.id === "aulas");
 
 describe("direcciones de Material de campo", () => {
   test("aterriza en Unidades cuando la URL no dice nada", () => {
@@ -23,13 +26,14 @@ describe("direcciones de Material de campo", () => {
     expect(resolverDireccion("accesos", "vinculacion")).toEqual({ seccion: "accesos", pestana: "vinculacion" });
   });
 
-  test("Correos es una pestaña de Catálogo (ADR 0110 §2) y sus alias a mano llegan ahí", () => {
-    expect(resolverDireccion("catalogo", "correos")).toEqual({ seccion: "catalogo", pestana: "correos" });
-    expect(esDireccionCanonica("catalogo", "correos")).toBe(true);
-    expect(resolverDireccion(null, "mailchimp")).toEqual({ seccion: "catalogo", pestana: "correos" });
-    expect(resolverDireccion("catalogo", "correo")).toEqual({ seccion: "catalogo", pestana: "correos" });
-    const catalogo = PROSECNUR_MODULES.find((m) => m.slug === "material-campo")!.sections.find((s) => s.id === "catalogo");
-    expect(catalogo?.tabs?.map((t) => t.id)).toEqual(["tipos", "editor", "correos"]);
+  test("Correos ya no es pestaña de Catálogo: el correo es una campaña (ADR 0111 §3)", () => {
+    // La pestaña vieja ya no es canónica en el modo aulas; quien la lee para
+    // mandar a la campaña de correo es `campanas/redirecciones.ts`.
+    expect(esDireccionCanonica("catalogo", "correos")).toBe(false);
+    expect(resolverDireccion("catalogo", "correos")).toEqual({ seccion: "catalogo", pestana: "tipos" });
+    expect(PESTANAS_DEL_CORREO_LEGADAS).toEqual(["correos", "correo", "mailchimp"]);
+    const catalogo = modoAulas?.sections.find((s) => s.id === "catalogo");
+    expect(catalogo?.tabs?.map((t) => t.id)).toEqual(["tipos", "editor"]);
   });
 
   test("una sección sin pestaña cae en su primera pestaña", () => {
@@ -40,8 +44,8 @@ describe("direcciones de Material de campo", () => {
     expect(resolverDireccion("entrega")).toEqual({ seccion: "entrega", pestana: "traspaso" });
   });
 
-  // Tabla de redirecciones del ADR 0108 §5 (sin `modo=`: el módulo todavía no
-  // declara modos).
+  // Tabla de redirecciones del ADR 0108 §5. El `modo` y la campaña los pone la
+  // redirección de campañas (ADR 0111); aquí se resuelve sección y pestaña.
   test("lee las direcciones de Recopiladores como alias", () => {
     expect(resolverDireccion("plan-recoleccion")).toEqual({ seccion: "unidades", pestana: "lista" });
     expect(resolverDireccion("plan-recoleccion", "unidades")).toEqual({ seccion: "unidades", pestana: "lista" });
@@ -94,18 +98,25 @@ describe("direcciones de Material de campo", () => {
 describe("contrato con el manifiesto de módulos", () => {
   const modulo = PROSECNUR_MODULES.find((m) => m.slug === "material-campo");
 
-  test("el módulo declara exactamente las cinco secciones canónicas", () => {
+  test("el modo aulas declara exactamente las cinco secciones canónicas", () => {
     expect(modulo).toBeTruthy();
-    expect(modulo?.sections?.map((s) => s.id)).toEqual([...SECCIONES]);
-    // El modo entra cuando exista un segundo juego de secciones (ADR 0108 §5).
-    expect(modulo?.modos).toBeUndefined();
+    // ADR 0111 §3: el módulo aterriza en la lista y el modo es el tipo de la
+    // campaña abierta. `territorial` no se declara hasta E2.
+    expect(modulo?.sections.map((s) => s.id)).toEqual(["campanas"]);
+    expect(modulo?.modos?.map((m) => m.id)).toEqual(["aulas", "correo"]);
+    expect(modoAulas?.sections.map((s) => s.id)).toEqual([...SECCIONES]);
   });
 
-  test("cada sección del manifiesto declara las mismas pestañas que el resolvedor", () => {
+  test("cada sección del modo aulas declara las mismas pestañas que el resolvedor", () => {
     for (const seccion of SECCIONES) {
-      const declaradas = modulo?.sections?.find((s) => s.id === seccion)?.tabs?.map((t) => t.id) ?? [];
+      const declaradas = modoAulas?.sections.find((s) => s.id === seccion)?.tabs?.map((t) => t.id) ?? [];
       expect(declaradas).toEqual([...PESTANAS_POR_SECCION[seccion]]);
     }
+  });
+
+  test("el modo correo es una sección con su editor", () => {
+    const correo = modulo?.modos?.find((m) => m.id === "correo");
+    expect(correo?.sections.map((s) => [s.id, (s.tabs ?? []).map((t) => t.id)])).toEqual([["correo", ["editor"]]]);
   });
 
   test("el módulo se llama Material de campo", () => {
@@ -115,7 +126,8 @@ describe("contrato con el manifiesto de módulos", () => {
   });
 
   test("ninguna dirección publicada del módulo usa la ruta vieja", () => {
-    const hrefs = (modulo?.sections ?? []).flatMap((s) => [s.to, ...(s.tabs ?? []).map((t) => t.to)]);
+    const secciones = [...(modulo?.sections ?? []), ...(modulo?.modos ?? []).flatMap((m) => m.sections)];
+    const hrefs = secciones.flatMap((s) => [s.to, ...(s.tabs ?? []).map((t) => t.to)]);
     for (const href of hrefs) expect(href.startsWith("/material-campo")).toBe(true);
   });
 });
@@ -129,10 +141,10 @@ describe("Unidades › Origen (E1e)", () => {
   });
 
   test("el manifiesto la publica con su dirección", () => {
-    const unidades = PROSECNUR_MODULES.find((m) => m.slug === "material-campo")!.sections.find((s) => s.id === "unidades");
+    const unidades = modoAulas?.sections.find((s) => s.id === "unidades");
     const origen = unidades?.tabs?.find((t) => t.id === "origen");
     expect(origen?.label).toBe("Origen");
-    expect(origen?.to).toBe("/material-campo?seccion=unidades&pestana=origen");
+    expect(origen?.to).toBe("/material-campo?modo=aulas&seccion=unidades&pestana=origen");
     expect(origen?.layoutPolicy).toBe("viewport");
   });
 

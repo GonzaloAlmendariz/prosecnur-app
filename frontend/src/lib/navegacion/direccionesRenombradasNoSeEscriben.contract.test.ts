@@ -35,6 +35,21 @@ const VIEJAS: readonly Vieja[] = [
     patron: /hojas-ruta\?(?:.*&)?seccion=entrega(?:&|$)/,
     lectores: [],
   },
+  // ADR 0111: el correo dejó de ser Catálogo › Correos y es una campaña propia
+  // (`?modo=correo&campana=correo.<id>&seccion=correo&pestana=editor`). El
+  // enlace viejo lo lee `campanas/redirecciones.ts` por sus palabras, no por
+  // esta URL.
+  {
+    marcador: "pestana=correos",
+    patron: /(?:^|[?&])pestana=correos(?:&|$)/,
+    lectores: [],
+  },
+  // Una sección del modo aulas sin `modo=`: sólo la lee la redirección.
+  {
+    marcador: "/material-campo?seccion=",
+    patron: /^\/material-campo\?seccion=/,
+    lectores: [],
+  },
 ];
 
 function escritoresDe({ marcador, patron, lectores }: Vieja): string[] {

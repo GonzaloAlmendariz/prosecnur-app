@@ -31,7 +31,7 @@ export function GuiaDelEditor() {
     <p className="rec-guia" role="note">
       <MousePointer2 size={15} aria-hidden />
       <span>
-        <b>Haz clic en cualquier texto del correo para editarlo.</b> El «+» entre bloques inserta uno; la manija los mueve.
+        <b>Haz clic en un texto para editarlo.</b> El «+» inserta un bloque; la manija lo mueve.
       </span>
       <button type="button" className="rec-guia-cerrar" onClick={cerrar}>
         <X size={13} aria-hidden /> Entendido

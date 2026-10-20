@@ -1,4 +1,7 @@
 import fs from "node:fs";
+import { normalizarRegistroDeCampanas } from "../api/materialCampanas";
+import { REGISTRO_CRUDO, REGISTRO_VACIO_CRUDO } from "../api/materialCampanas.fixture";
+import { listoDeLaLista } from "../features/recopiladores/campanas/ListaDeCampanas";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
@@ -497,9 +500,10 @@ describe("audit-ready route root contract", () => {
   });
 
   test("Material de campo delegates its exact directional readiness to the shell", () => {
+    // ADR 0111: la ruta monta el despachador de campañas, que elige la vista.
     pageFunctionRoot(
       "features/recopiladores/RecopiladoresPage.tsx",
-      "RecopiladoresShell",
+      "MaterialCampoShell",
     );
     const { tag } = pageFunctionRoot(
       "features/recopiladores/RecopiladoresShell.tsx",
@@ -520,6 +524,33 @@ describe("audit-ready route root contract", () => {
     expect(compactExpression(value), "Recopiladores exact directional readiness and polarity").toBe(
       "loading||seccionCargando?false:`material-campo/${direction.seccion}/${direction.pestana}`",
     );
+  });
+
+  test("la lista de campañas y el correo abierto publican su propia readiness (ADR 0111)", () => {
+    const lista = pageFunctionRoot(
+      "features/recopiladores/campanas/ListaDeCampanas.tsx",
+      "PageFrame",
+      "ListaDeCampanas",
+    );
+    expect(literalClassNames(lista.tag)).toContain("rec-page");
+    expect(compactExpression(readinessValue(lista.tag, "auditReady", "Campañas"))).toBe(
+      "listoDeLaLista(registro,carga)",
+    );
+    const correo = pageFunctionRoot(
+      "features/recopiladores/campanas/CampanaCorreoShell.tsx",
+      "PageFrame",
+      "CampanaCorreoShell",
+    );
+    expect(compactExpression(readinessValue(correo.tag, "auditReady", "Correo"))).toBe(
+      'cargando?false:"material-campo/correo/editor"',
+    );
+  });
+
+  test("la lista publica `material-campo/campanas` y su vacío como vacío", () => {
+    expect(listoDeLaLista(null, "cargando")).toBe(false);
+    expect(listoDeLaLista(normalizarRegistroDeCampanas(REGISTRO_CRUDO), "lista")).toBe("material-campo/campanas");
+    expect(listoDeLaLista(normalizarRegistroDeCampanas(REGISTRO_VACIO_CRUDO), "lista")).toBe("vacio:sin-campanas");
+    expect(listoDeLaLista(null, "error")).toBe("vacio:error-campanas");
   });
 
 });

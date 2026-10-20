@@ -1,0 +1,92 @@
+/* Pestañas del inspector del correo (Bloque · Envíos · Identidad · Personas ·
+   Revisión). Se leen como secciones de un inspector, no como un segmentado de
+   formulario: ícono sobre el rótulo, las cinco se reparten el ancho y la activa
+   lleva el tono del módulo con una línea de acento abajo. El indicador es el
+   compartido de GlidingTabList, ajustado con sus variables; no hay bandeja
+   gris. Sólo tokens; la transición la apaga reduced-motion (theme.css). */
+
+.rec-mail-col--inspector .rec-mail-tabs.rec-mail-tabs--secciones {
+  --pulso-gliding-indicator-bg: var(--pulso-module-fieldkit-soft);
+  --pulso-gliding-indicator-border: transparent;
+  --pulso-gliding-indicator-shadow: inset 0 -2px 0 var(--pulso-module-fieldkit);
+  --pulso-gliding-active-color: var(--pulso-module-fieldkit);
+  align-self: stretch;
+  background: transparent;
+  border-bottom: 1px solid var(--pulso-border);
+  border-radius: 0;
+  display: grid;
+  gap: 2px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 8px 12px 0;
+  max-width: none;
+  overflow: visible;
+  padding: 0 0 6px;
+}
+
+.rec-mail-col--inspector .rec-mail-tabs--secciones .rec-mail-tab {
+  align-items: center;
+  border: 0;
+  border-radius: 8px 8px 4px 4px;
+  color: var(--pulso-text-soft);
+  display: flex;
+  flex-direction: column;
+  font-size: 11.5px;
+  gap: 3px;
+  height: auto;
+  justify-content: center;
+  min-height: 46px;
+  min-width: 0;
+  padding: 6px 2px 5px;
+  position: relative;
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.rec-mail-col--inspector .rec-mail-tabs--secciones .rec-mail-tab:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.rec-mail-col--inspector .rec-mail-tabs--secciones .rec-mail-tab[aria-selected="true"] {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-mail-col--inspector .rec-mail-tabs--secciones .rec-mail-tab:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: -2px;
+}
+
+.rec-mail-tab-icono {
+  flex: none;
+}
+
+.rec-mail-tab-rotulo {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Lo que falta corregir: una insignia pequeña en tono de advertencia, sobre el
+   ícono, sólo cuando hay pendientes. */
+.rec-mail-col--inspector .rec-mail-tabs--secciones .rec-mail-tab-cuenta {
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 999px;
+  color: var(--pulso-warn-fg);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  left: calc(50% + 5px);
+  line-height: 14px;
+  min-width: 16px;
+  padding: 0 4px;
+  position: absolute;
+  top: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-mail-col--inspector .rec-mail-tabs--secciones .rec-mail-tab {
+    transition: none;
+  }
+}

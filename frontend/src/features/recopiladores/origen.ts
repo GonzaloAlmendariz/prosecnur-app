@@ -15,8 +15,8 @@ import type {
 } from "../../api/recopiladores";
 import { fechaDeCorrida } from "./fechaDeCorrida";
 
-export const DIRECCION_ORIGEN = "/material-campo?seccion=unidades&pestana=origen";
-export const DIRECCION_LISTA = "/material-campo?seccion=unidades&pestana=lista";
+export const DIRECCION_ORIGEN = "/material-campo?modo=aulas&seccion=unidades&pestana=origen";
+export const DIRECCION_LISTA = "/material-campo?modo=aulas&seccion=unidades&pestana=lista";
 /** La selección de cursos-horario, donde se decide qué entra a campo. */
 export const DIRECCION_SELECCION_CALC = "/calc-muestra?modo=opinion-universitaria&seccion=aulas";
 /** Entrega › Pase a Monitoreo: el lado de Cálculo que lee este módulo. */

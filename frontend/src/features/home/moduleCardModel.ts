@@ -1,5 +1,6 @@
 import type { DisenoEstudioSourceState, ProjectOverview } from "../../api/client";
 import type { ProsecnurModuleMeta } from "../../lib/modules";
+import { resumenDelInicio } from "../recopiladores/campanas/resumenDelInicio";
 
 export type ModuleStatusState = DisenoEstudioSourceState;
 
@@ -588,6 +589,21 @@ export function buildModuleCardView(
       // Un backend viejo publicaba este bloque como `recopiladores`;
       // `normalizeProjectOverview` ya lo movió a su clave vigente.
       const collectors = facts["material-campo"];
+      // ADR 0111 §9: con campañas, la tarjeta resume cada una con su avance.
+      const porCampana = resumenDelInicio(collectors.campaigns);
+      if (porCampana) {
+        const estado: ModuleStatusState = nodeState === "warning" ? "warning" : porCampana.estado;
+        return {
+          state: estado,
+          statusLabel: estado === "warning" ? "Requiere atención" : porCampana.statusLabel,
+          viz: porCampana.viz,
+          sub: porCampana.sub,
+          facts: porCampana.facts,
+          action: moduleAction(module, estado === "warning" ? "Revisar material de campo" : "Abrir material de campo"),
+          alert: nodeAlert,
+          summary,
+        };
+      }
       const total = Math.max(0, collectors.titulares);
       const current = Math.max(0, collectors.with_link);
       const planDeAulas = facts.calc.mode === "aulas";

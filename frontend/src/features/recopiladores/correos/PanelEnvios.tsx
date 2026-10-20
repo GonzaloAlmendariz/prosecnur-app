@@ -7,7 +7,7 @@
 // envío exporta lo guardado: si hay cambios, se guardan antes.
 //
 // Contrato de Superficie:
-// - C1: `material-campo/catalogo/correos-envios`, contrato equal; cada envío
+// - C1: `material-campo/correo/envios`, contrato equal; cada envío
 //   es una fila miembro (su rótulo, su fecha y a quién va).
 // - C2: de 1 a 6 filas de la misma altura; el detalle del elegido va debajo,
 //   fuera del grupo. C4: el dueño de scroll es el inspector.
@@ -77,7 +77,7 @@ export function PanelEnvios({
 
       <ul
         className="rec-env-filas"
-        data-qa-geometry-group="material-campo/catalogo/correos-envios"
+        data-qa-geometry-group="material-campo/correo/envios"
         data-qa-geometry-contract="equal"
         aria-label="Envíos"
       >
@@ -137,7 +137,7 @@ export function PanelEnvios({
       <section
         className="rec-env-detalle"
         aria-labelledby={`${ids}-titulo`}
-        data-qa-geometry-group="material-campo/catalogo/correos-envio-detalle"
+        data-qa-geometry-group="material-campo/correo/envio-detalle"
         data-qa-geometry-contract="intrinsic"
       >
         <h4 id={`${ids}-titulo`} className="rec-env-detalle-titulo">{activo.label}</h4>

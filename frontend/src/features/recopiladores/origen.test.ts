@@ -260,7 +260,7 @@ describe("el aviso de Unidades › Lista", () => {
   it("otro sorteo: lo dice con su fecha y manda a Origen", () => {
     expect(avisoDeLaLista({ selection_run_id: "sel_aulas_20260821160928_bf", desfasado: true }, null)).toEqual({
       texto: "La selección vigente es de otro sorteo (del 21 ago 2026, 16:09).",
-      enlace: { label: "Ver qué cambió", to: "/material-campo?seccion=unidades&pestana=origen" },
+      enlace: { label: "Ver qué cambió", to: "/material-campo?modo=aulas&seccion=unidades&pestana=origen" },
     });
   });
 

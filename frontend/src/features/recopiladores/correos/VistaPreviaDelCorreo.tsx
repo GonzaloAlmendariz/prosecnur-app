@@ -30,6 +30,8 @@ type Props = {
   error: string;
   /** La capa de edición (E1g): se pinta dentro de la hoja, sobre el iframe. */
   capa?: (medidas: MedidasDeLaHoja) => ReactNode;
+  /** Lo que va arriba del correo, en el flujo del lienzo (la guía de la primera visita): reserva su alto y no tapa la hoja. */
+  encabezado?: ReactNode;
 };
 
 /** El modo oscuro con los colores del sistema visual, no con unos propios. */
@@ -51,7 +53,7 @@ function paletaOscura(): PaletaOscura | undefined {
  * no del iframe— y marcar el bloque elegido. Sin `allow-popups`, los enlaces
  * del correo no abren ventanas.
  */
-export function VistaPreviaDelCorreo({ html, template, vista, cargando, error, capa }: Props) {
+export function VistaPreviaDelCorreo({ html, template, vista, cargando, error, capa, encabezado = null }: Props) {
   const marco = useRef<HTMLIFrameElement | null>(null);
   const lienzo = useRef<HTMLElement | null>(null);
   const medirLienzo = useRef<() => void>(() => {});
@@ -116,6 +118,7 @@ export function VistaPreviaDelCorreo({ html, template, vista, cargando, error, c
       aria-busy={cargando}
       data-qa-geometry-capacity="owned"
     >
+      {encabezado}
       {error ? (
         <p className="rec-mail-lienzo-aviso" role="status">
           <AlertTriangle size={14} aria-hidden /> {error}
@@ -152,7 +155,7 @@ export function VistaPreviaDelCorreo({ html, template, vista, cargando, error, c
 }
 
 /** La vista previa lee del store por su cuenta: re-renderiza sola al llegar el HTML. */
-export function VistaPreviaDelCorreoConectada({ capa }: { capa?: (medidas: MedidasDeLaHoja) => ReactNode }) {
+export function VistaPreviaDelCorreoConectada({ capa, encabezado }: { capa?: (medidas: MedidasDeLaHoja) => ReactNode; encabezado?: ReactNode }) {
   const html = useCorreosStore((s) => s.vistaPrevia?.html ?? null);
   const template = useCorreosStore((s) => s.borrador);
   const vista = useCorreosStore((s) => s.vista);
@@ -171,6 +174,7 @@ export function VistaPreviaDelCorreoConectada({ capa }: { capa?: (medidas: Medid
           : error
         : ""}
       capa={capa}
+      encabezado={encabezado}
     />
   );
 }

@@ -32,6 +32,9 @@ const ARREGLO: Readonly<Record<string, string>> = {
   sm_destination_mismatch: "Di a dónde lleva el enlace antes de darle [SurveyLink].",
   send_dates: "Pon cada recordatorio después del envío anterior, en Envíos.",
   reminder_audience: "Elige a quién va el recordatorio en Envíos.",
+  greeting_trato: "En el saludo, elige la columna de sexo de la lista en «Saludo según la persona».",
+  greeting_trato_word: "Escribe en el saludo la palabra de respaldo, o cámbiala en «Saludo según la persona».",
+  sm_trato_blank: "Importa contactos_surveymonkey.csv en el recopilador: trae el saludo ya escrito.",
 };
 
 export function comoArreglar(code: string): string | null {

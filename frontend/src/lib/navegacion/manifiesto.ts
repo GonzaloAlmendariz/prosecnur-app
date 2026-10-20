@@ -29,6 +29,7 @@ import { PANELES_CARGA } from "../../features/carga/panelesCarga";
 import { PANELES_ANALITICA } from "../../features/analitica/panelesAnalitica";
 import { PANELES_CORREOS } from "../../features/recopiladores/correos/panelesCorreos";
 import { PANEL_REHACER_PLAN } from "../../features/recopiladores/resembrado";
+import { PANELES_CAMPANAS } from "../../features/recopiladores/campanas/panelesCampanas";
 import { PANEL_EDITOR_BLOQUE } from "../../features/recopiladores/editor/panelesEditor";
 import { PANEL_CAMPANA_COMPLEMENTARIA } from "../../features/xlsformEditor/shell/campanaComplementariaModel";
 import { PANEL_LISTAS_OPCIONES } from "../../features/xlsformEditor/listas/panelListas";
@@ -209,11 +210,13 @@ export const PANELES_POR_MODULO: Readonly<
     PANEL_LOGICA_SURVEYMONKEY,
   ],
   procesamiento: [...PANELES_GRAFICOS, ...PANELES_CARGA, ...PANELES_ANALITICA],
-  // Catálogo › Correos: el inspector del correo (ADR 0110 §2) y las campañas
-  // (E1h): `?panel=correo-campanas` y `?panel=correo-campana-borrar&foco=<campaña>`.
-  // Unidades: `?seccion=unidades&panel=rehacer-plan` confirma rehacer el plan (H26).
-  // Catálogo › Editor: el inspector del bloque, siempre abierto; lo elige `foco` (E1b).
-  "material-campo": [...PANELES_CORREOS, PANEL_REHACER_PLAN, PANEL_EDITOR_BLOQUE],
+  // Lista de campañas (ADR 0111): `?panel=nueva-campana` y
+  // `?panel=campana-renombrar&foco=<campaña>`; borrar un correo es
+  // `?panel=correo-campana-borrar`. La campaña de correo abierta: el inspector
+  // del correo y sus paneles (ADR 0110 §2).
+  // Aulas › Unidades: `?panel=rehacer-plan` confirma rehacer el plan (H26).
+  // Aulas › Catálogo › Editor: el inspector del bloque, siempre abierto; lo elige `foco` (E1b).
+  "material-campo": [...PANELES_CAMPANAS, ...PANELES_CORREOS, PANEL_REHACER_PLAN, PANEL_EDITOR_BLOQUE],
 };
 
 export function nodosDe(modulo: ProsecnurModuleSlug): NodoNavegacion[] {

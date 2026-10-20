@@ -70,7 +70,27 @@ export type MailBlockType = (typeof MAIL_BLOCK_TYPES)[number];
 export type MailAlign = "left" | "justify" | "center";
 export type MailCalloutVariant = "box" | "bar" | "tinte";
 
-export type MailGreetingBlock = { block_id: string; type: "greeting"; text: string; fallback?: string };
+/**
+ * El saludo según la persona (ADR 0110 §«Saludo por sexo», C8). La palabra que
+ * cambia es `respaldo` (su primera aparición en el texto del saludo): con
+ * `por_sexo` y `columna`, cada persona recibe `masculino` o `femenino` según
+ * esa columna de la lista; sin dato o sin columna, `respaldo`. Al `.pulso` sólo
+ * entra el NOMBRE de la columna.
+ */
+export const MAIL_TRATO_MODOS = ["fijo", "por_sexo"] as const;
+export type MailTratoModo = (typeof MAIL_TRATO_MODOS)[number];
+export type MailTrato = {
+  modo: MailTratoModo;
+  columna?: string;
+  masculino: string;
+  femenino: string;
+  respaldo: string;
+  /** SurveyMonkey: `CustomDataN`; sin él, el backend usa el primero libre. */
+  sm?: string;
+};
+export const MAIL_TRATO_PALABRAS = { masculino: "Estimado", femenino: "Estimada", respaldo: "Estimado(a)" } as const;
+
+export type MailGreetingBlock = { block_id: string; type: "greeting"; text: string; fallback?: string; trato?: MailTrato };
 export type MailHeadingBlock = {
   block_id: string;
   type: "heading";
@@ -284,6 +304,8 @@ export type MailRecipientView = {
   index: number | null;
   nombre: string;
   fields: Record<string, string>;
+  /** La palabra del saludo de esta persona (C8), si el saludo es por sexo. */
+  trato?: string;
 };
 
 export type MailPreview = {
@@ -329,6 +351,10 @@ export const MAIL_CHECK_CODES = [
   "send_dates",
   "reminder_audience",
   "sm_link_field_empty",
+  // Saludo por sexo (C8).
+  "greeting_trato",
+  "greeting_trato_word",
+  "sm_trato_blank",
 ] as const;
 export type MailCheckCode = (typeof MAIL_CHECK_CODES)[number];
 
@@ -387,6 +413,12 @@ export type MailExportPayload = {
   zip: MailArtifact | null;
   review: { ready: boolean; errors: number; warnings: number } | null;
   manifest: Record<string, unknown> | null;
+  /**
+   * Lo que el backend registró de esta exportación (ADR 0111 §8): el envío,
+   * cuándo y por qué plataforma. Ausente en la campaña virtual o en un backend
+   * anterior al registro.
+   */
+  export_recorded?: { send_id: string; last_export_at: string; last_export_platform: MailPlatform } | null;
 };
 
 export type MailNameFormat = "apellidos_coma_nombres" | "nombre";
@@ -415,7 +447,23 @@ export type MailRecipientsCounts = {
 
 export type MailRecipientsEncoding = "utf-8" | "windows-1252" | "utf-16";
 
-export type MailRecipientSample = { index: number; nombre: string; fields: Record<string, string> };
+export type MailRecipientSample = { index: number; nombre: string; fields: Record<string, string>; trato?: string };
+
+/** Cómo se leyó «M» en la columna de sexo (se decide con todos sus valores). */
+export const MAIL_TRATO_LECTURAS = ["m_f", "h_m", "m_ambigua", "sin_m"] as const;
+export type MailTratoLectura = (typeof MAIL_TRATO_LECTURAS)[number];
+
+/** El saludo por sexo resuelto contra la lista cargada (sin valores de nadie). */
+export type MailRecipientsTrato = {
+  block_id: string;
+  columna: string | null;
+  presente: boolean;
+  lectura: MailTratoLectura | null;
+  counts: { efectivos: number; masculino: number; femenino: number; sin_dato: number; no_reconocido: number } | null;
+  /** Hasta 10 valores distintos que no se reconocieron. */
+  no_reconocidos: string[];
+  palabras: { masculino: string; femenino: string; respaldo: string } | null;
+};
 
 export type MailRecipients = {
   loaded: boolean;
@@ -428,6 +476,8 @@ export type MailRecipients = {
   mapping: MailRecipientsMapping | null;
   counts: MailRecipientsCounts | null;
   sample: MailRecipientSample[];
+  /** Ausente si el saludo no es por sexo con columna, o en un backend anterior. */
+  trato?: MailRecipientsTrato | null;
 };
 
 export type MailProblem = { path: string; code: string; detail: string };
@@ -587,6 +637,25 @@ function oneOf<T extends string>(value: unknown, options: readonly T[]): T | und
   return (options as readonly string[]).includes(text) ? (text as T) : undefined;
 }
 
+/** El trato de un saludo, con sus palabras por defecto; `undefined` si no hay. */
+export function normalizeMailTrato(value: unknown): MailTrato | undefined {
+  if (!isRecord(value)) return undefined;
+  const palabra = (k: keyof typeof MAIL_TRATO_PALABRAS) => {
+    const v = str(value[k]);
+    return v.trim() ? v : MAIL_TRATO_PALABRAS[k];
+  };
+  const columna = str(value.columna).trim();
+  const sm = str(value.sm).trim();
+  return {
+    modo: oneOf(value.modo, MAIL_TRATO_MODOS) ?? "por_sexo",
+    ...(columna ? { columna } : {}),
+    masculino: palabra("masculino"),
+    femenino: palabra("femenino"),
+    respaldo: palabra("respaldo"),
+    ...(sm ? { sm } : {}),
+  };
+}
+
 export function normalizeMailBlock(value: unknown): MailBlock | null {
   if (!isRecord(value)) return null;
   const block_id = str(value.block_id);
@@ -599,8 +668,14 @@ export function normalizeMailBlock(value: unknown): MailBlock | null {
     return original ? { block_id, type: MAIL_OPAQUE_BLOCK, original_type: original, raw: { ...value } } : null;
   }
   switch (type) {
-    case "greeting":
-      return { block_id, type, text: str(value.text), ...(optStr(value.fallback) !== undefined ? { fallback: str(value.fallback) } : {}) };
+    case "greeting": {
+      const trato = normalizeMailTrato(value.trato);
+      return {
+        block_id, type, text: str(value.text),
+        ...(optStr(value.fallback) !== undefined ? { fallback: str(value.fallback) } : {}),
+        ...(trato ? { trato } : {}),
+      };
+    }
     case "heading": {
       const level = oneOf(value.level, ["titulo", "subtitulo"] as const);
       const align = oneOf(value.align, ["left", "center"] as const);
@@ -1030,6 +1105,7 @@ export function normalizeMailPreview(value: unknown): MailPreview {
       index,
       nombre: str(recipient.nombre),
       fields: stringMap(recipient.fields),
+      ...(optStr(recipient.trato) ? { trato: str(recipient.trato) } : {}),
     },
   };
 }
@@ -1133,7 +1209,16 @@ export function normalizeMailExport(value: unknown): MailExportPayload {
     zip,
     review,
     manifest: isRecord(value.manifest) ? value.manifest : null,
+    export_recorded: normalizeExportRecorded(value.export_recorded),
   };
+}
+
+function normalizeExportRecorded(value: unknown): MailExportPayload["export_recorded"] {
+  if (!isRecord(value)) return null;
+  const sendId = str(value.send_id).trim();
+  const at = str(value.last_export_at).trim();
+  if (!sendId || !at) return null;
+  return { send_id: sendId, last_export_at: at, last_export_platform: normalizeMailPlatform(value.last_export_platform) };
 }
 
 function normalizeMapping(value: unknown): MailRecipientsMapping | null {
@@ -1176,10 +1261,12 @@ export function normalizeMailRecipients(value: unknown): MailRecipients {
       if (EMAIL_EN_TEXTO.test(text)) delete fields[key];
     }
     const nombre = str(raw.nombre);
+    const trato = optStr(raw.trato);
     sample.push({
       index: Math.max(1, int(raw.index, sample.length + 1)),
       nombre: EMAIL_EN_TEXTO.test(nombre) ? "" : nombre,
       fields,
+      ...(trato ? { trato } : {}),
     });
   }
   return {
@@ -1192,6 +1279,30 @@ export function normalizeMailRecipients(value: unknown): MailRecipients {
     mapping: loaded ? normalizeMapping(value.mapping) : null,
     counts: loaded ? normalizeCounts(value.counts) : null,
     sample,
+    trato: loaded ? normalizeRecipientsTrato(value.trato) : null,
+  };
+}
+
+export function normalizeRecipientsTrato(value: unknown): MailRecipientsTrato | null {
+  if (!isRecord(value)) return null;
+  const c = isRecord(value.counts) ? value.counts : null;
+  const p = isRecord(value.palabras) ? value.palabras : null;
+  return {
+    block_id: str(value.block_id),
+    columna: strOrNull(value.columna),
+    presente: bool(value.presente),
+    lectura: oneOf(value.lectura, MAIL_TRATO_LECTURAS) ?? null,
+    counts: c
+      ? {
+        efectivos: Math.max(0, int(c.efectivos, 0)),
+        masculino: Math.max(0, int(c.masculino, 0)),
+        femenino: Math.max(0, int(c.femenino, 0)),
+        sin_dato: Math.max(0, int(c.sin_dato, 0)),
+        no_reconocido: Math.max(0, int(c.no_reconocido, 0)),
+      }
+      : null,
+    no_reconocidos: strings(value.no_reconocidos).slice(0, 10),
+    palabras: p ? { masculino: str(p.masculino), femenino: str(p.femenino), respaldo: str(p.respaldo) } : null,
   };
 }
 

@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import { conNivel } from "../../../lib/navegacion/direccion";
+import { conCampana, conNivel } from "../../../lib/navegacion/direccion";
 import { useDireccion } from "../../../lib/navegacion/useDireccion";
-import { focoDeSeleccion, parseFocoCorreo, seleccionDelFoco } from "./modeloCampanas";
+import { focoCombinado, focoDeSeleccion, parseFocoCorreo, partirFocoCombinado, seleccionDelFoco } from "./modeloCampanas";
 import { useCorreosStore } from "./store";
 
 export type CambioDeDireccion = { foco?: string | null; panel?: string | null };
 
 /**
- * La campaña y el bloque que se miran los dice la dirección (§6 del contrato):
- * `?foco=<campaign_id>` o `?foco=<campaign_id>~<block_id>`.
+ * La campaña y el bloque que se miran los dice la dirección (ADR 0111 §4):
+ * `?campana=correo.<campaign_id>&foco=<block_id>`. Por dentro se trabaja con la
+ * forma combinada de antes (`<campaign_id>~<block_id>`): `focoCombinado` la
+ * arma al leer y `ir` la parte al escribir, así el resto del hook no cambió.
  *
  * - Un foco vacío o que ya no resuelve se reescribe con `replace` a la
  *   primera campaña; sin campañas, se borra.
@@ -31,14 +33,19 @@ export function useCampanaDelFoco() {
   const carga = useCorreosStore((s) => s.carga);
   const seleccion = useCorreosStore((s) => s.seleccion);
   const borrador = useCorreosStore((s) => s.borrador);
-  const focoCrudo = direccion?.foco ?? "";
+  const focoCrudo = focoCombinado(direccion?.campana, direccion?.foco);
   const foco = useMemo(() => parseFocoCorreo(focoCrudo, campanas), [focoCrudo, campanas]);
   /** Último foco que este hook dejó en la URL (o que adoptó de ella). */
   const ultimo = useRef<string | null>(null);
 
   const ir = useCallback((cambio: CambioDeDireccion, replace = true) => {
     let search = location.search;
-    if ("foco" in cambio) search = conNivel(search, "foco", cambio.foco ?? null);
+    if ("foco" in cambio) {
+      // La campaña es alcance (`campana`); el bloque, el foco.
+      const { campana, bloque } = partirFocoCombinado(cambio.foco ?? null);
+      search = conCampana(search, campana);
+      search = conNivel(search, "foco", bloque);
+    }
     if ("panel" in cambio) search = conNivel(search, "panel", cambio.panel ?? null);
     if (search === location.search) return;
     navigate({ pathname: location.pathname, search }, { replace });
