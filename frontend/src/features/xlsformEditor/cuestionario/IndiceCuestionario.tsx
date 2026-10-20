@@ -45,7 +45,7 @@ export function IndiceCuestionario({ secciones, actual, onSeccion, onPregunta }:
           value={consulta}
           onChange={(e) => setConsulta(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Escape" && consulta) { e.stopPropagation(); setConsulta(""); } }}
-          placeholder="Buscar sección, pregunta o código"
+          placeholder="Buscar"
           aria-label="Buscar en el cuestionario"
         />
         {consulta && (
