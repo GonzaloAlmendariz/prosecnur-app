@@ -18,7 +18,7 @@ const TIPO: Record<TipoRegla, { titulo: string; d: string }> = {
   opciones: { titulo: "Opciones visibles", d: "M3 5h18l-7 8v6l-4 2v-8z" },
 };
 
-function IconoRegla({ tipo }: { tipo: TipoRegla }) {
+export function IconoRegla({ tipo }: { tipo: TipoRegla }) {
   return (
     <span className={`xfl-regla xfl-regla--${tipo}`} title={TIPO[tipo].titulo}>
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d={TIPO[tipo].d} /></svg>

@@ -54,6 +54,8 @@ import "../styles/xfGraph";
 import { splitLogicalGroups, splitTopLevelLogical, stripOuterParens, summarizeSameVariableOptions, nameToRef, humanizeRelevantWithLabels } from "./logicaTexto";
 import type { LabelLookup, VarTitleLookup } from "./logicaTexto";
 import { alcanceDelMapa, lecturaDelMapa } from "./lecturaMapa";
+import { useFormaLogica } from "./formaLogica";
+import { VistaListaLogica } from "./VistaListaLogica";
 
 export type LogicCanvasProps = {
   open: boolean;
@@ -92,6 +94,9 @@ export function LogicCanvas({
   acciones,
 }: LogicCanvasProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  // Mapa o Lista (`?forma=lista`): sólo embebido en la pestaña Lógica. El overlay de Carga es siempre mapa.
+  const [formaPedida, setForma] = useFormaLogica();
+  const forma = embebido ? formaPedida : "mapa";
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -913,7 +918,7 @@ export function LogicCanvas({
         </div>
       </header>
 
-      <div className={`pulso-graph-body ${selectedEdgeIdx !== null ? "has-edge-panel" : ""}`}>
+      <div className={`pulso-graph-body ${selectedEdgeIdx !== null ? "has-edge-panel" : ""}${forma === "lista" ? " is-lista" : ""}`}>
         {/* Toolbar flotante estilo Obsidian Canvas: auto-layout, filtro
             de tipos de edge, snap, zoom. Vive sobre el lienzo, fija al
             top-center. Las acciones que rara vez se usan (expandir/
@@ -929,10 +934,21 @@ export function LogicCanvas({
           onToggleSnap={() => setSnapToGrid((s) => !s)}
           canUndoDrag={positionHistory.length > 0}
           onUndoDrag={undoLastDrag}
+          forma={forma}
+          onForma={embebido ? setForma : undefined}
         />
+        {forma === "lista" ? (
+          <VistaListaLogica
+            structure={structure}
+            scope={alcance}
+            seleccionada={selectedNode?.rowIndex ?? null}
+            onElegir={(fila) => setSelectedId(`q:${fila}`)}
+          />
+        ) : null}
 
         <svg
           ref={svgRef}
+          tabIndex={-1}
           className="pulso-graph-svg"
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}

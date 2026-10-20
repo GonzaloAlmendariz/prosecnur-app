@@ -31,6 +31,8 @@
 // =============================================================================
 
 import { Magnet, RotateCcw, Undo2 } from "lucide-react";
+import { Segmented } from "../kit";
+import type { FormaLogica } from "./formaLogica";
 
 export type CanvasToolbarProps = {
   readOnly?: boolean;
@@ -41,7 +43,15 @@ export type CanvasToolbarProps = {
   /** Si hay historia de drags para deshacer. */
   canUndoDrag?: boolean;
   onUndoDrag?: () => void;
+  /** Mapa o Lista (E1). Sin `onForma` no hay conmutador (el overlay de Carga sólo muestra el mapa). */
+  forma?: FormaLogica;
+  onForma?: (forma: FormaLogica) => void;
 };
+
+const FORMAS = [
+  { value: "mapa", label: "Mapa" },
+  { value: "lista", label: "Lista" },
+] as const;
 
 export function CanvasToolbar({
   readOnly = false,
@@ -51,6 +61,8 @@ export function CanvasToolbar({
   onToggleSnap,
   canUndoDrag,
   onUndoDrag,
+  forma = "mapa",
+  onForma,
 }: CanvasToolbarProps) {
   return (
     <div
@@ -58,7 +70,8 @@ export function CanvasToolbar({
       role="toolbar"
       aria-label="Herramientas del lienzo"
     >
-      {!readOnly && (
+      {onForma ? <Segmented aria-label="Ver la lógica como" size="sm" value={forma} onChange={onForma} options={FORMAS} /> : null}
+      {!readOnly && forma === "mapa" && (
         <>
           <button
             type="button"

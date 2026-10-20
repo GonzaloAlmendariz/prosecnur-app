@@ -69,7 +69,6 @@
 .pulso-graph-overlay .pulso-graph-header-right > .pulso-icon:focus-visible,
 .pulso-graph-overlay .pulso-graph-toolbar-btn:focus-visible,
 .pulso-graph-overlay .pulso-graph-toolbar-segment button:focus-visible,
-.pulso-graph-overlay .pulso-graph-condpicker-actions button:focus-visible,
 .pulso-graph-overlay .pulso-graph-detail-go:focus-visible,
 .pulso-graph-overlay .pulso-graph-edge-panel-btn:focus-visible,
 .pulso-graph-overlay .pulso-graph-legend-toggle:focus-visible {
@@ -89,10 +88,6 @@
 }
 .pulso-graph-overlay .pulso-graph-legend.is-open {
   max-height: calc(100% - 32px);
-  overflow-y: auto;
-}
-.pulso-graph-overlay .pulso-graph-condpicker {
-  max-height: calc(100dvh - 24px);
   overflow-y: auto;
 }
 

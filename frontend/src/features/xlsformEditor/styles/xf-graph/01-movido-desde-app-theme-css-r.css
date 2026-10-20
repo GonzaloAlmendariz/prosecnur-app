@@ -126,105 +126,6 @@
   animation: pulso-graph-edge-fresh var(--motion-dur-base) var(--motion-ease-out) both;
 }
 
-.pulso-graph-condpicker > header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 10px 12px;
-  background: var(--pulso-surface-2);
-  border-bottom: 1px solid var(--pulso-border);
-}
-
-.pulso-graph-condpicker-close {
-  width: 22px;
-  height: 22px;
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--pulso-text-soft);
-  border-radius: 5px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pulso-graph-condpicker-close:hover {
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-}
-
-.pulso-graph-condpicker-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 8px;
-  border-radius: 7px;
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--pulso-text);
-  transition: background 100ms ease;
-}
-
-.pulso-graph-condpicker-option:hover {
-  background: var(--pulso-surface-2);
-}
-
-.pulso-graph-condpicker-option.is-on {
-  background: var(--pulso-primary-soft);
-  color: var(--pulso-primary);
-}
-
-.pulso-graph-condpicker-option input {
-  margin: 0;
-  flex-shrink: 0;
-  accent-color: var(--pulso-primary);
-}
-
-.pulso-graph-condpicker-value {
-  padding: 6px 14px 0;
-}
-
-.pulso-graph-condpicker-value input,
-.pulso-graph-condpicker-value select {
-  width: 100%;
-  padding: 7px 9px;
-  font-size: 12.5px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 7px;
-  background: white;
-}
-
-.pulso-graph-condpicker-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 12px 14px;
-  border-top: 1px solid var(--pulso-border);
-  background: var(--pulso-surface-2);
-}
-
-.pulso-graph-condpicker-actions button {
-  padding: 6px 11px;
-  font-size: 12px;
-  border-radius: 6px;
-  border: 1px solid var(--pulso-border);
-  background: white;
-  color: var(--pulso-text);
-  cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease;
-}
-
-.pulso-graph-condpicker-actions button:hover:not(:disabled) {
-  background: var(--pulso-surface-2);
-  border-color: var(--pulso-primary);
-}
-
-.pulso-graph-condpicker-actions button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .pulso-graph-legend.is-collapsed .pulso-graph-legend-toggle {
   position: static;
   width: 32px;
@@ -255,8 +156,6 @@
 .pulso-graph-detail *,
 .pulso-graph-edge-label,
 .pulso-graph-edge-label *,
-.pulso-graph-condpicker,
-.pulso-graph-condpicker *,
 .pulso-graph-legend.is-open,
 .pulso-graph-legend.is-open *,
 .pulso-graph-edge-panel,
