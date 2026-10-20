@@ -8,7 +8,7 @@
 // lleva rail: este componente sólo se monta con un workbook.
 // =============================================================================
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { AdaptiveSplitView } from "../../../components/AdaptiveSplitView";
 import { ContextTabRail } from "../../../components/ContextTabRail";
 import { estadoListasRepetidas } from "../listas";
@@ -26,6 +26,13 @@ export function EditorPestanas({ pestana, onCambiar, listasRepetidas = 0, childr
   children: ReactNode;
 }) {
   const aviso = estadoListasRepetidas(listasRepetidas);
+  // Si el rail no cabe (ventana muy baja) la lista hace scroll; la pestaña activa, también la que llega por
+  // enlace (`?pestana=impreso`), se trae a la vista en vez de quedar cortada bajo el borde.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const activa = document.getElementById(idPestanaEditor(pestana));
+    activa?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  }, [pestana]);
   const items = aviso
     ? PESTANAS_EDITOR.map((p) => (p.key === "opciones" ? { ...p, estado: "parcial" as const, estadoLabel: aviso } : p))
     : PESTANAS_EDITOR;

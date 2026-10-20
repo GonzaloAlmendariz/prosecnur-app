@@ -103,3 +103,16 @@
     border-right: 0; border-bottom: 1px solid var(--pulso-border);
   }
 }
+/* Rail en ventanas bajas (E11, 2026-10-20): a 1024x600 las once pestañas medían 500 px en 398 y Impreso quedaba fuera.
+   Bajo 720 px de alto el rail usa la fila compacta de la casa (32 px) y la mitad de separación: caben las once. Si la
+   ventana es aún más baja, la lista sigue siendo dueña de su scroll y EditorPestanas mantiene la activa a la vista.
+   El token se redefine en el layout entero para que las cabeceras embebidas sigan alineadas con el primer botón. */
+@media (max-height: 720px) {
+  .pulso-xlsform-frame .pulso-xf-pestanas {
+    --pulso-nav-item-height: var(--pulso-rail-row-height);
+  }
+
+  .pulso-xlsform-frame .pulso-xf-pestanas .pulso-context-tab-list {
+    gap: var(--pulso-space-1);
+  }
+}

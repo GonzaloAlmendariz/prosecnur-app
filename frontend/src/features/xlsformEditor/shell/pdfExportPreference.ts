@@ -10,6 +10,8 @@
 
 import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
 import { scopeKey } from "../state/persistence";
+// Mismo criterio que Impreso: sólo listas cortas se sugieren como matriz.
+import { candidatasSugeribles } from "../impreso/modeloImpreso";
 
 /**
  * Columnas del PDF de papel.
@@ -137,7 +139,7 @@ export const MIN_MAX_OPTIONS_PER_QUESTION = 4;
 
 /** Elección del usuario para UNA matriz candidata. Campos ausentes = default. */
 export type PdfMatrixChoice = {
-  /** Ausente = default (activa si agrupa 2+ preguntas). */
+  /** Ausente = apagada: una sugerencia no se aplica hasta que la persona la activa. */
   enabled?: boolean;
   tenor?: string;
   special?: string;
@@ -186,7 +188,7 @@ export function matrixChoiceFor(
   const specialAlive =
     special === "auto" || special === "none" || candidate.scaleOptions.some((o) => o.code === special);
   return {
-    enabled: saved.enabled ?? candidate.count >= 2,
+    enabled: saved.enabled ?? false,
     tenor: saved.tenor ?? "",
     special: specialAlive ? special : "auto",
     header: saved.header ?? "auto",
@@ -194,11 +196,14 @@ export function matrixChoiceFor(
 }
 
 /** `options.matrix_groups` desde las elecciones por firma; las firmas que ya no
- *  corresponden a un candidato se ignoran. */
+ *  corresponden a un candidato se ignoran. Sólo cuentan las candidatas que
+ *  Impreso sugiere (listas de 7 opciones o menos), venga de donde venga la
+ *  exportación. */
 export function buildMatrixGroupsFromChoices(
-  candidates: readonly MatrixCandidate[],
+  allCandidates: readonly MatrixCandidate[],
   matrices: Readonly<Record<string, PdfMatrixChoice>>,
 ): MatrixGroupPayload[] {
+  const candidates = candidatasSugeribles(allCandidates);
   const disabled = new Set<string>();
   const tenor: Record<string, string> = {};
   const special: Record<string, string> = {};

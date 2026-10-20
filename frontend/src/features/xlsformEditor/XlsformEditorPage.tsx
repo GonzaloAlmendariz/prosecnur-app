@@ -1184,9 +1184,23 @@ export default function XlsformEditorPage() {
         sourceName: nextSource.original_name,
         source: nextSource,
       };
+      // Un solo nombre: el de la biblioteca. `saveForm` lo re-deriva del form_title y, al abrir un
+      // formulario existente, la cabecera mostraba ese otro nombre hasta que el índice del backend
+      // lo devolvía segundos después. Al abrir se conserva el nombre que ya tenía la biblioteca.
+      const nombreBiblioteca = opts?.register === false
+        ? listForms(projectScope).find((f) => f.id === formId)?.name?.trim()
+        : undefined;
       const savedAt = saveForm(projectScope, formId, loadedWorkbook, sourceMeta);
+      if (nombreBiblioteca) {
+        const guardada = listForms(projectScope).find((f) => f.id === formId);
+        if (guardada && guardada.name !== nombreBiblioteca) {
+          upsertLibraryEntry(projectScope, { ...guardada, name: nombreBiblioteca });
+        }
+      }
       setActiveForm(projectScope, formId);
-      if (savedAt != null) {
+      // Abrir un formulario existente no es guardarlo: el chip queda en «Sin cambios»
+      // hasta la primera edición. Sólo una creación o un import sellan el guardado.
+      if (savedAt != null && opts?.register !== false) {
         dispatch({ type: "MARK_SAVED", savedAt });
       }
       if (opts?.register !== false) {
