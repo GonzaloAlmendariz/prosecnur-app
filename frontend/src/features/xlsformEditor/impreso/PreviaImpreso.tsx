@@ -44,8 +44,8 @@ export function PreviaImpreso({ previa, vieja, motivo, onGenerar, estado, hayMat
           <div className="pulso-xf-imp-previa-esquema">
             <MaquetaPagina estado={estado} hayMatrices={hayMatrices} />
             <div className="pulso-xf-imp-previa-esquema-pie">
-              <p>Esquema de la primera página. El PDF real tarda lo mismo que exportar.</p>
-              <PulsoButton variant="secondary" size="sm" onClick={onGenerar} disabled={Boolean(motivo)} title={motivo ?? undefined}>
+              <p>Esquema de la primera página.</p>
+              <PulsoButton variant="secondary" size="sm" onClick={onGenerar} disabled={Boolean(motivo)} title={motivo ?? "Genera el PDF con estas opciones"}>
                 <FileText size={13} aria-hidden="true" /> Previsualizar
               </PulsoButton>
             </div>

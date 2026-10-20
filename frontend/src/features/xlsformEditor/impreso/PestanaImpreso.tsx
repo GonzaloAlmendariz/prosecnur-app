@@ -12,7 +12,7 @@
 // al Constructor sólo se va con «Editar en Constructor».
 // =============================================================================
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ListaPartes, type GrupoDePartes } from "../../../components/ListaPartes";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { FileText } from "../../../vendor/lucide-react";
@@ -22,6 +22,7 @@ import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
 import type { ConsentQuestion } from "../parsing/detectConsentQuestions";
 import type { BuilderStructure } from "../types";
 import { buildPaperExportOptions } from "../shell/pdfExportPreference";
+import { textoPreguntaPlano } from "../helpers/markdownPregunta";
 import { DetalleContenido, DetalleFormato, DetalleLogica } from "./DetallesDocumento";
 import { DetalleMatrices } from "./DetalleMatrices";
 import { DetallePapel } from "./DetallePapel";
@@ -31,6 +32,8 @@ import {
   filasConPapel,
   filasPapelVisibles,
   filasSinPapel,
+  candidatasSugeribles,
+  conSugerenciasApagadas,
   resumenCabecera,
   resumenDeParte,
   separarCandidatas,
@@ -72,7 +75,7 @@ export function PestanaImpreso({
   workbook,
   structure,
   storageKey,
-  candidatas,
+  candidatas: candidatasDetectadas,
   consentimiento,
   nombrePdf,
   parte: partePedida,
@@ -82,7 +85,22 @@ export function PestanaImpreso({
   onCampoPapel,
   ocupado,
 }: PestanaImpresoProps) {
-  const { estado, actualizar, actualizarMatriz } = useEstadoImpreso(storageKey, candidatas);
+  // Sólo se sugieren matrices con lista corta, y nacen apagadas (E7, 2026-10-20).
+  const candidatas = useMemo(() => candidatasSugeribles(candidatasDetectadas), [candidatasDetectadas]);
+  const { estado: estadoGuardado, actualizar, actualizarMatriz } = useEstadoImpreso(storageKey, candidatas);
+  const estado = useMemo(
+    () => ({ ...estadoGuardado, matrices: conSugerenciasApagadas(candidatas, estadoGuardado.matrices) }),
+    [estadoGuardado, candidatas],
+  );
+  // Texto como lo lee la persona: sin markdown, sin `<br>` y con `${x}` como «[Etiqueta]».
+  const etiquetas = useMemo(
+    () => new Map((structure?.outline ?? []).map((n) => [n.name, n.label] as const)),
+    [structure],
+  );
+  const plano = useCallback(
+    (texto: string) => textoPreguntaPlano(texto, { etiquetaDe: (name) => etiquetas.get(name) }),
+    [etiquetas],
+  );
   const parte: ParteImpreso = esParteImpreso(partePedida) ? partePedida : "formato";
   const filas = useMemo(() => filasConPapel(structure), [structure]);
   // La fila de «Papel por pregunta» con sus ajustes abiertos (una a la vez).
@@ -137,9 +155,6 @@ export function PestanaImpreso({
         <h2 className="pulso-xf-imp-titulo">Impreso</h2>
         <p className="pulso-xf-imp-resumen" role="note" title={resumenCabecera(cifras)}>{resumenCabecera(cifras)}</p>
         <span className="pulso-xf-imp-acciones">
-          <PulsoButton variant="secondary" size="sm" onClick={generar} disabled={Boolean(motivo)} title={motivo ?? "Genera el PDF con estas opciones y lo muestra en «Así queda»"}>
-            Previsualizar
-          </PulsoButton>
           <PulsoButton variant="secondary" size="sm" onClick={() => onExportar("word", opciones)} disabled={Boolean(ocupado)}>
             Exportar Word
           </PulsoButton>
@@ -162,9 +177,9 @@ export function PestanaImpreso({
             data-qa-geometry-contract="intrinsic"
           >
             {parte === "formato" && <DetalleFormato estado={estado} actualizar={actualizar} />}
-            {parte === "logica" && <DetalleLogica estado={estado} actualizar={actualizar} consentimiento={consentimiento} />}
+            {parte === "logica" && <DetalleLogica estado={estado} actualizar={actualizar} consentimiento={consentimiento} plano={plano} />}
             {parte === "contenido" && <DetalleContenido estado={estado} actualizar={actualizar} />}
-            {parte === "matrices" && <DetalleMatrices candidatas={candidatas} matrices={estado.matrices} onCambiar={actualizarMatriz} />}
+            {parte === "matrices" && <DetalleMatrices candidatas={candidatas} matrices={estado.matrices} onCambiar={actualizarMatriz} plano={plano} />}
             {parte === "papel" && (
               <DetallePapel
                 filas={filasPapel}
@@ -174,6 +189,7 @@ export function PestanaImpreso({
                 onAbrir={setPapelAbierto}
                 onCampo={onCampoPapel}
                 onEditar={onIrAPregunta}
+                plano={plano}
               />
             )}
           </div>

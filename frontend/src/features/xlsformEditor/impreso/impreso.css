@@ -566,3 +566,25 @@
   font-size: 12px;
   line-height: 1.4;
 }
+
+/* Tres opciones parejas en una fila (Columnas); en una tarjeta angosta, una debajo de otra. */
+.pulso-xf-imp .pulso-xf-pdf-cards--tres {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@container (max-width: 400px) {
+  .pulso-xf-imp .pulso-xf-pdf-cards--tres {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* «Mínimo 4. Se ajustó a 4.» tras un valor bajo el mínimo. */
+.pulso-xf-imp .pulso-xf-imp-aviso {
+  color: var(--pulso-warn-fg);
+  font-weight: 600;
+}
+
+/* En Impreso los ajustes de papel hablan en español: la columna XLSForm se queda en el Constructor. */
+.pulso-xf-imp-papel-cuerpo .pulso-xf-tech {
+  display: none;
+}

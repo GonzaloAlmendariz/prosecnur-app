@@ -10,8 +10,17 @@ import { separarCandidatas } from "./modeloImpreso";
 import { TarjetaImpreso } from "./TarjetaImpreso";
 
 /** Etiqueta corta de las preguntas de una matriz: «primera» +N. */
-function resumenPreguntas(c: MatrixCandidate): string {
-  const primera = c.questionLabels[0] ?? c.memberNames[0] ?? "pregunta";
+type Plano = (texto: string) => string;
+
+/** «1 — Nada útil», sin repetir el código que algunas escalas anotan al pie de la etiqueta («Nada útil<br>1»). */
+function rotuloEscala(code: string, label: string, plano: Plano): string {
+  const texto = plano(label).trim();
+  const sinCodigo = texto === code ? "" : texto.endsWith(` ${code}`) ? texto.slice(0, -code.length - 1).trim() : texto;
+  return sinCodigo ? `${code} — ${sinCodigo}` : code;
+}
+
+function resumenPreguntas(c: MatrixCandidate, plano: Plano): string {
+  const primera = plano(c.questionLabels[0] ?? "") || c.memberNames[0] || "pregunta";
   const corta = primera.length > 48 ? `${primera.slice(0, 47)}…` : primera;
   const extra = c.count - 1;
   return extra > 0 ? `«${corta}» +${extra}` : `«${corta}»`;
@@ -37,8 +46,9 @@ function SelectMatriz({ id, etiqueta, valor, onCambiar, children }: {
   );
 }
 
-function CandidataMatriz({ candidata, matrices, onCambiar }: {
+function CandidataMatriz({ candidata, matrices, onCambiar, plano }: {
   candidata: MatrixCandidate;
+  plano: Plano;
   matrices: PdfDialogState["matrices"];
   onCambiar: (c: MatrixCandidate, patch: PdfMatrixChoice) => void;
 }) {
@@ -56,7 +66,7 @@ function CandidataMatriz({ candidata, matrices, onCambiar }: {
         <span className="pulso-xf-pdf-matrix-badge" aria-hidden="true"><Grid3x3 size={16} /></span>
         <span className="pulso-xf-pdf-matrix-info">
           <strong>{candidata.count} {candidata.count === 1 ? "pregunta" : "preguntas"} · lista {candidata.listName}</strong>
-          <em>{resumenPreguntas(candidata)} · {candidata.sectionLabel}</em>
+          <em>{resumenPreguntas(candidata, plano)} · {candidata.sectionLabel}</em>
         </span>
         <span className="pulso-xf-pdf-matrix-toggle-label">¿Va como matriz?</span>
         <span className={`pulso-xf-pdf-switch${eleccion.enabled ? " is-on" : ""}`} aria-hidden="true">
@@ -84,8 +94,8 @@ function CandidataMatriz({ candidata, matrices, onCambiar }: {
             onCambiar={(special) => onCambiar(candidata, { special })}>
             <option value="auto">Automática</option>
             <option value="none">Ninguna</option>
-            {candidata.scaleOptions.map((o) => (
-              <option key={o.code} value={o.code}>{o.code} — {o.label}</option>
+            {candidata.scaleOptions.map((o, i) => (
+              <option key={`${o.code}-${i}`} value={o.code}>{rotuloEscala(o.code, o.label, plano)}</option>
             ))}
           </SelectMatriz>
           <SelectMatriz id={`${base}-cabecera`} etiqueta="Cabecera" valor={eleccion.header}
@@ -100,8 +110,9 @@ function CandidataMatriz({ candidata, matrices, onCambiar }: {
   );
 }
 
-export function DetalleMatrices({ candidatas, matrices, onCambiar }: {
+export function DetalleMatrices({ candidatas, matrices, onCambiar, plano }: {
   candidatas: readonly MatrixCandidate[];
+  plano: Plano;
   matrices: PdfDialogState["matrices"];
   onCambiar: (c: MatrixCandidate, patch: PdfMatrixChoice) => void;
 }) {
@@ -111,7 +122,7 @@ export function DetalleMatrices({ candidatas, matrices, onCambiar }: {
       <TarjetaImpreso
         id="imp-matrices"
         titulo="Matrices"
-        ayuda="No se detectaron grupos matrizables: ninguna pregunta contigua comparte la misma escala."
+        ayuda="Ninguna pregunta contigua comparte una escala corta (7 opciones o menos)."
       />
     );
   }
@@ -120,13 +131,13 @@ export function DetalleMatrices({ candidatas, matrices, onCambiar }: {
       <TarjetaImpreso
         id="imp-matrices"
         titulo={`Matrices (${reales.length})`}
-        ayuda="Preguntas contiguas que comparten la misma escala, impresas como una tabla."
+        ayuda="Preguntas contiguas con la misma escala corta. Actívalas para imprimirlas como tabla."
       >
         {reales.length === 0 ? (
           <p className="pulso-xf-imp-vacio">Ningún grupo de dos o más preguntas comparte escala.</p>
         ) : (
           <div className="pulso-xf-pdf-matrix-list" data-qa-geometry-group="xlsform/impreso-matrices" data-qa-geometry-contract="intrinsic">
-            {reales.map((c) => <CandidataMatriz key={c.id} candidata={c} matrices={matrices} onCambiar={onCambiar} />)}
+            {reales.map((c) => <CandidataMatriz key={c.id} candidata={c} matrices={matrices} onCambiar={onCambiar} plano={plano} />)}
           </div>
         )}
       </TarjetaImpreso>
@@ -137,7 +148,7 @@ export function DetalleMatrices({ candidatas, matrices, onCambiar }: {
             <small>Una sola pregunta con su escala: sale como pregunta, salvo que la actives como tabla.</small>
           </summary>
           <div className="pulso-xf-pdf-matrix-list" data-qa-geometry-group="xlsform/impreso-sueltas" data-qa-geometry-contract="intrinsic">
-            {sueltas.map((c) => <CandidataMatriz key={c.id} candidata={c} matrices={matrices} onCambiar={onCambiar} />)}
+            {sueltas.map((c) => <CandidataMatriz key={c.id} candidata={c} matrices={matrices} onCambiar={onCambiar} plano={plano} />)}
           </div>
         </details>
       )}

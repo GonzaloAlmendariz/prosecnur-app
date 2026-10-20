@@ -27,12 +27,163 @@
 }
 
 .pulso-xf-cue-indice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
   position: sticky;
   top: var(--pulso-space-5);
   max-height: calc(100dvh - 300px);
   min-height: 0;
+  border-radius: var(--pulso-radius-panel);
+}
+
+/* El buscador queda fijo arriba; lo que desplaza es la lista (un solo dueño de overflow en el índice). */
+.pulso-xf-cue-indice-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-height: 0;
   overflow-y: auto;
   border-radius: var(--pulso-radius-panel);
+}
+
+/* Buscador del índice (E6, 2026-10-20). */
+.pulso-xf-cue-buscador {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-height: var(--pulso-control-height-lg);
+  padding-inline: var(--pulso-space-3) var(--pulso-space-1);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-cue-buscador:focus-within {
+  border-color: var(--xf-cue-acento);
+  box-shadow: 0 0 0 3px var(--xf-cue-acento-suave);
+}
+
+.pulso-xf-cue-indice-cuerpo > * {
+  flex: none;
+}
+
+/* El marco es el del buscador: el input no lleva el suyo (el estilo global de inputs le pone borde y sombra). */
+.pulso-xf-cue-buscador input,
+.pulso-xf-cue-buscador input:focus,
+.pulso-xf-cue-buscador input:focus-visible {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  box-shadow: none;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.pulso-xf-cue-buscador input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.pulso-xf-cue-buscador-limpiar {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.pulso-xf-cue-buscador-limpiar:hover {
+  background: var(--pulso-nav-hover-bg);
+}
+
+.pulso-xf-cue-buscador-conteo {
+  margin: 0;
+  padding-inline: var(--pulso-space-1);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.pulso-xf-cue-hallazgos {
+  margin: 0;
+  padding: var(--pulso-space-1);
+  list-style: none;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+
+.pulso-xf-cue-hallazgos button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--pulso-space-2);
+  width: 100%;
+  padding: var(--pulso-space-2);
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pulso-xf-cue-hallazgos button:hover {
+  background: var(--pulso-nav-hover-bg);
+}
+
+.pulso-xf-cue-hallazgos b {
+  color: var(--xf-cue-acento);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-xf-cue-hallazgos span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-xf-cue-hallazgos code {
+  grid-column: 2;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.pulso-xf-cue-hallazgos-mas {
+  padding: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+/* «Condicional» como glifo (rama) con su explicación en el title: el texto le quitaba medio ancho al título. */
+.pulso-xf-cue-indice .pulso-lista-partes {
+  --lista-partes-slot: 20px;
+}
+
+.pulso-xf-cue-indice .pulso-lista-partes-estado.is-neutro {
+  width: 14px;
+  height: 14px;
+  font-size: 0;
+  background: var(--pulso-text-soft);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='6' x2='6' y1='3' y2='15'/%3E%3Ccircle cx='18' cy='6' r='3'/%3E%3Ccircle cx='6' cy='18' r='3'/%3E%3Cpath d='M18 9a9 9 0 0 1-9 9'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='6' x2='6' y1='3' y2='15'/%3E%3Ccircle cx='18' cy='6' r='3'/%3E%3Ccircle cx='6' cy='18' r='3'/%3E%3Cpath d='M18 9a9 9 0 0 1-9 9'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.pulso-xf-cue-pregunta {
+  scroll-margin-top: var(--pulso-space-5);
 }
 
 .pulso-xf-cue-pagina {

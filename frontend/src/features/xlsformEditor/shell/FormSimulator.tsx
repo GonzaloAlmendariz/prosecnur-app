@@ -13,7 +13,7 @@
 // =============================================================================
 
 import { esMetadato } from "../kit/tiposPregunta";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   Check,
@@ -41,6 +41,11 @@ import { appearanceTokens, rangeParamsForNode } from "../canvas/previewInputs";
 import "../styles/xf-simulator.css";
 import { RecorridoPrueba, RespuestasPrueba } from "./simulador/PanelesPrueba";
 import { respuestasDadas, seccionesDelRecorrido } from "./simulador/modeloRecorrido";
+import { pendientesParaFinalizar, restriccionIncumplida, type Pendiente } from "./simulador/modeloFinalizar";
+import { FaltantesPrueba, PruebaFinalizada } from "./simulador/FinalizarPrueba";
+import { esNotaSinTexto, pistaLegible, textoPreguntaPlano, type LectorReferencias } from "../helpers/markdownPregunta";
+import { TextoPregunta } from "../helpers/markdownTexto";
+import { stripMarkdown } from "../helpers/markdown";
 
 export type FormSimulatorProps = {
   workbook: XlsformEditorWorkbook;
@@ -86,7 +91,8 @@ const ANSWERABLE_BASES = new Set([
 
 function isRenderable(node: BuilderNode): boolean {
   if (node.kind !== "question" && node.kind !== "note") return false;
-  return !esAutomatico(node.typeInfo.base);
+  // Una nota sin texto (la imagen del logo) no es algo que la persona lea: no se pinta como tarjeta.
+  return !esAutomatico(node.typeInfo.base) && !esNotaSinTexto(node);
 }
 
 function hasAnswer(value: SimValue | undefined): boolean {
@@ -113,6 +119,10 @@ export function FormSimulator({
 }: FormSimulatorProps) {
   const [answers, setAnswers] = useState<Record<string, SimValue>>({});
   const [pageIdx, setPageIdx] = useState(0);
+  // E8: intentar finalizar marca las pendientes; con todo en regla la prueba queda finalizada.
+  const [intentoFinalizar, setIntentoFinalizar] = useState(false);
+  const [finalizada, setFinalizada] = useState(false);
+  const hoja = useRef<HTMLDivElement>(null);
 
 
   const formTitle = useMemo(() => readFormTitle(workbook), [workbook]);
@@ -139,7 +149,7 @@ export function FormSimulator({
         title:
           meta.kind === "root"
             ? formTitle || "Inicio"
-            : meta.label || meta.name || "Sección",
+            : stripMarkdown(meta.label ?? "").trim() && meta.label.trim() !== meta.name ? meta.label : "Sección sin título",
         kind: meta.kind,
         nodes,
         order: meta.rowIndex ?? Math.min(...nodes.map((node) => node.rowIndex)),
@@ -232,6 +242,8 @@ export function FormSimulator({
   const reset = useCallback(() => {
     setAnswers({});
     setPageIdx(0);
+    setIntentoFinalizar(false);
+    setFinalizada(false);
   }, []);
 
   const handleEdit = onEditRow;
@@ -245,6 +257,38 @@ export function FormSimulator({
   const irAPreguntaEnPrueba = (name: string) => {
     const i = visiblePages.findIndex((page) => page.nodes.some((node) => node.name === name));
     if (i >= 0) setPageIdx(i);
+  };
+
+  // `${x}` se lee con la respuesta ya dada (la etiqueta de la opción) o, si aún no la hay, «[Etiqueta corta]».
+  const nodoDe = useMemo(() => new Map((structure?.outline ?? []).map((n) => [n.name, n])), [structure]);
+  const lector = useMemo<LectorReferencias>(() => ({
+    etiquetaDe: (name) => nodoDe.get(name)?.label,
+    respuestaDe: (name) => {
+      const v = answers[name];
+      if (!hasAnswer(v)) return undefined;
+      const lista = nodoDe.get(name)?.typeInfo.listName;
+      const ops = lista ? choicesByList.get(lista) ?? [] : [];
+      const etiqueta = (c: string) => stripMarkdown(ops.find((o) => o.name === c)?.label || c);
+      return Array.isArray(v) ? v.map(etiqueta).join(", ") : ops.length ? etiqueta(v as string) : (v as string);
+    },
+  }), [nodoDe, answers, choicesByList]);
+
+  const esUltima = clampedIdx >= visiblePages.length - 1;
+  const pendientes = pendientesParaFinalizar(visiblePages, esRespondible, (node) => nodeState.get(node.rowIndex)?.visible ?? false, answers);
+  const pendientesSet = new Set(pendientes.map((p) => p.rowIndex));
+  const irAPendiente = (p: Pendiente) => {
+    setPageIdx(p.pagina);
+    // La hoja se monta con la página nueva: el foco va al control de la pregunta en el siguiente cuadro.
+    window.requestAnimationFrame(() => {
+      const card = hoja.current?.ownerDocument.querySelector<HTMLElement>(`[data-pregunta-prueba="${CSS.escape(p.name)}"]`);
+      card?.scrollIntoView({ block: "center" });
+      card?.querySelector<HTMLElement>("input, select, button[role=radio], button[role=checkbox], button[aria-pressed]")?.focus({ preventScroll: true });
+    });
+  };
+  const finalizar = () => {
+    setIntentoFinalizar(true);
+    if (pendientes.length === 0) { setFinalizada(true); return; }
+    window.requestAnimationFrame(() => hoja.current?.querySelector(".xfsp-faltan")?.scrollIntoView({ block: "nearest" }));
   };
 
   const progressFraction = visiblePages.length
@@ -281,10 +325,15 @@ export function FormSimulator({
       <div className="pulso-xfsim-main con-paneles" data-qa-geometry-group="xlsform/prueba-columnas" data-qa-geometry-contract="intrinsic">
         {currentPage ? <RecorridoPrueba secciones={secciones} onIr={setPageIdx} /> : null}
         {currentPage ? (
-          <div className="pulso-xfsim-sheet" key={currentPage.id}>
+          finalizada ? (
+            <div className="pulso-xfsim-sheet">
+              <PruebaFinalizada respondidas={answeredCount} onVolver={() => setFinalizada(false)} onReiniciar={reset} />
+            </div>
+          ) : (
+          <div className="pulso-xfsim-sheet" key={currentPage.id} ref={hoja}>
             <header className="pulso-xfsim-page-head">
               <div className="pulso-xfsim-page-title">
-                <strong>{currentPage.title}</strong>
+                <strong><TextoPregunta texto={currentPage.title} lector={lector} /></strong>
                 {currentPage.kind === "repeat" ? (
                   <span className="pulso-xfsim-page-badge">se repite en campo</span>
                 ) : null}
@@ -304,9 +353,16 @@ export function FormSimulator({
                   choicesByList={choicesByList}
                   onAnswer={setAnswer}
                   onEdit={handleEdit}
+                  lector={lector}
+                  error={restriccionIncumplida(node, answers[node.name], answers)}
+                  marcarPendiente={intentoFinalizar && pendientesSet.has(node.rowIndex)}
                 />
               ))}
             </div>
+
+            {intentoFinalizar && esUltima && pendientes.length > 0 ? (
+              <FaltantesPrueba pendientes={pendientes} lector={lector} onIr={irAPendiente} />
+            ) : null}
 
             <footer className="pulso-xfsim-nav">
               <button
@@ -320,18 +376,22 @@ export function FormSimulator({
               <span className="pulso-xfsim-nav-count">
                 {clampedIdx + 1} / {visiblePages.length}
               </span>
-              <button
-                type="button"
-                className="pulso-xfsim-pill is-primary"
-                disabled={clampedIdx >= visiblePages.length - 1}
-                onClick={() =>
-                  setPageIdx(Math.min(clampedIdx + 1, visiblePages.length - 1))
-                }
-              >
-                Siguiente <ChevronRight size={14} />
-              </button>
+              {esUltima ? (
+                <button type="button" className="pulso-xfsim-pill is-primary" onClick={finalizar} data-accion="finalizar-prueba">
+                  <Check size={14} /> Finalizar
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="pulso-xfsim-pill is-primary"
+                  onClick={() => setPageIdx(Math.min(clampedIdx + 1, visiblePages.length - 1))}
+                >
+                  Siguiente <ChevronRight size={14} />
+                </button>
+              )}
             </footer>
           </div>
+          )
         ) : (
           <div className="pulso-xfsim-empty">
             <strong>No hay preguntas para simular</strong>
@@ -356,6 +416,9 @@ function QuestionSlot({
   choicesByList,
   onAnswer,
   onEdit,
+  lector,
+  error,
+  marcarPendiente,
 }: {
   node: BuilderNode;
   state: VisState;
@@ -363,6 +426,11 @@ function QuestionSlot({
   choicesByList: Map<string, ChoiceItem[]>;
   onAnswer: (name: string, value: SimValue) => void;
   onEdit?: (rowIndex: number) => void;
+  lector: LectorReferencias;
+  /** Mensaje de la regla que la respuesta incumple. */
+  error: string | null;
+  /** Al intentar finalizar: esta pregunta impide terminar. */
+  marcarPendiente: boolean;
 }) {
   const visible = state.visible;
   const accent = paletteForType(node.typeInfo.base);
@@ -377,7 +445,8 @@ function QuestionSlot({
     >
       <div className="pulso-xfsim-slot-inner">
         <article
-          className={`pulso-xfsim-card${node.kind === "note" ? " is-note" : ""}`}
+          className={`pulso-xfsim-card${node.kind === "note" ? " is-note" : ""}${marcarPendiente ? " is-pendiente" : ""}${error ? " is-error" : ""}`}
+          data-pregunta-prueba={node.name}
           style={{ "--xfsim-accent": accent } as CSSProperties}
         >
           <header className="pulso-xfsim-card-head">
@@ -389,7 +458,7 @@ function QuestionSlot({
               <Icon size={13} />
             </span>
             <span className="pulso-xfsim-card-label">
-              {node.label}
+              <TextoPregunta texto={node.label || node.name} lector={lector} />
               {pendingRequired ? (
                 <i className="pulso-xfsim-req" title="Obligatoria sin responder" />
               ) : null}
@@ -416,14 +485,21 @@ function QuestionSlot({
               </button>
             ) : null}
           </header>
-          {node.hint ? <div className="pulso-xfsim-hint">{node.hint}</div> : null}
+          {pistaLegible(node) ? <TextoPregunta como="p" className="pulso-xfsim-hint" texto={pistaLegible(node)} lector={lector} /> : null}
           <QuestionControl
             node={node}
             value={value}
             disabled={!visible}
             choicesByList={choicesByList}
             onAnswer={onAnswer}
+            lector={lector}
+            invalido={Boolean(error) || marcarPendiente}
           />
+          {error && visible ? (
+            <p className="pulso-xfsim-error" role="alert"><TextoPregunta texto={error} lector={lector} /></p>
+          ) : marcarPendiente && visible ? (
+            <p className="pulso-xfsim-error">Falta esta respuesta para finalizar.</p>
+          ) : null}
         </article>
       </div>
     </div>
@@ -440,14 +516,20 @@ function QuestionControl({
   disabled,
   choicesByList,
   onAnswer,
+  lector,
+  invalido,
 }: {
   node: BuilderNode;
   value: SimValue | undefined;
   disabled: boolean;
   choicesByList: Map<string, ChoiceItem[]>;
   onAnswer: (name: string, value: SimValue) => void;
+  lector: LectorReferencias;
+  invalido: boolean;
 }) {
   const base = node.typeInfo.base;
+  const nombre = textoPreguntaPlano(node.label || node.name, lector);
+  const ariaInvalid = invalido || undefined;
 
   if (node.kind === "note") return null;
 
@@ -474,13 +556,13 @@ function QuestionControl({
             className="pulso-xfsim-input pulso-xfsim-select"
             value={current}
             disabled={disabled}
-            aria-label={node.label}
+            aria-label={nombre}
             onChange={(event) => onAnswer(node.name, event.target.value)}
           >
             <option value="">Seleccionar…</option>
             {items.map((item) => (
               <option key={`${item.rowIndex}-${item.name}`} value={item.name}>
-                {item.label || item.name}
+                {textoPreguntaPlano(item.label || item.name, lector)}
               </option>
             ))}
           </select>
@@ -503,7 +585,7 @@ function QuestionControl({
       <div
         className="pulso-xfsim-options"
         role={multi ? "group" : "radiogroup"}
-        aria-label={node.label}
+        aria-label={nombre}
       >
         {items.map((item) => {
           const isSelected = selectedValues.includes(item.name);
@@ -532,9 +614,7 @@ function QuestionControl({
               >
                 <Check size={12} className="pulso-xfsim-option-check" />
               </span>
-              <span className="pulso-xfsim-option-label">
-                {item.label || item.name}
-              </span>
+              <TextoPregunta className="pulso-xfsim-option-label" texto={item.label || item.name} lector={lector} />
             </button>
           );
         })}
@@ -555,7 +635,7 @@ function QuestionControl({
     const order =
       typeof value === "string" && value.trim() !== "" ? value.trim().split(/\s+/) : [];
     return (
-      <div className="pulso-xfsim-options" role="group" aria-label={node.label}>
+      <div className="pulso-xfsim-options" role="group" aria-label={nombre}>
         <span className="pulso-xfsim-rank-help">Toca en orden de prioridad · vuelve a tocar para quitar</span>
         {items.map((item) => {
           const position = order.indexOf(item.name);
@@ -584,7 +664,7 @@ function QuestionControl({
                   <Check size={12} className="pulso-xfsim-option-check" />
                 )}
               </span>
-              <span className="pulso-xfsim-option-label">{item.label || item.name}</span>
+              <TextoPregunta className="pulso-xfsim-option-label" texto={item.label || item.name} lector={lector} />
             </button>
           );
         })}
@@ -606,7 +686,7 @@ function QuestionControl({
           step={step}
           value={Number.isFinite(sliderValue) ? sliderValue : start}
           disabled={disabled}
-          aria-label={node.label}
+          aria-label={nombre}
           onChange={(event) => onAnswer(node.name, event.target.value)}
         />
         <output className={`pulso-xfsim-range-value${current === "" ? " is-empty" : ""}`}>
@@ -643,6 +723,8 @@ function QuestionControl({
         step={base === "integer" ? 1 : "any"}
         placeholder="0"
         disabled={disabled}
+        aria-label={nombre}
+        aria-invalid={ariaInvalid}
         value={typeof value === "string" ? value : ""}
         onChange={(event) => onAnswer(node.name, event.target.value)}
       />
@@ -656,6 +738,8 @@ function QuestionControl({
         type="text"
         placeholder="Escribe una respuesta"
         disabled={disabled}
+        aria-label={nombre}
+        aria-invalid={ariaInvalid}
         value={typeof value === "string" ? value : ""}
         onChange={(event) => onAnswer(node.name, event.target.value)}
       />
@@ -669,6 +753,8 @@ function QuestionControl({
         className="pulso-xfsim-input"
         type={inputType}
         disabled={disabled}
+        aria-label={nombre}
+        aria-invalid={ariaInvalid}
         value={typeof value === "string" ? value : ""}
         onChange={(event) => onAnswer(node.name, event.target.value)}
       />
@@ -678,7 +764,7 @@ function QuestionControl({
   if (base === "acknowledge") {
     const isOn = value === "OK";
     return (
-      <div className="pulso-xfsim-options" role="group" aria-label={node.label}>
+      <div className="pulso-xfsim-options" role="group" aria-label={nombre}>
         <button
           type="button"
           role="checkbox"
