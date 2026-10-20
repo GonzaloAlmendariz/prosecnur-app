@@ -88,7 +88,7 @@ test_that("los correos no entran a collection_state ni al .pulso (scan del estad
 
   state_json <- jsonlite::toJSON(session_get(sid)$collection_state, auto_unbox = TRUE, null = "null")
   expect_false(grepl("@ejemplo.org|QUISPE|Quispe|Ana Lucia", state_json))
-  expect_false(is.null(session_get(sid)$collection_state$mail_template))
+  expect_false(is.null(session_get(sid)$collection_state$mail_campaigns))
 
   tmp <- tempfile(fileext = ".pulso"); on.exit(unlink(tmp, force = TRUE), add = TRUE)
   build_pulso(sid, tmp, project_name = "Correo")
@@ -105,7 +105,8 @@ test_that("los correos no entran a collection_state ni al .pulso (scan del estad
   }
   expect_length(hits, 0L)
   loaded <- load_pulso(tmp); on.exit(session_delete(loaded$session_id), add = TRUE)
-  expect_identical(session_get(loaded$session_id)$collection_state$mail_template$preset_id, "invitacion_capacitacion_v1")
+  expect_identical(session_get(loaded$session_id)$collection_state$mail_campaigns$campaigns[[1]]$template$preset_id,
+                   "invitacion_capacitacion_v1")
   expect_false(collection_mail_recipients_get(loaded$session_id)$loaded)
 })
 

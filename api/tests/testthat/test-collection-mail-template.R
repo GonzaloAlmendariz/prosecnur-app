@@ -150,7 +150,12 @@ test_that("PUT mail-template exige revisión, guarda en collection_state y marca
   expect_false(put$noop)
   expect_identical(put$state_revision, g$state_revision + 1L)
   st <- session_get(sid)$collection_state
-  expect_identical(st$mail_template$preset_id, "invitacion_capacitacion_v1")
+  # E1h: la plantilla vive en su campaña (`correo-1` la crea el primer PUT) y
+  # su template_id es el campaign_id.
+  expect_null(st$mail_template)
+  expect_identical(st$mail_campaigns$campaigns[[1]]$template$preset_id, "invitacion_capacitacion_v1")
+  expect_identical(put$campaign_id, "correo-1")
+  expect_identical(put$template$template_id, "correo-1")
   again <- collection_mail_template_put(sid, put$template, put$state_revision)
   expect_true(again$noop)
   bad <- inv; bad$blocks[[2]]$text <- "<p>hola</p>"

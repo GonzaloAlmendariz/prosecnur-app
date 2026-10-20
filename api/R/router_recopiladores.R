@@ -120,49 +120,78 @@ mount_recopiladores <- function(pr) {
         dpi = body$dpi
       )
     })) |>
-    # Correos para Mailchimp (ADR 0110 §2, E1f). La plantilla persiste en
-    # collection_state$mail_template; los destinatarios viven solo en el
-    # tempdir de la sesión (datos personales: nunca en el .pulso).
+    # Correos para Mailchimp (ADR 0110 §2, E1f; campañas E1h). Cada plantilla
+    # vive en su campaña de collection_state$mail_campaigns; los destinatarios
+    # solo en el tempdir de la sesión, por campaña (datos personales: nunca en
+    # el .pulso). `campaign_id` va por consulta en GET/DELETE, en el cuerpo en
+    # POST/PUT y como parte del multipart al importar.
     plumber::pr_get("/api/recopiladores/mail-presets", wrap_endpoint(function(req, res, ...) {
       collection_mail_presets_get(session_header(req))
     })) |>
+    plumber::pr_get("/api/recopiladores/mail-campaigns", wrap_endpoint(function(req, res, ...) {
+      collection_mail_campaigns_get(session_header(req))
+    })) |>
+    plumber::pr_post("/api/recopiladores/mail-campaigns", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_campaign_create(session_header(req), expected_revision = body$expected_revision,
+                                      name = body$name, actor = body$actor, preset_id = body$preset_id)
+    })) |>
+    plumber::pr_post("/api/recopiladores/mail-campaigns/duplicate", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_campaign_duplicate(session_header(req), expected_revision = body$expected_revision,
+                                         campaign_id = body$campaign_id, name = body$name, actor = body$actor)
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/mail-campaigns/meta", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_campaign_meta_put(session_header(req), expected_revision = body$expected_revision,
+                                        campaign_id = body$campaign_id, name = body$name, actor = body$actor)
+    })) |>
+    # Borrar es POST (no DELETE con cuerpo); confirm_name es la segunda confirmación.
+    plumber::pr_post("/api/recopiladores/mail-campaigns/delete", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_campaign_delete(session_header(req), expected_revision = body$expected_revision,
+                                      campaign_id = body$campaign_id, confirm_name = body$confirm_name)
+    })) |>
     plumber::pr_get("/api/recopiladores/mail-template", wrap_endpoint(function(req, res, ...) {
-      collection_mail_template_get(session_header(req))
+      collection_mail_template_get(session_header(req), campaign_id = .cmail_query_campaign(req))
     })) |>
     plumber::pr_handle("PUT", "/api/recopiladores/mail-template", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_mail_template_put(session_header(req), template = body$template,
-                                   expected_revision = body$expected_revision)
+                                   expected_revision = body$expected_revision, campaign_id = body$campaign_id)
     })) |>
     plumber::pr_post("/api/recopiladores/mail-template/preview", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       collection_mail_preview(session_header(req), mode = body$mode %||% "preview",
-                              recipient_index = body$recipient_index, template = body$template)
+                              recipient_index = body$recipient_index, template = body$template,
+                              campaign_id = body$campaign_id)
     })) |>
     plumber::pr_post("/api/recopiladores/mail-template/review", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
-      collection_mail_review(session_header(req), template = body$template)
+      collection_mail_review(session_header(req), template = body$template, campaign_id = body$campaign_id)
     })) |>
     plumber::pr_post("/api/recopiladores/mail-template/export", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
-      collection_mail_export(session_header(req), expected_revision = body$expected_revision)
+      collection_mail_export(session_header(req), expected_revision = body$expected_revision,
+                             campaign_id = body$campaign_id)
     })) |>
     plumber::pr_post("/api/recopiladores/mail-recipients/import", wrap_endpoint(function(req, res, ...) {
       input <- .cmail_import_request(req)
       collection_mail_recipients_import(
         session_header(req), file_raw = input$file_raw, file_name = input$file_name,
-        content_base64 = input$content_base64, mapping = input$mapping
+        content_base64 = input$content_base64, mapping = input$mapping, campaign_id = input$campaign_id
       )
     })) |>
     plumber::pr_get("/api/recopiladores/mail-recipients", wrap_endpoint(function(req, res, ...) {
-      collection_mail_recipients_get(session_header(req))
+      collection_mail_recipients_get(session_header(req), campaign_id = .cmail_query_campaign(req))
     })) |>
     plumber::pr_handle("PUT", "/api/recopiladores/mail-recipients/mapping", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
-      collection_mail_recipients_mapping_put(session_header(req), mapping = body$mapping)
+      collection_mail_recipients_mapping_put(session_header(req), mapping = body$mapping,
+                                             campaign_id = body$campaign_id)
     })) |>
     plumber::pr_handle("DELETE", "/api/recopiladores/mail-recipients", wrap_endpoint(function(req, res, ...) {
-      collection_mail_recipients_delete(session_header(req))
+      collection_mail_recipients_delete(session_header(req), campaign_id = .cmail_query_campaign(req))
     })) |>
     # Catálogo › Tipos (ADR 0109 E1a): los tipos de material y su miniatura,
     # compilada por el MISMO motor del PDF contra una unidad de prueba. Lectura

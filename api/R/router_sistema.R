@@ -700,7 +700,16 @@ mount_sistema <- function(pr) {
         })
       )
     })) |>
-    plumber::pr_post("/api/files/upload", wrap_endpoint(function(req, res, file = NULL, kind = NULL) {
+    # `...` y no `file = NULL, kind = NULL`: con `?kind=` en la consulta Y un
+    # campo `kind` en el multipart, plumber pasa `kind` dos veces y R aborta
+    # antes del cuerpo («formal argument "kind" matched by multiple actual
+    # arguments»): un E_INTERNAL 500 por un input legítimo (medido 2026-10-20).
+    # Regla: si las dos vías traen el mismo kind, vale; si discrepan, 400
+    # E_KIND_CONFLICT (elegir una en silencio subiría el archivo como otra cosa).
+    plumber::pr_post("/api/files/upload", wrap_endpoint(function(req, res, ...) {
+      args <- list(...)
+      file <- if ("file" %in% names(args)) args[[which(names(args) == "file")[[1]]]] else NULL
+      kinds <- args[names(args) == "kind"]
       sid <- session_header(req)
       if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
         sid <- session_create()
@@ -739,12 +748,24 @@ mount_sistema <- function(pr) {
       # longitud cero y `nzchar()` sobre eso lanza «argument is of length zero»
       # — un E_INTERNAL 500 en vez del E_NO_KIND_FIELD que el propio endpoint
       # tiene escrito, y que ADEMÁS documenta esa vía en su mensaje.
-      kind_raw <- if (is.list(kind) && !is.null(kind$value)) kind$value else kind
-      if (is.raw(kind_raw)) kind_raw <- rawToChar(kind_raw)
-      if (is.list(kind_raw) && length(kind_raw) >= 1) kind_raw <- kind_raw[[1]]
-      kind_str <- if (length(kind_raw) >= 1 && !is.na(kind_raw[[1]]) &&
-                      nzchar(trimws(as.character(kind_raw[[1]])))) {
-        trimws(as.character(kind_raw[[1]]))
+      kind_scalar <- function(kind) {
+        kind_raw <- if (is.list(kind) && !is.null(kind$value)) kind$value else kind
+        if (is.raw(kind_raw)) kind_raw <- rawToChar(kind_raw)
+        if (is.list(kind_raw) && length(kind_raw) >= 1) kind_raw <- kind_raw[[1]]
+        if (length(kind_raw) >= 1 && !is.na(kind_raw[[1]]) && nzchar(trimws(as.character(kind_raw[[1]])))) {
+          trimws(as.character(kind_raw[[1]]))
+        } else {
+          ""
+        }
+      }
+      candidatos <- unique(Filter(nzchar, vapply(kinds, kind_scalar, character(1))))
+      if (length(candidatos) > 1L) {
+        stop_api(400, "E_KIND_CONFLICT",
+          "'kind' llegó dos veces con valores distintos (consulta y formulario). Envíalo una sola vez.",
+          details = list(kinds = as.list(candidatos)))
+      }
+      kind_str <- if (length(candidatos) == 1L) {
+        candidatos[[1]]
       } else {
         q <- req$args %||% list()
         candidato <- q$kind %||% req$QUERY_STRING %||% ""

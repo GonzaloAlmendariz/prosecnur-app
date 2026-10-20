@@ -67,7 +67,7 @@ test_that("NBSP e invisibles se limpian: el correo vale y se deduplica sin disti
   expect_identical(out$counts$duplicated, 1L)
   expect_identical(out$counts$duplicated_conflicting, 0L)
   expect_true(.cmh_partition_ok(out$counts))
-  r <- .cmail_recipients_resolve(.cmail_recipients_load(session_get(sid)))
+  r <- .cmail_recipients_resolve(.cmail_recipients_load(session_get(sid), "correo-1"))
   expect_identical(r$email[r$rows], c("ana@ejemplo.org", "luz@ejemplo.org"))
 })
 
@@ -250,9 +250,8 @@ test_that("6: manifest con procedencia y cifras completas, sin correos; LEEME co
   skip_if_not_installed("zip")
   sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
   collection_state_seed(sid)
-  t <- .cmail_template_normalize(.cmail_preset_recuperacion())
-  t$template_id <- paste0("correo-", strrep("x", 52))
-  collection_mail_template_put(sid, t, .cmail_fx_rev(sid))
+  # E1h: el slug del ZIP es el campaign_id (≤ 40), que sale de un nombre de 80.
+  collection_mail_campaign_create(sid, .cmail_fx_rev(sid), name = paste0("Correo ", strrep("x", 73)))
   .cmail_fx_import(sid)
   res <- collection_mail_export(sid, .cmail_fx_rev(sid))
   expect_lte(nchar(res$zip$filename), 80L)
@@ -292,7 +291,7 @@ test_that("M1 y M3: el export exige la revisión; una plantilla guardada inváli
   collection_state_seed(sid)
   collection_mail_template_put(sid, .cmail_template_normalize(.cmail_preset_invitacion()), .cmail_fx_rev(sid))
   s <- session_get(sid)
-  s$collection_state$mail_template$blocks[[1]]$type <- "html_crudo"
+  s$collection_state$mail_campaigns$campaigns[[1]]$template$blocks[[1]]$type <- "html_crudo"
   session_set(sid, "collection_state", s$collection_state)
   expect_identical(.cmh_code(collection_mail_review(sid)), "E_COLLECTION_MAIL_TEMPLATE_STORED_INVALID")
   g <- collection_mail_template_get(sid)
@@ -373,13 +372,13 @@ test_that("M6: abrir otro proyecto in_place borra los datos personales de la ses
   res <- collection_mail_export(sid, .cmail_fx_rev(sid))
   old <- session_get(sid)
   zip_path <- old$files[[res$zip$file_id]]$path
-  expect_true(file.exists(.cmail_recipients_path(old)))
+  expect_true(file.exists(.cmail_recipients_path(old, "correo-1")))
   expect_true(file.exists(zip_path))
 
   pr <- mount_proyecto(plumber::pr() |> plumber::pr_set_serializer(.api_serializer()))
   r <- .cmail_fx_call(pr, sid, "POST", "/api/project/open", .cmail_fx_json(list(path = tmp, in_place = TRUE)))
   expect_identical(r$status, 200L, info = substr(r$raw, 1, 500))
-  expect_false(file.exists(.cmail_recipients_path(old)))
+  expect_false(file.exists(.cmail_recipients_path(old, "correo-1")))
   expect_false(file.exists(zip_path))
   expect_false(collection_mail_recipients_get(sid)$loaded)
 })
