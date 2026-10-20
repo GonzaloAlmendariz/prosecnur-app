@@ -142,6 +142,9 @@ errores_registrados <- function() {
     "E_COLLECTION_MAIL_CAMPAIGN_NAME",                       "collection_mail_campaigns.R",       "422",
     "E_COLLECTION_MAIL_CAMPAIGN_LIMIT",                      "collection_mail_campaigns.R",       "409",
     "E_COLLECTION_MAIL_CAMPAIGN_CONFIRM",                    "collection_mail_campaigns.R",       "422",
+    # Imágenes de línea gráfica y ZIP importable (ADR 0110 §B, E1g).
+    "E_COLLECTION_MAIL_IMAGE_INVALID",                       "collection_mail_images.R",          "422",
+    "E_COLLECTION_MAIL_IMPORT_ZIP_TOO_LARGE",                "collection_mail_import_zip.R",      "413",
     "E_COLLECTION_PRUEBA_CODIGO",                           "collection_material_prueba.R",      "422",
     "E_COLLECTION_PRUEBA_SIN_ENLACE",                        "collection_material_prueba.R",      "422",
     "E_COLLECTION_SIN_ORIGEN",                               "collection_engine.R",              "409",

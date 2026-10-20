@@ -2,8 +2,9 @@
 # respaldo lo cubre ahí (ADR 0110 §2, revisión «sin dato»).
 #
 # El respaldo NO se aplica en todos lados (D5). En el HTML que se exporta:
-#   - enlace (button.url, signature.url): sin respaldo; un vacío rompe el
-#     enlace, así que bloquea la exportación;
+#   - enlace (button.url, signature.url, image.url y la URL de un `[texto](url)`
+#     dentro del texto): sin respaldo; un vacío rompe el enlace, así que bloquea
+#     la exportación;
 #   - asunto y preheader: la etiqueta va sola (*|TAG|*), sin respaldo;
 #   - {{nombre}} solo tiene respaldo dentro de un saludo con `fallback`
 #     (*|IF:FNAME|*); en cualquier otro texto va solo;
@@ -24,10 +25,13 @@
   for (b in template$blocks %||% list()) {
     type <- as.character(b$type %||% "")
     url_keys <- .cmail_tokens(.cmail_one(b$url) %||% "")
-    if (type %in% c("button", "signature")) acc <- .cmail_usage_add(acc, url_keys, "url")
-    texts <- unlist(b[setdiff(names(b), c("block_id", "type", "variant", "align", "ordered", "url", "fallback"))],
-                    use.names = FALSE)
-    keys <- unique(unlist(lapply(as.character(texts), .cmail_tokens), use.names = FALSE))
+    if (type %in% c("button", "signature", "image")) acc <- .cmail_usage_add(acc, url_keys, "url")
+    texts <- as.character(unlist(b[setdiff(names(b), c(.CMAIL_NON_TEXT_KEYS, "url", "fallback"))], use.names = FALSE))
+    # Un `[texto](url)`: los campos de la URL son uso «url»; los del texto, cuerpo.
+    link_urls <- unlist(lapply(texts, function(t) vapply(.cmail_links(t), `[[`, "", "url")), use.names = FALSE)
+    acc <- .cmail_usage_add(acc, unique(unlist(lapply(link_urls, .cmail_tokens), use.names = FALSE)), "url")
+    texts <- gsub(.CMAIL_LINK_RE, "\\1", texts, perl = TRUE)
+    keys <- unique(unlist(lapply(texts, .cmail_tokens), use.names = FALSE))
     if (identical(type, "greeting")) {
       has_fb <- !is.null(.cmail_one(b$fallback))
       acc <- .cmail_usage_add(acc, keys, if (has_fb) "saludo" else "saludo_sin_respaldo")

@@ -2097,7 +2097,7 @@
   # Logos propios del cliente (A6 R3): inputs del estilo, en los mismos cuatro portadores.
   out <- c(out, .graficos_estilo_cliente_fids(s))
   # Logos del proyecto (careta del afiche, cabecera del correo): el vigente de cada nombre.
-  out <- c(out, .cm_brand_logo_fids(s))
+  out <- c(out, .cm_brand_logo_fids(s), .cmail_image_fids(s))
   out <- c(out, .pulso_collect_calc_muestra_fids(s))
   # Monitoreo territorial: algunos insumos nacen dentro de Monitoreo, pero
   # luego son referencia canónica del proyecto. Si no viajan en el .pulso,

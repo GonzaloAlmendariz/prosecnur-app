@@ -106,3 +106,24 @@
   session_set(sid, "files", files)
   invisible(list(file_id = id, path = path))
 }
+
+# HTML de preview sin los <span data-pulso-field> que tiñen los valores (E1g):
+# para buscar frases como las ve el lector.
+.cmail_fx_unmark <- function(html) gsub('<span data-pulso-field="[^"]*" style="[^"]*">([^<]*)</span>', "\\1", html)
+
+# Bytes de una imagen sintética (PNG o JPEG). `noise` la vuelve incompresible
+# (para probar pesos).
+.cmail_fx_image_raw <- function(width, height, type = c("png", "jpeg"), noise = FALSE) {
+  type <- match.arg(type)
+  img <- if (noise) array(stats::runif(height * width * 3), dim = c(height, width, 3)) else {
+    a <- array(0.85, dim = c(height, width, 3)); a[, , 3] <- 0.35; a
+  }
+  tmp <- tempfile(fileext = paste0(".", type)); on.exit(unlink(tmp), add = TRUE)
+  if (identical(type, "png")) png::writePNG(img, tmp) else jpeg::writeJPEG(img, tmp, quality = 0.95)
+  readBin(tmp, "raw", file.info(tmp)$size)
+}
+
+# Sube una imagen de correo por la vía real (save_upload con kind mail_image).
+.cmail_fx_mail_image <- function(sid, name, width = 600L, height = 200L, type = "png", noise = FALSE) {
+  save_upload(sid, "mail_image", name, .cmail_fx_image_raw(width, height, type, noise))
+}

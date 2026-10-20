@@ -1,5 +1,6 @@
-# collection_mail_render.R — HTML de correo para `collection_mail_template/v1`
-# (ADR 0110 §2).
+# collection_mail_render.R — HTML de correo para `collection_mail_template/v2`
+# (ADR 0110 §2; E1g: estilos cerrados, heading/divider/image, enlaces en el
+# texto y marcas de edición).
 #
 # El render es el ÚNICO que escribe HTML: todo texto de usuario pasa por
 # `htmltools::htmlEscape` antes de convertir `**negrita**` y `{{campo}}`.
@@ -15,13 +16,36 @@
 #   HTML nunca sale de la app.
 # - `mailchimp`: deja las etiquetas `*|TAG|*`, el saludo con respaldo
 #   condicional (`*|IF:FNAME|*…*|ELSE:|*…*|END:IF|*`), referencia cada imagen por
-#   su URL pública o por un marcador `IMAGEN_<id>.png`, y agrega el pie legal con
-#   `*|LIST:ADDRESSLINE|*` y `*|UNSUB|*`. Nunca lleva `data:`.
+#   su URL https declarada o por su nombre de archivo RELATIVO dentro del ZIP
+#   importable (`logo-cliente.png`), y agrega el pie legal con
+#   `*|LIST:ADDRESSLINE|*` y `*|UNSUB|*`. Nunca lleva `data:` ni `data-pulso-*`.
+#
+# Marcas de edición (solo `preview`, E1g §1): cada fila de bloque lleva
+# `data-pulso-block`/`data-pulso-type`, la cabecera `__cabecera`, cada texto
+# editable `data-pulso-prop` (índice desde 0: `items.2`) y cada valor de campo
+# resuelto un `<span data-pulso-field>` teñido. La capa de edición del front se
+# monta sobre esas marcas; el HTML que se exporta no las trae.
 
 .CMAIL_WIDTH <- 600L
 .CMAIL_FONT <- "Arial,Helvetica,sans-serif"
 .CMAIL_TEXT_COLOR <- "#1a1a1a"
 .CMAIL_BORDER <- "#d6d6d6"
+.CMAIL_MUTED <- "#555555"
+.CMAIL_FIELD_TINT <- "#eef3e8"
+
+# ` data-pulso-prop="…"` en preview; nada en mailchimp.
+.cmail_prop <- function(ctx, prop) {
+  if (!isTRUE(ctx$marks)) return("")
+  sprintf(' data-pulso-prop="%s"', .cmail_esc(prop))
+}
+
+# Marca la primera fila de un bloque (preview).
+.cmail_mark_row <- function(html, ctx, block_id, type = NULL) {
+  if (!isTRUE(ctx$marks) || !nzchar(html)) return(html)
+  attrs <- sprintf(' data-pulso-block="%s"%s', .cmail_esc(block_id),
+                   if (!is.null(type)) sprintf(' data-pulso-type="%s"', .cmail_esc(type)) else "")
+  sub("^<tr", paste0("<tr", attrs), html)
+}
 
 .cmail_esc <- function(x) htmltools::htmlEscape(as.character(x %||% ""), attribute = TRUE)
 
@@ -42,7 +66,8 @@
 .cmail_field_value <- function(key, ctx, in_url = FALSE) {
   if (identical(key, "nombre")) {
     if (identical(ctx$mode, "mailchimp")) return("*|FNAME|*")
-    return(if (in_url) utils::URLencode(ctx$values$nombre %||% "", reserved = TRUE) else .cmail_esc(ctx$values$nombre %||% ""))
+    if (in_url) return(utils::URLencode(ctx$values$nombre %||% "", reserved = TRUE))
+    return(.cmail_field_span("nombre", .cmail_esc(ctx$values$nombre %||% ""), ctx))
   }
   field <- ctx$fields[[key]]
   if (identical(ctx$mode, "mailchimp")) {
@@ -56,12 +81,31 @@
   if (!nzchar(trimws(value)) && !in_url) value <- field$fallback %||% ""
   # En un enlace el valor va crudo: `.cmail_url()` escapa el atributo entero.
   if (in_url) return(value)
-  .cmail_esc(value)
+  .cmail_field_span(key, .cmail_esc(value), ctx)
 }
 
-# Texto de usuario -> HTML inline seguro.
-.cmail_inline <- function(text, ctx) {
+# En preview, el valor resuelto va teñido y marcado (`data-pulso-field`).
+.cmail_field_span <- function(key, html, ctx) {
+  if (!isTRUE(ctx$marks)) return(html)
+  sprintf('<span data-pulso-field="%s" style="background:%s;border-radius:3px;">%s</span>',
+          .cmail_esc(key), .CMAIL_FIELD_TINT, html)
+}
+
+# Texto de usuario -> HTML inline seguro. Con `links`, `[texto](url)` sale como
+# enlace (solo en las propiedades de `.CMAIL_LINK_PROPS`).
+.cmail_inline <- function(text, ctx, links = FALSE) {
   out <- .cmail_esc(text)
+  if (isTRUE(links)) {
+    m <- gregexpr(.CMAIL_LINK_RE, out, perl = TRUE)
+    if (m[[1]][[1]] != -1L) {
+      regmatches(out, m) <- list(vapply(regmatches(out, m)[[1]], function(seg) {
+        label <- sub(.CMAIL_LINK_RE, "\\1", seg, perl = TRUE)
+        url <- .cmail_unesc(sub(.CMAIL_LINK_RE, "\\2", seg, perl = TRUE))
+        sprintf('<a href="%s" target="_blank" style="color:%s;text-decoration:underline;">%s</a>',
+                .cmail_url(url, ctx), ctx$link, label)
+      }, ""))
+    }
+  }
   out <- gsub("\\*\\*(.+?)\\*\\*", "<strong>\\1</strong>", out, perl = TRUE)
   out <- gsub("\n", "<br>", out, fixed = TRUE)
   keys <- .cmail_tokens(out)
@@ -91,6 +135,13 @@
 
 .cmail_gsub_safe <- function(x) gsub("\\\\", "\\\\\\\\", x)
 
+.cmail_unesc <- function(x) {
+  for (p in list(c("&lt;", "<"), c("&gt;", ">"), c("&#39;", "'"), c("&quot;", '"'), c("&amp;", "&"))) {
+    x <- gsub(p[[1]], p[[2]], x, fixed = TRUE)
+  }
+  x
+}
+
 .cmail_url <- function(url, ctx) {
   out <- as.character(url %||% "")
   for (k in .cmail_tokens(out)) {
@@ -101,58 +152,7 @@
 }
 
 # ---- imágenes ---------------------------------------------------------------
-
-.cmail_png_size <- function(path) {
-  if (is.null(path) || !file.exists(path)) return(NULL)
-  con <- file(path, "rb"); on.exit(close(con))
-  head <- readBin(con, "raw", 24L)
-  if (length(head) < 24L || !identical(head[1:8], as.raw(c(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)))) return(NULL)
-  int32 <- function(b) sum(as.integer(b) * c(16777216, 65536, 256, 1))
-  list(width = int32(head[17:20]), height = int32(head[21:24]))
-}
-
-# Ids de imagen que usa la plantilla, en orden.
-.cmail_image_ids <- function(template) {
-  h <- template$header %||% list()
-  if (identical(h$kind, "banner")) return(as.character(h$image_ref))
-  unique(as.character(unlist(h$logo_ids %||% list(), use.names = FALSE)))
-}
-
-#' Resuelve las imágenes de la plantilla contra el proyecto.
-#'
-#' Los archivos son logos del `.pulso` (kind `brand_logo`), igual que la careta
-#' del afiche (`.cm_brand_assets_map`). Cada imagen sabe su ruta (si existe),
-#' su URL pública (si se declaró), su alt y su marcador de exportación.
-#' @keywords internal
-.cmail_images_resolve <- function(session, template) {
-  ids <- .cmail_image_ids(template)
-  paths <- .cm_brand_assets_map(session, ids)
-  lapply(stats::setNames(ids, ids), function(id) {
-    decl <- (template$images %||% list())[[id]] %||% list()
-    path <- paths[[id]]
-    list(
-      id = id,
-      path = path,
-      size = .cmail_png_size(path),
-      bytes = if (!is.null(path)) as.numeric(file.info(path)$size) else NA_real_,
-      url = .cmail_one(decl$url),
-      alt = .cmail_one(decl$alt) %||% "",
-      export_name = sprintf("%s.png", id),
-      placeholder = sprintf("IMAGEN_%s.png", id)
-    )
-  })
-}
-
-.cmail_image_src <- function(img, ctx) {
-  if (identical(ctx$mode, "mailchimp")) {
-    return(img$url %||% img$placeholder)
-  }
-  if (!is.null(img$path)) {
-    raw <- readBin(img$path, "raw", file.info(img$path)$size)
-    return(paste0("data:image/png;base64,", jsonlite::base64_enc(raw)))
-  }
-  img$url
-}
+# Resolución, medidas y `src`: collection_mail_images.R.
 
 .cmail_img_tag <- function(img, ctx, width, height, style_extra = "") {
   src <- .cmail_image_src(img, ctx)
@@ -181,7 +181,8 @@
       '<img src="%s" width="%d" alt="%s" style="display:block;border:0;width:100%%;max-width:%dpx;height:auto;">',
       .cmail_esc(src), .CMAIL_WIDTH, .cmail_esc(img$alt), .CMAIL_WIDTH
     )
-    return(sprintf('<tr><td style="padding:0;line-height:0;font-size:0;">%s</td></tr>', inner))
+    return(.cmail_mark_row(sprintf('<tr><td style="padding:0;line-height:0;font-size:0;">%s</td></tr>', inner),
+                           ctx, "__cabecera", "header"))
   }
   dark <- identical(h$background %||% "light", "dark")
   bg <- if (dark) accent else "#ffffff"
@@ -204,101 +205,13 @@
     cells <- c(cells, sprintf('<td valign="middle">%s</td>', .cmail_img_tag(img, ctx, width, height, alt_style)))
   }
   border <- if (dark) "" else sprintf("border-bottom:1px solid %s;", .CMAIL_BORDER)
-  sprintf(
+  .cmail_mark_row(sprintf(
     '<tr><td bgcolor="%s" align="%s" style="background-color:%s;padding:28px 40px 24px 40px;%s"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>%s</tr></table></td></tr>',
     bg, if (dark) "left" else "center", bg, border, paste(cells, collapse = "")
-  )
+  ), ctx, "__cabecera", "header")
 }
 
-.cmail_text_td <- function(inner, padding = "0 46px 16px 46px", align = "left") {
-  sprintf(
-    '<tr><td style="padding:%s;font-family:%s;font-size:15px;line-height:24px;color:%s;text-align:%s;">%s</td></tr>',
-    padding, .CMAIL_FONT, .CMAIL_TEXT_COLOR, align, inner
-  )
-}
-
-.cmail_block_html <- function(b, ctx) {
-  type <- as.character(b$type)
-  switch(type,
-    greeting = {
-      text <- as.character(b$text)
-      uses_name <- "nombre" %in% .cmail_tokens(text)
-      fallback <- .cmail_one(b$fallback)
-      inner <- if (identical(ctx$mode, "mailchimp") && uses_name && !is.null(fallback)) {
-        sprintf("*|IF:FNAME|*%s*|ELSE:|*%s*|END:IF|*", .cmail_inline(text, ctx), .cmail_inline(fallback, ctx))
-      } else if (identical(ctx$mode, "preview") && uses_name && !nzchar(trimws(ctx$values$nombre %||% "")) && !is.null(fallback)) {
-        .cmail_inline(fallback, ctx)
-      } else {
-        .cmail_inline(text, ctx)
-      }
-      .cmail_text_td(sprintf('<p style="margin:0;">%s</p>', inner), padding = "28px 46px 18px 46px")
-    },
-    paragraph = .cmail_text_td(
-      sprintf('<p style="margin:0;">%s</p>', .cmail_inline(b$text, ctx)),
-      align = .cmail_one(b$align) %||% "left"
-    ),
-    button = {
-      accent <- ctx$accent
-      note <- unlist(b$note %||% list(), use.names = FALSE)
-      note_html <- if (length(note)) sprintf(
-        '<p style="margin:12px 0 0 0;font-family:%s;font-size:13px;line-height:20px;color:#555555;">%s</p>',
-        .CMAIL_FONT, paste(vapply(note, .cmail_inline, "", ctx = ctx), collapse = "<br>")
-      ) else ""
-      sprintf(paste0(
-        '<tr><td align="center" style="padding:12px 46px 26px 46px;">',
-        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"><tr>',
-        '<td align="center" bgcolor="%s" style="background-color:%s;mso-padding-alt:15px 48px;">',
-        '<a href="%s" target="_blank" style="display:inline-block;padding:15px 48px;border:1px solid %s;',
-        'font-family:%s;font-size:16px;line-height:20px;font-weight:bold;color:#ffffff;text-decoration:none;">%s</a>',
-        '</td></tr></table>%s</td></tr>'
-      ), accent, accent, .cmail_url(b$url, ctx), accent, .CMAIL_FONT, .cmail_inline(b$text, ctx), note_html)
-    },
-    callout = {
-      items <- unlist(b$items, use.names = FALSE)
-      title <- .cmail_one(b$title)
-      if (identical(.cmail_one(b$variant) %||% "box", "bar")) {
-        inner <- paste(c(
-          if (!is.null(title)) sprintf("<strong>%s</strong>", .cmail_inline(title, ctx)),
-          vapply(items, .cmail_inline, "", ctx = ctx)
-        ), collapse = "<br>")
-        sprintf(paste0(
-          '<tr><td style="padding:0 46px 12px 46px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">',
-          '<tr><td style="padding:14px 18px;border-left:3px solid %s;background-color:#f5f6f9;font-family:%s;font-size:15px;line-height:23px;color:%s;">%s</td></tr>',
-          '</table></td></tr>'
-        ), ctx$accent, .CMAIL_FONT, .CMAIL_TEXT_COLOR, inner)
-      } else {
-        lis <- paste(sprintf('<li style="margin:0 0 8px 0;">%s</li>', vapply(items, .cmail_inline, "", ctx = ctx)), collapse = "")
-        sprintf(paste0(
-          '<tr><td style="padding:0 46px 18px 46px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid %s;">',
-          '<tr><td style="padding:18px 22px 10px 22px;font-family:%s;font-size:15px;line-height:24px;color:%s;">',
-          '%s<ul style="margin:0 0 8px 0;padding-left:22px;">%s</ul></td></tr></table></td></tr>'
-        ), .CMAIL_BORDER, .CMAIL_FONT, .CMAIL_TEXT_COLOR,
-        if (!is.null(title)) sprintf('<p style="margin:0 0 10px 0;"><strong>%s</strong></p>', .cmail_inline(title, ctx)) else "",
-        lis)
-      }
-    },
-    list = {
-      tag <- if (isTRUE(b$ordered)) "ol" else "ul"
-      lis <- paste(sprintf('<li style="margin:0 0 8px 0;">%s</li>', vapply(unlist(b$items, use.names = FALSE), .cmail_inline, "", ctx = ctx)), collapse = "")
-      .cmail_text_td(sprintf('<%s style="margin:0;padding-left:22px;">%s</%s>', tag, lis, tag))
-    },
-    signature = {
-      closing <- .cmail_one(b$closing)
-      lines <- vapply(unlist(b$lines %||% list(), use.names = FALSE), .cmail_inline, "", ctx = ctx)
-      url <- .cmail_one(b$url)
-      body <- paste(c(
-        sprintf("<strong>%s</strong>", .cmail_inline(b$name, ctx)),
-        lines,
-        if (!is.null(url)) sprintf('<a href="%s" target="_blank" style="color:#1a56b8;">%s</a>', .cmail_url(url, ctx), .cmail_url(url, ctx))
-      ), collapse = "<br>")
-      .cmail_text_td(paste0(
-        if (!is.null(closing)) sprintf('<p style="margin:0 0 18px 0;">%s</p>', .cmail_inline(closing, ctx)) else "",
-        sprintf('<p style="margin:0;">%s</p>', body)
-      ), padding = "10px 46px 36px 46px")
-    },
-    footer_legal = ""
-  )
-}
+# Bloques del cuerpo: collection_mail_blocks.R.
 
 # Pie legal. En mailchimp lleva SIEMPRE la dirección de la lista y la baja,
 # exista o no el bloque footer_legal: Mailchimp rechaza la campaña sin ellas.
@@ -308,8 +221,8 @@
   text <- .cmail_one(footer$text)
   address <- .cmail_one(footer$address)
   parts <- c(
-    if (!is.null(text)) .cmail_inline(text, ctx),
-    if (!is.null(address)) .cmail_inline(address, ctx)
+    if (!is.null(text)) sprintf("<span%s>%s</span>", .cmail_prop(ctx, "text"), .cmail_inline(text, ctx, links = TRUE)),
+    if (!is.null(address)) sprintf("<span%s>%s</span>", .cmail_prop(ctx, "address"), .cmail_inline(address, ctx))
   )
   if (identical(ctx$mode, "mailchimp")) {
     parts <- c(parts, "*|LIST:ADDRESSLINE|*",
@@ -317,9 +230,12 @@
   } else {
     parts <- c(parts, '<span style="text-decoration:underline;">Dejar de recibir estos correos</span>')
   }
+  mark <- if (isTRUE(ctx$marks) && !is.null(footer$block_id)) {
+    sprintf(' data-pulso-block="%s" data-pulso-type="footer_legal"', .cmail_esc(footer$block_id))
+  } else ""
   sprintf(
-    '<tr><td align="center" style="padding:18px 30px 24px 30px;font-family:%s;font-size:12px;line-height:18px;color:#555555;">%s</td></tr>',
-    .CMAIL_FONT, paste(parts, collapse = "<br>")
+    '<tr><td align="center"%s style="padding:18px 30px 24px 30px;font-family:%s;font-size:12px;line-height:18px;color:#555555;">%s</td></tr>',
+    mark, .CMAIL_FONT, paste(parts, collapse = "<br>")
   )
 }
 
@@ -348,13 +264,12 @@ collection_mail_render <- function(template, mode = c("preview", "mailchimp"), v
     values = values,
     fields = .cmail_field_index(template),
     images = images,
+    marks = identical(mode, "preview"),
     accent = .cmail_one(template$theme$accent) %||% .CMAIL_DEFAULT_ACCENT
   )
+  ctx$link <- .cmail_one(template$theme$link) %||% ctx$accent
   for (id in .cmail_image_ids(template)) {
-    if (is.null(ctx$images[[id]])) {
-      ctx$images[[id]] <- list(id = id, path = NULL, size = NULL, url = NULL, alt = "",
-                               placeholder = sprintf("IMAGEN_%s.png", id))
-    }
+    if (is.null(ctx$images[[id]])) ctx$images[[id]] <- .cmail_image_placeholder(id)
   }
   subject <- .cmail_plain(template$subject, ctx)
   preheader <- .cmail_plain(template$preheader, ctx)
@@ -400,7 +315,7 @@ collection_mail_render <- function(template, mode = c("preview", "mailchimp"), v
   texts <- c(
     as.character(template$subject %||% ""), as.character(template$preheader %||% ""),
     unlist(lapply(template$blocks %||% list(), function(b) {
-      unlist(b[setdiff(names(b), c("block_id", "type", "variant", "align", "ordered"))], use.names = FALSE)
+      unlist(b[setdiff(names(b), .CMAIL_NON_TEXT_KEYS)], use.names = FALSE)
     }), use.names = FALSE)
   )
   unique(unlist(lapply(texts, .cmail_tokens), use.names = FALSE))

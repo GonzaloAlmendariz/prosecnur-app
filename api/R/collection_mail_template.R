@@ -5,16 +5,21 @@
 # digital. La app lo COMPONE; el envío masivo se hace en Mailchimp (ADR 0046 no
 # convierte el módulo en herramienta de emailing).
 #
-# Contrato `collection_mail_template/v1`:
+# Contrato `collection_mail_template/v2` (E1g; la lectura acepta v1 y la sube
+# sin cambiar el contenido, en `.cmail_template_normalize`):
 #
 #   schema, template_id, preset_id, revision, template_sha256,
 #   subject, preheader,
-#   theme  = { accent: "#rrggbb" },
+#   theme  = { accent: "#rrggbb", link?: "#rrggbb" },
 #   header = { kind: "logos", logo_ids: [..], background: "dark"|"light" }
 #          | { kind: "banner", image_ref: "<id>" },
 #   images = { <image_id>: { alt, url? } },   # url pública opcional (https)
 #   fields = [ { key, tag, label, fallback? } ],
 #   blocks = [ { block_id, type, ... } ]      # registro CERRADO
+#
+# Estilos: solo las enumeraciones de collection_mail_styles.R (`size`, `tone`,
+# `fill`, `level`, `style`, `variant`, `align`). Enlaces `[texto](url)` solo en
+# las propiedades de `.CMAIL_LINK_PROPS`. Ids de imagen sin `_` (Mailchimp).
 #
 # **Registro cerrado.** Solo existen los tipos de `.CMAIL_BLOCK_KEYS` y cada uno
 # admite solo sus claves. El texto es texto: nunca HTML. La única marca es
@@ -32,14 +37,18 @@
 # revisión optimista global; el `mail_template` singular de antes se migra al
 # leer. Los destinatarios NO: ver collection_mail_recipients.R.
 
-COLLECTION_MAIL_TEMPLATE_SCHEMA <- "collection_mail_template/v1"
+COLLECTION_MAIL_TEMPLATE_SCHEMA <- "collection_mail_template/v2"
+COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
 
 .CMAIL_BLOCK_KEYS <- list(
   greeting     = c("text", "fallback"),
-  paragraph    = c("text", "align"),
-  button       = c("text", "url", "note"),
+  heading      = c("text", "level", "align"),
+  paragraph    = c("text", "align", "size", "tone"),
+  button       = c("text", "url", "note", "align", "size", "fill"),
   callout      = c("title", "items", "variant"),
   list         = c("items", "ordered"),
+  divider      = c("style", "size"),
+  image        = c("image_ref", "alt", "width", "align", "url", "bleed"),
   signature    = c("closing", "name", "lines", "url"),
   footer_legal = c("text", "address")
 )
@@ -150,7 +159,9 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA <- "collection_mail_template/v1"
 .cmail_template_normalize <- function(template, revision = NULL) {
   if (!is.list(template)) return(template)
   t <- template
-  t$schema <- COLLECTION_MAIL_TEMPLATE_SCHEMA
+  # v1 sube a v2 sin tocar el contenido; otro esquema queda tal cual y lo
+  # rechaza la validación (`bad_schema`).
+  if (is.null(t$schema) || identical(t$schema, COLLECTION_MAIL_TEMPLATE_SCHEMA_V1)) t$schema <- COLLECTION_MAIL_TEMPLATE_SCHEMA
   if (!is.null(revision)) t$revision <- as.integer(revision)
   t$revision <- as.integer(.cmail_one(as.character(t$revision %||% 1L)) %||% 1L)
   if (is.list(t$header)) {
@@ -164,6 +175,11 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA <- "collection_mail_template/v1"
       if (!is.null(b[[k]])) b[[k]] <- .cmail_strings(b[[k]]) %||% b[[k]]
     }
     if (!is.null(b$ordered)) b$ordered <- isTRUE(unlist(b$ordered))
+    if (!is.null(b$bleed) && length(unlist(b$bleed)) == 1L && is.logical(unlist(b$bleed))) b$bleed <- isTRUE(unlist(b$bleed))
+    if (!is.null(b$width) && length(unlist(b$width)) == 1L && is.numeric(unlist(b$width))) {
+      w <- unlist(b$width)
+      if (!is.na(w) && w == round(w)) b$width <- as.integer(w)
+    }
     b
   })
   if (is.null(t$images) || (is.list(t$images) && !length(t$images))) {
@@ -249,12 +265,22 @@ collection_mail_template_validate <- function(template) {
 
   add(.cmail_text_problems(template$subject %||% "", "template.subject", keys))
   add(.cmail_text_problems(template$preheader %||% "", "template.preheader", keys))
+  add(.cmail_link_problems(template$subject, "template.subject", keys, FALSE))
+  add(.cmail_link_problems(template$preheader, "template.preheader", keys, FALSE))
 
   theme <- template$theme
   if (!is.null(theme)) {
     accent <- .cmail_one(theme$accent)
     if (!is.list(theme) || is.null(accent) || !grepl("^#[0-9a-fA-F]{6}$", accent)) {
       add(list(.cmail_problem("template.theme.accent", "bad_color", "El color de acento es #rrggbb.")))
+    }
+    if (is.list(theme)) {
+      for (k in setdiff(names(theme), c("accent", "link"))) {
+        add(list(.cmail_problem(paste0("template.theme.", k), "unknown_key", sprintf("`%s` no pertenece al tema.", k))))
+      }
+      if (!is.null(theme$link) && !grepl("^#[0-9a-fA-F]{6}$", .cmail_one(theme$link) %||% "")) {
+        add(list(.cmail_problem("template.theme.link", "bad_color", "El color de enlace es #rrggbb.")))
+      }
     }
   }
 
@@ -266,7 +292,7 @@ collection_mail_template_validate <- function(template) {
   for (id in names(images)) {
     img <- images[[id]]
     path <- paste0("template.images.", id)
-    if (!.cmail_slug_ok(id)) add(list(.cmail_problem(path, "bad_id", "Id de imagen inválido.")))
+    if (!.cmail_image_id_ok(id)) add(list(.cmail_problem(path, "bad_id", "Id de imagen: a-z, 0-9 y guiones (sin _).")))
     if (!is.list(img)) { add(list(.cmail_problem(path, "not_object", "Cada imagen es {alt, url}."))); next }
     for (k in setdiff(names(img), c("alt", "url"))) {
       add(list(.cmail_problem(paste0(path, ".", k), "unknown_key", sprintf("`%s` no pertenece a una imagen.", k))))
@@ -292,7 +318,7 @@ collection_mail_template_validate <- function(template) {
       }
       ids <- .cmail_strings(header$logo_ids)
       if (is.null(ids) || !length(ids) || length(ids) > 6L ||
-          !all(vapply(ids, .cmail_slug_ok, logical(1)))) {
+          !all(vapply(ids, .cmail_image_id_ok, logical(1)))) {
         add(list(.cmail_problem("template.header.logo_ids", "bad_logos", "La franja lleva de 1 a 6 logos del proyecto.")))
       }
       bg <- .cmail_one(header$background %||% "light")
@@ -303,7 +329,7 @@ collection_mail_template_validate <- function(template) {
       for (k in setdiff(names(header), c("kind", "image_ref"))) {
         add(list(.cmail_problem(paste0("template.header.", k), "unknown_key", sprintf("`%s` no pertenece a la cabecera.", k))))
       }
-      if (!.cmail_slug_ok(.cmail_one(header$image_ref) %||% NA_character_)) {
+      if (!.cmail_image_id_ok(.cmail_one(header$image_ref) %||% NA_character_)) {
         add(list(.cmail_problem("template.header.image_ref", "bad_image_ref", "El banner nombra una imagen del proyecto.")))
       }
     } else {
@@ -345,10 +371,17 @@ collection_mail_template_validate <- function(template) {
       items <- .cmail_strings(b[[field]])
       if (is.null(items)) return(list(.cmail_problem(paste0(path, ".", field), "not_list", "Debe ser una lista de textos.")))
       if (required && !length(items)) return(list(.cmail_problem(paste0(path, ".", field), "empty_list", "La lista necesita al menos un elemento.")))
+      allowed <- .cmail_link_allowed(type, field)
       unlist(lapply(seq_along(items), function(j) {
-        .cmail_text_problems(items[[j]], sprintf("%s.%s[%d]", path, field, j), keys, required = TRUE)
+        p <- sprintf("%s.%s[%d]", path, field, j)
+        c(.cmail_text_problems(items[[j]], p, keys, required = TRUE), .cmail_link_problems(items[[j]], p, keys, allowed))
       }), recursive = FALSE)
     }
+    # Enlaces del texto: válidos donde se permiten, prohibidos en el resto.
+    for (k in intersect(names(b), c("text", "title", "fallback", "closing", "name", "address", "alt"))) {
+      add(.cmail_link_problems(b[[k]], paste0(path, ".", k), keys, .cmail_link_allowed(type, k)))
+    }
+    add(.cmail_style_problems(b, type, path))
     switch(type,
       greeting = {
         add(.cmail_text_problems(b$text, paste0(path, ".text"), keys, required = TRUE))
@@ -358,12 +391,10 @@ collection_mail_template_validate <- function(template) {
             "Un saludo con campo necesita su texto de respaldo para quien no tiene el dato.")))
         }
       },
-      paragraph = {
-        add(.cmail_text_problems(b$text, paste0(path, ".text"), keys, required = TRUE))
-        if (!is.null(b$align) && !((.cmail_one(b$align) %||% "") %in% c("left", "justify", "center"))) {
-          add(list(.cmail_problem(paste0(path, ".align"), "bad_align", "align es left, justify o center.")))
-        }
-      },
+      paragraph = add(.cmail_text_problems(b$text, paste0(path, ".text"), keys, required = TRUE)),
+      heading = add(.cmail_text_problems(b$text, paste0(path, ".text"), keys, required = TRUE)),
+      divider = NULL,
+      image = add(.cmail_image_block_problems(b, path, keys)),
       button = {
         add(.cmail_text_problems(b$text, paste0(path, ".text"), keys, required = TRUE))
         add(.cmail_url_problems(b$url, paste0(path, ".url"), keys))
@@ -372,9 +403,6 @@ collection_mail_template_validate <- function(template) {
       callout = {
         add(.cmail_text_problems(b$title, paste0(path, ".title"), keys))
         add(list_problems("items", TRUE))
-        if (!is.null(b$variant) && !((.cmail_one(b$variant) %||% "") %in% c("box", "bar"))) {
-          add(list(.cmail_problem(paste0(path, ".variant"), "bad_variant", "variant es box o bar.")))
-        }
       },
       list = {
         add(list_problems("items", TRUE))
@@ -397,6 +425,34 @@ collection_mail_template_validate <- function(template) {
   # Nada binario en lo que persiste (mismo guard que collection_state).
   add(.cc_security_problems(template, "template"))
   list(ok = length(p) == 0L, problems = p)
+}
+
+# Bloque image (§B): imagen del proyecto con alt obligatorio y sin campos,
+# ancho de 40 a 600, alineación cerrada, sangre lógica y enlace opcional.
+.cmail_image_block_problems <- function(b, path, keys) {
+  out <- list()
+  push <- function(code, prop, detail) out[[length(out) + 1L]] <<- .cmail_problem(paste0(path, ".", prop), code, detail)
+  if (!.cmail_image_id_ok(.cmail_one(b$image_ref) %||% NA_character_)) {
+    push("bad_image_ref", "image_ref", "La imagen nombra un archivo del proyecto: a-z, 0-9 y guiones (sin _).")
+  }
+  alt <- .cmail_one(b$alt)
+  if (is.null(alt) || !nzchar(trimws(alt))) {
+    push("missing_alt", "alt", "Toda imagen lleva texto alternativo: es lo que se lee con las imágenes bloqueadas.")
+  } else {
+    out <- c(out, .cmail_text_problems(alt, paste0(path, ".alt"), character(0)))
+    if (length(.cmail_tokens(alt))) push("alt_has_field", "alt", "El texto alternativo no admite {{campos}}.")
+  }
+  if (!is.null(b$width)) {
+    w <- unlist(b$width)
+    if (length(w) != 1L || !is.numeric(w) || is.na(w) || w != round(w) || w < 40 || w > 600) {
+      push("bad_width", "width", "width es un entero de 40 a 600 (px).")
+    }
+  }
+  if (!is.null(b$bleed) && (length(unlist(b$bleed)) != 1L || !is.logical(unlist(b$bleed)))) {
+    push("bad_flag", "bleed", "bleed es verdadero o falso.")
+  }
+  if (!is.null(b$url)) out <- c(out, .cmail_url_problems(b$url, paste0(path, ".url"), keys, required = FALSE))
+  out
 }
 
 # ---- presets ------------------------------------------------------------------

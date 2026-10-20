@@ -11,13 +11,15 @@
 # de cada slug): si no, al reabrir la cabecera queda sin imagen y la revisión
 # del correo bloquea con `images_available`.
 
-#' Último `brand_logo` por slug: lista slug -> meta (solo los que existen en disco).
+#' Último archivo por slug de los `kinds` dados (por defecto `brand_logo`): lista
+#' slug -> meta (solo los que existen en disco). Los correos también lo usan para
+#' `mail_image` (collection_mail_images.R).
 #' @keywords internal
-.cm_brand_logo_latest <- function(files, require_file = TRUE) {
+.cm_brand_logo_latest <- function(files, require_file = TRUE, kinds = "brand_logo") {
   out <- list()
   stamp <- list()
   for (meta in files %||% list()) {
-    if (!is.list(meta) || !identical(as.character(meta$kind %||% "")[1], "brand_logo")) next
+    if (!is.list(meta) || !(as.character(meta$kind %||% "")[1] %in% kinds)) next
     path <- as.character(meta$path %||% "")[1]
     if (require_file && (!nzchar(path) || !file.exists(path))) next
     slug <- .cm_brand_slug(meta$original_name)

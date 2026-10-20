@@ -2,6 +2,9 @@ allowed_upload_kinds <- c("xlsform", "data", "sav", "sav_bundle", "plan_limpieza
                           "plantilla_codif", "universo_muestra", "graficos_share",
                           "monitoreo_operational_package", "monitoreo_reference_drift",
                           "plan_trabajo", "equivalencias", "brand_logo",
+                          # Imágenes de línea gráfica del correo (ADR 0110 §B):
+                          # PNG o JPEG, validadas por sus bytes al subir.
+                          "mail_image",
                           # El libro de aulas se sube por aqui y NO por su propio
                           # endpoint: `importar-libro` con `parsers = multi` recibia
                           # el archivo pero plumber moria al parsear el xlsx de
@@ -38,7 +41,7 @@ ext_for_kind <- function(kind, original_name) {
     ext <- switch(kind,
       xlsform = "xlsx", data = "xlsx", sav = "sav", sav_bundle = "zip",
       plan_limpieza = "xlsx", plantilla_codif = "xlsx",
-      universo_muestra = "xlsx", graficos_share = "zip", brand_logo = "png",
+      universo_muestra = "xlsx", graficos_share = "zip", brand_logo = "png", mail_image = "png",
       monitoreo_operational_package = "csv",
       monitoreo_reference_drift = "csv",
       plan_trabajo = "xlsx", "bin"
@@ -55,6 +58,9 @@ save_upload <- function(sid, kind, original_name, raw_bytes) {
   s <- session_get(sid)
   file_id <- uuid::UUIDgenerate()
   ext <- ext_for_kind(kind, original_name)
+  # La imagen del correo se valida por sus bytes (tipo, peso, ancho) y guarda
+  # la extensión real: el nombre «foto.png» de un JPEG no decide nada.
+  if (identical(kind, "mail_image")) ext <- .cmail_image_upload_check(original_name, raw_bytes)$ext
   fname <- sprintf("%s.%s", file_id, ext)
   fpath <- file.path(s$dir, "uploads", fname)
   writeBin(raw_bytes, fpath)
