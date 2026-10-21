@@ -411,6 +411,7 @@ describe("checklist HSyVbG A5 y A7: avisos internos con su lugar de arreglo", ()
     ] } });
     expect(r.resumen.avisos.map(etiquetaDeAviso)).toEqual(["Universo sin declarar", "Mapa a revisar"]);
     expect(accionParaAviso(r.resumen.avisos[0])?.href).toBe(DIRECCION_UNIVERSO);
+    expect(DIRECCION_UNIVERSO).toBe("/analitica?pestana=comparativos&panel=universo");
     expect(accionParaAviso(r.resumen.avisos[1])?.href).toContain("panel=armonizacion");
   });
 });
