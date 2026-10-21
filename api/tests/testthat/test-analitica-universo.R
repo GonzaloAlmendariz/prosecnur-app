@@ -81,3 +81,20 @@ test_that("con universo declarado la clave sigue terminando en «:<base activa>�
   s <- .invalidate_processing_state(s, base_nombre = "A")
   expect_null(s$analitica_rp_data)
 })
+
+test_that("la base preparada sirve el universo declarado y vuelve a todos al apagarlo", {
+  # El verificador del 2026-10-21 pidió medir las FILAS servidas y no sólo la
+  # clave: el defecto de HSyVbG era exportar 2.500 casos con el universo apagado.
+  sid <- .bv_estudio()
+  on.exit(session_delete(sid), add = TRUE)
+  estudio_active_base_set(sid, "2026")
+  filas <- function() nrow(.load_rp_sources(sid)$data_sources[["2026"]])
+  total <- filas()
+  cond <- list(list(variable = "q1", operador = "==", valores = list("1")))
+  marcados <- sum(as.character(estudio_data_sources(sid)[["2026"]]$q1) %in% "1")
+  expect_true(marcados > 0 && marcados < total)
+  caso_valido_guardar(sid, "2026", TRUE, cond)
+  expect_identical(filas(), marcados)
+  caso_valido_guardar(sid, "2026", FALSE, cond)
+  expect_identical(filas(), total)
+})
