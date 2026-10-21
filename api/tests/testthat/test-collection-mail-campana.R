@@ -294,3 +294,13 @@ test_that("cursiva en el importador: <em>, <i> y font-style:italic pasan a *…*
   texts2 <- vapply(Filter(function(b) identical(b$type, "paragraph"), again$template$blocks), `[[`, "", "text")
   expect_identical(intersect(texts, texts2), texts)
 })
+
+test_that("vista previa en campaña: el dato de la persona se marca con subrayado, no con el tinte claro que no se lee sobre fondo oscuro", {
+  t <- .cmc_campana(page_bg = "#0b1f54")
+  pv <- collection_mail_render(t, "preview", values = list(nombre = "Ana"))$html
+  expect_match(pv, 'data-pulso-field="nombre" style="border-bottom:1px dashed currentColor;">Ana', fixed = TRUE)
+  expect_false(grepl(sprintf('data-pulso-field="nombre" style="background:%s', .CMAIL_FIELD_TINT), pv, fixed = TRUE))
+  sobrio <- t; sobrio$theme$estilo <- "sobrio"
+  pvs <- collection_mail_render(sobrio, "preview", values = list(nombre = "Ana"))$html
+  expect_match(pvs, sprintf('data-pulso-field="nombre" style="background:%s;', .CMAIL_FIELD_TINT), fixed = TRUE)
+})

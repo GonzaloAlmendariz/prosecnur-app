@@ -102,6 +102,12 @@
 # En preview, el valor resuelto va teñido y marcado (`data-pulso-field`).
 .cmail_field_span <- function(key, html, ctx) {
   if (!isTRUE(ctx$marks)) return(html)
+  # En campaña el fondo puede ser oscuro: el tinte claro dejaría el dato ilegible; se marca con un subrayado
+  # punteado del mismo color del texto.
+  if (isTRUE(ctx$pal$campana)) {
+    return(sprintf('<span data-pulso-field="%s" style="border-bottom:1px dashed currentColor;">%s</span>',
+                   .cmail_esc(key), html))
+  }
   sprintf('<span data-pulso-field="%s" style="background:%s;border-radius:3px;">%s</span>',
           .cmail_esc(key), .CMAIL_FIELD_TINT, html)
 }
