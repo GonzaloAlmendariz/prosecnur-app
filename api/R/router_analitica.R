@@ -4415,6 +4415,12 @@ mount_analitica <- function(pr) {
 	        df
 	      })
 	      names(data_sources_filt) <- names(data_sources)
+	      # Una base que no trae ninguna de las variables de cruce no se cruza: antes
+	      # cortaba el job entero con «length(CRUZAR_CON) > 0 is not TRUE» (HSyVbG,
+	      # segmentos de cruce declarados sólo en 2026). reporte_cruces_bases.R.
+	      con_cruces <- .cruces_bases_con_variables(data_sources_filt, cruces_val)
+	      data_sources_filt <- data_sources_filt[con_cruces]
+	      inst_sources <- inst_sources[con_cruces]
 
       rp_data_path <- job_save_rds(sid, "rp_data_sources", data_sources_filt)
       rp_inst_path <- job_save_rds(sid, "rp_inst_sources", inst_sources)
@@ -4562,10 +4568,10 @@ mount_analitica <- function(pr) {
           notas = .notas_pie_normalizar(cfg$notas),
           api_path = api_path
         ),
-        result_filename = if (length(data_sources) > 1L) {
+        result_filename = if (length(data_sources_filt) > 1L) {
           .export_filename(sid, "cruces", "zip")
         } else {
-          .analitica_export_filename(sid, "cruces", "xlsx", base = names(data_sources)[1])
+          .analitica_export_filename(sid, "cruces", "xlsx", base = names(data_sources_filt)[1])
         },
         on_complete = function(j) {
           .analitica_status_set(j$sid, "analitica_cruces_ok", TRUE)

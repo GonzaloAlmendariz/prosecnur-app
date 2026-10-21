@@ -149,3 +149,11 @@ test_that("cruces conservan labels en listas categoricas cortas", {
 
   expect_equal(cats$labels, c("Hombre", "Mujer"))
 })
+
+test_that("cruces multibase: una base sin las variables de cruce se salta y si no hay ninguna el error se explica", {
+  ds <- list(b2024 = data.frame(p1 = 1:3), b2026 = data.frame(p1 = 1:3, cruce_sexo = c(1, 2, 1)))
+  expect_identical(.cruces_bases_con_variables(ds, c("cruce_sexo", "cruce_edad")), "b2026")
+  e <- tryCatch(.cruces_bases_con_variables(ds["b2024"], "cruce_sexo"), api_error = function(e) e)
+  expect_equal(e$code, "E_NO_CRUCES_ANALITICAS")
+  expect_match(conditionMessage(e), "Ninguna base trae")
+})
