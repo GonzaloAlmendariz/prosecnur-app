@@ -222,7 +222,14 @@
   for (i in seq_along(ids)) {
     img <- ctx$images[[ids[[i]]]]
     size <- img$size
-    width <- if (is.null(size) || !size$height) 120L else as.integer(min(200, round(size$width / size$height * height)))
+    # El logo conserva su proporción: si a esta altura pasaría de 200 px de ancho, se achica la altura, nunca se
+    # aplasta (un logo de 10:1 a 40 px de alto se veía deformado al cortarle el ancho).
+    logo_h <- height
+    width <- if (is.null(size) || !size$height) 120L else {
+      w <- size$width / size$height * height
+      if (w > 200) logo_h <- max(16L, as.integer(round(200 / (size$width / size$height))))
+      as.integer(min(200, round(w)))
+    }
     if (i > 1L) {
       cells <- c(cells, sprintf(
         '<td valign="middle" style="padding:0 18px;"><div style="width:1px;height:%dpx;background-color:%s;line-height:%dpx;font-size:0;">&nbsp;</div></td>',
@@ -231,7 +238,7 @@
     }
     # Con las imágenes bloqueadas el cliente pinta el alt: que se lea sobre el fondo.
     alt_style <- sprintf("font-family:%s;font-size:13px;color:%s;", .CMAIL_FONT, if (dark) "#ffffff" else .CMAIL_TEXT_COLOR)
-    cells <- c(cells, sprintf('<td valign="middle">%s</td>', .cmail_img_tag(img, ctx, width, height, alt_style)))
+    cells <- c(cells, sprintf('<td valign="middle">%s</td>', .cmail_img_tag(img, ctx, width, logo_h, alt_style)))
   }
   border <- if (dark) "" else sprintf("border-bottom:1px solid %s;", .CMAIL_BORDER)
   .cmail_mark_row(sprintf(
