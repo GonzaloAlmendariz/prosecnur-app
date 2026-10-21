@@ -44,7 +44,7 @@ export const DESCRIPCION_DE_BLOQUE: Record<MailBlockType, string> = {
   divider: "Una línea o un espacio entre dos partes del correo.",
   image: "Una imagen de la línea gráfica, con su texto alternativo; puede ir a todo el ancho.",
   signature: "Firma institucional del estudio, igual en todos los correos.",
-  footer_legal: "Por qué recibe el correo y la dirección. Mailchimp agrega la baja (*|UNSUB|*).",
+  footer_legal: "La dirección y la baja que exige la plataforma. Un texto propio es opcional.",
 };
 
 export const ROTULO_DE_BLOQUE_OPACO = "Bloque no reconocido";
@@ -380,7 +380,7 @@ export function bloqueNuevo(type: MailBlockType, block_id: string): MailBlock {
     case "divider": return { block_id, type, style: "linea", size: "m" };
     case "image": return { block_id, type, image_ref: "imagen", alt: "Describe la imagen" };
     case "signature": return { block_id, type, closing: "Atentamente,", name: "Pulso PUCP" };
-    case "footer_legal": return { block_id, type, text: "Recibe este correo porque forma parte de la población del estudio." };
+    case "footer_legal": return { block_id, type };
   }
 }
 
