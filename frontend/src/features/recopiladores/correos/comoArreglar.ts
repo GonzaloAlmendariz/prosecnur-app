@@ -9,7 +9,7 @@ const ARREGLO: Readonly<Record<string, string>> = {
   preheader: "Escribe una frase corta en «Asunto y vista previa».",
   html_weight: "Quita bloques o acorta textos largos.",
   images_hosted: "Sube la imagen como archivo o ponle una URL pública.",
-  images_available: "Sube el archivo de la imagen en Identidad o en su bloque.",
+  images_available: "Sube su PNG o JPEG: viaja dentro del ZIP del correo.",
   images_alt: "Describe la imagen en una frase: qué muestra.",
   banner_size: "Sube un banner de al menos 1200 px de ancho, idealmente 1200 × 600.",
   footer_unsub: "Deja el bloque de pie: la app agrega la baja.",

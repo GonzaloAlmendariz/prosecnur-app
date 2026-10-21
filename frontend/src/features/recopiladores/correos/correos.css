@@ -946,11 +946,6 @@ textarea.rec-mail-input {
   white-space: nowrap;
 }
 
-.rec-mail-logo-id .xfk-mono {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .rec-mail-logo-acciones {
   align-items: center;
   display: flex;

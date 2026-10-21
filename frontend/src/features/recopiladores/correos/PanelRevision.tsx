@@ -1,7 +1,8 @@
-import type { MailCheck, MailReview } from "../../../api/materialMail";
+import type { MailCheck, MailReview, MailTemplate } from "../../../api/materialMail";
 import { AlertCircle, ArrowRight, CheckCircle2, Loader2, XCircle } from "../../../vendor/lucide-react";
 import { FOCO_COLUMNA_DEL_TRATO, comoArreglar, destinoDelChequeo } from "./comoArreglar";
 import { IDENTIDAD, focoDelEstilo } from "./modeloEstilo";
+import { fraseDeLoQueFalta, idsSinArchivo } from "./nombresDeImagen";
 import { CABECERA, SOBRE, chequeosOrdenados, cifraDeChequeo, muestraDetalle, resumenDeRevision, rotuloDeChequeo, textoDeItem, CUERPO_DEL_INSPECTOR } from "./modeloCorreo";
 
 type Props = {
@@ -12,12 +13,16 @@ type Props = {
    * `foco` nombra el control que se enfoca allí (`data-foco`), si no es el primero.
    */
   onIrAlBloque?: (blockId: string, foco?: string) => void;
+  /** La plantilla del borrador: nombra cada imagen por su papel, no por su id. */
+  template?: Pick<MailTemplate, "header" | "images" | "blocks"> | null;
 };
 
 /** El texto del botón de salida de un chequeo: lo que hace, en la voz de la vista. */
 export function salidaDelChequeo(code: string, destino: string, prop?: string): { texto: string; foco?: string } {
   // F2: el saludo por sexo se arregla eligiendo la columna, con el foco en el selector.
   if (code === "greeting_trato") return { texto: "Elegir columna", foco: FOCO_COLUMNA_DEL_TRATO };
+  // H7: el logo que falta se sube en Identidad.
+  if (code === "images_available" && destino === CABECERA) return { texto: "Subir en Identidad" };
   // F15: la cabecera sin descripción se corrige en Identidad, que es adonde lleva.
   if (destino === CABECERA) return { texto: "Ir a Identidad" };
   // E1n: el contraste de Campaña se corrige en Identidad › Estilo, en el control del color.
@@ -29,12 +34,18 @@ export function salidaDelChequeo(code: string, destino: string, prop?: string): 
 const ICONO = { ok: CheckCircle2, warning: AlertCircle, error: XCircle } as const;
 const VOZ = { ok: "bien", warning: "aviso", error: "por corregir" } as const;
 
-function Chequeo({ check, onIrAlBloque }: { check: MailCheck; onIrAlBloque?: (blockId: string, foco?: string) => void }) {
+function Chequeo({ check, onIrAlBloque, template }: { check: MailCheck; onIrAlBloque?: (blockId: string, foco?: string) => void; template?: Props["template"] }) {
   const destino = destinoDelChequeo(check, SOBRE);
   const arreglo = check.status !== "ok" ? comoArreglar(check.code) : null;
   const Icono = ICONO[check.status];
-  const detalle = muestraDetalle(check);
-  const items = check.code === "fields_empty"
+  // H7: «Falta el logo de la unidad solicitante y el de Pulso PUCP», sin ids.
+  const faltan = check.code === "images_available" && check.status !== "ok" && template
+    ? fraseDeLoQueFalta(template, idsSinArchivo(check.items))
+    : null;
+  const detalle = faltan ?? (muestraDetalle(check) ? check.detail : "");
+  const items = faltan
+    ? []
+    : check.code === "fields_empty"
     ? check.items.filter((i) => typeof i !== "string" && Number(i.empty) > 0)
     : check.code === "tags_have_columns" && check.status === "ok"
       ? []
@@ -48,7 +59,7 @@ function Chequeo({ check, onIrAlBloque }: { check: MailCheck; onIrAlBloque?: (bl
       </span>
       {detalle || items.length ? (
         <span className="rec-mail-chk-texto">
-          {detalle ? <span className="rec-mail-chk-detalle">{check.detail}</span> : null}
+          {detalle ? <span className="rec-mail-chk-detalle">{detalle}</span> : null}
           {items.length ? (
             <span className="rec-mail-chk-items" data-qa-geometry-group="material-campo/correo/chequeo-items" data-qa-geometry-contract="intrinsic">
               {items.map((item, i) => <span key={i} className="xfk-mono">{textoDeItem(item)}</span>)}
@@ -75,7 +86,7 @@ function Chequeo({ check, onIrAlBloque }: { check: MailCheck; onIrAlBloque?: (bl
 }
 
 /** Pestaña «Revisión»: lo que el backend comprueba antes de dejar exportar. */
-export function PanelRevision({ revision, cargando, onIrAlBloque }: Props) {
+export function PanelRevision({ revision, cargando, onIrAlBloque, template = null }: Props) {
   return (
     <div {...CUERPO_DEL_INSPECTOR} className="rec-mail-insp-cuerpo">
       <div className="rec-mail-insp-cabeza">
@@ -92,7 +103,7 @@ export function PanelRevision({ revision, cargando, onIrAlBloque }: Props) {
           data-qa-geometry-group="material-campo/correo/chequeos"
           data-qa-geometry-contract="intrinsic"
         >
-          {chequeosOrdenados(revision.checks).map((check, i) => <Chequeo key={`${check.code}-${i}`} check={check} onIrAlBloque={onIrAlBloque} />)}
+          {chequeosOrdenados(revision.checks).map((check, i) => <Chequeo key={`${check.code}-${i}`} check={check} onIrAlBloque={onIrAlBloque} template={template} />)}
         </ul>
       ) : null}
     </div>

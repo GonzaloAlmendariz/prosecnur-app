@@ -170,6 +170,34 @@ export function zonasDeLaVista(
   return out;
 }
 
+/** Un logo de la franja tal como lo pinta la vista previa: dónde está y si ya tiene imagen. */
+export type LogoMedido = { id: string; rect: Rect; conImagen: boolean };
+
+/**
+ * Los logos de la cabecera, medidos en el espacio de la hoja.
+ *
+ * El render escribe una celda `<td valign="middle">` sin estilo por logo —con
+ * su `<img>` o un hueco con el alt— y separadores con estilo propio (el mismo
+ * contrato que lee `logosDeLaVistaPrevia`). Se mide lo que se ve dentro de la
+ * celda. Si el número de celdas no calza con los logos, no se promete nada.
+ */
+export function logosDeLaCabecera(
+  doc: Pick<Document, "querySelectorAll">,
+  logoIds: readonly string[],
+  escala: number,
+): LogoMedido[] {
+  if (!logoIds.length) return [];
+  const fila = Array.from(doc.querySelectorAll("[data-pulso-block]")).find((n) => n.getAttribute("data-pulso-block") === CABECERA);
+  if (!fila) return [];
+  const celdas = Array.from(fila.querySelectorAll("td")).filter((td) => td.getAttribute("valign") === "middle" && !td.hasAttribute("style"));
+  if (celdas.length !== logoIds.length) return [];
+  return celdas.map((td, i) => {
+    const img = td.querySelector("img");
+    const visible = img ?? td.querySelector("span") ?? td;
+    return { id: logoIds[i], rect: rectDe(visible, escala), conImagen: img !== null };
+  });
+}
+
 /** La propiedad de texto bajo el punto, o la primera de la zona. */
 export function propEnElPunto(zona: Pick<ZonaMedida, "props">, x: number, y: number): string | null {
   const dentro = zona.props.filter((p) => x >= p.rect.x && x <= p.rect.x + p.rect.w && y >= p.rect.y && y <= p.rect.y + p.rect.h);
