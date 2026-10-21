@@ -592,7 +592,7 @@ export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   preheader: "Texto de vista previa (preheader)",
   html_weight: "Peso del correo",
   images_hosted: "Imágenes sin incrustar",
-  images_available: "Imágenes en el proyecto",
+  images_available: "Logos e imágenes subidos",
   images_alt: "Texto alternativo en las imágenes",
   banner_size: "Medidas del banner",
   footer_unsub: "Pie con *|UNSUB|* y dirección",
@@ -696,7 +696,7 @@ export function cifraDeChequeo(check: MailCheck): string {
     case "image_weight":
       return check.status === "ok" ? "livianas" : `${v.toLocaleString("es-PE")} sobre 200 KB`;
     case "images_available":
-      return check.status === "ok" ? "todas" : `${v} sin archivo`;
+      return check.status === "ok" ? "todas" : v === 1 ? "falta 1" : `faltan ${v}`;
     case "images_alt":
       return check.status === "ok" ? "en todas" : `${v} sin texto`;
     case "banner_size":

@@ -115,3 +115,46 @@
   gap: 4px;
   margin-top: 6px;
 }
+
+/* H9: el logo se nombra por su papel o su descripción y, debajo, lo que le falta. */
+.rec-mail-logo .rec-mail-logo-id {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 2px;
+  white-space: normal;
+}
+
+.rec-mail-logo-id b {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* H3: sobre cada hueco de logo del lienzo, la acción de subirlo. La caja copia
+   la del hueco del render; el botón (`.rec-capa-subir`) se centra en ella. */
+.rec-capa-logo {
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+}
+
+/* El botón monta sobre el borde inferior de la caja: el nombre del logo
+   sigue a la vista dentro del hueco. */
+.rec-capa-logo .rec-capa-subir {
+  font-size: 11.5px;
+  min-height: 24px;
+  padding: 0 10px;
+  pointer-events: auto;
+  top: 100%;
+  white-space: nowrap;
+}
+
+/* H7: el renglón de lo que falta subir lleva su botón al final. */
+.rec-capa-falta {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.rec-capa-falta > span {
+  flex: 1 1 160px;
+  min-width: 0;
+}

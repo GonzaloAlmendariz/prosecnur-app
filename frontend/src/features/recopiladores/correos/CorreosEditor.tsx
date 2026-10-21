@@ -306,6 +306,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
         }}
         onQuitar={quitarConAviso}
         onArchivoDeImagen={subirImagenDeBloque}
+        onArchivoDeLogo={(id, file) => { void acciones.subirImagen(id, file); }}
         onDeshacer={st.deshacer}
         onRehacer={st.rehacer}
       />
@@ -704,6 +705,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
                 vistaDeImagen={imagenDelBloque}
                 ocupado={ocupado}
                 onSubirImagen={subirImagenDeBloque}
+                onSubirLogo={(id, file) => { void acciones.subirImagen(id, file); }}
                 destinatarios={st.destinatarios}
                 onIrAPersonas={() => irAPestana("destinatarios")}
               />
@@ -721,6 +723,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
                 onSubir={(id, file) => { void acciones.subirImagen(id, file); }}
                 pedirAlt={st.pedirAlt}
                 onAltListo={() => st.setPedirAlt(null)}
+                plataforma={dialecto}
               />
             ) : null}
             {pestana === "envios" ? (
@@ -765,7 +768,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
                 onVerComo={st.setPersona}
               />
             ) : null}
-            {pestana === "revision" ? <PanelRevision revision={st.revision} cargando={st.revisionCargando} onIrAlBloque={irAlBloque} /> : null}
+            {pestana === "revision" ? <PanelRevision revision={st.revision} cargando={st.revisionCargando} onIrAlBloque={irAlBloque} template={template} /> : null}
           </div>
         </aside>
       </div>

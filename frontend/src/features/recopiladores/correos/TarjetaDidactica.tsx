@@ -47,7 +47,11 @@ export function TarjetaDidactica({ block, template, dialecto }: Props) {
 }
 
 /** Los chequeos de la revisión que nombran este bloque (`targets`). */
-export function ChequeosDelBloque({ chequeos }: { chequeos: readonly MailCheck[] }) {
+export function ChequeosDelBloque({ chequeos, detalleDe }: {
+  chequeos: readonly MailCheck[];
+  /** Un detalle propio de la vista que reemplaza al del backend; `null` deja el suyo. */
+  detalleDe?: (check: MailCheck) => string | null;
+}) {
   if (!chequeos.length) return null;
   return (
     <ul className="rec-capa-chequeos" aria-label="Revisión de este bloque">
@@ -56,7 +60,7 @@ export function ChequeosDelBloque({ chequeos }: { chequeos: readonly MailCheck[]
           {c.status === "error" ? <AlertCircle size={14} aria-hidden /> : <AlertTriangle size={14} aria-hidden />}
           <span>
             <b>{rotuloDeChequeo(c)}</b>
-            {c.detail ? <span>{c.detail}</span> : null}
+            {(detalleDe?.(c) ?? c.detail) ? <span>{detalleDe?.(c) ?? c.detail}</span> : null}
           </span>
         </li>
       ))}

@@ -1,10 +1,12 @@
 import { isOpaqueMailBlock, type MailBlock, type MailCheck, type MailProblem, type MailRecipients, type MailRecipientView, type MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { ArrowDown, ArrowUp, Image, Trash2 } from "../../../vendor/lucide-react";
+import { ArrowDown, ArrowUp, Palette, Trash2 } from "../../../vendor/lucide-react";
 import { PropRow, Segmented } from "../../xlsformEditor/kit";
 import { ajustesDe, conAjuste, valorDeAjuste } from "./ajustesDeBloque";
 import { CampoDeTexto } from "./CampoDeTexto";
 import type { Dialecto } from "./comoSaleEnLaPlataforma";
+import { LoQueFaltaSubir } from "./LoQueFaltaSubir";
+import { fraseDeLoQueFalta, idsSinArchivo, nombreDeImagen } from "./nombresDeImagen";
 import { PanelDeImagen } from "./PanelDeImagen";
 import { ChequeosDelBloque, TarjetaDidactica } from "./TarjetaDidactica";
 import { EnlaceDeLaPersona } from "./EnlaceDeLaPersona";
@@ -51,6 +53,8 @@ type Props = {
   vistaDeImagen?: string | null;
   ocupado?: boolean;
   onSubirImagen?: (blockId: string, file: File) => void;
+  /** Sube una imagen de la cabecera (logo o banner) con su id, como en Identidad. */
+  onSubirLogo?: (id: string, file: File) => void;
   /** La lista cargada en Personas: de ahí sale la columna del saludo por sexo (C8). */
   destinatarios?: MailRecipients | null;
   onIrAPersonas?: () => void;
@@ -135,6 +139,7 @@ export function PanelDeBloque({
   vistaDeImagen = null,
   ocupado = false,
   onSubirImagen,
+  onSubirLogo,
   destinatarios = null,
   onIrAPersonas,
 }: Props) {
@@ -170,38 +175,45 @@ export function PanelDeBloque({
 
   if (seleccion === CABECERA) {
     const header = template.header;
+    const idsDeLaCabecera = header.kind === "banner" ? [header.image_ref] : header.logo_ids;
+    // H7: lo que falta subir se dice con el nombre de cada logo y se sube aquí;
+    // el resto de los chequeos sigue en su lista.
+    const disponibles = chequeos.find((c) => c.code === "images_available" && c.status !== "ok");
+    const faltan = disponibles ? idsSinArchivo(disponibles.items).filter((id) => idsDeLaCabecera.includes(id)) : [];
+    const otros = faltan.length ? chequeos.filter((c) => c !== disponibles) : chequeos;
     return (
       <div {...CUERPO_DEL_INSPECTOR} className="rec-mail-insp-cuerpo">
         <Encabezado
           titulo={rotuloDeCabecera(header)}
           descripcion={header.kind === "banner"
             ? "El banner de mailing que entrega el cliente, a todo el ancho del correo."
-            : "Logos de las instituciones del estudio sobre la franja; se alojan como imágenes, no incrustadas."}
+            : "Los logos de las instituciones del estudio, arriba del correo. Cada uno viaja en el ZIP como imagen aparte."}
         />
         <div className="rec-mail-props">
           <PropRow label="Tipo">{header.kind === "banner" ? "Banner de mailing" : "Franja de logos"}</PropRow>
           {header.kind === "logos" ? (
             <>
-              <PropRow label="Logos" mono>{header.logo_ids.join(" · ") || "ninguno"}</PropRow>
+              <PropRow label="Logos">{header.logo_ids.map((id) => nombreDeImagen(template, id)).join(" · ") || "ninguno"}</PropRow>
               <PropRow label="Fondo">{header.background === "dark" ? "Oscuro, con el acento" : "Claro"}</PropRow>
             </>
           ) : (
-            <PropRow label="Imagen" mono>{header.image_ref}</PropRow>
+            <PropRow label="Imagen">{nombreDeImagen(template, header.image_ref)}</PropRow>
           )}
           <PropRow label="Texto alternativo">
-            {(header.kind === "banner" ? [header.image_ref] : header.logo_ids).every((id) => template.images[id]?.alt?.trim())
+            {idsDeLaCabecera.every((id) => template.images[id]?.alt?.trim())
               ? "Sí"
               : "Falta en alguna"}
           </PropRow>
         </div>
-        <ChequeosDelBloque chequeos={chequeos} />
+        {onSubirLogo ? <LoQueFaltaSubir template={template} ids={faltan} ocupado={ocupado} onSubir={onSubirLogo} /> : null}
+        <ChequeosDelBloque chequeos={onSubirLogo ? otros : chequeos} />
         {problemas.cabecera.length ? (
           <ul className="rec-mail-problemas">
             {problemas.cabecera.map((p, i) => <li key={`${p.path}-${i}`}>{p.detail}</li>)}
           </ul>
         ) : null}
         <PulsoButton variant="secondary" size="sm" onClick={onAbrirIdentidad}>
-          <Image size={14} aria-hidden /> Editar la identidad
+          <Palette size={14} aria-hidden /> Cambiar logos, banner y colores
         </PulsoButton>
       </div>
     );
@@ -239,7 +251,10 @@ export function PanelDeBloque({
   return (
     <div {...CUERPO_DEL_INSPECTOR} className="rec-mail-insp-cuerpo">
       <Encabezado titulo={rotuloDeBloque(block)} descripcion={descripcionDeBloque(block)} />
-      <ChequeosDelBloque chequeos={chequeos} />
+      <ChequeosDelBloque
+        chequeos={chequeos}
+        detalleDe={(c) => (c.code === "images_available" ? fraseDeLoQueFalta(template, idsSinArchivo(c.items)) : null)}
+      />
       {block.type === "image" ? (
         <PanelDeImagen
           template={template}

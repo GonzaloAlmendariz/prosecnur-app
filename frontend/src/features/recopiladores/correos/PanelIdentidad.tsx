@@ -1,12 +1,14 @@
-import { useId, type ChangeEvent } from "react";
+import { useId } from "react";
 
-import type { MailCheck, MailTemplate } from "../../../api/materialMail";
+import type { MailCheck, MailPlatform, MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { AlertCircle, Check, CheckCircle2, ImagePlus, Trash2, Upload } from "../../../vendor/lucide-react";
+import { AlertCircle, Check, CheckCircle2, ImagePlus, Link2, Trash2 } from "../../../vendor/lucide-react";
 import { Segmented } from "../../xlsformEditor/kit";
 import { EstiloDelCorreo } from "./EstiloDelCorreo";
 import { srcDeImagenDelBloque } from "./estructuraCorreo";
 import { FranjaDeLogos } from "./FranjaDeLogos";
+import { nombreDeImagen } from "./nombresDeImagen";
+import { SubirArchivo } from "./SubirArchivo";
 import {
   BANNER_ID,
   MAX_LOGOS,
@@ -38,24 +40,12 @@ type Props = {
   /** Imagen cuyo texto alternativo se pide (tras importar un correo): su campo toma el foco. */
   pedirAlt?: string | null;
   onAltListo?: () => void;
+  /**
+   * Plataforma de la campaña. En Mailchimp cada imagen viaja dentro del ZIP y
+   * no se pide URL; SurveyMonkey no recibe archivos y exige su URL https.
+   */
+  plataforma?: MailPlatform;
 };
-
-function SubirArchivo({ etiqueta, disabled, onArchivo }: { etiqueta: string; disabled: boolean; onArchivo: (file: File) => void }) {
-  const id = useId();
-  const alElegir = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (file) onArchivo(file);
-  };
-  return (
-    <span className={`rec-mail-subir${disabled ? " is-disabled" : ""}`}>
-      <input id={id} type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" className="pulso-sr-only" disabled={disabled} onChange={alElegir} />
-      <label htmlFor={id} className="pulso-button pulso-button--secondary pulso-button--sm">
-        <Upload size={14} aria-hidden /> {etiqueta}
-      </label>
-    </span>
-  );
-}
 
 function Imagen({ src, alt, banner }: { src: string | undefined; alt: string; banner?: boolean }) {
   return (
@@ -65,8 +55,33 @@ function Imagen({ src, alt, banner }: { src: string | undefined; alt: string; ba
   );
 }
 
+/**
+ * El enlace de una imagen. En Mailchimp la imagen viaja en el ZIP y no se pide
+ * URL: si ya trae una (de un correo importado) se muestra, sin invitar a
+ * alojar. SurveyMonkey no recibe archivos: ahí la URL https es el dato.
+ */
+function EnlaceDeLaImagen({ nombre, url, plataforma, onCambio }: { nombre: string; url: string | undefined; plataforma: MailPlatform; onCambio: (url: string) => void }) {
+  if (plataforma === "surveymonkey") {
+    return (
+      <input
+        className="rec-mail-input rec-mail-input--sm"
+        aria-label={`URL https de ${nombre}`}
+        placeholder="URL https: SurveyMonkey no recibe archivos"
+        value={url ?? ""}
+        onChange={(e) => onCambio(e.target.value.trim())}
+      />
+    );
+  }
+  if (!url) return null;
+  return (
+    <span className="rec-mail-ayuda" title={url}>
+      <Link2 size={12} aria-hidden /> Viene con enlace del correo importado
+    </span>
+  );
+}
+
 /** Pestaña «Identidad»: banner de mailing del cliente o franja de logos del estudio. */
-export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinArchivo, bannerCheck, chequeosDeEstilo = {}, ocupado, onEditar, onSubir, pedirAlt = null, onAltListo }: Props) {
+export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinArchivo, bannerCheck, chequeosDeEstilo = {}, ocupado, onEditar, onSubir, pedirAlt = null, onAltListo, plataforma = "mailchimp" }: Props) {
   const ids = useId();
   const conBanner = template.header.kind === "banner";
   const bannerId = template.header.kind === "banner" ? template.header.image_ref : BANNER_ID;
@@ -133,13 +148,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
           Describe el banner: es lo que lee quien no ve imágenes y lo que muestra el correo si no carga.
         </span>
       ) : null}
-      <input
-        className="rec-mail-input rec-mail-input--sm"
-        aria-label="URL pública del banner (opcional)"
-        placeholder="URL pública, si ya está alojado"
-        value={template.images[bannerId]?.url ?? ""}
-        onChange={(e) => editarImagen(bannerId, { url: e.target.value.trim() })}
-      />
+      <EnlaceDeLaImagen nombre="el banner" url={template.images[bannerId]?.url} plataforma={plataforma} onCambio={(url) => editarImagen(bannerId, { url })} />
     </span>
   );
 
@@ -166,9 +175,13 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
         <Imagen src={imagenesLocales[bannerId] ?? template.images[bannerId]?.url} alt={template.images[bannerId]?.alt || "Banner de mailing"} banner />
         <span className="rec-mail-banner-fila">
           <b>Banner de mailing</b>
-          <span className="xfk-mono">ideal 1200 × 600</span>
+          <span className="xfk-mono">1200 × 600 px</span>
         </span>
-        <span className="rec-mail-ayuda">Lo envía el cliente; va como cabecera del correo.</span>
+        <span className="rec-mail-ayuda">
+          {conBanner
+            ? "Va arriba del correo, a todo el ancho, en lugar de los logos."
+            : "Lo envía el cliente. Si lo usas, ocupa la cabecera del correo en lugar de los logos."}
+        </span>
         {conBanner && !altArriba ? datosDelBanner : null}
         {bannerCheck && conBanner ? (
           <span className={`rec-mail-estado-linea is-${bannerCheck.status}`}>
@@ -183,7 +196,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
             size="sm"
             onClick={() => onEditar((t) => (conBanner ? usarLogos(t, fondo) : usarBanner(t, bannerId)))}
           >
-            {conBanner ? "Volver a la franja de logos" : "Usar como cabecera del correo"}
+            {conBanner ? "Volver a los logos" : "Poner el banner en lugar de los logos"}
           </PulsoButton>
         </span>
       </section>
@@ -219,20 +232,26 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
         {logos.length ? <ul className="rec-mail-logos" data-qa-geometry-group="material-campo/correo/logos" data-qa-geometry-contract="equal">
           {logos.map((id) => {
             const img = template.images[id] ?? { alt: "" };
+            const nombre = nombreDeImagen(template, id);
             const falta = !tieneArchivo(id) && !img.url;
             return (
               <li key={id} className="rec-mail-logo">
                 <Imagen src={imagenesLocales[id]} alt={img.alt} />
                 <span className="rec-mail-logo-id">
-                  <span className="xfk-mono">{id}</span>
-                  {falta ? <span className="rec-mail-chip is-warning">sin archivo</span> : null}
+                  <b title={nombre}>{nombre}</b>
+                  {falta ? <span className="rec-mail-chip is-warning">falta subirlo</span> : null}
                 </span>
                 <span className="rec-mail-logo-acciones">
-                  <SubirArchivo etiqueta="PNG o JPEG" disabled={ocupado || conBanner} onArchivo={(file) => onSubir(id, file)} />
+                  <SubirArchivo
+                    etiqueta={falta ? "Subir logo" : "Cambiar"}
+                    ariaLabel={`${falta ? "Subir" : "Cambiar"} el logo ${nombre}`}
+                    disabled={ocupado || conBanner}
+                    onArchivo={(file) => onSubir(id, file)}
+                  />
                   <PulsoButton
                     variant="icon"
                     size="sm"
-                    aria-label={`Quitar ${id}`}
+                    aria-label={`Quitar el logo ${nombre}`}
                     title="Quitar"
                     disabled={conBanner || logos.length <= 1}
                     onClick={() => quitarLogo(id)}
@@ -243,20 +262,14 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
                 <span className="rec-mail-logo-datos">
                   <input
                     className={`rec-mail-input rec-mail-input--sm${altPendiente(img.alt) ? " is-error" : ""}`}
-                    aria-label={`Texto alternativo de ${id}`}
+                    aria-label={`Texto alternativo del logo ${nombre}`}
                     aria-invalid={altPendiente(img.alt) || undefined}
                     placeholder="Texto alternativo"
                     autoFocus={pedirAlt === id}
                     value={img.alt}
                     onChange={(e) => editarImagen(id, { alt: e.target.value })}
                   />
-                  <input
-                    className="rec-mail-input rec-mail-input--sm"
-                    aria-label={`URL pública de ${id} (opcional)`}
-                    placeholder="URL pública, si ya está alojada"
-                    value={img.url ?? ""}
-                    onChange={(e) => editarImagen(id, { url: e.target.value.trim() })}
-                  />
+                  <EnlaceDeLaImagen nombre={`el logo ${nombre}`} url={img.url} plataforma={plataforma} onCambio={(url) => editarImagen(id, { url })} />
                 </span>
               </li>
             );

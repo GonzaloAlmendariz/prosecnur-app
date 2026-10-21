@@ -14,6 +14,7 @@ import {
   huecoMueve,
   huecosEntreZonas,
   indiceDesdeHueco,
+  logosDeLaCabecera,
   propConIndice,
   propEnElPunto,
   textoDeZona,
@@ -21,6 +22,7 @@ import {
   zonasDeLaVista,
   type ChequeosDeZona,
   type Hueco,
+  type LogoMedido,
   type Rect,
   type ZonaMedida,
 } from "./estructuraCorreo";
@@ -28,8 +30,10 @@ import { anchoDelChip, lugarDelChip, type LugarDelChip } from "./chipDeApertura"
 import type { CampoDelMenu } from "./MenuDeCampos";
 import { CABECERA, DESCRIPCION_DE_BLOQUE, ROTULO_DE_BLOQUE, ROTULO_DE_PROP, puedeMover, rotuloDeBloque, rotuloDeChequeo, type PropDeTexto } from "./modeloCorreo";
 import type { OpcionesDeTexto } from "./serializarTexto";
+import { nombreDeImagen } from "./nombresDeImagen";
 import type { EdicionEnLinea } from "./store";
 import "./correosCapa.css";
+import "./correosIdentidad.css";
 
 /** Tipo MIME del arrastre de un bloque que ya está en el correo. */
 const ARRASTRE_DE_MOVER = "application/x-pulso-mover";
@@ -65,6 +69,8 @@ type Props = {
   onInsertar: (type: MailBlockType, hueco: number) => void;
   onQuitar: (blockId: string) => void;
   onArchivoDeImagen: (blockId: string, file: File) => void;
+  /** Sube el logo de la franja con su id, igual que en Identidad. */
+  onArchivoDeLogo?: (logoId: string, file: File) => void;
   onDeshacer: () => void;
   onRehacer: () => void;
   /** Abre la Revisión con lo que marca el punto de la zona. */
@@ -171,14 +177,16 @@ export function CapaDeEdicion({
   onInsertar,
   onQuitar,
   onArchivoDeImagen,
+  onArchivoDeLogo,
   onDeshacer,
   onRehacer,
   onVerRevision,
 }: Props) {
   const raiz = useRef<HTMLDivElement | null>(null);
   const archivo = useRef<HTMLInputElement | null>(null);
-  const imagenPedida = useRef<string | null>(null);
+  const imagenPedida = useRef<{ tipo: "bloque" | "logo"; id: string } | null>(null);
   const [zonas, setZonas] = useState<ZonaMedida[]>([]);
+  const [logos, setLogos] = useState<LogoMedido[]>([]);
   const [biblioteca, setBiblioteca] = useState<Hueco | null>(null);
   const [destino, setDestino] = useState<(Hueco & { tipo: "mover" | "insertar" }) | null>(null);
   const [arrastrando, setArrastrando] = useState<string | null>(null);
@@ -188,13 +196,17 @@ export function CapaDeEdicion({
   const porId = useMemo(() => new Map(template.blocks.map((b) => [b.block_id, b])), [template.blocks]);
 
   // Medir: al cargar el iframe, al cambiar de escala o de vista.
+  const logoIds = template.header.kind === "logos" ? template.header.logo_ids : null;
   useLayoutEffect(() => {
     if (!doc) {
       setZonas([]);
+      setLogos([]);
       return;
     }
     setZonas(zonasDeLaVista(doc, templateRef.current, escala));
-  }, [doc, medida, escala]);
+    // H3: cada logo sin archivo de la franja ofrece subirlo ahí mismo.
+    setLogos(logoIds ? logosDeLaCabecera(doc, logoIds, escala) : []);
+  }, [doc, medida, escala, logoIds]);
 
   const huecos = useMemo(() => huecosEntreZonas(zonas, template), [template, zonas]);
 
@@ -389,7 +401,12 @@ export function CapaDeEdicion({
   })();
 
   const pedirImagen = (blockId: string) => {
-    imagenPedida.current = blockId;
+    imagenPedida.current = { tipo: "bloque", id: blockId };
+    archivo.current?.click();
+  };
+
+  const pedirLogo = (logoId: string) => {
+    imagenPedida.current = { tipo: "logo", id: logoId };
     archivo.current?.click();
   };
 
@@ -491,6 +508,23 @@ export function CapaDeEdicion({
           </div>
         );
       })}
+
+      {onArchivoDeLogo && edicion?.zona !== CABECERA ? logos.filter((l) => !l.conImagen).map((l) => {
+        const nombre = nombreDeImagen(template, l.id);
+        return (
+          <div key={`logo-${l.id}`} className="rec-capa-logo" style={estiloDeZona(l.rect)}>
+            <button
+              type="button"
+              className="rec-capa-subir rec-capa-subir-logo"
+              aria-label={`Subir el logo ${nombre}`}
+              title={`Subir el logo ${nombre} (PNG o JPEG)`}
+              onClick={() => { onSeleccionar(CABECERA); pedirLogo(l.id); }}
+            >
+              <ImagePlus size={13} aria-hidden /> Subir logo
+            </button>
+          </div>
+        );
+      }) : null}
 
       {elegida && elegida.id !== CABECERA && elegida.id !== APERTURA && porId.has(elegida.id) ? (
         <div
@@ -608,9 +642,11 @@ export function CapaDeEdicion({
         aria-hidden
         onChange={(event) => {
           const file = event.target.files?.[0];
-          const id = imagenPedida.current;
+          const pedida = imagenPedida.current;
           event.target.value = "";
-          if (file && id) onArchivoDeImagen(id, file);
+          if (!file || !pedida) return;
+          if (pedida.tipo === "logo") onArchivoDeLogo?.(pedida.id, file);
+          else onArchivoDeImagen(pedida.id, file);
         }}
       />
     </div>
