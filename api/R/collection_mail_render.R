@@ -6,7 +6,9 @@
 # `htmltools::htmlEscape` antes de convertir `**negrita**` y `{{campo}}`.
 #
 # Forma del HTML, la que leen Gmail, Outlook y Apple Mail sin sorpresas:
-# tablas `role="presentation"`, 600 px de ancho máximo, CSS solo inline, botón
+# tablas `role="presentation"`, 600 px de ancho máximo (560 o 640 con
+# `theme.width`, collection_mail_ajustes.R), CSS inline salvo las reglas de
+# teléfono del `<head>`, botón
 # «bulletproof» (celda con color de fondo + enlace con padding, sin imagen),
 # `alt` en toda imagen y nada de JavaScript.
 #
@@ -203,12 +205,12 @@
   if (identical(h$kind, "banner")) {
     img <- ctx$images[[as.character(h$image_ref)]]
     src <- .cmail_image_src(img, ctx)
-    inner <- if (is.null(src)) .cmail_img_tag(img, ctx, .CMAIL_WIDTH, 300L) else sprintf(
+    inner <- if (is.null(src)) .cmail_img_tag(img, ctx, ctx$width, as.integer(ctx$width %/% 2L)) else sprintf(
       # Sin max-width: el editor de Mailchimp dibuja la tarjeta más ancha que
       # 600 px y un tope dejaba una franja blanca al lado (prueba real
       # 2026-10-21). El atributo width="600" sigue fijando el ancho en Outlook.
       '<img src="%s" width="%d" alt="%s" style="display:block;border:0;width:100%%;height:auto;">',
-      .cmail_esc(src), .CMAIL_WIDTH, .cmail_esc(img$alt)
+      .cmail_esc(src), ctx$width, .cmail_esc(img$alt)
     )
     return(.cmail_mark_row(sprintf('<tr><td style="padding:0;line-height:0;font-size:0;">%s</td></tr>', inner),
                            ctx, "__cabecera", "header"))
@@ -242,7 +244,7 @@
   }
   border <- if (dark) "" else sprintf("border-bottom:1px solid %s;", .CMAIL_BORDER)
   .cmail_mark_row(sprintf(
-    '<tr><td bgcolor="%s" align="%s" style="background-color:%s;padding:24px 48px 22px 48px;%s"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>%s</tr></table></td></tr>',
+    '<tr><td bgcolor="%s" align="%s" class="cmail-pad" style="background-color:%s;padding:24px 48px 22px 48px;%s"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>%s</tr></table></td></tr>',
     bg, if (dark) "left" else "center", bg, border, paste(cells, collapse = "")
   ), ctx, "__cabecera", "header")
 }
@@ -257,6 +259,9 @@
   footer <- if (length(footer)) footer[[1]] else list()
   text <- .cmail_one(footer$text)
   address <- .cmail_one(footer$address)
+  # Sobre un `page_bg` propio de sobrio (E1p) el enlace del acento puede no
+  # leerse: los enlaces del pie van del tono del pie (en campaña ya son del texto).
+  if (isTRUE(ctx$pal$page_custom) && !isTRUE(ctx$pal$campana)) ctx$link <- ctx$pal$footer
   parts <- c(
     if (!is.null(text)) sprintf("<span%s>%s</span>", .cmail_prop(ctx, "text"), .cmail_inline(text, ctx, links = TRUE)),
     if (!is.null(address)) sprintf("<span%s>%s</span>", .cmail_prop(ctx, "address"), .cmail_inline(address, ctx))
@@ -264,8 +269,9 @@
   d <- .cmail_dialect(ctx)
   legal <- if (isTRUE(ctx$export)) d$footer() else d$footer_preview()
   # Los enlaces del pie de la plataforma van en gris (#555555): sobre el fondo
-  # de campaña se pintan del tono del pie, que sí llega a 4,5:1.
-  if (isTRUE(ctx$pal$campana)) legal <- gsub("color:#555555;", sprintf("color:%s;", ctx$pal$footer), legal, fixed = TRUE)
+  # de campaña, o el `page_bg` propio de sobrio (E1p), se pintan del tono del
+  # pie, que sí llega a 4,5:1.
+  if (isTRUE(ctx$pal$page_custom)) legal <- gsub("color:#555555;", sprintf("color:%s;", ctx$pal$footer), legal, fixed = TRUE)
   parts <- c(parts, legal)
   mark <- if (isTRUE(ctx$marks) && !is.null(footer$block_id)) {
     sprintf(' data-pulso-block="%s" data-pulso-type="footer_legal"', .cmail_esc(footer$block_id))
@@ -319,7 +325,9 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
     # que el editor muestra crudas. Sin audiencia (scope «plantilla») no se
     # garantiza nada y el respaldo sigue en el HTML.
     known = known,
-    accent = .cmail_one(template$theme$accent) %||% .CMAIL_DEFAULT_ACCENT
+    accent = .cmail_one(template$theme$accent) %||% .CMAIL_DEFAULT_ACCENT,
+    # Ancho de la columna (E1p): 560 | 600 | 640.
+    width = .cmail_theme_width(template$theme)
   )
   ctx$link <- .cmail_one(template$theme$link) %||% ctx$accent
   # Estilo (sobrio | campana) y alineación: collection_mail_campana.R. En campaña
@@ -337,9 +345,9 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
   card <- paste0(
     # Campaña: sin tarjeta, la columna lleva el fondo de la página.
     if (campana) sprintf('<table role="presentation" width="%d" cellpadding="0" cellspacing="0" border="0" bgcolor="%s" style="width:100%%;max-width:%dpx;background-color:%s;">',
-                         .CMAIL_WIDTH, pal$page_bg, .CMAIL_WIDTH, pal$page_bg)
+                         ctx$width, pal$page_bg, ctx$width, pal$page_bg)
     else sprintf('<table role="presentation" width="%d" cellpadding="0" cellspacing="0" border="0" style="width:100%%;max-width:%dpx;border:1px solid %s;border-radius:8px;border-collapse:separate;overflow:hidden;background-color:#ffffff;">',
-                 .CMAIL_WIDTH, .CMAIL_WIDTH, .CMAIL_BORDER),
+                 ctx$width, ctx$width, .CMAIL_BORDER),
     .cmail_header_html(template, ctx),
     # El aire bajo la cabecera separa del texto; si lo primero es una imagen a
     # sangre (un banner bajo la franja de logos) quedaba una raya blanca.
@@ -361,6 +369,8 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
     .cmail_justify_style(paste0(card, footer_rows)),
     # two_images se apila en teléfono (E1o, collection_mail_piezas.R).
     .cmail_stack_style(card),
+    # Márgenes del cuerpo a 20 px en teléfono (E1p, collection_mail_ajustes.R).
+    .cmail_pad_style(),
     "</head>\n",
     sprintf('<body style="margin:0;padding:0;background-color:%s;">', page_bg),
     .cmail_preheader_html(preheader),
@@ -368,7 +378,7 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
             page_bg, page_bg),
     card,
     sprintf('<table role="presentation" width="%d" cellpadding="0" cellspacing="0" border="0" style="width:100%%;max-width:%dpx;">%s</table>',
-            .CMAIL_WIDTH, .CMAIL_WIDTH, footer_rows),
+            ctx$width, ctx$width, footer_rows),
     "</td></tr>", .cmail_onda_html(ctx), "</table></body></html>\n"
   )
   html <- enc2utf8(html)

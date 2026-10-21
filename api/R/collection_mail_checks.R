@@ -129,12 +129,13 @@
     .cmail_check("images_alt", "ok", 0L, "Toda imagen lleva texto alternativo.")
   })
 
-  # Nitidez: el ancho mostrado a 2x no debe pasar el natural.
+  # Nitidez: el ancho mostrado a 2x no debe pasar el natural (al ancho de la columna del tema, E1p).
+  col_w <- .cmail_theme_width(tpl$theme)
   blurry <- list()
   for (u in Filter(function(u) !is.null(u$block) || isTRUE(u$pair), uses)) {
     natural <- images[[u$id]]$size$width
     if (is.null(natural)) next
-    shown <- if (isTRUE(u$pair)) .cmail_pair_shown_width(images[[u$id]]) else .cmail_image_width(u$block, images[[u$id]])
+    shown <- if (isTRUE(u$pair)) .cmail_pair_shown_width(images[[u$id]], col_w) else .cmail_image_width(u$block, images[[u$id]], col_w)
     if (shown * 2L > natural) {
       blurry[[length(blurry) + 1L]] <- list(id = u$id, block_id = u$target$block_id, width = shown, natural = as.integer(natural),
                                             prop = if (isTRUE(u$pair)) u$target$prop else "width")

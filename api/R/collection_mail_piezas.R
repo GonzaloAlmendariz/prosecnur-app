@@ -30,6 +30,9 @@
 .CMAIL_BAND_PX <- c(s = 8L, m = 16L, l = 32L)
 .CMAIL_ORNAMENT_STYLES <- c("onda", "puntos", "linea_doble")
 # Literales: este archivo se carga antes que collection_mail_render.R (.CMAIL_WIDTH).
+# Con `theme.width` (E1p) la columna de texto y el tope de two_images salen de
+# `.cmail_text_col()` y `.cmail_pair_max_w()` (collection_mail_ajustes.R); estas
+# son las de 600 px y el PNG de la onda se genera siempre a 2 × 504.
 .CMAIL_TEXT_COL <- 504L                                       # 600 - 2 × 48 px
 .CMAIL_PAIR_GAP <- 8L                                         # medio canal entre las dos imágenes
 .CMAIL_PAIR_MAX_W <- 244L                                     # 504 / 2 - 8 px por imagen
@@ -168,7 +171,7 @@
 }
 
 .cmail_column_table <- function(rows, padding = "14px 48px 14px 48px", align = NULL) {
-  sprintf('<tr><td%s style="padding:%s;"><table role="presentation" %scellpadding="0" cellspacing="0" border="0"%s>%s</table></td></tr>',
+  sprintf('<tr><td%s class="cmail-pad" style="padding:%s;"><table role="presentation" %scellpadding="0" cellspacing="0" border="0"%s>%s</table></td></tr>',
           if (is.null(align)) "" else sprintf(' align="%s"', align), padding,
           if (is.null(align)) 'width="100%" ' else "", if (is.null(align)) "" else sprintf(' align="%s"', align), rows)
 }
@@ -192,8 +195,8 @@
     return(.cmail_column_table(.cmail_px_row(color, .CMAIL_ORNAMENT_SM_PX), padding = "24px 48px 24px 48px"))
   }
   img <- .cmail_ctx_generated(ctx, .cmail_ornament_id(color), function() .cmail_ornament_png(color))
-  fit <- .cmail_fit(img$size, .CMAIL_TEXT_COL)
-  sprintf('<tr><td style="padding:12px 48px 12px 48px;line-height:0;font-size:0;"><img src="%s" width="%d" height="%d" alt="" style="display:block;width:100%%;max-width:%dpx;height:auto;border:0;outline:none;text-decoration:none;"></td></tr>',
+  fit <- .cmail_fit(img$size, .cmail_text_col(ctx$width %||% .CMAIL_WIDTH))
+  sprintf('<tr><td class="cmail-pad" style="padding:12px 48px 12px 48px;line-height:0;font-size:0;"><img src="%s" width="%d" height="%d" alt="" style="display:block;width:100%%;max-width:%dpx;height:auto;border:0;outline:none;text-decoration:none;"></td></tr>',
           .cmail_esc(.cmail_image_src(img, ctx)), fit$width, fit$height, fit$width)
 }
 
@@ -213,12 +216,15 @@
   .cmail_column_table(sprintf("<tr>%s%s</tr>", icon_cell, text), padding = "4px 48px 14px 48px")
 }
 
-# Una celda de two_images: la imagen a lo más 244 px de ancho (y nunca más ancha
-# que su archivo), alto por su proporción; tope de alto recalcula el ancho.
+# Una celda de two_images: la imagen a lo más 244 px de ancho con 600 (224 con
+# 560, 264 con 640) y nunca más ancha que su archivo, alto por su proporción;
+# tope de alto recalcula el ancho.
 .cmail_pair_cell <- function(id, alt, ctx, side) {
   img <- ctx$images[[id]] %||% .cmail_image_placeholder(id)
   size <- if (.cmail_size_ok(img$size)) img$size else list(width = 3, height = 2)
-  max_w <- if (.cmail_size_ok(img$size)) min(.CMAIL_PAIR_MAX_W, as.integer(img$size$width)) else .CMAIL_PAIR_MAX_W
+  width <- ctx$width %||% .CMAIL_WIDTH
+  pair_max <- .cmail_pair_max_w(width)
+  max_w <- if (.cmail_size_ok(img$size)) min(pair_max, as.integer(img$size$width)) else pair_max
   fit <- .cmail_fit(size, max_w)
   src <- .cmail_image_src(img, ctx)
   tag <- if (is.null(src)) {
@@ -230,7 +236,7 @@
   }
   pad <- if (identical(side, "left")) sprintf("0 %dpx 0 0", .CMAIL_PAIR_GAP) else sprintf("0 0 0 %dpx", .CMAIL_PAIR_GAP)
   sprintf('<td class="%s" width="%d" valign="top" align="center" style="width:50%%;padding:%s;vertical-align:top;">%s</td>',
-          .CMAIL_STACK_CLASS, .CMAIL_TEXT_COL %/% 2L, pad, tag)
+          .CMAIL_STACK_CLASS, .cmail_text_col(width) %/% 2L, pad, tag)
 }
 
 .cmail_block_two_images <- function(b, ctx) {
@@ -243,9 +249,9 @@
 
 #' Medidas mostradas de las imágenes de un two_images (para la nitidez).
 #' @keywords internal
-.cmail_pair_shown_width <- function(img) {
+.cmail_pair_shown_width <- function(img, width = .CMAIL_WIDTH) {
   if (!.cmail_size_ok(img$size)) return(NULL)
-  .cmail_fit(img$size, min(.CMAIL_PAIR_MAX_W, as.integer(img$size$width)))$width
+  .cmail_fit(img$size, min(.cmail_pair_max_w(width), as.integer(img$size$width)))$width
 }
 
 # Regla del `<head>`: solo si el cuerpo trae celdas apilables.

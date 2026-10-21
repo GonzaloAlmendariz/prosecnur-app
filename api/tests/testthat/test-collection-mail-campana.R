@@ -37,9 +37,10 @@ test_that("tema: claves cerradas y valores del registro; sin estilo es sobrio", 
                                      "bad_text_align", "bad_onda", "unknown_key"))
   expect_setequal(.cmc_paths(bad), paste0("template.theme.", c("estilo", "page_bg", "button_bg", "button_text",
                                                                "onda_color", "text_align", "onda", "fondo")))
-  # Las claves de campaña se aceptan con estilo sobrio (cambiar de estilo no las borra) y no pintan nada.
+  # Las claves de campaña se aceptan con estilo sobrio (cambiar de estilo no las borra) y no pintan nada;
+  # page_bg sí pinta en sobrio desde E1p (test-collection-mail-ajustes.R).
   sobrio <- .cmail_template_normalize(.cmail_preset_recuperacion())
-  con <- sobrio; con$theme$page_bg <- "#6b3fa0"; con$theme$onda <- "pie"
+  con <- sobrio; con$theme$onda <- "pie"; con$theme$button_bg <- "#f28c28"; con$theme$onda_color <- "#f28c28"
   expect_true(collection_mail_template_validate(con)$ok)
   expect_identical(collection_mail_render(con, "export")$html, collection_mail_render(sobrio, "export")$html)
   expl <- sobrio; expl$theme$estilo <- "sobrio"
@@ -216,26 +217,28 @@ test_that("justificado por defecto en párrafos, recuadros y listas; a la izquie
   t <- .cmail_template_normalize(.cmail_preset_recuperacion())
   t$blocks <- c(t$blocks, list(list(block_id = "lista", type = "list", items = list("Uno", "Dos"))))
   html <- collection_mail_render(t, "export")$html
-  style <- '<style type="text/css">@media only screen and (max-width:480px){.cmail-justify{text-align:left !important;}}</style></head>'
+  style <- '<style type="text/css">@media only screen and (max-width:480px){.cmail-justify{text-align:left !important;}}</style>'
   expect_match(html, style, fixed = TRUE)
   just <- "text-align:justify;text-justify:inter-word;"
-  cells <- regmatches(html, gregexpr('<td class="cmail-justify"[^>]*>', html))[[1]]
+  cells <- regmatches(html, gregexpr('<td class="cmail-justify[" ][^>]*>', html))[[1]]
   # 4 párrafos + 1 recuadro + 1 lista.
   expect_length(cells, 6L)
   expect_true(all(grepl(just, cells, fixed = TRUE)))
   expect_identical(lengths(regmatches(html, gregexpr(just, html, fixed = TRUE))), 6L)
   # El saludo, el botón, la firma y el pie no.
   expect_match(html, 'padding:36px 48px 20px 48px;font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:16px;line-height:26px;color:#22262e;text-align:left;', fixed = TRUE)
-  expect_false(grepl('class="cmail-justify" style="padding:14px 48px 30px', html, fixed = TRUE))
+  expect_false(grepl('class="cmail-justify[^"]*" style="padding:14px 48px 30px', html))
   expect_match(html, '<td align="center" style="padding:20px 30px 32px 30px;', fixed = TRUE)
   # Un párrafo con align propio manda.
   t2 <- t; t2$blocks[[2]]$align <- "left"
-  expect_length(regmatches(collection_mail_render(t2, "export")$html, gregexpr('<td class="cmail-justify"', collection_mail_render(t2, "export")$html))[[1]], 5L)
+  expect_length(regmatches(collection_mail_render(t2, "export")$html, gregexpr('<td class="cmail-justify[" ]', collection_mail_render(t2, "export")$html))[[1]], 5L)
   # text_align left: nada justificado y sin regla en el <head>.
   izq <- t; izq$theme$text_align <- "left"
   h <- collection_mail_render(izq, "export")$html
   expect_false(grepl("cmail-justify", h, fixed = TRUE))
-  expect_false(grepl("<style", h, fixed = TRUE))
+  # Solo la regla de márgenes en teléfono (E1p), que se emite siempre.
+  expect_identical(lengths(regmatches(h, gregexpr("<style", h, fixed = TRUE))), 1L)
+  expect_match(h, .cmail_pad_style(), fixed = TRUE)
   # center: párrafos centrados, listas a la izquierda.
   cen <- t; cen$theme$text_align <- "center"
   hc <- collection_mail_render(cen, "export")$html
