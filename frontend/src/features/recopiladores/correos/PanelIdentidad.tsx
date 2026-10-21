@@ -4,6 +4,7 @@ import type { MailCheck, MailPlatform, MailTemplate } from "../../../api/materia
 import { PulsoButton } from "../../../components/PulsoButton";
 import { AlertCircle, Check, CheckCircle2, ImagePlus, Link2, Trash2 } from "../../../vendor/lucide-react";
 import { Segmented } from "../../xlsformEditor/kit";
+import { Cuentagotas } from "./Cuentagotas";
 import { EstiloDelCorreo } from "./EstiloDelCorreo";
 import { srcDeImagenDelBloque } from "./estructuraCorreo";
 import { FranjaDeLogos } from "./FranjaDeLogos";
@@ -289,6 +290,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
             value={template.theme.accent}
             onChange={(e) => onEditar((t) => ({ ...t, theme: { ...t.theme, accent: e.target.value } }))}
           />
+          <Cuentagotas nombre="el color de acento" onChange={(accent) => onEditar((t) => ({ ...t, theme: { ...t.theme, accent } }))} />
           <span className="xfk-mono">{template.theme.accent}</span>
         </span>
       </div>
