@@ -8,11 +8,11 @@
   vapply(v$problems, function(p) p$code, "")
 }
 
-test_that("los dos presets built-in cumplen collection_mail_template/v2", {
+test_that("los presets built-in cumplen collection_mail_template/v2", {
   sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
   out <- collection_mail_presets_get(sid)
   ids <- vapply(out$presets, `[[`, "", "preset_id")
-  expect_identical(ids, c("recuperacion_estudiantes_v1", "invitacion_capacitacion_v1"))
+  expect_identical(ids, c("invitacion_encuesta_v1", "recuperacion_estudiantes_v1", "invitacion_capacitacion_v1"))
   for (p in out$presets) {
     v <- collection_mail_template_validate(p$template)
     expect_true(v$ok, info = paste(p$preset_id, paste(vapply(v$problems, `[[`, "", "detail"), collapse = "; ")))
