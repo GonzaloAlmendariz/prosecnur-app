@@ -1152,7 +1152,8 @@ exportar_cruces_multi <- function(data,
     if (!length(vars_sec)) next
 
     if (isTRUE(incluir_secciones)) {
-      openxlsx::writeData(wb, hoja, toupper(sec), startRow = fila, startCol = 1)
+      # Sin el marcado de Kobo, como en frecuencias (formato aprobado HSyVbG 2026).
+      openxlsx::writeData(wb, hoja, toupper(.freq_clean_section_label_for_export(sec)), startRow = fila, startCol = 1)
       openxlsx::addStyle(wb, hoja, st$sec_title, rows = fila, cols = 1, gridExpand = TRUE)
       openxlsx::mergeCells(wb, hoja, rows = fila, cols = 1:3)
       fila <- fila + 2
