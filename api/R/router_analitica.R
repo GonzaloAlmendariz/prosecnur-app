@@ -2119,13 +2119,16 @@
   include_active <- n_bases > 1L ||
     (exists("estudio_is_independent_siblings", mode = "function") &&
        isTRUE(tryCatch(estudio_is_independent_siblings(sid), error = function(e) FALSE)))
+  # El universo declarado («qué casos cuentan») cambia la base preparada. Va
+  # ANTES del sufijo de la base activa: `.invalidate_processing_state`
+  # (session_store.R) reconoce la base del caché porque la clave termina en
+  # «:<base>».
+  universo <- tryCatch(.analitica_universo_firma(sid), error = function(e) "")
+  if (nzchar(universo)) key <- paste(key, universo, sep = ":u")
   if (include_active) {
     active <- if (exists("estudio_active_base", mode = "function")) estudio_active_base(sid) else NULL
     key <- paste(key, as.character(active %||% ""), sep = ":")
   }
-  # El universo declarado («qué casos cuentan») cambia la base preparada.
-  universo <- tryCatch(.analitica_universo_firma(sid), error = function(e) "")
-  if (nzchar(universo)) key <- paste(key, universo, sep = ":u")
   key
 }
 
