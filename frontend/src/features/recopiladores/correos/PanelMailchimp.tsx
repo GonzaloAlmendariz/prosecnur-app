@@ -8,6 +8,19 @@ import { pesoLegible, revisionBloquea } from "./modeloCorreo";
 import { SALIDAS_DEL_ENVIO } from "./modeloSalidas";
 import "./correosExportar.css";
 
+/**
+ * Los pasos en el orden de la pantalla de campaña de Mailchimp, una línea cada uno. Salen de la prueba real con
+ * Acreditación (2026-10-21): sin etiqueta salió «All subscribed contacts», un remitente fuera del dominio verificado
+ * dispara el aviso y la prueba de envío muestra «<< Test … >>» porque no llena los campos.
+ */
+const PASOS_MAILCHIMP: readonly { donde: string; que: string }[] = [
+  { donde: "Audiencia:", que: "importa audiencia.csv y ponle una etiqueta." },
+  { donde: "To:", que: "elige esa etiqueta, no «All subscribed contacts»." },
+  { donde: "From:", que: "un correo del dominio que verificaron en Mailchimp." },
+  { donde: "Content:", que: "Code your own › Import zip con este ZIP; las imágenes se suben solas." },
+  { donde: "«Send»,", que: "no «Send a test email»: la prueba muestra «<< Test … >>» porque no llena los campos." },
+];
+
 type Props = {
   /** Rótulo del envío que se exporta, si la campaña tiene más de uno. */
   envio?: string | null;
@@ -123,10 +136,16 @@ export function PanelMailchimp({
           </PulsoButton>
         </div>
       ) : null}
-      <p className="rec-mail-ayuda">
-        En Mailchimp: Plantillas › Crear › Code your own › Import zip; las imágenes se suben solas. La audiencia va
-        aparte, en CSV con una columna por etiqueta.
-      </p>
+      <div className="rec-exp-pasos">
+        <span className="xfk-over">En Mailchimp</span>
+        <ol>
+          {PASOS_MAILCHIMP.map((paso) => (
+            <li key={paso.donde}>
+              <b>{paso.donde}</b> {paso.que}
+            </li>
+          ))}
+        </ol>
+      </div>
       {zip ? (
         <div className="rec-mail-mc-listo" role="status">
           <span className="rec-mail-mc-listo-nombre">
