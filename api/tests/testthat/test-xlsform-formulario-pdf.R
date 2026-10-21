@@ -2049,3 +2049,18 @@ test_that("B2: n_questions no cuenta sub-preguntas con letra ni numeros de segun
   # Madre (imprime su numero) + edad = 2; las letras y el 4.1 no son P-nivel.
   expect_identical(model$summary$n_questions, 2L)
 })
+
+test_that("«Otra identidad de género (especifica)» bajo la opción 88 va en línea, y los Pxx_otro no tumban la numeración por código", {
+  expect_true(.form_campos_rotulo_de_la_opcion("Otra identidad de género (especifica)", "Otra identidad de género"))
+  expect_false(.form_campos_rotulo_de_la_opcion("¿Por qué no denunciaste?", "Otra razón"))
+  survey <- data.frame(
+    type = c("select_one gi", "text", rep("select_one sn", 9)),
+    name = c("P1", "P1_otro", paste0("P", 2:10)),
+    label = c("¿Con qué género te identificas?", "Otra identidad de género (especifica)", paste("Pregunta", 2:10)),
+    relevant = c("", "${P1} = '88'", rep("", 9)), stringsAsFactors = FALSE)
+  choices <- data.frame(list_name = c("gi", "gi", "sn", "sn"), name = c("1", "88", "1", "2"),
+                        label = c("Mujer", "Otra identidad de género", "Sí", "No"), stringsAsFactors = FALSE)
+  m <- suppressWarnings(formulario_pdf_build_model(survey, choices, NULL))
+  expect_false(any(grepl("Numeracion secuencial", unlist(m$warnings))))
+  expect_identical(m$summary$n_questions, 10L)
+})

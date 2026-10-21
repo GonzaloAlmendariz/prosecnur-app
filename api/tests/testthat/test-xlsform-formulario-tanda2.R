@@ -423,8 +423,10 @@ test_that("item 17: en hsvg2026 la nota que introduce la matriz va a todo el anc
   expect_identical(firma(m$blocks), firma(m0$blocks))
   expect_identical(m$summary$n_questions, m0$summary$n_questions)
   # 118 hasta la tercera tanda; desde el item 39 (§39.6) cada una de las 4
-  # matrices consume UN numero en vez de uno por fila: 84.
-  expect_identical(m$summary$n_questions, 84L)
+  # matrices consume UN numero en vez de uno por fila: 84. Desde 2026-10-21 los
+  # 14 «Otra … (especifica)» que sólo repiten el rótulo de su opción van en línea
+  # como «Especifique» y no consumen número: 70.
+  expect_identical(m$summary$n_questions, 70L)
   expect_identical(.form_pdf_numeros_impresos(m$blocks), .form_pdf_numeros_impresos(m0$blocks))
   # Lo unico que cambia es el ancho de notas.
   cambia <- which(vapply(seq_along(b), function(k)

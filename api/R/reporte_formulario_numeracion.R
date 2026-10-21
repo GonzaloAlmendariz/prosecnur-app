@@ -104,7 +104,16 @@
   })
   libres <- which(!nzchar(explicito))
   derivables <- libres[!vapply(der_u[libres], is.null, logical(1))]
-  total <- length(libres)
+  # Un «Pxx_otro» que acompaña a una pregunta numerada no es una pregunta suelta
+  # sin esquema: se cuelga de ella con letra («23a»). No entra en la cobertura
+  # (HSyVbG 2026: 17 campos «_otro» dejaban la cobertura en 81 % y el papel
+  # salía numerado 1, 2, 3 en vez de con los códigos de la base).
+  satelite <- vapply(libres, function(k) {
+    nm <- nombres[unidades[[k]]$filas[1]]
+    base <- sub("_(otro|otra|otros|otras|esp|especifique|especifica)$", "", nm, ignore.case = TRUE)
+    !identical(base, nm) && !is.null(.form_num_derivar(base))
+  }, logical(1))
+  total <- length(libres) - sum(satelite & vapply(der_u[libres], is.null, logical(1)))
 
   falla <- ""
   if (!total) {
