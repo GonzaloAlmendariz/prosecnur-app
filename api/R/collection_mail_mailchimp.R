@@ -63,6 +63,7 @@
   }
   if (res$status >= 400L) {
     detalle <- as.character(res$body$detail %||% res$body$title %||% "")[1]
+    detalle <- gsub("[^[:space:]]+@[^[:space:]]+", "[correo]", detalle)  # nunca un correo hacia la UI
     stop_api(502, "E_MAILCHIMP_API", sprintf("Mailchimp respondió con un error (HTTP %d). %s", res$status, detalle))
   }
   res$body

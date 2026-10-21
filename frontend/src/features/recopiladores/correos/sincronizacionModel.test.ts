@@ -29,6 +29,12 @@ describe("resumen de «Actualizar quién respondió»", () => {
     ]);
   });
 
+  it("sin respuestas no dice que alguien quedó etiquetado", () => {
+    const r = resumenDeSincronizacion({ ...base, respondents: 0, tagged: 0, pending: 7, partial: 0, from_other_campaign: 0, without_token: 0 });
+    expect(r.titulo).toBe("0 de 7 ya respondieron; faltan 7.");
+    expect(r.lineas).toEqual([]);
+  });
+
   it("usa separador de miles peruano", () => {
     const r = resumenDeSincronizacion({ ...base, respondents: 4542, recipients_with_token: 22820, pending: 18278 });
     expect(r.titulo).toBe("4,542 de 22,820 ya respondieron; faltan 18,278.");

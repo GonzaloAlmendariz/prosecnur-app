@@ -10,7 +10,7 @@ export function resumenDeSincronizacion(r: ResultadoDeSincronizacion): { titulo:
   const titulo = `${n(r.respondents)} de ${n(r.recipients_with_token)} ya respondieron; faltan ${n(r.pending)}.`;
   const lineas: string[] = [];
   const uno = (v: number, a: string, b: string) => (v === 1 ? a : b);
-  if (!r.dry_run) {
+  if (!r.dry_run && r.respondents > 0) {
     lineas.push(r.tagged === r.respondents
       ? `En Mailchimp quedaron con la etiqueta «${r.tag}».`
       : `${personas(r.tagged)} ${uno(r.tagged, "quedó", "quedaron")} con la etiqueta «${r.tag}» en Mailchimp.`);

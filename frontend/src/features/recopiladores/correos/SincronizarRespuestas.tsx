@@ -87,7 +87,7 @@ export function SincronizarRespuestas({ campana }: Props) {
 
       {!cargando && mc && (!mc.connected || mc.error) ? (
         <p className="rec-mail-problema-linea" role="status">
-          {mc.error ? "Mailchimp rechazó la clave guardada" : "Falta conectar Mailchimp"}: agrégala en Configuración › Conexiones.
+          {mc.error ? "No se pudo leer Mailchimp con la clave guardada: revísala con «Verificar»" : "Falta conectar Mailchimp: agrégala"} en Configuración › Conexiones.
         </p>
       ) : null}
 
