@@ -195,11 +195,39 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
 #' @param campaign campaña (NULL al trabajar sin campaña): decide el dialecto y
 #'   de dónde se leen los destinatarios.
 #' @keywords internal
+# Qué garantiza audiencia.csv para TODA persona efectiva, solo en Mailchimp con
+# la lista cargada: `fname` si nadie queda sin nombre de pila, `saludo` si la
+# columna SALUDO viaja (la escribe para todos, con el respaldo a quien no se
+# reconoce) y `fields` con los campos que nadie trae vacíos. Sin lista o con
+# scope «plantilla» no se garantiza nada.
+.cmail_audience_known <- function(session, tpl, campaign, scope, dialect) {
+  if (!identical(dialect, "mailchimp") || identical(scope, "plantilla") || is.null(campaign)) return(list())
+  store <- .cmail_recipients_load(session, campaign$campaign_id)
+  if (is.null(store)) return(list())
+  resolved <- .cmail_recipients_resolve(store, tpl)
+  rows <- resolved$rows
+  if (!length(rows)) return(list())
+  tres <- .cmail_trato_resolve(store, tpl, resolved)
+  # Campos con respaldo que la lista trae completos: su condicional sobra.
+  full <- character(0)
+  for (k in names(store$mapping$fields %||% list())) {
+    col <- store$mapping$fields[[k]]
+    if (is.null(col) || is.null(store$rows[[col]])) next
+    if (all(nzchar(.cmail_value(store$rows[[col]][rows])))) full <- c(full, k)
+  }
+  list(
+    fname = all(nzchar(trimws(resolved$first_name[rows] %||% ""))),
+    saludo = isTRUE(tres$presente),
+    fields = full
+  )
+}
+
 .cmail_review_checks <- function(session, tpl, campaign, scope = "completo", send = NULL) {
   dialect <- if (is.null(campaign)) .CMAIL_PLATFORM_DEFAULT else .cmail_platform_of(campaign)
   campaign_id <- campaign$campaign_id
   images <- .cmail_images_resolve(session, tpl)
-  rendered <- collection_mail_render(tpl, mode = "export", dialect = dialect, images = images)
+  known <- .cmail_audience_known(session, tpl, campaign, scope, dialect)
+  rendered <- collection_mail_render(tpl, mode = "export", dialect = dialect, images = images, known = known)
   html <- rendered$html
   checks <- list()
   push <- function(x) checks[[length(checks) + 1L]] <<- x
@@ -477,7 +505,10 @@ collection_mail_review <- function(sid, template = NULL, campaign_id = NULL, sco
     if (!is.null(counts)) c(
       "1. En Mailchimp, abre Audiencia > Importar contactos y sube audiencia.csv.",
       "   Cada columna corresponde a una etiqueta de combinación (First Name = FNAME).",
-      "   Crea en la audiencia los campos que falten con la MISMA etiqueta del encabezado.",
+      "   ANTES de importar, crea en Audiencia > Configuración > Campos de audiencia y etiquetas *|MERGE|* un",
+      "   campo de tipo Texto (no URL) por cada columna que no sea Email Address ni First Name, con la etiqueta",
+      "   igual al encabezado (ENLACE, SALUDO…). Si el campo lo crea la importación, Mailchimp le pone una",
+      "   etiqueta automática (MMERGE7, MMERGE8…) y el correo sale sin esos datos: renómbrala al encabezado.",
       .cmail_leeme_trato_mc(tres)
     ) else "1. Este paquete trae solo la plantilla: la audiencia se importa aparte.",
     sprintf("2. En Mailchimp, crea la plantilla con «Code your own» > «Import ZIP» y sube %s.", .CMAIL_IMPORT_ZIP_NAME),

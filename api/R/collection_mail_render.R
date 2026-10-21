@@ -80,7 +80,7 @@
   if (isTRUE(ctx$export)) {
     d <- .cmail_dialect(ctx)
     tag <- d$field_tag(field)
-    if (!in_url && !is.null(field$fallback) && nzchar(field$fallback)) {
+    if (!in_url && !is.null(field$fallback) && nzchar(field$fallback) && !(key %in% ctx$known$fields)) {
       return(d$conditional(field$tag, tag, .cmail_esc(field$fallback)))
     }
     return(tag)
@@ -186,8 +186,11 @@
     img <- ctx$images[[as.character(h$image_ref)]]
     src <- .cmail_image_src(img, ctx)
     inner <- if (is.null(src)) .cmail_img_tag(img, ctx, .CMAIL_WIDTH, 300L) else sprintf(
-      '<img src="%s" width="%d" alt="%s" style="display:block;border:0;width:100%%;max-width:%dpx;height:auto;">',
-      .cmail_esc(src), .CMAIL_WIDTH, .cmail_esc(img$alt), .CMAIL_WIDTH
+      # Sin max-width: el editor de Mailchimp dibuja la tarjeta más ancha que
+      # 600 px y un tope dejaba una franja blanca al lado (prueba real
+      # 2026-10-21). El atributo width="600" sigue fijando el ancho en Outlook.
+      '<img src="%s" width="%d" alt="%s" style="display:block;border:0;width:100%%;height:auto;">',
+      .cmail_esc(src), .CMAIL_WIDTH, .cmail_esc(img$alt)
     )
     return(.cmail_mark_row(sprintf('<tr><td style="padding:0;line-height:0;font-size:0;">%s</td></tr>', inner),
                            ctx, "__cabecera", "header"))
@@ -264,7 +267,8 @@
 #' @return list(html, subject, preheader, bytes).
 #' @keywords internal
 collection_mail_render <- function(template, mode = c("preview", "export", "mailchimp"),
-                                   dialect = c("mailchimp", "surveymonkey"), values = list(), images = list()) {
+                                   dialect = c("mailchimp", "surveymonkey"), values = list(), images = list(),
+                                   known = list()) {
   mode <- match.arg(mode)
   dialect <- match.arg(dialect)
   if (identical(mode, "mailchimp")) { mode <- "export"; dialect <- "mailchimp" }
@@ -276,6 +280,11 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
     fields = .cmail_field_index(template),
     images = images,
     marks = identical(mode, "preview"),
+    # Lo que la audiencia exportada garantiza para TODA persona (`fname`,
+    # `saludo`, `fields`): con eso el saludo y los campos salen planos, sin condicionales de Mailchimp
+    # que el editor muestra crudas. Sin audiencia (scope «plantilla») no se
+    # garantiza nada y el respaldo sigue en el HTML.
+    known = known,
     accent = .cmail_one(template$theme$accent) %||% .CMAIL_DEFAULT_ACCENT
   )
   ctx$link <- .cmail_one(template$theme$link) %||% ctx$accent

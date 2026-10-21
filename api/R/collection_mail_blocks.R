@@ -161,7 +161,8 @@
   fallback <- .cmail_one(b$fallback)
   tr <- .cmail_trato_of(b)
   inline <- function(x) .cmail_trato_inline(x, tr, ctx)
-  if (isTRUE(ctx$export) && uses_name && !is.null(fallback)) {
+  # Con un nombre garantizado para toda la audiencia no hace falta el respaldo.
+  if (isTRUE(ctx$export) && uses_name && !is.null(fallback) && !isTRUE(ctx$known$fname)) {
     inner <- .cmail_dialect(ctx)$conditional("FNAME", inline(text), inline(fallback))
     prop <- "text"
   } else if (!isTRUE(ctx$export) && uses_name && !nzchar(trimws(ctx$values$nombre %||% "")) && !is.null(fallback)) {

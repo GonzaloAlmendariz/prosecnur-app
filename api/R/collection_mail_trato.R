@@ -244,6 +244,9 @@
     if (identical(ctx$dialect %||% .CMAIL_PLATFORM_DEFAULT, "surveymonkey")) {
       return(sprintf("[%s]", .cmail_trato_sm_slot(tr, ctx$fields)))
     }
+    # audiencia.csv escribe SALUDO para todos (el respaldo a quien no se
+    # reconoce): con esa garantía la etiqueta va sola.
+    if (isTRUE(ctx$known$saludo)) return(sprintf("*|%s|*", .CMAIL_TRATO_TAG))
     return(.cmail_dialect(ctx)$conditional(.CMAIL_TRATO_TAG, sprintf("*|%s|*", .CMAIL_TRATO_TAG), .cmail_esc(tr$respaldo)))
   }
   word <- .cmail_one(ctx$values$trato) %||% tr$respaldo
@@ -338,7 +341,7 @@
   if (!isTRUE(tres$presente)) return(character(0))
   c(sprintf("   La columna %s trae el saludo de cada persona según la columna «%s»: %s",
             .CMAIL_TRATO_TAG, tres$columna, .cmail_trato_counts_line(tres)),
-    sprintf("   Crea en la audiencia el campo de texto %s; quien no lo tenga recibe «%s».", .CMAIL_TRATO_TAG, tres$trato$respaldo))
+    sprintf("   El campo %s va con la etiqueta *|%s|* (tipo Texto); la plantilla lo usa tal cual.", .CMAIL_TRATO_TAG, .CMAIL_TRATO_TAG))
 }
 
 # Bloque `trato` del manifest: reglas y conteos, nunca el sexo de una persona.

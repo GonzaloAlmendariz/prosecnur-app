@@ -154,10 +154,15 @@ test_that("Mailchimp: lista CP1252 M/F -> revisión con cifras, audiencia.csv co
   expect_identical(man$trato$etiqueta, "*|SALUDO|*")
   expect_identical(man$trato$counts$masculino, 3L)
   expect_identical(unlist(man$audience_columns), names(aud))
-  # El HTML importable lleva el condicional; el estado (lo que va al .pulso) no lleva el sexo de nadie.
+  # La audiencia trae SALUDO y nombre de pila para los seis: el saludo del HTML
+  # importable sale plano, sin condicionales que el editor de Mailchimp muestra
+  # crudas (prueba real 2026-10-21). El estado no lleva el sexo de nadie.
   zip::unzip(file.path(dir, "plantilla-mailchimp.zip"), exdir = file.path(dir, "imp"))
   html <- .cmt_read(list.files(file.path(dir, "imp"), pattern = "\\.html$", full.names = TRUE)[[1]])
-  expect_match(html, "*|IF:SALUDO|**|SALUDO|**|ELSE:|*Estimado(a)*|END:IF|*", fixed = TRUE)
+  expect_match(html, "*|SALUDO|* *|FNAME|*:", fixed = TRUE)
+  expect_false(grepl("*|IF:", html, fixed = TRUE))
+  expect_match(leeme, "MMERGE", fixed = TRUE)
+  expect_match(leeme, "etiqueta *|SALUDO|*", fixed = TRUE)
   # Del trato solo persiste el nombre de la columna; ningún correo, nombre ni sexo de una persona.
   state <- unlist(session_get(sid)$collection_state, use.names = FALSE)
   expect_false(any(c("ana@ejemplo.org", "Ana Muñoz", "Noel Quispe") %in% state))
@@ -315,4 +320,36 @@ test_that("HTTP: PUT mail-template conserva el trato y la revisión lo lee", {
   gt <- Filter(function(c) identical(c$code, "greeting_trato"), rv$body$checks)[[1]]
   expect_identical(gt$status, "ok")
   expect_match(gt$detail, "«Estimado» o «Querida» según la columna «Sexo»", fixed = TRUE)
+})
+
+
+test_that("Mailchimp: con alguien sin nombre de pila, el respaldo del nombre sigue y el saludo no se anida", {
+  sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
+  t <- collection_mail_template_get(sid)$template
+  collection_mail_template_put(sid, .cmt_with_column(t), .cmail_fx_rev(sid))
+  sin_nombre <- paste("Nombre;Correo;Sexo;Carrera;Código;Enlace",
+                      "Ana Muñoz;ana@ejemplo.org;F;Sociología;1;https://ejemplo.org/e/1",
+                      ";nn@ejemplo.org;M;Economía;2;https://ejemplo.org/e/2", sep = "\r\n")
+  .cmt_import(sid, sin_nombre)
+  ex <- collection_mail_export(sid, .cmail_fx_rev(sid))
+  dir <- .cmt_unzip(sid, ex); on.exit(unlink(dir, recursive = TRUE), add = TRUE)
+  zip::unzip(file.path(dir, "plantilla-mailchimp.zip"), exdir = file.path(dir, "imp"))
+  html <- .cmt_read(list.files(file.path(dir, "imp"), pattern = "\\.html$", full.names = TRUE)[[1]])
+  # SALUDO garantizado (va sola), el nombre no: un solo nivel de condicional.
+  expect_match(html, "*|IF:FNAME|**|SALUDO|* *|FNAME|*:*|ELSE:|**|SALUDO|* estudiante:*|END:IF|*", fixed = TRUE)
+  expect_false(grepl("*|IF:SALUDO|*", html, fixed = TRUE))
+})
+
+test_that("Mailchimp con scope plantilla: aunque haya lista, el saludo conserva sus respaldos", {
+  sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
+  t <- collection_mail_template_get(sid)$template
+  collection_mail_template_put(sid, .cmt_with_column(t), .cmail_fx_rev(sid))
+  .cmt_import(sid)
+  ex <- collection_mail_export(sid, .cmail_fx_rev(sid), scope = "plantilla")
+  dir <- tempfile("cmt-"); on.exit(unlink(dir, recursive = TRUE), add = TRUE)
+  zip::unzip(session_get(sid)$files[[ex$zip$file_id]]$path, exdir = dir)
+  html <- .cmt_read(list.files(dir, pattern = "\\.html$", full.names = TRUE, recursive = TRUE)[[1]])
+  # Sin audiencia.csv nada garantiza SALUDO ni FNAME: los respaldos siguen en el HTML.
+  expect_match(html, "*|IF:SALUDO|**|SALUDO|**|ELSE:|*Estimado(a)*|END:IF|*", fixed = TRUE)
+  expect_match(html, "*|IF:FNAME|*", fixed = TRUE)
 })

@@ -202,3 +202,19 @@ test_that("HTTP: GET -> JSON -> PUT de la plantilla y de cada preset con el seri
   bad <- .cmail_fx_call(pr, sid, "POST", "/api/recopiladores/mail-template/preview", .cmail_fx_json(list(mode = "pdf")))
   expect_identical(bad$status, 422L)
 })
+
+
+test_that("banner: ocupa todo el ancho de la tarjeta (sin max-width) y conserva width=600 para Outlook", {
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  .cmail_fx_logo(sid, "banner-estudio.png", width = 1200L, height = 600L)
+  t <- .cmail_template_normalize(.cmail_preset_recuperacion())
+  t$header <- list(kind = "banner", image_ref = "banner-estudio")
+  t$images <- list(`banner-estudio` = list(alt = "Estudio"))
+  images <- .cmail_images_resolve(session_get(sid), t)
+  html <- collection_mail_render(t, "mailchimp", images = images)$html
+  img <- regmatches(html, regexpr('<img [^>]*alt="Estudio"[^>]*>', html))
+  expect_length(img, 1L)
+  expect_match(img, 'width="600"', fixed = TRUE)
+  expect_match(img, "width:100%;height:auto;", fixed = TRUE)
+  expect_false(grepl("max-width", img, fixed = TRUE))
+})
