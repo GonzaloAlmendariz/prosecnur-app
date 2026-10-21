@@ -19,6 +19,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { AlertTriangle, Loader2, Plus, Trash2, Upload } from "../../../vendor/lucide-react";
 import { CampoDeTexto } from "./CampoDeTexto";
 import { SincronizarRespuestas } from "./SincronizarRespuestas";
+import { avisosDeRecordatorio } from "./sincronizacionModel";
 import { useCorreosStore } from "./store";
 import { CUERPO_DEL_INSPECTOR } from "./modeloCorreo";
 import {
@@ -74,6 +75,9 @@ export function PanelEnvios({
   const avisoDelActivo = avisos.find((a) => a.sendId === activo.send_id);
   const esRecordatorio = activo.kind === "recordatorio";
   const editar = (cambio: Partial<Omit<MailSend, "send_id" | "kind">>) => onEditar(activo.send_id, cambio);
+  const invitacion = envios.find((e) => e.kind === "invitacion");
+  const asuntoDe = (e: MailSend | undefined) => (e?.subject?.trim() || template.subject || "");
+  const avisosGmail = esRecordatorio ? avisosDeRecordatorio(asuntoDe(activo), asuntoDe(invitacion), activo.opening) : [];
 
   return (
     <div {...CUERPO_DEL_INSPECTOR} className="rec-mail-insp-cuerpo rec-env">
@@ -182,6 +186,7 @@ export function PanelEnvios({
           </label>
         </span>
         {avisoDelActivo ? <p className="rec-mail-problema-linea" role="status">{avisoDelActivo.detalle}</p> : null}
+        {avisosGmail.map((a) => <p key={a} className="rec-mail-problema-linea" role="status">{a}</p>)}
         {esRecordatorio && plataforma === "mailchimp" ? <SincronizarRespuestas key={campana ?? ""} campana={campana} /> : null}
         <CampoDeTexto
           label="Asunto"

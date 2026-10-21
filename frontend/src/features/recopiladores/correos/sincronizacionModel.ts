@@ -52,3 +52,27 @@ export function guardarEleccion(campana: string | null, e: EleccionRecordada): v
     // Sin almacenamiento: se vuelve a elegir la próxima vez.
   }
 }
+
+/**
+ * Lo que hace que Gmail esconda un recordatorio tras «•••»: mismo asunto que la
+ * invitación (lo junta en la conversación) o un cuerpo idéntico (sin apertura).
+ */
+export function avisosDeRecordatorio(asuntoRecordatorio: string, asuntoInvitacion: string, apertura: string | null | undefined): string[] {
+  const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLocaleLowerCase("es-PE");
+  const out: string[] = [];
+  if (asuntoRecordatorio && norm(asuntoRecordatorio) === norm(asuntoInvitacion)) {
+    out.push("El asunto es igual al de la invitación: Gmail juntará los dos correos y esconderá este. Cámbialo.");
+  }
+  if (!(apertura ?? "").trim()) {
+    out.push("Sin apertura, el cuerpo es idéntico a la invitación y Gmail puede esconderlo tras «•••». Agrega una línea propia.");
+  }
+  return out;
+}
+
+/** Los pasos del recordatorio en Mailchimp, en el orden de su pantalla. */
+export const PASOS_EN_MAILCHIMP = [
+  "Pulsa «Actualizar quién respondió».",
+  "En Mailchimp, abre el envío anterior y usa Replicate.",
+  "Cambia el asunto por el de este recordatorio.",
+  "En To, elige el segmento sin la etiqueta y envía con Send.",
+] as const;
