@@ -45,8 +45,13 @@
   out <- list()
   for (b in periodos) {
     if (.armz_universo_declarado(sid, b)) next
-    df <- tryCatch(.caso_valido_manual_datos(sid, b)$data, error = function(e) NULL)
-    sel <- .armz_columna_seleccion(df)
+    # Sólo la data (el instrumento no hace falta) y nada de esto puede cortar el
+    # comparativo: un aviso que no se pudo calcular no se emite.
+    sel <- tryCatch({
+      files <- .resolve_base_files(sid, b)
+      .armz_columna_seleccion(as.data.frame(.read_data_for_validation(files$data$path, files$data_ext),
+                                            check.names = FALSE))
+    }, error = function(e) NULL)
     if (!is.null(sel)) out[[b]] <- sel
   }
   out

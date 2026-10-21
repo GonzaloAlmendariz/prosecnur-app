@@ -345,10 +345,14 @@ export const DIRECCION_PONDERACION = serializarDireccion({
   pestana: "ponderacion",
 });
 
-/** «Qué casos cuentan» de Analítica: donde se declara el universo de cada base. */
+/**
+ * «Qué casos cuentan» de Analítica, abierto sobre Comparativos: al cerrarlo la
+ * persona vuelve adonde estaba el aviso.
+ */
 export const DIRECCION_UNIVERSO = serializarDireccion({
   modulo: "procesamiento",
   seccion: "analitica",
+  pestana: "comparativos",
   panel: "universo",
 });
 
