@@ -520,11 +520,10 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
   )
 }
 
+# Sin texto propio (decisión 2026-10-21: «quítala»): el pie lleva solo lo que
+# exige la plataforma, la dirección y la baja, que el render pone siempre.
 .cmail_footer_default <- function() {
-  list(
-    block_id = "pie", type = "footer_legal",
-    text = "Recibe este correo porque forma parte de la población del estudio. Sus respuestas son confidenciales."
-  )
+  list(block_id = "pie", type = "footer_legal")
 }
 
 # Desde el correo de recuperación de CCSS Perfil 2026 (vista_previa_correo.png):
