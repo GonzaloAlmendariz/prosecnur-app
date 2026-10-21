@@ -218,3 +218,22 @@ test_that("banner: ocupa todo el ancho de la tarjeta (sin max-width) y conserva 
   expect_match(img, "width:100%;height:auto;", fixed = TRUE)
   expect_false(grepl("max-width", img, fixed = TRUE))
 })
+
+test_that("imagen a sangre bajo la franja de logos: llena la tarjeta y no deja raya blanca", {
+  sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
+  .cmail_fx_logo(sid, "banner-estudio.png", width = 1200L, height = 600L)
+  t <- .cmail_template_normalize(.cmail_preset_recuperacion())
+  t$images$`banner-estudio` <- list(alt = "Estudio")
+  t$blocks <- c(list(list(block_id = "banner", type = "image", image_ref = "banner-estudio", alt = "Estudio", bleed = TRUE)), t$blocks)
+  images <- .cmail_images_resolve(session_get(sid), t)
+  html <- collection_mail_render(t, "mailchimp", images = images)$html
+  img <- regmatches(html, regexpr('<img [^>]*alt="Estudio"[^>]*>', html))
+  expect_match(img, 'width="600"', fixed = TRUE)
+  expect_match(img, "width:100%;height:auto;", fixed = TRUE)
+  expect_false(grepl("width:600px", img, fixed = TRUE))
+  expect_false(grepl('height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>', html, fixed = TRUE))
+  # Sin imagen a sangre al inicio, el aire bajo la cabecera sigue.
+  t2 <- .cmail_template_normalize(.cmail_preset_recuperacion())
+  expect_match(collection_mail_render(t2, "mailchimp", images = .cmail_images_resolve(session_get(sid), t2))$html,
+               'height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>', fixed = TRUE)
+})

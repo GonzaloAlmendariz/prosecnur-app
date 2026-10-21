@@ -131,8 +131,16 @@
     sprintf('<span style="display:inline-block;width:%dpx;max-width:100%%;height:%dpx;line-height:%dpx;border:1px dashed #9aa3b5;font-family:%s;font-size:11px;color:#5a6a94;text-align:center;overflow:hidden;">%s</span>',
             width, h, h, .CMAIL_FONT, .cmail_esc(if (nzchar(alt)) alt else id))
   } else {
-    sprintf('<img src="%s" width="%d" alt="%s" style="display:block;width:%dpx;max-width:100%%;height:auto;border:0;outline:none;text-decoration:none;%s">',
-            .cmail_esc(src), width, .cmail_esc(alt), width, margin)
+    # A sangre llena la tarjeta (width:100%), como el banner de cabecera: con
+    # un ancho fijo el editor de Mailchimp, que dibuja la tarjeta más ancha,
+    # dejaba una franja blanca. width="600" sigue fijándolo en Outlook.
+    if (bleed) {
+      sprintf('<img src="%s" width="%d" alt="%s" style="display:block;width:100%%;height:auto;border:0;outline:none;text-decoration:none;">',
+              .cmail_esc(src), width, .cmail_esc(alt))
+    } else {
+      sprintf('<img src="%s" width="%d" alt="%s" style="display:block;width:%dpx;max-width:100%%;height:auto;border:0;outline:none;text-decoration:none;%s">',
+              .cmail_esc(src), width, .cmail_esc(alt), width, margin)
+    }
   }
   url <- .cmail_one(b$url)
   if (!is.null(url) && nzchar(trimws(url))) {

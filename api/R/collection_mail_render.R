@@ -266,6 +266,11 @@
 #' @param images salida de `.cmail_images_resolve()`.
 #' @return list(html, subject, preheader, bytes).
 #' @keywords internal
+.cmail_first_block_bleeds <- function(template) {
+  first <- (template$blocks %||% list())[1][[1]]
+  !is.null(first) && identical(first$type, "image") && isTRUE(unlist(first$bleed))
+}
+
 collection_mail_render <- function(template, mode = c("preview", "export", "mailchimp"),
                                    dialect = c("mailchimp", "surveymonkey"), values = list(), images = list(),
                                    known = list()) {
@@ -298,7 +303,9 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
     sprintf('<table role="presentation" width="%d" cellpadding="0" cellspacing="0" border="0" style="width:100%%;max-width:%dpx;border:1px solid %s;background-color:#ffffff;">',
             .CMAIL_WIDTH, .CMAIL_WIDTH, .CMAIL_BORDER),
     .cmail_header_html(template, ctx),
-    '<tr><td style="height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>',
+    # El aire bajo la cabecera separa del texto; si lo primero es una imagen a
+    # sangre (un banner bajo la franja de logos) quedaba una raya blanca.
+    if (.cmail_first_block_bleeds(template)) "" else '<tr><td style="height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>',
     paste(body_rows, collapse = ""),
     sprintf('<tr><td bgcolor="%s" style="background-color:%s;height:20px;line-height:20px;font-size:0;">&nbsp;</td></tr>',
             .cmail_band_color(template, ctx), .cmail_band_color(template, ctx)),
