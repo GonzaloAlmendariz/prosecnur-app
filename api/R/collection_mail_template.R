@@ -628,8 +628,60 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
   )
 }
 
+# Desde las invitaciones reales de Acreditación (Arte y Diseño, Formación General
+# 2026; Contabilidad, reacreditación): la invitación más común. Cabecera clara
+# de logos (sin banner: el preset no trae imagen), saludo, tres párrafos (quién
+# y para qué, por qué y cuánto toma, hasta cuándo), botón, «Importante» y firma.
+# Registro de «usted», como los originales. Sin `align`: los párrafos siguen al
+# estilo (justificado en sobrio); sin colores propios: el acento por defecto.
+.cmail_preset_invitacion_encuesta <- function() {
+  list(
+    schema = COLLECTION_MAIL_TEMPLATE_SCHEMA,
+    template_id = "correo-invitacion-encuesta",
+    preset_id = "invitacion_encuesta_v1",
+    title = "Invitación a encuesta",
+    revision = 1L,
+    subject = "[Nombre del estudio]: le invitamos a responder la encuesta",
+    preheader = "Su opinión es importante para [unidad solicitante]. La encuesta toma unos [15] minutos.",
+    theme = list(accent = .CMAIL_DEFAULT_ACCENT),
+    header = list(kind = "logos", logo_ids = list("logo-cliente", "pulso"), background = "light"),
+    images = list(
+      `logo-cliente` = list(alt = "[Unidad solicitante]"),
+      pulso = list(alt = "Pulso PUCP")
+    ),
+    fields = list(
+      list(key = "enlace", tag = "ENLACE", label = "Enlace a la encuesta", sm = "SurveyLink", destino = "encuesta")
+    ),
+    blocks = list(
+      list(block_id = "saludo", type = "greeting", text = "Estimado(a) {{nombre}}:", fallback = "Estimado(a):",
+           trato = .cmail_trato_preset()),
+      list(block_id = "contexto", type = "paragraph",
+           text = "La **[unidad solicitante] de la Pontificia Universidad Católica del Perú** y el **Instituto de Analítica Social e Inteligencia Estratégica - PULSO PUCP** vienen realizando un *estudio de opinión* en el marco de [proceso del estudio, por ejemplo: la acreditación de la carrera], con la finalidad de [objetivo del estudio]."),
+      list(block_id = "motivo", type = "paragraph",
+           text = "Por ello, le invitamos a responder la siguiente encuesta, que tomará **aproximadamente [15] minutos**, para conocer su percepción acerca de [temas de la encuesta]. Agradecemos mucho su valioso aporte dentro de este proceso."),
+      list(block_id = "plazo", type = "paragraph",
+           text = "Puede participar hasta el **[fecha límite]**."),
+      list(block_id = "accion", type = "button", text = "Empezar aquí", url = "{{enlace}}"),
+      list(block_id = "importante", type = "callout", variant = "box", title = "Importante:",
+           items = list(
+             "La ruta de acceso a la encuesta es **única y personal**; por favor, no la reenvíe ni la comparta.",
+             "Se aconseja que, una vez iniciada la encuesta, **la complete en su totalidad**.",
+             "La información que brinde es **confidencial** y se analizará solo de forma agregada."
+           )),
+      list(block_id = "firma", type = "signature", closing = "Saludos cordiales,",
+           name = "PULSO PUCP",
+           lines = list("Instituto de Analítica Social e Inteligencia Estratégica"),
+           url = "https://pulso.pucp.edu.pe/"),
+      .cmail_footer_default()
+    )
+  )
+}
+
+# El orden es el de «Empieza desde» en el editor: la invitación a encuesta, la
+# más común, va primero.
 .cmail_presets <- function() {
   list(
+    invitacion_encuesta_v1 = .cmail_preset_invitacion_encuesta,
     recuperacion_estudiantes_v1 = .cmail_preset_recuperacion,
     invitacion_capacitacion_v1 = .cmail_preset_invitacion
   )

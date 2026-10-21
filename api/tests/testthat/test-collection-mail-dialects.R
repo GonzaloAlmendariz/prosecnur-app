@@ -264,7 +264,8 @@ test_that("con 2+ campañas, preview/review con la plantilla en el cuerpo y sin 
   sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
   collection_mail_campaign_create(sid, 0L, name = "Uno")
   collection_mail_campaign_create(sid, 1L, name = "Dos", platform = "surveymonkey")
-  pr <- collection_mail_presets_get(sid)$presets[[2]]$template
+  presets <- collection_mail_presets_get(sid)$presets
+  pr <- Filter(function(p) identical(p$preset_id, "invitacion_capacitacion_v1"), presets)[[1]]$template
   pv <- collection_mail_preview(sid, template = pr)
   expect_true(pv$ok)
   expect_null(pv$campaign_id)
