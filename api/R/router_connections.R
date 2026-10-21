@@ -32,18 +32,19 @@
     google = "google_sheets",
     sheets = "google_sheets",
     google_sheets = "google_sheets",
+    mailchimp = "mailchimp",
     stop_api(400, "E_CONNECTION_PROVIDER", "Proveedor de conexión no soportado.")
   )
 }
 
 .connections_provider_label <- function(provider) {
   provider <- .connections_normalize_provider(provider)
-  switch(provider, surveymonkey = "SurveyMonkey", kobo = "KoboToolbox", google_sheets = "Google Sheets")
+  switch(provider, surveymonkey = "SurveyMonkey", kobo = "KoboToolbox", google_sheets = "Google Sheets", mailchimp = "Mailchimp")
 }
 
 .connections_secret_name <- function(provider) {
   provider <- .connections_normalize_provider(provider)
-  switch(provider, surveymonkey = "sm_token", kobo = "kobo_token")
+  switch(provider, surveymonkey = "sm_token", kobo = "kobo_token", mailchimp = "mailchimp_key")
 }
 
 .connections_profiles_supported <- function(provider) {
@@ -433,7 +434,7 @@
   state <- .connections_token_state(provider, sid, profile_id = profile_id, base_url = base_url)
   token <- as.character(state$token %||% "")[1]
   if (is.na(token) || !nzchar(token)) {
-    code <- if (identical(provider, "kobo")) "E_KOBO_TOKEN" else "E_SM_TOKEN"
+    code <- switch(provider, kobo = "E_KOBO_TOKEN", mailchimp = "E_MAILCHIMP_TOKEN", "E_SM_TOKEN")
     stop_api(
       400,
       code,
@@ -533,6 +534,11 @@
 .connections_check <- function(provider, sid = NULL, base_url = NULL, profile_id = NULL) {
   provider <- .connections_normalize_provider(provider)
   if (identical(provider, "surveymonkey")) return(.connections_check_surveymonkey(sid, profile_id = profile_id))
+  if (identical(provider, "mailchimp")) {
+    key <- .connections_token_require("mailchimp", sid)
+    return(tryCatch(list(ok = TRUE, provider = "mailchimp", status_code = 200L, count = length(mailchimp_api_lists(key))),
+                    error = function(e) list(ok = FALSE, provider = "mailchimp", error = conditionMessage(e))))
+  }
   if (identical(provider, "google_sheets")) {
     probe <- tryCatch(
       monitoreo_sheets_list_spreadsheets(limit = 1L),
@@ -558,7 +564,8 @@ mount_connections <- function(pr) {
         connections = list(
           .connections_token_status("surveymonkey", sid),
           .connections_token_status("kobo", sid),
-          .connections_token_status("google_sheets", sid)
+          .connections_token_status("google_sheets", sid),
+          .connections_token_status("mailchimp", sid)
         )
       )
     })) |>

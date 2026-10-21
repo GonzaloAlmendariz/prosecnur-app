@@ -1,0 +1,61 @@
+/* Envíos › «Quién ya respondió» (recordatorio de Mailchimp). Sólo tokens. */
+
+.rec-sync {
+  border-top: 1px solid var(--pulso-border);
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin-top: var(--pulso-space-2);
+  padding-top: var(--pulso-space-3);
+}
+
+.rec-sync-titulo {
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  margin: 0;
+}
+
+.rec-sync-estado,
+.rec-sync-conectado {
+  align-items: center;
+  color: var(--pulso-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: var(--pulso-space-1);
+  margin: 0;
+}
+
+.rec-sync-conectado svg {
+  color: var(--pulso-success-fg);
+}
+
+.rec-sync-accion {
+  display: flex;
+}
+
+.rec-sync-resultado {
+  background: var(--pulso-success-bg);
+  border: 1px solid var(--pulso-success-border);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-text);
+  display: grid;
+  font-size: 12px;
+  gap: 4px;
+  line-height: 1.45;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.rec-sync-resultado b {
+  font-size: 12.5px;
+}
+
+.rec-sync-paso {
+  color: var(--pulso-text-muted);
+  margin-top: 2px;
+}
+
+.rec-sync-paso code {
+  color: var(--pulso-text);
+  font-size: 11.5px;
+}
