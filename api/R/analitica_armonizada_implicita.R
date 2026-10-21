@@ -103,3 +103,85 @@
   v[is.na(v) & !is.na(cod) & cod == "0"] <- .ARMZ_NO_MENCIONA
   v
 }
+
+# ---- Un código que va a la categoría equivocada (checklist A5) ----------------
+#
+# Medido en la misma matriz: en 2025 «Año de ingreso» viene en orden inverso
+# (1 = desde 2023, 3 = hasta 2020) y se declaró comparable con el mapa
+# identidad. 1.386 casos (56 %) de 2025 cayeron en «hasta 2019». El editor de
+# la fila ya marcaba «código con etiqueta distinta», pero sólo con el panel
+# abierto; guardado, nada lo recordaba y el comparativo salía con la cifra
+# cambiada.
+#
+# «Etiqueta distinta» a secas es ruido aquí: en esa matriz daba 149 avisos, casi
+# todos dummies («Sí» → «Angustia») y variantes de redacción («Otra» → «Otro»),
+# que son correctas. Lo que delata un mapa equivocado es otra cosa: el código va
+# 1:1 a una categoría mientras su etiqueta se parece CLARAMENTE más a OTRA
+# categoría de la escala («desde 2023» → «hasta 2019», existiendo «desde 2022»).
+# Parecido = proporción de palabras compartidas (Jaccard), y la otra categoría
+# tiene que superar a la de destino y llegar a 0,5.
+#
+# Dos límites, por los falsos positivos de las escalas de intensidad («Totalmente
+# de acuerdo» se parece más a «De acuerdo» que a «Muy de acuerdo»):
+#   · sólo se revisa el mapa IDENTIDAD, donde ocurrió el error. Un mapa declarado
+#     código por código ya es una decisión explícita, y declararlo es también la
+#     forma de dar el aviso por revisado;
+#   · no se sugiere una categoría cuyas palabras están todas dentro de la
+#     etiqueta de la base (una versión más corta de la misma respuesta).
+# La misma regla vive en el
+# frontend (`codigosMalUbicadosModel.ts`) para la columna Escala y el editor.
+
+.armz_palabras_etiqueta <- function(x) {
+  y <- .carm_texto_norm(.armz_impreso(x))
+  w <- strsplit(trimws(gsub("[^a-z0-9]+", " ", y)), " ", fixed = TRUE)[[1]]
+  unique(w[nzchar(w)])
+}
+
+.armz_parecido <- function(a, b) {
+  if (!length(a) || !length(b)) return(0)
+  length(intersect(a, b)) / length(union(a, b))
+}
+
+#' Códigos de una base que van 1:1 a una categoría mientras su etiqueta se
+#' parece más a otra.
+#' @return list de list(codigo, etiqueta, destino, etiqueta_destino, sugerida).
+#' @noRd
+.armz_codigos_mal_ubicados <- function(fila, base, inst) {
+  arm <- fila$armonizacion
+  entrada <- ((arm %||% list())$por_base %||% list())[[base]]
+  if (is.null(entrada) || !isTRUE(entrada$comparable)) return(list())
+  var <- .equiv_armon_chr((fila$variables %||% list())[[base]], "")
+  if (!nzchar(var) || is.null(inst)) return(list())
+  opciones <- tryCatch(.equiv_escala_opciones(inst, var), error = function(e) list())
+  escala <- arm$escala %||% list()
+  if (!length(opciones) || length(escala) < 2L) return(list())
+  esc_cod <- vapply(escala, function(e) as.character(e$codigo), character(1))
+  esc_etq <- vapply(escala, function(e) as.character(e$etiqueta %||% e$codigo), character(1))
+  esc_pal <- lapply(esc_etq, .armz_palabras_etiqueta)
+  mapa <- entrada$mapa %||% list()
+  if (any(nzchar(as.character(unlist(mapa, use.names = FALSE))))) return(list())
+  codigos <- vapply(opciones, `[[`, character(1), "codigo")
+  destinos <- ifelse(codigos %in% esc_cod, codigos, "")
+  repetidos <- names(which(table(destinos[nzchar(destinos)]) > 1))
+  out <- list()
+  for (i in seq_along(codigos)) {
+    d <- destinos[[i]]
+    j <- match(d, esc_cod)
+    if (!nzchar(d) || d %in% repetidos || is.na(j)) next
+    pal <- .armz_palabras_etiqueta(opciones[[i]]$etiqueta)
+    if (!length(pal)) next
+    sim <- vapply(esc_pal, function(p) {
+      if (length(p) && all(p %in% pal) && length(p) < length(pal)) return(0)
+      .armz_parecido(pal, p)
+    }, numeric(1))
+    sim[[j]] <- .armz_parecido(pal, esc_pal[[j]])
+    k <- which.max(replace(sim, j, -1))
+    if (sim[[k]] >= 0.5 && sim[[k]] > sim[[j]]) {
+      out[[length(out) + 1L]] <- list(
+        codigo = codigos[[i]], etiqueta = .armz_impreso(opciones[[i]]$etiqueta),
+        destino = d, etiqueta_destino = .armz_impreso(esc_etq[[j]]),
+        sugerida = .armz_impreso(esc_etq[[k]]))
+    }
+  }
+  out
+}

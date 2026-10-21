@@ -90,6 +90,7 @@ import {
 } from "./armonizacionCodigosModel";
 import "./ArmonizacionFilaEditor.css";
 import { PulsoButton } from "../../components/PulsoButton";
+import { AvisoMalUbicados } from "./AvisoMalUbicados";
 
 // ---- Abrir sobre una fila ---------------------------------------------------
 //
@@ -884,6 +885,7 @@ function MapaDeBase({
             <ArmonizacionAyudaMapa base={base} origen={origen} codigos={codigos} escala={escala} mapa={entrada?.mapa ?? {}} despachar={despachar} />
           )}
 
+          <AvisoMalUbicados base={base} codigos={filas} escala={escala} explicito={explicito} />
           {vista.aviso && <p className="pulso-armon-aviso">{vista.aviso}</p>}
           {vista.nota && <p className="pulso-armon-nota">{vista.nota}</p>}
           {vista.fuente === "preview" && sucio && (

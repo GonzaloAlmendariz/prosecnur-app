@@ -255,7 +255,10 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
              f, b, datos[[b]], excluidas[[b]]), character(1)), periodos),
            con_variable = any(con_var),
            notas = stats::setNames(notas, periodos),
-           no_ofrecidas = stats::setNames(no_of, periodos))
+           no_ofrecidas = stats::setNames(no_of, periodos),
+           # Checklist A5: códigos que van a una categoría pareciéndose más a otra.
+           mal_ubicados = stats::setNames(lapply(periodos, function(b)
+             .armz_codigos_mal_ubicados(f, b, insts[[b]])), periodos))
     })
   }
   preguntas <- describir(filas, "q")
@@ -528,6 +531,18 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
           d$titulo, .armz_casos(sm$n_sin_mapa), rotulos[[b]],
           paste(unlist(sm$codigos_sin_mapa), collapse = ", ")))
       }
+    }
+  }
+  for (d in c(ap$preguntas, ap$cruces)) {
+    for (b in names(d$mal_ubicados %||% list())) {
+      mu <- d$mal_ubicados[[b]]
+      if (!length(mu)) next
+      ej <- mu[[1]]
+      out[[length(out) + 1L]] <- list(tipo = "codigo_mal_ubicado", base = b, fila = d$etiqueta,
+        codigos = lapply(mu, `[[`, "codigo"), mensaje = sprintf(
+        "«%s»: en %s el código %s «%s» se cuenta como «%s», pero se parece más a «%s»%s. Revisa el mapa de esa base en Equivalencias > Armonizar: la lista puede estar en otro orden.",
+        d$titulo, rotulos[[b]], ej$codigo, ej$etiqueta, ej$etiqueta_destino, ej$sugerida,
+        if (length(mu) == 2L) " (y 1 código más)" else if (length(mu) > 2L) sprintf(" (y %d códigos más)", length(mu) - 1L) else ""))
     }
   }
   for (d in c(ap$preguntas, ap$cruces)) {

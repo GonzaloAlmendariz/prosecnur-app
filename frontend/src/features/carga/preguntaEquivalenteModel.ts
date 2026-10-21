@@ -14,6 +14,7 @@ import type { EquivalenciaFila, VariableDeBase } from "../../api/equivalencias";
 import { sinEnfasis } from "../../lib/enfasisTexto";
 import { estadoArmonizacion, explicacionArmonizacion } from "./armonizacionModel";
 import type { NombreDeSerie } from "./nombreDeSerie";
+import { codigosMalUbicados } from "./codigosMalUbicadosModel";
 
 // ---- Búsqueda por texto -----------------------------------------------------
 
@@ -126,6 +127,19 @@ export function indicadorDeEscala(
   }
   if (fila.armonizacion && fila.armonizacion.escala.length > 0) {
     const estado = estadoArmonizacion(fila);
+    // Checklist A5: armonizada, pero con un código que se parece más a otra
+    // categoría que a la suya. El panel lo decía sólo abierto; aquí queda a la vista.
+    const mal = estado.tipo === "armonizada" ? codigosMalUbicados(fila, bases, variablesPorBase) : [];
+    if (mal.length > 0) {
+      const enBases = [...new Set(mal.map((m) => m.base))];
+      const ej = mal[0];
+      return {
+        tono: "aviso",
+        texto: `Revisar mapa en ${enBases.length === 1 ? enBases[0] : `${enBases.length} bases`}`,
+        explicacion: `En ${ej.base}, «${ej.etiqueta}» se cuenta como «${ej.etiquetaDestino}», pero se parece más a «${ej.sugerida}». Puede que la lista de esa base esté en otro orden: ábrela y declara el mapa código por código.`,
+        abre: true,
+      };
+    }
     return {
       tono: estado.tipo === "armonizada" ? "ok" : "aviso",
       texto: estado.texto,
@@ -145,7 +159,7 @@ export function indicadorDeEscala(
       return {
         tono: "ok",
         texto: "Misma escala",
-        explicacion: `Las bases elegidas usan la misma lista de respuestas. Para los comparativos entre ${serie.plural} de Analítica, ábrela y confírmala como armonizada.`,
+        explicacion: `Las bases elegidas usan la misma lista de respuestas: entra tal cual a los comparativos entre ${serie.plural}. Ábrela sólo si quieres cambiar la escala.`,
         abre: true,
       };
     case "distintas":

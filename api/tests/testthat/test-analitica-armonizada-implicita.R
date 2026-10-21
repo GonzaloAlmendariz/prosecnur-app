@@ -106,3 +106,57 @@ test_that("A4: el sello del instrumento no depende de la colación del sistema",
   # El orden del sistema sí cambia con la colación: de ahí el defecto.
   expect_false(identical(.equiv_sello_instrumento(inst, orden = "sistema"), sistema_c))
 })
+
+test_that("A5: el código que va a la categoría equivocada se avisa; dummies y variantes no", {
+  esc <- list(list(codigo = "1", etiqueta = "Ingresantes hasta 2019"),
+              list(codigo = "2", etiqueta = "Ingresantes en 2020-2021"),
+              list(codigo = "3", etiqueta = "Ingresantes desde 2022"))
+  vacio <- stats::setNames(list(), character(0))
+  fila <- .ai_fila("Año de ingreso", list(a = "ing_a", b = "ing_b"), list(
+    escala = esc, por_base = list(a = list(comparable = TRUE, mapa = vacio),
+                                  b = list(comparable = TRUE, mapa = vacio))))
+  insts <- list(a = .ai_inst("ing_a", c("1", "2", "3"), vapply(esc, `[[`, "", "etiqueta")),
+                b = .ai_inst("ing_b", c("1", "2", "3"),
+                             c("Ingresantes desde 2023", "Ingresantes en 2021–2022", "Ingresantes hasta 2020")))
+  mal <- .armz_codigos_mal_ubicados(fila, "b", insts$b)
+  expect_equal(vapply(mal, `[[`, "", "codigo"), c("1", "3"))
+  expect_equal(mal[[1]]$sugerida, "Ingresantes desde 2022")
+  expect_length(.armz_codigos_mal_ubicados(fila, "a", insts$a), 0)
+
+  datos <- list(a = data.frame(ing_a = c(1, 2, 3)), b = data.frame(ing_b = c(1, 1, 3)))
+  ap <- armonizada_apilar(datos, list(fila), periodos = c("a", "b"), insts = insts)
+  av <- Filter(function(x) identical(x$tipo, "codigo_mal_ubicado"), armonizada_avisos(ap))
+  expect_length(av, 1)
+  expect_equal(av[[1]]$base, "b")
+  expect_match(av[[1]]$mensaje, "se parece más a «Ingresantes desde 2022» \\(y 1 código más\\)")
+
+  # Con el mapa invertido declarado, nada.
+  fila$armonizacion$por_base$b$mapa <- list(`1` = "3", `2` = "2", `3` = "1")
+  expect_length(.armz_codigos_mal_ubicados(fila, "b", insts$b), 0)
+
+  # Una dummy «Sí» → «Angustia» (escala de una categoría) no se acusa.
+  dummy <- .ai_fila("Angustia", list(b = "d"), list(
+    escala = list(list(codigo = "1", etiqueta = "Angustia")),
+    por_base = list(b = list(comparable = TRUE, mapa = vacio))))
+  expect_length(.armz_codigos_mal_ubicados(dummy, "b", .ai_inst("d", c("0", "1"), c("No", "Sí"))), 0)
+})
+
+test_that("A5: Likert y satisfacción no se acusan; un mapa explícito tampoco", {
+  vacio <- stats::setNames(list(), character(0))
+  fila <- function(etqs, mapa = vacio) .ai_fila("Escala", list(b = "v"), list(
+    escala = lapply(seq_along(etqs), function(i) list(codigo = as.character(i), etiqueta = etqs[[i]])),
+    por_base = list(b = list(comparable = TRUE, mapa = mapa))))
+  likert <- c("Muy de acuerdo", "De acuerdo", "En desacuerdo", "Muy en desacuerdo")
+  inst <- .ai_inst("v", c("1", "2", "3", "4"),
+                   c("Totalmente de acuerdo", "De acuerdo", "En desacuerdo", "Totalmente en desacuerdo"))
+  expect_length(.armz_codigos_mal_ubicados(fila(likert), "b", inst), 0)
+  satisf <- c("Muy satisfecho", "Satisfecho", "Insatisfecho", "Muy insatisfecho")
+  inst_s <- .ai_inst("v", c("1", "2", "3", "4"),
+                     c("Bastante satisfecho", "Satisfecho", "Insatisfecho", "Nada satisfecho"))
+  expect_length(.armz_codigos_mal_ubicados(fila(satisf), "b", inst_s), 0)
+  # La inversión «1º/2º ciclo» con identidad sí; declarada código por código, no.
+  ciclos <- c("1º ciclo", "2º ciclo")
+  inst_c <- .ai_inst("v", c("1", "2"), c("2º ciclo", "1º ciclo"))
+  expect_equal(vapply(.armz_codigos_mal_ubicados(fila(ciclos), "b", inst_c), `[[`, "", "codigo"), c("1", "2"))
+  expect_length(.armz_codigos_mal_ubicados(fila(ciclos, list(`1` = "1", `2` = "2")), "b", inst_c), 0)
+})
