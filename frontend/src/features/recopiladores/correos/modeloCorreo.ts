@@ -596,6 +596,7 @@ export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   images_hosted: "Imágenes guardadas como archivo",
   images_available: "Logos e imágenes subidos",
   images_alt: "Descripción de cada imagen",
+  placeholders_pending: "Textos por completar",
   banner_size: "Medidas del banner",
   footer_unsub: "Enlace para darse de baja y dirección",
   recipients: "Destinatarios con correo válido",
@@ -727,6 +728,8 @@ export function cifraDeChequeo(check: MailCheck): string {
       return check.status === "ok" ? "todas" : v === 1 ? "falta 1" : `faltan ${v}`;
     case "images_alt":
       return check.status === "ok" ? "en todas" : `${v} sin texto`;
+    case "placeholders_pending":
+      return check.status === "ok" ? "ninguno" : v === 1 ? "queda 1" : `quedan ${v}`;
     case "banner_size":
       return typeof check.value === "string" ? check.value.replace("×", " × ") : check.status === "ok" ? "correcto" : "sin medir";
     case "footer_unsub":

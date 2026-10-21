@@ -389,6 +389,8 @@ export const MAIL_CHECK_CODES = [
   "campana_text_contrast",
   "campana_button_contrast",
   "campana_footer_contrast",
+  // Textos de relleno entre corchetes sin completar («[fecha límite]»); bloquea exportar.
+  "placeholders_pending",
 ] as const;
 export type MailCheckCode = (typeof MAIL_CHECK_CODES)[number];
 
