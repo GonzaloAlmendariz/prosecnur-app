@@ -182,7 +182,7 @@ export function PanelEnvios({
           </label>
         </span>
         {avisoDelActivo ? <p className="rec-mail-problema-linea" role="status">{avisoDelActivo.detalle}</p> : null}
-        {esRecordatorio && plataforma === "mailchimp" ? <SincronizarRespuestas campana={campana} /> : null}
+        {esRecordatorio && plataforma === "mailchimp" ? <SincronizarRespuestas key={campana ?? ""} campana={campana} /> : null}
         <CampoDeTexto
           label="Asunto"
           valor={activo.subject ?? ""}
