@@ -72,9 +72,14 @@ export function SincronizarRespuestas({ campana }: Props) {
       data-qa-geometry-group="material-campo/correo/envios/respondieron"
       data-qa-geometry-contract="intrinsic"
     >
-      <h5 id={`${ids}-titulo`} className="rec-sync-titulo">Quién ya respondió</h5>
-      <p className="rec-mail-ayuda">
-        Mailchimp no sabe quién terminó la encuesta. Esto lo trae de SurveyMonkey y le pone la etiqueta «{etiqueta || "Respondió"}» en Mailchimp.
+      <header className="rec-sync-cabeza">
+        <h5 id={`${ids}-titulo`} className="rec-sync-titulo">Quién ya respondió</h5>
+        {!cargando && mc?.connected && !mc.error ? (
+          <span className="rec-sync-chip" title={`Clave ${mc.masked}`}><CheckCircle2 size={12} aria-hidden /> Mailchimp conectado</span>
+        ) : null}
+      </header>
+      <p className="rec-sync-intro">
+        Trae de SurveyMonkey quién terminó la encuesta y le pone la etiqueta «{etiqueta || "Respondió"}» en Mailchimp.
       </p>
 
       {cargando ? (
@@ -93,9 +98,6 @@ export function SincronizarRespuestas({ campana }: Props) {
 
       {!cargando && mc?.connected && !mc.error ? (
         <>
-          <p className="rec-sync-conectado">
-            <CheckCircle2 size={14} aria-hidden /> Mailchimp conectado ({mc.masked})
-          </p>
           <label className="rec-env-campo">
             <span className="rec-mail-campo-rotulo"><span>Encuesta de SurveyMonkey</span></span>
             <select className="rec-mail-select" value={encuesta} onChange={(e) => setEncuesta(e.target.value)}>
@@ -123,7 +125,7 @@ export function SincronizarRespuestas({ campana }: Props) {
             <input className="rec-mail-input" value={etiqueta} maxLength={60} onChange={(e) => setEtiqueta(e.target.value)} />
           </label>
           <span className="rec-sync-accion">
-            <PulsoButton variant="primary" size="sm" disabled={!listo || trabajando !== null} onClick={() => void sincronizar()}>
+            <PulsoButton variant="primary" size="sm" className="rec-sync-boton" disabled={!listo || trabajando !== null} onClick={() => void sincronizar()}>
               {trabajando === "sincronizando" ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <RefreshCw size={14} aria-hidden />}
               Actualizar quién respondió
             </PulsoButton>
@@ -133,18 +135,27 @@ export function SincronizarRespuestas({ campana }: Props) {
 
       {error ? <p className="rec-mail-problema-linea" role="alert">{error}</p> : null}
 
-      <ol className="rec-sync-pasos" aria-label="Cómo sale el recordatorio en Mailchimp">
-        {PASOS_EN_MAILCHIMP.map((p, i) => (
-          <li key={p}>{i === 3 ? <>En To, elige el segmento <code>{segmentoEnMailchimp(etiqueta.trim() || "Respondió")}</code> y envía con Send.</> : p}</li>
-        ))}
-      </ol>
-
       {resumen && resultado ? (
         <div className="rec-sync-resultado" role="status">
           <b>{resumen.titulo}</b>
           {resumen.lineas.map((l) => <span key={l}>{l}</span>)}
         </div>
       ) : null}
+
+      <div className="rec-sync-guia">
+        <span className="rec-sync-guia-titulo">Para enviar el recordatorio</span>
+        <ol className="rec-sync-pasos" aria-label="Cómo sale el recordatorio en Mailchimp">
+          {PASOS_EN_MAILCHIMP.map((p, i) => (
+            <li key={p}>
+              <span className="rec-sync-num" aria-hidden>{i + 1}</span>
+              <span>
+                {i === 3 ? <>En To, elige el segmento <code className="rec-sync-segmento">{segmentoEnMailchimp(etiqueta.trim() || "Respondió")}</code> y envía con Send.</> : p}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
     </section>
   );
 }
