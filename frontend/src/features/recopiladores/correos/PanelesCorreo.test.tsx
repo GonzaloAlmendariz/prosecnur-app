@@ -292,8 +292,8 @@ describe("Revisión con un repetido que cambia el enlace y un enlace vacío", ()
   it("muestra los dos errores con sus filas y deja la exportación bloqueada", () => {
     const html = renderToStaticMarkup(<PanelRevision revision={revision} cargando={false} />);
     expect(html).toContain("Correos repetidos con datos distintos");
-    expect(html).toContain("Fila 4 repite la 2: otro *|ENLACE|*");
-    expect(html).toContain("*|ENLACE|*: 1 sin dato · en enlace · sin respaldo posible");
+    expect(html).toContain("Fila 4 repite la 2: otro Enlace");
+    expect(html).toContain("Enlace: 1 sin dato · en enlace · sin respaldo posible");
     expect(html).toContain("2 por corregir");
     const mc = renderToStaticMarkup(
       <PanelMailchimp

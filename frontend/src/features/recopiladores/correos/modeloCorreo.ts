@@ -8,6 +8,7 @@ import {
   type MailBlockType,
   type MailCheck,
   type MailCheckItem,
+  type MailCheckItemValue,
   type MailField,
   type MailHeader,
   type MailProblem,
@@ -589,41 +590,41 @@ export function propDelProblema(path: string): string | null {
 
 export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   subject: "Asunto definido",
-  preheader: "Texto de vista previa (preheader)",
+  preheader: "Texto de vista previa",
   html_weight: "Peso del correo",
-  images_hosted: "Imágenes sin incrustar",
+  images_hosted: "Imágenes guardadas como archivo",
   images_available: "Logos e imágenes subidos",
-  images_alt: "Texto alternativo en las imágenes",
+  images_alt: "Descripción de cada imagen",
   banner_size: "Medidas del banner",
-  footer_unsub: "Pie con *|UNSUB|* y dirección",
+  footer_unsub: "Enlace para darse de baja y dirección",
   recipients: "Destinatarios con correo válido",
-  tags_have_columns: "Etiquetas con columna en la audiencia",
+  tags_have_columns: "Cada campo con su columna en la lista",
   fields_empty: "Campos con dato para todos",
   names_unsplit: "Nombres separados del apellido",
   duplicates_conflicting: "Correos repetidos con datos distintos",
   import_zip_weight: "Peso del ZIP para importar",
-  accent_contrast: "Contraste del texto sobre el acento",
-  image_width: "Resolución de las imágenes",
+  accent_contrast: "El texto se lee sobre el color",
+  image_width: "Nitidez de las imágenes",
   image_weight: "Peso de cada imagen",
   // SurveyMonkey (E1j) y envíos (E1k).
-  survey_link: "Enlace a la encuesta ([SurveyLink])",
-  footer_optout: "Pie con la baja ([OptOutLink])",
-  images_public_url: "Imágenes con URL pública https",
+  survey_link: "Enlace a la encuesta",
+  footer_optout: "Enlace para darse de baja",
+  images_public_url: "Imágenes publicadas en la web",
   sm_fields_mapped: "Campos con etiqueta de SurveyMonkey",
   sm_fallback: "Datos que faltan en SurveyMonkey",
-  sm_custom_limit: "CustomData dentro del plan",
-  sm_link_field_empty: "Enlace de cada persona con dato",
+  sm_custom_limit: "Campos personalizados dentro del plan",
+  sm_link_field_empty: "Cada persona con su enlace",
   sm_destination_mismatch: "Destino del enlace",
   send_dates: "Fechas de los envíos",
   reminder_audience: "A quién va el recordatorio",
   // Saludo por sexo (C8).
   greeting_trato: "Saludo según la persona",
   greeting_trato_word: "Palabra del saludo",
-  sm_trato_blank: "Saludo en SurveyMonkey sin dato",
+  sm_trato_blank: "Saludo de cada persona en SurveyMonkey",
   // Estilo campaña (E1n).
-  campana_text_contrast: "Contraste del texto sobre el fondo",
-  campana_button_contrast: "Contraste del botón",
-  campana_footer_contrast: "Contraste del pie sobre el fondo",
+  campana_text_contrast: "El texto se lee sobre el fondo",
+  campana_button_contrast: "El botón se lee sobre su color",
+  campana_footer_contrast: "El pie se lee sobre el fondo",
 };
 
 /** Dónde se usa un campo (`uses` de `fields_empty`), en la voz de la vista. */
@@ -641,24 +642,45 @@ function listaDe(value: unknown): string[] {
   return typeof value === "string" && value ? [value] : [];
 }
 
-/** Una fila del detalle de un chequeo, en una línea. */
-export function textoDeItem(item: MailCheckItem): string {
+/** Un campo como lo nombra el equipo: su rótulo de la plantilla, nunca `*|ETIQUETA|*`. */
+export type CampoConNombre = Pick<MailField, "key" | "tag" | "label">;
+
+const NOMBRE_RESERVADO: Readonly<Record<string, string>> = { FNAME: "Nombre", LNAME: "Apellido", EMAIL: "Correo" };
+
+/** El nombre humano de un campo que el backend señala por su etiqueta (`CARRERA`) o su clave. */
+export function nombreDelCampo(tag: unknown, key: unknown, campos: readonly CampoConNombre[] = []): string {
+  const t = typeof tag === "string" ? tag : "";
+  const k = typeof key === "string" ? key : "";
+  const campo = campos.find((c) => (t && c.tag === t) || (k && c.key === k));
+  if (campo?.label) return campo.label;
+  if (NOMBRE_RESERVADO[t]) return NOMBRE_RESERVADO[t];
+  if (k === CAMPO_NOMBRE) return "Nombre";
+  const crudo = (k || t).replace(/[_-]+/g, " ").trim().toLowerCase();
+  return crudo ? crudo.charAt(0).toUpperCase() + crudo.slice(1) : "Campo";
+}
+
+/**
+ * Una fila del detalle de un chequeo, en una línea y en la voz del equipo:
+ * el campo por su nombre (`Carrera → CARRERA`), nunca su etiqueta de plataforma.
+ */
+export function textoDeItem(item: MailCheckItem, campos: readonly CampoConNombre[] = []): string {
   if (typeof item === "string") return item;
+  const nombre = (it: Record<string, MailCheckItemValue>) => nombreDelCampo(it.tag, it.key, campos);
   if ("row" in item && "first_row" in item) {
     // duplicates_conflicting: filas del archivo, con el encabezado como fila 1.
-    const tags = listaDe(item.tags).map((t) => `*|${t}|*`).join(", ");
+    const tags = listaDe(item.tags).map((t) => nombreDelCampo(t, undefined, campos)).join(", ");
     return `Fila ${String(item.row)} repite la ${String(item.first_row)}${tags ? `: otro ${tags}` : ""}`;
   }
-  if ("tag" in item && "column" in item) return `*|${String(item.tag)}|* → ${String(item.column)}`;
+  if ("tag" in item && "column" in item) return `${nombre(item)} → ${String(item.column)}`;
   if ("tag" in item && "empty" in item) {
     const vacios = Number(item.empty) || 0;
     const usos = listaDe(item.uses).map((u) => LUGAR_DE_USO[u] ?? u);
     const donde = usos.length ? ` · en ${usos.join(", ")}` : "";
     const respaldo = item.fallback && item.fallback_covers !== false ? ` → «${String(item.fallback)}»` : "";
     const sinRespaldo = item.in_url === true ? " · sin respaldo posible" : item.fallback_covers === false && item.fallback ? " · el respaldo no alcanza" : "";
-    return `*|${String(item.tag)}|*: ${vacios} sin dato${respaldo}${donde}${sinRespaldo}`;
+    return `${nombre(item)}: ${vacios} sin dato${respaldo}${donde}${sinRespaldo}`;
   }
-  if ("tag" in item) return `*|${String(item.tag)}|* sin columna`;
+  if ("tag" in item) return `${nombre(item)}: sin columna`;
   return Object.values(item).map((v) => (Array.isArray(v) ? v.join(", ") : String(v))).join(" · ");
 }
 
@@ -690,7 +712,12 @@ export function cifraDeChequeo(check: MailCheck): string {
     case "campana_text_contrast":
     case "campana_button_contrast":
     case "campana_footer_contrast":
-      return v ? `${v.toLocaleString("es-PE", { maximumFractionDigits: 1 })}:1` : check.status === "ok" ? "suficiente" : "";
+      // La razón va sólo en el `title` (`tituloDeChequeo`): a la vista, si se lee.
+      return check.status === "ok" ? "se lee bien" : "cuesta leerlo";
+    case "greeting_trato":
+    case "greeting_trato_word":
+      // Su `value` es un conteo interno: el detalle ya dice a quién le cae el saludo.
+      return "";
     case "image_width":
       return check.status === "ok" ? "nítidas" : `${v.toLocaleString("es-PE")} se verían borrosas`;
     case "image_weight":
@@ -719,6 +746,19 @@ export function cifraDeChequeo(check: MailCheck): string {
     default:
       return check.value === null ? "" : String(check.value);
   }
+}
+
+const CONTRASTE: ReadonlySet<string> = new Set(["accent_contrast", "campana_text_contrast", "campana_button_contrast", "campana_footer_contrast"]);
+
+/** Una razón de contraste con coma decimal, como se escribe en el informe: `15,7:1`. */
+export function razonDeContraste(v: number): string {
+  return `${String(Math.round(v * 10) / 10).replace(".", ",")}:1`;
+}
+
+/** El `title` de un chequeo: la cifra técnica que la vista no muestra (la razón de contraste). */
+export function tituloDeChequeo(check: MailCheck): string | undefined {
+  const v = n(check.value);
+  return CONTRASTE.has(check.code) && v > 0 ? `Contraste ${razonDeContraste(v)}` : undefined;
 }
 
 /** `fields_empty` sin nadie a quien revisar: «todos» sería falso. */
@@ -750,8 +790,23 @@ export function chequeosOrdenados(checks: readonly MailCheck[]): MailCheck[] {
   return [...checks].sort((a, b) => peso[a.status] - peso[b.status]);
 }
 
+/**
+ * La revisión en tres grupos (H8): arriba lo que falta corregir, después los
+ * avisos y, plegado, lo que está en orden. Cada grupo conserva el orden del
+ * backend; las cuentas son las del encabezado y la pestaña.
+ */
+export function partesDeRevision(checks: readonly MailCheck[]): { porCorregir: MailCheck[]; avisos: MailCheck[]; enOrden: MailCheck[] } {
+  return {
+    porCorregir: checks.filter((c) => c.status === "error"),
+    avisos: checks.filter((c) => c.status === "warning"),
+    enOrden: checks.filter((c) => c.status === "ok"),
+  };
+}
+
+export const TODO_EN_ORDEN = "Todo en orden: listo para exportar";
+
 export function resumenDeRevision(errors: number, warnings: number): string {
-  if (!errors && !warnings) return "Listo para exportar";
+  if (!errors && !warnings) return TODO_EN_ORDEN;
   const partes: string[] = [];
   if (errors) partes.push(`${errors} por corregir`);
   if (warnings) partes.push(`${warnings} ${warnings === 1 ? "aviso" : "avisos"}`);

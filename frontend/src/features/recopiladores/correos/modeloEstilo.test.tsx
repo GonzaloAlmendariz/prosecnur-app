@@ -21,7 +21,7 @@ import { salidaDelChequeo } from "./PanelRevision";
 import { paginaDeCampana } from "./VistaPreviaDelCorreo";
 import { destinoDelChequeo } from "./comoArreglar";
 import { IDENTIDAD } from "./modeloEstilo";
-import { rotuloDeChequeo, cifraDeChequeo } from "./modeloCorreo";
+import { rotuloDeChequeo, cifraDeChequeo, tituloDeChequeo } from "./modeloCorreo";
 
 /**
  * Fixture del tema Campaña (E1n) mientras el backend no publique las claves:
@@ -172,7 +172,8 @@ describe("chequeos de Campaña en la revisión", () => {
   });
 
   it("tienen rótulo y muestran su razón", () => {
-    expect(rotuloDeChequeo(chk("campana_footer_contrast", "page_bg"))).toBe("Contraste del pie sobre el fondo");
-    expect(cifraDeChequeo(chk("campana_text_contrast", "page_bg"))).toBe("3.1:1");
+    expect(rotuloDeChequeo(chk("campana_footer_contrast", "page_bg"))).toBe("El pie se lee sobre el fondo");
+    expect(cifraDeChequeo(chk("campana_text_contrast", "page_bg"))).toBe("cuesta leerlo");
+    expect(tituloDeChequeo(chk("campana_text_contrast", "page_bg"))).toBe("Contraste 3,1:1");
   });
 });

@@ -16,6 +16,7 @@ import {
   textoDeItem,
   rotuloDeBloque,
   rotuloDeChequeo,
+  tituloDeChequeo,
   claveDesdeRotulo,
   conTexto,
   escalaParaCaber,
@@ -220,7 +221,10 @@ describe("revisión", () => {
     expect(cifraDeChequeo(chk("images_hosted", "ok", 0))).toBe("en el ZIP o con URL");
     expect(cifraDeChequeo(chk("images_hosted", "error", 1))).toBe("incrustadas");
     expect(cifraDeChequeo(chk("import_zip_weight", "warning", 900 * 1024))).toBe("900 KB de 1.024 KB");
-    expect(cifraDeChequeo(chk("accent_contrast", "warning", 3.94))).toBe("3.9:1");
+    // La razón de contraste sólo va en el `title`, con coma decimal.
+    expect(cifraDeChequeo(chk("accent_contrast", "warning", 3.94))).toBe("cuesta leerlo");
+    expect(cifraDeChequeo(chk("accent_contrast", "ok", 15.66))).toBe("se lee bien");
+    expect(tituloDeChequeo(chk("accent_contrast", "ok", 15.66))).toBe("Contraste 15,7:1");
     expect(cifraDeChequeo(chk("tags_have_columns", "ok", 0, [{ tag: "A" }, { tag: "B" }, { tag: "C" }]))).toBe("3 de 3");
     expect(cifraDeChequeo(chk("tags_have_columns", "error", 1, [{ tag: "A" }, { tag: "B" }]))).toBe("1 de 2");
     expect(cifraDeChequeo(chk("recipients", "error", 0))).toBe("sin importar");
@@ -360,17 +364,25 @@ describe("chequeos desconocidos", () => {
 
 describe("detalle de los chequeos nuevos", () => {
   test("un repetido con otro dato dice qué filas y qué etiquetas", () => {
-    expect(textoDeItem({ row: 5, first_row: 2, tags: ["ENLACE", "CARRERA"] })).toBe("Fila 5 repite la 2: otro *|ENLACE|*, *|CARRERA|*");
+    expect(textoDeItem({ row: 5, first_row: 2, tags: ["ENLACE", "CARRERA"] })).toBe("Fila 5 repite la 2: otro Enlace, Carrera");
     expect(cifraDeChequeo({ code: "duplicates_conflicting", status: "error", value: 1, detail: "", items: [], targets: [] })).toBe("1 en conflicto");
   });
 
   test("un vacío dentro de un enlace no tiene respaldo posible", () => {
     expect(textoDeItem({ tag: "ENLACE", key: "enlace", empty: 1, uses: ["url"], in_url: true, fallback_covers: false }))
-      .toBe("*|ENLACE|*: 1 sin dato · en enlace · sin respaldo posible");
+      .toBe("Enlace: 1 sin dato · en enlace · sin respaldo posible");
     expect(textoDeItem({ tag: "CARRERA", empty: 2, fallback: "su carrera", uses: ["cuerpo"], fallback_covers: true }))
-      .toBe("*|CARRERA|*: 2 sin dato → «su carrera» · en cuerpo");
+      .toBe("Carrera: 2 sin dato → «su carrera» · en cuerpo");
     expect(textoDeItem({ tag: "FNAME", empty: 1, fallback: "Estimado(a):", uses: ["asunto"], fallback_covers: false }))
-      .toBe("*|FNAME|*: 1 sin dato · en asunto · el respaldo no alcanza");
+      .toBe("Nombre: 1 sin dato · en asunto · el respaldo no alcanza");
+  });
+
+  test("el campo se nombra por su rótulo de la plantilla, con la columna a la derecha", () => {
+    const campos = [{ key: "enlace", tag: "ENLACE", label: "Enlace a la encuesta" }, { key: "carrera", tag: "CARRERA", label: "Carrera" }];
+    expect(textoDeItem({ key: "nombre", tag: "FNAME", column: "First Name" }, campos)).toBe("Nombre → First Name");
+    expect(textoDeItem({ key: "carrera", tag: "CARRERA" }, campos)).toBe("Carrera: sin columna");
+    expect(textoDeItem({ key: "enlace", tag: "ENLACE", column: "ENLACE" }, campos)).toBe("Enlace a la encuesta → ENLACE");
+    expect(textoDeItem({ tag: "ENLACE", empty: 1, uses: ["url"], in_url: true }, campos)).toBe("Enlace a la encuesta: 1 sin dato · en enlace · sin respaldo posible");
   });
 });
 
