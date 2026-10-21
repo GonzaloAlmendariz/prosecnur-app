@@ -11,6 +11,7 @@ const ARREGLO: Readonly<Record<string, string>> = {
   images_hosted: "Sube la imagen como archivo o ponle su dirección web.",
   images_available: "Sube su PNG o JPEG: viaja dentro del ZIP del correo.",
   images_alt: "Describe la imagen en una frase: qué muestra.",
+  placeholders_pending: "Reemplaza cada texto entre corchetes por el dato real; «Ir al bloque» te lleva al primero.",
   banner_size: "Sube un banner de al menos 1200 px de ancho, idealmente 1200 × 600.",
   footer_unsub: "Deja el bloque de pie: la app le agrega el enlace de baja.",
   recipients: "Importa la lista en Personas.",
