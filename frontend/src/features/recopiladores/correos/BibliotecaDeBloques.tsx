@@ -110,7 +110,7 @@ const ESQUEMA: Record<MailBlockType, ReactNode> = {
 export const CUANDO_USARLO: Record<MailBlockType, string> = {
   greeting: "El primer renglón. Usa {{nombre}} y escribe el respaldo para quien no tenga el dato.",
   heading: "Para separar partes en un correo largo: fechas, pasos, «Qué tienes que hacer».",
-  paragraph: "El cuerpo del correo. Admite negrita, campos y enlaces dentro del texto.",
+  paragraph: "El cuerpo del correo. Admite negrita, cursiva, campos y enlaces dentro del texto.",
   list: "Pasos o requisitos que se leen de un vistazo.",
   callout: "Lo que no puede pasarse por alto: plazos, sesiones, advertencias.",
   button: "La acción principal; suele haber una sola. El enlace puede ser distinto por persona.",

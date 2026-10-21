@@ -1,6 +1,7 @@
 import type { MailCheck, MailReview } from "../../../api/materialMail";
 import { AlertCircle, ArrowRight, CheckCircle2, Loader2, XCircle } from "../../../vendor/lucide-react";
 import { FOCO_COLUMNA_DEL_TRATO, comoArreglar, destinoDelChequeo } from "./comoArreglar";
+import { IDENTIDAD, focoDelEstilo } from "./modeloEstilo";
 import { CABECERA, SOBRE, chequeosOrdenados, cifraDeChequeo, muestraDetalle, resumenDeRevision, rotuloDeChequeo, textoDeItem, CUERPO_DEL_INSPECTOR } from "./modeloCorreo";
 
 type Props = {
@@ -14,11 +15,13 @@ type Props = {
 };
 
 /** El texto del botón de salida de un chequeo: lo que hace, en la voz de la vista. */
-export function salidaDelChequeo(code: string, destino: string): { texto: string; foco?: string } {
+export function salidaDelChequeo(code: string, destino: string, prop?: string): { texto: string; foco?: string } {
   // F2: el saludo por sexo se arregla eligiendo la columna, con el foco en el selector.
   if (code === "greeting_trato") return { texto: "Elegir columna", foco: FOCO_COLUMNA_DEL_TRATO };
   // F15: la cabecera sin descripción se corrige en Identidad, que es adonde lleva.
   if (destino === CABECERA) return { texto: "Ir a Identidad" };
+  // E1n: el contraste de Campaña se corrige en Identidad › Estilo, en el control del color.
+  if (destino === IDENTIDAD) return { texto: "Ir a Identidad", foco: focoDelEstilo(prop) };
   if (destino === SOBRE) return { texto: "Ir al asunto" };
   return { texto: "Ir al bloque" };
 }
@@ -58,7 +61,7 @@ function Chequeo({ check, onIrAlBloque }: { check: MailCheck; onIrAlBloque?: (bl
         <span className="rec-mail-chk-salida">
           {arreglo ? <span className="rec-mail-chk-arreglo">{arreglo}</span> : null}
           {destino && onIrAlBloque ? (() => {
-            const salida = salidaDelChequeo(check.code, destino);
+            const salida = salidaDelChequeo(check.code, destino, check.targets.find((t) => t.block_id === destino)?.prop);
             return (
               <button type="button" className="rec-mail-link rec-mail-chk-ir" onClick={() => onIrAlBloque(destino, salida.foco)}>
                 {salida.texto} <ArrowRight size={12} aria-hidden />

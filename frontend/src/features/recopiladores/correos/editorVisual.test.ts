@@ -94,9 +94,9 @@ describe("serializarTexto: ida y vuelta exacta", () => {
     expect(textoDelDom(domDePrueba("a<br>b") as unknown as Node, opts)).toBe("a b");
   });
 
-  it("el DOM ajeno se aplana: cursiva, fuente y divs de Enter no pasan como HTML", () => {
+  it("el DOM ajeno se aplana: fuente y divs de Enter no pasan como HTML; la cursiva es *cursiva* (E1n)", () => {
     const dom = domDePrueba('<i>uno</i> <font color="red">dos</font><div>tres</div><span style="x">cuatro</span>');
-    expect(textoDelDom(dom as unknown as Node, MULTI)).toBe("uno dos\ntrescuatro");
+    expect(textoDelDom(dom as unknown as Node, MULTI)).toBe("*uno* dos\ntrescuatro");
   });
 
   it("<b> de Chrome cuenta como negrita; dos negritas contiguas son una", () => {
@@ -330,6 +330,17 @@ describe("ajustesDeBloque", () => {
     expect(valorDeAjuste(boton, fill)).toBe("solido");
     expect(valorDeAjuste(conAjuste(boton, "fill", "contorno"), fill)).toBe("contorno");
     expect(conAjuste(boton, "fill", "rojo")).toBe(boton);
+  });
+
+  it("un párrafo sin alineación sigue la del estilo; elegir «Del estilo» quita la clave", () => {
+    const parrafo = { block_id: "p", type: "paragraph" as const, text: "Hola" };
+    const align = ajustesDe(parrafo).find((a) => a.clave === "align")!;
+    expect(valorDeAjuste(parrafo, align)).toBe("estilo");
+    const izquierda = conAjuste(parrafo, "align", "left");
+    expect(izquierda).toMatchObject({ align: "left" });
+    const deVuelta = conAjuste(izquierda, "align", "estilo");
+    expect("align" in deVuelta).toBe(false);
+    expect(valorDeAjuste(deVuelta, align)).toBe("estilo");
   });
 
   it("la lista numerada es un booleano; el ancho de imagen se acota a 40–600", () => {

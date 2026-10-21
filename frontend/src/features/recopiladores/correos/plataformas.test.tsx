@@ -288,7 +288,7 @@ describe("la apertura y los envíos en el store", () => {
 const CODIGOS_DEL_IMPORTADOR = [
   "block_degraded", "button_without_link", "comments_discarded", "conditional_flattened", "element_discarded",
   "email_tag_removed", "event_handler_discarded", "greeting_trato_detected", "header_missing", "hidden_discarded",
-  "hover_ignored", "image_alt_missing", "image_http", "image_needs_upload", "italic_plain", "link_discarded",
+  "hover_ignored", "image_alt_missing", "image_http", "image_needs_upload", "link_discarded",
   "moved_to_footer", "platform_footer_removed", "platform_link_removed", "platform_mixed", "strike_plain",
   "style_discarded", "subject_missing", "text_degraded", "text_escaped", "unrecognized", "unsafe_link_discarded",
 ];

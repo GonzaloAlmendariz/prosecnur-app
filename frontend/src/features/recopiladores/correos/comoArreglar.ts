@@ -35,6 +35,9 @@ const ARREGLO: Readonly<Record<string, string>> = {
   greeting_trato: "En el saludo, elige la columna de sexo de la lista en «Saludo según la persona».",
   greeting_trato_word: "Escribe en el saludo la palabra de respaldo, o cámbiala en «Saludo según la persona».",
   sm_trato_blank: "Importa contactos_surveymonkey.csv en el recopilador: trae el saludo ya escrito.",
+  campana_text_contrast: "Elige en Identidad › Estilo un fondo de página más oscuro o más claro.",
+  campana_button_contrast: "Elige en Identidad › Estilo otro relleno para el botón.",
+  campana_footer_contrast: "Elige en Identidad › Estilo un fondo de página más oscuro o más claro.",
 };
 
 export function comoArreglar(code: string): string | null {

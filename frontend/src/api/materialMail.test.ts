@@ -588,6 +588,25 @@ describe("plataforma, envíos e importación (E1j·E1k·E1l)", () => {
     expect(t.fields[1].destino).toBeUndefined();
   });
 
+  test("el tema conserva el estilo campaña (E1n) con sus nombres exactos", () => {
+    const t = normalizeMailTemplate({
+      ...PLANTILLA_R,
+      theme: {
+        accent: "#0b1f54", band: "acento", estilo: ["campana"], page_bg: "#0B1F54", button_bg: "#F9D53E",
+        button_text: "#0B1F3A", text_align: "center", onda: "pie", onda_color: "#E87722",
+      },
+    });
+    expect(t.theme).toEqual({
+      accent: "#0b1f54", band: "acento", estilo: "campana", page_bg: "#0B1F54", button_bg: "#F9D53E",
+      button_text: "#0B1F3A", text_align: "center", onda: "pie", onda_color: "#E87722",
+    });
+    // Un color raro se conserva para que la revisión lo nombre; una enumeración fuera del registro no.
+    const raro = normalizeMailTemplate({ ...PLANTILLA_R, theme: { accent: "#001f60", estilo: "neon", page_bg: "azulado", text_align: "derecha", onda: "arriba" } });
+    expect(raro.theme).toEqual({ accent: "#001f60", page_bg: "azulado" });
+    // Sin claves de estilo, el tema es el de siempre (sobrio, justificado por defecto).
+    expect(normalizeMailTemplate(PLANTILLA_R).theme).toEqual({ accent: "#0b1f54" });
+  });
+
   test("GET y PUT de la plantilla traen plataforma, envíos y avisos de fechas", () => {
     const get = normalizeMailTemplatePayload({ state_revision: 5, platform: "surveymonkey", sends: [{ send_id: "invitacion", kind: "invitacion", label: "Invitación" }], template: PLANTILLA_R });
     expect(get.platform).toBe("surveymonkey");

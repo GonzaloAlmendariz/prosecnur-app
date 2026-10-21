@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from "react";
 
-import { Bold, Check, CornerDownLeft, Link2, Variable } from "../../../vendor/lucide-react";
+import { Bold, Check, CornerDownLeft, Italic, Link2, Variable } from "../../../vendor/lucide-react";
+import { rotuloDeAtajo } from "./atajosDelEditor";
 import type { Rect } from "./estructuraCorreo";
 import { atajoDeHistorial } from "./historialCorreo";
 import { MenuDeCampos, type CampoDelMenu } from "./MenuDeCampos";
@@ -44,9 +45,8 @@ type Enlace = Menu & { url: string; texto: string; existente: HTMLElement | null
 const ANCHO_DEL_MENU = 288;
 const ANCHO_DEL_ENLACE = 320;
 
-/** Bloqueados siempre: el contrato no tiene cursiva, subrayado ni color. */
+/** Bloqueados siempre: el contrato no tiene subrayado ni color (la cursiva sí, E1n). */
 const ENTRADAS_BLOQUEADAS = new Set([
-  "formatItalic",
   "formatUnderline",
   "formatStrikeThrough",
   "formatSuperscript",
@@ -111,9 +111,10 @@ function enlaceDelRango(raiz: HTMLElement, rango: Range | null): HTMLElement | n
  *
  * Vive en el documento padre, encima del texto que pinta el iframe: la vista
  * previa puede seguir llegando sin tocar el cursor. Su DOM es el que permite
- * `serializarTexto` (texto, negrita, enlaces y chips de campo) y cada cambio
- * se devuelve como texto del contrato. Se repinta sólo cuando el valor cambia
- * por fuera (deshacer, un `**` que se vuelve negrita, un pegado).
+ * `serializarTexto` (texto, negrita, cursiva, enlaces y chips de campo) y cada
+ * cambio se devuelve como texto del contrato. Se repinta sólo cuando el valor
+ * cambia por fuera (deshacer, un `{{campo}}` escrito que se vuelve chip, un
+ * pegado). Un asterisco escrito es texto: el formato se pone con ⌘B / ⌘I.
  */
 export function EditorEnLinea({
   valor,
@@ -137,6 +138,7 @@ export function EditorEnLinea({
   const [menu, setMenu] = useState<Menu | null>(null);
   const [enlace, setEnlace] = useState<Enlace | null>(null);
   const [negrita, setNegrita] = useState(false);
+  const [cursiva, setCursiva] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const opcionesRef = useRef(opciones);
   opcionesRef.current = opciones;
@@ -180,13 +182,15 @@ export function EditorEnLinea({
     return { x, y: punto.bottom - base.top + 6 };
   }, [anchoDeLaCapa, rect.h, rect.x, rect.y]);
 
-  /** Vuelca el DOM al texto del contrato. Si quedó un `**` o un `{{k}}` escrito, lo pinta con formato. */
+  /** Vuelca el DOM al texto del contrato. Si quedó un `{{k}}` escrito o un nodo ajeno, lo pinta con formato. */
   const volcar = useCallback(() => {
     const el = editable.current;
     if (!el) return;
     const texto = textoDelDom(el, opcionesRef.current);
-    const sinFormato = Array.from(el.childNodes).some((n) => n.nodeType === 3 && /\*\*.+?\*\*|\{\{\s*[a-z][a-z0-9_]*\s*\}\}/.test(n.nodeValue ?? ""))
-      || el.querySelector("div,p,i,u,font,span:not([data-campo])") !== null;
+    // `<b>` e `<i>` (lo que deja execCommand) se leen como negrita y cursiva:
+    // repintarlos perdería la selección justo después de ⌘B / ⌘I.
+    const sinFormato = Array.from(el.childNodes).some((n) => n.nodeType === 3 && /\{\{\s*[a-z][a-z0-9_]*\s*\}\}/.test(n.nodeValue ?? ""))
+      || el.querySelector("div,p,u,font,span:not([data-campo])") !== null;
     if (sinFormato) {
       const r = rangoActual(el);
       const cursor = r ? desplazamientoDelCursor(el, r.startContainer, r.startOffset) : null;
@@ -322,12 +326,17 @@ export function EditorEnLinea({
     volcar();
   };
 
-  const alternarNegrita = () => {
+  const leerFormato = () => {
+    setNegrita(document.queryCommandState("bold"));
+    setCursiva(document.queryCommandState("italic"));
+  };
+
+  const alternar = (comando: "bold" | "italic") => {
     const el = editable.current;
     if (!el) return;
     el.focus({ preventScroll: true });
-    document.execCommand("bold");
-    setNegrita(document.queryCommandState("bold"));
+    document.execCommand(comando);
+    leerFormato();
     volcar();
   };
 
@@ -343,9 +352,9 @@ export function EditorEnLinea({
     }
     const mod = event.metaKey || event.ctrlKey;
     const key = event.key.toLowerCase();
-    if (mod && key === "b") {
+    if (mod && !event.altKey && (key === "b" || key === "i")) {
       event.preventDefault();
-      alternarNegrita();
+      alternar(key === "b" ? "bold" : "italic");
       return;
     }
     if (mod && key === "k") {
@@ -363,7 +372,7 @@ export function EditorEnLinea({
       }
       return;
     }
-    if (mod && (key === "i" || key === "u")) {
+    if (mod && key === "u") {
       event.preventDefault();
       return;
     }
@@ -434,7 +443,7 @@ export function EditorEnLinea({
   };
 
   const onSeleccion = () => {
-    if (editable.current && rangoActual(editable.current)) setNegrita(document.queryCommandState("bold"));
+    if (editable.current && rangoActual(editable.current)) leerFormato();
   };
 
   // Un clic fuera del editor (otra zona, el inspector) termina la edición,
@@ -463,14 +472,17 @@ export function EditorEnLinea({
         aria-label={`Formato de ${etiqueta}`}
         onMouseDown={(event) => event.preventDefault()}
       >
-        <button type="button" className={`rec-capa-barra-btn${negrita ? " is-on" : ""}`} aria-pressed={negrita} aria-label="Negrita" title="Negrita (⌘B)" onClick={alternarNegrita}>
+        <button type="button" className={`rec-capa-barra-btn${negrita ? " is-on" : ""}`} aria-pressed={negrita} aria-label="Negrita" title={rotuloDeAtajo("Negrita", "B")} onClick={() => alternar("bold")}>
           <Bold size={14} aria-hidden />
+        </button>
+        <button type="button" className={`rec-capa-barra-btn${cursiva ? " is-on" : ""}`} aria-pressed={cursiva} aria-label="Cursiva" title={rotuloDeAtajo("Cursiva", "I")} onClick={() => alternar("italic")}>
+          <Italic size={14} aria-hidden />
         </button>
         <button
           type="button"
           className="rec-capa-barra-btn"
           aria-label="Enlace"
-          title={opciones.enlaces ? "Enlace (⌘K)" : "Este texto no admite enlaces"}
+          title={opciones.enlaces ? rotuloDeAtajo("Enlace", "K") : "Este texto no admite enlaces"}
           aria-disabled={!opciones.enlaces || undefined}
           onClick={abrirEnlace}
         >

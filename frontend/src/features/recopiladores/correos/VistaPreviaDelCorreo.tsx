@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import type { MailTemplate } from "../../../api/materialMail";
 import { AlertTriangle, Loader2 } from "../../../vendor/lucide-react";
@@ -9,7 +9,10 @@ import {
   type PaletaOscura,
   type VistaDelCorreo,
 } from "./modeloCorreo";
+import { esHex } from "./modeloEstilo";
 import { useCorreosStore } from "./store";
+
+import "./correosEstilo.css";
 
 /** Lo que la capa de edición necesita para medirse sobre el correo. */
 export type MedidasDeLaHoja = {
@@ -43,6 +46,13 @@ function paletaOscura(): PaletaOscura | undefined {
   const tinta = token("--pulso-surface-3");
   if (!papel || !tinta) return undefined;
   return { papel, tinta, suave: `color-mix(in srgb, ${papel} 82%, ${tinta})` };
+}
+
+/** El fondo de la página en estilo Campaña (sin `page_bg`, el acento); `null` en Sobrio. */
+export function paginaDeCampana(template: Pick<MailTemplate, "theme"> | null): string | null {
+  if (template?.theme.estilo !== "campana") return null;
+  const color = esHex(template.theme.page_bg) ? template.theme.page_bg : template.theme.accent;
+  return esHex(color) ? color : null;
 }
 
 /**
@@ -107,13 +117,30 @@ export function VistaPreviaDelCorreo({ html, template, vista, cargando, error, c
   // Al cambiar de vista el ancho pedido se vuelve a medir con el HTML nuevo.
   useEffect(() => { setAnchoContenido(0); }, [vista, html]);
 
-  const ancho = Math.max(ANCHO_DE_VISTA[vista], anchoContenido);
+  // Campaña (E1n): en Escritorio la hoja es tan ancha como el lienzo y el
+  // lienzo toma el fondo de la página —el color llena la ventana como en el
+  // cliente de correo—; en Teléfono se ve la columna.
+  const pagina = paginaDeCampana(template);
+  const aTodoElAncho = pagina !== null && vista === "escritorio";
+  const ancho = aTodoElAncho && disponible !== null && disponible > ANCHO_DE_VISTA.escritorio
+    ? Math.floor(disponible)
+    : Math.max(ANCHO_DE_VISTA[vista], anchoContenido);
   const escala = escalaParaCaber(disponible, ancho);
+  const estiloDelLienzo = aTodoElAncho ? ({ "--rec-mail-pagina": pagina } as CSSProperties) : undefined;
+
+  // La hoja a todo el ancho cambia con el lienzo: el correo se recentra y la
+  // capa vuelve a medir sobre el mismo documento.
+  useEffect(() => {
+    if (!aTodoElAncho || !doc) return;
+    setAlto(Math.max(320, Math.ceil(doc.documentElement.scrollHeight)));
+    setMedida((m) => m + 1);
+  }, [aTodoElAncho, ancho, doc]);
 
   return (
     <section
       ref={lienzo}
-      className={`rec-mail-lienzo${vista === "oscuro" ? " is-oscuro" : ""}`}
+      className={`rec-mail-lienzo${vista === "oscuro" ? " is-oscuro" : ""}${aTodoElAncho ? " is-campana" : ""}`}
+      style={estiloDelLienzo}
       aria-label="Vista previa del correo"
       aria-busy={cargando}
       data-qa-geometry-capacity="owned"

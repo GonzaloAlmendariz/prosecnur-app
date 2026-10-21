@@ -17,6 +17,19 @@ export type Ajuste = {
   defecto: string;
 };
 
+/**
+ * «Del estilo»: el bloque no fija alineación y sigue la del estilo del correo (Identidad › Alineación, justificado
+ * por defecto). Es la ausencia de la clave, no un valor que viaje al backend.
+ */
+export const DEL_ESTILO = "estilo";
+
+const ALINEACION_PARRAFO: readonly OpcionDeAjuste[] = [
+  { valor: DEL_ESTILO, rotulo: "Del estilo", ayuda: "la de Identidad" },
+  { valor: "left", rotulo: "Izquierda" },
+  { valor: "justify", rotulo: "Justificado" },
+  { valor: "center", rotulo: "Centrado" },
+];
+
 const ALINEACION_TEXTO: readonly OpcionDeAjuste[] = [
   { valor: "left", rotulo: "Izquierda" },
   { valor: "justify", rotulo: "Justificado" },
@@ -25,7 +38,7 @@ const ALINEACION_TEXTO: readonly OpcionDeAjuste[] = [
 
 export const AJUSTES_POR_TIPO: Partial<Record<MailBlock["type"], readonly Ajuste[]>> = {
   paragraph: [
-    { clave: "align", rotulo: "Alineación", opciones: ALINEACION_TEXTO, defecto: "left" },
+    { clave: "align", rotulo: "Alineación", opciones: ALINEACION_PARRAFO, defecto: DEL_ESTILO },
     {
       clave: "size",
       rotulo: "Tamaño",
@@ -170,6 +183,10 @@ export function conAjuste(block: MailBlock, clave: string, valor: string): MailB
   const ajuste = ajustesDe(block).find((a) => a.clave === clave);
   if (!ajuste || !ajuste.opciones.some((o) => o.valor === valor)) return block;
   if (clave === "ordered") return { ...block, ordered: valor === "si" } as MailBlock;
+  if (valor === DEL_ESTILO) {
+    const { [clave]: _quitada, ...resto } = block as Record<string, unknown>;
+    return resto as MailBlock;
+  }
   return { ...block, [clave]: valor } as MailBlock;
 }
 
