@@ -11,6 +11,7 @@ import {
   Info,
   KeyRound,
   Loader2,
+  Mail,
   MonitorCog,
   RefreshCw,
   ScrollText,
@@ -122,6 +123,18 @@ const PROVIDERS: ProviderMeta[] = [
     emptyHelp: "Autoriza una cuenta para leer o publicar hojas controladas.",
     verifyHint: "Confirma que el OAuth responde; los permisos de una hoja concreta se revisan en Monitoreo.",
   },
+  {
+    provider: "mailchimp",
+    title: "Mailchimp",
+    subtitle: "Envío de correos y etiqueta de quién ya respondió.",
+    Icon: Mail,
+    credentialKind: "token",
+    inputLabel: "Nueva clave de API",
+    inputHelp: "En Mailchimp: tu perfil › Extras › API keys › Create A Key. Copia la clave al crearla: Mailchimp la muestra una sola vez.",
+    inputPlaceholder: "Pegar clave de Mailchimp (termina en -us…)",
+    emptyHelp: "Conecta una clave para marcar en Mailchimp a quien ya respondió y enviar recordatorios solo a los demás.",
+    verifyHint: "Lista las audiencias de la cuenta; no envía nada.",
+  },
 ];
 
 const EMPTY_HF_SETTINGS: HfSettingsState = {
@@ -172,6 +185,21 @@ const EMPTY_CONNECTIONS: Record<ConnectionProvider, ConnectionTokenState> = {
     ok: true,
     provider: "kobo",
     label: "KoboToolbox",
+    has_token: false,
+    masked_token: "",
+    persisted: false,
+    ephemeral: false,
+    active_profile_id: "",
+    active_profile_alias: "",
+    active_profile_base_url: "",
+    active_profile_server_label: "",
+    profile_count: 0,
+    profiles: [],
+  },
+  mailchimp: {
+    ok: true,
+    provider: "mailchimp",
+    label: "Mailchimp",
     has_token: false,
     masked_token: "",
     persisted: false,
@@ -236,6 +264,10 @@ function checkMessage(provider: ConnectionProvider, result: ConnectionCheckResul
       ? "La clave responde. No se recibió un conteo de encuestas visibles."
       : `La clave responde. Prosecnur puede listar ${n} encuestas visibles.`;
   }
+  if (provider === "mailchimp") {
+    const n = result.count;
+    return n == null ? "La clave responde." : `La clave responde. Prosecnur ve ${n} ${n === 1 ? "audiencia" : "audiencias"}.`;
+  }
   if (provider === "google_sheets") {
     return "El OAuth responde. Los permisos de una hoja concreta se validan al registrarla en Monitoreo.";
   }
@@ -282,6 +314,7 @@ function activeConnectionLabel(meta: ProviderMeta, state: ConnectionTokenState):
     const alias = state.active_profile_alias || "Perfil Kobo activo";
     return state.active_profile_server_label ? `${alias} en ${state.active_profile_server_label}` : alias;
   }
+  if (meta.provider === "mailchimp") return "Clave activa de Mailchimp";
   return state.active_profile_alias ? `Perfil ${state.active_profile_alias}` : "Clave activa de SurveyMonkey";
 }
 
@@ -327,10 +360,10 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
   const [hfSelectedTokenId, setHfSelectedTokenId] = useState("");
   const [hfBusy, setHfBusy] = useState<HfBusyState>(null);
   const [hfMessage, setHfMessage] = useState<HfMessage>(null);
-  const [inputs, setInputs] = useState<Record<ConnectionProvider, string>>({ surveymonkey: "", kobo: "", google_sheets: "" });
-  const [aliases, setAliases] = useState<Record<ConnectionProvider, string>>({ surveymonkey: "", kobo: "", google_sheets: "" });
-  const [baseUrls, setBaseUrls] = useState<Record<ConnectionProvider, string>>({ surveymonkey: "", kobo: KOBO_DEFAULT_BASE_URL, google_sheets: "" });
-  const [remember, setRemember] = useState<Record<ConnectionProvider, boolean>>({ surveymonkey: true, kobo: true, google_sheets: true });
+  const [inputs, setInputs] = useState<Record<ConnectionProvider, string>>({ surveymonkey: "", kobo: "", google_sheets: "", mailchimp: "" });
+  const [aliases, setAliases] = useState<Record<ConnectionProvider, string>>({ surveymonkey: "", kobo: "", google_sheets: "", mailchimp: "" });
+  const [baseUrls, setBaseUrls] = useState<Record<ConnectionProvider, string>>({ surveymonkey: "", kobo: KOBO_DEFAULT_BASE_URL, google_sheets: "", mailchimp: "" });
+  const [remember, setRemember] = useState<Record<ConnectionProvider, boolean>>({ surveymonkey: true, kobo: true, google_sheets: true, mailchimp: true });
   const [authUrls, setAuthUrls] = useState<Partial<Record<ConnectionProvider, string>>>({});
   const [busy, setBusy] = useState<Partial<Record<ConnectionProvider, "save" | "check" | "clear">>>({});
   // Sólo «Verificar» decide si una credencial está verificada; guardar, activar o quitar la deja «sin verificar» (U3).
@@ -365,6 +398,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
           surveymonkey: next.surveymonkey.persisted || !next.surveymonkey.has_token,
           kobo: true,
           google_sheets: true,
+          mailchimp: true,
         });
         setBaseUrls((current) => ({
           ...current,

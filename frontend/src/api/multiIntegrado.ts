@@ -724,7 +724,7 @@ export type SurveyMonkeyTokenState = {
   profiles?: ConnectionProfileState[];
 };
 
-export type ConnectionProvider = "surveymonkey" | "kobo" | "google_sheets";
+export type ConnectionProvider = "surveymonkey" | "kobo" | "google_sheets" | "mailchimp";
 
 export type ConnectionProfileState = {
   id: string;
@@ -764,6 +764,7 @@ function normalizeConnectionProvider(value: unknown): ConnectionProvider {
   const raw = String(value ?? "").toLowerCase();
   if (raw === "kobo" || raw === "kobotoolbox") return "kobo";
   if (raw === "google_sheets" || raw === "googlesheets" || raw === "sheets" || raw === "google") return "google_sheets";
+  if (raw === "mailchimp") return "mailchimp";
   return "surveymonkey";
 }
 

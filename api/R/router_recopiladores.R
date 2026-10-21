@@ -176,6 +176,15 @@ mount_recopiladores <- function(pr) {
       collection_mail_campaign_delete(session_header(req), expected_revision = body$expected_revision,
                                       campaign_id = body$campaign_id, confirm_name = body$confirm_name)
     })) |>
+    # «Actualizar quién respondió»: SurveyMonkey → etiqueta en Mailchimp.
+    plumber::pr_get("/api/recopiladores/mail-sync/options", wrap_endpoint(function(req, res, ...) {
+      collection_mail_mailchimp_options(session_header(req))
+    })) |>
+    plumber::pr_post("/api/recopiladores/mail-sync", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_mailchimp_sync(session_header(req), campaign_id = body$campaign_id, survey_id = body$survey_id,
+                                     list_id = body$list_id, tag = body$tag, dry_run = isTRUE(body$dry_run))
+    })) |>
     plumber::pr_get("/api/recopiladores/mail-template", wrap_endpoint(function(req, res, ...) {
       collection_mail_template_get(session_header(req), campaign_id = .cmail_query_campaign(req))
     })) |>

@@ -18,6 +18,8 @@ import type { MailPlatform, MailSend, MailTemplate } from "../../../api/material
 import { PulsoButton } from "../../../components/PulsoButton";
 import { AlertTriangle, Loader2, Plus, Trash2, Upload } from "../../../vendor/lucide-react";
 import { CampoDeTexto } from "./CampoDeTexto";
+import { SincronizarRespuestas } from "./SincronizarRespuestas";
+import { useCorreosStore } from "./store";
 import { CUERPO_DEL_INSPECTOR } from "./modeloCorreo";
 import {
   AUDIENCIAS_DE_RECORDATORIO,
@@ -67,6 +69,7 @@ export function PanelEnvios({
   exportados = {},
 }: Props) {
   const ids = useId();
+  const campana = useCorreosStore((s) => s.campana);
   const avisos = avisosDeFechas(envios);
   const avisoDelActivo = avisos.find((a) => a.sendId === activo.send_id);
   const esRecordatorio = activo.kind === "recordatorio";
@@ -179,11 +182,7 @@ export function PanelEnvios({
           </label>
         </span>
         {avisoDelActivo ? <p className="rec-mail-problema-linea" role="status">{avisoDelActivo.detalle}</p> : null}
-        {esRecordatorio && plataforma === "mailchimp" ? (
-          <p className="rec-mail-ayuda">
-            Mailchimp no sabe quién respondió: arma un segmento con quienes faltan antes de enviar.
-          </p>
-        ) : null}
+        {esRecordatorio && plataforma === "mailchimp" ? <SincronizarRespuestas campana={campana} /> : null}
         <CampoDeTexto
           label="Asunto"
           valor={activo.subject ?? ""}
