@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
 
 import { isOpaqueMailBlock, type MailBlock, type MailBlockType, type MailTemplate } from "../../../api/materialMail";
-import { ArrowDown, ArrowUp, GripVertical, ImagePlus, Plus, Trash2 } from "../../../vendor/lucide-react";
+import { ArrowDown, ArrowUp, CircleAlert, GripVertical, ImagePlus, Plus, Trash2, TriangleAlert } from "../../../vendor/lucide-react";
 import { ARRASTRE_DE_BLOQUE, BibliotecaDeBloques } from "./BibliotecaDeBloques";
 import { admiteEnlaces } from "./comoSaleEnLaPlataforma";
 import { EditorEnLinea, type MotivoDeFin } from "./EditorEnLinea";
@@ -67,7 +67,17 @@ type Props = {
   onArchivoDeImagen: (blockId: string, file: File) => void;
   onDeshacer: () => void;
   onRehacer: () => void;
+  /** Abre la Revisión con lo que marca el punto de la zona. */
+  onVerRevision?: (zona: string) => void;
 };
+
+/** Lo que dice el punto de la zona, en palabras: «1 por corregir», «2 avisos». */
+function textoDelPunto(cuenta: ChequeosDeZona): string {
+  const partes: string[] = [];
+  if (cuenta.errores) partes.push(`${cuenta.errores} por corregir`);
+  if (cuenta.avisos) partes.push(`${cuenta.avisos} ${cuenta.avisos === 1 ? "aviso" : "avisos"}`);
+  return partes.join(" y ");
+}
 
 function estiloDeZona(r: Rect): CSSProperties {
   return { left: r.x, top: r.y, width: r.w, height: r.h };
@@ -163,6 +173,7 @@ export function CapaDeEdicion({
   onArchivoDeImagen,
   onDeshacer,
   onRehacer,
+  onVerRevision,
 }: Props) {
   const raiz = useRef<HTMLDivElement | null>(null);
   const archivo = useRef<HTMLInputElement | null>(null);
@@ -461,13 +472,16 @@ export function CapaDeEdicion({
               <span className={`rec-capa-zona-chip${lugarDelChipDeApertura === "arriba" ? " is-arriba" : ""}`}>{textoDelChip}</span>
             ) : null}
             {cuenta ? (
-              <span
+              <button
+                type="button"
                 className={`rec-capa-zona-cuenta${cuenta.errores ? " is-error" : " is-aviso"}`}
-                title={cuenta.chequeos.map((c) => rotuloDeChequeo(c)).join(" · ")}
-                aria-hidden
+                title={`${textoDelPunto(cuenta)}: ${cuenta.chequeos.map((c) => rotuloDeChequeo(c)).join(" · ")}. Ver en Revisión`}
+                aria-label={`${textoDelPunto(cuenta)} en ${rotulo}. Ver en Revisión`}
+                onClick={() => onVerRevision?.(zona.id)}
               >
+                {cuenta.errores ? <CircleAlert size={11} aria-hidden /> : <TriangleAlert size={11} aria-hidden />}
                 {cuenta.errores + cuenta.avisos}
-              </span>
+              </button>
             ) : null}
             {sinArchivo && !editandoAqui ? (
               <button type="button" className="rec-capa-subir" onClick={() => { onSeleccionar(zona.id); pedirImagen(zona.id); }}>

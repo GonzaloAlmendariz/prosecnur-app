@@ -149,7 +149,9 @@
   justify-content: center;
   min-width: 20px;
   padding: 0 5px;
-  pointer-events: none;
+  gap: 2px;
+  cursor: pointer;
+  pointer-events: auto;
   position: absolute;
   right: -8px;
   top: -8px;
