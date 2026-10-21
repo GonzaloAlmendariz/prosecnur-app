@@ -189,12 +189,6 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
   .cmail_check(code, "ok", nchar(value), ok_detail)
 }
 
-#' Chequeos de la revisión de un envío.
-#'
-#' @param tpl plantilla EFECTIVA del envío (`.cmail_template_for_send`).
-#' @param campaign campaña (NULL al trabajar sin campaña): decide el dialecto y
-#'   de dónde se leen los destinatarios.
-#' @keywords internal
 # Qué garantiza audiencia.csv para TODA persona efectiva, solo en Mailchimp con
 # la lista cargada: `fname` si nadie queda sin nombre de pila, `saludo` si la
 # columna SALUDO viaja (la escribe para todos, con el respaldo a quien no se
@@ -222,6 +216,12 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
   )
 }
 
+#' Chequeos de la revisión de un envío.
+#'
+#' @param tpl plantilla EFECTIVA del envío (`.cmail_template_for_send`).
+#' @param campaign campaña (NULL al trabajar sin campaña): decide el dialecto y
+#'   de dónde se leen los destinatarios.
+#' @keywords internal
 .cmail_review_checks <- function(session, tpl, campaign, scope = "completo", send = NULL) {
   dialect <- if (is.null(campaign)) .CMAIL_PLATFORM_DEFAULT else .cmail_platform_of(campaign)
   campaign_id <- campaign$campaign_id
