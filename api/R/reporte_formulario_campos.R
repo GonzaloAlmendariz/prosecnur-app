@@ -38,6 +38,17 @@
   !length(palabras) || all(palabras %in% .FORM_CAMPOS_GENERICAS)
 }
 
+# ¿El rotulo, sin las palabras genericas, sólo repite el de la opcion?
+.form_campos_rotulo_de_la_opcion <- function(label, etiqueta_opcion) {
+  palabras <- function(x) {
+    t <- .form_campos_sin_tildes(.form_pdf_clean_text(x))
+    p <- strsplit(gsub("[^a-z ]", " ", t), "\\s+")[[1]]
+    p[nzchar(p) & !p %in% .FORM_CAMPOS_GENERICAS]
+  }
+  propias <- palabras(label)
+  length(propias) > 0L && all(propias %in% palabras(etiqueta_opcion))
+}
+
 .form_campos_es_n_cuestionario <- function(name, label) {
   n <- .form_campos_sin_tildes(name)
   l <- .form_campos_sin_tildes(.form_pdf_clean_text(label))
@@ -86,10 +97,11 @@
   }
 
   # «Otro, especifique» estructural: `text` con relevant simple sobre la
-  # pregunta inmediatamente anterior y rotulo vacio o generico.
+  # pregunta inmediatamente anterior y rotulo vacio o generico, o que sólo
+  # repite el rotulo de la opcion que lo activa («Otra identidad de genero
+  # (especifica)» bajo la opcion 88 «Otra identidad de genero»; HSyVbG 2026).
   for (i in seq_len(n)) {
     if (!identical(rol[i], "pregunta") || !identical(tipo[i], "text")) next
-    if (!.form_campos_rotulo_generico(survey$label[i])) next
     ant <- i - 1L
     while (ant >= 1L && !identical(rol[ant], "pregunta") &&
            tipo[ant] %in% c("calculate", "hidden", "")) ant <- ant - 1L
@@ -98,9 +110,12 @@
     ast <- .form_logica_parse(survey$relevant[i])
     at <- .form_logica_atomo_simple(ast)
     if (is.null(at) || !identical(at$var, nombres[ant]) || !isTRUE(at$positivo)) next
-    codigos <- vapply(choices_by_list[[.form_pdf_type_list(survey$type[ant])]] %||% list(),
-                      function(o) .form_pdf_chr(o$code), character(1))
+    opciones <- choices_by_list[[.form_pdf_type_list(survey$type[ant])]] %||% list()
+    codigos <- vapply(opciones, function(o) .form_pdf_chr(o$code), character(1))
     if (!at$valor %in% codigos) next
+    etiqueta_opcion <- .form_pdf_chr(opciones[[match(at$valor, codigos)]]$label)
+    if (!.form_campos_rotulo_generico(survey$label[i]) &&
+        !.form_campos_rotulo_de_la_opcion(survey$label[i], etiqueta_opcion)) next
     rol[i] <- "especifique"
     esp <- rbind(esp, data.frame(fila = i, origen = ant, codigo = at$valor, stringsAsFactors = FALSE))
   }
