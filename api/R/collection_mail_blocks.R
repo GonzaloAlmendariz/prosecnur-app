@@ -9,9 +9,10 @@
 
 .cmail_text_td <- function(inner, padding = "0 48px 18px 48px", align = "left", size = 16L, line = 26L,
                            color = .CMAIL_TEXT_COLOR) {
+  a <- .cmail_align_css(align)
   sprintf(
-    '<tr><td style="padding:%s;font-family:%s;font-size:%dpx;line-height:%dpx;color:%s;text-align:%s;">%s</td></tr>',
-    padding, .CMAIL_FONT, as.integer(size), as.integer(line), color, align, inner
+    '<tr><td%s style="padding:%s;font-family:%s;font-size:%dpx;line-height:%dpx;color:%s;%s">%s</td></tr>',
+    a$attr, padding, .CMAIL_FONT, as.integer(size), as.integer(line), color, a$css, inner
   )
 }
 
@@ -30,9 +31,10 @@
   prop <- if (identical(b$block_id, .CMAIL_OPENING_ID)) "opening" else "text"
   .cmail_text_td(
     sprintf('<p style="margin:0;"%s>%s</p>', .cmail_prop(ctx, prop), .cmail_inline(b$text, ctx, links = TRUE)),
-    align = .cmail_style(b, "align", "left"),
+    # Sin `align` propio, el del tema (justificado por defecto, collection_mail_campana.R).
+    align = .cmail_style(b, "align", ctx$pal$text_align),
     size = if (small) 13L else 16L, line = if (small) 20L else 26L,
-    color = if (soft) .CMAIL_MUTED else .CMAIL_TEXT_COLOR
+    color = if (soft) ctx$pal$muted else ctx$pal$text
   )
 }
 
@@ -41,8 +43,8 @@
   .cmail_text_td(
     sprintf('<p style="margin:0;font-weight:bold;"%s>%s</p>', .cmail_prop(ctx, "text"), .cmail_inline(b$text, ctx)),
     padding = if (title) "14px 48px 12px 48px" else "8px 48px 10px 48px",
-    align = .cmail_style(b, "align", "left"),
-    size = if (title) 22L else 17L, line = if (title) 28L else 24L
+    align = .cmail_style(b, "align", ctx$pal$heading_align),
+    size = if (title) 22L else 17L, line = if (title) 28L else 24L, color = ctx$pal$text
   )
 }
 
@@ -56,39 +58,46 @@
   sprintf(paste0(
     '<tr><td style="padding:%dpx 48px %dpx 48px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">',
     '<tr><td style="height:1px;line-height:1px;font-size:0;background-color:%s;">&nbsp;</td></tr></table></td></tr>'
-  ), px, px, .CMAIL_BORDER)
+  ), px, px, ctx$pal$border)
 }
 
 .CMAIL_BUTTON_PAD <- list(compacto = c(10L, 26L, 14L), normal = c(15L, 40L, 16L), grande = c(18L, 52L, 17L))
 
 .cmail_block_button <- function(b, ctx) {
-  accent <- ctx$accent
+  pal <- ctx$pal
   pad <- .CMAIL_BUTTON_PAD[[.cmail_style(b, "size", "normal")]]
   outline <- identical(.cmail_style(b, "fill", "solido"), "contorno")
   align <- .cmail_style(b, "align", "center")
-  bg <- if (outline) "#ffffff" else accent
-  fg <- if (outline) accent else "#ffffff"
+  # Sobrio: el acento con texto blanco; campaña: el relleno del tema, píldora.
+  bg <- if (outline) pal$outline_bg else pal$button_bg
+  fg <- if (outline) pal$outline_fg else pal$button_fg
+  border <- if (outline) pal$outline_border else pal$button_bg
+  radius <- pal$button_radius
   note <- unlist(b$note %||% list(), use.names = FALSE)
   note_html <- if (length(note)) sprintf(
     '<p style="margin:12px 0 0 0;font-family:%s;font-size:13px;line-height:20px;color:%s;text-align:%s;">%s</p>',
-    .CMAIL_FONT, .CMAIL_MUTED, align,
+    .CMAIL_FONT, pal$muted, align,
     paste(.cmail_items_html(note, ctx, "note", FALSE, "<span%s>%s</span>"), collapse = "<br>")
   ) else ""
   sprintf(paste0(
     '<tr><td align="%s" style="padding:14px 48px 30px 48px;">',
     '<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="%s"><tr>',
-    '<td align="center" bgcolor="%s" style="background-color:%s;border-radius:6px;mso-padding-alt:%dpx %dpx;">',
-    '<a href="%s" target="_blank"%s style="display:inline-block;padding:%dpx %dpx;border:%s solid %s;border-radius:6px;',
+    '<td align="center" bgcolor="%s" style="background-color:%s;border-radius:%s;mso-padding-alt:%dpx %dpx;">',
+    '<a href="%s" target="_blank"%s style="display:inline-block;padding:%dpx %dpx;border:%s solid %s;border-radius:%s;',
     'font-family:%s;font-size:%dpx;line-height:20px;font-weight:bold;letter-spacing:0.2px;color:%s;text-decoration:none;">%s</a>',
     '</td></tr></table>%s</td></tr>'
-  ), align, align, bg, bg, pad[[1]], pad[[2]], .cmail_url(b$url, ctx), .cmail_prop(ctx, "text"),
-  pad[[1]], pad[[2]], if (outline) "2px" else "1px", accent, .CMAIL_FONT, pad[[3]], fg,
+  ), align, align, bg, bg, radius, pad[[1]], pad[[2]], .cmail_url(b$url, ctx), .cmail_prop(ctx, "text"),
+  pad[[1]], pad[[2]], if (outline) "2px" else "1px", border, radius, .CMAIL_FONT, pad[[3]], fg,
   .cmail_inline(b$text, ctx), note_html)
 }
 
 .cmail_block_callout <- function(b, ctx) {
   title <- .cmail_one(b$title)
   variant <- .cmail_style(b, "variant", "box")
+  pal <- ctx$pal
+  # El recuadro justifica como los párrafos (sin `align` propio).
+  al <- .cmail_align_css(pal$list_align)
+  al$cell <- if (identical(pal$list_align, "justify")) al$css else ""
   title_html <- function(wrap) {
     if (is.null(title)) return(character(0))
     sprintf(wrap, .cmail_prop(ctx, "title"), .cmail_inline(title, ctx, links = TRUE))
@@ -99,24 +108,25 @@
       .cmail_items_html(b$items, ctx, "items", TRUE, "<span%s>%s</span>")
     ), collapse = "<br>")
     bar <- identical(variant, "bar")
+    panel <- if (bar) pal$panel_bar else pal$panel_tint
     return(sprintf(paste0(
       '<tr><td style="padding:0 46px %dpx 46px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">',
-      '<tr><td bgcolor="%s" style="padding:%s;%sbackground-color:%s;font-family:%s;font-size:15px;line-height:23px;color:%s;">%s</td></tr>',
+      '<tr><td%s bgcolor="%s" style="padding:%s;%sbackground-color:%s;font-family:%s;font-size:15px;line-height:23px;color:%s;%s">%s</td></tr>',
       '</table></td></tr>'
-    ), if (bar) 12L else 18L, if (bar) "#f5f6f9" else .cmail_tint(ctx$accent),
+    ), if (bar) 12L else 18L, al$attr, panel,
     if (bar) "14px 18px" else "18px 22px",
-    if (bar) sprintf("border-left:3px solid %s;", ctx$accent) else "",
-    if (bar) "#f5f6f9" else .cmail_tint(ctx$accent), .CMAIL_FONT, .CMAIL_TEXT_COLOR, inner))
+    if (bar) sprintf("border-left:3px solid %s;", pal$bar) else "",
+    panel, .CMAIL_FONT, pal$text, al$cell, inner))
   }
   # Panel tintado con barra de acento y título en versalitas pequeñas: se lee
   # como un aviso, no como una tabla (revamp 2026-10-21).
   lis <- paste(.cmail_items_html(b$items, ctx, "items", TRUE, '<li style="margin:0 0 8px 0;"%s>%s</li>'), collapse = "")
   sprintf(paste0(
     '<tr><td style="padding:4px 48px 24px 48px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">',
-    '<tr><td bgcolor="%s" style="background-color:%s;border-left:3px solid %s;border-radius:0 6px 6px 0;padding:18px 24px 10px 22px;font-family:%s;font-size:15px;line-height:23px;color:%s;">',
+    '<tr><td%s bgcolor="%s" style="background-color:%s;border-left:3px solid %s;border-radius:0 6px 6px 0;padding:18px 24px 10px 22px;font-family:%s;font-size:15px;line-height:23px;color:%s;%s">',
     '%s<ul style="margin:0 0 8px 0;padding-left:20px;">%s</ul></td></tr></table></td></tr>'
-  ), .cmail_tint(ctx$accent), .cmail_tint(ctx$accent), ctx$accent, .CMAIL_FONT, .CMAIL_TEXT_COLOR,
-  paste(title_html(sprintf('<p style="margin:0 0 10px 0;font-size:12px;line-height:16px;letter-spacing:1px;text-transform:uppercase;color:%s;"><strong%%s>%%s</strong></p>', ctx$accent)), collapse = ""), lis)
+  ), al$attr, pal$panel_box, pal$panel_box, pal$bar, .CMAIL_FONT, pal$text, al$cell,
+  paste(title_html(sprintf('<p style="margin:0 0 10px 0;font-size:12px;line-height:16px;letter-spacing:1px;text-transform:uppercase;color:%s;"><strong%%s>%%s</strong></p>', pal$callout_title)), collapse = ""), lis)
 }
 
 .cmail_block_image <- function(b, ctx) {
@@ -182,26 +192,30 @@
     inner <- inline(text)
     prop <- "text"
   }
-  .cmail_text_td(sprintf('<p style="margin:0;"%s>%s</p>', .cmail_prop(ctx, prop), inner), padding = "36px 48px 20px 48px")
+  .cmail_text_td(sprintf('<p style="margin:0;"%s>%s</p>', .cmail_prop(ctx, prop), inner), padding = "36px 48px 20px 48px",
+                 align = ctx$pal$greeting_align, color = ctx$pal$text)
 }
 
 .cmail_block_signature <- function(b, ctx) {
   closing <- .cmail_one(b$closing)
   url <- .cmail_one(b$url)
+  pal <- ctx$pal
+  # Campaña: firma centrada; sobrio: a la izquierda, como siempre.
+  centered <- identical(pal$signature_align, "center")
   # La firma se separa con una línea fina; el nombre manda, la institución va
   # en gris y la web se lee como dominio, sin https:// (revamp 2026-10-21).
   shown <- if (!is.null(url)) sub("/$", "", sub("^https?://(www\\.)?", "", url)) else NULL
   body <- paste(c(
-    sprintf('<strong style="color:%s;"%s>%s</strong>', .CMAIL_TEXT_COLOR, .cmail_prop(ctx, "name"), .cmail_inline(b$name, ctx)),
-    .cmail_items_html(b$lines, ctx, "lines", TRUE, sprintf('<span style="color:%s;"%%s>%%s</span>', .CMAIL_MUTED)),
+    sprintf('<strong style="color:%s;"%s>%s</strong>', pal$text, .cmail_prop(ctx, "name"), .cmail_inline(b$name, ctx)),
+    .cmail_items_html(b$lines, ctx, "lines", TRUE, sprintf('<span style="color:%s;"%%s>%%s</span>', pal$muted)),
     if (!is.null(url)) sprintf('<a href="%s" target="_blank"%s style="color:%s;text-decoration:none;">%s</a>',
                                .cmail_url(url, ctx), .cmail_prop(ctx, "url"), ctx$link, .cmail_esc(shown))
   ), collapse = "<br>")
   paste0(
     if (!is.null(closing)) .cmail_text_td(sprintf('<p style="margin:0;"%s>%s</p>', .cmail_prop(ctx, "closing"), .cmail_inline(closing, ctx)),
-                                          padding = "8px 48px 22px 48px") else "",
-    sprintf('<tr><td style="padding:0 48px 40px 48px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:1px solid %s;padding-top:20px;font-family:%s;font-size:14px;line-height:22px;color:%s;"><p style="margin:0;">%s</p></td></tr></table></td></tr>',
-            .CMAIL_BORDER, .CMAIL_FONT, .CMAIL_TEXT_COLOR, body)
+                                          padding = "8px 48px 22px 48px", align = pal$signature_align, color = pal$text) else "",
+    sprintf('<tr><td style="padding:0 48px 40px 48px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"><tr><td%s style="border-top:1px solid %s;padding-top:20px;font-family:%s;font-size:14px;line-height:22px;color:%s;%s"><p style="margin:0;">%s</p></td></tr></table></td></tr>',
+            if (centered) ' align="center"' else "", pal$border, .CMAIL_FONT, pal$text, if (centered) "text-align:center;" else "", body)
   )
 }
 
@@ -218,7 +232,8 @@
     list = {
       tag <- if (isTRUE(b$ordered)) "ol" else "ul"
       lis <- paste(.cmail_items_html(b$items, ctx, "items", TRUE, '<li style="margin:0 0 8px 0;"%s>%s</li>'), collapse = "")
-      .cmail_text_td(sprintf('<%s style="margin:0;padding-left:22px;">%s</%s>', tag, lis, tag))
+      .cmail_text_td(sprintf('<%s style="margin:0;padding-left:22px;">%s</%s>', tag, lis, tag),
+                     align = ctx$pal$list_align, color = ctx$pal$text)
     },
     signature = .cmail_block_signature(b, ctx),
     footer_legal = "",

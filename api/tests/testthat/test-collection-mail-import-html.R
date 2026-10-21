@@ -391,13 +391,16 @@ test_that("golden 2 (Contabilidad, SurveyMonkey real): alt ausente informado, ne
   alt <- Filter(function(x) x$code == "image_alt_missing", r$report)
   expect_length(alt, 1L)
   expect_identical(alt[[1]]$block_id, "__cabecera")
-  # (b) negrita conservada y cursiva informada; (c) sin «** » roto; (d) espacios; (e) y/o.
+  # (b) negrita conservada y cursiva recuperada (E1n: <strong><i> -> ***…***, ya
+  # no se informa italic_plain); (c) sin «** » roto; (d) espacios; (e) y/o.
   p1 <- t$blocks[[2]]$text
   expect_true(startsWith(p1, "La **Facultad de Ciencias Contables de la Pontificia Universidad Católica del Perú** y el **Instituto"))
-  expect_match(p1, "realizando un **estudio de opinión** en el marco", fixed = TRUE)
+  expect_match(p1, "realizando un ***estudio de opinión*** en el marco", fixed = TRUE)
+  expect_match(collection_mail_render(t, "export", "surveymonkey")$html,
+               'realizando un <em style="font-style:italic;"><strong>estudio de opinión</strong></em> en el marco', fixed = TRUE)
   # Ninguna negrita abre con espacio («** Facultad»).
   expect_false(any(grepl("(^|\\s)\\*\\*\\s", vapply(t$blocks, function(b) b$text %||% "", ""))))
-  expect_true("italic_plain" %in% .cmi_codes(r))
+  expect_false("italic_plain" %in% .cmi_codes(r))
   expect_identical(t$blocks[[4]]$text, "Puede participar hasta el 05 de junio")
   expect_match(t$blocks[[6]]$items[[1]], "no la reenvíe y/o comparta.", fixed = TRUE)
   # (f) firma tal cual se escribió; (g) sin espacios basura en ningún texto.
