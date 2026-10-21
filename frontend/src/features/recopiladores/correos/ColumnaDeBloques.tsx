@@ -148,6 +148,14 @@ function Fila({
   );
 }
 
+/** El resumen de la lista dice «Nombre» donde el texto guarda {{nombre}}: la llave es del motor, no del equipo. */
+function conRotulos(resumen: string, campos: readonly { key: string; label: string }[]): string {
+  return resumen.replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (marca, key: string) => {
+    const campo = campos.find((c) => c.key === key);
+    return campo ? `«${campo.label}»` : marca;
+  });
+}
+
 /** Columna izquierda: plantillas reales, bloques del correo y campos de cada persona. */
 export function ColumnaDeBloques({
   presets,
@@ -276,7 +284,7 @@ export function ColumnaDeBloques({
                   id: block.block_id,
                   icono: iconoDeBloque(block),
                   titulo: rotuloDeBloque(block),
-                  resumen: resumenDeBloque(block),
+                  resumen: conRotulos(resumenDeBloque(block), campos),
                   elegido: seleccion === block.block_id,
                   conProblemas: problemas.porBloque[block.block_id]?.length ?? 0,
                   onSeleccionar,
@@ -294,7 +302,7 @@ export function ColumnaDeBloques({
       <div className="rec-mail-col-grupo rec-mail-col-grupo--campos">
         <span className="xfk-over">Campos de cada persona</span>
         <span className="rec-mail-ayuda rec-mail-campos-ejemplo">
-          Cambian según quién recibe el correo: {"{{nombre}}"} sale «{ejemploDeNombre || "Ana"}» en el correo de {ejemploDeNombre || "Ana"}.
+          Cambian según quién recibe el correo: Nombre sale «{ejemploDeNombre || "Ana"}» para {ejemploDeNombre || "Ana"}.
           {hayDestino ? " Pulsa uno para ponerlo en el texto." : " Elige un texto del correo para ponerlo ahí."}
         </span>
         <span className="rec-mail-campos" role="group" aria-label="Insertar un campo en el texto elegido">
@@ -303,13 +311,13 @@ export function ColumnaDeBloques({
               key={campo.key}
               type="button"
               className="rec-mail-campo"
-              title={hayDestino ? `Insertar {{${campo.key}}}` : `${campo.label}: elige primero un texto del bloque`}
+              title={hayDestino ? `Insertar ${campo.label} en el texto` : `${campo.label}: elige primero un texto del bloque`}
               aria-label={`Insertar el campo ${campo.label}`}
               disabled={!hayDestino}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => onInsertarCampo(campo.key)}
             >
-              {`{{${campo.key}}}`}
+              {campo.label}
             </button>
           ))}
         </span>

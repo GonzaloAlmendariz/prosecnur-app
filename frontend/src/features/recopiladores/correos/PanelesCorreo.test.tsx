@@ -53,9 +53,12 @@ describe("ColumnaDeBloques", () => {
     expect(html).toContain("Cabecera de logos");
     expect(html).toContain("CCSS Perfil 2026");
     expect(html).toContain("1 por corregir");
-    expect(html).toContain("{{carrera}}");
+    // Los campos se nombran como los dice el equipo; la llave {{…}} es del motor (H2).
+    expect(html).toContain(">Carrera</button>");
+    expect(html).not.toContain(">{{carrera}}</button>");
+    expect(html).toContain("Estimado(a) «Nombre»:");
     // Sin un texto elegido, los campos no se pueden insertar.
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>\{\{nombre\}\}/);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Nombre<\/button>/);
     // Sin numeral: el orden lo da la lista, no un número.
     expect(html).not.toMatch(/rec-mail-bloque-icono">\d/);
   });
