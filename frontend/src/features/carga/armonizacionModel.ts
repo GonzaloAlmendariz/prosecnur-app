@@ -531,6 +531,8 @@ export type ResumenMapa = {
   sinMapa: number;
   casosSinMapa: number;
   etiquetaDistinta: number;
+  /** Códigos con destino que no traen etiqueta en la base: no hay con qué comparar. */
+  sinEtiqueta?: number;
   /** Códigos que comparten destino con otros, y en cuántas categorías caen. */
   agrupados?: number;
   categoriasAgrupadas?: number;
@@ -545,6 +547,8 @@ export function resumenMapa(filas: readonly FilaMapa[]): ResumenMapa {
     }),
     { sinMapa: 0, casosSinMapa: 0, etiquetaDistinta: 0 },
   );
+  const sinEtiqueta = filas.filter((f) => !f.sinMapa && !f.etiqueta?.trim()).length;
+  if (sinEtiqueta > 0) Object.assign(base, { sinEtiqueta });
   const agrupadas = filas.filter((f) => f.agrupado);
   if (agrupadas.length === 0) return base;
   return {
@@ -569,7 +573,7 @@ function plural(n: number, uno: string, varios: string): string {
  * Sin conteos todavía no se sabe y sí avisa.
  */
 export function resumenEsAviso(r: ResumenMapa, conConteos: boolean): boolean {
-  if (r.etiquetaDistinta > 0) return true;
+  if (r.etiquetaDistinta > 0 || (r.sinEtiqueta ?? 0) > 0) return true;
   return r.sinMapa > 0 && (!conConteos || r.casosSinMapa > 0);
 }
 
@@ -586,7 +590,13 @@ export function textoResumenMapa(r: ResumenMapa, explicito: boolean): string {
   if (r.agrupados) {
     partes.push(`${r.agrupados} códigos agrupados en ${plural(r.categoriasAgrupadas ?? 0, "categoría", "categorías")}.`);
   }
-  if (partes.length === 0) partes.push("Todos los códigos caen en una categoría con su misma etiqueta.");
+  // Checklist A6: un código sin etiqueta (un SAV sin etiquetas de valor) no
+  // «cae en su misma etiqueta»: no tiene. Se pide revisar el destino.
+  if (r.sinEtiqueta) {
+    partes.push(`${plural(r.sinEtiqueta, "código no trae etiqueta", "códigos no traen etiqueta")} en esta base: revisa que cada uno vaya a su categoría.`);
+  } else if (partes.length === 0) {
+    partes.push("Todos los códigos caen en una categoría con su misma etiqueta.");
+  }
   if (!explicito) partes.push("Sin mapa explícito cada código cae en el código igual de la escala.");
   return partes.join(" ");
 }

@@ -5,6 +5,7 @@ import {
   borradorDesde,
   filasDeMapa,
   reducirArmonizacion,
+  resumenEsAviso,
   resumenMapa,
   textoResumenMapa,
 } from "./armonizacionModel";
@@ -120,5 +121,19 @@ describe("F3: una agrupación no es una etiqueta distinta", () => {
     expect(r.etiquetaDistinta).toBe(1);
     expect(r.agrupados).toBeUndefined();
     expect(textoResumenMapa(r, true)).toContain("1 código con etiqueta distinta a la de su destino.");
+  });
+});
+
+describe("checklist A6: códigos sin etiqueta", () => {
+  test("no se dice que caen «en su misma etiqueta»: se pide revisar el destino y es aviso", () => {
+    const escala = [{ codigo: "1", etiqueta: "Frases" }, { codigo: "2", etiqueta: "Tocamientos" }];
+    const entrada = { comparable: true, nota: "", mapa: {} };
+    const filas = filasDeMapa([{ codigo: "1", etiqueta: null, n: 530 }, { codigo: "2", etiqueta: null, n: 77 }], entrada, escala);
+    const r = resumenMapa(filas);
+    expect(r.sinEtiqueta).toBe(2);
+    expect(textoResumenMapa(r, false)).toBe(
+      "2 códigos no traen etiqueta en esta base: revisa que cada uno vaya a su categoría. Sin mapa explícito cada código cae en el código igual de la escala.",
+    );
+    expect(resumenEsAviso(r, true)).toBe(true);
   });
 });

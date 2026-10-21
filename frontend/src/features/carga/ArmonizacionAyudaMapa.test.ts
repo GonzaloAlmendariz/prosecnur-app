@@ -31,4 +31,12 @@ describe("ayudas del mapa en Armonizar", () => {
     expect(esMapaNumerico([cod("18", 5)], [])).toBe(false);
     expect(esMapaNumerico([cod("1", 5, "Sí"), cod("2", 3, "No")], escala)).toBe(false);
   });
+
+  test("A6: números sin etiqueta que son los códigos de la escala se mapean código por código, no por rangos", () => {
+    const cod = (codigo: string, n: number) => ({ codigo, etiqueta: null, n });
+    const escala = ["1", "2", "3", "4", "5", "6", "7"].map((c) => ({ codigo: c, etiqueta: `Modalidad ${c}` }));
+    expect(esMapaNumerico(["1", "2", "3", "4", "5", "6", "7"].map((c) => cod(c, 10)), escala)).toBe(false);
+    // Una edad sigue siendo rangos aunque algún valor coincida con un código.
+    expect(esMapaNumerico([cod("1", 1), cod("18", 5), cod("40", 3)], escala)).toBe(true);
+  });
 });

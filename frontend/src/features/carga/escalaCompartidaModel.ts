@@ -14,8 +14,9 @@
  * «No sé = 99» son listas distintas. Una fila que casa sólo en algunas de sus
  * bases no se ofrece: se cuenta aparte, para decir que quedó fuera.
  *
- * `mismaEscalaModel` cubre otra cosa: filas cuyas bases ya comparten la lista
- * idéntica y sólo hay que confirmar la identidad.
+ * Las filas cuyas bases ya comparten la lista idéntica no pasan por aquí: el
+ * comparativo las toma con la identidad sin confirmar nada
+ * (analitica_armonizada_implicita.R).
  */
 
 import type {

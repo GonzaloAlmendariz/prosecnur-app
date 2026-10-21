@@ -55,11 +55,9 @@ import {
   type FilaEditor,
 } from "./equivalenciasEditorModel";
 import { etiquetaDePregunta } from "./preguntaEquivalenteModel";
-import { ConfirmarMismaEscalaBoton } from "./ConfirmarMismaEscalaBoton";
 import { MapaBasesBoton, MapaBasesPanel } from "./MapaBasesPanel";
 import { VariablesBasePanel } from "./variablesBase/VariablesBasePanel";
 import { EVENTO_VARIABLES_BASE } from "./variablesBase/variablesBaseModel";
-import { filasConMismaEscalaConfirmada, indicesDeMismaEscala } from "./mismaEscalaModel";
 import { RecorridoSerie } from "./recorridoSerie/RecorridoSerie";
 import { EVENTO_SEGMENTOS } from "./panelesCarga";
 import { SegmentosBoton, SegmentosPanel } from "./segmentos/SegmentosPanel";
@@ -99,7 +97,7 @@ function resumenAplicacion(imp: EquivalenciasImportacion): {
 export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
   const [estado, setEstado] = useState<EquivalenciasEstado | null>(null);
   const [cargando, setCargando] = useState(true);
-  const [ocupado, setOcupado] = useState<"" | "guardar" | "misma-escala">("");
+  const [ocupado, setOcupado] = useState<"" | "guardar">("");
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
   const [filas, setFilas] = useState<FilaEditor[]>([]);
@@ -327,34 +325,9 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
     [clavesBasesDeTabla, estado?.armonizacion_periodos],
   );
 
-  // F5: las filas guardadas de misma escala sin armonización se confirman de
-  // una vez. Una fila con variables cambiadas sin guardar queda fuera.
-  const guardadas = estado?.filas;
-  const clavesBases = bases.join("|");
-  const mismaEscala = useMemo(
-    () => indicesDeMismaEscala(guardadas ?? [], filas, clavesBases ? clavesBases.split("|") : [], variablesPorBase),
-    [guardadas, filas, clavesBases, variablesPorBase],
-  );
-  const onConfirmarMismaEscala = async () => {
-    if (mismaEscala.length === 0) return;
-    setOcupado("misma-escala");
-    setError("");
-    try {
-      const out = await guardarEquivalencias(
-        filasConMismaEscalaConfirmada(guardadas ?? [], mismaEscala, bases, variablesPorBase),
-      );
-      onArmonizacionGuardada(
-        out,
-        mismaEscala.length === 1
-          ? "1 pregunta de misma escala quedó armonizada."
-          : `${mismaEscala.length} preguntas de misma escala quedaron armonizadas.`,
-      );
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setOcupado("");
-    }
-  };
+  // Las filas de misma escala ya no se confirman: el comparativo las toma con la
+  // identidad (checklist A1 de la matriz HSyVbG, 2026-10-21). El botón «Confirmar
+  // las N de misma escala» se retiró porque hacía creer que faltaba un paso.
 
   // Overlays direccionables: van en portal, fuera de la geometría de la
   // superficie. Se montan también durante la lectura, para que un enlace a
@@ -468,14 +441,6 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
             )}
             {/* ADR 0103: la matriz es una lista de equivalencias; las láminas se arman en Gráficos. */}
             <div ref={barraRef} className="pulso-equiv-vistas" role="group" aria-label="Resumen de la declaración">
-              {basesDeTabla.length > 1 && (
-                <ConfirmarMismaEscalaBoton
-                  n={mismaEscala.length}
-                  ocupado={ocupado === "misma-escala"}
-                  disabled={ocupado !== ""}
-                  onConfirmar={() => void onConfirmarMismaEscala()}
-                />
-              )}
               <span className="pulso-equiv-vistas-nota">{formatoConteoDe(filas.length, "pregunta equivalente", "preguntas equivalentes")}</span>
             </div>
 

@@ -4,7 +4,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ArmonizacionAsignarEnMasa } from "./ArmonizacionAsignarEnMasa";
 import { ArmonizacionTextosInforme } from "./ArmonizacionTextosInforme";
-import { ConfirmarMismaEscalaBoton } from "./ConfirmarMismaEscalaBoton";
 
 const sinAccion = () => undefined;
 
@@ -50,19 +49,5 @@ describe("textos del informe", () => {
     expect(html).toContain('placeholder="Automática"');
     expect(html).toContain("Va bajo la tabla como «Base: …».");
     expect(html).toContain("data-qa-geometry-member");
-  });
-});
-
-describe("confirmar las de misma escala", () => {
-  it("con N = 0 no se muestra", () => {
-    expect(renderToStaticMarkup(createElement(ConfirmarMismaEscalaBoton, {
-      n: 0, ocupado: false, disabled: false, onConfirmar: sinAccion,
-    }))).toBe("");
-  });
-
-  it("con N > 0 dice cuántas", () => {
-    expect(renderToStaticMarkup(createElement(ConfirmarMismaEscalaBoton, {
-      n: 14, ocupado: false, disabled: false, onConfirmar: sinAccion,
-    }))).toContain("Confirmar las 14 de misma escala");
   });
 });
