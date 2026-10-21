@@ -118,6 +118,7 @@ test_that("campaña: la onda es un PNG 1200 × 80 dentro del ZIP importable; sin
   pv <- collection_mail_render(s$template, "preview", values = list(nombre = "Ana"), images = images)$html
   expect_match(pv, '<img src="data:image/png;base64,', fixed = TRUE)
 
+  .cmail_fx_completar(sid, s$id)
   ex <- collection_mail_export(sid, .cmc_rev(sid), s$id, scope = "plantilla")
   path <- session_get(sid)$files[[ex$zip$file_id]]$path
   entries <- zip::zip_list(path)$filename
@@ -128,6 +129,7 @@ test_that("campaña: la onda es un PNG 1200 × 80 dentro del ZIP importable; sin
   # Sin onda: ni imagen ni banda, ni en el ZIP.
   s2 <- .cmc_saved(sid, list(accent = "#0b1f54", estilo = "campana", page_bg = "#6b3fa0"), name = "Dos")
   expect_null(.cmail_images_resolve(session_get(sid), s2$template)[["onda-pie"]])
+  .cmail_fx_completar(sid, s2$id)
   ex2 <- collection_mail_export(sid, .cmc_rev(sid), s2$id, scope = "plantilla")
   entries2 <- zip::zip_list(session_get(sid)$files[[ex2$zip$file_id]]$path)$filename
   expect_false("onda-pie.png" %in% entries2)

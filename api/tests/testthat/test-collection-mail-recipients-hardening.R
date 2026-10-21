@@ -253,6 +253,7 @@ test_that("6: manifest con procedencia y cifras completas, sin correos; LEEME co
   # E1h: el slug del ZIP es el campaign_id (≤ 40), que sale de un nombre de 80.
   collection_mail_campaign_create(sid, .cmail_fx_rev(sid), name = paste0("Correo ", strrep("x", 73)))
   .cmail_fx_import(sid)
+  .cmail_fx_completar(sid)
   res <- collection_mail_export(sid, .cmail_fx_rev(sid))
   expect_lte(nchar(res$zip$filename), 80L)
   expect_lte(nchar(res$artifacts[[2]]$filename), 80L)
@@ -369,6 +370,7 @@ test_that("M6: abrir otro proyecto in_place borra los datos personales de la ses
 
   sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
   .cmail_fx_import(sid)
+  .cmail_fx_completar(sid)
   res <- collection_mail_export(sid, .cmail_fx_rev(sid))
   old <- session_get(sid)
   zip_path <- old$files[[res$zip$file_id]]$path
@@ -427,6 +429,7 @@ test_that("(d) un marcador N/A o #N/A en un campo con respaldo sale vacío en au
     sep = "\n"
   )
   .cmail_fx_import(sid, csv = csv)
+  .cmail_fx_completar(sid)
   res <- collection_mail_export(sid, .cmail_fx_rev(sid))
   ex <- tempfile("cmh-d-"); on.exit(unlink(ex, recursive = TRUE), add = TRUE)
   utils::unzip(session_get(sid)$files[[res$zip$file_id]]$path, exdir = ex)

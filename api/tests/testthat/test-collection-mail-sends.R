@@ -163,6 +163,7 @@ test_that("preview y review por env√≠o: send_id, borrador y 404; export por env√
   expect_identical(rv$checks[[1]]$code, "subject")
   expect_identical(rv$checks[[1]]$value, nchar("Recordatorio: queda una semana"))
 
+  .cmail_fx_completar(sid, "uno")
   ex <- collection_mail_export(sid, .cms_rev(sid), "uno", scope = "plantilla", send_id = "recordatorio-1")
   expect_match(ex$zip$filename, "^uno_recordatorio-1_plantilla-mailchimp_\\d{8}-\\d{6}\\.zip$")
   expect_identical(ex$send_id, "recordatorio-1")
@@ -210,6 +211,7 @@ test_that("recordatorio en Mailchimp: reminder_audience avisa con N, parcial blo
   .cmail_fx_import(sid)
   collection_mail_template_put(sid, NULL, .cms_rev(sid), campaign_id = "mc",
     sends = list(list(), list(label = "Recordatorio 1", audience = "sin_respuesta"), list(audience = "parcial")))
+  .cmail_fx_completar(sid, "mc")
   inv <- collection_mail_review(sid, campaign_id = "mc", scope = "completo")
   expect_false("reminder_audience" %in% vapply(inv$checks, `[[`, "", "code"))
   r <- collection_mail_review(sid, campaign_id = "mc", scope = "completo", send_id = "recordatorio-1")

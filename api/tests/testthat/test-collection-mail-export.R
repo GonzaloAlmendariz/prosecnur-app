@@ -81,7 +81,7 @@ test_that("los correos no entran a collection_state ni al .pulso (scan del estad
   sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
   collection_state_seed(sid)
   g <- collection_mail_template_get(sid)
-  collection_mail_template_put(sid, .cmail_template_normalize(.cmail_preset_invitacion()), g$state_revision)
+  collection_mail_template_put(sid, .cmail_fx_sin_relleno(.cmail_template_normalize(.cmail_preset_invitacion())), g$state_revision)
   .cmail_fx_import(sid)
   collection_mail_preview(sid, "preview", recipient_index = 1L)
   collection_mail_export(sid, .cmail_fx_rev(sid))
@@ -117,6 +117,7 @@ test_that("revisión: cifras de asunto, peso, imágenes, pie, etiquetas con colu
   expect_identical(by0$recipients$status, "error")
   expect_false(r0$ready)
 
+  .cmail_fx_completar(sid)
   .cmail_fx_import(sid)
   r <- collection_mail_review(sid)
   by <- setNames(r$checks, vapply(r$checks, `[[`, "", "code"))
@@ -166,6 +167,7 @@ test_that("export: ZIP fuera del .pulso con plantilla, audiencia e imágenes; ar
   skip_if_not_installed("zip")
   sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
   .cmail_fx_import(sid)
+  .cmail_fx_completar(sid)
   res <- collection_mail_export(sid, .cmail_fx_rev(sid))
 
   # Patrón expect_report_artifacts_registered (test-audit-projects.R).

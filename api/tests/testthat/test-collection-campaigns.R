@@ -336,6 +336,7 @@ test_that("exportar un envío anota last_export_at y plataforma, sin subir la re
   skip_if_not_installed("zip")
   sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
   id <- .mct_sm_campaign(sid)
+  .cmail_fx_completar(sid, id)
   rev <- .mct_srev(sid)
   res <- collection_mail_export(sid, rev, id)
   expect_identical(res$export_recorded$send_id, "invitacion")
@@ -375,6 +376,8 @@ test_that("exportar mailchimp (plantilla) también registra y marca dirty en un 
   skip_if_not_installed("zip")
   sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
   collection_mail_campaign_create(sid, 0L, name = "Recuperación")
+  # Se completa antes de guardar: en el proyecto abierto, completar lo marcaría dirty.
+  .cmail_fx_completar(sid, "recuperacion")
   tmp <- tempfile(fileext = ".pulso"); on.exit(unlink(tmp, force = TRUE), add = TRUE)
   build_pulso(sid, tmp, project_name = "Correo")
   loaded <- load_pulso(tmp); on.exit(session_delete(loaded$session_id), add = TRUE)
@@ -438,6 +441,7 @@ test_that("registrar la exportación no pisa el registro de artefactos de la ses
   skip_if_not_installed("zip")
   sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
   id <- .mct_sm_campaign(sid)
+  .cmail_fx_completar(sid, id)
   res <- collection_mail_export(sid, .mct_srev(sid), id)
   files <- session_get(sid)$files
   for (a in res$artifacts) expect_true(file.exists(files[[a$file_id]]$path))
