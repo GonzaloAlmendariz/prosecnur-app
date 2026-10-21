@@ -18,6 +18,7 @@ import {
   type MailReview,
   type MailTemplate,
 } from "../../../api/materialMail";
+import { sinEnfasis } from "./serializarTexto";
 
 // ---- rótulos ------------------------------------------------------------------
 
@@ -37,7 +38,7 @@ export const ROTULO_DE_BLOQUE: Record<MailBlockType, string> = {
 export const DESCRIPCION_DE_BLOQUE: Record<MailBlockType, string> = {
   greeting: "Con el nombre de cada persona; si falta, va el texto de respaldo.",
   heading: "Un título o subtítulo para ordenar el correo.",
-  paragraph: "Texto con énfasis en negrita; los campos se tiñen para ver qué cambia por persona.",
+  paragraph: "Texto con énfasis en negrita o cursiva; los campos se tiñen para ver qué cambia por persona.",
   button: "Un enlace por persona, armado con su campo, o un enlace común para todos.",
   callout: "Para «Importante», las sesiones de una capacitación o las fechas.",
   list: "Una lista de puntos o numerada.",
@@ -85,7 +86,7 @@ export function origenDePreset(presetId: string): string | null {
 
 /** Texto sin marcas para un resumen de una línea. */
 export function textoPlano(text: string): string {
-  return text.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\s+/g, " ").trim();
+  return sinEnfasis(text).replace(/\s+/g, " ").trim();
 }
 
 /** Lo primero que dice el bloque, para reconocerlo en la lista. */
@@ -619,6 +620,10 @@ export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   greeting_trato: "Saludo según la persona",
   greeting_trato_word: "Palabra del saludo",
   sm_trato_blank: "Saludo en SurveyMonkey sin dato",
+  // Estilo campaña (E1n).
+  campana_text_contrast: "Contraste del texto sobre el fondo",
+  campana_button_contrast: "Contraste del botón",
+  campana_footer_contrast: "Contraste del pie sobre el fondo",
 };
 
 /** Dónde se usa un campo (`uses` de `fields_empty`), en la voz de la vista. */
@@ -682,6 +687,9 @@ export function cifraDeChequeo(check: MailCheck): string {
     case "import_zip_weight":
       return `${kb(v)} de 1.024 KB`;
     case "accent_contrast":
+    case "campana_text_contrast":
+    case "campana_button_contrast":
+    case "campana_footer_contrast":
       return v ? `${v.toLocaleString("es-PE", { maximumFractionDigits: 1 })}:1` : check.status === "ok" ? "suficiente" : "";
     case "image_width":
       return check.status === "ok" ? "nítidas" : `${v.toLocaleString("es-PE")} se verían borrosas`;

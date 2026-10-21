@@ -207,7 +207,7 @@ export function PanelEnvios({
           filas={3}
           maximo={LARGO_APERTURA}
           placeholder={esRecordatorio ? "Le recordamos que aún puede responder la encuesta hasta el **viernes**." : "Sin apertura"}
-          ayuda="Un párrafo que sólo lleva este envío, después del saludo. Admite **negrita**, {{campos}} y [enlaces](url)."
+          ayuda="Un párrafo que sólo lleva este envío, después del saludo. Puedes usar negrita, cursiva, campos y enlaces."
           onCambio={(opening) => editar({ opening })}
         />
         {plataforma === "surveymonkey" ? (

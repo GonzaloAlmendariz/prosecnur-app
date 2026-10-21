@@ -1,0 +1,243 @@
+/* Identidad › Estilo del correo (E1n) y el lienzo en estilo Campaña.
+   Aparte de correos.css, que no crece. Los colores del correo (fondo, botón)
+   son datos del estudio: llegan como variables en línea `--rec-estilo-*`; el
+   marco de los controles usa los tokens de siempre. */
+
+.rec-estilo {
+  border-top: 1px solid var(--pulso-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.rec-estilo-opciones {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rec-estilo-opcion {
+  align-items: flex-start;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  color: var(--pulso-text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  font: inherit;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px;
+  text-align: left;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out), box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.rec-estilo-opcion:hover {
+  border-color: var(--pulso-border-strong);
+}
+
+.rec-estilo-opcion.is-on {
+  border-color: var(--pulso-module-fieldkit);
+  box-shadow: 0 0 0 1px var(--pulso-module-fieldkit);
+}
+
+.rec-estilo-opcion:focus-visible,
+.rec-estilo-muestra:focus-visible {
+  outline: 2px solid var(--pulso-module-fieldkit);
+  outline-offset: 2px;
+}
+
+.rec-estilo-opcion-nombre {
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  margin-top: 6px;
+}
+
+.rec-estilo-opcion-ayuda {
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+  line-height: 1.3;
+}
+
+/* — Miniaturas — */
+.rec-estilo-mini {
+  align-self: stretch;
+  border-radius: 6px;
+  display: flex;
+  height: 64px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 6px 0 0;
+}
+
+.rec-estilo-mini.is-sobrio {
+  background: var(--pulso-bg-deep);
+}
+
+.rec-estilo-mini.is-campana {
+  background: var(--rec-estilo-fondo, var(--pulso-bg-deep));
+}
+
+.rec-estilo-mini-col {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 58%;
+}
+
+.rec-estilo-mini.is-sobrio .rec-estilo-mini-col {
+  background: var(--pulso-surface);
+  border-radius: 3px 3px 0 0;
+  box-shadow: var(--pulso-shadow-low);
+  padding: 0 0 6px;
+}
+
+.rec-estilo-mini-cabeza {
+  flex: none;
+  height: 12px;
+}
+
+.rec-estilo-mini.is-sobrio .rec-estilo-mini-cabeza {
+  background: var(--rec-estilo-acento, var(--pulso-text));
+  border-radius: 3px 3px 0 0;
+}
+
+.rec-estilo-mini.is-campana .rec-estilo-mini-cabeza {
+  background: color-mix(in srgb, var(--rec-estilo-tinta, var(--pulso-surface)) 30%, var(--rec-estilo-fondo, var(--pulso-bg-deep)));
+  border-radius: 2px;
+  height: 16px;
+}
+
+/* Tres renglones de texto en una sola pieza; el último, más corto. */
+.rec-estilo-mini-texto {
+  background:
+    linear-gradient(var(--rec-estilo-renglon), var(--rec-estilo-renglon)) 0 0 / 100% 3px no-repeat,
+    linear-gradient(var(--rec-estilo-renglon), var(--rec-estilo-renglon)) 0 7px / 100% 3px no-repeat,
+    linear-gradient(var(--rec-estilo-renglon), var(--rec-estilo-renglon)) 0 14px / 60% 3px no-repeat;
+  flex: none;
+  height: 17px;
+  margin: 0 6px;
+}
+
+.rec-estilo-mini.is-sobrio .rec-estilo-mini-texto {
+  --rec-estilo-renglon: var(--pulso-border-strong);
+}
+
+.rec-estilo-mini.is-campana .rec-estilo-mini-texto {
+  --rec-estilo-renglon: color-mix(in srgb, var(--rec-estilo-tinta, var(--pulso-surface)) 70%, transparent);
+}
+
+.rec-estilo-mini-boton {
+  align-self: center;
+  flex: none;
+  height: 7px;
+  margin-top: 1px;
+  width: 40%;
+}
+
+.rec-estilo-mini.is-sobrio .rec-estilo-mini-boton {
+  background: var(--rec-estilo-acento, var(--pulso-text));
+  border-radius: 2px;
+}
+
+.rec-estilo-mini.is-campana .rec-estilo-mini-boton {
+  background: var(--rec-estilo-boton, var(--pulso-surface));
+  border-radius: 999px;
+}
+
+/* — Controles de Campaña — */
+.rec-estilo-campo {
+  border-bottom: 1px solid var(--pulso-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 10px;
+}
+
+.rec-estilo-rotulo {
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+}
+
+.rec-estilo-muestras {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  justify-content: space-between;
+}
+
+.rec-estilo-muestras-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rec-estilo-muestra {
+  background: var(--rec-estilo-color, var(--pulso-surface));
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 50%;
+  cursor: pointer;
+  height: 24px;
+  padding: 0;
+  width: 24px;
+}
+
+.rec-estilo-muestra.is-on {
+  box-shadow: 0 0 0 2px var(--pulso-surface), 0 0 0 4px var(--pulso-module-fieldkit);
+}
+
+.rec-estilo-muestras .rec-mail-acento input[type="color"].is-on {
+  outline: 2px solid var(--pulso-module-fieldkit);
+  outline-offset: 1px;
+}
+
+/* El botón tal como sale, sobre el fondo de la página. */
+.rec-estilo-ejemplo {
+  align-items: center;
+  background: var(--rec-estilo-fondo, var(--pulso-bg-deep));
+  border-radius: 6px;
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+}
+
+.rec-estilo-ejemplo-boton {
+  background: var(--rec-estilo-boton, var(--pulso-surface));
+  border-radius: 999px;
+  color: var(--rec-estilo-tinta-boton, var(--pulso-text));
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  padding: 6px 16px;
+}
+
+/* — Lienzo en Campaña: en Escritorio el fondo llena el lienzo entero; la hoja
+   (ancha como el lienzo) no lleva sombra ni borde, es la misma página. — */
+.rec-mail-lienzo.is-campana {
+  background: var(--rec-mail-pagina, var(--pulso-bg-deep));
+}
+
+.rec-mail-lienzo.is-campana .rec-mail-iframe {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-estilo-opcion {
+    transition: none;
+  }
+}
+
+.rec-estilo-recomendado {
+  background: var(--pulso-module-fieldkit-soft);
+  border-radius: 999px;
+  color: var(--pulso-module-fieldkit);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  margin-left: 6px;
+  padding: 1px 6px;
+  vertical-align: 1px;
+}

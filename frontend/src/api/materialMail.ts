@@ -214,8 +214,8 @@ export type MailTemplate = {
   template_sha256?: string;
   subject: string;
   preheader: string;
-  /** `band` (E1j): color de la franja de cierre, `suave` o `acento`. */
-  theme: { accent: string; link?: string; band?: MailBand };
+  /** `band` (E1j): color de la franja de cierre; el resto, el estilo del correo (E1n). */
+  theme: MailTheme;
   header: MailHeader;
   images: Record<string, MailImage>;
   fields: MailField[];
@@ -225,6 +225,36 @@ export type MailTemplate = {
 export type MailPreset = { preset_id: string; title: string; template: MailTemplate };
 
 export type MailBand = "suave" | "acento";
+
+/**
+ * Estilo del correo (E1n, ampliación de `theme` sin cambio de esquema).
+ * `estilo` ausente es `sobrio`, el render de siempre; `campana` pinta el fondo
+ * de la página a todo el ancho y el cuerpo directo sobre él, sin tarjeta.
+ */
+export const MAIL_ESTILOS = ["sobrio", "campana"] as const;
+export type MailEstilo = (typeof MAIL_ESTILOS)[number];
+/** Alineación del cuerpo; ausente es `justify` en los dos estilos. */
+export const MAIL_TEXT_ALIGNS = ["justify", "left", "center"] as const;
+export type MailTextAlign = (typeof MAIL_TEXT_ALIGNS)[number];
+export const MAIL_ONDAS = ["ninguna", "pie"] as const;
+export type MailOnda = (typeof MAIL_ONDAS)[number];
+
+export type MailTheme = {
+  accent: string;
+  link?: string;
+  band?: MailBand;
+  estilo?: MailEstilo;
+  /** Sólo campaña: fondo de la página a todo el ancho; sin él, el acento. */
+  page_bg?: string;
+  /** Sólo campaña: relleno del botón; sin él, el amarillo de la casa. */
+  button_bg?: string;
+  /** Sin él, el de mejor contraste con `button_bg`. */
+  button_text?: string;
+  text_align?: MailTextAlign;
+  onda?: MailOnda;
+  /** Sin él, `button_bg`. */
+  onda_color?: string;
+};
 
 /** Plataforma de envío de una campaña (E1j). Sin ella, la campaña es de Mailchimp. */
 export const MAIL_PLATFORMS = ["mailchimp", "surveymonkey"] as const;
@@ -355,6 +385,10 @@ export const MAIL_CHECK_CODES = [
   "greeting_trato",
   "greeting_trato_word",
   "sm_trato_blank",
+  // Estilo campaña (E1n): sólo con `theme.estilo = "campana"`; `value` es la razón de contraste.
+  "campana_text_contrast",
+  "campana_button_contrast",
+  "campana_footer_contrast",
 ] as const;
 export type MailCheckCode = (typeof MAIL_CHECK_CODES)[number];
 
@@ -797,6 +831,38 @@ function normalizeFields(value: unknown): MailField[] {
 }
 
 /**
+ * El tema: las claves del estilo (E1n) se conservan tal como llegan para que
+ * la revisión del backend sea la que diga si un color no sirve; una
+ * enumeración fuera de su registro se descarta (no tiene cómo dibujarse).
+ */
+export function normalizeMailTheme(value: unknown): MailTheme {
+  const theme = isRecord(value) ? value : {};
+  const band = oneOf(theme.band, ["suave", "acento"] as const);
+  const estilo = oneOf(theme.estilo, MAIL_ESTILOS);
+  const textAlign = oneOf(theme.text_align, MAIL_TEXT_ALIGNS);
+  const onda = oneOf(theme.onda, MAIL_ONDAS);
+  const color = (v: unknown): string | undefined => {
+    const c = optStr(v)?.trim();
+    return c ? c : undefined;
+  };
+  const out: MailTheme = { accent: str(theme.accent) || "#0b1f54" };
+  if (optStr(theme.link) !== undefined) out.link = str(theme.link);
+  if (band) out.band = band;
+  if (estilo) out.estilo = estilo;
+  const pageBg = color(theme.page_bg);
+  if (pageBg) out.page_bg = pageBg;
+  const buttonBg = color(theme.button_bg);
+  if (buttonBg) out.button_bg = buttonBg;
+  const buttonText = color(theme.button_text);
+  if (buttonText) out.button_text = buttonText;
+  if (textAlign) out.text_align = textAlign;
+  if (onda) out.onda = onda;
+  const ondaColor = color(theme.onda_color);
+  if (ondaColor) out.onda_color = ondaColor;
+  return out;
+}
+
+/**
  * `lenient`: para la plantilla guardada que el backend ya marcó inválida
  * (`stored_problems`): se lee igual —si es un objeto— para poder corregirla y
  * reemplazarla, en vez de dejar la vista sin correo.
@@ -816,8 +882,7 @@ export function normalizeMailTemplate(value: unknown, opts: { lenient?: boolean 
     vistos.add(block.block_id);
     blocks.push(block);
   }
-  const theme = isRecord(value.theme) ? value.theme : {};
-  const band = oneOf(theme.band, ["suave", "acento"] as const);
+  const theme = normalizeMailTheme(value.theme);
   const presetId = optStr(value.preset_id);
   const title = optStr(value.title);
   const sha = optStr(value.template_sha256);
@@ -830,11 +895,7 @@ export function normalizeMailTemplate(value: unknown, opts: { lenient?: boolean 
     ...(sha !== undefined ? { template_sha256: sha } : {}),
     subject: str(value.subject),
     preheader: str(value.preheader),
-    theme: {
-      accent: str(theme.accent) || "#0b1f54",
-      ...(optStr(theme.link) !== undefined ? { link: str(theme.link) } : {}),
-      ...(band ? { band } : {}),
-    },
+    theme,
     header: normalizeHeader(value.header),
     images: normalizeImages(value.images),
     fields: normalizeFields(value.fields),

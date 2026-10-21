@@ -20,7 +20,7 @@
 import { isOpaqueMailBlock, type MailBlock, type MailField, type MailGreetingBlock, type MailTemplate } from "../../../api/materialMail";
 import { ROTULO_DE_PROP, propsDeTexto, textoDe, type PropDeTexto } from "./modeloCorreo";
 import { tratoDelSaludo } from "./modeloTrato";
-import { PATRON_CAMPO, PATRON_ENLACE } from "./serializarTexto";
+import { PATRON_CAMPO, PATRON_ENLACE, enfasisAHtml } from "./serializarTexto";
 
 export type Dialecto = "mailchimp" | "surveymonkey";
 
@@ -78,11 +78,14 @@ export function textoEnLaPlataforma(
   opciones: { enUrl?: boolean; enlaces?: boolean; notas?: Set<string> } = {},
 ): string {
   const ctx: Contexto = { template, dialecto, notas: opciones.notas ?? new Set() };
-  let out = texto;
+  if (opciones.enUrl) return texto.replace(PATRON_CAMPO, (_m, key: string) => campo(key, ctx, true));
+  // El énfasis va antes que los enlaces y los campos: las etiquetas de la
+  // plataforma (`*|FNAME|*`) también llevan asteriscos.
+  let out = enfasisAHtml(texto);
   if (opciones.enlaces) {
     out = out.replace(PATRON_ENLACE, (_m, label: string, url: string) => `<a href="${textoEnLaPlataforma(url, template, dialecto, { enUrl: true, notas: ctx.notas })}">${label}</a>`);
   }
-  out = out.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>");
+  out = out.replace(/\n/g, "<br>");
   return out.replace(PATRON_CAMPO, (_m, key: string) => campo(key, ctx, Boolean(opciones.enUrl)));
 }
 

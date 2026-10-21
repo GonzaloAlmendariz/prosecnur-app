@@ -54,7 +54,6 @@ export const ROTULO_DEL_INFORME: Record<string, string> = {
   moved_to_footer: "Movido al pie",
   conditional_flattened: "Condicional simplificado",
   email_tag_removed: "Correo quitado",
-  italic_plain: "Cursiva",
   strike_plain: "Tachado",
   text_escaped: "Texto separado",
   text_degraded: "Texto simplificado",

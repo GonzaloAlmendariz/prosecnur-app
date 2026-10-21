@@ -57,7 +57,7 @@ type Props = {
 };
 
 const AYUDA_DE_PROP: Partial<Record<PropDeTexto, string>> = {
-  text: "**negrita** y {{campo}}; el formato lo pone la plantilla.",
+  text: "Puedes usar negrita, cursiva y campos; el formato lo pone la plantilla.",
   url: "https://…, mailto:… o un campo como {{enlace}}.",
   note: "Una línea por renglón.",
   items: "Un punto por línea.",

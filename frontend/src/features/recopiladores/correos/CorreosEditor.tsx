@@ -55,6 +55,7 @@ import type { MedidasDeLaHoja } from "./VistaPreviaDelCorreo";
 import { PanelDeBloque } from "./PanelDeBloque";
 import { PanelDestinatarios } from "./PanelDestinatarios";
 import { PanelIdentidad } from "./PanelIdentidad";
+import { CHEQUEOS_DE_ESTILO, IDENTIDAD } from "./modeloEstilo";
 import { PanelMailchimp } from "./PanelMailchimp";
 import { PanelRevision } from "./PanelRevision";
 import { VistaPreviaDelCorreoConectada } from "./VistaPreviaDelCorreo";
@@ -379,6 +380,16 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
       identidad.abrir();
       return;
     }
+    // E1n: los chequeos de Campaña llevan a Identidad › Estilo, al control del color.
+    if (id === IDENTIDAD) {
+      identidad.abrir();
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+        const control = foco ? document.querySelector<HTMLElement>(`[data-foco="${CSS.escape(foco)}"]`) : null;
+        control?.scrollIntoView({ block: "center" });
+        control?.focus({ preventScroll: true });
+      }));
+      return;
+    }
     if (id !== CABECERA && id !== SOBRE && !t?.blocks.some((b) => b.block_id === id)) {
       irAPestana("revision");
       return;
@@ -496,6 +507,9 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
   const imagenesSinArchivo = st.revision?.checks.find((c) => c.code === "images_available")?.items
     .filter((i): i is string => typeof i === "string") ?? [];
   const bannerCheck = st.revision?.checks.find((c) => c.code === "banner_size") ?? null;
+  const chequeosDeEstilo = Object.fromEntries((st.revision?.checks ?? [])
+    .filter((c) => (CHEQUEOS_DE_ESTILO as readonly string[]).includes(c.code))
+    .map((c) => [c.code, c]));
   const ocupado = st.ocupado !== null;
   const bloqueElegido = template.blocks.find((b) => b.block_id === st.seleccion);
   const imagenDelBloque = bloqueElegido?.type === "image"
@@ -700,6 +714,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
                 htmlDeLaVista={st.vistaPrevia?.html ?? null}
                 sinArchivo={imagenesSinArchivo}
                 bannerCheck={bannerCheck}
+                chequeosDeEstilo={chequeosDeEstilo}
                 ocupado={ocupado}
                 onEditar={editar}
                 onSubir={(id, file) => { void acciones.subirImagen(id, file); }}

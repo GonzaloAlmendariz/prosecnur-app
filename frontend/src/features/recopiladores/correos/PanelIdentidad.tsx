@@ -4,6 +4,8 @@ import type { MailCheck, MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { AlertCircle, Check, CheckCircle2, ImagePlus, Trash2, Upload } from "../../../vendor/lucide-react";
 import { Segmented } from "../../xlsformEditor/kit";
+import { EstiloDelCorreo } from "./EstiloDelCorreo";
+import { srcDeImagenDelBloque } from "./estructuraCorreo";
 import { FranjaDeLogos } from "./FranjaDeLogos";
 import {
   BANNER_ID,
@@ -14,8 +16,10 @@ import {
   usarBanner,
   usarLogos,
   altPendiente,
+  CABECERA,
   CUERPO_DEL_INSPECTOR,
 } from "./modeloCorreo";
+import type { ChequeoDeEstilo } from "./modeloEstilo";
 
 type Props = {
   template: MailTemplate;
@@ -25,6 +29,8 @@ type Props = {
   /** Ids que la revisión dice que no tienen archivo ni URL. */
   sinArchivo: readonly string[];
   bannerCheck: MailCheck | null;
+  /** Chequeos `campana_*` de la revisión (E1n). */
+  chequeosDeEstilo?: Partial<Record<ChequeoDeEstilo, MailCheck>>;
   ocupado: boolean;
   onEditar: (update: (t: MailTemplate) => MailTemplate) => void;
   /** Sube el PNG o JPEG con el id de la imagen; si ya tenía archivo, lo reemplaza. */
@@ -60,13 +66,17 @@ function Imagen({ src, alt, banner }: { src: string | undefined; alt: string; ba
 }
 
 /** Pestaña «Identidad»: banner de mailing del cliente o franja de logos del estudio. */
-export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinArchivo, bannerCheck, ocupado, onEditar, onSubir, pedirAlt = null, onAltListo }: Props) {
+export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinArchivo, bannerCheck, chequeosDeEstilo = {}, ocupado, onEditar, onSubir, pedirAlt = null, onAltListo }: Props) {
   const ids = useId();
   const conBanner = template.header.kind === "banner";
   const bannerId = template.header.kind === "banner" ? template.header.image_ref : BANNER_ID;
   const logos = logosDeLaFranja(template);
   const tieneArchivo = (id: string) => Boolean(imagenesLocales[id]) || (!sinArchivo.includes(id) && id in template.images);
   const fondo = template.header.kind === "logos" ? template.header.background : "dark";
+  // El banner que ya se ve: el recién subido, el de la vista previa o su URL pública.
+  const srcDelBanner = conBanner
+    ? imagenesLocales[bannerId] ?? srcDeImagenDelBloque(htmlDeLaVista, CABECERA) ?? template.images[bannerId]?.url ?? null
+    : null;
 
   const editarImagen = (id: string, patch: { alt?: string; url?: string }) => onEditar((t) => {
     const actual = t.images[id] ?? { alt: "" };
@@ -264,11 +274,18 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
             type="color"
             aria-label="Color de acento del correo"
             value={template.theme.accent}
-            onChange={(e) => onEditar((t) => ({ ...t, theme: { accent: e.target.value } }))}
+            onChange={(e) => onEditar((t) => ({ ...t, theme: { ...t.theme, accent: e.target.value } }))}
           />
           <span className="xfk-mono">{template.theme.accent}</span>
         </span>
       </div>
+
+      <EstiloDelCorreo
+        theme={template.theme}
+        srcDelBanner={srcDelBanner}
+        chequeos={chequeosDeEstilo}
+        onTema={(update) => onEditar((t) => ({ ...t, theme: update(t.theme) }))}
+      />
 
       <p className="rec-mail-nota">
         La app revisa que el banner recibido mida al menos 1200 px de ancho, tenga forma de banner y no pese de más.
