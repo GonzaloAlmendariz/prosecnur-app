@@ -77,6 +77,7 @@ export type Seleccion = string;
 
 /** Plantillas reales: de qué estudio salió cada una. */
 const ORIGEN_DE_PRESET: Record<string, string> = {
+  invitacion_encuesta_v1: "Acreditación PUCP 2026",
   recuperacion_estudiantes_v1: "CCSS Perfil 2026",
   invitacion_capacitacion_v1: "UNSA Hostigamiento 2026",
 };
