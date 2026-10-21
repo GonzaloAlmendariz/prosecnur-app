@@ -20,16 +20,22 @@
   callout = list(variant = c("box", "bar", "tinte")),
   heading = list(level = c("titulo", "subtitulo"), align = c("left", "center")),
   divider = list(style = c("linea", "espacio"), size = c("s", "m", "l")),
-  image = list(align = c("left", "center", "right"))
+  image = list(align = c("left", "center", "right")),
+  # Piezas gráficas (E1o, collection_mail_piezas.R).
+  band = list(height = c("s", "m", "l")),
+  ornament = list(style = c("onda", "puntos", "linea_doble")),
+  icon_text = list(icon = c("calendario", "reloj", "candado", "sobre", "persona", "grupo",
+                            "mapa", "check", "info", "alerta", "regalo", "enlace"))
 )
 
 .CMAIL_NON_TEXT_KEYS <- c("block_id", "type", "variant", "align", "ordered", "size", "tone", "fill",
-                          "level", "style", "width", "bleed", "image_ref")
+                          "level", "style", "width", "bleed", "image_ref",
+                          "decorative", "color", "height", "icon", "left", "right")
 
 # Propiedades que admiten `[texto](url)`, por tipo de bloque.
 .CMAIL_LINK_PROPS <- list(
   paragraph = "text", callout = c("title", "items"), list = "items",
-  signature = "lines", footer_legal = "text"
+  signature = "lines", footer_legal = "text", icon_text = "text"
 )
 
 .CMAIL_LINK_RE <- "\\[([^\\]\\n]+)\\]\\(([^()\\s]+)\\)"

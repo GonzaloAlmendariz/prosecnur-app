@@ -28,10 +28,19 @@
                                       alt = .cmail_one((tpl$images %||% list())[[id]]$alt) %||% "")
   }
   for (b in tpl$blocks %||% list()) {
+    if (identical(b$type, "two_images")) {
+      for (side in c("left", "right")) {
+        uses[[length(uses) + 1L]] <- list(id = as.character(.cmail_one(b[[side]]) %||% ""),
+                                          target = .cmail_target(as.character(b$block_id), paste0("alt_", side)),
+                                          alt = .cmail_one(b[[paste0("alt_", side)]]) %||% "", pair = TRUE)
+      }
+      next
+    }
     if (!identical(b$type, "image")) next
     uses[[length(uses) + 1L]] <- list(id = as.character(.cmail_one(b$image_ref) %||% ""),
                                       target = .cmail_target(as.character(b$block_id), "alt"),
-                                      alt = .cmail_one(b$alt) %||% "", block = b)
+                                      alt = .cmail_one(b$alt) %||% "", block = b,
+                                      decorative = isTRUE(unlist(b$decorative)))
   }
   uses
 }
@@ -47,6 +56,8 @@
   # Los textos de relleno (collection_mail_pendientes.R) van con los dos
   # dialectos, antes de las imágenes: incluyen el alt de cada una.
   push(.cmail_placeholder_check(tpl))
+  # Piezas gráficas (E1o): solo si la plantilla trae alguna.
+  push <- .cmail_piezas_checks(tpl, images, push, dialect)
   if (identical(dialect, "surveymonkey")) return(.cmail_image_checks_sm(tpl, images, push))
   # Alojamiento: cada imagen tiene URL https o va dentro del ZIP importable.
   data_uris <- lengths(regmatches(html, gregexpr("data:[a-z]+/", html)))
@@ -109,7 +120,8 @@
 
 # Chequeos de imagen comunes a los dos dialectos.
 .cmail_image_checks_common <- function(tpl, images, uses, push) {
-  no_alt <- Filter(function(u) .cmail_alt_missing(u$alt), uses)
+  # Una imagen decorativa (E1o) lleva alt vacío a propósito.
+  no_alt <- Filter(function(u) !isTRUE(u$decorative) && .cmail_alt_missing(u$alt), uses)
   push(if (length(no_alt)) {
     .cmail_check("images_alt", "error", length(no_alt), "Imágenes sin texto alternativo.",
                  extra = as.list(unique(vapply(no_alt, `[[`, "", "id"))), targets = lapply(no_alt, `[[`, "target"))
@@ -119,19 +131,21 @@
 
   # Nitidez: el ancho mostrado a 2x no debe pasar el natural.
   blurry <- list()
-  for (u in Filter(function(u) !is.null(u$block), uses)) {
+  for (u in Filter(function(u) !is.null(u$block) || isTRUE(u$pair), uses)) {
     natural <- images[[u$id]]$size$width
     if (is.null(natural)) next
-    shown <- .cmail_image_width(u$block, images[[u$id]])
+    shown <- if (isTRUE(u$pair)) .cmail_pair_shown_width(images[[u$id]]) else .cmail_image_width(u$block, images[[u$id]])
     if (shown * 2L > natural) {
-      blurry[[length(blurry) + 1L]] <- list(id = u$id, block_id = u$target$block_id, width = shown, natural = as.integer(natural))
+      blurry[[length(blurry) + 1L]] <- list(id = u$id, block_id = u$target$block_id, width = shown, natural = as.integer(natural),
+                                            prop = if (isTRUE(u$pair)) u$target$prop else "width")
     }
   }
-  if (any(vapply(uses, function(u) !is.null(u$block), NA))) {
+  if (any(vapply(uses, function(u) !is.null(u$block) || isTRUE(u$pair), NA))) {
     push(if (length(blurry)) {
       .cmail_check("image_width", "warning", length(blurry),
                    "Imágenes mostradas a más de la mitad de su ancho natural: se verán borrosas en pantallas de alta densidad.",
-                   extra = blurry, targets = lapply(blurry, function(x) .cmail_target(x$block_id, "width")))
+                   extra = lapply(blurry, function(x) { x$prop <- NULL; x }),
+                   targets = lapply(blurry, function(x) .cmail_target(x$block_id, x$prop)))
     } else {
       .cmail_check("image_width", "ok", 0L, "Cada imagen tiene resolución para mostrarse a 2x.")
     })
