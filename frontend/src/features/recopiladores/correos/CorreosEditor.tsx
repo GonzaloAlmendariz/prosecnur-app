@@ -260,6 +260,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
         apertura={envio.opening ?? null}
         envioDeApertura={envio.label}
         onSeleccionar={seleccionar}
+        onVerRevision={() => irAPestana("revision")}
         onEditar={st.setEdicion}
         onTexto={(zona, prop, valor) => {
           if (zona === APERTURA) {
