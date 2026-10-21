@@ -59,3 +59,25 @@ test_that("declarar o apagar «qué casos cuentan» cambia la clave del caché d
   .session_env[[sid]] <- s
   expect_identical(.analitica_source_cache_key(sid, "estudio:base_1"), k0)
 })
+
+test_that("con universo declarado la clave sigue terminando en «:<base activa>» e invalidar esa base borra su caché", {
+  # El verificador del 2026-10-21 mostró que, con la firma al final de la
+  # clave, `.invalidate_processing_state` dejaba vivo el caché de la base
+  # invalidada (lo reconoce por el sufijo «:<base>»).
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  cond <- list(list(variable = "seleccionado", operador = "==", valores = list("1")))
+  s <- session_get(sid)
+  s$estudio <- list(bases = list(A = list(nombre = "A"), B = list(nombre = "B",
+                    validacion = list(operational_config = list(caso_valido = list(enabled = TRUE, condiciones = cond))))),
+                    processing_mode = "multibase", active_base = "A")
+  .session_env[[sid]] <- s
+  key_a <- .analitica_source_cache_key(sid, "originales")
+  expect_true(endsWith(key_a, ":A"))
+  s <- session_get(sid)
+  s$analitica_fuente <- key_a
+  s$analitica_rp_data <- data.frame(x = 1)
+  s$estudio$active_base <- "B"
+  s <- .invalidate_processing_state(s, base_nombre = "A")
+  expect_null(s$analitica_rp_data)
+})

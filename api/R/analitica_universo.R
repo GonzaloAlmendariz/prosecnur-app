@@ -94,7 +94,7 @@ mount_analitica_universo <- function(pr) {
                     error = function(e) NULL)
     cv <- (cfg %||% list())$caso_valido %||% list()
     if (!isTRUE(cv$enabled) || !length(cv$condiciones %||% list())) return(paste0(b, "=-"))
-    paste0(b, "=", jsonlite::toJSON(cv$condiciones, auto_unbox = TRUE))
+    paste0(b, "=", jsonlite::toJSON(cv$condiciones, auto_unbox = TRUE, digits = NA))
   }, character(1))
   .equiv_hash_estable(paste(partes, collapse = "|"))
 }
