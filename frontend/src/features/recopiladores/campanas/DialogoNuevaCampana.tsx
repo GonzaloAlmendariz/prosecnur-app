@@ -113,6 +113,10 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
     setNombre("");
     setActor("");
     setError("");
+    // Al reabrir, la plataforma y el origen vuelven a su valor de partida: el diálogo no recuerda la campaña anterior.
+    setPlataforma("mailchimp");
+    setOrigen(presets.length ? presets[0].preset_id : ORIGEN_EN_BLANCO);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- se reinicia solo al cerrar, no cuando llegan los presets
   }, [abierto]);
 
   // La primera plantilla real es el origen por defecto cuando llegan los presets.
