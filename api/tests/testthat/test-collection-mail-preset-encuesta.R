@@ -111,18 +111,20 @@ test_that("ningún color fuera del acento y de las constantes de la casa", {
   }
 })
 
-test_that("revisión: solo falla lo que depende de la lista (y del logo en SurveyMonkey)", {
+# El relleno entre corchetes («[fecha límite]») bloquea por diseño: el preset
+# trae frases para completar (placeholders_pending, collection_mail_pendientes.R).
+test_that("revisión: solo falla el relleno por completar y lo que depende de la lista (y del logo en SurveyMonkey)", {
   sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
   rv <- collection_mail_review(sid, template = .cmpe_t())
   bad <- Filter(function(c) identical(c$status, "error"), rv$checks)
-  expect_identical(vapply(bad, `[[`, "", "code"), "recipients")
+  expect_identical(vapply(bad, `[[`, "", "code"), c("placeholders_pending", "recipients"))
 
   c <- collection_mail_campaign_create(sid, collection_mail_campaigns_get(sid)$state_revision,
                                        name = "Acreditación", preset_id = "invitacion_encuesta_v1")
   expect_identical(c$campaign$template$preset_id, "invitacion_encuesta_v1")
   r <- collection_mail_review(sid, campaign_id = c$campaign$campaign_id)
   errs <- vapply(Filter(function(x) identical(x$status, "error"), r$checks), `[[`, "", "code")
-  expect_true(all(errs %in% c("recipients")), info = paste(errs, collapse = ", "))
+  expect_true(all(errs %in% c("placeholders_pending", "recipients")), info = paste(errs, collapse = ", "))
   warns <- vapply(Filter(function(x) identical(x$status, "warning"), r$checks), `[[`, "", "code")
   expect_true(all(warns %in% c("greeting_trato", "recipients", "images_hosted")), info = paste(warns, collapse = ", "))
 
@@ -134,5 +136,5 @@ test_that("revisión: solo falla lo que depende de la lista (y del logo en Surve
   expect_false(identical(by$survey_link$status, "error"))
   errs_sm <- vapply(Filter(function(x) identical(x$status, "error"), rs$checks), `[[`, "", "code")
   # En SurveyMonkey los logos deben estar alojados (URL https): depende de los logos.
-  expect_true(all(errs_sm %in% c("images_public_url", "images_hosted")), info = paste(errs_sm, collapse = ", "))
+  expect_true(all(errs_sm %in% c("placeholders_pending", "images_public_url", "images_hosted")), info = paste(errs_sm, collapse = ", "))
 })

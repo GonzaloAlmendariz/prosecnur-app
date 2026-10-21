@@ -36,7 +36,7 @@
   uses
 }
 
-#' Chequeos de imagen. `push` agrega un chequeo a la lista de la revisión.
+#' Chequeos de imagen (y `placeholders_pending`). `push` agrega un chequeo a la lista de la revisión.
 #'
 #' Comunes: `images_alt`, `image_width`, `image_weight`. Mailchimp suma
 #' `images_hosted`, `images_available`, `import_zip_weight` y `banner_size`;
@@ -44,6 +44,9 @@
 #' personalizado: cada una necesita su URL https).
 #' @keywords internal
 .cmail_image_checks <- function(tpl, images, html, html_bytes, push, dialect = .CMAIL_PLATFORM_DEFAULT) {
+  # Los textos de relleno (collection_mail_pendientes.R) van con los dos
+  # dialectos, antes de las imágenes: incluyen el alt de cada una.
+  push(.cmail_placeholder_check(tpl))
   if (identical(dialect, "surveymonkey")) return(.cmail_image_checks_sm(tpl, images, push))
   # Alojamiento: cada imagen tiene URL https o va dentro del ZIP importable.
   data_uris <- lengths(regmatches(html, gregexpr("data:[a-z]+/", html)))

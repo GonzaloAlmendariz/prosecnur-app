@@ -358,6 +358,7 @@ test_that("export por campaña: slug = campaign_id y manifest con campaign sin d
   sid <- fx$sid
   collection_mail_recipients_import(sid, file_name = "d.csv", campaign_id = fx$b$campaign_id,
     content_base64 = jsonlite::base64_enc(charToRaw(enc2utf8(.cmail_fx_recipients_csv()))))
+  .cmail_fx_completar(sid, fx$b$campaign_id)
   ex <- collection_mail_export(sid, .cmc_rev(sid), campaign_id = fx$b$campaign_id)
   expect_identical(ex$campaign_id, fx$b$campaign_id)
   expect_match(ex$zip$filename, "^invitacion-docentes_invitacion_mailchimp_\\d{8}-\\d{6}\\.zip$")
@@ -380,6 +381,7 @@ test_that("el .pulso con dos campañas no contiene correos; las campañas viajan
       content_base64 = jsonlite::base64_enc(charToRaw(enc2utf8(.cmail_fx_recipients_csv()))))
     collection_mail_preview(sid, "preview", recipient_index = 1L, campaign_id = id)
   }
+  .cmail_fx_completar(sid, fx$b$campaign_id)
   collection_mail_export(sid, .cmc_rev(sid), campaign_id = fx$b$campaign_id)
   state_json <- jsonlite::toJSON(session_get(sid)$collection_state, auto_unbox = TRUE, null = "null")
   expect_false(grepl("@ejemplo.org|QUISPE|Quispe|Ana Lucia", state_json))

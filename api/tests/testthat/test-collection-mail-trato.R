@@ -141,6 +141,7 @@ test_that("Mailchimp: lista CP1252 M/F -> revisión con cifras, audiencia.csv co
   # La persona de ejemplo (sin lista elegida) lleva el respaldo.
   expect_match(.cmail_fx_unmark(collection_mail_preview(sid)$html), "Estimado(a) Ana:", fixed = TRUE)
 
+  .cmail_fx_completar(sid)
   ex <- collection_mail_export(sid, .cmail_fx_rev(sid))
   dir <- .cmt_unzip(sid, ex); on.exit(unlink(dir, recursive = TRUE), add = TRUE)
   aud <- utils::read.csv(file.path(dir, "audiencia.csv"), colClasses = "character", check.names = FALSE, encoding = "UTF-8")
@@ -206,7 +207,7 @@ test_that("SurveyMonkey: con la lista, contactos_surveymonkey.csv con CustomData
   t$images$`logo-cliente`$url <- "https://pulsopucp.github.io/correo-/logo-cliente.png"
   t$images$pulso$url <- "https://pulsopucp.github.io/correo-/pulso.png"
   t$fields[[1]]$sm <- "CustomData1"; t$fields[[2]]$sm <- "CustomData2"
-  collection_mail_template_put(sid, .cmt_with_column(t), .cmt_rev(sid), campaign_id = "conta")
+  collection_mail_template_put(sid, .cmail_fx_sin_relleno(.cmt_with_column(t)), .cmt_rev(sid), campaign_id = "conta")
 
   # Sin lista: alcance plantilla, aviso sm_trato_blank y LEEME con los valores.
   r0 <- collection_mail_review(sid, campaign_id = "conta")
@@ -326,7 +327,7 @@ test_that("HTTP: PUT mail-template conserva el trato y la revisión lo lee", {
 test_that("Mailchimp: con alguien sin nombre de pila, el respaldo del nombre sigue y el saludo no se anida", {
   sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
   t <- collection_mail_template_get(sid)$template
-  collection_mail_template_put(sid, .cmt_with_column(t), .cmail_fx_rev(sid))
+  collection_mail_template_put(sid, .cmail_fx_sin_relleno(.cmt_with_column(t)), .cmail_fx_rev(sid))
   sin_nombre <- paste("Nombre;Correo;Sexo;Carrera;Código;Enlace",
                       "Ana Muñoz;ana@ejemplo.org;F;Sociología;1;https://ejemplo.org/e/1",
                       ";nn@ejemplo.org;M;Economía;2;https://ejemplo.org/e/2", sep = "\r\n")
@@ -343,7 +344,7 @@ test_that("Mailchimp: con alguien sin nombre de pila, el respaldo del nombre sig
 test_that("Mailchimp con scope plantilla: aunque haya lista, el saludo conserva sus respaldos", {
   sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
   t <- collection_mail_template_get(sid)$template
-  collection_mail_template_put(sid, .cmt_with_column(t), .cmail_fx_rev(sid))
+  collection_mail_template_put(sid, .cmail_fx_sin_relleno(.cmt_with_column(t)), .cmail_fx_rev(sid))
   .cmt_import(sid)
   ex <- collection_mail_export(sid, .cmail_fx_rev(sid), scope = "plantilla")
   dir <- tempfile("cmt-"); on.exit(unlink(dir, recursive = TRUE), add = TRUE)

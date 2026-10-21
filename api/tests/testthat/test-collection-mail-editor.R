@@ -279,7 +279,7 @@ test_that("export completo: ZIP importable anidado, un HTML, src relativos o htt
   t$blocks <- append(t$blocks, list(.cme_image_block("linea-cierre", bleed = TRUE)), after = length(t$blocks) - 2L)
   t$images$pulso$url <- "https://cdn.ejemplo.org/pulso.png"
   a <- collection_mail_campaign_create(sid, 0L, name = "Cierre con imágenes")
-  put <- collection_mail_template_put(sid, t, a$state_revision, campaign_id = "cierre-con-imagenes")
+  put <- collection_mail_template_put(sid, .cmail_fx_sin_relleno(t), a$state_revision, campaign_id = "cierre-con-imagenes")
   .cmail_fx_import(sid)
   res <- collection_mail_export(sid, put$state_revision)
   expect_identical(res$scope, "completo")
@@ -320,11 +320,12 @@ test_that("export completo: ZIP importable anidado, un HTML, src relativos o htt
 test_that("export scope plantilla: sin audiencia ni chequeos de audiencia; el entregable es el ZIP importable", {
   skip_if_not_installed("zip")
   sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
+  .cmail_fx_completar(sid)
   rv <- collection_mail_review(sid, scope = "plantilla")
   expect_identical(rv$scope, "plantilla")
   expect_false("recipients" %in% names(.cme_by(rv)))
   expect_true(rv$ready)
-  res <- collection_mail_export(sid, 0L, scope = "plantilla")
+  res <- collection_mail_export(sid, .cmail_fx_rev(sid), scope = "plantilla")
   expect_identical(res$scope, "plantilla")
   expect_match(res$zip$filename, "^correo-1_invitacion_plantilla-mailchimp_\\d{8}-\\d{6}\\.zip$")
   expect_identical(res$zip$sensitivity, "none")
@@ -333,7 +334,7 @@ test_that("export scope plantilla: sin audiencia ni chequeos de audiencia; el en
   expect_true(.cmail_import_zip_verify(path)$ok)
   expect_setequal(zip::zip_list(path)$filename, c("correo-1.html", "logo-cliente.png", "pulso.png"))
   expect_null(res$manifest$recipients)
-  expect_identical(.cme_code(collection_mail_export(sid, 0L, scope = "otro")), "E_COLLECTION_MAIL_MODE")
+  expect_identical(.cme_code(collection_mail_export(sid, .cmail_fx_rev(sid), scope = "otro")), "E_COLLECTION_MAIL_MODE")
 })
 
 test_that("export: un ZIP importable de 1 MB o más se rechaza con E_COLLECTION_MAIL_IMPORT_ZIP_TOO_LARGE", {
@@ -366,13 +367,14 @@ test_that("HTTP: review y export aceptan scope con el serializador de producció
   skip_if_not_installed("zip")
   sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
   pr <- mount_recopiladores(plumber::pr() |> plumber::pr_set_serializer(.api_serializer()))
+  .cmail_fx_completar(sid)
   rv <- .cmail_fx_call(pr, sid, "POST", "/api/recopiladores/mail-template/review", .cmail_fx_json(list(scope = "plantilla")))
   expect_identical(rv$status, 200L, info = substr(rv$raw, 1, 500))
   expect_identical(rv$body$scope, "plantilla")
   codes <- vapply(rv$body$checks, function(c) c$code, "")
   expect_true(all(c("import_zip_weight", "accent_contrast", "images_hosted") %in% codes))
   ex <- .cmail_fx_call(pr, sid, "POST", "/api/recopiladores/mail-template/export",
-                       .cmail_fx_json(list(expected_revision = 0L, scope = "plantilla")))
+                       .cmail_fx_json(list(expected_revision = .cmail_fx_rev(sid), scope = "plantilla")))
   expect_identical(ex$status, 200L, info = substr(ex$raw, 1, 500))
   expect_identical(ex$body$scope, "plantilla")
   expect_identical(unlist(ex$body$import_zip$html), "correo-1.html")
