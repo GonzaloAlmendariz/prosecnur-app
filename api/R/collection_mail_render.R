@@ -359,6 +359,8 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
     '<meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light">',
     sprintf("<title>%s</title>", htmltools::htmlEscape(subject)),
     .cmail_justify_style(paste0(card, footer_rows)),
+    # two_images se apila en teléfono (E1o, collection_mail_piezas.R).
+    .cmail_stack_style(card),
     "</head>\n",
     sprintf('<body style="margin:0;padding:0;background-color:%s;">', page_bg),
     .cmail_preheader_html(preheader),

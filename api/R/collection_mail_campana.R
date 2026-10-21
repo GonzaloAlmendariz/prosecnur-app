@@ -180,17 +180,36 @@
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   path <- file.path(dir, sprintf("onda-%s-%s.png", sub("^#", "", tolower(page_bg)), sub("^#", "", tolower(onda_color))))
   if (file.exists(path)) return(path)
-  w <- .CMAIL_ONDA_W; h <- .CMAIL_ONDA_H
+  w <- .CMAIL_ONDA_W
   x <- (seq_len(w) - 0.5) / w
   # Curva: dos crestas suaves, entre 22 y 58 px desde arriba.
   edge <- 40 + 14 * sin(2 * pi * x * 1.5 + 0.9) + 4 * sin(2 * pi * x * 3.2)
+  .cmail_wave_png(path, w, .CMAIL_ONDA_H, edge, onda_color, bg = page_bg)
+}
+
+#' Generador de ondas (E1n; lo reusa el ornamento «onda» de E1o,
+#' collection_mail_piezas.R). `edge` es la altura de la curva en cada columna
+#' (px desde arriba, `w` valores). Sin `stroke`, `color` rellena bajo la curva
+#' sobre `bg` (opaco); con `stroke`, una cinta de `stroke` px sigue la curva
+#' sobre fondo transparente (`bg = NULL`). Antialias por cobertura vertical.
+#' Escribe `path` de forma atómica y lo devuelve.
+#' @keywords internal
+.cmail_wave_png <- function(path, w, h, edge, color, bg = NULL, stroke = NULL) {
   rows <- matrix(seq_len(h) - 1, nrow = h, ncol = w)
-  cover <- pmin(1, pmax(0, rows + 1 - matrix(edge, nrow = h, ncol = w, byrow = TRUE)))
-  top <- .cmail_rgb(page_bg) / 255
-  bottom <- .cmail_rgb(onda_color) / 255
-  img <- array(0, dim = c(h, w, 3L))
-  for (ch in 1:3) img[, , ch] <- top[[ch]] * (1 - cover) + bottom[[ch]] * cover
-  tmp <- tempfile("onda-", tmpdir = dir, fileext = ".png")
+  edges <- matrix(edge, nrow = h, ncol = w, byrow = TRUE)
+  cover <- pmin(1, pmax(0, rows + 1 - edges))
+  if (!is.null(stroke)) cover <- cover - pmin(1, pmax(0, rows + 1 - (edges + stroke)))
+  ink <- .cmail_rgb(color) / 255
+  if (is.null(bg)) {
+    img <- array(0, dim = c(h, w, 4L))
+    for (ch in 1:3) img[, , ch] <- ink[[ch]]
+    img[, , 4L] <- cover
+  } else {
+    top <- .cmail_rgb(bg) / 255
+    img <- array(0, dim = c(h, w, 3L))
+    for (ch in 1:3) img[, , ch] <- top[[ch]] * (1 - cover) + ink[[ch]] * cover
+  }
+  tmp <- tempfile("onda-", tmpdir = dirname(path), fileext = ".png")
   png::writePNG(img, tmp)
   file.rename(tmp, path)
   path

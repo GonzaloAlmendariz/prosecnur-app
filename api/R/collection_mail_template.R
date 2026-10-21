@@ -66,9 +66,14 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
   callout      = c("title", "items", "variant"),
   list         = c("items", "ordered"),
   divider      = c("style", "size"),
-  image        = c("image_ref", "alt", "width", "align", "url", "bleed"),
+  image        = c("image_ref", "alt", "width", "align", "url", "bleed", "decorative"),
   signature    = c("closing", "name", "lines", "url"),
-  footer_legal = c("text", "address")
+  footer_legal = c("text", "address"),
+  # Piezas gráficas (E1o): collection_mail_piezas.R.
+  band         = c("color", "height"),
+  ornament     = c("style", "color"),
+  icon_text    = c("icon", "text"),
+  two_images   = c("left", "right", "alt_left", "alt_right")
 )
 
 .CMAIL_RESERVED_TAGS <- c("EMAIL", "FNAME", "LNAME", "ADDRESS", "PHONE", "UNSUB", "LIST")
@@ -201,7 +206,9 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
     if (!is.null(b$ordered)) b$ordered <- isTRUE(unlist(b$ordered))
     # Saludo por sexo (collection_mail_trato.R): las palabras que falten, las de siempre.
     if (identical(b$type, "greeting") && !is.null(b$trato)) b$trato <- .cmail_trato_normalize(b$trato)
-    if (!is.null(b$bleed) && length(unlist(b$bleed)) == 1L && is.logical(unlist(b$bleed))) b$bleed <- isTRUE(unlist(b$bleed))
+    for (k in c("bleed", "decorative")) {
+      if (!is.null(b[[k]]) && length(unlist(b[[k]])) == 1L && is.logical(unlist(b[[k]]))) b[[k]] <- isTRUE(unlist(b[[k]]))
+    }
     if (!is.null(b$width) && length(unlist(b$width)) == 1L && is.numeric(unlist(b$width))) {
       w <- unlist(b$width)
       if (!is.na(w) && w == round(w)) b$width <- as.integer(w)
@@ -432,7 +439,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
       }), recursive = FALSE)
     }
     # Enlaces del texto: válidos donde se permiten, prohibidos en el resto.
-    for (k in intersect(names(b), c("text", "title", "fallback", "closing", "name", "address", "alt"))) {
+    for (k in intersect(names(b), c("text", "title", "fallback", "closing", "name", "address", "alt", "alt_left", "alt_right"))) {
       add(.cmail_link_problems(b[[k]], paste0(path, ".", k), keys, .cmail_link_allowed(type, k)))
     }
     add(.cmail_style_problems(b, type, path))
@@ -474,7 +481,8 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
       footer_legal = {
         add(.cmail_text_problems(b$text, paste0(path, ".text"), keys))
         add(.cmail_text_problems(b$address, paste0(path, ".address"), keys))
-      }
+      },
+      add(.cmail_piezas_problems(b, type, path, keys))
     )
   }
   # Nada binario en lo que persiste (mismo guard que collection_state).
@@ -484,6 +492,8 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
 
 # Bloque image (§B): imagen del proyecto con alt obligatorio y sin campos,
 # ancho de 40 a 600, alineación cerrada, sangre lógica y enlace opcional.
+# `decorative: true` (E1o) es lo único que admite alt vacío: la imagen sale con
+# alt="" y la revisión no la cuenta en `images_alt`.
 .cmail_image_block_problems <- function(b, path, keys) {
   out <- list()
   push <- function(code, prop, detail) out[[length(out) + 1L]] <<- .cmail_problem(paste0(path, ".", prop), code, detail)
@@ -491,7 +501,15 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
     push("bad_image_ref", "image_ref", "La imagen nombra un archivo del proyecto: a-z, 0-9 y guiones (sin _).")
   }
   alt <- .cmail_one(b$alt)
-  if (is.null(alt) || !nzchar(trimws(alt))) {
+  decorative <- isTRUE(unlist(b$decorative))
+  if (!is.null(b$decorative) && (length(unlist(b$decorative)) != 1L || !is.logical(unlist(b$decorative)))) {
+    push("bad_flag", "decorative", "decorative es verdadero o falso.")
+  }
+  alt_empty <- is.null(alt) || !nzchar(trimws(alt))
+  if (alt_empty && decorative) {
+    # Decorativa: alt vacío permitido (y no hay texto que revisar).
+    NULL
+  } else if (alt_empty) {
     push("missing_alt", "alt", "Toda imagen lleva texto alternativo: es lo que se lee con las imágenes bloqueadas.")
   } else {
     out <- c(out, .cmail_text_problems(alt, paste0(path, ".alt"), character(0)))

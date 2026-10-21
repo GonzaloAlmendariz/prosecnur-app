@@ -142,7 +142,10 @@
   head <- if (identical(h$kind, "banner")) as.character(h$image_ref) else
     as.character(unlist(h$logo_ids %||% list(), use.names = FALSE))
   blocks <- unlist(lapply(template$blocks %||% list(), function(b) {
-    if (identical(b$type, "image")) as.character(.cmail_one(b$image_ref) %||% character(0)) else character(0)
+    if (identical(b$type, "image")) return(as.character(.cmail_one(b$image_ref) %||% character(0)))
+    # Las dos imágenes de una pieza two_images (E1o).
+    if (identical(b$type, "two_images")) return(as.character(c(.cmail_one(b$left), .cmail_one(b$right))))
+    character(0)
   }), use.names = FALSE)
   unique(c(head, blocks))
 }
@@ -175,6 +178,9 @@
   # viaja en el ZIP como las demás; nunca pisa una imagen del autor con su id.
   onda <- if (!(.CMAIL_ONDA_ID %in% ids)) .cmail_onda_image(template)
   if (!is.null(onda)) out[[.CMAIL_ONDA_ID]] <- onda
+  # Íconos y ondas de ornamento de las piezas (E1o, collection_mail_piezas.R),
+  # con la misma regla: nunca pisan una imagen del autor.
+  for (g in .cmail_piezas_images(template)) if (!(g$id %in% ids)) out[[g$id]] <- g
   out
 }
 

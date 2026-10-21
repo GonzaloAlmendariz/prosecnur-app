@@ -135,8 +135,13 @@
   bleed <- isTRUE(unlist(b$bleed))
   width <- .cmail_image_width(b, img)
   align <- .cmail_style(b, "align", "center")
-  alt <- .cmail_one(b$alt) %||% ""
+  # Decorativa (E1o): alt vacío, aunque el bloque conserve uno.
+  alt <- if (isTRUE(unlist(b$decorative))) "" else .cmail_one(b$alt) %||% ""
   src <- .cmail_image_src(img, ctx)
+  # Tope de alto (E1o, «nada se deforma»): una imagen muy alta baja su ancho y
+  # declara los dos lados por su proporción real; sin tope, height:auto basta
+  # (y el HTML de siempre no cambia).
+  capped <- .cmail_image_capped(b, img)
   margin <- switch(align, center = "margin:0 auto;", right = "margin:0 0 0 auto;", "")
   tag <- if (is.null(src)) {
     h <- max(40L, as.integer(round(width / 2)))
@@ -149,6 +154,9 @@
     if (bleed) {
       sprintf('<img src="%s" width="%d" alt="%s" style="display:block;width:100%%;height:auto;border:0;outline:none;text-decoration:none;">',
               .cmail_esc(src), width, .cmail_esc(alt))
+    } else if (!is.null(capped)) {
+      sprintf('<img src="%s" width="%d" height="%d" alt="%s" style="display:block;width:%dpx;max-width:100%%;height:auto;border:0;outline:none;text-decoration:none;%s">',
+              .cmail_esc(src), capped$width, capped$height, .cmail_esc(alt), capped$width, margin)
     } else {
       sprintf('<img src="%s" width="%d" alt="%s" style="display:block;width:%dpx;max-width:100%%;height:auto;border:0;outline:none;text-decoration:none;%s">',
               .cmail_esc(src), width, .cmail_esc(alt), width, margin)
@@ -163,14 +171,29 @@
 }
 
 # Ancho de un bloque image: el declarado; si no, la mitad del natural (imagen a
-# 2x), con tope 600; a sangre, 600.
+# 2x), con tope 600; a sangre, 600. Si a ese ancho pasaría de 600 px de alto,
+# el ancho se recalcula por la proporción (`.cmail_image_capped`).
 .cmail_image_width <- function(b, img) {
+  capped <- .cmail_image_capped(b, img)
+  if (!is.null(capped)) return(capped$width)
+  .cmail_image_width_raw(b, img)
+}
+
+.cmail_image_width_raw <- function(b, img) {
   if (isTRUE(unlist(b$bleed))) return(.CMAIL_WIDTH)
   w <- suppressWarnings(as.integer(unlist(b$width)[1]))
   if (length(w) && !is.na(w)) return(max(40L, min(.CMAIL_WIDTH, w)))
   natural <- img$size$width
   if (is.null(natural)) return(300L)
   as.integer(max(40L, min(.CMAIL_WIDTH, round(natural / 2))))
+}
+
+# list(width, height) si el tope de alto recorta la imagen (no a sangre); NULL si no.
+.cmail_image_capped <- function(b, img) {
+  if (isTRUE(unlist(b$bleed)) || !.cmail_size_ok(img$size)) return(NULL)
+  w <- .cmail_image_width_raw(b, img)
+  if (w * img$size$height / img$size$width <= .CMAIL_IMAGE_MAX_H) return(NULL)
+  .cmail_fit(img$size, w)
 }
 
 # El trato (`b$trato`, collection_mail_trato.R) cambia la palabra del saludo por
@@ -237,6 +260,11 @@
     },
     signature = .cmail_block_signature(b, ctx),
     footer_legal = "",
+    # Piezas gráficas (E1o): collection_mail_piezas.R.
+    band = .cmail_block_band(b, ctx),
+    ornament = .cmail_block_ornament(b, ctx),
+    icon_text = .cmail_block_icon_text(b, ctx),
+    two_images = .cmail_block_two_images(b, ctx),
     ""
   )
   mark_type <- if (identical(b$block_id, .CMAIL_OPENING_ID)) "opening" else type
