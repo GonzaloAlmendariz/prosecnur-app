@@ -345,6 +345,13 @@ export const DIRECCION_PONDERACION = serializarDireccion({
   pestana: "ponderacion",
 });
 
+/** «Qué casos cuentan» de Analítica: donde se declara el universo de cada base. */
+export const DIRECCION_UNIVERSO = serializarDireccion({
+  modulo: "procesamiento",
+  seccion: "analitica",
+  panel: "universo",
+});
+
 export const DIRECCION_FUENTES = serializarDireccion({
   modulo: "procesamiento",
   seccion: "carga",
@@ -387,6 +394,9 @@ const ETIQUETA_AVISO: Partial<Record<string, string>> = {
   "variable_ausente:no_esta_en_la_base": "Variable que no está en la base",
   // Un `variable_ausente` sin motivo conocido conserva un rótulo honesto.
   variable_ausente: "Variable que no está en los datos",
+  // Checklist de la matriz HSyVbG (2026-10-21), A5 y A7.
+  codigo_mal_ubicado: "Mapa a revisar",
+  universo_sin_declarar: "Universo sin declarar",
 };
 
 // ---- Preguntas omitidas ------------------------------------------------------
@@ -399,6 +409,7 @@ const MOTIVO_OMISION: Partial<Record<string, string>> = {
   sin_variable: "No tiene variable en la base que se iba a tabular",
   mapa_roto: "Su armonización apunta a respuestas que la escala común no tiene",
   select_multiple: "Es de respuesta múltiple y el comparativo sólo tabula preguntas de una respuesta",
+  sin_armonizar: "Sus respuestas no comparten una misma lista en todas las bases y la fila no tiene armonización",
   "variable_ausente:excluida": "Variable excluida en Analítica",
   "variable_ausente:no_esta_en_la_base": "Variable que no está en la base",
   variable_ausente: "Variable que no está en los datos",
@@ -509,6 +520,10 @@ export function etiquetaDeAviso(aviso: ComparativoAviso): string {
 /** Dónde se resuelve un aviso, si tiene dónde. */
 export function accionParaAviso(aviso: ComparativoAviso): AccionDeError | null {
   if (aviso.tipo === "peso_ignorado") return { etiqueta: "Ir a Ponderación", href: DIRECCION_PONDERACION };
+  if (aviso.tipoOriginal === "universo_sin_declarar") return { etiqueta: "Declarar qué casos cuentan", href: DIRECCION_UNIVERSO };
+  if (aviso.tipoOriginal === "codigo_mal_ubicado") {
+    return { etiqueta: "Revisar el mapa", href: direccionDeOmitida({ fila: aviso.fila ?? "" }) };
+  }
   // Una variable que no está en la base se revisa en la fila de Equivalencias.
   // Una excluida en Analítica no tiene superficie a la que llevar: sólo se dice.
   if (aviso.tipo === "variable_ausente" && aviso.motivo === "no_esta_en_la_base") {

@@ -5,6 +5,7 @@ import type { EquivalenciaFila, EquivalenciasEstado } from "../../../api/equival
 import {
   DIRECCION_EQUIVALENCIAS,
   DIRECCION_PONDERACION,
+  DIRECCION_UNIVERSO,
   accionParaError,
   accionParaAviso,
   bloqueoDeGeneracion,
@@ -401,3 +402,16 @@ describe("normalizarComparativoResultado", () => {
     expect(normalizarComparativoResultado(null).artifacts).toEqual([]);
   });
 });
+
+describe("checklist HSyVbG A5 y A7: avisos internos con su lugar de arreglo", () => {
+  it("el universo sin declarar lleva a «Qué casos cuentan» y el mapa a revisar a su fila", () => {
+    const r = normalizarComparativoResultado({ resumen: { preguntas: [], avisos: [
+      { tipo: "universo_sin_declarar", base: "2026", mensaje: "La base 2026 trae la columna «seleccionado»…" },
+      { tipo: "codigo_mal_ubicado", base: "2025", fila: "Año de ingreso", mensaje: "…" },
+    ] } });
+    expect(r.resumen.avisos.map(etiquetaDeAviso)).toEqual(["Universo sin declarar", "Mapa a revisar"]);
+    expect(accionParaAviso(r.resumen.avisos[0])?.href).toBe(DIRECCION_UNIVERSO);
+    expect(accionParaAviso(r.resumen.avisos[1])?.href).toContain("panel=armonizacion");
+  });
+});
+
