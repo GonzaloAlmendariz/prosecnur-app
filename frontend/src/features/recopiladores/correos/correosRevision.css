@@ -1,0 +1,184 @@
+/* Editor de correos › Revisión (H8): arriba sólo lo que falla —primero lo que
+   falta corregir, después los avisos—, cada uno con su causa, su arreglo y su
+   botón; lo que está en orden se pliega en una línea con su desplegable.
+   Este archivo se importa antes que correos.css: los selectores van con dos
+   clases para no perder contra las reglas base de `.rec-mail-chk`. */
+
+/* — Lo que falla: una tarjeta sobria por chequeo. La gravedad la dicen el
+   ícono y una franja recta de 3 px (sombra inset, que no se dobla con el
+   radio); el fondo es la superficie del inspector, sin tinte lleno. — */
+.rec-mail-chks:has(> .rec-mail-rev-falla) {
+  gap: var(--pulso-space-2);
+}
+
+.rec-mail-chk.rec-mail-rev-falla {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  column-gap: var(--pulso-space-2);
+  position: relative;
+  font-size: 12.5px;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  padding: var(--pulso-space-3) var(--pulso-space-3) var(--pulso-space-3) calc(var(--pulso-space-3) + 3px);
+}
+
+/* La franja va dentro del borde y lejos de las esquinas: recta, sin doblarse con el radio. */
+.rec-mail-chk.rec-mail-rev-falla::before {
+  background: var(--pulso-border);
+  bottom: var(--pulso-space-3);
+  content: "";
+  left: 0;
+  position: absolute;
+  top: var(--pulso-space-3);
+  width: 3px;
+}
+
+.rec-mail-chk.rec-mail-rev-falla.is-error::before { background: var(--pulso-danger-fg); }
+.rec-mail-chk.rec-mail-rev-falla.is-warning::before { background: var(--pulso-warn-fg); }
+
+.rec-mail-chk.rec-mail-rev-falla .rec-mail-chk-icono {
+  align-self: center;
+  margin-top: 0;
+}
+
+.rec-mail-chk.rec-mail-rev-falla .rec-mail-chk-rotulo {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+}
+
+.rec-mail-chk.rec-mail-rev-falla .rec-mail-chk-cifra {
+  align-self: center;
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+}
+
+.rec-mail-chk.rec-mail-rev-falla .rec-mail-chk-texto {
+  gap: var(--pulso-space-1);
+  margin-top: var(--pulso-space-1);
+}
+
+.rec-mail-chk.rec-mail-rev-falla .rec-mail-chk-detalle,
+.rec-mail-chk.rec-mail-rev-falla .rec-mail-chk-arreglo {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.rec-mail-chk.rec-mail-rev-falla .rec-mail-chk-items span {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+/* Arreglo en una línea y, debajo, el botón de ir. */
+.rec-mail-chk.rec-mail-rev-falla .rec-mail-chk-salida {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--pulso-space-1);
+}
+
+/* — Todo en orden — */
+.rec-mail-revision-resumen.is-listo {
+  color: var(--pulso-success-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-mail-link.rec-mail-rev-exportar {
+  align-items: center;
+  align-self: flex-start;
+  display: inline-flex;
+  gap: 3px;
+  padding: 0;
+}
+
+/* — Lo que está en orden, plegado — */
+.rec-mail-rev-plegado {
+  border-top: 1px solid var(--pulso-border);
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--pulso-space-1);
+}
+
+.rec-mail-rev-plegado .rec-mail-rev-plegado-boton {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 12.5px;
+  gap: 6px;
+  margin: 0 -6px;
+  padding: 6px;
+  text-align: left;
+}
+
+.rec-mail-rev-plegado .rec-mail-rev-plegado-boton:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.rec-mail-rev-plegado-flecha {
+  margin-left: auto;
+  transition: transform 140ms ease-out;
+}
+
+.rec-mail-rev-plegado-boton[aria-expanded="true"] .rec-mail-rev-plegado-flecha {
+  transform: rotate(90deg);
+}
+
+.rec-mail-rev-ok-icono {
+  color: var(--pulso-success-fg);
+  flex: none;
+}
+
+.rec-mail-rev-enorden {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 2px 0 0;
+}
+
+.rec-mail-rev-enorden[hidden] {
+  display: none;
+}
+
+.rec-mail-rev-ok {
+  align-items: baseline;
+  column-gap: 6px;
+  display: grid;
+  font-size: 12px;
+  grid-template-columns: 13px minmax(0, 1fr) auto;
+  padding: 4px 0;
+}
+
+.rec-mail-rev-ok .rec-mail-rev-ok-icono {
+  align-self: center;
+}
+
+.rec-mail-rev-ok-rotulo {
+  color: var(--pulso-text);
+  min-width: 0;
+}
+
+.rec-mail-rev-ok-detalle {
+  color: var(--pulso-text-muted);
+}
+
+.rec-mail-rev-ok-cifra {
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-mail-rev-plegado-flecha {
+    transition: none;
+  }
+}
