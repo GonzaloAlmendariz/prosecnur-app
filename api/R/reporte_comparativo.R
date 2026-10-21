@@ -347,11 +347,11 @@
   out[nzchar(out)]
 }
 
-# Escribe el pie y, separado por un renglón, las notas libres.
+# Escribe el pie y, a continuación, las notas libres. Van pegadas, sin renglón
+# en blanco: así lo fija el formato aprobado de HSyVbG (Fuente, Base y la nota
+# de la pregunta en filas seguidas; «Lista y formato de entregables», 2026).
 .comparativo_pie <- function(wb, hoja, st, fila, lineas, libres, ncol) {
-  fila <- .comparativo_notas(wb, hoja, st, fila, lineas, ncol)
-  if (length(libres)) fila <- .comparativo_notas(wb, hoja, st, fila + 1L, libres, ncol)
-  fila
+  .comparativo_notas(wb, hoja, st, fila, c(lineas, libres), ncol)
 }
 
 # Salto de página antes de cada pregunta menos la primera, para no partirlas.

@@ -212,22 +212,25 @@ test_that("cruces: una columna ofrecida sin casos es n.a., no «—»", {
                         d[[1]])))
 })
 
-test_that("notas libres: la de la pregunta y las generales tras un renglón en blanco", {
+test_that("notas libres: la de la pregunta y las generales van pegadas al pie, sin renglón en blanco", {
+  # Formato aprobado de HSyVbG 2026 («Lista y formato de entregables»): Fuente,
+  # Base y la nota de la pregunta en filas seguidas.
   ext <- list(notas_pregunta = list(`VBG-01` = "En cada medición la pregunta se refiere al año de esa encuesta"),
               notas_generales = c("Los segmentos se definen igual en los tres años"))
   g <- .rc_generar(extras = ext)
   d <- .rc_celdas(g$simple)
   expect_identical(d[12, 1], "2 casos de 2024 sin correspondencia en la escala.")
-  expect_true(is.na(d[13, 1]))
-  expect_identical(d[14, 1], "En cada medición la pregunta se refiere al año de esa encuesta.")
-  expect_identical(d[15, 1], "Los segmentos se definen igual en los tres años.")
+  expect_identical(d[13, 1], "En cada medición la pregunta se refiere al año de esa encuesta.")
+  expect_identical(d[14, 1], "Los segmentos se definen igual en los tres años.")
   expect_identical(sum(d[[1]] == "Los segmentos se definen igual en los tres años.", na.rm = TRUE), 3L)
   expect_identical(sum(d[[1]] == "En cada medición la pregunta se refiere al año de esa encuesta.", na.rm = TRUE), 1L)
 
   dc <- .rc_celdas(g$cruces)
   fila <- which(dc[[1]] == "En cada medición la pregunta se refiere al año de esa encuesta.")
   expect_length(fila, 1L)
-  expect_identical(dc[fila - 2L, 1], "n.a.: no aplica, la opción no se ofrecía ese año. El cuestionario de 2024 no incluía la opción «Fuera del país».")
+  expect_false(is.na(dc[fila - 1L, 1]))
+  na_linea <- "n.a.: no aplica, la opción no se ofrecía ese año. El cuestionario de 2024 no incluía la opción «Fuera del país»."
+  expect_true(na_linea %in% dc[(fila - 3L):(fila - 1L), 1])
 })
 
 test_that("bases reducidas: una línea agrupada por columna con sus años", {
