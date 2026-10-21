@@ -37,3 +37,25 @@ test_that("Gráficos filtra cada base con su criterio y conserva los atributos",
   # La base sin criterio no cambia.
   expect_identical(nrow(src$data_sources[["2024"]]), nrow(estudio_data_sources(sid)[["2024"]]))
 })
+
+test_that("declarar o apagar «qué casos cuentan» cambia la clave del caché de la base preparada", {
+  # HSyVbG 2026-10-21: con el universo de 2026 apagado, la BD exportada seguía
+  # con 2.500 casos en vez de 3.318 porque la base preparada no se invalidaba.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  s$estudio <- list(bases = list(b2024 = list(nombre = "b2024"), b2026 = list(nombre = "b2026")),
+                    processing_mode = "multibase", active_base = "b2026")
+  .session_env[[sid]] <- s
+  k0 <- .analitica_source_cache_key(sid, "estudio:base_1")
+  cond <- list(list(variable = "seleccionado", operador = "==", valores = list("1")))
+  s <- session_get(sid)
+  s$estudio$bases$b2026$validacion <- list(operational_config = list(caso_valido = list(enabled = TRUE, condiciones = cond)))
+  .session_env[[sid]] <- s
+  k1 <- .analitica_source_cache_key(sid, "estudio:base_1")
+  expect_false(identical(k0, k1))
+  s <- session_get(sid)
+  s$estudio$bases$b2026$validacion$operational_config$caso_valido$enabled <- FALSE
+  .session_env[[sid]] <- s
+  expect_identical(.analitica_source_cache_key(sid, "estudio:base_1"), k0)
+})

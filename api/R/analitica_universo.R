@@ -75,3 +75,26 @@ mount_analitica_universo <- function(pr) {
   }
   src
 }
+
+#' Firma del universo declarado en cada base, para la clave del caché de fuentes.
+#'
+#' La base preparada de Analítica se guarda en la sesión y se reutiliza mientras
+#' la clave (`.analitica_source_cache_key`) no cambie. Declarar o apagar «qué
+#' casos cuentan» no la cambiaba: con el universo de 2026 apagado, la BD
+#' exportada seguía con 2.500 casos en vez de 3.318 hasta que alguien volviera a
+#' «preparar» (HSyVbG, 2026-10-21). Con la firma en la clave, el cambio de
+#' universo invalida la base preparada y la próxima lectura la rehace.
+#' @keywords internal
+.analitica_universo_firma <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  bases <- ((s %||% list())$estudio %||% list())$bases %||% list()
+  if (!length(bases)) return("")
+  partes <- vapply(sort(names(bases), method = "radix"), function(b) {
+    cfg <- tryCatch(normalize_validation_operational_config(((bases[[b]] %||% list())$validacion %||% list())$operational_config),
+                    error = function(e) NULL)
+    cv <- (cfg %||% list())$caso_valido %||% list()
+    if (!isTRUE(cv$enabled) || !length(cv$condiciones %||% list())) return(paste0(b, "=-"))
+    paste0(b, "=", jsonlite::toJSON(cv$condiciones, auto_unbox = TRUE))
+  }, character(1))
+  .equiv_hash_estable(paste(partes, collapse = "|"))
+}
