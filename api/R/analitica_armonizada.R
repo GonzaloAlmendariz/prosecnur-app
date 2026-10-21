@@ -320,6 +320,7 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
       next
     }
     v <- as.character(v)
+    v <- .armz_marcar_no_menciona(v, df[[spec$parent]], d$escala$codigos)
     sm <- .armz_sin_mapa(.codif_agrupar_codigo_chr(df[[spec$parent]]), v,
                          cubiertos = .armz_codigos_cubiertos(d$fila, d$escala$codigos),
                          etiquetas = .armz_etiquetas_var(insts[[b]], spec$parent))
@@ -379,11 +380,14 @@ armonizada_apilar <- function(datos, filas, cruces = list(), periodos = names(da
 
 # N sin ponderar = casos con código de la escala y peso positivo (punto 7):
 # un caso con peso 0 no aporta al N ponderado y tampoco cuenta como caso.
+# Quien no marcó la opción de una dummy (`.ARMZ_NO_MENCIONA`) cuenta en N y no
+# tiene fila propia: la opción se lee como «% que la mencionó».
 .armz_conteo <- function(codigos_escala, x, w) {
   ok <- !is.na(x)
   n <- vapply(codigos_escala, function(cd) sum(w[ok & x == cd]), numeric(1))
-  list(n = stats::setNames(n, codigos_escala), N = sum(n),
-       N_sin_peso = sum(ok & x %in% codigos_escala & w > 0))
+  no_menciona <- ok & x == .ARMZ_NO_MENCIONA
+  list(n = stats::setNames(n, codigos_escala), N = sum(n) + sum(w[no_menciona]),
+       N_sin_peso = sum(ok & (x %in% codigos_escala | no_menciona) & w > 0))
 }
 
 # Casos del período que cuentan (peso > 0): el total de encuestados contra el
@@ -569,6 +573,7 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
       "Es de opción múltiple en %s%s. El comparativo armoniza preguntas de una sola respuesta.",
       rot(o$base), if (length(o$variable)) paste0(" (variable «", o$variable, "»)") else ""),
     variable_ausente = .armz_motivo_omision_ausente(o, rotulos),
+    sin_armonizar = "No tiene armonización y sus respuestas no comparten una misma lista en todas las bases (escalas distintas, o una respuesta abierta como una edad). Ábrela en Equivalencias > Armonizar y declara a qué categoría va cada código o rango.",
     "No tiene variable declarada en la matriz para ninguna medición de la serie.")
 }
 
@@ -636,13 +641,17 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
 #' @keywords internal
 .armz_preparar <- function(sid, cfg, filas_refs = NULL, cruces_refs = NULL) {
   equiv <- (session_get(sid, required = FALSE) %||% list())$equivalencias_publicos
+  periodos <- .armz_periodos_estudio(sid, equiv)
+  # Las filas de misma escala entran sin armonización guardada; las que quedan
+  # sin armonizar se declaran omitidas (analitica_armonizada_implicita.R).
+  impl <- .armz_completar_implicitas(equiv, .equiv_inst_por_base(sid), periodos)
+  equiv <- impl$equiv
   todas <- (equiv %||% list())$filas %||% list()
   con_arm <- Filter(function(f) !is.null(f$armonizacion), todas)
   if (!length(con_arm)) {
     stop_api(409, "E_ARMONIZADA_SIN_MATRIZ",
              "La matriz de equivalencias no tiene preguntas armonizadas.")
   }
-  periodos <- .armz_periodos_estudio(sid, equiv)
   if (length(periodos) < 2L) {
     stop_api(409, "E_ARMONIZADA_PERIODOS",
              "El comparativo necesita al menos dos mediciones en la serie.",
@@ -672,6 +681,8 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
     stop_api(409, "E_ARMONIZADA_SIN_FILAS",
              "No queda ninguna pregunta armonizada para el comparativo.")
   }
+  # Con filas pedidas, una sin armonizar ya cortó con 409 en `.armz_resolver`.
+  sin_armonizar <- if (length(refs)) list() else impl$omitidas
 
   fuentes <- .armz_fuentes(sid, periodos, cfg)
   datos <- list()
@@ -686,6 +697,7 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
   ap <- armonizada_apilar(prep$datos, filas, cruces, periodos, insts = fuentes$insts,
                           excluidas = prep$excluidas)
   ap$ponderacion <- pond
+  ap$omitidas <- c(sin_armonizar, ap$omitidas %||% list())
   ap
 }
 

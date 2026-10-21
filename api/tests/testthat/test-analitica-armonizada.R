@@ -417,11 +417,17 @@ test_that("errores de dominio: sin matriz, una sola medición, fila sin armoniza
   e <- tryCatch(.armz_preparar(sid, list(), cruces_refs = list("NO-EXISTE")), api_error = function(e) e)
   expect_equal(e$code, "E_EQUIV_FILA_NO_ENCONTRADA")
 
+  # VBG-01 tiene escalas distintas por base (1/2/9/7, 10/20/30, 1/2/3): sin
+  # armonización no hay identidad posible. Una fila de misma escala, como
+  # DEN-01, entra sola (test-analitica-armonizada-implicita.R).
   sin_arm <- s$equivalencias_publicos
-  sin_arm$filas[[2]]$armonizacion <- NULL
+  sin_arm$filas[[1]]$armonizacion <- NULL
   session_set(sid, "equivalencias_publicos", sin_arm)
-  e <- tryCatch(.armz_preparar(sid, list(), filas_refs = list("DEN-01")), api_error = function(e) e)
+  e <- tryCatch(.armz_preparar(sid, list(), filas_refs = list("VBG-01")), api_error = function(e) e)
   expect_equal(e$code, "E_EQUIV_SIN_ARMONIZACION")
+  ap <- .armz_preparar(sid, list())
+  expect_true(any(vapply(ap$omitidas, function(o) identical(o$motivo, "sin_armonizar") &&
+                           identical(o$fila, "Violencia alguna vez"), logical(1))))
 
   una <- s$equivalencias_publicos
   una$armonizacion_periodos <- c("b2024")

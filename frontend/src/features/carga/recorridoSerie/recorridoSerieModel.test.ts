@@ -188,6 +188,14 @@ describe("paso 4 · Matriz", () => {
     expect(p.detalle).toBe("1 fila · 1 falta en alguna base");
   });
 
+  it("una fila de misma escala sin armonizar no es pendiente: entra sola al comparativo", () => {
+    const pasos = pasosDelRecorrido(completa({
+      filas: [{ ...fila({ "2024": "p1", "2025": "q1", "2026": "r1" }), misma_escala: true }],
+    }));
+    expect(paso(pasos, "matriz")).toMatchObject({ estado: "hecho", detalle: "1 fila" });
+    expect(paso(pasos, "comparativos")).toMatchObject({ estado: "hecho", detalle: "1 pregunta lista para comparar" });
+  });
+
   it("sin filas no está empezada", () => {
     expect(paso(pasosDelRecorrido(completa({ filas: [] })), "matriz")).toMatchObject({
       estado: "no-empezado", detalle: "Sin preguntas en la matriz",

@@ -168,6 +168,7 @@ arquitectura canónica.
   pedidos de la tanda posterior al revamp de Gráficos.
 - [Checklist de la UI de reglas del editor de Formularios (corte 0.9.4)](qa/checklist-ui-reglas-editor-formularios-0-9-4-2026-10-16.md):
   lo que falta pulir en Visibilidad, Validación y Restricciones, por confirmar con Gonzalo.
+- [Checklist de la matriz de armonización de HSyVbG](qa/checklist-matriz-armonizacion-hsyvbg-2026-10-21.md): lo que la matriz de Ulises destapó en el comparativo (filas de misma escala, dummies, sello del instrumento) y su estado.
 - [Checklist del revamp visual del módulo Formularios](qa/checklist-revamp-formularios-2026-10-16.md):
   revamp Linear/Airtable del editor (kit, pestañas Restricciones y Cálculos, lectura humana de reglas, Editor XLSForm),
   verificado sobre los seis formularios tipo del corpus.

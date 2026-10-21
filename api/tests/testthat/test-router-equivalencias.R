@@ -276,3 +276,28 @@ test_that("ADR 0104: los endpoints de plantilla, importar Excel y sugerencias ya
     expect_false(exists(f, envir = asNamespace("prosecnurapp"), inherits = FALSE), info = f)
   }
 })
+
+test_that("checklist A4: una matriz sellada con la colación del sistema no se marca desfasada", {
+  sid <- .req_setup("separate")
+  on.exit(session_delete(sid), add = TRUE)
+  equiv <- .req_equiv()
+  equiv$sellos <- lapply(.equiv_inst_por_base(sid), .equiv_sello_instrumento, orden = "sistema")
+  session_set(sid, "equivalencias_publicos", equiv)
+  expect_equal(.equiv_estado(sid)$desfasadas, character(0))
+})
+
+test_that("checklist A1: el estado marca misma_escala en la fila sin armonizar de igual lista, no en la propuesta", {
+  sid <- .req_setup("separate")
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  ch <- data.frame(list_name = "lst", name = c("1", "2"), label = c("Sí", "No"), stringsAsFactors = FALSE)
+  s$rp_inst_sources$docentes$choices <- ch
+  s$rp_inst_sources$estudiantes$choices <- ch
+  .session_env[[sid]] <- s
+  equiv <- .req_equiv()
+  equiv$filas[[2]] <- c(equiv$filas[[1]], list(sugerida = TRUE))
+  session_set(sid, "equivalencias_publicos", equiv)
+  filas <- .equiv_estado(sid)$filas
+  expect_true(isTRUE(filas[[1]]$misma_escala))
+  expect_false(isTRUE(filas[[2]]$misma_escala))
+})
