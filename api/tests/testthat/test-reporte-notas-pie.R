@@ -245,14 +245,16 @@ test_that("frecuencias escribe la línea de base y corre la tabla siguiente", {
   do.call(reporte_frecuencias, c(args, list(path_xlsx = out1, notas = .np_notas_maqueta())))
 
   c0 <- .np_col1(out0, "Frecuencias")
-  f0 <- which(c0 == "Fuente: Pulso PUCP")
+  # Formato aprobado (HSyVbG 2026): Fuente y Base cierran con punto aunque la
+  # nota declarada no lo traiga.
+  f0 <- which(c0 == "Fuente: Pulso PUCP.")
   expect_length(f0, 2L)
   expect_false(any(startsWith(c0, "Base:")))
 
   c1 <- .np_col1(out1, "Frecuencias")
   f1 <- which(c1 == "Fuente: Pulso PUCP 2026.")
   expect_length(f1, 2L)
-  expect_identical(c1[f1 + 1L], c("Base: total de encuestados.", "Base: quienes respondieron la pregunta 2"))
+  expect_identical(c1[f1 + 1L], c("Base: total de encuestados.", "Base: quienes respondieron la pregunta 2."))
   # Cada pie con base ocupa una fila más: la segunda tabla baja exactamente una.
   q2_0 <- which(c0 == "Pregunta dos")
   q2_1 <- which(c1 == "Pregunta dos")
@@ -271,4 +273,12 @@ test_that("la config por defecto declara el bloque notas con la forma del contra
   # Normalizar el default no cambia nada visible: pie de hoy.
   n <- .notas_pie_normalizar(cfg$notas)
   expect_identical(.notas_pie_linea_cruces(n$fuente, .notas_pie_base(n, "p1")), "Fuente: Pulso PUCP")
+})
+
+test_that("frecuencias anuales: sección sin el marcado de Kobo y Fuente/Base con punto final (formato aprobado HSyVbG 2026)", {
+  expect_identical(.freq_clean_section_label_for_export("<span style=\"color:#002060\">CARACTERÍSTICAS SOCIODEMOGRÁFICAS</span>"),
+                   "CARACTERÍSTICAS SOCIODEMOGRÁFICAS")
+  expect_identical(.freq_clean_section_label_for_export("<span style=\"color:#002060\">REACCIONES Y CONSECUENCIAS </span>"),
+                   "REACCIONES Y CONSECUENCIAS")
+  expect_identical(.notas_pie_cerrar("Pulso PUCP 2026"), "Pulso PUCP 2026.")
 })
