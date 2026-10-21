@@ -20,6 +20,7 @@ import {
   type Lectura,
 } from "./modeloEstilo";
 import { useColoresDelBanner } from "./useColoresDelBanner";
+import { Cuentagotas } from "./Cuentagotas";
 
 import "./correosEstilo.css";
 
@@ -91,8 +92,11 @@ function Muestras({
   nombreDe,
   onElegir,
   foco,
+  nombreDelColor,
 }: {
   foco: string;
+  /** Para el cuentagotas: «el fondo de la página», «el botón». */
+  nombreDelColor: string;
   rotulo: string;
   colores: readonly string[];
   elegido: string;
@@ -131,6 +135,7 @@ function Muestras({
           value={elegido.toLowerCase()}
           onChange={(e) => onElegir(hexCanonico(e.target.value))}
         />
+        <Cuentagotas nombre={nombreDelColor} onChange={(c) => onElegir(hexCanonico(c))} />
         <span className="xfk-mono">{hexCanonico(elegido)}</span>
       </span>
     </span>
@@ -210,13 +215,13 @@ export function EstiloDelCorreo({ theme, srcDelBanner, chequeos, onTema }: Props
         <>
           <div className="rec-estilo-campo">
             <span className="rec-estilo-rotulo">Fondo de la página</span>
-            <Muestras foco={focoDelEstilo("page_bg")} rotulo="Fondo de la página" colores={fondos} elegido={efectivo.fondo} nombreDe={nombreDe} onElegir={(c) => editar({ page_bg: c })} />
+            <Muestras foco={focoDelEstilo("page_bg")} nombreDelColor="el fondo de la página" rotulo="Fondo de la página" colores={fondos} elegido={efectivo.fondo} nombreDe={nombreDe} onElegir={(c) => editar({ page_bg: c })} />
             <LineaDeLectura lectura={lecturaFondo} />
             {banner.estado === "ilegible" ? <span className="rec-mail-ayuda">No se pudieron leer los colores del banner: queda el acento u otro color.</span> : null}
           </div>
           <div className="rec-estilo-campo">
             <span className="rec-estilo-rotulo">Botón</span>
-            <Muestras foco={focoDelEstilo("button_bg")} rotulo="Relleno del botón" colores={botones} elegido={efectivo.boton} nombreDe={nombreDe} onElegir={(c) => editar({ button_bg: c })} />
+            <Muestras foco={focoDelEstilo("button_bg")} nombreDelColor="el botón" rotulo="Relleno del botón" colores={botones} elegido={efectivo.boton} nombreDe={nombreDe} onElegir={(c) => editar({ button_bg: c })} />
             <span className="rec-estilo-ejemplo" style={ejemplo} aria-hidden>
               <span className="rec-estilo-ejemplo-boton">Responder la encuesta</span>
             </span>
