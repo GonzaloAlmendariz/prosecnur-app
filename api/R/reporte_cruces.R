@@ -1066,6 +1066,7 @@ exportar_cruces_multi <- function(data,
   stopifnot(length(CRUZAR_CON) > 0)
 
   wb <- openxlsx::createWorkbook()
+  archivo_estilos <- .xlsx_archivo_estilos()
   openxlsx::addWorksheet(wb, hoja)
   pulso_xlsx_hide_gridlines(wb, hoja)  # fondo blanco en todo el documento
   st <- mk_styles_cruces()
@@ -1749,10 +1750,13 @@ exportar_cruces_multi <- function(data,
       }
 
       fila <- fila + 1
+      # Tabla cerrada: sus estilos salen del recorrido de openxlsx (H16).
+      .xlsx_archivar_estilos(wb, archivo_estilos)
     }
 
     fila <- fila + 1
   }
+  .xlsx_restaurar_estilos(wb, archivo_estilos)
 
   openxlsx::setColWidths(wb, hoja, cols = 1, widths = 60)
   openxlsx::setColWidths(wb, hoja, cols = 2:200, widths = 16)
