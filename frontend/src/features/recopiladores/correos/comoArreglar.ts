@@ -11,7 +11,7 @@ const ARREGLO: Readonly<Record<string, string>> = {
   images_hosted: "Sube la imagen como archivo o ponle una URL pública.",
   images_available: "Sube el archivo de la imagen en Identidad o en su bloque.",
   images_alt: "Describe la imagen en una frase: qué muestra.",
-  banner_size: "Sube un banner de 1200 × 600 px.",
+  banner_size: "Sube un banner de al menos 1200 px de ancho, idealmente 1200 × 600.",
   footer_unsub: "Deja el bloque de pie: la app agrega la baja.",
   recipients: "Importa la lista en Personas.",
   tags_have_columns: "Elige en Personas la columna de cada campo.",

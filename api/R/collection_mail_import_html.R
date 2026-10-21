@@ -975,7 +975,12 @@
         url <- NULL
         tail_line <- lines[[length(lines)]]
         lm <- regmatches(tail_line, regexec(sprintf("^%s$", .CMAIL_LINK_RE), tail_line, perl = TRUE))[[1]]
-        if (length(lm) == 3L && identical(lm[[2]], lm[[3]])) { url <- lm[[3]]; lines <- lines[-length(lines)] }
+        # La web de la firma: el texto del enlace es la URL o su dominio sin
+        # https:// ni barra final (así la escribe el render desde 2026-10-21).
+        bare <- function(u) sub("/$", "", sub("^https?://(www\\.)?", "", u))
+        if (length(lm) == 3L && (identical(lm[[2]], lm[[3]]) || identical(lm[[2]], bare(lm[[3]])))) {
+          url <- lm[[3]]; lines <- lines[-length(lines)]
+        }
         add(.cmc_drop_nulls_deep(list(block_id = "firma", type = "signature", closing = .cmail_ih_strip_links(text, ctx, "La despedida"),
                                       name = .cmail_ih_unbold(.cmail_ih_strip_links(lines[[1]], ctx, "El nombre de la firma")),
                                       lines = if (length(lines) > 1L) as.list(lines[-1]), url = url)))

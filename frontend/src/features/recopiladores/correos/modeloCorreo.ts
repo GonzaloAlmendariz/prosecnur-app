@@ -593,7 +593,7 @@ export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   images_hosted: "Imágenes sin incrustar",
   images_available: "Imágenes en el proyecto",
   images_alt: "Texto alternativo en las imágenes",
-  banner_size: "Banner de 1200 × 600",
+  banner_size: "Medidas del banner",
   footer_unsub: "Pie con *|UNSUB|* y dirección",
   recipients: "Destinatarios con correo válido",
   tags_have_columns: "Etiquetas con columna en la audiencia",
@@ -692,7 +692,7 @@ export function cifraDeChequeo(check: MailCheck): string {
     case "images_alt":
       return check.status === "ok" ? "en todas" : `${v} sin texto`;
     case "banner_size":
-      return typeof check.value === "string" ? check.value.replace("×", " × ") : check.status === "ok" ? "1200 × 600" : "sin medir";
+      return typeof check.value === "string" ? check.value.replace("×", " × ") : check.status === "ok" ? "correcto" : "sin medir";
     case "footer_unsub":
       return check.status === "ok" ? "Mailchimp lo exige" : "falta";
     case "recipients":

@@ -77,11 +77,11 @@ test_that("surveymonkey: el mismo {{enlace}} sale [SurveyLink]; [FirstName] sin 
 test_that("theme.band: franja de cierre acento o suave; por defecto, la de siempre", {
   t <- .cmail_template_normalize(.cmail_preset_invitacion())
   base <- collection_mail_render(t, "export")$html
-  expect_match(base, 'bgcolor="#f3f3f3" style="background-color:#f3f3f3;height:20px', fixed = TRUE)
+  expect_match(base, 'bgcolor="#f3f3f3" style="background-color:#f3f3f3;height:4px', fixed = TRUE)
   t$theme$band <- "acento"
   expect_length(.cmd_codes(t), 0L)
   expect_match(collection_mail_render(.cmail_template_normalize(t), "export")$html,
-               'bgcolor="#0b1f54" style="background-color:#0b1f54;height:20px', fixed = TRUE)
+               'bgcolor="#0b1f54" style="background-color:#0b1f54;height:4px', fixed = TRUE)
   t$theme$band <- "neon"
   expect_true("bad_band" %in% .cmd_codes(t))
 })

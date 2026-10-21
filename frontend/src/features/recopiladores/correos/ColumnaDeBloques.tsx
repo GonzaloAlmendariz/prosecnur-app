@@ -264,7 +264,7 @@ export function ColumnaDeBloques({
             id={CABECERA}
             icono={ICONO_DE_PSEUDO[CABECERA]}
             titulo={rotuloDeCabecera(template.header)}
-            resumen={template.header.kind === "banner" ? "1200 × 600" : `${template.header.logo_ids.length} ${template.header.logo_ids.length === 1 ? "logo" : "logos"}`}
+            resumen={template.header.kind === "banner" ? "banner" : `${template.header.logo_ids.length} ${template.header.logo_ids.length === 1 ? "logo" : "logos"}`}
             elegido={seleccion === CABECERA}
             conProblemas={problemas.cabecera.length}
             onSeleccionar={onSeleccionar}

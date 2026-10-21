@@ -179,7 +179,7 @@ export function PanelDeBloque({
             : "Logos de las instituciones del estudio sobre la franja; se alojan como imágenes, no incrustadas."}
         />
         <div className="rec-mail-props">
-          <PropRow label="Tipo">{header.kind === "banner" ? "Banner 1200 × 600" : "Franja de logos"}</PropRow>
+          <PropRow label="Tipo">{header.kind === "banner" ? "Banner de mailing" : "Franja de logos"}</PropRow>
           {header.kind === "logos" ? (
             <>
               <PropRow label="Logos" mono>{header.logo_ids.join(" · ") || "ninguno"}</PropRow>

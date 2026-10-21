@@ -115,7 +115,7 @@ test_that("__apertura: plantilla efectiva tras el saludo, marcada en preview; un
                opening = "Le recordamos que aún puede responder, {{nombre}}.")
   eff <- .cmail_template_for_send(t, send)
   expect_identical(vapply(eff$blocks, `[[`, "", "block_id")[1:2], c("saludo", "__apertura"))
-  expect_identical(eff$blocks[[2]]$align, "justify")
+  expect_null(eff$blocks[[2]]$align)  # los presets ya no justifican (revamp 2026-10-21)
   expect_identical(eff$subject, "Recordatorio")
   expect_true(collection_mail_template_validate(eff, allow_reserved_ids = TRUE)$ok)
   user <- t; user$blocks[[2]]$block_id <- "__x"

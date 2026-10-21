@@ -156,7 +156,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
         <Imagen src={imagenesLocales[bannerId] ?? template.images[bannerId]?.url} alt={template.images[bannerId]?.alt || "Banner de mailing"} banner />
         <span className="rec-mail-banner-fila">
           <b>Banner de mailing</b>
-          <span className="xfk-mono">1200 × 600</span>
+          <span className="xfk-mono">ideal 1200 × 600</span>
         </span>
         <span className="rec-mail-ayuda">Lo envía el cliente; va como cabecera del correo.</span>
         {conBanner && !altArriba ? datosDelBanner : null}
@@ -271,7 +271,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
       </div>
 
       <p className="rec-mail-nota">
-        La app revisa que el banner recibido tenga 1200 × 600 y un peso que no haga recortar el correo.
+        La app revisa que el banner recibido mida al menos 1200 px de ancho, tenga forma de banner y no pese de más.
         El banner de la encuesta se carga directo en SurveyMonkey y no pasa por aquí.
       </p>
     </div>

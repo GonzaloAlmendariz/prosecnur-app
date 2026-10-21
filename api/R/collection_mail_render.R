@@ -32,10 +32,17 @@
 # monta sobre esas marcas; el HTML que se exporta no las trae.
 
 .CMAIL_WIDTH <- 600L
-.CMAIL_FONT <- "Arial,Helvetica,sans-serif"
-.CMAIL_TEXT_COLOR <- "#1a1a1a"
-.CMAIL_BORDER <- "#d6d6d6"
-.CMAIL_MUTED <- "#555555"
+# Revamp 2026-10-21 («se sigue viendo extremadamente poco profesional»):
+# grafito en vez de negro, Helvetica Neue con respaldo Arial, página gris
+# azulada suave y bordes casi imperceptibles. Comillas simples dentro de
+# style="…": el atributo va entre comillas dobles.
+.CMAIL_FONT <- "'Helvetica Neue',Helvetica,Arial,sans-serif"
+.CMAIL_TEXT_COLOR <- "#22262e"
+.CMAIL_BORDER <- "#e2e6ed"
+.CMAIL_MUTED <- "#5f6673"
+.CMAIL_PAGE_BG <- "#eef1f5"
+.CMAIL_FOOTER_TEXT <- "#8a909c"
+.CMAIL_PAD_X <- 48L
 .CMAIL_FIELD_TINT <- "#eef3e8"
 
 # ` data-pulso-prop="…"` en preview; nada en export.
@@ -217,7 +224,7 @@
   }
   border <- if (dark) "" else sprintf("border-bottom:1px solid %s;", .CMAIL_BORDER)
   .cmail_mark_row(sprintf(
-    '<tr><td bgcolor="%s" align="%s" style="background-color:%s;padding:28px 40px 24px 40px;%s"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>%s</tr></table></td></tr>',
+    '<tr><td bgcolor="%s" align="%s" style="background-color:%s;padding:24px 48px 22px 48px;%s"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>%s</tr></table></td></tr>',
     bg, if (dark) "left" else "center", bg, border, paste(cells, collapse = "")
   ), ctx, "__cabecera", "header")
 }
@@ -242,8 +249,8 @@
     sprintf(' data-pulso-block="%s" data-pulso-type="footer_legal"', .cmail_esc(footer$block_id))
   } else ""
   sprintf(
-    '<tr><td align="center"%s style="padding:18px 30px 24px 30px;font-family:%s;font-size:12px;line-height:18px;color:#555555;">%s</td></tr>',
-    mark, .CMAIL_FONT, paste(parts, collapse = "<br>")
+    '<tr><td align="center"%s style="padding:20px 30px 32px 30px;font-family:%s;font-size:12px;line-height:19px;color:%s;">%s</td></tr>',
+    mark, .CMAIL_FONT, .CMAIL_FOOTER_TEXT, paste(parts, collapse = "<br>")
   )
 }
 
@@ -300,14 +307,15 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
   preheader <- .cmail_plain(template$preheader, ctx)
   body_rows <- vapply(template$blocks %||% list(), .cmail_block_html, "", ctx = ctx)
   card <- paste0(
-    sprintf('<table role="presentation" width="%d" cellpadding="0" cellspacing="0" border="0" style="width:100%%;max-width:%dpx;border:1px solid %s;background-color:#ffffff;">',
+    sprintf('<table role="presentation" width="%d" cellpadding="0" cellspacing="0" border="0" style="width:100%%;max-width:%dpx;border:1px solid %s;border-radius:8px;border-collapse:separate;overflow:hidden;background-color:#ffffff;">',
             .CMAIL_WIDTH, .CMAIL_WIDTH, .CMAIL_BORDER),
     .cmail_header_html(template, ctx),
     # El aire bajo la cabecera separa del texto; si lo primero es una imagen a
     # sangre (un banner bajo la franja de logos) quedaba una raya blanca.
     if (.cmail_first_block_bleeds(template)) "" else '<tr><td style="height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>',
     paste(body_rows, collapse = ""),
-    sprintf('<tr><td bgcolor="%s" style="background-color:%s;height:20px;line-height:20px;font-size:0;">&nbsp;</td></tr>',
+    # Cierre: una línea fina del color de la franja, no un bloque que pese más que el contenido.
+    sprintf('<tr><td bgcolor="%s" style="background-color:%s;height:4px;line-height:4px;font-size:0;">&nbsp;</td></tr>',
             .cmail_band_color(template, ctx), .cmail_band_color(template, ctx)),
     "</table>"
   )
@@ -318,9 +326,10 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
     '<meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light">',
     sprintf("<title>%s</title>", htmltools::htmlEscape(subject)),
     "</head>\n",
-    '<body style="margin:0;padding:0;background-color:#ffffff;">',
+    sprintf('<body style="margin:0;padding:0;background-color:%s;">', .CMAIL_PAGE_BG),
     .cmail_preheader_html(preheader),
-    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:24px 12px;">',
+    sprintf('<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" bgcolor="%s" style="background-color:%s;"><tr><td align="center" style="padding:32px 12px 8px 12px;">',
+            .CMAIL_PAGE_BG, .CMAIL_PAGE_BG),
     card,
     sprintf('<table role="presentation" width="%d" cellpadding="0" cellspacing="0" border="0" style="width:100%%;max-width:%dpx;">%s</table>',
             .CMAIL_WIDTH, .CMAIL_WIDTH, .cmail_footer_html(template, ctx)),
