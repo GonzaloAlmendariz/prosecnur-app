@@ -160,3 +160,19 @@ test_that("A5: Likert y satisfacción no se acusan; un mapa explícito tampoco",
   expect_equal(vapply(.armz_codigos_mal_ubicados(fila(ciclos), "b", inst_c), `[[`, "", "codigo"), c("1", "2"))
   expect_length(.armz_codigos_mal_ubicados(fila(ciclos, list(`1` = "1", `2` = "2")), "b", inst_c), 0)
 })
+
+test_that("A7: una columna de selección 0/1 sin universo declarado se avisa (sólo en la app)", {
+  df <- data.frame(seleccionado = c(rep(1, 5), rep(0, 3)), sexo = c(1, 2, 1, 2, 1, 2, 1, 2))
+  sel <- .armz_columna_seleccion(df)
+  expect_equal(sel$columna, "seleccionado")
+  expect_equal(c(sel$n_total, sel$n_marcados), c(8, 5))
+  # Un 0/1 cualquiera no se acusa; tampoco una selección que marca a todos.
+  expect_null(.armz_columna_seleccion(data.frame(p11 = c(0, 1, 1))))
+  expect_null(.armz_columna_seleccion(data.frame(seleccionado = c(1, 1, 1))))
+  expect_equal(.armz_columna_seleccion(data.frame(En_Muestra = c(0, 1)))$columna, "En_Muestra")
+
+  av <- .armz_avisos_universo(list(universo_sin_declarar = list(b2026 = sel)), c(b2026 = "2026"))
+  expect_equal(av[[1]]$tipo, "universo_sin_declarar")
+  expect_match(av[[1]]$mensaje, "La base 2026 trae la columna «seleccionado» \\(5 de 8 casos con 1\\)")
+  expect_match(av[[1]]$mensaje, "Analítica > Qué casos cuentan")
+})

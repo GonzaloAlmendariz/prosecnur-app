@@ -552,7 +552,7 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
         d$titulo, rotulos[[b]], .armz_capital(unidad$ese)))
     }
   }
-  out <- c(out, .armz_avisos_ausente(ap, rotulos))
+  out <- c(out, .armz_avisos_ausente(ap, rotulos), .armz_avisos_universo(ap, rotulos))
   for (o in ap$omitidas %||% list()) {
     av <- list(tipo = if (identical(o$tipo, "cruce")) "cruce_omitido" else "pregunta_omitida",
                fila = o$fila, motivo = o$motivo %||% "sin_variable")
@@ -713,6 +713,8 @@ armonizada_avisos <- function(ap, rotulos = .armz_rotulos(ap$periodos), notas_pr
                           excluidas = prep$excluidas)
   ap$ponderacion <- pond
   ap$omitidas <- c(sin_armonizar, ap$omitidas %||% list())
+  # Checklist A7: base con columna de selección y sin universo (analitica_armonizada_universo.R).
+  ap$universo_sin_declarar <- .armz_universo_sin_declarar(sid, periodos)
   ap
 }
 
