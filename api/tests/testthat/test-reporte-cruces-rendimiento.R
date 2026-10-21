@@ -48,25 +48,81 @@ test_that("los estilos a la vista de openxlsx no crecen con el número de variab
   expect_lte(muchos, pocos)
 })
 
-test_that("archivar los estilos no cambia el libro que se graba", {
+# Estilo efectivo de cada celda (fuente, relleno, borde, formato numérico y
+# alineación ya resueltos), independiente del orden de los ids de styles.xml.
+.crr_estilos_por_celda <- function(path) {
+  d <- tempfile(); on.exit(unlink(d, recursive = TRUE))
+  utils::unzip(path, exdir = d)
+  st <- xml2::read_xml(file.path(d, "xl/styles.xml")); xml2::xml_ns_strip(st)
+  sh <- xml2::read_xml(file.path(d, "xl/worksheets/sheet1.xml")); xml2::xml_ns_strip(sh)
+  hijos <- function(tag) as.character(xml2::xml_find_all(st, sprintf("//%s/*", tag)))
+  fonts <- hijos("fonts"); fills <- hijos("fills"); borders <- hijos("borders")
+  nf <- xml2::xml_find_all(st, "//numFmts/numFmt")
+  formatos <- stats::setNames(xml2::xml_attr(nf, "formatCode"), xml2::xml_attr(nf, "numFmtId"))
+  canon <- vapply(xml2::xml_find_all(st, "//cellXfs/xf"), function(x) {
+    a <- as.list(xml2::xml_attrs(x)); g <- function(k) a[[k]] %||% "0"
+    paste(fonts[as.integer(g("fontId")) + 1], fills[as.integer(g("fillId")) + 1],
+          borders[as.integer(g("borderId")) + 1], formatos[g("numFmtId")] %||% g("numFmtId"),
+          paste(as.character(xml2::xml_children(x)), collapse = ""), sep = "|")
+  }, "")
+  celdas <- xml2::xml_find_all(sh, "//sheetData/row/c")
+  s <- xml2::xml_attr(celdas, "s"); s[is.na(s)] <- "0"
+  stats::setNames(canon[as.integer(s) + 1], xml2::xml_attr(celdas, "r"))
+}
+
+test_that("archivar y compactar los estilos no cambia lo que se ve en el libro", {
   fx <- .crr_fixture(6)
   escribir <- function(path) suppressMessages(reporte_cruces(
     data = fx$data, instrumento = fx$instrumento, SECCIONES = fx$secciones,
     cruces = "seg", path_xlsx = path, show_sig = TRUE))
   con <- tempfile(fileext = ".xlsx"); sin <- tempfile(fileext = ".xlsx")
   on.exit(unlink(c(con, sin)), add = TRUE)
-  escribir(con)
+  objetos_al_guardar <- NA_integer_
+  local({
+    guardar <- openxlsx::saveWorkbook
+    testthat::local_mocked_bindings(saveWorkbook = function(wb, ...) {
+      objetos_al_guardar <<- length(wb$styleObjects)
+      guardar(wb, ...)
+    }, .package = "openxlsx")
+    escribir(con)
+  })
   local({
     testthat::local_mocked_bindings(.xlsx_archivar_estilos = function(wb, archivo) invisible(wb),
                                     .xlsx_restaurar_estilos = function(wb, archivo) invisible(wb))
     escribir(sin)
   })
+  # Al guardar hay un objeto por estilo distinto, no uno por cada addStyle.
+  expect_lt(objetos_al_guardar, 60L)
+  a <- .crr_estilos_por_celda(con); b <- .crr_estilos_por_celda(sin)
+  expect_setequal(names(a), names(b))
+  expect_identical(a[names(b)], b)
   leer <- function(path, parte) {
     d <- tempfile(); on.exit(unlink(d, recursive = TRUE))
     utils::unzip(path, files = parte, exdir = d)
-    readLines(file.path(d, parte), warn = FALSE, encoding = "UTF-8")
+    gsub(' s="[0-9]+"', "", readLines(file.path(d, parte), warn = FALSE, encoding = "UTF-8"))
   }
-  for (parte in c("xl/worksheets/sheet1.xml", "xl/styles.xml")) {
-    expect_identical(leer(con, parte), leer(sin, parte), info = parte)
+  # Valores, combinaciones y anchos: idénticos salvo el id de estilo.
+  expect_identical(leer(con, "xl/worksheets/sheet1.xml"), leer(sin, "xl/worksheets/sheet1.xml"))
+})
+
+test_that("compactar deja en cada celda el estilo del último objeto que la nombra", {
+  a <- openxlsx::createStyle(textDecoration = "bold")
+  b <- openxlsx::createStyle(fgFill = "#EEEEEE")
+  a2 <- openxlsx::createStyle(textDecoration = "bold")  # mismo estilo, otra copia
+  objetos <- list(
+    list(style = a, sheet = "S", rows = c(1L, 2L), cols = c(1L, 1L)),
+    list(style = b, sheet = "S", rows = 2L, cols = 1L),
+    list(style = a2, sheet = "S", rows = 3L, cols = 1L),
+    list(style = b, sheet = "T", rows = 1L, cols = 1L)
+  )
+  out <- .xlsx_compactar_estilos(objetos)
+  expect_length(out, 3L)  # S/negrita, S/relleno, T/relleno
+  celda <- function(hoja, r) {
+    for (o in out) if (o$sheet == hoja && any(o$rows == r & o$cols == 1L)) return(.xlsx_firma_estilo(o$style))
+    NA_character_
   }
+  expect_identical(celda("S", 1L), .xlsx_firma_estilo(a))
+  expect_identical(celda("S", 2L), .xlsx_firma_estilo(b))
+  expect_identical(celda("S", 3L), .xlsx_firma_estilo(a))
+  expect_identical(celda("T", 1L), .xlsx_firma_estilo(b))
 })
