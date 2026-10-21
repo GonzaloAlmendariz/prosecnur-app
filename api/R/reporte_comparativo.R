@@ -211,7 +211,8 @@
 .comparativo_motivo_corto <- function(m) {
   switch(m %||% "", mapa_roto = "Mapa roto", select_multiple = "Opción múltiple",
          sin_variable = "Sin variable en la matriz",
-         variable_ausente = "Variable ausente en los datos", m %||% "")
+         variable_ausente = "Variable ausente en los datos",
+         sin_armonizar = "Sin armonizar", m %||% "")
 }
 
 #' Hoja «Preguntas omitidas»: cada pregunta o variable de cruce que salió del

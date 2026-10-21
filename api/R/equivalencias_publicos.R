@@ -66,13 +66,21 @@
 # instrumento» en vez de seguir aplicando en silencio una correspondencia que
 # pudo dejar de ser cierta. Un artefacto externo y manual no avisa de su propio
 # desfase; el sello es lo que lo vuelve verificable.
-.equiv_sello_instrumento <- function(inst) {
+#
+# El orden es `radix` (bytes, independiente del sistema). Con la colación del
+# sistema, una matriz guardada en Windows se abría en Mac con las tres bases
+# «desfasadas» sin que nada hubiera cambiado (HSyVbG, 2026-10-21, checklist A4).
+# `orden = "sistema"` reproduce el sello anterior, sólo para reconocer las
+# matrices guardadas antes del cambio.
+.equiv_sello_instrumento <- function(inst, orden = c("radix", "sistema")) {
+  orden <- match.arg(orden)
   sv <- (inst %||% list())$survey
   if (is.null(sv) || !nrow(sv) || !"name" %in% names(sv)) return("")
   tipos <- if ("type" %in% names(sv)) as.character(sv$type) else rep("", nrow(sv))
   estructurales <- c("begin_group", "end_group", "begin_repeat", "end_repeat", "note")
   nombres <- as.character(sv$name)[!sub("\\s+.*$", "", trimws(tipos)) %in% estructurales]
-  nombres <- sort(unique(nombres[!is.na(nombres) & nzchar(nombres)]))
+  nombres <- unique(nombres[!is.na(nombres) & nzchar(nombres)])
+  nombres <- if (identical(orden, "radix")) sort(nombres, method = "radix") else sort(nombres)
   if (!length(nombres)) return("")
   paste0(length(nombres), ":", .equiv_hash_estable(nombres))
 }

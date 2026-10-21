@@ -55,6 +55,12 @@ export type EquivalenciaFila = {
    * fila suelta. Ausente al guardar conserva la marca previa.
    */
   cruce?: boolean;
+  /**
+   * Sin armonización y con la misma escala en sus bases: el comparativo la toma
+   * con la identidad sin que nadie la confirme. La deriva el backend al servir
+   * el estado; no se guarda.
+   */
+  misma_escala?: boolean;
 };
 
 /** Componentes de un indicador compuesto en una base (ADR 0105). */
@@ -255,6 +261,11 @@ function normalizarFila(x: unknown): EquivalenciaFila | null {
     const crudo = Array.isArray(x.cruce) ? x.cruce[0] : x.cruce;
     if (crudo === true || crudo === "true" || crudo === "TRUE") fila.cruce = true;
     else delete fila.cruce;
+  }
+  if ("misma_escala" in x) {
+    const crudo = Array.isArray(x.misma_escala) ? x.misma_escala[0] : x.misma_escala;
+    if (crudo === true || crudo === "true" || crudo === "TRUE") fila.misma_escala = true;
+    else delete fila.misma_escala;
   }
   if ("derivada" in x) {
     const derivada = normalizarDerivada(x.derivada);

@@ -121,7 +121,9 @@
   for (b in names(cobertura)) {
     guardado <- as.character(sellos_guardados[[b]] %||% "")
     actual <- as.character(cobertura[[b]]$sello %||% "")
-    if (nzchar(guardado) && nzchar(actual) && !identical(guardado, actual)) {
+    # Una matriz guardada antes del sello `radix` lleva el del orden del sistema.
+    previo <- .equiv_sello_instrumento(inst_por_base[[b]], orden = "sistema")
+    if (nzchar(guardado) && nzchar(actual) && !guardado %in% c(actual, previo)) {
       desfasadas <- c(desfasadas, b)
     }
   }
@@ -148,7 +150,16 @@
     revision = .equiv_declaracion_revision(equiv, inst_por_base),
     cobertura = cobertura,
     desfasadas = desfasadas,
-    filas = equiv$filas
+    # Una fila sin armonización con la misma escala en sus bases entra sola al
+    # comparativo (analitica_armonizada_implicita.R): la marca deja que el
+    # recorrido no la cuente como pendiente. No se guarda: se deriva al servir.
+    filas = lapply(equiv$filas %||% list(), function(f) {
+      if (is.null(f$armonizacion) &&
+          !is.null(.armz_armonizacion_implicita(f, inst_por_base, names(inst_por_base)))) {
+        f$misma_escala <- TRUE
+      }
+      f
+    })
   )
 }
 

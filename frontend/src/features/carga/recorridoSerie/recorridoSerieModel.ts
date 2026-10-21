@@ -58,7 +58,15 @@ export type PasoRecorrido = {
   enlace: EnlacePaso;
 };
 
-type FilaMatriz = Pick<EquivalenciaFila, "variables" | "derivada" | "armonizacion" | "etiqueta_estandar">;
+type FilaMatriz = Pick<EquivalenciaFila, "variables" | "derivada" | "armonizacion" | "etiqueta_estandar" | "misma_escala">;
+
+/**
+ * Pendiente de armonizar: sin armonización y sin la misma escala en sus bases.
+ * La de misma escala entra sola al comparativo, igual que en el motor.
+ */
+function sinArmonizar(f: FilaMatriz): boolean {
+  return estadoArmonizacion(f).tipo === "sin_armonizar" && f.misma_escala !== true;
+}
 
 export type EntradaRecorrido = {
   /** Bases del estudio en el orden de la serie. */
@@ -198,7 +206,7 @@ function pasoSegmentos(e: EntradaRecorrido): PasoRecorrido {
 /** Filas armonizadas que existen como comparables en al menos dos bases. */
 export function filasComparables(filas: readonly FilaMatriz[], bases: readonly string[]): number {
   return filas.filter((f) => {
-    if (estadoArmonizacion(f).tipo === "sin_armonizar") return false;
+    if (sinArmonizar(f)) return false;
     return bases.filter((b) => presenciaEnBase(f, b) === "presente").length >= 2;
   }).length;
 }
@@ -212,15 +220,15 @@ function pasoMatriz(e: EntradaRecorrido): PasoRecorrido {
   };
   const n = e.filas.length;
   if (!n) return { ...base, estado: "no-empezado", detalle: "Sin preguntas en la matriz" };
-  const sinArmonizar = e.filas.filter((f) => estadoArmonizacion(f).tipo === "sin_armonizar").length;
+  const pendientes = e.filas.filter(sinArmonizar).length;
   const incompletas = e.filas.filter((f) => e.bases.some((b) => presenciaEnBase(f, b) === "falta")).length;
   const partes = [
     conteo(n, "fila", "filas"),
-    sinArmonizar ? `${formatoConteo(sinArmonizar)} sin armonizar` : "",
+    pendientes ? `${formatoConteo(pendientes)} sin armonizar` : "",
     // Faltar en una base puede ser legítimo (no se preguntó ese año): se dice, no se exige.
     incompletas ? `${formatoConteo(incompletas)} ${incompletas === 1 ? "falta" : "faltan"} en alguna base` : "",
   ].filter(Boolean);
-  return { ...base, estado: sinArmonizar ? "falta" : "hecho", detalle: partes.join(" · ") };
+  return { ...base, estado: pendientes ? "falta" : "hecho", detalle: partes.join(" · ") };
 }
 
 function pasoPonderacion(e: EntradaRecorrido): PasoRecorrido {
