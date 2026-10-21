@@ -231,7 +231,7 @@
     key <- .cmail_ih_token(ctx, sprintf("*|%s|*", parts[[2]]), node)
     fallback <- trimws(.cmail_ih_ws(parts[[3]]))
     if (nzchar(key) && nzchar(fallback) && !is.null(ctx$fields[[key]]) && is.null(ctx$fields[[key]]$fallback) &&
-        !grepl("[{}*|<>&\\[\\]]", fallback)) {
+        !grepl("[{}*|<>&\\[\\]\u0004\u0006]", fallback)) {
       ctx$fields[[key]]$fallback <- fallback
     }
   }
@@ -259,7 +259,7 @@
   m <- gregexpr(.CMAIL_IH_COND_RE, text, perl = TRUE)
   hits <- regmatches(text, m)[[1]]
   if (!length(hits)) return(text)
-  plain <- function(x) trimws(gsub("[\u0001\u0002]|\\*\\*", "", .cmail_ih_ws(x)))
+  plain <- function(x) trimws(gsub("\u0006", "*", gsub("[\u0001\u0002\u0004]|\\*\\*", "", .cmail_ih_ws(x))))
   regmatches(text, m) <- list(vapply(hits, function(h) {
     p <- regmatches(h, regexec(.CMAIL_IH_COND_RE, h, perl = TRUE))[[1]]
     op <- p[[2]]; tag <- toupper(p[[3]]); then <- p[[4]]; other <- if (length(p) >= 5L) p[[5]] else ""
@@ -281,6 +281,22 @@
   st <- .cmail_ih_style(node)
   w <- .cmail_ih_decl(st, "font-weight")
   !is.null(w) && grepl("bold|bolder|[6-9]00", w)
+}
+
+.cmail_ih_italic_style <- function(node) {
+  f <- .cmail_ih_decl(.cmail_ih_style(node), "font-style")
+  !is.null(f) && grepl("italic|oblique", f)
+}
+
+# Envuelve un texto en una marca (`**` negrita; \u0004 la cursiva, que
+# `.cmail_ih_finish` vuelve `*`), sin espacios dentro y línea por línea: la
+# marca no cruza saltos (collection_mail_marks.R).
+.cmail_ih_wrap <- function(inner, mark) {
+  if (!nzchar(trimws(inner))) return(inner)
+  lead <- sub("^(\\s*).*$", "\\1", inner)
+  tail <- sub("^.*?(\\s*)$", "\\1", inner, perl = TRUE)
+  body <- gsub("\\s*\n\\s*", paste0(mark, "\n", mark), trimws(inner))
+  paste0(lead, mark, body, mark, tail)
 }
 
 # URL de un href: http(s)/mailto o una etiqueta de plataforma. NULL si no sirve.
@@ -312,28 +328,25 @@
 
 .cmail_ih_inline <- function(ctx, node, links = TRUE) {
   type <- xml2::xml_type(node)
-  if (identical(type, "text") || identical(type, "cdata")) return(.cmail_ih_ws(xml2::xml_text(node)))
+  if (identical(type, "text") || identical(type, "cdata")) {
+    # Un asterisco literal del autor se escapa (\u0006 -> `\*` al cerrar) para
+    # que «5*3» no se lea como cursiva; los de una etiqueta *|TAG|* se quedan.
+    return(gsub("(?<!\\|)\\*(?!\\|)", "\u0006", .cmail_ih_ws(xml2::xml_text(node)), perl = TRUE))
+  }
   if (!identical(type, "element")) return("")
   nm <- xml2::xml_name(node)
   if (identical(nm, "br")) return("\n")
   if (identical(nm, "img")) return("")
   inner <- paste(vapply(xml2::xml_contents(node), function(n) .cmail_ih_inline(ctx, n, links), ""), collapse = "")
-  if (nm %in% c("strong", "b") || .cmail_ih_bold_style(node)) {
-    if (!nzchar(trimws(inner))) return(inner)
-    lead <- sub("^(\\s*).*$", "\\1", inner)
-    tail <- sub("^.*?(\\s*)$", "\\1", inner, perl = TRUE)
-    body <- trimws(inner)
-    # La negrita no cruza saltos: cada línea lleva la suya.
-    body <- gsub("\\s*\n\\s*", "**\n**", body)
-    return(paste0(lead, "**", body, "**", tail))
-  }
+  # Cursiva (E1n): <em>, <i> o font-style:italic pasan a *…*; en un enlace va
+  # dentro de la etiqueta del enlace.
+  italic <- nm %in% c("em", "i") || .cmail_ih_italic_style(node)
+  if (italic) inner <- .cmail_ih_wrap(inner, "\u0004")
+  if (nm %in% c("strong", "b") || .cmail_ih_bold_style(node)) return(.cmail_ih_wrap(inner, "**"))
+  if (italic && !identical(nm, "a")) return(inner)
   if (nm %in% c("s", "strike", "del") && nzchar(trimws(inner))) {
     .cmail_ih_report(ctx, "strike_plain",
       "El tachado queda como texto normal y se lee igual que el resto: revisa si ese texto debía borrarse.", node)
-  }
-  if (nm %in% c("em", "i") && !isTRUE(ctx$em_reported)) {
-    ctx$em_reported <- TRUE
-    .cmail_ih_report(ctx, "italic_plain", "La cursiva queda como texto normal: la plantilla no tiene cursiva.", node)
   }
   if (identical(nm, "a")) {
     url <- .cmail_ih_href(ctx, node)
@@ -354,8 +367,9 @@
   # Llaves y etiquetas literales del autor (dispararían bad_token / raw_merge_tag).
   text <- gsub("\\{\\{", "{ {", text)
   text <- gsub("\\}\\}", "} }", text)
-  text <- gsub("*|", "* |", text, fixed = TRUE)
-  text <- gsub("|*", "| *", text, fixed = TRUE)
+  # Un «*|» o «|*» literal se separa y su asterisco queda escapado.
+  text <- gsub("*|", "\u0006 |", text, fixed = TRUE)
+  text <- gsub("|*", "| \u0006", text, fixed = TRUE)
   esc <- grepl("<\\s*/?\\s*[A-Za-z!?]", text, perl = TRUE) || grepl("&[A-Za-z#][A-Za-z0-9]*;", text, perl = TRUE)
   if (esc) {
     # «<» + letra no basta separarlo con un espacio (el contrato lo leería igual
@@ -373,9 +387,13 @@
   lines <- vapply(lines, function(l) {
     l <- gsub("\\*\\*\\*\\*", "", l)
     l <- gsub("\\*\\*\\s*\\*\\*", " ", l)
+    # Cursiva vacía fuera; dos seguidas, una sola.
+    l <- gsub("\u0004\u0004", "", l, fixed = TRUE)
+    l <- gsub("\u0004\\s+\u0004", " ", l, perl = TRUE)
     l <- gsub("[ ]+", " ", l)
     trimws(l)
   }, "", USE.NAMES = FALSE)
+  lines <- gsub("\u0006", "\\*", gsub("\u0004", "*", lines, fixed = TRUE), fixed = TRUE)
   # Sin líneas vacías al borde ni dobles.
   lines <- lines[cumsum(nzchar(lines)) > 0]
   while (length(lines) && !nzchar(lines[[length(lines)]])) lines <- lines[-length(lines)]

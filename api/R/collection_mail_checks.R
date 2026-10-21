@@ -147,6 +147,8 @@
 # SurveyMonkey: cada imagen necesita su URL https (sin ella, `src=""`).
 .cmail_image_checks_sm <- function(tpl, images, push) {
   uses <- .cmail_image_uses(tpl)
+  # La onda generada no viaja a SurveyMonkey: ahí sale como banda sólida.
+  images <- Filter(function(i) !isTRUE(i$generated), images)
   push <- .cmail_image_checks_common(tpl, images, uses, push)
   no_url <- names(images)[vapply(images, function(i) {
     u <- .cmail_one(i$url); is.null(u) || !grepl("^https://", u)
@@ -253,7 +255,7 @@
 .cmail_sm_blank_lines <- function(tpl, keys, fields) {
   out <- character(0)
   blank <- function(text) {
-    t <- gsub("**", "", as.character(text), fixed = TRUE)
+    t <- .cmail_marks_strip(text)
     t <- gsub(.CMAIL_TOKEN_RE, "", t, perl = TRUE)
     gsub("[ ]+", " ", trimws(t))
   }
@@ -263,7 +265,7 @@
     if (!length(intersect(.cmail_tokens(text), keys))) next
     line <- sprintf("El saludo saldrá «%s»", blank(text))
     fb <- .cmail_one(b$fallback)
-    out <- c(out, paste0(line, if (!is.null(fb)) sprintf("; el respaldo «%s» no se usa.", gsub("**", "", fb, fixed = TRUE)) else "."))
+    out <- c(out, paste0(line, if (!is.null(fb)) sprintf("; el respaldo «%s» no se usa.", .cmail_marks_strip(fb)) else "."))
   }
   for (k in setdiff(keys, "nombre")) {
     fb <- fields[[k]]$fallback
@@ -283,8 +285,10 @@
   if (identical(tpl$header$kind, "logos") && identical(tpl$header$background %||% "light", "dark")) {
     targets[[length(targets) + 1L]] <- .cmail_target("__cabecera")
   }
+  # En campaña el botón lleva su propio relleno (campana_button_contrast).
+  campana <- identical(.cmail_one(tpl$theme$estilo), "campana")
   for (b in tpl$blocks %||% list()) {
-    if (identical(b$type, "button") && identical(.cmail_style(b, "fill", "solido"), "solido")) {
+    if (!campana && identical(b$type, "button") && identical(.cmail_style(b, "fill", "solido"), "solido")) {
       targets[[length(targets) + 1L]] <- .cmail_target(as.character(b$block_id))
     }
   }

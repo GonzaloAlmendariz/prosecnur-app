@@ -110,18 +110,23 @@
 # enlace (solo en las propiedades de `.CMAIL_LINK_PROPS`).
 .cmail_inline <- function(text, ctx, links = FALSE) {
   out <- .cmail_esc(text)
+  # Cada enlace sale por un marcador mientras se leen las marcas de énfasis:
+  # un `*` de la URL nunca empareja con uno del texto (collection_mail_marks.R).
+  anchors <- character(0)
   if (isTRUE(links)) {
     m <- gregexpr(.CMAIL_LINK_RE, out, perl = TRUE)
     if (m[[1]][[1]] != -1L) {
-      regmatches(out, m) <- list(vapply(regmatches(out, m)[[1]], function(seg) {
-        label <- sub(.CMAIL_LINK_RE, "\\1", seg, perl = TRUE)
+      anchors <- vapply(regmatches(out, m)[[1]], function(seg) {
+        label <- .cmail_marks_html(sub(.CMAIL_LINK_RE, "\\1", seg, perl = TRUE))
         url <- .cmail_unesc(sub(.CMAIL_LINK_RE, "\\2", seg, perl = TRUE))
         sprintf('<a href="%s" target="_blank" style="color:%s;text-decoration:underline;">%s</a>',
                 .cmail_url(url, ctx), ctx$link, label)
-      }, ""))
+      }, "", USE.NAMES = FALSE)
+      regmatches(out, m) <- list(sprintf("\u0005%d\u0005", seq_along(anchors)))
     }
   }
-  out <- gsub("\\*\\*(.+?)\\*\\*", "<strong>\\1</strong>", out, perl = TRUE)
+  out <- .cmail_marks_html(out)
+  for (i in seq_along(anchors)) out <- sub(sprintf("\u0005%d\u0005", i), anchors[[i]], out, fixed = TRUE)
   out <- gsub("\n", "<br>", out, fixed = TRUE)
   keys <- .cmail_tokens(out)
   for (k in keys) {
@@ -133,7 +138,7 @@
 
 # Texto plano (asunto, preheader): sin HTML, con campos.
 .cmail_plain <- function(text, ctx) {
-  out <- gsub("\\*\\*(.+?)\\*\\*", "\\1", as.character(text %||% ""), perl = TRUE)
+  out <- .cmail_marks_strip(text)
   for (k in .cmail_tokens(out)) {
     v <- if (isTRUE(ctx$export)) {
       if (identical(k, "nombre")) .cmail_dialect(ctx)$name_tag() else .cmail_dialect(ctx)$field_tag(ctx$fields[[k]])
@@ -244,13 +249,17 @@
     if (!is.null(address)) sprintf("<span%s>%s</span>", .cmail_prop(ctx, "address"), .cmail_inline(address, ctx))
   )
   d <- .cmail_dialect(ctx)
-  parts <- c(parts, if (isTRUE(ctx$export)) d$footer() else d$footer_preview())
+  legal <- if (isTRUE(ctx$export)) d$footer() else d$footer_preview()
+  # Los enlaces del pie de la plataforma van en gris (#555555): sobre el fondo
+  # de campaña se pintan del tono del pie, que sí llega a 4,5:1.
+  if (isTRUE(ctx$pal$campana)) legal <- gsub("color:#555555;", sprintf("color:%s;", ctx$pal$footer), legal, fixed = TRUE)
+  parts <- c(parts, legal)
   mark <- if (isTRUE(ctx$marks) && !is.null(footer$block_id)) {
     sprintf(' data-pulso-block="%s" data-pulso-type="footer_legal"', .cmail_esc(footer$block_id))
   } else ""
   sprintf(
     '<tr><td align="center"%s style="padding:20px 30px 32px 30px;font-family:%s;font-size:12px;line-height:19px;color:%s;">%s</td></tr>',
-    mark, .CMAIL_FONT, .CMAIL_FOOTER_TEXT, paste(parts, collapse = "<br>")
+    mark, .CMAIL_FONT, ctx$pal$footer, paste(parts, collapse = "<br>")
   )
 }
 
@@ -300,40 +309,52 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
     accent = .cmail_one(template$theme$accent) %||% .CMAIL_DEFAULT_ACCENT
   )
   ctx$link <- .cmail_one(template$theme$link) %||% ctx$accent
+  # Estilo (sobrio | campana) y alineación: collection_mail_campana.R. En campaña
+  # los enlaces del cuerpo van del color del texto.
+  ctx$pal <- .cmail_theme_palette(template, ctx$accent, ctx$link)
+  ctx$link <- ctx$pal$link
   for (id in .cmail_image_ids(template)) {
     if (is.null(ctx$images[[id]])) ctx$images[[id]] <- .cmail_image_placeholder(id)
   }
   subject <- .cmail_plain(template$subject, ctx)
   preheader <- .cmail_plain(template$preheader, ctx)
   body_rows <- vapply(template$blocks %||% list(), .cmail_block_html, "", ctx = ctx)
+  pal <- ctx$pal
+  campana <- isTRUE(pal$campana)
   card <- paste0(
-    sprintf('<table role="presentation" width="%d" cellpadding="0" cellspacing="0" border="0" style="width:100%%;max-width:%dpx;border:1px solid %s;border-radius:8px;border-collapse:separate;overflow:hidden;background-color:#ffffff;">',
-            .CMAIL_WIDTH, .CMAIL_WIDTH, .CMAIL_BORDER),
+    # Campaña: sin tarjeta, la columna lleva el fondo de la página.
+    if (campana) sprintf('<table role="presentation" width="%d" cellpadding="0" cellspacing="0" border="0" bgcolor="%s" style="width:100%%;max-width:%dpx;background-color:%s;">',
+                         .CMAIL_WIDTH, pal$page_bg, .CMAIL_WIDTH, pal$page_bg)
+    else sprintf('<table role="presentation" width="%d" cellpadding="0" cellspacing="0" border="0" style="width:100%%;max-width:%dpx;border:1px solid %s;border-radius:8px;border-collapse:separate;overflow:hidden;background-color:#ffffff;">',
+                 .CMAIL_WIDTH, .CMAIL_WIDTH, .CMAIL_BORDER),
     .cmail_header_html(template, ctx),
     # El aire bajo la cabecera separa del texto; si lo primero es una imagen a
     # sangre (un banner bajo la franja de logos) quedaba una raya blanca.
     if (.cmail_first_block_bleeds(template)) "" else '<tr><td style="height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>',
     paste(body_rows, collapse = ""),
     # Cierre: una línea fina del color de la franja, no un bloque que pese más que el contenido.
-    sprintf('<tr><td bgcolor="%s" style="background-color:%s;height:4px;line-height:4px;font-size:0;">&nbsp;</td></tr>',
-            .cmail_band_color(template, ctx), .cmail_band_color(template, ctx)),
+    if (campana) "" else sprintf('<tr><td bgcolor="%s" style="background-color:%s;height:4px;line-height:4px;font-size:0;">&nbsp;</td></tr>',
+                                 .cmail_band_color(template, ctx), .cmail_band_color(template, ctx)),
     "</table>"
   )
+  page_bg <- pal$page_bg
+  footer_rows <- .cmail_footer_html(template, ctx)
   html <- paste0(
     '<!DOCTYPE html>\n<html lang="es" xmlns="http://www.w3.org/1999/xhtml"><head>',
     '<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">',
     '<meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="x-apple-disable-message-reformatting">',
     '<meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light">',
     sprintf("<title>%s</title>", htmltools::htmlEscape(subject)),
+    .cmail_justify_style(paste0(card, footer_rows)),
     "</head>\n",
-    sprintf('<body style="margin:0;padding:0;background-color:%s;">', .CMAIL_PAGE_BG),
+    sprintf('<body style="margin:0;padding:0;background-color:%s;">', page_bg),
     .cmail_preheader_html(preheader),
     sprintf('<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" bgcolor="%s" style="background-color:%s;"><tr><td align="center" style="padding:32px 12px 8px 12px;">',
-            .CMAIL_PAGE_BG, .CMAIL_PAGE_BG),
+            page_bg, page_bg),
     card,
     sprintf('<table role="presentation" width="%d" cellpadding="0" cellspacing="0" border="0" style="width:100%%;max-width:%dpx;">%s</table>',
-            .CMAIL_WIDTH, .CMAIL_WIDTH, .cmail_footer_html(template, ctx)),
-    "</td></tr></table></body></html>\n"
+            .CMAIL_WIDTH, .CMAIL_WIDTH, footer_rows),
+    "</td></tr>", .cmail_onda_html(ctx), "</table></body></html>\n"
   )
   html <- enc2utf8(html)
   list(

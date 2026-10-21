@@ -155,7 +155,7 @@
 .cmail_images_resolve <- function(session, template) {
   ids <- .cmail_image_ids(template)
   latest <- .cmail_image_latest(session$files)
-  lapply(stats::setNames(ids, ids), function(id) {
+  out <- lapply(stats::setNames(ids, ids), function(id) {
     decl <- (template$images %||% list())[[id]] %||% list()
     path <- if (!is.null(latest[[id]])) as.character(latest[[id]]$path)[1] else NULL
     info <- .cmail_image_info(path)
@@ -171,6 +171,11 @@
       export_name = sprintf("%s.%s", id, ext)
     )
   })
+  # La onda del estilo campaña es una imagen generada (collection_mail_campana.R):
+  # viaja en el ZIP como las demás; nunca pisa una imagen del autor con su id.
+  onda <- if (!(.CMAIL_ONDA_ID %in% ids)) .cmail_onda_image(template)
+  if (!is.null(onda)) out[[.CMAIL_ONDA_ID]] <- onda
+  out
 }
 
 .cmail_image_placeholder <- function(id) {

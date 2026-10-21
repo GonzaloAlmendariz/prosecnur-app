@@ -10,7 +10,9 @@
 #
 #   schema, template_id, preset_id, revision, template_sha256,
 #   subject, preheader,
-#   theme  = { accent: "#rrggbb", link?: "#rrggbb", band?: "acento"|"suave" },
+#   theme  = { accent: "#rrggbb", link?: "#rrggbb", band?: "acento"|"suave",
+#              estilo?, page_bg?, button_bg?, button_text?, text_align?, onda?, onda_color? },
+#            (las de E1n: collection_mail_campana.R)
 #   header = { kind: "logos", logo_ids: [..], background: "dark"|"light" }
 #          | { kind: "banner", image_ref: "<id>" },
 #   images = { <image_id>: { alt, url? } },   # url pública opcional (https)
@@ -23,8 +25,9 @@
 # las propiedades de `.CMAIL_LINK_PROPS`. Ids de imagen sin `_` (Mailchimp).
 #
 # **Registro cerrado.** Solo existen los tipos de `.CMAIL_BLOCK_KEYS` y cada uno
-# admite solo sus claves. El texto es texto: nunca HTML. La única marca es
-# `**negrita**` y los campos `{{clave}}`. Un `<b>` o un `*|TAG|*` crudo se
+# admite solo sus claves. El texto es texto: nunca HTML. Las únicas marcas son
+# `**negrita**`, `*cursiva*` y `***ambas***` (con `\*` para un asterisco
+# literal; regla en collection_mail_marks.R) y los campos `{{clave}}`. Un `<b>` o un `*|TAG|*` crudo se
 # rechazan: el render es el único que escribe HTML y etiquetas de Mailchimp, y
 # así el escape no depende de que el autor lo recuerde.
 #
@@ -129,7 +132,7 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
   if (grepl("<\\s*/?\\s*[A-Za-z!?]", value, perl = TRUE) || grepl("&[A-Za-z#][A-Za-z0-9]*;", value, perl = TRUE)) {
     out[[length(out) + 1L]] <- .cmail_problem(
       path, "html_not_allowed",
-      "El texto no admite HTML. Usa **negrita** y {{campo}}; el formato lo pone la plantilla."
+      "El texto no admite HTML. Usa **negrita**, *cursiva* y {{campo}}; el formato lo pone la plantilla."
     )
   }
   if (grepl("*|", value, fixed = TRUE) || grepl("|*", value, fixed = TRUE)) {
@@ -318,7 +321,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
       add(list(.cmail_problem("template.theme.accent", "bad_color", "El color de acento es #rrggbb.")))
     }
     if (is.list(theme)) {
-      for (k in setdiff(names(theme), c("accent", "link", "band"))) {
+      for (k in setdiff(names(theme), .CMAIL_THEME_KEYS)) {
         add(list(.cmail_problem(paste0("template.theme.", k), "unknown_key", sprintf("`%s` no pertenece al tema.", k))))
       }
       if (!is.null(theme$link) && !grepl("^#[0-9a-fA-F]{6}$", .cmail_one(theme$link) %||% "")) {
@@ -327,6 +330,8 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
       if (!is.null(theme$band) && !(.cmail_one(theme$band) %||% "") %in% c("acento", "suave")) {
         add(list(.cmail_problem("template.theme.band", "bad_band", "La franja de cierre es acento o suave.")))
       }
+      # Estilo, alineación y onda (E1n): collection_mail_campana.R.
+      add(.cmail_theme_style_problems(theme))
     }
   }
 

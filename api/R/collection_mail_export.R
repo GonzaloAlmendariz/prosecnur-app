@@ -258,6 +258,7 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
   if (identical(dialect, "surveymonkey")) {
     push <- .cmail_sm_checks(tpl, html, push)
     push(.cmail_accent_check(tpl))
+    push <- .cmail_campana_checks(tpl, push)
     push_send_dates()
     # Con la lista (scope completo): la partición de la lista y el trato contra ella.
     store <- if (identical(scope, "completo") && !is.null(campaign)) .cmail_recipients_load(session, campaign_id)
@@ -276,6 +277,7 @@ collection_mail_preview <- function(sid, mode = "preview", recipient_index = NUL
                     if (footer_ok) "El pie lleva la baja (*|UNSUB|*) y la dirección de la lista." else "Falta *|UNSUB|* o *|LIST:ADDRESSLINE|* en el pie."))
 
   push(.cmail_accent_check(tpl))
+  push <- .cmail_campana_checks(tpl, push)
   push_send_dates()
   if (identical(send$kind, "recordatorio")) {
     n_valid <- NULL
