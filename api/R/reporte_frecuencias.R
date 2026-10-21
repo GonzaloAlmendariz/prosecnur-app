@@ -780,7 +780,7 @@ write_one_numeric <- function(wb, sheet, data, var, dic_vars,
   openxlsx::addStyle(wb, sheet, st$table_end, rows = r_fin, cols = start_col:(start_col + 1), gridExpand = TRUE, stack = TRUE)
 
   # Fuente
-  openxlsx::writeData(wb, sheet, paste0("Fuente: ", fuente), startRow = fila, startCol = start_col, colNames = FALSE)
+  openxlsx::writeData(wb, sheet, paste0("Fuente: ", .notas_pie_cerrar(fuente)), startRow = fila, startCol = start_col, colNames = FALSE)
   openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
   openxlsx::mergeCells(wb, sheet, rows = fila, cols = start_col:(start_col + 1))
 
@@ -957,7 +957,9 @@ mk_styles_spss <- function() {
 
 #' @noRd
 .freq_clean_section_label_for_export <- function(x) {
-  y <- .freq_clean_other_title_es(x)
+  # El rótulo del grupo de Kobo puede traer marcado («<span style=…>»): se
+  # imprime limpio, como en los comparativos (HSyVbG 2026, formato aprobado).
+  y <- .freq_clean_other_title_es(.inst_sin_marcado(gsub("<[^>]+>", " ", as.character(x), perl = TRUE)))
   y <- gsub("_OTHER\\b", "_OTROS", y, ignore.case = TRUE, perl = TRUE)
   y <- gsub("\\bOTHER\\b", "OTROS", y, ignore.case = TRUE, perl = TRUE)
   trimws(gsub("\\s+", " ", y, perl = TRUE))
@@ -1426,13 +1428,13 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
   # cuadro completo de la tabla (marco exterior)
   pulso_xlsx_box(wb, sheet, r1 = hdr_row, r2 = last_row, c1 = start_col, c2 = end_col)
 
-  openxlsx::writeData(wb, sheet, paste0("Fuente: ", fuente), startRow = fila, startCol = start_col, colNames = FALSE)
+  openxlsx::writeData(wb, sheet, paste0("Fuente: ", .notas_pie_cerrar(fuente)), startRow = fila, startCol = start_col, colNames = FALSE)
   openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
   # Línea «Base: …» (config notas), solo si la pregunta tiene base.
   base_texto <- .notas_pie_texto(base_texto)
   if (nzchar(base_texto)) {
     fila <- fila + 1
-    openxlsx::writeData(wb, sheet, paste0("Base: ", base_texto), startRow = fila, startCol = start_col, colNames = FALSE)
+    openxlsx::writeData(wb, sheet, paste0("Base: ", .notas_pie_cerrar(base_texto)), startRow = fila, startCol = start_col, colNames = FALSE)
     openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
   }
 
@@ -1524,13 +1526,13 @@ write_one_numeric <- function(wb, sheet, data, var, dic_vars,
 
   fila <- r_fin + 1
 
-  openxlsx::writeData(wb, sheet, paste0("Fuente: ", fuente), startRow = fila, startCol = start_col, colNames = FALSE)
+  openxlsx::writeData(wb, sheet, paste0("Fuente: ", .notas_pie_cerrar(fuente)), startRow = fila, startCol = start_col, colNames = FALSE)
   openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
   openxlsx::mergeCells(wb, sheet, rows = fila, cols = start_col:(start_col + 1))
   base_texto <- .notas_pie_texto(base_texto)
   if (nzchar(base_texto)) {
     fila <- fila + 1
-    openxlsx::writeData(wb, sheet, paste0("Base: ", base_texto), startRow = fila, startCol = start_col, colNames = FALSE)
+    openxlsx::writeData(wb, sheet, paste0("Base: ", .notas_pie_cerrar(base_texto)), startRow = fila, startCol = start_col, colNames = FALSE)
     openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
     openxlsx::mergeCells(wb, sheet, rows = fila, cols = start_col:(start_col + 1))
   }
