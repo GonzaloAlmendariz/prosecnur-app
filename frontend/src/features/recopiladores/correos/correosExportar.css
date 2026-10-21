@@ -168,3 +168,27 @@
     transition: none;
   }
 }
+
+/* Pasos en Mailchimp: lista numerada corta, una línea por paso. */
+.rec-exp-pasos {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+.rec-exp-pasos ol {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+.rec-exp-pasos li::marker {
+  color: var(--pulso-module-fieldkit);
+  font-weight: 600;
+}
+.rec-exp-pasos b {
+  color: var(--pulso-text);
+  font-weight: 600;
+}
