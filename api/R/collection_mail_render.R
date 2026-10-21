@@ -264,6 +264,11 @@
   )
 }
 
+.cmail_first_block_bleeds <- function(template) {
+  first <- (template$blocks %||% list())[1][[1]]
+  !is.null(first) && identical(first$type, "image") && isTRUE(unlist(first$bleed))
+}
+
 #' Renderiza la plantilla a HTML de correo.
 #'
 #' @param template plantilla validada.
@@ -273,11 +278,6 @@
 #' @param images salida de `.cmail_images_resolve()`.
 #' @return list(html, subject, preheader, bytes).
 #' @keywords internal
-.cmail_first_block_bleeds <- function(template) {
-  first <- (template$blocks %||% list())[1][[1]]
-  !is.null(first) && identical(first$type, "image") && isTRUE(unlist(first$bleed))
-}
-
 collection_mail_render <- function(template, mode = c("preview", "export", "mailchimp"),
                                    dialect = c("mailchimp", "surveymonkey"), values = list(), images = list(),
                                    known = list()) {
