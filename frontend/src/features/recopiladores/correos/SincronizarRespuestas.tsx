@@ -16,7 +16,7 @@ import {
 } from "../../../api/mailchimpSync";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { CheckCircle2, Loader2, RefreshCw } from "../../../vendor/lucide-react";
-import { guardarEleccion, leerEleccion, resumenDeSincronizacion, segmentoEnMailchimp } from "./sincronizacionModel";
+import { PASOS_EN_MAILCHIMP, guardarEleccion, leerEleccion, resumenDeSincronizacion, segmentoEnMailchimp } from "./sincronizacionModel";
 import "./correosSincronizacion.css";
 
 type Props = { campana: string | null };
@@ -133,13 +133,16 @@ export function SincronizarRespuestas({ campana }: Props) {
 
       {error ? <p className="rec-mail-problema-linea" role="alert">{error}</p> : null}
 
+      <ol className="rec-sync-pasos" aria-label="Cómo sale el recordatorio en Mailchimp">
+        {PASOS_EN_MAILCHIMP.map((p, i) => (
+          <li key={p}>{i === 3 ? <>En To, elige el segmento <code>{segmentoEnMailchimp(etiqueta.trim() || "Respondió")}</code> y envía con Send.</> : p}</li>
+        ))}
+      </ol>
+
       {resumen && resultado ? (
         <div className="rec-sync-resultado" role="status">
           <b>{resumen.titulo}</b>
           {resumen.lineas.map((l) => <span key={l}>{l}</span>)}
-          <span className="rec-sync-paso">
-            En Mailchimp, envía este recordatorio al segmento <code>{segmentoEnMailchimp(resultado.tag)}</code>.
-          </span>
         </div>
       ) : null}
     </section>

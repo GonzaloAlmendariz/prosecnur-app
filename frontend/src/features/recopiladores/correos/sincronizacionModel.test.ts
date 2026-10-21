@@ -53,3 +53,11 @@ describe("normalizadores defensivos", () => {
     expect(normalizeResultado(null).tag).toBe("Respondió");
   });
 });
+
+describe("avisos del recordatorio", () => {
+  it("avisa si el asunto repite el de la invitación o si falta apertura", async () => {
+    const { avisosDeRecordatorio } = await import("./sincronizacionModel");
+    expect(avisosDeRecordatorio("Prueba: Reacreditación", "prueba:  reacreditación", "")).toHaveLength(2);
+    expect(avisosDeRecordatorio("Recordatorio: Prueba", "Prueba", "Le recordamos…")).toEqual([]);
+  });
+});
