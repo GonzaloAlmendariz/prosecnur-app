@@ -2123,6 +2123,9 @@
     active <- if (exists("estudio_active_base", mode = "function")) estudio_active_base(sid) else NULL
     key <- paste(key, as.character(active %||% ""), sep = ":")
   }
+  # El universo declarado («qué casos cuentan») cambia la base preparada.
+  universo <- tryCatch(.analitica_universo_firma(sid), error = function(e) "")
+  if (nzchar(universo)) key <- paste(key, universo, sep = ":u")
   key
 }
 
