@@ -1,7 +1,9 @@
 # collection_mail_blocks.R — HTML de cada bloque del correo
 # (`collection_mail_template/v2`, ADR 0110 §2 y E1g §1/§B).
 #
-# Cada renderizador devuelve una o más filas `<tr>` de la tarjeta de 600 px.
+# Cada renderizador devuelve una o más filas `<tr>` de la columna (`ctx$width`,
+# 600 px por defecto; collection_mail_ajustes.R). Las celdas con margen lateral
+# de 48 px llevan la clase `cmail-pad`, que en teléfono lo baja a 20 px.
 # Los estilos salen SOLO de las enumeraciones de collection_mail_styles.R:
 # nunca se copia CSS del autor. En preview, la primera fila del bloque lleva
 # `data-pulso-block`/`data-pulso-type` y cada texto su `data-pulso-prop`
@@ -12,7 +14,7 @@
   a <- .cmail_align_css(align)
   sprintf(
     '<tr><td%s style="padding:%s;font-family:%s;font-size:%dpx;line-height:%dpx;color:%s;%s">%s</td></tr>',
-    a$attr, padding, .CMAIL_FONT, as.integer(size), as.integer(line), color, a$css, inner
+    .cmail_class_attr(a$cls, .CMAIL_PAD_CLASS), padding, .CMAIL_FONT, as.integer(size), as.integer(line), color, a$css, inner
   )
 }
 
@@ -56,9 +58,9 @@
     return(sprintf('<tr><td style="height:%dpx;line-height:%dpx;font-size:0;">&nbsp;</td></tr>', px * 2L, px * 2L))
   }
   sprintf(paste0(
-    '<tr><td style="padding:%dpx 48px %dpx 48px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">',
+    '<tr><td class="%s" style="padding:%dpx 48px %dpx 48px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">',
     '<tr><td style="height:1px;line-height:1px;font-size:0;background-color:%s;">&nbsp;</td></tr></table></td></tr>'
-  ), px, px, ctx$pal$border)
+  ), .CMAIL_PAD_CLASS, px, px, ctx$pal$border)
 }
 
 .CMAIL_BUTTON_PAD <- list(compacto = c(10L, 26L, 14L), normal = c(15L, 40L, 16L), grande = c(18L, 52L, 17L))
@@ -80,13 +82,13 @@
     paste(.cmail_items_html(note, ctx, "note", FALSE, "<span%s>%s</span>"), collapse = "<br>")
   ) else ""
   sprintf(paste0(
-    '<tr><td align="%s" style="padding:14px 48px 30px 48px;">',
+    '<tr><td align="%s" class="%s" style="padding:14px 48px 30px 48px;">',
     '<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="%s"><tr>',
     '<td align="center" bgcolor="%s" style="background-color:%s;border-radius:%s;mso-padding-alt:%dpx %dpx;">',
     '<a href="%s" target="_blank"%s style="display:inline-block;padding:%dpx %dpx;border:%s solid %s;border-radius:%s;',
     'font-family:%s;font-size:%dpx;line-height:20px;font-weight:bold;letter-spacing:0.2px;color:%s;text-decoration:none;">%s</a>',
     '</td></tr></table>%s</td></tr>'
-  ), align, align, bg, bg, radius, pad[[1]], pad[[2]], .cmail_url(b$url, ctx), .cmail_prop(ctx, "text"),
+  ), align, .CMAIL_PAD_CLASS, align, bg, bg, radius, pad[[1]], pad[[2]], .cmail_url(b$url, ctx), .cmail_prop(ctx, "text"),
   pad[[1]], pad[[2]], if (outline) "2px" else "1px", border, radius, .CMAIL_FONT, pad[[3]], fg,
   .cmail_inline(b$text, ctx), note_html)
 }
@@ -110,10 +112,10 @@
     bar <- identical(variant, "bar")
     panel <- if (bar) pal$panel_bar else pal$panel_tint
     return(sprintf(paste0(
-      '<tr><td style="padding:0 46px %dpx 46px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">',
+      '<tr><td class="%s" style="padding:0 46px %dpx 46px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">',
       '<tr><td%s bgcolor="%s" style="padding:%s;%sbackground-color:%s;font-family:%s;font-size:15px;line-height:23px;color:%s;%s">%s</td></tr>',
       '</table></td></tr>'
-    ), if (bar) 12L else 18L, al$attr, panel,
+    ), .CMAIL_PAD_CLASS, if (bar) 12L else 18L, al$attr, panel,
     if (bar) "14px 18px" else "18px 22px",
     if (bar) sprintf("border-left:3px solid %s;", pal$bar) else "",
     panel, .CMAIL_FONT, pal$text, al$cell, inner))
@@ -122,10 +124,10 @@
   # como un aviso, no como una tabla (revamp 2026-10-21).
   lis <- paste(.cmail_items_html(b$items, ctx, "items", TRUE, '<li style="margin:0 0 8px 0;"%s>%s</li>'), collapse = "")
   sprintf(paste0(
-    '<tr><td style="padding:4px 48px 24px 48px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">',
+    '<tr><td class="%s" style="padding:4px 48px 24px 48px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">',
     '<tr><td%s bgcolor="%s" style="background-color:%s;border-left:3px solid %s;border-radius:0 6px 6px 0;padding:18px 24px 10px 22px;font-family:%s;font-size:15px;line-height:23px;color:%s;%s">',
     '%s<ul style="margin:0 0 8px 0;padding-left:20px;">%s</ul></td></tr></table></td></tr>'
-  ), al$attr, pal$panel_box, pal$panel_box, pal$bar, .CMAIL_FONT, pal$text, al$cell,
+  ), .CMAIL_PAD_CLASS, al$attr, pal$panel_box, pal$panel_box, pal$bar, .CMAIL_FONT, pal$text, al$cell,
   paste(title_html(sprintf('<p style="margin:0 0 10px 0;font-size:12px;line-height:16px;letter-spacing:1px;text-transform:uppercase;color:%s;"><strong%%s>%%s</strong></p>', pal$callout_title)), collapse = ""), lis)
 }
 
@@ -133,7 +135,7 @@
   id <- as.character(.cmail_one(b$image_ref) %||% "")
   img <- ctx$images[[id]] %||% .cmail_image_placeholder(id)
   bleed <- isTRUE(unlist(b$bleed))
-  width <- .cmail_image_width(b, img)
+  width <- .cmail_image_width(b, img, ctx$width)
   align <- .cmail_style(b, "align", "center")
   # Decorativa (E1o): alt vacío, aunque el bloque conserve uno.
   alt <- if (isTRUE(unlist(b$decorative))) "" else .cmail_one(b$alt) %||% ""
@@ -141,7 +143,7 @@
   # Tope de alto (E1o, «nada se deforma»): una imagen muy alta baja su ancho y
   # declara los dos lados por su proporción real; sin tope, height:auto basta
   # (y el HTML de siempre no cambia).
-  capped <- .cmail_image_capped(b, img)
+  capped <- .cmail_image_capped(b, img, ctx$width)
   margin <- switch(align, center = "margin:0 auto;", right = "margin:0 0 0 auto;", "")
   tag <- if (is.null(src)) {
     h <- max(40L, as.integer(round(width / 2)))
@@ -150,7 +152,7 @@
   } else {
     # A sangre llena la tarjeta (width:100%), como el banner de cabecera: con
     # un ancho fijo el editor de Mailchimp, que dibuja la tarjeta más ancha,
-    # dejaba una franja blanca. width="600" sigue fijándolo en Outlook.
+    # dejaba una franja blanca. width="600" (el de la columna) sigue fijándolo en Outlook.
     if (bleed) {
       sprintf('<img src="%s" width="%d" alt="%s" style="display:block;width:100%%;height:auto;border:0;outline:none;text-decoration:none;">',
               .cmail_esc(src), width, .cmail_esc(alt))
@@ -166,32 +168,34 @@
   if (!is.null(url) && nzchar(trimws(url))) {
     tag <- sprintf('<a href="%s" target="_blank" style="text-decoration:none;">%s</a>', .cmail_url(url, ctx), tag)
   }
-  sprintf('<tr><td align="%s" style="padding:%s;line-height:0;font-size:0;">%s</td></tr>',
-          align, if (bleed) "0" else "6px 46px 18px 46px", tag)
+  sprintf('<tr><td align="%s"%s style="padding:%s;line-height:0;font-size:0;">%s</td></tr>',
+          align, if (bleed) "" else .cmail_class_attr(.CMAIL_PAD_CLASS), if (bleed) "0" else "6px 46px 18px 46px", tag)
 }
 
 # Ancho de un bloque image: el declarado; si no, la mitad del natural (imagen a
-# 2x), con tope 600; a sangre, 600. Si a ese ancho pasaría de 600 px de alto,
-# el ancho se recalcula por la proporción (`.cmail_image_capped`).
-.cmail_image_width <- function(b, img) {
-  capped <- .cmail_image_capped(b, img)
+# 2x), con tope el ancho de la columna (`width`, 600 por defecto); a sangre, el
+# de la columna. Si a ese ancho pasaría de 600 px de alto, el ancho se recalcula
+# por la proporción (`.cmail_image_capped`).
+.cmail_image_width <- function(b, img, width = .CMAIL_WIDTH) {
+  capped <- .cmail_image_capped(b, img, width)
   if (!is.null(capped)) return(capped$width)
-  .cmail_image_width_raw(b, img)
+  .cmail_image_width_raw(b, img, width)
 }
 
-.cmail_image_width_raw <- function(b, img) {
-  if (isTRUE(unlist(b$bleed))) return(.CMAIL_WIDTH)
+.cmail_image_width_raw <- function(b, img, width = .CMAIL_WIDTH) {
+  width <- as.integer(width %||% .CMAIL_WIDTH)
+  if (isTRUE(unlist(b$bleed))) return(width)
   w <- suppressWarnings(as.integer(unlist(b$width)[1]))
-  if (length(w) && !is.na(w)) return(max(40L, min(.CMAIL_WIDTH, w)))
+  if (length(w) && !is.na(w)) return(max(40L, min(width, w)))
   natural <- img$size$width
   if (is.null(natural)) return(300L)
-  as.integer(max(40L, min(.CMAIL_WIDTH, round(natural / 2))))
+  as.integer(max(40L, min(width, round(natural / 2))))
 }
 
 # list(width, height) si el tope de alto recorta la imagen (no a sangre); NULL si no.
-.cmail_image_capped <- function(b, img) {
+.cmail_image_capped <- function(b, img, width = .CMAIL_WIDTH) {
   if (isTRUE(unlist(b$bleed)) || !.cmail_size_ok(img$size)) return(NULL)
-  w <- .cmail_image_width_raw(b, img)
+  w <- .cmail_image_width_raw(b, img, width)
   if (w * img$size$height / img$size$width <= .CMAIL_IMAGE_MAX_H) return(NULL)
   .cmail_fit(img$size, w)
 }
@@ -237,8 +241,8 @@
   paste0(
     if (!is.null(closing)) .cmail_text_td(sprintf('<p style="margin:0;"%s>%s</p>', .cmail_prop(ctx, "closing"), .cmail_inline(closing, ctx)),
                                           padding = "8px 48px 22px 48px", align = pal$signature_align, color = pal$text) else "",
-    sprintf('<tr><td style="padding:0 48px 40px 48px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"><tr><td%s style="border-top:1px solid %s;padding-top:20px;font-family:%s;font-size:14px;line-height:22px;color:%s;%s"><p style="margin:0;">%s</p></td></tr></table></td></tr>',
-            if (centered) ' align="center"' else "", pal$border, .CMAIL_FONT, pal$text, if (centered) "text-align:center;" else "", body)
+    sprintf('<tr><td class="%s" style="padding:0 48px 40px 48px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"><tr><td%s style="border-top:1px solid %s;padding-top:20px;font-family:%s;font-size:14px;line-height:22px;color:%s;%s"><p style="margin:0;">%s</p></td></tr></table></td></tr>',
+            .CMAIL_PAD_CLASS, if (centered) ' align="center"' else "", pal$border, .CMAIL_FONT, pal$text, if (centered) "text-align:center;" else "", body)
   )
 }
 

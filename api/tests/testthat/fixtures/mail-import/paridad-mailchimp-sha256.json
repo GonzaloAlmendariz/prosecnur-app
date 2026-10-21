@@ -1,20 +1,20 @@
 {
   "captured_at": "2026-10-21",
-  "commit": "7dbc7798d+E1n",
-  "note": "SHA256 del HTML de collection_mail_render(t, \"mailchimp\"). Recapturado en E1n (2026-10-21) por un cambio DELIBERADO: párrafos, recuadros y listas justificados por defecto (text-align:justify;text-justify:inter-word + clase cmail-justify y la regla @media max-width:480px del <head> que los baja a la izquierda en teléfono). Ningún otro byte cambió respecto del render anterior (diff normalizado contra HEAD 7dbc7798d). No regenerar sin un cambio de render declarado.",
+  "commit": "d4c55ddc0+E1p",
+  "note": "SHA256 del HTML de collection_mail_render(t, \"mailchimp\"). Recapturado en E1p (2026-10-21) por un cambio DELIBERADO: márgenes del cuerpo a 20 px en teléfono (clase cmail-pad en las celdas con margen lateral de 48/46 px y la regla @media max-width:480px del <head>, que se emite siempre). Ningún otro byte cambió: diff normalizado (quitar la regla y la clase) idéntico al render de HEAD d4c55ddc0 en 25 casos (paridad x mailchimp/surveymonkey/preview, piezas sobrio/campaña, alineaciones, campaña con onda). E1n (7dbc7798d) recapturó por el justificado. No regenerar sin un cambio de render declarado.",
   "sha256": {
-    "recuperacion": "sha256:8efaab450453ee3279328d2557549c682351f1151b31b565af2b2371a47b39fb",
-    "invitacion": "sha256:d7517887493033ebeb52e3e978da2c214093721462f632659b4e57c668a64255",
-    "recuperacion_img": "sha256:ea09b75d145f9e8ed2baaa1c4aab1811c96449d92e0b66f92ce3569ce7cbd864",
-    "completo": "sha256:9403447e95ead91783c848c2881ceb8b38a8b000b922c24ca49305380b20cd02",
-    "banner": "sha256:433232c628c11adc45ed23a457123c15ef8926fdecd601d299d5cc8c706c3ea9"
+    "recuperacion": "sha256:988612fbdd222592f2236ab26d15f3463b3b9815f506d2af087d289110973f3b",
+    "invitacion": "sha256:f51b3dab8e82b333dd6a5ddf8c454834393960587268e7a416c2e6e53d4bce5e",
+    "recuperacion_img": "sha256:66eea9e0c109dde3d78097a87c0a3e08b624a06471056a3d23bfb39c3c8df3aa",
+    "completo": "sha256:c2d7f37aa351c2be65a33cb01b922352320c445eb432127564d32802c2f6375a",
+    "banner": "sha256:67fb7f7ac0aea52621a4f64f4233dad4675248110c49af0a0fea127f11b10443"
   },
   "preview_sha256": {
-    "recuperacion": "sha256:2ebd48b5a6179dd1c7da01801afdbd2cbabf1d1abe103f11cd03617fa8c3eb36",
-    "invitacion": "sha256:a41faa8cd03b936f3518cf12f34d0afd6e7fcdbd9f2dd5817ce4081b6713ef76",
-    "recuperacion_img": "sha256:5d2d7b18a04ce268ab88844f67d553577791ff2b853fe0dc20d4546abe431a26",
-    "completo": "sha256:2f34a68406d0f3a9eafaa8bbb28459c6caf7ee7ea9d4eb59f27cbc7950d4e5c2",
-    "banner": "sha256:b2990072c4beb8e535bbfa2588006662591d12b326502ee83eecf05513e2ff1d"
+    "recuperacion": "sha256:2e810c5d03505c9a43828df33500c6948924bbf51c3e15c6459556dbd23bdd63",
+    "invitacion": "sha256:f107044e323e0f49bbc764190ec04b999fb845bd9e47ce89abb2cd44c538e9e3",
+    "recuperacion_img": "sha256:84917dc193bf7d7947eece3017ffb6682734a1e2610f5a79c6b28bfe74c08275",
+    "completo": "sha256:b37e58288d6a8685342edd565068adc8222877d9b1c483dbddae12cc993c99f1",
+    "banner": "sha256:4f7e86727da85d8fe3063c23c283ff96763cfcacb4aad236a8e14d98081e07e6"
   },
   "preview_values": {
     "nombre": "Ana",

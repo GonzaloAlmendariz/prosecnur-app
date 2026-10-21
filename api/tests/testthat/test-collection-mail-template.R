@@ -124,10 +124,13 @@ test_that("HTML de correo compatible: tablas de 600 px, botón bulletproof, alt 
     expect_match(mc$html, 'role="presentation" width="600"', fixed = TRUE)
     expect_match(mc$html, "max-width:600px", fixed = TRUE)
     expect_match(mc$html, '<td align="center" bgcolor="#0b1f54"', fixed = TRUE)
-    # CSS solo inline, salvo UNA regla del <head> (E1n): el justificado baja a
-    # la izquierda en teléfono por la clase cmail-justify.
+    # CSS solo inline, salvo DOS reglas del <head>: el justificado baja a la
+    # izquierda en teléfono por la clase cmail-justify (E1n) y los márgenes del
+    # cuerpo bajan a 20 px por la clase cmail-pad (E1p).
     expect_match(mc$html, .cmail_justify_style('class="cmail-justify"'), fixed = TRUE)
-    rest <- gsub(' class="cmail-justify"', "", sub(.cmail_justify_style('class="cmail-justify"'), "", mc$html, fixed = TRUE), fixed = TRUE)
+    expect_match(mc$html, .cmail_pad_style(), fixed = TRUE)
+    rest <- sub(.cmail_pad_style(), "", sub(.cmail_justify_style('class="cmail-justify"'), "", mc$html, fixed = TRUE), fixed = TRUE)
+    rest <- gsub(' class="(cmail-justify cmail-pad|cmail-justify|cmail-pad)"', "", rest)
     expect_false(grepl("<script|<style|class=", rest))
     imgs <- regmatches(mc$html, gregexpr("<img [^>]*>", mc$html))[[1]]
     expect_length(imgs, 2L)

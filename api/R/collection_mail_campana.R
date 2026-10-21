@@ -6,12 +6,15 @@
 # Tema (`collection_mail_template/v2`, ampliado sin cambio de esquema como
 # `theme.band`; claves cerradas en `.CMAIL_THEME_KEYS`):
 #   estilo      "sobrio" | "campana"              ausente = "sobrio"
-#   page_bg     "#rrggbb"  solo campaña; defecto el acento
+#   page_bg     "#rrggbb"  campaña: defecto el acento; sobrio (E1p): el fondo
+#                          fuera de la tarjeta, defecto el gris de siempre
 #   button_bg   "#rrggbb"  solo campaña; defecto #f9d53e (amarillo de la casa)
 #   button_text "#rrggbb"  solo campaña; defecto el de más contraste entre #0b1f3a y #ffffff
 #   text_align  "justify" | "left" | "center"     ambos estilos; defecto "justify"
 #   onda        "ninguna" | "pie"                 solo campaña; defecto "ninguna"
 #   onda_color  "#rrggbb"  solo campaña; defecto button_bg
+#   width       560 | 600 | 640               ambos estilos; defecto 600 (E1p,
+#                                             collection_mail_ajustes.R)
 # Las claves de campaña se aceptan con estilo sobrio (cambiar de estilo no las
 # borra) y no tienen efecto.
 #
@@ -43,7 +46,7 @@
 .CMAIL_TEXT_ALIGNS <- c("justify", "left", "center")
 .CMAIL_ONDAS <- c("ninguna", "pie")
 .CMAIL_THEME_KEYS <- c("accent", "link", "band", "estilo", "page_bg", "button_bg", "button_text",
-                       "text_align", "onda", "onda_color")
+                       "text_align", "onda", "onda_color", "width")
 .CMAIL_CAMPANA_BUTTON_BG <- "#f9d53e"
 .CMAIL_CAMPANA_BUTTON_INKS <- c("#0b1f3a", "#ffffff")
 .CMAIL_CAMPANA_PANEL_MIX <- 0.10
@@ -79,7 +82,8 @@
   for (k in c("page_bg", "button_bg", "button_text", "onda_color")) {
     if (!is.null(theme[[k]]) && !.cmail_hex_ok(.cmail_one(theme[[k]]))) add(k, "bad_color", sprintf("%s es #rrggbb.", k))
   }
-  out
+  # Ancho de la columna (E1p): collection_mail_ajustes.R.
+  c(out, .cmail_ajustes_problems(theme))
 }
 
 # ---- paleta -------------------------------------------------------------------
@@ -110,7 +114,8 @@
 }
 
 #' Colores y alineaciones que usa el render. En sobrio son las constantes de
-#' siempre (paridad); en campaña se calculan del tema.
+#' siempre (paridad) salvo el fondo de la página y el pie, si el tema declara
+#' `page_bg` (E1p); en campaña se calculan del tema.
 #' @keywords internal
 .cmail_theme_palette <- function(template, accent, link) {
   theme <- template$theme %||% list()
@@ -123,9 +128,11 @@
     greeting_align = "left", signature_align = "left"
   )
   if (!base$campana) {
+    page <- .cmail_sobrio_page(theme)
     return(c(base, list(
-      page_bg = .CMAIL_PAGE_BG, text = .CMAIL_TEXT_COLOR, muted = .CMAIL_MUTED, border = .CMAIL_BORDER,
-      footer = .CMAIL_FOOTER_TEXT, link = link,
+      page_bg = page$page_bg, page_custom = page$page_custom,
+      text = .CMAIL_TEXT_COLOR, muted = .CMAIL_MUTED, border = .CMAIL_BORDER,
+      footer = page$footer, link = link,
       panel_box = .cmail_tint(accent), panel_bar = "#f5f6f9", panel_tint = .cmail_tint(accent),
       bar = accent, callout_title = accent,
       button_bg = accent, button_fg = "#ffffff", button_radius = "6px",
@@ -140,7 +147,7 @@
   base$greeting_align <- if (identical(text_align, "center")) "center" else "left"
   base$signature_align <- "center"
   c(base, list(
-    page_bg = page_bg, text = text, muted = .cmail_soft_ink(text, page_bg),
+    page_bg = page_bg, page_custom = TRUE, text = text, muted = .cmail_soft_ink(text, page_bg),
     border = .cmail_mix(text, page_bg, .CMAIL_CAMPANA_BORDER_MIX),
     footer = .cmail_soft_ink(text, page_bg), link = text,
     panel_box = panel, panel_bar = panel, panel_tint = panel,
@@ -158,14 +165,15 @@
 # teléfono lo baje a la izquierda.
 .cmail_align_css <- function(align) {
   if (identical(align, "justify")) {
-    return(list(attr = sprintf(' class="%s"', .CMAIL_JUSTIFY_CLASS), css = "text-align:justify;text-justify:inter-word;"))
+    return(list(attr = sprintf(' class="%s"', .CMAIL_JUSTIFY_CLASS), cls = .CMAIL_JUSTIFY_CLASS,
+                css = "text-align:justify;text-justify:inter-word;"))
   }
-  list(attr = "", css = sprintf("text-align:%s;", align))
+  list(attr = "", cls = "", css = sprintf("text-align:%s;", align))
 }
 
 # Regla del `<head>`: solo si el cuerpo justifica algo.
 .cmail_justify_style <- function(body) {
-  if (!grepl(sprintf('class="%s"', .CMAIL_JUSTIFY_CLASS), body, fixed = TRUE)) return("")
+  if (!grepl(sprintf('class="%s[" ]', .CMAIL_JUSTIFY_CLASS), body)) return("")
   sprintf('<style type="text/css">@media only screen and (max-width:480px){.%s{text-align:left !important;}}</style>',
           .CMAIL_JUSTIFY_CLASS)
 }
@@ -240,20 +248,24 @@
                    pal$onda_color, pal$onda_color, .CMAIL_ONDA_BAND_PX, .CMAIL_ONDA_BAND_PX))
   }
   sprintf('<tr><td style="padding:0;line-height:0;font-size:0;"><img src="%s" width="%d" alt="" style="display:block;border:0;outline:none;text-decoration:none;width:100%%;height:auto;"></td></tr>',
-          .cmail_esc(src), .CMAIL_WIDTH)
+          .cmail_esc(src), ctx$width %||% .CMAIL_WIDTH)
 }
 
 # ---- revisión -------------------------------------------------------------------
 
 .cmail_identity_target <- function(prop) .cmail_target(.CMAIL_IDENTITY_TARGET, prop)
 
-#' Chequeos de contraste del estilo campaña (nada con estilo sobrio).
-#' `campana_text_contrast`, `campana_button_contrast`, `campana_footer_contrast`.
+#' Chequeos de contraste del estilo campaña: `campana_text_contrast`,
+#' `campana_button_contrast`, `campana_footer_contrast`. En sobrio, solo el del
+#' pie y solo si el tema declara un `page_bg` propio (E1p).
 #' @keywords internal
 .cmail_campana_checks <- function(tpl, push) {
   accent <- .cmail_one(tpl$theme$accent) %||% .CMAIL_DEFAULT_ACCENT
   pal <- .cmail_theme_palette(tpl, accent, accent)
-  if (!isTRUE(pal$campana)) return(push)
+  if (!isTRUE(pal$campana)) {
+    if (isTRUE(pal$page_custom)) push(.cmail_footer_contrast_check(pal))
+    return(push)
+  }
   r2 <- function(x) round(x, 2)
   fmt <- function(x) formatC(x, format = "f", digits = 2, decimal.mark = ",")
 
@@ -292,14 +304,6 @@
     )
   }
 
-  foot <- r2(.cmail_contrast(pal$footer, pal$page_bg))
-  push(if (foot < .CMAIL_CONTRAST_MIN) {
-    .cmail_check("campana_footer_contrast", "error", foot,
-                 sprintf("El pie legal sobre el fondo %s tiene contraste %s:1 (mínimo 4,5:1): la dirección y la baja deben leerse. Elige en Identidad un fondo de página más oscuro o más claro.",
-                         pal$page_bg, fmt(foot)),
-                 targets = list(.cmail_identity_target("page_bg")))
-  } else {
-    .cmail_check("campana_footer_contrast", "ok", foot, sprintf("El pie legal se lee sobre el fondo: %s:1.", fmt(foot)))
-  })
+  push(.cmail_footer_contrast_check(pal))
   push
 }
