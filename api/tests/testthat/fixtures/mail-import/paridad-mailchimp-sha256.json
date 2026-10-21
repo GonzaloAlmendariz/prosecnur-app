@@ -3,18 +3,18 @@
   "commit": "bff880635",
   "note": "SHA256 del HTML de collection_mail_render(t, \"mailchimp\") ANTES del dialecto (E1j). No regenerar: la paridad es contra este estado.",
   "sha256": {
-    "recuperacion": "sha256:ee4e58014d92c665e0cff874e665250af2e5bf6273851a3c13965cec757bc5e6",
-    "invitacion": "sha256:320eb3ab3999876c1e49e68ec9771a7cd04e4a32fb7ff27c3b8a3e37b44ffe01",
-    "recuperacion_img": "sha256:f194c0b2ca24e1a7bf57738c76bc1b8440d924cc1b8887443788a125b4ab4f53",
-    "completo": "sha256:04c61bceff991449b77fa8ee0e8dd39cfd7a56793ec575681e2a68c049e91488",
-    "banner": "sha256:c5ba8aa6a4f5e028c9d53e16f7090f5849591726935b37ea6acea707d9d6c4fd"
+    "recuperacion": "sha256:e7ae6de296de0e2124c0f81bd99def9bf999e270c5db3370adf60515d08978b2",
+    "invitacion": "sha256:b17dba8be7ccf46ca8869210e3825ac66f42b574b880dbf0e001f279c45dc1fc",
+    "recuperacion_img": "sha256:71fa8a146f636351b24583a203178f47770902da9f476c74139cae8327f099b6",
+    "completo": "sha256:da8a477dec42af4a920a1374991bbee362e704caeb1880a0391c7eb75c3c5dfd",
+    "banner": "sha256:cee6c401ddbc084b86287d14e3fa2e015d790d6f136896b80af1f17e5ce664fe"
   },
   "preview_sha256": {
-    "recuperacion": "sha256:22580d7dd3f78d40b0918af8932977c383860b3fb805b4880555bc7eaa5ba34b",
-    "invitacion": "sha256:830af22340c520581e44597c95a739c96fda934b209b09fca7d148c3adf5c5bd",
-    "recuperacion_img": "sha256:519bbc9957ee18c0b94d0f0ac31245af9fb76f25cb17a46b71a86b0b7768bf0f",
-    "completo": "sha256:bc760c0c6e45baad748da31a56625086df636e30f4f4a53fd57b37744f35950b",
-    "banner": "sha256:eaa186c63336fff452ca7fb9fb142c1ff1d382e5dca0f54ca473bd68ba7a7eed"
+    "recuperacion": "sha256:e35441dc693853ade90f7ababa16b3d95a1ecd29302d69a04c2abda96a420203",
+    "invitacion": "sha256:f138b2eddbff665848620250d2d3d67aa20bf7239eb88e30a080448107d16fa8",
+    "recuperacion_img": "sha256:c055fa8eeaa20b3843b899a539a44b7d79c52cb2fdb98ea2f7fe7004fa5ce481",
+    "completo": "sha256:509989ae5b2be1e4d518cb2a145abe968917c4f58b4a204a83a172a8ed2835c8",
+    "banner": "sha256:05d51cd1dc30dbf9088a34b2c91825c79554eddf56694718407a314057c75a45"
   },
   "preview_values": {
     "nombre": "Ana",

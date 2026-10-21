@@ -77,8 +77,8 @@ test_that("estilos: solo enumeraciones cerradas; cualquier otra clave es unknown
   t$theme$link <- "#1a56b8"
   expect_length(.cme_codes(t), 0L)
   html <- collection_mail_render(.cmail_template_normalize(t), "mailchimp")$html
-  expect_match(html, "font-size:13px;line-height:20px;color:#555555;", fixed = TRUE)
-  expect_match(html, "padding:18px 60px", fixed = TRUE)
+  expect_match(html, "font-size:13px;line-height:20px;color:#5f6673;", fixed = TRUE)
+  expect_match(html, "padding:18px 52px", fixed = TRUE)
   expect_match(html, 'bgcolor="#ffffff" style="background-color:#ffffff;', fixed = TRUE)
   expect_match(html, .cmail_tint("#0b1f54"), fixed = TRUE)
   expect_identical(.cmail_tint("#0b1f54"), "#ebedf1")

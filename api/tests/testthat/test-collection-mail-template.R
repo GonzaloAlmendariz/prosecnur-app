@@ -237,3 +237,18 @@ test_that("imagen a sangre bajo la franja de logos: llena la tarjeta y no deja r
   expect_match(collection_mail_render(t2, "mailchimp", images = .cmail_images_resolve(session_get(sid), t2))$html,
                'height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>', fixed = TRUE)
 })
+
+test_that("banner: al menos 1200 px de ancho y forma de banner (4:3 a 2,4:1)", {
+  for (dims in list(c(1201L, 810L, 1L), c(1200L, 600L, 1L), c(3201L, 1801L, 1L), c(1200L, 1300L, 0L),
+                    c(800L, 400L, 0L), c(3000L, 1000L, 0L))) {
+    sid <- session_create()
+    .cmail_fx_logo(sid, "banner-estudio.png", width = dims[[1]], height = dims[[2]])
+    t <- .cmail_template_normalize(.cmail_preset_recuperacion())
+    t$header <- list(kind = "banner", image_ref = "banner-estudio")
+    t$images <- list(`banner-estudio` = list(alt = "Estudio"))
+    r <- collection_mail_review(sid, template = t)
+    by <- setNames(r$checks, vapply(r$checks, `[[`, "", "code"))
+    expect_identical(by$banner_size$status, if (dims[[3]] == 1L) "ok" else "error", label = paste(dims[1:2], collapse = "x"))
+    session_delete(sid)
+  }
+})
