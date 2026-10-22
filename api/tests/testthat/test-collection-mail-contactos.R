@@ -152,6 +152,77 @@ test_that("enlace: valida https y forma; fuera de SurveyMonkey avisa pero genera
   expect_identical(.cmail_enlace_join("https://x.org/r/A?", "abc"), "https://x.org/r/A?t=abc")
 })
 
+test_that("enlace: el aviso fuera de SurveyMonkey dice causa y arreglo, sin jerga", {
+  aviso <- .cmail_enlace_url_check("https://forms.ejemplo.org/encuesta")$aviso
+  expect_identical(aviso, paste("Este enlace no es de SurveyMonkey: los enlaces se generaron, pero la app no",
+                                "podrá saber quién respondió. Para eso, usa el enlace del recopilador web de SurveyMonkey."))
+  expect_false(grepl("variable t|«t»|/r/", aviso))
+  expect_null(.cmail_enlace_url_check("https://es.surveymonkey.com/r/ABC")$aviso)
+})
+
+test_that("rótulos: clave humanizada con tildes; el label de la plantilla manda; la clave no cambia", {
+  expect_identical(.cmail_rotulo_de_clave(c("anio_egreso", "carrera", "SITUACION_LABORAL", "region-origen",
+                                            "ano", "numero_de_telefono", "Pais", "__", "Sede")),
+                   c("Año egreso", "Carrera", "Situación laboral", "Región origen",
+                     "Ano", "Número de teléfono", "País", "__", "Sede"))
+  store <- list(rows = data.frame(prog = "x", genero = "F", enlace_encuesta = "u"),
+                mapping = list(fields = list(carrera = "prog")))
+  tpl <- list(fields = list(list(key = "carrera", label = "Carrera profesional"),
+                            list(key = "genero", label = "Sexo declarado"),
+                            list(key = "otro", label = "")))
+  expect_identical(.cmail_column_labels(store, tpl, c("prog", "genero", "enlace_encuesta", "anio")),
+                   c(prog = "Carrera profesional", genero = "Sexo declarado",
+                     enlace_encuesta = "Enlace a la encuesta", anio = "Año"))
+  # Plantilla sin campos o con basura: se humaniza.
+  expect_identical(.cmail_column_labels(store, list(fields = "x"), "genero"), c(genero = "Género"))
+
+  sid <- .cct_session(); on.exit(session_delete(sid), add = TRUE)
+  csv <- paste("Nombre,Correo,anio_egreso,carrera,condicion",
+               "A,a@ejemplo.org,2020,Derecho,Titulado",
+               "B,b@ejemplo.org,2021,Economía,Bachiller", sep = "\n")
+  .cct_import(sid, csv)
+  l <- collection_mail_contacts_list(sid, "egresados")
+  expect_identical(vapply(l$columnas, `[[`, "", "key"), c("anio_egreso", "carrera", "condicion"))
+  expect_identical(vapply(l$columnas, `[[`, "", "label"), c("Año egreso", "Carrera", "Condición"))
+  # Los filtros siguen por clave.
+  expect_identical(collection_mail_contacts_list(sid, "egresados", filtros = '{"anio_egreso":["2021"]}')$total, 1L)
+  collection_mail_contacts_control_put(sid, "egresados", list("anio_egreso", "condicion"))
+  p <- collection_mail_contacts_perfil(sid, "egresados", cruce = "anio_egreso,condicion")
+  cand <- stats::setNames(vapply(p$candidatas, `[[`, "", "label"), vapply(p$candidatas, `[[`, "", "key"))
+  expect_identical(cand[["anio_egreso"]], "Año egreso")
+  expect_identical(cand[["condicion"]], "Condición")
+  expect_identical(vapply(p$variables, `[[`, "", "key"), c("anio_egreso", "condicion"))
+  expect_identical(vapply(p$variables, `[[`, "", "label"), c("Año egreso", "Condición"))
+  expect_identical(p$cruce[c("a", "b", "a_label", "b_label")],
+                   list(a = "anio_egreso", b = "condicion", a_label = "Año egreso", b_label = "Condición"))
+})
+
+test_that("lista: el enlace generado no es columna visible y el resumen trae enlace_url al recargar", {
+  sid <- .cct_session(); on.exit(session_delete(sid), add = TRUE)
+  .cct_import(sid)
+  l0 <- collection_mail_contacts_list(sid, "egresados")
+  expect_true(is.na(l0$resumen$enlace_url))
+  expect_true(is.na(collection_mail_contacts_perfil(sid, "egresados")$enlace_url))
+  expect_true(is.na(.cmail_no_store_resumen()$enlace_url))
+  url <- "https://es.surveymonkey.com/r/ABC?lang=es"
+  collection_mail_enlace_put(sid, "egresados", url)
+  l <- collection_mail_contacts_list(sid, "egresados")
+  expect_identical(l$resumen$enlace_url, url)
+  expect_identical(collection_mail_contacts_perfil(sid, "egresados")$enlace_url, url)
+  expect_false("enlace_encuesta" %in% vapply(l$columnas, `[[`, "", "key"))
+  expect_false("enlace_encuesta" %in% names(l$rows[[1]]$valores))
+  expect_true(l$rows[[1]]$tiene_enlace)
+  # La URL cruda no aparece en la lista fuera del resumen.
+  expect_false(any(grepl("t=", unlist(l$rows), fixed = TRUE)))
+  # Buscar por el token no encuentra a nadie: la URL no es un valor de la lista.
+  tok <- .cct_tokens(sid)[["ana@ejemplo.org"]]
+  expect_identical(collection_mail_contacts_list(sid, "egresados", q = tok)$total, 0L)
+  # Serializado: enlace_url sale como cadena y, sin enlace, como null.
+  js <- jsonlite::toJSON(l$resumen, auto_unbox = TRUE, na = "null")
+  expect_match(as.character(js), '"enlace_url":"https://es.surveymonkey.com/r/ABC?lang=es"', fixed = TRUE)
+  expect_match(as.character(jsonlite::toJSON(l0$resumen, auto_unbox = TRUE, na = "null")), '"enlace_url":null', fixed = TRUE)
+})
+
 test_that("tokens: fuente aleatoria sin colisiones contra los ya emitidos", {
   taken <- .cmail_token_new(2000L)
   more <- .cmail_token_new(2000L, taken = taken)
@@ -431,8 +502,11 @@ test_that("HTTP: contrato de las cuatro rutas con el serializador de producción
   expect_null(l$body$rows[[1]]$respondio)
   expect_true(isTRUE(l$body$rows[[1]]$tiene_enlace))
   expect_setequal(names(l$body$resumen), c("importados", "efectivos", "sin_correo", "correo_invalido", "repetidos",
-                                           "con_enlace", "respondieron", "leido_en"))
+                                           "con_enlace", "respondieron", "leido_en", "enlace_url"))
   expect_null(l$body$resumen$respondieron)
+  expect_identical(l$body$resumen$enlace_url, "https://es.surveymonkey.com/r/ABC")
+  expect_false("enlace_encuesta" %in% vapply(l$body$columnas, function(c) c$key, ""))
+  expect_identical(vapply(l$body$columnas, function(c) c$label, ""), c("Carrera", "Sexo", "Sede"))
   q <- call_q("/api/recopiladores/mail-contacts", "campaign_id=egresados&estado=nada")
   expect_identical(q$status, 422L)
 
@@ -444,6 +518,8 @@ test_that("HTTP: contrato de las cuatro rutas con el serializador de producción
   expect_identical(p$body$variables[[1]]$sin_dato$n, 0L)
   expect_identical(sum(unlist(p$body$cruce$celdas)), 5L)
   expect_false(p$body$respuestas_leidas)
+  expect_identical(p$body$enlace_url, "https://es.surveymonkey.com/r/ABC")
+  expect_identical(p$body$cruce$a_label, "Carrera")
   p0 <- call_q("/api/recopiladores/mail-contacts/perfil", "campaign_id=egresados")
   expect_null(p0$body$cruce)
 })
