@@ -353,6 +353,8 @@ export function sinPuntosVacios(block: MailBlock, prop: string): MailBlock {
 /**
  * El `src` que la vista previa ya pinta para la imagen de un bloque: lo que
  * hay entre su marca `data-pulso-block` y la siguiente. Sin imagen, `null`.
+ * El hueco de una imagen sin archivo lleva un `<img>` SVG transparente que solo
+ * da la proporción (`.cmail_preview_hole`): ése no es la imagen y no cuenta.
  */
 export function srcDeImagenDelBloque(html: string | null | undefined, blockId: string): string | null {
   if (!html) return null;
@@ -362,7 +364,9 @@ export function srcDeImagenDelBloque(html: string | null | undefined, blockId: s
   const resto = html.slice(inicio + marca.length);
   const fin = resto.indexOf("data-pulso-block=");
   const tramo = fin < 0 ? resto : resto.slice(0, fin);
-  const m = tramo.match(/<img\b[^>]*?\ssrc="([^"]*)"/i);
-  if (!m || !m[1]) return null;
-  return m[1].replace(/&#(?:10|13);/g, "").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
+  const src = [...tramo.matchAll(/<img\b[^>]*?\ssrc="([^"]*)"/gi)]
+    .map((m) => m[1])
+    .find((s) => s && !/^data:image\/svg\+xml/i.test(s));
+  if (!src) return null;
+  return src.replace(/&#(?:10|13);/g, "").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
 }
