@@ -58,6 +58,9 @@
   push(.cmail_placeholder_check(tpl))
   # Piezas gráficas (E1o): solo si la plantilla trae alguna.
   push <- .cmail_piezas_checks(tpl, images, push, dialect)
+  # Banner que ya trae los logos bajo la franja de logos (collection_mail_trae_logos.R).
+  dup <- .cmail_logos_duplicados_check(tpl)
+  if (!is.null(dup)) push(dup)
   if (identical(dialect, "surveymonkey")) return(.cmail_image_checks_sm(tpl, images, push))
   # Alojamiento: cada imagen tiene URL https o va dentro del ZIP importable.
   data_uris <- lengths(regmatches(html, gregexpr("data:[a-z]+/", html)))

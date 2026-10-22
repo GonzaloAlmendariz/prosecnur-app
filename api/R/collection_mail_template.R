@@ -218,6 +218,7 @@ COLLECTION_MAIL_TEMPLATE_SCHEMA_V1 <- "collection_mail_template/v1"
   if (is.null(t$images) || (is.list(t$images) && !length(t$images))) {
     t$images <- structure(list(), names = character(0))
   }
+  t$images <- .cmail_trae_logos_normalize(t$images)
   t <- .cmc_drop_nulls_deep(t)
   t$template_sha256 <- NULL
   t$template_sha256 <- collection_fingerprint(t)
@@ -352,9 +353,11 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
     path <- paste0("template.images.", id)
     if (!.cmail_image_id_ok(id)) add(list(.cmail_problem(path, "bad_id", "Id de imagen: a-z, 0-9 y guiones (sin _).")))
     if (!is.list(img)) { add(list(.cmail_problem(path, "not_object", "Cada imagen es {alt, url}."))); next }
-    for (k in setdiff(names(img), c("alt", "url"))) {
+    for (k in setdiff(names(img), c("alt", "url", "trae_logos"))) {
       add(list(.cmail_problem(paste0(path, ".", k), "unknown_key", sprintf("`%s` no pertenece a una imagen.", k))))
     }
+    # El banner trae los logos (collection_mail_trae_logos.R).
+    add(.cmail_trae_logos_problems(img, path))
     add(.cmail_text_problems(img$alt, paste0(path, ".alt"), character(0)))
     if (!is.null(img$url)) {
       u <- .cmail_one(img$url)
