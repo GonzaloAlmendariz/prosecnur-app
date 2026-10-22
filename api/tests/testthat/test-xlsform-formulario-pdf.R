@@ -2085,3 +2085,29 @@ test_that("una fila de matriz que trae su propia letra no sale numerada dos vece
   expect_identical(.form_num_sin_letra_de_fila("a. Texto", 2L, "1.2"), "a. Texto")
   expect_identical(.form_num_sin_letra_de_fila("a. Texto", 1L, ""), "a. Texto")
 })
+
+test_that("el marcador de Kobo «0 Selecciona una respuesta» no se imprime y un 0 real sí", {
+  # HSyVbG 2026, P7 y P8 (decisión de Gonzalo 2026-10-22).
+  expect_identical(.form_num_es_marcador_kobo(c("0", "0", "1", "0"),
+                                              c("Selecciona una respuesta", "Ninguno", "Selecciona una respuesta", "-- Seleccionar opción")),
+                   c(TRUE, FALSE, FALSE, TRUE))
+  ch <- data.frame(list_name = "fac", name = c("1", "2", "0"), label = c("Derecho", "Letras", "Selecciona una respuesta"),
+                   stringsAsFactors = FALSE)
+  ops <- .form_pdf_options_by_list(ch)$fac
+  expect_identical(vapply(ops, `[[`, "", "code"), c("1", "2"))
+})
+
+test_that("un campo que pide especificar va en línea bajo su opción aunque no repita el rótulo", {
+  # HSyVbG 2026: «Especifica la otra instancia interna…» (P29_10_otro), «Otro cargo (especifica)» (P23_otro).
+  expect_true(.form_campos_rotulo_pide_especificar("Especifica la otra instancia interna de la PUCP a la que acudiste"))
+  expect_true(.form_campos_rotulo_pide_especificar("Otro cargo (especifica)"))
+  expect_true(.form_campos_rotulo_pide_especificar("Por favor, especifique"))
+  expect_false(.form_campos_rotulo_pide_especificar("Especificaciones del curso"))
+  expect_false(.form_campos_rotulo_pide_especificar("¿Por qué?"))
+  survey <- data.frame(type = c("select_one sn", "text"), name = c("P10", "P10_otro"),
+                       label = c("¿Acudiste a otra instancia?", "Especifica la otra instancia a la que acudiste"),
+                       relevant = c("", "${P10} = '1'"), stringsAsFactors = FALSE)
+  choices <- data.frame(list_name = "sn", name = c("1", "2"), label = c("Sí", "No"), stringsAsFactors = FALSE)
+  m <- suppressWarnings(formulario_pdf_build_model(survey, choices, data.frame(form_title = "T")))
+  expect_false(any(vapply(m$blocks, function(b) identical(b$name, "P10_otro"), logical(1))))
+})

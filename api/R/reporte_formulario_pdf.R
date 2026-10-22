@@ -270,6 +270,7 @@
   warnings <- character(0)
   out <- lapply(names(rows), function(list_name) {
     df <- rows[[list_name]]
+    df <- df[!.form_num_es_marcador_kobo(df$name, df$label), , drop = FALSE]
     lapply(seq_len(nrow(df)), function(i) {
       label_safe <- .form_pdf_paper_text_safe(df$label[i])
       label_full <- .form_pdf_paper_text(df$label[i])

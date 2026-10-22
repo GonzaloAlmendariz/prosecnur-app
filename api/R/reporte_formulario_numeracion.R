@@ -238,3 +238,14 @@
   out <- sub(rx, "", label, perl = TRUE)
   if (nzchar(trimws(out))) out else label
 }
+
+# Opción que sólo es el texto del desplegable de Kobo antes de elegir («0 Selecciona
+# una respuesta»): no es una respuesta y no va al papel (HSyVbG 2026, P7 y P8;
+# decisión de Gonzalo 2026-10-22). Se reconoce por el código 0 Y el rótulo de
+# invitación, para no tocar un 0 que sí sea una categoría.
+.form_num_es_marcador_kobo <- function(codigo, etiqueta) {
+  codigo <- trimws(as.character(codigo)); etiqueta <- trimws(as.character(etiqueta))
+  !is.na(codigo) & codigo == "0" & !is.na(etiqueta) &
+    grepl("^(-+\\s*)?selecciona(r)?\\s+(una|tu|la)?\\s*(respuesta|opci[oó]n|alternativa)\\b", etiqueta,
+          ignore.case = TRUE, perl = TRUE)
+}

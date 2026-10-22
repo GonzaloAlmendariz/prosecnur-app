@@ -49,6 +49,15 @@
   length(propias) > 0L && all(propias %in% palabras(etiqueta_opcion))
 }
 
+# ¿El rotulo PIDE especificar? «Especifica la otra instancia interna…», «Otro cargo
+# (especifica)» (HSyVbG 2026, P23/P29/P58: salían como sub-preguntas con letra
+# dispareja; decisión de Gonzalo 2026-10-22: en línea bajo su opción).
+.form_campos_rotulo_pide_especificar <- function(label) {
+  t <- trimws(.form_campos_sin_tildes(.form_pdf_clean_text(label)))
+  grepl("^(por favor,?\\s*)?(especifica|especifique|especificar|especifiquen|indica cual|indique cual)\\b", t, perl = TRUE) ||
+    grepl("\\((por favor,?\\s*)?(especifica|especifique|especificar)\\)\\s*[.:]?$", t, perl = TRUE)
+}
+
 .form_campos_es_n_cuestionario <- function(name, label) {
   n <- .form_campos_sin_tildes(name)
   l <- .form_campos_sin_tildes(.form_pdf_clean_text(label))
@@ -115,7 +124,8 @@
     if (!at$valor %in% codigos) next
     etiqueta_opcion <- .form_pdf_chr(opciones[[match(at$valor, codigos)]]$label)
     if (!.form_campos_rotulo_generico(survey$label[i]) &&
-        !.form_campos_rotulo_de_la_opcion(survey$label[i], etiqueta_opcion)) next
+        !.form_campos_rotulo_de_la_opcion(survey$label[i], etiqueta_opcion) &&
+        !.form_campos_rotulo_pide_especificar(survey$label[i])) next
     rol[i] <- "especifique"
     esp <- rbind(esp, data.frame(fila = i, origen = ant, codigo = at$valor, stringsAsFactors = FALSE))
   }
