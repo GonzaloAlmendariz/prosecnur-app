@@ -747,7 +747,8 @@ test_that(".bases_write_xlsx puede agregar ficha tecnica analitica", {
     valores = "codigos",
     ficha_tecnica = list(
       instrumento = inst,
-      reporte = "Base de datos analitica"
+      reporte = "Base de datos analitica",
+      adjuntar_a_xlsx = TRUE  # la ficha es un entregable aparte: sólo entra si se pide
     )
   )
 
