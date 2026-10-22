@@ -182,16 +182,31 @@
 # ---- imágenes ---------------------------------------------------------------
 # Resolución, medidas y `src`: collection_mail_images.R.
 
+# Hueco de la vista previa (solo `preview`: en export toda imagen lleva src) para
+# una imagen sin archivo ni URL: dice qué falta con el alt, a la medida y en la
+# proporción declaradas, y CEDE en teléfono. Un span de ancho fijo no cedía: en
+# una celda automática su ancho mínimo era el fijo y la página se desplazaba
+# (de 347 a 628 px a 320, Playwright 2026-10-22). Ahora el tamaño lo da una
+# imagen SVG vacía de `width` × `height` (comprimible como el <img> que
+# reemplaza: ancho mínimo 0, ancho máximo el declarado, alto por su proporción
+# exacta) y el borde punteado con el alt va encima. Empieza por `<span`: así el
+# front lo reconoce como hueco y no como logo (`logosDeLaVistaPrevia`).
+.cmail_preview_hole <- function(width, height, label, margin = "") {
+  width <- as.integer(width); height <- as.integer(height)
+  spacer <- sprintf("data:image/svg+xml,%%3Csvg xmlns=%%27http://www.w3.org/2000/svg%%27 width=%%27%d%%27 height=%%27%d%%27%%2F%%3E",
+                    width, height)
+  sprintf(paste0(
+    '<span style="display:block;position:relative;width:100%%;max-width:%dpx;%s">',
+    '<img src="%s" width="%d" height="%d" alt="" style="display:block;width:100%%;height:auto;border:0;">',
+    '<span style="position:absolute;top:0;right:0;bottom:0;left:0;box-sizing:border-box;display:flex;align-items:center;justify-content:center;',
+    'border:1px dashed #9aa3b5;font-family:%s;font-size:11px;line-height:14px;color:#5a6a94;text-align:center;overflow:hidden;">%s</span></span>'
+  ), width, margin, spacer, width, height, .CMAIL_FONT, .cmail_esc(label))
+}
+
 .cmail_img_tag <- function(img, ctx, width, height, style_extra = "", class = "") {
   src <- .cmail_image_src(img, ctx)
-  if (is.null(src)) {
-    # Preview sin archivo ni URL: un hueco con el alt, para que la vista diga qué falta. No lleva `class`: un
-    # inline-block de ancho fijo no se achica con max-width en una celda automática (medido); es solo preview.
-    return(sprintf(
-      '<span style="display:inline-block;width:%dpx;height:%dpx;line-height:%dpx;border:1px dashed #9aa3b5;font-family:%s;font-size:11px;color:#5a6a94;text-align:center;overflow:hidden;">%s</span>',
-      width, height, height, .CMAIL_FONT, .cmail_esc(if (nzchar(img$alt)) img$alt else img$id)
-    ))
-  }
+  # Preview sin archivo ni URL: el hueco con el alt. No lleva `class`: cede por sí mismo.
+  if (is.null(src)) return(.cmail_preview_hole(width, height, if (nzchar(img$alt)) img$alt else img$id))
   sprintf(
     '<img%s src="%s" width="%d" height="%d" alt="%s" style="display:block;border:0;outline:none;text-decoration:none;width:%dpx;height:%dpx;%s">',
     .cmail_class_attr(class), .cmail_esc(src), width, height, .cmail_esc(img$alt), width, height, style_extra

@@ -146,9 +146,8 @@
   capped <- .cmail_image_capped(b, img, ctx$width)
   margin <- switch(align, center = "margin:0 auto;", right = "margin:0 0 0 auto;", "")
   tag <- if (is.null(src)) {
-    h <- max(40L, as.integer(round(width / 2)))
-    sprintf('<span style="display:inline-block;width:%dpx;max-width:100%%;height:%dpx;line-height:%dpx;border:1px dashed #9aa3b5;font-family:%s;font-size:11px;color:#5a6a94;text-align:center;overflow:hidden;">%s</span>',
-            width, h, h, .CMAIL_FONT, .cmail_esc(if (nzchar(alt)) alt else id))
+    # Hueco de preview (collection_mail_render.R): cede en teléfono y conserva su proporción.
+    .cmail_preview_hole(width, max(40L, as.integer(round(width / 2))), if (nzchar(alt)) alt else id, margin)
   } else {
     # A sangre llena la tarjeta (width:100%), como el banner de cabecera: con
     # un ancho fijo el editor de Mailchimp, que dibuja la tarjeta más ancha,

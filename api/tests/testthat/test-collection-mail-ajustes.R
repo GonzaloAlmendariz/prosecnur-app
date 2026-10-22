@@ -36,17 +36,19 @@
 }
 
 # Huellas de E1n (HEAD d4c55ddc0, antes de E1p): el HTML de hoy sin la clase ni
-# la regla de teléfono debe ser exactamente ese.
+# la regla de teléfono debe ser exactamente ese. Las de preview con huecos
+# (todas salvo banner) se recapturaron el 2026-10-22 (E1p huecos: el hueco de
+# preview cede en teléfono, test-collection-mail-huecos.R); export no cambió.
 .CMA_E1N_SHA <- list(
   export = c(recuperacion = "sha256:8efaab450453ee3279328d2557549c682351f1151b31b565af2b2371a47b39fb",
              invitacion = "sha256:d7517887493033ebeb52e3e978da2c214093721462f632659b4e57c668a64255",
              recuperacion_img = "sha256:ea09b75d145f9e8ed2baaa1c4aab1811c96449d92e0b66f92ce3569ce7cbd864",
              completo = "sha256:9403447e95ead91783c848c2881ceb8b38a8b000b922c24ca49305380b20cd02",
              banner = "sha256:433232c628c11adc45ed23a457123c15ef8926fdecd601d299d5cc8c706c3ea9"),
-  preview = c(recuperacion = "sha256:2ebd48b5a6179dd1c7da01801afdbd2cbabf1d1abe103f11cd03617fa8c3eb36",
-              invitacion = "sha256:a41faa8cd03b936f3518cf12f34d0afd6e7fcdbd9f2dd5817ce4081b6713ef76",
-              recuperacion_img = "sha256:5d2d7b18a04ce268ab88844f67d553577791ff2b853fe0dc20d4546abe431a26",
-              completo = "sha256:2f34a68406d0f3a9eafaa8bbb28459c6caf7ee7ea9d4eb59f27cbc7950d4e5c2",
+  preview = c(recuperacion = "sha256:a09f179ee366182a9f4791b28c7ba492b62e68c2db9f12c7ef252947a5433d83",
+              invitacion = "sha256:1a1c97421db1f2ae3a1ee590b07bbe52b6c1a7a8ee820a52384dd4ce3081346d",
+              recuperacion_img = "sha256:72eef917a63acd491bea760e6a3cd2f1caa81497c9aea6db495960bfceb8b7cf",
+              completo = "sha256:012345cfd475a386b355f22479ce6c3001108fc5e2ce268beb97eb0fb97714ba",
               banner = "sha256:b2990072c4beb8e535bbfa2588006662591d12b326502ee83eecf05513e2ff1d")
 )
 
