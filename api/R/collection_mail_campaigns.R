@@ -9,8 +9,10 @@
 #
 # Claves opcionales de E1j/E1k/E1l (sin cambio de esquema, H-k2):
 # - `platform`: mailchimp | surveymonkey; sin ella, al leer vale mailchimp
-#   (collection_mail_dialects.R). Pasar a surveymonkey purga los destinatarios:
-#   los contactos viven en el recopilador de SurveyMonkey.
+#   (collection_mail_dialects.R). Pasar a surveymonkey ya NO purga los
+#   destinatarios (ADR 0112 §1): siguen siendo los contactos de la campaña.
+# - `contact_control`: variables de control de la pestaña Contactos (solo
+#   nombres de columna; clave de servidor, collection_mail_contactos.R).
 # - `sends` y `send_seq`: la invitación y sus recordatorios (collection_mail_sends.R).
 # - `imported_from`: { sha256, imported_at, platform_detected, report } de un HTML
 #   importado (collection_mail_import_html.R). El HTML crudo nunca se guarda.
@@ -30,10 +32,11 @@
 # fábrica bajo la campaña virtual `correo-1` (la que crea el primer PUT).
 #
 # **Destinatarios.** Por campaña, en `<session$dir>/mail_recipients/<id>/` (ver
-# collection_mail_recipients.R). Un `recipients.rds` de la raíz (sesión de una
+# collection_mail_recipients.R) y, al guardar, en `files/contactos/<id>.rds`
+# del `.pulso` (ADR 0112). Un `recipients.rds` de la raíz (sesión de una
 # versión anterior) se mueve a la carpeta de la única campaña. Duplicar NO
-# copia destinatarios ni mapeo: son datos personales. Borrar una campaña borra
-# su carpeta.
+# copia destinatarios, mapeo ni variables de control: son de la campaña. Borrar
+# una campaña borra su carpeta.
 #
 # Revisión: toda escritura exige `expected_revision = state_revision` (global).
 
@@ -362,7 +365,8 @@ collection_mail_campaign_duplicate <- function(sid, expected_revision, campaign_
 }
 
 #' Renombra una campaña, cambia su actor o su plataforma. El id y la plantilla
-#' no cambian. Pasar a surveymonkey purga los destinatarios de la campaña.
+#' no cambian. Desde ADR 0112 pasar a surveymonkey conserva los destinatarios
+#' (`recipients_purged` queda en la respuesta, siempre FALSE, por compatibilidad).
 #' @keywords internal
 collection_mail_campaign_meta_put <- function(sid, expected_revision, campaign_id, name = NULL, actor = NULL,
                                               platform = NULL) {
@@ -391,14 +395,9 @@ collection_mail_campaign_meta_put <- function(sid, expected_revision, campaign_i
   campaign$platform <- next_platform
   campaigns <- .cmail_campaigns_upsert(pick$set$campaigns, campaign)
   next_state <- .cmail_campaigns_commit(sid, current, campaigns)
-  # Datos personales mínimos: con SurveyMonkey los contactos viven en su
-  # recopilador, así que la carpeta de destinatarios de la campaña se borra.
+  # ADR 0112 §1: la lista ya no se purga al pasar a SurveyMonkey; sigue siendo
+  # de la campaña (contactos_surveymonkey.csv, enlace personal, quién respondió).
   purged <- FALSE
-  if (identical(next_platform, "surveymonkey") && !identical(prev_platform, "surveymonkey")) {
-    if (isTRUE(pick$legacy_migrated)) .cmail_recipients_adopt_legacy(session, campaign$campaign_id)
-    .cmail_recipients_forget(session, campaign$campaign_id)
-    purged <- TRUE
-  }
   saved <- campaigns[[match(campaign$campaign_id, vapply(campaigns, function(c) c$campaign_id, ""))]]
   list(ok = TRUE, noop = FALSE, state_revision = next_state$state_revision,
        campaign = .cmail_campaign_public(saved, with_template = FALSE), recipients_purged = purged)

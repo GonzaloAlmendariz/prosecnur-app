@@ -76,7 +76,7 @@ test_that("multipart: el archivo y el mapeo llegan por el formulario", {
   expect_identical(names(out$mapping$fields), "carrera")
 })
 
-test_that("los correos no entran a collection_state ni al .pulso (scan del estado persistible)", {
+test_that("los correos no entran a collection_state ni a state.rds; en el .pulso solo en files/contactos/ (ADR 0112)", {
   skip_if_not_installed("zip")
   sid <- .cmail_fx_session(); on.exit(session_delete(sid), add = TRUE)
   collection_state_seed(sid)
@@ -101,13 +101,16 @@ test_that("los correos no entran a collection_state ni al .pulso (scan del estad
     } else {
       rawToChar(readBin(f, "raw", file.info(f)$size)[readBin(f, "raw", file.info(f)$size) != as.raw(0)])
     }
-    if (grepl("ejemplo.org|QUISPE MAMANI|ana.quispe", txt, useBytes = TRUE)) hits <- c(hits, basename(f))
+    if (grepl("ejemplo.org|QUISPE MAMANI|ana.quispe", txt, useBytes = TRUE)) hits <- c(hits, sub(paste0(ex, "/"), "", f, fixed = TRUE))
   }
-  expect_length(hits, 0L)
+  # ADR 0112: los correos solo en files/contactos/ (el ZIP exportado no viaja:
+  # es un entregable, fuera del .pulso).
+  campaign_id <- session_get(sid)$collection_state$mail_campaigns$campaigns[[1]]$campaign_id
+  expect_identical(hits, paste0("files/contactos/", campaign_id, ".rds"))
   loaded <- load_pulso(tmp); on.exit(session_delete(loaded$session_id), add = TRUE)
   expect_identical(session_get(loaded$session_id)$collection_state$mail_campaigns$campaigns[[1]]$template$preset_id,
                    "invitacion_capacitacion_v1")
-  expect_false(collection_mail_recipients_get(loaded$session_id)$loaded)
+  expect_true(collection_mail_recipients_get(loaded$session_id)$loaded)
 })
 
 test_that("revisión: cifras de asunto, peso, imágenes, pie, etiquetas con columna y sin dato", {

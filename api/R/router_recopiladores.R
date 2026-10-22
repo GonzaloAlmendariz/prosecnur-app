@@ -144,8 +144,8 @@ mount_recopiladores <- function(pr) {
     # Correos para Mailchimp y SurveyMonkey (ADR 0110 §2, E1f; campañas E1h;
     # plataforma, envíos e importación de HTML E1j-E1l). Cada plantilla
     # vive en su campaña de collection_state$mail_campaigns; los destinatarios
-    # solo en el tempdir de la sesión, por campaña (datos personales: nunca en
-    # el .pulso). `campaign_id` va por consulta en GET/DELETE, en el cuerpo en
+    # en el tempdir de la sesión, por campaña, y en files/contactos/ del .pulso
+    # (ADR 0112; nunca en state.rds). `campaign_id` va por consulta en GET/DELETE, en el cuerpo en
     # POST/PUT y como parte del multipart al importar.
     plumber::pr_get("/api/recopiladores/mail-presets", wrap_endpoint(function(req, res, ...) {
       collection_mail_presets_get(session_header(req))
@@ -183,8 +183,11 @@ mount_recopiladores <- function(pr) {
     # Job con avance: responde {ok, job_id}; el resultado se lee en /api/jobs/<id>.
     plumber::pr_post("/api/recopiladores/mail-sync", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
+      # `solo_marcar` (ADR 0112 §3) es el alias de `dry_run`: guarda quién
+      # respondió en los contactos sin tocar Mailchimp ni pedir su clave.
       collection_mail_mailchimp_sync_submit(session_header(req), campaign_id = body$campaign_id, survey_id = body$survey_id,
-                                            list_id = body$list_id, tag = body$tag, dry_run = isTRUE(body$dry_run))
+                                            list_id = body$list_id, tag = body$tag,
+                                            dry_run = isTRUE(body$dry_run) || isTRUE(body$solo_marcar))
     })) |>
     # Cargar la audiencia de la campaña en Mailchimp (job con avance).
     plumber::pr_post("/api/recopiladores/mail-sync/audience", wrap_endpoint(function(req, res, ...) {
@@ -249,6 +252,29 @@ mount_recopiladores <- function(pr) {
     })) |>
     plumber::pr_handle("DELETE", "/api/recopiladores/mail-recipients", wrap_endpoint(function(req, res, ...) {
       collection_mail_recipients_delete(session_header(req), campaign_id = .cmail_query_campaign(req))
+    })) |>
+    # Pestaña Contactos (ADR 0112 §4): la lista CON correos (app local; el modo
+    # público no monta este router), el tablero por variables de control, la
+    # elección de esas variables y el enlace personal a la encuesta.
+    plumber::pr_get("/api/recopiladores/mail-contacts", wrap_endpoint(function(req, res, campaign_id = NULL, q = NULL,
+                                                                         estado = NULL, filtros = NULL,
+                                                                         respondio = NULL, page = NULL,
+                                                                         per_page = NULL, ...) {
+      collection_mail_contacts_list(session_header(req), campaign_id = campaign_id, q = q, estado = estado,
+                                    filtros = filtros, respondio = respondio, page = page, per_page = per_page)
+    })) |>
+    plumber::pr_get("/api/recopiladores/mail-contacts/perfil", wrap_endpoint(function(req, res, campaign_id = NULL,
+                                                                                filtros = NULL, cruce = NULL, ...) {
+      collection_mail_contacts_perfil(session_header(req), campaign_id = campaign_id, filtros = filtros, cruce = cruce)
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/mail-contacts/control", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_contacts_control_put(session_header(req), campaign_id = body$campaign_id,
+                                           variables = body$variables)
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/mail-contacts/enlace", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_enlace_put(session_header(req), campaign_id = body$campaign_id, url = body$url)
     })) |>
     # Catálogo › Tipos (ADR 0109 E1a): los tipos de material y su miniatura,
     # compilada por el MISMO motor del PDF contra una unidad de prueba. Lectura

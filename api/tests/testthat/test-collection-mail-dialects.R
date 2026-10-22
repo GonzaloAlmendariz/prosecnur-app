@@ -128,11 +128,12 @@ test_that("plataforma por campaña: por defecto mailchimp sin escribir; meta la 
   .cmail_fx_import(sid)
   expect_true(collection_mail_recipients_get(sid)$loaded)
   m <- collection_mail_campaign_meta_put(sid, rev0, "uno", platform = "surveymonkey")
-  expect_true(m$recipients_purged)
+  # ADR 0112 §1: pasar a SurveyMonkey ya no purga la lista (la clave sigue, en FALSE).
+  expect_false(m$recipients_purged)
   expect_identical(m$campaign$platform, "surveymonkey")
-  expect_false(collection_mail_recipients_get(sid)$loaded)
+  expect_true(collection_mail_recipients_get(sid)$loaded)
   # Pedido 2026-10-20 (trato por sexo): con SurveyMonkey la lista también se
-  # importa, al tempdir, para armar contactos_surveymonkey.csv.
+  # importa, para armar contactos_surveymonkey.csv.
   expect_true(.cmail_fx_import(sid)$loaded)
   collection_mail_recipients_delete(sid, "uno")
   expect_false(collection_mail_recipients_get(sid)$loaded)

@@ -165,12 +165,17 @@ mailchimp_api_lists <- function(key) {
   sub("^[?&]t=", "", m[[1]])
 }
 
-# token → correo, a partir de los destinatarios importados en la campaña.
+# token → correo, a partir de los destinatarios importados en la campaña. El
+# token generado por la app (`store$tokens`, collection_mail_enlace.R) manda; sin
+# él, el que traiga un enlace de la lista en una columna asociada a un campo.
 .mc_token_index <- function(store, template) {
   resolved <- .cmail_recipients_resolve(store, template)
   cols <- unlist(store$mapping$fields %||% list(), use.names = FALSE)
+  generated <- store$tokens %||% character(0)
   idx <- character()
   for (i in resolved$rows) {
+    key <- tolower(resolved$email[[i]])
+    if (key %in% names(generated)) { idx[[generated[[key]]]] <- key; next }
     for (col in cols) {
       t <- .mc_token_of(store$rows[[col]][[i]])
       if (!is.na(t)) { idx[[t]] <- tolower(resolved$email[[i]]); break }
@@ -202,7 +207,7 @@ mailchimp_api_lists <- function(key) {
   ti <- .mc_token_index(store, ct$template)
   if (!length(ti$index)) {
     stop_api(409, "E_COLLECTION_MAIL_SYNC_NO_TOKENS",
-             "Ningún destinatario tiene un enlace con «?t=». Revisa que la columna del enlace personal esté asociada a un campo.")
+             "Ningún destinatario tiene un enlace con «?t=». Genera el enlace a la encuesta en Contactos o asocia a un campo la columna del enlace personal.")
   }
   list(
     campaign_id = ct$campaign_id, survey_id = survey_id, list_id = list_id, tag = tag, dry_run = isTRUE(dry_run),
@@ -231,7 +236,10 @@ mailchimp_api_lists <- function(key) {
     without_token = sum(!has_token), from_other_campaign = sum(has_token & !in_campaign),
     respondents = length(emails), pending = length(input$index) - length(emails),
     tagged = 0L, not_in_audience = 0L, dry_run = isTRUE(input$dry_run),
-    synced_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")
+    synced_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"),
+    # Para la marca por contacto (ADR 0112 §3): la aplica el proceso de la API
+    # (`.mc_sync_mark`) y la quita antes de responder. Tokens, no correos.
+    respondent_tokens = unique(tk[completed & in_campaign])
   )
   if (isTRUE(input$dry_run)) return(out)
   report("mailchimp", current = 0L, total = length(emails), message = .mc_progress_label(0L, length(emails)))
@@ -249,14 +257,27 @@ mailchimp_api_lists <- function(key) {
 #'
 #' @param survey_id encuesta de SurveyMonkey cuyas respuestas traen la variable `t`.
 #' @param list_id audiencia de Mailchimp donde están los destinatarios.
-#' @param dry_run TRUE cuenta sin tocar Mailchimp.
+#' @param dry_run TRUE = solo marcar: cuenta y guarda quién respondió en los
+#'   contactos, sin tocar Mailchimp ni pedir su clave.
 #' @keywords internal
 collection_mail_mailchimp_sync <- function(sid, campaign_id = NULL, survey_id, list_id, tag = .MC_TAG_DEFAULT,
                                            dry_run = FALSE) {
   # Se evalúa antes: dentro de `.mc_sync_run` la promesa se forzaría dentro del
   # tryCatch de SurveyMonkey y un error de entrada saldría disfrazado de él.
   input <- .mc_sync_prepare(sid, campaign_id, survey_id, list_id, tag, dry_run)
-  .mc_sync_run(input)
+  .mc_sync_mark(sid, input, .mc_sync_run(input))
+}
+
+# Guarda «quién respondió» en el store de la campaña y deja la respuesta sin
+# tokens. También con `dry_run` (= solo marcar: lee SurveyMonkey, no toca
+# Mailchimp ni pide su clave). Un resultado de error del job pasa tal cual.
+.mc_sync_mark <- function(sid, input, out) {
+  if (!isTRUE(out$ok)) return(out)
+  tokens <- out$respondent_tokens %||% character(0)
+  out$respondent_tokens <- NULL
+  marked <- .cmail_respuestas_apply(sid, input$campaign_id, tokens, survey_id = input$survey_id)
+  out$marcados <- as.integer(marked %||% 0L)
+  out
 }
 
 # ---- jobs (1.2, 1.3) ---------------------------------------------------------
@@ -288,7 +309,7 @@ collection_mail_mailchimp_sync <- function(sid, campaign_id = NULL, survey_id, l
 # jobs/inputs que se borra al terminar, en cualquier final. El worker es una
 # función top-level con nombre: el bootstrap de jobs.R la vuelve a resolver
 # en el namespace fresco. Nunca se serializa la sesión.
-.mc_job_submit <- function(sid, kind, runner_name, input) {
+.mc_job_submit <- function(sid, kind, runner_name, input, on_complete = NULL) {
   input_path <- job_save_rds(sid, gsub("[^a-z_]", "_", kind), input)
   runner <- get(runner_name, envir = asNamespace("prosecnurapp"), inherits = FALSE)
   attr(runner, "prosecnur_job_function_name") <- runner_name
@@ -298,6 +319,7 @@ collection_mail_mailchimp_sync <- function(sid, campaign_id = NULL, survey_id, l
     job_submit(
       sid = sid, kind = kind, func = runner,
       args = list(sid = sid, input_path = input_path),
+      on_complete = on_complete,
       on_cleanup = function(j) job_unlink_inputs(input_path)
     ),
     error = function(e) { job_unlink_inputs(input_path); stop(e) }
@@ -319,7 +341,16 @@ collection_mail_mailchimp_sync_job <- function(sid, input_path, progress_path = 
 collection_mail_mailchimp_sync_submit <- function(sid, campaign_id = NULL, survey_id, list_id,
                                                   tag = .MC_TAG_DEFAULT, dry_run = FALSE) {
   input <- .mc_sync_prepare(sid, campaign_id, survey_id, list_id, tag, dry_run)
-  .mc_job_submit(sid, "recopiladores.mail_sync", "collection_mail_mailchimp_sync_job", input)
+  .mc_job_submit(sid, "recopiladores.mail_sync", "collection_mail_mailchimp_sync_job", input,
+                 on_complete = .mc_sync_mark_hook(sid, input$campaign_id, input$survey_id))
+}
+
+# La marca por contacto se aplica al cosechar, en el proceso de la API. La
+# fábrica deja en el closure solo sid, campaña y encuesta: ni las claves ni el
+# índice de correos del insumo (que nunca viaja con él al worker).
+.mc_sync_mark_hook <- function(sid, campaign_id, survey_id) {
+  ctx <- list(campaign_id = campaign_id, survey_id = survey_id)
+  function(j) .mc_sync_mark(sid, ctx, j$result_data)
 }
 
 #' Lo que la UI necesita para elegir: encuestas de SurveyMonkey y audiencias de

@@ -1,18 +1,26 @@
-# collection_mail_recipients.R — destinatarios del correo (ADR 0110 §2 y
-# Consecuencias).
+# collection_mail_recipients.R — destinatarios del correo (ADR 0110 §2,
+# enmendado por ADR 0112).
 #
-# **Los destinatarios son datos personales y NO entran al `.pulso`.** Se guardan
-# solo en el directorio temporal de la sesión, una carpeta por campaña
-# (`<session$dir>/mail_recipients/<campaign_id>/recipients.rds`, ver
-# collection_mail_campaigns.R): ni en `collection_state`, ni
-# en `session$files` (que es persistible), ni en ninguna clave de session_schema.
-# Al cerrar la sesión desaparecen; al reemplazar la sesión con un `open
-# in_place` se borran (`.cmail_purge_personal_data`); para exportar otra vez se
-# vuelven a importar.
+# **Los destinatarios son datos personales y viajan en el `.pulso` solo como
+# insumo aparte** (ADR 0112): en la sesión viven en el directorio temporal, una
+# carpeta por campaña (`<session$dir>/mail_recipients/<campaign_id>/recipients.rds`,
+# ver collection_mail_campaigns.R); al guardar se copian a
+# `files/contactos/<campaign_id>.rds` y al abrir vuelven
+# (collection_mail_contactos_pulso.R). Nunca en `collection_state`, ni en
+# `session$files`, ni en ninguna clave de session_schema: `state.rds` no lleva
+# correos. No se purgan solos (ni al pasar a SurveyMonkey ni al exportar): se
+# borran con el DELETE explícito, al borrar la campaña o al reemplazar la sesión
+# con un `open in_place` (`.cmail_purge_personal_data`). Importar, cambiar el
+# mapeo o quitar la lista marcan `project_dirty`.
 #
-# La vista nunca recibe correos: el GET devuelve conteo, columnas, mapeo y una
-# muestra con nombre y campos, sin la columna de correo y con todo valor con
-# forma de correo oculto (`.cmail_mask_pii`).
+# El store guarda además, opcionales: `tokens` y `enlace` (el enlace personal,
+# collection_mail_enlace.R) y `respondio`, `respondio_en`, `lectura` (quién
+# respondió, collection_mail_contactos.R). Reimportar los conserva por correo.
+#
+# Esta vista (Destinatarios) nunca recibe correos: el GET devuelve conteo,
+# columnas, mapeo y una muestra con nombre y campos, sin la columna de correo y
+# con todo valor con forma de correo oculto (`.cmail_mask_pii`). La lista con
+# correos es la de la pestaña Contactos (collection_mail_contactos.R).
 #
 # Población y unidad (D1-D3). La lista importada ES la población: la app no la
 # cruza con la muestra. La unidad es la persona contactable, identificada por su
@@ -286,7 +294,7 @@
   list(email_column = email, name_column = name, name_format = fmt, fields = fields)
 }
 
-# ---- almacenamiento efímero -----------------------------------------------------
+# ---- almacenamiento en la sesión ------------------------------------------------
 
 .cmail_recipients_load <- function(session, campaign_id) {
   path <- .cmail_recipients_path(session, campaign_id)
@@ -479,11 +487,15 @@ collection_mail_recipients_import <- function(sid, file_raw = NULL, file_name = 
   session <- session_get(sid)
   ct <- .cmail_campaign_template_for_session(session, campaign_id)
   # Con SurveyMonkey la lista también se importa (pedido 2026-10-20): sirve para
-  # armar contactos_surveymonkey.csv con el trato ya escrito. Sigue en el tempdir.
+  # armar contactos_surveymonkey.csv con el trato ya escrito.
   template <- ct$template
   payload <- .cmail_import_payload(file_raw, file_name, content_base64)
   read <- .cmail_read_table(payload$raw, payload$name)
   df <- read$df
+  explicit <- !is.null(mapping)
+  # El enlace generado lo pone la app (collection_mail_enlace.R): una columna
+  # homónima del archivo no se toma por él.
+  if (.CMAIL_ENLACE_COLUMN %in% names(df)) df[[.CMAIL_ENLACE_COLUMN]] <- NULL
   mapping <- if (is.null(mapping)) .cmail_guess_mapping(df, template) else .cmail_mapping_validate(mapping, df, template)
   store <- list(
     schema = "collection_mail_recipients/v1",
@@ -496,7 +508,11 @@ collection_mail_recipients_import <- function(sid, file_raw = NULL, file_name = 
     rows_blank_dropped = read$rows_blank_dropped,
     mapping = mapping
   )
+  # Reimportar conserva por correo los tokens, el enlace y quién respondió.
+  previous <- .cmail_recipients_load(session, ct$campaign_id)
+  store <- .cmail_enlace_carry(store, previous, template, explicit_mapping = explicit)
   .cmail_recipients_save(session, ct$campaign_id, store)
+  .cmail_contactos_touch(sid)
   .cmail_recipients_public(store, template, ct$campaign_id)
 }
 
@@ -511,6 +527,7 @@ collection_mail_recipients_mapping_put <- function(sid, mapping, campaign_id = N
   }
   store$mapping <- .cmail_mapping_validate(mapping, store$rows, ct$template)
   .cmail_recipients_save(session, ct$campaign_id, store)
+  .cmail_contactos_touch(sid)
   .cmail_recipients_public(store, ct$template, ct$campaign_id)
 }
 
@@ -523,12 +540,15 @@ collection_mail_recipients_get <- function(sid, campaign_id = NULL) {
   .cmail_recipients_public(store, if (!is.null(store)) ct$template, ct$campaign_id)
 }
 
-#' Olvida los destinatarios de la sesión.
+#' «Quitar los contactos de esta campaña»: los borra de la sesión y, al
+#' guardar, del `.pulso` (ADR 0112 §1).
 #' @keywords internal
 collection_mail_recipients_delete <- function(sid, campaign_id = NULL) {
   session <- session_get(sid)
   pick <- .cmail_campaign_for(session, .collection_current(session), campaign_id)
+  had <- file.exists(.cmail_recipients_path(session, pick$campaign$campaign_id))
   .cmail_recipients_forget(session, pick$campaign$campaign_id)
+  if (had) .cmail_contactos_touch(sid)
   .cmail_recipients_public(NULL, campaign_id = pick$campaign$campaign_id)
 }
 

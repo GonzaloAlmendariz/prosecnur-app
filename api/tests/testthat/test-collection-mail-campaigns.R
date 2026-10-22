@@ -372,7 +372,7 @@ test_that("export por campaña: slug = campaign_id y manifest con campaign sin d
                    "E_COLLECTION_MAIL_REVIEW_BLOCKING")
 })
 
-test_that("el .pulso con dos campañas no contiene correos; las campañas viajan y los destinatarios no", {
+test_that("el .pulso con dos campañas lleva sus correos solo en files/contactos/ (ADR 0112) y los restaura", {
   skip_if_not_installed("zip")
   fx <- .cmc_two(); on.exit(session_delete(fx$sid), add = TRUE)
   sid <- fx$sid
@@ -398,16 +398,18 @@ test_that("el .pulso con dos campañas no contiene correos; las campañas viajan
     } else {
       b <- readBin(f, "raw", file.info(f)$size); rawToChar(b[b != as.raw(0)])
     }
-    if (grepl("ejemplo.org|QUISPE MAMANI|ana.quispe|recipients", txt, useBytes = TRUE)) hits <- c(hits, basename(f))
+    if (grepl("ejemplo.org|QUISPE MAMANI|ana.quispe|recipients", txt, useBytes = TRUE)) hits <- c(hits, sub(paste0(ex, "/"), "", f, fixed = TRUE))
   }
-  expect_length(hits, 0L)
-  # Ni carpetas de destinatarios dentro del zip.
+  # ADR 0112: los correos viajan SOLO en files/contactos/<campaña>.rds, uno por
+  # campaña con lista; nunca en state.rds, el manifest ni otro insumo.
+  expect_setequal(hits, paste0("files/contactos/", c(fx$a$campaign_id, fx$b$campaign_id), ".rds"))
+  # Ni carpetas de la sesión dentro del zip.
   expect_false(any(grepl("mail_recipients", list.files(ex, recursive = TRUE, include.dirs = TRUE))))
 
   loaded <- load_pulso(tmp); on.exit(session_delete(loaded$session_id), add = TRUE)
   l <- collection_mail_campaigns_get(loaded$session_id)
   expect_identical(vapply(l$campaigns, `[[`, "", "campaign_id"), c(fx$a$campaign_id, fx$b$campaign_id))
-  expect_false(any(vapply(l$campaigns, `[[`, NA, "recipients_loaded")))
+  expect_true(all(vapply(l$campaigns, `[[`, NA, "recipients_loaded")))
 })
 
 test_that("HTTP: campañas con el serializador de producción, campaign_id por consulta y por multipart", {
