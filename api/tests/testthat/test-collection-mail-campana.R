@@ -236,9 +236,11 @@ test_that("justificado por defecto en párrafos, recuadros y listas; a la izquie
   izq <- t; izq$theme$text_align <- "left"
   h <- collection_mail_render(izq, "export")$html
   expect_false(grepl("cmail-justify", h, fixed = TRUE))
-  # Solo la regla de márgenes en teléfono (E1p), que se emite siempre.
-  expect_identical(lengths(regmatches(h, gregexpr("<style", h, fixed = TRUE))), 1L)
+  # Solo la regla de márgenes en teléfono (E1p), que se emite siempre, y la de
+  # los logos de la cabecera (E1p logos), que se emite si hay logos.
+  expect_identical(lengths(regmatches(h, gregexpr("<style", h, fixed = TRUE))), 2L)
   expect_match(h, .cmail_pad_style(), fixed = TRUE)
+  expect_match(h, .cmail_logo_style(h), fixed = TRUE)
   # center: párrafos centrados, listas a la izquierda.
   cen <- t; cen$theme$text_align <- "center"
   hc <- collection_mail_render(cen, "export")$html

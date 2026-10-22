@@ -58,7 +58,7 @@ test_that("surveymonkey: el mismo {{enlace}} sale [SurveyLink]; [FirstName] sin 
   for (bad in c("*|", "IF:", "data:", "data-pulso", "{{")) expect_false(grepl(bad, html, fixed = TRUE), label = bad)
   # Imagen sin URL: src vacío (lo bloquea images_public_url); con URL https, la URL.
   expect_match(html, 'src="https://pulsopucp.github.io/correo-/pulso.png"', fixed = TRUE)
-  expect_match(html, '<img src="" width=', fixed = TRUE)
+  expect_match(html, '<img class="cmail-logo" src="" width=', fixed = TRUE)
   # Un campo sin `sm` sale vacío (lo bloquea sm_fields_mapped).
   expect_match(html, "en la que usted se encuentra matriculado(a) como estudiante de [CustomData1].", fixed = TRUE)
   # La preview pinta el pie del dialecto con enlaces simulados, sin etiquetas.

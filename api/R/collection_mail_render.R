@@ -182,18 +182,19 @@
 # ---- imágenes ---------------------------------------------------------------
 # Resolución, medidas y `src`: collection_mail_images.R.
 
-.cmail_img_tag <- function(img, ctx, width, height, style_extra = "") {
+.cmail_img_tag <- function(img, ctx, width, height, style_extra = "", class = "") {
   src <- .cmail_image_src(img, ctx)
   if (is.null(src)) {
-    # Preview sin archivo ni URL: un hueco con el alt, para que la vista diga qué falta.
+    # Preview sin archivo ni URL: un hueco con el alt, para que la vista diga qué falta. No lleva `class`: un
+    # inline-block de ancho fijo no se achica con max-width en una celda automática (medido); es solo preview.
     return(sprintf(
       '<span style="display:inline-block;width:%dpx;height:%dpx;line-height:%dpx;border:1px dashed #9aa3b5;font-family:%s;font-size:11px;color:#5a6a94;text-align:center;overflow:hidden;">%s</span>',
       width, height, height, .CMAIL_FONT, .cmail_esc(if (nzchar(img$alt)) img$alt else img$id)
     ))
   }
   sprintf(
-    '<img src="%s" width="%d" height="%d" alt="%s" style="display:block;border:0;outline:none;text-decoration:none;width:%dpx;height:%dpx;%s">',
-    .cmail_esc(src), width, height, .cmail_esc(img$alt), width, height, style_extra
+    '<img%s src="%s" width="%d" height="%d" alt="%s" style="display:block;border:0;outline:none;text-decoration:none;width:%dpx;height:%dpx;%s">',
+    .cmail_class_attr(class), .cmail_esc(src), width, height, .cmail_esc(img$alt), width, height, style_extra
   )
 }
 
@@ -219,10 +220,9 @@
   bg <- if (dark) accent else "#ffffff"
   divider <- if (dark) "#5a6a94" else .CMAIL_BORDER
   height <- if (dark) 46L else 40L
-  cells <- character(0)
   ids <- as.character(unlist(h$logo_ids, use.names = FALSE))
-  for (i in seq_along(ids)) {
-    img <- ctx$images[[ids[[i]]]]
+  logos <- lapply(ids, function(id) {
+    img <- ctx$images[[id]]
     size <- img$size
     # El logo conserva su proporción: si a esta altura pasaría de 200 px de ancho, se achica la altura, nunca se
     # aplasta (un logo de 10:1 a 40 px de alto se veía deformado al cortarle el ancho).
@@ -232,15 +232,24 @@
       if (w > 200) logo_h <- max(16L, as.integer(round(200 / (size$width / size$height))))
       as.integer(min(200, round(w)))
     }
+    list(img = img, width = width, height = logo_h)
+  })
+  # En teléfono los logos se achican en proporción o, si quedarían ilegibles, se apilan (collection_mail_ajustes.R).
+  stack <- .cmail_logos_stack(vapply(logos, `[[`, 0L, "width"))
+  # Con las imágenes bloqueadas el cliente pinta el alt: que se lea sobre el fondo.
+  alt_style <- sprintf("font-family:%s;font-size:13px;color:%s;", .CMAIL_FONT, if (dark) "#ffffff" else .CMAIL_TEXT_COLOR)
+  cells <- character(0)
+  for (i in seq_along(logos)) {
     if (i > 1L) {
       cells <- c(cells, sprintf(
-        '<td valign="middle" style="padding:0 18px;"><div style="width:1px;height:%dpx;background-color:%s;line-height:%dpx;font-size:0;">&nbsp;</div></td>',
-        height, divider, height
+        '<td%s valign="middle" style="padding:0 18px;"><div style="width:1px;height:%dpx;background-color:%s;line-height:%dpx;font-size:0;">&nbsp;</div></td>',
+        .cmail_class_attr(if (stack) .CMAIL_LOGO_DIV_CLASS else ""), height, divider, height
       ))
     }
-    # Con las imágenes bloqueadas el cliente pinta el alt: que se lea sobre el fondo.
-    alt_style <- sprintf("font-family:%s;font-size:13px;color:%s;", .CMAIL_FONT, if (dark) "#ffffff" else .CMAIL_TEXT_COLOR)
-    cells <- c(cells, sprintf('<td valign="middle">%s</td>', .cmail_img_tag(img, ctx, width, logo_h, alt_style)))
+    cell_class <- .cmail_class_attr(if (stack) .CMAIL_LOGO_CELL_CLASS else "", if (stack && i > 1L) .CMAIL_LOGO_NEXT_CLASS else "")
+    l <- logos[[i]]
+    cells <- c(cells, sprintf('<td%s valign="middle">%s</td>', cell_class,
+                              .cmail_img_tag(l$img, ctx, l$width, l$height, alt_style, class = .CMAIL_LOGO_CLASS)))
   }
   border <- if (dark) "" else sprintf("border-bottom:1px solid %s;", .CMAIL_BORDER)
   .cmail_mark_row(sprintf(
@@ -371,6 +380,8 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
     .cmail_stack_style(card),
     # Márgenes del cuerpo a 20 px en teléfono (E1p, collection_mail_ajustes.R).
     .cmail_pad_style(),
+    # Logos de la cabecera en teléfono: se achican en proporción o se apilan (collection_mail_ajustes.R).
+    .cmail_logo_style(card),
     "</head>\n",
     sprintf('<body style="margin:0;padding:0;background-color:%s;">', page_bg),
     .cmail_preheader_html(preheader),
