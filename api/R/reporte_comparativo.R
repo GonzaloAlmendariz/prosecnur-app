@@ -549,6 +549,7 @@ reporte_comparativo_simple <- function(modelo, path, rotulos, notas = NULL, extr
 reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
                                        alpha = 0.05, show_sig = TRUE, extras = NULL) {
   wb <- openxlsx::createWorkbook()
+  archivo_estilos <- .xlsx_archivo_estilos()
   hoja <- "Comparativo cruces"
   .comparativo_sheet_setup(wb, hoja)
   st <- .comparativo_estilos("0.0%")
@@ -808,7 +809,10 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
       no_ofrecidas_cruce = .comparativo_resumen_no_ofrecidas_cruce(q, cruces, periodos),
       sin_mapa = .comparativo_resumen_sin_mapa(q, periodos)
     )
+    # Tabla cerrada: sus estilos salen del recorrido de openxlsx (H16).
+    .xlsx_archivar_estilos(wb, archivo_estilos)
   }
+  .xlsx_restaurar_estilos(wb, archivo_estilos)
   omitidas <- .comparativo_hoja_omitidas(wb, modelo$omitidas, rotulos[periodos])
   .comparativo_guardar(wb, path)
   list(hoja = hoja, n_preguntas = length(modelo$preguntas), preguntas = resumen, omitidas = omitidas)

@@ -600,3 +600,26 @@ test_that("marcado de Kobo: se quitan los pares de asteriscos, no los sueltos", 
                    "¿Has visto?")
   expect_identical(.armz_titulo_fila(list(enunciado = "", etiqueta_estandar = "**E**")), "E")
 })
+
+test_that("el comparativo de cruces archiva sus estilos por pregunta sin cambiar lo que se ve", {
+  # H16 (2026-10-21): mismo patrón cuadrático que las tablas de cruces anuales.
+  vistos <- integer(0)
+  archivar <- get(".xlsx_archivar_estilos", envir = asNamespace("prosecnurapp"))
+  leer <- function(r) list(estilos = .xlsx_estilos_por_celda(r$cruces), celdas = .rc_celdas(r$cruces))
+  con <- local({
+    testthat::local_mocked_bindings(.xlsx_archivar_estilos = function(wb, archivo) {
+      vistos <<- c(vistos, length(wb$styleObjects))
+      archivar(wb, archivo)
+    })
+    leer(.rc_generar())
+  })
+  sin <- local({
+    testthat::local_mocked_bindings(.xlsx_archivar_estilos = function(wb, archivo) invisible(wb),
+                                    .xlsx_restaurar_estilos = function(wb, archivo) invisible(wb))
+    leer(.rc_generar())
+  })
+  expect_gt(length(vistos), 1L)
+  expect_setequal(names(con$estilos), names(sin$estilos))
+  expect_identical(con$estilos[names(sin$estilos)], sin$estilos)
+  expect_identical(con$celdas, sin$celdas)
+})
