@@ -93,6 +93,22 @@ describe("normalizeMailTemplate", () => {
     expect(t.header).toEqual({ kind: "banner", image_ref: "banner-mailing" });
   });
 
+  test("conserva `trae_logos` de cada imagen; ausente o ilegible queda sin dato", () => {
+    const t = normalizeMailTemplate({
+      ...PLANTILLA_R,
+      images: {
+        "banner-si": { alt: "Banner", trae_logos: true },
+        "banner-no": { alt: "Banner", trae_logos: [false] },
+        "banner-raro": { alt: "Banner", trae_logos: "sí" },
+        pulso: { alt: "Pulso PUCP" },
+      },
+    });
+    expect(t.images["banner-si"]).toEqual({ alt: "Banner", trae_logos: true });
+    expect(t.images["banner-no"]).toEqual({ alt: "Banner", trae_logos: false });
+    expect(t.images["banner-raro"]).toEqual({ alt: "Banner" });
+    expect(t.images.pulso).toEqual({ alt: "Pulso PUCP" });
+  });
+
   test("rechaza lo que no es una plantilla del contrato", () => {
     expect(() => normalizeMailTemplate({ schema: "otra/v1" })).toThrow(/collection_mail_template\/v1/);
     expect(() => normalizeMailTemplate(null)).toThrow();

@@ -164,3 +164,56 @@
 .rec-mail-franja .rec-mail-logos {
   grid-auto-rows: 1fr;
 }
+
+/* Banner que ya trae los logos: una línea con la pregunta y su respuesta.
+   Envuelve en vez de desbordar a 1024 (C4). */
+.rec-ident-trae-logos {
+  align-items: center;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 6px 10px;
+  justify-content: space-between;
+  padding: 6px 10px;
+}
+
+.rec-ident-trae-logos.is-respondida {
+  background: transparent;
+}
+
+.rec-ident-trae-logos-texto {
+  align-items: center;
+  display: inline-flex;
+  flex: 1 1 160px;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rec-ident-trae-logos.is-respondida .rec-ident-trae-logos-texto svg {
+  color: var(--pulso-success-fg);
+}
+
+.rec-ident-trae-logos-acciones {
+  display: inline-flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* La miniatura del banner guarda su proporción real (1200 × 600, 1200 × 810,
+   3201 × 1801): nada se recorta ni se deforma, los logos incrustados se ven. */
+.rec-mail-banner .rec-mail-img--banner:not(.is-vacia) {
+  aspect-ratio: auto;
+  height: auto;
+  max-height: 240px;
+}
+
+.rec-mail-banner .rec-mail-img--banner:not(.is-vacia) img {
+  height: auto;
+  max-height: 240px;
+  object-fit: contain;
+}
