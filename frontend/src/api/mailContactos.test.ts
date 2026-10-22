@@ -103,6 +103,18 @@ describe("normalizadores de contactos", () => {
     const pagina = normalizarPaginaDeContactos(null);
     expect(pagina).toMatchObject({ total: 0, page: 1, per_page: 50, rows: [], columnas: [] });
     expect(pagina.resumen.importados).toBe(0);
+    expect(pagina.resumen.enlace_url).toBeNull();
+  });
+
+  it("el enlace del recopilador guardado y la columna del enlace marcada", () => {
+    const pagina = normalizarPaginaDeContactos({
+      columnas: [{ key: "sexo", label: "Sexo" }, { key: "enlace_encuesta", label: "Enlace", es_enlace: [true] }],
+      resumen: { importados: 3, enlace_url: [" https://es.surveymonkey.com/r/ABC "] },
+    });
+    expect(pagina.resumen.enlace_url).toBe("https://es.surveymonkey.com/r/ABC");
+    expect(pagina.columnas[0].es_enlace).toBeUndefined();
+    expect(pagina.columnas[1].es_enlace).toBe(true);
+    expect(normalizarPaginaDeContactos({ resumen: { enlace_url: "" } }).resumen.enlace_url).toBeNull();
   });
 
   it("lee el perfil: control escalar, candidatas únicas, categorías sin valor fuera", () => {
@@ -134,6 +146,18 @@ describe("normalizadores de contactos", () => {
     });
     expect(perfil.variables[0].categorias[0]).toMatchObject({ otros: true, con_enlace: 9, tasa: 11.1 });
     expect(perfil.variables[0].sin_dato).toEqual({ n: 3, pct: 1, respondieron: 1, tasa: 33.3 });
+  });
+
+  it("el perfil trae el enlace guardado y los rótulos del cruce", () => {
+    const perfil = normalizarPerfilDeContactos({
+      ...PERFIL,
+      enlace_url: "https://es.surveymonkey.com/r/ABC",
+      cruce: { ...PERFIL.cruce, a_label: ["Carrera profesional"], b_label: "Sexo" },
+    });
+    expect(perfil.enlace_url).toBe("https://es.surveymonkey.com/r/ABC");
+    expect(perfil.cruce).toMatchObject({ a_label: "Carrera profesional", b_label: "Sexo" });
+    expect(normalizarPerfilDeContactos(PERFIL).enlace_url).toBeNull();
+    expect(normalizarPerfilDeContactos(PERFIL).cruce?.a_label).toBeUndefined();
   });
 
   it("en el cruce, el `null` del final se rotula «Sin dato»", () => {

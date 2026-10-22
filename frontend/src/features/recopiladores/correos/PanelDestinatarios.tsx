@@ -334,7 +334,7 @@ export function PanelDestinatarios({
           <p>{texto.sinLista}</p>
           <ImportarArchivo etiqueta="Importar destinatarios" primario disabled={ocupado} onArchivo={onImportar} />
           <span className="rec-mail-ayuda">
-            Una fila por persona con su correo; el nombre y los campos se eligen después. Los correos no se muestran aquí ni entran al proyecto.
+            Una fila por persona con su correo; el nombre y los campos se eligen después. La lista se guarda con el proyecto y se revisa en Contactos.
           </span>
         </div>
       )}

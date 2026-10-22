@@ -17,6 +17,7 @@ import type {
   FiltroDeRespuesta,
   PaginaDeContactos,
   PerfilDeContactos,
+  VariableDelPerfil,
 } from "../../../../api/mailContactos";
 import { alternarFiltro, filtrosDeControl, quitarFiltro, type Filtros } from "./modeloContactos";
 
@@ -26,9 +27,22 @@ export type VistaDelCruce = "casos" | "fila";
 
 type EstadoDelEnlace = {
   url: string;
+  /** El usuario ya escribió en el campo: el enlace guardado no lo pisa. */
+  tocado: boolean;
   generando: boolean;
   resultado: EnlacesGenerados | null;
   error: string;
+};
+
+/**
+ * La distribución de una variable filtrada, leída SIN su propio filtro: así su
+ * tarjeta sigue mostrando todas sus categorías y se puede sumar otra (OR).
+ */
+export type FacetaDeVariable = {
+  variable: VariableDelPerfil;
+  base: number;
+  /** Los filtros con que se leyó (sin los de su columna): si ya no son esos, no se usa. */
+  clave: string;
 };
 
 export type EstadoContactos = {
@@ -52,6 +66,8 @@ export type EstadoContactos = {
   perfil: PerfilDeContactos | null;
   perfilCarga: Carga;
   perfilError: string;
+  /** Por columna filtrada: su distribución sin su propio filtro. */
+  facetas: Record<string, FacetaDeVariable>;
   lista: PaginaDeContactos | null;
   listaCarga: Carga;
   listaError: string;
@@ -77,6 +93,7 @@ export type EstadoContactos = {
   perfilInicio: () => void;
   perfilListo: (perfil: PerfilDeContactos) => void;
   perfilFallo: (mensaje: string) => void;
+  facetaLista: (columna: string, faceta: FacetaDeVariable) => void;
   listaInicio: () => void;
   listaLista: (lista: PaginaDeContactos) => void;
   listaFallo: (mensaje: string) => void;
@@ -90,7 +107,7 @@ export type EstadoContactos = {
   enlaceFallo: (mensaje: string) => void;
 };
 
-const ENLACE_INICIAL: EstadoDelEnlace = { url: "", generando: false, resultado: null, error: "" };
+const ENLACE_INICIAL: EstadoDelEnlace = { url: "", tocado: false, generando: false, resultado: null, error: "" };
 
 const INICIAL = {
   campana: null,
@@ -107,6 +124,7 @@ const INICIAL = {
   perfil: null,
   perfilCarga: "inicial" as Carga,
   perfilError: "",
+  facetas: {},
   lista: null,
   listaCarga: "inicial" as Carga,
   listaError: "",
@@ -137,10 +155,27 @@ export const useContactosStore = create<EstadoContactos>((set, get) => ({
   refrescar: () => set((s) => ({ refresco: s.refresco + 1 })),
 
   perfilInicio: () => set({ perfilCarga: "cargando", perfilError: "" }),
-  perfilListo: (perfil) => set({ perfil, perfilCarga: "lista", perfilError: "" }),
+  perfilListo: (perfil) => set((s) => ({
+    perfil,
+    perfilCarga: "lista",
+    perfilError: "",
+    ...(perfil.enlace_url && !s.enlace.tocado && !s.enlace.url
+      ? { enlace: { ...s.enlace, url: perfil.enlace_url } }
+      : {}),
+  })),
   perfilFallo: (perfilError) => set({ perfilCarga: "error", perfilError }),
   listaInicio: () => set({ listaCarga: "cargando", listaError: "" }),
-  listaLista: (lista) => set({ lista, listaCarga: "lista", listaError: "" }),
+  facetaLista: (columna, faceta) => set((s) => ({ facetas: { ...s.facetas, [columna]: faceta } })),
+  // El enlace del recopilador guardado prellena el campo al recargar, mientras
+  // nadie haya escrito en él.
+  listaLista: (lista) => set((s) => ({
+    lista,
+    listaCarga: "lista",
+    listaError: "",
+    ...(lista.resumen.enlace_url && !s.enlace.tocado && !s.enlace.url
+      ? { enlace: { ...s.enlace, url: lista.resumen.enlace_url } }
+      : {}),
+  })),
   listaFallo: (listaError) => set({ listaCarga: "error", listaError }),
   controlInicio: () => set({ guardandoControl: true, controlError: "" }),
   controlListo: (control) => set((s) => ({
@@ -151,7 +186,7 @@ export const useContactosStore = create<EstadoContactos>((set, get) => ({
     refresco: s.refresco + 1,
   })),
   controlFallo: (controlError) => set({ guardandoControl: false, controlError }),
-  setUrlDelEnlace: (url) => set((s) => ({ enlace: { ...s.enlace, url, error: "" } })),
+  setUrlDelEnlace: (url) => set((s) => ({ enlace: { ...s.enlace, url, tocado: true, error: "" } })),
   enlaceInicio: () => set((s) => ({ enlace: { ...s.enlace, generando: true, error: "", resultado: null } })),
   enlaceListo: (resultado) => set((s) => ({ enlace: { ...s.enlace, generando: false, resultado }, refresco: s.refresco + 1 })),
   enlaceFallo: (error) => set((s) => ({ enlace: { ...s.enlace, generando: false, error } })),

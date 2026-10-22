@@ -29,7 +29,12 @@ export type FiltroDeRespuesta = "si" | "no" | "todos";
 /** `{columna: [valores]}`: las categorías elegidas en el tablero. */
 export type FiltrosDeContactos = Readonly<Record<string, readonly string[]>>;
 
-export type ColumnaDeContactos = { key: string; label: string };
+export type ColumnaDeContactos = {
+  key: string;
+  label: string;
+  /** La columna del enlace personal: ya tiene su celda («Enlace: Sí»), no se repite cruda. */
+  es_enlace?: boolean;
+};
 
 export type FilaDeContacto = {
   fila: number;
@@ -53,6 +58,8 @@ export type ResumenDeContactos = {
   /** `null`: todavía no se leyó quién respondió. */
   respondieron: number | null;
   leido_en: string | null;
+  /** El enlace del recopilador guardado en la campaña; `null` si aún no se generaron enlaces. */
+  enlace_url: string | null;
 };
 
 export type PaginaDeContactos = {
@@ -98,6 +105,9 @@ export type VariableDelPerfil = {
 export type CruceDelPerfil = {
   a: string;
   b: string;
+  /** Rótulos legibles de `a` y `b` (si no llegan, la vista usa los del perfil). */
+  a_label?: string;
+  b_label?: string;
   /** «Sin dato» rotula el `null` que el backend pone al final. */
   filas: string[];
   columnas: string[];
@@ -114,6 +124,8 @@ export type PerfilDeContactos = {
   variables: VariableDelPerfil[];
   cruce: CruceDelPerfil | null;
   respuestas_leidas: boolean;
+  /** El enlace del recopilador guardado; `null` si aún no se generaron enlaces. */
+  enlace_url: string | null;
 };
 
 export type EnlacesGenerados = {
@@ -210,7 +222,9 @@ function normalizarColumna(valor: unknown): ColumnaDeContactos | null {
   if (!esRegistro(valor)) return null;
   const key = texto(valor.key).trim();
   if (!key) return null;
-  return { key, label: texto(valor.label).trim() || key };
+  const columna: ColumnaDeContactos = { key, label: texto(valor.label).trim() || key };
+  if (booleanoONulo(valor.es_enlace) === true) columna.es_enlace = true;
+  return columna;
 }
 
 function normalizarValores(valor: unknown): Record<string, string | null> {
@@ -244,6 +258,7 @@ export function normalizarResumenDeContactos(valor: unknown): ResumenDeContactos
     con_enlace: entero(r.con_enlace),
     respondieron: enteroONulo(r.respondieron),
     leido_en: textoONulo(r.leido_en),
+    enlace_url: textoONulo(r.enlace_url)?.trim() || null,
   };
 }
 
@@ -347,7 +362,12 @@ function normalizarCruce(valor: unknown): CruceDelPerfil | null {
   if (!a || !b) return null;
   const filas = lista(valor.filas).map(rotuloDelCruce);
   const columnas = lista(valor.columnas).map(rotuloDelCruce);
-  return { a, b, filas, columnas, celdas: normalizarCeldas(valor.celdas, filas.length, columnas.length) };
+  const cruce: CruceDelPerfil = { a, b, filas, columnas, celdas: normalizarCeldas(valor.celdas, filas.length, columnas.length) };
+  const aLabel = texto(valor.a_label).trim();
+  const bLabel = texto(valor.b_label).trim();
+  if (aLabel) cruce.a_label = aLabel;
+  if (bLabel) cruce.b_label = bLabel;
+  return cruce;
 }
 
 export function normalizarPerfilDeContactos(valor: unknown): PerfilDeContactos {
@@ -360,6 +380,7 @@ export function normalizarPerfilDeContactos(valor: unknown): PerfilDeContactos {
     variables: unicasPorClave(lista(r.variables).map(normalizarVariable)),
     cruce: normalizarCruce(r.cruce),
     respuestas_leidas: booleanoONulo(r.respuestas_leidas) === true,
+    enlace_url: textoONulo(r.enlace_url)?.trim() || null,
   };
 }
 

@@ -64,7 +64,7 @@ export function EnlaceDeEncuesta({ efectivos, conEnlace, onGenerar }: Props) {
         <p className="rec-contactos-listo" role="status">
           <CheckCircle2 size={14} aria-hidden />
           <span>
-            {textoDelResultado(enlace.resultado)}. Úsalo en el botón del correo con el campo «Enlace a la encuesta».
+            {textoDelResultado(enlace.resultado)}
           </span>
         </p>
       ) : null}

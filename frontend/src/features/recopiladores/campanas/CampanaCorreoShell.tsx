@@ -118,6 +118,8 @@ export function CampanaCorreoShell({ campana, nombre, cabecera, campanasAcc, onS
                 className="rec-tab-panel"
                 role="tabpanel"
                 aria-labelledby="rec-correo-tab-contactos"
+                data-qa-geometry-group="material-campo/correo"
+                data-qa-geometry-contract="intrinsic"
               >
                 <ContactosVista
                   campaignId={refDeCorreo(campana)}

@@ -1,5 +1,7 @@
-// La lista de contactos, paginada en el backend: correo, nombre, las columnas
-// de control primero, estado, enlace y si respondió. La búsqueda, el estado,
+// La lista de contactos, paginada en el backend: correo (pegado a la izquierda),
+// nombre, estado, enlace y si respondió —lo que se revisa siempre— y después
+// las columnas de control, que son las que se van a la derecha en anchos
+// angostos. La búsqueda, el estado,
 // la respuesta y los filtros del tablero se aplican allá; aquí solo se pinta
 // la página que llegó.
 //
@@ -9,10 +11,10 @@
 
 import type { ColumnaDeContactos, FiltroDeEstado, FiltroDeRespuesta, PaginaDeContactos } from "../../../../api/mailContactos";
 import { PulsoButton } from "../../../../components/PulsoButton";
-import { formatoConteoDe } from "../../../../lib/formatoNumero";
-import { ChevronLeft, ChevronRight, Search, Users } from "../../../../vendor/lucide-react";
+import { Switch } from "../../../../components/Switch";
+import { ArrowRight, ChevronLeft, ChevronRight, Search, Users } from "../../../../vendor/lucide-react";
 import { TableScroll } from "../../TableScroll";
-import { ETIQUETA_DE_ESTADO, columnasDeLaLista, paginas, rangoDePagina } from "./modeloContactos";
+import { ETIQUETA_DE_ESTADO, cifraDeLaLista, columnasDeLaLista, paginas, rangoDePagina } from "./modeloContactos";
 import { useContactosStore } from "./store";
 
 type Props = {
@@ -22,6 +24,8 @@ type Props = {
   cargando: boolean;
   error: string;
   conFiltros: boolean;
+  /** Efectivos del mismo corte (los filtros del tablero); `null` si no aplica. */
+  efectivos: number | null;
 };
 
 const ESTADOS: { id: FiltroDeEstado; label: string }[] = [
@@ -43,7 +47,7 @@ function textoDeRespuesta(respondio: boolean | null): string {
   return respondio ? "Sí" : "No";
 }
 
-export function ListaDeContactos({ lista, control, respuestasLeidas, cargando, error, conFiltros }: Props) {
+export function ListaDeContactos({ lista, control, respuestasLeidas, cargando, error, conFiltros, efectivos }: Props) {
   const busqueda = useContactosStore((s) => s.busqueda);
   const estado = useContactosStore((s) => s.estado);
   const respondio = useContactosStore((s) => s.respondio);
@@ -63,8 +67,9 @@ export function ListaDeContactos({ lista, control, respuestasLeidas, cargando, e
           <Users size={16} aria-hidden />
           Lista
           <span className="rec-contactos-titulo-cifra">
-            {lista ? formatoConteoDe(total, "contacto") : ""}
-            {conFiltros ? " con los filtros" : ""}
+            {/* El tablero cuenta efectivos y la lista todos los estados: con la
+                misma búsqueda y estado, las dos cifras se leen juntas. */}
+            {lista ? cifraDeLaLista(total, hayCriterio ? null : efectivos, conFiltros) : ""}
           </span>
         </h2>
         <div className="rec-contactos-herramientas" role="search" aria-label="Buscar en la lista">
@@ -91,10 +96,15 @@ export function ListaDeContactos({ lista, control, respuestasLeidas, cargando, e
             {RESPUESTAS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
           {otrasColumnas || todas ? (
-            <label className="rec-contactos-casilla">
-              <input type="checkbox" checked={todas} onChange={(e) => st().setTodasLasColumnas(e.target.checked)} />
-              Todas las columnas
-            </label>
+            <span className="rec-contactos-interruptor">
+              <Switch
+                id="rec-contactos-todas-columnas"
+                checked={todas}
+                ariaLabel="Todas las columnas"
+                onToggle={() => st().setTodasLasColumnas(!todas)}
+              />
+              <label htmlFor="rec-contactos-todas-columnas">Todas las columnas</label>
+            </span>
           ) : null}
         </div>
       </header>
@@ -125,17 +135,17 @@ export function ListaDeContactos({ lista, control, respuestasLeidas, cargando, e
         </div>
       ) : lista ? (
         <>
-          <TableScroll className="rec-contactos-tabla-scroll" aria-busy={cargando || undefined}>
+          <TableScroll className="rec-contactos-tabla-scroll rec-contactos-lista-scroll" aria-busy={cargando || undefined}>
             <table className="rec-contactos-tabla rec-contactos-lista-tabla">
               <caption className="pulso-sr-only">Contactos, {rangoDePagina(lista.page, lista.per_page, total)}</caption>
               <thead>
                 <tr>
                   <th scope="col">Correo</th>
                   <th scope="col">Nombre</th>
-                  {columnas.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
                   <th scope="col">Estado</th>
                   <th scope="col">Enlace</th>
                   <th scope="col">Respondió</th>
+                  {columnas.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -143,9 +153,6 @@ export function ListaDeContactos({ lista, control, respuestasLeidas, cargando, e
                   <tr key={fila.fila}>
                     <td className="rec-contactos-correo">{fila.email || <span className="rec-contactos-sin">sin correo</span>}</td>
                     <td>{fila.nombre || <span className="rec-contactos-sin">—</span>}</td>
-                    {columnas.map((c) => (
-                      <td key={c.key}>{fila.valores[c.key] ?? <span className="rec-contactos-sin">—</span>}</td>
-                    ))}
                     <td>
                       <span className={`rec-contactos-estado is-${fila.estado ?? "desconocido"}`}>
                         {fila.estado ? ETIQUETA_DE_ESTADO[fila.estado] : "—"}
@@ -153,6 +160,9 @@ export function ListaDeContactos({ lista, control, respuestasLeidas, cargando, e
                     </td>
                     <td>{fila.tiene_enlace ? "Sí" : <span className="rec-contactos-sin">—</span>}</td>
                     <td>{textoDeRespuesta(fila.respondio)}</td>
+                    {columnas.map((c) => (
+                      <td key={c.key}>{fila.valores[c.key] ?? <span className="rec-contactos-sin">—</span>}</td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
@@ -160,6 +170,12 @@ export function ListaDeContactos({ lista, control, respuestasLeidas, cargando, e
           </TableScroll>
           <nav className="rec-contactos-paginacion" aria-label="Páginas de la lista">
             <span className="rec-contactos-paginacion-rango">{rangoDePagina(lista.page, lista.per_page, total)}</span>
+            {/* Visible solo si la tabla esconde columnas a la derecha (CSS lee
+                la clase que TableScroll calcula con el ancho real). */}
+            <span className="rec-contactos-mas-columnas">
+              Hay más columnas a la derecha
+              <ArrowRight size={13} aria-hidden />
+            </span>
             <PulsoButton
               variant="ghost"
               size="sm"

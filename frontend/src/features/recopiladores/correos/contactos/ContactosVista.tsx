@@ -164,6 +164,7 @@ export function ContactosVista({ campaignId, cabecera = null, onCargando, onIrAI
             cargando={listaCarga === "cargando"}
             error={listaError}
             conFiltros={conFiltros}
+            efectivos={conFiltros ? (perfil && perfilCarga !== "cargando" ? perfil.base : null) : resumen?.efectivos ?? null}
           />
         </>
       )}

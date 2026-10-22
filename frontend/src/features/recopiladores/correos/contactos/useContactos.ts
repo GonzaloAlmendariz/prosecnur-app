@@ -14,7 +14,7 @@ import {
   apiMailContactosPerfil,
   filtrosComoJson,
 } from "../../../../api/mailContactos";
-import { cruceVigente, validarEnlace } from "./modeloContactos";
+import { columnasFiltradas, cruceVigente, filtrosSin, validarEnlace } from "./modeloContactos";
 import { useContactosStore } from "./store";
 
 export const POR_PAGINA = 50;
@@ -58,6 +58,7 @@ export function useContactos(campaignId: string | null): AccionesDeContactos {
   const busquedaAplicada = useBusquedaAplicada(busqueda);
   const turnoPerfil = useRef(0);
   const turnoLista = useRef(0);
+  const turnoFacetas = useRef(0);
 
   useEffect(() => {
     s.getState().abrirCampana(campaignId);
@@ -79,6 +80,28 @@ export function useContactos(campaignId: string | null): AccionesDeContactos {
         if (turno === turnoPerfil.current) s.getState().perfilFallo(mensajeDe(causa, "No se pudo leer el perfil de los contactos."));
       });
   }, [campana, cruceClave, filtrosClave, refresco, s]);
+
+  // Una tarjeta filtrada no colapsa a la categoría elegida: por cada columna
+  // que filtra se pide su distribución sin su propio filtro (OR dentro de la
+  // variable, AND con las demás). Son pocas —una por variable filtrada— y van
+  // en paralelo; si los filtros cambian, las que llegan tarde se descartan.
+  useEffect(() => {
+    if (!campana) return;
+    const turno = ++turnoFacetas.current;
+    const st = s.getState();
+    for (const columna of columnasFiltradas(st.filtros)) {
+      const resto = filtrosSin(st.filtros, columna);
+      const clave = filtrosComoJson(resto) ?? "";
+      apiMailContactosPerfil({ campaignId: campana, filtros: resto, cruce: null })
+        .then((perfil) => {
+          if (turno !== turnoFacetas.current) return;
+          const variable = perfil.variables.find((v) => v.key === columna);
+          if (variable) s.getState().facetaLista(columna, { variable, base: perfil.base, clave });
+        })
+        // Sin la faceta la tarjeta se ve con el filtro aplicado: peor, no roto.
+        .catch(() => undefined);
+    }
+  }, [campana, filtrosClave, refresco, s]);
 
   useEffect(() => {
     if (!campana) return;
