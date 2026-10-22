@@ -172,7 +172,9 @@ describe("«Exportar ▾» por plataforma (F7)", () => {
         onEditar={noop} onImportar={noop} onMapear={noop} onOlvidar={noop} onVerComo={noop} />,
     );
     expect(personas).toContain("Etiqueta de Mailchimp de");
-    expect(personas).toContain("FNAME");
+    // #5 (QA e10): ni títulos ni nombres accesibles con la sintaxis de la plataforma o del motor.
+    expect(personas).not.toMatch(/\*\||\{\{/);
+    expect(personas).toContain('title="Nombre: cambia con cada persona"');
   });
 
   it("«Copiar HTML» copia el HTML de export, y pide mode export con el envío del borrador", async () => {

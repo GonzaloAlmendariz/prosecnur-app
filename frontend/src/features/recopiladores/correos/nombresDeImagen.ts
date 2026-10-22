@@ -49,7 +49,7 @@ export function claseDeImagen(template: Pick<MailTemplate, "header">, id: string
 
 /** El nombre humano de una imagen: su descripción o, sin ella, el papel que cumple. */
 export function nombreDeImagen(template: Plantilla, id: string): string {
-  if (claseDeImagen(template, id) === "banner") return altDe(template, id) || "Banner de mailing";
+  if (claseDeImagen(template, id) === "banner") return altDe(template, id) || "Banner";
   return altDe(template, id) || CONOCIDAS[id]?.nombre || desdeElId(id);
 }
 

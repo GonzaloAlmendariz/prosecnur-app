@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useId, useState, type CSSProperties, type ReactNode } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -12,7 +12,7 @@ import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalList
 import { CSS } from "@dnd-kit/utilities";
 
 import type { MailPreset, MailTemplate } from "../../../api/materialMail";
-import { AlertCircle, GripVertical, Plus, X } from "../../../vendor/lucide-react";
+import { AlertCircle, ChevronRight, GripVertical, Plus, X } from "../../../vendor/lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 
 import { BibliotecaDeBloques } from "./BibliotecaDeBloques";
@@ -29,6 +29,7 @@ import {
   type ProblemasPorDestino,
 } from "./modeloCorreo";
 import type { TipoInsertable } from "./piezasGraficas";
+import "./correosColumna.css";
 
 type Props = {
   presets: readonly MailPreset[];
@@ -156,6 +157,11 @@ function conRotulos(resumen: string, campos: readonly { key: string; label: stri
   });
 }
 
+/** El ejemplo de «Campos de cada persona» con el primer nombre: un nombre largo no estira la columna. */
+function primerNombre(nombre: string | undefined): string {
+  return (nombre ?? "").trim().split(/\s+/)[0] ?? "";
+}
+
 /** Columna izquierda: plantillas reales, bloques del correo y campos de cada persona. */
 export function ColumnaDeBloques({
   presets,
@@ -175,6 +181,12 @@ export function ColumnaDeBloques({
   ejemploDeNombre,
 }: Props) {
   const [agregando, setAgregando] = useState(false);
+  // #3: con bloques en el correo las plantillas se pliegan (un clic las abre)
+  // y la lista de bloques gana el alto. `null`: nadie la tocó todavía.
+  const [plantillasAbiertas, setPlantillasAbiertas] = useState<boolean | null>(null);
+  const idPlantillas = useId();
+  const verPlantillas = plantillasAbiertas ?? (template.blocks.length === 0 || presetPendiente !== null);
+  const presetActivo = presets.find((preset) => preset.preset_id === template.preset_id) ?? null;
   const sensores = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -189,9 +201,25 @@ export function ColumnaDeBloques({
   const campos = [{ key: "nombre", label: "Nombre" }, ...template.fields.map((f) => ({ key: f.key, label: f.label }))];
   return (
     <aside className="rec-mail-col rec-mail-col--bloques" aria-label="Plantillas y bloques del correo">
-      <div className="rec-mail-col-grupo">
-        <span className="xfk-over">Plantillas reales</span>
-        <ul className="rec-mail-presets" data-qa-geometry-group="material-campo/correo/plantillas" data-qa-geometry-contract="equal">
+      <div className={`rec-mail-col-grupo rec-mail-col-grupo--plantillas${verPlantillas ? " is-abierto" : ""}`}>
+        <button
+          type="button"
+          className="rec-mail-plegable"
+          aria-expanded={verPlantillas}
+          aria-controls={idPlantillas}
+          onClick={() => setPlantillasAbiertas(!verPlantillas)}
+        >
+          <span className="xfk-over">Plantillas reales</span>
+          {!verPlantillas && presetActivo ? <span className="rec-mail-plegable-resumen" title={presetActivo.title}>{presetActivo.title}</span> : null}
+          <ChevronRight size={14} aria-hidden className="rec-mail-plegable-flecha" />
+        </button>
+        <ul
+          id={idPlantillas}
+          hidden={!verPlantillas}
+          className="rec-mail-presets"
+          data-qa-geometry-group={verPlantillas ? "material-campo/correo/plantillas" : undefined}
+          data-qa-geometry-contract={verPlantillas ? "equal" : undefined}
+        >
           {presets.map((preset) => {
             const activo = template.preset_id === preset.preset_id;
             const origen = origenDePreset(preset.preset_id);
@@ -301,8 +329,8 @@ export function ColumnaDeBloques({
 
       <div className="rec-mail-col-grupo rec-mail-col-grupo--campos">
         <span className="xfk-over">Campos de cada persona</span>
-        <span className="rec-mail-ayuda rec-mail-campos-ejemplo">
-          Cambian según quién recibe el correo: Nombre sale «{ejemploDeNombre || "Ana"}» para {ejemploDeNombre || "Ana"}.
+        <span className="rec-mail-ayuda rec-mail-campos-ejemplo" title={`Cambian con cada persona: Nombre dice «${ejemploDeNombre || "Ana"}».`}>
+          Cambian con cada persona: Nombre dice «{primerNombre(ejemploDeNombre) || "Ana"}».
           {hayDestino ? " Pulsa uno para ponerlo en el texto." : " Elige un texto del correo para ponerlo ahí."}
         </span>
         <span className="rec-mail-campos" role="group" aria-label="Insertar un campo en el texto elegido">

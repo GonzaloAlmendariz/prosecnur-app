@@ -49,6 +49,14 @@
   outline-offset: 2px;
 }
 
+/* #18: el cuentagotas lleva el mismo anillo (≥ 3:1), no la sombra translúcida
+   del botón de ícono. Dos clases ganan a `.pulso-button:focus-visible`. */
+.pulso-button.rec-mail-cuentagotas:focus-visible {
+  box-shadow: none;
+  outline: var(--pulso-nav-focus-outline-width) solid var(--pulso-module-fieldkit);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
 .rec-estilo-opcion-nombre {
   font-size: 12.5px;
   font-weight: var(--pulso-weight-semibold);

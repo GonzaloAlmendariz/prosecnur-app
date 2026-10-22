@@ -134,7 +134,7 @@ export function resumenDeBloque(block: MailBlock): string {
 }
 
 export function rotuloDeCabecera(header: MailHeader): string {
-  return header.kind === "banner" ? "Banner de mailing" : "Cabecera de logos";
+  return header.kind === "banner" ? "Banner" : "Cabecera de logos";
 }
 
 // ---- campos de cada persona ---------------------------------------------------
@@ -325,7 +325,8 @@ const NOMBRE_DE_CODIFICACION: Record<MailRecipientsEncoding, string> = {
  */
 export function notasDeLectura(encoding: MailRecipientsEncoding | null, counts: MailRecipientsCounts | null): string[] {
   const notas: string[] = [];
-  if (encoding) notas.push(`Leído como ${NOMBRE_DE_CODIFICACION[encoding]}`);
+  // #12: UTF-8 es lo normal y no se dice; sólo se avisa cuando se leyó de otro modo.
+  if (encoding && encoding !== "utf-8") notas.push(`Leído como ${NOMBRE_DE_CODIFICACION[encoding]}`);
   if (counts?.rows_blank_dropped) {
     notas.push(`${counts.rows_blank_dropped.toLocaleString("es-PE")} ${counts.rows_blank_dropped === 1 ? "fila vacía descartada" : "filas vacías descartadas"}`);
   }

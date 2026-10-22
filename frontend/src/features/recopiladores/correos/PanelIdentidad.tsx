@@ -23,7 +23,7 @@ import {
   CABECERA,
   CUERPO_DEL_INSPECTOR,
 } from "./modeloCorreo";
-import type { ChequeoDeEstilo } from "./modeloEstilo";
+import { hexCanonico, type ChequeoDeEstilo } from "./modeloEstilo";
 
 type Props = {
   template: MailTemplate;
@@ -82,7 +82,7 @@ function EnlaceDeLaImagen({ nombre, url, plataforma, onCambio }: { nombre: strin
   );
 }
 
-/** Pestaña «Identidad»: banner de mailing del cliente o franja de logos del estudio. */
+/** Pestaña «Identidad»: banner del cliente o franja de logos del estudio. */
 export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinArchivo, bannerCheck, chequeosDeEstilo = {}, ocupado, onEditar, onSubir, pedirAlt = null, onAltListo, plataforma = "mailchimp" }: Props) {
   const ids = useId();
   const conBanner = template.header.kind === "banner";
@@ -173,16 +173,19 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
         </section>
       ) : null}
 
-      <section className={`rec-mail-banner${conBanner ? " is-active" : ""}`} aria-label="Banner de mailing">
-        <Imagen src={imagenesLocales[bannerId] ?? template.images[bannerId]?.url} alt={template.images[bannerId]?.alt || "Banner de mailing"} banner />
+      <section className={`rec-mail-banner${conBanner ? " is-active" : ""}`} aria-label="Banner">
+        <Imagen src={imagenesLocales[bannerId] ?? template.images[bannerId]?.url} alt={template.images[bannerId]?.alt || "Banner"} banner />
         <span className="rec-mail-banner-fila">
-          <b>Banner de mailing</b>
+          <b>Banner</b>
           <span className="xfk-mono">1200 × 600 px</span>
         </span>
+        {/* #10: la nota del banner vive en su tarjeta, en la misma ayuda; lo de SurveyMonkey, sólo allí. */}
         <span className="rec-mail-ayuda">
           {conBanner
             ? "Va arriba del correo, a todo el ancho, en lugar de los logos."
             : "Lo envía el cliente. Si lo usas, ocupa la cabecera del correo en lugar de los logos."}
+          {" La app revisa que mida al menos 1200 px de ancho, tenga forma de banner y no pese de más."}
+          {plataforma === "surveymonkey" ? " El banner de la encuesta se carga directo en SurveyMonkey y no pasa por aquí." : null}
         </span>
         {conBanner && !altArriba ? datosDelBanner : null}
         {bannerCheck && conBanner ? (
@@ -292,7 +295,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
             onChange={(e) => onEditar((t) => ({ ...t, theme: { ...t.theme, accent: e.target.value } }))}
           />
           <Cuentagotas nombre="el color de acento" onChange={(accent) => onEditar((t) => ({ ...t, theme: { ...t.theme, accent } }))} />
-          <span className="xfk-mono">{template.theme.accent}</span>
+          <span className="xfk-mono">{hexCanonico(template.theme.accent)}</span>
         </span>
       </div>
 
@@ -310,10 +313,6 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
         onTema={(update) => onEditar((t) => ({ ...t, theme: update(t.theme) }))}
       />
 
-      <p className="rec-mail-nota">
-        La app revisa que el banner recibido mida al menos 1200 px de ancho, tenga forma de banner y no pese de más.
-        El banner de la encuesta se carga directo en SurveyMonkey y no pasa por aquí.
-      </p>
     </div>
   );
 }

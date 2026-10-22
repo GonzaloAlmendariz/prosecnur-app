@@ -49,7 +49,9 @@ describe("F4 · «Cómo sale» con el saludo según el sexo es lo que exporta el
   it("SurveyMonkey: [CustomData1] [FirstName], como `.cmail_trato_html` en export", () => {
     const sale = comoSaleEnLaPlataforma(saludo, plantilla, "surveymonkey");
     expect(sale.lineas[0].plataforma).toBe("[CustomData1] [FirstName],");
-    expect(sale.notas.join(" ")).toContain("[CustomData1]");
+    // #4 (QA e10): la etiqueta queda en el código («Ver el código»), no en la nota.
+    expect(sale.notas.join(" ")).toContain("lo trae escrito el archivo de contactos");
+    expect(sale.notas.join(" ")).not.toContain("[CustomData1]");
   });
 
   it("Mailchimp: el condicional de SALUDO con el respaldo", () => {

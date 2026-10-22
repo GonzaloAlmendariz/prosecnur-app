@@ -4,7 +4,7 @@ import type { MailTemplate } from "../../../api/materialMail";
 import { X, type LucideIcon } from "../../../vendor/lucide-react";
 import { tipoDisponible } from "./estructuraCorreo";
 import { ICONO_DE_BLOQUE, ICONO_DE_IMAGEN_DECORATIVA } from "./iconos";
-import { DESCRIPCION_DE_BLOQUE, ROTULO_DE_BLOQUE } from "./modeloCorreo";
+import { ROTULO_DE_BLOQUE } from "./modeloCorreo";
 import { IMAGEN_DECORATIVA, PIEZAS_GRAFICAS, type TipoInsertable } from "./piezasGraficas";
 import "./correosBiblioteca.css";
 
@@ -25,12 +25,6 @@ export const GRUPOS: readonly { titulo: string; tipos: readonly TipoInsertable[]
 /** Nombre, descripción e ícono de una entrada de la biblioteca. */
 export function rotuloDeInsertable(tipo: TipoInsertable): string {
   return tipo === IMAGEN_DECORATIVA ? "Imagen decorativa" : ROTULO_DE_BLOQUE[tipo];
-}
-
-function descripcionDeInsertable(tipo: TipoInsertable): string {
-  return tipo === IMAGEN_DECORATIVA
-    ? "Un adorno de la línea gráfica: sale sin texto alternativo, a propósito."
-    : DESCRIPCION_DE_BLOQUE[tipo];
 }
 
 function iconoDeInsertable(tipo: TipoInsertable): LucideIcon {
@@ -165,7 +159,7 @@ const ESQUEMA: Record<TipoInsertable, ReactNode> = {
 
 /** Más que la descripción corta: para qué sirve cada tipo, en la voz de quien escribe. */
 export const CUANDO_USARLO: Record<TipoInsertable, string> = {
-  greeting: "El primer renglón. Usa {{nombre}} y escribe el respaldo para quien no tenga el dato.",
+  greeting: "El primer renglón, con el nombre de cada persona. Para quien no tenga el dato, va el texto de «Si falta el nombre».",
   heading: "Para separar partes en un correo largo: fechas, pasos, «Qué tienes que hacer».",
   paragraph: "El cuerpo del correo. Admite negrita, cursiva, campos y enlaces dentro del texto.",
   list: "Pasos o requisitos que se leen de un vistazo.",
@@ -181,6 +175,28 @@ export const CUANDO_USARLO: Record<TipoInsertable, string> = {
   icon_text: "Para un dato clave: fecha, lugar o premio.",
   two_images: "Para dos fotos o logos, uno junto al otro.",
   [IMAGEN_DECORATIVA]: "Para un adorno: no necesita descripción.",
+};
+
+/**
+ * Lo que se lee en la tarjeta: una idea de unos 45 caracteres, entera en dos
+ * líneas (#6 del QA e10). El `title` repite la misma frase completa.
+ */
+export const DESCRIPCION_CORTA: Record<TipoInsertable, string> = {
+  greeting: "Abre el correo con el nombre de la persona.",
+  heading: "Un título para ordenar un correo largo.",
+  paragraph: "El cuerpo del correo, con negrita y enlaces.",
+  list: "Pasos o requisitos que se leen de un vistazo.",
+  callout: "Lo que no debe pasarse: plazos o sesiones.",
+  button: "La acción principal: el enlace a la encuesta.",
+  image: "Un banner o una imagen de la línea gráfica.",
+  divider: "Aire o una línea fina entre dos partes.",
+  signature: "Despedida, nombre e institución.",
+  footer_legal: "Por qué recibe el correo, con la baja.",
+  band: CUANDO_USARLO.band,
+  ornament: CUANDO_USARLO.ornament,
+  icon_text: CUANDO_USARLO.icon_text,
+  two_images: CUANDO_USARLO.two_images,
+  [IMAGEN_DECORATIVA]: CUANDO_USARLO[IMAGEN_DECORATIVA],
 };
 
 type Props = {
@@ -259,7 +275,7 @@ export function BibliotecaDeBloques({ template, estilo, titulo = "Agregar un blo
               {grupo.tipos.map((type) => {
                 const Icono = iconoDeInsertable(type);
                 const disponible = tipoDisponible(template, type);
-                const desc = grupo.cuandoALaVista ? CUANDO_USARLO[type] : descripcionDeInsertable(type);
+                const desc = DESCRIPCION_CORTA[type];
                 return (
                   <button
                     key={type}
@@ -270,7 +286,7 @@ export function BibliotecaDeBloques({ template, estilo, titulo = "Agregar un blo
                     disabled={!disponible}
                     draggable={disponible}
                     onDragStart={alArrastrar(type)}
-                    title={disponible ? CUANDO_USARLO[type] : "Ya hay un pie legal: es único en el correo."}
+                    title={disponible ? desc : "Ya hay un pie legal: es único en el correo."}
                     onClick={() => onElegir(type)}
                   >
                     <svg className="rec-bib-esquema" viewBox="0 0 64 44" aria-hidden focusable="false">

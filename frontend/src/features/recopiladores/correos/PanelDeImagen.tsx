@@ -201,7 +201,7 @@ export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEd
         valor={block.url ?? ""}
         mono
         placeholder="https://… (opcional)"
-        ayuda="Opcional. Admite campos, como {{enlace}}."
+        ayuda="Opcional. Puede cambiar con cada persona si usas un campo."
         problemas={de("url")}
         onCambio={(url) => onEditarBloque((b) => {
           const next = { ...b } as MailImageBlock;

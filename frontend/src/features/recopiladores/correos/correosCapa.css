@@ -206,13 +206,11 @@
   gap: 2px;
   padding: 2px;
   position: absolute;
-  transform: translate(-100%, calc(-100% - 6px));
+  /* El lugar lo decide lugarDeLasAcciones.ts (donde no tape texto ni
+     imágenes); `left` es su borde derecho y `top` su borde de arriba. */
+  transform: translateX(-100%);
   z-index: 4;
   animation: rec-capa-aparecer var(--motion-dur-fast) var(--motion-ease-out);
-}
-
-.rec-capa-acciones.is-dentro {
-  transform: translate(calc(-100% - 6px), 6px);
 }
 
 .rec-capa-acciones-rotulo {

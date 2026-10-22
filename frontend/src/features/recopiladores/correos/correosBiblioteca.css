@@ -33,12 +33,18 @@
   }
 }
 
+/* #17: la cabecera queda a la vista mientras se recorre la biblioteca. */
 .rec-bib-cabeza {
   align-items: center;
+  background: var(--pulso-surface);
   border-bottom: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel) var(--pulso-radius-panel) 0 0;
   display: flex;
   gap: 10px;
   padding: 10px 10px 10px 14px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .rec-bib-titulo {
@@ -138,9 +144,10 @@
   transform: translateY(-1px);
 }
 
+/* #18: anillo de foco con contraste ≥ 3:1 (el acento del módulo sobre blanco). */
 .rec-bib-tipo:focus-visible {
-  outline: 2px solid var(--pulso-primary-focus);
-  outline-offset: 1px;
+  outline: var(--pulso-nav-focus-outline-width) solid var(--pulso-module-fieldkit);
+  outline-offset: var(--pulso-nav-focus-offset);
 }
 
 .rec-bib-tipo:active:not(:disabled) {
@@ -229,6 +236,8 @@
   flex: none;
 }
 
+/* #17: dos líneas reservadas siempre: todas las tarjetas, de todos los
+   grupos, miden lo mismo aunque la descripción quepa en una. */
 .rec-bib-desc {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -236,6 +245,7 @@
   display: -webkit-box;
   font-size: 11.5px;
   line-height: 1.35;
+  min-height: calc(2 * 1.35em);
   overflow: hidden;
 }
 

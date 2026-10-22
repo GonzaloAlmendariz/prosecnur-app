@@ -31,7 +31,7 @@ describe("H7 — cada imagen se nombra por su papel, nunca por su id", () => {
     expect(claseDeImagen(LOGOS, "campus")).toBe("imagen");
     const banner: Plantilla = { ...LOGOS, header: { kind: "banner", image_ref: "banner-mailing" }, images: { "banner-mailing": { alt: "" } } };
     expect(claseDeImagen(banner, "banner-mailing")).toBe("banner");
-    expect(nombreDeImagen(banner, "banner-mailing")).toBe("Banner de mailing");
+    expect(nombreDeImagen(banner, "banner-mailing")).toBe("Banner");
   });
 
   it("dice lo que falta en una frase: «Falta el logo de la unidad solicitante y el de Pulso PUCP»", () => {

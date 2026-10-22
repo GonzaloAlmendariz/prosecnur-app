@@ -29,10 +29,19 @@ export function useConCajon(): [(el: HTMLElement | null) => void, boolean] {
     observador.current = null;
     if (!el || typeof ResizeObserver === "undefined") return;
     setCajon(conCajon(el.getBoundingClientRect().width));
+    // #2: el alto visible del panel que hace scroll, para que el inspector
+    // pegado (correosCompacto.css) mida lo que se ve y no el alto del correo.
+    const panel = el.closest<HTMLElement>(".rec-tab-panel");
+    const medirPanel = () => { if (panel) el.style.setProperty("--rec-panel-alto", `${panel.clientHeight}px`); };
+    medirPanel();
     const obs = new ResizeObserver((entradas) => {
-      setCajon(conCajon(entradas[0]?.contentRect.width ?? 0));
+      for (const e of entradas) {
+        if (e.target === el) setCajon(conCajon(e.contentRect.width));
+      }
+      medirPanel();
     });
     obs.observe(el);
+    if (panel) obs.observe(panel);
     observador.current = obs;
   }, []);
   return [ref, cajon];

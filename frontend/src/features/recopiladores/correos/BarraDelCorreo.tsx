@@ -141,7 +141,8 @@ export function BarraDelCorreo(p: Props) {
           type="button"
           className="rec-barra-ver-como"
           disabled={!p.puedeSiguientePersona}
-          title={p.puedeSiguientePersona ? "Ver el correo de la siguiente persona" : "Importa destinatarios para ver el correo de cada persona"}
+          // El nombre se recorta a la vista; entero, en el título (en todos los anchos).
+          title={`Ver como ${p.persona?.nombre || "—"}. ${p.puedeSiguientePersona ? "Pulsa para ver a la siguiente persona." : "Importa destinatarios para ver el correo de cada persona."}`}
           onClick={p.onSiguientePersona}
         >
           Ver como <b>{p.persona?.nombre || "—"}</b>

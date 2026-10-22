@@ -8,13 +8,15 @@ import { PanelDeDosImagenes } from "./PanelDeDosImagenes";
 import { ROTULO_DE_ICONO, chequeoDeContraste, conColor, idDelIcono, tieneColor, type LadoDelPar } from "./piezasGraficas";
 import { SelectorDeIcono } from "./SelectorDeIcono";
 import { CampoDeTexto } from "./CampoDeTexto";
+import { CampoConCampos } from "./CampoConCampos";
 import type { Dialecto } from "./comoSaleEnLaPlataforma";
 import { LoQueFaltaSubir } from "./LoQueFaltaSubir";
 import { fraseDeLoQueFalta, idsSinArchivo, nombreDeImagen } from "./nombresDeImagen";
+import { fraseDeNitidez } from "./nitidez";
 import { PanelDeImagen } from "./PanelDeImagen";
 import { ChequeosDelBloque, TarjetaDidactica } from "./TarjetaDidactica";
 import { EnlaceDeLaPersona } from "./EnlaceDeLaPersona";
-import { esProblemaDelTrato } from "./modeloTrato";
+import { esProblemaDelTrato, fraseDelTrato, tratoDelSaludo } from "./modeloTrato";
 import { SaludoSegunLaPersona } from "./SaludoSegunLaPersona";
 import {
   CABECERA,
@@ -69,11 +71,20 @@ type Props = {
 
 const AYUDA_DE_PROP: Partial<Record<PropDeTexto, string>> = {
   text: "Puedes usar negrita, cursiva y campos; el formato lo pone la plantilla.",
-  url: "https://…, mailto:… o un campo como {{enlace}}.",
+  url: "Dirección web o de correo, o un campo de cada persona.",
   note: "Una línea por renglón.",
   items: "Un punto por línea.",
   lines: "Una línea por renglón.",
 };
+
+/** El chip de un campo dice su rótulo («Nombre», «Carrera»), nunca la llave del motor. */
+function rotulosDeCampos(template: Pick<MailTemplate, "fields">) {
+  const rotulo = (key: string) => (key === "nombre" ? "Nombre" : template.fields.find((f) => f.key === key)?.label || key);
+  return {
+    rotuloDeCampo: rotulo,
+    ayudaDeCampo: (key: string) => `${rotulo(key)}: cambia con cada persona`,
+  };
+}
 
 function problemasDe(lista: readonly MailProblem[], prop: string): MailProblem[] {
   return lista.filter((p) => propDelProblema(p.path) === prop);
@@ -194,11 +205,11 @@ export function PanelDeBloque({
         <Encabezado
           titulo={rotuloDeCabecera(header)}
           descripcion={header.kind === "banner"
-            ? "El banner de mailing que entrega el cliente, a todo el ancho del correo."
+            ? "El banner que entrega el cliente, a todo el ancho del correo."
             : "Los logos de las instituciones del estudio, arriba del correo. Cada uno viaja en el ZIP como imagen aparte."}
         />
         <div className="rec-mail-props">
-          <PropRow label="Tipo">{header.kind === "banner" ? "Banner de mailing" : "Franja de logos"}</PropRow>
+          <PropRow label="Tipo">{header.kind === "banner" ? "Banner" : "Franja de logos"}</PropRow>
           {header.kind === "logos" ? (
             <>
               <PropRow label="Logos">{header.logo_ids.map((id) => nombreDeImagen(template, id)).join(" · ") || "ninguno"}</PropRow>
@@ -261,7 +272,14 @@ export function PanelDeBloque({
       <Encabezado titulo={rotuloDeBloque(block)} descripcion={descripcionDeBloque(block)} />
       <ChequeosDelBloque
         chequeos={chequeos}
-        detalleDe={(c) => (c.code === "images_available" ? fraseDeLoQueFalta(template, idsSinArchivo(c.items)) : null)}
+        detalleDe={(c) => {
+          if (c.code === "images_available") return fraseDeLoQueFalta(template, idsSinArchivo(c.items));
+          // #11: el reparto del saludo por sexo, sin partes en cero ni paréntesis.
+          if (c.code === "greeting_trato" && block.type === "greeting" && destinatarios?.trato) {
+            return fraseDelTrato(destinatarios.trato, tratoDelSaludo(block));
+          }
+          return fraseDeNitidez(c, block);
+        }}
       />
       {block.type === "image" ? (
         <PanelDeImagen
@@ -308,7 +326,18 @@ export function PanelDeBloque({
           onColor={(color) => editar((b) => conColor(b, color), `${block.block_id}.color`)}
         />
       ) : null}
-      {block.type === "image" || block.type === "two_images" ? null : props.map((prop) => (
+      {block.type === "image" || block.type === "two_images" ? null : props.map((prop) => (block.type === "greeting" && prop === "text" ? (
+        // #4: el saludo muestra el campo como en el lienzo, un chip «Nombre».
+        <CampoConCampos
+          key={`${block.block_id}-${prop}`}
+          label={ROTULO_DE_PROP[prop]}
+          valor={textoDe(block, prop)}
+          opciones={rotulosDeCampos(template)}
+          problemas={problemasDe(propios, prop)}
+          onCambio={(valor) => editar((b) => conTexto(b, prop, valor), `${block.block_id}.${prop}`)}
+          onCursor={(cursor) => onDestino({ objetivo: block.block_id, prop, cursor })}
+        />
+      ) : (
         <CampoDeTexto
           key={`${block.block_id}-${prop}`}
           label={ROTULO_DE_PROP[prop]}
@@ -321,7 +350,7 @@ export function PanelDeBloque({
           onCambio={(valor) => editar((b) => conTexto(b, prop, valor), `${block.block_id}.${prop}`)}
           onCursor={(cursor) => onDestino({ objetivo: block.block_id, prop, cursor })}
         />
-      ))}
+      )))}
       {explicaciones ? <TarjetaDidactica block={block} template={template} dialecto={dialecto} /> : null}
       {block.type === "icon_text" && block.icon && dialecto === "surveymonkey" ? (
         <CampoDeTexto

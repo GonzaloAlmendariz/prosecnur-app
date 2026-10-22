@@ -182,3 +182,28 @@
     transition: none;
   }
 }
+
+/* #8 — El chequeo al que llevó un punto del correo: recibe el foco y se
+   resalta un momento con el acento del módulo. Sin movimiento con
+   reduced-motion: el resaltado aparece y se va sin transición. */
+.rec-mail-chk.rec-mail-rev-falla {
+  transition:
+    background-color var(--motion-dur-base) var(--motion-ease-out),
+    box-shadow var(--motion-dur-base) var(--motion-ease-out);
+}
+
+.rec-mail-chk.rec-mail-rev-falla.is-resaltado {
+  background: var(--pulso-module-fieldkit-soft);
+  box-shadow: 0 0 0 2px var(--pulso-module-fieldkit);
+}
+
+.rec-mail-chk.rec-mail-rev-falla:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--pulso-module-fieldkit);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-mail-chk.rec-mail-rev-falla {
+    transition: none;
+  }
+}
