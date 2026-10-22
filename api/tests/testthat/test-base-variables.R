@@ -471,3 +471,21 @@ test_that("alguna reduce la opción múltiple antes de evaluar: «98 99» es NA 
   # El indicador de la matriz (ADR 0105) mira la celda entera y da 0.
   expect_identical(.equiv_deriv_valor(df, "m", "1")[[1]], "0")
 })
+
+test_that("una columna de respuesta múltiple se declara select_multiple y se abre como cualquier múltiple", {
+  # HSyVbG 2026: las *_recod de respuesta múltiple («1 4») entran con sus categorías
+  # (decisión de Gonzalo 2026-10-22).
+  sid <- .bv_estudio()
+  on.exit(session_delete(sid), add = TRUE)
+  base_variables_declarar(sid, "2026", declarar = list(list(
+    name = "P12_R", label = "Tramo P12", tipo = "select_multiple",
+    opciones = .bv_opciones("1" = "Bajo", "2" = "Medio", "3" = "Alto"))))
+  inst <- session_get(sid)$rp_inst_sources[["2026"]]
+  expect_identical(inst$survey$type[inst$survey$name == "P12_R"], "select_multiple")
+  ln <- inst$survey$list_name[inst$survey$name == "P12_R"]
+  expect_identical(as.character(inst$choices$label[inst$choices$list_name == ln]), c("Bajo", "Medio", "Alto"))
+  # Sin opciones no se acepta, igual que un select_one.
+  e <- tryCatch(base_variables_declarar(sid, "2026", list(list(name = "P12_R", tipo = "select_multiple"))),
+                api_error = function(e) e)
+  expect_identical(e$code, "E_BASE_VARIABLE_ESCALA_VACIA")
+})

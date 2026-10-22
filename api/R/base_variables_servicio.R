@@ -84,7 +84,7 @@ base_variables_consultar <- function(sid, base) {
       list(name = nombre, tipo = tipo))
   }
   opciones <- list()
-  if (identical(tipo, "select_one")) {
+  if (tipo %in% c("select_one", "select_multiple")) {
     opciones <- .base_variables_escala_valida(d[["opciones"]])
     if (!length(opciones)) {
       stop_api(422, "E_BASE_VARIABLE_ESCALA_VACIA", sprintf(
