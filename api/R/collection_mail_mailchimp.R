@@ -292,10 +292,15 @@ collection_mail_mailchimp_sync <- function(sid, campaign_id = NULL, survey_id, l
   input_path <- job_save_rds(sid, gsub("[^a-z_]", "_", kind), input)
   runner <- get(runner_name, envir = asNamespace("prosecnurapp"), inherits = FALSE)
   attr(runner, "prosecnur_job_function_name") <- runner_name
-  job_id <- job_submit(
-    sid = sid, kind = kind, func = runner,
-    args = list(sid = sid, input_path = input_path),
-    on_cleanup = function(j) job_unlink_inputs(input_path)
+  # Si el job no llega a existir, nadie correría `on_cleanup`: el insumo (con
+  # las claves y los correos) se borra aquí mismo.
+  job_id <- tryCatch(
+    job_submit(
+      sid = sid, kind = kind, func = runner,
+      args = list(sid = sid, input_path = input_path),
+      on_cleanup = function(j) job_unlink_inputs(input_path)
+    ),
+    error = function(e) { job_unlink_inputs(input_path); stop(e) }
   )
   list(ok = TRUE, job_id = job_id)
 }
