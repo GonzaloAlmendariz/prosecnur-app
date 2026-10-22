@@ -320,7 +320,7 @@
     format_spss <- attr(col, "format.spss", exact = TRUE)
     display_width <- attr(col, "display_width", exact = TRUE)
 
-    if (base %in% numeric_types && !is.numeric(col)) {
+    if ((base %in% numeric_types || .bases_numerico_no_declarado(row, base)) && !is.numeric(col)) {
       raw <- trimws(as.character(col))
       non_empty <- !is.na(raw) & nzchar(raw)
       parsed <- suppressWarnings(as.numeric(raw))
