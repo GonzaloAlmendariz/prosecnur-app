@@ -2064,3 +2064,24 @@ test_that("«Otra identidad de género (especifica)» bajo la opción 88 va en l
   expect_false(any(grepl("Numeracion secuencial", unlist(m$warnings))))
   expect_identical(m$summary$n_questions, 10L)
 })
+
+test_that("una fila de matriz que trae su propia letra no sale numerada dos veces", {
+  # HSyVbG 2026: P61_1 «a. Secretaría de Instrucción…» se imprimía «61.1 a. Secretaría…».
+  survey <- data.frame(
+    type = c("begin_group", "note", "select_one sn", "select_one sn", "select_one sn", "end_group"),
+    name = c("g", "P61", "P61_1", "P61_2", "P61_3", ""),
+    label = c("", "¿Has escuchado hablar de las siguientes instancias?",
+              "a. Secretaría de Instrucción", "b. Tribunal Disciplinario", "c. a cargo de la OIGD", ""),
+    appearance = c("field-list", "", "", "", "", ""),
+    stringsAsFactors = FALSE)
+  choices <- data.frame(list_name = "sn", name = c("1", "2"), label = c("Sí", "No"), stringsAsFactors = FALSE)
+  m <- suppressWarnings(formulario_pdf_build_model(survey, choices, data.frame(form_title = "T")))
+  mat <- Filter(function(b) identical(b$kind, "matrix"), m$blocks)
+  expect_length(mat, 1L)
+  labs <- sub(" \\[[^]]+\\]$", "", vapply(mat[[1]]$items, function(it) it$label, ""))
+  nums <- vapply(mat[[1]]$items, function(it) it$number, "")
+  expect_true(all(nzchar(nums)))
+  expect_identical(labs, c("Secretaría de Instrucción", "Tribunal Disciplinario", "a cargo de la OIGD"))
+  expect_identical(.form_num_sin_letra_de_fila("a. Texto", 2L, "1.2"), "a. Texto")
+  expect_identical(.form_num_sin_letra_de_fila("a. Texto", 1L, ""), "a. Texto")
+})

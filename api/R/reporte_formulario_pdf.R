@@ -800,8 +800,8 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
             number = item_num,
             var_tag = num$tags[r],
             name = .form_pdf_chr(survey$name[r]),
-            label = .form_pdf_paper_text_enfasis(.form_pdf_strip_leading_number(
-              .form_pdf_first_nonempty(survey$paper_label[r], survey$label[r]), item_num)),
+            label = .form_pdf_paper_text_enfasis(.form_num_sin_letra_de_fila(.form_pdf_strip_leading_number(
+              .form_pdf_first_nonempty(survey$paper_label[r], survey$label[r]), item_num), jj, item_num)),
             skip = esp_item(r, mk_item_skip(r))
           )
         })
@@ -823,8 +823,8 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
             subletter = if (is_parent) "" else subl,
             is_parent = is_parent,
             name = .form_pdf_chr(survey$name[r]),
-            label = .form_pdf_paper_text_enfasis(.form_pdf_strip_leading_number(
-              .form_pdf_first_nonempty(survey$paper_label[r], survey$label[r]), item_num)),
+            label = .form_pdf_paper_text_enfasis(.form_num_sin_letra_de_fila(.form_pdf_strip_leading_number(
+              .form_pdf_first_nonempty(survey$paper_label[r], survey$label[r]), item_num), jj, item_num)),
             skip = esp_item(r, mk_item_skip(r))
           )
         })
