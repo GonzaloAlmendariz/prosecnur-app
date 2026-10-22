@@ -259,10 +259,12 @@
   margin: 0;
 }
 
+/* La fecha se dice entera («miércoles 30 de septiembre»): si no cabe junto a
+   «A quién» en un renglón, cada uno va en el suyo, nunca partida en dos. */
 .rec-env-par {
   display: grid;
   gap: var(--pulso-space-2);
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .rec-env-campo {
@@ -270,6 +272,74 @@
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+}
+
+/* La fecha del envío dicha como se dice («viernes 30 de octubre»): un botón
+   con el aspecto de un campo abre el calendario del sistema. El input nativo
+   queda debajo, invisible, sólo para anclar ese calendario. */
+.rec-env-fecha {
+  display: flex;
+  min-width: 0;
+  position: relative;
+}
+
+.rec-env-fecha-boton {
+  background:
+    linear-gradient(180deg, var(--pulso-surface) 0%, color-mix(in srgb, var(--pulso-surface-2) 72%, var(--pulso-surface) 28%) 100%);
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 84%, var(--pulso-border-strong));
+  border-radius: 8px;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-regular);
+  gap: var(--pulso-space-1);
+  justify-content: flex-start;
+  line-height: 1.35;
+  min-height: var(--pulso-control-height-md);
+  padding: 5px 8px;
+  text-align: left;
+  white-space: normal;
+  width: 100%;
+}
+
+.rec-env-fecha-boton > svg {
+  color: var(--pulso-text-muted);
+}
+
+.rec-env-fecha-boton.is-vacia {
+  color: var(--pulso-text-faint);
+}
+
+.rec-env-fecha-boton:active:not(:disabled),
+.rec-env-fecha-boton:hover:not(:disabled) {
+  transform: none;
+}
+
+.rec-env-fecha-nativa {
+  border: 0;
+  bottom: 0;
+  height: 1px;
+  left: 0;
+  opacity: 0;
+  padding: 0;
+  pointer-events: none;
+  position: absolute;
+  width: 1px;
+}
+
+/* La apertura vacía muestra su ejemplo como el placeholder de un campo; el
+   texto viene en `--rec-env-ejemplo` y no se lee como contenido. */
+.rec-env-apertura .rec-mail-input--campos {
+  position: relative;
+}
+
+.rec-env-apertura.is-vacia .rec-mail-input--campos::before {
+  color: var(--pulso-text-faint);
+  content: var(--rec-env-ejemplo);
+  left: 8px;
+  pointer-events: none;
+  position: absolute;
+  right: 8px;
+  top: 6px;
 }
 
 .rec-env-fijo {

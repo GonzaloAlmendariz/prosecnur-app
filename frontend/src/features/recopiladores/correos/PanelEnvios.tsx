@@ -11,13 +11,19 @@
 //   es una fila miembro (su rótulo, su fecha y a quién va).
 // - C2: de 1 a 6 filas de la misma altura; el detalle del elegido va debajo,
 //   fuera del grupo. C4: el dueño de scroll es el inspector.
+//
+// La apertura se edita como el texto de un bloque (CampoConCampos): chips de
+// campo, negrita y cursiva visibles, nunca asteriscos ni llaves. Lo que se
+// guarda en `opening` sigue siendo el mismo texto del contrato.
 
-import { useId } from "react";
+import { useId, useRef, type CSSProperties } from "react";
 
-import type { MailPlatform, MailSend, MailTemplate } from "../../../api/materialMail";
+import type { MailPlatform, MailProblem, MailSend, MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { AlertTriangle, Loader2, Plus, Trash2, Upload } from "../../../vendor/lucide-react";
+import { AlertTriangle, CalendarDays, Loader2, Plus, Trash2, Upload } from "../../../vendor/lucide-react";
+import { CampoConCampos } from "./CampoConCampos";
 import { CampoDeTexto } from "./CampoDeTexto";
+import { clavesDeclaradas, rotuloDeClave } from "./camposDeclarados";
 import { SincronizarRespuestas } from "./SincronizarRespuestas";
 import { avisosDeRecordatorio } from "./sincronizacionModel";
 import { useCorreosStore } from "./store";
@@ -39,7 +45,7 @@ import "./correosEnvios.css";
 type Props = {
   envios: readonly MailSend[];
   activo: MailSend;
-  template: Pick<MailTemplate, "subject" | "preheader">;
+  template: Pick<MailTemplate, "subject" | "preheader" | "fields">;
   plataforma: MailPlatform;
   /** Hay cambios sin guardar (exportar los guarda antes). */
   porGuardar: boolean;
@@ -53,6 +59,44 @@ type Props = {
   /** Cuándo se exportó cada envío (`send_id` → ISO), del registro de la campaña (F16). */
   exportados?: Readonly<Record<string, string>>;
 };
+
+const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"] as const;
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"] as const;
+
+/**
+ * «viernes 30 de octubre» (es-PE), con el año sólo si no es el de `hoy`. Sin
+ * Intl: el locale de Node sin ICU completo daría otro texto.
+ */
+export function fechaHumana(iso: string | undefined, hoy: Date = new Date()): string {
+  const m = (iso ?? "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return "";
+  const [anio, mes, dia] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const fecha = new Date(Date.UTC(anio, mes - 1, dia));
+  if (fecha.getUTCMonth() !== mes - 1 || fecha.getUTCDate() !== dia) return "";
+  const base = `${DIAS[fecha.getUTCDay()]} ${dia} de ${MESES[mes - 1]}`;
+  return anio === hoy.getFullYear() ? base : `${base} de ${anio}`;
+}
+
+/** Qué sale si el asunto o la vista previa del envío quedan vacíos. */
+export function ayudaDeVacio(dePlantilla: string | undefined): string {
+  return dePlantilla ? `Si lo dejas vacío, va: «${dePlantilla}».` : "Si lo dejas vacío, va el de la plantilla.";
+}
+
+/** Los campos de la apertura se ven con el mismo rótulo que en el lienzo. */
+export function camposDeLaApertura(template: Pick<MailTemplate, "fields">) {
+  const declaradas = clavesDeclaradas(template);
+  const rotulo = (key: string) => (key === "nombre" ? "Nombre" : template.fields.find((f) => f.key === key)?.label || rotuloDeClave(key));
+  return {
+    rotuloDeCampo: rotulo,
+    ayudaDeCampo: (key: string) => `${rotulo(key)}: cambia con cada persona`,
+    campoValido: (key: string) => declaradas.has(key),
+  };
+}
+
+export const EJEMPLO_DE_APERTURA = "Ej.: Le recordamos que aún puede responder hasta el viernes";
+
+/** Una apertura de puro espacio no se guarda (editarEnvio la quita): no se repinta. */
+const sinEspacioSuelto = (texto: string) => (texto.trim() ? texto : "");
 
 export function PanelEnvios({
   envios,
@@ -78,6 +122,21 @@ export function PanelEnvios({
   const invitacion = envios.find((e) => e.kind === "invitacion");
   const asuntoDe = (e: MailSend | undefined) => (e?.subject?.trim() || template.subject || "");
   const avisosGmail = esRecordatorio ? avisosDeRecordatorio(asuntoDe(activo), asuntoDe(invitacion), activo.opening) : [];
+  const fechaNativa = useRef<HTMLInputElement | null>(null);
+  const fechaLegible = fechaHumana(activo.date);
+  const apertura = activo.opening ?? "";
+  const aperturaLarga: MailProblem[] = apertura.length > LARGO_APERTURA
+    ? [{ path: "opening", code: "too_long", detail: `La apertura pasa del largo que admite el envío (${LARGO_APERTURA} caracteres). Acórtala.` }]
+    : [];
+  const abrirCalendario = () => {
+    const input = fechaNativa.current;
+    if (!input) return;
+    try {
+      input.showPicker();
+    } catch {
+      input.focus();
+    }
+  };
 
   return (
     <div {...CUERPO_DEL_INSPECTOR} className="rec-mail-insp-cuerpo rec-env">
@@ -161,15 +220,30 @@ export function PanelEnvios({
           onCambio={(label) => editar({ label })}
         />
         <span className="rec-env-par">
-          <label className="rec-env-campo">
-            <span className="rec-mail-campo-rotulo"><span>Fecha prevista</span></span>
-            <input
-              type="date"
-              className="rec-mail-input"
-              value={activo.date ?? ""}
-              onChange={(ev) => editar({ date: ev.target.value })}
-            />
-          </label>
+          <span className="rec-env-campo">
+            <span className="rec-mail-campo-rotulo"><span id={`${ids}-fecha`}>Fecha prevista</span></span>
+            {/* La fecha se lee como se dice («viernes 30 de octubre»); el calendario es el del sistema. */}
+            <span className="rec-env-fecha">
+              <button
+                type="button"
+                className={`rec-env-fecha-boton${fechaLegible ? "" : " is-vacia"}`}
+                aria-labelledby={`${ids}-fecha ${ids}-fecha-valor`}
+                onClick={abrirCalendario}
+              >
+                <CalendarDays size={14} aria-hidden />
+                <span id={`${ids}-fecha-valor`}>{fechaLegible || "Elegir fecha"}</span>
+              </button>
+              <input
+                ref={fechaNativa}
+                type="date"
+                className="rec-env-fecha-nativa"
+                tabIndex={-1}
+                aria-hidden
+                value={activo.date ?? ""}
+                onChange={(ev) => editar({ date: ev.target.value })}
+              />
+            </span>
+          </span>
           <label className="rec-env-campo">
             <span className="rec-mail-campo-rotulo"><span>A quién</span></span>
             {esRecordatorio ? (
@@ -192,7 +266,7 @@ export function PanelEnvios({
           label="Asunto"
           valor={activo.subject ?? ""}
           placeholder="El de la plantilla"
-          ayuda={template.subject ? `Vacío: «${template.subject}».` : "Vacío: el de la plantilla."}
+          ayuda={ayudaDeVacio(template.subject)}
           maximo={80}
           onCambio={(subject) => editar({ subject })}
         />
@@ -200,20 +274,28 @@ export function PanelEnvios({
           label="Texto de vista previa"
           valor={activo.preheader ?? ""}
           placeholder="El de la plantilla"
-          ayuda={template.preheader ? `Vacío: «${template.preheader}».` : "Vacío: el de la plantilla."}
+          ayuda={ayudaDeVacio(template.preheader)}
           maximo={140}
           onCambio={(preheader) => editar({ preheader })}
         />
-        <CampoDeTexto
-          label="Apertura"
-          valor={activo.opening ?? ""}
-          multilinea
-          filas={3}
-          maximo={LARGO_APERTURA}
-          placeholder={esRecordatorio ? "Le recordamos que aún puede responder la encuesta hasta el **viernes**." : "Sin apertura"}
-          ayuda="Un párrafo que sólo lleva este envío, después del saludo. Puedes usar negrita, cursiva, campos y enlaces."
-          onCambio={(opening) => editar({ opening })}
-        />
+        <div
+          className={`rec-env-apertura${apertura ? "" : " is-vacia"}`}
+          style={{ "--rec-env-ejemplo": JSON.stringify(esRecordatorio ? EJEMPLO_DE_APERTURA : "Sin apertura") } as CSSProperties}
+        >
+          <CampoConCampos
+            key={activo.send_id}
+            label="Apertura"
+            valor={apertura}
+            opciones={camposDeLaApertura(template)}
+            multilinea
+            enlaces
+            filas={3}
+            normalizar={sinEspacioSuelto}
+            problemas={aperturaLarga}
+            ayuda="Un párrafo que sólo lleva este envío, después del saludo. Puedes usar negrita, cursiva, campos y enlaces."
+            onCambio={(opening) => editar({ opening })}
+          />
+        </div>
         {plataforma === "surveymonkey" ? (
           <CampoDeTexto
             label="Recopilador"
