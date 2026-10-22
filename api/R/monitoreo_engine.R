@@ -15344,15 +15344,6 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   out
 }
 
-.monitoreo_report_records <- function(df) {
-  if (is.null(df) || !is.data.frame(df) || !nrow(df)) return(list())
-  lapply(seq_len(nrow(df)), function(i) {
-    row <- as.list(df[i, , drop = FALSE])
-    row[] <- lapply(row, function(x) if (length(x) && !is.na(x[1])) x[[1]] else "")
-    row
-  })
-}
-
 .monitoreo_report_block <- function(id, title, df, note = "") {
   if (is.null(df) || !is.data.frame(df)) df <- data.frame()
   list(
@@ -15442,10 +15433,6 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     return(fallback)
   }
   "Sin actor"
-}
-
-.monitoreo_report_unit_key <- function(x) {
-  .monitoreo_safe_name(.monitoreo_report_source_unit(x))
 }
 
 .monitoreo_report_units <- function(profile, data) {
@@ -16403,7 +16390,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   response_ids <- .monitoreo_report_first_values(response_rows, c("response_id", "id_respuesta", "id respuesta", "id"))
   response_actors <- .monitoreo_report_trace_actor_values(response_rows, profile)
 
-  base_index <- list()
+  base_index <- new.env(hash = TRUE, parent = emptyenv())
   if (any(base_mask, na.rm = TRUE)) {
     base_rows <- data[base_mask, , drop = FALSE]
     base_idx <- which(base_mask)
@@ -17027,6 +17014,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     paste(rollup_actor_key, "record", rollup_base_record, sep = "\r")
   )
   rollup_rows <- c(seq_len(nrow(rollup)), seq_len(nrow(rollup)))
+  rollup_positions <- list2env(split(seq_along(rollup_lookup), rollup_lookup), hash = TRUE, parent = emptyenv())
   rollup_rank <- function(idx) {
     advancement <- as.character(rollup$advancement[idx] %||% "")
     state <- .monitoreo_text_key(rollup$platform_state[idx] %||% "")
@@ -17043,7 +17031,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       paste(actor_key, "record", trimws(as.character(base_record)), sep = "\r")
     )
     keys <- unique(keys[nzchar(sub("^[^\r]+\r[^\r]+\r", "", keys))])
-    idx <- rollup_rows[rollup_lookup %in% keys]
+    idx <- rollup_rows[sort(unlist(mget(keys, envir = rollup_positions, ifnotfound = list(NULL)), use.names = FALSE))]
     if (!length(idx)) return(NA_integer_)
     counts <- vapply(rollup$counts_in_advance[idx] %||% rep(FALSE, length(idx)), .monitoreo_bool, logical(1), default = FALSE)
     ranks <- vapply(idx, rollup_rank, integer(1))
@@ -17791,163 +17779,6 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   NULL
 }
 
-.monitoreo_internal_assisted_review <- function(evidence = list(),
-                                                response_actor = "",
-                                                response_id = "",
-                                                response_state = "",
-                                                result = "",
-                                                base_records = list(),
-                                                answered_base_keys = character(0),
-                                                current_base = NULL,
-                                                profile = list()) {
-  manual <- .monitoreo_reconciliation_manual_decision(profile, response_id)
-  state_key <- .monitoreo_text_key(response_state)
-  result_key <- .monitoreo_text_key(result)
-  eligible_state <- state_key %in% c("completa", "parcial", "rechazo")
-  current_partial_base <- !is.null(current_base) &&
-    identical(state_key, "parcial") &&
-    grepl("^cruzo", result_key)
-  eligible <- isTRUE(eligible_state) &&
-    (!identical(result, "Cruzó") || !is.null(manual) || isTRUE(current_partial_base))
-  declared_code <- .monitoreo_scalar(evidence$declared_code, "")
-  declared_email <- .monitoreo_scalar(evidence$declared_email, "")
-  declared_name <- .monitoreo_scalar(evidence$declared_name, "")
-  primary_key <- .monitoreo_scalar(evidence$primary_key, "")
-  if (!isTRUE(eligible) && is.null(manual)) return(NULL)
-
-  email_key <- .monitoreo_email_key(declared_email)
-  email_keys <- if (nzchar(email_key)) paste0("email:", email_key) else character(0)
-  code_keys <- .monitoreo_code_keys(declared_code)
-  actor_key <- .monitoreo_text_key(response_actor)
-  candidates <- list()
-  seen <- character(0)
-  current_partial_candidate <- NULL
-  if (isTRUE(current_partial_base)) {
-    current_partial_candidate <- .monitoreo_internal_base_candidate(
-      current_base,
-      answered_base_keys,
-      match_type = "partial_current_case",
-      match_label = "Parcial cruzada a base oficial",
-      suggested = TRUE,
-      evidence_level = "manual",
-      evidence_label = "Validación manual requerida",
-      evidence_score = 80L,
-      evidence_fields = c("platform_state", "case_key"),
-      already_answered = FALSE
-    )
-    candidate_id <- .monitoreo_scalar(current_partial_candidate$candidate_id, "")
-    if (nzchar(candidate_id)) {
-      candidates[[length(candidates) + 1L]] <- current_partial_candidate
-      seen <- c(seen, candidate_id)
-    }
-  }
-  for (base in base_records) {
-    if (nzchar(actor_key) && !identical(.monitoreo_text_key(base$actor %||% ""), actor_key)) next
-    base_keys <- unique(unlist(base$all_keys %||% list(), use.names = FALSE))
-    email_match <- length(email_keys) && any(email_keys %in% base_keys)
-    code_match <- length(code_keys) && any(code_keys %in% base_keys)
-    if (!email_match && !code_match) next
-    candidate_id <- .monitoreo_internal_candidate_id(base)
-    if (candidate_id %in% seen) next
-    seen <- c(seen, candidate_id)
-    evidence <- .monitoreo_internal_assignment_evidence(
-      base,
-      email_keys = email_keys,
-      code_keys = code_keys,
-      declared_email = declared_email,
-      declared_code = declared_code,
-      declared_name = declared_name
-    )
-    candidates[[length(candidates) + 1L]] <- .monitoreo_internal_base_candidate(
-      base,
-      answered_base_keys,
-      match_type = evidence$match_type,
-      match_label = evidence$match_label,
-      suggested = TRUE,
-      evidence_level = evidence$evidence_level,
-      evidence_label = evidence$evidence_label,
-      evidence_score = evidence$evidence_score,
-      evidence_fields = evidence$evidence_fields
-    )
-  }
-
-  assignment_candidates <- list()
-  assignment_seen <- character(0)
-  if (!is.null(current_partial_candidate)) {
-    candidate_id <- .monitoreo_scalar(current_partial_candidate$candidate_id, "")
-    if (nzchar(candidate_id)) {
-      assignment_candidates[[length(assignment_candidates) + 1L]] <- current_partial_candidate
-      assignment_seen <- c(assignment_seen, candidate_id)
-    }
-  }
-  for (base in base_records) {
-    if (nzchar(actor_key) && !identical(.monitoreo_text_key(base$actor %||% ""), actor_key)) next
-    evidence <- .monitoreo_internal_assignment_evidence(
-      base,
-      email_keys = email_keys,
-      code_keys = code_keys,
-      declared_email = declared_email,
-      declared_code = declared_code,
-      declared_name = declared_name
-    )
-    candidate <- .monitoreo_internal_base_candidate(
-      base,
-      answered_base_keys,
-      match_type = evidence$match_type,
-      match_label = evidence$match_label,
-      suggested = FALSE,
-      evidence_level = evidence$evidence_level,
-      evidence_label = evidence$evidence_label,
-      evidence_score = evidence$evidence_score,
-      evidence_fields = evidence$evidence_fields
-    )
-    candidate_id <- .monitoreo_scalar(candidate$candidate_id, "")
-    if (!nzchar(candidate_id) || candidate_id %in% assignment_seen) next
-    assignment_seen <- c(assignment_seen, candidate_id)
-    if (isTRUE(candidate$already_effective)) next
-    assignment_candidates[[length(assignment_candidates) + 1L]] <- candidate
-  }
-
-  warnings <- character(0)
-  has_email_candidate <- any(vapply(candidates, function(item) grepl("email", .monitoreo_scalar(item$match_type, ""), fixed = TRUE), logical(1)))
-  has_name_candidate <- any(vapply(candidates, function(item) grepl("name", .monitoreo_scalar(item$match_type, ""), fixed = TRUE), logical(1)))
-  if (has_email_candidate && grepl("sin cruce|sin llave", result_key)) {
-    warnings <- c(warnings, "La llave principal no cruza con la base, pero el correo declarado sí cruza con una persona del universo.")
-  }
-  if (has_name_candidate && grepl("sin cruce|sin llave", result_key)) {
-    warnings <- c(warnings, "La llave principal no cruza con la base, pero el nombre declarado es compatible con una persona del universo.")
-  }
-  for (candidate in candidates) {
-    if (!grepl("email", .monitoreo_scalar(candidate$match_type, ""), fixed = TRUE) || !nzchar(declared_code)) next
-    official_code <- .monitoreo_scalar(candidate$case_key, "")
-    if (nzchar(official_code) && !any(.monitoreo_code_keys(declared_code) %in% .monitoreo_code_keys(official_code))) {
-      warnings <- c(warnings, "El código declarado no coincide con el código de la persona encontrada por correo.")
-      break
-    }
-  }
-  has_pending_evidence <- any(vapply(assignment_candidates, function(item) {
-    .monitoreo_scalar(item$evidence_level, "") %in% c("exact", "possible")
-  }, logical(1)))
-  if (!length(candidates) && !isTRUE(has_pending_evidence) && (nzchar(declared_code) || nzchar(declared_email) || nzchar(declared_name) || nzchar(primary_key))) {
-    warnings <- c(warnings, "No se encontró coincidencia por código, correo ni nombre en el universo.")
-  }
-  if (isTRUE(has_pending_evidence)) {
-    warnings <- c(warnings, "Hay personas pendientes del universo con correo, código o nombre compatible; revisa estos casos antes de publicar la lista de no respuesta.")
-  }
-
-  list(
-    eligible = TRUE,
-    primary_key = primary_key,
-    declared_code = declared_code,
-    declared_email = declared_email,
-    declared_name = declared_name,
-    candidates = candidates,
-    assignment_candidates = assignment_candidates,
-    warnings = as.list(unique(warnings)),
-    manual_decision = manual %||% NULL
-  )
-}
-
 .monitoreo_internal_decision_for <- function(result, response_id, profile = list(), has_base = TRUE, state = "", key = "") {
   result_key <- .monitoreo_text_key(result)
   state_key <- .monitoreo_text_key(state)
@@ -18063,53 +17894,6 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   ))
   date_bonus <- if (!is.na(parsed)) -as.integer(parsed - as.Date("1970-01-01")) / 100000 else -1
   base + date_bonus
-}
-
-.monitoreo_internal_records_to_df <- function(rows) {
-  if (!length(rows)) return(data.frame())
-  out <- do.call(rbind, lapply(rows, function(row) {
-    if (is.data.frame(row)) return(row)
-    if (is.list(row) && length(row)) {
-      row <- lapply(row, function(value) {
-        if (is.null(value) || length(value) == 0L) return("")
-        if (is.list(value) && !is.data.frame(value)) return(I(list(value)))
-        if (length(value) != 1L) return(I(list(value)))
-        value
-      })
-    }
-    as.data.frame(row, check.names = FALSE, stringsAsFactors = FALSE)
-  }))
-  rownames(out) <- NULL
-  out
-}
-
-.monitoreo_internal_deduplicate_cases <- function(cases_df) {
-  if (is.null(cases_df) || !is.data.frame(cases_df) || !nrow(cases_df)) return(cases_df)
-  dedupe_key <- as.character(cases_df$case_key %||% "")
-  actor_key <- vapply(as.character(cases_df$actor %||% ""), .monitoreo_report_unit_key, character(1))
-  actor_key[!nzchar(actor_key) | is.na(actor_key)] <- "sin_actor"
-  dedupe_key <- ifelse(nzchar(dedupe_key) & !is.na(dedupe_key), paste(actor_key, dedupe_key, sep = "\r"), dedupe_key)
-  fallback <- as.character(cases_df$response_id %||% rep("", nrow(cases_df)))
-  response_row <- as.character(cases_df$response_row %||% rep("", nrow(cases_df)))
-  state_key <- vapply(as.character(cases_df$platform_state %||% ""), .monitoreo_text_key, character(1))
-  missing <- !nzchar(dedupe_key) | is.na(dedupe_key)
-  has_response_id <- missing & nzchar(fallback) & !is.na(fallback)
-  dedupe_key[has_response_id] <- paste(actor_key[has_response_id], "response", fallback[has_response_id], sep = "\r")
-  missing <- !nzchar(dedupe_key) | is.na(dedupe_key)
-  has_response_row <- missing & nzchar(response_row) & !is.na(response_row)
-  dedupe_key[has_response_row] <- paste(actor_key[has_response_row], "response_row", response_row[has_response_row], sep = "\r")
-  missing <- !nzchar(dedupe_key) | is.na(dedupe_key)
-  dedupe_key[missing] <- paste(actor_key[missing], "event", state_key[missing], seq_len(nrow(cases_df))[missing], sep = "\r")
-  priorities <- vapply(seq_len(nrow(cases_df)), function(i) {
-    .monitoreo_internal_case_priority(as.list(cases_df[i, , drop = FALSE]))
-  }, numeric(1))
-  keep <- logical(nrow(cases_df))
-  for (key in unique(dedupe_key)) {
-    idx <- which(dedupe_key == key)
-    best <- idx[which.max(priorities[idx])]
-    keep[best] <- TRUE
-  }
-  cases_df[keep, , drop = FALSE]
 }
 
 # Fachada memoizada en monitoreo_reconciliacion_memo.R; este es el cuerpo real.
@@ -18588,7 +18372,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   collector_names <- .monitoreo_report_first_values(response_rows, c("collector_name", "Nombre recopilador", "nombre_recopilador", "Recopilador", "recopilador"))
   collector_types <- .monitoreo_report_first_values(response_rows, c("collector_type", "Tipo recopilador", "tipo_recopilador", "Collector Type"))
 
-  base_index <- list()
+  base_index <- new.env(hash = TRUE, parent = emptyenv())
   base_records <- list()
   has_base <- any(base_mask, na.rm = TRUE)
   if (has_base) {
@@ -18757,6 +18541,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   }
 
   cases <- list()
+  revision_ctx <- .monitoreo_revision_asistida_contexto(base_records, automatic_answered_base_keys)
   answered_base_keys <- character(0)
   answered_base_rows <- character(0)
   mark_answered_base <- function(base, fallback_keys = character(0)) {
@@ -18829,7 +18614,8 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       base_records = base_records,
       answered_base_keys = automatic_answered_base_keys,
       current_base = base,
-      profile = profile
+      profile = profile,
+      contexto = revision_ctx
     )
     manual_decision <- assisted_review$manual_decision %||% NULL
     manual_include_requested <- !is.null(manual_decision) &&
@@ -19001,7 +18787,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       canonical_case_key <- .monitoreo_internal_candidate_id(base)
       if (nzchar(canonical_case_key)) case_key <- canonical_case_key
     }
-    cases[[length(cases) + 1L]] <- data.frame(
+    cases[[length(cases) + 1L]] <- .monitoreo_internal_case_row(
       actor = case_actor,
       person_label = person,
       case_key = case_key,
@@ -19065,7 +18851,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       }
       person <- base$person %||% ""
       if (!nzchar(person)) person <- base$identifier %||% base$value %||% base$key %||% ""
-      cases[[length(cases) + 1L]] <- data.frame(
+      cases[[length(cases) + 1L]] <- .monitoreo_internal_case_row(
         actor = base$actor %||% "",
         person_label = person,
         case_key = base$key %||% "",
@@ -19134,11 +18920,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   duplicate_group_key[has_response_row] <- paste(actor_key[has_response_row], "response_row", response_row[has_response_row], sep = "\r")
   missing_duplicate_key <- !nzchar(duplicate_group_key) | is.na(duplicate_group_key)
   duplicate_group_key[missing_duplicate_key] <- paste(actor_key[missing_duplicate_key], "event", state_key[missing_duplicate_key], seq_len(nrow(cases_df))[missing_duplicate_key], sep = "\r")
-  duplicate_count <- rep(1L, nrow(cases_df))
-  for (dup_key in unique(duplicate_group_key[nzchar(duplicate_group_key) & !is.na(duplicate_group_key)])) {
-    idx <- which(duplicate_group_key == dup_key)
-    duplicate_count[idx] <- length(idx)
-  }
+  duplicate_count <- .monitoreo_internal_group_size(duplicate_group_key)
   cases_df$duplicate_group_key <- duplicate_group_key
   cases_df$duplicate_group_size <- duplicate_count
   cases_df$duplicate_count <- duplicate_count
@@ -19199,7 +18981,8 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     ),
     pending_exit = .monitoreo_report_records(pending_exit_df),
     issues = .monitoreo_report_records(issues_df),
-    flow = flow
+    flow = flow,
+    assignment_pool = .monitoreo_revision_asistida_pool(revision_ctx)
   )
 }
 
@@ -24053,47 +23836,6 @@ monitoreo_export_workbook <- function(data, config = list(), path) {
   }
   out <- as.character(value[[1]])
   if (is.na(out)) "" else out
-}
-
-.monitoreo_workbook_df <- function(x) {
-  if (is.null(x)) return(data.frame())
-  if (is.data.frame(x)) {
-    out <- x
-    for (nm in names(out)) {
-      if (is.list(out[[nm]])) {
-        out[[nm]] <- vapply(out[[nm]], .monitoreo_workbook_cell_value, character(1))
-      }
-    }
-    rownames(out) <- NULL
-    return(out)
-  }
-  if (!is.list(x)) {
-    return(data.frame(Valor = .monitoreo_workbook_cell_value(x), check.names = FALSE, stringsAsFactors = FALSE))
-  }
-  if (!length(x)) return(data.frame())
-  if (!is.null(names(x)) && !all(vapply(x, is.list, logical(1)))) {
-    return(data.frame(
-      Campo = names(x),
-      Valor = vapply(x, .monitoreo_workbook_cell_value, character(1)),
-      check.names = FALSE,
-      stringsAsFactors = FALSE
-    ))
-  }
-  rows <- lapply(x, function(row) {
-    if (is.data.frame(row)) row <- as.list(row[1, , drop = FALSE])
-    if (!is.list(row)) row <- list(Valor = row)
-    row
-  })
-  cols <- unique(unlist(lapply(rows, names), use.names = FALSE))
-  cols <- cols[nzchar(cols)]
-  if (!length(cols)) cols <- "Valor"
-  out <- do.call(rbind, lapply(rows, function(row) {
-    values <- vapply(cols, function(col) .monitoreo_workbook_cell_value(row[[col]]), character(1))
-    as.data.frame(as.list(values), check.names = FALSE, stringsAsFactors = FALSE)
-  }))
-  names(out) <- cols
-  rownames(out) <- NULL
-  out
 }
 
 .monitoreo_workbook_bind <- function(...) {

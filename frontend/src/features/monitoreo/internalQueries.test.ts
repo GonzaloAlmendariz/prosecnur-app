@@ -146,6 +146,88 @@ describe("internalQueries", () => {
     expect(internalQueryCaseTone(filtered[0])).toBe("partial");
   });
 
+  it("expande los casos en columnas y el rollup por índices sin perder campos", () => {
+    const normalized = normalizeInternalQueries({
+      ...model,
+      cases: {
+        formato: "columnas_v1",
+        n: 3,
+        campos: {
+          actor: { niveles: ["Docentes", "Estudiantes"], codigos: [0, 1, 1] },
+          response_id: { niveles: ["r1", "", null], codigos: [0, 1, 2] },
+          case_key: { niveles: ["111", "222", "333"], codigos: [0, 1, 2] },
+          platform_state: { niveles: ["Completa", "Sin respuesta"], codigos: [0, 1, 1] },
+          advancement: { niveles: ["effective", "pending"], codigos: [0, 1, 1] },
+          counts_in_advance: { niveles: [true, false], codigos: [0, 1, 1] },
+          response_row: { niveles: [4], codigos: 0 },
+          assisted_review: { valores: [{ eligible: true, primary_key: "111" }, [], []] },
+        },
+      },
+      case_rollup: { formato: "indices_v1", indices: [0, 2] },
+    } as unknown as MonitoreoInternalQueries);
+
+    expect(normalized.cases.map((c) => [c.actor, c.case_key, c.platform_state, c.counts_in_advance])).toEqual([
+      ["Docentes", "111", "Completa", true],
+      ["Estudiantes", "222", "Sin respuesta", false],
+      ["Estudiantes", "333", "Sin respuesta", false],
+    ]);
+    expect(normalized.cases[0].response_row).toBe(4);
+    expect(normalized.cases[2].response_id).toBe("");
+    expect(normalized.cases[0].assisted_review?.primary_key).toBe("111");
+    expect(normalized.case_rollup?.map((c) => c.case_key)).toEqual(["111", "333"]);
+    // El rollup comparte los objetos de `cases`: no se duplica la memoria.
+    expect(normalized.case_rollup?.[1]).toBe(normalized.cases[2]);
+  });
+
+  it("reconstruye los candidatos de asignación con el universo del actor, que llega una sola vez", () => {
+    const pendiente = (id: string, label: string, extra: Record<string, unknown> = {}) => ({
+      candidate_id: `codigo:${id}`,
+      person_label: label,
+      case_key: id,
+      base_record: id,
+      base_source: "Universo · Estudiantes de pregrado",
+      base_row: Number(id),
+      base_status: "",
+      match_type: "manual_pending",
+      match_label: "Pendiente del universo/base",
+      evidence_level: "manual",
+      current_status: "Pendiente en universo/base",
+      already_effective: "FALSE",
+      ...extra,
+    });
+    const caso = (response_id: string, own: ReturnType<typeof pendiente>[]) => ({
+      ...model.cases[1],
+      response_id,
+      assisted_review: {
+        eligible: "TRUE",
+        assignment_candidates: own,
+        assignment_pool_key: "estudiantes de pregrado",
+      },
+    });
+    const normalized = normalizeInternalQueries({
+      ...model,
+      cases: [
+        caso("sin-evidencia", []),
+        caso("con-evidencia", [pendiente("2", "Persona dos", { match_type: "code_exact", evidence_level: "exact" })]),
+        caso("otra-sin-evidencia", []),
+      ],
+      assignment_pool: {
+        "estudiantes de pregrado": [pendiente("1", "Persona uno"), pendiente("2", "Persona dos"), pendiente("3", "Persona tres")],
+      },
+    } as unknown as MonitoreoInternalQueries);
+
+    const [sinEvidencia, conEvidencia] = normalized.cases;
+    expect(sinEvidencia.assisted_review?.assignment_candidates?.map((c) => c.case_key)).toEqual(["1", "2", "3"]);
+    // El propio, con su evidencia, gana sobre la copia genérica del pool.
+    expect(conEvidencia.assisted_review?.assignment_candidates?.map((c) => [c.case_key, c.evidence_level])).toEqual([
+      ["2", "exact"],
+      ["1", "manual"],
+      ["3", "manual"],
+    ]);
+    // Los casos sin evidencia propia comparten la misma lista: no se copia el universo por caso.
+    expect(normalized.cases[2].assisted_review?.assignment_candidates).toBe(sinEvidencia.assisted_review?.assignment_candidates);
+  });
+
   it("normalizes assisted review evidence and searches declared fields", () => {
     const normalized = normalizeInternalQueries({
       ...model,

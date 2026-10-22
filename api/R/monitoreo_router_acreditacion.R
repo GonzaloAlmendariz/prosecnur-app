@@ -79,11 +79,16 @@
 }
 .monitoreo_acreditacion_repair_internal_queries <- function(internal_queries) {
   if (!is.list(internal_queries) || !is.list(internal_queries$cases)) return(internal_queries)
-  known_actors <- unique(vapply(internal_queries$cases, function(item) {
-    if (is.list(item)) .monitoreo_text_key(item$actor %||% "") else ""
-  }, character(1)))
-  repaired_cases <- lapply(internal_queries$cases, .monitoreo_acreditacion_repair_cached_case, known_actors = known_actors)
-  changed <- sum(vapply(seq_along(repaired_cases), function(idx) {
+  campo <- function(name) vapply(internal_queries$cases, function(item) {
+    if (is.list(item)) .monitoreo_scalar(item[[name]] %||% "", "") else ""
+  }, character(1))
+  known_actors <- unique(.monitoreo_text_key(unique(campo("actor"))))
+  # Sólo una efectiva puede reclasificarse: con 45 mil personas del universo
+  # pendientes no se las recorre una por una en cada request.
+  candidatas <- which(.monitoreo_text_key(campo("advancement")) == "effective")
+  repaired_cases <- internal_queries$cases
+  repaired_cases[candidatas] <- lapply(repaired_cases[candidatas], .monitoreo_acreditacion_repair_cached_case, known_actors = known_actors)
+  changed <- sum(vapply(candidatas, function(idx) {
     !identical(repaired_cases[[idx]]$advancement %||% "", internal_queries$cases[[idx]]$advancement %||% "")
   }, logical(1)))
   if (!changed) return(internal_queries)
@@ -143,7 +148,7 @@
       stop_api(409, "E_MONITOREO_CASE_NOT_VALIDATABLE", "Solo una respuesta completa o parcial revisable puede incluirse con salvedad en el avance.")
     }
     if (!nzchar(candidate_id)) stop_api(400, "E_MONITOREO_CANDIDATE_REQUIRED", "Selecciona una persona del universo para incluir con salvedad.")
-    candidates <- c(assisted$candidates %||% list(), assisted$assignment_candidates %||% list())
+    candidates <- c(assisted$candidates %||% list(), .monitoreo_revision_asistida_candidatos_caso(assisted, queries$assignment_pool %||% list()))
     matches <- Filter(function(candidate) {
       identical(.monitoreo_scalar(candidate$candidate_id, ""), candidate_id) ||
         identical(.monitoreo_scalar(candidate$case_key, ""), candidate_id)
