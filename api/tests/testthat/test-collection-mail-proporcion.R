@@ -13,3 +13,16 @@ test_that("un logo de 10:1 baja la altura en vez de aplastarse; uno común no ca
   # El logo de Pulso (300:92) cabe a 46 px de alto (cabecera oscura): sigue igual que antes (paridad).
   expect_match(html, 'pulso.png" width="150" height="46"', fixed = TRUE)
 })
+
+test_that("los logos de 12:1, 20:1 y 40:1 conservan su proporción a ±1 px (sin piso de alto que los estire)", {
+  tpl <- .cmail_template_normalize(.cmail_preset_recuperacion())
+  for (r in c(12L, 20L, 40L)) {
+    imgs <- .cmail_fx_parity_images()
+    imgs[["logo-cliente"]]$size <- list(width = r * 100L, height = 100L)
+    imgs[["logo-cliente"]]$url <- "https://pulsopucp.github.io/correo-/ancho.png"
+    html <- collection_mail_render(tpl, "export", images = imgs)$html
+    m <- regmatches(html, regexec('ancho.png" width="([0-9]+)" height="([0-9]+)"', html))[[1]]
+    w <- as.integer(m[[2]]); h <- as.integer(m[[3]])
+    expect_lte(abs(h - w / r), 1, label = sprintf("logo %d:1 sale %dx%d", r, w, h))
+  }
+})

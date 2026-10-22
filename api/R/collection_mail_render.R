@@ -229,7 +229,8 @@
     logo_h <- height
     width <- if (is.null(size) || !size$height) 120L else {
       w <- size$width / size$height * height
-      if (w > 200) logo_h <- max(16L, as.integer(round(200 / (size$width / size$height))))
+      # Sin piso de alto: un piso fijo con el ancho en su tope deformaba los logos de más de 12,5:1.
+      if (w > 200) logo_h <- max(1L, as.integer(round(200 / (size$width / size$height))))
       as.integer(min(200, round(w)))
     }
     list(img = img, width = width, height = logo_h)
