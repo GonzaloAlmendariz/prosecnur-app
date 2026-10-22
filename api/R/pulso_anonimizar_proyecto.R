@@ -138,6 +138,9 @@ pulso_anonimizar_archivo <- function(origen, destino, sal, slug = NULL) {
   # regraba con openxlsx dejan de serlo —el formato xlsx es un zip y cada
   # escritura produce metadatos distintos— y el hash ya no las agrupa. Hacerlo
   # primero además ahorra anonimizar el mismo archivo dos veces.
+  # Los contactos de las campañas de correo (ADR 0112) no se anonimizan: se
+  # vacían. Antes de deduplicar, para que ni siquiera entren al hash.
+  contactos_retirados <- .cmail_contactos_anon_vaciar(stage)
   dedup <- .pulso_anon_deduplicar_files(estado, file.path(stage, "files"))
   estado <- dedup$estado
 
@@ -247,6 +250,7 @@ pulso_anonimizar_archivo <- function(origen, destino, sal, slug = NULL) {
     # anonimizado no reproduce su propio marco.
     n_criterios_traducidos = criterios$traducidas,
     files_deduplicados = dedup$eliminados,
+    contactos_retirados = contactos_retirados,
     n_logos_neutralizados = logos$neutralizados,
     logos_retirados = logos$retirados,
     gps_offset = offset
@@ -486,6 +490,8 @@ pulso_detectar_pii <- function(path, max_ejemplos = 3L, incluir_columnas_pii = F
     logos <- .pulso_anon_logos_hallazgos(envuelto$datos, file.path(stage, "files"))
     if (nrow(logos)) hallazgos[[length(hallazgos) + 1L]] <- logos
   }
+  contactos <- .cmail_contactos_hallazgos(stage)
+  if (!is.null(contactos)) hallazgos[[length(hallazgos) + 1L]] <- contactos
   for (p in list.files(file.path(stage, "files"), full.names = TRUE, recursive = TRUE)) {
     if (!.pulso_anon_es_xlsx(p)) next
     hojas <- .pulso_anon_leer_hojas(p)

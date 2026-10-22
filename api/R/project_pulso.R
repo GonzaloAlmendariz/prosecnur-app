@@ -2608,6 +2608,9 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
   )
   modules_summary <- .pulso_manifest_modules_summary(s)
   if (!is.null(modules_summary)) manifest$modules_summary <- modules_summary
+  # Contactos de las campañas de correo (ADR 0112): files/contactos/, fuera de state.rds.
+  contactos <- .cmail_contactos_pack(s, stage_dir)
+  if (length(contactos)) manifest$contactos <- contactos
   writeLines(
     jsonlite::toJSON(manifest, auto_unbox = TRUE, pretty = TRUE),
     con = file.path(stage_dir, "manifest.json"), useBytes = TRUE
@@ -2644,6 +2647,7 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
     path      = dest_path,
     size      = as.integer(file.info(dest_path)$size),
     saved_at  = now_iso,
+    contactos_campanas = length(contactos),
     # `I()` para que jsonlite no des-encaje una sola referencia a escalar: el
     # contrato con la UI es «array siempre».
     refs_perdidas = I(unique(refs_perdidas))
@@ -2717,6 +2721,9 @@ load_pulso <- function(src_path) {
       }
     }
   }
+
+  # 5b) Contactos de las campañas de correo (ADR 0112) al tempdir de la sesión.
+  .cmail_contactos_unpack(stage_dir, new_sess)
 
   # 6) Convertir referencias legacy mientras todavía coinciden con los paths
   # guardados, reescribir el file store y fusionar con la sesión fresca.
@@ -2846,7 +2853,8 @@ project_status <- function(sid) {
     name          = if (has) tools::file_path_sans_ext(basename(s$project_path))
                      else NA_character_,
     dirty         = isTRUE(s$project_dirty),
-    last_saved_at = s$project_last_saved_at %||% NA_character_
+    last_saved_at = s$project_last_saved_at %||% NA_character_,
+    contactos_campanas = .cmail_contactos_count(s)
   )
 }
 

@@ -41,7 +41,7 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     "/api/recopiladores/provider-preflight",
     "/api/recopiladores/deployment/preview",
     # Correos para Mailchimp (ADR 0110 §2, E1f): la plantilla persiste en
-    # collection_state; los destinatarios solo en el tempdir de la sesión.
+    # collection_state; los destinatarios en files/contactos/ (ADR 0112).
     "/api/recopiladores/mail-presets",
     # Campañas tipadas (ADR 0111): lista, crear y meta (renombrar/archivar).
     "/api/recopiladores/campaigns",
@@ -59,7 +59,19 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     "/api/recopiladores/mail-template/import-html",
     "/api/recopiladores/mail-recipients/import",
     "/api/recopiladores/mail-recipients",
-    "/api/recopiladores/mail-recipients/mapping"
+    "/api/recopiladores/mail-recipients/mapping",
+    # «Actualizar quién respondió» y Mailchimp (jobs con avance). Faltaban en
+    # esta lista cerrada desde que se montaron: el rojo era anterior a ADR 0112.
+    "/api/recopiladores/mail-sync/options",
+    "/api/recopiladores/mail-sync",
+    "/api/recopiladores/mail-sync/audience",
+    "/api/recopiladores/mail-sync/campaign",
+    # Pestaña Contactos (ADR 0112 §4): lista con correos, tablero por perfil,
+    # variables de control y enlace personal a la encuesta.
+    "/api/recopiladores/mail-contacts",
+    "/api/recopiladores/mail-contacts/perfil",
+    "/api/recopiladores/mail-contacts/control",
+    "/api/recopiladores/mail-contacts/enlace"
   ))
   expect_false(grepl("httr|curl|POST.*https|PATCH.*https|DELETE.*https", text, ignore.case = TRUE))
   expect_match(text, 'pr_get\\("/api/recopiladores/material-template"')
