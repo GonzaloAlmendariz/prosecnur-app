@@ -228,8 +228,8 @@
   fit <- .cmail_fit(size, max_w)
   src <- .cmail_image_src(img, ctx)
   tag <- if (is.null(src)) {
-    sprintf('<span style="display:inline-block;width:%dpx;max-width:100%%;height:%dpx;line-height:%dpx;border:1px dashed #9aa3b5;font-family:%s;font-size:11px;color:#5a6a94;text-align:center;overflow:hidden;">%s</span>',
-            fit$width, fit$height, fit$height, .CMAIL_FONT, .cmail_esc(if (nzchar(alt)) alt else id))
+    # El mismo hueco de vista previa que logos e imágenes: cede en teléfono y conserva la proporción.
+    .cmail_preview_hole(fit$width, fit$height, if (nzchar(alt)) alt else id, margin = "margin:0 auto;")
   } else {
     sprintf('<img src="%s" width="%d" height="%d" alt="%s"%s style="display:block;width:%dpx;max-width:100%%;height:auto;margin:0 auto;border:0;outline:none;text-decoration:none;">',
             .cmail_esc(src), fit$width, fit$height, .cmail_esc(alt), .cmail_prop(ctx, paste0("alt_", side)), fit$width)
