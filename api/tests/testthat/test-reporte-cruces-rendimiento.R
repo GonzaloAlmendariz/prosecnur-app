@@ -48,28 +48,6 @@ test_that("los estilos a la vista de openxlsx no crecen con el número de variab
   expect_lte(muchos, pocos)
 })
 
-# Estilo efectivo de cada celda (fuente, relleno, borde, formato numérico y
-# alineación ya resueltos), independiente del orden de los ids de styles.xml.
-.crr_estilos_por_celda <- function(path) {
-  d <- tempfile(); on.exit(unlink(d, recursive = TRUE))
-  utils::unzip(path, exdir = d)
-  st <- xml2::read_xml(file.path(d, "xl/styles.xml")); xml2::xml_ns_strip(st)
-  sh <- xml2::read_xml(file.path(d, "xl/worksheets/sheet1.xml")); xml2::xml_ns_strip(sh)
-  hijos <- function(tag) as.character(xml2::xml_find_all(st, sprintf("//%s/*", tag)))
-  fonts <- hijos("fonts"); fills <- hijos("fills"); borders <- hijos("borders")
-  nf <- xml2::xml_find_all(st, "//numFmts/numFmt")
-  formatos <- stats::setNames(xml2::xml_attr(nf, "formatCode"), xml2::xml_attr(nf, "numFmtId"))
-  canon <- vapply(xml2::xml_find_all(st, "//cellXfs/xf"), function(x) {
-    a <- as.list(xml2::xml_attrs(x)); g <- function(k) a[[k]] %||% "0"
-    paste(fonts[as.integer(g("fontId")) + 1], fills[as.integer(g("fillId")) + 1],
-          borders[as.integer(g("borderId")) + 1], formatos[g("numFmtId")] %||% g("numFmtId"),
-          paste(as.character(xml2::xml_children(x)), collapse = ""), sep = "|")
-  }, "")
-  celdas <- xml2::xml_find_all(sh, "//sheetData/row/c")
-  s <- xml2::xml_attr(celdas, "s"); s[is.na(s)] <- "0"
-  stats::setNames(canon[as.integer(s) + 1], xml2::xml_attr(celdas, "r"))
-}
-
 test_that("archivar y compactar los estilos no cambia lo que se ve en el libro", {
   fx <- .crr_fixture(6)
   escribir <- function(path) suppressMessages(reporte_cruces(
@@ -93,7 +71,7 @@ test_that("archivar y compactar los estilos no cambia lo que se ve en el libro",
   })
   # Al guardar hay un objeto por estilo distinto, no uno por cada addStyle.
   expect_lt(objetos_al_guardar, 60L)
-  a <- .crr_estilos_por_celda(con); b <- .crr_estilos_por_celda(sin)
+  a <- .xlsx_estilos_por_celda(con); b <- .xlsx_estilos_por_celda(sin)
   expect_setequal(names(a), names(b))
   expect_identical(a[names(b)], b)
   leer <- function(path, parte) {
