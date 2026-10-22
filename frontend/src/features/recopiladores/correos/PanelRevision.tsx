@@ -51,9 +51,10 @@ function traerALaVista(el: HTMLElement): void {
 export const DURACION_DEL_RESALTADO = 1600;
 
 /** El texto del botón de salida de un chequeo: lo que hace, en la voz de la vista. */
-export function salidaDelChequeo(code: string, destino: string, prop?: string): { texto: string; foco?: string } {
+export function salidaDelChequeo(code: string, destino: string, prop?: string, contexto: { columnaElegida?: boolean } = {}): { texto: string; foco?: string } {
   // F2: el saludo por sexo se arregla eligiendo la columna, con el foco en el selector.
-  if (code === "greeting_trato") return { texto: "Elegir columna", foco: FOCO_COLUMNA_DEL_TRATO };
+  // #4 (re-QA e10-2): con la columna ya elegida, el aviso es de datos que faltan: se va al saludo.
+  if (code === "greeting_trato") return contexto.columnaElegida ? { texto: "Ir al saludo" } : { texto: "Elegir columna", foco: FOCO_COLUMNA_DEL_TRATO };
   // H7: el logo que falta se sube en Identidad.
   if (code === "images_available" && destino === CABECERA) return { texto: "Subir en Identidad" };
   // F15: la cabecera sin descripción se corrige en Identidad, que es adonde lleva.
@@ -62,6 +63,13 @@ export function salidaDelChequeo(code: string, destino: string, prop?: string): 
   if (destino === IDENTIDAD) return { texto: "Ir a Identidad", foco: focoDelEstilo(prop) };
   if (destino === SOBRE) return { texto: "Ir al asunto" };
   return { texto: "Ir al bloque" };
+}
+
+/** La columna de sexo que ya usa el saludo `blockId`, si la hay. */
+function columnaDelSaludo(template: Props["template"], blockId: string): string | null {
+  const block = template?.blocks.find((b) => b.block_id === blockId);
+  if (!block || block.type !== "greeting") return null;
+  return block.trato?.modo === "por_sexo" && block.trato.columna ? block.trato.columna : null;
 }
 
 const ICONO = { ok: CheckCircle2, warning: AlertCircle, error: XCircle } as const;
@@ -90,7 +98,10 @@ function ChequeoQueFalla({ check, onIrAlBloque, template, resaltado = false }: {
   const enRouter = useInRouterContext();
   const destino = destinoDelChequeo(check, SOBRE);
   const pestana = destino ? null : pestanaDelChequeo(check);
-  const arregloGeneral = arregloEnLaRevision(check.code);
+  // Con la columna elegida y presente en la lista, el aviso es de personas sin dato
+  // (warning); si la columna no está en la lista (error), sí hay que elegir otra.
+  const columnaElegida = check.code === "greeting_trato" && check.status === "warning" && Boolean(destino && columnaDelSaludo(template, destino));
+  const arregloGeneral = arregloEnLaRevision(check.code, { columnaElegida });
   const Icono = ICONO[check.status];
   // H7: «Falta el logo de la unidad solicitante y el de Pulso PUCP», sin ids.
   const faltan = check.code === "images_available" && template
@@ -115,7 +126,7 @@ function ChequeoQueFalla({ check, onIrAlBloque, template, resaltado = false }: {
       : check.items;
   const cifra = cifraDeChequeo(check);
   const salida = destino && onIrAlBloque
-    ? salidaDelChequeo(check.code, destino, check.targets.find((t) => t.block_id === destino)?.prop)
+    ? salidaDelChequeo(check.code, destino, check.targets.find((t) => t.block_id === destino)?.prop, { columnaElegida })
     : null;
   return (
     <li

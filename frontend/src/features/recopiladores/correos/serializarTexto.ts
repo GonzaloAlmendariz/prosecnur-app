@@ -48,6 +48,11 @@ export type OpcionesDeTexto = {
   ayudaDeCampo?: (key: string) => string;
   /** ¿La campaña declara el campo? Si no, el chip sale en tono de error (N5). */
   campoValido?: (key: string) => boolean;
+  /**
+   * Texto sin formato (la dirección de un enlace): un asterisco es sólo un
+   * asterisco y no hay negrita ni cursiva; los campos siguen siendo chips.
+   */
+  sinMarcas?: boolean;
 };
 
 function escaparHtml(texto: string): string {
@@ -167,7 +172,7 @@ export function htmlDelTexto(texto: string, opts: OpcionesDeTexto): string {
       return `<a data-href="${href}" class="rec-capa-enlace" title="${href}">${label}</a>`;
     });
   }
-  out = enfasisAHtml(out);
+  if (!opts.sinMarcas) out = enfasisAHtml(out);
   out = out.replace(/\n/g, opts.multilinea ? "<br>" : " ");
   // Los campos se vuelven chips sólo en el texto, nunca dentro de un atributo
   // (la URL de un enlace puede llevar `{{codigo}}`).
@@ -348,9 +353,23 @@ export function normalizarTexto(texto: string, opts: Pick<OpcionesDeTexto, "mult
   return out.replace(/\u0001/g, "\\*");
 }
 
+/** Sin marcas: el texto tal cual, con cada chip como su `{{clave}}`. */
+function escribirPlano(unidades: readonly Unidad[]): string {
+  return unidades.map((u) => (u.t === "texto" ? u.texto : u.t === "campo" ? `{{${u.key}}}` : u.t === "salto" ? "\n" : escribirPlano(u.unidades))).join("");
+}
+
 /** El texto del contrato a partir del DOM del editor. */
 export function textoDelDom(raiz: Node, opts: OpcionesDeTexto): string {
   const unidades = Array.from(raiz.childNodes).flatMap((h) => unidadesDe(h, opts, SIN_FORMATO, false));
+  if (opts.sinMarcas) {
+    // Un `{{` o `}}` suelto se quita igual: un campo sólo existe como chip.
+    const campos: string[] = [];
+    const out = escribirPlano(unidades)
+      .replace(PATRON_CAMPO, (m) => { campos.push(m); return `\u0000${campos.length - 1}\u0000`; })
+      .replace(/\{\{|\}\}/g, "")
+      .replace(/\u0000(\d+)\u0000/g, (_m, i: string) => campos[Number(i)] ?? "");
+    return opts.multilinea ? out.replace(/\n+$/, "") : out;
+  }
   return normalizarTexto(escribir(unidades, SIN_FORMATO), opts);
 }
 

@@ -10,7 +10,8 @@ import { SelectorDeIcono } from "./SelectorDeIcono";
 import { CampoDeTexto } from "./CampoDeTexto";
 import { CampoConCampos } from "./CampoConCampos";
 import { clavesDeclaradas, rotuloDeClave } from "./camposDeclarados";
-import type { Dialecto } from "./comoSaleEnLaPlataforma";
+import { admiteEnlaces, type Dialecto } from "./comoSaleEnLaPlataforma";
+import { esMultilinea } from "./estructuraCorreo";
 import { LoQueFaltaSubir } from "./LoQueFaltaSubir";
 import { fraseDeLoQueFalta, idsSinArchivo, nombreDeImagen } from "./nombresDeImagen";
 import { fraseDeNitidez } from "./nitidez";
@@ -72,12 +73,18 @@ type Props = {
 };
 
 const AYUDA_DE_PROP: Partial<Record<PropDeTexto, string>> = {
-  text: "Puedes usar negrita, cursiva y campos; el formato lo pone la plantilla.",
   url: "Dirección web o de correo, o un campo de cada persona.",
-  note: "Una línea por renglón.",
-  items: "Un punto por línea.",
-  lines: "Una línea por renglón.",
+  items: "Enter empieza otro punto.",
 };
+
+/**
+ * Lo que se escribe como texto del correo: con chips y formato. La dirección
+ * de un enlace, el texto alternativo de una imagen y el respaldo del nombre
+ * son datos sin formato y siguen en una caja simple.
+ */
+const SIN_FORMATO: ReadonlySet<PropDeTexto> = new Set(["url", "alt", "alt_left", "alt_right", "fallback"]);
+// (La dirección, aun sin formato, muestra sus campos como chips: va aparte, abajo.)
+const conFormato = (prop: PropDeTexto) => !SIN_FORMATO.has(prop);
 
 /** El chip de un campo dice su rótulo («Nombre», «Carrera»), nunca la llave del motor. */
 function rotulosDeCampos(template: Pick<MailTemplate, "fields">) {
@@ -329,13 +336,33 @@ export function PanelDeBloque({
           onColor={(color) => editar((b) => conColor(b, color), `${block.block_id}.color`)}
         />
       ) : null}
-      {block.type === "image" || block.type === "two_images" ? null : props.map((prop) => (block.type === "greeting" && prop === "text" ? (
-        // #4: el saludo muestra el campo como en el lienzo, un chip «Nombre».
+      {block.type === "image" || block.type === "two_images" ? null : props.map((prop) => (conFormato(prop) ? (
+        // #4 y #1 (re-QA e10-2): el texto se ve como en el lienzo, con chips
+        // «Nombre» y la negrita como negrita; nunca asteriscos ni llaves.
         <CampoConCampos
           key={`${block.block_id}-${prop}`}
           label={ROTULO_DE_PROP[prop]}
           valor={textoDe(block, prop)}
           opciones={rotulosDeCampos(template)}
+          multilinea={esPropDeLista(prop) || esMultilinea(block.type, prop)}
+          enlaces={admiteEnlaces(block.type, prop)}
+          filas={prop === "text" && block.type === "paragraph" ? 7 : 3}
+          normalizar={(texto) => textoDe(conTexto(block, prop, texto), prop)}
+          ayuda={AYUDA_DE_PROP[prop]}
+          problemas={problemasDe(propios, prop)}
+          onCambio={(valor) => editar((b) => conTexto(b, prop, valor), `${block.block_id}.${prop}`)}
+          onCursor={(cursor) => onDestino({ objetivo: block.block_id, prop, cursor })}
+          onIrAPersonas={onIrAPersonas}
+        />
+      ) : prop === "url" ? (
+        // La dirección: sin formato, con el campo como chip («Enlace»), nunca `{{enlace}}`.
+        <CampoConCampos
+          key={`${block.block_id}-${prop}`}
+          label={ROTULO_DE_PROP[prop]}
+          valor={textoDe(block, prop)}
+          opciones={rotulosDeCampos(template)}
+          formato={false}
+          ayuda={AYUDA_DE_PROP[prop]}
           problemas={problemasDe(propios, prop)}
           onCambio={(valor) => editar((b) => conTexto(b, prop, valor), `${block.block_id}.${prop}`)}
           onCursor={(cursor) => onDestino({ objetivo: block.block_id, prop, cursor })}
@@ -346,9 +373,6 @@ export function PanelDeBloque({
           key={`${block.block_id}-${prop}`}
           label={ROTULO_DE_PROP[prop]}
           valor={textoDe(block, prop)}
-          multilinea={esPropDeLista(prop) || (prop === "text" && block.type !== "greeting" && block.type !== "button" && block.type !== "icon_text")}
-          filas={prop === "text" && block.type === "paragraph" ? 7 : 4}
-          mono={prop === "url"}
           ayuda={AYUDA_DE_PROP[prop]}
           problemas={problemasDe(propios, prop)}
           onCambio={(valor) => editar((b) => conTexto(b, prop, valor), `${block.block_id}.${prop}`)}

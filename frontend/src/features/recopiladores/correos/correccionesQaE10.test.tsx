@@ -25,13 +25,13 @@ describe("#7 → N2/N3 · la barra del bloque elegido va encima de su borde supe
     expect(rect.y + rect.h + MARGEN_DE_LAS_ACCIONES).toBe(zona.y);
   });
 
-  it("si encima no se ve, se pega a lo más alto visible del bloque y no se sale de él", () => {
+  it("si encima no se ve, se oculta (#2 del re-QA e10-2); con el foco dentro, baja a lo más alto visible sin salirse del bloque", () => {
     const zona = { x: 0, y: 100, w: 600, h: 620 };
-    const { lugar, rect } = lugarDeLasAcciones({ zona, ancho, visible: { arriba: 180, abajo: 700 } });
-    expect(lugar).toBe("pegada");
-    expect(rect.y).toBe(180);
-    const fin = lugarDeLasAcciones({ zona, ancho, visible: { arriba: 760, abajo: 1200 } }).rect;
-    expect(fin.y).toBeGreaterThanOrEqual(760);
+    const { lugar, rect, respaldo } = lugarDeLasAcciones({ zona, ancho, visible: { arriba: 180, abajo: 700 } });
+    expect(lugar).toBe("oculta");
+    expect(rect.y + respaldo).toBe(180);
+    const fin = lugarDeLasAcciones({ zona, ancho, visible: { arriba: 760, abajo: 1200 } });
+    expect(fin.rect.y + fin.respaldo).toBeGreaterThanOrEqual(760);
   });
 
   it("nunca tapa el punto de aviso de la esquina", () => {

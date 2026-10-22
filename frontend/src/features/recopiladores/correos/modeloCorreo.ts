@@ -193,13 +193,15 @@ export function etiquetaDesdeClave(key: string): string {
 /** Problema de un campo antes de enviarlo: el backend lo rechazaría igual. */
 export function problemaDeCampo(field: MailField, otros: readonly MailField[]): string | null {
   if (!/^[a-z][a-z0-9_]{0,29}$/.test(field.key)) return "La clave va en minúsculas: a-z, 0-9 y _.";
-  if (CLAVES_RESERVADAS.includes(field.key)) return `{{${field.key}}} es reservado.`;
-  if (otros.some((o) => o.key === field.key)) return `{{${field.key}}} está repetido.`;
+  // Sin llaves ni etiquetas de plataforma (#5 del re-QA e10-2): el campo se nombra por su rótulo.
+  const nombre = field.label.trim() || field.key;
+  if (CLAVES_RESERVADAS.includes(field.key)) return `«${nombre}» es un nombre que la app ya usa: elige otro.`;
+  if (otros.some((o) => o.key === field.key)) return `Ya hay otro campo «${nombre}».`;
   if (!/^[A-Z0-9_]{1,10}$/.test(field.tag)) return "La etiqueta usa A-Z, 0-9 y _, hasta 10 caracteres.";
   if (ETIQUETAS_RESERVADAS.includes(field.tag) || field.tag.startsWith("MC_")) {
-    return `*|${field.tag}|* es una etiqueta reservada de Mailchimp.`;
+    return `«${field.tag}» es una etiqueta reservada de Mailchimp.`;
   }
-  if (otros.some((o) => o.tag === field.tag)) return `*|${field.tag}|* está repetida.`;
+  if (otros.some((o) => o.tag === field.tag)) return `La etiqueta «${field.tag}» ya es de otro campo.`;
   if (!field.label.trim()) return "Falta el rótulo.";
   return null;
 }
@@ -367,7 +369,9 @@ export function enlaceParaLaPersona(
     const key = m[1];
     personal = true;
     const dato = key === CAMPO_NOMBRE ? persona?.nombre : persona?.fields[key];
-    const valor = dato?.trim() ? dato : campos.find((f) => f.key === key)?.fallback ?? `{{${key}}}`;
+    // Sin dato ni respaldo, el rótulo del campo («Carrera»), nunca su llave.
+    const campo = campos.find((f) => f.key === key);
+    const valor = dato?.trim() ? dato : campo?.fallback ?? (campo?.label.trim() || key);
     tramos.push({ texto: PARECE_CORREO.test(valor) ? CORREO_OCULTO : valor, campo: true });
     desde = at + m[0].length;
   }

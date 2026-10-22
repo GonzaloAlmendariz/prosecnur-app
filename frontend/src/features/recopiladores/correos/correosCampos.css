@@ -27,3 +27,66 @@
   min-height: 0;
   padding: 0;
 }
+
+/* #1 del re-QA e10-2: el texto de un bloque en el inspector, con la negrita y
+   la cursiva como formato. Multilínea: crece con su texto desde `filas`. */
+.rec-mail-input.rec-mail-input--campos.is-multilinea {
+  min-height: calc(var(--rec-campo-filas, 4) * 1.5em + 14px);
+}
+
+.rec-mail-input--campos strong,
+.rec-mail-input--campos b {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-mail-input--campos .rec-capa-enlace {
+  color: var(--pulso-module-fieldkit);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* B e I junto al rótulo: se ven al trabajar en el campo, no antes. */
+.rec-mail-campo-formato {
+  display: inline-flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.rec-mail-campo-texto:hover .rec-mail-campo-formato,
+.rec-mail-campo-texto:focus-within .rec-mail-campo-formato {
+  opacity: 1;
+}
+
+.rec-mail-campo-formato-btn {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  box-shadow: none;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  display: inline-flex;
+  height: 22px;
+  justify-content: center;
+  min-height: 0;
+  padding: 0;
+  transform: none;
+  width: 22px;
+}
+
+.rec-mail-campo-formato-btn:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.rec-mail-campo-formato-btn.is-on {
+  background: var(--pulso-module-fieldkit-soft);
+  color: var(--pulso-module-fieldkit);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-mail-campo-formato {
+    transition: none;
+  }
+}

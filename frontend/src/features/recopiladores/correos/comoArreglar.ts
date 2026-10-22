@@ -53,8 +53,16 @@ export function comoArreglar(code: string): string | null {
  */
 const ARREGLO_EN_EL_BOTON: ReadonlySet<string> = new Set(["greeting_trato"]);
 
-/** La línea de arreglo que acompaña al chequeo en la Revisión; `null` si el botón ya la dice. */
-export function arregloEnLaRevision(code: string): string | null {
+/** Con la columna de sexo ya elegida, lo que falta es el dato de algunas personas. */
+const ARREGLO_CON_COLUMNA = "Completa o corrige el sexo de esas personas en la lista y vuelve a importarla.";
+
+/**
+ * La línea de arreglo que acompaña al chequeo en la Revisión; `null` si el
+ * botón ya la dice. Con la columna del saludo ya elegida (#4 del re-QA
+ * e10-2), no se pide elegirla otra vez.
+ */
+export function arregloEnLaRevision(code: string, contexto: { columnaElegida?: boolean } = {}): string | null {
+  if (code === "greeting_trato" && contexto.columnaElegida) return ARREGLO_CON_COLUMNA;
   return ARREGLO_EN_EL_BOTON.has(code) ? null : comoArreglar(code);
 }
 

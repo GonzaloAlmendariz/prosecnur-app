@@ -105,9 +105,16 @@ describe("campos de cada persona", () => {
     const otros = plantilla().fields;
     expect(problemaDeCampo({ key: "aula", tag: "AULA", label: "Aula" }, otros)).toBeNull();
     expect(problemaDeCampo({ key: "Aula", tag: "AULA", label: "Aula" }, otros)).toMatch(/minúsculas/);
-    expect(problemaDeCampo({ key: "correo", tag: "CORREO", label: "Correo" }, otros)).toMatch(/reservado/);
+    expect(problemaDeCampo({ key: "correo", tag: "CORREO", label: "Correo" }, otros)).toBe("«Correo» es un nombre que la app ya usa: elige otro.");
     expect(problemaDeCampo({ key: "aula", tag: "UNSUB", label: "Aula" }, otros)).toMatch(/reservada/);
-    expect(problemaDeCampo({ key: "aula", tag: "CARRERA", label: "Aula" }, otros)).toMatch(/repetida/);
+    expect(problemaDeCampo({ key: "aula", tag: "CARRERA", label: "Aula" }, otros)).toMatch(/ya es de otro campo/);
+    // #5 del re-QA e10-2: ningún mensaje muestra llaves ni etiquetas de plataforma.
+    for (const f of [
+      { key: "correo", tag: "CORREO", label: "Correo" },
+      { key: "carrera", tag: "OTRA", label: "Carrera" },
+      { key: "aula", tag: "UNSUB", label: "Aula" },
+      { key: "aula", tag: "CARRERA", label: "Aula" },
+    ]) expect(problemaDeCampo(f, otros) ?? "").not.toMatch(/\{\{|\}\}|\*\||\|\*/);
     expect(problemaDeCampo({ key: "aula", tag: "DEMASIADOLARGA", label: "Aula" }, otros)).toMatch(/10/);
   });
 });

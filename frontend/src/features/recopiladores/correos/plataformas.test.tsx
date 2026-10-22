@@ -99,7 +99,9 @@ describe("dialectos: cómo sale cada bloque en cada plataforma", () => {
   it("problemas de la correspondencia: repetida, destino otro y tope del plan", () => {
     let t = conEtiquetaSurveyMonkey(PLANTILLA, "carrera", "CustomData1");
     t = conEtiquetaSurveyMonkey(t, "web", "CustomData1");
-    expect(problemaDeEtiquetas(t).web).toMatch(/ya es de \{\{carrera\}\}/);
+    // #5 del re-QA e10-2: la etiqueta tomada se dice con el rótulo del campo, sin llaves.
+    expect(problemaDeEtiquetas(t).web).toMatch(/ya es de «Carrera»/);
+    expect(problemaDeEtiquetas(t).web).not.toMatch(/\{\{|\}\}/);
     expect(problemaDeEtiquetas(conEtiquetaSurveyMonkey(PLANTILLA, "carrera", "CustomData7")).carrera).toMatch(/CustomData6/);
     expect(conEtiquetaSurveyMonkey(PLANTILLA, "carrera", "Email").fields[1].sm).toBeUndefined();
     expect(problemaDeEtiquetas({ fields: [{ key: "e", tag: "E", label: "E", sm: "SurveyLink", destino: "otro" }] }).e).toMatch(/no lleva/);

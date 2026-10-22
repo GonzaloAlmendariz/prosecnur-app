@@ -31,7 +31,6 @@ import { AvisoDeshacer, type Deshacible } from "./AvisoDeshacer";
 import { CapaDeEdicion } from "./CapaDeEdicion";
 import { rotuloDeClave } from "./camposDeclarados";
 import { GuiaDelEditor } from "./GuiaDelEditor";
-import { etiquetaDeCampo } from "./dialectos";
 import { DialogoImportarHtml } from "./DialogoImportarHtml";
 import { agregarRecordatorio, asuntoDelEnvio, cerrarApertura, conApertura, editarEnvio, quitarEnvio } from "./modeloEnvios";
 import { PanelEnvios } from "./PanelEnvios";
@@ -203,10 +202,10 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
     if (!template) return [];
     const ejemplo = (v: string | undefined) => (v && !PARECE_CORREO.test(v) ? v : undefined);
     return [
-      { key: CAMPO_NOMBRE, label: "Nombre", etiqueta: etiquetaDeCampo({ key: CAMPO_NOMBRE, tag: "FNAME" }, dialecto) ?? "", ejemplo: ejemplo(persona?.nombre) },
-      ...template.fields.map((f) => ({ key: f.key, label: f.label, etiqueta: etiquetaDeCampo(f, dialecto) ?? "sin etiqueta", ejemplo: ejemplo(persona?.fields[f.key]) })),
+      { key: CAMPO_NOMBRE, label: "Nombre", ejemplo: ejemplo(persona?.nombre) },
+      ...template.fields.map((f) => ({ key: f.key, label: f.label, ejemplo: ejemplo(persona?.fields[f.key]) })),
     ];
-  }, [dialecto, persona, template]);
+  }, [persona, template]);
   const textoDeCampo = useMemo(() => {
     const porClave = new Map(camposDelMenu.map((c) => [c.key, c]));
     return {

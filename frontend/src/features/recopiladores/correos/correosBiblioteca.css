@@ -45,7 +45,24 @@
   position: sticky;
   /* El alto de la barra del correo cuando comparten el scroll (topeDeLaBarra.ts). */
   top: var(--rec-bib-tope, 0px);
+  transition: opacity 120ms var(--motion-ease-out), visibility 0s;
   z-index: 1;
+}
+
+/* Residuo del #17: cuando lo que queda de la biblioteca a la vista es más bajo
+   que su cabecera, la cabecera se desvanece en vez de meterse bajo la barra. */
+.rec-bib.is-cabeza-fuera .rec-bib-cabeza:not(:focus-within) {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms var(--motion-ease-out), visibility 0s 120ms;
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-bib-cabeza,
+  .rec-bib.is-cabeza-fuera .rec-bib-cabeza:not(:focus-within) {
+    transition: none;
+  }
 }
 
 .rec-bib-titulo {
