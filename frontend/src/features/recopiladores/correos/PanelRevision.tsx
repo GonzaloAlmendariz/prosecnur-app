@@ -1,17 +1,17 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useInRouterContext, useLocation, useNavigate } from "react-router-dom";
 
-import type { MailCheck, MailReview, MailTemplate } from "../../../api/materialMail";
+import type { MailCheck, MailCheckItem, MailReview, MailTemplate } from "../../../api/materialMail";
 import { searchConPanel } from "../../../lib/navegacion/paneles";
 import { AlertCircle, ArrowRight, CheckCircle2, ChevronRight, Loader2, XCircle } from "../../../vendor/lucide-react";
 import { FOCO_COLUMNA_DEL_TRATO, arregloEnLaRevision, causaDelChequeo, destinoDelChequeo, pestanaDelChequeo, type PestanaDelChequeo } from "./comoArreglar";
 import { IDENTIDAD, focoDelEstilo } from "./modeloEstilo";
 import { indiceDelChequeoDeLaZona } from "./chequeoDeLaZona";
 import { fraseDeNitidez } from "./nitidez";
-import { fraseDeLoQueFalta, idsSinArchivo } from "./nombresDeImagen";
+import { fraseDeLoQueFalta, idsSinArchivo, nombreDeImagen } from "./nombresDeImagen";
 import { PANEL_CORREO_DESTINATARIOS, PANEL_CORREO_ENVIOS } from "./panelesCorreos";
 import { useCorreosStore } from "./store";
-import { CABECERA, SOBRE, cifraDeChequeo, muestraDetalle, partesDeRevision, resumenDeRevision, rotuloDeChequeo, textoDeItem, tituloDeChequeo, CUERPO_DEL_INSPECTOR } from "./modeloCorreo";
+import { CABECERA, SOBRE, cabeceraSinAlt, cifraDeChequeo, nombreDelCampo, muestraDetalle, partesDeRevision, resumenDeRevision, rotuloDeChequeo, textoDeItem, tituloDeChequeo, CUERPO_DEL_INSPECTOR } from "./modeloCorreo";
 import "./correosRevision.css";
 
 type Props = {
@@ -51,18 +51,49 @@ function traerALaVista(el: HTMLElement): void {
 export const DURACION_DEL_RESALTADO = 1600;
 
 /** El texto del botón de salida de un chequeo: lo que hace, en la voz de la vista. */
-export function salidaDelChequeo(code: string, destino: string, prop?: string, contexto: { columnaElegida?: boolean } = {}): { texto: string; foco?: string } {
+export function salidaDelChequeo(code: string, destino: string, prop?: string, contexto: { columnaElegida?: boolean; cabeceraSinAlt?: boolean } = {}): { texto: string; foco?: string } {
   // F2: el saludo por sexo se arregla eligiendo la columna, con el foco en el selector.
   // #4 (re-QA e10-2): con la columna ya elegida, el aviso es de datos que faltan: se va al saludo.
   if (code === "greeting_trato") return contexto.columnaElegida ? { texto: "Ir al saludo" } : { texto: "Elegir columna", foco: FOCO_COLUMNA_DEL_TRATO };
-  // H7: el logo que falta se sube en Identidad.
-  if (code === "images_available" && destino === CABECERA) return { texto: "Subir en Identidad" };
+  // La cabecera lleva a Identidad sólo si le falta la descripción (`irAlBloque`
+  // abre Identidad con el campo listo); si no, a su inspector, donde también se
+  // suben los logos que faltan. Sin el dato se conserva lo que cada chequeo
+  // suele implicar: `images_alt` e `images_available`, Identidad.
+  const aIdentidad = contexto.cabeceraSinAlt ?? (code === "images_alt" || code === "images_available");
+  // H7: el logo que falta se sube donde lleva el botón.
+  if (code === "images_available" && destino === CABECERA) return { texto: aIdentidad ? "Subir en Identidad" : "Subir en la cabecera" };
   // F15: la cabecera sin descripción se corrige en Identidad, que es adonde lleva.
-  if (destino === CABECERA) return { texto: "Ir a Identidad" };
+  if (destino === CABECERA) return { texto: aIdentidad ? "Ir a Identidad" : "Ir a la cabecera" };
   // E1n: el contraste de Campaña se corrige en Identidad › Estilo, en el control del color.
   if (destino === IDENTIDAD) return { texto: "Ir a Identidad", foco: focoDelEstilo(prop) };
   if (destino === SOBRE) return { texto: "Ir al asunto" };
   return { texto: "Ir al bloque" };
+}
+
+/** Chequeos cuyos `items` nombran imágenes por su id (el archivo del ZIP). */
+const ITEMS_DE_IMAGEN: ReadonlySet<string> = new Set(["logos_duplicados", "images_alt", "images_public_url", "image_weight", "import_zip_weight"]);
+/** Chequeos cuyos `items` nombran campos por su llave (`carrera`, `trato`). */
+const ITEMS_DE_CAMPO: ReadonlySet<string> = new Set(["sm_fields_mapped", "sm_fallback", "sm_link_field_empty", "sm_custom_limit"]);
+
+const kb = (bytes: number) => `${Math.max(1, Math.round(bytes / 1024)).toLocaleString("es-PE")} KB`;
+
+/**
+ * Una fila del detalle en la voz de la vista: la imagen por su nombre humano
+ * («Banner de Contabilidad», no «contabilidad-1200») y el campo por su rótulo.
+ * Sin plantilla con qué nombrarlas, las filas de imagen no se pintan (`null`).
+ */
+export function textoDelItem(code: string, item: MailCheckItem, template: Props["template"]): string | null {
+  if (ITEMS_DE_IMAGEN.has(code)) {
+    const id = typeof item === "string" ? item : typeof item.id === "string" ? item.id : "";
+    if (!id || !template) return null;
+    const nombre = nombreDeImagen(template, id);
+    const peso = typeof item === "string" ? NaN : Number(item.size_bytes);
+    return Number.isFinite(peso) && peso > 0 ? `${nombre} · ${kb(peso)}` : nombre;
+  }
+  if (ITEMS_DE_CAMPO.has(code) && typeof item === "string") {
+    return item === "trato" ? "Saludo según la persona" : nombreDelCampo(undefined, item, template?.fields);
+  }
+  return textoDeItem(item, template?.fields);
 }
 
 /** La columna de sexo que ya usa el saludo `blockId`, si la hay. */
@@ -125,8 +156,12 @@ function ChequeoQueFalla({ check, onIrAlBloque, template, resaltado = false }: {
       ? check.items.filter((i) => typeof i !== "string" && Number(i.empty) > 0)
       : check.items;
   const cifra = cifraDeChequeo(check);
+  const filas = items.map((item) => textoDelItem(check.code, item, template)).filter((t): t is string => Boolean(t));
   const salida = destino && onIrAlBloque
-    ? salidaDelChequeo(check.code, destino, check.targets.find((t) => t.block_id === destino)?.prop, { columnaElegida })
+    ? salidaDelChequeo(check.code, destino, check.targets.find((t) => t.block_id === destino)?.prop, {
+      columnaElegida,
+      cabeceraSinAlt: destino === CABECERA && template ? Boolean(cabeceraSinAlt(template)) : undefined,
+    })
     : null;
   return (
     <li
@@ -141,12 +176,12 @@ function ChequeoQueFalla({ check, onIrAlBloque, template, resaltado = false }: {
         <span className="pulso-sr-only"> ({VOZ[check.status]})</span>
       </span>
       {cifra ? <span className="rec-mail-chk-cifra" title={tituloDeChequeo(check)}>{cifra}</span> : null}
-      {causa || items.length ? (
+      {causa || filas.length ? (
         <span className="rec-mail-chk-texto">
           {causa ? <span className="rec-mail-chk-detalle">{causa}</span> : null}
-          {items.length ? (
+          {filas.length ? (
             <span className="rec-mail-chk-items" data-qa-geometry-group="material-campo/correo/chequeo-items" data-qa-geometry-contract="intrinsic">
-              {items.map((item, i) => <span key={i} data-qa-geometry-member>{textoDeItem(item, template?.fields)}</span>)}
+              {filas.map((fila, i) => <span key={i} data-qa-geometry-member>{fila}</span>)}
             </span>
           ) : null}
         </span>

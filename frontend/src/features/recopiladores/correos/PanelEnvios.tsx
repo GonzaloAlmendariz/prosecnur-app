@@ -23,7 +23,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { AlertTriangle, CalendarDays, Loader2, Plus, Trash2, Upload } from "../../../vendor/lucide-react";
 import { CampoConCampos } from "./CampoConCampos";
 import { CampoDeTexto } from "./CampoDeTexto";
-import { clavesDeclaradas, rotuloDeClave } from "./camposDeclarados";
+import { rotulosDeCampos } from "./rotulosDeCampos";
 import { SincronizarRespuestas } from "./SincronizarRespuestas";
 import { avisosDeRecordatorio } from "./sincronizacionModel";
 import { useCorreosStore } from "./store";
@@ -80,17 +80,6 @@ export function fechaHumana(iso: string | undefined, hoy: Date = new Date()): st
 /** Qué sale si el asunto o la vista previa del envío quedan vacíos. */
 export function ayudaDeVacio(dePlantilla: string | undefined): string {
   return dePlantilla ? `Si lo dejas vacío, va: «${dePlantilla}».` : "Si lo dejas vacío, va el de la plantilla.";
-}
-
-/** Los campos de la apertura se ven con el mismo rótulo que en el lienzo. */
-export function camposDeLaApertura(template: Pick<MailTemplate, "fields">) {
-  const declaradas = clavesDeclaradas(template);
-  const rotulo = (key: string) => (key === "nombre" ? "Nombre" : template.fields.find((f) => f.key === key)?.label || rotuloDeClave(key));
-  return {
-    rotuloDeCampo: rotulo,
-    ayudaDeCampo: (key: string) => `${rotulo(key)}: cambia con cada persona`,
-    campoValido: (key: string) => declaradas.has(key),
-  };
 }
 
 export const EJEMPLO_DE_APERTURA = "Ej.: Le recordamos que aún puede responder hasta el viernes";
@@ -286,7 +275,7 @@ export function PanelEnvios({
             key={activo.send_id}
             label="Apertura"
             valor={apertura}
-            opciones={camposDeLaApertura(template)}
+            opciones={rotulosDeCampos(template)}
             multilinea
             enlaces
             filas={3}
