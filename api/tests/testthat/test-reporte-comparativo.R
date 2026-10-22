@@ -623,3 +623,30 @@ test_that("el comparativo de cruces archiva sus estilos por pregunta sin cambiar
   expect_identical(con$estilos[names(sin$estilos)], sin$estilos)
   expect_identical(con$celdas, sin$celdas)
 })
+
+test_that("el comparativo de cruces escribe cada fila de respuesta de una vez y el libro no cambia", {
+  # H16 (2026-10-22): celda por celda, cada writeData recorría todos los estilos
+  # del libro; 10 preguntas reales tardaban 362 s (12 s con el búfer).
+  leer <- function(r) list(estilos = .xlsx_estilos_por_celda(r$cruces), celdas = .rc_celdas(r$cruces))
+  put0 <- get(".comparativo_put", envir = asNamespace("prosecnurapp"))
+  contar <- function(directo) {
+    puts <- 0L
+    local({
+      testthat::local_mocked_bindings(.comparativo_put = function(...) { puts <<- puts + 1L; put0(...) })
+      if (directo) testthat::local_mocked_bindings(
+        .comparativo_buffer = function() {
+          b <- new.env()
+          b$put <- function(wb, hoja, fila, col, valor, estilo) .comparativo_put(wb, hoja, fila, col, valor, estilo)
+          b
+        },
+        .comparativo_buffer_volcar = function(wb, hoja, b) invisible(wb))
+      list(leido = leer(.rc_generar()), puts = puts)
+    })
+  }
+  con <- contar(FALSE); directo <- contar(TRUE)
+  # El simple sigue celda por celda en las dos corridas; la diferencia es el búfer.
+  expect_lt(con$puts, directo$puts / 2)
+  expect_setequal(names(con$leido$estilos), names(directo$leido$estilos))
+  expect_identical(con$leido$estilos[names(directo$leido$estilos)], directo$leido$estilos)
+  expect_identical(con$leido$celdas, directo$leido$celdas)
+})
