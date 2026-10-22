@@ -91,6 +91,7 @@ import { sourceSyncActions, useSourceSyncStore } from "./sync/sourceSyncStore";
 import { AcreditacionModuleChromeConSync } from "./sync/AcreditacionModuleChromeConSync";
 import { countText, fmt, formatDate, formatMetric, normalizeSourceMatch } from "./formato";
 import { AvanceCorreo } from "./AvanceCorreo";
+import { AvanceCuotas } from "./AvanceCuotas";
 import { EmptyPanel } from "./EmptyPanel";
 import {
   ACREDITACION_DAILY_NO_DATE_LABEL,
@@ -17076,6 +17077,7 @@ function renderAcreditacionView(
 ) {
   // Correo lee Mailchimp por su cuenta: no depende del corte de reportes.
   if (view === "avance" && options.activeAdvanceTab === "correo") return <AvanceCorreo />;
+  if (view === "avance" && options.activeAdvanceTab === "cuotas") return <AvanceCuotas />;
   if (view === "avance" && options.activeAdvanceTab === "salidas") {
     const outputState = options.state;
     const isPhoneOutputs = isTelefonicoMonitoreoState(outputState);

@@ -1,0 +1,862 @@
+/* Monitoreo › Acreditación › Avance › Cuotas.
+ *
+ * Mismo lenguaje que Correo y que las barras por facultad de aulas
+ * (aulasBarrasPorFacultad.css): una tarjeta (el panel), filetes dentro, cifras
+ * tabulares grandes y rótulos en versalita. Las barras son rectángulos de
+ * 14 px con borde definido; el color dice el estado (cumplida = éxito, en curso
+ * = acento de Monitoreo, sin avance = advertencia, sin meta = neutro). El
+ * panel es el único dueño del scroll; la barra de herramientas del detalle
+ * queda fija arriba al recorrer listas largas. Solo tokens. */
+
+.mon-fill-panel.mon-cuotas {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  gap: 0;
+}
+
+.mon-cuotas > * {
+  flex: 0 0 auto;
+}
+
+.mon-cuotas,
+.mon-cuotas-panel {
+  --cuota-cumplida: var(--pulso-success-fg);
+  --cuota-en-curso: var(--pulso-module-monitoring);
+  --cuota-sin-avance: var(--pulso-warn-fg);
+  --cuota-sin-meta: var(--pulso-text-faint);
+}
+
+.mon-cuotas-versalita {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.mon-cuotas-tenue {
+  color: var(--pulso-text-faint);
+}
+
+/* ---- Cabecera ---- */
+
+.mon-cuotas-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-cuotas-cabecera-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mon-cuotas-cabecera-titulo > div {
+  display: grid;
+  gap: 1px;
+}
+
+.mon-cuotas-cabecera-titulo h2 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 16px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.15;
+}
+
+.mon-cuotas-cabecera-icono {
+  display: grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: 9px;
+  background: var(--pulso-module-monitoring-soft);
+  color: var(--pulso-module-monitoring);
+}
+
+.mon-cuotas-cabecera-meta {
+  margin: 0;
+  padding-left: 20px;
+  border-left: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-cuotas-agregar {
+  margin-left: auto;
+}
+
+.mon-cuotas-confirmacion {
+  margin: 10px 0 0;
+  color: var(--pulso-success-fg);
+  font-size: 12.5px;
+}
+
+.mon-cuotas-cargando {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.mon-cuotas-avisos {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.mon-fill-panel.mon-cuotas > .mon-cuotas-vacio {
+  flex: 1 1 auto;
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+}
+
+.mon-cuotas-cuerpo {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+}
+
+/* ---- Tira de indicadores ---- */
+
+.mon-cuotas-resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin: 0;
+  padding: 16px 0 0;
+  list-style: none;
+}
+
+.mon-cuotas-resumen > li {
+  min-width: 0;
+  display: flex;
+}
+
+.mon-cuotas-resumen > li.es-cumplida { --cuota-tono: var(--cuota-cumplida); }
+.mon-cuotas-resumen > li.es-en_curso { --cuota-tono: var(--cuota-en-curso); }
+.mon-cuotas-resumen > li.es-sin_avance { --cuota-tono: var(--cuota-sin-avance); }
+.mon-cuotas-resumen > li.es-sin_meta { --cuota-tono: var(--cuota-sin-meta); }
+
+.mon-cuotas-indicador {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-block-size: 104px;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 0 -1px;
+  padding: 12px 16px 14px;
+  border: 0;
+  border-left: 1px solid var(--pulso-border);
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.mon-cuotas-resumen > li:first-child .mon-cuotas-indicador {
+  border-left-color: transparent;
+}
+
+/* El indicador elegido: una franja del color del público debajo, como la
+   pestaña activa de una tira. */
+.mon-cuotas-indicador::after {
+  content: "";
+  position: absolute;
+  inset-inline: 12px;
+  inset-block-end: 0;
+  block-size: 3px;
+  border-radius: 2px;
+  background: transparent;
+}
+
+.mon-cuotas-indicador:hover {
+  background: var(--pulso-surface-2);
+}
+
+.mon-cuotas-indicador[aria-pressed="true"] {
+  background: var(--publico-suave);
+}
+
+.mon-cuotas-indicador[aria-pressed="true"]::after {
+  background: var(--publico);
+}
+
+.mon-cuotas-indicador:focus-visible,
+.mon-cuotas-orden button:focus-visible,
+.mon-cuotas-buscar input:focus-visible,
+.mon-cuotas-campo select:focus-visible,
+.mon-cuotas-campo input:focus-visible,
+.mon-cuotas-editor-tabla input:focus-visible {
+  outline: 2px solid var(--pulso-text);
+  outline-offset: 2px;
+}
+
+.mon-cuotas-anillo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 64px;
+  block-size: 64px;
+}
+
+.mon-cuotas-anillo svg {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  transform: rotate(-90deg);
+}
+
+.mon-cuotas-anillo circle {
+  fill: none;
+  stroke-width: 5;
+}
+
+.mon-cuotas-anillo .es-pista {
+  stroke: var(--pulso-surface-3);
+}
+
+.mon-cuotas-anillo .es-relleno {
+  stroke: var(--cuota-tono);
+  stroke-linecap: round;
+  transition: stroke-dasharray 300ms ease;
+}
+
+.mon-cuotas-anillo > span {
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-cuotas-indicador-texto {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.mon-cuotas-indicador-titulo {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--publico-texto);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mon-cuotas-indicador-titulo > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-cuotas-indicador-texto > strong {
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-cuotas-indicador-cifra {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-cuotas-indicador-cifra b {
+  color: var(--pulso-text);
+  font-size: 20px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.mon-cuotas-indicador-cifra small {
+  font-size: 12px;
+}
+
+.mon-cuotas-indicador-texto > small {
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+}
+
+/* ---- Detalle de la cuota ---- */
+
+.mon-cuotas-detalle {
+  min-width: 0;
+  display: grid;
+  margin-top: 4px;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.mon-cuotas-detalle-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 18px 0 10px;
+}
+
+.mon-cuotas-detalle-titulo {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.mon-cuotas-detalle-titulo .mon-cuotas-versalita {
+  color: var(--publico-texto);
+}
+
+.mon-cuotas-detalle-titulo h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 18px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.mon-cuotas-detalle-titulo p {
+  margin: 2px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-cuotas-detalle-titulo p strong {
+  color: var(--pulso-text);
+}
+
+.mon-cuotas-herramientas {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.mon-cuotas-buscar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-inline-size: 220px;
+  block-size: var(--pulso-control-height-sm);
+  padding: 0 8px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-faint);
+}
+
+.mon-cuotas-buscar input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.mon-cuotas-buscar input:focus-visible {
+  outline-offset: 4px;
+}
+
+.mon-cuotas-orden {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mon-cuotas-orden .mon-cuotas-versalita {
+  margin-right: 4px;
+}
+
+.mon-cuotas-orden button {
+  min-block-size: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-cuotas-orden button[aria-pressed="true"] {
+  border-color: var(--pulso-module-monitoring-border);
+  background: var(--pulso-module-monitoring-soft);
+  color: color-mix(in srgb, var(--pulso-module-monitoring) 70%, var(--pulso-text));
+}
+
+.mon-cuotas-leyenda {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+}
+
+.mon-cuotas-leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mon-cuotas-leyenda li > i {
+  inline-size: 14px;
+  block-size: 8px;
+  border-radius: 2px;
+  background: var(--cuota-tono);
+}
+
+.mon-cuotas-leyenda .es-cumplida { --cuota-tono: var(--cuota-cumplida); }
+.mon-cuotas-leyenda .es-en_curso { --cuota-tono: var(--cuota-en-curso); }
+.mon-cuotas-leyenda .es-sin_avance { --cuota-tono: var(--cuota-sin-avance); }
+
+.mon-cuotas-leyenda .es-meta > i {
+  inline-size: 2px;
+  block-size: 12px;
+  background: var(--pulso-text);
+}
+
+.mon-cuotas-cuenta {
+  margin-left: auto;
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-cuotas-categorias {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-cuotas-categoria {
+  --cuota-tono: var(--cuota-en-curso);
+  min-width: 0;
+  min-block-size: 44px;
+  display: grid;
+  grid-template-columns: minmax(160px, 260px) minmax(0, 1fr) minmax(260px, 320px);
+  align-items: center;
+  gap: 18px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-cuotas-categoria:hover {
+  background: var(--pulso-surface-2);
+}
+
+.mon-cuotas-categoria.es-cumplida { --cuota-tono: var(--cuota-cumplida); }
+.mon-cuotas-categoria.es-sin_avance { --cuota-tono: var(--cuota-sin-avance); }
+.mon-cuotas-categoria.es-sin_meta { --cuota-tono: var(--cuota-sin-meta); }
+
+.mon-cuotas-categoria-nombre {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* La pista: el 100 % es lo mayor entre la meta y lo logrado. */
+.mon-cuotas-bullet {
+  position: relative;
+  display: block;
+  block-size: 14px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 3px;
+  background: var(--pulso-surface-2);
+}
+
+.mon-cuotas-categoria.es-sin_avance .mon-cuotas-bullet {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.mon-cuotas-bullet-relleno {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-radius: 2px 0 0 2px;
+  background: var(--cuota-tono);
+  transition: inline-size 220ms ease-out;
+}
+
+/* Pasarse de la meta: el relleno cruza la marca, del mismo verde de cumplida. */
+.mon-cuotas-bullet-relleno.es-pasada {
+  border-radius: 2px;
+}
+
+.mon-cuotas-categoria.es-sin_meta .mon-cuotas-bullet-relleno {
+  background: color-mix(in srgb, var(--pulso-text-faint) 35%, var(--pulso-surface));
+}
+
+.mon-cuotas-bullet-meta {
+  position: absolute;
+  inset-block: -4px;
+  inline-size: 2px;
+  margin-inline-start: -1px;
+  border-radius: 1px;
+  background: var(--pulso-text);
+}
+
+.mon-cuotas-categoria-cifras {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-cuotas-categoria-fraccion {
+  color: var(--pulso-text-faint);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.mon-cuotas-categoria-fraccion strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.mon-cuotas-resto {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-semibold);
+  text-align: right;
+}
+
+.mon-cuotas-categoria.es-cumplida .mon-cuotas-resto {
+  color: var(--pulso-success-fg);
+}
+
+.mon-cuotas-categoria.es-sin_avance .mon-cuotas-resto {
+  color: var(--pulso-warn-fg);
+}
+
+.mon-cuotas-categoria-cifras small {
+  grid-column: 1 / -1;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+}
+
+.mon-cuotas-sin-coincidencias {
+  margin: 0;
+  padding: 18px 0;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+/* ---- Panel de configuración (sideover, en portal al body) ---- */
+
+.mon-cuotas-velo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--pulso-z-flyout);
+  display: flex;
+  justify-content: flex-end;
+  background: color-mix(in srgb, var(--pulso-text) 26%, transparent);
+  animation: mon-cuotas-velo 140ms ease-out;
+}
+
+.mon-cuotas-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  inline-size: min(620px, 100%);
+  block-size: 100%;
+  border-left: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-high);
+  animation: mon-cuotas-entrada 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes mon-cuotas-velo {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes mon-cuotas-entrada {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.mon-cuotas-panel-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-cuotas-panel-cabeza > div {
+  display: grid;
+  gap: 2px;
+}
+
+.mon-cuotas-panel-cabeza h2 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 16px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.mon-cuotas-panel-cuerpo {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  overflow-y: auto;
+  padding: 16px 20px 20px;
+  scrollbar-gutter: stable;
+}
+
+.mon-cuotas-panel-campos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: end;
+  gap: 12px 14px;
+}
+
+.mon-cuotas-panel-campos > .mon-cuotas-campo:nth-child(-n + 2) {
+  grid-column: 1 / -1;
+}
+
+.mon-cuotas-campo {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.mon-cuotas-campo select,
+.mon-cuotas-campo input {
+  min-width: 0;
+  block-size: 32px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  padding: 0 8px;
+}
+
+.mon-cuotas-campo small {
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-cuotas-entrada-sufijo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-cuotas-entrada-sufijo input {
+  inline-size: 96px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-cuotas-proponer {
+  justify-self: start;
+  align-self: center;
+}
+
+.mon-cuotas-suma {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-cuotas-suma strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+}
+
+.mon-cuotas-suma .es-sobre,
+.mon-cuotas-suma .es-bajo {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-cuotas-panel-vacio {
+  margin: 0;
+  padding: 28px 12px;
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: 8px;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.mon-cuotas-editor {
+  display: grid;
+  gap: 8px;
+}
+
+.mon-cuotas-editor .mon-cuotas-buscar {
+  justify-self: start;
+}
+
+.mon-cuotas-editor-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-cuotas-editor-tabla th,
+.mon-cuotas-editor-tabla td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text);
+  text-align: left;
+}
+
+.mon-cuotas-editor-tabla thead th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  border-bottom-color: var(--pulso-border-strong);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mon-cuotas-editor-tabla tbody th {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-cuotas-editor-tabla .is-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.mon-cuotas-editor-tabla input {
+  inline-size: 84px;
+  block-size: 28px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  padding: 0 6px;
+  text-align: right;
+}
+
+.mon-cuotas-panel-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.mon-cuotas-panel-acciones {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.mon-cuotas-panel-acciones small {
+  font-size: 11.5px;
+}
+
+.mon-cuotas-quitar {
+  color: var(--pulso-danger-fg);
+}
+
+/* ---- Movimiento reducido ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  .mon-cuotas-velo,
+  .mon-cuotas-panel {
+    animation: none;
+  }
+
+  .mon-cuotas-anillo .es-relleno,
+  .mon-cuotas-bullet-relleno {
+    transition: none;
+  }
+}
+
+/* ---- Compacto ---- */
+
+@media (max-width: 1180px) {
+  .mon-cuotas-categoria {
+    grid-template-columns: minmax(130px, 200px) minmax(0, 1fr) minmax(220px, 270px);
+    gap: 14px;
+  }
+}
+
+@media (max-width: 820px) {
+  .mon-cuotas-categoria {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .mon-cuotas-bullet {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .mon-cuotas-panel-campos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

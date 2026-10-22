@@ -3,83 +3,71 @@ import { Fragment, useId, useMemo, useState } from "react";
 import type { MonitoreoMailchimpEnvio } from "../../../../api/monitoreoMailchimp";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { ChevronDown, ChevronRight, Send } from "../../../../vendor/lucide-react";
+import { fechaCompleta } from "./avanceCorreoMatriz";
 import {
   cifra,
   enviosOrdenados,
   etiquetaTipoEnvio,
   filtrarEnvios,
   porcentaje,
-  publicosDeEnvios,
   tieneDesglose,
 } from "./avanceCorreoModelo";
-import { formatDate } from "./formato";
+import { clasePublico, type PaletaDePublicos } from "./paletaPublicos";
 
-// Avance › Correo › Por envío. Las tasas se leen sobre entregados; la apertura
-// es la del reporte de Mailchimp, sin las aperturas automáticas de Apple. Un
-// envío que tocó a más de un público se despliega con su desglose por público.
+// Avance › Correo › Detalle de envíos. Columnas agrupadas en Entrega,
+// Interacción y Salida; las tasas, sobre entregados, en tipografía secundaria.
+// Las aperturas del envío son sin Apple; en el desglose por público, con Apple
+// (Mailchimp no las separa por persona). Un envío que tocó a varios públicos
+// se despliega con su desglose.
 
-const COLUMNAS = 12;
+const COLUMNAS = 13;
 
-function CifraYTasa({ n, tasa }: { n: number | null; tasa: number | null }) {
+function CifraYTasa({ n, tasa }: { n: number | null; tasa?: number | null }) {
   return (
     <>
       <span>{cifra(n)}</span>
-      <small>{porcentaje(tasa)}</small>
+      {tasa !== undefined ? <small>{porcentaje(tasa)}</small> : null}
     </>
   );
 }
 
-function DesgloseEnvio({ envio, id }: { envio: MonitoreoMailchimpEnvio; id: string }) {
+function DesgloseEnvio({ envio, id, paleta }: { envio: MonitoreoMailchimpEnvio; id: string; paleta: PaletaDePublicos }) {
   return (
-    <tr id={id} className="mon-correo-desglose">
-      <td colSpan={COLUMNAS}>
-        <table className="mon-correo-tabla is-anidada" aria-label={`Desglose por público de ${envio.titulo || envio.campaign_id}`}>
-          <thead>
-            <tr>
-              <th scope="col">Público</th>
-              <th scope="col" className="is-num">Enviados</th>
-              <th scope="col" className="is-num">Entregados</th>
-              <th scope="col" className="is-num">Rebotes duros · blandos</th>
-              <th scope="col" className="is-num">Aperturas (incluye automáticas)</th>
-              <th scope="col" className="is-num">Clics</th>
-              <th scope="col" className="is-num">Bajas</th>
-              <th scope="col" className="is-num">Quejas</th>
-              <th scope="col" className="is-num">Respuestas atribuidas</th>
-            </tr>
-          </thead>
-          <tbody>
-            {envio.por_actor.map((a) => (
-              <tr key={a.actor}>
-                <th scope="row">{a.actor}</th>
-                <td className="is-num">{cifra(a.enviados)}</td>
-                <td className="is-num">{cifra(a.entregados)}</td>
-                <td className="is-num">{cifra(a.rebotes_duros)} · {cifra(a.rebotes_blandos)}</td>
-                <td className="is-num">{cifra(a.aperturas)}</td>
-                <td className="is-num">{cifra(a.clics)}</td>
-                <td className="is-num">{cifra(a.bajas)}</td>
-                <td className="is-num">{cifra(a.quejas)}</td>
-                <td className="is-num">{cifra(a.respuestas)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="mon-correo-nota">
-          Mailchimp no separa por persona las aperturas automáticas de Apple: por público se muestran todas las aperturas.
-        </p>
-      </td>
-    </tr>
+    <>
+      {envio.por_actor.map((a, i) => (
+        <tr key={a.actor} id={i === 0 ? id : undefined} className={`mon-correo-desglose ${clasePublico(paleta, a.actor)}`}>
+          <td />
+          <th scope="row" colSpan={3} className="mon-correo-desglose-publico">
+            <i className="mon-publico-punto" aria-hidden />
+            {a.actor}
+          </th>
+          <td className="is-num es-grupo"><CifraYTasa n={a.enviados} /></td>
+          <td className="is-num"><CifraYTasa n={a.entregados} /></td>
+          <td className="is-num">{cifra(a.rebotes_duros)} · {cifra(a.rebotes_blandos)}</td>
+          <td className="is-num es-grupo" title="Con las aperturas automáticas de Apple"><CifraYTasa n={a.aperturas} tasa={a.tasa_apertura} /></td>
+          <td className="is-num"><CifraYTasa n={a.clics} tasa={a.tasa_clic} /></td>
+          <td className="is-num es-grupo"><CifraYTasa n={a.bajas} tasa={a.tasa_baja} /></td>
+          <td className="is-num"><CifraYTasa n={a.quejas} tasa={a.tasa_queja} /></td>
+          <td className="is-num es-fuerte">{cifra(a.respuestas)}</td>
+          <td colSpan={COLUMNAS - 12} />
+        </tr>
+      ))}
+    </>
   );
 }
 
-export function AvanceCorreoEnvios({ envios }: { envios: MonitoreoMailchimpEnvio[] }) {
+export function AvanceCorreoEnvios({
+  envios,
+  publico,
+  paleta,
+}: {
+  envios: MonitoreoMailchimpEnvio[];
+  publico: string;
+  paleta: PaletaDePublicos;
+}) {
   const base = useId();
-  const [publico, setPublico] = useState("");
   const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(() => new Set());
-  const publicos = useMemo(() => publicosDeEnvios(envios), [envios]);
-  const visibles = useMemo(
-    () => enviosOrdenados(filtrarEnvios(envios, publicos.includes(publico) ? publico : "")),
-    [envios, publico, publicos],
-  );
+  const visibles = useMemo(() => enviosOrdenados(filtrarEnvios(envios, publico)), [envios, publico]);
 
   const alternar = (id: string) => setAbiertos((prev) => {
     const sig = new Set(prev);
@@ -91,35 +79,37 @@ export function AvanceCorreoEnvios({ envios }: { envios: MonitoreoMailchimpEnvio
     <section className="mon-correo-bloque" aria-labelledby={`${base}-titulo`}>
       <header className="mon-correo-bloque-cabeza">
         <div>
-          <h3 id={`${base}-titulo`}>Por envío</h3>
-          <p>Tasas sobre entregados. Las aperturas no incluyen las automáticas de Apple.</p>
+          <h3 id={`${base}-titulo`}>Detalle de envíos</h3>
+          <p className="mon-correo-bloque-meta">
+            {publico ? <><i className={`mon-publico-punto ${clasePublico(paleta, publico)}`} aria-hidden /> {publico} · </> : null}
+            {cifra(visibles.length)} de {cifra(envios.length)} · tasas sobre entregados
+          </p>
         </div>
-        {publicos.length > 1 ? (
-          <label className="mon-correo-filtro">
-            <span>Público</span>
-            <select value={publicos.includes(publico) ? publico : ""} onChange={(e) => setPublico(e.target.value)}>
-              <option value="">Todos los públicos</option>
-              {publicos.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-          </label>
-        ) : null}
       </header>
       {visibles.length ? (
         <div className="mon-correo-tabla-marco">
-          <table className="mon-correo-tabla">
+          <table className="mon-correo-tabla mon-correo-envios">
             <thead>
+              <tr className="mon-correo-grupos">
+                <td colSpan={4} />
+                <th scope="colgroup" colSpan={3} className="es-grupo">Entrega</th>
+                <th scope="colgroup" colSpan={2} className="es-grupo">Interacción</th>
+                <th scope="colgroup" colSpan={3} className="es-grupo">Salida</th>
+                <td />
+              </tr>
               <tr>
                 <th scope="col">Fecha</th>
                 <th scope="col">Envío</th>
                 <th scope="col">Tipo</th>
                 <th scope="col">Público</th>
+                <th scope="col" className="is-num es-grupo">Enviados</th>
                 <th scope="col" className="is-num">Entregados</th>
                 <th scope="col" className="is-num">Rebotes duros · blandos</th>
-                <th scope="col" className="is-num">Aperturas</th>
+                <th scope="col" className="is-num es-grupo">Abrieron</th>
                 <th scope="col" className="is-num">Clics</th>
-                <th scope="col" className="is-num">Bajas</th>
+                <th scope="col" className="is-num es-grupo">Bajas</th>
                 <th scope="col" className="is-num">Quejas</th>
-                <th scope="col" className="is-num">Respuestas atribuidas</th>
+                <th scope="col" className="is-num">Respuestas</th>
                 <th scope="col"><span className="pulso-sr-only">Desglose</span></th>
               </tr>
             </thead>
@@ -130,21 +120,35 @@ export function AvanceCorreoEnvios({ envios }: { envios: MonitoreoMailchimpEnvio
                 const idDesglose = `${base}-desglose-${e.campaign_id}`;
                 return (
                   <Fragment key={e.campaign_id}>
-                    <tr className={abierto ? "is-abierta" : undefined}>
-                      <td className="is-fecha">{e.enviado_at ? formatDate(e.enviado_at) : "—"}</td>
+                    <tr className={`${clasePublico(paleta, e.actor)}${abierto ? " is-abierta" : ""}`}>
+                      <td className="is-fecha">
+                        {e.enviado_at ? fechaCompleta(e.enviado_at) : "—"}
+                      </td>
                       <th scope="row" className="mon-correo-envio">
                         <span>{e.titulo || e.campaign_id}</span>
                         {e.asunto ? <small>{e.asunto}</small> : null}
                       </th>
-                      <td>{etiquetaTipoEnvio(e)}</td>
-                      <td>{e.actor || "—"}{desglosable ? <small>{cifra(e.por_actor.length)} públicos</small> : null}</td>
-                      <td className="is-num">{cifra(e.entregados)}<small>de {cifra(e.enviados)} enviados</small></td>
+                      <td>
+                        <span className="mon-correo-tipo">
+                          <i className={`mon-correo-nodo-forma es-${e.tipo}`} aria-hidden />
+                          {etiquetaTipoEnvio(e)}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="mon-correo-publico-celda">
+                          <i className="mon-publico-punto" aria-hidden />
+                          {e.actor || "—"}
+                        </span>
+                        {desglosable ? <small>{cifra(e.por_actor.length)} públicos</small> : null}
+                      </td>
+                      <td className="is-num es-grupo"><CifraYTasa n={e.enviados} /></td>
+                      <td className="is-num"><CifraYTasa n={e.entregados} /></td>
                       <td className="is-num">{cifra(e.rebotes_duros)} · {cifra(e.rebotes_blandos)}</td>
-                      <td className="is-num"><CifraYTasa n={e.aperturas_sin_proxy} tasa={e.tasa_apertura} /></td>
+                      <td className="is-num es-grupo"><CifraYTasa n={e.aperturas_sin_proxy} tasa={e.tasa_apertura} /></td>
                       <td className="is-num"><CifraYTasa n={e.clics} tasa={e.tasa_clic} /></td>
-                      <td className="is-num"><CifraYTasa n={e.bajas} tasa={e.tasa_baja} /></td>
+                      <td className="is-num es-grupo"><CifraYTasa n={e.bajas} tasa={e.tasa_baja} /></td>
                       <td className="is-num"><CifraYTasa n={e.quejas} tasa={e.tasa_queja} /></td>
-                      <td className="is-num">{cifra(e.respuestas)}</td>
+                      <td className="is-num es-fuerte">{cifra(e.respuestas)}</td>
                       <td className="is-accion">
                         {desglosable ? (
                           <button
@@ -160,7 +164,7 @@ export function AvanceCorreoEnvios({ envios }: { envios: MonitoreoMailchimpEnvio
                         ) : null}
                       </td>
                     </tr>
-                    {abierto ? <DesgloseEnvio envio={e} id={idDesglose} /> : null}
+                    {abierto ? <DesgloseEnvio envio={e} id={idDesglose} paleta={paleta} /> : null}
                   </Fragment>
                 );
               })}
@@ -170,7 +174,7 @@ export function AvanceCorreoEnvios({ envios }: { envios: MonitoreoMailchimpEnvio
       ) : (
         <EstadoVacio
           icono={<Send size={16} />}
-          titulo="Esta audiencia todavía no tiene envíos"
+          titulo={publico ? `${publico} todavía no recibe envíos` : "Esta audiencia todavía no tiene envíos"}
           descripcion="Cuando Mailchimp envíe la invitación, actualiza desde Mailchimp para traerla."
         />
       )}

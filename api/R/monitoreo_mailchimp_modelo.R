@@ -26,14 +26,10 @@
 .MCM_FUERA <- "Fuera del universo"
 
 .mcm_llave <- function(token) {
-  token <- as.character(token %||% character(0))
-  out <- rep("", length(token))
-  ok <- nzchar(token) & !is.na(token)
-  # Cada token aparece una vez por envío: se normaliza cada valor distinto una sola vez.
-  unicos <- unique(token[ok])
-  llaves <- vapply(unicos, function(t) .monitoreo_code_keys(t)[1] %||% "", character(1), USE.NAMES = FALSE)
-  out[ok] <- llaves[match(token[ok], unicos)]
-  out
+  # La primera llave de `.monitoreo_code_keys`, vectorizada: con 45 mil tokens,
+  # llamarla uno por uno costaba decenas de segundos en el hilo de la API.
+  code <- toupper(gsub("[^A-Za-z0-9]+", "", as.character(token %||% character(0))))
+  ifelse(!is.na(code) & nzchar(code), paste0("codigo:", code), "")
 }
 
 .mcm_tasa <- function(n, base) if (is.finite(base) && base > 0) n / base else NA_real_

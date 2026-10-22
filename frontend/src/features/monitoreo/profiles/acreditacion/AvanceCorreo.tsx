@@ -25,6 +25,12 @@ export function AvanceCorreo() {
   const [s, despachar] = useReducer(reducirCorreo, ESTADO_CORREO_INICIAL);
   const [elegida, setElegida] = useState("");
   const [cambiando, setCambiando] = useState(false);
+  // Reloj de «Leído hace N min»: avanza cada minuto sin volver a leer nada.
+  const [ahora, setAhora] = useState(() => Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setAhora(Date.now()), 60_000);
+    return () => window.clearInterval(t);
+  }, []);
   const vivo = useRef(true);
   // StrictMode desmonta y vuelve a montar: la marca se rearma en cada montaje.
   useEffect(() => {
@@ -60,6 +66,14 @@ export function AvanceCorreo() {
 
   useEffect(() => { void cargar(); }, [cargar]);
 
+  // Mientras Monitoreo prepara el cruce, la vista vuelve a pedir sola.
+  const preparando = s.estado?.preparando === true;
+  useEffect(() => {
+    if (!preparando) return undefined;
+    const t = window.setTimeout(() => { void cargar(); }, 15000);
+    return () => window.clearTimeout(t);
+  }, [preparando, cargar, s.estado]);
+
   const guardarAudiencia = async () => {
     if (!elegida) return;
     despachar({ tipo: "guardar-audiencia" });
@@ -83,6 +97,7 @@ export function AvanceCorreo() {
       const estado = await getMonitoreoMailchimpEstado();
       if (vivo.current) {
         despachar({ tipo: "lectura-fin", estado, aviso: `Lectura terminada: ${cifra(estado.envios.length)} envíos.` });
+        setAhora(Date.now());
       }
     } catch (e) {
       if (vivo.current) despachar({ tipo: "fallo", error: mensajeDeError(e, "No se pudo leer Mailchimp. Reintenta.") });
@@ -94,12 +109,14 @@ export function AvanceCorreo() {
       s={s}
       elegida={elegida}
       cambiando={cambiando}
+      ahora={ahora}
       onElegir={setElegida}
       onGuardarAudiencia={() => { void guardarAudiencia(); }}
       onCambiar={() => { setElegida(s.estado?.list_id ?? ""); setCambiando(true); }}
       onCancelarCambio={() => { setCambiando(false); setElegida(""); }}
       onActualizar={() => { void actualizar(); }}
       onReintentar={() => { void cargar(); }}
+      onPublico={(publico) => despachar({ tipo: "publico", publico })}
     />
   );
 }

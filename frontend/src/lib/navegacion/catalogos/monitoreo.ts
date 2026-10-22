@@ -129,6 +129,7 @@ export const MONITOREO_PESTANAS = {
     avance: [
       pestana("acreditacion", "avance", "resumen", "Resumen", "Avance general", BarChart3),
       pestana("acreditacion", "avance", "actores", "Actores", "Brechas por unidad", Layers3),
+      pestana("acreditacion", "avance", "cuotas", "Cuotas", "Metas por categoría", Target),
       pestana("acreditacion", "avance", "encuestas", "Encuestas", "Fuentes y canales", ListChecks),
       pestana("acreditacion", "avance", "detalle", "Detalle", "Controles", Table2),
       pestana("acreditacion", "avance", "correo", "Correo", "Envíos de Mailchimp", Mail),
