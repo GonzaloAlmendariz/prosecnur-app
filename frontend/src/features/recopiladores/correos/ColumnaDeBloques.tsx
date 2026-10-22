@@ -28,7 +28,7 @@ import {
   textoPlano,
   type ProblemasPorDestino,
 } from "./modeloCorreo";
-import type { MailBlockType } from "../../../api/materialMail";
+import type { TipoInsertable } from "./piezasGraficas";
 
 type Props = {
   presets: readonly MailPreset[];
@@ -42,7 +42,7 @@ type Props = {
   onConfirmarPreset: () => void;
   onCancelarPreset: () => void;
   onSeleccionar: (id: string) => void;
-  onAgregar: (type: MailBlockType) => void;
+  onAgregar: (type: TipoInsertable) => void;
   onInsertarCampo: (key: string) => void;
   hayDestino: boolean;
   /** Mover un bloque a su índice final (arrastre o teclado en la lista). */

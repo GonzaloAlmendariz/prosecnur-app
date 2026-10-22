@@ -21,6 +21,8 @@ import {
   normalizeMailRecipients,
   normalizeMailReview,
   normalizeMailTemplate,
+  normalizeMailBlock,
+  MAIL_CHECK_CODES,
   normalizeMailExport,
   serializeMailTemplate,
   apiMailImportHtml,
@@ -701,5 +703,47 @@ describe("plataforma, envíos e importación (E1j·E1k·E1l)", () => {
     expect(e).toBeInstanceOf(MailApiError);
     expect((e as MailApiError).code).toBe("E_COLLECTION_MAIL_IMPORT_HTML_TOO_LARGE");
     expect((e as MailApiError).status).toBe(413);
+  });
+});
+
+describe("piezas gráficas (E1o)", () => {
+  // El JSON real de los bloques, tal como lo guarda el backend en d4c55ddc0.
+  const CONTRATO = [
+    { block_id: "banda", type: "band", color: "#f28c28", height: "m" },
+    { block_id: "orn", type: "ornament", style: "onda", color: "#f28c28" },
+    { block_id: "fecha", type: "icon_text", icon: "calendario", text: "Puede participar hasta el **30 de octubre**." },
+    { block_id: "par", type: "two_images", left: "campus", right: "torre", alt_left: "Campus", alt_right: "Torre" },
+    { block_id: "deco", type: "image", image_ref: "franja", decorative: true },
+  ];
+
+  test("lee los cuatro tipos nuevos y la imagen decorativa tal como llegan", () => {
+    const [banda, orn, fecha, par, deco] = CONTRATO.map(normalizeMailBlock);
+    expect(banda).toEqual(CONTRATO[0]);
+    expect(orn).toEqual(CONTRATO[1]);
+    expect(fecha).toEqual(CONTRATO[2]);
+    expect(par).toEqual(CONTRATO[3]);
+    // Sin alt en el JSON: queda vacío, que es lo que la decorativa permite.
+    expect(deco).toEqual({ ...CONTRATO[4], alt: "" });
+  });
+
+  test("ninguno se lee como opaco: guardar no los congela", () => {
+    const t = normalizeMailTemplate({ ...PLANTILLA_R, blocks: CONTRATO });
+    expect(t.blocks.map((b) => b.type)).toEqual(["band", "ornament", "icon_text", "two_images", "image"]);
+  });
+
+  test("tolerante: vectores de R, color #RGB y valores fuera de la lista se leen como ausentes", () => {
+    expect(normalizeMailBlock({ block_id: ["b"], type: ["band"], color: ["#F80"], height: ["l"] })).toEqual({ block_id: "b", type: "band", color: "#ff8800", height: "l" });
+    expect(normalizeMailBlock({ block_id: "b", type: "band", color: "naranja", height: "xl" })).toEqual({ block_id: "b", type: "band" });
+    expect(normalizeMailBlock({ block_id: "o", type: "ornament", style: "estrellas", color: 12 })).toEqual({ block_id: "o", type: "ornament" });
+    // Un ícono que no es de la casa no se inventa: el backend dirá missing_icon.
+    expect(normalizeMailBlock({ block_id: "i", type: "icon_text", icon: "cohete", text: ["Hola"] })).toEqual({ block_id: "i", type: "icon_text", text: "Hola" });
+    expect(normalizeMailBlock({ block_id: "p", type: "two_images", left: ["a"] })).toEqual({ block_id: "p", type: "two_images", left: "a", right: "", alt_left: "", alt_right: "" });
+    expect(normalizeMailBlock({ block_id: "d", type: "image", image_ref: "x", alt: "", decorative: [true] })).toMatchObject({ decorative: true });
+    expect(normalizeMailBlock({ block_id: "d", type: "image", image_ref: "x", alt: "Foto" })).not.toHaveProperty("decorative");
+  });
+
+  test("los chequeos nuevos están en el registro", () => {
+    expect(MAIL_CHECK_CODES).toContain("piezas_contrast");
+    expect(MAIL_CHECK_CODES).toContain("icon_text_sm_icon");
   });
 });

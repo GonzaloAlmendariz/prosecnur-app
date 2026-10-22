@@ -127,6 +127,7 @@ export { default as FolderMinus } from "lucide-react/dist/esm/icons/folder-minus
 export { default as FolderOpen } from "lucide-react/dist/esm/icons/folder-open.mjs";
 export { default as FolderPlus } from "lucide-react/dist/esm/icons/folder-plus.mjs";
 export { default as FolderSearch } from "lucide-react/dist/esm/icons/folder-search.mjs";
+export { default as Gift } from "lucide-react/dist/esm/icons/gift.mjs";
 export { default as GanttChart } from "lucide-react/dist/esm/icons/chart-no-axes-gantt.mjs";
 export { default as Gauge } from "lucide-react/dist/esm/icons/gauge.mjs";
 export { default as GitBranch } from "lucide-react/dist/esm/icons/git-branch.mjs";

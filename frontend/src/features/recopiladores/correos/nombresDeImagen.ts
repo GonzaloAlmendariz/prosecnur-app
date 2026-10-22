@@ -29,8 +29,14 @@ function desdeElId(id: string): string {
 }
 
 function altDe(template: Plantilla, id: string): string {
-  const bloque = template.blocks.find((b) => b.type === "image" && b.image_ref === id);
-  const alt = template.images[id]?.alt || (bloque && bloque.type === "image" ? bloque.alt : "");
+  let delBloque = "";
+  for (const b of template.blocks) {
+    if (b.type === "image" && b.image_ref === id) delBloque = b.alt;
+    // Un lado de un par de imágenes (E1o) se nombra con su descripción.
+    else if (b.type === "two_images" && (b.left === id || b.right === id)) delBloque = b.left === id ? b.alt_left : b.alt_right;
+    if (delBloque) break;
+  }
+  const alt = template.images[id]?.alt || delBloque;
   return altPendiente(alt) ? "" : sinCorchetes(alt);
 }
 

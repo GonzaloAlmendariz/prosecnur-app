@@ -2,7 +2,11 @@ import { isOpaqueMailBlock, type MailBlock, type MailCheck, type MailProblem, ty
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ArrowDown, ArrowUp, Palette, Trash2 } from "../../../vendor/lucide-react";
 import { PropRow, Segmented } from "../../xlsformEditor/kit";
-import { ajustesDe, conAjuste, valorDeAjuste } from "./ajustesDeBloque";
+import { AJUSTES_CON_CONTROL_PROPIO, ajustesDe, conAjuste, valorDeAjuste } from "./ajustesDeBloque";
+import { ColorDePieza } from "./ColorDePieza";
+import { PanelDeDosImagenes } from "./PanelDeDosImagenes";
+import { ROTULO_DE_ICONO, chequeoDeContraste, conColor, idDelIcono, tieneColor, type LadoDelPar } from "./piezasGraficas";
+import { SelectorDeIcono } from "./SelectorDeIcono";
 import { CampoDeTexto } from "./CampoDeTexto";
 import type { Dialecto } from "./comoSaleEnLaPlataforma";
 import { LoQueFaltaSubir } from "./LoQueFaltaSubir";
@@ -51,8 +55,11 @@ type Props = {
   chequeos?: readonly MailCheck[];
   /** Lo que ya se ve de la imagen del bloque (blob recién subido o src de la vista previa). */
   vistaDeImagen?: string | null;
+  /** Lo mismo para cada lado de un par de imágenes. */
+  vistasDelPar?: Record<LadoDelPar, string | null> | null;
   ocupado?: boolean;
-  onSubirImagen?: (blockId: string, file: File) => void;
+  /** Con `lado`, el archivo es de un lado de un par. */
+  onSubirImagen?: (blockId: string, file: File, lado?: LadoDelPar) => void;
   /** Sube una imagen de la cabecera (logo o banner) con su id, como en Identidad. */
   onSubirLogo?: (id: string, file: File) => void;
   /** La lista cargada en Personas: de ahí sale la columna del saludo por sexo (C8). */
@@ -137,6 +144,7 @@ export function PanelDeBloque({
   dialecto = "mailchimp",
   chequeos = [],
   vistaDeImagen = null,
+  vistasDelPar = null,
   ocupado = false,
   onSubirImagen,
   onSubirLogo,
@@ -267,7 +275,20 @@ export function PanelDeBloque({
           onSubir={(file) => onSubirImagen?.(block.block_id, file)}
         />
       ) : null}
-      {block.type !== "image" ? ajustesDe(block).map((ajuste) => (
+      {block.type === "two_images" ? (
+        <PanelDeDosImagenes
+          block={block}
+          vistas={vistasDelPar}
+          problemas={propios}
+          ocupado={ocupado}
+          onEditarBloque={editar}
+          onSubir={(lado, file) => onSubirImagen?.(block.block_id, file, lado)}
+        />
+      ) : null}
+      {block.type === "icon_text" ? (
+        <SelectorDeIcono valor={block.icon} onElegir={(icon) => editar((b) => conAjuste(b, "icon", icon))} />
+      ) : null}
+      {block.type !== "image" ? ajustesDe(block).filter((a) => !AJUSTES_CON_CONTROL_PROPIO.has(a.clave)).map((ajuste) => (
         <div className="rec-mail-ajuste" key={ajuste.clave}>
           <span>{ajuste.rotulo}</span>
           <Segmented
@@ -279,12 +300,20 @@ export function PanelDeBloque({
           />
         </div>
       )) : null}
-      {block.type === "image" ? null : props.map((prop) => (
+      {tieneColor(block) ? (
+        <ColorDePieza
+          block={block}
+          theme={template.theme}
+          chequeo={chequeoDeContraste(chequeos, block.block_id)}
+          onColor={(color) => editar((b) => conColor(b, color), `${block.block_id}.color`)}
+        />
+      ) : null}
+      {block.type === "image" || block.type === "two_images" ? null : props.map((prop) => (
         <CampoDeTexto
           key={`${block.block_id}-${prop}`}
           label={ROTULO_DE_PROP[prop]}
           valor={textoDe(block, prop)}
-          multilinea={esPropDeLista(prop) || (prop === "text" && block.type !== "greeting" && block.type !== "button")}
+          multilinea={esPropDeLista(prop) || (prop === "text" && block.type !== "greeting" && block.type !== "button" && block.type !== "icon_text")}
           filas={prop === "text" && block.type === "paragraph" ? 7 : 4}
           mono={prop === "url"}
           ayuda={AYUDA_DE_PROP[prop]}
@@ -294,6 +323,25 @@ export function PanelDeBloque({
         />
       ))}
       {explicaciones ? <TarjetaDidactica block={block} template={template} dialecto={dialecto} /> : null}
+      {block.type === "icon_text" && block.icon && dialecto === "surveymonkey" ? (
+        <CampoDeTexto
+          label="Dirección web del ícono"
+          valor={template.images[idDelIcono(block.icon, template.theme)]?.url ?? ""}
+          mono
+          placeholder="https://…/icono.png (opcional)"
+          ayuda="SurveyMonkey no lleva el ícono dentro del correo: con una URL https se muestra; sin ella, el texto sale solo."
+          onCambio={(valor) => {
+            const iconId = idDelIcono(block.icon!, template.theme);
+            onEditar((t) => {
+              const images = { ...t.images };
+              const url = valor.trim();
+              if (url) images[iconId] = { ...(images[iconId] ?? { alt: ROTULO_DE_ICONO[block.icon!] }), url };
+              else delete images[iconId];
+              return { ...t, images };
+            }, `${block.block_id}.icon_url`);
+          }}
+        />
+      ) : null}
       {block.type === "button" ? <EnlaceDeLaPersona url={block.url} persona={persona} campos={template.fields} /> : null}
       {block.type === "greeting" ? (
         <SaludoSegunLaPersona

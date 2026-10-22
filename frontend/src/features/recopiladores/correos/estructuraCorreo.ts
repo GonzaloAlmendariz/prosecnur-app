@@ -10,8 +10,9 @@
 // - el pie (`footer_legal`) se dibuja siempre al final, fuera de la tarjeta:
 //   nada se mueve ni se inserta después de él, y él no se mueve.
 
-import type { MailBlock, MailBlockType, MailCheck, MailTemplate } from "../../../api/materialMail";
+import type { MailBlock, MailCheck, MailTemplate } from "../../../api/materialMail";
 import { CABECERA, bloqueNuevo, idLibre, nuevoIdDeBloque } from "./modeloCorreo";
+import { imagenesDelCuerpo, type TipoInsertable } from "./piezasGraficas";
 
 /** Zona de la apertura de un recordatorio (addendum E1k): se edita en `send.opening`. */
 export const APERTURA = "__apertura";
@@ -69,7 +70,7 @@ export function huecoMueve(template: Pick<MailTemplate, "blocks">, blockId: stri
 }
 
 /** Acota un hueco de inserción para que nunca quede detrás del pie. */
-export function huecoValido(template: Pick<MailTemplate, "blocks">, hueco: number, type?: MailBlockType): number {
+export function huecoValido(template: Pick<MailTemplate, "blocks">, hueco: number, type?: TipoInsertable): number {
   const pie = indiceDelPie(template.blocks);
   const n = template.blocks.length;
   const h = Math.max(0, Math.min(Math.trunc(hueco), n));
@@ -78,25 +79,26 @@ export function huecoValido(template: Pick<MailTemplate, "blocks">, hueco: numbe
 }
 
 /** ¿Se puede agregar este tipo? El pie es único. */
-export function tipoDisponible(template: Pick<MailTemplate, "blocks">, type: MailBlockType): boolean {
+export function tipoDisponible(template: Pick<MailTemplate, "blocks">, type: TipoInsertable): boolean {
   return type !== "footer_legal" || !template.blocks.some((b) => b.type === "footer_legal");
 }
 
-/** Un bloque nuevo, con ids que no chocan (la imagen nombra su propio archivo). */
-export function bloqueParaInsertar(template: MailTemplate, type: MailBlockType): MailBlock {
+/** Un bloque nuevo, con ids que no chocan (cada imagen —y cada lado de un par— nombra su propio archivo). */
+export function bloqueParaInsertar(template: MailTemplate, type: TipoInsertable): MailBlock {
   const block = bloqueNuevo(type, nuevoIdDeBloque(type, template));
+  const usados = [...Object.keys(template.images), ...imagenesDelCuerpo(template)];
   if (block.type === "image") {
-    const usados = [
-      ...Object.keys(template.images),
-      ...template.blocks.flatMap((b) => (b.type === "image" ? [b.image_ref] : [])),
-    ];
-    return { ...block, image_ref: idLibre("imagen", usados) };
+    return { ...block, image_ref: idLibre(block.decorative ? "decorativa" : "imagen", usados) };
+  }
+  if (block.type === "two_images") {
+    const left = idLibre("imagen-izquierda", usados);
+    return { ...block, left, right: idLibre("imagen-derecha", [...usados, left]) };
   }
   return block;
 }
 
 /** Inserta un bloque nuevo en el hueco `hueco`. Devuelve también su id. */
-export function insertarBloqueEn(template: MailTemplate, type: MailBlockType, hueco: number): { template: MailTemplate; block_id: string } | null {
+export function insertarBloqueEn(template: MailTemplate, type: TipoInsertable, hueco: number): { template: MailTemplate; block_id: string } | null {
   if (!tipoDisponible(template, type)) return null;
   const block = bloqueParaInsertar(template, type);
   const blocks = [...template.blocks];
@@ -275,7 +277,8 @@ export function editableEnElSitio(block: MailBlock | undefined, prop: string): b
   const { base } = propConIndice(prop);
   if (!PROPS_EN_EL_SITIO.has(base)) return false;
   if (!block) return base === "opening";
-  if (block.type === "image" || block.type === "divider" || block.type === "__no_reconocido") return false;
+  // Sin texto en el sitio: imagen, separadores, banda y el par (sus descripciones van en el inspector).
+  if (["image", "divider", "band", "ornament", "two_images", "__no_reconocido"].includes(block.type)) return false;
   // El enlace del botón no se ve en el correo: se edita en el inspector.
   return !(block.type === "button" && base === "url");
 }

@@ -64,6 +64,11 @@ export const MAIL_BLOCK_TYPES = [
   "image",
   "signature",
   "footer_legal",
+  // Piezas gráficas (E1o, collection_mail_piezas.R).
+  "band",
+  "ornament",
+  "icon_text",
+  "two_images",
 ] as const;
 export type MailBlockType = (typeof MAIL_BLOCK_TYPES)[number];
 
@@ -133,6 +138,37 @@ export type MailImageBlock = {
   url?: string;
   /** A todo el ancho, sin margen. */
   bleed?: boolean;
+  /** Decorativa (E1o): sale con alt vacío y la revisión no le pide descripción. */
+  decorative?: boolean;
+};
+
+// ---- piezas gráficas (E1o) -------------------------------------------------------
+// Enumeraciones cerradas, espejo de `.CMAIL_STYLE_ENUMS` y `.CMAIL_ICONS`. El
+// color es opcional: sin él la pieza usa el acento (sobrio) o el relleno del
+// botón (campaña), igual que el render.
+
+/** Alto de la banda: 8, 16 o 32 px. */
+export const MAIL_BAND_HEIGHTS = ["s", "m", "l"] as const;
+export type MailBandHeight = (typeof MAIL_BAND_HEIGHTS)[number];
+export const MAIL_ORNAMENT_STYLES = ["onda", "puntos", "linea_doble"] as const;
+export type MailOrnamentStyle = (typeof MAIL_ORNAMENT_STYLES)[number];
+export const MAIL_ICONS = [
+  "calendario", "reloj", "candado", "sobre", "persona", "grupo",
+  "mapa", "check", "info", "alerta", "regalo", "enlace",
+] as const;
+export type MailIcon = (typeof MAIL_ICONS)[number];
+
+export type MailBandBlock = { block_id: string; type: "band"; color?: string; height?: MailBandHeight };
+export type MailOrnamentBlock = { block_id: string; type: "ornament"; style?: MailOrnamentStyle; color?: string };
+/** Sin `icon` el backend responde `missing_icon`: no se inventa uno al leer. */
+export type MailIconTextBlock = { block_id: string; type: "icon_text"; icon?: MailIcon; text: string };
+export type MailTwoImagesBlock = {
+  block_id: string;
+  type: "two_images";
+  left: string;
+  right: string;
+  alt_left: string;
+  alt_right: string;
 };
 export type MailCalloutBlock = {
   block_id: string;
@@ -175,7 +211,11 @@ export type MailKnownBlock =
   | MailDividerBlock
   | MailImageBlock
   | MailSignatureBlock
-  | MailFooterBlock;
+  | MailFooterBlock
+  | MailBandBlock
+  | MailOrnamentBlock
+  | MailIconTextBlock
+  | MailTwoImagesBlock;
 
 export type MailBlock = MailKnownBlock | MailOpaqueBlock;
 
@@ -391,6 +431,9 @@ export const MAIL_CHECK_CODES = [
   "campana_footer_contrast",
   // Textos de relleno entre corchetes sin completar («[fecha límite]»); bloquea exportar.
   "placeholders_pending",
+  // Piezas gráficas (E1o): una pieza que casi no se distingue del fondo; íconos sin URL en SurveyMonkey.
+  "piezas_contrast",
+  "icon_text_sm_icon",
 ] as const;
 export type MailCheckCode = (typeof MAIL_CHECK_CODES)[number];
 
@@ -668,6 +711,15 @@ function list(value: unknown): unknown[] {
   return isRecord(value) ? [value] : [];
 }
 
+/** `#rrggbb` en minúsculas; `#RGB` se expande. Cualquier otra cosa es ausente. */
+function hexColor(value: unknown): string | undefined {
+  const text = str(value).trim();
+  const seis = /^#([0-9a-f]{6})$/i.exec(text);
+  if (seis) return `#${seis[1].toLowerCase()}`;
+  const tres = /^#([0-9a-f]{3})$/i.exec(text);
+  return tres ? `#${tres[1].split("").map((c) => c + c).join("").toLowerCase()}` : undefined;
+}
+
 function oneOf<T extends string>(value: unknown, options: readonly T[]): T | undefined {
   const text = str(value);
   return (options as readonly string[]).includes(text) ? (text as T) : undefined;
@@ -752,8 +804,29 @@ export function normalizeMailBlock(value: unknown): MailBlock | null {
         ...(align ? { align } : {}),
         ...(url !== undefined ? { url } : {}),
         ...(value.bleed !== undefined ? { bleed: bool(value.bleed) } : {}),
+        ...(value.decorative !== undefined ? { decorative: bool(value.decorative) } : {}),
       };
     }
+    case "band": {
+      const color = hexColor(value.color);
+      const height = oneOf(value.height, MAIL_BAND_HEIGHTS);
+      return { block_id, type, ...(color ? { color } : {}), ...(height ? { height } : {}) };
+    }
+    case "ornament": {
+      const style = oneOf(value.style, MAIL_ORNAMENT_STYLES);
+      const color = hexColor(value.color);
+      return { block_id, type, ...(style ? { style } : {}), ...(color ? { color } : {}) };
+    }
+    case "icon_text": {
+      const icon = oneOf(value.icon, MAIL_ICONS);
+      return { block_id, type, ...(icon ? { icon } : {}), text: str(value.text) };
+    }
+    case "two_images":
+      return {
+        block_id, type,
+        left: str(value.left), right: str(value.right),
+        alt_left: str(value.alt_left), alt_right: str(value.alt_right),
+      };
     case "callout": {
       const variant = oneOf(value.variant, ["box", "bar", "tinte"] as const);
       const title = optStr(value.title);

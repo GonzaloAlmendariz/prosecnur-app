@@ -6,7 +6,8 @@
 // de valores y el render traduce cada uno a su estilo inline. El valor por
 // defecto es el que usa el render cuando la clave falta.
 
-import { isOpaqueMailBlock, type MailBlock } from "../../../api/materialMail";
+import { MAIL_ICONS, isOpaqueMailBlock, type MailBlock } from "../../../api/materialMail";
+import { ROTULO_DE_ICONO } from "./piezasGraficas";
 
 export type OpcionDeAjuste = { valor: string; rotulo: string; ayuda?: string };
 
@@ -164,7 +165,44 @@ export const AJUSTES_POR_TIPO: Partial<Record<MailBlock["type"], readonly Ajuste
       defecto: "center",
     },
   ],
+  // Piezas gráficas (E1o). El color no es una enumeración: va por `conColor` (piezasGraficas.ts).
+  band: [
+    {
+      clave: "height",
+      rotulo: "Alto",
+      opciones: [
+        { valor: "s", rotulo: "Fina", ayuda: "8 px" },
+        { valor: "m", rotulo: "Media", ayuda: "16 px" },
+        { valor: "l", rotulo: "Gruesa", ayuda: "32 px" },
+      ],
+      defecto: "m",
+    },
+  ],
+  ornament: [
+    {
+      clave: "style",
+      rotulo: "Forma",
+      opciones: [
+        { valor: "onda", rotulo: "Onda" },
+        { valor: "puntos", rotulo: "Puntos" },
+        { valor: "linea_doble", rotulo: "Línea doble" },
+      ],
+      defecto: "onda",
+    },
+  ],
+  // El ícono se elige en una cuadrícula visual (SelectorDeIcono), no en un segmentado.
+  icon_text: [
+    {
+      clave: "icon",
+      rotulo: "Ícono",
+      opciones: MAIL_ICONS.map((icon) => ({ valor: icon, rotulo: ROTULO_DE_ICONO[icon] })),
+      defecto: "calendario",
+    },
+  ],
 };
+
+/** Ajustes que no se muestran como segmentado: tienen su propio control. */
+export const AJUSTES_CON_CONTROL_PROPIO: ReadonlySet<string> = new Set(["icon"]);
 
 export function ajustesDe(block: MailBlock): readonly Ajuste[] {
   if (isOpaqueMailBlock(block)) return [];

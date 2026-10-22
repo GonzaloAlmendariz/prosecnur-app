@@ -1,28 +1,48 @@
 import { useEffect, useRef, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 
-import { MAIL_BLOCK_TYPES, type MailBlockType, type MailTemplate } from "../../../api/materialMail";
-import { X } from "../../../vendor/lucide-react";
+import type { MailTemplate } from "../../../api/materialMail";
+import { X, type LucideIcon } from "../../../vendor/lucide-react";
 import { tipoDisponible } from "./estructuraCorreo";
-import { ICONO_DE_BLOQUE } from "./iconos";
+import { ICONO_DE_BLOQUE, ICONO_DE_IMAGEN_DECORATIVA } from "./iconos";
 import { DESCRIPCION_DE_BLOQUE, ROTULO_DE_BLOQUE } from "./modeloCorreo";
+import { IMAGEN_DECORATIVA, PIEZAS_GRAFICAS, type TipoInsertable } from "./piezasGraficas";
 import "./correosBiblioteca.css";
 
 /** Tipo MIME del arrastre: lo lee la capa para saber qué bloque se suelta. */
 export const ARRASTRE_DE_BLOQUE = "application/x-pulso-bloque";
 
-/** Grupos de la biblioteca, en el orden en que se lee un correo. */
-const GRUPOS: { titulo: string; tipos: MailBlockType[] }[] = [
+/**
+ * Grupos de la biblioteca, en el orden en que se lee un correo. Las piezas
+ * gráficas (E1o) muestran a la vista su «cuándo usarla»; el resto, qué es.
+ */
+export const GRUPOS: readonly { titulo: string; tipos: readonly TipoInsertable[]; cuandoALaVista?: boolean }[] = [
   { titulo: "Texto", tipos: ["greeting", "heading", "paragraph", "list", "callout"] },
   { titulo: "Acción e imagen", tipos: ["button", "image", "divider"] },
+  { titulo: "Piezas gráficas", tipos: PIEZAS_GRAFICAS, cuandoALaVista: true },
   { titulo: "Cierre", tipos: ["signature", "footer_legal"] },
 ];
+
+/** Nombre, descripción e ícono de una entrada de la biblioteca. */
+export function rotuloDeInsertable(tipo: TipoInsertable): string {
+  return tipo === IMAGEN_DECORATIVA ? "Imagen decorativa" : ROTULO_DE_BLOQUE[tipo];
+}
+
+function descripcionDeInsertable(tipo: TipoInsertable): string {
+  return tipo === IMAGEN_DECORATIVA
+    ? "Un adorno de la línea gráfica: sale sin texto alternativo, a propósito."
+    : DESCRIPCION_DE_BLOQUE[tipo];
+}
+
+function iconoDeInsertable(tipo: TipoInsertable): LucideIcon {
+  return tipo === IMAGEN_DECORATIVA ? ICONO_DE_IMAGEN_DECORATIVA : ICONO_DE_BLOQUE[tipo];
+}
 
 const L = "rec-bib-l";
 const A = "rec-bib-a";
 const S = "rec-bib-s";
 
 /** Esquema de cada tipo: cómo se ve en el correo, en miniatura y sin texto. */
-const ESQUEMA: Record<MailBlockType, ReactNode> = {
+const ESQUEMA: Record<TipoInsertable, ReactNode> = {
   greeting: (
     <>
       <rect className={L} x="8" y="12" width="22" height="5" rx="2.5" />
@@ -104,10 +124,47 @@ const ESQUEMA: Record<MailBlockType, ReactNode> = {
       <rect className={A} x="22" y="30" width="20" height="2.5" rx="1.25" />
     </>
   ),
+  // Piezas gráficas: el mismo papel, con la pieza en el tono del módulo.
+  band: (
+    <>
+      <rect className={S} x="8" y="8" width="44" height="3" rx="1.5" />
+      <rect className={A} x="4" y="17" width="56" height="8" />
+      <rect className={S} x="8" y="31" width="48" height="3" rx="1.5" />
+    </>
+  ),
+  ornament: (
+    <>
+      <rect className={S} x="8" y="8" width="44" height="3" rx="1.5" />
+      <path className="rec-bib-trazo" d="M9 22 Q 15.5 16 22 22 T 35 22 T 48 22 T 55 20" />
+      <rect className={S} x="8" y="32" width="40" height="3" rx="1.5" />
+    </>
+  ),
+  icon_text: (
+    <>
+      <rect className={A} x="8" y="10" width="9" height="9" rx="2" />
+      <rect className={L} x="21" y="12.5" width="30" height="4" rx="2" />
+      <rect className={A} x="8" y="25" width="9" height="9" rx="2" />
+      <rect className={S} x="21" y="28" width="34" height="3" rx="1.5" />
+    </>
+  ),
+  two_images: (
+    <>
+      <rect className="rec-bib-img" x="5" y="9" width="25" height="26" rx="2" />
+      <path className="rec-bib-montana" d="M7 33 L15 23 L21 29 L28 33 Z" />
+      <rect className="rec-bib-img" x="34" y="13" width="25" height="18" rx="2" />
+      <circle className="rec-bib-sol" cx="52" cy="18" r="2.5" />
+    </>
+  ),
+  [IMAGEN_DECORATIVA]: (
+    <>
+      <rect className="rec-bib-img" x="4" y="9" width="56" height="26" rx="2" />
+      <path className="rec-bib-trazo" d="M10 28 C 18 14, 26 34, 34 22 S 48 14, 54 20" />
+    </>
+  ),
 };
 
 /** Más que la descripción corta: para qué sirve cada tipo, en la voz de quien escribe. */
-export const CUANDO_USARLO: Record<MailBlockType, string> = {
+export const CUANDO_USARLO: Record<TipoInsertable, string> = {
   greeting: "El primer renglón. Usa {{nombre}} y escribe el respaldo para quien no tenga el dato.",
   heading: "Para separar partes en un correo largo: fechas, pasos, «Qué tienes que hacer».",
   paragraph: "El cuerpo del correo. Admite negrita, cursiva, campos y enlaces dentro del texto.",
@@ -118,6 +175,12 @@ export const CUANDO_USARLO: Record<MailBlockType, string> = {
   divider: "Aire o una línea fina entre dos partes.",
   signature: "Quién escribe: despedida, nombre e institución.",
   footer_legal: "Por qué recibe el correo. La baja y la dirección las agrega la app.",
+  // Cortas a propósito: en la tarjeta se leen enteras, en dos líneas.
+  band: "Para abrir o cerrar una parte con color.",
+  ornament: "Para separar dos partes con un adorno.",
+  icon_text: "Para un dato clave: fecha, lugar o premio.",
+  two_images: "Para dos fotos o logos, uno junto al otro.",
+  [IMAGEN_DECORATIVA]: "Para un adorno: no necesita descripción.",
 };
 
 type Props = {
@@ -128,7 +191,7 @@ type Props = {
   titulo?: string;
   /** Se abre hacia arriba del punto de inserción (cerca del final del correo). */
   arriba?: boolean;
-  onElegir: (type: MailBlockType) => void;
+  onElegir: (type: TipoInsertable) => void;
   onCerrar: () => void;
 };
 
@@ -162,9 +225,9 @@ export function BibliotecaDeBloques({ template, estilo, titulo = "Agregar un blo
     botones[Math.max(0, Math.min(botones.length - 1, i + paso))]?.focus();
   };
 
-  const alArrastrar = (type: MailBlockType) => (event: DragEvent<HTMLButtonElement>) => {
+  const alArrastrar = (type: TipoInsertable) => (event: DragEvent<HTMLButtonElement>) => {
     event.dataTransfer.setData(ARRASTRE_DE_BLOQUE, type);
-    event.dataTransfer.setData("text/plain", ROTULO_DE_BLOQUE[type]);
+    event.dataTransfer.setData("text/plain", rotuloDeInsertable(type));
     event.dataTransfer.effectAllowed = "copy";
   };
 
@@ -193,9 +256,10 @@ export function BibliotecaDeBloques({ template, estilo, titulo = "Agregar un blo
               data-qa-geometry-group="material-campo/correo/biblioteca"
               data-qa-geometry-contract="equal"
             >
-              {grupo.tipos.filter((t) => MAIL_BLOCK_TYPES.includes(t)).map((type) => {
-                const Icono = ICONO_DE_BLOQUE[type];
+              {grupo.tipos.map((type) => {
+                const Icono = iconoDeInsertable(type);
                 const disponible = tipoDisponible(template, type);
+                const desc = grupo.cuandoALaVista ? CUANDO_USARLO[type] : descripcionDeInsertable(type);
                 return (
                   <button
                     key={type}
@@ -215,9 +279,9 @@ export function BibliotecaDeBloques({ template, estilo, titulo = "Agregar un blo
                     </svg>
                     <span className="rec-bib-texto">
                       <span className="rec-bib-nombre">
-                        <Icono size={13} aria-hidden /> {ROTULO_DE_BLOQUE[type]}
+                        <Icono size={13} aria-hidden /> {rotuloDeInsertable(type)}
                       </span>
-                      <span className="rec-bib-desc">{disponible ? DESCRIPCION_DE_BLOQUE[type] : "Ya está en el correo: el pie es único."}</span>
+                      <span className="rec-bib-desc">{disponible ? desc : "Ya está en el correo: el pie es único."}</span>
                     </span>
                   </button>
                 );

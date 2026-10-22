@@ -145,6 +145,7 @@ const PROPS_CON_ENLACE: Partial<Record<MailBlock["type"], readonly PropDeTexto[]
   list: ["items"],
   signature: ["lines"],
   footer_legal: ["text"],
+  icon_text: ["text"],
 };
 
 export function admiteEnlaces(type: MailBlock["type"], prop: string): boolean {
@@ -171,7 +172,7 @@ export function comoSaleEnLaPlataforma(block: MailBlock, template: Pick<MailTemp
   if (block.type === "image") {
     const url = template.images[block.image_ref]?.url;
     const src = url ?? (dialecto === "mailchimp" ? `${block.image_ref}.png` : "");
-    lineas.push({ rotulo: "Imagen", app: block.image_ref, plataforma: `<img src="${src}" alt="${block.alt}">` });
+    lineas.push({ rotulo: "Imagen", app: block.image_ref, plataforma: `<img src="${src}" alt="${block.decorative ? "" : block.alt}">` });
     if (!url && dialecto === "mailchimp") notas.add("El archivo viaja en el ZIP importable: Mailchimp lo sube y reescribe la ruta.");
     if (!url && dialecto === "surveymonkey") notas.add("SurveyMonkey sólo muestra imágenes con una URL https pública.");
     if (block.url) {
@@ -210,6 +211,23 @@ export function comoSaleEnLaPlataforma(block: MailBlock, template: Pick<MailTemp
         plataforma: textoEnLaPlataforma(valor, template, dialecto, { enUrl, enlaces: admiteEnlaces(block.type, prop), notas }),
       });
     });
+  }
+  // Piezas gráficas (E1o): tablas con color de fondo e imágenes, sin SVG ni posiciones libres.
+  if (block.type === "band" || block.type === "ornament") {
+    notas.add("Sale como una tabla con color de fondo: igual en Outlook, Gmail y el teléfono.");
+    if (block.type === "ornament" && (block.style ?? "onda") === "onda") {
+      notas.add(dialecto === "mailchimp"
+        ? "La onda es una imagen que la app genera en el color elegido y viaja en el ZIP."
+        : "SurveyMonkey no lleva imágenes dentro del correo: la onda sale como una banda sólida.");
+    }
+  }
+  if (block.type === "icon_text") {
+    notas.add(dialecto === "mailchimp"
+      ? "El ícono es una imagen cuadrada que la app genera y viaja en el ZIP."
+      : "SurveyMonkey sólo muestra el ícono con una dirección web https; sin ella, el texto sale solo.");
+  }
+  if (block.type === "two_images") {
+    notas.add("Lado a lado en el escritorio; en el teléfono una va bajo la otra. Ninguna se estira.");
   }
   if (block.type === "footer_legal") {
     lineas.push({ rotulo: "Baja y dirección", app: "lo agrega la app", plataforma: PIE[dialecto] });

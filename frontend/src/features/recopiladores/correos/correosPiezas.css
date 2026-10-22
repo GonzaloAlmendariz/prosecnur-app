@@ -1,0 +1,129 @@
+/* Catálogo › Correos · piezas gráficas en el inspector (E1o).
+   El color de una pieza, la cuadrícula de íconos y los dos lados de un par.
+   Sólo tokens. Ninguna miniatura tiene alto fijo sobre <img>: object-fit
+   contain y la proporción del archivo («que nada se vea deforme»). */
+
+.rec-pieza-color-pie {
+  align-items: center;
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  justify-content: space-between;
+}
+
+/* — Ícono con texto: la cuadrícula de los 12 íconos — */
+.rec-pieza-iconos {
+  border-bottom: 1px solid var(--pulso-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 10px;
+}
+
+.rec-pieza-iconos-cabeza {
+  align-items: baseline;
+  display: flex;
+  font-size: 13px;
+  justify-content: space-between;
+}
+
+.rec-pieza-iconos-cabeza > span:first-child {
+  color: var(--pulso-text-soft);
+}
+
+.rec-pieza-iconos-elegido {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-pieza-iconos-rejilla {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+}
+
+.rec-pieza-icono {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  box-shadow: none;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 0;
+  padding: 0;
+  transform: none;
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.rec-pieza-icono:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.rec-pieza-icono.is-on {
+  background: var(--pulso-module-fieldkit-soft);
+  border-color: var(--pulso-module-fieldkit);
+  color: var(--pulso-module-fieldkit);
+}
+
+.rec-pieza-icono:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+/* — Dos imágenes: cada lado con su archivo y su descripción — */
+.rec-pieza-par {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.rec-pieza-par > .rec-capa-img-ayuda {
+  grid-column: 1 / -1;
+}
+
+.rec-pieza-lado {
+  align-items: flex-start;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+}
+
+.rec-pieza-lado > .rec-mail-campo-texto {
+  align-self: stretch;
+}
+
+.rec-pieza-lado-titulo {
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rec-pieza-lado-vista {
+  align-self: stretch;
+  min-height: 96px;
+}
+
+.rec-pieza-lado-vista img {
+  max-height: 140px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-pieza-icono {
+    transition: none;
+  }
+}
