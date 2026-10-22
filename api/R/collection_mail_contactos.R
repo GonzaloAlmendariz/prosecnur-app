@@ -91,7 +91,12 @@
 # Columnas que pueden ser variable de control: además, sin el enlace generado.
 .cmail_control_candidates <- function(store) setdiff(.cmail_contact_columns(store), .CMAIL_ENLACE_COLUMN)
 
-.cmail_column_label <- function(key) if (identical(key, .CMAIL_ENLACE_COLUMN)) .CMAIL_ENLACE_LABEL else key
+# Columnas que la lista muestra en `columnas`/`valores`: sin el enlace generado
+# (es una URL cruda por persona; la fila ya dice `tiene_enlace` y el resumen
+# trae `enlace_url`). Decisión 2026-10-22: se EXCLUYE en vez de marcarla con
+# `es_enlace`, para que la UI no tenga que saber esconderla. Los filtros siguen
+# aceptando cualquier columna de `.cmail_contact_columns`.
+.cmail_list_columns <- function(store) .cmail_control_candidates(store)
 
 #' Tabla de trabajo de una campaña: estado, correo, enlace y respuesta por fila.
 #' @keywords internal
@@ -154,7 +159,7 @@
 
 .cmail_no_store_resumen <- function() {
   list(importados = 0L, efectivos = 0L, sin_correo = 0L, correo_invalido = 0L, repetidos = 0L,
-       con_enlace = 0L, respondieron = NA_integer_, leido_en = NA_character_)
+       con_enlace = 0L, respondieron = NA_integer_, leido_en = NA_character_, enlace_url = NA_character_)
 }
 
 .cmail_contact_resumen <- function(store, fr) {
@@ -166,7 +171,10 @@
     repetidos = as.integer(sum(fr$estado == "repetido")),
     con_enlace = as.integer(sum(fr$efectivo & fr$tiene_enlace)),
     respondieron = if (fr$leidas) as.integer(sum(fr$efectivo & fr$respondio %in% TRUE)) else NA_integer_,
-    leido_en = if (fr$leidas) as.character(store$lectura$leido_en %||% NA_character_) else NA_character_
+    leido_en = if (fr$leidas) as.character(store$lectura$leido_en %||% NA_character_) else NA_character_,
+    # El enlace del recopilador con que se generaron los enlaces (store$enlace,
+    # collection_mail_enlace.R); null si aún no se generaron.
+    enlace_url = .cmail_enlace_url_of(store)
   )
 }
 
@@ -189,7 +197,8 @@ collection_mail_contacts_list <- function(sid, campaign_id = NULL, q = NULL, est
                 per_page = per_page, columnas = list(), rows = list(), resumen = .cmail_no_store_resumen()))
   }
   fr <- .cmail_contact_frame(store)
-  cols <- .cmail_contact_columns(store)
+  cols <- .cmail_list_columns(store)
+  labels <- .cmail_column_labels(store, .cmail_contactos_template(pick$campaign), cols)
   mask <- .cmail_contact_filter_mask(store, filtros)
   if (!identical(estado, "todos")) mask <- mask & fr$estado == estado
   if (identical(respondio, "si")) mask <- mask & fr$respondio %in% TRUE
@@ -216,7 +225,7 @@ collection_mail_contacts_list <- function(sid, campaign_id = NULL, q = NULL, est
   list(
     ok = TRUE, campaign_id = pick$campaign$campaign_id, cargados = TRUE,
     total = length(idx), page = page, per_page = per_page,
-    columnas = lapply(cols, function(c) list(key = c, label = .cmail_column_label(c))),
+    columnas = lapply(cols, function(c) list(key = c, label = labels[[c]])),
     rows = rows,
     resumen = .cmail_contact_resumen(store, fr)
   )
@@ -248,7 +257,7 @@ collection_mail_contacts_list <- function(sid, campaign_id = NULL, q = NULL, est
   list(valor = valor, n = n, otros = otros, miembros = miembros)
 }
 
-.cmail_perfil_variable <- function(store, key, base_idx, fr) {
+.cmail_perfil_variable <- function(store, key, base_idx, fr, label = key) {
   v <- .cmail_value(store$rows[[key]])[base_idx]
   resp <- fr$respondio[base_idx]
   link <- fr$tiene_enlace[base_idx]
@@ -267,14 +276,14 @@ collection_mail_contacts_list <- function(sid, campaign_id = NULL, q = NULL, est
   empty <- !nzchar(v)
   n0 <- sum(empty)
   r0 <- if (fr$leidas) as.integer(sum(resp[empty] %in% TRUE)) else NA_integer_
-  list(key = key, label = .cmail_column_label(key), categorias = cats,
+  list(key = key, label = label, categorias = cats,
        sin_dato = list(n = as.integer(n0), pct = .cmail_pct(n0, base), respondieron = r0,
                        tasa = if (fr$leidas && n0 > 0) round(100 * r0 / n0, 1) else NA_real_))
 }
 
 # Cruce de dos variables en la base. Filas/columnas: categorías (top 30 +
 # «Otros») y, si hay, el «sin dato» como null al final.
-.cmail_perfil_cruce <- function(store, a, b, base_idx) {
+.cmail_perfil_cruce <- function(store, a, b, base_idx, labels = c()) {
   dim_of <- function(key) {
     v <- .cmail_value(store$rows[[key]])[base_idx]
     f <- .cmail_freq(v)
@@ -293,7 +302,8 @@ collection_mail_contacts_list <- function(sid, campaign_id = NULL, q = NULL, est
   celdas <- lapply(seq_along(da$labels), function(i) {
     as.list(vapply(seq_along(db$labels), function(j) as.integer(sum(da$code == i & db$code == j)), integer(1)))
   })
-  list(a = a, b = b, filas = da$labels, columnas = db$labels, celdas = celdas)
+  lab <- function(k) if (k %in% names(labels)) labels[[k]] else .cmail_rotulo_de_clave(k)
+  list(a = a, b = b, a_label = lab(a), b_label = lab(b), filas = da$labels, columnas = db$labels, celdas = celdas)
 }
 
 .cmail_campaign_control <- function(campaign, store = NULL) {
@@ -314,17 +324,18 @@ collection_mail_contacts_perfil <- function(sid, campaign_id = NULL, filtros = N
   if (is.null(store)) {
     return(list(ok = TRUE, campaign_id = pick$campaign$campaign_id, cargados = FALSE, base = 0L,
                 control = as.list(.cmail_campaign_control(pick$campaign)), candidatas = list(), variables = list(),
-                cruce = NA, respuestas_leidas = FALSE))
+                cruce = NA, respuestas_leidas = FALSE, enlace_url = NA_character_))
   }
   fr <- .cmail_contact_frame(store)
   mask <- .cmail_contact_filter_mask(store, filtros)
   base_idx <- which(mask & fr$efectivo)
   all_eff <- which(fr$efectivo)
   cands <- .cmail_control_candidates(store)
+  labels <- .cmail_column_labels(store, .cmail_contactos_template(pick$campaign), cands)
   candidatas <- lapply(cands, function(k) {
     v <- .cmail_value(store$rows[[k]])[all_eff]
     d <- length(unique(v[nzchar(v)]))
-    list(key = k, label = .cmail_column_label(k), distintos = as.integer(d),
+    list(key = k, label = labels[[k]], distintos = as.integer(d),
          tipo = if (d > .CMAIL_PERFIL_MUCHAS) "muchas" else "categorica")
   })
   control <- .cmail_campaign_control(pick$campaign, store)
@@ -335,16 +346,17 @@ collection_mail_contacts_perfil <- function(sid, campaign_id = NULL, filtros = N
     if (length(ab) != 2L || !all(ab %in% cands) || identical(ab[[1]], ab[[2]])) {
       .cmail_query_bad("cruce son dos columnas distintas de la lista: «columnaA,columnaB».")
     }
-    cruce_out <- .cmail_perfil_cruce(store, ab[[1]], ab[[2]], base_idx)
+    cruce_out <- .cmail_perfil_cruce(store, ab[[1]], ab[[2]], base_idx, labels)
   }
   list(
     ok = TRUE, campaign_id = pick$campaign$campaign_id, cargados = TRUE,
     base = length(base_idx),
     control = as.list(control),
     candidatas = candidatas,
-    variables = lapply(control, function(k) .cmail_perfil_variable(store, k, base_idx, fr)),
+    variables = lapply(control, function(k) .cmail_perfil_variable(store, k, base_idx, fr, labels[[k]])),
     cruce = cruce_out,
-    respuestas_leidas = isTRUE(fr$leidas)
+    respuestas_leidas = isTRUE(fr$leidas),
+    enlace_url = .cmail_enlace_url_of(store)
   )
 }
 

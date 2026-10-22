@@ -23,8 +23,8 @@
 #
 # Decisión sobre la forma del enlace: se acepta cualquier `https://` sin
 # espacios ni `t=` propio; si no es un recopilador web de SurveyMonkey
-# (`…surveymonkey.<tld>/r/<id>`) se genera igual y se devuelve un `aviso`: el
-# cruce de «quién respondió» solo lee la variable `t` de SurveyMonkey.
+# (`…surveymonkey.<tld>/r/<id>`) se genera igual y se devuelve un `aviso` que
+# dice la consecuencia (no se sabrá quién respondió) y el arreglo, sin jerga.
 
 .CMAIL_ENLACE_COLUMN <- "enlace_encuesta"
 .CMAIL_ENLACE_LABEL <- "Enlace a la encuesta"
@@ -50,9 +50,15 @@
   }
   if (grepl(.CMAIL_EMAIL_LIKE_RE, value)) bad("El enlace no puede llevar una dirección de correo.")
   aviso <- if (!grepl(.CMAIL_SM_COLLECTOR_RE, value, ignore.case = TRUE)) {
-    "No parece un recopilador web de SurveyMonkey (…/r/…): el enlace se genera igual, pero «Actualizar quién respondió» solo lee la variable t de SurveyMonkey."
+    "Este enlace no es de SurveyMonkey: los enlaces se generaron, pero la app no podrá saber quién respondió. Para eso, usa el enlace del recopilador web de SurveyMonkey."
   }
   list(url = value, aviso = aviso)
+}
+
+# URL del recopilador con que se generaron los enlaces (o NA si aún no).
+.cmail_enlace_url_of <- function(store) {
+  url <- .cmail_one(as.list((store$enlace %||% list())$url %||% list(NA_character_)))
+  url %||% NA_character_
 }
 
 # `?t=` o `&t=` según la URL.
