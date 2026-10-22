@@ -32,6 +32,7 @@ import {
   leerEleccionMailchimp,
   leerRemitente,
   mensajeDeError,
+  pasosDelEnvio,
   resumenDeAudiencia,
   resumenDeBorrador,
   type Remitente,
@@ -132,7 +133,8 @@ export function MailchimpPorApi({ campana, envio, plantilla, porGuardar = false 
   const asunto = envio.subject?.trim() || plantilla.subject.trim();
   const resumenCarga = carga ? resumenDeAudiencia(carga) : null;
   const resumenBorrador = borrador ? resumenDeBorrador(borrador) : null;
-  const pasoBorrador = esRecordatorio ? 3 : 2;
+  const pasos = pasosDelEnvio(envio.kind);
+  const pasoBorrador = pasos.indexOf("borrador") + 1;
 
   return (
     <section
@@ -214,7 +216,7 @@ export function MailchimpPorApi({ campana, envio, plantilla, porGuardar = false 
               </div>
             </li>
 
-            {esRecordatorio ? (
+            {pasos.includes("respondieron") ? (
               <li className="rec-mc-paso">
                 <span className="rec-sync-num" aria-hidden>2</span>
                 <div className="rec-mc-paso-cuerpo">

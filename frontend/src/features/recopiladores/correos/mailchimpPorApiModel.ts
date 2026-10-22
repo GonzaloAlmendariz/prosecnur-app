@@ -136,3 +136,12 @@ export function leerEleccionMailchimp(campana: string | null): EleccionMailchimp
 export function guardarEleccionMailchimp(campana: string | null, e: EleccionMailchimp): void {
   if (campana) escribir(CLAVE_CAMPANA(campana), e);
 }
+
+/**
+ * Los pasos de la tarjeta Mailchimp según el envío: «quién ya respondió» solo
+ * existe en un recordatorio (la invitación va a todos).
+ */
+export type PasoMailchimp = "audiencia" | "respondieron" | "borrador";
+export function pasosDelEnvio(kind: string): PasoMailchimp[] {
+  return kind === "recordatorio" ? ["audiencia", "respondieron", "borrador"] : ["audiencia", "borrador"];
+}

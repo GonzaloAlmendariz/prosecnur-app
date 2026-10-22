@@ -175,3 +175,19 @@ describe("lo recordado en este equipo", () => {
     expect(() => guardarRemitente({ from_name: "a", reply_to: "b" })).not.toThrow();
   });
 });
+
+describe("pasos de la tarjeta Mailchimp", () => {
+  it("«quién ya respondió» solo aparece en un recordatorio y el borrador cambia de número", async () => {
+    const { pasosDelEnvio } = await import("./mailchimpPorApiModel");
+    expect(pasosDelEnvio("invitacion")).toEqual(["audiencia", "borrador"]);
+    expect(pasosDelEnvio("recordatorio")).toEqual(["audiencia", "respondieron", "borrador"]);
+  });
+
+  it("la tarjeta usa esa regla y no otra", async () => {
+    const { readFileSync } = await import("node:fs");
+    const fuente = readFileSync(new URL("./MailchimpPorApi.tsx", import.meta.url), "utf8");
+    expect(fuente).toContain('const pasos = pasosDelEnvio(envio.kind);');
+    expect(fuente).toContain('{pasos.includes("respondieron") ? (');
+    expect(fuente).toContain('const pasoBorrador = pasos.indexOf("borrador") + 1;');
+  });
+});
