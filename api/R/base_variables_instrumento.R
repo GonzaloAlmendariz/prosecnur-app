@@ -21,7 +21,9 @@
 .BASE_VARIABLES_FORMATO <- 1L
 
 # Tipos que una columna propia puede declarar.
-.BASE_VARIABLES_TIPOS <- c("select_one", "integer", "decimal", "text", "date", "datetime")
+# select_multiple: una codificación de respuesta múltiple («1 4»), p. ej. las *_recod de HSyVbG 2026
+# (decisión de Gonzalo 2026-10-22: entran con sus categorías y se abren en dummies como cualquier múltiple).
+.BASE_VARIABLES_TIPOS <- c("select_one", "select_multiple", "integer", "decimal", "text", "date", "datetime")
 
 # Retiradas vigentes de la base (sólo si la declaración de origen externo habla
 # de la data vigente), con su motivo.
@@ -172,13 +174,13 @@ base_variables_xls_path <- function(path, base_meta) {
   anclas <- character(0)
   agregar <- function(nombre, etiqueta, tipo, opciones, ancla = "") {
     if (nombre %in% as.character(survey$name)) return(invisible(NULL))  # ya viene (p. ej. adaptado de Codificación)
-    if (identical(tipo, "select_one")) {
+    if (tipo %in% c("select_one", "select_multiple")) {
       ln <- .carga_sav_list_name(nombre, usados)
       usados <<- c(usados, ln)
       op <- .base_variables_opciones_df(opciones)
       nuevas_c[[length(nuevas_c) + 1L]] <<- .base_variables_filas(
         choices, list(list_name = rep(ln, nrow(op)), name = op$codigo, label = op$etiqueta), lab_c)
-      tipo <- paste("select_one", ln)
+      tipo <- paste(tipo, ln)
     }
     nuevas_s[[length(nuevas_s) + 1L]] <<- .base_variables_filas(
       survey, list(type = tipo, name = nombre, label = etiqueta), lab_s)
