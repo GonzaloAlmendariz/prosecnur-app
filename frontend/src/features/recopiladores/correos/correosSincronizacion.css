@@ -139,3 +139,86 @@
   margin: 2px 0;
   padding: 1px 6px;
 }
+
+/* «Quién ya respondió» como paso de la tarjeta «Mailchimp»: sin marco propio. */
+.rec-sync.rec-sync--paso {
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Tarjeta «Mailchimp» (MailchimpPorApi): tres pasos numerados. */
+.rec-mc-pasos {
+  display: grid;
+  gap: var(--pulso-space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-mc-paso {
+  align-items: flex-start;
+  border-top: 1px solid var(--pulso-border);
+  display: grid;
+  gap: var(--pulso-space-2);
+  grid-template-columns: 20px minmax(0, 1fr);
+  padding-top: var(--pulso-space-3);
+}
+
+.rec-mc-paso-cuerpo {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.rec-mc-avance {
+  display: grid;
+  gap: 4px;
+}
+
+.rec-mc-barra {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  display: block;
+  height: 6px;
+  overflow: hidden;
+}
+
+.rec-mc-barra-relleno {
+  background: var(--pulso-primary);
+  display: block;
+  height: 100%;
+  transition: width 240ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-mc-barra-relleno {
+    transition: none;
+  }
+}
+
+.rec-mc-abrir {
+  align-items: center;
+  color: var(--pulso-primary);
+  display: inline-flex;
+  font-weight: var(--pulso-weight-semibold);
+  gap: 4px;
+  justify-content: center;
+  justify-self: center;
+  margin-top: 2px;
+}
+
+.rec-mc-abrir:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 2px;
+}
+
+.rec-mc-nota {
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  margin: 0;
+  text-align: center;
+}

@@ -452,9 +452,12 @@ collection_mail_review <- function(sid, template = NULL, campaign_id = NULL, sco
   paste0('"', gsub('"', '""', x, fixed = TRUE), '"')
 }
 
-# `tres` (`.cmail_trato_resolve`): con la columna de sexo en la lista, suma
-# SALUDO con la palabra de cada persona (el respaldo si no se reconoce).
-.cmail_write_audience <- function(path, store, resolved, tag_rows, tres = NULL) {
+# Tabla de la audiencia de Mailchimp: la misma para audiencia.csv y para la
+# carga por API (collection_mail_mailchimp_audiencia.R), así ambas dicen lo
+# mismo. `tres` (`.cmail_trato_resolve`): con la columna de sexo en la lista,
+# suma SALUDO con la palabra de cada persona (el respaldo si no se reconoce).
+# @return list(header, cols, n): columnas en el orden del encabezado.
+.cmail_audience_table <- function(store, resolved, tag_rows, tres = NULL) {
   extra <- Filter(function(r) !identical(r$key, "nombre"), tag_rows)
   header <- c("Email Address", "First Name", vapply(extra, function(r) r$tag, ""))
   rows <- resolved$rows
@@ -465,8 +468,13 @@ collection_mail_review <- function(sid, template = NULL, campaign_id = NULL, sco
     header <- c(header, .CMAIL_TRATO_TAG)
     cols[[length(cols) + 1L]] <- tres$palabra[rows]
   }
-  .cmail_write_csv(path, header, cols, length(rows))
-  header
+  list(header = header, cols = cols, n = length(rows))
+}
+
+.cmail_write_audience <- function(path, store, resolved, tag_rows, tres = NULL) {
+  tab <- .cmail_audience_table(store, resolved, tag_rows, tres)
+  .cmail_write_csv(path, tab$header, tab$cols, tab$n)
+  tab$header
 }
 
 .cmail_write_csv <- function(path, header, cols, n) {
