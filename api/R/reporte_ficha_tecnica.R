@@ -2661,10 +2661,19 @@ if (!exists("%||%", mode = "function")) {
   invisible(sheet)
 }
 
+# La ficha técnica es un entregable propio (PDF/Word, /api/analitica/ficha-tecnica/export):
+# no se agrega a ningún XLSX de tablas ni de bases salvo que se pida explícitamente
+# (`TRUE`, o `adjuntar_a_xlsx` / `incluir_en_xlsx` en el spec o en su `cfg`), la misma
+# regla que ya seguía el panel. Gonzalo, 2026-10-22: «la ficha técnica es un pdf aparte
+# que no se agrega a ninguna tabla, es un bug».
 .analitica_add_ficha_tecnica_from_spec <- function(defaults, ficha_tecnica = NULL) {
-  if (identical(ficha_tecnica, FALSE)) return(invisible(NULL))
+  pedido <- if (isTRUE(ficha_tecnica)) TRUE else .panel_embed_ficha_xlsx(
+    utils::modifyList(defaults[intersect(names(defaults), "cfg")],
+                      if (is.list(ficha_tecnica)) ficha_tecnica else list()))
+  if (!isTRUE(pedido)) return(invisible(NULL))
   if (is.null(ficha_tecnica) || isTRUE(ficha_tecnica)) ficha_tecnica <- list()
   if (!is.list(ficha_tecnica)) ficha_tecnica <- list()
   args <- utils::modifyList(defaults, ficha_tecnica)
+  args[c("adjuntar_a_xlsx", "incluir_en_xlsx", "incluir_en_entregable")] <- NULL
   do.call(.analitica_add_ficha_tecnica_sheet, args)
 }

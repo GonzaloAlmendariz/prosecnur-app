@@ -104,3 +104,16 @@ test_that("compactar deja en cada celda el estilo del último objeto que la nomb
   expect_identical(celda("S", 3L), .xlsx_firma_estilo(a))
   expect_identical(celda("T", 1L), .xlsx_firma_estilo(b))
 })
+
+test_that("la ficha técnica no se agrega a las tablas de cruces ni a la base salvo que se pida", {
+  # Gonzalo, 2026-10-22: «la ficha técnica es un pdf aparte que no se agrega a ninguna tabla, es un bug».
+  fx <- .crr_fixture(2)
+  out <- tempfile(fileext = ".xlsx"); on.exit(unlink(out), add = TRUE)
+  suppressMessages(reporte_cruces(data = fx$data, instrumento = fx$instrumento, SECCIONES = fx$secciones,
+                                  cruces = "seg", path_xlsx = out, show_sig = FALSE))
+  expect_false("Ficha tecnica" %in% openxlsx::getSheetNames(out))
+  base <- tempfile(fileext = ".xlsx"); on.exit(unlink(base), add = TRUE)
+  .bases_write_xlsx(fx$data, fx$data, base, valores = "codigos",
+                    ficha_tecnica = list(instrumento = fx$instrumento, reporte = "Base"))
+  expect_false("Ficha tecnica" %in% openxlsx::getSheetNames(base))
+})
