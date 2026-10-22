@@ -4,6 +4,7 @@ import type { MailCheck, MailPlatform, MailTemplate } from "../../../api/materia
 import { PulsoButton } from "../../../components/PulsoButton";
 import { AlertCircle, Check, CheckCircle2, ImagePlus, Link2, Trash2 } from "../../../vendor/lucide-react";
 import { Segmented } from "../../xlsformEditor/kit";
+import { AjustesDelCorreo } from "./AjustesDelCorreo";
 import { Cuentagotas } from "./Cuentagotas";
 import { EstiloDelCorreo } from "./EstiloDelCorreo";
 import { srcDeImagenDelBloque } from "./estructuraCorreo";
@@ -296,6 +297,13 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
       </div>
 
       <EstiloDelCorreo
+        theme={template.theme}
+        srcDelBanner={srcDelBanner}
+        chequeos={chequeosDeEstilo}
+        onTema={(update) => onEditar((t) => ({ ...t, theme: update(t.theme) }))}
+      />
+
+      <AjustesDelCorreo
         theme={template.theme}
         srcDelBanner={srcDelBanner}
         chequeos={chequeosDeEstilo}

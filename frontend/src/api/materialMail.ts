@@ -278,13 +278,26 @@ export const MAIL_TEXT_ALIGNS = ["justify", "left", "center"] as const;
 export type MailTextAlign = (typeof MAIL_TEXT_ALIGNS)[number];
 export const MAIL_ONDAS = ["ninguna", "pie"] as const;
 export type MailOnda = (typeof MAIL_ONDAS)[number];
+/**
+ * Ancho de la columna del correo en computadora (E1p). Cerrado: el backend
+ * rechaza otro con `bad_width`. Ausente es 600; en el teléfono el correo
+ * ocupa la pantalla y los márgenes bajan a 20 px (fijo, sin control).
+ */
+export const MAIL_WIDTHS = [560, 600, 640] as const;
+export type MailWidth = (typeof MAIL_WIDTHS)[number];
+export const MAIL_WIDTH_DEFAULT: MailWidth = 600;
 
 export type MailTheme = {
   accent: string;
   link?: string;
   band?: MailBand;
   estilo?: MailEstilo;
-  /** Sólo campaña: fondo de la página a todo el ancho; sin él, el acento. */
+  /** Ancho en computadora (E1p); sin él, 600. */
+  width?: MailWidth;
+  /**
+   * Fondo de la página. Campaña: a todo el ancho; sin él, el acento. Sobrio
+   * (E1p): fuera de la tarjeta blanca; sin él, el gris de la casa.
+   */
   page_bg?: string;
   /** Sólo campaña: relleno del botón; sin él, el amarillo de la casa. */
   button_bg?: string;
@@ -905,6 +918,13 @@ function normalizeFields(value: unknown): MailField[] {
   return out;
 }
 
+/** `theme.width` si es uno de los anchos cerrados; otro valor no tiene cómo dibujarse. */
+function mailWidth(value: unknown): MailWidth | undefined {
+  const v = Array.isArray(value) && value.length === 1 ? value[0] : value;
+  if (typeof v !== "number") return undefined;
+  return (MAIL_WIDTHS as readonly number[]).includes(v) ? (v as MailWidth) : undefined;
+}
+
 /**
  * El tema: las claves del estilo (E1n) se conservan tal como llegan para que
  * la revisión del backend sea la que diga si un color no sirve; una
@@ -924,6 +944,8 @@ export function normalizeMailTheme(value: unknown): MailTheme {
   if (optStr(theme.link) !== undefined) out.link = str(theme.link);
   if (band) out.band = band;
   if (estilo) out.estilo = estilo;
+  const width = mailWidth(theme.width);
+  if (width !== undefined) out.width = width;
   const pageBg = color(theme.page_bg);
   if (pageBg) out.page_bg = pageBg;
   const buttonBg = color(theme.button_bg);

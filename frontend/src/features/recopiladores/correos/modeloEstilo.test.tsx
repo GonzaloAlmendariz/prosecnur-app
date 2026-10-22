@@ -133,13 +133,14 @@ describe("EstiloDelCorreo", () => {
     expect(html).not.toMatch(/<img/);
   });
 
-  it("Campaña: fondo, botón, onda y su contraste; sin banner, sólo el acento", () => {
+  it("Campaña: botón, onda y su contraste; el fondo de la página vive en Ajustes (E1p)", () => {
     const html = renderToStaticMarkup(<EstiloDelCorreo theme={CAMPANA} srcDelBanner={null} chequeos={{}} onTema={noop} />);
-    expect(html).toContain("Fondo de la página");
+    expect(html).not.toContain("Fondo de la página");
+    expect(html).not.toContain('data-foco="estilo-page_bg"');
     expect(html).toContain("Relleno del botón");
     expect(html).toContain("Onda al pie");
     expect(html).toContain("Se lee bien");
-    expect(html.match(/class="rec-estilo-muestra( is-on)?"/g)?.length).toBe(1 + 2);
+    expect(html.match(/class="rec-estilo-muestra( is-on)?"/g)?.length).toBe(2);
     expect(html).toMatch(/aria-checked="true"[^>]*>Centrado/);
   });
 

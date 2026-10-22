@@ -609,6 +609,18 @@ describe("plataforma, envíos e importación (E1j·E1k·E1l)", () => {
     expect(normalizeMailTemplate(PLANTILLA_R).theme).toEqual({ accent: "#0b1f54" });
   });
 
+  test("el tema conserva los ajustes del correo (E1p): ancho cerrado y page_bg también en sobrio", () => {
+    const t = normalizeMailTemplate({ ...PLANTILLA_R, theme: { accent: "#0b1f54", width: [640], page_bg: "#0B1F54" } });
+    expect(t.theme).toEqual({ accent: "#0b1f54", width: 640, page_bg: "#0B1F54" });
+    expect(normalizeMailTemplate({ ...PLANTILLA_R, theme: { accent: "#0b1f54", width: 560 } }).theme.width).toBe(560);
+    // 600 declarado se conserva tal cual llega (la UI no lo escribe, pero no lo borra).
+    expect(normalizeMailTemplate({ ...PLANTILLA_R, theme: { accent: "#0b1f54", width: 600 } }).theme.width).toBe(600);
+    // Fuera de los tres anchos, o como texto, no tiene cómo dibujarse: se descarta.
+    for (const width of [700, "640", null, 0, [560, 600]]) {
+      expect(normalizeMailTemplate({ ...PLANTILLA_R, theme: { accent: "#0b1f54", width } }).theme).toEqual({ accent: "#0b1f54" });
+    }
+  });
+
   test("GET y PUT de la plantilla traen plataforma, envíos y avisos de fechas", () => {
     const get = normalizeMailTemplatePayload({ state_revision: 5, platform: "surveymonkey", sends: [{ send_id: "invitacion", kind: "invitacion", label: "Invitación" }], template: PLANTILLA_R });
     expect(get.platform).toBe("surveymonkey");
