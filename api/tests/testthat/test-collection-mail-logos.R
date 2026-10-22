@@ -72,7 +72,8 @@ test_that("proporción de cada logo ±1 px en escritorio y achicado en teléfono
   for (ids in list("a", c("a", "b"), c("a", "b", "c"), "diez", c("diez", "a"), c("diez", "diez"))) {
     logos <- .cml_logos(.cml_render(ids, images = imgs))
     widths <- vapply(logos, `[[`, 0L, "aw")
-    stacked <- .cmail_logos_stack(widths)
+    stacked <- .cmail_logos_stack(widths, vapply(logos, `[[`, 0L, "ah"))
+    expect_identical(grepl("cmail-logo-cell", .cml_body(.cml_render(ids, images = imgs)), fixed = TRUE), stacked)
     # 390 px: 390 − 24 (página) − 2 (borde) − 40 (márgenes en teléfono).
     room <- 390 - 24 - 2 - 40 - if (stacked) 0 else 37 * (length(ids) - 1L)
     scale <- if (stacked) 1 else min(1, room / sum(widths))
@@ -103,6 +104,55 @@ test_that(".cmail_logos_stack: apila solo si al achicarse alguno quedaría bajo 
   expect_false(.cmail_logos_stack(c(200L, 40L)))         # caben sin achicarse (240 + 37 ≤ 294)
   expect_true(.cmail_logos_stack(c(200L, 100L)))         # dos logos: el de 100 bajaría a 86 px
   expect_identical(.CMAIL_LOGO_PHONE_PX, 294L)
+})
+
+# Gonzalo (2026-10-22): «apílalo si queda muy chico». El ancho no basta: un 10:1
+# junto a uno de 160 quedaba de 120,5 × 12 px a 320 (ancho de sobra, alto ilegible).
+# Umbral de alto medido con Playwright a 320/360/390: ver collection_mail_ajustes.R.
+test_that(".cmail_logos_stack: también apila si al achicarse alguno quedaría bajo 24 px de alto", {
+  expect_identical(.CMAIL_LOGO_MIN_H_PX, 24L)
+  expect_true(.cmail_logos_stack(c(200L, 160L), c(20L, 46L)))    # 10:1 + 160: 14,3 px de alto a 360
+  expect_true(.cmail_logos_stack(c(200L, 139L), c(20L, 40L)))    # ídem en cabecera clara
+  expect_true(.cmail_logos_stack(c(200L, 160L), c(33L, 46L)))    # 6:1 + 160: 23,6 px a 360
+  expect_false(.cmail_logos_stack(c(200L, 160L), c(40L, 46L)))   # 5:1 + 160: 28,6 px a 360
+  expect_false(.cmail_logos_stack(c(160L, 150L), c(46L, 46L)))   # dos típicos: 38,1 px a 360
+  expect_false(.cmail_logos_stack(c(139L, 130L), c(40L, 40L)))   # dos típicos en clara
+  expect_false(.cmail_logos_stack(c(200L, 40L), c(20L, 46L)))    # caben sin achicarse: alto de escritorio
+  expect_false(.cmail_logos_stack(200L, 20L))                     # un solo logo nunca se apila
+})
+
+test_that("10:1 + 160 se apilan en el HTML; dos típicos (160 + 150) siguen en fila", {
+  html <- .cml_render(c("diez", "a"))
+  expect_match(.cml_head(html), ".cmail-logo-cell{display:block !important;}", fixed = TRUE)
+  expect_match(.cml_head(html), ".cmail-logo-div{display:none !important;}", fixed = TRUE)
+  expect_match(.cml_body(html), '<td class="cmail-logo-cell cmail-logo-next" valign="middle">', fixed = TRUE)
+  expect_match(.cml_body(html), '<td class="cmail-logo-div" valign="middle"', fixed = TRUE)
+  for (bg in c("dark", "light")) {
+    typ <- .cml_render(c("a", "b"), bg)
+    expect_false(grepl("cmail-logo-cell", .cml_body(typ), fixed = TRUE), info = bg)
+    expect_false(grepl(".cmail-logo-div{", .cml_head(typ), fixed = TRUE), info = bg)
+  }
+})
+
+test_that("apilado a 320 px cada logo vuelve a su ancho de escritorio sin pasar la columna ni deformarse", {
+  # 320 − 24 (página) − 2 (borde) − 40 (márgenes en teléfono) = 254 px de columna.
+  col320 <- 320 - 24 - 2 - 40
+  imgs <- .cml_images()
+  for (ids in list("diez", c("diez", "a"))) {
+    logos <- .cml_logos(.cml_render(ids, images = imgs))
+    for (i in seq_along(ids)) {
+      l <- logos[[i]]; ratio <- imgs[[ids[[i]]]]$size$width / imgs[[ids[[i]]]]$size$height
+      info <- paste(paste(ids, collapse = "+"), i)
+      w <- min(l$aw, col320); h <- w / ratio      # max-width:100% + height:auto
+      expect_identical(w, as.numeric(l$aw), info = info)   # recupera el ancho de escritorio
+      expect_lte(abs(l$ah - h), 1, label = paste("proporción", info))
+    }
+  }
+  # El 10:1 solo queda en 200 × 20: bajo 24 px, pero es el máximo que da su proporción
+  # con el tope de 200 px de ancho; no se estira para ganar alto.
+  diez <- .cml_logos(.cml_render("diez", images = imgs))[[1]]
+  expect_identical(c(diez$aw, diez$ah, diez$sw, diez$sh), c(200L, 20L, 200L, 20L))
+  expect_false(grepl("cmail-logo-cell", .cml_body(.cml_render("diez", images = imgs)), fixed = TRUE))
 })
 
 test_that("sin logos con archivo (preview de los presets) o con banner no se emite la regla", {

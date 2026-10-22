@@ -236,7 +236,7 @@
     list(img = img, width = width, height = logo_h)
   })
   # En teléfono los logos se achican en proporción o, si quedarían ilegibles, se apilan (collection_mail_ajustes.R).
-  stack <- .cmail_logos_stack(vapply(logos, `[[`, 0L, "width"))
+  stack <- .cmail_logos_stack(vapply(logos, `[[`, 0L, "width"), vapply(logos, `[[`, 0L, "height"))
   # Con las imágenes bloqueadas el cliente pinta el alt: que se lea sobre el fondo.
   alt_style <- sprintf("font-family:%s;font-size:13px;color:%s;", .CMAIL_FONT, if (dark) "#ffffff" else .CMAIL_TEXT_COLOR)
   cells <- character(0)
