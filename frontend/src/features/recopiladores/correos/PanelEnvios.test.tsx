@@ -27,8 +27,8 @@ vi.mock("./CampoConCampos", () => ({
   },
 }));
 
-vi.mock("./SincronizarRespuestas", () => ({
-  SincronizarRespuestas: ({ campana }: { campana: string | null }) => {
+vi.mock("./MailchimpPorApi", () => ({
+  MailchimpPorApi: ({ campana }: { campana: string | null }) => {
     sincronizaciones.push(campana);
     return <i data-sincronizar={campana ?? ""} />;
   },
@@ -207,19 +207,19 @@ describe("el vacío del asunto y la vista previa dice qué sale", () => {
   });
 });
 
-describe("SincronizarRespuestas queda como lo dejó la sincronización", () => {
-  it("sólo se monta en un recordatorio de Mailchimp", () => {
+describe("la tarjeta Mailchimp queda como la dejó la sincronización", () => {
+  it("se monta en todo envío de Mailchimp y en ninguno de SurveyMonkey", () => {
     const { envios, recordatorio } = conRecordatorio(APERTURA);
     expect(pintar(envios, recordatorio, "mailchimp")).toContain("data-sincronizar");
-    expect(pintar(envios, envios[0], "mailchimp")).not.toContain("data-sincronizar");
+    expect(pintar(envios, envios[0], "mailchimp")).toContain("data-sincronizar");
     expect(pintar(envios, recordatorio, "surveymonkey")).not.toContain("data-sincronizar");
-    expect(sincronizaciones).toHaveLength(1);
+    expect(sincronizaciones).toHaveLength(2);
   });
 
   it("con su key por campaña y la campaña del store", () => {
     const fuente = readFileSync(join(AQUI, "PanelEnvios.tsx"), "utf8");
     expect(fuente).toContain("const campana = useCorreosStore((s) => s.campana);");
-    expect(fuente).toContain('{esRecordatorio && plataforma === "mailchimp" ? <SincronizarRespuestas key={campana ?? ""} campana={campana} /> : null}');
+    expect(fuente).toContain('{plataforma === "mailchimp" ? <MailchimpPorApi key={campana ?? ""} campana={campana} envio={activo} plantilla={template} porGuardar={porGuardar} /> : null}');
     expect(fuente).toContain("avisosDeRecordatorio(asuntoDe(activo), asuntoDe(invitacion), activo.opening)");
   });
 });

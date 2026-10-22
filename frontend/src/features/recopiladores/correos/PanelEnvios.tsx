@@ -24,7 +24,7 @@ import { AlertTriangle, CalendarDays, Loader2, Plus, Trash2, Upload } from "../.
 import { CampoConCampos } from "./CampoConCampos";
 import { CampoDeTexto } from "./CampoDeTexto";
 import { rotulosDeCampos } from "./rotulosDeCampos";
-import { SincronizarRespuestas } from "./SincronizarRespuestas";
+import { MailchimpPorApi } from "./MailchimpPorApi";
 import { avisosDeRecordatorio } from "./sincronizacionModel";
 import { useCorreosStore } from "./store";
 import { CUERPO_DEL_INSPECTOR } from "./modeloCorreo";
@@ -250,7 +250,7 @@ export function PanelEnvios({
         </span>
         {avisoDelActivo ? <p className="rec-mail-problema-linea" role="status">{avisoDelActivo.detalle}</p> : null}
         {avisosGmail.map((a) => <p key={a} className="rec-mail-problema-linea" role="status">{a}</p>)}
-        {esRecordatorio && plataforma === "mailchimp" ? <SincronizarRespuestas key={campana ?? ""} campana={campana} /> : null}
+        {plataforma === "mailchimp" ? <MailchimpPorApi key={campana ?? ""} campana={campana} envio={activo} plantilla={template} porGuardar={porGuardar} /> : null}
         <CampoDeTexto
           label="Asunto"
           valor={activo.subject ?? ""}

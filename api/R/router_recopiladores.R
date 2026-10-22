@@ -180,10 +180,25 @@ mount_recopiladores <- function(pr) {
     plumber::pr_get("/api/recopiladores/mail-sync/options", wrap_endpoint(function(req, res, ...) {
       collection_mail_mailchimp_options(session_header(req))
     })) |>
+    # Job con avance: responde {ok, job_id}; el resultado se lee en /api/jobs/<id>.
     plumber::pr_post("/api/recopiladores/mail-sync", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
-      collection_mail_mailchimp_sync(session_header(req), campaign_id = body$campaign_id, survey_id = body$survey_id,
-                                     list_id = body$list_id, tag = body$tag, dry_run = isTRUE(body$dry_run))
+      collection_mail_mailchimp_sync_submit(session_header(req), campaign_id = body$campaign_id, survey_id = body$survey_id,
+                                            list_id = body$list_id, tag = body$tag, dry_run = isTRUE(body$dry_run))
+    })) |>
+    # Cargar la audiencia de la campaña en Mailchimp (job con avance).
+    plumber::pr_post("/api/recopiladores/mail-sync/audience", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_mailchimp_audience_submit(session_header(req), campaign_id = body$campaign_id,
+                                                list_id = body$list_id, tag = body$tag)
+    })) |>
+    # Crear el envío como BORRADOR en Mailchimp. No hay ruta que envíe ni programe.
+    plumber::pr_post("/api/recopiladores/mail-sync/campaign", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_mailchimp_campaign_draft(session_header(req), campaign_id = body$campaign_id,
+                                               send_id = body$send_id, list_id = body$list_id,
+                                               from_name = body$from_name, reply_to = body$reply_to,
+                                               tag = body$tag, exclude_tag = body$exclude_tag)
     })) |>
     plumber::pr_get("/api/recopiladores/mail-template", wrap_endpoint(function(req, res, ...) {
       collection_mail_template_get(session_header(req), campaign_id = .cmail_query_campaign(req))
