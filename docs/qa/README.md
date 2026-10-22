@@ -176,6 +176,7 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Checklist — registro académico y lectura no técnica](checklist-registro-academico-aulas-2026-08-29.md): español sin jerga y Avance como revisión no técnica.
 - [Checklist — operativo de aulas 2026](checklist-operativo-aulas-2026-08-31.md): cerrar el circuito del libro y superar 2025.
 - [Checklist · Asignación de aplicadores](checklist-asignacion-aplicadores-2026-09-04.md): cuatro dictados sobre la vista de Asignación.
+- [Checklist · Contactos de campañas de correo](checklist-contactos-correo-2026-10-22.md): contactos en el `.pulso`, enlace personal y pestaña Contactos (ADR 0112).
 - [Checklist · El libro de campo dice de dónde viene cada dato](checklist-libro-campo-2026-09-04.md): paleta por función y estados de la cadena de reemplazos.
 - [Base de control — pedido del 2026-09-07](checklist-base-control-2026-09-07.md): bloques de control vacíos y el orden de sus encabezados.
 - [Checklist — «Avance de campo» en cinco tablas](checklist-avance-general-2026-09-08.md): la hoja dictada columna a columna, con cifras numéricas.

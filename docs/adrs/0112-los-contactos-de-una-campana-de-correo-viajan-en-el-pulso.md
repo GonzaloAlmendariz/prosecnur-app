@@ -2,7 +2,7 @@
 
 Estado: Aceptado
 
-Implementacion: En curso
+Implementacion: Implementado (backend 867a5cc1e, 342f2f9c2; frontend 137e605b4, 3073fdbeb)
 
 Fecha: 2026-10-22
 
@@ -98,3 +98,7 @@ para exportar o mandar un recordatorio había que volver a importarla. Eso rompe
 - `state.rds` no contiene correos (scan del estado); `files/contactos/` sí y solo ahí.
 - El anonimizador deja `files/contactos/` vacío.
 - Los agregados del tablero cuadran: la suma por categoría (incluido «Sin dato») es igual a los efectivos del corte.
+
+## Notas
+
+Relacionado con [ADR 0110](0110-material-de-campo-se-conecta-y-escribe-correos-para-mailchimp.md), [ADR 0111](0111-material-de-campo-se-organiza-por-campanas-tipadas.md) y [ADR 0005](0005-secretos-fuera-del-proyecto.md). Checklist: [docs/qa/checklist-contactos-correo-2026-10-22.md](../qa/checklist-contactos-correo-2026-10-22.md).

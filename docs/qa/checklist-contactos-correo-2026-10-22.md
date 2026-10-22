@@ -1,5 +1,10 @@
 # Checklist — Contactos de campañas de correo (2026-10-22)
 
+Tipo: Checklist de dictado
+Estado: En curso
+Fecha: 2026-10-22
+Autoridad: Dictado de Gonzalo; sólo él lo da por terminado
+
 Pedido de Gonzalo, textual: «me parece que la lista de contacto sí se debe guardar en el .pulso»; «sí, avanza con el
 ADR y el backend y además para campañas por correo debe haber una vista que muestre los contactos y las podamos ver
 como un dashboard por tipo de perfil y todo en base a variables de control que podemos seleccionar de forma
@@ -18,4 +23,4 @@ Gobierna: [ADR 0112](../adrs/0112-los-contactos-de-una-campana-de-correo-viajan-
 | 6 | Pestaña Contactos: lista + tablero por perfil con variables de control elegibles | `frontend/src/features/recopiladores/correos/contactos/` + `modules.ts` | ☑ 137e605b4 |
 | 7 | Enlace a la encuesta en la UI (pegar enlace del recopilador, generar) | pestaña Contactos | ☑ 137e605b4 |
 | 8 | Resguardos: anonimizador vacía contactos, aviso al guardar, modo público sin rutas | `api/R/pulso_anonimizar_proyecto.R`, barra de guardado | ☑ 867a5cc1e + 137e605b4 (aviso en la hoja Guardar) |
-| 9 | Gates + QA visual + verificador | — | ◐ gates verdes (R 3710, front 1368); QA visual independiente en curso; verificador pendiente |
+| 9 | Gates + QA visual + verificador | — | ☑ R 3741, front 1381, QA visual corregido (342f2f9c2, 3073fdbeb), verificador ACEPTADO |
