@@ -190,8 +190,17 @@ base_variables_xls_path <- function(path, base_meta) {
     nombre <- .origen_externo_chr(p[["name"]])
     if (!nzchar(nombre)) next
     etiqueta <- .origen_externo_chr(p[["label"]])
+    # Una recodificada va junto a su original (y a su «_otro»), no al final:
+    # HSyVbG 2026, las *_recod salían al final del libro, las tablas y la base.
+    ancla <- ""
+    if (grepl("_recod$", nombre)) {
+      orig <- sub("_recod$", "", nombre)
+      nombres <- as.character(survey$name)
+      pos <- match(c(orig, paste0(orig, "_otro")), nombres)
+      if (any(!is.na(pos))) ancla <- nombres[max(pos, na.rm = TRUE)]
+    }
     agregar(nombre, if (nzchar(etiqueta)) etiqueta else nombre,
-            .origen_externo_chr(p[["tipo"]], "text"), p[["opciones"]])
+            .origen_externo_chr(p[["tipo"]], "text"), p[["opciones"]], ancla = ancla)
   }
   for (cv in decl$calculadas) {
     nombre <- .origen_externo_chr(cv[["nombre"]])

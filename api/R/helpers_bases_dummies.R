@@ -24,16 +24,26 @@
   sv <- rp_inst$survey
   if (!is.data.frame(sv) || !all(c("name", "type") %in% names(sv))) return(df)
   madres <- unique(as.character(sv$name[grepl("^select_multiple", sv$type)]))
+  # En la ruta del SAV la madre original puede llegar como texto («1 4») y sólo su
+  # recodificada declarada como múltiple: la original también es madre de sus dummies.
+  madres <- unique(c(madres, sub("_recod$", "", madres)))
   if (!length(madres)) return(df)
   for (v in names(df)) {
     m <- sub("[./][^./]+$", "", v)
-    if (identical(m, v) || !m %in% madres) next
+    if (identical(m, v)) next
     labs <- attr(df[[v]], "labels", exact = TRUE)
     if (is.null(labs) || length(labs) != 2L) next
     pares <- .bases_label_pairs(labs)
     codigos <- suppressWarnings(as.numeric(pares$code))
     if (anyNA(codigos) || !setequal(codigos, c(0, 1))) next
     opcion <- as.character(pares$label[codigos == 1])
+    # Sin madre múltiple en el instrumento (llega como texto y sin recodificada), la
+    # columna es dummy si 0 = No y su etiqueta es la pregunta terminada en la opción.
+    if (!m %in% madres) {
+      rotulo <- trimws(as.character(attr(df[[v]], "label", exact = TRUE) %||% "")[1L])
+      cero <- as.character(pares$label[codigos == 0])
+      if (!identical(cero, "No") || is.na(rotulo) || !endsWith(rotulo, opcion)) next
+    }
     nuevas <- if (is.character(labs)) c(`0` = "No", `1` = "Sí") else c(No = 0, `Sí` = 1)
     attr(df[[v]], "labels") <- nuevas
     # Una recodificada sin rótulo propio por dummy lleva la pregunta de la variable original.

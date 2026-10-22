@@ -4853,6 +4853,7 @@ mount_analitica <- function(pr) {
 		          df_base <- rp_data
           if (multi_select == "dummy_01") df_base <- .expand_multiselect(df_base, rp_inst)
           if (incluir_madre_sm) df_base <- .analitica_base_reconstruct_madre_sm(df_base, rp_inst)
+          df_base <- .bases_dummies_si_no(df_base, rp_inst)  # dummies en No/Sí, como el SAV
           df_cod <- .aplicar_etiquetas(df_base, rp_inst, valores = "codigos", multi_select = multi_select)
           df_lab <- if (valores == "codigos") df_cod
                     else .aplicar_etiquetas(df_base, rp_inst, valores = "etiquetas", multi_select = multi_select)
