@@ -313,7 +313,7 @@ test_that("item 40: el consentimiento — Si sigue sin salto, No va a Fin (antes
   expect_identical(.t3_salto(b, "1"), "")
   expect_identical(.t3_salto(b, "2"), "Fin de la encuesta")
   # La nota de cierre lleva su condicion (§41.4); los modulos no (los cubre el Fin).
-  expect_match(.t3_bloque(m, "mensaje_no")$opening_condition, "P1 = 2", fixed = TRUE)
+  expect_match(.t3_bloque(m, "mensaje_no")$opening_condition, "respondió \"No deseo\" en P1", fixed = TRUE)
   expect_identical(Filter(function(x) identical(x$kind, "section"), m$blocks)[[1]]$opening_condition, "")
   expect_identical(nrow(.form_pdf_simular(m)), 0L)
 })
@@ -373,14 +373,14 @@ test_that("item 41: AND, OR y comparaciones se imprimen en lenguaje llano, tambi
   ch <- rbind(.t3_sn(), .t3_sn("tres", c("1", "2", "3"), c("Bajo", "Medio", "Alto")))
   m <- formulario_pdf_build_model(sv, ch, list(form_title = "C"))
   expect_identical(.t3_bloque(m, "q_and")$opening_condition,
-                   "FILTRO — Aplique sólo si P1 es 18 o más y P2 = 1 «Sí».")
+                   "Filtro: aplique solo si P1 es 18 o más y respondió Sí en P2.")
   # El OR sobre una variable es un conjunto (§41.1). No lo cubre un salto: tras
   # P3 viene P4, que no depende de P3, asi que el destino de la opcion 2 es la
   # siguiente y la condicion se imprime en P5.
   expect_identical(.t3_salto(.t3_bloque(m, "nivel"), "2"), "")
   expect_identical(.t3_bloque(m, "q_or")$opening_condition,
-                   "FILTRO — Aplique sólo si P3 = 1 «Bajo» o 3 «Alto».")
-  expect_identical(.t3_bloque(m, "q_resp")$opening_condition, "FILTRO — Aplique sólo si respondió P1.")
+                   "Filtro: aplique solo si respondió Bajo o Alto en P3.")
+  expect_identical(.t3_bloque(m, "q_resp")$opening_condition, "Filtro: aplique solo si respondió P1.")
   expect_true(any(grepl("asume cumplidas.*collectorID", m$warnings)))
   skip_if_not(nzchar(.t3_pdftotext()))
   pdf <- tempfile(fileext = ".pdf"); on.exit(unlink(pdf), add = TRUE)
@@ -389,7 +389,7 @@ test_that("item 41: AND, OR y comparaciones se imprimen en lenguaje llano, tambi
   expect_false(grepl("${", txt, fixed = TRUE))
   expect_false(grepl("selected(", txt, fixed = TRUE))
   expect_false(grepl("!=", txt, fixed = TRUE))
-  expect_match(txt, "Aplique sólo si P1 es 18 o más", fixed = TRUE)
+  expect_match(txt, "aplique solo si P1 es 18 o más", fixed = TRUE)
 })
 
 test_that("item 41: un AND con OR anidado se redacta con parentesis y no pierde el filtro", {
@@ -399,7 +399,7 @@ test_that("item 41: un AND con OR anidado se redacta con parentesis y no pierde 
   ch <- rbind(.t3_sn(), .t3_sn("tres", c("1", "2", "3"), c("Bajo", "Medio", "Alto")))
   m <- formulario_pdf_build_model(sv, ch, list(form_title = "C"))
   expect_identical(.t3_bloque(m, "c")$opening_condition,
-                   "FILTRO — Aplique sólo si P1 = 1 «Sí» y P2 = 1 «Bajo» o 2 «Medio».")
+                   "Filtro: aplique solo si respondió Sí en P1 y respondió Bajo o Medio en P2.")
   expect_identical(nrow(.form_pdf_simular(m)), 0L)
 })
 
@@ -448,7 +448,7 @@ test_that("item 46: con origen de seleccion multiple no hay salto por opcion; la
   m <- formulario_pdf_build_model(sv, ch, list(form_title = "M"))
   expect_true(all(vapply(.t3_bloque(m, "medios")$options, function(o) !nzchar(o$paper_skip %||% ""), logical(1))))
   expect_identical(.t3_bloque(m, "cual")$opening_condition,
-                   "FILTRO — Aplique sólo si en P1 marcó «Otro» (96) y en P1 NO marcó «Ninguno» (99).")
+                   "Filtro: aplique solo si marcó Otro en P1 y no marcó Ninguno en P1.")
 })
 
 test_that("item 46: `_cursiva_` con la regla de palabra y texto en NFC", {

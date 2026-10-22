@@ -487,8 +487,8 @@ test_that("logic_language condiciones emits openings and suppresses skips", {
   q3 <- Filter(function(b) identical(b$name, "p3"), model$blocks)[[1]]
   # p2 abre la condicion con alcance cerrado sobre la corrida (§41.3); p3 (misma
   # relevant) NO la repite.
-  expect_match(q2$opening_condition, "^FILTRO")
-  expect_match(q2$opening_condition, "Aplique P2 a P3 s\u00f3lo si P1 = 1 \u00abSi\u00bb", fixed = TRUE)
+  expect_match(q2$opening_condition, "^Filtro: ")
+  expect_match(q2$opening_condition, "aplique P2 a P3 solo si respondi\u00f3 Si en P1", fixed = TRUE)
   expect_identical(q3$opening_condition, "")
 
   tmp <- tempfile(fileext = ".pdf")
@@ -497,7 +497,7 @@ test_that("logic_language condiciones emits openings and suppresses skips", {
   pdftotext <- Sys.which("pdftotext")
   skip_if_not(nzchar(pdftotext))
   txt <- paste(system2(pdftotext, c(tmp, "-"), stdout = TRUE), collapse = " ")
-  expect_true(grepl("FILTRO", txt))
+  expect_true(grepl("Filtro:", txt))
   expect_false(grepl("pase a la pregunta", txt))
 })
 
@@ -517,7 +517,7 @@ test_that("condiciones dedups group-inherited relevant on questions", {
   h1 <- Filter(function(b) identical(b$name, "hijo1"), model$blocks)[[1]]
   h2 <- Filter(function(b) identical(b$name, "hijo2"), model$blocks)[[1]]
   # La seccion enuncia la condicion UNA vez; las hijas que la heredan NO la repiten.
-  expect_match(sec$opening_condition, "Aplique este m\u00f3dulo s\u00f3lo si P1 = 1", fixed = TRUE)
+  expect_match(sec$opening_condition, "aplique este m\u00f3dulo solo si respondi\u00f3 Si en P1", fixed = TRUE)
   expect_identical(h1$opening_condition, "")
   expect_identical(h2$opening_condition, "")
 })
@@ -592,7 +592,7 @@ test_that("condiciones wording uses 'en la pregunta N' (full word)", {
                                       options = list(logic_language = "condiciones"))
   q2 <- Filter(function(b) identical(b$name, "p2"), model$blocks)[[1]]
   # §41.3: la condicion nombra la pregunta por su numero impreso, sin XPath.
-  expect_match(q2$opening_condition, "P1 = 1 \u00abS\u00ed\u00bb", fixed = TRUE)
+  expect_match(q2$opening_condition, "respondi\u00f3 S\u00ed en P1", fixed = TRUE)
   expect_false(grepl("${", q2$opening_condition, fixed = TRUE))
 })
 
@@ -616,7 +616,7 @@ test_that("consent_var: omits consent opening (condiciones) and terminates (salt
   sec_g1 <- Filter(function(b) identical(b$kind, "section") && grepl("Bloque 1", b$title), m_cond$blocks)[[1]]
   sec_g2 <- Filter(function(b) identical(b$kind, "section") && grepl("Bloque 2", b$title), m_cond$blocks)[[1]]
   expect_identical(sec_g1$opening_condition, "")                       # consentimiento omitido
-  expect_match(sec_g2$opening_condition, "Aplique este m\u00f3dulo s\u00f3lo si") # otra condicion si
+  expect_match(sec_g2$opening_condition, "aplique este m\u00f3dulo solo si") # otra condicion si
 
   # SALTOS (§40.8): sin heuristica de consentimiento. La negativa salta al primer
   # destino no excluido: `otra` no depende del consentimiento, asi que es
