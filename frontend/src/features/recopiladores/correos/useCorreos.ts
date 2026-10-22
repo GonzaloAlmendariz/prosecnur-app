@@ -18,6 +18,7 @@ import {
   type MailRecipientsMapping,
   type MailTemplate,
 } from "../../../api/materialMail";
+import { camposNoDeclarados } from "./camposDeclarados";
 import { conDestinatarios, conPlantillaGuardada } from "./modeloCampanas";
 import { huellaDeEdicion } from "./modeloCorreo";
 import { enviosParaGuardar, huellaDeEnvios, rotuloDeEnvio } from "./modeloEnvios";
@@ -173,6 +174,12 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
     const template = s.getState().borrador;
     if (!template) return;
     const turno = ++turnoVista.current;
+    // N5: con un campo que la campaña no declara el backend responde 422; la
+    // vista se queda con la última buena y el lienzo lo dice.
+    if (camposNoDeclarados(template, envioElegido(s.getState())).length) {
+      s.getState().vistaPreviaRetenida();
+      return;
+    }
     const timer = window.setTimeout(() => {
       s.getState().vistaPreviaInicio();
       const envio = envioElegido(s.getState());
@@ -214,6 +221,8 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
     if (carga !== "lista") return;
     const template = s.getState().borrador;
     if (!template) return;
+    // La revisión tampoco se pide con un campo no declarado: queda la anterior.
+    if (camposNoDeclarados(template, envioElegido(s.getState())).length) return;
     const timer = window.setTimeout(() => { void revisar(template); }, ESPERA_REVISION_MS);
     return () => window.clearTimeout(timer);
   }, [campana, carga, huella, huellaDelEnvio, plataforma, destinatariosHuella, refresco, revisar, s]);

@@ -1,16 +1,22 @@
 // lugarDeLasAcciones.ts — dónde va la barra flotante del bloque elegido.
 //
-// La barra (nombre, manija, subir, bajar, quitar) iba siempre encima del
-// bloque, a la derecha, y tapaba el último renglón del bloque anterior (#7 del
-// QA e10). Caber no es no pisarse: se prueban cuatro lugares junto al borde
-// derecho del bloque y gana el primero que no toca ningún texto ni imagen del
-// correo. Si ninguno queda libre, el que menos tapa.
+// La barra (nombre, manija, subir, bajar, quitar) probaba cuatro lugares y
+// elegía el que menos tapaba; en Dos imágenes caía abajo, a 600 px de donde se
+// pulsó y fuera de la vista, y en Ícono con texto caía dentro, sobre el texto
+// y el punto de aviso del bloque siguiente (N2 y N3 del re-QA e10). La regla
+// ahora es una sola:
+//
+// - La barra va pegada al borde superior del bloque, por fuera (encima).
+// - Si encima no se ve (el bloque empieza arriba del área visible o bajo la
+//   barra del correo), se pega a lo más alto que se ve del bloque.
+// - Nunca queda fuera del área visible.
+// - Deja libre la esquina derecha, donde van los puntos de aviso.
 //
 // Todo se mide en el espacio de la capa (rectángulos del iframe × escala).
 
 import type { Rect } from "./estructuraCorreo";
 
-export type LugarDeLasAcciones = "arriba" | "dentro" | "abajo" | "dentro-abajo";
+export type LugarDeLasAcciones = "arriba" | "pegada";
 
 /** Separación entre la barra y el borde del bloque. */
 export const MARGEN_DE_LAS_ACCIONES = 6;
@@ -18,79 +24,65 @@ export const MARGEN_DE_LAS_ACCIONES = 6;
 /** Alto de la barra: botones de 26 px, 2 px de relleno y el borde. */
 export const ALTO_DE_LAS_ACCIONES = 32;
 
+/**
+ * La esquina de los puntos de aviso: el punto mide 20 px y sobresale 8 px
+ * del borde derecho del bloque; la barra termina 6 px antes de él.
+ */
+export const RESERVA_DEL_PUNTO = 18;
+
 /** Ancho estimado de la barra: el nombre a 11 px y cada botón de 26 px. */
 export function anchoDeLasAcciones(nombre: string, botones: number): number {
   return Math.ceil(nombre.length * 6.4) + 14 + botones * 28 + 6;
 }
 
-function solape(a: Rect, b: Rect): number {
-  const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
-  const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
-  return w > 0 && h > 0 ? w * h : 0;
-}
-
-/** El rectángulo que ocupa la barra en cada lugar (anclada al borde derecho del bloque). */
-export function rectDeLasAcciones(zona: Rect, lugar: LugarDeLasAcciones, ancho: number): Rect {
-  const x = zona.x + zona.w - ancho - (lugar === "dentro" || lugar === "dentro-abajo" ? MARGEN_DE_LAS_ACCIONES : 0);
-  const y = lugar === "arriba"
-    ? zona.y - ALTO_DE_LAS_ACCIONES - MARGEN_DE_LAS_ACCIONES
-    : lugar === "dentro"
-      ? zona.y + MARGEN_DE_LAS_ACCIONES
-      : lugar === "abajo"
-        ? zona.y + zona.h + MARGEN_DE_LAS_ACCIONES
-        : zona.y + zona.h - ALTO_DE_LAS_ACCIONES - MARGEN_DE_LAS_ACCIONES;
-  return { x, y, w: ancho, h: ALTO_DE_LAS_ACCIONES };
-}
-
-const ORDEN: readonly LugarDeLasAcciones[] = ["arriba", "dentro", "abajo", "dentro-abajo"];
+/** La franja de la capa que se ve: de `arriba` a `abajo`, en el espacio de la capa. */
+export type AreaVisible = { arriba: number; abajo: number };
 
 /**
- * El primer lugar libre de texto e imágenes; si no hay, el que menos tapa. Un
- * lugar que se sale de la hoja (arriba del primer bloque, abajo del último)
- * no cuenta.
+ * El lugar y el rectángulo de la barra del bloque `zona`. Sin `visible` (aún
+ * sin medir) se supone que todo se ve.
  */
-export function lugarDeLasAcciones(entrada: {
-  zona: Rect;
-  /** Líneas de texto e imágenes del correo, en el espacio de la capa. */
-  ocupados: readonly Rect[];
-  ancho: number;
-  /** Alto de la hoja: la barra no se sale de ella. */
-  altoDeLaHoja: number;
-}): LugarDeLasAcciones {
-  const { zona, ocupados, ancho, altoDeLaHoja } = entrada;
-  let mejor: { lugar: LugarDeLasAcciones; tapa: number } | null = null;
-  for (const lugar of ORDEN) {
-    const r = rectDeLasAcciones(zona, lugar, ancho);
-    if (r.y < 0 || r.y + r.h > altoDeLaHoja || r.x < 0) continue;
-    const tapa = ocupados.reduce((suma, o) => suma + solape(r, o), 0);
-    if (tapa === 0) return lugar;
-    if (!mejor || tapa < mejor.tapa) mejor = { lugar, tapa };
-  }
-  return mejor?.lugar ?? "dentro";
+export function lugarDeLasAcciones(entrada: { zona: Rect; ancho: number; visible?: AreaVisible | null }): { lugar: LugarDeLasAcciones; rect: Rect } {
+  const { zona, ancho } = entrada;
+  const visible = entrada.visible ?? { arriba: Number.NEGATIVE_INFINITY, abajo: Number.POSITIVE_INFINITY };
+  const encima = zona.y - ALTO_DE_LAS_ACCIONES - MARGEN_DE_LAS_ACCIONES;
+  // Lo más alto que se ve, sin bajar del final del bloque (salvo que el bloque sea más bajo que la barra).
+  let y = Math.max(encima, visible.arriba);
+  y = Math.min(y, Math.max(encima, zona.y + zona.h - ALTO_DE_LAS_ACCIONES));
+  // Nunca fuera del área visible.
+  if (Number.isFinite(visible.abajo)) y = Math.min(y, visible.abajo - ALTO_DE_LAS_ACCIONES);
+  if (Number.isFinite(visible.arriba)) y = Math.max(y, visible.arriba);
+  const x = Math.max(0, zona.x + zona.w - RESERVA_DEL_PUNTO - ancho);
+  return { lugar: y <= encima ? "arriba" : "pegada", rect: { x, y, w: ancho, h: ALTO_DE_LAS_ACCIONES } };
 }
 
+/** El rectángulo de un punto de aviso de una zona (esquina superior derecha). */
+export function rectDelPunto(zona: Rect): Rect {
+  return { x: zona.x + zona.w - 12, y: zona.y - 8, w: 20, h: 20 };
+}
+
+type Medible = { getBoundingClientRect: () => { top: number; bottom: number; height: number } };
+
 /**
- * Las líneas de texto y las imágenes del documento que caen cerca de la zona
- * (una franja de `margen` px arriba y abajo), en el espacio de la capa.
+ * El área visible de la capa: la intersección de la ventana con cada
+ * ancestro que recorta, menos la barra del correo si queda pegada encima.
+ * `margen` deja aire contra los bordes.
  */
-export function ocupadosCercaDe(doc: Document, zona: Rect, escala: number, margen = 64): Rect[] {
-  const desde = zona.y - margen;
-  const hasta = zona.y + zona.h + margen;
-  const out: Rect[] = [];
-  const agregar = (r: DOMRect) => {
-    if (!r.width || !r.height) return;
-    const rect = { x: r.left * escala, y: r.top * escala, w: r.width * escala, h: r.height * escala };
-    if (rect.y + rect.h >= desde && rect.y <= hasta) out.push(rect);
-  };
-  const cuerpo = doc.body;
-  if (!cuerpo) return out;
-  const caminante = doc.createTreeWalker(cuerpo, 4 /* NodeFilter.SHOW_TEXT */);
-  const rango = doc.createRange();
-  for (let nodo = caminante.nextNode(); nodo; nodo = caminante.nextNode()) {
-    if (!(nodo.nodeValue ?? "").trim()) continue;
-    rango.selectNodeContents(nodo);
-    for (const r of Array.from(rango.getClientRects())) agregar(r);
+export function areaVisibleDeLaCapa(capa: HTMLElement, barra: Medible | null, margen = MARGEN_DE_LAS_ACCIONES): AreaVisible {
+  const rc = capa.getBoundingClientRect();
+  let arriba = 0;
+  let abajo = typeof window === "undefined" ? Number.POSITIVE_INFINITY : window.innerHeight;
+  for (let el = capa.parentElement; el; el = el.parentElement) {
+    const { overflowY } = getComputedStyle(el);
+    if (!/(auto|scroll|hidden|clip)/.test(overflowY)) continue;
+    const r = el.getBoundingClientRect();
+    arriba = Math.max(arriba, r.top + el.clientTop);
+    abajo = Math.min(abajo, r.top + el.clientTop + el.clientHeight);
   }
-  for (const img of Array.from(doc.images)) agregar(img.getBoundingClientRect());
-  return out;
+  if (barra) {
+    const rb = barra.getBoundingClientRect();
+    // La barra del correo va encima del lienzo: si se ve, tapa el borde de arriba del área.
+    if (rb.height > 0 && rb.bottom > arriba && rb.top < abajo) arriba = rb.bottom;
+  }
+  return { arriba: arriba - rc.top + margen, abajo: abajo - rc.top - margen };
 }

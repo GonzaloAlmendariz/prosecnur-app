@@ -4,9 +4,11 @@
 // Copia de `recopiladores/templateHistory.ts` para `MailTemplate`, con dos
 // diferencias que pide el editor en el sitio:
 //
-// 1. **El texto se agrupa.** Ediciones seguidas del mismo bloque y la misma
-//    propiedad, con menos de 1 s entre una y otra, son una sola entrada: un
-//    párrafo escrito de corrido se deshace de una vez, no letra por letra.
+// 1. **El texto se agrupa por palabra.** Ediciones seguidas del mismo bloque
+//    y la misma propiedad, con menos de 1 s entre una y otra, son una sola
+//    entrada mientras sigan la misma palabra: un espacio después de escribir,
+//    pasar de escribir a borrar (o al revés) o una pausa abren otra. Un clic
+//    en Deshacer quita la última palabra, no el campo entero (N6 del re-QA).
 // 2. **El atajo no se apaga dentro de un editable.** `templateHistoryShortcut`
 //    ignora los objetivos editables; aquí el editor en línea captura Cmd+Z
 //    por su cuenta (primero vuelca lo pendiente, después deshace en la app).
@@ -20,31 +22,76 @@ import type { MailTemplate } from "../../../api/materialMail";
 export const LIMITE_DEL_HISTORIAL = 100;
 export const VENTANA_DE_TEXTO_MS = 1000;
 
+/** Qué hizo una edición de texto: escribir, borrar o reemplazar. */
+export type ClaseDeEdicion = "escribir" | "borrar" | "reemplazar";
+
+export type GrupoDeTexto = {
+  clave: string;
+  en: number;
+  /** La clase de la última edición del grupo. */
+  clase?: ClaseDeEdicion;
+  /** ¿Lo último escrito cerró una palabra (un espacio o un signo)? */
+  cerroPalabra?: boolean;
+};
+
 export type HistorialCorreo = {
   pasado: MailTemplate[];
   futuro: MailTemplate[];
   /** Grupo de texto abierto: clave `bloque.prop` y hora de la última edición. */
-  grupo: { clave: string; en: number } | null;
+  grupo: GrupoDeTexto | null;
 };
 
 export const HISTORIAL_VACIO: HistorialCorreo = { pasado: [], futuro: [], grupo: null };
 
+/** Qué cambió entre dos textos: lo quitado y lo puesto, sin el principio y el final comunes. */
+export function edicionEntre(antes: string, despues: string): { clase: ClaseDeEdicion; puesto: string } {
+  let i = 0;
+  while (i < antes.length && i < despues.length && antes[i] === despues[i]) i += 1;
+  let a = antes.length;
+  let d = despues.length;
+  while (a > i && d > i && antes[a - 1] === despues[d - 1]) { a -= 1; d -= 1; }
+  const quitado = antes.slice(i, a);
+  const puesto = despues.slice(i, d);
+  return { clase: quitado && !puesto ? "borrar" : puesto && !quitado ? "escribir" : "reemplazar", puesto };
+}
+
+const FIN_DE_PALABRA = /[\s.,;:!?¡¿()«»"'\-]$/;
+
 /** Cómo entra un cambio: un texto (agrupable) o una operación de estructura. */
-export type TipoDeCambio = { texto: string; ahora: number } | null;
+export type TipoDeCambio = {
+  texto: string;
+  ahora: number;
+  /** El texto entero antes y después (el borrador serializado sirve): de ahí sale la palabra. */
+  antes?: string;
+  despues?: string;
+} | null;
+
+/** ¿El cambio sigue la palabra del grupo abierto? */
+function sigueElGrupo(grupo: GrupoDeTexto | null, cambio: NonNullable<TipoDeCambio>, clase: ClaseDeEdicion | undefined): boolean {
+  if (!grupo || grupo.clave !== cambio.texto || cambio.ahora - grupo.en >= VENTANA_DE_TEXTO_MS) return false;
+  if (!clase || !grupo.clase) return true;
+  if (clase === "reemplazar" || clase !== grupo.clase) return false;
+  // Una palabra nueva después de un espacio abre su propia entrada.
+  return !(clase === "escribir" && grupo.cerroPalabra);
+}
 
 /**
  * Registra que `antes` pasó a ser el presente anterior a un cambio. Devuelve el
  * historial nuevo; el presente lo guarda quien llama (el borrador del store).
  */
 export function registrarCambio(h: HistorialCorreo, antes: MailTemplate, cambio: TipoDeCambio): HistorialCorreo {
-  if (cambio && h.grupo && h.grupo.clave === cambio.texto && cambio.ahora - h.grupo.en < VENTANA_DE_TEXTO_MS) {
-    // Mismo texto, de corrido: la entrada abierta ya guarda el estado previo.
-    return { ...h, futuro: [], grupo: { clave: cambio.texto, en: cambio.ahora } };
+  const edicion = cambio && cambio.antes !== undefined && cambio.despues !== undefined ? edicionEntre(cambio.antes, cambio.despues) : null;
+  const grupo: GrupoDeTexto | null = cambio
+    ? { clave: cambio.texto, en: cambio.ahora, clase: edicion?.clase, cerroPalabra: edicion ? FIN_DE_PALABRA.test(edicion.puesto) : undefined }
+    : null;
+  if (cambio && sigueElGrupo(h.grupo, cambio, edicion?.clase)) {
+    // Misma palabra, de corrido: la entrada abierta ya guarda el estado previo.
+    return { ...h, futuro: [], grupo };
   }
   return {
     pasado: [...h.pasado, antes].slice(-LIMITE_DEL_HISTORIAL),
     futuro: [],
-    grupo: cambio ? { clave: cambio.texto, en: cambio.ahora } : null,
+    grupo,
   };
 }
 

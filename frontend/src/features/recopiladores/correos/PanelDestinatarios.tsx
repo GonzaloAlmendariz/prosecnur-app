@@ -31,16 +31,14 @@ type Props = {
 const SIN_COLUMNA = "";
 
 /** Lo que Personas dice según la plataforma: dónde viajan los correos y qué falta sin lista. */
-const TEXTO_DE_PERSONAS: Record<MailPlatform, { nota: string; sinLista: string; nombre: string }> = {
+const TEXTO_DE_PERSONAS: Record<MailPlatform, { nota: string; sinLista: string }> = {
   mailchimp: {
     nota: "Los correos se ven solo en la audiencia exportada para Mailchimp; aquí se muestran nombre y campos. La lista vive en esta sesión y no entra al proyecto.",
     sinLista: "Sin destinatarios, la vista previa usa una persona de ejemplo y la audiencia no se puede exportar.",
-    nombre: "*|FNAME|*",
   },
   surveymonkey: {
     nota: "Los correos sólo van en contactos_surveymonkey.csv, dentro del paquete; aquí se muestran nombre y campos. La lista vive en esta sesión y no entra al proyecto.",
     sinLista: "Sin lista, la vista previa usa una persona de ejemplo y el paquete sale sin el archivo de contactos.",
-    nombre: "[FirstName]",
   },
 };
 

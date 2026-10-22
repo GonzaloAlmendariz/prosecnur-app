@@ -1,0 +1,29 @@
+/* N5 del re-QA e10: un campo que la campaña no declara se ve como chip en
+   tono de error, con su aviso junto al texto. Sólo tokens. */
+
+.rec-capa-chip.is-invalido {
+  background: var(--pulso-danger-bg);
+  border-color: var(--pulso-danger-border);
+  color: var(--pulso-danger-fg);
+  text-decoration: underline wavy var(--pulso-danger-fg);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.rec-mail-campo-aviso {
+  color: var(--pulso-danger-fg);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.rec-mail-campo-aviso .rec-mail-link {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: inherit;
+  display: inline;
+  font-size: inherit;
+  min-height: 0;
+  padding: 0;
+}

@@ -24,7 +24,7 @@ export function problemaDeUrl(url: string): string | null {
   if (/[()]/.test(u)) return "La dirección no puede llevar paréntesis.";
   if (/^\{\{\s*[a-z][a-z0-9_]*\s*\}\}/.test(u)) return null;
   if (/^(https?:\/\/[^/\s]+|mailto:[^\s@]+@[^\s@]+)/i.test(u)) return null;
-  return "Empieza con https://, mailto: o un campo como {{enlace}}.";
+  return "Empieza con https://, mailto: o un campo de cada persona, como el enlace a la encuesta.";
 }
 
 /**
@@ -90,7 +90,7 @@ export function PopoverDeEnlace({ url, texto, existente, estilo, onAplicar, onQu
         />
       </label>
       <p id={`${id}-ayuda`} className={`rec-capa-pop-ayuda${intento && (problema || sinTexto) ? " is-error" : ""}`} role={intento && problema ? "alert" : undefined}>
-        {intento && sinTexto ? "Escribe el texto del enlace." : intento && problema ? problema : "Puede llevar campos: https://…?c={{codigo}}"}
+        {intento && sinTexto ? "Escribe el texto del enlace." : intento && problema ? problema : "Puede llevar campos de cada persona, como su código."}
       </p>
       <div className="rec-capa-pop-acciones">
         {existente ? (

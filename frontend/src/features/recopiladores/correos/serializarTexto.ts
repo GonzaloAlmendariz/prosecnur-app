@@ -46,6 +46,8 @@ export type OpcionesDeTexto = {
   rotuloDeCampo?: (key: string) => string;
   /** Lo que se lee al pasar el cursor sobre el chip (`{{carrera}} → *|CARRERA|*`). */
   ayudaDeCampo?: (key: string) => string;
+  /** ¿La campaña declara el campo? Si no, el chip sale en tono de error (N5). */
+  campoValido?: (key: string) => boolean;
 };
 
 function escaparHtml(texto: string): string {
@@ -65,10 +67,12 @@ function desescaparAtributo(texto: string): string {
 }
 
 /** El chip de un campo: no se edita por dentro y muestra el rótulo, no el valor. */
-export function htmlDelChip(key: string, opts: Pick<OpcionesDeTexto, "rotuloDeCampo" | "ayudaDeCampo">): string {
+export function htmlDelChip(key: string, opts: Pick<OpcionesDeTexto, "rotuloDeCampo" | "ayudaDeCampo" | "campoValido">): string {
   const rotulo = opts.rotuloDeCampo?.(key) ?? key;
-  const ayuda = opts.ayudaDeCampo?.(key) ?? `{{${key}}}`;
-  return `<span data-campo="${escaparHtml(key)}" contenteditable="false" class="rec-capa-chip" title="${escaparHtml(ayuda)}">${escaparHtml(rotulo)}</span>`;
+  const invalido = opts.campoValido ? !opts.campoValido(key) : false;
+  const ayuda = invalido ? `${rotulo}: no es un campo de esta campaña` : opts.ayudaDeCampo?.(key) ?? rotulo;
+  const clase = invalido ? "rec-capa-chip is-invalido" : "rec-capa-chip";
+  return `<span data-campo="${escaparHtml(key)}" contenteditable="false" class="${clase}" title="${escaparHtml(ayuda)}">${escaparHtml(rotulo)}</span>`;
 }
 
 const LITERAL = "\u0001";

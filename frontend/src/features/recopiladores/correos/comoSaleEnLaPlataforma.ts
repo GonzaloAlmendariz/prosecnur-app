@@ -174,7 +174,7 @@ export function comoSaleEnLaPlataforma(block: MailBlock, template: Pick<MailTemp
     const url = template.images[block.image_ref]?.url;
     const src = url ?? (dialecto === "mailchimp" ? `${block.image_ref}.png` : "");
     lineas.push({ rotulo: "Imagen", app: block.image_ref, plataforma: `<img src="${src}" alt="${block.decorative ? "" : block.alt}">` });
-    if (!url && dialecto === "mailchimp") notas.add("El archivo viaja en el ZIP importable: Mailchimp lo sube y reescribe la ruta.");
+    if (!url && dialecto === "mailchimp") notas.add("La imagen va dentro del archivo para Mailchimp: Mailchimp la sube sola.");
     if (!url && dialecto === "surveymonkey") notas.add("SurveyMonkey sólo muestra imágenes con una URL https pública.");
     if (block.url) {
       lineas.push({ rotulo: "Enlace", app: block.url, plataforma: textoEnLaPlataforma(block.url, template, dialecto, { enUrl: true, notas }) });
@@ -218,13 +218,13 @@ export function comoSaleEnLaPlataforma(block: MailBlock, template: Pick<MailTemp
     notas.add("Sale como una tabla con color de fondo: igual en Outlook, Gmail y el teléfono.");
     if (block.type === "ornament" && (block.style ?? "onda") === "onda") {
       notas.add(dialecto === "mailchimp"
-        ? "La onda es una imagen que la app genera en el color elegido y viaja en el ZIP."
+        ? "La onda es una imagen que la app genera en el color elegido y va dentro del archivo para Mailchimp."
         : "SurveyMonkey no lleva imágenes dentro del correo: la onda sale como una banda sólida.");
     }
   }
   if (block.type === "icon_text") {
     notas.add(dialecto === "mailchimp"
-      ? "El ícono es una imagen cuadrada que la app genera y viaja en el ZIP."
+      ? "El ícono es una imagen cuadrada que la app genera y va dentro del archivo para Mailchimp."
       : "SurveyMonkey sólo muestra el ícono con una dirección web https; sin ella, el texto sale solo.");
   }
   if (block.type === "two_images") {

@@ -7,7 +7,7 @@ import type { MailCheck, MailRecipientsTrato, MailTrato, MailTwoImagesBlock } fr
 import { CUANDO_USARLO, DESCRIPCION_CORTA } from "./BibliotecaDeBloques";
 import { CampoConCampos } from "./CampoConCampos";
 import { causaDelChequeo } from "./comoArreglar";
-import { lugarDeLasAcciones, rectDeLasAcciones } from "./lugarDeLasAcciones";
+import { MARGEN_DE_LAS_ACCIONES, lugarDeLasAcciones, rectDelPunto } from "./lugarDeLasAcciones";
 import { notasDeLectura } from "./modeloCorreo";
 import { fraseDelTrato, lineaDelTrato } from "./modeloTrato";
 import { fraseDeNitidez } from "./nitidez";
@@ -15,32 +15,30 @@ import { VerLosPuntos } from "./VerLosPuntos";
 
 const JERGA = /\*\||\|\*|\{\{|\}\}/;
 
-describe("#7 · la barra del bloque elegido no tapa texto ni imágenes", () => {
-  const zona = { x: 0, y: 200, w: 600, h: 300 };
+describe("#7 → N2/N3 · la barra del bloque elegido va encima de su borde superior", () => {
   const ancho = 200;
 
-  it("encima, si el renglón anterior no llega hasta ella", () => {
-    const renglonCorto = { x: 40, y: 170, w: 200, h: 18 };
-    expect(lugarDeLasAcciones({ zona, ocupados: [renglonCorto], ancho, altoDeLaHoja: 1000 })).toBe("arriba");
+  it("encima del bloque, pegada a su borde, aunque el bloque sea alto (Dos imágenes)", () => {
+    const zona = { x: 0, y: 300, w: 600, h: 620 };
+    const { lugar, rect } = lugarDeLasAcciones({ zona, ancho, visible: { arriba: 0, abajo: 600 } });
+    expect(lugar).toBe("arriba");
+    expect(rect.y + rect.h + MARGEN_DE_LAS_ACCIONES).toBe(zona.y);
   });
 
-  it("si el renglón anterior llega al borde, prueba dentro y después abajo", () => {
-    const renglonLargo = { x: 40, y: 170, w: 540, h: 18 };
-    expect(lugarDeLasAcciones({ zona, ocupados: [renglonLargo], ancho, altoDeLaHoja: 1000 })).toBe("dentro");
-    const primeraLinea = { x: 40, y: 210, w: 540, h: 18 };
-    expect(lugarDeLasAcciones({ zona, ocupados: [renglonLargo, primeraLinea], ancho, altoDeLaHoja: 1000 })).toBe("abajo");
+  it("si encima no se ve, se pega a lo más alto visible del bloque y no se sale de él", () => {
+    const zona = { x: 0, y: 100, w: 600, h: 620 };
+    const { lugar, rect } = lugarDeLasAcciones({ zona, ancho, visible: { arriba: 180, abajo: 700 } });
+    expect(lugar).toBe("pegada");
+    expect(rect.y).toBe(180);
+    const fin = lugarDeLasAcciones({ zona, ancho, visible: { arriba: 760, abajo: 1200 } }).rect;
+    expect(fin.y).toBeGreaterThanOrEqual(760);
   });
 
-  it("nunca se sale de la hoja: arriba del primer bloque no cuenta", () => {
-    const primera = { x: 0, y: 10, w: 600, h: 100 };
-    expect(lugarDeLasAcciones({ zona: primera, ocupados: [], ancho, altoDeLaHoja: 1000 })).toBe("dentro");
-    expect(rectDeLasAcciones(zona, "arriba", ancho).y + 32).toBeLessThanOrEqual(zona.y);
-  });
-
-  it("si todo está ocupado, el lugar que menos tapa", () => {
-    const todo = { x: 0, y: 0, w: 600, h: 1000 };
-    const poco = { x: 0, y: 500, w: 600, h: 40 };
-    expect(lugarDeLasAcciones({ zona, ocupados: [todo, poco], ancho, altoDeLaHoja: 1000 })).toBe("arriba");
+  it("nunca tapa el punto de aviso de la esquina", () => {
+    const zona = { x: 0, y: 300, w: 600, h: 44 };
+    const { rect } = lugarDeLasAcciones({ zona, ancho, visible: { arriba: 0, abajo: 900 } });
+    const punto = rectDelPunto(zona);
+    expect(rect.x + rect.w).toBeLessThan(punto.x);
   });
 });
 

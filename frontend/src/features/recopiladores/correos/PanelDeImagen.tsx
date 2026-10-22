@@ -218,7 +218,7 @@ export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEd
           size="sm"
           value={alojamiento}
           options={[
-            { value: "zip", label: "En el ZIP" },
+            { value: "zip", label: "En el archivo" },
             { value: "url", label: "URL https" },
           ]}
           onChange={(v) => {
@@ -233,11 +233,11 @@ export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEd
           valor={declarada?.url ?? ""}
           mono
           placeholder="https://…/linea-cierre.png"
-          ayuda="Una URL https que no caduque (CDN, GitHub raw). Con ella la imagen no entra al ZIP."
+          ayuda="Una dirección web https que no caduque. Con ella la imagen no va dentro del archivo."
           onCambio={(url) => ponerUrl(url.trim())}
         />
       ) : (
-        <p className="rec-capa-img-ayuda">El archivo va en el ZIP importable con el nombre <code>{block.image_ref}</code>; Mailchimp lo sube y reescribe la ruta.</p>
+        <p className="rec-capa-img-ayuda">La imagen va dentro del archivo para Mailchimp con el nombre <code>{block.image_ref}</code>; Mailchimp la sube sola.</p>
       )}
     </div>
   );

@@ -27,7 +27,8 @@ import {
   type ZonaMedida,
 } from "./estructuraCorreo";
 import { anchoDelChip, lugarDelChip, type LugarDelChip } from "./chipDeApertura";
-import { anchoDeLasAcciones, lugarDeLasAcciones, ocupadosCercaDe, rectDeLasAcciones, type LugarDeLasAcciones } from "./lugarDeLasAcciones";
+import { useTopeDeLaBarra } from "./topeDeLaBarra";
+import { anchoDeLasAcciones, areaVisibleDeLaCapa, lugarDeLasAcciones, type AreaVisible } from "./lugarDeLasAcciones";
 import type { CampoDelMenu } from "./MenuDeCampos";
 import { CABECERA, DESCRIPCION_DE_BLOQUE, ROTULO_DE_PROP, puedeMover, rotuloDeBloque, rotuloDeChequeo, type PropDeTexto } from "./modeloCorreo";
 import { esInsertable, ladosDelPar, type LadoDelPar, type LadoMedido, type TipoInsertable } from "./piezasGraficas";
@@ -56,7 +57,7 @@ type Props = {
   explicaciones: boolean;
   chequeos: Record<string, ChequeosDeZona>;
   campos: readonly CampoDelMenu[];
-  textoDeCampo: Pick<OpcionesDeTexto, "rotuloDeCampo" | "ayudaDeCampo">;
+  textoDeCampo: Pick<OpcionesDeTexto, "rotuloDeCampo" | "ayudaDeCampo" | "campoValido">;
   /** Apertura del envío elegido (`send.opening`); `null` si no se edita aquí. */
   apertura: string | null;
   /** Rótulo del envío dueño de la apertura, para su chip («Sólo en Recordatorio 1»). */
@@ -435,6 +436,7 @@ export function CapaDeEdicion({
   }, [biblioteca]);
 
   const anchoBib = Math.min(ANCHO_DE_BIBLIOTECA, Math.max(320, ancho - 16));
+  const topeBib = useTopeDeLaBarra(raiz, Boolean(biblioteca));
   const bibArriba = biblioteca ? biblioteca.y > alto - 460 && biblioteca.y > 460 : false;
   const elegida = zonas.find((z) => z.id === seleccion && !edicion);
   const bloqueElegido = elegida ? porId.get(elegida.id) : undefined;
@@ -442,18 +444,32 @@ export function CapaDeEdicion({
   const nombreElegido = bloqueElegido ? rotuloDeBloque(bloqueElegido) : "";
   const anchoAcciones = anchoDeLasAcciones(nombreElegido, elegida && esMovible(template, elegida.id) ? 4 : 1);
 
-  // #7: la barra del bloque elegido va donde no tape texto ni imágenes del correo.
-  const [lugarAcciones, setLugarAcciones] = useState<LugarDeLasAcciones>("arriba");
+  // N2/N3: la barra del bloque elegido va encima de su borde superior; si ahí
+  // no se ve, pegada a lo más alto visible del bloque. El área visible se
+  // vuelve a medir al desplazar y al cambiar el tamaño de la ventana.
+  const [visible, setVisible] = useState<AreaVisible | null>(null);
   useLayoutEffect(() => {
-    if (!doc || !elegida || !conAcciones) return;
-    setLugarAcciones(lugarDeLasAcciones({
-      zona: elegida.rect,
-      ocupados: ocupadosCercaDe(doc, elegida.rect, escala),
-      ancho: anchoAcciones,
-      altoDeLaHoja: alto,
-    }));
-  }, [alto, anchoAcciones, conAcciones, doc, elegida, escala, medida]);
-  const rectAcciones = elegida ? rectDeLasAcciones(elegida.rect, lugarAcciones, anchoAcciones) : null;
+    const el = raiz.current;
+    if (!el || !conAcciones) return;
+    let cuadro = 0;
+    const medir = () => {
+      cuadro = 0;
+      const area = areaVisibleDeLaCapa(el, document.querySelector(".rec-mail-barra"));
+      setVisible((v) => (v && Math.abs(v.arriba - area.arriba) < 0.5 && Math.abs(v.abajo - area.abajo) < 0.5 ? v : area));
+    };
+    const pedir = () => { if (!cuadro) cuadro = requestAnimationFrame(medir); };
+    medir();
+    document.addEventListener("scroll", pedir, true);
+    window.addEventListener("resize", pedir);
+    return () => {
+      if (cuadro) cancelAnimationFrame(cuadro);
+      document.removeEventListener("scroll", pedir, true);
+      window.removeEventListener("resize", pedir);
+    };
+  }, [conAcciones, medida, seleccion]);
+  const acciones = elegida ? lugarDeLasAcciones({ zona: elegida.rect, ancho: anchoAcciones, visible }) : null;
+  const lugarAcciones = acciones?.lugar ?? "arriba";
+  const rectAcciones = acciones?.rect ?? null;
 
   return (
     <div
@@ -659,7 +675,8 @@ export function CapaDeEdicion({
           template={template}
           titulo="Insertar aquí"
           arriba={bibArriba}
-          estilo={{ left: Math.max(8, (ancho - anchoBib) / 2), top: bibArriba ? biblioteca.y - 14 : biblioteca.y + 14, width: anchoBib }}
+          // #17: su cabecera pegada queda bajo la barra del correo, no debajo de ella.
+          estilo={{ left: Math.max(8, (ancho - anchoBib) / 2), top: bibArriba ? biblioteca.y - 14 : biblioteca.y + 14, width: anchoBib, "--rec-bib-tope": `${topeBib}px` } as CSSProperties}
           onElegir={(type) => {
             const h = biblioteca.hueco;
             setBiblioteca(null);

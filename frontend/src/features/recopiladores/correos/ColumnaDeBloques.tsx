@@ -29,6 +29,7 @@ import {
   type ProblemasPorDestino,
 } from "./modeloCorreo";
 import type { TipoInsertable } from "./piezasGraficas";
+import { rotuloDeClave } from "./camposDeclarados";
 import "./correosColumna.css";
 
 type Props = {
@@ -153,7 +154,8 @@ function Fila({
 function conRotulos(resumen: string, campos: readonly { key: string; label: string }[]): string {
   return resumen.replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (marca, key: string) => {
     const campo = campos.find((c) => c.key === key);
-    return campo ? `«${campo.label}»` : marca;
+    // N5: un campo no declarado tampoco muestra su llave.
+    return campo ? `«${campo.label}»` : /^[a-z][a-z0-9_]*$/.test(key) ? `«${rotuloDeClave(key)}»` : marca;
   });
 }
 

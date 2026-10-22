@@ -43,7 +43,8 @@
   gap: 10px;
   padding: 10px 10px 10px 14px;
   position: sticky;
-  top: 0;
+  /* El alto de la barra del correo cuando comparten el scroll (topeDeLaBarra.ts). */
+  top: var(--rec-bib-tope, 0px);
   z-index: 1;
 }
 

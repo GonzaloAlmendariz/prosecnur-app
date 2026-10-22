@@ -202,6 +202,8 @@ type Acciones = {
   vistaPreviaInicio: () => void;
   vistaPreviaLista: (preview: MailPreview) => void;
   vistaPreviaFallo: (mensaje: string, problemas?: MailProblem[]) => void;
+  /** No se pidió la vista previa (un campo no declarado): queda la última buena, sin error del servidor. */
+  vistaPreviaRetenida: () => void;
   revisionInicio: () => void;
   revisionLista: (review: MailReview | null) => void;
   setProblemas: (problemas: MailProblem[]) => void;
@@ -351,10 +353,14 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
   editar: (update, grupo) => set((s) => {
     if (!s.borrador) return {};
     const siguiente = update(s.borrador);
-    if (siguiente === s.borrador || huellaDeEdicion(siguiente) === huellaDeEdicion(s.borrador)) return {};
+    if (siguiente === s.borrador) return {};
+    const antes = huellaDeEdicion(s.borrador);
+    const despues = huellaDeEdicion(siguiente);
+    if (antes === despues) return {};
     return {
       borrador: siguiente,
-      historial: registrarCambio(s.historial, s.borrador, grupo ? { texto: grupo, ahora: Date.now() } : null),
+      // N6: la huella dice qué se escribió; el historial agrupa por palabra.
+      historial: registrarCambio(s.historial, s.borrador, grupo ? { texto: grupo, ahora: Date.now(), antes, despues } : null),
       exportacion: null,
       aviso: null,
     };
@@ -474,6 +480,7 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
   })),
   revisionInicio: () => set({ revisionCargando: true }),
   revisionLista: (revision) => set((s) => ({ revision: revision ?? s.revision, revisionCargando: false })),
+  vistaPreviaRetenida: () => set({ vistaPreviaCargando: false, vistaPreviaError: "" }),
   setProblemas: (problemas) => set({ problemas }),
   setOcupado: (ocupado) => set({ ocupado }),
   setAviso: (aviso) => set({ aviso }),
