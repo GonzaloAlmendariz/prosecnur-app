@@ -117,6 +117,8 @@ export type MonitoreoMailchimpEstado = {
   conectado: boolean;
   list_id: string;
   leido_at: string;
+  /** Monitoreo aún no deja el cruce del universo en caché: se vuelve a pedir. */
+  preparando: boolean;
   umbrales: MonitoreoMailchimpUmbrales;
   avisos: string[];
   publicos: MonitoreoMailchimpPublico[];
@@ -246,6 +248,7 @@ export function normalizeMonitoreoMailchimpEstado(raw: unknown): MonitoreoMailch
     conectado: booleano(r.conectado),
     list_id: texto(r.list_id),
     leido_at: texto(r.leido_at),
+    preparando: booleano(r.preparando),
     umbrales: {
       baja_espaciar: numeroONulo(u.baja_espaciar),
       queja_espaciar: numeroONulo(u.queja_espaciar),

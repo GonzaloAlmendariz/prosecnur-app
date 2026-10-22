@@ -1,0 +1,36 @@
+/* Paleta de públicos de Acreditación (hermana del Sistema Pabellón).
+ *
+ * El índice lo decide `paletaDePublicos` (paletaPublicos.ts); aquí vive el
+ * color, siempre sobre tokens. Cada clase define tres variables que consume
+ * cualquier pieza: `--publico` (relleno sólido de barras y nodos),
+ * `--publico-suave` (fondo) y `--publico-texto` (texto con contraste AA sobre
+ * superficie y sobre el fondo suave: se mezcla con --pulso-text). */
+
+.es-publico-neutro,
+[class*="es-publico-"] {
+  --publico: var(--pulso-text-faint);
+  --publico-suave: color-mix(in srgb, var(--publico) 12%, var(--pulso-surface));
+  --publico-borde: color-mix(in srgb, var(--publico) 36%, var(--pulso-surface));
+  --publico-texto: color-mix(in srgb, var(--publico) 58%, var(--pulso-text));
+}
+
+.es-publico-0 { --publico: var(--pulso-accent-steel); }
+.es-publico-1 { --publico: var(--pulso-accent-green); }
+.es-publico-2 { --publico: var(--pulso-accent-rose); }
+.es-publico-3 { --publico: var(--pulso-accent-amber); }
+.es-publico-4 { --publico: var(--pulso-accent-violet); }
+.es-publico-5 { --publico: var(--pulso-accent-cyan); }
+.es-publico-6 { --publico: var(--pulso-module-routes); }
+.es-publico-7 { --publico: var(--pulso-module-processing); }
+.es-publico-8 { --publico: var(--pulso-module-fieldkit); }
+.es-publico-9 { --publico: var(--pulso-module-encyclopedia); }
+
+/* El punto de identidad: un cuadrito del color del público, delante del nombre. */
+.mon-publico-punto {
+  display: inline-block;
+  flex: 0 0 auto;
+  inline-size: 9px;
+  block-size: 9px;
+  border-radius: 3px;
+  background: var(--publico);
+}

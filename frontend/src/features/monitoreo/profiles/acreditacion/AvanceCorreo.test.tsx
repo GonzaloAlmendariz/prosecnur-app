@@ -58,12 +58,14 @@ const pinta = (s: Partial<EstadoCorreo>, extra: Partial<AvanceCorreoVistaProps> 
     s={{ ...ESTADO_CORREO_INICIAL, cargando: false, ...s }}
     elegida=""
     cambiando={false}
+    ahora={Date.parse("2026-10-22T16:12:00Z")}
     onElegir={noop}
     onGuardarAudiencia={noop}
     onCambiar={noop}
     onCancelarCambio={noop}
     onActualizar={noop}
     onReintentar={noop}
+    onPublico={noop}
     {...extra}
   />,
 );
@@ -150,30 +152,64 @@ describe("modelo de Avance › Correo", () => {
 });
 
 describe("vista de Avance › Correo", () => {
-  it("con datos pinta las tres piezas, los avisos y la marca lista", () => {
+  it("con datos pinta cabecera, embudo, públicos, cronología, envíos e inválidos", () => {
     const html = pinta({ estado: estadoDe(), audiencias: [{ id: "e1a9ab97a5", name: "PULSO PUCP", member_count: 22820 }] });
     expect(html).toContain('data-audit-ready="monitoreo-correo"');
     expect(html).toContain("PULSO PUCP");
-    expect(html).toContain("Leído el");
+    expect(html).toContain("Leído hace 12 min");
     expect(html).toContain("Actualizar desde Mailchimp");
-    expect(html).toContain("Por público");
-    expect(html).toContain("Por envío");
-    expect(html).toContain("Correos inválidos · 41");
-    expect(html).toContain("No cuentan como «no respondió»: salen de la base alcanzable.");
+    expect(html).toContain("Embudo del correo");
+    expect(html).toContain("Clic en la encuesta");
+    expect(html).toContain("Públicos");
+    expect(html).toContain("Cronología de envíos");
+    expect(html).toContain("Detalle de envíos");
+    expect(html).toContain("Entrega");
+    expect(html).toContain("Interacción");
+    expect(html).toContain("Salida");
+    expect(html).toContain("Correos inválidos");
     expect(html).toContain("2 destinatarios no están en el universo de Monitoreo.");
     expect(html).toContain("Seguir");
     expect(html).toContain("Invitación");
     expect(html).toContain("Rebote");
     expect(html).toContain("ab12cd34ef");
-    expect(html).toContain("Umbrales propuestos, por decidir");
+    expect(html).toContain("Umbrales propuestos");
+    // Tasa con frecuencia y base.
     expect(sinSeparador(html)).toContain("3|120 de 22|779");
-    // C1: el cuerpo declara su grupo y su contrato.
+    // Embudo: respondieron sobre los que hicieron clic, con la base nombrada.
+    expect(sinSeparador(html)).toContain("de 3|300 con clic");
+    // C1: el cuerpo y las colecciones declaran su grupo y su contrato.
     expect(html).toContain('data-qa-geometry-group="monitoreo/acreditacion/avance/correo"');
+    expect(html).toContain('data-qa-geometry-group="monitoreo/acreditacion/avance/correo/embudo"');
+    expect(html).toContain('data-qa-geometry-group="monitoreo/acreditacion/avance/correo/carriles"');
     expect(html).toContain('data-qa-geometry-contract="intrinsic"');
+    // El color del público es el mismo en todas las piezas.
+    expect(html).toMatch(/es-publico-\d/);
   });
 
   it("ningún correo llega a la vista: solo tokens", () => {
     expect(pinta({ estado: estadoDe() })).not.toMatch(/@/);
+  });
+
+  it("nueve públicos sin envíos: el estado se dice una vez, no nueve", () => {
+    const publicos = Array.from({ length: 9 }, (_, i) => ({
+      ...CONTRATO.publicos[0], actor: `Público ${i + 1}`, ritmo: "sin_envios", ritmo_motivo: "El público todavía no recibe envíos.", ultimo: null,
+    }));
+    const html = pinta({ estado: estadoDe({ publicos, envios: [], invalidos: { total: 0, por_actor: [], filas: [] } } as Record<string, unknown>) });
+    expect(html.match(/Sin envíos/g)).toHaveLength(1);
+    expect(html).toContain("Ningún público ha recibido correos de esta audiencia.");
+    expect(html).toContain('data-audit-ready="vacio:sin-envios"');
+  });
+
+  it("el público elegido recalcula el embudo y se marca en la matriz", () => {
+    const html = pinta({ estado: estadoDe(), publico: "Estudiantes de pregrado" });
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain("is-elegida");
+  });
+
+  it("un público que ya no existe no deja el embudo vacío", () => {
+    const html = pinta({ estado: estadoDe(), publico: "Desaparecido" });
+    expect(html).not.toContain("Desaparecido todavía no recibe envíos");
+    expect(html).toContain("Clic en la encuesta");
   });
 
   it("sin conexión dice dónde se conecta Mailchimp", () => {
@@ -198,12 +234,13 @@ describe("vista de Avance › Correo", () => {
   it("sin lecturas invita a actualizar", () => {
     const html = pinta({ estado: estadoDe({ leido_at: "" }) });
     expect(html).toContain("Actualiza desde Mailchimp para traer los envíos.");
+    expect(html).toContain("Sin lecturas");
     expect(html).toContain('data-audit-ready="vacio:sin-lecturas"');
   });
 
   it("sin envíos conserva los públicos y declara su vacío dentro de su bloque", () => {
     const html = pinta({ estado: estadoDe({ envios: [], invalidos: { total: 0, por_actor: [], filas: [] } }) });
-    expect(html).toContain("Por público");
+    expect(html).toContain("Públicos");
     expect(html).toContain("Esta audiencia todavía no tiene envíos");
     expect(html).toContain("Sin correos inválidos");
     expect(html).toContain('data-audit-ready="vacio:sin-envios"');
@@ -213,9 +250,10 @@ describe("vista de Avance › Correo", () => {
     expect(pinta({ cargando: true })).toContain('data-audit-ready="false"');
   });
 
-  it("la lectura en curso muestra su avance", () => {
+  it("la lectura en curso muestra su avance dentro del botón y como estado", () => {
     const html = pinta({ estado: estadoDe(), lectura: { percent: 45, message: "Leyendo destinatarios" } });
     expect(html).toContain("Leyendo Mailchimp — Leyendo destinatarios");
+    expect(html).toContain("Leyendo 45 %");
     expect(html).toContain('role="progressbar"');
     expect(html).toContain('aria-valuenow="45"');
   });

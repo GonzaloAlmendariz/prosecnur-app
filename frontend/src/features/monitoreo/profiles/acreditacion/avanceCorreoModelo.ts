@@ -92,6 +92,15 @@ export function textoUmbrales(u: MonitoreoMailchimpUmbrales): string {
   return `Umbrales propuestos, por decidir: ${partes.join("; ")}. Se miden sobre el último envío de cada público.`;
 }
 
+/** Umbrales como piezas cortas para una leyenda: «Bajas ≥ 0.5 % espaciar». */
+export function piezasDeUmbrales(u: MonitoreoMailchimpUmbrales): { clave: string; texto: string; tono: "warning" | "danger" }[] {
+  const out: { clave: string; texto: string; tono: "warning" | "danger" }[] = [];
+  if (u.baja_espaciar != null) out.push({ clave: "baja", texto: `Bajas ≥ ${porcentaje(u.baja_espaciar)}`, tono: "warning" });
+  if (u.queja_espaciar != null) out.push({ clave: "queja", texto: `Quejas ≥ ${porcentaje(u.queja_espaciar)}`, tono: "warning" });
+  if (u.queja_detener != null) out.push({ clave: "detener", texto: `Quejas ≥ ${porcentaje(u.queja_detener)}`, tono: "danger" });
+  return out;
+}
+
 export function nombreAudiencia(listId: string, audiencias: readonly MonitoreoMailchimpAudiencia[]): string {
   const hallada = audiencias.find((a) => a.id === listId);
   return hallada?.name || listId;
@@ -149,6 +158,7 @@ export type FaseCorreo =
   | "error"
   | "sin-conexion"
   | "sin-audiencia"
+  | "preparando"
   | "sin-lecturas"
   | "sin-envios"
   | "listo";
@@ -164,6 +174,7 @@ export function faseCorreo(input: {
   if (!e) return "cargando";
   if (!e.conectado) return "sin-conexion";
   if (!e.list_id) return "sin-audiencia";
+  if (e.preparando) return "preparando";
   if (!e.leido_at) return "sin-lecturas";
   if (!e.envios.length) return "sin-envios";
   return "listo";
@@ -195,6 +206,8 @@ export type EstadoCorreo = {
   lectura: AvanceDeLectura | null;
   guardandoAudiencia: boolean;
   aviso: string;
+  /** Público elegido para el embudo y los envíos; `""` = todos. */
+  publico: string;
 };
 
 export const ESTADO_CORREO_INICIAL: EstadoCorreo = {
@@ -205,6 +218,7 @@ export const ESTADO_CORREO_INICIAL: EstadoCorreo = {
   lectura: null,
   guardandoAudiencia: false,
   aviso: "",
+  publico: "",
 };
 
 export type AccionCorreo =
@@ -215,7 +229,8 @@ export type AccionCorreo =
   | { tipo: "guardar-audiencia" }
   | { tipo: "lectura-inicio" }
   | { tipo: "lectura-avance"; avance: AvanceDeLectura }
-  | { tipo: "lectura-fin"; estado: MonitoreoMailchimpEstado; aviso: string };
+  | { tipo: "lectura-fin"; estado: MonitoreoMailchimpEstado; aviso: string }
+  | { tipo: "publico"; publico: string };
 
 export function reducirCorreo(s: EstadoCorreo, a: AccionCorreo): EstadoCorreo {
   switch (a.tipo) {
@@ -235,6 +250,9 @@ export function reducirCorreo(s: EstadoCorreo, a: AccionCorreo): EstadoCorreo {
       return s.lectura ? { ...s, lectura: a.avance } : s;
     case "lectura-fin":
       return { ...s, estado: a.estado, lectura: null, cargando: false, aviso: a.aviso };
+    case "publico":
+      // Elegir el público ya elegido lo suelta: vuelve a «todos».
+      return { ...s, publico: s.publico === a.publico ? "" : a.publico };
     default:
       return s;
   }

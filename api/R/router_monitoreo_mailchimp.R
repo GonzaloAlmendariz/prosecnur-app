@@ -21,8 +21,10 @@
   if (!is.list(snap) || !identical(snap$schema, "monitoreo_mailchimp_v1")) .mcm_snapshot_vacio() else snap
 }
 
-# El universo de Monitoreo ya cruzado: primero del tablero en caché (lo deja el
-# warmup); si no hay, se arma con el cruce memoizado, como hace Consultas.
+# El universo de Monitoreo ya cruzado, del tablero de Consultas que deja el
+# warmup en la sesión. Si todavía no está, devuelve NULL: recalcular el cruce
+# aquí bloqueaba el hilo de la API minutos con 45 mil contactos, y la vista
+# prefiere decir «preparando» y volver a pedir.
 .mcm_case_rollup <- function(sid) {
   s <- session_get(sid)
   for (clave in c("monitoreo_dashboard_cache_queries_summary", "monitoreo_dashboard_cache_full", "monitoreo_dashboard_cache")) {
@@ -30,17 +32,24 @@
     if (is.list(rollup) && length(rollup)) return(rollup)
   }
   data <- s$monitoreo_snapshot$data
+  # Sin corte no hay nada que esperar: universo vacío, no «preparando».
   if (!is.data.frame(data) || !nrow(data)) return(list())
-  cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
-  iq <- .monitoreo_acreditacion_queries_hidratadas(data, cfg$monitoreo_profile, NULL)
-  iq$case_rollup %||% list()
+  NULL
 }
+
+.mcm_preparando_aviso <- "Monitoreo está preparando el cruce del universo; en unos minutos aparecen los públicos."
 
 monitoreo_mailchimp_estado <- function(sid) {
   snap <- .mcm_snapshot(sid)
   conectado <- nzchar(.connections_token_state("mailchimp", sid)$token)
-  modelo <- monitoreo_mailchimp_modelo(snap, .mcm_case_rollup(sid))
-  c(list(ok = TRUE, conectado = conectado, list_id = .mcm_chr(snap$list_id), leido_at = .mcm_chr(snap$leido_at)), modelo)
+  rollup <- .mcm_case_rollup(sid)
+  base <- list(ok = TRUE, conectado = conectado, list_id = .mcm_chr(snap$list_id), leido_at = .mcm_chr(snap$leido_at),
+               preparando = is.null(rollup))
+  if (is.null(rollup)) {
+    return(c(base, list(publicos = list(), envios = list(), invalidos = list(total = 0L, por_actor = list(), filas = list()),
+                        umbrales = .MCM_UMBRALES, avisos = list(.mcm_preparando_aviso))))
+  }
+  c(base, monitoreo_mailchimp_modelo(snap, rollup))
 }
 
 monitoreo_mailchimp_audiencias <- function(sid) {
