@@ -6,6 +6,8 @@ import {
   apiMailCampaignCreate,
   apiMailCampaignDelete,
   apiMailExport,
+  apiMailImageUpload,
+  normalizeMailImageReduccion,
   apiMailRecipients,
   apiMailRecipientsDelete,
   apiMailRecipientsImport,
@@ -773,5 +775,50 @@ describe("piezas gráficas (E1o)", () => {
   test("los chequeos nuevos están en el registro", () => {
     expect(MAIL_CHECK_CODES).toContain("piezas_contrast");
     expect(MAIL_CHECK_CODES).toContain("icon_text_sm_icon");
+  });
+});
+
+describe("subida de imagen del correo: la reducción (2026-10-22)", () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  test("normaliza la reducción de R (escalares en vector, pesos y aviso nulo)", () => {
+    expect(normalizeMailImageReduccion({
+      reducida: [true], convertida: [false], de: ["3201×1801"], a: ["1200×675"],
+      peso_antes: [6920000], peso_despues: [983000], formato_antes: ["png"], formato_despues: ["png"], aviso: null,
+    })).toEqual({
+      reducida: true, convertida: false, de: "3201×1801", a: "1200×675",
+      peso_antes: 6920000, peso_despues: 983000, formato_antes: "png", formato_despues: "png", aviso: null,
+    });
+    const conAviso = normalizeMailImageReduccion({ reducida: true, convertida: true, a: "1200×675", aviso: ["Las zonas transparentes quedaron en blanco."] });
+    expect(conAviso?.aviso).toBe("Las zonas transparentes quedaron en blanco.");
+    expect(conAviso?.peso_antes).toBe(0);
+  });
+
+  test("ausente, ilegible o reducida sin medida final es null", () => {
+    expect(normalizeMailImageReduccion(undefined)).toBeNull();
+    expect(normalizeMailImageReduccion("reducida")).toBeNull();
+    expect(normalizeMailImageReduccion([])).toBeNull();
+    expect(normalizeMailImageReduccion({ reducida: true, a: "" })).toBeNull();
+    expect(normalizeMailImageReduccion({ reducida: false, de: "600×300", a: "600×300", aviso: "" })?.aviso).toBeNull();
+  });
+
+  test("apiMailImageUpload devuelve la reducción del meta del archivo", async () => {
+    vi.stubGlobal("localStorage", { getItem: (k: string) => (k === SESSION_KEY ? "sid-1" : null), setItem: () => {}, removeItem: () => {} });
+    const respuesta = (body: unknown) => vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify(body), {
+      status: 200, headers: { "Content-Type": "application/json" },
+    }));
+    const archivo = new File([new Uint8Array([1, 2, 3])], "banner.png", { type: "image/png" });
+
+    const conReduccion = respuesta({ file_id: "f1", original_name: "banner.png", reduccion: { reducida: true, a: "1200×675", de: "3201×1801" } });
+    vi.stubGlobal("fetch", conReduccion);
+    const out = await apiMailImageUpload(archivo, "banner");
+    expect(String(conReduccion.mock.calls[0][0])).toContain("kind=mail_image");
+    expect(out.file_id).toBe("f1");
+    expect(out.reduccion?.reducida).toBe(true);
+    expect(out.reduccion?.a).toBe("1200×675");
+
+    // Un backend anterior no la manda: la subida sigue valiendo.
+    vi.stubGlobal("fetch", respuesta({ file_id: "f2", original_name: "banner.png" }));
+    expect((await apiMailImageUpload(archivo, "banner")).reduccion).toBeNull();
   });
 });

@@ -1,0 +1,19 @@
+/* La línea que dice que una imagen se redujo al subirla. Sobria: texto tenue,
+   un check en el tono de lo resuelto; ocupa su propia fila. */
+.rec-img-reducida {
+  align-items: flex-start;
+  color: var(--pulso-text-muted);
+  display: flex;
+  flex-basis: 100%;
+  font-size: 11.5px;
+  gap: 5px;
+  line-height: 1.4;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.rec-img-reducida-icono {
+  color: var(--pulso-success-fg);
+  flex: none;
+  margin-top: 1px;
+}

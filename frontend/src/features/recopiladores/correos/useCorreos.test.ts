@@ -35,8 +35,10 @@ describe("avisoDeImportacion", () => {
 describe("avisoDeImagen", () => {
   test("dice el motivo del rechazo de una imagen sin el detalle interno", () => {
     const err = (reason: string) => new MailApiError("E_COLLECTION_MAIL_IMAGE_INVALID", "interno", 422, { reason });
-    expect(avisoDeImagen(err("too_large"))).toMatch(/1 MB/);
-    expect(avisoDeImagen(err("width"))).toMatch(/1\.200 px/);
+    // Desde 2026-10-22 lo grande se reduce solo: too_large es lo que no se puede reducir.
+    expect(avisoDeImagen(err("too_large"))).toMatch(/demasiado grande para reducirla/);
+    expect(avisoDeImagen(err("too_large"))).not.toMatch(/1 MB/);
+    expect(avisoDeImagen(err("width"))).toMatch(/al menos 40 px/);
     expect(avisoDeImagen(err("format"))).toMatch(/PNG o JPEG/);
     expect(avisoDeImagen(err("otro"))).not.toContain("interno");
   });

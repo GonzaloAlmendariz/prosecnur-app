@@ -5,6 +5,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { AlertCircle, Check, CheckCircle2, ImagePlus, Link2, Trash2 } from "../../../vendor/lucide-react";
 import { Segmented } from "../../xlsformEditor/kit";
 import { AjustesDelCorreo } from "./AjustesDelCorreo";
+import { AvisoDeReduccion } from "./AvisoDeReduccion";
 import { Cuentagotas } from "./Cuentagotas";
 import { EstiloDelCorreo } from "./EstiloDelCorreo";
 import { srcDeImagenDelBloque } from "./estructuraCorreo";
@@ -191,6 +192,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
           {" La app revisa que mida al menos 1200 px de ancho, tenga forma de banner y no pese de más."}
           {plataforma === "surveymonkey" ? " El banner de la encuesta se carga directo en SurveyMonkey y no pasa por aquí." : null}
         </span>
+        <AvisoDeReduccion imageId={bannerId} />
         {/* Con el banner de cabecera no sale la franja: sólo se declara, para cuando se vuelva a los logos. */}
         {/* Sólo sobre un banner que ya se ve: una subida rechazada no pregunta nada. */}
         {conBanner && srcDelBanner ? (
@@ -288,6 +290,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
                     onChange={(e) => editarImagen(id, { alt: e.target.value })}
                   />
                   <EnlaceDeLaImagen nombre={`el logo ${nombre}`} url={img.url} plataforma={plataforma} onCambio={(url) => editarImagen(id, { url })} />
+                  <AvisoDeReduccion imageId={id} />
                 </span>
               </li>
             );

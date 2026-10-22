@@ -6,18 +6,22 @@ import { Switch } from "../../../components/Switch";
 import { ImagePlus, Upload } from "../../../vendor/lucide-react";
 import { Segmented } from "../../xlsformEditor/kit";
 import { ajustesDe, anchoDeImagen, conAjuste, valorDeAjuste } from "./ajustesDeBloque";
+import { AvisoDeReduccion } from "./AvisoDeReduccion";
 import { CampoDeTexto } from "./CampoDeTexto";
 import { conTraeLogos, esBannerDeArriba, franjaPorElBanner, hayFranjaDeLogos, propDelProblema, traeLogosDe } from "./modeloCorreo";
 import { PreguntaLogosDelBanner } from "./PreguntaLogosDelBanner";
 import { descripcionesPendientes } from "./piezasGraficas";
 
-/** Límite de la subida (`mail_image`): el backend rechaza sobre 1 MB. */
-export const PESO_MAXIMO_DE_IMAGEN = 1024 * 1024;
+/**
+ * Límite de la subida (`mail_image`). Lo que pasa de 1.200 px o de 1 MB el
+ * backend lo reduce solo; sólo rechaza por encima de 40 MB (o de 16 MP).
+ */
+export const PESO_MAXIMO_DE_IMAGEN = 40 * 1024 * 1024;
 
 /** Lo que se puede saber de un archivo antes de subirlo. */
 export function problemaDelArchivo(file: Pick<File, "name" | "type" | "size">): string | null {
   if (!extensionDeImagen(file)) return "La imagen tiene que ser PNG o JPEG.";
-  if (file.size > PESO_MAXIMO_DE_IMAGEN) return "La imagen pesa más de 1 MB: redúcela antes de subirla.";
+  if (file.size > PESO_MAXIMO_DE_IMAGEN) return "La imagen pesa más de 40 MB: exporta una versión más liviana y vuelve a subirla.";
   return null;
 }
 
@@ -34,7 +38,7 @@ type Props = {
 };
 
 /**
- * Inspector de un bloque `image` (E1g §B): el archivo (PNG o JPEG hasta 1 MB),
+ * Inspector de un bloque `image` (E1g §B): el archivo (PNG o JPEG; si viene grande se reduce al subirlo),
  * su texto alternativo —obligatorio—, el ancho, la alineación, a todo el ancho,
  * el enlace y dónde se aloja para el envío.
  */
@@ -96,7 +100,7 @@ export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEd
         <PulsoButton variant={vista ? "secondary" : "primary"} size="sm" disabled={ocupado} onClick={() => archivo.current?.click()}>
           <Upload size={14} aria-hidden /> {vista ? "Reemplazar la imagen" : "Subir imagen"}
         </PulsoButton>
-        <span className="rec-capa-img-ayuda">PNG o JPEG, hasta 1 MB y de 40 a 1.200 px de ancho. Súbela al doble del ancho que tendrá.</span>
+        <span className="rec-capa-img-ayuda">PNG o JPEG. Súbela al doble del ancho que tendrá; si pasa de 1.200 px o de 1 MB, la reducimos al subirla.</span>
         <input
           ref={archivo}
           type="file"
@@ -109,7 +113,7 @@ export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEd
             event.target.value = "";
           }}
         />
-        {error ? <p className="rec-mail-problemas" role="alert">{error}</p> : null}
+        {error ? <p className="rec-mail-problemas" role="alert">{error}</p> : <AvisoDeReduccion imageId={block.image_ref} />}
       </div>
       {/* Un banner a sangre puede traer los logos incrustados: con la franja, saldrían dos veces. */}
       {bleed && vista ? (
