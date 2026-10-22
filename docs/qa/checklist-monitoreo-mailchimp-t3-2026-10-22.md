@@ -84,7 +84,7 @@ Reglas:
 
 ## Notas
 
-- **Primera pasada del verificador: rechazada (corregido).** Encontró que un envío sin destinatarios leídos tumbaba `/estado`, que un destinatario sin token heredaba el público de una fila del universo sin token, que la tasa sobre la base alcanzable podía pasar de 100 %, que una respuesta con solo fecha no se atribuía al envío de ese día, y que el job publicaba el snapshot entero. Las cinco se corrigieron, cada una con su test (109 pass; gate del área 404 pass); segunda pasada del verificador: aprueba.
+- **Primera pasada del verificador: rechazada (corregido).** Encontró que un envío sin destinatarios leídos tumbaba `/estado`, que un destinatario sin token heredaba el público de una fila del universo sin token, que la tasa sobre la base alcanzable podía pasar de 100 %, que una respuesta con solo fecha no se atribuía al envío de ese día, y que el job publicaba el snapshot entero. Las cinco se corrigieron, cada una con su test (110 pass; gate del área 404 pass); segunda pasada del verificador: aprueba.
 
 - **Tipo de envío por orden, no por segmento**: el recordatorio del piloto (21/10) se armó a mano sin excluir «Respondió»; el tipo sale del orden dentro del público (1 = invitación).
 - **Aperturas por público incluyen las automáticas de Apple**: Mailchimp no las separa por persona; la cifra sin Apple solo existe por envío (`aperturas_sin_proxy`).
