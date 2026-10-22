@@ -5,8 +5,8 @@
 // humano (su descripción, o el papel que cumple) y la frase de lo que falta
 // subir. Ningún id llega a la pantalla desde aquí.
 
-import type { MailTemplate } from "../../../api/materialMail";
-import { altPendiente } from "./modeloCorreo";
+import type { MailBlock, MailTemplate } from "../../../api/materialMail";
+import { altPendiente, resumenDeBloque } from "./modeloCorreo";
 
 type Plantilla = Pick<MailTemplate, "header" | "images" | "blocks">;
 
@@ -91,4 +91,39 @@ export function fraseDeLoQueFalta(template: Plantilla, ids: readonly string[]): 
 /** Ids de la revisión (`images_available`) que no tienen archivo, sin repetir. */
 export function idsSinArchivo(items: readonly unknown[]): string[] {
   return Array.from(new Set(items.filter((i): i is string => typeof i === "string" && i.length > 0)));
+}
+
+/**
+ * Lo que la imagen dice ser: su descripción o el nombre de una imagen de serie.
+ * A diferencia de `nombreDeImagen`, no cae al id ni al papel: `""` si no hay
+ * nada humano que decir (una imagen decorativa, una recién subida sin alt).
+ */
+export function descripcionDeImagen(template: Plantilla, id: string): string {
+  const alt = altDe(template, id);
+  // El texto de serie de un bloque nuevo («Describe la imagen de la derecha») pide la descripción: no lo es.
+  return (INSTRUCCION_DE_ALT.test(alt) ? "" : alt) || CONOCIDAS[id]?.nombre || "";
+}
+
+/** Lo que traen de serie los bloques de imagen nuevos (`bloqueNuevo`): una instrucción, no una descripción. */
+const INSTRUCCION_DE_ALT = /^describe la imagen( de la (izquierda|derecha))?$/i;
+
+/** Subtítulo de la fila de la cabecera: «2 logos» o la descripción del banner; nunca su tipo ni su id. */
+export function resumenDeCabecera(template: Plantilla): string {
+  const header = template.header;
+  if (header.kind === "logos") return `${header.logo_ids.length} ${header.logo_ids.length === 1 ? "logo" : "logos"}`;
+  const descripcion = descripcionDeImagen(template, header.image_ref);
+  // «Banner» ya es el título de la fila: repetirlo abajo no dice nada.
+  return descripcion.toLocaleLowerCase("es-PE") === "banner" ? "" : descripcion;
+}
+
+/** Subtítulo de la fila de un bloque: las imágenes por su descripción, nunca por su id. */
+export function resumenDeFila(template: Plantilla, block: MailBlock): string {
+  // El alt del bloque se muestra como se muestra el texto de un párrafo; sin él,
+  // la descripción de la imagen. Nunca el id del archivo.
+  const lado = (alt: string, id: string) => (altPendiente(alt) ? descripcionDeImagen(template, id) : alt.trim());
+  if (block.type === "image") return block.decorative ? "" : lado(block.alt, block.image_ref);
+  if (block.type === "two_images") {
+    return [lado(block.alt_left, block.left), lado(block.alt_right, block.right)].filter(Boolean).join(" · ");
+  }
+  return resumenDeBloque(block);
 }

@@ -4,7 +4,10 @@
   align-items: flex-start;
   color: var(--pulso-text-muted);
   display: flex;
-  flex-basis: 100%;
+  /* No `flex-basis: 100%`: dentro de un lado del par (flex en columna) eso es
+     el ALTO y dejaba 62 px en blanco recortando la miniatura (QA e15). */
+  flex: 0 0 auto;
+  width: 100%;
   font-size: 11.5px;
   gap: 5px;
   line-height: 1.4;

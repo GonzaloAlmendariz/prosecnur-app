@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useMemo, useRef } from "react";
 
 import type { MailCheck, MailPlatform, MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
@@ -12,12 +12,15 @@ import { srcDeImagenDelBloque } from "./estructuraCorreo";
 import { FranjaDeLogos } from "./FranjaDeLogos";
 import { nombreDeImagen } from "./nombresDeImagen";
 import { PreguntaLogosDelBanner } from "./PreguntaLogosDelBanner";
+import { chequeoDelBannerVisible, medidaDelBanner } from "./reduccionDeImagen";
+import { useCorreosStore } from "./store";
 import { SubirArchivo } from "./SubirArchivo";
 import {
   BANNER_ID,
   MAX_LOGOS,
   idLibre,
   logosDeLaFranja,
+  logosDeLaVistaPrevia,
   slugDeImagen,
   usarBanner,
   usarLogos,
@@ -98,6 +101,15 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
   const srcDelBanner = conBanner
     ? imagenesLocales[bannerId] ?? srcDeImagenDelBloque(htmlDeLaVista, CABECERA) ?? template.images[bannerId]?.url ?? null
     : null;
+  // La miniatura de cada logo, con el mismo respaldo que la franja: lo subido
+  // en esta sesión, lo que ya pinta la vista previa o su URL. Lo último visto
+  // se recuerda, para que pasar al banner (sin logos en la vista) no la vacíe.
+  const reduccionDelBanner = useCorreosStore((st) => st.reducciones[bannerId]);
+  const logosVistos = useRef<Record<string, string>>({});
+  const deLaVista = useMemo(() => logosDeLaVistaPrevia(conBanner ? null : htmlDeLaVista, logos), [conBanner, htmlDeLaVista, logos]);
+  logosVistos.current = { ...logosVistos.current, ...deLaVista };
+  const srcDelLogo = (id: string): string | undefined =>
+    imagenesLocales[id] ?? deLaVista[id] ?? logosVistos.current[id] ?? template.images[id]?.url;
 
   const editarImagen = (id: string, patch: { alt?: string; url?: string }) => onEditar((t) => {
     const actual = t.images[id] ?? { alt: "" };
@@ -182,14 +194,17 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
         <Imagen src={srcDelBanner ?? imagenesLocales[bannerId] ?? template.images[bannerId]?.url} alt={template.images[bannerId]?.alt || "Banner"} banner />
         <span className="rec-mail-banner-fila">
           <b>Banner</b>
-          <span className="xfk-mono">1200 × 600 px</span>
+          {/* Una sola medida: la real guardada (o la de la línea de reducción). */}
+          {conBanner && medidaDelBanner(bannerCheck, reduccionDelBanner) ? (
+            <span className="xfk-mono">{medidaDelBanner(bannerCheck, reduccionDelBanner)}</span>
+          ) : null}
         </span>
         {/* #10: la nota del banner vive en su tarjeta, en la misma ayuda; lo de SurveyMonkey, sólo allí. */}
         <span className="rec-mail-ayuda">
           {conBanner
             ? "Va arriba del correo, a todo el ancho, en lugar de los logos."
             : "Lo envía el cliente. Si lo usas, ocupa la cabecera del correo en lugar de los logos."}
-          {" La app revisa que mida al menos 1200 px de ancho, tenga forma de banner y no pese de más."}
+          {" Debe medir al menos 1200 px de ancho y tener forma de banner."}
           {plataforma === "surveymonkey" ? " El banner de la encuesta se carga directo en SurveyMonkey y no pasa por aquí." : null}
         </span>
         <AvisoDeReduccion imageId={bannerId} />
@@ -203,7 +218,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
           />
         ) : null}
         {conBanner && !altArriba ? datosDelBanner : null}
-        {bannerCheck && conBanner ? (
+        {bannerCheck && conBanner && chequeoDelBannerVisible(bannerCheck) ? (
           <span className={`rec-mail-estado-linea is-${bannerCheck.status}`}>
             {bannerCheck.status === "ok" ? <CheckCircle2 size={13} aria-hidden /> : <AlertCircle size={13} aria-hidden />}
             {bannerCheck.detail}
@@ -256,7 +271,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
             const falta = !tieneArchivo(id) && !img.url;
             return (
               <li key={id} className="rec-mail-logo">
-                <Imagen src={imagenesLocales[id]} alt={img.alt} />
+                <Imagen src={srcDelLogo(id)} alt={img.alt} />
                 <span className="rec-mail-logo-id">
                   <b title={nombre}>{nombre}</b>
                   {falta ? <span className="rec-mail-chip is-warning">falta subirlo</span> : null}
