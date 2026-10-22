@@ -1,0 +1,841 @@
+/* Pestaña Contactos de una campaña de correo (ADR 0112 §4). Sólo tokens; el
+   acento es el musgo del módulo (`--pulso-module-fieldkit`).
+
+   Composición: una columna que crece hacia abajo dentro del panel de la
+   pestaña, que es el único dueño del scroll vertical (No Scroll Jail). La barra
+   queda pegada arriba; las tablas se desplazan en horizontal dentro de sí. */
+
+.rec-contactos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+  padding-bottom: var(--pulso-space-5);
+}
+
+/* La barra: misma línea fina que la del editor, para que cambiar de pestaña no
+   mueva la miga de la campaña. */
+.rec-contactos-barra {
+  align-items: center;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  display: flex;
+  gap: var(--pulso-space-3);
+  justify-content: space-between;
+  padding: 6px var(--pulso-space-2) 6px var(--pulso-space-3);
+  position: sticky;
+  /* El panel tiene relleno: sin el negativo, las filas asoman por encima de
+     la barra al desplazarse. */
+  top: calc(-1 * var(--pulso-rail-bubble-offset));
+  z-index: 6;
+}
+
+/* ---- Títulos y textos comunes -------------------------------------------- */
+
+.rec-contactos-titulo {
+  align-items: center;
+  color: var(--pulso-text);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+  gap: var(--pulso-space-2);
+  line-height: 1.3;
+  margin: 0;
+}
+
+.rec-contactos-titulo > svg {
+  color: var(--pulso-module-fieldkit);
+  flex: none;
+}
+
+.rec-contactos-titulo-cifra {
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-regular);
+}
+
+.rec-contactos-nota,
+.rec-contactos-enlace-estado {
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.rec-contactos-error {
+  color: var(--pulso-danger-fg);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.rec-contactos-listo {
+  align-items: flex-start;
+  color: var(--pulso-success-fg);
+  display: flex;
+  font-size: 13px;
+  gap: 6px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.rec-contactos-listo > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.rec-contactos-aviso {
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius);
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+/* ---- Vacíos ----------------------------------------------------------------
+   El vacío vive en la caja de su sección (C3): alto intrínseco, borde punteado,
+   la causa y una acción. */
+
+.rec-contactos-vacio {
+  align-self: center;
+  margin-top: var(--pulso-space-7);
+  max-width: 560px;
+  width: 100%;
+}
+
+.rec-contactos-vacio-caja {
+  align-items: center;
+  background: var(--pulso-surface-2);
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-text-soft);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  gap: var(--pulso-space-3);
+  justify-content: space-between;
+  min-height: 72px;
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+}
+
+.rec-contactos-vacio-caja > p {
+  flex: 1 1 280px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.rec-contactos-vacio-caja.is-error {
+  background: var(--pulso-danger-bg);
+  border-color: var(--pulso-danger-border);
+  border-style: solid;
+  color: var(--pulso-danger-fg);
+}
+
+/* ---- Cabeza: resumen + enlace ------------------------------------------------ */
+
+.rec-contactos-cabeza {
+  align-items: stretch;
+  display: grid;
+  gap: var(--pulso-space-4);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+}
+
+.rec-contactos-resumen {
+  display: grid;
+  gap: var(--pulso-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-contactos-cifra {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  display: grid;
+  gap: 4px;
+  grid-template-rows: auto auto 1fr;
+  min-height: 112px;
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  position: relative;
+}
+
+.rec-contactos-cifra::before {
+  background: var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-chip);
+  content: "";
+  height: 3px;
+  left: var(--pulso-space-4);
+  position: absolute;
+  top: 0;
+  width: 28px;
+}
+
+.rec-contactos-cifra.is-acento::before {
+  background: var(--pulso-module-fieldkit);
+}
+
+.rec-contactos-cifra.is-aviso::before {
+  background: var(--pulso-warn-border);
+}
+
+.rec-contactos-cifra.is-exito::before {
+  background: var(--pulso-success-border);
+}
+
+.rec-contactos-cifra-titulo {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.rec-contactos-cifra-valor {
+  color: var(--pulso-text);
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.rec-contactos-cifra-detalle {
+  align-self: end;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+.rec-contactos-enlace {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-module-fieldkit-border);
+  border-radius: var(--pulso-radius-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.rec-contactos-enlace-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.rec-contactos-etiqueta {
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-contactos-enlace-fila {
+  align-items: center;
+  display: flex;
+  gap: var(--pulso-space-2);
+}
+
+.rec-contactos-enlace-fila > input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rec-contactos-enlace-fila > .pulso-button {
+  flex: none;
+}
+
+/* ---- Secciones (perfil, cruce, lista) ---------------------------------------- */
+
+.rec-contactos-seccion {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-4);
+}
+
+.rec-contactos-seccion-cabecera {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  justify-content: space-between;
+}
+
+.rec-contactos-herramientas {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
+
+.rec-contactos-herramientas select {
+  max-width: 220px;
+}
+
+.rec-contactos-control {
+  align-items: center;
+  color: var(--pulso-text-soft);
+  display: inline-flex;
+  font-size: 12.5px;
+  gap: 6px;
+}
+
+.rec-contactos-cuenta {
+  background: var(--pulso-module-fieldkit-soft);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-module-fieldkit);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 18px;
+  min-width: 18px;
+  padding: 0 6px;
+  text-align: center;
+}
+
+.rec-contactos-segmentos {
+  background: var(--pulso-bg);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+}
+
+.rec-contactos-segmento {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: calc(var(--pulso-radius) - 3px);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  padding: 4px 10px;
+}
+
+.rec-contactos-segmento.is-on {
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* ---- Filtros activos ------------------------------------------------------------ */
+
+.rec-contactos-filtros {
+  align-items: center;
+  background: var(--pulso-module-fieldkit-soft);
+  border-radius: var(--pulso-radius);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.rec-contactos-filtros-rotulo {
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-contactos-filtros-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-contactos-chip {
+  align-items: center;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-module-fieldkit-border);
+  border-radius: var(--pulso-radius-chip);
+  display: inline-flex;
+  font-size: 12.5px;
+  gap: 2px;
+  max-width: 320px;
+  padding: 2px 4px 2px 10px;
+}
+
+.rec-contactos-chip-texto {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-contactos-chip-columna {
+  color: var(--pulso-text-soft);
+}
+
+.rec-contactos-chip-quitar {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  min-height: 0;
+  padding: 0;
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-text-soft);
+  display: inline-grid;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
+}
+
+/* ---- Distribuciones ------------------------------------------------------------- */
+
+.rec-contactos-distribuciones {
+  align-items: start;
+  display: grid;
+  gap: var(--pulso-space-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr));
+}
+
+.rec-contactos-dist {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: var(--pulso-space-3);
+}
+
+.rec-contactos-dist-cabecera {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--pulso-space-2);
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.rec-contactos-dist-titulo {
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+  margin: 0;
+}
+
+.rec-contactos-dist-meta {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rec-contactos-dist-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Cada fila: nombre · barra · contactos · % [· respondieron]. Las columnas
+   numéricas tienen ancho fijo en `ch` para que las cifras se alineen entre
+   filas y entre tarjetas. */
+.rec-contactos-dist-fila {
+  align-items: center;
+  border-radius: 8px;
+  column-gap: var(--pulso-space-2);
+  display: grid;
+  font-size: 13px;
+  grid-template-columns: minmax(84px, 34%) minmax(48px, 1fr) 7ch 6.5ch;
+  min-height: 30px;
+  padding: 3px 6px;
+  text-align: left;
+  width: 100%;
+}
+
+.rec-contactos-dist-fila.is-con-respuestas {
+  grid-template-columns: minmax(84px, 30%) minmax(40px, 1fr) 7ch 6.5ch 13ch;
+}
+
+.rec-contactos-dist-fila--cabeza {
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+  min-height: 0;
+  padding-bottom: 0;
+  padding-top: 0;
+}
+
+button.rec-contactos-dist-fila {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  min-height: 30px;
+}
+
+button.rec-contactos-dist-fila:hover {
+  background: var(--pulso-surface-2);
+}
+
+button.rec-contactos-dist-fila.is-on {
+  background: var(--pulso-module-fieldkit-soft);
+  box-shadow: inset 3px 0 0 var(--pulso-module-fieldkit);
+}
+
+.rec-contactos-dist-fila .is-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rec-contactos-dist-nombre {
+  color: var(--pulso-text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-contactos-dist-pct,
+.rec-contactos-dist-tasa {
+  color: var(--pulso-text-soft);
+}
+
+.rec-contactos-dist-pista {
+  background: var(--pulso-bg);
+  border-radius: 4px;
+  height: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.rec-contactos-dist-relleno,
+.rec-contactos-dist-respondio {
+  border-radius: 4px;
+  inset: 0 auto 0 0;
+  position: absolute;
+}
+
+.rec-contactos-dist-relleno {
+  background: var(--pulso-module-fieldkit);
+}
+
+/* Con respuestas, la barra de los efectivos baja de tono y quienes
+   respondieron se pintan encima, en el tono pleno. */
+.is-con-respuestas .rec-contactos-dist-relleno {
+  background: var(--pulso-module-fieldkit-border);
+}
+
+.rec-contactos-dist-respondio {
+  background: var(--pulso-module-fieldkit);
+}
+
+.rec-contactos-dist-lista > li:has(.is-sin-dato) {
+  border-top: 1px dashed var(--pulso-border);
+  margin-top: 3px;
+  padding-top: 3px;
+}
+
+.rec-contactos-dist-fila.is-sin-dato {
+  color: var(--pulso-text-soft);
+}
+
+.rec-contactos-dist-fila.is-sin-dato .rec-contactos-dist-nombre {
+  color: var(--pulso-text-soft);
+  font-style: italic;
+}
+
+.rec-contactos-dist-fila.is-sin-dato .rec-contactos-dist-relleno {
+  background: var(--pulso-border-strong);
+}
+
+/* «Otros» agrupa el resto de una variable con muchos valores: no filtra. */
+.rec-contactos-dist-fila.is-otros .rec-contactos-dist-nombre {
+  color: var(--pulso-text-soft);
+}
+
+.rec-contactos-dist-mas {
+  align-self: flex-start;
+  margin: 4px 6px 0;
+}
+
+/* ---- Tablas (cruce y lista) --------------------------------------------------------- */
+
+.rec-contactos-tabla-scroll {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+}
+
+.rec-contactos-tabla-scroll[aria-busy="true"] {
+  opacity: 0.6;
+}
+
+.rec-contactos-tabla {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  min-width: 100%;
+}
+
+.rec-contactos-tabla th,
+.rec-contactos-tabla td {
+  border-bottom: 1px solid var(--pulso-border);
+  padding: 7px 12px;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.rec-contactos-tabla th[scope="row"] {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-medium);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.rec-contactos-tabla tfoot th[scope="row"] {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-contactos-tabla thead th {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-contactos-tabla tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.rec-contactos-tabla .is-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.rec-contactos-sin {
+  color: var(--pulso-text-faint);
+}
+
+.rec-contactos-correo {
+  font-variant-numeric: tabular-nums;
+}
+
+.rec-contactos-estado {
+  border-radius: var(--pulso-radius-chip);
+  display: inline-block;
+  font-size: 12px;
+  padding: 1px 8px;
+}
+
+.rec-contactos-estado.is-efectivo {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.rec-contactos-estado.is-sin_correo,
+.rec-contactos-estado.is-correo_invalido,
+.rec-contactos-estado.is-repetido {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+/* El cruce: primera columna pegada a la izquierda al desplazar en horizontal;
+   cada celda con un tinte del musgo según su peso en la tabla. */
+.rec-contactos-cruce th[scope="row"],
+.rec-contactos-cruce .rec-contactos-cruce-esquina {
+  background: var(--pulso-surface);
+  left: 0;
+  position: sticky;
+  z-index: 1;
+}
+
+.rec-contactos-cruce thead .rec-contactos-cruce-esquina {
+  background: var(--pulso-surface-2);
+}
+
+.rec-contactos-cruce tbody td:not(.rec-contactos-cruce-total) {
+  background: color-mix(in srgb, var(--pulso-module-fieldkit) calc(var(--rec-intensidad, 0) * 24%), var(--pulso-surface));
+}
+
+.rec-contactos-cruce .rec-contactos-cruce-total,
+.rec-contactos-cruce tfoot > tr > * {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-contactos-cruce tfoot > tr > * {
+  background: var(--pulso-surface-2);
+  border-bottom: 0;
+  border-top: 1px solid var(--pulso-border-strong);
+}
+
+.rec-contactos-cruce-base {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-regular);
+}
+
+/* ---- Lista ------------------------------------------------------------------------- */
+
+.rec-contactos-buscar {
+  align-items: center;
+  display: inline-flex;
+  position: relative;
+}
+
+.rec-contactos-buscar > svg {
+  color: var(--pulso-text-faint);
+  left: 10px;
+  pointer-events: none;
+  position: absolute;
+}
+
+.rec-contactos-buscar > input {
+  padding-left: 30px;
+  width: 260px;
+}
+
+.rec-contactos-casilla {
+  align-items: center;
+  color: var(--pulso-text-soft);
+  display: inline-flex;
+  font-size: 12.5px;
+  gap: 6px;
+}
+
+.rec-contactos-paginacion {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  justify-content: flex-end;
+}
+
+.rec-contactos-paginacion-rango {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  margin-right: auto;
+}
+
+.rec-contactos-paginacion-pagina {
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Variables de control (popover) ---------------------------------------------------- */
+
+.rec-contactos-variables {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  box-shadow: var(--pulso-shadow-popover);
+  max-height: min(520px, calc(100vh - 120px));
+  overflow-y: auto;
+  padding: var(--pulso-space-3);
+  width: min(380px, calc(100vw - 32px));
+  z-index: var(--pulso-z-flyout);
+}
+
+.rec-contactos-variables-grupo {
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.rec-contactos-variables-grupo > legend {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  margin-bottom: var(--pulso-space-2);
+  padding: 0;
+}
+
+.rec-contactos-variables-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-contactos-variable {
+  align-items: center;
+  border-radius: 8px;
+  column-gap: var(--pulso-space-2);
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 6px 8px;
+}
+
+.rec-contactos-variable:hover {
+  background: var(--pulso-surface-2);
+}
+
+.rec-contactos-variable > input {
+  grid-row: span 2;
+}
+
+.rec-contactos-variable-nombre {
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.rec-contactos-variable-detalle {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rec-contactos-variables-acciones {
+  border-top: 1px solid var(--pulso-border);
+  display: flex;
+  gap: var(--pulso-space-2);
+  justify-content: flex-end;
+  margin-top: var(--pulso-space-3);
+  padding-top: var(--pulso-space-3);
+}
+
+/* ---- Compacto ---------------------------------------------------------------------------- */
+
+@media (max-width: 1180px) {
+  .rec-contactos-cabeza {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rec-contactos-buscar > input {
+    width: 200px;
+  }
+}
+
+@media (max-width: 1320px), (max-height: 720px) {
+  .rec-contactos {
+    gap: var(--pulso-space-3);
+  }
+
+  .rec-contactos-cifra {
+    min-height: 96px;
+  }
+
+  .rec-contactos-cifra-valor {
+    font-size: 24px;
+  }
+}

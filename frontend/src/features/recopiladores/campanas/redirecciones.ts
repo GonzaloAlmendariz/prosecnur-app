@@ -67,6 +67,11 @@ export const PANELES_DE_LA_LISTA: readonly string[] = [
 
 const SECCION_DEL_CORREO = "correo";
 const PESTANA_DEL_CORREO = "editor";
+/**
+ * Las pestañas de la sección Correo: el editor (aterrizaje) y los contactos
+ * (ADR 0112 §4). Cualquier otra —incluidos los alias viejos— cae en el editor.
+ */
+export const PESTANAS_DEL_CORREO: readonly string[] = [PESTANA_DEL_CORREO, "contactos"];
 
 function limpio(valor: string | undefined): string {
   return (valor ?? "").trim();
@@ -103,14 +108,19 @@ function aAulas(campana: CampanaMaterial, entrada: EntradaDeCampanas): Resolucio
   return resolucion({ vista: "campana", campana, modo: "aulas" }, deseada, entrada);
 }
 
-/** El correo abierto: una sección, su editor; `foco` es el bloque. */
+/**
+ * El correo abierto: una sección con dos pestañas, el editor y los contactos;
+ * `foco` es el bloque del editor y se conserva también en Contactos, donde el
+ * editor sigue montado (oculto) con su borrador.
+ */
 function aCorreo(campana: CampanaMaterial, entrada: EntradaDeCampanas, bloque: string | null): ResolucionDeCampanas {
   const panel = limpio(entrada.panel);
+  const pedida = limpio(entrada.pestana).toLowerCase();
   const deseada: DireccionDeCampanas = {
     modo: "correo",
     campana: campana.id,
     seccion: SECCION_DEL_CORREO,
-    pestana: PESTANA_DEL_CORREO,
+    pestana: PESTANAS_DEL_CORREO.includes(pedida) ? pedida : PESTANA_DEL_CORREO,
     ...(panel && panel !== PANEL_CAMPANAS_LEGADO ? { panel } : {}),
     ...(bloque ? { foco: bloque } : {}),
   };

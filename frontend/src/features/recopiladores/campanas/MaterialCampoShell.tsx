@@ -271,6 +271,7 @@ export function MaterialCampoShell() {
     return (
       <>
         <CampanaCorreoShell
+          campana={vista.campana.id}
           nombre={vista.campana.name}
           cabecera={cabecera}
           campanasAcc={campanasAcc}

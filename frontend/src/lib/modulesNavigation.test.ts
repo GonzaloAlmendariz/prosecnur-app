@@ -300,7 +300,7 @@ describe("manifiesto primario de navegación", () => {
       {
         id: "correo",
         sections: [
-          { id: "correo", to: "/material-campo?modo=correo&seccion=correo", tabs: ["/material-campo?modo=correo&seccion=correo&pestana=editor"] },
+          { id: "correo", to: "/material-campo?modo=correo&seccion=correo", tabs: ["/material-campo?modo=correo&seccion=correo&pestana=editor", "/material-campo?modo=correo&seccion=correo&pestana=contactos"] },
         ],
       },
     ]);

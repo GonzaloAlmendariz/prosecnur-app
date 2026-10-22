@@ -37,6 +37,17 @@ export function projectRelTime(iso: string | null): string {
   return new Date(iso).toLocaleDateString("es-PE");
 }
 
+/**
+ * ADR 0112 §5: quien recibe el `.pulso` recibe los contactos de las campañas
+ * de correo. Al guardar se dice en una línea; `null` si no lleva ninguno.
+ */
+export function avisoDeContactos(campanas: unknown): string | null {
+  const n = typeof campanas === "number" ? campanas : Array.isArray(campanas) ? Number(campanas[0]) : Number.NaN;
+  if (!Number.isFinite(n) || n < 1) return null;
+  const entero = Math.round(n);
+  return `Este proyecto lleva los contactos de ${entero} ${entero === 1 ? "campaña" : "campañas"}`;
+}
+
 export default function ProjectLifecycleDialog({
   intent,
   projectName,
@@ -47,6 +58,7 @@ export default function ProjectLifecycleDialog({
   action,
   error,
   notice,
+  contactosCampanas,
   onCancel,
   onSave,
   onSaveAs,
@@ -58,6 +70,8 @@ export default function ProjectLifecycleDialog({
   projectPath: string;
   dirty: boolean;
   lastSavedAt: string | null;
+  /** Campañas de correo cuyos contactos viajan en el `.pulso`. */
+  contactosCampanas?: number;
   busy: boolean;
   action: ProjectLifecycleAction;
   error: string;
@@ -171,6 +185,9 @@ export default function ProjectLifecycleDialog({
               <span>{dirty ? "Cambios sin guardar" : `Guardado ${projectRelTime(lastSavedAt)}`}</span>
             </div>
             <p>{lead}</p>
+            {avisoDeContactos(contactosCampanas) ? (
+              <p data-testid="proyecto-contactos" role="note">{avisoDeContactos(contactosCampanas)}.</p>
+            ) : null}
           </div>
 
           {projectPath && (

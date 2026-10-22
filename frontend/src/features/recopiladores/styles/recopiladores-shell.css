@@ -248,3 +248,22 @@
    `pulso-phase-pillbar` (theme.css), que es la misma señal que usan Cálculo de
    muestra, Hojas de ruta y Monitoreo. Un punto propio al lado del rótulo era
    una quinta forma de decir lo mismo. */
+
+/* La campaña de correo abierta: Editor y Contactos en el rail (ADR 0112 §4).
+   El editor sigue montado —oculto— mientras se miran los contactos, así que
+   las dos pestañas comparten un contenedor de una sola fila: la visible toma el
+   alto entero y es la dueña de su scroll. */
+.rec-correo-pestanas {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.rec-correo-pestanas > .rec-tab-panel {
+  grid-row: 1;
+  padding: var(--pulso-rail-bubble-offset);
+}
+
+.rec-correo-pestanas > .rec-tab-panel[hidden] {
+  display: none;
+}
