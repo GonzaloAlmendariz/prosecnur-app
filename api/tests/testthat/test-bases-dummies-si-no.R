@@ -58,3 +58,20 @@ test_that("sin madre en el instrumento basta 0 = No y la etiqueta pregunta + opc
   expect_identical(names(attr(out[["P11.1"]], "labels")), c("No", "Sí"))
   expect_identical(names(attr(out[["sel.1"]], "labels")), c("No seleccionado", "Seleccionado"))
 })
+
+test_that("en la hoja de etiquetas una dummy normalizada dice Sí, no la opción de la madre", {
+  df <- data.frame(id = 1:2)
+  df[["P26.1"]] <- structure(c(1, 0), labels = c(`0` = "No", `1` = "Sí"), label = "Emociones Angustia")
+  out <- .aplicar_etiquetas(df, inst_dummies(), valores = "etiquetas")
+  expect_identical(unname(as.character(out[["P26.1"]])), c("Sí", "No"))
+})
+
+test_that("el Excel de bases guarda como número lo que es número, y deja texto lo demás", {
+  d <- data.frame(edad = c("21", "18", NA), cod = c("007", "1", "2"), id = c("a1", "b2", "c3"),
+                  dec = c("1.5", "", "-2"), stringsAsFactors = FALSE)
+  out <- .bases_xlsx_numeros(d)
+  expect_identical(out$edad, c(21, 18, NA))
+  expect_identical(out$dec, c(1.5, NA, -2))
+  expect_type(out$cod, "character")
+  expect_type(out$id, "character")
+})

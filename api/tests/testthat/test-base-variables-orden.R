@@ -46,3 +46,19 @@ test_that("una recodificada declarada va después de su original y de su «_otro
   expect_identical(as.character(out$survey$name),
                    c("P3", "P3_otro", "P3_recod", "P26", "P26_recod", "P27", "suelta"))
 })
+
+test_that("un cruce va al final del bloque de su origen: después de «_otro» y la recodificada", {
+  path <- tempfile(fileext = ".xlsx")
+  openxlsx::write.xlsx(list(
+    survey = data.frame(type = c("select_one g", "text", "text"), name = c("P3", "P3_otro", "P5"),
+                        label = c("G", "Otro", "L"), stringsAsFactors = FALSE),
+    choices = data.frame(list_name = "g", name = "1", label = "Mujer", stringsAsFactors = FALSE)
+  ), path)
+  op <- list(list(codigo = "1", etiqueta = "Mujer"))
+  decl <- list(retiradas = character(0),
+               propias = list(list(name = "P3_recod", label = "G", tipo = "select_one", opciones = op)),
+               calculadas = list(list(nombre = "cruce_identidad", etiqueta = "Identidad", regla = "mapa",
+                                      variables = list("P3"), escala = op)))
+  out <- .base_variables_frames_adaptados(path, decl)
+  expect_identical(as.character(out$survey$name), c("P3", "P3_otro", "P3_recod", "cruce_identidad", "P5"))
+})

@@ -887,6 +887,13 @@
     # XLSForm ya define su etiqueta española (`Sí`). Las columnas derivadas que
     # no existen en survey —como dummies 0/1— mantienen el fallback a attrs.
     pairs <- .bases_choice_pairs_for_var(df, rp_inst, v)
+    # Una dummy ya normalizada a No/Sí (helpers_bases_dummies.R) conserva esas
+    # etiquetas: la lista de la pregunta madre la volvería «Angustia».
+    labs_attr <- attr(col, "labels", exact = TRUE)
+    if (length(labs_attr) == 2L) {
+      pa <- .bases_label_pairs(labs_attr)
+      if (setequal(pa$code, c("0", "1")) && setequal(pa$label, c("No", "S\u00ed"))) pairs <- pa
+    }
     if (!nrow(pairs)) {
       labs <- attr(col, "labels", exact = TRUE)
       if (is.null(labs) || length(labs) == 0L) next
@@ -1024,6 +1031,7 @@
         attributes(data[[v]]) <- NULL
       }
     }
+    data <- .bases_xlsx_numeros(data)  # «21» como 21 (helpers_bases_xlsx_numeros.R)
     openxlsx::writeData(wb, sheet_name, data, startRow = data_row, colNames = FALSE)
     # Estilo: fila 1 bold + fondo gris claro; fila 2 (solo etiquetas) italic.
     header1 <- openxlsx::createStyle(textDecoration = "bold", fgFill = "#E8EAED", halign = "left")
