@@ -160,7 +160,8 @@ describe("Revisión › logos_duplicados", () => {
     const html = renderToStaticMarkup(<PanelRevision revision={revision} cargando={false} onIrAlBloque={noop} />);
     expect(html).toContain("Logos repetidos");
     expect(html).toContain("Quita la franja de logos o marca que el banner no los trae.");
-    expect(html).toContain("Ir a Identidad");
+    // e14: el botón dice adonde lleva (el inspector de la cabecera), no «Ir a Identidad».
+    expect(html).toContain("Ir a la cabecera");
     // El código sólo va en el atributo `data-chequeo`, nunca a la vista.
     expect(html.replace(/<[^>]*>/g, " ")).not.toContain("logos_duplicados");
   });

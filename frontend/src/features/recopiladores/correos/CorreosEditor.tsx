@@ -699,6 +699,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
                 onMover={(id, delta) => st.editar((t) => moverBloque(t, id, delta))}
                 onQuitar={quitarConAviso}
                 onAbrirIdentidad={() => irAPestana("identidad")}
+                onSeleccionar={seleccionar}
                 explicaciones={st.explicaciones}
                 dialecto={dialecto}
                 chequeos={chequeos[st.seleccion === CABECERA ? CABECERA : st.seleccion]?.chequeos ?? []}

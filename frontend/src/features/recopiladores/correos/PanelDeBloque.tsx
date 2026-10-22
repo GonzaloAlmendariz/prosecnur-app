@@ -1,4 +1,4 @@
-import { isOpaqueMailBlock, type MailBlock, type MailCheck, type MailProblem, type MailRecipients, type MailRecipientView, type MailTemplate } from "../../../api/materialMail";
+import { isOpaqueMailBlock, type MailBlock, type MailCheck, type MailImageBlock, type MailProblem, type MailRecipients, type MailRecipientView, type MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ArrowDown, ArrowUp, Palette, Trash2 } from "../../../vendor/lucide-react";
 import { PropRow, Segmented } from "../../xlsformEditor/kit";
@@ -9,7 +9,7 @@ import { ROTULO_DE_ICONO, chequeoDeContraste, conColor, idDelIcono, tieneColor, 
 import { SelectorDeIcono } from "./SelectorDeIcono";
 import { CampoDeTexto } from "./CampoDeTexto";
 import { CampoConCampos } from "./CampoConCampos";
-import { clavesDeclaradas, rotuloDeClave } from "./camposDeclarados";
+import { rotulosDeCampos } from "./rotulosDeCampos";
 import { admiteEnlaces, type Dialecto } from "./comoSaleEnLaPlataforma";
 import { esMultilinea } from "./estructuraCorreo";
 import { LoQueFaltaSubir } from "./LoQueFaltaSubir";
@@ -53,6 +53,8 @@ type Props = {
   onMover: (blockId: string, delta: -1 | 1) => void;
   onQuitar: (blockId: string) => void;
   onAbrirIdentidad: () => void;
+  /** Elige otra zona del correo (la cabecera, un bloque) en el lienzo y aquí. */
+  onSeleccionar?: (id: string) => void;
   /** Modo didáctico: la tarjeta «Qué hace» y «Cómo sale en la plataforma». */
   explicaciones?: boolean;
   dialecto?: Dialecto;
@@ -72,6 +74,13 @@ type Props = {
   onIrAPersonas?: () => void;
 };
 
+/** ¿La edición convirtió el bloque imagen en la cabecera (banner) y lo quitó de la lista? */
+export function pasoALaCabecera(despues: Pick<MailTemplate, "header" | "blocks">, block: Pick<MailImageBlock, "block_id" | "image_ref">): boolean {
+  return despues.header.kind === "banner"
+    && despues.header.image_ref === block.image_ref
+    && !despues.blocks.some((b) => b.block_id === block.block_id);
+}
+
 const AYUDA_DE_PROP: Partial<Record<PropDeTexto, string>> = {
   url: "Dirección web o de correo, o un campo de cada persona.",
   items: "Enter empieza otro punto.",
@@ -85,18 +94,6 @@ const AYUDA_DE_PROP: Partial<Record<PropDeTexto, string>> = {
 const SIN_FORMATO: ReadonlySet<PropDeTexto> = new Set(["url", "alt", "alt_left", "alt_right", "fallback"]);
 // (La dirección, aun sin formato, muestra sus campos como chips: va aparte, abajo.)
 const conFormato = (prop: PropDeTexto) => !SIN_FORMATO.has(prop);
-
-/** El chip de un campo dice su rótulo («Nombre», «Carrera»), nunca la llave del motor. */
-function rotulosDeCampos(template: Pick<MailTemplate, "fields">) {
-  const declaradas = clavesDeclaradas(template);
-  const rotulo = (key: string) => (key === "nombre" ? "Nombre" : template.fields.find((f) => f.key === key)?.label || rotuloDeClave(key));
-  return {
-    rotuloDeCampo: rotulo,
-    ayudaDeCampo: (key: string) => `${rotulo(key)}: cambia con cada persona`,
-    // N5: lo que la campaña no declara sale como chip inválido, con su aviso.
-    campoValido: (key: string) => declaradas.has(key),
-  };
-}
 
 function problemasDe(lista: readonly MailProblem[], prop: string): MailProblem[] {
   return lista.filter((p) => propDelProblema(p.path) === prop);
@@ -163,6 +160,7 @@ export function PanelDeBloque({
   onMover,
   onQuitar,
   onAbrirIdentidad,
+  onSeleccionar,
   explicaciones = false,
   dialecto = "mailchimp",
   chequeos = [],
@@ -299,7 +297,12 @@ export function PanelDeBloque({
           problemas={propios}
           ocupado={ocupado}
           onEditarBloque={(update, grupo) => onEditarBloque(block.block_id, update, grupo)}
-          onEditar={onEditar}
+          onEditar={(update, grupo) => {
+            onEditar(update, grupo);
+            // «Quitar la franja de logos»: el bloque pasa a ser la cabecera. Se
+            // elige la cabecera para que se vea el resultado, no un inspector vacío.
+            if (pasoALaCabecera(update(template), block)) onSeleccionar?.(CABECERA);
+          }}
           onSubir={(file) => onSubirImagen?.(block.block_id, file)}
         />
       ) : null}

@@ -1,10 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { MAIL_CHECK_CODES, normalizeMailReview, type MailCheck } from "../../../api/materialMail";
+import { MAIL_CHECK_CODES, normalizeMailReview, type MailCheck, type MailImageBlock, type MailTemplate } from "../../../api/materialMail";
 import { arregloEnLaRevision, causaDelChequeo, comoArreglar } from "./comoArreglar";
-import { cifraDeChequeo, partesDeRevision, resumenDeRevision, rotuloDeChequeo, TODO_EN_ORDEN } from "./modeloCorreo";
-import { PanelRevision } from "./PanelRevision";
+import { CABECERA, cifraDeChequeo, franjaPorElBanner, partesDeRevision, resumenDeRevision, rotuloDeChequeo, TODO_EN_ORDEN } from "./modeloCorreo";
+import { pasoALaCabecera } from "./PanelDeBloque";
+import { PanelRevision, salidaDelChequeo, textoDelItem } from "./PanelRevision";
 
 const chk = (code: string, status: MailCheck["status"], value: MailCheck["value"] = 0, detail = ""): MailCheck => ({
   code, status, value, detail, items: [], targets: [],
@@ -127,5 +128,68 @@ describe("Revisión › sin jerga en lo que se ve", () => {
     expect(html).toContain("dmarc_alignment");
     expect(html).toContain("El remitente no está alineado.");
     expect(comoArreglar("dmarc_alignment")).toBeNull();
+  });
+});
+
+describe("Revisión › «Logos repetidos» nombra y lleva a donde dice (e14)", () => {
+  const BANNER: MailImageBlock = { block_id: "banner-arriba", type: "image", image_ref: "contabilidad-1200", alt: "Contabilidad PUCP: encuesta de acreditación", bleed: true };
+  const PLANTILLA: MailTemplate = {
+    schema: "collection_mail_template/v1",
+    template_id: "correo",
+    revision: 1,
+    subject: "Acreditación",
+    preheader: "",
+    theme: { accent: "#0b1f54" },
+    header: { kind: "logos", logo_ids: ["logo-cliente", "pulso"], background: "light" },
+    images: { "logo-cliente": { alt: "Contabilidad PUCP" }, pulso: { alt: "Pulso PUCP" }, "contabilidad-1200": { alt: "", trae_logos: true } },
+    fields: [{ key: "carrera", tag: "CARRERA", label: "Carrera" }],
+    blocks: [BANNER, { block_id: "texto", type: "paragraph", text: "Hola" }],
+  };
+  const DUPLICADOS = normalizeMailReview({
+    checks: [{
+      code: "logos_duplicados", status: "warning", value: 1, detail: "Los logos podrían salir dos veces.",
+      items: ["contabilidad-1200"], targets: [{ block_id: "__cabecera" }, { block_id: "banner-arriba" }],
+    }],
+  });
+
+  it("la fila dice el nombre de la imagen, no su id", () => {
+    const html = renderToStaticMarkup(<PanelRevision revision={DUPLICADOS} cargando={false} template={PLANTILLA} onIrAlBloque={() => undefined} />);
+    expect(html).toContain("Contabilidad PUCP: encuesta de acreditación");
+    expect(html.replace(/<[^>]*>/g, " ")).not.toContain("contabilidad-1200");
+  });
+
+  it("sin plantilla con qué nombrarla, la fila de imagen no se pinta", () => {
+    const html = renderToStaticMarkup(<PanelRevision revision={DUPLICADOS} cargando={false} onIrAlBloque={() => undefined} />);
+    expect(html).not.toContain("rec-mail-chk-items");
+    expect(html.replace(/<[^>]*>/g, " ")).not.toContain("contabilidad-1200");
+  });
+
+  it("los demás chequeos de imagen y de campo tampoco pintan ids ni llaves", () => {
+    expect(textoDelItem("images_alt", "logo-cliente", PLANTILLA)).toBe("Contabilidad PUCP");
+    expect(textoDelItem("images_public_url", "pulso", PLANTILLA)).toBe("Pulso PUCP");
+    expect(textoDelItem("image_weight", { id: "contabilidad-1200", size_bytes: 828071 }, PLANTILLA)).toBe("Contabilidad PUCP: encuesta de acreditación · 809 KB");
+    expect(textoDelItem("import_zip_weight", { id: "pulso", file: "pulso.png", size_bytes: 2048 }, PLANTILLA)).toBe("Pulso PUCP · 2 KB");
+    expect(textoDelItem("sm_fallback", "carrera", PLANTILLA)).toBe("Carrera");
+    expect(textoDelItem("sm_fields_mapped", "nombre", PLANTILLA)).toBe("Nombre");
+    expect(textoDelItem("sm_custom_limit", "trato", PLANTILLA)).toBe("Saludo según la persona");
+  });
+
+  it("con la cabecera descrita el botón dice «Ir a la cabecera»; sin descripción, «Ir a Identidad»", () => {
+    const html = renderToStaticMarkup(<PanelRevision revision={DUPLICADOS} cargando={false} template={PLANTILLA} onIrAlBloque={() => undefined} />);
+    expect(html).toContain("Ir a la cabecera");
+    expect(html).not.toContain("Ir a Identidad");
+    const sinAlt = { ...PLANTILLA, images: { ...PLANTILLA.images, pulso: { alt: "" } } };
+    expect(renderToStaticMarkup(<PanelRevision revision={DUPLICADOS} cargando={false} template={sinAlt} onIrAlBloque={() => undefined} />)).toContain("Ir a Identidad");
+    // El logo que falta se sube donde lleva el botón.
+    expect(salidaDelChequeo("images_available", CABECERA, undefined, { cabeceraSinAlt: false }).texto).toBe("Subir en la cabecera");
+    expect(salidaDelChequeo("images_available", CABECERA, undefined, { cabeceraSinAlt: true }).texto).toBe("Subir en Identidad");
+    expect(salidaDelChequeo("logos_duplicados", CABECERA, undefined, { cabeceraSinAlt: false }).texto).toBe("Ir a la cabecera");
+  });
+
+  it("«Quitar la franja de logos» deja el bloque como cabecera: se elige la cabecera", () => {
+    expect(pasoALaCabecera(franjaPorElBanner(PLANTILLA, BANNER.block_id), BANNER)).toBe(true);
+    // Otras ediciones del bloque no cambian la selección.
+    expect(pasoALaCabecera(PLANTILLA, BANNER)).toBe(false);
+    expect(pasoALaCabecera({ ...PLANTILLA, blocks: PLANTILLA.blocks.slice(1) }, BANNER)).toBe(false);
   });
 });
