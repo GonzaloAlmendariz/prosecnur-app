@@ -8,10 +8,10 @@ import { FOCO_COLUMNA_DEL_TRATO, arregloEnLaRevision, causaDelChequeo, destinoDe
 import { IDENTIDAD, focoDelEstilo } from "./modeloEstilo";
 import { indiceDelChequeoDeLaZona } from "./chequeoDeLaZona";
 import { fraseDeNitidez } from "./nitidez";
-import { fraseDeLoQueFalta, idsSinArchivo, nombreDeImagen } from "./nombresDeImagen";
+import { descripcionDeImagen, fraseDeLoQueFalta, idsSinArchivo, nombreDeImagen } from "./nombresDeImagen";
 import { PANEL_CORREO_DESTINATARIOS, PANEL_CORREO_ENVIOS } from "./panelesCorreos";
 import { useCorreosStore } from "./store";
-import { CABECERA, SOBRE, cabeceraSinAlt, cifraDeChequeo, nombreDelCampo, muestraDetalle, partesDeRevision, resumenDeRevision, rotuloDeChequeo, textoDeItem, tituloDeChequeo, CUERPO_DEL_INSPECTOR } from "./modeloCorreo";
+import { CABECERA, SOBRE, cabeceraSinAlt, cifraDeChequeo, nombreDelCampo, muestraDetalle, partesDeRevision, resumenDeRevision, rotuloDeBloque, rotuloDeChequeo, textoDeItem, tituloDeChequeo, CUERPO_DEL_INSPECTOR } from "./modeloCorreo";
 import "./correosRevision.css";
 
 type Props = {
@@ -68,6 +68,30 @@ export function salidaDelChequeo(code: string, destino: string, prop?: string, c
   if (destino === IDENTIDAD) return { texto: "Ir a Identidad", foco: focoDelEstilo(prop) };
   if (destino === SOBRE) return { texto: "Ir al asunto" };
   return { texto: "Ir al bloque" };
+}
+
+export type SalidaDelChequeo = { destino: string; texto: string; foco?: string };
+
+/**
+ * Las salidas de «Imágenes que faltan», una por lugar donde se suben: la
+ * cabecera se sube en su inspector o en Identidad; la imagen de un bloque, en
+ * ese bloque. Así el rótulo dice adónde lleva aunque falten de los dos lados.
+ */
+export function salidasDeLoQueFalta(
+  check: Pick<MailCheck, "code" | "items" | "targets">,
+  template: Pick<MailTemplate, "header" | "images" | "blocks">,
+  contexto: { cabeceraSinAlt?: boolean } = {},
+): SalidaDelChequeo[] {
+  const faltan = new Set(idsSinArchivo(check.items));
+  const destinos = [...new Set(check.targets.map((t) => t.block_id))];
+  return destinos.map((destino): SalidaDelChequeo => {
+    if (destino === CABECERA) return { destino, ...salidaDelChequeo(check.code, destino, undefined, contexto) };
+    const block = template.blocks.find((b) => b.block_id === destino);
+    if (!block) return { destino, texto: "Ir al bloque" };
+    const ids = block.type === "image" ? [block.image_ref] : block.type === "two_images" ? [block.left, block.right] : [];
+    const nombres = ids.filter((id) => faltan.has(id)).map((id) => descripcionDeImagen(template, id)).filter(Boolean);
+    return { destino, texto: nombres.length === 1 ? `Subir «${nombres[0]}»` : `Subir en «${rotuloDeBloque(block)}»` };
+  });
 }
 
 /** Chequeos cuyos `items` nombran imágenes por su id (el archivo del ZIP). */
@@ -141,7 +165,7 @@ function ChequeoQueFalla({ check, onIrAlBloque, template, resaltado = false }: {
   // #9: la nitidez dice cuál imagen y de cuántos px subirla, bloque por bloque.
   const nitidez = check.code === "image_width" && template
     ? [...new Set(check.targets.map((t) => t.block_id))]
-      .map((id) => fraseDeNitidez(check, template.blocks.find((b) => b.block_id === id)))
+      .map((id) => fraseDeNitidez(check, template.blocks.find((b) => b.block_id === id), template))
       .filter((f): f is string => Boolean(f))
       .join(" ")
     : "";
@@ -157,12 +181,19 @@ function ChequeoQueFalla({ check, onIrAlBloque, template, resaltado = false }: {
       : check.items;
   const cifra = cifraDeChequeo(check);
   const filas = items.map((item) => textoDelItem(check.code, item, template)).filter((t): t is string => Boolean(t));
+  const sinAltArriba = template ? Boolean(cabeceraSinAlt(template)) : undefined;
   const salida = destino && onIrAlBloque
     ? salidaDelChequeo(check.code, destino, check.targets.find((t) => t.block_id === destino)?.prop, {
       columnaElegida,
-      cabeceraSinAlt: destino === CABECERA && template ? Boolean(cabeceraSinAlt(template)) : undefined,
+      cabeceraSinAlt: destino === CABECERA ? sinAltArriba : undefined,
     })
     : null;
+  // Lo que falta subir puede estar en la cabecera y en bloques: un botón por lugar.
+  const salidas: SalidaDelChequeo[] = destino && onIrAlBloque
+    ? check.code === "images_available" && template
+      ? salidasDeLoQueFalta(check, template, { cabeceraSinAlt: sinAltArriba })
+      : salida ? [{ destino, ...salida }] : []
+    : [];
   return (
     <li
       className={`rec-mail-chk rec-mail-rev-falla is-${check.status}${resaltado ? " is-resaltado" : ""}`}
@@ -194,11 +225,11 @@ function ChequeoQueFalla({ check, onIrAlBloque, template, resaltado = false }: {
               {salida ? arreglo.replace("«Ir al bloque»", `«${salida.texto}»`) : arreglo}
             </span>
           ) : null}
-          {salida && destino && onIrAlBloque ? (
-            <button type="button" className="rec-mail-link rec-mail-chk-ir" onClick={() => onIrAlBloque(destino, salida.foco)}>
-              {salida.texto} <ArrowRight size={12} aria-hidden />
+          {salidas.length && onIrAlBloque ? salidas.map((s) => (
+            <button key={s.destino} type="button" className="rec-mail-link rec-mail-chk-ir" onClick={() => onIrAlBloque(s.destino, s.foco)}>
+              {s.texto} <ArrowRight size={12} aria-hidden />
             </button>
-          ) : pestana && enRouter ? <IrAPestana pestana={pestana} /> : null}
+          )) : pestana && enRouter ? <IrAPestana pestana={pestana} /> : null}
         </span>
       ) : null}
     </li>

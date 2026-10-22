@@ -18,11 +18,11 @@ import * as Popover from "@radix-ui/react-popover";
 import { BibliotecaDeBloques } from "./BibliotecaDeBloques";
 import { esMovible } from "./estructuraCorreo";
 import { ICONO_DE_PSEUDO, iconoDeBloque } from "./iconos";
+import { resumenDeCabecera, resumenDeFila } from "./nombresDeImagen";
 import {
   CABECERA,
   SOBRE,
   origenDePreset,
-  resumenDeBloque,
   rotuloDeBloque,
   rotuloDeCabecera,
   textoPlano,
@@ -302,7 +302,7 @@ export function ColumnaDeBloques({
             id={CABECERA}
             icono={ICONO_DE_PSEUDO[CABECERA]}
             titulo={rotuloDeCabecera(template.header)}
-            resumen={template.header.kind === "banner" ? "banner" : `${template.header.logo_ids.length} ${template.header.logo_ids.length === 1 ? "logo" : "logos"}`}
+            resumen={resumenDeCabecera(template)}
             elegido={seleccion === CABECERA}
             conProblemas={problemas.cabecera.length}
             onSeleccionar={onSeleccionar}
@@ -314,7 +314,7 @@ export function ColumnaDeBloques({
                   id: block.block_id,
                   icono: iconoDeBloque(block),
                   titulo: rotuloDeBloque(block),
-                  resumen: conRotulos(resumenDeBloque(block), campos),
+                  resumen: conRotulos(resumenDeFila(template, block), campos),
                   elegido: seleccion === block.block_id,
                   conProblemas: problemas.porBloque[block.block_id]?.length ?? 0,
                   onSeleccionar,

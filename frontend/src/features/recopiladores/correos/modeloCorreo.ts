@@ -113,7 +113,8 @@ export function resumenDeBloque(block: MailBlock): string {
     case "divider":
       return block.style === "espacio" ? "Espacio" : "Línea";
     case "image":
-      return textoPlano(block.alt || block.image_ref);
+      // Sin descripción no se muestra el id del archivo: el subtítulo queda vacío.
+      return block.decorative || altPendiente(block.alt) ? "" : textoPlano(block.alt);
     case "callout":
       return textoPlano(block.title ?? block.items[0] ?? "");
     case "list":
@@ -129,7 +130,7 @@ export function resumenDeBloque(block: MailBlock): string {
     case "icon_text":
       return textoPlano(block.text);
     case "two_images":
-      return textoPlano(`${block.alt_left || block.left} · ${block.alt_right || block.right}`);
+      return [block.alt_left, block.alt_right].filter((alt) => !altPendiente(alt)).map(textoPlano).join(" · ");
   }
 }
 
