@@ -5,23 +5,36 @@
 # mismo namespace: el traslado no cambia comportamiento, solo reparte el
 # archivo. La lógica de dominio nueva va al engine, no aquí.
 
-.monitoreo_acreditacion_case_base_actor <- function(item) {
+# El actor de la base se lee en la etiqueta de su fuente («Universo · Estudiantes
+# de pregrado»). Primero se busca el actor conocido MÁS LARGO contenido en ella
+# —los actores salen de los propios casos—, y sólo si ninguno calza se cae a las
+# cuatro familias de siempre. Con la lista fija sola, «Estudiantes de pregrado»
+# se comparaba contra «estudiantes» y toda efectiva de un actor compuesto se
+# reclasificaba «Fuera de base» al servir el tablero desde caché.
+.monitoreo_acreditacion_case_base_actor <- function(item, known_actors = character(0)) {
   base_source <- .monitoreo_text_key(item$base_source %||% "")
   if (!nzchar(base_source)) return("")
+  known <- unique(known_actors[nzchar(known_actors)])
+  known <- known[vapply(known, function(actor) grepl(actor, base_source, fixed = TRUE), logical(1))]
+  if (length(known)) return(known[[which.max(nchar(known))]])
   actors <- c("administrativos", "docentes", "egresados", "estudiantes")
   hit <- actors[vapply(actors, function(actor) grepl(actor, base_source, fixed = TRUE), logical(1))]
   if (length(hit)) hit[[1]] else ""
 }
-.monitoreo_acreditacion_cached_case_actor_mismatch <- function(item) {
+.monitoreo_acreditacion_cached_case_actor_mismatch <- function(item, known_actors = character(0)) {
   if (!is.list(item)) return(FALSE)
   actor <- .monitoreo_text_key(item$actor %||% "")
-  base_actor <- .monitoreo_acreditacion_case_base_actor(item)
+  base_actor <- .monitoreo_acreditacion_case_base_actor(item, known_actors)
   if (!nzchar(actor) || !nzchar(base_actor) || identical(actor, base_actor)) return(FALSE)
+  # Sin actor conocido en la etiqueta, la familia sólo delata otro actor cuando
+  # el del caso no la contiene («estudiantes» está dentro de «estudiantes de
+  # pregrado»).
+  if (!base_actor %in% known_actors && grepl(base_actor, actor, fixed = TRUE)) return(FALSE)
   identical(.monitoreo_text_key(item$advancement %||% ""), "effective") &&
     identical(.monitoreo_text_key(item$issue_type %||% ""), "efectiva_real")
 }
-.monitoreo_acreditacion_repair_cached_case <- function(item) {
-  if (!.monitoreo_acreditacion_cached_case_actor_mismatch(item)) return(item)
+.monitoreo_acreditacion_repair_cached_case <- function(item, known_actors = character(0)) {
+  if (!.monitoreo_acreditacion_cached_case_actor_mismatch(item, known_actors)) return(item)
   previous_base_source <- .monitoreo_scalar(item$base_source %||% "", "")
   previous_base_record <- .monitoreo_scalar(item$base_record %||% "", "")
   item$base_result <- "Fuera de base"
@@ -66,7 +79,10 @@
 }
 .monitoreo_acreditacion_repair_internal_queries <- function(internal_queries) {
   if (!is.list(internal_queries) || !is.list(internal_queries$cases)) return(internal_queries)
-  repaired_cases <- lapply(internal_queries$cases, .monitoreo_acreditacion_repair_cached_case)
+  known_actors <- unique(vapply(internal_queries$cases, function(item) {
+    if (is.list(item)) .monitoreo_text_key(item$actor %||% "") else ""
+  }, character(1)))
+  repaired_cases <- lapply(internal_queries$cases, .monitoreo_acreditacion_repair_cached_case, known_actors = known_actors)
   changed <- sum(vapply(seq_along(repaired_cases), function(idx) {
     !identical(repaired_cases[[idx]]$advancement %||% "", internal_queries$cases[[idx]]$advancement %||% "")
   }, logical(1)))
