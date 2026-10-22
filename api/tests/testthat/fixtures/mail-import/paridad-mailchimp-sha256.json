@@ -1,19 +1,19 @@
 {
   "captured_at": "2026-10-21",
-  "commit": "d4c55ddc0+E1p",
-  "note": "SHA256 del HTML de collection_mail_render(t, \"mailchimp\"). Recapturado en E1p (2026-10-21) por un cambio DELIBERADO: márgenes del cuerpo a 20 px en teléfono (clase cmail-pad en las celdas con margen lateral de 48/46 px y la regla @media max-width:480px del <head>, que se emite siempre). Ningún otro byte cambió: diff normalizado (quitar la regla y la clase) idéntico al render de HEAD d4c55ddc0 en 25 casos (paridad x mailchimp/surveymonkey/preview, piezas sobrio/campaña, alineaciones, campaña con onda). E1n (7dbc7798d) recapturó por el justificado. No regenerar sin un cambio de render declarado.",
+  "commit": "d4c55ddc0+E1p+logos",
+  "note": "SHA256 del HTML de collection_mail_render(t, \"mailchimp\"). Recapturado en E1p (2026-10-21) por un cambio DELIBERADO: márgenes del cuerpo a 20 px en teléfono (clase cmail-pad en las celdas con margen lateral de 48/46 px y la regla @media max-width:480px del <head>, que se emite siempre). Ningún otro byte cambió: diff normalizado (quitar la regla y la clase) idéntico al render de HEAD d4c55ddc0 en 25 casos (paridad x mailchimp/surveymonkey/preview, piezas sobrio/campaña, alineaciones, campaña con onda). E1n (7dbc7798d) recapturó por el justificado. Recapturado otra vez el 2026-10-21 (E1p logos) por un cambio DELIBERADO: en teléfono los logos de la cabecera se achican en proporción o se apilan (clase cmail-logo en cada <img> de logo, cmail-logo-cell/-next/-div solo si se apilan, y su regla @media del <head>, que solo se emite si hay logos con archivo). Ningún otro byte cambió: diff normalizado (quitar esa regla y esas clases) idéntico al render de HEAD 9d56d013e en 48 casos (paridad x mailchimp/surveymonkey/preview y 11 cabeceras de 1, 2, 3 y 6 logos, 10:1, claras, oscuras y campaña). No regenerar sin un cambio de render declarado.",
   "sha256": {
-    "recuperacion": "sha256:988612fbdd222592f2236ab26d15f3463b3b9815f506d2af087d289110973f3b",
-    "invitacion": "sha256:f51b3dab8e82b333dd6a5ddf8c454834393960587268e7a416c2e6e53d4bce5e",
-    "recuperacion_img": "sha256:66eea9e0c109dde3d78097a87c0a3e08b624a06471056a3d23bfb39c3c8df3aa",
-    "completo": "sha256:c2d7f37aa351c2be65a33cb01b922352320c445eb432127564d32802c2f6375a",
+    "recuperacion": "sha256:c65246b3d3e643fabb37b09a5c740e0610cb63aca01aafe45f9bfa935888e770",
+    "invitacion": "sha256:27edb5247d0aefa6caadd1dd83762a9f868fbb77d818de374c9b381c78808932",
+    "recuperacion_img": "sha256:10055209a0db99cf52a249fa2ef185dc056332c4770c248342a6fdad2b6848c3",
+    "completo": "sha256:beb0c027cdedd3d77f402a8bd8d3a3fe80d723ead28e0a791f50aae4e8b26b1d",
     "banner": "sha256:67fb7f7ac0aea52621a4f64f4233dad4675248110c49af0a0fea127f11b10443"
   },
   "preview_sha256": {
     "recuperacion": "sha256:2e810c5d03505c9a43828df33500c6948924bbf51c3e15c6459556dbd23bdd63",
     "invitacion": "sha256:f107044e323e0f49bbc764190ec04b999fb845bd9e47ce89abb2cd44c538e9e3",
-    "recuperacion_img": "sha256:84917dc193bf7d7947eece3017ffb6682734a1e2610f5a79c6b28bfe74c08275",
-    "completo": "sha256:b37e58288d6a8685342edd565068adc8222877d9b1c483dbddae12cc993c99f1",
+    "recuperacion_img": "sha256:bd4b1f23d4b098e048cb8896a97201a910ffa83de25ea5993b00b9242b652dec",
+    "completo": "sha256:0050bb21bc16bb1b1016462f108f0a95eb7c1303dfc9a24818ac99e3b970e126",
     "banner": "sha256:4f7e86727da85d8fe3063c23c283ff96763cfcacb4aad236a8e14d98081e07e6"
   },
   "preview_values": {

@@ -81,6 +81,59 @@
           .CMAIL_PAD_CLASS, .CMAIL_PAD_MOBILE_PX, .CMAIL_PAD_MOBILE_PX)
 }
 
+# ---- logos de la cabecera en teléfono ----------------------------------------------
+#
+# La fila de logos tiene ancho fijo en px: dos logos de 160 px y el divisor (357 px)
+# no caben en la tarjeta de un teléfono de 390 px (324 px útiles) y la página se
+# desplazaba 33 px en horizontal. En `max-width:480px` cada logo lleva
+# `max-width:100%` y `height:auto`: se ACHICA PROPORCIONALMENTE, nunca se aplasta,
+# y las celdas reparten el ancho. Si al achicarse alguno quedaría por debajo de
+# 90 px (ilegible) en un teléfono de 360 px, los logos se APILAN y el divisor se
+# oculta. Outlook ignora las media queries: ahí la fila sigue como en escritorio.
+#
+# Evidencia (Playwright/Chromium, 2026-10-21): dos logos de 160 px quedan de
+# 143,5 px a 390 y de 108,5 px a 320; dos de 200 px (el tope, p. ej. 10:1) de
+# 128,5 px a 360 y 108,5 a 320; uno de 200 (10:1) con uno de 160 de 120,5 y
+# 96,5 a 320: con dos logos nunca se baja de 90. Tres de 160/150/138 a 360
+# quedarían de ~68 px: se apilan. El reparto entre celdas sale proporcional al
+# ancho de cada logo, como asume `.cmail_logos_stack`.
+
+.CMAIL_LOGO_CLASS <- "cmail-logo"
+.CMAIL_LOGO_CELL_CLASS <- "cmail-logo-cell"
+.CMAIL_LOGO_NEXT_CLASS <- "cmail-logo-next"
+.CMAIL_LOGO_DIV_CLASS <- "cmail-logo-div"
+.CMAIL_LOGO_GAP_PX <- 37L          # divisor: 18 + 1 + 18
+.CMAIL_LOGO_MIN_PX <- 90L          # por debajo, un logo deja de leerse
+.CMAIL_LOGO_STACK_GAP_PX <- 12L
+# Teléfono de referencia de 360 px: menos el margen de la página (12 + 12), el
+# borde de la tarjeta (1 + 1) y los márgenes de la cabecera en teléfono (20 + 20).
+.CMAIL_LOGO_PHONE_PX <- 360L - 24L - 2L - 2L * .CMAIL_PAD_MOBILE_PX
+
+#' ¿Se apilan los logos en teléfono? Sí cuando, achicados en la misma
+#' proporción para caber en el teléfono de referencia, alguno quedaría por
+#' debajo de 90 px.
+#' @keywords internal
+.cmail_logos_stack <- function(widths, avail = .CMAIL_LOGO_PHONE_PX) {
+  widths <- as.numeric(widths)
+  if (length(widths) < 2L) return(FALSE)
+  room <- avail - .CMAIL_LOGO_GAP_PX * (length(widths) - 1L)
+  scale <- room / sum(widths)
+  if (scale >= 1) return(FALSE)
+  any(widths * scale < .CMAIL_LOGO_MIN_PX)
+}
+
+# Reglas del `<head>` para la fila de logos (solo si el correo la trae).
+.cmail_logo_style <- function(body) {
+  # Prefijo: también la fila apilada cuyos logos aún no tienen archivo (preview).
+  if (!grepl(sprintf('class="%s', .CMAIL_LOGO_CLASS), body, fixed = TRUE)) return("")
+  stack <- if (grepl(sprintf('class="%s', .CMAIL_LOGO_CELL_CLASS), body, fixed = TRUE)) sprintf(
+    ".%s{display:block !important;}.%s{padding-top:%dpx !important;}.%s{display:none !important;}",
+    .CMAIL_LOGO_CELL_CLASS, .CMAIL_LOGO_NEXT_CLASS, .CMAIL_LOGO_STACK_GAP_PX, .CMAIL_LOGO_DIV_CLASS
+  ) else ""
+  sprintf('<style type="text/css">@media only screen and (max-width:480px){.%s{max-width:100%% !important;height:auto !important;}%s}</style>',
+          .CMAIL_LOGO_CLASS, stack)
+}
+
 # ---- fondo de la página en sobrio ------------------------------------------------
 
 #' Fondo de la página y tono del pie en sobrio. Sin `page_bg` (o igual al gris

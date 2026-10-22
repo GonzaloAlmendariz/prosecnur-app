@@ -24,9 +24,13 @@
                                 height = as.integer(attr(t, "height"))))
 }
 
-# Quita SOLO lo que E1p agrega a todo correo: la clase cmail-pad y su regla.
+# Quita SOLO lo que E1p agrega a todo correo: la clase cmail-pad y su regla, y la
+# clase cmail-logo de los logos de la cabecera con su regla (test-collection-mail-logos.R).
 .cma_strip_pad <- function(html) {
   html <- sub(.cmail_pad_style(), "", html, fixed = TRUE)
+  logo_rule <- .cmail_logo_style(html)
+  if (nzchar(logo_rule)) html <- sub(logo_rule, "", html, fixed = TRUE)
+  html <- gsub('<img class="cmail-logo" ', "<img ", html, fixed = TRUE)
   html <- gsub(' class="cmail-pad"', "", html, fixed = TRUE)
   gsub(' cmail-pad"', '"', html, fixed = TRUE)
 }
