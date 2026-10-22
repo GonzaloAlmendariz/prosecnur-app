@@ -495,7 +495,7 @@ test_that("item 44: el «Especifique» de un campo codificado va en la ayuda, no
   m <- formulario_pdf_build_model(sv, ch, list(form_title = "Codificado"))
   q <- Filter(function(b) identical(b$name, "p10"), m$blocks)[[1]]
   expect_true(isTRUE(q$coded_list))
-  expect_match(q$hint, "Si responde «Otro» (25), especifique: __________ [p10_other]", fixed = TRUE)
+  expect_match(q$hint, "Si responde \"Otro\" (25), especifique: __________ [p10_other]", fixed = TRUE)
   expect_false(any(vapply(m$blocks, function(b) identical(b$name, "p10_other"), logical(1))))
 })
 
@@ -512,7 +512,7 @@ test_that("item 44: el «Especifique» de una fila de matriz va en la instruccio
   mat <- Filter(function(b) identical(b$kind, "matrix"), m$blocks)
   skip_if(!length(mat), "el detector no armo matriz con dos filas")
   fila <- Filter(function(it) identical(it$name, "p43_3"), mat[[1]]$items)[[1]]
-  expect_match(fila$skip, "Si responde «Mucho», especifique: __________ [p43_3_otro]", fixed = TRUE)
+  expect_match(fila$skip, "Si responde \"Mucho\", especifique: __________ [p43_3_otro]", fixed = TRUE)
 })
 
 test_that("una lista que no existe en choices se avisa y la pregunta queda como campo codificado", {

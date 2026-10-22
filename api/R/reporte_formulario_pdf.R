@@ -761,7 +761,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         esp_r <- especifique[[.form_pdf_chr(survey$name[r])]] %||% list()
         if (!length(esp_r)) return(skip_r)
         txt <- vapply(names(esp_r), function(cod) sprintf(
-          "Si responde «%s», especifique: __________ [%s]", lbl_mat[[cod]] %||% cod, esp_r[[cod]]),
+          "Si responde \"%s\", especifique: __________ [%s]", lbl_mat[[cod]] %||% cod, esp_r[[cod]]),
           character(1))
         paste(c(if (nzchar(skip_r %||% "")) skip_r, txt), collapse = "  ·  ")
       }
@@ -785,7 +785,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
           if (!nzchar(instr)) next
           olbl <- lbl_by_code[[code]] %||% code
           instr_lc <- paste0(tolower(substring(instr, 1, 1)), substring(instr, 2))
-          parts <- c(parts, sprintf("Si respondió «%s», %s", olbl, instr_lc))
+          parts <- c(parts, sprintf("Si respondió \"%s\", %s", olbl, instr_lc))
         }
         paste(c(if (nzchar(cond_r)) cond_r, parts), collapse = "  ·  ")
       }
@@ -940,7 +940,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         vapply(opts, function(o) .form_pdf_clean_text(o$label), character(1)),
         vapply(opts, function(o) .form_pdf_chr(o$code), character(1)))
       esp_hint <- vapply(names(esp_i), function(cod) sprintf(
-        "Si responde «%s» (%s), especifique: __________ [%s]",
+        "Si responde \"%s\" (%s), especifique: __________ [%s]",
         lbl_cod[[cod]] %||% cod, cod, esp_i[[cod]]), character(1))
       hint <- paste(c(if (nzchar(hint)) hint, esp_hint), collapse = "  ·  ")
     }
@@ -2001,7 +2001,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # dibujo (.form_pdf_draw_matrix) y la medida del alto (.form_pdf_block_height).
 # Holgada a proposito: en el renderer Word una columna ajustada al milimetro
 # partia "10" y "11" en dos lineas, y eso solo se ve en el render.
-.FORM_PDF_MATRIX_NUM_W <- 0.021
+.FORM_PDF_MATRIX_NUM_W <- 0.034
 
 .form_pdf_matrix_label_frac <- function(total_cols) {
   # El label del item se lleva la mayor parte del ancho: las columnas de escala
