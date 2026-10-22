@@ -118,7 +118,8 @@ attr(armonizada_job_worker, "prosecnur_job_function_name") <- "armonizada_job_wo
   kind <- .armonizada_kind(tipo)
   filename <- .export_filename(sid, kind, "xlsx")
   input_path <- job_save_rds(sid, paste0("armonizada_", tipo), list(
-    tipo = tipo, ap = ap, rotulos = rotulos, notas = cfg$notas, alpha = alpha,
+    tipo = tipo, ap = ap, rotulos = rotulos,
+    notas = .armz_notas_de_la_base(cfg$notas, ap, estudio_active_base(sid)), alpha = alpha,
     show_sig = isTRUE(cc$show_sig %||% TRUE), filename = filename, extras = extras
   ))
   periodos_out <- lapply(ap$periodos, function(b) list(base = b, rotulo = unname(rotulos[[b]])))
