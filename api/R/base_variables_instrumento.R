@@ -216,6 +216,13 @@ base_variables_xls_path <- function(path, base_meta) {
     previas <- vapply(nuevas_s, function(f) as.character(f$name)[1], character(1))
     pos <- match(origen, c(as.character(survey$name), previas))
     ancla <- if (any(!is.na(pos))) c(as.character(survey$name), previas)[max(pos, na.rm = TRUE)] else ""
+    # Al final del bloque de su origen: después de su «_otro» y su recodificada.
+    if (nzchar(ancla)) {
+      todos <- c(as.character(survey$name), previas)
+      for (suf in c("_otro", "_recod")) {
+        if (paste0(sub("_recod$", "", ancla), suf) %in% todos) ancla <- paste0(sub("_recod$", "", ancla), suf)
+      }
+    }
     agregar(nombre, if (nzchar(etiqueta)) etiqueta else nombre,
             if (es_formula) "decimal" else "select_one", base_variables_escala(cv), ancla = ancla)
   }

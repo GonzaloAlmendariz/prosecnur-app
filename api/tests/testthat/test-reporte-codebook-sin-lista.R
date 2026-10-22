@@ -22,11 +22,11 @@
 }
 
 test_that("la línea de contenido dice numérica con rango o texto, con sus casos", {
-  expect_identical(codebook_descripcion_sin_lista(c("18", "21", "67", NA)), "Numérica · de 18 a 67 · 3 con dato")
-  expect_identical(codebook_descripcion_sin_lista(c(0.5, 1.25, 2)), "Numérica · de 0.5 a 2 · 3 con dato")
-  expect_identical(codebook_descripcion_sin_lista(c("", "fui a la daes", NA)), "Texto abierto · 1 con dato")
+  expect_identical(codebook_descripcion_sin_lista(c("18", "21", "67", NA)), "Numérica (de 18 a 67)")
+  expect_identical(codebook_descripcion_sin_lista(c(0.5, 1.25, 2)), "Numérica (de 0.5 a 2)")
+  expect_identical(codebook_descripcion_sin_lista(c("", "fui a la daes", NA)), "Texto abierto")
   expect_identical(codebook_descripcion_sin_lista(c(NA, "")), "Sin respuestas en la base")
-  expect_identical(codebook_descripcion_sin_lista(rep(1, 1500)), "Numérica · 1 · 1,500 con dato")
+  expect_identical(codebook_descripcion_sin_lista(rep(1, 1500)), "Numérica (1)")
 })
 
 test_that("el Excel documenta las preguntas sin lista y deja fuera los metadatos", {
@@ -39,8 +39,8 @@ test_that("el Excel documenta las preguntas sin lista y deja fuera los metadatos
   celdas <- as.character(m)
   for (v in c("P1", "P2", "P8_otro", "indice")) expect_true(v %in% m[, 1], info = v)
   expect_false("_uuid" %in% m[, 1])
-  expect_true("Numérica · de 18 a 67 · 3 con dato" %in% celdas)
-  expect_true("Texto abierto · 2 con dato" %in% celdas)
+  expect_true("Numérica (de 18 a 67)" %in% celdas)
+  expect_true("Texto abierto" %in% celdas)
   expect_true("Contenido" %in% m[, 1])
   # La categórica sigue con su bloque de siempre.
   expect_true("Valores válidos" %in% m[, 1])
@@ -51,7 +51,7 @@ test_that("el PDF arma bloque también para las preguntas sin lista", {
   b <- .codebook_pdf_build_blocks(.cbs_df())
   nombres <- vapply(b, `[[`, "", "name")
   expect_identical(nombres, c("P1", "P2", "P8_otro", "indice"))
-  expect_identical(b[[1]]$labels, "Numérica · de 18 a 67 · 3 con dato")
+  expect_identical(b[[1]]$labels, "Numérica (de 18 a 67)")
 })
 
 test_that("la exportación repone las preguntas sin lista que el filtro de Frecuencias quita, salvo excluidas", {
@@ -74,5 +74,5 @@ test_that("un calculate con orden vacío entra como sin lista y un año no lleva
                           outfile = out, ficha_tecnica = FALSE)
   m <- as.matrix(openxlsx::read.xlsx(out, colNames = FALSE, skipEmptyRows = FALSE))
   expect_true("indice" %in% m[, 1])
-  expect_identical(codebook_descripcion_sin_lista(c("1999", "2017")), "Numérica · de 1999 a 2017 · 2 con dato")
+  expect_identical(codebook_descripcion_sin_lista(c("1999", "2017")), "Numérica (de 1999 a 2017)")
 })

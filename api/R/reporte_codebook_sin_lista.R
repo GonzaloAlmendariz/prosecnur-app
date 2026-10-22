@@ -6,8 +6,8 @@
 # inclúyelas en el libro de códigos».
 #
 # Entran las preguntas del instrumento de tipo numérico, texto o calculado que
-# están en la base, con su etiqueta y una línea de contenido: «Numérica · de 18
-# a 67 · 3,318 con dato» o «Texto abierto · 41 con dato». Los metadatos de
+# están en la base, con su etiqueta y una línea de contenido: «Numérica (de 18
+# a 67)» o «Texto abierto». Los metadatos de
 # captura (uuid, fechas de sistema, notas) no entran: no son preguntas.
 
 .CODEBOOK_TIPOS_SIN_LISTA <- c("integer", "decimal", "range", "text", "calculate")
@@ -43,9 +43,10 @@ codebook_descripcion_sin_lista <- function(x) {
     # Los valores van sin separador de miles: un año es «2017», no «2,017».
     redondo <- function(z) if (z == round(z)) format(round(z), scientific = FALSE, trim = TRUE) else format(round(z, 2), scientific = FALSE, trim = TRUE)
     rango <- if (min(num) == max(num)) redondo(min(num)) else paste("de", redondo(min(num)), "a", redondo(max(num)))
-    return(sprintf("Numérica · %s · %s con dato", rango, .codebook_formato_n(n)))
+    # Gonzalo, 2026-10-22: sin puntos medios ni conteo; el tipo y, si es numérica, su rango.
+    return(sprintf("Numérica (%s)", rango))
   }
-  sprintf("Texto abierto · %s con dato", .codebook_formato_n(n))
+  "Texto abierto"
 }
 
 #' La data del libro con las preguntas sin lista devueltas.
