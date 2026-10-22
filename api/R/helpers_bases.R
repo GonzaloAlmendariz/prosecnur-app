@@ -1513,7 +1513,6 @@
   # Las columnas heredadas de la madre (attr repeat_inherited) sí se conservan.
   df <- .repeat_drop_technical_cols(df)
   df <- .bases_normalize_other_selects(df, rp_inst)
-  df <- .bases_dummies_si_no(df, rp_inst)
 
   # 1) Convertir columnas con value-labels a haven_labelled_spss. Reusa
   #    el post-procesamiento de reporte_spss vía attrs — aplica
@@ -1563,6 +1562,8 @@
   #     puede corregir un ordinal que quedó como nominal, o forzar un
   #     ancho A40 en una variable de texto específica.
   df2 <- .bases_apply_overrides(df2, overrides)
+  # Dummies de múltiple en No/Sí (helpers_bases_dummies.R), ya con las etiquetas finales.
+  df2 <- .bases_dummies_si_no(df2, rp_inst)
 
   # 3) Renombrar columnas que empiecen con "_" (no válidas en SPSS).
   bad <- grepl("^_", names(df2))
