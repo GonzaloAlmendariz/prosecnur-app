@@ -176,13 +176,20 @@ test_that("mail_image: PNG y JPEG medidos por sus bytes; límites de subida con 
   e <- .cme_err(save_upload(sid, "mail_image", "x.gif", gif))
   expect_identical(e$code, "E_COLLECTION_MAIL_IMAGE_INVALID"); expect_equal(e$status, 422)
   expect_identical(e$details$reason, "format")
-  expect_identical(.cme_err(.cmail_fx_mail_image(sid, "ancha.png", 1300L, 100L))$details$reason, "width")
+  # Más ancha que 1.200 px ya no se rechaza: se reduce sola (collection_mail_reducir.R).
+  ancha <- .cmail_fx_mail_image(sid, "ancha.png", 1300L, 100L)
+  expect_identical(ancha$reduccion$a, "1200\u00d792")
+  expect_identical(unlist(.cmail_image_info(ancha$path)[c("width", "height")]), c(width = 1200, height = 92))
   expect_identical(.cme_err(.cmail_fx_mail_image(sid, "angosta.png", 30L, 30L))$details$reason, "width")
-  expect_identical(.cme_err(.cmail_fx_mail_image(sid, "pesada.png", 1200L, 400L, noise = TRUE))$details$reason, "too_large")
+  # Un PNG fotográfico de más de 1 MB se guarda como JPEG calidad 85 y lo dice.
+  pesada <- .cmail_fx_mail_image(sid, "pesada.png", 1200L, 400L, noise = TRUE)
+  expect_true(pesada$reduccion$convertida)
+  expect_identical(pesada$ext, "jpg")
+  expect_lte(pesada$size, 1024 * 1024)
   expect_identical(.cme_err(.cmail_fx_mail_image(sid, "___.png", 100L, 100L))$details$reason, "name")
   # Nada rechazado quedó registrado.
   kinds <- vapply(session_get(sid)$files, `[[`, "", "kind")
-  expect_identical(sum(kinds == "mail_image"), 2L)
+  expect_identical(sum(kinds == "mail_image"), 4L)
 })
 
 test_that("resolución: mail_image gana a brand_logo del mismo slug; preview con data URI del tipo real", {

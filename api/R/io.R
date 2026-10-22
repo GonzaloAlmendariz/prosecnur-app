@@ -59,8 +59,14 @@ save_upload <- function(sid, kind, original_name, raw_bytes) {
   file_id <- uuid::UUIDgenerate()
   ext <- ext_for_kind(kind, original_name)
   # La imagen del correo se valida por sus bytes (tipo, peso, ancho) y guarda
-  # la extensión real: el nombre «foto.png» de un JPEG no decide nada.
-  if (identical(kind, "mail_image")) ext <- .cmail_image_upload_check(original_name, raw_bytes)$ext
+  # la extensión real: el nombre «foto.png» de un JPEG no decide nada. Si llega
+  # más ancha que 1.200 px o más pesada que 1 MB se reduce sola
+  # (collection_mail_reducir.R) y la respuesta dice qué pasó.
+  prep <- NULL
+  if (identical(kind, "mail_image")) {
+    prep <- .cmail_image_upload_prepare(original_name, raw_bytes)
+    ext <- prep$ext; raw_bytes <- prep$raw
+  }
   fname <- sprintf("%s.%s", file_id, ext)
   fpath <- file.path(s$dir, "uploads", fname)
   writeBin(raw_bytes, fpath)
@@ -69,6 +75,7 @@ save_upload <- function(sid, kind, original_name, raw_bytes) {
     path = fpath, size = length(raw_bytes), ext = ext,
     uploaded_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   )
+  if (!is.null(prep)) meta$reduccion <- prep$reduccion
   files <- s$files
   files[[file_id]] <- meta
   session_set(sid, "files", files)
