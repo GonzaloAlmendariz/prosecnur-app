@@ -1,0 +1,35 @@
+/* Identidad › Ajustes del correo (E1p) y el lienzo con el fondo de la página.
+   Aparte de correos.css, que no crece. El color de la página es dato del
+   estudio: llega en línea como `--rec-mail-pagina`. */
+
+.rec-ajustes {
+  border-top: 1px solid var(--pulso-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.rec-ajustes .xfk-seg {
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.rec-ajustes-fila {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-height: 26px;
+}
+
+/* — Lienzo con fondo de página propio (sobrio con page_bg; campaña): en
+   Escritorio el lienzo alrededor de la hoja es la misma página. — */
+.rec-mail-lienzo.is-pagina {
+  background: var(--rec-mail-pagina, var(--pulso-bg-deep));
+}
+
+.rec-mail-lienzo.is-pagina .rec-mail-iframe {
+  border-radius: 0;
+  box-shadow: none;
+}

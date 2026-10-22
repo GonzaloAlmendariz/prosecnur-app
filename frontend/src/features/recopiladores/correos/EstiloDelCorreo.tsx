@@ -10,11 +10,9 @@ import {
   hexCanonico,
   lecturaConRevision,
   lecturaDelBoton,
-  lecturaDelFondo,
   mismoColor,
   razonLegible,
   sugerenciasDeBoton,
-  sugerenciasDeFondo,
   textoSobre,
   type ChequeoDeEstilo,
   type Lectura,
@@ -72,7 +70,7 @@ function Miniatura({ tipo, fondo, boton, acento }: { tipo: MailEstilo; fondo: st
   );
 }
 
-function LineaDeLectura({ lectura }: { lectura: Lectura }) {
+export function LineaDeLectura({ lectura }: { lectura: Lectura }) {
   return (
     <span
       className={`rec-mail-estado-linea is-${lectura.tono}`}
@@ -85,7 +83,7 @@ function LineaDeLectura({ lectura }: { lectura: Lectura }) {
   );
 }
 
-function Muestras({
+export function Muestras({
   rotulo,
   colores,
   elegido,
@@ -145,7 +143,8 @@ function Muestras({
 /**
  * «Estilo del correo» (E1n), dentro de Identidad: Sobrio (la tarjeta blanca)
  * o Campaña (el fondo de color a todo el ancho, el cuerpo directo sobre él y
- * el botón en píldora). El texto justificado vale para los dos.
+ * el botón en píldora). El texto justificado vale para los dos. El fondo de
+ * la página vale para los dos y vive en «Ajustes del correo» (E1p).
  */
 export function EstiloDelCorreo({ theme, srcDelBanner, chequeos, onTema }: Props) {
   const id = useId();
@@ -153,16 +152,10 @@ export function EstiloDelCorreo({ theme, srcDelBanner, chequeos, onTema }: Props
   const campana = efectivo.estilo === "campana";
   const banner = useColoresDelBanner(campana ? srcDelBanner : null);
   const delBanner = banner.estado === "listo" ? banner.colores : null;
-  const fondos = sugerenciasDeFondo(delBanner, theme.accent);
   const botones = sugerenciasDeBoton(delBanner, theme.accent);
   const nombreDe = (c: string) => (mismoColor(c, theme.accent) ? "Acento" : delBanner?.some((x) => mismoColor(x, c)) ? "Del banner" : "Amarillo de la casa");
 
-  const lecturaFondo = lecturaConRevision(lecturaDelFondo(efectivo.fondo), chequeos.campana_text_contrast);
   const lecturaBoton = lecturaConRevision(lecturaDelBoton(efectivo.boton, efectivo.textoDelBoton, efectivo.fondo), chequeos.campana_button_contrast);
-  const pie = chequeos.campana_footer_contrast;
-  const lecturaPie = pie && pie.status !== "ok"
-    ? lecturaConRevision({ tono: pie.status, frase: "El pie se lee poco: elige otro fondo", razon: null }, pie)
-    : null;
   const ejemplo: Variables = {
     "--rec-estilo-fondo": efectivo.fondo,
     "--rec-estilo-boton": efectivo.boton,
@@ -214,24 +207,18 @@ export function EstiloDelCorreo({ theme, srcDelBanner, chequeos, onTema }: Props
       {campana ? (
         <>
           <div className="rec-estilo-campo">
-            <span className="rec-estilo-rotulo">Fondo de la página</span>
-            <Muestras foco={focoDelEstilo("page_bg")} nombreDelColor="el fondo de la página" rotulo="Fondo de la página" colores={fondos} elegido={efectivo.fondo} nombreDe={nombreDe} onElegir={(c) => editar({ page_bg: c })} />
-            <LineaDeLectura lectura={lecturaFondo} />
-            {banner.estado === "ilegible" ? <span className="rec-mail-ayuda">No se pudieron leer los colores del banner: queda el acento u otro color.</span> : null}
-          </div>
-          <div className="rec-estilo-campo">
             <span className="rec-estilo-rotulo">Botón</span>
             <Muestras foco={focoDelEstilo("button_bg")} nombreDelColor="el botón" rotulo="Relleno del botón" colores={botones} elegido={efectivo.boton} nombreDe={nombreDe} onElegir={(c) => editar({ button_bg: c })} />
             <span className="rec-estilo-ejemplo" style={ejemplo} aria-hidden>
               <span className="rec-estilo-ejemplo-boton">Responder la encuesta</span>
             </span>
             <LineaDeLectura lectura={lecturaBoton} />
+            {banner.estado === "ilegible" ? <span className="rec-mail-ayuda">No se pudieron leer los colores del banner: queda el acento u otro color.</span> : null}
           </div>
           <div className="rec-mail-ajuste">
             <span>Onda al pie</span>
             <Segmented aria-label="Onda al pie" size="sm" value={efectivo.onda} options={ONDAS} onChange={(onda) => editar({ onda })} />
           </div>
-          {lecturaPie ? <LineaDeLectura lectura={lecturaPie} /> : null}
         </>
       ) : null}
 

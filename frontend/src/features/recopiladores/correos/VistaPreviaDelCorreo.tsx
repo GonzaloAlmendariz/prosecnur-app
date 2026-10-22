@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 
 import type { MailTemplate } from "../../../api/materialMail";
 import { AlertTriangle, Loader2 } from "../../../vendor/lucide-react";
+import { anchoDeLaHoja, paginaDelLienzo } from "./modeloAjustes";
 import {
-  ANCHO_DE_VISTA,
   escalaParaCaber,
   htmlParaLaVista,
   type PaletaOscura,
@@ -13,6 +13,7 @@ import { esHex } from "./modeloEstilo";
 import { useCorreosStore } from "./store";
 
 import "./correosEstilo.css";
+import "./correosAjustes.css";
 
 /** Lo que la capa de edición necesita para medirse sobre el correo. */
 export type MedidasDeLaHoja = {
@@ -119,14 +120,18 @@ export function VistaPreviaDelCorreo({ html, template, vista, cargando, error, c
 
   // Campaña (E1n): en Escritorio la hoja es tan ancha como el lienzo y el
   // lienzo toma el fondo de la página —el color llena la ventana como en el
-  // cliente de correo—; en Teléfono se ve la columna.
-  const pagina = paginaDeCampana(template);
-  const aTodoElAncho = pagina !== null && vista === "escritorio";
-  const ancho = aTodoElAncho && disponible !== null && disponible > ANCHO_DE_VISTA.escritorio
+  // cliente de correo—; en Teléfono se ve la columna. Sobrio con fondo propio
+  // (E1p): la hoja conserva su ancho y el lienzo de alrededor toma el fondo.
+  // El ancho de la hoja sigue el elegido en Ajustes (560/600/640) y, si no
+  // cabe, la hoja entera se escala: nunca se deforma.
+  const base = anchoDeLaHoja(vista, template?.theme);
+  const pagina = paginaDelLienzo(template, vista);
+  const aTodoElAncho = paginaDeCampana(template) !== null && vista === "escritorio";
+  const ancho = aTodoElAncho && disponible !== null && disponible > base
     ? Math.floor(disponible)
-    : Math.max(ANCHO_DE_VISTA[vista], anchoContenido);
+    : Math.max(base, anchoContenido);
   const escala = escalaParaCaber(disponible, ancho);
-  const estiloDelLienzo = aTodoElAncho ? ({ "--rec-mail-pagina": pagina } as CSSProperties) : undefined;
+  const estiloDelLienzo = pagina ? ({ "--rec-mail-pagina": pagina } as CSSProperties) : undefined;
 
   // La hoja a todo el ancho cambia con el lienzo: el correo se recentra y la
   // capa vuelve a medir sobre el mismo documento.
@@ -139,7 +144,7 @@ export function VistaPreviaDelCorreo({ html, template, vista, cargando, error, c
   return (
     <section
       ref={lienzo}
-      className={`rec-mail-lienzo${vista === "oscuro" ? " is-oscuro" : ""}${aTodoElAncho ? " is-campana" : ""}`}
+      className={`rec-mail-lienzo${vista === "oscuro" ? " is-oscuro" : ""}${aTodoElAncho ? " is-campana" : ""}${pagina ? " is-pagina" : ""}`}
       style={estiloDelLienzo}
       aria-label="Vista previa del correo"
       aria-busy={cargando}
