@@ -2,14 +2,16 @@
 // (carrera, sexo, sede…). Es un panel direccionable (`?panel=contactos-variables`)
 // y la elección se guarda en la campaña: solo los nombres de columna.
 //
-// La selección se arma en borrador y se aplica con un botón: cada casilla no
-// relee el tablero, y «Cancelar» deja todo como estaba.
+// La selección se arma en borrador y se aplica con un botón: cada interruptor no
+// relee el tablero, y «Cancelar» deja todo como estaba. Interruptores y no
+// casillas (dictado 2026-10-22): una variable de control queda puesta.
 
 import * as Popover from "@radix-ui/react-popover";
 import { useEffect, useState } from "react";
 
 import type { CandidataDeControl } from "../../../../api/mailContactos";
 import { PulsoButton } from "../../../../components/PulsoButton";
+import { Switch } from "../../../../components/Switch";
 import type { ControlPanel } from "../../../../lib/navegacion/paneles";
 import { formatoConteoDe } from "../../../../lib/formatoNumero";
 import { Loader2, SlidersHorizontal } from "../../../../vendor/lucide-react";
@@ -42,6 +44,7 @@ export function SelectorDeVariables({ panel, candidatas, control, guardando, err
   // El orden de las tarjetas es el de las candidatas, no el de los clics.
   const ordenado = candidatas.map((c) => c.key).filter((k) => borrador.includes(k));
   const sinCambios = ordenado.join("\u0000") === controlClave;
+  const enElTope = borrador.length >= MAXIMO_DE_VARIABLES;
 
   return (
     <Popover.Root open={panel.abierto} onOpenChange={(abierto) => (abierto ? panel.abrir() : panel.cerrar())}>
@@ -69,40 +72,60 @@ export function SelectorDeVariables({ panel, candidatas, control, guardando, err
           >
             <fieldset className="rec-contactos-variables-grupo">
               <legend>Columnas que describen el perfil</legend>
-              {candidatas.length > MAXIMO_DE_VARIABLES ? (
-                <p className="rec-contactos-nota">Hasta {MAXIMO_DE_VARIABLES} variables.</p>
-              ) : null}
               {candidatas.length === 0 ? (
                 <p className="rec-contactos-nota">La lista no trae columnas con categorías para comparar.</p>
               ) : (
                 <ul className="rec-contactos-variables-lista">
-                  {candidatas.map((c) => (
-                    <li key={c.key}>
-                      <label className="rec-contactos-variable">
-                        <input
-                          type="checkbox"
-                          checked={borrador.includes(c.key)}
-                          disabled={!borrador.includes(c.key) && borrador.length >= MAXIMO_DE_VARIABLES}
-                          onChange={() => alternar(c.key)}
-                        />
-                        <span className="rec-contactos-variable-nombre">{c.label}</span>
-                        <span className="rec-contactos-variable-detalle">
-                          {c.tipo === "muchas"
-                            ? `${formatoConteoDe(c.distintos, "valor", "valores")} · se ven las más frecuentes`
-                            : formatoConteoDe(c.distintos, "categoría")}
-                        </span>
-                      </label>
-                    </li>
-                  ))}
+                  {candidatas.map((c) => {
+                    const puesta = borrador.includes(c.key);
+                    const bloqueada = !puesta && enElTope;
+                    const idNombre = `rec-contactos-variable-${c.key}`;
+                    return (
+                      <li key={c.key}>
+                        <div
+                          className={`rec-contactos-variable${puesta ? " is-on" : ""}${bloqueada ? " is-bloqueada" : ""}`}
+                          // Toda la fila responde al clic; el teclado va al interruptor.
+                          onClick={(event) => {
+                            if (bloqueada || (event.target as HTMLElement).closest("[role='switch']")) return;
+                            alternar(c.key);
+                          }}
+                        >
+                          <span className="rec-contactos-variable-texto" id={idNombre}>
+                            <span className="rec-contactos-variable-nombre">{c.label}</span>
+                            <span className="rec-contactos-variable-detalle">
+                              {c.tipo === "muchas"
+                                ? `${formatoConteoDe(c.distintos, "valor", "valores")} · se ven las más frecuentes`
+                                : formatoConteoDe(c.distintos, "categoría")}
+                            </span>
+                          </span>
+                          <Switch
+                            checked={puesta}
+                            disabled={bloqueada}
+                            ariaLabel={c.label}
+                            onToggle={() => alternar(c.key)}
+                          />
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
+              {enElTope && candidatas.length > MAXIMO_DE_VARIABLES ? (
+                <p className="rec-contactos-nota" role="status">
+                  Ya van {MAXIMO_DE_VARIABLES} variables, el máximo. Apaga una para elegir otra.
+                </p>
+              ) : null}
             </fieldset>
             {error ? <p className="rec-contactos-error" role="alert">{error}</p> : null}
             <div className="rec-contactos-variables-acciones">
               <PulsoButton variant="ghost" size="sm" onClick={panel.cerrar}>Cancelar</PulsoButton>
               <PulsoButton type="submit" variant="primary" size="sm" disabled={guardando || sinCambios}>
                 {guardando ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : null}
-                {guardando ? "Guardando…" : ordenado.length ? `Usar ${formatoConteoDe(ordenado.length, "variable")}` : "Quitar las variables"}
+                {guardando
+                  ? "Guardando…"
+                  : ordenado.length
+                    ? `Usar ${formatoConteoDe(ordenado.length, "variable")}`
+                    : control.length ? "Quitar las variables" : "Usar las variables"}
               </PulsoButton>
             </div>
           </form>

@@ -139,8 +139,10 @@
 
 /* ---- Cabeza: resumen + enlace ------------------------------------------------ */
 
+/* Resumen y enlace comparten fila pero NO alto: la tarjeta del enlace crece con
+   su resultado y no debe estirar las cifras (C2). */
 .rec-contactos-cabeza {
-  align-items: stretch;
+  align-items: start;
   display: grid;
   gap: var(--pulso-space-4);
   grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
@@ -150,6 +152,10 @@
   display: grid;
   gap: var(--pulso-space-3);
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  /* Las cinco iguales entre sí y de alto intrínseco: si envuelven, cada fila
+     mide lo que la cifra más alta, nunca lo que el vecino de la cabeza. */
+  align-content: start;
+  grid-auto-rows: 1fr;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -401,11 +407,17 @@
 
 /* ---- Distribuciones ------------------------------------------------------------- */
 
+/* Columnas tipo masonry: cada tarjeta mide lo que sus categorías y la de abajo
+   empieza donde termina, sin el hueco de una grilla cuyas filas siguen a la
+   tarjeta más alta (C2). El orden se lee columna por columna. */
 .rec-contactos-distribuciones {
-  align-items: start;
-  display: grid;
-  gap: var(--pulso-space-3);
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr));
+  column-gap: var(--pulso-space-3);
+  column-width: 400px;
+}
+
+.rec-contactos-distribuciones > .rec-contactos-dist {
+  break-inside: avoid;
+  margin-bottom: var(--pulso-space-3);
 }
 
 .rec-contactos-dist {
@@ -617,6 +629,9 @@ button.rec-contactos-dist-fila.is-on {
   color: var(--pulso-text-soft);
   font-size: 12px;
   font-weight: var(--pulso-weight-semibold);
+  /* El rótulo ya llega humanizado («Año de egreso»): sin versalitas. */
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .rec-contactos-tabla tbody tr:last-child > * {
@@ -709,12 +724,53 @@ button.rec-contactos-dist-fila.is-on {
   width: 260px;
 }
 
-.rec-contactos-casilla {
+.rec-contactos-interruptor {
   align-items: center;
   color: var(--pulso-text-soft);
   display: inline-flex;
   font-size: 12.5px;
-  gap: 6px;
+  gap: var(--pulso-space-2);
+}
+
+.rec-contactos-interruptor > label {
+  cursor: pointer;
+}
+
+/* El correo queda pegado a la izquierda al desplazar la lista en horizontal. */
+.rec-contactos-lista-tabla th:first-child,
+.rec-contactos-lista-tabla td:first-child {
+  background: var(--pulso-surface);
+  left: 0;
+  position: sticky;
+  z-index: 1;
+}
+
+.rec-contactos-lista-tabla thead th:first-child {
+  background: var(--pulso-surface-2);
+}
+
+.rec-contactos-lista-scroll.has-scroll-left .rec-contactos-lista-tabla th:first-child,
+.rec-contactos-lista-scroll.has-scroll-left .rec-contactos-lista-tabla td:first-child {
+  box-shadow: 6px 0 6px -6px color-mix(in srgb, var(--pulso-text) 35%, transparent);
+}
+
+/* La pista de que hay columnas a la derecha: una sombra marcada en el borde y
+   una línea al pie. La sombra de la casa (.16) se pierde bajo las cabeceras. */
+.rec-contactos-tabla-scroll.has-scroll-right {
+  box-shadow: inset -14px 0 10px -10px color-mix(in srgb, var(--pulso-text) 30%, transparent);
+}
+
+.rec-contactos-mas-columnas {
+  align-items: center;
+  color: var(--pulso-module-fieldkit);
+  display: none;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-medium);
+  gap: 4px;
+}
+
+.rec-contactos-seccion:has(.rec-contactos-lista-scroll.has-scroll-right) .rec-contactos-mas-columnas {
+  display: inline-flex;
 }
 
 .rec-contactos-paginacion {
@@ -776,13 +832,15 @@ button.rec-contactos-dist-fila.is-on {
   padding: 0;
 }
 
+/* Cada fila: rótulo y «N categorías» a la izquierda, el interruptor a la
+   derecha, alineado entre filas. */
 .rec-contactos-variable {
   align-items: center;
   border-radius: 8px;
-  column-gap: var(--pulso-space-2);
+  column-gap: var(--pulso-space-3);
   cursor: pointer;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   padding: 6px 8px;
 }
 
@@ -790,8 +848,19 @@ button.rec-contactos-dist-fila.is-on {
   background: var(--pulso-surface-2);
 }
 
-.rec-contactos-variable > input {
-  grid-row: span 2;
+.rec-contactos-variable.is-bloqueada {
+  cursor: default;
+}
+
+.rec-contactos-variable.is-bloqueada .rec-contactos-variable-nombre {
+  color: var(--pulso-text-faint);
+}
+
+.rec-contactos-variable-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
 .rec-contactos-variable-nombre {
@@ -838,4 +907,12 @@ button.rec-contactos-dist-fila.is-on {
   .rec-contactos-cifra-valor {
     font-size: 24px;
   }
+}
+
+/* Los interruptores de Contactos llevan el musgo del módulo (también dentro del
+   popover, que vive en un portal: el token es global, no del perfil). */
+.rec-contactos .pulso-switch,
+.rec-contactos-variables .pulso-switch {
+  --pulso-switch-accent: var(--pulso-module-fieldkit);
+  --pulso-switch-accent-ring: color-mix(in srgb, var(--pulso-module-fieldkit) 18%, transparent);
 }

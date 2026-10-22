@@ -185,8 +185,14 @@ export function BarraDelCorreo(p: Props) {
                 className="rec-barra-menu-item"
                 onClick={() => p.onExplicaciones(!p.explicaciones)}
               >
-                <span className="rec-barra-menu-marca" aria-hidden>{p.explicaciones ? <Check size={14} /> : null}</span>
-                <span>Explicaciones al pasar el cursor<small>Qué hace cada bloque y cómo sale en {NOMBRE_DE_PLATAFORMA[p.plataforma]}</small></span>
+                <span className="rec-barra-menu-marca" aria-hidden />
+                <span className="rec-barra-menu-texto">Explicaciones al pasar el cursor<small>Qué hace cada bloque y cómo sale en {NOMBRE_DE_PLATAFORMA[p.plataforma]}</small></span>
+                {/* El interruptor de la casa, solo como dibujo: la semántica es la
+                    del ítem de menú (menuitemcheckbox + aria-checked), que es el
+                    que recibe el foco y el clic. No cabe un <button> dentro de otro. */}
+                <span className="pulso-switch rec-barra-menu-switch" aria-hidden="true" aria-checked={p.explicaciones}>
+                  <span className="pulso-switch-thumb" />
+                </span>
               </button>
               <button
                 type="button"

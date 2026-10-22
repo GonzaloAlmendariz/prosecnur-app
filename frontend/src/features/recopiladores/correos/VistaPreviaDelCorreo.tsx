@@ -10,6 +10,7 @@ import {
   type VistaDelCorreo,
 } from "./modeloCorreo";
 import { esHex } from "./modeloEstilo";
+import { crearMedidorDeLaHoja } from "./medidaDeLaHoja";
 import { avisoDeVistaRetenida, camposNoDeclarados, rotuloDeClave } from "./camposDeclarados";
 import { envioElegido, useCorreosStore } from "./store";
 
@@ -83,15 +84,28 @@ export function VistaPreviaDelCorreo({ html, template, vista, cargando, error, c
   // Cada vista previa reemplaza el documento del iframe (H-b): la capa vuelve a
   // medir sobre el nuevo. Nada del documento recibe oyentes: la capa del padre
   // lo cubre entero y es la que recibe los clics.
+  //
+  // El alto se mide solo con el lienzo a la vista: si el documento carga con la
+  // pestaña oculta (Contactos encima), la medida queda pendiente y se toma
+  // cuando el lienzo recupera su ancho (`medidaDeLaHoja`).
+  const medidor = useMemo(() => crearMedidorDeLaHoja({
+    doc: () => marco.current?.contentDocument ?? null,
+    anchoVisible: () => lienzo.current?.clientWidth ?? 0,
+    aplicar: (m) => {
+      setAlto(m.alto);
+      setAnchoContenido(m.ancho);
+      setMedida((n) => n + 1);
+    },
+  }), []);
+
   const alCargar = useCallback(() => {
     const d = marco.current?.contentDocument;
     if (!d || !templateRef.current) return;
-    setAlto(Math.max(320, Math.ceil(d.documentElement.scrollHeight)));
-    setAnchoContenido(Math.ceil(Math.max(d.documentElement.scrollWidth, d.body?.scrollWidth ?? 0)));
     medirLienzo.current();
     setDoc(d);
     setMedida((m) => m + 1);
-  }, []);
+    medidor.alCargar();
+  }, [medidor]);
 
   // El ancho que deja el lienzo: si no alcanza, el correo se muestra a escala
   // en vez de recortarse o de reflujar como si fuera otro dispositivo.
@@ -101,6 +115,8 @@ export function VistaPreviaDelCorreo({ html, template, vista, cargando, error, c
     const medir = () => {
       const cs = getComputedStyle(nodo);
       setDisponible(nodo.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+      // Volver a la vista (o cambiar de ancho) es otra ocasión de medir el correo.
+      medidor.alRedimensionar();
     };
     medirLienzo.current = medir;
     medir();
@@ -111,7 +127,7 @@ export function VistaPreviaDelCorreo({ html, template, vista, cargando, error, c
       observador?.disconnect();
       window.removeEventListener("resize", medir);
     };
-  }, []);
+  }, [medidor]);
 
   // Sin HTML no hay documento que medir.
   useEffect(() => { if (!srcDoc) setDoc(null); }, [srcDoc]);
@@ -138,9 +154,9 @@ export function VistaPreviaDelCorreo({ html, template, vista, cargando, error, c
   // capa vuelve a medir sobre el mismo documento.
   useEffect(() => {
     if (!aTodoElAncho || !doc) return;
-    setAlto(Math.max(320, Math.ceil(doc.documentElement.scrollHeight)));
+    medidor.alRedimensionar();
     setMedida((m) => m + 1);
-  }, [aTodoElAncho, ancho, doc]);
+  }, [aTodoElAncho, ancho, doc, medidor]);
 
   return (
     <section

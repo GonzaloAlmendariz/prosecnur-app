@@ -9,7 +9,7 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { Grid3x3 } from "../../../../vendor/lucide-react";
 import { TableScroll } from "../../TableScroll";
-import { formatoPorcentaje, intensidad, proporcion, totalesDelCruce } from "./modeloContactos";
+import { formatoPorcentaje, intensidadesDelCruce, proporcion, totalesDelCruce } from "./modeloContactos";
 import { useContactosStore, type VistaDelCruce } from "./store";
 
 type Props = {
@@ -92,7 +92,12 @@ export function CruceDeVariables({ control, etiquetas, par, cruce, cargando, onE
           <p>{cargando ? "Leyendo el cruce…" : "El cruce no llegó con el perfil. Pulsa «Actualizar»."}</p>
         </div>
       ) : (
-        <TablaDelCruce cruce={vigente} vista={vista} nombreA={nombre(vigente.a)} nombreB={nombre(vigente.b)} />
+        <TablaDelCruce
+          cruce={vigente}
+          vista={vista}
+          nombreA={vigente.a_label ?? nombre(vigente.a)}
+          nombreB={vigente.b_label ?? nombre(vigente.b)}
+        />
       )}
     </section>
   );
@@ -105,6 +110,8 @@ function TablaDelCruce({ cruce, vista, nombreA, nombreB }: {
   nombreB: string;
 }) {
   const totales = totalesDelCruce(cruce);
+  // El tinte sigue al número que se lee en cada vista (C5).
+  const tintes = intensidadesDelCruce(cruce, vista);
   const celda = (n: number, totalDeFila: number) => (
     vista === "fila" ? formatoPorcentaje(proporcion(n, totalDeFila)) : formatoConteo(n)
   );
@@ -140,7 +147,7 @@ function TablaDelCruce({ cruce, vista, nombreA, nombreB }: {
                   <td
                     key={col}
                     className="is-num"
-                    style={{ "--rec-intensidad": intensidad(n, cruce).toFixed(3) } as CSSProperties}
+                    style={{ "--rec-intensidad": (tintes[i]?.[j] ?? 0).toFixed(3) } as CSSProperties}
                   >
                     {celda(n, totales.porFila[i])}
                   </td>

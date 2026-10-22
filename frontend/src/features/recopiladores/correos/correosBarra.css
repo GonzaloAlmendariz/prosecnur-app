@@ -258,7 +258,8 @@
   cursor: default;
 }
 
-.rec-barra-menu-item > span:last-child {
+.rec-barra-menu-item > span:last-child:not(.pulso-switch),
+.rec-barra-menu-item > .rec-barra-menu-texto {
   display: grid;
   gap: 1px;
   min-width: 0;
@@ -315,4 +316,17 @@
   .rec-mail .rec-mail-barra.rec-mail-barra--fina {
     transition: none;
   }
+}
+
+/* «Explicaciones al pasar el cursor»: el interruptor va a la derecha, alineado,
+   con el musgo del módulo (el menú vive en un portal; el token es global). */
+.rec-barra-menu-item > .rec-barra-menu-texto {
+  flex: 1 1 auto;
+}
+
+.rec-barra-menu-switch {
+  --pulso-switch-accent: var(--pulso-module-fieldkit);
+  align-self: center;
+  flex: none;
+  pointer-events: none;
 }

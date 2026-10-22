@@ -177,3 +177,38 @@ describe("sin jerga en pantalla", () => {
     expect(html).not.toMatch(/\btoken\b|custom variable|\bt=/i);
   });
 });
+
+describe("QA de Contactos (2026-10-22)", () => {
+  it("ninguna casilla: los encendidos son interruptores de la casa (dictado de Gonzalo)", () => {
+    const archivos = fs.readdirSync(aqui).filter((f) => /\.tsx$/.test(f) && !f.includes(".test."));
+    for (const archivo of archivos) {
+      const fuente = fs.readFileSync(path.join(aqui, archivo), "utf8");
+      expect({ archivo, casilla: /type=["']checkbox["']/.test(fuente) }).toEqual({ archivo, casilla: false });
+    }
+    const html = pintar({ lista: pagina(5), perfil: perfil(2, 4), todasLasColumnas: true });
+    expect(html).not.toContain('type="checkbox"');
+    expect(html).toMatch(/role="switch"[^>]*aria-checked="true"[^>]*aria-label="Todas las columnas"/);
+  });
+
+  it("la tarjeta de la variable filtrada mantiene todas sus categorías y resalta la elegida", () => {
+    const corte = perfil(2, 3);
+    // El corte filtrado por sexo=F solo trae F; la faceta (sin ese filtro) trae F y M.
+    corte.variables[1] = { ...corte.variables[1], categorias: [corte.variables[1].categorias[0]] };
+    const completa = perfil(2, 4).variables[1];
+    const html = pintar({
+      lista: pagina(5),
+      perfil: corte,
+      filtros: { sexo: ["F"] },
+      facetas: { sexo: { variable: completa, base: 4, clave: "" } },
+    });
+    expect(html).toMatch(/aria-pressed="true"[^>]*aria-label="Sexo: F\./);
+    expect(html).toMatch(/aria-pressed="false"[^>]*aria-label="Sexo: M\./);
+  });
+
+  it("la lista dice los efectivos del corte junto al total y pone estado antes que las columnas de control", () => {
+    const html = pintar({ lista: pagina(5), perfil: perfil(2, 4) });
+    expect(html).toContain("5 contactos (4 efectivos)");
+    const cabeza = html.slice(html.indexOf("<thead>"), html.indexOf("</thead>"));
+    expect(cabeza.indexOf("Estado")).toBeLessThan(cabeza.indexOf("Carrera"));
+  });
+});

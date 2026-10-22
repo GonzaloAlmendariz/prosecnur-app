@@ -18,7 +18,8 @@ import type {
   ResumenDeContactos,
   VariableDelPerfil,
 } from "../../../../api/mailContactos";
-import { formatoConteo, formatoConteoDe, formatoDecimal } from "../../../../lib/formatoNumero";
+import { filtrosComoJson } from "../../../../api/mailContactos";
+import { formatoConteo, formatoConteoDe } from "../../../../lib/formatoNumero";
 
 // ---- Cifras -------------------------------------------------------------------
 
@@ -27,9 +28,13 @@ export function proporcion(n: number, base: number): number | null {
   return base > 0 ? n / base : null;
 }
 
-/** «34.5%»; sin base, «—». */
+// Un decimal SIEMPRE («33.0%», no «33%»): en una columna de porcentajes las
+// cifras se alinean por la coma decimal y ninguna parece más redonda que otra.
+const PORCENTAJE = new Intl.NumberFormat("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+/** «34.5%», «33.0%»; sin base, «—». */
 export function formatoPorcentaje(fraccion: number | null): string {
-  return fraccion === null ? "—" : `${formatoDecimal(fraccion * 100, 1)}%`;
+  return fraccion === null || !Number.isFinite(fraccion) ? "—" : `${PORCENTAJE.format(fraccion * 100)}%`;
 }
 
 /** La tasa de respuesta de una categoría: quienes respondieron entre sus efectivos. */
@@ -112,6 +117,37 @@ export function alternarFiltro(filtros: FiltrosDeContactos, columna: string, val
   return conColumna(filtros, columna, siguientes);
 }
 
+/**
+ * Los filtros sin los de una columna: con ellos se pide la distribución de esa
+ * misma variable, para que su tarjeta siga mostrando todas sus categorías
+ * (OR dentro de la variable, AND entre variables) en vez de colapsar a la
+ * elegida.
+ */
+export function filtrosSin(filtros: FiltrosDeContactos, columna: string): Filtros {
+  return conColumna(filtros, columna, []);
+}
+
+/**
+ * La faceta de una variable si es vigente: su columna filtra y se leyó con los
+ * filtros de las demás tal como están ahora. Si no, `null` (la tarjeta se pinta
+ * con el perfil del corte hasta que llegue).
+ */
+export function facetaVigente<T extends { clave: string }>(
+  facetas: Readonly<Record<string, T>>,
+  filtros: FiltrosDeContactos,
+  columna: string,
+): T | null {
+  if (!(filtros[columna]?.length)) return null;
+  const faceta = facetas[columna];
+  if (!faceta) return null;
+  return faceta.clave === (filtrosComoJson(filtrosSin(filtros, columna)) ?? "") ? faceta : null;
+}
+
+/** Las columnas que hoy filtran algo, en orden estable. */
+export function columnasFiltradas(filtros: FiltrosDeContactos): string[] {
+  return Object.keys(filtros).filter((c) => (filtros[c]?.length ?? 0) > 0).sort();
+}
+
 export function quitarFiltro(filtros: FiltrosDeContactos, columna: string, valor: string): Filtros {
   return conColumna(filtros, columna, (filtros[columna] ?? []).filter((v) => v !== valor));
 }
@@ -180,6 +216,21 @@ export function totalesDelCruce(cruce: CruceDelPerfil): TotalesDelCruce {
 export function intensidad(n: number, cruce: CruceDelPerfil): number {
   const maximo = Math.max(0, ...cruce.celdas.flat());
   return maximo > 0 ? n / maximo : 0;
+}
+
+/**
+ * Las intensidades de todas las celdas según lo que se LEE (C5): en casos, el
+ * conteo contra el mayor; en «% por fila», el porcentaje de la fila contra el
+ * mayor porcentaje. El tinte sigue al número mostrado, nunca al que no se ve.
+ */
+export function intensidadesDelCruce(cruce: CruceDelPerfil, vista: "casos" | "fila"): number[][] {
+  if (vista === "casos") return cruce.celdas.map((fila) => fila.map((n) => intensidad(n, cruce)));
+  const porcentajes = cruce.celdas.map((fila) => {
+    const total = fila.reduce((a, b) => a + b, 0);
+    return fila.map((n) => (total > 0 ? n / total : 0));
+  });
+  const maximo = Math.max(0, ...porcentajes.flat());
+  return porcentajes.map((fila) => fila.map((p) => (maximo > 0 ? p / maximo : 0)));
 }
 
 // ---- Resumen ------------------------------------------------------------------
@@ -261,8 +312,13 @@ export const ETIQUETA_DE_ESTADO: Record<EstadoDeContacto, string> = {
   repetido: "Repetido",
 };
 
-/** Columnas que ya tienen su propia celda (correo y nombre) no se repiten. */
-const COLUMNAS_PROPIAS = new Set(["email", "correo", "nombre", "name"]);
+/** Columnas que ya tienen su propia celda (correo, nombre y enlace) no se repiten. */
+const COLUMNAS_PROPIAS = new Set(["email", "correo", "nombre", "name", "enlace_encuesta"]);
+
+/** La columna del enlace personal: su celda dice «Sí»; la URL cruda no se muestra. */
+export function esColumnaDeEnlace(columna: ColumnaDeContactos): boolean {
+  return columna.es_enlace === true || columna.key.toLowerCase() === "enlace_encuesta";
+}
 
 /**
  * Las columnas de la tabla: primero las de control (en el orden elegido) y,
@@ -276,9 +332,11 @@ export function columnasDeLaLista(
   const porClave = new Map(columnas.map((c) => [c.key, c]));
   const deControl = control
     .map((key) => porClave.get(key) ?? null)
-    .filter((c): c is ColumnaDeContactos => c !== null);
+    .filter((c): c is ColumnaDeContactos => c !== null && !esColumnaDeEnlace(c));
   if (!todas) return deControl;
-  const resto = columnas.filter((c) => !control.includes(c.key) && !COLUMNAS_PROPIAS.has(c.key.toLowerCase()));
+  const resto = columnas.filter((c) => (
+    !control.includes(c.key) && !COLUMNAS_PROPIAS.has(c.key.toLowerCase()) && !esColumnaDeEnlace(c)
+  ));
   return [...deControl, ...resto];
 }
 
@@ -312,11 +370,23 @@ export function validarEnlace(crudo: string): ValidacionDeEnlace {
   return { ok: true, url };
 }
 
-/** «Listo: 312 enlaces (5 nuevos, 307 conservados)». */
+/** «Listo: 312 enlaces (5 nuevos, 307 conservados). Úsalos en el botón…». */
 export function textoDelResultado(r: EnlacesGenerados): string {
   const nuevos = formatoConteoDe(r.generados, "nuevo");
   const conservados = formatoConteoDe(r.conservados, "conservado");
-  return `Listo: ${formatoConteoDe(r.total, "enlace")} (${nuevos}, ${conservados})`;
+  const usalo = r.total === 1 ? "Úsalo" : "Úsalos";
+  return `Listo: ${formatoConteoDe(r.total, "enlace")} (${nuevos}, ${conservados}). ${usalo} en el botón del correo con el campo «Enlace a la encuesta».`;
+}
+
+/**
+ * Cuántos contactos hay en la lista y, si difiere, cuántos de ellos son
+ * efectivos: el tablero cuenta solo efectivos y la lista todos los estados, y
+ * las dos cifras tienen que leerse juntas sin parecer contradictorias.
+ */
+export function cifraDeLaLista(total: number, efectivos: number | null, conFiltros: boolean): string {
+  const base = `${formatoConteoDe(total, "contacto")}${conFiltros ? " con los filtros" : ""}`;
+  if (efectivos === null || efectivos === total) return base;
+  return `${base} (${formatoConteoDe(efectivos, "efectivo")})`;
 }
 
 // ---- Vacíos -------------------------------------------------------------------------

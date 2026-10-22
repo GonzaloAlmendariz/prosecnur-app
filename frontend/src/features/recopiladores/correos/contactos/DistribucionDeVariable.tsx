@@ -3,7 +3,10 @@
 // —cuando ya se leyó quién respondió— cuántos respondieron y su tasa.
 //
 // Clic en una categoría la agrega a los filtros (tablero y lista); otro clic la
-// quita. La barra es la proporción sobre la base: lo que mide es lo que dice el %. «Sin dato» va al final y también filtra (el backend lee `""` como sin
+// quita. Dentro de una variable los filtros suman (OR) y entre variables se
+// cruzan (AND): por eso la tarjeta de una variable filtrada se pinta con su
+// distribución SIN su propio filtro (la faceta) —todas sus categorías a la
+// vista, las elegidas resaltadas— y otra categoría se suma con un clic. La barra es la proporción sobre la base: lo que mide es lo que dice el %. «Sin dato» va al final y también filtra (el backend lee `""` como sin
 // dato). «Otros» —el resto de una variable con muchos valores— no es un valor
 // de la lista y no filtra.
 
@@ -16,6 +19,7 @@ import {
   categoriasDeLaTarjeta,
   cuadraConLaBase,
   estaFiltrada,
+  facetaVigente,
   formatoPorcentaje,
   proporcion,
   sumaDeLaVariable,
@@ -39,8 +43,12 @@ type Fila = {
   sinDato: boolean;
 };
 
-export function DistribucionDeVariable({ variable, base, conRespuestas }: Props) {
+export function DistribucionDeVariable({ variable: delCorte, base: baseDelCorte, conRespuestas }: Props) {
   const filtros = useContactosStore((s) => s.filtros);
+  const facetas = useContactosStore((s) => s.facetas);
+  const faceta = facetaVigente(facetas, filtros, delCorte.key);
+  const variable = faceta ? faceta.variable : delCorte;
+  const base = faceta ? faceta.base : baseDelCorte;
   const expandida = useContactosStore((s) => Boolean(s.expandidas[variable.key]));
   const alternarFiltro = useContactosStore((s) => s.alternarFiltro);
   const alternarExpandida = useContactosStore((s) => s.alternarExpandida);
