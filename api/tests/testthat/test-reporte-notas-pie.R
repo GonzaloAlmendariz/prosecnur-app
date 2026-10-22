@@ -122,8 +122,8 @@ test_that("la línea de bases reducidas agrupa por variable y excluye columnas v
   expect_identical(
     .notas_pie_linea_base_reducida(items, 30),
     paste0(
-      "Bases reducidas (menos de 30 casos): «Fuera del país» (Lugar de nacimiento), ",
-      "«Presenta discapacidad» y «No sé / Prefiero no decir» (Presenta discapacidad). ",
+      "Bases reducidas (menos de 30 casos): \"Fuera del país\" (Lugar de nacimiento), ",
+      "\"Presenta discapacidad\" y \"No sé / Prefiero no decir\" (Presenta discapacidad). ",
       "Sus porcentajes deben leerse con cautela."
     )
   )
@@ -132,7 +132,7 @@ test_that("la línea de bases reducidas agrupa por variable y excluye columnas v
                        stringsAsFactors = FALSE)
   expect_identical(
     .notas_pie_linea_base_reducida(items2, 30),
-    "Bases reducidas (menos de 30 casos): «z» (V). Sus porcentajes deben leerse con cautela."
+    "Bases reducidas (menos de 30 casos): \"z\" (V). Sus porcentajes deben leerse con cautela."
   )
   expect_identical(.notas_pie_linea_base_reducida(items2[1:2, ], 30), "")
 })
@@ -143,7 +143,7 @@ test_that("la nota de significancia sigue la redacción de la maqueta", {
     "Las letras comparan las columnas de una misma variable de cruce. Una letra en una celda ",
     "indica que esa proporción es significativamente mayor que la de la columna identificada ",
     "con esa letra (prueba z de diferencia de proporciones con corrección de Bonferroni, ",
-    "nivel de significancia de 0.05). «.a» indica una columna excluida de la comparación ",
+    "nivel de significancia de 0.05). \".a\" indica una columna excluida de la comparación ",
     "porque su proporción es 0 % o 100 %."
   ))
   expect_match(.notas_pie_significancia("z", 0.1), "nivel de significancia de 0.1)", fixed = TRUE)
@@ -199,7 +199,7 @@ test_that("cruces con notas escribe fuente, base, notas por cruce y base reducid
     "Fuente: Pulso PUCP 2026. Base: total de encuestados. Porcentajes por columna.",
     "Sexo según lo declarado en P3.",
     "Lugar de nacimiento agrupa a quienes nacieron fuera del país.",
-    "Bases reducidas (menos de 30 casos): «Fuera del país» (Lugar de nacimiento). Sus porcentajes deben leerse con cautela."
+    "Bases reducidas (menos de 30 casos): \"Fuera del país\" (Lugar de nacimiento). Sus porcentajes deben leerse con cautela."
   ))
   # «Hombre» pondera 40 pero tiene 40 casos: no es reducida. «Fuera del país»
   # pondera 50 y tiene 10 casos: sí lo es.

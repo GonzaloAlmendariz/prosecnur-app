@@ -136,7 +136,7 @@
   vars <- unique(as.character(items$variable))
   grupos <- vapply(vars, function(v) {
     cols <- unique(as.character(items$columna[as.character(items$variable) == v]))
-    paste0(.notas_pie_unir_es(paste0("«", cols, "»")), " (", v, ")")
+    paste0(.notas_pie_unir_es(paste0("\"", cols, "\"")), " (", v, ")")
   }, character(1))
   paste0(
     "Bases reducidas (menos de ", format(umbral, scientific = FALSE, trim = TRUE),
@@ -176,7 +176,7 @@
     "Una letra en una celda indica que esa proporción es significativamente mayor ",
     "que la de la columna identificada con esa letra (", prueba,
     ", nivel de significancia de ", a, "). ",
-    "«.a» indica una columna excluida de la comparación porque su ",
+    "\".a\" indica una columna excluida de la comparación porque su ",
     "proporción es 0 % o 100 %."
   )
 }
