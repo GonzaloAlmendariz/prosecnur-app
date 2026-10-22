@@ -622,29 +622,30 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
     no_of_notas <- character(0)
     hay_no_ofrecida <- FALSE
     reducidas <- list()
+    buf <- .comparativo_buffer()
     for (i in seq_along(etiquetas)) {
       es_total <- i == length(etiquetas)
       zebra <- (i %% 2L == 0L) && !es_total
       sfx <- if (zebra) "_z" else ""
       r0 <- fila
-      .comparativo_put(wb, hoja, r0, 1, etiquetas[i], st[[paste0("c_txt", sfx)]])
+      buf$put(wb, hoja, r0, 1, etiquetas[i], st[[paste0("c_txt", sfx)]])
       for (k in seq_along(periodos)) {
         b <- periodos[k]; rr <- r0 + k - 1L
         if (k > 1L) openxlsx::addStyle(wb, hoja, st[[paste0("c_txt", sfx)]], rows = rr, cols = 1)
-        .comparativo_put(wb, hoja, rr, 2, rotulos[[b]], st[[paste0("c_lbl", sfx)]])
+        buf$put(wb, hoja, rr, 2, rotulos[[b]], st[[paste0("c_lbl", sfx)]])
         pp <- q$periodos[[b]]
         celda <- function(col, n, N, p_override = NULL) {
           if (is.na(N) || N <= 0) {
-            .comparativo_put(wb, hoja, rr, col, .COMPARATIVO_NA, st[[paste0("c_marca", sfx)]])
-            .comparativo_put(wb, hoja, rr, col + 1L, .COMPARATIVO_NA, st[[paste0("c_marca", sfx)]])
+            buf$put(wb, hoja, rr, col, .COMPARATIVO_NA, st[[paste0("c_marca", sfx)]])
+            buf$put(wb, hoja, rr, col + 1L, .COMPARATIVO_NA, st[[paste0("c_marca", sfx)]])
           } else {
-            .comparativo_put(wb, hoja, rr, col, if (es_total) N else n, st[[paste0("c_int", sfx)]])
-            .comparativo_put(wb, hoja, rr, col + 1L, if (es_total) 1 else n / N, st[[paste0("c_pct", sfx)]])
+            buf$put(wb, hoja, rr, col, if (es_total) N else n, st[[paste0("c_int", sfx)]])
+            buf$put(wb, hoja, rr, col + 1L, if (es_total) 1 else n / N, st[[paste0("c_pct", sfx)]])
           }
         }
         marca <- function(col, m) {
-          .comparativo_put(wb, hoja, rr, col, m, st[[paste0("c_marca", sfx)]])
-          .comparativo_put(wb, hoja, rr, col + 1L, m, st[[paste0("c_marca", sfx)]])
+          buf$put(wb, hoja, rr, col, m, st[[paste0("c_marca", sfx)]])
+          buf$put(wb, hoja, rr, col + 1L, m, st[[paste0("c_marca", sfx)]])
         }
         if (!identical(pp$estado, "ok")) {
           for (col in seq(3L, ncol - 1L, by = 2L)) marca(col, .COMPARATIVO_NC)
@@ -706,6 +707,7 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
           }
         }
       }
+      .comparativo_buffer_volcar(wb, hoja, buf)
       r_fin <- r0 + length(periodos) - 1L
       if (length(periodos) > 1L) openxlsx::mergeCells(wb, hoja, rows = r0:r_fin, cols = 1)
       openxlsx::addStyle(wb, hoja, st$c_regla, rows = r_fin, cols = 1:ncol, gridExpand = TRUE, stack = TRUE)
@@ -758,11 +760,11 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
       for (i in seq_along(q$escala$etiquetas)) {
         sfx <- if (i %% 2L == 0L) "_z" else ""
         r0 <- fila
-        .comparativo_put(wb, hoja, r0, 1, q$escala$etiquetas[i], st[[paste0("c_txt", sfx)]])
+        buf$put(wb, hoja, r0, 1, q$escala$etiquetas[i], st[[paste0("c_txt", sfx)]])
         for (k in seq_along(periodos)) {
           b <- periodos[k]; rr <- r0 + k - 1L
           if (k > 1L) openxlsx::addStyle(wb, hoja, st[[paste0("c_txt", sfx)]], rows = rr, cols = 1)
-          .comparativo_put(wb, hoja, rr, 2, rotulos[[b]], st[[paste0("c_lbl", sfx)]])
+          buf$put(wb, hoja, rr, 2, rotulos[[b]], st[[paste0("c_lbl", sfx)]])
           pp <- q$periodos[[b]]
           for (j in seq_along(cruces)) {
             x <- cruces[[j]]
@@ -773,17 +775,18 @@ reporte_comparativo_cruces <- function(modelo, path, rotulos, notas = NULL,
                 (q$escala$codigos[i] %in% (pp$no_ofrecidas %||% character(0)) ||
                    x$escala$codigos[kk] %in% (pc$no_ofrecidas %||% character(0)))
               if (!identical(pc$estado, "ok")) {
-                .comparativo_put(wb, hoja, rr, col, .COMPARATIVO_NC, st[[paste0("c_marca", sfx)]])
+                buf$put(wb, hoja, rr, col, .COMPARATIVO_NC, st[[paste0("c_marca", sfx)]])
               } else if (no_of) {
-                .comparativo_put(wb, hoja, rr, col, .COMPARATIVO_NO_OFRECIDA, st[[paste0("c_marca", sfx)]])
+                buf$put(wb, hoja, rr, col, .COMPARATIVO_NO_OFRECIDA, st[[paste0("c_marca", sfx)]])
               } else {
                 v <- pc$letras[i, kk]
                 est <- if (identical(v, .COMPARATIVO_NA)) st[[paste0("c_marca", sfx)]] else st[[paste0("c_lbl", sfx)]]
-                .comparativo_put(wb, hoja, rr, col, v, est)
+                buf$put(wb, hoja, rr, col, v, est)
               }
             }
           }
         }
+        .comparativo_buffer_volcar(wb, hoja, buf)
         r_fin <- r0 + length(periodos) - 1L
         if (length(periodos) > 1L) openxlsx::mergeCells(wb, hoja, rows = r0:r_fin, cols = 1)
         openxlsx::addStyle(wb, hoja, st$c_regla, rows = r_fin, cols = 1:nsig, gridExpand = TRUE, stack = TRUE)
