@@ -7,7 +7,8 @@ import { ImagePlus, Upload } from "../../../vendor/lucide-react";
 import { Segmented } from "../../xlsformEditor/kit";
 import { ajustesDe, anchoDeImagen, conAjuste, valorDeAjuste } from "./ajustesDeBloque";
 import { CampoDeTexto } from "./CampoDeTexto";
-import { propDelProblema } from "./modeloCorreo";
+import { conTraeLogos, esBannerDeArriba, franjaPorElBanner, hayFranjaDeLogos, propDelProblema, traeLogosDe } from "./modeloCorreo";
+import { PreguntaLogosDelBanner } from "./PreguntaLogosDelBanner";
 import { descripcionesPendientes } from "./piezasGraficas";
 
 /** Límite de la subida (`mail_image`): el backend rechaza sobre 1 MB. */
@@ -59,7 +60,10 @@ export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEd
     if (!file) return;
     const problema = problemaDelArchivo(file);
     setError(problema);
-    if (!problema) onSubir(file);
+    if (problema) return;
+    // Una imagen nueva vuelve a preguntar si trae los logos: la respuesta era de la anterior.
+    onEditar((t) => conTraeLogos(t, block.image_ref, undefined));
+    onSubir(file);
   };
 
   const ponerUrl = (url: string) => {
@@ -107,6 +111,16 @@ export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEd
         />
         {error ? <p className="rec-mail-problemas" role="alert">{error}</p> : null}
       </div>
+      {/* Un banner a sangre puede traer los logos incrustados: con la franja, saldrían dos veces. */}
+      {bleed && vista ? (
+        <PreguntaLogosDelBanner
+          traeLogos={traeLogosDe(template, block.image_ref)}
+          onQuitarFranja={hayFranjaDeLogos(template) && esBannerDeArriba(template, block.block_id)
+            ? () => onEditar((t) => franjaPorElBanner(t, block.block_id))
+            : null}
+          onResponder={(valor) => onEditar((t) => conTraeLogos(t, block.image_ref, valor, block.alt))}
+        />
+      ) : null}
 
       <div className="rec-mail-ajuste rec-capa-img-sangre">
         <span>Solo decorativa (no necesita descripción)</span>

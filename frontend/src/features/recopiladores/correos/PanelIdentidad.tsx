@@ -10,6 +10,7 @@ import { EstiloDelCorreo } from "./EstiloDelCorreo";
 import { srcDeImagenDelBloque } from "./estructuraCorreo";
 import { FranjaDeLogos } from "./FranjaDeLogos";
 import { nombreDeImagen } from "./nombresDeImagen";
+import { PreguntaLogosDelBanner } from "./PreguntaLogosDelBanner";
 import { SubirArchivo } from "./SubirArchivo";
 import {
   BANNER_ID,
@@ -20,6 +21,8 @@ import {
   usarBanner,
   usarLogos,
   altPendiente,
+  conTraeLogos,
+  traeLogosDe,
   CABECERA,
   CUERPO_DEL_INSPECTOR,
 } from "./modeloCorreo";
@@ -124,7 +127,8 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
   };
 
   const subirBanner = (file: File) => {
-    if (!conBanner) onEditar((t) => usarBanner(t, bannerId));
+    // Un archivo nuevo vuelve a preguntar si trae los logos: la respuesta era del anterior.
+    onEditar((t) => conTraeLogos(conBanner ? t : usarBanner(t, bannerId), bannerId, undefined));
     onSubir(bannerId, file);
   };
 
@@ -174,7 +178,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
       ) : null}
 
       <section className={`rec-mail-banner${conBanner ? " is-active" : ""}`} aria-label="Banner">
-        <Imagen src={imagenesLocales[bannerId] ?? template.images[bannerId]?.url} alt={template.images[bannerId]?.alt || "Banner"} banner />
+        <Imagen src={srcDelBanner ?? imagenesLocales[bannerId] ?? template.images[bannerId]?.url} alt={template.images[bannerId]?.alt || "Banner"} banner />
         <span className="rec-mail-banner-fila">
           <b>Banner</b>
           <span className="xfk-mono">1200 × 600 px</span>
@@ -187,6 +191,15 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
           {" La app revisa que mida al menos 1200 px de ancho, tenga forma de banner y no pese de más."}
           {plataforma === "surveymonkey" ? " El banner de la encuesta se carga directo en SurveyMonkey y no pasa por aquí." : null}
         </span>
+        {/* Con el banner de cabecera no sale la franja: sólo se declara, para cuando se vuelva a los logos. */}
+        {/* Sólo sobre un banner que ya se ve: una subida rechazada no pregunta nada. */}
+        {conBanner && srcDelBanner ? (
+          <PreguntaLogosDelBanner
+            traeLogos={traeLogosDe(template, bannerId)}
+            onQuitarFranja={null}
+            onResponder={(valor) => onEditar((t) => conTraeLogos(t, bannerId, valor, "Banner del estudio"))}
+          />
+        ) : null}
         {conBanner && !altArriba ? datosDelBanner : null}
         {bannerCheck && conBanner ? (
           <span className={`rec-mail-estado-linea is-${bannerCheck.status}`}>

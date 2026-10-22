@@ -41,6 +41,7 @@ const ARREGLO: Readonly<Record<string, string>> = {
   campana_footer_contrast: "Elige en Identidad › Estilo un fondo de página más oscuro o más claro.",
   piezas_contrast: "Elige para la pieza un color que resalte sobre el fondo, en Bloque › Color.",
   icon_text_sm_icon: "Pon en el bloque la dirección web (https) del ícono; si no, el texto sale solo, sin ícono.",
+  logos_duplicados: "Quita la franja de logos o marca que el banner no los trae.",
 };
 
 export function comoArreglar(code: string): string | null {

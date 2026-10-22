@@ -589,6 +589,61 @@ export function usarLogos(template: MailTemplate, background: "dark" | "light" =
   return { ...template, header: { kind: "logos", logo_ids: logo_ids.length ? logo_ids : ["pulso"], background } };
 }
 
+// ---- banners que ya traen los logos ---------------------------------------------
+
+/** Lo que el equipo declaró de la imagen: `undefined` es «no se sabe» y se pregunta. */
+export function traeLogosDe(template: Pick<MailTemplate, "images">, id: string): boolean | undefined {
+  return template.images[id]?.trae_logos;
+}
+
+/**
+ * Declara (o con `undefined`, olvida) si el banner ya trae los logos. Olvidar
+ * es lo que hace un archivo nuevo: la respuesta era de la imagen anterior.
+ */
+export function conTraeLogos(template: MailTemplate, id: string, valor: boolean | undefined, alt = ""): MailTemplate {
+  const actual = template.images[id];
+  if (valor === undefined) {
+    if (!actual || actual.trae_logos === undefined) return template;
+    const { trae_logos: _t, ...sinDato } = actual;
+    void _t;
+    return { ...template, images: { ...template.images, [id]: sinDato } };
+  }
+  if (actual?.trae_logos === valor) return template;
+  return { ...template, images: { ...template.images, [id]: { ...(actual ?? { alt }), trae_logos: valor } } };
+}
+
+/** ¿Sale la franja de logos? Sólo con la cabecera de logos. */
+export function hayFranjaDeLogos(template: Pick<MailTemplate, "header">): boolean {
+  return template.header.kind === "logos";
+}
+
+/** ¿El bloque es la imagen a sangre de arriba del correo, la que puede pasar a ser la cabecera? */
+export function esBannerDeArriba(template: Pick<MailTemplate, "blocks">, blockId: string): boolean {
+  const primero = template.blocks[0];
+  return primero?.block_id === blockId && primero.type === "image" && primero.bleed === true;
+}
+
+/**
+ * Quita la franja de logos porque el banner de arriba ya los trae: la imagen
+ * a sangre pasa a ser la cabecera (banner) y deja de ser un bloque, para no
+ * salir dos veces. Su descripción pasa a la imagen si allí faltaba. Sin un
+ * banner de arriba, la plantilla no cambia.
+ */
+export function franjaPorElBanner(template: MailTemplate, blockId: string): MailTemplate {
+  if (!hayFranjaDeLogos(template) || !esBannerDeArriba(template, blockId)) return template;
+  const block = template.blocks[0];
+  if (block.type !== "image") return template;
+  const id = block.image_ref;
+  const actual = template.images[id] ?? { alt: "" };
+  const alt = actual.alt.trim() ? actual.alt : block.alt;
+  return {
+    ...template,
+    images: { ...template.images, [id]: { ...actual, alt } },
+    header: { kind: "banner", image_ref: id },
+    blocks: template.blocks.slice(1),
+  };
+}
+
 // ---- problemas del contrato ---------------------------------------------------
 
 export type ProblemasPorDestino = {
@@ -670,6 +725,8 @@ export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   // Piezas gráficas (E1o).
   piezas_contrast: "Las piezas gráficas se distinguen del fondo",
   icon_text_sm_icon: "Íconos en SurveyMonkey",
+  // Un banner que ya trae los logos, con la franja de logos encima.
+  logos_duplicados: "Logos repetidos",
 };
 
 /** Dónde se usa un campo (`uses` de `fields_empty`), en la voz de la vista. */
@@ -759,6 +816,8 @@ export function cifraDeChequeo(check: MailCheck): string {
     case "campana_footer_contrast":
       // La razón va sólo en el `title` (`tituloDeChequeo`): a la vista, si se lee.
       return check.status === "ok" ? "se lee bien" : "cuesta leerlo";
+    case "logos_duplicados":
+      return check.status === "ok" ? "una sola vez" : "podrían salir dos veces";
     case "greeting_trato":
     case "greeting_trato_word":
       // Su `value` es un conteo interno: el detalle ya dice a quién le cae el saludo.

@@ -227,7 +227,11 @@ export type MailHeader =
   | { kind: "logos"; logo_ids: string[]; background: "dark" | "light" }
   | { kind: "banner"; image_ref: string };
 
-export type MailImage = { alt: string; url?: string };
+/**
+ * Una imagen declarada. `trae_logos` lo declara el equipo para un banner que
+ * ya trae los logos del estudio incrustados; ausente quiere decir «no se sabe».
+ */
+export type MailImage = { alt: string; url?: string; trae_logos?: boolean };
 
 export type MailField = {
   key: string;
@@ -447,6 +451,8 @@ export const MAIL_CHECK_CODES = [
   // Piezas gráficas (E1o): una pieza que casi no se distingue del fondo; íconos sin URL en SurveyMonkey.
   "piezas_contrast",
   "icon_text_sm_icon",
+  // Un banner que ya trae los logos y además la franja de logos (aviso).
+  "logos_duplicados",
 ] as const;
 export type MailCheckCode = (typeof MAIL_CHECK_CODES)[number];
 
@@ -892,7 +898,10 @@ function normalizeImages(value: unknown): Record<string, MailImage> {
   for (const [id, raw] of Object.entries(value)) {
     if (!isRecord(raw)) continue;
     const url = optStr(raw.url);
-    out[id] = { alt: str(raw.alt), ...(url !== undefined ? { url } : {}) };
+    // Ausente o ilegible es «no se sabe»; un vector de largo uno de R se lee como su valor.
+    const crudo = Array.isArray(raw.trae_logos) && raw.trae_logos.length === 1 ? raw.trae_logos[0] : raw.trae_logos;
+    const traeLogos = typeof crudo === "boolean" ? crudo : undefined;
+    out[id] = { alt: str(raw.alt), ...(url !== undefined ? { url } : {}), ...(traeLogos !== undefined ? { trae_logos: traeLogos } : {}) };
   }
   return out;
 }
