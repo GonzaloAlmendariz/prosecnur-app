@@ -39,16 +39,16 @@ const AVISO_DE_IMPORTACION: Record<string, string> = {
 /** Por qué no se aceptó una imagen (`details.reason` de E_COLLECTION_MAIL_IMAGE_INVALID). */
 const AVISO_DE_IMAGEN: Record<string, string> = {
   format: "La imagen tiene que ser PNG o JPEG.",
-  too_large: "La imagen pesa más de 1 MB: redúcela antes de subirla.",
+  too_large: "La imagen es demasiado grande para reducirla aquí: exporta una versión de hasta 1.200 px de ancho y vuelve a subirla.",
   unreadable: "No se pudo leer la imagen: vuelve a exportarla como PNG o JPEG.",
-  width: "La imagen tiene que medir entre 40 y 1.200 px de ancho.",
+  width: "La imagen tiene que medir al menos 40 px de ancho.",
   name: "El nombre de la imagen no sirve como archivo para Mailchimp: usa letras, números y guiones.",
 };
 
 /** El aviso de una subida de imagen rechazada, con el motivo en la voz de la vista. */
 export function avisoDeImagen(cause: unknown): string {
   if (cause instanceof MailApiError && cause.code === "E_COLLECTION_MAIL_IMAGE_INVALID") {
-    return AVISO_DE_IMAGEN[cause.reason] ?? "La imagen no cumple lo que pide el correo (PNG o JPEG, hasta 1 MB, de 40 a 1.200 px).";
+    return AVISO_DE_IMAGEN[cause.reason] ?? "La imagen no cumple lo que pide el correo (PNG o JPEG, de al menos 40 px de ancho).";
   }
   return mensajeDe(cause, "No se pudo subir la imagen.");
 }
@@ -423,8 +423,9 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
     st.setOcupado("subiendo");
     st.setAviso(null);
     try {
-      await apiMailImageUpload(file, id);
+      const subida = await apiMailImageUpload(file, id);
       if (!vivo.current) return;
+      s.getState().recordarReduccion(id, subida.reduccion);
       const local = urlLocalDe(file);
       if (local) s.getState().recordarImagen(id, local);
       else s.getState().refrescar();

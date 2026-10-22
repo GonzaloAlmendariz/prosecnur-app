@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import type { MailBlock, MailProblem, MailTwoImagesBlock } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ImagePlus, Upload } from "../../../vendor/lucide-react";
+import { AvisoDeReduccion } from "./AvisoDeReduccion";
 import { CampoDeTexto } from "./CampoDeTexto";
 import { propDelProblema } from "./modeloCorreo";
 import { problemaDelArchivo } from "./PanelDeImagen";
@@ -82,7 +83,7 @@ function LadoDelParEditable({
           event.target.value = "";
         }}
       />
-      {error ? <p className="rec-mail-problemas" role="alert">{error}</p> : null}
+      {error ? <p className="rec-mail-problemas" role="alert">{error}</p> : <AvisoDeReduccion imageId={block[lado]} />}
       <CampoDeTexto
         label="Descripción"
         valor={block[prop]}
@@ -114,7 +115,7 @@ export function PanelDeDosImagenes({ block, vistas, problemas, ocupado, onEditar
           onSubir={(file) => onSubir(lado, file)}
         />
       ))}
-      <p className="rec-capa-img-ayuda">PNG o JPEG, hasta 1 MB. Cada una sale a lo más a 244 px de ancho; súbelas al doble para que se vean nítidas.</p>
+      <p className="rec-capa-img-ayuda">PNG o JPEG. Cada una sale a lo más a 244 px de ancho; súbelas al doble para que se vean nítidas.</p>
     </div>
   );
 }

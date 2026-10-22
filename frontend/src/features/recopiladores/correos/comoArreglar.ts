@@ -22,7 +22,7 @@ const ARREGLO: Readonly<Record<string, string>> = {
   import_zip_weight: "Reduce el peso de las imágenes.",
   accent_contrast: "Elige un color de acento más oscuro en Identidad.",
   image_width: "Sube la imagen al doble del ancho con que sale en el correo.",
-  image_weight: "Reduce la imagen a menos de 1 MB.",
+  image_weight: "Vuelve a subir la imagen: al subirla se reduce sola a menos de 1 MB.",
   survey_link: "Pon en el botón el campo del enlace y elige [SurveyLink] en Personas › «Para SurveyMonkey».",
   footer_optout: "Deja el bloque de pie: la app le agrega el enlace de baja.",
   images_public_url: "Ponle a la imagen su dirección web (https): SurveyMonkey no la lleva dentro.",

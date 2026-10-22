@@ -5,6 +5,7 @@ import {
   mailSendInvitation,
   type MailCampaignSummary,
   type MailExportPayload,
+  type MailImageReduccion,
   type MailPlatform,
   type MailPreset,
   type MailPreview,
@@ -129,6 +130,8 @@ export type EstadoCorreos = {
   destino: DestinoDelCampo | null;
   /** Imágenes subidas en esta sesión, para mostrarlas sin pedirlas otra vez. */
   imagenesLocales: Record<string, string>;
+  /** Imágenes que el backend redujo al subirlas en esta sesión, por id: la vista lo dice junto a cada una. */
+  reducciones: Record<string, MailImageReduccion>;
   /** Sube con cada imagen nueva: la vista previa la vuelve a pedir. */
   refresco: number;
   /** HTML de muestra de cada plantilla real, o `null` si no se pudo armar. */
@@ -211,6 +214,8 @@ type Acciones = {
   setAviso: (aviso: Aviso | null) => void;
   setExportacion: (exportacion: MailExportPayload | null) => void;
   recordarImagen: (id: string, url: string) => void;
+  /** Lo que el backend hizo con la imagen recién subida; `null` (no se redujo) olvida la anterior. */
+  recordarReduccion: (id: string, reduccion: MailImageReduccion | null) => void;
   /** Pide de nuevo la vista previa (p. ej. tras reemplazar un archivo). */
   refrescar: () => void;
   setMiniatura: (presetId: string, html: string | null) => void;
@@ -252,6 +257,7 @@ const INICIAL: EstadoCorreos = {
   persona: null,
   destino: null,
   imagenesLocales: {},
+  reducciones: {},
   refresco: 0,
   miniaturas: {},
   historial: HISTORIAL_VACIO,
@@ -489,6 +495,13 @@ export const useCorreosStore = create<EstadoCorreos & Acciones>((set) => ({
     const previa = s.imagenesLocales[id];
     if (previa !== url) revocar(previa);
     return { imagenesLocales: { ...s.imagenesLocales, [id]: url }, refresco: s.refresco + 1 };
+  }),
+  recordarReduccion: (id, reduccion) => set((s) => {
+    if (reduccion?.reducida) return { reducciones: { ...s.reducciones, [id]: reduccion } };
+    if (!(id in s.reducciones)) return {};
+    const { [id]: _olvidada, ...resto } = s.reducciones;
+    void _olvidada;
+    return { reducciones: resto };
   }),
   refrescar: () => set((s) => ({ refresco: s.refresco + 1 })),
   setMiniatura: (presetId, html) => set((s) => ({ miniaturas: { ...s.miniaturas, [presetId]: html } })),

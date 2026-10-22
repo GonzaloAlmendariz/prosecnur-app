@@ -1836,15 +1836,64 @@ export function extensionDeImagen(file: Pick<File, "name" | "type">): "png" | "j
 }
 
 /**
- * Sube una imagen del correo (`mail_image`, PNG o JPEG hasta 1 MB y de 40 a
- * 1.200 px de ancho) bajo el nombre `<id>.<ext>`.
+ * Qué hizo el backend con una imagen del correo al subirla (`meta.reduccion`).
+ *
+ * Más ancha que 1.200 px o más pesada que 1 MB se reduce sola: mismo formato y
+ * misma proporción; un PNG que aun así pesa de más sale JPEG y `aviso` lo dice.
+ * Las medidas llegan como `"3201×1801"`.
+ */
+export type MailImageReduccion = {
+  reducida: boolean;
+  convertida: boolean;
+  de: string;
+  a: string;
+  peso_antes: number;
+  peso_despues: number;
+  formato_antes: string;
+  formato_despues: string;
+  aviso: string | null;
+};
+
+/** Lee `reduccion` de la respuesta de la subida; ausente o ilegible, `null`. */
+export function normalizeMailImageReduccion(value: unknown): MailImageReduccion | null {
+  if (!isRecord(value)) return null;
+  const de = str(value.de).trim();
+  const a = str(value.a).trim();
+  const reducida = bool(value.reducida);
+  // Una reducción sin la medida final no se puede decir: se trata como ausente.
+  if (reducida && !a) return null;
+  return {
+    reducida,
+    convertida: bool(value.convertida),
+    de,
+    a,
+    peso_antes: Math.max(0, int(value.peso_antes)),
+    peso_despues: Math.max(0, int(value.peso_despues)),
+    formato_antes: str(value.formato_antes),
+    formato_despues: str(value.formato_despues),
+    aviso: strOrNull(value.aviso),
+  };
+}
+
+export type MailImageUpload = {
+  file_id: string;
+  original_name: string;
+  /** `null` si el backend no la informó (versiones anteriores). */
+  reduccion: MailImageReduccion | null;
+};
+
+/**
+ * Sube una imagen del correo (`mail_image`, PNG o JPEG de al menos 40 px de
+ * ancho) bajo el nombre `<id>.<ext>`. Si pasa de 1.200 px o de 1 MB el backend
+ * la reduce y `reduccion` lo dice; sólo rechaza lo que no puede reducir
+ * (más de 16 MP o de 40 MB, o lo que aun reducido pesa más de 1 MB).
  *
  * El backend resuelve cada imagen del correo por el slug del nombre original
  * del archivo y se queda con la más reciente; subirla con el id de la
  * plantilla es lo que las une. Un rechazo llega como 422
  * `E_COLLECTION_MAIL_IMAGE_INVALID` con `details.reason`.
  */
-export async function apiMailImageUpload(file: File, imageId: string): Promise<{ file_id: string; original_name: string }> {
+export async function apiMailImageUpload(file: File, imageId: string): Promise<MailImageUpload> {
   const ext = extensionDeImagen(file) ?? "png";
   const fd = new FormData();
   fd.append("file", new File([file], `${imageId}.${ext}`, { type: ext === "jpg" ? "image/jpeg" : "image/png" }));
@@ -1854,5 +1903,5 @@ export async function apiMailImageUpload(file: File, imageId: string): Promise<{
     body: fd,
   }));
   if (!isRecord(raw) || !str(raw.file_id)) throw contractError("la subida no devolvió el archivo.");
-  return { file_id: str(raw.file_id), original_name: str(raw.original_name) };
+  return { file_id: str(raw.file_id), original_name: str(raw.original_name), reduccion: normalizeMailImageReduccion(raw.reduccion) };
 }
