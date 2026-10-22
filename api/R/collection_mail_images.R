@@ -2,8 +2,9 @@
 # imágenes de línea gráfica (`mail_image`, ADR 0110 §B).
 #
 # - Se suben por /api/files/upload con kind `mail_image`: PNG o JPEG (GIF fuera),
-#   hasta 1 MB y de 40 a 1.200 px de ancho. El tipo se lee de los bytes, no de la
-#   extensión; el `.ext` guardado es el real (png / jpg).
+#   desde 40 px de ancho. Lo que pasa de 1.200 px o de 1 MB se reduce al subirlo
+#   (collection_mail_reducir.R); lo guardado cumple ese tope. El tipo se lee de
+#   los bytes, no de la extensión; el `.ext` guardado es el real (png / jpg).
 # - Se nombran por el slug de su nombre original, como los logos. Al resolver un
 #   id gana el `mail_image` más reciente de ese slug; si no hay, el `brand_logo`.
 # - Viajan en el `.pulso` (`.cmail_image_fids`, el vigente de cada slug).
