@@ -1,0 +1,401 @@
+/* Monitoreo › Acreditación › Avance › Correo.
+ *
+ * El panel es el único dueño del scroll vertical (No Scroll Jail): las tablas
+ * solo se desplazan en horizontal dentro de su marco, y la lista de correos
+ * inválidos se pagina en vez de acotarse con scroll propio. Solo tokens. */
+
+.mon-fill-panel.mon-correo {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  gap: 10px;
+}
+
+.mon-correo > * {
+  flex: 0 0 auto;
+}
+
+.mon-correo .mon-title-icon svg {
+  color: var(--pulso-module-monitoring);
+}
+
+/* ---- Barra superior: audiencia, lectura y acción ---- */
+
+.mon-correo-barra {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  padding: 8px 10px;
+}
+
+.mon-correo-audiencia,
+.mon-correo-barra-accion {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.mon-correo-audiencia > strong {
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-correo-audiencia-rotulo,
+.mon-correo-filtro > span {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-heavy);
+  text-transform: uppercase;
+}
+
+.mon-correo-leido {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.mon-correo-filtro {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mon-correo-filtro select {
+  min-width: 0;
+  max-width: 320px;
+  height: var(--pulso-control-height-sm);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 0 8px;
+}
+
+.mon-correo-filtro select:focus-visible,
+.mon-correo-desplegar:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+/* ---- Avance de la lectura ---- */
+
+.mon-correo-progreso {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--pulso-info-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+  font-size: 12.5px;
+  padding: 8px 10px;
+}
+
+.mon-correo-progreso-barra {
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+}
+
+.mon-correo-progreso-barra > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--pulso-module-monitoring);
+  transition: inline-size 240ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mon-correo-progreso-barra > i {
+    transition: none;
+  }
+}
+
+.mon-correo-confirmacion {
+  margin: 0;
+  color: var(--pulso-success-fg);
+  font-size: 12.5px;
+}
+
+.mon-correo-cargando {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 12.5px;
+}
+
+.mon-correo-avisos {
+  margin: 0;
+  padding-left: 16px;
+}
+
+/* ---- Cuerpo: tres bloques independientes, altura intrínseca ---- */
+
+.mon-correo-hero .mon-advance-hero-copy strong {
+  white-space: normal;
+}
+
+.mon-correo-cuerpo {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.mon-correo-bloque {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  padding: 10px 12px;
+}
+
+.mon-correo-bloque-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.mon-correo-bloque-cabeza h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 13.5px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.mon-correo-bloque-cabeza p {
+  margin: 2px 0 0;
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+}
+
+.mon-correo-nota {
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+/* ---- Tablas ---- */
+
+.mon-correo-tabla-marco {
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+}
+
+.mon-correo-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-correo-tabla th,
+.mon-correo-tabla td {
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text);
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.mon-correo-tabla thead th {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.2;
+  text-transform: uppercase;
+  vertical-align: bottom;
+}
+
+.mon-correo-tabla tbody th {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-correo-tabla tbody tr:last-child > th,
+.mon-correo-tabla tbody tr:last-child > td {
+  border-bottom: 0;
+}
+
+.mon-correo-tabla .is-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.mon-correo-tabla .is-fecha {
+  white-space: nowrap;
+}
+
+.mon-correo-tabla .is-token {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-regular);
+}
+
+.mon-correo-tabla td small,
+.mon-correo-tabla th small {
+  display: block;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-regular);
+}
+
+.mon-correo-tabla td > span,
+.mon-correo-tabla td > strong,
+.mon-correo-envio > span {
+  display: block;
+}
+
+.mon-correo-envio {
+  min-width: 180px;
+}
+
+.mon-correo-tabla tr.is-abierta > th,
+.mon-correo-tabla tr.is-abierta > td {
+  background: var(--pulso-module-monitoring-soft);
+}
+
+.mon-correo-desglose > td {
+  background: var(--pulso-surface-2);
+  padding: 8px 10px 10px 24px;
+}
+
+.mon-correo-tabla.is-anidada {
+  margin-bottom: 6px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.mon-correo-tabla .is-accion {
+  white-space: nowrap;
+}
+
+.mon-correo-desplegar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11.5px;
+  padding: 2px 8px;
+}
+
+.mon-correo-desplegar:hover {
+  border-color: var(--pulso-module-monitoring-border);
+  background: var(--pulso-module-monitoring-soft);
+}
+
+/* ---- Ritmo sugerido ---- */
+
+.mon-correo-ritmo-celda {
+  min-width: 200px;
+}
+
+.mon-correo-ritmo {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--pulso-state-unset-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-state-unset-bg);
+  color: var(--pulso-state-unset-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  padding: 1px 8px;
+}
+
+.mon-correo-ritmo.is-ready {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-correo-ritmo.is-warning {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-correo-ritmo.is-danger {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+/* ---- Inválidos ---- */
+
+.mon-correo-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-correo-chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  padding: 2px 8px;
+}
+
+.mon-correo-chips strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-correo-paginas {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Compacto ---- */
+
+@media (max-width: 1180px) {
+  .mon-correo-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .mon-correo-hero .mon-advance-hero-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
