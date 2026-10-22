@@ -1513,6 +1513,7 @@
   # Las columnas heredadas de la madre (attr repeat_inherited) sí se conservan.
   df <- .repeat_drop_technical_cols(df)
   df <- .bases_normalize_other_selects(df, rp_inst)
+  df <- .bases_dummies_si_no(df, rp_inst)
 
   # 1) Convertir columnas con value-labels a haven_labelled_spss. Reusa
   #    el post-procesamiento de reporte_spss vía attrs — aplica
