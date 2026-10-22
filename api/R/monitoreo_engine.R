@@ -699,7 +699,7 @@ monitoreo_normalize_profile <- function(profile = list(), acreditacion = NULL) {
     )
   )
   attr(out, "compat_acreditacion") <- acreditacion
-  out
+  .monitoreo_profile_status_reglas(out, profile) # status_from_rules: monitoreo_status_reglas.R
 }
 
 # .monitoreo_text_key vive en monitoreo_reconciliacion_memo.R (memoizada; era
@@ -3910,7 +3910,7 @@ monitoreo_normalize_config <- function(config = list(), data = NULL, previous_co
     max_duration_seconds = max(0, .monitoreo_num(config$max_duration_seconds, defaults$max_duration_seconds)),
     supervision_n = max(1L, .monitoreo_int(config$supervision_n, defaults$supervision_n)),
     supervision_seed = .monitoreo_int(config$supervision_seed, defaults$supervision_seed),
-    monitoreo_profile = profile,
+    monitoreo_profile = .monitoreo_profile_con_reglas(profile, operational_model),
     acreditacion = acreditacion,
     client_report = .monitoreo_client_report_config(config),
     territorial = territorial,
@@ -15750,7 +15750,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   operational_idx <- !response_idx
   if (any(operational_idx)) {
     operational_status <- .monitoreo_report_first_values(df, c("Status", "Estado", "estado", "Estatus", "estatus", "Estado campo", "Estado avance", "response_status", "status"))
-    out[operational_idx] <- .monitoreo_report_state_from_status(operational_status[operational_idx], platform = FALSE)
+    out[operational_idx] <- .monitoreo_report_states_operativos(operational_status[operational_idx], profile) # reglas: monitoreo_status_reglas.R
   }
   bool_vec <- function(col) {
     if (!nzchar(col)) return(rep(FALSE, nrow(df)))
@@ -15948,7 +15948,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   })
 }
 
-.monitoreo_report_key_details <- function(df, profile = list(), origin = c("universo", "respuesta")) {
+.monitoreo_report_key_details_base <- function(df, profile = list(), origin = c("universo", "respuesta")) { # envuelta en monitoreo_llave_progres.R
   origin <- match.arg(origin)
   if (is.null(df) || !is.data.frame(df) || !nrow(df)) return(list())
   profile <- monitoreo_normalize_profile(profile)
@@ -23603,7 +23603,7 @@ monitoreo_production_report_pdf <- function(model, output_file, title = NULL) {
 # (4.2) Base telefónica, cuotas/metas y bloques de la hoja monitoreo_telefonico:
 # viven en monitoreo_telefonico.R (semántica exclusiva de la familia telefónica).
 
-.monitoreo_report_alerts_df <- function(data, profile) {
+.monitoreo_report_alerts_df_base <- function(data, profile) { # envuelta en monitoreo_avisos_telefonico.R
   barrido <- data[.monitoreo_report_role_mask(data, "barrido"), , drop = FALSE]
   respuestas <- data[.monitoreo_report_role_mask(data, "respuestas"), , drop = FALSE]
   is_phone_family <- identical(profile$family %||% "", "telefonico")
