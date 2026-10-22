@@ -226,3 +226,15 @@
   if (!nzchar(et)) return("")
   if (grepl("^[A-Za-z]", et)) et else paste0("P", et)
 }
+
+# Fila de matriz que trae su propia letra de enumeración («a. Secretaría…»): el
+# motor ya la numera X.1..X.k (§39.6), y con las dos salía «61.1 a. Secretaría»
+# (HSyVbG 2026, P61/P63). Sólo se quita la letra que le toca a esa fila en la
+# secuencia (a para la 1, b para la 2…), así una «a» de enunciado no se pierde,
+# y sólo si la fila lleva número impreso: sin él, la letra es su única marca.
+.form_num_sin_letra_de_fila <- function(label, jj, numero) {
+  if (!nzchar(.form_pdf_chr(numero)) || !nzchar(label) || jj < 1L || jj > 26L) return(label)
+  rx <- sprintf("^\\s*\\(?[%s%s]\\s*[.)]\\s+", letters[jj], LETTERS[jj])
+  out <- sub(rx, "", label, perl = TRUE)
+  if (nzchar(trimws(out))) out else label
+}
