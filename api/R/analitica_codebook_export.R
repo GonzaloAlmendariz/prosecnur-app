@@ -57,6 +57,8 @@
     # El libro documenta también las preguntas sin lista (edad, índices,
     # calculadas): el filtro de Frecuencias las dejaba fuera.
     data_out <- .codebook_con_sin_lista(reviewed$data, data_out, excluidas_eff)
+    # Dummies de múltiple en No/Sí y recodificadas con pregunta + opción, igual que el SAV.
+    data_out <- .bases_dummies_si_no(data_out, reviewed$inst)
 
     if (identical(formato, "pdf")) {
       reporte_codebook_pdf(
