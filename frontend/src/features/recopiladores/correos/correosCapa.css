@@ -211,6 +211,22 @@
   transform: translateX(-100%);
   z-index: 4;
   animation: rec-capa-aparecer var(--motion-dur-fast) var(--motion-ease-out);
+  transition: opacity 120ms var(--motion-ease-out), visibility 0s;
+}
+
+/* #2 del re-QA e10-2: si encima del bloque no se ve, la barra se desvanece
+   (nunca se queda sobre el texto) y vuelve al subir. Con el foco dentro se
+   queda, en lo más alto visible del bloque. */
+.rec-capa-acciones.is-oculta {
+  transform: translate(-100%, var(--rec-acciones-respaldo, 0px));
+}
+
+.rec-capa-acciones.is-oculta:not(:focus-within) {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-100%);
+  transition: opacity 120ms var(--motion-ease-out), visibility 0s 120ms;
+  visibility: hidden;
 }
 
 .rec-capa-acciones-rotulo {
@@ -666,12 +682,6 @@
   font-size: 11px;
 }
 
-.rec-capa-campo-etiqueta {
-  color: var(--pulso-text-muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10.5px;
-}
-
 .rec-capa-campo-ejemplo {
   color: var(--pulso-text-muted);
   font-size: 11px;
@@ -993,7 +1003,9 @@
   .rec-capa-zona-rotulo,
   .rec-capa-hueco::before,
   .rec-capa-hueco-btn,
-  .rec-capa-lista-manija {
+  .rec-capa-lista-manija,
+  .rec-capa-acciones,
+  .rec-capa-acciones.is-oculta:not(:focus-within) {
     transition: none;
   }
 

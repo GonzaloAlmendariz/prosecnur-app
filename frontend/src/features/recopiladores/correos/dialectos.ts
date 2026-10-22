@@ -119,14 +119,15 @@ export function conEtiquetaSurveyMonkey(template: MailTemplate, key: string, sm:
 /** Por qué la correspondencia no sirve, o `null`: dos campos no comparten etiqueta. */
 export function problemaDeEtiquetas(template: Pick<MailTemplate, "fields">): Record<string, string> {
   const out: Record<string, string> = {};
+  // La etiqueta ya tomada se dice con el rótulo del campo que la tiene, sin llaves (#5 del re-QA e10-2).
   const vistos = new Map<string, string>();
   for (const f of template.fields) {
     if (!f.sm) continue;
     const previo = vistos.get(f.sm);
     const motivo = f.destino === "otro" ? motivoSinEtiqueta(f, f.sm) : null;
     if (motivo) out[f.key] = motivo;
-    else if (previo) out[f.key] = `[${f.sm}] ya es de {{${previo}}}.`;
-    else vistos.set(f.sm, f.key);
+    else if (previo) out[f.key] = `[${f.sm}] ya es de «${previo}».`;
+    else vistos.set(f.sm, f.label.trim() || f.key);
     const n = f.sm.match(/^CustomData(\d+)$/);
     if (!out[f.key] && n && Number(n[1]) > CUSTOM_DATA_SIN_ENTERPRISE) {
       out[f.key] = `Fuera de los planes Team y Enterprise, SurveyMonkey sólo llega a [CustomData${CUSTOM_DATA_SIN_ENTERPRISE}].`;

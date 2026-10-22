@@ -470,6 +470,7 @@ export function CapaDeEdicion({
   const acciones = elegida ? lugarDeLasAcciones({ zona: elegida.rect, ancho: anchoAcciones, visible }) : null;
   const lugarAcciones = acciones?.lugar ?? "arriba";
   const rectAcciones = acciones?.rect ?? null;
+  const respaldoAcciones = acciones?.respaldo ?? 0;
 
   return (
     <div
@@ -585,7 +586,8 @@ export function CapaDeEdicion({
         <div
           className={`rec-capa-acciones is-${lugarAcciones}`}
           // Anclada por su borde derecho: el ancho real puede diferir de la estimación.
-          style={{ left: rectAcciones.x + rectAcciones.w, top: rectAcciones.y }}
+          // #2 (re-QA e10-2): oculta, se desvanece; con el foco dentro baja `--rec-acciones-respaldo`.
+          style={{ left: rectAcciones.x + rectAcciones.w, top: rectAcciones.y, "--rec-acciones-respaldo": `${respaldoAcciones}px` } as CSSProperties}
           role="toolbar"
           aria-label={`Acciones de ${rotuloDeZona(elegida, bloqueElegido)}`}
         >

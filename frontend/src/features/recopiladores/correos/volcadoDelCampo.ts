@@ -16,21 +16,24 @@ export function visibleAntesDelCursor(raiz: Node, nodo: Node, offset: number): s
   if (!raiz.contains(nodo)) return null;
   let out = "";
   const unidad = (n: Node) => n.nodeType === 1 && ((n as Element).hasAttribute("data-campo") || (n as Element).tagName === "BR");
+  // Un `<div>`/`<p>` que no es el primero es un renglón nuevo (así lo lee textoDelDom): un salto.
+  const renglon = (n: Node) => n.nodeType === 1 && /^(DIV|P)$/.test((n as Element).tagName) && n.previousSibling !== null ? CHIP : "";
   const todo = (n: Node): string => {
     if (n.nodeType === 3) return n.nodeValue ?? "";
     if (unidad(n)) return CHIP;
-    return Array.from(n.childNodes).map(todo).join("");
+    return renglon(n) + Array.from(n.childNodes).map(todo).join("");
   };
   const recorrer = (actual: Node): boolean => {
     if (actual === nodo) {
       if (actual.nodeType === 3) out += (actual.nodeValue ?? "").slice(0, offset);
-      else out += Array.from(actual.childNodes).slice(0, offset).map(todo).join("");
+      else out += renglon(actual) + Array.from(actual.childNodes).slice(0, offset).map(todo).join("");
       return true;
     }
     if (actual.nodeType === 3 || unidad(actual)) {
       out += todo(actual);
       return false;
     }
+    out += renglon(actual);
     for (const h of Array.from(actual.childNodes)) if (recorrer(h)) return true;
     return false;
   };
@@ -50,6 +53,39 @@ export function hayLlaveEscrita(raiz: Node): boolean {
   return LLAVE.test(raiz.textContent ?? "");
 }
 
+/** Lo que el DOM del editor admite: texto, negrita, cursiva, enlaces, chips y saltos. */
+const ETIQUETAS_PROPIAS = new Set(["STRONG", "B", "EM", "I", "A", "BR"]);
+
+/**
+ * ¿Hay un nodo fuera del DOM permitido? Un `<div>` del Enter de Chrome, un
+ * `<span>` o una `<font>` de un pegado: el campo se repinta desde el
+ * texto del contrato para que lo que se ve sea lo que se guarda.
+ */
+export function hayNodoAjeno(raiz: Node): boolean {
+  return Array.from(raiz.childNodes).some((n) => {
+    if (n.nodeType !== 1) return false;
+    const el = n as Element;
+    if (el.hasAttribute("data-campo")) return false;
+    if (!ETIQUETAS_PROPIAS.has(el.tagName.toUpperCase())) return true;
+    return hayNodoAjeno(el);
+  });
+}
+
+/**
+ * La posición del cursor en el texto del contrato completo. `antes` es el
+ * texto del contrato de lo que hay antes del cursor: si el cursor está dentro
+ * de una negrita, `antes` la cierra (`**hol**`) y el texto completo no
+ * (`**hola**`). Lo que comparten es la posición válida: insertar ahí deja el
+ * campo dentro de la negrita y nunca parte una marca.
+ */
+export function cursorEnElContrato(antes: string, completo: string): number {
+  let i = 0;
+  while (i < antes.length && i < completo.length && antes[i] === completo[i]) i += 1;
+  // No partir un `\*` (asterisco de texto) ni una marca a medias: se retrocede a su inicio.
+  while (i > 0 && (completo[i - 1] === "\\" || (completo[i - 1] === "*" && completo[i] === "*"))) i -= 1;
+  return i;
+}
+
 export type Volcado = {
   /** El texto del contrato que sale del DOM. */
   texto: string;
@@ -58,12 +94,13 @@ export type Volcado = {
 };
 
 /**
- * El volcado de un campo de una línea: el texto del contrato y, si quedó una
- * llave escrita, el HTML con el chip y el cursor justo después de lo escrito.
+ * El volcado de un campo del inspector: el texto del contrato y, si quedó una
+ * llave escrita o un nodo ajeno, el HTML limpio y el cursor justo después de
+ * lo escrito.
  */
 export function volcarCampo(raiz: Node, cursor: { nodo: Node; offset: number } | null, opciones: OpcionesDeTexto): Volcado {
   const texto = textoDelDom(raiz, opciones);
-  if (!hayLlaveEscrita(raiz)) return { texto, repintar: null };
+  if (!hayLlaveEscrita(raiz) && !hayNodoAjeno(raiz)) return { texto, repintar: null };
   const enChips = cursor ? desplazamientoConChips(raiz, cursor.nodo, cursor.offset) : null;
   return { texto, repintar: { html: htmlDelTexto(texto, opciones), cursor: enChips } };
 }

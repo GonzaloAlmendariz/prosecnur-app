@@ -8,7 +8,14 @@
 //
 // - La barra va pegada al borde superior del bloque, por fuera (encima).
 // - Si encima no se ve (el bloque empieza arriba del área visible o bajo la
-//   barra del correo), se pega a lo más alto que se ve del bloque.
+//   barra del correo), la barra se oculta con una transición corta y vuelve
+//   al subir (#2 del re-QA e10-2). Pegada a lo más alto visible del bloque
+//   tapaba renglones del propio texto, y fuera de la hoja no hay dónde ponerla:
+//   el lienzo mide lo mismo que la hoja en los tres anchos (margen 0 px a
+//   1440, 1366 y 1024). Mover, subir, bajar y quitar siguen en el inspector y
+//   con Alt + flechas.
+// - Si el foco está en la barra, no se oculta: baja `respaldo` px hasta lo más
+//   alto que se ve del bloque, para no perder al que va con el teclado.
 // - Nunca queda fuera del área visible.
 // - Deja libre la esquina derecha, donde van los puntos de aviso.
 //
@@ -16,7 +23,7 @@
 
 import type { Rect } from "./estructuraCorreo";
 
-export type LugarDeLasAcciones = "arriba" | "pegada";
+export type LugarDeLasAcciones = "arriba" | "oculta";
 
 /** Separación entre la barra y el borde del bloque. */
 export const MARGEN_DE_LAS_ACCIONES = 6;
@@ -42,18 +49,23 @@ export type AreaVisible = { arriba: number; abajo: number };
  * El lugar y el rectángulo de la barra del bloque `zona`. Sin `visible` (aún
  * sin medir) se supone que todo se ve.
  */
-export function lugarDeLasAcciones(entrada: { zona: Rect; ancho: number; visible?: AreaVisible | null }): { lugar: LugarDeLasAcciones; rect: Rect } {
+export function lugarDeLasAcciones(entrada: { zona: Rect; ancho: number; visible?: AreaVisible | null }): { lugar: LugarDeLasAcciones; rect: Rect; respaldo: number } {
   const { zona, ancho } = entrada;
   const visible = entrada.visible ?? { arriba: Number.NEGATIVE_INFINITY, abajo: Number.POSITIVE_INFINITY };
   const encima = zona.y - ALTO_DE_LAS_ACCIONES - MARGEN_DE_LAS_ACCIONES;
-  // Lo más alto que se ve, sin bajar del final del bloque (salvo que el bloque sea más bajo que la barra).
+  // Encima del bloque y dentro de lo que se ve: ese es su lugar.
+  const cabeEncima = encima >= visible.arriba && encima + ALTO_DE_LAS_ACCIONES <= visible.abajo;
+  // Si no cabe, se oculta; su rectángulo es el de respaldo con el foco dentro:
+  // lo más alto que se ve, sin bajar del final del bloque.
   let y = Math.max(encima, visible.arriba);
   y = Math.min(y, Math.max(encima, zona.y + zona.h - ALTO_DE_LAS_ACCIONES));
   // Nunca fuera del área visible.
   if (Number.isFinite(visible.abajo)) y = Math.min(y, visible.abajo - ALTO_DE_LAS_ACCIONES);
   if (Number.isFinite(visible.arriba)) y = Math.max(y, visible.arriba);
   const x = Math.max(0, zona.x + zona.w - RESERVA_DEL_PUNTO - ancho);
-  return { lugar: y <= encima ? "arriba" : "pegada", rect: { x, y, w: ancho, h: ALTO_DE_LAS_ACCIONES } };
+  // Oculta, sigue encima del bloque (se va con él mientras se desvanece);
+  // `respaldo` es cuánto bajarla si el foco está dentro.
+  return { lugar: cabeEncima ? "arriba" : "oculta", rect: { x, y: encima, w: ancho, h: ALTO_DE_LAS_ACCIONES }, respaldo: cabeEncima ? 0 : y - encima };
 }
 
 /** El rectángulo de un punto de aviso de una zona (esquina superior derecha). */

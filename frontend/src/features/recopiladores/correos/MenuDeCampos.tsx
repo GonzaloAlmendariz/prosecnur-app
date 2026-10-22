@@ -5,8 +5,6 @@ import { Variable } from "../../../vendor/lucide-react";
 export type CampoDelMenu = {
   key: string;
   label: string;
-  /** Cómo sale en la plataforma: `*|CARRERA|*`, `[CustomData1]`… */
-  etiqueta: string;
   /** El dato de la persona que se mira, si hay uno. */
   ejemplo?: string;
 };
@@ -101,13 +99,13 @@ export function MenuDeCampos({ campos, estilo, onElegir, onCerrar }: Props) {
             onClick={() => onElegir(c.key)}
           >
             <span className="rec-capa-campo-nombre">{c.label}</span>
-            <span className="rec-capa-campo-etiqueta">{c.etiqueta || "sin equivalente"}</span>
+            {/* La etiqueta de la plataforma queda en «Ver el código» (#5 del re-QA e10-2); aquí, el dato de quien se mira. */}
             {c.ejemplo ? <span className="rec-capa-campo-ejemplo">{c.ejemplo}</span> : null}
           </li>
         ))}
-        {!visibles.length ? <li className="rec-capa-campos-nada" role="presentation">Ningún campo se llama así. Los campos se declaran en «Destinatarios».</li> : null}
+        {!visibles.length ? <li className="rec-capa-campos-nada" role="presentation">Ningún campo se llama así. Los campos se declaran en «Personas».</li> : null}
       </ul>
-      <p className="rec-capa-pop-pie">Se ve teñido en la vista previa y cambia por persona al enviar.</p>
+      <p className="rec-capa-pop-pie">Sale con el dato de cada persona.</p>
     </div>
   );
 }

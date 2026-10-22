@@ -6,6 +6,7 @@ import { tipoDisponible } from "./estructuraCorreo";
 import { ICONO_DE_BLOQUE, ICONO_DE_IMAGEN_DECORATIVA } from "./iconos";
 import { ROTULO_DE_BLOQUE } from "./modeloCorreo";
 import { IMAGEN_DECORATIVA, PIEZAS_GRAFICAS, type TipoInsertable } from "./piezasGraficas";
+import { useCabezaSinLugar } from "./topeDeLaBarra";
 import "./correosBiblioteca.css";
 
 /** Tipo MIME del arrastre: lo lee la capa para saber qué bloque se suelta. */
@@ -218,6 +219,8 @@ type Props = {
  */
 export function BibliotecaDeBloques({ template, estilo, titulo = "Agregar un bloque", arriba = false, onElegir, onCerrar }: Props) {
   const raiz = useRef<HTMLDivElement | null>(null);
+  // Residuo del #17: al final del desplazamiento, la cabecera no se mete bajo la barra del correo.
+  const cabezaFuera = useCabezaSinLugar(raiz, ".rec-bib-cabeza");
 
   useEffect(() => {
     raiz.current?.querySelector<HTMLButtonElement>("button.rec-bib-tipo:not([disabled])")?.focus({ preventScroll: true });
@@ -250,7 +253,7 @@ export function BibliotecaDeBloques({ template, estilo, titulo = "Agregar un blo
   return (
     <div
       ref={raiz}
-      className={`rec-bib${arriba ? " is-arriba" : ""}`}
+      className={`rec-bib${arriba ? " is-arriba" : ""}${cabezaFuera ? " is-cabeza-fuera" : ""}`}
       style={estilo}
       role="dialog"
       aria-label={titulo}
