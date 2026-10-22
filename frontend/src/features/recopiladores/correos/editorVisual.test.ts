@@ -385,6 +385,15 @@ describe("imagen de un bloque en la vista previa", () => {
     expect(srcDeImagenDelBloque(html, "b")).toBeNull();
     expect(srcDeImagenDelBloque(html, "z")).toBeNull();
   });
+
+  it("el espaciador del hueco (sin archivo) no cuenta como imagen", async () => {
+    const { srcDeImagenDelBloque } = await import("./estructuraCorreo");
+    // HTML real de .cmail_preview_hole: un <img> SVG transparente que da la proporción.
+    const hueco = '<td data-pulso-block="b1"><span style="display:block;position:relative;"><img src="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27600%27 height=%27300%27%2F%3E" width="600" height="300" alt=""><span>Banner</span></span></td>';
+    expect(srcDeImagenDelBloque(hueco, "b1")).toBeNull();
+    const conImagen = '<td data-pulso-block="b2"><img src="data:image/png;base64,AABB"></td>';
+    expect(srcDeImagenDelBloque(conImagen, "b2")).toBe("data:image/png;base64,AABB");
+  });
 });
 
 describe("store: historial por campaña", () => {
