@@ -136,6 +136,8 @@ errores_registrados <- function() {
     "E_MAILCHIMP_TOKEN",                                     "collection_mail_mailchimp.R",       "400",
     "E_MAILCHIMP_API",                                       "collection_mail_mailchimp.R",       "502",
     "E_MAILCHIMP_SYNC_SURVEYMONKEY",                         "collection_mail_mailchimp.R",       "502",
+    # Monitoreo › Avance › Correo (T3, docs/qa/checklist-monitoreo-mailchimp-t3-2026-10-22.md).
+    "E_MONITOREO_MAILCHIMP_AUDIENCIA",                       "router_monitoreo_mailchimp.R",      "400,409",
     "E_COLLECTION_MAIL_SYNC_PLATFORM",                       "collection_mail_mailchimp_audiencia.R", "409",
     "E_COLLECTION_MAIL_SYNC_CAMPAIGN_INPUT",                 "collection_mail_mailchimp_borrador.R", "422",
     "E_COLLECTION_MAIL_SYNC_NO_AUDIENCE_TAG",                "collection_mail_mailchimp_borrador.R", "409",
