@@ -88,8 +88,10 @@
 # desplazaba 33 px en horizontal. En `max-width:480px` cada logo lleva
 # `max-width:100%` y `height:auto`: se ACHICA PROPORCIONALMENTE, nunca se aplasta,
 # y las celdas reparten el ancho. Si al achicarse alguno quedaría por debajo de
-# 90 px (ilegible) en un teléfono de 360 px, los logos se APILAN y el divisor se
-# oculta. Outlook ignora las media queries: ahí la fila sigue como en escritorio.
+# 90 px de ancho o de 24 px de alto (ilegible) en un teléfono de 360 px, los logos
+# se APILAN y el divisor se oculta: apilado, cada logo vuelve a su tamaño de
+# escritorio (nunca más ancho que la columna, siempre en proporción). Outlook
+# ignora las media queries: ahí la fila sigue como en escritorio.
 #
 # Evidencia (Playwright/Chromium, 2026-10-21): dos logos de 160 px quedan de
 # 143,5 px a 390 y de 108,5 px a 320; dos de 200 px (el tope, p. ej. 10:1) de
@@ -97,13 +99,24 @@
 # 96,5 a 320: con dos logos nunca se baja de 90. Tres de 160/150/138 a 360
 # quedarían de ~68 px: se apilan. El reparto entre celdas sale proporcional al
 # ancho de cada logo, como asume `.cmail_logos_stack`.
+#
+# El ancho no basta (Gonzalo, 2026-10-22: «apílalo si queda muy chico»): un 10:1
+# (200 × 20) junto a uno de 160 quedaba de 120,5 × 12 px a 320. Alto medido con
+# Playwright/Chromium al lado de uno de 160 × 46, a 320 / 360 / 390 px: 4:1
+# (184 × 46) 29,0 / 34,4 / 38,4; 5:1 (200 × 40) 24,1 / 28,6 / 31,9; 6:1
+# (200 × 33) 20,1 / 23,8 / 26,6; 8:1 15,1 / 17,8 / 19,9; 10:1 12,1 / 14,3 / 15,9.
+# Dos típicos (160 + 150 a 46) 32,2 / 38,1 / 42,6. Con 24 px a 360 se apilan
+# 6:1 y más anchos y nunca un par típico; el 5:1 que queda en fila no baja de
+# 24 a 320. Un logo que en escritorio ya mide menos de 24 de alto (10:1 = 20 px)
+# no sube al apilarse: es el máximo que da su proporción sin deformarlo.
 
 .CMAIL_LOGO_CLASS <- "cmail-logo"
 .CMAIL_LOGO_CELL_CLASS <- "cmail-logo-cell"
 .CMAIL_LOGO_NEXT_CLASS <- "cmail-logo-next"
 .CMAIL_LOGO_DIV_CLASS <- "cmail-logo-div"
 .CMAIL_LOGO_GAP_PX <- 37L          # divisor: 18 + 1 + 18
-.CMAIL_LOGO_MIN_PX <- 90L          # por debajo, un logo deja de leerse
+.CMAIL_LOGO_MIN_PX <- 90L          # por debajo de este ancho, un logo deja de leerse
+.CMAIL_LOGO_MIN_H_PX <- 24L        # ni por debajo de este alto (medido, ver arriba)
 .CMAIL_LOGO_STACK_GAP_PX <- 12L
 # Teléfono de referencia de 360 px: menos el margen de la página (12 + 12), el
 # borde de la tarjeta (1 + 1) y los márgenes de la cabecera en teléfono (20 + 20).
@@ -111,15 +124,17 @@
 
 #' ¿Se apilan los logos en teléfono? Sí cuando, achicados en la misma
 #' proporción para caber en el teléfono de referencia, alguno quedaría por
-#' debajo de 90 px.
+#' debajo de 90 px de ancho o (con `heights`) de 24 px de alto. Un logo que
+#' cabe sin achicarse nunca obliga a apilar: su alto es el de escritorio.
 #' @keywords internal
-.cmail_logos_stack <- function(widths, avail = .CMAIL_LOGO_PHONE_PX) {
+.cmail_logos_stack <- function(widths, heights = NULL, avail = .CMAIL_LOGO_PHONE_PX) {
   widths <- as.numeric(widths)
   if (length(widths) < 2L) return(FALSE)
   room <- avail - .CMAIL_LOGO_GAP_PX * (length(widths) - 1L)
   scale <- room / sum(widths)
   if (scale >= 1) return(FALSE)
-  any(widths * scale < .CMAIL_LOGO_MIN_PX)
+  any(widths * scale < .CMAIL_LOGO_MIN_PX) ||
+    (!is.null(heights) && any(as.numeric(heights) * scale < .CMAIL_LOGO_MIN_H_PX))
 }
 
 # Reglas del `<head>` para la fila de logos (solo si el correo la trae).
