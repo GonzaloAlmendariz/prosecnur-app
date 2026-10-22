@@ -299,6 +299,7 @@ export default function ProjectShell({ children }: { children: React.ReactNode }
           projectPath={project.status.path ?? ""}
           dirty={project.status.dirty}
           lastSavedAt={project.status.last_saved_at}
+          contactosCampanas={project.status.contactos_campanas}
           busy={project.busy || !!dialogAction}
           action={dialogAction}
           error={dialogError || project.error}

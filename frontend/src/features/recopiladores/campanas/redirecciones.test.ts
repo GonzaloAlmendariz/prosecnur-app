@@ -35,6 +35,20 @@ describe("la dirección de Material de campo (ADR 0111 §Redirecciones)", () => 
     });
   });
 
+  it("la pestaña Contactos del correo es canónica y conserva panel y foco (ADR 0112 §4)", () => {
+    expect(ir({ modo: "correo", campana: "correo.egresados", seccion: "correo", pestana: "contactos" }).reescribir).toBeNull();
+    expect(ir({
+      modo: "correo", campana: "correo.egresados", seccion: "correo", pestana: "contactos", panel: "contactos-variables", foco: "saludo",
+    }).reescribir).toBeNull();
+    // Sin sección, o con una pestaña que no existe: se completa o cae en el editor.
+    expect(ir({ modo: "correo", campana: "correo.egresados", pestana: "contactos" }).reescribir).toEqual({
+      modo: "correo", campana: "correo.egresados", seccion: "correo", pestana: "contactos",
+    });
+    expect(ir({ modo: "correo", campana: "correo.egresados", seccion: "correo", pestana: "otra" }).reescribir).toEqual({
+      modo: "correo", campana: "correo.egresados", seccion: "correo", pestana: "editor",
+    });
+  });
+
   it("si `campana` y `modo` discrepan, manda la campaña", () => {
     expect(ir({ modo: "correo", campana: "aulas.principal", seccion: "accesos" })).toEqual({
       vista: "campana",

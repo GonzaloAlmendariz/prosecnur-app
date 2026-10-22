@@ -20,6 +20,8 @@ export type ProjectStatus = {
   name: string | null;
   dirty: boolean;
   last_saved_at: string | null;
+  /** Campañas de correo cuyos contactos viajan en el `.pulso` (ADR 0112 §5). Ausente en backends viejos. */
+  contactos_campanas?: number;
 };
 
 export async function apiProjectStatus(): Promise<ProjectStatus> {
@@ -36,6 +38,8 @@ export async function apiProjectSave(path: string | null = null, projectName?: s
   if (projectName) body.project_name = projectName;
   return handle<{
     ok: true; path: string; size: number; saved_at: string;
+    /** Campañas de correo cuyos contactos viajan en el `.pulso` (ADR 0112 §5). */
+    contactos_campanas?: number;
     /** Referencias que el proyecto declara y cuyo archivo ya no estaba, así que
      *  no viajan dentro del `.pulso`. Guardar sigue siendo posible —bloquearlo
      *  sería peor— pero el analista se entera antes de entregar el archivo.

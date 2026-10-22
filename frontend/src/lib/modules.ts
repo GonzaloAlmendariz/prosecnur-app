@@ -24,6 +24,7 @@ import {
   Table2,
   Shuffle,
   Target,
+  Users,
   type LucideIcon,
 } from "../vendor/lucide-react";
 import {
@@ -620,6 +621,9 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
             layoutPolicy: "viewport",
             tabs: [
               { id: "editor", label: "Editor", icon: Mail, to: "/material-campo?modo=correo&seccion=correo&pestana=editor", layoutPolicy: "viewport" },
+              // Quién está en la lista, cómo se reparte por perfil y quién
+              // respondió; el enlace personal a la encuesta (ADR 0112 §2 y §4).
+              { id: "contactos", label: "Contactos", icon: Users, to: "/material-campo?modo=correo&seccion=correo&pestana=contactos", layoutPolicy: "viewport" },
             ],
           },
         ],

@@ -541,8 +541,10 @@ describe("audit-ready route root contract", () => {
       "PageFrame",
       "CampanaCorreoShell",
     );
+    // ADR 0112 §4: la sección Correo tiene dos pestañas (Editor, Contactos) y
+    // cada una publica la suya cuando terminó su propia carga.
     expect(compactExpression(readinessValue(correo.tag, "auditReady", "Correo"))).toBe(
-      'cargando?false:"material-campo/correo/editor"',
+      "cargando?false:`material-campo/correo/${pestana}`",
     );
   });
 
