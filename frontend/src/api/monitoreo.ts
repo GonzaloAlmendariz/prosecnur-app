@@ -2944,6 +2944,8 @@ export type MonitoreoAssistedReview = {
   declared_name?: string;
   candidates?: MonitoreoAssistedReviewCandidate[];
   assignment_candidates?: MonitoreoAssistedReviewCandidate[];
+  /** Actor cuyo universo asignable viaja una sola vez en `MonitoreoInternalQueries.assignment_pool`. */
+  assignment_pool_key?: string;
   warnings?: string[];
   manual_decision?: MonitoreoManualCaseReconciliation | null;
 };
@@ -3360,6 +3362,8 @@ export type MonitoreoInternalQueries = {
   pending_exit: MonitoreoInternalQueryCase[];
   issues: MonitoreoInternalQueryIssue[];
   flow: MonitoreoInternalQueryFlow;
+  /** Personas asignables del universo, una lista por actor; los casos las nombran con `assignment_pool_key`. */
+  assignment_pool?: Record<string, MonitoreoAssistedReviewCandidate[]>;
 };
 
 export type MonitoreoAcreditacionReports = {

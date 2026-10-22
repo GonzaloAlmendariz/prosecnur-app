@@ -1113,7 +1113,7 @@
     dashboard$territorial_reports$map_cache <- territorial_map_cache$active %||% territorial_map_cache
   }
   if (family %in% c("acreditacion", "telefonico")) {
-    dashboard <- .monitoreo_acreditacion_repair_cached_dashboard(dashboard)
+    dashboard <- .monitoreo_acreditacion_dashboard_para_cliente(dashboard)
   }
   if (identical(family, "aulas_universitarias")) {
     aulas_cfg <- cfg$aulas_universitarias %||% monitoreo_aulas_default_config()

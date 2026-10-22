@@ -257,10 +257,13 @@ export function internalQueryTemplateById(id: string) {
 
 export function normalizeInternalQueries(value: MonitoreoInternalQueries | null | undefined): MonitoreoInternalQueries {
   if (!value) return EMPTY_INTERNAL_QUERIES;
+  const pool = normalizeAssignmentPool(value.assignment_pool);
+  const normalizeCase = (item: MonitoreoInternalQueryCase) => normalizeInternalCase(item, pool);
+  const cases = transportRecords<MonitoreoInternalQueryCase>(value.cases).map(normalizeCase);
   return {
     schema: cleanString(value.schema) || EMPTY_INTERNAL_QUERIES.schema,
-    cases: arrayOrEmpty(value.cases).map(normalizeInternalCase),
-    case_rollup: arrayOrEmpty(value.case_rollup).map(normalizeInternalCase),
+    cases,
+    case_rollup: transportSubset(value.case_rollup, cases) ?? transportRecords<MonitoreoInternalQueryCase>(value.case_rollup).map(normalizeCase),
     totals: {
       actor: arrayOrEmpty(value.totals?.actor).map(normalizeInternalTotal),
       date: arrayOrEmpty(value.totals?.date).map(normalizeInternalTotal),
@@ -268,7 +271,7 @@ export function normalizeInternalQueries(value: MonitoreoInternalQueries | null 
       source: arrayOrEmpty(value.totals?.source).map(normalizeInternalTotal),
       collector: arrayOrEmpty(value.totals?.collector).map(normalizeInternalTotal),
     },
-    pending_exit: arrayOrEmpty(value.pending_exit).map(normalizeInternalCase),
+    pending_exit: arrayOrEmpty(value.pending_exit).map(normalizeCase),
     issues: arrayOrEmpty(value.issues).map(normalizeInternalIssue),
     flow: {
       nodes: arrayOrEmpty(value.flow?.nodes).map((node) => ({
@@ -668,7 +671,7 @@ function normalizePhoneAudit(value: MonitoreoInternalQueryCase["phone_audit"]): 
   return hasPayload ? normalized : null;
 }
 
-function normalizeInternalCase(value: MonitoreoInternalQueryCase): MonitoreoInternalQueryCase {
+function normalizeInternalCase(value: MonitoreoInternalQueryCase, pool: AssignmentPool = EMPTY_ASSIGNMENT_POOL): MonitoreoInternalQueryCase {
   return {
     actor: cleanString(value.actor),
     person_label: cleanString(value.person_label),
@@ -714,13 +717,12 @@ function normalizeInternalCase(value: MonitoreoInternalQueryCase): MonitoreoInte
     secondary_identity_value: cleanString(value.secondary_identity_value),
     review_priority: numberish(value.review_priority),
     phone_audit: normalizePhoneAudit(value.phone_audit),
-    assisted_review: normalizeAssistedReview(value.assisted_review),
+    assisted_review: normalizeAssistedReview(value.assisted_review, pool),
   };
 }
 
-function normalizeAssistedReview(value: MonitoreoAssistedReview | null | undefined): MonitoreoAssistedReview | null {
-  if (!value || typeof value !== "object") return null;
-  const normalizeCandidate = (candidate: MonitoreoAssistedReviewCandidate) => ({
+function normalizeAssistedCandidate(candidate: MonitoreoAssistedReviewCandidate): MonitoreoAssistedReviewCandidate {
+  return {
     candidate_id: cleanString(candidate.candidate_id),
     person_label: cleanString(candidate.person_label),
     case_key: cleanString(candidate.case_key),
@@ -738,10 +740,41 @@ function normalizeAssistedReview(value: MonitoreoAssistedReview | null | undefin
     already_effective: boolish(candidate.already_effective),
     assignment_allowed: candidate.assignment_allowed == null ? undefined : boolish(candidate.assignment_allowed),
     suggested: candidate.suggested == null ? undefined : boolish(candidate.suggested),
+  };
+}
+
+function assistedCandidateIsUseful(candidate: MonitoreoAssistedReviewCandidate) {
+  return Boolean(candidate.candidate_id || candidate.case_key || candidate.person_label);
+}
+
+type AssignmentPool = Map<string, MonitoreoAssistedReviewCandidate[]>;
+const EMPTY_ASSIGNMENT_POOL: AssignmentPool = new Map();
+
+/** El universo asignable de cada actor llega una sola vez; se normaliza una vez y lo comparten sus casos. */
+function normalizeAssignmentPool(value: MonitoreoInternalQueries["assignment_pool"]): AssignmentPool {
+  if (!value || typeof value !== "object") return EMPTY_ASSIGNMENT_POOL;
+  const pool: AssignmentPool = new Map();
+  Object.entries(value).forEach(([key, candidates]) => {
+    pool.set(key, transportRecords<MonitoreoAssistedReviewCandidate>(candidates).map(normalizeAssistedCandidate).filter(assistedCandidateIsUseful));
   });
-  const candidateIsUseful = (candidate: MonitoreoAssistedReviewCandidate) => candidate.candidate_id || candidate.case_key || candidate.person_label;
-  const candidates = arrayOrEmpty(value.candidates).map(normalizeCandidate).filter(candidateIsUseful);
-  const assignmentCandidates = arrayOrEmpty(value.assignment_candidates).map(normalizeCandidate).filter(candidateIsUseful);
+  return pool;
+}
+
+/** Candidatos propios del caso (traen la evidencia) más el universo de su actor, sin repetir persona. */
+function mergeAssignmentCandidates(own: MonitoreoAssistedReviewCandidate[], shared: MonitoreoAssistedReviewCandidate[]) {
+  if (!shared.length) return own;
+  if (!own.length) return shared;
+  const ownIds = new Set(own.map((candidate) => candidate.candidate_id).filter(Boolean));
+  return [...own, ...shared.filter((candidate) => !ownIds.has(candidate.candidate_id))];
+}
+
+function normalizeAssistedReview(value: MonitoreoAssistedReview | null | undefined, pool: AssignmentPool = EMPTY_ASSIGNMENT_POOL): MonitoreoAssistedReview | null {
+  if (!value || typeof value !== "object") return null;
+  const candidates = arrayOrEmpty(value.candidates).map(normalizeAssistedCandidate).filter(assistedCandidateIsUseful);
+  const assignmentCandidates = mergeAssignmentCandidates(
+    arrayOrEmpty(value.assignment_candidates).map(normalizeAssistedCandidate).filter(assistedCandidateIsUseful),
+    pool.get(cleanString(value.assignment_pool_key)) ?? [],
+  );
   const manual = value.manual_decision && typeof value.manual_decision === "object" ? {
     response_id: cleanString(value.manual_decision.response_id),
     actor: cleanString(value.manual_decision.actor),
@@ -803,6 +836,54 @@ function normalizeInternalIssue(value: MonitoreoInternalQueryIssue): MonitoreoIn
     count: Math.max(1, numberish(value.count, 1)),
     detail: cleanString(value.detail),
   };
+}
+
+// --- Transporte compacto (monitoreo_acreditacion_cruce_escala.R) -------------
+// Con universos grandes el servidor manda las listas de casos en columnas
+// (`columnas_v1`: escalares por diccionario, anidados tal cual) y el rollup
+// como índices sobre `cases` (`indices_v1`). Se expanden aquí, antes de
+// normalizar, para que el resto de la app siga viendo arreglos de registros.
+
+type TransportColumn = { niveles?: unknown; codigos?: unknown; valores?: unknown };
+type TransportColumns = { formato: "columnas_v1"; n?: unknown; campos?: Record<string, TransportColumn> };
+type TransportIndices = { formato: "indices_v1"; indices?: unknown };
+
+function transportFormat(value: unknown): string {
+  return value && typeof value === "object" && !Array.isArray(value) ? cleanString((value as { formato?: unknown }).formato) : "";
+}
+
+function asArray(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  return value == null ? [] : [value];
+}
+
+/** Registros de una lista que puede venir como arreglo o en columnas. */
+export function transportRecords<T>(value: unknown): T[] {
+  if (transportFormat(value) !== "columnas_v1") return arrayOrEmpty(value as T[]);
+  const { n, campos } = value as TransportColumns;
+  const total = Math.max(0, numberish(n));
+  const columns = Object.entries(campos ?? {}).map(([field, column]) => {
+    if (column && "valores" in column) {
+      const values = asArray(column.valores);
+      return { field, at: (i: number) => values[i] ?? null };
+    }
+    const levels = asArray(column?.niveles);
+    const codes = asArray(column?.codigos);
+    return { field, at: (i: number) => levels[Number(codes[i])] ?? null };
+  });
+  return Array.from({ length: total }, (_, i) => {
+    const record: Record<string, unknown> = {};
+    columns.forEach((column) => { record[column.field] = column.at(i); });
+    return record as T;
+  });
+}
+
+/** Subconjunto mandado como índices sobre una lista ya expandida (comparte los objetos). */
+function transportSubset<T>(value: unknown, records: T[]): T[] | null {
+  if (transportFormat(value) !== "indices_v1") return null;
+  return asArray((value as TransportIndices).indices)
+    .map((index) => records[Number(index)])
+    .filter((record): record is T => record !== undefined);
 }
 
 function arrayOrEmpty<T>(value: T[] | null | undefined): T[] {

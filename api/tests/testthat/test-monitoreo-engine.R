@@ -3120,16 +3120,20 @@ test_that("perfil acreditacion ofrece pendientes del actor para asignacion manua
     check.names = FALSE
   )
   profile <- .monitoreo_test_assisted_review_profile()
-  reviewed <- .monitoreo_test_records_df(.monitoreo_acreditacion_internal_queries(data, profile)$cases)
+  queries <- .monitoreo_acreditacion_internal_queries(data, profile)
+  reviewed <- .monitoreo_test_records_df(queries$cases)
   reviewed <- reviewed[reviewed$response_id == "r-fdc", , drop = FALSE]
   assisted <- reviewed$assisted_review[[1]]
 
   expect_equal(length(assisted$candidates), 1L)
   expect_true(isTRUE(assisted$candidates[[1]]$already_effective))
-  expect_equal(length(assisted$assignment_candidates), 1L)
-  expect_equal(assisted$assignment_candidates[[1]]$person_label, "Maria Pendiente")
-  expect_equal(assisted$assignment_candidates[[1]]$case_key, "22222222")
-  expect_false(isTRUE(assisted$assignment_candidates[[1]]$already_effective))
+  # El universo asignable del actor viaja una vez en `assignment_pool`; el caso
+  # lo nombra con `assignment_pool_key` (monitoreo_acreditacion_cruce_escala.R).
+  asignables <- .monitoreo_revision_asistida_candidatos_caso(assisted, queries$assignment_pool)
+  expect_equal(length(asignables), 1L)
+  expect_equal(asignables[[1]]$person_label, "Maria Pendiente")
+  expect_equal(asignables[[1]]$case_key, "22222222")
+  expect_false(isTRUE(asignables[[1]]$already_effective))
 })
 
 test_that("perfil acreditacion inclusion manual puede asignar a pendiente no sugerido", {
