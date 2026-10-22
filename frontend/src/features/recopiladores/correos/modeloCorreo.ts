@@ -19,6 +19,7 @@ import {
   type MailReview,
   type MailTemplate,
 } from "../../../api/materialMail";
+import type { TipoInsertable } from "./piezasGraficas";
 import { sinEnfasis } from "./serializarTexto";
 
 // ---- rótulos ------------------------------------------------------------------
@@ -34,6 +35,10 @@ export const ROTULO_DE_BLOQUE: Record<MailBlockType, string> = {
   image: "Imagen",
   signature: "Firma",
   footer_legal: "Pie legal",
+  band: "Banda de color",
+  ornament: "Separador decorativo",
+  icon_text: "Ícono con texto",
+  two_images: "Dos imágenes",
 };
 
 export const DESCRIPCION_DE_BLOQUE: Record<MailBlockType, string> = {
@@ -47,18 +52,23 @@ export const DESCRIPCION_DE_BLOQUE: Record<MailBlockType, string> = {
   image: "Una imagen de la línea gráfica, con su texto alternativo; puede ir a todo el ancho.",
   signature: "Firma institucional del estudio, igual en todos los correos.",
   footer_legal: "La dirección y la baja que exige la plataforma. Un texto propio es opcional.",
+  band: "Una franja de color a todo el ancho de la columna, de 8, 16 o 32 px de alto.",
+  ornament: "Una onda, tres puntos o una línea doble entre dos partes del correo.",
+  icon_text: "Un ícono de la casa junto a una línea de texto: una fecha, un lugar, un plazo.",
+  two_images: "Dos imágenes lado a lado; en el teléfono se apilan. Cada una conserva su proporción.",
 };
 
 export const ROTULO_DE_BLOQUE_OPACO = "Bloque no reconocido";
 
 export function rotuloDeBloque(block: MailBlock): string {
-  return isOpaqueMailBlock(block) ? ROTULO_DE_BLOQUE_OPACO : ROTULO_DE_BLOQUE[block.type];
+  if (isOpaqueMailBlock(block)) return ROTULO_DE_BLOQUE_OPACO;
+  return block.type === "image" && block.decorative ? "Imagen decorativa" : ROTULO_DE_BLOQUE[block.type];
 }
 
 export function descripcionDeBloque(block: MailBlock): string {
-  return isOpaqueMailBlock(block)
-    ? `Tipo «${block.original_type}»: esta versión de la app no sabe editarlo. Se conserva tal cual al guardar.`
-    : DESCRIPCION_DE_BLOQUE[block.type];
+  if (isOpaqueMailBlock(block)) return `Tipo «${block.original_type}»: esta versión de la app no sabe editarlo. Se conserva tal cual al guardar.`;
+  if (block.type === "image" && block.decorative) return "Un adorno de la línea gráfica: sale sin texto alternativo, a propósito.";
+  return DESCRIPCION_DE_BLOQUE[block.type];
 }
 
 /**
@@ -112,6 +122,14 @@ export function resumenDeBloque(block: MailBlock): string {
       return textoPlano(block.name);
     case "footer_legal":
       return textoPlano(block.text ?? block.address ?? "");
+    case "band":
+      return "Banda de color";
+    case "ornament":
+      return block.style === "puntos" ? "Puntos" : block.style === "linea_doble" ? "Línea doble" : "Onda";
+    case "icon_text":
+      return textoPlano(block.text);
+    case "two_images":
+      return textoPlano(`${block.alt_left || block.left} · ${block.alt_right || block.right}`);
   }
 }
 
@@ -213,7 +231,9 @@ export type PropDeTexto =
   | "name"
   | "lines"
   | "address"
-  | "alt";
+  | "alt"
+  | "alt_left"
+  | "alt_right";
 
 const PROPS_DE_LISTA: readonly PropDeTexto[] = ["note", "items", "lines"];
 
@@ -232,6 +252,8 @@ export function propsDeTexto(type: MailBlockType | MailBlock["type"]): PropDeTex
     case "list": return ["items"];
     case "signature": return ["closing", "name", "lines", "url"];
     case "footer_legal": return ["text", "address"];
+    case "icon_text": return ["text"];
+    case "two_images": return ["alt_left", "alt_right"];
     default: return [];
   }
 }
@@ -248,6 +270,8 @@ export const ROTULO_DE_PROP: Record<PropDeTexto, string> = {
   lines: "Líneas",
   address: "Dirección",
   alt: "Texto alternativo",
+  alt_left: "Descripción de la imagen izquierda",
+  alt_right: "Descripción de la imagen derecha",
 };
 
 /** El texto de una propiedad como lo edita una caja: listas, una línea por punto. */
@@ -363,7 +387,7 @@ function idsDe(template: MailTemplate): Set<string> {
   return new Set(template.blocks.map((b) => b.block_id));
 }
 
-export function nuevoIdDeBloque(type: MailBlockType, template: MailTemplate): string {
+export function nuevoIdDeBloque(type: TipoInsertable, template: MailTemplate): string {
   const base = type.replace(/_/g, "-");
   const ids = idsDe(template);
   for (let n = 1; ; n += 1) {
@@ -372,7 +396,7 @@ export function nuevoIdDeBloque(type: MailBlockType, template: MailTemplate): st
   }
 }
 
-export function bloqueNuevo(type: MailBlockType, block_id: string): MailBlock {
+export function bloqueNuevo(type: TipoInsertable, block_id: string): MailBlock {
   switch (type) {
     case "greeting": return { block_id, type, text: "Estimado(a) {{nombre}}:", fallback: "Estimado(a):" };
     case "paragraph": return { block_id, type, text: "Escribe aquí el párrafo.", align: "justify" };
@@ -384,11 +408,22 @@ export function bloqueNuevo(type: MailBlockType, block_id: string): MailBlock {
     case "image": return { block_id, type, image_ref: "imagen", alt: "Describe la imagen" };
     case "signature": return { block_id, type, closing: "Atentamente,", name: "Pulso PUCP" };
     case "footer_legal": return { block_id, type };
+    // Piezas gráficas (E1o): sin color, siguen el de la casa hasta que se elija otro.
+    case "band": return { block_id, type, height: "m" };
+    case "ornament": return { block_id, type, style: "onda" };
+    case "icon_text": return { block_id, type, icon: "calendario", text: "Escribe aquí el dato: una fecha, un lugar o un plazo." };
+    case "two_images":
+      return {
+        block_id, type, left: "imagen-izquierda", right: "imagen-derecha",
+        alt_left: "Describe la imagen de la izquierda", alt_right: "Describe la imagen de la derecha",
+      };
+    // Decorativa: sale con alt vacío y la revisión no le pide descripción.
+    case "image_decorativa": return { block_id, type: "image", image_ref: "decorativa", alt: "", decorative: true };
   }
 }
 
 /** Agrega un bloque después del elegido (o antes del pie si no hay elegido). */
-export function agregarBloque(template: MailTemplate, type: MailBlockType, despuesDe: string | null): { template: MailTemplate; block_id: string } {
+export function agregarBloque(template: MailTemplate, type: TipoInsertable, despuesDe: string | null): { template: MailTemplate; block_id: string } {
   const block = bloqueNuevo(type, nuevoIdDeBloque(type, template));
   const blocks = [...template.blocks];
   let at = despuesDe ? blocks.findIndex((b) => b.block_id === despuesDe) + 1 : 0;
@@ -627,6 +662,9 @@ export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   campana_text_contrast: "El texto se lee sobre el fondo",
   campana_button_contrast: "El botón se lee sobre su color",
   campana_footer_contrast: "El pie se lee sobre el fondo",
+  // Piezas gráficas (E1o).
+  piezas_contrast: "Las piezas gráficas se distinguen del fondo",
+  icon_text_sm_icon: "Íconos en SurveyMonkey",
 };
 
 /** Dónde se usa un campo (`uses` de `fields_empty`), en la voz de la vista. */
@@ -728,6 +766,10 @@ export function cifraDeChequeo(check: MailCheck): string {
       return check.status === "ok" ? "todas" : v === 1 ? "falta 1" : `faltan ${v}`;
     case "images_alt":
       return check.status === "ok" ? "en todas" : `${v} sin texto`;
+    case "piezas_contrast":
+      return check.status === "ok" ? "se distinguen" : v === 1 ? "1 casi no se ve" : `${v.toLocaleString("es-PE")} casi no se ven`;
+    case "icon_text_sm_icon":
+      return check.status === "ok" ? "con dirección web" : v === 1 ? "1 sale sin ícono" : `${v.toLocaleString("es-PE")} salen sin ícono`;
     case "placeholders_pending":
       return check.status === "ok" ? "ninguno" : v === 1 ? "queda 1" : `quedan ${v}`;
     case "banner_size":

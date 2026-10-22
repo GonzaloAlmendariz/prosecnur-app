@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
 
-import { isOpaqueMailBlock, type MailBlock, type MailBlockType, type MailTemplate } from "../../../api/materialMail";
+import { isOpaqueMailBlock, type MailBlock, type MailTemplate } from "../../../api/materialMail";
 import { ArrowDown, ArrowUp, CircleAlert, GripVertical, ImagePlus, Plus, Trash2, TriangleAlert } from "../../../vendor/lucide-react";
 import { ARRASTRE_DE_BLOQUE, BibliotecaDeBloques } from "./BibliotecaDeBloques";
 import { admiteEnlaces } from "./comoSaleEnLaPlataforma";
@@ -28,7 +28,8 @@ import {
 } from "./estructuraCorreo";
 import { anchoDelChip, lugarDelChip, type LugarDelChip } from "./chipDeApertura";
 import type { CampoDelMenu } from "./MenuDeCampos";
-import { CABECERA, DESCRIPCION_DE_BLOQUE, ROTULO_DE_BLOQUE, ROTULO_DE_PROP, puedeMover, rotuloDeBloque, rotuloDeChequeo, type PropDeTexto } from "./modeloCorreo";
+import { CABECERA, DESCRIPCION_DE_BLOQUE, ROTULO_DE_PROP, puedeMover, rotuloDeBloque, rotuloDeChequeo, type PropDeTexto } from "./modeloCorreo";
+import { esInsertable, ladosDelPar, type LadoDelPar, type LadoMedido, type TipoInsertable } from "./piezasGraficas";
 import type { OpcionesDeTexto } from "./serializarTexto";
 import { nombreDeImagen } from "./nombresDeImagen";
 import type { EdicionEnLinea } from "./store";
@@ -66,9 +67,10 @@ type Props = {
   onQuitarPunto: (zona: string, prop: string) => void;
   onTerminar: (zona: string, prop: string) => void;
   onMover: (blockId: string, indice: number) => void;
-  onInsertar: (type: MailBlockType, hueco: number) => void;
+  onInsertar: (type: TipoInsertable, hueco: number) => void;
   onQuitar: (blockId: string) => void;
-  onArchivoDeImagen: (blockId: string, file: File) => void;
+  /** Con `lado`, el archivo es de un lado de un par de imágenes. */
+  onArchivoDeImagen: (blockId: string, file: File, lado?: LadoDelPar) => void;
   /** Sube el logo de la franja con su id, igual que en Identidad. */
   onArchivoDeLogo?: (logoId: string, file: File) => void;
   onDeshacer: () => void;
@@ -184,9 +186,10 @@ export function CapaDeEdicion({
 }: Props) {
   const raiz = useRef<HTMLDivElement | null>(null);
   const archivo = useRef<HTMLInputElement | null>(null);
-  const imagenPedida = useRef<{ tipo: "bloque" | "logo"; id: string } | null>(null);
+  const imagenPedida = useRef<{ tipo: "bloque" | "logo"; id: string; lado?: LadoDelPar } | null>(null);
   const [zonas, setZonas] = useState<ZonaMedida[]>([]);
   const [logos, setLogos] = useState<LogoMedido[]>([]);
+  const [pares, setPares] = useState<{ id: string; lados: LadoMedido[] }[]>([]);
   const [biblioteca, setBiblioteca] = useState<Hueco | null>(null);
   const [destino, setDestino] = useState<(Hueco & { tipo: "mover" | "insertar" }) | null>(null);
   const [arrastrando, setArrastrando] = useState<string | null>(null);
@@ -201,9 +204,12 @@ export function CapaDeEdicion({
     if (!doc) {
       setZonas([]);
       setLogos([]);
+      setPares([]);
       return;
     }
     setZonas(zonasDeLaVista(doc, templateRef.current, escala));
+    // Cada lado sin archivo de un par de imágenes ofrece subirlo ahí mismo.
+    setPares(templateRef.current.blocks.filter((b) => b.type === "two_images").map((b) => ({ id: b.block_id, lados: ladosDelPar(doc, b.block_id, escala) })));
     // H3: cada logo sin archivo de la franja ofrece subirlo ahí mismo.
     setLogos(logoIds ? logosDeLaCabecera(doc, logoIds, escala) : []);
   }, [doc, medida, escala, logoIds]);
@@ -319,8 +325,8 @@ export function CapaDeEdicion({
       const id = event.dataTransfer.getData(ARRASTRE_DE_MOVER);
       if (id && huecoMueve(template, id, h.hueco)) onMover(id, indiceDesdeHueco(template, id, h.hueco));
     } else {
-      const type = event.dataTransfer.getData(ARRASTRE_DE_BLOQUE) as MailBlockType;
-      if (type && tipoDisponible(template, type)) {
+      const type = event.dataTransfer.getData(ARRASTRE_DE_BLOQUE);
+      if (esInsertable(type) && tipoDisponible(template, type)) {
         setBiblioteca(null);
         onInsertar(type, h.hueco);
       }
@@ -400,8 +406,8 @@ export function CapaDeEdicion({
     return `${bloque}: ${prop}${indice !== null ? ` ${indice + 1}` : ""}`;
   })();
 
-  const pedirImagen = (blockId: string) => {
-    imagenPedida.current = { tipo: "bloque", id: blockId };
+  const pedirImagen = (blockId: string, lado?: LadoDelPar) => {
+    imagenPedida.current = { tipo: "bloque", id: blockId, lado };
     archivo.current?.click();
   };
 
@@ -526,6 +532,20 @@ export function CapaDeEdicion({
         );
       }) : null}
 
+      {pares.flatMap((par) => (edicion?.zona === par.id ? [] : par.lados.filter((l) => !l.conImagen).map((l) => (
+        <div key={`par-${par.id}-${l.lado}`} className="rec-capa-logo" style={estiloDeZona(l.rect)}>
+          <button
+            type="button"
+            className="rec-capa-subir rec-capa-subir-logo"
+            aria-label={`Subir la imagen ${l.lado === "left" ? "izquierda" : "derecha"}`}
+            title="Subir la imagen (PNG o JPEG)"
+            onClick={() => { onSeleccionar(par.id); pedirImagen(par.id, l.lado); }}
+          >
+            <ImagePlus size={13} aria-hidden /> Subir imagen
+          </button>
+        </div>
+      ))))}
+
       {elegida && elegida.id !== CABECERA && elegida.id !== APERTURA && porId.has(elegida.id) ? (
         <div
           className={`rec-capa-acciones${elegida.rect.y < 34 ? " is-dentro" : ""}`}
@@ -533,7 +553,7 @@ export function CapaDeEdicion({
           role="toolbar"
           aria-label={`Acciones de ${rotuloDeZona(elegida, porId.get(elegida.id))}`}
         >
-          <span className="rec-capa-acciones-rotulo">{ROTULO_DE_BLOQUE[porId.get(elegida.id)!.type as MailBlockType] ?? rotuloDeBloque(porId.get(elegida.id)!)}</span>
+          <span className="rec-capa-acciones-rotulo">{rotuloDeBloque(porId.get(elegida.id)!)}</span>
           {esMovible(template, elegida.id) ? (
             <>
               <button
@@ -646,7 +666,7 @@ export function CapaDeEdicion({
           event.target.value = "";
           if (!file || !pedida) return;
           if (pedida.tipo === "logo") onArchivoDeLogo?.(pedida.id, file);
-          else onArchivoDeImagen(pedida.id, file);
+          else onArchivoDeImagen(pedida.id, file, pedida.lado);
         }}
       />
     </div>

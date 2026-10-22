@@ -8,6 +8,7 @@ import { Segmented } from "../../xlsformEditor/kit";
 import { ajustesDe, anchoDeImagen, conAjuste, valorDeAjuste } from "./ajustesDeBloque";
 import { CampoDeTexto } from "./CampoDeTexto";
 import { propDelProblema } from "./modeloCorreo";
+import { descripcionesPendientes } from "./piezasGraficas";
 
 /** Límite de la subida (`mail_image`): el backend rechaza sobre 1 MB. */
 export const PESO_MAXIMO_DE_IMAGEN = 1024 * 1024;
@@ -46,6 +47,13 @@ export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEd
   const alinear = ajustesDe(block).find((a) => a.clave === "align");
   const ancho = block.width ?? null;
   const bleed = block.bleed === true;
+  const decorativa = block.decorative === true;
+  // La descripción que falta se dice en el campo antes de que la revisión la marque; una decorativa no la pide.
+  const altDelContrato = de("alt");
+  const altFaltante = descripcionesPendientes({ blocks: [block] }).length > 0;
+  const problemasDelAlt: MailProblem[] = altDelContrato.length
+    ? altDelContrato
+    : altFaltante ? [{ path: `${block.block_id}.alt`, code: "missing_alt", detail: "Falta describirla: es lo que se lee con las imágenes bloqueadas." }] : [];
 
   const elegir = (file: File | undefined) => {
     if (!file) return;
@@ -72,11 +80,11 @@ export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEd
     <div className="rec-capa-img-panel">
       <div className={`rec-capa-img-vista${vista ? "" : " is-vacia"}`} data-qa-geometry-capacity="owned">
         {vista ? (
-          <img src={vista} alt={block.alt || "Imagen del correo"} />
+          <img src={vista} alt={decorativa ? "" : block.alt || "Imagen del correo"} />
         ) : (
           <span className="rec-capa-img-vacia">
             <ImagePlus size={20} aria-hidden />
-            <span>Sin archivo todavía. En el correo se ve el hueco con el texto alternativo.</span>
+            <span>{decorativa ? "Sin archivo todavía. En el correo se ve el hueco." : "Sin archivo todavía. En el correo se ve el hueco con el texto alternativo."}</span>
           </span>
         )}
       </div>
@@ -100,14 +108,31 @@ export function PanelDeImagen({ template, block, vista, problemas, ocupado, onEd
         {error ? <p className="rec-mail-problemas" role="alert">{error}</p> : null}
       </div>
 
-      <CampoDeTexto
-        label="Texto alternativo"
-        valor={block.alt}
-        maximo={160}
-        ayuda="Obligatorio. Es lo que se lee con las imágenes bloqueadas y lo que oye un lector de pantalla."
-        problemas={de("alt")}
-        onCambio={(alt) => onEditarBloque((b) => ({ ...b, alt }) as MailBlock, `${block.block_id}.alt`)}
-      />
+      <div className="rec-mail-ajuste rec-capa-img-sangre">
+        <span>Solo decorativa (no necesita descripción)</span>
+        <Switch
+          checked={decorativa}
+          ariaLabel="Solo decorativa: no necesita descripción"
+          onToggle={() => onEditarBloque((b) => {
+            const next = { ...b } as MailImageBlock;
+            if (decorativa) delete next.decorative;
+            else next.decorative = true;
+            return next;
+          })}
+        />
+        <span className="rec-capa-img-ayuda">Para un adorno que no dice nada: sale con el texto alternativo vacío y el lector de pantalla lo salta.</span>
+      </div>
+
+      {decorativa ? null : (
+        <CampoDeTexto
+          label="Texto alternativo"
+          valor={block.alt}
+          maximo={160}
+          ayuda="Obligatorio. Es lo que se lee con las imágenes bloqueadas y lo que oye un lector de pantalla."
+          problemas={problemasDelAlt}
+          onCambio={(alt) => onEditarBloque((b) => ({ ...b, alt }) as MailBlock, `${block.block_id}.alt`)}
+        />
+      )}
 
       <div className="rec-mail-ajuste rec-capa-img-sangre">
         <span id={`${id}-sangre`}>A todo el ancho</span>

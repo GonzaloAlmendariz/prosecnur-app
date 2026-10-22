@@ -283,3 +283,11 @@
   border-radius: var(--pulso-radius-panel);
   z-index: var(--pulso-z-flyout);
 }
+
+/* Piezas gráficas (E1o): el trazo de la onda y del adorno, en el tono del módulo. */
+.rec-bib-trazo {
+  fill: none;
+  stroke: var(--pulso-module-fieldkit);
+  stroke-linecap: round;
+  stroke-width: 2.5;
+}

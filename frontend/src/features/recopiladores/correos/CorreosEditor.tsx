@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import type { MailBlock, MailBlockType, MailGreetingBlock, MailPlatform, MailPreset, MailTemplate } from "../../../api/materialMail";
+import type { MailBlock, MailGreetingBlock, MailPlatform, MailPreset, MailTemplate } from "../../../api/materialMail";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { PulsoButton } from "../../../components/PulsoButton";
@@ -20,13 +20,11 @@ import {
   cabeceraSinAlt,
   conTexto,
   editarBloque,
-  idLibre,
   insertarToken,
   moverBloque,
   quitarBloque,
   repartirProblemas,
   rotuloDeBloque,
-  slugDeImagen,
   textoDe,
 } from "./modeloCorreo";
 import { AvisoDeshacer, type Deshacible } from "./AvisoDeshacer";
@@ -53,6 +51,7 @@ import { atajoDeHistorial, esCampoNativo } from "./historialCorreo";
 import type { CampoDelMenu } from "./MenuDeCampos";
 import type { MedidasDeLaHoja } from "./VistaPreviaDelCorreo";
 import { PanelDeBloque } from "./PanelDeBloque";
+import { conArchivoDeImagen, srcsDelPar, type LadoDelPar, type TipoInsertable } from "./piezasGraficas";
 import { PanelDestinatarios } from "./PanelDestinatarios";
 import { PanelIdentidad } from "./PanelIdentidad";
 import { CHEQUEOS_DE_ESTILO, IDENTIDAD } from "./modeloEstilo";
@@ -219,30 +218,16 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
   }, [st]);
 
   /**
-   * Sube el archivo de un bloque imagen. El id sale del nombre del archivo
-   * (a-z, 0-9 y guiones: Mailchimp lo usa como nombre en el ZIP) y no choca
-   * con otra imagen del correo; el bloque pasa a nombrarlo.
+   * Sube el archivo de un bloque imagen (o de un lado de un par). El id sale
+   * del nombre del archivo y no choca con otra imagen del correo; el bloque
+   * pasa a nombrarlo (`conArchivoDeImagen`, piezasGraficas.ts).
    */
-  const subirImagenDeBloque = (blockId: string, file: File) => {
+  const subirImagenDeBloque = (blockId: string, file: File, lado?: LadoDelPar) => {
     const actual = useCorreosStore.getState().borrador;
-    const block = actual?.blocks.find((b) => b.block_id === blockId);
-    if (!actual || !block || block.type !== "image") return;
-    const usados = [
-      ...Object.keys(actual.images),
-      ...actual.blocks.flatMap((b) => (b.type === "image" && b.block_id !== blockId ? [b.image_ref] : [])),
-    ].filter((id) => id !== block.image_ref);
-    const id = idLibre(slugDeImagen(file.name), usados);
-    if (id !== block.image_ref) {
-      st.editar((t) => {
-        const images = { ...t.images };
-        if (images[block.image_ref]) {
-          images[id] = images[block.image_ref];
-          delete images[block.image_ref];
-        }
-        return { ...editarBloque(t, blockId, (b) => ({ ...b, image_ref: id }) as MailBlock), images };
-      });
-    }
-    void acciones.subirImagen(id, file);
+    const out = actual ? conArchivoDeImagen(actual, blockId, file.name, lado) : null;
+    if (!actual || !out) return;
+    if (out.template !== actual) st.editar(() => out.template);
+    void acciones.subirImagen(out.id, file);
   };
 
   const capa = (m: MedidasDeLaHoja) => {
@@ -345,14 +330,12 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
     setPresetPendiente(null);
   };
 
-  const agregar = (type: MailBlockType) => {
+  const agregar = (type: TipoInsertable) => {
     if (!template) return;
     const seleccionActual = template.blocks.some((b) => b.block_id === st.seleccion) ? st.seleccion : null;
     const out = agregarBloque(template, type, seleccionActual);
-    // La imagen nombra su propio archivo: un id que no choque con otra.
-    const plantilla = type === "image"
-      ? editarBloque(out.template, out.block_id, (b) => ({ ...b, image_ref: (bloqueParaInsertar(template, "image") as { image_ref: string }).image_ref }) as MailBlock)
-      : out.template;
+    // Cada imagen (y cada lado de un par) nombra su propio archivo: ids que no choquen.
+    const plantilla = editarBloque(out.template, out.block_id, () => bloqueParaInsertar(template, type));
     st.reemplazarBorrador(plantilla);
     seleccionar(out.block_id);
   };
@@ -516,6 +499,11 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
   const bloqueElegido = template.blocks.find((b) => b.block_id === st.seleccion);
   const imagenDelBloque = bloqueElegido?.type === "image"
     ? st.imagenesLocales[bloqueElegido.image_ref] ?? srcDeImagenDelBloque(st.vistaPrevia?.html, bloqueElegido.block_id)
+    : null;
+  // Un par: lo que ya se ve de cada lado (recién subido o pintado por la vista previa).
+  const parDelBloque = bloqueElegido?.type === "two_images" ? srcsDelPar(st.vistaPrevia?.html, bloqueElegido.block_id) : null;
+  const imagenesDelPar = bloqueElegido?.type === "two_images" && parDelBloque
+    ? { left: st.imagenesLocales[bloqueElegido.left] ?? parDelBloque.left, right: st.imagenesLocales[bloqueElegido.right] ?? parDelBloque.right }
     : null;
   const tabs: { id: Pestana; label: string; icono: LucideIcon; cuenta?: number }[] = [
     { id: "bloque", label: "Bloque", icono: LayoutList },
@@ -703,6 +691,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
                 dialecto={dialecto}
                 chequeos={chequeos[st.seleccion === CABECERA ? CABECERA : st.seleccion]?.chequeos ?? []}
                 vistaDeImagen={imagenDelBloque}
+                vistasDelPar={imagenesDelPar}
                 ocupado={ocupado}
                 onSubirImagen={subirImagenDeBloque}
                 onSubirLogo={(id, file) => { void acciones.subirImagen(id, file); }}
