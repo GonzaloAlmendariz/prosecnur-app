@@ -130,7 +130,7 @@ function FilaDeCampo({
   return (
     <li className="rec-mail-def-campo">
       <span className="rec-mail-def-campo-tags">
-        <span className="rec-mail-def-campo-nombre" title={`En el texto: {{${field.key}}}`}>{field.label || field.key}</span>
+        <span className="rec-mail-def-campo-nombre" title={`${field.label || field.key}: cambia con cada persona`}>{field.label || field.key}</span>
         {dialecto === "mailchimp" ? (
           <>
             <span className="rec-mail-def-campo-plataforma" aria-hidden>en Mailchimp</span>
@@ -153,7 +153,7 @@ function FilaDeCampo({
       <span className="rec-mail-def-campo-datos">
         <input
           className="rec-mail-input rec-mail-input--sm"
-          aria-label={`Rótulo de {{${field.key}}}`}
+          aria-label={`Nombre del campo ${field.label || field.key}`}
           value={field.label}
           onChange={(e) => onCambiar({ ...field, label: e.target.value })}
         />
@@ -350,9 +350,10 @@ export function PanelDestinatarios({
         >
           <li className="rec-mail-def-campo rec-mail-def-campo--fijo">
             <span className="rec-mail-def-campo-tags">
-              <span className="rec-mail-def-campo-nombre" title={`Etiqueta en la plataforma: ${texto.nombre}`}>Nombre</span>
+              <span className="rec-mail-def-campo-nombre" title="Nombre: cambia con cada persona">Nombre</span>
             </span>
-            <span className="rec-mail-ayuda">Sale de la columna de nombre que elegiste arriba.</span>
+            {/* #12: sólo con lista hay una columna de nombre elegida arriba. */}
+            {cargados ? <span className="rec-mail-ayuda">Sale de la columna de nombre que elegiste arriba.</span> : null}
           </li>
           {template.fields.map((field, i) => (
             <FilaDeCampo

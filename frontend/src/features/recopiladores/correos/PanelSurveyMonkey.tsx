@@ -18,6 +18,7 @@ import { downloadUrl } from "../../../api/core";
 import type { MailExportPayload, MailReview, MailSend, MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Check, Copy, Download, FolderOpen, Inbox, Loader2, Upload } from "../../../vendor/lucide-react";
+import { VerLosPuntos } from "./VerLosPuntos";
 import { camposDeEnlace, conDestino, conEtiquetaSurveyMonkey, etiquetasDePlataforma, motivoSinEtiqueta, opcionesSurveyMonkey, problemaDeEtiquetas } from "./dialectos";
 import { pesoLegible, revisionBloquea } from "./modeloCorreo";
 import { pasosEnSurveyMonkey, rotuloDeEnvio } from "./modeloEnvios";
@@ -120,6 +121,8 @@ type Props = {
   conLista?: boolean;
   onExportar: () => void;
   onGuardarJunto: () => void;
+  /** Cierra Exportar y abre la Revisión (#13). */
+  onVerRevision?: () => void;
 };
 
 /**
@@ -138,6 +141,7 @@ export function PanelSurveyMonkey({
   conLista = false,
   onExportar,
   onGuardarJunto,
+  onVerRevision,
 }: Props) {
   const [copia, setCopia] = useState<"" | "copiando" | "ok" | "error">("");
   // F17: si el portapapeles no deja, el HTML queda a la vista para seleccionarlo.
@@ -198,7 +202,7 @@ export function PanelSurveyMonkey({
       </ul>
       {bloquea || bloqueaPaquete ? (
         <p className="rec-exp-bloqueo" role="status">
-          La revisión tiene {revision?.errors ?? 0} {revision?.errors === 1 ? "punto" : "puntos"} por corregir: están en la pestaña Revisión.
+          <VerLosPuntos errores={revision?.errors ?? 0} onVer={onVerRevision} />
         </p>
       ) : null}
       {copia === "error" ? (

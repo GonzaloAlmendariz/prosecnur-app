@@ -186,16 +186,13 @@
   gap: 5px;
 }
 
+/* #16: el nombre se lee entero (hasta 80 caracteres); con el estado y las
+   cifras anclados al pie, una cabecera más alta no descuadra las tarjetas. */
 .rec-campana-nombre {
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  display: -webkit-box;
   font-size: 15.5px;
   font-weight: var(--pulso-weight-semibold);
-  line-clamp: 2;
   line-height: 1.3;
   margin: 0;
-  overflow: hidden;
   overflow-wrap: anywhere;
 }
 
@@ -846,4 +843,10 @@
   .rec-campana-tarjeta:not(.is-archivada):has(.rec-campana-abrir:focus-visible) {
     transform: none;
   }
+}
+
+/* #16 — Tarjeta de campaña: el estado, las cifras y los envíos van al pie,
+   alineados entre tarjetas aunque una cabecera ocupe menos. */
+.rec-campana-tarjeta > .rec-campana-estado {
+  margin-top: auto;
 }

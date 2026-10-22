@@ -102,11 +102,33 @@
     z-index: 5;
   }
 
-  /* El inspector acompaña al lienzo en todo su alto: sus pestañas siguen a la
-     vista mientras se recorre el correo. El hueco bajo un panel corto es del
-     inspector, dentro de su marco (C3). */
-  .rec-mail-contenedor .rec-mail .rec-mail-col--inspector {
-    align-self: stretch;
+}
+
+/* #2 — Con el lienzo y el inspector lado a lado (cajón, 1024×600), el
+   inspector ya no se estira al alto del correo (1.200–2.400 px de blanco al
+   elegir un bloque bajo): queda pegado bajo la barra, al alto de la ventana,
+   y su cuerpo es el dueño de su propio scroll. Su alto sale del panel
+   (`--rec-panel-alto`, anchoDelEditor.ts) menos la barra compactada y el
+   aire. Apilado (≤ 820 px) vuelve al flujo. */
+@media (max-width: 780px), (max-height: 680px) {
+  @container rec-mail (min-width: 821px) {
+    .rec-mail-contenedor .rec-mail .rec-mail-col--inspector {
+      align-self: start;
+      max-height: calc(var(--rec-panel-alto, 100dvh) - 54px);
+      overflow: hidden;
+      position: sticky;
+      top: 46px;
+    }
+
+    .rec-mail-contenedor .rec-mail .rec-mail-col--inspector .rec-mail-insp {
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+
+    /* Las pestañas ya viajan con el inspector: no necesitan pegarse solas. */
+    .rec-mail .rec-mail-col--inspector .rec-mail-tabs.rec-mail-tabs--secciones {
+      position: static;
+    }
   }
 }
 

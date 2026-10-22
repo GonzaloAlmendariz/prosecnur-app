@@ -27,6 +27,7 @@ import {
   type ZonaMedida,
 } from "./estructuraCorreo";
 import { anchoDelChip, lugarDelChip, type LugarDelChip } from "./chipDeApertura";
+import { anchoDeLasAcciones, lugarDeLasAcciones, ocupadosCercaDe, rectDeLasAcciones, type LugarDeLasAcciones } from "./lugarDeLasAcciones";
 import type { CampoDelMenu } from "./MenuDeCampos";
 import { CABECERA, DESCRIPCION_DE_BLOQUE, ROTULO_DE_PROP, puedeMover, rotuloDeBloque, rotuloDeChequeo, type PropDeTexto } from "./modeloCorreo";
 import { esInsertable, ladosDelPar, type LadoDelPar, type LadoMedido, type TipoInsertable } from "./piezasGraficas";
@@ -436,6 +437,23 @@ export function CapaDeEdicion({
   const anchoBib = Math.min(ANCHO_DE_BIBLIOTECA, Math.max(320, ancho - 16));
   const bibArriba = biblioteca ? biblioteca.y > alto - 460 && biblioteca.y > 460 : false;
   const elegida = zonas.find((z) => z.id === seleccion && !edicion);
+  const bloqueElegido = elegida ? porId.get(elegida.id) : undefined;
+  const conAcciones = Boolean(elegida && bloqueElegido && elegida.id !== CABECERA && elegida.id !== APERTURA);
+  const nombreElegido = bloqueElegido ? rotuloDeBloque(bloqueElegido) : "";
+  const anchoAcciones = anchoDeLasAcciones(nombreElegido, elegida && esMovible(template, elegida.id) ? 4 : 1);
+
+  // #7: la barra del bloque elegido va donde no tape texto ni imágenes del correo.
+  const [lugarAcciones, setLugarAcciones] = useState<LugarDeLasAcciones>("arriba");
+  useLayoutEffect(() => {
+    if (!doc || !elegida || !conAcciones) return;
+    setLugarAcciones(lugarDeLasAcciones({
+      zona: elegida.rect,
+      ocupados: ocupadosCercaDe(doc, elegida.rect, escala),
+      ancho: anchoAcciones,
+      altoDeLaHoja: alto,
+    }));
+  }, [alto, anchoAcciones, conAcciones, doc, elegida, escala, medida]);
+  const rectAcciones = elegida ? rectDeLasAcciones(elegida.rect, lugarAcciones, anchoAcciones) : null;
 
   return (
     <div
@@ -480,12 +498,13 @@ export function CapaDeEdicion({
               aria-label={`${rotulo}${zona.id === APERTURA ? ` (${textoDelChip.toLocaleLowerCase("es-PE")})` : ""}${cuenta ? `, ${cuenta.errores + cuenta.avisos} por revisar` : ""}`}
               title={zona.id === APERTURA && !lugarDelChipDeApertura ? textoDelChip : undefined}
               aria-current={esElegida ? "true" : undefined}
-              aria-describedby={explicaciones ? `rec-capa-desc-${zona.id}` : undefined}
+              aria-describedby={explicaciones && !(esElegida && conAcciones) ? `rec-capa-desc-${zona.id}` : undefined}
               disabled={soloDelEnvio}
               onClick={alPulsarZona(zona)}
               onKeyDown={alTeclaEnZona(zona)}
             />
-            {explicaciones ? (
+            {/* Una sola etiqueta: el bloque elegido ya se nombra en su barra (#7). */}
+            {explicaciones && !(esElegida && conAcciones) ? (
               <span className="rec-capa-zona-rotulo" id={`rec-capa-desc-${zona.id}`} aria-hidden>
                 <b>{rotulo}</b>
                 <span>{descripcionDeZona(zona, block)}</span>
@@ -546,14 +565,15 @@ export function CapaDeEdicion({
         </div>
       ))))}
 
-      {elegida && elegida.id !== CABECERA && elegida.id !== APERTURA && porId.has(elegida.id) ? (
+      {elegida && conAcciones && rectAcciones ? (
         <div
-          className={`rec-capa-acciones${elegida.rect.y < 34 ? " is-dentro" : ""}`}
-          style={{ left: elegida.rect.x + elegida.rect.w, top: elegida.rect.y }}
+          className={`rec-capa-acciones is-${lugarAcciones}`}
+          // Anclada por su borde derecho: el ancho real puede diferir de la estimación.
+          style={{ left: rectAcciones.x + rectAcciones.w, top: rectAcciones.y }}
           role="toolbar"
-          aria-label={`Acciones de ${rotuloDeZona(elegida, porId.get(elegida.id))}`}
+          aria-label={`Acciones de ${rotuloDeZona(elegida, bloqueElegido)}`}
         >
-          <span className="rec-capa-acciones-rotulo">{rotuloDeBloque(porId.get(elegida.id)!)}</span>
+          <span className="rec-capa-acciones-rotulo" title={descripcionDeZona(elegida, bloqueElegido)}>{nombreElegido}</span>
           {esMovible(template, elegida.id) ? (
             <>
               <button

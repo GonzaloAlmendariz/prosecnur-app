@@ -158,3 +158,9 @@
   flex: 1 1 160px;
   min-width: 0;
 }
+
+/* #15 — Las filas de logo son pares (C1 `equal`): miden lo mismo aunque una
+   lleve el chip «falta subirlo» bajo su nombre (a 1024 la diferencia era 7 px). */
+.rec-mail-franja .rec-mail-logos {
+  grid-auto-rows: 1fr;
+}

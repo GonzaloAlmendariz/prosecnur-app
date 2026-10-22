@@ -1,5 +1,6 @@
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Pipette } from "../../../vendor/lucide-react";
+import "./correosEstilo.css";
 
 // Declaración mínima de la API EyeDropper (Chromium/Electron); TS aún no la trae.
 type ResultadoDelCuentagotas = { sRGBHex: string };

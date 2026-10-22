@@ -121,6 +121,8 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
   const enviosPanel = usePanelDireccionable(PANEL_CORREO_ENVIOS);
   const importarPanel = usePanelDireccionable(PANEL_CORREO_IMPORTAR);
   const [presetPendiente, setPresetPendiente] = useState<MailPreset | null>(null);
+  // #8: el punto de aviso del correo lleva al chequeo de su zona en Revisión.
+  const [zonaDeRevision, setZonaDeRevision] = useState<string | null>(null);
   // F3: por debajo de 1200 px de ancho útil la columna de bloques va a un cajón.
   const [refDelContenedor, conCajon] = useConCajon();
 
@@ -207,7 +209,8 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
     const porClave = new Map(camposDelMenu.map((c) => [c.key, c]));
     return {
       rotuloDeCampo: (k: string) => porClave.get(k)?.label ?? k,
-      ayudaDeCampo: (k: string) => `{{${k}}} → ${porClave.get(k)?.etiqueta ?? "sin equivalente"}`,
+      // Sin llaves ni etiquetas de plataforma: el chip se explica en palabras (#5).
+      ayudaDeCampo: (k: string) => `${porClave.get(k)?.label ?? k}: cambia con cada persona`,
     };
   }, [camposDelMenu]);
   useEffect(() => () => onCargando?.(false), [onCargando]);
@@ -245,7 +248,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
         apertura={envio.opening ?? null}
         envioDeApertura={envio.label}
         onSeleccionar={seleccionar}
-        onVerRevision={() => irAPestana("revision")}
+        onVerRevision={(zona) => { setZonaDeRevision(zona); irAPestana("revision"); }}
         onEditar={st.setEdicion}
         onTexto={(zona, prop, valor) => {
           if (zona === APERTURA) {
@@ -523,6 +526,10 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
       irAPestana("revision");
     });
   };
+  const verRevisionDesdeExportar = () => {
+    st.setExportarAbierto(false);
+    irAPestana("revision");
+  };
   const elegirEnLaColumna = (id: string) => {
     seleccionar(id);
     // En compacto, elegir un bloque cierra el cajón: el inspector pasa a mostrarlo.
@@ -580,6 +587,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
                   onHtml={acciones.htmlParaLaPlataforma}
                   onExportar={() => exportarYVer(alcanceDelPaquete)}
                   onGuardarJunto={() => { void acciones.guardarJuntoAlProyecto(); }}
+                  onVerRevision={verRevisionDesdeExportar}
                 />
               ) : (
                 <PanelMailchimp
@@ -591,6 +599,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
                   htmlActual={st.vistaPrevia?.html ?? null}
                   onExportar={exportarYVer}
                   onGuardarJunto={() => { void acciones.guardarJuntoAlProyecto(); }}
+                  onVerRevision={verRevisionDesdeExportar}
                 />
               )}
             </MenuExportar>
@@ -757,7 +766,16 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
                 onVerComo={st.setPersona}
               />
             ) : null}
-            {pestana === "revision" ? <PanelRevision revision={st.revision} cargando={st.revisionCargando} onIrAlBloque={irAlBloque} template={template} /> : null}
+            {pestana === "revision" ? (
+              <PanelRevision
+                revision={st.revision}
+                cargando={st.revisionCargando}
+                onIrAlBloque={irAlBloque}
+                template={template}
+                resaltar={zonaDeRevision}
+                onResaltado={() => setZonaDeRevision(null)}
+              />
+            ) : null}
           </div>
         </aside>
       </div>

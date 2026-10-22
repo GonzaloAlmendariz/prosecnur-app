@@ -70,6 +70,10 @@ export function causaDelChequeo(check: { code: string; status: string; detail: s
     case "tags_have_columns":
       return "A algunos campos les falta su columna de la lista.";
     case "greeting_trato": {
+      // #11: «1 de 6 destinatarios recibirán «Estimado(a)»: 1 sin dato y 0 con…
+      // (la columna trae…).» → sólo la primera frase, sin ceros ni paréntesis.
+      const reparto = check.detail.match(/^(\d+ de \d+ destinatarios? recibir[áa]n? «[^»]*»):/);
+      if (reparto) return `${reparto[1]}.`;
       // «El saludo dirá «Estimado(a)» a todos: declara la columna de sexo.» → sólo la causa.
       const causa = check.detail.replace(/:\s*declara.*$/i, ".").trim();
       return causa || null;

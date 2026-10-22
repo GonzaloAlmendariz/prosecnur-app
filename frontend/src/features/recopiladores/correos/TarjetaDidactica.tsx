@@ -27,19 +27,23 @@ export function TarjetaDidactica({ block, template, dialecto }: Props) {
       {sale.lineas.length ? (
         <div className="rec-capa-didactica-sale">
           <span className="rec-capa-didactica-titulo">Cómo sale en {sale.plataforma}</span>
-          <dl>
-            {sale.lineas.map((l, i) => (
-              <div key={`${l.rotulo}-${i}`} className="rec-capa-didactica-linea">
-                <dt>{l.rotulo}</dt>
-                <dd><code>{l.plataforma || "(vacío)"}</code></dd>
-              </div>
-            ))}
-          </dl>
           {sale.notas.length ? (
             <ul className="rec-capa-didactica-notas">
               {sale.notas.map((n) => <li key={n}>{n}</li>)}
             </ul>
           ) : null}
+          {/* #4: el código de la plataforma no está a la vista; se abre a pedido. */}
+          <details className="rec-capa-didactica-codigo">
+            <summary>Ver el código</summary>
+            <dl>
+              {sale.lineas.map((l, i) => (
+                <div key={`${l.rotulo}-${i}`} className="rec-capa-didactica-linea">
+                  <dt>{l.rotulo}</dt>
+                  <dd><code>{l.plataforma || "(vacío)"}</code></dd>
+                </div>
+              ))}
+            </dl>
+          </details>
         </div>
       ) : null}
     </section>

@@ -21,6 +21,7 @@ import type { ControlPanel } from "../../../lib/navegacion/paneles";
 import { ArrowLeft, FileCode2, FilePlus2, Loader2, Plus, X } from "../../../vendor/lucide-react";
 import { NOMBRE_DE_PLATAFORMA, RESUMEN_DE_PLATAFORMA } from "../correos/dialectos";
 import { LARGO_ACTOR, LARGO_NOMBRE, ORIGEN_EN_BLANCO, problemaDelActor, problemaDelNombre } from "../correos/modeloCampanas";
+import { ContadorDeNombre } from "./ContadorDeNombre";
 import { origenDePreset } from "../correos/modeloCorreo";
 import { AvisoDeNombreRepetido } from "./AvisoDeNombreRepetido";
 import { hrefDeCampana } from "./direccionDeCampanas";
@@ -215,9 +216,10 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
                       placeholder="Invitación egresados"
                       autoFocus
                       aria-invalid={problema || homonima ? true : undefined}
-                      aria-describedby={homonima ? `${ids}-repetido` : undefined}
+                      aria-describedby={[`${ids}-contador`, homonima ? `${ids}-repetido` : ""].filter(Boolean).join(" ")}
                       onChange={(e) => setNombre(e.target.value)}
                     />
+                    <ContadorDeNombre id={`${ids}-contador`} nombre={nombre} />
                   </label>
                   <label className="rec-camp-campo rec-nueva-campo">
                     <span>Actor</span>

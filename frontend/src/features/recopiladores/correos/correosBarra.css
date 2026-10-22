@@ -60,13 +60,36 @@
   gap: 2px;
 }
 
-/* La miga dentro de la barra: sin su propio aire. */
+/* La miga dentro de la barra: sin su propio aire.
+   Caber no es no pisarse: cuando falta ancho, cada pieza cede en orden y
+   ninguna se monta sobre la vecina. El orden es estricto (el factor de
+   `flex-shrink` se pondera por el ancho, por eso los saltos son grandes):
+   primero el asunto que acompaña al nombre, después el nombre de la campaña
+   (nunca por debajo de 8ch) y al final el envío (nunca por debajo de 6ch);
+   los íconos, el menú y la plataforma no ceden. Tres clases: ganan al
+   `flex-shrink: 0` de nombreUnico.css. */
 .rec-mail-barra--fina .rec-campana-cabecera {
-  flex: 0 1 auto;
+  flex: 0 1000 auto;
+  min-width: 0;
 }
 
-.rec-mail-barra--fina .rec-campana-cabecera-nombre {
+.rec-mail-barra--fina .rec-campana-cabecera .rec-campana-cabecera-nombre {
+  flex: 0 30 auto;
   max-width: 280px;
+  min-width: 8ch;
+}
+
+.rec-mail-barra--fina .rec-campana-cabecera .rec-campana-cabecera-sub {
+  flex-shrink: 10000;
+}
+
+.rec-mail-barra--fina .rec-campana-cabecera > :is(a, button, svg, .rec-campana-cabecera-sep) {
+  flex-shrink: 0;
+}
+
+.rec-mail-barra--fina .rec-barra-izq > .rec-env-selector {
+  flex: 0 1 auto;
+  min-width: 6ch;
 }
 
 .rec-barra-plataforma {
@@ -167,7 +190,12 @@
   font-size: 12.5px;
   gap: 5px;
   height: 32px;
+  /* Un nombre largo no empuja la barra: se recorta con elipsis (el nombre
+     entero va en el título) en todos los anchos. */
+  max-width: 240px;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
   padding: 0 var(--pulso-space-2) 0 var(--pulso-space-3);
   transform: none;
   white-space: nowrap;
@@ -176,6 +204,13 @@
 .rec-barra-ver-como b {
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-semibold);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rec-barra-ver-como .rec-mail-chip {
+  flex: none;
 }
 
 .rec-barra-ver-como:disabled {

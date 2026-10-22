@@ -14,6 +14,7 @@ import type { ControlPanel } from "../../../lib/navegacion/paneles";
 import { X } from "../../../vendor/lucide-react";
 import { NOMBRE_DE_PLATAFORMA } from "../correos/dialectos";
 import { LARGO_ACTOR, LARGO_NOMBRE, problemaDelActor, problemaDelNombre } from "../correos/modeloCampanas";
+import { ContadorDeNombre } from "./ContadorDeNombre";
 import { AvisoDeNombreRepetido } from "./AvisoDeNombreRepetido";
 import type { Resultado } from "./DialogoNuevaCampana";
 import { hrefDeCampana } from "./direccionDeCampanas";
@@ -86,9 +87,10 @@ export function DialogoRenombrarCampana({ panel, campana, campanas, ocupado, onG
                   value={nombre}
                   maxLength={LARGO_NOMBRE}
                   aria-invalid={problema || homonima ? true : undefined}
-                  aria-describedby={homonima ? `${ids}-repetido` : undefined}
+                  aria-describedby={[`${ids}-contador`, homonima ? `${ids}-repetido` : ""].filter(Boolean).join(" ")}
                   onChange={(e) => setNombre(e.target.value)}
                 />
+                <ContadorDeNombre id={`${ids}-contador`} nombre={nombre} />
               </label>
               {esCorreo ? (
                 <label className="rec-camp-campo rec-nueva-campo">

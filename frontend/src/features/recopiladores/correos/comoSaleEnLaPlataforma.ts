@@ -133,9 +133,10 @@ function notasDelTrato(block: MailGreetingBlock, template: Pick<MailTemplate, "f
     notas.add(`Sin columna de sexo el saludo dice «${trato.respaldo}» a todos: elígela en «Saludo según la persona».`);
     return;
   }
+  // Sin etiquetas de plataforma a la vista (#4): el código queda en «Ver el código».
   notas.add(dialecto === "surveymonkey"
-    ? `[${ranuraDelTrato(trato, template.fields)}] lleva «${trato.masculino}» o «${trato.femenino}»: lo trae escrito el archivo de contactos.`
-    : `*|${ETIQUETA_DEL_TRATO}|* lleva «${trato.masculino}» o «${trato.femenino}» desde la audiencia; sin dato, «${trato.respaldo}».`);
+    ? `«${trato.masculino}» o «${trato.femenino}» lo trae escrito el archivo de contactos.`
+    : `«${trato.masculino}» o «${trato.femenino}» sale de la audiencia; sin dato, «${trato.respaldo}».`);
 }
 
 /** Propiedades que admiten `[texto](url)` (`.CMAIL_LINK_PROPS`). */
@@ -233,7 +234,7 @@ export function comoSaleEnLaPlataforma(block: MailBlock, template: Pick<MailTemp
     lineas.push({ rotulo: "Baja y dirección", app: "lo agrega la app", plataforma: PIE[dialecto] });
     notas.add(dialecto === "mailchimp"
       ? "Mailchimp exige la dirección y el enlace de baja en todo correo: la app los agrega siempre."
-      : "SurveyMonkey exige el enlace de baja ([OptOutLink]): la app lo agrega siempre.");
+      : "SurveyMonkey exige el enlace de baja: la app lo agrega siempre.");
   }
   return { dialecto, plataforma, lineas, notas: [...notas] };
 }

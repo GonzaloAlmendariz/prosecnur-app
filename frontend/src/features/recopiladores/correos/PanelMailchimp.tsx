@@ -4,6 +4,7 @@ import { downloadUrl } from "../../../api/core";
 import type { MailExportPayload, MailExportScope, MailReview } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Check, Copy, Download, FolderOpen, Loader2, Upload } from "../../../vendor/lucide-react";
+import { VerLosPuntos } from "./VerLosPuntos";
 import { pesoLegible, revisionBloquea } from "./modeloCorreo";
 import { SALIDAS_DEL_ENVIO } from "./modeloSalidas";
 import "./correosExportar.css";
@@ -33,6 +34,8 @@ type Props = {
   htmlActual: string | null;
   onExportar: (scope: MailExportScope) => void;
   onGuardarJunto: () => void;
+  /** Cierra Exportar y abre la Revisión (#13). */
+  onVerRevision?: () => void;
 };
 
 async function copiarHtml(html: string): Promise<void> {
@@ -71,6 +74,7 @@ export function PanelMailchimp({
   htmlActual,
   onExportar,
   onGuardarJunto,
+  onVerRevision,
 }: Props) {
   const [copia, setCopia] = useState<"" | "ok" | "error">("");
   const bloqueaPlantilla = revisionBloquea(revision, "plantilla");
@@ -124,7 +128,7 @@ export function PanelMailchimp({
       {bloqueaCompleto ? (
         <p className="rec-exp-bloqueo" role="status">
           {bloqueaPlantilla
-            ? `La revisión tiene ${revision?.errors ?? 0} ${revision?.errors === 1 ? "punto" : "puntos"} por corregir: están en la pestaña Revisión.`
+            ? <VerLosPuntos errores={revision?.errors ?? 0} onVer={onVerRevision} />
             : "La audiencia espera la lista: impórtala en Personas."}
         </p>
       ) : null}

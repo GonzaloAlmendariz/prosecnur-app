@@ -51,12 +51,35 @@ export function respaldoEnElSaludo(block: Pick<MailGreetingBlock, "text" | "fall
  * los destinatarios efectivos; un valor que no se reconoce va aparte.
  */
 export function lineaDelTrato(t: MailRecipientsTrato, trato: MailTrato): string | null {
+  const partes = partesDelTrato(t, trato, (palabra) => palabra);
+  return partes ? partes.join(" · ") : null;
+}
+
+/**
+ * Las partes del reparto con alguien detrás: una palabra con 0 destinatarios
+ * no se nombra (#11). `null` sin columna en la lista o sin cifras.
+ */
+function partesDelTrato(t: MailRecipientsTrato, trato: MailTrato, citar: (palabra: string) => string): string[] | null {
   const c = t.counts;
   if (!t.presente || !c) return null;
-  const partes = [`${trato.masculino} a ${c.masculino}`, `${trato.femenino} a ${c.femenino}`];
-  if (c.sin_dato) partes.push(`${trato.respaldo} a ${c.sin_dato} sin dato`);
-  if (c.no_reconocido) partes.push(`${trato.respaldo} a ${c.no_reconocido} con un valor que no se reconoce`);
-  return partes.join(" · ");
+  const partes: string[] = [];
+  if (c.masculino) partes.push(`${citar(trato.masculino)} a ${c.masculino}`);
+  if (c.femenino) partes.push(`${citar(trato.femenino)} a ${c.femenino}`);
+  if (c.sin_dato) partes.push(`${citar(trato.respaldo)} a ${c.sin_dato} sin dato`);
+  if (c.no_reconocido) partes.push(`${citar(trato.respaldo)} a ${c.no_reconocido} con un valor que no se reconoce`);
+  return partes;
+}
+
+/**
+ * El aviso del saludo por sexo en una frase, sin paréntesis ni partes en cero
+ * (#11): «“Estimado” a 3, “Estimada” a 2 y “Estimado(a)” a 1 sin dato.». La
+ * lectura de «M» va aparte (`lecturaEnPalabras`).
+ */
+export function fraseDelTrato(t: MailRecipientsTrato, trato: MailTrato): string | null {
+  const partes = partesDelTrato(t, trato, (palabra) => `«${palabra}»`);
+  if (!partes?.length) return null;
+  const lista = partes.length === 1 ? partes[0] : `${partes.slice(0, -1).join(", ")} y ${partes[partes.length - 1]}`;
+  return `${lista}.`;
 }
 
 /** Cómo se leyó «M» en la columna, en palabras. */

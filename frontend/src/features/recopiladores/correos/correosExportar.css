@@ -192,3 +192,10 @@
   color: var(--pulso-text);
   font-weight: 600;
 }
+
+/* #13 — «Ver los N puntos ›»: lleva a la Revisión desde Exportar. */
+.rec-exp-ver-puntos {
+  align-items: center;
+  display: inline-flex;
+  gap: 2px;
+}

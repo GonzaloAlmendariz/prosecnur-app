@@ -1,0 +1,104 @@
+/* Columna de plantillas y bloques (#3 del QA e10).
+   A 1366×768 la lista «Bloques del correo» quedaba en 7–119 px entre las
+   plantillas y los campos. Con bloques en el correo las plantillas se pliegan
+   en una fila (un clic las abre), la lista conserva al menos cuatro filas y
+   el ejemplo de los campos no pasa de tres líneas. Sólo tokens. */
+
+.rec-mail-col-grupo.rec-mail-col-grupo--plantillas {
+  flex: none;
+}
+
+.rec-mail-col-grupo--plantillas:not(.is-abierto) {
+  padding-bottom: 10px;
+}
+
+.rec-mail-plegable {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--pulso-radius);
+  box-shadow: none;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 6px;
+  justify-content: flex-start;
+  margin: -4px -4px;
+  min-height: 0;
+  padding: 4px;
+  text-align: left;
+  transform: none;
+  width: calc(100% + 8px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rec-mail-plegable:hover {
+    background: var(--pulso-surface-2);
+  }
+}
+
+.rec-mail-plegable:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--pulso-module-fieldkit);
+  outline-offset: 1px;
+}
+
+.rec-mail-plegable .xfk-over {
+  flex: none;
+}
+
+.rec-mail-plegable-resumen {
+  color: var(--pulso-text-soft);
+  flex: 1 1 auto;
+  font-size: 11.5px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-mail-plegable-flecha {
+  color: var(--pulso-text-muted);
+  flex: none;
+  margin-left: auto;
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.rec-mail-plegable[aria-expanded="true"] .rec-mail-plegable-flecha {
+  transform: rotate(90deg);
+}
+
+.rec-mail-col--bloques .rec-mail-presets[hidden] {
+  display: none;
+}
+
+/* Cuatro filas de 42 px como mínimo: la lista nunca queda en una rendija. Su
+   grupo no cede por debajo de ese mínimo (no se monta sobre los campos) y, si
+   la columna no alcanza —las plantillas abiertas en una ventana baja—, la
+   columna entera hace scroll (C4). */
+.rec-mail-col--bloques .rec-mail-bloques {
+  min-height: calc(4 * 43px);
+}
+
+/* El grupo: su título (≈ 36 px con el aire) más las cuatro filas. */
+.rec-mail-col--bloques .rec-mail-col-grupo.rec-mail-col-grupo--lista {
+  min-height: calc(4 * 43px + 36px);
+}
+
+.rec-mail > .rec-mail-col.rec-mail-col--bloques {
+  overflow-y: auto;
+}
+
+/* El ejemplo de los campos, a tres líneas como máximo (el texto entero va en el título). */
+.rec-mail-col--bloques .rec-mail-campos-ejemplo {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  display: -webkit-box;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-mail-plegable-flecha {
+    transition: none;
+  }
+}

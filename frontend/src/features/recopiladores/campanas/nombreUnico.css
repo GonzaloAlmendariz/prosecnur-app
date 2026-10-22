@@ -55,3 +55,17 @@
 .rec-campana-cabecera > svg {
   flex-shrink: 0;
 }
+
+/* #16 — «n / 80» bajo el nombre: el tope se ve antes de chocar con él.
+   Dos clases ganan a `.rec-camp-campo > span` (rótulo del campo). */
+.rec-camp-campo > .rec-nueva-contador {
+  align-self: flex-end;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-regular);
+}
+
+.rec-camp-campo > .rec-nueva-contador.is-tope {
+  color: var(--pulso-warn-fg);
+}

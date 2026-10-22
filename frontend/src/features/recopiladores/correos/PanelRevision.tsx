@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useInRouterContext, useLocation, useNavigate } from "react-router-dom";
 
 import type { MailCheck, MailReview, MailTemplate } from "../../../api/materialMail";
@@ -6,6 +6,7 @@ import { searchConPanel } from "../../../lib/navegacion/paneles";
 import { AlertCircle, ArrowRight, CheckCircle2, ChevronRight, Loader2, XCircle } from "../../../vendor/lucide-react";
 import { FOCO_COLUMNA_DEL_TRATO, arregloEnLaRevision, causaDelChequeo, destinoDelChequeo, pestanaDelChequeo, type PestanaDelChequeo } from "./comoArreglar";
 import { IDENTIDAD, focoDelEstilo } from "./modeloEstilo";
+import { fraseDeNitidez } from "./nitidez";
 import { fraseDeLoQueFalta, idsSinArchivo } from "./nombresDeImagen";
 import { PANEL_CORREO_DESTINATARIOS, PANEL_CORREO_ENVIOS } from "./panelesCorreos";
 import { useCorreosStore } from "./store";
@@ -22,7 +23,31 @@ type Props = {
   onIrAlBloque?: (blockId: string, foco?: string) => void;
   /** La plantilla del borrador: nombra cada imagen por su papel, no por su id. */
   template?: Pick<MailTemplate, "header" | "images" | "blocks" | "fields"> | null;
+  /**
+   * #8: la zona cuyo punto de aviso se pulsó en el correo. Su primer chequeo
+   * recibe el foco, se trae a la vista y se resalta un momento.
+   */
+  resaltar?: string | null;
+  onResaltado?: () => void;
 };
+
+/**
+ * Centra el chequeo en el inspector, que es su dueño de scroll; sólo si el
+ * inspector no hace scroll propio se mueve la página. Así el correo no salta
+ * y sigue a la vista el punto que se pulsó.
+ */
+function traerALaVista(el: HTMLElement): void {
+  const insp = el.closest<HTMLElement>(".rec-mail-insp");
+  if (insp && insp.scrollHeight > insp.clientHeight + 1 && getComputedStyle(insp).overflowY !== "visible") {
+    const delta = el.getBoundingClientRect().top - insp.getBoundingClientRect().top;
+    insp.scrollTop += delta - (insp.clientHeight - el.offsetHeight) / 2;
+    return;
+  }
+  el.scrollIntoView?.({ block: "nearest" });
+}
+
+/** Cuánto dura el resaltado del chequeo al que llevó un punto del correo. */
+export const DURACION_DEL_RESALTADO = 1600;
 
 /** El texto del botón de salida de un chequeo: lo que hace, en la voz de la vista. */
 export function salidaDelChequeo(code: string, destino: string, prop?: string): { texto: string; foco?: string } {
@@ -60,18 +85,29 @@ function IrAPestana({ pestana }: { pestana: PestanaDelChequeo }) {
 }
 
 /** Lo que falla: rótulo, una línea de causa, una de arreglo y su botón de ir. */
-function ChequeoQueFalla({ check, onIrAlBloque, template }: { check: MailCheck; onIrAlBloque?: (blockId: string, foco?: string) => void; template?: Props["template"] }) {
+function ChequeoQueFalla({ check, onIrAlBloque, template, resaltado = false }: { check: MailCheck; onIrAlBloque?: (blockId: string, foco?: string) => void; template?: Props["template"]; resaltado?: boolean }) {
   const enRouter = useInRouterContext();
   const destino = destinoDelChequeo(check, SOBRE);
   const pestana = destino ? null : pestanaDelChequeo(check);
-  const arreglo = arregloEnLaRevision(check.code);
+  const arregloGeneral = arregloEnLaRevision(check.code);
   const Icono = ICONO[check.status];
   // H7: «Falta el logo de la unidad solicitante y el de Pulso PUCP», sin ids.
   const faltan = check.code === "images_available" && template
     ? fraseDeLoQueFalta(template, idsSinArchivo(check.items))
     : null;
-  const causa = faltan ?? causaDelChequeo(check) ?? (muestraDetalle(check) ? check.detail : "");
-  const items = faltan
+  // #9: la nitidez dice cuál imagen y de cuántos px subirla, bloque por bloque.
+  const nitidez = check.code === "image_width" && template
+    ? [...new Set(check.targets.map((t) => t.block_id))]
+      .map((id) => fraseDeNitidez(check, template.blocks.find((b) => b.block_id === id)))
+      .filter((f): f is string => Boolean(f))
+      .join(" ")
+    : "";
+  // Con la frase de nitidez el arreglo ya está dicho («súbela de al menos N px»).
+  const arreglo = nitidez ? null : arregloGeneral;
+  const causa = faltan ?? (nitidez || null) ?? causaDelChequeo(check) ?? (muestraDetalle(check) ? check.detail : "");
+  // El resumen del saludo por sexo y las medidas de cada imagen viajan en
+  // `items` para la máquina, no para leerse.
+  const items = faltan || check.code === "greeting_trato" || check.code === "image_width"
     ? []
     : check.code === "fields_empty"
       ? check.items.filter((i) => typeof i !== "string" && Number(i.empty) > 0)
@@ -81,7 +117,12 @@ function ChequeoQueFalla({ check, onIrAlBloque, template }: { check: MailCheck; 
     ? salidaDelChequeo(check.code, destino, check.targets.find((t) => t.block_id === destino)?.prop)
     : null;
   return (
-    <li className={`rec-mail-chk rec-mail-rev-falla is-${check.status}`} data-qa-geometry-member>
+    <li
+      className={`rec-mail-chk rec-mail-rev-falla is-${check.status}${resaltado ? " is-resaltado" : ""}`}
+      data-qa-geometry-member
+      data-chequeo={check.code}
+      tabIndex={-1}
+    >
       <Icono size={16} aria-hidden className="rec-mail-chk-icono" />
       <span className="rec-mail-chk-rotulo">
         {rotuloDeChequeo(check)}
@@ -100,7 +141,12 @@ function ChequeoQueFalla({ check, onIrAlBloque, template }: { check: MailCheck; 
       ) : null}
       {arreglo || salida || (pestana && enRouter) ? (
         <span className="rec-mail-chk-salida">
-          {arreglo ? <span className="rec-mail-chk-arreglo">{arreglo}</span> : null}
+          {arreglo ? (
+            <span className="rec-mail-chk-arreglo">
+              {/* #14: el arreglo nombra el enlace con su rótulo real («Ir al asunto», «Ir al bloque»). */}
+              {salida ? arreglo.replace("«Ir al bloque»", `«${salida.texto}»`) : arreglo}
+            </span>
+          ) : null}
           {salida && destino && onIrAlBloque ? (
             <button type="button" className="rec-mail-link rec-mail-chk-ir" onClick={() => onIrAlBloque(destino, salida.foco)}>
               {salida.texto} <ArrowRight size={12} aria-hidden />
@@ -112,30 +158,59 @@ function ChequeoQueFalla({ check, onIrAlBloque, template }: { check: MailCheck; 
   );
 }
 
+/** Cifras de medida (peso en KB, largo en caracteres): se consultan, no se leen. */
+const CIFRA_TECNICA = /\b(KB|car\.)/;
+
 /** Lo que está en orden, en una línea: rótulo y cifra; la cifra técnica, en el `title`. */
 function ChequeoEnOrden({ check }: { check: MailCheck }) {
   // Un chequeo que esta versión no conoce no tiene rótulo propio: su detalle dice qué se revisó.
   const detalle = muestraDetalle(check) ? check.detail : "";
+  // #14: las cifras técnicas (KB, caracteres) van al `title`; a la vista, sólo las que se leen.
+  const cifra = cifraDeChequeo(check);
+  const tecnica = CIFRA_TECNICA.test(cifra);
   return (
-    <li className="rec-mail-rev-ok" data-qa-geometry-member>
+    <li className="rec-mail-rev-ok" data-qa-geometry-member title={tecnica ? cifra : undefined}>
       <CheckCircle2 size={13} aria-hidden className="rec-mail-rev-ok-icono" />
       <span className="rec-mail-rev-ok-rotulo">
         {rotuloDeChequeo(check)}
         {detalle ? <span className="rec-mail-rev-ok-detalle"> · {detalle}</span> : null}
       </span>
-      <span className="rec-mail-rev-ok-cifra" title={tituloDeChequeo(check)}>{cifraDeChequeo(check)}</span>
+      {tecnica ? null : <span className="rec-mail-rev-ok-cifra" title={tituloDeChequeo(check)}>{cifra}</span>}
     </li>
   );
 }
 
 /** Pestaña «Revisión»: arriba lo que falla; lo que está en orden, plegado en una línea (H8). */
-export function PanelRevision({ revision, cargando, onIrAlBloque, template = null }: Props) {
+export function PanelRevision({ revision, cargando, onIrAlBloque, template = null, resaltar = null, onResaltado }: Props) {
   const [abierto, setAbierto] = useState(false);
+  const [resaltado, setResaltado] = useState<number | null>(null);
+  const lista = useRef<HTMLUListElement | null>(null);
   const idLista = useId();
   const abrirExportar = useCorreosStore((s) => s.setExportarAbierto);
   const partes = revision ? partesDeRevision(revision.checks) : null;
   const fallas = partes ? [...partes.porCorregir, ...partes.avisos] : [];
   const todoEnOrden = Boolean(revision && partes && !fallas.length);
+  const indiceDeLaZona = resaltar ? fallas.findIndex((c) => c.targets.some((t) => t.block_id === resaltar)) : -1;
+
+  // #8: el chequeo de la zona pulsada recibe el foco, se trae a la vista y se resalta.
+  useEffect(() => {
+    if (!resaltar || !revision) return;
+    onResaltado?.();
+    if (indiceDeLaZona < 0) return;
+    const li = lista.current?.children.item(indiceDeLaZona);
+    if (li instanceof HTMLElement) {
+      traerALaVista(li);
+      li.focus({ preventScroll: true });
+    }
+    setResaltado(indiceDeLaZona);
+    // Sólo cuando llega una zona nueva: el resto lo lee de ese momento.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resaltar, revision]);
+  useEffect(() => {
+    if (resaltado === null) return;
+    const t = window.setTimeout(() => setResaltado(null), DURACION_DEL_RESALTADO);
+    return () => window.clearTimeout(t);
+  }, [resaltado]);
   return (
     <div {...CUERPO_DEL_INSPECTOR} className="rec-mail-insp-cuerpo">
       <div className="rec-mail-insp-cabeza">
@@ -152,12 +227,13 @@ export function PanelRevision({ revision, cargando, onIrAlBloque, template = nul
       </div>
       {fallas.length ? (
         <ul
+          ref={lista}
           className="rec-mail-chks"
           aria-label="Lo que falta corregir y los avisos"
           data-qa-geometry-group="material-campo/correo/chequeos"
           data-qa-geometry-contract="intrinsic"
         >
-          {fallas.map((check, i) => <ChequeoQueFalla key={`${check.code}-${i}`} check={check} onIrAlBloque={onIrAlBloque} template={template} />)}
+          {fallas.map((check, i) => <ChequeoQueFalla key={`${check.code}-${i}`} check={check} onIrAlBloque={onIrAlBloque} template={template} resaltado={resaltado === i} />)}
         </ul>
       ) : null}
       {partes?.enOrden.length ? (
