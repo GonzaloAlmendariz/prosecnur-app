@@ -176,7 +176,7 @@
       name = c("acepta", "g", "edad", "sexo", "otro", "aviso", "monto", "distrito", "ge"),
       label = c("Acepta participar?", "A. DATOS GENERALES",
                 "Cuantos anos cumplidos tienes a la fecha de hoy, contando tu ultimo cumpleanos?",
-                "Sexo", "Especifica otro sexo",
+                "Sexo", "Cuentanos por que elegiste esa opcion",  # una abierta real: «Especifica…» ya va en linea (2026-10-22)
                 "Las siguientes preguntas son sobre tu hogar y las personas que viven contigo.",
                 "Cuanto gastaste el ultimo mes en transporte para venir a la universidad?",
                 "Distrito de residencia", ""),
@@ -429,7 +429,10 @@ test_that("item 17: en hsvg2026 la nota que introduce la matriz va a todo el anc
   # numeración pasa a seguir el código de la base (P1…P65): consent_1/2 y filtro
   # se imprimen sin número y P28_11/P57_11 y sus _otro llevan punto (28.11,
   # 28.11a…), que no cuenta.
-  expect_identical(m$summary$n_questions, 70L)
+  # Desde el 2026-10-22 los campos que piden especificar («Especifica la otra
+  # instancia…», «Otro cargo (especifica)») van en línea bajo su opción y dejan
+  # de contar como sub-pregunta con letra: 70 -> 68.
+  expect_identical(m$summary$n_questions, 68L)
   expect_identical(.form_pdf_numeros_impresos(m$blocks), .form_pdf_numeros_impresos(m0$blocks))
   # Lo unico que cambia es el ancho de notas.
   cambia <- which(vapply(seq_along(b), function(k)
