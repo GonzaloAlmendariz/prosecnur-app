@@ -6,6 +6,7 @@ import type { Rect } from "./estructuraCorreo";
 import { atajoDeHistorial } from "./historialCorreo";
 import { MenuDeCampos, type CampoDelMenu } from "./MenuDeCampos";
 import { PopoverDeEnlace } from "./PopoverDeEnlace";
+import { desplazamientoConChips } from "./volcadoDelCampo";
 import {
   desplazamientoDelCursor,
   htmlDelChip,
@@ -193,7 +194,8 @@ export function EditorEnLinea({
       || el.querySelector("div,p,u,font,span:not([data-campo])") !== null;
     if (sinFormato) {
       const r = rangoActual(el);
-      const cursor = r ? desplazamientoDelCursor(el, r.startContainer, r.startOffset) : null;
+      // N4: con la llave ya hecha chip, el cursor sigue tras lo escrito.
+      const cursor = r ? desplazamientoConChips(el, r.startContainer, r.startOffset) : null;
       pintar(texto, cursor ?? "fin");
     }
     if (texto !== ultimo.current || sinFormato) {
@@ -488,7 +490,7 @@ export function EditorEnLinea({
         >
           <Link2 size={14} aria-hidden />
         </button>
-        <button type="button" className="rec-capa-barra-btn rec-capa-barra-btn--texto" aria-label="Insertar un campo" title="Campo de cada persona (escribe {{)" onClick={abrirMenu}>
+        <button type="button" className="rec-capa-barra-btn rec-capa-barra-btn--texto" aria-label="Insertar un campo" title="Campo de cada persona" onClick={abrirMenu}>
           <Variable size={14} aria-hidden /> Campo
         </button>
         <span className="rec-capa-barra-sep" aria-hidden />

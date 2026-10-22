@@ -640,7 +640,7 @@ export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   fields_empty: "Campos con dato para todos",
   names_unsplit: "Nombres separados del apellido",
   duplicates_conflicting: "Correos repetidos con datos distintos",
-  import_zip_weight: "Peso del ZIP para importar",
+  import_zip_weight: "Peso del archivo para Mailchimp",
   accent_contrast: "El texto se lee sobre el color",
   image_width: "Nitidez de las imágenes",
   image_weight: "Peso de cada imagen",
@@ -746,7 +746,7 @@ export function cifraDeChequeo(check: MailCheck): string {
     case "images_hosted":
       // Desde E1g las imágenes viajan en el ZIP importable o con su URL:
       // sólo es error un `data:` dentro del HTML de Mailchimp.
-      return check.status === "error" ? "incrustadas" : "en el ZIP o con URL";
+      return check.status === "error" ? "incrustadas" : "en el archivo o con su dirección web";
     case "import_zip_weight":
       return `${kb(v)} de 1.024 KB`;
     case "accent_contrast":

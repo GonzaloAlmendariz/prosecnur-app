@@ -24,6 +24,7 @@ import { campanasArchivadas, campanasVisibles, cuentaDeCampanas } from "./modelo
 import { TarjetaDeCampana } from "./TarjetaDeCampana";
 import type { FuenteDelRegistro } from "./useRegistroDeCampanas";
 import "./campanas.css";
+import "../correos/correosIconos.css";
 
 export type AvisoDeLaLista = { tono: "ok" | "error"; texto: string };
 

@@ -6,6 +6,7 @@ import { searchConPanel } from "../../../lib/navegacion/paneles";
 import { AlertCircle, ArrowRight, CheckCircle2, ChevronRight, Loader2, XCircle } from "../../../vendor/lucide-react";
 import { FOCO_COLUMNA_DEL_TRATO, arregloEnLaRevision, causaDelChequeo, destinoDelChequeo, pestanaDelChequeo, type PestanaDelChequeo } from "./comoArreglar";
 import { IDENTIDAD, focoDelEstilo } from "./modeloEstilo";
+import { indiceDelChequeoDeLaZona } from "./chequeoDeLaZona";
 import { fraseDeNitidez } from "./nitidez";
 import { fraseDeLoQueFalta, idsSinArchivo } from "./nombresDeImagen";
 import { PANEL_CORREO_DESTINATARIOS, PANEL_CORREO_ENVIOS } from "./panelesCorreos";
@@ -190,7 +191,9 @@ export function PanelRevision({ revision, cargando, onIrAlBloque, template = nul
   const partes = revision ? partesDeRevision(revision.checks) : null;
   const fallas = partes ? [...partes.porCorregir, ...partes.avisos] : [];
   const todoEnOrden = Boolean(revision && partes && !fallas.length);
-  const indiceDeLaZona = resaltar ? fallas.findIndex((c) => c.targets.some((t) => t.block_id === resaltar)) : -1;
+  // #8: el punto lleva al chequeo propio de la zona (la cabecera, a sus logos), no al primero que la nombra.
+  const tipoDeLaZona = resaltar === CABECERA ? CABECERA : template?.blocks.find((b) => b.block_id === resaltar)?.type ?? null;
+  const indiceDeLaZona = resaltar ? indiceDelChequeoDeLaZona(fallas, resaltar, tipoDeLaZona) : -1;
 
   // #8: el chequeo de la zona pulsada recibe el foco, se trae a la vista y se resalta.
   useEffect(() => {

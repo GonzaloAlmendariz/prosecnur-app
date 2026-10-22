@@ -9,6 +9,7 @@ import { ROTULO_DE_ICONO, chequeoDeContraste, conColor, idDelIcono, tieneColor, 
 import { SelectorDeIcono } from "./SelectorDeIcono";
 import { CampoDeTexto } from "./CampoDeTexto";
 import { CampoConCampos } from "./CampoConCampos";
+import { clavesDeclaradas, rotuloDeClave } from "./camposDeclarados";
 import type { Dialecto } from "./comoSaleEnLaPlataforma";
 import { LoQueFaltaSubir } from "./LoQueFaltaSubir";
 import { fraseDeLoQueFalta, idsSinArchivo, nombreDeImagen } from "./nombresDeImagen";
@@ -16,7 +17,8 @@ import { fraseDeNitidez } from "./nitidez";
 import { PanelDeImagen } from "./PanelDeImagen";
 import { ChequeosDelBloque, TarjetaDidactica } from "./TarjetaDidactica";
 import { EnlaceDeLaPersona } from "./EnlaceDeLaPersona";
-import { esProblemaDelTrato, fraseDelTrato, tratoDelSaludo } from "./modeloTrato";
+import { causaDelChequeo } from "./comoArreglar";
+import { esProblemaDelTrato } from "./modeloTrato";
 import { SaludoSegunLaPersona } from "./SaludoSegunLaPersona";
 import {
   CABECERA,
@@ -79,10 +81,13 @@ const AYUDA_DE_PROP: Partial<Record<PropDeTexto, string>> = {
 
 /** El chip de un campo dice su rótulo («Nombre», «Carrera»), nunca la llave del motor. */
 function rotulosDeCampos(template: Pick<MailTemplate, "fields">) {
-  const rotulo = (key: string) => (key === "nombre" ? "Nombre" : template.fields.find((f) => f.key === key)?.label || key);
+  const declaradas = clavesDeclaradas(template);
+  const rotulo = (key: string) => (key === "nombre" ? "Nombre" : template.fields.find((f) => f.key === key)?.label || rotuloDeClave(key));
   return {
     rotuloDeCampo: rotulo,
     ayudaDeCampo: (key: string) => `${rotulo(key)}: cambia con cada persona`,
+    // N5: lo que la campaña no declara sale como chip inválido, con su aviso.
+    campoValido: (key: string) => declaradas.has(key),
   };
 }
 
@@ -206,7 +211,7 @@ export function PanelDeBloque({
           titulo={rotuloDeCabecera(header)}
           descripcion={header.kind === "banner"
             ? "El banner que entrega el cliente, a todo el ancho del correo."
-            : "Los logos de las instituciones del estudio, arriba del correo. Cada uno viaja en el ZIP como imagen aparte."}
+            : "Los logos de las instituciones del estudio, arriba del correo. Cada uno va como imagen aparte dentro del archivo para Mailchimp."}
         />
         <div className="rec-mail-props">
           <PropRow label="Tipo">{header.kind === "banner" ? "Banner" : "Franja de logos"}</PropRow>
@@ -274,10 +279,8 @@ export function PanelDeBloque({
         chequeos={chequeos}
         detalleDe={(c) => {
           if (c.code === "images_available") return fraseDeLoQueFalta(template, idsSinArchivo(c.items));
-          // #11: el reparto del saludo por sexo, sin partes en cero ni paréntesis.
-          if (c.code === "greeting_trato" && block.type === "greeting" && destinatarios?.trato) {
-            return fraseDelTrato(destinatarios.trato, tratoDelSaludo(block));
-          }
+          // #11: la misma frase corta que la Revisión, sin partes en cero ni paréntesis.
+          if (c.code === "greeting_trato") return causaDelChequeo(c);
           return fraseDeNitidez(c, block);
         }}
       />
@@ -336,6 +339,7 @@ export function PanelDeBloque({
           problemas={problemasDe(propios, prop)}
           onCambio={(valor) => editar((b) => conTexto(b, prop, valor), `${block.block_id}.${prop}`)}
           onCursor={(cursor) => onDestino({ objetivo: block.block_id, prop, cursor })}
+          onIrAPersonas={onIrAPersonas}
         />
       ) : (
         <CampoDeTexto

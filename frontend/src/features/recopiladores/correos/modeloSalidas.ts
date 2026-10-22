@@ -22,10 +22,10 @@ export type SalidaDelEnvio = {
 export const SALIDAS_DEL_ENVIO: Readonly<Record<MailPlatform, readonly SalidaDelEnvio[]>> = {
   surveymonkey: [
     { accion: "Copiar HTML para SurveyMonkey", corto: "Copiar HTML", para: "lo que pegas en el mensaje del recopilador.", principal: true },
-    { accion: "Paquete del envío", corto: "Paquete", para: "un ZIP de respaldo; con la lista trae los contactos con su saludo.", principal: false },
+    { accion: "Paquete del envío", corto: "Paquete", para: "un archivo de respaldo; con la lista trae los contactos con su saludo.", principal: false },
   ],
   mailchimp: [
-    { accion: "Plantilla para importar en Mailchimp", corto: "Plantilla", para: "el ZIP que importas en Mailchimp.", principal: true },
+    { accion: "Plantilla para importar en Mailchimp", corto: "Plantilla", para: "el archivo que importas en Mailchimp.", principal: true },
     { accion: "Plantilla + audiencia", corto: "Con audiencia", para: "lo mismo y la lista en CSV, con datos personales.", principal: false },
     { accion: "Copiar para Outlook", corto: "Outlook", para: "para un envío a mano.", principal: false },
   ],

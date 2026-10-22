@@ -6,21 +6,30 @@
 // contrato; el cursor se informa en ese texto para que «Campos de cada
 // persona» inserte el campo donde está. Un valor que cambia por fuera
 // (deshacer, un campo insertado desde la columna) se repinta.
+//
+// Una llave escrita se vuelve chip sin mover el cursor de donde se escribía
+// (N4, volcadoDelCampo.ts). Un campo que la campaña no declara sale en tono de
+// error con su aviso al lado (N5, camposDeclarados.ts).
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, type ClipboardEvent, type KeyboardEvent } from "react";
 
 import type { MailProblem } from "../../../api/materialMail";
-import { htmlDelTexto, textoDelDom, textoDelPegado, type OpcionesDeTexto } from "./serializarTexto";
+import { avisoDeCampoNoDeclarado } from "./camposDeclarados";
+import { PATRON_CAMPO, htmlDelTexto, puntoDelDesplazamiento, textoDelDom, textoDelPegado, type OpcionesDeTexto } from "./serializarTexto";
+import { procesarEntrada } from "./volcadoDelCampo";
+import "./correosCampos.css";
 
 type Props = {
   label: string;
   valor: string;
-  opciones: Pick<OpcionesDeTexto, "rotuloDeCampo" | "ayudaDeCampo">;
+  opciones: Pick<OpcionesDeTexto, "rotuloDeCampo" | "ayudaDeCampo" | "campoValido">;
   onCambio: (valor: string) => void;
   /** Dónde está el cursor, en el texto del contrato. */
   onCursor?: (cursor: number | null) => void;
   ayuda?: string;
   problemas?: readonly MailProblem[];
+  /** Lleva a Personas, donde se declaran los campos. */
+  onIrAPersonas?: () => void;
 };
 
 const OPCIONES_BASE = { enlaces: false, multilinea: false } as const;
@@ -39,13 +48,37 @@ function cursorEnElTexto(raiz: HTMLElement, opciones: OpcionesDeTexto): number |
   return textoDelDom(caja, opciones).length;
 }
 
-export function CampoConCampos({ label, valor, opciones, onCambio, onCursor, ayuda, problemas }: Props) {
+/** Las claves del texto que la campaña no declara, sin repetir. */
+function clavesFuera(texto: string, campoValido: OpcionesDeTexto["campoValido"]): string[] {
+  if (!campoValido) return [];
+  const out: string[] = [];
+  for (const m of texto.matchAll(new RegExp(PATRON_CAMPO.source, "g"))) {
+    if (!campoValido(m[1]) && !out.includes(m[1])) out.push(m[1]);
+  }
+  return out;
+}
+
+function ponerCursor(raiz: HTMLElement, desplazamiento: number): void {
+  const sel = window.getSelection();
+  if (!sel) return;
+  const { nodo, offset } = puntoDelDesplazamiento(raiz, desplazamiento);
+  const r = document.createRange();
+  r.setStart(nodo, offset);
+  r.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(r);
+}
+
+export function CampoConCampos({ label, valor, opciones, onCambio, onCursor, ayuda, problemas, onIrAPersonas }: Props) {
   const id = useId();
   const editable = useRef<HTMLDivElement | null>(null);
   const ultimo = useRef<string | null>(null);
   const opcionesRef = useRef<OpcionesDeTexto>({ ...OPCIONES_BASE, ...opciones });
   opcionesRef.current = { ...OPCIONES_BASE, ...opciones };
-  const conError = Boolean(problemas?.length);
+  const fuera = clavesFuera(valor, opciones.campoValido);
+  // El aviso propio dice qué campo falta; el detalle del backend lo repetiría con la llave.
+  const propios = fuera.length ? (problemas ?? []).filter((p) => p.code !== "unknown_field") : problemas ?? [];
+  const conError = Boolean(propios.length || fuera.length);
 
   const pintar = useCallback((texto: string) => {
     const el = editable.current;
@@ -58,6 +91,17 @@ export function CampoConCampos({ label, valor, opciones, onCambio, onCursor, ayu
     if (valor !== ultimo.current) pintar(valor);
   }, [pintar, valor]);
 
+  // Declarar o quitar un campo en Personas cambia el tono de sus chips: si un
+  // chip quedó con el tono viejo, se repinta.
+  const campoValido = opciones.campoValido;
+  useLayoutEffect(() => {
+    const el = editable.current;
+    if (!el || !campoValido || ultimo.current === null) return;
+    const desfasado = Array.from(el.querySelectorAll("[data-campo]"))
+      .some((c) => c.classList.contains("is-invalido") === campoValido(c.getAttribute("data-campo") ?? ""));
+    if (desfasado) pintar(ultimo.current);
+  });
+
   const informar = () => {
     const el = editable.current;
     if (el) onCursor?.(cursorEnElTexto(el, opcionesRef.current));
@@ -66,12 +110,22 @@ export function CampoConCampos({ label, valor, opciones, onCambio, onCursor, ayu
   const volcar = () => {
     const el = editable.current;
     if (!el) return;
-    const texto = textoDelDom(el, opcionesRef.current);
-    // Una llave escrita a mano (`{{nombre}}`) se vuelve chip al instante.
-    if (/\{\{\s*[a-z][a-z0-9_]*\s*\}\}/.test(el.textContent ?? "")) pintar(texto);
-    if (texto !== ultimo.current) {
-      ultimo.current = texto;
-      onCambio(texto);
+    const sel = window.getSelection();
+    const r = sel?.rangeCount ? sel.getRangeAt(0) : null;
+    const cursor = r && el.contains(r.startContainer) ? { nodo: r.startContainer, offset: r.startOffset } : null;
+    const out = procesarEntrada({
+      raiz: el,
+      cursor,
+      opciones: opcionesRef.current,
+      ultimo: ultimo.current,
+      onCambio: (texto) => { ultimo.current = texto; onCambio(texto); },
+    });
+    // Una llave escrita a mano (`{{nombre}}`) se vuelve chip al instante, y el
+    // cursor queda justo después de lo escrito.
+    if (out.repintar) {
+      el.innerHTML = out.repintar.html;
+      ultimo.current = out.texto;
+      if (out.repintar.cursor !== null) ponerCursor(el, out.repintar.cursor);
     }
     informar();
   };
@@ -122,9 +176,23 @@ export function CampoConCampos({ label, valor, opciones, onCambio, onCursor, ayu
       />
       {ayuda ? <span className="rec-mail-ayuda" id={`${id}-ayuda`}>{ayuda}</span> : null}
       {conError ? (
-        <ul className="rec-mail-problemas" id={`${id}-error`}>
-          {problemas!.map((p, i) => <li key={`${p.path}-${i}`}>{p.detail}</li>)}
-        </ul>
+        <div id={`${id}-error`}>
+          {fuera.map((key) => {
+            const [antes, despues] = avisoDeCampoNoDeclarado(opciones.rotuloDeCampo?.(key) ?? key).split("Personas");
+            return (
+              <p key={key} className="rec-mail-campo-aviso" role="alert">
+                {antes}
+                {onIrAPersonas ? <button type="button" className="rec-mail-link" onClick={onIrAPersonas}>Personas</button> : "Personas"}
+                {despues}
+              </p>
+            );
+          })}
+          {propios.length ? (
+            <ul className="rec-mail-problemas">
+              {propios.map((p, i) => <li key={`${p.path}-${i}`}>{p.detail}</li>)}
+            </ul>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

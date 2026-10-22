@@ -9,7 +9,7 @@ const ARREGLO: Readonly<Record<string, string>> = {
   preheader: "Escribe una frase corta en «Asunto y vista previa».",
   html_weight: "Quita bloques o acorta textos largos.",
   images_hosted: "Sube la imagen como archivo o ponle su dirección web.",
-  images_available: "Sube su PNG o JPEG: viaja dentro del ZIP del correo.",
+  images_available: "Sube su PNG o JPEG: va dentro del archivo para Mailchimp.",
   images_alt: "Describe la imagen en una frase: qué muestra.",
   placeholders_pending: "Reemplaza cada texto entre corchetes por el dato real; «Ir al bloque» te lleva al primero.",
   banner_size: "Sube un banner de al menos 1200 px de ancho, idealmente 1200 × 600.",

@@ -1,0 +1,32 @@
+/* N1 del re-QA e10: ningún ícono del editor de correos se encoge. En un aviso
+   de texto largo el flex le quitaba ancho al ícono (triangle-alert a 4,3 × 14
+   px). Todo ícono del shim de lucide conserva su tamaño cuadrado: el ancho y
+   el alto que fija `size`, sin ceder espacio al texto. Alcance: las clases
+   del editor y de sus campañas, también en los portales. */
+
+:is(
+  [class*="rec-mail"],
+  [class*="rec-capa"],
+  [class*="rec-camp"],
+  [class*="rec-bib"],
+  [class*="rec-barra"],
+  [class*="rec-imp"],
+  [class*="rec-env"],
+  [class*="rec-estilo"],
+  [class*="rec-exp"],
+  [class*="rec-pieza"],
+  [class*="rec-guia"],
+  [class*="rec-trato"],
+  [class*="rec-sm"],
+  [class*="rec-personas"],
+  [class*="rec-ident"],
+  [class*="rec-cajon"],
+  [class*="rec-ajustes"],
+  [class*="rec-sync"],
+  [class*="rec-nueva"]
+) svg.lucide {
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+  max-width: none;
+  min-width: 0;
+}

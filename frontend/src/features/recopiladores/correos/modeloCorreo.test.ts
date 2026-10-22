@@ -218,7 +218,7 @@ describe("revisión", () => {
     expect(cifraDeChequeo(chk("preheader", "warning", 0))).toBe("falta");
     expect(cifraDeChequeo(chk("html_weight", "ok", 38 * 1024))).toBe("38 KB de 102 KB");
     // E1g: las imágenes van en el ZIP importable; sólo un `data:` incrustado es error.
-    expect(cifraDeChequeo(chk("images_hosted", "ok", 0))).toBe("en el ZIP o con URL");
+    expect(cifraDeChequeo(chk("images_hosted", "ok", 0))).toBe("en el archivo o con su dirección web");
     expect(cifraDeChequeo(chk("images_hosted", "error", 1))).toBe("incrustadas");
     expect(cifraDeChequeo(chk("import_zip_weight", "warning", 900 * 1024))).toBe("900 KB de 1.024 KB");
     // La razón de contraste sólo va en el `title`, con coma decimal.

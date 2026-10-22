@@ -10,7 +10,8 @@ import {
   type VistaDelCorreo,
 } from "./modeloCorreo";
 import { esHex } from "./modeloEstilo";
-import { useCorreosStore } from "./store";
+import { avisoDeVistaRetenida, camposNoDeclarados, rotuloDeClave } from "./camposDeclarados";
+import { envioElegido, useCorreosStore } from "./store";
 
 import "./correosEstilo.css";
 import "./correosAjustes.css";
@@ -194,17 +195,21 @@ export function VistaPreviaDelCorreoConectada({ capa, encabezado }: { capa?: (me
   const cargando = useCorreosStore((s) => s.vistaPreviaCargando);
   const error = useCorreosStore((s) => s.vistaPreviaError);
   const conProblemas = useCorreosStore((s) => s.problemas.length > 0);
+  // N5: un campo no declarado retiene la vista previa; el lienzo dice cuál. Se
+  // lee como texto para que el selector no devuelva un arreglo nuevo cada vez.
+  const fuera = useCorreosStore((s) => (s.borrador ? camposNoDeclarados(s.borrador, envioElegido(s)).join("\n") : ""));
+  const retenida = fuera ? avisoDeVistaRetenida(fuera.split("\n").map(rotuloDeClave)) : "";
   return (
     <VistaPreviaDelCorreo
       html={html}
       template={template}
       vista={vista}
       cargando={cargando}
-      error={error
+      error={retenida || (error
         ? conProblemas
           ? "La vista previa no refleja el último cambio: hay bloques por corregir, marcados en la lista."
           : error
-        : ""}
+        : "")}
       capa={capa}
       encabezado={encabezado}
     />

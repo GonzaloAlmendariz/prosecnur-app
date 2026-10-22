@@ -29,6 +29,7 @@ import {
 } from "./modeloCorreo";
 import { AvisoDeshacer, type Deshacible } from "./AvisoDeshacer";
 import { CapaDeEdicion } from "./CapaDeEdicion";
+import { rotuloDeClave } from "./camposDeclarados";
 import { GuiaDelEditor } from "./GuiaDelEditor";
 import { etiquetaDeCampo } from "./dialectos";
 import { DialogoImportarHtml } from "./DialogoImportarHtml";
@@ -75,6 +76,7 @@ import "./correosCapa.css";
 import "./correosEnvios.css";
 import "./correosGuia.css";
 import "./correosInspector.css";
+import "./correosIconos.css";
 
 type Props = {
   /** Avisa al shell mientras el correo o su vista previa no han llegado. */
@@ -208,9 +210,11 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
   const textoDeCampo = useMemo(() => {
     const porClave = new Map(camposDelMenu.map((c) => [c.key, c]));
     return {
-      rotuloDeCampo: (k: string) => porClave.get(k)?.label ?? k,
+      rotuloDeCampo: (k: string) => porClave.get(k)?.label ?? rotuloDeClave(k),
       // Sin llaves ni etiquetas de plataforma: el chip se explica en palabras (#5).
-      ayudaDeCampo: (k: string) => `${porClave.get(k)?.label ?? k}: cambia con cada persona`,
+      ayudaDeCampo: (k: string) => `${porClave.get(k)?.label ?? rotuloDeClave(k)}: cambia con cada persona`,
+      // N5: un campo que la campaña no declara sale en tono de error.
+      campoValido: (k: string) => porClave.has(k),
     };
   }, [camposDelMenu]);
   useEffect(() => () => onCargando?.(false), [onCargando]);

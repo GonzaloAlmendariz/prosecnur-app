@@ -397,8 +397,9 @@ describe("store: historial por campaña", () => {
       plantilla: { state_revision: 3, builtin: false, platform: "mailchimp", sends: [mailSendInvitation()], template: PLANTILLA, stored_problems: [] },
       destinatarios: { loaded: false, file_name: null, imported_at: null, row_count: 0, encoding: null, columns: [], mapping: null, counts: null, sample: [] },
     });
-    s().editar((t) => ({ ...t, subject: "A" }), "__sobre.subject");
-    s().editar((t) => ({ ...t, subject: "AB" }), "__sobre.subject");
+    // Se escribe de corrido en la misma palabra (N6 agrupa por palabra).
+    s().editar((t) => ({ ...t, subject: "AsuntoA" }), "__sobre.subject");
+    s().editar((t) => ({ ...t, subject: "AsuntoAB" }), "__sobre.subject");
     s().editar((t) => moverBloqueA(t, "accion", 0));
     expect(s().historial.pasado).toHaveLength(2);
     s().guardado({ noop: false, sends: [mailSendInvitation()], send_warnings: [], state_revision: 4, template: { ...s().borrador!, revision: 7 } });
@@ -408,7 +409,7 @@ describe("store: historial por campaña", () => {
     s().deshacer();
     expect(s().borrador?.subject).toBe("Asunto");
     s().rehacer();
-    expect(s().borrador?.subject).toBe("AB");
+    expect(s().borrador?.subject).toBe("AsuntoAB");
     // Un cambio que no cambia nada no entra.
     const antes = s().historial.pasado.length;
     s().editar((t) => moverBloqueA(t, "pie", 0));

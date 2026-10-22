@@ -101,7 +101,6 @@ export function MenuDeCampos({ campos, estilo, onElegir, onCerrar }: Props) {
             onClick={() => onElegir(c.key)}
           >
             <span className="rec-capa-campo-nombre">{c.label}</span>
-            <code className="rec-capa-campo-clave">{`{{${c.key}}}`}</code>
             <span className="rec-capa-campo-etiqueta">{c.etiqueta || "sin equivalente"}</span>
             {c.ejemplo ? <span className="rec-capa-campo-ejemplo">{c.ejemplo}</span> : null}
           </li>
