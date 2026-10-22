@@ -417,7 +417,8 @@
   red(a)
 }
 
-.form_logica_cita <- function(x) paste0("«", x, "»")
+# Comillas rectas y solo si hacen falta (reporte_formulario_filtro_breve.R).
+.form_logica_cita <- function(x) .form_filtro_cita(x)
 
 .form_logica_opcion <- function(ctx, var, cod, multiple = FALSE) {
   i <- ctx$fila[var]
@@ -425,11 +426,8 @@
   if (!is.na(i)) for (o in ctx$choices[[ctx$lista[i]]] %||% list()) {
     if (identical(.form_pdf_chr(o$code), cod)) { lbl <- .form_pdf_clean_text_safe(o$label %||% ""); break }
   }
-  if (multiple) {
-    if (nzchar(lbl)) sprintf("%s (%s)", .form_logica_cita(lbl), cod) else .form_logica_cita(cod)
-  } else {
-    if (nzchar(lbl)) sprintf("%s %s", cod, .form_logica_cita(lbl)) else cod
-  }
+  # Filtro breve: la opcion por su etiqueta, sin el codigo al lado.
+  if (nzchar(lbl)) .form_logica_cita(lbl) else .form_logica_cita(cod)
 }
 
 # Como se nombra una variable en una condicion impresa (nunca `${...}`).
@@ -441,6 +439,8 @@
     return(.form_num_ref(ctx$et[i]))
   }
   if (nzchar(ctx$control[i])) return(ctx$control[i])
+  # Pregunta de inicio sin numero: por su papel, no por su texto.
+  if (.form_filtro_es_inicio(ctx, var)) return(.form_filtro_nombre_inicio(ctx, i))
   lbl <- .form_pdf_clean_text(ctx$etiqueta[i])
   t <- ctx$tipo[i]
   if (!is.null(avisos)) {
@@ -459,11 +459,11 @@
   ref <- function(v) .form_logica_ref(ctx, v, desde, avisos)
   num_txt <- function(x) .form_pdf_chr(x)
   atomo_igual <- function(var, vals) {
+    opciones <- .form_filtro_lista(vapply(vals, function(v) .form_logica_opcion(ctx, var, v), ""), "o")
     if (.form_logica_es_multiple(ctx, var)) {
-      sprintf("en %s marcó %s", ref(var),
-              paste(vapply(vals, function(v) .form_logica_opcion(ctx, var, v, TRUE), ""), collapse = " o "))
+      sprintf("marcó %s en %s", opciones, ref(var))
     } else {
-      sprintf("%s = %s", ref(var), paste(vapply(vals, function(v) .form_logica_opcion(ctx, var, v), ""), collapse = " o "))
+      sprintf("respondió %s en %s", opciones, ref(var))
     }
   }
   r <- function(x, nivel = 0L) {
@@ -479,7 +479,9 @@
           con_lista <- !is.na(i) && ctx$tipo[i] %in% c("select_one", "select_multiple")
           switch(x$op,
             "=" = if (con_lista) atomo_igual(v, lit) else sprintf("%s = %s", ref(v), lit),
-            "!=" = if (con_lista) sprintf("%s distinto de %s", ref(v), .form_logica_opcion(ctx, v, lit))
+            "!=" = if (con_lista) sprintf("no %s %s en %s",
+                                          if (.form_logica_es_multiple(ctx, v)) "marcó" else "respondió",
+                                          .form_logica_opcion(ctx, v, lit), ref(v))
                    else sprintf("%s distinto de %s", ref(v), lit),
             ">=" = sprintf("%s es %s o más", ref(v), lit),
             ">" = sprintf("%s es mayor que %s", ref(v), lit),
@@ -510,17 +512,21 @@
       not = {
         h <- x$a
         if (identical(h$k, "sel")) {
-          if (.form_logica_es_multiple(ctx, h$var)) sprintf("en %s NO marcó %s", ref(h$var), .form_logica_opcion(ctx, h$var, h$val, TRUE))
-          else sprintf("%s distinto de %s", ref(h$var), .form_logica_opcion(ctx, h$var, h$val))
+          if (.form_logica_es_multiple(ctx, h$var)) sprintf("no marcó %s en %s", .form_logica_opcion(ctx, h$var, h$val), ref(h$var))
+          else sprintf("no respondió %s en %s", .form_logica_opcion(ctx, h$var, h$val), ref(h$var))
         } else sprintf("NO se cumple que (%s)", r(h, 0L))
       },
+      # Filtro breve: los atomos con la misma opcion se juntan («respondió Sí
+      # en alguna de P29.2 a P29.10»); reporte_formulario_filtro_breve.R.
       and = {
-        partes <- vapply(x$args, function(h) { t <- r(h, 1L); if (identical(h$k, "or")) paste0("(", t, ")") else t }, "")
-        paste(partes, collapse = " y ")
+        partes <- .form_filtro_partes(x$args, "and", ctx, function(h) {
+          t <- r(h, 1L); if (identical(h$k, "or")) paste0("(", t, ")") else t })
+        .form_filtro_unir(partes, "y")
       },
       or = {
-        partes <- vapply(x$args, function(h) { t <- r(h, 1L); if (identical(h$k, "and")) paste0("(", t, ")") else t }, "")
-        paste(partes, collapse = " o ")
+        partes <- .form_filtro_partes(x$args, "or", ctx, function(h) {
+          t <- r(h, 1L); if (identical(h$k, "and")) paste0("(", t, ")") else t })
+        .form_filtro_unir(partes, "o")
       },
       var = sprintf("respondió %s", ref(x$v)),
       opaco = {
@@ -663,12 +669,12 @@
       claves <- vapply(filas, function(r) clave(arboles[[r]]), "")
       if (length(unique(claves)) == 1L) {
         if (nzchar(claves[1])) {
-          conds[i] <- sprintf("FILTRO \u2014 Aplique s\u00f3lo si %s.", .form_logica_redactar(arboles[[i]], ctx, i, avisos))
+          conds[i] <- .form_filtro_enunciado("", .form_logica_redactar(arboles[[i]], ctx, i, avisos))
           alcance[[i]] <- c(i, fin_m)
         }
       } else {
         for (r in filas) if (nzchar(claves[r - i + 1L])) {
-          conds[r] <- sprintf("Aplique s\u00f3lo si %s.", .form_logica_redactar(arboles[[r]], ctx, r, avisos))
+          conds[r] <- sub("^Filtro: a", "A", .form_filtro_enunciado("", .form_logica_redactar(arboles[[r]], ctx, r, avisos)))
           alcance[[r]] <- c(r, r)
         }
       }
@@ -681,7 +687,7 @@
     texto <- .form_logica_redactar(red, ctx, i, avisos)
     if (es_grupo) {
       d <- .form_logica_primera_numerada(ctx, fin_i + 1L)
-      conds[i] <- sprintf("FILTRO \u2014 Aplique este m\u00f3dulo s\u00f3lo si %s; si no, %s.", texto, ref_destino(d))
+      conds[i] <- .form_filtro_enunciado("este m\u00f3dulo", texto, ref_destino(d))
       alcance[[i]] <- c(i, fin_i)
       i <- i + 1L
       next
@@ -702,10 +708,10 @@
     }
     if (ultimo > i) {
       d <- .form_logica_primera_numerada(ctx, j + 1L)
-      conds[i] <- sprintf("FILTRO \u2014 Aplique %s a %s s\u00f3lo si %s. Si no, %s.",
-                          .form_num_ref(ctx$et[i]), .form_num_ref(ctx$et[ultimo]), texto, ref_destino(d))
+      conds[i] <- .form_filtro_enunciado(
+        sprintf("%s a %s", .form_num_ref(ctx$et[i]), .form_num_ref(ctx$et[ultimo])), texto, ref_destino(d))
     } else {
-      conds[i] <- sprintf("FILTRO \u2014 Aplique s\u00f3lo si %s.", texto)
+      conds[i] <- .form_filtro_enunciado("", texto)
     }
     alcance[[i]] <- c(i, ultimo)
     i <- j + 1L

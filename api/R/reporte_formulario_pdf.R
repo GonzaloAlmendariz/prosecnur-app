@@ -1158,11 +1158,13 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   max(min_h, length(lines) * line_h)
 }
 
-.form_pdf_opening_height <- function(text, chars = 112L) {
+.form_pdf_opening_height <- function(text, chars = 112L, w = NULL) {
   if (!nzchar(text %||% "")) return(0)
   # El badge de apertura envuelve el texto con padding vertical; se mide con la
-  # misma altura de linea del dibujo (.form_pdf_draw_opening) + el padding.
-  length(.form_pdf_wrap(text, chars)) * 0.0118 + 0.015
+  # misma altura de linea del dibujo (.form_pdf_draw_opening) + el padding. Con
+  # `w`, por ancho medido como el dibujo; sin el, por conteo.
+  n <- if (is.null(w)) length(.form_pdf_wrap(text, chars)) else length(.form_pdf_apertura_lineas(text, w))
+  n * 0.0118 + 0.015
 }
 
 .form_pdf_block_height <- function(block, width) {
@@ -1187,7 +1189,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     etiqueta <- paste0(block$title,
                        .repeat_pdf_section_suffix(isTRUE(block$repeatable), block$repeat_count))
     return(.form_pdf_band_height(etiqueta, 112, rt = .form_pdf_section_rt(block), w = width) + 0.008 +
-             .form_pdf_opening_height(block$opening_condition, chars) +
+             .form_pdf_opening_height(block$opening_condition, chars, w = width) +
              .form_pdf_section_hint_alto(block, width))
   }
   if (identical(block$kind, "subsection")) {
@@ -1239,7 +1241,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       if (is.null(lay_h)) .form_pdf_lines_height(.form_pdf_wrap(block$hint, 118), 0.011) else lay_h$alto
     }
     return(header_h + rows_h + 0.022 + hint_h +
-             .form_pdf_opening_height(block$opening_condition, 112L))
+             .form_pdf_opening_height(block$opening_condition, 112L, w = width))
   }
   # L21 (item 14): pregunta y nota miden con la MISMA geometria que las dibuja
   # (reporte_formulario_reserva_pdf.R), como las bandas desde L19.
@@ -1461,10 +1463,10 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   if (!nzchar(text %||% "")) return(y)
   tk <- .form_pdf_tokens()
   cw <- max(20L, floor((w - 0.012) * chars_factor))
-  lines <- .form_pdf_wrap(text, cw)
+  lines <- .form_pdf_apertura_lineas(text, w)
   if (!length(lines)) return(y)
   y <- .form_pdf_text(paste(lines, collapse = "\n"), x + 0.008, y - 0.005, w - 0.016,
-                      chars = cw, fontsize = 7.3, fontface = "italic", col = tk$navy, line_h = 0.0118)
+                      lines = lines, fontsize = 7.3, fontface = "italic", col = tk$navy, line_h = 0.0118)
   y - 0.004
 }
 
@@ -1726,9 +1728,11 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         # Item 18: cuerpo de la escalera y, en el ultimo peldano, el codigo en
         # varias lineas (una por trozo, a la interlinea de la etiqueta).
         trozos <- cm$code_lineas[[.form_pdf_clean_text_safe(opt$code %||% "")]] %||% opt$code
+        # En la linea base de la etiqueta (reporte_formulario_flujo_pdf.R).
+        y_cod <- .form_pdf_codigo_y(y - 0.005, cm$code_fs)
         for (ti in seq_along(trozos)) {
           grid::grid.text(trozos[[ti]], x = grid::unit(xx + code_w / 2, "npc"),
-                          y = grid::unit(y - 0.010 - (ti - 1L) * 0.0125, "npc"),
+                          y = grid::unit(y_cod - (ti - 1L) * 0.012, "npc"), just = c("centre", "top"),
                           gp = grid::gpar(fontsize = cm$code_fs, fontface = "bold", col = tk$navy))
         }
       }
@@ -1840,7 +1844,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     y <- pad + if (is.null(g$lbl_lay)) {
       .form_pdf_text(paste0(prefix, block$label), bx, y - pad, bw,
                      lines = g$lbl_lines, align = lbl_align,
-                     fontsize = 8.4, fontface = "bold", col = tk$ink, line_h = 0.0142)
+                     fontsize = 8.4, fontface = g$estilo$face, col = tk$ink, line_h = g$estilo$line_h)
     } else {
       .form_pdf_rt_draw(g$lbl_lay, bx, y - pad, bw, col = tk$ink, align = lbl_align)
     }
@@ -2458,10 +2462,13 @@ formulario_pdf_render <- function(model, output_file) {
   y <- c(y_top, y_top)
   divider_top <- NA_real_
   tras_ancho <- FALSE
+  # Divisor solo si la columna derecha tiene algo: una linea al lado de nada es
+  # ruido (reporte_formulario_flujo_pdf.R).
+  col2_usada <- FALSE
 
   flush_divider <- function(bottom_y = y_bottom) {
     if (is.na(divider_top)) return(invisible(NULL))
-    if ((divider_top - bottom_y) > 0.025) {
+    if (col2_usada && (divider_top - bottom_y) > 0.025) {
       grid::grid.lines(
         x = grid::unit(c(0.5, 0.5), "npc"),
         y = grid::unit(c(bottom_y, divider_top), "npc"),
@@ -2470,6 +2477,7 @@ formulario_pdf_render <- function(model, output_file) {
       .form_pdf_traza("divisor", page_no, divider_top, bottom_y)
     }
     divider_top <<- NA_real_
+    col2_usada <<- FALSE
     invisible(NULL)
   }
 
@@ -2487,7 +2495,8 @@ formulario_pdf_render <- function(model, output_file) {
   }
   new_page()
 
-  blocks <- model$blocks
+  # Bloque solo en su tramo -> ancho completo (reporte_formulario_flujo_pdf.R).
+  blocks <- .form_pdf_flujo_bloques(model$blocks)
   # Reparto equilibrado de los tramos de dos columnas (L12): sin esto la columna
   # izquierda se llena hasta el fondo y la derecha queda vacia. Las alturas se
   # miden una vez, con el ancho de columna.
@@ -2528,6 +2537,8 @@ formulario_pdf_render <- function(model, output_file) {
       # reporte_formulario_nota_intro.R.
       keep <- .form_pdf_alto_arrastre(blocks, bi, h, y_top - y_bottom,
                                       function(b) .form_pdf_block_height(b, full_w))
+      keep <- .form_pdf_arrastre_nota(blocks, bi, h, keep, y_top - y_bottom,
+                                      function(b) .form_pdf_block_height(b, col_w))
       if (yy - h < y_bottom || (yy - keep < y_bottom && yy < (y_top - 0.001))) {
         new_page()
         yy <- y_top
@@ -2563,12 +2574,21 @@ formulario_pdf_render <- function(model, output_file) {
     }
     if (y[current_col] - h < y_bottom) {
       # Bloque mas alto que una columna: dibujarlo igual en pagina nueva.
-      if (current_col == 2L) new_page()
+      # Tambien es el camino de un tramo que EMPIEZA al pie de una pagina y no
+      # cabe en ninguna de sus columnas: en la pagina nueva se replanifica el
+      # corte, o todo el tramo caia en la izquierda y la derecha quedaba vacia
+      # (HSyVbG 2026 p. 3, 8 y 14).
+      if (current_col == 2L) {
+        new_page()
+        corte <- .form_pdf_corte_pagina(blocks, alturas, bi, y[1] - y_bottom)
+        planificado <- TRUE
+      }
     }
     if (is.na(divider_top)) {
       divider_top <- y[current_col] - (if (tras_ancho && y[current_col] < y_top - 0.001) .FORM_PDF_DIVISOR_AIRE else 0)
     }
     tras_ancho <- FALSE
+    if (current_col == 2L) col2_usada <- TRUE
     y[current_col] <- .form_pdf_draw_block(block, col_x[current_col], y[current_col], col_w)
   }
 

@@ -28,7 +28,8 @@
 .form_pdf_opening_geom <- function(text, w, chars_factor = 112) {
   if (!nzchar(text %||% "")) return(list(cw = 0L, lines = character(0), h = 0))
   cw <- max(20L, floor((w - 0.012) * chars_factor))
-  lines <- .form_pdf_wrap(text, cw)
+  # Por ancho medido (reporte_formulario_flujo_pdf.R); `cw` queda como dato.
+  lines <- .form_pdf_apertura_lineas(text, w)
   list(cw = cw, lines = lines,
        h = if (length(lines)) 0.005 + length(lines) * 0.0118 + 0.004 else 0)
 }
@@ -56,16 +57,18 @@
   # con una estrecha las lineas cortaban mucho antes del margen y la nota
   # justificada estiraba los espacios («rios»). Sin dispositivo, el conteo.
   txt_w <- if (tiene_cuerpo) w - 0.022 else w - 0.012
-  lbl_lines <- .form_pdf_wrap_fit(paste0(prefix, block$label), txt_w, fontsize = 8.4, fontface = "bold")
+  # Nota larga en redonda y con mas interlinea (reporte_formulario_flujo_pdf.R).
+  estilo <- .form_pdf_enunciado_estilo(block)
+  lbl_lines <- .form_pdf_wrap_fit(paste0(prefix, block$label), txt_w, fontsize = 8.4, fontface = estilo$face)
   hint_lines <- if (hay_hint) .form_pdf_wrap_fit(block$hint, txt_w, fontsize = 7.3, fontface = "italic") else character(0)
   # Item 19: con formato visible (cursiva, subrayado, saltos, encabezados) el
   # enunciado y la pista se componen por tramos al ancho real del recuadro; el
   # enunciado va en negrita, asi que su negrita del HTML no cuenta como formato.
   lbl_rt <- .form_rt_campo(block, "label")
   if (nzchar(prefix)) lbl_rt <- c(list(.form_rt_run(prefix)), lbl_rt)
-  lbl_lay <- .form_pdf_rt_si(lbl_rt, txt_w, 8.4, 0.0142, base_b = TRUE)
+  lbl_lay <- .form_pdf_rt_si(lbl_rt, txt_w, 8.4, estilo$line_h, base_b = estilo$base_b)
   hint_lay <- if (hay_hint) .form_pdf_rt_si(.form_rt_campo(block, "hint"), txt_w, 7.3, 0.011, base_i = TRUE)
-  lbl_alto <- if (is.null(lbl_lay)) length(lbl_lines) * 0.0142 else lbl_lay$alto
+  lbl_alto <- if (is.null(lbl_lay)) length(lbl_lines) * estilo$line_h else lbl_lay$alto
   hint_alto <- if (is.null(hint_lay)) length(hint_lines) * 0.011 else hint_lay$alto
   head_h <- if (tiene_cuerpo) {
     lbl_alto + hint_alto + 0.009
@@ -103,7 +106,7 @@
   list(chars_lbl = chars_lbl, chars_skip = chars_skip, opening = opening,
        prefix = prefix, tiene_cuerpo = tiene_cuerpo, lbl_lines = lbl_lines,
        hint_lines = hint_lines, lbl_lay = lbl_lay, hint_lay = hint_lay,
-       lbl_alto = lbl_alto, hint_alto = hint_alto, txt_w = txt_w,
+       lbl_alto = lbl_alto, hint_alto = hint_alto, txt_w = txt_w, estilo = estilo,
        head_h = head_h, cuerpo_h = cuerpo_h,
        cierre = cierre, intro = intro,
        h = opening_h + head_h + cuerpo_h + skip_h + cierre - (if (intro) 0.007 else 0))
