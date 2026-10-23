@@ -352,8 +352,10 @@
 /* ---------- Llave y filtros ---------- */
 
 .mon-insumos code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
+  /* Tipografía del sistema, como el resto de la app: un código de caso o un
+   * nombre de columna no pide monoespaciada para leerse. */
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
 }
 
 .mon-llave-pares {
@@ -628,8 +630,10 @@
 }
 
 .mon-fuentes code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
+  /* Tipografía del sistema, como el resto de la app: un código de caso o un
+   * nombre de columna no pide monoespaciada para leerse. */
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
 }
 
 .mon-fuentes-lista ul {
@@ -1001,4 +1005,10 @@
   text-overflow: clip;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+/* Llave sin nada por revisar: una sola columna, con la encuesta arriba; la
+ * lateral habría sido una tarjeta estirada con una línea (chequeo f). */
+.mon-llave.is-sin-revision {
+  grid-template-columns: minmax(0, 1fr);
 }

@@ -50,7 +50,7 @@ export function OrigenDeLaMuestra({
   const filas = useMemo(() => filasDeOrigen(reports), [reports]);
   const variables = useMemo(() => state?.variables ?? [], [state?.variables]);
   const perfil = state?.config?.monitoreo_profile;
-  const inicial = useMemo(() => borradorInicial(perfil, filas), [perfil, filas]);
+  const inicial = useMemo(() => borradorInicial(perfil, filas, variables), [perfil, filas, variables]);
   const [borrador, setBorrador] = useState<BorradorDeOrigen>(inicial.borrador);
   const [envio, setEnvio] = useState<{ guardando: boolean; error: string }>({ guardando: false, error: "" });
   useEffect(() => setBorrador(inicial.borrador), [inicial]);
@@ -98,7 +98,9 @@ export function OrigenDeLaMuestra({
     <section className="mon-ctl-panel mon-origen" aria-label="Origen de la muestra">
       <header className="mon-insumos-cabecera">
         <strong>Origen de la muestra</strong>
-        <span className="mon-insumos-estado">{inicial.declarado ? "Declarado" : "Sugerido por el nombre"}</span>
+        {inicial.declarado || inicial.sugerido ? (
+          <span className="mon-insumos-estado">{inicial.declarado ? "Declarado" : "Sugerido por el nombre"}</span>
+        ) : null}
         <button
           type="button"
           className="mon-insumos-boton is-primario"
@@ -155,7 +157,7 @@ export function OrigenDeLaMuestra({
               </tbody>
             </table>
           ) : (
-            <p className="mon-origen-vacio">{borrador.origen.columna ? "La columna no trae valores en este corte." : "Sin columna de origen, la hoja no separa titulares de reserva."}</p>
+            borrador.origen.columna ? <p className="mon-origen-vacio">La columna no trae valores en este corte.</p> : null
           )}
         </div>
 
@@ -195,25 +197,30 @@ export function OrigenDeLaMuestra({
               </tbody>
             </table>
           ) : (
-            <p className="mon-origen-vacio">{borrador.marca.columna ? "La columna no trae valores en este corte." : "Sin marca, no se cuentan reemplazos."}</p>
+            borrador.marca.columna ? <p className="mon-origen-vacio">La columna no trae valores en este corte.</p> : null
           )}
         </div>
       </div>
 
-      <footer className="mon-origen-lectura" aria-label="Lectura del origen">
-        {lectura.conConteoOrigen ? (
+      {/* El vacío se dice una vez: o la lectura, o por qué no la hay. */}
+      {lectura.conConteoOrigen ? (
+        <footer className="mon-origen-lectura" aria-label="Lectura del origen">
           <dl>
             <div><dt>Muestra titular</dt><dd className="is-num">{n(lectura.titular)}</dd></div>
             <div><dt>Reserva</dt><dd className="is-num">{n(lectura.reserva)}</dd></div>
             {lectura.sinRol ? <div><dt>Sin rol</dt><dd className="is-num">{n(lectura.sinRol)}</dd></div> : null}
             {lectura.conConteoMarca ? <div><dt>Reemplazos marcados</dt><dd className="is-num">{n(lectura.reemplazos)}</dd></div> : null}
           </dl>
-        ) : (
+        </footer>
+      ) : (
+        <footer className="mon-origen-lectura">
           <NotaDelModo tono="neutro" className="mon-origen-nota">
-            {borrador.origen.columna ? "Los casos de esta columna se cuentan al confirmar y actualizar el corte." : "Sin columna de origen declarada."}
+            {borrador.origen.columna || borrador.marca.columna
+              ? "Los casos de cada valor se cuentan al confirmar y actualizar el corte."
+              : "Ninguna columna de la base parece separar la muestra titular de su reserva; si la hoja la trae, elígela arriba."}
           </NotaDelModo>
-        )}
-      </footer>
+        </footer>
+      )}
     </section>
   );
 }

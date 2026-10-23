@@ -127,8 +127,13 @@ describe("la serie diaria de efectivas es una sola", () => {
     const { serie, sinFecha, sinCategoria, fueraDeCuota, totalDeKobo } = serieDiariaDelCorte(corte);
     const fuera = fueraDeCuota.reduce((suma, item) => suma + item.casos, 0);
     expect(fueraDeCuota).toEqual([{ nombre: "Sin dato", casos: 3 }]);
-    expect(serie.total + sinFecha + fuera + sinCategoria).toBe(totalDeKobo);
     expect(totalDeKobo).toBe(37);
+    expect(serie.total).toBe(30);
+    // De las 4 sin fecha del diario, 1 es «Sin dato» y ya está fuera de cuota.
+    expect(sinFecha).toBe(3);
+    // El 04/08 el diario dice 17 y la serie por actor 16: una sin categoría.
+    expect(sinCategoria).toBe(1);
+    expect(serie.total + sinFecha + fuera + sinCategoria).toBe(totalDeKobo);
 
     // La serie compartida es la del diario de Avance › Cuotas (phoneQuotaCardsForDashboard).
     const diarioDeCuotas = new Map<string, number>();

@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { TrazadoDeBarras } from "./TrazadoDeBarras";
+import { ALTO_CIFRA_PCT, TrazadoDeBarras, alturaDeCifra } from "./TrazadoDeBarras";
 
 const columnas = [
   { fecha: "2026-07-02", total: 109, titulo: "", segmentos: [{ clase: "is-serie-0", valor: 109 }] },
@@ -37,5 +37,40 @@ describe("trazado de barras con dos ejes", () => {
     expect(derecho).not.toContain(">250<");
     const izquierdo = html.slice(html.indexOf("mon-trazado-eje is-izquierdo"), html.indexOf("mon-trazado-area"));
     expect(izquierdo).toContain(">250<");
+  });
+});
+
+describe("la cifra de la barra no queda tachada por la meta", () => {
+  it("si la línea cruza la cifra, la cifra sube por encima de la línea", () => {
+    // PDM 02/07: 109 sobre un eje de 150 (72.7 %) y la meta 400 sobre 500 (80 %).
+    const barra = (109 / 150) * 100;
+    const meta = (400 / 500) * 100;
+    const cifra = alturaDeCifra(barra, meta);
+    expect(cifra).toBeGreaterThan(meta);
+    // MV 07/08 y 08/08: 15 sobre 20 (75 %) y la meta 100 sobre 120 (83.3 %).
+    expect(alturaDeCifra(75, (100 / 120) * 100)).toBeGreaterThan((100 / 120) * 100);
+  });
+
+  it("si la línea pasa lejos, la cifra se queda sobre su barra", () => {
+    expect(alturaDeCifra(30, 80)).toBe(30);
+    expect(alturaDeCifra(90, 40)).toBe(90);
+    expect(alturaDeCifra(50, null)).toBe(50);
+    // Justo por encima del alto de la cifra ya no la toca.
+    expect(alturaDeCifra(50, 50 + ALTO_CIFRA_PCT + 3)).toBe(50);
+  });
+
+  it("en el trazado, la cifra que cruzaba la meta queda por encima de la línea", () => {
+    const html = renderToStaticMarkup(
+      <TrazadoDeBarras
+        columnas={[{ fecha: "2026-07-02", total: 109, titulo: "", segmentos: [{ clase: "is-serie-0", valor: 109 }] },
+          { fecha: "2026-07-03", total: 133, titulo: "", segmentos: [{ clase: "is-serie-0", valor: 133 }] }]}
+        tituloIzquierdo="Efectivas por día"
+        derecho={{ titulo: "Acumulado", valores: [109, 242], referencia: { valor: 400, rotulo: "Meta 400" }, rotuloFinal: "242 de 400" }}
+      />,
+    );
+    const meta = Number(/mon-trazado-referencia" style="bottom:([\d.]+)%/.exec(html)?.[1]);
+    const cifra = Number(/mon-trazado-cifra" style="bottom:([\d.]+)%">109</.exec(html)?.[1]);
+    expect(meta).toBeGreaterThan(0);
+    expect(cifra).toBeGreaterThan(meta);
   });
 });

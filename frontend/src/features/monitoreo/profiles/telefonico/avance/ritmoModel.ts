@@ -51,6 +51,8 @@ export type SerieKobo = {
   sinFecha: number;
   /** Valores del eje sin cuota («Sin dato», o un valor sin meta): no entran a la serie. */
   fueraDeCuota: Array<{ nombre: string; casos: number }>;
+  /** De `fueraDeCuota`, las que además no tienen fecha (ya cuentan como fuera de cuota). */
+  fueraDeCuotaSinFecha: number;
 };
 
 function claveDeValor(valor: unknown) {
@@ -73,11 +75,13 @@ export function serieKobo(
   const totales = new Map<string, number>();
   let sinFecha = 0;
   const fueraDeCuota = new Map<string, number>();
+  let fueraDeCuotaSinFecha = 0;
   filas.forEach(({ categoria, fecha, casos }) => {
     if (!casos) return;
     if (porVariable.length && valoresDeCuota?.size && !valoresDeCuota.has(claveDeValor(categoria))) {
       // Con fecha o sin ella: lo que no tiene cuota se declara, no se pierde.
       fueraDeCuota.set(categoria, (fueraDeCuota.get(categoria) ?? 0) + casos);
+      if (!fechaDeColumna(fecha)) fueraDeCuotaSinFecha += casos;
       return;
     }
     const iso = fechaDeColumna(fecha);
@@ -99,6 +103,7 @@ export function serieKobo(
     total: fechas.reduce((suma, iso) => suma + porFecha[iso], 0),
     sinFecha,
     fueraDeCuota: [...fueraDeCuota.entries()].sort((a, b) => b[1] - a[1]).map(([nombre, casos]) => ({ nombre, casos })),
+    fueraDeCuotaSinFecha,
   };
 }
 
@@ -257,7 +262,9 @@ export function serieDiariaDelCorte(reports: MonitoreoAcreditacionReports | null
   const sinFechaDelDiario = diario.reduce((suma, fila) => (
     fechaDeColumna(texto(fila.Fecha)) ? suma : suma + numero(fila["Efectivas Kobo"] ?? fila.Efectivas)
   ), 0);
-  const sinFecha = Math.max(serie.sinFecha, sinFechaDelDiario);
+  // Una efectiva sin fecha y sin cuota ya está en «fuera de cuota»: contarla
+  // también como «sin fecha» la restaba dos veces y escondía una sin categoría.
+  const sinFecha = Math.max(serie.sinFecha, sinFechaDelDiario - serie.fueraDeCuotaSinFecha);
   return {
     segmento,
     serie,

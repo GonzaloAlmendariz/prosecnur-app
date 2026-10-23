@@ -5,6 +5,22 @@ function n(valor: number) {
   return valor.toLocaleString("es-PE");
 }
 
+/** Alto aproximado de la cifra sobre la barra, en % del área (16 px sobre ~180–250 px). */
+export const ALTO_CIFRA_PCT = 9;
+
+/**
+ * Dónde va la cifra de una barra para no quedar tachada por la línea de la
+ * meta: sobre la barra si la línea no la cruza; si la cruza, justo encima de
+ * la línea. Las dos alturas vienen en % del área, aunque la barra use la
+ * escala izquierda y la meta la derecha (PDM: el «109» del 02/07 quedaba
+ * atravesado por «Meta 400»).
+ */
+export function alturaDeCifra(altoBarra: number, referencia: number | null, altoCifra = ALTO_CIFRA_PCT, holgura = 1.5) {
+  if (referencia == null) return altoBarra;
+  const cruza = referencia >= altoBarra - holgura && referencia <= altoBarra + altoCifra + holgura;
+  return cruza ? referencia + holgura : altoBarra;
+}
+
 export type ColumnaDelTrazado = {
   fecha: string;
   total: number;
@@ -59,6 +75,7 @@ export function TrazadoDeBarras({
       .filter((punto): punto is { x: number; y: number; valor: number; i: number } => punto != null)
     : [];
   const ultimo = puntos.at(-1) ?? null;
+  const referencia = derecho?.referencia && derecha ? (derecho.referencia.valor / derecha.tope) * 100 : null;
 
   return (
     <div className={`mon-trazado${derecho ? " con-derecho" : ""}${bajo ? " is-bajo" : ""}`}>
@@ -88,7 +105,9 @@ export function TrazadoDeBarras({
                     segmento.valor ? <i key={segmento.clase} className={segmento.clase} style={{ flexGrow: segmento.valor }} /> : null
                   ))}
                 </div>
-                {columna.apagada ? null : <span className="mon-trazado-cifra" style={{ bottom: `${alto}%` }}>{n(columna.total)}</span>}
+                {columna.apagada ? null : (
+                  <span className="mon-trazado-cifra" style={{ bottom: `${alturaDeCifra(alto, referencia)}%` }}>{n(columna.total)}</span>
+                )}
               </div>
             );
           })}
