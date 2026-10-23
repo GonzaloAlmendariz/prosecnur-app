@@ -302,7 +302,7 @@
 .monitoreo_telefonico_discrepancias_blocks <- function(phone, claves, detalle, efectivas = NULL, profile = list(), kobo = NULL) {
   filas <- .monitoreo_telefonico_discrepancias_df(phone, claves, detalle, efectivas, profile, kobo)
   enumeradores <- .monitoreo_kobo_enumerador(kobo)
-  list(
+  c(list(
     .monitoreo_report_block(
       "discrepancias_telefonicas",
       "Discrepancias entre Kobo y la hoja de barrido",
@@ -315,7 +315,9 @@
       .monitoreo_equivalencias_df(enumeradores, .monitoreo_responsables_hoja(detalle), profile),
       "La misma persona escrita de dos formas. Las sugeridas ignoran tildes, mayúsculas, puntuación y el orden de las palabras; se confirman en Insumos › Llave y filtros."
     )
-  )
+  ),
+  # P3: «Efectivo» sin Kobo va a Avisos, desde estas mismas filas.
+  .monitoreo_avisos_hoja_sin_kobo_blocks(filas)) # monitoreo_avisos_telefonico.R
 }
 
 # --- Decisión «Cuenta / No cuenta» ------------------------------------------
