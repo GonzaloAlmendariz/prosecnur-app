@@ -35,10 +35,37 @@ deje Quality en verde** ([goal-ci-calidad-2026-10-10.md](goal-ci-calidad-2026-10
 vara en todos los números, las 29 páginas de la maqueta reproducidas en la app con proyecto real y captura, y las
 decisiones D1–D13 resueltas por Gonzalo o anotadas como descartadas. Solo Gonzalo da la meta por terminada.
 
+## Reencuadre 2026-10-22: Monitoreo va primero, como paso independiente
+
+Pedido textual de Gonzalo (2026-10-22): centrar el revamp en Monitoreo «como un paso independiente pero el primero de
+los demás», y rehacer el artefacto de revisión de todos los cambios propuestos partiendo de que Acreditación ya tiene
+pestañas nuevas y conexión con Mailchimp para los envíos de correo.
+
+- **Monitoreo es la unidad BM**: se diseña, construye, verifica y cierra por sí sola, sin esperar el kit B1 ni la
+  Carga. Lo que necesite del kit (switch, input, diálogo, skeleton) se construye aquí con el contrato del kit y se
+  generaliza después; no se espera a B1 para empezar. Los demás pasos (B1–B9) arrancan cuando BM cierra.
+- **Lo que cambió desde el 10-10 y la maqueta no refleja** (el artefacto de revisión parte de esto):
+  - Acreditación › Avance suma **Cuotas** (metas por categoría de la base, ADR/checklist
+    `checklist-monitoreo-cuotas-y-revamp-correo-2026-10-22.md`) y **Correo** (envíos de Mailchimp medidos por público,
+    `checklist-monitoreo-mailchimp-t3-2026-10-22.md`); las pestañas de Avance son hoy Resumen · Actores · Cuotas ·
+    Encuestas · Detalle · Correo · Salidas.
+  - Mailchimp se conecta en Configuración junto a las demás claves y Monitoreo solo lee (GET); la escritura de borradores
+    vive en Material de campo (ADR 0110).
+  - Acreditación opera a 45 mil contactos: cruce y tablero en tiempo casi lineal, Consultas servida desde caché y
+    estados «preparando» (`checklist-monitoreo-acred-inst-t0-t1-2026-10-22.md`). L23 (warm start) cambia de premisa.
+  - El módulo `recopiladores` ya no existe: es **Material de campo** (`/material-campo`, campañas tipadas, ADR 0111).
+    L15 y L32 de la maqueta hablan de un módulo que cambió de forma.
+- **Unidades de la cola que son de Monitoreo y entran a BM**: L18, L19, L20 (en lo de Monitoreo), L23, L33 (desduplicar
+  Telefónico ↔ Acreditación, D8), L38 y D13 (carmesí frente al rojo de peligro). Se suman las dos superficies nuevas:
+  Avance › Cuotas y Avance › Correo, que nacen con el estándar visual de la meta y no se rehacen después.
+- **Artefacto de revisión**: lienzo «Revamp de Monitoreo» (Design), un tablero por cambio propuesto, con lo que ya existe
+  señalado como tal y lo propuesto como propuesta. Se revisa ahí antes de construir; Gonzalo marca lo que se aprueba.
+
 **Tablero de la meta (dibújalo entero cada vez):**
 
 | # | Unidad | Estado |
 |---|---|---|
+| BM | **Monitoreo, paso independiente y primero**: L18, L19, L20, L23, L33, L38, D13 + Avance › Cuotas y Avance › Correo (Acreditación) sobre sus cuatro modos. Diseño por modo en `docs/qa/revamp-monitoreo/` (estándar, procedimientos respondidos, `acreditacion.md`, `territorial.md`, `telefonico.md`, `aulas.md`) y en un lienzo por modo. Esqueleto común Insumos · Modelo · Control · Avance. Orden de aplicación a la UI: Telefónico primero (autorizado por Gonzalo el 2026-10-23 a aplicarse cuando el diseño y el gate pasen), luego los demás. Cierra con QA 1440/1024 y verificador | ◐ diseño de Acreditación y Territorial conforme; Telefónico y Cursos-horario en curso |
 | B0 | Leer los rectores y la maqueta entera (índice, 29 páginas), levantar el server de la maqueta y regenerar las capturas «después»; abrir la rama `meta-b-revamp`; anotar en el GOAL las D1–D13 que sigan sin respuesta | ☐ primero |
 | B1 | Vuelta 0 — fundaciones del kit (9 sesiones): L26/L27 primero (`PulsoSwitch` maestro y chica, `PulsoInput`, `PulsoSelect`, `PulsoField`, reglas de botón; páginas L26 y L27), L1 (`Dialog`/`Sideover` sobre Radix con `usePanelDireccionable`; página L01), L14 (`TabHeading` compartido en toda página con rail; página L14), L24 (`Skeleton` con la silueta de la vista destino; páginas L04 y L23), L2 (los ~50 overlays declarados en `PANELES_POR_MODULO`), L35 (el dock que se escapa del borde) | ☐ |
 | B2 | Vuelta 1 — Carga, lo que abre ventanas (16 sesiones): L2–L13, el flujo de SurveyMonkey/Kobo/archivo con el diálogo canónico, skeleton, job y recibo; es la deuda que Gonzalo señaló primero («no es tan fluido y tiene muchos meses de atraso») | ☐ |
