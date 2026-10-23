@@ -34,7 +34,7 @@ Diseño: `docs/qa/revamp-monitoreo/telefonico.md` (fichas), lienzo «Revamp de M
 | T4 | Control › Insistencia | Backend: bloque `cola_insistencia` en `api/R/monitoreo_telefonico_cola.R` con test. Front: `core/ColaDeInsistencia.tsx`, `control/Insistencia.tsx`, `control/insistenciaModel.ts` | T2 | ☑ |
 | T5 | Control › Barrido y Equipo | `control/Barrido.tsx`, `control/Equipo.tsx`, `control/EquipoMatriz.tsx`; reutiliza `conteoDeEquipo.ts`, `telefonicoTeamModel.ts` | T2 | ☑ |
 | T6 | Control › Respuestas y Avisos | `control/Respuestas.tsx`, `control/Avisos.tsx`; reutiliza `filtroEfectiva/`, `TelefonicoPhoneAlerts.ts` | T2 | ☑ |
-| T7 | Insumos | Fuentes, Llave y filtros, Estados (`insumos/Estados.tsx`), reutilizando `fuentes/` | T2 | ☐ |
+| T7 | Insumos | Fuentes, Llave y filtros, Estados (`insumos/Estados.tsx`), reutilizando `fuentes/` | T2 | ◐ |
 | T8 | Modelo y Avance restantes | Cuotas y calendario, Ritmo, Entregas; Reserva y Reemplazos condicionales | T2; Reserva y Reemplazos esperan P8–P9 y el contrato de «ACNUR RMS» | ☐ |
 | T9 | Control › Discrepancias y Supervisión | Discrepancias con decisión auditada; supervisión estratificada | **Bloqueada** por P1–P7 | ⛔ |
 
@@ -77,6 +77,13 @@ barrido, bloques vacíos con nota. El worker `callr` usa el paquete instalado y 
 - **Acreditación con barrido**: el bloque no se publica ahí todavía; montarlo en `Reintentos.tsx` es una línea cuando
   se unifique.
 - **MEDVID 2025**: «Observación de rebarrido» no entra en la cola.
+- **P18 (dos vocabularios de familia)**: el definidor de estados guarda en `state_rules` familias de acreditación
+  (`efectivo`, `sin_contacto`, `numero_invalido`, `rechazo`, `otro`, `sin_barrer`), que gobiernan colores y agrupación
+  de los gráficos. El motor cuenta con `complete`, `partial`, `refusal`, `pending`, `non_effective` y `excluded`
+  (`monitoreo_status_reglas.R`). Un status confirmado en el definidor casa con una regla que no decide nada, así que
+  deja de dar `status_desconocido` sin contar. Opciones: (a) traducir al guardar; (b) que el definidor del telefónico
+  use las familias del motor; (c) dejarlo así y sólo avisar. Hoy Insumos › Estados muestra las dos: la que se guarda,
+  editable, y la del motor en lectura, con la marca «difiere» cuando no corresponden.
 
 ## Notas de T1 a T3 (frontend)
 
@@ -238,3 +245,15 @@ columna desplaza si no cabe. Debajo va «Por dónde se corrige», que reúne los
 responsables) y un enlace; la hoja del equipo va al final. En PDM: Discrepancias 453 (166 y 287 de formato),
 Respuestas 57, Equipo 11 responsables y hoja del equipo 9. En la ficha, los afectados o el desglose ocupan lo que tienen
 y «Qué hacer» va pegado. Sólo una lista de más de ocho casos lleva barra visible y degradado.
+
+**T7, Insumos › Estados.** `profiles/telefonico/insumos/Estados.tsx` con `estadosModel.ts` (test). El borrador y el
+guardado del definidor salieron a `estados/useDeclaracionDeEstados.ts`; el definidor de Acreditación lo usa igual y lo
+que se guarda no cambió. Vocabulario de Status con valor del cliente, casos, familia en los gráficos (editable, como
+hoy) y cómo lo cuenta el motor (lectura, «sin regla» en ámbar, «difiere» si no corresponde; P18). A la derecha:
+«Status por reglas» en lectura (`status_from_rules`, apagado en PDM y Medios de Vida) con los valores sin regla (PDM 6
+valores y 84 casos, como el lienzo; Medios de Vida «Número equivocado», 6), «Intentos que registra la hoja» sobre la
+cola de insistencia (PDM 374 casos: sin dato 2, 1: 107, 2: 136, 3: 122, 4: 5, 5: 2; el lienzo contaba sólo la muestra),
+el color de cada familia (paridad) y la nota «Sin regla de agotado». Las tarjetas de universo y barrido, que vivían en
+esta pestaña, pasan a Fuentes.
+
+- **No va**: los interruptores Intento, Contacto y Cierra, y encender «Status por reglas» desde la app: no existen hoy.

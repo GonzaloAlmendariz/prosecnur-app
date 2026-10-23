@@ -1,7 +1,8 @@
 // Definidor de estados telefónicos.
 //
-// Vive fuera de los perfiles porque lo montan los dos: Acreditación en su mesa
-// de teléfono y Telefónico en Fuentes › Universo y barrido. Era el mismo
+// Vive fuera de los perfiles porque el dato es de los dos: Acreditación monta
+// este definidor en su mesa de teléfono y Telefónico usa el mismo borrador
+// (`useDeclaracionDeEstados`) en Insumos › Estados. Era el mismo
 // trabajo —confirmar qué significa cada estado que escribió el cliente— y
 // tenerlo dentro de `profiles/acreditacion/` obligaba al otro perfil a importar
 // del vecino o a escribir su copia.
@@ -29,109 +30,27 @@
 // sin que nadie lo usara desde la UI: `outcome_values` son los crudos asignados
 // y `final_state` la familia. El `color` se añadió a la whitelist de R.
 
-import { useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Loader2, Save } from "../../../vendor/lucide-react";
-import type { MonitoreoConfig, MonitoreoState, MonitoreoStateRule } from "../../../api/client";
-import { apiMonitoreoConfig } from "../../../api/client";
+import type { MonitoreoConfig, MonitoreoState } from "../../../api/client";
 import { contar } from "../fuentes/vocabulario";
-import {
-  ACREDITACION_ORDEN_FAMILIAS,
-  acreditacionColorDeFamilia,
-  acreditacionDeclaracionesDesdeReglas,
-  acreditacionEstadosDetectados,
-  acreditacionEtiquetaDeFamilia,
-} from "./familiasDeLlamada";
+import { ACREDITACION_ORDEN_FAMILIAS, acreditacionEtiquetaDeFamilia } from "./familiasDeLlamada";
 import type { AcreditacionFamiliaLlamada } from "./familiasDeLlamada";
+import { useDeclaracionDeEstados, type EntradaDeEstado } from "./useDeclaracionDeEstados";
 import "./definidorDeEstados.css";
-
-type Entrada = { label: string; value: number };
-
-/** Las reglas de estado que NO son de familia se conservan intactas: pertenecen
- * al modelo operativo telefónico y esta pantalla no las gobierna. */
-function reglasAjenas(reglas: readonly MonitoreoStateRule[]) {
-  const familias = new Set<string>(ACREDITACION_ORDEN_FAMILIAS);
-  return reglas.filter((regla) => !familias.has(regla.final_state));
-}
 
 export function DefinidorDeEstados({
   entradas,
   config,
   onStateChange,
 }: {
-  entradas: Entrada[];
+  entradas: EntradaDeEstado[];
   config?: MonitoreoConfig | null;
   onStateChange?: (state: MonitoreoState) => void;
 }) {
-  const reglas = config?.operational_model.state_rules ?? [];
-  const guardadas = useMemo(() => acreditacionDeclaracionesDesdeReglas(reglas), [reglas]);
-
-  // Borrador local: confirmar veinte estados de uno en uno contra la red sería
-  // insoportable, así que se edita en memoria y se guarda una vez.
-  const [asignaciones, setAsignaciones] = useState<Record<string, AcreditacionFamiliaLlamada>>({});
-  const [colores, setColores] = useState<Record<string, string>>({});
-  const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState("");
-
-  const declaraciones = useMemo(() => {
-    const base = guardadas.map((item) => ({ ...item, color: colores[item.familia] ?? item.color }));
-    const porFamilia = new Map(base.map((item) => [item.familia, { ...item, crudos: [...item.crudos] }]));
-    for (const [crudo, familia] of Object.entries(asignaciones)) {
-      const actual = porFamilia.get(familia)
-        ?? { familia, color: colores[familia] ?? "", crudos: [] as string[] };
-      actual.crudos = [...actual.crudos.filter((item) => item !== crudo), crudo];
-      porFamilia.set(familia, actual);
-      // Un crudo pertenece a una sola familia: se retira de las demás.
-      for (const [otra, decl] of porFamilia) {
-        if (otra !== familia) decl.crudos = decl.crudos.filter((item) => item !== crudo);
-      }
-    }
-    for (const [familia, color] of Object.entries(colores)) {
-      const clave = familia as AcreditacionFamiliaLlamada;
-      const actual = porFamilia.get(clave) ?? { familia: clave, color: "", crudos: [] as string[] };
-      porFamilia.set(clave, { ...actual, color });
-    }
-    return [...porFamilia.values()];
-  }, [asignaciones, colores, guardadas]);
-
-  const detectados = useMemo(
-    () => acreditacionEstadosDetectados(entradas, declaraciones),
-    [declaraciones, entradas],
-  );
-  const sinConfirmar = detectados.filter((item) => !item.confirmado).length;
-  const sucio = Object.keys(asignaciones).length > 0 || Object.keys(colores).length > 0;
-
-  async function guardar() {
-    if (!config) return;
-    setGuardando(true);
-    setError("");
-    try {
-      const propias: MonitoreoStateRule[] = declaraciones
-        .filter((item) => item.crudos.length || item.color)
-        .map((item, index) => ({
-          id: `estado-${item.familia}`,
-          label: acreditacionEtiquetaDeFamilia(item.familia),
-          final_state: item.familia,
-          priority: 100 + index,
-          outcome_values: item.crudos,
-          stop_contact: false,
-          color: item.color || acreditacionColorDeFamilia(item.familia, []),
-        } as MonitoreoStateRule));
-      const result = await apiMonitoreoConfig({
-        ...config,
-        operational_model: {
-          ...config.operational_model,
-          state_rules: [...reglasAjenas(reglas), ...propias],
-        },
-      });
-      onStateChange?.(result.state);
-      setAsignaciones({});
-      setColores({});
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setGuardando(false);
-    }
-  }
+  // El borrador y el guardado viven en el hook, que comparte Insumos › Estados.
+  const declaracion = useDeclaracionDeEstados({ entradas, config, onStateChange });
+  const { detectados, sinConfirmar, sucio, guardando, error } = declaracion;
+  const guardar = declaracion.guardar;
 
   if (!entradas.length) {
     return (
@@ -160,7 +79,7 @@ export function DefinidorDeEstados({
         <button
           type="button"
           className="pulso-button is-primary"
-          disabled={!sucio || guardando || !config}
+          disabled={!sucio || guardando || !declaracion.puedeGuardar}
           onClick={() => { void guardar(); }}
         >
           {guardando ? <Loader2 size={14} className="pulso-spin" /> : <Save size={14} />}
@@ -172,7 +91,7 @@ export function DefinidorDeEstados({
 
       <section className="tel-estados-colores" aria-label="Color de cada familia">
         {ACREDITACION_ORDEN_FAMILIAS.map((familia) => {
-          const color = colores[familia] ?? acreditacionColorDeFamilia(familia, guardadas);
+          const color = declaracion.colorDe(familia);
           return (
             <label key={familia} className="tel-estados-color">
               <input
@@ -184,7 +103,7 @@ export function DefinidorDeEstados({
                   // evento sintético para entonces— y leerlo ahí revienta la
                   // vista entera con «Cannot read properties of null».
                   const elegido = event.currentTarget.value;
-                  setColores((actual) => ({ ...actual, [familia]: elegido }));
+                  declaracion.colorear(familia, elegido);
                 }}
                 aria-label={`Color de ${acreditacionEtiquetaDeFamilia(familia)}`}
               />
@@ -215,14 +134,14 @@ export function DefinidorDeEstados({
                 : <>Detectado</>}
             </span>
             <select
-              value={asignaciones[estado.crudo] ?? estado.familia}
+              value={declaracion.familiaDe(estado.crudo, estado.familia)}
               onChange={(event) => {
                 // Mismo motivo que en el selector de color: fuera del updater.
                 const elegida = event.currentTarget.value as AcreditacionFamiliaLlamada;
-                setAsignaciones((actual) => ({ ...actual, [estado.crudo]: elegida }));
+                declaracion.asignar(estado.crudo, elegida);
               }}
               aria-label={`Familia de ${estado.crudo}`}
-              style={{ borderLeftColor: colores[estado.familia] ?? acreditacionColorDeFamilia(estado.familia, guardadas) }}
+              style={{ borderLeftColor: declaracion.colorDe(estado.familia) }}
             >
               {ACREDITACION_ORDEN_FAMILIAS.map((familia) => (
                 <option key={familia} value={familia}>{acreditacionEtiquetaDeFamilia(familia)}</option>

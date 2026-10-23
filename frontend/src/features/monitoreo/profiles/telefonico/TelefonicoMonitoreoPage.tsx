@@ -80,6 +80,7 @@ import { Insistencia } from "./control/Insistencia";
 import { BarridoDeLaHoja, RespuestasDelCorte } from "./control/montaje";
 import { Equipo } from "./control/Equipo";
 import { Avisos } from "./control/Avisos";
+import { Estados } from "./insumos/Estados";
 import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
@@ -11064,6 +11065,11 @@ function AcreditacionSourcesWorkbench({
         )}
       </div>
     );
+  }
+
+  if (activeTab === "sheets" && isPhoneSourceModel) {
+    // Insumos › Estados (T7): vocabulario de status; las tarjetas de universo y barrido pasan a Fuentes.
+    return <Estados reports={reports} state={state} onStateChange={onStateChange} onIrA={() => onSourceTabChange?.("activas")} />;
   }
 
   if (activeTab === "sheets") {
