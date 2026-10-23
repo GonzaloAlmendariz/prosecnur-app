@@ -59,7 +59,7 @@ export function DetalleDocumento({ tituloInforme, resumen }: { tituloInforme: st
           onCambiar={(k) => setDw({ ...dw, como_leer: k === "auto" ? undefined : k === "si" })}
           opciones={[{ clave: "auto", rotulo: "Automático" }, { clave: "si", rotulo: "Siempre" }, { clave: "no", rotulo: "Nunca" }]} />
         <p className="pulso-f6-informe-ayuda">
-          {comoLeer === "auto" ? "Va si el informe tiene gráficos de escala." : comoLeer === "si" ? "Va siempre, antes de los resultados." : "El documento no lo lleva."}
+          {comoLeer === "auto" ? "Va solo con las explicaciones que el informe usa en 2 o más láminas." : comoLeer === "si" ? "Va siempre, antes de los resultados." : "El documento no lo lleva."}
         </p>
       </section>
     </>

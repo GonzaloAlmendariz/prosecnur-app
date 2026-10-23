@@ -287,7 +287,7 @@ export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null): Fich
   if (r.args.ancho_tema === "ancho" || (r.args.ancho_tema !== "angosto" && eje >= 0.3)) ajustes.push("Temas anchos");
   else if (r.args.ancho_tema === "angosto") ajustes.push("Temas angostos");
   const ov = (r.args.overrides && typeof r.args.overrides === "object" ? r.args.overrides : {}) as Record<string, unknown>;
-  if (publicos.length && (r.args.mostrar_respuestas === false || ov.mostrar_respuestas === false)) ajustes.push("Sin respuestas por público");
+  if (publicos.length && (r.args.mostrar_respuestas === true || ov.mostrar_respuestas === true)) ajustes.push("Con respuestas por público");   // N3b: apagado por defecto; sólo se anota cuando se enciende
   const lectura = r.graficador === "p_barras_multiapiladas" ? lecturaMulti(r.args) : null;
   // Dicotómica: dos respuestas y, a lo más, una residual («No sabe»). Género, con «Prefiero no responder» y «Otro», no lo es.
   const unica = escalas.size === 1 ? [...escalas.values()][0].opciones : [];

@@ -110,6 +110,17 @@ export function faltaEnRadarPublicos(temas: readonly TemaPublicos[], variables: 
   return [...out, ...faltaComun(temas, variables, true)];
 }
 
+/** Regla del radar: de 5 a 8 criterios (el motor dibuja líneas y puntos con menos y avisa; con más sigue siendo radar y avisa). */
+export const REGLA_CRITERIOS_RADAR = "El radar pide de 5 a 8 criterios; con menos se dibuja como líneas y puntos; el eje se acerca a los datos y puede cambiarse.";
+
+/** Aviso (no bloquea) cuando los criterios declarados quedan fuera de 5 a 8; `null` si están en rango o no hay ninguno. */
+export function avisoCriteriosRadar(n: number): string | null {
+  if (!Number.isFinite(n) || n < 1) return null;
+  if (n < 5) return `Hay ${n} ${n === 1 ? "criterio" : "criterios"}: la lámina se dibujará como líneas y puntos comparativos y el export lo avisará.`;
+  if (n > 8) return `Hay ${n} criterios: más de 8 pueden no leerse bien en el radar.`;
+  return null;
+}
+
 /** Brecha entre dos bases: exactamente dos, y cada tema con su pregunta en las dos y en ese orden. */
 export function faltaEnBrechaBases(temas: readonly TemaPublicos[], bases: readonly string[], variables: readonly VarWithSource[]): string[] {
   const out: string[] = [];
@@ -190,12 +201,36 @@ export function basesDeBrecha(temas: readonly TemaPublicos[]): string[] {
 }
 
 /**
- * Cambiar el modo del radar: al entrar o salir de «entre públicos» las preguntas cambian de forma (temas por público ⇄
- * lista), así que se reinician; entre «sm» y «box» se conservan.
+ * Args que sólo tiene sentido guardar en cada modo del radar (los de la metadata de `p_radar` con `depende` en `modo`,
+ * más `box_labels`, que sólo el modo «box» usa). Lo demás —valores, decimales, límites, margen, filtros— vale en los tres.
+ */
+const ARGS_PROPIOS_RADAR: Record<string, readonly string[]> = {
+  sm: ["var", "cruce"],
+  box: ["vars", "cruce", "box_labels"],
+  publicos: [
+    "vars", "corte", "corte_etiqueta", "estilo", "eje_min", "mostrar_tabla", "tabla_titulo", "tabla_encabezados",
+    "tabla_ancho_tema", "tabla_proporcion", "titulos_grupo",
+  ],
+};
+const ARGS_DE_ALGUN_MODO_RADAR = [...new Set(Object.values(ARGS_PROPIOS_RADAR).flat())];
+
+/**
+ * Cambiar el modo del radar: borra (con `null`, que `mergeSlotArgsPatch` entiende como borrar) los args que son de otro
+ * modo, para que no queden guardados sin que la tarjeta los muestre —un `var` de «sm» dentro de un «box» abortaba el
+ * export (lámina 33 de Arte)—. Al entrar o salir de «entre públicos» las preguntas cambian de forma (temas por público
+ * ⇄ lista), así que se reinician; entre «sm» y «box» los args compartidos (`cruce`) se conservan.
  */
 export function patchModoRadar(anterior: unknown, nuevo: string): Record<string, unknown> {
+  if (anterior === nuevo) return { modo: nuevo };
+  const propios = new Set(ARGS_PROPIOS_RADAR[nuevo] ?? []);
+  const patch: Record<string, unknown> = { modo: nuevo };
+  // Un modo desconocido no borra nada: no se sabe qué es suyo.
+  if (ARGS_PROPIOS_RADAR[nuevo]) for (const a of ARGS_DE_ALGUN_MODO_RADAR) if (!propios.has(a)) patch[a] = null;
   const eraPublicos = anterior === "publicos";
   const esPublicos = nuevo === "publicos";
-  if (eraPublicos === esPublicos) return { modo: nuevo };
-  return { modo: nuevo, vars: esPublicos ? {} : [], titulos_grupo: null };
+  if (eraPublicos !== esPublicos) {
+    if (nuevo === "box" || esPublicos) patch.vars = esPublicos ? {} : [];
+    patch.titulos_grupo = null;
+  }
+  return patch;
 }

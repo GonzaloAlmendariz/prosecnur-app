@@ -34,7 +34,7 @@ describe("Word › Documento", () => {
     const html = pintar();
     expect(html).toContain('placeholder="Encuesta de satisfacción estudiantil con los servicios de…"');
     expect(html).toMatch(/aria-checked="true"[^>]*>Automático/);
-    expect(html).toContain("Va si el informe tiene gráficos de escala.");
+    expect(html).toContain("Va solo con las explicaciones que el informe usa en 2 o más láminas.");
     expect(html).toContain("el contenido, el índice de gráficos");
   });
 

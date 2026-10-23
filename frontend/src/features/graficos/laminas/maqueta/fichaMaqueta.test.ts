@@ -89,9 +89,9 @@ describe("ficha de la maqueta: los casos de la galería", () => {
     expect(f.forma?.bloques.map((b) => b.ttb)).toEqual([true, false]);
   });
 
-  it("M10 · «Respuestas por público» apagado se ve como ajuste", () => {
-    expect(ficha(multi({ modo: "var_cruce", vars: { t: tema("salud") }, mostrar_respuestas: false })).ajustes).toContain("Sin respuestas por público");
-    expect(ficha(multi({ modo: "var_cruce", vars: { t: tema("salud") } })).ajustes).not.toContain("Sin respuestas por público");
+  it("M10/N3b · «Respuestas por público» encendido (apagado por defecto) se ve como ajuste", () => {
+    expect(ficha(multi({ modo: "var_cruce", vars: { t: tema("salud") }, mostrar_respuestas: true })).ajustes).toContain("Con respuestas por público");
+    expect(ficha(multi({ modo: "var_cruce", vars: { t: tema("salud") } })).ajustes).not.toContain("Con respuestas por público");
   });
 
   it("8 · una pregunta por grupos: los grupos del cruce son las filas y se nombran", () => {

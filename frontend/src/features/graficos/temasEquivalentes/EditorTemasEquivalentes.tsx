@@ -10,7 +10,7 @@ import { TemasPorPublico } from "../multiapiladas/TemasPorPublico";
 import { useVariables } from "../useVariables";
 import { ExplicaTemas, type TipoTemas } from "./ExplicaTemas";
 import {
-  argsATemas, basesDeBrecha, codigosComunes, conBases, conCodigo, corteGuardado, faltaEnBrechaBases, faltaEnRadarPublicos,
+  argsATemas, basesDeBrecha, codigosComunes, conBases, conCodigo, corteGuardado, avisoCriteriosRadar, faltaEnBrechaBases, faltaEnRadarPublicos, REGLA_CRITERIOS_RADAR,
   faltaEnSerie, esSelectOne, temasAArgs,
 } from "./temasEquivalentesModel";
 import { useEquivalenciasDeTemas } from "./useEquivalenciasDeTemas";
@@ -102,6 +102,12 @@ export function EditorTemasEquivalentes({ tipo, args, onCambio }: Props) {
           <p className="pulso-teq-orden">{resumenOrdenSerie(periodos.map(nombrePublico))}</p>
           <span className="pulso-f6-dato-ayuda">El orden se declara en Carga › Equivalencias.</span>
         </div>
+      )}
+
+      {tipo === "radar" && (
+        <p className="pulso-f6-dato-ayuda" role="status" data-testid="regla-criterios-radar">
+          {avisoCriteriosRadar(temas.length) ?? REGLA_CRITERIOS_RADAR}
+        </p>
       )}
 
       {faltanBases ? (

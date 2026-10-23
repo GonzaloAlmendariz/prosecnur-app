@@ -10,8 +10,7 @@ import { conOcultarEtiqueta, ocultarEtiquetaSiTitulo, type MapaPresets } from ".
 import { usePlanStore } from "../store";
 import { usePresetsMetadata } from "../usePresetsMetadata";
 import { decisionesSinFijados } from "../wordFijado";
-import { Segmentado } from "../subpestanas/Segmentado";
-import { conModoInforme, leerModoInforme, MODOS_MULTI_INFORME } from "./modeloMultiWord";
+import { conModoInforme, esModoInforme, leerModoInforme, MODOS_MULTI_INFORME } from "./modeloMultiWord";
 import { AJUSTES_WORD, ajustesSobrantes, sinSobrantes, tiposDelInforme, type AjusteWord } from "./ajustesWord";
 
 const registro = (v: unknown): Record<string, Record<string, unknown>> =>
@@ -80,8 +79,10 @@ export function DetalleGraficos() {
       {tipos.includes("multi_apiladas") && (
         <section className="pulso-f6-informe-seccion" aria-label="Multiapiladas en el Word" data-qa-geometry-member data-seccion="word-multi">
           <h3 className="pulso-f6-w-titulo">Multiapiladas en el Word</h3>
-          <Segmentado etiqueta="Multiapiladas en el Word" valor={leerModoInforme(wPresets)} opciones={MODOS_MULTI_INFORME}
-            onCambiar={(m) => setWPresets(conModoInforme(wPresets, m))} />
+          <select className="pulso-f6-input" aria-label="Multiapiladas en el Word" value={leerModoInforme(wPresets)}
+            onChange={(e) => { const m = e.target.value; if (esModoInforme(m)) setWPresets(conModoInforme(wPresets, m)); }}>
+            {MODOS_MULTI_INFORME.map((m) => <option key={m.clave} value={m.clave}>{m.rotulo}</option>)}
+          </select>
           <p className="pulso-f6-informe-ayuda">
             {MODOS_MULTI_INFORME.find((m) => m.clave === leerModoInforme(wPresets))?.detalle} Cada lámina puede elegir otra forma en su tarjeta.
           </p>

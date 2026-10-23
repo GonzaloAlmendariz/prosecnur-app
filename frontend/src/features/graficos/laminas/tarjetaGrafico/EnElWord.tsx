@@ -2,7 +2,7 @@
 // motor ya lee por gráfico (`enElWord.ts`). Sección intrínseca con encabezado propio; nada se recorta (C4).
 
 import { useId } from "react";
-import { leerModoInforme, leerModoLamina, MODOS_MULTI_INFORME, rotuloModo } from "../../word/modeloMultiWord";
+import { leerModoInforme, leerModoLamina, MODOS_MULTI_INFORME, MODOS_MULTI_LAMINA, rotuloModo } from "../../word/modeloMultiWord";
 import { FileText } from "../../../../vendor/lucide-react";
 import type { ArgMetadata, GraficadorRef } from "../../../../api/graficos";
 import { Switch } from "../../../../components/Switch";
@@ -40,6 +40,7 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
   const conTitulo = titulo === "propio" && admiteTitulo(argsDelRegistro);
   const conRotulo = aplicaRotuloWord(valor.graficador, args);
   const repite = conRotulo && repiteRotuloWord(valor.graficador, args, presets, wPresets);
+  const modoEfectivo = leerModoLamina(args) || leerModoInforme(wPresets as Record<string, Record<string, unknown>>);
   const porDefecto = tituloWordPorDefecto(variable ? leerEtiquetaCorta(args, variable) : "", "");
 
   return (
@@ -72,9 +73,18 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
           <select id={`${id}-multi`} className="pulso-f6-input" value={leerModoLamina(args)}
             onChange={(e) => set({ word_multiapiladas: e.target.value || null })}>
             <option value="">Como el informe ({rotuloModo(leerModoInforme(wPresets as Record<string, Record<string, unknown>>)).toLowerCase()})</option>
-            {MODOS_MULTI_INFORME.filter((m) => m.clave !== "automatico").map((m) => <option key={m.clave} value={m.clave}>{m.rotulo}</option>)}
+            {MODOS_MULTI_LAMINA.map((m) => <option key={m.clave} value={m.clave}>{m.rotulo}</option>)}
           </select>
-          <span className="pulso-f6-dato-ayuda">{MODOS_MULTI_INFORME.find((m) => m.clave === (leerModoLamina(args) || leerModoInforme(wPresets as Record<string, Record<string, unknown>>)))?.detalle}</span>
+          <span className="pulso-f6-dato-ayuda">{MODOS_MULTI_INFORME.find((m) => m.clave === modoEfectivo)?.detalle} Solo cambia el Word; la lámina del PPT no se toca.</span>
+          {(modoEfectivo === "un_grafico" || modoEfectivo === "mismo_actor_escala" || modoEfectivo === "un_grafico_mismo_publico") && (
+            <>
+              <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-titfig`}>Título de la figura en el Word</label>
+              <input id={`${id}-titfig`} className="pulso-f6-input" value={typeof args.word_titulo_figura === "string" ? args.word_titulo_figura : ""}
+                placeholder="Sin título" aria-describedby={`${id}-titfig-ayuda`}
+                onChange={(e) => set({ word_titulo_figura: e.target.value.trim() ? e.target.value : null })} />
+              <span className="pulso-f6-dato-ayuda" id={`${id}-titfig-ayuda`}>Encabeza la figura que junta varias preguntas o temas. Vacío, sale sin título.</span>
+            </>
+          )}
         </div>
       )}
       {conRotulo && (
