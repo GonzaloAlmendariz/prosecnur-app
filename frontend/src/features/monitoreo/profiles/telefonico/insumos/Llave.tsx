@@ -2,7 +2,7 @@ import { useMemo, type ReactNode } from "react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { segmentoDelCorte } from "../control/montaje";
-import { construirRespuestas } from "../control/respuestasModel";
+import { construirRespuestas, mermaDeRepetidos } from "../control/respuestasModel";
 import {
   UMBRAL_DE_CRUCE,
   cruceDeLlave,
@@ -118,7 +118,7 @@ export function LlaveYFiltros({
             {prueba ? <li>{prueba}</li> : null}
             <li>
               Un envío por CodPulso
-              {respuestas.repetidos ? `: ${n(respuestas.repetidos)} ${respuestas.repetidos === 1 ? "envío repetido queda fuera" : "envíos repetidos quedan fuera"}.` : "."}
+              {respuestas.repetidos ? `: ${mermaDeRepetidos(respuestas)} ${respuestas.repetidos === 1 ? "queda fuera" : "quedan fuera"}.` : "."}
             </li>
           </ul>
         </section>

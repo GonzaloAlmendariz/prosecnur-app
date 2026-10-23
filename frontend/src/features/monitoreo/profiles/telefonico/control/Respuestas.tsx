@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import {
   DOS_HORAS,
   ETIQUETA_DE_MARCA,
+  rotuloDeRepetidas,
   duracionLegible,
   filtrarEnvios,
   type FiltroDeRespuestas,
@@ -119,7 +120,7 @@ export function Respuestas({
                 aria-pressed={filtro === chip.id}
                 onClick={() => setFiltro(chip.id)}
               >
-                {chip.etiqueta} ({n(cuenta(chip.id))})
+                {chip.id === "repetida" ? rotuloDeRepetidas(modelo) : `${chip.etiqueta} (${n(cuenta(chip.id))})`}
               </button>
             ))}
           </div>
