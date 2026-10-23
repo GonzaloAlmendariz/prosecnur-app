@@ -1,5 +1,10 @@
 # GOAL · El editor de correos es un editor profesional (2026-10-23)
 
+Tipo: GOAL (loop de convergencia)
+Estado: En curso
+Fecha: 2026-10-23
+Autoridad: Pedido de Gonzalo (citado abajo); sólo él cierra el goal
+
 Calidad que se busca: **cualquiera del equipo arma, para cualquier estudio, un correo distinto, atractivo y profesional sin pedir ayuda, y el correo se ve igual de bien en Gmail, Outlook y el celular, enviado por Mailchimp con los datos de cada persona.**
 
 Pedido de Gonzalo (textual, 2026-10-23):

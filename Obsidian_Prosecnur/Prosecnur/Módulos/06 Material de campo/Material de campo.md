@@ -5,7 +5,7 @@ padres:
 orden: 6
 documentacion: completa
 ruta_app: "/material-campo"
-verificado_contra: "ecbb0613"
+verificado_contra: "2d369a29"
 tags:
   - Módulo
 fuentes:
@@ -22,6 +22,7 @@ fuentes:
   - "docs/adrs/0046-recopiladores-despliegue-recoleccion.md"
   - "docs/adrs/0108-material-de-campo-catalogo-de-materiales-por-unidad.md"
   - "docs/adrs/0111-material-de-campo-se-organiza-por-campanas-tipadas.md"
+  - "docs/adrs/0112-los-contactos-de-una-campana-de-correo-viajan-en-el-pulso.md"
 ---
 
 # Material de campo
@@ -36,6 +37,7 @@ fuentes:
 - La campaña de aulas no se borra: se **archiva** y se reabre desde «Archivadas». Un correo se duplica, renombra o borra desde su tarjeta o desde la cabecera de la campaña abierta.
 - Sin campañas, la lista muestra su vacío con **Nueva campaña** dentro de su caja.
 - Los enlaces viejos (`?seccion=unidades`, `?seccion=catalogo&pestana=correos&foco=…`) se leen y se reescriben a la campaña que corresponde, o a la lista.
+- Una campaña de correo tiene dos pestañas: [[Editor del correo]] y [[Contactos del correo]]. Sus contactos viajan en el `.pulso`, la app genera el enlace personal de cada persona y registra quién respondió (ADR 0112).
 
 ## Propósito del módulo
 

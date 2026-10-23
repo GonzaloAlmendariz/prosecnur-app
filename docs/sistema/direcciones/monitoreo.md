@@ -6,12 +6,12 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `monitoreo` · ruta `/monitoreo` · 113 direcciones.
+Módulo `monitoreo` · ruta `/monitoreo` · 112 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `monitoreo` | modulo | Monitoreo de campo | sí | ce720181 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
-| `monitoreo/acreditacion` | modo | Acreditación | sí | 9836d3a0 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
+| `monitoreo` | modulo | Monitoreo de campo | sí | a874c243 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
+| `monitoreo/acreditacion` | modo | Acreditación | sí | c3d35250 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
 | `monitoreo/acreditacion/fuentes` | seccion | Fuentes | sí | b99ffc5a | sí | [0045-monitoreo-actores-modelo-telefonia-explicita](../../adrs/0045-monitoreo-actores-modelo-telefonia-explicita.md) |
 | `monitoreo/acreditacion/fuentes/actores` | pestana | Actores | sí | 84e6e4d6 | sí | — |
 | `monitoreo/acreditacion/fuentes/fuentes` | pestana | Fuentes y universo | sí | a8dbc27b | sí | — |
@@ -33,34 +33,33 @@ Módulo `monitoreo` · ruta `/monitoreo` · 113 direcciones.
 | `monitoreo/acreditacion/telefonico/responsables` | pestana | Responsables | sí | 9fc57a47 | sí | — |
 | `monitoreo/acreditacion/telefonico/alertas` | pestana | Alertas reales | sí | 5a714eec | sí | — |
 | `monitoreo/acreditacion/telefonico/supervision` | pestana | Supervisión | sí | c1d05d91 | sí | — |
-| `monitoreo/acreditacion/avance` | seccion | Avance | sí | bf172f9f | sí | — |
+| `monitoreo/acreditacion/avance` | seccion | Avance | sí | 846c69b0 | sí | — |
 | `monitoreo/acreditacion/avance/resumen` | pestana | Resumen | sí | e793c0e4 | sí | — |
 | `monitoreo/acreditacion/avance/actores` | pestana | Actores | sí | 84e608cd | sí | — |
+| `monitoreo/acreditacion/avance/cuotas` | pestana | Cuotas | sí | 282a8ceb | sí | — |
 | `monitoreo/acreditacion/avance/encuestas` | pestana | Encuestas | sí | 53f5358f | sí | — |
 | `monitoreo/acreditacion/avance/detalle` | pestana | Detalle | sí | 656721f3 | sí | — |
+| `monitoreo/acreditacion/avance/correo` | pestana | Correo | sí | 826416b4 | sí | — |
 | `monitoreo/acreditacion/avance/salidas` | pestana | Salidas | sí | 1033c0fd | sí | — |
-| `monitoreo/telefonico` | modo | Telefónico | sí | f741fd3b | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
-| `monitoreo/telefonico/fuentes` | seccion | Fuentes | sí | 40d6b9db | sí | — |
-| `monitoreo/telefonico/fuentes/activas` | pestana | Fuentes activas | sí | f0ea7c19 | sí | — |
-| `monitoreo/telefonico/fuentes/sheets` | pestana | Universo y barrido | sí | f436daef | sí | — |
-| `monitoreo/telefonico/fuentes/survey` | pestana | Encuestas | sí | c8a2fd82 | sí | — |
-| `monitoreo/telefonico/modelo` | seccion | Modelo operativo | sí | 99e95590 | sí | — |
-| `monitoreo/telefonico/modelo/estructura` | pestana | Cuotas | sí | 8853cdf5 | sí | — |
-| `monitoreo/telefonico/modelo/estrategias` | pestana | Cronograma | sí | 4c36070f | sí | — |
-| `monitoreo/telefonico/telefonico` | seccion | Llamadas | sí | 37ef608a | sí | — |
-| `monitoreo/telefonico/telefonico/resumen` | pestana | Resumen operativo | sí | 1612e980 | sí | — |
-| `monitoreo/telefonico/telefonico/tiempos` | pestana | Validación de tiempo | sí | b043c2cf | sí | — |
-| `monitoreo/telefonico/telefonico/incidencia` | pestana | Sin efectiva | sí | 168711fb | sí | — |
-| `monitoreo/telefonico/telefonico/responsables` | pestana | Responsables | sí | 251826b6 | sí | — |
-| `monitoreo/telefonico/telefonico/alertas` | pestana | Alertas reales | sí | 03d6e174 | sí | — |
-| `monitoreo/telefonico/consultas` | seccion | Consultas | sí | f62945ec | sí | — |
-| `monitoreo/telefonico/consultas/plataforma` | pestana | Efectivas Kobo | sí | 8b56c672 | sí | — |
-| `monitoreo/telefonico/consultas/cruces` | pestana | CodPulso | sí | 9d4be0f4 | sí | — |
-| `monitoreo/telefonico/consultas/subsanacion` | pestana | Salvedades | sí | 9c758cba | sí | — |
-| `monitoreo/telefonico/avance` | seccion | Avance | sí | e1f8b5da | sí | — |
-| `monitoreo/telefonico/avance/resumen` | pestana | Diario | sí | a043381d | sí | — |
-| `monitoreo/telefonico/avance/actores` | pestana | Cuotas | sí | 1b44c2fa | sí | — |
-| `monitoreo/telefonico/avance/salidas` | pestana | Salidas | sí | b18fa6cd | sí | — |
+| `monitoreo/telefonico` | modo | Telefónico | sí | c76fe542 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
+| `monitoreo/telefonico/insumos` | seccion | Insumos | sí | 26c95065 | sí | — |
+| `monitoreo/telefonico/insumos/fuentes` | pestana | Fuentes | sí | e1569316 | sí | — |
+| `monitoreo/telefonico/insumos/llave` | pestana | Llave y filtros | sí | 6d45f3df | sí | — |
+| `monitoreo/telefonico/insumos/estados` | pestana | Estados | sí | 01928350 | sí | — |
+| `monitoreo/telefonico/modelo` | seccion | Modelo | sí | 637cb2bb | sí | — |
+| `monitoreo/telefonico/modelo/cuotas` | pestana | Cuotas y calendario | sí | abec4ad0 | sí | — |
+| `monitoreo/telefonico/control` | seccion | Control | sí | 79c9490a | sí | — |
+| `monitoreo/telefonico/control/barrido` | pestana | Barrido | sí | ead50658 | sí | — |
+| `monitoreo/telefonico/control/insistencia` | pestana | Insistencia | sí | e54f2fef | sí | — |
+| `monitoreo/telefonico/control/equipo` | pestana | Equipo | sí | 20dde18b | sí | — |
+| `monitoreo/telefonico/control/discrepancias` | pestana | Discrepancias | sí | 771a74a7 | sí | — |
+| `monitoreo/telefonico/control/respuestas` | pestana | Respuestas | sí | 3b3bfb7a | sí | — |
+| `monitoreo/telefonico/control/supervision` | pestana | Supervisión | sí | 989d0d5a | sí | — |
+| `monitoreo/telefonico/control/avisos` | pestana | Avisos | sí | 62d9925f | sí | — |
+| `monitoreo/telefonico/avance` | seccion | Avance | sí | 7a5b5ec2 | sí | — |
+| `monitoreo/telefonico/avance/cuotas` | pestana | Cuotas | sí | cd686fa4 | sí | — |
+| `monitoreo/telefonico/avance/ritmo` | pestana | Ritmo | sí | 49870960 | sí | — |
+| `monitoreo/telefonico/avance/entregas` | pestana | Entregas | sí | 133a0434 | sí | — |
 | `monitoreo/territorial` | modo | Territorial | sí | 300b6366 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
 | `monitoreo/territorial/fuentes` | seccion | Fuente | sí | 9b9a162c | sí | — |
 | `monitoreo/territorial/fuentes/form` | pestana | Formulario | sí | 55272360 | sí | — |

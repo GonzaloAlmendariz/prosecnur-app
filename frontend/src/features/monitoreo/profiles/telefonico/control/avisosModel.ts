@@ -137,6 +137,9 @@ export function detalleDeEmpate(personas: ReadonlyArray<{ etiqueta: string; valo
   return `${empatados.toLocaleString("es-PE")} empatan en la cifra más alta${cifra}.`;
 }
 
+/** La alerta del motor que «Efectivo en la hoja sin Kobo» reemplaza (`monitoreo_engine.R`). */
+export const ALERTA_VIEJA_EFECTIVO_SIN_KOBO = "efectivo_telefonico_sin_kobo";
+
 export function construirAvisos(reports: MonitoreoAcreditacionReports | null | undefined): Avisos {
   const filas = filasDeHoja(reports, "alertas", ["alertas"]);
   const modelo = buildAcreditacionPhoneRealAlertModel({ alertRows: filas });
@@ -232,7 +235,16 @@ export function construirAvisos(reports: MonitoreoAcreditacionReports | null | u
     });
   });
 
-  avisos.push(...avisosDeLosBloques(reports));
+  const deLosBloques = avisosDeLosBloques(reports);
+  // «Efectivo en la hoja sin Kobo» sale de Discrepancias, con todos sus casos.
+  // La alerta vieja del motor con la misma causa contaba sólo los conciliados
+  // (RMS ficticio: 1 en Avisos y 2 en Discrepancias); si está la nueva, sale.
+  if (deLosBloques.some((aviso) => aviso.codigo === "efectivo_sin_kobo")) {
+    for (let i = avisos.length - 1; i >= 0; i -= 1) {
+      if (normal(avisos[i].codigo) === normal(ALERTA_VIEJA_EFECTIVO_SIN_KOBO)) avisos.splice(i, 1);
+    }
+  }
+  avisos.push(...deLosBloques);
 
   // El motor escribe «codigo:MVH9999» también dentro de los textos; en pantalla
   // va el código solo.
@@ -288,22 +300,23 @@ function siEsSi(valor: unknown) {
 export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null | undefined): Aviso[] {
   const avisos: Aviso[] = [];
   const respuestas = construirRespuestas({ reports, segmento: "" });
-  const largos = respuestas.envios.filter((envio) => envio.marcas.includes("mas-de-2h"));
-  if (largos.length) {
-    const mayor = Math.max(...largos.map((envio) => envio.segundos ?? 0));
+  // El control de tiempo avisa de las CORTAS: pueden estar mal hechas o
+  // inventadas. Una encuesta larga no es un problema y no genera aviso.
+  const cortas = respuestas.envios.filter((envio) => envio.marcas.includes("corta"));
+  if (cortas.length) {
     avisos.push({
-      id: "duracion-mayor-a-2-h",
+      id: "duracion-menor-a-5-min",
       nivel: "alta",
-      titulo: "Duración mayor a 2 h",
-      detalle: `Medida entre el inicio y el fin; la más larga, ${duracionLegible(mayor)}. Hoy se cuentan como duración normal.`,
-      casos: largos.length,
+      titulo: "Duración menor a 5 min",
+      detalle: "Encuestas demasiado cortas para haberse hecho completas: revisa si están bien hechas.",
+      casos: cortas.length,
       unidad: "casos",
-      codigo: "duracion_mayor_2h",
+      codigo: "duracion_menor_5min",
       destino: { etiqueta: "Respuestas, en Control", direccion: { seccion: "control", pestana: "respuestas" } },
       donde: "",
       fuente: "Duración de los envíos de Kobo",
       desglose: [],
-      afectados: [...largos].sort((a, b) => (b.segundos ?? 0) - (a.segundos ?? 0)).map((envio) => ({
+      afectados: [...cortas].sort((a, b) => (a.segundos ?? 0) - (b.segundos ?? 0)).map((envio) => ({
         codigo: envio.codigo, responsable: envio.responsable, fecha: envio.fecha ?? "", nota: duracionLegible(envio.segundos),
       })),
     });
@@ -331,10 +344,7 @@ export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null 
   // Discrepancias (no hay envío): se avisa aquí, con responsable y códigos.
   const efectivoSinKobo = filasDeBloque(reports, ["discrepancias_telefonicas"])
     .filter((fila) => (texto(fila.Destino) ? texto(fila.Destino) === "avisos" : texto(fila.Sentido) === "hoja_sin_kobo"));
-  // Si el motor ya publica el aviso en la hoja de alertas, no se duplica.
-  const yaEnAlertas = filasDeHoja(reports, "alertas", ["alertas"])
-    .some((fila) => /sin[_ ]kobo/i.test(texto(fila["Tipo alerta"] ?? fila.tipo)));
-  if (efectivoSinKobo.length && !yaEnAlertas) {
+  if (efectivoSinKobo.length) {
     const porResponsable = new Map<string, number>();
     efectivoSinKobo.forEach((fila) => {
       const quien = texto(fila.Responsable) || "Sin asignar";
@@ -342,7 +352,8 @@ export function avisosDeLosBloques(reports: MonitoreoAcreditacionReports | null 
     });
     avisos.push({
       id: "efectivo-sin-kobo",
-      nivel: "media",
+      // Alta, como en el motor: la discrepancia se avisa rápido al equipo (P2).
+      nivel: "alta",
       titulo: "La hoja dice «Efectivo» y Kobo no tiene envío",
       detalle: "No cuentan en el avance hasta que llegue el envío de Kobo o se corrija el status de la hoja.",
       casos: efectivoSinKobo.length,
