@@ -160,8 +160,7 @@ export function Discrepancias({
           <table className="mon-ctl-tabla mon-dsc-tabla">
             <thead>
               <tr>
-                <th scope="col">CodPulso</th>
-                <th scope="col">proGres</th>
+                <th scope="col">CodPulso y proGres</th>
                 <th scope="col">Qué pasa</th>
                 <th scope="col">Responsable</th>
                 <th scope="col">Enumerador Kobo</th>
@@ -173,8 +172,9 @@ export function Discrepancias({
                 <tr key={`${caso.sentido}-${caso.codigo}`} className={caso.codigo === elegido?.codigo ? "is-activo" : undefined} aria-current={caso.codigo === elegido?.codigo ? "true" : undefined}>
                   <th scope="row">
                     <button type="button" className="mon-dsc-codigo" onClick={() => escribirFoco(caso.codigo)}>{caso.codigo}</button>
+                    {/* proGres bajo el código: en una columna propia la decisión quedaba cortada a 1440. */}
+                    {caso.progres ? <small className="mon-dsc-progres">proGres {caso.progres}</small> : null}
                   </th>
-                  <td className="mon-dsc-una-linea">{caso.progres || "—"}</td>
                   <td className="mon-dsc-una-linea" title={queDice(caso)}>{queDiceCorto(caso)}</td>
                   <td>{caso.responsable}</td>
                   <td className={caso.enumeradorDistinto ? "mon-dsc-distinto" : undefined} title={caso.enumeradorDistinto ? "No es el responsable de la hoja ni tiene equivalencia confirmada en Llave y filtros" : undefined}>
