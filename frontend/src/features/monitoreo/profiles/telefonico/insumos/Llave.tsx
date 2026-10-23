@@ -14,6 +14,7 @@ import {
   llaveSinIdentificador,
   porRevisarEnLaLlave,
 } from "./llaveModel";
+import { OrigenDeLaMuestra } from "./OrigenDeLaMuestra";
 import "../control/controlTelefonico.css";
 import "./insumosTelefonico.css";
 
@@ -48,9 +49,12 @@ export function LlaveYFiltros({
   filtro,
   tarjetaKobo,
   onIrA,
+  onStateChange,
 }: {
   reports: MonitoreoAcreditacionReports;
   state: MonitoreoState | null | undefined;
+  /** Para guardar el origen de la muestra en el perfil. */
+  onStateChange?: (state: MonitoreoState) => void;
   /** El editor del filtro de efectiva que ya existe. */
   filtro: ReactNode;
   /** La tarjeta de la encuesta, con «Cambiar conexión». */
@@ -129,6 +133,7 @@ export function LlaveYFiltros({
             </li>
           </ul>
         </section>
+        <OrigenDeLaMuestra reports={reports} state={state} onStateChange={onStateChange} />
         <section className="mon-ctl-panel mon-llave-envios" aria-label="Efectivas y su cruce" data-qa-geometry-capacity="owned">
           <header className="mon-insumos-cabecera">
             <strong>Efectivas y su cruce</strong>

@@ -86,7 +86,7 @@ import { Fuentes } from "./insumos/Fuentes";
 import { AcreditacionPhoneSourceSlotCard } from "./insumos/TarjetaDeFuente";
 import { Cuotas } from "./modelo/Cuotas";
 import { capitalizarPalabras, rotuloDeVariable, variablesDeCuotaOfrecidas } from "./modelo/variablesDeCuota";
-import { efectivasPorDia, notaDeLaSerie, notaDeValidasTelefonica } from "./avance/ritmoModel";
+import { estadosDeLaHoja, efectivasPorDia, notaDeLaSerie, notaDeValidasTelefonica } from "./avance/ritmoModel";
 import { Ritmo } from "./avance/Ritmo";
 import { Entregas } from "./avance/Entregas";
 import { chipsDeCabecera, pestanaConLienzo, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
@@ -10699,6 +10699,7 @@ function AcreditacionSourcesWorkbench({
         reports={reports}
         state={state}
         onIrA={(seccion, pestana) => onIrAVista?.(seccion, pestana)}
+        onStateChange={onStateChange}
         filtro={<AcreditacionPhoneEffectiveFilterEditor state={state} variables={state?.variables ?? []} platformSources={plataforma.sources} onStateChange={onStateChange} />}
         tarjetaKobo={(
           <AcreditacionPhoneSourceSlotCard
@@ -10768,7 +10769,7 @@ function AcreditacionSourcesWorkbench({
         fuentes={operationalSources}
         contrato={phoneContract}
         acciones={sourceStatus}
-        cadena={<CadenaDeFuentes eslabones={eslabonesDelContrato(phoneContract, state?.n_rows ?? 0, state?.synced_at ?? reports.generated_at)} onIr={(clave) => (clave === "plataforma" ? onSourceTabChange?.("survey") : abrirConectarFuente.abrirNueva())} />}
+        cadena={<CadenaDeFuentes eslabones={eslabonesDelContrato(phoneContract, state?.n_rows ?? 0, state?.synced_at ?? reports.generated_at, estadosDeLaHoja(reports).filas)} onIr={(clave) => (clave === "plataforma" ? onSourceTabChange?.("survey") : abrirConectarFuente.abrirNueva())} />}
         onCambiar={(id) => abrirConectarFuente.abrirParaCambiar(id)}
         onRenombrar={async (id, label) => {
           const fuente = operationalSources.find((item) => item.id === id);

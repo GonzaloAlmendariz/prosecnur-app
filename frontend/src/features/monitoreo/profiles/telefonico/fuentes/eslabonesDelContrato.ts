@@ -65,10 +65,12 @@ export function eslabonesDelContrato(
   contract: AcreditacionPhoneSourceContract,
   nRows: number,
   syncedAt?: string,
+  /** Casos de la hoja de barrido en el corte, cuando la metadata de la fuente no trae conteo (RMS: universo y barrido son la misma hoja). */
+  casosDelBarrido = 0,
 ): EslabonDeFuente[] {
   return [
     eslabonDelSlot(contract.universe, syncedAt, nRows),
-    eslabonDelSlot(contract.sweep, syncedAt),
+    eslabonDelSlot(contract.sweep, syncedAt, casosDelBarrido),
     eslabonDelSlot(contract.platform, syncedAt),
   ];
 }
