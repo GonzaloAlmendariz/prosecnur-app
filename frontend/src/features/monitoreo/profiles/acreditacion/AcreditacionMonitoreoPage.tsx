@@ -77,6 +77,7 @@ import { Metas } from "./modelo/Metas";
 import { Cuotas } from "./modelo/Cuotas";
 import { VentanaDeCampo } from "./modelo/VentanaDeCampo";
 import { Fuentes } from "./insumos/Fuentes";
+import { Reglas } from "./insumos/reglas/Reglas";
 import { tipoDeRecopilador as collectorTypeLabel } from "./insumos/fuentesModelo";
 import { construirVentana } from "./modelo/ventanaModelo";
 import { Reintentos } from "./control/contacto/Reintentos";
@@ -16444,7 +16445,7 @@ function renderAcreditacionView(
       // Los crudos salen del bloque que ya publica el motor; el definidor no
       // inventa estados, confirma los que el corte trajo.
       const filas = rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"]);
-      return (
+      const definidor = (
         <DefinidorDeEstados
           entradas={filas.map((fila) => ({
             label: phoneRowValue(fila, ["Estado", "Estatus", "Categoria", "Categoría"], ""),
@@ -16454,6 +16455,10 @@ function renderAcreditacionView(
           onStateChange={options.onStateChange}
         />
       );
+      if (esEstudioTelefonico) return definidor;
+      // Insumos › Reglas (A6): llave, efectiva y alertas; estados del barrido y eventos, con sus editores.
+      const conBarrido = filas.length > 0 || (options.state?.sources ?? []).some((fuente) => fuente.role === "barrido");
+      return <Reglas state={options.state} onStateChange={options.onStateChange} estadosDelBarrido={conBarrido ? definidor : undefined} eventos={<AcreditacionModelConfigWorkbench state={options.state} activeTab="reglas" onStateChange={options.onStateChange} />} />;
     }
     return renderPhoneView(
       reports,
