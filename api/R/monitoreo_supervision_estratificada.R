@@ -8,7 +8,9 @@
 #     las filas de la base: `monitoreo_supervision_sample` (monitoreo_engine.R)
 #     sorteaba sobre todo el corte y sigue ahí para los otros modos.
 #   - P5: reparto proporcional a las efectivas de cada enumerador, por mayor
-#     resto, y al menos un caso por enumerador con efectivas (PDM 20 → 26).
+#     resto, y al menos un caso por enumerador con efectivas. El enumerador es
+#     la persona: grafías que solo difieren en tildes, mayúsculas o espacios
+#     (y las equivalencias confirmadas) son un solo estrato.
 #   - P6: el proyecto declara una CANTIDAD (`supervision_n`); la app muestra el
 #     porcentaje equivalente. Semilla `supervision_seed`: misma semilla, misma
 #     lista.
@@ -19,11 +21,17 @@
 #
 # Bloques (solo lectura):
 #   - `supervision_resumen`: Indicador · Valor (Base, Declarados, Casos,
-#     Semilla, Hoja).
+#     Semilla, Hoja [`conectada` | `sin_hoja`], En hoja, Controles).
 #   - `supervision_reparto`: Enumerador · Efectivas · Casos · Mínimo.
 #   - `supervision_casos`: N · CodPulso · proGres · Enumerador · Categoría ·
 #     Fecha Kobo · Response ID · Resultado · Status final · Coincide ·
-#     Observación.
+#     Observación · En hoja · Supervisor · Status barrido · Status supervisión ·
+#     Intentos supervisión · Observaciones · Controles · Controles coinciden ·
+#     Coincide según (`controles` | `hoja` | "").
+#   - `supervision_controles`: CodPulso · Pregunta · Hoja · Kobo · Coincide,
+#     una fila por pregunta de control y caso sorteado que está en la hoja.
+# Pregunta de control = columna de la hoja con valores que también existe en
+# Kobo (por nombre o por su etiqueta) y que no es un campo propio de la hoja.
 # =============================================================================
 
 .MONITOREO_SUPERVISION_ROL <- "supervision"
@@ -81,34 +89,123 @@
   out
 }
 
-#' Resultados de la hoja de supervisión, una fila por llave (Código PULSO o
-#' proGres en clave normalizada).
+# Campos propios de «Supervisión_Ronda3»: nunca son pregunta de control.
+.MONITOREO_SUPERVISION_PROPIAS <- c(
+  "N", "Fecha", "COD.proGres", "Código proGres", "Codigo proGres", "proGres", "Código PULSO", "Codigo PULSO",
+  "CodPulso", "Cod Pulso", "Nombre del encuestador/a", "Nombre del encuestador", "Encuestador", "Nombre",
+  "Telefono_final", "Teléfono final", "Tef1", "Tef2", "Tef3", "Observaciones", "Responsable de la supervisión",
+  "Responsable de la supervision", "Status", "Status supervisión", "Status supervision", "Intentos supervisión",
+  "Intentos supervision", "Observaciones re barrido", "Status final", "Estado final", "Coincide",
+  "Respuestas coinciden", "Coinciden"
+)
+
+# Columna por nombre exacto (normalizado). «Status» no debe caer en
+# «Status final» como haría la búsqueda por subcadena.
+.monitoreo_supervision_col_exacta <- function(df, aliases) {
+  nombres <- .monitoreo_text_key(names(df))
+  for (alias in .monitoreo_text_key(aliases)) {
+    idx <- which(nombres == alias)
+    if (length(idx)) return(names(df)[idx[[1]]])
+  }
+  ""
+}
+
+# Iguales sin tildes, mayúsculas ni espacios; los números por su valor.
+.monitoreo_supervision_igual <- function(a, b) {
+  ka <- .monitoreo_text_key(a)
+  kb <- .monitoreo_text_key(b)
+  na <- suppressWarnings(as.numeric(ka))
+  nb <- suppressWarnings(as.numeric(kb))
+  ifelse(!is.na(na) & !is.na(nb), abs(na - nb) < 1e-9, ka == kb)
+}
+
+#' Preguntas de control: columna de la hoja → columna de Kobo.
 #' @noRd
-.monitoreo_supervision_resultados <- function(hoja) {
-  vacio <- list(por_pulso = list(), por_progres = list())
+.monitoreo_supervision_controles_cols <- function(hoja, respuestas) {
+  if (!is.data.frame(respuestas) || !nrow(respuestas) || !ncol(hoja)) return(character(0))
+  con_valor <- function(df, col) any(nzchar(.monitoreo_supervision_texto(df[[col]])))
+  propias <- .monitoreo_text_key(.MONITOREO_SUPERVISION_PROPIAS)
+  kobo_cols <- names(respuestas)[vapply(names(respuestas), function(col) con_valor(respuestas, col), logical(1))]
+  kobo_cols <- kobo_cols[!startsWith(kobo_cols, ".")]
+  etiquetas <- .monitoreo_variable_label_map(respuestas)
+  etiquetas <- etiquetas[names(etiquetas) %in% kobo_cols]
+  out <- character(0)
+  for (col in names(hoja)) {
+    if (startsWith(col, ".") || .monitoreo_text_key(col) %in% propias || !con_valor(hoja, col)) next
+    kobo <- if (col %in% kobo_cols) col else {
+      hit <- names(etiquetas)[.monitoreo_text_key(etiquetas) == .monitoreo_text_key(col)]
+      if (length(hit)) hit[[1]] else ""
+    }
+    if (nzchar(kobo)) out[[col]] <- kobo
+  }
+  out
+}
+
+#' Resultados de la hoja de supervisión, una fila por llave (Código PULSO o
+#' proGres en clave normalizada). Las filas del `data` combinado traen las
+#' columnas de las otras fuentes vacías: solo cuentan las que tienen valor.
+#' @noRd
+.monitoreo_supervision_resultados <- function(hoja, respuestas = NULL) {
+  vacio <- list(por_pulso = list(), por_progres = list(), controles = character(0))
   if (is.null(hoja) || !is.data.frame(hoja) || !nrow(hoja)) return(vacio)
-  col_pulso <- .monitoreo_supervision_col(hoja, c("Código PULSO", "Codigo PULSO", "CodPulso", "Cod Pulso", "Código Pulso"))
-  col_progres <- .monitoreo_supervision_col(hoja, c("COD.proGres", "Código proGres", "Codigo proGres", "proGres"))
-  col_resultado <- .monitoreo_supervision_col(hoja, c("Status supervisión", "Status supervision", "Estado supervisión", "Resultado supervisión"))
-  col_final <- .monitoreo_supervision_col(hoja, c("Status final", "Estado final"))
-  col_coincide <- .monitoreo_supervision_col(hoja, c("Coincide", "Respuestas coinciden", "Coinciden"))
-  col_obs <- .monitoreo_supervision_col(hoja, c("Observaciones re barrido", "Observaciones supervisión", "Observaciones"))
-  leer <- function(col) if (nzchar(col)) .monitoreo_supervision_texto(hoja[[col]]) else rep("", nrow(hoja))
-  resultado <- leer(col_resultado)
-  final <- leer(col_final)
-  filas <- lapply(seq_len(nrow(hoja)), function(i) list(
-    resultado = resultado[[i]],
-    final = final[[i]],
-    coincide = .monitoreo_supervision_coincide(leer(col_coincide)[[i]], if (nzchar(final[[i]])) final[[i]] else resultado[[i]]),
-    observacion = leer(col_obs)[[i]]
-  ))
-  clave <- function(col) if (nzchar(col)) .monitoreo_text_key(leer(col)) else rep("", nrow(hoja))
+  hoja <- hoja[, vapply(names(hoja), function(col) any(nzchar(.monitoreo_supervision_texto(hoja[[col]]))), logical(1)), drop = FALSE]
+  col <- function(aliases) .monitoreo_supervision_col_exacta(hoja, aliases)
+  col_pulso <- col(c("Código PULSO", "Codigo PULSO", "CodPulso", "Cod Pulso", "Código Pulso"))
+  col_progres <- col(c("COD.proGres", "Código proGres", "Codigo proGres", "proGres"))
+  leer <- function(c) if (nzchar(c)) .monitoreo_supervision_texto(hoja[[c]]) else rep("", nrow(hoja))
+  campo <- list(
+    resultado = leer(col(c("Status supervisión", "Status supervision", "Estado supervisión", "Resultado supervisión"))),
+    final = leer(col(c("Status final", "Estado final"))),
+    coincide_hoja = leer(col(c("Coincide", "Respuestas coinciden", "Coinciden"))),
+    observacion = leer(col(c("Observaciones re barrido", "Observaciones supervisión"))),
+    observaciones = leer(col("Observaciones")),
+    supervisor = leer(col(c("Responsable de la supervisión", "Responsable de la supervision"))),
+    status_barrido = leer(col(c("Status", "Status barrido"))),
+    intentos = leer(col(c("Intentos supervisión", "Intentos supervision")))
+  )
+  controles <- .monitoreo_supervision_controles_cols(hoja, respuestas)
+  filas <- lapply(seq_len(nrow(hoja)), function(i) {
+    f <- lapply(campo, function(v) v[[i]])
+    f$coincide <- .monitoreo_supervision_coincide(f$coincide_hoja, if (nzchar(f$final)) f$final else f$resultado)
+    f$controles <- stats::setNames(vapply(names(controles), function(c) .monitoreo_supervision_texto(hoja[[c]][[i]]), ""), names(controles))
+    f
+  })
+  clave <- function(c) if (nzchar(c)) .monitoreo_text_key(leer(c)) else rep("", nrow(hoja))
   armar <- function(claves) {
     out <- list()
     for (i in seq_along(claves)) if (nzchar(claves[[i]]) && is.null(out[[claves[[i]]]])) out[[claves[[i]]]] <- filas[[i]]
     out
   }
-  list(por_pulso = armar(clave(col_pulso)), por_progres = armar(clave(col_progres)))
+  list(por_pulso = armar(clave(col_pulso)), por_progres = armar(clave(col_progres)), controles = controles)
+}
+
+# Sorteo con semilla sin tocar el RNG de la sesión.
+.monitoreo_supervision_con_semilla <- function(semilla, expr) {
+  previa <- if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) get(".Random.seed", envir = globalenv()) else NULL
+  on.exit({
+    if (is.null(previa)) {
+      if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) rm(".Random.seed", envir = globalenv())
+    } else assign(".Random.seed", previa, envir = globalenv())
+  }, add = TRUE)
+  set.seed(semilla)
+  force(expr)
+}
+
+.MONITOREO_SUPERVISION_CASOS_COLS <- c(
+  "N", "CodPulso", "proGres", "Enumerador", "Categoría", "Fecha Kobo", "Response ID", "Resultado", "Status final",
+  "Coincide", "Observación", "En hoja", "Supervisor", "Status barrido", "Status supervisión", "Intentos supervisión",
+  "Observaciones", "Controles", "Controles coinciden", "Coincide según"
+)
+
+.monitoreo_supervision_casos_vacio <- function() {
+  tipos <- list(N = integer(0), Controles = integer(0), `Controles coinciden` = integer(0))
+  cols <- lapply(.MONITOREO_SUPERVISION_CASOS_COLS, function(c) tipos[[c]] %||% character(0))
+  as.data.frame(stats::setNames(cols, .MONITOREO_SUPERVISION_CASOS_COLS), check.names = FALSE, stringsAsFactors = FALSE)
+}
+
+.monitoreo_supervision_controles_vacio <- function() {
+  data.frame(CodPulso = character(0), Pregunta = character(0), Hoja = character(0), Kobo = character(0),
+             Coincide = character(0), check.names = FALSE, stringsAsFactors = FALSE)
 }
 
 #' Bloques de supervisión estratificada.
@@ -116,9 +213,10 @@
 #' `efectivas`: `control_tiempo_kobo` completo (CodPulso, Actor, Responsable
 #' plataforma, Fecha Kobo, Response ID). `progres`: proGres por CodPulso
 #' (nombres = CodPulso). `hoja`: filas de la fuente con rol `supervision`, o
-#' NULL.
+#' NULL. `respuestas`: filas de Kobo, para comparar las preguntas de control
+#' por Response ID.
 #' @noRd
-.monitoreo_supervision_estratificada_blocks <- function(efectivas, cfg = list(), progres = character(0), hoja = NULL) {
+.monitoreo_supervision_estratificada_blocks <- function(efectivas, cfg = list(), progres = character(0), hoja = NULL, respuestas = NULL) {
   declarados <- max(1L, .monitoreo_int(cfg$supervision_n, 20L))
   semilla <- .monitoreo_int(cfg$supervision_seed, 20260514L)
   base <- if (is.data.frame(efectivas) && nrow(efectivas)) efectivas else data.frame(CodPulso = character(0))
@@ -127,7 +225,16 @@
     base <- base[nzchar(base$CodPulso) & !duplicated(base$CodPulso), , drop = FALSE]
   }
   enumerador <- if (nrow(base)) {
+    # El enumerador de Kobo por Response ID (alias de plataforma o la pregunta
+    # del formulario, ver `.monitoreo_kobo_enumerador`); si no, el de
+    # control_tiempo_kobo.
     v <- .monitoreo_supervision_texto(base[["Responsable plataforma"]])
+    por_id <- .monitoreo_kobo_enumerador_por_id(respuestas)
+    if (length(por_id) && "Response ID" %in% names(base)) {
+      w <- unname(por_id[.monitoreo_supervision_texto(base[["Response ID"]])])
+      v[!is.na(w) & nzchar(w)] <- w[!is.na(w) & nzchar(w)]
+    }
+    v <- .monitoreo_enumerador_persona(v, cfg$monitoreo_profile)
     ifelse(nzchar(v), v, "Sin enumerador")
   } else character(0)
   conteo <- table(enumerador)
@@ -135,47 +242,79 @@
   reparto <- .monitoreo_supervision_reparto(por_enumerador, declarados)
   proporcional <- .monitoreo_supervision_reparto(por_enumerador, declarados, minimo = FALSE)
 
-  set.seed(semilla)
-  elegidas <- integer(0)
-  for (nombre in sort(names(reparto))) {
-    filas <- which(enumerador == nombre)
-    k <- reparto[[nombre]]
-    elegidas <- c(elegidas, if (length(filas) <= k) filas else sort(sample(filas, k)))
-  }
-  hojas <- .monitoreo_supervision_resultados(hoja)
+  elegidas <- .monitoreo_supervision_con_semilla(semilla, {
+    out <- integer(0)
+    for (nombre in sort(names(reparto))) {
+      filas <- which(enumerador == nombre)
+      k <- reparto[[nombre]]
+      out <- c(out, if (length(filas) <= k) filas else sort(sample(filas, k)))
+    }
+    out
+  })
+  hojas <- .monitoreo_supervision_resultados(hoja, respuestas)
   conectada <- is.data.frame(hoja) && nrow(hoja) > 0L
+  kobo_ids <- if (is.data.frame(respuestas) && nrow(respuestas)) .monitoreo_report_first_values(respuestas, .MONITOREO_KOBO_ID_ALIAS) else character(0)
+  controles_largo <- list()
   casos <- if (length(elegidas)) {
     cod <- base$CodPulso[elegidas]
-    pg <- unname(ifelse(cod %in% names(progres), progres[cod], ""))
+    rid <- .monitoreo_supervision_texto(base[["Response ID"]][elegidas])
+    pg <- unname(progres[match(.monitoreo_nombre_clave(cod), .monitoreo_nombre_clave(names(progres)))])
     pg[is.na(pg)] <- ""
     res <- lapply(seq_along(cod), function(i) {
-      hits <- hojas$por_pulso[[.monitoreo_text_key(cod[[i]])]]
-      if (is.null(hits) && nzchar(pg[[i]])) hits <- hojas$por_progres[[.monitoreo_text_key(pg[[i]])]]
-      hits %||% list(resultado = "", final = "", coincide = "", observacion = "")
+      hit <- hojas$por_pulso[[.monitoreo_text_key(cod[[i]])]]
+      if (is.null(hit) && nzchar(pg[[i]])) hit <- hojas$por_progres[[.monitoreo_text_key(pg[[i]])]]
+      if (is.null(hit)) return(list(en_hoja = FALSE))
+      hit$en_hoja <- TRUE
+      fila_kobo <- if (nzchar(rid[[i]])) match(rid[[i]], kobo_ids) else NA_integer_
+      cmp <- character(0)
+      for (pregunta in names(hojas$controles)) {
+        en_hoja <- hit$controles[[pregunta]] %||% ""
+        if (!nzchar(en_hoja) || is.na(fila_kobo)) next
+        en_kobo <- .monitoreo_supervision_texto(respuestas[[hojas$controles[[pregunta]]]][[fila_kobo]])
+        igual <- .monitoreo_supervision_igual(en_hoja, en_kobo)
+        cmp[[pregunta]] <- if (igual) "Sí" else "No"
+        controles_largo[[length(controles_largo) + 1L]] <<- data.frame(
+          CodPulso = cod[[i]], Pregunta = pregunta, Hoja = en_hoja, Kobo = en_kobo, Coincide = cmp[[pregunta]],
+          check.names = FALSE, stringsAsFactors = FALSE
+        )
+      }
+      hit$n_controles <- length(cmp)
+      hit$n_iguales <- sum(cmp == "Sí")
+      # Las respuestas de control mandan; sin ellas, lo que diga la hoja.
+      if (length(cmp)) {
+        hit$coincide <- if (all(cmp == "Sí")) "Sí" else "No"
+        hit$segun <- "controles"
+      } else {
+        hit$segun <- if (nzchar(hit$coincide)) "hoja" else ""
+      }
+      hit
     })
+    campo <- function(k, vacio = "") vapply(res, function(r) if (isTRUE(r$en_hoja)) as.character(r[[k]] %||% vacio) else vacio, "")
     out <- data.frame(
-      N = seq_along(cod),
-      CodPulso = cod,
-      proGres = pg,
-      Enumerador = enumerador[elegidas],
+      N = seq_along(cod), CodPulso = cod, proGres = pg, Enumerador = enumerador[elegidas],
       `Categoría` = .monitoreo_supervision_texto(base$Actor[elegidas]),
       `Fecha Kobo` = .monitoreo_supervision_texto(base[["Fecha Kobo"]][elegidas]),
-      `Response ID` = .monitoreo_supervision_texto(base[["Response ID"]][elegidas]),
-      Resultado = vapply(res, function(r) r$resultado, ""),
-      `Status final` = vapply(res, function(r) r$final, ""),
-      Coincide = vapply(res, function(r) r$coincide, ""),
-      `Observación` = vapply(res, function(r) r$observacion, ""),
+      `Response ID` = rid,
+      Resultado = campo("resultado"), `Status final` = campo("final"), Coincide = campo("coincide"),
+      `Observación` = campo("observacion"),
+      `En hoja` = ifelse(vapply(res, function(r) isTRUE(r$en_hoja), logical(1)), "Sí", "No"),
+      Supervisor = campo("supervisor"), `Status barrido` = campo("status_barrido"),
+      `Status supervisión` = campo("resultado"), `Intentos supervisión` = campo("intentos"),
+      Observaciones = campo("observaciones"),
+      Controles = vapply(res, function(r) as.integer(r$n_controles %||% 0L), integer(1)),
+      `Controles coinciden` = vapply(res, function(r) as.integer(r$n_iguales %||% 0L), integer(1)),
+      `Coincide según` = campo("segun"),
       check.names = FALSE, stringsAsFactors = FALSE
     )
-    out <- out[order(out$Enumerador, out$CodPulso), , drop = FALSE]
+    out <- out[order(out$Enumerador, out$CodPulso), .MONITOREO_SUPERVISION_CASOS_COLS, drop = FALSE]
     out$N <- seq_len(nrow(out))
     rownames(out) <- NULL
     out
-  } else {
-    data.frame(N = integer(0), CodPulso = character(0), proGres = character(0), Enumerador = character(0),
-               `Categoría` = character(0), `Fecha Kobo` = character(0), `Response ID` = character(0),
-               Resultado = character(0), `Status final` = character(0), Coincide = character(0),
-               `Observación` = character(0), check.names = FALSE, stringsAsFactors = FALSE)
+  } else .monitoreo_supervision_casos_vacio()
+  controles_df <- if (length(controles_largo)) do.call(rbind, controles_largo) else .monitoreo_supervision_controles_vacio()
+  if (nrow(controles_df)) {
+    controles_df <- controles_df[order(controles_df$CodPulso, controles_df$Pregunta), , drop = FALSE]
+    rownames(controles_df) <- NULL
   }
   reparto_df <- data.frame(
     Enumerador = names(reparto),
@@ -188,9 +327,10 @@
   reparto_df <- reparto_df[order(-reparto_df$Efectivas, reparto_df$Enumerador), , drop = FALSE]
   rownames(reparto_df) <- NULL
   resumen <- data.frame(
-    Indicador = c("Base", "Declarados", "Casos", "Semilla", "Hoja"),
+    Indicador = c("Base", "Declarados", "Casos", "Semilla", "Hoja", "En hoja", "Controles"),
     Valor = c(as.character(nrow(base)), as.character(declarados), as.character(nrow(casos)), as.character(semilla),
-              if (conectada) "conectada" else "sin_hoja"),
+              if (conectada) "conectada" else "sin_hoja", as.character(sum(casos$`En hoja` == "Sí")),
+              as.character(length(hojas$controles))),
     stringsAsFactors = FALSE
   )
   list(
@@ -198,6 +338,8 @@
     .monitoreo_report_block("supervision_reparto", "Supervisión: reparto por enumerador", reparto_df,
                             "Proporcional a las efectivas de cada enumerador, con al menos un caso por enumerador con efectivas."),
     .monitoreo_report_block("supervision_casos", "Supervisión: casos sorteados", casos,
-                            if (conectada) "Resultado de la rellamada según la hoja de supervisión." else "Sin hoja de supervisión conectada.")
+                            if (conectada) "Resultado de la rellamada según la hoja de supervisión." else "Sin hoja de supervisión conectada."),
+    .monitoreo_report_block("supervision_controles", "Supervisión: preguntas de control frente a Kobo", controles_df,
+                            if (!conectada) "Sin hoja de supervisión conectada." else if (!length(hojas$controles)) "La hoja no trae preguntas que existan en Kobo." else "")
   )
 }
