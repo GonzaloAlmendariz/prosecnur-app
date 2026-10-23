@@ -26,7 +26,10 @@ import { BarridoDeLaHoja, RespuestasDelCorte } from "./control/montaje";
 import { Estados } from "./insumos/Estados";
 import { Fuentes } from "./insumos/Fuentes";
 import { LlaveYFiltros } from "./insumos/Llave";
-import { ColumnasEsperadas } from "./insumos/ColumnasEsperadas";
+import { AcreditacionPhoneSourceSlotCard } from "./insumos/TarjetaDeFuente";
+import { Cuotas } from "./modelo/Cuotas";
+import { Ritmo } from "./avance/Ritmo";
+import { Entregas } from "./avance/Entregas";
 
 // Claves que viven en contratos y modelos del telefónico y que en pantalla
 // siempre llevan rótulo.
@@ -44,6 +47,8 @@ const CLAVES = [
   "complete", "partial", "refusal", "pending", "excluded",
   // Tipo de regla y nivel.
   "filtro", "regla", "aviso", "alta", "media", "baja",
+  // Estado de una pieza del contrato (TelefonicoSourcesModel `status`).
+  "ready", "inactive", "missing",
 ];
 
 const FORMA_DE_CLAVE = /^[a-z0-9]+([_-][a-z0-9]+)+$/;
@@ -124,6 +129,14 @@ const REPORTS = bloques({
   cola_insistencia_responsables: [
     { Responsable: "Op-01", "Sin asignar": false, "Casos en cola": 1, "Ya efectivas en Kobo": 0, "Promedio intentos": 3, "Sin dato de intentos": 0, "Por llamar": 0 },
   ],
+  avance_efectivo_variable_dia: [
+    { Variable: "Sede", Valor: "San Juan de Lurigancho (SJL)", Fecha: "2026-06-30", "Efectivas Kobo": 3 },
+    { Variable: "Sede", Valor: "Pueblo Libre (PL)", Fecha: "2026-07-01", "Efectivas Kobo": 4 },
+  ],
+  avance_efectivo_dia: [
+    { Fecha: "2026-06-30", "Efectivas Kobo": 3 },
+    { Fecha: "2026-07-01", "Efectivas Kobo": 4 },
+  ],
   control_tiempo_kobo: [
     { CodPulso: "PDM1371", "Fecha Kobo": "2026-06-30", "Duración segundos": 365100, "Response ID": "r1" },
     { CodPulso: "PDM1429", "Fecha Kobo": "2026-07-01", "Duración segundos": 960, "Response ID": "r2" },
@@ -193,16 +206,70 @@ const PESTANAS: Array<[string, () => string]> = [
     `${RUTA}&seccion=insumos&pestana=llave`,
   )],
   ["Tarjetas de fuente (universo, barrido y encuesta)", () => {
+    // Una pieza lista, una inactiva (sólo la hoja apagada) y una pendiente (sin
+    // encuesta): los tres estados de la tarjeta.
     const contrato = buildAcreditacionPhoneSourceContract([hoja, kobo]);
+    const sinEncuesta = buildAcreditacionPhoneSourceContract([apagada, { ...hoja, id: "barrido-apagado", enabled: false }]);
+    const piezas = [contrato.universe, contrato.sweep, contrato.platform, sinEncuesta.sweep, sinEncuesta.platform];
+    expect(new Set(piezas.map((slot) => slot.status))).toEqual(new Set(["ready", "inactive", "missing"]));
     return pintar(
       <>
-        {[contrato.universe, contrato.sweep, contrato.platform].map((slot) => (
-          <ColumnasEsperadas key={slot.key} columnas={slot.expected} pieza={slot.label} />
+        {piezas.map((slot, i) => (
+          <AcreditacionPhoneSourceSlotCard key={`${slot.key}-${i}`} slot={slot} icon={null} syncFallback="2026-07-27T09:04:00" onCambiar={nada} />
         ))}
       </>,
       `${RUTA}&seccion=insumos&pestana=llave`,
     );
   }],
+  ["Modelo › Cuotas y calendario", () => pintar(
+    <Cuotas
+      variable="dim_sede"
+      etiquetaDeVariable="Sede"
+      candidatas={[{ name: "dim_sede", label: "Sede", categories: 2, universe: 900, meta: 150, enUso: true }]}
+      onElegir={nada}
+      onUsar={nada}
+      variableGuardada
+      filas={[
+        { value: "San Juan de Lurigancho (SJL)", universe: 614, meta: 107, effective: 109 },
+        { value: "Pueblo Libre (PL)", universe: 0, meta: 41, effective: 45 },
+      ]}
+      pendientes={{}}
+      onMeta={nada}
+      cambiadas={1}
+      etiquetaConfirmar="Confirmar 1 meta"
+      onConfirmar={nada}
+      onDescartar={nada}
+      onQuitar={nada}
+      onAgregar={nada}
+      objetivoTotal={150}
+      onObjetivoTotal={nada}
+      filtro="Intro/Consent: Yes"
+      calendario={{ ventana: "Semana 1", reporte: "Sin reporte", fases: 0, dias: [{ fecha: "2026-07-01", casos: 74 }], nota: "1 efectiva de Kobo sin sede no entra a la serie" }}
+      estado={{ tono: "success", texto: "Cuotas telefónicas actualizadas." }}
+    />,
+    `${RUTA}&seccion=modelo&pestana=cuotas`,
+  )],
+  ["Avance › Ritmo", () => pintar(<Ritmo reports={REPORTS} state={STATE} />, `${RUTA}&seccion=avance&pestana=ritmo`)],
+  ["Avance › Entregas", () => pintar(
+    <Entregas
+      modelo={{
+        segmento: "Sede",
+        filas: [{
+          clave: "sjl", nombre: "San Juan de Lurigancho (SJL)", estado: "cumple", meta: 107, efectivas: 109, faltan: 0, pct: 101.9,
+          acumulado: [], cumplio: "03/07", cumplioClave: "2026-07-03", sinLlamar: 0, universo: 614, rechazoOParcial: 0, llamadoSinEfectiva: 0,
+        }],
+        total: { meta: 107, efectivas: 109, faltan: 0, pct: 101.9, desde: null, hasta: null, cumplio: null, sinLlamar: 0, universo: 614 },
+        ritmo: null,
+        rendimiento: null,
+        sinAsignar: null,
+        faltanteDiario: { fechas: [], series: [] },
+      }}
+      corte="27/07/26, 9:04 a. m."
+      dias={[{ fecha: "2026-07-01", casos: 74 }]}
+      salidas={null}
+    />,
+    `${RUTA}&seccion=avance&pestana=entregas`,
+  )],
   ["Insumos › Fuentes", () => {
     const fuentes = [hoja, kobo, apagada];
     return pintar(

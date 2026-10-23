@@ -35,7 +35,7 @@ Diseño: `docs/qa/revamp-monitoreo/telefonico.md` (fichas), lienzo «Revamp de M
 | T5 | Control › Barrido y Equipo | `control/Barrido.tsx`, `control/Equipo.tsx`, `control/EquipoMatriz.tsx`; reutiliza `conteoDeEquipo.ts`, `telefonicoTeamModel.ts` | T2 | ☑ |
 | T6 | Control › Respuestas y Avisos | `control/Respuestas.tsx`, `control/Avisos.tsx`; reutiliza `filtroEfectiva/`, `TelefonicoPhoneAlerts.ts` | T2 | ☑ |
 | T7 | Insumos | Fuentes, Llave y filtros, Estados (`insumos/Estados.tsx`), reutilizando `fuentes/` | T2 | ☑ |
-| T8 | Modelo y Avance restantes | Cuotas y calendario, Ritmo, Entregas; Reserva y Reemplazos condicionales | T2; Reserva y Reemplazos esperan P8–P9 y el contrato de «ACNUR RMS» | ☐ |
+| T8 | Modelo y Avance restantes | Cuotas y calendario, Ritmo, Entregas; Reserva y Reemplazos condicionales | T2; Reserva y Reemplazos esperan P8–P9 y el contrato de «ACNUR RMS» | ◐ (Cuotas, Ritmo y Entregas hechas; Reserva y Reemplazos esperan) |
 | T9 | Control › Discrepancias y Supervisión | Discrepancias con decisión auditada; supervisión estratificada | **Bloqueada** por P1–P7 | ⛔ |
 
 Orden de la noche: T0, T1, T2, T3, T4, y luego T5 a T7 si el tiempo alcanza. Cada fase cierra en su propio commit en
@@ -329,3 +329,67 @@ misma frase.
   (`sheet_binding` trae `spreadsheet_id`, `sheet_name`, `header_row`, `range`, `last_read_at` y `snapshot_hash`; sin
   encabezados). Se muestra el valor guardado en `dimensions` tal cual, en monoespaciado, porque es el nombre de columna
   que la fuente declaró.
+
+**T8, Modelo › Cuotas y calendario.** `profiles/telefonico/modelo/Cuotas.tsx` con `cuotasModel.ts` (test). El estado y lo
+que se guarda siguen en el editor de cuotas del page-file (`AcreditacionPhoneQuotaEditor`), que ahora sólo pinta
+`Cuotas`: se edita lo mismo que antes (variable, metas por categoría con confirmación, agregar o quitar categoría y
+objetivo total). Lo nuevo es la lectura: cada meta sobre su universo y frente al reparto proporcional (PDM: Chorrillos
++15 y Pueblo Libre −18, como el lienzo), la validación (suma contra el objetivo, categorías con meta en la hoja,
+desvío mayor) y la tarjeta del calendario con los días de campo con efectivas y el enlace a la sub-vista.
+
+- **No va**: «Repartir en proporción al universo» (no existe y escribiría metas), la columna «Muestra» (P8–P9), el
+  horario y los días de llamada (el proyecto no los declara; el calendario guarda semanas, fechas y día de reporte) y
+  las candidatas sin universo en el corte: el motor sólo publica cuotas de la variable en uso, así que «Atención»,
+  «Trámite» y «Origen» no aparecen con sus valores.
+- Sin metas por enumerador.
+
+**T8, Avance › Ritmo.** `profiles/telefonico/avance/Ritmo.tsx` con `ritmoModel.ts` (test), sobre
+`avance_efectivo_variable_dia`, `avance_efectivo_dia` y `estatus_dia`. Las efectivas de Kobo por día apiladas por
+categoría de la variable de cuota, con el acumulado y la línea de la meta, y los llamados de la hoja apilados por familia
+del status en el mismo eje de fechas: en PDM la hoja se detiene el 02/07 y Kobo sigue hasta el 06/07, y la pestaña lo
+dice. Debajo, el mapa de calor categoría por día (PDM 110, 109, 100, 59 y 45). A la derecha: el promedio (PDM 60.4 por
+día, 423 en 7 días), el día a día con Kobo, acumulado y hoja, y cómo vienen escritas las fechas de la hoja (PDM: 7
+valores, 560 con el día de un dígito, 62 con dos, 6 sin fecha y 3 del año 2020, que corresponden a 3 días). Chips de
+cabecera: el pico (133 el 03/07) y el día en que se cruza la meta (04/07).
+
+- **No va**: la hora de inicio de las efectivas (el corte sólo trae la fecha de Kobo) y la ventana de llamada, que el
+  proyecto no declara.
+- La vista anterior llevaba además la base telefónica (barridos, por barrer, efectivas por sede) y el contraste entre
+  Kobo y la hoja: están en Control › Barrido y Control › Discrepancias.
+- Las clases del Ritmo usan el prefijo `mon-cadencia-` y las de Cuotas `mon-metas-`: `mon-ritmo-*` y `mon-cuotas-*` ya
+  existían en otras hojas y se pisaban.
+
+**T8, Avance › Entregas.** `profiles/telefonico/avance/Entregas.tsx`. A la izquierda, «Para el cliente: avance por
+cuota»: la vista del PDF del cliente con las cifras del corte (categoría, meta, efectivas, faltan y avance, del mismo
+modelo que Avance › Cuotas; PDM 400, 423, 0 y 105.8 %). A la derecha, las salidas de siempre
+(`MonitoreoOutputsWorkbench`) apiladas en una columna: el PDF del cliente, el de producción para el equipo, la base
+para Procesamiento y la publicación en las hojas del cliente e interna, con su revisión antes de aplicar. La vista no
+publica ni genera nada por su cuenta; los bloqueos de readiness siguen igual (PDM «Bloqueado» porque el corte quedó
+desactualizado).
+
+- **Diferencias con el lienzo**: los botones «Publicar en la hoja del cliente» y «Descargar PDF» no se duplican en la
+  cabecera de la vista previa (viven en las salidas, con su ensayo); la lista numerada del PDF de producción no se
+  dibuja porque el contenido real del PDF lo dice su tarjeta («Resumen por responsable, estados de llamada y
+  trazabilidad del barrido contra Kobo»); «Por definir» (P15) queda en este plan.
+- La vista previa es HTML con las cifras del corte, no el PDF renderizado.
+
+**Tarjeta de fuente fuera del page-file.** `AcreditacionPhoneSourceSlotCard` vive en `insumos/TarjetaDeFuente.tsx` y la
+prueba de claves sin rótulo la monta para universo, barrido y encuesta; el contrato que leía su markup en la página
+(`TelefonicoSubsanacionGuia.test.ts`) lee también el archivo nuevo. La prueba cubre ya Barrido, Insistencia, Equipo,
+Respuestas, Avisos, Estados, Llave y filtros, Fuentes, las tarjetas de fuente, Cuotas, Ritmo y Entregas.
+
+**Composición de T8.** Cuotas: bajo la tabla de metas va «Avance de cada meta» (efectivas frente a su meta, con el
+faltante), que usa el alto que la tabla no pide; con muchas categorías baja y la tabla desplaza; el total y «Agregar»
+quedan al pie. Ritmo: las dos gráficas reparten el alto que el mapa de calor no pide; «Día a día» mide lo que pide y la
+tarjeta de fechas de la hoja llega al pie con cada valor de la columna de fecha (lo que hay que corregir en la hoja); el
+acumulado lleva su valor final rotulado («69 de 100», «423 de 400»). Entregas: la vista del PDF lleva también el ritmo
+diario, que el PDF del cliente incluye, y mide lo que pide.
+
+**Una sola serie diaria (rechazo del verificador).** En Medios de Vida, Ritmo daba 16 el 04/08 y 69 en total, y el chip,
+el calendario de Cuotas y la vista del PDF daban 17 y 70: leían `avance_efectivo_variable_dia` y `avance_efectivo_dia`,
+y una efectiva de Kobo no tiene actor. Ahora las cuatro vistas leen `serieDiariaDelCorte` (`avance/ritmoModel.ts`): la
+serie por categoría de cuota, que es la que suma Avance › Cuotas (69) y la barra FALTAN (31 de 100). La efectiva sin
+categoría se declara aparte («1 efectiva de Kobo sin actor no entra a la serie») en Ritmo, en el calendario de Cuotas y
+en la vista del PDF. `segmentoDelCorte` delega en `segmentoDeCuotas`, para que el segmento también sea uno solo. Test
+`avance/serieDiariaCoherente.test.tsx`. La prueba de claves sin rótulo cubre además el estado de la tarjeta de fuente
+(lista, inactiva y pendiente).
