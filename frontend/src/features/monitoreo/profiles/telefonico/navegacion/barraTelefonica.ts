@@ -5,7 +5,7 @@ import { useMemo, useRef } from "react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import type { BarraDelModo, EstadoDelModo } from "../../../shell/BarraDelModo";
 import { fmt } from "../formato";
-import { nombreDelSegmento } from "../segmentoDeCuotas";
+import { nombreDelSegmento, rotuloDelSegmento } from "../segmentoDeCuotas";
 import { filasDeBloque } from "./bloques";
 import { chipsDeInsistencia } from "../control/insistenciaModel";
 import { contarDesvios } from "../control/equipoModel";
@@ -51,7 +51,7 @@ export function resumenDelModo({
   const conMeta = cuotas.filter((item) => item.meta != null && item.meta > 0);
   const segmento = cuotas.length ? nombreDelSegmento(variables, "") : "";
   return {
-    ejeDeCuota: segmento ? `${segmento}, ${fmt(cuotas.length)} ${cuotas.length === 1 ? "valor" : "valores"}` : null,
+    ejeDeCuota: segmento ? `${rotuloDelSegmento(segmento)}, ${fmt(cuotas.length)} ${cuotas.length === 1 ? "valor" : "valores"}` : null,
     meta: conMeta.length ? conMeta.reduce((suma, item) => suma + (item.meta ?? 0), 0) : null,
     faltan: conMeta.length ? conMeta.reduce((suma, item) => suma + (item.missing ?? 0), 0) : null,
     efectivas: conMeta.reduce((suma, item) => suma + item.effective, 0),
@@ -201,13 +201,13 @@ function chipsDeAvisos(reports: MonitoreoAcreditacionReports | null): string[] {
   return [...chip(porNivel.alta, "alto", "altos"), ...chip(porNivel.media, "medio", "medios"), ...chip(porNivel.baja, "bajo", "bajos")];
 }
 
-/** Efectivas sobre envíos que pasan el filtro y cuántas duran más de 2 h. */
+/** Efectivas sobre envíos que pasan el filtro y cuántas duran menos de 5 min (las largas no son un problema). */
 function chipsDeRespuestas(reports: MonitoreoAcreditacionReports | null): string[] {
   const modelo = construirRespuestas({ reports, segmento: "" });
   if (!modelo.envios.length) return [];
   return [
     `${fmt(modelo.unicas)} efectivas de ${fmt(modelo.envios.length)} envíos`,
-    ...(modelo.conteos["mas-de-2h"] ? [`${fmt(modelo.conteos["mas-de-2h"])} duran más de 2 h`] : []),
+    ...(modelo.conteos.corta ? [`${fmt(modelo.conteos.corta)} duran menos de 5 min`] : []),
   ];
 }
 

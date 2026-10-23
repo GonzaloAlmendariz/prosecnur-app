@@ -144,6 +144,7 @@ describe("Control › Avisos del telefónico", () => {
     const { avisos } = construirAvisos(reportes([], {
       control_tiempo_kobo: [
         { CodPulso: "PDM1371", "Duración segundos": 365_100 },
+        { CodPulso: "PDM1500", "Duración segundos": 120 },
         { CodPulso: "PDM1429", "Duración segundos": 900 },
         { CodPulso: "PDM1429", "Duración segundos": 1000 },
       ],
@@ -151,7 +152,9 @@ describe("Control › Avisos del telefónico", () => {
       estatus_dia: [{ Estado: "Efectivo", "1/07/2026": 10, "30/06/2020": 1, "Sin fecha": 2 }],
     }));
     const porCodigo = Object.fromEntries(avisos.map((aviso) => [aviso.codigo, aviso.casos]));
-    expect(porCodigo).toMatchObject({ duracion_mayor_2h: 1, codpulso_repetido: 1, barrido_desfasado: 1, fecha_irregular: 3 });
+    expect(porCodigo).toMatchObject({ duracion_menor_5min: 1, codpulso_repetido: 1, barrido_desfasado: 1, fecha_irregular: 3 });
+    // Una encuesta larga no es un problema: no hay aviso por durar más de 2 h.
+    expect(Object.keys(porCodigo).some((codigo) => /mayor|larg|2h/i.test(codigo))).toBe(false);
   });
 
   it("quita el prefijo «codigo:» del detalle, no sólo de los afectados", () => {
@@ -193,5 +196,20 @@ describe("P3: la hoja dice «Efectivo» y Kobo no tiene envío", () => {
     expect(aviso?.afectados[0]).toMatchObject({ responsable: "Op-02", nota: "proGres XYZ-26-900001" });
     expect(aviso?.afectados[1].responsable).toBe("Sin asignar");
     expect(aviso?.desglose).toEqual([{ etiqueta: "Op-02", valor: 1 }, { etiqueta: "Sin asignar", valor: 1 }]);
+  });
+});
+
+describe("una sola cifra para «Efectivo sin Kobo»", () => {
+  it("la alerta vieja del motor sale cuando Discrepancias trae los casos", () => {
+    const { avisos } = construirAvisos(reportes(
+      [{ Nivel: "Alta", "Tipo alerta": "Efectivo telefónico sin efectiva Kobo", Detalle: "1 caso", CodPulso: "A1" }],
+      { discrepancias_telefonicas: [
+        { Sentido: "hoja_sin_kobo", CodPulso: "A1", proGres: "", Responsable: "Ana", Destino: "avisos" },
+        { Sentido: "hoja_sin_kobo", CodPulso: "A2", proGres: "", Responsable: "Ana", Destino: "avisos" },
+      ] },
+    ));
+    const conCausa = avisos.filter((aviso) => /kobo/i.test(aviso.titulo));
+    expect(conCausa).toHaveLength(1);
+    expect(conCausa[0].casos).toBe(2);
   });
 });
