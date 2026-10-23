@@ -151,7 +151,7 @@ const PESTANAS: Array<[string, () => string]> = [
   ["Control › Bandeja filtrada por GPS lejos", () => pintar(<BandejaTab consultas={CONSULTAS} phase="field" />, "/monitoreo?modo=territorial&seccion=control&pestana=bandeja&foco=gps-lejos")],
   ["Control › Equipo", () => pintar(<EquipoTab consultas={CONSULTAS} validacion={AUDITORIA} phase="field" />, "/monitoreo?modo=territorial&seccion=control&pestana=equipo")],
   ["Control › Equipo con el inspector de P222", () => pintar(<EquipoTab consultas={CONSULTAS} validacion={AUDITORIA} phase="field" />, "/monitoreo?modo=territorial&seccion=control&pestana=equipo&panel=codigo&foco=P222")],
-  ["Control › Subsanaciones", () => pintar(<SubsanacionesTab reports={CORTE_DE_CUOTAS} />, "/monitoreo?modo=territorial&seccion=control&pestana=subsanaciones&foco=143")],
+  ["Control › Subsanaciones", () => pintar(<SubsanacionesTab reports={CORTE_DE_CUOTAS} phase="field" />, "/monitoreo?modo=territorial&seccion=control&pestana=subsanaciones&foco=143")],
   ["Control › Anulaciones", () => pintar(<AnulacionesTab reports={CORRECCIONES} phase="field" />, "/monitoreo?modo=territorial&seccion=control&pestana=anulaciones")],
   ["Control › Conciliación", () => pintar(
     <ConciliacionTab reports={CORRECCIONES} state={ESTADO_CON_PADRON} phase="field" onEspacial={() => undefined} />,

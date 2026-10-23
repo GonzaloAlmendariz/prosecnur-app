@@ -1252,6 +1252,7 @@ function renderPestana(
       return (
         <SubsanacionesTab
           reports={options.cortes?.consultas ?? reports}
+          phase={options.phase ?? "field"}
           onApply={options.onOperationalAdjustmentApply}
           onRevert={options.onOperationalAdjustmentRevert}
         />

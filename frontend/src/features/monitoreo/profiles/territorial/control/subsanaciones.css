@@ -192,6 +192,25 @@
   color: var(--pulso-danger-fg);
 }
 
+.mon-sub-acciones {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
+
+.mon-sub-ya-rechazado {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: 8px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+}
+
+.mon-sub-historial li.is-rechazada > span {
+  color: var(--pulso-danger-fg);
+}
+
 .mon-sub-distritos {
   display: grid;
   gap: var(--pulso-space-1);
