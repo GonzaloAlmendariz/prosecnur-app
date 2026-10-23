@@ -87,6 +87,8 @@ import { MapaTab } from "./avance/MapaTab";
 import { AnulacionesTab } from "./control/AnulacionesTab";
 import { BandejaTab } from "./control/BandejaTab";
 import { ConciliacionTab } from "./control/ConciliacionTab";
+import { OcurrenciasTab } from "./control/OcurrenciasTab";
+import { ReportesTab } from "./control/ReportesTab";
 import { SubsanacionesTab } from "./control/SubsanacionesTab";
 import { EquipoTab } from "./control/EquipoTab";
 import { SenalesTab } from "./control/SenalesTab";
@@ -1241,6 +1243,10 @@ function renderPestana(
           onStateChange={options.onStateChange}
         />
       );
+    }
+    if (clave === "control/ocurrencias" && !direccion.panel) return <OcurrenciasTab reports={reports} />;
+    if (clave === "control/reportes" && !direccion.panel) {
+      return <ReportesTab ocurrencias={options.cortes?.consultas ?? reports} validacion={options.cortes?.validacion ?? null} />;
     }
     if (clave === "control/subsanaciones") {
       return (
