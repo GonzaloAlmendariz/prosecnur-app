@@ -1,5 +1,5 @@
 import type { ResponsableDeCola } from "../colaDeInsistenciaModel";
-import { medianaDeIntentos } from "../colaDeInsistenciaModel";
+import { fraseDelReparto, medianaDeIntentos } from "../colaDeInsistenciaModel";
 import { useFiltrosDeCola } from "../colaDeInsistenciaStore";
 
 const INTENSIDAD: Record<NonNullable<ResponsableDeCola["intensidad"]>, string> = {
@@ -36,11 +36,7 @@ export function ResponsablesDeCola({
         <b>Responsables</b>
         <span className="mon-cola-antetitulo">En cola</span>
       </header>
-      <p className="mon-cola-reparto">
-        {reparto.equipo.toLocaleString("es-PE")} responsables
-        {reparto.repartidos != null ? `, ${reparto.repartidos.toLocaleString("es-PE")} casos repartidos` : ""}
-        {`; ${reparto.porLlamarAsignados.toLocaleString("es-PE")} por llamar, ya asignados`}
-      </p>
+      <p className="mon-cola-reparto">{fraseDelReparto(reparto)}</p>
       <ul className="mon-cola-responsables-lista">
         {equipo.map((item) => {
           const elegido = filtros.responsable === item.nombre;

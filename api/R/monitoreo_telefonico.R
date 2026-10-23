@@ -1231,6 +1231,7 @@
       quota_values = if (nzchar(quota_variable)) quota_value_columns[[quota_variable]] else NULL
     ), cfg, data, from_population = phone_from_population))
   }
+  blocks <- c(blocks, .monitoreo_telefonico_origen_blocks(phone, profile)) # monitoreo_telefonico_origen.R
   # El conflicto de llave se descontaba en silencio; ahora se reporta para poder
   # separarlo de los pendientes por falta de registro (plan §7).
   key_conflicts <- .monitoreo_report_phone_key_conflict_df(responses, profile)

@@ -293,11 +293,11 @@
 }
 
 .mon-metas-avance-nombre {
-  overflow: hidden;
+  min-height: 2.6em;
   font-size: 12px;
   font-weight: var(--pulso-weight-semibold);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .mon-metas-avance-faltan {
@@ -365,16 +365,9 @@
   font: inherit;
 }
 
-.mon-metas-estado {
-  margin: 0;
-  padding: var(--pulso-space-2) var(--pulso-space-4);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-}
 
-.mon-metas-estado.is-error {
-  color: var(--pulso-danger-fg);
-}
+
+
 
 .mon-metas-validacion {
   display: flex;
@@ -431,7 +424,9 @@
   align-self: flex-start;
 }
 
-/* La tarjeta del calendario llega al pie: la lista de días crece y desplaza. */
+/* La columna derecha termina con la izquierda: la tarjeta del calendario toma
+ * el alto que queda, la lista de días crece y desplaza dentro con la barra
+ * visible, y el botón queda pegado al pie de la tarjeta. */
 .mon-metas-modelo-lateral > .mon-metas-calendario {
   flex: 1 1 auto;
   min-height: 220px;
@@ -444,10 +439,31 @@
   flex-direction: column;
   gap: 6px;
   min-height: 0;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
   margin: 0;
   padding: 0;
-  overflow-y: auto;
   list-style: none;
+}
+
+/* Sin días ni categorías, el vacío se dice en el sitio que ocuparían y ocupa
+ * su alto: la tarjeta no cambia de marco entre cero y muchos. */
+.mon-metas-dias-vacio,
+.mon-metas-avance-vacio {
+  display: grid;
+  flex: 1 1 0;
+  place-items: center;
+  min-height: 0;
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.mon-metas-sin-categorias {
+  margin: var(--pulso-space-3) var(--pulso-space-4) 0;
 }
 
 .mon-metas-dias li {
@@ -492,14 +508,22 @@
     overflow: visible;
   }
 
-  .mon-metas-modelo-columna > .mon-metas-metas,
+  .mon-metas-modelo-columna > .mon-metas-metas {
+    flex: none;
+    min-height: 0;
+  }
+
   .mon-metas-modelo-lateral > .mon-metas-calendario {
     flex: none;
     min-height: 0;
   }
 
+  .mon-metas-dias {
+    flex: none;
+    overflow: visible;
+  }
+
   .mon-metas-marco,
-  .mon-metas-dias,
   .mon-metas-avance,
   .mon-metas-avance-lienzo {
     flex: none;
@@ -522,8 +546,8 @@
   }
 }
 
-.mon-metas-calendario .mon-metas-nota {
-  margin: 0;
-  color: var(--pulso-warn-fg);
-  font-size: 12px;
+
+
+.mon-metas-metas > .mon-metas-estado {
+  margin: 0 var(--pulso-space-4) var(--pulso-space-3);
 }

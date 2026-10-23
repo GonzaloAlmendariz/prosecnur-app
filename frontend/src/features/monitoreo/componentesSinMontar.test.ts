@@ -103,16 +103,25 @@ const fuentes = new Map(
   archivos(RAIZ).map((ruta) => [ruta, sinComentarios(fs.readFileSync(ruta, "utf8"))]),
 );
 
+// Cuántas veces aparece cada identificador en mayúscula, en una sola pasada
+// por todos los archivos. Antes se armaba una regex por componente y por
+// archivo (cuadrático) y el test pasaba de los 5 s con el gate cargado.
+function conteoDeIdentificadores() {
+  const conteo = new Map<string, number>();
+  for (const texto of fuentes.values()) {
+    for (const [nombre] of texto.matchAll(/\b[A-Z]\w*\b/g)) conteo.set(nombre, (conteo.get(nombre) ?? 0) + 1);
+  }
+  return conteo;
+}
+
 function sinMontar() {
   const hallazgos: string[] = [];
+  const conteo = conteoDeIdentificadores();
   for (const [ruta, texto] of fuentes) {
     if (!ruta.endsWith(".tsx")) continue;
     const definidos = new Set([...texto.matchAll(/^(?:export )?function ([A-Z]\w+)\(/gm)].map((m) => m[1]));
     for (const nombre of definidos) {
-      let usos = 0;
-      for (const otro of fuentes.values()) {
-        usos += (otro.match(new RegExp(`\\b${nombre}\\b`, "g")) ?? []).length;
-      }
+      const usos = conteo.get(nombre) ?? 0;
       // 1 = sólo su propia definición.
       if (usos <= 1) hallazgos.push(`${path.basename(ruta)}::${nombre}`);
     }
