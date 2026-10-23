@@ -80,3 +80,25 @@ Faltante y Resumen tenían `geometry-undeclared`, ya declarados en el código (`
 sin re-medir. En la corrida siguiente Resumen no llegó a readiness en 420 s; coincidió con la máquina trabada y la API
 caída, así que no se sabe aún si es un defecto: es lo primero que se mide al reanudar.
 
+**T3 (en curso).** Avance › UMP montada como pestaña propia (`avance/UmpsTab.tsx`), con la tabla de §3.16 (segmentado,
+buscador, CSV y columnas de ocurrencias sólo si el proyecto declara el parte, E4) y, al elegir una UMP
+(`panel=ump&foco=<UMP>`), la ficha (`FichaDeUmp.tsx`, la misma que usará el P1 del Mapa) y la historia de la UMP
+(`HistoriaUmp.tsx`) al costado, sin tapar la tabla. Las filas son las de Faltante por UMP, así que cuentan, cuota y
+estado coinciden entre pestañas (lo verifica `umpsModel.test.ts`).
+
+La ficha necesita dos cortes: la subsanación sólo viaja en `advance_summary` y los casos sólo en `validation_summary`.
+La página le pasa los dos desde `monitoreoScopeCache` (la precarga de fondo ya pide ambos); si el de Validación aún no
+llegó, la ficha lo dice en vez de mostrar «0 casos».
+
+La historia se arma en el frontend con lo que el motor ya publica: formularios del corte, filas anuladas con su
+consentimiento, fecha de la anulación y subsanaciones aplicadas; la curva cuadra contra lo que cuenta hoy y avisa si
+no.
+
+Bloqueado por backend (`backend-r`, fuera de este glob): el endpoint de casos por UMP con GPS de §3.16b. Sin él no se
+dibujan el mapa de la exploración (puntos numerados por GPS, segmentados Titular/Reemplazo/Ambas y
+Recorrido/Estado/Cuota) ni «Ver cada formulario», porque las filas anuladas no traen GPS ni hora.
+
+Pendiente en el frontend: Avance › Mapa (§3.15) sobre `TerritorialRouteCoverageAtlas.tsx`, con el lateral de conteos y
+el P1 usando `FichaDeUmp`. En la historia los aplicadores se rotulan como hoy (código y nombre); el diseño pide
+«Aplicador 1 / 2». Queda atado a la pregunta T-1.
+

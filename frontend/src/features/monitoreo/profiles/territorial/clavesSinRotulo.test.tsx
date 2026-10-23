@@ -11,9 +11,11 @@
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
+import type { MonitoreoTerritorialDashboard } from "../../../../api/client";
 import { describe, expect, it } from "vitest";
 import { FaltantePorUmp } from "./avance/FaltantePorUmp";
 import { ResumenTerritorial } from "./avance/Resumen";
+import { UmpsTab } from "./avance/UmpsTab";
 import { CORTE_DE_CUOTAS } from "./avance/fixtures/corteDeCuotas";
 import { CORTE_DE_RESUMEN } from "./avance/fixtures/corteDeResumen";
 
@@ -50,6 +52,18 @@ function pintar(nodo: ReactNode, ruta: string) {
 
 const RUTA = "/monitoreo?modo=territorial&seccion=avance";
 
+// Casos del corte de Validación para la ficha y la historia de la UMP 143.
+const VALIDACION = {
+  response_audit: [
+    { response_id: "a", advance_block_id: "150135063000590", advance_block_manzana: "0590", advance_valid: true, validation_status: "validada", observation_status: "en_observacion", submission_date_iso: "2026-06-17", submission_hour: "10:15:00", sex: "Mujer", age: 34, distance_m: 40, responsible_display: "P132 · Aplicadora de Prueba" },
+    { response_id: "b", advance_block_id: "150135063000590", advance_block_manzana: "0590", advance_valid: false, validation_status: "no_defendible", observation_status: "no_valida", submission_date_iso: "2026-06-18", submission_hour: "", sex: "", age: null, distance_m: null, responsible_display: "P132 · Aplicadora de Prueba" },
+  ],
+} as unknown as MonitoreoTerritorialDashboard;
+const CON_PARTE = {
+  ...CORTE_DE_CUOTAS,
+  field_occurrences: { by_ump: [{ ump: "UMP 143", has_report: true, reportes: 1, efectivas: 8, intentos: 20 }] },
+} as unknown as MonitoreoTerritorialDashboard;
+
 const PESTANAS: Array<[string, () => string]> = [
   ["Avance › Faltante por UMP", () => pintar(<FaltantePorUmp reports={CORTE_DE_CUOTAS} />, `${RUTA}&pestana=faltante`)],
   ["Avance › Faltante por UMP con el detalle abierto", () => pintar(<FaltantePorUmp reports={CORTE_DE_CUOTAS} />, `${RUTA}&pestana=faltante&foco=143`)],
@@ -59,6 +73,9 @@ const PESTANAS: Array<[string, () => string]> = [
     <ResumenTerritorial reports={{ ...CORTE_DE_RESUMEN, response_audit: [] }} />,
     `${RUTA}&pestana=resumen`,
   )],
+  ["Avance › UMP", () => pintar(<UmpsTab avance={CON_PARTE} validacion={VALIDACION} />, `${RUTA}&pestana=umps`)],
+  ["Avance › UMP con la ficha y la historia de la 143", () => pintar(<UmpsTab avance={CON_PARTE} validacion={VALIDACION} />, `${RUTA}&pestana=umps&panel=ump&foco=143`)],
+  ["Avance › UMP sin ocurrencias ni casos", () => pintar(<UmpsTab avance={CORTE_DE_CUOTAS} validacion={null} />, `${RUTA}&pestana=umps&panel=ump&foco=143`)],
 ];
 
 describe("Territorial: ninguna clave llega a la pantalla sin rótulo", () => {
@@ -71,6 +88,15 @@ describe("Territorial: ninguna clave llega a la pantalla sin rótulo", () => {
   it("el detalle abierto es el de la UMP enfocada", () => {
     const html = pintar(<FaltantePorUmp reports={CORTE_DE_CUOTAS} />, `${RUTA}&pestana=faltante&foco=143`);
     expect(html).toContain('id="mon-falt-detalle-143"');
+  });
+
+  it("Avance › UMP abre la ficha de la UMP enfocada y declara su readiness de detalle", () => {
+    const html = pintar(<UmpsTab avance={CON_PARTE} validacion={VALIDACION} />, `${RUTA}&pestana=umps&panel=ump&foco=143`);
+    expect(html).toContain('data-audit-ready="monitoreo-territorial-avance-umps-detalle"');
+    expect(html).toContain("Historia de la UMP");
+    const sinParte = pintar(<UmpsTab avance={CORTE_DE_CUOTAS} validacion={null} />, `${RUTA}&pestana=umps`);
+    expect(sinParte).not.toContain("Sin parte");
+    expect(sinParte).toContain('data-audit-ready="monitoreo-territorial-avance-umps"');
   });
 
   it("el vacío de Faltante publica su motivo a la readiness", () => {
